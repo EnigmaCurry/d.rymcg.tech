@@ -67,3 +67,18 @@ additions for usage with Traefik:
  * Setting `HTTP_PORT` is unnecessary and is now ignored.
  
 
+## baikal
+
+baikal is a CAL-DAV server. 
+
+Copy .env-dist to .env and change:
+
+ * `BAIKAL_TRAEFIK_HOST` to the external domain name forwarded from traefik, eg.
+   `cal.example.com`
+ 
+To start baikal, go into the baikal directory and run `docker-compose up -d`
+
+Immediately configure the application, by going to the external URL in your
+browser, it is unsecure by default until you set it up!
+
+
