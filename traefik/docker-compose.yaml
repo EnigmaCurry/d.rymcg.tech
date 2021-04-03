@@ -1,0 +1,35 @@
+version: "3.3"
+
+networks:
+  traefik-proxy:
+    external:
+      name: traefik-proxy
+
+volumes:
+  traefik:
+  
+services:
+  traefik:
+    image: "traefik:v2.4"
+    container_name: "traefik"
+    restart: unless-stopped
+    networks:
+    - traefik-proxy
+    security_opt:
+    - no-new-privileges:true
+    command:
+    #- "--log.level=DEBUG"
+    - "--providers.docker=true"
+    - "--providers.docker.exposedbydefault=false"
+    - "--entrypoints.websecure.address=:443"
+    - "--certificatesresolvers.default.acme.tlschallenge=true"
+    - "--certificatesresolvers.default.acme.caserver=${ACME_CA_SERVER}"
+    - "--certificatesresolvers.default.acme.email=${ACME_CA_EMAIL}"
+    - "--certificatesresolvers.default.acme.storage=/data/acme.json"
+    ports:
+    - "80:80"
+    - "443:443"
+    volumes:
+    - "traefik:/data"
+    - "/var/run/docker.sock:/var/run/docker.sock:ro"
+

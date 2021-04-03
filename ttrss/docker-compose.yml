@@ -1,0 +1,80 @@
+version: '3'
+
+networks:
+  traefik-proxy:
+    external:
+      name: traefik-proxy
+
+services:
+  db:
+    image: postgres:12-alpine
+    restart: unless-stopped
+    environment:
+      - POSTGRES_USER=${TTRSS_DB_USER}
+      - POSTGRES_PASSWORD=${TTRSS_DB_PASS}
+      - POSTGRES_DB=${TTRSS_DB_NAME}
+    volumes:
+      - db:/var/lib/postgresql/data
+
+  app:
+    build:
+      context:
+        ./app
+    restart: unless-stopped
+    env_file:
+      - .env
+    volumes:
+      - app:/var/www/html
+      - ./config.d:/opt/tt-rss/config.d:ro
+    depends_on:
+      - db
+
+  backups:
+    build:
+      context:
+        ./app
+    restart: unless-stopped
+    env_file:
+      - .env
+    volumes:
+      - backups:/backups
+      - app:/var/www/html
+    depends_on:
+      - db
+    command: /opt/tt-rss/dcron.sh -f
+
+  updater:
+    build:
+      context:
+        ./app
+    restart: unless-stopped
+    env_file:
+      - .env
+    volumes:
+      - app:/var/www/html
+      - ./config.d:/opt/tt-rss/config.d:ro
+    depends_on:
+      - app
+    command: /opt/tt-rss/updater.sh
+
+  web-nginx:
+    build: ./web-nginx
+    restart: unless-stopped
+    networks:
+      - default
+      - traefik-proxy
+    volumes:
+      - app:/var/www/html:ro
+    depends_on:
+      - app
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.ttrss.rule=Host(`${TTRSS_TRAEFIK_HOST}`)"
+      - "traefik.http.routers.ttrss.entrypoints=websecure"
+      - "traefik.http.routers.ttrss.tls.certresolver=default"
+
+volumes:
+  db:
+  app:
+  certs:
+  backups:
