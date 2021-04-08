@@ -1,0 +1,57 @@
+version: '3'
+
+networks:
+  traefik-proxy:
+    external:
+      name: traefik-proxy
+
+services:
+  mariadb:
+    image: mariadb
+    command: --transaction-isolation=READ-COMMITTED --binlog-format=ROW
+    restart: always
+    volumes:
+      - mariadb:/var/lib/mysql
+    environment:
+      - MYSQL_DATABASE
+      - MYSQL_RANDOM_ROOT_PASSWORD
+      - MYSQL_USER
+      - MYSQL_PASSWORD
+
+  redis:
+    image: redis:alpine
+    restart: always
+
+  app:
+    image: nextcloud:apache
+    restart: always
+    networks:
+      - traefik-proxy
+      - default
+    volumes:
+      - nextcloud:/var/www/html
+    environment:
+      - MYSQL_HOST=mariadb
+      - REDIS_HOST=redis
+    depends_on:
+      - mariadb
+      - redis
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.nextcloud.rule=Host(`${NEXTCLOUD_TRAEFIK_HOST}`)"
+      - "traefik.http.routers.nextcloud.entrypoints=websecure"
+      - "traefik.http.routers.nextcloud.tls.certresolver=default"
+
+  cron:
+    image: nextcloud:apache
+    restart: always
+    volumes:
+      - nextcloud:/var/www/html
+    entrypoint: /cron.sh
+    depends_on:
+      - mariadb
+      - redis
+
+volumes:
+  mariadb:
+  nextcloud:

@@ -21,6 +21,7 @@ services:
     #- "--log.level=DEBUG"
     - "--providers.docker=true"
     - "--providers.docker.exposedbydefault=false"
+    - "--providers.docker.network=traefik-proxy"
     - "--entrypoints.websecure.address=:443"
     - "--certificatesresolvers.default.acme.tlschallenge=true"
     - "--certificatesresolvers.default.acme.caserver=${ACME_CA_SERVER}"

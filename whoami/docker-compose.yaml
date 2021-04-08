@@ -1,0 +1,18 @@
+version: "3.3"
+
+networks:
+  traefik-proxy:
+    external:
+      name: traefik-proxy
+
+services:
+  whoami:
+    image: "traefik/whoami"
+    networks:
+      - traefik-proxy
+    restart: unless-stopped
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.whoami.rule=Host(`${WHOAMI_TRAEFIK_HOST}`)"
+      - "traefik.http.routers.whoami.entrypoints=websecure"
+      - "traefik.http.routers.whoami.tls.certresolver=default"
