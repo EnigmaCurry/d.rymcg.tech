@@ -81,4 +81,21 @@ To start baikal, go into the baikal directory and run `docker-compose up -d`
 Immediately configure the application, by going to the external URL in your
 browser, it is unsecure by default until you set it up!
 
+## nextcloud
+
+Copy .env-dist to .env, and edit variables accordingly. 
+
+ * `NEXTCLOUD_TRAEFIK_HOST` the external domain name to forward from traefik.
+ * `MYSQL_PASSWORD` you must choose a secure password for the database.
+
+Start with `docker-compose up -d`
+
+Visit the configured domain name in your browser to finish the installation. Choose MySQL/MariaDB for the database, enter the details:
+
+ * Username: nextcloud
+ * Database: nextcloud
+ * Database host: mariadb
+ * Password: same as you configured in .env `MYSQL_PASSWORD`
+ 
+I noticed connection errors upon logging in, but if I re-visited the main domain, it got me in.
 
