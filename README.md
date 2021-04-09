@@ -97,5 +97,3 @@ Visit the configured domain name in your browser to finish the installation. Cho
  * Database host: mariadb
  * Password: same as you configured in .env `MYSQL_PASSWORD`
  
-I noticed connection errors upon logging in, but if I re-visited the main domain, it got me in.
-

@@ -23,6 +23,8 @@ services:
     - "--providers.docker.exposedbydefault=false"
     - "--providers.docker.network=traefik-proxy"
     - "--entrypoints.websecure.address=:443"
+    - "--entrypoints.web.address=:80"
+    - "--entrypoints.web.http.redirections.entryPoint.to=websecure"
     - "--certificatesresolvers.default.acme.tlschallenge=true"
     - "--certificatesresolvers.default.acme.caserver=${ACME_CA_SERVER}"
     - "--certificatesresolvers.default.acme.email=${ACME_CA_EMAIL}"
