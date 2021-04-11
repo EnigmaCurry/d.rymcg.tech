@@ -22,16 +22,25 @@ services:
     - "--providers.docker=true"
     - "--providers.docker.exposedbydefault=false"
     - "--providers.docker.network=traefik-proxy"
-    - "--entrypoints.websecure.address=:443"
+    ## Entrypoints:
     - "--entrypoints.web.address=:80"
+    - "--entrypoints.websecure.address=:443"
+    - "--entrypoints.mqtt.address=:8883"
+    ## Automatically redirect HTTP to HTTPS
     - "--entrypoints.web.http.redirections.entryPoint.to=websecure"
+    ## ACME TLS (Let's Encrypt):
     - "--certificatesresolvers.default.acme.tlschallenge=true"
     - "--certificatesresolvers.default.acme.caserver=${ACME_CA_SERVER}"
     - "--certificatesresolvers.default.acme.email=${ACME_CA_EMAIL}"
     - "--certificatesresolvers.default.acme.storage=/data/acme.json"
+    ## Enable Dashboard available only from the docker localhost:8080
+    - "--api.dashboard=true"
+    - "--api.insecure=true"
     ports:
     - "80:80"
     - "443:443"
+    - "8883:8883"
+    - "127.0.0.1:8080:8080"
     volumes:
     - "traefik:/data"
     - "/var/run/docker.sock:/var/run/docker.sock:ro"

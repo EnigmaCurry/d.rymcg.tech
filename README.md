@@ -2,7 +2,14 @@
 
 This is a docker-compose project consisting of Traefik as a TLS HTTPS proxy, and
 other various services behind this proxy. Each project is in its own
-sub-directory containing its own docker-compose.yaml and .env file. 
+sub-directory containing its own `docker-compose.yaml` and `.env` file (and
+`.env-dist` sample file), this structure allows you to pick and choose which
+services you wish to enable.
+
+The `.env` files are secret, and excluded from being comitted to the git
+repository, via `.gitignore`. Each project includes a `.env-dist` file which is
+a sample that must be copied, creating your own secret `.env` file, and edit
+appropriately.
 
 ## Create the proxy network
 
@@ -29,19 +36,22 @@ networks:
 
 service:
   APP_NAME:
-    ## Connect to the Traefik proxy network:
     networks:
+    ## Connect to the Traefik proxy network (allows to be exposed):
     - traefik-proxy
+    ## If there are additional containers for the backend,
+    ## also connect to the default (not exposed) network:
+    - default
 ```
 
 ## Traefik
 
 Copy `.env-dist` to `.env` and edit the following:
 
- * `ACME_CA_SERVER` this is the Let's Encrypt API
-   (ACME) server to use, staging, production, private etc. 
-   
-   * For development/staging use `https://acme-staging-v02.api.letsencrypt.org/directory`
+ * `ACME_CA_SERVER` this is the Let's Encrypt API (ACME) server to use. 
+ 
+   * For development/staging use
+     `https://acme-staging-v02.api.letsencrypt.org/directory`
    * For production use `https://acme-v02.api.letsencrypt.org/directory`
    
  * `ACME_CA_EMAIL` this is YOUR email address, where you will receive notices
@@ -90,7 +100,8 @@ Copy .env-dist to .env, and edit variables accordingly.
 
 Start with `docker-compose up -d`
 
-Visit the configured domain name in your browser to finish the installation. Choose MySQL/MariaDB for the database, enter the details:
+Visit the configured domain name in your browser to finish the installation.
+Choose MySQL/MariaDB for the database, enter the details:
 
  * Username: nextcloud
  * Database: nextcloud
@@ -128,3 +139,45 @@ Copy the hashed user/password text and paste into the `.env` variable
 to the app with the username `admin` and the plain text password.
 
 
+## mosquitto
+
+Mosquitto is an MQTT pub/sub broker. You can use it in combination with node-red
+for sending/receiving messages. 
+
+Good blog posts:
+
+ * [S-MQTTT, or: secure-MQTT-over-Traefik](https://jurian.slui.mn/posts/smqttt-or-secure-mqtt-over-traefik/)
+ * [MQTT – How to use ACLs and multiple user accounts](https://blog.jaimyn.dev/mqtt-use-acls-multiple-user-accounts/)
+
+Copy .env-dist to .env and edit the variables:
+
+ * `MOSQUITTO_TRAEFIK_HOST` the external domain name to forward from traefik.
+ 
+Start mosquitto initially only using the default config: `docker-compose up -d`
+
+Create an initial admin account in order to test with (_WARNING: `-c` will
+overwrite any existing password file without confirmation, so in the future when
+you want to create further accounts, do not use the `-c` parameter!_):
+
+```
+USERNAME=admin
+PASSWORD=$(openssl rand -base64 24)
+docker exec -it mosquitto mosquitto_passwd -c -b /mosquitto/config/passwd ${USERNAME} ${PASSWORD}
+echo "Created password database, initial user account:"
+echo "username: ${USERNAME}"
+echo "password: ${PASSWORD}"
+```
+
+Copy the main config file, and the ACL config file, into the volume (you must do
+this again in the future, anytime you modify these configs):
+
+```
+docker cp mosquitto.conf mosquitto:/mosquitto/config/mosquitto.conf
+docker cp acl.conf mosquitto:/mosquitto/config/acl.conf
+```
+
+Restart mosquitto to reload the config:
+
+```
+docker exec mosquitto kill -SIGHUP 1
+```

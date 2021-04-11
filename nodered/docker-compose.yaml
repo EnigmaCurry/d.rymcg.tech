@@ -6,23 +6,24 @@ networks:
       name: traefik-proxy
 
 volumes:
-  node_red:
+  node-red:
 
 services:
-  node_red:
+  node-red:
     image: "nodered/node-red"
+    container_name: "node-red"
     networks:
       - traefik-proxy
     restart: unless-stopped
     labels:
       - "traefik.enable=true"
       - "traefik.port=1880"
-      - "traefik.http.routers.node_red.rule=Host(`${NODERED_TRAEFIK_HOST}`)"
-      - "traefik.http.routers.node_red.entrypoints=websecure"
-      - "traefik.http.routers.node_red.tls.certresolver=default"
+      - "traefik.http.routers.node-red.rule=Host(`${NODERED_TRAEFIK_HOST}`)"
+      - "traefik.http.routers.node-red.entrypoints=websecure"
+      - "traefik.http.routers.node-red.tls.certresolver=default"
       ## Authentication:
       - "traefik.http.middlewares.nodered-auth.basicauth.users=${NODERED_HTTP_AUTH}"
-      - "traefik.http.routers.node_red.middlewares=nodered-auth@docker"
+      - "traefik.http.routers.node-red.middlewares=nodered-auth@docker"
       - "traefik.http.middlewares.nodered-auth.basicauth.realm=Node-RED"
     volumes:
-      - node_red:/data
+      - node-red:/data
