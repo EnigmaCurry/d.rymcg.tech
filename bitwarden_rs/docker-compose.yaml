@@ -1,0 +1,15 @@
+# This binds to localhost only, so use this from an SSH tunnel.
+# No Traefik nor TLS is used.
+services:
+  bitwarden:
+    image: bitwardenrs/server:latest
+    container_name: bitwarden
+    restart: always
+    environment:
+      - WEBSOCKET_ENABLED=true
+    volumes:
+      - bitwarden:/data
+    ports:
+      - 127.0.0.1:8888:80
+volumes:
+  bitwarden:

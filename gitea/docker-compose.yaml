@@ -1,0 +1,40 @@
+version: "3.3"
+
+networks:
+  traefik-proxy:
+    external:
+      name: traefik-proxy
+
+services:
+  gitea:
+    image: gitea/gitea:1-rootless
+    container_name: gitea
+    restart: always
+    environment:
+      - ROOT_URL=https://${GITEA_TRAEFIK_HOST}/
+      - SSH_DOMAIN=${GITEA_TRAEFIK_HOST}
+      - SSH_PORT
+      - SSH_LISTEN_PORT=22
+    networks:
+      - traefik-proxy
+    volumes:
+      - data:/var/lib/gitea
+      - config:/etc/gitea
+      - /etc/timezone:/etc/timezone:ro
+      - /etc/localtime:/etc/localtime:ro
+    labels:
+      - "traefik.enable=true"
+      ## Web
+      - "traefik.http.routers.gitea-web.rule=Host(`${GITEA_TRAEFIK_HOST}`)"
+      - "traefik.http.routers.gitea-web.entrypoints=websecure"
+      - "traefik.http.routers.gitea-web.service=gitea-web"
+      - "traefik.http.routers.gitea-web.tls.certresolver=default"
+      - "traefik.http.services.gitea-web.loadbalancer.server.port=3000"
+      ## SSH
+      - "traefik.tcp.routers.gitea-ssh.rule=HostSNI(`*`)"
+      - "traefik.tcp.routers.gitea-ssh.entrypoints=ssh"
+      - "traefik.tcp.routers.gitea-ssh.service=gitea-ssh"
+      - "traefik.tcp.services.gitea-ssh.loadbalancer.server.port=22"
+volumes:
+  data:
+  config:
