@@ -216,7 +216,7 @@ Bitwarden is an open-source password manager.
 Copy .env-dist to .env, and edit variables accordingly. 
 
 This configuration doesn't use Traefik - you should SSH tunnel into the
-host, then access Bitwarden via http://localhost:<whatever port you designate in .env>
+host, then access Bitwarden via localhost:<whatever port you designate in .env>
 
 E.g., if you set the port to 8888: `ssh docker -L 8888:localhost:8888` then in your
 web browser access `http://localhost:8888`
