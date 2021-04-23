@@ -22,7 +22,7 @@ services:
     image: redis:alpine
     restart: always
 
-  app:
+  app2:
     image: nextcloud:apache
     restart: always
     networks:
@@ -33,6 +33,21 @@ services:
     environment:
       - MYSQL_HOST=mariadb
       - REDIS_HOST=redis
+      # include the following OBJECTSTORE_S3 variables if you want
+      # to install nextcloud using S3 as the *primary* storage.
+      # (if you simply want to use S3 storage for documents/files 
+      # that you access *within* nextcloud, comment out the following
+      # OBJECTSTORE_S3 variables and use nextcloud's External Storage
+      # Support app)
+      - OBJECTSTORE_S3_BUCKET
+      - OBJECTSTORE_S3_SSL
+      - OBJECTSTORE_S3_USEPATH_STYLE
+      - OBJECTSTORE_S3_AUTOCREATE
+      - OBJECTSTORE_S3_KEY
+      - OBJECTSTORE_S3_SECRET
+      - OBJECTSTORE_S3_REGION
+      - OBJECTSTORE_S3_HOST
+      - OBJECTSTORE_S3_PORT
     depends_on:
       - mariadb
       - redis
@@ -41,6 +56,10 @@ services:
       - "traefik.http.routers.nextcloud.rule=Host(`${NEXTCLOUD_TRAEFIK_HOST}`)"
       - "traefik.http.routers.nextcloud.entrypoints=websecure"
       - "traefik.http.routers.nextcloud.tls.certresolver=default"
+      # the following were intended to allow dav discovery in nextcloud, but didn't work
+      #- "traefik.frontend.redirect.permanent='true'"
+      #- "traefik.frontend.redirect.regex='https://(.*)/.well-known/(card|cal)dav'"
+      #- "traefik.frontend.redirect.replacement='https://$$1/remote.php/dav/'"
 
   cron:
     image: nextcloud:apache
