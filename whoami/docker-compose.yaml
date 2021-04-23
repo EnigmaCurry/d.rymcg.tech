@@ -16,3 +16,4 @@ services:
       - "traefik.http.routers.whoami.rule=Host(`${WHOAMI_TRAEFIK_HOST}`)"
       - "traefik.http.routers.whoami.entrypoints=websecure"
       - "traefik.http.routers.whoami.tls.certresolver=default"
+      # - "traefik.http.routers.whoami.middlewares=traefik-forward-auth@docker"

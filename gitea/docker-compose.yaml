@@ -13,7 +13,7 @@ services:
     environment:
       - ROOT_URL=https://${GITEA_TRAEFIK_HOST}/
       - SSH_DOMAIN=${GITEA_TRAEFIK_HOST}
-      - SSH_PORT
+      - SSH_PORT=${GITEA_SSH_PORT}
       - SSH_LISTEN_PORT=22
     networks:
       - traefik-proxy
@@ -35,6 +35,7 @@ services:
       - "traefik.tcp.routers.gitea-ssh.entrypoints=ssh"
       - "traefik.tcp.routers.gitea-ssh.service=gitea-ssh"
       - "traefik.tcp.services.gitea-ssh.loadbalancer.server.port=22"
+
 volumes:
   data:
   config:

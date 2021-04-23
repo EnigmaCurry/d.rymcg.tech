@@ -26,6 +26,7 @@ services:
     - "--entrypoints.web.address=:80"
     - "--entrypoints.websecure.address=:443"
     - "--entrypoints.mqtt.address=:8883"
+    - "--entrypoints.ssh.address=:2222"
     ## Automatically redirect HTTP to HTTPS
     - "--entrypoints.web.http.redirections.entryPoint.to=websecure"
     ## ACME TLS (Let's Encrypt):
@@ -40,6 +41,7 @@ services:
     - "80:80"
     - "443:443"
     - "8883:8883"
+    - "2222:2222"
     - "127.0.0.1:8080:8080"
     volumes:
     - "traefik:/data"
