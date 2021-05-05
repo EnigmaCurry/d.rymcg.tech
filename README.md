@@ -11,6 +11,21 @@ repository, via `.gitignore`. Each project includes a `.env-dist` file which is
 a sample that must be copied, creating your own secret `.env` file, and edit
 appropriately.
 
+For this project, all configuration must be done via:
+
+ * Environment variables (preferred)
+ * Copied config files into a named volume (in the case that the container
+   doesn't support env variables)
+
+Many examples of docker-compose that you may find on the internet will have host
+mounted files, which allows containers to access files directly from the host
+filesystem. **Host mounted files are considered an anti-pattern and will never
+be used in this project.** For more infomration see [Rule 3 of the 12 factor app
+philosophy](https://12factor.net/config). By following this rule, you can safely
+use docker-compose from a remote client (over SSH with the `DOCKER_HOST`
+variable set) and by doing so, you can ensure you are working with a clean state
+on the host.
+
 ## Create the proxy network
 
 Since each project is in separate docker-compose files, you must use an
@@ -57,7 +72,7 @@ Copy `.env-dist` to `.env` and edit the following:
  * `ACME_CA_EMAIL` this is YOUR email address, where you will receive notices
    from Let's Encrypt regarding your domains and related certificates.
 
-To start traefik, go into the traefik directory and run `docker-compose up -d`
+To start Traefik, go into the traefik directory and run `docker-compose up -d`
 
 ## Gitea
 
@@ -70,7 +85,7 @@ that only valid accounts can access protected containers. Traefik will pass the
 `X-Forwarded-User` header containing the authenticated user, so that the
 container itself can do per-user authorization if needed.
 
-Copy `.env-dist` to `.env` and edit the following:
+Copy `.env-dist` to `.env`, and edit variables accordingly. 
 
  * `GITEA_TRAEFIK_HOST` to the external domain name forwarded from traefik, eg.
    `git.example.com`
@@ -83,13 +98,15 @@ adminstrator account and password (at the very bottom, expand the section.)
 Traefik listens for SSH connections on TCP port 2222 and forwards directly to
 the builtin Gitea SSH service.
 
-## tt-rss
+## TT-RSS
 
 [ttrss-docker-compose](https://git.tt-rss.org/fox/ttrss-docker-compose.git) was
 copied into the `ttrss` directory and some light modifications were made to its
 docker-compose file to get it to work with traefik. Follow the upstream [ttrss
 README](ttrss/README.md) which is still unmodified, but also consider these
 additions for usage with Traefik:
+
+Copy `.env-dist` to `.env`, and edit variables accordingly. 
 
  * Set `TTRSS_TRAEFIK_HOST` (this is a new custom variable not in the upstream
    version) to the external domain name you want to forward in from traefik.
@@ -100,29 +117,30 @@ additions for usage with Traefik:
    required, but the root domain will automatically forward to this.)
  * Setting `HTTP_PORT` is unnecessary and is now ignored.
  
+To start TT-RSS, go into the ttrss directory and run `docker-compose up -d`. 
 
-## baikal
+## Baikal
 
 baikal is a CAL-DAV server. 
 
-Copy .env-dist to .env and change:
+Copy `.env-dist` to `.env`, and edit variables accordingly. 
 
  * `BAIKAL_TRAEFIK_HOST` to the external domain name forwarded from traefik, eg.
    `cal.example.com`
  
-To start baikal, go into the baikal directory and run `docker-compose up -d`
+To start baikal, go into the baikal directory and run `docker-compose up -d`.
 
 Immediately configure the application, by going to the external URL in your
 browser, it is unsecure by default until you set it up!
 
-## nextcloud
+## Nextcloud
 
-Copy .env-dist to .env, and edit variables accordingly. 
+Copy `.env-dist` to `.env`, and edit variables accordingly. 
 
  * `NEXTCLOUD_TRAEFIK_HOST` the external domain name to forward from traefik.
  * `MYSQL_PASSWORD` you must choose a secure password for the database.
 
-Start with `docker-compose up -d`
+To start Nextcloud, go into the nextcloud directory and run `docker-compose up -d`.
 
 Visit the configured domain name in your browser to finish the installation.
 Choose MySQL/MariaDB for the database, enter the details:
@@ -132,9 +150,53 @@ Choose MySQL/MariaDB for the database, enter the details:
  * Database host: mariadb
  * Password: same as you configured in .env `MYSQL_PASSWORD`
  
-## nodered
+## CryptPad
 
-Copy .env-dist to .env, and edit variables accordingly. 
+[CryptPad](https://cryptpad.fr/) is an encrypted, open source collaboration
+suite.
+
+CryptPad is designed to serve its content over two domains. Account passwords
+and cryptographic content is handled on the 'main' domain, while the user
+interface is loaded from a 'sandbox' domain.
+
+Copy `.env-dist` to `.env`, and edit these variables: 
+
+ * `CPAD_MAIN_DOMAIN` the external domain name to forward from traefik for
+ the main site.
+ * `CPAD_SANDBOX_DOMAIN` the external domain name to forward from traefik for
+ sandboxed content.
+
+Cryptpad requires a configuration file (config.js) :
+
+ * Copy `config.example.js` to `config.js` in the same directory.
+ * Edit the `httpUnsafeOrigin` field, and put the same value as you used for
+   `CPAD_MAIN_DOMAIN`, for example `https://pad.example.com`.
+ * Edit the `httpSafeOrigin` field, and put the same value as you used for
+   `CPAD_SANDBOX_DOMAIN`, for example `https://pad.box.example.com`.
+ * Editing the rest of the fields is optional, you may wish to change
+   `adminEmail` if you want the in-app support links to work.
+
+You must start cryptpad initially using the default config, then you can copy
+your config into the container volume, and then restart. Once restarted, the
+container will be running with your edited config.
+ 
+ * Run `docker-compose up -d` to start the container.
+ * Copy the config: `docker cp config.js cryptpad:/cryptpad/config/config.js`
+ * Run `docker-compose restart`
+ * You must re-do this process anytime you change `config.js`.
+ 
+Visit the main domain in your browser, and sign up for an account. Go to the
+user settings page, and find your public signing key (example:
+`[cryptpad-user1@my.awesome.website/YZgXQxKR0Rcb6r6CmxHPdAGLVludrAF2lEnkbx1vVOo=]`)
+ 
+Edit `config.js` again, and uncomment the `adminKeys` section and add your user
+key (and remove the example key). Copy the config.js to the volume again using
+`docker cp` and restart the container again. Now your user can access the
+(limited) adminstration page to edit some addtional settings using the web app.
+
+## Node-RED
+
+Copy `.env-dist` to `.env`, and edit variables accordingly. 
 
  * `NODERED_TRAEFIK_HOST` the external domain name to forward from traefik.
  * `NODERED_HTTP_AUTH` - HTTP Basic Authentication Password hashed with
@@ -163,7 +225,7 @@ Copy the hashed user/password text and paste into the `.env` variable
 to the app with the username `admin` and the plain text password.
 
 
-## mosquitto
+## Mosquitto
 
 Mosquitto is an MQTT pub/sub broker. You can use it in combination with node-red
 for sending/receiving messages. 
@@ -173,7 +235,7 @@ Good blog posts:
  * [S-MQTTT, or: secure-MQTT-over-Traefik](https://jurian.slui.mn/posts/smqttt-or-secure-mqtt-over-traefik/)
  * [MQTT – How to use ACLs and multiple user accounts](https://blog.jaimyn.dev/mqtt-use-acls-multiple-user-accounts/)
 
-Copy .env-dist to .env and edit the variables:
+Copy `.env-dist` to `.env`, and edit variables accordingly. 
 
  * `MOSQUITTO_TRAEFIK_HOST` the external domain name to forward from traefik.
  
@@ -208,8 +270,7 @@ Restart mosquitto in order to reload the config:
 docker-compose restart
 ```
 
-
-## bitwarden
+## Bitwarden
 
 Bitwarden is an open-source password manager.
 

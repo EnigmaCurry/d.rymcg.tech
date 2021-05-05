@@ -1,0 +1,57 @@
+version: "3.7"
+
+networks:
+  traefik-proxy:
+    external:
+      name: traefik-proxy
+
+volumes:
+  blob:
+  block:
+  customize:
+  data:
+  datastore:
+  config:
+
+services:
+  cryptpad:
+    image: "promasu/cryptpad:nginx"
+    container_name: "cryptpad"
+    environment:
+      - CPAD_MAIN_DOMAIN
+      - CPAD_SANDBOX_DOMAIN
+      # Traefik can't use HTTP2 to communicate with cryptpat_websocket
+      # A workaround is disabling HTTP2 in Nginx
+      - CPAD_HTTP2_DISABLE=true
+      - CPAD_REALIP_RECURSIVE=on
+      - CPAD_REALIP_HEADER=X-Forwarded-For
+    volumes:
+      - blob:/cryptpad/blob
+      - block:/cryptpad/block
+      - customize:/cryptpad/customize
+      - data:/cryptpad/data
+      - datastore:/cryptpad/datastore
+      - config:/cryptpad/config
+    networks:
+      - traefik-proxy
+    labels:
+      ## Enable traefik
+      - "traefik.enable=true"
+      ## Declare service
+      ## Change the port if you enabled TLS
+      - traefik.http.services.cpad.loadbalancer.server.port=80
+      # HTTPS router rules
+      - traefik.http.routers.cpad-https.entrypoints=websecure
+      - traefik.http.routers.cpad-https.rule=Host(`${CPAD_MAIN_DOMAIN}`, `${CPAD_SANDBOX_DOMAIN}`)
+      - traefik.http.routers.cpad-https.tls=true
+      - traefik.http.routers.cpad-https.tls.certresolver=default
+      - traefik.http.routers.cpad-https.service=cpad
+      # Rewrite CORS headers - For some reason cryptpad is duplicating the CORS headers
+      # This makes chromium browsers not load, so this rewrite rule de-duplicates the headers
+      # (actually the value was cross-origin, which seems wrong to me, same-site seems safer)
+      - traefik.http.middlewares.cpad-headers.headers.customresponseheaders.Cross-Origin-Resource-Policy=same-site
+      - traefik.http.routers.cpad-https.middlewares=cpad-headers@docker
+    ulimits:
+      nofile:
+        soft: 1000000
+        hard: 1000000
