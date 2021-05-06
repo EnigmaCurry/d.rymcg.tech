@@ -8,6 +8,7 @@ networks:
 services:
   db:
     image: postgres:12-alpine
+    container_name: "ttrss_alpine"
     restart: unless-stopped
     environment:
       - POSTGRES_USER=${TTRSS_DB_USER}
@@ -17,9 +18,8 @@ services:
       - db:/var/lib/postgresql/data
 
   app:
-    build:
-      context:
-        ./app
+    image: mcmikemn/tt-rss-app
+    container_name: "ttrss_app"
     restart: unless-stopped
     env_file:
       - .env
@@ -30,9 +30,8 @@ services:
       - db
 
   backups:
-    build:
-      context:
-        ./app
+    image: mcmikemn/tt-rss-backups
+    container_name: "ttrss_backups"
     restart: unless-stopped
     env_file:
       - .env
@@ -44,9 +43,8 @@ services:
     command: /opt/tt-rss/dcron.sh -f
 
   updater:
-    build:
-      context:
-        ./app
+    image: mcmikemn/tt-rss-updater
+    container_name: "ttrss_updater"
     restart: unless-stopped
     env_file:
       - .env
@@ -58,7 +56,8 @@ services:
     command: /opt/tt-rss/updater.sh
 
   web-nginx:
-    build: ./web-nginx
+    image: mcmikemn/tt-rss-web-nginx
+    container_name: "ttrss_web_nginx"
     restart: unless-stopped
     networks:
       - default

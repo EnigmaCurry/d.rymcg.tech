@@ -61,7 +61,7 @@ service:
 
 ## Traefik
 
-Copy `.env-dist` to `.env` and edit the following:
+Copy `.env-dist` to `.env`, and edit variables accordingly. 
 
  * `ACME_CA_SERVER` this is the Let's Encrypt API (ACME) server to use. 
  
@@ -108,16 +108,16 @@ additions for usage with Traefik:
 
 Copy `.env-dist` to `.env`, and edit variables accordingly. 
 
- * Set `TTRSS_TRAEFIK_HOST` (this is a new custom variable not in the upstream
-   version) to the external domain name you want to forward in from traefik.
-   Example: `tt-rss.example.com` (just the domain part, no https:// prefix and
-   no port number)
+ * Set `TTRSS_TRAEFIK_HOST` to the external domain name you want to forward in
+   from traefik. Example: `tt-rss.example.com` (just the domain part, no
+   https:// prefix and no port number)
  * Set `TTRSS_SELF_URL_PATH` with the full URL of the app, eg.
    `https://tt-rss.example.com/tt-rss` (The path `/tt-rss` at the end is
-   required, but the root domain will automatically forward to this.)
- * Setting `HTTP_PORT` is unnecessary and is now ignored.
+   required, but the root domain will automatically forward to this.) 
  
 To start TT-RSS, go into the ttrss directory and run `docker-compose up -d`. 
+
+Default login credentials: Username: `admin`, password: `password`
 
 ## Baikal
 
@@ -270,7 +270,7 @@ Restart mosquitto in order to reload the config:
 docker-compose restart
 ```
 
-## Bitwarden
+## bitwarden
 
 Bitwarden is an open-source password manager.
 
