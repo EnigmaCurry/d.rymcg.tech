@@ -61,7 +61,7 @@ service:
 
 ## Traefik
 
-Copy `.env-dist` to `.env`, and edit variables accordingly. 
+Copy `.env-dist` to `.env` and edit the following: 
 
  * `ACME_CA_SERVER` this is the Let's Encrypt API (ACME) server to use. 
  
@@ -270,7 +270,7 @@ Restart mosquitto in order to reload the config:
 docker-compose restart
 ```
 
-## bitwarden
+## Bitwarden
 
 Bitwarden is an open-source password manager.
 
