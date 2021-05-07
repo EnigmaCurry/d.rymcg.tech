@@ -1,0 +1,36 @@
+---
+# Shaarli - Docker Compose example configuration
+#
+# See:
+# - https://shaarli.readthedocs.io/en/master/Docker/#docker-compose
+#
+# Environment variables:
+# - SHAARLI_TRAEFIK_HOST      Fully Qualified Domain Name for the Shaarli instance
+# - SHAARLI_DOCKER_TAG        Shaarli docker tag to use
+#                             See: https://hub.docker.com/r/shaarli/shaarli/tags
+version: '3'
+
+networks:
+  traefik-proxy:
+    external:
+      name: traefik-proxy
+
+volumes:
+  shaarli-cache:
+  shaarli-data:
+
+services:
+  shaarli:
+    image: shaarli/shaarli:${SHAARLI_DOCKER_TAG}
+    container_name: "shaarli"
+    restart: "unless-stopped"
+    networks:
+      - traefik-proxy
+    volumes:
+      - shaarli-cache:/var/www/shaarli/cache
+      - shaarli-data:/var/www/shaarli/data
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.shaarli.rule=Host(`${SHAARLI_TRAEFIK_HOST}`)"
+      - "traefik.http.routers.shaarli.entrypoints=websecure"
+      - "traefik.http.routers.shaarli.tls.certresolver=default"

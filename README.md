@@ -281,3 +281,15 @@ host, then access Bitwarden via localhost:<whatever port you designate in .env>
 
 E.g., if you set the port to 8888: `ssh docker -L 8888:localhost:8888` then in your
 web browser access `http://localhost:8888`
+
+## Shaarli
+
+[Shaarli](https://github.com/shaarli/Shaarli) is a personal, minimalist,
+super-fast, database free, bookmarking service.
+
+Copy `.env-dist` to `.env`, and edit variables accordingly.
+
+ * `SHAARLI_TRAEFIK_HOST` the external domain name to forward from traefik.
+ * `SHAARLI_DOCKER_TAG` Shaarli docker tag to use ([available tags](https://shaarli.readthedocs.io/en/master/Docker/#get-and-run-a-shaarli-image))
+
+To start Shaarli, go into the shaarli directory and run `docker-compose up -d`.
