@@ -17,6 +17,7 @@ services:
   cryptpad:
     image: "promasu/cryptpad:nginx"
     container_name: "cryptpad"
+    restart: unless-stopped
     environment:
       - CPAD_MAIN_DOMAIN
       - CPAD_SANDBOX_DOMAIN
