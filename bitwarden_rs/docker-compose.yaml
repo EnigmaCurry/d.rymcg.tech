@@ -3,7 +3,7 @@
 services:
   bitwarden:
     image: bitwardenrs/server:latest
-    container_name: bitwarden
+    container_name: "bitwarden"
     restart: always
     environment:
       - WEBSOCKET_ENABLED=true
