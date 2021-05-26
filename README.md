@@ -26,6 +26,19 @@ use docker-compose from a remote client (over SSH with the `DOCKER_HOST`
 variable set) and by doing so, you can ensure you are working with a clean state
 on the host.
 
+[Setup](#create-the-proxy-network)
+[Traefik](#traefik)
+[Gitea](#gitea)
+[Tiny Tiny RSS](#tt-rss)
+[Baikal](#baikal)
+[Nextcloud](#nextcloud)
+[CryptPad](#cryptpad)
+[Node-RED](#node-red)
+[Mosquitto](#mosquitto)
+[Bitwarden](#bitwarden)
+[Shaarli](#shaarli)
+[xBrowserSync](#xbrowsersync)
+
 ## Create the proxy network
 
 Since each project is in separate docker-compose files, you must use an
