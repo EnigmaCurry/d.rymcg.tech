@@ -29,7 +29,7 @@ on the host.
 * [Setup](#create-the-proxy-network)
 * [Traefik](#traefik)
 * [Gitea](#gitea)
-* [Tiny Tiny RSS](#tt-rss)
+* [Tiny Tiny RSS](#tiny-tiny-rss)
 * [Baikal](#baikal)
 * [Nextcloud](#nextcloud)
 * [CryptPad](#cryptpad)
@@ -74,6 +74,9 @@ service:
 
 ## Traefik
 
+[Traefik](https://github.com/traefik/traefik) is a modern
+HTTP reverse proxy and load balancer.
+
 Copy `.env-dist` to `.env` and edit the following:
 
  * `ACME_CA_SERVER` this is the Let's Encrypt API (ACME) server to use. 
@@ -89,9 +92,9 @@ To start Traefik, go into the traefik directory and run `docker-compose up -d`
 
 ## Gitea
 
-Gitea is a git repository host as well as an OAuth server. You can use it to
-store your git repositories, but more importantly for our purposes, it can
-integrate with
+[Gitea](https://gitea.com/) is a git repository host as well as an OAuth
+server. You can use it to store your git repositories, but more importantly
+for our purposes, it can integrate with
 [thomseddon/traefik-forward-auth](https://github.com/thomseddon/traefik-forward-auth)
 (TODO) so that it can act as an authentication middleware for Traefik, ensuring
 that only valid accounts can access protected containers. Traefik will pass the
@@ -111,7 +114,10 @@ adminstrator account and password (at the very bottom, expand the section.)
 Traefik listens for SSH connections on TCP port 2222 and forwards directly to
 the builtin Gitea SSH service.
 
-## TT-RSS
+## Tiny Tiny RSS
+
+[Tiny Tiny RSS](https://tt-rss.org/) is a free and open source web-based
+news feed (RSS/Atom) reader and aggregator.
 
 [ttrss-docker-compose](https://git.tt-rss.org/fox/ttrss-docker-compose.git) was
 copied into the `ttrss` directory and some light modifications were made to its
@@ -134,7 +140,7 @@ To start TT-RSS, go into the ttrss directory and run `docker-compose up -d`.
 
 ## Baikal
 
-baikal is a CAL-DAV server. 
+[Baikal](https://sabre.io/baikal/) is a lightweight CalDAV+CardDAV server. 
 
 Copy `.env-dist` to `.env`, and edit variables accordingly. 
 
@@ -147,6 +153,9 @@ Immediately configure the application, by going to the external URL in your
 browser, it is unsecure by default until you set it up!
 
 ## Nextcloud
+
+[Nextcloud](https://nextcloud.com/) is an on-premises content collaboration
+platform.
 
 Copy `.env-dist` to `.env`, and edit variables accordingly. 
 
@@ -209,6 +218,9 @@ key (and remove the example key). Copy the config.js to the volume again using
 
 ## Node-RED
 
+[Node-RED](https://nodered.org/) is a programming tool for wiring together
+hardware devices, APIs and online services in new and interesting ways.
+
 Copy `.env-dist` to `.env`, and edit variables accordingly. 
 
  * `NODERED_TRAEFIK_HOST` the external domain name to forward from traefik.
@@ -240,7 +252,7 @@ to the app with the username `admin` and the plain text password.
 
 ## Mosquitto
 
-Mosquitto is an MQTT pub/sub broker. You can use it in combination with node-red
+[Mosquitto](https://mosquitto.org/) is an MQTT pub/sub broker. You can use it in combination with node-red
 for sending/receiving messages. 
 
 Good blog posts:
@@ -287,15 +299,22 @@ docker-compose restart
 
 [Bitwarden](https://bitwarden.com/) is an open-source password manager.
 
-Copy .env-dist to .env, and edit variables accordingly. 
+Copy `.env-dist` to `.env`, and edit variables accordingly. 
 
  * `BITWARDEN_PORT` the external port you'll use to connect to Bitwarden.
+
+To start Bitwarden, go into the bitwarden directory and run `docker-compose up -d`.
 
 This configuration doesn't use Traefik - you should SSH tunnel into the
 host, then access Bitwarden via localhost:<whatever port you designate in .env>
 
-E.g., if you set the port to 8888: `ssh docker -L 8888:localhost:8888` then in your
-web browser, access `http://localhost:8888`
+E.g., if you set the port to 8888:
+
+```
+ssh docker -L 8888:localhost:8888
+```
+
+Then in your web browser, access `http://localhost:8888`
 
 ## Shaarli
 
