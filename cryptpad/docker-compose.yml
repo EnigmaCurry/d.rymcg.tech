@@ -26,6 +26,7 @@ services:
       - CPAD_HTTP2_DISABLE=true
       - CPAD_REALIP_RECURSIVE=on
       - CPAD_REALIP_HEADER=X-Forwarded-For
+#      - TZ=America/New_York
     volumes:
       - blob:/cryptpad/blob
       - block:/cryptpad/block
@@ -33,6 +34,8 @@ services:
       - data:/cryptpad/data
       - datastore:/cryptpad/datastore
       - config:/cryptpad/config
+      - /etc/timezone:/etc/timezone:ro
+      - /etc/localtime:/etc/localtime:ro
     networks:
       - traefik-proxy
     labels:
