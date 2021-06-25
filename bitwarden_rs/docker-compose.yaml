@@ -1,3 +1,5 @@
+version: "3.7"
+
 # This binds to localhost only, so use this from an SSH tunnel.
 # No Traefik nor TLS is used.
 services:
