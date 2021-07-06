@@ -1,0 +1,71 @@
+version: '3.0'
+
+services:
+  photostructure:
+    image: photostructure/server:alpha
+    container_name: photostructure
+    restart: unless-stopped
+    security_opt:
+      - no-new-privileges:true
+    environment:
+      PS_SCAN_ALL_DRIVES
+      PS_SCAN_MY_PICTURES
+      PS_SCAN_PATHS
+      PS_LOG_LEVEL
+      PS_LOG_COMPRESS
+      PS_REQUIRE_MAKE_MODEL
+      PS_SYNC_INTERVAL_HOURS
+      PS_FIX_PERMISSIONS
+      UID
+      GID
+      PS_CPU_LOAD_PERCENT
+      PS_PROCESS_PRIORITY
+      PS_ORIGINALS_DIR
+    volumes:
+      - /opt/containers/photostructure/config:/ps/config:rw
+      - ${PS_LIBRARY_PATH}:/ps/library:rw
+      - ${PS_LOG_DIR}:/ps/logs:rw
+      - ${TMP_DIR}:/ps/tmp:rw
+      - ${ASSET_DIR_HOST}:${ASSET_DIR_CONTAINER}:rw
+    networks:
+      - proxy
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.photostructure.entrypoints=http"
+      - "traefik.http.routers.photostructure.rule=Host(`${PHOTOSTRUCTURE_TRAEFIK_HOST}`)"
+      - "traefik.http.middlewares.photostructure-https-redirect.redirectscheme.scheme=https"
+      - "traefik.http.routers.photostructure.middlewares=photostructure-https-redirect"
+      - "traefik.http.routers.photostructure-secure.entrypoints=https"
+      - "traefik.http.routers.photostructure-secure.rule=Host(`${PHOTOSTRUCTURE_TRAEFIK_HOST}`)"
+      - "traefik.http.routers.photostructure-secure.tls=true"
+      - "traefik.http.routers.photostructure-secure.tls.certresolver=http"
+      - "traefik.http.routers.photostructure-secure.service=photostructure"
+      - "traefik.http.services.photostructure.loadbalancer.server.port=1787"
+      - "traefik.docker.network=proxy"
+      - "traefik.http.middlewares.photostructure-auth.basicauth.users=${BASICAUTH_USERS}"
+      - "traefik.http.routers.photostructure-secure.middlewares=photostructure-auth"
+networks:
+  proxy:
+    external: true
+
+
+
+
+  - path: /opt/containers/templates/photostructure/password_encode.sh.j2
+    content: |
+      htpasswd -nb {{ photostructure.username }} {{ photostructure.password }} | sed -e s/\\$/\\$\\$/g | grep .
+
+  - path: /opt/containers/templates/photostructure/prep.sh.j2
+    content: |
+      chown -R {{ syncthing.uid }}:{{ syncthing.gid }} /opt/containers/photostructure
+
+runcmd:
+  - mkdir -p /opt/containers/photostructure
+  ## run prep commands (set permissions)
+  - j2 /opt/containers/templates/photostructure/prep.sh.j2 /run/cloud-init/user-variables-sensitive.yaml | /bin/bash
+  ## Create the htpasswd encoded username/password and add it into the user variables:
+  - yq write --inplace -- /run/cloud-init/user-variables-sensitive.yaml photostructure.basicauth_users $(j2 /opt/containers/templates/photostructure/password_encode.sh.j2 /run/cloud-init/user-variables-sensitive.yaml | bash)
+  ## Render the docker-compose from the template:
+  - j2 /opt/containers/templates/photostructure/docker-compose.yaml.j2 /run/cloud-init/user-variables-sensitive.yaml -o /opt/containers/photostructure/docker-compose.yaml
+  ## Create and start the containers
+  - docker-compose -f /opt/containers/photostructure/docker-compose.yaml up -d
