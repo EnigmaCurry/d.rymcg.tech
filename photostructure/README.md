@@ -1,9 +1,7 @@
 ## Photostructure
 
 [Photostructure](https://photostructure.com/server/photostructure-for-servers/)
-is a personal digital asset manager designed to make organizing, browsing,
-and sharing a lifetime of photos and videos effortless and fun.
-Photostructure is *not* open-source.
+is a personal digital asset manager designed to make organizing, browsing, and sharing a lifetime of photos and videos effortless and fun. Photostructure is *not* open-source.
 
 ### SSH to the host, then:
 1. Create a new user: `sudo adduser psuser`.
@@ -21,34 +19,31 @@ Photostructure is *not* open-source.
   ```
   chown -R 1000:1000 /mnt/ps_assets /mnt/ps_config
   ```
-  (You only need to do this once, ever: once you set it, it's in the inode for the directory -
-  i.e., the owner stays with the directory wherever it is mounted).
+  (You only need to do this once, ever: once you set it, it's in the inode for the directory - i.e., the owner stays with the directory wherever it is mounted).
 5. Edit `/etc/fstab` to auto-mount the persistent storage and the asset mount-points on boot.
 
 ### To mount an S3 space:
   1. `apt install s3fs`
   2. `echo KEY:SECRET | sudo tee -a ${HOME}/.passwd-s3fs`
-    * replace KEY and SECRET with your S3 Key and Secret
+      * replace KEY and SECRET with your S3 Key and Secret
   3. `chmod 600 ${HOME}/.passwd-s3fs`
   4. `chown -R UID:GID ${HOME}/.passwd-s3fs`
-    * replace UID and GID with the UID and GID that Photostructure uses, learned in step 1 [above](#ssh-to-the-host-then).
+      * replace UID and GID with the UID and GID that Photostructure uses, learned in step 1 [above](#ssh-to-the-host-then).
   5. `mkdir -p ASSET_DIR_HOST`
-    * replace ASSET_DIR_HOST with the mount point used in step 3 [above](#ssh-to-the-host-then).
+      * replace ASSET_DIR_HOST with the mount point used in step 3 [above](#ssh-to-the-host-then).
   6. `s3fs SPACENAME /mnt/ps_assets -o passwd_file=${HOME}/.passwd-s3fs -o url=https://ENDPOINT/ -o use_path_request_style`
-    * replace SPACENAME with the name of your S3 space, and replace ENDPOINT with your S3 endpoint
+      * replace SPACENAME with the name of your S3 space, and replace ENDPOINT with your S3 endpoint
   7. `echo SPACENAME /mnt/ps_assets fuse.s3fs _netdev,allow_other,use_path_request_style,uid=UID,gid=GID,url=https://ENDPOINT/ 0 0 >> /etc/fstab`
-    * replace SPACENAME with the name of your S3 space, replace UID and GID with the UID and GID that Photostructure uses, learned in step 1 [above](#ssh-to-the-host-then), and replace ENDPOINT with your S3 endpoint
+      * replace SPACENAME with the name of your S3 space, replace UID and GID with the UID and GID that Photostructure uses, learned in step 1 [above](#ssh-to-the-host-then), and replace ENDPOINT with your S3 endpoint
   8. `mkdir -p TMP_DIR`
-    * replace TMP_DIR with the path to the temp directory that you use in your env file.
+      * replace TMP_DIR with the path to the temp directory that you use in your env file.
   9. `chown -R 1000:1000 TMP_DIR`
-    * replace TMP_DIR with the path to the temp directory that you use in your env file.
+     * replace TMP_DIR with the path to the temp directory that you use in your env file.
 
-### Copy `.env-dist` to `.env`, and edit variables accordingly. Find explanations
-of Photostructure environment variables [here](https://github.com/photostructure/photostructure-for-servers/blob/main/defaults.env).
+### Copy `.env-dist` to `.env`, and edit variables accordingly. Find explanations of Photostructure environment variables [here](https://github.com/photostructure/photostructure-for-servers/blob/main/defaults.env).
 
  * `PHOTOSTRUCTURE_TRAEFIK_HOST` the external domain name to forward from traefik.
- * `BASICAUTH_USERS` Copy the result of the following command (replacing USERNAME and PASSWORD with the login and
-password you want to use for Photostructure):
+ * `BASICAUTH_USERS` Copy the result of the following command (replacing USERNAME and PASSWORD with the login and password you want to use for Photostructure):
     ```
     htpasswd -nb USERNAME PASSWORD | sed -e s/\\$/\\$\\$/g | grep .
     ```
