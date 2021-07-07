@@ -6,9 +6,9 @@ is a personal digital asset manager designed to make organizing, browsing, and s
 ### SSH to the host, then:
 1. Create a new user: `sudo adduser psuser`.
    * Learn what UID and GID `psuser` was assigned to:
-    ```
-    cat /etc/passwd | grep psuser
-    ```
+     ```
+     cat /etc/passwd | grep psuser
+     ```
    * Use these values for UID and GID in your .env file, and when changing ownership, below.
 2. Mount external volume for persistent storage (e.g., certificates, system settings).
    * Use this mount-point for PS_LIBRARY_PATH in your .env file. 
@@ -41,12 +41,12 @@ is a personal digital asset manager designed to make organizing, browsing, and s
      * replace TMP_DIR with the path to the temp directory that you use in your env file.
 
 ### Copy `.env-dist` to `.env`, and edit variables accordingly.
- * Find explanations of Photostructure environment variables [here](https://github.com/photostructure/photostructure-for-servers/blob/main/defaults.env).
  * `PHOTOSTRUCTURE_TRAEFIK_HOST` the external domain name to forward from traefik.
  * `BASICAUTH_USERS` Copy the result of the following command (replacing USERNAME and PASSWORD with the login and password you want to use for Photostructure):
     ```
     htpasswd -nb USERNAME PASSWORD | sed -e s/\\$/\\$\\$/g | grep .
     ```
+ * Find explanations of Photostructure environment variables [here](https://github.com/photostructure/photostructure-for-servers/blob/main/defaults.env).
 
 ### To start Photostructure:
   * Go into the photostructure directory and run `docker-compose up -d`. 
