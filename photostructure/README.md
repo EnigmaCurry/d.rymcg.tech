@@ -8,7 +8,7 @@ Photostructure is *not* open-source.
 SSH to the host, then:
 - Create a new user: `sudo adduser psuser`.
   - Learn what UID and GID `psuser` was assigned to:
-  `cat /etc/passwd | grep psuser`
+  ```cat /etc/passwd | grep psuser```
   - Use these values for UID and GID in your .env file, and when changing ownership, below.
 - Mount external volume for persistent storage (e.g., certificates, system settings).
   - Use this mount-point for PS_LIBRARY_PATH in your .env file. 
@@ -16,8 +16,9 @@ SSH to the host, then:
   - Use this mount-point for ASSET_DIR_HOST in your .env file. 
 - Change ownership of the persistent storage and the asset mount-points:
   e.g.:
-  `chown -R 1000:1000 /mnt/ps_assets /mnt/ps_config1
-  (You only need to do this once, ever: once you set it, it's in the inode for the directory -
+  ```
+  chown -R 1000:1000 /mnt/ps_assets /mnt/ps_config
+  ``` (You only need to do this once, ever: once you set it, it's in the inode for the directory -
   i.e., the owner stays with the directory wherever it is mounted).
 - Edit `/etc/fstab` to auto-mount the persistent storage and the asset mount-points on boot.
 
