@@ -31,9 +31,9 @@ of Photostructure environment variables [here](https://github.com/photostructure
  * `PHOTOSTRUCTURE_TRAEFIK_HOST` the external domain name to forward from traefik.
  * `BASICAUTH_USERS` Copy the result of the following command (replacing USERNAME and PASSWORD with the login and
 password you want to use for Photostructure):
-  ```
-  htpasswd -nb USERNAME PASSWORD | sed -e s/\\$/\\$\\$/g | grep .
-  ```
+    ```
+    htpasswd -nb USERNAME PASSWORD | sed -e s/\\$/\\$\\$/g | grep .
+    ```
 
 To start Photostructure, go into the photostructure directory and run `docker-compose up -d`. 
 
