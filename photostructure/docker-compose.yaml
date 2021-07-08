@@ -37,14 +37,14 @@ services:
       - default
     labels:
       - "traefik.enable=true"
-      - "traefik.http.routers.photostructure.entrypoints=http"
       - "traefik.http.routers.photostructure.rule=Host(`${PHOTOSTRUCTURE_TRAEFIK_HOST}`)"
-      - "traefik.http.middlewares.photostructure-https-redirect.redirectscheme.scheme=https"
+      - "traefik.http.routers.photostructure.entrypoints=web"
       - "traefik.http.routers.photostructure.middlewares=photostructure-https-redirect"
-      - "traefik.http.routers.photostructure-secure.entrypoints=https"
+      - "traefik.http.middlewares.photostructure-https-redirect.redirectscheme.scheme=https"
+      - "traefik.http.routers.photostructure-secure.entrypoints=websecure"
       - "traefik.http.routers.photostructure-secure.rule=Host(`${PHOTOSTRUCTURE_TRAEFIK_HOST}`)"
       - "traefik.http.routers.photostructure-secure.tls=true"
-      - "traefik.http.routers.photostructure-secure.tls.certresolver=http"
+      - "traefik.http.routers.photostructure-secure.tls.certresolver=default"
       - "traefik.http.routers.photostructure-secure.service=photostructure"
       - "traefik.http.services.photostructure.loadbalancer.server.port=1787"
       - "traefik.docker.network=proxy"
