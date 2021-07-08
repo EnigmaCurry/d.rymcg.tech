@@ -14,8 +14,7 @@ is a personal digital asset manager designed to make organizing, browsing, and s
    * Use this mount-point for PS_LIBRARY_PATH in your .env file. 
 3. [Mount an external volume or S3 space](#to-mount-an-s3-space) for your asset storage (photos and videos).
    * Use this mount-point for ASSET_DIR_HOST in your .env file. 
-4. Change ownership of the persistent storage and the asset mount-points:
-   e.g.:
+4. Change ownership of the persistent storage and the asset mount-points, e.g.:
    ```
    chown -R 1000:1000 /mnt/ps_assets /mnt/ps_config
    ```
@@ -44,7 +43,11 @@ is a personal digital asset manager designed to make organizing, browsing, and s
  * `PHOTOSTRUCTURE_TRAEFIK_HOST` the external domain name to forward from traefik.
  * `BASICAUTH_USERS` Copy the result of the following command (replacing USERNAME and PASSWORD with the login and password you want to use for Photostructure):
     ```
-    htpasswd -nb USERNAME PASSWORD | sed -e s/\\$/\\$\\$/g | grep .
+    htpasswd -nb USERNAME PASSWORD
+    ```
+    You can repeat this command for multiple users, separating them in the .env file with a comma, e.g.:
+    ```
+    BASICAUTH_USERS=user1:$apr1$Or2i/m.m$sfic787Ra18gOm2dQv8sc1,user2:$apr1$Or2i/m.m$gM1c7ftRa1jhO3sdQ5dvc2
     ```
  * Find explanations of Photostructure environment variables [here](https://github.com/photostructure/photostructure-for-servers/blob/main/defaults.env).
 
