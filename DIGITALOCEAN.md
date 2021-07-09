@@ -100,6 +100,8 @@ EOF
 ufw allow 22/tcp
 ufw route allow proto tcp from any to any port 80
 ufw route allow proto tcp from any to any port 443
+ufw route allow proto tcp from any to any port 8883
+ufw route allow proto tcp from any to any port 2222
 systemctl enable --now ufw
 systemctl restart ufw
 ufw --force enable
