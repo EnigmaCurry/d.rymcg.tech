@@ -30,6 +30,8 @@ You can use [DigitalOcean](https://www.digitalocean.com/) to host a docker serve
  
 ## Setup your local workstation 
 
+[Install the docker client](https://docs.docker.com/engine/install/) (on Linux this is bundled as "docker engine", which includes both the client and the server, but you do not need to start the server on your workstation, you can run `systemctl mask docker` to prevent the service from starting).
+
 Edit your SSH config file: `~/.ssh/config` (create it if necessary). Add the
 following lines, and change it for your domain name that you already created the
 DNS record for:
@@ -192,7 +194,6 @@ Logout from the droplet SSH connection, you probably won't ever need to login
 again unless there's a problem. You will now use docker exclusively from your
 local workstation (laptop).
 
-On your workstation, [install the docker client](https://docs.docker.com/engine/install/) (on Linux this is bundled as "docker engine", which includes both the client and the server, but you do not need to start the server on your workstation, you can run `systemctl mask docker` to prevent the service from starting).
 
 Test that the `DOCKER_HOST` connection is working from your local workstation:
 
