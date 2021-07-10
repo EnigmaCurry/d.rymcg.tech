@@ -35,7 +35,6 @@ services:
       - ${ASSET_DIR_HOST}:${ASSET_DIR_CONTAINER}:rw
     networks:
       - traefik-proxy
-      - default
     labels:
       - "traefik.enable=true"
       - "traefik.http.routers.photostructure.rule=Host(`${PHOTOSTRUCTURE_TRAEFIK_HOST}`)"
@@ -48,6 +47,6 @@ services:
       - "traefik.http.routers.photostructure-secure.tls.certresolver=default"
       - "traefik.http.routers.photostructure-secure.service=photostructure"
       - "traefik.http.services.photostructure.loadbalancer.server.port=1787"
-      - "traefik.docker.network=proxy"
+#      - "traefik.docker.network=traefik-proxy"
       - "traefik.http.middlewares.photostructure-auth.basicauth.users=${BASICAUTH_USERS}"
       - "traefik.http.routers.photostructure-secure.middlewares=photostructure-auth"
