@@ -26,11 +26,12 @@ services:
       - PS_CPU_LOAD_PERCENT
       - PS_PROCESS_PRIORITY
       - PS_ORIGINALS_DIR
+#      - PS_LIBRARY_PATH
     volumes:
-      - /opt/containers/photostructure/config:/ps/config:rw
-      - ${PS_LIBRARY_PATH}:/ps/library:rw
-      - ${PS_LOG_DIR}:/ps/logs:rw
-      - ${TMP_DIR}:/ps/tmp:rw
+      - ${PS_CONFIG_DIR_HOST}/photostructure-docker:/ps/config:rw
+      - ${PS_LIBRARY_DIR_HOST}:/ps/library:rw
+      - ${PS_LOG_DIR_HOST}/photostructure/logs:/ps/logs:rw
+      - ${PS_TMP_DIR_HOST}/photostructure:/ps/tmp:rw
       - ${ASSET_DIR_HOST}:${ASSET_DIR_CONTAINER}:rw
     networks:
       - traefik-proxy
