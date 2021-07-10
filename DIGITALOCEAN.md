@@ -100,12 +100,22 @@ EOF
 ufw allow 22/tcp
 ufw route allow proto tcp from any to any port 80
 ufw route allow proto tcp from any to any port 443
-ufw route allow proto tcp from any to any port 8883
-ufw route allow proto tcp from any to any port 2222
 systemctl enable --now ufw
 systemctl restart ufw
 ufw --force enable
 ufw status
+```
+
+If you are using the Gitea container, also open port 2222 for SSH:
+
+```
+ufw route allow proto tcp from any to any port 2222
+```
+
+If you are using the Mosquitto container, also open port 8883 for MQTT:
+
+```
+ufw route allow proto tcp from any to any port 8883
 ```
 
 ## Setup droplet volumes on block storage
@@ -181,6 +191,8 @@ mounted on startup (`df -h`)
 Logout from the droplet SSH connection, you probably won't ever need to login
 again unless there's a problem. You will now use docker exclusively from your
 local workstation (laptop).
+
+On your workstation, [install the docker client](https://docs.docker.com/engine/install/) (on Linux this is bundled as "docker engine", which includes both the client and the server, but you do not need to start the server on your workstation, you can run `systemctl mask docker` to prevent the service from starting).
 
 Test that the `DOCKER_HOST` connection is working from your local workstation:
 
