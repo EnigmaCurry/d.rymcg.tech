@@ -5,6 +5,12 @@ networks:
     external:
       name: traefik-proxy
 
+volumes:
+  psconfig:
+  pslib:
+  pslog:
+  pstmp:
+    
 services:
   photostructure:
     image: photostructure/server:alpha
@@ -27,24 +33,20 @@ services:
       - PS_PROCESS_PRIORITY
       - PS_ORIGINALS_DIR
     volumes:
-      - ${PS_CONFIG_DIR_HOST}/photostructure-docker:/ps/config:rw
-      - ${PS_LIBRARY_DIR_HOST}:/ps/library:rw
-      - ${PS_LOG_DIR_HOST}/photostructure/logs:/ps/logs:rw
-      - ${PS_TMP_DIR_HOST}/photostructure:/ps/tmp:rw
+      - psconfig:/ps/config:rw
+      - pslib:/ps/library:rw
+      - pslog:/ps/logs:rw
+      - pstmp:/ps/tmp:rw
       - ${ASSET_DIR_HOST}:${ASSET_DIR_CONTAINER}:rw
     networks:
       - traefik-proxy
     labels:
       - "traefik.enable=true"
+      - "traefik.http.routers.photostructure.entrypoints=websecure"
       - "traefik.http.routers.photostructure.rule=Host(`${PHOTOSTRUCTURE_TRAEFIK_HOST}`)"
-      - "traefik.http.routers.photostructure.entrypoints=web"
-      - "traefik.http.routers.photostructure.middlewares=photostructure-https-redirect"
-      - "traefik.http.middlewares.photostructure-https-redirect.redirectscheme.scheme=https"
-      - "traefik.http.routers.photostructure-secure.entrypoints=websecure"
-      - "traefik.http.routers.photostructure-secure.rule=Host(`${PHOTOSTRUCTURE_TRAEFIK_HOST}`)"
-      - "traefik.http.routers.photostructure-secure.tls=true"
-      - "traefik.http.routers.photostructure-secure.tls.certresolver=default"
-      - "traefik.http.routers.photostructure-secure.service=photostructure"
+      - "traefik.http.routers.photostructure.tls=true"
+      - "traefik.http.routers.photostructure.tls.certresolver=default"
+      - "traefik.http.routers.photostructure.service=photostructure"
       - "traefik.http.services.photostructure.loadbalancer.server.port=1787"
       - "traefik.http.middlewares.photostructure-auth.basicauth.users=${BASICAUTH_USERS}"
       - "traefik.http.routers.photostructure-secure.middlewares=photostructure-auth"
