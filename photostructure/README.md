@@ -5,25 +5,28 @@ is a personal digital asset manager designed to make organizing, browsing, and s
 
 ### SSH to the host, then:
 1. Create new user for Photostructure to use.
+  ```
+  sudo adduser psuser
+  ```
+  * Learn what UID and GID `psuser` was assigned to:
     ```
-    sudo adduser psuser
+    cat /etc/passwd | grep psuser
     ```
-    * Learn what UID and GID `psuser` was assigned to:
-      ```
-      cat /etc/passwd | grep psuser
-      ```
 2. Mount an external volume for your asset storage (photos and videos).
-   * Use this mount-point for ASSET_DIR_HOST in your .env file.
-   * Photostructure doesn't work with s3fs-mounted S3 storage, but [here](#photostructure-and-s3) were the instructions to set it up.
-3. Change ownership of the asset mount-point, replacing UID and GID with the UID and GID of your Photostructure user from step 1, and ASSET_DIR_HOST from step 2:
-   ```
-   chown -R UID:GID ASSET_DIR_HOST
-   ```
-   (You only need to do this once, ever: once you set it, it's in the inode for the directory - i.e., the owner stays with the directory wherever it is mounted).
-4. Edit `/etc/fstab` to auto-mount the persistent storage and the asset mount-points on boot.
+  * Use this mount-point for ASSET_DIR_HOST in your .env file.
+  * Photostructure doesn't work with s3fs-mounted S3 storage, but [here](#photostructure-and-s3) were the instructions to set it up.
+3. Change ownership of the asset mount-point, replacing UID and GID with the UID and GID of your Photostructure user from step 1, and ASSET_DIR_HOST with the mount-point from step 2:
+  ```
+  chown -R UID:GID ASSET_DIR_HOST
+  ```
+  (You only need to do this once, ever: once you set it, it's in the inode for the directory - i.e., the owner stays with the directory wherever it is mounted).
+4. Edit `/etc/fstab` to auto-mount the persistent storage and the asset mount-points on boot, replacing ASSET_DIR_HOST with the mount-point from step 2. THis example mounts a Digital Ocean volume in their nyc3 datacenter called volume-nyc1-01:
+  ```
+  echo '/dev/disk/by-id/scsi-0DO_Volume_volume-nyc1-01 ASSET_DIR_HOST ext4 defaults,nofail,discard 0 0' | sudo tee -a /etc/fstab
+  ```
 
-
-### Copy `.env-dist` to `.env`, and edit variables accordingly.
+### In your git clone:
+## Copy `.env-dist` to `.env`, and edit variables accordingly.
  * `PHOTOSTRUCTURE_TRAEFIK_HOST` the external domain name to forward from traefik.
  * `BASICAUTH_USERS` Copy the result of the following command (replacing USERNAME and PASSWORD with the login and password you want to use for Photostructure):
     ```
@@ -35,7 +38,7 @@ is a personal digital asset manager designed to make organizing, browsing, and s
     ```
  * Find explanations of Photostructure environment variables [here](https://photostructure.com/faq/environment-variables) and [here](https://github.com/photostructure/photostructure-for-servers/blob/main/defaults.env).
 
-### To start Photostructure:
+## To start Photostructure:
   * Go into the photostructure directory and run `docker-compose up -d`. 
   * On first launch of the Photostructure webpage, select "No thanks, I like my photos and videos where they already are" and click "Start".
   
