@@ -63,7 +63,7 @@ Photostructure doesn't work with s3fs-mounted S3 storage, but these were instruc
      ```
      cat /etc/passwd | grep psuser
      ```
-4. Create directory for mount-point, replacing ASSET_DIR_HOST with the mount-point created in step 2 [above](#ssh-to-the-host-then), and UID and GID with the UID and GID of your Photostructure user from step 3.
+4. Create directory for mount-point, replacing ASSET_DIR_HOST with the mount-point created in [step 2, above](#ssh-to-the-host-then), and UID and GID with the UID and GID of your Photostructure user from step 3.
    ```
    mkdir -p ASSET_DIR_HOST
    chown UID:GID ASSET_DIR_HOST
@@ -77,7 +77,7 @@ Photostructure doesn't work with s3fs-mounted S3 storage, but these were instruc
    echo KEY:SECRET | tee -a ${HOME}/.passwd-s3fs
    chmod 600 ${HOME}/.passwd-s3fs
    ```
-7. Mount your S3 space, replacing SPACENAME with the name of your S3 space, ASSET_DIR_HOST with the mount-point created in step 2 [above](#ssh-to-the-host-then), ENDPOINT with your S3 endpoint, and UID and GID with the UID and GID of your Photostructure user from step 3.
+7. Mount your S3 space, replacing SPACENAME with the name of your S3 space, ASSET_DIR_HOST with the mount-point created in [step 2, above](#ssh-to-the-host-then), ENDPOINT with your S3 endpoint, and UID and GID with the UID and GID of your Photostructure user from step 3.
    ```
    s3fs SPACENAME ASSET_DIR_HOST -o passwd_file=${HOME}/.passwd-s3fs -o url=https://ENDPOINT/ -o use_path_request_style -o allow_other`
    echo SPACENAME ASSET_DIR_HOST fuse.s3fs _netdev,allow_other,use_path_request_style,uid=UID,gid=GID,url=https://ENDPOINT/ 0 0 >> /etc/fstab
