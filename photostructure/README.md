@@ -25,8 +25,8 @@ is a personal digital asset manager designed to make organizing, browsing, and s
    echo '/dev/disk/by-id/scsi-0DO_Volume_volume-nyc1-01 ASSET_DIR_HOST ext4 defaults,nofail,discard 0 0' | sudo tee -a /etc/fstab
    ```
 
-### In your git clone:
-## Copy `.env-dist` to `.env`, and edit variables accordingly.
+### In your git clone directory:
+#### Copy `.env-dist` to `.env`, and edit variables accordingly.
  * `PHOTOSTRUCTURE_TRAEFIK_HOST` the external domain name to forward from traefik.
  * `BASICAUTH_USERS` Copy the result of the following command (replacing USERNAME and PASSWORD with the login and password you want to use for Photostructure):
     ```
@@ -38,7 +38,7 @@ is a personal digital asset manager designed to make organizing, browsing, and s
     ```
  * Find explanations of Photostructure environment variables [here](https://photostructure.com/faq/environment-variables) and [here](https://github.com/photostructure/photostructure-for-servers/blob/main/defaults.env).
 
-## To start Photostructure:
+#### To start Photostructure:
   * Go into the photostructure directory and run `docker-compose up -d`. 
   * On first launch of the Photostructure webpage, select "No thanks, I like my photos and videos where they already are" and click "Start".
   
@@ -46,7 +46,7 @@ is a personal digital asset manager designed to make organizing, browsing, and s
 ### Photostructure and S3:
 Photostructure doesn't work with s3fs-mounted S3 storage, but these were instructions to set everything up.
 
-`ssh` to your host, then:
+#### `ssh` to your host, then:
 1. Install s3fs.
    ```
    apt install s3fs
