@@ -1,7 +1,7 @@
 ## Photostructure
 
 [Photostructure](https://photostructure.com/server/photostructure-for-servers/)
-is a personal digital asset manager designed to make organizing, browsing, and sharing a lifetime of photos and videos effortless and fun. Photostructure is *not* open-source.
+is a personal digital asset manager designed to make organizing, browsing, and sharing a lifetime of photos and videos effortless and fun. Photostructure is [*not* open-source](https://photostructure.com/legal/eula/).
 
 ### SSH to the host, then:
 1. Create new user for Photostructure to use.
