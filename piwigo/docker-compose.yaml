@@ -33,7 +33,7 @@ services:
       - "traefik.enable=true"
       - "traefik.http.routers.piwigo.rule=Host(`${PIWIGO_TRAEFIK_HOST}`)"
       - "traefik.http.routers.piwigo.entrypoints=websecure"
-      - "traefik.http.routers.piwigo.tls.certresolver=default"
+      - "traefik.http.routers.piwigo.tls.certresolver=${ACME_CERT_RESOLVER}"
 
 volumes:
   config:
