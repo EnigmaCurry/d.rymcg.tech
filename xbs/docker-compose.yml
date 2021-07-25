@@ -43,7 +43,7 @@ services:
       - "traefik.enable=true"
       - "traefik.http.routers.xbs.rule=Host(`${XBS_TRAEFIK_HOST}`)"
       - "traefik.http.routers.xbs.entrypoints=websecure"
-      - "traefik.http.routers.xbs.tls.certresolver=default"
+      - "traefik.http.routers.xbs.tls.certresolver=${ACME_CERT_RESOLVER}"
       - "traefik.http.services.xbs.loadbalancer.server.port=8080"
 
 volumes:
