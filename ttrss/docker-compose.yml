@@ -71,7 +71,7 @@ services:
       - "traefik.enable=true"
       - "traefik.http.routers.ttrss.rule=Host(`${TTRSS_TRAEFIK_HOST}`)"
       - "traefik.http.routers.ttrss.entrypoints=websecure"
-      - "traefik.http.routers.ttrss.tls.certresolver=default"
+      - "traefik.http.routers.ttrss.tls.certresolver=${ACME_CERT_RESOLVER}"
 
 volumes:
   db:

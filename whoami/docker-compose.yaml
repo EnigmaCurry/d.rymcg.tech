@@ -8,6 +8,7 @@ networks:
 services:
   whoami:
     image: "traefik/whoami"
+    container_name: whoami
     networks:
       - traefik-proxy
     restart: unless-stopped
@@ -15,5 +16,5 @@ services:
       - "traefik.enable=true"
       - "traefik.http.routers.whoami.rule=Host(`${WHOAMI_TRAEFIK_HOST}`)"
       - "traefik.http.routers.whoami.entrypoints=websecure"
-      - "traefik.http.routers.whoami.tls.certresolver=default"
+      - "traefik.http.routers.whoami.tls.certresolver=${ACME_CERT_RESOLVER}"
       # - "traefik.http.routers.whoami.middlewares=traefik-forward-auth@docker"

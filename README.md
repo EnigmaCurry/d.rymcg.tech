@@ -38,6 +38,7 @@ on the host.
 * [Bitwarden](#bitwarden)
 * [Shaarli](#shaarli)
 * [xBrowserSync](#xbrowsersync)
+* [Piwigo](#piwigo)
 
 ## Setup
 ### Create a docker host
@@ -86,16 +87,15 @@ HTTP reverse proxy and load balancer.
 
 Copy `.env-dist` to `.env` and edit the following:
 
- * `ACME_CA_SERVER` this is the Let's Encrypt API (ACME) server to use. 
- 
-   * For development/staging use
-     `https://acme-staging-v02.api.letsencrypt.org/directory`
-   * For production use `https://acme-v02.api.letsencrypt.org/directory`
-   
  * `ACME_CA_EMAIL` this is YOUR email address, where you will receive notices
    from Let's Encrypt regarding your domains and related certificates.
 
 To start Traefik, go into the traefik directory and run `docker-compose up -d`
+
+All other services defines the `ACME_CERT_RESOLVER` variable in their respective
+`.env` file. There are two different environments defined, `staging` (default)
+and `production`. Staging will create untrusted TLS certificates for testing
+environments. Production will generate browser trustable TLS certificates.
 
 ## Gitea
 
@@ -352,3 +352,26 @@ the db.host value should match the container name of the "db" service in
 xbs/docker-compose.yml.
 
 To start xBrowseySync, go into the xbs directory and run `docker-compose up -d`.
+
+
+## Piwigo
+
+[Piwigo](https://piwigo.org/) is an online photo gallery and manager.
+
+Copy `.env-dist` to `.env` and edit the variables accordingly:
+
+ * `PIWIGO_TRAEFIK_HOST` the external domain name to forward from traefik.
+ * `MARIADB_ROOT_PASSWORD` the root mysql password
+ * `MARIADB_DATABASE` the mysql database name
+ * `MARIADB_USER` the mysql database username
+ * `MARIADB_PASSWORD` the mysql user password
+ * `TIMEZONE` the timezone, in the format of [TZ database name](https://en.wikipedia.org/wiki/List_of_tz_database_time_zones)
+
+To start piwigo, go into the piwigo directory and run `docker-compose up -d`.
+
+When you first start up piwigo, you must immediately configure it, as it is left
+open to the world. The database hostname is `db`, which is the name of the
+service listed in the docker-compose file.
+
+Note that piwigo has an update mechanism builtin, that must be run periodically,
+in addition to updating the docker container image.

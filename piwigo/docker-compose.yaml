@@ -1,0 +1,41 @@
+version: "3.3"
+
+networks:
+  traefik-proxy:
+    external:
+      name: traefik-proxy
+
+services:
+  db:
+    image: mariadb
+    restart: always
+    environment:
+      MARIADB_ROOT_PASSWORD: ${MARIADB_ROOT_PASSWORD}
+      MARIADB_DATABASE: ${MARIADB_DATABASE}
+      MARIADB_USER: ${MARIADB_USER}
+      MARIADB_PASSWORD: ${MARIADB_PASSWORD}
+    volumes:
+      - mariadb:/var/lib/mysql
+  piwigo:
+    image: linuxserver/piwigo:latest
+    networks:
+      - traefik-proxy
+      - default
+    restart: unless-stopped
+    volumes:
+      - config:/config
+      - gallery:/gallery
+    environment:
+      - PUID=1000
+      - PGID=1000
+      - TZ=${TIMEZONE}
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.piwigo.rule=Host(`${PIWIGO_TRAEFIK_HOST}`)"
+      - "traefik.http.routers.piwigo.entrypoints=websecure"
+      - "traefik.http.routers.piwigo.tls.certresolver=${ACME_CERT_RESOLVER}"
+
+volumes:
+  config:
+  gallery:
+  mariadb:

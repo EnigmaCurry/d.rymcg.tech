@@ -20,7 +20,7 @@ services:
       - "traefik.tcp.routers.mqtt.rule=HostSNI(`${MOSQUITTO_TRAEFIK_HOST}`)"
       - "traefik.tcp.routers.mqtt.entrypoints=mqtt"
       - "traefik.tcp.routers.mqtt.tls=true"
-      - "traefik.tcp.routers.mqtt.tls.certresolver=default"
+      - "traefik.tcp.routers.mqtt.tls.certresolver=${ACME_CERT_RESOLVER}"
       - "traefik.tcp.routers.mqtt.service=mqtt"
       - "traefik.tcp.services.mqtt.loadBalancer.server.port=1883"
     volumes:
