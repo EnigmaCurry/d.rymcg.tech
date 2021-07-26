@@ -33,4 +33,4 @@ services:
       - "traefik.enable=true"
       - "traefik.http.routers.shaarli.rule=Host(`${SHAARLI_TRAEFIK_HOST}`)"
       - "traefik.http.routers.shaarli.entrypoints=websecure"
-      - "traefik.http.routers.shaarli.tls.certresolver=default"
+      - "traefik.http.routers.shaarli.tls.certresolver=${ACME_CERT_RESOLVER}"

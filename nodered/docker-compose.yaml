@@ -20,7 +20,7 @@ services:
       - "traefik.port=1880"
       - "traefik.http.routers.node-red.rule=Host(`${NODERED_TRAEFIK_HOST}`)"
       - "traefik.http.routers.node-red.entrypoints=websecure"
-      - "traefik.http.routers.node-red.tls.certresolver=default"
+      - "traefik.http.routers.node-red.tls.certresolver=${ACME_CERT_RESOLVER}"
       ## Authentication:
       - "traefik.http.middlewares.nodered-auth.basicauth.users=${NODERED_HTTP_AUTH}"
       - "traefik.http.routers.node-red.middlewares=nodered-auth@docker"

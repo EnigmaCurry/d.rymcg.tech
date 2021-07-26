@@ -26,7 +26,7 @@ services:
       - "traefik.enable=true"
       - "traefik.http.routers.traefik-forward-auth.rule=Host(`${TRAEFIK_FORWARD_AUTH_HOST}`)"
       - "traefik.http.routers.traefik-forward-auth.entrypoints=websecure"
-      - "traefik.http.routers.traefik-forward-auth.tls.certresolver=default"
+      - "traefik.http.routers.traefik-forward-auth.tls.certresolver=${ACME_CERT_RESOLVER}"
       - "traefik.http.services.traefik-forward-auth.loadbalancer.server.port=4181"
       - "traefik.http.middlewares.traefik-forward-auth.forwardAuth.address=http://traefik-forward-auth:4181"
       - "traefik.http.middlewares.traefik-forward-auth.forwardAuth.authResponseHeaders=X-Forwarded-User"
