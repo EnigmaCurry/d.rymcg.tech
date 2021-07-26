@@ -39,6 +39,7 @@ on the host.
 * [Shaarli](#shaarli)
 * [xBrowserSync](#xbrowsersync)
 * [Piwigo](#piwigo)
+* [SFTP](#sftp)
 
 ## Setup
 ### Create a docker host
@@ -375,3 +376,23 @@ service listed in the docker-compose file.
 
 Note that piwigo has an update mechanism builtin, that must be run periodically,
 in addition to updating the docker container image.
+
+## SFTP
+
+[SFTP](https://github.com/atmoz/sftp) is an easy to use SFTP (SSH File
+Transfer Protocol) server with OpenSSH.
+
+Copy `.env-dist` to `.env`, and edit variables accordingly.
+
+Copy `setup-dist` to `setup`, and edit the values for USERNAME, PSPUBKEYS,
+PSSHARES, PSUID, and PSGID in the "SFTP User" section (lines 33-77). If you're
+configuring multiple SFTP users, copy lines 33-77, paste them before line
+79, and edit those USERNAME, PSPUBKEYS, PSSHARES, PSUID, and PSGID values,
+as well.
+
+Run setup:
+```
+./setup
+```
+
+To start the SFTP server, go into the sftp directory and run `docker-compose up -d`.
