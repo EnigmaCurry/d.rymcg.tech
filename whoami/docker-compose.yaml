@@ -8,6 +8,7 @@ networks:
 services:
   whoami:
     image: "traefik/whoami"
+    container_name: whoami
     networks:
       - traefik-proxy
     restart: unless-stopped
