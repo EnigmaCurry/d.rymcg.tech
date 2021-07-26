@@ -1,0 +1,15 @@
+version: '3.0'
+
+services:
+  sftp:
+    image: atmoz/sftp
+    container_name: sftp
+    restart: unless-stopped
+    networks:
+      - default
+    volumes:
+      - ${CONFIG_ROOT}/ssh_host_ed25519_key:/etc/ssh/ssh_host_ed25519_key
+      - ${CONFIG_ROOT}/ssh_host_rsa_key:/etc/ssh/ssh_host_rsa_key
+      - /opt/containers/sftp/data/users.conf:/etc/sftp/users.conf
+    ports:
+      - ${SFTP_PORT}:22

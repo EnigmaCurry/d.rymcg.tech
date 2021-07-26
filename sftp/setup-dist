@@ -1,0 +1,83 @@
+#!/bin/bash
+
+#------------------------------------
+# The ONLY things you need to edit in this files are the values for USERNAME, PSPUBKEYS, PSSHARES, PSUID, and PSGID in the "SFTP User" section, lines 33-77.
+#------------------------------------
+
+# Load environment variables
+source .env
+
+dcovols=$(cat <<DCOVOLS
+version: '3.0'
+
+services:
+  sftp:
+    volumes:\n
+
+DCOVOLS
+)
+
+# create config directories
+rootdir="/opt/containers/sftp/data"
+echo "mkdir -p $rootdir" > remote_setup
+echo "mkdir -p ${CONFIG_ROOT}" >> remote_setup
+# Remove users.conf, in case a previous version exists
+echo "rm $rootdir/users.conf" >> remote_setup
+
+#create keys
+echo "ssh-keygen -t ed25519 -f ${CONFIG_ROOT}/ssh_host_ed25519_key < /dev/null" >> remote_setup
+echo "ssh-keygen -t rsa -b 4096 -f ${CONFIG_ROOT}/ssh_host_rsa_key < /dev/null" >> remote_setup
+
+# Begin SFTP User(s) section(s) - ONLY edit the values for USERNAME, PSPUBKEYS, PSSHARES, PSUID, and PSGID in the "SFTP User" section below, lines 33-77
+
+#----SFTP user: BEGIN------------------------
+# Duplicate this section (lines 33-77) once for each SFTP user. Duplicates must be pasted before line 79.
+
+# SFTP user name:
+USERNAME=mike
+
+# Public keys:
+# Add a key for each device this SFTP user will log in from, enclosing each key in quotes. If there are multiple keys, separate each key with a space.
+# Note: there must be a space after the opening parenthesis and before the closing parenthesis.
+declare -a PSPUBKEYS=( "ssh-rsa encrypted_key_2 username@computer" )
+
+# User shares:
+# For each directory this SFTP user will be able to SFTP to/from, enter a name for the share and the directory on the host to share in this user's SFTP home directory, in this format: ["name"]="/mount/point"
+# If there are multiple shares, separate each share with a space.
+# Note: there must be a space after the opening parenthesis and before the closing parenthesis.
+declare -A PSSHARES=( ["phone01"]="/mnt/sftp_volume/phone01" ["phone02"]="/mnt/sftp_volume/phone02" )
+
+# User ID and Group ID:
+PSUID=1000
+PSGID=1000
+
+# Do not change anything below here (but do copy it if you're configuring multiple users):
+# create user directory
+userdir="${USERNAME}/.ssh/keys"
+echo "mkdir -p $rootdir/$userdir" >> remote_setup
+dcovols+="      - $rootdir/${USERNAME}/.ssh:/home/${USERNAME}/.ssh\n"
+
+# for each public key, save .pub file to user directory
+i=1
+for pubkey in "${PSPUBKEYS[@]}"; do
+  echo "echo \"$pubkey\" > $rootdir/$userdir/${USERNAME}_${i}_id_rsa.pub" >> remote_setup
+  let "i++"
+done
+
+# add each user to users.conf
+echo "echo '${USERNAME}::${PSUID}:${PSGID}:$USERNAME' >> $rootdir/users.conf" >> remote_setup
+
+# create and chown each of this user's shares
+for sharename in "${!PSSHARES[@]}"; do
+  eval "share=\"\${PSSHARES[$sharename]}\""
+  echo "mkdir -p $share" >> remote_setup
+  echo "chown $PSUID $share" >> remote_setup
+  eval "dcovols+=\"      - \"\${PSSHARES[$sharename]}\":/home/${USERNAME}/${sharename}\n\""
+done
+#----SFTP user: END--------------------------
+
+#----If you're configuring multiple users, copy and paste multiple "SFTP: user" sections ABOVE this line.------------
+
+ssh -tt root@${SFTP_TRAEFIK_HOST} bash < remote_setup
+
+echo -e "$dcovols" > docker-compose.override.yaml
