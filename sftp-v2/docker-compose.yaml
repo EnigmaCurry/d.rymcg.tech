@@ -1,0 +1,20 @@
+version: '3.3'
+
+volumes:
+  ssh-keys:
+  sftp-config:
+  sftp-data:
+
+services:
+  sftp:
+    build:
+      context: ./
+    container_name: sftp
+    restart: unless-stopped
+    volumes:
+      - ssh-keys:/etc/ssh/keys
+      - sftp-config:/etc/sftp
+      - sftp-data:/home
+    ports:
+      - ${SFTP_PORT}:22
+    command: ${SFTP_USERS}
