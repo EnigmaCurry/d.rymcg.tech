@@ -64,62 +64,36 @@ ssh docker
 The first time you login to your droplet, you need to confirm the SSH pubkey
 fingerprint; press Enter.
 
-## Setup droplet ufw firewall
+## Setup droplet firewall
 
-Once logged in, you must configure the `ufw` firewall. You will remove the
-default SSH limiting rule, and install the [chaifeng UFW docker
-overrides](https://github.com/chaifeng/ufw-docker), which will force docker to
-respect your `ufw` firewall rules ([Docker has a giant foot-gun when combined
-with ufw](https://github.com/moby/moby/issues/4737) which this fix avoids). Copy
-and paste this entire block of code and run:
+Go to the DigitalOcean dashboard, Networking page, click the Firewalls tab.
 
-```
-ufw --force reset
-echo "Installing UFW docker override : https://github.com/chaifeng/ufw-docker"
-cat <<EOF >> /etc/ufw/after.rules
-# BEGIN UFW AND DOCKER
-*filter
-:ufw-user-forward - [0:0]
-:ufw-docker-logging-deny - [0:0]
-:DOCKER-USER - [0:0]
--A DOCKER-USER -j ufw-user-forward
--A DOCKER-USER -j RETURN -s 10.0.0.0/8
--A DOCKER-USER -j RETURN -s 172.16.0.0/12
--A DOCKER-USER -j RETURN -s 192.168.0.0/16
--A DOCKER-USER -p udp -m udp --sport 53 --dport 1024:65535 -j RETURN
--A DOCKER-USER -j ufw-docker-logging-deny -p tcp -m tcp --tcp-flags FIN,SYN,RST,ACK SYN -d 192.168.0.0/16
--A DOCKER-USER -j ufw-docker-logging-deny -p tcp -m tcp --tcp-flags FIN,SYN,RST,ACK SYN -d 10.0.0.0/8
--A DOCKER-USER -j ufw-docker-logging-deny -p tcp -m tcp --tcp-flags FIN,SYN,RST,ACK SYN -d 172.16.0.0/12
--A DOCKER-USER -j ufw-docker-logging-deny -p udp -m udp --dport 0:32767 -d 192.168.0.0/16
--A DOCKER-USER -j ufw-docker-logging-deny -p udp -m udp --dport 0:32767 -d 10.0.0.0/8
--A DOCKER-USER -j ufw-docker-logging-deny -p udp -m udp --dport 0:32767 -d 172.16.0.0/12
--A DOCKER-USER -j RETURN
--A ufw-docker-logging-deny -m limit --limit 3/min --limit-burst 10 -j LOG --log-prefix "[UFW DOCKER BLOCK] "
--A ufw-docker-logging-deny -j DROP
-COMMIT
-# END UFW AND DOCKER
-EOF
-ufw allow 22/tcp
-ufw route allow proto tcp from any to any port 80
-ufw route allow proto tcp from any to any port 443
-systemctl enable --now ufw
-systemctl restart ufw
-ufw --force enable
-ufw status
-```
-
-If you are using the Gitea container, also open port 2222 for SSH:
+Create a new firewall: 
+ 
+ * Enter your cluster domain name as the name of the firewall
+ * Create the following `Inbound Rules`:
+ 
+    | Type   | Protocol | Port Range | Description                      |
+    | ------ | -------- | ---------- | -------------------------------- |
+    | SSH    | TCP      |         22 | Host SSH server                  |
+    | HTTP   | TCP      |         80 | Traefik HTTP endpoint            |
+    | HTTPS  | TCP      |        443 | Traefik HTTPS (TLS) endpoint     |
+    | Custom | TCP      |       2222 | Traefik Gitea SSH (TCP) endpoint |
+    | Custom | TCP      |       2223 | SFTP container SSH (TCP)         |
+    | Custom | TCP      |       8883 | Traefik Mosquitto (TLS) endpoint |
+ 
+ * (and any other ports you need.)
+ * Search for the Droplet you create and apply the firewall to it.
+ * You can verify the firewall is applied, by going to the Droplet page and
+   going to the Droplet Network settings page.
+ 
+Login to the droplet shell terminal, and disable the ufw firewall:
 
 ```
-ufw route allow proto tcp from any to any port 2222
+ufw disable
+systemctl mask ufw
 ```
-
-If you are using the Mosquitto container, also open port 8883 for MQTT:
-
-```
-ufw route allow proto tcp from any to any port 8883
-```
-
+ 
 ## Setup droplet volumes on block storage
 
 Normally, Docker stores all data (including volumes) at `/var/lib/docker` which
