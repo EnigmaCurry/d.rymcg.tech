@@ -1,0 +1,21 @@
+version: '3.0'
+
+volumes:
+  syncthing:
+
+services:
+  syncthing:
+    image: syncthing/syncthing
+    container_name: syncthing
+    restart: unless-stopped
+    security_opt:
+      - no-new-privileges:true
+    volumes:
+      - syncthing:/var/syncthing
+    ports:
+      - 127.0.0.1:8384:8384
+      - ${LISTEN_PORT}:22000
+      - ${DISCOVERY_PORT}:21027/udp
+    environment: 
+      PUID: ${UID}
+      PGID: ${GID}
