@@ -6,7 +6,7 @@ sub-directory containing its own `docker-compose.yaml` and `.env` file (and
 `.env-dist` sample file), this structure allows you to pick and choose which
 services you wish to enable.
 
-The `.env` files are secret, and excluded from being comitted to the git
+The `.env` files are secret, and excluded from being committed to the git
 repository, via `.gitignore`. Each project includes a `.env-dist` file which is
 a sample that must be copied, creating your own secret `.env` file, and edit
 appropriately.
