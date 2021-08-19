@@ -41,6 +41,7 @@ on the host.
 * [Piwigo](#piwigo)
 * [SFTP](#sftp)
 * [Syncthing](#syncthing)
+* [Jupyterlab](#jupyterlab)
 
 ## Setup
 ### Create a docker host
@@ -422,3 +423,19 @@ To access the Syncthing GUI:
    ssh -L 8384:localhost:8384 root@your.remotehost.com
    ```
 2. Visit http://localhost:8384 in a web browser.
+
+## Jupyterlab
+
+[Jupyterlab](https://jupyter-docker-stacks.readthedocs.io/en/latest/) is a
+progamming notebook, for Python and other languages.
+
+Copy `.env-dist` to `.env` and edit the variables accordingly.
+
+All work saved in /home/jovyan/work is saved to a volume.
+
+The token to access the server changes each time the container starts, to find
+the token look at the logs:
+
+```
+docker logs jupyterlab
+```
