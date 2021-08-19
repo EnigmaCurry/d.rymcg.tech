@@ -18,3 +18,12 @@ services:
       - "traefik.http.routers.whoami.entrypoints=websecure"
       - "traefik.http.routers.whoami.tls.certresolver=${ACME_CERT_RESOLVER}"
       # - "traefik.http.routers.whoami.middlewares=traefik-forward-auth@docker"
+
+      # Test middlewares on the /test path prefix:
+      - "traefik.http.routers.whoami-test.rule=Host(`${WHOAMI_TRAEFIK_HOST}`) && PathPrefix(`/test/`)"
+      - "traefik.http.routers.whoami-test.entrypoints=websecure"
+      - "traefik.http.routers.whoami-test.tls.certresolver=${ACME_CERT_RESOLVER}"
+      - "traefik.http.middlewares.testHeader.headers.customrequestheaders.X-Script-Name=testing-123"
+      - "traefik.http.middlewares.testHeader.headers.customresponseheaders.X-Custom-Response-Header=yeppp"
+      - "traefik.http.routers.whoami-test.middlewares=testHeader@docker"
+

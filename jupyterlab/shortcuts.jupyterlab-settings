@@ -1,0 +1,137 @@
+{    
+  "shortcuts": [
+    {
+      "command": "application:activate-next-tab",
+      "keys": [
+        "Ctrl PageDown"
+      ],
+      "selector": "body"
+    },
+    {
+      "command": "application:activate-previous-tab",
+      "keys": [
+        "Ctrl PageUp"
+      ],
+      "selector": "body"
+    },
+    {
+      "command": "notebook:move-cursor-down",
+      "keys": [
+        "Ctrl N"
+      ],
+      "selector": ".jp-Notebook:focus"
+    },
+    {
+      "command": "notebook:move-cursor-up",
+      "keys": [
+        "Ctrl P"
+      ],
+      "selector": ".jp-Notebook:focus"
+    },
+    {
+      "command": "notebook:enter-command-mode",
+      "keys": [
+        "Ctrl G"
+      ],
+      "selector": ".jp-Notebook.jp-mod-editMode"
+    },
+    {
+      "command": "notebook:enter-command-mode",
+      "keys": [
+        "Escape"
+      ],
+      "disabled": true,
+      "selector": ".jp-Notebook.jp-mod-editMode"
+    },
+    {
+      "command": "tooltip:dismiss",
+      "keys": [
+        "Ctrl G"
+      ],
+      "selector": "body.jp-mod-tooltip .jp-CodeConsole-promptCell"
+    },
+    {
+      "command": "tooltip:dismiss",
+      "keys": [
+        "Escape"
+      ],
+      "disabled": true,
+      "selector": "body.jp-mod-tooltip .jp-CodeConsole-promptCell"
+    },
+    {
+      "command": "tooltip:dismiss",
+      "keys": [
+        "Ctrl G"
+      ],
+      "selector": "body.jp-mod-tooltip .jp-Notebook"
+    },
+    {
+      "command": "tooltip:dismiss",
+      "keys": [
+        "Escape"
+      ],
+      "disabled": true,
+      "selector": "body.jp-mod-tooltip .jp-Notebook"
+    },
+    {
+      "command": "editmenu:undo",
+      "keys": [
+      ],
+      "selector": "[data-jp-undoer]"
+    },
+    {
+      "command": "notebook:split-cell-at-cursor",
+      "keys": [
+        "Ctrl Shift -",
+        "Ctrl /"
+      ],
+      "selector": ".jp-Notebook.jp-mod-editMode",
+      "disabled": true
+    },
+    {
+      "command": "notebook:delete-cell",
+      "keys": [
+        "Ctrl K"
+      ],
+      "selector": ".jp-Notebook:focus"
+    },
+    {
+      "command": "runmenu:restart-and-run-all",
+      "keys": [
+        "Ctrl C"
+      ],
+      "selector": "[data-jp-code-runner]"
+    },
+    {
+      "command": "apputils:print",
+      "keys": [
+        "Accel P"
+      ],
+      "disabled": true,
+      "selector": "body"
+    },
+    {
+      "command": "application:toggle-left-area",
+      "keys": [
+        "Accel B"
+      ],
+      "disabled": true,
+      "selector": "body"
+    },
+    {
+      "command": "documentsearch:start",
+      "keys": [
+        "Accel F"
+      ],
+      "disabled": true,
+      "selector": ".jp-mod-searchable"
+    },
+    {
+      "command": "documentsearch:start",
+      "keys": [
+        "Alt S"
+      ],
+      "selector": ".jp-mod-searchable"
+    },
+  ]
+}
