@@ -43,6 +43,7 @@ on the host.
 * [Syncthing](#syncthing)
 * [Jupyterlab](#jupyterlab)
 * [Larynx](#larynx)
+* [Jackal](#jackal)
 
 ## Setup
 ### Create a docker host
@@ -480,3 +481,22 @@ curl https://larynx.example.com/api/tts \
   --data-urlencode 'inlinePronunciations=true' \
   --compressed | aplay -r 22050 -c 1 -f S16_LE
 ```
+
+## Jackal
+
+[Jackal](https://github.com/ortuman/jackal) is a free, open-source,
+high performance XMPP server which aims to be known for its stability,
+simple configuration and low resource consumption.
+
+Copy `.env-dist` to `.env`, and edit variables accordingly. 
+
+ * The defaults for `POSTGRES_USER` and `POSTGRES_PASSWORD` are probably fine,
+ but you can customize them if you want.
+ 
+ Copy `jackal/config/docker-compose.config.yaml-dist` to `jackal/config/docker-compose.config.yaml`
+ and edit variables accordingly.
+ 
+  * Enter the same value as `POSTGRES_USER` for `storage:pgsql:user:` (line 18).
+  * Enter the same value as `POSTGRES_PASSWORD` for `storage:pgsql:password:` (line 19).
+
+To start Jackal, go into the jackal directory and run `docker-compose up -d`.
