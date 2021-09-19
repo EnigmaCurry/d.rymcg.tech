@@ -32,3 +32,4 @@ listeners:
         - scram_sha_256
         - scram_sha_512
         - scram_sha3_512
+    direct_tls: true
