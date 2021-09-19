@@ -1,4 +1,15 @@
-FROM ortuman/jackal:latest
+FROM alpine
+ARG POSTGRES_USER
+ARG POSTGRES_PASSWORD
+ARG JACKAL_KEY
+COPY config.template.yaml /config.template.yaml
+RUN apk add -U gettext && \
+    cat /config.template.yaml | \
+    envsubst > /config.yaml && \
+    cat /config.yaml
 
-COPY scripts/wait-for-it.sh /jackal/
-COPY config/docker-compose.config.yaml /jackal/config.yaml
+FROM ortuman/jackal:latest
+WORKDIR /jackal
+COPY wait-for-it.sh /jackal/wait-for-it.sh
+RUN chmod a+x /jackal/wait-for-it.sh
+COPY --from=0 /config.yaml /jackal/config.yaml

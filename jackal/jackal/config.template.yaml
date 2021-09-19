@@ -1,10 +1,6 @@
-###~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~###
-###             docker compose configuration file            ###
-###~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~###
-
 peppers:
   keys:
-    v1: M8Tcc9NzHCTwEemTVzpDFf7D
+    v1: ${JACKAL_KEY}
   use: v1
 
 logger:
@@ -15,8 +11,8 @@ storage:
   type: pgsql
   pgsql:
     host: 'pgsql:5432'
-    user: jackal
-    password: asecretpassword
+    user: ${POSTGRES_USER}
+    password: ${POSTGRES_PASSWORD}
     database: jackal
     max_open_conns: 16
 

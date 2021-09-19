@@ -1,0 +1,73 @@
+version: '3'
+
+volumes:
+  etcd:
+  pgsql:
+
+networks:
+  traefik-proxy:
+    external:
+      name: traefik-proxy
+
+services:
+  etcd:
+    image: quay.io/coreos/etcd:v3.4.16
+    volumes:
+      - etcd:/etcd_data
+    command:
+      - /usr/local/bin/etcd
+      - -name
+      - etcd
+      - --data-dir
+      - /etcd_data
+      - -advertise-client-urls
+      - http://etcd:2379
+      - -listen-client-urls
+      - http://0.0.0.0:2379
+      - -initial-advertise-peer-urls
+      - http://etcd:2380
+      - -listen-peer-urls
+      - http://0.0.0.0:2380
+
+  pgsql:
+    build:
+      context: pgsql
+    environment:
+      - POSTGRES_USER
+      - POSTGRES_PASSWORD
+    volumes:
+      - pgsql:/var/lib/postgresql/data
+
+  jackal:
+    build:
+      context: jackal
+      args:
+        JACKAL_KEY:
+        POSTGRES_USER:
+        POSTGRES_PASSWORD:
+    ## Ports are not exposed directly, but through Traefik instead:
+    # ports:
+    #   - 5222:5222
+    #   - 15280:15280
+    networks:
+      - default
+      - traefik-proxy
+    environment:
+      - JACKAL_LOG_STANZAS=on
+    depends_on:
+      - etcd
+      - pgsql
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.xmpp.rule=Host(`${JACKAL_TRAEFIK_HOST}`)"
+      - "traefik.http.routers.xmpp.entrypoints=websecure"
+      - "traefik.http.routers.xmpp.tls.certresolver=${ACME_CERT_RESOLVER}"
+      - "traefik.http.services.xmpp.loadBalancer.server.port=5222"
+    command:
+      - ./wait-for-it.sh
+      - pgsql:5432
+      - --
+      - ./wait-for-it.sh
+      - etcd:2379
+      - --
+      - ./jackal
