@@ -3,12 +3,8 @@ version: '3'
 volumes:
   etcd:
   pgsql:
-
-networks:
-  traefik-proxy:
-    external:
-      name: traefik-proxy
-
+  config:
+  
 services:
   etcd:
     image: quay.io/coreos/etcd:v3.4.16
@@ -38,34 +34,38 @@ services:
     volumes:
       - pgsql:/var/lib/postgresql/data
 
+  jackal-config:
+    build:
+      context: jackal-config
+    environment:
+      - POSTGRES_USER
+      - POSTGRES_PASSWORD
+      - JACKAL_KEY
+      - FORCE_CREATE_CONFIG
+      - PRINT_CONFIG
+    volumes:
+      - config:/config
+    command:
+      - ./create-config.sh
+
   jackal:
+    depends_on:
+      - jackal-config
     build:
       context: jackal
-      args:
-        JACKAL_KEY:
-        POSTGRES_USER:
-        POSTGRES_PASSWORD:
-    ## Ports are not exposed directly, but through Traefik instead:
-    # ports:
-    #   - 5222:5222
-    #   - 15280:15280
+    ports:
+      - 5222:5222
+      - 15280:15280
     networks:
       - default
-      - traefik-proxy
+    volumes:
+      - config:/config
     environment:
       - JACKAL_LOG_STANZAS=on
+      - JACKAL_CONFIG_FILE=/config/config.yaml
     depends_on:
       - etcd
       - pgsql
-    labels:
-      - "traefik.enable=true"
-      - "traefik.tcp.routers.xmpp.rule=HostSNI(`*`)"
-      - "traefik.tcp.routers.xmpp.entrypoints=xmpp"
-      - "traefik.tcp.routers.xmpp.service=xmpp"
-      - "traefik.tcp.routers.xmpp.tls=true"
-      - "traefik.tcp.routers.xmpp.tls.certresolver=${ACME_CERT_RESOLVER}"
-      - "traefik.tcp.routers.xmpp.tls.domains[0].main=${JACKAL_TRAEFIK_HOST}"
-      - "traefik.tcp.services.xmpp.loadbalancer.server.port=5222"
     command:
       - ./wait-for-it.sh
       - pgsql:5432

@@ -1,15 +1,19 @@
-FROM alpine
-ARG POSTGRES_USER
-ARG POSTGRES_PASSWORD
-ARG JACKAL_KEY
-COPY config.template.yaml /config.template.yaml
-RUN apk add -U gettext && \
-    cat /config.template.yaml | \
-    envsubst > /config.yaml && \
-    cat /config.yaml
+FROM golang:1.17
+ENV SRC=github.com/ortuman/jackal
+RUN apt-get update && apt-get install -y git make bash && git clone https://${SRC} /go/src/${SRC}
+RUN cd /go/src/${SRC} && make install installctl
 
-FROM ortuman/jackal:latest
+FROM debian:stable-slim
+VOLUME /config
 WORKDIR /jackal
-ADD https://raw.githubusercontent.com/ortuman/jackal/master/scripts/wait-for-it.sh /jackal/wait-for-it.sh
-RUN chmod a+x /jackal/wait-for-it.sh
-COPY --from=0 /config.yaml /jackal/config.yaml
+RUN apt-get -y update && apt-get install -y gettext
+
+ADD https://raw.githubusercontent.com/ortuman/jackal/master/scripts/wait-for-it.sh wait-for-it.sh
+COPY --from=0 /go/bin/jackal /jackal/jackal
+COPY --from=0 /go/bin/jackalctl /jackal/jackalctl
+RUN chmod a+x wait-for-it.sh 
+
+EXPOSE 5222
+ENV PATH $PATH:/jackal
+ENV JACKAL_CONFIG_FILE=/config/config
+CMD ["./jackal"]
