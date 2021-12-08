@@ -40,13 +40,11 @@ services:
     environment:
       - POSTGRES_USER
       - POSTGRES_PASSWORD
-      - JACKAL_KEY
-      - FORCE_CREATE_CONFIG
+      - JACKAL_HOST
       - PRINT_CONFIG
+      - SELF_SIGNED_TLS
     volumes:
       - config:/config
-    command:
-      - ./create-config.sh
 
   jackal:
     depends_on:
@@ -55,7 +53,10 @@ services:
       context: jackal
     ports:
       - 5222:5222
-      - 15280:15280
+      - 5223:5223
+      - 5269:5269
+      - 5270:5270
+      - 127.0.0.1:15280:15280
     networks:
       - default
     volumes:
@@ -66,11 +67,3 @@ services:
     depends_on:
       - etcd
       - pgsql
-    command:
-      - ./wait-for-it.sh
-      - pgsql:5432
-      - --
-      - ./wait-for-it.sh
-      - etcd:2379
-      - --
-      - ./jackal

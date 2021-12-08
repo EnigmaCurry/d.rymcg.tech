@@ -1,11 +1,16 @@
 peppers:
   keys:
-    v1: ${JACKAL_KEY}
+    v1: ${PEPPER_KEY}
   use: v1
 
 logger:
   level: debug
-  output_path: jackal.log
+
+hosts:
+  - domain: ${JACKAL_HOST}
+    tls:
+      cert_file: /config/cert.pem
+      privkey_file: /config/key.pem
 
 storage:
   type: pgsql
@@ -19,7 +24,9 @@ storage:
 cluster:
   etcd:
     endpoints:
-      - 'http://etcd:2379'
+      - http://etcd:2379
+  server:
+    port: 14369
 
 listeners:
   - type: c2s
@@ -27,9 +34,63 @@ listeners:
     req_timeout: 60s
     transport: socket
     sasl:
-      mechanisms:
-        - scram_sha_1
-        - scram_sha_256
-        - scram_sha_512
-        - scram_sha3_512
+      mechanisms: [scram_sha_1, scram_sha_256, scram_sha_512, scram_sha3_512]
+
+  - type: c2s
+    port: 5223
     direct_tls: true
+    req_timeout: 60s
+    transport: socket
+    sasl:
+      mechanisms: [scram_sha_1, scram_sha_256, scram_sha_512, scram_sha3_512]
+
+  - type: s2s
+    port: 5269
+    req_timeout: 60s
+    max_stanza_size: 131072
+
+  - type: s2s
+    port: 5270
+    direct_tls: true
+    req_timeout: 60s
+    max_stanza_size: 131072
+
+  - type: component
+    port: 5275
+    secret: ${COMPONENT_SECRET}
+
+s2s_out:
+  dialback_secret: ${DIALBACK_SECRET}
+  dial_timeout: 5s
+  req_timeout: 60s
+  max_stanza_size: 131072
+
+modules:
+#  enabled:
+#    - roster
+#    - offline
+#    - last        # XEP-0012: Last Activity
+#    - disco       # XEP-0030: Service Discovery
+#    - private     # XEP-0049: Private XML Storage
+#    - vcard       # XEP-0054: vcard-temp
+#    - version     # XEP-0092: Software Version
+#    - caps        # XEP-0115: Entity Capabilities
+#    - blocklist   # XEP-0191: Blocking Command
+#    - stream_mgmt # XEP-0198: Stream Management
+#    - ping        # XEP-0199: XMPP Ping
+#    - time        # XEP-0202: Entity Time
+#    - carbons     # XEP-0280: Message Carbons
+#
+#  version:
+#    show_os: true
+#
+#  offline:
+#    queue_size: 300
+#
+#  ping:
+#    ack_timeout: 90s
+#    interval: 3m
+#    send_pings: true
+#    timeout_action: kill
+
+components:
