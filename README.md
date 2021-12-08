@@ -490,13 +490,35 @@ simple configuration and low resource consumption.
 
 Copy `.env-dist` to `.env`, and edit variables accordingly. 
 
- * The defaults for `POSTGRES_USER` and `POSTGRES_PASSWORD` are probably fine,
- but you can customize them if you want.
+ * Set `POSTGRES_USER` and `POSTGRES_PASSWORD` 
  
- Copy `jackal/config/docker-compose.config.yaml-dist` to `jackal/config/docker-compose.config.yaml`
- and edit variables accordingly.
- 
-  * Enter the same value as `POSTGRES_USER` for `storage:pgsql:user:` (line 18).
-  * Enter the same value as `POSTGRES_PASSWORD` for `storage:pgsql:password:` (line 19).
+ * `SELF_SIGNED_TLS` is set true by default. It will create a self-signed
+   certificate valid for 100 years. If you want to supply your own certificate,
+   set `SELF_SIGNED_TLS=false`, and copy your certificate and unencrypted key
+   files into the `jackal_config` volume (`/config/cert.pem` and
+   `/config/key.pem`.)
 
-To start Jackal, go into the jackal directory and run `docker-compose up -d`.
+The configuration is generated on the first run. It is stored in the
+`jackal_config` volume (`/config/config.yaml`). This file includes the
+encryption key to the authentication values stored in the database. Be careful
+not to lose the config file, or you won't be able to read from the database.
+(Likewise, if you are wanting to remove the config file and start from scratch,
+also make sure you delete the `jackal_pgsql` volume.)
+
+The jackal image is automatically built from source. To start Jackal, go into
+the jackal directory and run `docker-compose up --build -d`.
+
+Use this function to create users:
+
+```
+create_user(){
+  password=$(openssl rand -base64 24)
+  docker-compose exec jackal jackalctl user add $1:$password && \
+    echo "Created user: $1" && \
+    echo "Password: $password"
+}
+
+create_user ryan
+create_user mike
+```
+
