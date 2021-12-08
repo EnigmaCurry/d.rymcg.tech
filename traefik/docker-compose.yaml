@@ -2,15 +2,14 @@ version: "3.3"
 
 networks:
   traefik-proxy:
-    external:
-      name: traefik-proxy
+    name: traefik-proxy
 
 volumes:
   traefik:
   
 services:
   traefik:
-    image: "traefik:v2.4"
+    image: "traefik:v2.5"
     container_name: "traefik"
     restart: unless-stopped
     networks:

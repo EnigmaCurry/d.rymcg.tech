@@ -72,8 +72,7 @@ Each docker-compose file will use this snippet in order to connect to traefik:
 ```
 networks:
   traefik-proxy:
-    external:
-      name: traefik-proxy
+    name: traefik-proxy
 
 service:
   APP_NAME:
