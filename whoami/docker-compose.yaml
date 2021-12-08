@@ -2,8 +2,7 @@ version: "3.3"
 
 networks:
   traefik-proxy:
-    external:
-      name: traefik-proxy
+    name: traefik-proxy
 
 services:
   whoami:
