@@ -498,6 +498,10 @@ Copy `.env-dist` to `.env`, and edit variables accordingly.
    files into the `jackal_config` volume (`/config/cert.pem` and
    `/config/key.pem`.)
 
+ * `C2S_SOURCERANGE` and `S2S_SOURCERANGE` are IP address range filters for
+   clients and servers respectively. [See Traefik IP whitelist
+   documentation](https://doc.traefik.io/traefik/middlewares/tcp/ipwhitelist/)
+
 The configuration is generated on the first run. It is stored in the
 `jackal_config` volume (`/config/config.yaml`). This file includes the
 encryption key to the authentication values stored in the database. Be careful

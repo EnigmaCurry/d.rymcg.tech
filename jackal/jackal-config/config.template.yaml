@@ -36,24 +36,24 @@ listeners:
     sasl:
       mechanisms: [scram_sha_1, scram_sha_256, scram_sha_512, scram_sha3_512]
 
-  - type: c2s
-    port: 5223
-    direct_tls: true
-    req_timeout: 60s
-    transport: socket
-    sasl:
-      mechanisms: [scram_sha_1, scram_sha_256, scram_sha_512, scram_sha3_512]
+  # - type: c2s
+  #   port: 5223
+  #   direct_tls: true
+  #   req_timeout: 60s
+  #   transport: socket
+  #   sasl:
+  #     mechanisms: [scram_sha_1, scram_sha_256, scram_sha_512, scram_sha3_512]
 
   - type: s2s
     port: 5269
     req_timeout: 60s
     max_stanza_size: 131072
 
-  - type: s2s
-    port: 5270
-    direct_tls: true
-    req_timeout: 60s
-    max_stanza_size: 131072
+  # - type: s2s
+  #   port: 5270
+  #   direct_tls: true
+  #   req_timeout: 60s
+  #   max_stanza_size: 131072
 
   - type: component
     port: 5275

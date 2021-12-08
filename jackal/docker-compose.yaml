@@ -1,5 +1,9 @@
 version: '3'
 
+networks:
+  traefik-proxy:
+    name: traefik-proxy
+
 volumes:
   etcd:
   pgsql:
@@ -51,14 +55,16 @@ services:
       - jackal-config
     build:
       context: jackal
-    ports:
-      - 5222:5222
-      - 5223:5223
-      - 5269:5269
-      - 5270:5270
-      - 127.0.0.1:15280:15280
+    ### Ports are not exposed directly, but through Traefik instead:
+    # ports:
+    #   - 5222:5222
+    #   - 5223:5223
+    #   - 5269:5269
+    #   - 5270:5270
+    #   - 127.0.0.1:15280:15280
     networks:
       - default
+      - traefik-proxy
     volumes:
       - config:/config
     environment:
@@ -67,3 +73,20 @@ services:
     depends_on:
       - etcd
       - pgsql
+    labels:
+      - "traefik.enable=true"
+      ## Jabber client to server (C2S)
+      - "traefik.tcp.routers.xmpp_c2s.rule=HostSNI(`*`)"
+      - "traefik.tcp.routers.xmpp_c2s.entrypoints=xmpp_c2s"
+      - "traefik.tcp.routers.xmpp_c2s.service=xmpp_c2s"
+      - "traefik.tcp.services.xmpp_c2s.loadbalancer.server.port=5222"
+      - "traefik.tcp.middlewares.xmpp_c2s-ipwhitelist.ipwhitelist.sourcerange=${C2S_SOURCERANGE}"
+      - "traefik.tcp.routers.xmpp_c2s.middlewares=xmpp_c2s-ipwhitelist@docker"
+      ## Jabber server to server (S2S)
+      - "traefik.tcp.routers.xmpp_s2s.rule=HostSNI(`*`)"
+      - "traefik.tcp.routers.xmpp_s2s.entrypoints=xmpp_s2s"
+      - "traefik.tcp.routers.xmpp_s2s.service=xmpp_s2s"
+      - "traefik.tcp.services.xmpp_s2s.loadbalancer.server.port=5269"
+      - "traefik.tcp.middlewares.xmpp_s2s-ipwhitelist.ipwhitelist.sourcerange=${S2S_SOURCERANGE}"
+      - "traefik.tcp.routers.xmpp_s2s.middlewares=xmpp_s2s-ipwhitelist@docker"
+
