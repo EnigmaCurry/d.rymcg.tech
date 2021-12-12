@@ -44,6 +44,7 @@ on the host.
 * [Jupyterlab](#jupyterlab)
 * [Larynx](#larynx)
 * [Maubot](#maubot)
+* [ejabberd](#ejabberd)
 
 ## Setup
 ### Create a docker host
@@ -513,3 +514,54 @@ token, and paste into the Maubot access token field on the client page.
 Find and download plugins from https://github.com/maubot, then upload them
 through the maubot plugin page. Create an instance linking the plugin to the
 client. Invite the bot user to a room and you should be all set.
+
+## ejabberd
+
+[ejabberd](https://github.com/processone/ejabberd) is an XMPP server written in
+erlang.
+
+Since Traefik does not understand the XMPP protocol, TLS must be handled by the
+service container (ejabberd) directly. In this configuration, Traefik forwards
+raw TCP port 5222 to the ejabberd container, which handles TLS via STARTTLS
+(this is the preferred automatic protocol that Gajim supports, allowing login
+without needing to click to Advanced Settings).
+
+The default config sets `SELF_SIGNED_TLS=true`, which will automatically create
+a self-signed TLS certificate valid for 100 years. Testing with different
+certificates has not been tested, but you could simply mount your own
+certificate chains into the container at:
+ 
+ * `/home/ejabberd/conf/${EJABBERD_HOST}/cert.pem` - certificate and full CA
+   chain
+ * `/home/ejabberd/conf/${EJABBERD_HOST}/key.pem` - key 
+
+Traefik is configured to support IP address filtering, to limit which client and
+server addresses may connect to the XMPP services. See `C2S_SOURCERANGE` and
+`S2S_SOURCERANGE` which are the client-to-server and server-to-server XMPP
+protocol IP address ranges allowed, written in CIDR format.
+
+### ejabberd command reference
+
+Create a new XMPP user with a random password:
+
+```
+register() {
+  IFS='@' read -ra JID <<< "$1"
+  USERNAME=${JID[0]}
+  VHOST=${JID[1]}
+  [ ${#VHOST} == 0 ] && echo "Must enter full JID, eg. user@xmpp.example.com" && return
+  PASSWORD=$(openssl rand -base64 32)
+  docker exec ejabberd bin/ejabberdctl register ${USERNAME} ${VHOST} ${PASSWORD}
+  echo "Created user: ${USERNAME}@${VHOST}"
+  echo "Password: ${PASSWORD}"
+}
+
+
+register ryan@xmpp.example.com
+```
+
+Create a conference room (MUC):
+
+```
+docker exec ejabberd bin/ejabberdctl create_room test conference.xmpp.example.com xmpp.example.com
+```
