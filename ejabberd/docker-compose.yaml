@@ -1,0 +1,48 @@
+version: '3'
+
+networks:
+  traefik-proxy:
+    name: traefik-proxy
+
+volumes:
+  config:
+
+services:
+  config:
+    build:
+      context: config
+    environment:
+      - EJABBERD_HOST
+      - PRINT_CONFIG
+      - SELF_SIGNED_TLS
+    volumes:
+      - config:/home/ejabberd/conf
+
+  ejabberd:
+    container_name: ejabberd
+    depends_on: ['config']
+    build:
+      context: ejabberd
+    networks:
+      - default
+      - traefik-proxy
+    volumes:
+      - config:/home/ejabberd/conf
+    environment:
+      - EJABBERD_HOST
+    labels:
+      - "traefik.enable=true"
+      ## Jabber client to server (C2S)
+      - "traefik.tcp.routers.xmpp_c2s.rule=HostSNI(`*`)"
+      - "traefik.tcp.routers.xmpp_c2s.entrypoints=xmpp_c2s"
+      - "traefik.tcp.routers.xmpp_c2s.service=xmpp_c2s"
+      - "traefik.tcp.services.xmpp_c2s.loadbalancer.server.port=5222"
+      - "traefik.tcp.middlewares.xmpp_c2s-ipwhitelist.ipwhitelist.sourcerange=${C2S_SOURCERANGE}"
+      - "traefik.tcp.routers.xmpp_c2s.middlewares=xmpp_c2s-ipwhitelist@docker"
+      ## Jabber server to server (S2S)
+      - "traefik.tcp.routers.xmpp_s2s.rule=HostSNI(`*`)"
+      - "traefik.tcp.routers.xmpp_s2s.entrypoints=xmpp_s2s"
+      - "traefik.tcp.routers.xmpp_s2s.service=xmpp_s2s"
+      - "traefik.tcp.services.xmpp_s2s.loadbalancer.server.port=5269"
+      - "traefik.tcp.middlewares.xmpp_s2s-ipwhitelist.ipwhitelist.sourcerange=${S2S_SOURCERANGE}"
+      - "traefik.tcp.routers.xmpp_s2s.middlewares=xmpp_s2s-ipwhitelist@docker"
