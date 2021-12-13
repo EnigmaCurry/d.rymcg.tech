@@ -526,42 +526,49 @@ raw TCP port 5222 to the ejabberd container, which handles TLS via STARTTLS
 (this is the preferred automatic protocol that Gajim supports, allowing login
 without needing to click to Advanced Settings).
 
-The default config sets `SELF_SIGNED_TLS=true`, which will automatically create
-a self-signed TLS certificate valid for 100 years. Testing with different
-certificates has not been tested, but you could simply mount your own
-certificate chains into the container at:
- 
- * `/home/ejabberd/conf/${EJABBERD_HOST}/cert.pem` - certificate and full CA
-   chain
- * `/home/ejabberd/conf/${EJABBERD_HOST}/key.pem` - key 
+This ejabberd configuration *will not* share the main TLS certificate used by
+Traefik. In this case, a self-signed certificate needs to be created just for
+ejabberd use:
+
+```
+EJABBERD_HOST=xmpp.example.com
+../certificate-ca/cert-manager.sh build
+../certificate-ca/cert-manager.sh create_ca
+../certificate-ca/cert-manager.sh create ${EJABBERD_HOST}
+```
+
+`cert-manager.sh` will have created a new self-signed certificate, signed by the
+`local-certificate-ca` local to your docker instance. The certificate and key is
+stored in a volume created by `cert-manager.sh` in order to be mounted by the
+ejabberd container. The volume created for the example above, would be named:
+`local-certificate-ca_xmpp.example.com`, with the certificates found inside that
+are valid for 100 years. The Gajim XMPP client will offer users to pin the
+self-signed certificate, the first time you connect. Alternatively, you may
+install the Certificate Authority used to sign the certificate, into your local
+trust store:
+
+```
+# Export the Certificate Authority:
+../certificate-ca/cert-manager.sh get_ca
+```
 
 Traefik is configured to support IP address filtering, to limit which client and
 server addresses may connect to the XMPP services. See `C2S_SOURCERANGE` and
 `S2S_SOURCERANGE` which are the client-to-server and server-to-server XMPP
 protocol IP address ranges allowed, written in CIDR format.
 
-### ejabberd command reference
+### ejabberd helper tool
+
+`helper.sh` is included to encapsulate some of the maintaince tasks of ejabberd.
 
 Create a new XMPP user with a random password:
 
 ```
-register() {
-  IFS='@' read -ra JID <<< "$1"
-  USERNAME=${JID[0]}
-  VHOST=${JID[1]}
-  [ ${#VHOST} == 0 ] && echo "Must enter full JID, eg. user@xmpp.example.com" && return
-  PASSWORD=$(openssl rand -base64 32)
-  docker exec ejabberd bin/ejabberdctl register ${USERNAME} ${VHOST} ${PASSWORD}
-  echo "Created user: ${USERNAME}@${VHOST}"
-  echo "Password: ${PASSWORD}"
-}
-
-
-register ryan@xmpp.example.com
+./helper.sh register ryan@xmpp.example.com
 ```
 
 Create a conference room (MUC):
 
 ```
-docker exec ejabberd bin/ejabberdctl create_room test conference.xmpp.example.com xmpp.example.com
+./helper.sh create_room test xmpp.example.com
 ```
