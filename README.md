@@ -1,6 +1,6 @@
 # d.rymcg.tech
 
-This is a docker-compose project consisting of Traefik as a TLS HTTPS proxy, and
+This is a docker-compose project consisting of Traefik as a TLS HTTPs/TCP proxy, and
 other various services behind this proxy. Each project is in its own
 sub-directory containing its own `docker-compose.yaml` and `.env` file (and
 `.env-dist` sample file), this structure allows you to pick and choose which
@@ -13,8 +13,8 @@ appropriately.
 
 For this project, all configuration must be done via:
 
- * Environment variables (preferred)
- * Copied config files into a named volume (in the case that the container
+ * Environment variables in `.env` files (preferred)
+ * Copied config files into a *named* volume (in the case that the container
    doesn't support env variables)
 
 Many examples of docker-compose that you may find on the internet will have host
@@ -29,17 +29,19 @@ on the host.
 ## Setup
 ### Create a docker host
 
-[Install docker Server](https://docs.docker.com/engine/install/#server) or see
+[Install Docker Server](https://docs.docker.com/engine/install/#server) or see
 [DIGITALOCEAN.md](DIGITALOCEAN.md) for instructions on creating a docker host on
-DigitalOcean.
+DigitalOcean. Install [docker-compose](https://docs.docker.com/compose/install/)
+on your workstation.
 
 ### Create the proxy network
 
 Since each project is in separate docker-compose files, you must use an
-`external` docker network. All this means is that you manually create the
-network yourself and reference this network in the compose files. (`external`
-means that docker-compose will not attempt to create nor destroy this network
-like it usually would.)
+`external/named` docker network to interconnect them. All this means, is that
+you must manually create the docker network yourself, and reference this
+network's name in the compose files. (`external` means that docker-compose will
+not attempt to create nor destroy this network like it usually would if it were
+created by docker-compose)
 
 Create the new network for Traefik, as well as all of the apps that will be
 proxied:
@@ -58,10 +60,11 @@ networks:
 service:
   APP_NAME:
     networks:
-    ## Connect to the Traefik proxy network (allows to be exposed):
+    ## Connect to the Traefik proxy network (allows it to be exposed publicly):
     - traefik-proxy
     ## If there are additional containers for the backend,
     ## also connect to the default (not exposed) network:
+    ## You only need to specify the default network when you have more than one.
     - default
 ```
 
@@ -89,3 +92,11 @@ first, as almost all of the others depend on it.
 * [Maubot](maubot/README.md)
 * [ejabberd](ejabberd/README.md)
 
+For all containers you wish to install, do the following:
+
+ * Read the README.md file found in each project directory.
+ * Open your terminal, change to the project directory containing `docker-compose.yaml`
+ * Copy `.env-dist` to `.env`
+ * Edit all the variables in `.env`
+ * Follow the README for instructons to start the container. Generally, all you
+   need to do is run: `docker-compose up --build -d`
