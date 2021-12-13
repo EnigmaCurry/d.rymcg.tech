@@ -46,8 +46,8 @@ create() {
     ## Create copy of CA cert
     cp ${CA_CERT} ${CA_COPY}
     ## Create full chain:
-    cat ${CA_COPY} > ${FULL_CHAIN}
-    cat ${CA_CERT} >> ${FULL_CHAIN}    
+    cat ${CA_CERT} > ${FULL_CHAIN}    
+    cat ${CA_COPY} >> ${FULL_CHAIN}
     (set -x; chown -R ${CHANGE_UID}:${CHANGE_GID} ${CERT_DIR})
 
     openssl x509 -in ${CERT} -noout -text
