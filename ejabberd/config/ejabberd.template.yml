@@ -21,15 +21,9 @@ loglevel: 4
 log_rotate_size: 10485760
 
 certfiles:
-  - /home/ejabberd/conf/${EJABBERD_HOST}/cert.pem
-  - /home/ejabberd/conf/${EJABBERD_HOST}/key.pem
-  
-## When using let's encrypt to generate certificates
-##certfiles:
-##  - /etc/letsencrypt/live/localhost/fullchain.pem
-##  - /etc/letsencrypt/live/localhost/privkey.pem
-##
-##ca_file: "/etc/letsencrypt/live/localhost/fullchain.pem"
+  - /cert/${EJABBERD_HOST}_cert.pem
+  - /cert/${EJABBERD_HOST}.key
+ca_file: /cert/fullchain.pem
 
 listen:
   -

@@ -6,6 +6,9 @@ networks:
 
 volumes:
   config:
+  cert:
+    external: true
+    name: ${CERTIFICATE_CA}_${EJABBERD_HOST}
 
 services:
   config:
@@ -14,7 +17,6 @@ services:
     environment:
       - EJABBERD_HOST
       - PRINT_CONFIG
-      - SELF_SIGNED_TLS
     volumes:
       - config:/home/ejabberd/conf
 
@@ -28,6 +30,7 @@ services:
       - traefik-proxy
     volumes:
       - config:/home/ejabberd/conf
+      - cert:/cert
     environment:
       - EJABBERD_HOST
     labels:
