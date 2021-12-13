@@ -17,17 +17,6 @@ create_config() {
     [[ $PRINT_CONFIG == true ]] && cat ${CONFIG}
 }
 
-create_tls() {
-    if [[ ! -f /home/ejabberd/conf/${EJABBERD_HOST}/cert.pem ]]; then
-        echo "No certificate found."
-        [[ $SELF_SIGNED_TLS != true ]] && exit 1
-        [[ ${#EJABBERD_HOST} < 1 ]] && echo "EJABBERD_HOST must not be blank" && exit 1
-
-        echo "Generating 100 year self-signed certificate ..."
-        mkdir -p ${CONFIG_DIR}
-        openssl req -x509 -newkey rsa:4096 -nodes -keyout ${CONFIG_DIR}/key.pem -out ${CONFIG_DIR}/cert.pem -sha256 -days 36525 -subj "/CN=${EJABBERD_HOST}" -verbose
-    fi
-}
 
 fix_permissions() {
     # ejabberd runs as uid 9000 gid 9000
@@ -35,5 +24,4 @@ fix_permissions() {
 }
 
 create_config
-create_tls
 fix_permissions
