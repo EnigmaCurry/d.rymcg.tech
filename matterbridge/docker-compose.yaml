@@ -1,0 +1,41 @@
+version: '3'
+
+networks:
+  traefik-proxy:
+    name: traefik-proxy
+
+volumes:
+  config:
+
+services:
+  config:
+    build:
+      context: config
+    environment:
+      - TEMPLATE
+      - PRINT_CONFIG
+      - MATRIX_DOMAIN
+      - MATRIX_HOMESERVER
+      - MATRIX_USERNAME
+      - MATRIX_PASSWORD
+      - MATRIX_ROOM
+      - XMPP_HOST
+      - XMPP_PORT
+      - XMPP_JID
+      - XMPP_PASSWORD
+      - XMPP_MUC
+      - XMPP_NICK
+      - XMPP_ROOM
+    volumes:
+      - config:/etc/matterbridge
+
+  matterbridge:
+    container_name: matterbridge
+    depends_on: ['config']
+    build:
+      context: matterbridge
+    networks:
+      - default
+      - traefik-proxy
+    volumes:
+      - config:/etc/matterbridge

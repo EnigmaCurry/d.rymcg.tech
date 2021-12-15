@@ -1,0 +1,41 @@
+[matrix]
+[matrix.default]
+#Server is your homeserver (eg https://matrix.org)
+Server="https://${MATRIX_HOMESERVER}"
+#login/pass of your bot.
+#Use a dedicated user for this and not your own!
+#Messages sent from this user will not be relayed to avoid loops.
+Login="${MATRIX_USERNAME}"
+Password="${MATRIX_PASSWORD}"
+#Alternatively you can use MXID and access token (open https://app.element.io/
+#in INCOGNITO mode, open Settings -> lowest tab and above "clear cache and reload"
+#you can find the access token. Close the window without logging out
+#(or the token gets invalid (if it leaks, it can be removed by logging in and using the sessions menu))
+#MxID="@yourbot:example.net"
+#Token="tokenforthebotuser"
+RemoteNickFormat="[{PROTOCOL}] <{NICK}> "
+#Whether to send the homeserver suffix. eg ":matrix.org" in @username:matrix.org
+#to other bridges, or only send "username".(true only sends username)
+#OPTIONAL (default false)
+NoHomeServerSuffix=false
+
+[xmpp]
+[xmpp.default]
+Server="${XMPP_HOST}:${XMPP_PORT}"
+NoTLS=false
+#Jid your userid
+Jid="${XMPP_JID}"
+Password="${XMPP_PASSWORD}"
+Muc="${XMPP_MUC}"
+Nick="${XMPP_NICK}"
+RemoteNickFormat="[{PROTOCOL}] <{NICK}> "
+
+[[gateway]]
+name="default"
+enable=true
+[[gateway.inout]]
+account="matrix.default"
+channel="${MATRIX_ROOM}"
+[[gateway.inout]]
+account="xmpp.default"
+channel="${XMPP_ROOM}"
