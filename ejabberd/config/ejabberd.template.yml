@@ -21,8 +21,8 @@ loglevel: 4
 log_rotate_size: 10485760
 
 certfiles:
-  - /cert/${EJABBERD_HOST}_cert.pem
-  - /cert/${EJABBERD_HOST}.key
+  - /cert/cert.pem
+  - /cert/private_key
 ca_file: /cert/fullchain.pem
 
 listen:

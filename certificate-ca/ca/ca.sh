@@ -1,6 +1,5 @@
 #!/bin/bash
-
-CA_NAME=local_ca
+CA_NAME=${CA_NAME:-local-certificate-ca}
 KEYSIZE=2048
 VALID_DAYS=36525
 CA_KEY=/CA/ca.key
@@ -27,14 +26,18 @@ create() {
     SAN=$1
     CHANGE_UID=${2:-1000}
     CHANGE_GID=${3:-1000}
-    KEY=${CERT_DIR}/${SAN}.key
-    CSR=${CERT_DIR}/${SAN}.csr
-    CERT=${CERT_DIR}/${SAN}_cert.pem
+    KEY=${CERT_DIR}/private_key
+    PUB_KEY=${CERT_DIR}/public_key
+    CSR=${CERT_DIR}/csr
+    CERT=${CERT_DIR}/cert.pem
     CA_COPY=${CERT_DIR}/ca.pem
     FULL_CHAIN=${CERT_DIR}/fullchain.pem
 
     ## Generate key:
     (set -x; openssl genrsa -out ${KEY} ${KEYSIZE})
+
+    ## Export public key:
+    (set -x; openssl rsa -in ${KEY} -pubout -out ${PUB_KEY})
 
     ## Generate request:
     (set -x; openssl req -new -key ${KEY} -out ${CSR} -nodes -subj "/CN=${SAN}" -addext "subjectAltName = DNS:${SAN}" -verbose)
