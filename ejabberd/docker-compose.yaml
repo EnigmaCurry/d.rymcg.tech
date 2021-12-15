@@ -8,7 +8,7 @@ volumes:
   config:
   cert:
     external: true
-    name: ${CERTIFICATE_CA}_${EJABBERD_HOST}
+    name: ${CERTIFICATE_VOLUME}
 
 services:
   config:

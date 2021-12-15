@@ -1,6 +1,6 @@
 #!/bin/bash
 
-CA_NAME=local-certificate-ca
+CA_NAME=${CA_NAME:-local-certificate-ca}
 WORKDIR=$(dirname $(realpath $0))
 VOLUME_PREFIX=${CA_NAME}_
 
@@ -32,13 +32,13 @@ build() {
 }
 
 create_ca() {
-    (set -x; docker run --rm -v ${CA_NAME}:/CA ${CA_NAME} create_ca) && \
+    (set -x; docker run -e CA_NAME=${CA_NAME} --rm -v ${CA_NAME}:/CA ${CA_NAME} create_ca) && \
         echo "CA created. To view the certificate, run: cert-manager.sh get_ca"
 }
 
 get_ca() {
     set -x
-    docker run --rm -v ${CA_NAME}:/CA ${CA_NAME} get_ca
+    docker run -e CA_NAME=${CA_NAME} --rm -v ${CA_NAME}:/CA ${CA_NAME} get_ca
 }
 
 create() {
@@ -54,7 +54,7 @@ create() {
     ! docker volume inspect ${CA_NAME} >/dev/null 2>&1 && echo "No CA volume exists. Please run: cert-manager.sh create_ca" && exit 1
 
     if ! docker volume inspect ${CERT_VOLUME} > /dev/null 2>&1; then 
-        (set -x; docker run --rm -v ${CA_NAME}:/CA -v ${CERT_VOLUME}:/cert ${CA_NAME} create ${CERT_SAN} ${CHANGE_UID} ${CHANGE_GID})
+        (set -x; docker run  -e CA_NAME=${CA_NAME} --rm -v ${CA_NAME}:/CA -v ${CERT_VOLUME}:/cert ${CA_NAME} create ${CERT_SAN} ${CHANGE_UID} ${CHANGE_GID})
         [ $? == 0 ] && \
             echo "Created new certificates volume '${CERT_VOLUME}'" && \
             echo "To view this certificate chain, run: cert-manager.sh get ${CERT_SAN}" && \
@@ -74,7 +74,7 @@ get() {
     CERT_SAN=$1
     CERT_VOLUME=${VOLUME_PREFIX}${CERT_SAN}
     if docker volume inspect ${CERT_VOLUME} > /dev/null 2>&1; then
-        docker run --rm -v ${CERT_VOLUME}:/cert debian:stable-slim cat /cert/fullchain.pem
+        docker run -e CA_NAME=${CA_NAME} --rm -v ${CERT_VOLUME}:/cert debian:stable-slim cat /cert/fullchain.pem
     else
         echo "No certificate volume exists named '${CERT_VOLUME}'."
         echo "To create certificates, run: cert-manager.sh create ${CERT_SAN}"

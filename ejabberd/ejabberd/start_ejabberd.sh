@@ -5,8 +5,9 @@ wait_for_file() {
     until [ -f $1 ]; do sleep 1; done
 }
 
+wait_for_file /cert/private_key
+wait_for_file /cert/cert.pem
 wait_for_file /cert/fullchain.pem
-wait_for_file /cert/${EJABBERD_HOST}.key
 
 /home/ejabberd/bin/ejabberdctl --config /home/ejabberd/conf/${EJABBERD_HOST}/ejabberd.yml foreground
 
