@@ -83,6 +83,22 @@ get() {
     
 }
 
+view() {
+    [ "$#" -ne 1 ] && \
+        echo "view requires one arg: the domain name (or SAN [or CN])" && \
+        return 1
+    CERT_SAN=$1
+    CERT_VOLUME=${VOLUME_PREFIX}${CERT_SAN}
+    if docker volume inspect ${CERT_VOLUME} > /dev/null 2>&1; then
+        docker run  -e CA_NAME=${CA_NAME} --rm -v ${CA_NAME}:/CA -v ${CERT_VOLUME}:/cert ${CA_NAME} view ${CERT_SAN}
+    else
+        echo "No certificate volume exists named '${CERT_VOLUME}'."
+        echo "To create certificates, run: cert-manager.sh create ${CERT_SAN}"
+        exit 1
+    fi
+    
+}
+
 delete() {
     [ "$#" -ne 1 ] && \
         echo "delete requires one arg: the domain name (or SAN [or CN])" && \
@@ -99,6 +115,24 @@ delete() {
 list() {
     echo "Volumes for CA: ${CA_NAME}"
     docker volume ls | grep ${CA_NAME}
+}
+
+download() {
+    [ "$#" -ne 1 ] && [ "$#" -ne 2 ] && \
+        echo "download requires one or two args: the domain name and TCP port (default 443)" && \
+        return 1
+    DOMAIN=$1
+    PORT=${2:-443}
+    docker run -e CA_NAME=${CA_NAME} --rm -v ${CA_NAME}:/CA ${CA_NAME} download ${DOMAIN} ${PORT}
+}
+
+debug() {
+    [ "$#" -ne 1 ] && [ "$#" -ne 2 ] && \
+        echo "debug requires one or two args: the domain name and TCP port (default 443)" && \
+        return 1
+    DOMAIN=$1
+    PORT=${2:-443}
+    docker run -e CA_NAME=${CA_NAME} --rm -v ${CA_NAME}:/CA ${CA_NAME} debug ${DOMAIN} ${PORT}
 }
 
 [[ $# == 0 ]] && help && exit 0
