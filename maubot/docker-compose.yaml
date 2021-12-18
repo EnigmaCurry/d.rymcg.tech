@@ -2,20 +2,40 @@ version: "3.3"
 
 networks:
   traefik-proxy:
-    external:
-      name: traefik-proxy
+    name: traefik-proxy
+
+volumes:
+  data:
+
 
 services:
-  maubot:
+  ## Generate the config file from the template on every startup:
+  config:
     build:
-      context: .
+      context: config
+    environment:
+      - PRINT_CONFIG
+      - MAUBOT_TRAEFIK_HOST
+      - MAUBOT_ADMIN_USER
+      - MAUBOT_ADMIN_PASSWORD
+      - MATRIX_HOMESERVER
+    volumes:
+      - data:/data
+
+  maubot:
+    depends_on: ["config"]
+    build:
+      context: ${MAUBOT_GIT_REPO}
     container_name: maubot
     networks:
       - traefik-proxy
     restart: unless-stopped
+    volumes:
+      - data:/data
     labels:
       - "traefik.enable=true"
       - "traefik.http.routers.maubot.rule=Host(`${MAUBOT_TRAEFIK_HOST}`)"
       - "traefik.http.routers.maubot.entrypoints=websecure"
       - "traefik.http.routers.maubot.tls.certresolver=${ACME_CERT_RESOLVER}"
       - "traefik.http.services.maubot.loadBalancer.server.port=29316"
+

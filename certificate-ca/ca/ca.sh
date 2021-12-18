@@ -6,6 +6,13 @@ CA_KEY=/CA/ca.key
 CA_CERT=/CA/ca.pem
 CERT_DIR=/cert
 
+KEY=${CERT_DIR}/private_key
+PUB_KEY=${CERT_DIR}/public_key
+CSR=${CERT_DIR}/csr
+CERT=${CERT_DIR}/cert.pem
+CA_COPY=${CERT_DIR}/ca.pem
+FULL_CHAIN=${CERT_DIR}/fullchain.pem
+
 create_ca() {
     if [ ! -f ${CA_CERT} ]; then
         echo "Generating new Certificate Authority ... "
@@ -26,12 +33,6 @@ create() {
     SAN=$1
     CHANGE_UID=${2:-1000}
     CHANGE_GID=${3:-1000}
-    KEY=${CERT_DIR}/private_key
-    PUB_KEY=${CERT_DIR}/public_key
-    CSR=${CERT_DIR}/csr
-    CERT=${CERT_DIR}/cert.pem
-    CA_COPY=${CERT_DIR}/ca.pem
-    FULL_CHAIN=${CERT_DIR}/fullchain.pem
 
     ## Generate key:
     (set -x; openssl genrsa -out ${KEY} ${KEYSIZE})
@@ -59,6 +60,24 @@ create() {
     echo "Certificate: ${CERT}"
     echo "CA certificate: ${CA_COPY}"
     echo "Full chain: ${FULL_CHAIN}"
+}
+
+view() {
+    SAN=$1
+    openssl x509 -in ${CERT} -noout -text    
+}
+
+download() {
+    DOMAIN=$1; PORT=$2
+    (set -x; openssl s_client -showcerts -servername ${DOMAIN} -connect ${DOMAIN}:${PORT} </dev/null 2>/dev/null | sed -ne '/-BEGIN CERTIFICATE-/,/-END CERTIFICATE-/p')
+}
+
+debug() {
+    DOMAIN=$1; PORT=$2; TMP=$(mktemp)
+    (set -x; openssl s_client -showcerts -servername ${DOMAIN} -connect ${DOMAIN}:${PORT} </dev/null 2>/dev/null \
+         | sed -ne '/-BEGIN CERTIFICATE-/,/-END CERTIFICATE-/p' > ${TMP})
+    (set -x; openssl x509 -in ${TMP} -noout -text)
+    rm ${TMP}
 }
 
 $@
