@@ -1,0 +1,21 @@
+version: '3'
+
+networks:
+  traefik-proxy:
+    name: traefik-proxy
+
+services:
+  app:
+    build:
+      context: .
+    networks:
+      - traefik-proxy
+    environment:
+      DEV_CONSOLE: "true"
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.websocketd.rule=Host(`${SOCKET_TRAEFIK_HOST}`) && Path(`${APP_PATH}`)"
+      - "traefik.http.middlewares.websocketd-stripprefix.stripprefix.prefixes=${APP_PATH}"
+      - "traefik.http.routers.websocketd.middlewares=websocketd-stripprefix@docker"
+      - "traefik.http.routers.websocketd.entrypoints=websecure"
+      - "traefik.http.routers.websocketd.tls.certresolver=${ACME_CERT_RESOLVER}"
