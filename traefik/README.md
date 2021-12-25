@@ -22,4 +22,4 @@ editing the acme.json file in the traefik data volume, and removing the domain's
 configuration.)
 
 For a simple test of Traefik, consider installing the
-[whoami](../whoami/README.md) project.
+[whoami](../whoami) project.
