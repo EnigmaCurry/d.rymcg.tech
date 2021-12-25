@@ -1,56 +1,55 @@
 # d.rymcg.tech
 
-This is a docker-compose project consisting of Traefik as a TLS HTTPs/TCP proxy, and
-other various services behind this proxy. Each project is in its own
-sub-directory containing its own `docker-compose.yaml` and `.env` file (and
-`.env-dist` sample file), this structure allows you to pick and choose which
-services you wish to enable.
-
-The `.env` files are secret, and excluded from being committed to the git
-repository, via `.gitignore`. Each project includes a `.env-dist` file which is
-a sample that must be copied, creating your own secret `.env` file, and edit
-appropriately.
+This is a collection of docker-compose projects consisting of
+[Traefik](https://doc.traefik.io/traefik/) as a TLS HTTPs/TCP proxy and other
+various services behind this proxy. Each project is in its own sub-directory
+containing its own `docker-compose.yaml` and `.env` file (as well as `.env-dist`
+sample file). This structure allows you to pick and choose which services you
+wish to enable.
 
 For this project, all configuration must be done via:
 
- * Environment variables in `.env` files (preferred)
- * Copied config files into a *named* volume (in the case that the container
-   doesn't support env variables)
+ * Environment variables in the `.env` files (preferred)
+ * Generated or copied config files into a *named* volume (in the case that the
+   container doesn't support environment variables)
 
-Many examples of docker-compose that you may find on the internet will have host
-mounted files, which allows containers to access files directly from the host
-filesystem. **Host mounted files are considered an anti-pattern and will never
-be used in this project.** For more information see [Rule 3 of the 12 factor app
-philosophy](https://12factor.net/config). By following this rule, you can safely
-use docker-compose from a remote client (over SSH with the `DOCKER_HOST`
-variable set) and by doing so, you can ensure you are working with a clean state
-on the host.
+The `.env` files are kept secret (as they include things like passwords and
+keys) and are excluded from the git repository via `.gitignore`. Each project
+includes a `.env-dist` file, which is a sample that must be copied to create
+your own secret `.env` file and edited according to the example.
+
+Many samples of docker-compose that you may find on the internet map native host
+directories into the container paths. **Host-mounted directories are considered
+an anti-pattern and will never be used in this project, unless there is a
+compelling reason to do so.** For more information see [Rule 3 of the 12 factor
+app philosophy](https://12factor.net/config). By following this rule, you can
+use docker-compose from a remote client (like your laptop, accessing Docker over
+SSH with the remote `DOCKER_HOST` variable set). By doing so, you can ensure
+that all the dependent files are fully contained by Docker itself.
 
 ## Setup
-### Create a docker host
+### Create a Docker host
 
 [Install Docker Server](https://docs.docker.com/engine/install/#server) or see
-[DIGITALOCEAN.md](DIGITALOCEAN.md) for instructions on creating a docker host on
+[DIGITALOCEAN.md](DIGITALOCEAN.md) for instructions on creating a Docker host on
 DigitalOcean. Install [docker-compose](https://docs.docker.com/compose/install/)
 on your workstation.
 
 ### Create the proxy network
 
-Since each project is in separate docker-compose files, you must use an
-`external/named` docker network to interconnect them. All this means, is that
-you must manually create the docker network yourself, and reference this
-network's name in the compose files. (`external` means that docker-compose will
-not attempt to create nor destroy this network like it usually would if it were
-created by docker-compose)
+Since each project is in a separate docker-compose file, you must use an
+external *named* Docker network to interconnect them. All this means is that you
+must manually create the Docker network yourself and reference this network's
+name in the compose files.
 
-Create the new network for Traefik, as well as all of the apps that will be
-proxied:
+Create the new network for Traefik:
 
 ```
 docker network create traefik-proxy
 ```
 
-Each docker-compose file will use this snippet in order to connect to traefik:
+Each docker-compose file will use a similar snippet in order to connect to
+Traefik:
 
 ```
 networks:
@@ -96,7 +95,7 @@ first, as almost all of the others depend on it.
 
 For all containers you wish to install, do the following:
 
- * Read the README.md file found in each project directory.
+ * Read the README.md file found in each project directory
  * Open your terminal, change to the project directory containing `docker-compose.yaml`
  * Copy `.env-dist` to `.env`
  * Edit all the variables in `.env`
