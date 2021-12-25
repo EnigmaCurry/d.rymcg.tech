@@ -17,3 +17,6 @@ With `DEV_CONSOLE` set to true, open your browser to the `SOCKET_TRAEFIK_HOST` +
 Press the checkmark button to connect to the server. The default server is just
 a counting app that will count to 10.
 
+To implement your own websocket application, copy this entire directory and
+modify `Dockerfile` appropriately.
+
