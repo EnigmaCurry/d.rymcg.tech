@@ -1,0 +1,25 @@
+version: '3'
+
+volumes:
+  root:
+
+services:
+  config:
+    build:
+      context: config
+    environment:
+      - MOTD
+    volumes:
+      - root:/root
+
+  ssh-chat:
+    depends_on:
+      - config
+    build:
+      context: ${SRC_REPO}#${SRC_BRANCH}
+    ports:
+        - ${SSH_PORT}:2022
+    restart: always
+    volumes:
+      - root:/root
+    command: /usr/local/bin/ssh-chat --admin /root/.ssh/authorized_keys --whitelist=/root/.ssh/whitelist_keys --motd /root/.ssh/motd -vv 
