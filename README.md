@@ -92,6 +92,7 @@ first, as almost all of the others depend on it.
 * [certificate-ca and cert-manager.sh](certificate-ca)
 * [ejabberd](ejabberd)
 * [websocketd](websocketd)
+* [Invidious](invidious)
 
 For all containers you wish to install, do the following:
 

@@ -1,0 +1,63 @@
+version: '3'
+
+volumes:
+  database:
+
+networks:
+  traefik-proxy:
+    name: traefik-proxy
+
+services:
+  postgres:
+    build:
+      context: postgres
+    restart: unless-stopped
+    volumes:
+      - database:/var/lib/postgresql/data
+    environment:
+      - POSTGRES_DB=invidious
+      - POSTGRES_USER=invidious
+      - POSTGRES_PASSWORD
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $$POSTGRES_USER -d $$POSTGRES_DB"]
+
+  invidious:
+    build:
+      context: https://github.com/iv-org/invidious.git
+      dockerfile: docker/Dockerfile
+    restart: unless-stopped
+    networks:
+      - traefik-proxy
+      - default
+    environment:
+      INVIDIOUS_CONFIG: |
+        channel_threads: 1
+        check_tables: true
+        feed_threads: 1
+        db:
+          user: invidious
+          password: ${POSTGRES_PASSWORD}
+          host: postgres
+          port: 5432
+          dbname: invidious
+        full_refresh: false
+        https_only: false
+        domain:
+    healthcheck:
+      test: wget -nv --tries=1 --spider http://127.0.0.1:3000/api/v1/comments/jNQXAC9IVRw || exit 1
+      interval: 30s
+      timeout: 5s
+      retries: 2
+    depends_on:
+      - postgres
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.invidious.rule=Host(`${INVIDIOUS_TRAEFIK_HOST}`)"
+      - "traefik.http.routers.invidious.entrypoints=websecure"
+      - "traefik.http.routers.invidious.tls.certresolver=${ACME_CERT_RESOLVER}"
+      ## Authentication:
+      - "traefik.http.middlewares.invidious-auth.basicauth.users=${INVIDIOUS_HTTP_AUTH}"
+      - "traefik.http.routers.invidious.middlewares=invidious-auth@docker"
+      - "traefik.http.middlewares.invidious-auth.basicauth.realm=${INVIDIOUS_REALM}"
+
+

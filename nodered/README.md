@@ -14,16 +14,22 @@ HTTP Basic Authentication, which requires a username and password for access.
 The password must be hashed with the `htpasswd` utility, and then saved in the
 .env file.
 
-Create a random password hash with the username `admin`:
+Create a random password hash for a given username:
 
 ```
+## Create a random password hash for the given user ..
+## ( ) creates a subshell, so the envrionment stays clean..
+## To do it, copy/paste all of this as-is into your BASH shell.
 (
- USERNAME=admin
+ read -p "Enter the username: " USERNAME
+ echo "Hashing password ... wait just a sec ..."
  PLAIN_PASSWORD=$(openssl rand -base64 30 | head -c 20)
  HASH_PASSWORD=$(echo $PLAIN_PASSWORD | docker run -i --rm httpd:2.4 htpasswd -inB ${USERNAME})
  echo "Username: ${USERNAME}"
  echo "Plain text password: ${PLAIN_PASSWORD}"
  echo "Hashed user/password: ${HASH_PASSWORD}"
+ URL_ENCODED=https://${USERNAME}:$(python -c "from urllib.parse import quote; print(quote('''${PLAIN_PASSWORD}'''))")@example.com/...
+ echo "Url encoded: ${URL_ENCODED}"
 )
 ```
 
