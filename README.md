@@ -69,36 +69,48 @@ service:
 
 ## Install desired containers
 
-Each docker-compose project has its own README. You should install Traefik
-first, as almost all of the others depend on it.
+Each docker-compose project has its own README. You should install
+[Traefik](traefik) first, as almost all of the others depend on it. After that,
+install the [whoami](whoami) container to test things are working.
+
+Install these first:
 
 * [Traefik](traefik)
-* [Gitea](gitea)
-* [Tiny Tiny RSS](ttrss)
+* [whoami](whoami)
+
+Install these at your leisure/preference:
+
 * [Baikal](baikal)
-* [Nextcloud](nextcloud)
-* [CryptPad](cryptpad)
-* [Node-RED](nodered)
-* [Mosquitto](mosquitto)
 * [Bitwarden](bitwarden_rs)
-* [Shaarli](shaarli)
-* [xBrowserSync](xbs)
-* [Piwigo](piwigo)
-* [SFTP](sftp)
-* [Syncthing](syncthing)
+* [CryptPad](cryptpad)
+* [ejabberd](ejabberd)
+* [Gitea](gitea)
+* [Invidious](invidious)
 * [Jupyterlab](jupyterlab)
 * [Larynx](larynx)
 * [Maubot](maubot)
-* [certificate-ca and cert-manager.sh](certificate-ca)
-* [ejabberd](ejabberd)
+* [Mosquitto](mosquitto)
+* [Nextcloud](nextcloud)
+* [Node-RED](nodered)
+* [Piwigo](piwigo)
+* [SFTP](sftp)
+* [Shaarli](shaarli)
+* [Syncthing](syncthing)
+* [Tiny Tiny RSS](ttrss)
 * [websocketd](websocketd)
-* [Invidious](invidious)
+* [xBrowserSync](xbs)
 
-For all containers you wish to install, do the following:
+Bespoke things:
+
+* [traefik-htpasswd](traefik-htpasswd)
+* [experimental ad-hoc certifcate CA](certificate-ca)
+
+For all of the containers that you wish to install, do the following:
 
  * Read the README.md file found in each project directory
- * Open your terminal, change to the project directory containing `docker-compose.yaml`
- * Copy `.env-dist` to `.env`
- * Edit all the variables in `.env`
- * Follow the README for instructons to start the container. Generally, all you
+ * Open your terminal and change to the project directory containing `docker-compose.yaml`
+ * Copy the example `.env-dist` to `.env`
+ * Edit all of the variables in `.env`
+ * Follow the README for instructons to start the containers. Generally, all you
    need to do is run: `docker-compose up --build -d`
+

@@ -10,16 +10,24 @@ Copy `.env-dist` to `.env` and edit the following:
 
 To start Traefik, go into the traefik directory and run `docker-compose up -d`
 
+## Certificate Resolver
+
+Traefik is configured for Let's Encrypt to issue TLS certificates for all
+project (sub-)domain names.
+
 All other services defines the `ACME_CERT_RESOLVER` variable in their respective
-`.env` file. There are two different environments defined, `staging` (default)
-and `production`. Staging will create untrusted TLS certificates for testing
+`.env` file. There are two different environments defined, `staging` and
+`production`. Staging will create untrusted TLS certificates for testing
 environments. Production will generate browser trustable TLS certificates. NOTE:
 Because Traefik only has a single trust store, you cannot freely switch between
 staging and production. For each new domain name, you must decide if that domain
-name is going to be used for staging or production. You cannot "promote" a
-staging domain to a production domain. (You can do so manually, if needed, by
+name is going to be forever used for staging or production. You cannot "promote"
+a staging domain to a production domain. (You can do so manually, if needed, by
 editing the acme.json file in the traefik data volume, and removing the domain's
 configuration.)
 
-For a simple test of Traefik, consider installing the
-[whoami](../whoami) project.
+## Test the whoami container
+
+For a simple test of Traefik, consider installing the [whoami](../whoami)
+project. This will demonstrate a valid TLS certificate, and routing Traefik to
+web servers running in project containers.
