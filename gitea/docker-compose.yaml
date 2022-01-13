@@ -10,10 +10,22 @@ services:
     container_name: gitea
     restart: always
     environment:
-      - ROOT_URL=https://${GITEA_TRAEFIK_HOST}/
-      - SSH_DOMAIN=${GITEA_TRAEFIK_HOST}
-      - SSH_PORT=${GITEA_SSH_PORT}
-      - SSH_LISTEN_PORT=22
+      - GITEA__server__ROOT_URL=https://${GITEA_TRAEFIK_HOST}
+      - GITEA__server__SSH_DOMAIN=${GITEA_TRAEFIK_HOST}
+      - GITEA__server__SSH_PORT=${GITEA_SSH_PORT}
+      - GITEA__server__SSH_LISTEN_PORT=22
+      - GITEA__server__DISABLE_SSH
+      - APP_NAME
+      - GITEA__service__DISABLE_REGISTRATION
+      - GITEA__service__REQUIRE_SIGNIN_VIEW
+      - GITEA__service__REGISTER_EMAIL_CONFIRM
+      - GITEA__service__ENABLE_NOTIFY_MAIL
+      - GITEA__service__ALLOW_ONLY_EXTERNAL_REGISTRATION
+      - GITEA__service__ENABLE_CAPTCHA
+      - GITEA__service__DEFAULT_KEEP_EMAIL_PRIVATE
+      - GITEA__service__DEFAULT_ALLOW_CREATE_ORGANIZATION
+      - GITEA__service__DEFAULT_ENABLE_TIMETRACKING
+      - GITEA__service__NO_REPLY_ADDRESS
     networks:
       - traefik-proxy
     volumes:
