@@ -89,6 +89,7 @@ Install these at your leisure/preference:
 * [Jupyterlab](jupyterlab)
 * [Larynx](larynx)
 * [Maubot](maubot)
+* [minio](minio)
 * [Mosquitto](mosquitto)
 * [Nextcloud](nextcloud)
 * [Node-RED](nodered)

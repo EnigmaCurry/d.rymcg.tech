@@ -10,6 +10,20 @@ Copy `.env-dist` to `.env` and edit the following:
 
 To start Traefik, go into the traefik directory and run `docker-compose up -d`
 
+## Dashboard
+
+Traefik includes a dashboard to help visualize your configuration and detect
+errors. The dashboard service is only exposed to the localhost of the server, so
+you must tunnel throuh SSH to your docker server in order to see it:
+
+```
+ssh -N -L 8080:localhost:8080 ssh.example.com &
+```
+
+With the tunnel active, you can view
+[https://localhost:8080/dashboard/](https://localhost:8080/dashboard/) in your
+web browser to access it.
+
 ## Certificate Resolver
 
 Traefik is configured for Let's Encrypt to issue TLS certificates for all

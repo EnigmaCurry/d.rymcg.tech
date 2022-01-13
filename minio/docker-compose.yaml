@@ -1,0 +1,38 @@
+version: '3'
+
+networks:
+  traefik-proxy:
+    name: traefik-proxy
+
+volumes:
+  data:
+
+services:
+  minio:
+    image: quay.io/minio/minio
+    networks:
+      - traefik-proxy
+    environment:
+      - MINIO_ROOT_USER
+      - MINIO_ROOT_PASSWORD
+    volumes:
+      - data:/data
+    command: server /data --console-address ":9001"
+    labels:
+      - "traefik.enable=true"
+      ## Minio public API:
+      - "traefik.http.routers.minio-public.rule=Host(`${MINIO_TRAEFIK_HOST}`)"
+      - "traefik.http.routers.minio-public.entrypoints=websecure"
+      - "traefik.http.routers.minio-public.tls.certresolver=${ACME_CERT_RESOLVER}"
+      - "traefik.http.routers.minio-public.service=minio-public@docker"
+      - "traefik.http.services.minio-public.loadbalancer.server.port=9000"
+      - "traefik.http.middlewares.minio-public-ipwhitelist.ipwhitelist.sourcerange=${S3_SOURCERANGE}"
+      - "traefik.http.routers.minio-public.middlewares=minio-public-ipwhitelist@docker"
+      ## Minio Console:
+      - "traefik.http.routers.minio-console.rule=Host(`${MINIO_CONSOLE_TRAEFIK_HOST}`)"
+      - "traefik.http.routers.minio-console.entrypoints=websecure"
+      - "traefik.http.routers.minio-console.tls.certresolver=${ACME_CERT_RESOLVER}"
+      - "traefik.http.routers.minio-console.service=minio-console@docker"
+      - "traefik.http.services.minio-console.loadbalancer.server.port=9001"
+      - "traefik.http.middlewares.minio-console-ipwhitelist.ipwhitelist.sourcerange=${CONSOLE_SOURCERANGE}"
+      - "traefik.http.routers.minio-console.middlewares=minio-console-ipwhitelist@docker"
