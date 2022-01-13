@@ -94,6 +94,7 @@ Install these at your leisure/preference:
 * [Nextcloud](nextcloud)
 * [Node-RED](nodered)
 * [Piwigo](piwigo)
+* [s3-proxy](s3-proxy)
 * [SFTP](sftp)
 * [Shaarli](shaarli)
 * [Syncthing](syncthing)
