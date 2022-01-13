@@ -9,6 +9,14 @@ Consider installing [minio](../minio) as a self-hosted S3 server to test in,
 follow the instructions there for creating a bucket and user credentials. Put
 these into your `.env` file.
 
+## Create username/password
+
+[See common instructions for generating htpasswd hashed password
+strings](../traefik-htpasswd)
+
+If public access is desired without any username/password required, comment out
+the `Authentication` section in `docker-compose.yaml`.
+
 ## Limiting traffic
 
 You can limit traffic based on source IP address by expressing a [CIDR ip range
