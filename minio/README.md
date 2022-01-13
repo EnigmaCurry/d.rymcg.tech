@@ -126,3 +126,8 @@ Create a user, credentials, and assign to the group:
  * Click on the `Groups` sub-tab, and add the group. (eg. `videos`)
  * *Do not* assign any policy directly to the user (it will inherit from the group instead).
  * Click `Save`
+
+## Check out the s3-proxy
+
+[s3-proxy](../s3-proxy) is another service you can deploy that is an HTTP proxy
+for s3, so that regular web clients can access your S3 buckets.
