@@ -79,7 +79,7 @@ Install these first:
 * [Traefik](traefik)
 * [whoami](whoami)
 
-If you want integrated OAuth authentication for all apps, install these next:
+If you want a git host + OAuth identity server, install these next:
 
 * [Gitea](gitea)
 * [traefik-forward-auth](traefik-forward-auth)
