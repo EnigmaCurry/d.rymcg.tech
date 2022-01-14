@@ -45,3 +45,9 @@ configuration.)
 For a simple test of Traefik, consider installing the [whoami](../whoami)
 project. This will demonstrate a valid TLS certificate, and routing Traefik to
 web servers running in project containers.
+
+
+## OAuth2 authentication
+
+You can start the [traefik-forward-auth](../traefik-forward-auth) service to
+enable OAuth2 authentication to your [gitea](../gitea) identity provider.
