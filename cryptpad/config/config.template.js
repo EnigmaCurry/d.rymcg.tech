@@ -54,7 +54,7 @@ module.exports = {
  *  and it may have unintended consequences in practice.
  *
  */
-    httpUnsafeOrigin: 'https://pad.example.com',
+    httpUnsafeOrigin: 'https://${CPAD_MAIN_DOMAIN}',
 
 /*  httpSafeOrigin is the URL that is used for the 'sandbox' described above.
  *  If you're testing or developing with CryptPad on your local machine then
@@ -72,7 +72,7 @@ module.exports = {
  *
  *  CUSTOMIZE AND UNCOMMENT THIS FOR PRODUCTION INSTALLATIONS.
  */
-    httpSafeOrigin: "https://pad.box.example.com",
+    httpSafeOrigin: "https://${CPAD_SANDBOX_DOMAIN}",
 
 /*  httpAddress specifies the address on which the nodejs server
  *  should be accessible. By default it will listen on 127.0.0.1
@@ -117,11 +117,11 @@ module.exports = {
      *  Entries should be strings separated by a comma.
      */
 
-/*
+
     adminKeys: [
-        //"[cryptpad-user1@my.awesome.website/YZgXQxKR0Rcb6r6CmxHPdAGLVludrAF2lEnkbx1vVOo=]",
+        "${ADMIN_KEY}",
     ],
-*/
+
 
     /*  CryptPad's administration panel includes a "support" tab
      *  wherein administrators with a secret key can view messages
@@ -151,7 +151,7 @@ module.exports = {
     /*  CryptPad will display a point of contact for your instance on its contact page
      *  (/contact.html) if you provide it below.
      */
-    adminEmail: 'i.did.not.read.my.config@cryptpad.fr',
+    adminEmail: '${ADMIN_EMAIL}',
 
     /*
      *  By default, CryptPad contacts one of our servers once a day.

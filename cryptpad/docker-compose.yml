@@ -13,7 +13,20 @@ volumes:
   config:
 
 services:
+  config:
+    build:
+      context: config
+    environment:
+      - CPAD_MAIN_DOMAIN
+      - CPAD_SANDBOX_DOMAIN
+      - ADMIN_KEY
+      - ADMIN_EMAIL
+      - PRINT_CONFIG
+    volumes:
+      - config:/cryptpad/config
+
   cryptpad:
+    depends_on: ['config']
     image: "promasu/cryptpad:nginx"
     container_name: "cryptpad"
     restart: unless-stopped
