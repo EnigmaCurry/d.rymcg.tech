@@ -8,16 +8,16 @@ pick and choose which services you wish to enable.
 
 ## All configuration comes from the environment
 
-For this project, all configuration must be done via:
+All projects are configured soley via environment variables written to [Docker
+env](https://docs.docker.com/compose/env-file/) files. For containers that do
+not support environment variable configuration, a sidecar container is included
+that will generate a config file from environment variables, which is run
+automatically before each container startup.
 
- * Environment variables in the `.env` files (preferred)
- * Generated or copied config files into a *named* volume (in the case that the
-   container doesn't support environment variables)
-
-The `.env` files are kept secret (as they include things like passwords and
-keys) and are excluded from the git repository via `.gitignore`. Each project
-includes a `.env-dist` file, which is a sample that must be copied to create
-your own secret `.env` file and edited according to the example.
+The `.env` files are to be kept secret (as they include things like passwords
+and keys) and are therefore excluded from the git repository via `.gitignore`.
+Each project includes a `.env-dist` file, which is a sample that must be copied
+to create your own secret `.env` file and edited according to the example.
 
 Many samples of docker-compose that you may find on the internet map native host
 directories into the container paths. **Host-mounted directories are considered
