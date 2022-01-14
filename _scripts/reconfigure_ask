@@ -1,0 +1,18 @@
+#!/bin/bash
+
+## reconfigure_ask VAR "this is the prompt" "this is the default"
+
+## Ask interactive questions to edit/create your .env file
+## This ONLY edits the lines with the given variable names in them.
+test -f .env || cp .env-dist .env
+var=$1; prompt=$2; 
+
+if [[ -z $3 ]]; then
+    dflt=""
+else
+    dflt=" (${3})"
+fi
+
+read -e -p "${prompt}: " -i "${3}" answer
+sed -i "s/^${var}=.*/${var}=${answer}/" .env
+
