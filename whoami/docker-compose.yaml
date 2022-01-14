@@ -7,6 +7,8 @@ networks:
 services:
   whoami:
     image: "traefik/whoami"
+    security_opt:
+      - no-new-privileges:true
     container_name: whoami
     networks:
       - traefik-proxy

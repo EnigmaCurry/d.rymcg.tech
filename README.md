@@ -33,9 +33,21 @@ that all the dependent files are fully contained by Docker itself.
 
 [Install Docker Server](https://docs.docker.com/engine/install/#server) or see
 [DIGITALOCEAN.md](DIGITALOCEAN.md) for instructions on creating a Docker host on
-DigitalOcean. Install [docker-compose](https://docs.docker.com/compose/install/)
-on your workstation.
+DigitalOcean. 
 
+### Install workstation tools
+
+You also need to install the following tools on your local workstation:
+
+ * [docker-compose](https://docs.docker.com/compose/install/)
+ * Optional: If you wish to use the Makefiles, you must install base development
+   tools including GNU Bash, Make, and sed.
+   * On Arch Linux run `pacman -S bash base-devel`
+   * On Debian/Ubuntu run `apt-get install bash build-essential`
+   * Note: The Makefiles are just a convenience wrapper, and are not required to
+     use if you just want to edit your `.env` files by hand and/or run
+     `docker-compose` manually.
+     
 ### Create the proxy network
 
 Since each project is in a separate docker-compose file, you must use an

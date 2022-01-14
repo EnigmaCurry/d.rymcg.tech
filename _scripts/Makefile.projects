@@ -1,0 +1,23 @@
+.PHONY: help # Show this help screen
+help:
+	@echo "Makefile help for $(realpath .):"
+	@grep -h '^.PHONY: .* #' Makefile ${ROOT_DIR}/_scripts/Makefile.projects ${ROOT_DIR}/_scripts/Makefile.globals | sed 's/\.PHONY: \(.*\) # \(.*\)/make \1 \t- \2/' | expand -t20
+
+include ../_scripts/Makefile.globals
+
+.PHONY: install # Installs and starts services
+install:
+	docker-compose up -d
+
+.PHONY: stop # Stops services
+stop:
+	docker-compose down
+
+.PHONY: destroy # Deletes containers and volumes
+destroy:
+	@echo -n "Are you sure you want to destroy the containers AND volumes? [y/N] " && \
+		read ans && if [ $${ans:-'N'} = 'y' ]; then set -x; docker-compose down -v; fi
+
+.PHONY: status # Run docker-compose ps
+status:
+	docker-compose ps

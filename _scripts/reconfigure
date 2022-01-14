@@ -1,0 +1,9 @@
+#!/bin/bash
+
+## Edit/create the .env file setting the vars given as args.
+## This ONLY edits the lines with the given variable names in them.
+test -f .env || cp .env-dist .env
+for var in "$@"; do
+    parts=(${var//=/ }); var=${parts[0]}; val=${parts[@]:1};        
+    sed -i "s/^${var}=.*/${var}=\"${val}\"/" .env
+done

@@ -1,0 +1,18 @@
+## This Makefile is included by all other Makefiles to set global targets.
+## This include script expects ROOT_DIR to be set in the parent.
+
+## Prefix name for image tags:
+DOCKER_ORG ?= localhost
+## Tools path:
+BIN = $(shell realpath ${ROOT_DIR}/_scripts)
+
+build-traefik-htpasswd:
+	docker build -t ${DOCKER_ORG}/traefik-htpasswd ${ROOT_DIR}/traefik-htpasswd
+
+build-traefik-htpasswd-quick:
+	docker image inspect ${DOCKER_ORG}/traefik-htpasswd >/dev/null || docker build -t ${DOCKER_ORG}/traefik-htpasswd ${ROOT_DIR}/traefik-htpasswd
+
+.PHONY: htpasswd # Create new HTTP Basic Authentication credentials
+htpasswd: build-traefik-htpasswd-quick
+	docker run --rm -it ${DOCKER_ORG}/traefik-htpasswd
+

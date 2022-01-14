@@ -17,26 +17,17 @@ then paste it into your `.env` file.
 This project contains a program to generate usernames and randomized passwords
 in the format needed for the `.env` files.
 
-## Build the container image
-
-Build the container image from the `traefik-htpasswd` directory (the same
-directory that contains this `README.md` and associated `Dockerfile`):
-
-```
-## cd traefik-htpasswd
-docker build -t localhost/traefik-htpasswd .
-```
-
 ## Usage
 
-Run the script anytime (from any directory) you want: 
+Use the `Makefile` in the root directory of this repository:
 
 ```
-docker run --rm -it localhost/traefik-htpasswd
+## cd ~/git/vendor/enigmacurry/d.rymcg.tech
+make htpasswd
 ```
 
-Enter a username and a randomized password will be generated. The new
-credentials will be printed to stdout:
+The program will prompt for you to enter a username. A randomly generated
+password and all the credential forms will be printed to stdout:
 
  * `Username:` and `Plain text password:`. You will need these to log into the
    web page.
