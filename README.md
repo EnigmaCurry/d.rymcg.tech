@@ -1,11 +1,12 @@
 # d.rymcg.tech
 
-This is a collection of docker-compose projects consisting of
-[Traefik](https://doc.traefik.io/traefik/) as a TLS HTTPs/TCP proxy and other
-various services behind this proxy. Each project is in its own sub-directory
-containing its own `docker-compose.yaml` and `.env` file (as well as `.env-dist`
-sample file). This structure allows you to pick and choose which services you
-wish to enable.
+This is a collection of docker-compose projects consisting of [Traefik](traefik)
+as a TLS HTTPs/TCP proxy and other various services behind this proxy. Each
+project is in its own sub-directory containing its own `docker-compose.yaml` and
+`.env` file (as well as `.env-dist` sample file). This structure allows you to
+pick and choose which services you wish to enable.
+
+## All configuration comes from the environment
 
 For this project, all configuration must be done via:
 
@@ -78,13 +79,17 @@ Install these first:
 * [Traefik](traefik)
 * [whoami](whoami)
 
+If you want integrated OAuth authentication for all apps, install these next:
+
+* [Gitea](gitea)
+* [traefik-forward-auth](traefik-forward-auth)
+
 Install these at your leisure/preference:
 
 * [Baikal](baikal)
 * [Bitwarden](bitwarden_rs)
 * [CryptPad](cryptpad)
 * [ejabberd](ejabberd)
-* [Gitea](gitea)
 * [Invidious](invidious)
 * [Jupyterlab](jupyterlab)
 * [Larynx](larynx)
