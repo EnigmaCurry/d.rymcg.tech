@@ -123,16 +123,18 @@ your `.env` files by hand and/or run `docker-compose` manually.):
 
 ### Set Docker context
 
-Make sure that your user account is setup for SSH access to your docker server
-(ie. you can ssh to the remote docker `root` account, or any account that has
-been added into the `docker` group).
+First make sure that your local user account is setup for SSH access to your
+remote docker server (ie. you can ssh to the remote docker `root` account, or
+any account that has been added into the `docker` group). You should setup
+key-based authentication so that you don't need to enter passwords during login.
 
 On your local worksation, create a new [Docker
 context](https://docs.docker.com/engine/context/working-with-contexts/) to use
-with your remote docker server (eg. named `d.example.com`) over SSH:
+with your remote docker server (eg. named `d.example.com` with the username
+`root`) over SSH:
 
 ```
-docker context create d.example.com --docker "host=ssh://ssh.d.example.com"
+docker context create d.example.com --docker "host=ssh://root@ssh.d.example.com"
 docker context use d.example.com
 ```
 
@@ -154,11 +156,17 @@ cd ~/git/vendor/enigmacurry/d.rymcg.tech
 Run the configuration wizard, and answer the questions:
 
 ```
+## Run this from the ROOT directory of the repository d.rymcg.tech
 make config
 ```
 
-(This writes main project level variables to `.env.makefile`, and is excluded
-from git via `.gitignore`)
+(This writes the main project level variables into a file named `.env.makefile`
+in the root directory, and is excluded from git via `.gitignore`)
+
+The `ROOT_DOMAIN` variable is saved in `.env.makefile` and will form the root
+domain of all of the sub-project domains, so that when you run `make config` in
+any of the sub-project directories, the default (but customizable) domains will
+be pre-populated with your root domain.
 
 ### Create the proxy network
 
@@ -170,14 +178,15 @@ name in the compose files.
 Create the new network for Traefik:
 
 ```
-## Note: `make config` already ran this, but it doesn't hurt to do it again:
+## Note: `make config` already ran this, but it won't hurt to do it again:
 docker network create traefik-proxy
 ```
 
-Each docker-compose file will use a similar snippet in order to connect to
-Traefik:
+Each `docker-compose.yaml` file will use a similar snippet in order to connect
+to Traefik:
 
 ```
+### Link to the external named network traefik-proxy:
 networks:
   traefik-proxy:
     name: traefik-proxy
@@ -195,7 +204,7 @@ service:
 
 ## Install desired containers
 
-Each docker-compose project has its own README. You should install
+Each docker-compose project has its own `README.md`. You should install
 [Traefik](traefik) first, as almost all of the others depend on it. After that,
 install the [whoami](whoami) container to test things are working.
 
@@ -237,6 +246,16 @@ Bespoke things:
 * [traefik-htpasswd](traefik-htpasswd)
 * [experimental ad-hoc certifcate CA](certificate-ca)
 
+## Command line interaction
+
+As alluded to earlier, this project offers two ways to control Docker:
+
+ 1. Editing `.env` files and running `docker-compose` directly.
+ 2. Running `make` targets that edit the `.env` files for you, and do the same
+    thing.
+
+### Running docker-compose natively
+
 For all of the containers that you wish to install, do the following:
 
  * Read the README.md file found in each project directory
@@ -246,18 +265,22 @@ For all of the containers that you wish to install, do the following:
  * Follow the README for instructons to start the containers. Generally, all you
    need to do is run: `docker-compose up --build -d`
 
+### Running with the Makefiles
+
 Alternatively, each project has a Makefile that helps to simplify configuration
 and startup. You can use the Makefiles to automatically edit the `.env` files
 and to start the service for you:
 
- * Run `make config` (in any project sub-directory.)
+ * `cd` into the project sub-directory.
+ * Run `make config` 
  * Answer the interactive questions, and the `.env` file will be created/updated
-   for you. Examples are pre-filled with default values, you should accept or
-   edit these values, or use the backspace to clear them out entirely, and fill
-   in your own answers.
+   for you. Examples are pre-filled with default values (and based upon your
+   `ROOT_DOMAIN` specified earlier). You should accept or edit these values, or
+   use the backspace to clear them out entirely, and fill in your own answers.
+ * Verify the configuration by looking at the contents of `.env`.
  * Run `make install` to start the services. (this is the same thing as
    `docker-compose up --build -d`)
  * Most services have a website URL, which you can open automatically, run:
-   `make open`.
+   `make open` (after waiting a bit for the service to start).
  * See `make help` (or just `make`) for a list of all the other available
    targets, including `make status`, `make stop` and `make destroy`.
