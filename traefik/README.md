@@ -37,7 +37,8 @@ You can `make close` later if you want to close the SSH tunnel.
 ## Certificate Resolver
 
 Traefik is configured for Let's Encrypt to issue TLS certificates for all
-project (sub-)domain names.
+project (sub-)domain names. All certificates are stored inside the
+`traefik_traefik` Docker volume.
 
 All other services defines the `ACME_CERT_RESOLVER` variable in their respective
 `.env` file. There are two different environments defined, `staging` and
@@ -49,6 +50,13 @@ name is going to be forever used for staging or production. You cannot "promote"
 a staging domain to a production domain. (You can do so manually, if needed, by
 editing the acme.json file in the traefik data volume, and removing the domain's
 configuration.)
+
+Note that the default `ACME_CERT_RESOLVER` has been set to `production`. Traefik
+does a good job of saving all of your certificates in its own named volume
+(`traefik_traefik`), so as long as you're planning on leaving Traefik installed
+long term, `production` is generally the better choice *even for development or
+testing purposes*. Only choose `staging` if you are not planning on leaving
+Traefik installed, or if you have some other testing purpose for doing so.
 
 ## Test the whoami container
 
