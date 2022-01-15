@@ -14,10 +14,12 @@ not support environment variable configuration, a sidecar container is included
 that will generate a config file from environment variables, which is run
 automatically before each container startup.
 
-The `.env` files are to be kept secret (as they include things like passwords
-and keys) and are therefore excluded from the git repository via `.gitignore`.
-Each project includes a `.env-dist` file, which is a sample that must be copied
-to create your own secret `.env` file and edited according to the example.
+The `.env` files are to be kept secret in each project directory (as they
+include things like passwords and keys) and are therefore excluded from the git
+repository via `.gitignore`. Each project includes a `.env-dist` file, which is
+a sample that must be copied to create your own secret `.env` file and edited
+according to the example. (Or run `make config` to run a wizard to create the
+`.env` file for you by answering some questions.)
 
 Many samples of docker-compose that you may find on the internet map native host
 directories into the container paths. **Host-mounted directories are considered
@@ -35,19 +37,122 @@ that all the dependent files are fully contained by Docker itself.
 [DIGITALOCEAN.md](DIGITALOCEAN.md) for instructions on creating a Docker host on
 DigitalOcean. 
 
+### Setup DNS for your domain and Docker server
+
+You will need to bring your own internet domain name and DNS service. You will
+need to create DNS type `A` (or `AAAA`) records pointing to your docker server.
+Finding the instructions for creating these `A` records is left up to the user,
+since DNS platforms vary greatly, but see [DIGITALOCEAN.md](DIGITALOCEAN.md) for
+an example.
+
+The recommended naming convention is to use a subdomain off of your main domain,
+and create sub-sub-domains for each project. This will create domain names that
+look like `whoami.d.example.com`, where `whoami` is the project name, and `d` is
+a unique name for the overall subdomain representing your docker server (`d` is
+for `docker`, but you can make this whatever you want).
+
+By dedicating a sub-domain for all your projects, this allows you to create a
+DNS record for the wildcard: `*.d.example.com`, which will automatically direct
+all sub-sub-domain requests to your docker server.
+
+Note that you *could* put a wildcard record on your root domain, ie.
+`*.example.com`, however if you did this you would not be able to use the domain
+for a second instance, nor for anything else, but if are willing to dedicate the
+domain this single instance, go ahead.
+
+If you don't want to do a wildcard, you can just create several records for each
+of the domains your apps will use, but this might mean you need to come back and
+add several more records later as you install more projects.
+
+### Notes on firewall
+
+This system does not include a network firewall of its own. You are expected to
+provide this in your host networking environment. (Note: `ufw` is NOT
+recommended for use with docker, nor any firewall located on the same host
+machine as Docker. You should prefer an external dedicated firewall [ie. your
+cloud provider], or none at all.)
+
+All traffic flows through Traefik. The network ports you will need to allow are
+listed in [traefik/docker-compose.yaml](traefik/docker-compose.yaml) in the
+`Entrypoints` section. You can add or remove these entrypoints as you see fit.
+
+You will need to open these (default) ports in your firewall (adapt as you add
+or remove entrypoints):
+
+   | Type   | Protocol | Port Range | Description                      |
+   | ------ | -------- | ---------- | -------------------------------- |
+   | SSH    | TCP      |         22 | Host SSH server                  |
+   | HTTP   | TCP      |         80 | Traefik HTTP endpoint            |
+   | HTTPS  | TCP      |        443 | Traefik HTTPS (TLS) endpoint     |
+   | Custom | TCP      |       2222 | Traefik Gitea SSH (TCP) endpoint |
+   | Custom | TCP      |       2223 | SFTP container SSH (TCP)         |
+   | Custom | TCP      |       8883 | Traefik Mosquitto (TLS) endpoint |
+ 
+
 ### Install workstation tools
 
-You also need to install the following tools on your local workstation:
+You need to install the following tools on your local development workstation:
 
- * [docker-compose](https://docs.docker.com/compose/install/)
- * Optional: If you wish to use the Makefiles, you must install base development
-   tools including GNU Bash, Make, and sed.
-   * On Arch Linux run `pacman -S bash base-devel`
-   * On Debian/Ubuntu run `apt-get install bash build-essential`
-   * Note: The Makefiles are just a convenience wrapper, and are not required to
-     use if you just want to edit your `.env` files by hand and/or run
-     `docker-compose` manually.
-     
+The only hard requirement is the `docker` client and `docker-compose`:
+
+ * [Install docker client](https://docs.docker.com/get-docker/) (For
+   Mac/Windows, this means Docker Desktop. For Linux, this means installing the
+   `Docker Engine`, but not necessarily starting the daemon; the `docker` client
+   program is all you need on your workstation to connect to a remote docker
+   server.)
+ * [Install docker-compose](https://docs.docker.com/compose/install/)
+ 
+There are also **optional** helper scripts and Makefiles included, that will
+have some additional system package requirements (Note: these Makefiles are just
+convenience wrappers for creating/modifying your `.env` files and for running
+`docker-compose`, so these are not required to use if you would rather just edit
+your `.env` files by hand and/or run `docker-compose` manually.):
+
+   * Base development tools including `bash`, `make`, and `sed`:
+     * On Arch Linux run `pacman -S bash base-devel`
+     * On Debian/Ubuntu run `apt-get install bash build-essential`
+   * `xdg-open` found in the `xdg-utils` package. (Used for opening the service
+     URLs in your web-browser via `make open`)
+
+### Set Docker context
+
+Make sure that your user account is setup for SSH access to your docker server
+(ie. you can ssh to the remote docker `root` account, or any account that has
+been added into the `docker` group).
+
+On your local worksation, create a new [Docker
+context](https://docs.docker.com/engine/context/working-with-contexts/) to use
+with your remote docker server (eg. named `d.example.com`) over SSH:
+
+```
+docker context create d.example.com --docker "host=ssh://ssh.d.example.com"
+docker context use d.example.com
+```
+
+Now when you issue `docker` or `docker-compose` commands on your local
+workstation, you will actually be controlling your remote docker server, through
+SSH.
+
+### Clone this repository
+
+Clone this repository to your workstation, and change to this directory:
+
+```
+git clone https://github.com/EnigmaCurry/d.rymcg.tech.git ~/git/vendor/enigmacurry/d.rymcg.tech
+cd ~/git/vendor/enigmacurry/d.rymcg.tech
+```
+
+## Main configuration
+
+Run the configuration wizard, and answer the questions:
+
+```
+make config
+```
+
+(This writes main project level variables to `.env.makefile`, and is excluded
+from git via `.gitignore`)
+
 ### Create the proxy network
 
 Since each project is in a separate docker-compose file, you must use an
@@ -58,6 +163,7 @@ name in the compose files.
 Create the new network for Traefik:
 
 ```
+## Note: `make config` already ran this, but it doesn't hurt to do it again:
 docker network create traefik-proxy
 ```
 
@@ -133,3 +239,14 @@ For all of the containers that you wish to install, do the following:
  * Follow the README for instructons to start the containers. Generally, all you
    need to do is run: `docker-compose up --build -d`
 
+Alternatively, each project has a Makefile that helps to simplify this. You can
+use the Makefiles to edit the .env files and start the service for you:
+
+ * Run `make config` (in the project sub-directory.)
+ * Answer the questions, and the `.env` file will be created/modified for you.
+ * Run `make install` to start the services. (same thing as `docker-compose up
+   --build -d`)
+ * See `make help` (or just `make`) for a list of all the other available
+   targets.
+ * TODO: Makefiles are a work in progress. The best thing is to just edit `.env`
+   files by hand.
