@@ -1,5 +1,5 @@
 #!/bin/bash
-read -p "Enter the username: " USERNAME
+read -p "Enter the username for HTTP Basic Authentication: " USERNAME
 PLAIN_PASSWORD=$(openssl rand -base64 30 | head -c 20)
 HASH_PASSWORD=$(echo $PLAIN_PASSWORD | htpasswd -inB ${USERNAME})
 echo "Plain text password (save this): ${PLAIN_PASSWORD}"

@@ -1,18 +1,16 @@
 #!/bin/bash
 
 ## reconfigure_ask VAR "this is the prompt" "this is the default"
-
 ## Ask interactive questions to edit/create your .env file
 ## This ONLY edits the lines with the given variable names in them.
+
+var=$1; prompt=$2; default=$3;
+## Make new .env if it doesn't exist:
 test -f .env || cp .env-dist .env
-var=$1; prompt=$2; 
 
-if [[ -z $3 ]]; then
-    dflt=""
-else
-    dflt=" (${3})"
-fi
+example=$(grep -m 1 -oP "$var=\K.*" .env-dist)
 
-read -e -p "${prompt}: " -i "${3}" answer
-sed -i "s/^${var}=.*/${var}=${answer}/" .env
+read -e -p "${var}: ${prompt} (eg. ${example}): " -i "${default}" answer
+escaped_answer=$(printf '%s\n' "${answer}" | sed -e 's/[\/&]/\\&/g')
+sed -i "s/^${var}=.*/${var}=${escaped_answer}/" .env
 

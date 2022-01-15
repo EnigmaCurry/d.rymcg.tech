@@ -1,0 +1,24 @@
+.PHONY: build # Build container images
+build:
+	docker-compose build
+
+.PHONY: install # Installs and starts services
+install:
+	docker-compose up --build -d
+
+.PHONY: stop # Stops services
+stop:
+	docker-compose down
+
+.PHONY: restart # Restart services
+restart:
+	docker-compose restart
+
+.PHONY: destroy # Deletes containers and volumes
+destroy:
+	@echo -n "Are you sure you want to destroy the containers AND volumes? [y/N] " && \
+		read ans && if [ $${ans:-'N'} = 'y' ]; then set -x; docker-compose down -v; fi
+
+.PHONY: status # Run docker-compose ps
+status:
+	docker-compose ps

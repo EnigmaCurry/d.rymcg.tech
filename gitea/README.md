@@ -33,8 +33,9 @@ website domain in your browser to finish the setup procedure with install wizard
    secure passphrase, enter your email address.
  * Once you've entered the `root` account details, click `Install Gitea`.
  
-Once gitea is installed, you must restart the service in order for your `.env`
-configuration to be applied:
+It is normal to receive a message of `Bad Gateway` once, right after install.
+You must restart the service in order for your `.env` configuration to be fully
+applied:
 
 ```
 # Restart gitea to get the config applied:

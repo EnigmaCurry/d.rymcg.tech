@@ -1,6 +1,6 @@
 ROOT_DIR = ..
 include ../_scripts/Makefile.projects
 
-.PHONY: config # Configure whoami .env file
+.PHONY: config # Configure .env file
 config:
-	@${BIN}/reconfigure_ask GITEA_TRAEFIK_HOST "Enter the gitea domain name (eg. git.example.com)"
+	@${BIN}/reconfigure_ask JUPYTERLAB_TRAEFIK_HOST "Enter the jupyterlab domain name" jupyterlab.${ROOT_DOMAIN}

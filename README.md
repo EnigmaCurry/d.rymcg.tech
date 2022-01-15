@@ -8,18 +8,18 @@ pick and choose which services you wish to enable.
 
 ## All configuration comes from the environment
 
-All projects are configured soley via environment variables written to [Docker
-env](https://docs.docker.com/compose/env-file/) files. For containers that do
-not support environment variable configuration, a sidecar container is included
-that will generate a config file from environment variables, which is run
-automatically before each container startup.
+All of these projects are configured soley via environment variables written to
+[Docker env](https://docs.docker.com/compose/env-file/) files. For containers
+that do not support environment variable configuration, a sidecar container is
+included that will generate a config file from environment variables, which is
+run automatically before each container startup.
 
 The `.env` files are to be kept secret in each project directory (as they
 include things like passwords and keys) and are therefore excluded from the git
 repository via `.gitignore`. Each project includes a `.env-dist` file, which is
 a sample that must be copied to create your own secret `.env` file and edited
-according to the example. (Or run `make config` to run a wizard to create the
-`.env` file for you by answering some questions.)
+according to the example. (Or run `make config` to run a setup wizard to create
+the `.env` file for you by answering some questions.)
 
 Many samples of docker-compose that you may find on the internet map native host
 directories into the container paths. **Host-mounted directories are considered
@@ -30,7 +30,7 @@ use docker-compose from a remote client (like your laptop, accessing Docker over
 SSH with the remote `DOCKER_HOST` variable set). By doing so, you can ensure
 that all the dependent files are fully contained by Docker itself.
 
-## Setup
+## Prerequisites
 ### Create a Docker host
 
 [Install Docker Server](https://docs.docker.com/engine/install/#server) or see
@@ -39,8 +39,8 @@ DigitalOcean.
 
 ### Setup DNS for your domain and Docker server
 
-You will need to bring your own internet domain name and DNS service. You will
-need to create DNS type `A` (or `AAAA`) records pointing to your docker server.
+You need to bring your own internet domain name and DNS service. You will need
+to create DNS type `A` (or `AAAA`) records pointing to your docker server.
 Finding the instructions for creating these `A` records is left up to the user,
 since DNS platforms vary greatly, but see [DIGITALOCEAN.md](DIGITALOCEAN.md) for
 an example.
@@ -58,25 +58,27 @@ all sub-sub-domain requests to your docker server.
 Note that you *could* put a wildcard record on your root domain, ie.
 `*.example.com`, however if you did this you would not be able to use the domain
 for a second instance, nor for anything else, but if are willing to dedicate the
-domain this single instance, go ahead.
+domain to this single instance, go ahead.
 
-If you don't want to do a wildcard, you can just create several records for each
-of the domains your apps will use, but this might mean you need to come back and
-add several more records later as you install more projects.
+If you don't want to create a wildcard record, you can just create several
+normal `A` (or `AAAA`) records for each of the domains your apps will use, but
+this might mean that you need to come back and add several more records later as
+you install more projects, and also may break some of the assumptions in the
+(optional) Makefiles.
 
 ### Notes on firewall
 
 This system does not include a network firewall of its own. You are expected to
 provide this in your host networking environment. (Note: `ufw` is NOT
-recommended for use with docker, nor any firewall located on the same host
-machine as Docker. You should prefer an external dedicated firewall [ie. your
-cloud provider], or none at all.)
+recommended for use with Docker, nor any other firewall directly located on the
+same host machine as Docker. You should prefer an external dedicated firewall
+[ie. your cloud provider], or none at all.)
 
-All traffic flows through Traefik. The network ports you will need to allow are
+All traffic flows through Traefik. The network ports you need to allow are
 listed in [traefik/docker-compose.yaml](traefik/docker-compose.yaml) in the
 `Entrypoints` section. You can add or remove these entrypoints as you see fit.
 
-You will need to open these (default) ports in your firewall (adapt as you add
+You need to open these (default) ports in your firewall (adapt as you add
 or remove entrypoints):
 
    | Type   | Protocol | Port Range | Description                      |
@@ -88,6 +90,10 @@ or remove entrypoints):
    | Custom | TCP      |       2223 | SFTP container SSH (TCP)         |
    | Custom | TCP      |       8883 | Traefik Mosquitto (TLS) endpoint |
  
+See [DIGITALOCEAN.md](DIGITALOCEAN.md) for an example of setting the
+DigitalOcean firewall service.
+
+## Setup
 
 ### Install workstation tools
 
@@ -111,6 +117,7 @@ your `.env` files by hand and/or run `docker-compose` manually.):
    * Base development tools including `bash`, `make`, and `sed`:
      * On Arch Linux run `pacman -S bash base-devel`
      * On Debian/Ubuntu run `apt-get install bash build-essential`
+   * `openssl` (for generating randomized passwords)
    * `xdg-open` found in the `xdg-utils` package. (Used for opening the service
      URLs in your web-browser via `make open`)
 
@@ -239,14 +246,18 @@ For all of the containers that you wish to install, do the following:
  * Follow the README for instructons to start the containers. Generally, all you
    need to do is run: `docker-compose up --build -d`
 
-Alternatively, each project has a Makefile that helps to simplify this. You can
-use the Makefiles to edit the .env files and start the service for you:
+Alternatively, each project has a Makefile that helps to simplify configuration
+and startup. You can use the Makefiles to automatically edit the `.env` files
+and to start the service for you:
 
- * Run `make config` (in the project sub-directory.)
- * Answer the questions, and the `.env` file will be created/modified for you.
- * Run `make install` to start the services. (same thing as `docker-compose up
-   --build -d`)
+ * Run `make config` (in any project sub-directory.)
+ * Answer the interactive questions, and the `.env` file will be created/updated
+   for you. Examples are pre-filled with default values, you should accept or
+   edit these values, or use the backspace to clear them out entirely, and fill
+   in your own answers.
+ * Run `make install` to start the services. (this is the same thing as
+   `docker-compose up --build -d`)
+ * Most services have a website URL, which you can open automatically, run:
+   `make open`.
  * See `make help` (or just `make`) for a list of all the other available
-   targets.
- * TODO: Makefiles are a work in progress. The best thing is to just edit `.env`
-   files by hand.
+   targets, including `make status`, `make stop` and `make destroy`.
