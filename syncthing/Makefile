@@ -1,6 +1,6 @@
 ROOT_DIR = ..
 include ../_scripts/Makefile.projects
 
-.PHONY: config # Configure whoami .env file
+.PHONY: config # Configure .env file
 config:
-	@${BIN}/reconfigure_ask GITEA_TRAEFIK_HOST "Enter the gitea domain name (eg. git.example.com)"
+	@${BIN}/reconfigure LISTEN_PORT=22000 DISCOVERY_PORT=21027

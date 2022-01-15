@@ -24,6 +24,16 @@ With the tunnel active, you can view
 [https://localhost:8080/dashboard/](https://localhost:8080/dashboard/) in your
 web browser to access it.
 
+You can quickly do all of the above by running the Makefile target:
+
+```
+# Starts the SSH tunnel if its not already running, 
+# and automatically opens your browser:
+make open
+```
+
+You can `make close` later if you want to close the SSH tunnel.
+
 ## Certificate Resolver
 
 Traefik is configured for Let's Encrypt to issue TLS certificates for all

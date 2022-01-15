@@ -13,7 +13,7 @@ network:
 
 .PHONY: check-docker # Check if docker is running
 check-docker: 
-	@docker info >/dev/null && echo "Docker is running" || (echo "Could not connect to Docker" && false)
+	@docker info >/dev/null && echo "Docker is running." || (echo "Could not connect to Docker!" && false)
 
 .PHONY: config # Configure main variables
 config: check-docker network
@@ -22,3 +22,12 @@ config: check-docker network
 
 .PHONY: build # build all container images
 build: build-traefik-htpasswd
+	find ./ | grep docker-compose.yaml$ | xargs -iXX docker-compose -f XX build
+
+.PHONY: open # Open the repository website README
+open:
+	xdg-open https://github.com/enigmacurry/d.rymcg.tech#readme
+
+.PHONY: status # Check status of all sub-projects
+status:
+	docker-compose ls

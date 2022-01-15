@@ -19,10 +19,9 @@ in the format needed for the `.env` files.
 
 ## Usage
 
-Use the `Makefile` in the root directory of this repository:
+From any project directory, use the `Makefile` target:
 
 ```
-## cd ~/git/vendor/enigmacurry/d.rymcg.tech
 make htpasswd
 ```
 

@@ -1,0 +1,4 @@
+.PHONY: help # Show this help screen
+help:
+	@echo "Makefile help for $(realpath .):"
+	@grep -h '^.PHONY: .* #' Makefile ${ROOT_DIR}/_scripts/Makefile.projects ${ROOT_DIR}/_scripts/Makefile.lifecycle ${ROOT_DIR}/_scripts/Makefile.globals | sed 's/\.PHONY: \(.*\) # \(.*\)/make \1 \t- \2/' | expand -t20

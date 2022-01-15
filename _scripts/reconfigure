@@ -4,6 +4,8 @@
 ## This ONLY edits the lines with the given variable names in them.
 test -f .env || cp .env-dist .env
 for var in "$@"; do
-    parts=(${var//=/ }); var=${parts[0]}; val=${parts[@]:1};        
-    sed -i "s/^${var}=.*/${var}=\"${val}\"/" .env
+    parts=(${var//=/ }); var=${parts[0]}; val=${parts[@]:1};
+    escaped_val=$(printf '%s\n' "${val}" | sed -e 's/[\/&]/\\&/g')
+    echo "Setting ${var}=${escaped_val}"
+    sed -i "s/^${var}=.*/${var}=${escaped_val}/" .env
 done

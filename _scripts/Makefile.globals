@@ -1,6 +1,7 @@
 ## This Makefile is included by all other Makefiles to set global targets.
 ## This include script expects ROOT_DIR to be set in the parent.
 
+SHELL = /bin/bash
 ## Prefix name for image tags:
 DOCKER_ORG ?= localhost
 ## Tools path:
