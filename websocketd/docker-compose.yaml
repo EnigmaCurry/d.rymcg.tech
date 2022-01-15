@@ -10,6 +10,8 @@ services:
       context: .
     networks:
       - traefik-proxy
+    security_opt:
+      - no-new-privileges:true
     environment:
       DEV_CONSOLE: "true"
     labels:

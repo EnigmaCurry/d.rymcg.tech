@@ -11,6 +11,8 @@ services:
       context: ./
     container_name: sftp
     restart: unless-stopped
+    security_opt:
+      - no-new-privileges:true
     volumes:
       - ssh-keys:/etc/ssh/keys
       - sftp-config:/etc/sftp

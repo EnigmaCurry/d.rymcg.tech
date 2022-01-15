@@ -7,6 +7,8 @@ networks:
 services:
   db:
     image: postgres:12-alpine
+    security_opt:
+      - no-new-privileges:true
     restart: unless-stopped
     environment:
       - POSTGRES_USER=${TTRSS_DB_USER}
@@ -19,6 +21,8 @@ services:
     build:
       context:
         ./app
+    security_opt:
+      - no-new-privileges:true
     restart: unless-stopped
     env_file:
       - .env
@@ -32,6 +36,8 @@ services:
     build:
       context:
         ./app
+    security_opt:
+      - no-new-privileges:true
     restart: unless-stopped
     env_file:
       - .env
@@ -46,6 +52,8 @@ services:
     build:
       context:
         ./app
+    security_opt:
+      - no-new-privileges:true
     restart: unless-stopped
     env_file:
       - .env
@@ -58,6 +66,8 @@ services:
 
   web-nginx:
     build: ./web-nginx
+    security_opt:
+      - no-new-privileges:true
     restart: unless-stopped
     networks:
       - default

@@ -28,6 +28,8 @@ services:
       - GITEA__service__NO_REPLY_ADDRESS
     networks:
       - traefik-proxy
+    security_opt:
+      - no-new-privileges:true
     volumes:
       - data:/var/lib/gitea
       - config:/etc/gitea

@@ -12,6 +12,8 @@ services:
     build:
       context: postgres
     restart: unless-stopped
+    security_opt:
+      - no-new-privileges:true
     volumes:
       - database:/var/lib/postgresql/data
     environment:
@@ -26,6 +28,8 @@ services:
       context: https://github.com/iv-org/invidious.git
       dockerfile: docker/Dockerfile
     restart: unless-stopped
+    security_opt:
+      - no-new-privileges:true
     networks:
       - traefik-proxy
       - default

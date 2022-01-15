@@ -12,6 +12,8 @@ services:
     restart: always
     volumes:
       - mariadb:/var/lib/mysql
+    security_opt:
+      - no-new-privileges:true
     environment:
       - MYSQL_DATABASE
       - MYSQL_RANDOM_ROOT_PASSWORD
@@ -20,6 +22,8 @@ services:
 
   redis:
     image: redis:alpine
+    security_opt:
+      - no-new-privileges:true
     container_name: "nextcloud_redis"
     restart: always
 
@@ -30,6 +34,8 @@ services:
     networks:
       - traefik-proxy
       - default
+    security_opt:
+      - no-new-privileges:true
     volumes:
       - nextcloud:/var/www/html
     environment:
@@ -65,6 +71,8 @@ services:
 
   cron:
     image: nextcloud:apache
+    security_opt:
+      - no-new-privileges:true
     container_name: "nextcloud_cron"
     restart: always
     volumes:

@@ -7,6 +7,8 @@ networks:
 services:
   db:
     container_name: "xbs-db"
+    security_opt:
+      - no-new-privileges:true
     environment:
       - "MONGO_INITDB_DATABASE=$DB_NAME"
       - "MONGO_INITDB_ROOT_PASSWORD=$DB_PASSWORD"
@@ -25,6 +27,8 @@ services:
     build: ./api
     depends_on:
       - "db"
+    security_opt:
+      - no-new-privileges:true
     environment:
       - "XBROWSERSYNC_DB_PWD=$DB_PASSWORD"
       - "XBROWSERSYNC_DB_USER=$DB_USERNAME"

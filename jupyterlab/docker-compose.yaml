@@ -12,6 +12,8 @@ services:
     build:
       context: .
     container_name: jupyterlab
+    security_opt:
+      - no-new-privileges:true
     networks:
       - traefik-proxy
     restart: unless-stopped

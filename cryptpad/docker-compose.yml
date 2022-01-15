@@ -16,6 +16,8 @@ services:
   config:
     build:
       context: config
+    security_opt:
+      - no-new-privileges:true
     environment:
       - CPAD_MAIN_DOMAIN
       - CPAD_SANDBOX_DOMAIN
@@ -30,6 +32,8 @@ services:
     image: "promasu/cryptpad:nginx"
     container_name: "cryptpad"
     restart: unless-stopped
+    security_opt:
+      - no-new-privileges:true
     environment:
       - CPAD_MAIN_DOMAIN
       - CPAD_SANDBOX_DOMAIN

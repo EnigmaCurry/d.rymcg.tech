@@ -21,6 +21,8 @@ volumes:
 services:
   shaarli:
     image: shaarli/shaarli:${SHAARLI_DOCKER_TAG}
+    security_opt:
+      - no-new-privileges:true
     container_name: "shaarli"
     restart: "unless-stopped"
     networks:
