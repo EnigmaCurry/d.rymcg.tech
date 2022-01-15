@@ -14,6 +14,8 @@ services:
   config:
     build:
       context: config
+    security_opt:
+      - no-new-privileges:true
     environment:
       - EJABBERD_HOST
       - PRINT_CONFIG
@@ -25,6 +27,8 @@ services:
     depends_on: ['config']
     build:
       context: ejabberd
+    security_opt:
+      - no-new-privileges:true
     networks:
       - default
       - traefik-proxy

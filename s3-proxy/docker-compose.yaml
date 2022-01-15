@@ -11,6 +11,8 @@ services:
   config:
     build:
       context: config
+    security_opt:
+      - no-new-privileges:true
     environment:
       - S3_ENDPOINT
       - S3_BUCKET
@@ -27,6 +29,8 @@ services:
     restart: unless-stopped
     networks:
       - traefik-proxy
+    security_opt:
+      - no-new-privileges:true
     volumes:
       - config:/proxy/conf
     labels:

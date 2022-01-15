@@ -13,6 +13,8 @@ services:
   config:
     build:
       context: config
+    security_opt:
+      - no-new-privileges:true
     environment:
       - PRINT_CONFIG
       - MAUBOT_TRAEFIK_HOST
@@ -26,6 +28,8 @@ services:
     depends_on: ["config"]
     build:
       context: ${MAUBOT_GIT_REPO}
+    security_opt:
+      - no-new-privileges:true
     container_name: maubot
     networks:
       - traefik-proxy

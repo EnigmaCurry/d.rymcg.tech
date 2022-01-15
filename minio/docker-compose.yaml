@@ -12,6 +12,8 @@ services:
     image: quay.io/minio/minio
     networks:
       - traefik-proxy
+    security_opt:
+      - no-new-privileges:true
     environment:
       - MINIO_ROOT_USER
       - MINIO_ROOT_PASSWORD

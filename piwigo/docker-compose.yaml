@@ -7,6 +7,8 @@ networks:
 services:
   db:
     image: mariadb
+    security_opt:
+      - no-new-privileges:true
     restart: always
     environment:
       MARIADB_ROOT_PASSWORD: ${MARIADB_ROOT_PASSWORD}
@@ -20,6 +22,8 @@ services:
     networks:
       - traefik-proxy
       - default
+    security_opt:
+      - no-new-privileges:true
     restart: unless-stopped
     volumes:
       - config:/config

@@ -10,6 +10,8 @@ services:
     container_name: traefik-forward-auth
     networks:
       - traefik-proxy
+    security_opt:
+      - no-new-privileges:true
     environment:
       - SECRET
       - LOG_LEVEL
