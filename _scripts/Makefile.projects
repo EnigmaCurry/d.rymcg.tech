@@ -4,10 +4,11 @@ help:
 	@grep -h '^.PHONY: .* #' Makefile ${ROOT_DIR}/_scripts/Makefile.projects ${ROOT_DIR}/_scripts/Makefile.globals | sed 's/\.PHONY: \(.*\) # \(.*\)/make \1 \t- \2/' | expand -t20
 
 include ../_scripts/Makefile.globals
+include ../.env.makefile
 
 .PHONY: install # Installs and starts services
 install:
-	docker-compose up -d
+	docker-compose up --build -d
 
 .PHONY: stop # Stops services
 stop:
@@ -21,3 +22,7 @@ destroy:
 .PHONY: status # Run docker-compose ps
 status:
 	docker-compose ps
+
+.PHONY: open # Open the web-browser to the service URL
+open:
+	@grep -m 1 -oP "TRAEFIK_HOST=\K.*" .env | xargs -iXX sh -c "set -x; xdg-open https://XX"
