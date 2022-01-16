@@ -6,9 +6,15 @@ build:
 install:
 	docker-compose up --build -d
 
+.PHONY: up
+up: install
+
 .PHONY: stop # Stops services
 stop:
 	docker-compose down
+
+.PHONY: down
+down: stop
 
 .PHONY: restart # Restart services
 restart:
@@ -22,3 +28,7 @@ destroy:
 .PHONY: status # Run docker-compose ps
 status:
 	docker-compose ps
+
+.PHONY: logs # View container logs
+logs:
+	docker-compose logs
