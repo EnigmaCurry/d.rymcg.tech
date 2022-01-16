@@ -35,6 +35,7 @@ services:
       - config:/proxy/conf
     labels:
       - "traefik.enable=true"
+      ## Only allow GET requests:
       - "traefik.http.routers.s3proxy.rule=Host(`${S3PROXY_TRAEFIK_HOST}`)"
       - "traefik.http.routers.s3proxy.entrypoints=websecure"
       - "traefik.http.routers.s3proxy.tls.certresolver=${ACME_CERT_RESOLVER}"

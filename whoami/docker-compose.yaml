@@ -15,11 +15,29 @@ services:
     restart: unless-stopped
     labels:
       - "traefik.enable=true"
-      - "traefik.http.routers.whoami.rule=Host(`${WHOAMI_TRAEFIK_HOST}`)"
+
+      ### Normally whoami responds on any path with any HTTP method, but if we
+      ### make all the routers path and/or method selective, then we can block
+      ### certain requests easily by default (404).
+      - "traefik.http.routers.whoami.rule=Host(`${WHOAMI_TRAEFIK_HOST}`) && (Path(`/`) || Path(`/health`))"
       - "traefik.http.routers.whoami.entrypoints=websecure"
       - "traefik.http.routers.whoami.tls.certresolver=${ACME_CERT_RESOLVER}"
 
-      # Test middlewares on the /test/ path prefix:
+      ## Lots of various rules for demo/documentation purposes..
+
+      # Block /forbidden (403 Forbidden; Using blockpath plugin middleware with catch all regex):
+      - "traefik.http.routers.whoami-forbidden.rule=Host(`${WHOAMI_TRAEFIK_HOST}`) && PathPrefix(`/forbidden`)"
+      - "traefik.http.routers.whoami-forbidden.entrypoints=websecure"
+      - "traefik.http.routers.whoami-forbidden.tls.certresolver=${ACME_CERT_RESOLVER}"
+      - "traefik.http.middlewares.whoami-forbidden.plugin.blockpath.regex=.*"
+      - "traefik.http.routers.whoami-forbidden.middlewares=whoami-forbidden@docker"
+
+      # Allow /just-get (but only to GET requests):
+      - "traefik.http.routers.whoami-just-get.rule=Host(`${WHOAMI_TRAEFIK_HOST}`) && Path(`/just-get`) && Method(`GET`)"
+      - "traefik.http.routers.whoami-just-get.entrypoints=websecure"
+      - "traefik.http.routers.whoami-just-get.tls.certresolver=${ACME_CERT_RESOLVER}"
+
+      # Allow /test/ and add custom request and response headers:
       - "traefik.http.routers.whoami-test.rule=Host(`${WHOAMI_TRAEFIK_HOST}`) && PathPrefix(`/test/`)"
       - "traefik.http.routers.whoami-test.entrypoints=websecure"
       - "traefik.http.routers.whoami-test.tls.certresolver=${ACME_CERT_RESOLVER}"
@@ -33,3 +51,4 @@ services:
       - "traefik.http.routers.whoami-auth.tls.certresolver=${ACME_CERT_RESOLVER}"
       - "traefik.http.routers.whoami-auth.middlewares=traefik-forward-auth@docker"
 
+      

@@ -9,7 +9,12 @@ volumes:
   
 services:
   traefik:
-    image: "traefik:v2.5"
+    build:
+      context: .
+      args:
+        TRAEFIK_IMAGE: traefik:v2.5
+        BLOCKPATH_MODULE: github.com/traefik/plugin-blockpath
+        BLOCKPATH_GIT_BRANCH: master
     container_name: "traefik"
     restart: unless-stopped
     networks:
@@ -40,6 +45,8 @@ services:
     ## Enable Dashboard available only from the docker localhost:8080
     - "--api.dashboard=true"
     - "--api.insecure=true"
+    ## Load local plugins that have been bundled into the traefik image:
+    - "--experimental.localPlugins.blockpath.modulename=github.com/traefik/plugin-blockpath"
     ports:
     - "80:80"
     - "443:443"
