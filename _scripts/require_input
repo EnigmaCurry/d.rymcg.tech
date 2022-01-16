@@ -1,8 +1,0 @@
-#!/bin/bash
-
-## require {PROMPT} {VAR} {DEFAULT}
-## Read variable, set default if blank, error if still blank
-test -z ${3} && dflt="" || dflt=" (${3})"
-read -p "$1$dflt: " $2
-eval $2=${!2:-${3}}
-test -v ${!2} && echo "$2 must not be blank, exiting." && exit
