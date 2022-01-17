@@ -2,12 +2,16 @@
 build:
 	docker-compose build
 
-.PHONY: install # Installs and starts services
+.PHONY: install # Build and starts services
 install:
 	docker-compose up --build -d
 
+.PHONY: start # Start services
+start:
+	docker-compose up -d
+
 .PHONY: up
-up: install
+up: start
 
 .PHONY: stop # Stops services
 stop:
