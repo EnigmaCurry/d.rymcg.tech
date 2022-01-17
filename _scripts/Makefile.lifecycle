@@ -26,8 +26,8 @@ restart:
 
 .PHONY: destroy # Deletes containers and volumes
 destroy:
-	@echo -n "Are you sure you want to destroy the containers AND volumes? [y/N] " && \
-		read ans && if [ $${ans:-'N'} = 'y' ]; then set -x; docker-compose down -v; fi
+	@${BIN}/confirm no "This will destroy all the project containers AND volumes"
+	docker-compose down -v
 
 .PHONY: status # Run docker-compose ps
 status:

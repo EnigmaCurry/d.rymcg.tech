@@ -1,0 +1,18 @@
+#!/bin/bash
+
+default=$1; prompt=$2;
+if [[ $default == "y" || $default == "yes" || $default == "ok" ]]; then
+    dflt="Y/n"
+else
+    dflt="y/N"
+fi
+
+read -p "${prompt}. Proceed? (${dflt}): " answer
+answer=${answer:-${default}}
+
+if [[ ${answer,,} == "y" || ${answer,,} == "yes" || ${answer,,} == "ok" ]]; then
+    exit 0
+else
+    echo "Exiting."
+    exit 1
+fi
