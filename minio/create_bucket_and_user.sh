@@ -43,6 +43,7 @@ cat <<FOF > ${TEMP_POLICY}
 }
 FOF
 
+set -e
 ## Configure endpoint with root credentials:
 mc alias set minio https://${MINIO_TRAEFIK_HOST} ${MINIO_ROOT_USER} ${MINIO_ROOT_PASSWORD}
 ## Generate secret key:
