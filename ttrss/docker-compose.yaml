@@ -11,21 +11,23 @@ services:
       - no-new-privileges:true
     restart: unless-stopped
     environment:
-      - POSTGRES_USER=${TTRSS_DB_USER}
+      - POSTGRES_USER=ttrss
       - POSTGRES_PASSWORD=${TTRSS_DB_PASS}
-      - POSTGRES_DB=${TTRSS_DB_NAME}
+      - POSTGRES_DB=ttrss
     volumes:
       - db:/var/lib/postgresql/data
 
   app:
     build:
-      context:
-        ./app
+      context: https://github.com/EnigmaCurry/fox-ttrss-docker-compose.git#master:app
     security_opt:
       - no-new-privileges:true
     restart: unless-stopped
-    env_file:
-      - .env
+    environment:
+      - TTRSS_DB_USER=ttrss
+      - TTRSS_DB_NAME=ttrss
+      - TTRSS_DB_PASS
+      - TTRSS_SELF_URL_PATH=https://${TTRSS_TRAEFIK_HOST}/tt-rss
     volumes:
       - app:/var/www/html
       - ./config.d:/opt/tt-rss/config.d:ro
@@ -34,13 +36,15 @@ services:
 
   backups:
     build:
-      context:
-        ./app
+      context: https://github.com/EnigmaCurry/fox-ttrss-docker-compose.git#master:app
+    environment:
+      - TTRSS_DB_USER=ttrss
+      - TTRSS_DB_NAME=ttrss
+      - TTRSS_DB_PASS
+      - TTRSS_SELF_URL_PATH=https://${TTRSS_TRAEFIK_HOST}/tt-rss
     security_opt:
       - no-new-privileges:true
     restart: unless-stopped
-    env_file:
-      - .env
     volumes:
       - backups:/backups
       - app:/var/www/html
@@ -50,13 +54,15 @@ services:
 
   updater:
     build:
-      context:
-        ./app
+      context: https://github.com/EnigmaCurry/fox-ttrss-docker-compose.git#master:app
+    environment:
+      - TTRSS_DB_USER=ttrss
+      - TTRSS_DB_NAME=ttrss
+      - TTRSS_DB_PASS
+      - TTRSS_SELF_URL_PATH=https://${TTRSS_TRAEFIK_HOST}/tt-rss
     security_opt:
       - no-new-privileges:true
     restart: unless-stopped
-    env_file:
-      - .env
     volumes:
       - app:/var/www/html
       - ./config.d:/opt/tt-rss/config.d:ro
@@ -65,13 +71,14 @@ services:
     command: /opt/tt-rss/updater.sh
 
   web-nginx:
-    build: ./web-nginx
+    build:
+      context: https://github.com/EnigmaCurry/fox-ttrss-docker-compose.git#master:web-nginx
     security_opt:
       - no-new-privileges:true
     restart: unless-stopped
     networks:
-      - default
       - traefik-proxy
+      - default
     volumes:
       - app:/var/www/html:ro
     depends_on:
