@@ -1,0 +1,27 @@
+version: '3'
+
+networks:
+  traefik-proxy:
+    name: traefik-proxy
+
+services:
+  freshrss-app:
+    image: freshrss/freshrss:latest
+    restart: unless-stopped
+    networks:
+      - traefik-proxy
+    volumes:
+      - data:/var/www/FreshRSS/data
+      - extensions:/var/www/FreshRSS/extensions
+    environment:
+      CRON_MIN: '*/20'
+      TZ: ${TIME_ZONE}
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.freshrss.rule=Host(`${FRESHRSS_TRAEFIK_HOST}`)"
+      - "traefik.http.routers.freshrss.entrypoints=websecure"
+      - "traefik.http.routers.freshrss.tls.certresolver=${ACME_CERT_RESOLVER}"
+
+volumes:
+  data:
+  extensions:

@@ -224,6 +224,7 @@ Install these at your leisure/preference:
 * [Bitwarden](bitwarden_rs)
 * [CryptPad](cryptpad)
 * [ejabberd](ejabberd)
+* [FreshRSS](freshrss)
 * [Invidious](invidious)
 * [Jupyterlab](jupyterlab)
 * [Larynx](larynx)
