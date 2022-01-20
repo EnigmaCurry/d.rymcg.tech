@@ -1,3 +1,0 @@
-.env
-config.d/*php
-docker-compose.override.yml
