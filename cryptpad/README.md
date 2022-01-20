@@ -9,9 +9,9 @@ interface is loaded from a 'sandbox' domain.
 
 Copy `.env-dist` to `.env`, and edit these variables: 
 
- * `CPAD_MAIN_DOMAIN` the external domain name to forward from traefik for
+ * `CRYPTPAD_TRAEFIK_HOST` the external domain name to forward from traefik for
  the main site.
- * `CPAD_SANDBOX_DOMAIN` the external domain name to forward from traefik for
+ * `CRYPTPAD_SANDBOX_DOMAIN` the external domain name to forward from traefik for
  sandboxed content.
  * Leave the default `ADMIN_KEY` as-is, until after you start cryptpad the first
    time.
