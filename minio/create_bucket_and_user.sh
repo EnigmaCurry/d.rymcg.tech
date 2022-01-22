@@ -62,7 +62,7 @@ mc mb minio/${BUCKET}
 set +x
 echo ""
 echo "Bucket: ${BUCKET}"
-echo "Endpoint: https://${MINIO_TRAEFIK_HOST}"
+echo "Endpoint: ${MINIO_TRAEFIK_HOST}"
 echo "Access Key: ${USERNAME}"
 echo "Secret Key: ${SECRETKEY}"
 EOF
