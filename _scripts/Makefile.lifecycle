@@ -27,7 +27,7 @@ restart:
 .PHONY: destroy # Deletes containers and volumes
 destroy:
 	@${BIN}/confirm no "This will destroy all the project containers AND volumes"
-	docker-compose down -v
+	docker-compose down && docker-compose down -v
 
 .PHONY: status # Run docker-compose ps
 status:
