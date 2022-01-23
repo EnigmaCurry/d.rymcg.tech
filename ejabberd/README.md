@@ -17,14 +17,19 @@ with certbot), or you may generate a local certificate authority and self-signed
 certificate as this example will show.
 
 To generate a new a self-signed certificate, use the included
-[cert-manager.sh](../certificate-ca) script to create a Certificate Authority
-and a certificate/key pair for ejabberd's use:
+[cert-manager.sh](../certificate-ca) script to create a Certificate Authority:
 
 ```
-EJABBERD_HOST=xmpp.example.com
-../certificate-ca/cert-manager.sh build
-../certificate-ca/cert-manager.sh create_ca
-../certificate-ca/cert-manager.sh create ${EJABBERD_HOST} 9000 9000
+make -C ../certificate-ca build ca
+```
+
+Create the certificate: 
+
+```
+DOMAIN=xmpp.example.com \
+CHANGE_UID=9000 \
+CHANGE_GID=9000 \
+make -C ../certificate-ca cert
 ```
 
 `cert-manager.sh` will have created a new CA key stored in the

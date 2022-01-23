@@ -28,33 +28,33 @@ help() {
 build() {
     set -x
     cd ${WORKDIR}/ca
-    docker build -t ${CA_NAME} .
+    docker build -t localhost/${CA_NAME} .
 }
 
 create_ca() {
-    (set -x; docker run -e CA_NAME=${CA_NAME} --rm -v ${CA_NAME}:/CA ${CA_NAME} create_ca) && \
+    (set -x; docker run -e CA_NAME=${CA_NAME} --rm -v ${CA_NAME}:/CA localhost/${CA_NAME} create_ca) && \
         echo "CA created. To view the certificate, run: cert-manager.sh get_ca"
 }
 
 get_ca() {
     set -x
-    docker run -e CA_NAME=${CA_NAME} --rm -v ${CA_NAME}:/CA ${CA_NAME} get_ca
+    docker run -e CA_NAME=${CA_NAME} --rm -v ${CA_NAME}:/CA localhost/${CA_NAME} get_ca
 }
 
 create() {
-    [ "$#" -ne 1 ] && [ "$#" -ne 3 ] && \
-        echo "create requires one or three args: the DOMAIN name [and the UID and GID]" && \
-        return 1
-    CERT_SAN=$1
+    CERT_SAN=${DOMAIN:-$1}
+    test -z ${CERT_SAN} && echo "DOMAIN (required) is not set. Exiting." && exit 1
     CERT_VOLUME=${VOLUME_PREFIX}${CERT_SAN}
-    CHANGE_UID=${2:-1000}
-    CHANGE_GID=${3:-1000}
+    CHANGE_UID=${2:-${CHANGE_UID}}
+    CHANGE_UID=${CHANGE_UID:-1000}
+    CHANGE_GID=${2:-${CHANGE_GID}}
+    CHANGE_GID=${CHANGE_GID:-1000}
 
-    ! docker image inspect ${CA_NAME} >/dev/null 2>&1 && echo "No CA docker image exists. Please run: cert-manager.sh build" && exit 1
+    ! docker image inspect localhost/${CA_NAME} >/dev/null 2>&1 && echo "No CA docker image exists. Please run: cert-manager.sh build" && exit 1
     ! docker volume inspect ${CA_NAME} >/dev/null 2>&1 && echo "No CA volume exists. Please run: cert-manager.sh create_ca" && exit 1
 
     if ! docker volume inspect ${CERT_VOLUME} > /dev/null 2>&1; then 
-        (set -x; docker run  -e CA_NAME=${CA_NAME} --rm -v ${CA_NAME}:/CA -v ${CERT_VOLUME}:/cert ${CA_NAME} create ${CERT_SAN} ${CHANGE_UID} ${CHANGE_GID})
+        (set -x; docker run  -e CA_NAME=${CA_NAME} --rm -v ${CA_NAME}:/CA -v ${CERT_VOLUME}:/cert localhost/${CA_NAME} create ${CERT_SAN} ${CHANGE_UID} ${CHANGE_GID})
         [ $? == 0 ] && \
             echo "Created new certificates volume '${CERT_VOLUME}'" && \
             echo "To view this certificate chain, run: cert-manager.sh get ${CERT_SAN}" && \
@@ -68,10 +68,8 @@ create() {
 }
 
 get() {
-    [ "$#" -ne 1 ] && \
-        echo "get requires one arg: the domain name (or SAN [or CN])" && \
-        return 1
-    CERT_SAN=$1
+    CERT_SAN=${DOMAIN:-$1}
+    test -z ${CERT_SAN} && echo "DOMAIN (required) is not set. Exiting." && exit 1
     CERT_VOLUME=${VOLUME_PREFIX}${CERT_SAN}
     if docker volume inspect ${CERT_VOLUME} > /dev/null 2>&1; then
         docker run -e CA_NAME=${CA_NAME} --rm -v ${CERT_VOLUME}:/cert debian:stable-slim cat /cert/fullchain.pem
@@ -84,13 +82,11 @@ get() {
 }
 
 view() {
-    [ "$#" -ne 1 ] && \
-        echo "view requires one arg: the domain name (or SAN [or CN])" && \
-        return 1
-    CERT_SAN=$1
+    CERT_SAN=${DOMAIN:-$1}
+    test -z ${CERT_SAN} && echo "DOMAIN (required) is not set. Exiting." && exit 1
     CERT_VOLUME=${VOLUME_PREFIX}${CERT_SAN}
     if docker volume inspect ${CERT_VOLUME} > /dev/null 2>&1; then
-        docker run  -e CA_NAME=${CA_NAME} --rm -v ${CA_NAME}:/CA -v ${CERT_VOLUME}:/cert ${CA_NAME} view ${CERT_SAN}
+        docker run  -e CA_NAME=${CA_NAME} --rm -v ${CA_NAME}:/CA -v ${CERT_VOLUME}:/cert localhost/${CA_NAME} view ${CERT_SAN}
     else
         echo "No certificate volume exists named '${CERT_VOLUME}'."
         echo "To create certificates, run: cert-manager.sh create ${CERT_SAN}"
@@ -100,10 +96,8 @@ view() {
 }
 
 delete() {
-    [ "$#" -ne 1 ] && \
-        echo "delete requires one arg: the domain name (or SAN [or CN])" && \
-        return 1
-    CERT_SAN=$1
+    CERT_SAN=${DOMAIN:-$1}
+    test -z ${CERT_SAN} && echo "DOMAIN (required) is not set. Exiting." && exit 1
     CERT_VOLUME=${VOLUME_PREFIX}${CERT_SAN}
     if docker volume inspect ${CERT_VOLUME} > /dev/null 2>&1; then
         (set -x; docker volume rm ${CERT_VOLUME} && echo "Deleted volume ${CERT_VOLUME}")
@@ -123,7 +117,7 @@ download() {
         return 1
     DOMAIN=$1
     PORT=${2:-443}
-    docker run -e CA_NAME=${CA_NAME} --rm -v ${CA_NAME}:/CA ${CA_NAME} download ${DOMAIN} ${PORT}
+    docker run -e CA_NAME=${CA_NAME} --rm -v ${CA_NAME}:/CA localhost/${CA_NAME} download ${DOMAIN} ${PORT}
 }
 
 debug() {
@@ -132,7 +126,7 @@ debug() {
         return 1
     DOMAIN=$1
     PORT=${2:-443}
-    docker run -e CA_NAME=${CA_NAME} --rm -v ${CA_NAME}:/CA ${CA_NAME} debug ${DOMAIN} ${PORT}
+    docker run -e CA_NAME=${CA_NAME} --rm -v ${CA_NAME}:/CA localhost/${CA_NAME} debug ${DOMAIN} ${PORT}
 }
 
 [[ $# == 0 ]] && help && exit 0
