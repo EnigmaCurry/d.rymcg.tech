@@ -1,0 +1,24 @@
+#!/bin/bash
+
+## Asks questions to enter values for environment vars, then runs a program
+## env_ask VAR="this the prompt (eg. this is the default)" program_to_run.sh
+
+for var in "$@"; do
+    parts=(${var//=/ }); var=${parts[0]}; val=${parts[@]:1};
+    if [[ ${#parts[@]} == 1 ]]; then break; fi
+    shift
+    escaped_val=$(printf '%s\n' "${val}" | sed -e 's/[\/&]/\\&/g')
+    dflt=$(echo ${escaped_val} | grep -oP "\(eg. \K[^)]*")
+    if [[ -z ${!var} ]]; then
+        read -e -p "${escaped_val}: " -i "${dflt}" answer
+        export ${var}="${answer}"
+    else
+        export ${var}=${!var}
+    fi
+    echo ${var}="${!var}"
+done
+
+CMD="$@"
+set -e
+$(dirname ${BASH_SOURCE})/confirm yes "Going to run: \`${var_string} ${CMD}\` "
+$@
