@@ -1,25 +1,29 @@
 # Nextcloud
 
 [Nextcloud](https://nextcloud.com/) is an on-premises content collaboration
-platform.
+platform. This config uses external S3 cloud storage for the `Primary Storage`
+of user files. This config maintains a backup of the database and application
+config (but not including `Primary Storage`) to a secondary S3 bucket for
+backups.
+
+*The `Primary Storage` S3 bucket (user files) is NOT backed up by this config!*
+
+See the Nextcloud documentation [about the implications of using S3 for Primary
+Storage](https://docs.nextcloud.com/server/latest/admin_manual/configuration_files/primary_storage.html#configuring-object-storage-as-primary-storage).
 
 ## Config
-
-This configuration is designed to use a local PostgreSQL database and an S3
-bucket as `Primary Storage`. See the Nextcloud documentation [about the
-implications of using S3 for Primary
-Storage](https://docs.nextcloud.com/server/latest/admin_manual/configuration_files/primary_storage.html#configuring-object-storage-as-primary-storage).
 
 You will need an external S3 storage provider. You can use the self-hosted
 [minio](../minio) config within this project, or you can use a third party S3
 vendor.
 
-You will need to prepare two S3 buckets and credentials:
+You will need to prepare **two** S3 buckets and credentials:
 
  * One bucket for `Primary Storage`, all of the user created files (`OBJECTSTORE_S3_BUCKET`).
  * Another bucket for the backups. (`BACKUP_S3_BUCKET`)
 
-Copy `.env-dist` to `.env`, and edit variables accordingly. 
+Run `make config` to run the configuration wizard, or copy `.env-dist` to
+`.env`, and edit variables accordingly.
 
  * `NEXTCLOUD_TRAEFIK_HOST` the external domain name to forward from traefik.
  * `DATABASE_PASSWORD` you must choose a secure password for the database.
@@ -32,37 +36,79 @@ Copy `.env-dist` to `.env`, and edit variables accordingly.
  * `BACKUP_S3_SECRET` the S3 secret key
  * `BACKUP_S3_HOST` the S3 endpoint domain name
 
-To start Nextcloud, go into the nextcloud directory and run `docker-compose up -d`.
+To start Nextcloud, go into the nextcloud directory and run `make install` or
+`docker-compose up -d`.
 
-Immediately visit the configured domain name in your web browser to create the
-administrator accout. It is recommended to **uncheck** the checkbox called
-`Install recommended apps`. Its a heavy install, and you can just install the
-ones you need later.
+Immediately visit the configured domain name in your web browser (run `make
+open`) to create the administrator accout. It is recommended to **uncheck** the
+checkbox called `Install recommended apps`. It's a heavy install with this
+option, and you can install apps later anyway.
 
 Finish the installation, and you'll end up on the dashboard screen.
 
 ## Backups
 
-Nextcloud stores data in *three* places:
+Nextcloud stores data in *three* places, only two of which are backed up by this
+configuration:
 
- * Accounts and config in the PostgreSQL `nextcloud_postgres` Docker volume.
- * Various config files in the `nextcloud_data` Docker volume (mounted as
-   `/var/www/html` in the `nextcloud_app` container).
- * User files (uploads) in S3 bucket [Primary
-   Storage](https://docs.nextcloud.com/server/latest/admin_manual/configuration_files/primary_storage.html#configuring-object-storage-as-primary-storage).
+ * The PostgreSQL database is stored in the `nextcloud_postgres` Docker volume.
+   This config creates the `postgres_backup` container to automatically backup
+   the postgresql database (nightly) to S3.
+ * The application files are stored in the `nextcloud_data` Docker volume
+   (mounted as `/var/www/html` in the `nextcloud_app` container). This config
+   creates the `app_backup` container which backs up the server configuration
+   (nightly) to S3. 
+ * The [Primary
+   Storage](https://docs.nextcloud.com/server/latest/admin_manual/configuration_files/primary_storage.html#configuring-object-storage-as-primary-storage)
+   for user created files (and uploads) in S3 bucket . ***This config does not
+   create any backup for the Primary Storage**. You may want to make a backup of
+   this bucket by some other means, but this is out of the scope for this
+   project. (TODO: make separate project to replicate an S3 bucket to another S3
+   bucket [on a different endpoint]**
 
-You need backups of all three.
+The database holds all of the metadata for the `Primary Storage`. So even if you
+have a backup of the user files, they will not be readable if you don't also
+have a backup of the database!
 
-The database holds all the metadata for the `Primary Storage`. So even if you
-have the backup of the user files, it will not be readable if you don't also
-have the database!
+**Be sure to save a copy your `.env` file someplace safe, including the S3
+bucket name, endpoint, credentials, and encryption passphrase. You will need all
+this information to restore from backup!**
 
-This config automatically starts two backup containers:
+## Make a backup now
 
- * `postgres_backup` - this backs up the postgresql database (nightly) to S3.
- * `app_backup` - this backs up the server configuration (nightly) to S3.
- 
-There is no secondary backup of the `Primary Storage`, since it is configured
-for storage on S3. You may want to back this up to a secondary bucket, but this
-is left in your hands. (TODO: make separate project to replicate S3 buckets on
-separate endpoints)
+The cron jobs will automatically run backups on schedule (`@daily` by default,
+which is at midnight.) You can make a backup anytime (immediately) by running
+these `Makefile` targets:
+
+```
+make backup_postgres
+make backup_app
+```
+
+## Restore from backup
+
+To completely restore Nextcloud from backup, you will need to first restore your
+backup copy of the `.env` file, including your configured S3 bucket name,
+endpoint, credentials, and encryption passphrase.
+
+Bring up nextcloud as normal:
+
+```
+docker-compose up -d
+```
+
+**Do not create the admin account and do not finish the installer.***
+
+Restore the postgresql database:
+
+```
+make restore_postgres
+```
+
+Restore the application config:
+
+```
+make restore_app
+```
+
+Now open the app in your web browser and login, everything should be restored.
