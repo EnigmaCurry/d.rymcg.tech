@@ -64,12 +64,6 @@ services:
       - POSTGRES_HOST=postgres
       - POSTGRES_PASSWORD=${DATABASE_PASSWORD}
       - REDIS_HOST=redis
-      # include the following OBJECTSTORE_S3 variables if you want
-      # to install nextcloud using S3 as the *primary* storage.
-      # (if you simply want to use S3 storage for documents/files 
-      # that you access *within* nextcloud, comment out the following
-      # OBJECTSTORE_S3 variables and use nextcloud's External Storage
-      # Support app)
       - OBJECTSTORE_S3_BUCKET
       - OBJECTSTORE_S3_SSL=true
       - OBJECTSTORE_S3_USEPATH_STYLE=true
@@ -91,15 +85,15 @@ services:
       #- "traefik.frontend.redirect.regex='https://(.*)/.well-known/(card|cal)dav'"
       #- "traefik.frontend.redirect.replacement='https://$$1/remote.php/dav/'"
 
-  app_backup:
-    hostname: app_backup
+  data_backup:
+    hostname: data_backup
     restart: unless-stopped
     build:
       context: ${BACKUP_APP_GIT_SRC}
     volumes:
       - data:/data
     environment:
-      - RESTIC_REPOSITORY=s3:https://${BACKUP_S3_HOST}/${BACKUP_S3_BUCKET}/${NEXTCLOUD_TRAEFIK_HOST}/app
+      - RESTIC_REPOSITORY=s3:https://${BACKUP_S3_HOST}/${BACKUP_S3_BUCKET}/${NEXTCLOUD_TRAEFIK_HOST}/data
       - RESTIC_PASSWORD=${BACKUP_ENCRYPTION_PASSWORD}
       - BACKUP_CRON=${APP_BACKUP_SCHEDULE}
       - AWS_ACCESS_KEY_ID=${BACKUP_S3_KEY}
