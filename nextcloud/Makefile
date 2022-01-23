@@ -15,25 +15,25 @@ config:
 	@${BIN}/reconfigure_ask BACKUP_S3_SECRET "Enter the Backup S3 Secret Key"
 	@${BIN}/reconfigure BACKUP_ENCRYPTION_PASSWORD=$(shell openssl rand -hex 45)
 
-.PHONY: backup_postgres # Backup the database to S3 immediately
-backup_postgres:
+.PHONY: backup_db # Backup the database to S3 immediately
+backup_db:
 	@${BIN}/confirm yes "This will backup the database to S3 right now"
 	docker-compose exec postgres_backup /bin/sh /backup.sh
 
-.PHONY: backup_app # Backup the nextcloud configuration to S3 immediately
-backup_app:
-	@${BIN}/confirm yes "This will backup the nextcloud configuration to S3 right now"
-	docker-compose exec app_backup /bin/sh /bin/backup
+.PHONY: backup_data # Backup the nextcloud data to S3 immediately
+backup_data:
+	@${BIN}/confirm yes "This will backup the nextcloud data to S3 right now"
+	docker-compose exec data_backup /bin/sh /bin/backup
 
-.PHONY: restore_postgres # Restore database from backup
-restore_postgres:
+.PHONY: backup # Backup data and database
+backup: backup_data backup_db
+
+.PHONY: restore_db # Restore database from backup
+restore_db:
 	@${BIN}/confirm no "This will restore the database from backup"
 	docker-compose exec postgres_backup /bin/sh /restore.sh
-	@echo "Check the restore logs to monitor progress: docker-compose logs postgres_restore"
 
-.PHONY: restore_app # Restore app config from backup
-restore_app:
-	@${BIN}/confirm no "This will restore the nextcloud configuration from backup"
-	docker-compose exec app_backup /usr/bin/restic restore -t / latest
-	@echo "Check the restore logs to monitor progress: docker-compose logs app_restore"
-
+.PHONY: restore_data # Restore /var/www/html from backup
+restore_data:
+	@${BIN}/confirm no "This will restore the nextcloud data from backup"
+	docker-compose exec data_backup /usr/bin/restic restore -t / latest
