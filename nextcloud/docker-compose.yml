@@ -21,12 +21,13 @@ services:
 
   postgres_backup:
     build:
-      context: https://github.com/enigmacurry/postgresql-backup-s3.git#master
+      context: ${BACKUP_POSTGRES_GIT_SRC}
+    restart: unless-stopped
     depends_on:
       - postgres
     environment:
       - POSTGRES_HOST=postgres
-      - POSTGRES_DATABASE=nextcloud
+      - POSTGRES_DATABASE=all
       - POSTGRES_USER=nextcloud
       - POSTGRES_PASSWORD=${DATABASE_PASSWORD}
       - S3_ACCESS_KEY_ID=${BACKUP_S3_KEY}
@@ -40,6 +41,7 @@ services:
 
   redis:
     image: redis:alpine
+    restart: unless-stopped
     security_opt:
       - no-new-privileges:true
     container_name: "nextcloud_redis"
@@ -91,8 +93,9 @@ services:
 
   app_backup:
     hostname: app_backup
+    restart: unless-stopped
     build:
-      context: https://github.com/lobaro/restic-backup-docker.git#1.3.1-0.9.6
+      context: ${BACKUP_APP_GIT_SRC}
     volumes:
       - data:/data
     environment:
@@ -102,6 +105,7 @@ services:
       - AWS_ACCESS_KEY_ID=${BACKUP_S3_KEY}
       - AWS_SECRET_ACCESS_KEY=${BACKUP_S3_SECRET}
       - RESTIC_FORGET_ARGS=--prune --keep-daily 7 --keep-weekly 4 --keep-monthly 6 --keep-yearly 3
+
   cron:
     image: nextcloud:apache
     security_opt:
