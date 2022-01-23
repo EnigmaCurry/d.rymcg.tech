@@ -105,9 +105,10 @@ be restored.
 
 ## Enable Object Storage
 
-By default, all data is stored in `/var/www/html/data`. Object Storage allows
-for the Primary Storage (user files) to be stored externally in an S3 bucket.
-This is optional, and is disabled in the default `.env-dist`.
+By default, all data is stored in the `nextcloud_data` docker volume, mounted as
+`/var/www/html/data`. Object Storage allows for the Primary Storage (user files)
+to be stored externally in an S3 bucket. This is optional, and is disabled in
+the default `.env-dist`.
 
 See the Nextcloud documentation [about the implications of using S3 for Primary
 Storage](https://docs.nextcloud.com/server/latest/admin_manual/configuration_files/primary_storage.html#configuring-object-storage-as-primary-storage).
