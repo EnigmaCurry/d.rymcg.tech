@@ -14,6 +14,7 @@ build:
 
 .PHONY: clock # Run the clock
 clock:
+	@${DOCKER} inspect ${IMAGE} 2>&1 >/dev/null || make build
 	@echo "# Run this command to start the clock:"
 	@echo "# Add --help to see additional options:"
 	${DOCKER} run --rm -it ${IMAGE} tty-clock ${CLOCK_ARGS}
