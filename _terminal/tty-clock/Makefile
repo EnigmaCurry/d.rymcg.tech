@@ -6,11 +6,12 @@ include ../../_scripts/Makefile.globals
 DOCKER ?= docker
 IMAGE ?= localhost/tty-clock
 GIT_SRC ?= https://github.com/EnigmaCurry/tty-clock.git\#master
-CLOCK_ARGS ?= -u -c -s -C 3 -b
+TIMEZONE ?= UTC
+CLOCK_ARGS ?= -c -s -C 3 -b
 
 .PHONY: build # Build container image
 build:
-	${DOCKER} build ${GIT_SRC} -t ${IMAGE}
+	${DOCKER} build --build-arg=TIMEZONE=${TIMEZONE} -t ${IMAGE} ${GIT_SRC}
 
 .PHONY: clock # Run the clock
 clock:
