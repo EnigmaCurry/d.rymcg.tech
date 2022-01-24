@@ -45,11 +45,11 @@ Finding the instructions for creating these `A` records is left up to the user,
 since DNS platforms vary greatly, but see [DIGITALOCEAN.md](DIGITALOCEAN.md) for
 an example.
 
-The recommended naming convention is to use a subdomain off of your main domain,
-and create sub-sub-domains for each project. This will create domain names that
-look like `whoami.d.example.com`, where `whoami` is the project name, and `d` is
-a unique name for the overall subdomain representing your docker server (`d` is
-for `docker`, but you can make this whatever you want).
+The domain naming convention recommended to use is a sub-domain off of your main
+domain, and create sub-sub-domains for each project. This will create domain
+names that look like `whoami.d.example.com`, where `whoami` is the project name,
+and `d` is a unique name for the overall sub-domain representing your docker
+server (`d` is for `docker`, but you can make this whatever you want).
 
 By dedicating a sub-domain for all your projects, this allows you to create a
 DNS record for the wildcard: `*.d.example.com`, which will automatically direct
@@ -57,8 +57,8 @@ all sub-sub-domain requests to your docker server.
 
 Note that you *could* put a wildcard record on your root domain, ie.
 `*.example.com`, however if you did this you would not be able to use the domain
-for a second instance, nor for anything else, but if are willing to dedicate the
-domain to this single instance, go ahead.
+for a second instance, nor for anything else, but if you're willing to dedicate
+the entire domain to this single instance, go ahead.
 
 If you don't want to create a wildcard record, you can just create several
 normal `A` (or `AAAA`) records for each of the domains your apps will use, but
@@ -218,7 +218,7 @@ If you want a git host + OAuth identity server, install these next:
 * [Gitea](gitea)
 * [traefik-forward-auth](traefik-forward-auth)
 
-Install these at your leisure/preference:
+Install these services at your leisure/preference:
 
 * [Baikal](baikal)
 * [Bitwarden](bitwarden_rs)
@@ -246,6 +246,11 @@ Bespoke things:
 
 * [traefik-htpasswd](traefik-htpasswd)
 * [experimental ad-hoc certifcate CA](certificate-ca)
+
+Extra stuff:
+
+* [_terminal](_terminal) contains various terminal programs that don't start
+  network services, but run interactively in your terminal.
 
 ## Command line interaction
 
