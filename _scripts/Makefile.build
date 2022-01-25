@@ -1,0 +1,3 @@
+.PHONY: build # Build container images
+build:
+	docker-compose build

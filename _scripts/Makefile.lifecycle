@@ -1,10 +1,5 @@
-.PHONY: build # Build container images
-build:
-	docker-compose build
-
 .PHONY: install # Build and starts services
-install:
-	docker-compose up --build -d
+install: build start
 
 .PHONY: start # Start services
 start:
