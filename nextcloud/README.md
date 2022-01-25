@@ -69,8 +69,8 @@ Look inside the S3 bucket and you'll find a directory tree that looks like this:
    * postgres/
      * (contents is encrypted postgresql dump files)
 
-(With this structure you can use re-use this bucket for backups of other
-hostnames too.)
+(With this structure you can re-use this bucket for backups of other hostnames
+too.)
 
 ## Restore from backup
 
@@ -84,7 +84,7 @@ Bring up nextcloud as normal:
 make install
 ```
 
-**Do not create the admin account and do not finish with the installer.***
+**Do not create the admin account and do not finish with the installer.**
 
 Restore the PostgreSQL database:
 
@@ -92,10 +92,16 @@ Restore the PostgreSQL database:
 make restore_db
 ```
 
-Restore the application config and data:
+Restore the application config and data, into maintenance mode:
 
 ```
 make restore_data
+```
+
+When both are restored successfully, disable maintenance mode :
+
+```
+make disable_maintenance
 ```
 
 Now open the app in your web browser (`make open`) and login, everything should

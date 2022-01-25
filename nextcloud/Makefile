@@ -42,3 +42,12 @@ restore_db:
 restore_data:
 	@${BIN}/confirm no "This will restore the nextcloud data from backup"
 	docker-compose exec data_backup /usr/bin/restic restore -t / latest
+
+.PHONY: enable_maintenance # Enable maintenance mode
+enable_maintenance:
+	docker-compose exec data_backup /hooks/maintenance.sh on
+
+.PHONY: disable_maintenance # Disable maintenance mode
+disable_maintenance:
+	docker-compose exec data_backup /hooks/maintenance.sh off
+
