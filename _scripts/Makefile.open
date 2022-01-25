@@ -1,0 +1,3 @@
+.PHONY: open # Open the web-browser to the service URL
+open:
+	@grep -m 1 -oP "TRAEFIK_HOST=\K.*" .env | xargs -iXX sh -c "set -x; xdg-open https://XX"

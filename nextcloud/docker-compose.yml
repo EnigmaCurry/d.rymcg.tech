@@ -89,10 +89,11 @@ services:
     hostname: data_backup
     restart: unless-stopped
     build:
-      context: ${BACKUP_APP_GIT_SRC}
+      context: data_backup
     volumes:
       - data:/data
     environment:
+      ## See https://github.com/lobaro/restic-backup-docker#environment-variables
       - RESTIC_REPOSITORY=s3:https://${BACKUP_S3_HOST}/${BACKUP_S3_BUCKET}/${NEXTCLOUD_TRAEFIK_HOST}/data
       - RESTIC_PASSWORD=${BACKUP_ENCRYPTION_PASSWORD}
       - BACKUP_CRON=${APP_BACKUP_SCHEDULE}

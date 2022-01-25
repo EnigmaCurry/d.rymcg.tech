@@ -20,8 +20,7 @@ Run `make config` to run the configuration wizard, or copy `.env-dist` to
  * `BACKUP_S3_SECRET` the S3 secret key
  * `BACKUP_S3_HOST` the S3 endpoint domain name
 
-To start Nextcloud, go into the nextcloud directory and run `make install` or
-`docker-compose up -d`.
+To start Nextcloud, go into the nextcloud directory and run `make install`.
 
 Immediately visit the configured domain name in your web browser (run `make
 open`) and create the administrator accout. It is recommended to **uncheck** the

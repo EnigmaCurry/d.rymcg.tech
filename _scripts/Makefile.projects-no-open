@@ -1,5 +1,5 @@
 include ../_scripts/Makefile.help
+include ../_scripts/Makefile.build
 include ../_scripts/Makefile.globals
 include ../_scripts/Makefile.lifecycle
 include ../.env.makefile
-

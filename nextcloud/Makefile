@@ -1,5 +1,5 @@
 ROOT_DIR = ..
-include ../_scripts/Makefile.projects
+include ../_scripts/Makefile.projects-custom-build
 
 .PHONY: config # Configure .env file
 config:
@@ -14,6 +14,11 @@ config:
 	@${BIN}/reconfigure_ask BACKUP_S3_KEY "Enter the Backup S3 Access Key"
 	@${BIN}/reconfigure_ask BACKUP_S3_SECRET "Enter the Backup S3 Secret Key"
 	@${BIN}/reconfigure BACKUP_ENCRYPTION_PASSWORD=$(shell openssl rand -hex 45)
+
+.PHONY: build # Build the container images
+build:
+	docker build -t localhost/nextcloud-restic-backup $(shell ${BIN}/dotenv get BACKUP_APP_GIT_SRC)
+	docker-compose build
 
 .PHONY: backup_db # Backup the database to S3 immediately
 backup_db:
