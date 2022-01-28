@@ -4,7 +4,8 @@ include ../../_scripts/Makefile.globals
 
 # Switch to podman by setting DOCKER=podman environment variable
 DOCKER ?= docker
-IMAGE ?= docker.io/archlinux
+IMAGE_PREFIX ?= localhost/shell-container
+IMAGE ?= ${IMAGE_PREFIX}/arch
 NAME ?= arch
 NETWORK ?= shell-lan
 LABEL = shell-linux-container
@@ -23,7 +24,11 @@ list:
 
 .PHONY: start # Start the shell container (named ${NAME})
 start:
-	${DOCKER} start ${NAME} 2>/dev/null || ${DOCKER} run --name ${NAME} --hostname ${NAME} --network ${NETWORK} -v ${SHARED_VOLUME}:${SHARED_MOUNT} -d --label="${LABEL}" ${IMAGE} /bin/sh -c "while true; do sleep 10; done"
+	${DOCKER} start ${NAME} 2>/dev/null || ${DOCKER} run -d --name ${NAME} --hostname ${NAME} --network ${NETWORK} -v ${SHARED_VOLUME}:${SHARED_MOUNT} --label="${LABEL}" ${IMAGE} /bin/sh -c "while true; do sleep 10; done"
+
+.PHONY: start-systemd # Start the shell container in systemd mode (requires sysbox)
+start-systemd:
+	${DOCKER} start ${NAME} 2>/dev/null || ${DOCKER} run -d --name ${NAME} --hostname ${NAME} --network ${NETWORK} -v ${SHARED_VOLUME}:${SHARED_MOUNT} --label="${LABEL}" --user=root --runtime=sysbox-runc ${IMAGE}
 
 .PHONY: stop # Stop the shell container (named ${NAME})
 stop:
@@ -35,7 +40,7 @@ stop-all:
 
 .PHONY: shell # Connect to the shell container (named ${NAME})
 shell: start
-	${DOCKER} exec -it ${NAME} /bin/sh -c "if test -f /bin/bash; then /bin/bash; else /bin/sh; fi"
+	${DOCKER} exec -it --user=${NAME} ${NAME} /bin/sh -c "if test -f /bin/bash; then /bin/bash; else /bin/sh; fi"
 
 .PHONY: destroy # Destroy the shell container (named ${NAME})
 destroy:
@@ -62,7 +67,7 @@ alpine:
 
 .PHONY: arch # Create the Arch singleton
 arch:
-	IMAGE=docker.io/archlinux NAME=arch make shell
+	IMAGE=${IMAGE_PREFIX}/arch NAME=arch make shell
 
 .PHONY: busybox # Create the Busybox singleton
 busybox:
@@ -83,4 +88,8 @@ fedora:
 .PHONY: ubuntu # Create the Ubuntu singleton
 ubuntu:
 	IMAGE=docker.io/ubuntu:20.04 NAME=ubuntu make shell
+
+.PHONY: build # Build container images
+build:
+	ls images/Dockerfile.* | grep -o -P 'images/Dockerfile\.\K.*' | xargs -iXX ${DOCKER} build -t ${IMAGE_PREFIX}/XX --build-arg=USERNAME=${NAME} -f images/Dockerfile.XX .
 
