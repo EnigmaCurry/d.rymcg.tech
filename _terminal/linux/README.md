@@ -7,16 +7,14 @@ network and has a common volume for easily sharing files between containers
 
 You can kind of treat these as disposable Virtual Machines.. kind of. This is
 intended for interactive terminal programs, not for network service daemons, but
-you can start `screen` or `tmux` sessions to supervise any long running process,
-and they will run until the container is stopped. (Sorry, systemd does not work!
-It does actually, but it requires the `SYS_ADMIN` capability to do it, and so
-I've chosen to leave systemd disabled for security purposes.) You can stop and
-restart these containers, and they will retain all of their data (and installed
-packages) between restarts. If you remove the containers (`make destroy` or
-`docker rm ...`) then all data will be lost. A container that is in a stopped state
-is vulnerable to container pruning (ie. you may wish to reclaim storage space on
-your Docker server with `docker container prune`, but this will delete all
-stopped containers and all of their data.)
+you can start `screen` or `tmux` sessions (or `systemd`) to supervise any long
+running process, and they will run until the container is stopped. You can stop
+and restart these containers, and they will retain all of their data (and
+installed packages) between restarts. If you remove the containers (`make
+destroy` or `docker rm ...`) then all data will be lost. A container that is in
+a stopped state is vulnerable to container pruning (ie. you may wish to reclaim
+storage space on your Docker server with `docker container prune`, but this will
+delete all stopped containers and all of their data.)
 
 ## Setup
 
@@ -138,6 +136,7 @@ listed in parentheses):
  * `SHARED_VOLUME` (`shell-shared`) the name of the volume to share between containers.
  * `SHARED_MOUNT` (`/shared`) the mount point for the shared volume.
 
+
 ## Examples
 
 ### Arch Linux
@@ -248,3 +247,22 @@ or
 ## Create the Python singleton named 'python'
 make python
 ```
+
+## Systemd
+
+You can start systemd as PID 1 inside an unprivileged container using
+[sysbox](https://github.com/nestybox/sysbox). You must [install sysbox natively
+on your docker
+host](https://github.com/nestybox/sysbox/blob/master/docs/user-guide/install-package.md)
+(sysbox is an alternative to the normal docker runtime `runc`, and it creates
+containers that behave much more like virtual machines. Docker uses alternative
+runtimes with the `--runtime` argument).
+
+Now you can start containers with systemd enabled:
+
+```
+make start-systemd
+```
+
+You must run `make start-systemd` (and not `make start`) *before* running `make
+shell`, otherwise it will be started without systemd.
