@@ -1,0 +1,34 @@
+version: "3.3"
+
+volumes:
+  certs:
+  runner:
+
+
+services:
+  docker:
+    ## Use sysbox runc implementation, to avoid running privileged container:
+    runtime: sysbox-runc
+    build:
+      context: docker
+    security_opt:
+      - no-new-privileges:true
+    restart: unless-stopped
+    environment:
+      - DOCKER_TLS_CERTDIR=/certs
+    volumes:
+      - certs:/certs
+
+  runner:
+    build:
+      context: .
+    environment:
+      - REPOSITORY
+      - RUNNER_TOKEN
+    hostname: ${RUNNER_NAME}
+    security_opt:
+      - no-new-privileges:true
+    volumes:
+      - runner:/actions-runner
+      - certs:/certs
+    restart: unless-stopped
