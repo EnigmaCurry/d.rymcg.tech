@@ -135,124 +135,12 @@ listed in parentheses):
  * `NETWORK` (`shell-lan`) the name of the network to attach to.
  * `SHARED_VOLUME` (`shell-shared`) the name of the volume to share between containers.
  * `SHARED_MOUNT` (`/shared`) the mount point for the shared volume.
-
-
-## Examples
-
-### Arch Linux
-
-```
-export IMAGE=docker.io/archlinux 
-export NAME=my_arch 
-make shell
-```
-
-or
-
-```
-## Create the archlinux singleton named 'arch'
-make arch
-```
-
-
-### Alpine Linux
-
-```
-export IMAGE=docker.io/alpine
-export NAME=my_alpine
-make shell
-```
-
-or
-
-```
-## Create the Alpine singleton named 'alpine'
-make alpine
-```
-
-### Debian
-
-```
-export IMAGE=docker.io/debian:11-slim
-export NAME=my_debian
-make shell
-```
-
-or
-
-```
-## Create the Debian singleton named 'debian'
-make debian
-```
-
-
-### Ubuntu
-
-```
-export IMAGE=docker.io/ubuntu:21.04
-export NAME=my_ubuntu
-make shell
-```
-
-or
-
-```
-## Create the Ubuntu singleton named 'ubuntu'
-make ubuntu
-```
-
-
-### Busybox
-
-```
-export IMAGE=docker.io/busybox
-export NAME=my_busybox
-make shell
-```
-
-or
-
-```
-## Create the Busybox singleton named 'busybox'
-make busybox
-```
-
-### Fedora
-
-```
-export IMAGE=docker.io/fedora
-export NAME=my_fedora
-make shell
-```
-
-or
-
-```
-## Create the Fedora singleton named 'fedora'
-make fedora
-```
-
-
-### Python
-
-```
-export IMAGE=docker.io/python:3
-export NAME=my_python
-make shell
-```
-
-or
-
-```
-## Create the Python singleton named 'python'
-make python
-```
+ * `SYSTEMD` (`false`) if `true` boot container with systemd as PID 1.
 
 ## Systemd
 
-You can start systemd as PID 1 inside an unprivileged container using
-[sysbox](https://github.com/nestybox/sysbox). You must [install sysbox natively
-on your docker
+You can start systemd as PID 1 inside an unprivileged container. Podman supports
+this natively, but for Docker you must [install sysbox natively on your docker
 host](https://github.com/nestybox/sysbox/blob/master/docs/user-guide/install-package.md)
 (sysbox is an alternative to the normal docker runtime `runc`, and it creates
 containers that behave much more like virtual machines. Docker uses alternative
@@ -261,8 +149,21 @@ runtimes with the `--runtime` argument).
 Now you can start containers with systemd enabled:
 
 ```
-make start-systemd
+export SYSTEMD=true
+# SYSBOX required for Docker, but not for Podman:
+export SYSBOX=true 
+
+make shell
 ```
 
-You must run `make start-systemd` (and not `make start`) *before* running `make
-shell`, otherwise it will be started without systemd.
+## Bash alias
+
+For maximum ergonomics, create these or similar BASH aliases for all the shell
+containers you want to create (put these in ~/.bashrc or another file that is
+sourced in your shell):
+
+
+```
+SHELL_MAKEFILE=${HOME}/git/vendor/enigmacurry/d.rymcg.tech/_terminal/linux/
+alias arch='TEMPLATE=arch NAME=arch make -f ${SHELL_MAKEFILE}'
+```

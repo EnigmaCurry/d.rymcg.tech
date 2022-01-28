@@ -4,13 +4,17 @@ include ../../_scripts/Makefile.globals
 
 # Switch to podman by setting DOCKER=podman environment variable
 DOCKER ?= docker
+TEMPLATE ?= arch
+SYSTEMD ?= false
+SYSBOX ?= false
 IMAGE_PREFIX ?= localhost/shell-container
-IMAGE ?= ${IMAGE_PREFIX}/arch
-NAME ?= arch
+NAME ?= ${TEMPLATE}
+IMAGE ?= ${IMAGE_PREFIX}/${TEMPLATE}
 NETWORK ?= shell-lan
 LABEL = shell-linux-container
 SHARED_VOLUME ?= shell-shared
 SHARED_MOUNT ?= /shared
+USERNAME ?= root
 
 ALL_CONTAINERS = $(shell ${DOCKER} ps -a --filter "label=${LABEL}" -q)
 
@@ -24,11 +28,15 @@ list:
 
 .PHONY: start # Start the shell container (named ${NAME})
 start:
-	${DOCKER} start ${NAME} 2>/dev/null || ${DOCKER} run -d --name ${NAME} --hostname ${NAME} --network ${NETWORK} -v ${SHARED_VOLUME}:${SHARED_MOUNT} --label="${LABEL}" ${IMAGE} /bin/sh -c "while true; do sleep 10; done"
+	@if [[ ${SYSTEMD} == true ]]; then make start-systemd | grep -v -E "make\[1\]\: (Entering|Leaving) directory"; else make start-shell | grep -v -E "make\[1\]\: (Entering|Leaving) directory"; fi
 
-.PHONY: start-systemd # Start the shell container in systemd mode (requires sysbox)
+.PHONY: start-shell
+start-shell:
+	${DOCKER} start ${NAME} 2>/dev/null || ${DOCKER} run -d --name ${NAME} --hostname ${NAME} --network ${NETWORK} -v ${SHARED_VOLUME}:${SHARED_MOUNT} --label="${LABEL}" $(shell if [[ ${SYSBOX} == true ]]; then echo "--runtime=sysbox-runc"; fi) ${IMAGE} /bin/sh -c "while true; do sleep 10; done"
+
+.PHONY: start-systemd
 start-systemd:
-	${DOCKER} start ${NAME} 2>/dev/null || ${DOCKER} run -d --name ${NAME} --hostname ${NAME} --network ${NETWORK} -v ${SHARED_VOLUME}:${SHARED_MOUNT} --label="${LABEL}" --user=root --runtime=sysbox-runc ${IMAGE}
+	${DOCKER} start ${NAME} 2>/dev/null || ${DOCKER} run -d --name ${NAME} --hostname ${NAME} --network ${NETWORK} -v ${SHARED_VOLUME}:${SHARED_MOUNT} --label="${LABEL}" --user=root --entrypoint="/sbin/init" $(shell if [[ ${SYSBOX} == true ]]; then echo "--runtime=sysbox-runc"; fi) ${IMAGE}
 
 .PHONY: stop # Stop the shell container (named ${NAME})
 stop:
@@ -40,7 +48,10 @@ stop-all:
 
 .PHONY: shell # Connect to the shell container (named ${NAME})
 shell: start
-	${DOCKER} exec -it --user=${NAME} ${NAME} /bin/sh -c "if test -f /bin/bash; then /bin/bash; else /bin/sh; fi"
+	${DOCKER} exec -it --user=${USERNAME} ${NAME} /bin/sh -c "if test -f /bin/bash; then /bin/bash; else /bin/sh; fi"
+
+.PHONY: rm
+rm: destroy
 
 .PHONY: destroy # Destroy the shell container (named ${NAME})
 destroy:
@@ -54,42 +65,12 @@ prune:
 
 .PHONY: destroy-all # Destroy all the shell containers
 destroy-all:
-	@${BIN}/confirm no "This will destroy all the running and stopped shell containers"
-	${DOCKER} rm -f ${ALL_CONTAINERS}
-	make status
+	@if [[ -z "${ALL_CONTAINERS}" ]]; then echo "No containers to destroy"; else ${BIN}/confirm no "This will destroy all the running and stopped shell containers" && ${DOCKER} rm -f ${ALL_CONTAINERS} &&	make status; fi
 
 .PHONY: status
 status: list
 
-.PHONY: alpine # Create the Alpine singleton
-alpine:
-	IMAGE=docker.io/alpine NAME=alpine make shell
-
-.PHONY: arch # Create the Arch singleton
-arch:
-	IMAGE=${IMAGE_PREFIX}/arch NAME=arch make shell
-
-.PHONY: busybox # Create the Busybox singleton
-busybox:
-	IMAGE=docker.io/busybox NAME=busybox make shell
-
-.PHONY: python # Create the Python singleton
-python:
-	IMAGE=docker.io/python:3 NAME=python make shell
-
-.PHONY: debian # Create the Debian singleton
-debian:
-	IMAGE=docker.io/debian:stable-slim NAME=debian make shell
-
-.PHONY: fedora # Create the Fedora singleton
-fedora:
-	IMAGE=docker.io/fedora NAME=fedora make shell
-
-.PHONY: ubuntu # Create the Ubuntu singleton
-ubuntu:
-	IMAGE=docker.io/ubuntu:20.04 NAME=ubuntu make shell
-
 .PHONY: build # Build container images
 build:
-	ls images/Dockerfile.* | grep -o -P 'images/Dockerfile\.\K.*' | xargs -iXX ${DOCKER} build -t ${IMAGE_PREFIX}/XX --build-arg=USERNAME=${NAME} -f images/Dockerfile.XX .
+	ls images/Dockerfile.* | grep -o -P 'images/Dockerfile\.\K.*' | xargs -iXX ${DOCKER} build -t ${IMAGE_PREFIX}/XX --build-arg=USERNAME=XX -f images/Dockerfile.XX .
 
