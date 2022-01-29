@@ -15,9 +15,12 @@ LABEL = shell-linux-container
 SHARED_VOLUME ?= shell-shared
 SHARED_MOUNT ?= /shared
 USERNAME ?= root
-SUDO ?= true
+SUDO ?= false
 WORKDIR ?= /
 ENTRYPOINT ?= /bin/bash
+DOCKERFILE ?= images/Dockerfile.${TEMPLATE}
+BUILDDIR ?= .
+DOCKER_ARGS ?= ""
 
 .PHONY: network # Make the docker network (named ${NETWORK})
 network:
@@ -33,11 +36,11 @@ start:
 
 .PHONY: start-shell
 start-shell:
-	${DOCKER} start ${NAME} 2>/dev/null || ${DOCKER} run -d --name ${NAME} --hostname ${NAME} --network ${NETWORK} -v ${SHARED_VOLUME}:${SHARED_MOUNT} --label="${LABEL}.template=${TEMPLATE}" $(shell if [[ ${SYSBOX} == true ]]; then echo "--runtime=sysbox-runc"; fi) ${IMAGE} /bin/sh -c "while true; do sleep 10; done"
+	${DOCKER} start ${NAME} 2>/dev/null || ${DOCKER} run -d --name ${NAME} --hostname ${NAME} --network ${NETWORK} -v ${SHARED_VOLUME}:${SHARED_MOUNT} --label="${LABEL}.template=${TEMPLATE}" $(shell if [[ ${SYSBOX} == true ]]; then echo "--runtime=sysbox-runc"; fi) ${DOCKER_ARGS} ${IMAGE} /bin/sh -c "while true; do sleep 10; done"
 
 .PHONY: start-systemd
 start-systemd:
-	${DOCKER} start ${NAME} 2>/dev/null || ${DOCKER} run -d --name ${NAME} --hostname ${NAME} --network ${NETWORK} -v ${SHARED_VOLUME}:${SHARED_MOUNT} --label="${LABEL}.template=${TEMPLATE}" --user=root --entrypoint="/sbin/init" $(shell if [[ ${SYSBOX} == true ]]; then echo "--runtime=sysbox-runc"; fi) ${IMAGE}
+	${DOCKER} start ${NAME} 2>/dev/null || ${DOCKER} run -d --name ${NAME} --hostname ${NAME} --network ${NETWORK} -v ${SHARED_VOLUME}:${SHARED_MOUNT} --label="${LABEL}.template=${TEMPLATE}" --user=root --entrypoint="/sbin/init" $(shell if [[ ${SYSBOX} == true ]]; then echo "--runtime=sysbox-runc"; fi) ${DOCKER_ARGS} ${IMAGE}
 
 .PHONY: stop # Stop the shell container (named ${NAME})
 stop:
@@ -78,10 +81,10 @@ status: list
 
 .PHONY: build # Build template image
 build:
-	${DOCKER} build -t ${IMAGE_PREFIX}/${TEMPLATE} -f images/Dockerfile.${TEMPLATE} .
+	${DOCKER} build -t ${IMAGE_PREFIX}/${TEMPLATE} -f ${DOCKERFILE} ${BUILDDIR}
+	@echo "Build complete. You must create new containers to use the new image."
 
 .PHONY: create_user # Create a user inside a container with sudo privileges (unless SUDO=false)
 create_user:
 	${DOCKER} exec --user=root ${NAME} /bin/sh -c "useradd -m ${USERNAME} || true"
-	@if [[ "${SUDO}" == "true" ]]; then ${DOCKER} exec --user=root ${NAME} /bin/sh -c "gpasswd -a ${USERNAME} wheel"; fi
-
+	@if [[ "${SUDO}" == "true" ]]; then ${DOCKER} exec --user=root ${NAME} /bin/sh -c "groupadd wheel; gpasswd -a ${USERNAME} wheel"; fi
