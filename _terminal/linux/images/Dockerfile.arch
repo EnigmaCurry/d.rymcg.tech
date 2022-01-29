@@ -1,22 +1,12 @@
 FROM archlinux
-ARG USERNAME=arch
 
 RUN pacman -Syu --noconfirm && \
-    pacman -S sudo --noconfirm && \
+    pacman -S sudo git base-devel --noconfirm && \
     echo "%wheel ALL=(ALL) NOPASSWD: ALL" > /etc/sudoers.d/wheelers && \
-    useradd -m ${USERNAME} && \
-    gpasswd -a ${USERNAME} wheel
-
-RUN systemctl mask \
+    systemctl mask \
        systemd-journald-audit.socket \
        systemd-udev-trigger.service \
-       systemd-networkd-wait-online.service && \
-    systemctl mask systemd-firstboot.service && \
+       systemd-networkd-wait-online.service \
+       systemd-firstboot.service && \
     systemctl set-default multi-user.target
 
-USER ${USERNAME}
-
-RUN sudo pacman -S --noconfirm base-devel git && \
-    git clone https://aur.archlinux.org/yay.git /home/${USERNAME}/aur/yay && \
-    cd /home/${USERNAME}/aur/yay && \
-    makepkg -i -s --noconfirm

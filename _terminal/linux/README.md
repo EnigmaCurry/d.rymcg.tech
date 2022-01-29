@@ -1,169 +1,158 @@
 # Linux shell containers
 
 This project will help create and manage several temporary yet long-running
-shell accounts inside containers. Each container is joined to the same docker
-network and has a common volume for easily sharing files between containers
-(mounted at `/shared`)
+shell accounts inside containers. Each container is joined automatically to the
+same docker network and have a common volume for easily sharing files between
+containers (mounted at `/shared`)
 
 You can kind of treat these as disposable Virtual Machines.. kind of. This is
 intended for interactive terminal programs, not for network service daemons, but
 you can start `screen` or `tmux` sessions (or `systemd`) to supervise any long
-running process, and they will run until the container is stopped. You can stop
-and restart these containers, and they will retain all of their data (and
-installed packages) between restarts. If you remove the containers (`make
-destroy` or `docker rm ...`) then all data will be lost. A container that is in
-a stopped state is vulnerable to container pruning (ie. you may wish to reclaim
-storage space on your Docker server with `docker container prune`, but this will
-delete all stopped containers and all of their data.)
+running processes, and they will run until the container is stopped. You can
+stop and restart these containers, and they will retain all of their data (and
+installed packages) between restarts. If you remove the containers then all data
+will be lost. A container that is in a stopped state is also vulnerable to
+container pruning (ie. you may wish to reclaim storage space on your Docker
+server with `docker container prune`, but this will delete all stopped
+containers and all of their data.)
 
-## Setup
+This script will work with Docker and/or Podman. Docker has an *optional*
+dependency on [sysbox](https://github.com/nestybox/sysbox) which you may install
+in order to run unprivileged systemd inside a container as PID 1. (Sysbox is not
+required for Podman which supports systemd natively.)
 
-This `Makefile` works equally well with Docker as with Podman. It will default
-to use the `docker` command, but you can set the environment to use `podman`
-instead:
+## Config
 
-```
-## If you want to use podman instead of docker:
-export DOCKER=podman
-```
-
-## Quickstart
-
-Run `make` to see the main help screen, listing all of the targets.
+Make sure you have cloned this repository somewhere on your workstation:
 
 ```
-$ make
-make network        - Make the docker network (named ${NETWORK})
-make list           - List all shell containers
-make start          - Start the shell container (named ${NAME})
-make stop           - Stop the shell container (named ${NAME})
-make stop-all       - Stop all the shell containers
-make shell          - Connect to the shell container (named ${NAME})
-make destroy        - Destroy the shell container (named ${NAME})
-make prune          - Prune all the stopped shell containers
-make destroy-all    - Destroy all the shell containers
-make alpine         - Create the Alpine singleton
-make arch           - Create the Arch singleton
-make busybox        - Create the Busybox singleton
-make python         - Create the Python singleton
-make debian         - Create the Debian singleton
-make fedora         - Create the Fedora singleton
-make ubuntu         - Create the Ubuntu singleton
+git clone https://github.com/EnigmaCurry/d.rymcg.tech.git \
+   ~/git/vendor/enigmacurry/d.rymcg.tech
 ```
 
-Create the docker network that will be shared between containers:
+It is easiest to use BASH aliases for each of the template types you want to
+create. Define these aliases in your `${HOME}/.bashrc` file:
 
 ```
-## Create the default 'shell-lan' network:
-make network
+## Linux Shell Containers:
+source ${HOME}/git/vendor/enigmacurry/d.rymcg.tech/_terminal/linux/shell.sh
+alias arch='shell_container template=arch'
+alias debian='shell_container template=debian'
+alias fedora='shell_container template=fedora'
 ```
 
-Start the default shell container:
+The names of the aliases do not matter, only the template name that you pass
+does. The template names are the same as the Dockerfile extension names found in
+the [images](images) directory. You may add your own Dockerfile templates to
+this same directory, and use a unique file extension to define the template
+name.
+
+You may also add additional arguments to the aliases to modify the container or
+how it runs, for example:
 
 ```
-# Start the shell with the default ${NAME} (arch)
-make shell
+## podman_arch will run the arch template in Podman, instead of Docker:
+alias podman_arch='shell_container template=arch docker=podman'
+## user_arch will run the arch template always with the username 'user':
+alias user_arch='shell_container template=arch username=user'
 ```
 
-The default `NAME` variable is `arch`, so you should be thrown into a new
-subshell with that hostname:
+Also be aware that you can pass additional arguments when you invoke the alias:
 
 ```
-[root@arch /]# 
+podman_arch shared_volume=my_volume shared_mount=/mnt/demo systemd=true --start
 ```
 
-You can do all things you can with Arch Linux here (but there's no systemd).
-When you're done, press `Ctrl-D` or type `exit`. However, the container is still
-running in the background, and you can re-attach again later, just run `make
-shell` again.
+## Config arguments
 
-Back in your host shell, you can start a new shell container with a different
-name:
+Config arguments may be passed as `name=value` arguments to the
+`shell_container` function and your aliases:
 
-```
-NAME=two make shell
-```
+ * `template` - The name of the Dockerfile template (eg. arch, debian, etc.)
+ * `name` - The hostname of the container (default: the same as the template name)
+ * `username` - The shell username inside the container (default: root)
+ * `user` - Alias for `username` (when using environment vars always use `USERNAME`)
+ * `entrypoint` - The shell command to start (default: `/bin/bash`, and fallback
+   `/bin/sh` )
+ * `sudo` - If sudo=true give sudo privileges to the shell user (default: true)
+ * `network` - The name of the container network to join (default: shell-lan)
+ * `workdir` - The path of the working directory for the shell (default: /)
+ * `docker` - The name/path of the docker or podman executable (default: docker)
+ * `systemd` - If systemd=true, start systemd as PID1 (default: false)
+ * `sysbox` - If sysbox=true, run the container with the sysbox runtime (default: false)
+ * `shared_volume` - The name of the volume to share with the container (default: shell-shared)
+ * `shared_mount` - The mountpoint inside the container for the shared volume: (default: /shared)
 
-Again, you'll be put into a new sub-shell, but this time with the hostname
-`two`:
+Alternatively, the config may be passed as environment variables. (Use
+uppercased names for environment variables, eg. `TEMPLATE`, `NAME`, etc.)
 
-```
-[root@two /]# 
-```
+## Sub-commands
 
-Press `Ctrl-D` or type `exit` to leave this shell. The container will be left
-running in the background.
+You may pass various commands to your `shell_container` aliases with arguments
+that start with `--`:
 
-Now you have two instances running: one named `arch` and one name `two`.
+ * `--help` - Shows this help screen
+ * `--build` - Build the template container image
+ * `--list` - List all the instances of this template
+ * `--start` - Start this instance without attaching
+ * `--start-all` - Start all the instances of this template
+ * `--stop` - Stop this instance
+ * `--stop-all` - Stop all the instances of this template
+ * `--prune` - Remove all stopped instances of this template
+ * `--rm ` - Remove this instance
+ * `--rm-all` - Remove all instances of this template
 
-You can list all the instances:
+Note: sub-commands must come *after* all of the [Config arguments](#config-arguments)
 
-```
-make list
-```
+## More examples
 
-You can stop both instances:
+Please see the full help screen from any of your aliases with the `--help`
+argument (eg. `arch --help`, or on the main function: `shell_container --help`)
 
-```
-NAME=arch make stop
-NAME=two make stop
-```
-
-You can restart instances:
-
-```
-NAME=arch make start
-```
-
-You can re-attach to shells (even if stopped):
-
-```
-NAME=two make shell
-```
-
-## Environment variables
-
-As you can see from the `Quickstart` this Makefile is modified by environment
-variables. Here is a list of the variables you can set (with their defaults
-listed in parentheses):
-
- * `DOCKER` (`docker`) you can set this to `podman` and your containers will run
-   in Podman rather than Docker.
- * `IMAGE` (`archlinux`) you can set this to any container image (eg.
-   `alpine:3.15`, `debian:11-slim`, `ubuntu`, etc.)
- * `NAME` (`arch`) the container name and hostname can be set using this.
- * `NETWORK` (`shell-lan`) the name of the network to attach to.
- * `SHARED_VOLUME` (`shell-shared`) the name of the volume to share between containers.
- * `SHARED_MOUNT` (`/shared`) the mount point for the shared volume.
- * `SYSTEMD` (`false`) if `true` boot container with systemd as PID 1.
-
-## Systemd
-
-You can start systemd as PID 1 inside an unprivileged container. Podman supports
-this natively, but for Docker you must [install sysbox natively on your docker
-host](https://github.com/nestybox/sysbox/blob/master/docs/user-guide/install-package.md)
-(sysbox is an alternative to the normal docker runtime `runc`, and it creates
-containers that behave much more like virtual machines. Docker uses alternative
-runtimes with the `--runtime` argument).
-
-Now you can start containers with systemd enabled:
+Here's some more example aliases:
 
 ```
-export SYSTEMD=true
-# SYSBOX required for Docker, but not for Podman:
-export SYSBOX=true 
+## Podman systemd enabled Arch Linux:
+alias podman_arch='shell_container template=arch docker=podman systemd=true'
 
-make shell
+## Docker systemd enabled Arch Linux (requires sysbox-runc to be installed):
+alias docker_arch='shell_container template=arch docker=podman systemd=true sysbox=true'
+
+## Podman debian:
+alias debian='shell_container template=debian docker=podman
 ```
 
-## Bash alias
-
-For maximum ergonomics, create these or similar BASH aliases for all the shell
-containers you want to create (put these in ~/.bashrc or another file that is
-sourced in your shell):
-
+Create three instances without attaching them:
 
 ```
-SHELL_MAKEFILE=${HOME}/git/vendor/enigmacurry/d.rymcg.tech/_terminal/linux/
-alias arch='TEMPLATE=arch NAME=arch make -f ${SHELL_MAKEFILE}'
+podman_arch one --start
+podman_arch two --start
+podman_arch three --start
 ```
+
+Connect to the first one as the user `ryan` (the user `ryan` will automatically
+be created and given sudo privleges):
+
+```
+podman_arch ryan@one
+```
+
+(You'll enter the shell in the `one` container now, press `Ctrl-D` or type
+`exit` when done, the container will still be running in the background.)
+
+List all the instances of the template `arch`:
+
+```
+arch --list
+```
+
+(Note that if you invoked `podman_arch --list`, it would show the same instances
+as `arch --list` [as long as docker is the same], because they are all from the
+same template: `arch`.)
+
+Stop all the containers running the template `arch` :
+
+```
+arch --rm-all
+```
+
