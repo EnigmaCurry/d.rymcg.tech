@@ -67,6 +67,9 @@ shell_container() {
 ##   sysbox :: If sysbox=true, run the container with the sysbox runtime (default: false)
 ##   shared_volume :: The name of the volume to share with the container (default: shell-shared)
 ##   shared_mount :: The mountpoint inside the container for the shared volume: (default: /shared)
+##   dockerfile :: Override the path to the Dockerfile (default: images/Dockerfile.$TEMPLATE)
+##   builddir :: Override the build context directory (default: directory containing shell.sh)
+##   docker_args :: Adds additional docker run arguments (default: none)
 ##
 ## Notes:
 ##   'template' (or TEMPLATE env var) is the only required argument.
@@ -81,9 +84,11 @@ shell_container() {
 ##   --start-all :: Start all the instances of this template
 ##   --stop :: Stop this instance
 ##   --stop-all :: Stop all the instances of this template
+##   --restart :: Restart this instance
+##   --restart-all :: Restart all the instances of this template
 ##   --prune :: Remove all stopped instances of this template
-##   --rm  :: Remove this instance
-##   --rm-all :: Remove all instances of this template
+##   --rm  :: Remove (destroy) this instance
+##   --rm-all :: Remove (destroy) all instances of this template
 
 ## Examples:
 ##   If the desired template is: arch
@@ -137,6 +142,12 @@ EOF
                 shift
             elif [[ $1 == "--stop-all" ]]; then
                 MAKE_TARGET=stop-all
+                shift
+            elif [[ $1 == "--restart" ]]; then
+                MAKE_TARGET="stop start"
+                shift
+            elif [[ $1 == "--restart-all" ]]; then
+                MAKE_TARGET="stop-all start-all"
                 shift
             elif [[ $1 == "--prune" ]]; then
                 MAKE_TARGET=prune
