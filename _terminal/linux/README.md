@@ -122,6 +122,11 @@ alias docker_arch='shell_container template=arch docker=podman systemd=true sysb
 alias debian='shell_container template=debian docker=podman
 ```
 
+You must build the container image the first time:
+```
+podman_arch --build
+```
+
 Create three instances without attaching them:
 
 ```
@@ -143,14 +148,15 @@ podman_arch ryan@one
 List all the instances of the template `arch`:
 
 ```
-arch --list
+podman_arch --list
 ```
 
-(Note that if you invoked `podman_arch --list`, it would show the same instances
-as `arch --list` [as long as docker is the same], because they are all from the
-same template: `arch`.)
+(Note that if you invoked `arch --list`, it would show the same instances [as
+long as its the same docker], because they are both from the same template:
+`arch`. If you want these to be distinct templates, you can symlink
+`Dockerfile.arch` to `Dockerfile.podman_arch`)
 
-Stop all the containers running the template `arch` :
+Remove all the containers running the template `arch` :
 
 ```
 arch --rm-all
