@@ -15,16 +15,17 @@ LABEL = shell-linux-container
 SHARED_VOLUME ?= shell-shared
 SHARED_MOUNT ?= /shared
 USERNAME ?= root
-
-ALL_CONTAINERS = $(shell ${DOCKER} ps -a --filter "label=${LABEL}" -q)
+SUDO ?= true
+WORKDIR ?= /
+ENTRYPOINT ?= /bin/bash
 
 .PHONY: network # Make the docker network (named ${NETWORK})
 network:
 	${DOCKER} network create ${NETWORK}
 
-.PHONY: list # List all shell containers
+.PHONY: list # List all shell containers of the given TEMPLATE
 list:
-	${DOCKER} ps -a --filter "label=${LABEL}"
+	${DOCKER} ps -a --filter "label=${LABEL}.template=${TEMPLATE}"
 
 .PHONY: start # Start the shell container (named ${NAME})
 start:
@@ -32,23 +33,27 @@ start:
 
 .PHONY: start-shell
 start-shell:
-	${DOCKER} start ${NAME} 2>/dev/null || ${DOCKER} run -d --name ${NAME} --hostname ${NAME} --network ${NETWORK} -v ${SHARED_VOLUME}:${SHARED_MOUNT} --label="${LABEL}" $(shell if [[ ${SYSBOX} == true ]]; then echo "--runtime=sysbox-runc"; fi) ${IMAGE} /bin/sh -c "while true; do sleep 10; done"
+	${DOCKER} start ${NAME} 2>/dev/null || ${DOCKER} run -d --name ${NAME} --hostname ${NAME} --network ${NETWORK} -v ${SHARED_VOLUME}:${SHARED_MOUNT} --label="${LABEL}.template=${TEMPLATE}" $(shell if [[ ${SYSBOX} == true ]]; then echo "--runtime=sysbox-runc"; fi) ${IMAGE} /bin/sh -c "while true; do sleep 10; done"
 
 .PHONY: start-systemd
 start-systemd:
-	${DOCKER} start ${NAME} 2>/dev/null || ${DOCKER} run -d --name ${NAME} --hostname ${NAME} --network ${NETWORK} -v ${SHARED_VOLUME}:${SHARED_MOUNT} --label="${LABEL}" --user=root --entrypoint="/sbin/init" $(shell if [[ ${SYSBOX} == true ]]; then echo "--runtime=sysbox-runc"; fi) ${IMAGE}
+	${DOCKER} start ${NAME} 2>/dev/null || ${DOCKER} run -d --name ${NAME} --hostname ${NAME} --network ${NETWORK} -v ${SHARED_VOLUME}:${SHARED_MOUNT} --label="${LABEL}.template=${TEMPLATE}" --user=root --entrypoint="/sbin/init" $(shell if [[ ${SYSBOX} == true ]]; then echo "--runtime=sysbox-runc"; fi) ${IMAGE}
 
 .PHONY: stop # Stop the shell container (named ${NAME})
 stop:
 	${DOCKER} stop ${NAME}
 
-.PHONY: stop-all # Stop all the shell containers
+.PHONY: start-all # Start all the shell containers of the given TEMPLATE
+start-all:
+	${DOCKER} start $(shell ${DOCKER} ps -a --filter "label=${LABEL}.template=${TEMPLATE}" -q)
+
+.PHONY: stop-all # Stop all the shell containers of the given TEMPLATE
 stop-all:
-	${DOCKER} stop ${ALL_CONTAINERS}
+	${DOCKER} stop $(shell ${DOCKER} ps -a --filter "label=${LABEL}.template=${TEMPLATE}" -q)
 
 .PHONY: shell # Connect to the shell container (named ${NAME})
 shell: start
-	${DOCKER} exec -it --user=${USERNAME} ${NAME} /bin/sh -c "if test -f /bin/bash; then /bin/bash; else /bin/sh; fi"
+	${DOCKER} exec -it --user=${USERNAME} --workdir=${WORKDIR} ${NAME} /bin/sh -c "if test -f ${ENTRYPOINT}; then ${ENTRYPOINT}; else /bin/sh; fi"
 
 .PHONY: rm
 rm: destroy
@@ -60,17 +65,23 @@ destroy:
 
 .PHONY: prune # Prune all the stopped shell containers
 prune:
-	@${BIN}/confirm no "This will destroy all the stopped shell containers"
-	${DOCKER} container prune -f --filter "label=${LABEL}"
+	@${BIN}/confirm no "This will destroy all *stopped* shell containers of the template \"${TEMPLATE}\""
+	${DOCKER} container prune -f --filter "label=${LABEL}.template=${TEMPLATE}"
 
-.PHONY: destroy-all # Destroy all the shell containers
+.PHONY: destroy-all # Destroy all the shell containers of the given TEMPLATE
 destroy-all:
-	@if [[ -z "${ALL_CONTAINERS}" ]]; then echo "No containers to destroy"; else ${BIN}/confirm no "This will destroy all the running and stopped shell containers" && ${DOCKER} rm -f ${ALL_CONTAINERS} &&	make status; fi
+	@${BIN}/confirm no "This will destroy all the shell containers of the template \"${TEMPLATE}\""
+	${DOCKER} rm -f $(shell ${DOCKER} ps -a --filter "label=${LABEL}.template=${TEMPLATE}" -q) && make --no-print-directory status
 
 .PHONY: status
 status: list
 
-.PHONY: build # Build container images
+.PHONY: build # Build template image
 build:
-	ls images/Dockerfile.* | grep -o -P 'images/Dockerfile\.\K.*' | xargs -iXX ${DOCKER} build -t ${IMAGE_PREFIX}/XX --build-arg=USERNAME=XX -f images/Dockerfile.XX .
+	${DOCKER} build -t ${IMAGE_PREFIX}/${TEMPLATE} -f images/Dockerfile.${TEMPLATE} .
+
+.PHONY: create_user # Create a user inside a container with sudo privileges (unless SUDO=false)
+create_user:
+	${DOCKER} exec --user=root ${NAME} /bin/sh -c "useradd -m ${USERNAME} || true"
+	@if [[ "${SUDO}" == "true" ]]; then ${DOCKER} exec --user=root ${NAME} /bin/sh -c "gpasswd -a ${USERNAME} wheel"; fi
 
