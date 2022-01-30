@@ -43,7 +43,7 @@ shell_container() {
                 shift
             fi
         fi
-        
+
         if [[ $1 == *--help* ]]; then
             cat <<'EOF' | sed 's/::/\t/g' | expand -t 20
 ## Linux Shell Containers ::
@@ -67,8 +67,8 @@ shell_container() {
 ##   sysbox :: If sysbox=true, run the container with the sysbox runtime (default: false)
 ##   shared_volume :: The name of the volume to share with the container (default: shell-shared)
 ##   shared_mount :: The mountpoint inside the container for the shared volume: (default: /shared)
-##   dockerfile :: Override the path to the Dockerfile (default: images/Dockerfile.$TEMPLATE)
-##   builddir :: Override the build context directory (default: directory containing shell.sh)
+##   dockerfile :: Override the path to the Dockerfile (default: Dockerfile)
+##   builddir :: Override the build context directory (default: images/${TEMPLATE})
 ##   docker_args :: Adds additional docker run arguments (default: none)
 ##
 ## Notes:

@@ -1,27 +1,70 @@
 # Linux shell containers
 
-This project will help create and manage several temporary yet long-running
-shell accounts inside containers. Each container is joined automatically to the
-same docker network and have a common volume for easily sharing files between
-containers (mounted at `/shared`)
+This project will help create and manage several temporary, ephemeral, yet
+long-running shell accounts, running in containers. Each container is joined
+automatically to the same docker/podman network and have a common mounted volume
+for easily sharing files between containers (eg. `/shared`). With customizable
+Bash shell aliases, and on-the-fly container creation, Linux Shell Containers
+provides an ergonomic method of creating quick virtual environments.
 
-You can kind of treat these as disposable Virtual Machines.. kind of. This is
-intended for interactive terminal programs, not for network service daemons, but
-you can start `screen` or `tmux` sessions (or `systemd`) to supervise any long
-running processes, and they will run until the container is stopped. You can
-stop and restart these containers, and they will retain all of their data (and
-installed packages) between restarts. If you remove the containers then all data
-will be lost. A container that is in a stopped state is also vulnerable to
-container pruning (ie. you may wish to reclaim storage space on your Docker
-server with `docker container prune`, but this will delete all stopped
-containers and all of their data.)
+```
+# After installation and defining a custom bash alias, you'll be able to ....
+# Instantly create, start, and exec into a clean Arch Linux container:
+arch
+
+# or Debian ... or ...anything else you setup a shell_container alias for:
+debian
+```
+
+This puts you directly into the shell of the container (starting it if
+necessary). If you exit the shell, the container stays running in the
+background. This lets you run long running processes like `screen`, `tmux`, (or
+even `systemd` with some caveats), and you can log back in later the same way.
+
+``` 
+# Turn off the container:
+arch --stop
+# Turn it back on:
+arch --start
+# Remove it, and all of the data not explicity stored in a volume:
+arch --rm
+
+# Start a new container named 'light', and create the user 'sparrow':
+# (--start will start the container in the background)
+arch sparrow@light --start
+
+# Start two more:
+arch sparrow@dark --start
+arch hector@smc --start
+
+# List all three of them:
+arch --list
+
+# Remove (destroy) all three of them:
+arch --rm-all
+```
+
+Systemd is optional, and turned off by default. The default "init" is just a
+simple `while true; do sleep 10; done` loop, in order to keep the container
+alive. While not a true init, it seems to do the job.
 
 This script will work with Docker and/or Podman. Docker has an *optional*
 dependency on [sysbox](https://github.com/nestybox/sysbox) which you may install
-in order to run unprivileged systemd inside a container as PID 1. (Sysbox is not
-required for Podman which supports systemd natively.)
+only if you want to run unprivileged systemd inside a container as PID 1.
+(Sysbox is not required for Podman which supports systemd natively.)
 
-## Config
+Remember, these are containers, not Virtual Machines, they are designed to be
+destroyed. You can install/remove packages interactively, and create/edit any
+files in the filesystem, stop and restart them, treat them like pets, but the
+data they hold will only persist for the lifecycle of the container, unless
+files are explicitly saved in a mounted volume (eg. `/daw` or `/shared`). Once
+you run the arguments `--rm` or especially `--prune`, the data is gone forever.
+
+If you rebuild/upgrade the container image, all the existing containers (even
+the stopped ones) will stay on the old image version. You must recreate (`--rm`
+and then `--start`) containers in order to use the updated image.
+
+## Setup and Config
 
 Make sure you have cloned this repository somewhere on your workstation:
 
@@ -30,8 +73,8 @@ git clone https://github.com/EnigmaCurry/d.rymcg.tech.git \
    ~/git/vendor/enigmacurry/d.rymcg.tech
 ```
 
-Install the `shell_container` function in your Bash shell, put the following in
-your `${HOME}/.bashrc` file:
+Install the `shell_container` function in your Bash shell, by putting the
+following in your `${HOME}/.bashrc` file:
 
 ```
 ## Linux Shell Containers:
@@ -44,34 +87,21 @@ with which you can create new aliases for your containers:
 
 ```
 alias arch='shell_container template=arch'
-alias debian='shell_container template=debian'
-alias fedora='shell_container template=fedora'
+alias debian='shell_container template=debian sudo=true'
+alias fedora='shell_container template=fedora docker=podman systemd=true'
 ```
 
 Try creating different aliases in your shell, and play around. Then once you've
-settled on an alias that works well for you, put in your `${HOME}/.bashrc` file
-to keep it permanently.
+settled on an alias that works well for you, put it in your `${HOME}/.bashrc`
+file to keep it available permanently.
 
-The names of the aliases do not matter, only the template name that you pass
-does. The template names are the same as the Dockerfile extension names found in
-the [images](images) directory (or this can be overriden with the `dockerfile`
-and `builddir` arguments).
-
-You may also add additional arguments to the aliases to modify the container or
-how it runs, for example:
-
-```
-## podman_arch will run the arch template in Podman, instead of Docker:
-alias podman_arch='shell_container template=arch docker=podman'
-## user_arch will run the arch template always with the username 'user':
-alias user_arch='shell_container template=arch username=user'
-```
-
-Also be aware that you can pass additional arguments when you invoke the alias:
-
-```
-podman_arch shared_volume=my_volume shared_mount=/mnt/demo systemd=true --start
-```
+The names of the aliases do not matter (and cannot be detected by the script),
+only the template name and other arguments that you pass matter. The template
+names indicate the the default build directory to use from the [images](images)
+directory (or this can be overriden with the `builddir` and `dockerfile`
+arguments). The template name also serves as a label on containers to group
+select them by template name for the operations `--list`, `--start-all`, `--stop-all`, and
+`--rm-all`.
 
 ## Config arguments
 
@@ -158,8 +188,8 @@ podman_arch sudo=true ryan@one
 `sudo=true`)
 
 
-(You'll enter the shell in the `one` container now, press `Ctrl-D` or type
-`exit` when done, the container will still be running in the background.)
+(You'll enter the shell in the `one` container now. Press `Ctrl-D` or type
+`exit` when done, and the container will still be running in the background.)
 
 List all the instances of the template `arch`:
 
@@ -167,29 +197,34 @@ List all the instances of the template `arch`:
 podman_arch --list
 ```
 
-(Note that if you invoked `arch --list`, it would show the same instances [as
-long as its the same docker], because they are both from the same template:
-`arch`. If you want these to be distinct templates, you can symlink
-`Dockerfile.arch` to `Dockerfile.podman_arch`)
+(Note that if you invoked `arch --list`, it would show the same instances as
+`podman_arch --list` [true only if both aliases use docker=podman], because they
+are both from the same template: `arch`. If you want these two groups to be
+separate, you need to use distinct template names.)
 
 Remove all the containers running the template `arch` :
 
 ```
-arch --rm-all
+podman_arch --rm-all
 ```
 
 ## Vendored Dockerfile example
 
-Suppose you have discovered a new project that includes a `Dockerfile` to build
-that project as an image. You can use this directly with `shell_container`!
+Suppose you have discovered a random new project that includes a `Dockerfile` to
+build that project as an image. You can build and use this directly with
+`shell_container`! You can use this method to replace those cumbersome,
+programming language specific, virtual packaging environments, like Python
+`virtualenv`. Use this same method for all your projects, no matter the language
+they are written in, they just need a `Dockerfile`.
 
 Take this example: [enigmacurry/daw](https://github.com/EnigmaCurry/daw/). This
-repository has a `Dockerfile` in the root directory, and so can be used with
-`shell_container`. 
+repository includes a `Dockerfile`, and so it can be used with
+`shell_container`.
 
-`enigmacurry/daw` is a Python powered Digital Audio Workstation (not really, its
-just some python code that makes some sound at this point). This container sends
-audio to your host pulseaudio server (only tested on Arch Linux).
+`enigmacurry/daw` is a Python powered Digital Audio Workstation (well not
+really, its just some python code that makes some sound at this point). This
+container sends audio to your host pulseaudio server (only tested on Arch
+Linux).
 
 Clone the repository:
 
@@ -197,25 +232,33 @@ Clone the repository:
 git clone https://github.com/EnigmaCurry/daw.git ~/git/vendor/enigmacurry/daw
 ```
 
-Create a new alias that points to the project Dockerfile:
+Create a new alias that points to the project directory containing the Dockerfile:
 
 ```
-alias daw='shell_container docker=podman template=daw builddir=${HOME}/git/vendor/enigmacurry/daw dockerfile=${HOME}/git/vendor/enigmacurry/daw/Dockerfile docker_args="--volume=/run/user/$(id -u)/pulse:/run/user/1000/pulse" shared_volume=${HOME}/git/vendor/enigmacurry/daw shared_mount=/app workdir=/app/projects'
+DAW_HOME=${HOME}/git/vendor/enigmacurry/daw
+DAW_PROJECT=sampler
+DAW_SAMPLES=${HOME}/Samples
+alias daw='shell_container docker=podman template=daw builddir=${DAW_HOME} docker_args="-v ${DAW_SAMPLES}:/daw/samples --volume=/run/user/$(id -u)/pulse:/run/user/1000/pulse" shared_volume=${HOME}/git/vendor/enigmacurry/daw shared_mount=/daw workdir=/daw/projects/${DAW_PROJECT}'
 ```
 
 The arguments explained:
 
  * `docker=podman` - This uses Podman instead of Docker to create the container
  * `template=daw` - The name of the template. The name of the Dockerfile used to
-   build the image is normally derrived from this template name, however because
-   `dockerfile` is specified too, this can be any name you want.
- * `dockerfile` - This overrides the Dockerfile used to build the image.
- * `builddir` - This overrides the build context directory to use the project root.
- * `docker_args` - These are any extra `docker run` arguments, in this case to
-   mount the pulseaudio socket.
- * `shared_volume` - This uses a host directory as the shared volume
- * `shared_mount` - This mounts the shared volume at `/app` inside the container
- * `workdir` - This starts the shell from the directory `/app/projects`
+   build the image is normally derrived from this template name, however in this
+   case, because `builddir` is specified explicitly, the template name can be
+   anything you want.
+ * `builddir` - This overrides the build context directory to use the project
+   root instead of the default [images/TEMPLATE](images) directory.
+ * `dockerfile` - This overrides the path to the Dockerfile used to build the
+   image.
+ * `docker_args` - These are any extra `docker run` arguments that you want to
+   specify. In this case, it is to mount the pulseaudio socket, and to mount an
+   additional samples directory. Remember to wrap the value in double quotes
+   becuase it contains spaces.
+ * `shared_volume` - This shares the project directory from the host with the container
+ * `shared_mount` - This mounts the shared volume at `/daw` inside the container
+ * `workdir` - This starts the shell from the directory `/daw/projects`
 
 Build the container image:
 
