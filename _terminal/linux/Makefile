@@ -18,9 +18,9 @@ USERNAME ?= root
 SUDO ?= false
 WORKDIR ?= /
 ENTRYPOINT ?= /bin/bash
-DOCKERFILE ?= images/Dockerfile.${TEMPLATE}
-BUILDDIR ?= .
-DOCKER_ARGS ?= ""
+DOCKERFILE ?= Dockerfile
+BUILDDIR ?= images/${TEMPLATE}
+DOCKER_ARGS ?=
 
 .PHONY: network # Make the docker network (named ${NETWORK})
 network:
