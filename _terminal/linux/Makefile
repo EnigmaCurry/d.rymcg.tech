@@ -18,6 +18,7 @@ USERNAME ?= root
 SUDO ?= false
 WORKDIR ?= /
 ENTRYPOINT ?= /bin/bash
+COMMAND ?= "if test -f ${ENTRYPOINT}; then ${ENTRYPOINT}; else /bin/sh; fi"
 DOCKERFILE ?= Dockerfile
 BUILDDIR ?= images/${TEMPLATE}
 DOCKER_ARGS ?=
@@ -29,6 +30,10 @@ network:
 .PHONY: list # List all shell containers of the given TEMPLATE
 list:
 	${DOCKER} ps -a --filter "label=${LABEL}.template=${TEMPLATE}"
+
+.PHONY: run # Run command directly (don't start shell server)
+run:
+	${DOCKER} run --rm -it --name ${NAME} --hostname ${NAME} --network ${NETWORK} -v ${SHARED_VOLUME}:${SHARED_MOUNT} --label="${LABEL}.template=${TEMPLATE}" $(shell if [[ ${SYSBOX} == true ]]; then echo "--runtime=sysbox-runc"; fi) ${DOCKER_ARGS} ${IMAGE} ${COMMAND}
 
 .PHONY: start # Start the shell container (named ${NAME})
 start:
@@ -44,7 +49,7 @@ start-systemd:
 
 .PHONY: stop # Stop the shell container (named ${NAME})
 stop:
-	${DOCKER} stop ${NAME}
+	${DOCKER} kill ${NAME}
 
 .PHONY: start-all # Start all the shell containers of the given TEMPLATE
 start-all:
@@ -52,11 +57,11 @@ start-all:
 
 .PHONY: stop-all # Stop all the shell containers of the given TEMPLATE
 stop-all:
-	${DOCKER} stop $(shell ${DOCKER} ps -a --filter "label=${LABEL}.template=${TEMPLATE}" -q)
+	${DOCKER} kill $(shell ${DOCKER} ps -a --filter "label=${LABEL}.template=${TEMPLATE}" -q)
 
 .PHONY: shell # Connect to the shell container (named ${NAME})
 shell: start
-	${DOCKER} exec -it --user=${USERNAME} --workdir=${WORKDIR} ${NAME} /bin/sh -c "if test -f ${ENTRYPOINT}; then ${ENTRYPOINT}; else /bin/sh; fi"
+	${DOCKER} exec -it --user=${USERNAME} --workdir=${WORKDIR} ${NAME} /bin/sh -c "${COMMAND}"
 
 .PHONY: rm
 rm: destroy
@@ -64,7 +69,8 @@ rm: destroy
 .PHONY: destroy # Destroy the shell container (named ${NAME})
 destroy:
 	@${BIN}/confirm no "This will destroy the \"${NAME}\" container and all its data"
-	${DOCKER} rm -f ${NAME}
+	@${DOCKER} kill ${NAME} 2>&1 > /dev/null
+	@${DOCKER} rm -f ${NAME} 2>&1 > /dev/null
 
 .PHONY: prune # Prune all the stopped shell containers
 prune:
@@ -88,3 +94,12 @@ build:
 create_user:
 	${DOCKER} exec --user=root ${NAME} /bin/sh -c "useradd -m ${USERNAME} || true"
 	@if [[ "${SUDO}" == "true" ]]; then ${DOCKER} exec --user=root ${NAME} /bin/sh -c "groupadd wheel; gpasswd -a ${USERNAME} wheel"; fi
+
+.PHONY: sigusr1 # Send SIGUSR1 to the container
+sigusr1:
+	${DOCKER} kill --signal SIGUSR1 ${NAME}
+
+.PHONY: sigusr2 # Send SIGUSR2 to the container
+sigusr2:
+	${DOCKER} kill --signal SIGUSR2 ${NAME}
+
