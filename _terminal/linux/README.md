@@ -125,6 +125,8 @@ Config arguments may be passed as `name=value` arguments to the
  * `dockerfile` - Override the path to the Dockerfile (default: images/Dockerfile.$TEMPLATE)
  * `builddir` - Override the build context directory (default: directory containing shell.sh)
  * `docker_args` - Adds additional docker run arguments (default: none)
+ * `persistent` :: If persistent=true, keep the container running (default:
+   true)
 
 Alternatively, the config may be passed as environment variables. (Use
 uppercased names for environment variables, eg. `TEMPLATE`, `NAME`, etc.)

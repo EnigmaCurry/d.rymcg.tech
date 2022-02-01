@@ -70,6 +70,7 @@ shell_container() {
 ##   dockerfile :: Override the path to the Dockerfile (default: Dockerfile)
 ##   builddir :: Override the build context directory (default: images/${TEMPLATE})
 ##   docker_args :: Adds additional docker run arguments (default: none)
+##   persistent :: If persistent=true, keep the container running (default: true)
 ##
 ## Notes:
 ##   'template' (or TEMPLATE env var) is the only required argument.
@@ -158,6 +159,12 @@ EOF
             elif [[ $1 == "--rm-all" ]] || [[ $1 == "--destroy-all" ]]; then
                 MAKE_TARGET=destroy-all
                 shift
+            elif [[ $1 == "--sigusr1" ]]; then
+                MAKE_TARGET=sigusr1
+                shift
+            elif [[ $1 == "--sigusr2" ]]; then
+                MAKE_TARGET=sigusr2
+                shift
             else
                 echo "Invalid argument: $1"
                 exit 1
@@ -173,6 +180,10 @@ EOF
         ## If a username is specified, create the account first:
         if [[ $MAKE_TARGET == "shell" ]] && [[ -n ${USERNAME} ]]; then
             make --no-print-directory -C ${SRC_DIR} start create_user
+        fi
+
+        if [[ ${MAKE_TARGET} == "shell" ]] && [[ ${PERSISTENT:-true} != "true" ]]; then
+            MAKE_TARGET=run
         fi
 
         ## Run the Makefile:
