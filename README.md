@@ -142,12 +142,28 @@ Now when you issue `docker` or `docker-compose` commands on your local
 workstation, you will actually be controlling your remote docker server, through
 SSH.
 
+Each time you run a `docker` command, it will create a new SSH connection, which
+can be slow if you need to run multiple commands. You can speed the connection
+up by enabling SSH connection multiplexing. In your `${HOME}/.ssh/config` file,
+put the following (replacing `ssh.d.example.com` with your own docker server
+hostname):
+
+```
+Host ssh.d.example.com
+    User root
+    IdentitiesOnly yes
+    ControlMaster auto
+    ControlPersist yes
+    ControlPath /tmp/ssh-%u-%r@%h:%p
+```
+
 ### Clone this repository
 
 Clone this repository to your workstation, and change to this directory:
 
 ```
-git clone https://github.com/EnigmaCurry/d.rymcg.tech.git ~/git/vendor/enigmacurry/d.rymcg.tech
+git clone https://github.com/EnigmaCurry/d.rymcg.tech.git \
+   ~/git/vendor/enigmacurry/d.rymcg.tech
 cd ~/git/vendor/enigmacurry/d.rymcg.tech
 ```
 

@@ -37,32 +37,28 @@ following lines, and change it for your domain name that you already created the
 DNS record for:
 
 ```
-Host docker
-    Hostname ssh.d.example.com
+Host ssh.d.example.com
     User root
+    IdentitiesOnly yes
+    ControlMaster auto
+    ControlPersist yes
+    ControlPath /tmp/ssh-%u-%r@%h:%p
 ```
 
-(`docker` is the local alias name, `ssh.d.example.com` is the actual docker host
-domain, where `ssh.` matches the `*` in the wildcard DNS entry created
-previously.)
-
-Edit your `~/.bash_profile` and add the `DOCKER_HOST` environment variable:
-
-```
-export DOCKER_HOST=ssh://docker
-```
-
-Exit your current terminal session and create a new one, or just `source
-~/.bash_profile`.
+(The name `ssh.d.example.com` should work automatically if you setup the
+wildcard DNS entry (`*.d.example.com`) created previously. The `ControlMaster`,
+`ControlPersist`, `ControlPath` adds SSH connection multi-plexing, and will make
+repeated logins/docker commands faster.)
 
 Now test that you can SSH to your droplet:
 
 ```
-ssh docker
+ssh ssh.d.example.com
 ```
 
 The first time you login to your droplet, you need to confirm the SSH pubkey
-fingerprint; press Enter.
+fingerprint; press Enter. Once connected, log out: press `Ctrl-D` or type `exit`
+and press Enter.
 
 ## Setup droplet firewall
 
@@ -162,14 +158,34 @@ systemctl start docker
 Reboot the droplet (`reboot`) and double check that the volume is automatically
 mounted on startup (`df -h`)
 
-## Test docker
+## Setup Docker context and test Docker connection
 
 Logout from the droplet SSH connection, you probably won't ever need to login
 again unless there's a problem. You will now use docker exclusively from your
 local workstation (laptop).
 
+Setup the docker context to tunnel through your ssh connection (this lets your
+workstation docker client control the remote docker server):
 
-Test that the `DOCKER_HOST` connection is working from your local workstation:
+```
+# From your workstation (replace ssh.d.example.com with your own docker server):
+DOCKER_SERVER=ssh.d.example.com
+docker context create ${DOCKER_SERVER} --docker "host=ssh://${DOCKER_SERVER}"
+docker context use ${DOCKER_SERVER}
+```
+
+List all of your docker contexts (your current context is denoted with an
+asterisk `*`):
+
+```
+docker context ls
+```
+
+You can switch between different docker contexts to control multiple Docker
+servers (eg. `docker context use my-other-context`).
+
+
+Test that the connection is working from your local workstation:
 
 ```
 docker info
