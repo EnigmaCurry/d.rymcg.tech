@@ -14,11 +14,11 @@ shell_container() {
             parts=(${var//=/ }); var=${parts[0]}; val=${parts[@]:1};
             if [[ ${#parts[@]} == 1 ]]; then break; fi
             shift
-            escaped_val=$(printf '%s\n' "${val}" | sed -e 's/[\/&]/\\&/g')
             if [[ -n ${ARG_SUBSTITUTES[${var^^}]} ]]; then
                 var=${ARG_SUBSTITUTES[${var^^}]}
             fi
-            export ${var^^}="${escaped_val}"
+            #escaped_val=$(printf '%s\n' "${val}" | sed -e 's/[\/&]/\\&/g')
+            export ${var^^}="${val}"
         done
 
         ## TEMPLATE is a required argument:
