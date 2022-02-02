@@ -159,12 +159,16 @@ Host ssh.d.example.com
 
 ### Clone this repository
 
-Clone this repository to your workstation, and change to this directory:
+Choose a directory to hold the source code and configuration for your new
+server, then clone this repository to that location (modify `GIT_SRC`
+accordingly):
 
 ```
-git clone https://github.com/EnigmaCurry/d.rymcg.tech.git \
-   ~/git/vendor/enigmacurry/d.rymcg.tech
-cd ~/git/vendor/enigmacurry/d.rymcg.tech
+# Each server gets its own copy of this repository:
+GIT_SRC=~/git/d.example.com
+
+git clone https://github.com/EnigmaCurry/d.rymcg.tech.git ${GIT_SRC}
+cd ${GIT_SRC}
 ```
 
 ## Main configuration
