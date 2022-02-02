@@ -125,6 +125,7 @@ Config arguments may be passed as `name=value` arguments to the
  * `dockerfile` - Override the path to the Dockerfile (default: images/Dockerfile.$TEMPLATE)
  * `builddir` - Override the build context directory (default: directory containing shell.sh)
  * `docker_args` - Adds additional docker run arguments (default: none)
+ * `build_args` - Adds additional build arguments: (default: --build-arg FROM)
  * `persistent` :: If persistent=true, keep the container running (default:
    true)
 
@@ -165,6 +166,9 @@ alias docker_arch='shell_container template=arch docker=podman systemd=true sysb
 
 ## Podman debian:
 alias debian='shell_container template=debian docker=podman
+
+## Arch Linux on Raspberry Pi (arm64) which requires a different base image:
+alias arch='shell_container template=arch from=faddat/archlinux'
 ```
 
 You must build the container image the first time:

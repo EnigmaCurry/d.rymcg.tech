@@ -1,4 +1,5 @@
-FROM docker.io/debian:bullseye
+ARG FROM=docker.io/debian:bullseye
+FROM ${FROM}
 
 RUN export DEBIAN_FRONTEND=noninteractive && \
     apt-get update && \

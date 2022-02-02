@@ -22,10 +22,11 @@ COMMAND ?= if test -f ${ENTRYPOINT}; then ${ENTRYPOINT}; else /bin/sh; fi
 DOCKERFILE ?= Dockerfile
 BUILDDIR ?= images/${TEMPLATE}
 DOCKER_ARGS ?=
+BUILD_ARGS ?= --build-arg FROM
 
 .PHONY: network # Make the docker network (named ${NETWORK})
 network:
-	${DOCKER} network create ${NETWORK}
+	${DOCKER} network create ${NETWORK} || true
 
 .PHONY: list # List all shell containers of the given TEMPLATE
 list:
@@ -87,7 +88,7 @@ status: list
 
 .PHONY: build # Build template image
 build:
-	cd ${BUILDDIR} && ${DOCKER} build -t ${IMAGE_PREFIX}/${TEMPLATE} -f ${DOCKERFILE} .
+	cd ${BUILDDIR} && ${DOCKER} build ${BUILD_ARGS} -t ${IMAGE_PREFIX}/${TEMPLATE} -f ${DOCKERFILE} .
 	@echo "Build complete. You must create new containers to use the new image."
 
 .PHONY: create_user # Create a user inside a container with sudo privileges (unless SUDO=false)
