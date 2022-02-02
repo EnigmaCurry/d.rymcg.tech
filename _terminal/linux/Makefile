@@ -87,7 +87,7 @@ status: list
 
 .PHONY: build # Build template image
 build:
-	${DOCKER} build -t ${IMAGE_PREFIX}/${TEMPLATE} -f ${DOCKERFILE} ${BUILDDIR}
+	cd ${BUILDDIR} && ${DOCKER} build -t ${IMAGE_PREFIX}/${TEMPLATE} -f ${DOCKERFILE} .
 	@echo "Build complete. You must create new containers to use the new image."
 
 .PHONY: create_user # Create a user inside a container with sudo privileges (unless SUDO=false)
