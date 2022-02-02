@@ -70,6 +70,7 @@ shell_container() {
 ##   dockerfile :: Override the path to the Dockerfile (default: Dockerfile)
 ##   builddir :: Override the build context directory (default: images/${TEMPLATE})
 ##   docker_args :: Adds additional docker run arguments (default: none)
+##   build_args :: Adds additional build arguments: (default: --build-arg FROM)
 ##   persistent :: If persistent=true, keep the container running (default: true)
 ##
 ## Notes:
@@ -127,7 +128,7 @@ EOF
         ## Process alternative commands that start with "--":
         if [[ $1 == --* ]]; then
             if [[ $1 == "--build" ]]; then
-                MAKE_TARGET=build
+                MAKE_TARGET="network build"
                 shift
             elif [[ $1 == "--list" ]] || [[ $1 == "--status" ]]; then
                 MAKE_TARGET=list
