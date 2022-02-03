@@ -31,3 +31,17 @@ open:
 .PHONY: status # Check status of all sub-projects
 status:
 	docker-compose ls
+
+.PHONY: backup-env # Make an encrypted backup of the .env files
+backup-env:
+	@ROOT_DIR=${ROOT_DIR} ${BIN}/backup_env
+
+.PHONY: restore-env # Restore .env files from encrypted backup
+restore-env:
+	@ROOT_DIR=${ROOT_DIR} ${BIN}/restore_env
+
+.PHONY: delete-env # Delete all .env files recursively
+delete-env:
+	@${BIN}/confirm no "This will find and delete ALL of the .env files recursively"
+	find ${ROOT_DIR} | grep -E '\.env$$' | xargs rm -f
+	@echo "Done."

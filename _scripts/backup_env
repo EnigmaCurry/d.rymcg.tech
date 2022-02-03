@@ -1,0 +1,40 @@
+#!/bin/bash
+
+BIN=$(dirname ${BASH_SOURCE})
+fault(){ echo $1; exit 1; }
+check_var(){ test -n "${!1}" || fault "Missing required environment variable: $1."; }
+
+check_var ROOT_DIR
+ROOT_DOMAIN=$(${BIN}/dotenv -f ${ROOT_DIR}/.env.makefile get ROOT_DOMAIN)
+check_var ROOT_DOMAIN
+
+echo "## Found the following .env files: "
+find ${ROOT_DIR} | grep -E "\.env(.makefile)?$" | tr '\n' ' '
+
+echo ""
+echo ""
+
+${BIN}/confirm yes "This will make a gpg encrypted backup of all of these .env files"
+
+# Load GPG_RECIPIENT from .env.makefile, asking to create it if necessary:
+GPG_RECIPIENT=$(set +e; ${BIN}/dotenv -f ${ROOT_DIR}/.env.makefile get GPG_RECIPIENT)
+set -e
+if [[ -z ${GPG_RECIPIENT} ]]; then
+    echo "No GPG_RECIPIENT found in .env.makefile"
+    ${BIN}/confirm yes "To continue, this script will add a GPG_RECIPIENT permanently to your .env.makefile for you"
+    gpg -k
+    read -p "Enter a valid GPG key (see above) to encrypt backups to: " GPG_RECIPIENT
+    check_var GPG_RECIPIENT
+    gpg -k ${GPG_RECIPIENT} || fault "Invalid GPG_RECPIPIENT, key not known: ${GPG_RECIPIENT}."
+    # Permanently save the GPG_RECIPIENT:
+    ${BIN}/dotenv -f ${ROOT_DIR}/.env.makefile set GPG_RECIPIENT=${GPG_RECIPIENT}
+    # Reload GPG_RECIPIENT from the .env.makefile and verify:
+    GPG_RECIPIENT=$(${BIN}/dotenv -f ${ROOT_DIR}/.env.makefile get GPG_RECIPIENT)
+    gpg -k ${GPG_RECIPIENT} || fault "Invalid GPG_RECPIPIENT, key not known: ${GPG_RECIPIENT}."
+fi
+
+BACKUP_FILE=${ROOT_DIR}/${ROOT_DOMAIN}_environment-backup-$(date +"%Y-%m-%d--%H-%M-%S").tgz.gpg
+find ${ROOT_DIR} | grep -E "\.env(.makefile)?$" | cut -c 3- | tar cz -T - | gpg -e -r ${GPG_RECIPIENT} -o ${BACKUP_FILE}
+echo ""
+(gpg --pinentry-mode cancel --list-packets ${BACKUP_FILE} 2>&1 | head -n 2) || true
+echo "Completed encrypted backup: ${BACKUP_FILE}"
