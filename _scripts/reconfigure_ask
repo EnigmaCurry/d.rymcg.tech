@@ -6,6 +6,7 @@
 
 var=$1; prompt=$2; default=$3;
 
+BIN=$(dirname ${BASH_SOURCE})
 env=${ENV_FILE:-.env}
 env_dist=${ENV_DIST_FILE:-.env-dist}
 
@@ -15,5 +16,4 @@ test -f ${env} || cp ${env_dist} ${env}
 example=$(grep -m 1 -oP "$var=\K.*" ${env_dist})
 
 read -e -p "${var}: ${prompt} (eg. ${example}): " -i "${default}" answer
-escaped_answer=$(printf '%s\n' "${answer}" | sed -e 's/[\/&]/\\&/g')
-sed -i "s/^${var}=.*/${var}=${escaped_answer}/" ${env}
+${BIN}/dotenv -f ${env} set ${var}="${answer}"

@@ -1,11 +1,14 @@
 #!/bin/bash
 
+BIN=$(dirname ${BASH_SOURCE})
+
+env=${ENV_FILE:-.env}
+env_dist=${ENV_DIST_FILE:-.env-dist}
+
 ## Edit/create the .env file setting the vars given as args.
-## This ONLY edits the lines with the given variable names in them.
-test -f .env || cp .env-dist .env
+test -f ${env} || cp ${env_dist} ${env}
 for var in "$@"; do
     parts=(${var//=/ }); var=${parts[0]}; val=${parts[@]:1};
-    escaped_val=$(printf '%s\n' "${val}" | sed -e 's/[\/&]/\\&/g')
-    echo "Setting ${var}=${escaped_val}"
-    sed -i "s/^${var}=.*/${var}=${escaped_val}/" .env
+    ${BIN}/dotenv -f ${env} set ${var}="${val}"
+    echo "Set ${var}=${val}"
 done
