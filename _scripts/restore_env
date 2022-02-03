@@ -1,0 +1,28 @@
+#!/bin/bash
+
+BIN=$(dirname ${BASH_SOURCE})
+fault(){ echo $1; exit 1; }
+check_var(){ test -n "${!1}" || fault "Missing required environment variable: $1."; }
+
+check_var ROOT_DIR
+ROOT_DOMAIN=$(${BIN}/dotenv -f ${ROOT_DIR}/.env.makefile get ROOT_DOMAIN)
+check_var ROOT_DOMAIN
+
+if ! ls *environment-backup*.tgz.gpg 2>&1 >/dev/null; then
+    echo "No backup files found. Please copy your environment backup (.tgz.gpg) file to this directory first."
+    exit 1
+fi
+
+set -e
+echo "Found the following backups:"
+ls *environment-backup*.tgz.gpg
+
+echo ""
+read -p "Enter the backup you wish to restore from: " BACKUP_FILE
+test -f ${BACKUP_FILE} || fault "No such backup file: ${BACKUP_FILE}"
+echo "WARNING: Restoring .env files from backup may overwrite your existing .env files!"
+${BIN}/confirm no "This will restore your .env files from the encrypted backup"
+
+(gpg --pinentry-mode cancel --list-packets ${BACKUP_FILE} 2>&1 | head -n 2) || true
+
+gpg -d ${BACKUP_FILE} | tar xvz
