@@ -1,10 +1,11 @@
 # github-actions-runner
 
-This container runs Docker in Docker (`dind`) and a self-hosted github actions
-runner. The containerized docker server is run without any root privileges via
-[sysbox](https://github.com/nestybox/sysbox). Sysbox is an alternative runc, so
-that docker can run apps in an unprivileged container, and do things that
-otherwise would require root privileges.
+This container runs [Docker in Docker](https://hub.docker.com/_/docker/)
+(`dind`) and a self-hosted github actions runner to build docker images from a
+git source code repository. The containerized docker server is run without any
+root privileges via [sysbox](https://github.com/nestybox/sysbox). Sysbox is an
+alternative runc, so that docker can run apps in an unprivileged container, and
+to do things that otherwise would require root (docker socket) privileges.
 
 You can use this runner to build docker images *inside* docker.
 

@@ -1,6 +1,8 @@
 # _scripts
 
-This directory contains *optional* bash scripts to help configure things.
+This directory contains *optional* bash scripts to help the Makefiles configure
+things. You shouldn't run any of these scripts directly, they are meant only to
+be called from the Makefiles.
 
 ## What's optional exactly?
 
@@ -9,4 +11,5 @@ Every project here is created to be a simple docker-compose project, configured
 Makefiles, as long as you edit the `.env` files by hand, and just run
 `docker-compose` directly.
 
-These are helpers only, to help create `.env` files, and to automate repetitive admin tasks.
+These are helpers only, to help create `.env` files, and to automate repetitive
+admin tasks.

@@ -5,12 +5,15 @@
 ## This ONLY edits the lines with the given variable names in them.
 
 var=$1; prompt=$2; default=$3;
-## Make new .env if it doesn't exist:
-test -f .env || cp .env-dist .env
 
-example=$(grep -m 1 -oP "$var=\K.*" .env-dist)
+env=${ENV_FILE:-.env}
+env_dist=${ENV_DIST_FILE:-.env-dist}
+
+## Make new .env if it doesn't exist:
+test -f ${env} || cp ${env_dist} ${env}
+
+example=$(grep -m 1 -oP "$var=\K.*" ${env_dist})
 
 read -e -p "${var}: ${prompt} (eg. ${example}): " -i "${default}" answer
 escaped_answer=$(printf '%s\n' "${answer}" | sed -e 's/[\/&]/\\&/g')
-sed -i "s/^${var}=.*/${var}=${escaped_answer}/" .env
-
+sed -i "s/^${var}=.*/${var}=${escaped_answer}/" ${env}
