@@ -12,13 +12,13 @@ network:
 	docker network inspect traefik-proxy >/dev/null || docker network create traefik-proxy
 
 .PHONY: check-docker # Check if docker is running
-check-docker: 
+check-docker:
 	@docker info >/dev/null && echo "Docker is running." || (echo "Could not connect to Docker!" && false)
 
 .PHONY: config # Configure main variables
 config: check-docker network
 	@echo ""
-	@${BIN}/reconfigure_project ROOT_DOMAIN "Enter the default root domain for all your projects" d.example.com
+	@ENV_FILE=".env.makefile" ENV_DIST_FILE=".env-dist.makefile" ${BIN}/reconfigure_ask ROOT_DOMAIN "Enter the default root domain for all your projects"
 
 .PHONY: build # build all container images
 build: build-traefik-htpasswd

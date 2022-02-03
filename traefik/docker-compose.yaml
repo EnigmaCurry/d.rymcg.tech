@@ -18,42 +18,44 @@ services:
     container_name: "traefik"
     restart: unless-stopped
     networks:
-    - traefik-proxy
+      - traefik-proxy
     security_opt:
-    - no-new-privileges:true
+      - no-new-privileges:true
     command:
-    #- "--log.level=DEBUG"
-    - "--providers.docker=true"
-    - "--providers.docker.exposedbydefault=false"
-    - "--providers.docker.network=traefik-proxy"
-    ## Entrypoints:
-    - "--entrypoints.web.address=:80"
-    - "--entrypoints.websecure.address=:443"
-    - "--entrypoints.mqtt.address=:8883"
-    - "--entrypoints.ssh.address=:2222"
-    ## Automatically redirect HTTP to HTTPS
-    - "--entrypoints.web.http.redirections.entryPoint.to=websecure"
-    ## ACME TLS (Let's Encrypt):
-    - "--certificatesresolvers.production.acme.tlschallenge=true"
-    - "--certificatesresolvers.staging.acme.tlschallenge=true"
-    - "--certificatesresolvers.production.acme.caserver=https://acme-v02.api.letsencrypt.org/directory"
-    - "--certificatesresolvers.staging.acme.caserver=https://acme-staging-v02.api.letsencrypt.org/directory"
-    - "--certificatesresolvers.production.acme.email=${ACME_CA_EMAIL}"
-    - "--certificatesresolvers.staging.acme.email=${ACME_CA_EMAIL}"
-    - "--certificatesresolvers.production.acme.storage=/data/acme-production.json"
-    - "--certificatesresolvers.staging.acme.storage=/data/acme-staging.json"
-    ## Enable Dashboard available only from the docker localhost:8080
-    - "--api.dashboard=true"
-    - "--api.insecure=true"
-    ## Load local plugins that have been bundled into the traefik image:
-    - "--experimental.localPlugins.blockpath.modulename=github.com/traefik/plugin-blockpath"
+      #- "--log.level=DEBUG"
+      - "--providers.docker=true"
+      - "--providers.docker.exposedbydefault=false"
+      - "--providers.docker.network=traefik-proxy"
+      ## Entrypoints:
+      - "--entrypoints.web.address=:80"
+      - "--entrypoints.websecure.address=:443"
+      - "--entrypoints.mqtt.address=:8883"
+      - "--entrypoints.ssh.address=:2222"
+      #- "--entrypoints.dns.address=:53"
+      ## Automatically redirect HTTP to HTTPS
+      - "--entrypoints.web.http.redirections.entryPoint.to=websecure"
+      ## ACME TLS Challenge (Let's Encrypt):
+      - "--certificatesresolvers.production.acme.tlschallenge=true"
+      - "--certificatesresolvers.staging.acme.tlschallenge=true"
+      - "--certificatesresolvers.production.acme.caserver=https://acme-v02.api.letsencrypt.org/directory"
+      - "--certificatesresolvers.staging.acme.caserver=https://acme-staging-v02.api.letsencrypt.org/directory"
+      - "--certificatesresolvers.production.acme.email=${ACME_CA_EMAIL}"
+      - "--certificatesresolvers.staging.acme.email=${ACME_CA_EMAIL}"
+      - "--certificatesresolvers.production.acme.storage=/data/acme-production.json"
+      - "--certificatesresolvers.staging.acme.storage=/data/acme-staging.json"
+      ## Enable Dashboard available only from the docker localhost:8080
+      - "--api.dashboard=true"
+      - "--api.insecure=true"
+      ## Load local plugins that have been bundled into the traefik image:
+      - "--experimental.localPlugins.blockpath.modulename=github.com/traefik/plugin-blockpath"
     ports:
-    - "80:80"
-    - "443:443"
-    - "8883:8883"
-    - "2222:2222"
-    - "127.0.0.1:8080:8080"
+      #- "53:53"
+      - "80:80"
+      - "443:443"
+      - "8883:8883"
+      - "2222:2222"
+      - "127.0.0.1:8080:8080"
     volumes:
-    - "traefik:/data"
-    - "/var/run/docker.sock:/var/run/docker.sock:ro"
+      - "traefik:/data"
+      - "/var/run/docker.sock:/var/run/docker.sock:ro"
 
