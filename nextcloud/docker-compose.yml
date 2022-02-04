@@ -85,21 +85,31 @@ services:
       #- "traefik.frontend.redirect.regex='https://(.*)/.well-known/(card|cal)dav'"
       #- "traefik.frontend.redirect.replacement='https://$$1/remote.php/dav/'"
 
-  data_backup:
-    hostname: data_backup
+  backup:
+    hostname: backup
     restart: unless-stopped
     build:
-      context: data_backup
+      context: nextcloud_backup
     volumes:
       - data:/data
     environment:
       ## See https://github.com/lobaro/restic-backup-docker#environment-variables
       - RESTIC_REPOSITORY=s3:https://${BACKUP_S3_HOST}/${BACKUP_S3_BUCKET}/${NEXTCLOUD_TRAEFIK_HOST}/data
       - RESTIC_PASSWORD=${BACKUP_ENCRYPTION_PASSWORD}
-      - BACKUP_CRON=${APP_BACKUP_SCHEDULE}
+      - BACKUP_CRON=${BACKUP_SCHEDULE}
       - AWS_ACCESS_KEY_ID=${BACKUP_S3_KEY}
       - AWS_SECRET_ACCESS_KEY=${BACKUP_S3_SECRET}
       - RESTIC_FORGET_ARGS=--prune --keep-daily 7 --keep-weekly 4 --keep-monthly 6 --keep-yearly 3
+
+      - POSTGRES_HOST=postgres
+      - POSTGRES_DATABASE=all
+      - POSTGRES_USER=nextcloud
+      - POSTGRES_PASSWORD=${DATABASE_PASSWORD}
+      - BACKUP_S3_BUCKET=${BACKUP_S3_BUCKET}
+      - BACKUP_S3_PREFIX=${NEXTCLOUD_TRAEFIK_HOST}/postgres
+      - BACKUP_S3_ENDPOINT=https://${BACKUP_S3_HOST}
+      - ENCRYPTION_PASSWORD=${BACKUP_ENCRYPTION_PASSWORD}
+      - DATABASE_BACKUP_DELETE_OLDER_THAN=${DATABASE_BACKUP_DELETE_OLDER_THAN}
 
   cron:
     image: nextcloud:apache
