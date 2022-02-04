@@ -3,6 +3,8 @@ version: "3.3"
 networks:
   traefik-proxy:
     name: traefik-proxy
+  traefik-wireguard:
+    name: traefik-wireguard
 
 volumes:
   traefik:
@@ -19,6 +21,7 @@ services:
     restart: unless-stopped
     networks:
       - traefik-proxy
+      - traefik-wireguard
     security_opt:
       - no-new-privileges:true
     command:
@@ -31,6 +34,7 @@ services:
       - "--entrypoints.websecure.address=:443"
       - "--entrypoints.mqtt.address=:8883"
       - "--entrypoints.ssh.address=:2222"
+      #- "--entrypoints.vpn.address=:442"
       #- "--entrypoints.dns.address=:53"
       ## Automatically redirect HTTP to HTTPS
       - "--entrypoints.web.http.redirections.entryPoint.to=websecure"
