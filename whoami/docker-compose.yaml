@@ -46,9 +46,9 @@ services:
       - "traefik.http.routers.whoami-test.middlewares=testHeader@docker"
 
       # Test forward authentication on secondary domain: auth.whoami.example.com
-      - "traefik.http.routers.whoami-auth.rule=Host(`auth.${WHOAMI_TRAEFIK_HOST}`)"
-      - "traefik.http.routers.whoami-auth.entrypoints=websecure"
-      - "traefik.http.routers.whoami-auth.tls.certresolver=${ACME_CERT_RESOLVER}"
-      - "traefik.http.routers.whoami-auth.middlewares=traefik-forward-auth@docker"
+      # - "traefik.http.routers.whoami-auth.rule=Host(`auth.${WHOAMI_TRAEFIK_HOST}`)"
+      # - "traefik.http.routers.whoami-auth.entrypoints=websecure"
+      # - "traefik.http.routers.whoami-auth.tls.certresolver=${ACME_CERT_RESOLVER}"
+      # - "traefik.http.routers.whoami-auth.middlewares=traefik-forward-auth@docker"
 
       

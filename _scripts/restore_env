@@ -15,7 +15,7 @@ fi
 
 set -e
 echo "Found the following backups:"
-ls *environment-backup*.tgz.gpg
+ls -1t *environment-backup*.tgz.gpg
 
 echo ""
 read -p "Enter the backup you wish to restore from: " BACKUP_FILE

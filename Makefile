@@ -46,3 +46,12 @@ delete-env:
 	@${BIN}/confirm no "This will find and delete ALL of the .env files recursively"
 	find ${ROOT_DIR} | grep -E '\.env$$' | xargs rm -f
 	@echo "Done."
+
+.PHONY: delete-passwords # Delete saved passwords.json files
+delete-passwords:
+	@${BIN}/confirm no "This will find and delete ALL of the passwords.json files recursively"
+	find ${ROOT_DIR} | grep -E 'passwords.json$$' | xargs rm -f
+	@echo "Done."
+
+.PHONY: clean # Remove all private files (.env and passwords.json files)
+clean: delete-env delete-passwords
