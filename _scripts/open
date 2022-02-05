@@ -1,0 +1,47 @@
+#!/bin/bash
+
+# Find project URL
+# Find saved username/password
+# Open URL in browser
+## Optional arguments override URL parts:
+## $1 host
+## $2 path
+## $3 protocol (https)
+
+if [[ ! -f .env ]]; then
+    echo "No .env file found"
+    exit 1
+fi
+
+HOST=${1:-$(grep -m 1 -oP "TRAEFIK_HOST=\K.*" .env)}
+URL_PATH=${2:-"/"}
+PROTOCOL=${3:-"https"}
+
+if [[ -z ${HOST} ]]; then
+    echo "Hostname must not be blank"
+    exit 1
+fi
+if [[ ${URL_PATH} != /* ]]; then
+    echo "URL must start with /"
+    exit 1
+fi
+
+## Use 'jq' if installed, otherwise use the docker (Alpine) version:
+source $(dirname ${BASH_SOURCE})/wrapper.sh
+jq() {
+    wrapper_build jq <<EOF
+FROM alpine
+RUN apk add -U jq
+EOF
+    wrapper jq "${@}" </dev/stdin
+}
+
+if [[ -f passwords.json ]]; then
+    URL_PASSWORD=$(jq -r '(.[0].username) + ":" + (.[0].url_encoded)' <passwords.json)"@"
+else
+    URL_PASSWORD=""
+fi
+
+URL="${PROTOCOL}://${URL_PASSWORD}${HOST}${URL_PATH}"
+set -x
+xdg-open ${URL}

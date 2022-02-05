@@ -11,7 +11,7 @@ config:
 
 .PHONY: open # Start SSH tunnel and open the Traefik Dashboard
 open:
-	@curl localhost:8080 2>&1 >/dev/null && xdg-open http://localhost:8080/dashboard/#/http/routers || (ssh -N -L 8080:localhost:8080 ssh.${ROOT_DOMAIN} &  echo "Starting SSH Tunnel ..." && sleep 5 && xdg-open http://localhost:8080/dashboard/#/http/routers)
+	@curl localhost:8080 2>&1 >/dev/null && ${BIN}/open 127.0.0.1:8080 /dashboard/#/http/routers http || (ssh -N -L 8080:localhost:8080 ssh.${ROOT_DOMAIN} &  echo "Starting SSH Tunnel ..." && sleep 5 && ${BIN}/open 127.0.0.1:8080 /dashboard/#/http/routers http)
 
 .PHONY: close # Stop the dashboard SSH tunnel
 close:

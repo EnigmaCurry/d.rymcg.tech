@@ -3,12 +3,25 @@
 [Traefik](https://github.com/traefik/traefik) is a modern
 HTTP reverse proxy and load balancer.
 
-Copy `.env-dist` to `.env` and edit the following:
+## Config
 
- * `ACME_CA_EMAIL` this is YOUR email address, where you will receive notices
-   from Let's Encrypt regarding your domains and related certificates.
+Run `make config` or copy `.env-dist` to `.env` and edit the following:
 
-To start Traefik, go into the traefik directory and run `docker-compose up -d`
+ * `ACME_CA_EMAIL` this is your personal/work email address, where you will
+   receive notices from Let's Encrypt regarding your domains and related
+   certificates or if theres some other problem with your account.
+ * `TRAEFIK_DASHBOARD_AUTH` this is the htpasswd encoded username/password to
+   access the Traefik API and dashboard. If you ran `make config` this would be
+   filled in for you, simply by answering the questions.
+   
+One of the questions `make config` will ask you is if you would like to save
+`passwords.json` into this same directory. This file is not created by default,
+but only if you answer yes to this question. `passwords.json` will store the
+plain text password for the dashboard to make it easier to log in (`make open`
+will automatically open your browser to the dashboard, filling in the
+username/password for you, read from `passwords.json`).
+
+To start Traefik, run `make install` or `docker-compose up -d`.
 
 ## Dashboard
 
@@ -28,7 +41,8 @@ You can quickly do all of the above by running the Makefile target:
 
 ```
 # Starts the SSH tunnel if its not already running, 
-# and automatically opens your browser:
+# and automatically opens your browser, 
+# prefilling the username/password if its available in passwords.json:
 make open
 ```
 
