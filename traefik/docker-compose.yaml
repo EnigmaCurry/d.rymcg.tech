@@ -14,7 +14,7 @@ services:
     build:
       context: .
       args:
-        TRAEFIK_IMAGE: traefik:v2.5
+        TRAEFIK_IMAGE: traefik:v2.6
         BLOCKPATH_MODULE: github.com/traefik/plugin-blockpath
         BLOCKPATH_GIT_BRANCH: master
     container_name: "traefik"
@@ -34,6 +34,7 @@ services:
       - "--entrypoints.websecure.address=:443"
       - "--entrypoints.mqtt.address=:8883"
       - "--entrypoints.ssh.address=:2222"
+      - "--entrypoints.traefik.address=:8080"
       #- "--entrypoints.vpn.address=:442"
       #- "--entrypoints.dns.address=:53"
       ## Automatically redirect HTTP to HTTPS
@@ -47,9 +48,8 @@ services:
       - "--certificatesresolvers.staging.acme.email=${ACME_CA_EMAIL}"
       - "--certificatesresolvers.production.acme.storage=/data/acme-production.json"
       - "--certificatesresolvers.staging.acme.storage=/data/acme-staging.json"
-      ## Enable Dashboard available only from the docker localhost:8080
+      ## Enable Dashboard available only from the docker localhost:8080 (password required)
       - "--api.dashboard=true"
-      - "--api.insecure=true"
       ## Load local plugins that have been bundled into the traefik image:
       - "--experimental.localPlugins.blockpath.modulename=github.com/traefik/plugin-blockpath"
     ports:
@@ -62,4 +62,10 @@ services:
     volumes:
       - "traefik:/data"
       - "/var/run/docker.sock:/var/run/docker.sock:ro"
-
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.api.rule=PathPrefix(`/api`) || PathPrefix(`/dashboard`)"
+      - "traefik.http.routers.api.entrypoints=traefik"
+      - "traefik.http.routers.api.service=api@internal"
+      - "traefik.http.routers.api.middlewares=traefik-dashboard-auth"
+      - "traefik.http.middlewares.traefik-dashboard-auth.basicauth.users=${TRAEFIK_DASHBOARD_AUTH}"

@@ -5,6 +5,9 @@ include ../_scripts/Makefile.projects-no-open
 config:
 	@echo "Let's Encrypt will helpfully email you when your certificates are about to expire."
 	@${BIN}/reconfigure_ask ACME_CA_EMAIL "Enter your email address for Let's Encrypt (blank to skip)"
+	@echo ""
+	@echo "It's important to protect the dashboard and so a username/password is required."
+	@${BIN}/reconfigure_htpasswd TRAEFIK_DASHBOARD_AUTH
 
 .PHONY: open # Start SSH tunnel and open the Traefik Dashboard
 open:

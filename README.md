@@ -264,7 +264,6 @@ Install these services at your leisure/preference:
 
 Bespoke things:
 
-* [traefik-htpasswd](traefik-htpasswd)
 * [experimental ad-hoc certifcate CA](certificate-ca)
 
 Extra stuff:

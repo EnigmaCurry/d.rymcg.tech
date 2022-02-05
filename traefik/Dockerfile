@@ -1,4 +1,4 @@
-ARG TRAEFIK_IMAGE=traefik:v2.5
+ARG TRAEFIK_IMAGE
 
 FROM alpine:3
 ARG BLOCKPATH_MODULE=github.com/traefik/plugin-blockpath
