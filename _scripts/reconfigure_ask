@@ -14,6 +14,10 @@ env_dist=${ENV_DIST_FILE:-.env-dist}
 test -f ${env} || cp ${env_dist} ${env}
 
 example=$(grep -m 1 -oP "$var=\K.*" ${env_dist})
+existing=$(grep -m 1 -oP "$var=\K.*" ${env})
+if [[ $existing != $example ]]; then
+    default=${default:-${existing}}
+fi
 
 read -e -p "${var}: ${prompt} (eg. ${example}): " -i "${default}" answer
 ${BIN}/dotenv -f ${env} set ${var}="${answer}"
