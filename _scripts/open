@@ -44,4 +44,5 @@ fi
 
 URL="${PROTOCOL}://${URL_PASSWORD}${HOST}${URL_PATH}"
 set -x
-xdg-open ${URL}
+xdg-open "${URL}"
+
