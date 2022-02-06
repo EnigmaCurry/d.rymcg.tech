@@ -1,0 +1,26 @@
+version: '3'
+
+networks:
+  traefik-proxy:
+    name: traefik-proxy
+
+volumes:
+  config:
+
+services:
+  config:
+    build:
+      context: config
+    env_file: .env
+    volumes:
+      - config:/etc/matterbridge
+
+  matterbridge:
+    container_name: matterbridge
+    depends_on: ['config']
+    image: 42wim/matterbridge:stable
+    networks:
+      - default
+      - traefik-proxy
+    volumes:
+      - config:/etc/matterbridge:ro
