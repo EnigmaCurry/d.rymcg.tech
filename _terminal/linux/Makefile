@@ -18,9 +18,9 @@ USERNAME ?= root
 SUDO ?= false
 WORKDIR ?= /
 ENTRYPOINT ?= /bin/bash
-COMMAND ?= if test -f ${ENTRYPOINT}; then ${ENTRYPOINT}; else /bin/sh; fi
+COMMAND ?= /bin/sh -c 'if test -f ${ENTRYPOINT}; then ${ENTRYPOINT}; else /bin/sh; fi'
 DOCKERFILE ?= Dockerfile
-BUILDDIR ?= images/${TEMPLATE}
+BUILDSRC ?= images/${TEMPLATE}
 DOCKER_ARGS ?=
 BUILD_ARGS ?= --build-arg FROM
 
@@ -34,7 +34,7 @@ list:
 
 .PHONY: run # Run command directly (don't start shell server)
 run:
-	${DOCKER} run --rm -it --name ${NAME} --hostname ${NAME} --network ${NETWORK} -v ${SHARED_VOLUME}:${SHARED_MOUNT} --label="${LABEL}.template=${TEMPLATE}" $(shell if [[ ${SYSBOX} == true ]]; then echo "--runtime=sysbox-runc"; fi) ${DOCKER_ARGS} ${IMAGE} ${COMMAND}
+	${DOCKER} run --rm -it --hostname ${NAME} --network ${NETWORK} -v ${SHARED_VOLUME}:${SHARED_MOUNT} --label="${LABEL}.template=${TEMPLATE}" $(shell if [[ ${SYSBOX} == true ]]; then echo "--runtime=sysbox-runc"; fi) ${DOCKER_ARGS} ${IMAGE} ${COMMAND}
 
 .PHONY: start # Start the shell container (named ${NAME})
 start:
@@ -62,7 +62,7 @@ stop-all:
 
 .PHONY: shell # Connect to the shell container (named ${NAME})
 shell: start
-	${DOCKER} exec -it --user=${USERNAME} --workdir=${WORKDIR} ${NAME} /bin/sh -c "${COMMAND}"
+	${DOCKER} exec -it --user=${USERNAME} --workdir=${WORKDIR} ${NAME} ${COMMAND}
 
 .PHONY: rm
 rm: destroy
@@ -88,7 +88,11 @@ status: list
 
 .PHONY: build # Build template image
 build:
-	cd ${BUILDDIR} && ${DOCKER} build ${BUILD_ARGS} -t ${IMAGE_PREFIX}/${TEMPLATE} -f ${DOCKERFILE} .
+	if [ -d ${BUILDSRC} ]; then \
+		cd ${BUILDSRC} && ${DOCKER} build ${BUILD_ARGS} -t ${IMAGE_PREFIX}/${TEMPLATE} -f ${DOCKERFILE} .; \
+	else \
+		${DOCKER} build ${BUILD_ARGS} -t ${IMAGE_PREFIX}/${TEMPLATE} -f ${DOCKERFILE} ${BUILDSRC}; \
+	fi
 	@echo "Build complete. You must create new containers to use the new image."
 
 .PHONY: create_user # Create a user inside a container with sudo privileges (unless SUDO=false)

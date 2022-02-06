@@ -1,7 +1,7 @@
 # Linux shell containers
 
-This project will help create and manage several temporary, ephemeral, yet
-long-running shell accounts, running in containers. Each container is joined
+This tool will create and manage several temporary, ephemeral containers,
+hosting short and/or long-running shell accounts. Each container is joined
 automatically to the same docker/podman network and have a common mounted volume
 for easily sharing files between containers (eg. `/shared`). With customizable
 Bash shell aliases, and on-the-fly container creation, Linux Shell Containers
@@ -44,9 +44,12 @@ arch --list
 arch --rm-all
 ```
 
-Systemd is optional, and turned off by default. The default "init" is just a
-simple `while true; do sleep 10; done` loop, in order to keep the container
-alive. While not a true init, it seems to do the job.
+Systemd is optional, and turned off by default. By default, containers run a
+terminal program, and stop when the program quits. For persistent containers,
+(`persistent=true`) the default "init" is just a simple `while true; do sleep
+10; done` loop, in order to keep the container alive in the background. This way
+you can run `screen` or `tmux`, and disconnect and reconnect later. While not a
+true init, it seems to do the job.
 
 This script will work with Docker and/or Podman. Docker has an *optional*
 dependency on [sysbox](https://github.com/nestybox/sysbox) which you may install
@@ -98,7 +101,7 @@ file to keep it available permanently.
 The names of the aliases do not matter (and cannot be detected by the script),
 only the template name and other arguments that you pass matter. The template
 names indicate the the default build directory to use from the [images](images)
-directory (or this can be overriden with the `builddir` and `dockerfile`
+directory (or this can be overriden with the `buildsrc` and `dockerfile`
 arguments). The template name also serves as a label on containers to group
 select them by template name for the operations `--list`, `--start-all`, `--stop-all`, and
 `--rm-all`.
@@ -123,11 +126,11 @@ Config arguments may be passed as `name=value` arguments to the
  * `shared_volume` - The name of the volume to share with the container (default: shell-shared)
  * `shared_mount` - The mountpoint inside the container for the shared volume: (default: /shared)
  * `dockerfile` - Override the path to the Dockerfile (default: images/Dockerfile.$TEMPLATE)
- * `builddir` - Override the build context directory (default: directory containing shell.sh)
+ * `buildsrc` - Override the build context directory (default: directory containing shell.sh)
  * `docker_args` - Adds additional docker run arguments (default: none)
  * `build_args` - Adds additional build arguments: (default: --build-arg FROM)
  * `persistent` :: If persistent=true, keep the container running (default:
-   true)
+   false)
 
 Alternatively, the config may be passed as environment variables. (Use
 uppercased names for environment variables, eg. `TEMPLATE`, `NAME`, etc.)
@@ -159,16 +162,20 @@ Here's some more example aliases:
 
 ```
 ## Podman systemd enabled Arch Linux:
-alias podman_arch='shell_container template=arch docker=podman systemd=true'
+alias podman_arch='shell_container template=arch persistent=true docker=podman systemd=true'
 
 ## Docker systemd enabled Arch Linux (requires sysbox-runc to be installed):
-alias docker_arch='shell_container template=arch docker=podman systemd=true sysbox=true'
+alias docker_arch='shell_container template=arch persistent=true docker=podman systemd=true sysbox=true'
 
 ## Podman debian:
-alias debian='shell_container template=debian docker=podman
+alias debian='shell_container template=debian persistent=true docker=podman
 
 ## Arch Linux on Raspberry Pi (arm64) which requires a different base image:
-alias arch='shell_container template=arch from=faddat/archlinux'
+alias arch='shell_container template=arch persistent=true from=faddat/archlinux'
+
+## tty-clock displays a digital clock in your terminal.
+## This builds directly from a git repository on github:
+alias clock='TIMEZONE=America/Los_Angeles shell_container docker=podman template=tty-clock build_args="--build-arg TIMEZONE" buildsrc=https://github.com/enigmacurry/tty-clock.git command="tty-clock -c -s -C 3 -b"'
 ```
 
 You must build the container image the first time:
@@ -244,7 +251,7 @@ Create a new alias that points to the project directory containing the Dockerfil
 DAW_HOME=${HOME}/git/vendor/enigmacurry/daw
 DAW_PROJECT=sampler
 DAW_SAMPLES=${HOME}/Samples
-alias daw='shell_container docker=podman template=daw builddir=${DAW_HOME} docker_args="-v ${DAW_SAMPLES}:/daw/samples --volume=/run/user/$(id -u)/pulse:/run/user/1000/pulse" shared_volume=${HOME}/git/vendor/enigmacurry/daw shared_mount=/daw workdir=/daw/projects/${DAW_PROJECT}'
+alias daw='shell_container docker=podman template=daw buildsrc=${DAW_HOME} docker_args="-v ${DAW_SAMPLES}:/daw/samples --volume=/run/user/$(id -u)/pulse:/run/user/1000/pulse" shared_volume=${HOME}/git/vendor/enigmacurry/daw shared_mount=/daw workdir=/daw/projects/${DAW_PROJECT}'
 ```
 
 The arguments explained:
@@ -252,10 +259,10 @@ The arguments explained:
  * `docker=podman` - This uses Podman instead of Docker to create the container
  * `template=daw` - The name of the template. The name of the Dockerfile used to
    build the image is normally derrived from this template name, however in this
-   case, because `builddir` is specified explicitly, the template name can be
+   case, because `buildsrc` is specified explicitly, the template name can be
    anything you want.
- * `builddir` - This overrides the build context directory to use the project
-   root instead of the default [images/TEMPLATE](images) directory.
+ * `buildsrc` - This overrides the build context directory or URL to use as the
+   project root instead of the default [images/TEMPLATE](images) directory.
  * `dockerfile` - This overrides the path to the Dockerfile used to build the
    image.
  * `docker_args` - These are any extra `docker run` arguments that you want to

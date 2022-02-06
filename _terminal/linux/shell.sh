@@ -68,7 +68,7 @@ shell_container() {
 ##   shared_volume :: The name of the volume to share with the container (default: shell-shared)
 ##   shared_mount :: The mountpoint inside the container for the shared volume: (default: /shared)
 ##   dockerfile :: Override the path to the Dockerfile (default: Dockerfile)
-##   builddir :: Override the build context directory (default: images/${TEMPLATE})
+##   buildsrc :: Override the build context directory or URL (default: images/${TEMPLATE})
 ##   docker_args :: Adds additional docker run arguments (default: none)
 ##   build_args :: Adds additional build arguments: (default: --build-arg FROM)
 ##   persistent :: If persistent=true, keep the container running (default: true)
@@ -124,7 +124,7 @@ EOF
             exit 1
         fi
 
-        MAKE_TARGET=shell
+        MAKE_TARGET=run
         ## Process alternative commands that start with "--":
         if [[ $1 == --* ]]; then
             if [[ $1 == "--build" ]]; then
@@ -179,12 +179,12 @@ EOF
         fi
 
         ## If a username is specified, create the account first:
-        if [[ $MAKE_TARGET == "shell" ]] && [[ -n ${USERNAME} ]]; then
+        if [[ $MAKE_TARGET == "run" ]] && [[ -n ${USERNAME} ]]; then
             make --no-print-directory -C ${SRC_DIR} start create_user
         fi
 
-        if [[ ${MAKE_TARGET} == "shell" ]] && [[ ${PERSISTENT:-true} != "true" ]]; then
-            MAKE_TARGET=run
+        if [[ ${MAKE_TARGET} == "run" ]] && [[ ${PERSISTENT:-false} == "true" ]]; then
+            MAKE_TARGET=shell
         fi
 
         ## Run the Makefile:
