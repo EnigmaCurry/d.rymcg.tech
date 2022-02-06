@@ -249,6 +249,7 @@ Install these services at your leisure/preference:
 * [Invidious](invidious) - a Youtube proxy
 * [Jupyterlab](jupyterlab) - a web based code editing environment / reproducible research tool
 * [Larynx](larynx) - a speech synthesis engine
+* [Matterbridge](matterbridge) - a chat room bridge (IRC, Matrix, XMPP, etc)
 * [Maubot](maubot) - a matrix Bot
 * [Minio](minio) - an S3 storage server
 * [Mosquitto](mosquitto) - an MQTT server
