@@ -4,8 +4,8 @@
 # Find saved username/password
 # Open URL in browser
 ## Optional arguments override URL parts:
-## $1 host
-## $2 path
+## $1 path
+## $2 host
 ## $3 protocol (https)
 
 if [[ ! -f .env ]]; then
@@ -13,16 +13,16 @@ if [[ ! -f .env ]]; then
     exit 1
 fi
 
-HOST=${1:-$(grep -m 1 -oP "TRAEFIK_HOST=\K.*" .env)}
-URL_PATH=${2:-"/"}
+URL_PATH=${1:-"/"}
+HOST=${2:-$(grep -m 1 -oP "TRAEFIK_HOST=\K.*" .env)}
 PROTOCOL=${3:-"https"}
 
-if [[ -z ${HOST} ]]; then
-    echo "Hostname must not be blank"
-    exit 1
-fi
 if [[ ${URL_PATH} != /* ]]; then
     echo "URL must start with /"
+    exit 1
+fi
+if [[ -z ${HOST} ]]; then
+    echo "Hostname must not be blank"
     exit 1
 fi
 

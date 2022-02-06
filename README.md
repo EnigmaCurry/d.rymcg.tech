@@ -244,6 +244,7 @@ Install these services at your leisure/preference:
 * [Bitwarden](bitwarden_rs)
 * [CryptPad](cryptpad)
 * [ejabberd](ejabberd)
+* [filestash](filestash)
 * [FreshRSS](freshrss)
 * [Invidious](invidious)
 * [Jupyterlab](jupyterlab)

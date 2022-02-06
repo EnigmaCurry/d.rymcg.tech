@@ -10,10 +10,11 @@ up: start
 
 .PHONY: stop # Stops services
 stop:
-	docker-compose down
+	docker-compose stop
 
 .PHONY: down
-down: stop
+down: 
+	docker-compose down
 
 .PHONY: restart # Restart services
 restart:
@@ -30,4 +31,4 @@ status:
 
 .PHONY: logs # View container logs
 logs:
-	docker-compose logs
+	docker-compose logs -f

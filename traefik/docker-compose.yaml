@@ -14,7 +14,7 @@ services:
     build:
       context: .
       args:
-        TRAEFIK_IMAGE: traefik:v2.6
+        TRAEFIK_IMAGE: ${TRAEFIK_IMAGE}
         BLOCKPATH_MODULE: github.com/traefik/plugin-blockpath
         BLOCKPATH_GIT_BRANCH: master
     container_name: "traefik"
@@ -25,7 +25,7 @@ services:
     security_opt:
       - no-new-privileges:true
     command:
-      #- "--log.level=DEBUG"
+      - "--log.level=${TRAEFIK_LOG_LEVEL}"
       - "--providers.docker=true"
       - "--providers.docker.exposedbydefault=false"
       - "--providers.docker.network=traefik-proxy"
@@ -63,6 +63,8 @@ services:
       - "traefik:/data"
       - "/var/run/docker.sock:/var/run/docker.sock:ro"
     labels:
+      ## Require HTTP Basic Auth for api and dashboard which runs only on the
+      ## traefik endpoint (unexposed port 8080):
       - "traefik.enable=true"
       - "traefik.http.routers.api.rule=PathPrefix(`/api`) || PathPrefix(`/dashboard`)"
       - "traefik.http.routers.api.entrypoints=traefik"

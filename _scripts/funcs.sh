@@ -6,7 +6,7 @@ require_input() {
     test -z ${3} && dflt="" || dflt=" (${3})"
     read -p "$1$dflt: " $2
     eval $2=${!2:-${3}}
-    test -v ${!2} && echo "$2 must not be blank, exiting." && exit    
+    test -v ${!2} && echo "$2 must not be blank, exiting." && exit
 }
 
 docker_run_with_env() {
