@@ -230,38 +230,38 @@ install the [whoami](whoami) container to test things are working.
 
 Install these first:
 
-* [Traefik](traefik)
-* [whoami](whoami)
+* [Traefik](traefik) - TLS reverse proxy
+* [whoami](whoami) - HTTP test service
 
 If you want a git host + OAuth identity server, install these next:
 
-* [Gitea](gitea)
-* [traefik-forward-auth](traefik-forward-auth)
+* [Gitea](gitea) - Git host (like self-hosted GitHub) and oauth server
+* [traefik-forward-auth](traefik-forward-auth) - Traefik oauth middleware
 
 Install these services at your leisure/preference:
 
-* [Baikal](baikal)
-* [Bitwarden](bitwarden_rs)
-* [CryptPad](cryptpad)
-* [ejabberd](ejabberd)
-* [filestash](filestash)
-* [FreshRSS](freshrss)
-* [Invidious](invidious)
-* [Jupyterlab](jupyterlab)
-* [Larynx](larynx)
-* [Maubot](maubot)
-* [minio](minio)
-* [Mosquitto](mosquitto)
-* [Nextcloud](nextcloud)
-* [Node-RED](nodered)
-* [Piwigo](piwigo)
-* [s3-proxy](s3-proxy)
-* [SFTP](sftp)
-* [Shaarli](shaarli)
-* [Syncthing](syncthing)
-* [Tiny Tiny RSS](ttrss)
-* [websocketd](websocketd)
-* [xBrowserSync](xbs)
+* [Baikal](baikal) - a lightweight CalDAV+CardDAV server.
+* [Bitwarden](bitwarden_rs) - a password manager
+* [CryptPad](cryptpad) - a collaborative document and spreadsheet editor 
+* [Ejabberd](ejabberd) - an XMPP (Jabber) server
+* [Filestash](filestash) - a web based file manager with customizable backend storage providers
+* [FreshRSS](freshrss) - an RSS reader / proxy
+* [Invidious](invidious) - a Youtube proxy
+* [Jupyterlab](jupyterlab) - a web based code editing environment / reproducible research tool
+* [Larynx](larynx) - a speech synthesis engine
+* [Maubot](maubot) - a matrix Bot
+* [Minio](minio) - an S3 storage server
+* [Mosquitto](mosquitto) - an MQTT server
+* [Nextcloud](nextcloud) - a collaborative file server
+* [Node-RED](nodered) - a graphical event pipeline editor
+* [Piwigo](piwigo) - a photo gallery and manager
+* [S3-proxy](s3-proxy) - an HTTP directory index for S3 backend
+* [SFTP](sftp) - a secure file server
+* [Shaarli](shaarli) - a bookmark manager
+* [Syncthing](syncthing) - a multi-device file synchronization tool
+* [Tiny Tiny RSS](ttrss) - an RSS reader / proxy
+* [Websocketd](websocketd) - a websocket / CGI server
+* [XBrowserSync](xbs) - a bookmark manager
 
 Bespoke things:
 
