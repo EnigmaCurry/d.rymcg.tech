@@ -1,0 +1,23 @@
+#!/bin/bash
+
+BIN=$(dirname ${BASH_SOURCE})
+fault(){ echo $1; exit 1; }
+check_var(){ test -n "${!1}" || fault "Missing required environment variable: $1."; }
+
+## Copy a value from another .env file and put it in the current directory's .env file
+ENV_PATH=${1}
+VAR=${2}
+DEST_VAR=${3:-${VAR}}
+
+check_var ENV_PATH
+check_var VAR
+
+if [[ -f ${ENV_PATH} ]]; then
+    value=$(${BIN}/dotenv -f ${ENV_PATH} get ${VAR})
+else
+    echo "WARNING: ${ENV_PATH} does not exist, and so ${DEST_VAR} is set blank"
+    value=""
+fi
+
+${BIN}/dotenv -f .env set ${DEST_VAR}=${value}
+echo "Set ${DEST_VAR}=${value}"

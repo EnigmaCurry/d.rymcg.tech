@@ -7,6 +7,9 @@ This configuration is for a *single* server backed by a *single* docker volume.
 So, **this is not a production-ready S3 service**, but only intended for
 development or other light/unimportant storage duties.
 
+Consider also installing the [filestash](../filestash) application for a nice
+web based file manager.
+
 ## Choose two domain names for S3 and the console
 
 The Minio container provides two HTTP services, and each must have its own
@@ -58,6 +61,8 @@ generating a secure secret key, and printing it all out to the screen. Just
 answer the questions it asks and it will take care of running the `mc` client
 (the Minio command line client) and issuing all the commands. Watch the output
 to learn the exact commands it runs to learn from it.
+
+To invoke the script, you can simply run `make bucket`.
 
 You don't have to use this script, you can instead create everything from the
 GUI console, following the instructions in the next section.

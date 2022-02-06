@@ -8,5 +8,6 @@ config:
 	@${BIN}/reconfigure_ask MINIO_ROOT_USER "Enter the minio root username" root
 	@${BIN}/reconfigure MINIO_ROOT_PASSWORD=$(shell openssl rand -hex 45)
 
-
-
+.PHONY: bucket # Make a bucket and access credentials
+bucket:
+	./create_bucket_and_user.sh

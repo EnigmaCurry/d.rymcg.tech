@@ -1,0 +1,24 @@
+version: "3.3"
+
+networks:
+  traefik-proxy:
+    name: traefik-proxy
+
+services:
+  filestash:
+    image: machines/filestash
+    security_opt:
+      - no-new-privileges:true
+    networks:
+      - traefik-proxy
+    restart: unless-stopped
+    environment:
+      - APPLICATION_URL=${FILESTASH_TRAEFIK_HOST}
+    labels:
+      - "traefik.enable=true"
+      ## Password protected main router:
+      - "traefik.http.routers.filestash.rule=Host(`${FILESTASH_TRAEFIK_HOST}`)"
+      - "traefik.http.routers.filestash.entrypoints=websecure"
+      - "traefik.http.routers.filestash.tls.certresolver=${ACME_CERT_RESOLVER}"
+      - "traefik.http.routers.filestash.middlewares=filestash-auth"
+      - "traefik.http.middlewares.filestash-auth.basicauth.users=${FILESTASH_AUTH}"
