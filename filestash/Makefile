@@ -9,3 +9,4 @@ config:
 .PHONY: admin # Open the admin page
 admin:
 	@${BIN}/open /admin
+

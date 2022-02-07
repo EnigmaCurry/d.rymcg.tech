@@ -4,6 +4,9 @@ networks:
   traefik-proxy:
     name: traefik-proxy
 
+volumes:
+  state:
+
 services:
   filestash:
     image: machines/filestash
@@ -22,3 +25,5 @@ services:
       - "traefik.http.routers.filestash.tls.certresolver=${ACME_CERT_RESOLVER}"
       - "traefik.http.routers.filestash.middlewares=filestash-auth"
       - "traefik.http.middlewares.filestash-auth.basicauth.users=${FILESTASH_AUTH}"
+    volumes:
+      - state:/app/data/state
