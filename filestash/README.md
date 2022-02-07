@@ -13,10 +13,6 @@ Run `make config` or copy `.env-dist` to `.env` and edit the variables:
    
 All the rest of the setup is done inside the applications admin console.
 
-Note: the application configuration is ephemeral; it is not stored to a volume
-by default. [See the manual instructions for saving the applicaiton config to a
-volume.](https://www.filestash.app/docs/install-and-upgrade/#optional-using-a-bind-mount-for-persistent-configuration)
-
 ## Run
 
 Run `make install` or `docker-compose up -d`.
