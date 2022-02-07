@@ -176,6 +176,9 @@ alias arch='shell_container template=arch persistent=true from=faddat/archlinux'
 ## tty-clock displays a digital clock in your terminal.
 ## This builds directly from a git repository on github:
 alias clock='TIMEZONE=America/Los_Angeles shell_container docker=podman template=tty-clock build_args="--build-arg TIMEZONE" buildsrc=https://github.com/enigmacurry/tty-clock.git command="tty-clock -c -s -C 3 -b"'
+
+## Play wordle
+alias wordle='shell_container docker=podman template=wordle buildsrc=https://github.com/enigmacurry/wordle.git command=wordle'
 ```
 
 You must build the container image the first time:
