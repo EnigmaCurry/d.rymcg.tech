@@ -1,12 +1,15 @@
 #!/bin/bash
 
+fault(){ echo $1; echo "Exiting."; exit 1; }
+check_var(){ test -n "${!1}" || fault "Missing required environment variable: $1."; }
+
 require_input() {
-    ## require {PROMPT} {VAR} {DEFAULT}
+    ## require_input {PROMPT} {VAR} {DEFAULT}
     ## Read variable, set default if blank, error if still blank
     test -z ${3} && dflt="" || dflt=" (${3})"
     read -p "$1$dflt: " $2
     eval $2=${!2:-${3}}
-    test -v ${!2} && echo "$2 must not be blank, exiting." && exit
+    test -v ${!2} && fault "$2 must not be blank."
 }
 
 docker_run_with_env() {
@@ -21,7 +24,7 @@ docker_run_with_env() {
         ## The rest of the args are the names of the environment vars:
         ## Return a string full of all the docker environment vars and values
         __args=""; for var in "$@"; do
-                       test -z ${!var} && echo "$var is not set! Exiting." && exit 1
+                       test -z ${!var} && fault "$var is not set!"
                        __args="${__args} -e $var=${!var}"
                    done
         returned_string="${__args}"
@@ -34,3 +37,4 @@ docker_run_with_env() {
     set -x
     docker run ${DOCKER_ENV} $*
 }
+

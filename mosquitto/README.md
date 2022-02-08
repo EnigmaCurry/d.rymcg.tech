@@ -1,44 +1,64 @@
 # Mosquitto
+[Mosquitto](https://mosquitto.org/) is an MQTT pub/sub message broker. 
 
-[Mosquitto](https://mosquitto.org/) is an MQTT pub/sub broker. You can use it in combination with node-red
-for sending/receiving messages. 
+
+You can use it in combination with [node-red](../nodered) to create easy task
+automation pipelines.
+
+You can use it in combination with [minio](../minio) to respond to S3 bucket
+events (lambda)
+
+## Background
 
 Good blog posts:
 
  * [S-MQTTT, or: secure-MQTT-over-Traefik](https://jurian.slui.mn/posts/smqttt-or-secure-mqtt-over-traefik/)
  * [MQTT – How to use ACLs and multiple user accounts](https://blog.jaimyn.dev/mqtt-use-acls-multiple-user-accounts/)
 
-Copy `.env-dist` to `.env`, and edit variables accordingly. 
+## Config
+
+Run `make config` or copy `.env-dist` to `.env`, and edit variables accordingly.
 
  * `MOSQUITTO_TRAEFIK_HOST` the external domain name to forward from traefik.
  
-Start mosquitto initially only using the default config: `docker-compose up -d`
-
-Create an initial admin account in order to test with (_WARNING: `-c` will
-overwrite any existing password file without confirmation, so in the future when
-you want to create further accounts, do not use the `-c` parameter!_):
+Before starting mosquitto, create the user accounts you need:
 
 ```
-(
-  USERNAME=admin
-  PASSWORD=$(openssl rand -base64 24)
-  docker exec -it mosquitto mosquitto_passwd -c -b /mosquitto/config/passwd ${USERNAME} ${PASSWORD}
-  echo "Created password database, initial user account:"
-  echo "username: ${USERNAME}"
-  echo "password: ${PASSWORD}"
-)
+make admin
 ```
 
-Copy the main config file, and the ACL config file, into the volume (you must do
-this again in the future, anytime you modify these configs):
+The `admin` password will be printed to the terminal. 
+
+You can add additional users and print their passwords: 
 
 ```
-docker cp mosquitto.conf mosquitto:/mosquitto/config/mosquitto.conf
-docker cp acl.conf mosquitto:/mosquitto/config/acl.conf
+make user
 ```
 
-Restart mosquitto in order to reload the config:
+List all the user accounts:
 
 ```
-docker-compose restart
+make list-users
 ```
+
+## Run
+
+Start mosquitto with `make install` or `docker-compose up -d`
+
+## Test it
+
+Install the `mosquitto` client package with your package manager.
+
+Subscribe to a topic:
+
+```
+PASSWORD=your_admin_password
+mosquitto_sub -h mqtt.example.com -p 8883 -u admin -P ${PASSWORD} -t test
+```
+
+In another terminal, publish to the topic:
+```
+PASSWORD=your_admin_password
+mosquitto_pub -h mqtt.example.com -p 8883 -u admin -P ${PASSWORD} -t test -m "test message"
+```
+

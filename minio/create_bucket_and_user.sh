@@ -1,22 +1,22 @@
 #!/bin/bash
 
 ## Import common functions:
-PATH=$(dirname ${BASH_SOURCE[0]})/../_scripts/:${PATH}
-source $(dirname ${BASH_SOURCE[0]})/../_scripts/funcs.sh
+BIN=$(dirname ${BASH_SOURCE[0]})/../_scripts
+source ${BIN}/funcs.sh
 
 ## Prompt for configuration input:
 echo ""
 echo "This will create a new bucket, policy, group, and user."
 
 vars=(BUCKET POLICYNAME GROUPNAME USERNAME)
-require_input "Enter a new bucket name" BUCKET test
-require_input "Enter a new policy name" POLICYNAME ${BUCKET}
-require_input "Enter a new group name" GROUPNAME ${BUCKET}
-require_input "Enter a new user name" USERNAME ${GROUPNAME}
+${BIN}/require_input "Enter a new bucket name" BUCKET test
+${BIN}/require_input "Enter a new policy name" POLICYNAME ${BUCKET}
+${BIN}/require_input "Enter a new group name" GROUPNAME ${BUCKET}
+${BIN}/require_input "Enter a new user name" USERNAME ${GROUPNAME}
 
 ## Run the mc container and pipe in the script to do everything:
 DOCKER_ARGS="--env-file .env --rm -i --entrypoint=/bin/bash quay.io/minio/mc"
-cat <<'EOF' | docker_run_with_env vars ${DOCKER_ARGS}
+cat <<'EOF' | ${BIN}/docker_run_with_env vars ${DOCKER_ARGS}
 set -x
 echo USERNAME=${USERNAME}
 ## Write temporary policy file:

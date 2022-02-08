@@ -6,9 +6,22 @@ networks:
 
 volumes:
   mosquitto:
+    external: true
+    name: mosquitto_mosquitto
 
 services:
+  config:
+    build:
+      context: config
+    security_opt:
+      - no-new-privileges:true
+    environment:
+      - MOSQUITTO_TRAEFIK_HOST
+    volumes:
+      - mosquitto:/mosquitto
+
   mosquitto:
+    depends_on: ['config']
     image: "eclipse-mosquitto"
     container_name: "mosquitto"
     networks:
