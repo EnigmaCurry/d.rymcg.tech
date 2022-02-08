@@ -13,7 +13,7 @@ build-traefik-htpasswd:
 build-traefik-htpasswd-quick:
 	docker image inspect ${DOCKER_ORG}/traefik-htpasswd >/dev/null || docker build -t ${DOCKER_ORG}/traefik-htpasswd ${ROOT_DIR}/traefik-htpasswd
 
-.PHONY: htpasswd # Create new HTTP Basic Authentication credentials
-htpasswd: build-traefik-htpasswd-quick
-	docker run --rm -it ${DOCKER_ORG}/traefik-htpasswd
+# .PHONY: htpasswd # Create new HTTP Basic Authentication credentials
+# htpasswd: build-traefik-htpasswd-quick
+# 	docker run --rm -it ${DOCKER_ORG}/traefik-htpasswd
 

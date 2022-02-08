@@ -1,5 +1,9 @@
 #!/bin/bash
 
+## Confirm with the user
+## Check env for the var YES, if it equals "yes" then bypass this confirm
+test ${YES:-no} == "yes" && exit 0
+
 default=$1; prompt=$2; question=${3:-". Proceed?"}
 if [[ $default == "y" || $default == "yes" || $default == "ok" ]]; then
     dflt="Y/n"

@@ -84,6 +84,7 @@ shell_container() {
 ##   --list :: List all the instances of this template
 ##   --start :: Start this instance without attaching
 ##   --start-all :: Start all the instances of this template
+##   --exec :: Execute command in running container (non-interactive)
 ##   --stop :: Stop this instance
 ##   --stop-all :: Stop all the instances of this template
 ##   --restart :: Restart this instance
@@ -135,6 +136,9 @@ EOF
                 shift
             elif [[ $1 == "--start" ]]; then
                 MAKE_TARGET=start
+                shift
+            elif [[ $1 == "--exec" ]]; then
+                MAKE_TARGET=exec
                 shift
             elif [[ $1 == "--start-all" ]]; then
                 MAKE_TARGET=start-all
