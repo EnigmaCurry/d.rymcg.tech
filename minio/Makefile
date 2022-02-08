@@ -11,3 +11,8 @@ config:
 .PHONY: bucket # Make a bucket and access credentials
 bucket:
 	./create_bucket_and_user.sh
+
+.PHONY: mc # Run mc shell
+mc:
+	./mc_shell.sh
+

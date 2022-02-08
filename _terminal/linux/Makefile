@@ -17,8 +17,9 @@ SHARED_MOUNT ?= /shared
 USERNAME ?= root
 SUDO ?= false
 WORKDIR ?= /
-ENTRYPOINT ?= /bin/bash
-COMMAND ?= /bin/sh -c 'if test -f ${ENTRYPOINT}; then ${ENTRYPOINT}; else /bin/sh; fi'
+ENTRYPOINT ?=
+SHELL_COMMAND ?= /bin/bash
+COMMAND ?= /bin/sh -c 'if test -f ${SHELL_COMMAND}; then ${SHELL_COMMAND}; else /bin/sh; fi'
 DOCKERFILE ?= Dockerfile
 BUILDSRC ?= images/${TEMPLATE}
 DOCKER_ARGS ?=
@@ -42,7 +43,7 @@ start:
 
 .PHONY: start-shell
 start-shell:
-	${DOCKER} start ${NAME} 2>/dev/null || ${DOCKER} run -d --name ${NAME} --hostname ${NAME} --network ${NETWORK} -v ${SHARED_VOLUME}:${SHARED_MOUNT} --label="${LABEL}.template=${TEMPLATE}" $(shell if [[ ${SYSBOX} == true ]]; then echo "--runtime=sysbox-runc"; fi) ${DOCKER_ARGS} ${IMAGE} /bin/sh -c "while true; do sleep 10; done"
+	${DOCKER} start ${NAME} 2>/dev/null || ${DOCKER} run -d --name ${NAME} --hostname ${NAME} --network ${NETWORK} -v ${SHARED_VOLUME}:${SHARED_MOUNT} --label="${LABEL}.template=${TEMPLATE}" $(shell if [[ ${SYSBOX} == true ]]; then echo "--runtime=sysbox-runc"; fi) ${DOCKER_ARGS} --entrypoint="${ENTRYPOINT}" ${IMAGE} /bin/sh -c "while true; do sleep 10; done"
 
 .PHONY: start-systemd
 start-systemd:
@@ -63,6 +64,10 @@ stop-all:
 .PHONY: shell # Connect to the shell container (named ${NAME})
 shell: start
 	${DOCKER} exec -it --user=${USERNAME} --workdir=${WORKDIR} ${NAME} ${COMMAND}
+
+.PHONY: exec # Execute COMMAND
+exec:
+	${DOCKER} exec --user=${USERNAME} --workdir=${WORKDIR} ${NAME} ${COMMAND}
 
 .PHONY: rm
 rm: destroy
@@ -107,4 +112,3 @@ sigusr1:
 .PHONY: sigusr2 # Send SIGUSR2 to the container
 sigusr2:
 	${DOCKER} kill --signal SIGUSR2 ${NAME}
-
