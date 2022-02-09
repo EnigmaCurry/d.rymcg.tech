@@ -1,5 +1,8 @@
 # Linux shell containers
 
+Create bash aliases that automatically build and run your programs in docker
+containers.
+
 This tool will create and manage several temporary, ephemeral containers,
 hosting short and/or long-running shell accounts. Each container is joined
 automatically to the same docker/podman network and have a common mounted volume
