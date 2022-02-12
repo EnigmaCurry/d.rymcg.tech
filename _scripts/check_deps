@@ -1,0 +1,18 @@
+#!/bin/bash
+
+BIN=$(dirname ${BASH_SOURCE})
+source ${BIN}/funcs.sh
+
+missing=""
+for var in "$@"; do
+    echo -n "Looking for ${var} ... " >/dev/stderr
+    if ! which "${var}" >/dev/null 2>&1; then
+        echo "Missing! No ${var} found in PATH." >/dev/stderr
+        missing="${missing} ${var}"
+    else
+        echo found $(which "${var}")
+    fi
+done
+
+if [[ -n "${missing}" ]]; then fault "Missing dependencies: ${missing}"; fi
+

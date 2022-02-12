@@ -1,0 +1,36 @@
+#!/bin/bash
+
+BIN=$(dirname ${BASH_SOURCE})
+source ${BIN}/funcs.sh
+
+## Return an IP address from the given /24 subnet
+## subnet_ip SUBNET [LAST_OCTET]
+## eg. subnet_ip 10.17.17.0/24 5
+## echos: 10.17.17.5
+
+SUBNET=${1}
+LAST_OCTET=${2:-1}
+
+check_var SUBNET LAST_OCTET
+
+if echo ${SUBNET} | grep "/" >/dev/null; then
+    MASK=$(echo ${SUBNET} | cut -d "/" -f 2)
+    if [[ ${MASK} != "24" ]]; then
+        fault "subnet_ip only supports /24 networks, sorry. Cannot use subnet: ${SUBNET}"
+    fi
+fi
+
+IP_ADDRESS=$(awk -F"." '{print $1"."$2"."$3"."'${LAST_OCTET}'}'<<<${SUBNET})
+
+check_octet() {
+    if ! [[ ${1} =~ ^[0-9]+$ ]] || [[ "${1}" -lt 0 ]] || [[ "${1}" -gt 255 ]]; then
+        fault "Invalid IP address: ${IP_ADDRESS} - Each octet must be a number from 0-255."
+    fi    
+}
+
+for o in 1 2 3 4; do
+    octet=$(awk -F"." '{print $'$o'}'<<<${IP_ADDRESS})    
+    check_octet ${octet}
+done
+
+echo ${IP_ADDRESS}

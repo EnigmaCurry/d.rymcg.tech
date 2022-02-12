@@ -22,7 +22,7 @@ log_rotate_size: 10485760
 
 certfiles:
   - /cert/cert.pem
-  - /cert/private_key
+  - /cert/key.pem
 ca_file: /cert/fullchain.pem
 
 listen:

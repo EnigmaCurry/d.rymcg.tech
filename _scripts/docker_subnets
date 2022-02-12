@@ -1,0 +1,17 @@
+#!/bin/bash
+
+BIN=$(dirname ${BASH_SOURCE})
+source ${BIN}/funcs.sh
+
+## Print the subnets of all the listed docker networks:
+## docker_subnets NETWORK [NETWORK ...]
+
+set -e
+networks=""
+for var in "$@"; do
+    inspect=$(${BIN}/split_echo "${var}" | xargs -iXX /bin/sh -c "docker network inspect XX")
+    subnet=$(echo ${inspect} | jq -r '.[0].IPAM.Config[0].Subnet')
+    networks="${networks} ${subnet}"
+done
+echo ${networks} | tr ' ' ','
+

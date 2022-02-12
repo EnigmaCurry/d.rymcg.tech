@@ -7,10 +7,6 @@ help:
 
 include ../_scripts/Makefile.globals
 
-.PHONY: config # Configure whoami .env file
-config:
-	@${BIN}/reconfigure_ask GITEA_TRAEFIK_HOST "Enter the gitea domain name (eg. git.example.com)"
-
 # Override the default 'build' target, because this doesn't use docker-compose:
 .PHONY: build # Build the container image
 build:

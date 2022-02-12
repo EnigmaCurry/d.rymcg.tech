@@ -1,0 +1,19 @@
+#!/bin/bash
+
+BIN=$(dirname ${BASH_SOURCE})
+source ${BIN}/funcs.sh
+
+## Split a string on a delimiter, and print one per line
+## split_echo STRING DELIMITER
+## split_echo "one,two,three" ","
+STRING="${1}"; shift
+DELIMITER="${1:-,}"; shift
+check_var STRING DELIMITER
+test ${#DELIMITER} != 1 && fault "DELIMITER must be a single character."
+
+while IFS="${DELIMITER}" read -ra ADDR; do
+    for i in "${ADDR[@]}"; do
+        i="$(echo -e "${i}" | sed -e 's/^[[:space:]]*//')"
+        echo "${i}"
+    done
+done <<< "$STRING"

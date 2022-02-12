@@ -16,8 +16,13 @@ test -f ${env} || cp ${env_dist} ${env}
 example=$(grep -m 1 -oP "$var=\K.*" ${env_dist})
 existing=$(grep -m 1 -oP "$var=\K.*" ${env})
 if [[ $existing != $example ]]; then
-    default=${default:-${existing}}
+    default=${existing:-${default}}
 fi
 
-read -e -p "${var}: ${prompt} (eg. ${example}): " -i "${default}" answer
+while true; do
+    read -e -p "${var}: ${prompt} (eg. ${example}): " -i "${default}" answer
+    if [[ -n ${answer} ]] || [[ -z ${default} ]]; then
+        break
+    fi
+done
 ${BIN}/dotenv -f ${env} set ${var}="${answer}"
