@@ -6,8 +6,8 @@ CA_KEY=/CA/ca.key
 CA_CERT=/CA/ca.pem
 CERT_DIR=/cert
 
-KEY=${CERT_DIR}/private_key
-PUB_KEY=${CERT_DIR}/public_key
+PRIVATE_KEY=${CERT_DIR}/key.pem
+PUBLIC_KEY=${CERT_DIR}/public.pem
 CSR=${CERT_DIR}/csr
 CERT=${CERT_DIR}/cert.pem
 CA_COPY=${CERT_DIR}/ca.pem
@@ -35,13 +35,13 @@ create() {
     CHANGE_GID=${3:-1000}
 
     ## Generate key:
-    (set -x; openssl genrsa -out ${KEY} ${KEYSIZE})
+    (set -x; openssl genrsa -out ${PRIVATE_KEY} ${KEYSIZE})
 
     ## Export public key:
-    (set -x; openssl rsa -in ${KEY} -pubout -out ${PUB_KEY})
+    (set -x; openssl rsa -in ${PRIVATE_KEY} -pubout -out ${PUBLIC_KEY})
 
     ## Generate request:
-    (set -x; openssl req -new -key ${KEY} -out ${CSR} -nodes -subj "/CN=${SAN}" -addext "subjectAltName = DNS:${SAN}" -verbose)
+    (set -x; openssl req -new -key ${PRIVATE_KEY} -out ${CSR} -nodes -subj "/CN=${SAN}" -addext "subjectAltName = DNS:${SAN}" -verbose)
 
     ## Sign request:
     (set -x; openssl x509 -req -in ${CSR} -CA ${CA_CERT} -CAkey ${CA_KEY} -CAcreateserial -out ${CERT} -days ${VALID_DAYS})
@@ -56,7 +56,7 @@ create() {
 
     openssl x509 -in ${CERT} -noout -text
 
-    echo "Private key: ${KEY}"
+    echo "Private key: ${PRIVATE_KEY}"
     echo "Certificate: ${CERT}"
     echo "CA certificate: ${CA_COPY}"
     echo "Full chain: ${FULL_CHAIN}"

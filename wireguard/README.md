@@ -32,6 +32,12 @@ Run `make config` to setup your `.env` file.
 
 Run `make install` to install the service.
 
+Run `make client-install` to install the local client (Must use one the names
+you specified for `WIREGUARD_PEERS` when asked)
+
+Run `make client-start` to start the local wireguard client connection.
+
+Run `make client-stop` to stop the local wireguard client connection.
 
 ## Connecting the VPN to traefik
 

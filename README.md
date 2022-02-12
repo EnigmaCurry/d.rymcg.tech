@@ -136,14 +136,17 @@ convenience wrappers for creating/modifying your `.env` files and for running
 `docker-compose`, so these are not required to use if you would rather just edit
 your `.env` files by hand and/or run `docker-compose` manually.):
 
-   * Base development tools including `bash`, `make`, and `sed`:
-     * On Arch Linux run `pacman -S bash base-devel`
-     * On Debian/Ubuntu run `apt-get install bash build-essential`
+   * Base development tools including `bash`, `make`, `sed`, `xargs`.
    * `openssl` (for generating randomized passwords)
    * `htpasswd` (for encoding passwords for Traefik Basic Authentication)
-     * On Arch Linux run `pacman -S apache`
-   * `xdg-open` found in the `xdg-utils` package. (Used for opening the service
-     URLs in your web-browser via `make open`)
+   * `xdg-open` (Used for opening the service URLs in your web-browser via `make
+      open`)
+   * `jq` (for processing JSON) 
+
+On Arch Linux you can install the dependencies with: `pacman -S bash base-devel
+openssl apache xdg-utils jq`
+
+For Debian or Ubuntu run: `apt-get install bash build-essential openssl apache2 xdg-utils jq`
 
 ### Set Docker context
 

@@ -1,8 +1,7 @@
 #!/bin/bash
 
 BIN=$(dirname ${BASH_SOURCE})
-fault(){ echo $1; exit 1; }
-check_var(){ test -n "${!1}" || fault "Missing required environment variable: $1."; }
+source ${BIN}/funcs.sh
 
 check_var ROOT_DIR
 ROOT_DOMAIN=$(${BIN}/dotenv -f ${ROOT_DIR}/.env.makefile get ROOT_DOMAIN)

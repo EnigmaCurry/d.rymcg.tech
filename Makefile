@@ -9,15 +9,19 @@ include _scripts/Makefile.globals
 
 .PHONY: network # Create Traefik network
 network:
-	docker network inspect traefik-proxy >/dev/null || docker network create traefik-proxy
-	docker network inspect traefik-wireguard >/dev/null || docker network create traefik-wireguard
+	docker network inspect traefik-proxy >/dev/null 2>&1 || docker network create traefik-proxy
+	docker network inspect traefik-wireguard  >/dev/null 2>&1 || docker network create traefik-wireguard
 
-.PHONY: check-docker # Check if docker is running
+.PHONY: check-deps
+check-deps:
+	_scripts/check_deps docker docker-compose sed awk xargs openssl htpasswd xdg-open jq
+
+.PHONY: check-docker
 check-docker:
 	@docker info >/dev/null && echo "Docker is running." || (echo "Could not connect to Docker!" && false)
 
 .PHONY: config # Configure main variables
-config: check-docker network
+config: check-deps check-docker network
 	@echo ""
 	@ENV_FILE=".env.makefile" ENV_DIST_FILE=".env-dist.makefile" ${BIN}/reconfigure_ask ROOT_DOMAIN "Enter the default root domain for all your projects"
 
@@ -41,13 +45,13 @@ backup-env:
 restore-env:
 	@ROOT_DIR=${ROOT_DIR} ${BIN}/restore_env
 
-.PHONY: delete-env # Delete all .env files recursively
+.PHONY: delete-env
 delete-env:
 	@${BIN}/confirm no "This will find and delete ALL of the .env files recursively"
 	find ${ROOT_DIR} | grep -E '\.env$$' | xargs rm -f
 	@echo "Done."
 
-.PHONY: delete-passwords # Delete saved passwords.json files
+.PHONY: delete-passwords
 delete-passwords:
 	@${BIN}/confirm no "This will find and delete ALL of the passwords.json files recursively"
 	find ${ROOT_DIR} | grep -E 'passwords.json$$' | xargs rm -f

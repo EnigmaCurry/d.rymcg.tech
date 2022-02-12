@@ -1,8 +1,9 @@
 version: "3.3"
-
 networks:
   traefik-wireguard:
     name: traefik-wireguard
+  mailu:
+    name: mailu
 
 volumes:
   config:
@@ -16,6 +17,7 @@ services:
     restart: unless-stopped
     networks:
       - traefik-wireguard
+      - mailu
     ports:
       - ${WIREGUARD_HOST_PORT}:${WIREGUARD_HOST_PORT}/udp
     sysctls:

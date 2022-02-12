@@ -30,7 +30,7 @@ another docker volume named `local-certificate-ca_${SOME_DOMAIN_NAME}`.
 
 The files it writes into the volume are:
 
- * `/private_key` - The private key for `${SOME_DOMAIN_NAME}`.
+ * `/key.pem` - The private key for `${SOME_DOMAIN_NAME}`.
  * `/cert.pem` - The public certificate of `${SOME_DOMAIN_NAME}`.
  * `/ca.pem` - The public CA cert used to sign the certificate.
  * `/fullchain.pem` - Both cert.pem and ca.pem in one file.

@@ -1,7 +1,17 @@
 #!/bin/bash
 
-fault(){ echo $1; echo "Exiting."; exit 1; }
-check_var(){ test -n "${!1}" || fault "Missing required environment variable: $1."; }
+fault(){ test -n "$1" && echo $1; echo "Exiting." >/dev/stderr ; exit 1; }
+check_var(){
+    missing=false
+    vars="$@"
+    for var in ${vars}; do
+        if [[ -z "${!var}" ]]; then
+            echo "${var} variable is missing." >/dev/stderr
+            missing=true
+        fi
+    done
+    test ${missing} == true && fault
+}
 
 require_input() {
     ## require_input {PROMPT} {VAR} {DEFAULT}
