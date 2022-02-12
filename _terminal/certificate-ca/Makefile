@@ -1,4 +1,4 @@
-ROOT_DIR = ..
+ROOT_DIR = ../..
 
 .PHONY: help # Show this help screen
 help:

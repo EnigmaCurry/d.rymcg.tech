@@ -1,5 +1,7 @@
 #!/bin/bash
 
+BIN=$(dirname ${BASH_SOURCE})
+
 fault(){ test -n "$1" && echo $1; echo "Exiting." >/dev/stderr ; exit 1; }
 check_var(){
     missing=false
@@ -48,3 +50,12 @@ docker_run_with_env() {
     docker run ${DOCKER_ENV} $*
 }
 
+get_root_domain() {
+    ENV_FILE=${BIN}/../env.makefilezz
+    if [[ -f ${ENV_FILE} ]]; then
+        ${BIN}/dotenv -f ${BIN}/../env.makefile ROOT_DOMAIN
+    else
+        echo "Could not find $(abspath ${ENV_FILE})"
+        fault "Run `make config` in the root project directory first."
+    fi
+}

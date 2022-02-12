@@ -10,7 +10,6 @@ volumes:
   mail:
   mailqueue:
   webmail:
-  #wireguard:
   overrides_nginx:
   overrides_dovecot:
   overrides_postfix:
@@ -161,31 +160,6 @@ services:
       - resolver
     dns:
       - ${SUBNET_PREFIX}.254
-
-  # # Wireguard VPN
-  # wireguard:
-  #   image: lscr.io/linuxserver/wireguard
-  #   cap_add:
-  #     - NET_ADMIN
-  #     - SYS_MODULE
-  #   restart: unless-stopped
-  #   ports:
-  #     - 51820:51820/udp
-  #   sysctls:
-  #     - net.ipv4.conf.all.src_valid_mark=1
-  #   environment:
-  #     - PUID=1000
-  #     - PGID=1000
-  #     - TZ=UTC
-  #     - SERVERURL=${MAILU_TRAEFIK_HOST}
-  #     - SERVERPORT=${WIREGUARD_PORT}
-  #     - PEERS=${WIREGUARD_PEERS}
-  #     - PEERDNS=auto
-  #     - INTERNAL_SUBNET=${WIREGUARD_SUBNET}
-  #     - ALLOWEDIPS=${WIREGUARD_SUBNET},${SUBNET}
-  #   volumes:
-  #     - wireguard:/config
-  #     - /lib/modules:/lib/modules
 
 networks:
   default:

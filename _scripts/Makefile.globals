@@ -17,3 +17,7 @@ build-traefik-htpasswd-quick:
 # htpasswd: build-traefik-htpasswd-quick
 # 	docker run --rm -it ${DOCKER_ORG}/traefik-htpasswd
 
+# .PHONY: cert # Create a self-signed TLS certificate volume
+# cert:
+# 	@${BIN}/../_terminal/certificate-ca/cert-manager.sh ${ROOT_DOMAIN} create_ca || true
+# 	@read -p "Enter the certificate domain: " DOMAIN && read -e -p "Enter the user ID (UID): " -i "1000" CERT_UID && read -e -p "Enter the group ID (GID): " -i "1000" CERT_GID && ${BIN}/../_terminal/certificate-ca/cert-manager.sh ${ROOT_DOMAIN} create $${DOMAIN} ${CERT_UID} ${CERT_GID}

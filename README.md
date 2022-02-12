@@ -267,15 +267,10 @@ Install these services at your leisure/preference:
 
 Bespoke things:
 
-* [certificate-ca](certificate-ca) Experimental ad-hoc certifcate CA. Creates
+* [certificate-ca](_terminal/certificate-ca) Experimental ad-hoc certifcate CA. Creates
   self-signed certificates for siturations where you don't want to use Let's
   Encrypt.
-
-Extra stuff:
-
-* [_terminal](_terminal) contains various terminal programs that don't start
-  network services, but run interactively in your terminal.
-* [Linux Shell Containers](_terminal/linux_) create bash aliases that
+* [Linux Shell Containers](_terminal/linux) create bash aliases that
   automatically build and run programs in Docker containers.
 
 ## Command line interaction

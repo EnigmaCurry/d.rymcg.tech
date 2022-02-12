@@ -1,5 +1,5 @@
 #!/bin/bash
-CA_NAME=${CA_NAME:-local-certificate-ca}
+CA_NAME=${CA_NAME:-local}
 KEYSIZE=2048
 VALID_DAYS=36525
 CA_KEY=/CA/ca.key
@@ -19,9 +19,9 @@ create_ca() {
         ## Generate key:
         openssl genrsa -out ${CA_KEY} ${KEYSIZE}
         ## Generate self-signed CA cert:
-        openssl req -new -x509 -key ${CA_KEY} -nodes -out ${CA_CERT} -subj "/CN=local_ca" -sha256 -days 36525 -verbose
+        openssl req -new -x509 -key ${CA_KEY} -nodes -out ${CA_CERT} -subj "/CN=${CA_NAME}" -sha256 -days 36525 -verbose
     else
-        echo "Existing CA found: ${CA_CERT} = Nothing to do." && exit 1
+        echo "Existing CA found: ${CA_CERT}." && exit 0
     fi
 }
 
@@ -63,8 +63,15 @@ create() {
 }
 
 view() {
-    SAN=$1
     openssl x509 -in ${CERT} -noout -text    
+}
+
+fingerprint() {
+    openssl x509 -in ${CERT} -noout -subject
+    openssl x509 -in ${CERT} -noout -issuer
+    openssl x509 -in ${CERT} -noout -dates
+    openssl x509 -in ${CERT} -noout -fingerprint
+    openssl x509 -in ${CERT} -noout -fingerprint -sha256
 }
 
 download() {
