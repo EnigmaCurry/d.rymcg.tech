@@ -24,9 +24,10 @@ Create and sign the certificate for a domain name:
 ```
 
 The above steps will create a new Certificate Authority (idempotent) and store
-it in a docker volume named `local-certificate-ca` (or override by setting
-`CA_NAME` var). The certificate for the domain will be stored separately in
-another docker volume named `local-certificate-ca_${SOME_DOMAIN_NAME}`.
+it in a docker volume named `${CA_NAME}_certificate-ca` (`local_certificate-ca`
+if `CA_NAME` is not specified). The certificate for the domain will be stored
+separately in another docker volume named
+`${CA_NAME}_certificate-ca_${SOME_DOMAIN_NAME}`.
 
 The files it writes into the volume are:
 

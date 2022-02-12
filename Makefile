@@ -7,7 +7,7 @@ help:
 
 include _scripts/Makefile.globals
 
-.PHONY: network # Create Traefik network
+.PHONY: network # Create Docker networks
 network:
 	docker network inspect traefik-proxy >/dev/null 2>&1 || docker network create traefik-proxy
 	docker network inspect traefik-wireguard  >/dev/null 2>&1 || docker network create traefik-wireguard

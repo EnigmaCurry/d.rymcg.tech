@@ -17,31 +17,28 @@ with certbot), or you may generate a local certificate authority and self-signed
 certificate as this example will show.
 
 To generate a new a self-signed certificate, use the included
-[cert-manager.sh](../certificate-ca) script to create a Certificate Authority:
+[cert-manager.sh](../_terminal/certificate-ca) script to create a Certificate Authority:
 
 ```
-make -C ../certificate-ca build ca
+make cert
 ```
 
-Create the certificate: 
+ * When asked, enter the XMPP domain name.
+ * When asked, enter the UID: `9000`
+ * When asked, enter the GID: `9000`
 
-```
-DOMAIN=xmpp.example.com \
-CHANGE_UID=9000 \
-CHANGE_GID=9000 \
-make -C ../certificate-ca cert
-```
 
-`cert-manager.sh` will have created a new CA key stored in the
-`local-certificate-ca` volume, and a certificate for ejabberd in the
-`local-certificate-ca_xmpp.example.com` volume. The permissions will be set for
-UID 9000 and GID 9000, the same as the ejabberd user account in the container.
+[cert-manager.sh](../_terminal/certificate-ca) will have created a new CA key
+stored in the `${ROOT_DOMAIN}-certificate-ca` volume, and a certificate for ejabberd in
+the `${ROOT_DOMAIN}-certificate-ca_${XMPP_DOMAIN}` volume. The permissions will be set
+for UID `9000` and GID `9000`, the same as the ejabberd user account in the
+container.
 
 The first time you connect, the Gajim XMPP client will offer to pin the
 self-signed certificate. Alternatively, you may install the Certificate
 Authority used to sign the certificate, into your (preferably containerized)
-local trust store. (See [certificate-ca](../certificate-ca) for details and
-caveats.)
+local trust store. (See [certificate-ca](../_terminal/certificate-ca) for
+details and caveats.)
 
 Traefik is configured to support IP address filtering, in order to limit which
 client and server addresses may connect to the XMPP services. See
