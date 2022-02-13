@@ -7,11 +7,6 @@ help:
 
 include _scripts/Makefile.globals
 
-.PHONY: network # Create Docker networks
-network:
-	docker network inspect traefik-proxy >/dev/null 2>&1 || docker network create traefik-proxy
-	docker network inspect traefik-wireguard  >/dev/null 2>&1 || docker network create traefik-wireguard
-
 .PHONY: check-deps
 check-deps:
 	_scripts/check_deps docker docker-compose sed awk xargs openssl htpasswd jq
@@ -21,7 +16,7 @@ check-docker:
 	@docker info >/dev/null && echo "Docker is running." || (echo "Could not connect to Docker!" && false)
 
 .PHONY: config # Configure main variables
-config: check-deps check-docker network
+config: check-deps check-docker
 	@echo ""
 	@ENV_FILE=".env.makefile" ENV_DIST_FILE=".env-dist.makefile" ${BIN}/reconfigure_ask ROOT_DOMAIN "Enter the default root domain for all your projects"
 

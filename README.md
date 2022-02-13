@@ -221,9 +221,6 @@ domain of all of the sub-project domains, so that when you run `make config` in
 any of the sub-project directories, the default (but customizable) domains will
 be pre-populated with your root domain.
 
-This also automatically creates the `traefik-proxy` Docker network, that all
-applications that will be reverse proxied via Traefik will be connected to.
-
 ## Install applications
 
 Each docker-compose project has its own `README.md`. You should install
