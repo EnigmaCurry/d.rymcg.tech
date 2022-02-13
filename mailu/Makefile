@@ -11,11 +11,15 @@ config-ask:
 	@${BIN}/reconfigure CA_NAME=${ROOT_DOMAIN}
 	@${BIN}/reconfigure_ask MAILU_TRAEFIK_HOST "Enter the mailu server name" mail.${ROOT_DOMAIN}
 	@${BIN}/reconfigure SECRET_KEY=$$(openssl rand -base64 16 | head -c 16)
-	@${BIN}/reconfigure_ask SUBNET_PREFIX "Enter the first three octets for the new mail subnet" 192.168.203
-	@${BIN}/reconfigure SUBNET=$$(${BIN}/dotenv get SUBNET_PREFIX).0/24
-	@${BIN}/reconfigure WIREGUARD_SUBNET_PREFIX=$$(${BIN}/subnet_prefix $$(${BIN}/dotenv -f ../traefik/.env get TRAEFIK_WIREGUARD_SUBNET))
+
+	@${BIN}/reconfigure_ask SUBNET "Enter the subnet for the private mail network" 192.168.203.0/24
+	@${BIN}/reconfigure SUBNET_PREFIX=$$(${BIN}/subnet_prefix $$(${BIN}/dotenv get SUBNET))
+
+	@${BIN}/reconfigure TRAEFIK_MAIL_SUBNET=$$(${BIN}/dotenv -f ../traefik/.env get TRAEFIK_MAIL_SUBNET)
+	@${BIN}/reconfigure TRAEFIK_MAIL_SUBNET_PREFIX=$$(${BIN}/subnet_prefix $$(${BIN}/dotenv get TRAEFIK_MAIL_SUBNET))
+
 	@${BIN}/reconfigure_ask DOMAIN "Enter the main mail domain"
-	@${BIN}/reconfigure_ask HOSTNAMES "Enter the names for the mail server (comma separated)" $$(${BIN}/dotenv get MAILU_TRAEFIK_HOST)
+	@${BIN}/reconfigure_ask HOSTNAMES "Enter all the names for the mail server (comma separated)" $$(${BIN}/dotenv get MAILU_TRAEFIK_HOST)
 	@${BIN}/reconfigure_ask RELAYHOST "Enter your upstream SMTP (TLS) server and port number (use square brackets around hostname!)" [smtp.example.com]:465
 	@${BIN}/reconfigure_ask RELAYUSER "Enter the upstream SMTP username"
 	@${BIN}/reconfigure_ask RELAYPASSWORD "Enter the upstream SMTP password"
