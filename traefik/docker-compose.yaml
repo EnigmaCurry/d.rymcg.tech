@@ -41,7 +41,7 @@ services:
       - "--entrypoints.vpn.address=${TRAEFIK_WIREGUARD_SUBNET_IP}:442"
       - "--entrypoints.mqtt.address=:8883"
       - "--entrypoints.ssh.address=:2222"
-      - "--entrypoints.traefik.address=:8080"
+      - "--entrypoints.traefik.address=${TRAEFIK_WIREGUARD_SUBNET_IP}:8080"
       #- "--entrypoints.dns.address=:53"
       ## Automatically redirect HTTP to HTTPS
       - "--entrypoints.web.http.redirections.entryPoint.to=websecure"
@@ -69,7 +69,6 @@ services:
       - "443:443"
       - "8883:8883"
       - "2222:2222"
-      - "127.0.0.1:8080:8080"
     volumes:
       - "traefik:/data"
       - "/var/run/docker.sock:/var/run/docker.sock:ro"
@@ -80,8 +79,11 @@ services:
       - "traefik.http.routers.api.rule=PathPrefix(`/api`) || PathPrefix(`/dashboard`)"
       - "traefik.http.routers.api.entrypoints=traefik"
       - "traefik.http.routers.api.service=api@internal"
-      - "traefik.http.routers.api.middlewares=traefik-dashboard-auth"
+      - "traefik.http.routers.api.middlewares=traefik-api-ipwhitelist@docker,traefik-dashboard-auth"
       - "traefik.http.middlewares.traefik-dashboard-auth.basicauth.users=${TRAEFIK_DASHBOARD_AUTH}"
+      - "traefik.http.middlewares.traefik-api-ipwhitelist.ipwhitelist.sourcerange=${TRAEFIK_WIREGUARD_SUBNET}"
+      - "traefik.tcp.middlewares.traefik-api-ipwhitelist.ipwhitelist.sourcerange=${TRAEFIK_WIREGUARD_SUBNET}"
+
       ## VPN sourcerange filter:
       - "traefik.http.middlewares.vpn-ipwhitelist.ipwhitelist.sourcerange=${TRAEFIK_WIREGUARD_SUBNET}"
       - "traefik.tcp.middlewares.vpn-ipwhitelist.ipwhitelist.sourcerange=${TRAEFIK_WIREGUARD_SUBNET}"
