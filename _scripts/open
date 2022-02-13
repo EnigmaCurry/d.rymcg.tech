@@ -45,7 +45,7 @@ fi
 URL="${PROTOCOL}://${URL_PASSWORD}${HOST}${URL_PATH}"
 
 if which xdg-open >/dev/null 2>&1; then
-    (set -x; xdg-open-open "${URL}")
+    (set -x; xdg-open "${URL}")
 else
     echo "xdg-open not found"
     echo "URL: ${URL}"

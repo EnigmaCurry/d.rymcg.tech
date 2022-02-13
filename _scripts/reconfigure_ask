@@ -13,8 +13,8 @@ env_dist=${ENV_DIST_FILE:-.env-dist}
 ## Make new .env if it doesn't exist:
 test -f ${env} || cp ${env_dist} ${env}
 
-example=$(grep -m 1 -oP "$var=\K.*" ${env_dist})
-existing=$(grep -m 1 -oP "$var=\K.*" ${env})
+example=$(grep -m 1 -oP "^$var=\K.*" ${env_dist})
+existing=$(grep -m 1 -oP "^$var=\K.*" ${env})
 if [[ $existing != $example ]]; then
     default=${existing:-${default}}
 fi
