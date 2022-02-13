@@ -1,0 +1,10 @@
+#!/bin/bash
+
+BIN=$(dirname ${BASH_SOURCE})
+source ${BIN}/funcs.sh
+test $# != 1 && fault "# help: tls_debug domain:port"
+
+DESTINATION_AND_PORT=${1}
+check_var DESTINATION_AND_PORT
+
+openssl s_client -tls1_2 -connect "$@"

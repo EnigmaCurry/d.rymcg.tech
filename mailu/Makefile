@@ -8,6 +8,7 @@ build:
 
 .PHONY: config-ask
 config-ask:
+	@${BIN}/reconfigure CA_NAME=${ROOT_DOMAIN}
 	@${BIN}/reconfigure_ask MAILU_TRAEFIK_HOST "Enter the mailu server name" mail.${ROOT_DOMAIN}
 	@${BIN}/reconfigure SECRET_KEY=$$(openssl rand -base64 16 | head -c 16)
 	@${BIN}/reconfigure_ask SUBNET_PREFIX "Enter the first three octets for the new mail subnet" 192.168.203

@@ -20,8 +20,10 @@ services:
     container_name: "traefik"
     restart: unless-stopped
     networks:
-      - traefik-proxy
-      - traefik-wireguard
+      traefik-proxy:
+        ipv4_address: ${TRAEFIK_PROXY_SUBNET_IP}
+      traefik-wireguard:
+        ipv4_address: ${TRAEFIK_WIREGUARD_SUBNET_IP}
     security_opt:
       - no-new-privileges:true
     command:
@@ -30,13 +32,13 @@ services:
       - "--providers.docker.exposedbydefault=false"
       - "--providers.docker.network=traefik-proxy"
       ## Entrypoints:
-      - "--entrypoints.web.address=:80"
-      - "--entrypoints.websecure.address=:443"
-      - "--entrypoints.mqtt.address=:8883"
-      - "--entrypoints.ssh.address=:2222"
-      - "--entrypoints.traefik.address=:8080"
-      #- "--entrypoints.vpn.address=:442"
-      #- "--entrypoints.dns.address=:53"
+      - "--entrypoints.web.address=${TRAEFIK_PROXY_SUBNET_IP}:80"
+      - "--entrypoints.websecure.address=${TRAEFIK_PROXY_SUBNET_IP}:443"
+      - "--entrypoints.vpn.address=${TRAEFIK_WIREGUARD_SUBNET_IP}:443"
+      - "--entrypoints.mqtt.address=${TRAEFIK_PROXY_SUBNET_IP}:8883"
+      - "--entrypoints.ssh.address=${TRAEFIK_PROXY_SUBNET_IP}:2222"
+      - "--entrypoints.traefik.address=${TRAEFIK_PROXY_SUBNET_IP}:8080"
+      #- "--entrypoints.dns.address=${TRAEFIK_PROXY_SUBNET_IP}:53"
       ## Automatically redirect HTTP to HTTPS
       - "--entrypoints.web.http.redirections.entryPoint.to=websecure"
       ## ACME TLS Challenge (Let's Encrypt):
@@ -52,6 +54,11 @@ services:
       - "--api.dashboard=true"
       ## Load local plugins that have been bundled into the traefik image:
       - "--experimental.localPlugins.blockpath.modulename=github.com/traefik/plugin-blockpath"
+      ## ip whitelist vpn endpoint access from traefik-wireguard network only (HTTP):
+      - "--entrypoints.vpn.http.middlewares=vpn-ipwhitelist@docker"
+      ## ip whitelist vpn endpoint access from traefik-wireguard network only (TCP):
+      ### Why can't I specify a tcp middleware on the entrypoint??
+      ##- "--entrypoints.vpn.tcp.middlewares=vpn-ipwhitelist@docker"
     ports:
       #- "53:53"
       - "80:80"
@@ -71,3 +78,6 @@ services:
       - "traefik.http.routers.api.service=api@internal"
       - "traefik.http.routers.api.middlewares=traefik-dashboard-auth"
       - "traefik.http.middlewares.traefik-dashboard-auth.basicauth.users=${TRAEFIK_DASHBOARD_AUTH}"
+      ## VPN sourcerange filter:
+      - "traefik.http.middlewares.vpn-ipwhitelist.ipwhitelist.sourcerange=${TRAEFIK_WIREGUARD_SUBNET}"
+      - "traefik.tcp.middlewares.vpn-ipwhitelist.ipwhitelist.sourcerange=${TRAEFIK_WIREGUARD_SUBNET}"
