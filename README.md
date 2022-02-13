@@ -139,14 +139,15 @@ your `.env` files by hand and/or run `docker-compose` manually.):
    * Base development tools including `bash`, `make`, `sed`, `xargs`.
    * `openssl` (for generating randomized passwords)
    * `htpasswd` (for encoding passwords for Traefik Basic Authentication)
-   * `xdg-open` (Used for opening the service URLs in your web-browser via `make
-      open`)
    * `jq` (for processing JSON) 
+   * `xdg-open` (Used for opening the service URLs in your web-browser via `make
+      open`. Don't install this if your workstation is on a server, as it
+      depends on Xorg/Wayland which is an unnecessary large package install.)
 
 On Arch Linux you can install the dependencies with: `pacman -S bash base-devel
 openssl apache xdg-utils jq`
 
-For Debian or Ubuntu run: `apt-get install bash build-essential openssl apache2 xdg-utils jq`
+For Debian or Ubuntu run: `apt-get install bash build-essential openssl apache2-utils xdg-utils jq`
 
 ### Set Docker context
 

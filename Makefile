@@ -14,7 +14,7 @@ network:
 
 .PHONY: check-deps
 check-deps:
-	_scripts/check_deps docker docker-compose sed awk xargs openssl htpasswd xdg-open jq
+	_scripts/check_deps docker docker-compose sed awk xargs openssl htpasswd jq
 
 .PHONY: check-docker
 check-docker:
