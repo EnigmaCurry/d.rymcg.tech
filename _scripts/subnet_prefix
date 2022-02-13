@@ -1,0 +1,27 @@
+#!/bin/bash
+
+BIN=$(dirname ${BASH_SOURCE})
+source ${BIN}/funcs.sh
+
+## Return the prefix for a /24 subnet
+## subnet_prefix SUBNET
+## eg. subnet_prefix 10.17.17.0/24
+## echos: 10.17.17
+
+SUBNET=${1}
+check_var SUBNET
+
+PREFIX=$(awk -F"." '{print $1"."$2"."$3}'<<<${SUBNET})
+
+check_octet() {
+    if ! [[ ${1} =~ ^[0-9]+$ ]] || [[ "${1}" -lt 0 ]] || [[ "${1}" -gt 255 ]]; then
+        fault "Invalid IP address: ${IP_ADDRESS} - Each octet must be a number from 0-255."
+    fi    
+}
+
+for o in 1 2 3; do
+    octet=$(awk -F"." '{print $'$o'}'<<<${PREFIX})
+    check_octet ${octet}
+done
+
+echo ${PREFIX}

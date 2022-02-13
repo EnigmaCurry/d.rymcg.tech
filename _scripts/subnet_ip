@@ -13,13 +13,6 @@ LAST_OCTET=${2:-1}
 
 check_var SUBNET LAST_OCTET
 
-if echo ${SUBNET} | grep "/" >/dev/null; then
-    MASK=$(echo ${SUBNET} | cut -d "/" -f 2)
-    if [[ ${MASK} != "24" ]]; then
-        fault "subnet_ip only supports /24 networks, sorry. Cannot use subnet: ${SUBNET}"
-    fi
-fi
-
 IP_ADDRESS=$(awk -F"." '{print $1"."$2"."$3"."'${LAST_OCTET}'}'<<<${SUBNET})
 
 check_octet() {

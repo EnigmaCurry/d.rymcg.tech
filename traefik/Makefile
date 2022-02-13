@@ -8,6 +8,10 @@ config:
 	@echo ""
 	@echo "It's important to protect the dashboard and so a username/password is required."
 	@${BIN}/reconfigure_htpasswd TRAEFIK_DASHBOARD_AUTH
+	@${BIN}/reconfigure TRAEFIK_PROXY_SUBNET_IP="$$(${BIN}/subnet_prefix $$(${BIN}/docker_subnets traefik-proxy))".3
+	@${BIN}/reconfigure TRAEFIK_WIREGUARD_SUBNET_IP="$$(${BIN}/subnet_prefix $$(${BIN}/docker_subnets traefik-wireguard))".3
+	@${BIN}/reconfigure TRAEFIK_WIREGUARD_SUBNET="$$(${BIN}/docker_subnets traefik-wireguard)"
+
 
 .PHONY: open # Start SSH tunnel and open the Traefik Dashboard
 open:

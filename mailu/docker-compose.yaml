@@ -1,5 +1,16 @@
 version: '3.3'
 
+networks:
+  default:
+    name: mailu
+    driver: bridge
+    ipam:
+      driver: default
+      config:
+        - subnet: ${SUBNET}
+  traefik-wireguard:
+    name: traefik-wireguard
+
 volumes:
   redis:
   certs:
@@ -17,7 +28,7 @@ volumes:
   overrides_roundcube:
   certs:
     external: true
-    name: local-certificate-ca_${MAILU_TRAEFIK_HOST}
+    name: ${CA_NAME}_certificate-ca_${MAILU_TRAEFIK_HOST}
 
 services:
   # External dependencies
@@ -59,6 +70,7 @@ services:
     networks:
       default:
         ipv4_address: ${SUBNET_PREFIX}.13
+      traefik-wireguard:
 
   resolver:
     image: ${DOCKER_ORG}/${DOCKER_PREFIX:-}unbound:${MAILU_VERSION}
@@ -160,12 +172,3 @@ services:
       - resolver
     dns:
       - ${SUBNET_PREFIX}.254
-
-networks:
-  default:
-    name: mailu
-    driver: bridge
-    ipam:
-      driver: default
-      config:
-        - subnet: ${SUBNET}

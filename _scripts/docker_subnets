@@ -9,7 +9,7 @@ source ${BIN}/funcs.sh
 set -e
 networks=""
 for var in "$@"; do
-    inspect=$(${BIN}/split_echo "${var}" | xargs -iXX /bin/sh -c "docker network inspect XX")
+    inspect=$(docker network inspect ${var})
     subnet=$(echo ${inspect} | jq -r '.[0].IPAM.Config[0].Subnet')
     networks="${networks} ${subnet}"
 done
