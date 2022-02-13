@@ -1,17 +1,25 @@
 ROOT_DIR = ..
 include ../_scripts/Makefile.projects-no-open
 
+.PHONY: network # Create Docker networks
+network:
+	docker network inspect traefik-proxy >/dev/null 2>&1 || docker network create traefik-proxy --subnet $$(${BIN}/dotenv get TRAEFIK_PROXY_SUBNET)
+	docker network inspect traefik-wireguard  >/dev/null 2>&1 || docker network create traefik-wireguard --subnet $$(${BIN}/dotenv get TRAEFIK_WIREGUARD_SUBNET)
+
 .PHONY: config # Configure Traefik .env file
-config:
+config: config-ask network
+
+.PHONY: config-ask
+config-ask:
 	@echo "Let's Encrypt will helpfully email you when your certificates are about to expire."
 	@${BIN}/reconfigure_ask ACME_CA_EMAIL "Enter your email address for Let's Encrypt (blank to skip)"
 	@echo ""
 	@echo "It's important to protect the dashboard and so a username/password is required."
 	@${BIN}/reconfigure_htpasswd TRAEFIK_DASHBOARD_AUTH
-	@${BIN}/reconfigure TRAEFIK_PROXY_SUBNET_IP="$$(${BIN}/subnet_prefix $$(${BIN}/docker_subnets traefik-proxy))".3
-	@${BIN}/reconfigure TRAEFIK_WIREGUARD_SUBNET_IP="$$(${BIN}/subnet_prefix $$(${BIN}/docker_subnets traefik-wireguard))".3
-	@${BIN}/reconfigure TRAEFIK_WIREGUARD_SUBNET="$$(${BIN}/docker_subnets traefik-wireguard)"
-
+	@${BIN}/reconfigure_ask TRAEFIK_PROXY_SUBNET "Enter a subnet for the proxy network" 172.13.0.0/16
+	@${BIN}/reconfigure TRAEFIK_PROXY_SUBNET_IP="$$(${BIN}/subnet_prefix $$(${BIN}/dotenv get TRAEFIK_PROXY_SUBNET))".3
+	@${BIN}/reconfigure_ask TRAEFIK_WIREGUARD_SUBNET "Enter a subnet for the wireguard network" 172.15.0.0/16
+	@${BIN}/reconfigure TRAEFIK_WIREGUARD_SUBNET_IP="$$(${BIN}/subnet_prefix $$(${BIN}/dotenv get TRAEFIK_WIREGUARD_SUBNET))".3
 
 .PHONY: open # Start SSH tunnel and open the Traefik Dashboard
 open:
