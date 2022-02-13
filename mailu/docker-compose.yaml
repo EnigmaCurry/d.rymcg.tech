@@ -8,12 +8,11 @@ networks:
       driver: default
       config:
         - subnet: ${SUBNET}
-  traefik-wireguard:
-    name: traefik-wireguard
+  traefik-mail:
+    name: traefik-mail
 
 volumes:
   redis:
-  certs:
   dkim:
   dav:
   data:
@@ -26,9 +25,6 @@ volumes:
   overrides_postfix:
   overrides_rspamd:
   overrides_roundcube:
-  certs:
-    external: true
-    name: ${CA_NAME}_certificate-ca_${MAILU_TRAEFIK_HOST}
 
 services:
   # External dependencies
@@ -49,7 +45,7 @@ services:
     env_file: .env
     logging:
       driver: json-file
-    ## These ports are not exposed, but are available on the wireguard network
+    ## These ports are not exposed, but are available on the mail network
     ## at 10.11.11.13 :
     #   - "80:80"
     #   - "443:443"
@@ -61,7 +57,6 @@ services:
     #   - "143:143"
     #   - "993:993"
     volumes:
-      - "certs:/certs"
       - "overrides_nginx:/overrides:ro"
     depends_on:
       - resolver
@@ -70,14 +65,23 @@ services:
     networks:
       default:
         ipv4_address: ${SUBNET_PREFIX}.13
-      traefik-wireguard:
-        ipv4_address: ${WIREGUARD_SUBNET_PREFIX}.13
+      traefik-mail:
+        ipv4_address: ${TRAEFIK_MAIL_SUBNET_PREFIX}.13
     labels:
       - "traefik.enable=true"
+      ## VPN endpoint port :442
       - "traefik.http.routers.mailu.rule=Host(`${MAILU_TRAEFIK_HOST}`)"
       - "traefik.http.routers.mailu.entrypoints=vpn"
+      - "traefik.docker.network=traefik-mail"
       - "traefik.http.routers.mailu.tls.certresolver=${ACME_CERT_RESOLVER}"
       - "traefik.http.services.mailu.loadbalancer.server.port=80"
+      ## Forbid non-VPN traffic and redirect port :443 to :442
+      - "traefik.http.routers.mailu-redirect.rule=Host(`${MAILU_TRAEFIK_HOST}`)"
+      - "traefik.http.routers.mailu-redirect.entrypoints=websecure"
+      - "traefik.http.routers.mailu-redirect.tls.certresolver=${ACME_CERT_RESOLVER}"
+      - "traefik.http.middlewares.mailu-redirect.redirectregex.regex=^https://${MAILU_TRAEFIK_HOST}/(.*)"
+      - "traefik.http.middlewares.mailu-redirect.redirectregex.replacement=https://${MAILU_TRAEFIK_HOST}:442/$${1}"
+      - "traefik.http.routers.mailu-redirect.middlewares=vpn-ipwhitelist@docker,mailu-redirect@docker"
 
   resolver:
     image: ${DOCKER_ORG}/${DOCKER_PREFIX:-}unbound:${MAILU_VERSION}

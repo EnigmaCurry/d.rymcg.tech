@@ -5,6 +5,8 @@ networks:
     name: traefik-proxy
   traefik-wireguard:
     name: traefik-wireguard
+  traefik-mail:
+    name: traefik-mail
 
 volumes:
   traefik:
@@ -24,6 +26,8 @@ services:
         ipv4_address: ${TRAEFIK_PROXY_SUBNET_IP}
       traefik-wireguard:
         ipv4_address: ${TRAEFIK_WIREGUARD_SUBNET_IP}
+      traefik-mail:
+        ipv4_address: ${TRAEFIK_MAIL_SUBNET_IP}
     security_opt:
       - no-new-privileges:true
     command:
@@ -32,13 +36,13 @@ services:
       - "--providers.docker.exposedbydefault=false"
       - "--providers.docker.network=traefik-proxy"
       ## Entrypoints:
-      - "--entrypoints.web.address=${TRAEFIK_PROXY_SUBNET_IP}:80"
-      - "--entrypoints.websecure.address=${TRAEFIK_PROXY_SUBNET_IP}:443"
-      - "--entrypoints.vpn.address=${TRAEFIK_WIREGUARD_SUBNET_IP}:443"
-      - "--entrypoints.mqtt.address=${TRAEFIK_PROXY_SUBNET_IP}:8883"
-      - "--entrypoints.ssh.address=${TRAEFIK_PROXY_SUBNET_IP}:2222"
-      - "--entrypoints.traefik.address=${TRAEFIK_PROXY_SUBNET_IP}:8080"
-      #- "--entrypoints.dns.address=${TRAEFIK_PROXY_SUBNET_IP}:53"
+      - "--entrypoints.web.address=:80"
+      - "--entrypoints.websecure.address=:443"
+      - "--entrypoints.vpn.address=${TRAEFIK_WIREGUARD_SUBNET_IP}:442"
+      - "--entrypoints.mqtt.address=:8883"
+      - "--entrypoints.ssh.address=:2222"
+      - "--entrypoints.traefik.address=:8080"
+      #- "--entrypoints.dns.address=:53"
       ## Automatically redirect HTTP to HTTPS
       - "--entrypoints.web.http.redirections.entryPoint.to=websecure"
       ## ACME TLS Challenge (Let's Encrypt):
