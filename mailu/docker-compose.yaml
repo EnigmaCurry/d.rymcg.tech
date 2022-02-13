@@ -71,6 +71,13 @@ services:
       default:
         ipv4_address: ${SUBNET_PREFIX}.13
       traefik-wireguard:
+        ipv4_address: ${WIREGUARD_SUBNET_PREFIX}.13
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.mailu.rule=Host(`${MAILU_TRAEFIK_HOST}`)"
+      - "traefik.http.routers.mailu.entrypoints=vpn"
+      - "traefik.http.routers.mailu.tls.certresolver=${ACME_CERT_RESOLVER}"
+      - "traefik.http.services.mailu.loadbalancer.server.port=80"
 
   resolver:
     image: ${DOCKER_ORG}/${DOCKER_PREFIX:-}unbound:${MAILU_VERSION}
