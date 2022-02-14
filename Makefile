@@ -43,13 +43,13 @@ restore-env:
 .PHONY: delete-env
 delete-env:
 	@${BIN}/confirm no "This will find and delete ALL of the .env files recursively"
-	find ${ROOT_DIR} | grep -E '\.env$$' | xargs rm -f
+	find ${ROOT_DIR} | grep -E '\.env$$' | xargs shred -u
 	@echo "Done."
 
 .PHONY: delete-passwords
 delete-passwords:
 	@${BIN}/confirm no "This will find and delete ALL of the passwords.json files recursively"
-	find ${ROOT_DIR} | grep -E 'passwords.json$$' | xargs rm -f
+	find ${ROOT_DIR} | grep -E 'passwords.json$$' | xargs shred -u
 	@echo "Done."
 
 .PHONY: clean # Remove all private files (.env and passwords.json files)

@@ -67,7 +67,7 @@ Finding the instructions for creating these records is left up to the user,
 since DNS platforms vary greatly, but see [DIGITALOCEAN.md](DIGITALOCEAN.md) for
 an example.
 
-It is recommended to dedicate an sub-domain for this project, and then create
+It is recommended to dedicate a sub-domain for this project, and then create
 sub-sub-domains for each project. This will create domain names that look like
 `whoami.d.example.com`, where `whoami` is the project name, and `d` is a unique
 name for the overall sub-domain representing your docker server (`d` is for
@@ -85,23 +85,23 @@ the entire domain to this single instance, go ahead.
 If you don't want to create a wildcard record, you can just create several
 normal `A` (or `AAAA`) records for each of the domains your apps will use, but
 this might mean that you need to come back and add several more records later as
-you install more projects, and also may break some of the assumptions in the
-(optional) Makefiles.
+you install more projects, but this lets you freely use whatever domain names
+you want.
 
 ### Notes on firewall
 
 This system does not include a network firewall of its own. You are expected to
 provide this in your host networking environment. (Note: `ufw` is NOT
-recommended for use with Docker, nor any other firewall directly located on the
-same host machine as Docker. You should prefer an external dedicated firewall
-[ie. your cloud provider], or none at all.)
+recommended for use with Docker, nor is any other firewall that is directly
+located on the same host machine as Docker. You should prefer an external
+dedicated network firewall [ie. your cloud provider, or VM host].)
 
 All traffic flows through Traefik. The network ports you need to allow are
 listed in [traefik/docker-compose.yaml](traefik/docker-compose.yaml) in the
 `Entrypoints` section. You can add or remove these entrypoints as you see fit.
 
-Depending on which services you actually use, you need to open these (default)
-ports in your firewall (adapt these as you add or remove entrypoints):
+Depending on which services you actually install, you need to open these
+(default) ports in your firewall (adapt these as you add or remove entrypoints):
 
    | Type   | Protocol | Port Range | Description                            |
    | ------ | -------- | ---------- | --------------------------------       |
@@ -109,8 +109,9 @@ ports in your firewall (adapt these as you add or remove entrypoints):
    | HTTP   | TCP      |         80 | Traefik HTTP endpoint                  |
    | HTTPS  | TCP      |        443 | Traefik HTTPS (TLS) endpoint           |
    | Custom | TCP      |       2222 | Traefik Gitea SSH (TCP) endpoint       |
-   | Custom | TCP      |       2223 | SFTP container SSH (TCP) (non-Traefik) |
+   | Custom | TCP      |       2223 | SFTP container SSH (TCP) (direct-map)  |
    | Custom | TCP      |       8883 | Traefik Mosquitto (TLS) endpoint       |
+   | Custom | TCP      |      15820 | Wireguard (TCP) (direct-map)           |
  
 See [DIGITALOCEAN.md](DIGITALOCEAN.md) for an example of setting the
 DigitalOcean firewall service.
@@ -121,7 +122,7 @@ DigitalOcean firewall service.
 
 You need to install the following tools on your local workstation:
 
-The only hard requirement is the `docker` client and `docker-compose`:
+The only hard requirements are the `docker` client, and `docker-compose`:
 
  * [Install docker client](https://docs.docker.com/get-docker/) (For
    Mac/Windows, this means Docker Desktop. For Linux, this means installing the
@@ -136,13 +137,15 @@ convenience wrappers for creating/modifying your `.env` files and for running
 `docker-compose`, so these are not required to use if you would rather just edit
 your `.env` files by hand and/or run `docker-compose` manually.):
 
-   * Base development tools including `bash`, `make`, `sed`, `xargs`.
+   * Base development tools including `bash`, `make`, `sed`, `xargs`, and
+     `shred`.
    * `openssl` (for generating randomized passwords)
    * `htpasswd` (for encoding passwords for Traefik Basic Authentication)
    * `jq` (for processing JSON) 
    * `xdg-open` (Used for opening the service URLs in your web-browser via `make
       open`. Don't install this if your workstation is on a server, as it
       depends on Xorg/Wayland which is an unnecessary large package install.)
+   * `wireguard` (client for connecting to the [wireguard](wireguard) VPN)
 
 On Arch Linux you can install the dependencies with: `pacman -S bash base-devel
 openssl apache xdg-utils jq`
@@ -163,7 +166,8 @@ with your remote docker server (eg. named `d.example.com` with the username
 `root`) over SSH:
 
 ```
-docker context create d.example.com --docker "host=ssh://root@ssh.d.example.com"
+docker context create d.example.com \
+    --docker "host=ssh://root@ssh.d.example.com"
 docker context use d.example.com
 ```
 
@@ -219,7 +223,7 @@ in the root directory, and is excluded from git via `.gitignore`)
 The `ROOT_DOMAIN` variable is saved in `.env.makefile` and will form the root
 domain of all of the sub-project domains, so that when you run `make config` in
 any of the sub-project directories, the default (but customizable) domains will
-be pre-populated with your root domain.
+be pre-populated with your root domain suffix.
 
 ## Install applications
 
@@ -232,11 +236,6 @@ Install these first:
 * [Traefik](traefik) - TLS reverse proxy
 * [whoami](whoami) - HTTP test service
 
-If you want a git host + OAuth identity server, install these next (*optional*):
-
-* [Gitea](gitea) - Git host (like self-hosted GitHub) and oauth server
-* [traefik-forward-auth](traefik-forward-auth) - Traefik oauth middleware
-
 Install these services at your leisure/preference:
 
 * [Baikal](baikal) - a lightweight CalDAV+CardDAV server.
@@ -245,6 +244,7 @@ Install these services at your leisure/preference:
 * [Ejabberd](ejabberd) - an XMPP (Jabber) server
 * [Filestash](filestash) - a web based file manager with customizable backend storage providers
 * [FreshRSS](freshrss) - an RSS reader / proxy
+* [Gitea](gitea) - Git host (like self-hosted GitHub) and oauth server
 * [Invidious](invidious) - a Youtube proxy
 * [Jupyterlab](jupyterlab) - a web based code editing environment / reproducible research tool
 * [Larynx](larynx) - a speech synthesis engine
@@ -261,6 +261,7 @@ Install these services at your leisure/preference:
 * [Shaarli](shaarli) - a bookmark manager
 * [Syncthing](syncthing) - a multi-device file synchronization tool
 * [Tiny Tiny RSS](ttrss) - an RSS reader / proxy
+* [traefik-forward-auth](traefik-forward-auth) - Traefik oauth middleware
 * [Websocketd](websocketd) - a websocket / CGI server
 * [Wireguard](wireguard) - a simple VPN server
 * [XBrowserSync](xbs) - a bookmark manager
@@ -268,7 +269,7 @@ Install these services at your leisure/preference:
 Bespoke things:
 
 * [certificate-ca](_terminal/certificate-ca) Experimental ad-hoc certifcate CA. Creates
-  self-signed certificates for siturations where you don't want to use Let's
+  self-signed certificates for situations where you don't want to use Let's
   Encrypt.
 * [Linux Shell Containers](_terminal/linux) create bash aliases that
   automatically build and run programs in Docker containers.
@@ -281,11 +282,16 @@ As alluded to earlier, this project offers two ways to control Docker:
  2. Running `make` targets that edit the `.env` files and runs `docker-compose`
     for you.
 
+Both of these methods are compatible, and they both get you to the same place.
+The Makefiles offer a more streamlined approach with sensible defaults, and the
+sub-project documentation mostly reflects this choice. Editing the .env files by
+hand still offers you more control and options for experimentation.
+
 ### Using docker-compose by hand
 
 For all of the containers that you wish to install, do the following:
 
- * Read the README.md file found in each project directory.
+ * Read the README.md file found in the sub-project directory.
  * Open your terminal and change to the project directory containing `docker-compose.yaml`
  * Copy the example `.env-dist` to `.env`
  * Edit all of the variables in `.env`
@@ -298,7 +304,7 @@ Alternatively, each project has a Makefile that helps to simplify configuration
 and startup. You can use the Makefiles to automatically edit the `.env` files
 and to start the service for you:
 
- * `cd` into the project sub-directory.
+ * `cd` into the sub-project directory.
  * Read the README.md file.
  * Run `make config` 
  * Answer the interactive questions, and the `.env` file will be created/updated
@@ -309,23 +315,25 @@ and to start the service for you:
  * Run `make install` to start the services. (this is the same thing as
    `docker-compose up --build -d`)
  * Most services have a website URL, which you can open automatically, run:
-   `make open` (after waiting a bit for the service to start).
- * See `make help` (or just `make`) for a list of all the other available
-   targets, including `make status`, `make start`, `make stop` and `make destroy`.
+   `make open` (requires `xdg-utils`).
+ * See `make help` (or just run `make`) for a list of all the other available
+   targets, including `make status`, `make start`, `make stop` and `make
+   destroy`. Be sure to recognize that `make` has tab completion in bash :)
  * You can also run `make status` in the root directory of the cloned source.
    This will list all of the installed applications.
 
-## Backup .env files
+## Backup .env files (optional)
 
-Because the `.env` files contain secrets, they are excluded from being committed
-to the git repository via `.gitignore`. However, you may still wish to back
-these files up, to retain your configurations. This section will describe how to
-backup all of your `.env` files to a GPG encrypted tarball.
+Because the `.env` files contain secrets, they are to be excluded from being
+committed to the git repository via `.gitignore`. However, you may still wish to
+retain your configurations by making a backup. This section will describe how to
+make a backup of all of your `.env` files to a GPG encrypted tarball, and how to
+clean/delete all of the plain text copies.
 
 ### Setup GPG
 
-First you will need to setup GPG key. You can do this from the same workstation,
-or from a different computer entirely:
+First you will need to setup a GPG key. You can do this from the same
+workstation, or from a different computer entirely:
 
 ```
 # Create gpg key (note the long ID it generates, second line after 'pub'):
