@@ -12,7 +12,9 @@ check_var(){
             missing=true
         fi
     done
-    test ${missing} == true && fault
+    if [[ ${missing} == true ]]; then
+        fault
+    fi
 }
 
 require_input() {
