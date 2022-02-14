@@ -23,6 +23,7 @@ config-ask:
 	@${BIN}/reconfigure_ask RELAYHOST "Enter your upstream SMTP (TLS) server and port number (use square brackets around hostname!)" [smtp.example.com]:465
 	@${BIN}/reconfigure_ask RELAYUSER "Enter the upstream SMTP username"
 	@${BIN}/reconfigure_ask RELAYPASSWORD "Enter the upstream SMTP password"
+	@${BIN}/reconfigure_ask POSTMASTER "Enter the admin account name" admin
 
 .PHONY: config # Configure .env file
 config: config-ask cert fingerprint
@@ -40,4 +41,5 @@ fingerprint:
 
 .PHONY: admin # Create admin account and/or reset password
 admin:
-	@PASSWORD=$$(openssl rand -base64 45) DOMAIN=$$(${BIN}/dotenv get DOMAIN) && read -p "Enter the username for the admin account (eg. ${USER}): " USERNAME && docker-compose exec admin flask mailu admin --mode update $${USERNAME} $${DOMAIN} "$${PASSWORD}" && echo "Username: $${USERNAME}@$${DOMAIN}" && echo "Password: $${PASSWORD}"
+	@${BIN}/confirm yes "This will create the admin POSTMASTER account, and/or reset the password for it"
+	@PASSWORD=$$(openssl rand -base64 45) DOMAIN=$$(${BIN}/dotenv get DOMAIN) POSTMASTER=$$(${BIN}/dotenv get POSTMASTER) && docker-compose exec admin flask mailu admin --mode update $${POSTMASTER} $${DOMAIN} "$${PASSWORD}" && echo "Username: $${POSTMASTER}@$${DOMAIN}" && echo "Password: $${PASSWORD}"
