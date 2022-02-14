@@ -22,7 +22,7 @@ the newly deployed application. Under the covers, setup is pure
 - [Main configuration](#main-configuration)
 - [Install applications](#install-applications)
 - [Command line interaction](#command-line-interaction)
-- [Backup .env files](#backup-env-files)
+- [Backup .env files](#backup-env-files-optional)
 
 ## All configuration comes from the environment
 

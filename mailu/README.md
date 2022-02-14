@@ -98,8 +98,7 @@ Create your main email account (this will be an administrator):
 make admin
 ```
 
-When asked, enter the username you would like, and the initial password will be
-displayed.
+The initial randomized password will be displayed.
 
 Open the browser and sign into the admin interface:
 
