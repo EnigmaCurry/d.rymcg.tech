@@ -27,6 +27,16 @@ volumes:
   overrides_roundcube:
 
 services:
+  config:
+    build:
+      context: config
+    security_opt:
+      - no-new-privileges:true
+    environment:
+      - PRINT_CONFIG
+    volumes:
+      - overrides_postfix:/overrides/postfix
+
   # External dependencies
   redis:
     image: redis:alpine
@@ -118,6 +128,7 @@ services:
       - ${SUBNET_PREFIX}.254
 
   smtp:
+    depends_on: ['config']
     image: ${DOCKER_ORG}/${DOCKER_PREFIX:-}postfix:${MAILU_VERSION}
     restart: always
     env_file: .env
