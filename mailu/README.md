@@ -18,7 +18,7 @@ a relay, and let someone else deal with the problem of delivering your mail. And
 since you need someone to send your mail, you might as well let them receive
 your mail too. IF you were to clumsily delete your mailu instance, or forget to
 pay your VPS host, you'll know that your mails are still being collected and
-will be ready to download again once you re-install/re-configure mailu again.
+will be ready to download again once you re-install/re-configure mailu.
 
 Since you (and your mail clients) will be the only ones who connects to the mail
 server, it does not need to be public at all. By wrapping the service in
@@ -34,7 +34,9 @@ wrong/weird).
    that forwards mail for an entire domain.
  * You need to install [traefik](../traefik) and [wireguard](../wireguard).
  * You will need a domain name for your mail server, with a DNS `A` record (eg.
-   `mail.example.com`) pointed to your Traefik server's IP address.
+   `mail.example.com`) pointed to your Traefik server's IP address. The `MX`
+   records should be pointing to your upstream mail provider. Do not add any
+   `MX` records for your private mailu instance.
  
 ## Network diagram
 
@@ -66,7 +68,7 @@ Run `make config` and answer the questions to create the `.env` file:
  * `SUBNET` the subnet for the `mail` docker network, eg `192.168.203.0/24`
  * `DOMAIN` the main mail domain, ie. the part that comes after the `@` in your
    main email address, eg. `example.com`.
- * `RELAYHOST` The upstream SMTP (TLS) server hostname and port, in dovecot
+ * `RELAYHOST` The upstream SMTP (TLS) server hostname and port, in special
    syntax with square brackets around the name: `[smtp.example.net]:465`
  * `RELAYUSER` The upstream SMTP username, eg. `user@example.com`.
  * `RELAYPASSWORD` The upstream SMTP password.
@@ -96,7 +98,8 @@ Create your main email account (this will be an administrator):
 make admin
 ```
 
-Enter the username you would like, and the initial password will be displayed.
+When asked, enter the username you would like, and the initial password will be
+displayed.
 
 Open the browser and sign into the admin interface:
 
@@ -133,3 +136,21 @@ domain you added, you can add additional domains:
    exist. Click the `*` icon and find the `Alternative domain list` page.
  * Click `Add alternative`, and add as many additional domain names as you want.
  
+## TLS certificates
+
+The TLS certificate for the web browser (admin and webmail clients) uses the
+Lets Encrypt ACME provider, and will therefore be a valid trusted certificate.
+
+The TLS certificates for the SMTP and IMAP servers are self-signed certiticates
+from [certificate-ca](../_terminal/certificate-ca). Traefik is proxying the TCP
+connection with TLS passthrough directly to the mailu frontend. 
+
+The self-signed certificate is valid for 100 years. Most mail clients allow you
+to "pin" a self-signed TLS certificate, and will therefore no longer nag you
+about the fact that it is self-signed. You will want to verify the fingerprint
+when it first connects, to ensure the validity:
+
+```
+## Verify the TLS certificate fingerprints match what your mail clients say:
+make fingerprint
+```
