@@ -1,4 +1,4 @@
-ROOT_DIR = ..
+10ROOT_DIR = ..
 include ../_scripts/Makefile.projects
 
 .PHONY: config # Configure .env file
