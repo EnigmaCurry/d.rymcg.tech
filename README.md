@@ -262,6 +262,7 @@ Install these services at your leisure/preference:
 * [Syncthing](syncthing) - a multi-device file synchronization tool
 * [Tiny Tiny RSS](ttrss) - an RSS reader / proxy
 * [Websocketd](websocketd) - a websocket / CGI server
+* [Wireguard](wireguard) - a simple VPN server
 * [XBrowserSync](xbs) - a bookmark manager
 
 Bespoke things:
