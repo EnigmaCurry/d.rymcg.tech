@@ -19,7 +19,7 @@ config-ask:
 	@${BIN}/reconfigure TRAEFIK_MAIL_SUBNET_PREFIX=$$(${BIN}/subnet_prefix $$(${BIN}/dotenv get TRAEFIK_MAIL_SUBNET))
 
 	@${BIN}/reconfigure_ask DOMAIN "Enter the main mail domain"
-	@${BIN}/reconfigure_ask HOSTNAMES "Enter all the names for the mail server (comma separated)" $$(${BIN}/dotenv get MAILU_TRAEFIK_HOST)
+	@${BIN}/reconfigure HOSTNAMES=$$(${BIN}/dotenv get MAILU_TRAEFIK_HOST)
 	@${BIN}/reconfigure_ask RELAYHOST "Enter your upstream SMTP (TLS) server and port number (use square brackets around hostname!)" [smtp.example.com]:465
 	@${BIN}/reconfigure_ask RELAYUSER "Enter the upstream SMTP username"
 	@${BIN}/reconfigure_ask RELAYPASSWORD "Enter the upstream SMTP password"

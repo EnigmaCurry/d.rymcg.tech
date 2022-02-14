@@ -7,7 +7,7 @@ container.
 
 
 This configuration starts a wireguard server in a container, and maps to the
-host port 51820. Client credentials are printed to the log in the form of QR
+host port 51820. Client credentials are printed to the log, in the form of QR
 codes. Once the server is up, scan the code with your mobile client, and the VPN
 is automatically setup.
 
@@ -30,15 +30,39 @@ Run `make config` to setup your `.env` file.
    traffic to go through the VPN. Ultimately, its up to the client to configure,
    but this informs the client what its configuration should be.
 
+## Install
+
 Run `make install` to install the service.
 
-Run `make client-install` to install the local client (Must use one the names
-you specified for `WIREGUARD_PEERS` when asked)
+## Usage
+
+Make sure you install the wireguard client (including `wg-quick`) with your
+package manager.
+
+Run `make client-install` to install the local client (Must specify one of the
+names you specified for `WIREGUARD_PEERS`, when asked).
 
 Run `make client-start` to start the local wireguard client connection.
 
 Run `make client-stop` to stop the local wireguard client connection.
 
-## Connecting the VPN to traefik
+## Routes
 
-TODO
+Wireguard will only setup a route to the private Traefik `vpn` endpoint (TCP
+port `442` for TLS, which is not exposed to the internet**. All other routes will
+use your regular internet connection.
+
+**Note:** While your client system is connected to the wireguard server, your
+system will use the Docker host DNS resolver for **all DNS queries** (except for
+specific applications [browsers] coded/configured to use DNS over HTTP/TCP). To
+modify the DNS records, you can simply edit the `/etc/hosts` file on the Docker
+host system, and they will immediately take effect for the wireguard clients.
+
+For example, if you install the [mailu](../mailu) service, you will need to add
+the IP address pointing to your Traefik instance's IP on the `traefik-wireguard`
+network:
+
+```
+## This is the default Traefik IP address on the traefik-wireguard network:
+172.15.0.3      mail.example.com
+```
