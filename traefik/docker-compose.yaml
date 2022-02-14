@@ -42,6 +42,8 @@ services:
       - "--entrypoints.mqtt.address=:8883"
       - "--entrypoints.ssh.address=:2222"
       - "--entrypoints.traefik.address=${TRAEFIK_WIREGUARD_SUBNET_IP}:8080"
+      - "--entrypoints.smtp.address=${TRAEFIK_WIREGUARD_SUBNET_IP}:465"
+      - "--entrypoints.imap.address=${TRAEFIK_WIREGUARD_SUBNET_IP}:993"
       #- "--entrypoints.dns.address=:53"
       ## Automatically redirect HTTP to HTTPS
       - "--entrypoints.web.http.redirections.entryPoint.to=websecure"

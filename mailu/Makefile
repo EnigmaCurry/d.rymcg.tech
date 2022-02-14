@@ -25,21 +25,18 @@ config-ask:
 	@${BIN}/reconfigure_ask RELAYPASSWORD "Enter the upstream SMTP password"
 
 .PHONY: config # Configure .env file
-config: config-ask
+config: config-ask cert fingerprint
 
-# .PHONY: config # Configure .env file
-# config: config-ask cert fingerprint
+.PHONY: cert # Create self-signed TLS certificate
+cert:
+	@${BIN}/confirm yes "certificate-ca will now create and sign a certificate for $$(${BIN}/dotenv get MAILU_TRAEFIK_HOST)"
+#	Generate self-signed 100 year certificate:
+	../_terminal/certificate-ca/cert-manager.sh ${ROOT_DOMAIN} create_ca
+	../_terminal/certificate-ca/cert-manager.sh ${ROOT_DOMAIN} create $$(${BIN}/dotenv get MAILU_TRAEFIK_HOST)
 
-# .PHONY: cert # Create self-signed TLS certificate
-# cert:
-# 	@${BIN}/confirm yes "certificate-ca will now create and sign a certificate for $$(${BIN}/dotenv get MAILU_TRAEFIK_HOST)"
-# #	Generate self-signed 100 year certificate:
-# 	../_terminal/certificate-ca/cert-manager.sh ${ROOT_DOMAIN} create_ca
-# 	../_terminal/certificate-ca/cert-manager.sh ${ROOT_DOMAIN} create $$(${BIN}/dotenv get MAILU_TRAEFIK_HOST)
-
-# .PHONY: fingerprint # View the TLS certificate fingerprint
-# fingerprint:
-# 	@../_terminal/certificate-ca/cert-manager.sh ${ROOT_DOMAIN} fingerprint $$(${BIN}/dotenv get MAILU_TRAEFIK_HOST)
+.PHONY: fingerprint # View the TLS certificate fingerprint
+fingerprint:
+	@../_terminal/certificate-ca/cert-manager.sh ${ROOT_DOMAIN} fingerprint $$(${BIN}/dotenv get MAILU_TRAEFIK_HOST)
 
 .PHONY: admin # Create admin account and/or reset password
 admin:
