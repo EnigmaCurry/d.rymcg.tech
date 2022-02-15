@@ -14,6 +14,9 @@ is automatically setup.
 You can make all traffic go through the VPN, or be selective
 (`WIREGUARD_ALLOWEDIPS`).
 
+You can also configure private services, running on any client, to be exposed to
+the internet through Traefik.
+
 ## Config
 
 Run `make config` to setup your `.env` file.
@@ -93,4 +96,117 @@ network:
 ```
 ## This is the default Traefik IP address on the traefik-wireguard network:
 172.15.0.3      mail.example.com
+```
+
+## Private services
+
+To create services that only VPN users can access, see the example in the
+[whoami](whoami) service that is located in this same directory. It is
+configured to listen only on the Traefik `vpn` endpoint.
+
+Traefik binds the `vpn` endpoint on port `442`, on an ip address (`172.15.0.3`
+by default) that is only accessible from the `traefik-wireguard` network (or
+from the docker host). Port `442` is not exposed to the internet.
+
+Since web browsers default `https://` URLs to use port `443`, a redirect from
+port `443` (`websecure` endpoint) to port `442` (`vpn` endpoint) is added for
+convenience. This redirect only happens for requests originating from IP
+addresses in the `traefik-wireguard` subnet range. If requests come on any other
+network, the access is forbidden.
+
+Be sure to add the whoami domain name to your system `/etc/hosts` file, so that
+your clients can resolve the private Traefik IP address:
+
+```
+## This is the default Traefik IP address on the traefik-wireguard network:
+172.15.0.3      whoami-vpn.example.com
+```
+
+## Bridging private client services to the public internet
+
+To expose publicly a private service running on any of the wireguard client
+hosts, you can use Traefik to proxy via the `wireguard-traefik` network.
+
+Yes, this means you can run a public webserver on your phone.
+
+### Step 1: Start the local service you want to expose
+
+Run a webserver from the machine running the wireguard client. If you have
+Python installed, you can start a demo server: go to a directory containing some
+files you want to share, and run the python builtin web server:
+
+```
+cd ~/tmp
+python -m http.server
+```
+
+This will run a server locally, running on port 8000.
+
+### Step 2: Expose the port to the traefik-wireguard network
+
+The wireguard container needs a firewall rule to allow traffic into the private
+wireguard network. This is automated by the following make target:
+
+```
+make client-expose-port
+```
+
+Answer the questions:
+ * Enter the private wireguard IP address of your client (eg. `10.15.0.2`)
+ * Enter the TCP port number of the server (eg. `8000`)
+ 
+You can list all the open port mappings:
+
+```
+make ports
+```
+
+### Step 3: Create a Traefik route to your private service
+
+Create a new Traefik config file and put it in
+`../traefik/config/config-template/my-private-vpn-service.yaml` :
+
+
+```
+## This example exposes a private HTTP server on a wireguard VPN network,
+## through Traefik, to an endpoint accessible by the public internet.
+
+http:
+  services:
+    my-private-vpn-service:
+      loadBalancer:
+        servers:
+          - url: "http://wireguard:8000/"
+  routers:
+    my-private-vpn-service:
+      rule: "Host(`test.example.com`)"
+      service: my-private-vpn-service
+      tls:
+        certResolver: production
+```
+
+Make sure to change the `Host` rule to be the desired domain name for your service.
+
+Restart the traefik service:
+
+```
+make -C ../traefik install
+```
+
+Test the server, it should now be live on the internet.
+
+### Step 4: Cleanup
+
+To remove the wireguard firewall rule to no longer expose the TCP port:
+
+```
+make ports-flush
+```
+
+To remove the Traefik router, remove (or comment out) the config file, and
+restart Traefik:
+
+```
+rm ../traefik/config/config-template/my-private-vpn-service.yaml
+make -C ../traefik install
 ```

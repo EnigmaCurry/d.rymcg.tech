@@ -1,4 +1,4 @@
-10ROOT_DIR = ..
+ROOT_DIR = ..
 include ../_scripts/Makefile.projects
 
 .PHONY: config # Configure .env file
@@ -42,3 +42,23 @@ client-remove: client-down
 .PHONY: client-status # Show client status
 client-status: 
 	sudo wg show $$(${BIN}/dotenv get WIREGUARD_TRAEFIK_HOST  | sha256sum | head -c 8)
+
+.PHONY: client-expose-port # Expose TCP port to the traefik-wireguard network
+client-expose-port:
+	@${BIN}/confirm yes "WARNING: this will expose a private TCP port to Traefik"
+	@PRIVATE_IP=$$(ip addr show dev $$(${BIN}/dotenv get WIREGUARD_TRAEFIK_HOST  | sha256sum | head -c 8) | grep inet | grep -oP ".*inet \K[^/ ]*") WIREGUARD_PUBLIC_IP=$$(docker inspect wireguard-wireguard-1 | jq -r '.[0]["NetworkSettings"]["Networks"]["traefik-wireguard"]["IPAddress"]') && read -e -p "Enter the private wireguard IP address: " -i $${PRIVATE_IP} PRIVATE_IP && read -e -p "Enter the TCP port number to expose: " TCP_PORT && ${BIN}/confirm yes "This will expose $${WIREGUARD_PUBLIC_IP}:$${TCP_PORT} -> $${PRIVATE_IP}:$${TCP_PORT}" && echo "" && ${BIN}/iptables_dnat wireguard-wireguard-1 $${WIREGUARD_PUBLIC_IP} $${TCP_PORT} $${PRIVATE_IP} $${TCP_PORT}
+	@echo ""
+	@echo "Done."
+	@echo "Note: This rule will only persist for the current wireguard container lifetime."
+	@echo "To remove all the rules, simply restart the wireguard container."
+	@echo "You must now add a Traefik router to route traffic to this port."
+
+.PHONY: ports # Show the current exposed ports
+ports:
+	docker-compose exec wireguard iptables -t nat -L PREROUTING
+
+.PHONY: ports-flush # Flush (removes, closes) all client port mappings
+ports-flush:
+	@${BIN}/confirm yes "This will remove and close all the existing client port mappings"
+	docker-compose exec wireguard iptables -t nat -F PREROUTING
+	docker-compose exec wireguard iptables -t nat -L PREROUTING

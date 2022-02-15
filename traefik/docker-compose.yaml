@@ -12,7 +12,17 @@ volumes:
   traefik:
   
 services:
+  config:
+    build:
+      context: config
+    security_opt:
+      - no-new-privileges:true
+    env_file: .env
+    volumes:
+      - traefik:/data
+
   traefik:
+    depends_on: ['config']
     build:
       context: .
       args:
@@ -32,6 +42,10 @@ services:
       - no-new-privileges:true
     command:
       - "--log.level=${TRAEFIK_LOG_LEVEL}"
+      ## File provider:
+      - "--providers.file.directory=/data/config"
+      - "--providers.file.watch=true"
+      ## Docker provider:
       - "--providers.docker=true"
       - "--providers.docker.exposedbydefault=false"
       - "--providers.docker.network=traefik-proxy"
