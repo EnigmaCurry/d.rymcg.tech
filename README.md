@@ -24,6 +24,9 @@ the newly deployed application. Under the covers, setup is pure
 - [Command line interaction](#command-line-interaction)
 - [Backup .env files](#backup-env-files-optional)
 
+If you're impatient, or have read all of this before, you can follow
+[BRIEF.md](BRIEF.md) for a quicker introduction.
+
 ## All configuration comes from the environment
 
 All of these projects are configured soley via environment variables written to
