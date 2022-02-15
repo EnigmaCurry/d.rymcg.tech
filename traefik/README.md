@@ -83,3 +83,13 @@ web servers running in project containers.
 
 You can start the [traefik-forward-auth](../traefik-forward-auth) service to
 enable OAuth2 authentication to your [gitea](../gitea) identity provider.
+
+## File provider
+
+For most configuration, you should use the Traefik Docker provider. This means
+that you put all traefik configuration directly in Docker labels on the service
+containers you create. 
+
+You can also put your configuration into files. The docker-compose will render
+templates from the [config/config-template](config/config-templates) directory
+everytime before Traefik starts.

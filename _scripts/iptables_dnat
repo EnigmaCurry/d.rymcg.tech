@@ -1,0 +1,24 @@
+#!/bin/bash
+
+BIN=$(dirname ${BASH_SOURCE})
+source ${BIN}/funcs.sh
+
+## Expose a private TCP port publicly via DNAT
+## Checks to make sure the rule is not added twice
+## iptables_nat {DOCKER_SERVICE} {PUBLIC_IP} {PUBLIC_PORT} {PRIVATE_IP} {PRIVATE_PORT}
+
+CONTAINER="$1"; shift
+PUBLIC_IP="$1"; shift
+PUBLIC_PORT="$1"; shift
+PRIVATE_IP="$1"; shift
+PRIVATE_PORT="$1"; shift
+
+check_var CONTAINER PUBLIC_IP PUBLIC_PORT PRIVATE_IP PRIVATE_PORT
+
+nat_command="PREROUTING --dst ${PUBLIC_IP} -p tcp --dport ${PUBLIC_PORT} -j DNAT --to-destination ${PRIVATE_IP}:${PRIVATE_PORT}"
+
+if docker exec ${CONTAINER} iptables -t nat -C ${nat_command} >/dev/null 2>&1; then
+    echo "Port forwarding already setup"
+else
+    (set -x; docker exec ${CONTAINER} iptables -t nat -A ${nat_command})
+fi
