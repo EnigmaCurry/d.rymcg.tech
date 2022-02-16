@@ -5,11 +5,13 @@ the
 [linuxserver/docker-wireguard](https://github.com/linuxserver/docker-wireguard)
 container.
 
-
 This configuration starts a wireguard server in a container, and maps to the
 host port 51820. Client credentials are printed to the log, in the form of QR
 codes. Once the server is up, scan the code with your mobile client, and the VPN
 is automatically setup.
+
+There is an associated client configuration in
+[wireguard-client](../wireguard-client).
 
 You can make all traffic go through the VPN, or be selective
 (`WIREGUARD_ALLOWEDIPS`).
@@ -48,6 +50,11 @@ names you specified for `WIREGUARD_PEERS`, when asked).
 Run `make client-start` to start the local wireguard client connection.
 
 Run `make client-stop` to stop the local wireguard client connection.
+
+Note: the `client-install`, `client-start`, `client-stop` targets are all
+controlling the local *system level* wireguard network interfaces. If you want
+to use a client in a container, use [wireguard-client](../wireguard-client)
+instead.
 
 ## Mobile clients
 

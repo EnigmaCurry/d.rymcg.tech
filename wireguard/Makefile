@@ -40,7 +40,7 @@ client-remove: client-down
 	sudo rm /etc/wireguard/$$(${BIN}/dotenv get WIREGUARD_TRAEFIK_HOST  | sha256sum | head -c 8).conf
 
 .PHONY: client-status # Show client status
-client-status: 
+client-status:
 	sudo wg show $$(${BIN}/dotenv get WIREGUARD_TRAEFIK_HOST  | sha256sum | head -c 8)
 
 .PHONY: client-expose-port # Expose TCP port to the traefik-wireguard network
@@ -62,3 +62,7 @@ ports-flush:
 	@${BIN}/confirm yes "This will remove and close all the existing client port mappings"
 	docker-compose exec wireguard iptables -t nat -F PREROUTING
 	docker-compose exec wireguard iptables -t nat -L PREROUTING
+
+.PHONY: shell
+shell:
+	@docker-compose exec wireguard /bin/bash
