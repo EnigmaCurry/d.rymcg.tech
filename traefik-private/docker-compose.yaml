@@ -1,0 +1,77 @@
+version: "3.3"
+
+networks:
+  traefik-proxy:
+    name: traefik-proxy
+  traefik-wireguard:
+    name: traefik-wireguard
+
+volumes:
+  traefik:
+  
+services:
+  config:
+    build:
+      context: config
+    security_opt:
+      - no-new-privileges:true
+    env_file: .env
+    networks:
+      traefik-proxy:
+    volumes:
+      - traefik:/data
+
+  traefik:
+    depends_on: ['config']
+    build:
+      context: .
+      args:
+        TRAEFIK_IMAGE: ${TRAEFIK_IMAGE}
+        BLOCKPATH_MODULE: github.com/traefik/plugin-blockpath
+        BLOCKPATH_GIT_BRANCH: master
+    container_name: "traefik"
+    restart: unless-stopped
+    networks:
+      traefik-proxy:
+        ipv4_address: ${TRAEFIK_PROXY_SUBNET_IP}
+      traefik-wireguard:
+        ipv4_address: ${TRAEFIK_WIREGUARD_SUBNET_IP}
+    security_opt:
+      - no-new-privileges:true
+    command:
+      - "--log.level=${TRAEFIK_LOG_LEVEL}"
+      ## File provider:
+      - "--providers.file.directory=/data/config"
+      - "--providers.file.watch=true"
+      ## Docker provider:
+      - "--providers.docker=true"
+      - "--providers.docker.exposedbydefault=false"
+      - "--providers.docker.network=traefik-proxy"
+      ## Entrypoints:
+      - "--entrypoints.vpn-plain.address=${TRAEFIK_WIREGUARD_SUBNET_IP}:80"
+      - "--entrypoints.vpn.address=${TRAEFIK_WIREGUARD_SUBNET_IP}:443"
+      - "--entrypoints.traefik.address=${TRAEFIK_WIREGUARD_SUBNET_IP}:8080"
+      ## Automatically redirect HTTP to HTTPS
+      - "--entrypoints.web.http.redirections.entryPoint.to=websecure"
+      ## Enable Dashboard available only from the docker localhost:8080 (password required)
+      - "--api.dashboard=true"
+      ## Load local plugins that have been bundled into the traefik image:
+      - "--experimental.localPlugins.blockpath.modulename=github.com/traefik/plugin-blockpath"
+    # ports:
+    #   - "80:80"
+    #   - "443:443"
+    volumes:
+      - "traefik:/data"
+      - "/var/run/docker.sock:/var/run/docker.sock:ro"
+    labels:
+      ## Require HTTP Basic Auth for api and dashboard which runs only on the
+      ## traefik endpoint (unexposed port 8080):
+      - "traefik.enable=true"
+      - "traefik.http.routers.api.rule=PathPrefix(`/api`) || PathPrefix(`/dashboard`)"
+      - "traefik.http.routers.api.entrypoints=traefik"
+      - "traefik.http.routers.api.service=api@internal"
+      - "traefik.http.routers.api.middlewares=traefik-api-ipwhitelist@docker,traefik-dashboard-auth"
+      - "traefik.http.middlewares.traefik-dashboard-auth.basicauth.users=${TRAEFIK_DASHBOARD_AUTH}"
+      - "traefik.http.middlewares.traefik-api-ipwhitelist.ipwhitelist.sourcerange=${TRAEFIK_WIREGUARD_SUBNET}"
+      - "traefik.tcp.middlewares.traefik-api-ipwhitelist.ipwhitelist.sourcerange=${TRAEFIK_WIREGUARD_SUBNET}"
+

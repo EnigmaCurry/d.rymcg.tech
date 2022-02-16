@@ -1,0 +1,22 @@
+version: "3.3"
+
+networks:
+  traefik-proxy:
+    name: traefik-proxy
+
+services:
+  whoami:
+    image: "traefik/whoami"
+    command: "-name im_in_a_vpn_on_a_client_host"
+    security_opt:
+      - no-new-privileges:true
+    container_name: whoami-vpn
+    networks:
+      - traefik-proxy
+    restart: unless-stopped
+    labels:
+      - "traefik.enable=true"
+
+      ## Only listen for TLS on private VPN port :443
+      - "traefik.http.routers.whoami-vpn.rule=Host(`${WHOAMI_TRAEFIK_HOST}`)"
+      - "traefik.http.routers.whoami-vpn.entrypoints=vpn"

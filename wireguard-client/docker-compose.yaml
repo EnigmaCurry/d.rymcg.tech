@@ -1,0 +1,35 @@
+version: "3.3"
+networks:
+  traefik-wireguard:
+    name: traefik-wireguard
+
+volumes:
+  config:
+
+services:
+  config:
+    build:
+      context: config
+    security_opt:
+      - no-new-privileges:true
+    env_file: .env
+    volumes:
+      - config:/config
+
+  wireguard:
+    image: lscr.io/linuxserver/wireguard
+    cap_add:
+      - NET_ADMIN
+      - SYS_MODULE
+    restart: unless-stopped
+    networks:
+      - traefik-wireguard      
+    sysctls:
+      - net.ipv4.conf.all.src_valid_mark=1
+    environment:
+      - PUID=1000
+      - PGID=1000
+      - TZ=${TIMEZONE}
+    volumes:
+      - config:/config
+      - /lib/modules:/lib/modules
