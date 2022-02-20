@@ -1,7 +1,7 @@
 # Traefik
 
 [Traefik](https://github.com/traefik/traefik) is a modern
-HTTP reverse proxy and load balancer.
+TLS / HTTP / TCP / UDP reverse proxy and load balancer.
 
 ## Config
 
@@ -14,6 +14,26 @@ Run `make config` or copy `.env-dist` to `.env` and edit the following:
    access the Traefik API and dashboard. If you ran `make config` this would be
    filled in for you, simply by answering the questions.
    
+In order to provide easier routing between each docker-compose project, static
+IP addresses and subnets are configured for Traefik. You should configure all of
+these networks even if you're not planning on using them all yet.
+
+ * `TRAEFIK_PROXY_SUBNET` - Choose a unique network subnet for the main
+   `traefik-proxy` network, eg. `172.13.0.0/16` and choose a specific IP address
+   `TRAEFIK_PROXY_SUBNET_IP`, eg. `172.13.0.3`. Most applications that will be
+   exposed to the internet will be connected to the `traefik-proxy` subnet.
+ * `TRAEFIK_WIREGUARD_SUBNET` - Choose a unique network subnet for the
+   `traefik-wireguard` network, eg. `172.15.0.0/16` and choose a specific IP
+   address `TRAEFIK_PROXY_SUBNET_IP`, eg. `172.15.0.3`. This subnet is used for
+   connecting the [wireguard](../wireguard) server to Traefik.
+ * `TRAEFIK_MAIL_SUBNET` - Choose a unique network subnet for the `traefik-mail`
+   network, eg. `172.16.0.0/16` and choose a specific IP address
+   `TRAEFIK_PROXY_SUBNET_IP`, eg. `172.16.0.1`. The mail subnet is for exclusive
+   use by the (optional) [mailu](../mailu) suite.
+
+In general, you can just use all of the default values suggested by `make
+config`, assuming that the suggested subnets are not used by anything else.
+
 One of the questions `make config` will ask you is if you would like to save
 `passwords.json` into this same directory. This file is not created by default,
 but only if you answer yes to this question. `passwords.json` will store the
@@ -26,18 +46,11 @@ To start Traefik, run `make install` or `docker-compose up -d`.
 ## Dashboard
 
 Traefik includes a dashboard to help visualize your configuration and detect
-errors. The dashboard service is only exposed to the localhost of the server, so
-you must tunnel throuh SSH to your docker server in order to see it:
+errors. The dashboard service is not exposed to the internet, so you must tunnel
+throuh SSH to your docker server in order to see it. 
 
-```
-ssh -N -L 8080:localhost:8080 ssh.example.com &
-```
-
-With the tunnel active, you can view
-[https://localhost:8080/dashboard/](https://localhost:8080/dashboard/) in your
-web browser to access it.
-
-You can quickly do all of the above by running the Makefile target:
+A Makefile target is setup to easily access the private dashboard through an SSH
+tunnel:
 
 ```
 # Starts the SSH tunnel if its not already running, 
@@ -47,6 +60,24 @@ make open
 ```
 
 You can `make close` later if you want to close the SSH tunnel.
+
+If you don't wish to use the Makefile, you can do it manually:
+
+Find the Traefik IP address:
+
+```
+docker inspect traefik | jq -r '.[0]["NetworkSettings"]["Networks"]["traefik-proxy"]["IPAddress"]'
+```
+
+And tunnel the dashboard connection through SSH:
+
+```
+ssh -N -L 8080:${TRAEFIK_IP}:8080 ssh.example.com &
+```
+
+With the tunnel active, you can view
+[https://localhost:8080/dashboard/](https://localhost:8080/dashboard/) in your
+web browser to access it. Enter the username/password you configured.
 
 ## Certificate Resolver
 
@@ -86,10 +117,13 @@ enable OAuth2 authentication to your [gitea](../gitea) identity provider.
 
 ## File provider
 
-For most configuration, you should use the Traefik Docker provider. This means
-that you put all traefik configuration directly in Docker labels on the service
-containers you create. 
+For most configuration, you should use the [Traefik Docker
+provider](https://doc.traefik.io/traefik/providers/docker/). This means that you
+put all traefik configuration directly in Docker labels on the service
+containers you create.
 
-You can also put your configuration into files. The docker-compose will render
-templates from the [config/config-template](config/config-templates) directory
-everytime before Traefik starts.
+You can also put your configuration into files in YAML or TOML format. The
+docker-compose will render templates from the
+[config/config-template](config/config-template) directory everytime before
+Traefik starts. This entire directory is ignored in `.gitignore`, letting you
+create your own private configuration templates.
