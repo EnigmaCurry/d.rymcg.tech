@@ -18,11 +18,13 @@ check-docker:
 .PHONY: config # Configure main variables
 config: check-deps check-docker
 	@echo ""
-	@ENV_FILE=".env.makefile" ENV_DIST_FILE=".env-dist.makefile" ${BIN}/reconfigure_ask ROOT_DOMAIN "Enter the default root domain for all your projects"
+	@${BIN}/confirm yes "This will make a configuration for the current docker context (${DOCKER_CONTEXT})"
+	@${BIN}/reconfigure_ask ${ROOT_ENV} ROOT_DOMAIN "Enter the root domain for this context"
+	@echo "Configured ${ROOT_ENV}"
 
 .PHONY: build # build all container images
-build: build-traefik-htpasswd
-	find ./ | grep docker-compose.yaml$ | xargs -iXX docker-compose -f XX build
+build:
+	find ./ | grep docker-compose.yaml$ | xargs dirname | xargs -iXX docker-compose --env-file=XX/${ENV_FILE} -f XX/docker-compose.yaml build
 
 .PHONY: open # Open the repository website README
 open:
@@ -43,13 +45,13 @@ restore-env:
 .PHONY: delete-env
 delete-env:
 	@${BIN}/confirm no "This will find and delete ALL of the .env files recursively"
-	find ${ROOT_DIR} | grep -E '\.env$$' | xargs shred -u
+	@find ${ROOT_DIR} | grep -E '\.env$$|\.env_.*' && find ${ROOT_DIR} | grep -E '\.env$$|\.env_.*' | xargs shred -u || true
 	@echo "Done."
 
 .PHONY: delete-passwords
 delete-passwords:
 	@${BIN}/confirm no "This will find and delete ALL of the passwords.json files recursively"
-	find ${ROOT_DIR} | grep -E 'passwords.json$$' | xargs shred -u
+	@find ${ROOT_DIR} | grep -E '^passwords.*.json$$' && find ${ROOT_DIR} | grep -E '^passwords.*.json$$' | xargs shred -u  || true
 	@echo "Done."
 
 .PHONY: clean # Remove all private files (.env and passwords.json files)

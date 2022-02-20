@@ -7,6 +7,12 @@ DOCKER_ORG ?= localhost
 ## Tools path:
 BIN = $(shell realpath ${ROOT_DIR}/_scripts)
 
+DOCKER_CONTEXT = $(shell ${BIN}/docker_context)
+## Root environment file (contains ROOT_DOMAIN)
+ROOT_ENV = .env_${DOCKER_CONTEXT}
+## Per-project environment file name is keyed to the current docker context:
+ENV_FILE ?= .env_$(shell ${BIN}/docker_context)
+
 # build-traefik-htpasswd:
 # 	docker build -t ${DOCKER_ORG}/traefik-htpasswd ${ROOT_DIR}/traefik-htpasswd
 
@@ -21,3 +27,4 @@ BIN = $(shell realpath ${ROOT_DIR}/_scripts)
 # cert:
 # 	@${BIN}/../_terminal/certificate-ca/cert-manager.sh ${ROOT_DOMAIN} create_ca || true
 # 	@read -p "Enter the certificate domain: " DOMAIN && read -e -p "Enter the user ID (UID): " -i "1000" CERT_UID && read -e -p "Enter the group ID (GID): " -i "1000" CERT_GID && ${BIN}/../_terminal/certificate-ca/cert-manager.sh ${ROOT_DOMAIN} create $${DOMAIN} ${CERT_UID} ${CERT_GID}
+

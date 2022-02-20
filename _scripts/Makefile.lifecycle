@@ -3,32 +3,32 @@ install: build start
 
 .PHONY: start # Start services
 start:
-	docker-compose up -d
+	docker-compose --env-file=${ENV_FILE} up -d
 
 .PHONY: up
 up: start
 
 .PHONY: stop # Stops services
 stop:
-	docker-compose stop
+	docker-compose --env-file=${ENV_FILE} stop
 
 .PHONY: down
 down: 
-	docker-compose down
+	docker-compose --env-file=${ENV_FILE} down
 
 .PHONY: restart # Restart services
 restart:
-	docker-compose restart
+	docker-compose --env-file=${ENV_FILE} restart
 
 .PHONY: destroy # Deletes containers and volumes
 destroy:
 	@${BIN}/confirm no "This will destroy all the project containers AND volumes"
-	docker-compose down -v
+	docker-compose --env-file=${ENV_FILE} down -v
 
 .PHONY: status # Run docker-compose ps
 status:
-	docker-compose ps
+	docker-compose --env-file=${ENV_FILE} ps
 
 .PHONY: logs # View container logs
 logs:
-	docker-compose logs -f
+	docker-compose --env-file=${ENV_FILE} logs -f

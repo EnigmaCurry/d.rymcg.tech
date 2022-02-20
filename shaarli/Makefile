@@ -3,5 +3,5 @@ include ../_scripts/Makefile.projects
 
 .PHONY: config # Configure .env file
 config:
-	@${BIN}/reconfigure_ask SHAARLI_TRAEFIK_HOST "Enter the shaarli domain name" shaarli.${ROOT_DOMAIN}
+	@${BIN}/reconfigure_ask ${ENV_FILE} SHAARLI_TRAEFIK_HOST "Enter the shaarli domain name" shaarli.${ROOT_DOMAIN}
 

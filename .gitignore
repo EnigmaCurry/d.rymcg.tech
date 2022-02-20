@@ -1,5 +1,4 @@
-.env
-.env.makefile
+.env*
 xbs/api/settngs.json
 /*.tgz
 /*.tgz.gpg

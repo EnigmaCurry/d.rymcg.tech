@@ -1,0 +1,5 @@
+#!/bin/bash
+
+## get current docker context
+
+docker context inspect | jq -r '.[0]["Name"]'

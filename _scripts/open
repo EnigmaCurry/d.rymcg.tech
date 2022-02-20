@@ -8,13 +8,17 @@
 ## $2 host
 ## $3 protocol (https)
 
-if [[ ! -f .env ]]; then
-    echo "No .env file found"
+BIN=$(dirname ${BASH_SOURCE})
+DOCKER_CONTEXT=$(${BIN}/docker_context)
+ENV_FILE=".env_${DOCKER_CONTEXT}"
+
+if [[ ! -f ${ENV_FILE} ]]; then
+    echo "No ${ENV_FILE} file found"
     exit 1
 fi
 
 URL_PATH=${1:-"/"}
-HOST=${2:-$(grep -m 1 -oP "TRAEFIK_HOST=\K.*" .env)}
+HOST=${2:-$(grep -m 1 -oP "TRAEFIK_HOST=\K.*" ${ENV_FILE})}
 PROTOCOL=${3:-"https"}
 
 if [[ ${URL_PATH} != /* ]]; then
@@ -35,9 +39,8 @@ RUN apk add -U jq
 EOF
     wrapper jq "${@}" </dev/stdin
 }
-
 if [[ -f passwords.json ]]; then
-    URL_PASSWORD=$(jq -r '(.[0].username) + ":" + (.[0].url_encoded)' <passwords.json)"@"
+    URL_PASSWORD=$(jq -r '(.["'${DOCKER_CONTEXT}'"][0].username) + ":" + (.["'${DOCKER_CONTEXT}'"][0].url_encoded)' <passwords.json)"@"
 else
     URL_PASSWORD=""
 fi
@@ -50,4 +53,3 @@ else
     echo "xdg-open not found"
     echo "URL: ${URL}"
 fi
-

@@ -4,17 +4,19 @@ BIN=$(dirname ${BASH_SOURCE})
 
 fault(){ test -n "$1" && echo $1; echo "Exiting." >/dev/stderr ; exit 1; }
 check_var(){
-    missing=false
-    vars="$@"
-    for var in ${vars}; do
-        if [[ -z "${!var}" ]]; then
-            echo "${var} variable is missing." >/dev/stderr
-            missing=true
+    (
+        __missing=false
+        __vars="$@"
+        for __var in ${__vars}; do
+            if [[ -z "${!__var}" ]]; then
+                echo "${__var} variable is missing." >/dev/stderr
+                __missing=true
+            fi
+        done
+        if [[ ${__missing} == true ]]; then
+            fault
         fi
-    done
-    if [[ ${missing} == true ]]; then
-        fault
-    fi
+    )
 }
 
 require_input() {
@@ -53,9 +55,9 @@ docker_run_with_env() {
 }
 
 get_root_domain() {
-    ENV_FILE=${BIN}/../env.makefilezz
+    ENV_FILE=${BIN}/../.env_$(${BIN}/docker_context)
     if [[ -f ${ENV_FILE} ]]; then
-        ${BIN}/dotenv -f ${BIN}/../env.makefile ROOT_DOMAIN
+        ${BIN}/dotenv -f ${ENV_FILE} ROOT_DOMAIN
     else
         echo "Could not find $(abspath ${ENV_FILE})"
         fault "Run `make config` in the root project directory first."
