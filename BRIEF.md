@@ -12,15 +12,15 @@ This part's on you:
 
  * Provision a Linux server, setup external firewall, configure SSH, install
    Docker.
- * Setup a Linux-ish workstation, configure key based SSH access to the server,
-   setup the remote Docker context to use Docker over SSH, test `docker run
-   hello-world` works. Install `make`, `docker-compose`, `jq`, `apache2-utils`,
-   `xdg-utils`, and `wireguard`.
  * Create DNS `A` records for all of the domains that you will use, and point
    them to your server's IP address. This can be a wildcard record like
    `*.d.example.com` (where `d` is any name you like, uniquely identifying this
    installation, or you can forgo that and use `*.example.com` if you prefer to
    dedicate the entire domain for this purpose.)
+ * Setup a Linux-ish workstation, configure key based SSH access to the server,
+   setup the remote Docker context to use Docker over SSH, test `docker run
+   hello-world` works. Install `make`, `docker-compose`, `jq`, `apache2-utils`,
+   `xdg-utils`, and `wireguard`.
 
 ## Do everything from your workstation
 
@@ -37,8 +37,8 @@ Make the root config:
 make config
 ```
 
-(this may list some missing dependencies, if so, install the missing packages
-and try this again)
+(This may list some missing dependencies, if so, install the missing packages
+and try `make config` again.)
 
 Install Traefik:
 
@@ -72,11 +72,13 @@ your `.env` file as config.
 
 Each project directory has its own `Makefile`, so try running `make help` in
 each directory, and you will see a project specific help screen with all of the
-targets (commands) for that project. Some projects have some extra maintaince
+targets (commands) for that project. Some projects have some extra maintainance
 targets you can run. Always check the `README.md` found in each sub-project
 directory.
 
 ## Setup the VPN
+
+If you want private services, setup the VPN server and client:
 
 ```
 cd ${GIT_SRC}/wireguard

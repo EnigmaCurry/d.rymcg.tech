@@ -17,7 +17,7 @@ config:
 
 .PHONY: build # Build the container images
 build:
-	docker build -t localhost/nextcloud-restic-backup $(shell ${BIN}/dotenv get BACKUP_APP_GIT_SRC)
+	docker build -t localhost/nextcloud-restic-backup $(shell ${BIN}/dotenv -f ${ENV_FILE} get BACKUP_APP_GIT_SRC)
 	docker-compose --env-file=${ENV_FILE} build
 
 .PHONY: backup_db # Backup the database to S3 immediately

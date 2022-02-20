@@ -17,7 +17,17 @@ services:
       context: config
     security_opt:
       - no-new-privileges:true
-    env_file: .env
+    environment:
+      - ACME_CA_EMAIL
+      - TRAEFIK_DASHBOARD_AUTH
+      - TRAEFIK_IMAGE
+      - TRAEFIK_LOG_LEVEL
+      - TRAEFIK_PROXY_SUBNET
+      - TRAEFIK_PROXY_SUBNET_IP
+      - TRAEFIK_WIREGUARD_SUBNET
+      - TRAEFIK_WIREGUARD_SUBNET_IP
+      - TRAEFIK_MAIL_SUBNET
+      - TRAEFIK_MAIL_SUBNET_IP
     networks:
       traefik-proxy:
     volumes:

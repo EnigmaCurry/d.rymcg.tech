@@ -2,12 +2,12 @@
 
 BIN=$(dirname ${BASH_SOURCE})
 
-env=$1; shift
+ENV_FILE=$1; shift
 
 ## Edit/create the .env file setting the vars given as args.
-test -f ${env} || cp .env-dist ${env}
+test -f ${ENV_FILE} || cp .env-dist ${ENV_FILE}
 for var in "$@"; do
     parts=(${var//=/ }); var=${parts[0]}; val=${parts[@]:1};
-    ${BIN}/dotenv -f ${env} set ${var}="${val}"
+    ${BIN}/dotenv -f ${ENV_FILE} set ${var}="${val}"
     echo "Set ${var}=${val}"
 done

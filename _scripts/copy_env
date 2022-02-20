@@ -4,19 +4,19 @@ BIN=$(dirname ${BASH_SOURCE})
 source ${BIN}/funcs.sh
 
 ## Copy a value from another .env file and put it in the current directory's .env file
-ENV_PATH=${1}
+ENV_FILE=${1}
 VAR=${2}
 DEST_VAR=${3:-${VAR}}
 
-check_var ENV_PATH
+check_var ENV_FILE
 check_var VAR
 
-if [[ -f ${ENV_PATH} ]]; then
-    value=$(${BIN}/dotenv -f ${ENV_PATH} get ${VAR})
+if [[ -f ${ENV_FILE} ]]; then
+    value=$(${BIN}/dotenv -f ${ENV_FILE} get ${VAR})
 else
-    echo "WARNING: ${ENV_PATH} does not exist, and so ${DEST_VAR} is set blank"
+    echo "WARNING: ${ENV_FILE} does not exist, and so ${DEST_VAR} is set blank"
     value=""
 fi
 
-${BIN}/dotenv -f .env set ${DEST_VAR}=${value}
+${BIN}/dotenv -f ${ENV_FILE} set ${DEST_VAR}=${value}
 echo "Set ${DEST_VAR}=${value}"

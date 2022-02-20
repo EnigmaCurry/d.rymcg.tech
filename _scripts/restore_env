@@ -5,8 +5,6 @@ source ${BIN}/funcs.sh
 
 check_var ROOT_DIR
 DOCKER_CONTEXT=$(${BIN}/docker_context)
-ROOT_DOMAIN=$(${BIN}/dotenv -f ${ROOT_DIR}/.env_${DOCKER_CONTEXT} get ROOT_DOMAIN)
-check_var ROOT_DOMAIN
 
 if ! ls *environment-backup*.tgz.gpg 2>&1 >/dev/null; then
     echo "No backup files found. Please copy your environment backup (.tgz.gpg) file to this directory first."
@@ -18,7 +16,7 @@ echo "Found the following backups:"
 ls -1t *environment-backup*.tgz.gpg
 
 echo ""
-read -p "Enter the backup you wish to restore from: " BACKUP_FILE
+read -p "Enter the name of the backup file you wish to restore from: " BACKUP_FILE
 test -f ${BACKUP_FILE} || fault "No such backup file: ${BACKUP_FILE}"
 echo "WARNING: Restoring .env files from backup may overwrite your existing .env files!"
 ${BIN}/confirm no "This will restore your .env files from the encrypted backup"

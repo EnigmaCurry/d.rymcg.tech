@@ -51,7 +51,7 @@ delete-env:
 .PHONY: delete-passwords
 delete-passwords:
 	@${BIN}/confirm no "This will find and delete ALL of the passwords.json files recursively"
-	@find ${ROOT_DIR} | grep -E '^passwords.*.json$$' && find ${ROOT_DIR} | grep -E '^passwords.*.json$$' | xargs shred -u  || true
+	@find ${ROOT_DIR} | grep -E 'passwords.*.json$$' && find ${ROOT_DIR} | grep -E 'passwords.*.json$$' | xargs shred -u  || true
 	@echo "Done."
 
 .PHONY: clean # Remove all private files (.env and passwords.json files)
