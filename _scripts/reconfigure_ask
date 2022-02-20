@@ -1,19 +1,20 @@
 #!/bin/bash
 
-## reconfigure_ask VAR "this is the prompt" "this is the default"
+## reconfigure_ask ENV_FILE VAR "this is the prompt" "this is the default"
 ## Ask interactive questions to edit/create your .env file
 ## This ONLY edits the lines with the given variable names in them.
 
-var=$1; prompt=$2; default=$3;
+env="$1"; var="$2"; prompt="$3"; default="$4";
 
 BIN=$(dirname ${BASH_SOURCE})
-env=${ENV_FILE:-.env}
-env_dist=${ENV_DIST_FILE:-.env-dist}
+source ${BIN}/funcs.sh
+
+check_var env var prompt
 
 ## Make new .env if it doesn't exist:
-test -f ${env} || cp ${env_dist} ${env}
+test -f ${env} || cp .env-dist ${env}
 
-example=$(grep -m 1 -oP "^$var=\K.*" ${env_dist})
+example=$(grep -m 1 -oP "^$var=\K.*" .env-dist)
 existing=$(grep -m 1 -oP "^$var=\K.*" ${env})
 if [[ $existing != $example ]]; then
     default=${existing:-${default}}

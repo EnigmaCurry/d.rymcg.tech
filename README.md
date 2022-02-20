@@ -220,13 +220,14 @@ Run the configuration wizard, and answer the questions:
 make config
 ```
 
-(This writes the main project level variables into a file named `.env.makefile`
-in the root directory, and is excluded from git via `.gitignore`)
+(This writes the main project level variables into a file named
+`.env_${DOCKER_CONTEXT}` in the root directory, and is excluded from git via
+`.gitignore`)
 
-The `ROOT_DOMAIN` variable is saved in `.env.makefile` and will form the root
-domain of all of the sub-project domains, so that when you run `make config` in
-any of the sub-project directories, the default (but customizable) domains will
-be pre-populated with your root domain suffix.
+The `ROOT_DOMAIN` variable is saved in `.env_${DOCKER_CONTEXT}` and will form
+the root domain of all of the sub-project domains, so that when you run `make
+config` in any of the sub-project directories, the default (but customizable)
+domains will be pre-populated with your root domain suffix.
 
 ## Install applications
 
@@ -361,8 +362,8 @@ From the root directory of your clone of this repository, run:
 make backup-env
 ```
 
-The script will ask to add `GPG_RECIPIENT` to your `.env.makefile`. Enter the
-GPG pub key ID value for your key. 
+The script will ask to add `GPG_RECIPIENT` to your `.env_${DOCKER_CONTEXT}`.
+Enter the GPG pub key ID value for your key.
 
 A new encrypted backup file will be created in the same directory called
 something like

@@ -4,7 +4,8 @@ BIN=$(dirname ${BASH_SOURCE})
 source ${BIN}/funcs.sh
 
 check_var ROOT_DIR
-ROOT_DOMAIN=$(${BIN}/dotenv -f ${ROOT_DIR}/.env.makefile get ROOT_DOMAIN)
+DOCKER_CONTEXT=$(${BIN}/docker_context)
+ROOT_DOMAIN=$(${BIN}/dotenv -f ${ROOT_DIR}/.env_${DOCKER_CONTEXT} get ROOT_DOMAIN)
 check_var ROOT_DOMAIN
 
 if ! ls *environment-backup*.tgz.gpg 2>&1 >/dev/null; then
