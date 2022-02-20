@@ -12,9 +12,9 @@ mc() {
 ## Start persistent container so we can temporarily cache the mc credentials
 mc --start
 
-MINIO_TRAEFIK_HOST=$(${BIN}/dotenv get MINIO_TRAEFIK_HOST)
-MINIO_ROOT_USER=$(${BIN}/dotenv get MINIO_ROOT_USER)
-MINIO_ROOT_PASSWORD=$(${BIN}/dotenv get MINIO_ROOT_PASSWORD)
+MINIO_TRAEFIK_HOST=$(${BIN}/dotenv -f ${ENV_FILE} get MINIO_TRAEFIK_HOST)
+MINIO_ROOT_USER=$(${BIN}/dotenv -f ${ENV_FILE} get MINIO_ROOT_USER)
+MINIO_ROOT_PASSWORD=$(${BIN}/dotenv -f ${ENV_FILE} get MINIO_ROOT_PASSWORD)
 
 ## Configure endpoint with root credentials:
 COMMAND="mc alias set minio https://${MINIO_TRAEFIK_HOST} ${MINIO_ROOT_USER} ${MINIO_ROOT_PASSWORD}" mc --exec

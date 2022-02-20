@@ -1,15 +1,15 @@
 # d.rymcg.tech
 
-This is a collection of docker-compose projects consisting of [Traefik](traefik)
-as a TLS HTTPs/TCP proxy and other various services behind this proxy. Each
-project is in its own sub-directory containing its own `docker-compose.yaml` and
-`.env` file (as well as `.env-dist` sample file). This structure allows you to
-pick and choose which services you wish to enable.
+This is a collection of docker-compose projects consisting of
+[Traefik](https://doc.traefik.io/traefik/) as a TLS HTTPs/TCP proxy and other
+various services behind this proxy. Each project is in its own sub-directory
+containing its own `docker-compose.yaml` and `.env` file (as well as `.env-dist`
+sample file). This structure allows you to pick and choose which services you
+wish to enable.
 
-Uniform Makefiles exist to simplify administration. Each project sub-directory
-contains a Makefile which wraps all of the configuration, installation, and
-maintainance tasks for the specific project. Setup is usually as easy as `make
-config`, `make install`, and then `make open`, which opens your web browser to
+Each project has a `Makefile` to simplify configuration, installation, and
+maintainance tasks. Setup is usually as easy as: `make config`, answer some
+questions, `make install`, and then `make open`, which opens your web browser to
 the newly deployed application. Under the covers, setup is pure
 `docker-compose`, with *all* configuration derived from the
 `docker-compose.yaml` and `.env` files.
@@ -71,10 +71,10 @@ since DNS platforms vary greatly, but see [DIGITALOCEAN.md](DIGITALOCEAN.md) for
 an example.
 
 It is recommended to dedicate a sub-domain for this project, and then create
-sub-sub-domains for each project. This will create domain names that look like
-`whoami.d.example.com`, where `whoami` is the project name, and `d` is a unique
-name for the overall sub-domain representing your docker server (`d` is for
-`docker`, but you can make this whatever you want).
+sub-sub-domains for each application. This will create domain names that look
+like `whoami.d.example.com`, where `whoami` is the application name, and `d` is
+a unique name for the overall sub-domain representing your docker server (`d` is
+for `docker`, but you can make this whatever you want).
 
 By dedicating a sub-domain for all your projects, this allows you to create a
 DNS record for the wildcard: `*.d.example.com`, which will automatically direct
@@ -82,8 +82,8 @@ all sub-sub-domain requests to your docker server.
 
 Note that you *could* put a wildcard record on your root domain, ie.
 `*.example.com`, however if you did this you would not be able to use the domain
-for a second instance, nor for anything else, but if you're willing to dedicate
-the entire domain to this single instance, go ahead.
+for a second instance, but if you're willing to dedicate the entire domain to
+this single instance, go ahead.
 
 If you don't want to create a wildcard record, you can just create several
 normal `A` (or `AAAA`) records for each of the domains your apps will use, but
@@ -99,9 +99,10 @@ recommended for use with Docker, nor is any other firewall that is directly
 located on the same host machine as Docker. You should prefer an external
 dedicated network firewall [ie. your cloud provider, or VM host].)
 
-All traffic flows through Traefik. The network ports you need to allow are
-listed in [traefik/docker-compose.yaml](traefik/docker-compose.yaml) in the
-`Entrypoints` section. You can add or remove these entrypoints as you see fit.
+With a few exceptions, all network traffic flows through Traefik. The network
+ports you need to allow are listed in
+[traefik/docker-compose.yaml](traefik/docker-compose.yaml) in the `Entrypoints`
+section. You can add or remove these entrypoints as you see fit.
 
 Depending on which services you actually install, you need to open these
 (default) ports in your firewall (adapt these as you add or remove entrypoints):
@@ -151,9 +152,10 @@ your `.env` files by hand and/or run `docker-compose` manually.):
    * `wireguard` (client for connecting to the [wireguard](wireguard) VPN)
 
 On Arch Linux you can install the dependencies with: `pacman -S bash base-devel
-openssl apache xdg-utils jq`
+openssl apache xdg-utils jq wireguard`
 
-For Debian or Ubuntu run: `apt-get install bash build-essential openssl apache2-utils xdg-utils jq`
+For Debian or Ubuntu run: `apt-get install bash build-essential openssl
+apache2-utils xdg-utils jq wireguard`
 
 ### Set Docker context
 
@@ -198,17 +200,10 @@ Host ssh.d.example.com
 
 ### Clone this repository
 
-Choose a directory to hold the source code and configuration for your new
-server, then clone this repository to that location (modify `GIT_SRC`
-accordingly):
-
 ```
-# Each installation needs its own separate clone of this repository.
-# Choose a non-existing directory specific for your domain name:
-GIT_SRC=~/git/d.example.com
-
-git clone https://github.com/EnigmaCurry/d.rymcg.tech.git ${GIT_SRC}
-cd ${GIT_SRC}
+git clone https://github.com/EnigmaCurry/d.rymcg.tech.git \
+    ${HOME}/git/vendor/enigmacurry/d.rymcg.tech
+cd ${HOME}/git/vendor/enigmacurry/d.rymcg.tech
 ```
 
 ## Main configuration
@@ -229,15 +224,24 @@ the root domain of all of the sub-project domains, so that when you run `make
 config` in any of the sub-project directories, the default (but customizable)
 domains will be pre-populated with your root domain suffix.
 
+You can have multiple `.env_${DOCKER_CONTEXT}` files, one for each installation,
+named after the associated Docker context. To switch which .env file is to be
+currently used, change the Docker context:
+
+```
+docker context use {CONTEXT}
+```
+
 ## Install applications
 
 Each docker-compose project has its own `README.md`. You should install
 [Traefik](traefik) first, as almost all of the others depend on it. After that,
-install the [whoami](whoami) container to test things are working.
+install the [whoami](whoami) container to test that things are working
+correctly.
 
 Install these first:
 
-* [Traefik](traefik) - TLS reverse proxy
+* [Traefik](traefik) - HTTP / TLS / TCP / UDP reverse proxy
 * [whoami](whoami) - HTTP test service
 
 Install these services at your leisure/preference:
@@ -287,9 +291,10 @@ As alluded to earlier, this project offers two ways to control Docker:
     for you.
 
 Both of these methods are compatible, and they both get you to the same place.
-The Makefiles offer a more streamlined approach with sensible defaults, and the
-sub-project documentation mostly reflects this choice. Editing the .env files by
-hand still offers you more control and options for experimentation.
+The Makefiles offer a more streamlined approach with a configuration wizard and
+sensible defaults. The sub-project documentation mostly reflects the Makefile
+style. Editing the .env files by hand still offers you more control and options
+for experimentation, and is always available.
 
 ### Using docker-compose by hand
 
@@ -318,7 +323,8 @@ and to start the service for you:
    for you. Examples are pre-filled with default values (and based upon your
    `ROOT_DOMAIN` specified earlier). You should accept or edit these values, or
    use the backspace to clear them out entirely, and fill in your own answers.
- * Verify the configuration by looking at the contents of `.env`. 
+ * Verify the configuration by looking at the contents of
+   `.env_${DOCKER_CONTEXT}` (named with your current docker context).
  * Run `make install` to start the services. (this is the same thing as
    `docker-compose up --build -d`)
  * Most services have a website URL, which you can open automatically, run:
@@ -352,8 +358,8 @@ clean` which will delete the `.env` files too).
 Because the `.env` files contain secrets, they are to be excluded from being
 committed to the git repository via `.gitignore`. However, you may still wish to
 retain your configurations by making a backup. This section will describe how to
-make a backup of all of your `.env` files to a GPG encrypted tarball, and how to
-clean/delete all of the plain text copies.
+make a backup of all of your `.env` and `passwords.json` files to a GPG
+encrypted tarball, and how to clean/delete all of the plain text copies.
 
 ### Setup GPG
 
@@ -387,8 +393,7 @@ The script will ask to add `GPG_RECIPIENT` to your `.env_${DOCKER_CONTEXT}`.
 Enter the GPG pub key ID value for your key.
 
 A new encrypted backup file will be created in the same directory called
-something like
-`./d.example.com_environment-backup-2022-02-08--18-51-39.tgz.gpg`. The
+something like `./environment-backup-2022-02-08--18-51-39.tgz.gpg`. The
 `GPG_RECIPIENT` key is the *only* key that will be able to read this encrypted
 backup.
 

@@ -3,7 +3,7 @@ install: build start
 
 .PHONY: start # Start services
 start:
-	docker-compose --env-file=${ENV_FILE} up -d
+	ENV_FILE=${ENV_FILE} docker-compose --env-file=${ENV_FILE} up -d
 
 .PHONY: up
 up: start

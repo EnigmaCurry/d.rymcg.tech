@@ -55,7 +55,7 @@ services:
   front:
     image: ${DOCKER_ORG}/${DOCKER_PREFIX:-}nginx:${MAILU_VERSION}
     restart: always
-    env_file: .env
+    env_file: ${ENV_FILE}
     logging:
       driver: json-file
     ## These ports are not exposed, but are available on the mail network
@@ -113,7 +113,7 @@ services:
 
   resolver:
     image: ${DOCKER_ORG}/${DOCKER_PREFIX:-}unbound:${MAILU_VERSION}
-    env_file: .env
+    env_file: ${ENV_FILE}
     restart: always
     networks:
       default:
@@ -122,7 +122,7 @@ services:
   admin:
     image: ${DOCKER_ORG}/${DOCKER_PREFIX:-}admin:${MAILU_VERSION}
     restart: always
-    env_file: .env
+    env_file: ${ENV_FILE}
     volumes:
       - "data:/data"
       - "dkim:/dkim"
@@ -135,7 +135,7 @@ services:
   imap:
     image: ${DOCKER_ORG}/${DOCKER_PREFIX:-}dovecot:${MAILU_VERSION}
     restart: always
-    env_file: .env
+    env_file: ${ENV_FILE}
     volumes:
       - "mail:/mail"
       - "overrides_dovecot:/overrides:ro"
@@ -149,7 +149,7 @@ services:
     depends_on: ['config']
     image: ${DOCKER_ORG}/${DOCKER_PREFIX:-}postfix:${MAILU_VERSION}
     restart: always
-    env_file: .env
+    env_file: ${ENV_FILE}
     volumes:
       - "mailqueue:/queue"
       - "overrides_postfix:/overrides:ro"
@@ -163,7 +163,7 @@ services:
     image: ${DOCKER_ORG}/${DOCKER_PREFIX:-}rspamd:${MAILU_VERSION}
     hostname: antispam
     restart: always
-    env_file: .env
+    env_file: ${ENV_FILE}
     volumes:
       - "filter:/var/lib/rspamd"
       - "overrides_rspamd:/etc/rspamd/override.d:ro"
@@ -178,7 +178,7 @@ services:
   webdav:
     image: ${DOCKER_ORG}/${DOCKER_PREFIX:-}radicale:${MAILU_VERSION}
     restart: always
-    env_file: .env
+    env_file: ${ENV_FILE}
     volumes:
       - "dav:/data"
     depends_on:
@@ -191,7 +191,7 @@ services:
     build:
        context: https://github.com/EnigmaCurry/Mailu.git#fetchmail:optional/fetchmail
     restart: always
-    env_file: .env
+    env_file: ${ENV_FILE}
     volumes:
       - "data:/data"
     depends_on:
@@ -203,7 +203,7 @@ services:
   webmail:
     image: ${DOCKER_ORG}/${DOCKER_PREFIX:-}roundcube:${MAILU_VERSION}
     restart: always
-    env_file: .env
+    env_file: ${ENV_FILE}
     volumes:
       - "webmail:/data"
       - "overrides_roundcube:/overrides:ro"

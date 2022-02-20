@@ -14,7 +14,7 @@ services:
       - SYS_MODULE
     restart: unless-stopped
     networks:
-      - traefik-wireguard      
+      - traefik-wireguard
     ports:
       - ${WIREGUARD_HOST_PORT}:${WIREGUARD_HOST_PORT}/udp
     sysctls:

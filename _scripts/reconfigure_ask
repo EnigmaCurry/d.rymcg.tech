@@ -4,18 +4,18 @@
 ## Ask interactive questions to edit/create your .env file
 ## This ONLY edits the lines with the given variable names in them.
 
-env="$1"; var="$2"; prompt="$3"; default="$4";
+ENV_FILE="$1"; var="$2"; prompt="$3"; default="$4";
 
 BIN=$(dirname ${BASH_SOURCE})
 source ${BIN}/funcs.sh
 
-check_var env var prompt
+check_var ENV_FILE var prompt
 
 ## Make new .env if it doesn't exist:
-test -f ${env} || cp .env-dist ${env}
+test -f ${ENV_FILE} || cp .env-dist ${ENV_FILE}
 
 example=$(grep -m 1 -oP "^$var=\K.*" .env-dist)
-existing=$(grep -m 1 -oP "^$var=\K.*" ${env})
+existing=$(grep -m 1 -oP "^$var=\K.*" ${ENV_FILE})
 if [[ $existing != $example ]]; then
     default=${existing:-${default}}
 fi
@@ -26,4 +26,4 @@ while true; do
         break
     fi
 done
-${BIN}/dotenv -f ${env} set ${var}="${answer}"
+${BIN}/dotenv -f ${ENV_FILE} set ${var}="${answer}"

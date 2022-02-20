@@ -12,7 +12,15 @@ services:
       context: config
     security_opt:
       - no-new-privileges:true
-    env_file: .env
+    environment:
+      - TIMEZONE
+      - TRAEFIK_IP
+      - ADDRESS
+      - PRIVATE_KEY
+      - DNS
+      - PUBLIC_KEY
+      - ENDPOINT
+      - ALLOWED_IPS
     volumes:
       - config:/config
 

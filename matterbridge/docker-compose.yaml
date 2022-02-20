@@ -11,7 +11,7 @@ services:
   config:
     build:
       context: config
-    env_file: .env
+    env_file: ${ENV_FILE}
     volumes:
       - config:/etc/matterbridge
 
