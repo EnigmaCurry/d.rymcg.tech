@@ -10,7 +10,8 @@ See [README.md](README.md) for the full winded description.
 
 This part's on you:
 
- * Provision a Linux server, setup firewall, configure SSH, install Docker.
+ * Provision a Linux server, setup external firewall, configure SSH, install
+   Docker.
  * Setup a Linux-ish workstation, configure key based SSH access to the server,
    setup the remote Docker context to use Docker over SSH, test `docker run
    hello-world` works. Install `make`, `docker-compose`, `jq`, `apache2-utils`,

@@ -8,7 +8,7 @@ pick and choose which services you wish to enable.
 
 Uniform Makefiles exist to simplify administration. Each project sub-directory
 contains a Makefile which wraps all of the configuration, installation, and
-maintaince tasks for the specific project. Setup is usually as easy as `make
+maintainance tasks for the specific project. Setup is usually as easy as `make
 config`, `make install`, and then `make open`, which opens your web browser to
 the newly deployed application. Under the covers, setup is pure
 `docker-compose`, with *all* configuration derived from the
@@ -302,6 +302,9 @@ For all of the containers that you wish to install, do the following:
  * Follow the README for instructons to start the containers. Generally, all you
    need to do is run: `docker-compose up --build -d`
 
+When using `docker-compose` by hand, it uses the `.env` file by default. You can
+change this behaviour by specifying the `--env-file` argument.
+
 ### Using the Makefiles
 
 Alternatively, each project has a Makefile that helps to simplify configuration
@@ -325,6 +328,24 @@ and to start the service for you:
    destroy`. Be sure to recognize that `make` has tab completion in bash :)
  * You can also run `make status` in the root directory of the cloned source.
    This will list all of the installed applications.
+
+`make config` *does not literally* create a file named `.env`, but rather one
+based upon the current docker context: `.env_${DOCKER_CONTEXT}`. This allows for
+different configurations to coexist in the same directory. All of the makefile
+commands operate assuming this contextual environment file, not `.env`. To
+switch between configs, you switch your current docker context: `docker context
+use {CONTEXT}`.
+
+During `make config`, you will sometimes be asked to create HTTP Basic
+Authentication passwords, and these passwords can be *optionally* saved into a
+file named `passwords.json`. This file is a convenience, so that you can
+remember the passwords that you create. **`passwords.json` is stored in plain
+text**, and excluded from being checked into git via `.gitignore`. When you run
+`make open` the username and password stored in this file is automatically
+applied to the URL that the browser is asked to open, thus logging you into the
+admin account automatically. To delete all of the passwords.json files, you can
+run `make delete-passwords` in the root directory of this project (or `make
+clean` which will delete the `.env` files too).
 
 ## Backup .env files (optional)
 
