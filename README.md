@@ -159,13 +159,13 @@ apache2-utils xdg-utils jq wireguard`
 
 ### Set Docker context
 
-First make sure that your local user account is setup for SSH access to your
-remote docker server (ie. you can ssh to the remote docker `root` account, or
-any account that has been added into the `docker` group). You should setup
-key-based authentication so that you don't need to enter passwords during login,
-as each `docker` command will need to authenticate via SSH.
+First make sure that your local user account is setup for SSH access to the
+remote docker server (ie. you should be able to ssh to the remote docker `root`
+account, or another account that has been added into the `docker` group). You
+should setup key-based authentication so that you don't need to enter passwords
+during login, as each `docker` command will need to authenticate via SSH.
 
-On your local worksation, create a new [Docker
+On your local workstation, create a new [Docker
 context](https://docs.docker.com/engine/context/working-with-contexts/) to use
 with your remote docker server (eg. named `d.example.com` with the username
 `root`) over SSH:
