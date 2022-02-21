@@ -242,7 +242,7 @@ correctly.
 Install these first:
 
 * [Traefik](traefik) - HTTP / TLS / TCP / UDP reverse proxy
-* [whoami](whoami) - HTTP test service
+* [Whoami](whoami) - HTTP test service
 
 Install these services at your leisure/preference:
 
@@ -264,12 +264,13 @@ Install these services at your leisure/preference:
 * [Nextcloud](nextcloud) - a collaborative file server
 * [Node-RED](nodered) - a graphical event pipeline editor
 * [Piwigo](piwigo) - a photo gallery and manager
+* [Rdesktop](rdesktop) - a web based remote desktop (X11) in a container
 * [S3-proxy](s3-proxy) - an HTTP directory index for S3 backend
 * [SFTP](sftp) - a secure file server
 * [Shaarli](shaarli) - a bookmark manager
 * [Syncthing](syncthing) - a multi-device file synchronization tool
 * [Tiny Tiny RSS](ttrss) - an RSS reader / proxy
-* [traefik-forward-auth](traefik-forward-auth) - Traefik oauth middleware
+* [Traefik-forward-auth](traefik-forward-auth) - Traefik oauth middleware
 * [Websocketd](websocketd) - a websocket / CGI server
 * [Wireguard](wireguard) - a simple VPN server
 * [XBrowserSync](xbs) - a bookmark manager
