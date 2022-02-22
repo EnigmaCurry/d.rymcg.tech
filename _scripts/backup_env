@@ -36,7 +36,7 @@ if [[ -z ${GPG_RECIPIENT} ]]; then
     gpg -k ${GPG_RECIPIENT} || fault "Invalid GPG_RECPIPIENT, key not known: ${GPG_RECIPIENT}."
 fi
 
-BACKUP_FILE=${ROOT_DIR}/environment-backup-$(date +"%Y-%m-%d--%H-%M-%S").tgz.gpg
+BACKUP_FILE=${ROOT_DIR}/${DOCKER_CONTEXT}_environment-backup-$(date +"%Y-%m-%d--%H-%M-%S").tgz.gpg
 find ${ROOT_DIR} | grep -E "${FILE_PATTERN}" | cut -c 3- | tar cz -T - | gpg -e -r ${GPG_RECIPIENT} -o ${BACKUP_FILE}
 echo ""
 (gpg --pinentry-mode cancel --list-packets ${BACKUP_FILE} 2>&1 | head -n 2) || true

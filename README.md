@@ -45,13 +45,14 @@ from a template including these environment variables, and is run automatically
 before the main application starts up (therefore the config file is dynamically
 generated each startup).
 
-Many samples of docker-compose that you may find on the internet map native host
-directories into the container paths. **Host-mounted directories are considered
-an anti-pattern and will never be used in this project, unless there is a
-compelling reason to do so.** For more information see [Rule 3 of the 12 factor
-app philosophy](https://12factor.net/config). By following this rule, you can
-use docker-compose from a remote client (like your laptop, accessing a remote
-Docker server over SSH). More importantly, you can ensure that all of the
+This project stores all application data in Docker named volumes. Many samples
+of docker-compose that you may find out there on the internet, will map native
+host directories into their container paths. **Host-mounted directories are
+considered an anti-pattern and will never be used in this project, unless there
+is a compelling reason to do so.** For more information see [Rule 3 of the 12
+factor app philosophy](https://12factor.net/config). By following this rule, you
+can use docker-compose from a remote client (like your laptop, accessing a
+remote Docker server over SSH). More importantly, you can ensure that all of the
 dependent files are fully contained by Docker itself, and therefore the entire
 application state is managed as part of the container lifecycle.
 
@@ -394,7 +395,7 @@ The script will ask to add `GPG_RECIPIENT` to your `.env_${DOCKER_CONTEXT}`.
 Enter the GPG pub key ID value for your key.
 
 A new encrypted backup file will be created in the same directory called
-something like `./environment-backup-2022-02-08--18-51-39.tgz.gpg`. The
+something like `./${DOCKER_CONTEXT}_environment-backup-2022-02-08--18-51-39.tgz.gpg`. The
 `GPG_RECIPIENT` key is the *only* key that will be able to read this encrypted
 backup.
 
