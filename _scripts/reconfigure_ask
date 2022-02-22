@@ -21,7 +21,7 @@ if [[ $existing != $example ]]; then
 fi
 
 while true; do
-    read -e -p "${var}: ${prompt} (eg. ${example}): " -i "${default}" answer
+    read -e -p "${var}: ${prompt} (eg. ${example})"$'\x0a: ' -i "${default}" answer
     if [[ -n ${answer} ]] || [[ -z ${default} ]]; then
         break
     fi
