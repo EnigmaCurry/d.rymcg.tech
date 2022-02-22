@@ -20,6 +20,7 @@ check_var(){
 ask() {
     __prompt=${1}; __var=${2}; __default=${3}
     read -p "${__prompt}"$'\x0a: ' -i "${__default}" ${__var}
+    export ${__var}
 }
 
 require_input() {

@@ -255,6 +255,7 @@ Install these services at your leisure/preference:
 * [FreshRSS](freshrss) - an RSS reader / proxy
 * [Gitea](gitea) - Git host (like self-hosted GitHub) and oauth server
 * [Invidious](invidious) - a Youtube proxy
+* [Jitsi Meet](jitsi-meet) - a video conferencing and screencasting service
 * [Jupyterlab](jupyterlab) - a web based code editing environment / reproducible research tool
 * [Larynx](larynx) - a speech synthesis engine
 * [Mailu](mailu) - an email service suite. Run a private mail server connected to a public relay host.
