@@ -266,6 +266,7 @@ Install these services at your leisure/preference:
 * [Nextcloud](nextcloud) - a collaborative file server
 * [Node-RED](nodered) - a graphical event pipeline editor
 * [Piwigo](piwigo) - a photo gallery and manager
+* [PrivateBin](privatebin) - a minimal, encrypted, zero-knowledge, pastebin
 * [Rdesktop](rdesktop) - a web based remote desktop (X11) in a container
 * [S3-proxy](s3-proxy) - an HTTP directory index for S3 backend
 * [SFTP](sftp) - a secure file server
