@@ -1,18 +1,17 @@
 # d.rymcg.tech
 
 This is a collection of docker-compose projects consisting of
-[Traefik](https://doc.traefik.io/traefik/) as a TLS HTTPs/TCP proxy and other
-various services behind this proxy. Each project is in its own sub-directory
-containing its own `docker-compose.yaml` and `.env` file (as well as `.env-dist`
-sample file). This structure allows you to pick and choose which services you
-wish to enable.
+[Traefik](https://doc.traefik.io/traefik/) as a TLS HTTP/TCP reverse proxy and
+other various applications and services behind this proxy. Each project is in
+its own sub-directory containing its own `docker-compose.yaml` and `.env` file
+(as well as `.env-dist` sample file). This structure allows you to pick and
+choose which services you wish to enable.
 
 Each project has a `Makefile` to simplify configuration, installation, and
 maintainance tasks. Setup is usually as easy as: `make config`, answer some
 questions, `make install`, and then `make open`, which opens your web browser to
 the newly deployed application. Under the covers, setup is pure
-`docker-compose`, with *all* configuration derived from the
-`docker-compose.yaml` and `.env` files.
+`docker-compose`, with *all* configuration derived from the `.env` file.
 
 # Contents
 
@@ -59,17 +58,16 @@ application state is managed as part of the container lifecycle.
 ## Prerequisites
 ### Create a Docker host
 
-[Install Docker Server](https://docs.docker.com/engine/install/#server) or see
-[DIGITALOCEAN.md](DIGITALOCEAN.md) for instructions on creating a Docker host on
-DigitalOcean. 
+[Install Docker Server](https://docs.docker.com/engine/install/#server) on your
+own publicly addressable server, or see [DIGITALOCEAN.md](DIGITALOCEAN.md) for
+instructions on creating a Docker host on DigitalOcean.
 
 ### Setup DNS for your domain and Docker server
 
 You need to bring your own internet domain name and DNS service. You will need
-to create DNS type `A` (or `AAAA`) records pointing to your docker server.
-Finding the instructions for creating these records is left up to the user,
-since DNS platforms vary greatly, but see [DIGITALOCEAN.md](DIGITALOCEAN.md) for
-an example.
+to create DNS type `A` (or `AAAA`) records pointing to your docker server. There
+are many different DNS platforms that you can use, but see
+[DIGITALOCEAN.md](DIGITALOCEAN.md) for an example.
 
 It is recommended to dedicate a sub-domain for this project, and then create
 sub-sub-domains for each application. This will create domain names that look
@@ -84,13 +82,13 @@ all sub-sub-domain requests to your docker server.
 Note that you *could* put a wildcard record on your root domain, ie.
 `*.example.com`, however if you did this you would not be able to use the domain
 for a second instance, but if you're willing to dedicate the entire domain to
-this single instance, go ahead.
+this single instance, go ahead. 
 
 If you don't want to create a wildcard record, you can just create several
 normal `A` (or `AAAA`) records for each of the domains your apps will use, but
 this might mean that you need to come back and add several more records later as
-you install more projects, but this lets you freely use whatever domain names
-you want.
+you install more projects, (and complicate the ACME/Let's Encrypt process) but
+this would let you freely use whatever domain names you want.
 
 ### Notes on firewall
 
@@ -98,25 +96,29 @@ This system does not include a network firewall of its own. You are expected to
 provide this in your host networking environment. (Note: `ufw` is NOT
 recommended for use with Docker, nor is any other firewall that is directly
 located on the same host machine as Docker. You should prefer an external
-dedicated network firewall [ie. your cloud provider, or VM host].)
+dedicated network firewall [ie. your cloud provider, or VM host]. If you have no
+other option but to run the firewall on the same host, check out
+[chaifeng/ufw-docker](https://github.com/chaifeng/ufw-docker#solving-ufw-and-docker-issues)
+for a partial fix.)
 
 With a few exceptions, all network traffic flows through Traefik. The network
-ports you need to allow are listed in
+ports that you need to allow through the firewall are listed in
 [traefik/docker-compose.yaml](traefik/docker-compose.yaml) in the `Entrypoints`
 section. You can add or remove these entrypoints as you see fit.
 
 Depending on which services you actually install, you need to open these
-(default) ports in your firewall (adapt these as you add or remove entrypoints):
+(default) ports in your firewall:
 
-   | Type   | Protocol | Port Range | Description                            |
-   | ------ | -------- | ---------- | --------------------------------       |
-   | SSH    | TCP      |         22 | Host SSH server                        |
-   | HTTP   | TCP      |         80 | Traefik HTTP endpoint                  |
-   | HTTPS  | TCP      |        443 | Traefik HTTPS (TLS) endpoint           |
-   | Custom | TCP      |       2222 | Traefik Gitea SSH (TCP) endpoint       |
-   | Custom | TCP      |       2223 | SFTP container SSH (TCP) (direct-map)  |
-   | Custom | TCP      |       8883 | Traefik Mosquitto (TLS) endpoint       |
-   | Custom | TCP      |      15820 | Wireguard (TCP) (direct-map)           |
+   | Type   | Protocol | Port Range | Description                           |
+   | ------ | -------- | ---------- | --------------------------------      |
+   | SSH    | TCP      |         22 | Host SSH server                       |
+   | HTTP   | TCP      |         80 | Traefik HTTP endpoint                 |
+   | TLS    | TCP      |        443 | Traefik HTTPS (TLS) endpoint          |
+   | SSH    | TCP      |       2222 | Traefik Gitea SSH (TCP) endpoint      |
+   | SSH    | TCP      |       2223 | SFTP container SSH (TCP) (direct-map) |
+   | TLS    | TCP      |       8883 | Traefik MQTT (TLS) endpoint           |
+   | VPN    | TCP      |      15820 | Wireguard (TCP) (direct-map)          |
+   | WebRTC | UDP      |      10000 | Jitsi Meet video bridge (direct-map)  |
  
 See [DIGITALOCEAN.md](DIGITALOCEAN.md) for an example of setting the
 DigitalOcean firewall service.
@@ -127,14 +129,14 @@ DigitalOcean firewall service.
 
 You need to install the following tools on your local workstation:
 
-The only hard requirements are the `docker` client, and `docker-compose`:
-
  * [Install docker client](https://docs.docker.com/get-docker/) (For
    Mac/Windows, this means Docker Desktop. For Linux, this means installing the
-   `Docker Engine`, but not necessarily starting the daemon; the `docker` client
-   program and `ssh` is all you need on your workstation to connect to a remote
-   docker server.)
- * [Install docker-compose](https://docs.docker.com/compose/install/)
+   Docker Engine, but not necessarily starting the daemon; the `docker` client
+   program and `ssh` are all you need installed on your workstation to connect
+   to a remote docker server.)
+ * [Install docker-compose](https://docs.docker.com/compose/install/) (For
+   Docker Desktop, `docker-compose` is already installed. For Linux, it is a
+   separate installation.)
 
 ### Install optional workstation tools
 
@@ -149,47 +151,46 @@ your `.env` files by hand and/or run `docker-compose` manually.):
    * `openssl` (for generating randomized passwords)
    * `htpasswd` (for encoding passwords for Traefik Basic Authentication)
    * `jq` (for processing JSON) 
-   * `xdg-open` (Used for opening the service URLs in your web-browser via `make
-      open`. Don't install this if your workstation is a headless server, as it
-      depends on Xorg/Wayland.)
+   * `xdg-open` (Used for automatically opening the service URLs in your
+      web-browser via `make open`. Don't install this if your workstation is on
+      a headless server, as it depends on Xorg/Wayland. Without `xdg-open`, this
+      will degrade to simply printing the URL to copy and paste.)
    * `wireguard` (client for connecting to the [wireguard](wireguard) VPN)
 
-On Arch Linux you can install the dependencies with: `pacman -S bash base-devel
+On Arch Linux you can install these dependencies with: `pacman -S bash base-devel
 openssl apache xdg-utils jq wireguard`
 
 For Debian or Ubuntu run: `apt-get install bash build-essential openssl
 apache2-utils xdg-utils jq wireguard`
 
-### Set Docker context
+### Setup SSH access to the server
 
-First make sure that your local user account is setup for SSH access to the
-remote docker server (ie. you should be able to ssh to the remote docker `root`
-account, or another account that has been added into the `docker` group). You
-should setup key-based authentication so that you don't need to enter passwords
-during login, as each `docker` command will need to authenticate via SSH.
-
-On your local workstation, create a new [Docker
-context](https://docs.docker.com/engine/context/working-with-contexts/) to use
-with your remote docker server (eg. named `d.example.com` with the username
-`root`) over SSH:
-
-```
-docker context create d.example.com \
-    --docker "host=ssh://root@ssh.d.example.com"
-docker context use d.example.com
-```
-
-Now when you issue `docker` or `docker-compose` commands on your local
-workstation, you will actually be controlling your remote Docker server, through
+Make sure that your local workstation user account is setup for SSH access to
+the remote docker server (ie. you should be able to ssh to the remote docker
+`root` account, or another account that has been added into the `docker` group).
+You should setup key-based authentication so that you don't need to enter
+passwords during login, as each `docker` command will need to authenticate via
 SSH.
 
-Each time you run a `docker` command, it will create a new SSH connection, which
-can be slow if you need to run several commands in a row. You can speed the
-connection up by enabling SSH connection multiplexing, which starts a background
-connection and makes new connections re-use the existing connection. In your
-`${HOME}/.ssh/config` file, put the following (replacing `ssh.d.example.com`
-with your own docker server hostname, and `root` for the user account that
-controls Docker):
+ * See the general article [How to Set Up SSH
+   Keys](https://www.digitalocean.com/community/tutorials/how-to-set-up-ssh-keys-2)
+ * Make sure to turn off regular password authentication, set
+   `PasswordAuthentication no` in the server config.
+ * If your workstation's operating system does not automatically provide an
+   ssh-agent (to make it so you don't have to keep typing your key's
+   passphrase), check out
+   [Keychain](https://wiki.archlinux.org/title/Keychain#Keychain) for an easy
+   solution.
+
+When set for a remote Docker context, the `docker` command will create a new SSH
+connection for each time it is run. This can be especially slow for running
+several commands in a row. You can speed the connection time up, by enabling SSH
+connection multiplexing, which starts a single background connection and makes
+new connections re-use this existing connection. 
+
+On your workstation, create or edit your existing `${HOME}/.ssh/config` file.
+Add the following configuration (replacing `ssh.d.example.com` with your own
+docker server hostname, and `root` for the user account that controls Docker):
 
 ```
 Host ssh.d.example.com
@@ -200,8 +201,30 @@ Host ssh.d.example.com
     ControlPath /tmp/ssh-%u-%r@%h:%p
 ```
 
+(The hostname `ssh.d.example.com` relies upon the wildcard `*.d.example.com` or
+an explicit `A` record having been created for this hostname.)
 
-### Clone this repository
+### Set remote Docker context
+
+On your local workstation, create a new [Docker
+context](https://docs.docker.com/engine/context/working-with-contexts/) to use
+with your remote docker server (eg. named `d.example.com`) over SSH:
+
+```
+docker context create d.example.com \
+    --docker "host=ssh://ssh.d.example.com"
+docker context use d.example.com
+```
+
+(To benefit from connection multiplexing, make sure to use the exact Host name
+[`ssh.d.exmaple.com`] that you specified in your `${HOME}/.ssh/config`)
+
+Now whenever you issue `docker` or `docker-compose` commands on your local
+workstation, you will actually be controlling your remote Docker server, through
+SSH, and you can easily switch contexts between multiple server backends.
+
+
+### Clone this repository to your workstation
 
 ```
 git clone https://github.com/EnigmaCurry/d.rymcg.tech.git \
@@ -214,22 +237,23 @@ cd ${HOME}/git/vendor/enigmacurry/d.rymcg.tech
 Run the configuration wizard, and answer the questions:
 
 ```
-## Run this from the root directory of the cloned source:
+## Run this from the root source directory:
 make config
 ```
 
 (This writes the main project level variables into a file named
-`.env_${DOCKER_CONTEXT}` in the root directory, and is excluded from git via
-`.gitignore`)
+`.env_${DOCKER_CONTEXT}` in the root source directory, based upon the name of
+the current Docker context. This file is excluded from the git repository via
+`.gitignore`.)
 
-The `ROOT_DOMAIN` variable is saved in `.env_${DOCKER_CONTEXT}` and will form
-the root domain of all of the sub-project domains, so that when you run `make
-config` in any of the sub-project directories, the default (but customizable)
-domains will be pre-populated with your root domain suffix.
+The `ROOT_DOMAIN` variable is saved in `.env_${DOCKER_CONTEXT}` and will serve
+as the default root domain of all of the sub-project domains, so that when you
+run `make config` in any of the sub-project directories, the default (yet
+customizable) domain will be pre-populated with your root domain suffix.
 
-You can have multiple `.env_${DOCKER_CONTEXT}` files, one for each installation,
-named after the associated Docker context. To switch which .env file is to be
-currently used, change the Docker context:
+You can have multiple `.env_${DOCKER_CONTEXT}` files, one for each Docker
+server, named after the associated Docker context. To switch the current .env
+file being used, change the Docker context:
 
 ```
 docker context use {CONTEXT}
@@ -298,23 +322,24 @@ As alluded to earlier, this project offers two ways to control Docker:
 
 Both of these methods are compatible, and they both get you to the same place.
 The Makefiles offer a more streamlined approach with a configuration wizard and
-sensible defaults. The sub-project documentation mostly reflects the Makefile
-style. Editing the .env files by hand still offers you more control and options
-for experimentation, and is always available.
+sensible defaults. Most of the sub-project README files reflects the Makefile
+style for config. Editing the .env files by hand still offers you more control,
+and options for experimentation, and is always available.
 
 ### Using docker-compose by hand
 
 For all of the containers that you wish to install, do the following:
 
  * Read the README.md file found in the sub-project directory.
- * Open your terminal and change to the project directory containing `docker-compose.yaml`
+ * Open your terminal and `cd` to the project directory containing
+   `docker-compose.yaml`
  * Copy the example `.env-dist` to `.env`
- * Edit all of the variables in `.env`
+ * Edit all of the variables in `.env` according to the example and comments.
  * Follow the README for instructons to start the containers. Generally, all you
    need to do is run: `docker-compose up --build -d`
 
-When using `docker-compose` by hand, it uses the `.env` file by default. You can
-change this behaviour by specifying the `--env-file` argument.
+When using `docker-compose` by hand, it uses the `.env` file name by default.
+You can change this behaviour by specifying the `--env-file` argument.
 
 ### Using the Makefiles
 
@@ -325,10 +350,11 @@ and to start the service for you:
  * `cd` into the sub-project directory.
  * Read the README.md file.
  * Run `make config` 
- * Answer the interactive questions, and the `.env` file will be created/updated
-   for you. Examples are pre-filled with default values (and based upon your
-   `ROOT_DOMAIN` specified earlier). You should accept or edit these values, or
-   use the backspace to clear them out entirely, and fill in your own answers.
+ * Answer the interactive questions, and the `.env_${DOCKER_CONTEXT}` file will
+   be created/updated for you. Examples are pre-filled with default values (and
+   based upon your `ROOT_DOMAIN` specified earlier). You can accept the
+   suggested default value, or use the backspace key and edit the value, to fill
+   in your own answers.
  * Verify the configuration by looking at the contents of
    `.env_${DOCKER_CONTEXT}` (named with your current docker context).
  * Run `make install` to start the services. (this is the same thing as
@@ -344,20 +370,21 @@ and to start the service for you:
 `make config` *does not literally* create a file named `.env`, but rather one
 based upon the current docker context: `.env_${DOCKER_CONTEXT}`. This allows for
 different configurations to coexist in the same directory. All of the makefile
-commands operate assuming this contextual environment file, not `.env`. To
+commands operate assuming this contextual environment file name, not `.env`. To
 switch between configs, you switch your current docker context: `docker context
 use {CONTEXT}`.
 
 During `make config`, you will sometimes be asked to create HTTP Basic
 Authentication passwords, and these passwords can be *optionally* saved into a
-file named `passwords.json`. This file is a convenience, so that you can
-remember the passwords that you create. **`passwords.json` is stored in plain
-text**, and excluded from being checked into git via `.gitignore`. When you run
-`make open` the username and password stored in this file is automatically
-applied to the URL that the browser is asked to open, thus logging you into the
-admin account automatically. To delete all of the passwords.json files, you can
-run `make delete-passwords` in the root directory of this project (or `make
-clean` which will delete the `.env` files too).
+file named `passwords.json` inside the sub-project directory. This file is a
+convenience, so that you can remember the passwords that you create.
+**`passwords.json` is stored in plain text**, and excluded from being checked
+into git via `.gitignore`. When you run `make open` the username and password
+stored in this file is automatically applied to the URL that the browser is
+asked to open, thus logging you into the admin account automatically. To delete
+all of the passwords.json files, you can run `make delete-passwords` in the root
+directory of this project (or `make clean` which will delete the `.env` files
+too).
 
 ## Backup .env files (optional)
 
@@ -399,9 +426,10 @@ The script will ask to add `GPG_RECIPIENT` to your `.env_${DOCKER_CONTEXT}`.
 Enter the GPG pub key ID value for your key.
 
 A new encrypted backup file will be created in the same directory called
-something like `./${DOCKER_CONTEXT}_environment-backup-2022-02-08--18-51-39.tgz.gpg`. The
+something like
+`./${DOCKER_CONTEXT}_environment-backup-2022-02-08--18-51-39.tgz.gpg`. The
 `GPG_RECIPIENT` key is the *only* key that will be able to read this encrypted
-backup.
+backup file.
 
 ### Clean environment files
 
@@ -410,7 +438,7 @@ unencryped `.env` files. Note that you will not be able to control your
 docker-compose projects without the decrypted .env files, but you may restore
 them from the backup at any time.
 
-To delete all the .env files you could run:
+To delete all the .env files, you could run:
 
 ```
 ## Make sure you have a backup of your .env files first:
@@ -426,5 +454,5 @@ worstation, and then run:
 make restore-env
 ```
 
-Enter the name of the backup file, and all of the `.env` files will be restored
-to their original locations.
+Enter the name of the backup file, and all of the `.env` and `passwords.json`
+files will be restored to their original locations.
