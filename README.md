@@ -136,6 +136,8 @@ The only hard requirements are the `docker` client, and `docker-compose`:
    docker server.)
  * [Install docker-compose](https://docs.docker.com/compose/install/)
 
+### Install optional workstation tools
+
 There are also **optional** helper scripts and Makefiles included, that will
 have some additional system package requirements (Note: these Makefiles are just
 convenience wrappers for creating/modifying your `.env` files and for running
@@ -148,8 +150,8 @@ your `.env` files by hand and/or run `docker-compose` manually.):
    * `htpasswd` (for encoding passwords for Traefik Basic Authentication)
    * `jq` (for processing JSON) 
    * `xdg-open` (Used for opening the service URLs in your web-browser via `make
-      open`. Don't install this if your workstation is on a server, as it
-      depends on Xorg/Wayland which is an unnecessary large package install.)
+      open`. Don't install this if your workstation is a headless server, as it
+      depends on Xorg/Wayland.)
    * `wireguard` (client for connecting to the [wireguard](wireguard) VPN)
 
 On Arch Linux you can install the dependencies with: `pacman -S bash base-devel
