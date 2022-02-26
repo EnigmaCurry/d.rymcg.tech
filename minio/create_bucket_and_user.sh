@@ -8,15 +8,16 @@ source ${BIN}/funcs.sh
 echo ""
 echo "This will create a new bucket, policy, group, and user."
 
-vars=(BUCKET POLICYNAME GROUPNAME USERNAME)
-${BIN}/require_input "Enter a new bucket name" BUCKET test
-${BIN}/require_input "Enter a new policy name" POLICYNAME ${BUCKET}
-${BIN}/require_input "Enter a new group name" GROUPNAME ${BUCKET}
-${BIN}/require_input "Enter a new user name" USERNAME ${GROUPNAME}
+vars=(BUCKET POLICYNAME GROUPNAME USERNAME SECRETKEY)
+require_input "Enter a new bucket name" BUCKET test
+require_input "Enter a new policy name" POLICYNAME ${BUCKET}
+require_input "Enter a new group name" GROUPNAME ${BUCKET}
+require_input "Enter a new user name" USERNAME ${GROUPNAME}
+SECRETKEY=$(openssl rand -base64 45)
 
 ## Run the mc container and pipe in the script to do everything:
-DOCKER_ARGS="--env-file .env --rm -i --entrypoint=/bin/bash quay.io/minio/mc"
-cat <<'EOF' | ${BIN}/docker_run_with_env vars ${DOCKER_ARGS}
+DOCKER_ARGS="--env-file ${ENV_FILE:-.env} --rm -i --entrypoint=/bin/bash quay.io/minio/mc"
+cat <<'EOF' | docker_run_with_env vars ${DOCKER_ARGS}
 set -x
 echo USERNAME=${USERNAME}
 ## Write temporary policy file:
@@ -47,7 +48,7 @@ set -e
 ## Configure endpoint with root credentials:
 mc alias set minio https://${MINIO_TRAEFIK_HOST} ${MINIO_ROOT_USER} ${MINIO_ROOT_PASSWORD}
 ## Generate secret key:
-SECRETKEY=$(openssl rand -base64 45)
+SECRETKEY=${SECRETKEY}
 ## Create user:
 mc admin user add minio ${USERNAME} ${SECRETKEY}
 ## Create group:
