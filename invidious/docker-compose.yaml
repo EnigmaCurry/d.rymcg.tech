@@ -24,9 +24,10 @@ services:
       test: ["CMD-SHELL", "pg_isready -U $$POSTGRES_USER -d $$POSTGRES_DB"]
 
   invidious:
-    build:
-      context: https://github.com/iv-org/invidious.git
-      dockerfile: docker/Dockerfile
+    image: quay.io/invidious/invidious:latest
+    # build:
+    #   context: https://github.com/iv-org/invidious.git
+    #   dockerfile: docker/Dockerfile
     restart: unless-stopped
     security_opt:
       - no-new-privileges:true

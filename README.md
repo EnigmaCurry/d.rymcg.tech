@@ -134,9 +134,10 @@ You need to install the following tools on your local workstation:
    Docker Engine, but not necessarily starting the daemon; the `docker` client
    program and `ssh` are all you need installed on your workstation to connect
    to a remote docker server.)
- * [Install docker-compose](https://docs.docker.com/compose/install/) (For
-   Docker Desktop, `docker-compose` is already installed. For Linux, it is a
-   separate installation.)
+ * [Install docker-compose
+   v2.x](https://docs.docker.com/compose/cli-command/#installing-compose-v2)
+   (For Docker Desktop, `docker-compose` is already installed. For Linux, it is
+   a separate installation.)
 
 ### Install optional workstation tools
 
