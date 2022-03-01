@@ -1,0 +1,90 @@
+version: '3'
+
+networks:
+  traefik-proxy:
+    name: traefik-proxy
+
+volumes:
+  data:
+
+services:
+  archivebox:
+    image: archivebox/archivebox:master
+    security_opt:
+      - no-new-privileges:true
+    command: server --quick-init 0.0.0.0:8000
+    environment:
+      - ALLOWED_HOSTS=*
+      - MEDIA_MAX_SIZE=750m
+      # - SEARCH_BACKEND_ENGINE=sonic   # uncomment these if you enable sonic below
+      # - SEARCH_BACKEND_HOST_NAME=sonic
+      # - SEARCH_BACKEND_PASSWORD=SecretPassword
+    volumes:
+      - data:/data
+    networks:
+      - traefik-proxy
+    restart: unless-stopped
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.archivebox.rule=Host(`${ARCHIVEBOX_TRAEFIK_HOST}`)"
+      - "traefik.http.routers.archivebox.entrypoints=websecure"
+      - "traefik.http.routers.archivebox.tls.certresolver=${ACME_CERT_RESOLVER}"
+      - "traefik.http.routers.archivebox.service=archivebox"
+      - "traefik.http.services.archivebox.loadbalancer.server.port=8000"
+      ## Authentication:
+      - "traefik.http.middlewares.archivebox-auth.basicauth.users=${ARCHIVEBOX_HTTP_AUTH}"
+      - "traefik.http.routers.archivebox.middlewares=archivebox-auth@docker"
+
+
+  # To run the Sonic full-text search backend, first download the config file to sonic.cfg
+  # curl -O https://raw.githubusercontent.com/ArchiveBox/ArchiveBox/master/etc/sonic.cfg
+  # after starting, backfill any existing Snapshots into the index: docker-compose run archivebox update --index-only
+  # sonic:
+  #  image: valeriansaliou/sonic:v1.3.0
+  #  expose:
+  #    - 1491
+  #  environment:
+  #    - SEARCH_BACKEND_PASSWORD=SecretPassword
+  #  volumes:
+  #    - ./sonic.cfg:/etc/sonic.cfg:ro
+  #    - ./data/sonic:/var/lib/sonic/store
+
+
+  ### Optional Addons: tweak these examples as needed for your specific use case
+
+  # Example: Run scheduled imports in a docker instead of using cron on the
+  # host machine, add tasks and see more info with archivebox schedule --help
+  # scheduler:
+  #  image: archivebox/archivebox:latest
+  #  command: schedule --foreground --every=day --depth=1 'https://getpocket.com/users/USERNAME/feed/all'
+  #  environment:
+  #    - USE_COLOR=True
+  #    - SHOW_PROGRESS=False
+  #  volumes:
+  #    - ./data:/data
+
+  # Example: run all your ArchiveBox traffic through a WireGuard VPN tunnel
+  # wireguard:
+  #   image: linuxserver/wireguard
+  #   network_mode: 'service:archivebox'
+  #   cap_add:
+  #   - NET_ADMIN
+  #   - SYS_MODULE
+  #   sysctls:
+  #   - net.ipv4.conf.all.rp_filter=2
+  #   - net.ipv4.conf.all.src_valid_mark=1
+  #   volumes:
+  #   - /lib/modules:/lib/modules
+  #   - ./wireguard.conf:/config/wg0.conf:ro
+
+  # Example: Run PYWB in parallel and auto-import WARCs from ArchiveBox
+  # pywb:
+  #   image: webrecorder/pywb:latest
+  #   entrypoint: /bin/sh 'wb-manager add default /archivebox/archive/*/warc/*.warc.gz; wayback --proxy;'
+  #   environment:
+  #     - INIT_COLLECTION=archivebox
+  #   ports:
+  #     - 8080:8080
+  #   volumes:
+  #     ./data:/archivebox
+  #     ./data/wayback:/webarchive
