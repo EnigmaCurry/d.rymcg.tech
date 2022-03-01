@@ -274,7 +274,8 @@ Install these first:
 
 Install these services at your leisure/preference:
 
-* [Baikal](baikal) - a lightweight CalDAV+CardDAV server.
+* [ArchiveBox](archivebox) - a website archiving tool
+* [Baikal](baikal) - a lightweight CalDAV+CardDAV server
 * [Bitwarden](bitwarden_rs) - a password manager
 * [CryptPad](cryptpad) - a collaborative document and spreadsheet editor 
 * [Ejabberd](ejabberd) - an XMPP (Jabber) server
