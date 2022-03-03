@@ -4,7 +4,7 @@ include ../_scripts/Makefile.projects-custom-build
 .PHONY: build # Build
 build:
 # Non-Buildkit build because buildkit says it does not support build subdirs?!
-	ENV_FILE=${ENV_FILE} docker-compose --env-file=${ENV_FILE} build
+	ENV_FILE=${ENV_FILE} docker compose --env-file=${ENV_FILE} build
 
 .PHONY: config-ask
 config-ask:
@@ -42,4 +42,4 @@ fingerprint:
 .PHONY: admin # Create admin account and/or reset password
 admin:
 	@${BIN}/confirm yes "This will create the admin POSTMASTER account, and/or reset the password for it"
-	@PASSWORD=$$(openssl rand -base64 45) DOMAIN=$$(${BIN}/dotenv -f ${ENV_FILE} get DOMAIN) POSTMASTER=$$(${BIN}/dotenv -f ${ENV_FILE} get POSTMASTER) && docker-compose --env-file=${ENV_FILE} exec admin flask mailu admin --mode update $${POSTMASTER} $${DOMAIN} "$${PASSWORD}" && echo "Username: $${POSTMASTER}@$${DOMAIN}" && echo "Password: $${PASSWORD}"
+	@PASSWORD=$$(openssl rand -base64 45) DOMAIN=$$(${BIN}/dotenv -f ${ENV_FILE} get DOMAIN) POSTMASTER=$$(${BIN}/dotenv -f ${ENV_FILE} get POSTMASTER) && docker compose --env-file=${ENV_FILE} exec admin flask mailu admin --mode update $${POSTMASTER} $${DOMAIN} "$${PASSWORD}" && echo "Username: $${POSTMASTER}@$${DOMAIN}" && echo "Password: $${PASSWORD}"

@@ -3,7 +3,7 @@ include ../_scripts/Makefile.projects-custom-build
 
 .PHONY: build # Build the docker image
 build:
-	DOCKER_BUILDKIT=1 docker-compose --env-file=${ENV_FILE} build --build-arg PROGRAMS="$$(${BIN}/dotenv -f ${ENV_FILE} get PROGRAMS)"
+	DOCKER_BUILDKIT=1 docker compose --env-file=${ENV_FILE} build --build-arg PROGRAMS="$$(${BIN}/dotenv -f ${ENV_FILE} get PROGRAMS)"
 
 .PHONY: config # Configure .env file
 config:

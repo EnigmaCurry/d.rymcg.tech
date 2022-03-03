@@ -14,12 +14,12 @@ config:
 .PHONY: get-configs # Download the wireguard client config files from the server
 get-configs:
 	@mkdir -p wireguard_config
-	@${BIN}/split_echo $$(${BIN}/dotenv -f ${ENV_FILE} get WIREGUARD_PEERS) "," | xargs -t -iXX docker-compose cp wireguard:/config/peer_XX wireguard_config
+	@${BIN}/split_echo $$(${BIN}/dotenv -f ${ENV_FILE} get WIREGUARD_PEERS) "," | xargs -t -iXX docker compose cp wireguard:/config/peer_XX wireguard_config
 	@echo "Wireguard peer configs downloaded to ./wireguard_config"
 
 .PHONY: client-install # Install the local wireguard config
 client-install:
-	@CONF=/etc/wireguard/$$(${BIN}/dotenv -f ${ENV_FILE} get WIREGUARD_CLIENT_NAME).conf && TMP_FILE=$$(mktemp) && read -p "Enter the name of the local peer client (eg. $${HOSTNAME}): " PEER && export PEER && ${BIN}/check_var PEER && docker-compose --env-file ${ENV_FILE} cp wireguard:/config/peer_$${PEER}/peer_$${PEER}.conf $${TMP_FILE} && sudo cp $${TMP_FILE} $${CONF} && rm $${TMP_FILE} && echo "Copied client config \"$${PEER}\": $${CONF}"
+	@CONF=/etc/wireguard/$$(${BIN}/dotenv -f ${ENV_FILE} get WIREGUARD_CLIENT_NAME).conf && TMP_FILE=$$(mktemp) && read -p "Enter the name of the local peer client (eg. $${HOSTNAME}): " PEER && export PEER && ${BIN}/check_var PEER && docker compose --env-file ${ENV_FILE} cp wireguard:/config/peer_$${PEER}/peer_$${PEER}.conf $${TMP_FILE} && sudo cp $${TMP_FILE} $${CONF} && rm $${TMP_FILE} && echo "Copied client config \"$${PEER}\": $${CONF}"
 	@echo You can start the client with \`make client-start\`
 
 .PHONY: client-start  # Start the local wireguard client (Run client-install first)
@@ -56,14 +56,14 @@ client-expose-port:
 
 .PHONY: ports # Show the current exposed ports
 ports:
-	docker-compose exec wireguard iptables -t nat -L PREROUTING
+	docker compose exec wireguard iptables -t nat -L PREROUTING
 
 .PHONY: ports-flush # Flush (removes, closes) all client port mappings
 ports-flush:
 	@${BIN}/confirm yes "This will remove and close all the existing client port mappings"
-	docker-compose exec wireguard iptables -t nat -F PREROUTING
-	docker-compose exec wireguard iptables -t nat -L PREROUTING
+	docker compose exec wireguard iptables -t nat -F PREROUTING
+	docker compose exec wireguard iptables -t nat -L PREROUTING
 
 .PHONY: shell
 shell:
-	@docker-compose exec wireguard /bin/bash
+	@docker compose exec wireguard /bin/bash

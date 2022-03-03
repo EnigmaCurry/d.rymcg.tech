@@ -9,7 +9,7 @@ include _scripts/Makefile.globals
 
 .PHONY: check-deps
 check-deps:
-	_scripts/check_deps docker docker-compose sed awk xargs openssl htpasswd jq
+	_scripts/check_deps docker sed awk xargs openssl htpasswd jq
 
 .PHONY: check-docker
 check-docker:
@@ -32,7 +32,7 @@ open:
 
 .PHONY: status # Check status of all sub-projects
 status:
-	docker-compose ls
+	docker compose ls
 
 .PHONY: backup-env # Make an encrypted backup of the .env files
 backup-env:

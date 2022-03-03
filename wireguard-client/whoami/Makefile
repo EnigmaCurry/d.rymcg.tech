@@ -7,4 +7,4 @@ config:
 
 .PHONY: start # Start services
 start:
-	docker-compose -p whoami-vpn up -d 
+	docker compose -p whoami-vpn up -d 
