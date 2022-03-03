@@ -10,8 +10,8 @@ config:
 
 .PHONY: user # Create a user account
 user:
-	@source ${BIN}/funcs.sh && ask "Enter the username to create" USERNAME && PASSWORD=$$(openssl rand -hex 24) && echo "Password: $${PASSWORD}" && docker-compose --env-file ${ENV_FILE} exec prosody prosodyctl --config /config/prosody.cfg.lua register "$${USERNAME}" meet.jitsi "$${PASSWORD}"
+	@source ${BIN}/funcs.sh && ask "Enter the username to create" USERNAME && PASSWORD=$$(openssl rand -hex 24) && echo "Password: $${PASSWORD}" && docker compose --env-file ${ENV_FILE} exec prosody prosodyctl --config /config/prosody.cfg.lua register "$${USERNAME}" meet.jitsi "$${PASSWORD}"
 
 .PHONY: user-list # List of user accounts
 user-list:
-	@docker-compose --env-file ${ENV_FILE} exec prosody find /config/data/meet%2ejitsi/accounts -type f -exec basename {} .dat \;
+	@docker compose --env-file ${ENV_FILE} exec prosody find /config/data/meet%2ejitsi/accounts -type f -exec basename {} .dat \;

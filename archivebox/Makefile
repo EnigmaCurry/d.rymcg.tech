@@ -8,8 +8,8 @@ config:
 
 .PHONY: admin # Create admin account
 admin:
-	@docker-compose --env-file=${ENV_FILE} exec archivebox su -c "archivebox manage createsuperuser" archivebox
+	@docker compose --env-file=${ENV_FILE} exec archivebox su -c "archivebox manage createsuperuser" archivebox
 
 .PHONY: reset-password # Reset the application password (not the HTTP password)
 reset-password:
-	@read -p "Enter the username of the account to reset: " USERNAME && docker-compose --env-file=${ENV_FILE} exec archivebox su -c "archivebox manage changepassword $${USERNAME}" archivebox
+	@read -p "Enter the username of the account to reset: " USERNAME && docker compose --env-file=${ENV_FILE} exec archivebox su -c "archivebox manage changepassword $${USERNAME}" archivebox
