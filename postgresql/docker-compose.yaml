@@ -1,0 +1,42 @@
+version: '3'
+
+volumes:
+  config:
+  data:
+
+networks:
+  traefik-proxy:
+    name: traefik-proxy
+
+services:
+  config:
+    build:
+      context: config
+    security_opt:
+      - no-new-privileges:true
+    environment:
+      - POSTGRES_DB
+      - POSTGRES_USER
+      - POSTGRES_TRAEFIK_HOST
+      - ALLOWED_IP_SOURCERANGE
+    volumes:
+      - config:/config
+
+  postgres:
+    depends_on: [config]
+    image: postgres:${POSTGRES_VERSION}
+    restart: unless-stopped
+    security_opt:
+      - no-new-privileges:true
+    volumes:
+      - data:/var/lib/postgresql/data
+      - config:/etc/postgresql
+    environment:
+      - POSTGRES_DB
+      - POSTGRES_USER
+      - POSTGRES_PASSWORD
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $$POSTGRES_USER -d $$POSTGRES_DB"]
+    ports:
+      - ${EXTERNAL_TCP_PORT}:5432
+    command: postgres -c 'config_file=/etc/postgresql/postgresql.conf'
