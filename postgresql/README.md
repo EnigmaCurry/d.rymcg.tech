@@ -26,7 +26,7 @@ serve a good purpose, but with the obvious downsides of increased latency and
 decreased availability due to network conditons, and a greatly increased attack
 surface. But you can pay someone else to run a fully managed PostgreSQL database
 for you (like DigitalOcean; they offer PostgreSQL as a Service, and they will
-care for the server running backups and security updates for you, but even they
+take care for the server running backups and security updates for you, but even they
 don't do mutual TLS auth yet, only IP address whitelisting). Or, you can roll
 your own, which is what this document is all about.
 
@@ -86,10 +86,10 @@ To use any client, you need the following information:
 
  * The hostname and port number of the PostgreSQL server.
  * The database name.
- * The username. (The PostgreSQL TLS `verify-full` option forces this to be the
-   same as the database name.)
+ * The username. (In our case it is the same as the database name).
  * The client certificate (hostname_db_name.crt).
- * The client key (hostname_db_name.key).
+ * The client key (hostname_db_name.key). 
+ * Some clients (DBeaver) need hostname_db_name.pk8.key which is `DER` formatted.
  * The root CA certificate (hostname_ca.crt).
 
 NOTE: The client certificate and key files are your authentication credentials.
@@ -120,6 +120,21 @@ psql: error: FATAL:  no pg_hba.conf entry for host "x.x.x.x", user "postgres", d
 This is because the key is only valid for the particular set of credentials,
 combining username + database + client certificate. All other connections are
 refused.
+
+`make clean` will remove all local copies of these keys and certificates (same
+as running `rm *.crt *.key`)
+
+## Re-issuing certificates
+
+If you need to reset the TLS certitificate PKI, (maybe you accidentally exposed
+one your keys and you want to create brand new ones) you can run:
+
+```
+make certificates
+```
+
+You will also need to re-run `make client` to download the new certificates for
+your client to use.
 
 ## Using the certificates in Python (asyncpg) code
 
