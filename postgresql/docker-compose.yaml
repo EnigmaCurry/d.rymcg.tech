@@ -38,7 +38,9 @@ services:
       - config:/etc/postgresql
     environment:
       - POSTGRES_DB
+      - PGDATABASE=${POSTGRES_DB}
       - POSTGRES_USER=${POSTGRES_ADMIN_USER}
+      - PGUSER=${POSTGRES_ADMIN_USER}
       - POSTGRES_PASSWORD=${POSTGRES_ADMIN_PASSWORD}
       - POSTGRES_LIMITED_USER=${POSTGRES_DB}
     healthcheck:

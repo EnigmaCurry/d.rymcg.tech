@@ -10,7 +10,11 @@ config:
 
 .PHONY: psql # Open psql shell
 psql:
-	@docker-compose --env-file ${ENV_FILE} exec --user postgres postgres /usr/bin/psql -U $$(${BIN}/dotenv -f ${ENV_FILE} get POSTGRES_ADMIN_USER) -d $$(${BIN}/dotenv -f ${ENV_FILE} get POSTGRES_DB)
+	@docker-compose --env-file ${ENV_FILE} exec --user postgres postgres /usr/bin/psql
+
+.PHONY: shell # Open bash shell
+shell:
+	@docker-compose --env-file ${ENV_FILE} exec --user postgres postgres /bin/bash
 
 .PHONY: client # Get client certificate and private key files
 client:
@@ -44,4 +48,8 @@ certificates: build
 
 .PHONY: connection-string # Get the connection string
 connection-string:
-		@echo "postgresql://$$(${BIN}/dotenv -f ${ENV_FILE} get POSTGRES_DB)@$$(${BIN}/dotenv -f ${ENV_FILE} get POSTGRES_TRAEFIK_HOST):$$(${BIN}/dotenv -f ${ENV_FILE} get EXTERNAL_TCP_PORT)/$$(${BIN}/dotenv -f ${ENV_FILE} get POSTGRES_DB)?sslmode=verify-full&sslcert=$$(${BIN}/dotenv -f ${ENV_FILE} get POSTGRES_TRAEFIK_HOST)_$$(${BIN}/dotenv -f ${ENV_FILE} get POSTGRES_DB).crt&sslkey=$$(${BIN}/dotenv -f ${ENV_FILE} get POSTGRES_TRAEFIK_HOST)_$$(${BIN}/dotenv -f ${ENV_FILE} get POSTGRES_DB).key&sslrootcert=$$(${BIN}/dotenv -f ${ENV_FILE} get POSTGRES_TRAEFIK_HOST)_ca.crt"
+	@echo "postgresql://$$(${BIN}/dotenv -f ${ENV_FILE} get POSTGRES_DB)@$$(${BIN}/dotenv -f ${ENV_FILE} get POSTGRES_TRAEFIK_HOST):$$(${BIN}/dotenv -f ${ENV_FILE} get EXTERNAL_TCP_PORT)/$$(${BIN}/dotenv -f ${ENV_FILE} get POSTGRES_DB)?sslmode=verify-full&sslcert=$$(${BIN}/dotenv -f ${ENV_FILE} get POSTGRES_TRAEFIK_HOST)_$$(${BIN}/dotenv -f ${ENV_FILE} get POSTGRES_DB).crt&sslkey=$$(${BIN}/dotenv -f ${ENV_FILE} get POSTGRES_TRAEFIK_HOST)_$$(${BIN}/dotenv -f ${ENV_FILE} get POSTGRES_DB).key&sslrootcert=$$(${BIN}/dotenv -f ${ENV_FILE} get POSTGRES_TRAEFIK_HOST)_ca.crt"
+
+.PHONY: import-chinook # Import Chinook sample database
+import-chinook:
+	docker-compose --env-file=${ENV_FILE} exec postgres /bin/sh -c "PGUSER=$$(${BIN}/dotenv -f ${ENV_FILE} get POSTGRES_DB) pgloader https://github.com/lerocha/chinook-database/raw/master/ChinookDatabase/DataSources/Chinook_Sqlite_AutoIncrementPKs.sqlite pgsql:///$$(${BIN}/dotenv -f ${ENV_FILE} get POSTGRES_DB)"
