@@ -205,3 +205,24 @@ make psql
 This connects your terminal through Docker to the psql shell, it doesn't use any
 TLS connection at all, but instead runs through the SSH connection to your
 remote docker service.
+
+
+## Import sample databases
+
+You can import a sample database (into a freshly created database).
+
+The [Chinook-database](https://github.com/lerocha/chinook-database) is an
+example Music store database, and can be easily installed:
+
+```
+make import-chinook
+```
+
+This uses [pgloader](https://github.com/dimitri/pgloader) to import the SQLite
+version of the chinook database (translating to PostgreSQL on the fly!). As
+pgloader is running directly inside the postgresql container, the import is
+exceptionally fast. (orders of magnitude faster than running `\i Chinoook.sql`
+from psql shell.)
+
+You can use this as an example for loading any other dataset.
+
