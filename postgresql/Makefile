@@ -24,9 +24,9 @@ client:
 	@docker-compose --env-file ${ENV_FILE} exec --user postgres postgres cat /etc/postgresql/client.pk8.key > $$(${BIN}/dotenv -f ${ENV_FILE} get POSTGRES_TRAEFIK_HOST)_$$(${BIN}/dotenv -f ${ENV_FILE} get POSTGRES_DB).pk8.key && echo "Wrote ./$$(${BIN}/dotenv -f ${ENV_FILE} get POSTGRES_TRAEFIK_HOST)_$$(${BIN}/dotenv -f ${ENV_FILE} get POSTGRES_DB).pk8.key"
 	@chmod 0600 *.crt *.key
 	@echo
-	@echo "To use psql run:"
+	@echo "To use psql, put this alias in your ~/.bashrc :"
 	@echo
-	@echo "psql \"$$(make --no-print-directory connection-string)\""
+	@echo "alias psql=\"psql '$$(make --no-print-directory connection-string)'\""
 	@echo
 	@echo ^^ Enjoy
 	@echo
@@ -53,3 +53,7 @@ connection-string:
 .PHONY: import-chinook # Import Chinook sample database
 import-chinook:
 	docker-compose --env-file=${ENV_FILE} exec postgres /bin/sh -c "PGUSER=$$(${BIN}/dotenv -f ${ENV_FILE} get POSTGRES_DB) pgloader https://github.com/lerocha/chinook-database/raw/master/ChinookDatabase/DataSources/Chinook_Sqlite_AutoIncrementPKs.sqlite pgsql:///$$(${BIN}/dotenv -f ${ENV_FILE} get POSTGRES_DB)"
+
+.PHONY: psql-alias # Get the psql alias with baked connection string
+psql-alias:
+	@echo "alias psql=\"psql '$$(make --no-print-directory connection-string)'\""
