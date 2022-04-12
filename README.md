@@ -111,15 +111,23 @@ Depending on which services you actually install, you need to open these
 
    | Type   | Protocol | Port Range | Description                           |
    | ------ | -------- | ---------- | --------------------------------      |
-   | SSH    | TCP      |         22 | Host SSH server                       |
+   | SSH    | TCP      |         22 | Host SSH server (direct-map)          |
    | HTTP   | TCP      |         80 | Traefik HTTP endpoint                 |
    | TLS    | TCP      |        443 | Traefik HTTPS (TLS) endpoint          |
    | SSH    | TCP      |       2222 | Traefik Gitea SSH (TCP) endpoint      |
    | SSH    | TCP      |       2223 | SFTP container SSH (TCP) (direct-map) |
+   | TLS    | TCP      |       5432 | PostgreSQL DBaaS (direct-map)         |
    | TLS    | TCP      |       8883 | Traefik MQTT (TLS) endpoint           |
    | VPN    | TCP      |      15820 | Wireguard (TCP) (direct-map)          |
    | WebRTC | UDP      |      10000 | Jitsi Meet video bridge (direct-map)  |
- 
+
+The ports that are listed as `(direct-map)` are not connected to Traefik, but
+are directly exposed (public) to the docker host network.
+
+For a minimal installation, you only need to open ports 22 and 443. This would
+enable all of the web-based applications to work, except for the ones that need
+an additional port, as listed above.
+
 See [DIGITALOCEAN.md](DIGITALOCEAN.md) for an example of setting the
 DigitalOcean firewall service.
 
