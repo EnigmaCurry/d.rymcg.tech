@@ -274,7 +274,6 @@ Install these first:
 
 Install these services at your leisure/preference:
 
-  authentication for public networks
 * [ArchiveBox](archivebox) - a website archiving tool
 * [Baikal](baikal) - a lightweight CalDAV+CardDAV server
 * [Bitwarden](bitwarden_rs) - a password manager
@@ -295,13 +294,14 @@ Install these services at your leisure/preference:
 * [Nextcloud](nextcloud) - a collaborative file server
 * [Node-RED](nodered) - a graphical event pipeline editor
 * [Piwigo](piwigo) - a photo gallery and manager
-* [PostgreSQL](postgresql) - a database server configured with mutual TLS
+* [PostgreSQL](postgresql) - a database server configured with mutual TLS authentication for public networks
 * [PrivateBin](privatebin) - a minimal, encrypted, zero-knowledge, pastebin
 * [Rdesktop](rdesktop) - a web based remote desktop (X11) in a container
 * [S3-proxy](s3-proxy) - an HTTP directory index for S3 backend
 * [SFTP](sftp) - a secure file server
 * [Shaarli](shaarli) - a bookmark manager
 * [Syncthing](syncthing) - a multi-device file synchronization tool
+* [Thttpd](thttpd) - a tiny/turbo/throttling HTTP server for serving static files
 * [Tiny Tiny RSS](ttrss) - an RSS reader / proxy
 * [Traefik-forward-auth](traefik-forward-auth) - Traefik oauth middleware
 * [Websocketd](websocketd) - a websocket / CGI server
