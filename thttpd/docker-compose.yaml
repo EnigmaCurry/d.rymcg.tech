@@ -16,6 +16,8 @@ services:
       - no-new-privileges:true
     networks:
       - traefik-proxy
+    environment:
+      - THTTPD_CACHE_CONTROL
     labels:
       - "traefik.enable=true"
       - "traefik.http.routers.thttpd.rule=Host(`${THTTPD_TRAEFIK_HOST}`)"
@@ -24,5 +26,3 @@ services:
       ## Authentication:
       #- "traefik.http.middlewares.thttpd-auth.basicauth.users=${THTTPD_HTTP_AUTH}"
       #- "traefik.http.routers.thttpd.middlewares=thttpd-auth@docker"
-
-
