@@ -59,8 +59,14 @@ application state is managed as part of the container lifecycle.
 ### Create a Docker host
 
 [Install Docker Server](https://docs.docker.com/engine/install/#server) on your
-own publicly addressable server, or see [DIGITALOCEAN.md](DIGITALOCEAN.md) for
-instructions on creating a Docker host on DigitalOcean.
+own public internet server or cloud host.
+
+See [DIGITALOCEAN.md](DIGITALOCEAN.md) for instructions on creating a Docker
+host on DigitalOcean. 
+
+For development purposes, you can install Docker on a virtual machine (and
+remotely control it from your local workstation). See [_docker_vm](_docker_vm)
+to install Docker on KVM/Qemu.
 
 ### Setup DNS for your domain and Docker server
 
