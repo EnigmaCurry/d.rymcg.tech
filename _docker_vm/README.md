@@ -110,7 +110,16 @@ Once finished, switch your local docker context to the new VM:
 docker context use docker-vm
 ```
 
-If you need to SSH to the VM, you can:
+Now you should be able to use Docker locally, try:
+
+```
+docker info | head
+```
+
+(You should see the name of the VM in the `Context` line at the start of the
+output.)
+
+If you need to SSH to the VM (you shouldn't normally), you can:
 
 ```
 ssh docker-vm
