@@ -13,6 +13,7 @@ MEMORY ?= 4096
 TIMEZONE ?= Etc/UTC
 SSH_PORT ?= 10022
 DISTRO ?= bullseye
+HOSTFWD_HOST ?= 127.0.0.1
 
 check_defined = \
     $(strip $(foreach 1,$1, \
@@ -55,10 +56,15 @@ docker-vm:
 	SSH_PORT=2221 \
 	TIMEZONE=Etc/UTC \
 	EXTRA_PORTS=8000:80,8443:443,5432:5432 \
+	HOSTFWD_HOST="${HOSTFWD_HOST}" \
 	DEBIAN_MIRROR=mirrors.xmission.com \
 	make --no-print-directory build-and-boot
 	sleep 10
 	VMNAME=docker-vm ./install_docker.sh
+
+.PHONY: docker-vm-public # Build public Docker server with HOSTFWD_HOST='*'
+docker-vm-public:
+	HOSTFWD_HOST='*' make --no-print-directory docker-vm
 
 .PHONY: docker-vm-clean
 docker-vm-clean:
@@ -71,6 +77,7 @@ my-buster:
 	DISK=30G \
 	MEMORY=2048 \
 	SSH_PORT=2223 \
+	HOSTFWD_HOST="${HOSTFWD_HOST}" \
 	TIMEZONE=America/Los_Angeles \
   make --no-print-directory build-and-boot
 
@@ -85,6 +92,7 @@ my-bullseye:
 	DISK=30G \
 	MEMORY=2048 \
 	SSH_PORT=2224 \
+	HOSTFWD_HOST="${HOSTFWD_HOST}" \
 	TIMEZONE=America/Los_Angeles \
   make --no-print-directory build-and-boot
 
