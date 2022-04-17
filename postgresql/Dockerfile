@@ -15,8 +15,8 @@ RUN apt-get update && \
 
     ## Cleanup
     rm -rf /src && \
-    apt-get remove build-essential git postgresql-server-dev-all && \
-    apt-get --auto-remove && \
-    apt-get clean && \
+    apt-get remove -y build-essential git postgresql-server-dev-all && \
+    apt-get -y autoremove && \
+    apt-get -y clean && \
     rm -rf /var/lib/apt/lists /var/cache/apt/archives
 

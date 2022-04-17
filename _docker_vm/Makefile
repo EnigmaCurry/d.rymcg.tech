@@ -54,7 +54,7 @@ docker-vm:
 	MEMORY=4096 \
 	SSH_PORT=2221 \
 	TIMEZONE=Etc/UTC \
-	EXTRA_PORTS=8000:80,8443:443 \
+	EXTRA_PORTS=8000:80,8443:443,5432:5432 \
 	DEBIAN_MIRROR=mirrors.xmission.com \
 	make --no-print-directory build-and-boot
 	sleep 10
