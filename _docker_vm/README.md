@@ -26,9 +26,8 @@ for that.)
 
 ## Notices
 
-This will run a private docker server in a virtual machine on your localhost. No
-external network will be able to access your VM network. Docker ports are
-exposed to the workstation localhost only.
+This will run a docker server in a virtual machine on your localhost, and
+exposes the defined TCP ports to the rest of your local network.
 
 The parent project (d.rymcg.tech) includes a Traefik configuration which uses
 Let's Encrypt with the TLS (TLS-ALPN-01) challenge type. This configuration will
