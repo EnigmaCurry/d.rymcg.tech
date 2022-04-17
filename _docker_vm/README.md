@@ -21,13 +21,15 @@ in a VM.
 This guide is for Linux workstation users only! This will show you how to
 automatically install a new KVM virtual machine with the Debian minimal netboot
 installer, in order to provision a new Docker server in a VM. (This is also a
-generic way of installing a Debian VM without Docker, see the Customize section
-for that.)
+generic way of installing a Debian VM without Docker, see the [Make other Debian
+VMs](#make-other-debian-vms-optional) section for that.)
 
 ## Notices
 
-This will run a docker server in a virtual machine on your localhost, and
-exposes the defined TCP ports to the rest of your local network.
+This will run a docker server in a virtual machine on your localhost. By
+default, only localhost can access the Docker services, but it can also be
+configured to forward external connections from your LAN/router, if you wish
+(`HOSTFWD_HOST='*'`).
 
 The parent project (d.rymcg.tech) includes a Traefik configuration which uses
 Let's Encrypt with the TLS (TLS-ALPN-01) challenge type. This configuration will
@@ -87,7 +89,9 @@ Look at the [Makefile](Makefile) and find the `docker-vm` target. You can change
    example, `8000:80,8443:443` will map two external ports 8000 and 8443 to
    internal ports 80 and 443 respectively.
  * `DEBIAN_MIRROR` - the Debian mirror to install from.
-
+ * `HOSTFWD_HOST` - the IP address of the host to serve on (default `127.0.0.1`,
+   set to `*` to listen on all network interfaces.)
+ 
 ## Create the Docker VM
 
 Run: 
@@ -123,6 +127,37 @@ If you need to SSH to the VM (you shouldn't normally), you can:
 ```
 ssh docker-vm
 ```
+
+## Firewall
+
+By default, all of the TCP ports that are listed in the Makefile (including
+`SSH_PORT` and `EXTRA_PORTS`) are exposed only to your localhost
+(`HOSTFWD_HOST='127.0.0.1'`). This prevents other hosts on your LAN (or from
+your router) from accessing your private Docker VM.
+
+This is configurable. If you wish, you can expose your Docker VM publicly to
+your LAN. Set `HOSTFWD_HOST='*'`. There is a preconfigured Makefile target to do
+this, just run `make docker-vm-public` (instead of `make docker-vm`.)
+
+You can install `ufw` to use as a simple firewall to open ports selectively, and
+to protect your entire workstation. The default settings for `ufw` will disable
+all external inbound connections (and allow all outbound connections). Simply
+install and enable ufw:
+
+```
+## 'pacman -S ufw' or 'apt install ufw'
+sudo ufw enable
+```
+
+To open specific ports publicly (eg. `5432`):
+
+```
+sudo ufw allow 5432
+```
+
+(Note to careful readers: [ufw is not safe to use on the same host operating
+system as Docker](https://github.com/chaifeng/ufw-docker#problem), but since
+Docker is running in a VM, and ufw is running on the host, this is fine.)
 
 ## Make other Debian VMs (optional)
 
