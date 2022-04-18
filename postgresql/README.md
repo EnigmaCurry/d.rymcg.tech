@@ -32,14 +32,30 @@ your own, which is what this document is all about.
 
 So, if you've figured out this is what you really want, follow along ...
 
+## Extensions
+
+PostgreSQL supports extensions which are custom plugins you can install to
+extend the feature set of PostgreSQL. These must be compiled from source code,
+installed, and enabled per database. This configuration automates this process
+as part of its customized Dockerfile (only one so far; pg_rational).
+
+[pg_rational](https://github.com/begriffs/pg_rational) is a PostgreSQL extension
+for representing pure fractions as a single database column. This enables you to
+efficiently store user-generated re-orderable lists of any kind, like to-do
+lists, or music playlists. See the blog post written by the same pg_rational
+author: [User-defined Order in
+SQL](https://begriffs.com/posts/2018-03-20-user-defined-order.html)
+
+
 ## This does not use Traefik
 
-Unlike most of the other apps in this project, Traefik is not actually used
-here. PostgreSQL has first class support for mutual TLS, and Traefik cannot
-speak PostgreSQL protocol anyway. (The only thing Traefik could do is forward
-raw TCP connections, but this wouldn't have much purpose other than perhaps the
-IP whitelist, which you can also do on your firewall anyway. So instead, this
-project maps the port directly on the external docker host network port.)
+Unlike most of the other apps in this project (d.rymcg.tech), Traefik is not
+actually used here. PostgreSQL has first class support for mutual TLS, and
+Traefik cannot speak PostgreSQL protocol anyway. (The only thing Traefik could
+do is forward raw TCP connections, but this wouldn't have much purpose other
+than perhaps the IP whitelist, which you can also do on your firewall anyway. So
+instead, this project maps the port directly on the external docker host network
+port.)
 
 ## This does not do backups (yet)
 
@@ -70,7 +86,8 @@ Answer the questions:
    username).
  * `ALLOWED_IP_SOURCERANGE` The allowed client IP network range in CIDR format
    with netmask. To allow any client to connect enter `0.0.0.0/0` or to enter a
-   specific IP address enter `x.x.x.x/32`.
+   specific IP address enter `x.x.x.x/32`. (Note: this filtering is done by
+   PostgreSQL itself, but see [Firewall](#firewall) for more details.)
 
 ## Install
 
@@ -82,18 +99,29 @@ make install
 
 ## Configure client
 
-To use any client, you need the following information:
+To use any client, you will need the following information, typically
+represented by the following standard [postgresql/psql environment
+variables](https://www.postgresql.org/docs/current/libpq-envars.html) (Most
+third-party clients will also respect these environment variables too, but for
+some clients you may need to type this information into some other config file,
+or enter them in to a Settings panel yourself..) :
 
- * The hostname and port number of the PostgreSQL server.
- * The database name.
- * The username. (In our case it is the same as the database name).
- * The client certificate (hostname_db_name.crt).
- * The client key (hostname_db_name.key). 
- * Some clients (DBeaver) need hostname_db_name.pk8.key which is `DER` formatted.
- * The root CA certificate (hostname_ca.crt).
+ * `PGHOST`: The hostname and port number of the PostgreSQL server.
+ * `PGPORT`: The TCP port of the database server.
+ * `PGDATABASE`: The database name.
+ * `PGUSER`: The username. (In this configuration, this should always be the
+   same as the database name).
+ * `PGSSLMODE`: The TLS (SSL) mode. This should always be set to `verify-full`
+   to enable mutual TLS.
+ * `PGSSLCERT`: The full path to the client certificate (hostname_db_name.crt).
+ * `PGSSLKEY`: The full path to the client key (hostname_db_name.key). Some
+   clients (DBeaver) need a differently formatted key (hostname_db_name.pk8.key)
+   which is `DER` formatted.
+ * `PGSSLROOTCERT`: The full path to the root CA certificate (hostname_ca.crt).
 
-NOTE: The client certificate and key files are your authentication credentials.
-You don't need any password! Keep these files safe!
+**NOTE**: *The client certificate and key files **are** your authentication
+credentials (no password). The certificates themselves are not password
+protected! Keep these files safe!*
 
 To download the client credentials from the server, run:
 
@@ -143,60 +171,47 @@ You can see how to use the certificates with the popular Python client,
 
 
 ```python
-import asyncpg
 import asyncio
-import ssl
+import os
 
-HOSTNAME = "postgres.example.com"
-DATABASE = "my_database"
-PORT = 5432
+import asyncpg
+
 
 async def main():
-    # Load CA bundle for server certificate verification,
-    # equivalent to sslrootcert= in DSN.
-    sslctx = ssl.create_default_context(
-        ssl.Purpose.SERVER_AUTH,
-        cafile=f"{HOSTNAME}_ca.crt")
-    # If True, equivalent to sslmode=verify-full, if False:
-    # sslmode=verify-ca.
-    sslctx.check_hostname = True
-    # Load client certificate and private key for client
-    # authentication, equivalent to sslcert= and sslkey= in
-    # DSN.
-    sslctx.load_cert_chain(
-        f"{HOSTNAME}_{DATABASE}.crt",
-        keyfile=f"{HOSTNAME}_{DATABASE}.key",
-    )
-    conn = await asyncpg.connect(
-        host=HOSTNAME,
-        port=PORT,
-        user=DATABASE,
-        ssl=sslctx)
+    ## No need to specify hostname, database, certificates etc in code.
+    ## All connection details are loaded from standard PG* env vars:
+    conn = await asyncpg.connect()
 
-    stmt = await conn.prepare('''SELECT 2 ^ $1''')
-    print(f"2^10 == {await stmt.fetchval(10)} yea?")
-    print(f"2^20 == {await stmt.fetchval(20)} yea?")
+    stmt = await conn.prepare("select '1/3'::rational + '2/7';")
+    print(f"1/3 + 2/7 == {await stmt.fetchval()} yea?")
 
     await conn.close()
 
-loop = asyncio.new_event_loop()
-asyncio.set_event_loop(loop)
-loop.run_until_complete(main())
+
+asyncio.run(main())
 ```
 
 ## Firewall
 
+The `ALLOWED_IP_SOURCERANGE` variable enables IP filtering directly inside
+PostgreSQL (`pg_hba.conf`) to only allow access from clients in a certain IP
+address range. However, using this setting alone, without an additional
+firewall, means that any client will still be able to *attempt* a connection,
+which is still undesirable and could open you to a denial of service type
+attack.
+
 As documented in the root project [README.md](../README.md#notes-on-firewall),
-no firewall is included in this project. This means that anyone in the world can
-TRY to login to your database. They won't be able to get in without the
-certifcate, but they will still see the error message from PostgreSQL. So as an
-additional security measure, you may wish to block port 5432 (or the port you
-specify in your environment `EXTERNAL_TCP_PORT`) to all IP addresses other than
-the one you want to have connect.
+you are expected to provide your own firewall. Without it, this means that
+anyone in the world can TRY to login to your database. They won't be able to get
+in without the certifcate, but they will still be talking to the database
+server, and will see the error message from PostgreSQL. So as an additional
+security measure, you may wish to block port `5432` (or the port you specify in
+your environment `EXTERNAL_TCP_PORT`) to all IP addresses other than the one you
+want to have connect.
 
-## Container psql session
+## Container psql session as superuser
 
-Another way you can start a psql shell is this:
+To connect to the database with superuser privileges, run:
 
 ```
 make psql
@@ -204,8 +219,9 @@ make psql
 
 This connects your terminal through Docker to the psql shell, it doesn't use any
 TLS connection at all, but instead runs through the SSH connection to your
-remote docker service.
-
+remote docker service and connects directly to the unix domain socket for
+postgres. This connects you to the database as the `root` superuser. This is the
+only way that the `root` user is allowed to connect.
 
 ## Import sample databases
 
