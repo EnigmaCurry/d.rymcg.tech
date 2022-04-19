@@ -1,9 +1,13 @@
-# PostgreSQL database for public networks with mutual TLS authentication
+# Self-hosted PostgreSQL DBaaS with mutual TLS authentication
 
 This sets up all of the Public Key Infrastruture (PKI) to run a secure
-[PostgreSQL](https://www.postgresql.org) server on the public internet, with TLS
-encrypted connections and mutual (self-signed) certificate based authentication.
-Simple TLS configuration is provided by [step-cli](https://github.com/smallstep/cli)
+[PostgreSQL](https://www.postgresql.org) DBaaS (Database as a Service) suitable
+to run on the public internet, with TLS encrypted connections and mutual
+(self-signed) certificate based authentication. Simple TLS configuration is
+provided by [step-cli](https://github.com/smallstep/cli).
+
+This configuration is also suitable for private/offline networks, and will still
+enforce mutual TLS.
 
 ## "Cloud" PostgreSQL?
 
@@ -81,13 +85,12 @@ Answer the questions:
    the `*_TRAEFIK_HOST` naming scheme is used throughout this project, so this
    name is appropriate still for the purpose of indicating the external host
    name.)
-   
- * `POSTGRES_DB` The name of the database to create (this will also be the
-   username).
+ * `POSTGRES_DB` The name of the database to create.
+ * `POSTGRES_LIMITED_USER` The username to access the database.
  * `ALLOWED_IP_SOURCERANGE` The allowed client IP network range in CIDR format
    with netmask. To allow any client to connect enter `0.0.0.0/0` or to enter a
    specific IP address enter `x.x.x.x/32`. (Note: this filtering is done by
-   PostgreSQL itself, but see [Firewall](#firewall) for more details.)
+   PostgreSQL itself, but see [Firewall](#firewall) to improve this security.)
 
 ## Install
 
@@ -109,8 +112,7 @@ or enter them in to a Settings panel yourself..) :
  * `PGHOST`: The hostname and port number of the PostgreSQL server.
  * `PGPORT`: The TCP port of the database server.
  * `PGDATABASE`: The database name.
- * `PGUSER`: The username. (In this configuration, this should always be the
-   same as the database name).
+ * `PGUSER`: The username to connect as.
  * `PGSSLMODE`: The TLS (SSL) mode. This should always be set to `verify-full`
    to enable mutual TLS.
  * `PGSSLCERT`: The full path to the client certificate (hostname_db_name.crt).
@@ -225,14 +227,16 @@ only way that the `root` user is allowed to connect.
 
 ## Import sample databases
 
-You can import a sample database (into a freshly created database).
-
-The [Chinook-database](https://github.com/lerocha/chinook-database) is an
-example Music store database, and can be easily installed:
+You can import the sample
+[Chinook-database](https://github.com/lerocha/chinook-database), which is an
+example Music store database.
 
 ```
 make import-chinook
 ```
+
+This creates a new database and role named `chinook` and adds the existing
+`LIMITED_POSTGRES_USER` access to the role.
 
 This uses [pgloader](https://github.com/dimitri/pgloader) to import the SQLite
 version of the chinook database (translating to PostgreSQL on the fly!). As

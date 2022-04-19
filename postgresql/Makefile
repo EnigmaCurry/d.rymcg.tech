@@ -4,7 +4,8 @@ include ../_scripts/Makefile.projects
 .PHONY: config # Configure .env file
 config:
 	@${BIN}/reconfigure_ask ${ENV_FILE} POSTGRES_TRAEFIK_HOST "Enter the postgres domain name" postgres.${ROOT_DOMAIN}
-	@${BIN}/reconfigure_ask ${ENV_FILE} POSTGRES_DB "Enter the database name"
+	@${BIN}/reconfigure_ask ${ENV_FILE} POSTGRES_DB "Enter the database name" tweedle
+	@${BIN}/reconfigure_ask ${ENV_FILE} POSTGRES_LIMITED_USER "Enter the database user" $$(${BIN}/dotenv -f ${ENV_FILE} get POSTGRES_DB)
 	@${BIN}/reconfigure_ask ${ENV_FILE} ALLOWED_IP_SOURCERANGE "Enter the allowed client IP address range (CIDR with netmask) (use 0.0.0.0/0 to allow all)"
 	@${BIN}/reconfigure ${ENV_FILE} POSTGRES_ADMIN_PASSWORD=$(shell openssl rand -hex 45)
 
@@ -19,9 +20,9 @@ shell:
 .PHONY: client # Get client certificate and private key files
 client:
 	@docker-compose --env-file ${ENV_FILE} exec --user postgres postgres cat /etc/postgresql/root_ca.crt > $$(${BIN}/dotenv -f ${ENV_FILE} get POSTGRES_TRAEFIK_HOST)_ca.crt && echo "Wrote ./$$(${BIN}/dotenv -f ${ENV_FILE} get POSTGRES_TRAEFIK_HOST)_ca.crt"
-	@docker-compose --env-file ${ENV_FILE} exec --user postgres postgres cat /etc/postgresql/client.crt > $$(${BIN}/dotenv -f ${ENV_FILE} get POSTGRES_TRAEFIK_HOST)_$$(${BIN}/dotenv -f ${ENV_FILE} get POSTGRES_DB).crt && echo "Wrote ./$$(${BIN}/dotenv -f ${ENV_FILE} get POSTGRES_TRAEFIK_HOST)_$$(${BIN}/dotenv -f ${ENV_FILE} get POSTGRES_DB).crt"
-	@docker-compose --env-file ${ENV_FILE} exec --user postgres postgres cat /etc/postgresql/client.key > $$(${BIN}/dotenv -f ${ENV_FILE} get POSTGRES_TRAEFIK_HOST)_$$(${BIN}/dotenv -f ${ENV_FILE} get POSTGRES_DB).key && echo "Wrote ./$$(${BIN}/dotenv -f ${ENV_FILE} get POSTGRES_TRAEFIK_HOST)_$$(${BIN}/dotenv -f ${ENV_FILE} get POSTGRES_DB).key"
-	@docker-compose --env-file ${ENV_FILE} exec --user postgres postgres cat /etc/postgresql/client.pk8.key > $$(${BIN}/dotenv -f ${ENV_FILE} get POSTGRES_TRAEFIK_HOST)_$$(${BIN}/dotenv -f ${ENV_FILE} get POSTGRES_DB).pk8.key && echo "Wrote ./$$(${BIN}/dotenv -f ${ENV_FILE} get POSTGRES_TRAEFIK_HOST)_$$(${BIN}/dotenv -f ${ENV_FILE} get POSTGRES_DB).pk8.key"
+	@docker-compose --env-file ${ENV_FILE} exec --user postgres postgres cat /etc/postgresql/client.crt > $$(${BIN}/dotenv -f ${ENV_FILE} get POSTGRES_TRAEFIK_HOST)_$$(${BIN}/dotenv -f ${ENV_FILE} get POSTGRES_LIMITED_USER).crt && echo "Wrote ./$$(${BIN}/dotenv -f ${ENV_FILE} get POSTGRES_TRAEFIK_HOST)_$$(${BIN}/dotenv -f ${ENV_FILE} get POSTGRES_LIMITED_USER).crt"
+	@docker-compose --env-file ${ENV_FILE} exec --user postgres postgres cat /etc/postgresql/client.key > $$(${BIN}/dotenv -f ${ENV_FILE} get POSTGRES_TRAEFIK_HOST)_$$(${BIN}/dotenv -f ${ENV_FILE} get POSTGRES_LIMITED_USER).key && echo "Wrote ./$$(${BIN}/dotenv -f ${ENV_FILE} get POSTGRES_TRAEFIK_HOST)_$$(${BIN}/dotenv -f ${ENV_FILE} get POSTGRES_LIMITED_USER).key"
+	@docker-compose --env-file ${ENV_FILE} exec --user postgres postgres cat /etc/postgresql/client.pk8.key > $$(${BIN}/dotenv -f ${ENV_FILE} get POSTGRES_TRAEFIK_HOST)_$$(${BIN}/dotenv -f ${ENV_FILE} get POSTGRES_LIMITED_USER).pk8.key && echo "Wrote ./$$(${BIN}/dotenv -f ${ENV_FILE} get POSTGRES_TRAEFIK_HOST)_$$(${BIN}/dotenv -f ${ENV_FILE} get POSTGRES_LIMITED_USER).pk8.key"
 	@chmod 0600 *.crt *.key
 	@echo
 	@echo "To use psql, put this alias in your ~/.bashrc :"
@@ -29,8 +30,6 @@ client:
 	@echo "alias psql=\"psql '$$(make --no-print-directory connection-string)'\""
 	@echo
 	@echo ^^ Enjoy
-	@echo
-	@echo "Note: the certificate is database specific. You can only access this one."
 
 .PHONY: clean
 clean:
@@ -48,11 +47,11 @@ certificates: build
 
 .PHONY: connection-string # Get the connection string
 connection-string:
-	@echo "postgresql://$$(${BIN}/dotenv -f ${ENV_FILE} get POSTGRES_DB)@$$(${BIN}/dotenv -f ${ENV_FILE} get POSTGRES_TRAEFIK_HOST):$$(${BIN}/dotenv -f ${ENV_FILE} get EXTERNAL_TCP_PORT)/$$(${BIN}/dotenv -f ${ENV_FILE} get POSTGRES_DB)?sslmode=verify-full&sslcert=$$(${BIN}/dotenv -f ${ENV_FILE} get POSTGRES_TRAEFIK_HOST)_$$(${BIN}/dotenv -f ${ENV_FILE} get POSTGRES_DB).crt&sslkey=$$(${BIN}/dotenv -f ${ENV_FILE} get POSTGRES_TRAEFIK_HOST)_$$(${BIN}/dotenv -f ${ENV_FILE} get POSTGRES_DB).key&sslrootcert=$$(${BIN}/dotenv -f ${ENV_FILE} get POSTGRES_TRAEFIK_HOST)_ca.crt"
+	@echo "postgresql://$$(${BIN}/dotenv -f ${ENV_FILE} get POSTGRES_LIMITED_USER)@$$(${BIN}/dotenv -f ${ENV_FILE} get POSTGRES_TRAEFIK_HOST):$$(${BIN}/dotenv -f ${ENV_FILE} get EXTERNAL_TCP_PORT)/$$(${BIN}/dotenv -f ${ENV_FILE} get POSTGRES_DB)?sslmode=verify-full&sslcert=$$(${BIN}/dotenv -f ${ENV_FILE} get POSTGRES_TRAEFIK_HOST)_$$(${BIN}/dotenv -f ${ENV_FILE} get POSTGRES_LIMITED_USER).crt&sslkey=$$(${BIN}/dotenv -f ${ENV_FILE} get POSTGRES_TRAEFIK_HOST)_$$(${BIN}/dotenv -f ${ENV_FILE} get POSTGRES_LIMITED_USER).key&sslrootcert=$$(${BIN}/dotenv -f ${ENV_FILE} get POSTGRES_TRAEFIK_HOST)_ca.crt"
 
 .PHONY: import-chinook # Import Chinook sample database
 import-chinook:
-	docker-compose --env-file=${ENV_FILE} exec postgres /bin/sh -c "PGUSER=$$(${BIN}/dotenv -f ${ENV_FILE} get POSTGRES_DB) pgloader https://github.com/lerocha/chinook-database/raw/master/ChinookDatabase/DataSources/Chinook_Sqlite_AutoIncrementPKs.sqlite pgsql:///$$(${BIN}/dotenv -f ${ENV_FILE} get POSTGRES_DB)"
+	docker-compose --env-file=${ENV_FILE} exec postgres /bin/sh -c 'createdb chinook && psql -c "create role chinook; grant chinook to $${POSTGRES_LIMITED_USER};" && PGUSER=$${POSTGRES_LIMITED_USER} pgloader https://github.com/lerocha/chinook-database/raw/master/ChinookDatabase/DataSources/Chinook_Sqlite_AutoIncrementPKs.sqlite pgsql:///chinook'
 
 .PHONY: psql-alias # Get the psql alias with baked connection string
 psql-alias:
