@@ -1,3 +1,5 @@
+DOCKER_BUILDKIT ?= 1
+
 .PHONY: build # Build container images
 build:
-	DOCKER_BUILDKIT=1 docker compose --env-file=${ENV_FILE} build
+	docker compose --env-file=${ENV_FILE} build
