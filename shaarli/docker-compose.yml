@@ -10,10 +10,6 @@
 #                             See: https://hub.docker.com/r/shaarli/shaarli/tags
 version: '3'
 
-networks:
-  traefik-proxy:
-    name: traefik-proxy
-
 volumes:
   shaarli-cache:
   shaarli-data:
@@ -25,8 +21,6 @@ services:
       - no-new-privileges:true
     container_name: "shaarli"
     restart: "unless-stopped"
-    networks:
-      - traefik-proxy
     volumes:
       - shaarli-cache:/var/www/shaarli/cache
       - shaarli-data:/var/www/shaarli/data

@@ -1,17 +1,11 @@
 version: '3'
 
-networks:
-  traefik-proxy:
-    name: traefik-proxy
-
 volumes:
   data:
 
 services:
   minio:
     image: quay.io/minio/minio
-    networks:
-      - traefik-proxy
     security_opt:
       - no-new-privileges:true
     environment:

@@ -1,17 +1,11 @@
 version: "3.3"
 
-networks:
-  traefik-proxy:
-    name: traefik-proxy
-
 services:
   whoami:
     image: "traefik/whoami"
     security_opt:
       - no-new-privileges:true
     container_name: whoami
-    networks:
-      - traefik-proxy
     restart: unless-stopped
     labels:
       - "traefik.enable=true"

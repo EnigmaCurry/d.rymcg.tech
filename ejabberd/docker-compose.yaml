@@ -1,8 +1,5 @@
 version: '3'
 
-networks:
-  traefik-proxy:
-    name: traefik-proxy
 
 volumes:
   config:
@@ -29,9 +26,6 @@ services:
       context: ejabberd
     security_opt:
       - no-new-privileges:true
-    networks:
-      - default
-      - traefik-proxy
     volumes:
       - config:/home/ejabberd/conf
       - cert:/cert

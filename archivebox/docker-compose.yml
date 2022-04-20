@@ -1,9 +1,5 @@
 version: '3'
 
-networks:
-  traefik-proxy:
-    name: traefik-proxy
-
 volumes:
   data:
 
@@ -21,9 +17,6 @@ services:
       # - SEARCH_BACKEND_PASSWORD=SecretPassword
     volumes:
       - data:/data
-    networks:
-      - default
-      - traefik-proxy
     restart: unless-stopped
     labels:
       - "traefik.enable=true"
@@ -41,9 +34,6 @@ services:
       context: ${ARCHIVEBOX_API_GATEWAY_CONTEXT:-https://github.com/EnigmaCurry/archivebox-api-gateway.git}
     security_opt:
       - no-new-privileges:true
-    networks:
-      - default
-      - traefik-proxy
     restart: "no"
     environment:
       - ARCHIVEBOX_BASE_URL=http://archivebox:8000

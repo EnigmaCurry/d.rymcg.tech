@@ -1,9 +1,5 @@
 version: "3.3"
 
-networks:
-  traefik-proxy:
-    name: traefik-proxy
-
 volumes:
   node-red:
 
@@ -11,8 +7,6 @@ services:
   node-red:
     image: "nodered/node-red"
     container_name: "node-red"
-    networks:
-      - traefik-proxy
     security_opt:
       - no-new-privileges:true
     restart: unless-stopped

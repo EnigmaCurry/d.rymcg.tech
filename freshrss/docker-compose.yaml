@@ -1,15 +1,9 @@
 version: '3'
 
-networks:
-  traefik-proxy:
-    name: traefik-proxy
-
 services:
   freshrss-app:
     image: freshrss/freshrss:latest
     restart: unless-stopped
-    networks:
-      - traefik-proxy
     volumes:
       - data:/var/www/FreshRSS/data
       - extensions:/var/www/FreshRSS/extensions

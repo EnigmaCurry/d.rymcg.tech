@@ -1,9 +1,5 @@
 version: "3.3"
 
-networks:
-  traefik-proxy:
-    name: traefik-proxy
-
 volumes:
   mosquitto:
     external: true
@@ -24,8 +20,6 @@ services:
     depends_on: ['config']
     image: "eclipse-mosquitto"
     container_name: "mosquitto"
-    networks:
-      - traefik-proxy
     security_opt:
       - no-new-privileges:true
     restart: unless-stopped

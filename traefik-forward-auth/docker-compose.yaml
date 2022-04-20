@@ -1,15 +1,9 @@
 version: "3.3"
 
-networks:
-  traefik-proxy:
-    name: traefik-proxy
-
 services:
   traefik-forward-auth:
     image: thomseddon/traefik-forward-auth:2
     container_name: traefik-forward-auth
-    networks:
-      - traefik-proxy
     security_opt:
       - no-new-privileges:true
     environment:

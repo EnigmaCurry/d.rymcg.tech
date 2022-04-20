@@ -1,15 +1,9 @@
 version: '3'
 
-networks:
-  traefik-proxy:
-    name: traefik-proxy
-
 services:
   app:
     build:
       context: .
-    networks:
-      - traefik-proxy
     security_opt:
       - no-new-privileges:true
     environment:
