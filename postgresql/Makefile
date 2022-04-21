@@ -47,7 +47,7 @@ certificates: build
 
 .PHONY: connection-string # Get the connection string
 connection-string:
-	@echo "postgresql://$$(${BIN}/dotenv -f ${ENV_FILE} get POSTGRES_LIMITED_USER)@$$(${BIN}/dotenv -f ${ENV_FILE} get POSTGRES_TRAEFIK_HOST):$$(${BIN}/dotenv -f ${ENV_FILE} get EXTERNAL_TCP_PORT)/$$(${BIN}/dotenv -f ${ENV_FILE} get POSTGRES_DB)?sslmode=verify-full&sslcert=$$(${BIN}/dotenv -f ${ENV_FILE} get POSTGRES_TRAEFIK_HOST)_$$(${BIN}/dotenv -f ${ENV_FILE} get POSTGRES_LIMITED_USER).crt&sslkey=$$(${BIN}/dotenv -f ${ENV_FILE} get POSTGRES_TRAEFIK_HOST)_$$(${BIN}/dotenv -f ${ENV_FILE} get POSTGRES_LIMITED_USER).key&sslrootcert=$$(${BIN}/dotenv -f ${ENV_FILE} get POSTGRES_TRAEFIK_HOST)_ca.crt"
+	@echo "postgresql://$$(${BIN}/dotenv -f ${ENV_FILE} get POSTGRES_LIMITED_USER)@$$(${BIN}/dotenv -f ${ENV_FILE} get POSTGRES_TRAEFIK_HOST):$$(${BIN}/dotenv -f ${ENV_FILE} get EXTERNAL_TCP_PORT)/$$(${BIN}/dotenv -f ${ENV_FILE} get POSTGRES_DB)?sslmode=verify-full&sslcert=$$(realpath .)/$$(${BIN}/dotenv -f ${ENV_FILE} get POSTGRES_TRAEFIK_HOST)_$$(${BIN}/dotenv -f ${ENV_FILE} get POSTGRES_LIMITED_USER).crt&sslkey=$$(realpath .)/$$(${BIN}/dotenv -f ${ENV_FILE} get POSTGRES_TRAEFIK_HOST)_$$(${BIN}/dotenv -f ${ENV_FILE} get POSTGRES_LIMITED_USER).key&sslrootcert=$$(realpath .)/$$(${BIN}/dotenv -f ${ENV_FILE} get POSTGRES_TRAEFIK_HOST)_ca.crt"
 
 .PHONY: import-chinook # Import Chinook sample database
 import-chinook:
