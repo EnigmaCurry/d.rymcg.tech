@@ -3,6 +3,17 @@
 [Traefik](https://github.com/traefik/traefik) is a modern
 TLS / HTTP / TCP / UDP reverse proxy and load balancer.
 
+## Notices
+
+This configuration currently uses a docker network named `traefik-proxy` that
+all frontend containers connect to in order to be proxied. This means that any
+frontend app can directly access (or hack) any other frontend app, bypassing all
+Traefik security mechanisms (eg. HTTP Basic Auth).
+
+This will eventually be fixed by putting Traefik onto the host network. See this
+[github issue](https://github.com/EnigmaCurry/d.rymcg.tech/issues/7) for more
+information.
+
 ## Config
 
 Run `make config` or copy `.env-dist` to `.env` and edit the following:
