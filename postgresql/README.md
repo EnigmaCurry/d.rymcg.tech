@@ -86,7 +86,6 @@ Answer the questions:
    name is appropriate still for the purpose of indicating the external host
    name.)
  * `POSTGRES_DB` The name of the database to create.
- * `POSTGRES_LIMITED_USER` The username to access the database.
  * `ALLOWED_IP_SOURCERANGE` The allowed client IP network range in CIDR format
    with netmask. To allow any client to connect enter `0.0.0.0/0` or to enter a
    specific IP address enter `x.x.x.x/32`. (Note: this filtering is done by
