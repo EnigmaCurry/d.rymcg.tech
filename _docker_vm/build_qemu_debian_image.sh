@@ -24,6 +24,9 @@ DISK_IMAGE="${VMROOT}/${VMNAME}.qcow"
 
 test -f ${DISK_IMAGE} && echo "Existing disk image found for ${VMNAME}. Skipping installation." && exit 0
 
+test -z "${AUTHORIZED_KEYS}" && echo "You must first run 'ssh-keygen' to create your user's SSH key, and then add your key to the ssh-agent." && exit 1
+
+
 check_dep(){
     if ! which $1 >/dev/null; then
         echo "Missing dependency: $1" && exit 1

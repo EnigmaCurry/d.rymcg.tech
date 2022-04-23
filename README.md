@@ -173,7 +173,7 @@ your `.env` files by hand and/or run `docker-compose` manually.):
    * `wireguard` (client for connecting to the [wireguard](wireguard) VPN)
 
 On Arch Linux you can install these dependencies with: `pacman -S bash base-devel
-openssl apache xdg-utils jq wireguard`
+openssl apache xdg-utils jq wireguard-tools`
 
 For Debian or Ubuntu run: `apt-get install bash build-essential openssl
 apache2-utils xdg-utils jq wireguard`
