@@ -1,5 +1,7 @@
 #!/bin/sh
 
+set -e
+
 VMNAME=${VMNAME:-"bullseye_vm"}
 MEMORY=${MEMORY:-2048}
 SSH_PORT=${SSH_PORT:-10022}
@@ -23,7 +25,7 @@ EXTRA_PORTS=$(extra_ports)
 
 echo ""
 echo ""
-cho "Booting Docker VM now ... "
+echo "Booting Docker VM now ... "
 
 set -x
 qemu-system-x86_64 \

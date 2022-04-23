@@ -61,7 +61,7 @@ development environment, but that work has not been done yet.
 ### Arch Linux
 
 ```
-sudo pacman -S docker make qemu python3 openssl curl
+sudo pacman -S docker make qemu python3 openssl curl gnu-netcat
 ```
 
 ### Ubuntu

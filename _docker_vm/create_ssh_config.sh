@@ -17,7 +17,6 @@ Host ${VMNAME}
      Port ${SSH_PORT}
      StrictHostKeyChecking no
      UserKnownHostsFile /dev/null
-     IdentitiesOnly yes
      ControlMaster auto
      ControlPersist yes
      ControlPath /tmp/ssh-%u-%r@%h:%p

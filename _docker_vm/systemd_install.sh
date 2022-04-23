@@ -1,7 +1,10 @@
 #!/bin/bash
 
+set -e
+
 SERVICE=${HOME}/.config/systemd/user/docker-vm.service
 SCRIPT_ROOT=$(dirname $(realpath ${BASH_SOURCE}))
+HOSTFWD_HOST=${HOSTFWD_HOST:-127.0.0.1}
 
 if loginctl show-user ${USER} | grep "Linger=no"; then
 	  echo "User account does not allow systemd Linger."
@@ -15,8 +18,7 @@ cat <<EOF > ${SERVICE}
 Description=Docker Virtual Machine (${SCRIPT_ROOT})
 
 [Service]
-Environment=DOCKER_INSTALL=false
-ExecStart=make -C ${SCRIPT_ROOT}
+ExecStart=make -C ${SCRIPT_ROOT} HOSTFWD_HOST="${HOSTFWD_HOST}"
 
 [Install]
 WantedBy=default.target

@@ -32,26 +32,30 @@ up: build-and-boot
 install:
 	./systemd_install.sh
 
+.PHONY: install-public # Install systemd units for PUBLIC Docker VM service
+install-public:
+	HOSTFWD_HOST='*' ./systemd_install.sh
+
 .PHONY: enable # Enable systemd service on boot and start Docker VM now
-enable: install
+enable:
 	systemctl --user enable --now ${VMNAME}
 	sleep 2
 	systemctl --user status ${VMNAME} --no-pager
 
 .PHONY: start # Start systemd service now
-start: install
+start:
 	systemctl --user start ${VMNAME}
 	sleep 2
 	systemctl --user status ${VMNAME} --no-pager
 
 .PHONY: disable # Disable systemd service on boot and stop Docker VM now
-disable: install
+disable:
 	systemctl --user disable --now ${VMNAME}
 	sleep 2
 	systemctl --user status ${VMNAME} --no-pager
 
 .PHONY: stop # stop systemd service now
-stop: install
+stop:
 	systemctl --user stop ${VMNAME}
 	sleep 2
 	systemctl --user status ${VMNAME} --no-pager
@@ -91,10 +95,3 @@ build-and-boot: check-name build
 	HOSTFWD_HOST=${HOSTFWD_HOST} \
 	./boot.sh
 
-.PHONY: docker-vm-public # Build public Docker server with HOSTFWD_HOST='*'
-docker-vm-public:
-	make --no-print-directory docker-vm HOSTFWD_HOST='*' 
-
-.PHONY: docker-vm-clean
-docker-vm-clean:
-	make --no-print-directory clean VMNAME=docker-vm
