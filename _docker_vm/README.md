@@ -1,5 +1,10 @@
 # Localhost Docker on KVM Virtual Machine
 
+Run Docker in a KVM (qemu) Virtual Machine as a systemd service on your local
+workstation.
+
+## Background
+
 I don't think its wise to run the Docker daemon natively on your workstation's
 host operating system. Granting your user into the `docker` group is basically
 giving your user full root access to your host operating system (without even
@@ -20,9 +25,7 @@ in a VM.
 
 This guide is for Linux workstation users only! This will show you how to
 automatically install a new KVM virtual machine with the Debian minimal netboot
-installer, in order to provision a new Docker server in a VM. (This is also a
-generic way of installing a Debian VM without Docker, see the [Make other Debian
-VMs](#make-other-debian-vms-optional) section for that.)
+installer, in order to provision a new Docker server in a VM.
 
 ## Notices
 
@@ -77,14 +80,15 @@ sudo apt-get install make qemu-utils qemu-system-x86 qemu-kvm curl python3 opens
 
 ## Review the config in the Makefile
 
-Look at the [Makefile](Makefile) and find the `docker-vm` target. You can change any of the config values you need:
+You can change any of the config values you need by setting these environment
+variables (or hardcoding these values at the top of the Makefile):
 
  * `VMNAME` - the name of the VM
  * `DISTRO` - the debian distribution name (eg. bullseye, buster, jessie)
  * `DISK` - the size of the VM disk image (eg. `20G`)
  * `MEMORY` - the size of the RAM in MB (eg `2048`)
  * `SSH_PORT` - the external SSH port mapped on the Host (eg `10022`)
- * `TIMEZONE` - the VM timezone (eg. ``Etc/UTC` , `America/Los_Angeles`)
+ * `TIMEZONE` - the VM timezone (eg. `Etc/UTC` , `America/Los_Angeles`)
  * `EXTRA_PORTS` - the extra TCP ports (besides SSH) to map to the host. For
    example, `8000:80,8443:443` will map two external ports 8000 and 8443 to
    internal ports 80 and 443 respectively.
@@ -97,23 +101,30 @@ Look at the [Makefile](Makefile) and find the `docker-vm` target. You can change
 Run: 
 
 ```
-make docker-vm
+make
 ```
 
 This will create the VM disk image (`./VMs/docker-vm.qcow`) and automatically
-install Debian from scratch using the minimal netboot installer, and will then
-boot the VM and install docker.
+install Debian from scratch using the minimal netboot installer, install Docker,
+and boot the VM for the first time after install.
 
 You can use this same command to restart the VM if it is ever shutdown. (It will
 not attempt to reinstall if the existing disk image is found.)
 
-Once finished, switch your local docker context to the new VM:
+*Note*: this process is designed to run and block until the VM is shutdown. 
+
+
+Wait until you see the text `Booting Docker VM now ...`, leave it running, and
+open a new terminal session to follow the next steps.
+
+Switch your local docker context to the new VM:
 
 ```
 docker context use docker-vm
 ```
 
-Now you should be able to use Docker locally, try:
+Now you should be able to control the remote Docker server using the local
+Docker client. Try running this from your workstation:
 
 ```
 docker info | head
@@ -122,10 +133,64 @@ docker info | head
 (You should see the name of the VM in the `Context` line at the start of the
 output.)
 
+You should be able to run any docker commands now, try:
+
+```
+docker run hello-world
+```
+
 If you need to SSH to the VM (you shouldn't normally), you can:
 
 ```
 ssh docker-vm
+```
+
+## Install the systemd service and optionally start on boot
+
+You can more easily control the VM by installing the systemd service:
+
+```
+make install
+```
+
+(If you have not enabled [systemd
+"lingering"](https://wiki.archlinux.org/title/Systemd/user#Automatic_start-up_of_systemd_user_instances)
+on your account before, this will fail, and a message will be printed to tell
+you how to enable this.)
+
+This will create a systemd unit for your current (unprivileged) user account, in
+`~/.config/systemd/user/docker-vm.service`.
+
+You can now interact with systemd to control the service:
+
+```
+# Start:
+systemctl --user start docker-vm
+
+# Stop (probably not a clean shutdown!):
+systemctl --user stop docker-vm
+
+# Enable at boot:
+systemctl --user enable docker-vm
+
+# Disable at boot:
+systemctl --user disable docker-vm
+
+# See status:
+systemctl --user status docker-vm
+
+# See logs (there aren't any):
+journalctl --user --unit docker-vm
+```
+
+You can also use the Makefile targets that are aliases for the above systemctl
+commands:
+
+```
+make start
+make stop
+make enable
+make disable
 ```
 
 ## Firewall
@@ -158,32 +223,6 @@ sudo ufw allow 5432
 (Note to careful readers: [ufw is not safe to use on the same host operating
 system as Docker](https://github.com/chaifeng/ufw-docker#problem), but since
 Docker is running in a VM, and ufw is running on the host, this is fine.)
-
-## Make other Debian VMs (optional)
-
-See the included [Makefile](Makefile) at the bottom are some example VMs
-predefined. You can add your targets, following the `my-bullseye` example. You
-can customize the names, disk size, memory etc. You can create several VMs with
-the same Makefile, just make sure that each VM you create has a unique Makefile
-target, `VMNAME`, and `SSH_PORT`.
-
-To start the example `my-bullseye` VM target (No docker installed), run:
-
-```
-make my-bullseye
-```
-
-This will create the VM disk image (`./VMs/my-bullseye.qcow`) and automatically
-install Debian from scratch using the minimal netboot installer.
-
-Once the installer is finished, the VM will be booted automatically, and you an
-SSH host entry will be added to your config file (`~/.ssh/config`).
-
-Connect to the VM once it has started:
-
-```
-ssh my-bullseye
-```
 
 ## Customize the preseed.cfg file (optional)
 

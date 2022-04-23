@@ -19,22 +19,19 @@ extra_ports(){
     done
 }
 
+EXTRA_PORTS=$(extra_ports)
+
+echo ""
+echo ""
+cho "Booting Docker VM now ... "
+
+set -x
 qemu-system-x86_64 \
 	-hda "${VMROOT}/${DISK_IMAGE}" \
   -smp $(nproc) \
-	-netdev user,id=net0,net=10.0.2.0/24,hostfwd=tcp:${HOSTFWD_HOST}:${SSH_PORT}-:22,$(extra_ports)hostname=${VMNAME},domainname=${DOMAIN} \
+	-netdev user,id=net0,net=10.0.2.0/24,hostfwd=tcp:${HOSTFWD_HOST}:${SSH_PORT}-:22,${EXTRA_PORTS}hostname=${VMNAME},domainname=${DOMAIN} \
 	-device e1000,netdev=net0,mac=${MAC},romfile= \
 	-m ${MEMORY} \
 	-boot once=n \
 	-enable-kvm \
-  -daemonize \
   -display none
-
-qemu_exit_code=$?
-
-if [[ ${qemu_exit_code} == 0 ]]; then
-    echo "Booting ${VMNAME} ..."
-fi
-
-echo ""
-echo "To connect to the VM, run: ssh ${VMNAME}"

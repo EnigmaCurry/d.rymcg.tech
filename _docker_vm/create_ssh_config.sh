@@ -17,9 +17,25 @@ Host ${VMNAME}
      Port ${SSH_PORT}
      StrictHostKeyChecking no
      UserKnownHostsFile /dev/null
+     IdentitiesOnly yes
+     ControlMaster auto
+     ControlPersist yes
+     ControlPath /tmp/ssh-%u-%r@%h:%p
 EOF
 
 else
     echo "SSH is already configured for host ${VMNAME}"
 fi
 
+if which docker>/dev/null; then
+    if ! docker context inspect ${VMNAME} >/dev/null; then
+        docker context create ${VMNAME} --docker "host=ssh://${VMNAME}"
+        echo "Created new remote docker context: ${VMNAME}"
+        echo "To use the new docker context, run:"
+        echo "docker context use ${VMNAME}"
+    fi
+else
+    echo "You need to install the docker client on your local workstation."
+    echo "Note: you do *NOT* need to start the local docker daemon service."
+    exit 1
+fi

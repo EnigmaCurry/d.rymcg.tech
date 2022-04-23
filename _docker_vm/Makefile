@@ -1,18 +1,21 @@
-## boilerplate help target. Keep this as the first target to make it the default one.
-## All .PHONY targets will now be self-documenting via posterior comments.
-.PHONY: help # Show this help screen
-help:
-	@grep -h '^.PHONY: .* #' Makefile | sed 's/\.PHONY: \(.*\) # \(.*\)/make \1 \t- \2/' | expand -t20
-
 #############################################
-### Default variables:
+### Default variables (can be overriden by environment or hardcoded here):
 #############################################
-VMROOT ?= VMs
-DISK ?= 25G
-MEMORY ?= 4096
-TIMEZONE ?= Etc/UTC
-SSH_PORT ?= 10022
 DISTRO ?= bullseye
+VMNAME ?= docker-vm
+DISTRO ?= bullseye
+DISK ?= 30G
+MEMORY ?= 4096
+DOMAIN ?= localdomain
+MAC ?= 52:54:98:76:54:32
+TIMEZONE ?= Etc/UTC
+SSH_PORT ?= 2221
+EXTRA_PORTS ?= 8000:80,8443:443,5432:5432
+LOCALE ?= en_US
+DEBIAN_MIRROR ?= mirrors.xmission.com
+VMROOT ?= VMs
+
+## Make HOSTFWD_HOST='*' if you want all hosts to be able to connect:
 HOSTFWD_HOST ?= 127.0.0.1
 
 check_defined = \
@@ -22,9 +25,37 @@ __check_defined = \
     $(if $(value $1),, \
       $(error Undefined $1$(if $2, ($2))))
 
-#############################################
-### Core targets:
-#############################################
+.PHONY: up # Build and boot Docker VM
+up: build-and-boot
+
+.PHONY: install # Install systemd units for Docker VM service
+install:
+	./systemd_install.sh
+
+.PHONY: enable # Enable systemd service on boot and start Docker VM now
+enable: install
+	systemctl --user enable --now ${VMNAME}
+	sleep 2
+	systemctl --user status ${VMNAME} --no-pager
+
+.PHONY: start # Start systemd service now
+start: install
+	systemctl --user start ${VMNAME}
+	sleep 2
+	systemctl --user status ${VMNAME} --no-pager
+
+.PHONY: disable # Disable systemd service on boot and stop Docker VM now
+disable: install
+	systemctl --user disable --now ${VMNAME}
+	sleep 2
+	systemctl --user status ${VMNAME} --no-pager
+
+.PHONY: stop # stop systemd service now
+stop: install
+	systemctl --user stop ${VMNAME}
+	sleep 2
+	systemctl --user status ${VMNAME} --no-pager
+
 .PHONY: check-name
 check-name:
 	$(call check_defined, VMNAME)
@@ -35,67 +66,35 @@ clean: check-name
 
 .PHONY: build
 build: check-name
+	DISTRO=${DISTRO} \
+	DISK=${DISK} \
+	VMNAME=${VMNAME} \
+	DOMAIN=${DOMAIN} \
+	LOCALE=${LOCALE} \
+	DEBIAN_MIRROR=${DEBIAN_MIRROR} \
+	TIMEZONE=${TIMEZONE} \
+  MAC=${MAC} \
 	./build_qemu_debian_image.sh
 
 .PHONY: build-and-boot
 build-and-boot: check-name build
+	VMNAME=${VMNAME} \
+	SSH_PORT=${SSH_PORT} \
 	./create_ssh_config.sh
+
+	VMNAME=${VMNAME} \
+	SSH_PORT=${SSH_PORT} \
+	MEMORY=${MEMORY} \
+	DOMAIN=${DOMAIN} \
+  MAC=${MAC} \
+	EXTRA_PORTS=${EXTRA_PORTS} \
+	HOSTFWD_HOST=${HOSTFWD_HOST} \
 	./boot.sh
-
-#############################################
-### Example VM targets
-### (customize to your liking)
-#############################################
-
-.PHONY: docker-vm # Build Docker VM
-docker-vm:
-	VMNAME=docker-vm \
-	DISTRO=bullseye \
-	DISK=30G \
-	MEMORY=4096 \
-	SSH_PORT=2221 \
-	TIMEZONE=Etc/UTC \
-	EXTRA_PORTS=8000:80,8443:443,5432:5432 \
-	HOSTFWD_HOST="${HOSTFWD_HOST}" \
-	DEBIAN_MIRROR=mirrors.xmission.com \
-	make --no-print-directory build-and-boot
-	sleep 10
-	VMNAME=docker-vm ./install_docker.sh
 
 .PHONY: docker-vm-public # Build public Docker server with HOSTFWD_HOST='*'
 docker-vm-public:
-	HOSTFWD_HOST='*' make --no-print-directory docker-vm
+	make --no-print-directory docker-vm HOSTFWD_HOST='*' 
 
 .PHONY: docker-vm-clean
 docker-vm-clean:
 	make --no-print-directory clean VMNAME=docker-vm
-
-.PHONY: my-buster # Build buster VM
-my-buster:
-	VMNAME=my-buster \
-	DISTRO=buster \
-	DISK=30G \
-	MEMORY=2048 \
-	SSH_PORT=2223 \
-	HOSTFWD_HOST="${HOSTFWD_HOST}" \
-	TIMEZONE=America/Los_Angeles \
-  make --no-print-directory build-and-boot
-
-.PHONY: my-buster-clean
-my-buster-clean:
-	make --no-print-directory clean VMNAME=my-buster
-
-.PHONY: my-bullseye # Build bullseye VM
-my-bullseye:
-	VMNAME=my-bullseye \
-	DISTRO=bullseye \
-	DISK=30G \
-	MEMORY=2048 \
-	SSH_PORT=2224 \
-	HOSTFWD_HOST="${HOSTFWD_HOST}" \
-	TIMEZONE=America/Los_Angeles \
-  make --no-print-directory build-and-boot
-
-.PHONY: my-bullseye-clean
-my-bullseye-clean:
-	make --no-print-directory clean VMNAME=my-bullseye
