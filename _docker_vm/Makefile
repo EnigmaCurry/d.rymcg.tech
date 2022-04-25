@@ -28,6 +28,16 @@ __check_defined = \
 .PHONY: up # Build and boot Docker VM
 up: build-and-boot
 
+.PHONY: help # Show this help screen
+help:
+	@grep -h '^.PHONY: .* #' Makefile | sed 's/\.PHONY: \(.*\) # \(.*\)/make \1 \t- \2/' | expand -t22
+
+.PHONY: down
+down:
+	./shutdown.sh
+	@sleep 2
+	systemctl --user status ${VMNAME} --no-pager; true
+
 .PHONY: install # Install systemd units for Docker VM service
 install:
 	./systemd_install.sh
@@ -40,25 +50,29 @@ install-public:
 enable:
 	systemctl --user enable --now ${VMNAME}
 	sleep 2
-	systemctl --user status ${VMNAME} --no-pager
+	systemctl --user status ${VMNAME} --no-pager; true
 
 .PHONY: start # Start systemd service now
 start:
 	systemctl --user start ${VMNAME}
 	sleep 2
-	systemctl --user status ${VMNAME} --no-pager
+	systemctl --user status ${VMNAME} --no-pager; true
 
 .PHONY: disable # Disable systemd service on boot and stop Docker VM now
 disable:
 	systemctl --user disable --now ${VMNAME}
 	sleep 2
-	systemctl --user status ${VMNAME} --no-pager
+	systemctl --user status ${VMNAME} --no-pager; true
 
 .PHONY: stop # stop systemd service now
 stop:
 	systemctl --user stop ${VMNAME}
 	sleep 2
-	systemctl --user status ${VMNAME} --no-pager
+	systemctl --user status ${VMNAME} --no-pager; true
+
+.PHONY: status # show status of systemd service
+status:
+	systemctl --user status ${VMNAME} --no-pager ; true
 
 .PHONY: check-name
 check-name:

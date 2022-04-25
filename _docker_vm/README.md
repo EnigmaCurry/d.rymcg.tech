@@ -1,19 +1,21 @@
 # Localhost Docker on KVM Virtual Machine
 
-Run Docker in a KVM (qemu) Virtual Machine as a systemd service on your local
-workstation.
+Run Docker in a KVM (qemu) Virtual Machine as an unprivileged systemd user
+service on your local workstation.
 
 ## Background
 
-I don't think its wise to run the Docker daemon natively on your workstation's
-host operating system. Granting your user into the `docker` group is basically
-giving your user full root access to your host operating system (without even
-needing a password!). Running docker via sudo is also unwieldy. This project
-encourages you to run your Docker server remotely and using your local docker
-client to access it over a remote (SSH) context. Yes, you will still essentially
-have full root access of *that* whole server, but if that server is dedicated
-only for docker purposes, that seems fine to me. For production, you will just
-want to make sure you use a secure workstation (or CI) to set that up.
+I don't think it's wise to run the Docker daemon natively on your workstation's
+host operating system (especially not on the same system that you run your web
+browser or other personal applications). If you grant your user account into the
+`docker` group, it is basically giving your user full root access to your host
+operating system (without even needing a password!). Running docker via sudo is
+also unwieldy. This project (d.rymcg.tech) encourages you to run your Docker
+server remotely and using your local docker client to access it over a remote
+(SSH) context. Yes, that means you will still essentially have full root access
+of *that* whole server, but if that server is dedicated only for your docker
+environment, that seems fine to me. For production, you will just want to make
+sure you use a secure workstation (or CI) to set that up.
 
 But maybe you don't have a server yet, and you may want to start development on
 your laptop before even thinking about setting one up. In that case, the
@@ -25,22 +27,29 @@ in a VM.
 
 This guide is for Linux workstation users only! This will show you how to
 automatically install a new KVM virtual machine with the Debian minimal netboot
-installer, in order to provision a new Docker server in a VM.
+installer, in order to provision a new Docker server in a VM, and installing a
+systemd User service to automatically start the VM on system boot, as well as
+clean shutdown when stopping the service.
 
 ## Notices
 
 This will run a docker server in a virtual machine on your localhost. By
-default, only localhost can access the Docker services, but it can also be
-configured to forward external connections from your LAN/router, if you wish
-(`HOSTFWD_HOST='*'`).
+default, only localhost (127.0.0.1) can access the Docker services, but this can
+also be configured to forward public/external connections from your LAN or
+router (Set `HOSTFWD_HOST='*'`).
+
+This project is a sub-project of
+[d.rymcg.tech](https://github.com/EnigmaCurry/d.rymcg.tech#readme). However, you
+can use this completely separately from it.
 
 The parent project (d.rymcg.tech) includes a Traefik configuration which uses
 Let's Encrypt with the TLS (TLS-ALPN-01) challenge type. This configuration will
 only work when your Docker server has an open connection from the internet on
 TCP port 443. This will not be the case in a typical development environment, so
-the TLS certificates will be improperly issued (Traefik default self-signed
+the TLS certificates would be improperly issued (Traefik default self-signed
 cert) for the containers inside the Docker VM. (If you don't need a browser, you
-can still test your APIs with `curl -k` to disable TLS verification.)
+can still test your APIs with `curl -k` to disable TLS verification, or your
+browser might let you bypass the self-signed certificate on a per-domain basis.)
 
 You can still use all of the projects that do not use TLS, or for those projects
 that include their own self-signed certificates (eg.
@@ -58,10 +67,26 @@ development environment, but that work has not been done yet.
 
 ## Workstation dependencies
 
+You will need an SSH client with a configured SSH-agent with your key loaded.
+
+You can double check that this is the case, this should print your current
+loaded public key:
+
+```
+ssh-add -L
+```
+
+If you haven't setup your SSH key yet, you just need to run `ssh-keygen` and
+follow the prompts. If you're not running a fancy Desktop Environment that
+handles your SSH agent for you, check out
+[keychain](https://wiki.archlinux.org/title/Keychain#Keychain) for an easy to
+use ssh agent that works with all terminals and/or window managers. Then retry
+the above command to make sure its working.
+
 ### Arch Linux
 
 ```
-sudo pacman -S docker make qemu python3 openssl curl gnu-netcat
+sudo pacman -S docker make qemu python3 openssl curl gnu-netcat socat
 ```
 
 ### Ubuntu
@@ -75,13 +100,15 @@ daemon on your workstation, you only need the `docker` cli client.)
 Also install the following:
 
 ```
-sudo apt-get install make qemu-utils qemu-system-x86 qemu-kvm curl python3 openssl
+sudo apt-get install make qemu-utils qemu-system-x86 \
+     qemu-kvm curl python3 openssl socat
 ```
 
 ## Review the config in the Makefile
 
 You can change any of the config values you need by setting these environment
-variables (or hardcoding these values at the top of the Makefile):
+variables (or by hardcoding these values at the top of the Makefile, which
+become the default settings):
 
  * `VMNAME` - the name of the VM
  * `DISTRO` - the debian distribution name (eg. bullseye, buster, jessie)
@@ -98,30 +125,36 @@ variables (or hardcoding these values at the top of the Makefile):
  
 ## Create the Docker VM
 
+Clone this git repository to your workstation and change to this directory
+(`_docker_vm`).
+
 Run: 
 
 ```
 make
 ```
 
-This will create the VM disk image (`./VMs/docker-vm.qcow`) and automatically
-install Debian from scratch using the minimal netboot installer, install Docker,
-and boot the VM for the first time after install.
-
-You can use this same command to restart the VM if it is ever shutdown. (It will
-not attempt to reinstall if the existing disk image is found.)
+This will create the VM disk image under this same directory
+(`./VMs/docker-vm.qcow`) and automatically install Debian from scratch using the
+minimal netboot installer and install Docker.
 
 *Note*: this process is designed to run and block until the VM is shutdown. 
 
+Running `make` multiple times is safe, if the disk image is found, installation
+is skipped.
 
-Wait until you see the text `Booting Docker VM now ...`, leave it running, and
-open a new terminal session to follow the next steps.
+Wait until you see the text `Booting Docker VM now ...`, then leave it running
+in your terminal, and open a new secondary terminal session to follow the next
+steps.
 
 Switch your local docker context to the new VM:
 
 ```
 docker context use docker-vm
 ```
+
+(You can see all the available contexts and switch between them: `docker context
+ls`, the script automatically created the `docker-vm` context for you.)
 
 Now you should be able to control the remote Docker server using the local
 Docker client. Try running this from your workstation:
@@ -131,7 +164,7 @@ docker info | head
 ```
 
 (You should see the name of the VM in the `Context` line at the start of the
-output.)
+output, which indicates that you are talking to the correct docker backend.)
 
 You should be able to run any docker commands now, try:
 
@@ -139,35 +172,54 @@ You should be able to run any docker commands now, try:
 docker run hello-world
 ```
 
-If you need to SSH to the VM (you shouldn't normally), you can:
+The script automatically added an SSH configuration in `~/.ssh/config`, which
+facilitates the docker context. You can also use this configuration to SSH
+interactively:
 
 ```
-ssh docker-vm
+# You don't normally need to SSH to the VM interactively, but you can:
+
+# ssh docker-vm
+```
+
+Shutdown the VM once you've tested things are working:
+
+```
+ssh docker-vm shutdown -h now
 ```
 
 ## Install the systemd service and optionally start on boot
 
-You can more easily control the VM by installing the systemd service:
+You can install the systemd service to control the VM and for automatic startup
+on boot.
+
+First you must enable "systemd lingering", which lets you automatically start
+services at system boot with your normal user account (even before you login).
+
+```
+## Permanently allow your user account to "linger":
+sudo loginctl enable-linger ${USER}
+```
+
+Now install the systemd User service that controls the VM:
 
 ```
 make install
 ```
 
-(If you have not enabled [systemd
-"lingering"](https://wiki.archlinux.org/title/Systemd/user#Automatic_start-up_of_systemd_user_instances)
-on your account before, this will fail, and a message will be printed to tell
-you how to enable this.)
+This will have created a systemd unit file in
+`~/.config/systemd/user/docker-vm.service` (the service is owned by your
+unprivileged user account). All of the scripts and all of the VM data will still
+reside in the original direcory that you cloned to.
 
-This will create a systemd unit for your current (unprivileged) user account, in
-`~/.config/systemd/user/docker-vm.service`.
-
-You can now interact with systemd to control the service:
+You can now interact with systemd to control the service (always use your
+regular account, not root):
 
 ```
 # Start:
 systemctl --user start docker-vm
 
-# Stop (probably not a clean shutdown!):
+# Stop VM with a clean shutdown:
 systemctl --user stop docker-vm
 
 # Enable at boot:
@@ -191,7 +243,10 @@ make start
 make stop
 make enable
 make disable
+make status
 ```
+
+(You can run `make help` to see the descriptions of all of the commands.)
 
 ## Firewall
 
@@ -202,7 +257,7 @@ your router) from accessing your private Docker VM.
 
 This is configurable. If you wish, you can expose your Docker VM publicly to
 your LAN. Set `HOSTFWD_HOST='*'`. There is a preconfigured Makefile target to do
-this, just run `make docker-vm-public` (instead of `make docker-vm`.)
+this, just run `make install-public`.
 
 You can install `ufw` to use as a simple firewall to open ports selectively, and
 to protect your entire workstation. The default settings for `ufw` will disable
@@ -242,4 +297,10 @@ The `build_qemu_debian_image.sh` script is a fork from Sylvestre Ledru
 
 I did not find any license for these prior works, but I assume republishing this
 here is still in good faith. Thank-you!
+
+I found some great tips for using Qemu in the s.koch blog "Let's Program our own
+Cloud Computing Provider":
+
+ * https://blog.stefan-koch.name/2020/12/06/persistent-qemu-instances-systemd
+ * https://blog.stefan-koch.name/2020/12/10/qemu-guest-graceful-shutdown-from-python
 

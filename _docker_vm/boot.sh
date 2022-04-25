@@ -11,6 +11,7 @@ DOMAIN=localdomain
 MAC=${MAC:-"52:54:98:76:54:32"}
 EXTRA_PORTS=${EXTRA_PORTS:-""}
 HOSTFWD_HOST=${HOSTFWD_HOST:-"127.0.0.1"}
+QMP_SOCKET=/tmp/${VMNAME}-qmp-sock
 if [[ ${HOSTFWD_HOST} == "*" ]]; then HOSTFWD_HOST=""; fi
 
 extra_ports(){
@@ -27,7 +28,7 @@ echo ""
 echo ""
 echo "Booting Docker VM now ... "
 
-set -x
+(set -x
 qemu-system-x86_64 \
 	-hda "${VMROOT}/${DISK_IMAGE}" \
   -smp $(nproc) \
@@ -36,4 +37,14 @@ qemu-system-x86_64 \
 	-m ${MEMORY} \
 	-boot once=n \
 	-enable-kvm \
+  -qmp unix:${QMP_SOCKET},server,nowait \
   -display none
+)
+QEMU_EXIT=$?
+
+if [[ $QEMU_EXIT == 0 ]]; then
+    echo "Qemu shutdown gracefully."
+else
+    echo "Qemu shutdown aburptly with code ${QEMU_EXIT}!"
+    exit 1
+fi
