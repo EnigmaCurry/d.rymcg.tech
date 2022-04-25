@@ -84,12 +84,12 @@ qemu-img create -f qcow2 "${DISK_IMAGE}" ${DISK}
 
 echo "Running Debian Installer..."
 qemu-system-x86_64 \
-	-hda "${DISK_IMAGE}" \
-	-netdev user,id=net0,net=10.0.2.0/24,hostname=${VMNAME},domainname=${DOMAIN},tftp=tftpserver,bootfile=/pxelinux.0 \
-	-device e1000,netdev=net0,mac=${MAC} \
-	-boot once=n \
-	-m 2048 \
-	-nographic \
+  -hda "${DISK_IMAGE}" \
+  -netdev user,id=net0,net=10.0.2.0/24,hostname=${VMNAME},domainname=${DOMAIN},tftp=tftpserver,bootfile=/pxelinux.0 \
+  -device e1000,netdev=net0,mac=${MAC} \
+  -boot once=n \
+  -m 2048 \
+  -nographic \
   -enable-kvm
 
 popd
