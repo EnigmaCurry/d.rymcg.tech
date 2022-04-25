@@ -19,6 +19,7 @@ Description=Docker Virtual Machine (${SCRIPT_ROOT})
 
 [Service]
 ExecStart=make -C ${SCRIPT_ROOT} HOSTFWD_HOST="${HOSTFWD_HOST}"
+ExecStop=make -C ${SCRIPT_ROOT} down
 
 [Install]
 WantedBy=default.target
