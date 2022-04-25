@@ -74,6 +74,10 @@ stop:
 status:
 	systemctl --user status ${VMNAME} --no-pager ; true
 
+.PHONY: logs # show kernel logs
+logs:
+	journalctl --user --unit ${VMNAME} --no-pager
+
 .PHONY: check-name
 check-name:
 	$(call check_defined, VMNAME)

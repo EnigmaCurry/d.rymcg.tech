@@ -85,24 +85,48 @@ the above command to make sure its working.
 
 ### Arch Linux
 
+If you are running Arch Linux, install these dependencies:
+
 ```
 sudo pacman -S docker make qemu python3 openssl curl gnu-netcat socat
 ```
 
+Arch linux doesn't start the docker daemon by default, which is what you want.
+However, it can still be started manually. To prevent it from ever starting,
+run:
+
+```
+sudo systemctl mask docker
+```
+
 ### Ubuntu
 
-[Follow the guide to install the docker engine on
-Ubuntu](https://docs.docker.com/get-docker/) (Make sure to follow this guide so
-that you install the most up to date version of docker directly from Docker's
-package repository, not the default Ubuntu one. You don't need to start the
-daemon on your workstation, you only need the `docker` cli client.)
-
-Also install the following:
+If you are running Ubuntu, install the following:
 
 ```
 sudo apt-get install make qemu-utils qemu-system-x86 \
      qemu-kvm curl python3 openssl socat
 ```
+
+[Follow this guide to install the docker engine on
+Ubuntu](https://docs.docker.com/engine/install/ubuntu/) (Make sure to follow this guide for
+maximum feature compatibility, so that you install the most up to date version
+of Docker directly from Docker's package repository, not from the default Ubuntu
+repository. You don't need to start the daemon on your workstation, you only
+need the `docker` CLI client, but they are bundled in the same package.)
+
+You should disable the docker daemon:
+
+```
+sudo systemctl disable --now docker
+```
+
+And prevent it from starting:
+
+```
+sudo systemctl mask docker
+```
+
 
 ## Review the config in the Makefile
 
@@ -141,7 +165,8 @@ minimal netboot installer and install Docker.
 *Note*: this process is designed to run and block until the VM is shutdown. 
 
 Running `make` multiple times is safe, if the disk image is found, installation
-is skipped.
+is skipped. If you ever do want to start completely from the beginning, run
+`make clean` first (this would delete your existing VM).
 
 Wait until you see the text `Booting Docker VM now ...`, then leave it running
 in your terminal, and open a new secondary terminal session to follow the next
@@ -169,8 +194,12 @@ output, which indicates that you are talking to the correct docker backend.)
 You should be able to run any docker commands now, try:
 
 ```
-docker run hello-world
+docker run --rm -it -p 80:80 traefik/whoami
 ```
+
+(This starts a test webserver on port 80 of the VM. The default `EXTRA_PORTS`
+setting maps localhost:8000 to docker-vm:80. So you can open your web browser to
+to http://localhost:8000 to view the page served by the container.)
 
 The script automatically added an SSH configuration in `~/.ssh/config`, which
 facilitates the docker context. You can also use this configuration to SSH
@@ -231,7 +260,7 @@ systemctl --user disable docker-vm
 # See status:
 systemctl --user status docker-vm
 
-# See logs (there aren't any):
+# See logs:
 journalctl --user --unit docker-vm
 ```
 
@@ -244,6 +273,7 @@ make stop
 make enable
 make disable
 make status
+make logs
 ```
 
 (You can run `make help` to see the descriptions of all of the commands.)

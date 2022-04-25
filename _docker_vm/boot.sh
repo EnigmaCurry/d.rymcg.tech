@@ -30,15 +30,16 @@ echo "Booting Docker VM now ... "
 
 (set -x
 qemu-system-x86_64 \
-	-hda "${VMROOT}/${DISK_IMAGE}" \
+  -hda "${VMROOT}/${DISK_IMAGE}" \
   -smp $(nproc) \
-	-netdev user,id=net0,net=10.0.2.0/24,hostfwd=tcp:${HOSTFWD_HOST}:${SSH_PORT}-:22,${EXTRA_PORTS}hostname=${VMNAME},domainname=${DOMAIN} \
-	-device e1000,netdev=net0,mac=${MAC},romfile= \
-	-m ${MEMORY} \
-	-boot once=n \
-	-enable-kvm \
+  -netdev user,id=net0,net=10.0.2.0/24,hostfwd=tcp:${HOSTFWD_HOST}:${SSH_PORT}-:22,${EXTRA_PORTS}hostname=${VMNAME},domainname=${DOMAIN} \
+  -device e1000,netdev=net0,mac=${MAC},romfile= \
+  -m ${MEMORY} \
+  -boot once=n \
+  -enable-kvm \
   -qmp unix:${QMP_SOCKET},server,nowait \
-  -display none
+  -display none \
+  -serial stdio
 )
 QEMU_EXIT=$?
 
