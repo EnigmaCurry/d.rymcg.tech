@@ -5,6 +5,7 @@ include ../_scripts/Makefile.projects
 config:
 	@${BIN}/reconfigure_ask ${ENV_FILE} POSTGRES_TRAEFIK_HOST "Enter the postgres domain name" postgres.${ROOT_DOMAIN}
 	@${BIN}/reconfigure_ask ${ENV_FILE} POSTGRES_DB "Enter the database name" tweedle
+	@${BIN}/reconfigure ${ENV_FILE} POSTGRES_LIMITED_USER=$$(${BIN}/dotenv -f ${ENV_FILE} get POSTGRES_DB)
 	@${BIN}/reconfigure_ask ${ENV_FILE} ALLOWED_IP_SOURCERANGE "Enter the allowed client IP address range (CIDR with netmask) (use 0.0.0.0/0 to allow all)"
 	@${BIN}/reconfigure ${ENV_FILE} POSTGRES_ADMIN_PASSWORD=$(shell openssl rand -hex 45)
 
