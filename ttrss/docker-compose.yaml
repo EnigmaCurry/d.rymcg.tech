@@ -1,9 +1,5 @@
 version: '3'
 
-networks:
-  traefik-proxy:
-    name: traefik-proxy
-
 services:
   db:
     image: postgres:12-alpine
@@ -76,9 +72,6 @@ services:
     security_opt:
       - no-new-privileges:true
     restart: unless-stopped
-    networks:
-      - traefik-proxy
-      - default
     volumes:
       - app:/var/www/html:ro
     depends_on:

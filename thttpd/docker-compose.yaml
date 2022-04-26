@@ -3,10 +3,6 @@ version: '3'
 volumes:
   database:
 
-networks:
-  traefik-proxy:
-    name: traefik-proxy
-
 services:
   thttpd:
     build:
@@ -14,8 +10,6 @@ services:
     restart: unless-stopped
     security_opt:
       - no-new-privileges:true
-    networks:
-      - traefik-proxy
     environment:
       - THTTPD_CACHE_CONTROL
     labels:

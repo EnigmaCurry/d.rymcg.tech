@@ -1,9 +1,5 @@
 version: "3.3"
 
-networks:
-  traefik-proxy:
-    name: traefik-proxy
-
 services:
   db:
     image: mariadb
@@ -19,9 +15,6 @@ services:
       - mariadb:/var/lib/mysql
   piwigo:
     image: linuxserver/piwigo:latest
-    networks:
-      - traefik-proxy
-      - default
     security_opt:
       - no-new-privileges:true
     restart: unless-stopped

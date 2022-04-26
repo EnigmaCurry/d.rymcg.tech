@@ -1,9 +1,5 @@
 version: "3.3"
 
-networks:
-  traefik-proxy:
-    name: traefik-proxy
-
 volumes:
   data:
 
@@ -31,8 +27,6 @@ services:
     security_opt:
       - no-new-privileges:true
     container_name: maubot
-    networks:
-      - traefik-proxy
     restart: unless-stopped
     volumes:
       - data:/data

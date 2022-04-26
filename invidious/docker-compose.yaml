@@ -3,10 +3,6 @@ version: '3'
 volumes:
   database:
 
-networks:
-  traefik-proxy:
-    name: traefik-proxy
-
 services:
   postgres:
     build:
@@ -31,9 +27,6 @@ services:
     restart: unless-stopped
     security_opt:
       - no-new-privileges:true
-    networks:
-      - traefik-proxy
-      - default
     environment:
       INVIDIOUS_CONFIG: |
         channel_threads: 1

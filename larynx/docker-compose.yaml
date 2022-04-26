@@ -1,15 +1,9 @@
 version: '3'
 
-networks:
-  traefik-proxy:
-    name: traefik-proxy
-
 services:
   app:
     image: rhasspy/larynx
     restart: unless-stopped
-    networks:
-      - traefik-proxy
     security_opt:
       - no-new-privileges:true
     volumes:

@@ -1,9 +1,5 @@
 version: '3'
 
-networks:
-  traefik-proxy:
-    name: traefik-proxy
-
 volumes:
   config:
 
@@ -27,8 +23,6 @@ services:
     build:
       context: https://github.com/EnigmaCurry/s3-proxy.git
     restart: unless-stopped
-    networks:
-      - traefik-proxy
     security_opt:
       - no-new-privileges:true
     volumes:

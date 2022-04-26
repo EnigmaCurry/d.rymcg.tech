@@ -12,9 +12,6 @@ volumes:
 
 networks:
     meet.jitsi:
-    traefik-proxy:
-        name: traefik-proxy
-
 
 services:
     # Frontend
@@ -146,7 +143,6 @@ services:
             - XMPP_RECORDER_DOMAIN
         networks:
             meet.jitsi:
-            traefik-proxy:
 
     # XMPP server
     prosody:

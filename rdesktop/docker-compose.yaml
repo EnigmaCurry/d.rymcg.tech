@@ -1,9 +1,5 @@
 version: '3'
 
-networks:
-  traefik-proxy:
-    name: traefik-proxy
-
 volumes:
   config:
 
@@ -24,8 +20,6 @@ services:
       context: .
     # security_opt:
     #   - no-new-privileges:true
-    networks:
-      - traefik-proxy
     volumes:
       - config:/config
     restart: unless-stopped

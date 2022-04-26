@@ -1,9 +1,5 @@
 version: "3.3"
 
-networks:
-  traefik-proxy:
-    name: traefik-proxy
-
 volumes:
   work:
 
@@ -14,8 +10,6 @@ services:
     container_name: jupyterlab
     security_opt:
       - no-new-privileges:true
-    networks:
-      - traefik-proxy
     restart: unless-stopped
     labels:
       - "traefik.enable=true"

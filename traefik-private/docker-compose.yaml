@@ -1,8 +1,6 @@
 version: "3.3"
 
 networks:
-  traefik-proxy:
-    name: traefik-proxy
   traefik-wireguard:
     name: traefik-wireguard
 
@@ -20,14 +18,10 @@ services:
       - TRAEFIK_DASHBOARD_AUTH
       - TRAEFIK_IMAGE
       - TRAEFIK_LOG_LEVEL
-      - TRAEFIK_PROXY_SUBNET
-      - TRAEFIK_PROXY_SUBNET_IP
-      - TRAEFIK_WIREGUARD_SUBNET
-      - TRAEFIK_WIREGUARD_SUBNET_IP
-      - TRAEFIK_MAIL_SUBNET
-      - TRAEFIK_MAIL_SUBNET_IP
-    networks:
-      traefik-proxy:
+      # - TRAEFIK_WIREGUARD_SUBNET
+      # - TRAEFIK_WIREGUARD_SUBNET_IP
+      # - TRAEFIK_MAIL_SUBNET
+      # - TRAEFIK_MAIL_SUBNET_IP
     volumes:
       - traefik:/data
 
@@ -42,8 +36,6 @@ services:
     container_name: "traefik"
     restart: unless-stopped
     networks:
-      traefik-proxy:
-        ipv4_address: ${TRAEFIK_PROXY_SUBNET_IP}
       traefik-wireguard:
         ipv4_address: ${TRAEFIK_WIREGUARD_SUBNET_IP}
     security_opt:
@@ -56,7 +48,6 @@ services:
       ## Docker provider:
       - "--providers.docker=true"
       - "--providers.docker.exposedbydefault=false"
-      - "--providers.docker.network=traefik-proxy"
       ## Entrypoints:
       - "--entrypoints.vpn-plain.address=${TRAEFIK_WIREGUARD_SUBNET_IP}:80"
       - "--entrypoints.vpn.address=${TRAEFIK_WIREGUARD_SUBNET_IP}:443"
