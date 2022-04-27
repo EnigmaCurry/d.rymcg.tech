@@ -25,13 +25,11 @@ client:
 	@docker-compose --env-file ${ENV_FILE} exec --user postgres postgres cat /etc/postgresql/client.pk8.key > $$(${BIN}/dotenv -f ${ENV_FILE} get POSTGRES_TRAEFIK_HOST)_$$(${BIN}/dotenv -f ${ENV_FILE} get POSTGRES_LIMITED_USER).pk8.key && echo "Wrote ./$$(${BIN}/dotenv -f ${ENV_FILE} get POSTGRES_TRAEFIK_HOST)_$$(${BIN}/dotenv -f ${ENV_FILE} get POSTGRES_LIMITED_USER).pk8.key"
 	@chmod 0600 *.crt *.key
 	@echo
-	@echo "To use psql, put this alias in your ~/.bashrc :"
-	@echo
-	@echo "alias psql=\"psql '$$(make --no-print-directory connection-string)'\""
+	@make --no-print-directory connection-variables
 	@echo
 	@echo ^^ Enjoy
 
-.PHONY: clean
+.PHONY: clean # Remove client certificates and keys from local directory
 clean:
 	rm -f *.crt *.key
 
@@ -45,12 +43,25 @@ certificates: build
 	@docker-compose --env-file=${ENV_FILE} run -e FORCE_NEW_CERTIFICATES=true config
 	@docker-compose --env-file=${ENV_FILE} restart postgres
 
-.PHONY: connection-string # Get the connection string
+.PHONY: connection-string
 connection-string:
 	@echo "postgresql://$$(${BIN}/dotenv -f ${ENV_FILE} get POSTGRES_LIMITED_USER)@$$(${BIN}/dotenv -f ${ENV_FILE} get POSTGRES_TRAEFIK_HOST):$$(${BIN}/dotenv -f ${ENV_FILE} get EXTERNAL_TCP_PORT)/$$(${BIN}/dotenv -f ${ENV_FILE} get POSTGRES_DB)?sslmode=verify-full&sslcert=$$(realpath .)/$$(${BIN}/dotenv -f ${ENV_FILE} get POSTGRES_TRAEFIK_HOST)_$$(${BIN}/dotenv -f ${ENV_FILE} get POSTGRES_LIMITED_USER).crt&sslkey=$$(realpath .)/$$(${BIN}/dotenv -f ${ENV_FILE} get POSTGRES_TRAEFIK_HOST)_$$(${BIN}/dotenv -f ${ENV_FILE} get POSTGRES_LIMITED_USER).key&sslrootcert=$$(realpath .)/$$(${BIN}/dotenv -f ${ENV_FILE} get POSTGRES_TRAEFIK_HOST)_ca.crt"
 
-.PHONY: import-chinook # Import Chinook sample database
-import-chinook:
+.PHONY: connection-string
+connection-variables:
+	@echo "## PostgreSQL connection  variables -"
+	@echo "## Put these in your ~/.bashrc to configure psql and most other clients ::"
+	@echo export PGHOST=$$(${BIN}/dotenv -f ${ENV_FILE} get POSTGRES_TRAEFIK_HOST)
+	@echo export PGUSER=$$(${BIN}/dotenv -f ${ENV_FILE} get POSTGRES_LIMITED_USER)
+	@echo export PGDATABASE=$$(${BIN}/dotenv -f ${ENV_FILE} get POSTGRES_DB)
+	@echo export PGSSLMODE=verify-full
+	@echo export PGSSLCERT=$$(realpath .)/$$(${BIN}/dotenv -f ${ENV_FILE} get POSTGRES_TRAEFIK_HOST)_$$(${BIN}/dotenv -f ${ENV_FILE} get POSTGRES_LIMITED_USER).crt
+	@echo export PGSSLKEY=$$(realpath .)/$$(${BIN}/dotenv -f ${ENV_FILE} get POSTGRES_TRAEFIK_HOST)_$$(${BIN}/dotenv -f ${ENV_FILE} get POSTGRES_LIMITED_USER).key
+	@echo export PGSSLROOTCERT=$$(realpath .)/$$(${BIN}/dotenv -f ${ENV_FILE} get POSTGRES_TRAEFIK_HOST)_ca.crt
+
+
+.PHONY: chinook # Import Chinook sample database
+chinook:
 	docker-compose --env-file=${ENV_FILE} exec postgres /bin/sh -c 'createdb chinook && psql -c "create role chinook; grant chinook to $${POSTGRES_LIMITED_USER};" && PGUSER=$${POSTGRES_LIMITED_USER} pgloader https://github.com/lerocha/chinook-database/raw/master/ChinookDatabase/DataSources/Chinook_Sqlite_AutoIncrementPKs.sqlite pgsql:///chinook'
 
 .PHONY: psql-alias # Get the psql alias with baked connection string

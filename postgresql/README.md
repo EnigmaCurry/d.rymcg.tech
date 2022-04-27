@@ -231,7 +231,7 @@ You can import the sample
 example Music store database.
 
 ```
-make import-chinook
+make chinook
 ```
 
 This creates a new database and role named `chinook` and adds the existing
