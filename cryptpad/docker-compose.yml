@@ -19,11 +19,14 @@ services:
     security_opt:
       - no-new-privileges:true
     environment:
-      - CPAD_MAIN_DOMAIN
-      - CPAD_SANDBOX_DOMAIN
+      - CPAD_MAIN_DOMAIN=${CRYPTPAD_TRAEFIK_HOST}
+      - CPAD_SANDBOX_DOMAIN=${CRYPTPAD_SANDBOX_DOMAIN}
       - ADMIN_KEY
       - ADMIN_EMAIL
       - PRINT_CONFIG
+      - DEFAULT_STORAGE_LIMIT=${DEFAULT_STORAGE_LIMIT}
+      - MAX_UPLOAD_SIZE=${MAX_UPLOAD_SIZE}
+      - BLOCK_DAILY_CHECK=${BLOCK_DAILY_CHECK}
     volumes:
       - config:/cryptpad/config
 
