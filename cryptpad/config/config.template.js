@@ -162,6 +162,7 @@ module.exports = {
      *  If you want to block this check-in and remain set 'blockDailyCheck' to true.
      */
     //blockDailyCheck: false,
+    blockDailyCheck: ${BLOCK_DAILY_CHECK},
 
     /*
      *  By default users get 50MB of storage by registering on an instance.
@@ -170,6 +171,7 @@ module.exports = {
      *  hint: 50MB is 50 * 1024 * 1024
      */
     //defaultStorageLimit: 50 * 1024 * 1024,
+    defaultStorageLimit: ${DEFAULT_STORAGE_LIMIT},
 
 
     /* =====================
@@ -226,6 +228,7 @@ module.exports = {
      *  defaults to 20MB if no value is provided
      */
     //maxUploadSize: 20 * 1024 * 1024,
+    maxUploadSize: ${MAX_UPLOAD_SIZE},
 
     /*
      *  CryptPad allows administrators to give custom limits to their friends.
