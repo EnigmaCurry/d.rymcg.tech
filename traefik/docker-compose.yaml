@@ -86,6 +86,9 @@ services:
       - "--api.dashboard=true"
       ## Load local plugins that have been bundled into the traefik image:
       - "--experimental.localPlugins.blockpath.modulename=github.com/traefik/plugin-blockpath"
+      ## Access logs:
+      - "--accesslog=${TRAEFIK_ACCESS_LOGS_ENABLED:-false}"
+      - "--accesslog.filepath=${TRAEFIK_ACCESS_LOGS_PATH:-/data/access.log}"
       ## ip whitelist vpn endpoint access from traefik-wireguard network only (HTTP):
       - "--entrypoints.vpn.http.middlewares=vpn-ipwhitelist@docker"
       ## ip whitelist vpn endpoint access from traefik-wireguard network only (TCP):
