@@ -6,7 +6,7 @@ WORKDIR /src
 RUN apt-get update && \
 
     ## Install pg_rational
-    apt-get install -y build-essential git postgresql-server-dev-all pgloader && \
+    DEBIAN_FRONTEND=noninteractive apt-get install -y build-essential git postgresql-server-dev-all pgloader && \
     git clone https://github.com/begriffs/pg_rational.git && \
     cd pg_rational && \
     git checkout ${PGRATIONAL_VERSION} && \
