@@ -1,8 +1,9 @@
 #!/bin/bash
 set -Eeo pipefail
 
+echo "begin entrypoint ..."
 # shellcheck disable=2154
-trap 's=$?; echo "$0: Error on line "$LINENO": $BASH_COMMAND"; exit $s' ERR
+# trap 's=$?; echo "$0: Error on line "$LINENO": $BASH_COMMAND"; exit $s' ERR
 
 reArgsMaybe="^[^:[:space:]]+:.*$" # Smallest indication of attempt to use argument
 reArgSkip='^([[:blank:]]*#.*|[[:blank:]]*)$' # comment or empty line
@@ -11,10 +12,13 @@ reArgSkip='^([[:blank:]]*#.*|[[:blank:]]*)$' # comment or empty line
 userConfPath="/etc/sftp/users.conf"
 userConfPathLegacy="/etc/sftp-users.conf"
 userConfFinalPath="/var/run/sftp/users.conf"
+badConfigMarker="/var/run/sftp/config_is_bad.txt"
 
 function log() {
     echo "[$0] $*" >&2
 }
+
+test -f ${badConfigMarker} && log "Found bad configuration marker. Refusing to startup. Remove ${badConfigMarker} or recreate the data volume." && exit 1
 
 # Allow running other programs, e.g. bash
 if [[ -z "$1" || "$1" =~ $reArgsMaybe ]]; then
@@ -57,8 +61,17 @@ if [ ! -f "$userConfFinalPath" ]; then
     if [ -f "$userConfFinalPath" ] && [ "$(wc -l < "$userConfFinalPath")" -gt 0 ]; then
         # Import users from final conf file
         while IFS= read -r user || [[ -n "$user" ]]; do
+            set +e
             create-sftp-user "$user"
+            if [ $? != 0 ]; then
+                log "FATAL: create-sftp-user failed!"
+                touch ${badConfigMarker}
+                exit 1
+            fi
+            set -e
         done < "$userConfFinalPath"
+        # if we got to here there is no config error:
+        rm -f ${badConfigMarker}
     elif $startSshd; then
         log "FATAL: No users provided!"
         exit 3
