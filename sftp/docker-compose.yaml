@@ -19,4 +19,6 @@ services:
       - sftp-data:/home
     ports:
       - ${SFTP_PORT}:22
+    environment:
+      - KEYFILE_URL
     command: ${SFTP_USERS}

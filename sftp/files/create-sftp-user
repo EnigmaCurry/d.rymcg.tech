@@ -2,15 +2,16 @@
 set -Eeo pipefail
 
 # shellcheck disable=2154
-trap 's=$?; echo "$0: Error on line "$LINENO": $BASH_COMMAND"; exit $s' ERR
+# trap 's=$?; echo "$0: Error on line "$LINENO": $BASH_COMMAND"; exit $s' ERR
 
 # Extended regular expression (ERE) for arguments
 reUser='[A-Za-z0-9._][A-Za-z0-9._-]{0,31}' # POSIX.1-2008
-reGithubUsername='[^:]{0,255}'
+reProvider="(gh|lp|github|launchpad|url)"
+reUsername='[^:]{0,255}'
 reUid='[[:digit:]]*'
 reGid='[[:digit:]]*'
 reDir='[^:]*'
-#reArgs="^($reUser)(:$reGithubUsername)(:$reUid)?(:$reGid)?(:$reDir)?$"
+#reArgs="^($reUser)(:$reProvider)(:$reUsername)(:$reUid)?(:$reGid)?(:$reDir)?$"
 
 function log() {
     echo "[$0] $*"
@@ -37,16 +38,21 @@ chpasswdOptions=""
 useraddOptions=(--no-user-group)
 
 user="${args[0]}"; validateArg "username" "$user" "$reUser" || exit 1
-githubUsername="${args[1]}"; validateArg "githubUsername" "$githubUsername" "$reGithubUsername" || exit 1
+provider="${args[1]}"; validateArg "provider" "$provider" "$reProvider" || exit 1
+provider_prefix=""
+username="${args[2]}"; validateArg "username" "$username" "$reUsername" || exit 1
 log "User: $user"
-log "GitHub Username: $githubUsername"
 
-uid="${args[$((skipIndex+2))]}"; validateArg "UID" "$uid" "$reUid" || exit 1
-gid="${args[$((skipIndex+3))]}"; validateArg "GID" "$gid" "$reGid" || exit 1
-dir="${args[$((skipIndex+4))]}"; validateArg "dirs" "$dir" "$reDir" || exit 1
+log "Key Provider: $provider"
+if [ $provider = "url" ] && [ -v KEYFILE_URL ]; then log "Keyfile URL: ${KEYFILE_URL}"; fi
+log "Provider Username: $username"
+
+uid="${args[$((skipIndex+3))]}"; validateArg "UID" "$uid" "$reUid" || exit 1
+gid="${args[$((skipIndex+4))]}"; validateArg "GID" "$gid" "$reGid" || exit 1
+dir="${args[$((skipIndex+5))]}"; validateArg "dirs" "$dir" "$reDir" || exit 1
 log "UID: $uid"
 log "GID: $gid"
-log "dir: $dir"
+log "directories: $dir"
 
 if getent passwd "$user" > /dev/null; then
     log "WARNING: User \"$user\" already exists. Skipping."
@@ -91,6 +97,12 @@ if [ -n "$dir" ]; then
     done
 fi
 
-## Import authorized_keys from github via ssh-import-id
-ssh-import-id -o /etc/ssh/keys/${user}_authorized_keys gh:${githubUsername}
+## Import authorized_keys from a key provider via ssh-import-id
+if [ "$provider" = "github" ] || [ "$provider" = "gh" ]; then
+    (set -x; ssh-import-id -o /etc/ssh/keys/"${user}"_authorized_keys gh:"${username}")
+elif [ "$provider" = "launchpad" ] || [ "$provider" = "lp" ]; then
+    (set -x; ssh-import-id -o /etc/ssh/keys/"${user}"_authorized_keys lp:"${username}")
+elif [ "$provider" = "url" ]; then
+    (set -x; URL="${KEYFILE_URL}" ssh-import-id -o /etc/ssh/keys/"${user}"_authorized_keys "${username}")
+fi
 chown $user:root /etc/ssh/keys/${user}_authorized_keys
