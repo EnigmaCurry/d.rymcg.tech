@@ -3,7 +3,6 @@
 #############################################
 DISTRO ?= bullseye
 VMNAME ?= docker-vm
-DISTRO ?= bullseye
 DISK ?= 30G
 MEMORY ?= 4096
 DOMAIN ?= localdomain
