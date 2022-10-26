@@ -127,7 +127,6 @@ And prevent it from starting:
 sudo systemctl mask docker
 ```
 
-
 ## Review the config in the Makefile
 
 You can change any of the config values you need by setting these environment
@@ -146,7 +145,7 @@ become the default settings):
  * `DEBIAN_MIRROR` - the Debian mirror to install from.
  * `HOSTFWD_HOST` - the IP address of the host to serve on (default `127.0.0.1`,
    set to `*` to listen on all network interfaces.)
- 
+
 ## Create the Docker VM
 
 Clone this git repository to your workstation and change to this directory
@@ -217,18 +216,37 @@ Shutdown the VM once you've tested things are working:
 ssh docker-vm shutdown -h now
 ```
 
-## Install the systemd service and optionally start on boot
+## Install the systemd service and optionally start it on boot
 
 You can install the systemd service to control the VM and for automatic startup
-on boot.
+on boot, explained in the following steps:
 
-First you must enable "systemd lingering", which lets you automatically start
-services at system boot with your normal user account (even before you login).
+If you want to automatically start the Docker VM on startup, you must
+enable ["systemd
+lingering"](https://wiki.archlinux.org/title/Systemd/User#Automatic_start-up_of_systemd_user_instances),
+which gives you the ability to automatically start services with your
+regular user account (not root) at *system* boot (even before logging
+in):
 
 ```
 ## Permanently allow your user account to "linger":
 sudo loginctl enable-linger ${USER}
 ```
+
+You also must add your user account to the `kvm` group. (This is only
+a requirement if you are staring the VM automatically on boot, *before
+logging in*, [otherwise this privilege is handled automatically by
+uaccess after you login](https://unix.stackexchange.com/a/599706)):
+
+```
+# Add your user to the kvm group:
+sudo gpasswd -a ${USER} kvm
+```
+
+(Note: I still consider this "unprivileged" access. Adding a user to
+the `kvm` group is far safer than adding your user to the `docker`
+group.)
+
 
 Now install the systemd User service that controls the VM:
 
@@ -237,9 +255,15 @@ make install
 ```
 
 This will have created a systemd unit file in
-`~/.config/systemd/user/docker-vm.service` (the service is owned by your
-unprivileged user account). All of the scripts and all of the VM data will still
-reside in the original direcory that you cloned to.
+`~/.config/systemd/user/docker-vm.service` (the service is owned by
+your unprivileged user account). All of the scripts and all of the VM
+data will still reside in the original direcory that you cloned to.
+
+To automatically start the service on boot, you must "enable" it:
+
+```
+make enable
+```
 
 You can now interact with systemd to control the service (always use your
 regular account, not root):
@@ -276,7 +300,9 @@ make status
 make logs
 ```
 
-(You can run `make help` to see the descriptions of all of the commands.)
+(You can also run `make help` to see the descriptions of all of the
+commands and/or type `make` and then press your TAB key to show
+completions.)
 
 ## Firewall
 
