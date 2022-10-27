@@ -20,7 +20,7 @@ cat <<EOF > ${SERVICE}
 Description=Docker Virtual Machine (${SCRIPT_ROOT})
 
 [Service]
-ExecStart=make -C ${SCRIPT_ROOT} HOSTFWD_HOST="${HOSTFWD_HOST} EXTRA_PORTS=${EXTRA_PORTS} VM_NAME=${VM_NAME}"
+ExecStart=make -C ${SCRIPT_ROOT} HOSTFWD_HOST="${HOSTFWD_HOST}" EXTRA_PORTS="${EXTRA_PORTS}" VM_NAME="${VM_NAME}"
 ExecStop=make -C ${SCRIPT_ROOT} down
 
 [Install]
