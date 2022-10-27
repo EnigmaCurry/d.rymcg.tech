@@ -39,11 +39,11 @@ down:
 
 .PHONY: install # Install systemd units for Docker VM service
 install:
-	VMNAME="${VMNAME}" HOSTFWD_HOST="${HOSTFWD_HOST}" EXTRA_PORTS="${EXTRA_PORTS}" ./systemd_install.sh
+	VMNAME="${VMNAME}" HOSTFWD_HOST="${HOSTFWD_HOST}" EXTRA_PORTS="${EXTRA_PORTS}" SSH_PORT="${SSH_PORT}" ./systemd_install.sh
 
 .PHONY: install-public # Install systemd units for PUBLIC Docker VM service
 install-public:
-	VMNAME="${VMNAME}" EXTRA_PORTS="${EXTRA_PORTS}" HOSTFWD_HOST='*' ./systemd_install.sh
+	VMNAME="${VMNAME}" EXTRA_PORTS="${EXTRA_PORTS}" SSH_PORT="${SSH_PORT}" HOSTFWD_HOST='*' ./systemd_install.sh
 
 .PHONY: uninstall # Uninstall systemd units for Docker VM service
 uninstall:
