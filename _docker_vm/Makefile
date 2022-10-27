@@ -33,17 +33,17 @@ help:
 
 .PHONY: down
 down:
-	VM_NAME="${VM_NAME}" ./shutdown.sh
+	VMNAME="${VMNAME}" ./shutdown.sh
 	@sleep 2
 	systemctl --user status ${VMNAME} --no-pager; true
 
 .PHONY: install # Install systemd units for Docker VM service
 install:
-	VM_NAME="${VM_NAME}" HOSTFWD_HOST="${HOSTFWD_HOST}" EXTRA_PORTS="${EXTRA_PORTS}" ./systemd_install.sh
+	VMNAME="${VMNAME}" HOSTFWD_HOST="${HOSTFWD_HOST}" EXTRA_PORTS="${EXTRA_PORTS}" ./systemd_install.sh
 
 .PHONY: install-public # Install systemd units for PUBLIC Docker VM service
 install-public:
-	VM_NAME="${VM_NAME}" EXTRA_PORTS="${EXTRA_PORTS}" HOSTFWD_HOST='*' ./systemd_install.sh
+	VMNAME="${VMNAME}" EXTRA_PORTS="${EXTRA_PORTS}" HOSTFWD_HOST='*' ./systemd_install.sh
 
 .PHONY: enable # Enable systemd service on boot and start Docker VM now
 enable:
