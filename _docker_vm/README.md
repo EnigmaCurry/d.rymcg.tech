@@ -17,53 +17,61 @@ of *that* whole server, but if that server is dedicated only for your docker
 environment, that seems fine to me. For production, you will just want to make
 sure you use a secure workstation (or CI) to set that up.
 
-But maybe you don't have a server yet, and you may want to start development on
-your laptop before even thinking about setting one up. In that case, the
-recommendation is to run Docker inside of a Virtual Machine (VM) and connect to
-it just like you would a remote Docker server. This exact recipe is used for the
-MacOS and Windows Docker Desktop versions, so if you're using Docker Desktop on
-a non-Linux computer, you can quit reading this, you're already running Docker
-in a VM.
+But maybe you don't have a server yet, and you may want to start
+development on your laptop before even thinking about setting one up.
+(Or, you may have a server, but its already being used for other
+non-docker things.) In that case, the recommendation is to run Docker
+inside of a Virtual Machine (VM) and connect to it just like you would
+a remote Docker server. This exact recipe is used for the MacOS and
+Windows Docker Desktop versions, so if you're using Docker Desktop on
+a non-Linux computer, you can quit reading this, you're already
+running Docker in a VM.
 
-This guide is for Linux workstation users only! This will show you how to
-automatically install a new KVM virtual machine with the Debian minimal netboot
-installer, in order to provision a new Docker server in a VM, and installing a
-systemd User service to automatically start the VM on system boot, as well as
-clean shutdown when stopping the service.
+This guide is for Linux workstation/server users only! This will show
+you how to automatically install a new KVM virtual machine with the
+Debian minimal netboot installer, in order to provision a new Docker
+server in a VM, and installing a systemd User service to automatically
+start the VM on system boot, as well as cleanly shutting down when
+stopping the service.
 
 ## Notices
 
-This will run a docker server in a virtual machine on your localhost. By
-default, only localhost (127.0.0.1) can access the Docker services, but this can
-also be configured to forward public/external connections from your LAN or
-router (Set `HOSTFWD_HOST='*'`).
+This will run a docker server in a virtual machine on your localhost.
+By default, only localhost (`127.0.0.1`) can access the Docker
+services, but this can also be configured to forward incoming
+public/external connections from your LAN or router (Set
+`HOSTFWD_HOST='*'` or set a particular IP address of your network
+interface).
 
 This project is a sub-project of
 [d.rymcg.tech](https://github.com/EnigmaCurry/d.rymcg.tech#readme). However, you
 can use this completely separately from it.
 
-The parent project (d.rymcg.tech) includes a Traefik configuration which uses
-Let's Encrypt with the TLS (TLS-ALPN-01) challenge type. This configuration will
-only work when your Docker server has an open connection from the internet on
-TCP port 443. This will not be the case in a typical development environment, so
-the TLS certificates would be improperly issued (Traefik default self-signed
-cert) for the containers inside the Docker VM. (If you don't need a browser, you
-can still test your APIs with `curl -k` to disable TLS verification, or your
-browser might let you bypass the self-signed certificate on a per-domain basis.)
-
-You can still use all of the projects that do not use TLS, or for those projects
-that include their own self-signed certificates (eg.
+The parent project (d.rymcg.tech) includes a [Traefik
+configuration](https://github.com/EnigmaCurry/d.rymcg.tech/tree/master/traefik)
+which uses Let's Encrypt with the TLS challenge type
+([TLS-ALPN-01](https://letsencrypt.org/docs/challenge-types/#tls-alpn-01)).
+This configuration will only work when your Docker server has an open
+connection from the internet on TCP port 443. This will not be the
+case in a typical development environment, so the TLS certificates
+would be improperly issued for the containers inside the Docker VM (in
+that case you'd get a Traefik default self-signed cert). If you don't
+need to use a webbrowser, you can still test your APIs with `curl -k`
+to disable TLS verification, or your webbrowser might let you bypass the
+self-signed certificate on a per-domain basis. You can still use all
+of the projects that do not require TLS, or for those projects that
+include their own self-signed certificates (eg.
 [postgresql](../postgresql)).
 
-To get around this problem, you may reconfigure
-[Traefik](../traefik/docker-compose.yaml) to use the DNS-01 challenge type, and
-this challenge type works behind a firewall too. The details for setting this up
-is outside the scope of this documentation at this time.
-
-One day, this project may incorporate
-[Step-CA](https://smallstep.com/docs/step-ca) which would allow the creation of
-an offline/private ACME server to replace the role of Let's Encrypt in a
-development environment, but that work has not been done yet.
+To get around this TLS problem, you may reconfigure
+[Traefik](../traefik/docker-compose.yaml) to use the [DNS-01 challenge
+type](https://doc.traefik.io/traefik/user-guides/docker-compose/acme-dns/),
+and this challenge type works from behind a firewall too. One day,
+this project may incorporate
+[Step-CA](https://smallstep.com/docs/step-ca) which would allow the
+creation of an offline/private ACME server to replace the role of
+Let's Encrypt in a development environment, but that work has not been
+done yet.
 
 ## Workstation dependencies
 
@@ -82,6 +90,11 @@ handles your SSH agent for you, check out
 [keychain](https://wiki.archlinux.org/title/Keychain#Keychain) for an easy to
 use ssh agent that works with all terminals and/or window managers. Then retry
 the above command to make sure its working.
+
+```
+## Example keychain command to load the agent into the current terminal session:
+eval `keychain --eval id_rsa`
+```
 
 ### Arch Linux
 
@@ -134,7 +147,9 @@ variables (or by hardcoding these values at the top of the Makefile, which
 become the default settings):
 
  * `VMNAME` - the name of the VM
- * `DISTRO` - the debian distribution name (eg. bullseye, buster, jessie)
+ * `DISTRO` - the [debian distribution
+   name](https://www.debian.org/releases/) (eg. bullseye, buster,
+   jessie)
  * `DISK` - the size of the VM disk image (eg. `20G`)
  * `MEMORY` - the size of the RAM in MB (eg `2048`)
  * `SSH_PORT` - the external SSH port mapped on the Host (eg `10022`)
@@ -142,18 +157,26 @@ become the default settings):
  * `EXTRA_PORTS` - the extra TCP ports (besides SSH) to map to the host. For
    example, `8000:80,8443:443` will map two external ports 8000 and 8443 to
    internal ports 80 and 443 respectively.
- * `DEBIAN_MIRROR` - the Debian mirror to install from.
+ * `DEBIAN_MIRROR` - the [Debian
+   mirror](https://www.debian.org/mirror/list) to install from.
  * `HOSTFWD_HOST` - the IP address of the host to serve on (default `127.0.0.1`,
    set to `*` to listen on all network interfaces.)
 
 ## Create the Docker VM
 
-Clone this git repository to your workstation and change to this directory
-(`_docker_vm`).
-
-Run: 
+If you haven't already, clone this git repository to your workstation
+and change to this directory (`_docker_vm`):
 
 ```
+git clone https://github.com/EnigmaCurry/d.rymcg.tech.git \
+    ~/git/vendor/enigmacurry/d.rymcg.tech
+cd ~/git/vendor/enigmacurry/d.rymcg.tech/_docker_vm
+```
+
+Run:
+
+```
+# Run this inside the _docker_vm directory (where this same README.md exists):
 make
 ```
 
@@ -161,15 +184,22 @@ This will create the VM disk image under this same directory
 (`./VMs/docker-vm.qcow`) and automatically install Debian from scratch using the
 minimal netboot installer and install Docker.
 
-*Note*: this process is designed to run and block until the VM is shutdown. 
+*Please Note*: Running `make` is designed to run *and block* your
+terminal until the VM is deliberately shutdown. The VM will
+automatically reboot after the install is complete and will then wait
+at the VM login console. You won't be needing to use that console, so
+just ignore it. Instead, you will use SSH in another terminal. Later
+on, you can use systemd to install the service in the background and
+automatically start it on host system boot.
 
 Running `make` multiple times is safe, if the disk image is found, installation
 is skipped. If you ever do want to start completely from the beginning, run
 `make clean` first (this would delete your existing VM).
 
-Wait until you see the text `Booting Docker VM now ...`, then leave it running
-in your terminal, and open a new secondary terminal session to follow the next
-steps.
+When running `make` for the first time, wait for the install to finish
+and the VM will reboot and show a login prompt. Leave it running in
+your terminal, and open a new secondary terminal session to follow the
+next steps.
 
 Switch your local docker context to the new VM:
 
@@ -177,11 +207,13 @@ Switch your local docker context to the new VM:
 docker context use docker-vm
 ```
 
-(You can see all the available contexts and switch between them: `docker context
-ls`, the script automatically created the `docker-vm` context for you.)
+(You can see all the available contexts and switch between them:
+`docker context ls`, the script automatically created the `docker-vm`
+context for you. The docker context references the name listed in your
+`~/.ssh/config` not the IP address.)
 
-Now you should be able to control the remote Docker server using the local
-Docker client. Try running this from your workstation:
+Now you should be able to control the remote Docker server using the
+local Docker client. Try running this from your local workstation:
 
 ```
 docker info | head
@@ -216,9 +248,12 @@ Shutdown the VM once you've tested things are working:
 ssh docker-vm shutdown -h now
 ```
 
+(You should now find that the original `make` command has now exited,
+in the first terminal session.)
+
 ## Install the systemd service and optionally start it on boot
 
-You can install the systemd service to control the VM and for automatic startup
+You can install the systemd service to control the VM and/or startup
 on boot, explained in the following steps:
 
 If you want to automatically start the Docker VM on startup, you must
@@ -265,8 +300,12 @@ To automatically start the service on boot, you must "enable" it:
 make enable
 ```
 
-You can now interact with systemd to control the service (always use your
-regular account, not root):
+Once enabled, you should be able to use the docker context. Test
+`docker ps`. Test rebooting your host system, and retest `docker ps`
+still works.
+
+You can now interact with systemd to control the service (always use
+your regular account, not root):
 
 ```
 # Start:
@@ -335,11 +374,48 @@ sudo ufw allow 5432
 system as Docker](https://github.com/chaifeng/ufw-docker#problem), but since
 Docker is running in a VM, and ufw is running on the host, this is fine.)
 
+## Uninstall
+
+With one command uou can stop the VM, remove all of the VM data, and
+uninstall the service.
+
+```
+# Run this from the _docker_vm directory:
+# This removes ALL the VM data:
+make clean
+```
+
+Running `make clean` will only remove the data for the VM specified by
+the `VMNAME` variable, which you can override on the command line, eg:
+`VMNAME=my-docker-vm make clean`
+
+## Creating more Docker VMs
+
+You can create as many Docker VMs as you want. Just make sure that you
+use a different `VMNAME` and use different external port numbers
+and/or IP addresses (unique `SSH_PORT` + `EXTRA_PORTS` and/or unique
+`HOSTFWD_HOST`).
+
+To create a new VM, you don't have to edit the `Makefile`. You can just temporarily set the new name in the terminal:
+
+```
+export VMNAME=my-new-docker
+export SSH_PORT=2223
+export EXTRA_PORTS=8001:80,9443:443
+```
+
+Then run `make` and follow all the steps above. Make will use any
+temporary environment variable from your current shell, overriding the
+variables in the Makefile.
+
+Running `make install` would create a new separate docker service and
+context with the given `VMNAME`.
+
 ## Customize the preseed.cfg file (optional)
 
 The [preseed.cfg](preseed.cfg) is the configuration for the automated
 debian-installer. The file is a template file that includes variable names that
-are replaced via `envsubst`. You can customize this file however you wish to
+are replaced via [envsubst](https://man.archlinux.org/man/envsubst.1). You can customize this file however you wish to
 change how the installer behaves.
 
 ## Credits

@@ -2,11 +2,11 @@
 
 set -e
 
-SERVICE=${HOME}/.config/systemd/user/docker-vm.service
+VMNAME=${VMNAME:-docker-vm}
+SERVICE=${HOME}/.config/systemd/user/${VMNAME}.service
 SCRIPT_ROOT=$(dirname $(realpath ${BASH_SOURCE}))
 HOSTFWD_HOST=${HOSTFWD_HOST:-127.0.0.1}
 EXTRA_PORTS=${EXTRA_PORTS:-8000:80,8443:443,5432:5432}
-VMNAME=${VMNAME:-docker-vm}
 
 if loginctl show-user ${USER} | grep "Linger=no"; then
 	  echo "User account does not allow systemd Linger."

@@ -62,7 +62,9 @@ trap 'echo "Cleaning up processes..."; kill ${PYTHON_PID} ${NC_PID}; echo "Remov
 
 echo "Downloading Debian ${DISTRO} x86_64 netboot installer..."
 if ! test -f ${NETBOOT_TARBALL}; then
-    curl --location --output ${NETBOOT_TARBALL} https://${DEBIAN_MIRROR}/debian/dists/${DISTRO}/main/installer-amd64/current/images/netboot/netboot.tar.gz
+    trap "rm -f ${NETBOOT_TARBALL}" SIGINT
+    curl --location --output ${NETBOOT_TARBALL} https://${DEBIAN_MIRROR}/debian/dists/${DISTRO}/main/installer-amd64/current/images/netboot/netboot.tar.gz || rm ${NETBOOT_TARBALL}
+    trap - SIGINT
 fi
 mkdir -p tftpserver
 pushd tftpserver

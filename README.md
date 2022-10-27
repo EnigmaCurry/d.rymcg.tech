@@ -329,6 +329,7 @@ Bespoke things:
   Encrypt.
 * [Linux Shell Containers](_terminal/linux) create bash aliases that
   automatically build and run programs in Docker containers.
+* [_docker_vm](_docker_vm#readme) Run Docker in a Virtual Machine (KVM) on Linux.
 
 ## Command line interaction
 
