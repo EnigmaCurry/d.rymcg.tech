@@ -9,7 +9,7 @@ DOMAIN ?= localdomain
 MAC ?= 52:54:98:76:54:32
 TIMEZONE ?= Etc/UTC
 SSH_PORT ?= 2221
-EXTRA_PORTS ?= 8000:80,8443:443,5432:5432,9900:9900
+EXTRA_PORTS ?= 8000:80,8443:443,5432:5432
 LOCALE ?= en_US
 DEBIAN_MIRROR ?= mirrors.xmission.com
 VMROOT ?= VMs
@@ -45,6 +45,10 @@ install:
 install-public:
 	VMNAME="${VMNAME}" EXTRA_PORTS="${EXTRA_PORTS}" HOSTFWD_HOST='*' ./systemd_install.sh
 
+.PHONY: uninstall # Uninstall systemd units for Docker VM service
+uninstall:
+	VMNAME="${VMNAME}" ./systemd_uninstall.sh
+
 .PHONY: enable # Enable systemd service on boot and start Docker VM now
 enable:
 	systemctl --user enable --now ${VMNAME}
@@ -59,13 +63,13 @@ start:
 
 .PHONY: disable # Disable systemd service on boot and stop Docker VM now
 disable:
-	systemctl --user disable --now ${VMNAME}
+	systemctl --user disable --now ${VMNAME}; true
 	sleep 2
 	systemctl --user status ${VMNAME} --no-pager; true
 
 .PHONY: stop # stop systemd service now
 stop:
-	systemctl --user stop ${VMNAME}
+	systemctl --user stop ${VMNAME}; true
 	sleep 2
 	systemctl --user status ${VMNAME} --no-pager; true
 
@@ -81,8 +85,18 @@ logs:
 check-name:
 	$(call check_defined, VMNAME)
 
+.PHONY: create-ssh-config
+create-ssh-config:
+	VMNAME=${VMNAME} \
+	SSH_PORT=${SSH_PORT} \
+	./create_ssh_config.sh
+
+.PHONY: remove-ssh-config
+remove-ssh-config:
+	VMNAME=${VMNAME} ./remove_ssh_config.sh
+
 .PHONY: clean
-clean: check-name
+clean: check-name stop uninstall remove-ssh-config
 	rm -rf ${VMROOT}/${VMNAME}.qcow ${VMROOT}/${VMNAME}-root-pass.txt build.* ${VMROOT}/${VMNAME}-installer.log
 
 .PHONY: build
@@ -94,20 +108,16 @@ build: check-name
 	LOCALE=${LOCALE} \
 	DEBIAN_MIRROR=${DEBIAN_MIRROR} \
 	TIMEZONE=${TIMEZONE} \
-  MAC=${MAC} \
+	MAC=${MAC} \
 	./build_qemu_debian_image.sh
 
 .PHONY: build-and-boot
-build-and-boot: check-name build
-	VMNAME=${VMNAME} \
-	SSH_PORT=${SSH_PORT} \
-	./create_ssh_config.sh
-
+build-and-boot: check-name create-ssh-config build
 	VMNAME=${VMNAME} \
 	SSH_PORT=${SSH_PORT} \
 	MEMORY=${MEMORY} \
 	DOMAIN=${DOMAIN} \
-  MAC=${MAC} \
+	MAC=${MAC} \
 	EXTRA_PORTS=${EXTRA_PORTS} \
 	HOSTFWD_HOST=${HOSTFWD_HOST} \
 	./boot.sh
