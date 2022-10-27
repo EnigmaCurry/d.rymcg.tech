@@ -9,7 +9,7 @@ DOMAIN ?= localdomain
 MAC ?= 52:54:98:76:54:32
 TIMEZONE ?= Etc/UTC
 SSH_PORT ?= 2221
-EXTRA_PORTS ?= 8000:80,8443:443,5432:5432
+EXTRA_PORTS ?= 8000:80,8443:443,5432:5432,9900:9900
 LOCALE ?= en_US
 DEBIAN_MIRROR ?= mirrors.xmission.com
 VMROOT ?= VMs
@@ -33,17 +33,17 @@ help:
 
 .PHONY: down
 down:
-	./shutdown.sh
+	VM_NAME="${VM_NAME}" ./shutdown.sh
 	@sleep 2
 	systemctl --user status ${VMNAME} --no-pager; true
 
 .PHONY: install # Install systemd units for Docker VM service
 install:
-	./systemd_install.sh
+	VM_NAME="${VM_NAME}" HOSTFWD_HOST="${HOSTFWD_HOST}" EXTRA_PORTS="${EXTRA_PORTS}" ./systemd_install.sh
 
 .PHONY: install-public # Install systemd units for PUBLIC Docker VM service
 install-public:
-	HOSTFWD_HOST='*' ./systemd_install.sh
+	VM_NAME="${VM_NAME}" EXTRA_PORTS="${EXTRA_PORTS}" HOSTFWD_HOST='*' ./systemd_install.sh
 
 .PHONY: enable # Enable systemd service on boot and start Docker VM now
 enable:
