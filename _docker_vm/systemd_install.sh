@@ -6,6 +6,7 @@ VMNAME=${VMNAME:-docker-vm}
 SERVICE=${HOME}/.config/systemd/user/${VMNAME}.service
 SCRIPT_ROOT=$(dirname $(realpath ${BASH_SOURCE}))
 HOSTFWD_HOST=${HOSTFWD_HOST:-127.0.0.1}
+SSH_PORT=${SSH_PORT:-2221}
 EXTRA_PORTS=${EXTRA_PORTS:-8000:80,8443:443,5432:5432}
 
 if loginctl show-user ${USER} | grep "Linger=no"; then
@@ -20,7 +21,7 @@ cat <<EOF > ${SERVICE}
 Description=Docker Virtual Machine (${SCRIPT_ROOT})
 
 [Service]
-ExecStart=make -C ${SCRIPT_ROOT} HOSTFWD_HOST="${HOSTFWD_HOST}" EXTRA_PORTS="${EXTRA_PORTS}" VMNAME="${VMNAME}"
+ExecStart=make -C ${SCRIPT_ROOT} HOSTFWD_HOST="${HOSTFWD_HOST}" EXTRA_PORTS="${EXTRA_PORTS}" SSH_PORT="${SSH_PORT}" VMNAME="${VMNAME}"
 ExecStop=make -C ${SCRIPT_ROOT} down VMNAME="${VMNAME}"
 
 [Install]
