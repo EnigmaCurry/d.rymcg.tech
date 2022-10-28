@@ -1,11 +1,13 @@
 # Localhost Docker on KVM Virtual Machine
 
-Run a secure Docker environment in a KVM (qemu) Virtual Machine (VM) as an
-unprivileged systemd user service on your local workstation (or on a
-server). This is optimized for private localhost development purposes,
-but can also be used to host public services for your LAN, or to have
-multiple individual docker VMs on a single large server and publish to
-the internet.
+Run a secure Docker environment in a KVM (qemu) Virtual Machine (VM)
+as an unprivileged systemd user service on your local workstation (or
+on a server). This is optimized for private localhost development
+purposes, but can also be used to host public services for your LAN,
+or to have multiple individual docker VMs on a single large server and
+publish to the internet. This can be a good way of separating security
+concerns, or for creating segmented namespaces like dev/test/prod, but
+all colocated on the same physical server.
 
 ## Background
 
