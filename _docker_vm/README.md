@@ -39,7 +39,7 @@ stopping the service.
 This will run a docker server in a virtual machine on your localhost.
 By default, only localhost (`127.0.0.1`) can access the Docker
 services, but this can also be configured to forward incoming
-public/external connections from your LAN or router (Set
+public/external connections from your LAN or wider internet (Set
 `HOSTFWD_HOST='*'` or set a particular IP address of your network
 interface).
 
@@ -345,19 +345,23 @@ completions.)
 
 ## Firewall
 
-By default, all of the TCP ports that are listed in the Makefile (including
-`SSH_PORT` and `EXTRA_PORTS`) are exposed only to your localhost
-(`HOSTFWD_HOST='127.0.0.1'`). This prevents other hosts on your LAN (or from
-your router) from accessing your private Docker VM.
+By default, all of the TCP ports that are listed in the Makefile
+(including `SSH_PORT` and `EXTRA_PORTS`) are exposed only to your
+localhost (`HOSTFWD_HOST='127.0.0.1'`). This prevents other hosts on
+your LAN (or from the internet) from accessing your private Docker VM.
 
-This is configurable. If you wish, you can expose your Docker VM publicly to
-your LAN. Set `HOSTFWD_HOST='*'`. There is a preconfigured Makefile target to do
-this, just run `make install-public`.
+This is configurable. If you wish, you can expose your Docker VM
+publicly on any or all network interfaces. Just run `make
+install-public` to be a fully public (and secure) docker server. You
+can further limit access by to a single network interface by setting
+`HOSTFWD_HOST=x.x.x.x` to the IP address of the network interface to
+allow, or set `HOSTFWD_HOST='*'` to allow all incoming connections
+(this is exactly what `make install-public` does for you).
 
-You can install `ufw` to use as a simple firewall to open ports selectively, and
-to protect your entire workstation. The default settings for `ufw` will disable
-all external inbound connections (and allow all outbound connections). Simply
-install and enable ufw:
+You can install `ufw` to use as a simple firewall to open ports
+selectively, and to protect your entire workstation. The default
+settings for `ufw` will disable all external inbound connections (and
+allow all outbound connections). Simply install and enable ufw:
 
 ```
 ## 'pacman -S ufw' or 'apt install ufw'
@@ -376,7 +380,7 @@ Docker is running in a VM, and ufw is running on the host, this is fine.)
 
 ## Uninstall
 
-With one command uou can stop the VM, remove all of the VM data, and
+With one command you can stop the VM, remove all of the VM data, and
 uninstall the service.
 
 ```
@@ -386,8 +390,8 @@ make clean
 ```
 
 Running `make clean` will only remove the data for the VM specified by
-the `VMNAME` variable, which you can override on the command line, eg:
-`VMNAME=my-docker-vm make clean`
+the configured `VMNAME` variable, which you can override on the
+command line, eg: `VMNAME=my-other-docker-vm make clean`
 
 ## Creating more Docker VMs
 
@@ -396,7 +400,9 @@ use a different `VMNAME` and use different external port numbers
 and/or IP addresses (unique `SSH_PORT` + `EXTRA_PORTS` and/or unique
 `HOSTFWD_HOST`).
 
-To create a new VM, you don't have to edit the `Makefile`. You can just temporarily set the new name in the terminal:
+To create a new VM, you don't have to edit the `Makefile`. You can
+just temporarily set the new name, the unique port numbers, and any
+other *non-default* settings you need, directly in the terminal:
 
 ```
 export VMNAME=my-new-docker
@@ -409,7 +415,9 @@ temporary environment variable from your current shell, overriding the
 variables in the Makefile.
 
 Running `make install` would create a new separate docker service and
-context with the given `VMNAME`.
+context with the given `VMNAME`. These temporary variables are now
+saved permanently in the systemd unit file
+(`~/.config/systemd/user/${VMNAME}.service`).
 
 ## Customize the preseed.cfg file (optional)
 
