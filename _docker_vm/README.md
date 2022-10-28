@@ -1,31 +1,37 @@
 # Localhost Docker on KVM Virtual Machine
 
-Run Docker in a KVM (qemu) Virtual Machine as an unprivileged systemd user
-service on your local workstation.
+Run a secure Docker environment in a KVM (qemu) Virtual Machine (VM) as an
+unprivileged systemd user service on your local workstation (or on a
+server). This is optimized for private localhost development purposes,
+but can also be used to host public services for your LAN, or to have
+multiple individual docker VMs on a single large server and publish to
+the internet.
 
 ## Background
 
-I don't think it's wise to run the Docker daemon natively on your workstation's
-host operating system (especially not on the same system that you run your web
-browser or other personal applications). If you grant your user account into the
-`docker` group, it is basically giving your user full root access to your host
-operating system (without even needing a password!). Running docker via sudo is
-also unwieldy. This project (d.rymcg.tech) encourages you to run your Docker
-server remotely and using your local docker client to access it over a remote
-(SSH) context. Yes, that means you will still essentially have full root access
-of *that* whole server, but if that server is dedicated only for your docker
-environment, that seems fine to me. For production, you will just want to make
-sure you use a secure workstation (or CI) to set that up.
+I don't think it's wise to run the Docker daemon natively on your
+workstation's host operating system (especially not on the same system
+that you run your web browser or other personal applications). If you
+grant your user account into the `docker` group, it is basically
+giving your user full root access to your host operating system
+(without even needing a password!). Running docker via sudo is also
+unwieldy. This project (d.rymcg.tech) encourages you to run your
+Docker server remotely and using your local docker client to access it
+over a remote (SSH) context. Yes, that means you will still
+essentially have full root access of *that* whole server, but if that
+server is dedicated only for your docker environment, that seems fine
+to me. For production, you will just want to make sure you use a
+secure workstation (or CI) to set that up.
 
 But maybe you don't have a server yet, and you may want to start
 development on your laptop before even thinking about setting one up.
 (Or, you may have a server, but its already being used for other
 non-docker things.) In that case, the recommendation is to run Docker
-inside of a Virtual Machine (VM) and connect to it just like you would
-a remote Docker server. This exact recipe is used for the MacOS and
-Windows Docker Desktop versions, so if you're using Docker Desktop on
-a non-Linux computer, you can quit reading this, you're already
-running Docker in a VM.
+inside of a VM and connect to it just like you would a remote Docker
+server. This exact recipe is used for the MacOS and Windows Docker
+Desktop versions, so if you're using Docker Desktop on a non-Linux
+computer, you can quit reading this, you're already running Docker in
+a VM.
 
 This guide is for Linux workstation/server users only! This will show
 you how to automatically install a new KVM virtual machine with the
@@ -44,8 +50,8 @@ public/external connections from your LAN or wider internet (Set
 interface).
 
 This project is a sub-project of
-[d.rymcg.tech](https://github.com/EnigmaCurry/d.rymcg.tech#readme). However, you
-can use this completely separately from it.
+[d.rymcg.tech](https://github.com/EnigmaCurry/d.rymcg.tech#readme).
+However, you can use this completely separately from it.
 
 The parent project (d.rymcg.tech) includes a [Traefik
 configuration](https://github.com/EnigmaCurry/d.rymcg.tech/tree/master/traefik)
@@ -57,10 +63,10 @@ case in a typical development environment, so the TLS certificates
 would be improperly issued for the containers inside the Docker VM (in
 that case you'd get a Traefik default self-signed cert). If you don't
 need to use a webbrowser, you can still test your APIs with `curl -k`
-to disable TLS verification, or your webbrowser might let you bypass the
-self-signed certificate on a per-domain basis. You can still use all
-of the projects that do not require TLS, or for those projects that
-include their own self-signed certificates (eg.
+to disable TLS verification, or your webbrowser might let you bypass
+the self-signed certificate on a per-domain basis. You can still use
+all of the projects that do not require TLS, or for those projects
+that include their own self-signed certificates (eg.
 [postgresql](../postgresql)).
 
 To get around this TLS problem, you may reconfigure
@@ -84,12 +90,12 @@ loaded public key:
 ssh-add -L
 ```
 
-If you haven't setup your SSH key yet, you just need to run `ssh-keygen` and
-follow the prompts. If you're not running a fancy Desktop Environment that
-handles your SSH agent for you, check out
-[keychain](https://wiki.archlinux.org/title/Keychain#Keychain) for an easy to
-use ssh agent that works with all terminals and/or window managers. Then retry
-the above command to make sure its working.
+If you haven't setup your SSH key yet, you just need to run
+`ssh-keygen` and follow the prompts. If you're not running a fancy
+Desktop Environment that handles your SSH agent for you, check out
+[keychain](https://wiki.archlinux.org/title/Keychain#Keychain) for an
+easy to use ssh agent that works with all terminals and/or window
+managers. Then retry the above command to make sure its working.
 
 ```
 ## Example keychain command to load the agent into the current terminal session:
@@ -122,11 +128,12 @@ sudo apt-get install make qemu-utils qemu-system-x86 \
 ```
 
 [Follow this guide to install the docker engine on
-Ubuntu](https://docs.docker.com/engine/install/ubuntu/) (Make sure to follow this guide for
-maximum feature compatibility, so that you install the most up to date version
-of Docker directly from Docker's package repository, not from the default Ubuntu
-repository. You don't need to start the daemon on your workstation, you only
-need the `docker` CLI client, but they are bundled in the same package.)
+Ubuntu](https://docs.docker.com/engine/install/ubuntu/) (Make sure to
+follow this guide for maximum feature compatibility, so that you
+install the most up to date version of Docker directly from Docker's
+package repository, not from the default Ubuntu repository. You don't
+need to start the daemon on your workstation, you only need the
+`docker` CLI client, but they are bundled in the same package.)
 
 You should disable the docker daemon:
 
@@ -142,9 +149,9 @@ sudo systemctl mask docker
 
 ## Review the config in the Makefile
 
-You can change any of the config values you need by setting these environment
-variables (or by hardcoding these values at the top of the Makefile, which
-become the default settings):
+You can change any of the config values you need by setting these
+environment variables (or by hardcoding these values at the top of the
+Makefile, which become the default settings):
 
  * `VMNAME` - the name of the VM
  * `DISTRO` - the [debian distribution
@@ -368,9 +375,10 @@ allow all outbound connections). Simply install and enable ufw:
 sudo ufw enable
 ```
 
-To open specific ports publicly (eg. `5432`):
+To open specific ports publicly (eg. `22` and `5432`):
 
 ```
+sudo ufw allow 22
 sudo ufw allow 5432
 ```
 
@@ -422,9 +430,11 @@ saved permanently in the systemd unit file
 ## Customize the preseed.cfg file (optional)
 
 The [preseed.cfg](preseed.cfg) is the configuration for the automated
-debian-installer. The file is a template file that includes variable names that
-are replaced via [envsubst](https://man.archlinux.org/man/envsubst.1). You can customize this file however you wish to
-change how the installer behaves.
+debian-installer. The file is a template file that includes variable
+names that are replaced via
+[envsubst](https://man.archlinux.org/man/envsubst.1). You can
+customize this file however you wish to change how the installer
+behaves.
 
 ## Credits
 
