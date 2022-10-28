@@ -1,9 +1,5 @@
 version: "3.3"
 
-networks:
-  traefik-proxy:
-    name: traefik-proxy
-
 volumes:
   mosquitto:
     external: true
@@ -24,8 +20,6 @@ services:
     depends_on: ['config']
     image: "eclipse-mosquitto"
     container_name: "mosquitto"
-    networks:
-      - traefik-proxy
     security_opt:
       - no-new-privileges:true
     restart: unless-stopped
@@ -34,7 +28,7 @@ services:
       - "traefik.tcp.routers.mqtt.rule=HostSNI(`${MOSQUITTO_TRAEFIK_HOST}`)"
       - "traefik.tcp.routers.mqtt.entrypoints=mqtt"
       - "traefik.tcp.routers.mqtt.tls=true"
-      - "traefik.tcp.routers.mqtt.tls.certresolver=${ACME_CERT_RESOLVER}"
+      - "traefik.tcp.routers.mqtt.tls=true"
       - "traefik.tcp.routers.mqtt.service=mqtt"
       - "traefik.tcp.services.mqtt.loadBalancer.server.port=1883"
       ## To limit MQTT to VPN access only:

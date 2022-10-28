@@ -1,8 +1,6 @@
 version: "3.3"
 
 networks:
-  traefik-proxy:
-    name: traefik-proxy
   traefik-wireguard:
     name: traefik-wireguard
   traefik-mail:
@@ -10,7 +8,7 @@ networks:
 
 volumes:
   traefik:
-  
+
 services:
   config:
     build:
@@ -22,14 +20,6 @@ services:
       - TRAEFIK_DASHBOARD_AUTH
       - TRAEFIK_IMAGE
       - TRAEFIK_LOG_LEVEL
-      - TRAEFIK_PROXY_SUBNET
-      - TRAEFIK_PROXY_SUBNET_IP
-      - TRAEFIK_WIREGUARD_SUBNET
-      - TRAEFIK_WIREGUARD_SUBNET_IP
-      - TRAEFIK_MAIL_SUBNET
-      - TRAEFIK_MAIL_SUBNET_IP
-    networks:
-      traefik-proxy:
     volumes:
       - traefik:/data
 
@@ -43,45 +33,46 @@ services:
         BLOCKPATH_GIT_BRANCH: master
     container_name: "traefik"
     restart: unless-stopped
-    networks:
-      traefik-proxy:
-        ipv4_address: ${TRAEFIK_PROXY_SUBNET_IP}
-      traefik-wireguard:
-        ipv4_address: ${TRAEFIK_WIREGUARD_SUBNET_IP}
-      traefik-mail:
-        ipv4_address: ${TRAEFIK_MAIL_SUBNET_IP}
+    network_mode: host
     security_opt:
       - no-new-privileges:true
+    environment:
+      - ${TRAEFIK_ACME_DNS_VARNAME:-TRAEFIK_UNCONFIGURED_TOKEN}
     command:
       - "--log.level=${TRAEFIK_LOG_LEVEL}"
+      ## Send usage feedback to Traefik Labs (default false):
+      - "--global.sendAnonymousUsage=${TRAEFIK_SEND_ANONYMOUS_USAGE:-false}"
       ## File provider:
       - "--providers.file.directory=/data/config"
       - "--providers.file.watch=true"
       ## Docker provider:
       - "--providers.docker=true"
       - "--providers.docker.exposedbydefault=false"
-      - "--providers.docker.network=traefik-proxy"
       ## Entrypoints:
       - "--entrypoints.web.address=:80"
       - "--entrypoints.websecure.address=:443"
-      - "--entrypoints.vpn.address=${TRAEFIK_WIREGUARD_SUBNET_IP}:442"
+      #- "--entrypoints.vpn.address=${TRAEFIK_WIREGUARD_SUBNET_IP}:442"
       - "--entrypoints.mqtt.address=:8883"
       - "--entrypoints.ssh.address=:2222"
-      - "--entrypoints.traefik.address=:8080"
-      - "--entrypoints.smtp.address=${TRAEFIK_WIREGUARD_SUBNET_IP}:465"
-      - "--entrypoints.imap.address=${TRAEFIK_WIREGUARD_SUBNET_IP}:993"
+      - "--entrypoints.traefik.address=127.0.0.1:8080"
+      #- "--entrypoints.smtp.address=${TRAEFIK_WIREGUARD_SUBNET_IP}:465"
+      #- "--entrypoints.imap.address=${TRAEFIK_WIREGUARD_SUBNET_IP}:993"
       #- "--entrypoints.dns.address=:53"
       ## Automatically redirect HTTP to HTTPS
       - "--entrypoints.web.http.redirections.entryPoint.to=websecure"
-      ## ACME TLS Challenge (Let's Encrypt):
-      - "--certificatesresolvers.production.acme.tlschallenge=true"
-      - "--certificatesresolvers.staging.acme.tlschallenge=true"
+      ## ACME Challenge (Let's Encrypt):
       - "--certificatesresolvers.production.acme.caserver=https://acme-v02.api.letsencrypt.org/directory"
       - "--certificatesresolvers.staging.acme.caserver=https://acme-staging-v02.api.letsencrypt.org/directory"
       - "--certificatesresolvers.production.acme.email=${ACME_CA_EMAIL}"
       - "--certificatesresolvers.staging.acme.email=${ACME_CA_EMAIL}"
       - "--certificatesresolvers.production.acme.storage=/data/acme-production.json"
       - "--certificatesresolvers.staging.acme.storage=/data/acme-staging.json"
+      ## ACME TLS challenge:
+      #- "--certificatesresolvers.production.acme.tlschallenge=true"
+      #- "--certificatesresolvers.staging.acme.tlschallenge=true"
+      ## ACME DNS challenge:
+      - "--certificatesresolvers.production.acme.dnschallenge.provider=${TRAEFIK_ACME_DNS_PROVIDER}"
+      - "--certificatesresolvers.staging.acme.dnschallenge.provider=${TRAEFIK_ACME_DNS_PROVIDER}"
       ## Enable Dashboard available only from the docker localhost:8080 (password required)
       - "--api.dashboard=true"
       ## Load local plugins that have been bundled into the traefik image:
@@ -94,13 +85,6 @@ services:
       ## ip whitelist vpn endpoint access from traefik-wireguard network only (TCP):
       ### Why can't I specify a tcp middleware on the entrypoint??
       ##- "--entrypoints.vpn.tcp.middlewares=vpn-ipwhitelist@docker"
-    ports:
-      #- "53:53"
-      - "80:80"
-      - "443:443"
-      - "8883:8883"
-      - "2222:2222"
-      - "127.0.0.1:8080:8080"
     volumes:
       - "traefik:/data"
       - "/var/run/docker.sock:/var/run/docker.sock:ro"
@@ -111,11 +95,15 @@ services:
       - "traefik.http.routers.api.rule=PathPrefix(`/api`) || PathPrefix(`/dashboard`)"
       - "traefik.http.routers.api.entrypoints=traefik"
       - "traefik.http.routers.api.service=api@internal"
-      - "traefik.http.routers.api.middlewares=traefik-api-ipwhitelist@docker,traefik-dashboard-auth"
+      # must specify a dummy-svc to see dashboard with host networking
+      # ref: https://github.com/traefik/traefik/issues/5732#issuecomment-894362338
+      - "traefik.http.services.dummy-svc.loadbalancer.server.port=9999"
+
+      - "traefik.http.routers.api.middlewares=traefik-dashboard-auth"
       - "traefik.http.middlewares.traefik-dashboard-auth.basicauth.users=${TRAEFIK_DASHBOARD_AUTH}"
-      - "traefik.http.middlewares.traefik-api-ipwhitelist.ipwhitelist.sourcerange=${TRAEFIK_WIREGUARD_SUBNET}"
-      - "traefik.tcp.middlewares.traefik-api-ipwhitelist.ipwhitelist.sourcerange=${TRAEFIK_WIREGUARD_SUBNET}"
+      #- "traefik.http.middlewares.traefik-api-ipwhitelist.ipwhitelist.sourcerange=${TRAEFIK_WIREGUARD_SUBNET}"
+      #- "traefik.tcp.middlewares.traefik-api-ipwhitelist.ipwhitelist.sourcerange=${TRAEFIK_WIREGUARD_SUBNET}"
 
       ## VPN sourcerange filter:
-      - "traefik.http.middlewares.vpn-ipwhitelist.ipwhitelist.sourcerange=${TRAEFIK_WIREGUARD_SUBNET}"
-      - "traefik.tcp.middlewares.vpn-ipwhitelist.ipwhitelist.sourcerange=${TRAEFIK_WIREGUARD_SUBNET}"
+      # - "traefik.http.middlewares.vpn-ipwhitelist.ipwhitelist.sourcerange=${TRAEFIK_WIREGUARD_SUBNET}"
+      # - "traefik.tcp.middlewares.vpn-ipwhitelist.ipwhitelist.sourcerange=${TRAEFIK_WIREGUARD_SUBNET}"

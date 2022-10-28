@@ -1,9 +1,5 @@
 version: '3'
 
-networks:
-  traefik-proxy:
-    name: traefik-proxy
-
 volumes:
   config:
 
@@ -24,8 +20,6 @@ services:
       context: .
     # security_opt:
     #   - no-new-privileges:true
-    networks:
-      - traefik-proxy
     volumes:
       - config:/config
     restart: unless-stopped
@@ -33,7 +27,7 @@ services:
       - "traefik.enable=true"
       - "traefik.http.routers.gpodder.rule=Host(`${RDESKTOP_TRAEFIK_HOST}`)"
       - "traefik.http.routers.gpodder.entrypoints=websecure"
-      - "traefik.http.routers.gpodder.tls.certresolver=${ACME_CERT_RESOLVER}"
+      - "traefik.http.routers.gpodder.tls=true"
       - "traefik.http.services.gpodder.loadbalancer.server.port=3000"
       # auth
       - "traefik.http.middlewares.gpodder-auth.basicauth.users=${RDESKTOP_HTTP_AUTH}"

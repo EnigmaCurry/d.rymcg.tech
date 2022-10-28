@@ -3,10 +3,6 @@ version: '3'
 volumes:
   database:
 
-networks:
-  traefik-proxy:
-    name: traefik-proxy
-
 services:
   postgres:
     build:
@@ -31,9 +27,6 @@ services:
     restart: unless-stopped
     security_opt:
       - no-new-privileges:true
-    networks:
-      - traefik-proxy
-      - default
     environment:
       INVIDIOUS_CONFIG: |
         channel_threads: 1
@@ -59,7 +52,7 @@ services:
       - "traefik.enable=true"
       - "traefik.http.routers.invidious.rule=Host(`${INVIDIOUS_TRAEFIK_HOST}`)"
       - "traefik.http.routers.invidious.entrypoints=websecure"
-      - "traefik.http.routers.invidious.tls.certresolver=${ACME_CERT_RESOLVER}"
+      - "traefik.http.routers.invidious.tls=true"
       ## Authentication:
       - "traefik.http.middlewares.invidious-auth.basicauth.users=${INVIDIOUS_HTTP_AUTH}"
       - "traefik.http.routers.invidious.middlewares=invidious-auth@docker"

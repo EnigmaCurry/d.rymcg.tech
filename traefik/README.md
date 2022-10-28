@@ -24,7 +24,7 @@ Run `make config` or copy `.env-dist` to `.env` and edit the following:
  * `TRAEFIK_DASHBOARD_AUTH` this is the htpasswd encoded username/password to
    access the Traefik API and dashboard. If you ran `make config` this would be
    filled in for you, simply by answering the questions.
-   
+
 In order to provide easier routing between each docker-compose project, static
 IP addresses and subnets are configured for Traefik. You should configure all of
 these networks even if you're not planning on using them all yet.
@@ -92,34 +92,26 @@ web browser to access it. Enter the username/password you configured.
 
 ## Certificate Resolver
 
-Traefik is configured for Let's Encrypt to issue TLS certificates for all
-project (sub-)domain names. All certificates are stored inside the
-`traefik_traefik` Docker volume.
+Traefik is configured for Let's Encrypt with the DNS-01 challenge
+type. All certificates are stored inside the `traefik_traefik` Docker
+volume.
 
-All other services defines the `ACME_CERT_RESOLVER` variable in their respective
-`.env` file. There are two different environments defined, `staging` and
-`production`. Staging will create untrusted TLS certificates for testing
-environments. Production will generate browser trustable TLS certificates. NOTE:
-Because Traefik only has a single trust store, you cannot freely switch between
-staging and production. For each new domain name, you must decide if that domain
-name is going to be forever used for staging or production. You cannot "promote"
-a staging domain to a production domain. (You can do so manually, if needed, by
-editing the acme.json file in the traefik data volume, and removing the domain's
-configuration.)
+The only container that is configured with a certificate resolver is
+the [whoami](../whoami) container. As long as you keep the whoami
+container running, Traefik will continue to renew the wildcard
+certificate. All of the rest of the containers in this project will
+inherit this wildcard certificate even though they are not required to
+list a certificate resolver.
 
-Note that the default `ACME_CERT_RESOLVER` has been set to `production`. Traefik
-does a good job of saving all of your certificates in its own named volume
-(`traefik_traefik`), so as long as you're planning on leaving Traefik installed
-long term, `production` is generally the better choice *even for development or
-testing purposes*. Only choose `staging` if you are not planning on leaving
-Traefik installed, or if you have some other testing purpose for doing so.
+## Install the whoami container
 
-## Test the whoami container
+You must install the [whoami](../whoami) project and keep it running
+in order to maintain your TLS certificate renewal (once every 90
+days), which is used by all other projects.
 
-For a simple test of Traefik, consider installing the [whoami](../whoami)
-project. This will demonstrate a valid TLS certificate, and routing Traefik to
-web servers running in project containers.
-
+The whoami container will demonstrate a valid TLS certificate, and an
+example of routing Traefik to web servers running in project
+containers.
 
 ## OAuth2 authentication
 

@@ -1,9 +1,5 @@
 version: "3.7"
 
-networks:
-  traefik-proxy:
-    name: traefik-proxy
-
 volumes:
   blob:
   block:
@@ -57,8 +53,6 @@ services:
       - config:/cryptpad/config
       - /etc/timezone:/etc/timezone:ro
       - /etc/localtime:/etc/localtime:ro
-    networks:
-      - traefik-proxy
     labels:
       ## Enable traefik
       - "traefik.enable=true"

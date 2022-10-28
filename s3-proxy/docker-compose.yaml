@@ -1,9 +1,5 @@
 version: '3'
 
-networks:
-  traefik-proxy:
-    name: traefik-proxy
-
 volumes:
   config:
 
@@ -27,8 +23,6 @@ services:
     build:
       context: https://github.com/EnigmaCurry/s3-proxy.git
     restart: unless-stopped
-    networks:
-      - traefik-proxy
     security_opt:
       - no-new-privileges:true
     volumes:
@@ -38,7 +32,7 @@ services:
       ## Only allow GET requests:
       - "traefik.http.routers.s3proxy.rule=Host(`${S3PROXY_TRAEFIK_HOST}`)"
       - "traefik.http.routers.s3proxy.entrypoints=websecure"
-      - "traefik.http.routers.s3proxy.tls.certresolver=${ACME_CERT_RESOLVER}"
+      - "traefik.http.routers.s3proxy.tls=true"
       ## IP sourcerange filter:
       - "traefik.http.middlewares.s3proxy-ipwhitelist.ipwhitelist.sourcerange=${SOURCERANGE}"
       - "traefik.http.routers.s3proxy.middlewares=s3proxy-ipwhitelist@docker"

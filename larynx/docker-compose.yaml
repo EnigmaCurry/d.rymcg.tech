@@ -1,15 +1,9 @@
 version: '3'
 
-networks:
-  traefik-proxy:
-    name: traefik-proxy
-
 services:
   app:
     image: rhasspy/larynx
     restart: unless-stopped
-    networks:
-      - traefik-proxy
     security_opt:
       - no-new-privileges:true
     volumes:
@@ -18,7 +12,7 @@ services:
       - "traefik.enable=true"
       - "traefik.http.routers.larynx.rule=Host(`${LARYNX_TRAEFIK_HOST}`)"
       - "traefik.http.routers.larynx.entrypoints=websecure"
-      - "traefik.http.routers.larynx.tls.certresolver=${ACME_CERT_RESOLVER}"
+      - "traefik.http.routers.larynx.tls=true"
       ## Authentication:
       - "traefik.http.routers.larynx.middlewares=larynx-auth@docker"
       - "traefik.http.middlewares.larynx-auth.basicauth.users=${LARYNX_HTTP_AUTH}"

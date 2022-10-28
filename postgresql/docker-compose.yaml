@@ -4,10 +4,6 @@ volumes:
   config:
   data:
 
-networks:
-  traefik-proxy:
-    name: traefik-proxy
-
 services:
   config:
     build:
