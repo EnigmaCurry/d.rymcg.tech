@@ -20,12 +20,12 @@ services:
       ## Only listen for TLS on private VPN port :442
       - "traefik.http.routers.whoami-vpn.rule=Host(`${WHOAMI_TRAEFIK_HOST}`)"
       - "traefik.http.routers.whoami-vpn.entrypoints=vpn"
-      - "traefik.http.routers.whoami-vpn.tls.certresolver=${ACME_CERT_RESOLVER}"
+      - "traefik.http.routers.whoami-vpn.tls=true"
 
       ## Forbid non-VPN traffic and redirect port :443 to :442
       - "traefik.http.routers.whoami-vpn-redirect.rule=Host(`${WHOAMI_TRAEFIK_HOST}`)"
       - "traefik.http.routers.whoami-vpn-redirect.entrypoints=websecure"
-      - "traefik.http.routers.whoami-vpn-redirect.tls.certresolver=${ACME_CERT_RESOLVER}"
+      - "traefik.http.routers.whoami-vpn-redirect.tls=true"
       - "traefik.http.middlewares.whoami-vpn-redirect.redirectregex.regex=^https://${WHOAMI_TRAEFIK_HOST}/(.*)"
       - "traefik.http.middlewares.whoami-vpn-redirect.redirectregex.replacement=https://${WHOAMI_TRAEFIK_HOST}:442/$${1}"
       - "traefik.http.routers.whoami-vpn-redirect.middlewares=vpn-ipwhitelist@docker,whoami-vpn-redirect@docker"

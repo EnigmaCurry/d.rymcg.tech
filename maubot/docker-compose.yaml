@@ -1,9 +1,5 @@
 version: "3.3"
 
-networks:
-  traefik-proxy:
-    name: traefik-proxy
-
 volumes:
   data:
 
@@ -31,8 +27,6 @@ services:
     security_opt:
       - no-new-privileges:true
     container_name: maubot
-    networks:
-      - traefik-proxy
     restart: unless-stopped
     volumes:
       - data:/data
@@ -40,6 +34,6 @@ services:
       - "traefik.enable=true"
       - "traefik.http.routers.maubot.rule=Host(`${MAUBOT_TRAEFIK_HOST}`)"
       - "traefik.http.routers.maubot.entrypoints=websecure"
-      - "traefik.http.routers.maubot.tls.certresolver=${ACME_CERT_RESOLVER}"
+      - "traefik.http.routers.maubot.tls=true"
       - "traefik.http.services.maubot.loadBalancer.server.port=29316"
 

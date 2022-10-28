@@ -3,7 +3,6 @@ include ../_scripts/Makefile.projects-no-open
 
 .PHONY: network # Create Docker networks
 network:
-	docker network inspect traefik-proxy >/dev/null 2>&1 || docker network create traefik-proxy --subnet $$(${BIN}/dotenv -f ${ENV_FILE} get TRAEFIK_PROXY_SUBNET)
 	docker network inspect traefik-wireguard  >/dev/null 2>&1 || docker network create traefik-wireguard --subnet $$(${BIN}/dotenv -f ${ENV_FILE} get TRAEFIK_WIREGUARD_SUBNET)
 	docker network inspect traefik-mail  >/dev/null 2>&1 || docker network create traefik-mail --subnet $$(${BIN}/dotenv -f ${ENV_FILE} get TRAEFIK_MAIL_SUBNET)
 
@@ -17,11 +16,9 @@ config-ask:
 	@echo ""
 	@echo "It's important to protect the dashboard and so a username/password is required."
 	@${BIN}/reconfigure_htpasswd ${ENV_FILE} TRAEFIK_DASHBOARD_AUTH
-	@${BIN}/reconfigure_ask ${ENV_FILE} TRAEFIK_PROXY_SUBNET "Enter a subnet for the proxy network" 172.13.0.0/16
-	@${BIN}/reconfigure ${ENV_FILE} TRAEFIK_PROXY_SUBNET_IP="$$(${BIN}/subnet_prefix $$(${BIN}/dotenv -f ${ENV_FILE} get TRAEFIK_PROXY_SUBNET))".3
-	@${BIN}/reconfigure_ask ${ENV_FILE} TRAEFIK_WIREGUARD_SUBNET "Enter a subnet for the wireguard network" 172.15.0.0/16
+	@${BIN}/reconfigure_ask ${ENV_FILE} TRAEFIK_WIREGUARD_SUBNET "Enter a unique subnet for the wireguard network" 172.15.0.0/16
 	@${BIN}/reconfigure ${ENV_FILE} TRAEFIK_WIREGUARD_SUBNET_IP="$$(${BIN}/subnet_prefix $$(${BIN}/dotenv -f ${ENV_FILE} get TRAEFIK_WIREGUARD_SUBNET))".3
-	@${BIN}/reconfigure_ask ${ENV_FILE} TRAEFIK_MAIL_SUBNET "Enter a subnet for the traefik-mail network" 172.16.0.0/16
+	@${BIN}/reconfigure_ask ${ENV_FILE} TRAEFIK_MAIL_SUBNET "Enter a unique subnet for the traefik-mail network" 172.16.0.0/16
 	@${BIN}/reconfigure ${ENV_FILE} TRAEFIK_MAIL_SUBNET_IP="$$(${BIN}/subnet_prefix $$(${BIN}/dotenv -f ${ENV_FILE} get TRAEFIK_MAIL_SUBNET))".3
 
 .PHONY: open # Start SSH tunnel and open the Traefik Dashboard

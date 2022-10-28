@@ -1,9 +1,5 @@
 version: "3.3"
 
-networks:
-  traefik-proxy:
-    name: traefik-proxy
-
 volumes:
   state:
 
@@ -12,8 +8,6 @@ services:
     image: machines/filestash
     security_opt:
       - no-new-privileges:true
-    networks:
-      - traefik-proxy
     restart: unless-stopped
     environment:
       - APPLICATION_URL=${FILESTASH_TRAEFIK_HOST}
