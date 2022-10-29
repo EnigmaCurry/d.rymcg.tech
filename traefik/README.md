@@ -3,36 +3,54 @@
 [Traefik](https://github.com/traefik/traefik) is a modern
 TLS / HTTP / TCP / UDP reverse proxy and load balancer.
 
-## Notices
-
-This configuration currently uses a docker network named `traefik-proxy` that
-all frontend containers connect to in order to be proxied. This means that any
-frontend app can directly access (or hack) any other frontend app, bypassing all
-Traefik security mechanisms (eg. HTTP Basic Auth).
-
-This will eventually be fixed by putting Traefik onto the host network. See this
-[github issue](https://github.com/EnigmaCurry/d.rymcg.tech/issues/7) for more
-information.
-
 ## Config
 
-Run `make config` or copy `.env-dist` to `.env` and edit the following:
+Run `make config` to run the configuration wizard, or manually copy
+`.env-dist` to `.env` and then edit the following:
 
- * `ACME_CA_EMAIL` this is your personal/work email address, where you will
+ * `TRAEFIK_ACME_CA_EMAIL` this is your personal/work email address, where you will
    receive notices from Let's Encrypt regarding your domains and related
    certificates or if theres some other problem with your account.
  * `TRAEFIK_DASHBOARD_AUTH` this is the htpasswd encoded username/password to
    access the Traefik API and dashboard. If you ran `make config` this would be
    filled in for you, simply by answering the questions.
+ * `TRAEFIK_ACME_DNS_CHALLENGE` set to `true` or `false` to use the
+   ACME DNS-01 challenge type for requesting new certificates.
+ * `TRAEFIK_ACME_TLS_CHALLENGE` set to `true` or `false` to use the
+   ACME TLS-ALPN-01 challenge type for requesting new certificates.
+ * `TRAEFIK_CERT_ROOT_DOMAIN` the main domain name for the default TLS
+   certificate. (eg. `d.rymcg.tech`)
+ * `TRAEFIK_CERT_SANS_DOMAIN` a comma separated list of secondary
+   domain names to include on the default TLS cerificate. If you are
+   using the DNS-01 challenge type, you can include wildcard domains
+   here (eg. `*.d.rymcg.tech,foo.example.com`).
+
+The DNS-01 challenge type requires some additional environment
+variables as specified by the [LEGO
+documentation](https://go-acme.github.io/lego/dns). This config
+utilizes up to five (5) environment variables to store the *names* of
+the appropriate variables for your specific DNS provider:
+`TRAEFIK_ACME_DNS_VARNAME_1`, through `TRAEFIK_ACME_DNS_VARNAME_5`.
+
+For example, if you use DigitalOcean's DNS platform, look at the [LEGO
+docs for
+digitalocean](https://go-acme.github.io/lego/dns/digitalocean/). Here
+you find the following info:
+
+ * The provider code is `digitalocean`, so set `TRAEFIK_ACME_DNS_PROVIDER=digitalocean`
+ * The required credentials is only one variable, which is specific to
+   DigitalOcean: `DO_AUTH_TOKEN` So you set
+   `TRAEFIK_ACME_DNS_VARNAME_1=DO_AUTH_TOKEN`.
+ * You must also provide the value for this variable. So set
+   `DO_AUTH_TOKEN=xxxx-your-actual-digitalocean-token-here-xxxx`.
+
+If your provider requires more than one variable, you set them in the
+other slots (up to 5 total), or leave them blank if not needed.
 
 In order to provide easier routing between each docker-compose project, static
 IP addresses and subnets are configured for Traefik. You should configure all of
-these networks even if you're not planning on using them all yet.
+these networks even if you're not planning on using them all yet:
 
- * `TRAEFIK_PROXY_SUBNET` - Choose a unique network subnet for the main
-   `traefik-proxy` network, eg. `172.13.0.0/16` and choose a specific IP address
-   `TRAEFIK_PROXY_SUBNET_IP`, eg. `172.13.0.3`. Most applications that will be
-   exposed to the internet will be connected to the `traefik-proxy` subnet.
  * `TRAEFIK_WIREGUARD_SUBNET` - Choose a unique network subnet for the
    `traefik-wireguard` network, eg. `172.15.0.0/16` and choose a specific IP
    address `TRAEFIK_PROXY_SUBNET_IP`, eg. `172.15.0.3`. This subnet is used for
@@ -52,7 +70,7 @@ plain text password for the dashboard to make it easier to log in (`make open`
 will automatically open your browser to the dashboard, filling in the
 username/password for you, read from `passwords.json`).
 
-To start Traefik, run `make install` or `docker-compose up -d`.
+To start Traefik, run `make install` (or `docker-compose up -d`).
 
 ## Dashboard
 
@@ -90,28 +108,11 @@ With the tunnel active, you can view
 [https://localhost:8080/dashboard/](https://localhost:8080/dashboard/) in your
 web browser to access it. Enter the username/password you configured.
 
-## Certificate Resolver
-
-Traefik is configured for Let's Encrypt with the DNS-01 challenge
-type. All certificates are stored inside the `traefik_traefik` Docker
-volume.
-
-The only container that is configured with a certificate resolver is
-the [whoami](../whoami) container. As long as you keep the whoami
-container running, Traefik will continue to renew the wildcard
-certificate. All of the rest of the containers in this project will
-inherit this wildcard certificate even though they are not required to
-list a certificate resolver.
-
 ## Install the whoami container
 
-You must install the [whoami](../whoami) project and keep it running
-in order to maintain your TLS certificate renewal (once every 90
-days), which is used by all other projects.
-
-The whoami container will demonstrate a valid TLS certificate, and an
-example of routing Traefik to web servers running in project
-containers.
+Consider installing the [whoami](../whoami) container, which will
+demonstrate a valid TLS certificate, and an example of routing Traefik
+to web servers running in project containers.
 
 ## OAuth2 authentication
 

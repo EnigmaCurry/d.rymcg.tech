@@ -16,8 +16,6 @@ services:
       - "traefik.http.routers.whoami.rule=Host(`${WHOAMI_TRAEFIK_HOST}`) && (Path(`/`) || Path(`/health`))"
       - "traefik.http.routers.whoami.entrypoints=websecure"
       - "traefik.http.routers.whoami.tls=true"
-      - "traefik.http.routers.whoami.tls.domains[0].main=${ROOT_DOMAIN}"
-      - "traefik.http.routers.whoami.tls.domains[0].sans=*.${ROOT_DOMAIN}"
 
       - "traefik.http.middlewares.whoami-whitelist.ipwhitelist.sourcerange=${IP_SOURCERANGE}"
       - "traefik.http.routers.whoami.middlewares=whoami-whitelist@docker"
