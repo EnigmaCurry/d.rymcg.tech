@@ -52,7 +52,6 @@ services:
       - "traefik.enable=true"
       - "traefik.http.routers.invidious.rule=Host(`${INVIDIOUS_TRAEFIK_HOST}`)"
       - "traefik.http.routers.invidious.entrypoints=websecure"
-      - "traefik.http.routers.invidious.tls=true"
       ## Authentication:
       - "traefik.http.middlewares.invidious-auth.basicauth.users=${INVIDIOUS_HTTP_AUTH}"
       - "traefik.http.routers.invidious.middlewares=invidious-auth@docker"

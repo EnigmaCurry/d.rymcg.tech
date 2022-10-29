@@ -14,4 +14,3 @@ services:
       - "traefik.http.middlewares.websocketd-stripprefix.stripprefix.prefixes=${APP_PATH}"
       - "traefik.http.routers.websocketd.middlewares=websocketd-stripprefix@docker"
       - "traefik.http.routers.websocketd.entrypoints=websecure"
-      - "traefik.http.routers.websocketd.tls=true"

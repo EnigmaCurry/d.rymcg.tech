@@ -27,7 +27,6 @@ services:
       - "traefik.enable=true"
       - "traefik.http.routers.gpodder.rule=Host(`${RDESKTOP_TRAEFIK_HOST}`)"
       - "traefik.http.routers.gpodder.entrypoints=websecure"
-      - "traefik.http.routers.gpodder.tls=true"
       - "traefik.http.services.gpodder.loadbalancer.server.port=3000"
       # auth
       - "traefik.http.middlewares.gpodder-auth.basicauth.users=${RDESKTOP_HTTP_AUTH}"

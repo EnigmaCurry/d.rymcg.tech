@@ -26,7 +26,6 @@ services:
             - "traefik.enable=true"
             - "traefik.http.routers.jitsi-meet.rule=Host(`${JITSIMEET_TRAEFIK_HOST}`)"
             - "traefik.http.routers.jitsi-meet.entrypoints=websecure"
-            - "traefik.http.routers.jitsi-meet.tls.certresolver=${ACME_CERT_RESOLVER}"
         environment:
             - AMPLITUDE_ID
             - ANALYTICS_SCRIPT_URLS
