@@ -36,7 +36,6 @@ services:
       - "traefik.http.routers.gitea-web.rule=Host(`${GITEA_TRAEFIK_HOST}`)"
       - "traefik.http.routers.gitea-web.entrypoints=websecure"
       - "traefik.http.routers.gitea-web.service=gitea-web"
-      - "traefik.http.routers.gitea-web.tls=true"
       - "traefik.http.services.gitea-web.loadbalancer.server.port=3000"
       ## SSH
       - "traefik.tcp.routers.gitea-ssh.rule=HostSNI(`*`)"

@@ -34,6 +34,5 @@ services:
       - "traefik.enable=true"
       - "traefik.http.routers.maubot.rule=Host(`${MAUBOT_TRAEFIK_HOST}`)"
       - "traefik.http.routers.maubot.entrypoints=websecure"
-      - "traefik.http.routers.maubot.tls=true"
       - "traefik.http.services.maubot.loadBalancer.server.port=29316"
 

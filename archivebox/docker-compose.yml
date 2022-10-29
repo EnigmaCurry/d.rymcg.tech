@@ -22,7 +22,6 @@ services:
       - "traefik.enable=true"
       - "traefik.http.routers.archivebox.rule=Host(`${ARCHIVEBOX_TRAEFIK_HOST}`)"
       - "traefik.http.routers.archivebox.entrypoints=websecure"
-      - "traefik.http.routers.archivebox.tls.certresolver=${ACME_CERT_RESOLVER}"
       - "traefik.http.routers.archivebox.service=archivebox"
       - "traefik.http.services.archivebox.loadbalancer.server.port=8000"
       ## Authentication:
@@ -47,7 +46,6 @@ services:
       - "traefik.enable=true"
       - "traefik.http.routers.archivebox-api-gateway.rule=Host(`${ARCHIVEBOX_TRAEFIK_HOST}`) && PathPrefix(`/api-gateway`)"
       - "traefik.http.routers.archivebox-api-gateway.entrypoints=websecure"
-      - "traefik.http.routers.archivebox-api-gateway.tls.certresolver=${ACME_CERT_RESOLVER}"
       - "traefik.http.routers.archivebox-api-gateway.service=archivebox-api-gateway"
       - "traefik.http.services.archivebox-api-gateway.loadbalancer.server.port=8000"
       ## Authentication:

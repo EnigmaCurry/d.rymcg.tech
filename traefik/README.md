@@ -11,9 +11,6 @@ Run `make config` to run the configuration wizard, or manually copy
  * `TRAEFIK_ACME_CA_EMAIL` this is your personal/work email address, where you will
    receive notices from Let's Encrypt regarding your domains and related
    certificates or if theres some other problem with your account.
- * `TRAEFIK_DASHBOARD_AUTH` this is the htpasswd encoded username/password to
-   access the Traefik API and dashboard. If you ran `make config` this would be
-   filled in for you, simply by answering the questions.
  * `TRAEFIK_ACME_DNS_CHALLENGE` set to `true` or `false` to use the
    ACME DNS-01 challenge type for requesting new certificates.
  * `TRAEFIK_ACME_TLS_CHALLENGE` set to `true` or `false` to use the
@@ -24,6 +21,9 @@ Run `make config` to run the configuration wizard, or manually copy
    domain names to include on the default TLS cerificate. If you are
    using the DNS-01 challenge type, you can include wildcard domains
    here (eg. `*.d.rymcg.tech,foo.example.com`).
+ * `TRAEFIK_DASHBOARD_AUTH` this is the htpasswd encoded username/password to
+   access the Traefik API and dashboard. If you ran `make config` this would be
+   filled in for you, simply by answering the questions.
 
 The DNS-01 challenge type requires some additional environment
 variables as specified by the [LEGO

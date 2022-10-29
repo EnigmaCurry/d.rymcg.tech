@@ -12,7 +12,6 @@ services:
       - "traefik.enable=true"
       - "traefik.http.routers.larynx.rule=Host(`${LARYNX_TRAEFIK_HOST}`)"
       - "traefik.http.routers.larynx.entrypoints=websecure"
-      - "traefik.http.routers.larynx.tls=true"
       ## Authentication:
       - "traefik.http.routers.larynx.middlewares=larynx-auth@docker"
       - "traefik.http.middlewares.larynx-auth.basicauth.users=${LARYNX_HTTP_AUTH}"

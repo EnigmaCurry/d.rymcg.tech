@@ -202,3 +202,63 @@ docker ps
 
 You are now able to use the `docker` and `docker-compose` clients, from your
 local workstation, controlling the docker daemon located on your droplet.
+
+
+## ACME DNS-01 challenge for TLS certificates
+
+You can use DigitalOcean's DNS platform with the [ACME
+protocol](https://www.rfc-editor.org/rfc/rfc8555.html) for the
+purposes of requesting TLS certificates from Let's Encrypt. [DNS-01
+challenge](https://letsencrypt.org/docs/challenge-types/#dns-01-challenge)
+has many advantages over TLS or HTTP challenges, but also bears the
+responsibility of having to deal with the security and storage of an
+API key for DNS platform.
+
+When using DigitalOcean with any programmatic access, be aware that an
+API key can be used to perform any action within a given DigitalOcean
+Team. You can create several Teams, and limit access to resources
+per-team. Following the principle of Least Privilege, we would ideally
+want to limit the API access to only allowing the update of the `TXT`
+record necessary for ACME to function. However, limiting access to the
+team is the best that you can do on DigitalOcean's platform.
+
+Follow these instructions for adding your subdomain to a brand new
+DigitalOcean Team, with the sole purpose of managing DNS for the
+subdomain, and creating an API key for programmatic access by Traefik:
+
+ * Acquire your domain and point the domain to DigitalOcean's DNS servers:
+   * `ns1.digitalocean.com`
+   * `ns2.digitalocean.com`
+   * `ns3.digitalocean.com`
+ * Login to your DigitalOcean account and in the upper right menu,
+   click on `Create a Team`.
+ * Name it the same as your chosen subdomain (eg. `d_rymcg_tech`, you
+   cannot use `.` in the name).
+ * Finish creating the team, and then you can switch to that team
+   through the same upper right menu under `Go to Team`.
+ * Once on the new team page, click onto the `Networking` page, under
+   `Domains`, and find `Add a domain`.
+ * Add the full **subdomain** (eg. `d.rymcg.tech`), not the root
+   domain (eg. not `rymcg.tech`).
+ * Once the subdomain has been added, click on `Create new record` and
+   add a new `A` record for the wildcard of the subdomain (eg
+   `*.d.rymcg.tech`) pointing to the IP address of your Docker
+   droplet.
+ * Click onto the `API` page.
+ * Click `Generate New Token`.
+ * Enter the token name: `traefik`
+ * Choose the expiration: `No expiry`
+ * Keep the `Write` scope checked.
+ * Click Generate Token, then copy the token displayed (it is shown
+   only one time).
+ * Set the token into your [traefik env file as documented](traefik)
+   (Running `make config` will walk you through this):
+   * Set `TRAEFIK_ACME_DNS_VARNAME_1=DO_AUTH_TOKEN`
+   * Set `DO_AUTH_TOKEN=xxxx-your-real-digitalocean-access-token-here-xxxx`
+   * Set `TRAEFIK_ACME_DNS_CHALLENGE=true`
+   * Set `TRAEFIK_ACME_TLS_CHALLENGE=false`
+   * Set `TRAEFIK_CERT_ROOT_DOMAIN=d.example.com`
+   * Set `TRAEFIK_CERT_SANS_DOMAIN=*.d.example.com`
+
+Note: Do not create any droplets in the new Team. The whole point of
+creating the team is to limit what the team can access.
