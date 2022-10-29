@@ -20,7 +20,6 @@ config-ask:
 	@${BIN}/reconfigure ${ENV_FILE} TRAEFIK_WIREGUARD_SUBNET_IP="$$(${BIN}/subnet_prefix $$(${BIN}/dotenv -f ${ENV_FILE} get TRAEFIK_WIREGUARD_SUBNET))".3
 	@${BIN}/reconfigure_ask ${ENV_FILE} TRAEFIK_MAIL_SUBNET "Enter a unique subnet for the traefik-mail network" 172.16.0.0/16
 	@${BIN}/reconfigure ${ENV_FILE} TRAEFIK_MAIL_SUBNET_IP="$$(${BIN}/subnet_prefix $$(${BIN}/dotenv -f ${ENV_FILE} get TRAEFIK_MAIL_SUBNET))".3
-	@${BIN}/reconfigure ${ENV_FILE} TRAEFIK_CERT_ROOT_DOMAIN=${ROOT_DOMAIN} TRAEFIK_CERT_SANS_DOMAIN=*.${ROOT_DOMAIN}
 
 .PHONY: open # Start SSH tunnel and open the Traefik Dashboard
 open:
