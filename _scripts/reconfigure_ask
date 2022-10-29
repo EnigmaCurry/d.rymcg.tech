@@ -20,9 +20,13 @@ if [[ $existing != $example ]]; then
     default=${existing:-${default}}
 fi
 
+if [[ -n "${example}" ]]; then
+    example="(eg. ${example})"
+fi
+
 while true; do
-    read -e -p "${var}: ${prompt} (eg. ${example})"$'\x0a: ' -i "${default}" answer
-    if [[ -n ${answer} ]] || [[ -z ${default} ]]; then
+    read -e -p "${var}: ${prompt} ${example}"$'\x0a: ' -i "${default}" answer
+    if [[ -n ${answer} || -z ${default} || "${ALLOW_BLANK}" == 1 ]]; then
         break
     fi
 done

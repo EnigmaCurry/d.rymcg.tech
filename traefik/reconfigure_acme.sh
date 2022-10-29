@@ -1,0 +1,70 @@
+#!/bin/bash
+
+## reconfigure_acme
+
+BIN=$(dirname ${BASH_SOURCE})
+source ${BIN}/funcs.sh
+set -e
+
+ENV_FILE=${1}
+shift
+
+var=${1}
+shift
+## Make new .env if it doesn't exist:
+test -f ${ENV_FILE} || cp .env-dist ${ENV_FILE}
+
+
+wrapper() {
+    WRAPPER_IMAGE=localhost/htpasswd
+    command=$1; shift;
+    if which ${command} >/dev/null 2>&1; then
+        ${command} "${@}"
+    else
+        if [[ $IMAGE_BUILT != "true" ]]; then
+            cat <<EOF | docker build -t ${WRAPPER_IMAGE} - >/dev/null 2>&1 &&  IMAGE_BUILT="true"
+FROM alpine
+RUN apk add -U openssl apache2-utils python3
+EOF
+        fi
+        docker run --rm -i ${WRAPPER_IMAGE} ${command} "${@}"
+    fi
+}
+
+if [[ -n $(${BIN}/dotenv -f ${ENV_FILE} get ${var}) ]]; then
+    ${BIN}/confirm no "There is already a user auth string configured. Do you want to generate new users and passwords" "?" || exit 0
+fi
+
+PASSWORD_JSON=""
+HASHED_PASSWORDS=()
+while true; do
+    ask "Enter the username for HTTP Basic Authentication" USERNAME
+    ask "Enter the passphrase for ${USERNAME} (leave blank to generate a random passphrase)" PLAIN_PASSWORD
+    if [[ -z ${PLAIN_PASSWORD} ]]; then
+        PLAIN_PASSWORD=$(wrapper openssl rand -base64 30 | head -c 20)
+        echo "Plain text password for ${USERNAME} (save this): ${PLAIN_PASSWORD}"
+    fi
+    HASHED_PASSWORD=$(wrapper htpasswd -nb "${USERNAME}" "${PLAIN_PASSWORD}")
+    HASHED_PASSWORDS+=(${HASHED_PASSWORD})
+    URL_ENCODED_PASSWORD=$(wrapper python3 -c "from urllib.parse import quote; print(quote('''${PLAIN_PASSWORD=}''', safe=''))")
+    echo "Hashed password: ${HASHED_PASSWORD}"
+    echo "Url encoded: https://${USERNAME}:${URL_ENCODED_PASSWORD}@example.com/..."
+    PASSWORD_JSON="${PASSWORD_JSON}, {\"username\": \"${USERNAME}\", \"password\": \"${PLAIN_PASSWORD}\", \"hashed_password\": \"${HASHED_PASSWORD}\", \"url_encoded\": \"$URL_ENCODED_PASSWORD\"}"
+    ${BIN}/confirm no "Would you like to create more usernames" "?" || break
+done
+
+COMBINED_PASSWORD=$(echo $(IFS=, ; echo "${HASHED_PASSWORDS[*]}") | sed 's/\$/\$\$/g')
+${BIN}/dotenv -f ${ENV_FILE} set ${var}="${COMBINED_PASSWORD}"
+echo "Set ${var}=${COMBINED_PASSWORD}"
+
+echo ""
+if ${BIN}/confirm no "Would you like to export the usernames and passwords to the file passwords.json" "?"; then
+    PASSWORD_JSON="[${PASSWORD_JSON:2}]"
+    if [[ ! -f passwords.json ]]; then
+        echo '{}' | jq > passwords.json
+    fi
+    TMP_PASSWORD=$(mktemp)
+    (
+        cat passwords.json && echo ${PASSWORD_JSON} | jq --argjson "$(${BIN}/docker_context)" "${PASSWORD_JSON}" '$ARGS.named'
+    ) | jq -s add > ${TMP_PASSWORD} && mv ${TMP_PASSWORD} passwords.json
+fi

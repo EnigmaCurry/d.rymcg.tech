@@ -16,10 +16,14 @@ services:
     security_opt:
       - no-new-privileges:true
     environment:
-      - ACME_CA_EMAIL
+      - TRAEFIK_ACME_CA_EMAIL
       - TRAEFIK_DASHBOARD_AUTH
       - TRAEFIK_IMAGE
       - TRAEFIK_LOG_LEVEL
+      - TRAEFIK_CERT_ROOT_DOMAIN
+      - TRAEFIK_CERT_SANS_DOMAIN
+      - TRAEFIK_ACME_DNS_CHALLENGE
+      - TRAEFIK_ACME_TLS_CHALLENGE
     volumes:
       - traefik:/data
 
@@ -37,7 +41,11 @@ services:
     security_opt:
       - no-new-privileges:true
     environment:
-      - ${TRAEFIK_ACME_DNS_VARNAME:-TRAEFIK_UNCONFIGURED_TOKEN}
+      - ${TRAEFIK_ACME_DNS_VARNAME_1:-TRAEFIK_ACME_DNS_NA_1}
+      - ${TRAEFIK_ACME_DNS_VARNAME_2:-TRAEFIK_ACME_DNS_NA_2}
+      - ${TRAEFIK_ACME_DNS_VARNAME_3:-TRAEFIK_ACME_DNS_NA_3}
+      - ${TRAEFIK_ACME_DNS_VARNAME_4:-TRAEFIK_ACME_DNS_NA_4}
+      - ${TRAEFIK_ACME_DNS_VARNAME_5:-TRAEFIK_ACME_DNS_NA_5}
     command:
       - "--log.level=${TRAEFIK_LOG_LEVEL}"
       ## Send usage feedback to Traefik Labs (default false):
@@ -60,17 +68,22 @@ services:
       #- "--entrypoints.dns.address=:53"
       ## Automatically redirect HTTP to HTTPS
       - "--entrypoints.web.http.redirections.entryPoint.to=websecure"
-      ## ACME Challenge (Let's Encrypt):
+      ## ACME TLS certificate resolver (Let's Encrypt):
+      - "--entrypoints.websecure.http.tls.certResolver=production"
+      - "--entrypoints.websecure.http.tls.domains[0].main=${TRAEFIK_CERT_ROOT_DOMAIN}"
+      - "--entrypoints.websecure.http.tls.domains[0].sans=${TRAEFIK_CERT_SANS_DOMAIN}"
       - "--certificatesresolvers.production.acme.caserver=https://acme-v02.api.letsencrypt.org/directory"
       - "--certificatesresolvers.staging.acme.caserver=https://acme-staging-v02.api.letsencrypt.org/directory"
-      - "--certificatesresolvers.production.acme.email=${ACME_CA_EMAIL}"
-      - "--certificatesresolvers.staging.acme.email=${ACME_CA_EMAIL}"
+      - "--certificatesresolvers.production.acme.email=${TRAEFIK_ACME_CA_EMAIL}"
+      - "--certificatesresolvers.staging.acme.email=${TRAEFIK_ACME_CA_EMAIL}"
       - "--certificatesresolvers.production.acme.storage=/data/acme-production.json"
       - "--certificatesresolvers.staging.acme.storage=/data/acme-staging.json"
       ## ACME TLS challenge:
-      #- "--certificatesresolvers.production.acme.tlschallenge=true"
-      #- "--certificatesresolvers.staging.acme.tlschallenge=true"
+      - "--certificatesresolvers.production.acme.tlschallenge=${TRAEFIK_ACME_TLS_CHALLENGE:-false}"
+      - "--certificatesresolvers.staging.acme.tlschallenge=${TRAEFIK_ACME_TLS_CHALLENGE:-false}"
       ## ACME DNS challenge:
+      - "--certificatesresolvers.production.acme.dnschallenge=${TRAEFIK_ACME_DNS_CHALLENGE:-false}"
+      - "--certificatesresolvers.staging.acme.dnschallenge=${TRAEFIK_ACME_DNS_CHALLENGE:-false}"
       - "--certificatesresolvers.production.acme.dnschallenge.provider=${TRAEFIK_ACME_DNS_PROVIDER}"
       - "--certificatesresolvers.staging.acme.dnschallenge.provider=${TRAEFIK_ACME_DNS_PROVIDER}"
       ## Enable Dashboard available only from the docker localhost:8080 (password required)

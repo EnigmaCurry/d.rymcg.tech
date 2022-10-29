@@ -8,11 +8,11 @@ network:
 
 .PHONY: config # Configure Traefik .env file
 config: config-ask network
+	@echo "Config complete."
 
 .PHONY: config-ask
 config-ask:
-	@echo "Let's Encrypt will helpfully email you when your certificates are about to expire."
-	@${BIN}/reconfigure_ask ${ENV_FILE} ACME_CA_EMAIL "Enter your email address for Let's Encrypt (blank to skip)"
+	@${BIN}/reconfigure_acme ${ENV_FILE}
 	@echo ""
 	@echo "It's important to protect the dashboard and so a username/password is required."
 	@${BIN}/reconfigure_htpasswd ${ENV_FILE} TRAEFIK_DASHBOARD_AUTH
@@ -20,6 +20,7 @@ config-ask:
 	@${BIN}/reconfigure ${ENV_FILE} TRAEFIK_WIREGUARD_SUBNET_IP="$$(${BIN}/subnet_prefix $$(${BIN}/dotenv -f ${ENV_FILE} get TRAEFIK_WIREGUARD_SUBNET))".3
 	@${BIN}/reconfigure_ask ${ENV_FILE} TRAEFIK_MAIL_SUBNET "Enter a unique subnet for the traefik-mail network" 172.16.0.0/16
 	@${BIN}/reconfigure ${ENV_FILE} TRAEFIK_MAIL_SUBNET_IP="$$(${BIN}/subnet_prefix $$(${BIN}/dotenv -f ${ENV_FILE} get TRAEFIK_MAIL_SUBNET))".3
+	@${BIN}/reconfigure ${ENV_FILE} TRAEFIK_CERT_ROOT_DOMAIN=${ROOT_DOMAIN} TRAEFIK_CERT_SANS_DOMAIN=*.${ROOT_DOMAIN}
 
 .PHONY: open # Start SSH tunnel and open the Traefik Dashboard
 open:
@@ -29,3 +30,4 @@ open:
 close:
 	pkill -f "^ssh -N -L 8080:localhost:8080 ssh.${ROOT_DOMAIN}"
 
+ 
