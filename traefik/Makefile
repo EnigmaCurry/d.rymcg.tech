@@ -1,25 +1,15 @@
 ROOT_DIR = ..
 include ../_scripts/Makefile.projects-no-open
 
-.PHONY: network # Create Docker networks
-network:
-	docker network inspect traefik-wireguard  >/dev/null 2>&1 || docker network create traefik-wireguard --subnet $$(${BIN}/dotenv -f ${ENV_FILE} get TRAEFIK_WIREGUARD_SUBNET)
-	docker network inspect traefik-mail  >/dev/null 2>&1 || docker network create traefik-mail --subnet $$(${BIN}/dotenv -f ${ENV_FILE} get TRAEFIK_MAIL_SUBNET)
-
 .PHONY: config # Configure Traefik .env file
-config: config-ask network
-	@echo "Config complete."
+config: config-ask
+	@echo ""
+	@echo 'Base configuration complete. Run `make certs` to configure certificate domains.'
 
 .PHONY: config-ask
 config-ask:
 	@${BIN}/reconfigure_acme ${ENV_FILE}
-	@echo ""
-	@echo "It's important to protect the dashboard and so a username/password is required."
-	@${BIN}/reconfigure_htpasswd ${ENV_FILE} TRAEFIK_DASHBOARD_AUTH
-	@${BIN}/reconfigure_ask ${ENV_FILE} TRAEFIK_WIREGUARD_SUBNET "Enter a unique subnet for the wireguard network" 172.15.0.0/16
-	@${BIN}/reconfigure ${ENV_FILE} TRAEFIK_WIREGUARD_SUBNET_IP="$$(${BIN}/subnet_prefix $$(${BIN}/dotenv -f ${ENV_FILE} get TRAEFIK_WIREGUARD_SUBNET))".3
-	@${BIN}/reconfigure_ask ${ENV_FILE} TRAEFIK_MAIL_SUBNET "Enter a unique subnet for the traefik-mail network" 172.16.0.0/16
-	@${BIN}/reconfigure ${ENV_FILE} TRAEFIK_MAIL_SUBNET_IP="$$(${BIN}/subnet_prefix $$(${BIN}/dotenv -f ${ENV_FILE} get TRAEFIK_MAIL_SUBNET))".3
+	@${BIN}/reconfigure_dashboard ${ENV_FILE}
 
 .PHONY: open # Start SSH tunnel and open the Traefik Dashboard
 open:
@@ -29,4 +19,9 @@ open:
 close:
 	pkill -f "^ssh -N -L 8080:localhost:8080 ssh.${ROOT_DOMAIN}"
 
- 
+.PHONY: cert
+cert: certs
+
+.PHONY: certs # Make TLS Certificates
+certs:
+	@${BIN}/reconfigure_certs ${ENV_FILE}
