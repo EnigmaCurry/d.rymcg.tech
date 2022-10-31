@@ -1,6 +1,6 @@
 #!/bin/bash
 
-## reconfigure_acme
+## reconfigure_acme ENV_FILE
 
 BIN=$(dirname ${BASH_SOURCE})
 source ${BIN}/funcs.sh
@@ -11,13 +11,13 @@ shift
 ## Make new .env if it doesn't exist:
 test -f ${ENV_FILE} || cp .env-dist ${ENV_FILE}
 
-ROOT_DOMAIN=$(${BIN}/dotenv -f ../${ENV_FILE} get ROOT_DOMAIN)
-
-${BIN}/reconfigure ${ENV_FILE} TRAEFIK_CERT_ROOT_DOMAIN=${ROOT_DOMAIN}
+echo ""
+echo "If you give Let's Encrypt your email address, they will send you alerts when your certificates are about to expire or about other misconfiguration."
+${BIN}/reconfigure_ask ${ENV_FILE} TRAEFIK_ACME_CA_EMAIL "Enter your email address (not required; blank to skip)"
 
 echo ""
-echo "Let's Encrypt can helpfully email you when your certificates are about to expire."
-${BIN}/reconfigure_ask ${ENV_FILE} TRAEFIK_ACME_CA_EMAIL "Enter your email address (not required; blank to skip)"
+echo "You can choose to use the Let's Encrypt production or staging API. Only production produces certificates that are valid in most browsers. Use staging for development and testing only."
+${BIN}/confirm $([[ $(${BIN}/dotenv -f ${ENV_FILE} get TRAEFIK_ACME_CERT_RESOLVER) == "production" ]] && echo yes || echo no) "Do you want to use the production Let's Encrypt API" "?" && ${BIN}/reconfigure ${ENV_FILE} TRAEFIK_ACME_CERT_RESOLVER=production ||  ${BIN}/reconfigure ${ENV_FILE} TRAEFIK_ACME_CERT_RESOLVER=staging
 
 echo ""
 echo "You can generate TLS certificates with ACME challenge over TLS or DNS."
@@ -37,15 +37,10 @@ echo "* If you choose DNS challenge, exercise caution and consider the "
 echo "  principle of Least Privilege."
 echo ""
 
-test "$(${BIN}/dotenv -f ${ENV_FILE} get TRAEFIK_ACME_DNS_CHALLENGE)" == "true" \
-     && USING_DNS_CHALLENGE_CURRENTLY=yes || USING_DNS_CHALLENGE_CURRENTLY=no
-
-if ${BIN}/confirm ${USING_DNS_CHALLENGE_CURRENTLY} \
+if ${BIN}/confirm $(test "$(${BIN}/dotenv -f ${ENV_FILE} get TRAEFIK_ACME_CHALLENGE)" == "dns" && echo yes || echo no) \
          "Do you want to use the ACME DNS challenge type" ?;
 then
-    ${BIN}/reconfigure ${ENV_FILE} \
-          TRAEFIK_ACME_DNS_CHALLENGE=true \
-          TRAEFIK_ACME_TLS_CHALLENGE=false
+    ${BIN}/reconfigure ${ENV_FILE} TRAEFIK_ACME_CHALLENGE=dns
     echo ""
     echo "Find the provider code of your supported DNS provider here:"
     echo "https://go-acme.github.io/lego/dns/#dns-providers"
@@ -85,18 +80,6 @@ then
     test -n "${TRAEFIK_ACME_DNS_VARNAME_3}" && ${BIN}/reconfigure_ask ${ENV_FILE} ${TRAEFIK_ACME_DNS_VARNAME_3} "Enter the value for ${TRAEFIK_ACME_DNS_VARNAME_3}"
     test -n "${TRAEFIK_ACME_DNS_VARNAME_4}" && ${BIN}/reconfigure_ask ${ENV_FILE} ${TRAEFIK_ACME_DNS_VARNAME_4} "Enter the value for ${TRAEFIK_ACME_DNS_VARNAME_4}"
     test -n "${TRAEFIK_ACME_DNS_VARNAME_5}" && ${BIN}/reconfigure_ask ${ENV_FILE} ${TRAEFIK_ACME_DNS_VARNAME_5} "Enter the value for ${TRAEFIK_ACME_DNS_VARNAME_5}"
-
-    echo ""
-    echo "The SANS domain is any secondary domains you want to include on the certificate besides the root domain."
-    echo "Because you are using the DNS challenge, you can enter a wildcard domain here."
-    ${BIN}/reconfigure_ask ${ENV_FILE} TRAEFIK_CERT_SANS_DOMAIN "Enter the SANS secondary and/or wildcard domains (comma separated)" "*.${ROOT_DOMAIN}"
 else
-    ${BIN}/reconfigure ${ENV_FILE} \
-          TRAEFIK_ACME_DNS_CHALLENGE=false \
-          TRAEFIK_ACME_TLS_CHALLENGE=true
-    echo ""
-    echo "The SANS domain is any secondary domains you want to include on the certificate besides the root domain."
-    ${BIN}/reconfigure_ask ${ENV_FILE} TRAEFIK_CERT_SANS_DOMAIN "Enter the SANS secondary domains (comma separated, NO wildcards!) (optional)" ""
+    ${BIN}/reconfigure ${ENV_FILE} TRAEFIK_ACME_CHALLENGE=tls
 fi
-
-

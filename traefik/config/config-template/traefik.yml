@@ -1,0 +1,85 @@
+#@ load("@ytt:data", "data")
+#@ load("@ytt:json", "json")
+
+log:
+  level: #@ data.values.log_level
+
+accessLog:
+  filePath: #@ data.values.access_logs_path
+
+#@ if data.values.dashboard == "true":
+api:
+  dashboard: true
+#@ end
+
+experimental:
+  localPlugins:
+    blockpath:
+      modulename: github.com/traefik/plugin-blockpath
+
+providers:
+  file:
+    directory: /data/config
+    watch: #@ data.values.file_provider_watch == "true"
+  docker:
+    exposedByDefault: false
+
+global:
+  sendAnonymousUsage: #@ data.values.send_anonymous_usage == "true"
+
+certificateResolvers:
+  production:
+    acme:
+      caserver: https://acme-v02.api.letsencrypt.org/directory
+      email: #@ data.values.acme_ca_email
+      storage: /data/acme-production.json
+      #@ if data.values.acme_challenge.lower() in ["dns","dns-01"]:
+      dnsChallenge:
+        provider: #@ data.values.acme_dns_provider
+      #@ elif data.values.acme_challenge.lower() in ["tls","tls-alpn-01"]:
+      tlsChallenge: {}
+      #@ elif data.values.acme_challenge.lower() in ["http", "http-01"]:
+      httpChallenge:
+        entryPoint: web
+      #@ end
+  staging:
+    acme:
+      caserver: https://acme-staging-v02.api.letsencrypt.org/directory
+      email: #@ data.values.acme_ca_email
+      storage: /data/acme-staging.json
+      #@ if data.values.acme_challenge.lower() in ["dns","dns-01"]:
+      dnsChallenge:
+        provider: #@ data.values.acme_dns_provider
+      #@ elif data.values.acme_challenge.lower() in ["tls","tls-alpn-01"]:
+      tlsChallenge: {}
+      #@ elif data.values.acme_challenge.lower() in ["http", "http-01"]:
+      httpChallenge:
+        entryPoint: web
+      #@ end
+
+entryPoints:
+  web:
+    address: :80
+    http:
+      redirections:
+        entryPoint:
+          to: websecure
+  websecure:
+    address: :443
+    http:
+      tls:
+        certResolver: #@ data.values.acme_cert_resolver
+        domains:
+          #@ for domain in json.decode(data.values.acme_cert_domains):
+          - main: #@ domain[0]
+            sans:
+              #@ for secondary in domain[1]:
+              - #@ secondary
+              #@ end
+          #@ end
+  mqtt:
+    address: :8883
+  ssh:
+    address: :2222
+  traefik:
+    address: 127.0.0.1:8080

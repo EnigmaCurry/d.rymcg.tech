@@ -1,0 +1,128 @@
+#!/bin/bash
+
+## reconfigure_certs ENV_FILE
+
+BIN=$(dirname ${BASH_SOURCE})
+source ${BIN}/funcs.sh
+set -e
+
+ENV_FILE=../traefik/${1}
+shift
+## Make new .env if it doesn't exist:
+test -f ${ENV_FILE} || cp ../traefik/.env-dist ${ENV_FILE}
+
+print_help() {
+    echo "Certificate manager:"
+    echo ' * Type `q` or `quit` to quit the certificate manager.'
+    echo ' * Type `l` or `list` to list certificate domains.'
+    echo ' * Type `d` or `delete` to delete an existing certificate domain.'
+    echo ' * Type `c` or `n` or `new` to create a new certificate domain.'
+    echo ' * Type `?` or `help` to see this help message again.'
+}
+
+list_domains() {
+    TRAEFIK_ACME_CERT_DOMAINS=$(${BIN}/dotenv -f ${ENV_FILE} get TRAEFIK_ACME_CERT_DOMAINS)
+    if [[ $TRAEFIK_ACME_CERT_DOMAINS == "[]" || $TRAEFIK_ACME_CERT_DOMAINS == "" ]]; then
+        echo "No certificate domains are configured."
+        return 1
+    fi
+
+    echo "Here is a list of your current certificate domains:"
+    CERT_INDEX=0
+    while :
+    do
+        DOMAIN=$(echo $TRAEFIK_ACME_CERT_DOMAINS | jq -r ".[${CERT_INDEX}][0]")
+        SANS=$(echo $TRAEFIK_ACME_CERT_DOMAINS | jq -rc ".[${CERT_INDEX}][1]")
+        if [[ $DOMAIN == "null" ]]; then
+            break
+        fi
+        if [[ $SANS != "null" && ${SANS} != "[]" ]]; then
+            SANS=$(echo ${SANS} | sed -e 's/\[//g' -e 's/\]//g' -e 's/"//g' -e 's/,/ /g')
+            echo "$((${CERT_INDEX} + 1))) ${DOMAIN} (${SANS})"
+        else
+            echo "$((${CERT_INDEX} + 1))) ${DOMAIN}"
+        fi
+        CERT_INDEX=$((CERT_INDEX+1))
+    done
+}
+
+create_certificate_domains() {
+    echo "Configure the domains for the new certificate:"
+    TRAEFIK_ACME_CERT_DOMAINS=$(${BIN}/dotenv -f ${ENV_FILE} get TRAEFIK_ACME_CERT_DOMAINS)
+    if [[ $TRAEFIK_ACME_CERT_DOMAINS == "[]" || $TRAEFIK_ACME_CERT_DOMAINS == "" ]]; then
+        DEFAULT_DOMAIN=$(get_root_domain)
+    else
+        DEFAULT_DOMAIN=""
+    fi
+    ask 'Enter the main domain for this certificate (no wildcard, eg. `d.rymcg.tech`)' domain $DEFAULT_DOMAIN
+
+    if [[ $domain == "" ]]; then
+        echo "domain cannot be blank."
+        return 0
+    fi
+    sans=()
+    echo "Now enter the SANS domains, one per line:"
+    while :
+    do
+        ask "Enter a secondary domain or wildcard (enter blank to skip)" second
+        if [[ $second == "" ]]; then
+            break
+        fi
+        sans+=(${second})
+    done
+    echo ""
+    echo "Main domain:"
+    echo " ${domain}"
+    echo "Secondary (SANS) domains:"
+    for secondary in "${sans[@]}"; do
+        echo " ${secondary}"
+    done
+    echo ""
+
+    ${BIN}/confirm yes "Do you want to configure a certificate with these domains" "?" || return 0
+    sans=$(for secondary in "${sans[@]}"; do
+               echo "${secondary}"
+           done | jq --raw-input --slurp 'split("\n") | map(select(. != ""))' | jq -c)
+    domains=$(jq -cn "[\"${domain}\", ${sans}]")
+    TRAEFIK_ACME_CERT_DOMAINS=$(${BIN}/dotenv -f ${ENV_FILE} get TRAEFIK_ACME_CERT_DOMAINS)
+    TRAEFIK_ACME_CERT_DOMAINS=$(echo "${TRAEFIK_ACME_CERT_DOMAINS}" | jq -c ". |= .+ [${domains}]")
+    ${BIN}/dotenv -f ${ENV_FILE} set TRAEFIK_ACME_CERT_DOMAINS="${TRAEFIK_ACME_CERT_DOMAINS}"
+    echo "Set TRAEFIK_ACME_CERT_DOMAINS=${TRAEFIK_ACME_CERT_DOMAINS}"
+}
+
+delete_certificate_domains() {
+    list_domains || return 0
+    TRAEFIK_ACME_CERT_DOMAINS=$(${BIN}/dotenv -f ${ENV_FILE} get TRAEFIK_ACME_CERT_DOMAINS)
+    ask "Enter the certificate number to delete" CERT_TO_DELETE
+    selected=$(echo "${TRAEFIK_ACME_CERT_DOMAINS}" | jq -c ".[$((${CERT_TO_DELETE} - 1))]")
+    if [[ $selected != "null" ]]; then
+        TRAEFIK_ACME_CERT_DOMAINS=$(echo ${TRAEFIK_ACME_CERT_DOMAINS} | jq -c "del(.[$((${CERT_TO_DELETE} - 1))])")
+        ${BIN}/dotenv -f ${ENV_FILE} set TRAEFIK_ACME_CERT_DOMAINS="${TRAEFIK_ACME_CERT_DOMAINS}"
+        echo "Deleted ${selected}"
+        echo "Set TRAEFIK_ACME_CERT_DOMAINS=${TRAEFIK_ACME_CERT_DOMAINS}"
+    else
+        echo "Invalid certificate selection"
+    fi
+}
+
+print_help
+while :
+do
+    echo ""
+    ask 'Enter command (for help type `?`)' COMMAND
+    echo ""
+    if [[ $COMMAND == 'q' || $COMMAND == "quit" ]]; then
+        echo "done" && exit 0
+    elif [[ $COMMAND == '?' || $COMMAND == "help" ]]; then
+        print_help
+    elif [[ $COMMAND == "l" || $COMMAND == "list" ]]; then
+        list_domains || true
+    elif [[ $COMMAND = "n" || $COMMAND == "new" || \
+            $COMMAND == "c" || ${COMMAND} == "create" ]]; then
+        create_certificate_domains
+    elif [[ $COMMAND = "d" || $COMMAND == "delete" ]]; then
+        delete_certificate_domains
+    else
+        echo "Invalid command."
+    fi
+done
