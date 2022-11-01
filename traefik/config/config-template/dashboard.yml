@@ -1,0 +1,19 @@
+#@ load("@ytt:data", "data")
+#@ if data.values.dashboard == "true":
+http:
+  routers:
+    api:
+      rule: PathPrefix(`/api`) || PathPrefix(`/dashboard`)
+      entrypoints: traefik
+      service: api@internal
+      middlewares:
+        - traefik-api-ipwhitelist
+        - traefik-dashboard-auth
+  middlewares:
+    traefik-dashboard-auth:
+      basicauth:
+        users: #@ data.values.dashboard_auth
+    traefik-api-ipwhitelist:
+      ipwhitelist:
+        sourcerange: 127.0.0.1/32
+#@ end
