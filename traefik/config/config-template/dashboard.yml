@@ -13,6 +13,8 @@ http:
     traefik-dashboard-auth:
       basicauth:
         users: #@ data.values.dashboard_auth
+        removeHeader: true
+        headerField: X-WebAuth-User
     traefik-api-ipwhitelist:
       ipwhitelist:
         sourcerange: 127.0.0.1/32
