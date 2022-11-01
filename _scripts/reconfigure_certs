@@ -112,7 +112,9 @@ do
     ask 'Enter command (for help type `?`)' COMMAND
     echo ""
     if [[ $COMMAND == 'q' || $COMMAND == "quit" ]]; then
-        echo "done" && exit 0
+        echo ""
+        echo 'Remember to restart Traefik (`make install`) for new certificates to be issued.'
+        exit 0
     elif [[ $COMMAND == '?' || $COMMAND == "help" ]]; then
         print_help
     elif [[ $COMMAND == "l" || $COMMAND == "list" ]]; then
