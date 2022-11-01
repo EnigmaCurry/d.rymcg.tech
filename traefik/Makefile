@@ -13,7 +13,7 @@ config-ask:
 
 .PHONY: open # Start SSH tunnel and open the Traefik Dashboard
 open:
-	@TRAEFIK_IP=$$(${BIN}/dotenv -f ${ENV_FILE} get TRAEFIK_WIREGUARD_SUBNET_IP) && curl localhost:8080 2>&1 >/dev/null && ${BIN}/open /dashboard/#/http/routers 127.0.0.1:8080 http || (set -x; ssh -N -L 8080:$${TRAEFIK_IP}:8080 $$(docker context inspect | jq -r '.[0]["Endpoints"]["docker"]["Host"]' | sed 's|^ssh://||') &  echo "Starting SSH Tunnel ..." && sleep 5 && ${BIN}/open /dashboard/#/http/routers 127.0.0.1:8080 http)
+	curl localhost:8080 2>&1 >/dev/null && ${BIN}/open /dashboard/#/http/routers 127.0.0.1:8080 http || (set -x; ssh -N -L 8080:127.0.0.1:8080 $$(docker context inspect | jq -r '.[0]["Endpoints"]["docker"]["Host"]' | sed 's|^ssh://||') &  echo "Starting SSH Tunnel ..." && sleep 5 && ${BIN}/open /dashboard/#/http/routers 127.0.0.1:8080 http)
 
 .PHONY: close # Stop the dashboard SSH tunnel
 close:

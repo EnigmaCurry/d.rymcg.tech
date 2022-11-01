@@ -12,22 +12,30 @@ api:
   dashboard: true
 #@ end
 
+#@ if data.values.plugins == "true":
 experimental:
   localPlugins:
+    #@ if data.values.plugin_blockpath == "true":
     blockpath:
       modulename: github.com/traefik/plugin-blockpath
+    #@ end
+#@ end
 
 providers:
+  #@ if data.values.file_provider == "true":
   file:
-    directory: /data/config
+    directory: /data/config/dynamic
     watch: #@ data.values.file_provider_watch == "true"
+  #@ end
+  #@ if data.values.docker_provider == "true":
   docker:
     exposedByDefault: false
+  #@ end
 
 global:
   sendAnonymousUsage: #@ data.values.send_anonymous_usage == "true"
 
-certificateResolvers:
+certificatesResolvers:
   production:
     acme:
       caserver: https://acme-v02.api.letsencrypt.org/directory
@@ -81,5 +89,7 @@ entryPoints:
     address: :8883
   ssh:
     address: :2222
+  #@ if data.values.dashboard == "true":
   traefik:
     address: 127.0.0.1:8080
+  #@ end
