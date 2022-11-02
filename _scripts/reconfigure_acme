@@ -75,11 +75,11 @@ then
 
     echo ""
     echo "Now to enter the values for the custom DNS API variables:"
-    test -n "${TRAEFIK_ACME_DNS_VARNAME_1}" && ${BIN}/reconfigure_ask ${ENV_FILE} ${TRAEFIK_ACME_DNS_VARNAME_1} "Enter the value for ${TRAEFIK_ACME_DNS_VARNAME_1}"
-    test -n "${TRAEFIK_ACME_DNS_VARNAME_2}" && ${BIN}/reconfigure_ask ${ENV_FILE} ${TRAEFIK_ACME_DNS_VARNAME_2} "Enter the value for ${TRAEFIK_ACME_DNS_VARNAME_2}"
-    test -n "${TRAEFIK_ACME_DNS_VARNAME_3}" && ${BIN}/reconfigure_ask ${ENV_FILE} ${TRAEFIK_ACME_DNS_VARNAME_3} "Enter the value for ${TRAEFIK_ACME_DNS_VARNAME_3}"
-    test -n "${TRAEFIK_ACME_DNS_VARNAME_4}" && ${BIN}/reconfigure_ask ${ENV_FILE} ${TRAEFIK_ACME_DNS_VARNAME_4} "Enter the value for ${TRAEFIK_ACME_DNS_VARNAME_4}"
-    test -n "${TRAEFIK_ACME_DNS_VARNAME_5}" && ${BIN}/reconfigure_ask ${ENV_FILE} ${TRAEFIK_ACME_DNS_VARNAME_5} "Enter the value for ${TRAEFIK_ACME_DNS_VARNAME_5}"
+    test -n "${TRAEFIK_ACME_DNS_VARNAME_1}" && ${BIN}/reconfigure_ask ${ENV_FILE} ${TRAEFIK_ACME_DNS_VARNAME_1} "Enter the value for ${TRAEFIK_ACME_DNS_VARNAME_1}" || true
+    test -n "${TRAEFIK_ACME_DNS_VARNAME_2}" && ${BIN}/reconfigure_ask ${ENV_FILE} ${TRAEFIK_ACME_DNS_VARNAME_2} "Enter the value for ${TRAEFIK_ACME_DNS_VARNAME_2}" || true
+    test -n "${TRAEFIK_ACME_DNS_VARNAME_3}" && ${BIN}/reconfigure_ask ${ENV_FILE} ${TRAEFIK_ACME_DNS_VARNAME_3} "Enter the value for ${TRAEFIK_ACME_DNS_VARNAME_3}" || true
+    test -n "${TRAEFIK_ACME_DNS_VARNAME_4}" && ${BIN}/reconfigure_ask ${ENV_FILE} ${TRAEFIK_ACME_DNS_VARNAME_4} "Enter the value for ${TRAEFIK_ACME_DNS_VARNAME_4}" || true
+    test -n "${TRAEFIK_ACME_DNS_VARNAME_5}" && ${BIN}/reconfigure_ask ${ENV_FILE} ${TRAEFIK_ACME_DNS_VARNAME_5} "Enter the value for ${TRAEFIK_ACME_DNS_VARNAME_5}" || true
 else
     ${BIN}/reconfigure ${ENV_FILE} TRAEFIK_ACME_CHALLENGE=tls
 fi

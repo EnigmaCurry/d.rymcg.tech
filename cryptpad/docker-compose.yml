@@ -62,7 +62,6 @@ services:
       # HTTPS router rules
       - traefik.http.routers.cpad-https.entrypoints=websecure
       - traefik.http.routers.cpad-https.rule=Host(`${CRYPTPAD_TRAEFIK_HOST}`, `${CRYPTPAD_SANDBOX_DOMAIN}`)
-      - traefik.http.routers.cpad-https.tls.certresolver=${ACME_CERT_RESOLVER}
       - traefik.http.routers.cpad-https.service=cpad
       # Rewrite CORS headers - For some reason cryptpad is duplicating the CORS headers
       # This makes chromium browsers not load, so this rewrite rule de-duplicates the headers

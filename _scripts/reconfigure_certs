@@ -11,7 +11,9 @@ shift
 ## Make new .env if it doesn't exist:
 test -f ${ENV_FILE} || cp ../traefik/.env-dist ${ENV_FILE}
 
+
 print_help() {
+    echo "Docker context: $(docker context inspect | jq -r '.[0].Name')"
     echo "Certificate manager:"
     echo ' * Type `q` or `quit` to quit the certificate manager.'
     echo ' * Type `l` or `list` to list certificate domains.'
@@ -54,7 +56,7 @@ create_certificate_domains() {
     else
         DEFAULT_DOMAIN=""
     fi
-    ask 'Enter the main domain for this certificate (no wildcard, eg. `d.rymcg.tech`)' domain $DEFAULT_DOMAIN
+    ask 'Enter the main domain for this certificate (eg. `d.rymcg.tech` or `*.d.rymcg.tech`)' domain $DEFAULT_DOMAIN
 
     if [[ $domain == "" ]]; then
         echo "domain cannot be blank."
@@ -64,7 +66,7 @@ create_certificate_domains() {
     echo "Now enter the SANS domains, one per line:"
     while :
     do
-        ask "Enter a secondary domain or wildcard (enter blank to skip)" second
+        ask "Enter a secondary domain (enter blank to skip)" second
         if [[ $second == "" ]]; then
             break
         fi

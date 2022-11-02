@@ -25,3 +25,7 @@ cert: certs
 .PHONY: certs # Make TLS Certificates
 certs:
 	@${BIN}/reconfigure_certs ${ENV_FILE}
+
+.PHONY: config-inspect # Inspect the live configuration
+config-inspect:
+	@docker-compose --env-file ${ENV_FILE} exec traefik sh -c "find /data/config -type f | xargs -iXX sh -c \"echo \#\# XX\ && cat XX && echo ''\""
