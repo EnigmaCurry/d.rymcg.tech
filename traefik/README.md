@@ -259,10 +259,20 @@ web browser to access it. Enter the username/password you configured.
 Traefik plugins are automatically cloned from a source repository and
 built into a custom container image, whenever you run `make install`.
 
-This configuration has builtin support for the
-[blockpath](https://github.com/traefik/plugin-blockpath) plugin. You
-can add third party plugins by modifying the [Dockerfile](Dockerfile),
-and follow the example of blockpath.
+This configuration has builtin support for the following plugins:
+
+ * [blockpath](https://github.com/traefik/plugin-blockpath) -
+   middleware that returns 401 Forbidden. (Enable by setting
+   `TRAEFIK_PLUGIN_BLOCKPATH=true`)
+   ([whoami](../whoami/docker-compose.yaml) has an example)
+ * [geoip2](https://github.com/GiGInnovationLabs/traefikgeoip2) -
+   middleware that adds headers containing geographic location based
+   upon IP address. (Enable by setting
+   `TRAEFIK_PLUGIN_MAXMIND_GEOIP=true`)
+   ([whoami](../whoami/docker-compose.yaml) has an example)
+
+You can add third party plugins by modifying the
+[Dockerfile](Dockerfile), and follow the example of blockpath.
 
 You also need to [add your plugin to the traefik static
 configuration](https://github.com/EnigmaCurry/d.rymcg.tech/blob/291beafcbe8aa83860619d3a18336efce7c67c0a/traefik/config/traefik.yml#L15-L22).

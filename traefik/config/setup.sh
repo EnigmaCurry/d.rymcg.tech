@@ -23,6 +23,7 @@ ytt_template() {
         -v docker_provider=${TRAEFIK_DOCKER_PROVIDER} \
         -v plugins=${TRAEFIK_PLUGINS} \
         -v plugin_blockpath=${TRAEFIK_PLUGIN_BLOCKPATH} \
+        -v plugin_maxmind_geoip=${TRAEFIK_PLUGIN_MAXMIND_GEOIP} \
         > ${dst}
     echo "[ ! ] GENERATED NEW CONFIG FILE :::  ${dst}"
     [[ "$TRAEFIK_CONFIG_VERBOSE" == "true" ]] && \
