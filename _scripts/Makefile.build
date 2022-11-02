@@ -3,3 +3,7 @@ DOCKER_BUILDKIT ?= 1
 .PHONY: build # Build container images
 build:
 	docker compose --env-file=${ENV_FILE} build
+
+.PHONY: build-force # Build container images without cache
+build-force:
+	docker compose --env-file=${ENV_FILE} build --no-cache

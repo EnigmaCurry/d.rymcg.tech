@@ -19,6 +19,10 @@ experimental:
     blockpath:
       modulename: github.com/traefik/plugin-blockpath
     #@ end
+    #@ if data.values.plugin_maxmind_geoip == "true":
+    geoip:
+      modulename: github.com/GiGInnovationLabs/traefikgeoip2
+    #@ end
 #@ end
 
 providers:

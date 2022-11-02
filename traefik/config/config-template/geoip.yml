@@ -1,0 +1,7 @@
+#@ load("@ytt:data", "data")
+http:
+  middlewares:
+    geoip:
+      plugin:
+        geoip:
+          dbPath: /var/lib/traefikgeoip2/GeoLite2-City.mmdb
