@@ -43,4 +43,3 @@ services:
       # - "traefik.http.routers.whoami-auth.entrypoints=websecure"
       # - "traefik.http.routers.whoami-auth.middlewares=traefik-forward-auth@docker"
 
-      

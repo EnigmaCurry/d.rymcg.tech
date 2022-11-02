@@ -3,7 +3,7 @@ version: "3.3"
 volumes:
   baikal_config:
   baikal_data:
-  
+
 services:
   baikal:
     image: "ckulka/baikal:nginx"

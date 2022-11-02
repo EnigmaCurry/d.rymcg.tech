@@ -26,6 +26,7 @@ services:
       - "traefik.http.services.archivebox.loadbalancer.server.port=8000"
       ## Authentication:
       - "traefik.http.middlewares.archivebox-auth.basicauth.users=${ARCHIVEBOX_HTTP_AUTH}"
+      - "traefik.http.middlewares.archivebox-auth.basicauth.removeHeader=true"
       - "traefik.http.routers.archivebox.middlewares=archivebox-auth@docker"
 
   public-api-gateway:
@@ -49,13 +50,11 @@ services:
       - "traefik.http.routers.archivebox-api-gateway.service=archivebox-api-gateway"
       - "traefik.http.services.archivebox-api-gateway.loadbalancer.server.port=8000"
       ## Authentication:
-      - "traefik.http.middlewares.archivebox-auth.basicauth.users=${ARCHIVEBOX_HTTP_AUTH}"
       - "traefik.http.routers.archivebox-api-gateway.middlewares=archivebox-auth@docker"
 
       ## Anonymous access for GET /api-gateway/page ONLY:
       - "traefik.http.routers.archivebox-public-api.rule=Host(`${ARCHIVEBOX_TRAEFIK_HOST}`) && Path(`/api-gateway/page`) && Method(`GET`)"
       - "traefik.http.routers.archivebox-public-api.entrypoints=websecure"
-      - "traefik.http.routers.archivebox-public-api.tls.certresolver=${ACME_CERT_RESOLVER}"
       - "traefik.http.routers.archivebox-public-api.service=archivebox-api-gateway"
 
 

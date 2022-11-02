@@ -86,7 +86,7 @@ Instead, certificates are explicitly managed by the Traefik [static
 configuration
 template](https://github.com/EnigmaCurry/d.rymcg.tech/blob/e6a4d0285f04d6d7f07fb9a5ec403ba421229747/traefik/config/traefik.yml#L80-L87)
 directly on the endpoint. Therefore you must configure the certificate
-domains, *and restart Traefik*, before these certificates are needed.
+domains, *and reinstall Traefik*, before these certificates are needed.
 
 `make certs` is an interactive tool that configures the
 `TRAEFIK_ACME_CERT_DOMAINS` variable in the Traefik
@@ -111,25 +111,24 @@ Press `c` to create a new certificate domain.
 
 ```
 Configure the domains for the new certificate:
-Enter the main domain for this certificate (no wildcard, eg. `d.rymcg.tech`):
+Enter the main domain for this certificate (eg. `d.rymcg.tech` or `*.d.rymcg.tech`):
 ```
 
 At this prompt, enter the main domain, the same way as you chose for
 `WHOAMI_TRAEFIK_HOST` in the whoami .env file, eg:
-`whoami.d.example.com`.
+`whoami.d.example.com`. If you chose to use the DNS challenge type,
+this can be a wildcard domain instead, eg `*.d.example.com`.
 
 ```
-Enter a secondary domain or wildcard (enter blank to skip)
+Enter a secondary domain (enter blank to skip)
 ```
 
-At the second prompt here, you can enter additional domains to be
-listed on the same certificate (SANS; Subject Alternative Names). If
-you chose to use the DNS challenge type, this is allowed to be a
-wildcard domain, eg `*.d.example.com`. For the TLS challenge,
-wildcards are not allowed, so you must enter all the domains you want
-to have explicitly, eg. `whoami2.d.example.com`,
-`whoami3.d.example.com`, etc. (enter each domain separately, then
-press Enter on a blank line to finish.)
+At the second prompt here, you can enter additional domains or
+wildcards to be listed on the same certificate (SANS; Subject
+Alternative Names). For the TLS challenge, wildcards are not allowed,
+so you must enter all the domains you want to have explicitly as SANS,
+eg. `whoami2.d.example.com`, `whoami3.d.example.com`, etc. (enter each
+domain separately, then press Enter on a blank line to finish.)
 
 You can create several certificate domains, and each one can have
 several SANS domains. The final list of all your certificate
@@ -138,7 +137,13 @@ the `TRAEFIK_ACME_CERT_DOMAINS` variable as a JSON nested list. When
 you run `make install` this is pushed into the [static configuration
 template](https://github.com/EnigmaCurry/d.rymcg.tech/blob/e6a4d0285f04d6d7f07fb9a5ec403ba421229747/traefik/config/traefik.yml#L80-L87).
 
-Back at the main menu, type `q` to quit the certificate manager.
+Back at the main menu, type `q` to quit the certificate manager. In
+order for the new certificate domains to be loaded, you must reinstall
+traefik:
+
+```
+make install
+```
 
 ## Traefik config templating
 
@@ -239,18 +244,10 @@ make open
 
 You can `make close` later if you want to close the SSH tunnel.
 
-If you don't wish to use the Makefile, you can do it manually:
-
-Find the Traefik IP address:
+If you don't wish to use the Makefile, you can start the tunnel manually:
 
 ```
-docker inspect traefik | jq -r '.[0]["NetworkSettings"]["Networks"]["traefik-proxy"]["IPAddress"]'
-```
-
-And tunnel the dashboard connection through SSH:
-
-```
-ssh -N -L 8080:${TRAEFIK_IP}:8080 ssh.example.com &
+ssh -N -L 8080:127.0.0.1:8080 ssh.example.com &
 ```
 
 With the tunnel active, you can view
