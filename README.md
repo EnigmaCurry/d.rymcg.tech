@@ -292,6 +292,7 @@ Install these services at your leisure/preference:
 * [Baikal](baikal) - a lightweight CalDAV+CardDAV server
 * [Bitwarden](bitwarden_rs) - a password manager
 * [CryptPad](cryptpad) - a collaborative document and spreadsheet editor 
+* [DrawIO](drawio) - a diagram / whiteboard editor tool
 * [Ejabberd](ejabberd) - an XMPP (Jabber) server
 * [Filestash](filestash) - a web based file manager with customizable backend storage providers
 * [FreshRSS](freshrss) - an RSS reader / proxy
