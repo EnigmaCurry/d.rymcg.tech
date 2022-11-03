@@ -270,6 +270,8 @@ in the first terminal session.)
 You can install the systemd service to control the VM and/or startup
 on boot, explained in the following steps:
 
+Make sure the VM is shutdown. (`ssh docker-vm shutdown -h now`)
+
 If you want to automatically start the Docker VM on startup, you must
 enable ["systemd
 lingering"](https://wiki.archlinux.org/title/Systemd/User#Automatic_start-up_of_systemd_user_instances),
