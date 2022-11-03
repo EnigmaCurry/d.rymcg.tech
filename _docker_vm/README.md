@@ -1,9 +1,8 @@
 # Localhost Docker on KVM Virtual Machine
 
-**Update**: [Docker
-Desktop](https://docs.docker.com/desktop/install/linux-install/) is
-now available for all three major platforms: Linux, Windows, and Mac.
-So for desktop users, you can use Docker Desktop instead of these
+**Update**: [Docker Desktop](https://docs.docker.com/desktop) is now
+available for all three major platforms: Linux, Windows, and Mac. So
+for desktop users, you can use Docker Desktop instead of these
 instructions. For command-line/headless/server installs, these
 instructions are still working great.
 
