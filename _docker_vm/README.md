@@ -1,5 +1,12 @@
 # Localhost Docker on KVM Virtual Machine
 
+**Update**: [Docker
+Desktop](https://docs.docker.com/desktop/install/linux-install/) is
+now available for all three major platforms: Linux, Windows, and Mac.
+So for desktop users, you can use Docker Desktop instead of these
+instructions. For command-line/headless/server installs, these
+instructions are still working great.
+
 Run a secure Docker environment in a KVM (qemu) Virtual Machine (VM)
 as an unprivileged systemd user service on your local workstation (or
 on a server). This is optimized for private localhost development
@@ -30,10 +37,9 @@ development on your laptop before even thinking about setting one up.
 (Or, you may have a server, but its already being used for other
 non-docker things.) In that case, the recommendation is to run Docker
 inside of a VM and connect to it just like you would a remote Docker
-server. This exact recipe is used for the MacOS and Windows Docker
-Desktop versions, so if you're using Docker Desktop on a non-Linux
-computer, you can quit reading this, you're already running Docker in
-a VM.
+server. This exact recipe is used for Docker Desktop, so if you're
+using Docker Desktop, you can quit reading this, you're already
+running Docker in a VM.
 
 This guide is for Linux workstation/server users only! This will show
 you how to automatically install a new KVM virtual machine with the
