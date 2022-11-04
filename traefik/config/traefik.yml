@@ -97,3 +97,7 @@ entryPoints:
   traefik:
     address: 127.0.0.1:8080
   #@ end
+  #@ if data.values.vpn_entrypoint == "true":
+  vpn:
+    address: #@ data.values.vpn_entrypoint_host + ":" + data.values.vpn_entrypoint_port
+  #@ end
