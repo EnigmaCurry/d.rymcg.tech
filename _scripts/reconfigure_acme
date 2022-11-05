@@ -38,7 +38,7 @@ echo "  principle of Least Privilege."
 echo ""
 
 if ${BIN}/confirm $(test "$(${BIN}/dotenv -f ${ENV_FILE} get TRAEFIK_ACME_CHALLENGE)" == "dns" && echo yes || echo no) \
-         "Do you want to use the ACME DNS challenge type" ?;
+         "Do you want to use the ACME DNS challenge type" "?";
 then
     ${BIN}/reconfigure ${ENV_FILE} TRAEFIK_ACME_CHALLENGE=dns
     echo ""

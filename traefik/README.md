@@ -174,6 +174,14 @@ You can turn off the file provider by setting
 `TRAEFIK_FILE_PROVIDER=false` and/or turn off the Docker provider by
 setting `TRAEFIK_DOCKER_PROVIDER=false`.
 
+You can inspect the live traefik config after the templating has been
+applied:
+
+```
+# Traefik must be running:
+make config-inspect
+```
+
 ## Manual config
 
 If you don't want to run the interactive configuration, you can also
@@ -198,6 +206,30 @@ the most relevant options to edit:
  * `TRAEFIK_DASHBOARD_AUTH` this is the htpasswd encoded username/password to
    access the Traefik API and dashboard. If you ran `make config` this would be
    filled in for you, simply by answering the questions.
+
+Each entrypoint can be configured on or off, as well as the explicit
+host IP address and port number:
+ * `TRAEFIK_WEB_ENTRYPOINT_ENABLED=true` enables the HTTP entrypoint,
+   which is only used for redirecting to `websecure` entrypoint. Use
+   `TRAEFIK_WEB_ENTRYPOINT_HOST` and `TRAEFIK_WEB_ENTRYPOINT_PORT` to
+   customize the host (default `0.0.0.0`) and port number (default
+   `80`).
+ * `TRAEFIK_WEBSECURE_ENTRYPOINT_ENABLED=true` enables the HTTPS
+   entrypoint. Use `TRAEFIK_WEBSECURE_ENTRYPOINT_HOST` and
+   `TRAEFIK_WEBSECURE_ENTRYPOINT_PORT` to customize the host (default
+   `0.0.0.0`) and port number (default `443`).
+ * `TRAEFIK_MQTT_ENTRYPOINT_ENABLED=true` enables the MQTT
+   entrypoint. Use `TRAEFIK_MQTT_ENTRYPOINT_HOST` and
+   `TRAEFIK_MQTT_ENTRYPOINT_PORT` to customize the host (default
+   `0.0.0.0`) and port number (default `8883`).
+ * `TRAEFIK_SSH_ENTRYPOINT_ENABLED=true` enables the SSH
+   entrypoint. Use `TRAEFIK_SSH_ENTRYPOINT_HOST` and
+   `TRAEFIK_SSH_ENTRYPOINT_PORT` to customize the host (default
+   `0.0.0.0`) and port number (default `2222`).
+ * `TRAEFIK_VPN_ENTRYPOINT_ENABLED=true` enables the VPN
+   entrypoint. Use `TRAEFIK_VPN_ENTRYPOINT_HOST` and
+   `TRAEFIK_VPN_ENTRYPOINT_PORT` to customize the host (default
+   `172.15.0.3`) and port number (default `443`).
 
 The DNS-01 challenge type requires some additional environment
 variables as specified by the [LEGO
@@ -295,3 +327,17 @@ to web servers running in project containers.
 
 You can start the [traefik-forward-auth](../traefik-forward-auth) service to
 enable OAuth2 authentication to your [gitea](../gitea) identity provider.
+
+## VPN entrypoint
+
+If you enable the VPN entrypoint
+(`TRAEFIK_VPN_ENTRYPOINT_ENABLED=true`), Traefik will listen on the
+`traefik-vpn` network on TCP port `442` (TLS). This entrypoint can
+only be accessed by VPN clients connected through
+[wireguard](../wireguard) or other services you start on the
+`traefik-vpn` network.
+
+When you run `make config` you will be asked the question `Do you want
+to enable the Traefik VPN entrypoint?`. Say yes, and the `traefik-vpn`
+docker network wiill be automatically created, and the Traefik
+entrypoint enabled.

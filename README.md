@@ -107,13 +107,16 @@ other option but to run the firewall on the same host, check out
 [chaifeng/ufw-docker](https://github.com/chaifeng/ufw-docker#solving-ufw-and-docker-issues)
 for a partial fix.)
 
-With a few exceptions, all network traffic flows through Traefik. The network
-ports that you need to allow through the firewall are listed in
-[traefik/docker-compose.yaml](traefik/docker-compose.yaml) in the `Entrypoints`
-section. You can add or remove these entrypoints as you see fit.
+With only a few exceptions, all network traffic flows through one of
+several Traefik entrypoints, listed in the [static configuration
+template](traefik/config/traefik.yml) (`traefik.yml`) in the
+`entryPoints` section.
 
-Depending on which services you actually install, you need to open these
-(default) ports in your firewall:
+Each entrypoint has an associated environment variable to turn it on
+or off. See the [Traefik](traefik) configuration for more details.
+
+Depending on which services you actually install, you need to open
+these (default) ports in your firewall:
 
    | Type   | Protocol | Port Range | Description                           |
    | ------ | -------- | ---------- | --------------------------------      |
