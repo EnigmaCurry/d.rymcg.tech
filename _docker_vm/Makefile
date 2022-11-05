@@ -122,3 +122,7 @@ build-and-boot: check-name create-ssh-config build
 	HOSTFWD_HOST=${HOSTFWD_HOST} \
 	./boot.sh
 
+.PHONY: arch-emulators # Install emulators for different architectures (ARM, etc.)
+arch-emulators:
+	ssh ${VMNAME} apt install -y qemu binfmt-support qemu-user-static
+	docker run --rm --privileged multiarch/qemu-user-static --reset -p yes

@@ -438,6 +438,26 @@ names that are replaced via
 customize this file however you wish to change how the installer
 behaves.
 
+## Emulate different host architectures
+
+You may wish to develop docker images for other computer architectures
+that your own host. You can emulate different platforms with Qemu:
+
+```
+make arch-emulators
+```
+
+Now test with different platforms:
+
+```
+export DOCKER_DEFAULT_PLATFORM=linux/amd64
+docker run --rm -t ubuntu uname -m
+
+export DOCKER_DEFAULT_PLATFORM=linux/arm64
+docker run --rm -t ubuntu uname -m
+
+```
+
 ## Credits
 
 The `build_qemu_debian_image.sh` script is a fork from Sylvestre Ledru
