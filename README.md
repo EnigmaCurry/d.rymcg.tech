@@ -64,9 +64,11 @@ own public internet server or cloud host.
 See [DIGITALOCEAN.md](DIGITALOCEAN.md) for instructions on creating a Docker
 host on DigitalOcean. 
 
-For development purposes, you can install Docker on a virtual machine (and
-remotely control it from your local workstation). See [_docker_vm](_docker_vm#readme)
-to install Docker on KVM/Qemu.
+For development purposes, you can install Docker on a virtual machine
+(and remotely control it from your local workstation). See
+[_docker_vm](_docker_vm#readme) to install Docker on KVM/Qemu. You can
+also install [Docker Desktop](https://docs.docker.com/desktop)
+on Linux, Windows, or Mac.
 
 ### Setup DNS for your domain and Docker server
 
