@@ -157,6 +157,21 @@ And prevent it from starting:
 sudo systemctl mask docker
 ```
 
+## Add your user to the KVM group
+
+```
+# Add your user to the kvm group:
+sudo gpasswd -a ${USER} kvm
+newgrp kvm
+```
+
+To make the setting permanent, you should log out of your (desktop)
+session and log back in.
+
+(Note: I still consider this "unprivileged" access. Adding a user to
+the `kvm` group is far safer than adding your user to the `docker`
+group.)
+
 ## Review the config in the Makefile
 
 You can change any of the config values you need by setting these
@@ -166,7 +181,7 @@ Makefile, which become the default settings):
  * `VMNAME` - the name of the VM
  * `DISTRO` - the [debian distribution
    name](https://www.debian.org/releases/) (eg. bullseye, buster,
-   jessie)
+   jessie) for the VM.
  * `DISK` - the size of the VM disk image (eg. `20G`)
  * `MEMORY` - the size of the RAM in MB (eg `2048`)
  * `SSH_PORT` - the external SSH port mapped on the Host (eg `10022`)
@@ -286,21 +301,6 @@ in):
 ## Permanently allow your user account to "linger":
 sudo loginctl enable-linger ${USER}
 ```
-
-You also must add your user account to the `kvm` group. (This is only
-a requirement if you are staring the VM automatically on boot, *before
-logging in*, [otherwise this privilege is handled automatically by
-uaccess after you login](https://unix.stackexchange.com/a/599706)):
-
-```
-# Add your user to the kvm group:
-sudo gpasswd -a ${USER} kvm
-```
-
-(Note: I still consider this "unprivileged" access. Adding a user to
-the `kvm` group is far safer than adding your user to the `docker`
-group.)
-
 
 Now install the systemd User service that controls the VM:
 
