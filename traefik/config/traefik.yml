@@ -41,6 +41,7 @@ global:
 
 certificatesResolvers:
   production:
+    #@ if data.values.acme_enabled == "true":
     acme:
       caserver: https://acme-v02.api.letsencrypt.org/directory
       email: #@ data.values.acme_ca_email
@@ -54,7 +55,9 @@ certificatesResolvers:
       httpChallenge:
         entryPoint: web
       #@ end
+    #@ end
   staging:
+    #@ if data.values.acme_enabled == "true":
     acme:
       caserver: https://acme-staging-v02.api.letsencrypt.org/directory
       email: #@ data.values.acme_ca_email
@@ -68,7 +71,7 @@ certificatesResolvers:
       httpChallenge:
         entryPoint: web
       #@ end
-
+    #@ end
 entryPoints:
   #@ if data.values.web_entrypoint_enabled == "true":
   web:
@@ -83,6 +86,7 @@ entryPoints:
     address: #@ data.values.websecure_entrypoint_host + ":" + data.values.websecure_entrypoint_port
     http:
       tls:
+        #@ if data.values.acme_enabled == "true":
         certResolver: #@ data.values.acme_cert_resolver
         domains:
           #@ for domain in json.decode(data.values.acme_cert_domains):
@@ -92,12 +96,14 @@ entryPoints:
               - #@ secondary
               #@ end
           #@ end
+        #@ end
   #@ end
   #@ if data.values.vpn_entrypoint_enabled == "true":
   vpn:
     address: #@ data.values.vpn_entrypoint_host + ":" + data.values.vpn_entrypoint_port
     http:
       tls:
+        #@ if data.values.acme_enabled == "true":
         certResolver: #@ data.values.acme_cert_resolver
         domains:
           #@ for domain in json.decode(data.values.acme_cert_domains):
@@ -107,6 +113,7 @@ entryPoints:
               - #@ secondary
               #@ end
           #@ end
+        #@ end
       middlewares: traefik-vpn-ip-filter@file
   #@ end
   #@ if data.values.ssh_entrypoint_enabled == "true":

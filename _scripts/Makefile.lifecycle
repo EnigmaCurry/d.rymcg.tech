@@ -32,6 +32,6 @@ destroy:
 status:
 	docker compose --env-file=${ENV_FILE} ps
 
-.PHONY: logs # View container logs
+.PHONY: logs # View container logs (set CONTAINER=name to filter for a single container)
 logs:
-	docker compose --env-file=${ENV_FILE} logs -f
+	docker compose --env-file=${ENV_FILE} logs -f ${CONTAINER}

@@ -1,7 +1,9 @@
 #@ load("@ytt:data", "data")
+#@ if data.values.plugin_maxmind_geoip == "true" :
 http:
   middlewares:
     geoip:
       plugin:
         geoip:
           dbPath: /var/lib/traefikgeoip2/GeoLite2-City.mmdb
+#@ end

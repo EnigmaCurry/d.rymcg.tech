@@ -21,6 +21,7 @@ services:
       - TRAEFIK_CONFIG_VERBOSE=${TRAEFIK_CONFIG_VERBOSE:-false}
       - TRAEFIK_ACME_CA_EMAIL
       - TRAEFIK_LOG_LEVEL=${TRAEFIK_LOG_LEVEL:-info}
+      - TRAEFIK_ACME_ENABLED=${TRAEFIK_ACME_ENABLED:-false}
       - TRAEFIK_ACME_CHALLENGE=${TRAEFIK_ACME_CHALLENGE:-tls}
       - TRAEFIK_ACME_CERT_DOMAINS
       - TRAEFIK_ACME_DNS_PROVIDER
@@ -58,7 +59,7 @@ services:
 
   geoip_database:
     image: maxmindinc/geoipupdate
-    restart: unless-stopped
+    restart: on-failure:3
     environment:
       - GEOIPUPDATE_ACCOUNT_ID=${TRAEFIK_GEOIPUPDATE_ACCOUNT_ID}
       - GEOIPUPDATE_LICENSE_KEY=${TRAEFIK_GEOIPUPDATE_LICENSE_KEY}

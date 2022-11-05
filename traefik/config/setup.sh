@@ -11,6 +11,7 @@ ytt_template() {
         -v acme_cert_domains=${TRAEFIK_ACME_CERT_DOMAINS} \
         -v log_level=${TRAEFIK_LOG_LEVEL} \
         -v send_anonymous_usage=${TRAEFIK_SEND_ANONYMOUS_USAGE} \
+        -v acme_enabled=${TRAEFIK_ACME_ENABLED} \
         -v acme_ca_email=${TRAEFIK_ACME_CA_EMAIL} \
         -v acme_challenge=${TRAEFIK_ACME_CHALLENGE} \
         -v acme_dns_provider=${TRAEFIK_ACME_DNS_PROVIDER} \
@@ -43,11 +44,13 @@ ytt_template() {
         -v vpn_entrypoint_host=${TRAEFIK_VPN_ENTRYPOINT_HOST} \
         -v vpn_entrypoint_port=${TRAEFIK_VPN_ENTRYPOINT_PORT} \
         > ${dst}
+    success=$?
     echo "[ ! ] GENERATED NEW CONFIG FILE :::  ${dst}"
     [[ "$TRAEFIK_CONFIG_VERBOSE" == "true" ]] && \
         cat ${dst} && \
         echo "---" \
             || true
+    return ${success}
 }
 
 create_config() {
@@ -60,7 +63,14 @@ create_config() {
                   | grep -v "./traefik.yml" \
                   | grep -E '(.yaml|.yml)$'); do
         dst=${CONFIG_DIR}/dynamic/$(basename ${src})
-        ytt_template ${src} ${dst}
+        set +e
+        (ytt_template ${src} ${dst})
+        if [[ "$?" != "0" ]]; then
+            echo "ERROR: CRITICAL: Dynamic config template failed, therefore removing all the config."
+            rm -rf ${CONFIG_DIR}
+            exit 1
+        fi
+        set -e
     done
 }
 
