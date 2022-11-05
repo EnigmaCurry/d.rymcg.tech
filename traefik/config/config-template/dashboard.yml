@@ -1,5 +1,5 @@
 #@ load("@ytt:data", "data")
-#@ if data.values.dashboard == "true":
+#@ if data.values.dashboard_entrypoint_enabled == "true":
 http:
   routers:
     api:

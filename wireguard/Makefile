@@ -7,7 +7,6 @@ config:
 	@${BIN}/reconfigure_ask ${ENV_FILE} WIREGUARD_PEERS "Enter the wireguard peer names (comma separated)"
 	@${BIN}/reconfigure_ask ${ENV_FILE} WIREGUARD_SUBNET "Enter the wireguard internal subnet" 10.13.16.0/24
 	@${BIN}/reconfigure_ask ${ENV_FILE} WIREGUARD_HOST_PORT "Enter the wireguard host port" 51820
-	@${BIN}/reconfigure ${ENV_FILE} WIREGUARD_NETWORKS=traefik-wireguard
 	@${BIN}/reconfigure ${ENV_FILE} WIREGUARD_ALLOWEDIPS=$$(${BIN}/subnet_ip $$(${BIN}/dotenv -f ${ENV_FILE} get WIREGUARD_SUBNET))/32,$$(${BIN}/docker_subnets $$(${BIN}/dotenv -f ${ENV_FILE} get WIREGUARD_NETWORKS))
 	@${BIN}/reconfigure_ask ${ENV_FILE} WIREGUARD_CLIENT_NAME "Enter a single word [a-z] name for the local wireguard client" $$(${BIN}/dotenv -f ${ENV_FILE} get WIREGUARD_TRAEFIK_HOST | sha256sum | head -c 8)
 

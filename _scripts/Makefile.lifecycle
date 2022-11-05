@@ -1,6 +1,9 @@
 .PHONY: install # Build and starts services
 install: build start
 
+.PHONY: uninstall # Uninstall services leaving volumes intact
+uninstall: down
+
 .PHONY: start # Start services
 start:
 	ENV_FILE=${ENV_FILE} docker compose --env-file=${ENV_FILE} up -d
@@ -13,7 +16,7 @@ stop:
 	docker compose --env-file=${ENV_FILE} stop
 
 .PHONY: down
-down: 
+down:
 	docker compose --env-file=${ENV_FILE} down
 
 .PHONY: restart # Restart services

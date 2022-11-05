@@ -5,10 +5,11 @@ the
 [linuxserver/docker-wireguard](https://github.com/linuxserver/docker-wireguard)
 container.
 
-This configuration starts a wireguard server in a container, and maps to the
-host port 51820. Client credentials are printed to the log, in the form of QR
-codes. Once the server is up, scan the code with your mobile client, and the VPN
-is automatically setup.
+This configuration starts a wireguard server in a container, and maps
+to the host port 51820, and joins the `traefik-vpn` docker network.
+Client credentials are printed to the log, in the form of QR codes.
+Once the server is up, scan the code with your mobile client, and the
+VPN is automatically setup.
 
 There is an associated client configuration in
 [wireguard-client](../wireguard-client).
@@ -21,7 +22,16 @@ the internet through Traefik.
 
 ## Config
 
-Run `make config` to setup your `.env` file.
+You must first reconfigure Traefik to [enable the vpn
+endpoint](../traefik#vpn-endpoint), setting
+`TRAEFIK_VPN_ENTRYPOINT_ENABLED=true`. From the `traefik` directory,
+re-run `make config` and answer yes to the question to enable the VPN
+entrypoint and then re-run `make install`. This will automatically
+create the `traefik-vpn` docker network, which must exist before
+installing wireguard.
+
+Now in this directory (`wireguard`), run `make config` to setup your
+`.env` file.
 
  * `WIREGUARD_TRAEFIK_HOST` the domain name of the wireguard server (even if you don't connect it to traefik)
  * `WIREGUARD_HOST_PORT` the wireguard port exposed to the host (eg. `51820`) (same port inside the container)
@@ -115,11 +125,12 @@ Traefik binds the `vpn` endpoint on port `442`, on an ip address (`172.15.0.3`
 by default) that is only accessible from the `traefik-wireguard` network (or
 from the docker host). Port `442` is not exposed to the internet.
 
-Since web browsers default `https://` URLs to use port `443`, a redirect from
-port `443` (`websecure` endpoint) to port `442` (`vpn` endpoint) is added for
-convenience. This redirect only happens for requests originating from IP
-addresses in the `traefik-wireguard` subnet range. If requests come on any other
-network, the access is forbidden.
+Since web browsers default `https://` URLs to use port `443`, a
+redirect from port `443` (`websecure` endpoint) to port `442` (`vpn`
+endpoint) is added for convenience. This redirect only happens for
+requests originating from IP addresses in the `traefik-wireguard`
+subnet range. If requests come on any other network, the access is
+forbidden (and furthermore, port `442` should be firewalled).
 
 Be sure to add the whoami domain name to your system `/etc/hosts` file, so that
 your clients can resolve the private Traefik IP address:

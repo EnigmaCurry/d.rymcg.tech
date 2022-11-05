@@ -7,7 +7,7 @@ log:
 accessLog:
   filePath: #@ data.values.access_logs_path
 
-#@ if data.values.dashboard == "true":
+#@ if data.values.dashboard_entrypoint_enabled == "true":
 api:
   dashboard: true
 #@ end
@@ -70,14 +70,17 @@ certificatesResolvers:
       #@ end
 
 entryPoints:
+  #@ if data.values.web_entrypoint_enabled == "true":
   web:
-    address: :80
+    address: #@ data.values.web_entrypoint_host + ":" + data.values.web_entrypoint_port
     http:
       redirections:
         entryPoint:
           to: websecure
+  #@ end
+  #@ if data.values.websecure_entrypoint_enabled == "true":
   websecure:
-    address: :443
+    address: #@ data.values.websecure_entrypoint_host + ":" + data.values.websecure_entrypoint_port
     http:
       tls:
         certResolver: #@ data.values.acme_cert_resolver
@@ -89,15 +92,32 @@ entryPoints:
               - #@ secondary
               #@ end
           #@ end
-  mqtt:
-    address: :8883
-  ssh:
-    address: :2222
-  #@ if data.values.dashboard == "true":
-  traefik:
-    address: 127.0.0.1:8080
   #@ end
-  #@ if data.values.vpn_entrypoint == "true":
+  #@ if data.values.vpn_entrypoint_enabled == "true":
   vpn:
     address: #@ data.values.vpn_entrypoint_host + ":" + data.values.vpn_entrypoint_port
+    http:
+      tls:
+        certResolver: #@ data.values.acme_cert_resolver
+        domains:
+          #@ for domain in json.decode(data.values.acme_cert_domains):
+          - main: #@ domain[0]
+            sans:
+              #@ for secondary in domain[1]:
+              - #@ secondary
+              #@ end
+          #@ end
+      middlewares: traefik-vpn-ip-filter@file
+  #@ end
+  #@ if data.values.ssh_entrypoint_enabled == "true":
+  mqtt:
+    address: #@ data.values.mqtt_entrypoint_host + ":" + data.values.mqtt_entrypoint_port
+  #@ end
+  #@ if data.values.ssh_entrypoint_enabled == "true":
+  ssh:
+    address: #@ data.values.ssh_entrypoint_host + ":" + data.values.ssh_entrypoint_port
+  #@ end
+  #@ if data.values.dashboard_entrypoint_enabled == "true":
+  traefik:
+    address: #@ data.values.dashboard_entrypoint_host + ":" + data.values.dashboard_entrypoint_port
   #@ end
