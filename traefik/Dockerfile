@@ -15,3 +15,6 @@ RUN apk add --update git && \
 
 FROM ${TRAEFIK_IMAGE}
 COPY --from=plugins /plugins-local /plugins-local
+COPY entrypoint.sh  /entrypoint_ensure_config.sh
+RUN chmod a+x /entrypoint_ensure_config.sh
+ENTRYPOINT ["/entrypoint_ensure_config.sh"]

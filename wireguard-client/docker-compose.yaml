@@ -13,25 +13,26 @@ services:
     security_opt:
       - no-new-privileges:true
     environment:
-      - TIMEZONE
-      - TRAEFIK_IP
-      - ADDRESS
-      - PRIVATE_KEY
-      - DNS
-      - PUBLIC_KEY
-      - ENDPOINT
-      - ALLOWED_IPS
+      - TRAEFIK_VPN_ENTRYPOINT_HOST
+      - WIREGUARD_CLIENT_INTERFACE_ADDRESS
+      - WIREGUARD_CLIENT_INTERFACE_PRIVATE_KEY
+      - WIREGUARD_CLIENT_INTERFACE_LISTEN_PORT
+      - WIREGUARD_CLIENT_INTERFACE_PEER_DNS
+      - WIREGUARD_CLIENT_PEER_PUBLIC_KEY
+      - WIREGUARD_CLIENT_PEER_ENDPOINT
+      - WIREGUARD_CLIENT_PEER_ALLOWED_IPS
     volumes:
       - config:/config
 
   wireguard:
+    depends_on: ['config']
     image: lscr.io/linuxserver/wireguard
     cap_add:
       - NET_ADMIN
       - SYS_MODULE
     restart: unless-stopped
     networks:
-      - traefik-wireguard      
+      - traefik-vpn
     sysctls:
       - net.ipv4.conf.all.src_valid_mark=1
     environment:
