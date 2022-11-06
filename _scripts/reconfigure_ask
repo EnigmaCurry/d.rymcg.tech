@@ -18,12 +18,13 @@ example=$(grep -m 1 -oP "^$var=\K.*" .env-dist)
 existing=$(grep -m 1 -oP "^$var=\K.*" ${ENV_FILE})
 if [[ $existing != $example ]]; then
     default=${existing:-${default}}
+else
+    default=${example}
 fi
 
 if [[ -n "${example}" ]]; then
     example="(eg. ${example})"
 fi
-
 while true; do
     read -e -p "${var}: ${prompt} ${example}"$'\x0a: ' -i "${default}" answer
     if [[ -n ${answer} || -z ${default} || "${ALLOW_BLANK}" == 1 ]]; then

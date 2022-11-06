@@ -1,7 +1,7 @@
 version: "3.3"
 networks:
-  traefik-wireguard:
-    name: traefik-wireguard
+  traefik-vpn:
+    external: true
 
 volumes:
   config:
@@ -19,6 +19,7 @@ services:
       - WIREGUARD_CLIENT_INTERFACE_LISTEN_PORT
       - WIREGUARD_CLIENT_INTERFACE_PEER_DNS
       - WIREGUARD_CLIENT_PEER_PUBLIC_KEY
+      - WIREGUARD_CLIENT_PEER_PRESHARED_KEY
       - WIREGUARD_CLIENT_PEER_ENDPOINT
       - WIREGUARD_CLIENT_PEER_ALLOWED_IPS
     volumes:
