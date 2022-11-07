@@ -65,4 +65,4 @@ ports-flush:
 
 .PHONY: shell
 shell:
-	@docker compose exec wireguard /bin/bash
+	@docker compose --env-file=${ENV_FILE} exec wireguard /bin/bash

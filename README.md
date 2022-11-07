@@ -29,7 +29,7 @@ If you're impatient, or have read all of this before, you can follow
 ## All configuration comes from the environment
 
 All of these projects are configured soley via environment variables written to
-Docker [.env](https://docs.docker.com/compose/env-file/) files. 
+Docker [.env](https://docs.docker.com/compose/env-file/) files.
 
 The `.env` files are to be kept secret in each project directory (as they
 include things like passwords and keys) and are therefore excluded from the git
@@ -44,16 +44,19 @@ from a template including these environment variables, and is run automatically
 before the main application starts up (therefore the config file is dynamically
 generated each startup).
 
-This project stores all application data in Docker named volumes. Many samples
-of docker-compose that you may find out there on the internet, will map native
-host directories into their container paths. **Host-mounted directories are
-considered an anti-pattern and will never be used in this project, unless there
-is a compelling reason to do so.** For more information see [Rule 3 of the 12
-factor app philosophy](https://12factor.net/config). By following this rule, you
-can use docker-compose from a remote client (like your laptop, accessing a
-remote Docker server over SSH). More importantly, you can ensure that all of the
-dependent files are fully contained by Docker itself, and therefore the entire
-application state is managed as part of the container lifecycle.
+This project stores all application data in Docker named volumes. Many
+samples of docker-compose that are written by other people, and that
+you may find out there on the internet, will map native host
+directories into their container paths. **Host-mounted directories are
+considered an anti-pattern and will never be used in this project,
+unless there is a compelling reason to do so.** For more information
+see [Rule 3 of the 12 factor app
+philosophy](https://12factor.net/config). By following this rule, you
+can use docker-compose from a remote client (like your laptop,
+accessing a remote Docker server over SSH). More importantly, you can
+ensure that all of the dependent files are fully contained by Docker
+itself, and therefore the entire application state is managed as part
+of the container lifecycle.
 
 ## Prerequisites
 ### Create a Docker host
@@ -64,11 +67,13 @@ own public internet server or cloud host.
 See [DIGITALOCEAN.md](DIGITALOCEAN.md) for instructions on creating a Docker
 host on DigitalOcean. 
 
-For development purposes, you can install Docker on a virtual machine
-(and remotely control it from your local workstation). See
-[_docker_vm](_docker_vm#readme) to install Docker on KVM/Qemu. You can
-also install [Docker Desktop](https://docs.docker.com/desktop)
-on Linux, Windows, or Mac.
+For development purposes, you should install Docker in a virtual
+machine (and remotely control it from your local workstation). See
+[_docker_vm](_docker_vm#readme) for details on how and why to install
+Docker in KVM/Qemu. You can also install [Docker
+Desktop](https://docs.docker.com/desktop) on Linux, Windows, or Mac
+(although Docker Desktop is a bit less secure than our bespoke
+[_docker_vm](_docker_vm#readme)).
 
 ### Setup DNS for your domain and Docker server
 

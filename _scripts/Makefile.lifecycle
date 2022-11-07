@@ -1,8 +1,11 @@
-.PHONY: install # Build and starts services
+.PHONY: install # (re)builds images and (re)starts services (only if changed)
 install: build start
 
-.PHONY: uninstall # Uninstall services leaving volumes intact
+.PHONY: uninstall # Remove service containers, leaving the volumes intact
 uninstall: down
+
+.PHONY: reinstall # Remove service containers, and then re-install (volumes left intact).
+reinstall: uninstall install
 
 .PHONY: start # Start services
 start:
@@ -23,15 +26,16 @@ down:
 restart:
 	docker compose --env-file=${ENV_FILE} restart
 
-.PHONY: destroy # Deletes containers and volumes
+.PHONY: destroy # Deletes containers AND data volumes
 destroy:
 	@${BIN}/confirm no "This will destroy all the project containers AND volumes"
 	docker compose --env-file=${ENV_FILE} down -v
 
-.PHONY: status # Run docker compose ps
+.PHONY: status # Show containers status (docker-compose ps)
 status:
 	docker compose --env-file=${ENV_FILE} ps
 
-.PHONY: logs # View container logs (set CONTAINER=name to filter for a single container)
+.PHONY: logs # Tail all containers logs (set CONTAINER=name to filter for a single container)
 logs:
 	docker compose --env-file=${ENV_FILE} logs -f ${CONTAINER}
+
