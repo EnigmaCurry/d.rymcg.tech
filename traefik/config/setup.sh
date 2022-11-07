@@ -43,6 +43,7 @@ ytt_template() {
         -v vpn_subnet=${TRAEFIK_VPN_SUBNET} \
         -v vpn_entrypoint_host=${TRAEFIK_VPN_ENTRYPOINT_HOST} \
         -v vpn_entrypoint_port=${TRAEFIK_VPN_ENTRYPOINT_PORT} \
+        -v vpn_proxy_enabled=${TRAEFIK_VPN_PROXY_ENABLED} \
         > ${dst}
     success=$?
     echo "[ ! ] GENERATED NEW CONFIG FILE :::  ${dst}"

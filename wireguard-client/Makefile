@@ -21,3 +21,7 @@ config-ask:
 	@${BIN}/reconfigure_ask ${ENV_FILE} WIREGUARD_CLIENT_PEER_PRESHARED_KEY "Enter the Peer PresharedKey (ends with =)"
 	@${BIN}/reconfigure_ask ${ENV_FILE} WIREGUARD_CLIENT_PEER_ENDPOINT "Enter the Peer Endpoint"
 	@${BIN}/reconfigure_ask ${ENV_FILE} WIREGUARD_CLIENT_PEER_ALLOWED_IPS "Enter the Peer AllowedIPs"
+
+.PHONY: shell
+shell:
+	docker compose --env-file=${ENV_FILE} exec -it wireguard /bin/bash

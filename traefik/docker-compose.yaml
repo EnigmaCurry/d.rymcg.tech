@@ -1,12 +1,8 @@
-version: "3.3"
+version: "3.9"
 
 volumes:
   traefik:
   geoip_database:
-
-networks:
-  traefik-vpn:
-    name: traefik-vpn
 
 services:
   config:
@@ -54,6 +50,7 @@ services:
       - TRAEFIK_VPN_ENTRYPOINT_HOST
       - TRAEFIK_VPN_ENTRYPOINT_PORT
       - TRAEFIK_VPN_SUBNET
+      - TRAEFIK_VPN_PROXY_ENABLED=${TRAEFIK_VPN_PROXY_ENABLED:-false}
     volumes:
       - traefik:/data
 
@@ -80,9 +77,8 @@ services:
         MAXMIND_GIT_BRANCH: main
     container_name: "traefik"
     restart: unless-stopped
-    network_mode: host
-    security_opt:
-      - no-new-privileges:true
+    network_mode: ${TRAEFIK_NETWORK_MODE:-host}
+    privileged: true
     environment:
       - ${TRAEFIK_ACME_DNS_VARNAME_1:-TRAEFIK_ACME_DNS_VARNAME_1_NOT_SET}
       - ${TRAEFIK_ACME_DNS_VARNAME_2:-TRAEFIK_ACME_DNS_VARNAME_2_NOT_SET}
@@ -95,3 +91,27 @@ services:
       - "traefik:/data"
       - "/var/run/docker.sock:/var/run/docker.sock:ro"
       - "geoip_database:/var/lib/traefikgeoip2/"
+
+  wireguard:
+    image: lscr.io/linuxserver/wireguard
+    cap_add:
+      - NET_ADMIN
+      - SYS_MODULE
+    restart: unless-stopped
+    ports:
+      - ${WIREGUARD_HOST_PORT}:${WIREGUARD_HOST_PORT}/udp
+    sysctls:
+      - net.ipv4.conf.all.src_valid_mark=1
+    environment:
+      - PUID=1000
+      - PGID=1000
+      - TZ=${TIMEZONE}
+      - SERVERURL=${WIREGUARD_TRAEFIK_HOST}
+      - SERVERPORT=${WIREGUARD_HOST_PORT}
+      - PEERS=${WIREGUARD_PEERS}
+      - PEERDNS=${WIREGUARD_PEERDNS}
+      - INTERNAL_SUBNET=${WIREGUARD_SUBNET}
+      - ALLOWEDIPS=${WIREGUARD_ALLOWEDIPS}
+    volumes:
+      - config:/config
+      - /lib/modules:/lib/modules
