@@ -39,7 +39,7 @@ ytt_template() {
         -v dashboard_entrypoint_host=${TRAEFIK_DASHBOARD_ENTRYPOINT_HOST} \
         -v dashboard_entrypoint_port=${TRAEFIK_DASHBOARD_ENTRYPOINT_PORT} \
         -v dashboard_auth=${TRAEFIK_DASHBOARD_AUTH} \
-        -v vpn_entrypoint_enabled=${TRAEFIK_VPN_ENTRYPOINT_ENABLED} \
+        -v vpn_enabled=${TRAEFIK_VPN_ENABLED} \
         -v vpn_subnet=${TRAEFIK_VPN_SUBNET} \
         -v vpn_entrypoint_host=${TRAEFIK_VPN_ENTRYPOINT_HOST} \
         -v vpn_entrypoint_port=${TRAEFIK_VPN_ENTRYPOINT_PORT} \

@@ -9,33 +9,33 @@ reinstall: uninstall install
 
 .PHONY: start # Start services
 start:
-	ENV_FILE=${ENV_FILE} docker compose --env-file=${ENV_FILE} up -d
+	@export COMPOSE_PROFILES=$$(${BIN}/dotenv -f ${ENV_FILE} get DOCKER_COMPOSE_PROFILES) ; set -x; docker compose --env-file=${ENV_FILE} up -d
 
 .PHONY: up
 up: start
 
 .PHONY: stop # Stops services
 stop:
-	docker compose --env-file=${ENV_FILE} stop
+	@export COMPOSE_PROFILES=$$(${BIN}/dotenv -f ${ENV_FILE} get DOCKER_COMPOSE_PROFILES) ; set -x; docker compose --env-file=${ENV_FILE} stop
 
 .PHONY: down
 down:
-	docker compose --env-file=${ENV_FILE} down
+	@export COMPOSE_PROFILES=$$(${BIN}/dotenv -f ${ENV_FILE} get DOCKER_COMPOSE_PROFILES) ; set -x; docker compose --env-file=${ENV_FILE} down
 
 .PHONY: restart # Restart services
 restart:
-	docker compose --env-file=${ENV_FILE} restart
+	@export COMPOSE_PROFILES=$$(${BIN}/dotenv -f ${ENV_FILE} get DOCKER_COMPOSE_PROFILES) ; set -x; docker compose --env-file=${ENV_FILE} restart
 
 .PHONY: destroy # Deletes containers AND data volumes
 destroy:
-	@${BIN}/confirm no "This will destroy all the project containers AND volumes"
+	@export COMPOSE_PROFILES=$$(${BIN}/dotenv -f ${ENV_FILE} get DOCKER_COMPOSE_PROFILES) ; set -x; @${BIN}/confirm no "This will destroy all the project containers AND volumes"
 	docker compose --env-file=${ENV_FILE} down -v
 
-.PHONY: status # Show containers status (docker-compose ps)
+.PHONY: status # Show containers status (docker compose ps)
 status:
-	docker compose --env-file=${ENV_FILE} ps
+	@export COMPOSE_PROFILES=$$(${BIN}/dotenv -f ${ENV_FILE} get DOCKER_COMPOSE_PROFILES) ; set -x; docker compose --env-file=${ENV_FILE} ps
 
 .PHONY: logs # Tail all containers logs (set CONTAINER=name to filter for a single container)
 logs:
-	docker compose --env-file=${ENV_FILE} logs -f ${CONTAINER}
+	@export COMPOSE_PROFILES=$$(${BIN}/dotenv -f ${ENV_FILE} get DOCKER_COMPOSE_PROFILES) ; set -x; docker compose --env-file=${ENV_FILE} logs -f ${CONTAINER}
 
