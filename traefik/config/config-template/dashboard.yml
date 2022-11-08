@@ -7,6 +7,7 @@ http:
       entrypoints: traefik
       service: api@internal
       middlewares:
+        #@ if/end data.values.network_mode == "host":
         - traefik-api-ipwhitelist
         - traefik-dashboard-auth
   middlewares:
@@ -15,7 +16,9 @@ http:
         users: #@ data.values.dashboard_auth
         removeHeader: true
         headerField: X-WebAuth-User
+    #@ if data.values.network_mode == "host":
     traefik-api-ipwhitelist:
       ipwhitelist:
         sourcerange: 127.0.0.1/32
+    #@ end
 #@ end

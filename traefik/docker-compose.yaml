@@ -4,6 +4,7 @@ volumes:
   traefik:
   geoip_database:
   wireguard:
+  wireguard-client:
 
 services:
   config:
@@ -15,6 +16,8 @@ services:
         TRAEFIK_CONFIG_YTT_VERSION: ${TRAEFIK_CONFIG_YTT_VERSION}
     security_opt:
       - no-new-privileges:true
+    volumes:
+      - traefik:/data
     environment:
       - TRAEFIK_SEND_ANONYMOUS_USAGE=${TRAEFIK_SEND_ANONYMOUS_USAGE:-false}
       - TRAEFIK_CONFIG_VERBOSE=${TRAEFIK_CONFIG_VERBOSE:-false}
@@ -49,13 +52,14 @@ services:
       - TRAEFIK_DASHBOARD_ENTRYPOINT_HOST=${TRAEFIK_DASHBOARD_ENTRYPOINT_HOST:-127.0.0.1}
       - TRAEFIK_DASHBOARD_ENTRYPOINT_PORT=${TRAEFIK_DASHBOARD_ENTRYPOINT_PORT:-8080}
       - TRAEFIK_DASHBOARD_AUTH
+      - TRAEFIK_VPN_ADDRESS
       - TRAEFIK_VPN_ENABLED=${TRAEFIK_VPN_ENABLED:-false}
+      - TRAEFIK_VPN_CLIENT_ENABLED=${TRAEFIK_VPN_CLIENT_ENABLED:-false}
       - TRAEFIK_VPN_ENTRYPOINT_HOST
       - TRAEFIK_VPN_ENTRYPOINT_PORT
       - TRAEFIK_VPN_SUBNET
       - TRAEFIK_VPN_PROXY_ENABLED=${TRAEFIK_VPN_PROXY_ENABLED:-false}
-    volumes:
-      - traefik:/data
+      - TRAEFIK_NETWORK_MODE
 
   traefik:
     profiles:
@@ -106,11 +110,12 @@ services:
     cap_add:
       - NET_ADMIN
       - SYS_MODULE
+    network_mode: host
     restart: unless-stopped
     ports:
       - ${WIREGUARD_HOST_PORT:-51820}:${WIREGUARD_HOST_PORT:-51820}/udp
-    sysctls:
-      - net.ipv4.conf.all.src_valid_mark=1
+    # sysctls:
+    #   - net.ipv4.conf.all.src_valid_mark=1
     environment:
       - PUID=1000
       - PGID=1000
@@ -124,3 +129,46 @@ services:
     volumes:
       - wireguard:/config
       - /lib/modules:/lib/modules
+
+  wireguard-client-config:
+    profiles:
+      - wireguard-client
+    build:
+      context: wireguard-client-config
+    security_opt:
+      - no-new-privileges:true
+    environment:
+      - TRAEFIK_VPN_ENTRYPOINT_HOST
+      - TRAEFIK_VPN_CLIENT_INTERFACE_ADDRESS
+      - TRAEFIK_VPN_CLIENT_INTERFACE_PRIVATE_KEY
+      - TRAEFIK_VPN_CLIENT_INTERFACE_LISTEN_PORT
+      - TRAEFIK_VPN_CLIENT_INTERFACE_PEER_DNS
+      - TRAEFIK_VPN_CLIENT_PEER_PUBLIC_KEY
+      - TRAEFIK_VPN_CLIENT_PEER_PRESHARED_KEY
+      - TRAEFIK_VPN_CLIENT_PEER_ENDPOINT
+      - TRAEFIK_VPN_CLIENT_PEER_ALLOWED_IPS
+    volumes:
+      - wireguard-client:/config
+
+  wireguard-client:
+    profiles:
+      - wireguard-client
+    depends_on: ['wireguard-client-config']
+    image: lscr.io/linuxserver/wireguard
+    cap_add:
+      - NET_ADMIN
+      - SYS_MODULE
+    sysctls:
+      - net.ipv4.conf.all.src_valid_mark=1
+    restart: unless-stopped
+    environment:
+      - PUID=1000
+      - PGID=1000
+      - TZ=${TIMEZONE:-Etc/UTC}
+    volumes:
+      - wireguard-client:/config
+      - /lib/modules:/lib/modules
+    ports:
+      - 80:80
+      - 443:443
+      - 127.0.0.1:8080:8080

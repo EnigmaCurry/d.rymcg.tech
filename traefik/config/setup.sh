@@ -39,11 +39,14 @@ ytt_template() {
         -v dashboard_entrypoint_host=${TRAEFIK_DASHBOARD_ENTRYPOINT_HOST} \
         -v dashboard_entrypoint_port=${TRAEFIK_DASHBOARD_ENTRYPOINT_PORT} \
         -v dashboard_auth=${TRAEFIK_DASHBOARD_AUTH} \
+        -v vpn_address=${TRAEFIK_VPN_ADDRESS} \
         -v vpn_enabled=${TRAEFIK_VPN_ENABLED} \
         -v vpn_subnet=${TRAEFIK_VPN_SUBNET} \
         -v vpn_entrypoint_host=${TRAEFIK_VPN_ENTRYPOINT_HOST} \
         -v vpn_entrypoint_port=${TRAEFIK_VPN_ENTRYPOINT_PORT} \
         -v vpn_proxy_enabled=${TRAEFIK_VPN_PROXY_ENABLED} \
+        -v vpn_client_enabled=${TRAEFIK_VPN_CLIENT_ENABLED} \
+        -v network_mode=${TRAEFIK_NETWORK_MODE} \
         > ${dst}
     success=$?
     echo "[ ! ] GENERATED NEW CONFIG FILE :::  ${dst}"
