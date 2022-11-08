@@ -28,8 +28,11 @@ config-ask:
 .PHONY: config-wireguard
 config-wireguard:
 	@${BIN}/reconfigure_ask ${ENV_FILE} TRAEFIK_VPN_HOST "Enter the public Traefik VPN hostname" vpn.${ROOT_DOMAIN}
-	@${BIN}/reconfigure_ask ${ENV_FILE} TRAEFIK_WEBSECURE_ENTRYPOINT_HOST "Enter the Traefik websecure entrypoint bind IP address" 10.13.16.1
-	@${BIN}/reconfigure ${ENV_FILE} TRAEFIK_VPN_ENABLED=true TRAEFIK_NETWORK_MODE=service:wireguard
+	@${BIN}/reconfigure_ask ${ENV_FILE} TRAEFIK_VPN_PORT "Enter the Traefik VPN TCP port number"
+	@${BIN}/reconfigure_ask ${ENV_FILE} TRAEFIK_VPN_SUBNET "Enter the Traefik VPN private subnet (no mask)"
+	@${BIN}/reconfigure_ask_multi ${ENV_FILE} TRAEFIK_WEB_ENTRYPOINT_HOST,TRAEFIK_WEBSECURE_ENTRYPOINT_HOST,TRAEFIK_MQTT_ENTRYPOINT_HOST,TRAEFIK_SSH_ENTRYPOINT_HOST "Enter the Traefik VPN IP address to bind all the entrypoints to" 10.13.16.1
+	@${BIN}/reconfigure ${ENV_FILE} TRAEFIK_VPN_ENABLED=true TRAEFIK_NETWORK_MODE=service:wireguard TRAEFIK_DASHBOARD_ENTRYPOINT_PORT=8081 TRAEFIK_VPN_ALLOWED_IPS=$$(${BIN}/dotenv -f ${ENV_FILE} get TRAEFIK_VPN_SUBNET)/24
+	@${BIN}/reconfigure_ask ${ENV_FILE} TRAEFIK_VPN_PEERS "Enter the Traefik VPN peers list"
 
 .PHONY: config-wireguard-client
 config-wireguard-client:

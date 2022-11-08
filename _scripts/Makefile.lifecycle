@@ -28,14 +28,14 @@ restart:
 
 .PHONY: destroy # Deletes containers AND data volumes
 destroy:
-	@export COMPOSE_PROFILES=$$(${BIN}/dotenv -f ${ENV_FILE} get DOCKER_COMPOSE_PROFILES) ; set -x; @${BIN}/confirm no "This will destroy all the project containers AND volumes"
+	@export COMPOSE_PROFILES=$$(${BIN}/dotenv -f ${ENV_FILE} get DOCKER_COMPOSE_PROFILES) ; set -x; ${BIN}/confirm no "This will destroy all the project containers AND volumes"
 	docker compose --env-file=${ENV_FILE} down -v
 
 .PHONY: status # Show containers status (docker compose ps)
 status:
 	@export COMPOSE_PROFILES=$$(${BIN}/dotenv -f ${ENV_FILE} get DOCKER_COMPOSE_PROFILES) ; set -x; docker compose --env-file=${ENV_FILE} ps
 
-.PHONY: logs # Tail all containers logs (set CONTAINER=name to filter for a single container)
+.PHONY: logs # Tail all containers logs (set SERVICE=name to filter for a single service container)
 logs:
-	@export COMPOSE_PROFILES=$$(${BIN}/dotenv -f ${ENV_FILE} get DOCKER_COMPOSE_PROFILES) ; set -x; docker compose --env-file=${ENV_FILE} logs -f ${CONTAINER}
+	@export COMPOSE_PROFILES=$$(${BIN}/dotenv -f ${ENV_FILE} get DOCKER_COMPOSE_PROFILES) ; set -x; docker compose --env-file=${ENV_FILE} logs -f ${SERVICE}
 
