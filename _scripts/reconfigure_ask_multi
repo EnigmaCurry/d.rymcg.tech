@@ -1,0 +1,20 @@
+#!/bin/bash
+
+## reconfigure_ask_multi ENV_FILE VAR1,VAR2,VAR3 "this is the prompt" "this is the default"
+## Wrapper for reconfigure_ask to set multiple variables all with the same value.
+
+ENV_FILE="$1"; vars="$2"; prompt="$3"; default="$4";
+
+BIN=$(dirname ${BASH_SOURCE})
+source ${BIN}/funcs.sh
+
+check_var ENV_FILE vars prompt
+
+IFS="," read -ra vars <<< "$vars"
+first_var=${vars[0]}
+${BIN}/reconfigure_ask ${ENV_FILE} ${first_var} "${prompt}" "${default}"
+value=$(${BIN}/dotenv -f ${ENV_FILE} get ${first_var})
+echo "Set ${first_var}=${value}"
+for var in "${vars[@]:1}"; do
+    ${BIN}/reconfigure ${ENV_FILE} "${var}=${default}"
+done

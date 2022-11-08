@@ -1,6 +1,7 @@
 #!/bin/bash
 
 ## reconfigure_ask ENV_FILE VAR "this is the prompt" "this is the default"
+## default may be a single - to indicate the default should be blank.
 ## Ask interactive questions to edit/create your .env file
 ## This ONLY edits the lines with the given variable names in them.
 
@@ -20,6 +21,10 @@ if [[ $existing != $example ]]; then
     default=${existing:-${default}}
 else
     default=${default:-${example}}
+fi
+
+if [[ $default == "-" ]]; then
+    default=""
 fi
 
 if [[ ${#example} -ne 0 ]]; then
