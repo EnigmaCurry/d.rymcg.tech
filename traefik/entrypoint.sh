@@ -28,4 +28,5 @@ else
     echo "= '$1' is not a Traefik command: assuming shell execution." 1>&2
 fi
 
+sleep 2
 exec "$@"

@@ -16,7 +16,8 @@ services:
       - "traefik.http.routers.whoami.rule=Host(`${WHOAMI_TRAEFIK_HOST}`) && (Path(`/`) || Path(`/health`))"
       - "traefik.http.routers.whoami.entrypoints=websecure"
       - "traefik.http.middlewares.whoami-whitelist.ipwhitelist.sourcerange=${IP_SOURCERANGE}"
-      - "traefik.http.routers.whoami.middlewares=whoami-whitelist,geoip@file"
+      #- "traefik.http.routers.whoami.middlewares=whoami-whitelist,geoip@file"
+      - "traefik.http.routers.whoami.middlewares=whoami-whitelist"
 
       ## Lots of various rules for demo/documentation purposes..
 

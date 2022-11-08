@@ -2,7 +2,7 @@ DOCKER_BUILDKIT ?= 1
 
 .PHONY: build # Build container images
 build:
-	@export COMPOSE_PROFILES=$$(${BIN}/dotenv -f ${ENV_FILE} get DOCKER_COMPOSE_PROFILES) ; set -x; docker compose --env-file=${ENV_FILE} build
+	@export COMPOSE_PROFILES=$$(${BIN}/dotenv -f ${ENV_FILE} get DOCKER_COMPOSE_PROFILES) ; set -x; echo COMPOSE_PROFILES=$${COMPOSE_PROFILES}; docker compose --env-file=${ENV_FILE} build
 
 .PHONY: build-force # Build container images without cache
 build-force:

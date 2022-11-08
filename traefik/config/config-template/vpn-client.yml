@@ -1,0 +1,25 @@
+#@ load("@ytt:data", "data")
+#@ if data.values.vpn_client_enabled == "true" :
+http:
+  services:
+    whoami-vpn:
+      loadBalancer:
+        passHostHeader: false
+        servers:
+          - url: #@ "https://" + data.values.vpn_address
+        serversTransport: whoami-vpn-transport
+  routers:
+    whoami-vpn:
+      rule: "Host(`whoami.maldek.rymcg.tech`)"
+      service: whoami-vpn
+      middlewares:
+        - whoami-vpn-host-header
+  middlewares:
+    whoami-vpn-host-header:
+      headers:
+        customRequestHeaders:
+          Host: "whoami.t.rymcg.tech"
+  serversTransports:
+    whoami-vpn-transport:
+      serverName: "whoami.t.rymcg.tech"
+#@ end

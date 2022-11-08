@@ -6,6 +6,7 @@ log:
 
 accessLog:
   filePath: #@ data.values.access_logs_path
+  format: json
 
 #@ if data.values.dashboard_entrypoint_enabled == "true":
 api:
