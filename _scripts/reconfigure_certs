@@ -39,7 +39,7 @@ list_domains() {
             break
         fi
         if [[ $SANS != "null" && ${SANS} != "[]" ]]; then
-            SANS=$(echo ${SANS} | sed -e 's/\[//g' -e 's/\]//g' -e 's/"//g' -e 's/,/ /g')
+            SANS=$(echo "${SANS}" | sed -e 's/\[//g' -e 's/\]//g' -e 's/"//g' -e 's/,/ /g')
             echo "$((${CERT_INDEX} + 1))) ${DOMAIN} (${SANS})"
         else
             echo "$((${CERT_INDEX} + 1))) ${DOMAIN}"

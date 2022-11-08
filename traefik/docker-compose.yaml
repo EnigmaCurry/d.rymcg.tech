@@ -3,9 +3,12 @@ version: "3.9"
 volumes:
   traefik:
   geoip_database:
+  wireguard:
 
 services:
   config:
+    profiles:
+      - default
     build:
       context: config
       args:
@@ -46,7 +49,7 @@ services:
       - TRAEFIK_DASHBOARD_ENTRYPOINT_HOST=${TRAEFIK_DASHBOARD_ENTRYPOINT_HOST:-127.0.0.1}
       - TRAEFIK_DASHBOARD_ENTRYPOINT_PORT=${TRAEFIK_DASHBOARD_ENTRYPOINT_PORT:-8080}
       - TRAEFIK_DASHBOARD_AUTH
-      - TRAEFIK_VPN_ENTRYPOINT_ENABLED=${TRAEFIK_VPN_ENTRYPOINT_ENABLED:-false}
+      - TRAEFIK_VPN_ENABLED=${TRAEFIK_VPN_ENABLED:-false}
       - TRAEFIK_VPN_ENTRYPOINT_HOST
       - TRAEFIK_VPN_ENTRYPOINT_PORT
       - TRAEFIK_VPN_SUBNET
@@ -54,18 +57,9 @@ services:
     volumes:
       - traefik:/data
 
-  geoip_database:
-    image: maxmindinc/geoipupdate
-    restart: on-failure:3
-    environment:
-      - GEOIPUPDATE_ACCOUNT_ID=${TRAEFIK_GEOIPUPDATE_ACCOUNT_ID}
-      - GEOIPUPDATE_LICENSE_KEY=${TRAEFIK_GEOIPUPDATE_LICENSE_KEY}
-      - 'GEOIPUPDATE_EDITION_IDS=${TRAEFIK_GEOIPUPDATE_EDITION_IDS}'
-      - GEOIPUPDATE_FREQUENCY=72
-    volumes:
-      - "geoip_database:/usr/share/GeoIP"
-
   traefik:
+    profiles:
+      - default
     depends_on: ['geoip_database','config']
     build:
       context: .
@@ -92,26 +86,41 @@ services:
       - "/var/run/docker.sock:/var/run/docker.sock:ro"
       - "geoip_database:/var/lib/traefikgeoip2/"
 
+  geoip_database:
+    profiles:
+      - geoip_update
+    image: maxmindinc/geoipupdate
+    restart: on-failure:3
+    environment:
+      - GEOIPUPDATE_ACCOUNT_ID=${TRAEFIK_GEOIPUPDATE_ACCOUNT_ID}
+      - GEOIPUPDATE_LICENSE_KEY=${TRAEFIK_GEOIPUPDATE_LICENSE_KEY}
+      - 'GEOIPUPDATE_EDITION_IDS=${TRAEFIK_GEOIPUPDATE_EDITION_IDS}'
+      - GEOIPUPDATE_FREQUENCY=72
+    volumes:
+      - "geoip_database:/usr/share/GeoIP"
+
   wireguard:
+    profiles:
+      - wireguard
     image: lscr.io/linuxserver/wireguard
     cap_add:
       - NET_ADMIN
       - SYS_MODULE
     restart: unless-stopped
     ports:
-      - ${WIREGUARD_HOST_PORT}:${WIREGUARD_HOST_PORT}/udp
+      - ${WIREGUARD_HOST_PORT:-51820}:${WIREGUARD_HOST_PORT:-51820}/udp
     sysctls:
       - net.ipv4.conf.all.src_valid_mark=1
     environment:
       - PUID=1000
       - PGID=1000
-      - TZ=${TIMEZONE}
-      - SERVERURL=${WIREGUARD_TRAEFIK_HOST}
-      - SERVERPORT=${WIREGUARD_HOST_PORT}
-      - PEERS=${WIREGUARD_PEERS}
-      - PEERDNS=${WIREGUARD_PEERDNS}
-      - INTERNAL_SUBNET=${WIREGUARD_SUBNET}
-      - ALLOWEDIPS=${WIREGUARD_ALLOWEDIPS}
+      - TZ=${TIMEZONE:-Etc/UTC}
+      - SERVERURL=${WIREGUARD_TRAEFIK_HOST:-}
+      - SERVERPORT=${WIREGUARD_HOST_PORT:-}
+      - PEERS=${WIREGUARD_PEERS:-}
+      - PEERDNS=${WIREGUARD_PEERDNS:-}
+      - INTERNAL_SUBNET=${WIREGUARD_SUBNET:-}
+      - ALLOWEDIPS=${WIREGUARD_ALLOWEDIPS:-}
     volumes:
-      - config:/config
+      - wireguard:/config
       - /lib/modules:/lib/modules

@@ -1,0 +1,23 @@
+#!/bin/bash
+
+## reconfigure_compose_profiles ${ENV_FILE} VAR1=profile1 VAR2=profile2 ...
+
+BIN=$(dirname ${BASH_SOURCE})
+source ${BIN}/funcs.sh
+set -e
+
+ENV_FILE=../traefik/${1}
+shift
+## Make new .env if it doesn't exist:
+test -f ${ENV_FILE} || cp .env-dist ${ENV_FILE}
+
+PROFILES="default"
+for arg in "$@"; do
+    parts=(${arg//=/ }); var=${parts[0]}; profile=${parts[@]:1};
+    if [[ $(${BIN}/dotenv -f ${ENV_FILE} get ${var}) == "true" ]]; then
+        PROFILES="${PROFILES},${profile}"
+    fi
+done
+
+${BIN}/dotenv -f ${ENV_FILE} set DOCKER_COMPOSE_PROFILES="${PROFILES}"
+echo "Set DOCKER_COMPOSE_PROFILES=${PROFILES}"

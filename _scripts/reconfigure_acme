@@ -11,7 +11,14 @@ shift
 ## Make new .env if it doesn't exist:
 test -f ${ENV_FILE} || cp .env-dist ${ENV_FILE}
 
-if ${BIN}/confirm $(test "$(${BIN}/dotenv -f ${ENV_FILE} get TRAEFIK_ACME_ENABLED)" == "true" && echo yes || echo no) "Do you want to enable ACME (Automatic Certificate Management Environment) with Let's Encrypt" "?";
+echo ""
+echo "To configure ACME (Automatic Certificate Management Environment) with Let's Encrypt,"
+echo "AT LEAST one of the following conditions must apply:"
+echo " - Your Docker server is on the internet with TCP port 443 open publicly."
+echo " - You plan to use the DNS-01 challenge type (this would allow for a Docker server that is closed behind a firewall; see https://letsencrypt.org/docs/challenge-types/#dns-01-challenge)"
+echo ""
+echo "If none of the above applies to you, then you should *not* enable ACME."
+if ${BIN}/confirm $(test "$(${BIN}/dotenv -f ${ENV_FILE} get TRAEFIK_ACME_ENABLED)" == "true" && echo yes || echo no) "Do you want to enable ACME with Let's Encrypt" "?";
 then
     ${BIN}/reconfigure ${ENV_FILE} TRAEFIK_ACME_ENABLED=true
 else
@@ -20,29 +27,36 @@ else
 fi
 
 echo ""
-echo "If you give Let's Encrypt your email address, they will send you alerts when your certificates are about to expire or about other misconfiguration."
-${BIN}/reconfigure_ask ${ENV_FILE} TRAEFIK_ACME_CA_EMAIL "Enter your email address (not required; blank to skip)"
-
+echo "The Let's Encrypt API has 'production' and 'staging' environments."
+echo "Use production to generate 'real' (trusted) certificates that are valid in most browsers."
+echo "Production is rate-limited. Staging has a much higher limit, but only creates untrusted self-signed certificates."
+echo "You should always prefer to use the production API (even in development) as long as you plan on leaving the Traefik container deployed long-term (Traefik is conservative and stays under the rate limit. If you need to work on Traefik itself, and/or might need to delete the traefik volume often, use staging instead (otherwise, you will quickly go over the limit)."
+echo "(Note: If you need to change this setting later, you must destroy the traefik volume and/or delete /data/acme*.json, so its better to use separate docker contexts dedicated for production and/or testing.)"
 echo ""
-echo "You can choose to use the Let's Encrypt production or staging API. Only production produces certificates that are valid in most browsers. Use staging for development and testing only."
 ${BIN}/confirm $([[ $(${BIN}/dotenv -f ${ENV_FILE} get TRAEFIK_ACME_CERT_RESOLVER) == "production" ]] && echo yes || echo no) "Do you want to use the production Let's Encrypt API" "?" && ${BIN}/reconfigure ${ENV_FILE} TRAEFIK_ACME_CERT_RESOLVER=production ||  ${BIN}/reconfigure ${ENV_FILE} TRAEFIK_ACME_CERT_RESOLVER=staging
 
 echo ""
-echo "You can generate TLS certificates with ACME challenge over TLS or DNS."
-echo "Here are the pros and cons:"
-echo "* TLS challenge is easier, but won't work with firewalled LAN servers."
+echo "If you give Let's Encrypt your email address, they will send you alerts when your certificates are about to expire, or about other misconfigurations."
+${BIN}/reconfigure_ask ${ENV_FILE} TRAEFIK_ACME_CA_EMAIL "Enter your email address (not required; blank to skip)"
+
+echo ""
+echo "ACME requires Traefik to complete a challenge to prove ownership of the domains used for the certificates."
+echo "This challenge can be completed over TLS or DNS. See https://letsencrypt.org/docs/challenge-types"
+echo "Here are the pros and cons of these two challenge types:"
+echo "* TLS challenge is easier, but won't work if TCP port 443 is firewalled."
+echo "* TLS challenge does not support wildcard domains. (*.example.com)"
 echo "* DNS challenge is recommended, but requires you to store a"
-echo "  security sensitive API token from your DNS provider."
+echo "  security sensitive API token from your DNS provider as an environment variable."
 echo "* DNS challenge works through DNS, so no public port needs to be opened."
 echo "  This will allow you to generate real valid certs for your private LAN services."
-echo "* TLS challenge does not support wildcard domains. Non-wildcard domain "
-echo "  names will be leaked to the public via Certificate Transparency (CT) logs,"
-echo "  see https://letsencrypt.org/docs/ct-logs/"
-echo "* DNS challenge allows wildcard domains, which prevents the full"
-echo "  domain names from being leaked to CT logs."
-echo "  (Only the root domain will still be leaked in either case.)"
-echo "* If you choose DNS challenge, exercise caution and consider the "
+echo "* Regardless of the challenge type, all non-wildcard domain names will be leaked (\"advertised\")"
+echo "  to the public via Certificate Transparency (CT) logs, see https://letsencrypt.org/docs/ct-logs/"
+echo "  (you may therefore see lots of requests come in as soon as you deploy services)"
+echo "* DNS challenge allows wildcard domains (*.example.com), which prevents the subdomain names"
+echo "  from being leaked. (Only the root domain will still be leaked.)"
+echo "* If you choose DNS challenge, exercise caution with your DNS API tokens, and consider the"
 echo "  principle of Least Privilege."
+echo "* Other challenge types are not supported. (eg. HTTP)"
 echo ""
 
 if ${BIN}/confirm $(test "$(${BIN}/dotenv -f ${ENV_FILE} get TRAEFIK_ACME_CHALLENGE)" == "dns" && echo yes || echo no) \

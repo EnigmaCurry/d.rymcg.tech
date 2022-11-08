@@ -1,9 +1,0 @@
-#@ load("@ytt:data", "data")
-#@ if data.values.vpn_entrypoint_enabled == "true":
-http:
-  middlewares:
-    traefik-vpn-ip-filter:
-      ipWhiteList:
-        sourceRange:
-          - #@ data.values.vpn_subnet
-#@ end
