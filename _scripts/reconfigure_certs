@@ -11,6 +11,7 @@ shift
 ## Make new .env if it doesn't exist:
 test -f ${ENV_FILE} || cp ../traefik/.env-dist ${ENV_FILE}
 
+PENDING_CHANGES=0
 
 print_help() {
     echo "Docker context: $(docker context inspect | jq -r '.[0].Name')"
@@ -90,6 +91,7 @@ create_certificate_domains() {
     TRAEFIK_ACME_CERT_DOMAINS=$(echo "${TRAEFIK_ACME_CERT_DOMAINS}" | jq -c ". |= .+ [${domains}]")
     ${BIN}/dotenv -f ${ENV_FILE} set TRAEFIK_ACME_CERT_DOMAINS="${TRAEFIK_ACME_CERT_DOMAINS}"
     echo "Set TRAEFIK_ACME_CERT_DOMAINS=${TRAEFIK_ACME_CERT_DOMAINS}"
+    PENDING_CHANGES=1
 }
 
 delete_certificate_domains() {
@@ -102,6 +104,7 @@ delete_certificate_domains() {
         ${BIN}/dotenv -f ${ENV_FILE} set TRAEFIK_ACME_CERT_DOMAINS="${TRAEFIK_ACME_CERT_DOMAINS}"
         echo "Deleted ${selected}"
         echo "Set TRAEFIK_ACME_CERT_DOMAINS=${TRAEFIK_ACME_CERT_DOMAINS}"
+        PENDING_CHANGES=1
     else
         echo "Invalid certificate selection"
     fi
@@ -115,7 +118,13 @@ do
     echo ""
     if [[ $COMMAND == 'q' || $COMMAND == "quit" ]]; then
         echo ""
-        echo 'Remember to restart Traefik (`make install`) for new certificates to be issued.'
+        if [[ $PENDING_CHANGES -ne 0 ]]; then
+            if ${BIN}/confirm no "Do you want to restart Traefik now" "?"; then
+                make install
+            else
+                echo 'Remember to restart Traefik (`make install`) for new certificates to be issued.'
+            fi
+        fi
         exit 0
     elif [[ $COMMAND == '?' || $COMMAND == "help" ]]; then
         print_help

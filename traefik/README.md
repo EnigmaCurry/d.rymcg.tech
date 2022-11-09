@@ -8,23 +8,26 @@ should be the first thing you install in your deployment.
 The latest iteration of this config has the following new features:
 
  * The removal of the `traefik-proxy`, `traefik-wireguard`, and
-   `traefik-mail` networks. [Traefik now uses the host
-   network](https://github.com/EnigmaCurry/d.rymcg.tech/issues/7) by
-   default, and can therefore talk to all service containers directly,
-   and so these containers do not need to attach to a specific docker
-   network anymore.
- * Traefik can also operate inside of a wireguard VPN, as a server, or
-   as a client. The wireguard server and client services have
-   internalized to the Traefik docker-compose.yaml and removed as
-   separate projects.
+   `traefik-mail` networks. By default, the Traefik config [now uses
+   the host
+   network](https://github.com/EnigmaCurry/d.rymcg.tech/issues/7) and
+   can therefore talk to all service containers directly, and so these
+   containers do not need to attach to a specific docker network
+   anymore.
+ * Alternatively, Traefik can bind to the network of a wireguard VPN;
+   in either a server configuration (serving to other VPN clients), or
+   as a client reverse proxy (forwarding private services to public
+   non-VPN clients). The wireguard server and client services have
+   been internalized to the Traefik docker-compose.yaml, and removed
+   as separate projects.
  * TLS certificates are now managed via the `make certs` tool and
    added to the central Traefik static configuration. Previously,
    certificate resolver references were inherited by docker labels on
    the individual service containers, and TLS certificates were issued
    on-demand. With these labels now removed, these certificates must
-   be created explicitly (via `make certs`) *before* the
-   service/routers need them (if not, a default self-signed cert will
-   be assigned).
+   be created explicitly (via `make certs`) and Traefik restarted
+   *before* the service/routers need them (if not, a default
+   self-signed certificate will be assigned until then).
  * The static configuration has been moved away from the
    docker-compose.yaml arguments and into the
    [traefik.yml](config/traefik.yml) template rendered automatically via the
@@ -346,3 +349,41 @@ turn the wireguard services on:
  * `Do you want to run Traefik as a reverse proxy for an external
    VPN?` Say yes to this question to configure the wireguard client.
 
+### Wireguard VPN client
+
+Consider the use-case for a Traefik as a VPN client:
+
+ * You have a Docker server on the public internet.
+ * You run Traefik on your public Docker server, with
+   `TRAEFIK_VPN_ENABLED=true`, (this Traefik server can *only* be
+   accessed from the private wireguard network)
+ * You have an office LAN with multiple clients, all behind an office
+   router firewall, they would all like to access your private Traefik
+   instance, but they can't access it withut a VPN client, and its too
+   cumbersome to install the client on all the office computers.
+ * So, you configure a small computer in the office (eg. raspberry pi)
+   as the only computer that needs to connect to the VPN.
+ * Traefik runs in the wireguard client configuration, with
+   `TRAEFIK_VPN_CLIENT_ENABLED=true` and forwards all requests it
+   receives from the local LAN over to the private Traefik instance on
+   the VPN.
+ * All the office workers can now access the private VPN services with
+   no authorization, but only from the secure office network.
+
+To configure Traefik as a VPN client, run `make config`:
+
+ * You can run the wireguard client or the server, but not both at the
+   same time. When you are asked `Do you want to run Traefik
+   exclusively inside a VPN?` answer **N**. When you are asked `Do you
+   want to run Traefik as a reverse proxy for an external VPN?` answer
+   **Y**.
+
+ * When asked `Enter the list of VPN service names that the client
+   should reverse proxy`, you should enter a list of the names all of
+   the private services you want to forward. For example, if you want
+   to forward the `whoami` and the `piwigo` services, you would answer
+   `whoami,piwigo`
+
+Once reconfigured, run `make install` and the configuration will be
+regenerated, creating a new router and middleware to accomplish the
+forwarding.
