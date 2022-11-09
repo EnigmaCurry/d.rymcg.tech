@@ -9,9 +9,14 @@ The latest iteration of this config has the following new features:
 
  * The removal of the `traefik-proxy`, `traefik-wireguard`, and
    `traefik-mail` networks. [Traefik now uses the host
-   network](https://github.com/EnigmaCurry/d.rymcg.tech/issues/7) and
-   can talk to service containers directly, and so these containers do
-   not need to attach to a specific docker network anymore.
+   network](https://github.com/EnigmaCurry/d.rymcg.tech/issues/7) by
+   default, and can therefore talk to all service containers directly,
+   and so these containers do not need to attach to a specific docker
+   network anymore.
+ * Traefik can also operate inside of a wireguard VPN, as a server, or
+   as a client. The wireguard server and client services have
+   internalized to the Traefik docker-compose.yaml and removed as
+   separate projects.
  * TLS certificates are now managed via the `make certs` tool and
    added to the central Traefik static configuration. Previously,
    certificate resolver references were inherited by docker labels on
@@ -226,10 +231,6 @@ host IP address and port number:
    entrypoint. Use `TRAEFIK_SSH_ENTRYPOINT_HOST` and
    `TRAEFIK_SSH_ENTRYPOINT_PORT` to customize the host (default
    `0.0.0.0`) and port number (default `2222`).
- * `TRAEFIK_VPN_ENTRYPOINT_ENABLED=true` enables the VPN
-   entrypoint. Use `TRAEFIK_VPN_ENTRYPOINT_HOST` and
-   `TRAEFIK_VPN_ENTRYPOINT_PORT` to customize the host (default
-   `172.15.0.3`) and port number (default `443`).
 
 The DNS-01 challenge type requires some additional environment
 variables as specified by the [LEGO
@@ -328,16 +329,20 @@ to web servers running in project containers.
 You can start the [traefik-forward-auth](../traefik-forward-auth) service to
 enable OAuth2 authentication to your [gitea](../gitea) identity provider.
 
-## VPN entrypoint
+## Wireguard VPN
 
-If you enable the VPN entrypoint
-(`TRAEFIK_VPN_ENTRYPOINT_ENABLED=true`), Traefik will listen on the
-`traefik-vpn` network on TCP port `442` (TLS). This entrypoint can
-only be accessed by VPN clients connected through
-[wireguard](../wireguard) or other services you start on the
-`traefik-vpn` network.
+By default Traefik is setup to use the `host` network, which is used
+for *public* servers. Alternatively, you can start a wireguard VPN
+server and run Traefik inside of the VPN network exclusively. As a
+third configuration, you can have a public Traefik server reverse
+proxy to a private VPN network.
 
-When you run `make config` you will be asked the question `Do you want
-to enable the Traefik VPN entrypoint?`. Say yes, and the `traefik-vpn`
-docker network wiill be automatically created, and the Traefik
-entrypoint enabled.
+The easiest way to configure either the VPN server or client, is to
+run the `make config` script. Watch for the following questions to
+turn the wireguard services on:
+
+ * `Do you want to run Traefik exclusively inside a VPN?` Say yes to
+   this question to configure the wireguard server.
+ * `Do you want to run Traefik as a reverse proxy for an external
+   VPN?` Say yes to this question to configure the wireguard client.
+
