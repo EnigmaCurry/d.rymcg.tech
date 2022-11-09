@@ -3,5 +3,5 @@ include ../_scripts/Makefile.build
 include ../_scripts/Makefile.globals
 include ../_scripts/Makefile.lifecycle
 include ../_scripts/Makefile.open
+include ../_scripts/Makefile.reconfigure
 include ../.env_$(shell ${BIN}/docker_context)
-
