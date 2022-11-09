@@ -19,7 +19,10 @@ The latest iteration of this config has the following new features:
    as a client reverse proxy (forwarding private services to public
    non-VPN clients). The wireguard server and client services have
    been internalized to the Traefik docker-compose.yaml, and removed
-   as separate projects.
+   as separate projects. The old Traefik config had a `vpn` entrypoint
+   which has now been removed. Traefik will bind directly to the
+   wireguard container network (`network_mode: service:wireguard` or
+   `network_mode: service:wireguard-client`)
  * TLS certificates are now managed via the `make certs` tool and
    added to the central Traefik static configuration. Previously,
    certificate resolver references were inherited by docker labels on
