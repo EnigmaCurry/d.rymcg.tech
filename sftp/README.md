@@ -11,8 +11,9 @@ secure by default:
 
 ### Setup
 
- * Copy `.env-dist` to `.env_${DOCKER_CONTEXT}`, and edit the `SFTP_PORT`, `SFTP_USERS`,
-   and `KEYFILE_URL` variables.
+ * Run `make config` to create the default `.env_${DOCKER_CONTEXT}` file.
+ * Edit the `SFTP_PORT`, `SFTP_USERS`, and `KEYFILE_URL` variables in
+   the `.env_${DOCKER_CONTEXT}` file.
  * Run `make install`.
 
 ### Mounting data inside another container
