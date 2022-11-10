@@ -7,9 +7,10 @@ accordingly.
 
  * `BITWARDEN_PORT` the external port you'll use to connect to Bitwarden.
 
-To start Bitwarden, go into the bitwarden directory and run `docker-compose up -d`.
+To start Bitwarden, run `make install`.
 
-This configuration uses an SSH tunnel and does not use Traefik. To open the applicaiton in your browser, run:
+This configuration uses an SSH tunnel and does not use Traefik. To
+open the applicaiton in your browser, run:
 
 ```
 make open
