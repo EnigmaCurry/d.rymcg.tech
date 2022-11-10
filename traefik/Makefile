@@ -9,7 +9,10 @@ include ../_scripts/Makefile.projects-no-open
 .PHONY: config # Configure Traefik .env file
 config: config-ask compose-profiles
 	@echo ""
-	@echo 'Base configuration complete. Run `make certs` to configure certificate domains.'
+	@echo 'Base configuration complete.'
+	@echo 'Run `make certs` to configure certificate domains.'
+	@echo 'Examine the environment file: ${ENV_FILE}'
+	@echo 'Then run `make install` to (re)install.'
 
 .PHONY: config-ask
 config-ask:

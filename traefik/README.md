@@ -5,7 +5,11 @@ TCP / UDP reverse proxy and load balancer. Traefik is the front-most
 gateway for (almost) all of the projects hosted by d.rymcg.tech, and
 should be the first thing you install in your deployment.
 
-The latest iteration of this config has the following new features:
+## Changelog
+
+The
+[traefik-host-networking](https://github.com/EnigmaCurry/d.rymcg.tech/pull/8)
+PR brings the following new features:
 
  * The removal of the `traefik-proxy`, `traefik-wireguard`, and
    `traefik-mail` networks. By default, the Traefik config [now uses
@@ -48,10 +52,10 @@ make config
 ```
 
 Follow the prompts and answer the questions. You will configure the
-ACME certificate resolver, and the Traefik dashboard access
-credentials.
+ACME certificate resolver, the Traefik dashboard access credentials,
+Traefik plugins, and optionally the VPN server or client.
 
-Next configure the TLS certificates, run:
+Next, you can configure the TLS certificates. Run:
 
 ```
 make certs
@@ -148,13 +152,10 @@ the `TRAEFIK_ACME_CERT_DOMAINS` variable as a JSON nested list. When
 you run `make install` this is pushed into the [static configuration
 template](https://github.com/EnigmaCurry/d.rymcg.tech/blob/e6a4d0285f04d6d7f07fb9a5ec403ba421229747/traefik/config/traefik.yml#L80-L87).
 
-Back at the main menu, type `q` to quit the certificate manager. In
-order for the new certificate domains to be loaded, you must reinstall
-traefik:
-
-```
-make install
-```
+Back at the main menu, type `q` to quit the certificate manager. If
+you made changes, it will ask you if you would like to restart
+Traefik. If you'd rather wait, thats fine, just run `make install`
+when its convenient to restart Traefik.
 
 ## Traefik config templating
 
@@ -174,9 +175,9 @@ configuration](https://doc.traefik.io/traefik/getting-started/configuration-over
    loaded by the Traefik [file
    provider](https://doc.traefik.io/traefik/providers/file/).
  * The templates placed in the [user-templates](config/user-templates)
-   are ignored by thhe git repository and serve as a local-only config
-   store, they are loaded identically as the `config-templates`
-   directory.
+   directory are ignored by the git repository and serve as a
+   local-only config store, they are loaded identically as the
+   `config-templates` directory.
  * The [Docker
    provider](https://doc.traefik.io/traefik/providers/docker/) loads
    dynamic configuration directly from Docker container labels.
@@ -221,9 +222,9 @@ the most relevant options to edit:
 Each entrypoint can be configured on or off, as well as the explicit
 host IP address and port number:
  * `TRAEFIK_WEB_ENTRYPOINT_ENABLED=true` enables the HTTP entrypoint,
-   which is only used for redirecting to `websecure` entrypoint. Use
-   `TRAEFIK_WEB_ENTRYPOINT_HOST` and `TRAEFIK_WEB_ENTRYPOINT_PORT` to
-   customize the host (default `0.0.0.0`) and port number (default
+   which is only used for redirecting to the `websecure` entrypoint.
+   Use `TRAEFIK_WEB_ENTRYPOINT_HOST` and `TRAEFIK_WEB_ENTRYPOINT_PORT`
+   to customize the host (default `0.0.0.0`) and port number (default
    `80`).
  * `TRAEFIK_WEBSECURE_ENTRYPOINT_ENABLED=true` enables the HTTPS
    entrypoint. Use `TRAEFIK_WEBSECURE_ENTRYPOINT_HOST` and
@@ -311,9 +312,8 @@ This configuration has builtin support for the following plugins:
    ([whoami](../whoami/docker-compose.yaml) has an example)
 
 You can add third party plugins by modifying the
-[Dockerfile](Dockerfile), and follow the example of blockpath.
-
-You also need to [add your plugin to the traefik static
+[Dockerfile](Dockerfile), and follow the example of blockpath. You
+also need to [add your plugin to the traefik static
 configuration](https://github.com/EnigmaCurry/d.rymcg.tech/blob/291beafcbe8aa83860619d3a18336efce7c67c0a/traefik/config/traefik.yml#L15-L22).
 
 Find more plugins in the [Traefik Plugin
@@ -338,50 +338,89 @@ enable OAuth2 authentication to your [gitea](../gitea) identity provider.
 ## Wireguard VPN
 
 By default Traefik is setup to use the `host` network, which is used
-for *public* servers. Alternatively, you can start a wireguard VPN
-server and run Traefik inside of the VPN network exclusively. As a
-third configuration, you can have a public Traefik server reverse
-proxy to a private VPN network.
+for *public* (internet or LAN) servers. Alternatively, you can start a
+wireguard VPN server sidecar container and bind Traefik exclusively to
+the private network (`TRAEFIK_VPN_ENABLED=true`). As a third
+configuration, you can have a public Traefik server that can reverse
+proxy to the VPN to expose private services publicly
+(`TRAEFIK_VPN_CLIENT_ENABLED=true`).
 
-The easiest way to configure either the VPN server or client, is to
-run the `make config` script. Watch for the following questions to
-turn the wireguard services on:
+The easiest way to configure any of these configurations is to run the
+`make config` script. Watch for the following questions to turn the
+wireguard services on:
 
  * `Do you want to run Traefik exclusively inside a VPN?` Say yes to
-   this question to configure the wireguard server.
+   this question to configure the wireguard server and bind the
+   traefik container to the wireguard container network.
  * `Do you want to run Traefik as a reverse proxy for an external
-   VPN?` Say yes to this question to configure the wireguard client.
+   VPN?` Say yes to this question to configure the wireguard client
+   and bind the Traefik container to the wireguard client container
+   network.
+ * If you say N to both questions, Traefik will bind to the `host`
+   network.
+
+Note: Traefik can only bind to a single network at a time, so you may
+choose to configure `TRAEFIK_VPN_ENABLED=true`, **or**
+`TRAEFIK_VPN_CLIENT_ENABLED=true`, or neither, *but not both
+simultaneously*. To use a client and a server connected to the same
+VPN, you should deploy Traefik to two separate docker contexts.
 
 ### Wireguard VPN client
 
-Consider the use-case for a Traefik as a VPN client:
+Consider the use-case for Traefik as a VPN client:
 
- * You have a Docker server on the public internet.
+ * You have a Docker server hosted on the public internet.
  * You run Traefik on your public Docker server, with
    `TRAEFIK_VPN_ENABLED=true`, (this Traefik server can *only* be
    accessed from the private wireguard network)
  * You have an office LAN with multiple clients, all behind an office
    router firewall, they would all like to access your private Traefik
-   instance, but they can't access it withut a VPN client, and its too
-   cumbersome to install the client on all the office computers.
+   instance, but they can't access it without a VPN client, and its
+   too cumbersome to install the client on all the office computers.
  * So, you configure a small computer in the office (eg. raspberry pi)
    as the only computer that needs to connect to the VPN.
- * Traefik runs in the wireguard client configuration, with
-   `TRAEFIK_VPN_CLIENT_ENABLED=true` and forwards all requests it
-   receives from the local LAN over to the private Traefik instance on
-   the VPN.
- * All the office workers can now access the private VPN services with
-   no authorization, but only from the secure office network.
+ * The local office Traefik instance runs in the wireguard client
+   configuration, with `TRAEFIK_VPN_CLIENT_ENABLED=true` and forwards
+   all requests it receives from the local LAN over to the private
+   Traefik instance on the VPN.
+ * You selectively configure `TRAEFIK_VPN_CLIENT_PEER_SERVICES`, which
+   is the list of private services you wish to expose.
+ * All the office workers can now access these private VPN services
+   with no authorization, but only from the secure office network,
+   connecting through the local proxy (rasbperry pi).
+
+Consider adding on to the above use-case with a third internet server:
+
+ * You create a new Docker server on the public internet.
+ * You run Traefik on the second docker server, with
+`TRAEFIK_VPN_CLIENT_ENABLED=true` connecting to the first docker
+server running with `TRAEFIK_VPN_ENABLED=true`.
+ * You selectively configure `TRAEFIK_VPN_CLIENT_PEER_SERVICES`, which
+   is the list of private services you wish to expose.
+ * You can expose any service from any computer connected to the same
+   wireguard private network, by creating a Traefik
+   service,router,middleware, and serversTransport. Follow the example
+   of [vpn-client.yml](config/config-template/vpn-client.yml)
+ * Now the allowed private services are exposed to the public
+   internet.
 
 To configure Traefik as a VPN client, run `make config`:
 
- * You can run the wireguard client or the server, but not both at the
-   same time. When you are asked `Do you want to run Traefik
-   exclusively inside a VPN?` answer **N**. When you are asked `Do you
-   want to run Traefik as a reverse proxy for an external VPN?` answer
-   **Y**.
+ * When you are asked `Do you want to run Traefik exclusively inside a
+   VPN?` answer **N**. When you are asked `Do you want to run Traefik
+   as a reverse proxy for an external VPN?` answer **Y**.
 
- * When asked `Enter the list of VPN service names that the client
+ * Check the log of the `traefik-wireguard-1` container of the VPN
+   server. Inside are printed QR codes containing all of the
+   certificate details. Scan the QR code with a smartphone barcode
+   reader app, and copy the details into a temporary buffer in your
+   workstation text exitor (or carefully copy them by hand from the
+   phone screen). Once you tell `make config` that you want to run the
+   vpn client, it will ask you to enter all of the same details found
+   in the decoded client QR code, which are then permantely stored in
+   the traefik .env file.
+
+ * When asked to `Enter the list of VPN service names that the client
    should reverse proxy`, you should enter a list of the names all of
    the private services you want to forward. For example, if you want
    to forward the `whoami` and the `piwigo` services, you would answer
@@ -390,3 +429,99 @@ To configure Traefik as a VPN client, run `make config`:
 Once reconfigured, run `make install` and the configuration will be
 regenerated, creating a new router and middleware to accomplish the
 forwarding.
+
+The private Traefik server has configured `TRAEFIK_ROOT_DOMAIN` (eg.
+`d.rymcg.tech`) and the Traefik vpn client has a copy of this as
+`TRAEFIK_VPN_ROOT_DOMAIN`. It uses this information to translate from
+public domain to the private domain.
+
+For example:
+
+ * Suppose the VPN server's private Traefik instance is configured with
+   `TRAEFIK_ROOT_DOMAIN=private.example.com`
+ * Suppose the VPN client's public Traefik instance is configured with
+   `TRAEFIK_ROOT_DOMAIN=public.example.com` and
+   `TRAEFIK_VPN_ROOT_DOMAIN=private.example.com`
+ * Suppose the VPN server has deployed the `whoami` service and the
+   Traefik client server has configured
+   `TRAEFIK_VPN_CLIENT_PEER_SERVICES=whoami` in order to forward
+   requests to the private whoami service.
+
+In the above scenario, any request coming into the public Traefik
+client server for the domain `whoami.public.example.com` will get
+translated to the host `whoami.private.example.com` and forwarded to
+the private Traefik VPN server instance.
+
+## Environment Variables
+
+Here is a description of every single environment variable in the
+Traefik [.env](.env-dist) file :
+
+| Variable name                              | Description                                          | Examples                                      |
+|--------------------------------------------|------------------------------------------------------|-----------------------------------------------|
+| `TRAEFIK_IMAGE`                            | The Traefik docker image                             | `traefik:v2.9`                                |
+| `TRAEFIK_LOG_LEVEL`                        | Traefik log level                                    | `warn`,`error`,`info`, `debug`                |
+| `TRAEFIK_CONFIG_VERBOSE`                   | (bool) Print config to logs                          | `false`,`true`                                |
+| `TRAEFIK_NETWORK_MODE`                     | Bind Traefik to host or serivce container networking | `host`,`wireguard`,`wireguard-client`         |
+| `DOCKER_COMPOSE_PROFILES`                  | List of docker-compose profiles to enable            | `default`,`wireguard`,`wireguard-client`      |
+| `TRAEFIK_DASHBOARD_ENTRYPOINT_ENABLED`     | (bool) Enable the dashboard entrypoint               | `true`, `false`                               |
+| `TRAEFIK_DASHBOARD_AUTH`                   | The htpasswd encoded password for the dashboard      | `$$apr1$$125jLjJS$$9WiXscLMURiMbC0meZXMv1`    |
+| `TRAEFIK_DASHBOARD_ENTRYPOINT_PORT`        | The TCP port for the daashboard                      | `8080`                                        |
+| `TRAEFIK_DASHBOARD_ENTRYPOINT_HOST`        | The IP address to bind to                            | `127.0.0.1` (host networking) `0.0.0.0` (VPN) |
+| `TRAEFIK_ACCESS_LOGS_ENABLED`              | (bool) enable the Traefik access logs                | `true`,`false`                                |
+| `TRAEFIK_ACCESS_LOGS_PATH`                 | The path to the access logs inside the volume        | `/data/access.log`                            |
+| `TRAEFIK_SEND_ANONYMOUS_USAGE`             | (bool) Whether to send usage data to Traefik Labs    | `false`, `true`                               |
+| `TRAEFIK_ACME_ENABLED`                     | (bool) Enable ACME TLS certificate resolver          | `true`,`false`                                |
+| `TRAEFIK_ACME_CA_EMAIL`                    | Your email to send to Lets Encrypt                   | `you@example.com` (can be blank)               |
+| `TRAEFIK_ACME_CHALLENGE`                   | The ACME challenge type                              | `tls`,`dns`                                   |
+| `TRAEFIK_ROOT_DOMAIN`                      | The default root domain of every service             | `d.rymcg.tech`                                |
+| `TRAEFIK_ACME_DNS_PROVIDER`                | The LEGO DNS provider name                           | `digitalocean`                                |
+| `TRAEFIK_ACME_DNS_VARNAME_1`               | The first LEGO DNS variable name                     | `DO_AUTH_TOKEN`                               |
+| `TRAEFIK_ACME_DNS_VARNAME_2`               | The second LEGO DNS variable name                    | leave blank if there are no more              |
+| `TRAEFIK_ACME_DNS_VARNAME_3`               | The thrid LEGO DNS variable name                     | leave blank if there are no more              |
+| `TRAEFIK_ACME_DNS_VARNAME_4`               | The fourth LEGO DNS variable name                    | leave blank if there are no more              |
+| `TRAEFIK_ACME_DNS_VARNAME_5`               | The fifth LEGO DNS variable name                     | leave blank if there are no more              |
+| (various LEGO DNS variables)               | All of your tokens for DNS provider                  | `DO_AUTH_TOKEN`                               |
+| `TRAEFIK_ACME_CERT_DOMAINS`                | The JSON list of all certificate domans              | Use `make certs` to manage                    |
+| `TRAEFIK_ACME_CERT_RESOLVER`               | Lets Encrypt API environment                         | `production`,`staging`                        |
+| `TRAEFIK_CONFIG_YTT_VERSION`               | YTT tool version                                     | `v0.43.0`                                     |
+| `TRAEFIK_FILE_PROVIDER`                    | (bool) Enable the Traefik file provider              | `true`,`false`                                |
+| `TRAEFIK_FILE_PROVIDER_WATCH`              | (bool) Enable automatic file reloading               | `false`,`true`                                |
+| `TRAEFIK_DOCKER_PROVIDER`                  | (bool) Enable the Traefik docker provider            | `true`,`false`                                |
+| `TRAEFIK_PLUGINS`                          | (bool) Enable Traefik plugins                        | `true`,`false`                                |
+| `TRAEFIK_PLUGIN_BLOCKPATH`                 | (bool) Enable BlockPath plugin                       | `true`,`false`                                |
+| `TRAEFIK_PLUGIN_MAXMIND_GEOIP`             | (bool) Enable GeoIP plugin                           | `false`, `true`                               |
+| `TRAEFIK_GEOIPUPDATE_ACCOUNT_ID`           | MaxMind account id for GeoIP database download       |                                               |
+| `TRAEFIK_GEOIPUPDATE_LICENSE_KEY`          | MaxMind license key for GeoIP database download      |                                               |
+| `TRAEFIK_GEOIPUPDATE_EDITION_IDS`          | The list of GeoIP databases to download              | `GeoLite2-ASN GeoLite2-City GeoLite2-Country` |
+| `TRAEFIK_WEB_ENTRYPOINT_ENABLED`           | (bool) Enable web (port 80) entrypoint               | `true`,`false`                                |
+| `TRAEFIK_WEB_ENTRYPOINT_HOST`              | Host ip address to bind web entrypoint               | `0.0.0.0`                                     |
+| `TRAEFIK_WEB_ENTRYPOINT_PORT`              | Host TCP port to bind web entrypoint                 | `80`                                          |
+| `TRAEFIK_WEBSECURE_ENTRYPOINT_ENABLED`     | (bool) Enable websecure (port 443) entrypoint        | `true`,`false`                                |
+| `TRAEFIK_WEBSECURE_ENTRYPOINT_HOST`        | Host ip address to bind websecure entrypoint         | `0.0.0.0`                                     |
+| `TRAEFIK_WEBSECURE_ENTRYPOINT_PORT`        | Host TCP port to bind websecure entrypoint           | `443`                                         |
+| `TRAEFIK_MQTT_ENTRYPOINT_ENABLED`          | (bool) Enable mqtt (port 443) entrypoint             |                                               |
+| `TRAEFIK_MQTT_ENTRYPOINT_HOST`             | Host ip address to bind mqtt entrypoint              | `0.0.0.0`                                     |
+| `TRAEFIK_MQTT_ENTRYPOINT_PORT`             | Host TCP port to bind mqtt entrypoint                | `8883`                                        |
+| `TRAEFIK_SSH_ENTRYPOINT_ENABLED`           | (bool) Enable ssh (port 2222) entrypoint             | `true`,`false`                                |
+| `TRAEFIK_SSH_ENTRYPOINT_HOST`              | Host ip address to bind ssh entrypoint               | `0.0.0.0`                                     |
+| `TRAEFIK_SSH_ENTRYPOINT_PORT`              | Host TCP port to bind ssh entrypoint                 | `2222`                                        |
+| `TRAEFIK_VPN_ENABLED`                      | (bool) enable VPN server                             | `false`,`true`                                |
+| `TRAEFIK_VPN_HOST`                         | Public hostname of VPN server                        | `vpn.example.com`                             |
+| `TRAEFIK_VPN_ROOT_DOMAIN`                  | Root domain of the VPN services                      | `d.rymcg.tech`                                |
+| `TRAEFIK_VPN_ADDRESS`                      | Private VPN IP address of Traefik server             | `10.13.16.1`                                  |
+| `TRAEFIK_VPN_PORT`                         | The TCP port to bind the VPN server to               | `51820`                                       |
+| `TRAEFIK_VPN_PEERS`                        | The number or list of clients to create              | `client1,client2`, `1`                        |
+| `TRAEFIK_VPN_PEER_DNS`                     | The DNS server that clients are advertised to use    | `auto` (uses host), `1.1.1.1`                 |
+| `TRAEFIK_VPN_SUBNET`                       | The first .0 IP address of the private VPN subnet    | `10.13.16.0`                                  |
+| `TRAEFIK_VPN_ALLOWED_IPS`                  | Which IP subnets are routable by the VPN             | `10.13.16.0/24`, `0.0.0.0` (all traffic)      |
+| `TRAEFIK_VPN_CLIENT_ENABLED`               | (bool)  Enable the VPN client                        | `false`,`true`                                |
+| `TRAEFIK_VPN_CLIENT_INTERFACE_ADDRESS`     | The VPN client private IP address                    | `10.13.16.2`                                  |
+| `TRAEFIK_VPN_CLIENT_INTERFACE_PRIVATE_KEY` | The VPN client private key                           | `4xxxxxxx=`                                   |
+| `TRAEFIK_VPN_CLIENT_INTERFACE_LISTEN_PORT` | The VPN client listen port                           | `51820`                                       |
+| `TRAEFIK_VPN_CLIENT_INTERFACE_PEER_DNS`    | The VPN client peer DNS                              | `10.13.16.1`                                  |
+| `TRAEFIK_VPN_CLIENT_PEER_PUBLIC_KEY`       | The VPN client public key                            | `5xxxxxxx=`                                   |
+| `TRAEFIK_VPN_CLIENT_PEER_PRESHARED_KEY`    | The VPN client preshared key                         | `6xxxxxxx=`                                   |
+| `TRAEFIK_VPN_CLIENT_PEER_ENDPOINT`         | The VPN server public endpoint                       | `vpn.example.com:51820`                       |
+| `TRAEFIK_VPN_CLIENT_PEER_ALLOWED_IPS`      | The VPN client allowed routable IP addresses         | `10.13.16.1/32`                               |
+| `TRAEFIK_VPN_CLIENT_PEER_SERVICES`         | The list of VPN services to forward                  | `whoami,piwigo,freshrss`                      |
