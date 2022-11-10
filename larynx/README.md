@@ -4,21 +4,12 @@
 [Rhasspy](https://rhasspy.readthedocs.io/en/latest/) project. It runs as a
 service, so you can send text and get a .wav file back in return.
 
-Copy `.env-dist` to `.env` and edit the variables:
+Run `make config` to configure the larynx domain name and
+username/password.
 
- * `LARYNX_TRAEFIK_HOST` - the domain name for the larynx service
- * `LARYNX_HTTP_AUTH` - the htpasswd encrypted username and password to access the service.
+Run `make install` to deploy the app.
 
-To generate the username / password run the following:
-
-```
-Run: docker run --rm -it httpd htpasswd -nB USERNAME
-```
-
-Replace `USERNAME` with the new username you wish to use. It will prompt to
-enter the new password. Copy the encrypted output into your `.env` file as
-`LARYNX_HTTP_AUTH`.
-
+Run `make open` to open the page in your browser.
 
 Larynx serves a web browser test page, but you can also use the service API
 directly:
