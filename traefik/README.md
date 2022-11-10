@@ -367,7 +367,7 @@ VPN, you should deploy Traefik to two separate docker contexts.
 
 ### Wireguard VPN client
 
-[![Traefik VPN Reverse Proxy](doc/Traefik-VPN-Proxy.jpg)](https://raw.githubusercontent.com/EnigmaCurry/d.rymcg.tech/traefik-host-networking/traefik/doc/Traefik-VPN-Proxy.jpg)
+[![Traefik VPN Reverse Proxy](doc/Traefik-VPN-Proxy.jpg)](https://raw.githubusercontent.com/EnigmaCurry/d.rymcg.tech/master/traefik/doc/Traefik-VPN-Proxy.jpg)
 
 Consider the use-case for Traefik as a VPN client:
 
