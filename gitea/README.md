@@ -7,7 +7,8 @@ provider, to facilitate sign-in for other applications, via
 
 ## Configuration
 
-Copy `.env-dist` to `.env`, and edit variables accordingly. 
+Run `make config` or copy `.env-dist` to `.env`, and edit variables
+accordingly.
 
  * `GITEA_TRAEFIK_HOST` to the external domain name forwarded from traefik, eg.
    `git.example.com`

@@ -1,8 +1,4 @@
-version: "3.3"
-
-networks:
-  traefik-proxy:
-    name: traefik-proxy
+version: "3.9"
 
 volumes:
   node-red:
@@ -11,8 +7,6 @@ services:
   node-red:
     image: "nodered/node-red"
     container_name: "node-red"
-    networks:
-      - traefik-proxy
     security_opt:
       - no-new-privileges:true
     restart: unless-stopped
@@ -21,7 +15,6 @@ services:
       - "traefik.port=1880"
       - "traefik.http.routers.node-red.rule=Host(`${NODERED_TRAEFIK_HOST}`)"
       - "traefik.http.routers.node-red.entrypoints=websecure"
-      - "traefik.http.routers.node-red.tls.certresolver=${ACME_CERT_RESOLVER}"
       ## Authentication:
       - "traefik.http.middlewares.nodered-auth.basicauth.users=${NODERED_HTTP_AUTH}"
       - "traefik.http.routers.node-red.middlewares=nodered-auth@docker"

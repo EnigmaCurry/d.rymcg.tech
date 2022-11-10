@@ -1,19 +1,13 @@
-version: "3.3"
-
-networks:
-  traefik-proxy:
-    name: traefik-proxy
+version: "3.9"
 
 volumes:
   baikal_config:
   baikal_data:
-  
+
 services:
   baikal:
     image: "ckulka/baikal:nginx"
     container_name: "baikal"
-    networks:
-      - traefik-proxy
     security_opt:
       - no-new-privileges:true
     restart: unless-stopped
@@ -21,7 +15,6 @@ services:
       - "traefik.enable=true"
       - "traefik.http.routers.baikal.rule=Host(`${BAIKAL_TRAEFIK_HOST}`)"
       - "traefik.http.routers.baikal.entrypoints=websecure"
-      - "traefik.http.routers.baikal.tls.certresolver=${ACME_CERT_RESOLVER}"
     volumes:
       - baikal_config:/var/www/baikal/config
       - baikal_data:/var/www/baikal/Specific

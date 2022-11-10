@@ -8,6 +8,16 @@ ENV_FILE=$1; shift
 test -f ${ENV_FILE} || cp .env-dist ${ENV_FILE}
 for var in "$@"; do
     parts=(${var//=/ }); var=${parts[0]}; val=${parts[@]:1};
-    ${BIN}/dotenv -f ${ENV_FILE} set ${var}="${val}"
-    echo "Set ${var}=${val}"
+    if [[ -n "${var}" ]]; then
+        if ! grep -E "^${var}=" ${ENV_FILE} >/dev/null; then
+            echo "ERROR: ${var} not found in ${ENV_FILE}"
+            exit 1
+        fi
+        ${BIN}/dotenv -f ${ENV_FILE} set ${var}="${val}"
+        echo "Set ${var}=${val}"
+    else
+        echo "ERROR: 'reconfigure' tried to set blank variable name!"
+        echo "args: $@"
+        exit 1
+    fi
 done

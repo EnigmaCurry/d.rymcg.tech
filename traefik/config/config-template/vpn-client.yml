@@ -1,0 +1,45 @@
+#@ load("@ytt:data", "data")
+
+#! Reverse proxy for all services listed in TRAEFIK_VPN_CLIENT_PEER_SERVICES
+#!  - You must already be running the VPN server and another Traefik instance on a remote host.
+#!  - The services listed in TRAEFIK_VPN_CLIENT_PEER_SERVICES must already exist on the server.
+#! The local Traefik instance will connect to the server Traefik instance over the VPN.
+#! The local Traefik instance will forward all requests, translating the domain names.
+#! eg. whoami.localdomain forwards to whoami.vpn-server.example.com
+#! Separate routers/middleware are created for EACH name in TRAEFIK_VPN_CLIENT_PEER_SERVICES
+
+#! This uses Text Templating in order to template on the YAML key names.
+#! See https://carvel.dev/ytt/docs/v0.43.0/ytt-text-templating/
+#@yaml/text-templated-strings
+#@ if data.values.vpn_client_enabled == "true" :
+http:
+  services:
+    #@ for service in data.values.vpn_client_peer_services.split(","):
+    (@= service @)-vpn:
+      loadBalancer:
+        passHostHeader: true
+        servers:
+          - url: #@ "https://" + data.values.vpn_address
+        serversTransport: #@ service + "-vpn-transport"
+    #@ end
+  routers:
+    #@ for service in data.values.vpn_client_peer_services.split(","):
+    (@= service @)-vpn:
+      rule: #@ "Host(`%s.%s`)" % (service, data.values.root_domain)
+      service: #@ service + "-vpn"
+      middlewares:
+        - #@ service + "-vpn-host-header"
+    #@ end
+  middlewares:
+    #@ for service in data.values.vpn_client_peer_services.split(","):
+    (@= service @)-vpn-host-header:
+      headers:
+        customRequestHeaders:
+          Host: #@ "%s.%s" % (service, data.values.vpn_root_domain)
+    #@ end
+  serversTransports:
+    #@ for service in data.values.vpn_client_peer_services.split(","):
+    (@= service @)-vpn-transport:
+      serverName: #@ "%s.%s" % (service, data.values.vpn_root_domain)
+    #@ end
+#@ end

@@ -1,8 +1,4 @@
-version: "3.3"
-
-networks:
-  traefik-proxy:
-    name: traefik-proxy
+version: "3.9"
 
 services:
   db:
@@ -19,9 +15,6 @@ services:
       - mariadb:/var/lib/mysql
   piwigo:
     image: linuxserver/piwigo:latest
-    networks:
-      - traefik-proxy
-      - default
     security_opt:
       - no-new-privileges:true
     restart: unless-stopped
@@ -36,7 +29,6 @@ services:
       - "traefik.enable=true"
       - "traefik.http.routers.piwigo.rule=Host(`${PIWIGO_TRAEFIK_HOST}`)"
       - "traefik.http.routers.piwigo.entrypoints=websecure"
-      - "traefik.http.routers.piwigo.tls.certresolver=${ACME_CERT_RESOLVER}"
 
 volumes:
   config:

@@ -19,7 +19,7 @@ check_var(){
 
 ask() {
     __prompt=${1}; __var=${2}; __default=${3}
-    read -p "${__prompt}"$'\x0a: ' -i "${__default}" ${__var}
+    read -e -p "${__prompt}"$'\x0a: ' -i "${__default}" ${__var}
     export ${__var}
 }
 
@@ -27,7 +27,7 @@ require_input() {
     ## require_input {PROMPT} {VAR} {DEFAULT}
     ## Read variable, set default if blank, error if still blank
     test -z ${3} && dflt="" || dflt=" (${3})"
-    read -p "$1$dflt: " $2
+    read -e -p "$1$dflt: " $2
     eval $2=${!2:-${3}}
     test -v ${!2} && fault "$2 must not be blank."
 }
@@ -61,7 +61,7 @@ docker_run_with_env() {
 get_root_domain() {
     ENV_FILE=${BIN}/../.env_$(${BIN}/docker_context)
     if [[ -f ${ENV_FILE} ]]; then
-        ${BIN}/dotenv -f ${ENV_FILE} ROOT_DOMAIN
+        ${BIN}/dotenv -f ${ENV_FILE} get ROOT_DOMAIN
     else
         echo "Could not find $(abspath ${ENV_FILE})"
         fault "Run `make config` in the root project directory first."

@@ -1,0 +1,24 @@
+#@ load("@ytt:data", "data")
+#@ if data.values.dashboard_entrypoint_enabled == "true":
+http:
+  routers:
+    api:
+      rule: PathPrefix(`/api`) || PathPrefix(`/dashboard`)
+      entrypoints: traefik
+      service: api@internal
+      middlewares:
+        #@ if/end data.values.network_mode == "host":
+        - traefik-api-ipwhitelist
+        - traefik-dashboard-auth
+  middlewares:
+    traefik-dashboard-auth:
+      basicauth:
+        users: #@ data.values.dashboard_auth
+        removeHeader: true
+        headerField: X-WebAuth-User
+    #@ if data.values.network_mode == "host":
+    traefik-api-ipwhitelist:
+      ipwhitelist:
+        sourcerange: 127.0.0.1/32
+    #@ end
+#@ end

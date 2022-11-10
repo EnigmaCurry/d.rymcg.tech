@@ -4,13 +4,15 @@ Compare with [ttrss](../ttrss)
 
 ## Config
 
-Copy `.env-dist` to `.env` and set the vars:
+Run `make config` or copy `.env-dist` to `.env` and set the vars:
 
  * `FRESHRSS_TRAEFIK_HOST` the domain name for FreshRSS.
  * `TIME_ZONE` the timezone of the server
 
 
-Bring up the server with `docker-compose up -d`
+Bring up the server : `make install`
+
+Open the browser page: `make open`
 
 Immediately open the URL and finish the installation with the wizard. Choose the
 SQLite database type when asked.

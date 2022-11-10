@@ -1,8 +1,4 @@
-version: "3.3"
-
-networks:
-  traefik-proxy:
-    name: traefik-proxy
+version: "3.9"
 
 volumes:
   work:
@@ -14,14 +10,11 @@ services:
     container_name: jupyterlab
     security_opt:
       - no-new-privileges:true
-    networks:
-      - traefik-proxy
     restart: unless-stopped
     labels:
       - "traefik.enable=true"
       - "traefik.http.routers.jupyterlab.rule=Host(`${JUPYTERLAB_TRAEFIK_HOST}`)"
       - "traefik.http.routers.jupyterlab.entrypoints=websecure"
-      - "traefik.http.routers.jupyterlab.tls.certresolver=${ACME_CERT_RESOLVER}"
       - "traefik.http.services.jupyterlab.loadBalancer.server.port=10000"
     volumes:
       - work:/home/jovyan/work

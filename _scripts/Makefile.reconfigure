@@ -1,0 +1,3 @@
+reconfigure:
+	@[[ "${var}" != "" ]] || (echo -e "Error: Invalid argument, must set var.\n## Use: make reconfigure var=SETTING=VALUE" && false)
+	@parts=($${var//=/ }); ${BIN}/reconfigure ${ENV_FILE} $${parts[0]}=$${parts[@]:1}

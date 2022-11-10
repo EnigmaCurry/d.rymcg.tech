@@ -1,8 +1,5 @@
-version: "3.3"
+version: "3.9"
 
-networks:
-  traefik-proxy:
-    name: traefik-proxy
 
 services:
   gitea:
@@ -26,8 +23,6 @@ services:
       - GITEA__service__DEFAULT_ALLOW_CREATE_ORGANIZATION
       - GITEA__service__DEFAULT_ENABLE_TIMETRACKING
       - GITEA__service__NO_REPLY_ADDRESS
-    networks:
-      - traefik-proxy
     security_opt:
       - no-new-privileges:true
     volumes:
@@ -41,7 +36,6 @@ services:
       - "traefik.http.routers.gitea-web.rule=Host(`${GITEA_TRAEFIK_HOST}`)"
       - "traefik.http.routers.gitea-web.entrypoints=websecure"
       - "traefik.http.routers.gitea-web.service=gitea-web"
-      - "traefik.http.routers.gitea-web.tls.certresolver=${ACME_CERT_RESOLVER}"
       - "traefik.http.services.gitea-web.loadbalancer.server.port=3000"
       ## SSH
       - "traefik.tcp.routers.gitea-ssh.rule=HostSNI(`*`)"
