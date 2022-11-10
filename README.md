@@ -147,6 +147,12 @@ an additional port, as listed above.
 See [DIGITALOCEAN.md](DIGITALOCEAN.md) for an example of setting the
 DigitalOcean firewall service.
 
+Later, after you've deployed things, you can audit all of the open
+published ports: from the root project directory, run `make
+show-ports` to list all of the services with open ports (or those that
+run in the host network and are therefore completely open. You will
+find traefik and the wireguard server/client in this latter category).
+
 ## Setup
 
 ### Install workstation tools
