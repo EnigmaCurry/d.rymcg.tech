@@ -9,10 +9,13 @@ accordingly.
 
 To start Bitwarden, go into the bitwarden directory and run `docker-compose up -d`.
 
-This configuration doesn't use Traefik - you should SSH tunnel into the
-host, then access Bitwarden via localhost:<whatever port you designate in .env>
+This configuration uses an SSH tunnel and does not use Traefik. To open the applicaiton in your browser, run:
 
-E.g., if you set the port to 8888:
+```
+make open
+```
+
+Or create the SSH tunnel manually, eg. if you set the port to 8888:
 
 ```
 ssh docker -L 8888:localhost:8888
