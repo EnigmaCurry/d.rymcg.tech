@@ -2,7 +2,8 @@
 
 [Bitwarden](https://bitwarden.com/) is an open-source password manager.
 
-Copy `.env-dist` to `.env`, and edit variables accordingly. 
+Run `make config` or copy `.env-dist` to `.env`, and edit variables
+accordingly.
 
  * `BITWARDEN_PORT` the external port you'll use to connect to Bitwarden.
 

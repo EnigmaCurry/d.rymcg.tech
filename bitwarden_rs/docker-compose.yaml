@@ -1,4 +1,4 @@
-version: "3.7"
+version: "3.9"
 
 # This binds to localhost only, so use this from an SSH tunnel.
 # No Traefik nor TLS is used.

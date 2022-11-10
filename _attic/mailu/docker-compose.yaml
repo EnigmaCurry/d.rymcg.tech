@@ -1,0 +1,212 @@
+version: "3.9"
+
+networks:
+  default:
+    name: mailu
+    driver: bridge
+    ipam:
+      driver: default
+      config:
+        - subnet: ${SUBNET}
+  traefik-mail:
+    name: traefik-mail
+
+volumes:
+  redis:
+  dkim:
+  dav:
+  data:
+  filter:
+  mail:
+  mailqueue:
+  webmail:
+  overrides_nginx:
+  overrides_dovecot:
+  overrides_postfix:
+  overrides_rspamd:
+  overrides_roundcube:
+  certs:
+    external: true
+    name: ${CA_NAME}_certificate-ca_${MAILU_TRAEFIK_HOST}
+
+services:
+  config:
+    build:
+      context: config
+    security_opt:
+      - no-new-privileges:true
+    environment:
+      - PRINT_CONFIG
+    volumes:
+      - overrides_postfix:/overrides/postfix
+
+  # External dependencies
+  redis:
+    image: redis:alpine
+    restart: always
+    volumes:
+      - "redis:/data"
+    depends_on:
+      - resolver
+    dns:
+      - ${SUBNET_PREFIX}.254
+
+  # Core services
+  front:
+    image: ${DOCKER_ORG}/${DOCKER_PREFIX:-}nginx:${MAILU_VERSION}
+    restart: always
+    env_file: ${ENV_FILE}
+    logging:
+      driver: json-file
+    ## These ports are not exposed, but are available on the mail network
+    ## at 10.11.11.13 :
+    #   - "80:80"
+    #   - "443:443"
+    #   - "25:25"
+    #   - "465:465"
+    #   - "587:587"
+    #   - "110:110"
+    #   - "995:995"
+    #   - "143:143"
+    #   - "993:993"
+    volumes:
+      - "certs:/certs"
+      - "overrides_nginx:/overrides:ro"
+    depends_on:
+      - resolver
+    dns:
+      - ${SUBNET_PREFIX}.254
+    networks:
+      default:
+        ipv4_address: ${SUBNET_PREFIX}.13
+      traefik-mail:
+        ipv4_address: ${TRAEFIK_MAIL_SUBNET_PREFIX}.13
+    labels:
+      - "traefik.enable=true"
+      ## VPN web endpoint port :442
+      - "traefik.http.routers.mailu.rule=Host(`${MAILU_TRAEFIK_HOST}`)"
+      - "traefik.http.routers.mailu.entrypoints=vpn"
+      - "traefik.docker.network=traefik-mail"
+      - "traefik.http.services.mailu.loadbalancer.server.port=80"
+      ## Forbid non-VPN traffic and redirect port :443 to :442
+      - "traefik.http.routers.mailu-redirect.rule=Host(`${MAILU_TRAEFIK_HOST}`)"
+      - "traefik.http.routers.mailu-redirect.entrypoints=websecure"
+      - "traefik.http.middlewares.mailu-redirect.redirectregex.regex=^https://${MAILU_TRAEFIK_HOST}/(.*)"
+      - "traefik.http.middlewares.mailu-redirect.redirectregex.replacement=https://${MAILU_TRAEFIK_HOST}:442/$${1}"
+      - "traefik.http.routers.mailu-redirect.middlewares=vpn-ipwhitelist@docker,mailu-redirect@docker"
+      ## SMTP :465 with TLS passthrough:
+      - "traefik.tcp.routers.mailu-smtp.rule=HostSNI(`${MAILU_TRAEFIK_HOST}`)"
+      - "traefik.tcp.routers.mailu-smtp.entrypoints=smtp"
+      - "traefik.tcp.routers.mailu-smtp.tls.passthrough=true"
+      - "traefik.tcp.routers.mailu-smtp.service=mailu-smtp"
+      - "traefik.tcp.services.mailu-smtp.loadbalancer.server.port=465"
+      - "traefik.tcp.routers.mailu-smtp.middlewares=vpn-ipwhitelist@docker"
+      ## IMAP :993 with TLS passthrough:
+      - "traefik.tcp.routers.mailu-imap.rule=HostSNI(`${MAILU_TRAEFIK_HOST}`)"
+      - "traefik.tcp.routers.mailu-imap.entrypoints=imap"
+      - "traefik.tcp.routers.mailu-imap.tls.passthrough=true"
+      - "traefik.tcp.routers.mailu-imap.service=mailu-imap"
+      - "traefik.tcp.services.mailu-imap.loadbalancer.server.port=993"
+      - "traefik.tcp.routers.mailu-imap.middlewares=vpn-ipwhitelist@docker"
+
+  resolver:
+    image: ${DOCKER_ORG}/${DOCKER_PREFIX:-}unbound:${MAILU_VERSION}
+    env_file: ${ENV_FILE}
+    restart: always
+    networks:
+      default:
+        ipv4_address: ${SUBNET_PREFIX}.254
+
+  admin:
+    image: ${DOCKER_ORG}/${DOCKER_PREFIX:-}admin:${MAILU_VERSION}
+    restart: always
+    env_file: ${ENV_FILE}
+    volumes:
+      - "data:/data"
+      - "dkim:/dkim"
+    depends_on:
+      - redis
+      - resolver
+    dns:
+      - ${SUBNET_PREFIX}.254
+
+  imap:
+    image: ${DOCKER_ORG}/${DOCKER_PREFIX:-}dovecot:${MAILU_VERSION}
+    restart: always
+    env_file: ${ENV_FILE}
+    volumes:
+      - "mail:/mail"
+      - "overrides_dovecot:/overrides:ro"
+    depends_on:
+      - front
+      - resolver
+    dns:
+      - ${SUBNET_PREFIX}.254
+
+  smtp:
+    depends_on: ['config']
+    image: ${DOCKER_ORG}/${DOCKER_PREFIX:-}postfix:${MAILU_VERSION}
+    restart: always
+    env_file: ${ENV_FILE}
+    volumes:
+      - "mailqueue:/queue"
+      - "overrides_postfix:/overrides:ro"
+    depends_on:
+      - front
+      - resolver
+    dns:
+      - ${SUBNET_PREFIX}.254
+
+  antispam:
+    image: ${DOCKER_ORG}/${DOCKER_PREFIX:-}rspamd:${MAILU_VERSION}
+    hostname: antispam
+    restart: always
+    env_file: ${ENV_FILE}
+    volumes:
+      - "filter:/var/lib/rspamd"
+      - "overrides_rspamd:/etc/rspamd/override.d:ro"
+    depends_on:
+      - front
+      - resolver
+    dns:
+      - ${SUBNET_PREFIX}.254
+
+  # Optional services
+
+  webdav:
+    image: ${DOCKER_ORG}/${DOCKER_PREFIX:-}radicale:${MAILU_VERSION}
+    restart: always
+    env_file: ${ENV_FILE}
+    volumes:
+      - "dav:/data"
+    depends_on:
+      - resolver
+    dns:
+      - ${SUBNET_PREFIX}.254
+
+  fetchmail:
+    #image: ${DOCKER_ORG}/${DOCKER_PREFIX:-}fetchmail:${MAILU_VERSION}
+    build:
+       context: https://github.com/EnigmaCurry/Mailu.git#fetchmail:optional/fetchmail
+    restart: always
+    env_file: ${ENV_FILE}
+    volumes:
+      - "data:/data"
+    depends_on:
+      - resolver
+    dns:
+      - ${SUBNET_PREFIX}.254
+
+  # Webmail
+  webmail:
+    image: ${DOCKER_ORG}/${DOCKER_PREFIX:-}roundcube:${MAILU_VERSION}
+    restart: always
+    env_file: ${ENV_FILE}
+    volumes:
+      - "webmail:/data"
+      - "overrides_roundcube:/overrides:ro"
+    depends_on:
+      - imap
+      - resolver
+    dns:
+      - ${SUBNET_PREFIX}.254

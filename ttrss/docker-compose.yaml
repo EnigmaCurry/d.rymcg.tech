@@ -1,8 +1,4 @@
-version: '3'
-
-networks:
-  traefik-proxy:
-    name: traefik-proxy
+version: "3.9"
 
 services:
   db:
@@ -76,9 +72,6 @@ services:
     security_opt:
       - no-new-privileges:true
     restart: unless-stopped
-    networks:
-      - traefik-proxy
-      - default
     volumes:
       - app:/var/www/html:ro
     depends_on:
@@ -87,7 +80,6 @@ services:
       - "traefik.enable=true"
       - "traefik.http.routers.ttrss.rule=Host(`${TTRSS_TRAEFIK_HOST}`)"
       - "traefik.http.routers.ttrss.entrypoints=websecure"
-      - "traefik.http.routers.ttrss.tls.certresolver=${ACME_CERT_RESOLVER}"
 
 volumes:
   db:

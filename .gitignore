@@ -5,3 +5,4 @@ xbs/api/settngs.json
 /*.tgz.gpg
 passwords.json
 /filestash/state/
+.gitmodules

@@ -1,34 +1,41 @@
-.PHONY: install # Build and starts services
+.PHONY: install # (re)builds images and (re)starts services (only if changed)
 install: build start
+
+.PHONY: uninstall # Remove service containers, leaving the volumes intact
+uninstall: down
+
+.PHONY: reinstall # Remove service containers, and then re-install (volumes left intact).
+reinstall: uninstall install
 
 .PHONY: start # Start services
 start:
-	ENV_FILE=${ENV_FILE} docker compose --env-file=${ENV_FILE} up -d
+	@export COMPOSE_PROFILES=$$(${BIN}/dotenv -f ${ENV_FILE} get DOCKER_COMPOSE_PROFILES) ; set -x; docker compose --env-file=${ENV_FILE} up -d
 
 .PHONY: up
 up: start
 
 .PHONY: stop # Stops services
 stop:
-	docker compose --env-file=${ENV_FILE} stop
+	@export COMPOSE_PROFILES=$$(${BIN}/dotenv -f ${ENV_FILE} get DOCKER_COMPOSE_PROFILES) ; set -x; docker compose --env-file=${ENV_FILE} stop
 
 .PHONY: down
-down: 
-	docker compose --env-file=${ENV_FILE} down
+down:
+	@export COMPOSE_PROFILES=$$(${BIN}/dotenv -f ${ENV_FILE} get DOCKER_COMPOSE_PROFILES) ; set -x; docker compose --env-file=${ENV_FILE} down
 
 .PHONY: restart # Restart services
 restart:
-	docker compose --env-file=${ENV_FILE} restart
+	@export COMPOSE_PROFILES=$$(${BIN}/dotenv -f ${ENV_FILE} get DOCKER_COMPOSE_PROFILES) ; set -x; docker compose --env-file=${ENV_FILE} restart
 
-.PHONY: destroy # Deletes containers and volumes
+.PHONY: destroy # Deletes containers AND data volumes
 destroy:
-	@${BIN}/confirm no "This will destroy all the project containers AND volumes"
+	@export COMPOSE_PROFILES=$$(${BIN}/dotenv -f ${ENV_FILE} get DOCKER_COMPOSE_PROFILES) ; set -x; ${BIN}/confirm no "This will destroy all the project containers AND volumes"
 	docker compose --env-file=${ENV_FILE} down -v
 
-.PHONY: status # Run docker compose ps
+.PHONY: status # Show containers status (docker compose ps)
 status:
-	docker compose --env-file=${ENV_FILE} ps
+	@export COMPOSE_PROFILES=$$(${BIN}/dotenv -f ${ENV_FILE} get DOCKER_COMPOSE_PROFILES) ; set -x; docker compose --env-file=${ENV_FILE} ps
 
-.PHONY: logs # View container logs
+.PHONY: logs # Tail all containers logs (set SERVICE=name to filter for a single service container)
 logs:
-	docker compose --env-file=${ENV_FILE} logs -f
+	@export COMPOSE_PROFILES=$$(${BIN}/dotenv -f ${ENV_FILE} get DOCKER_COMPOSE_PROFILES) ; set -x; docker compose --env-file=${ENV_FILE} logs -f ${SERVICE}
+

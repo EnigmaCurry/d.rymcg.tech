@@ -1,9 +1,5 @@
 version: '3'
 
-networks:
-  traefik-proxy:
-    name: traefik-proxy
-
 services:
   postgres:
     image: postgres:14
@@ -51,9 +47,6 @@ services:
     image: nextcloud:apache
     container_name: "nextcloud_app"
     restart: always
-    networks:
-      - traefik-proxy
-      - default
     security_opt:
       - no-new-privileges:true
     volumes:
@@ -79,7 +72,6 @@ services:
       - "traefik.enable=true"
       - "traefik.http.routers.nextcloud.rule=Host(`${NEXTCLOUD_TRAEFIK_HOST}`)"
       - "traefik.http.routers.nextcloud.entrypoints=websecure"
-      - "traefik.http.routers.nextcloud.tls.certresolver=${ACME_CERT_RESOLVER}"
       # the following were intended to allow dav discovery in nextcloud, but didn't work
       #- "traefik.frontend.redirect.permanent='true'"
       #- "traefik.frontend.redirect.regex='https://(.*)/.well-known/(card|cal)dav'"

@@ -1,0 +1,113 @@
+#@ load("@ytt:data", "data")
+#@ load("@ytt:json", "json")
+
+log:
+  level: #@ data.values.log_level
+
+accessLog:
+  filePath: #@ data.values.access_logs_path
+  format: json
+
+#@ if data.values.dashboard_entrypoint_enabled == "true":
+api:
+  dashboard: true
+#@ end
+
+#@ if data.values.plugins == "true":
+experimental:
+  localPlugins:
+    #@ if data.values.plugin_blockpath == "true":
+    blockpath:
+      modulename: github.com/traefik/plugin-blockpath
+    #@ end
+    #@ if data.values.plugin_maxmind_geoip == "true":
+    geoip:
+      modulename: github.com/GiGInnovationLabs/traefikgeoip2
+    #@ end
+#@ end
+
+providers:
+  #@ if data.values.file_provider == "true":
+  file:
+    directory: /data/config/dynamic
+    watch: #@ data.values.file_provider_watch == "true"
+  #@ end
+  #@ if data.values.docker_provider == "true":
+  docker:
+    exposedByDefault: false
+  #@ end
+
+global:
+  sendAnonymousUsage: #@ data.values.send_anonymous_usage == "true"
+
+certificatesResolvers:
+  production:
+    #@ if data.values.acme_enabled == "true":
+    acme:
+      caserver: https://acme-v02.api.letsencrypt.org/directory
+      email: #@ data.values.acme_ca_email
+      storage: /data/acme-production.json
+      #@ if data.values.acme_challenge.lower() in ["dns","dns-01"]:
+      dnsChallenge:
+        provider: #@ data.values.acme_dns_provider
+      #@ elif data.values.acme_challenge.lower() in ["tls","tls-alpn-01"]:
+      tlsChallenge: {}
+      #@ elif data.values.acme_challenge.lower() in ["http", "http-01"]:
+      httpChallenge:
+        entryPoint: web
+      #@ end
+    #@ end
+  staging:
+    #@ if data.values.acme_enabled == "true":
+    acme:
+      caserver: https://acme-staging-v02.api.letsencrypt.org/directory
+      email: #@ data.values.acme_ca_email
+      storage: /data/acme-staging.json
+      #@ if data.values.acme_challenge.lower() in ["dns","dns-01"]:
+      dnsChallenge:
+        provider: #@ data.values.acme_dns_provider
+      #@ elif data.values.acme_challenge.lower() in ["tls","tls-alpn-01"]:
+      tlsChallenge: {}
+      #@ elif data.values.acme_challenge.lower() in ["http", "http-01"]:
+      httpChallenge:
+        entryPoint: web
+      #@ end
+    #@ end
+entryPoints:
+  #@ if data.values.web_entrypoint_enabled == "true":
+  web:
+    address: #@ data.values.web_entrypoint_host + ":" + data.values.web_entrypoint_port
+    http:
+      redirections:
+        entryPoint:
+          to: websecure
+  #@ end
+  #@ if data.values.websecure_entrypoint_enabled == "true":
+  websecure:
+    address: #@ data.values.websecure_entrypoint_host + ":" + data.values.websecure_entrypoint_port
+    http:
+      tls:
+        #@ if data.values.acme_enabled == "true":
+        certResolver: #@ data.values.acme_cert_resolver
+        domains:
+          #@ for domain in json.decode(data.values.acme_cert_domains):
+          - main: #@ domain[0]
+            sans:
+              #@ for secondary in domain[1]:
+              - #@ secondary
+              #@ end
+          #@ end
+        #@ end
+  #@ end
+  #@ if data.values.ssh_entrypoint_enabled == "true":
+  mqtt:
+    address: #@ data.values.mqtt_entrypoint_host + ":" + data.values.mqtt_entrypoint_port
+  #@ end
+  #@ if data.values.ssh_entrypoint_enabled == "true":
+  ssh:
+    address: #@ data.values.ssh_entrypoint_host + ":" + data.values.ssh_entrypoint_port
+  #@ end
+  #@ if data.values.dashboard_entrypoint_enabled == "true":
+  traefik:
+    address: #@ data.values.dashboard_entrypoint_host + ":" + data.values.dashboard_entrypoint_port
+  #@ end

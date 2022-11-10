@@ -1,121 +1,176 @@
-version: "3.3"
-
-networks:
-  traefik-proxy:
-    name: traefik-proxy
-  traefik-wireguard:
-    name: traefik-wireguard
-  traefik-mail:
-    name: traefik-mail
+version: "3.9"
 
 volumes:
   traefik:
-  
+  geoip_database:
+  wireguard:
+  wireguard-client:
+
 services:
   config:
+    profiles:
+      - default
     build:
       context: config
+      args:
+        TRAEFIK_CONFIG_YTT_VERSION: ${TRAEFIK_CONFIG_YTT_VERSION}
     security_opt:
       - no-new-privileges:true
-    environment:
-      - ACME_CA_EMAIL
-      - TRAEFIK_DASHBOARD_AUTH
-      - TRAEFIK_IMAGE
-      - TRAEFIK_LOG_LEVEL
-      - TRAEFIK_PROXY_SUBNET
-      - TRAEFIK_PROXY_SUBNET_IP
-      - TRAEFIK_WIREGUARD_SUBNET
-      - TRAEFIK_WIREGUARD_SUBNET_IP
-      - TRAEFIK_MAIL_SUBNET
-      - TRAEFIK_MAIL_SUBNET_IP
-    networks:
-      traefik-proxy:
     volumes:
       - traefik:/data
-
+    environment:
+      - TRAEFIK_SEND_ANONYMOUS_USAGE=${TRAEFIK_SEND_ANONYMOUS_USAGE:-false}
+      - TRAEFIK_CONFIG_VERBOSE=${TRAEFIK_CONFIG_VERBOSE:-false}
+      - TRAEFIK_ACME_CA_EMAIL
+      - TRAEFIK_LOG_LEVEL=${TRAEFIK_LOG_LEVEL:-info}
+      - TRAEFIK_ACME_ENABLED=${TRAEFIK_ACME_ENABLED:-false}
+      - TRAEFIK_ACME_CHALLENGE=${TRAEFIK_ACME_CHALLENGE:-tls}
+      - TRAEFIK_ACME_CERT_DOMAINS
+      - TRAEFIK_ACME_DNS_PROVIDER
+      - TRAEFIK_ACCESS_LOGS_ENABLED=${TRAEFIK_ACCESS_LOGS_ENABLED:-false}
+      - TRAEFIK_ACCESS_LOGS_PATH=${TRAEFIK_ACCESS_LOGS_PATH:-/data/access.log}
+      - TRAEFIK_ACME_CERT_RESOLVER=${TRAEFIK_ACME_CERT_RESOLVER:-production}
+      - TRAEFIK_FILE_PROVIDER_WATCH=${TRAEFIK_FILE_PROVIDER_WATCH:-false}
+      - TRAEFIK_FILE_PROVIDER=${TRAEFIK_FILE_PROVIDER:-true}
+      - TRAEFIK_DOCKER_PROVIDER=${TRAEFIK_DOCKER_PROVIDER:-true}
+      - TRAEFIK_PLUGINS=${TRAEFIK_PLUGINS:-true}
+      - TRAEFIK_PLUGIN_BLOCKPATH=${TRAEFIK_PLUGIN_BLOCKPATH:-true}
+      - TRAEFIK_PLUGIN_MAXMIND_GEOIP=${TRAEFIK_PLUGIN_MAXMIND_GEOIP:-false}
+      - TRAEFIK_WEB_ENTRYPOINT_ENABLED=${TRAEFIK_WEB_ENTRYPOINT_ENABLED:-false}
+      - TRAEFIK_WEB_ENTRYPOINT_HOST=${TRAEFIK_WEB_ENTRYPOINT_HOST:-0.0.0.0}
+      - TRAEFIK_WEB_ENTRYPOINT_PORT=${TRAEFIK_WEB_ENTRYPOINT_PORT:-80}
+      - TRAEFIK_WEBSECURE_ENTRYPOINT_ENABLED=${TRAEFIK_WEBSECURE_ENTRYPOINT_ENABLED:-false}
+      - TRAEFIK_WEBSECURE_ENTRYPOINT_HOST=${TRAEFIK_WEBSECURE_ENTRYPOINT_HOST:-0.0.0.0}
+      - TRAEFIK_WEBSECURE_ENTRYPOINT_PORT=${TRAEFIK_WEBSECURE_ENTRYPOINT_PORT:-443}
+      - TRAEFIK_MQTT_ENTRYPOINT_ENABLED=${TRAEFIK_MQTT_ENTRYPOINT_ENABLED:-false}
+      - TRAEFIK_MQTT_ENTRYPOINT_HOST=${TRAEFIK_MQTT_ENTRYPOINT_HOST:-0.0.0.0}
+      - TRAEFIK_MQTT_ENTRYPOINT_PORT=${TRAEFIK_MQTT_ENTRYPOINT_PORT:-8883}
+      - TRAEFIK_SSH_ENTRYPOINT_ENABLED=${TRAEFIK_SSH_ENTRYPOINT_ENABLED:-false}
+      - TRAEFIK_SSH_ENTRYPOINT_HOST=${TRAEFIK_SSH_ENTRYPOINT_HOST:-0.0.0.0}
+      - TRAEFIK_SSH_ENTRYPOINT_PORT=${TRAEFIK_SSH_ENTRYPOINT_PORT:-2222}
+      - TRAEFIK_DASHBOARD_ENTRYPOINT_ENABLED=${TRAEFIK_DASHBOARD_ENTRYPOINT_ENABLED:-false}
+      - TRAEFIK_DASHBOARD_ENTRYPOINT_HOST=${TRAEFIK_DASHBOARD_ENTRYPOINT_HOST:-127.0.0.1}
+      - TRAEFIK_DASHBOARD_ENTRYPOINT_PORT=${TRAEFIK_DASHBOARD_ENTRYPOINT_PORT:-8080}
+      - TRAEFIK_DASHBOARD_AUTH
+      - TRAEFIK_VPN_ADDRESS
+      - TRAEFIK_VPN_ENABLED=${TRAEFIK_VPN_ENABLED:-false}
+      - TRAEFIK_VPN_CLIENT_ENABLED=${TRAEFIK_VPN_CLIENT_ENABLED:-false}
+      - TRAEFIK_VPN_CLIENT_PEER_SERVICES
+      - TRAEFIK_VPN_ENTRYPOINT_HOST
+      - TRAEFIK_VPN_ENTRYPOINT_PORT
+      - TRAEFIK_VPN_SUBNET
+      - TRAEFIK_VPN_PROXY_ENABLED=${TRAEFIK_VPN_PROXY_ENABLED:-false}
+      - TRAEFIK_VPN_ROOT_DOMAIN=${TRAEFIK_VPN_ROOT_DOMAIN:-example.com}
+      - TRAEFIK_NETWORK_MODE
+      - TRAEFIK_ROOT_DOMAIN
   traefik:
-    depends_on: ['config']
+    profiles:
+      - default
+    depends_on: ['geoip_database','config']
     build:
       context: .
       args:
         TRAEFIK_IMAGE: ${TRAEFIK_IMAGE}
         BLOCKPATH_MODULE: github.com/traefik/plugin-blockpath
         BLOCKPATH_GIT_BRANCH: master
+        MAXMIND_GEOIP_MODULE: github.com/GiGInnovationLabs/traefikgeoip2
+        MAXMIND_GIT_BRANCH: main
     container_name: "traefik"
     restart: unless-stopped
-    networks:
-      traefik-proxy:
-        ipv4_address: ${TRAEFIK_PROXY_SUBNET_IP}
-      traefik-wireguard:
-        ipv4_address: ${TRAEFIK_WIREGUARD_SUBNET_IP}
-      traefik-mail:
-        ipv4_address: ${TRAEFIK_MAIL_SUBNET_IP}
-    security_opt:
-      - no-new-privileges:true
+    network_mode: ${TRAEFIK_NETWORK_MODE:-host}
+    privileged: true
+    environment:
+      - ${TRAEFIK_ACME_DNS_VARNAME_1:-TRAEFIK_ACME_DNS_VARNAME_1_NOT_SET}
+      - ${TRAEFIK_ACME_DNS_VARNAME_2:-TRAEFIK_ACME_DNS_VARNAME_2_NOT_SET}
+      - ${TRAEFIK_ACME_DNS_VARNAME_3:-TRAEFIK_ACME_DNS_VARNAME_3_NOT_SET}
+      - ${TRAEFIK_ACME_DNS_VARNAME_4:-TRAEFIK_ACME_DNS_VARNAME_4_NOT_SET}
+      - ${TRAEFIK_ACME_DNS_VARNAME_5:-TRAEFIK_ACME_DNS_VARNAME_5_NOT_SET}
     command:
-      - "--log.level=${TRAEFIK_LOG_LEVEL}"
-      ## File provider:
-      - "--providers.file.directory=/data/config"
-      - "--providers.file.watch=true"
-      ## Docker provider:
-      - "--providers.docker=true"
-      - "--providers.docker.exposedbydefault=false"
-      - "--providers.docker.network=traefik-proxy"
-      ## Entrypoints:
-      - "--entrypoints.web.address=:80"
-      - "--entrypoints.websecure.address=:443"
-      - "--entrypoints.vpn.address=${TRAEFIK_WIREGUARD_SUBNET_IP}:442"
-      - "--entrypoints.mqtt.address=:8883"
-      - "--entrypoints.ssh.address=:2222"
-      - "--entrypoints.traefik.address=:8080"
-      - "--entrypoints.smtp.address=${TRAEFIK_WIREGUARD_SUBNET_IP}:465"
-      - "--entrypoints.imap.address=${TRAEFIK_WIREGUARD_SUBNET_IP}:993"
-      #- "--entrypoints.dns.address=:53"
-      ## Automatically redirect HTTP to HTTPS
-      - "--entrypoints.web.http.redirections.entryPoint.to=websecure"
-      ## ACME TLS Challenge (Let's Encrypt):
-      - "--certificatesresolvers.production.acme.tlschallenge=true"
-      - "--certificatesresolvers.staging.acme.tlschallenge=true"
-      - "--certificatesresolvers.production.acme.caserver=https://acme-v02.api.letsencrypt.org/directory"
-      - "--certificatesresolvers.staging.acme.caserver=https://acme-staging-v02.api.letsencrypt.org/directory"
-      - "--certificatesresolvers.production.acme.email=${ACME_CA_EMAIL}"
-      - "--certificatesresolvers.staging.acme.email=${ACME_CA_EMAIL}"
-      - "--certificatesresolvers.production.acme.storage=/data/acme-production.json"
-      - "--certificatesresolvers.staging.acme.storage=/data/acme-staging.json"
-      ## Enable Dashboard available only from the docker localhost:8080 (password required)
-      - "--api.dashboard=true"
-      ## Load local plugins that have been bundled into the traefik image:
-      - "--experimental.localPlugins.blockpath.modulename=github.com/traefik/plugin-blockpath"
-      ## Access logs:
-      - "--accesslog=${TRAEFIK_ACCESS_LOGS_ENABLED:-false}"
-      - "--accesslog.filepath=${TRAEFIK_ACCESS_LOGS_PATH:-/data/access.log}"
-      ## ip whitelist vpn endpoint access from traefik-wireguard network only (HTTP):
-      - "--entrypoints.vpn.http.middlewares=vpn-ipwhitelist@docker"
-      ## ip whitelist vpn endpoint access from traefik-wireguard network only (TCP):
-      ### Why can't I specify a tcp middleware on the entrypoint??
-      ##- "--entrypoints.vpn.tcp.middlewares=vpn-ipwhitelist@docker"
-    ports:
-      #- "53:53"
-      - "80:80"
-      - "443:443"
-      - "8883:8883"
-      - "2222:2222"
-      - "127.0.0.1:8080:8080"
+      - "--configFile=/data/config/traefik.yml"
     volumes:
       - "traefik:/data"
       - "/var/run/docker.sock:/var/run/docker.sock:ro"
-    labels:
-      ## Require HTTP Basic Auth for api and dashboard which runs only on the
-      ## traefik endpoint (unexposed port 8080):
-      - "traefik.enable=true"
-      - "traefik.http.routers.api.rule=PathPrefix(`/api`) || PathPrefix(`/dashboard`)"
-      - "traefik.http.routers.api.entrypoints=traefik"
-      - "traefik.http.routers.api.service=api@internal"
-      - "traefik.http.routers.api.middlewares=traefik-api-ipwhitelist@docker,traefik-dashboard-auth"
-      - "traefik.http.middlewares.traefik-dashboard-auth.basicauth.users=${TRAEFIK_DASHBOARD_AUTH}"
-      - "traefik.http.middlewares.traefik-api-ipwhitelist.ipwhitelist.sourcerange=${TRAEFIK_WIREGUARD_SUBNET}"
-      - "traefik.tcp.middlewares.traefik-api-ipwhitelist.ipwhitelist.sourcerange=${TRAEFIK_WIREGUARD_SUBNET}"
+      - "geoip_database:/var/lib/traefikgeoip2/"
 
-      ## VPN sourcerange filter:
-      - "traefik.http.middlewares.vpn-ipwhitelist.ipwhitelist.sourcerange=${TRAEFIK_WIREGUARD_SUBNET}"
-      - "traefik.tcp.middlewares.vpn-ipwhitelist.ipwhitelist.sourcerange=${TRAEFIK_WIREGUARD_SUBNET}"
+  geoip_database:
+    profiles:
+      - geoip_update
+    image: maxmindinc/geoipupdate
+    restart: on-failure:3
+    environment:
+      - GEOIPUPDATE_ACCOUNT_ID=${TRAEFIK_GEOIPUPDATE_ACCOUNT_ID}
+      - GEOIPUPDATE_LICENSE_KEY=${TRAEFIK_GEOIPUPDATE_LICENSE_KEY}
+      - 'GEOIPUPDATE_EDITION_IDS=${TRAEFIK_GEOIPUPDATE_EDITION_IDS}'
+      - GEOIPUPDATE_FREQUENCY=72
+    volumes:
+      - "geoip_database:/usr/share/GeoIP"
+
+  wireguard:
+    profiles:
+      - wireguard
+    image: lscr.io/linuxserver/wireguard
+    cap_add:
+      - NET_ADMIN
+      - SYS_MODULE
+    network_mode: host
+    restart: unless-stopped
+    ports:
+      - ${WIREGUARD_HOST_PORT:-51820}:${WIREGUARD_HOST_PORT:-51820}/udp
+    # sysctls:
+    #   - net.ipv4.conf.all.src_valid_mark=1
+    environment:
+      - PUID=1000
+      - PGID=1000
+      - TZ=${TIMEZONE:-Etc/UTC}
+      - SERVERURL=${TRAEFIK_VPN_HOST}
+      - SERVERPORT=${TRAEFIK_VPN_PORT}
+      - PEERS=${TRAEFIK_VPN_PEERS}
+      - PEERDNS=${TRAEFIK_VPN_PEER_DNS}
+      - INTERNAL_SUBNET=${TRAEFIK_VPN_SUBNET}
+      - ALLOWEDIPS=${TRAEFIK_VPN_ALLOWED_IPS}
+    volumes:
+      - wireguard:/config
+      - /lib/modules:/lib/modules
+
+  wireguard-client-config:
+    profiles:
+      - wireguard-client
+    build:
+      context: wireguard-client-config
+    security_opt:
+      - no-new-privileges:true
+    environment:
+      - TRAEFIK_VPN_ENTRYPOINT_HOST
+      - TRAEFIK_VPN_CLIENT_INTERFACE_ADDRESS
+      - TRAEFIK_VPN_CLIENT_INTERFACE_PRIVATE_KEY
+      - TRAEFIK_VPN_CLIENT_INTERFACE_LISTEN_PORT
+      - TRAEFIK_VPN_CLIENT_INTERFACE_PEER_DNS
+      - TRAEFIK_VPN_CLIENT_PEER_PUBLIC_KEY
+      - TRAEFIK_VPN_CLIENT_PEER_PRESHARED_KEY
+      - TRAEFIK_VPN_CLIENT_PEER_ENDPOINT
+      - TRAEFIK_VPN_CLIENT_PEER_ALLOWED_IPS
+    volumes:
+      - wireguard-client:/config
+
+  wireguard-client:
+    profiles:
+      - wireguard-client
+    depends_on: ['wireguard-client-config']
+    image: lscr.io/linuxserver/wireguard
+    cap_add:
+      - NET_ADMIN
+      - SYS_MODULE
+    sysctls:
+      - net.ipv4.conf.all.src_valid_mark=1
+    restart: unless-stopped
+    environment:
+      - PUID=1000
+      - PGID=1000
+      - TZ=${TIMEZONE:-Etc/UTC}
+    volumes:
+      - wireguard-client:/config
+      - /lib/modules:/lib/modules
+    ports:
+      - 80:80
+      - 443:443
+      - 127.0.0.1:8080:8080
