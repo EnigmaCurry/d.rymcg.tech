@@ -67,4 +67,4 @@ show-ports:
 
 .PHONY: show-users # Show container users and capabilities
 show-users:
-	@(echo -e "NAME\tUSER\tCAPABILITIES" && docker ps --format "{{ .ID }}" | xargs -iXX sh -c "docker inspect XX | jq -r '.[0] | \"\(.Name)\t\(.Config.User | @sh)\t\(.HostConfig.CapAdd)\"'" | sed -e 's/^\///g' -e "s/''/root/g" -e "s/'//g") | expand -t $$(( $$(docker ps --format="{{ .Names }}" | wc -L) + 1 ))
+	@(echo -e "NAME\tUSER\tCAP_ADD\tCAP_DROP" && docker ps --format "{{ .ID }}" | xargs -iXX sh -c "docker inspect XX | jq -r '.[0] | \"\(.Name)\t\(.Config.User | @sh)\t\(.HostConfig.CapAdd)\t\(.HostConfig.CapDrop)\"'" | sed -e 's/^\///g' -e "s/''/root/g" -e "s/'//g") | column -t
