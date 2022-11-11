@@ -1,0 +1,54 @@
+version: "3.9"
+
+volumes:
+  cache:
+  config:
+
+services:
+  config:
+    build:
+      context: config
+      args:
+        NTFY_CONFIG_YTT_VERSION: ${NTFY_CONFIG_YTT_VERSION}
+    security_opt:
+      - no-new-privileges:true
+    volumes:
+      - config:/data
+    environment:
+      - NTFY_TRAEFIK_HOST
+      - NTFY_AUTH_DEFAULT_ACCESS
+      - NTFY_ATTACHMENT_TOTAL_SIZE_LIMIT
+      - NTFY_ATTACHMENT_FILE_SIZE_LIMIT
+      - NTFY_ATTACHMENT_EXPIRY_DURATION
+      - NTFY_KEEPALIVE_INTERVAL
+      - NTFY_SMTP_SENDER_ADDR
+      - NTFY_SMTP_SENDER_USER
+      - NTFY_SMTP_SENDER_PASS
+      - NTFY_SMTP_SENDER_FROM
+      - NTFY_SMTP_SERVER_LISTEN
+      - NTFY_SMTP_SERVER_DOMAIN
+      - NTFY_SMTP_SERVER_ADDR_PREFIX
+
+  ntfy:
+    depends_on: ['config']
+    build:
+      context: .
+      args:
+        NTFY_IMAGE: ${NTFY_IMAGE}
+        UID: ${NTFY_UID:-64533}
+        GID: ${NTFY_GID:-64533}
+    command:
+      - serve
+    environment:
+      - TZ=${TIMEZONE:-Etc/UTC}
+    user: ${NTFY_UID:-64533}:${NTFY_GID:-64533}
+    volumes:
+      - cache:/var/cache/ntfy
+      - config:/etc/ntfy
+    restart: unless-stopped
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.ntfy.rule=Host(`${NTFY_TRAEFIK_HOST}`)"
+      - "traefik.http.routers.ntfy.entrypoints=websecure"
+      - "traefik.http.middlewares.ntfy-whitelist.ipwhitelist.sourcerange=${NTFY_IP_SOURCERANGE}"
+      - "traefik.http.routers.ntfy.middlewares=ntfy-whitelist"
