@@ -63,6 +63,7 @@ services:
       - TRAEFIK_VPN_ROOT_DOMAIN=${TRAEFIK_VPN_ROOT_DOMAIN:-example.com}
       - TRAEFIK_NETWORK_MODE
       - TRAEFIK_ROOT_DOMAIN
+
   traefik:
     profiles:
       - default
