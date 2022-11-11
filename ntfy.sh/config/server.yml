@@ -1,0 +1,19 @@
+#@ load("@ytt:data", "data")
+base-url: #@ data.values.traefik_host
+auth-file: /etc/ntfy/user.db
+auth-default-access: #@ data.values.auth_default_access
+#! firebase-key-file: "/etc/ntfy/firebase.json"
+cache-file: /var/cache/ntfy/cache.db
+behind-proxy: true
+attachment-cache-dir: /var/cache/ntfy/attachments
+attachment-total-size-limit: #@ data.values.attachment_total_size_limit
+attachment-file-size-limit: #@ data.values.attachment_file_size_limit
+attachment-expiry-duration: #@ data.values.attachment_expiry_duration
+keepalive-interval: #@ data.values.keepalive_interval
+smtp-sender-addr: #@ data.values.smtp_sender_addr
+smtp-sender-user: #@ data.values.smtp_sender_user
+smtp-sender-pass: #@ data.values.smtp_sender_pass
+smtp-sender-from: #@ data.values.smtp_sender_from
+smtp-server-listen: #@ data.values.smtp_server_listen
+smtp-server-domain: #@ data.values.smtp_server_domain
+smtp-server-addr-prefix: #@ data.values.smtp_server_addr_prefix
