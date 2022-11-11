@@ -2,8 +2,6 @@ version: "3.9"
 
 volumes:
   mosquitto:
-    external: true
-    name: mosquitto_mosquitto
 
 services:
   config:
