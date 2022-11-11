@@ -13,6 +13,11 @@ services:
     restart: unless-stopped
     security_opt:
       - no-new-privileges:true
+    cap_drop:
+      - ALL
+    cap_add:
+      - CHOWN
+      - DAC_OVERRIDE
     volumes:
       - ssh-keys:/etc/ssh/keys
       - sftp-config:/etc/sftp
@@ -20,5 +25,5 @@ services:
     ports:
       - ${SFTP_PORT}:22
     environment:
-      - KEYFILE_URL
+      - SFTP_KEYFILE_URL
     command: ${SFTP_USERS}
