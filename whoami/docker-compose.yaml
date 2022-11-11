@@ -5,7 +5,12 @@ services:
     image: "traefik/whoami"
     security_opt:
       - no-new-privileges:true
+    cap_drop:
+      - ALL
+    sysctls:
+      - net.ipv4.ip_unprivileged_port_start=1024
     container_name: whoami
+    user: ${WHOAMI_UID}:${WHOAMI_GID}
     restart: unless-stopped
     labels:
       - "traefik.enable=true"
@@ -15,7 +20,7 @@ services:
       ### certain requests easily by default (404).
       - "traefik.http.routers.whoami.rule=Host(`${WHOAMI_TRAEFIK_HOST}`) && (Path(`/`) || Path(`/health`))"
       - "traefik.http.routers.whoami.entrypoints=websecure"
-      - "traefik.http.middlewares.whoami-whitelist.ipwhitelist.sourcerange=${IP_SOURCERANGE}"
+      - "traefik.http.middlewares.whoami-whitelist.ipwhitelist.sourcerange=${WHOAMI_IP_SOURCERANGE}"
       #- "traefik.http.routers.whoami.middlewares=whoami-whitelist,geoip@file"
       - "traefik.http.routers.whoami.middlewares=whoami-whitelist"
 
@@ -30,14 +35,14 @@ services:
       # Allow /just-get (but only to GET requests):
       - "traefik.http.routers.whoami-just-get.rule=Host(`${WHOAMI_TRAEFIK_HOST}`) && Path(`/just-get`) && Method(`GET`)"
       - "traefik.http.routers.whoami-just-get.entrypoints=websecure"
-      - "traefik.http.routers.whoami-just-get.middlewares=whoami-whitelist,geoip@file"
+      - "traefik.http.routers.whoami-just-get.middlewares=whoami-whitelist"
 
       # Allow /test/ and add custom request and response headers:
       - "traefik.http.routers.whoami-test.rule=Host(`${WHOAMI_TRAEFIK_HOST}`) && PathPrefix(`/test/`)"
       - "traefik.http.routers.whoami-test.entrypoints=websecure"
       - "traefik.http.middlewares.testHeader.headers.customrequestheaders.X-Script-Name=testing-123"
       - "traefik.http.middlewares.testHeader.headers.customresponseheaders.X-Custom-Response-Header=yeppp"
-      - "traefik.http.routers.whoami-test.middlewares=testHeader,whoami-whitelist,geoip@file"
+      - "traefik.http.routers.whoami-test.middlewares=testHeader,whoami-whitelist"
 
       # Test forward authentication on secondary domain: auth.whoami.example.com
       # - "traefik.http.routers.whoami-auth.rule=Host(`auth.${WHOAMI_TRAEFIK_HOST}`)"
