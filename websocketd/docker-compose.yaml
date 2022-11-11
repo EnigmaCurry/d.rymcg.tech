@@ -10,7 +10,7 @@ services:
       DEV_CONSOLE: "true"
     labels:
       - "traefik.enable=true"
-      - "traefik.http.routers.websocketd.rule=Host(`${SOCKET_TRAEFIK_HOST}`) && Path(`${APP_PATH}`)"
-      - "traefik.http.middlewares.websocketd-stripprefix.stripprefix.prefixes=${APP_PATH}"
+      - "traefik.http.routers.websocketd.rule=Host(`${WEBSOCKETD_TRAEFIK_HOST}`) && Path(`${WEBSOCKETD_APP_PATH}`)"
+      - "traefik.http.middlewares.websocketd-stripprefix.stripprefix.prefixes=${WEBSOCKETD_APP_PATH}"
       - "traefik.http.routers.websocketd.middlewares=websocketd-stripprefix@docker"
       - "traefik.http.routers.websocketd.entrypoints=websecure"

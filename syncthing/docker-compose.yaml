@@ -13,9 +13,9 @@ services:
     volumes:
       - syncthing:/var/syncthing
     ports:
-      - 127.0.0.1:8384:8384
-      - ${LISTEN_PORT}:22000
-      - ${DISCOVERY_PORT}:21027/udp
+      - 127.0.0.1:${SYNCTHING_WEB_PORT}:8384
+      - ${SYNCTHING_LISTEN_PORT}:22000
+      - ${SYNCTHING_DISCOVERY_PORT}:21027/udp
     environment: 
-      PUID: ${UID}
-      PGID: ${GID}
+      PUID: ${SYNCTHING_UID}
+      PGID: ${SYNCTHING_GID}
