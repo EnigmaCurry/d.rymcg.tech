@@ -339,6 +339,7 @@ Install these services at your leisure/preference:
 * [Mosquitto](mosquitto) - an MQTT server
 * [Nextcloud](nextcloud) - a collaborative file server
 * [Node-RED](nodered) - a graphical event pipeline editor
+* [Ntfy.sh](ntfy.sh) - a simple HTTP-based pub-sub notification service
 * [Piwigo](piwigo) - a photo gallery and manager
 * [PostgreSQL](postgresql) - a database server configured with mutual TLS authentication for public networks
 * [PrivateBin](privatebin) - a minimal, encrypted, zero-knowledge, pastebin
