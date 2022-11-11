@@ -16,7 +16,7 @@ a single user account bridge and that supports private messages.
 
 ## Setup
 
-Copy `.env-dist` to `.env` and edit the variables.
+Copy `.env-dist` to `.env_${DOCKER_CONTEXT}` and edit the variables.
 
 The example is for bridging a single Matrix channel to a single IRC channel. You
 can adapt the template for other networks.
