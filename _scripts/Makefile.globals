@@ -13,18 +13,8 @@ ROOT_ENV = .env_${DOCKER_CONTEXT}
 ## Per-project environment file name is keyed to the current docker context:
 ENV_FILE ?= .env_$(shell ${BIN}/docker_context)
 
-# build-traefik-htpasswd:
-# 	docker build -t ${DOCKER_ORG}/traefik-htpasswd ${ROOT_DIR}/traefik-htpasswd
-
-# build-traefik-htpasswd-quick:
-# 	docker image inspect ${DOCKER_ORG}/traefik-htpasswd >/dev/null || docker build -t ${DOCKER_ORG}/traefik-htpasswd ${ROOT_DIR}/traefik-htpasswd
-
-# .PHONY: htpasswd # Create new HTTP Basic Authentication credentials
-# htpasswd: build-traefik-htpasswd-quick
-# 	docker run --rm -it ${DOCKER_ORG}/traefik-htpasswd
-
-# .PHONY: cert # Create a self-signed TLS certificate volume
-# cert:
-# 	@${BIN}/../_terminal/certificate-ca/cert-manager.sh ${ROOT_DOMAIN} create_ca || true
-# 	@read -p "Enter the certificate domain: " DOMAIN && read -e -p "Enter the user ID (UID): " -i "1000" CERT_UID && read -e -p "Enter the group ID (GID): " -i "1000" CERT_GID && ${BIN}/../_terminal/certificate-ca/cert-manager.sh ${ROOT_DOMAIN} create $${DOMAIN} ${CERT_UID} ${CERT_GID}
-
+.PHONY: clean
+clean:
+	@echo "# Removing current context environment file only:"
+	@set -x && rm -f ${ENV_FILE}
+	@[[ -f passwords.json ]] && echo "Removing all http passwords from all environments:" && set -x && rm passwords.json || true
