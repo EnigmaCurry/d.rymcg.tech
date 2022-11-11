@@ -65,3 +65,6 @@ show-ports:
 	@echo "Found these containers using the host network (so they could be publishing any port):"
 	@docker ps --format '{{ .ID }}' | xargs -iXX sh -c "docker inspect XX | jq -cr '.[0].NetworkSettings.Networks | keys[]' | grep '^host$$'>/dev/null && docker inspect XX | jq -cr '.[0].Name'" | sed 's!/!!g'
 
+.PHONY: show-users # Show container users and capabilities
+show-users:
+	@(echo -e "NAME\tUSER\tCAPABILITIES" && docker ps --format "{{ .ID }}" | xargs -iXX sh -c "docker inspect XX | jq -r '.[0] | \"\(.Name)\t\(.Config.User | @sh)\t\(.HostConfig.CapAdd)\"'" | sed -e 's/^\///g' -e "s/''/root/g" -e "s/'//g") | expand -t $$(( $$(docker ps --format="{{ .Names }}" | wc -L) + 1 ))
