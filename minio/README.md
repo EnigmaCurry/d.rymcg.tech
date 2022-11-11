@@ -10,31 +10,11 @@ development or other light/unimportant storage duties.
 Consider also installing the [filestash](../filestash) application for a nice
 web based file manager.
 
-## Choose two domain names for S3 and the console
-
-The Minio container provides two HTTP services, and each must have its own
-separate sub-domain name (see `.env-dist`):
-
- * `MINIO_TRAEFIK_HOST` - The public S3 service domain name. This is what your
-   S3 clients will connect to.
- * `MINIO_CONSOLE_TRAEFIK_HOST` - The admin console domain name. This is the
-   client web interface to interact with the server, create users/groups,
-   buckets, policies, upload/manage data etc.
-
-## Set the root password
-
-***Important: You must change the root password in your own .env !!***
-
-It is recommended to generate a randomized secure password:
+## Config
 
 ```
-# Generate random password:
-openssl rand -base64 30
+make config
 ```
-
-Copy and paste the random password into your `.env` file, setting the
-`MINIO_ROOT_PASSWORD` variable.
-
 
 ## Limiting traffic
 
@@ -47,10 +27,11 @@ filter](https://doc.traefik.io/traefik/middlewares/tcp/ipwhitelist/):
 
 ## Start the server
 
-Once your `.env` file is configured, start the service:
+Once your `.env_${DOCKER_CONTEXT}` file is configured, start the
+service:
 
 ```
-docker-compose up -d
+make install
 ```
 
 ## Create a bucket
@@ -62,10 +43,14 @@ answer the questions it asks and it will take care of running the `mc` client
 (the Minio command line client) and issuing all the commands. Watch the output
 to learn the exact commands it runs to learn from it.
 
-To invoke the script, you can simply run `make bucket`.
+To invoke the script, run:
 
-You don't have to use this script, you can instead create everything from the
-GUI console, following the instructions in the next section.
+```
+make bucket
+```
+
+You don't have to use this script, you can instead create everything
+from the GUI console, following the instructions in the next section.
 
 ## Using Minio "console" to create bucket and credentials
 
@@ -77,13 +62,13 @@ Create a bucket:
 
  * Go to the `Buckets` page, click `Create Bucket`, choose a name for the bucket
    (eg. `videos`), click `Create Bucket`.
- 
+
 Create an IAM Policy for the group to access the bucket:
 
  * Go to `IAM Policies`, click `Create Policy`, choose a name for the policy
    (eg. `videos`), enter the following policy:
- 
- 
+
+
 ```
 {
   "Version": "2012-10-17",
@@ -119,7 +104,7 @@ Create a group and assign the policy:
  * Click `Set Policies`.
  * Checkmark the policy name you created above.
  * Click `Save`.
- 
+
 Create a user, credentials, and assign to the group:
 
  * Go to the `Users` page, click `Create User`.
