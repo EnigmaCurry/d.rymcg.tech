@@ -65,6 +65,6 @@ show-ports:
 	@echo "Found these containers using the host network (so they could be publishing any port):"
 	@docker ps --format '{{ .ID }}' | xargs -iXX sh -c "docker inspect XX | jq -cr '.[0].NetworkSettings.Networks | keys[]' | grep '^host$$'>/dev/null && docker inspect XX | jq -cr '.[0].Name'" | sed 's!/!!g'
 
-.PHONY: show-users # Show container users and capabilities
-show-users:
-	@(echo -e "NAME\tUSER\tCAP_ADD\tCAP_DROP" && docker ps --format "{{ .ID }}" | xargs -iXX sh -c "docker inspect XX | jq -r '.[0] | \"\(.Name)\t\(.Config.User | @sh)\t\(.HostConfig.CapAdd)\t\(.HostConfig.CapDrop)\"'" | sed -e 's/^\///g' -e "s/''/root/g" -e "s/'//g" | sort) | column -t | sed -e 's/null/    /g' -e 's/^ *//' -e 's/ *$$//' 
+.PHONY: audit # Audit container permissions and capabilities
+audit:
+	@(echo -e "CONTAINER\tUSER\tCAP_ADD\tCAP_DROP\tSEC_OPT\tBIND_MOUNTS\tPORTS" && docker ps --format "{{ .ID }}" | xargs -iXX sh -c "docker inspect XX | jq -r '.[0] | \"\(.Name)\t\(.Config.User | @sh)\t\(.HostConfig.CapAdd)\t\(.HostConfig.CapDrop)\t\(.HostConfig.SecurityOpt)\t\(.HostConfig.Binds)\t\(.HostConfig.PortBindings)\"'" | sed -e 's/^\///g' -e "s/''/root/g" -e "s/'//g" | sort) | column -t | sed -e 's/null/    /g' -e 's/^ *//' -e 's/ *$$//'
