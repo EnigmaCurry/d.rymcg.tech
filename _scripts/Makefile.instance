@@ -1,3 +1,3 @@
 .PHONY: instance # Create a duplicate instance with a copy of the current .env file
 instance:
-	@ENV_FILE=${ENV_FILE} ${BIN}/instance
+	@DOCKER_CONTEXT=${DOCKER_CONTEXT} ENV_FILE=${ENV_FILE} ${BIN}/instance

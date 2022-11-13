@@ -6,8 +6,8 @@ include ../_scripts/Makefile.projects-no-open
 # network:
 # 	@[[ $$(${BIN}/dotenv -f ${ENV_FILE} get TRAEFIK_VPN_ENTRYPOINT_ENABLED) == "true" ]] && (docker network inspect traefik-vpn >/dev/null 2>&1 || (echo "" && echo "Creating traefik-vpn network ..." && docker network create traefik-vpn --subnet "$$(${BIN}/dotenv -f ${ENV_FILE} get TRAEFIK_VPN_SUBNET)" || true)) && echo "" && echo "Traefik VPN network:" && docker network ls | grep traefik-vpn && docker network inspect traefik-vpn | grep Subnet && echo "Traefik VPN entrypoint: $$(${BIN}/dotenv -f ${ENV_FILE} get TRAEFIK_VPN_ENTRYPOINT_HOST):$$(${BIN}/dotenv -f ${ENV_FILE} get TRAEFIK_VPN_ENTRYPOINT_PORT)" || true
 
-.PHONY: config # Configure Traefik .env file
-config: config-ask compose-profiles
+.PHONY: config-hook # Configure Traefik .env file
+config-hook: config-ask compose-profiles
 	@echo ""
 	@echo 'Base configuration complete.'
 	@echo 'Run `make certs` to configure certificate domains.'
@@ -20,7 +20,6 @@ traefik-user:
 
 .PHONY: config-ask
 config-ask:
-	@echo "Configuring environment file: ${ENV_FILE}"
 	@${BIN}/reconfigure ${ENV_FILE} TRAEFIK_ROOT_DOMAIN=${ROOT_DOMAIN}
 	@${BIN}/reconfigure_acme ${ENV_FILE}
 	@${BIN}/reconfigure_dashboard ${ENV_FILE}

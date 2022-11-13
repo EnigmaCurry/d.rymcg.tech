@@ -23,6 +23,7 @@ derived from the `.env` file.
 - [Main configuration](#main-configuration)
 - [Install applications](#install-applications)
 - [Command line interaction](#command-line-interaction)
+- [Creating multiple instances of a service](#creating-multiple-instances-of-a-service)
 - [Backup .env files](#backup-env-files-optional)
 
 ## All configuration comes from the environment
@@ -439,6 +440,67 @@ thus logging you into the admin account automatically. To delete all
 of the passwords.json files, you can run `make delete-passwords` in
 the root directory of this project (or `make clean` which will delete
 the `.env` files too).
+
+## Creating multiple instances of a service
+
+By default, each project subdirectory only supports deploying a single
+instance per Docker context. (In past versions, if you wanted to
+deploy two instances of `whoami`, you had to copy the entire directory
+and rename it `whoami2` etc.) In each project sub-directory, this
+singleton instance environment file is named `.env_${DOCKER_CONTEXT}`.
+
+There is now optional support for deploying multiple instances (to the
+same docker context) from the same source directory, by creating
+several more environment files with the filename formatted like this:
+`.env_${DOCKER_CONTEXT}_${INSTANCE_NAME}`.
+
+To do this automatically, use the Makefile target: 
+
+```
+make instance
+```
+
+This will prompt you to enter a new instance name and create the
+instanced configuration from the `.env-dist` template. `make instance`
+will then automatically call `make config` for the new instance
+environment. For example, to create several instances of the `whoami`
+service, you might use the Makefile like this:
+
+```
+$ cd whoami
+$ make instance
+Enter an instance name to create/edit: foo
+Configuring environment file: .env_docker-vm_foo
+...
+$ make instance
+Enter an instance name to create/edit: bar
+Configuring environment file: .env_docker-vm_bar
+...
+```
+
+This creates and configures the following env files:
+
+```
+.env_docker-vm_foo
+.env_docker-vm_bar
+```
+
+Most of the other Makefile targets will now accept an optional named
+argument `instance=${INSTANCE}` that will limit the commands effect to
+a single instance. For example:
+
+```
+make config instance=foo     # This is equivalent to `make instance` and typing foo
+make config instance=bar
+make install instance=foo    # This installs only the foo instance
+make install instance=bar
+make status instance=foo     # This shows the containers status of the foo instance
+make stop instance=foo
+make destroy instance=bar    # This destroys only the bar instance
+
+# Show the status of all instances of the current project subdirectory:
+make status-all
+```
 
 ## Backup .env files (optional)
 
