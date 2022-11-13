@@ -14,6 +14,10 @@ config: config-ask compose-profiles
 	@echo 'Examine the environment file: ${ENV_FILE}'
 	@echo 'Then run `make install` to (re)install.'
 
+.PHONY: traefik-user
+traefik-user:
+	@(ssh $$(docker context inspect | jq -r ".[0].Endpoints.docker.Host") id traefik && echo "Traefik user already exists") || (ssh $$(docker context inspect | jq -r ".[0].Endpoints.docker.Host") adduser --disabled-login --disabled-password --gecos GECOS traefik && ssh $$(docker context inspect | jq -r ".[0].Endpoints.docker.Host") gpasswd -a traefik docker)
+
 .PHONY: config-ask
 config-ask:
 	@echo "Configuring environment file: ${ENV_FILE}"
@@ -28,6 +32,9 @@ config-ask:
 	@echo ""
 	@[[ $$(${BIN}/dotenv -f ${ENV_FILE} get TRAEFIK_VPN_ENABLED) != "true" ]] && ${BIN}/confirm $$([[ $$(${BIN}/dotenv -f ${ENV_FILE} get TRAEFIK_VPN_CLIENT_ENABLED) == "true" ]] && echo "yes" || echo "no") "Do you want to run Traefik as a reverse proxy for an external VPN (wireguard client mode)" "?" && make --no-print-directory config-wireguard-client || ${BIN}/reconfigure ${ENV_FILE} TRAEFIK_VPN_CLIENT_ENABLED=false || true
 	@[[ $$(${BIN}/dotenv -f ${ENV_FILE} get TRAEFIK_VPN_ENABLED) != "true" ]] && [[ $$(${BIN}/dotenv -f ${ENV_FILE} get TRAEFIK_VPN_CLIENT_ENABLED) != "true" ]] && ${BIN}/reconfigure ${ENV_FILE} TRAEFIK_NETWORK_MODE=host TRAEFIK_DASHBOARD_ENTRYPOINT_HOST=127.0.0.1 || true
+	@TRAEFIK_UID=$$(ssh $$(docker context inspect | jq -r ".[0].Endpoints.docker.Host") id -u traefik) && ${BIN}/dotenv -f ${ENV_FILE} set TRAEFIK_UID=$${TRAEFIK_UID} && echo "Set TRAEFIK_UID=$${TRAEFIK_UID}"
+	@TRAEFIK_GID=$$(ssh $$(docker context inspect | jq -r ".[0].Endpoints.docker.Host") id -g traefik) && ${BIN}/dotenv -f ${ENV_FILE} set TRAEFIK_GID=$${TRAEFIK_GID} && echo "Set TRAEFIK_GID=$${TRAEFIK_GID}"
+	@TRAEFIK_DOCKER_GID=$$(ssh $$(docker context inspect | jq -r ".[0].Endpoints.docker.Host") getent group docker | cut -d: -f3) && ${BIN}/dotenv -f ${ENV_FILE} set TRAEFIK_DOCKER_GID=$${TRAEFIK_DOCKER_GID} && echo "Set TRAEFIK_DOCKER_GID=$${TRAEFIK_DOCKER_GID}"
 
 .PHONY: config-wireguard
 config-wireguard:

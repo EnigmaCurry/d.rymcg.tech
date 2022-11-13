@@ -10,10 +10,12 @@ services:
     sysctls:
       - net.ipv4.ip_unprivileged_port_start=1024
     container_name: whoami
+    command: --port 8000 --name ${WHOAMI_NAME:-${WHOAMI_TRAEFIK_HOST}}
     user: ${WHOAMI_UID}:${WHOAMI_GID}
     restart: unless-stopped
     labels:
       - "traefik.enable=true"
+      - "traefik.http.services.whoami.loadbalancer.server.port=8000"
 
       ### Normally whoami responds on any path with any HTTP method, but if we
       ### make all the routers path and/or method selective, then we can block
