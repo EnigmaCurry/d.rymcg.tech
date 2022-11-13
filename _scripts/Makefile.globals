@@ -15,6 +15,6 @@ ENV_FILE ?= .env_$(shell ${BIN}/docker_context)
 
 .PHONY: clean
 clean:
-	@echo "# Removing current context environment file only:"
-	@set -x && rm -f ${ENV_FILE}
+	@echo "# Removing current context environment files only:"
+	@set -x && rm -f ${ENV_FILE} ${ENV_FILE}_*
 	@[[ -f passwords.json ]] && echo "Removing all http passwords from all environments:" && set -x && rm passwords.json || true

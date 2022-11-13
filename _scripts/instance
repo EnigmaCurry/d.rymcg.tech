@@ -1,0 +1,10 @@
+#!/bin/bash
+
+set -e
+test ! -f "${ENV_FILE}" && echo "Missing context config: ${ENV_FILE} - Run \`make config\` first" && exit 1
+read -p "Enter the instance name: " INSTANCE
+test -z "$INSTANCE" && echo "Missing required instance name." && exit 1
+NEW_ENV_FILE="${ENV_FILE}_${INSTANCE}"
+test ! -f "${NEW_ENV_FILE}" && set -x && cp ${ENV_FILE} ${NEW_ENV_FILE} || \
+        (echo "WARNING: Environment file already exists: ${NEW_ENV_FILE}")
+make --no-print-directory config INSTANCE=${INSTANCE}
