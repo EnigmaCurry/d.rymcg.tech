@@ -17,7 +17,6 @@ services:
   mosquitto:
     depends_on: ['config']
     image: "eclipse-mosquitto"
-    container_name: "mosquitto"
     security_opt:
       - no-new-privileges:true
     restart: unless-stopped

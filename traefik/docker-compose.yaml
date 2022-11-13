@@ -79,7 +79,6 @@ services:
         TRAEFIK_UID: ${TRAEFIK_UID}
         TRAEFIK_GID: ${TRAEFIK_GID}
         TRAEFIK_DOCKER_GID: ${TRAEFIK_DOCKER_GID}
-    container_name: "traefik"
     restart: unless-stopped
     network_mode: ${TRAEFIK_NETWORK_MODE:-host}
     cap_drop:
