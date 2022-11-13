@@ -14,8 +14,8 @@ services:
       context: config
       args:
         TRAEFIK_CONFIG_YTT_VERSION: ${TRAEFIK_CONFIG_YTT_VERSION}
-    security_opt:
-      - no-new-privileges:true
+        TRAEFIK_UID: ${TRAEFIK_UID}
+        TRAEFIK_GID: ${TRAEFIK_GID}
     volumes:
       - traefik:/data
     environment:
@@ -76,10 +76,16 @@ services:
         BLOCKPATH_GIT_BRANCH: master
         MAXMIND_GEOIP_MODULE: github.com/GiGInnovationLabs/traefikgeoip2
         MAXMIND_GIT_BRANCH: main
+        TRAEFIK_UID: ${TRAEFIK_UID}
+        TRAEFIK_GID: ${TRAEFIK_GID}
+        TRAEFIK_DOCKER_GID: ${TRAEFIK_DOCKER_GID}
     container_name: "traefik"
     restart: unless-stopped
     network_mode: ${TRAEFIK_NETWORK_MODE:-host}
-    privileged: true
+    cap_drop:
+      - ALL
+    cap_add:
+      - NET_BIND_SERVICE
     environment:
       - ${TRAEFIK_ACME_DNS_VARNAME_1:-TRAEFIK_ACME_DNS_VARNAME_1_NOT_SET}
       - ${TRAEFIK_ACME_DNS_VARNAME_2:-TRAEFIK_ACME_DNS_VARNAME_2_NOT_SET}
@@ -98,10 +104,14 @@ services:
       - geoip_update
     image: maxmindinc/geoipupdate
     restart: on-failure:3
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
     environment:
       - GEOIPUPDATE_ACCOUNT_ID=${TRAEFIK_GEOIPUPDATE_ACCOUNT_ID}
       - GEOIPUPDATE_LICENSE_KEY=${TRAEFIK_GEOIPUPDATE_LICENSE_KEY}
-      - 'GEOIPUPDATE_EDITION_IDS=${TRAEFIK_GEOIPUPDATE_EDITION_IDS}'
+      - GEOIPUPDATE_EDITION_IDS=${TRAEFIK_GEOIPUPDATE_EDITION_IDS}
       - GEOIPUPDATE_FREQUENCY=72
     volumes:
       - "geoip_database:/usr/share/GeoIP"
@@ -140,6 +150,8 @@ services:
       context: wireguard-client-config
     security_opt:
       - no-new-privileges:true
+    cap_drop:
+      - ALL
     environment:
       - TRAEFIK_VPN_ENTRYPOINT_HOST
       - TRAEFIK_VPN_CLIENT_INTERFACE_ADDRESS
