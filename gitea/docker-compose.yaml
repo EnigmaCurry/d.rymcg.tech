@@ -4,7 +4,6 @@ version: "3.9"
 services:
   gitea:
     image: gitea/gitea:1-rootless
-    container_name: gitea
     restart: always
     environment:
       - GITEA__server__ROOT_URL=https://${GITEA_TRAEFIK_HOST}

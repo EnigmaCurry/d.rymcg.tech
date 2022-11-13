@@ -9,7 +9,6 @@ services:
   sftp:
     build:
       context: ./
-    container_name: sftp
     restart: unless-stopped
     security_opt:
       - no-new-privileges:true
