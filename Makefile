@@ -32,7 +32,7 @@ open:
 
 .PHONY: status # Check status of all sub-projects
 status:
-	docker compose ls
+	@docker compose ls | sed "s!$${PWD}!.!g"
 
 .PHONY: backup-env # Make an encrypted backup of the .env files
 backup-env:
