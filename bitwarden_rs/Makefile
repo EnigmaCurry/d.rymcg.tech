@@ -1,8 +1,8 @@
 ROOT_DIR = ..
 include ../_scripts/Makefile.projects-no-open
 
-.PHONY: config # Configure .env file
-config:
+.PHONY: config-hook # Configure .env file
+config-hook:
 	@${BIN}/reconfigure_ask ${ENV_FILE} BITWARDEN_PORT "Enter the localhost port to listen on" 8888
 
 

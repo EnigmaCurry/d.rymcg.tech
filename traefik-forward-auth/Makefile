@@ -1,8 +1,8 @@
 ROOT_DIR = ..
 include ../_scripts/Makefile.projects
 
-.PHONY: config # Configure whoami .env file
-config:
+.PHONY: config-hook # Configure whoami .env file
+config-hook:
 	@${BIN}/reconfigure_ask ${ENV_FILE} AUTH_HOST "Enter the auth host domain name" auth.${ROOT_DOMAIN}
 	@${BIN}/reconfigure_ask ${ENV_FILE} COOKIE_DOMAIN "Enter the cookie domain name" ${ROOT_DOMAIN}
 	@echo ""

@@ -9,7 +9,6 @@ services:
       - ALL
     sysctls:
       - net.ipv4.ip_unprivileged_port_start=1024
-    container_name: whoami
     command: --port 8000 --name ${WHOAMI_NAME:-${WHOAMI_TRAEFIK_HOST}}
     user: ${WHOAMI_UID}:${WHOAMI_GID}
     restart: unless-stopped

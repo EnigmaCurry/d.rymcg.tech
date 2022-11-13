@@ -1,8 +1,8 @@
 ROOT_DIR = ..
 include ../_scripts/Makefile.projects
 
-.PHONY: config # Configure .env file
-config:
+.PHONY: config-hook # Configure .env file
+config-hook:
 	@${BIN}/reconfigure_ask ${ENV_FILE} MOSQUITTO_TRAEFIK_HOST "Enter the MQTT domain name" mqtt.${ROOT_DOMAIN}
 
 .PHONY: admin # Create admin account (this clears ALL accounts and creates a new admin)
