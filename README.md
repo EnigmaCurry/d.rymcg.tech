@@ -500,6 +500,16 @@ make destroy instance=bar    # This destroys only the bar instance
 
 # Show the status of all instances of the current project subdirectory:
 make status
+
+# Temporarily change the default instance:
+export INSTANCE=bar
+
+# Now with INSTANCE=bar set, operate on instance `bar` exclusively:
+make config                  # (Re)configures bar
+make install                 # (Re)installs bar
+make destroy                 # Destroys bar
+make destroy instance=foo    # Can still on operate on foo, if explicit
+unset INSTANCE               # resets instance back to default
 ```
 
 ## Backup .env files (optional)
