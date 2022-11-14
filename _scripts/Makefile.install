@@ -1,0 +1,2 @@
+.PHONY: install # (re)builds images and (re)starts services (only if changed)
+install: build start

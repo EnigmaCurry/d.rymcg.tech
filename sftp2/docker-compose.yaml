@@ -1,0 +1,29 @@
+version: "3.9"
+
+volumes:
+  ssh-keys:
+  sftp-data:
+
+services:
+  sftp:
+    build:
+      context: ./
+      args:
+        SFTP_SSHD_UID: ${SFTP_SSHD_UID}
+        SFTP_SSHD_GID: ${SFTP_SSHD_GID}
+    restart: unless-stopped
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    # cap_add:
+    #   - CHOWN
+    #   - DAC_OVERRIDE
+    volumes:
+      - ssh-keys:/home/sshd-user/ssh/keys
+      - sftp-data:/home/sshd-user/data
+    ports:
+      - ${SFTP_PORT}:2000
+    environment:
+      - SFTP_KEYFILE_URL
+#    command: ${SFTP_USERS}

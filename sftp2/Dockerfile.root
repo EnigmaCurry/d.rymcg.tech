@@ -1,0 +1,3 @@
+FROM debian:bullseye-slim as sshd
+RUN apt-get update && \
+    apt-get -y install openssh-server ssh-import-id

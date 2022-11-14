@@ -10,11 +10,12 @@ BIN = $(shell realpath ${ROOT_DIR}/_scripts)
 DOCKER_CONTEXT = $(shell ${BIN}/docker_context)
 ## Root environment file (contains ROOT_DOMAIN)
 ROOT_ENV = .env_${DOCKER_CONTEXT}
-## Per-project environment file name is keyed to the current docker context:
-ENV_FILE ?= .env_$(shell ${BIN}/docker_context)
+## Per-project environment file name is keyed to the current docker context and the optional INSTANCE name:
+ENV_FILE ?= $$([[ -n "${instance}" ]] && echo ".env_${DOCKER_CONTEXT}_${instance}" || echo ".env_${DOCKER_CONTEXT}" )
+PROJECT_NAME ?= $$([[ -n "${instance}" ]] && echo "$$(basename $${PWD})_${instance}" || echo "$$(basename $${PWD})")
 
 .PHONY: clean
 clean:
 	@echo "# Removing current context environment files only:"
-	@set -x && rm -f ${ENV_FILE} ${ENV_FILE}_*
+	@set -x && rm -f .env_${DOCKER_CONTEXT} .env_${DOCKER_CONTEXT}_*
 	@[[ -f passwords.json ]] && echo "Removing all http passwords from all environments:" && set -x && rm passwords.json || true
