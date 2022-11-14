@@ -1,0 +1,26 @@
+Port 2000
+PidFile /home/sshd-user/ssh/sshd.pid
+
+Protocol 2
+HostKey /home/sshd-user/ssh/keys/ssh_host_ed25519_key
+HostKey /home/sshd-user/ssh/keys/ssh_host_rsa_key
+
+# Faster connection
+UseDNS no
+
+# Limited access
+PermitRootLogin no
+X11Forwarding no
+AllowTcpForwarding no
+PubkeyAuthentication yes
+PasswordAuthentication no
+KbdInteractiveAuthentication no
+
+# Force sftp and chroot jail
+AuthorizedKeysFile /home/sshd-user/ssh/keys/%u_authorized_keys
+Subsystem sftp internal-sftp
+ForceCommand internal-sftp
+ChrootDirectory /home/%u/data
+
+# Enable this for more logs
+LogLevel VERBOSE

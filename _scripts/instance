@@ -1,15 +1,19 @@
 #!/bin/bash
 
 set -e
-EXISTING_ENVS=$(ls .env_${DOCKER_CONTEXT}_* 2>/dev/null | sed "s/.env_${DOCKER_CONTEXT}_//" || true)
-if [[ -n "$EXISTING_ENVS" ]]; then
-    echo "Existing environments:"
-    echo "${EXISTING_ENVS}"
-    echo ""
+
+if [[ -z "${instance}" ]]; then
+    EXISTING_ENVS=$(ls .env_${DOCKER_CONTEXT}_* 2>/dev/null | sed "s/.env_${DOCKER_CONTEXT}_//" || true)
+    if [[ -n "$EXISTING_ENVS" ]]; then
+        echo "Existing environments:"
+        echo "${EXISTING_ENVS}"
+        echo ""
+    fi
+    read -p "Enter an instance name to create/edit: " instance
 fi
-read -p "Enter an instance name to create/edit: " INSTANCE
-test -z "$INSTANCE" && echo "Missing required instance name." && exit 1
-NEW_ENV_FILE="${ENV_FILE}_${INSTANCE}"
+
+test -z "$instance" && echo "Missing required instance name." && exit 1
+NEW_ENV_FILE="${ENV_FILE}_${instance}"
 test ! -f "${NEW_ENV_FILE}" && set -x && cp .env-dist ${NEW_ENV_FILE} || \
         (echo "WARNING: Environment file already exists: ${NEW_ENV_FILE}")
-make --no-print-directory config INSTANCE=${INSTANCE}
+make --no-print-directory config instance=${instance}
