@@ -491,9 +491,9 @@ a single instance. For example:
 
 ```
 make config instance=foo     # This is equivalent to `make instance` and typing foo
-make config instance=bar     # (Re)configures bar
+make config instance=bar     # (Re)configures bar instance
 make install instance=foo    # This (re)installs only the foo instance
-make install instance=bar    # (Re)installs only bar
+make install instance=bar    # (Re)installs only bar instance
 make ps instance=foo         # This shows the containers status of the foo instance
 make stop instance=foo       # This stops the foo instance
 make destroy instance=bar    # This destroys only the bar instance
@@ -505,11 +505,11 @@ make status
 export INSTANCE=bar
 
 # Now with INSTANCE=bar set, operate on instance `bar` exclusively:
-make config                  # (Re)configures bar
-make install                 # (Re)installs bar
-make destroy                 # Destroys bar
+make config                  # (Re)configures bar instance
+make install                 # (Re)installs bar instance
+make destroy                 # Destroys bar instance
 make destroy instance=foo    # Can still on operate on foo, if explicit
-unset INSTANCE               # resets instance back to default
+unset INSTANCE               # resets default instance
 ```
 
 ## Backup .env files (optional)

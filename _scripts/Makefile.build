@@ -2,8 +2,10 @@ include ../_scripts/Makefile.docker-compose
 
 .PHONY: build # Build container images
 build:
-	@make --no-print-directory docker-compose-build EXTRA_ARGS=""
+	@make --no-print-directory build-hook-pre-rule-exists 2>/dev/null && make --no-print-directory build-hook-pre || true
+	@make --no-print-directory docker-compose-build EXTRA_ARGS="${EXTRA_ARGS}"
+	@make --no-print-directory build-hook-post-rule-exists 2>/dev/null && make --no-print-directory build-hook-post || true
 
 .PHONY: build-force # Build container images without cache
 build-force:
-	@make --no-print-directory docker-compose-build EXTRA_ARGS="--no-cache"
+	@make --no-print-directory build EXTRA_ARGS="--no-cache"

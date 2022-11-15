@@ -1,16 +1,32 @@
 version: "3.9"
 
 volumes:
-  ssh-keys:
+  ssh-config:
   sftp-data:
 
 services:
+  config:
+    build:
+      context: ./
+      args:
+        SFTP_SSHD_UID: ${SFTP_SSHD_UID}
+        SFTP_SSHD_GID: ${SFTP_SSHD_GID}
+    cap_add:
+      - LINUX_IMMUTABLE
+    profiles:
+      - config
+    volumes:
+      - ssh-config:/home/sshd-user/ssh
+      - sftp-data:/home/sshd-user/data
+    command: whoami
+
   sftp:
     build:
       context: ./
       args:
         SFTP_SSHD_UID: ${SFTP_SSHD_UID}
         SFTP_SSHD_GID: ${SFTP_SSHD_GID}
+    user: ${SFTP_SSHD_UID}:${SFTP_SSHD_GID}
     restart: unless-stopped
     security_opt:
       - no-new-privileges:true
@@ -20,10 +36,9 @@ services:
     #   - CHOWN
     #   - DAC_OVERRIDE
     volumes:
-      - ssh-keys:/home/sshd-user/ssh/keys
+      - ssh-config:/home/sshd-user/ssh
       - sftp-data:/home/sshd-user/data
     ports:
       - ${SFTP_PORT}:2000
     environment:
       - SFTP_KEYFILE_URL
-#    command: ${SFTP_USERS}

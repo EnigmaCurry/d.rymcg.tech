@@ -12,11 +12,14 @@ DOCKER_CONTEXT = $(shell ${BIN}/docker_context)
 ROOT_ENV = .env_${DOCKER_CONTEXT}
 ## Per-project environment file name is keyed to the current docker context and the optional INSTANCE name:
 instance ?= ${INSTANCE}
-ENV_FILE ?= $$([[ -n "${instance}" ]] && echo ".env_${DOCKER_CONTEXT}_${instance}" || echo ".env_${DOCKER_CONTEXT}" )
-PROJECT_NAME ?= $$([[ -n "${instance}" ]] && echo "$$(basename $${PWD})_${instance}" || echo "$$(basename $${PWD})")
+ENV_FILE ?= $$( ([[ -n "${instance}" ]] && echo ".env_${DOCKER_CONTEXT}_${instance}" || echo ".env_${DOCKER_CONTEXT}") )
+PROJECT_NAME ?= $$( ([[ -n "${instance}" ]] && echo "$$(basename $${PWD})_${instance}" || echo "$$(basename $${PWD})") )
 
 .PHONY: clean
 clean:
 	@echo "# Removing current context environment files only:"
 	@set -x && rm -f .env_${DOCKER_CONTEXT} .env_${DOCKER_CONTEXT}_*
 	@[[ -f passwords.json ]] && echo "Removing all http passwords from all environments:" && set -x && rm passwords.json || true
+
+%-rule-exists:
+	@$(MAKE) -n $* &> /dev/null
