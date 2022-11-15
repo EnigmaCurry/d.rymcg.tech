@@ -45,10 +45,12 @@ shell:
 .PHONY: ssh-copy-id
 ssh-copy-id: unlock-mutable-config
 	ssh-add -L
-	@read -p "Copy your local ssh-agent keys to which SSH username? : " SSH_USER; AUTH_FILE="/etc/ssh/keys/$${SSH_USER}_authorized_keys"; source ${BIN}/funcs.sh; ssh-add -L | docker_exec -i --user root $$(docker_compose ps -q sftp) sh -c "cat >> $${AUTH_FILE} && sort -u -o $${AUTH_FILE} $${AUTH_FILE} && chmod 0600 $${AUTH_FILE} && chown $${SSH_USER}:$${SSH_USER} $${AUTH_FILE}"
+	@[[ -z "$${SSH_USER:-$${user}}" ]] && read -p "Which SSH username do you want authorize with your local keys? : " SSH_USER; AUTH_FILE="/etc/ssh/keys/$${SSH_USER:-${user}}_authorized_keys"; source ${BIN}/funcs.sh; ssh-add -L | docker_exec -i --user root $$(docker_compose ps -q sftp) sh -c "cat >> $${AUTH_FILE} && sort -u -o $${AUTH_FILE} $${AUTH_FILE} && chmod 0600 $${AUTH_FILE} && chown $${SSH_USER:-${user}}:$${SSH_USER:-${user}} $${AUTH_FILE}"
 	@make --no-print-directory lock-immutable-config
+
 
 .PHONY: ssh-clear-id
 ssh-clear-id: unlock-mutable-config
-	@read -p "Enter the SSH username to clear all ids for: " SSH_USER; AUTH_FILE="/etc/ssh/keys/$${SSH_USER}_authorized_keys"; source ${BIN}/funcs.sh; docker_run --user root --entrypoint="" -v "${PROJECT_NAME}_ssh-config:/etc/ssh" sftp-sftp sh -c "cat /dev/null > $${AUTH_FILE} && chmod 0600 $${AUTH_FILE}"
+	@[[ -z "$${SSH_USER:-$${user}}" ]] && read -p "Which SSH username do you want deauthorize from all keys? : " SSH_USER; AUTH_FILE="/etc/ssh/keys/$${SSH_USER:-${user}}_authorized_keys"; source ${BIN}/funcs.sh; ssh-add -L | docker_exec -i --user root $$(docker_compose ps -q sftp) sh -c "truncate -s 0 $${AUTH_FILE}"
 	@make --no-print-directory lock-immutable-config
+
