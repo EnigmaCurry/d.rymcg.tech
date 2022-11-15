@@ -2,4 +2,7 @@
 
 set -ex
 #sleep 2000
-/usr/sbin/sshd -D -e -f /home/sshd-user/ssh/sshd_config
+/usr/local/bin/create-users
+echo "## Config"
+cat /etc/ssh/sshd_config
+/usr/sbin/sshd -D -e -f /etc/ssh/sshd_config
