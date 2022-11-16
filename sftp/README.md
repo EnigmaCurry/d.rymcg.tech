@@ -50,7 +50,7 @@ OpenSSH has been hardened in the following ways:
 Each instance of `sftp` may configure its own custom list of external
 Docker volumes to mount (`SFTP_VOLUMES`). This utilizes a
 [docker-compose override
-file](#overriding-docker-composeyaml-per-instance). The override is
+file](../README.md#overriding-docker-composeyaml-per-instance). The override is
 created automatically from the override template:
 [docker-compose.instance.yaml](docker-compose.instance.yaml). The
 generated override file
@@ -287,3 +287,137 @@ public server IP address):
 ```
 sftp -P 2223 ryan@ssh.d.rymcg.tech
 ```
+
+
+## Immutable config files (OR: A story about running an unprivileged sshd)
+
+I started down the path of wanting to run sshd as an unprivileged
+non-root user. [I found a good set of notes about that
+here](https://www.golinuxcloud.com/run-sshd-as-non-root-user-without-sudo),
+and heres a log of what I tried. For my purposes, I wanted to run
+`sshd` rootless on a normal installation of Docker. Docker Engine, in
+its default configuration, **runs as root**, and *by default* all
+containers run as root as well. Docker does have a [Rootless
+mode](https://docs.docker.com/engine/security/rootless/) and there are
+also implementations like Podman that can be run rootless, (both of
+which let you map host UIDs to different container UIDs, allowing root
+in the container to be mapped to some non-root host user UID) but
+these non-default options are not under consideration for this
+situation.
+
+My requirements, including nice-to-haves:
+
+ * Must run on a default configured Docker server (Docker Engine
+   running as root).
+ * Must drop as many privileges as possible to limit attack surface.
+ * To prevent abuse, the user must not be able to modify any of the
+   SSH host keys, `/etc/ssh/sshd_config`, nor their own
+   `authorized_keys` file. An admin is required to do these things.
+   Bonus points if the user cannot even see these things.
+ * Must allow at least one user to login with public key
+   authentication only, and then transfer only their own files in/out
+   of a preconfigured directory/volume permissioned for the user.
+ * Nice to have: support multiple user logins and separate
+   permissioned directories for each.
+ * Nice to have: users should not see any files from any other users (chroot).
+ * Nice to have: `sshd` should not run as root if it can be avoided.
+
+The benefits of running sshd as non-root include:
+
+ * If there is some vulnerability found in Linux, or Docker, to escape
+   the container environment, and gain access to the host operating
+   system, then an attacker will only inherit the user privileges that
+   the container user (UID) was running as. If the container user is
+   root (UID 0), then an attacker would gain the real host root (UID
+   0) access as well. If the container user is non-root (eg. UID
+   1000), then an attacker would only gain access to the same non-root
+   UID (UID 1000) on the host (which may not even exist). This greatly
+   limits any potential vulnerability.
+ * Consider this: every application you install on Android (which runs
+   on Linux) receives a unique user account, specifically to sandbox
+   each app run based on the UID.
+
+The drawbacks of running sshd as non-root include:
+
+ * Without root access, the only user who can login through `sshd` is
+   the same user that `sshd` runs as.
+ * You cannot use the `ChrootDirective` as non-root (UID!=0). Although
+   Linux has a
+   [capability](https://man.archlinux.org/man/capabilities.7) to give
+   non-root users access to `CAP_SYS_CHROOT`, and you can give the
+   sshd binary access to this privilege by `setcap`, apparently sshd
+   will not use the ability unless the UID==0. When you attempt to run
+   this as any other UID, you will get the error "[server lacks
+   privileges to chroot to
+   ChrootDirectory](https://github.com/openssh/openssh-portable/blob/25bd659cc72268f2858c5415740c442ee950049f/session.c#L1431-L1434)"
+   in the log, which fails due to the [uidswap check
+   here](https://github.com/openssh/openssh-portable/blob/2923d026e55998133c0f6e5186dca2a3c0fa5ff5/platform.c#L82-L92)
+   which explictly requires an effective UID of 0. This makes some
+   sense considering that OpenSSH is not a Linux-native application,
+   but must support a wider range of host operating systems and
+   maintain secure defaults.
+ * If sshd must run as the same user that is allowed access, and no
+   chroot is allowed, then that would mean that the user has access to
+   read or modify the private SSH host key (eg.
+   `/etc/ssh/keys/ssh_host_rsa_key`) and also has access to modify the
+   `/etc/ssh/sshd_config` file. Assuming you only deploy the service
+   for one user, and you trust them not to abuse this, this is not so
+   bad, but ideally the user should not be able to destroy their own
+   account nor change keys.
+
+The benefits of config and key file immutablity include:
+
+ * The root user, or any user granted the `LINUX_IMMUTABLE`
+   capability, can make files immutable by running `chattr +i FILE`.
+   This prevents any user from modifying or deleting a file,
+   regardless of the permissions and/or owner. Obviously this
+   limitation does not affect the user with `LINUX_IMMUTABLE`
+   capability, because this user can simply make the file mutable
+   again by running `chattr -i FILE`.
+ * To make it so that a process run as root (or another privileged
+   user) cannot use `chattr +i` nor `chattr -i`, you must drop the
+   `LINUX_IMMUTABLE` capability *before* running the intended task.
+   Once a capability has been dropped, it cannot be re-acquired within
+   the same process (nor its children; assuming
+   `security_opt:['no-new-privileges:true']`), thus preventing even
+   root from changing immutable files.
+
+The drawbacks of config and key file immutablity include:
+
+ * If the files are immutable, you can't change them, even if you want
+   to. So in order to modify them, you need a secondary out-of-band
+   method of unlocking and relocking the files, from a process that
+   still retains the `LINUX_IMMUTABLE` capability.
+
+So heres where I ended up:
+
+ * Run `sshd` as root (UID=0) since its required to use
+   `ChrootDirectory`.
+ * Drop all capabilites except for the ones necessary to run chroot(2)
+   and other stuff determined by process of elmination:
+   * I tested this by dropping `ALL` privileges, and added back every
+     single one explicitly, then tested if `sshd` works (it definitely
+     should with every capability!) then I tried removing each
+     capability and retesting if `sshd` still works. The final list of
+     `cap_add` directives is the minimal set required:
+
+```
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    cap_add:
+      - CHOWN
+      - DAC_OVERRIDE
+      - SYS_CHROOT
+      - AUDIT_WRITE
+      - SETGID
+      - SETUID
+      - FOWNER
+```
+ * Configure a separate [temporary
+   container](https://github.com/EnigmaCurry/d.rymcg.tech/blob/f7e257c2611b9ed3b5b80ac20758c2362631009a/sftp/Makefile#L28-L36)
+   to perform administrative tasks, and to unlock and relock the file
+   immutability. This process is
+   [granted](https://github.com/EnigmaCurry/d.rymcg.tech/blob/ecea0af2171518f104caf8856bb69d6cd068a6e1/sftp/docker-compose.yaml#L8-L18)
+   the `LINUX_IMMUTABLE` capability in order to perform its tasks.
