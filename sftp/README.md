@@ -19,7 +19,8 @@ OpenSSH has been hardened in the following ways:
    * Disable the shell, port forwading, and X11 forwarding.
    * Per-user account chroot (`ChrootDirectory`). Each user can only
      see their own files.
- * In order to use the `ChrootDirectory` config directtive, `sshd` [must run as root in order to access chroot(2)](https://github.com/openssh/openssh-portable/blob/2923d026e55998133c0f6e5186dca2a3c0fa5ff5/platform.c#L82-L92) (even if you give it the `CAP_SYS_CHROOT` capability via setcap, an unpatched sshd will still refuse to allow chroot(2) unless UID==0 explicitly; so a non-root user is unable to use the `ChrootDirectory` directive). The Docker container drops all of the unnecessary [Linux system capabilities](https://man.archlinux.org/man/capabilities.7), except for the following list that are required (tested by process of elimination):
+ * In order to use the `ChrootDirectory` config directive, `sshd` [must run as root to access chroot(2)](https://github.com/openssh/openssh-portable/blob/25bd659cc72268f2858c5415740c442ee950049f/session.c#L1431-L1434) (even if you give it the `CAP_SYS_CHROOT` capability via setcap, an unpatched sshd will still refuse to allow chroot(2) [unless UID==0 explicitly](https://github.com/openssh/openssh-portable/blob/2923d026e55998133c0f6e5186dca2a3c0fa5ff5/platform.c#L82-L92); so a non-root user would be unable to run `sshd` with the `ChrootDirectory` directive). To limit the permissions of the root user, the Docker container drops all of the unnecessary [Linux system capabilities](https://man.archlinux.org/man/capabilities.7), except for the following list that are still required (tested by process of elimination):
+
 ```
     security_opt:
       - no-new-privileges:true
@@ -34,13 +35,73 @@ OpenSSH has been hardened in the following ways:
       - SETUID
       - FOWNER
 ```
+
  * All config files and keys are made immutable by a secondary config
-   container temporarily given the `LINUX_IMMUTABLE` capability. This
-   capability is dropped by the main `sftp` container, such that these
-   files are made completely unmodifiable, even by the root user.
-   Every time you run `make install` the keys and config files are
-   temporarily made mutable, and are reconfigured according to your
-   environment, and then relocked again.
+   container, by temporarily giving it the `LINUX_IMMUTABLE`
+   capability. This capability is dropped by the main `sftp`
+   container, such that these files are made completely unmodifiable,
+   even by the root user. Every time you run `make install` the keys
+   and config files are temporarily made mutable, then reconfigured
+   according to your environment, and then relocked again before
+   starting `sftp`.
+
+## Volumes
+
+Each instance of `sftp` may configure its own custom list of external
+Docker volumes to mount (`SFTP_VOLUMES`). This utilizes a
+[docker-compose override
+file](#overriding-docker-composeyaml-per-instance). The override is
+created automatically from the override template:
+[docker-compose.instance.yaml](docker-compose.instance.yaml). The
+generated override file
+(`docker-compose.override_${DOCKER_CONTEXT}.yaml`) is created
+automatically whenever you run `make config` based upon the
+`SFTP_VOLUMES` environment variable (the override file should not be
+hand edited). When you run `make install`, the base configuration
+[docker-compose.yaml](docker-compose.yaml) is merged with the
+generated override file, to compose the full configuration.
+
+If `SFTP_VOLUMES` is not used (ie. blank) then the `sftp` instance
+will not mount any external volumes, and will only use the internal
+volumes specified by the base configuration
+([docker-compose.yaml](docker-compose.yaml)): `sftp_config` and
+`sftp_data` (or the custom-instance volumes: `sftp_${INSTANCE}_config`
+and `sftp_${INSTANCE}_data`).
+
+The volume mount points are :
+
+ * `sftp_ssh-config` mounted to `/etc/ssh` as root, containing all the
+   configuration, private keys, and authorized public keys.
+ * `sftp_ssh_data` mounted to `/data`. Under this directory, each user
+   is given their own unique chroot that is owned by root, for
+   example:
+
+   * `/data/bob-chroot` (owned by root)
+   * `/data/alice-chroot` (owned by root)
+
+ * `/data/${USER}-chroot` directory must be owned by root in order for
+   the sshd_config `ChrootDirectory` directive to work. Each user is
+   given permission to write to a subdirectory with their own name,
+   for example:
+
+   * `/data/bob-chroot/bob` (owned by bob, backed by the default
+     `sftp_data` volume)
+   * `/data/alice-chroot/alice` (owned by alice, backed by the default
+     `sftp_data` volume)
+
+ * If `SFTP_VOLUMES` is specified, extra external volumes are mounted
+   in addition, for example if
+   `SFTP_VOLUMES=some_volume:bob:stuff,other_volume:alice:misc`, then
+   the following extra directories are created/mounted:
+
+   * `/data/bob-chroot/bob/stuff`
+   * `/data/alice-chroot/alice/misc`
+
+ * When each user logs in, they are placed in a chroot with only their
+   own files visible:
+
+   * Bob only sees: `/bob` and `/bob/stuff`.
+   * Alice only sees: `/alice` and `/alice/misc`.
 
 ## Config
 
@@ -62,9 +123,10 @@ SFTP_PORT=2223
 
  * `SFTP_USERS` This is a comma separated list of user:UID pairs to
    create SFTP accounts. Match the UID to the same UID that your data
-   (or service container) uses. If you only use the default sftp
-   volume (without any other consumers of the volume), then the UIDs
-   may be arbitrarily chosen but should be unique.
+   (or service container) uses (see example below). If you only use
+   the default sftp volume (without any other consumers of the
+   volume), then the UIDs may be arbitrarily chosen but should be
+   unique.
 
 ```
 ## For example, to create two accounts, ryan (UID=54321) and gary (UID=1001):
