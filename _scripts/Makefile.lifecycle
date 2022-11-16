@@ -1,6 +1,7 @@
 .PHONY: config
 config:
-	@echo "Configuring environment file: ${ENV_FILE}" && make --no-print-directory config-hook
+	@echo "Configuring environment file: ${ENV_FILE}"
+	@make --no-print-directory config-hook override
 
 .PHONY: uninstall # Remove service containers, leaving the volumes intact
 uninstall: down
