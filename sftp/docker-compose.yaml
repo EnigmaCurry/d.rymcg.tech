@@ -3,6 +3,10 @@ version: "3.9"
 volumes:
   ssh-config:
   sftp-data:
+  ## List the external volumes you want to share with select sftp users:
+  ryan-web:
+    name: thttpd_files
+    external: true
 
 services:
   config:
@@ -21,8 +25,19 @@ services:
     image: sftp-sftp
     build:
       context: ./
-    #user: ${SFTP_SSHD_UID}:${SFTP_SSHD_GID}
     restart: unless-stopped
+    volumes:
+      - ssh-config:/etc/ssh
+      - sftp-data:/data
+      ## Mount extra volumes per-user here:
+      ## Must mount these per-user as /data/$user-chroot/$user/$volume:
+      ## See sshd_config ChrootDirectory setting.
+      - ryan-web:/data/ryan-chroot/ryan/web
+    ports:
+      - ${SFTP_PORT}:2000
+    environment:
+      - SFTP_KEYFILE_URL
+      - SFTP_USERS
     security_opt:
       - no-new-privileges:true
     cap_drop:
@@ -67,11 +82,3 @@ services:
        # - SYS_TIME
        # - SYS_TTY_CONFIG
        # - WAKE_ALARM
-    volumes:
-      - ssh-config:/etc/ssh
-      - sftp-data:/data
-    ports:
-      - ${SFTP_PORT}:2000
-    environment:
-      - SFTP_KEYFILE_URL
-      - SFTP_USERS

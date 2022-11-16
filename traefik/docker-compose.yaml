@@ -16,6 +16,7 @@ services:
         TRAEFIK_CONFIG_YTT_VERSION: ${TRAEFIK_CONFIG_YTT_VERSION}
         TRAEFIK_UID: ${TRAEFIK_UID}
         TRAEFIK_GID: ${TRAEFIK_GID}
+    user: 0:0
     volumes:
       - traefik:/data
     environment:

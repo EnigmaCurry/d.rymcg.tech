@@ -490,18 +490,18 @@ argument `instance=${INSTANCE}` that will limit the commands effect to
 a single instance. For example:
 
 ```
-make config instance=foo     # This is equivalent to `make instance` and typing foo
-make config instance=bar     # (Re)configures bar instance
-make install instance=foo    # This (re)installs only the foo instance
-make install instance=bar    # (Re)installs only bar instance
-make ps instance=foo         # This shows the containers status of the foo instance
-make stop instance=foo       # This stops the foo instance
-make destroy instance=bar    # This destroys only the bar instance
+make instance=foo config     # This is equivalent to `make instance` and typing foo
+make instance=bar config     # (Re)configures bar instance
+make instance=foo install    # This (re)installs only the foo instance
+make instance=bar install    # (Re)installs only bar instance
+make instance=foo ps         # This shows the containers status of the foo instance
+make instance=foo stop       # This stops the foo instance
+make instance=bar destroy    # This destroys only the bar instance
 
 # Show the status of all instances of the current project subdirectory:
 make status
 
-# Temporarily change the default instance:
+# Temporarily change the default instance (don't forget to unset it later!):
 export INSTANCE=bar
 
 # Now with INSTANCE=bar set, operate on instance `bar` exclusively:
