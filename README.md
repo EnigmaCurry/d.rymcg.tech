@@ -512,6 +512,40 @@ make destroy instance=foo    # Can still on operate on foo, if explicit
 unset INSTANCE               # resets default instance
 ```
 
+### Overriding docker-compose.yaml per-instance
+
+Most of the time, when you create multiple instances, the only thing
+that needs to change is the environment file
+(`.env_${DOCKER_CONTEXT}_${INSTANCE}`). Normally the
+`docker-compose.yaml` is static and stays the same between several
+instances.
+
+However, sometimes you need to configure two instances a little bit
+differently from each other. You may also wish to modify the
+configuration without wanting to commit those changes back to the base
+template in the git repository.
+
+You can override each project's `docker-compose.yaml` with a
+per-docker-context `docker-compose.override_${DOCKER_CONTEXT}.yaml` or
+a per-instance
+`docker-compose.override_${DOCKER_CONTEXT}_${INSTANCE}.yaml` file.
+
+You can find an example of this in the [sftp](sftp) project. Each
+instance of sftp will need a custom set of volumes, and since this is
+normally a static list in `docker-compose.yaml`, you need a way of
+dynamically generating it. There is a template
+[docker-compose.instance.yaml](sftp/docker-compose.instance.yaml) that
+when you run `make config` it will render the template to the file
+`docker-compose.override_${DOCKER_CONTEXT}.yaml` containing the custom
+mountpoints (this file is ignored by git.) The override file is merged
+with the base `docker-compose.yaml` whenever you run `make install`,
+thus each instance receives its own list of volumes to mount.
+
+Reference the Docker Compose documentation for [Adding and overriding
+configuration](https://docs.docker.com/compose/extends/#adding-and-overriding-configuration)
+regarding the rules for how the merging of configuration files takes
+place.
+
 ## Backup .env files (optional)
 
 Because the `.env` files contain secrets, they are to be excluded from

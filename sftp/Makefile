@@ -4,8 +4,10 @@ include ../_scripts/Makefile.projects-custom-install
 .PHONY: config-hook # Configure .env file
 config-hook:
 	@test -f ${ENV_FILE} || (cp .env-dist ${ENV_FILE} && echo "Created ${ENV_FILE}")
+	@${BIN}/reconfigure_ask ${ENV_FILE} SFTP_PORT "Enter the public SSH port"
 	@${BIN}/reconfigure_ask ${ENV_FILE} SFTP_USERS "Enter the user:uid list"
-	@${BIN}/reconfigure_ask ${ENV_FILE} SFTP_VOLUMES "Enter the volume:user:mount list"
+	@${BIN}/reconfigure_ask ${ENV_FILE} SFTP_VOLUMES "Enter the volume:user:mount list (can be blank)"
+
 
 .PHONY: install # (re)builds images and (re)starts services
 install: uninstall build start

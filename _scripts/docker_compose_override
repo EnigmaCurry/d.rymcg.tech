@@ -24,10 +24,12 @@ OVERRIDE="docker-compose.override_${CONTEXT_INSTANCE}.yaml"
 
 for var in "$@"; do
     val="$(${BIN}/dotenv -f ${ENV_FILE} get $var)" || true
-    test -z "${val}" && echo "${var} is blank. Fail." && exit 1
+    test -z "${val}" && echo "${var} is blank." && continue
     var=$(echo $var | tr '[:upper:]' '[:lower:]')
     YTT_DATA_ARGS="${YTT_DATA_ARGS} -v ${var}=${val}"
 done
 
+echo ytt ${YTT_DATA_ARGS} \< docker-compose.instance.yaml \> ${OVERRIDE}
 ytt ${YTT_DATA_ARGS} < docker-compose.instance.yaml > ${OVERRIDE}
+
 echo "Created docker-compose override: ${OVERRIDE}"

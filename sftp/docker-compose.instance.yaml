@@ -1,12 +1,12 @@
 #@yaml/text-templated-strings
 #@ load("@ytt:data", "data")
+#@ if "sftp_volumes" in data.values:
 volumes:
   #! List the external volumes you want to mount into sftp:
   #@ for vol,user,mnt in [x.split(":") for x in data.values.sftp_volumes.split(",")]:
   (@= vol @):
     external: true
   #@ end
-
 services:
   sftp:
     volumes:
@@ -16,3 +16,7 @@ services:
       #@ for vol,user,mnt in [x.split(":") for x in data.values.sftp_volumes.split(",")]:
       - #@ "{vol}:/data/{user}-chroot/{user}/{mnt}".format(vol=vol,user=user,mnt=mnt)
       #@ end
+#@ end
+
+x-blank:
+  - this is just something to fill this file with if nothing else is here.
