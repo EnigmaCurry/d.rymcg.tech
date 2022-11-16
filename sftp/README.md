@@ -13,11 +13,13 @@ OpenSSH has been hardened in the following ways:
 
  * [sshd_config](sshd_config) has been configured to:
    * Use only v2 protocol with ed25519 or RSA key types.
-   * Require pubkey authentication exclusively.
+   * Require pubkey authentication exclusively (`PubkeyAuthentication
+     yes` and `PasswordAuthentication no`).
    * Only serve SFTP with the `internal-sftp` server.
    * Disable the shell, port forwading, and X11 forwarding.
-   * Per-user account chroot. Each user can only see their own files.
- * `sshd` [must run as root in order to access chroot(2)](https://github.com/openssh/openssh-portable/blob/2923d026e55998133c0f6e5186dca2a3c0fa5ff5/platform.c#L82-L92) (even if you give all necessary capabilities, unpatched ssh will still refuse if UID!=0, so a non-root user can not use the `ChrootDirectory` directive), however all unnecessary [Linux system capabilities](https://man.archlinux.org/man/capabilities.7) have been dropped, except for the following that are required (tested by process of elimination):
+   * Per-user account chroot (`ChrootDirectory`). Each user can only
+     see their own files.
+ * In order to use the `ChrootDirectory` config directtive, `sshd` [must run as root in order to access chroot(2)](https://github.com/openssh/openssh-portable/blob/2923d026e55998133c0f6e5186dca2a3c0fa5ff5/platform.c#L82-L92) (even if you give it the `CAP_SYS_CHROOT` capability via setcap, an unpatched sshd will still refuse to allow chroot(2) unless UID==0 explicitly; so a non-root user is unable to use the `ChrootDirectory` directive). The Docker container drops all of the unnecessary [Linux system capabilities](https://man.archlinux.org/man/capabilities.7), except for the following list that are required (tested by process of elimination):
 ```
     security_opt:
       - no-new-privileges:true
@@ -94,9 +96,9 @@ This example will create the following services:
  * `sftp` setup to share the thttp volume, and create an SFTP user
    account to manage uploading new files.
 
-First it assumed that you have already followed the [main d.rymcg.tech
-README](../README.md) and have setup [Traefik](../traefik/README.md)
-on your Docker server.
+First, it is assumed that you have already followed the [main
+d.rymcg.tech README](../README.md) and have setup
+[Traefik](../traefik/README.md) on your Docker server.
 
 ### Install thttpd
 

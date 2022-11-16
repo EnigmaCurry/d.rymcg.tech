@@ -506,7 +506,7 @@ make status
 
 # Temporarily change the default instance and start a new subshell:
 # (This sets the $PS1 prompt in the subshell, indicating the current instance)
-make instance=bar switch
+make switch
 
 # You can also just set INSTANCE=bar, but don't forget to unset it later!
 export INSTANCE=bar
@@ -533,8 +533,8 @@ configuration without wanting to commit those changes back to the base
 template in the git repository.
 
 You can override each project's `docker-compose.yaml` with a
-per-docker-context `docker-compose.override_${DOCKER_CONTEXT}.yaml` or
-a per-instance
+per-docker-context `docker-compose.override_${DOCKER_CONTEXT}.yaml`
+(default instance) or a per-instance
 `docker-compose.override_${DOCKER_CONTEXT}_${INSTANCE}.yaml` file.
 
 You can find an example of this in the [sftp](sftp) project. Each
