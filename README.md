@@ -116,7 +116,7 @@ expected to provide this in your host networking environment. (Note:
 firewall that is directly located on the same host machine as Docker.
 You should prefer an external dedicated network firewall [ie. your
 cloud provider, or VM host]. If you have no other option but to run
-the firewall on the same host, check out
+the firewall on the same machine, check out
 [chaifeng/ufw-docker](https://github.com/chaifeng/ufw-docker#solving-ufw-and-docker-issues)
 for a partial fix.)
 
@@ -158,6 +158,8 @@ published ports: from the root project directory, run `make
 show-ports` to list all of the services with open ports (or those that
 run in the host network and are therefore completely open. You will
 find traefik and the wireguard server/client in this latter category).
+Each sub-project directory also has a `make status` with useful
+per-project information.
 
 ## Setup
 
@@ -478,7 +480,8 @@ Configuring environment file: .env_docker-vm_bar
 ...
 ```
 
-This creates and configures the following env files:
+Because my current docker context is named `docker-vm`, this creates
+and configures the following env files:
 
 ```
 .env_docker-vm_foo
@@ -501,10 +504,14 @@ make instance=bar destroy    # This destroys only the bar instance
 # Show the status of all instances of the current project subdirectory:
 make status
 
-# Temporarily change the default instance (don't forget to unset it later!):
+# Temporarily change the default instance and start a new subshell:
+# (This sets the $PS1 prompt in the subshell, indicating the current instance)
+make instance=bar switch
+
+# You can also just set INSTANCE=bar, but don't forget to unset it later!
 export INSTANCE=bar
 
-# Now with INSTANCE=bar set, operate on instance `bar` exclusively:
+# In the subshell, or with INSTANCE=bar exported, operate on instance `bar` exclusively:
 make config                  # (Re)configures bar instance
 make install                 # (Re)installs bar instance
 make destroy                 # Destroys bar instance
