@@ -3,21 +3,19 @@
 [thttpd](https://www.acme.com/software/thttpd/) is "a simple, small, portable,
 fast, and secure HTTP server."
 
-This configuration will bundle thttpd and a small static website into a single
-docker image.
-
 ## Configure
-
-Put your static website source files into the `./static` directory.
 
 Run `make config`
 
-Answer the questions:
+Answer the questions for these variables:
 
- * `THTTPD_TRAEFIK_HOST` - the domain name for the website.
- * `THTTPD_CACHE_CONTROL` - the setting for the Cache-Control header on files
-   served, in seconds. (eg. 60)
- 
+ * `THTTPD_TRAEFIK_HOST` - The domain name for the website.
+
+Put your static website source files into the `./static` directory and
+they will be copied into the initial volume created. You can also use
+the [sftp](../sftp) service, and upload new files into the shared
+volume (`thttpd_files` or `thttpd_${INSTANCE}_files`).
+
 ## Install
 
 Run `make install`

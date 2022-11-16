@@ -7,16 +7,16 @@ include ../_scripts/Makefile.projects-no-open
 # 	@[[ $$(${BIN}/dotenv -f ${ENV_FILE} get TRAEFIK_VPN_ENTRYPOINT_ENABLED) == "true" ]] && (docker network inspect traefik-vpn >/dev/null 2>&1 || (echo "" && echo "Creating traefik-vpn network ..." && docker network create traefik-vpn --subnet "$$(${BIN}/dotenv -f ${ENV_FILE} get TRAEFIK_VPN_SUBNET)" || true)) && echo "" && echo "Traefik VPN network:" && docker network ls | grep traefik-vpn && docker network inspect traefik-vpn | grep Subnet && echo "Traefik VPN entrypoint: $$(${BIN}/dotenv -f ${ENV_FILE} get TRAEFIK_VPN_ENTRYPOINT_HOST):$$(${BIN}/dotenv -f ${ENV_FILE} get TRAEFIK_VPN_ENTRYPOINT_PORT)" || true
 
 .PHONY: config-hook # Configure Traefik .env file
-config-hook: config-ask compose-profiles
+config-hook: traefik-user config-ask compose-profiles 
 	@echo ""
 	@echo 'Base configuration complete.'
 	@echo 'Run `make certs` to configure certificate domains.'
-	@echo 'Examine the environment file: ${ENV_FILE}'
+	@echo "Examine the environment file: ${ENV_FILE}"
 	@echo 'Then run `make install` to (re)install.'
 
 .PHONY: traefik-user
 traefik-user:
-	@(ssh $$(docker context inspect | jq -r ".[0].Endpoints.docker.Host") id traefik && echo "Traefik user already exists") || (ssh $$(docker context inspect | jq -r ".[0].Endpoints.docker.Host") adduser --disabled-login --disabled-password --gecos GECOS traefik && ssh $$(docker context inspect | jq -r ".[0].Endpoints.docker.Host") gpasswd -a traefik docker)
+	@(ssh $$(docker context inspect | jq -r ".[0].Endpoints.docker.Host") id traefik && echo "Traefik user exists.") || (ssh $$(docker context inspect | jq -r ".[0].Endpoints.docker.Host") adduser --disabled-login --disabled-password --gecos GECOS traefik && ssh $$(docker context inspect | jq -r ".[0].Endpoints.docker.Host") gpasswd -a traefik docker)
 
 .PHONY: config-ask
 config-ask:
@@ -87,6 +87,11 @@ config-inspect:
 .PHONY: shell
 shell:
 	docker compose --env-file=${ENV_FILE} exec -it traefik /bin/sh
+
+.PHONY: shell-root
+shell-root:
+	docker compose --env-file=${ENV_FILE} exec --user root -it traefik /bin/sh
+
 
 .PHONY: shell-wireguard
 shell-wireguard:

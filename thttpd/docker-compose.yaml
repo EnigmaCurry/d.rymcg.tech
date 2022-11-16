@@ -1,21 +1,24 @@
 version: "3.9"
 
 volumes:
-  database:
+  files:
 
 services:
   thttpd:
     build:
       context: .
+      args:
+        THTTPD_UID: ${THTTPD_UID}
     restart: unless-stopped
     security_opt:
       - no-new-privileges:true
-    environment:
-      - THTTPD_CACHE_CONTROL
+    user: ${THTTPD_UID}:${THTTPD_GID}
     labels:
       - "traefik.enable=true"
-      - "traefik.http.routers.thttpd.rule=Host(`${THTTPD_TRAEFIK_HOST}`)"
-      - "traefik.http.routers.thttpd.entrypoints=websecure"
+      - "traefik.http.routers.thttpd-${THTTPD_INSTANCE:-default}.rule=Host(`${THTTPD_TRAEFIK_HOST}`)"
+      - "traefik.http.routers.thttpd-${THTTPD_INSTANCE:-default}.entrypoints=websecure"
       ## Authentication:
       #- "traefik.http.middlewares.thttpd-auth.basicauth.users=${THTTPD_HTTP_AUTH}"
       #- "traefik.http.routers.thttpd.middlewares=thttpd-auth@docker"
+    volumes:
+      - files:/home/web

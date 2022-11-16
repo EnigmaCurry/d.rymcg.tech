@@ -5,7 +5,6 @@ include ../_scripts/Makefile.projects-custom-install
 config-hook:
 	@test -f ${ENV_FILE} || (cp .env-dist ${ENV_FILE} && echo "Created ${ENV_FILE}")
 	@${BIN}/reconfigure_ask ${ENV_FILE} SFTP_USERS "Enter the user:uid list"
-	@echo "After you run \`make install\`, run \`make ssh-copy-id\`."
 
 .PHONY: install # (re)builds images and (re)starts services
 install: uninstall build start

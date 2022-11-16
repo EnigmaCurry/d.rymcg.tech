@@ -23,7 +23,7 @@ ChallengeResponseAuthentication no
 AuthorizedKeysFile /etc/ssh/keys/%u_authorized_keys
 Subsystem sftp internal-sftp
 ForceCommand internal-sftp
-ChrootDirectory /data/%u
+ChrootDirectory /data/%u-chroot
 
 # Enable this for more logs
 LogLevel VERBOSE
