@@ -76,7 +76,7 @@ docker_compose() {
         PROJECT_NAME="$(basename $PWD)_${instance:-${INSTANCE}}"
     fi
     set -ex
-    docker compose --env-file="${ENV_FILE}" --project-name="${PROJECT_NAME}" "$@"
+    docker compose ${DOCKER_COMPOSE_FILE_ARGS:--f docker-compose.yaml} --env-file="${ENV_FILE}" --project-name="${PROJECT_NAME}" "$@"
 }
 
 docker_run() {
@@ -99,4 +99,14 @@ docker_exec() {
     fi
     set -ex
     docker exec --env-file=${ENV_FILE} "$@"
+}
+
+ytt() {
+    set -e
+    docker build -t localhost/ytt -f- . >/dev/null <<'EOF'
+FROM debian:stable-slim as ytt
+ARG YTT_VERSION=v0.43.0
+RUN apt-get update && apt-get install -y wget && wget "https://github.com/vmware-tanzu/carvel-ytt/releases/download/${YTT_VERSION}/ytt-linux-$(dpkg --print-architecture)" -O ytt && install ytt /usr/local/bin/ytt
+EOF
+    docker run --rm -i localhost/ytt ytt "-f-" "$@"
 }

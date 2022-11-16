@@ -5,9 +5,14 @@ include ../_scripts/Makefile.projects-custom-install
 config-hook:
 	@test -f ${ENV_FILE} || (cp .env-dist ${ENV_FILE} && echo "Created ${ENV_FILE}")
 	@${BIN}/reconfigure_ask ${ENV_FILE} SFTP_USERS "Enter the user:uid list"
+	@${BIN}/reconfigure_ask ${ENV_FILE} SFTP_VOLUMES "Enter the volume:user:mount list"
 
 .PHONY: install # (re)builds images and (re)starts services
 install: uninstall build start
+
+.PHONY: override-hook
+override-hook:
+	@${BIN}/docker_compose_override ${ENV_FILE} SFTP_USERS SFTP_VOLUMES
 
 .PHONY: build-hook-post
 build-hook-post: sshd_config lock-immutable-config
