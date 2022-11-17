@@ -318,6 +318,46 @@ The current time is Wed Nov 16 07:12:36 PM PST 2022
 All done, phew!
 ```
 
+### Running make within make
+
+Like dependencies, which run before your target, sometimes you'll want
+to run other make targets *after* you do something else. AFAIK, there
+is no way to do this in Make, except by calling `make` again.
+
+What happens when you call make from make? Consider this Makefile
+
+```
+time:
+	@echo The current time is $$(date)
+inception:
+	@echo Yo dawg.
+	make time
+```
+
+Run :
+
+```
+$ make inception
+Yo dawg.
+make time
+make[1]: Entering directory '/home/ryan/t'
+The current time is Wed Nov 16 07:16:50 PM PST 2022
+make[1]: Leaving directory '/home/ryan/t'
+```
+
+So it ran make twice, the second time as a child process of the first.
+Theres a bit of noise here though. As it enters the second process, it
+prints the text `make[1]: Entering directory '/home/ryan/t'` and when
+its done it prints `make[1]: Leaving directory '/home/ryan/t'`. Unless
+I'm debugging something this is just noise, so I change the target to
+not print it:
+
+```
+inception:
+	@echo Yo dawg.
+	@make --no-print-directory time
+```
+
 ## Main d.rymcg.tech Makefile
 
 There is a [Makefile](Makefile) in the root directory of d.rymcg.tech.
