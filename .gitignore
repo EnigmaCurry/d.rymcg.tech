@@ -7,3 +7,4 @@ passwords.json
 /filestash/state/
 .gitmodules
 /mikeapp/
+docker-compose.override*.yaml

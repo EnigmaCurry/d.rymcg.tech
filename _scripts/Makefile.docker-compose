@@ -1,0 +1,14 @@
+DOCKER_BUILDKIT ?= 1
+
+.PHONY: docker-compose
+docker-compose:
+	@QUIET="${QUIET}"; DOCKER_COMPOSE_FILE_ARGS="${DOCKER_COMPOSE_FILE_ARGS}"; export COMPOSE_PROFILES=$$(${BIN}/dotenv -f ${ENV_FILE} get DOCKER_COMPOSE_PROFILES); test -n "$$COMPOSE_PROFILES" && echo COMPOSE_PROFILES="$${COMPOSE_PROFILES}"; test "$${QUIET}" != "true" && set -x; docker compose $${DOCKER_COMPOSE_FILE_ARGS} --env-file=${ENV_FILE} ${EXTRA_ARGS}
+
+.PHONY: docker-compose-lifecycle-cmd
+docker-compose-lifecycle-cmd:
+	@QUIET="${QUIET}"; DOCKER_COMPOSE_FILE_ARGS="${DOCKER_COMPOSE_FILE_ARGS}"; export COMPOSE_PROFILES=$$(${BIN}/dotenv -f "${ENV_FILE}" get DOCKER_COMPOSE_PROFILES); COMMAND="docker compose $${DOCKER_COMPOSE_FILE_ARGS} --env-file=${ENV_FILE} --project-name=${PROJECT_NAME} ${EXTRA_ARGS}"; test "$${QUIET}" != "true" && echo "ENV_FILE=${ENV_FILE}" && echo "# $${COMMAND}"; sh -c "exec $${COMMAND}"
+
+.PHONY: docker-compose-build
+docker-compose-build:
+	@make --no-print-directory docker-compose-lifecycle-cmd EXTRA_ARGS="build ${EXTRA_ARGS}"
+

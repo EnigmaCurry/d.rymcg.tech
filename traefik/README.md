@@ -44,8 +44,21 @@ PR brings the following new features:
 
 ## Config
 
-Open your terminal, and from this directory (`traefik`), run the
-interactive configuration wizard:
+Open your terminal, and change to this directory (`traefik`).
+
+Traefik needs limited, but privileged, access to your Docker host.
+Rather than run as root, you must create a new `traefik` user account
+for it to use instead. You can do this with the Makefile target:
+
+```
+make traefik-user
+
+## You can do this manually if you prefer (on the Docker Host:)
+# adduser --disabled-login --disabled-password --gecos GECOS traefik
+# gpasswd -a traefik docker
+```
+
+Run the interactive configuration wizard:
 
 ```
 make config

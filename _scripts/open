@@ -10,7 +10,14 @@
 
 BIN=$(dirname ${BASH_SOURCE})
 DOCKER_CONTEXT=$(${BIN}/docker_context)
-ENV_FILE=".env_${DOCKER_CONTEXT}"
+instance=${instance:-${INSTANCE}}
+if [[ -n "${instance}" ]]; then
+    CONTEXT_INSTANCE="${DOCKER_CONTEXT}_${instance}"
+else
+    CONTEXT_INSTANCE="${DOCKER_CONTEXT}"
+fi
+
+ENV_FILE=".env_${CONTEXT_INSTANCE}"
 
 if [[ ! -f ${ENV_FILE} ]]; then
     echo "No ${ENV_FILE} file found"

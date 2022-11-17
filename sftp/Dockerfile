@@ -1,22 +1,15 @@
-FROM debian:buster
-#MAINTAINER Adrian Dvergsdal [atmoz.net]
-MAINTAINER EnigmaCurry
-
-# Steps done in one RUN layer:
-# - Install packages
-# - OpenSSH needs /var/run/sshd to run
-# - Remove generic host keys, entrypoint generates unique keys
+FROM debian:bullseye-slim as sshd
 RUN apt-get update && \
-    apt-get -y install openssh-server ssh-import-id && \
-    rm -rf /var/lib/apt/lists/* && \
-    mkdir -p /var/run/sshd && \
-    rm -f /etc/ssh/ssh_host_*key* \
-    rm -f /etc/ssh/keys/*
-
-COPY files/sshd_config /etc/ssh/sshd_config
-COPY files/create-sftp-user /usr/local/bin/
-COPY files/entrypoint /
-
-EXPOSE 22
-
-ENTRYPOINT ["/entrypoint"]
+    apt-get -y install openssh-server ssh-import-id libcap2-bin && \
+    rm -rf /var/lib/apt/lists/*
+VOLUME /etc/ssh
+VOLUME /data
+COPY entrypoint.sh /usr/local/bin/sshd-entrypoint
+COPY create-users.sh /usr/local/bin/create-users
+RUN chmod a+x /usr/local/bin/sshd-entrypoint && \
+    rm -rf /etc/ssh && \
+    mkdir -p /etc/ssh /data && \
+    mkdir -p /run/sshd && \
+    chmod a+x /usr/local/bin/create-users
+COPY sshd_config /etc/ssh/sshd_config
+ENTRYPOINT /usr/local/bin/sshd-entrypoint

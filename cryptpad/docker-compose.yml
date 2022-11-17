@@ -1,4 +1,4 @@
-version: "3.7"
+version: "3.9"
 
 volumes:
   blob:
@@ -30,7 +30,6 @@ services:
     depends_on: ['config']
     build:
       context: cryptpad
-    container_name: "cryptpad"
     restart: unless-stopped
     command: ['start_cryptpad.sh']
     security_opt:

@@ -5,42 +5,48 @@ services:
     image: "traefik/whoami"
     security_opt:
       - no-new-privileges:true
-    container_name: whoami
+    cap_drop:
+      - ALL
+    sysctls:
+      - net.ipv4.ip_unprivileged_port_start=1024
+    command: --port 8000 --name ${WHOAMI_NAME:-${WHOAMI_TRAEFIK_HOST}}
+    user: ${WHOAMI_UID}:${WHOAMI_GID}
     restart: unless-stopped
     labels:
       - "traefik.enable=true"
+      - "traefik.http.services.whoami-${WHOAMI_INSTANCE:-default}.loadbalancer.server.port=8000"
 
       ### Normally whoami responds on any path with any HTTP method, but if we
       ### make all the routers path and/or method selective, then we can block
       ### certain requests easily by default (404).
-      - "traefik.http.routers.whoami.rule=Host(`${WHOAMI_TRAEFIK_HOST}`) && (Path(`/`) || Path(`/health`))"
-      - "traefik.http.routers.whoami.entrypoints=websecure"
-      - "traefik.http.middlewares.whoami-whitelist.ipwhitelist.sourcerange=${IP_SOURCERANGE}"
-      #- "traefik.http.routers.whoami.middlewares=whoami-whitelist,geoip@file"
-      - "traefik.http.routers.whoami.middlewares=whoami-whitelist"
+      - "traefik.http.routers.whoami-${WHOAMI_INSTANCE:-default}.rule=Host(`${WHOAMI_TRAEFIK_HOST}`) && (Path(`/`) || Path(`/health`))"
+      - "traefik.http.routers.whoami-${WHOAMI_INSTANCE:-default}.entrypoints=websecure"
+      - "traefik.http.middlewares.whoami-${WHOAMI_INSTANCE:-default}-whitelist.ipwhitelist.sourcerange=${WHOAMI_IP_SOURCERANGE}"
+      #- "traefik.http.routers.whoami-${WHOAMI_INSTANCE:-default}.middlewares=whoami-whitelist,geoip@file"
+      - "traefik.http.routers.whoami-${WHOAMI_INSTANCE:-default}.middlewares=whoami-${WHOAMI_INSTANCE:-default}-whitelist"
 
       ## Lots of various rules for demo/documentation purposes..
 
       # Block /forbidden (403 Forbidden; Using blockpath plugin middleware with catch all regex):
-      - "traefik.http.routers.whoami-forbidden.rule=Host(`${WHOAMI_TRAEFIK_HOST}`) && PathPrefix(`/forbidden`)"
-      - "traefik.http.routers.whoami-forbidden.entrypoints=websecure"
-      - "traefik.http.middlewares.whoami-forbidden.plugin.blockpath.regex=.*"
-      - "traefik.http.routers.whoami-forbidden.middlewares=whoami-forbidden"
+      - "traefik.http.routers.whoami-${WHOAMI_INSTANCE:-default}-forbidden.rule=Host(`${WHOAMI_TRAEFIK_HOST}`) && PathPrefix(`/forbidden`)"
+      - "traefik.http.routers.whoami-${WHOAMI_INSTANCE:-default}-forbidden.entrypoints=websecure"
+      - "traefik.http.middlewares.whoami-${WHOAMI_INSTANCE:-default}-forbidden.plugin.blockpath.regex=.*"
+      - "traefik.http.routers.whoami-${WHOAMI_INSTANCE:-default}-forbidden.middlewares=whoami-${WHOAMI_INSTANCE:-default}-forbidden"
 
       # Allow /just-get (but only to GET requests):
-      - "traefik.http.routers.whoami-just-get.rule=Host(`${WHOAMI_TRAEFIK_HOST}`) && Path(`/just-get`) && Method(`GET`)"
-      - "traefik.http.routers.whoami-just-get.entrypoints=websecure"
-      - "traefik.http.routers.whoami-just-get.middlewares=whoami-whitelist,geoip@file"
+      - "traefik.http.routers.whoami-${WHOAMI_INSTANCE:-default}-just-get.rule=Host(`${WHOAMI_TRAEFIK_HOST}`) && Path(`/just-get`) && Method(`GET`)"
+      - "traefik.http.routers.whoami-${WHOAMI_INSTANCE:-default}-just-get.entrypoints=websecure"
+      - "traefik.http.routers.whoami-${WHOAMI_INSTANCE:-default}-just-get.middlewares=whoami-${WHOAMI_INSTANCE:-default}-whitelist"
 
       # Allow /test/ and add custom request and response headers:
-      - "traefik.http.routers.whoami-test.rule=Host(`${WHOAMI_TRAEFIK_HOST}`) && PathPrefix(`/test/`)"
-      - "traefik.http.routers.whoami-test.entrypoints=websecure"
+      - "traefik.http.routers.whoami-${WHOAMI_INSTANCE:-default}-test.rule=Host(`${WHOAMI_TRAEFIK_HOST}`) && PathPrefix(`/test/`)"
+      - "traefik.http.routers.whoami-${WHOAMI_INSTANCE:-default}-test.entrypoints=websecure"
       - "traefik.http.middlewares.testHeader.headers.customrequestheaders.X-Script-Name=testing-123"
       - "traefik.http.middlewares.testHeader.headers.customresponseheaders.X-Custom-Response-Header=yeppp"
-      - "traefik.http.routers.whoami-test.middlewares=testHeader,whoami-whitelist,geoip@file"
+      - "traefik.http.routers.whoami-${WHOAMI_INSTANCE:-default}-test.middlewares=testHeader,whoami-${WHOAMI_INSTANCE:-default}-whitelist"
 
       # Test forward authentication on secondary domain: auth.whoami.example.com
-      # - "traefik.http.routers.whoami-auth.rule=Host(`auth.${WHOAMI_TRAEFIK_HOST}`)"
-      # - "traefik.http.routers.whoami-auth.entrypoints=websecure"
-      # - "traefik.http.routers.whoami-auth.middlewares=traefik-forward-auth"
+      # - "traefik.http.routers.whoami-${WHOAMI_INSTANCE:-default}-auth.rule=Host(`auth.${WHOAMI_TRAEFIK_HOST}`)"
+      # - "traefik.http.routers.whoami-${WHOAMI_INSTANCE:-default}-auth.entrypoints=websecure"
+      # - "traefik.http.routers.whoami-${WHOAMI_INSTANCE:-default}-auth.middlewares=traefik-forward-auth"
 

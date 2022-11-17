@@ -26,7 +26,6 @@ services:
       context: ${MAUBOT_GIT_REPO}
     security_opt:
       - no-new-privileges:true
-    container_name: maubot
     restart: unless-stopped
     volumes:
       - data:/data

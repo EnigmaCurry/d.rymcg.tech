@@ -23,6 +23,7 @@ derived from the `.env` file.
 - [Main configuration](#main-configuration)
 - [Install applications](#install-applications)
 - [Command line interaction](#command-line-interaction)
+- [Creating multiple instances of a service](#creating-multiple-instances-of-a-service)
 - [Backup .env files](#backup-env-files-optional)
 
 ## All configuration comes from the environment
@@ -115,7 +116,7 @@ expected to provide this in your host networking environment. (Note:
 firewall that is directly located on the same host machine as Docker.
 You should prefer an external dedicated network firewall [ie. your
 cloud provider, or VM host]. If you have no other option but to run
-the firewall on the same host, check out
+the firewall on the same machine, check out
 [chaifeng/ufw-docker](https://github.com/chaifeng/ufw-docker#solving-ufw-and-docker-issues)
 for a partial fix.)
 
@@ -157,6 +158,8 @@ published ports: from the root project directory, run `make
 show-ports` to list all of the services with open ports (or those that
 run in the host network and are therefore completely open. You will
 find traefik and the wireguard server/client in this latter category).
+Each sub-project directory also has a `make status` with useful
+per-project information.
 
 ## Setup
 
@@ -397,11 +400,15 @@ You can change this behaviour by specifying the `--env-file` argument.
 
 Alternatively, each project has a Makefile that helps to simplify configuration
 and startup. You can use the Makefiles to automatically edit the `.env` files
-and to start the service for you:
+and to start the service for you.
 
- * `cd` into the sub-project directory.
+The most important thing to know is that `make` looks for a `Makefile`
+in your current working directory. `make` is contextual to the
+directory you are in.
+
+ * `cd` into the sub-project directory of an app you want to install.
  * Read the README.md file.
- * Run `make config` 
+ * Run `make config`
  * Answer the interactive questions, and the `.env_${DOCKER_CONTEXT}` file will
    be created/updated for you. Examples are pre-filled with default values (and
    based upon your `ROOT_DOMAIN` specified earlier). You can accept the
@@ -439,6 +446,119 @@ thus logging you into the admin account automatically. To delete all
 of the passwords.json files, you can run `make delete-passwords` in
 the root directory of this project (or `make clean` which will delete
 the `.env` files too).
+
+For a more in depth guide on using the Makefiles, see
+[MAKEFILE_OPS.md](MAKEFILE_OPS.md)
+
+## Creating multiple instances of a service
+
+By default, each project supports deploying a single instance per
+Docker context. The singleton instance environment file is named
+`.env_${DOCKER_CONTEXT}`, contained in each project subdirectory.
+
+If you want to deploy more than one instance of a given project (to
+the same docker context and from the same source directory), you need
+to create separate environment files for each one. The convention that
+the Makefile expects is to name your several environment files like
+this: `.env_${DOCKER_CONTEXT}_${INSTANCE_NAME}`.
+
+To do this automatically, use the Makefile target:
+
+```
+make instance
+```
+
+This will prompt you to enter a new instance name and create the
+configuration from the `.env-dist` template. `make instance` will then
+automatically call `make config` on the new instance environment. For
+example, to create two separate instances of the `whoami` service, you
+might use the Makefile like this:
+
+```
+## Example terminal session:
+$ cd whoami
+$ make instance
+Enter an instance name to create/edit: foo
+Configuring environment file: .env_docker-vm_foo
+...
+$ make instance
+Enter an instance name to create/edit: bar
+Configuring environment file: .env_docker-vm_bar
+...
+```
+
+Because my current docker context is named `docker-vm`, this creates
+and configures the following env files:
+
+```
+.env_docker-vm_foo
+.env_docker-vm_bar
+```
+
+Most of the other Makefile targets will now accept an optional named
+argument `instance=${INSTANCE}` that will limit the commands effect to
+a single instance. For example:
+
+```
+make instance=foo config     # This is equivalent to `make instance` and typing foo
+make instance=bar config     # (Re)configures bar instance
+make instance=foo install    # This (re)installs only the foo instance
+make instance=bar install    # (Re)installs only bar instance
+make instance=foo ps         # This shows the containers status of the foo instance
+make instance=foo stop       # This stops the foo instance
+make instance=bar destroy    # This destroys only the bar instance
+
+# Show the status of all instances of the current project subdirectory:
+make status
+
+# Temporarily change the default instance and start a new subshell:
+# (This sets the $PS1 prompt in the subshell, indicating the current instance)
+make switch
+
+# You can also just set INSTANCE=bar, but don't forget to unset it later!
+export INSTANCE=bar
+
+# In the subshell, or with INSTANCE=bar exported, operate on instance `bar` exclusively:
+make config                  # (Re)configures bar instance
+make install                 # (Re)installs bar instance
+make destroy                 # Destroys bar instance
+make destroy instance=foo    # Can still on operate on foo, if explicit
+unset INSTANCE               # resets default instance
+```
+
+### Overriding docker-compose.yaml per-instance
+
+Most of the time, when you create multiple instances, the only thing
+that needs to change is the environment file
+(`.env_${DOCKER_CONTEXT}_${INSTANCE}`). Normally the
+`docker-compose.yaml` is static and stays the same between several
+instances.
+
+However, sometimes you need to configure two instances a little bit
+differently from each other. You may also wish to modify the
+configuration without wanting to commit those changes back to the base
+template in the git repository.
+
+You can override each project's `docker-compose.yaml` with a
+per-docker-context `docker-compose.override_${DOCKER_CONTEXT}.yaml`
+(default instance) or a per-instance
+`docker-compose.override_${DOCKER_CONTEXT}_${INSTANCE}.yaml` file.
+
+You can find an example of this in the [sftp](sftp) project. Each
+instance of sftp will need a custom set of volumes, and since this is
+normally a static list in `docker-compose.yaml`, you need a way of
+dynamically generating it. There is a template
+[docker-compose.instance.yaml](sftp/docker-compose.instance.yaml) that
+when you run `make config` it will render the template to the file
+`docker-compose.override_${DOCKER_CONTEXT}.yaml` containing the custom
+mountpoints (this file is ignored by git.) The override file is merged
+with the base `docker-compose.yaml` whenever you run `make install`,
+thus each instance receives its own list of volumes to mount.
+
+Reference the Docker Compose documentation for [Adding and overriding
+configuration](https://docs.docker.com/compose/extends/#adding-and-overriding-configuration)
+regarding the rules for how the merging of configuration files takes
+place.
 
 ## Backup .env files (optional)
 
