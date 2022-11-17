@@ -34,8 +34,6 @@ services:
         CRYPTPAD_VERSION: ${CRYPTPAD_VERSION}
     restart: unless-stopped
     command: ['start_cryptpad.sh']
-    security_opt:
-      - no-new-privileges:true
     environment:
       - CPAD_MAIN_DOMAIN=${CRYPTPAD_TRAEFIK_HOST}
       - CPAD_SANDBOX_DOMAIN=${CRYPTPAD_SANDBOX_DOMAIN}
@@ -56,7 +54,7 @@ services:
       - /etc/localtime:/etc/localtime:ro
     labels:
       ## Enable traefik
-      - "traefik.enable=true"
+      - traefik.enable=true
       ## Declare service
       ## Change the port if you enabled TLS
       - traefik.http.services.cryptpad-${THTTPD_INSTANCE:-default}.loadbalancer.server.port=80
@@ -73,3 +71,49 @@ services:
       nofile:
         soft: 1000000
         hard: 1000000
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    cap_add:
+      - SETGID
+      - SETUID
+      - CHOWN
+      ### DAC_OVERRIDE needed to open /var/log/nginx/error.log
+      ### However, nginx is set to log errors to stderr, so this is not needed?
+      # - DAC_OVERRIDE
+      ### Unused capabilities:
+      # - SYS_CHROOT
+      # - AUDIT_WRITE
+      # - FOWNER
+      # - AUDIT_CONTROL
+      # - AUDIT_READ
+      # - BLOCK_SUSPEND
+      # - DAC_READ_SEARCH
+      # - FSETID
+      # - IPC_LOCK
+      # - IPC_OWNER
+      # - KILL
+      # - LEASE
+      # - LINUX_IMMUTABLE
+      # - MAC_ADMIN
+      # - MAC_OVERRIDE
+      # - MKNOD
+      # - NET_ADMIN
+      # - NET_BIND_SERVICE
+      # - NET_BROADCAST
+      # - NET_RAW
+      # - SETFCAP
+      # - SETPCAP
+      # - SYS_ADMIN
+      # - SYS_BOOT
+      # - SYSLOG
+      # - SYS_MODULE
+      # - SYS_NICE
+      # - SYS_PACCT
+      # - SYS_PTRACE
+      # - SYS_RAWIO
+      # - SYS_RESOURCE
+      # - SYS_TIME
+      # - SYS_TTY_CONFIG
+      # - WAKE_ALARM
