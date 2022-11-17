@@ -383,7 +383,7 @@ with your offsite GNU Privacy Guard (GPG) public key.
 ### make restore-env
 
 `make restore-env` will restore environment files and passwords.json
-files from an ecrypted backup file.
+files from an encrypted backup file.
 
 ### make clean
 
@@ -438,9 +438,18 @@ privileges each service has, containing the following information:
 
 ```
 $ make audit
-CONTAINER            USER         CAP_ADD               CAP_DROP                    SEC_OPT                                           BIND_MOUNTS  PORTS
-traefik-traefik-1    traefik      ["NET_BIND_SERVICE"]  ["ALL"]                     ["/var/run/docker.sock:/var/run/docker.sock:ro"]  {}
-whoami_foo-whoami-1  54321:54321  ["ALL"]               ["no-new-privileges:true"]  []                                                {}
+CONTAINER                        USER         CAP_ADD                                                                         CAP_DROP  SEC_OPT                     BIND_MOUNTS                                                            PORTS
+bitwarden                        root          __                                                                              __       ["no-new-privileges:true"]  []                                                                     {"80/tcp":[{"HostIp":"127.0.0.1","HostPort":"8888"}]}
+cryptpad                         root          __                                                                              __       ["no-new-privileges:true"]  ["/etc/localtime:/etc/localtime:ro","/etc/timezone:/etc/timezone:ro"]  {}
+debian                           root          __                                                                              __        __                         ["shell-shared:/shared"]                                               {}
+drawio-drawio-1                  root          __                                                                              __       ["no-new-privileges:true"]  []                                                                     {}
+sftp-sftp-1                      root         ["CHOWN","DAC_OVERRIDE","SYS_CHROOT","AUDIT_WRITE","SETGID","SETUID","FOWNER"]  ["ALL"]   ["no-new-privileges:true"]  []                                                                     {"2000/tcp":[{"HostIp":"","HostPort":"2223"}]}
+syncthing                        root          __                                                                              __       ["no-new-privileges:true"]  []                                                                     {"21027/udp":[{"HostIp":"","HostPort":"21027"}],"22000/tcp":[{"HostIp":"","HostPort":"22000"}],"8384/tcp":[{"HostIp":"127.0.0.1","HostPort":"8384"}]}
+thttpd-thttpd-1                  54321:54321   __                                                                              __       ["no-new-privileges:true"]  []                                                                     {}
+traefik-traefik-1                traefik      ["NET_BIND_SERVICE"]                                                            ["ALL"]    __                         ["/var/run/docker.sock:/var/run/docker.sock:ro"]                       {}
+websocketd-app-1                 root          __                                                                              __       ["no-new-privileges:true"]  []                                                                     {}
+whoami_foo-whoami-1              54321:54321   __                                                                             ["ALL"]   ["no-new-privileges:true"]  []                                                                     {}
+whoami-whoami-1                  54321:54321   __                                                                             ["ALL"]   ["no-new-privileges:true"]  []                                                                     {}
 ```
 
 All well behaved process should:
