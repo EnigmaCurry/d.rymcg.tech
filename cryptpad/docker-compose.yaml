@@ -17,12 +17,12 @@ services:
     environment:
       - CPAD_MAIN_DOMAIN=${CRYPTPAD_TRAEFIK_HOST}
       - CPAD_SANDBOX_DOMAIN=${CRYPTPAD_SANDBOX_DOMAIN}
-      - ADMIN_KEY
-      - ADMIN_EMAIL
+      - ADMIN_KEY=${CRYPTPAD_ADMIN_KEY}
+      - ADMIN_EMAIL=${CRYPTPAD_ADMIN_EMAIL}
       - PRINT_CONFIG
-      - DEFAULT_STORAGE_LIMIT=${DEFAULT_STORAGE_LIMIT}
-      - MAX_UPLOAD_SIZE=${MAX_UPLOAD_SIZE}
-      - BLOCK_DAILY_CHECK=${BLOCK_DAILY_CHECK}
+      - DEFAULT_STORAGE_LIMIT=${CRYPTPAD_DEFAULT_STORAGE_LIMIT}
+      - MAX_UPLOAD_SIZE=${CRYPTPAD_MAX_UPLOAD_SIZE}
+      - BLOCK_DAILY_CHECK=${CRYPTPAD_BLOCK_DAILY_CHECK}
     volumes:
       - config:/cryptpad/config
 
@@ -30,6 +30,8 @@ services:
     depends_on: ['config']
     build:
       context: cryptpad
+      args:
+        CRYPTPAD_VERSION: ${CRYPTPAD_VERSION}
     restart: unless-stopped
     command: ['start_cryptpad.sh']
     security_opt:
@@ -57,16 +59,16 @@ services:
       - "traefik.enable=true"
       ## Declare service
       ## Change the port if you enabled TLS
-      - traefik.http.services.cpad.loadbalancer.server.port=80
+      - traefik.http.services.cryptpad-${THTTPD_INSTANCE:-default}.loadbalancer.server.port=80
       # HTTPS router rules
-      - traefik.http.routers.cpad-https.entrypoints=websecure
-      - traefik.http.routers.cpad-https.rule=Host(`${CRYPTPAD_TRAEFIK_HOST}`, `${CRYPTPAD_SANDBOX_DOMAIN}`)
-      - traefik.http.routers.cpad-https.service=cpad
+      - traefik.http.routers.cryptpad-${THTTPD_INSTANCE:-default}-https.entrypoints=websecure
+      - traefik.http.routers.cryptpad-${THTTPD_INSTANCE:-default}-https.rule=Host(`${CRYPTPAD_TRAEFIK_HOST}`, `${CRYPTPAD_SANDBOX_DOMAIN}`)
+      - traefik.http.routers.cryptpad-${THTTPD_INSTANCE:-default}-https.service=cryptpad-${THTTPD_INSTANCE:-default}
       # Rewrite CORS headers - For some reason cryptpad is duplicating the CORS headers
       # This makes chromium browsers not load, so this rewrite rule de-duplicates the headers
       # (actually the value was cross-origin, which seems wrong to me, same-site seems safer)
-      - traefik.http.middlewares.cpad-headers.headers.customresponseheaders.Cross-Origin-Resource-Policy=same-site
-      - traefik.http.routers.cpad-https.middlewares=cpad-headers@docker
+      - traefik.http.middlewares.cryptpad-${THTTPD_INSTANCE:-default}-headers.headers.customresponseheaders.Cross-Origin-Resource-Policy=same-site
+      - traefik.http.routers.cryptpad-${THTTPD_INSTANCE:-default}-https.middlewares=cryptpad-${THTTPD_INSTANCE:-default}-headers@docker
     ulimits:
       nofile:
         soft: 1000000
