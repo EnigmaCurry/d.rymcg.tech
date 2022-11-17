@@ -1,7 +1,7 @@
 ROOT_DIR = ..
 include ../_scripts/Makefile.projects
 
-.PHONY: config-hook # Configure .env file
+.PHONY: config-hook
 config-hook:
 	@${BIN}/reconfigure_ask ${ENV_FILE} JITSIMEET_TRAEFIK_HOST "Enter the Jitsi Meet domain" meet.${ROOT_DOMAIN}
 	@${BIN}/confirm yes "Would you like to require authentication to become a meeting host" "?" && ${BIN}/reconfigure ${ENV_FILE} ENABLE_AUTH=1 AUTH_TYPE=internal && ${BIN}/confirm yes "Would you like to allow guests" "?" && ${BIN}/reconfigure ${ENV_FILE} ENABLE_GUESTS=1 || true

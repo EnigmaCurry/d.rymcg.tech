@@ -1,7 +1,7 @@
 ROOT_DIR = ..
 include ../_scripts/Makefile.projects-custom-install
 
-.PHONY: config-hook # Configure .env file
+.PHONY: config-hook
 config-hook:
 	@test -f ${ENV_FILE} || (cp .env-dist ${ENV_FILE} && echo "Created ${ENV_FILE}")
 	@${BIN}/reconfigure_ask ${ENV_FILE} SFTP_PORT "Enter the public SSH port"

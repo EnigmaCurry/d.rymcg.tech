@@ -1,7 +1,7 @@
 ROOT_DIR = ..
 include ../_scripts/Makefile.projects
 
-.PHONY: config-hook # Configure .env file
+.PHONY: config-hook
 config-hook:
 	@${BIN}/reconfigure_ask ${ENV_FILE} S3PROXY_TRAEFIK_HOST "Enter the s3-proxy domain name" s3-proxy.${ROOT_DOMAIN}
 	@${BIN}/reconfigure_ask ${ENV_FILE} S3_ENDPOINT "Enter the s3 endpoint hostname" s3.${ROOT_DOMAIN}

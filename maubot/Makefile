@@ -1,7 +1,7 @@
 ROOT_DIR = ..
 include ../_scripts/Makefile.projects-no-open
 
-.PHONY: config-hook # Configure .env file
+.PHONY: config-hook
 config-hook:
 	@${BIN}/reconfigure_ask ${ENV_FILE} MAUBOT_TRAEFIK_HOST "Enter the maubot domain name" maubot.${ROOT_DOMAIN}
 	@${BIN}/reconfigure_ask ${ENV_FILE} MATRIX_HOMESERVER "Enter the matrix homeserver"

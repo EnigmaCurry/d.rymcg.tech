@@ -25,7 +25,7 @@ config-ask:
 	@${BIN}/reconfigure_ask ${ENV_FILE} RELAYPASSWORD "Enter the upstream SMTP password"
 	@${BIN}/reconfigure_ask ${ENV_FILE} POSTMASTER "Enter the admin account name" admin
 
-.PHONY: config-hook # Configure .env file
+.PHONY: config-hook
 config-hook: config-ask cert fingerprint
 
 .PHONY: cert # Create self-signed TLS certificate
