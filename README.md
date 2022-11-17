@@ -69,6 +69,9 @@ public internet server or cloud host.
 See [DIGITALOCEAN.md](DIGITALOCEAN.md) for instructions on creating a
 Docker host on DigitalOcean.
 
+See [SECURITY.md](SECURITY.md) for a list of security concerns when
+choosing a hosting provider.
+
 For development purposes, you should install Docker in a virtual
 machine (and remotely control it from your local workstation). See
 [_docker_vm](_docker_vm#readme) for details on how and why to install
