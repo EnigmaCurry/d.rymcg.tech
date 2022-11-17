@@ -1,7 +1,7 @@
 ROOT_DIR = ..
 include ../_scripts/Makefile.projects-no-open
 
-.PHONY: config-hook # Configure .env file
+.PHONY: config-hook
 config-hook:
 	@${BIN}/reconfigure_ask ${ENV_FILE} WEBSOCKETD_TRAEFIK_HOST "Enter the websocketd domain name" socket.${ROOT_DOMAIN}
 	@${BIN}/reconfigure_ask ${ENV_FILE} WEBSOCKETD_APP_PATH "Enter the websocketd application path" /app

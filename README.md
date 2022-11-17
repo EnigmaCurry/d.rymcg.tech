@@ -400,11 +400,15 @@ You can change this behaviour by specifying the `--env-file` argument.
 
 Alternatively, each project has a Makefile that helps to simplify configuration
 and startup. You can use the Makefiles to automatically edit the `.env` files
-and to start the service for you:
+and to start the service for you.
 
- * `cd` into the sub-project directory.
+The most important thing to know is that `make` looks for a `Makefile`
+in your current working directory. `make` is contextual to the
+directory you are in.
+
+ * `cd` into the sub-project directory of an app you want to install.
  * Read the README.md file.
- * Run `make config` 
+ * Run `make config`
  * Answer the interactive questions, and the `.env_${DOCKER_CONTEXT}` file will
    be created/updated for you. Examples are pre-filled with default values (and
    based upon your `ROOT_DOMAIN` specified earlier). You can accept the
@@ -442,6 +446,9 @@ thus logging you into the admin account automatically. To delete all
 of the passwords.json files, you can run `make delete-passwords` in
 the root directory of this project (or `make clean` which will delete
 the `.env` files too).
+
+For a more in depth guide on using the Makefiles, see
+[MAKEFILE_OPS.md](MAKEFILE_OPS.md)
 
 ## Creating multiple instances of a service
 

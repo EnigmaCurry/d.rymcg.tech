@@ -1,7 +1,7 @@
 ROOT_DIR = ..
 include ../_scripts/Makefile.projects-no-open
 
-.PHONY: config-hook # Configure .env file
+.PHONY: config-hook
 config-hook:
 	@${BIN}/reconfigure ${ENV_FILE} SYNCTHING_WEB_PORT=8384 SYNCTHING_LISTEN_PORT=22000 SYNCTHING_DISCOVERY_PORT=21027
 

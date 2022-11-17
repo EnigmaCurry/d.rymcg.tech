@@ -11,7 +11,8 @@ DOCKER_CONTEXT = $(shell ${BIN}/docker_context)
 ## Root environment file (contains ROOT_DOMAIN)
 ROOT_ENV = .env_${DOCKER_CONTEXT}
 ## Per-project environment file name is keyed to the current docker context and the optional INSTANCE name:
-instance ?= ${INSTANCE}
+instance ?= "$${INSTANCE}"
+INSTANCE ?= ${instance}
 CONTEXT_INSTANCE ?= $$( (set +x; [[ -n "${instance}" ]] && echo "${DOCKER_CONTEXT}_${instance}" || echo "${DOCKER_CONTEXT}") )
 ENV_FILE ?= ".env_${CONTEXT_INSTANCE}"
 PROJECT_NAME ?= $$( (set +x; [[ -n "${instance}" ]] && echo "$$(basename $${PWD})_${instance}" || echo "$$(basename $${PWD})") )
