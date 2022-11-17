@@ -296,6 +296,28 @@ automatically run because its the first target listed in the
 and hit the TAB key, your shell should output completion suggestions
 (assuming `bash-completion` or similar is installed).
 
+### Dependencies
+
+You can create targets that depend on other targets being run first.
+For example, add this to your existing Makefile:
+
+```
+all: task task2 time
+	@echo All done, phew!
+```
+
+Run `make all`, and it will run all three tasks in series: task,
+task2, and time, and finally perform its own task:
+
+```
+$ make all
+hi this is the task.
+hello ryan this is another task.
+I can have multiple lines
+The current time is Wed Nov 16 07:12:36 PM PST 2022
+All done, phew!
+```
+
 ## Main d.rymcg.tech Makefile
 
 There is a [Makefile](Makefile) in the root directory of d.rymcg.tech.
