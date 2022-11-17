@@ -68,3 +68,8 @@ show-ports:
 .PHONY: audit # Audit container permissions and capabilities
 audit:
 	@(echo -e "CONTAINER\tUSER\tCAP_ADD\tCAP_DROP\tSEC_OPT\tBIND_MOUNTS\tPORTS" && docker ps --format "{{ .ID }}" | xargs -iXX sh -c "docker inspect XX | jq -r '.[0] | \"\(.Name)\t\(.Config.User | @sh)\t\(.HostConfig.CapAdd)\t\(.HostConfig.CapDrop)\t\(.HostConfig.SecurityOpt)\t\(.HostConfig.Binds)\t\(.HostConfig.PortBindings)\"'" | sed -e 's/^\///g' -e "s/''/root/g" -e "s/'//g" | sort) | column -t | sed -e 's/null/ __ /g' -e 's/^ *//' -e 's/ *$$//'
+
+.PHONY: netstat # Show Host netstat report
+netstat:
+	ssh $$(docker context inspect $$(${BIN}/docker_context) --format "{{ .Endpoints.docker.Host }}") netstat -plunt
+
