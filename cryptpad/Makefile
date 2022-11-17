@@ -10,3 +10,6 @@ config-hook:
 	@${BIN}/reconfigure_ask ${ENV_FILE} CRYPTPAD_ADMIN_KEY "Enter your admin account public signing key"
 	@${BIN}/reconfigure_ask ${ENV_FILE} CRYPTPAD_ADMIN_EMAIL "If you want to offer your support to your users, enter an email address:"
 
+.PHONY: shell
+shell:
+	make --no-print-directory docker-compose-lifecycle-cmd EXTRA_ARGS="exec -it cryptpad sh"
