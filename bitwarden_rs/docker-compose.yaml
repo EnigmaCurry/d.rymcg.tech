@@ -5,7 +5,6 @@ version: "3.9"
 services:
   bitwarden:
     image: bitwardenrs/server:latest
-    container_name: "bitwarden"
     security_opt:
     - no-new-privileges:true
     restart: always

@@ -1,9 +1,11 @@
-DOCKER_BUILDKIT ?= 1
+include ../_scripts/Makefile.docker-compose
 
 .PHONY: build # Build container images
 build:
-	@export COMPOSE_PROFILES=$$(${BIN}/dotenv -f ${ENV_FILE} get DOCKER_COMPOSE_PROFILES) ; set -x; echo COMPOSE_PROFILES=$${COMPOSE_PROFILES}; docker compose --env-file=${ENV_FILE} build
+	@make --no-print-directory build-hook-pre-rule-exists 2>/dev/null && make --no-print-directory build-hook-pre || true
+	@make --no-print-directory docker-compose-build EXTRA_ARGS="${EXTRA_ARGS}"
+	@make --no-print-directory build-hook-post-rule-exists 2>/dev/null && make --no-print-directory build-hook-post || true
 
 .PHONY: build-force # Build container images without cache
 build-force:
-	@export COMPOSE_PROFILES=$$(${BIN}/dotenv -f ${ENV_FILE} get DOCKER_COMPOSE_PROFILES) ; set -x; docker compose --env-file=${ENV_FILE} build --no-cache
+	@make --no-print-directory build EXTRA_ARGS="--no-cache"

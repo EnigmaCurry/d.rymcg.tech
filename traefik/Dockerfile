@@ -14,7 +14,18 @@ RUN apk add --update git && \
       --depth 1 --single-branch --branch ${MAXMIND_GIT_BRANCH}
 
 FROM ${TRAEFIK_IMAGE}
+ARG TRAEFIK_UID TRAEFIK_GID TRAEFIK_DOCKER_GID
 COPY --from=plugins /plugins-local /plugins-local
 COPY entrypoint.sh  /entrypoint_ensure_config.sh
-RUN apk --no-cache add curl jq && chmod a+x /entrypoint_ensure_config.sh
+RUN apk --no-cache add curl jq libcap && \
+    chmod a+x /entrypoint_ensure_config.sh && \
+    addgroup -g ${TRAEFIK_GID} traefik && \
+    getent group ${TRAEFIK_DOCKER_GID} || addgroup -g ${TRAEFIK_DOCKER_GID} docker && \
+    adduser traefik -D -u ${TRAEFIK_UID} -G traefik && \
+    addgroup traefik $(getent group ${TRAEFIK_DOCKER_GID} | cut -d: -f1) && \
+    mkdir /data && \
+    chown traefik:traefik /data && \
+    setcap cap_net_bind_service=+ep /usr/local/bin/traefik
+USER traefik
 ENTRYPOINT ["/entrypoint_ensure_config.sh"]
+VOLUME /data

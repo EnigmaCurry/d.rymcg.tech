@@ -3,8 +3,8 @@ GRANT_MODE ?= ro
 
 include ../_scripts/Makefile.projects
 
-.PHONY: config # Configure .env file
-config:
+.PHONY: config-hook
+config-hook:
 	@${BIN}/reconfigure_ask ${ENV_FILE} NTFY_TRAEFIK_HOST "Enter the ntfy domain name" ntfy.${ROOT_DOMAIN}
 	@echo ""
 	@${BIN}/reconfigure_ask ${ENV_FILE} NTFY_IP_SOURCERANGE "Enter the nework subnet filter (eg. 0.0.0.0/0 to allow all; 192.168.1.1/32 to deny all but one address)" 0.0.0.0/0

@@ -40,12 +40,10 @@ services:
     restart: unless-stopped
     security_opt:
       - no-new-privileges:true
-    container_name: "nextcloud_redis"
     restart: always
 
   app:
     image: nextcloud:apache
-    container_name: "nextcloud_app"
     restart: always
     security_opt:
       - no-new-privileges:true
@@ -97,7 +95,6 @@ services:
     image: nextcloud:apache
     security_opt:
       - no-new-privileges:true
-    container_name: "nextcloud_cron"
     restart: always
     volumes:
       - data:/var/www/html

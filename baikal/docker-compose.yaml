@@ -7,7 +7,6 @@ volumes:
 services:
   baikal:
     image: "ckulka/baikal:nginx"
-    container_name: "baikal"
     security_opt:
       - no-new-privileges:true
     restart: unless-stopped

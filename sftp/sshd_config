@@ -1,11 +1,13 @@
-# Secure defaults
-# See: https://stribika.github.io/2015/01/04/secure-secure-shell.html
+Port 2000
+
 Protocol 2
 HostKey /etc/ssh/keys/ssh_host_ed25519_key
 HostKey /etc/ssh/keys/ssh_host_rsa_key
 
+UsePam yes
+PrintMotd no
+
 # Faster connection
-# See: https://github.com/atmoz/sftp/issues/11
 UseDNS no
 
 # Limited access
@@ -14,12 +16,14 @@ X11Forwarding no
 AllowTcpForwarding no
 PubkeyAuthentication yes
 PasswordAuthentication no
+KbdInteractiveAuthentication no
+ChallengeResponseAuthentication no
 
 # Force sftp and chroot jail
 AuthorizedKeysFile /etc/ssh/keys/%u_authorized_keys
 Subsystem sftp internal-sftp
 ForceCommand internal-sftp
-ChrootDirectory %h
+ChrootDirectory /data/%u-chroot
 
 # Enable this for more logs
 LogLevel VERBOSE

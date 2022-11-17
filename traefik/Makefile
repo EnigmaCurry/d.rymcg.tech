@@ -6,17 +6,20 @@ include ../_scripts/Makefile.projects-no-open
 # network:
 # 	@[[ $$(${BIN}/dotenv -f ${ENV_FILE} get TRAEFIK_VPN_ENTRYPOINT_ENABLED) == "true" ]] && (docker network inspect traefik-vpn >/dev/null 2>&1 || (echo "" && echo "Creating traefik-vpn network ..." && docker network create traefik-vpn --subnet "$$(${BIN}/dotenv -f ${ENV_FILE} get TRAEFIK_VPN_SUBNET)" || true)) && echo "" && echo "Traefik VPN network:" && docker network ls | grep traefik-vpn && docker network inspect traefik-vpn | grep Subnet && echo "Traefik VPN entrypoint: $$(${BIN}/dotenv -f ${ENV_FILE} get TRAEFIK_VPN_ENTRYPOINT_HOST):$$(${BIN}/dotenv -f ${ENV_FILE} get TRAEFIK_VPN_ENTRYPOINT_PORT)" || true
 
-.PHONY: config # Configure Traefik .env file
-config: config-ask compose-profiles
+.PHONY: config-hook
+config-hook: traefik-user config-ask compose-profiles 
 	@echo ""
 	@echo 'Base configuration complete.'
 	@echo 'Run `make certs` to configure certificate domains.'
-	@echo 'Examine the environment file: ${ENV_FILE}'
+	@echo "Examine the environment file: ${ENV_FILE}"
 	@echo 'Then run `make install` to (re)install.'
+
+.PHONY: traefik-user
+traefik-user:
+	@(ssh $$(docker context inspect | jq -r ".[0].Endpoints.docker.Host") id traefik && echo "Traefik user exists.") || (ssh $$(docker context inspect | jq -r ".[0].Endpoints.docker.Host") adduser --disabled-login --disabled-password --gecos GECOS traefik && ssh $$(docker context inspect | jq -r ".[0].Endpoints.docker.Host") gpasswd -a traefik docker)
 
 .PHONY: config-ask
 config-ask:
-	@echo "Configuring environment file: ${ENV_FILE}"
 	@${BIN}/reconfigure ${ENV_FILE} TRAEFIK_ROOT_DOMAIN=${ROOT_DOMAIN}
 	@${BIN}/reconfigure_acme ${ENV_FILE}
 	@${BIN}/reconfigure_dashboard ${ENV_FILE}
@@ -28,6 +31,9 @@ config-ask:
 	@echo ""
 	@[[ $$(${BIN}/dotenv -f ${ENV_FILE} get TRAEFIK_VPN_ENABLED) != "true" ]] && ${BIN}/confirm $$([[ $$(${BIN}/dotenv -f ${ENV_FILE} get TRAEFIK_VPN_CLIENT_ENABLED) == "true" ]] && echo "yes" || echo "no") "Do you want to run Traefik as a reverse proxy for an external VPN (wireguard client mode)" "?" && make --no-print-directory config-wireguard-client || ${BIN}/reconfigure ${ENV_FILE} TRAEFIK_VPN_CLIENT_ENABLED=false || true
 	@[[ $$(${BIN}/dotenv -f ${ENV_FILE} get TRAEFIK_VPN_ENABLED) != "true" ]] && [[ $$(${BIN}/dotenv -f ${ENV_FILE} get TRAEFIK_VPN_CLIENT_ENABLED) != "true" ]] && ${BIN}/reconfigure ${ENV_FILE} TRAEFIK_NETWORK_MODE=host TRAEFIK_DASHBOARD_ENTRYPOINT_HOST=127.0.0.1 || true
+	@TRAEFIK_UID=$$(ssh $$(docker context inspect | jq -r ".[0].Endpoints.docker.Host") id -u traefik) && ${BIN}/dotenv -f ${ENV_FILE} set TRAEFIK_UID=$${TRAEFIK_UID} && echo "Set TRAEFIK_UID=$${TRAEFIK_UID}"
+	@TRAEFIK_GID=$$(ssh $$(docker context inspect | jq -r ".[0].Endpoints.docker.Host") id -g traefik) && ${BIN}/dotenv -f ${ENV_FILE} set TRAEFIK_GID=$${TRAEFIK_GID} && echo "Set TRAEFIK_GID=$${TRAEFIK_GID}"
+	@TRAEFIK_DOCKER_GID=$$(ssh $$(docker context inspect | jq -r ".[0].Endpoints.docker.Host") getent group docker | cut -d: -f3) && ${BIN}/dotenv -f ${ENV_FILE} set TRAEFIK_DOCKER_GID=$${TRAEFIK_DOCKER_GID} && echo "Set TRAEFIK_DOCKER_GID=$${TRAEFIK_DOCKER_GID}"
 
 .PHONY: config-wireguard
 config-wireguard:
@@ -81,6 +87,11 @@ config-inspect:
 .PHONY: shell
 shell:
 	docker compose --env-file=${ENV_FILE} exec -it traefik /bin/sh
+
+.PHONY: shell-root
+shell-root:
+	docker compose --env-file=${ENV_FILE} exec --user root -it traefik /bin/sh
+
 
 .PHONY: shell-wireguard
 shell-wireguard:

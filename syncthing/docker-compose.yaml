@@ -6,7 +6,6 @@ volumes:
 services:
   syncthing:
     image: syncthing/syncthing
-    container_name: syncthing
     restart: unless-stopped
     security_opt:
       - no-new-privileges:true

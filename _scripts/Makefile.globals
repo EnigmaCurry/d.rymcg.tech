@@ -10,11 +10,13 @@ BIN = $(shell realpath ${ROOT_DIR}/_scripts)
 DOCKER_CONTEXT = $(shell ${BIN}/docker_context)
 ## Root environment file (contains ROOT_DOMAIN)
 ROOT_ENV = .env_${DOCKER_CONTEXT}
-## Per-project environment file name is keyed to the current docker context:
-ENV_FILE ?= .env_$(shell ${BIN}/docker_context)
+## Per-project environment file name is keyed to the current docker context and the optional INSTANCE name:
+instance ?= "$${INSTANCE}"
+INSTANCE ?= ${instance}
+CONTEXT_INSTANCE ?= $$( (set +x; [[ -n "${instance}" ]] && echo "${DOCKER_CONTEXT}_${instance}" || echo "${DOCKER_CONTEXT}") )
+ENV_FILE ?= ".env_${CONTEXT_INSTANCE}"
+PROJECT_NAME ?= $$( (set +x; [[ -n "${instance}" ]] && echo "$$(basename $${PWD})_${instance}" || echo "$$(basename $${PWD})") )
+DOCKER_COMPOSE_FILE_ARGS ?= $$( (set +x; [[ -f docker-compose.override_${CONTEXT_INSTANCE}.yaml ]] && echo "-f docker-compose.yaml -f docker-compose.override_${CONTEXT_INSTANCE}.yaml" || echo "-f docker-compose.yaml") )
 
-.PHONY: clean
-clean:
-	@echo "# Removing current context environment file only:"
-	@set -x && rm -f ${ENV_FILE}
-	@[[ -f passwords.json ]] && echo "Removing all http passwords from all environments:" && set -x && rm passwords.json || true
+%-rule-exists:
+	@$(MAKE) -n $* &> /dev/null

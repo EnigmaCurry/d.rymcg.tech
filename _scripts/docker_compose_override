@@ -1,0 +1,35 @@
+#!/bin/bash
+
+# docker_compose_override ENV_FILE ENV_VAR1 ENV_VAR2 ...
+set -e
+if [[ $# -lt 2 ]]; then
+    echo "Missing args. docker_compose_override ENV_FILE ENV_VAR1 ENV_VAR2";
+    exit 1;
+fi
+BIN=$(dirname ${BASH_SOURCE})
+source ${BIN}/funcs.sh
+ENV_FILE=$1; shift
+YTT_DATA_ARGS=""
+
+test -f docker-compose.instance.yaml || (echo "Missing docker-compose.instance.yaml. This project has not been setup with an override template yet." && exit 1)
+
+DOCKER_CONTEXT=$(${BIN}/docker_context)
+instance=${instance:-${INSTANCE}}
+if [[ -n "${instance}" ]]; then
+    CONTEXT_INSTANCE="${DOCKER_CONTEXT}_${instance}"
+else
+    CONTEXT_INSTANCE="${DOCKER_CONTEXT}"
+fi
+OVERRIDE="docker-compose.override_${CONTEXT_INSTANCE}.yaml"
+
+for var in "$@"; do
+    val="$(${BIN}/dotenv -f ${ENV_FILE} get $var)" || true
+    test -z "${val}" && echo "${var} is blank." && continue
+    var=$(echo $var | tr '[:upper:]' '[:lower:]')
+    YTT_DATA_ARGS="${YTT_DATA_ARGS} -v ${var}=${val}"
+done
+
+echo ytt ${YTT_DATA_ARGS} \< docker-compose.instance.yaml \> ${OVERRIDE}
+ytt ${YTT_DATA_ARGS} < docker-compose.instance.yaml > ${OVERRIDE}
+
+echo "Created docker-compose override: ${OVERRIDE}"

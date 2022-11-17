@@ -1,8 +1,8 @@
 ROOT_DIR = ..
 include ../_scripts/Makefile.projects
 
-.PHONY: config # Configure .env file
-config:
+.PHONY: config-hook
+config-hook:
 	@${BIN}/reconfigure_ask ${ENV_FILE} ARCHIVEBOX_TRAEFIK_HOST "Enter the archivebox domain name" archivebox.${ROOT_DOMAIN}
 	@${BIN}/reconfigure_htpasswd ${ENV_FILE} ARCHIVEBOX_HTTP_AUTH
 	@${BIN}/reconfigure ${ENV_FILE} SECRET_KEY=$$(openssl rand -hex 45)
