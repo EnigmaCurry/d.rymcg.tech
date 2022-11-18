@@ -7,7 +7,7 @@ DOCKER_ORG ?= localhost
 ## Tools path:
 BIN = $(shell realpath ${ROOT_DIR}/_scripts)
 
-DOCKER_CONTEXT = $(shell ${BIN}/docker_context)
+DOCKER_CONTEXT = $$(${BIN}/docker_context)
 ## Root environment file (contains ROOT_DOMAIN)
 ROOT_ENV = .env_${DOCKER_CONTEXT}
 ## Per-project environment file name is keyed to the current docker context and the optional INSTANCE name:
