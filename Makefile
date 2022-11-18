@@ -17,10 +17,7 @@ check-docker:
 
 .PHONY: config # Configure main variables
 config: check-deps check-docker
-	@echo ""
-	@echo ""
-	@echo "Checking Docker host configuration ..."
-	@SSH_HOST=$$(docker context inspect | jq -r ".[0].Endpoints.docker.Host" | sed 's|ssh://||g') && SSH_UID=$$(ssh $${SSH_HOST} id -u); [[ $SSH_UID != "0" ]] && SUDO_PREFIX="sudo" || SUDO_PREFIX="" && echo -n "userns-remap = " && (ssh $${SSH_HOST} "$${SUDO_PREFIX} cat /etc/docker/daemon.json 2>/dev/null" || echo '{"userns-remap": "not configured (all containers will run in the root namespace)"}') | jq -r '.["userns-remap"]'
+	@${BIN}/userns-remap check
 	@echo ""
 	@${BIN}/confirm yes "This will make a configuration for the current docker context (${DOCKER_CONTEXT})"
 	@${BIN}/reconfigure_ask ${ROOT_ENV} ROOT_DOMAIN "Enter the root domain for this context"
@@ -79,7 +76,12 @@ netstat:
 
 .PHONY: userns-remap # Configure Docker server for User Namespace Remap
 userns-remap:
-	@SSH_HOST=$$(docker context inspect | jq -r ".[0].Endpoints.docker.Host"); ssh $${SSH_HOST} id dockremap && echo "dockremap user already exists." || true
-	@SSH_HOST=$$(docker context inspect | jq -r ".[0].Endpoints.docker.Host") && SETTING=($$(ssh $${SSH_HOST} cat /etc/docker/daemon.json | jq -r ".[\"userns-remap\"]")) && ([[ $${SETTING} == "default" ]] && echo "/etc/docker/daemon.json already has userns-remap:default setting." || echo "daemon.json is not setup yet for userns-remap") || true
-	@${BIN}/confirm no "Do you want to automatically edit /etc/docker/daemon.json and then RESTART docker" "?"
-	@SSH_HOST=$$(docker context inspect | jq -r ".[0].Endpoints.docker.Host" | sed 's|ssh://||g') && SSH_UID=$$(ssh $${SSH_HOST} id -u); [[ $SSH_UID != "0" ]] && SUDO_PREFIX="sudo" || SUDO_PREFIX="" && TMP_CONFIG=$$(mktemp) && ssh $${SSH_HOST} cat /etc/docker/daemon.json | jq '.["userns-remap"]="default"' > $${TMP_CONFIG} && cat $${TMP_CONFIG} && scp $${TMP_CONFIG} $${SSH_HOST}:$${TMP_CONFIG} && ssh $${SSH_HOST} "$${SUDO_PREFIX} sh -c \"mv $${TMP_CONFIG} /etc/docker/daemon.json && chmod 0644 /etc/docker/daemon.json && systemctl restart docker && id dockremap && echo '# /etc/subuid' && cat /etc/subuid && echo 'Success'\"" || echo 'Fail'
+	@${BIN}/userns-remap true
+
+.PHONY: userns-remap-off # Configure Docker server for Root Namespace
+userns-remap-off:
+	@${BIN}/userns-remap false
+
+.PHONY: userns-remap-check # Check current Docker User Namespace Remap setting
+userns-remap-check:
+	@${BIN}/userns-remap check
