@@ -17,17 +17,23 @@ test -f ${ENV_FILE} || cp .env-dist ${ENV_FILE}
 
 example=$(grep -m 1 -oP "^$var=\K.*" .env-dist)
 existing=$(grep -m 1 -oP "^$var=\K.*" ${ENV_FILE})
-if [[ $existing != $example ]]; then
+
+# echo "existing=$existing"
+# echo "example =$example"
+# echo "default =$default"
+
+if [[ "$existing" != "$example" ]]; then
     default=${existing:-${default}}
 else
     default=${default:-${example}}
 fi
 
-if [[ $default == "-" ]]; then
+if [[ "$default" == "-" ]]; then
     default=""
 fi
+# echo "default =$default"
 
-if [[ ${#example} -ne 0 ]]; then
+if [[ "${#example}" -ne "0" ]]; then
     example=" (eg. ${example})"
 fi
 while true; do
