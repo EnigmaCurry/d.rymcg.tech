@@ -26,7 +26,7 @@ You can install Docker on pretty much any Linux server, but some hosts
 are better than others.
 
 In addition to the standard criteria of location, cost, performance,
-etc, you should consider if you host has the following features:
+etc, you should consider if your host has the following features:
 
  * Hosted Firewall
    * A Docker server will manage the iptables of the entire host
@@ -46,6 +46,11 @@ etc, you should consider if you host has the following features:
      * Port 80 for HTTP redirection to HTTPS
      * Port 443 for all web (HTTPS) traffic
      * Deny all other ports, unless you choose to open something else.
+   * If you're stuck with a host without an external firewall,
+     consider using
+     [_docker_vm](https://github.com/EnigmaCurry/d.rymcg.tech/tree/unprivileged/_docker_vm#readme)
+     or if you want to stick with native docker, use
+     [chaifeng/ufw-docker](https://github.com/chaifeng/ufw-docker).
 
  * Nested Virtualization
    * Although not necessary for a normal Docker installation, you may
@@ -57,13 +62,13 @@ etc, you should consider if you host has the following features:
 ```
 # Check if nested virtualization supported:
 ## Intel:
-cat /sys/module/kvm_intel/parameters/ne
+cat /sys/module/kvm_intel/parameters/nested
 ## AMD:
 cat /sys/module/kvm_amd/parameters/nested
 ```
 
   * Nested virtualization can be useful for creating [multiple Docker
-    VMs](_docker_vm) inside of one VPS.
+    VMs](https://github.com/EnigmaCurry/d.rymcg.tech/tree/unprivileged/_docker_vm#readme) inside of one VPS.
     * This could be useful on VPS that don't have an external
       firewall, you can run `ufw` on the host VPS, and then run Docker
       inside of a nested KVM virtual machine.
@@ -74,6 +79,15 @@ cat /sys/module/kvm_amd/parameters/nested
      exactly how much RAM and disk you need. Otherwise you may be
      tempted to install other things on your server besides Docker and
      this complicates the security of the server.
+   * To quote the [Docker
+security](https://docs.docker.com/engine/security/) guide:
+
+        "If you run Docker on a server, it is recommended to run
+        exclusively Docker on the server, and move all other services
+        within containers controlled by Docker. Of course, it is fine
+        to keep your favorite admin tools (probably at least an SSH
+        server), as well as existing monitoring/supervision processes,
+        such as NRPE and collectd."
 
 ### Harden SSH
 
@@ -107,6 +121,22 @@ container space. These two settings are [User Namespace mode]() and a
 However, the current [Traefik](traefik) configuration is setup to use
 the host network, which is incompatible with such settings, so they
 will not be considered here.
+
+Nonetheless, you can experiment by turning User Namespace mode on,
+using the root Makefile:
+
+```
+# cd ~/git/vendor/enigmacurry/d.rymcg.tech
+# turn it on:
+make userns-remap
+# turn it off:
+make userns-remap-off
+# check the current setting:
+make userns-remap-check
+```
+
+These commands will automatically edit the Docker server's
+`/etc/docker/daemon.json` and restart Docker.
 
 ## Docker container privileges
 
@@ -165,7 +195,7 @@ flags.
 Here is an example that drops ALL privileges:
 
 ```
-version: "3.9"
+services:
   thing:
     .....
     security_opt:
@@ -175,25 +205,27 @@ version: "3.9"
 ```
 
 `cap_drop: ['ALL']` tells the container to drop all privileges, even
-the default ones that Docker normally gives. the
+the default ones that Docker normally gives. The
 `no-new-privileges:true` flag disallows acquiring any privileges not
-granted at the start (for instance a binary can have `setcap` enable a
-root capability for a non-root user, for that program only, similar in
-concept to `setuid` but for more fine-grained permission control.)
+granted at the start (eg. a binary could have `setcap` enable a root
+capability for a non-root user, for that program only, similar in
+concept to `setuid` but for more fine-grained permission control.
+`no-new-privileges` disallows access to the capability that `setcap`
+requested.)
 
 Unless your container works entirely without root access, this list is
 likely too restrictive. You will need to use `cap_add` to add some of
 the capabilites back. A good strategy is to drop `ALL` capabilites,
-and then add all of them back, explicity. Then you can comment out the
-capabilites you don't need, testing them by process of elimination,
-whether container behaves properly without them:
+and then add all of them back, explicitly. Then you can comment out
+the capabilites that you don't need, testing them by process of
+elimination, whether container behaves properly without them:
 
 NOTE: the following example, with all capabilites added, is
 essentially the same as running your container with `privileged:
 true`:
 
 ```
-version: "3.9"
+services:
   thing:
     .....
     security_opt:
@@ -246,3 +278,45 @@ version: "3.9"
 You should never run a container as `--privileged` or `privileged:
 true`. Instead, you should figure out the exact capabilities it needs
 by process of elimination.
+
+
+## Audit containers
+
+In the root directory of d.rymcg.tech, the Makefile has a target to
+audit all containers. `make audit` will find all services, and print a
+report of the privileges each service has, containing the following
+information:
+
+ * `CONTAINER` the container name
+ * `USER` the user and or UID the container runs as
+ * `CAP_ADD` which system [capabilities](https://man.archlinux.org/man/capabilities.7) to add
+ * `CAP_DROP` which system [capabilities](https://man.archlinux.org/man/capabilities.7) to drop
+ * `SEC_OPT` which security options to enable.
+ * `BIND_MOUNTS` the list of all bind (host) mounted paths.
+ * `PORTS` the list of open ports.
+
+(Scroll right, the output is very wide .....)
+
+```
+$ make audit | less -S
+CONTAINER                        USER         CAP_ADD                                                                         CAP_DROP  SEC_OPT                     BIND_MOUNTS                                                            PORTS
+bitwarden                        root          __                                                                              __       ["no-new-privileges:true"]  []                                                                     {"80/tcp":[{"HostIp":"127.0.0.1","HostPort":"8888"}]}
+cryptpad                         root          __                                                                              __       ["no-new-privileges:true"]  ["/etc/localtime:/etc/localtime:ro","/etc/timezone:/etc/timezone:ro"]  {}
+debian                           root          __                                                                              __        __                         ["shell-shared:/shared"]                                               {}
+drawio-drawio-1                  root          __                                                                              __       ["no-new-privileges:true"]  []                                                                     {}
+sftp-sftp-1                      root         ["CHOWN","DAC_OVERRIDE","SYS_CHROOT","AUDIT_WRITE","SETGID","SETUID","FOWNER"]  ["ALL"]   ["no-new-privileges:true"]  []                                                                     {"2000/tcp":[{"HostIp":"","HostPort":"2223"}]}
+syncthing                        root          __                                                                              __       ["no-new-privileges:true"]  []                                                                     {"21027/udp":[{"HostIp":"","HostPort":"21027"}],"22000/tcp":[{"HostIp":"","HostPort":"22000"}],"8384/tcp":[{"HostIp":"127.0.0.1","HostPort":"8384"}]}
+thttpd-thttpd-1                  54321:54321   __                                                                              __       ["no-new-privileges:true"]  []                                                                     {}
+traefik-traefik-1                traefik      ["NET_BIND_SERVICE"]                                                            ["ALL"]    __                         ["/var/run/docker.sock:/var/run/docker.sock:ro"]                       {}
+websocketd-app-1                 root          __                                                                              __       ["no-new-privileges:true"]  []                                                                     {}
+whoami_foo-whoami-1              54321:54321   __                                                                             ["ALL"]   ["no-new-privileges:true"]  []                                                                     {}
+whoami-whoami-1                  54321:54321   __                                                                             ["ALL"]   ["no-new-privileges:true"]  []                                                                     {}
+```
+
+All well behaved process should:
+
+ * Not run as root (if it can be avoided)
+ * Only add the specific capabilites it needs.
+ * Drop `ALL` other capabilites.
+ * Set "no-new-privileges:true" Security Option. (Assuming it does not
+   need to assume new privileges via `setcap` or `setuid` binary).

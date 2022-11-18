@@ -1,0 +1,53 @@
+#!/bin/bash
+
+set -e
+
+## userns-remap {check,true,false}
+## Configure the Docker server userns-remap setting
+## See https://docs.docker.com/engine/security/userns-remap/
+
+BIN=$(dirname ${BASH_SOURCE})
+cmd=$1
+[[ $# -lt 1 ]] && echo "Missing command argument: {check,true,false}" && exit 1
+
+SSH_HOST=$(docker context inspect | jq -r ".[0].Endpoints.docker.Host" | sed 's|ssh://||g');
+SSH_UID=$(ssh ${SSH_HOST} id -u)
+[[ $SSH_UID != "0" ]] && SUDO_PREFIX="sudo" || SUDO_PREFIX=""
+DAEMON_CONF=${DAEMON_CONF:-/etc/docker/daemon.json}
+
+echo "## Checking Docker Daemon config (${DAEMON_CONF}) ..."
+if [[ $cmd == "check" ]]; then
+    # Just check for the setting, don't configure anything:
+    ssh ${SSH_HOST} "${SUDO_PREFIX} grep userns-remap ${DAEMON_CONF}" || echo "Not using userns-remap"
+else
+    if ssh ${SSH_HOST} "${SUDO_PREFIX} grep userns-remap ${DAEMON_CONF}"; then
+        echo "${DAEMON_CONF} already has userns-remap setting."
+    else
+        echo "userns-remap setting not found"
+    fi
+    if [[ $cmd == "true" ]]; then
+        TMP_CONFIG=$(mktemp) && \
+            ssh ${SSH_HOST} cat /etc/docker/daemon.json \
+                | jq '.["userns-remap"]="default"' \
+                     > ${TMP_CONFIG} \
+            && cat ${TMP_CONFIG} \
+            && scp ${TMP_CONFIG} ${SSH_HOST}:${TMP_CONFIG} \
+            && ssh ${SSH_HOST} "${SUDO_PREFIX} sh -c \"mv ${TMP_CONFIG} /etc/docker/daemon.json && chmod 0644 /etc/docker/daemon.json && echo '## Restarting Docker ...' && systemctl restart docker && echo '## Docker restarted' && id dockremap && echo '# /etc/subuid' && cat /etc/subuid && echo '## Success'\"" \
+                || echo '## Fail'
+        ${0} check
+    elif [[ $cmd == "false" ]]; then
+        TMP_CONFIG=$(mktemp) && \
+            ssh ${SSH_HOST} cat /etc/docker/daemon.json \
+                | jq 'del(.["userns-remap"])' \
+                     > ${TMP_CONFIG} \
+            && cat ${TMP_CONFIG} \
+            && scp ${TMP_CONFIG} ${SSH_HOST}:${TMP_CONFIG} \
+            && ssh ${SSH_HOST} "${SUDO_PREFIX} sh -c \"mv ${TMP_CONFIG} /etc/docker/daemon.json && chmod 0644 /etc/docker/daemon.json && echo '## Restarting Docker ...' && systemctl restart docker && echo '## Docker restarted' && id dockremap && echo '# /etc/subuid' && cat /etc/subuid && echo '## Success'\"" \
+                || echo '## Fail'
+        ${0} check
+    else
+        echo "bad argument: ${cmd}"
+        exit 1
+    fi
+fi
+
