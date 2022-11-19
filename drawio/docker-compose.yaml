@@ -8,6 +8,8 @@ services:
     image: jgraph/plantuml-server
     security_opt:
       - no-new-privileges:true
+    cap_drop:
+      - ALL
     expose:
       - "8080"
     networks:
@@ -18,6 +20,8 @@ services:
     image: jgraph/export-server
     security_opt:
       - no-new-privileges:true
+    cap_drop:
+      - ALL
     expose:
       - "8000"
     networks:
@@ -30,6 +34,8 @@ services:
     image: jgraph/drawio
     security_opt:
       - no-new-privileges:true
+    cap_drop:
+      - ALL
     links:
       - plantuml-server:plantuml-server
       - image-export:image-export
@@ -69,8 +75,8 @@ services:
       - DRAWIO_MXPUSHER_ENDPOINT=${DRAWIO_MXPUSHER_ENDPOINT}
     labels:
       - "traefik.enable=true"
-      - "traefik.http.routers.drawio.rule=Host(`${DRAWIO_TRAEFIK_HOST}`)"
-      - "traefik.http.routers.drawio.entrypoints=websecure"
-      - "traefik.http.middlewares.drawio-whitelist.ipwhitelist.sourcerange=${DRAWIO_IP_SOURCERANGE}"
-      - "traefik.http.routers.drawio.middlewares=drawio-whitelist"
-      - "traefik.http.services.drawio.loadBalancer.server.port=8080"
+      - "traefik.http.routers.drawio-${DRAWIO_INSTANCE:-default}.rule=Host(`${DRAWIO_TRAEFIK_HOST}`)"
+      - "traefik.http.routers.drawio-${DRAWIO_INSTANCE:-default}.entrypoints=websecure"
+      - "traefik.http.middlewares.drawio-${DRAWIO_INSTANCE:-default}-whitelist.ipwhitelist.sourcerange=${DRAWIO_IP_SOURCERANGE}"
+      - "traefik.http.routers.drawio-${DRAWIO_INSTANCE:-default}.middlewares=drawio-${DRAWIO_INSTANCE:-default}-whitelist"
+      - "traefik.http.services.drawio-${DRAWIO_INSTANCE:-default}.loadBalancer.server.port=8080"

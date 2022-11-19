@@ -6,7 +6,9 @@ services:
   bitwarden:
     image: bitwardenrs/server:latest
     security_opt:
-    - no-new-privileges:true
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
     restart: always
     environment:
       - WEBSOCKET_ENABLED=true
