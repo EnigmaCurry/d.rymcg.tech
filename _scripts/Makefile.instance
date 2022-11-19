@@ -4,4 +4,4 @@ instance:
 
 .PHONY: switch # Switch the default instance and enter a new subshell
 switch:
-	@(export instance="$${instance:-$${INSTANCE}}"; test -z "$${instance}" && read -p "Enter the temporary default instance name: " instance; bash --rcfile <(echo "PS1='\n(instance=$${instance})\n\W $$ '") -i)
+	@(export instance="${instance}"; test -z "$${instance}" && read -p "Enter the temporary default instance name: " instance; env -i bash --rcfile <(echo "export TERM=$$TERM; PATH=$$PATH; export INSTANCE=$${instance}; export PROJECT_INSTANCE=${PROJECT_INSTANCE}; PS1='\n(project=$$(basename $$PWD) instance=$${instance})\n\W $$ '") --noprofile -i)
