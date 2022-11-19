@@ -7,7 +7,8 @@ DOCKER_ORG ?= localhost
 ## Tools path:
 BIN = $(shell realpath ${ROOT_DIR}/_scripts)
 
-DOCKER_CONTEXT = $(shell docker context inspect --format "{{ .Name }}")
+DOCKER_CONTEXT = $$(docker context inspect --format "{{ .Name }}")
+
 ## Root environment file (contains ROOT_DOMAIN)
 ROOT_ENV = .env_$${DOCKER_CONTEXT}
 ## Per-project environment file name is keyed to the current docker context and the optional INSTANCE name:
@@ -29,7 +30,7 @@ check-instance-project:
 #	@echo CWD_PROJECT_INSTANCE=${CWD_PROJECT_INSTANCE}
 ifeq ($(shell echo ${PROJECT_INSTANCE}),$(shell echo ${CWD_PROJECT_INSTANCE}))
 else
-	@echo -e "# The instance '${INSTANCE}' is locked to a different project directory: $${PROJECT}\n# To work in this directory, run \`make switch\` or \`exit\`"
+	@echo -e "# The current sub-shell is locked to an instance: ${INSTANCE}\n# from a different project directory: $${PROJECT}\n# Press Ctrl-D to exit this sub-shell."
 	@exit 1
 endif
 

@@ -23,6 +23,15 @@ ask() {
     export ${__var}
 }
 
+ask_no_blank() {
+    __prompt=${1}; __var=${2}; __default=${3}
+    while true; do
+        read -e -p "${__prompt}"$'\x0a: ' -i "${__default}" ${__var}
+        export ${__var}
+        [[ -z "${!__var}" ]] || break
+    done
+}
+
 require_input() {
     ## require_input {PROMPT} {VAR} {DEFAULT}
     ## Read variable, set default if blank, error if still blank

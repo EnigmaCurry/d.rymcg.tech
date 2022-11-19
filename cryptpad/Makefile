@@ -12,4 +12,4 @@ config-hook:
 
 .PHONY: shell
 shell:
-	make --no-print-directory docker-compose-lifecycle-cmd EXTRA_ARGS="exec -it cryptpad sh"
+	make --no-print-directory docker-compose-lifecycle-cmd EXTRA_ARGS="exec -it cryptpad bash"
