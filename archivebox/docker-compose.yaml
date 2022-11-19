@@ -8,6 +8,23 @@ services:
     image: archivebox/archivebox:master
     security_opt:
       - no-new-privileges:true
+    cap_drop:
+      - ALL
+    cap_add:
+      - CHOWN
+      - DAC_OVERRIDE
+      - SETGID
+      - SETUID
+      # - FOWNER
+      # - FSETID
+      # - MKNOD
+      # - NET_RAW
+      # - SETFCAP
+      # - SETPCAP
+      # - NET_BIND_SERVICE
+      # - SYS_CHROOT
+      # - KILL
+      # - AUDIT_WRITE
     command: server --quick-init 0.0.0.0:8000
     environment:
       - ALLOWED_HOSTS=*
@@ -34,6 +51,23 @@ services:
       context: ${ARCHIVEBOX_API_GATEWAY_CONTEXT:-https://github.com/EnigmaCurry/archivebox-api-gateway.git}
     security_opt:
       - no-new-privileges:true
+    cap_drop:
+      - ALL
+#    cap_add:
+      # - CHOWN
+      # - DAC_OVERRIDE
+      # - SETGID
+      # - SETUID
+      # - FOWNER
+      # - FSETID
+      # - MKNOD
+      # - NET_RAW
+      # - SETFCAP
+      # - SETPCAP
+      # - NET_BIND_SERVICE
+      # - SYS_CHROOT
+      # - KILL
+      # - AUDIT_WRITE
     restart: "no"
     environment:
       - ARCHIVEBOX_BASE_URL=http://archivebox:8000

@@ -294,9 +294,9 @@ make config
 ```
 
 (This writes the main project level variables into a file named
-`.env_${DOCKER_CONTEXT}` in the root source directory, based upon the
-name of the current Docker context. This file is excluded from the git
-repository via `.gitignore`.)
+`.env_${DOCKER_CONTEXT}` (eg. `.env_d.example.com`) in the root source
+directory, based upon the name of the current Docker context. This
+file is excluded from the git repository via `.gitignore`.)
 
 The `ROOT_DOMAIN` variable is saved in `.env_${DOCKER_CONTEXT}` and
 will serve as the default root domain of all of the sub-project
@@ -412,13 +412,14 @@ directory you are in.
  * `cd` into the sub-project directory of an app you want to install.
  * Read the README.md file.
  * Run `make config`
- * Answer the interactive questions, and the `.env_${DOCKER_CONTEXT}` file will
-   be created/updated for you. Examples are pre-filled with default values (and
-   based upon your `ROOT_DOMAIN` specified earlier). You can accept the
-   suggested default value, or use the backspace key and edit the value, to fill
-   in your own answers.
+ * Answer the interactive questions, and the `.env_${DOCKER_CONTEXT}`
+   file will be created/updated for you (named with your current
+   docker context, eg. `.env_d.example.com`). Examples are pre-filled
+   with default values (and based upon your `ROOT_DOMAIN` specified
+   earlier). You can accept the suggested default value, or use the
+   backspace key and edit the value, to fill in your own answers.
  * Verify the configuration by looking at the contents of
-   `.env_${DOCKER_CONTEXT}` (named with your current docker context).
+   `.env_${DOCKER_CONTEXT}`.
  * Run `make install` to start the services. (this is the same thing as
    `docker-compose up --build -d`)
  * Most services have a website URL, which you can open automatically, run:
@@ -457,8 +458,8 @@ For a more in depth guide on using the Makefiles, see
 
 By default, each project supports deploying a single instance per
 Docker context. The singleton instance environment file is named
-`.env_${DOCKER_CONTEXT}`, contained in each project subdirectory (eg.
-`whoami/.env_d.example.com`).
+`.env_${DOCKER_CONTEXT}`, which is contained in each project
+subdirectory (eg. `whoami/.env_d.example.com`).
 
 If you want to deploy more than one instance of a given project (to
 the same docker context and from the same source directory), you need
@@ -467,14 +468,14 @@ the Makefile expects is to name your several environment files like
 this: `.env_${DOCKER_CONTEXT}_${INSTANCE_NAME}` (eg.
 `whoami/.env_d.example.com_foo`).
 
-Not every project supports `make instance` yet, it is opt-in for each
-project, by including the
+Not every project supports instances yet (nor does it make sense to in
+some cases), it is opt-in for each project, by including the
 [Makefile.instance](_scripts/Makefile.instance) file at the top of
 their own Makefile.
 
 By default, all of the `make` targets will use the default
-environment, but you can tell it use the instance instead by setting
-the `instance` (or `INSTANCE`) variable:
+environment, but you can tell it use the instance environment instead,
+by setting the `instance` (or `INSTANCE`) variable:
 
 ```
 make instance=foo config     # Configure a new or existing instance named foo
@@ -489,31 +490,31 @@ make instance=bar destroy    # This destroys only the bar instance
 make status
 ```
 
-It may seem tedious to repeat typing `instance=foo` everytime, so
-there is a shortcut: `make instance`, which will ask you to enter an
-instance name, and then enter a new sub-shell with the environment
-variables set for the instance, making it the default within the
-sub-shell, so you don't have to type it anymore:
+It may seem tedious to repeat typing `instance=foo` everytime (and its
+easy to forget!), so there is a shortcut: `make instance`, which will
+ask you to enter an instance name, and then enter a new sub-shell with
+the environment variables set for that instance, making it now the
+default within the sub-shell, so you don't have to type it anymore:
 
 ```
 # Use this to create a new instance or to use an existing one:
-# This will create a sub-shell:
 make instance
 ```
 
-`make instance` will prompt you to enter a new instance name and it
-will create the configuration from the `.env-dist` template. It will
-then automatically call `make instance=${INSTANCE} config` on the new
-instance environment, asking you questions to automatically create the
-environment file of the instance
-(`.env_${DOCKER_CONTEXT}_${INSTANCE}`). Finally, `make instance`
-starts a new sub-shell with the `INSTANCE` and `PROJECT` environment
-variables locked to the given instance and project directory. All of
-the `make` targets you use in the sub-shell will now affect the
-instance rather than the default environment:
+`make instance` will prompt you to enter a new (or existing) instance
+name, and it will then automatically call `make instance=${INSTANCE}
+config` on the new instance environment, asking you questions to
+automatically create the environment file of the instance
+(`.env_${DOCKER_CONTEXT}_${INSTANCE}`) based on the `.env-dist`
+template. Finally, `make instance` starts a new sub-shell with the
+`INSTANCE` and `PROJECT` environment variables locked to the given
+instance and project directory. All of the `make` targets that you use
+in the sub-shell will now affect the instance environment rather than
+the default environment:
 
 ```
-## Example terminal session for creating an instance of whoami:
+## Example terminal session for creating an instance of whoami named foo:
+
 $ cd ~/git/vendor/enigmacurry/d.rymcg.tech/whoami
 $ make instance
 Enter an instance name to create/edit
@@ -531,21 +532,22 @@ Set WHOAMI_INSTANCE=foo
 whoami $
 ```
 
-Notice that the `PS1` prompt has been set so that it will remind you
-of your current locked instance: `(context=d.rymcg.tech project=whoami
-instance=foo)`
-
-To exit the sub-shell, press `Ctrl-D` or type `exit`.
-
-Inside of the subshell, you have all of the same `make` targets, but
-now they will apply to the instance:
+Inside the sub-shell, the `PS1` BASH prompt has been set so that it
+will remind you of your current locked instance:
+`(context=d.rymcg.tech project=whoami instance=foo)`. You have access
+to all of the same `make` targets as before, but now they will apply
+to the instance by default:
 
 ```
-make config                  # (Re)configures bar instance
-make install                 # (Re)installs bar instance
-make destroy                 # Destroys bar instance
+## Inside of the foo instance sub-shell ...
+make config                  # (Re)configures foo instance
+make install                 # (Re)installs foo instance
+make destroy                 # Destroys foo instance
 etc...
 ```
+
+To exit the sub-shell, press `Ctrl-D` or type `exit` and you will
+return to the original parent shell and working directory.
 
 ### Overriding docker-compose.yaml per-instance
 
