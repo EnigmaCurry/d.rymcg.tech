@@ -21,12 +21,16 @@ variables:
 
 Start cryptpad: `make install`
 
-Visit the main domain in your browser, and register a new account. Go to the
-user settings page, and find your public signing key (example:
+Open the app in your browser: `make open`
+
+Sign up for a new account. Go to the user settings page, and find your
+public signing key (example:
 `[cryptpad-user1@my.awesome.website/YZgXQxKR0Rcb6r6CmxHPdAGLVludrAF2lEnkbx1vVOo=]`)
 
 Edit your `.env` once again, and copy and paste your public signing
-key into the `ADMIN_KEY` variable, and restart cryptpad: `make
-install`. Your account should now have admin access, and be able to
-modify the server config. 
+key into the `CRYPTPAD_ADMIN_KEY` variable, and restart cryptpad:
+`make install`. Your account should now have admin access, and be able
+to modify the server config.
 
+Make sure to disable or make a rule for your popup blocker, as
+cryptpad makes heavy use of popups.
