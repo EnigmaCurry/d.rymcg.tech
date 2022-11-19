@@ -17,7 +17,6 @@ INSTANCE ?= ${instance}
 CONTEXT_INSTANCE ?= $$( (set +x; [[ -n "${instance}" ]] && echo "${DOCKER_CONTEXT}_${instance}" || echo "${DOCKER_CONTEXT}") )
 ENV_FILE ?= ".env_${CONTEXT_INSTANCE}"
 PROJECT_NAME ?= $$( (set +x; [[ -n "${instance}" ]] && echo "$$(basename $${PWD})_${instance}" || echo "$$(basename $${PWD})") )
-CWD_PROJECT_INSTANCE:=$$( (set +x; [[ -n "${instance}" ]] && echo "$$(basename $${PWD})_${instance}" || echo "$$(basename $${PWD})") )
 PROJECT_INSTANCE ?= ${CWD_PROJECT_INSTANCE}
 DOCKER_COMPOSE_FILE_ARGS ?= $$( (set +x; [[ -f docker-compose.override_${CONTEXT_INSTANCE}.yaml ]] && echo "-f docker-compose.yaml -f docker-compose.override_${CONTEXT_INSTANCE}.yaml" || echo "-f docker-compose.yaml") )
 
@@ -26,13 +25,7 @@ all: help
 
 .PHONY: check-instance-project
 check-instance-project:
-#	@echo PROJECT_INSTANCE=${PROJECT_INSTANCE}
-#	@echo CWD_PROJECT_INSTANCE=${CWD_PROJECT_INSTANCE}
-ifeq ($(shell echo ${PROJECT_INSTANCE}),$(shell echo ${CWD_PROJECT_INSTANCE}))
-else
-	@echo -e "# The current sub-shell is locked to an instance: ${INSTANCE}\n# from a different project directory: $${PROJECT}\n# Press Ctrl-D to exit this sub-shell."
-	@exit 1
-endif
+	@[[ -z "${INSTANCE_SUBSHELL}" ]] || (echo -e "# The current sub-shell is locked to an instance: ${INSTANCE}\n# from the directory: $${PROJECT}\n# Press Ctrl-D to exit this sub-shell." && exit 1)
 
 %-rule-exists:
 	@$(MAKE) -n $* &> /dev/null
