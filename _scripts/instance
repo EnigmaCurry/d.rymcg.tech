@@ -14,6 +14,7 @@ fi
 
 test -z "$instance" && echo "Missing required instance name." && exit 1
 NEW_ENV_FILE="${ENV_FILE}_${instance}"
-test ! -f "${NEW_ENV_FILE}" && set -x && cp .env-dist ${NEW_ENV_FILE} || \
-        (echo "WARNING: Environment file already exists: ${NEW_ENV_FILE}")
-make --no-print-directory config INSTANCE="${instance}" ENV_FILE="${NEW_ENV_FILE}"
+test ! -f "${NEW_ENV_FILE}" && make --no-print-directory config INSTANCE="${instance}" ENV_FILE="${NEW_ENV_FILE}" DOCKER_CONTEXT=${DOCKER_CONTEXT}
+echo "## Entering sub-shell for instance ${instance}".
+echo "## Press Ctrl-D to exit or type \`exit\`."
+make --no-print-directory switch INSTANCE="${instance}" ENV_FILE="${NEW_ENV_FILE}" DOCKER_CONTEXT=${DOCKER_CONTEXT}

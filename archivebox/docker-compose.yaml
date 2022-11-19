@@ -20,14 +20,14 @@ services:
     restart: unless-stopped
     labels:
       - "traefik.enable=true"
-      - "traefik.http.routers.archivebox.rule=Host(`${ARCHIVEBOX_TRAEFIK_HOST}`)"
-      - "traefik.http.routers.archivebox.entrypoints=websecure"
-      - "traefik.http.routers.archivebox.service=archivebox"
-      - "traefik.http.services.archivebox.loadbalancer.server.port=8000"
+      - "traefik.http.routers.archivebox-${ARCHIVEBOX_INSTANCE:-default}.rule=Host(`${ARCHIVEBOX_TRAEFIK_HOST}`)"
+      - "traefik.http.routers.archivebox-${ARCHIVEBOX_INSTANCE:-default}.entrypoints=websecure"
+      - "traefik.http.routers.archivebox-${ARCHIVEBOX_INSTANCE:-default}.service=archivebox-${ARCHIVEBOX_INSTANCE:-default}"
+      - "traefik.http.services.archivebox-${ARCHIVEBOX_INSTANCE:-default}.loadbalancer.server.port=8000"
       ## Authentication:
-      - "traefik.http.middlewares.archivebox-auth.basicauth.users=${ARCHIVEBOX_HTTP_AUTH}"
-      - "traefik.http.middlewares.archivebox-auth.basicauth.removeHeader=true"
-      - "traefik.http.routers.archivebox.middlewares=archivebox-auth@docker"
+      - "traefik.http.middlewares.archivebox-${ARCHIVEBOX_INSTANCE:-default}-auth.basicauth.users=${ARCHIVEBOX_HTTP_AUTH}"
+      - "traefik.http.middlewares.archivebox-${ARCHIVEBOX_INSTANCE:-default}-auth.basicauth.removeHeader=true"
+      - "traefik.http.routers.archivebox-${ARCHIVEBOX_INSTANCE:-default}.middlewares=archivebox-${ARCHIVEBOX_INSTANCE:-default}-auth@docker"
 
   public-api-gateway:
     build:
@@ -45,17 +45,17 @@ services:
       - LOG_LEVEL=${API_LOG_LEVEL}
     labels:
       - "traefik.enable=true"
-      - "traefik.http.routers.archivebox-api-gateway.rule=Host(`${ARCHIVEBOX_TRAEFIK_HOST}`) && PathPrefix(`/api-gateway`)"
-      - "traefik.http.routers.archivebox-api-gateway.entrypoints=websecure"
-      - "traefik.http.routers.archivebox-api-gateway.service=archivebox-api-gateway"
-      - "traefik.http.services.archivebox-api-gateway.loadbalancer.server.port=8000"
+      - "traefik.http.routers.archivebox-${ARCHIVEBOX_INSTANCE:-default}-api-gateway.rule=Host(`${ARCHIVEBOX_TRAEFIK_HOST}`) && PathPrefix(`/api-gateway`)"
+      - "traefik.http.routers.archivebox-${ARCHIVEBOX_INSTANCE:-default}-api-gateway.entrypoints=websecure"
+      - "traefik.http.routers.archivebox-${ARCHIVEBOX_INSTANCE:-default}-api-gateway.service=archivebox-${ARCHIVEBOX_INSTANCE:-default}-api-gateway"
+      - "traefik.http.services.archivebox-${ARCHIVEBOX_INSTANCE:-default}-api-gateway.loadbalancer.server.port=8000"
       ## Authentication:
-      - "traefik.http.routers.archivebox-api-gateway.middlewares=archivebox-auth@docker"
+      - "traefik.http.routers.archivebox-${ARCHIVEBOX_INSTANCE:-default}-api-gateway.middlewares=archivebox-${ARCHIVEBOX_INSTANCE:-default}-auth@docker"
 
       ## Anonymous access for GET /api-gateway/page ONLY:
-      - "traefik.http.routers.archivebox-public-api.rule=Host(`${ARCHIVEBOX_TRAEFIK_HOST}`) && Path(`/api-gateway/page`) && Method(`GET`)"
-      - "traefik.http.routers.archivebox-public-api.entrypoints=websecure"
-      - "traefik.http.routers.archivebox-public-api.service=archivebox-api-gateway"
+      - "traefik.http.routers.archivebox-${ARCHIVEBOX_INSTANCE:-default}-public-api.rule=Host(`${ARCHIVEBOX_TRAEFIK_HOST}`) && Path(`/api-gateway/page`) && Method(`GET`)"
+      - "traefik.http.routers.archivebox-${ARCHIVEBOX_INSTANCE:-default}-public-api.entrypoints=websecure"
+      - "traefik.http.routers.archivebox-${ARCHIVEBOX_INSTANCE:-default}-public-api.service=archivebox-${ARCHIVEBOX_INSTANCE:-default}-api-gateway"
 
 
 

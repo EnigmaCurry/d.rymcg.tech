@@ -1,7 +1,7 @@
 .PHONY: instance # Create a duplicate instance with a copy of the current .env file
 instance:
-	@DOCKER_CONTEXT=${DOCKER_CONTEXT} ENV_FILE=${ENV_FILE} ${BIN}/instance
+	@unset INSTANCE; unset instance; DOCKER_CONTEXT=${DOCKER_CONTEXT} ENV_FILE=${ENV_FILE} ${BIN}/instance
 
 .PHONY: switch # Switch the default instance and enter a new subshell
 switch:
-	@(export instance="${instance}"; test -z "$${instance}" && read -p "Enter the temporary default instance name: " instance; test ! -f .env_${DOCKER_CONTEXT}_$${instance} && echo "No environment exists for instance $${instance}" && exit 1 || bash --rcfile <(echo "export TERM=$$TERM; PATH=$$PATH; export INSTANCE=$${instance}; export PROJECT_INSTANCE=$$(basename $${PWD})_$${instance}; export PROJECT=$$(basename $$PWD); unset MAKELEVEL; PS1='\n(project=$$(basename $$PWD) instance=$${instance})\n\W $$ '") -i)
+	@(export instance="${instance}"; test -z "$${instance}" && read -p "Enter the temporary default instance name: " instance; test ! -f .env_${DOCKER_CONTEXT}_$${instance} && echo "No environment exists for instance $${instance}" && exit 1 || bash --rcfile <(echo "export TERM=$$TERM; PATH=$$PATH; export INSTANCE=$${instance}; export PROJECT_INSTANCE=$$(basename $${PWD})_$${instance}; export PROJECT=$$(basename $$PWD); unset ENV_FILE; unset MAKELEVEL; PS1='\n(context=$$(${BIN}/docker_context) project=$$(basename $$PWD) instance=$${instance})\n\W $$ '") -i)
