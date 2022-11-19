@@ -457,58 +457,27 @@ For a more in depth guide on using the Makefiles, see
 
 By default, each project supports deploying a single instance per
 Docker context. The singleton instance environment file is named
-`.env_${DOCKER_CONTEXT}`, contained in each project subdirectory.
+`.env_${DOCKER_CONTEXT}`, contained in each project subdirectory (eg.
+`whoami/.env_d.example.com`).
 
 If you want to deploy more than one instance of a given project (to
 the same docker context and from the same source directory), you need
 to create separate environment files for each one. The convention that
 the Makefile expects is to name your several environment files like
-this: `.env_${DOCKER_CONTEXT}_${INSTANCE_NAME}`.
+this: `.env_${DOCKER_CONTEXT}_${INSTANCE_NAME}` (eg.
+`whoami/.env_d.example.com_foo`).
 
-To do this automatically, use the Makefile target:
+Not every project supports `make instance` yet, it is opt-in for each
+project, by including the
+[Makefile.instance](_scripts/Makefile.instance) file at the top of
+their own Makefile.
 
-```
-make instance
-```
-
-(Note: not every single project supports `make instance`, it is
-currently opt-in by including the
-[Makefile.instance](_scripts/Makefile.instance) at the top of each
-project's Makefile.)
-
-This will prompt you to enter a new instance name and create the
-configuration from the `.env-dist` template. `make instance` will then
-automatically call `make config` on the new instance environment. For
-example, to create two separate instances of the `whoami` service, you
-might use the Makefile like this:
+By default, all of the `make` targets will use the default
+environment, but you can tell it use the instance instead by setting
+the `instance` (or `INSTANCE`) variable:
 
 ```
-## Example terminal session:
-$ cd whoami
-$ make instance
-Enter an instance name to create/edit: foo
-Configuring environment file: .env_docker-vm_foo
-...
-$ make instance
-Enter an instance name to create/edit: bar
-Configuring environment file: .env_docker-vm_bar
-...
-```
-
-Because my current docker context is named `docker-vm`, this creates
-and configures the following env files:
-
-```
-.env_docker-vm_foo
-.env_docker-vm_bar
-```
-
-Most of the other Makefile targets will now accept an optional named
-argument `instance=${INSTANCE}` that will limit the commands effect to
-a single instance. For example:
-
-```
-make instance=foo config     # This is equivalent to `make instance` and typing foo
+make instance=foo config     # Configure a new or existing instance named foo
 make instance=bar config     # (Re)configures bar instance
 make instance=foo install    # This (re)installs only the foo instance
 make instance=bar install    # (Re)installs only bar instance
@@ -518,20 +487,64 @@ make instance=bar destroy    # This destroys only the bar instance
 
 # Show the status of all instances of the current project subdirectory:
 make status
+```
 
-# Temporarily change the default instance and start a new subshell:
-# (This sets the $PS1 prompt in the subshell, indicating the current instance)
-make switch
+It may seem tedious to repeat typing `instance=foo` everytime, so
+there is a shortcut: `make instance`, which will ask you to enter an
+instance name, and then enter a new sub-shell with the environment
+variables set for the instance, making it the default within the
+sub-shell, so you don't have to type it anymore:
 
-# You can also just set INSTANCE=bar, but don't forget to unset it later!
-export INSTANCE=bar
+```
+# Use this to create a new instance or to use an existing one:
+# This will create a sub-shell:
+make instance
+```
 
-# In the subshell, or with INSTANCE=bar exported, operate on instance `bar` exclusively:
+`make instance` will prompt you to enter a new instance name and it
+will create the configuration from the `.env-dist` template. It will
+then automatically call `make instance=${INSTANCE} config` on the new
+instance environment, asking you questions to automatically create the
+environment file of the instance
+(`.env_${DOCKER_CONTEXT}_${INSTANCE}`). Finally, `make instance`
+starts a new sub-shell with the `INSTANCE` and `PROJECT` environment
+variables locked to the given instance and project directory. All of
+the `make` targets you use in the sub-shell will now affect the
+instance rather than the default environment:
+
+```
+## Example terminal session for creating an instance of whoami:
+$ cd ~/git/vendor/enigmacurry/d.rymcg.tech/whoami
+$ make instance
+Enter an instance name to create/edit
+: foo
+Configuring environment file: .env_d.rymcg.tech_foo
+WHOAMI_TRAEFIK_HOST: Enter the whoami domain name (eg. whoami.example.com)
+: whoami-foo.d.rymcg.tech
+WHOAMI_NAME: Enter a unique name to display in all responses
+: foo
+Set WHOAMI_INSTANCE=foo
+## Entering sub-shell for instance foo.
+## Press Ctrl-D to exit or type `exit`.
+
+(context=d.rymcg.tech project=whoami instance=foo)
+whoami $
+```
+
+Notice that the `PS1` prompt has been set so that it will remind you
+of your current locked instance: `(context=d.rymcg.tech project=whoami
+instance=foo)`
+
+To exit the sub-shell, press `Ctrl-D` or type `exit`.
+
+Inside of the subshell, you have all of the same `make` targets, but
+now they will apply to the instance:
+
+```
 make config                  # (Re)configures bar instance
 make install                 # (Re)installs bar instance
 make destroy                 # Destroys bar instance
-make destroy instance=foo    # Can still on operate on foo, if explicit
-unset INSTANCE               # resets default instance
+etc...
 ```
 
 ### Overriding docker-compose.yaml per-instance

@@ -9,7 +9,7 @@ if [[ -z "${instance}" ]]; then
         echo "${EXISTING_ENVS}"
         echo ""
     fi
-    read -p "Enter an instance name to create/edit: " instance
+    read -p "Enter an instance name to create/edit"$'\x0a: ' instance
 fi
 
 test -z "$instance" && echo "Missing required instance name." && exit 1
