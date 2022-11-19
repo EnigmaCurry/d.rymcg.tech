@@ -3,9 +3,11 @@
 [CryptPad](https://cryptpad.fr/) is an encrypted, open source office
 collaboration suite.
 
-CryptPad is designed to serve its content over two domains. Account passwords
-and cryptographic content is handled on the 'main' domain, while the user
-interface is loaded from a 'sandbox' domain.
+CryptPad is designed to serve its content over two domains, a `main`
+domain, and a `sandbox` domain (eg `pad.d.example.com` and
+`pad-sandbox.d.example.com`). Account passwords and cryptographic content
+is handled on the `main` domain, while the user interface is loaded
+from a `sandbox` domain.
 
 Run `make config` or copy `.env-dist` to `.env`, and edit these
 variables:

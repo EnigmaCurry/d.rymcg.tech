@@ -471,6 +471,11 @@ To do this automatically, use the Makefile target:
 make instance
 ```
 
+(Note: not every single project supports `make instance`, it is
+currently opt-in by including the
+[Makefile.instance](_scripts/Makefile.instance) at the top of each
+project's Makefile.)
+
 This will prompt you to enter a new instance name and create the
 configuration from the `.env-dist` template. `make instance` will then
 automatically call `make config` on the new instance environment. For

@@ -1,5 +1,6 @@
 ROOT_DIR = ..
 include ../_scripts/Makefile.projects
+include ../_scripts/Makefile.instance
 
 .PHONY: config-hook
 config-hook:
