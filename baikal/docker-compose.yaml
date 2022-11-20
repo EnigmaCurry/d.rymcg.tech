@@ -9,11 +9,28 @@ services:
     image: "ckulka/baikal:nginx"
     security_opt:
       - no-new-privileges:true
+    cap_drop:
+      - ALL
+    cap_add:
+      - CHOWN
+      - DAC_OVERRIDE
+      - SETGID
+      - SETUID
+      - FOWNER
+      # - FSETID
+      # - MKNOD
+      # - NET_RAW
+      # - SETFCAP
+      # - SETPCAP
+      # - NET_BIND_SERVICE
+      # - SYS_CHROOT
+      # - KILL
+      # - AUDIT_WRITE
     restart: unless-stopped
     labels:
       - "traefik.enable=true"
-      - "traefik.http.routers.baikal.rule=Host(`${BAIKAL_TRAEFIK_HOST}`)"
-      - "traefik.http.routers.baikal.entrypoints=websecure"
+      - "traefik.http.routers.baikal-${BAIKAL_INSTANCE:-default}.rule=Host(`${BAIKAL_TRAEFIK_HOST}`)"
+      - "traefik.http.routers.baikal-${BAIKAL_INSTANCE:-default}.entrypoints=websecure"
     volumes:
       - baikal_config:/var/www/baikal/config
       - baikal_data:/var/www/baikal/Specific

@@ -3,9 +3,11 @@
 [CryptPad](https://cryptpad.fr/) is an encrypted, open source office
 collaboration suite.
 
-CryptPad is designed to serve its content over two domains. Account passwords
-and cryptographic content is handled on the 'main' domain, while the user
-interface is loaded from a 'sandbox' domain.
+CryptPad is designed to serve its content over two domains, a `main`
+domain, and a `sandbox` domain (eg `pad.d.example.com` and
+`pad-sandbox.d.example.com`). Account passwords and cryptographic content
+is handled on the `main` domain, while the user interface is loaded
+from a `sandbox` domain.
 
 Run `make config` or copy `.env-dist` to `.env`, and edit these
 variables:
@@ -19,9 +21,16 @@ variables:
 
 Start cryptpad: `make install`
 
-Visit the main domain in your browser, and register a new account. Go to the
-user settings page, and find your public signing key (example:
+Open the app in your browser: `make open`
+
+Sign up for a new account. Go to the user settings page, and find your
+public signing key (example:
 `[cryptpad-user1@my.awesome.website/YZgXQxKR0Rcb6r6CmxHPdAGLVludrAF2lEnkbx1vVOo=]`)
 
-Edit your `.env` once again, and copy and paste your public signing key into the
-`ADMIN_KEY` variable, and restart cryptpad: `make install`
+Edit your `.env` once again, and copy and paste your public signing
+key into the `CRYPTPAD_ADMIN_KEY` variable, and restart cryptpad:
+`make install`. Your account should now have admin access, and be able
+to modify the server config.
+
+Make sure to disable or make a rule for your popup blocker, as
+cryptpad makes heavy use of popups.

@@ -297,13 +297,16 @@ here](https://www.golinuxcloud.com/run-sshd-as-non-root-user-without-sudo),
 and heres a log of what I tried. For my purposes, I wanted to run
 `sshd` rootless on a normal installation of Docker. Docker Engine, in
 its default configuration, **runs as root**, and *by default* all
-containers run as root as well. Docker does have a [Rootless
+containers run as root as well. Docker does have a [User Namespace
+mode]() and a [Rootless
 mode](https://docs.docker.com/engine/security/rootless/) and there are
-also implementations like Podman that can be run rootless, (both of
-which let you map host UIDs to different container UIDs, allowing root
-in the container to be mapped to some non-root host user UID) but
-these non-default options are not under consideration for this
-situation.
+also implementations like Podman that can be run rootless, (any of
+which let you map unused UID ranges to your containers, allowing the
+appearance of root in the container, but it is to be mapped to some
+non-root user UID on the host) but none of these options are under
+consideration for this situation. Regretably, you cannot run a
+container (traefik) in host networking mode, without also having real
+root access, so default Docker is what we're stuck with.
 
 My requirements, including nice-to-haves:
 
