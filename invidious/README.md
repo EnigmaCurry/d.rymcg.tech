@@ -12,12 +12,13 @@ username/password. If not, comment out the `Authentication` section in the
 Run `make config`
 
 
-It will ask to create usernames and passwords, and automatically put the hashes
-into the `.env` file for the `INVIDIOUS_HTTP_AUTH` variable. You will use the
-username and plain text password to authenticate before loading the app. Note
-this does not authenticate you to invidious, but only allows access to the app.
-In order to use all of the app features, you must create an invidious account
-and log into the app.
+It will ask to create usernames and passwords, and automatically put
+the hashes into the `.env_${DOCKER_CONTEXT}_default` file for the
+`INVIDIOUS_HTTP_AUTH` variable. You will use the username and plain
+text password to authenticate before loading the app. Note this does
+not authenticate you to invidious, but only allows access to the app.
+In order to use all of the app features, you must create an invidious
+account and log into the app.
 
 ## Notes on invidious
 

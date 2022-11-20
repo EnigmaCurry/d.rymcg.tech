@@ -465,14 +465,14 @@ directory you are in.
  * `cd` into the sub-project directory of an app you want to install.
  * Read the README.md file.
  * Run `make config`
- * Answer the interactive questions, and the `.env_${DOCKER_CONTEXT}`
+ * Answer the interactive questions, and the `.env_${DOCKER_CONTEXT}_default`
    file will be created/updated for you (named with your current
-   docker context, eg. `.env_d.example.com`). Examples are pre-filled
+   docker context, eg. `.env_d.example.com_default`). Examples are pre-filled
    with default values (and based upon your `ROOT_DOMAIN` specified
    earlier). You can accept the suggested default value, or use the
    backspace key and edit the value, to fill in your own answers.
  * Verify the configuration by looking at the contents of
-   `.env_${DOCKER_CONTEXT}`.
+   `.env_${DOCKER_CONTEXT}_default`.
  * Run `make install` to start the services. (this is the same thing as
    `docker-compose up --build -d`)
  * Most services have a website URL, which you can open automatically, run:
@@ -485,7 +485,7 @@ directory you are in.
 
 `make config` *does not literally* create a file named `.env`, but
 rather one based upon the current docker context:
-`.env_${DOCKER_CONTEXT}`. This allows for different configurations to
+`.env_${DOCKER_CONTEXT}_default`. This allows for different configurations to
 coexist in the same directory. All of the makefile commands operate
 assuming this contextual environment file name, not `.env`. To switch
 between configs, you switch your current docker context: `docker
@@ -511,8 +511,8 @@ For a more in depth guide on using the Makefiles, see
 
 By default, each project supports deploying a single instance per
 Docker context. The singleton instance environment file is named
-`.env_${DOCKER_CONTEXT}`, which is contained in each project
-subdirectory (eg. `whoami/.env_d.example.com`).
+`.env_${DOCKER_CONTEXT}_default`, which is contained in each project
+subdirectory (eg. `whoami/.env_d.example.com_default`).
 
 If you want to deploy more than one instance of a given project (to
 the same docker context and from the same source directory), you need
@@ -676,7 +676,7 @@ From the root directory of your clone of this repository, run:
 make backup-env
 ```
 
-The script will ask to add `GPG_RECIPIENT` to your `.env_${DOCKER_CONTEXT}`.
+The script will ask to add `GPG_RECIPIENT` to your `.env_${DOCKER_CONTEXT}_default` file.
 Enter the GPG pub key ID value for your key.
 
 A new encrypted backup file will be created in the same directory called

@@ -62,7 +62,8 @@ client:10.15.0.2                     traefik:172.15.0.3/172.16.0.3     mailu:172
 
 ## Config
 
-Run `make config` and answer the questions to create the `.env` file:
+Run `make config` and answer the questions to create the
+`.env_${DOCKER_CONTEXT}_default` file:
 
  * `MAILU_TRAEFIK_HOST` the mailu server hostname, eg `mail.example.com`
  * `SUBNET` the subnet for the `mail` docker network, eg `192.168.203.0/24`

@@ -5,7 +5,7 @@ include ../_scripts/Makefile.instance
 .PHONY: config-hook
 config-hook:
 	@${BIN}/reconfigure ${ENV_FILE} ARCHIVEBOX_INSTANCE=${instance}
-	@SUFFIX=$$(test -z "$${instance}" && echo "" || echo "-$${instance}"); ${BIN}/reconfigure_ask ${ENV_FILE} ARCHIVEBOX_TRAEFIK_HOST "Enter the archivebox domain name" archivebox$${SUFFIX}.${ROOT_DOMAIN}
+	@${BIN}/reconfigure_ask ${ENV_FILE} ARCHIVEBOX_TRAEFIK_HOST "Enter the archivebox domain name" archivebox${INSTANCE_URL_SUFFIX}.${ROOT_DOMAIN}
 	@CONTEXT_INSTANCE=${CONTEXT_INSTANCE} ${BIN}/reconfigure_htpasswd ${ENV_FILE} ARCHIVEBOX_HTTP_AUTH
 	@${BIN}/reconfigure ${ENV_FILE} SECRET_KEY=$$(openssl rand -hex 45)
 	@${BIN}/reconfigure ${ENV_FILE} ARCHIVEBOX_USERNAME=admin

@@ -9,7 +9,7 @@ domain, and a `sandbox` domain (eg `pad.d.example.com` and
 is handled on the `main` domain, while the user interface is loaded
 from a `sandbox` domain.
 
-Run `make config` or copy `.env-dist` to `.env`, and edit these
+Run `make config` or copy `.env-dist` to `.env_${DOCKER_CONTEXT}_default`, and edit these
 variables:
 
  * `CRYPTPAD_TRAEFIK_HOST` the external domain name to forward from traefik for
@@ -27,7 +27,7 @@ Sign up for a new account. Go to the user settings page, and find your
 public signing key (example:
 `[cryptpad-user1@my.awesome.website/YZgXQxKR0Rcb6r6CmxHPdAGLVludrAF2lEnkbx1vVOo=]`)
 
-Edit your `.env` once again, and copy and paste your public signing
+Edit your `.env_${DOCKER_CONTEXT}_default` once again, and copy and paste your public signing
 key into the `CRYPTPAD_ADMIN_KEY` variable, and restart cryptpad:
 `make install`. Your account should now have admin access, and be able
 to modify the server config.

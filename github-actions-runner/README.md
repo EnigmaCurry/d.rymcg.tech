@@ -32,8 +32,8 @@ Run `make config` and answer the questions:
  * `RUNNER_TOKEN` - this is the token for the runner, copied from the `Create
    self-hosted runner` page on github.
 
-To run multiple runners, copy this entire directory N times with different
-names, and setup each with a different `.env` file.
+To run multiple runners, setup each with a different
+`.env_${DOCKER_CONTEXT}_${INSTANCE}` file.
 
 ## Start the action runner
 

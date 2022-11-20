@@ -11,7 +11,7 @@ included [minio](../minio) service for testing purposes, or choose your own S3
 vendor for production.
 
 Run `make config` to run the configuration wizard, or copy `.env-dist` to
-`.env`, and edit variables accordingly.
+`.env_${DOCKER_CONTEXT}_default`, and edit variables accordingly.
 
  * `NEXTCLOUD_TRAEFIK_HOST` the external domain name to forward from traefik.
  * `DATABASE_PASSWORD` you must choose a secure password for the database.
@@ -46,7 +46,7 @@ Storage):
    Storage, user files will be stored externally in S3 and will not be backed up
    by this configuration anymore.
 
-**Be sure to save a copy your `.env` file someplace safe, including the S3
+**Be sure to save a copy your `.env_${DOCKER_CONTEXT}_default` file someplace safe, including the S3
 bucket name, endpoint, credentials, and encryption passphrase. You will need all
 this information if you need to restore from backup!**
 
@@ -75,7 +75,7 @@ too.)
 ## Restore from backup
 
 To completely restore Nextcloud from backup, you will need to first restore your
-backup copy of the `.env` file, including your configured S3 bucket name,
+backup copy of the `.env_${DOCKER_CONTEXT}_default` file, including your configured S3 bucket name,
 endpoint, credentials, and encryption passphrase.
 
 Bring up nextcloud as normal:
@@ -126,5 +126,6 @@ included in the backup scripts!**
 To enable Object Storage do the following:
 
  * Create a new S3 bucket (not the same one you used for backups)
- * Uncomment the `OBJECTSTORE_S3_*` variables in your `.env` and set the values
-   for your S3 bucket, endpoint, and credentials.
+ * Uncomment the `OBJECTSTORE_S3_*` variables in your
+   `.env_${DOCKER_CONTEXT}_default` and set the values for your S3
+   bucket, endpoint, and credentials.

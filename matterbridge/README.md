@@ -16,7 +16,7 @@ a single user account bridge and that supports private messages.
 
 ## Setup
 
-Copy `.env-dist` to `.env_${DOCKER_CONTEXT}` and edit the variables.
+Copy `.env-dist` to `.env_${DOCKER_CONTEXT}_default` and edit the variables.
 
 The example is for bridging a single Matrix channel to a single IRC channel. You
 can adapt the template for other networks.
@@ -26,8 +26,8 @@ can adapt the template for other networks.
      channel properties, advanced tab.) It looks like
      `!some-long-id@matrix-homeserver-domain.com`
  * Create an IRC account, register the account with NickServ.
- * Enter the account details for both accounts into the `.env` as per the
-   example.
+ * Enter the account details for both accounts into the
+   `.env_${DOCKER_CONTEXT}_default` as per the example.
  * Setup the gateways. Gateways are the mapping of the channels between two accounts.
    * Change `MATRIX_ROOM_1` to your matrix room name ID.
    * Change `IRC_ROOM_1` to the channel name on IRC (Lowercase. Should start

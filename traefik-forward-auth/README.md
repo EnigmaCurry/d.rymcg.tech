@@ -8,7 +8,7 @@ GitHub with the commented out example.
 
 ## Configuration
 
-Copy `.env-dist` to `.env` and edit these variables:
+Copy `.env-dist` to `.env_${DOCKER_CONTEXT}_default` and edit these variables:
 
  * `SECRET` create a secret key string, using `openssl rand -base64 45`.
  * `AUTH_HOST` should be a dedicated sub-domain for the OAuth2 callback URL.

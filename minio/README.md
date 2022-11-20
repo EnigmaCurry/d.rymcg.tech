@@ -27,7 +27,7 @@ filter](https://doc.traefik.io/traefik/middlewares/tcp/ipwhitelist/):
 
 ## Start the server
 
-Once your `.env_${DOCKER_CONTEXT}` file is configured, start the
+Once your `.env_${DOCKER_CONTEXT}_default` file is configured, start the
 service:
 
 ```
@@ -54,9 +54,10 @@ from the GUI console, following the instructions in the next section.
 
 ## Using Minio "console" to create bucket and credentials
 
-The "console" is a web application that lets you graphically interact with your
-minio instance. Log into the console (eg. `https:://console.s3.example.com`)
-using the root user and the password you set in `.env`.
+The "console" is a web application that lets you graphically interact
+with your minio instance. Log into the console (eg.
+`https:://console.s3.example.com`) using the root user and the
+password you set in `.env_${DOCKER_CONTEXT}_default`.
 
 Create a bucket:
 

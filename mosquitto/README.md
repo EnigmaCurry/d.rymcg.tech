@@ -17,7 +17,8 @@ Good blog posts:
 
 ## Config
 
-Run `make config` or copy `.env-dist` to `.env`, and edit variables accordingly.
+Run `make config` or copy `.env-dist` to
+`.env_${DOCKER_CONTEXT}_default`, and edit variables accordingly.
 
  * `MOSQUITTO_TRAEFIK_HOST` the external domain name to forward from traefik.
  
