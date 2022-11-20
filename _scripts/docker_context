@@ -2,4 +2,4 @@
 
 ## get current docker context
 
-docker context inspect --format "{{ .Name }}"
+docker context ls --format "{{.Current}} {{.Name}}" | grep -oP "^true \K.*"
