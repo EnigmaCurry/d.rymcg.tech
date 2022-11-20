@@ -555,7 +555,7 @@ make clean-all      - Remove all environment files and saved passwords.json
 ### make config
 
 Run `make config` to automatically create the configuration file
-`.env_${DOCKER_COMPOSE}` and run a wizard to ask you questions to
+`.env_${DOCKER_COMPOSE}_default` and run a wizard to ask you questions to
 interactively input answers to fill in the variables in the
 configuration file. The wizard prefills default answers for you from
 the provided `.env-dist` template.
