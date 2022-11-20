@@ -78,7 +78,7 @@ make certs
 detailed example of creating certificates and then come back here.)
 
 Double check that the config has now been created in your
-`.env_${DOCKER_CONTEXT}` file and make any final edits (there are a
+`.env_${DOCKER_CONTEXT}_default` file and make any final edits (there are a
 few settings that are not covered by the wizard, so you may want to
 set them by hand). Also note that you can re-run `make config`
 anytime, and it will remember your choices from the last time and make
@@ -118,7 +118,7 @@ domains, *and reinstall Traefik*, before these certificates are needed.
 
 `make certs` is an interactive tool that configures the
 `TRAEFIK_ACME_CERT_DOMAINS` variable in the Traefik
-`.env_${DOCKER_CONTEXT}` file, which is stored as a JSON list of
+`.env_${DOCKER_CONTEXT}_default` file, which is stored as a JSON list of
 domains. This variable feeds the static configuration template, which
 builds the configuration on each startup of the Traefik container.
 
@@ -160,9 +160,10 @@ domain separately, then press Enter on a blank line to finish.)
 
 You can create several certificate domains, and each one can have
 several SANS domains. The final list of all your certificate
-domains+SANS is saved back into your `.env_${DOCKER_CONTEXT}` file in
-the `TRAEFIK_ACME_CERT_DOMAINS` variable as a JSON nested list. When
-you run `make install` this is pushed into the [static configuration
+domains+SANS is saved back into your `.env_${DOCKER_CONTEXT}_default`
+file in the `TRAEFIK_ACME_CERT_DOMAINS` variable as a JSON nested
+list. When you run `make install` this is pushed into the [static
+configuration
 template](https://github.com/EnigmaCurry/d.rymcg.tech/blob/e6a4d0285f04d6d7f07fb9a5ec403ba421229747/traefik/config/traefik.yml#L80-L87).
 
 Back at the main menu, type `q` to quit the certificate manager. If
@@ -210,9 +211,9 @@ make config-inspect
 ## Manual config
 
 If you don't want to run the interactive configuration, you can also
-manually copy `.env-dist` to `.env`. Follow the comments inside
-`.env-dist` for all the available options. Here is a description of
-the most relevant options to edit:
+manually copy `.env-dist` to `.env_${DOCKER_CONTEXT}_default`. Follow
+the comments inside `.env-dist` for all the available options. Here is
+a description of the most relevant options to edit:
 
  * Choose `TRAEFIK_ACME_CERT_RESOLVER=production` or
    `TRAEFIK_ACME_CERT_RESOLVER=staging` to switch to the appropriate

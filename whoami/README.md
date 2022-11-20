@@ -12,8 +12,9 @@ Traefik middleware, and can be used as a template for other services.
 make config
 ```
 
-Or you can just edit `.env` directly, set `WHOAMI_TRAEFIK_HOST` to the domain
-you want to host the `whoami` service on.
+Or you can just edit `.env_${DOCKER_CONTEXT}_default` directly, set
+`WHOAMI_TRAEFIK_HOST` to the domain you want to host the `whoami`
+service on.
 
 
 ## Start

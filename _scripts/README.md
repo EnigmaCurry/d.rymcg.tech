@@ -6,10 +6,12 @@ be called from the Makefiles.
 
 ## What's optional exactly?
 
-Every project here is created to be a simple docker-compose project, configured
-*entirely* by static `.env` files. So you won't need *any* scripts nor
-Makefiles, as long as you edit the `.env` files by hand, and just run
+Every project here is created to be a simple docker-compose project,
+configured *entirely* by static `.env_${DOCKER_CONTEXT}_default`
+files. So you won't need *any* scripts nor Makefiles, as long as you
+edit the `.env_${DOCKER_CONTEXT}_default` files by hand, and just run
 `docker-compose` directly.
 
-These are helpers only, to help create `.env` files, and to automate repetitive
+These are helpers only, to help create
+`.env_${DOCKER_CONTEXT}_default` files, and to automate repetitive
 admin tasks.

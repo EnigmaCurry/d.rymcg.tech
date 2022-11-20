@@ -7,7 +7,7 @@ can easily list your buckets from your web browser.
 
 Consider installing [minio](../minio) as a self-hosted S3 server to test in,
 follow the instructions there for creating a bucket and user credentials. Put
-these into your `.env` file.
+these into your `.env_${DOCKER_CONTEXT}_default` file.
 
 ## Config
 

@@ -5,12 +5,12 @@ manager, connecting to many different storage backends.
 
 ## Config
 
-Run `make config` or copy `.env-dist` to `.env` and edit the variables:
+Run `make config` or copy `.env-dist` to `.env_${DOCKER_CONTEXT}_default` and edit the variables:
 
  * `FILESTASH_TRAEFIK_HOST` the domain name for the filestash application
  * `FILESTASH_AUTH` the htpasswd encoded Basic Authentication credentials for
    your users.
-   
+
 All the rest of the setup is done inside the applications admin console.
 
 ## Run

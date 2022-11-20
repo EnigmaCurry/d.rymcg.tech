@@ -3,7 +3,7 @@
 [Syncthing](https://hub.docker.com/r/syncthing/syncthing) is a continuous file
 synchronization program.
 
-Run `make config` to create the `.env_${DOCKER_CONTEXT}` file.
+Run `make config` to create the `.env_${DOCKER_CONTEXT}_default` file.
 
 Run `make install` to install syncthing.
 

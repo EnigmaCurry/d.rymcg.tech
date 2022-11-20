@@ -7,8 +7,8 @@ provider, to facilitate sign-in for other applications, via
 
 ## Configuration
 
-Run `make config` or copy `.env-dist` to `.env`, and edit variables
-accordingly.
+Run `make config` or copy `.env-dist` to
+`.env_${DOCKER_CONTEXT}_default`, and edit variables accordingly.
 
  * `GITEA_TRAEFIK_HOST` to the external domain name forwarded from traefik, eg.
    `git.example.com`
@@ -26,17 +26,18 @@ Bring up the service with `docker-compose up -d`, then immediately open the
 website domain in your browser to finish the setup procedure with install wizard
 (READ the folowing notes before proceeding).
 
- * DO NOT attempt to customize any of the settings using the install wizard. It
-   will all be overwritten later by the values you set in your own `.env` file.
+ * DO NOT attempt to customize any of the settings using the install
+   wizard. It will all be overwritten later by the values you set in
+   your own `.env_${DOCKER_CONTEXT}_default` file.
  * THE ONLY thing you need to do with the install wizard is to create an
    administrator account and password. Click the `Administrator Account
    Settings` link to expand the option, enter the username `root`, enter a
    secure passphrase, enter your email address.
  * Once you've entered the `root` account details, click `Install Gitea`.
  
-It is normal to receive a message of `Bad Gateway` once, right after install.
-You must restart the service in order for your `.env` configuration to be fully
-applied:
+It is normal to receive a message of `Bad Gateway` once, right after
+install. You must restart the service in order for your
+`.env_${DOCKER_CONTEXT}_default` configuration to be fully applied:
 
 ```
 # Restart gitea to get the config applied:
