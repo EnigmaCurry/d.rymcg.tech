@@ -166,22 +166,57 @@ per-project information.
 
 ## Setup
 
-### Install workstation tools
+### Install Docker CLI tools
 
 You need to install the following tools on your local workstation:
 
  * [Install docker client](https://docs.docker.com/get-docker/) (For
-   Mac/Windows, this means Docker Desktop. For Linux, this means
-   installing the Docker Engine, but not necessarily starting the
+   Linux, install Docker Engine, but not necessarily starting the
    daemon; the `docker` client program and `ssh` are all you need
-   installed on your workstation to connect to a remote docker
-   server.)
+   installed on your workstation to connect to a remote docker server.
+   For Mac/Windows, install Docker Desktop, or use your own Linux
+   Virtual Machine and install Docker Engine.)
  * [Install docker-compose
    v2.x](https://docs.docker.com/compose/cli-command/#installing-compose-v2)
-   (For Docker Desktop, `docker-compose` is already installed. For
+   (For Docker Desktop, `docker compose` is already installed. For
    Linux, it is a separate installation.)
+ * [Install docker
+   buildx](https://docs.docker.com/build/buildx/install/) (optional,
+   and *none* of the projects require it) - "Docker Buildx, is a CLI
+   plugin that extends the docker command with the full support of the
+   features provided by BuildKit builder toolkit." and it allows you
+   to do cool things like [Heredocs in
+   Dockerfiles](https://www.docker.com/blog/introduction-to-heredocs-in-dockerfiles/).
 
-### Install optional workstation tools
+For Arch Linux, run: `sudo pacman -S docker docker-compose
+docker-buildx`
+
+For Debian or Ubuntu, you should strictly follow the directions from
+from the links above and install only from the docker.com third party
+apt repository (because the docker packages from the Ubuntu
+repositories are always out of date).
+
+You do not need to (and perhaps *should not*) run the Docker Engine on
+your local workstation. You will use the docker client exclusively to
+control a *remote* docker server (or VM). To turn off/disable the
+Docker Engine on your worksation, run the following:
+
+```
+## Disable local Docker Engine:
+sudo systemctl mask --now docker
+```
+
+#### Enable Docker buildx (optional)
+
+Following the [buildx installation
+guide](https://docs.docker.com/build/buildx/install/), and run the
+installation:
+
+```
+docker buildx install
+```
+
+### Install workstation tools (optional)
 
 There are also **optional** helper scripts and Makefiles included,
 that will have some additional system package requirements (Note:
@@ -270,10 +305,28 @@ docker context use d.example.com
 Host name [`ssh.d.exmaple.com`] that you specified in your
 `${HOME}/.ssh/config`)
 
-Now whenever you issue `docker` or `docker-compose` commands on your
-local workstation, you will actually be controlling your remote Docker
-server, through SSH, and you can easily switch contexts between
-multiple server backends.
+Now whenever you issue `docker` commands on your local workstation,
+you will actually be controlling your remote Docker server, through
+SSH, and you can easily switch contexts between multiple server
+backends.
+
+For example, I have three docker contexts for three different remote
+Docker servers (the `*` indicates my current context):
+
+```
+$ docker context ls
+NAME              DESCRIPTION  DOCKER ENDPOINT
+d.rymcg.tech *                 ssh://ssh.d.rymcg.tech
+docker-vm                      ssh://docker-vm
+pi                             ssh://pi
+```
+
+I can select to use which context I want to use:
+
+```
+$ docker context use docker-vm
+Current context is now "docker-vm"
+```
 
 
 ### Clone this repository to your workstation
