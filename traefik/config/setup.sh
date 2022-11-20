@@ -47,6 +47,12 @@ ytt_template() {
         -v vpn_proxy_enabled=${TRAEFIK_VPN_PROXY_ENABLED} \
         -v vpn_client_enabled=${TRAEFIK_VPN_CLIENT_ENABLED} \
         -v vpn_client_peer_services=${TRAEFIK_VPN_CLIENT_PEER_SERVICES} \
+        -v xmpp_c2s_entrypoint_enabled=${TRAEFIK_XMPP_C2S_ENTRYPOINT_ENABLED} \
+        -v xmpp_c2s_entrypoint_host=${TRAEFIK_XMPP_C2S_ENTRYPOINT_HOST} \
+        -v xmpp_c2s_entrypoint_port=${TRAEFIK_XMPP_C2S_ENTRYPOINT_PORT} \
+        -v xmpp_s2s_entrypoint_enabled=${TRAEFIK_XMPP_S2S_ENTRYPOINT_ENABLED} \
+        -v xmpp_s2s_entrypoint_host=${TRAEFIK_XMPP_S2S_ENTRYPOINT_HOST} \
+        -v xmpp_s2s_entrypoint_port=${TRAEFIK_XMPP_S2S_ENTRYPOINT_PORT} \
         -v root_domain=${TRAEFIK_ROOT_DOMAIN} \
         -v vpn_root_domain=${TRAEFIK_VPN_ROOT_DOMAIN} \
         -v network_mode=${TRAEFIK_NETWORK_MODE} \

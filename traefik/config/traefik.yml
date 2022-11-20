@@ -99,6 +99,14 @@ entryPoints:
           #@ end
         #@ end
   #@ end
+  #@ if data.values.xmpp_c2s_entrypoint_enabled == "true":
+  xmpp_c2s:
+    address: #@ data.values.xmpp_c2s_entrypoint_host + ":" + data.values.xmpp_c2s_entrypoint_port
+  #@ end
+  #@ if data.values.xmpp_s2s_entrypoint_enabled == "true":
+  xmpp_s2s:
+    address: #@ data.values.xmpp_s2s_entrypoint_host + ":" + data.values.xmpp_s2s_entrypoint_port
+  #@ end
   #@ if data.values.ssh_entrypoint_enabled == "true":
   mqtt:
     address: #@ data.values.mqtt_entrypoint_host + ":" + data.values.mqtt_entrypoint_port
