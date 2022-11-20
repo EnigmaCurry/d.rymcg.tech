@@ -312,7 +312,7 @@ module.exports = {
     /* CryptPad supports logging events directly to the disk in a 'logs' directory
      * Set its location here, or set it to false (or nothing) if you'd rather not log
      */
-    logPath: './data/logs',
+    logPath: false,
 
     /* =====================
      *       Debugging
@@ -334,7 +334,7 @@ module.exports = {
      *
      * This will affect both logging to the console and the disk.
      */
-    logLevel: 'info',
+    logLevel: '${CRYPTPAD_LOG_LEVEL}',
 
     /*  clients can use the /settings/ app to opt out of usage feedback
      *  which informs the server of things like how much each app is being

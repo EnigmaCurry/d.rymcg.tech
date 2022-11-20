@@ -1,7 +1,7 @@
 include ../_scripts/Makefile.docker-compose
 
 .PHONY: build # Build container images
-build: pull
+build:
 	@make --no-print-directory build-hook-pre-rule-exists 2>/dev/null && make --no-print-directory build-hook-pre || true
 	@make --no-print-directory docker-compose-build EXTRA_ARGS="${EXTRA_ARGS}"
 	@make --no-print-directory build-hook-post-rule-exists 2>/dev/null && make --no-print-directory build-hook-post || true

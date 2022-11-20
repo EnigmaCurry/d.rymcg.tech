@@ -140,7 +140,7 @@ delete() {
     if docker volume inspect ${CERT_VOLUME} > /dev/null 2>&1; then
         (set -x; docker volume rm ${CERT_VOLUME}) && echo "Deleted volume ${CERT_VOLUME}"
     else
-        echo "No certificate volume exists named '${CERT_VOLUME}'."        
+        echo "No certificate volume exists named '${CERT_VOLUME}'."
     fi
 }
 

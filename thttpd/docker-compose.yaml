@@ -12,6 +12,8 @@ services:
     restart: unless-stopped
     security_opt:
       - no-new-privileges:true
+    cap_drop:
+      - ALL
     user: ${THTTPD_UID}:${THTTPD_GID}
     labels:
       - "traefik.enable=true"

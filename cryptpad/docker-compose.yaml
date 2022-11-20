@@ -1,0 +1,120 @@
+version: "3.9"
+
+volumes:
+  blob:
+  block:
+  customize:
+  data:
+  datastore:
+  config:
+
+services:
+  config:
+    build:
+      context: config
+    security_opt:
+      - no-new-privileges:true
+    environment:
+      - CPAD_MAIN_DOMAIN=${CRYPTPAD_TRAEFIK_HOST}
+      - CPAD_SANDBOX_DOMAIN=${CRYPTPAD_SANDBOX_DOMAIN}
+      - ADMIN_KEY=${CRYPTPAD_ADMIN_KEY}
+      - ADMIN_EMAIL=${CRYPTPAD_ADMIN_EMAIL}
+      - PRINT_CONFIG
+      - DEFAULT_STORAGE_LIMIT=${CRYPTPAD_DEFAULT_STORAGE_LIMIT}
+      - MAX_UPLOAD_SIZE=${CRYPTPAD_MAX_UPLOAD_SIZE}
+      - BLOCK_DAILY_CHECK=${CRYPTPAD_BLOCK_DAILY_CHECK}
+      - CRYPTPAD_LOG_LEVEL=${CRYPTPAD_LOG_LEVEL:-warn}
+    volumes:
+      - config:/cryptpad/config
+
+  cryptpad:
+    depends_on: ['config']
+    build:
+      context: cryptpad
+      args:
+        CRYPTPAD_VERSION: ${CRYPTPAD_VERSION}
+    restart: unless-stopped
+    command: ['start_cryptpad.sh']
+    environment:
+      - CPAD_MAIN_DOMAIN=${CRYPTPAD_TRAEFIK_HOST}
+      - CPAD_SANDBOX_DOMAIN=${CRYPTPAD_SANDBOX_DOMAIN}
+      # Traefik can't use HTTP2 to communicate with cryptpat_websocket
+      # A workaround is disabling HTTP2 in Nginx
+      - CPAD_HTTP2_DISABLE=true
+      - CPAD_REALIP_RECURSIVE=on
+      - CPAD_REALIP_HEADER=X-Forwarded-For
+      - TZ=America/New_York
+    volumes:
+      - blob:/cryptpad/blob
+      - block:/cryptpad/block
+      - customize:/cryptpad/customize
+      - data:/cryptpad/data
+      - datastore:/cryptpad/datastore
+      - config:/cryptpad/config
+      - /etc/timezone:/etc/timezone:ro
+      - /etc/localtime:/etc/localtime:ro
+    labels:
+      ## Enable traefik
+      - traefik.enable=true
+      ## Declare service
+      ## Change the port if you enabled TLS
+      - traefik.http.services.cryptpad-${CRYPTPAD_INSTANCE:-default}.loadbalancer.server.port=80
+      # HTTPS router rules
+      - traefik.http.routers.cryptpad-${CRYPTPAD_INSTANCE:-default}-https.entrypoints=websecure
+      - traefik.http.routers.cryptpad-${CRYPTPAD_INSTANCE:-default}-https.rule=Host(`${CRYPTPAD_TRAEFIK_HOST}`, `${CRYPTPAD_SANDBOX_DOMAIN}`)
+      - traefik.http.routers.cryptpad-${CRYPTPAD_INSTANCE:-default}-https.service=cryptpad-${CRYPTPAD_INSTANCE:-default}
+      # Rewrite CORS headers - For some reason cryptpad is duplicating the CORS headers
+      # This makes chromium browsers not load, so this rewrite rule de-duplicates the headers
+      # (actually the value was cross-origin, which seems wrong to me, same-site seems safer)
+      - traefik.http.middlewares.cryptpad-${CRYPTPAD_INSTANCE:-default}-headers.headers.customresponseheaders.Cross-Origin-Resource-Policy=same-site
+      - traefik.http.routers.cryptpad-${CRYPTPAD_INSTANCE:-default}-https.middlewares=cryptpad-${CRYPTPAD_INSTANCE:-default}-headers@docker
+    ulimits:
+      nofile:
+        soft: 1000000
+        hard: 1000000
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    cap_add:
+      - SETGID
+      - SETUID
+      - CHOWN
+      ### DAC_OVERRIDE needed to open /var/log/nginx/error.log
+      ### However, nginx is set to log errors to stderr, so this is not needed?
+      # - DAC_OVERRIDE
+      ### Unused capabilities:
+      # - SYS_CHROOT
+      # - AUDIT_WRITE
+      # - FOWNER
+      # - AUDIT_CONTROL
+      # - AUDIT_READ
+      # - BLOCK_SUSPEND
+      # - DAC_READ_SEARCH
+      # - FSETID
+      # - IPC_LOCK
+      # - IPC_OWNER
+      # - KILL
+      # - LEASE
+      # - LINUX_IMMUTABLE
+      # - MAC_ADMIN
+      # - MAC_OVERRIDE
+      # - MKNOD
+      # - NET_ADMIN
+      # - NET_BIND_SERVICE
+      # - NET_BROADCAST
+      # - NET_RAW
+      # - SETFCAP
+      # - SETPCAP
+      # - SYS_ADMIN
+      # - SYS_BOOT
+      # - SYSLOG
+      # - SYS_MODULE
+      # - SYS_NICE
+      # - SYS_PACCT
+      # - SYS_PTRACE
+      # - SYS_RAWIO
+      # - SYS_RESOURCE
+      # - SYS_TIME
+      # - SYS_TTY_CONFIG
+      # - WAKE_ALARM

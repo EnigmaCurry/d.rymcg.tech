@@ -16,7 +16,7 @@ config-hook: traefik-user config-ask compose-profiles
 
 .PHONY: traefik-user
 traefik-user:
-	@(ssh $$(docker context inspect | jq -r ".[0].Endpoints.docker.Host") id traefik && echo "Traefik user exists.") || (ssh $$(docker context inspect | jq -r ".[0].Endpoints.docker.Host") adduser --disabled-login --disabled-password --gecos GECOS traefik && ssh $$(docker context inspect | jq -r ".[0].Endpoints.docker.Host") gpasswd -a traefik docker)
+	@SSH_HOST=$$(docker context inspect | jq -r ".[0].Endpoints.docker.Host"); SSH_UID=$$(ssh $${SSH_HOST} id -u); [[ $SSH_UID != "0" ]] && SUDO_PREFIX="sudo" || SUDO_PREFIX=""; (ssh $${SSH_HOST} id traefik && echo "Traefik user exists.") || (ssh $${SSH_HOST} $${SUDO_PREFIX} adduser --disabled-login --disabled-password --gecos GECOS traefik && ssh $${SSH_HOST} $${SUDO_PREFIX} gpasswd -a traefik docker)
 
 .PHONY: config-ask
 config-ask:

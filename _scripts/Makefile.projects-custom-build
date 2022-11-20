@@ -1,5 +1,5 @@
-include ../_scripts/Makefile.help
 include ../_scripts/Makefile.globals
+include ../_scripts/Makefile.help
 include ../_scripts/Makefile.docker-compose
 include ../_scripts/Makefile.install
 include ../_scripts/Makefile.clean
@@ -7,7 +7,6 @@ include ../_scripts/Makefile.override
 include ../_scripts/Makefile.lifecycle
 include ../_scripts/Makefile.open
 include ../_scripts/Makefile.reconfigure
-include ../_scripts/Makefile.instance
 include ../.env_$(shell ${BIN}/docker_context)
 
 

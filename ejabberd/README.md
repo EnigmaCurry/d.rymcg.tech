@@ -11,16 +11,33 @@ instead of direct TLS. This allows logging by entering just a Jabber ID [JID]
 and a password, and without needing to click into the Advanced Settings of
 Gajim.)
 
+### Enable Traefik XMPP Endpoints
+
+You must enable the `xmpp_c2s` and `xmpp_s2s` Traefik endpoints and
+restart Traefik:
+
+```
+make -C ~/git/vendor/enigmacurry/d.rymcg.tech/traefik \
+    reconfigure var=TRAEFIK_XMPP_C2S_ENTRYPOINT_ENABLED=true
+make -C ~/git/vendor/enigmacurry/d.rymcg.tech/traefik \
+    reconfigure var=TRAEFIK_XMPP_S2S_ENTRYPOINT_ENABLED=true
+make -C ~/git/vendor/enigmacurry/d.rymcg.tech/traefik \
+    install
+```
+
+### Configure ejabberd
+
 This ejabberd configuration *will not* share the main TLS certificate used by
 Traefik. You need to provide your own certificate, placed into a volume (eg.
 with certbot), or you may generate a local certificate authority and self-signed
 certificate as this example will show.
 
 To generate a new a self-signed certificate, use the included
-[cert-manager.sh](../_terminal/certificate-ca) script to create a Certificate Authority:
+[cert-manager.sh](../_terminal/certificate-ca) script to create a
+Certificate Authority:
 
 ```
-make cert
+make -C ~/git/vendor/enigmacurry/d.rymcg.tech/_terminal/certificate-ca cert
 ```
 
  * When asked, enter the XMPP domain name.
