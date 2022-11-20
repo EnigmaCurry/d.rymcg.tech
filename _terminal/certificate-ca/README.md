@@ -1,5 +1,4 @@
 # certificate-ca
-
 This is a simple script to manage an OpenSSL Certificate Authority inside of a
 docker volume, and tool to generate and sign certificates and store these inside
 other docker volumes.
