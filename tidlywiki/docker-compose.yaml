@@ -1,0 +1,66 @@
+version: "3.9"
+
+volumes:
+  data:
+
+services:
+  tidlywiki:
+    build:
+      context: bfren-nginx-webdav
+    environment:
+      - TIDLYWIKI_INSTANCE=${TIDLYWIKI_INSTANCE:-default}
+      - WEBDAV_ACCESS=rw
+      - WEBDAV_METHODS=PUT DELETE MKCOL COPY MOVE
+      - WEBDAV_EXT_METHODS=PROPFIND OPTIONS
+    security_opt:
+      - no-new-privileges:true
+    # sysctls:
+    #   - net.ipv4.ip_unprivileged_port_start=1024
+    # cap_drop:
+    #   - ALL
+    cap_add:
+      - CHOWN
+      - SETGID
+      - SETUID
+      # - DAC_OVERRIDE
+      # - FOWNER
+      # - FSETID
+      # - MKNOD
+      # - NET_RAW
+      # - SETFCAP
+      # - SETPCAP
+      # - NET_BIND_SERVICE
+      # - SYS_CHROOT
+      # - KILL
+      # - AUDIT_WRITE
+    volumes:
+      - data:/www
+    restart: unless-stopped
+    labels:
+      - "traefik.enable=true"
+
+      ### Enable public read-only access (can filter client IP address via TIDLYWIKI_IP_SOURCERANGE):
+      - "traefik.http.routers.tidlywiki-public-${TIDLYWIKI_INSTANCE:-default}.rule=Host(`${TIDLYWIKI_TRAEFIK_HOST}`) && Path(`/`) && Method(`GET`)"
+      - "traefik.http.routers.tidlywiki-public-${TIDLYWIKI_INSTANCE:-default}.entrypoints=websecure"
+      - "traefik.http.routers.tidlywiki-public-${TIDLYWIKI_INSTANCE:-default}.middlewares=tidlywiki-${TIDLYWIKI_INSTANCE:-default}-whitelist,tidlywiki-${TIDLYWIKI_INSTANCE:-default}-replacepath"
+
+      ### Redirect authenticated users to /admin
+      - "traefik.http.routers.tidlywiki-redirect-${TIDLYWIKI_INSTANCE:-default}.rule=Host(`${TIDLYWIKI_TRAEFIK_HOST}`) && Path(`/`) && Method(`GET`) && HeadersRegexp(`Authorization`,`.*`)"
+      - "traefik.http.routers.tidlywiki-redirect-${TIDLYWIKI_INSTANCE:-default}.entrypoints=websecure"
+      - "traefik.http.routers.tidlywiki-redirect-${TIDLYWIKI_INSTANCE:-default}.middlewares=tidlywiki-redirect-${TIDLYWIKI_INSTANCE:-default}"
+
+      ### /admin read-write access requires HTTP Basic Auth:
+      - "traefik.http.routers.tidlywiki-admin-${TIDLYWIKI_INSTANCE:-default}.rule=Host(`${TIDLYWIKI_TRAEFIK_HOST}`) && Path(`/admin`)"
+      - "traefik.http.routers.tidlywiki-admin-${TIDLYWIKI_INSTANCE:-default}.entrypoints=websecure"
+      - "traefik.http.routers.tidlywiki-admin-${TIDLYWIKI_INSTANCE:-default}.middlewares=tidlywiki-${TIDLYWIKI_INSTANCE:-default}-whitelist,tidlywiki-${TIDLYWIKI_INSTANCE:-default}-replacepath,tidlywiki-${TIDLYWIKI_INSTANCE:-default}-auth@docker"
+
+      ### Middlewares
+      # IP filter:
+      - "traefik.http.middlewares.tidlywiki-${TIDLYWIKI_INSTANCE:-default}-whitelist.ipwhitelist.sourcerange=${TIDLYWIKI_IP_SOURCERANGE}"
+      # Replace all forwarded paths to /index.html
+      - "traefik.http.middlewares.tidlywiki-${TIDLYWIKI_INSTANCE:-default}-replacepath.replacepath.path=/index.html"
+      # Authentication:
+      - "traefik.http.middlewares.tidlywiki-${TIDLYWIKI_INSTANCE:-default}-auth.basicauth.users=${TIDLYWIKI_HTTP_AUTH}"
+      # Redirect to /admin:
+      - "traefik.http.middlewares.tidlywiki-redirect-${TIDLYWIKI_INSTANCE:-default}.redirectregex.regex=^https://${TIDLYWIKI_TRAEFIK_HOST}/"
+      - "traefik.http.middlewares.tidlywiki-redirect-${TIDLYWIKI_INSTANCE:-default}.redirectregex.replacement=https://${TIDLYWIKI_TRAEFIK_HOST}/admin"
