@@ -78,9 +78,9 @@ get_root_domain() {
 }
 
 docker_compose() {
-    ENV_FILE=.env_$(${BIN}/docker_context)
+    ENV_FILE=${ENV_FILE:-.env_$(${BIN}/docker_context)}
     PROJECT_NAME="$(basename $PWD)"
-    if [[ -n "${instance:-${INSTANCE}}" ]]; then
+    if [[ -n "${instance:-${INSTANCE}}" ]] && [[ "${ENV_FILE}" != ".env_${DOCKER_CONTEXT}_${instance:-${INSTANCE}}" ]]; then
         ENV_FILE="${ENV_FILE}_${instance:-${INSTANCE}}"
         PROJECT_NAME="$(basename $PWD)_${instance:-${INSTANCE}}"
     fi
@@ -89,9 +89,9 @@ docker_compose() {
 }
 
 docker_run() {
-    ENV_FILE=.env_$(${BIN}/docker_context)
+    ENV_FILE=${ENV_FILE:-.env_$(${BIN}/docker_context)}
     PROJECT_NAME="$(basename $PWD)"
-    if [[ -n "${instance:-${INSTANCE}}" ]]; then
+    if [[ -n "${instance:-${INSTANCE}}" ]] && [[ "${ENV_FILE}" != ".env_${DOCKER_CONTEXT}_${instance:-${INSTANCE}}" ]]; then
         ENV_FILE="${ENV_FILE}_${instance:-${INSTANCE}}"
         PROJECT_NAME="$(basename $PWD)_${instance:-${INSTANCE}}"
     fi
@@ -100,9 +100,9 @@ docker_run() {
 }
 
 docker_exec() {
-    ENV_FILE=.env_$(${BIN}/docker_context)
+    ENV_FILE=${ENV_FILE:-.env_$(${BIN}/docker_context)}
     PROJECT_NAME="$(basename $PWD)"
-    if [[ -n "${instance:-${INSTANCE}}" ]]; then
+    if [[ -n "${instance:-${INSTANCE}}" ]] && [[ "${ENV_FILE}" != ".env_${DOCKER_CONTEXT}_${instance:-${INSTANCE}}" ]]; then
         ENV_FILE="${ENV_FILE}_${instance:-${INSTANCE}}"
         PROJECT_NAME="$(basename $PWD)_${instance:-${INSTANCE}}"
     fi

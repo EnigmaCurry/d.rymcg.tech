@@ -21,7 +21,7 @@ ENV_FILE ?= ".env_${CONTEXT_INSTANCE}"
 PROJECT_NAME ?= $$(basename $${PWD})${INSTANCE_SUFFIX}
 CWD_PROJECT_NAME ?= $$(basename $${PWD})${INSTANCE_SUFFIX}
 PROJECT_INSTANCE ?= ${CWD_PROJECT_INSTANCE}
-DOCKER_COMPOSE_FILE_ARGS ?= $$( (set +x; [[ -f docker-compose.override${INSTANCE_SUFFIX}.yaml ]] && echo "-f docker-compose.yaml -f docker-compose.override_${CONTEXT_INSTANCE}.yaml" || echo "-f docker-compose.yaml") )
+DOCKER_COMPOSE_FILE_ARGS ?= $$( (set +x; [[ -f docker-compose.override_${CONTEXT_INSTANCE}.yaml ]] && echo "-f docker-compose.yaml -f docker-compose.override_${CONTEXT_INSTANCE}.yaml" || echo "-f docker-compose.yaml") )
 
 .PHONY: all
 all: help

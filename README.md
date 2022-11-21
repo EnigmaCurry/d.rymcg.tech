@@ -610,7 +610,7 @@ configuration without wanting to commit those changes back to the base
 template in the git repository.
 
 You can override each project's `docker-compose.yaml` with a
-per-docker-context `docker-compose.override_${DOCKER_CONTEXT}.yaml`
+per-docker-context `docker-compose.override_${DOCKER_CONTEXT}_default.yaml`
 (default instance) or a per-instance
 `docker-compose.override_${DOCKER_CONTEXT}_${INSTANCE}.yaml` file.
 
@@ -620,7 +620,7 @@ normally a static list in `docker-compose.yaml`, you need a way of
 dynamically generating it. There is a template
 [docker-compose.instance.yaml](sftp/docker-compose.instance.yaml) that
 when you run `make config` it will render the template to the file
-`docker-compose.override_${DOCKER_CONTEXT}.yaml` containing the custom
+`docker-compose.override_${DOCKER_CONTEXT}_default.yaml` containing the custom
 mountpoints (this file is ignored by git.) The override file is merged
 with the base `docker-compose.yaml` whenever you run `make install`,
 thus each instance receives its own list of volumes to mount.
