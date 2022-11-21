@@ -47,6 +47,10 @@ Open the wiki as the admin user:
 make open
 ```
 
+See the URL with the username and password printed in the terminal,
+share this with your trusted friends and they will be able to edit the
+same wiki.
+
 ## Authentication and Authorization
 
 The Traefik configuration handles network IP address filtering and
