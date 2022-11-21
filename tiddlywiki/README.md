@@ -20,15 +20,19 @@ made in the browser back to itself, and replaces the server's
 make config
 ```
 
-Configure the following environemnt variables:
+Configure the following environment variables:
 
  * `TIDLYWIKI_TRAEFIK_HOST` the domain name to serve the wiki from.
  * Setup usernames and passwords (this automatically sets
    `TIDLYWIKI_HTTP_AUTH` with `htpasswd` encoded usernames/passwords).
 
+Install:
+
 ```
 make install
 ```
+
+Open the wiki as the admin user:
 
 ```
 make open
@@ -36,17 +40,17 @@ make open
 
 ## Authentication and Authorization
 
-The Traefik configuration handles user authentication and network IP
-address filtering:
+The Traefik configuration handles network IP address filtering and
+user authentication:
 
- * Public read-only access is granted to all (IP filtered) requests on
-   `https://${TIDLYWIKI_TRAEFIK_HOST}/` (root path `/` via `HTTP GET`
-   *only*)
- * Admin read-write access is granted only via HTTP Basic
-   Authentication on `https://${TIDLYWIKI_TRAEFIK_HOST}/admin`
  * Filtering on IP address sourcerange by setting
    `TIDLYWIKI_IP_SOURCERANGE`. The default (`0.0.0.0/0`) allows
    connecting from any client IP address. Set this to a specific
    subnet (or list of comma separated subnets) to allow only selected
    networks, eg: `192.168.1.1/24,10.10.0.0/16`. Disable all traffic
    with `0.0.0.0/32`.
+ * Public read-only access is granted to all (IP filtered) requests on
+   `https://${TIDLYWIKI_TRAEFIK_HOST}/` (root path `/` via `HTTP GET`
+   *only*)
+ * Admin read-write access is granted only via HTTP Basic
+   Authentication on `https://${TIDLYWIKI_TRAEFIK_HOST}/admin`
