@@ -14,6 +14,11 @@ served in this environment, and it will automatically save changes
 made in the browser back to itself, and replaces the server's
 `index.html` with the modified version.
 
+The default configuration is for a private notebook protected with a
+username/password. You can share the URL and username/password amongst
+all trusted editors. If you want to, you can enable optional public
+read-only access as well (see `TIDLYWIKI_PUBLIC_IP_SOURCERANGE`).
+
 ## Config
 
 ```
@@ -23,8 +28,9 @@ make config
 Configure the following environment variables:
 
  * `TIDLYWIKI_TRAEFIK_HOST` the domain name to serve the wiki from.
- * Setup usernames and passwords (this automatically sets
-   `TIDLYWIKI_HTTP_AUTH` with `htpasswd` encoded usernames/passwords).
+ * Answer the questions to setup usernames and passwords (this
+   automatically sets `TIDLYWIKI_HTTP_AUTH` with `htpasswd` encoded
+   usernames/passwords).
 
 Install:
 
@@ -43,14 +49,23 @@ make open
 The Traefik configuration handles network IP address filtering and
 user authentication:
 
- * Filtering on IP address sourcerange by setting
-   `TIDLYWIKI_IP_SOURCERANGE`. The default (`0.0.0.0/0`) allows
-   connecting from any client IP address. Set this to a specific
-   subnet (or list of comma separated subnets) to allow only selected
-   networks, eg: `192.168.1.1/24,10.10.0.0/16`. Disable all traffic
-   with `0.0.0.0/32`.
+Public read-only access:
+
+ * **Public access is disabled by default**.
+ * To enable public read-only access, you must set
+ `TIDLYWIKI_PUBLIC_IP_SOURCERANGE`. The default (`0.0.0.0/32`) turns
+ off all public (unauthenticated) access. Set this to a specific
+ subnet (or list of comma separated subnets) to allow only selected
+ networks, eg: `192.168.1.1/24,10.10.0.0/16`. You can enable all
+ public access with `0.0.0.0/0`.
  * Public read-only access is granted to all (IP filtered) requests on
    `https://${TIDLYWIKI_TRAEFIK_HOST}/` (root path `/` via `HTTP GET`
    *only*)
+
+Admin read-write access:
  * Admin read-write access is granted only via HTTP Basic
-   Authentication on `https://${TIDLYWIKI_TRAEFIK_HOST}/admin`
+   Authentication on `https://${TIDLYWIKI_TRAEFIK_HOST}/admin`.
+ * There is no IP filtering applied by default
+   (`TIDLYWIKI_ADMIN_IP_SOURCERANGE=0.0.0.0/0`), the admin account can
+   access from any IP address, using the password. You can filter
+   subnets for the admin similarly to the public access.
