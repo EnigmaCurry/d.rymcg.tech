@@ -2,22 +2,25 @@
 
 [TiddlyWiki](https://tiddlywiki.com/) is a non-linear notebook for
 capturing, organising, and sharing complex information. TiddlyWiki
-stores itself and the entire wiki database inside of a single .html
-file. TiddlyWiki can save itself to many different storage backends,
-but by default it uses WebDAV.
+stores itself, and the entire wiki database, inside of a single
+`.html` file. TiddlyWiki can save itself to many different storage
+backends, but by default it uses WebDAV and pushes changes back to the
+same server and path that it is served from.
 
 This project configuration creates an [Nginx](https://nginx.org)
 WebDAV server backend with
 [bfren/docker-nginx](https://github.com/bfren/docker-nginx) and serves
-the TiddlyWiki `index.html` file. TiddlyWiki knows what to do when
-served in this environment, and it will automatically save changes
-made in the browser back to itself, and replaces the server's
+only a single TiddlyWiki `index.html` file. TiddlyWiki knows what to
+do when served in this environment, and it will automatically save
+changes made in the browser back to itself, and replaces the server's
 `index.html` with the modified version.
 
-The default configuration is for a private notebook protected with a
-username/password. You can share the URL and username/password amongst
-all trusted editors. If you want to, you can enable optional public
-read-only access as well (see `TIDLYWIKI_PUBLIC_IP_SOURCERANGE`).
+The default configuration is for a private notebook, protected with a
+username/password, only viewable and editable by an admin account. You
+can share the same URL and username/password amongst all trusted
+editors (or create individual credentials for the same access
+privilege). If you want to, you can enable optional public read-only
+access as well (see `TIDLYWIKI_PUBLIC_IP_SOURCERANGE`).
 
 ## Config
 
