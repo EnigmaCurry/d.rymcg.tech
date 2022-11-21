@@ -408,6 +408,7 @@ Install these services at your leisure/preference:
 * [Shaarli](shaarli) - a bookmark manager
 * [Syncthing](syncthing) - a multi-device file synchronization tool
 * [Thttpd](thttpd) - a tiny/turbo/throttling HTTP server for serving static files
+* [TidlyWiki](tidlywiki) - A personal wiki stored in a single HTML file
 * [Tiny Tiny RSS](ttrss) - an RSS reader / proxy
 * [Traefik-forward-auth](traefik-forward-auth) - Traefik oauth middleware
 * [Websocketd](websocketd) - a websocket / CGI server
