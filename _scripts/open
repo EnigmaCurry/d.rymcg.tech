@@ -8,15 +8,18 @@
 ## $2 host
 ## $3 protocol (https)
 
-BIN=$(dirname ${BASH_SOURCE})
-DOCKER_CONTEXT=$(${BIN}/docker_context)
-instance=${instance:-${INSTANCE:-default}}
-CONTEXT_INSTANCE="${DOCKER_CONTEXT}_${instance}"
-
-ENV_FILE=".env_${CONTEXT_INSTANCE}"
-
-if [[ ! -f ${ENV_FILE} ]]; then
-    echo "No ${ENV_FILE} file found"
+echo "ENV_FILE=${ENV_FILE}"
+echo "CONTEXT_INSTANCE=${CONTEXT_INSTANCE}"
+if [[ ! -f "${ENV_FILE}" ]]; then
+    echo "ENV_FILE not found"
+    exit 1
+fi
+if [[ -z "${DOCKER_CONTEXT}" ]]; then
+    echo "Missing DOCKER_CONTEXT"
+    exit 1
+fi
+if [[ -z "${CONTEXT_INSTANCE}" ]]; then
+    echo "Missing CONTEXT_INSTANCE"
     exit 1
 fi
 
