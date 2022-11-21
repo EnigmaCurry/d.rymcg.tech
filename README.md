@@ -554,16 +554,7 @@ default within the sub-shell, so you don't have to type it anymore:
 make instance
 ```
 
-`make instance` will prompt you to enter a new (or existing) instance
-name, and it will then automatically call `make instance=${INSTANCE}
-config` on the new instance environment, asking you questions to
-automatically create the environment file of the instance
-(`.env_${DOCKER_CONTEXT}_${INSTANCE}`) based on the `.env-dist`
-template. Finally, `make instance` starts a new sub-shell with the
-`INSTANCE` and `PROJECT` environment variables locked to the given
-instance and project directory. All of the `make` targets that you use
-in the sub-shell will now affect the instance environment rather than
-the default environment:
+Example:
 
 ```
 ## Example terminal session for creating an instance of whoami named foo:
