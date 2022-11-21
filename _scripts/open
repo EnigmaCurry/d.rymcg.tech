@@ -10,12 +10,8 @@
 
 BIN=$(dirname ${BASH_SOURCE})
 DOCKER_CONTEXT=$(${BIN}/docker_context)
-instance=${instance:-${INSTANCE}}
-if [[ -n "${instance}" ]]; then
-    CONTEXT_INSTANCE="${DOCKER_CONTEXT}_${instance}"
-else
-    CONTEXT_INSTANCE="${DOCKER_CONTEXT}"
-fi
+instance=${instance:-${INSTANCE:-default}}
+CONTEXT_INSTANCE="${DOCKER_CONTEXT}_${instance}"
 
 ENV_FILE=".env_${CONTEXT_INSTANCE}"
 
