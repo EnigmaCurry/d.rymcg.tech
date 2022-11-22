@@ -81,3 +81,20 @@ Admin read-write access:
    (`TIDLYWIKI_ADMIN_IP_SOURCERANGE=0.0.0.0/0`), the admin account can
    access from any IP address, using the password. You can filter
    subnets for the admin similarly to the public access.
+
+## Using TiddlyWiki
+
+Heres a few of the things I've learned using TiddlyWiki:
+
+ * By default, there is no markdown support, but you can [easily
+   install a markdown
+   plugin](https://tiddlywiki.com/plugins/tiddlywiki/markdown/) (this
+   must be done for each instance after install). Open two browser
+   windows, one to that linked page, and one to your wiki page, and
+   drag the link from the plugin page to the window containing your
+   wiki, you should see a notification to install the plugin. Now you
+   will find `markdown` as one the options for content type.
+ * By default, the starting page only shows the `GettingsStarted`
+   tiddler. Change the Default tiddlers to `[list[$:/StoryList]]` and
+   you will see your most recently edited tiddlers instead.
+
