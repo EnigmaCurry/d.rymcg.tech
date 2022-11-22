@@ -9,11 +9,11 @@ same server and path that it is served from.
 
 This project configuration creates an [Nginx](https://nginx.org)
 WebDAV server backend with
-[bfren/docker-nginx](https://github.com/bfren/docker-nginx) and serves
-only a single TiddlyWiki `index.html` file. TiddlyWiki knows what to
-do when served in this environment, and it will automatically save any
-changes made in the browser, and pushes a modified `index.html` back
-to the server.
+[https://github.com/bfren/docker-nginx-webdav](https://github.com/bfren/docker-nginx-webdav)
+and serves only a single TiddlyWiki `index.html` file. TiddlyWiki
+knows what to do when served in this environment, and it will
+automatically save any changes made in the browser, and pushes a
+modified `index.html` back to the server.
 
 The default configuration is for a private notebook, protected with a
 username/password, only viewable and editable by an admin account. You
