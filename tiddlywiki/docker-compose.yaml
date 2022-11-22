@@ -4,7 +4,7 @@ volumes:
   data:
 
 services:
-  tidlywiki:
+  tiddlywiki:
     build:
       context: bfren-nginx-webdav
     environment:
@@ -36,33 +36,3 @@ services:
     volumes:
       - data:/www
     restart: unless-stopped
-    labels:
-      - "traefik.enable=true"
-
-      ### Enable public read-only access (can filter client IP address via TIDDLYWIKI_PUBLIC_IP_SOURCERANGE):
-      - "traefik.http.routers.tidlywiki-public-${TIDDLYWIKI_INSTANCE:-default}.rule=Host(`${TIDDLYWIKI_TRAEFIK_HOST}`) && Path(`/`) && Method(`GET`)"
-      - "traefik.http.routers.tidlywiki-public-${TIDDLYWIKI_INSTANCE:-default}.entrypoints=websecure"
-      - "traefik.http.routers.tidlywiki-public-${TIDDLYWIKI_INSTANCE:-default}.middlewares=tidlywiki-${TIDDLYWIKI_INSTANCE:-default}-whitelist,tidlywiki-${TIDDLYWIKI_INSTANCE:-default}-replacepath"
-
-      ### Redirect authenticated users to /admin
-      - "traefik.http.routers.tidlywiki-redirect-${TIDDLYWIKI_INSTANCE:-default}.rule=Host(`${TIDDLYWIKI_TRAEFIK_HOST}`) && Path(`/`) && Method(`GET`) && HeadersRegexp(`Authorization`,`.*`)"
-      - "traefik.http.routers.tidlywiki-redirect-${TIDDLYWIKI_INSTANCE:-default}.entrypoints=websecure"
-      - "traefik.http.routers.tidlywiki-redirect-${TIDDLYWIKI_INSTANCE:-default}.middlewares=tidlywiki-${TIDDLYWIKI_INSTANCE:-default}-admin-whitelist,tidlywiki-redirect-${TIDDLYWIKI_INSTANCE:-default}"
-
-      ### /admin read-write access requires HTTP Basic Auth:
-      - "traefik.http.routers.tidlywiki-admin-${TIDDLYWIKI_INSTANCE:-default}.rule=Host(`${TIDDLYWIKI_TRAEFIK_HOST}`) && Path(`/admin`)"
-      - "traefik.http.routers.tidlywiki-admin-${TIDDLYWIKI_INSTANCE:-default}.entrypoints=websecure"
-      - "traefik.http.routers.tidlywiki-admin-${TIDDLYWIKI_INSTANCE:-default}.middlewares=tidlywiki-${TIDDLYWIKI_INSTANCE:-default}-admin-whitelist,tidlywiki-${TIDDLYWIKI_INSTANCE:-default}-replacepath,tidlywiki-${TIDDLYWIKI_INSTANCE:-default}-auth@docker"
-
-      ### Middlewares
-      # Public IP filter:
-      - "traefik.http.middlewares.tidlywiki-${TIDDLYWIKI_INSTANCE:-default}-whitelist.ipwhitelist.sourcerange=${TIDDLYWIKI_PUBLIC_IP_SOURCERANGE}"
-      # Admin IP filter:
-      - "traefik.http.middlewares.tidlywiki-${TIDDLYWIKI_INSTANCE:-default}-admin-whitelist.ipwhitelist.sourcerange=${TIDDLYWIKI_ADMIN_IP_SOURCERANGE}"
-      # Replace all forwarded paths to /index.html
-      - "traefik.http.middlewares.tidlywiki-${TIDDLYWIKI_INSTANCE:-default}-replacepath.replacepath.path=/index.html"
-      # Authentication:
-      - "traefik.http.middlewares.tidlywiki-${TIDDLYWIKI_INSTANCE:-default}-auth.basicauth.users=${TIDDLYWIKI_HTTP_AUTH}"
-      # Redirect authenticated users to /admin:
-      - "traefik.http.middlewares.tidlywiki-redirect-${TIDDLYWIKI_INSTANCE:-default}.redirectregex.regex=^https://${TIDDLYWIKI_TRAEFIK_HOST}/"
-      - "traefik.http.middlewares.tidlywiki-redirect-${TIDDLYWIKI_INSTANCE:-default}.redirectregex.replacement=https://${TIDDLYWIKI_TRAEFIK_HOST}/admin"

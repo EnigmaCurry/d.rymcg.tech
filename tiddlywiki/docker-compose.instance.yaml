@@ -1,0 +1,41 @@
+#@ load("@ytt:data", "data")
+services:
+  tiddlywiki:
+    labels:
+      - "traefik.enable=true"
+
+      #! Enable public read-only access (can filter client IP address via TIDDLYWIKI_PUBLIC_IP_SOURCERANGE):
+      - "traefik.http.routers.tiddlywiki-public-${TIDDLYWIKI_INSTANCE:-default}.rule=Host(`${TIDDLYWIKI_TRAEFIK_HOST}`) && Path(`/`) && Method(`GET`)"
+      - "traefik.http.routers.tiddlywiki-public-${TIDDLYWIKI_INSTANCE:-default}.entrypoints=websecure"
+      #@ if "tiddlywiki_public_http_auth" in data.values and data.values.tiddlywiki_public_http_auth != "":
+      - "traefik.http.routers.tiddlywiki-public-${TIDDLYWIKI_INSTANCE:-default}.middlewares=tiddlywiki-strip-headers,tiddlywiki-${TIDDLYWIKI_INSTANCE:-default}-whitelist,tiddlywiki-${TIDDLYWIKI_INSTANCE:-default}-public-auth,tiddlywiki-${TIDDLYWIKI_INSTANCE:-default}-replacepath"
+      #@ else:
+      - "traefik.http.routers.tiddlywiki-public-${TIDDLYWIKI_INSTANCE:-default}.middlewares=tiddlywiki-strip-headers,tiddlywiki-${TIDDLYWIKI_INSTANCE:-default}-whitelist,tiddlywiki-${TIDDLYWIKI_INSTANCE:-default}-replacepath"
+      #@ end
+
+      #! /editor read-write access requires HTTP Basic Auth:
+      - "traefik.http.routers.tiddlywiki-admin-${TIDDLYWIKI_INSTANCE:-default}.rule=Host(`${TIDDLYWIKI_TRAEFIK_HOST}`) && Path(`/editor`)"
+      - "traefik.http.routers.tiddlywiki-admin-${TIDDLYWIKI_INSTANCE:-default}.entrypoints=websecure"
+      - "traefik.http.routers.tiddlywiki-admin-${TIDDLYWIKI_INSTANCE:-default}.middlewares=tiddlywiki-strip-headers,tiddlywiki-${TIDDLYWIKI_INSTANCE:-default}-admin-whitelist,tiddlywiki-${TIDDLYWIKI_INSTANCE:-default}-replacepath,tiddlywiki-${TIDDLYWIKI_INSTANCE:-default}-admin-auth@docker"
+
+      #! Middlewares
+      #! Strip important backend headers
+      - "traefik.http.middlewares.tiddlywiki-strip-headers.headers.customrequestheaders.X-Admin-WebAuth-User="
+      - "traefik.http.middlewares.tiddlywiki-strip-headers.headers.customrequestheaders.X-Public-WebAuth-User="
+      #! Public IP filter:
+      - "traefik.http.middlewares.tiddlywiki-${TIDDLYWIKI_INSTANCE:-default}-whitelist.ipwhitelist.sourcerange=${TIDDLYWIKI_PUBLIC_IP_SOURCERANGE}"
+      #! Admin IP filter:
+      - "traefik.http.middlewares.tiddlywiki-${TIDDLYWIKI_INSTANCE:-default}-admin-whitelist.ipwhitelist.sourcerange=${TIDDLYWIKI_ADMIN_IP_SOURCERANGE}"
+      #! Replace all forwarded paths to /index.html
+      - "traefik.http.middlewares.tiddlywiki-${TIDDLYWIKI_INSTANCE:-default}-replacepath.replacepath.path=/index.html"
+      #! Public Authentication:
+      #@ if "tiddlywiki_public_http_auth" in data.values and data.values.tiddlywiki_public_http_auth != "":
+      - "traefik.http.middlewares.tiddlywiki-${TIDDLYWIKI_INSTANCE:-default}-public-auth.basicauth.users=${TIDDLYWIKI_ADMIN_HTTP_AUTH},${TIDDLYWIKI_PUBLIC_HTTP_AUTH}"
+      - "traefik.http.middlewares.tiddlywiki-${TIDDLYWIKI_INSTANCE:-default}-public-auth.basicauth.headerField=X-Public-WebAuth-User"
+      #@ end
+      #! Admin Authentication:
+      - "traefik.http.middlewares.tiddlywiki-${TIDDLYWIKI_INSTANCE:-default}-admin-auth.basicauth.users=${TIDDLYWIKI_ADMIN_HTTP_AUTH}"
+      - "traefik.http.middlewares.tiddlywiki-${TIDDLYWIKI_INSTANCE:-default}-admin-auth.basicauth.headerField=X-Admin-WebAuth-User"
+      #! Redirect authenticated users to /editor:
+      - "traefik.http.middlewares.tiddlywiki-redirect-${TIDDLYWIKI_INSTANCE:-default}.redirectregex.regex=^https://${TIDDLYWIKI_TRAEFIK_HOST}/"
+      - "traefik.http.middlewares.tiddlywiki-redirect-${TIDDLYWIKI_INSTANCE:-default}.redirectregex.replacement=https://${TIDDLYWIKI_TRAEFIK_HOST}/editor"

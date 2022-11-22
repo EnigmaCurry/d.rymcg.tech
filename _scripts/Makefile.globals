@@ -20,6 +20,7 @@ CONTEXT_INSTANCE ?= "${DOCKER_CONTEXT}_${instance}"
 ENV_FILE ?= ".env_${CONTEXT_INSTANCE}"
 PROJECT_NAME ?= $$(basename $${PWD})${INSTANCE_SUFFIX}
 CWD_PROJECT_NAME ?= $$(basename $${PWD})${INSTANCE_SUFFIX}
+CWD_PROJECT_INSTANCE ?= $$(basename $${PWD})_${instance}
 PROJECT_INSTANCE ?= ${CWD_PROJECT_INSTANCE}
 DOCKER_COMPOSE_FILE_ARGS ?= $$( (set +x; [[ -f docker-compose.override_${CONTEXT_INSTANCE}.yaml ]] && echo "-f docker-compose.yaml -f docker-compose.override_${CONTEXT_INSTANCE}.yaml" || echo "-f docker-compose.yaml") )
 
@@ -28,11 +29,13 @@ all: help
 
 .PHONY: check-instance-project
 check-instance-project:
-	@[[ "${instance}" != "default" ]] && ([[ "${PROJECT_NAME}" == "${CWD_PROJECT_INSTANCE}" ]] || (echo -e "# The current sub-shell is locked to an instance: ${INSTANCE}\n# from the directory: $${PROJECT}\n# Press Ctrl-D to exit this sub-shell." && exit 1)) || true
+#	@echo PROJECT_NAME=${PROJECT_NAME}
+#	@echo CWD_PROJECT_INSTANCE=${CWD_PROJECT_INSTANCE}
+	@[[ "${instance}" != "default" ]] && ([[ "${PROJECT_NAME}" == "${CWD_PROJECT_INSTANCE}" ]] || (echo -e "# check-instance-project: The current sub-shell is locked to an instance: ${INSTANCE}\n# from the directory: $${PROJECT}\n# Press Ctrl-D to exit this sub-shell." && exit 1)) || true
 
 .PHONY: check-in-subshell
 check-in-subshell:
-	@[[ "${instance}" != "default" ]] && ([[ -z "${INSTANCE_SUBSHELL}" ]] || (echo -e "# The current sub-shell is locked to an instance: ${INSTANCE}\n# from the directory: $${PROJECT}\n# Press Ctrl-D to exit this sub-shell." && exit 1)) || true
+	@[[ "${instance}" != "default" ]] && ([[ -z "${INSTANCE_SUBSHELL}" ]] || (echo -e "# check-in-subshell: The current sub-shell is locked to an instance: ${INSTANCE}\n# from the directory: $${PROJECT}\n# Press Ctrl-D to exit this sub-shell." && exit 1)) || true
 
 %-rule-exists:
 	@$(MAKE) -n $* &> /dev/null
