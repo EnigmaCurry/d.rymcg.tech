@@ -9,7 +9,7 @@ same server and path that it is served from.
 
 This project configuration creates an [Nginx](https://nginx.org)
 WebDAV server backend with
-[https://github.com/bfren/docker-nginx-webdav](https://github.com/bfren/docker-nginx-webdav)
+[bfren/docker-nginx-webdav](https://github.com/bfren/docker-nginx-webdav)
 and serves only a single TiddlyWiki `index.html` file. TiddlyWiki
 knows what to do when served in this environment, and it will
 automatically save any changes made in the browser, and pushes a
