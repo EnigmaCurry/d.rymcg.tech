@@ -22,6 +22,11 @@ editors (or create individual credentials for the same access
 privilege). If you want to, you can enable optional public read-only
 access as well (see `TIDLYWIKI_PUBLIC_IP_SOURCERANGE`).
 
+This project is
+[instantiable](https://github.com/EnigmaCurry/d.rymcg.tech#creating-multiple-instances-of-a-service),
+so you can create several separate wikis for different purposees, with
+different access credentials.
+
 ## Config
 
 ```
