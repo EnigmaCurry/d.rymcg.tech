@@ -20,7 +20,7 @@ username/password, only viewable and editable by an admin account. You
 can share the same URL and username/password amongst all trusted
 editors (or create individual credentials for the same access
 privilege). If you want to, you can enable optional public read-only
-access as well (see `TIDLYWIKI_PUBLIC_IP_SOURCERANGE`).
+access as well (see `TIDDLYWIKI_PUBLIC_IP_SOURCERANGE`).
 
 This project is
 [instantiable](https://github.com/EnigmaCurry/d.rymcg.tech#creating-multiple-instances-of-a-service),
@@ -35,9 +35,9 @@ make config
 
 Configure the following environment variables:
 
- * `TIDLYWIKI_TRAEFIK_HOST` the domain name to serve the wiki from.
+ * `TIDDLYWIKI_TRAEFIK_HOST` the domain name to serve the wiki from.
  * Answer the questions to setup usernames and passwords (this
-   automatically sets `TIDLYWIKI_HTTP_AUTH` with `htpasswd` encoded
+   automatically sets `TIDDLYWIKI_HTTP_AUTH` with `htpasswd` encoded
    usernames/passwords).
 
 Install:
@@ -65,20 +65,20 @@ Public read-only access:
 
  * **Public access is disabled by default**.
  * To enable public read-only access, you must set
- `TIDLYWIKI_PUBLIC_IP_SOURCERANGE`. The default (`0.0.0.0/32`) turns
+ `TIDDLYWIKI_PUBLIC_IP_SOURCERANGE`. The default (`0.0.0.0/32`) turns
  off all public (unauthenticated) access. Set this to a specific
  subnet (or list of comma separated subnets) to allow only selected
  networks, eg: `192.168.1.1/24,10.10.0.0/16`. You can enable all
  public access with `0.0.0.0/0`.
  * Public read-only access is granted to all (IP filtered) requests on
-   `https://${TIDLYWIKI_TRAEFIK_HOST}/` (root path `/` via `HTTP GET`
+   `https://${TIDDLYWIKI_TRAEFIK_HOST}/` (root path `/` via `HTTP GET`
    *only*)
 
 Admin read-write access:
  * Admin read-write access is granted only via HTTP Basic
-   Authentication on `https://${TIDLYWIKI_TRAEFIK_HOST}/admin`.
+   Authentication on `https://${TIDDLYWIKI_TRAEFIK_HOST}/admin`.
  * There is no IP filtering applied by default
-   (`TIDLYWIKI_ADMIN_IP_SOURCERANGE=0.0.0.0/0`), the admin account can
+   (`TIDDLYWIKI_ADMIN_IP_SOURCERANGE=0.0.0.0/0`), the admin account can
    access from any IP address, using the password. You can filter
    subnets for the admin similarly to the public access.
 
