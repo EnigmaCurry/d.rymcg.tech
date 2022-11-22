@@ -36,9 +36,11 @@ make config
 Configure the following environment variables:
 
  * `TIDDLYWIKI_TRAEFIK_HOST` the domain name to serve the wiki from.
- * Answer the questions to setup usernames and passwords (this
-   automatically sets `TIDDLYWIKI_HTTP_AUTH` with `htpasswd` encoded
-   usernames/passwords).
+ * Answer the questions to setup the admin usernames and passwords
+   (this automatically sets `TIDDLYWIKI_ADMIN_HTTP_AUTH` with
+   `htpasswd` encoded usernames/passwords).
+ * Optionally enable public read-only access, and setup guest
+   usernames/passwords.
 
 Install:
 
@@ -76,7 +78,7 @@ Public read-only access:
 
 Admin read-write access:
  * Admin read-write access is granted only via HTTP Basic
-   Authentication on `https://${TIDDLYWIKI_TRAEFIK_HOST}/admin`.
+   Authentication on `https://${TIDDLYWIKI_TRAEFIK_HOST}/editor`.
  * There is no IP filtering applied by default
    (`TIDDLYWIKI_ADMIN_IP_SOURCERANGE=0.0.0.0/0`), the admin account can
    access from any IP address, using the password. You can filter
@@ -86,14 +88,16 @@ Admin read-write access:
 
 Heres a few of the things I've learned using TiddlyWiki:
 
- * By default, there is no markdown support, but you can [easily
-   install a markdown
-   plugin](https://tiddlywiki.com/plugins/tiddlywiki/markdown/) (this
-   must be done for each instance after install). Open two browser
-   windows, one to that linked page, and one to your wiki page, and
-   drag the link from the plugin page to the window containing your
-   wiki, you should see a notification to install the plugin. Now you
-   will find `markdown` as one the options for content type.
+ * There are many plugins you may wish to install, which you can do
+   from the `ControlPanel`:
+    * Click the wheel icon to open `ControlPanel`
+    * click `Plugins`
+    * `Get more plugins`
+    * `open plugin library`
+ * Some cool plugins:
+  * markdown
+  * comments
+  * blog
  * By default, the starting page only shows the `GettingsStarted`
    tiddler. Change the Default tiddlers to `[list[$:/StoryList]]` and
    you will see your most recently edited tiddlers instead.
