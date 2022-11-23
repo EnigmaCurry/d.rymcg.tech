@@ -42,7 +42,7 @@ install. You must restart the service in order for your
 
 ```
 # Restart gitea to get the config applied:
-make install
+make reinstall
 ```
 
 ## Notes
