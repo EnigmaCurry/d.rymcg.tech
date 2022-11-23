@@ -102,3 +102,72 @@ Heres a few of the things I've learned using TiddlyWiki:
    tiddler. Change the Default tiddlers to `[list[$:/StoryList]]` and
    you will see your most recently edited tiddlers instead.
 
+## Automatic backup to git repository
+
+Although TiddlyWiki has a builtin GitHub, GitLab, and Gitea saver,
+which you can optionalyl enable, this "saver" only works with a
+standalone install (ie, when *not* served by WebDAV). Having
+TiddlyWiki save to two destinations might get confusing, so TiddlyWiki
+turns the git saver off when WebDAV is enabled.
+
+To use both WebDAV, *and* to have backups to a git repository, you
+must enable the `git-autocommit` sidecar service. `git-autocommit`
+will monitor the server's `/www/index.html` (where your TiddlyWiki
+data lives) and whenever changes occur, it will commit to a git
+repository and push the changeset to your remote git repository. That
+way you benefit from a centralized location to edit (WebDAV server)
+and an automatic backup to an external git forge.
+
+### Generate the `git-autocommit` SSH keys:
+
+```
+make ssh-keygen
+```
+
+This will output the SSH public key for the `git-autocommit` service,
+which you will need to copy and paste into the deploy key setting of
+the remote git repository.
+
+### Create a backup git repository
+
+Create a private repository on your git forge (GitHub, GitLab, Gitea,
+etc.) and add an SSH deploy key. 
+
+For example, on GitHub:
+
+ * On GitHub, [create a new repository](https://github.com/new),
+   choose `Private`.
+ * Find the repository `Settings` page.
+ * Find `Deploy keys` and click `Add deploy key`.
+ * Enter a descriptive Title, eg: `wiki.example.com git-autocommit bot`
+ * Paste the SSH key output from the previous step.
+ * Click to checkmark `Allow write acces`.
+ * Click `Add key`.
+
+One repository can handle the backups for several instances of
+TiddlyWiki. Each instance will have its own deploy key, and its own
+branch named the same as the instance's configured
+`${TIDDLYWIKI_TRAEFIK_HOST}`. (Having a unique git branch per-instance
+helps to avoid unnecessary push conflicts between instances.)
+
+### Enable the git-autocommit service and redeploy
+
+Update the `DOCKER_COMPOSE_PROFILES` variable in your config to turn
+on the `git-autocommit` service (disabled by default in
+[.env-dist](.env-dist)):
+
+```
+make reconfigure var=DOCKER_COMPOSE_PROFILES=default,git-autocommit
+make install
+```
+
+### Verify the backup is working
+
+Check the logs:
+
+```
+make logs SERVICE=git-autocommit
+```
+
+Also verify that there is a new commit pushed to your remote
+repository, for each change you make in TiddlyWiki.
