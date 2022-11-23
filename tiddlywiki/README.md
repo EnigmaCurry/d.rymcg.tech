@@ -102,31 +102,31 @@ Heres a few of the things I've learned using TiddlyWiki:
    tiddler. Change the Default tiddlers to `[list[$:/StoryList]]` and
    you will see your most recently edited tiddlers instead.
 
-## Automatic backup to git repository
+## Automatic backup to a git repository
 
-Although TiddlyWiki has a builtin GitHub, GitLab, and Gitea saver,
-which you can optionalyl enable, this "saver" only works with a
-standalone install (ie, when *not* served by WebDAV). Having
-TiddlyWiki save to two destinations might get confusing, so TiddlyWiki
-turns the git saver off when WebDAV is enabled.
+Although TiddlyWiki has a builtin GitHub, GitLab, and Gitea "saver",
+it only works with a standalone file install (ie, when *not* served by
+WebDAV, but just a file on your disk). Having TiddlyWiki save to two
+destinations might get confusing, so TiddlyWiki turns the git saver
+off when WebDAV saving is enabled.
 
 To use both WebDAV, *and* to have backups to a git repository, you
-must enable the `git-autocommit` sidecar service. `git-autocommit`
-will monitor the server's `/www/index.html` (where your TiddlyWiki
-data lives) and whenever changes occur, it will commit to a git
-repository and push the changeset to your remote git repository. That
-way you benefit from a centralized location to edit (WebDAV server)
-and an automatic backup to an external git forge.
+must enable the `git-autocommit` sidecar service on the server. The
+`git-autocommit` service will monitor the TiddlyWiki's
+`/www/index.html` and whenever changes occur, it will commit and push
+the changeset to your remote git repository. That way you benefit from
+a centralized location to edit (WebDAV server), and an automatic
+backup to an external git forge.
 
-### Generate the `git-autocommit` SSH keys:
+### Generate the SSH keys for the `git-autocommit` service:
 
 ```
 make ssh-keygen
 ```
 
-This will output the SSH public key for the `git-autocommit` service,
-which you will need to copy and paste into the deploy key setting of
-the remote git repository.
+This will create new SSH keys and store them in the a volume. The SSH
+public key will be printed to the screen, which you will need to copy
+and paste into the deploy key setting of the remote git repository.
 
 ### Create a backup git repository
 
