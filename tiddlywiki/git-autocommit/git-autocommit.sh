@@ -73,6 +73,7 @@ git checkout ${GIT_BACKUP_BRANCH} || git checkout --orphan ${GIT_BACKUP_BRANCH}
 
 NUM_COMMITS=$(git rev-list --count HEAD || echo 0)
 if [[ "${NUM_COMMITS}" == "0" ]]; then
+    git rm -f * || true
     cp ${BACKUP_FILE} ${GIT_BACKUP_NAME}
     git add ${GIT_BACKUP_NAME}
     git commit -m "initial commit"
