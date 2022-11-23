@@ -116,7 +116,7 @@ must enable the `git-autocommit` sidecar service on the server. The
 `/www/index.html` and whenever changes occur, it will commit and push
 the changeset to your remote git repository. That way you benefit from
 a centralized location to edit (WebDAV server), and an automatic
-backup to an external git forge.
+external backup.
 
 ### Generate the SSH keys for the `git-autocommit` service:
 
