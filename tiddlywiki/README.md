@@ -118,6 +118,9 @@ the changeset to your remote git repository. That way you benefit from
 a centralized location to edit (WebDAV server), and an automatic
 external backup.
 
+The `git-autocommit` service is optional, and disabled by default (see
+`DOCKER_COMPOSE_PROFILES`).
+
 ### Generate the SSH keys for the `git-autocommit` service:
 
 ```
