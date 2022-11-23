@@ -34,15 +34,15 @@ services:
     labels:
       - "traefik.enable=true"
       ## Web
-      - "traefik.http.routers.gitea-web.rule=Host(`${GITEA_TRAEFIK_HOST}`)"
-      - "traefik.http.routers.gitea-web.entrypoints=websecure"
-      - "traefik.http.routers.gitea-web.service=gitea-web"
-      - "traefik.http.services.gitea-web.loadbalancer.server.port=3000"
+      - "traefik.http.routers.gitea-${GITEA_INSTANCE:-default}-web.rule=Host(`${GITEA_TRAEFIK_HOST}`)"
+      - "traefik.http.routers.gitea-${GITEA_INSTANCE:-default}-web.entrypoints=websecure"
+      - "traefik.http.routers.gitea-${GITEA_INSTANCE:-default}-web.service=gitea-${GITEA_INSTANCE:-default}-web"
+      - "traefik.http.services.gitea-${GITEA_INSTANCE:-default}-web.loadbalancer.server.port=3000"
       ## SSH
-      - "traefik.tcp.routers.gitea-ssh.rule=HostSNI(`*`)"
-      - "traefik.tcp.routers.gitea-ssh.entrypoints=ssh"
-      - "traefik.tcp.routers.gitea-ssh.service=gitea-ssh"
-      - "traefik.tcp.services.gitea-ssh.loadbalancer.server.port=22"
+      - "traefik.tcp.routers.gitea-${GITEA_INSTANCE:-default}-ssh.rule=HostSNI(`*`)"
+      - "traefik.tcp.routers.gitea-${GITEA_INSTANCE:-default}-ssh.entrypoints=ssh"
+      - "traefik.tcp.routers.gitea-${GITEA_INSTANCE:-default}-ssh.service=gitea-${GITEA_INSTANCE:-default}-ssh"
+      - "traefik.tcp.services.gitea-${GITEA_INSTANCE:-default}-ssh.loadbalancer.server.port=22"
 
 volumes:
   data:
