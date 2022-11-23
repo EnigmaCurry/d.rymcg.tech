@@ -3,7 +3,7 @@ include ../_scripts/Makefile.docker-compose
 .PHONY: build # Build container images
 build:
 	@make --no-print-directory build-hook-pre-rule-exists 2>/dev/null && make --no-print-directory build-hook-pre || true
-	@make --no-print-directory docker-compose-build EXTRA_ARGS="${EXTRA_ARGS}"
+	@export COMPOSE_PROFILES="$${DOCKER_COMPOSE_PROFILES:-$$(${BIN}/dotenv -f "${ENV_FILE}" get DOCKER_COMPOSE_PROFILES)}"; make --no-print-directory docker-compose-build EXTRA_ARGS="${EXTRA_ARGS}"
 	@make --no-print-directory build-hook-post-rule-exists 2>/dev/null && make --no-print-directory build-hook-post || true
 
 .PHONY: build-force # Build container images without cache
