@@ -1,0 +1,22 @@
+version: "3.3"
+
+volumes:
+  state:
+
+services:
+  filestash:
+    image: machines/filestash
+    security_opt:
+      - no-new-privileges:true
+    restart: unless-stopped
+    environment:
+      - APPLICATION_URL=${FILESTASH_TRAEFIK_HOST}
+    labels:
+      - "traefik.enable=true"
+      ## Password protected main router:
+      - "traefik.http.routers.filestash-${FILESTASH_INSTANCE:-default}.rule=Host(`${FILESTASH_TRAEFIK_HOST}`)"
+      - "traefik.http.routers.filestash-${FILESTASH_INSTANCE:-default}.entrypoints=websecure"
+      - "traefik.http.routers.filestash-${FILESTASH_INSTANCE:-default}.middlewares=filestash-${FILESTASH_INSTANCE:-default}-auth"
+      - "traefik.http.middlewares.filestash-${FILESTASH_INSTANCE:-default}-auth.basicauth.users=${FILESTASH_AUTH}"
+    volumes:
+      - state:/app/data/state
