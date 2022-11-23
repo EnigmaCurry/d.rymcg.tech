@@ -18,22 +18,20 @@ services:
       - WEBDAV_EXT_METHODS=PROPFIND OPTIONS
     security_opt:
       - no-new-privileges:true
-    # sysctls:
-    #   - net.ipv4.ip_unprivileged_port_start=1024
-    # cap_drop:
-    #   - ALL
+    cap_drop:
+      - ALL
     cap_add:
       - CHOWN
       - SETGID
       - SETUID
-      # - DAC_OVERRIDE
-      # - FOWNER
-      # - FSETID
+      - DAC_OVERRIDE
+      - FOWNER
+      - FSETID
       # - MKNOD
       # - NET_RAW
       # - SETFCAP
       # - SETPCAP
-      # - NET_BIND_SERVICE
+      - NET_BIND_SERVICE
       # - SYS_CHROOT
       # - KILL
       # - AUDIT_WRITE
