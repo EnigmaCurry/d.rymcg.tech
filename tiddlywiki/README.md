@@ -121,6 +121,33 @@ external backup.
 The `git-autocommit` service is optional, and disabled by default (see
 `DOCKER_COMPOSE_PROFILES`).
 
+### Create a private git repository to hold the backups
+
+Create a private repository on your git forge (GitHub, GitLab, Gitea,
+etc.) and add an SSH deploy key.
+
+For example, on GitHub:
+
+ * [Create a new repository](https://github.com/new)
+ * Choose a repository name like `tiddlywiki-backups`
+ * Choose visibility: `Private`.
+
+One repository can handle the backups for several instances of
+TiddlyWiki. Each instance will have its own deploy key, and a unique
+git branch named the same as the instance's configured
+`${TIDDLYWIKI_TRAEFIK_HOST}`. (Having a unique git branch for each
+instance helps to avoid unnecessary push conflicts.)
+
+### Configure the GIT_BACKUP_REPO variable
+
+From the private repository page, find the SSH git URL, eg: `git@github.com:{USERNAME}/{REPOSITORY}.git`
+
+Add the git remote URL to your environment file:
+
+```
+make reconfigure var=TIDDLYWIKI_GIT_BACKUP_REPO=git@github.com:Your_Username/tiddlywiki-private.git
+```
+
 ### Generate the SSH keys for the `git-autocommit` service:
 
 ```
@@ -132,27 +159,16 @@ service. The SSH public key will be printed to the screen, which you
 will need to copy and paste into the deploy key setting of the remote
 git repository.
 
-### Create a backup git repository
+### Add the deploy key to the git forge
 
-Create a private repository on your git forge (GitHub, GitLab, Gitea,
-etc.) and add an SSH deploy key. 
+For example on GitHub:
 
-For example, on GitHub:
-
- * [Create a new repository](https://github.com/new),
-   choose `Private`.
  * Find the repository `Settings` page.
  * Find `Deploy keys` and click `Add deploy key`.
  * Enter a descriptive Title, eg: `wiki.example.com git-autocommit bot`
  * Paste the SSH key output from the previous step.
  * Click to checkmark `Allow write acces`.
  * Click `Add key`.
-
-One repository can handle the backups for several instances of
-TiddlyWiki. Each instance will have its own deploy key, and a unique
-git branch named the same as the instance's configured
-`${TIDDLYWIKI_TRAEFIK_HOST}`. (Having a unique git branches for each
-instance helps to avoid unnecessary push conflicts.)
 
 ### Enable the git-autocommit service and redeploy
 
