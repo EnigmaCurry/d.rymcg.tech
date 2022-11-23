@@ -127,9 +127,10 @@ The `git-autocommit` service is optional, and disabled by default (see
 make ssh-keygen
 ```
 
-This will create new SSH keys and store them in the a volume. The SSH
-public key will be printed to the screen, which you will need to copy
-and paste into the deploy key setting of the remote git repository.
+This will create new SSH keys and store them in a volume for the
+service. The SSH public key will be printed to the screen, which you
+will need to copy and paste into the deploy key setting of the remote
+git repository.
 
 ### Create a backup git repository
 
@@ -138,7 +139,7 @@ etc.) and add an SSH deploy key.
 
 For example, on GitHub:
 
- * On GitHub, [create a new repository](https://github.com/new),
+ * [Create a new repository](https://github.com/new),
    choose `Private`.
  * Find the repository `Settings` page.
  * Find `Deploy keys` and click `Add deploy key`.
@@ -148,15 +149,15 @@ For example, on GitHub:
  * Click `Add key`.
 
 One repository can handle the backups for several instances of
-TiddlyWiki. Each instance will have its own deploy key, and its own
-branch named the same as the instance's configured
-`${TIDDLYWIKI_TRAEFIK_HOST}`. (Having a unique git branch per-instance
-helps to avoid unnecessary push conflicts between instances.)
+TiddlyWiki. Each instance will have its own deploy key, and a unique
+git branch named the same as the instance's configured
+`${TIDDLYWIKI_TRAEFIK_HOST}`. (Having a unique git branches for each
+instance helps to avoid unnecessary push conflicts.)
 
 ### Enable the git-autocommit service and redeploy
 
 Update the `DOCKER_COMPOSE_PROFILES` variable in your config to turn
-on the `git-autocommit` service (disabled by default in
+on the `git-autocommit` service (which is disabled by default in
 [.env-dist](.env-dist)):
 
 ```
