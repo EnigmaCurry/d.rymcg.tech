@@ -5,10 +5,12 @@ config: check-instance-project
 
 .PHONY: start # Start services
 start:
+	@make -e --no-print-directory override instance=${INSTANCE}
 	@make --no-print-directory docker-compose-lifecycle-cmd EXTRA_ARGS="up -d"
 
 .PHONY: up
 up: build
+	@make -e --no-print-directory override instance=${INSTANCE}
 	@make --no-print-directory docker-compose-lifecycle-cmd EXTRA_ARGS="up"
 
 .PHONY: stop # Stops services

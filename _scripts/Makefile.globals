@@ -7,23 +7,23 @@ DOCKER_ORG ?= localhost
 ## Tools path:
 BIN = $(shell realpath ${ROOT_DIR}/_scripts)
 
-DOCKER_CONTEXT ?= $$(docker context ls --format "{{.Current}} {{.Name}}" | grep -oP "^true \K.*")
+export DOCKER_CONTEXT ?= $(shell docker context ls --format "{{.Current}} {{.Name}}" | grep -oP "^true \K.*")
 
 ## Root environment file (contains ROOT_DOMAIN)
 ROOT_ENV = .env_${DOCKER_CONTEXT}
 ## Per-project environment file name is keyed to the current docker context and the optional INSTANCE name:
 instance ?= "$${INSTANCE:-default}"
 INSTANCE = ${instance}
-INSTANCE_SUFFIX ?= $$( (set +x; [[ "${instance}" == "default" ]] && echo "" || echo "_${instance}") )
-INSTANCE_URL_SUFFIX ?= $$( (set +x; [[ "${instance}" == "default" ]] && echo "" || echo "-${instance}") )
+INSTANCE_SUFFIX ?= $(shell (set +x; [[ "${instance}" == "default" ]] && echo "" || echo "_${instance}") )
+INSTANCE_URL_SUFFIX ?= $(shell (set +x; [[ "${instance}" == "default" ]] && echo "" || echo "-${instance}") )
 CONTEXT_INSTANCE ?= "${DOCKER_CONTEXT}_${instance}"
 ENV_FILE ?= ".env_${CONTEXT_INSTANCE}"
-PROJECT_NAME ?= $$(basename $${PWD})${INSTANCE_SUFFIX}
-CWD_PROJECT_NAME ?= $$(basename $${PWD})${INSTANCE_SUFFIX}
-CWD_PROJECT_INSTANCE ?= $$(basename $${PWD})_${instance}
+PROJECT_NAME ?= $(shell basename $${PWD})${INSTANCE_SUFFIX}
+CWD_PROJECT_NAME ?= $(shell basename $${PWD})${INSTANCE_SUFFIX}
+CWD_PROJECT_INSTANCE ?= $(shell basename $${PWD})_${instance}
 PROJECT_INSTANCE ?= ${CWD_PROJECT_INSTANCE}
-DOCKER_COMPOSE_FILE_ARGS ?= $$( (set +x; [[ -f docker-compose.override_${CONTEXT_INSTANCE}.yaml ]] && echo "-f docker-compose.yaml -f docker-compose.override_${CONTEXT_INSTANCE}.yaml" || echo "-f docker-compose.yaml") )
-export DEFAULT_SAVE_CLEARTEXT_PASSWORDS_JSON ?= $(${BIN}/dotenv ${ROOT_ENV} get DEFAULT_SAVE_CLEARTEXT_PASSWORDS_JSON)
+DOCKER_COMPOSE_FILE_ARGS ?= $(shell (set +x; [[ -f docker-compose.override_${CONTEXT_INSTANCE}.yaml ]] && echo "-f docker-compose.yaml -f docker-compose.override_${CONTEXT_INSTANCE}.yaml" || echo "-f docker-compose.yaml") )
+export DEFAULT_SAVE_CLEARTEXT_PASSWORDS_JSON ?= $(shell ${BIN}/dotenv ${ROOT_ENV} get DEFAULT_SAVE_CLEARTEXT_PASSWORDS_JSON)
 
 .PHONY: all
 all: help
