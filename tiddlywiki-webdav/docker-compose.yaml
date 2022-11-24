@@ -38,6 +38,7 @@ services:
     volumes:
       - data:/www
     restart: unless-stopped
+    # Docker labels are specified in docker-compose.instance.yaml
 
   git-autocommit:
     profiles:
