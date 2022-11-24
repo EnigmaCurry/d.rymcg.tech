@@ -11,3 +11,4 @@ config-hook:
 .PHONY: shell
 shell:
 	docker compose --env-file=${ENV_FILE} exec -it thttpd /bin/sh
+
