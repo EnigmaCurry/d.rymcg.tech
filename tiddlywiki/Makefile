@@ -15,7 +15,7 @@ config-hook:
 
 .PHONY: shell
 shell:
-	@make --no-print-directory docker-compose EXTRA_ARGS="exec tiddlywiki /bin/sh"
+	@make --no-print-directory docker-compose-lifecycle-cmd EXTRA_ARGS="exec tiddlywiki /bin/sh"
 
 .PHONY: open
 open:

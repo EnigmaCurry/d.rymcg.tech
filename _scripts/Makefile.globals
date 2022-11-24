@@ -23,6 +23,7 @@ CWD_PROJECT_NAME ?= $$(basename $${PWD})${INSTANCE_SUFFIX}
 CWD_PROJECT_INSTANCE ?= $$(basename $${PWD})_${instance}
 PROJECT_INSTANCE ?= ${CWD_PROJECT_INSTANCE}
 DOCKER_COMPOSE_FILE_ARGS ?= $$( (set +x; [[ -f docker-compose.override_${CONTEXT_INSTANCE}.yaml ]] && echo "-f docker-compose.yaml -f docker-compose.override_${CONTEXT_INSTANCE}.yaml" || echo "-f docker-compose.yaml") )
+export DEFAULT_SAVE_CLEARTEXT_PASSWORDS_JSON ?= $(${BIN}/dotenv ${ROOT_ENV} get DEFAULT_SAVE_CLEARTEXT_PASSWORDS_JSON)
 
 .PHONY: all
 all: help

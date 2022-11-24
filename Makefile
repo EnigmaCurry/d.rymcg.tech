@@ -22,6 +22,11 @@ config: check-deps check-docker
 	@${BIN}/confirm yes "This will make a configuration for the current docker context (${DOCKER_CONTEXT})"
 	@${BIN}/reconfigure_ask ${ROOT_ENV} ROOT_DOMAIN "Enter the root domain for this context"
 	@echo "Configured ${ROOT_ENV}"
+	@echo
+	@echo "Every time you configure HTTP Basic Authentication, you are asked if you wish to save the cleartext passwords"
+	@echo "into passwords.json (in each project directory). If you were to press Enter without answering the question,"
+	@echo "the default answer is No (displayed as y/N). You may change the default response to Yes (displayed as Y/n)."
+	@${BIN}/confirm $$([[ "$$(${BIN}/dotenv -f ${ENV_FILE} get DEFAULT_SAVE_CLEARTEXT_PASSWORDS_JSON)"  == "true" ]] && echo yes || echo no) "Do you want to save cleartext passwords in passwords.json by default" "?" && ${BIN}/reconfigure ${ROOT_ENV} DEFAULT_SAVE_CLEARTEXT_PASSWORDS_JSON=true || ${BIN}/reconfigure ${ROOT_ENV} DEFAULT_SAVE_CLEARTEXT_PASSWORDS_JSON=false
 
 .PHONY: build # build all container images
 build:
