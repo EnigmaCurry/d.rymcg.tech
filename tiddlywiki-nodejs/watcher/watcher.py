@@ -11,6 +11,9 @@ import requests
 task_re = re.compile("syncer-server-filesystem: Dispatching '(\w+)' task: (.+)")
 
 task_queue = queue.Queue()
+canonical_uri_prefix = os.environ.get("TIDDLYWIKI_NODEJS_EXTERNAL_CANONICAL_URI","")
+if canonical_uri_prefix == "":
+    canonical_uri_prefix = f"https://{os.environ['TIDDLYWIKI_HOST']}/s3-proxy"
 
 def wait_for_file(path, tries=10, wait=0.1):
     attempts = 0
@@ -51,7 +54,7 @@ def task_worker():
                 if "data" in json:
                     del json["data"]
                 json["fields"] = {
-                    "_canonical_uri": f"https://{os.environ['TIDDLYWIKI_HOST']}/s3-proxy/{key}"
+                    "_canonical_uri": f"{canonical_uri_prefix}/{key}"
                 }
                 res = requests.put(
                     f"http://tiddlywiki-nodejs:8080/recipes/default/tiddlers/{title}",
