@@ -151,10 +151,11 @@ services:
       ## Private:
       - "traefik.http.routers.tiddlywiki-nodejs-${TIDDLYWIKI_NODEJS_INSTANCE:-default}-s3proxy-private.rule=Host(`${TIDDLYWIKI_NODEJS_TRAEFIK_HOST}`) && PathPrefix(`/s3-proxy`) && Method(`GET`) && HeadersRegexp(`Authorization`,`.+`)"
       - "traefik.http.routers.tiddlywiki-nodejs-${TIDDLYWIKI_NODEJS_INSTANCE:-default}-s3proxy-private.entrypoints=websecure"
-      - "traefik.http.routers.tiddlywiki-nodejs-${TIDDLYWIKI_NODEJS_INSTANCE:-default}-s3proxy-private.middlewares=tiddlywiki-nodejs-${TIDDLYWIKI_NODEJS_INSTANCE:-default}-whitelist,tiddlywiki-nodejs-${TIDDLYWIKI_NODEJS_INSTANCE:-default}-auth,tiddlywiki-nodejs-${TIDDLYWIKI_NODEJS_INSTANCE:-default}-s3proxy-stripprefix"
+      - "traefik.http.routers.tiddlywiki-nodejs-${TIDDLYWIKI_NODEJS_INSTANCE:-default}-s3proxy-private.middlewares=tiddlywiki-nodejs-${TIDDLYWIKI_NODEJS_INSTANCE:-default}-whitelist,tiddlywiki-nodejs-${TIDDLYWIKI_NODEJS_INSTANCE:-default}-auth,tiddlywiki-nodejs-s3proxy-stripprefix,tiddlywiki-nodejs-s3proxy-addprefix"
 
       ## Middlewares:
-      - "traefik.http.middlewares.tiddlywiki-nodejs-${TIDDLYWIKI_NODEJS_INSTANCE:-default}-s3proxy-stripprefix.stripprefix.prefixes=/s3-proxy"
-      - "traefik.http.middlewares.tiddlywiki-nodejs-${TIDDLYWIKI_NODEJS_INSTANCE:-default}-s3proxy-stripprefix.stripprefix.forceSlash=false"
+      - "traefik.http.middlewares.tiddlywiki-nodejs-s3proxy-stripprefix.stripprefix.prefixes=/s3-proxy"
+      - "traefik.http.middlewares.tiddlywiki-nodejs-s3proxy-stripprefix.stripprefix.forceSlash=false"
+      - "traefik.http.middlewares.tiddlywiki-nodejs-s3proxy-addprefix.addprefix.prefix=/tiddlywiki/files"
       # - "traefik.http.middlewares.derp.redirectregex.regex=^https://${TIDDLYWIKI_NODEJS_TRAEFIK_HOST}/s3-proxy/.*"
       # - "traefik.http.middlewares.derp.redirectregex.replacement=https://${TIDDLYWIKI_NODEJS_TRAEFIK_HOST}/"
