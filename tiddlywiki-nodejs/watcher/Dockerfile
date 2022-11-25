@@ -1,5 +1,7 @@
-FROM alpine:3
-COPY watcher.sh /usr/local/bin/watcher
-RUN apk --no-cache add bash inotify-tools rclone && \
-    chmod a+x /usr/local/bin/watcher
-ENTRYPOINT ["/bin/bash", "/usr/local/bin/watcher"]
+FROM python:3
+WORKDIR /usr/src/app
+COPY requirements.txt ./
+RUN pip install --no-cache-dir -r requirements.txt
+COPY watcher.py ./
+ENV PYTHONUNBUFFERED=1
+CMD [ "python", "./watcher.py" ]

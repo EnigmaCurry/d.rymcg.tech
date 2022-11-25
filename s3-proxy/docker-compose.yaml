@@ -30,7 +30,7 @@ services:
     labels:
       - "traefik.enable=true"
       ## Only allow GET requests:
-      - "traefik.http.routers.s3proxy.rule=Host(`${S3PROXY_TRAEFIK_HOST}`)"
+      - "traefik.http.routers.s3proxy.rule=Host(`${S3PROXY_TRAEFIK_HOST}`) && Method(`GET`)"
       - "traefik.http.routers.s3proxy.entrypoints=websecure"
       ## IP sourcerange filter:
       - "traefik.http.middlewares.s3proxy-ipwhitelist.ipwhitelist.sourcerange=${SOURCERANGE}"

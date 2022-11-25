@@ -13,6 +13,7 @@ export DOCKER_CONTEXT ?= $(shell docker context ls --format "{{.Current}} {{.Nam
 ROOT_ENV = .env_${DOCKER_CONTEXT}
 ## Per-project environment file name is keyed to the current docker context and the optional INSTANCE name:
 instance ?= "$${INSTANCE:-default}"
+service ?= "$${SERVICE}"
 INSTANCE = ${instance}
 INSTANCE_SUFFIX ?= $(shell (set +x; [[ "${instance}" == "default" ]] && echo "" || echo "_${instance}") )
 INSTANCE_URL_SUFFIX ?= $(shell (set +x; [[ "${instance}" == "default" ]] && echo "" || echo "-${instance}") )
