@@ -114,7 +114,7 @@ services:
       S3_BUCKET: ${TIDDLYWIKI_NODEJS_S3_BUCKET}
     volumes:
       - data:/tiddlywiki
-      - static:/tiddlywiki/output
+      - static:/www
     networks:
       logging:
         ipv4_address: ${TIDDLYWIKI_LOGGING_SUBNET_PREFIX:-172.45.17}.2
