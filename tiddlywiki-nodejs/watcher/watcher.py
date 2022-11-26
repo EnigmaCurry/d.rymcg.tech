@@ -63,12 +63,11 @@ def rclone_sync_s3(remote="s3"):
 def publish_static_wiki():
     def render_static_wiki(tiddler_filter="[!is[system]]", template="$:/core/templates/static.tiddler.html"):
         command = f"tiddlywiki --build"
-        with render_lock:
-            process = rclone_utils.run_cmd(command)
+        process = rclone_utils.run_cmd(command)
         if process.returncode == 0:
             logger.info(f"Wrote static site")
         else:
-            logger.error(f"{command} failed! \n+ {command}\n{process.stderr}")
+            logger.error(f"{command} failed! \n{process.stderr}")
     def get_html_tiddlers(wiki_html="/tiddlywiki/output/index.html"):
         """Get the Tiddler data from a rendered HTML file"""
         with open(wiki_html, "rb") as f:
@@ -76,62 +75,31 @@ def publish_static_wiki():
             data = json.loads(soup.find_all("script",class_="tiddlywiki-tiddler-store")[0].text)
             tiddlers = {x.get("title",""):x for x in data}
         return tiddlers
-    # def edit_html_default_tiddlers_bs4(default_tiddlers="[tag[Journal]!sort[]limit[10]]",
-    #                                wiki_html="/tiddlywiki/output/index.html"):
-    #     tiddlers = get_html_tiddlers(wiki_html)
-    #     tiddlers['$:/DefaultTiddlers']['text'] = default_tiddlers
-    #     with open(wiki_html, "rb") as f:
-    #         soup = BeautifulSoup(f.read().decode("utf-8"), features="html.parser")
-    #     soup.find_all("script",class_="tiddlywiki-tiddler-store")[0].string = json.dumps(
-    #         list(tiddlers.values()),sort_keys=True,indent=4)
-    #     tmp_dir = tempfile.mkdtemp()
-    #     tmp_file = os.path.join(tmp_dir,"tmp.html")
-    #     with open(tmp_file, "w", encoding="utf-8") as f:
-    #         f.write(str(soup))
-    #     return tmp_file
-    # def edit_html_default_tiddlers_regex(default_tiddlers="[tag[Journal]!sort[]limit[10]]",
-    #                                wiki_html="/tiddlywiki/output/index.html"):
-    #     def replacer(match):
-    #         return f"{match.group('prefix')}{default_tiddlers}{match.group('rest')}"
-    #     with open(wiki_html, "r", encoding="utf-8") as f:
-    #         txt = f.read()
-    #     txt = re.sub('^(?P<prefix>{"title":"\$:/DefaultTiddlers",.*,"text":")(?P<value>[^"]+)(?P<rest>".*)',
-    #                  replacer,txt,flags=re.M)
-    #     tmp_dir = tempfile.mkdtemp()
-    #     tmp_file = os.path.join(tmp_dir,"tmp.html")
-    #     with open(tmp_file, "w", encoding="utf-8") as f:
-    #         f.write(txt)
-    #     return tmp_file
     def edit_html_tiddlers(default_tiddlers="[tag[Journal]!sort[]limit[10]]",
-                           allowed_tags=["Journal"],
-                           wiki_html="/tiddlywiki/output/index.html"):
+                           wiki_html="/tiddlywiki/output/index.html",
+                           allowed_tags=["Journal"]):
         tiddlers = get_html_tiddlers(wiki_html)
         tiddlers['$:/DefaultTiddlers']['text'] = default_tiddlers
-        allowed_tags = set(allowed_tags)
         tiddlers_filtered = [t for t in tiddlers.values() \
                              if t['title'].startswith('$') \
                              or len(set(t.get('tags',"").split(" ")).\
                                     intersection(set(allowed_tags))) > 0]
-        def replacer(match):
-            script_tag = "".join([
-                '<script class="tiddlywiki-tiddler-store" type="application/json">',
-                escapejson(json.dumps(tiddlers_filtered,sort_keys=True,indent=4,ensure_ascii=False)),
-                '</script>'])
-            return f"{match.group('prefix')}{script_tag}{match.group('rest')}"
-        with open(wiki_html, "r") as f:
-            txt = f.read()
-        txt2 = re.sub(r'^(?P<prefix>.*)<script class="tiddlywiki-tiddler-store" type="application/json".*?</script>(?P<rest>.*)',
-                     replacer,txt,flags=re.DOTALL)
-        if txt2 == txt:
-            raise AssertionError("Regex sub didn't have any effect!")
+        with open(wiki_html, "rb") as f:
+            soup = BeautifulSoup(f.read().decode("utf-8"), features="html.parser")
+        soup.find_all("script",class_="tiddlywiki-tiddler-store")[0].string = \
+            escapejson(json.dumps(
+                list(tiddlers_filtered),sort_keys=True,indent=4))
         tmp_dir = tempfile.mkdtemp()
         tmp_file = os.path.join(tmp_dir,"tmp.html")
-        with open(tmp_file, "w") as f:
-            f.write(txt2)
+        with open(tmp_file, "w", encoding="utf-8") as f:
+            f.write(str(soup))
         return tmp_file
-    render_static_wiki()
-    edited_wiki_path = edit_html_tiddlers()
-    shutil.copyfile(edited_wiki_path, "/www/index.html")
+    with render_lock:
+        render_static_wiki()
+        edited_wiki_path = edit_html_tiddlers()
+        shutil.copyfile(edited_wiki_path, "/www/index.html")
+        os.remove(edited_wiki_path)
+        os.rmdir(os.path.dirname(edited_wiki_path))
 
 def task_worker():
     create_rclone_config()
