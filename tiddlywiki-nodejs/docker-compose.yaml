@@ -115,6 +115,7 @@ services:
       S3_SECRET_KEY: ${TIDDLYWIKI_NODEJS_S3_SECRET_KEY}
       S3_ENDPOINT: ${TIDDLYWIKI_NODEJS_S3_ENDPOINT}
       S3_BUCKET: ${TIDDLYWIKI_NODEJS_S3_BUCKET}
+      TIDDLYWIKI_PUBLIC_DEFAULT_TIDDLERS: "${TIDDLYWIKI_PUBLIC_DEFAULT_TIDDLERS:-[tag[Journal]!sort[created]limit[10]]}"
     volumes:
       - data:/tiddlywiki
       - static:/www
