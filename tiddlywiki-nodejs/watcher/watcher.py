@@ -21,6 +21,11 @@ logger.setLevel(level=logging.INFO)
 
 SLEEP = 5
 
+if os.environ.get('TIDDLYWIKI_PUBLIC_ALLOWED_TAGS', "") == "":
+    raise AssertionError("TIDDLYWIKI_PUBLIC_ALLOWED_TAGS must not be blank")
+if os.environ.get('TIDDLYWIKI_PUBLIC_DEFAULT_TIDDLERS', "") == "":
+    raise AssertionError("TIDDLYWIKI_PUBLIC_DEFAULT_TIDDLERS must not be blank")
+
 task_re = re.compile("syncer-server-filesystem: Dispatching '(\w+)' task: (.+)")
 image_types = ['jpg', 'png', 'gif']
 canonical_uri_prefix = os.environ.get("TIDDLYWIKI_NODEJS_EXTERNAL_CANONICAL_URI","")
@@ -87,13 +92,16 @@ def render_worker():
         return tiddlers
     def edit_html_tiddlers(default_tiddlers=os.environ['TIDDLYWIKI_PUBLIC_DEFAULT_TIDDLERS'],
                            wiki_html="/tiddlywiki/output/index.html",
-                           allowed_tags=["Journal"]):
+                           allowed_tags=re.findall(
+                               r"(\w+|\[\[.*\]\])",
+                               os.environ['TIDDLYWIKI_PUBLIC_ALLOWED_TAGS'])):
         tiddlers = get_html_tiddlers(wiki_html)
         tiddlers['$:/DefaultTiddlers']['text'] = default_tiddlers
-        tiddlers_filtered = [t for t in tiddlers.values() \
-                             if t['title'].startswith('$') \
-                             or len(set(t.get('tags',"").split(" ")).\
-                                    intersection(set(allowed_tags))) > 0]
+        tiddlers_filtered = []
+        for t in tiddlers.values():
+            tags = set(re.findall(r"(\w+|\[\[.*\]\])",t.get('tags',"")))
+            if t['title'].startswith('$') or len(tags.intersection(allowed_tags)) > 0:
+                tiddlers_filtered.append(t)
         with open(wiki_html, "rb") as f:
             soup = BeautifulSoup(f.read().decode("utf-8"), features="html.parser")
         soup.find_all("script",class_="tiddlywiki-tiddler-store")[0].string = \
