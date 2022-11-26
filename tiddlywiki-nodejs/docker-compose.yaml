@@ -31,7 +31,10 @@ services:
       - "traefik.http.routers.tiddlywiki-static-${TIDDLYWIKI_NODEJS_INSTANCE:-default}-logged-out.entrypoints=websecure"
 
   tiddlywiki-nodejs:
-    image: elasticdog/tiddlywiki
+    build:
+      context: tiddlywiki
+      args:
+        TIDDLYWIKI_NODEJS_VERSION: ${TIDDLYWIKI_NODEJS_VERSION}
     depends_on: ['watcher']
     environment:
       - TIDDLYWIKI_NODEJS_INSTANCE=${TIDDLYWIKI_NODEJS_INSTANCE:-default}
