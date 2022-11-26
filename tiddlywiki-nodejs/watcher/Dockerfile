@@ -2,7 +2,6 @@ FROM python:3
 ARG TIDDLYWIKI_VERSION=5.2.3
 WORKDIR /usr/src
 COPY requirements.txt ./
-COPY watcher.py ./app/watcher.py
 RUN pip install --no-cache-dir -r requirements.txt && \
     apt-get update && \
     apt-get install -y rclone npm && \
@@ -12,6 +11,7 @@ RUN pip install --no-cache-dir -r requirements.txt && \
     cd TiddlyWiki5-${TIDDLYWIKI_VERSION} && \
     npm install && \
     npm link
+COPY watcher.py /usr/src/app/watcher.py
 ENV PYTHONUNBUFFERED=1
 WORKDIR /tiddlywiki
 CMD [ "python", "/usr/src/app/watcher.py" ]
