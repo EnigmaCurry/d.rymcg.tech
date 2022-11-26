@@ -22,7 +22,7 @@ if canonical_uri_prefix == "":
 
 @retry(wait=wait_fixed(1), stop=stop_after_delay(60))
 def wait_for_file(path):
-    logger.info(f"## Waiting for file: {path} ...")
+    logger.info(f"Waiting for file: {path} ...")
     stat = os.stat(path)
     if stat.st_size == 0:
         raise AssertionError("File is empty")
@@ -42,17 +42,25 @@ endpoint = {endpoint}
     with open(os.path.join(parent,"rclone.conf"), "w") as f:
         f.write(content)
 
-def rclone_sync(remote="s3"):
+def rclone_sync_s3(remote="s3"):
     command = f"rclone sync /tiddlywiki {remote}:{os.environ['S3_BUCKET']}/tiddlywiki"
     process = rclone_utils.run_cmd(command)
     if process.returncode == 0:
         logger.info("Successfully synced to S3")
     else:
-        raise Exception(f"S3 sync failed! \n{process.stderr}")
+        logger.error(f"S3 sync failed! \n{process.stderr}")
+
+def render_static_wiki(tiddler_filter="[!is[system]]", template="$:/core/templates/static.tiddler.html"):
+    command = f"tiddlywiki --build"
+    process = rclone_utils.run_cmd(command)
+    if process.returncode == 0:
+        logger.info(f"Wrote static site")
+    else:
+        logger.error(f"{command} failed! \n+ {command}\n{process.stderr}")
 
 def task_worker():
     create_rclone_config()
-    rclone_sync()
+    rclone_sync_s3()
     os.makedirs("/tiddlywiki/files", exist_ok=True)
     while True:
         task, title = task_queue.get()
@@ -61,10 +69,10 @@ def task_worker():
         key = tiddler_path.replace("/tiddlywiki/tiddlers/","")
         if task == "delete" and title.lower().split(".")[-1] in image_types:
             if os.path.exists(file_path):
-                logger.info(f"## Deleting original image: {file_path}")
+                logger.info(f"Deleting original image: {file_path}")
                 os.remove(file_path)
         if task == "save" and title.lower().split(".")[-1] in image_types:
-            logger.info("## Retrieving original tiddler")
+            logger.info("Retrieving original tiddler")
             json = requests.get(
                 f"http://tiddlywiki-nodejs:8080/recipes/default/tiddlers/{key}",
             ).json()
@@ -72,7 +80,7 @@ def task_worker():
                 os.rename(tiddler_path, f"/tiddlywiki/files/{os.path.basename(tiddler_path)}")
                 if wait_for_file(f"{tiddler_path}.meta"):
                     os.remove(f"{tiddler_path}.meta")
-                logger.info("## Creating new tid file with image link")
+                logger.info("Creating new tid file with image link")
                 json["text"] = ""
                 if "data" in json:
                     del json["data"]
@@ -86,7 +94,8 @@ def task_worker():
                 )
                 if wait_for_file(f"{tiddler_path}.meta"):
                     pass
-        rclone_sync()
+        rclone_sync_s3()
+        render_static_wiki()
         task_queue.task_done()
 
 class MyUDPHander(socketserver.BaseRequestHandler):
