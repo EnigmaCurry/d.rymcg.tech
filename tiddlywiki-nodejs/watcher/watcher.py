@@ -96,11 +96,14 @@ def render_worker():
                                r"(\w+|\[\[.*\]\])",
                                os.environ['TIDDLYWIKI_PUBLIC_ALLOWED_TAGS'])):
         tiddlers = get_html_tiddlers(wiki_html)
-        tiddlers['$:/DefaultTiddlers']['text'] = default_tiddlers
+        default_tid = tiddlers.get('$:/DefaultTiddlers',{"title":"$:/DefaultTiddlers"})
+        default_tid['text'] = default_tiddlers
+        tiddlers['$:/DefaultTiddlers']=default_tid
         tiddlers_filtered = []
         for t in tiddlers.values():
             tags = set(re.findall(r"(\w+|\[\[.*\]\])",t.get('tags',"")))
-            if t['title'].startswith('$') or len(tags.intersection(allowed_tags)) > 0:
+            if (t['title'].startswith('$') or len(tags.intersection(allowed_tags)) > 0) \
+               and not t['title'].startswith("Draft of"):
                 tiddlers_filtered.append(t)
         with open(wiki_html, "rb") as f:
             soup = BeautifulSoup(f.read().decode("utf-8"), features="html.parser")
@@ -182,7 +185,9 @@ class MyUDPHander(socketserver.BaseRequestHandler):
                 and task in ('save','delete')):
                 task_queue.put((task,title))
             else:
-                publish_static_wiki()
+                # Don't publish anything for small changes like StoryList and Drafts:
+                #publish_static_wiki()
+                pass
 def main():
     threading.Thread(target=task_worker, daemon=True).start()
     threading.Thread(target=render_worker, daemon=True).start()

@@ -8,5 +8,6 @@ RUN npm install -g tiddlywiki@${TIDDLYWIKI_NODEJS_VERSION}
 EXPOSE 8080
 VOLUME /tiddlywiki
 WORKDIR /tiddlywiki
+COPY tiddlywiki.info /tiddlywiki/tiddlywiki.info
 ENTRYPOINT ["/sbin/tini", "--", "tiddlywiki"]
 CMD ["--help"]

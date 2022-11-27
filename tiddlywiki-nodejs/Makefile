@@ -9,11 +9,15 @@ config-hook:
 	@echo ""
 	@echo "Configure the admin account credentials:"
 	@${BIN}/reconfigure_htpasswd ${ENV_FILE} TIDDLYWIKI_NODEJS_HTTP_AUTH
-	@make setup
+	@echo ""
+	@${BIN}/confirm $$([[ "$$(${BIN}/dotenv -f ${ENV_FILE} get TIDDLYWIKI_PUBLIC_IP_SOURCERANGE)" == "0.0.0.0/0" ]] && echo "yes" || echo "no") "Do you want to enable public read-only access" "?" && ${BIN}/reconfigure ${ENV_FILE} TIDDLYWIKI_PUBLIC_IP_SOURCERANGE=0.0.0.0/0 || ${BIN}/reconfigure ${ENV_FILE} TIDDLYWIKI_PUBLIC_IP_SOURCERANGE=0.0.0.0/32
+	@echo ""
+	@echo "Enter your S3 bucket credentials:"
+	@${BIN}/reconfigure_ask ${ENV_FILE} TIDDLYWIKI_NODEJS_S3_BUCKET "Enter the S3 Bucket name" wiki${INSTANCE_URL_SUFFIX}.${ROOT_DOMAIN}
+	@${BIN}/reconfigure_ask ${ENV_FILE} TIDDLYWIKI_NODEJS_S3_ENDPOINT "Enter the S3 Endpoint domain name" s3.${ROOT_DOMAIN}
+	@${BIN}/reconfigure_ask ${ENV_FILE} TIDDLYWIKI_NODEJS_S3_ACCESS_KEY_ID "Enter the S3 Access ID" wiki${INSTANCE_URL_SUFFIX}.${ROOT_DOMAIN}
+	@${BIN}/reconfigure_ask ${ENV_FILE} TIDDLYWIKI_NODEJS_S3_SECRET_KEY "Enter the S3 Secret Key"
 
-.PHONY: setup
-setup:
-	@make -i --no-print-directory docker-compose-lifecycle-cmd EXTRA_ARGS="run --rm -it --entrypoint tiddlywiki tiddlywiki-nodejs --init server"
 
 .PHONY: shell
 shell:
