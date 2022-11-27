@@ -30,6 +30,8 @@ This configuration of TiddlyWiki adds the following features:
    images downloaded separately.
  * Automatic publishing to a read-only static snapshot. Guests do not
    need to be authenticated. (Turned off by default)
+ * JPEG EXIF data is stripped and filenames are randomized. (The
+   tiddler retains the original filename).
  * Configurable Default Tiddlers for the main page on the public site
    (this can be different than the default tiddlers seen by the admin
    page).
