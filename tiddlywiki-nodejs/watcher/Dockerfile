@@ -2,7 +2,7 @@ FROM python:3
 ARG TIDDLYWIKI_VERSION=5.2.3
 WORKDIR /usr/src
 RUN apt-get update && \
-    apt-get install -y libgirepository1.0-dev gir1.2-poppler-0.18 rclone npm && \
+    apt-get install -y rclone npm exiftool libgirepository1.0-dev gir1.2-poppler-0.18 && \
     wget https://github.com/Jermolene/TiddlyWiki5/archive/refs/tags/v${TIDDLYWIKI_VERSION}.tar.gz && \
     tar xfv v${TIDDLYWIKI_VERSION}.tar.gz && \
     rm v${TIDDLYWIKI_VERSION}.tar.gz && \
