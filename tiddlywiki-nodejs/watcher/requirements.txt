@@ -5,3 +5,5 @@ call_throttle@https://github.com/EnigmaCurry/call-throttle/archive/refs/heads/ma
 beautifulsoup4==4.11.1
 escapejson==1.0
 mat2==0.13.0
+pillow==9.3.0
+
