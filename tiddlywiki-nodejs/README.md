@@ -2,12 +2,12 @@
 
 Note: there are two different versions of TiddlyWiki packaged by d.rymcg.tech:
 
- * [tiddlywiki-nodejs](../tiddlywiki-nodejs) (this project) which is a
+ * [tiddlywiki-nodejs](./) (this project) which is a
    NodeJS server for editing large TiddlyWiki sites with lots of
    embedded media. All media is stored as separate files, and in the
    case of images, are stored on external S3 ([minio](../minio))
    storage.
- * [tiddlywiki-webdav](./) which is a WebDAV server for hosting and
+ * [tiddlywiki-webdav](../tiddlywiki-webdav) which is a WebDAV server for hosting and
    editing smaller static HTML versions of TiddlyWiki. (all attached
    media is embedded in the .html)
 
