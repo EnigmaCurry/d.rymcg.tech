@@ -409,6 +409,7 @@ Install these services at your leisure/preference:
 * [Syncthing](syncthing) - a multi-device file synchronization tool
 * [Thttpd](thttpd) - a tiny/turbo/throttling HTTP server for serving static files
 * [TiddlyWiki (WebDAV version)](tiddlywiki-webdav) - A personal wiki stored in a single static HTML file
+* [TiddlyWiki (NodeJS version)](tiddlywiki-nodejs) - Advanced server edition of TiddlyWiki with image CDN
 * [Tiny Tiny RSS](ttrss) - an RSS reader / proxy
 * [Traefik-forward-auth](traefik-forward-auth) - Traefik oauth middleware
 * [Websocketd](websocketd) - a websocket / CGI server

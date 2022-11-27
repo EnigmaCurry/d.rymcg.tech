@@ -6,12 +6,12 @@ config: check-instance-project
 .PHONY: start # Start services
 start:
 	@make -e --no-print-directory override instance=${INSTANCE}
-	@make --no-print-directory docker-compose-lifecycle-cmd EXTRA_ARGS="up -d"
+	@make --no-print-directory docker-compose-lifecycle-cmd EXTRA_ARGS="up -d ${service}"
 
 .PHONY: up
 up: build
 	@make -e --no-print-directory override instance=${INSTANCE}
-	@make --no-print-directory docker-compose-lifecycle-cmd EXTRA_ARGS="up"
+	@make --no-print-directory docker-compose-lifecycle-cmd EXTRA_ARGS="up ${service}"
 
 .PHONY: stop # Stops services
 stop:
@@ -40,7 +40,7 @@ status:
 
 .PHONY: logs # Tail all containers logs (set SERVICE=name to filter for one)
 logs:
-	@make --no-print-directory docker-compose-lifecycle-cmd EXTRA_ARGS="logs -f ${SERVICE}"
+	@make --no-print-directory docker-compose-lifecycle-cmd EXTRA_ARGS="logs -f ${service}"
 
 .PHONY: pull # Pull docker images from registry
 pull:
