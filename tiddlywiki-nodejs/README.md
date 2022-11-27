@@ -1,17 +1,22 @@
 # TiddlyWiki NodeJS Server
 
+This is the NodeJS version of [TiddlyWiki](https://tiddlywiki.com/), a
+personal and shareable self-hosted wiki with powerful single-file/json
+import/export features (TiddlyWiki is to wikis as SQLite is to
+databases), and frictionless editability and publishing. This package
+creates a hybrid static / admin interface: a static snapshot for
+public guests, and dynamic live edit for authenticated admins.
+
 Note: there are two different versions of TiddlyWiki packaged by d.rymcg.tech:
 
- * [tiddlywiki-nodejs](./) (this project) which is a
-   NodeJS server for editing large TiddlyWiki sites with lots of
-   embedded media. All media is stored as separate files, and in the
-   case of images, are stored on external S3 ([minio](../minio))
-   storage.
- * [tiddlywiki-webdav](../tiddlywiki-webdav) which is a WebDAV server for hosting and
-   editing smaller static HTML versions of TiddlyWiki. (all attached
-   media is embedded in the .html)
-
-This is the NodeJS version of [TiddlyWiki](https://tiddlywiki.com/).
+ * [tiddlywiki-nodejs](./) (this project) which is a NodeJS server,
+   and the more powerful of the two options. Choose this for editing
+   large TiddlyWiki sites with lots of embedded media. All media is
+   stored as separate files, and in the case of images, are stored on
+   external S3 ([minio](../minio)) storage.
+ * [tiddlywiki-webdav](../tiddlywiki-webdav) which is a WebDAV server
+   for ad-hoc hosting and editing smaller static HTML versions of
+   TiddlyWiki. (All attached media is embedded in a single .html file)
 
 ## Features
 
