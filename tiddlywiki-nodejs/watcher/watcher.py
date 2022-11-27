@@ -8,6 +8,7 @@ import json
 import tempfile
 import logging
 import shutil
+import uuid
 
 import requests
 from rclone_python import rclone, utils as rclone_utils
@@ -71,13 +72,21 @@ endpoint = {endpoint}
     with open(os.path.join(parent,"rclone.conf"), "w") as f:
         f.write(content)
 
+def metadata_anonymize(path):
+    command = f"mat2 --inplace -L {path}"
+    process = rclone_utils.run_cmd(command)
+    if process.returncode == 0:
+        logger.info(f"Removed metadata: {path}")
+    else:
+        logger.error(f"{command} failed! \n{process.stderr}")
+
 def publish_static_wiki():
     print("Queueing render ...")
     render_schedule.schedule()
 
 def render_worker():
     def render_static_wiki(tiddler_filter="[!is[system]]", template="$:/core/templates/static.tiddler.html"):
-        command = f"tiddlywiki --build"
+        command = "tiddlywiki --build"
         process = rclone_utils.run_cmd(command)
         if process.returncode == 0:
             logger.info(f"Wrote static site")
@@ -143,6 +152,8 @@ def task_worker():
         tiddler_path = os.path.join("/tiddlywiki/tiddlers",title)
         file_path = os.path.join("/tiddlywiki/files",title)
         key = tiddler_path.replace("/tiddlywiki/tiddlers/","")
+        extension = key.split(".")[-1]
+        random_id = uuid.uuid4()
         if task == "delete" and title.lower().split(".")[-1] in image_types:
             if os.path.exists(file_path):
                 logger.info(f"Deleting original image: {file_path}")
@@ -153,7 +164,8 @@ def task_worker():
                 f"http://tiddlywiki-nodejs:8080/recipes/default/tiddlers/{key}",
             ).json()
             if "_canonical_uri" not in json.get("fields", []) and wait_for_file(tiddler_path):
-                os.rename(tiddler_path, f"/tiddlywiki/files/{os.path.basename(tiddler_path)}")
+                metadata_anonymize(tiddler_path)
+                os.rename(tiddler_path, f"/tiddlywiki/files/{random_id}.{extension}")
                 if wait_for_file(f"{tiddler_path}.meta"):
                     os.remove(f"{tiddler_path}.meta")
                 logger.info("Creating new tid file with image link")
@@ -161,7 +173,7 @@ def task_worker():
                 if "data" in json:
                     del json["data"]
                 json["fields"] = {
-                    "_canonical_uri": f"{canonical_uri_prefix}/{key}"
+                    "_canonical_uri": f"{canonical_uri_prefix}/{random_id}.{extension}"
                 }
                 res = requests.put(
                     f"http://tiddlywiki-nodejs:8080/recipes/default/tiddlers/{title}",
