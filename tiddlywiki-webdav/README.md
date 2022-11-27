@@ -10,12 +10,14 @@ same server and path that it is served from.
 Note: there are two different versions of TiddlyWiki packaged by d.rymcg.tech:
 
  * [tiddlywiki-webdav](./) (this project) which is a WebDAV server for
-   hosting and editing small static HTML versions of TiddlyWiki. (all
-   attached media is embedded in the .html)
- * [tiddlywiki-nodejs](../tiddlywiki-nodejs) which is a NodeJS server
-   for editing larger TiddlyWiki sites with lots of embedded media.
-   All media is stored as separate files, and in the case of images,
-   are stored on external S3 ([minio](../minio)) storage.
+   ad-hoc hosting and editing smaller static HTML versions of
+   TiddlyWiki. (All attached media is embedded in a single .html file)
+
+ * [tiddlywiki-nodejs](../tiddlywiki-nodejs) which is a NodeJS server,
+   and the more powerful of the two options. Choose this for editing
+   large TiddlyWiki sites with lots of embedded media. All media is
+   stored as separate files, and in the case of images, are stored on
+   external S3 ([minio](../minio)) storage.
 
 This project configuration creates an [Nginx](https://nginx.org)
 WebDAV server backend with
