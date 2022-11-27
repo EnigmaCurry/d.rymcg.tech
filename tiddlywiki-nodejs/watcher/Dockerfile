@@ -1,16 +1,16 @@
 FROM python:3
 ARG TIDDLYWIKI_VERSION=5.2.3
 WORKDIR /usr/src
-COPY requirements.txt ./
-RUN pip install --no-cache-dir -r requirements.txt && \
-    apt-get update && \
-    apt-get install -y rclone npm && \
+RUN apt-get update && \
+    apt-get install -y libgirepository1.0-dev gir1.2-poppler-0.18 rclone npm && \
     wget https://github.com/Jermolene/TiddlyWiki5/archive/refs/tags/v${TIDDLYWIKI_VERSION}.tar.gz && \
     tar xfv v${TIDDLYWIKI_VERSION}.tar.gz && \
     rm v${TIDDLYWIKI_VERSION}.tar.gz && \
     cd TiddlyWiki5-${TIDDLYWIKI_VERSION} && \
     npm install && \
     npm link
+COPY requirements.txt ./
+RUN pip install --no-cache-dir -r /usr/src/requirements.txt
 COPY watcher.py /usr/src/app/watcher.py
 ENV PYTHONUNBUFFERED=1
 WORKDIR /tiddlywiki
