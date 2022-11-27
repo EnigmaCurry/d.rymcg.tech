@@ -7,6 +7,16 @@ stores itself, and the entire wiki database, inside of a single
 backends, but by default it uses WebDAV and pushes changes back to the
 same server and path that it is served from.
 
+Note: there are two different versions of TiddlyWiki packaged by d.rymcg.tech:
+
+ * [tiddlywiki-webdav](./) (this project) which is a WebDAV server for
+   hosting and editing small static HTML versions of TiddlyWiki. (all
+   attached media is embedded in the .html)
+ * [tiddlywiki-nodejs](../tiddlywiki-nodejs) which is a NodeJS server
+   for editing larger TiddlyWiki sites with lots of embedded media.
+   All media is stored as separate files, and in the case of images,
+   are stored on external S3 ([minio](../minio)) storage.
+
 This project configuration creates an [Nginx](https://nginx.org)
 WebDAV server backend with
 [bfren/docker-nginx-webdav](https://github.com/bfren/docker-nginx-webdav)
