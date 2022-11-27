@@ -257,6 +257,9 @@ as each `docker` command will need to authenticate via SSH.
    Keys](https://www.digitalocean.com/community/tutorials/how-to-set-up-ssh-keys-2)
  * Make sure to turn off regular password authentication, set
    `PasswordAuthentication no` in the server config.
+ * Check out this [SSH Hardening
+   Guide](https://www.sshaudit.com/hardening_guides.html) for
+   disabling outdated key types.
  * If your workstation's operating system does not automatically provide an
    ssh-agent (to make it so you don't have to keep typing your key's
    passphrase), check out
