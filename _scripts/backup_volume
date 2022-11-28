@@ -1,0 +1,52 @@
+#!/bin/bash
+
+## backup_volume VOLUME_NAME DEST_DIR PATH_SENTINEL
+## Backup the remote docker volume via rsync to the local destination
+## directory.
+## Required PATH_SENTINEL names one file or direcxtory contained in
+## the volume. This variable does not affect which files are copied,
+## but will be a precondition to help avoid deleting the wrong files,
+## it works like this: DEST_DIR must be empty, or if not, it must
+## contain a file/directory of the name specified by PATH_SENTINEL.
+
+BIN=$(dirname ${BASH_SOURCE})
+source ${BIN}/funcs.sh
+set -e
+
+VOLUME=$1; shift
+DEST_DIR=$1; shift
+check_var VOLUME DEST_DIR
+
+INSPECT=$(docker volume inspect ${VOLUME})
+if [[ $? != 0 ]]; then
+    fault "Could not find volume: ${VOLUME}"
+fi
+
+MOUNTPOINT=$(echo $INSPECT | jq -r .[0].Mountpoint)
+if [[ $? != 0 ]] || [[ -z "$MOUNTPOINT" ]]; then
+    fault "Error parsing mount point for volume: ${VOLUME}"
+fi
+
+SSH_HOST=$(docker context inspect | jq -r ".[0].Endpoints.docker.Host" | sed 's|ssh://||')
+WHOAMI=$(ssh ${SSH_HOST} id -u)
+if [[ $? != 0 ]]; then
+    fault "Could not connect to the SSH_HOST: ${SSH_HOST}"
+fi
+
+RSYNC_SUDO_ARG=""
+if [[ "$WHOAMI" != "0" ]]; then
+    RSYNC_SUDO_ARG=--rsync-path='sudo rsync'
+fi
+
+if [[ -d "$DEST_DIR}" ]] && [[ "$(ls -1 "$DEST_DIR" | wc -l)" -gt "0" ]]; then
+    # Directory exists and is non-empty:
+    if [[ ! -e "$${DEST_DIR}/{PATH_SENTINEL}" ]]; then
+        fault "PATH_SENTINEL '${PATH_SENTINEL}' not found in non-empty DEST_DIR: ${DEST_DIR}"
+    fi
+fi
+
+echo "## Backing up volume: ${VOLUME}"
+echo "## To local destination directory: ${DEST_DIR}"
+(set -x; rsync -av --delete-after "${RSYNC_SUDO_ARG}" "${SSH_HOST}:${MOUNTPOINT}/" "${DEST_DIR}")
+echo ""
+echo "## Backup complete."
