@@ -240,7 +240,7 @@ endpoint = {endpoint}"""
             )
 
         with Image.open(img_path) as img:
-            aspect = img.size[0] / img.size[1]
+            aspect = img.size[1] / img.size[0]
             if img.size[0] > IMAGE_RESIZE_WIDTH:
                 resized = img.resize(
                     (IMAGE_RESIZE_WIDTH, int(IMAGE_RESIZE_WIDTH * aspect))
