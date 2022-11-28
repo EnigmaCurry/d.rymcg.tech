@@ -11,11 +11,14 @@
 
 BIN=$(dirname ${BASH_SOURCE})
 source ${BIN}/funcs.sh
-set -e
 
 VOLUME=$1; shift
 DEST_DIR=$1; shift
-check_var VOLUME DEST_DIR
+PATH_SENTINEL=$1; shift
+test "$#" -gt 0 && fault "Unknown extra args: $@"
+
+set -e
+check_var VOLUME DEST_DIR PATH_SENTINEL
 
 INSPECT=$(docker volume inspect ${VOLUME})
 if [[ $? != 0 ]]; then
@@ -38,10 +41,12 @@ if [[ "$WHOAMI" != "0" ]]; then
     RSYNC_SUDO_ARG=--rsync-path='sudo rsync'
 fi
 
-if [[ -d "$DEST_DIR}" ]] && [[ "$(ls -1 "$DEST_DIR" | wc -l)" -gt "0" ]]; then
+if [[ -d "${DEST_DIR}" ]] && [[ "$(ls -1 "$DEST_DIR" | wc -l)" -gt "0" ]]; then
+    echo "## Warning: non-empty directory already exists: ${DEST_DIR}"
+    echo "## This will delete all the local files that the sender doesn't have!"
     # Directory exists and is non-empty:
-    if [[ ! -e "$${DEST_DIR}/{PATH_SENTINEL}" ]]; then
-        fault "PATH_SENTINEL '${PATH_SENTINEL}' not found in non-empty DEST_DIR: ${DEST_DIR}"
+    if [[ ! -e "${DEST_DIR}/${PATH_SENTINEL}" ]]; then
+        fault "PATH_SENTINEL '${PATH_SENTINEL}' not found in non-empty DEST_DIR: ${DEST_DIR}. Refusing to do backup to a weird directory."
     fi
 fi
 

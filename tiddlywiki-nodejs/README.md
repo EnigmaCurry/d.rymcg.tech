@@ -172,9 +172,11 @@ make backup
 ```
 
 To run automatic backups, you can run `make backup` in a cron job or
-systemd timer. This script will not keep past versions, and deleted
-files are gone forever. It is assumed that you will backup to another
-director that is backed up. It is recommended to [use restic on your
+systemd timer (you will need access to an SSH agent, or use an
+unencrypted keyfile). This script will not keep past versions, and
+deleted files are gone forever. It is assumed that you will backup to
+another directory that is also backed up already. It is recommended to
+[use restic on your
 workstation](https://blog.rymcg.tech/blog/linux/restic_backup/) to
-make immutable backups, and upload to offite, encrypted, cloud
-storage.
+make immutable backups of your workstation directories, and upload to
+offsite encrypted cloud storage.
