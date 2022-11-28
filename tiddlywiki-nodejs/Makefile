@@ -38,4 +38,4 @@ open:
 .PHONY: backup # Backup TiddlyWiki to TIDDLYWIKI_NODEJS_LOCAL_BACKUP_DIR
 backup:
 	@[[ "$$(${BIN}/dotenv -f ${ENV_FILE} get TIDDLYWIKI_NODEJS_LOCAL_BACKUP_DIR)" == "" ]] && echo "Missing TIDDLYWIKI_NODEJS_LOCAL_BACKUP_DIR environment variable" && exit 1 || true
-	@${BIN}/backup_volume "${PROJECT_VOLUME_PREFIX}_data" "$$(${BIN}/dotenv -f ${ENV_FILE} get TIDDLYWIKI_NODEJS_LOCAL_BACKUP_DIR)"
+	@${BIN}/backup_volume "${PROJECT_VOLUME_PREFIX}_data" "$$(${BIN}/dotenv -f ${ENV_FILE} get TIDDLYWIKI_NODEJS_LOCAL_BACKUP_DIR)" tiddlywiki.info
