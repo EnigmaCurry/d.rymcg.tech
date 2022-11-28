@@ -37,9 +37,14 @@ This configuration of TiddlyWiki adds the following features:
    need to be authenticated. (Turned off by default)
  * JPEG EXIF data is stripped and filenames are randomized. (The
    tiddler retains the original filename).
- * Configurable Default Tiddlers for the main page on the public site
-   (this can be different than the default tiddlers seen by the admin
-   page).
+ * Images saved in three sizes: original, reduced 640px wide, and
+   128x128 thumbnail.
+ * Configurable `$:/DefaultTiddlers` so the public main page can
+   display a different set of tiddlers on the main page than the admin
+   backend does (eg. Display the 10 most recent Journal entries on the
+   public page, and on the backend use the Story View, which sorts by
+   last used).
+ * `make backup` script to backup all data to your local workstation.
 
 ## Configure S3
 
@@ -152,3 +157,19 @@ You can change these settings with these two environment variables:
    publishing, eg `Public,public`.
  * `TIDDLYWIKI_PUBLIC_DEFAULT_TIDDLERS` the filter for the default
    tiddlers on main page, eg `[tag[Public]!sort[created]limit[10]]`.
+
+## Backup
+
+There is a manual backup script to backup all TiddlyWiki tiddlers and
+files (eg. images).
+
+In the tiddlywiki .env file, set `TIDDLYWIKI_NODEJS_LOCAL_BACKUP_DIR`
+to a path on your workstation (by default will backup to the `backup`
+directory in this project directory.
+
+```
+make backup
+```
+
+To run automatic backups, you can run `make backup` in a cron job or
+systemd timer.

@@ -34,3 +34,8 @@ ssh-keygen:
 .PHONY: open
 open:
 	@export DOCKER_CONTEXT=${DOCKER_CONTEXT} ENV_FILE=${ENV_FILE} CONTEXT_INSTANCE=${CONTEXT_INSTANCE}; ${BIN}/open /login
+
+.PHONY: backup # Backup TiddlyWiki to TIDDLYWIKI_NODEJS_LOCAL_BACKUP_DIR
+backup:
+	@[[ "$$(${BIN}/dotenv -f ${ENV_FILE} get TIDDLYWIKI_NODEJS_LOCAL_BACKUP_DIR)" == "" ]] && echo "Missing TIDDLYWIKI_NODEJS_LOCAL_BACKUP_DIR environment variable" && exit 1 || true
+	@${BIN}/backup_volume "${PROJECT_VOLUME_PREFIX}_data" "$$(${BIN}/dotenv -f ${ENV_FILE} get TIDDLYWIKI_NODEJS_LOCAL_BACKUP_DIR)"
