@@ -20,6 +20,9 @@ plugins:
   - kookma/shiraz
   - kookma/shiraz-formatter
   #@ end
+  #@ if "trashbin" in data.values.plugins.split(","):
+  - kookma/trashbin
+  #@ end
 themes:
   - tiddlywiki/vanilla
   - tiddlywiki/snowwhite

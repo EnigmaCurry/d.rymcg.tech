@@ -1,5 +1,6 @@
 FROM node:alpine
-ARG TIDDLYWIKI_NODEJS_VERSION TIDDLYWIKI_NODEJS_TIDDLYMAP_VERSION TIDDLYWIKI_NODEJS_SHIRAZ_VERSION
+ARG TIDDLYWIKI_NODEJS_VERSION TIDDLYWIKI_NODEJS_TIDDLYMAP_VERSION \
+    TIDDLYWIKI_NODEJS_SHIRAZ_VERSION TIDDLYWIKI_NODEJS_TRASHBIN_VERSION
 
 # https://github.com/nodejs/docker-node/blob/master/docs/BestPractices.md#handling-kernel-signals
 RUN apk add --no-cache tini
@@ -33,3 +34,9 @@ RUN TMP_DIR=$(mktemp -d) && cd ${TMP_DIR} && \
     unzip ${TIDDLYWIKI_NODEJS_SHIRAZ_VERSION}.zip && \
     mkdir -p /usr/local/lib/node_modules/tiddlywiki/plugins/kookma && \
     cp -a TW-Shiraz-${TIDDLYWIKI_NODEJS_SHIRAZ_VERSION}/source/* /usr/local/lib/node_modules/tiddlywiki/plugins/kookma/
+RUN TMP_DIR=$(mktemp -d) && cd ${TMP_DIR} && \
+    wget https://github.com/kookma/TW-Trashbin/archive/refs/tags/${TIDDLYWIKI_NODEJS_TRASHBIN_VERSION}.zip && \
+    unzip ${TIDDLYWIKI_NODEJS_TRASHBIN_VERSION}.zip && \
+    mkdir -p /usr/local/lib/node_modules/tiddlywiki/plugins/kookma && \
+    cp -a TW-Trashbin-${TIDDLYWIKI_NODEJS_TRASHBIN_VERSION}/source/* /usr/local/lib/node_modules/tiddlywiki/plugins/kookma/
+

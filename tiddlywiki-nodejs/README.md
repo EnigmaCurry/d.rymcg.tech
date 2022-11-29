@@ -166,6 +166,7 @@ Optional plugins can be installed:
  * [TiddlyMap](http://tiddlymap.org/)
  * [Reveal-JS](https://github.com/sukima/tiddlywiki-reveal-js)
  * [Shiraz](https://kookma.github.io/TW-Shiraz/)
+ * [Trashbin](https://kookma.github.io/TW-Trashbin/)
 
 To enable these extra plugins, you must edit your
 `.env_${DOCKER_CONTEXT}_${INSTANCE}` file and edit
@@ -173,7 +174,7 @@ To enable these extra plugins, you must edit your
 
 ```
 # Example enabling several plugins:
-TIDDLYWIKI_NODEJS_PLUGINS=markdown,tiddlymap,reveal-js,shiraz
+TIDDLYWIKI_NODEJS_PLUGINS=markdown,tiddlymap,reveal-js,shiraz,trashbin
 ```
 
 Each plugin you enable increases the base HTML size of TiddlyWiki.
