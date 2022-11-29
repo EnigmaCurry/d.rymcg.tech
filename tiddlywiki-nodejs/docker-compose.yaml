@@ -46,6 +46,7 @@ services:
       context: tiddlywiki
       args:
         TIDDLYWIKI_NODEJS_VERSION: ${TIDDLYWIKI_NODEJS_VERSION}
+        TIDDLYWIKI_NODEJS_TIDDLYMAP_VERSION: ${TIDDLYWIKI_NODEJS_TIDDLYMAP_VERSION}
     depends_on:
       - config
       - watcher
@@ -122,6 +123,9 @@ services:
   watcher:
     build:
       context: watcher
+      args:
+        TIDDLYWIKI_NODEJS_VERSION: ${TIDDLYWIKI_NODEJS_VERSION}
+        TIDDLYWIKI_NODEJS_TIDDLYMAP_VERSION: ${TIDDLYWIKI_NODEJS_TIDDLYMAP_VERSION}
     environment:
       TIDDLYWIKI_HOST: ${TIDDLYWIKI_NODEJS_TRAEFIK_HOST}
       S3_ACCESS_KEY_ID: ${TIDDLYWIKI_NODEJS_S3_ACCESS_KEY_ID}

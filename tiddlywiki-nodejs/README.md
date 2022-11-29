@@ -164,6 +164,7 @@ Optional plugins can be installed:
 
  * [Markdown](https://tiddlywiki.com/plugins/tiddlywiki/markdown/)
  * [TiddlyMap](http://tiddlymap.org/)
+ * [Reveal-JS](https://github.com/sukima/tiddlywiki-reveal-js)
 
 To enable these extra plugins, you must edit your
 `.env_${DOCKER_CONTEXT}_${INSTANCE}` file and edit

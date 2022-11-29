@@ -1,6 +1,6 @@
 FROM node:alpine
-ARG TIDDLYWIKI_NODEJS_VERSION=5.2.3
-ARG TIDDLYWIKI_NODEJS_TIDDLYMAP_VERSION=0.17.15
+ARG TIDDLYWIKI_NODEJS_VERSION
+ARG TIDDLYWIKI_NODEJS_TIDDLYMAP_VERSION
 
 # https://github.com/nodejs/docker-node/blob/master/docs/BestPractices.md#handling-kernel-signals
 RUN apk add --no-cache tini
@@ -22,7 +22,13 @@ RUN TMP_DIR=$(mktemp -d) && cd ${TMP_DIR} && \
 RUN TMP_DIR=$(mktemp -d) && cd ${TMP_DIR} && \
     wget https://github.com/felixhayashi/TW5-TopStoryView/archive/refs/heads/master.zip && \
     unzip master.zip && \
-    cp -a TW5-TopStoryView-master/dist/* /usr/local/lib/node_modules/tiddlywiki/plugins
+    cp -a TW5-TopStoryView-master/dist/* /usr/local/lib/node_modules/tiddlywiki/plugin
+RUN TMP_DIR=$(mktemp -d) && cd ${TMP_DIR} && \
+    wget https://github.com/sukima/tiddlywiki-reveal-js/archive/master.zip && \
+    unzip master.zip && \
+    cp -a tiddlywiki-reveal-js-master/plugins/* /usr/local/lib/node_modules/tiddlywiki/plugins && \
+    cd /usr/local/lib/node_modules/tiddlywiki && \
+    npm install reveal.js
 
 EXPOSE 8080
 VOLUME /tiddlywiki
