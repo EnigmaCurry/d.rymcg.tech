@@ -17,11 +17,19 @@ config-hook:
 	@${BIN}/reconfigure_ask ${ENV_FILE} TIDDLYWIKI_NODEJS_S3_ENDPOINT "Enter the S3 Endpoint domain name" s3.${ROOT_DOMAIN}
 	@${BIN}/reconfigure_ask ${ENV_FILE} TIDDLYWIKI_NODEJS_S3_ACCESS_KEY_ID "Enter the S3 Access ID" wiki${INSTANCE_URL_SUFFIX}.${ROOT_DOMAIN}
 	@${BIN}/reconfigure_ask ${ENV_FILE} TIDDLYWIKI_NODEJS_S3_SECRET_KEY "Enter the S3 Secret Key"
-
+	@echo ""
+	@echo "There are optional plugins for markdown and tiddlymap,"
+	@echo "but to use them you must configure TIDDLYWIKI_NODEJS_PLUGINS in the .env file."
+	@echo ""
 
 .PHONY: shell
 shell:
 	@make --no-print-directory docker-compose-lifecycle-cmd EXTRA_ARGS="exec tiddlywiki-nodejs /bin/sh"
+
+.PHONY: watcher-shell
+watcher-shell:
+	@make --no-print-directory docker-compose-lifecycle-cmd EXTRA_ARGS="exec watcher /bin/bash"
+
 
 # .PHONY: override-hook
 # override-hook:
@@ -39,3 +47,4 @@ open:
 backup:
 	@[[ "$$(${BIN}/dotenv -f ${ENV_FILE} get TIDDLYWIKI_NODEJS_LOCAL_BACKUP_DIR)" == "" ]] && echo "Missing TIDDLYWIKI_NODEJS_LOCAL_BACKUP_DIR environment variable" && exit 1 || true
 	@${BIN}/backup_volume "${PROJECT_VOLUME_PREFIX}_data" "$$(${BIN}/dotenv -f ${ENV_FILE} get TIDDLYWIKI_NODEJS_LOCAL_BACKUP_DIR)" tiddlywiki.info
+
