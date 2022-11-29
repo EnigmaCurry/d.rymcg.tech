@@ -150,8 +150,13 @@ def render_worker():
         for t in tiddlers.values():
             tags = set(re.findall(r"(\w+|\[\[.*\]\])", t.get("tags", "")))
             if (
-                t["title"].startswith("$:/") or len(tags.intersection(allowed_tags)) > 0
-            ) and not t["title"].startswith("Draft of"):
+                (
+                    t["title"].startswith("$:/")
+                    or len(tags.intersection(allowed_tags)) > 0
+                )
+                and not t["title"].startswith("Draft of")
+                and not t["title"].startswith("$:/trashbin/")
+            ):
                 tiddlers_filtered.append(t)
         with open(wiki_html, "rb") as f:
             soup = BeautifulSoup(f.read().decode("utf-8"), features="html.parser")
@@ -314,6 +319,7 @@ class MyUDPHander(socketserver.BaseRequestHandler):
             task, title = task_m.group(1, 2)
             if (
                 title != "$:/StoryList"
+                and not title.startswith("$:/trashbin/")
                 and not title.startswith("Draft of")
                 and task in ("save", "delete")
             ):
