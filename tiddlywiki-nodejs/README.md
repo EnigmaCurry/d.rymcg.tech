@@ -165,14 +165,15 @@ Optional plugins can be installed:
  * [Markdown](https://tiddlywiki.com/plugins/tiddlywiki/markdown/)
  * [TiddlyMap](http://tiddlymap.org/)
  * [Reveal-JS](https://github.com/sukima/tiddlywiki-reveal-js)
+ * [Shiraz](https://kookma.github.io/TW-Shiraz/)
 
 To enable these extra plugins, you must edit your
 `.env_${DOCKER_CONTEXT}_${INSTANCE}` file and edit
 `TIDDLYWIKI_NODEJS_PLUGINS`.
 
 ```
-# This example enables markdown and tiddlymap plugins:
-TIDDLYWIKI_NODEJS_PLUGINS=markdown,tiddlymap
+# Example enabling several plugins:
+TIDDLYWIKI_NODEJS_PLUGINS=markdown,tiddlymap,reveal-js,shiraz
 ```
 
 Each plugin you enable increases the base HTML size of TiddlyWiki.

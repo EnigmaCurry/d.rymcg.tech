@@ -16,6 +16,10 @@ plugins:
   #@ if "reveal-js" in data.values.plugins.split(","):
   - reveal-js
   #@ end
+  #@ if "shiraz" in data.values.plugins.split(","):
+  - kookma/shiraz
+  - kookma/shiraz-formatter
+  #@ end
 themes:
   - tiddlywiki/vanilla
   - tiddlywiki/snowwhite
