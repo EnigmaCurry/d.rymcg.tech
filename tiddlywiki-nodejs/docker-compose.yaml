@@ -30,12 +30,25 @@ services:
       - "traefik.http.routers.tiddlywiki-static-${TIDDLYWIKI_NODEJS_INSTANCE:-default}-logged-out.rule=Host(`${TIDDLYWIKI_NODEJS_TRAEFIK_HOST}`) && Path(`/logout/logged_out.html`)"
       - "traefik.http.routers.tiddlywiki-static-${TIDDLYWIKI_NODEJS_INSTANCE:-default}-logged-out.entrypoints=websecure"
 
+  config:
+    build:
+      context: config
+      args:
+        TIDDLYWIKI_NODEJS_CONFIG_YTT_VERSION: ${TIDDLYWIKI_NODEJS_CONFIG_YTT_VERSION:-v0.44.0}
+    environment:
+      - TIDDLYWIKI_NODEJS_PLUGINS=${TIDDLYWIKI_NODEJS_PLUGINS}
+
+    volumes:
+      - data:/tiddlywiki
+
   tiddlywiki-nodejs:
     build:
       context: tiddlywiki
       args:
         TIDDLYWIKI_NODEJS_VERSION: ${TIDDLYWIKI_NODEJS_VERSION}
-    depends_on: ['watcher']
+    depends_on:
+      - config
+      - watcher
     environment:
       - TIDDLYWIKI_NODEJS_INSTANCE=${TIDDLYWIKI_NODEJS_INSTANCE:-default}
     security_opt:

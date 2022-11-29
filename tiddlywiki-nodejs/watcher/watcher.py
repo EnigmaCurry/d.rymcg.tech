@@ -150,7 +150,7 @@ def render_worker():
         for t in tiddlers.values():
             tags = set(re.findall(r"(\w+|\[\[.*\]\])", t.get("tags", "")))
             if (
-                t["title"].startswith("$") or len(tags.intersection(allowed_tags)) > 0
+                t["title"].startswith("$:/") or len(tags.intersection(allowed_tags)) > 0
             ) and not t["title"].startswith("Draft of"):
                 tiddlers_filtered.append(t)
         with open(wiki_html, "rb") as f:
@@ -165,6 +165,8 @@ def render_worker():
         with open(tmp_file, "w", encoding="utf-8") as f:
             f.write(str(soup))
         return tmp_file
+
+    #    def edit_html_javascript_disabled_warning()
 
     while True:
         render_schedule.get_work()

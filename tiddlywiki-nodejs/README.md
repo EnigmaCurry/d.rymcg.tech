@@ -158,6 +158,26 @@ You can change these settings with these two environment variables:
  * `TIDDLYWIKI_PUBLIC_DEFAULT_TIDDLERS` the filter for the default
    tiddlers on main page, eg `[tag[Public]!sort[created]limit[10]]`.
 
+## Plugins
+
+Optional plugins can be installed:
+
+ * [Markdown](https://tiddlywiki.com/plugins/tiddlywiki/markdown/)
+ * [TiddlyMap](http://tiddlymap.org/)
+
+To enable these extra plugins, you must edit your
+`.env_${DOCKER_CONTEXT}_${INSTANCE}` file and edit
+`TIDDLYWIKI_NODEJS_PLUGINS`.
+
+```
+# This example enables markdown and tiddlymap plugins:
+TIDDLYWIKI_NODEJS_PLUGINS=markdown,tiddlymap
+```
+
+Each plugin you enable increases the base HTML size of TiddlyWiki.
+With only the base plugins installed, the size is around 2.6MB. With
+markdown and tiddlymap installed, it is about 3.9MB.
+
 ## Backup
 
 There is a manual backup script to backup all TiddlyWiki tiddlers and
