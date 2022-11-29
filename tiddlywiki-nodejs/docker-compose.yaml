@@ -41,6 +41,14 @@ services:
     volumes:
       - data:/tiddlywiki
 
+  tiddlywiki-base:
+    image: tiddlywiki-nodejs-base
+    build:
+      context: tiddlywiki-base
+      args:
+        TIDDLYWIKI_NODEJS_VERSION: ${TIDDLYWIKI_NODEJS_VERSION}
+        TIDDLYWIKI_NODEJS_TIDDLYMAP_VERSION: ${TIDDLYWIKI_NODEJS_TIDDLYMAP_VERSION}
+
   tiddlywiki-nodejs:
     build:
       context: tiddlywiki
