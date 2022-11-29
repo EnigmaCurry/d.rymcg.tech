@@ -2,6 +2,10 @@ ROOT_DIR = ..
 include ../_scripts/Makefile.projects-no-open
 include ../_scripts/Makefile.instance
 
+.PHONY: build-hook-pre
+build-hook-pre:
+	@make --no-print-directory build service=tiddlywiki-base NO_HOOKS=true
+
 .PHONY: config-hook
 config-hook:
 	@${BIN}/reconfigure_ask ${ENV_FILE} TIDDLYWIKI_NODEJS_TRAEFIK_HOST "Enter the tiddlywiki domain name" wiki${INSTANCE_URL_SUFFIX}.${ROOT_DOMAIN}
