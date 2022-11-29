@@ -13,6 +13,9 @@ plugins:
   - felixhayashi/topstoryview
   - flibbles/vis-network
   #@ end
+  #@ if "reveal-js" in data.values.plugins.split(","):
+  - reveal-js
+  #@ end
 themes:
   - tiddlywiki/vanilla
   - tiddlywiki/snowwhite
