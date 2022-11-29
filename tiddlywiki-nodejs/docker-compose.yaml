@@ -13,6 +13,8 @@ networks:
 
 services:
   tiddlywiki-static:
+    profiles:
+      - default
     build:
       context: static
     volumes:
@@ -31,6 +33,8 @@ services:
       - "traefik.http.routers.tiddlywiki-static-${TIDDLYWIKI_NODEJS_INSTANCE:-default}-logged-out.entrypoints=websecure"
 
   config:
+    profiles:
+      - default
     build:
       context: config
       args:
@@ -42,6 +46,8 @@ services:
       - data:/tiddlywiki
 
   tiddlywiki-base:
+    profiles:
+      - build
     image: tiddlywiki-nodejs-base
     build:
       context: tiddlywiki-base
@@ -52,6 +58,8 @@ services:
         TIDDLYWIKI_NODEJS_TRASHBIN_VERSION: ${TIDDLYWIKI_NODEJS_TRASHBIN_VERSION}
 
   tiddlywiki-nodejs:
+    profiles:
+      - default
     build:
       context: tiddlywiki
       args:
@@ -131,6 +139,8 @@ services:
 
 
   watcher:
+    profiles:
+      - default
     build:
       context: watcher
       args:
@@ -152,6 +162,8 @@ services:
         ipv4_address: ${TIDDLYWIKI_LOGGING_SUBNET_PREFIX:-172.45.17}.2
 
   s3-proxy-config:
+    profiles:
+      - default
     build:
       context: s3-proxy-config
     security_opt:
@@ -166,6 +178,8 @@ services:
       - s3-proxy-config:/proxy/conf
 
   s3-proxy:
+    profiles:
+      - default
     depends_on: ['s3-proxy-config']
     build:
       context: https://github.com/EnigmaCurry/s3-proxy.git#self-buildable

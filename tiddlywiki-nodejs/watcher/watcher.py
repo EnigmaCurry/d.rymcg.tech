@@ -199,7 +199,9 @@ def render_worker():
 ################################################################################
 task_re = re.compile("syncer-server-filesystem: Dispatching '(\w+)' task: (.+)")
 task_queue = queue.Queue()
-media_file_extensions = ["jpg", "png", "gif"]
+image_file_extensions = ["jpg", "png", "gif", "bmp"]
+audio_file_extensions = ["mp3", "flac", "wav"]
+media_file_extensions = image_file_extensions + audio_file_extensions
 
 
 def task_worker():
@@ -246,6 +248,7 @@ endpoint = {endpoint}"""
                 )
             )
 
+        img_sizes = {}
         with Image.open(img_path) as img:
             aspect = img.size[1] / img.size[0]
             if img.size[0] > IMAGE_RESIZE_WIDTH:
@@ -254,11 +257,13 @@ endpoint = {endpoint}"""
                 )
                 resized_name = f"{uuid.uuid4()}.jpg"
                 save(resized, resized_name)
+                img_sizes["resized"] = resized_name
             thumbnail = img.copy()
             thumbnail.thumbnail((IMAGE_THUMBNAIL_WIDTH, IMAGE_THUMBNAIL_WIDTH))
             thumbnail_name = f"{uuid.uuid4()}.jpg"
             save(thumbnail, thumbnail_name)
-        return {"resized": resized_name, "thumbnail": thumbnail_name}
+            img_sizes["thumbnail"] = thumbnail_name
+        return img_sizes
 
     create_rclone_config()
     publish_static_wiki()
@@ -274,8 +279,9 @@ endpoint = {endpoint}"""
             if os.path.exists(file_path):
                 logger.info(f"Deleting original file: {file_path}")
                 os.remove(file_path)
-        if task == "save" and title.lower().split(".")[-1] in media_file_extensions:
-            logger.info("Retrieving original tiddler")
+
+        if task == "save" and title.lower().split(".")[-1] in image_file_extensions:
+            logger.info("Retrieving original image tiddler")
             json = requests.get(
                 f"http://tiddlywiki-nodejs:8080/recipes/default/tiddlers/{key}",
             ).json()
@@ -290,16 +296,52 @@ endpoint = {endpoint}"""
                 logger.info("Creating new tid file with image link")
                 json["type"] = "text/vnd.tiddlywiki"
                 json["text"] = (
-                    '<a href={{!!_canonical_uri_original}} target="_blank">'
-                    + "<img src={{!!_canonical_uri_resized}} /></a>"
+                    '<center><a href={{!!_canonical_uri_original}} target="_blank">'
+                    + "<img src={{!!_canonical_uri_resized}} /></a></center>"
                 )
                 if "data" in json:
                     del json["data"]
                 json["fields"] = {
-                    "_canonical_uri_resized": f"{TIDDLYWIKI_NODEJS_EXTERNAL_CANONICAL_URI}/{resized_names['resized']}",
-                    "_canonical_uri_thumbnail": f"{TIDDLYWIKI_NODEJS_EXTERNAL_CANONICAL_URI}/{resized_names['thumbnail']}",
                     "_canonical_uri_original": f"{TIDDLYWIKI_NODEJS_EXTERNAL_CANONICAL_URI}/{canonical_name}",
                 }
+                if "resized" in resized_names:
+                    json[
+                        "_canonical_uri_resized"
+                    ] = f"{TIDDLYWIKI_NODEJS_EXTERNAL_CANONICAL_URI}/{resized_names['resized']}"
+                else:
+                    json[
+                        "_canonical_uri_resized"
+                    ] = f"{TIDDLYWIKI_NODEJS_EXTERNAL_CANONICAL_URI}/{canonical_name}"
+                if "thumbnail" in resized_names:
+                    json[
+                        "_canonical_uri_thumbnail"
+                    ] = f"{TIDDLYWIKI_NODEJS_EXTERNAL_CANONICAL_URI}/{resized_names['thumbnail']}"
+
+                res = requests.put(
+                    f"http://tiddlywiki-nodejs:8080/recipes/default/tiddlers/{title}",
+                    headers={"X-Requested-With": "TiddlyWiki"},
+                    json=json,
+                )
+        if task == "save" and title.lower().split(".")[-1] in audio_file_extensions:
+            logger.info("Retrieving original audio tiddler")
+            json = requests.get(
+                f"http://tiddlywiki-nodejs:8080/recipes/default/tiddlers/{key}",
+            ).json()
+            if "_canonical_uri" not in json.get("fields", []) and wait_for_file(
+                tiddler_path
+            ):
+                os.rename(tiddler_path, f"/tiddlywiki/files/{canonical_name}")
+                if wait_for_file(f"{tiddler_path}.meta"):
+                    os.remove(f"{tiddler_path}.meta")
+                logger.info("Creating new tid file with audio link")
+                json.update(
+                    type=f"audio/{extension}",
+                    _canonical_uri=f"{TIDDLYWIKI_NODEJS_EXTERNAL_CANONICAL_URI}/{canonical_name}",
+                )
+                if "text" in json:
+                    del json["text"]
+                if "data" in json:
+                    del json["data"]
                 res = requests.put(
                     f"http://tiddlywiki-nodejs:8080/recipes/default/tiddlers/{title}",
                     headers={"X-Requested-With": "TiddlyWiki"},
