@@ -52,6 +52,6 @@ fi
 
 echo "## Backing up volume: ${VOLUME}"
 echo "## To local destination directory: ${DEST_DIR}"
-(set -x; rsync -av --delete-after "${RSYNC_SUDO_ARG}" "${SSH_HOST}:${MOUNTPOINT}/" "${DEST_DIR}")
+(set -x; rsync -av --delete-after ${RSYNC_SUDO_ARG} "${SSH_HOST}:${MOUNTPOINT}/" "${DEST_DIR}")
 echo ""
 echo "## Backup complete."
