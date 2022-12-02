@@ -105,6 +105,16 @@ Answer the questions for these variables:
    key (eg. `wiki.d.example.com`)
  * `TIDDLYWIKI_NODEJS_S3_SECRET_KEY` the preprovisioned S3 secret key
 
+## Build the base TiddlyWiki image
+
+```
+make build --service=tiddlywiki-base
+```
+
+(This step is automatically run by `make install`, but it may fail, so
+its useful to run this step by itself, one time, before the first
+install.)
+
 ## Install
 
 Once configured, install TiddlyWiki:
@@ -167,6 +177,7 @@ Optional plugins can be installed:
  * [Reveal-JS](https://github.com/sukima/tiddlywiki-reveal-js)
  * [Shiraz](https://kookma.github.io/TW-Shiraz/)
  * [Trashbin](https://kookma.github.io/TW-Trashbin/)
+ * [Datepicker](https://github.com/kixam/TW5-datePicker)
 
 To enable these extra plugins, you must edit your
 `.env_${DOCKER_CONTEXT}_${INSTANCE}` file and edit
@@ -174,7 +185,7 @@ To enable these extra plugins, you must edit your
 
 ```
 # Example enabling several plugins:
-TIDDLYWIKI_NODEJS_PLUGINS=markdown,tiddlymap,reveal-js,shiraz,trashbin
+TIDDLYWIKI_NODEJS_PLUGINS=markdown,tiddlymap,reveal-js,shiraz,trashbin,datepicker
 ```
 
 Each plugin you enable increases the base HTML size of TiddlyWiki.

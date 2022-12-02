@@ -23,6 +23,10 @@ plugins:
   #@ if "trashbin" in data.values.plugins.split(","):
   - kookma/trashbin
   #@ end
+  #@ if "datepicker" in data.values.plugins.split(","):
+  - kixam/moment
+  - kixam/datepicker
+  #@ end
 themes:
   - tiddlywiki/vanilla
   - tiddlywiki/snowwhite
