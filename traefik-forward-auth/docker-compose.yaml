@@ -20,13 +20,15 @@ services:
     labels:
       - "traefik.enable=true"
       - "traefik.http.services.traefik-forward-auth.loadbalancer.server.port=4181"
-      - "traefik.http.middlewares.traefik-forward-auth.forwardAuth.address=http://traefik-forward-auth:4181"
+      - "traefik.http.middlewares.traefik-forward-auth.forwardAuth.address=http://127.0.0.1:4181"
       - "traefik.http.middlewares.traefik-forward-auth.forwardAuth.authResponseHeaders=X-Forwarded-User"
 
       - "traefik.http.routers.traefik-forward-auth.rule=Host(`${AUTH_HOST}`)"
       - "traefik.http.routers.traefik-forward-auth.entrypoints=websecure"
       - "traefik.http.routers.traefik-forward-auth.tls=true"
       - "traefik.http.routers.traefik-forward-auth.middlewares=traefik-forward-auth"
+    ports:
+      - 127.0.0.1:4181:4181
 
 volumes:
   data:
