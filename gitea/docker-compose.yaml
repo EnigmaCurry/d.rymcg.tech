@@ -22,6 +22,8 @@ services:
       - GITEA__service__DEFAULT_ALLOW_CREATE_ORGANIZATION
       - GITEA__service__DEFAULT_ENABLE_TIMETRACKING
       - GITEA__service__NO_REPLY_ADDRESS
+      - GITEA__session__SESSION_LIFE_TIME
+      - GITEA__security__LOGIN_REMEMBER_DAYS
     security_opt:
       - no-new-privileges:true
     cap_drop:
