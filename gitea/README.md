@@ -3,7 +3,7 @@
 [Gitea](https://gitea.com/) is a git repository host, similar to GitHub, but
 entirely self-hosted. Gitea also functions as an identity server and OAuth
 provider, to facilitate sign-in for other applications, via
-[thomseddon/traefik-forward-auth](https://github.com/thomseddon/traefik-forward-auth)
+[traefik-forward-auth](../traefik-forward-auth)
 
 ## Configuration
 
