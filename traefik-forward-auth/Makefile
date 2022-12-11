@@ -3,7 +3,7 @@ include ../_scripts/Makefile.projects
 
 .PHONY: config-hook
 config-hook:
-	@${BIN}/reconfigure_ask ${ENV_FILE} TRAEFIK_FORWARD_AUTH_AUTH_HOST "Enter the auth host domain name" auth.${ROOT_DOMAIN}
+	@${BIN}/reconfigure_ask ${ENV_FILE} TRAEFIK_FORWARD_AUTH_HOST "Enter the auth host domain name" auth.${ROOT_DOMAIN}
 	@${BIN}/reconfigure_ask ${ENV_FILE} TRAEFIK_FORWARD_AUTH_COOKIE_DOMAIN "Enter the cookie domain name" ${ROOT_DOMAIN}
 	@echo ""
 	@echo "Opening Gitea applications page... (login as root)"

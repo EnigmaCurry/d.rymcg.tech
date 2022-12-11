@@ -1,40 +1,51 @@
 # traefik-forward-auth
 
-[traefik-forward-auth](https://github.com/thomseddon/traefik-forward-auth) is a
-Traefik middleware to facilitate OpenID/OAuth2 authentication. You can use this
-to login to your applications using an external account. The default `.env-dist`
-is setup to use a self-hosted [gitea](../gitea) instance, but you can also use
-GitHub with the commented out example.
+[traefik-forward-auth](https://github.com/thomseddon/traefik-forward-auth)
+is a Traefik middleware to facilitate OpenID/OAuth2 authentication.
+You can use this to login to your applications using an external
+account. The default `.env-dist` is setup to use a self-hosted
+[gitea](../gitea) instance, but you can also use GitHub with the
+commented out example, or use [any other oauth2
+provider](https://github.com/thomseddon/traefik-forward-auth/wiki/Provider-Setup).
 
 ## Configuration
 
-Copy `.env-dist` to `.env_${DOCKER_CONTEXT}_default` and edit these variables:
+Follow the directions to deploy [gitea](../gitea), create a root
+account and login.
 
- * `SECRET` create a secret key string, using `openssl rand -base64 45`.
- * `AUTH_HOST` should be a dedicated sub-domain for the OAuth2 callback URL.
-   (eg. `auth.example.com`)
- * `COOKIE_DOMAIN` should be the root domain for all apps. (eg. `example.com`)
- * Edit all the `PROVIDERS_GENERIC_OAUTH_AUTH_*` variables, and replace the
-   domain name of your Gitea instance from `git.example.com` to your own.
- * Add your OAuth2 credentials `PROVIDERS_GENERIC_OAUTH_CLIENT_ID` and
-   `PROVIDERS_GENERIC_OAUTH_CLIENT_SECRET`. These are provided to you by your
-   OAuth2 application page. Create your OAuth2 application and fill in the details:
-   * For Gitea, go to https://git.example.com/user/settings/applications
-(replace git.example.com with your Gitea instance domain name)
-   * For GitHub, go to https://github.com/settings/applications/new
-   * When creating the app, enter the callback URL:
-https://auth.example.com/_oauth (replace auth.example.com with your `AUTH_HOST`
-domain name)
+Now in this directory (`traefik-forward-auth`), run:
 
+```
+make config
+```
+
+Answer the questions to configure the following environment variables:
+
+ * `TRAEFIK_FORWARD_AUTH_HOST` Enter the subdomain name used for
+   authentication purposes, eg `auth.example.com`.
+ * `TRAEFIK_FORWARD_AUTH_COOKIE_DOMAIN` Enter the root domain the
+   authentication cookie will be valid for, eg. `example.com`
+ * At this point your web browser will automatically open to the gitea
+   page where you can create an OAuth2 app. 
+   * Enter the `Application Name`, the same as
+     `TRAEFIK_FORWARD_AUTH_HOST`, eg `auth.example.com`.
+   * Enter the `Redirect URL`, eg `https://auth.example.com/_oauth`.
+   * Copy the Client ID and Secret shown.
+ * `TRAEFIK_FORWARD_AUTH_PROVIDERS_GENERIC_OAUTH_CLIENT_ID` enter the
+   Client ID shown on the OAuth2 application page in gitea.
+ * `TRAEFIK_FORWARD_AUTH_PROVIDERS_GENERIC_OAUTH_CLIENT_SECRET` enter
+   the Client Secret shown on the OAuth2 application page in gitea.
 
 ## Enable Traefik Routes for authentication
 
-See the example in [whoami](../whoami/docker-compose.yaml), it is preset for the
-domain auth.whoami.{yourdomain}.
-
-Add this docker label to make any route use `traefik-forward-auth` (where the
-name of the route is `foo`):
+You can add authentication to any Traefik router by applying the
+middleware: `traefik-forward-auth` (In this example, the name of the
+route is `foo`):
 
 ```
       - "traefik.http.routers.foo.middlewares=traefik-forward-auth@docker"
 ```
+
+See the commented out example in
+[whoami](../whoami/docker-compose.yaml), it is preset for the domain
+auth.whoami.{yourdomain}.
