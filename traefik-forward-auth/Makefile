@@ -13,6 +13,6 @@ config-hook:
 	xdg-open https://git.${ROOT_DOMAIN}/user/settings/applications
 	@${BIN}/reconfigure_ask ${ENV_FILE} TRAEFIK_FORWARD_AUTH_PROVIDERS_GENERIC_OAUTH_CLIENT_ID "Copy and Paste the OAuth2 client ID here"
 	@${BIN}/reconfigure_ask ${ENV_FILE} TRAEFIK_FORWARD_AUTH_PROVIDERS_GENERIC_OAUTH_CLIENT_SECRET "Copy and Paste the OAuth2 client secret here"
-	@echo "ok"
+	@${BIN}/reconfigure_ask ${ENV_FILE} TRAEFIK_FORWARD_AUTH_LOGOUT_REDIRECT "Enter the logout redirect URL" https://git.${ROOT_DOMAIN}/logout
 	@${BIN}/reconfigure ${ENV_FILE} TRAEFIK_FORWARD_AUTH_SECRET="$(shell openssl rand -base64 45)" TRAEFIK_FORWARD_AUTH_PROVIDERS_GENERIC_OAUTH_AUTH_URL="https://git.${ROOT_DOMAIN}/login/oauth/authorize" TRAEFIK_FORWARD_AUTH_PROVIDERS_GENERIC_OAUTH_TOKEN_URL="https://git.${ROOT_DOMAIN}/login/oauth/access_token" TRAEFIK_FORWARD_AUTH_PROVIDERS_GENERIC_OAUTH_USER_URL="https://git.${ROOT_DOMAIN}/api/v1/user"
 
