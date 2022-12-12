@@ -38,19 +38,6 @@ Answer the questions to configure the following environment variables:
  * `TRAEFIK_FORWARD_AUTH_LOGOUT_REDIRECT` Enter the URL to redirect
    after logging out, eg `https://git.example.com/logout`.
 
-Logout is a multi-phase endevour:
-
- * The user browses to any authenticated domain + `/_oauth/logout`.
-   (eg. `https://whatever.example.com/_oauth/logout`). This deletes
-   the `_foward_auth` cookie.
- * Then the user is redirected to the the URL specified by
-   `TRAEFIK_FORWARD_AUTH_LOGOUT_REDIRECT`. This redirect will delete
-   the cookies for gitea (logging out of gitea): `gitea_incredible`
-   and `i_like_gitea`.
- * Finally the user is redirected to the main gitea login page, eg.
-   `https://git.example.com/user/login` and is now completely logged
-   out.
-
 ## Enable Traefik Routes for authentication
 
 You can add authentication to any Traefik router by applying the
@@ -64,3 +51,18 @@ route is `foo`):
 See the commented out example in
 [whoami](../whoami/docker-compose.yaml), it is preset for the domain
 auth.whoami.{yourdomain}.
+
+## Logging out
+
+User logout is a multi-phase endevour:
+
+ * The user browses to any authenticated domain + `/_oauth/logout`.
+   (eg. `https://whatever.example.com/_oauth/logout`). This deletes
+   the `_foward_auth` cookie.
+ * Then the user is redirected to the the URL specified by
+   `TRAEFIK_FORWARD_AUTH_LOGOUT_REDIRECT`. This redirect will delete
+   the cookies for gitea (logging out of gitea): `gitea_incredible`
+   and `i_like_gitea`.
+ * Finally the user is redirected to the main gitea login page, eg.
+   `https://git.example.com/user/login` and is now completely logged
+   out.
