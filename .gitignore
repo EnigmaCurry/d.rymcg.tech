@@ -8,4 +8,3 @@ passwords.json
 .gitmodules
 /mikeapp/
 docker-compose.override*.yaml
-/musicsite/
