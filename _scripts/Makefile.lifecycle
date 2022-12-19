@@ -15,7 +15,7 @@ up: build
 
 .PHONY: stop # Stops services
 stop:
-	@make --no-print-directory docker-compose-lifecycle-cmd EXTRA_ARGS="stop"
+	@make --no-print-directory docker-compose-lifecycle-cmd EXTRA_ARGS="stop ${service}"
 
 .PHONY: down
 down:
@@ -23,7 +23,7 @@ down:
 
 .PHONY: restart # Restart services
 restart:
-	@make --no-print-directory docker-compose-lifecycle-cmd EXTRA_ARGS="restart"
+	@make --no-print-directory docker-compose-lifecycle-cmd EXTRA_ARGS="restart ${service}"
 
 .PHONY: destroy # Deletes containers AND data volumes
 destroy: check-instance-project
