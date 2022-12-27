@@ -25,6 +25,7 @@ derived from the `.env` file.
 - [Command line interaction](#command-line-interaction)
 - [Creating multiple instances of a service](#creating-multiple-instances-of-a-service)
 - [Backup .env files](#backup-env-files-optional)
+- [Integrating external projects](#integrating-external-projects)
 
 ## All configuration comes from the environment
 
@@ -706,3 +707,41 @@ make restore-env
 
 Enter the name of the backup file, and all of the `.env` and `passwords.json`
 files will be restored to their original locations.
+
+## Integrating external projects
+
+You can integrate your own docker-compose projects that live in
+external git repositories, into the d.rymcg.tech framework:
+
+ * Clone d.rymcg.tech and set it up (Install Traefik, and whoami, make
+   sure that works first).
+ * Clone your own project to any other directory. (It does not need to
+   be a sub-directory of `d.rymcg.tech`, but you can).
+ * Create `docker-compose.yaml`, `.env-dist`, and a `Makefile`. You
+   can use any of the d.rymcg.tech sub-projects as an example, like
+   `whoami`.
+
+Create the `Makefile` in your own separate repository so that it
+includes the main `d.rymcg.tech` directory:
+
+```
+## Example Makefile in your own project repository:
+# ROOT_DIR can be a relative or absolute path to the d.rymcg.tech directory:
+ROOT_DIR = ${HOME}/git/vendor/enigmacurry/d.rymcg.tech
+include ${ROOT_DIR}/_scripts/Makefile.projects
+
+.PHONY: config # Configure .env file
+config:
+	@${BIN}/reconfigure_ask ${ENV_FILE} EXAMPLE_TRAEFIK_HOST "Enter the example domain name" example.${ROOT_DOMAIN}
+	@${BIN}/reconfigure_ask ${ENV_FILE} EXAMPLE_OTHER_VAR "Enter the example other variable"
+```
+
+Now in your own sub-project, you can use all the regular `make`
+commands that d.rymcg.tech uses:
+
+```
+make config
+make install
+make open
+# etc
+```

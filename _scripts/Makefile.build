@@ -1,4 +1,4 @@
-include ../_scripts/Makefile.docker-compose
+include ${ROOT_DIR}/_scripts/Makefile.docker-compose
 
 .PHONY: build # Build container images
 build:
