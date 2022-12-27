@@ -723,7 +723,7 @@ external git repositories, into the d.rymcg.tech framework:
    [whoami](whoami).
 
 Create the `Makefile` in your own separate repository so that it
-includes the main `d.rymcg.tech` directory:
+includes the main d.rymcg.tech `Makefile.projects` file:
 
 ```
 ## Example Makefile in your own project repository:
