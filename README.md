@@ -717,9 +717,10 @@ external git repositories, into the d.rymcg.tech framework:
    sure that works first).
  * Clone your own project to any other directory. (It does not need to
    be a sub-directory of `d.rymcg.tech`, but you can).
- * Create `docker-compose.yaml`, `.env-dist`, and a `Makefile`. You
-   can use any of the d.rymcg.tech sub-projects as an example, like
-   `whoami`.
+ * In your own project repository, create the files for
+   `docker-compose.yaml`, `.env-dist`, and a `Makefile`. You can use
+   any of the d.rymcg.tech sub-projects as an example, like
+   [whoami](whoami).
 
 Create the `Makefile` in your own separate repository so that it
 includes the main `d.rymcg.tech` directory:
