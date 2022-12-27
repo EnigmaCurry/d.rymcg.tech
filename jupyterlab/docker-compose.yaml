@@ -14,7 +14,7 @@ services:
       - "traefik.enable=true"
       - "traefik.http.routers.jupyterlab.rule=Host(`${JUPYTERLAB_TRAEFIK_HOST}`)"
       - "traefik.http.routers.jupyterlab.entrypoints=websecure"
-      - "traefik.http.services.jupyterlab.loadBalancer.server.port=10000"
+      - "traefik.http.services.jupyterlab.loadBalancer.server.port=8888"
     volumes:
       - work:/home/jovyan/work
 
