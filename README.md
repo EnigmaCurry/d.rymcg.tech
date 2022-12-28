@@ -780,7 +780,7 @@ target that reconfigures your `.env` file based upon the example
 variables given in `.env-dist`.
 
 Now in your own project directory, you can use all the regular `make`
-commands that d.rymcg.tech provies:
+commands that d.rymcg.tech provides:
 
 ```
 make config
