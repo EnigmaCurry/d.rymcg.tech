@@ -8,11 +8,11 @@ Each project is in its own sub-directory containing its own
 file). This structure allows you to pick and choose which services you
 wish to enable.
 
-Each project has a `Makefile` to simplify configuration, installation,
-and maintainance tasks. Setup is usually as easy as:
+Each project has also has `Makefile` to simplify configuration,
+installation, and maintainance tasks. Setup is as easy as running:
 
- * `make config` and interactively answer some questions to create the
-   `.env` file
+ * `make config` and interactively answering some questions to
+   generate the `.env` file automatically.
  * `make install` to deploy the service containers.
  * `make open` to automatically opens your web browser to the newly
    deployed application URL.
