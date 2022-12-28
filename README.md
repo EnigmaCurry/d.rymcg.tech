@@ -8,7 +8,7 @@ Each project is in its own sub-directory containing its own
 file). This structure allows you to pick and choose which services you
 wish to enable.
 
-Each project has also has `Makefile` to simplify configuration,
+Each project also has a `Makefile` to simplify configuration,
 installation, and maintainance tasks. Setup is as easy as running:
 
  * `make config` and interactively answering some questions to
