@@ -15,11 +15,11 @@ as easy as running:
  * `make config` and interactively answering some questions to
    generate the `.env` file automatically.
  * `make install` to deploy the service containers.
- * `make open` to automatically opens your web browser to the newly
+ * `make open` to automatically open your web browser to the newly
    deployed application URL.
 
 Under the covers, setup is pure `docker-compose`, with *all*
-configuration derived from the `.env` ("dotenv") file.
+configuration derived from the `.env` file.
 
 # Contents
 
