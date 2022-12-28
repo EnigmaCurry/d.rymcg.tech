@@ -101,10 +101,10 @@ for an example that uses both of these).
 ### Setup DNS for your domain and Docker server
 
 You need to bring your own internet domain name and DNS service. You
-will need to create DNS type `A` (or `AAAA` if using IPv6) records
-pointing to your docker server. There are many different DNS platforms
-that you can use, but see [DIGITALOCEAN.md](DIGITALOCEAN.md) for one
-example.
+will need to create DNS type `A` records (or `AAAA` records if using
+IPv6) pointing to your docker server. There are many different DNS
+platforms that you can use, but see [DIGITALOCEAN.md](DIGITALOCEAN.md)
+for one example.
 
 It is recommended to dedicate a sub-domain for this project, and then
 create sub-sub-domains for each application. This will create domain
@@ -210,9 +210,9 @@ You need to install the following tools on your local workstation:
 For Arch Linux, run: `sudo pacman -S docker docker-compose docker-buildx`
 
 For Debian or Ubuntu, you should strictly follow the directions from
-from the links above and install only from the docker.com third party
-apt repository (because the docker packages from the Ubuntu
-repositories are always out of date).
+the links above and install only from the docker.com third party apt
+repository (because the docker packages from the Ubuntu repositories
+are always out of date).
 
 You do not need to (and perhaps *should not*) run the Docker Engine on
 your local workstation. You will use the `docker` client exclusively to
@@ -272,7 +272,7 @@ apt-get install bash build-essential openssl apache2-utils xdg-utils jq wireguar
 
 Make sure that your local workstation user account is setup for SSH
 access to the remote docker server (ie. you should be able to ssh to
-the remote docker `root` account, or another account that has been
+the remote server `root` account, or another account that has been
 added into the `docker` group). You should setup key-based
 authentication so that you don't need to enter passwords during login,
 as each `docker` command will need to authenticate via SSH.
@@ -532,10 +532,10 @@ Authentication passwords, and these passwords can be *optionally*
 saved into a file named `passwords.json` inside the sub-project
 directory. This file is a convenience, so that you can remember the
 passwords that you create. **`passwords.json` is stored in plain
-text**, and excluded from being checked into git via `.gitignore`.
+text**, but excluded from being checked into git via `.gitignore`.
 When you run `make open` the username and password stored in this file
 is automatically applied to the URL that the browser is asked to open,
-thus logging you into the admin account automatically. To delete all
+thus logging you into the website account automatically. To delete all
 of the passwords.json files, you can run `make delete-passwords` in
 the root directory of this project (or `make clean` which will delete
 the `.env` files too).
