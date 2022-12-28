@@ -9,7 +9,8 @@ file). This structure allows you to pick and choose which services you
 wish to enable.
 
 Each project also has a `Makefile` to simplify configuration,
-installation, and maintainance tasks. Setup is as easy as running:
+installation, and maintainance tasks. The setup for any sub-project is
+as easy as running:
 
  * `make config` and interactively answering some questions to
    generate the `.env` file automatically.
