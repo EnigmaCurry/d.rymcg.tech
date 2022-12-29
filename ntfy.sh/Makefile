@@ -1,7 +1,7 @@
 ROOT_DIR = ..
 GRANT_MODE ?= ro
 
-include ../_scripts/Makefile.projects
+include ${ROOT_DIR}/_scripts/Makefile.projects
 
 .PHONY: config-hook
 config-hook:

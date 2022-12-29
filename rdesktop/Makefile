@@ -1,5 +1,5 @@
 ROOT_DIR = ..
-include ../_scripts/Makefile.projects-custom-build
+include ${ROOT_DIR}/_scripts/Makefile.projects-custom-build
 
 .PHONY: build # Build the docker image
 build:
