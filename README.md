@@ -769,15 +769,15 @@ elsewhere:
 ROOT_DIR = ${HOME}/git/vendor/enigmacurry/d.rymcg.tech
 include ${ROOT_DIR}/_scripts/Makefile.projects
 
-.PHONY: config # Configure .env file
-config:
+.PHONY: config-hook # Configure .env file
+config-hook:
 	@${BIN}/reconfigure_ask ${ENV_FILE} EXAMPLE_TRAEFIK_HOST "Enter the example domain name" example.${ROOT_DOMAIN}
 	@${BIN}/reconfigure_ask ${ENV_FILE} EXAMPLE_OTHER_VAR "Enter the example other variable"
 ```
 
-A minimal `Makefile`, like the one above, should include a `config`
-target that reconfigures your `.env` file based upon the example
-variables given in `.env-dist`.
+A minimal `Makefile`, like the one above, should include a
+`config-hook` target that reconfigures your `.env` file based upon the
+example variables given in `.env-dist`.
 
 Now in your own project directory, you can use all the regular `make`
 commands that d.rymcg.tech provides:
