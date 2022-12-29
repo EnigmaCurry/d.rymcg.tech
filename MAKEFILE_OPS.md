@@ -247,7 +247,7 @@ include ../.env_$(shell ${BIN}/docker_context)
 
 ### Self documentation
 
-Put this at the top of your Makefile to add self-documentation
+Put this at the very top of your Makefile to add self-documentation
 support:
 
 ```
@@ -255,6 +255,11 @@ support:
 help:
 	@grep -h '^.PHONY: .* #' Makefile | sed 's/\.PHONY: \(.*\) # \(.*\)/make \1 \t- \2/' | expand -t20
 ```
+
+The first target listed in a Makefile is the default target that gets
+run when you run `make` with no other arguments. You can also include
+[Makefile.help](_scripts/Makefile.help) as the very first included
+file, and it will have the same effect.
 
 Now add your other targets to the same Makefile underneath the `help`
 target, this time with comments after the `.PHONY` line, starting with
@@ -287,12 +292,12 @@ make time           - Output the current time
 ```
 
 Make doesn't have a help system by default, we had to make our own, so
-having to type `.PHONY:` in front of all our targets turned out to be
-pretty useful and less like boilerplate.
+needing to type `.PHONY:` in front of all our targets turned out to be
+pretty useful, and should feel a bit less like boilerplate now.
 
 If you just type `make` without any target, the `help` target will
 automatically run because its the first target listed in the
-`Makefile`, and give the user some helpful output. If you type `make`
+`Makefile`, and gives the user some helpful output. If you type `make`
 and hit the TAB key, your shell should output completion suggestions
 (assuming `bash-completion` or similar is installed).
 
@@ -349,7 +354,7 @@ So it ran make twice, the second time as a child process of the first.
 Theres a bit of noise here though. As it enters the second process, it
 prints the text `make[1]: Entering directory '/home/ryan/t'` and when
 its done it prints `make[1]: Leaving directory '/home/ryan/t'`. Unless
-I'm debugging something this is just noise, so I change the target to
+I'm debugging something, this is just noise, so I change the target to
 not print it:
 
 ```
@@ -361,7 +366,9 @@ inception:
 ## Main d.rymcg.tech Makefile
 
 There is a [Makefile](Makefile) in the root directory of d.rymcg.tech.
-Let's check out what it does using the help feature:
+This controls aspects of d.rymcg.tech as a whole. (Each subproject has
+its own Makefile that will be described in the next section.) Let's
+check out what the root Makefile does, using the help feature:
 
 ```
 $ cd ~/git/vendor/enigmacurry/d.rymcg.tech
@@ -383,8 +390,8 @@ make audit          - Audit container permissions and capabilities
 
 d.rymcg.tech needs to be configured once per Docker context to create
 the file `.env_${DOCKER_CONTEXT}`. You can see all your Docker
-contexts by running `docker context ls`. Your current context is
-indicated by an asterisk `*`. For example, my current docker context
+contexts by running `docker context ls`. (Your current context is
+indicated by an asterisk `*`). For example, my current docker context
 is named `ssh.t.rymcg.tech`, so the config file is named
 `.env_ssh.t.rymcg.tech` and written in the root project directory:
 
@@ -525,9 +532,10 @@ All well behaved process should:
 ## Subproject Makefiles in d.rymcg.tech
 
 There is a `Makefile` contained in every sub-project directory of
-d.rymcg.tech. Each Makefile is different and customized for the
-sub-project, but contains some baseline commands that are (usually)
-the same:
+d.rymcg.tech. Each of these Makefiles is different, and customized for
+the sub-project, but they all contain some baseline commands (included
+from the shared [_scripts](_scripts) directory) that are (usually) the
+same:
 
 ```
 $ cd ~/git/vendor/enigmacurry/d.rymcg.tech/whoami
