@@ -500,12 +500,19 @@ directory you are in.
  * `cd` into the sub-project directory of an app you want to install.
  * Read the `README.md` file.
  * Run `make config`
- * Answer the interactive questions, and the `.env_${DOCKER_CONTEXT}_default`
-   file will be created/updated for you (named with your current
-   docker context, eg. `.env_d.example.com_default`). Examples are pre-filled
-   with default values (and based upon your `ROOT_DOMAIN` specified
-   earlier). You can accept the suggested default value, or use the
-   backspace key and edit the value, to fill in your own answers.
+ * Answer the interactive questions, and the
+   `.env_${DOCKER_CONTEXT}_default` file will be created/updated for
+   you (named with your current docker context, eg.
+   `.env_d.example.com_default`). The answers are pre-populated with
+   default values from `.env-dist` (and based upon your `ROOT_DOMAIN`
+   specified earlier). You can accept the suggested default values, or
+   use the backspace key and edit the value, to fill in your own
+   answers. 
+ * The suffix of the .env filename, `_default`, refers to the
+   [instance](#creating-multiple-instances-of-a-service) of the
+   service (each instance has a different name, with `_default` being
+   the default name, and this is typical when you are only deploying a
+   single instance.)
  * Verify the configuration by looking at the contents of
    `.env_${DOCKER_CONTEXT}_default`.
  * Run `make install` to start the services. (this is the same thing as
