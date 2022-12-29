@@ -1,5 +1,5 @@
 ROOT_DIR = ..
-include ../_scripts/Makefile.projects-no-open
+include ${ROOT_DIR}/_scripts/Makefile.projects-no-open
 
 .PHONY: config-hook
 config-hook:

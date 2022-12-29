@@ -1,6 +1,6 @@
 ROOT_DIR = ../..
-include ../../_scripts/Makefile.help-basic
-include ../../_scripts/Makefile.globals
+include ${ROOT_DIR}/_scripts/Makefile.help-basic
+include ${ROOT_DIR}/_scripts/Makefile.globals
 
 # Switch to podman by setting DOCKER=podman environment variable
 DOCKER ?= docker
