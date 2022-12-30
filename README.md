@@ -6,7 +6,8 @@ proxy and other various applications and services behind this proxy.
 Each project is in its own sub-directory containing its own
 `docker-compose.yaml` and `.env` file (as well as `.env-dist` sample
 file). This structure allows you to pick and choose which services you
-wish to enable.
+wish to enable. You may also integrate your own external
+docker-compose projects into this framework.
 
 Each project also has a `Makefile` to simplify configuration,
 installation, and maintainance tasks. The setup for any sub-project is
@@ -75,25 +76,15 @@ state is managed as part of the container/volume lifecycle.
 Server](https://docs.docker.com/engine/install/#server) on your own
 public internet server or cloud host.
 
-See [DIGITALOCEAN.md](DIGITALOCEAN.md) for instructions on creating a
-Docker host on DigitalOcean.
-
 See [SECURITY.md](SECURITY.md) for a list of security concerns when
 choosing a hosting provider.
 
-For development purposes, you can install Docker in a virtual machine
-(and remotely control it from your local workstation), this ensures
-that you use your development environment the same way as you would a
-production server. See [_docker_vm](_docker_vm#readme) for details on
-how and why to install Docker in KVM/Qemu. You can also install
-[Docker Desktop](https://docs.docker.com/desktop) on Linux, Windows,
-or Mac (although Docker Desktop is a bit less secure than our bespoke
-[_docker_vm](_docker_vm#readme)).
+As one example, see [DIGITALOCEAN.md](DIGITALOCEAN.md) for
+instructions on creating a secure Docker host on DigitalOcean.
 
 If you need a semi-private development or staging server, and want to
-be able to share some public URLs for your services, you can deploy to
-a public server, and protect your services by turning on Traefik's
-[HTTP Basic
+be able to share some public URLs for your services, you can protect
+your services by turning on Traefik's [HTTP Basic
 Authentication](https://doc.traefik.io/traefik/middlewares/http/basicauth/)
 or
 [IPWhitelist](https://doc.traefik.io/traefik/middlewares/http/ipwhitelist/)
@@ -103,6 +94,16 @@ for an example that uses both of these) or you can make an exclusively
 private Traefik service with a
 [Wireguard](https://github.com/EnigmaCurry/d.rymcg.tech/tree/master/traefik#wireguard-vpn)
 VPN.
+
+For local development purposes, you can install Docker in a virtual
+machine (and remotely control it from your local workstation), this
+ensures that you use your development environment the same way as you
+would a production server. See [_docker_vm](_docker_vm#readme) for
+details on how and why to install Docker in KVM/Qemu. You can also
+install [Docker Desktop](https://docs.docker.com/desktop) on Linux,
+Windows, or Mac (although Docker Desktop is a bit less secure than our
+bespoke [_docker_vm](_docker_vm#readme)).
+
 
 ### Setup DNS for your domain and Docker server
 
