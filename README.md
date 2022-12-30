@@ -90,8 +90,10 @@ how and why to install Docker in KVM/Qemu. You can also install
 or Mac (although Docker Desktop is a bit less secure than our bespoke
 [_docker_vm](_docker_vm#readme)).
 
-Alternatively, you can use a public server for development purposes,
-and protect it by turning on Traefik's [HTTP Basic
+If you need a semi-private development or staging server, and want to
+be able to share some public URLs for your services, you can deploy to
+a public server, and protect your services by turning on Traefik's
+[HTTP Basic
 Authentication](https://doc.traefik.io/traefik/middlewares/http/basicauth/)
 or
 [IPWhitelist](https://doc.traefik.io/traefik/middlewares/http/ipwhitelist/)
