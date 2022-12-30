@@ -51,7 +51,8 @@ For containers that do not support environment variable configuration,
 a sidecar container is included (usually called `config`) that will
 generate a config file from a template including these environment
 variables, and is run automatically before the main application starts
-up (therefore the config file is dynamically generated each startup).
+up (therefore the config file is dynamically generated at each
+startup).
 
 This project stores all application data in Docker **named volumes**.
 Many samples of docker-compose that are written by other people, and
@@ -89,14 +90,17 @@ how and why to install Docker in KVM/Qemu. You can also install
 or Mac (although Docker Desktop is a bit less secure than our bespoke
 [_docker_vm](_docker_vm#readme)).
 
-Alternatively, you can use a production server for development
-purposes, by turning on Traefik's [HTTP Basic
+Alternatively, you can use a public server for development purposes,
+and protect it by turning on Traefik's [HTTP Basic
 Authentication](https://doc.traefik.io/traefik/middlewares/http/basicauth/)
 or
 [IPWhitelist](https://doc.traefik.io/traefik/middlewares/http/ipwhitelist/)
-middlewares (See
+middlewares (see
 [s3-proxy](https://github.com/EnigmaCurry/d.rymcg.tech/blob/f77aaaa5a2705eedaf29a4cdc32f91cdb65e66f7/s3-proxy/docker-compose.yaml#L35-L41)
-for an example that uses both of these).
+for an example that uses both of these) or you can make an exclusively
+private Traefik service with a
+[Wireguard](https://github.com/EnigmaCurry/d.rymcg.tech/tree/master/traefik#wireguard-vpn)
+VPN.
 
 ### Setup DNS for your domain and Docker server
 
