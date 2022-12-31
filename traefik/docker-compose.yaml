@@ -130,8 +130,6 @@ services:
       - SYS_MODULE
     network_mode: host
     restart: unless-stopped
-    ports:
-      - ${WIREGUARD_HOST_PORT:-51820}:${WIREGUARD_HOST_PORT:-51820}/udp
     # sysctls:
     #   - net.ipv4.conf.all.src_valid_mark=1
     environment:
