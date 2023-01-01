@@ -94,3 +94,7 @@ run on the pi:
 docker info | grep -iE "(Name|Context)"
 ```
 
+## Setup Log2Ram
+
+You can increase the expected lifespan of your SD card by installing
+[log2ram](https://github.com/azlux/log2ram#log2ram)
