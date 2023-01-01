@@ -92,14 +92,22 @@ shell:
 shell-root:
 	docker compose --env-file=${ENV_FILE} exec --user root -it traefik /bin/sh
 
-
 .PHONY: shell-wireguard
 shell-wireguard:
-	docker compose --env-file=${ENV_FILE} exec -it wireguard /bin/sh
+	docker compose --env-file=${ENV_FILE} exec -it wireguard /bin/bash
 
 .PHONY: shell-wireguard-client
 shell-wireguard-client:
 	docker compose --env-file=${ENV_FILE} exec -it wireguard-client /bin/sh
+
+.PHONY: show-wireguard-peers
+show-wireguard-peers:
+	docker compose --env-file=${ENV_FILE} exec -it wireguard /bin/sh -c 'ls /config/peer*/*.conf | xargs -iXX sh -c "echo && echo \#\#\ XX && cat XX"'
+
+.PHONY: show-wireguard-peers-qr
+show-wireguard-peers-qr:
+	docker compose --env-file=${ENV_FILE} exec -it wireguard /bin/sh -c 'ls /config/peer*/*.conf | xargs -iXX sh -c "echo && echo \#\#\ XX && qrencode -t ansiutf8 < XX"'
+
 
 .PHONY: compose-profiles
 compose-profiles:
