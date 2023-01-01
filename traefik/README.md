@@ -388,6 +388,17 @@ which you will need to enter into your client:
    * `make show-wireguard-peers-qr` - QR encoded output to scan with
      android wireguard app.
 
+### Reset wireguard server
+
+Wireguard runs inside the server host OS kernel. If you reconfigure
+the wireguard server, even if you delete the wireguard container, you
+may need to clean up the existing server connection:
+
+```
+## Same as `wg-quick down wg0` on the server:
+make wireguard-reset
+```
+
 ### Wireguard VPN client
 
 [![Traefik VPN Reverse
