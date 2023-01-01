@@ -379,9 +379,19 @@ choose to configure `TRAEFIK_VPN_ENABLED=true`, **or**
 simultaneously*. To use a client and a server connected to the same
 VPN, you should deploy Traefik to two separate docker contexts.
 
+### Retrieve client credentials
+
+There are two ways to retrieve the client credentials from the server,
+which you will need to enter into your client:
+
+   * `make show-wireguard-peers` - output text config of each peer.
+   * `make show-wireguard-peers-qr` - QR encoded output to scan with
+     android wireguard app.
+
 ### Wireguard VPN client
 
-[![Traefik VPN Reverse Proxy](doc/Traefik-VPN-Proxy.jpg)](https://raw.githubusercontent.com/EnigmaCurry/d.rymcg.tech/master/traefik/doc/Traefik-VPN-Proxy.jpg)
+[![Traefik VPN Reverse
+Proxy](doc/Traefik-VPN-Proxy.jpg)](https://raw.githubusercontent.com/EnigmaCurry/d.rymcg.tech/master/traefik/doc/Traefik-VPN-Proxy.jpg)
 
 Consider the use-case for Traefik as a VPN client:
 
@@ -426,15 +436,10 @@ To configure Traefik as a VPN client, run `make config`:
    VPN?` answer **N**. When you are asked `Do you want to run Traefik
    as a reverse proxy for an external VPN?` answer **Y**.
 
- * Check the log of the `traefik-wireguard-1` container of the VPN
-   server. Inside are printed QR codes containing all of the
-   certificate details. Scan the QR code with a smartphone barcode
-   reader app, and copy the details into a temporary buffer in your
-   workstation text exitor (or carefully copy them by hand from the
-   phone screen). Once you tell `make config` that you want to run the
-   vpn client, it will ask you to enter all of the same details found
-   in the decoded client QR code, which are then permantely stored in
-   the traefik .env file.
+ * Once you tell `make config` that you want to run the vpn client, it
+   will ask you to enter all of the same details found in the output
+   of the server's `make show-wireguard-peers`. The crednetials are
+   then permantely stored in the traefik .env file.
 
  * When asked to `Enter the list of VPN service names that the client
    should reverse proxy`, you should enter a list of the names all of
