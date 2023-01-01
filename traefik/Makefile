@@ -108,10 +108,13 @@ show-wireguard-peers:
 show-wireguard-peers-qr:
 	docker compose --env-file=${ENV_FILE} exec -it wireguard /bin/sh -c 'ls /config/peer*/*.conf | xargs -iXX sh -c "echo && echo \#\#\ XX && qrencode -t ansiutf8 < XX"'
 
-
 .PHONY: compose-profiles
 compose-profiles:
 	@${BIN}/reconfigure_compose_profiles ${ENV_FILE} TRAEFIK_PLUGIN_MAXMIND_GEOIP=geoip_update TRAEFIK_VPN_ENABLED=wireguard TRAEFIK_VPN_CLIENT_ENABLED=wireguard-client
+
+.PHONY: wireguard-reset
+wireguard-reset:
+	docker compose --env-file=${ENV_FILE} exec -it wireguard wg-quick down wg0
 
 .PHONY: destroy-wireguard
 destroy-wireguard:
