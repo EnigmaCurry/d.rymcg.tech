@@ -59,7 +59,9 @@ Enter the following information as prompted:
    client interface (eg. `traefik.example.com`)
  * `TRANSMISSION_DOWNLOAD_VOLUME` - the name of the Docker volume or
    bind-mounted Host path, to store downloads (eg.
-   `/storage/downloads`)
+   `/storage/downloads`, this is a rare case where having a
+   bind-mounted host path is most likely preferred over a regular
+   Docker volume, so that you can easily access your downloads.)
  * `TRANSMISSION_WATCH_VOLUME` - the name of the Docker volume or
    bind-mounted Host path, to store torrents (eg. `/storage/torrents`)
  * `TRANSMISSION_VPN_CLIENT_INTERFACE_PRIVATE_KEY` - the `PrivateKey`
