@@ -28,7 +28,7 @@ raise the limit:
 
 ### Gather VPN provider config
 
-Your VPN host must support Wireguard. 
+Your VPN provider must support Wireguard. 
 
 For example, Mullvad has a [Wireguard Config
 Generator](https://mullvad.net/en/account/#/wireguard-config). This
