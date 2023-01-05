@@ -6,16 +6,17 @@ include ${ROOT_DIR}/_scripts/Makefile.instance
 config-hook:
 	@${BIN}/reconfigure_ask ${ENV_FILE} TRANSMISSION_TRAEFIK_HOST "Enter the transmission domain name" transmission${INSTANCE_URL_SUFFIX}.${ROOT_DOMAIN}
 	@${BIN}/reconfigure ${ENV_FILE} TRANSMISSION_INSTANCE=${instance}
+	@${BIN}/reconfigure_ask ${ENV_FILE} TRANSMISSION_PEER_PORT "Enter the public peer port transmission should bind"
 	@${BIN}/reconfigure_ask ${ENV_FILE} TRANSMISSION_DOWNLOAD_VOLUME "Enter the absolute host path to store downloads" /tmp/downloads
 	@${BIN}/reconfigure_ask ${ENV_FILE} TRANSMISSION_WATCH_VOLUME "Enter the absolute host path to store watched torrents" /tmp/torrents
 
 	@echo ""
 	@echo "Enter the wireguard config values:"
 	@${BIN}/reconfigure_ask ${ENV_FILE} TRANSMISSION_VPN_CLIENT_INTERFACE_PRIVATE_KEY "Enter the wireguard PrivateKey (ends with =)"
-	@${BIN}/reconfigure_ask ${ENV_FILE} TRANSMISSION_VPN_CLIENT_INTERFACE_ADDRESS "Enter the wireguard client Interface Addresses (comma separated)"
+	@${BIN}/reconfigure_ask ${ENV_FILE} TRANSMISSION_VPN_CLIENT_INTERFACE_IPV4 "Enter the wireguard client IPv4 Interface Address"
+	@${BIN}/reconfigure_ask ${ENV_FILE} TRANSMISSION_VPN_CLIENT_INTERFACE_IPV6 "Enter the wireguard client IPv6 Interface Address"
 	@${BIN}/reconfigure_ask ${ENV_FILE} TRANSMISSION_VPN_CLIENT_INTERFACE_PEER_DNS "Enter the wireguard Interface DNS"
 	@${BIN}/reconfigure_ask ${ENV_FILE} TRANSMISSION_VPN_CLIENT_PEER_PUBLIC_KEY "Enter the Peer PublicKey (ends with =)"
-	@${BIN}/reconfigure_ask ${ENV_FILE} TRANSMISSION_VPN_CLIENT_PEER_ALLOWED_IPS "Enter the Peer AllowedIPs"
 	@${BIN}/reconfigure_ask ${ENV_FILE} TRANSMISSION_VPN_CLIENT_PEER_ENDPOINT "Enter the Peer Endpoint (host:port)"
 	@${BIN}/reconfigure_ask ${ENV_FILE} TRANSMISSION_IP_SOURCE_RANGE "Enter the allowed client IP source range (eg. 192.168.1.1/24 or 0.0.0.0/0)"
 	@${BIN}/reconfigure_htpasswd ${ENV_FILE} TRANSMISSION_HTTP_AUTH

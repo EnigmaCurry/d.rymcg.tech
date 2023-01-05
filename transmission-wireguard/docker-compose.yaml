@@ -6,13 +6,10 @@ services:
   wireguard-config:
     build:
       context: wireguard-config
-    security_opt:
-      - no-new-privileges:true
-    cap_drop:
-      - ALL
     environment:
       - TRANSMISSION_VPN_CLIENT_INTERFACE_PRIVATE_KEY
-      - TRANSMISSION_VPN_CLIENT_INTERFACE_ADDRESS
+      - TRANSMISSION_VPN_CLIENT_INTERFACE_IPV4
+      - TRANSMISSION_VPN_CLIENT_INTERFACE_IPV6
       - TRANSMISSION_VPN_CLIENT_INTERFACE_LISTEN_PORT
       - TRANSMISSION_VPN_CLIENT_INTERFACE_PEER_DNS
       - TRANSMISSION_VPN_CLIENT_PEER_PUBLIC_KEY
@@ -47,17 +44,30 @@ services:
       - "traefik.http.middlewares.transmission-${TRANSMISSION_INSTANCE:-default}-auth.basicauth.users=${TRANSMISSION_HTTP_AUTH}"
       - "traefik.http.routers.transmission-${TRANSMISSION_INSTANCE:-default}.middlewares=transmission-${TRANSMISSION_INSTANCE:-default}-auth@docker"
 
+  transmission-config:
+    build:
+      context: transmission-config
+    environment:
+      - TRANSMISSION_VPN_CLIENT_INTERFACE_IPV4
+      - TRANSMISSION_VPN_CLIENT_INTERFACE_IPV6
+      - TRANSMISSION_RPC_BIND_ADDRESS
+      - TRANSMISSION_BLOCKLIST_URL
+      - TRANSMISSION_PEER_PORT
+    volumes:
+      - transmission-config:/config
+
   transmission:
     image: linuxserver/transmission
     network_mode: "service:wireguard"
     depends_on:
       - wireguard
+      - transmission-config
     environment:
       - PUID=1000
       - PGID=1000
       - TZ=${TIMEZONE}
-      - TRANSMISSION_WEB_HOME=/transmissionic/
-      - PEERPORT=54914
+      - TRANSMISSION_WEB_HOME
+      - PEERPORT=${TRANSMISSION_PEER_PORT}
       - CURL_CA_BUNDLE=/etc/ssl/certs/ca-certificates.crt
     volumes:
       - transmission-config:/config
