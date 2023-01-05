@@ -1,0 +1,70 @@
+volumes:
+  wireguard:
+  transmission-config:
+
+services:
+  wireguard-config:
+    build:
+      context: wireguard-config
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    environment:
+      - TRANSMISSION_VPN_CLIENT_INTERFACE_PRIVATE_KEY
+      - TRANSMISSION_VPN_CLIENT_INTERFACE_ADDRESS
+      - TRANSMISSION_VPN_CLIENT_INTERFACE_LISTEN_PORT
+      - TRANSMISSION_VPN_CLIENT_INTERFACE_PEER_DNS
+      - TRANSMISSION_VPN_CLIENT_PEER_PUBLIC_KEY
+      - TRANSMISSION_VPN_CLIENT_PEER_ALLOWED_IPS
+      - TRANSMISSION_VPN_CLIENT_PEER_ENDPOINT
+    volumes:
+      - wireguard:/config
+
+  wireguard:
+    depends_on: ['wireguard-config']
+    image: linuxserver/wireguard
+    cap_add:
+      - NET_ADMIN
+      - SYS_MODULE
+    sysctls:
+      - net.ipv6.conf.all.disable_ipv6=0
+      - net.ipv4.conf.all.src_valid_mark=1
+    environment:
+      - PUID=1000
+      - PGID=1000
+      - TZ=${TIMEZONE}
+    volumes:
+      - wireguard:/config
+      - /lib/modules:/lib/modules
+    restart: always
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.transmission-${TRANSMISSION_INSTANCE:-default}.rule=Host(`${TRANSMISSION_TRAEFIK_HOST}`)"
+      - "traefik.http.routers.transmission-${TRANSMISSION_INSTANCE:-default}.entrypoints=websecure"
+      - "traefik.http.services.transmission-${TRANSMISSION_INSTANCE:-default}.loadBalancer.server.port=9091"
+      ## Authentication:
+      - "traefik.http.middlewares.transmission-${TRANSMISSION_INSTANCE:-default}-auth.basicauth.users=${TRANSMISSION_HTTP_AUTH}"
+      - "traefik.http.routers.transmission-${TRANSMISSION_INSTANCE:-default}.middlewares=transmission-${TRANSMISSION_INSTANCE:-default}-auth@docker"
+
+  transmission:
+    image: linuxserver/transmission
+    network_mode: "service:wireguard"
+    depends_on:
+      - wireguard
+    environment:
+      - PUID=1000
+      - PGID=1000
+      - TZ=${TIMEZONE}
+      - TRANSMISSION_WEB_HOME=/transmissionic/
+      - PEERPORT=54914
+      - CURL_CA_BUNDLE=/etc/ssl/certs/ca-certificates.crt
+    volumes:
+      - transmission-config:/config
+      - type: bind
+        source: ${TRANSMISSION_DOWNLOAD_VOLUME}
+        target: /downloads
+      - type: bind
+        source: ${TRANSMISSION_WATCH_VOLUME}
+        target: /watch
+    restart: always

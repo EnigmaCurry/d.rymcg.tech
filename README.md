@@ -449,6 +449,7 @@ Install these services at your leisure/preference:
 * [TiddlyWiki (NodeJS version)](tiddlywiki-nodejs) - Advanced server edition of TiddlyWiki with image CDN
 * [Tiny Tiny RSS](ttrss) - an RSS reader / proxy
 * [Traefik-forward-auth](traefik-forward-auth) - Traefik oauth middleware
+* [Transmission-Wireguard](transmission-wireguard) - A Bittorrent client with a combined VPN client
 * [Websocketd](websocketd) - a websocket / CGI server
 * [XBrowserSync](xbs) - a bookmark manager
 
