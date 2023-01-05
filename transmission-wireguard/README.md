@@ -76,20 +76,22 @@ Enter the following information as prompted:
  * `TRANSMISSION_VPN_CLIENT_PEER_PUBLIC_KEY` - the peer `PublicKey`
    value from your VPN provided config file (Long text ending with
    `=`)
- * `TRANSMISSION_VPN_CLIENT_PEER_ALLOWED_IPS` - the list of address
-   ranges that the client should use the VPN for. To use the VPN for
-   *all* traffic, enter `0.0.0.0/0,::0/0` (ipv4,ipv6). To use the VPN
-   for a single IP, use `x.x.x.x/32`, etc.
- * `TRANSMISSION_VPN_CLIENT_PEER_ENDPOINT` - the VPN provider's host
-   address and port, eg `94.198.42.114:51820`
+ * `TRANSMISSION_VPN_CLIENT_PEER_ALLOWED_IPS` - the peer `AllowedIPs`
+   value, that lists the address ranges that the client should use the
+   VPN for. To use the VPN for *all* traffic, enter `0.0.0.0/0,::0/0`
+   (ipv4,ipv6). To use the VPN for a single IP, use `x.x.x.x/32`, etc.
+ * `TRANSMISSION_VPN_CLIENT_PEER_ENDPOINT` - the peer `Endpoint`
+   value, which is the VPN provider's host address and port, eg
+   `94.198.42.114:51820`
  * `TRANSMISSION_IP_SOURCE_RANGE` - the IP whitelist of clients
-   allowed to connect to the transmission client webapp. If you want
-   to only rely upon passwords, and to allow every IP address to
-   connect, enter `0.0.0.0/0`. Otherwise you should prevent access
-   except from a specific range of IP addresses, eg. `192.168.1.1/24`.
- * Enter the required HTTP Basic authentication username and
-   passwords. This can be optionally saved to `passwords.json` so that
-   `make open` works without a password.
+   allowed to connect to the transmission client webapp (Traefik
+   enforced). If you want to only rely upon passwords, but allow every
+   IP address to connect, enter `0.0.0.0/0`. Otherwise you should
+   prevent access except from a specific range of IP addresses, eg.
+   `192.168.1.1/24`.
+ * Enter the required HTTP Basic authentication username and passwords
+   (Traefik enforced). This can be optionally saved to
+   `passwords.json` so that `make open` works without a password.
 
 All these client credentials are stored in your `.env` file.
 
