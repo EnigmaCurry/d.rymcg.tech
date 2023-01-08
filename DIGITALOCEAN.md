@@ -39,7 +39,6 @@ DNS record for:
 ```
 Host ssh.d.example.com
     User root
-    IdentitiesOnly yes
     ControlMaster auto
     ControlPersist yes
     ControlPath /tmp/ssh-%u-%r@%h:%p
