@@ -39,7 +39,6 @@ Now setup the connection from your workstation to the raspberry pi:
 Host pi
     Hostname X.X.X.X
     User pi
-    IdentitiesOnly yes
     ControlMaster auto
     ControlPersist yes
     ControlPath /tmp/ssh-%u-%r@%h:%p
