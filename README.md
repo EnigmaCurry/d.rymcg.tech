@@ -438,6 +438,7 @@ Install these services at your leisure/preference:
 * [Piwigo](piwigo) - a photo gallery and manager
 * [PostgreSQL](postgresql) - a database server configured with mutual TLS authentication for public networks
 * [PrivateBin](privatebin) - a minimal, encrypted, zero-knowledge, pastebin
+* [QBittorrent-Wireguard](qbittorrent-wireguard) - A Bittorrent (libtorrent v2) client with a combined VPN client
 * [Rdesktop](rdesktop) - a web based remote desktop (X11) in a container
 * [S3-proxy](s3-proxy) - an HTTP directory index for S3 backend
 * [SFTP](sftp) - a secure file server
@@ -448,7 +449,7 @@ Install these services at your leisure/preference:
 * [TiddlyWiki (NodeJS version)](tiddlywiki-nodejs) - Advanced server edition of TiddlyWiki with image CDN
 * [Tiny Tiny RSS](ttrss) - an RSS reader / proxy
 * [Traefik-forward-auth](traefik-forward-auth) - Traefik oauth middleware
-* [Transmission-Wireguard](transmission-wireguard) - A Bittorrent client with a combined VPN client
+* [Transmission-Wireguard](transmission-wireguard) - An older but very popular Bittorrent (v1) client with a combined VPN client
 * [Websocketd](websocketd) - a websocket / CGI server
 * [XBrowserSync](xbs) - a bookmark manager
 

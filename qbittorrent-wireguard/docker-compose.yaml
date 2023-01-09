@@ -1,0 +1,76 @@
+volumes:
+  wireguard:
+  qbittorrent-config:
+
+services:
+  wireguard-config:
+    build:
+      context: wireguard-config
+    environment:
+      - QBITTORRENT_VPN_CLIENT_INTERFACE_PRIVATE_KEY
+      - QBITTORRENT_VPN_CLIENT_INTERFACE_IPV4
+      - QBITTORRENT_VPN_CLIENT_INTERFACE_IPV6
+      - QBITTORRENT_VPN_CLIENT_INTERFACE_LISTEN_PORT
+      - QBITTORRENT_VPN_CLIENT_INTERFACE_PEER_DNS
+      - QBITTORRENT_VPN_CLIENT_PEER_PUBLIC_KEY
+      - QBITTORRENT_VPN_CLIENT_PEER_ALLOWED_IPS
+      - QBITTORRENT_VPN_CLIENT_PEER_ENDPOINT
+    volumes:
+      - wireguard:/config
+
+  wireguard:
+    depends_on: ['wireguard-config']
+    image: linuxserver/wireguard
+    cap_add:
+      - NET_ADMIN
+      - SYS_MODULE
+    sysctls:
+      - net.ipv6.conf.all.disable_ipv6=0
+      - net.ipv4.conf.all.src_valid_mark=1
+    environment:
+      - PUID=1000
+      - PGID=1000
+      - TZ=${TIMEZONE}
+    volumes:
+      - wireguard:/config
+      - /lib/modules:/lib/modules
+    restart: always
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.qbittorrent-${QBITTORRENT_INSTANCE:-default}.rule=Host(`${QBITTORRENT_TRAEFIK_HOST}`)"
+      - "traefik.http.routers.qbittorrent-${QBITTORRENT_INSTANCE:-default}.entrypoints=websecure"
+      - "traefik.http.services.qbittorrent-${QBITTORRENT_INSTANCE:-default}.loadBalancer.server.port=8080"
+      ## Authentication:
+      - "traefik.http.middlewares.qbittorrent-${QBITTORRENT_INSTANCE:-default}-auth.basicauth.users=${QBITTORRENT_HTTP_AUTH}"
+      - "traefik.http.routers.qbittorrent-${QBITTORRENT_INSTANCE:-default}.middlewares=qbittorrent-${QBITTORRENT_INSTANCE:-default}-auth@docker"
+
+  qbittorrent-config:
+    build:
+      context: qbittorrent-config
+    environment:
+      - QBITTORRENT_TRAEFIK_HOST
+      - QBITTORRENT_VPN_CLIENT_INTERFACE_IPV4
+      - QBITTORRENT_VPN_CLIENT_INTERFACE_IPV6
+      - QBITTORRENT_RPC_BIND_ADDRESS
+      - QBITTORRENT_BLOCKLIST_URL
+      - QBITTORRENT_PEER_PORT
+    volumes:
+      - qbittorrent-config:/config
+
+  qbittorrent:
+    image: linuxserver/qbittorrent
+    network_mode: "service:wireguard"
+    depends_on:
+      - wireguard
+      - qbittorrent-config
+    environment:
+      - PUID=1000
+      - PGID=1000
+      - TZ=${TIMEZONE}
+      - WEBUI_PORT=8080
+    volumes:
+      - qbittorrent-config:/config
+      - type: bind
+        source: ${QBITTORRENT_DOWNLOAD_VOLUME}
+        target: /downloads
+    restart: always
