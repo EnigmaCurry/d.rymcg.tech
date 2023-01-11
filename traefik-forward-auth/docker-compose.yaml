@@ -34,6 +34,7 @@ services:
       - "traefik.http.routers.traefik-forward-auth.middlewares=traefik-forward-auth"
     ports:
       - 127.0.0.1:4181:4181
+    restart: always
 
 volumes:
   data:
