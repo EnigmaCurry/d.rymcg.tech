@@ -4,7 +4,7 @@ version: "3.9"
 # No Traefik nor TLS is used.
 services:
   bitwarden:
-    image: bitwardenrs/server:latest
+    image: vaultwarden/server:latest
     security_opt:
       - no-new-privileges:true
     cap_drop:
