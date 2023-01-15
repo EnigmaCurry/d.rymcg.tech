@@ -108,7 +108,7 @@ Answer the questions for these variables:
 ## Build the base TiddlyWiki image
 
 ```
-make build --service=tiddlywiki-base
+make build service=tiddlywiki-base
 ```
 
 (This step is automatically run by `make install`, but it may fail, so
