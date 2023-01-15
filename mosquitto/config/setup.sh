@@ -10,6 +10,8 @@ create_config() {
     rm -f ${CONFIG}
     cat /template/mosquitto.conf | envsubst > ${CONFIG}
     echo "[ ! ] GENERATED NEW CONFIG FILE ::: ${CONFIG}"
+    touch ${CONFIG_DIR}/passwd
+    echo "[ ! ] GENERATED NEW CONFIG FILE ::: ${CONFIG}"
     cat /template/acl.conf | envsubst > ${ACL}
     echo "[ ! ] GENERATED NEW ACL FILE ::: ${ACL}"
     [[ $PRINT_CONFIG == true ]] && cat ${CONFIG} && echo "------" && cat ${ACL}
