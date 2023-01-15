@@ -17,4 +17,6 @@ user:
 list-users:
 	docker compose exec mosquitto cat /mosquitto/config/passwd
 
-
+.PHONY: shell # Enter container shell
+shell:
+	@docker-compose --env-file ${ENV_FILE} exec $${service:-mosquitto} /bin/sh
