@@ -31,6 +31,7 @@ services:
       #! /logout/logged_out:
       - "traefik.http.routers.tiddlywiki-static-${TIDDLYWIKI_NODEJS_INSTANCE:-default}-logged-out.rule=Host(`${TIDDLYWIKI_NODEJS_TRAEFIK_HOST}`) && Path(`/logout/logged_out.html`)"
       - "traefik.http.routers.tiddlywiki-static-${TIDDLYWIKI_NODEJS_INSTANCE:-default}-logged-out.entrypoints=websecure"
+    restart: unless-stopped
 
   config:
     profiles:
