@@ -5,9 +5,9 @@ SHELL = /bin/bash
 ## Prefix name for image tags:
 DOCKER_ORG ?= localhost
 ## Tools path:
-BIN = $(shell realpath ${ROOT_DIR}/_scripts)
+BIN = ${ROOT_DIR}/_scripts
 
-export DOCKER_CONTEXT ?= $(shell docker context ls --format "{{.Current}} {{.Name}}" | grep -oP "^true \K.*")
+DOCKER_CONTEXT ?= $(shell docker context ls --format "{{.Current}} {{.Name}}" | grep -oP "^true \K.*")
 
 ## Root environment file (contains ROOT_DOMAIN)
 ROOT_ENV = .env_${DOCKER_CONTEXT}
