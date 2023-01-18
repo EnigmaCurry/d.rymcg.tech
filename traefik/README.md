@@ -557,3 +557,6 @@ Traefik [.env](.env-dist) file :
 | `TRAEFIK_VPN_CLIENT_PEER_ENDPOINT`         | The VPN server public endpoint                       | `vpn.example.com:51820`                       |
 | `TRAEFIK_VPN_CLIENT_PEER_ALLOWED_IPS`      | The VPN client allowed routable IP addresses         | `10.13.16.1/32`                               |
 | `TRAEFIK_VPN_CLIENT_PEER_SERVICES`         | The list of VPN services to forward                  | `whoami,piwigo,freshrss`                      |
+| `TRAEFIK_MPD_ENTRYPOINT_ENABLED`          | (bool) Enable mpd (unencrypted) entrypoint             |                                               |
+| `TRAEFIK_MPD_ENTRYPOINT_HOST`             | Host ip address to bind mpd entrypoint              | `0.0.0.0`                                     |
+| `TRAEFIK_MPD_ENTRYPOINT_PORT`             | Host TCP port to bind mpd entrypoint                | `6600`                                        |

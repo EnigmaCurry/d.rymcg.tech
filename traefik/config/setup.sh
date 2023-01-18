@@ -53,6 +53,9 @@ ytt_template() {
         -v xmpp_s2s_entrypoint_enabled=${TRAEFIK_XMPP_S2S_ENTRYPOINT_ENABLED} \
         -v xmpp_s2s_entrypoint_host=${TRAEFIK_XMPP_S2S_ENTRYPOINT_HOST} \
         -v xmpp_s2s_entrypoint_port=${TRAEFIK_XMPP_S2S_ENTRYPOINT_PORT} \
+        -v mpd_entrypoint_enabled=${TRAEFIK_MPD_ENTRYPOINT_ENABLED} \
+        -v mpd_entrypoint_host=${TRAEFIK_MPD_ENTRYPOINT_HOST} \
+        -v mpd_entrypoint_port=${TRAEFIK_MPD_ENTRYPOINT_PORT} \
         -v root_domain=${TRAEFIK_ROOT_DOMAIN} \
         -v vpn_root_domain=${TRAEFIK_VPN_ROOT_DOMAIN} \
         -v network_mode=${TRAEFIK_NETWORK_MODE} \

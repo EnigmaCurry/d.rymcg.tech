@@ -119,3 +119,7 @@ entryPoints:
   traefik:
     address: #@ data.values.dashboard_entrypoint_host + ":" + data.values.dashboard_entrypoint_port
   #@ end
+  #@ if data.values.mpd_entrypoint_enabled == "true":
+  mpd:
+    address: #@ data.values.mpd_entrypoint_host + ":" + data.values.mpd_entrypoint_port
+  #@ end
