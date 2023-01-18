@@ -170,7 +170,7 @@ these (default) ports in your firewall:
    | TLS    | TCP      |       5432 | PostgreSQL DBaaS (direct-map)         |
    | TLS    | TCP      |       8883 | Traefik MQTT (TLS) endpoint           |
    | WebRTC | UDP      |      10000 | Jitsi Meet video bridge (direct-map)  |
-   | VPN    | TCP      |      51820 | Wireguard (TCP) (direct-map)          |
+   | VPN    | UDP      |      51820 | Wireguard (UDP) (direct-map)          |
 
 The ports that are listed as `(direct-map)` are not connected to
 Traefik, but are directly exposed (public) to the docker host network.
