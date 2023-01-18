@@ -22,6 +22,7 @@ config: check-deps check-docker
 	@${BIN}/confirm yes "This will make a configuration for the current docker context (${DOCKER_CONTEXT})"
 	@${BIN}/reconfigure_ask ${ROOT_ENV} ROOT_DOMAIN "Enter the root domain for this context"
 	@echo "Configured ${ROOT_ENV}"
+	@echo "ENV_FILE=${ENV_FILE}"
 	@echo
 	@echo "Every time you configure HTTP Basic Authentication, you are asked if you wish to save the cleartext passwords"
 	@echo "into passwords.json (in each project directory). If you were to press Enter without answering the question,"
