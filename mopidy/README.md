@@ -7,19 +7,19 @@ streaming to multiple player clients.
 This copies a lot from
 [hamishfagg/dockerfiles](https://github.com/hamishfagg/dockerfiles/tree/master/mopidy-multiroom)
 but has been modified to integrate with Traefik and configured to
-build from Dockerfile so that is compatible with ARM64 architecture
+build from Dockerfile so that it is compatible with ARM64 architecture
 (tested on raspberry pi4).
 
 ## Prerequisites
 
 ### Enable the Traefik MPD entrypoint
 
-The MPD client uses a custom TCP protocol. To proxy this in Traefik,
-you must enable the MPD endpoint on the separate port 6600:
+The MPD client uses a custom TCP socket protocol. To proxy this in
+Traefik, you must enable the MPD (tcp) endpoint on a dedicated port
+(`6600`):
 
  * In your terminal, change to the **traefik** directory.
- * You must reconfigure the **traefik** `.env_{DOCKER_CONTEXT}` file,
-   and set:
+ * Edit **traefik** `.env_{DOCKER_CONTEXT}` file, and set:
 
 ```
 TRAEFIK_MPD_ENTRYPOINT_ENABLED=true
@@ -35,13 +35,23 @@ In the `mopidy` directory, run:
 make config
 ```
 
- * Set `MOPIDY_TRAEFIK_HOST` to use as the hostname for mopidy and snapcast.
+ * Set `MOPIDY_TRAEFIK_HOST` as the hostname to use for mopidy and snapcast.
  * Set `MOPIDY_IP_SOURCERANGE` as the list of CIDR IP ranges allowed
    for clients to connect from, comma separated. (eg. `0.0.0.0/0` to
    allow ALL clients, or `10.10.10.10/32` to enable an exclusive
    client IP address.)
- * Set `MOPIDY_MPD_PASSWORD` (randomly set) as the MPD password the
-   client is required to send to authenticate.
+ * Set `MOPIDY_MPD_PASSWORD` as the MPD password the client is
+   required to send to authenticate. (randomly set by `make config`.
+   Set blank to disable.)
+
+The Traefik MPD entrypoint is a publicly exposed [**unencrypted**
+protocol](https://mpd.readthedocs.io/en/latest/protocol.html) for
+controlling your music server. TLS is not supported by the majority of
+mpd clients, therefore no TLS is applied to the entrypoint. Therefore
+it is important to limit access via `MOPIDY_IP_SOURCERANGE` and/or
+`MOPIDY_MPD_PASSWORD`. For full privacy, consider running [Traefik
+inside a wireguard
+VPN](https://github.com/EnigmaCurry/d.rymcg.tech/tree/master/traefik#wireguard-vpn).
 
 Pay attention to the client details printed at the end of the
 configuration script, it will give you the `MPD_HOST` variable setting
@@ -59,8 +69,10 @@ make open
 
 ## Configure your MPD client
 
-You can use any MPD client you want:
- * There's my [custom keybindings for
+Mopidy is controlled by the MPD protocol. You can use any MPD client
+you want:
+
+ * Here's my [custom keybindings for
    mpc](https://github.com/enigmacurry/mpd_client) with destop
    notifications.
  * Theres [tons of console and desktop
@@ -70,16 +82,20 @@ apps](https://wiki.archlinux.org/title/Music_Player_Daemon#Clients):
  * For android, Check out
    [M.A.L.P](https://f-droid.org/en/packages/org.gateshipone.malp/).
 
-
-To configure your client, use the `MPD_HOST` variable as shown by
-`make config`. Most clients will honor the `MPD_HOST` variable if
-found. Otherwise, you must configure the Host and Password in the
-client configuration.
+To configure your client, find the `MPD_HOST` environment variable as
+shown by `make config`. Set this variable in your `~/.profile` or
+wherever else might be appropriate for your system. This sets the
+hostname or IP address of the remote mopidy service. The setting may
+also include a password prepended (eg. `password@hostname`). Most
+clients will honor the `MPD_HOST` variable if it's found to be set in
+its environment. Otherwise, you must configure the client manually
+with the configured host and password.
 
 ## Test the stream
 
 Run `make open` to open the snapcast stream page. Click the play
-button to start the stream.
+button to start the stream (it will initially remain silent). This
+page can be used to control the volume of all connected clients.
 
 Connect your mpd client, for example, use the standard `mpc` client:
 
