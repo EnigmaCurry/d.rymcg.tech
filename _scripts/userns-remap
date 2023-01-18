@@ -16,6 +16,7 @@ SSH_UID=$(ssh ${SSH_HOST} id -u)
 DAEMON_CONF=${DAEMON_CONF:-/etc/docker/daemon.json}
 
 echo "## Checking Docker Daemon config (${DAEMON_CONF}) ..."
+ssh ${SSH_HOST} sh -c "test -f ${DAEMON_CONF} || sudo sh -c 'echo {} > ${DAEMON_CONF}'"
 if [[ $cmd == "check" ]]; then
     # Just check for the setting, don't configure anything:
     ssh ${SSH_HOST} "${SUDO_PREFIX} grep userns-remap ${DAEMON_CONF}" || echo "Not using userns-remap"
@@ -27,22 +28,22 @@ else
     fi
     if [[ $cmd == "true" ]]; then
         TMP_CONFIG=$(mktemp) && \
-            ssh ${SSH_HOST} cat /etc/docker/daemon.json \
+            ssh ${SSH_HOST} cat ${DAEMON_CONF} \
                 | jq '.["userns-remap"]="default"' \
                      > ${TMP_CONFIG} \
             && cat ${TMP_CONFIG} \
             && scp ${TMP_CONFIG} ${SSH_HOST}:${TMP_CONFIG} \
-            && ssh ${SSH_HOST} "${SUDO_PREFIX} sh -c \"mv ${TMP_CONFIG} /etc/docker/daemon.json && chmod 0644 /etc/docker/daemon.json && echo '## Restarting Docker ...' && systemctl restart docker && echo '## Docker restarted' && id dockremap && echo '# /etc/subuid' && cat /etc/subuid && echo '## Success'\"" \
+            && ssh ${SSH_HOST} "${SUDO_PREFIX} sh -c \"mv ${TMP_CONFIG} ${DAEMON_CONF} && chmod 0644 ${DAEMON_CONF} && echo '## Restarting Docker ...' && systemctl restart docker && echo '## Docker restarted' && id dockremap && echo '# /etc/subuid' && cat /etc/subuid && echo '## Success'\"" \
                 || echo '## Fail'
         ${0} check
     elif [[ $cmd == "false" ]]; then
         TMP_CONFIG=$(mktemp) && \
-            ssh ${SSH_HOST} cat /etc/docker/daemon.json \
+            ssh ${SSH_HOST} cat ${DAEMON_CONF} \
                 | jq 'del(.["userns-remap"])' \
                      > ${TMP_CONFIG} \
             && cat ${TMP_CONFIG} \
             && scp ${TMP_CONFIG} ${SSH_HOST}:${TMP_CONFIG} \
-            && ssh ${SSH_HOST} "${SUDO_PREFIX} sh -c \"mv ${TMP_CONFIG} /etc/docker/daemon.json && chmod 0644 /etc/docker/daemon.json && echo '## Restarting Docker ...' && systemctl restart docker && echo '## Docker restarted' && id dockremap && echo '# /etc/subuid' && cat /etc/subuid && echo '## Success'\"" \
+            && ssh ${SSH_HOST} "${SUDO_PREFIX} sh -c \"mv ${TMP_CONFIG} ${DAEMON_CONF} && chmod 0644 ${DAEMON_CONF} && echo '## Restarting Docker ...' && systemctl restart docker && echo '## Docker restarted' && id dockremap && echo '# /etc/subuid' && cat /etc/subuid && echo '## Success'\"" \
                 || echo '## Fail'
         ${0} check
     else
@@ -50,4 +51,3 @@ else
         exit 1
     fi
 fi
-
