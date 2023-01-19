@@ -200,7 +200,8 @@ details):
  * In the [sftp](../sftp) directory:
     * Run `make config`
       * Set the `SFTP_PORT` to `2223` (default)
-      * Set the `SFTP_USERS` to `yourname:1000` (replace `yourname` with any name you like)
+      * Set the `SFTP_USERS` to `yourname:1000` (replace `yourname`
+        with any name you like, `1000` is the correct UID for mopidy.)
       * Set the `SFTP_VOLUMES` to `mopidy_music:yourname:music`:
          * `mopidy_music` is the name of the Mopidy Docker volume .
          * Replace `yourname` with the same name you set in
