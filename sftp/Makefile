@@ -68,3 +68,8 @@ ssh-clear-id: unlock-mutable-config
 .PHONY: open
 open:
 	@SSH_USER=$$(${BIN}/dotenv -f ${ENV_FILE} get SFTP_USERS | cut -d ":" -f 1); sftp -P $$(${BIN}/dotenv -f ${ENV_FILE} get SFTP_PORT) $${SSH_USER}@ssh.${ROOT_DOMAIN}
+
+.PHONY: sshfs
+sshfs:
+	@mkdir -p ${HOME}/mnt/sftp.${ROOT_DOMAIN}
+	sshfs sftp.${ROOT_DOMAIN}: ${HOME}/mnt/sftp.${ROOT_DOMAIN}
