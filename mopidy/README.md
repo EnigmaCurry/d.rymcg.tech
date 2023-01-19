@@ -12,7 +12,7 @@ build from Dockerfile so that it is compatible with ARM64 architecture
 
 ## Prerequisites
 
-### Enable the Traefik MPD entrypoint
+### Enable the Traefik MPD and Snapcast entrypoints
 
 The MPD client uses a custom TCP protocol. To proxy this in Traefik,
 you must enable the MPD entrypoint on the separate port `6600`, as
