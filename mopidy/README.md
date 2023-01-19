@@ -188,7 +188,8 @@ This is an empty volume that you can store your music files in.
 
 You can setup the [sftp](../sftp) container to conveniently manage
 these files with rsync or sshfs. Here are the brief instructions for
-setting up sftp:
+setting up sftp (read the [sftp README](../sftp/README.md) for more
+details):
 
  * Install mopidy as described above.
  * In the [traefik](../traefik) directory:
