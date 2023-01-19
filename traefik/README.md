@@ -560,3 +560,6 @@ Traefik [.env](.env-dist) file :
 | `TRAEFIK_MPD_ENTRYPOINT_ENABLED`          | (bool) Enable mpd (unencrypted) entrypoint             |                                               |
 | `TRAEFIK_MPD_ENTRYPOINT_HOST`             | Host ip address to bind mpd entrypoint              | `0.0.0.0`                                     |
 | `TRAEFIK_MPD_ENTRYPOINT_PORT`             | Host TCP port to bind mpd entrypoint                | `6600`                                        |
+| `TRAEFIK_SNAPCAST_ENTRYPOINT_ENABLED`          | (bool) Enable snapcast (unencrypted) entrypoint             |                                               |
+| `TRAEFIK_SNAPCAST_ENTRYPOINT_HOST`             | Host ip address to bind snapcast entrypoint              | `0.0.0.0`                                     |
+| `TRAEFIK_SNAPCAST_ENTRYPOINT_PORT`             | Host TCP port to bind snapcast entrypoint                | `1704`                                        |

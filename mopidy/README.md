@@ -15,7 +15,8 @@ build from Dockerfile so that is compatible with ARM64 architecture
 ### Enable the Traefik MPD entrypoint
 
 The MPD client uses a custom TCP protocol. To proxy this in Traefik,
-you must enable the MPD endpoint on the separate port 6600:
+you must enable the MPD entrypoint on the separate port `6600`, as
+well as the Snapcast entrypoint on port `1704`:
 
  * In your terminal, change to the **traefik** directory.
  * You must reconfigure the **traefik** `.env_{DOCKER_CONTEXT}` file,
@@ -23,6 +24,7 @@ you must enable the MPD endpoint on the separate port 6600:
 
 ```
 TRAEFIK_MPD_ENTRYPOINT_ENABLED=true
+TRAEFIK_SNAPCAST_ENTRYPOINT_ENABLED=true
 ```
 
  * Save the .env file and run `make install` to reinstall Traefik.
@@ -96,3 +98,25 @@ The stream should now be playing in your browser via snapcast. You can
 connect other clients, and they will synchronize with all the other
 players.
 
+## Configure your snapcast client
+
+To receive the audio stream, you may either play it in your browser,
+or receive it via the [snapcast client
+protocol](https://github.com/badaix/snapcast/blob/master/doc/binary_protocol.md).
+
+On another computer on the same network, install the `snapclient`
+program:
+
+```
+# On the client system (running debian / raspbian):
+sudo apt update
+sudo apt install snapclient
+
+SNAPCAST_HOST=mopidy.example.com
+echo "SNAPCLIENT_OPTS=\"-h ${SNAPCAST_HOST}\"" > /etc/default/snapclient
+
+sudo systemctl enable --now snapclient
+```
+
+For android devices, check out
+[snapdroid](https://github.com/badaix/snapdroid)

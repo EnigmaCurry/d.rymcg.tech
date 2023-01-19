@@ -123,3 +123,7 @@ entryPoints:
   mpd:
     address: #@ data.values.mpd_entrypoint_host + ":" + data.values.mpd_entrypoint_port
   #@ end
+  #@ if data.values.snapcast_entrypoint_enabled == "true":
+  snapcast:
+    address: #@ data.values.snapcast_entrypoint_host + ":" + data.values.snapcast_entrypoint_port
+  #@ end

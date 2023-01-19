@@ -30,10 +30,11 @@ services:
     restart: unless-stopped
     labels:
       - "traefik.enable=true"
-      - "traefik.tcp.routers.mopidy.rule=ClientIP(`0.0.0.0/0`)"
-      - "traefik.tcp.routers.mopidy.entrypoints=mpd"
-      - "traefik.tcp.routers.mopidy.service=mopidy"
-      - "traefik.tcp.services.mopidy.loadBalancer.server.port=6600"
+      ## MPD client
+      - "traefik.tcp.routers.mopidy-${MOPIDY_INSTANCE:-default}.rule=ClientIP(`0.0.0.0/0`)"
+      - "traefik.tcp.routers.mopidy-${MOPIDY_INSTANCE:-default}.entrypoints=mpd"
+      - "traefik.tcp.routers.mopidy-${MOPIDY_INSTANCE:-default}.service=mopidy-${MOPIDY_INSTANCE:-default}"
+      - "traefik.tcp.services.mopidy-${MOPIDY_INSTANCE:-default}.loadBalancer.server.port=6600"
       - "traefik.tcp.middlewares.mopidy-${MOPIDY_INSTANCE:-default}-whitelist.ipwhitelist.sourcerange=${MOPIDY_IP_SOURCERANGE}"
       - "traefik.tcp.routers.mopidy.middlewares=mopidy-${MOPIDY_INSTANCE:-default}-whitelist"
 
@@ -41,16 +42,24 @@ services:
     depends_on: ['config']
     build:
       context: snapserver
-    # ports:
-    #   - "1704:1704"
-    #   - "1705:1705"
+    #ports:
+    #  - "1704:1704"
+    #  - "1705:1705"
     volumes:
       - snapserver_config:/etc/snapserver
     restart: unless-stopped
     labels:
       - "traefik.enable=true"
+      ## Web client
       - "traefik.http.services.snapserver-${MOPIDY_INSTANCE:-default}.loadbalancer.server.port=1780"
       - "traefik.http.routers.snapserver-${MOPIDY_INSTANCE:-default}.rule=Host(`${MOPIDY_TRAEFIK_HOST}`)"
       - "traefik.http.routers.snapserver-${MOPIDY_INSTANCE:-default}.entrypoints=websecure"
       - "traefik.http.middlewares.snapserver-${MOPIDY_INSTANCE:-default}-whitelist.ipwhitelist.sourcerange=${MOPIDY_IP_SOURCERANGE}"
       - "traefik.http.routers.snapserver-${MOPIDY_INSTANCE:-default}.middlewares=snapserver-${MOPIDY_INSTANCE:-default}-whitelist"
+      ## Binary protocol
+      - "traefik.tcp.routers.snapserver-${MOPIDY_INSTANCE:-default}.rule=ClientIP(`0.0.0.0/0`)"
+      - "traefik.tcp.routers.snapserver-${MOPIDY_INSTANCE:-default}.entrypoints=snapcast"
+      - "traefik.tcp.routers.snapserver-${MOPIDY_INSTANCE:-default}.service=snapserver-${MOPIDY_INSTANCE:-default}"
+      - "traefik.tcp.services.snapserver-${MOPIDY_INSTANCE:-default}.loadBalancer.server.port=1704"
+      - "traefik.tcp.middlewares.snapserver-${MOPIDY_INSTANCE:-default}-whitelist.ipwhitelist.sourcerange=${MOPIDY_IP_SOURCERANGE}"
+      - "traefik.tcp.routers.snapserver.middlewares=snapserver-${MOPIDY_INSTANCE:-default}-whitelist"
