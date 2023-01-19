@@ -203,12 +203,13 @@ details):
       * Set the `SFTP_USERS` to `yourname:1000` (replace `yourname` with any name you like)
       * Set the `SFTP_VOLUMES` to `mopidy_music:yourname:music`:
          * `mopidy_music` is the name of the Mopidy Docker volume .
-         * Replace `yourname` with the same name as `SFTP_USERS`.
-         * `music` is the symlinked directory name inside of SFTP.)
+         * Replace `yourname` with the same name you set in
+           `SFTP_USERS`.
+         * `music` is the symlinked directory name inside of SFTP.
      * Run `make install`
      * Run `make ssh-copy-id` to copy your workstation SSH pubkeys to
        the SFTP container. Enter the name `yourname` when prompted
-       (replace `yourname` with the same name as `SFTP_USERS`)
+       (replace `yourname` with the same name as in `SFTP_USERS`)
 
 In your workstation's `~/.ssh/config` file, add a config for the SFTP
 account you just created (replace `sftp.example.com` and `yourname`
