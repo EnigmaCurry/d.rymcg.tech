@@ -100,6 +100,12 @@ make install
 make open
 ```
 
+The snapcast control page is now opened in your web browser. You can
+use this page to see all the connected snapcast clients, control their
+individual volumes, as well as press the Play button to connect your
+browser itself as a streaming client. Load this same page on devices
+throughout your house, to maky any device a client.
+
 ## Configure your MPD client
 
 Mopidy is controlled by the MPD protocol. You can use any MPD client
