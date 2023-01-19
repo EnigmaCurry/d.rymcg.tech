@@ -1,8 +1,10 @@
 # Mopidy + Snapcast
 
-The [Mopidy](https://mopidy.com/) Music Server, with
-synchronized [Snapcast](https://github.com/badaix/snapcast#readme)
-streaming to multiple player clients.
+This is the [Mopidy](https://mopidy.com/) Music Server, with
+integrated [Music Player Daemon](https://www.musicpd.org/) (MPD), and
+with synchronized
+[Snapcast](https://github.com/badaix/snapcast#readme) streaming to
+multiple player clients.
 
 This copies a lot from
 [hamishfagg/dockerfiles](https://github.com/hamishfagg/dockerfiles/tree/master/mopidy-multiroom)
