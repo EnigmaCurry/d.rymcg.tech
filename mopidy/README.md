@@ -193,16 +193,13 @@ details):
 
  * Install mopidy as described above.
  * In the [traefik](../traefik) directory:
-
-   * Edit your Traefik `.env_{DOCKER_CONTEXT}` file, and turn on the
-     SSH entrypoint:
-
+    * Edit your Traefik `.env_{DOCKER_CONTEXT}` file, and turn on the
+      SSH entrypoint:
 ```
 ## snippet to edit in your traefik .env file ...
 TRAEFIK_SSH_ENTRYPOINT_ENABLED=true
 ```
-
-   * Run `make install` to restart Traefik with the new config.
+    * Run `make install` to restart Traefik with the new config.
 
  * In the [sftp](../sftp) directory:
     * Run `make config`
