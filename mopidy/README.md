@@ -236,7 +236,8 @@ Once you've added some files, you should run the initial scan:
 
 ```
 ## Run in the mopidy directory:
-make library ```
+make library
+```
 
 You can re-run `make library` anytime you add new music. (I don't know
 why, but updating the library from the mpd client is not working.)
