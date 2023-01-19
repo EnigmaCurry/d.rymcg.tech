@@ -10,6 +10,25 @@ but has been modified to integrate with Traefik and configured to
 build from Dockerfile so that it is compatible with ARM64 architecture
 (tested on raspberry pi4).
 
+## How this works
+
+Mopidy is a server that can load music from various sources that it
+knows how to communicate with. MPD is a classic module builtin to
+Mopidy that can load music from the filesystem, as well as stream from
+Icecast radio stations. MPD is only the control interface for
+navigating the library, queueing tracks, and playback controls, it
+does not broadcast any audio. MPD clients are ubiquitous, and
+available for every platform.
+
+Snapcast provides the audio channel for several clients. The Snapcast
+server takes the audio output from Mopidy and streams it to a
+multicast network available for any number of snapcast clients to
+access. Clients will synchronize playback, so you can play the same
+stream in multiple rooms of the same home. Snapcast clients are
+available for several platforms, including Linux and the Web. Use an
+old android phone as a playback client (with a headphone jack
+connected to some bigger speakers).
+
 ## Prerequisites
 
 ### Enable the Traefik MPD and Snapcast entrypoints
