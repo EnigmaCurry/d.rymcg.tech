@@ -21,3 +21,4 @@ shell:
 .PHONY: library
 library:
 	@docker-compose --env-file ${ENV_FILE} exec -it mopidy mopidy local scan
+

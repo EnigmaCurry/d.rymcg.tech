@@ -230,16 +230,17 @@ Host sftp.example.com
 Now mount the volume with `sshfs`:
 
 ```
-mkdir -p ~/mnt/mopidy_music
-sshfs sftp.example.com: ~/mnt/mopidy_music
+## Run in the sftp directory:
+make sshfs
 ```
 
-Now you should be able to copy your music to the local path
-`~/mnt/mopidy_music`
+Now you should be able to copy your music into the local mountpoint:
+`~/mnt/sftp.{ROOT_DOMAIN}/music`
 
 Once you've added some files, you should run the initial scan:
 
 ```
+## Run in the mopidy directory:
 make library
 ```
 
