@@ -146,6 +146,9 @@ Connect your mpd client, for example, use the standard `mpc` client:
 ## MPD_HOST env var should already be set in ~/.profile :
 ## export MPD_HOST=password@host
 
+## For safety, set the initial volume low:
+mpc volume 10
+
 ## Test adding a stream from SomaFM:
 mpc add https://somafm.com/groovesalad130.pls
 mpc play
