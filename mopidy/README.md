@@ -9,8 +9,8 @@ multiple player clients.
 This copies a lot from
 [hamishfagg/dockerfiles](https://github.com/hamishfagg/dockerfiles/tree/master/mopidy-multiroom)
 but has been modified to integrate with Traefik and configured to
-build from Dockerfile so that it is compatible with ARM64 architecture
-(tested on raspberry pi4).
+build itself from Dockerfile so that it is compatible with ARM64
+architecture (tested on raspberry pi4).
 
 ## How this works
 
