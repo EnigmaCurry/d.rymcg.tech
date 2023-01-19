@@ -51,6 +51,9 @@ TRAEFIK_SNAPCAST_ENTRYPOINT_ENABLED=true
 ```
 
  * Save the .env file and run `make install` to reinstall Traefik.
+ * If you enabled the Traefik dashboard, you can run `make open` and
+   verify that the `MPD` and `Snapcast` entrypoints were succesfully
+   created.
 
 ## Configure Mopidy and Snapcast:
 
