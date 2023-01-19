@@ -160,18 +160,18 @@ or off. See the [Traefik](traefik) configuration for more details.
 Depending on which services you actually install, you need to open
 these (default) ports in your firewall:
 
-   | Type   | Protocol | Port Range | Description                           |
-   |--------|----------|------------|---------------------------------------|
-   | SSH    | TCP      | 22         | Host SSH server (direct-map)          |
-   | HTTP   | TCP      | 80         | Traefik HTTP endpoint                 |
-   | TLS    | TCP      | 443        | Traefik HTTPS (TLS) endpoint          |
-   | SSH    | TCP      | 2222       | Traefik Gitea SSH (TCP) endpoint      |
-   | SSH    | TCP      | 2223       | SFTP container SSH (TCP) (direct-map) |
-   | TLS    | TCP      | 5432       | PostgreSQL DBaaS (direct-map)         |
-   | TLS    | TCP      | 6600       | Traefik MPD (Mopidy) endpoint         |
-   | TLS    | TCP      | 8883       | Traefik MQTT (TLS) endpoint           |
-   | WebRTC | UDP      | 10000      | Jitsi Meet video bridge (direct-map)  |
-   | VPN    | TCP      | 51820      | Wireguard (TCP) (direct-map)          |
+| Type                                                             | Protocol | Port Range | Description                           |
+|------------------------------------------------------------------|----------|------------|---------------------------------------|
+| SSH                                                              | TCP      | 22         | Host SSH server (direct-map)          |
+| HTTP                                                             | TCP      | 80         | Traefik HTTP endpoint                 |
+| TLS                                                              | TCP      | 443        | Traefik HTTPS (TLS) endpoint          |
+| SSH                                                              | TCP      | 2222       | Traefik Gitea SSH (TCP) endpoint      |
+| SSH                                                              | TCP      | 2223       | SFTP container SSH (TCP) (direct-map) |
+| TLS                                                              | TCP      | 5432       | PostgreSQL DBaaS (direct-map)         |
+| [MPD client](https://mpd.readthedocs.io/en/latest/protocol.html) | TCP      | 6600       | Traefik MPD (Mopidy) endpoint         |
+| TLS                                                              | TCP      | 8883       | Traefik MQTT (TLS) endpoint           |
+| WebRTC                                                           | UDP      | 10000      | Jitsi Meet video bridge (direct-map)  |
+| VPN                                                              | UDP      | 51820      | Wireguard (UDP) (direct-map)          |
 
 The ports that are listed as `(direct-map)` are not connected to
 Traefik, but are directly exposed (public) to the docker host network.
@@ -432,7 +432,7 @@ Install these services at your leisure/preference:
 * [Matterbridge](matterbridge) - a chat room bridge (IRC, Matrix, XMPP, etc)
 * [Maubot](maubot) - a matrix Bot
 * [Minio](minio) - an S3 storage server
-* [Mopidy](mopidy) - a multi-client streaming music server built with MPD and Snapcast
+* [Mopidy](mopidy) - a streaming music server built with MPD and Snapcast
 * [Mosquitto](mosquitto) - an MQTT server
 * [Nextcloud](nextcloud) - a collaborative file server
 * [Node-RED](nodered) - a graphical event pipeline editor
