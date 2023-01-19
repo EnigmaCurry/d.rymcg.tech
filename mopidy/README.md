@@ -74,11 +74,12 @@ make config
 The Traefik MPD entrypoint is a publicly exposed [**unencrypted**
 protocol](https://mpd.readthedocs.io/en/latest/protocol.html) for
 controlling your music server. TLS is not supported by the majority of
-mpd clients, therefore no TLS is applied to the entrypoint. Therefore
-it is important to limit access via `MOPIDY_MPD_IP_SOURCERANGE`,
+mpd clients, therefore no TLS is applied to the entrypoint. It is
+important to limit access via `MOPIDY_MPD_IP_SOURCERANGE`,
 `MOPIDY_SNAPCAST_IP_SOURCERANGE` and/or `MOPIDY_MPD_PASSWORD`. For
 full privacy, consider running [Traefik inside a wireguard
-VPN](https://github.com/EnigmaCurry/d.rymcg.tech/tree/master/traefik#wireguard-vpn).
+VPN](https://github.com/EnigmaCurry/d.rymcg.tech/tree/master/traefik#wireguard-vpn),
+or have the host behind a firewall to serve a local area network only.
 
 Pay attention to the client details printed at the end of the
 configuration script, it will give you the `MPD_HOST` variable setting
