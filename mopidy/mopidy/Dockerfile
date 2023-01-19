@@ -46,7 +46,8 @@ RUN touch /IS_CONTAINER && \
     useradd -ms /bin/bash mopidy && \
     sh -c 'echo "mopidy ALL=NOPASSWD: /usr/local/lib/python3.7/dist-packages/mopidy_iris/system.sh, /usr/bin/apt*" >> /etc/sudoers' && \
     sed -i 's+--config .*mopidy.conf+--config /home/mopidy/.config/mopidy/mopidy.conf+g' \
-      /usr/local/lib/python3.7/dist-packages/mopidy_iris/system.sh && \ # Fixes the silly iris script with built-in paths
+      # Fixes the silly iris script with built-in paths
+      /usr/local/lib/python3.7/dist-packages/mopidy_iris/system.sh && \
     mkdir -p /media/music && \
     chown mopidy:mopidy /media/music
 VOLUME /media/music

@@ -166,3 +166,67 @@ sudo systemctl enable --now snapclient
 
 For android devices, check out
 [snapdroid](https://github.com/badaix/snapdroid)
+
+## Adding music
+
+When mopidy is installed, the `mopidy_music` Docker volume is created.
+This is an empty volume that you can store your music files in.
+
+You can setup the [sftp](../sftp) container to conveniently manage
+these files with rsync or sshfs. Here are the brief instructions for
+setting up sftp:
+
+ * Install mopidy as described above.
+ * In the [traefik](../traefik) directory:
+
+   * Edit your Traefik `.env_{DOCKER_CONTEXT}` file, and turn on the
+     SSH entrypoint:
+
+```
+## snippet to edit in your traefik .env file ...
+TRAEFIK_SSH_ENTRYPOINT_ENABLED=true
+```
+
+   * Run `make install` to restart Traefik with the new config.
+
+ * In the [sftp](../sftp) directory:
+    * Run `make config`
+      * Set the `SFTP_PORT` to 2223 (default)
+      * Set the `SFTP_USERS` to `yourname:1000` (replace `yourname` with any name you like)
+      * Set the `SFTP_VOLUMES` to `mopidy_music:yourname:music`:
+         * `mopidy_music` is the name of the Mopidy Docker volume .
+         * Replace `yourname` with the same name as `SFTP_USERS`.
+         * `music` is the symlinked directory name inside of SFTP.)
+     * Run `make install`
+     * Run `make ssh-copy-id` to copy your workstation SSH pubkeys to
+       the SFTP container. Enter the name `yourname` when prompted
+       (replace `yourname` with the same name as `SFTP_USERS`)
+
+In your workstation's `~/.ssh/config` file, add a config for the SFTP
+account you just created (replace `sftp.example.com` and `yourname`
+appropriately):
+
+```
+Host sftp.example.com
+     Port 2223
+     User yourname
+```
+
+Now mount the volume with `sshfs`:
+
+```
+mkdir -p ~/mnt/mopidy_music
+sshfs sftp.example.com: ~/mnt/mopidy_music
+```
+
+Now you should be able to copy your music to the local path
+`~/mnt/mopidy_music`
+
+Once you've added some files, you should run the initial scan:
+
+```
+make library
+```
+
+You can re-run `make library` anytime you add new music. (I don't know
+why, but updating the library from the mpd client is not working.)

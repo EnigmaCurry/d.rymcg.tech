@@ -17,3 +17,7 @@ config-hook:
 .PHONY: shell
 shell:
 	@docker-compose --env-file ${ENV_FILE} exec -it $${service:-mopidy} /bin/sh -c "/bin/bash || /bin/sh"
+
+.PHONY: library
+library:
+	@docker-compose --env-file ${ENV_FILE} exec -it mopidy mopidy local scan
