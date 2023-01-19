@@ -194,11 +194,7 @@ details):
  * Install mopidy as described above.
  * In the [traefik](../traefik) directory:
     * Edit your Traefik `.env_{DOCKER_CONTEXT}` file, and turn on the
-      SSH entrypoint:
-```
-## snippet to edit in your traefik .env file ...
-TRAEFIK_SSH_ENTRYPOINT_ENABLED=true
-```
+      SSH entrypoint, set `TRAEFIK_SSH_ENTRYPOINT_ENABLED=true`.
     * Run `make install` to restart Traefik with the new config.
 
  * In the [sftp](../sftp) directory:
@@ -238,8 +234,7 @@ Once you've added some files, you should run the initial scan:
 
 ```
 ## Run in the mopidy directory:
-make library
-```
+make library ```
 
 You can re-run `make library` anytime you add new music. (I don't know
 why, but updating the library from the mpd client is not working.)
