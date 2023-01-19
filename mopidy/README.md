@@ -1,6 +1,6 @@
 # Mopidy + Snapcast
 
-The [Mopidy](https://mopidy.com/) (MPD) Music Server, with
+The [Mopidy](https://mopidy.com/) Music Server, with
 synchronized [Snapcast](https://github.com/badaix/snapcast#readme)
 streaming to multiple player clients.
 
@@ -13,13 +13,13 @@ build from Dockerfile so that it is compatible with ARM64 architecture
 ## How this works
 
 Mopidy is a server that can load music from various sources that it
-knows how to communicate with. MPD is a classic module builtin to
-Mopidy that can load music from the filesystem, as well as stream from
-Icecast radio stations. MPD is only the control interface for
-navigating the library, queueing tracks, and playback controls. MPD
-clients are ubiquitous, and available for every platform. An MPD
-client is used to remotely control the playback of the server, it does
-not play audio.
+knows how to communicate with. [MPD](https://www.musicpd.org/) is a
+classic module builtin to Mopidy that can load music from the
+filesystem, as well as stream from Icecast radio stations. MPD is only
+the control interface for navigating the library, queueing tracks, and
+playback controls. MPD clients are ubiquitous, and available for every
+platform. An MPD client is used to remotely control the playback of
+the server, it does not play audio.
 
 Snapcast broadcasts the audio channel to the multicast network. The
 Snapcast server takes the audio output from Mopidy and streams it to
