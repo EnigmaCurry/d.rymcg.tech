@@ -151,8 +151,7 @@ To receive the audio stream, you may either play it in your browser,
 or receive it via the [snapcast client
 protocol](https://github.com/badaix/snapcast/blob/master/doc/binary_protocol.md).
 
-On another computer on the same network, install the `snapclient`
-program:
+On another computer, install the `snapclient` program:
 
 ```
 # On the client system (running debian / raspbian):
