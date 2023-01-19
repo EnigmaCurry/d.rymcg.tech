@@ -42,7 +42,7 @@ The MPD client uses a custom TCP protocol. To proxy this in Traefik,
 you must enable the MPD entrypoint on the separate port `6600`, as
 well as the Snapcast entrypoint on port `1704`:
 
- * In your terminal, change to the **traefik** directory.
+ * In your terminal, change to the [**traefik**](../traefik) directory.
  * Edit the **traefik** `.env_{DOCKER_CONTEXT}` file, and set:
 
 ```
