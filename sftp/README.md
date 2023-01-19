@@ -291,6 +291,18 @@ public server IP address):
 sftp -P 2223 ryan@ssh.d.rymcg.tech
 ```
 
+## Mount the directories on your local workstation
+
+Install `sshfs` from your package manager.
+
+Run
+
+```
+make sshfs
+```
+
+This will temporarily mount the remote directories on your workstation
+under `~/mnt/sftp.{ROOT_DOMAIN}`.
 
 ## Immutable config files (OR: A story about running an unprivileged sshd)
 
