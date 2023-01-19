@@ -130,6 +130,10 @@ clients will honor the `MPD_HOST` variable if it's found to be set in
 its environment. Otherwise, you must configure the client manually
 with the configured host and password.
 
+Remember, the IP address of all clients must be within one of the CIDR
+ranges specified in `MOPIDY_MPD_IP_SOURCERANGE`, otherwise access is
+denied.
+
 ## Test the stream
 
 Run `make open` to open the snapcast stream page. Click the play
@@ -172,6 +176,10 @@ sudo systemctl enable --now snapclient
 
 For android devices, check out
 [snapdroid](https://github.com/badaix/snapdroid)
+
+Remember, the IP address of all clients must be within one of the CIDR
+ranges specified in `MOPIDY_SNAPCAST_IP_SOURCERANGE`, otherwise access
+is denied.
 
 ## Adding music
 
