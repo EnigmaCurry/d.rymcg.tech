@@ -13,6 +13,8 @@ services:
       - no-new-privileges:true
     environment:
       - MOPIDY_MPD_PASSWORD
+      - MOPIDY_SOUNDCLOUD_ENABLED
+      - MOPIDY_SOUNDCLOUD_AUTH_TOKEN
     volumes:
       - mopidy_config:/mopidy_config
       - snapserver_config:/snapserver_config
