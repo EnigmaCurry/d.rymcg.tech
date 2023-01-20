@@ -244,3 +244,27 @@ make library
 
 You can re-run `make library` anytime you add new music. (I don't know
 why, but updating the library from the mpd client is not working.)
+
+
+## Enabling SoundCloud
+
+You can listen to soundcloud on mopidy, using your own soundcloud
+account. 
+
+ * [Authorize Mopidy to access
+   SoundCloud](https://mopidy.com/ext/soundcloud/)
+ * Copy the displayed `auth_toke` value, and paste into your
+   `.env_{DOCKER_CONTEXT}` file:
+
+```
+##
+MOPIDY_SOUNDCLOUD_ENABLED=true
+MOPIDY_SOUNDCLOUD_AUTH_TOKEN=xxxxxxxxxxxxxxx
+```
+
+Run `make install` to reinstall with new configuration.
+
+Check the logs in order to make sure there are no authentication
+errors. `make logs service=mopidy`.
+
+You should find a `SoundCloud` directory in your mpd client library.

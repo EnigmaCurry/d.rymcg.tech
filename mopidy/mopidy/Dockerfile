@@ -31,16 +31,20 @@ RUN apt-get update && \
       # libspotify12 \
       # libspotify-dev \
       # python3-spotify \
-      python3-setuptools && \
+      python3-setuptools \
+      git && \
     rm -rf /var/lib/apt/lists/* && \
     pip3 install \
       Mopidy \
       Mopidy-MPD \
       Mopidy-Local \
+      #Mopidy-SoundCloud \
+      Mopidy-SomaFM \
       # Mopidy-YTMusic \
       # Mopidy-Spotify \
       Mopidy-TuneIn \
-      Mopidy-Iris
+      Mopidy-Iris && \
+    python3 -m pip install "git+https://github.com/mopidy/mopidy-soundcloud@fc766b0bf17feb4fc989029b92a315a10ff453ee"
 
 RUN touch /IS_CONTAINER && \
     useradd -ms /bin/bash mopidy && \
