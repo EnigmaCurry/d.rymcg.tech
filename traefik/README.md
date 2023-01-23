@@ -489,77 +489,78 @@ the private Traefik VPN server instance.
 Here is a description of every single environment variable in the
 Traefik [.env](.env-dist) file :
 
-| Variable name                              | Description                                          | Examples                                      |
-|--------------------------------------------|------------------------------------------------------|-----------------------------------------------|
-| `TRAEFIK_IMAGE`                            | The Traefik docker image                             | `traefik:v2.9`                                |
-| `TRAEFIK_LOG_LEVEL`                        | Traefik log level                                    | `warn`,`error`,`info`, `debug`                |
-| `TRAEFIK_CONFIG_VERBOSE`                   | (bool) Print config to logs                          | `false`,`true`                                |
-| `TRAEFIK_NETWORK_MODE`                     | Bind Traefik to host or serivce container networking | `host`,`wireguard`,`wireguard-client`         |
-| `DOCKER_COMPOSE_PROFILES`                  | List of docker-compose profiles to enable            | `default`,`wireguard`,`wireguard-client`      |
-| `TRAEFIK_DASHBOARD_ENTRYPOINT_ENABLED`     | (bool) Enable the dashboard entrypoint               | `true`, `false`                               |
-| `TRAEFIK_DASHBOARD_AUTH`                   | The htpasswd encoded password for the dashboard      | `$$apr1$$125jLjJS$$9WiXscLMURiMbC0meZXMv1`    |
-| `TRAEFIK_DASHBOARD_ENTRYPOINT_PORT`        | The TCP port for the daashboard                      | `8080`                                        |
-| `TRAEFIK_DASHBOARD_ENTRYPOINT_HOST`        | The IP address to bind to                            | `127.0.0.1` (host networking) `0.0.0.0` (VPN) |
-| `TRAEFIK_ACCESS_LOGS_ENABLED`              | (bool) enable the Traefik access logs                | `true`,`false`                                |
-| `TRAEFIK_ACCESS_LOGS_PATH`                 | The path to the access logs inside the volume        | `/data/access.log`                            |
-| `TRAEFIK_SEND_ANONYMOUS_USAGE`             | (bool) Whether to send usage data to Traefik Labs    | `false`, `true`                               |
-| `TRAEFIK_ACME_ENABLED`                     | (bool) Enable ACME TLS certificate resolver          | `true`,`false`                                |
-| `TRAEFIK_ACME_CA_EMAIL`                    | Your email to send to Lets Encrypt                   | `you@example.com` (can be blank)               |
-| `TRAEFIK_ACME_CHALLENGE`                   | The ACME challenge type                              | `tls`,`dns`                                   |
-| `TRAEFIK_ROOT_DOMAIN`                      | The default root domain of every service             | `d.rymcg.tech`                                |
-| `TRAEFIK_ACME_DNS_PROVIDER`                | The LEGO DNS provider name                           | `digitalocean`                                |
-| `TRAEFIK_ACME_DNS_VARNAME_1`               | The first LEGO DNS variable name                     | `DO_AUTH_TOKEN`                               |
-| `TRAEFIK_ACME_DNS_VARNAME_2`               | The second LEGO DNS variable name                    | leave blank if there are no more              |
-| `TRAEFIK_ACME_DNS_VARNAME_3`               | The thrid LEGO DNS variable name                     | leave blank if there are no more              |
-| `TRAEFIK_ACME_DNS_VARNAME_4`               | The fourth LEGO DNS variable name                    | leave blank if there are no more              |
-| `TRAEFIK_ACME_DNS_VARNAME_5`               | The fifth LEGO DNS variable name                     | leave blank if there are no more              |
-| (various LEGO DNS variables)               | All of your tokens for DNS provider                  | `DO_AUTH_TOKEN`                               |
-| `TRAEFIK_ACME_CERT_DOMAINS`                | The JSON list of all certificate domans              | Use `make certs` to manage                    |
-| `TRAEFIK_ACME_CERT_RESOLVER`               | Lets Encrypt API environment                         | `production`,`staging`                        |
-| `TRAEFIK_CONFIG_YTT_VERSION`               | YTT tool version                                     | `v0.43.0`                                     |
-| `TRAEFIK_FILE_PROVIDER`                    | (bool) Enable the Traefik file provider              | `true`,`false`                                |
-| `TRAEFIK_FILE_PROVIDER_WATCH`              | (bool) Enable automatic file reloading               | `false`,`true`                                |
-| `TRAEFIK_DOCKER_PROVIDER`                  | (bool) Enable the Traefik docker provider            | `true`,`false`                                |
-| `TRAEFIK_PLUGINS`                          | (bool) Enable Traefik plugins                        | `true`,`false`                                |
-| `TRAEFIK_PLUGIN_BLOCKPATH`                 | (bool) Enable BlockPath plugin                       | `true`,`false`                                |
-| `TRAEFIK_PLUGIN_MAXMIND_GEOIP`             | (bool) Enable GeoIP plugin                           | `false`, `true`                               |
-| `TRAEFIK_GEOIPUPDATE_ACCOUNT_ID`           | MaxMind account id for GeoIP database download       |                                               |
-| `TRAEFIK_GEOIPUPDATE_LICENSE_KEY`          | MaxMind license key for GeoIP database download      |                                               |
-| `TRAEFIK_GEOIPUPDATE_EDITION_IDS`          | The list of GeoIP databases to download              | `GeoLite2-ASN GeoLite2-City GeoLite2-Country` |
-| `TRAEFIK_WEB_ENTRYPOINT_ENABLED`           | (bool) Enable web (port 80) entrypoint               | `true`,`false`                                |
-| `TRAEFIK_WEB_ENTRYPOINT_HOST`              | Host ip address to bind web entrypoint               | `0.0.0.0`                                     |
-| `TRAEFIK_WEB_ENTRYPOINT_PORT`              | Host TCP port to bind web entrypoint                 | `80`                                          |
-| `TRAEFIK_WEBSECURE_ENTRYPOINT_ENABLED`     | (bool) Enable websecure (port 443) entrypoint        | `true`,`false`                                |
-| `TRAEFIK_WEBSECURE_ENTRYPOINT_HOST`        | Host ip address to bind websecure entrypoint         | `0.0.0.0`                                     |
-| `TRAEFIK_WEBSECURE_ENTRYPOINT_PORT`        | Host TCP port to bind websecure entrypoint           | `443`                                         |
-| `TRAEFIK_MQTT_ENTRYPOINT_ENABLED`          | (bool) Enable mqtt (port 443) entrypoint             |                                               |
-| `TRAEFIK_MQTT_ENTRYPOINT_HOST`             | Host ip address to bind mqtt entrypoint              | `0.0.0.0`                                     |
-| `TRAEFIK_MQTT_ENTRYPOINT_PORT`             | Host TCP port to bind mqtt entrypoint                | `8883`                                        |
-| `TRAEFIK_SSH_ENTRYPOINT_ENABLED`           | (bool) Enable ssh (port 2222) entrypoint             | `true`,`false`                                |
-| `TRAEFIK_SSH_ENTRYPOINT_HOST`              | Host ip address to bind ssh entrypoint               | `0.0.0.0`                                     |
-| `TRAEFIK_SSH_ENTRYPOINT_PORT`              | Host TCP port to bind ssh entrypoint                 | `2222`                                        |
-| `TRAEFIK_VPN_ENABLED`                      | (bool) enable VPN server                             | `false`,`true`                                |
-| `TRAEFIK_VPN_HOST`                         | Public hostname of VPN server                        | `vpn.example.com`                             |
-| `TRAEFIK_VPN_ROOT_DOMAIN`                  | Root domain of the VPN services                      | `d.rymcg.tech`                                |
-| `TRAEFIK_VPN_ADDRESS`                      | Private VPN IP address of Traefik server             | `10.13.16.1`                                  |
-| `TRAEFIK_VPN_PORT`                         | The TCP port to bind the VPN server to               | `51820`                                       |
-| `TRAEFIK_VPN_PEERS`                        | The number or list of clients to create              | `client1,client2`, `1`                        |
-| `TRAEFIK_VPN_PEER_DNS`                     | The DNS server that clients are advertised to use    | `auto` (uses host), `1.1.1.1`                 |
-| `TRAEFIK_VPN_SUBNET`                       | The first .0 IP address of the private VPN subnet    | `10.13.16.0`                                  |
-| `TRAEFIK_VPN_ALLOWED_IPS`                  | Which IP subnets are routable by the VPN             | `10.13.16.0/24`, `0.0.0.0` (all traffic)      |
-| `TRAEFIK_VPN_CLIENT_ENABLED`               | (bool)  Enable the VPN client                        | `false`,`true`                                |
-| `TRAEFIK_VPN_CLIENT_INTERFACE_ADDRESS`     | The VPN client private IP address                    | `10.13.16.2`                                  |
-| `TRAEFIK_VPN_CLIENT_INTERFACE_PRIVATE_KEY` | The VPN client private key                           | `4xxxxxxx=`                                   |
-| `TRAEFIK_VPN_CLIENT_INTERFACE_LISTEN_PORT` | The VPN client listen port                           | `51820`                                       |
-| `TRAEFIK_VPN_CLIENT_INTERFACE_PEER_DNS`    | The VPN client peer DNS                              | `10.13.16.1`                                  |
-| `TRAEFIK_VPN_CLIENT_PEER_PUBLIC_KEY`       | The VPN client public key                            | `5xxxxxxx=`                                   |
-| `TRAEFIK_VPN_CLIENT_PEER_PRESHARED_KEY`    | The VPN client preshared key                         | `6xxxxxxx=`                                   |
-| `TRAEFIK_VPN_CLIENT_PEER_ENDPOINT`         | The VPN server public endpoint                       | `vpn.example.com:51820`                       |
-| `TRAEFIK_VPN_CLIENT_PEER_ALLOWED_IPS`      | The VPN client allowed routable IP addresses         | `10.13.16.1/32`                               |
-| `TRAEFIK_VPN_CLIENT_PEER_SERVICES`         | The list of VPN services to forward                  | `whoami,piwigo,freshrss`                      |
-| `TRAEFIK_MPD_ENTRYPOINT_ENABLED`          | (bool) Enable mpd (unencrypted) entrypoint             |                                               |
-| `TRAEFIK_MPD_ENTRYPOINT_HOST`             | Host ip address to bind mpd entrypoint              | `0.0.0.0`                                     |
-| `TRAEFIK_MPD_ENTRYPOINT_PORT`             | Host TCP port to bind mpd entrypoint                | `6600`                                        |
-| `TRAEFIK_SNAPCAST_ENTRYPOINT_ENABLED`          | (bool) Enable snapcast (unencrypted) entrypoint             |                                               |
-| `TRAEFIK_SNAPCAST_ENTRYPOINT_HOST`             | Host ip address to bind snapcast entrypoint              | `0.0.0.0`                                     |
-| `TRAEFIK_SNAPCAST_ENTRYPOINT_PORT`             | Host TCP port to bind snapcast entrypoint                | `1704`                                        |
+| Variable name                              | Description                                                                      | Examples                                      |
+|--------------------------------------------|----------------------------------------------------------------------------------|-----------------------------------------------|
+| `TRAEFIK_IMAGE`                            | The Traefik docker image                                                         | `traefik:v2.9`                                |
+| `TRAEFIK_LOG_LEVEL`                        | Traefik log level                                                                | `warn`,`error`,`info`, `debug`                |
+| `TRAEFIK_CONFIG_VERBOSE`                   | (bool) Print config to logs                                                      | `false`,`true`                                |
+| `TRAEFIK_NETWORK_MODE`                     | Bind Traefik to host or serivce container networking                             | `host`,`wireguard`,`wireguard-client`         |
+| `DOCKER_COMPOSE_PROFILES`                  | List of docker-compose profiles to enable                                        | `default`,`wireguard`,`wireguard-client`      |
+| `TRAEFIK_DASHBOARD_ENTRYPOINT_ENABLED`     | (bool) Enable the dashboard entrypoint                                           | `true`, `false`                               |
+| `TRAEFIK_DASHBOARD_AUTH`                   | The htpasswd encoded password for the dashboard                                  | `$$apr1$$125jLjJS$$9WiXscLMURiMbC0meZXMv1`    |
+| `TRAEFIK_DASHBOARD_ENTRYPOINT_PORT`        | The TCP port for the daashboard                                                  | `8080`                                        |
+| `TRAEFIK_DASHBOARD_ENTRYPOINT_HOST`        | The IP address to bind to                                                        | `127.0.0.1` (host networking) `0.0.0.0` (VPN) |
+| `TRAEFIK_ACCESS_LOGS_ENABLED`              | (bool) enable the Traefik access logs                                            | `true`,`false`                                |
+| `TRAEFIK_ACCESS_LOGS_PATH`                 | The path to the access logs inside the volume                                    | `/data/access.log`                            |
+| `TRAEFIK_SEND_ANONYMOUS_USAGE`             | (bool) Whether to send usage data to Traefik Labs                                | `false`, `true`                               |
+| `TRAEFIK_ACME_ENABLED`                     | (bool) Enable ACME TLS certificate resolver                                      | `true`,`false`                                |
+| `TRAEFIK_ACME_CA_EMAIL`                    | Your email to send to Lets Encrypt                                               | `you@example.com` (can be blank)              |
+| `TRAEFIK_ACME_CHALLENGE`                   | The ACME challenge type                                                          | `tls`,`dns`                                   |
+| `TRAEFIK_ROOT_DOMAIN`                      | The default root domain of every service                                         | `d.rymcg.tech`                                |
+| `TRAEFIK_ACME_DNS_PROVIDER`                | The LEGO DNS provider name                                                       | `digitalocean`                                |
+| `TRAEFIK_ACME_DNS_VARNAME_1`               | The first LEGO DNS variable name                                                 | `DO_AUTH_TOKEN`                               |
+| `TRAEFIK_ACME_DNS_VARNAME_2`               | The second LEGO DNS variable name                                                | leave blank if there are no more              |
+| `TRAEFIK_ACME_DNS_VARNAME_3`               | The thrid LEGO DNS variable name                                                 | leave blank if there are no more              |
+| `TRAEFIK_ACME_DNS_VARNAME_4`               | The fourth LEGO DNS variable name                                                | leave blank if there are no more              |
+| `TRAEFIK_ACME_DNS_VARNAME_5`               | The fifth LEGO DNS variable name                                                 | leave blank if there are no more              |
+| (various LEGO DNS variables)               | All of your tokens for DNS provider                                              | `DO_AUTH_TOKEN`                               |
+| `TRAEFIK_ACME_CERT_DOMAINS`                | The JSON list of all certificate domans                                          | Use `make certs` to manage                    |
+| `TRAEFIK_ACME_CERT_RESOLVER`               | Lets Encrypt API environment                                                     | `production`,`staging`                        |
+| `TRAEFIK_CONFIG_YTT_VERSION`               | YTT tool version                                                                 | `v0.43.0`                                     |
+| `TRAEFIK_FILE_PROVIDER`                    | (bool) Enable the Traefik file provider                                          | `true`,`false`                                |
+| `TRAEFIK_FILE_PROVIDER_WATCH`              | (bool) Enable automatic file reloading                                           | `false`,`true`                                |
+| `TRAEFIK_DOCKER_PROVIDER`                  | (bool) Enable the Traefik docker provider                                        | `true`,`false`                                |
+| `TRAEFIK_DOCKER_PROVIDER_CONSTRAINTS`      | [Constraints](https://doc.traefik.io/traefik/providers/docker/#constraints) rule | None                                          |
+| `TRAEFIK_PLUGINS`                          | (bool) Enable Traefik plugins                                                    | `true`,`false`                                |
+| `TRAEFIK_PLUGIN_BLOCKPATH`                 | (bool) Enable BlockPath plugin                                                   | `true`,`false`                                |
+| `TRAEFIK_PLUGIN_MAXMIND_GEOIP`             | (bool) Enable GeoIP plugin                                                       | `false`, `true`                               |
+| `TRAEFIK_GEOIPUPDATE_ACCOUNT_ID`           | MaxMind account id for GeoIP database download                                   |                                               |
+| `TRAEFIK_GEOIPUPDATE_LICENSE_KEY`          | MaxMind license key for GeoIP database download                                  |                                               |
+| `TRAEFIK_GEOIPUPDATE_EDITION_IDS`          | The list of GeoIP databases to download                                          | `GeoLite2-ASN GeoLite2-City GeoLite2-Country` |
+| `TRAEFIK_WEB_ENTRYPOINT_ENABLED`           | (bool) Enable web (port 80) entrypoint                                           | `true`,`false`                                |
+| `TRAEFIK_WEB_ENTRYPOINT_HOST`              | Host ip address to bind web entrypoint                                           | `0.0.0.0`                                     |
+| `TRAEFIK_WEB_ENTRYPOINT_PORT`              | Host TCP port to bind web entrypoint                                             | `80`                                          |
+| `TRAEFIK_WEBSECURE_ENTRYPOINT_ENABLED`     | (bool) Enable websecure (port 443) entrypoint                                    | `true`,`false`                                |
+| `TRAEFIK_WEBSECURE_ENTRYPOINT_HOST`        | Host ip address to bind websecure entrypoint                                     | `0.0.0.0`                                     |
+| `TRAEFIK_WEBSECURE_ENTRYPOINT_PORT`        | Host TCP port to bind websecure entrypoint                                       | `443`                                         |
+| `TRAEFIK_MQTT_ENTRYPOINT_ENABLED`          | (bool) Enable mqtt (port 443) entrypoint                                         |                                               |
+| `TRAEFIK_MQTT_ENTRYPOINT_HOST`             | Host ip address to bind mqtt entrypoint                                          | `0.0.0.0`                                     |
+| `TRAEFIK_MQTT_ENTRYPOINT_PORT`             | Host TCP port to bind mqtt entrypoint                                            | `8883`                                        |
+| `TRAEFIK_SSH_ENTRYPOINT_ENABLED`           | (bool) Enable ssh (port 2222) entrypoint                                         | `true`,`false`                                |
+| `TRAEFIK_SSH_ENTRYPOINT_HOST`              | Host ip address to bind ssh entrypoint                                           | `0.0.0.0`                                     |
+| `TRAEFIK_SSH_ENTRYPOINT_PORT`              | Host TCP port to bind ssh entrypoint                                             | `2222`                                        |
+| `TRAEFIK_VPN_ENABLED`                      | (bool) enable VPN server                                                         | `false`,`true`                                |
+| `TRAEFIK_VPN_HOST`                         | Public hostname of VPN server                                                    | `vpn.example.com`                             |
+| `TRAEFIK_VPN_ROOT_DOMAIN`                  | Root domain of the VPN services                                                  | `d.rymcg.tech`                                |
+| `TRAEFIK_VPN_ADDRESS`                      | Private VPN IP address of Traefik server                                         | `10.13.16.1`                                  |
+| `TRAEFIK_VPN_PORT`                         | The TCP port to bind the VPN server to                                           | `51820`                                       |
+| `TRAEFIK_VPN_PEERS`                        | The number or list of clients to create                                          | `client1,client2`, `1`                        |
+| `TRAEFIK_VPN_PEER_DNS`                     | The DNS server that clients are advertised to use                                | `auto` (uses host), `1.1.1.1`                 |
+| `TRAEFIK_VPN_SUBNET`                       | The first .0 IP address of the private VPN subnet                                | `10.13.16.0`                                  |
+| `TRAEFIK_VPN_ALLOWED_IPS`                  | Which IP subnets are routable by the VPN                                         | `10.13.16.0/24`, `0.0.0.0` (all traffic)      |
+| `TRAEFIK_VPN_CLIENT_ENABLED`               | (bool)  Enable the VPN client                                                    | `false`,`true`                                |
+| `TRAEFIK_VPN_CLIENT_INTERFACE_ADDRESS`     | The VPN client private IP address                                                | `10.13.16.2`                                  |
+| `TRAEFIK_VPN_CLIENT_INTERFACE_PRIVATE_KEY` | The VPN client private key                                                       | `4xxxxxxx=`                                   |
+| `TRAEFIK_VPN_CLIENT_INTERFACE_LISTEN_PORT` | The VPN client listen port                                                       | `51820`                                       |
+| `TRAEFIK_VPN_CLIENT_INTERFACE_PEER_DNS`    | The VPN client peer DNS                                                          | `10.13.16.1`                                  |
+| `TRAEFIK_VPN_CLIENT_PEER_PUBLIC_KEY`       | The VPN client public key                                                        | `5xxxxxxx=`                                   |
+| `TRAEFIK_VPN_CLIENT_PEER_PRESHARED_KEY`    | The VPN client preshared key                                                     | `6xxxxxxx=`                                   |
+| `TRAEFIK_VPN_CLIENT_PEER_ENDPOINT`         | The VPN server public endpoint                                                   | `vpn.example.com:51820`                       |
+| `TRAEFIK_VPN_CLIENT_PEER_ALLOWED_IPS`      | The VPN client allowed routable IP addresses                                     | `10.13.16.1/32`                               |
+| `TRAEFIK_VPN_CLIENT_PEER_SERVICES`         | The list of VPN services to forward                                              | `whoami,piwigo,freshrss`                      |
+| `TRAEFIK_MPD_ENTRYPOINT_ENABLED`           | (bool) Enable mpd (unencrypted) entrypoint                                       |                                               |
+| `TRAEFIK_MPD_ENTRYPOINT_HOST`              | Host ip address to bind mpd entrypoint                                           | `0.0.0.0`                                     |
+| `TRAEFIK_MPD_ENTRYPOINT_PORT`              | Host TCP port to bind mpd entrypoint                                             | `6600`                                        |
+| `TRAEFIK_SNAPCAST_ENTRYPOINT_ENABLED`      | (bool) Enable snapcast (unencrypted) entrypoint                                  |                                               |
+| `TRAEFIK_SNAPCAST_ENTRYPOINT_HOST`         | Host ip address to bind snapcast entrypoint                                      | `0.0.0.0`                                     |
+| `TRAEFIK_SNAPCAST_ENTRYPOINT_PORT`         | Host TCP port to bind snapcast entrypoint                                        | `1704`                                        |
