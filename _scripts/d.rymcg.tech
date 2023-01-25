@@ -5,7 +5,8 @@
 ## This script should be symlinked to a directory on your PATH. You
 ## may add the `user` subdirectory to your path, which contains a
 ## symlink prepared for you. DO NOT add the whole _scripts directory
-## to your PATH, but only the _scripts/user subdirectory!
+## to your PATH, but only the _scripts/user subdirectory! DO NOT move
+## this script, only make symlinks to it!
 ##
 ## For example (choose one or the other):
 ##
@@ -66,7 +67,7 @@ __change-directory() {
 __make() {
     if [[ $# -gt 0 ]]; then
         PROJECT_NAME="$1"; shift
-        pattern="^-+"
+        pattern="^-+$"
         if [[ "${PROJECT_NAME}" =~ $pattern ]]; then
             PROJECT_DIR=${ROOT_DIR}
         else

@@ -39,11 +39,12 @@ for template in ${TEMPLATE_FILES[@]}; do
     fi
 done
 
-TEMPLATE_VARS='${CREATE_TEMPLATE_PROJECT_NAME},${CREATE_TEMPLATE_PROJECT_NAME_UPPERCASE},${CREATE_TEMPLATE_ROOT_DIR}'
+TEMPLATE_VARS='${CREATE_TEMPLATE_PROJECT_NAME},${CREATE_TEMPLATE_PROJECT_URL_NAME},${CREATE_TEMPLATE_PROJECT_NAME_UPPERCASE},${CREATE_TEMPLATE_ROOT_DIR}'
 
 export CREATE_TEMPLATE_ROOT_DIR="${ROOT_DIR}"
-export CREATE_TEMPLATE_PROJECT_NAME="$(echo ${PROJECT_NAME} | tr '[:upper:]' '[:lower:]' | tr ' ' '_')"
+export CREATE_TEMPLATE_PROJECT_NAME="$(echo ${PROJECT_NAME} | tr '[:upper:]' '[:lower:]' | tr ' ' '_' | tr '-' '_')"
 export CREATE_TEMPLATE_PROJECT_NAME_UPPERCASE="$(echo ${CREATE_TEMPLATE_PROJECT_NAME} | tr '[:lower:]' '[:upper:]')"
+export CREATE_TEMPLATE_PROJECT_URL_NAME="$(echo ${CREATE_TEMPLATE_PROJECT_NAME} | tr '_' '-')"
 
 ## TODO: use ytt to template YAML instead of envsubst
 ## HOWEVER, this is blocked on https://github.com/carvel-dev/ytt/issues/63

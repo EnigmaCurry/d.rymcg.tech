@@ -372,8 +372,13 @@ Use the same command again to switch to any other context.)
 ```
 git clone https://github.com/EnigmaCurry/d.rymcg.tech.git \
     ${HOME}/git/vendor/enigmacurry/d.rymcg.tech
+
 cd ${HOME}/git/vendor/enigmacurry/d.rymcg.tech
 ```
+
+You may clone to any path you like, but the path suggested above is a
+vendor neutral way of organizing third party repositories, with the
+intention of making the same path work on all machines.
 
 ## Main configuration
 
@@ -566,29 +571,43 @@ For a more in depth guide on using the Makefiles, see
 
 ### Using the `d.rymcg.tech` CLI script (optional)
 
-Both `make` and `docker compose` expect you to change your working
-directory to use them (however, there are `make -C` and `docker
-compose -f` as workarounds). There is a third option to use the
+By default, both `make` and `docker compose` expect you to change your
+working directory to use them (there are `make -C` and `docker compose
+-f` to use as workarounds). There is a third option to use the
 eponymous [`d.rymcg.tech` script](_scripts/d.rymcg.tech) included in
-the repository. In addition to letting you use `make` targets from any
-working directory, this script also offers the ability to create
-external project skeleton directories.
+this repository. In addition to letting you run any project `make`
+target from any working directory, this script also offers a
+convenient way to create [external
+projects](#integrating-external-projects) from a skeleton template.
 
 To install the script, you need to add it to your `PATH` shell
-variable. You can do this a number of ways:
+variable. You can do this in a number of ways:
 
- 1. Add the
-    [~/git/vendor/enigmacurry/d.rymcg.tech/_scripts/user](_scripts/user)
-    directory to your `PATH`. (This directory only contains a symlink
-    to `d.rymcg.tech`, no other scripts.)
- 2. Symlink the [`d.rymcg.tech` script](_scripts/d.rymcg.tech) to a
-    directory location already in your `PATH`. Check the details at
-    the top of the script.
+ Option 1. Symlink the [`d.rymcg.tech` script](_scripts/d.rymcg.tech)
+           to a directory location already in your `PATH` shell
+           variable (eg. `~/bin`).
 
-Note: only use **symlinks**, do not attempt to copy or move the script
-outside of the `_scripts` directory.
+ Option 2. Add the
+           [~/git/vendor/enigmacurry/d.rymcg.tech/_scripts/user](_scripts/user)
+           directory to your `PATH`. (This directory only contains a symlink
+           to `d.rymcg.tech`, no other scripts, and so it is prepared to be
+           added to your `PATH` directly.)
 
-Once installed, run `d.rymcg.tech help` to see the command list.
+Important points on installation:
+
+ * Do not attempt to copy or move the script outside of the git cloned
+   `_scripts` directory. Only use **symlinks** to point to this
+   scripts orginal location. This is how the script knows where
+   `d.rymcg.tech` is installed.
+
+ * Do not add the [_scripts](_scripts) directory to your PATH, but
+   only the [_scripts/user](_scripts/user) directory (if used as an
+   alternative to Option 1).
+
+For more details, see the [comments at the top of the
+script](_scripts/d.rymcg.tech).
+
+Once installed, run `d.rymcg.tech` to see the command list.
 
 ```
 Main d.rymcg.tech commands :
@@ -599,26 +618,46 @@ list                List all the d.rymcg.tech projects (not including external p
 make                Run a make command for the given d.rymcg.tech project name
 ```
 
-You can run any make target command from any working directory, for
-example:
+You can use this script to run the make targets for any of the bundled
+projects, usable from any working directory:
 
- * `d.rymcg.tech make traefik config`
- * `d.rymcg.tech make traefik install`
- * `d.rymcg.tech make whoami config`
- * `d.rymcg.tech make whoami install`
- * `d.rymcg.tech make -- status`
+ * `d.rymcg.tech list` (retrieve list of all available projects)
+ * `d.rymcg.tech make -- status` (view status of all installed
+   projects)
+ * `d.rymcg.tech make traefik config` (run the Traefik `make config` target)
+ * `d.rymcg.tech make traefik install` (run the Traefik `make install` target)
+ * `d.rymcg.tech make whoami logs` (run the whoami `make logs` target)
+ * `d.rymcg.tech make piwigo logs SERVICE=db` (you can also add any
+   variable assignments, just like with `make`)
 
-You can get to the root d.rymcg.tech directory quickly from anywhere:
+`d.rymcg.tech make [PROJECT_NAME] ...` is a simple wrapper for `make
+-C ~/git/vendor/enigmacurry/d.rymcg.tech/${PROJECT_NAME} ...` (the
+script will detect the correct path that you cloned to) so that you
+can run all of the same things as outlined in
+[MAKEFILE_OPS.md](MAKEFILE_OPS.md), but from any directory. The
+special project placeholder value `-` (any number of consecutive
+dashes) indicates to use the [root Makefile](Makefile) rather than any
+particular project Makefile.
+
+You can get into the root d.rymcg.tech directory quickly, from
+anywhere:
 
 ```
-## This enters a subshell and changes directory:
-## Press Ctrl-D to exit the sub-shell and jump back to where you were:
+## This enters a subshell and changes the working directory to the d.rymcg.tech root:
+## (You can also specify a second argument to specify the sub-directory.)
 d.rymcg.tech cd
 ```
 
-You can create a barebones external project directory anywhere:
+Press `Ctrl-D` to exit the sub-shell and jump back to wherever you
+came from.
+
+From any working directory, you can create a new, barebones, [external
+project](#integrating-external-projects):
 
 ```
+# This creates a new project directory in your current working directory:
+# It will ask you to enter the name of the project and choose the template.
+# Optional 2nd and 3rd args will skip the asking: PROJECT_NAME TEMPLATE_NAME
 d.rymcg.tech create
 ```
 
@@ -825,7 +864,14 @@ Enter the name of the backup file, and all of the `.env` and
 
 You can integrate your own docker-compose projects that exist in
 external git repositories, and have them use the d.rymcg.tech
-framework:
+framework.
+
+The easiest method of creating an external project, is by setting up
+the [`d.rymcg.tech`
+script](https://github.com/EnigmaCurry/d.rymcg.tech/tree/cli-script#using-the-drymcgtech-cli-script-optional),
+and then simply run `d.rymcg.tech create` (from any other directory).
+
+To do this same thing manually, here are the steps:
 
  * Clone d.rymcg.tech and set it up (Install Traefik, and whoami, make
    sure that works first).
