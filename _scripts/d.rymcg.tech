@@ -1,0 +1,114 @@
+#!/bin/bash
+
+## The main CLI script for the eponymous project d.rymcg.tech
+
+## This script should be symlinked to a directory on your PATH. You
+## may also add the `user` subdirectory to your path, which contains a
+## symlink prepared for you. Do not add the _scripts directory to your
+## path, only the _scripts/user subdirectory!
+##
+## For example (choose one or the other):
+##
+##   # Option 1 - This assumes ~/bin is already in your PATH:
+##   ln -s ~/git/vendor/enigmacurry/d.rymcg.tech/_scripts/d.rymcg.tech ~/bin
+##
+##   # Option 2 - You would add this to the botom of your ~/.bashrc or ~/.profile
+##   export PATH=~/git/vendor/enigmacurry/d.rymcg.tech/_scripts/user:${PATH}
+
+## BIN is the _scripts directory inside of d.rymcg.tech
+BIN=$(realpath $(dirname $(realpath ${BASH_SOURCE})))
+## ROOT_DIR is the root path of the d.rymcg.tech project
+ROOT_DIR=$(realpath $(dirname ${BIN}))
+
+source ${BIN}/funcs.sh
+
+__help() {
+    echo "Main d.rymcg.tech commands :"
+    (
+        echo -e "cd\tEnter a sub-shell and go to the d.rymcg.tech directory"
+        echo -e "create\tCreate a new external project"
+        echo -e "help\tShow this help screen"
+        echo -e "list\tList all the d.rymcg.tech projects (not including external projects)"
+        echo -e "make\tRun a make command for the given d.rymcg.tech project name"
+    ) | expand -t 20
+}
+
+__create() {
+    echo "This script will create a new docker-compose project and integrate d.rymcg.tech Makefiles"
+    echo ""
+    echo "ROOT_DIR=${ROOT_DIR}"
+    echo ""
+    ask_no_blank "Enter a name for the new project" PROJECT_NAME
+    echo ""
+    if [[ -e ${PROJECT_NAME} ]]; then
+        if [[ -d ${PROJECT_NAME} ]]; then
+            fault "There's an existing sub-directory with that name."
+        else
+            fault "There's an existing file in the current directory with that name."
+        fi
+    fi
+}
+
+__change-directory() {
+    if [[ $# -gt 0 ]]; then
+        bash --rcfile <(echo "cd ${ROOT_DIR}/$1")
+    else
+        bash --rcfile <(echo "cd ${ROOT_DIR}")
+    fi
+    echo "Exited sub-shell."
+}
+
+__make() {
+    if [[ $# -gt 0 ]]; then
+        PROJECT_NAME="$1"; shift
+        pattern="^-+"
+        if [[ "${PROJECT_NAME}" =~ $pattern ]]; then
+            PROJECT_DIR=${ROOT_DIR}
+        else
+            PROJECT_DIR=${ROOT_DIR}/${PROJECT_NAME}
+        fi
+        test -d "${PROJECT_DIR}" || fault "Project directory does not exist: ${PROJECT_DIR}"
+        make -C "${PROJECT_DIR}" "$@"
+    else
+        __list_projects
+        error "Missing project name argument. Choose one from the above."
+        error "To invoke the root Makefile use '-' as the name"
+    fi
+    DIR_NAME="$1"; shift
+}
+
+__list_projects() {
+    (
+        echo "List of d.rymcg.tech projects (not including external projects):"
+        echo ""
+        set +e
+        find "${ROOT_DIR}" -maxdepth 1 -type d -printf "%P\n" | grep -v "^_" | grep -v "^\." | sort -u | xargs -iXX bash -c "test -f ${ROOT_DIR}/XX/Makefile && echo XX" | column
+        echo ""
+    )
+}
+
+main() {
+    set -eo pipefail
+    if [[ $# -gt 0 ]]; then
+        test -f "${ROOT_DIR}/Makefile" || fault "d.rymcg.tech ROOT_DIR directory not found: ${ROOT_DIR}"
+        COMMAND=$1; shift
+        case ${COMMAND} in
+            help)
+                __help "$@";;
+            create)
+                __create "$@";;
+            cd)
+                __change-directory "$@";;
+            make)
+                __make "$@";;
+            list)
+                __list_projects;;
+            *)
+                fault "Invalid command"
+        esac
+    else
+        __help
+    fi
+}
+
+main "$@"

@@ -2,13 +2,14 @@
 
 BIN=$(dirname ${BASH_SOURCE})
 
-fault(){ test -n "$1" && echo $1; echo "Exiting." >/dev/stderr ; exit 1; }
+error(){ echo "Error: $@" >/dev/stderr; }
+fault(){ test -n "$1" && error $1; echo "Exiting." >/dev/stderr; exit 1; }
 check_var(){
     __missing=false
     __vars="$@"
     for __var in ${__vars}; do
         if [[ -z "${!__var}" ]]; then
-            echo "${__var} variable is missing." >/dev/stderr
+            error "${__var} variable is missing."
             __missing=true
         fi
     done

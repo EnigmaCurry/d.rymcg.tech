@@ -467,15 +467,18 @@ Bespoke things:
 
 ## Command line interaction
 
-As alluded to earlier, this project offers two ways to control Docker:
+As alluded to earlier, this project offers multiple ways to control
+Docker:
 
  1. Editing `.env` files by hand, and running `docker compose`
     commands yourself.
  2. Running `make` targets that edit the `.env` files automatically
     and runs `docker compose` for you (this is the author's preferred
     method).
+ 3. Running the `d.rymcg.tech` CLI script, which runs the `make`
+    targets from any working directory.
 
-Both of these methods are compatible, and they both get you to the
+All of these methods are compatible, and they will all get you to the
 same place. The Makefiles offer a more streamlined approach with a
 configuration wizard and sensible defaults. Most of the sub-project
 README files reflect the `make` command style for config. Editing the
@@ -560,6 +563,64 @@ the `.env` files too).
 
 For a more in depth guide on using the Makefiles, see
 [MAKEFILE_OPS.md](MAKEFILE_OPS.md)
+
+### Using the `d.rymcg.tech` CLI script (optional)
+
+Both `make` and `docker compose` expect you to change your working
+directory to use them (however, there are `make -C` and `docker
+compose -f` as workarounds). There is a third option to use the
+eponymous [`d.rymcg.tech` script](_scripts/d.rymcg.tech) included in
+the repository. In addition to letting you use `make` targets from any
+working directory, this script also offers the ability to create
+external project skeleton directories.
+
+To install the script, you need to add it to your `PATH` shell
+variable. You can do this a number of ways:
+
+ 1. Add the
+    [~/git/vendor/enigmacurry/d.rymcg.tech/_scripts/user](_scripts/user)
+    directory to your `PATH`. (This directory only contains a symlink
+    to `d.rymcg.tech`, no other scripts.)
+ 2. Symlink the [`d.rymcg.tech` script](_scripts/d.rymcg.tech) to a
+    directory location already in your `PATH`. Check the details at
+    the top of the script.
+
+Note: only use **symlinks**, do not attempt to copy or move the script
+outside of the `_scripts` directory.
+
+Once installed, run `d.rymcg.tech help` to see the command list.
+
+```
+Main d.rymcg.tech commands :
+cd                  Enter a sub-shell and go to the d.rymcg.tech directory
+create              Create a new external project
+help                Show this help screen
+list                List all the d.rymcg.tech projects (not including external projects)
+make                Run a make command for the given d.rymcg.tech project name
+```
+
+You can run any make target command from any working directory, for
+example:
+
+ * `d.rymcg.tech make traefik config`
+ * `d.rymcg.tech make traefik install`
+ * `d.rymcg.tech make whoami config`
+ * `d.rymcg.tech make whoami install`
+ * `d.rymcg.tech make -- status`
+
+You can get to the root d.rymcg.tech directory quickly from anywhere:
+
+```
+## This enters a subshell and changes directory:
+## Press Ctrl-D to exit the sub-shell and jump back to where you were:
+d.rymcg.tech cd
+```
+
+You can create a barebones external project directory anywhere:
+
+```
+d.rymcg.tech create
+```
 
 ## Creating multiple instances of a service
 
