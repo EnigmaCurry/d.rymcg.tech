@@ -611,13 +611,16 @@ script](_scripts/d.rymcg.tech).
 Once installed, run `d.rymcg.tech` to see the command list.
 
 ```
-Main d.rymcg.tech commands :
+Main d.rymcg.tech commands:
 cd             Enter a sub-shell and go to the d.rymcg.tech directory
 create         Create a new external project
-help           Show this help screen
-list           List all the d.rymcg.tech projects (not including external projects)
 make           Run a make command for the given d.rymcg.tech project name
-readme         Open the given d.rymcg.tech project's README.md in your browser
+
+Documentation commands:
+help              Show this help screen
+list              List available d.rymcg.tech projects (not including external projects)
+readme            Open the main d.rymcg.tech README.md in your browser
+readme [PROJECT]  Open the README.md for the given project name
 ```
 
 You can use this script to run the make targets for any of the bundled
@@ -661,6 +664,13 @@ project](#integrating-external-projects):
 # It will ask you to enter the name of the project and choose the template.
 # Optional 2nd and 3rd args will skip the asking: PROJECT_NAME TEMPLATE_NAME
 d.rymcg.tech create
+```
+
+Open the README for any project in your web browser (omit the second
+arg to open the root README):
+
+```
+d.rymcg.tech readme traefik
 ```
 
 ## Creating multiple instances of a service

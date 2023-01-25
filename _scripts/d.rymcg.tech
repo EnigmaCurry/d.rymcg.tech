@@ -24,15 +24,23 @@ ROOT_DIR=$(dirname ${BIN})
 source ${BIN}/funcs.sh
 
 __help() {
-    echo "Main d.rymcg.tech commands :"
+    echo "Found ROOT_DIR=${ROOT_DIR}"
+    echo ""
+    echo "Main d.rymcg.tech commands:"
     (
         echo -e "cd\tEnter a sub-shell and go to the d.rymcg.tech directory"
         echo -e "create\tCreate a new external project"
-        echo -e "help\tShow this help screen"
-        echo -e "list\tList all the d.rymcg.tech projects (not including external projects)"
         echo -e "make\tRun a make command for the given d.rymcg.tech project name"
-        echo -e "readme\tOpen the given d.rymcg.tech project's README.md in your browser"
     ) | expand -t 15
+    echo ""
+    echo "Documentation commands:"
+    (
+        echo -e "help\tShow this help screen"
+        echo -e "list\tList available d.rymcg.tech projects (not including external projects)"
+        echo -e "readme\tOpen the main d.rymcg.tech README.md in your browser"
+        echo -e "readme [PROJECT]\tOpen the README.md for the given project name"
+    ) | expand -t 18
+    echo ""
 }
 
 __create() {
