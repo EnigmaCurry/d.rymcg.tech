@@ -1,6 +1,6 @@
 .env
 .env_*
-xbs/api/settings.json
+/xbs/api/settings.json
 /*.tgz
 /*.tgz.gpg
 passwords.json

@@ -2,7 +2,7 @@
   "db": {
     "host": "xbs-db-1",
     "status": {
-      "message": "welcome to my XBS service!"
+      "message": "Wooskey XBS service!"
     },
     "location": "us"
   }
