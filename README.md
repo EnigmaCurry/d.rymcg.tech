@@ -585,7 +585,8 @@ variable. You can do this in a number of ways:
 
  Option 1. Symlink the [`d.rymcg.tech` script](_scripts/d.rymcg.tech)
            to a directory location already in your `PATH` shell
-           variable (eg. `~/bin`).
+           variable (eg. `~/bin`). This method gives you the
+           opportunity to rename the script to whatever you want.
 
  Option 2. Add the
            [~/git/vendor/enigmacurry/d.rymcg.tech/_scripts/user](_scripts/user)
@@ -611,11 +612,12 @@ Once installed, run `d.rymcg.tech` to see the command list.
 
 ```
 Main d.rymcg.tech commands :
-cd                  Enter a sub-shell and go to the d.rymcg.tech directory
-create              Create a new external project
-help                Show this help screen
-list                List all the d.rymcg.tech projects (not including external projects)
-make                Run a make command for the given d.rymcg.tech project name
+cd             Enter a sub-shell and go to the d.rymcg.tech directory
+create         Create a new external project
+help           Show this help screen
+list           List all the d.rymcg.tech projects (not including external projects)
+make           Run a make command for the given d.rymcg.tech project name
+readme         Open the given d.rymcg.tech project's README.md in your browser
 ```
 
 You can use this script to run the make targets for any of the bundled

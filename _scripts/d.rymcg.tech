@@ -31,7 +31,8 @@ __help() {
         echo -e "help\tShow this help screen"
         echo -e "list\tList all the d.rymcg.tech projects (not including external projects)"
         echo -e "make\tRun a make command for the given d.rymcg.tech project name"
-    ) | expand -t 20
+        echo -e "readme\tOpen the given d.rymcg.tech project's README.md in your browser"
+    ) | expand -t 15
 }
 
 __create() {
@@ -93,6 +94,15 @@ __list_projects() {
     )
 }
 
+__readme() {
+    if [[ $# -gt 0 ]]; then
+        PROJECT_NAME="${1}"; shift
+        __make "${PROJECT_NAME}" readme "$@"
+    else
+        __make -- readme
+    fi
+}
+
 main() {
     set -eo pipefail
     if [[ $# -gt 0 ]]; then
@@ -109,6 +119,8 @@ main() {
                 __make "$@";;
             list)
                 __list_projects;;
+            readme)
+                __readme "$@";;
             *)
                 fault "Invalid command"
         esac

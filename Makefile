@@ -91,3 +91,7 @@ userns-remap-off:
 .PHONY: userns-remap-check # Check current Docker User Namespace Remap setting
 userns-remap-check:
 	@${BIN}/userns-remap check
+
+.PHONY: readme # Open the README.md in your web browser
+readme:
+	xdg-open "https://github.com/EnigmaCurry/d.rymcg.tech/tree/master#readme"
