@@ -1,0 +1,61 @@
+#!/bin/bash
+
+## BIN is the _scripts directory inside of d.rymcg.tech
+BIN=$(dirname $(realpath ${BASH_SOURCE}))
+## ROOT_DIR is the root path of the d.rymcg.tech project
+ROOT_DIR=$(dirname ${BIN})
+
+source ${BIN}/funcs.sh
+set -eo pipefail
+
+echo "ROOT_DIR=${ROOT_DIR}"
+
+if [[ $# != 3 ]]; then
+    fault "Usage: create PROJECT_NAME TEMPLATE_NAME OUTPUT_DIR"
+fi
+
+PROJECT_NAME="$1"
+TEMPLATE_NAME="$2"
+OUTPUT_DIR="$3"
+
+if [[ -e "${OUTPUT_DIR}" ]]; then
+    if [[ -d "${OUTPUT_DIR}" ]]; then
+        fault "The directory already exists: ${OUTPUT_DIR}"
+    fi
+    fault "There is an existing file with the same name: ${OUTPUT_DIR}"
+fi
+
+mkdir -p "${OUTPUT_DIR}"
+
+TEMPLATE_DIR="${ROOT_DIR}/_templates/${TEMPLATE_NAME}"
+TEMPLATE_FILES=("docker-compose.yaml" "Makefile" ".env-dist" ".gitignore" "README.md")
+
+if [[ ! -d "${TEMPLATE_DIR}" ]]; then
+    fault "The template directory is missing: ${TEMPLATE_DIR}"
+fi
+for template in ${TEMPLATE_FILES[@]}; do
+    if [[ ! -f "${TEMPLATE_DIR}/${template}" ]]; then
+        fault "The template is missing ${template} : ${TEMPLATE_DIR}"
+    fi
+done
+
+TEMPLATE_VARS='${CREATE_TEMPLATE_PROJECT_NAME},${CREATE_TEMPLATE_PROJECT_NAME_UPPERCASE},${CREATE_TEMPLATE_ROOT_DIR}'
+
+export CREATE_TEMPLATE_ROOT_DIR="${ROOT_DIR}"
+export CREATE_TEMPLATE_PROJECT_NAME="$(echo ${PROJECT_NAME} | tr '[:upper:]' '[:lower:]' | tr ' ' '_')"
+export CREATE_TEMPLATE_PROJECT_NAME_UPPERCASE="$(echo ${CREATE_TEMPLATE_PROJECT_NAME} | tr '[:lower:]' '[:upper:]')"
+
+## TODO: use ytt to template YAML instead of envsubst
+## HOWEVER, this is blocked on https://github.com/carvel-dev/ytt/issues/63
+
+for filename in ${TEMPLATE_FILES[@]}; do
+    echo "# Rendering ${OUTPUT_DIR}/${filename}"
+    cat "${TEMPLATE_DIR}/${filename}" | envsubst "${TEMPLATE_VARS}" > "${OUTPUT_DIR}/${filename}"
+done
+
+echo "# Copying other files to ${OUTPUT_DIR} ..."
+cp -v "${TEMPLATE_DIR}/README.md" "${OUTPUT_DIR}/README.md"
+find ${TEMPLATE_DIR} -maxdepth 1 -type d -printf "%P\n" | xargs -iXX cp -av "${TEMPLATE_DIR}/XX" "${OUTPUT_DIR}/XX"
+
+echo ""
+echo "# Finished creating new project directory: ${OUTPUT_DIR}"

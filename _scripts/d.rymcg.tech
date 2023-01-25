@@ -1,11 +1,11 @@
 #!/bin/bash
 
-## The main CLI script for the eponymous project d.rymcg.tech
+## The eponymous CLI script for the project d.rymcg.tech
 
 ## This script should be symlinked to a directory on your PATH. You
-## may also add the `user` subdirectory to your path, which contains a
-## symlink prepared for you. Do not add the _scripts directory to your
-## path, only the _scripts/user subdirectory!
+## may add the `user` subdirectory to your path, which contains a
+## symlink prepared for you. DO NOT add the whole _scripts directory
+## to your PATH, but only the _scripts/user subdirectory!
 ##
 ## For example (choose one or the other):
 ##
@@ -16,9 +16,9 @@
 ##   export PATH=~/git/vendor/enigmacurry/d.rymcg.tech/_scripts/user:${PATH}
 
 ## BIN is the _scripts directory inside of d.rymcg.tech
-BIN=$(realpath $(dirname $(realpath ${BASH_SOURCE})))
+BIN=$(dirname $(realpath ${BASH_SOURCE}))
 ## ROOT_DIR is the root path of the d.rymcg.tech project
-ROOT_DIR=$(realpath $(dirname ${BIN}))
+ROOT_DIR=$(dirname ${BIN})
 
 source ${BIN}/funcs.sh
 
@@ -35,25 +35,30 @@ __help() {
 
 __create() {
     echo "This script will create a new docker-compose project and integrate d.rymcg.tech Makefiles"
-    echo ""
-    echo "ROOT_DIR=${ROOT_DIR}"
-    echo ""
-    ask_no_blank "Enter a name for the new project" PROJECT_NAME
-    echo ""
-    if [[ -e ${PROJECT_NAME} ]]; then
-        if [[ -d ${PROJECT_NAME} ]]; then
-            fault "There's an existing sub-directory with that name."
-        else
-            fault "There's an existing file in the current directory with that name."
-        fi
+    if [[ $# -gt 0 ]]; then
+        PROJECT_NAME="$1"
+    else
+        ask_no_blank "Enter a name for the new docker-compose project" PROJECT_NAME
+        echo ""
     fi
+    if [[ $# -gt 1 ]]; then
+        TEMPLATE_NAME="$2"
+    else
+        echo "Available templates:"
+        find "${ROOT_DIR}/_templates" -maxdepth 1 -type d -printf "%P\n" | column
+        echo ""
+        ask_no_blank "Enter the template name to use" TEMPLATE_NAME bare
+        echo ""
+    fi
+    ${BIN}/create "${PROJECT_NAME}" "${TEMPLATE_NAME}" "./${PROJECT_NAME}"
 }
 
 __change-directory() {
+    echo "Entering sub-shell. Press Ctrl-D to pop back to the parent shell."
     if [[ $# -gt 0 ]]; then
-        bash --rcfile <(echo "cd ${ROOT_DIR}/$1")
+        /bin/bash --rcfile <(echo "cd ${ROOT_DIR}/$1")
     else
-        bash --rcfile <(echo "cd ${ROOT_DIR}")
+        /bin/bash --rcfile <(echo "cd ${ROOT_DIR}")
     fi
     echo "Exited sub-shell."
 }
@@ -79,10 +84,10 @@ __make() {
 
 __list_projects() {
     (
-        echo "List of d.rymcg.tech projects (not including external projects):"
+        echo "List of available d.rymcg.tech projects (not including external projects):"
         echo ""
         set +e
-        find "${ROOT_DIR}" -maxdepth 1 -type d -printf "%P\n" | grep -v "^_" | grep -v "^\." | sort -u | xargs -iXX bash -c "test -f ${ROOT_DIR}/XX/Makefile && echo XX" | column
+        find "${ROOT_DIR}" -maxdepth 1 -type d -printf "%P\n" | grep -v "^_" | grep -v "^\." | sort -u | xargs -iXX /bin/bash -c "test -f ${ROOT_DIR}/XX/Makefile && echo XX" | column
         echo ""
     )
 }

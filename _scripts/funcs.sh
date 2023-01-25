@@ -113,7 +113,7 @@ docker_exec() {
 
 ytt() {
     set -e
-    docker build -t localhost/ytt -f- . >/dev/null <<'EOF'
+    docker image inspect localhost/ytt >/dev/null || docker build -t localhost/ytt -f- . >/dev/null <<'EOF'
 FROM debian:stable-slim as ytt
 ARG YTT_VERSION=v0.43.0
 RUN apt-get update && apt-get install -y wget && wget "https://github.com/vmware-tanzu/carvel-ytt/releases/download/${YTT_VERSION}/ytt-linux-$(dpkg --print-architecture)" -O ytt && install ytt /usr/local/bin/ytt
