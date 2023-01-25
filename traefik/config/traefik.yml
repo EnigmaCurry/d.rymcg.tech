@@ -35,6 +35,7 @@ providers:
   #@ if data.values.docker_provider == "true":
   docker:
     exposedByDefault: false
+    constraints: #@ data.values.docker_provider_constraints
   #@ end
 
 global:
