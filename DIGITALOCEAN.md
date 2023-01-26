@@ -167,10 +167,10 @@ Setup the docker context to tunnel through your ssh connection (this lets your
 workstation docker client control the remote docker server):
 
 ```
-# From your workstation (replace ssh.d.example.com with your own docker server):
-DOCKER_SERVER=ssh.d.example.com
-docker context create ${DOCKER_SERVER} --docker "host=ssh://${DOCKER_SERVER}"
-docker context use ${DOCKER_SERVER}
+# From your workstation (replace d.example.com with your own docker server):
+DOMAIN=d.example.com
+docker context create ${DOMAIN} --docker "host=ssh://ssh.${DOMAIN}"
+docker context use ${DOMAIN}
 ```
 
 List all of your docker contexts (your current context is denoted with an

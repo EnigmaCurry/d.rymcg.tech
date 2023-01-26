@@ -1,0 +1,6 @@
+.env
+.env_*
+*.tgz
+*.tgz.gpg
+passwords.json
+docker-compose.override*.yaml
