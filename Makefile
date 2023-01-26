@@ -17,7 +17,7 @@ check-docker:
 
 .PHONY: config # Configure main variables
 config: check-deps check-docker
-	@${BIN}/userns-remap check
+#	@${BIN}/userns-remap check
 	@echo ""
 	@${BIN}/confirm yes "This will make a configuration for the current docker context (${DOCKER_CONTEXT})"
 	@${BIN}/reconfigure_ask ${ROOT_ENV} ROOT_DOMAIN "Enter the root domain for this context"
