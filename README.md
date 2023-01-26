@@ -572,55 +572,51 @@ For a more in depth guide on using the Makefiles, see
 ### Using the `d.rymcg.tech` CLI script (optional)
 
 By default, both `make` and `docker compose` expect you to change your
-working directory to use them (there are `make -C` and `docker compose
--f` to use as workarounds). There is a third option to use the
-eponymous [`d.rymcg.tech` script](_scripts/d.rymcg.tech) included in
-this repository. In addition to letting you run any project `make`
-target from any working directory, this script also offers a
-convenient way to create [external
+working directory to use them (however, you *can* work around this
+using `make -C` and `docker compose -f`). There is a third option to
+use the eponymous [`d.rymcg.tech` script](_scripts/d.rymcg.tech)
+included in this repository. In addition to letting you run any
+project `make` target from any working directory, this script also
+offers a convenient way to create [external
 projects](#integrating-external-projects) from a skeleton template.
 
 To install the script, you need to add it to your `PATH` shell
-variable. You can do this in a number of ways:
-
- Option 1. Symlink the [`d.rymcg.tech` script](_scripts/d.rymcg.tech)
-           to a directory location already in your `PATH` shell
-           variable (eg. `~/bin`). This method gives you the
-           opportunity to rename the script to whatever you want.
-
- Option 2. Add the
-           [~/git/vendor/enigmacurry/d.rymcg.tech/_scripts/user](_scripts/user)
-           directory to your `PATH`. (This directory only contains a symlink
-           to `d.rymcg.tech`, no other scripts, and so it is prepared to be
-           added to your `PATH` directly.)
-
-Important points on installation:
-
- * Do not attempt to copy or move the script outside of the git cloned
-   `_scripts` directory. Only use **symlinks** to point to this
-   scripts orginal location. This is how the script knows where
-   `d.rymcg.tech` is installed.
-
- * Do not add the [_scripts](_scripts) directory to your PATH, but
-   only the [_scripts/user](_scripts/user) directory (if used as an
-   alternative to Option 1).
-
-For more details, see the [comments at the top of the
-script](_scripts/d.rymcg.tech).
-
-Once installed, run `d.rymcg.tech` to see the command list.
+variable, and optionally enable the BASH completion support:
 
 ```
-Main d.rymcg.tech commands:
-cd             Enter a sub-shell and go to the d.rymcg.tech directory
+##  Add this at the bottom of your ~/.bashrc config:
+
+## d.rymcg.tech
+export PATH="${HOME}/git/vendor/enigmacurry/d.rymcg.tech/_scripts/user:${PATH}"
+## optional TAB completion:
+eval $(d.rymcg.tech completion bash)
+complete -F __d.rymcg.tech_completions d.rymcg.tech
+
+## You might want to use a more convenient alias, (eg. 'dry'),
+#alias dry="d.rymcg.tech"
+## You can make completion support work for the alias too:
+#complete -F __d.rymcg.tech_completions dry
+```
+
+Once installed, run `d.rymcg.tech` to see the command help text.
+
+```
+## Main d.rymcg.tech sub-commands:
+cd             Enter a sub-shell and go to the ROOT_DIR directory
 create         Create a new external project
 make           Run a make command for the given d.rymcg.tech project name
 
-Documentation commands:
-help              Show this help screen
-list              List available d.rymcg.tech projects (not including external projects)
-readme            Open the main d.rymcg.tech README.md in your browser
-readme [PROJECT]  Open the README.md for the given project name
+## Documentation sub-commands:
+help                  Show this help screen
+list                  List available d.rymcg.tech projects
+                      (not including external projects)
+readme [PROJECT]      Open the README.md for the given project name
+readme                Open the main d.rymcg.tech README.md in your browser
+readme raspberry_pi   Open the RASPBERRY_PI.md documentation
+readme makefile_ops   Open the MAKEFILE_OPS.md documentation
+readme security       Open the SECURITY.md documentation
+readme digitalocean   Open the DIGITALOCEAN.md documentation
+readme license        Open the LICENSE.txt software license
 ```
 
 You can use this script to run the make targets for any of the bundled

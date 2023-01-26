@@ -26,14 +26,14 @@ source ${BIN}/funcs.sh
 __help() {
     echo "Found ROOT_DIR=${ROOT_DIR}"
     echo ""
-    echo "Main d.rymcg.tech commands:"
+    echo "## Main d.rymcg.tech sub-commands:"
     (
-        echo -e "cd\tEnter a sub-shell and go to the d.rymcg.tech directory"
+        echo -e "cd\tEnter a sub-shell and go to the ROOT_DIR directory"
         echo -e "create\tCreate a new external project"
         echo -e "make\tRun a make command for the given d.rymcg.tech project name"
     ) | expand -t 15
     echo ""
-    echo "Documentation commands:"
+    echo "## Documentation sub-commands:"
     (
         echo -e "help\tShow this help screen"
         echo -e "list\tList available d.rymcg.tech projects"
@@ -100,11 +100,15 @@ __make() {
 
 __list_projects() {
     (
-        echo "List of available d.rymcg.tech projects (not including external projects):"
-        echo ""
-        set +e
-        find "${ROOT_DIR}" -maxdepth 1 -type d -printf "%P\n" | grep -v "^_" | grep -v "^\." | sort -u | xargs -iXX /bin/bash -c "test -f ${ROOT_DIR}/XX/Makefile && echo XX" | column
-        echo ""
+        if [[ "$1" == "--raw" ]]; then
+            find "${ROOT_DIR}" -maxdepth 1 -type d -printf "%P\n" | grep -v "^_" | grep -v "^\." | sort -u | xargs -iXX /bin/bash -c "test -f ${ROOT_DIR}/XX/Makefile && echo XX"
+        else
+            echo "List of available d.rymcg.tech projects (not including external projects):"
+            echo ""
+            set +e
+            find "${ROOT_DIR}" -maxdepth 1 -type d -printf "%P\n" | grep -v "^_" | grep -v "^\." | sort -u | xargs -iXX /bin/bash -c "test -f ${ROOT_DIR}/XX/Makefile && echo XX" | column
+            echo ""
+        fi
     )
 }
 
@@ -114,9 +118,9 @@ __readme() {
         NAME="${1}"; shift
         NAME_UPPERCASE="$(echo "${NAME}" | tr '[:lower:]' '[:upper:]')"
         if [[ "${NAME_UPPERCASE}" == "LICENSE" ]]; then
-            (set +x; xdg-open "https://github.com/EnigmaCurry/d.rymcg.tech/blob/master/$LICENSE.txt")
+            (set +x; xdg-open "https://github.com/EnigmaCurry/d.rymcg.tech/blob/master/LICENSE.txt")
         elif [[ -v DOCS_LIST["${NAME_UPPERCASE}"] ]]; then
-            (set +x; xdg-open "https://github.com/EnigmaCurry/d.rymcg.tech/blob/master/${NAME_UPPERCASE}.md")
+            (set +x; xdg-open "https://github.com/EnigmaCurry/d.rymcg.tech/blob/master/${NAME_UPPERCASE}.md#readme")
         else
             __make "${NAME}" readme "$@"
         fi
@@ -125,6 +129,80 @@ __readme() {
     fi
 }
 
+__info() {
+    if [[ "$1" == "ROOT_DIR" ]]; then
+        echo "${ROOT_DIR}"
+    fi
+}
+
+__d.rymcg.tech_completions() {
+    ### BASH completion
+    ## dev links:
+    ### https://www.gnu.org/software/bash/manual/html_node/Programmable-Completion-Builtins.html#Programmable-Completion-Builtins
+    ### https://iridakos.com/programming/2018/03/01/bash-programmable-completion-tutorial
+    ### https://github.com/git/git/blob/master/contrib/completion/git-completion.bash
+    ## COMP_WORDS: an array of all the words typed
+    ## COMP_CWORD: an index of the COMP_WORDS array pointing to the word the current cursor is at
+    ## COMP_LINE: the current command line
+    ## COMPREPLY is an array variable used to store the output completions
+    ROOT_PROJECT_PLACEHOLDER="^-+$"
+    if [[ ${COMP_CWORD} == 1 ]]; then
+        ## Complete the main command:
+        ## d.rymcg.tech <TAB> ...
+        COMMANDS="help create cd make list readme"
+        COMPREPLY=($(compgen -W "${COMMANDS}" "${COMP_WORDS[1]}"))
+    elif [[ ${COMP_CWORD} == 2 ]]; then
+        ALL_PROJECTS=$(d.rymcg.tech list --raw)
+        ## Dispatch completion for the sub-command's first argument:
+        ## d.rymcg.tech make <TAB> ...
+        case ${COMP_WORDS[1]} in
+            create)
+                COMPREPLY=("#" "Type the project name");;
+            cd)
+                COMPREPLY=($(compgen -W "${ALL_PROJECTS}" "${COMP_WORDS[2]}"));;
+            readme)
+                COMPREPLY=($(compgen -W "README DIGITALOCEAN SECURITY RASPBERRY_PI MAKEFILE_OPS ${ALL_PROJECTS}" "${COMP_WORDS[2]}"));;
+            make)
+                COMPREPLY=($(compgen -W "-- ${ALL_PROJECTS}" "${COMP_WORDS[2]}"));;
+        esac
+    elif [[ ${COMP_CWORD} == 3 ]]; then
+        ## Dispatch completion for the sub-commands second argument:
+        ## d.rymcg.tech make traefik <TAB> ...
+        if [[ "${COMP_WORDS[1]}" == "make" ]]; then
+            ROOT_DIR=$(d.rymcg.tech info ROOT_DIR)
+            PROJECT=${COMP_WORDS[2]}
+            PROJECT_DIR="${ROOT_DIR}/${PROJECT}"
+            if [[ "${PROJECT}" =~ ${ROOT_PROJECT_PLACEHOLDER} ]]; then
+                PROJECT_DIR="${ROOT_DIR}"
+            fi
+            ## Thanks Chris Down https://unix.stackexchange.com/a/230050
+            MAKE_TARGETS="$(make -C "${PROJECT_DIR}" -qp | awk -F':' '/^[a-zA-Z0-9][^$#\/\t=]*:([^=]|$)/ {split($1,A,/ /);for(i in A)print A[i]}' | sort -u)"
+            COMPREPLY=($(compgen -W "${MAKE_TARGETS}" "${COMP_WORDS[3]}"))
+        elif [[ "${COMP_WORDS[1]}" == "create" ]]; then
+            COMPREPLY=("bare")
+        fi
+    fi
+}
+
+__completion() {
+    # Print the completion script to be evaluated
+    if [[ $# -lt 1 ]]; then
+        echo "## To enable BASH shell completion support for d.rymcg.tech,"
+        echo "## add the following lines into your ~/.bashrc ::"
+        echo ""
+        echo "eval \$(d.rymcg.tech completion bash)"
+        echo "complete -F __d.rymcg.tech_completions d.rymcg.tech"
+        echo ""
+        echo "## If your script is named something different,"
+        echo "## rename that last argument from d.rymcg.tech to whatever you called it."
+    else
+        if [[ "${1}" == "bash" ]]; then
+            declare -f __d.rymcg.tech_completions
+        else
+            fault "Sorry, this script only support BASH shell completion"
+        fi
+    fi
+}
 
 main() {
     set -eo pipefail
@@ -141,9 +219,13 @@ main() {
             make)
                 __make "$@";;
             list)
-                __list_projects;;
+                __list_projects "$@";;
             readme)
                 __readme "$@";;
+            completion)
+                __completion "$@";;
+            info)
+                __info "$@";;
             *)
                 fault "Invalid command"
         esac
