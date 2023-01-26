@@ -171,6 +171,7 @@ these (default) ports in your firewall:
 | TCP socket | TCP      | 1704       | Traefik Snapcast audio entrypoint     |
 | SSH        | TCP      | 2222       | Traefik Gitea SSH (TCP) entrypoint    |
 | SSH        | TCP      | 2223       | SFTP container SSH (TCP) (direct-map) |
+| SSH        | TCP      | 2224       | Traefik Gitlab SSH (TCP) entrypoint   |
 | TLS        | TCP      | 5432       | PostgreSQL DBaaS (direct-map)         |
 | TCP socket | TCP      | 6600       | Traefik MPD (Mopidy) entrypoint       |
 | TLS        | TCP      | 8883       | Traefik MQTT (TLS) entrypoint         |

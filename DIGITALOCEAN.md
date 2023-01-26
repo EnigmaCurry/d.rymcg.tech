@@ -75,6 +75,7 @@ Create a new firewall:
     | HTTPS  | TCP      |        443 | Traefik HTTPS (TLS) endpoint     |
     | Custom | TCP      |       2222 | Traefik Gitea SSH (TCP) endpoint |
     | Custom | TCP      |       2223 | SFTP container SSH (TCP)         |
+    | Custom | TCP      |       2224 | Traefik Gitlab SSH (TCP) endpoint|
     | Custom | TCP      |       8883 | Traefik Mosquitto (TLS) endpoint |
  
  * (and any other ports you need.)
