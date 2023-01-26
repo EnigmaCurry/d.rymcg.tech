@@ -153,7 +153,7 @@ to it.
 
 ### Run containers as a non-root user
 
-In a `Dockerfile` you can add a unprivileged user to use as the default user:
+In a `Dockerfile` you can add an unprivileged user to use as the default user:
 
 ```
 FROM alpine:3
