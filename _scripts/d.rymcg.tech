@@ -36,10 +36,16 @@ __help() {
     echo "Documentation commands:"
     (
         echo -e "help\tShow this help screen"
-        echo -e "list\tList available d.rymcg.tech projects (not including external projects)"
-        echo -e "readme\tOpen the main d.rymcg.tech README.md in your browser"
+        echo -e "list\tList available d.rymcg.tech projects"
+        echo -e "\t(not including external projects)"
         echo -e "readme [PROJECT]\tOpen the README.md for the given project name"
-    ) | expand -t 18
+        echo -e "readme\tOpen the main d.rymcg.tech README.md in your browser"
+        echo -e "readme raspberry_pi\tOpen the RASPBERRY_PI.md documentation"
+        echo -e "readme makefile_ops\tOpen the MAKEFILE_OPS.md documentation"
+        echo -e "readme security\tOpen the SECURITY.md documentation"
+        echo -e "readme digitalocean\tOpen the DIGITALOCEAN.md documentation"
+        echo -e "readme license\tOpen the LICENSE.txt software license"
+    ) | expand -t 22
     echo ""
 }
 
@@ -103,13 +109,22 @@ __list_projects() {
 }
 
 __readme() {
+    declare -A DOCS_LIST=([README]= [DIGITALOCEAN]= [MAKEFILE_OPS]= [RASPBERRY_PI]= [SECURITY]=)
     if [[ $# -gt 0 ]]; then
-        PROJECT_NAME="${1}"; shift
-        __make "${PROJECT_NAME}" readme "$@"
+        NAME="${1}"; shift
+        NAME_UPPERCASE="$(echo "${NAME}" | tr '[:lower:]' '[:upper:]')"
+        if [[ "${NAME_UPPERCASE}" == "LICENSE" ]]; then
+            (set +x; xdg-open "https://github.com/EnigmaCurry/d.rymcg.tech/blob/master/$LICENSE.txt")
+        elif [[ -v DOCS_LIST["${NAME_UPPERCASE}"] ]]; then
+            (set +x; xdg-open "https://github.com/EnigmaCurry/d.rymcg.tech/blob/master/${NAME_UPPERCASE}.md")
+        else
+            __make "${NAME}" readme "$@"
+        fi
     else
         __make -- readme
     fi
 }
+
 
 main() {
     set -eo pipefail
