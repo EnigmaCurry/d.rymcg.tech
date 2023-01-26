@@ -113,7 +113,7 @@ __list_projects() {
 }
 
 __readme() {
-    declare -A DOCS_LIST=([README]= [DIGITALOCEAN]= [MAKEFILE_OPS]= [RASPBERRY_PI]= [SECURITY]=)
+    declare -A DOCS_LIST=([README]= [DIGITALOCEAN]= [MAKEFILE_OPS]= [RASPBERRY_PI]= [SECURITY]= [LICENSE]=)
     if [[ $# -gt 0 ]]; then
         NAME="${1}"; shift
         NAME_UPPERCASE="$(echo "${NAME}" | tr '[:lower:]' '[:upper:]')"
@@ -161,7 +161,7 @@ __d.rymcg.tech_completions() {
             cd)
                 COMPREPLY=($(compgen -W "${ALL_PROJECTS}" "${COMP_WORDS[2]}"));;
             readme)
-                COMPREPLY=($(compgen -W "README DIGITALOCEAN SECURITY RASPBERRY_PI MAKEFILE_OPS ${ALL_PROJECTS}" "${COMP_WORDS[2]}"));;
+                COMPREPLY=($(compgen -W "README DIGITALOCEAN SECURITY RASPBERRY_PI MAKEFILE_OPS LICENSE readme digitalocean security raspberry_pi makefile_ops license ${ALL_PROJECTS}" "${COMP_WORDS[2]}"));;
             make)
                 COMPREPLY=($(compgen -W "-- ${ALL_PROJECTS}" "${COMP_WORDS[2]}"));;
         esac

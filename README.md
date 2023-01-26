@@ -1,17 +1,17 @@
 # d.rymcg.tech
 
-This is a collection of docker-compose projects consisting of
+This is a collection of Docker Compose projects consisting of
 [Traefik](https://doc.traefik.io/traefik/) as a TLS HTTP/TCP reverse
-proxy and other various applications and services behind this proxy.
-Each project is in its own sub-directory containing its own
-`docker-compose.yaml` and `.env` file (as well as `.env-dist` sample
-file). This structure allows you to pick and choose which services you
-wish to enable. You may also integrate your own external
-docker-compose projects into this framework.
+proxy and other various self-hosted applications and services behind
+this proxy. Each project is in its own sub-directory containing its
+own `docker-compose.yaml` and `.env-dist` sample config file. This
+structure allows you to pick and choose which services you wish to
+enable. You may also integrate your own external Docker Compose
+projects into this framework.
 
-Each project also has a `Makefile` to simplify configuration,
-installation, and maintainance tasks. The setup for any sub-project is
-as easy as running:
+Each project has a `Makefile` to simplify configuration, installation,
+and maintainance tasks. The setup for any sub-project is as easy as
+running:
 
  * `make config` and interactively answering some questions to
    generate the `.env` file automatically.
@@ -19,8 +19,8 @@ as easy as running:
  * `make open` to automatically open your web browser to the newly
    deployed application URL.
 
-Under the covers, setup is pure `docker-compose`, with *all*
-configuration derived from the `.env` file.
+Under the covers, setup is pure `docker compose`, with *all*
+configuration derived from your customized `.env` file.
 
 # Contents
 
@@ -74,7 +74,10 @@ state is managed as part of the container/volume lifecycle.
 
 [Install Docker
 Server](https://docs.docker.com/engine/install/#server) on your own
-public internet server or cloud host.
+public internet server or cloud host. You may also install to a
+private server behind a firewall (but in this case be sure to setup
+the Traefik ACME DNS Challenge, because the default TLS challenge
+requires an open port 443 public to the internet).
 
 See [SECURITY.md](SECURITY.md) for a list of security concerns when
 choosing a hosting provider.
@@ -323,6 +326,12 @@ Host ssh.d.example.com
 `*.d.example.com` or an explicit `A` record having been created for
 this hostname.)
 
+Note: if you use a workstation that goes to sleep, or loses network
+connectivity, you may find that your shared+multiplexed SSH
+connections will sometimes become zombies and stop communication. Get
+used to running `killall ssh` before trying to restablish the
+connection.
+
 ### Set remote Docker context
 
 On your local workstation, create a new [Docker
@@ -526,7 +535,7 @@ directory you are in.
    default values from `.env-dist` (and based upon your `ROOT_DOMAIN`
    specified earlier). You can accept the suggested default values, or
    use the backspace key and edit the value, to fill in your own
-   answers. 
+   answers.
  * The suffix of the .env filename, `_default`, refers to the
    [instance](#creating-multiple-instances-of-a-service) of the
    service (each instance has a different name, with `_default` being
@@ -890,9 +899,9 @@ To do this same thing manually, here are the steps:
    any directory. (It does not need to be a sub-directory of
    `d.rymcg.tech`, but it can be).
  * In your own project repository directory, create the files for
-   `docker-compose.yaml`, `.env-dist`, `Makefile`, and `README.md`. As
-   an example, you can use any of the d.rymcg.tech sub-projects, like
-   [whoami](whoami), or take a look at the [bare
+   `docker-compose.yaml`, `Makefile`, `.env-dist`, `.gitignore`and
+   `README.md`. As an example, you can use any of the d.rymcg.tech
+   sub-projects, like [whoami](whoami), or take a look at the [bare
    template](_templates/bare) that `d.rymcg.tech create` uses (the
    template requires the use of `envsubst`).
 
