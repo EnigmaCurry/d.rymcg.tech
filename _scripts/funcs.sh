@@ -2,13 +2,14 @@
 
 BIN=$(dirname ${BASH_SOURCE})
 
-fault(){ test -n "$1" && echo $1; echo "Exiting." >/dev/stderr ; exit 1; }
+error(){ echo "Error: $@" >/dev/stderr; }
+fault(){ test -n "$1" && error $1; echo "Exiting." >/dev/stderr; exit 1; }
 check_var(){
     __missing=false
     __vars="$@"
     for __var in ${__vars}; do
         if [[ -z "${!__var}" ]]; then
-            echo "${__var} variable is missing." >/dev/stderr
+            error "${__var} variable is missing."
             __missing=true
         fi
     done
@@ -112,7 +113,7 @@ docker_exec() {
 
 ytt() {
     set -e
-    docker build -t localhost/ytt -f- . >/dev/null <<'EOF'
+    docker image inspect localhost/ytt >/dev/null || docker build -t localhost/ytt -f- . >/dev/null <<'EOF'
 FROM debian:stable-slim as ytt
 ARG YTT_VERSION=v0.43.0
 RUN apt-get update && apt-get install -y wget && wget "https://github.com/vmware-tanzu/carvel-ytt/releases/download/${YTT_VERSION}/ytt-linux-$(dpkg --print-architecture)" -O ytt && install ytt /usr/local/bin/ytt
