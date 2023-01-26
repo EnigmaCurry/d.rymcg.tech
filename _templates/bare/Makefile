@@ -1,7 +1,7 @@
 ## ROOT_DIR is the full path to the git clone of d.rymcg.tech:
 ROOT_DIR = ${CREATE_TEMPLATE_ROOT_DIR}
 ## This Makefile inherits abilities from d.rymcg.tech Makefiles
-include ${ROOT_DIR}/_scripts/Makefile.projects
+include ${ROOT_DIR}/_scripts/Makefile.projects-external
 include ${ROOT_DIR}/_scripts/Makefile.instance
 
 .PHONY: config-hook

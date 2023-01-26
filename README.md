@@ -877,19 +877,24 @@ framework.
 The easiest method of creating an external project, is by setting up
 the [`d.rymcg.tech`
 script](https://github.com/EnigmaCurry/d.rymcg.tech/tree/cli-script#using-the-drymcgtech-cli-script-optional),
-and then simply run `d.rymcg.tech create` (from any other directory).
+then run:
+
+```
+## Run this from any directory:
+d.rymcg.tech create
+```
 
 To do this same thing manually, here are the steps:
 
- * Clone d.rymcg.tech and set it up (Install Traefik, and whoami, make
-   sure that works first).
  * Create a new project directory, or clone your existing project, to
-   any other directory. (It does not need to be a sub-directory of
+   any directory. (It does not need to be a sub-directory of
    `d.rymcg.tech`, but it can be).
  * In your own project repository directory, create the files for
-   `docker-compose.yaml`, `.env-dist`, and `Makefile`. As an example,
-   you can use any of the d.rymcg.tech sub-projects, like
-   [whoami](whoami).
+   `docker-compose.yaml`, `.env-dist`, `Makefile`, and `README.md`. As
+   an example, you can use any of the d.rymcg.tech sub-projects, like
+   [whoami](whoami), or take a look at the [bare
+   template](_templates/bare) that `d.rymcg.tech create` uses (the
+   template requires the use of `envsubst`).
 
 Create the `Makefile` in your own separate repository so that it
 includes the main d.rymcg.tech `Makefile.projects` file from
@@ -900,7 +905,7 @@ elsewhere:
 
 # ROOT_DIR can be a relative or absolute path to the d.rymcg.tech directory:
 ROOT_DIR = ${HOME}/git/vendor/enigmacurry/d.rymcg.tech
-include ${ROOT_DIR}/_scripts/Makefile.projects
+include ${ROOT_DIR}/_scripts/Makefile.projects-external
 
 .PHONY: config-hook # Configure .env file
 config-hook:
@@ -910,7 +915,9 @@ config-hook:
 
 A minimal `Makefile`, like the one above, should include a
 `config-hook` target that reconfigures your `.env` file based upon the
-example variables given in `.env-dist`.
+example variables given in `.env-dist`. This is what the user will
+have to answer qusetions for when running `make config` for your
+project.
 
 Now in your own project directory, you can use all the regular `make`
 commands that d.rymcg.tech provides:
