@@ -176,7 +176,7 @@ __d.rymcg.tech_completions() {
                 PROJECT_DIR="${ROOT_DIR}"
             fi
             ## Thanks Chris Down https://unix.stackexchange.com/a/230050
-            MAKE_TARGETS="$(make -C "${PROJECT_DIR}" -qp | awk -F':' '/^[a-zA-Z0-9][^$#\/\t=]*:([^=]|$)/ {split($1,A,/ /);for(i in A)print A[i]}' | sort -u)"
+            MAKE_TARGETS="$(make -C "${PROJECT_DIR}" -qp 2>/dev/null | awk -F':' '/^[a-zA-Z0-9][^$#\/\t=]*:([^=]|$)/ {split($1,A,/ /);for(i in A)print A[i]}' | sort -u)"
             COMPREPLY=($(compgen -W "${MAKE_TARGETS}" "${COMP_WORDS[3]}"))
         elif [[ "${COMP_WORDS[1]}" == "create" ]]; then
             COMPREPLY=("bare")
