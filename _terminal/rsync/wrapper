@@ -1,0 +1,12 @@
+#!/bin/sh
+
+# to start the image and have it continue to run, use the command "start"
+if [ "$1" == "start" ]; then
+  exec sh -c 'while :; do sleep 997; done'
+fi
+
+# remove the first two parameters, which would be the target hostname and
+# the rsync command, then run rsync
+shift 2
+cd /data
+exec /usr/bin/rsync "$@"
