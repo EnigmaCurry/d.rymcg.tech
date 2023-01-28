@@ -4,6 +4,7 @@ BIN=$(dirname ${BASH_SOURCE})
 
 error(){ echo "Error: $@" >/dev/stderr; }
 fault(){ test -n "$1" && error $1; echo "Exiting." >/dev/stderr; exit 1; }
+exe() { (set -x; "$@"); }
 check_var(){
     __missing=false
     __vars="$@"
