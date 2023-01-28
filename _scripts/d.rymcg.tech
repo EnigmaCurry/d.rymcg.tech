@@ -41,8 +41,9 @@ __help() {
         echo -e "cd\tEnter a sub-shell and go to the ROOT_DIR directory"
         echo -e "create\tCreate a new external project"
         echo -e "make\tRun a make command for the given d.rymcg.tech project name"
+        echo -e "context [DOCKER_CONTEXT]\tView or set the current docker context"
         echo -e "completion\tSetup TAB completion in your shell"
-    ) | expand -t 15
+    ) | expand -t 30
     echo ""
     echo "## Documentation sub-commands:"
     (
@@ -59,7 +60,7 @@ __help() {
             done
         done <<< "$(__d.rymcg.tech_documentation_words --lowercase | sed 's/readme//')"
         #echo -e "info\tInternal read-only information for shell completion support"
-    ) | expand -t 22
+    ) | expand -t 30
     echo ""
 }
 
@@ -169,7 +170,9 @@ __info() {
 
 __context() {
     if [[ $# == 0 ]]; then
-        echo ""
+        exe docker context ls
+    else
+        exe docker context use "$@"
     fi
 }
 
@@ -189,7 +192,7 @@ __d.rymcg.tech_completions() {
     if [[ ${COMP_CWORD} == 1 ]]; then
         ## Complete the main command:
         ## d.rymcg.tech <TAB> ...
-        COMMANDS="help create cd make list readme info"
+        COMMANDS="help create cd make list readme info context"
         COMPREPLY=($(compgen -W "${COMMANDS}" "${COMP_WORDS[1]}"))
     elif [[ ${COMP_CWORD} == 2 ]]; then
         ALL_PROJECTS=$(d.rymcg.tech list --raw)
@@ -206,6 +209,8 @@ __d.rymcg.tech_completions() {
                 COMPREPLY=($(compgen -W "-- ${ALL_PROJECTS}" "${COMP_WORDS[2]}"));;
             info)
                 COMPREPLY=($(compgen -W "${INFO_WORDS}" "${COMP_WORDS[2]}"));;
+            context)
+                COMPREPLY=($(compgen -W "$(docker context ls --format '{{.Name}}')" "${COMP_WORDS[2]}"))
         esac
     elif [[ ${COMP_CWORD} == 3 ]]; then
         ## Dispatch completion for the sub-commands second argument:
