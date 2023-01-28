@@ -160,22 +160,23 @@ template](traefik/config/traefik.yml) (`traefik.yml`) in the
 Each entrypoint has an associated environment variable to turn it on
 or off. See the [Traefik](traefik) configuration for more details.
 
-Depending on which services you actually install, you need to open
-these (default) ports in your firewall:
+Depending on which services you actually install, and how they are
+configured, you may need to open these ports in your firewall:
 
 | Type       | Protocol | Port Range | Description                           |
 |------------|----------|------------|---------------------------------------|
 | SSH        | TCP      | 22         | Host SSH server (direct-map)          |
-| HTTP       | TCP      | 80         | Traefik HTTP entrypoint               |
-| TLS        | TCP      | 443        | Traefik HTTPS (TLS) entrypoint        |
-| TCP socket | TCP      | 1704       | Traefik Snapcast audio entrypoint     |
+| HTTP       | TCP      | 80         | Traefik HTTP entrypoint (web)         |
+| HTTP+TLS   | TCP      | 443        | Traefik HTTPS entrypoint (websecure)  |
+| TCP socket | TCP      | 1704       | Traefik Snapcast (audio) entrypoint   |
+| TCP socket | TCP      | 1705       | Traefik Snapcast (control) entrypoint |
 | SSH        | TCP      | 2222       | Traefik Gitea SSH (TCP) entrypoint    |
 | SSH        | TCP      | 2223       | SFTP container SSH (TCP) (direct-map) |
-| TLS        | TCP      | 5432       | PostgreSQL DBaaS (direct-map)         |
-| TCP socket | TCP      | 6600       | Traefik MPD (Mopidy) entrypoint       |
+| TLS        | TCP      | 5432       | PostgreSQL mTLS DBaaS (direct-map)    |
+| TCP socket | TCP      | 6600       | Traefik Mopidy (MPD) entrypoint       |
 | TLS        | TCP      | 8883       | Traefik MQTT (TLS) entrypoint         |
 | WebRTC     | UDP      | 10000      | Jitsi Meet video bridge (direct-map)  |
-| VPN        | UDP      | 51820      | Wireguard (UDP) (direct-map)          |
+| VPN        | UDP      | 51820      | Wireguard (Traefik VPN)  (direct-map) |
 
 The ports that are listed as `(direct-map)` are not connected to
 Traefik, but are directly exposed (public) to the docker host network.
