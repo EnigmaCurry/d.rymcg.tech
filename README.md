@@ -261,6 +261,7 @@ hand and/or run `docker compose` manually.):
    * `openssl` (for generating randomized passwords)
    * `htpasswd` (for encoding passwords for Traefik Basic Authentication)
    * `jq` (for processing JSON)
+   * `sshfs` (for mounting volumes used by the [sftp](sftp) container)
    * `xdg-open` (Used for automatically opening the service URLs in
       your web-browser via `make open`. Don't install this if your
       workstation is on a headless server, as it depends on
@@ -272,13 +273,13 @@ hand and/or run `docker compose` manually.):
 On Arch Linux, run this to install all these dependencies:
 
 ```
-pacman -S bash base-devel openssl apache xdg-utils jq wireguard-tools
+pacman -S bash base-devel openssl apache xdg-utils jq sshfs wireguard-tools
 ```
 
 For Debian or Ubuntu, run:
 
 ```
-apt-get install bash build-essential openssl apache2-utils xdg-utils jq wireguard
+apt-get install bash build-essential openssl apache2-utils xdg-utils jq sshfs wireguard
 ```
 
 ### Setup SSH access to the server
