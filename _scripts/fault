@@ -1,5 +1,1 @@
-#!/bin/bash
-
-BIN=$(dirname ${BASH_SOURCE})
-source ${BIN}/funcs.sh
-fault "$1"
+run_func
