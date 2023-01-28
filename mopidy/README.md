@@ -72,17 +72,20 @@ make config
    `0.0.0.0/0` to allow ALL clients, or `10.10.10.10/32` to enable an
    exclusive client IP address.)
  * Set `MOPIDY_SNAPCAST_IP_SOURCERANGE` as the list of CIDR IP ranges
-   for the Snapcast clients allowed to connect, comma separated. (eg.
-   `0.0.0.0/0` to allow ALL clients, or `10.10.10.10/32` to enable an
-   exclusive client IP address.)
+   for the Snapcast streaming audio clients allowed to connect, comma
+   separated. (eg. `0.0.0.0/0` to allow ALL clients, or
+   `10.10.10.10/32` to enable an exclusive client IP address.)
+ * Set `MOPIDY_SNAPCAST_CONTROL_IP_SOURCERANGE` as the list of CIDR IP
+   ranges for the Snapcast mixer control clients allowed to connect,
+   comma separated. (eg. `0.0.0.0/0` to allow ALL clients, or
+   `10.10.10.10/32` to enable an exclusive client IP address.)
 
 The Traefik MPD entrypoint is a publicly exposed [**unencrypted**
 protocol](https://mpd.readthedocs.io/en/latest/protocol.html) for
 controlling your music server. TLS is not supported by the majority of
 mpd clients, therefore no TLS is applied to the entrypoint. It is
-important to limit access via `MOPIDY_MPD_IP_SOURCERANGE`,
-`MOPIDY_SNAPCAST_IP_SOURCERANGE` and/or `MOPIDY_MPD_PASSWORD`. For
-full privacy, consider running [Traefik inside a wireguard
+important to limit access via the control mechanisms described above.
+For full privacy, consider running [Traefik inside a wireguard
 VPN](https://github.com/EnigmaCurry/d.rymcg.tech/tree/master/traefik#wireguard-vpn),
 or have the host behind a firewall to serve a local area network only.
 

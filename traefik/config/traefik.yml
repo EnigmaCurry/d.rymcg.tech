@@ -128,3 +128,7 @@ entryPoints:
   snapcast:
     address: #@ data.values.snapcast_entrypoint_host + ":" + data.values.snapcast_entrypoint_port
   #@ end
+  #@ if data.values.snapcast_control_entrypoint_enabled == "true":
+  snapcast_control:
+    address: #@ data.values.snapcast_control_entrypoint_host + ":" + data.values.snapcast_control_entrypoint_port
+  #@ end
