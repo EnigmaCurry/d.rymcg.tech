@@ -1,17 +1,17 @@
 # d.rymcg.tech
 
-This is a collection of docker-compose projects consisting of
+This is a collection of Docker Compose projects consisting of
 [Traefik](https://doc.traefik.io/traefik/) as a TLS HTTP/TCP reverse
-proxy and other various applications and services behind this proxy.
-Each project is in its own sub-directory containing its own
-`docker-compose.yaml` and `.env` file (as well as `.env-dist` sample
-file). This structure allows you to pick and choose which services you
-wish to enable. You may also integrate your own external
-docker-compose projects into this framework.
+proxy and other various self-hosted applications and services behind
+this proxy. Each project is in its own sub-directory containing its
+own `docker-compose.yaml` and `.env-dist` sample config file. This
+structure allows you to pick and choose which services you wish to
+enable. You may also integrate your own external Docker Compose
+projects into this framework.
 
-Each project also has a `Makefile` to simplify configuration,
-installation, and maintainance tasks. The setup for any sub-project is
-as easy as running:
+Each project has a `Makefile` to simplify configuration, installation,
+and maintainance tasks. The setup for any sub-project is as easy as
+running:
 
  * `make config` and interactively answering some questions to
    generate the `.env` file automatically.
@@ -19,8 +19,8 @@ as easy as running:
  * `make open` to automatically open your web browser to the newly
    deployed application URL.
 
-Under the covers, setup is pure `docker-compose`, with *all*
-configuration derived from the `.env` file.
+Under the covers, setup is pure `docker compose`, with *all*
+configuration derived from your customized `.env` file.
 
 # Contents
 
@@ -74,7 +74,10 @@ state is managed as part of the container/volume lifecycle.
 
 [Install Docker
 Server](https://docs.docker.com/engine/install/#server) on your own
-public internet server or cloud host.
+public internet server or cloud host. You may also install to a
+private server behind a firewall (but in this case be sure to setup
+the Traefik ACME DNS Challenge, because the default TLS challenge
+requires an open port 443 public to the internet).
 
 See [SECURITY.md](SECURITY.md) for a list of security concerns when
 choosing a hosting provider.
@@ -157,22 +160,23 @@ template](traefik/config/traefik.yml) (`traefik.yml`) in the
 Each entrypoint has an associated environment variable to turn it on
 or off. See the [Traefik](traefik) configuration for more details.
 
-Depending on which services you actually install, you need to open
-these (default) ports in your firewall:
+Depending on which services you actually install, and how they are
+configured, you may need to open these ports in your firewall:
 
 | Type       | Protocol | Port Range | Description                           |
 |------------|----------|------------|---------------------------------------|
 | SSH        | TCP      | 22         | Host SSH server (direct-map)          |
-| HTTP       | TCP      | 80         | Traefik HTTP entrypoint               |
-| TLS        | TCP      | 443        | Traefik HTTPS (TLS) entrypoint        |
-| TCP socket | TCP      | 1704       | Traefik Snapcast audio entrypoint     |
+| HTTP       | TCP      | 80         | Traefik HTTP entrypoint (web)         |
+| HTTP+TLS   | TCP      | 443        | Traefik HTTPS entrypoint (websecure)  |
+| TCP socket | TCP      | 1704       | Traefik Snapcast (audio) entrypoint   |
+| TCP socket | TCP      | 1705       | Traefik Snapcast (control) entrypoint |
 | SSH        | TCP      | 2222       | Traefik Gitea SSH (TCP) entrypoint    |
 | SSH        | TCP      | 2223       | SFTP container SSH (TCP) (direct-map) |
-| TLS        | TCP      | 5432       | PostgreSQL DBaaS (direct-map)         |
-| TCP socket | TCP      | 6600       | Traefik MPD (Mopidy) entrypoint       |
+| TLS        | TCP      | 5432       | PostgreSQL mTLS DBaaS (direct-map)    |
+| TCP socket | TCP      | 6600       | Traefik Mopidy (MPD) entrypoint       |
 | TLS        | TCP      | 8883       | Traefik MQTT (TLS) entrypoint         |
 | WebRTC     | UDP      | 10000      | Jitsi Meet video bridge (direct-map)  |
-| VPN        | UDP      | 51820      | Wireguard (UDP) (direct-map)          |
+| VPN        | UDP      | 51820      | Wireguard (Traefik VPN)  (direct-map) |
 
 The ports that are listed as `(direct-map)` are not connected to
 Traefik, but are directly exposed (public) to the docker host network.
@@ -257,6 +261,7 @@ hand and/or run `docker compose` manually.):
    * `openssl` (for generating randomized passwords)
    * `htpasswd` (for encoding passwords for Traefik Basic Authentication)
    * `jq` (for processing JSON)
+   * `sshfs` (for mounting volumes used by the [sftp](sftp) container)
    * `xdg-open` (Used for automatically opening the service URLs in
       your web-browser via `make open`. Don't install this if your
       workstation is on a headless server, as it depends on
@@ -268,13 +273,13 @@ hand and/or run `docker compose` manually.):
 On Arch Linux, run this to install all these dependencies:
 
 ```
-pacman -S bash base-devel openssl apache xdg-utils jq wireguard-tools
+pacman -S bash base-devel openssl apache xdg-utils jq sshfs wireguard-tools
 ```
 
 For Debian or Ubuntu, run:
 
 ```
-apt-get install bash build-essential openssl apache2-utils xdg-utils jq wireguard
+apt-get install bash build-essential openssl apache2-utils xdg-utils jq sshfs wireguard
 ```
 
 ### Setup SSH access to the server
@@ -322,6 +327,12 @@ Host ssh.d.example.com
 (The hostname `ssh.d.example.com` relies upon the wildcard
 `*.d.example.com` or an explicit `A` record having been created for
 this hostname.)
+
+Note: if you use a workstation that goes to sleep, or loses network
+connectivity, you may find that your shared+multiplexed SSH
+connections will sometimes become zombies and stop communication. Get
+used to running `killall ssh` before trying to restablish the
+connection.
 
 ### Set remote Docker context
 
@@ -372,8 +383,13 @@ Use the same command again to switch to any other context.)
 ```
 git clone https://github.com/EnigmaCurry/d.rymcg.tech.git \
     ${HOME}/git/vendor/enigmacurry/d.rymcg.tech
+
 cd ${HOME}/git/vendor/enigmacurry/d.rymcg.tech
 ```
+
+You may clone to any path you like, but the path suggested above is a
+vendor neutral way of organizing third party repositories, with the
+intention of making the same path work on all machines.
 
 ## Main configuration
 
@@ -467,15 +483,18 @@ Bespoke things:
 
 ## Command line interaction
 
-As alluded to earlier, this project offers two ways to control Docker:
+As alluded to earlier, this project offers multiple ways to control
+Docker:
 
  1. Editing `.env` files by hand, and running `docker compose`
     commands yourself.
  2. Running `make` targets that edit the `.env` files automatically
     and runs `docker compose` for you (this is the author's preferred
     method).
+ 3. Running the `d.rymcg.tech` CLI script, which runs the `make`
+    targets from any working directory.
 
-Both of these methods are compatible, and they both get you to the
+All of these methods are compatible, and they will all get you to the
 same place. The Makefiles offer a more streamlined approach with a
 configuration wizard and sensible defaults. Most of the sub-project
 README files reflect the `make` command style for config. Editing the
@@ -518,7 +537,7 @@ directory you are in.
    default values from `.env-dist` (and based upon your `ROOT_DOMAIN`
    specified earlier). You can accept the suggested default values, or
    use the backspace key and edit the value, to fill in your own
-   answers. 
+   answers.
  * The suffix of the .env filename, `_default`, refers to the
    [instance](#creating-multiple-instances-of-a-service) of the
    service (each instance has a different name, with `_default` being
@@ -560,6 +579,106 @@ the `.env` files too).
 
 For a more in depth guide on using the Makefiles, see
 [MAKEFILE_OPS.md](MAKEFILE_OPS.md)
+
+### Using the `d.rymcg.tech` CLI script (optional)
+
+By default, both `make` and `docker compose` expect you to change your
+working directory to use them (however, you *can* work around this
+using `make -C` and `docker compose -f`). There is a third option to
+use the eponymous [`d.rymcg.tech` script](_scripts/d.rymcg.tech)
+included in this repository. In addition to letting you run any
+project `make` target from any working directory, this script also
+offers a convenient way to create [external
+projects](#integrating-external-projects) from a skeleton template.
+
+To install the script, you need to add it to your `PATH` shell
+variable, and optionally enable the BASH completion support:
+
+```
+##  Add this at the bottom of your ~/.bashrc config:
+
+## d.rymcg.tech
+export PATH="${HOME}/git/vendor/enigmacurry/d.rymcg.tech/_scripts/user:${PATH}"
+## optional TAB completion:
+eval $(d.rymcg.tech completion bash)
+complete -F __d.rymcg.tech_completions d.rymcg.tech
+
+## You might want to use a more convenient alias, (eg. 'dry'),
+#alias dry="d.rymcg.tech"
+## You can make completion support work for the alias too:
+#complete -F __d.rymcg.tech_completions dry
+```
+
+Once installed, run `d.rymcg.tech` to see the command help text.
+
+```
+## Main d.rymcg.tech sub-commands:
+cd             Enter a sub-shell and go to the ROOT_DIR directory
+create         Create a new external project
+make           Run a make command for the given d.rymcg.tech project name
+
+## Documentation sub-commands:
+help                  Show this help screen
+list                  List available d.rymcg.tech projects
+                      (not including external projects)
+readme [PROJECT]      Open the README.md for the given project name
+readme                Open the main d.rymcg.tech README.md in your browser
+readme raspberry_pi   Open the RASPBERRY_PI.md documentation
+readme makefile_ops   Open the MAKEFILE_OPS.md documentation
+readme security       Open the SECURITY.md documentation
+readme digitalocean   Open the DIGITALOCEAN.md documentation
+readme license        Open the LICENSE.txt software license
+```
+
+You can use this script to run the make targets for any of the bundled
+projects, usable from any working directory:
+
+ * `d.rymcg.tech list` (retrieve list of all available projects)
+ * `d.rymcg.tech make -- status` (view status of all installed
+   projects)
+ * `d.rymcg.tech make traefik config` (run the Traefik `make config` target)
+ * `d.rymcg.tech make traefik install` (run the Traefik `make install` target)
+ * `d.rymcg.tech make whoami logs` (run the whoami `make logs` target)
+ * `d.rymcg.tech make piwigo logs SERVICE=db` (you can also add any
+   variable assignments, just like with `make`)
+
+`d.rymcg.tech make [PROJECT_NAME] ...` is a simple wrapper for `make
+-C ~/git/vendor/enigmacurry/d.rymcg.tech/${PROJECT_NAME} ...` (the
+script will detect the correct path that you cloned to) so that you
+can run all of the same things as outlined in
+[MAKEFILE_OPS.md](MAKEFILE_OPS.md), but from any directory. The
+special project placeholder value `-` (any number of consecutive
+dashes) indicates to use the [root Makefile](Makefile) rather than any
+particular project Makefile.
+
+You can get into the root d.rymcg.tech directory quickly, from
+anywhere:
+
+```
+## This enters a subshell and changes the working directory to the d.rymcg.tech root:
+## (You can also specify a second argument to specify the sub-directory.)
+d.rymcg.tech cd
+```
+
+Press `Ctrl-D` to exit the sub-shell and jump back to wherever you
+came from.
+
+From any working directory, you can create a new, barebones, [external
+project](#integrating-external-projects):
+
+```
+# This creates a new project directory in your current working directory:
+# It will ask you to enter the name of the project and choose the template.
+# Optional 2nd and 3rd args will skip the asking: PROJECT_NAME TEMPLATE_NAME
+d.rymcg.tech create
+```
+
+Open the README for any project in your web browser (omit the second
+arg to open the root README):
+
+```
+d.rymcg.tech readme traefik
+```
 
 ## Creating multiple instances of a service
 
@@ -764,17 +883,29 @@ Enter the name of the backup file, and all of the `.env` and
 
 You can integrate your own docker-compose projects that exist in
 external git repositories, and have them use the d.rymcg.tech
-framework:
+framework.
 
- * Clone d.rymcg.tech and set it up (Install Traefik, and whoami, make
-   sure that works first).
+The easiest method of creating an external project, is by setting up
+the [`d.rymcg.tech`
+script](https://github.com/EnigmaCurry/d.rymcg.tech/tree/cli-script#using-the-drymcgtech-cli-script-optional),
+then run:
+
+```
+## Run this from any directory:
+d.rymcg.tech create
+```
+
+To do this same thing manually, here are the steps:
+
  * Create a new project directory, or clone your existing project, to
-   any other directory. (It does not need to be a sub-directory of
+   any directory. (It does not need to be a sub-directory of
    `d.rymcg.tech`, but it can be).
  * In your own project repository directory, create the files for
-   `docker-compose.yaml`, `.env-dist`, and `Makefile`. As an example,
-   you can use any of the d.rymcg.tech sub-projects, like
-   [whoami](whoami).
+   `docker-compose.yaml`, `Makefile`, `.env-dist`, `.gitignore`and
+   `README.md`. As an example, you can use any of the d.rymcg.tech
+   sub-projects, like [whoami](whoami), or take a look at the [bare
+   template](_templates/bare) that `d.rymcg.tech create` uses (the
+   template requires the use of `envsubst`).
 
 Create the `Makefile` in your own separate repository so that it
 includes the main d.rymcg.tech `Makefile.projects` file from
@@ -785,7 +916,7 @@ elsewhere:
 
 # ROOT_DIR can be a relative or absolute path to the d.rymcg.tech directory:
 ROOT_DIR = ${HOME}/git/vendor/enigmacurry/d.rymcg.tech
-include ${ROOT_DIR}/_scripts/Makefile.projects
+include ${ROOT_DIR}/_scripts/Makefile.projects-external
 
 .PHONY: config-hook # Configure .env file
 config-hook:
@@ -795,7 +926,9 @@ config-hook:
 
 A minimal `Makefile`, like the one above, should include a
 `config-hook` target that reconfigures your `.env` file based upon the
-example variables given in `.env-dist`.
+example variables given in `.env-dist`. This is what the user will
+have to answer qusetions for when running `make config` for your
+project.
 
 Now in your own project directory, you can use all the regular `make`
 commands that d.rymcg.tech provides:

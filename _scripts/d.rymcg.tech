@@ -1,0 +1,305 @@
+#!/bin/bash
+## The eponymous CLI script for the project d.rymcg.tech
+
+## This script should be symlinked to a directory on your PATH. You
+## may add the `user` subdirectory to your path, which contains a
+## symlink prepared for you. DO NOT add the whole _scripts directory
+## to your PATH, but only the _scripts/user subdirectory! DO NOT move
+## this script, only make symlinks to it!
+##
+## For example (choose one or the other):
+##
+##   # Option 1 - This assumes ~/bin is already in your PATH:
+##   ln -s ~/git/vendor/enigmacurry/d.rymcg.tech/_scripts/d.rymcg.tech ~/bin
+##
+##   # Option 2 - You would add this to the botom of your ~/.bashrc or ~/.profile
+##   export PATH=~/git/vendor/enigmacurry/d.rymcg.tech/_scripts/user:${PATH}
+
+set -eo pipefail
+
+## BIN is the _scripts directory inside of d.rymcg.tech
+BIN=$(dirname $(realpath ${BASH_SOURCE}))
+
+## INFO_WORDS are keys to information that the completion script can ask for at runtime:
+INFO_WORDS="INFO_WORDS ROOT_DIR"
+
+## ROOT_DIR is the root path of the d.rymcg.tech project
+## Validate that this script is running from the canonical location
+ROOT_DIR=$(dirname ${BIN})
+(test -f ${BIN}/funcs.sh && test -f ${ROOT_DIR}/Makefile && test -d ${ROOT_DIR}/traefik) || \
+    (echo "Error: Invalid or corrupted d.rymcg.tech ROOT_DIR: ${ROOT_DIR}" >/dev/stderr
+     echo "This script will not function properly if it has been moved." >/dev/stderr
+     exit 1)
+
+source ${BIN}/funcs.sh
+
+__help() {
+    echo "Found ROOT_DIR=${ROOT_DIR}"
+    echo ""
+    echo "## Main d.rymcg.tech sub-commands:"
+    (
+        echo -e "cd\tEnter a sub-shell and go to the ROOT_DIR directory"
+        echo -e "create\tCreate a new external project"
+        echo -e "make\tRun a make command for the given d.rymcg.tech project name"
+        echo -e "context [DOCKER_CONTEXT]\tView or set the current docker context"
+        echo -e "completion\tSetup TAB completion in your shell"
+    ) | expand -t 30
+    echo ""
+    echo "## Documentation sub-commands:"
+    (
+        echo -e "help\tShow this help screen"
+        echo -e "list\tList available d.rymcg.tech projects"
+        echo -e "\t(excluding external projects)"
+        echo -e "readme\tOpen the main d.rymcg.tech README.md in your browser"
+        echo -e "readme [PROJECT]\tOpen the README.md for the given project name"
+        while IFS=' ' read -ra DOC_WORDS; do
+            for word in "${DOC_WORDS[@]}"; do
+                FILE_EXTENSION="md"
+                test "${word}" == "license" && FILE_EXTENSION="txt"
+                echo -e "readme ${word}\tOpen root documentation file: $(echo ${word} | tr '[:lower:]' '[:upper:']).${FILE_EXTENSION}"
+            done
+        done <<< "$(__d.rymcg.tech_documentation_words --lowercase | sed 's/readme//')"
+        #echo -e "info\tInternal read-only information for shell completion support"
+    ) | expand -t 30
+    echo ""
+}
+
+__create() {
+    echo "This script will create a new docker-compose project and integrate d.rymcg.tech Makefiles"
+    if [[ $# -gt 0 ]]; then
+        PROJECT_NAME="$1"
+    else
+        ask_no_blank "Enter a name for the new docker-compose project" PROJECT_NAME
+        echo ""
+    fi
+    if [[ $# -gt 1 ]]; then
+        TEMPLATE_NAME="$2"
+    else
+        echo "Available templates:"
+        find "${ROOT_DIR}/_templates" -maxdepth 1 -type d -printf "%P\n" | column
+        echo ""
+        ask_no_blank "Enter the template name to use" TEMPLATE_NAME bare
+        echo ""
+    fi
+    ${BIN}/create "${PROJECT_NAME}" "${TEMPLATE_NAME}" "./${PROJECT_NAME}"
+}
+
+__change-directory() {
+    echo "Entering sub-shell. Press Ctrl-D to pop back to the parent shell."
+    if [[ $# -gt 0 ]]; then
+        /bin/bash --rcfile <(echo "cd ${ROOT_DIR}/$1")
+    else
+        /bin/bash --rcfile <(echo "cd ${ROOT_DIR}")
+    fi
+    echo "Exited sub-shell."
+}
+
+__make() {
+    if [[ $# -gt 0 ]]; then
+        PROJECT_NAME="$1"; shift
+        pattern="^-+$"
+        if [[ "${PROJECT_NAME}" =~ $pattern ]]; then
+            PROJECT_DIR=${ROOT_DIR}
+        else
+            PROJECT_DIR=${ROOT_DIR}/${PROJECT_NAME}
+        fi
+        test -d "${PROJECT_DIR}" || fault "Project directory does not exist: ${PROJECT_DIR}"
+        make -C "${PROJECT_DIR}" "$@"
+    else
+        __list_projects
+        error "Missing project name argument. Choose one from the above."
+        error "To invoke the root Makefile use '-' as the name"
+    fi
+    DIR_NAME="$1"; shift
+}
+
+__list_projects() {
+    (
+        if [[ "$1" == "--raw" ]]; then
+            find "${ROOT_DIR}" -maxdepth 1 -type d -printf "%P\n" | grep -v "^_" | grep -v "^\." | sort -u | xargs -iXX /bin/bash -c "test -f ${ROOT_DIR}/XX/Makefile && echo XX"
+        else
+            echo "List of available d.rymcg.tech projects (not including external projects):"
+            echo ""
+            set +e
+            find "${ROOT_DIR}" -maxdepth 1 -type d -printf "%P\n" | grep -v "^_" | grep -v "^\." | sort -u | xargs -iXX /bin/bash -c "test -f ${ROOT_DIR}/XX/Makefile && echo XX" | column
+            echo ""
+        fi
+    )
+}
+
+__readme() {
+    if [[ $# -gt 0 ]]; then
+        NAME="${1}"; shift
+        NAME_UPPERCASE="$(echo "${NAME}" | tr '[:lower:]' '[:upper:]')"
+        IFS=" " read -ra DOCS_ARRAY <<< "$(__d.rymcg.tech_documentation_words --uppercase)"
+        declare -A DOCS_INDEX
+        for doc in "${DOCS_ARRAY[@]}"; do
+            DOCS_INDEX["${doc}"]="${doc}"
+        done
+        if [[ "${NAME_UPPERCASE}" == "LICENSE" ]]; then
+            exe xdg-open "https://github.com/EnigmaCurry/d.rymcg.tech/blob/master/LICENSE.txt"
+        elif [[ -v DOCS_INDEX["${NAME_UPPERCASE}"] ]]; then
+            exe xdg-open "https://github.com/EnigmaCurry/d.rymcg.tech/blob/master/${NAME_UPPERCASE}.md#readme"
+        else
+            echo ${DOCS_INDEX["${NAME_UPPERCASE}"]}
+            __make "${NAME}" readme "$@"
+        fi
+    else
+        __make -- readme
+    fi
+}
+
+__info() {
+    if [[ $# == 0 ]]; then
+        echo "## info returns read-only information about your d.rymcg.tech installation."
+        echo "## This is an undocumented internal command for the completion scripts private use."
+        echo "## Its behaviour is subject to change without notice."
+        echo ""
+        echo "## Available info keys:"
+        IFS=" " read -ra WORDS <<< "${INFO_WORDS}"
+        for word in "${WORDS[@]}"; do
+            echo "${word}"
+        done
+        echo ""
+    elif [[ "$1" == "ROOT_DIR" ]]; then
+        echo "${ROOT_DIR}"
+    elif [[ "$1" == "INFO_WORDS" ]]; then
+        echo "${INFO_WORDS}"
+    fi
+}
+
+__context() {
+    if [[ $# == 0 ]]; then
+        exe docker context ls
+    else
+        exe docker context use "$@"
+    fi
+}
+
+__d.rymcg.tech_completions() {
+    ### BASH completion
+    ## dev links:
+    ### https://www.gnu.org/software/bash/manual/html_node/Programmable-Completion-Builtins.html#Programmable-Completion-Builtins
+    ### https://iridakos.com/programming/2018/03/01/bash-programmable-completion-tutorial
+    ### https://github.com/git/git/blob/master/contrib/completion/git-completion.bash
+    ## COMP_WORDS: an array of all the words typed
+    ## COMP_CWORD: an index of the COMP_WORDS array pointing to the word the current cursor is at
+    ## COMP_LINE: the current command line
+    ## COMPREPLY is an array variable used to store the output completions
+    ROOT_PROJECT_PLACEHOLDER="^-+$"
+    INFO_WORDS=$(d.rymcg.tech info INFO_WORDS)
+
+    if [[ ${COMP_CWORD} == 1 ]]; then
+        ## Complete the main command:
+        ## d.rymcg.tech <TAB> ...
+        COMMANDS="help create cd make list readme info context"
+        COMPREPLY=($(compgen -W "${COMMANDS}" "${COMP_WORDS[1]}"))
+    elif [[ ${COMP_CWORD} == 2 ]]; then
+        ALL_PROJECTS=$(d.rymcg.tech list --raw)
+        ## Dispatch completion for the sub-command's first argument:
+        ## d.rymcg.tech make <TAB> ...
+        case ${COMP_WORDS[1]} in
+            create)
+                COMPREPLY=("#" "Type the project name");;
+            cd)
+                COMPREPLY=($(compgen -W "${ALL_PROJECTS}" "${COMP_WORDS[2]}"));;
+            readme)
+                COMPREPLY=($(compgen -W "$(__d.rymcg.tech_documentation_words) ${ALL_PROJECTS}" "${COMP_WORDS[2]}"));;
+            make)
+                COMPREPLY=($(compgen -W "-- ${ALL_PROJECTS}" "${COMP_WORDS[2]}"));;
+            info)
+                COMPREPLY=($(compgen -W "${INFO_WORDS}" "${COMP_WORDS[2]}"));;
+            context)
+                COMPREPLY=($(compgen -W "$(docker context ls --format '{{.Name}}')" "${COMP_WORDS[2]}"))
+        esac
+    elif [[ ${COMP_CWORD} == 3 ]]; then
+        ## Dispatch completion for the sub-commands second argument:
+        ## d.rymcg.tech make traefik <TAB> ...
+        if [[ "${COMP_WORDS[1]}" == "make" ]]; then
+            ROOT_DIR=$(d.rymcg.tech info ROOT_DIR)
+            PROJECT=${COMP_WORDS[2]}
+            PROJECT_DIR="${ROOT_DIR}/${PROJECT}"
+            if [[ "${PROJECT}" =~ ${ROOT_PROJECT_PLACEHOLDER} ]]; then
+                PROJECT_DIR="${ROOT_DIR}"
+            fi
+            ## Thanks Chris Down https://unix.stackexchange.com/a/230050
+            MAKE_TARGETS="$(make -C "${PROJECT_DIR}" -qp 2>/dev/null | awk -F':' '/^[a-zA-Z0-9][^$#\/\t=]*:([^=]|$)/ {split($1,A,/ /);for(i in A)print A[i]}' | sort -u)"
+            COMPREPLY=($(compgen -W "${MAKE_TARGETS}" "${COMP_WORDS[3]}"))
+        elif [[ "${COMP_WORDS[1]}" == "create" ]]; then
+            COMPREPLY=("bare")
+        fi
+    fi
+}
+
+
+__d.rymcg.tech_documentation_words() {
+    ROOT_DIR=$(d.rymcg.tech info ROOT_DIR)
+    ## Find list of available documentation files in the git repo:
+    declare -A DOCS_INDEX
+    while IFS= read -r line; do
+        DOCS_INDEX["$line"]="$line"
+    done <<< $(git -C "${ROOT_DIR}" ls-tree --name-only origin/master | \
+                   grep -E "(\.txt$|\.md$)" | \
+                   sed -e 's/\.txt$//' -e 's/\.md$//')
+    if [[ "$1" == "--lowercase" ]]; then
+        echo "$(echo ${DOCS_INDEX[@]} | tr '[:upper:]' '[:lower:]')"
+    elif [[ "$1" == "--uppercase" ]]; then
+        echo "$(echo ${DOCS_INDEX[@]} | tr '[:lower:]' '[:upper:]')"
+    else
+        echo "$(echo ${DOCS_INDEX[@]} | tr '[:lower:]' '[:upper:]') $(echo ${DOCS_INDEX[@]} | tr '[:upper:]' '[:lower:]')"
+    fi
+}
+
+__completion() {
+    # Print the completion script to be evaluated
+    USER_SCRIPT_PATH=$(echo "${ROOT_DIR}/_scripts/user" | sed "s|${HOME}|\$\{HOME\}|")
+    if [[ $# -lt 1 ]]; then
+        echo "## To enable BASH shell completion support for d.rymcg.tech,"
+        echo "## add the following lines into your ~/.bashrc ::"
+        echo ""
+        echo "export PATH=${USER_SCRIPT_PATH}:\${PATH}"
+        echo "eval \$(d.rymcg.tech completion bash)"
+        echo "complete -F __d.rymcg.tech_completions d.rymcg.tech"
+        echo ""
+    else
+        if [[ "${1}" == "bash" ]]; then
+            declare -f __d.rymcg.tech_documentation_words
+            echo ";"
+            declare -f __d.rymcg.tech_completions
+        else
+            fault "Sorry, this script only support BASH shell completion"
+        fi
+    fi
+}
+
+main() {
+    if [[ $# -gt 0 ]]; then
+        COMMAND=$1; shift
+        case ${COMMAND} in
+            help)
+                __help "$@";;
+            create)
+                __create "$@";;
+            cd)
+                __change-directory "$@";;
+            make)
+                __make "$@";;
+            list)
+                __list_projects "$@";;
+            readme)
+                __readme "$@";;
+            completion)
+                __completion "$@";;
+            info)
+                __info "$@";;
+            context)
+                __context "$@";;
+            *)
+                fault "Invalid command"
+        esac
+    else
+        __help
+    fi
+}
+
+main "$@"

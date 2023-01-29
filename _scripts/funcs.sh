@@ -1,14 +1,17 @@
 #!/bin/bash
 
 BIN=$(dirname ${BASH_SOURCE})
+ROOT_DIR=${ROOT_DIR:-$(dirname ${BIN})}
 
-fault(){ test -n "$1" && echo $1; echo "Exiting." >/dev/stderr ; exit 1; }
+error(){ echo "Error: $@" >/dev/stderr; }
+fault(){ test -n "$1" && error $1; echo "Exiting." >/dev/stderr; exit 1; }
+exe() { (set -x; "$@"); }
 check_var(){
     __missing=false
     __vars="$@"
     for __var in ${__vars}; do
         if [[ -z "${!__var}" ]]; then
-            echo "${__var} variable is missing." >/dev/stderr
+            error "${__var} variable is missing."
             __missing=true
         fi
     done
@@ -112,10 +115,40 @@ docker_exec() {
 
 ytt() {
     set -e
-    docker build -t localhost/ytt -f- . >/dev/null <<'EOF'
+    docker image inspect localhost/ytt >/dev/null || docker build -t localhost/ytt -f- . >/dev/null <<'EOF'
 FROM debian:stable-slim as ytt
 ARG YTT_VERSION=v0.43.0
 RUN apt-get update && apt-get install -y wget && wget "https://github.com/vmware-tanzu/carvel-ytt/releases/download/${YTT_VERSION}/ytt-linux-$(dpkg --print-architecture)" -O ytt && install ytt /usr/local/bin/ytt
 EOF
     docker run --rm -i localhost/ytt ytt "-f-" "$@"
+}
+
+volume_rsync() {
+    docker image inspect localhost/rsync >/dev/null || docker build -t localhost/rsync ${ROOT_DIR}/_terminal/rsync
+    if [[ $# -gt 0 ]]; then
+        VOLUME="${1}"; shift
+        docker volume inspect "${VOLUME}" >/dev/null
+        rsync --rsh="docker run -i --rm -v ${VOLUME}:/data -w /data localhost/rsync" "$@"
+    else
+        fault "Usage: volume_ls VOLUME_NAME {ARGS}"
+    fi
+}
+
+volume_ls() {
+    if [[ $# -gt 0 ]]; then
+        VOLUME="${1}"; shift
+        docker run --rm -i -v "${VOLUME}:/data" -w /data alpine find
+    else
+        fault "Usage: volume_ls VOLUME_NAME"
+    fi
+}
+
+volume_mkdir() {
+    if [[ $# -gt 0 ]]; then
+        VOLUME="${1}"; shift
+        docker volume create "${VOLUME}"
+        docker run --rm -i -v "${VOLUME}:/data" -w /data alpine mkdir -p "$@"
+    else
+        fault "Usage: volume_mkdir [PATH ...]"
+    fi
 }

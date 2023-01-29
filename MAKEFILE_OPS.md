@@ -541,6 +541,7 @@ same:
 $ cd ~/git/vendor/enigmacurry/d.rymcg.tech/whoami
 $ make help
 Makefile help for /home/ryan/git/vendor/enigmacurry/d.rymcg.tech/whoami:
+make readme         - Open the README.md file in your web browser
 make install        - (re)builds images and (re)starts services (only if changed)
 make uninstall      - Remove service containers, leaving the volumes intact
 make reinstall      - Remove service containers, and re-install (volumes left intact).
@@ -731,3 +732,7 @@ $ make clean instance=foo
 
 `make clean-all` will remove all of the environment files and saved
 passwords.json for all docker contexts.
+
+### make readme
+
+`make readme` will open the project README in your web browser.

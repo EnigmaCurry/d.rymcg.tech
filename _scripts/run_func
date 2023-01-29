@@ -1,0 +1,12 @@
+#!/bin/bash
+
+BIN=$(dirname ${BASH_SOURCE})
+source ${BIN}/funcs.sh
+FUNC=$(basename "$0")
+
+if [[ "${FUNC}" == "run_func" ]]; then
+    fault "Don't run run_func directly, only run symlinks to it."
+else
+    set -eo pipefail
+    "${FUNC}" "$@"
+fi

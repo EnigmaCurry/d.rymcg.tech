@@ -6,6 +6,7 @@ include ${ROOT_DIR}/_scripts/Makefile.clean
 include ${ROOT_DIR}/_scripts/Makefile.override
 include ${ROOT_DIR}/_scripts/Makefile.open
 include ${ROOT_DIR}/_scripts/Makefile.reconfigure
+include ${ROOT_DIR}/_scripts/Makefile.readme
 include ${ROOT_DIR}/.env_$(shell ${BIN}/docker_context)
 
 

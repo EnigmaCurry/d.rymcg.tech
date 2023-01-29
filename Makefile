@@ -17,7 +17,7 @@ check-docker:
 
 .PHONY: config # Configure main variables
 config: check-deps check-docker
-	@${BIN}/userns-remap check
+#	@${BIN}/userns-remap check
 	@echo ""
 	@${BIN}/confirm yes "This will make a configuration for the current docker context (${DOCKER_CONTEXT})"
 	@${BIN}/reconfigure_ask ${ROOT_ENV} ROOT_DOMAIN "Enter the root domain for this context"
@@ -91,3 +91,21 @@ userns-remap-off:
 .PHONY: userns-remap-check # Check current Docker User Namespace Remap setting
 userns-remap-check:
 	@${BIN}/userns-remap check
+
+.PHONY: readme # Open the README.md in your web browser
+readme:
+	xdg-open "https://github.com/EnigmaCurry/d.rymcg.tech/tree/master#readme"
+
+.PHONY: install-cli
+install-cli:
+	@echo "## Add this to the bottom of your ~/.bashrc or ~/.profile ::"
+	@echo ""
+	@echo "## d.rymcg.tech"
+	@echo "export PATH=\"$(realpath ${ROOT_DIR})/_scripts/user:\$${PATH}\""
+	@echo "## optional TAB completion:"
+	@echo "eval \$$(d.rymcg.tech completion bash)"
+	@echo "complete -F __d.rymcg.tech_completions d.rymcg.tech"
+	@echo "## If you make an alias to the d.rymcg.tech (eg. 'dry'),"
+	@echo "## then you can make completion support for the alias too:"
+	@echo "#complete -F __d.rymcg.tech_completions dry"
+	@echo ""
