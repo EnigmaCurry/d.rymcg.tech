@@ -28,7 +28,8 @@ fi
 mkdir -p "${OUTPUT_DIR}"
 
 TEMPLATE_DIR="${ROOT_DIR}/_templates/${TEMPLATE_NAME}"
-TEMPLATE_FILES=("docker-compose.yaml" "Makefile" ".env-dist" ".gitignore" "README.md")
+TEMPLATE_FILES=("docker-compose.yaml" "docker-compose.instance.yaml" "Makefile" ".env-dist")
+COPY_FILES=(".gitignore" "README.md")
 
 if [[ ! -d "${TEMPLATE_DIR}" ]]; then
     fault "The template directory is missing: ${TEMPLATE_DIR}"
@@ -54,8 +55,11 @@ for filename in ${TEMPLATE_FILES[@]}; do
     cat "${TEMPLATE_DIR}/${filename}" | envsubst "${TEMPLATE_VARS}" > "${OUTPUT_DIR}/${filename}"
 done
 
-echo "# Copying other files to ${OUTPUT_DIR} ..."
-cp -v "${TEMPLATE_DIR}/README.md" "${OUTPUT_DIR}/README.md"
+for filename in ${COPY_FILES[@]}; do
+    echo "# Copying ${OUTPUT_DIR}/${filename}"
+    cp -v "${TEMPLATE_DIR}/${filename}" "${OUTPUT_DIR}/"
+done
+echo "# Copying template directories ..."
 find ${TEMPLATE_DIR} -maxdepth 1 -type d -printf "%P\n" | xargs -iXX cp -av "${TEMPLATE_DIR}/XX" "${OUTPUT_DIR}/XX"
 
 echo ""
