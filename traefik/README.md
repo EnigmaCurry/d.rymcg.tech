@@ -39,8 +39,8 @@ should be the first thing you install in your deployment.
    you don't need to install ytt on your workstation.)
  * Traefik does not run as root, but under a dedicated system (host)
    user account named `traefik` (this user is automatically created on
-   the host, the first time you run `make config`). The `traefik` is
-   added to the `docker` group, so that it can access the docker
+   the host, the first time you run `make config`). The `traefik` user
+   is added to the `docker` group, so that it can access the docker
    socket, albeit the socket is mounted read-only. This is still very
    much considred a privileged account, as it can read all the
    environment variables of all your containers...)
