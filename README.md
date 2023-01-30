@@ -631,7 +631,8 @@ readme license        Open the LICENSE.txt software license
 ```
 
 You can use this script to run the make targets for any of the bundled
-projects, usable from any working directory:
+projects, usable from any working directory, and with full tab
+completion support:
 
  * `d.rymcg.tech list` (retrieve list of all available projects)
  * `d.rymcg.tech make -- status` (view status of all installed

@@ -5,42 +5,45 @@ TCP / UDP reverse proxy and load balancer. Traefik is the front-most
 gateway for (almost) all of the projects hosted by d.rymcg.tech, and
 should be the first thing you install in your deployment.
 
-## Changelog
+## Implementation
 
-The
-[traefik-host-networking](https://github.com/EnigmaCurry/d.rymcg.tech/pull/8)
-PR brings the following new features:
-
- * The removal of the `traefik-proxy`, `traefik-wireguard`, and
-   `traefik-mail` networks. By default, the Traefik config [now uses
-   the host
-   network](https://github.com/EnigmaCurry/d.rymcg.tech/issues/7) and
-   can therefore talk to all service containers directly, and so these
-   containers do not need to attach to a specific docker network
-   anymore.
+ * By default Traefik binds to the host network, which gives Traefik
+   the ability to directly access any container network, and not
+   needing to attach every container to a specific proxy network.
+   Sharing the host network also means there is no list of ports to
+   maintain for Traefik, because Traefik can bind to any port on the
+   host. (*It is the responsibility of your external firewall to block
+   unintended public access*).
  * Alternatively, Traefik can bind to the network of a wireguard VPN;
-   in either a server configuration (serving to other VPN clients), or
-   as a client reverse proxy (forwarding private services to public
-   non-VPN clients). The wireguard server and client services have
-   been internalized to the Traefik docker-compose.yaml, and removed
-   as separate projects. The old Traefik config had a `vpn` entrypoint
-   which has now been removed. Traefik will bind directly to the
-   wireguard container network (`network_mode: service:wireguard` or
-   `network_mode: service:wireguard-client`)
- * TLS certificates are now managed via the `make certs` tool and
-   added to the central Traefik static configuration. Previously,
-   certificate resolver references were inherited by docker labels on
-   the individual service containers, and TLS certificates were issued
-   on-demand. With these labels now removed, these certificates must
-   be created explicitly (via `make certs`) and Traefik restarted
-   *before* the service/routers need them (if not, a default
-   self-signed certificate will be assigned until then).
- * The static configuration has been moved away from the
-   docker-compose.yaml arguments and into the
-   [traefik.yml](config/traefik.yml) template rendered automatically via the
-   [ytt](https://carvel.dev/ytt/) tool when you run `make install`.
-   (This happens inside the [config](config) container, so you don't
-   need to install ytt on your workstation.)
+   in the form of either a server configuration (serving to other VPN
+   clients), or as a client reverse proxy (forwarding private services
+   to public non-VPN clients). In this mode, Traefik will bind
+   directly to the wireguard container network (`network_mode:
+   service:wireguard` or `network_mode: service:wireguard-client` and
+   then the wireguard server itself will bind to the host port `51820`
+   by default, for authorized clients to connect to.)
+ * TLS certificates are automatically managed by ACME, but the
+   certificate domains are manually defined using the `make certs`
+   tool. Traefik
+   [certresolvers](https://doc.traefik.io/traefik/routing/routers/#certresolver)
+   are ***not*** being used on the router level, but instead apply to
+   the entire entrypoint (`websecure`) as a whole. You only need to
+   configure the router rules with a `Host` that matches one of your
+   certificates (otherwise it may use an untrusted temporary
+   self-signed certificate).
+ * The Traefik static configuration is no longer defined in
+   `docker-compose.yaml`, but it is templated inside of
+   [traefik.yml](config/traefik.yml) which is rendered automatically
+   via the [ytt](https://carvel.dev/ytt/) tool when you run `make
+   install`. (This happens inside the [config](config) container, so
+   you don't need to install ytt on your workstation.)
+ * Traefik does not run as root, but under a dedicated system (host)
+   user account named `traefik` (this automatically created on the
+   host, the first time you run `make config`). The `traefik` is added
+   to the `docker` group, so that it can access the docker socket,
+   albeit the socket is mounted read-only. This is still very much
+   considred a privileged account, as it can read all the environment
+   variables of all your containers...)
 
 ## Config
 
@@ -113,8 +116,9 @@ resolver via the docker provider labels on the container/router.
 Instead, certificates are explicitly managed by the Traefik [static
 configuration
 template](https://github.com/EnigmaCurry/d.rymcg.tech/blob/e6a4d0285f04d6d7f07fb9a5ec403ba421229747/traefik/config/traefik.yml#L80-L87)
-directly on the endpoint. Therefore you must configure the certificate
-domains, *and reinstall Traefik*, before these certificates are needed.
+directly on the entrypoint. Therefore you must configure the
+certificate domains, *and reinstall Traefik*, before these
+certificates may be used.
 
 `make certs` is an interactive tool that configures the
 `TRAEFIK_ACME_CERT_DOMAINS` variable in the Traefik
