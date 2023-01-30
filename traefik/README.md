@@ -41,9 +41,10 @@ should be the first thing you install in your deployment.
    user account named `traefik` (this user is automatically created on
    the host, the first time you run `make config`). The `traefik` user
    is added to the `docker` group, so that it can access the docker
-   socket, albeit the socket is mounted read-only. This is still very
-   much considred a privileged account, as it can read all the
-   environment variables of all your containers...)
+   socket. This is still very much considred a privileged account, as
+   it can read all the environment variables of all your containers,
+   and can escalate itself to root level access, through the use of
+   the docker API.)
 
 ## Config
 
