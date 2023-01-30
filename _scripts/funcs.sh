@@ -117,10 +117,18 @@ ytt() {
     set -e
     docker image inspect localhost/ytt >/dev/null || docker build -t localhost/ytt -f- . >/dev/null <<'EOF'
 FROM debian:stable-slim as ytt
-ARG YTT_VERSION=v0.43.0
+ARG YTT_VERSION=v0.44.3
 RUN apt-get update && apt-get install -y wget && wget "https://github.com/vmware-tanzu/carvel-ytt/releases/download/${YTT_VERSION}/ytt-linux-$(dpkg --print-architecture)" -O ytt && install ytt /usr/local/bin/ytt
 EOF
-    docker run --rm -i localhost/ytt ytt "-f-" "$@"
+    non_template_commands_pattern="(help|completion|fmt|version)"
+    if [[ "$@" == "" ]]; then
+        CMD="docker run --rm -i localhost/ytt ytt help"
+    elif [[ "$1" =~ $non_template_commands_pattern ]]; then
+        CMD="docker run --rm -i localhost/ytt ytt ${@}"
+    else
+        CMD="docker run --rm -i localhost/ytt ytt -f- ${@}"
+    fi
+    eval $CMD
 }
 
 volume_rsync() {

@@ -1,40 +1,26 @@
 version: "3.9"
 services:
-  ## The name of your service:
-  ${CREATE_TEMPLATE_PROJECT_NAME}:
-    ## Build the docker image from the local Dockerfile:
+  ## The name of your service - whoami is just an example -
+  ## If you change this name, change it in docker-compose.instance.yaml too:
+  whoami:
+    ## Build the docker image from the local Dockerfile source:
+    ## (Replace this section with `image` if your image is prebuilt or pulled from a registry.)
     build:
       context: whoami
       args:
         UID: ${${CREATE_TEMPLATE_PROJECT_NAME_UPPERCASE}_UID}
         GID: ${${CREATE_TEMPLATE_PROJECT_NAME_UPPERCASE}_GID}
         USERNAME: ${CREATE_TEMPLATE_PROJECT_NAME}
-    ## The docker image can be pulled instead of built if specified:
-    #image: "traefik/whoami"
-
     ## user is optional, it overrides the USER of the Dockerfile
     user: ${${CREATE_TEMPLATE_PROJECT_NAME_UPPERCASE}_UID}:${${CREATE_TEMPLATE_PROJECT_NAME_UPPERCASE}_GID}
+    environment:
+      - PROJECT=${CREATE_TEMPLATE_PROJECT_NAME}
+      - INSTANCE=${${CREATE_TEMPLATE_PROJECT_NAME_UPPERCASE}_INSTANCE}
+      - ${CREATE_TEMPLATE_PROJECT_NAME_UPPERCASE}_INSTANCE
     ## Setting a restart policy is important, especially in case of system reboot:
     restart: unless-stopped
-    labels:
-      ## These labels configure Traefik to proxy for this service:
-      ## Traefik ignores all containers by default, you must explicitly set traefik.enable=true:
-      - "traefik.enable=true"
-
-      ## ${CREATE_TEMPLATE_PROJECT_NAME_UPPERCASE}_TRAEFIK_HOST is the domain name of the service.
-      ## ${CREATE_TEMPLATE_PROJECT_NAME_UPPERCASE}_INSTANCE is the name of the instance if running more than one ('default' by default).
-      ## The service, router, and middle ware are all namespaced with the ${CREATE_TEMPLATE_PROJECT_NAME_UPPERCASE}_INSTANCE name.
-
-      ## This is the router rule that matches the domain name with the service:
-      - "traefik.http.routers.${CREATE_TEMPLATE_PROJECT_NAME}-${${CREATE_TEMPLATE_PROJECT_NAME_UPPERCASE}_INSTANCE:-default}.rule=Host(`${${CREATE_TEMPLATE_PROJECT_NAME_UPPERCASE}_TRAEFIK_HOST}`)"
-      ## loadbalancer.server.port is only needed if the Dockerfile for the image did not use EXPOSE:
-      - "traefik.http.services.${CREATE_TEMPLATE_PROJECT_NAME}-${${CREATE_TEMPLATE_PROJECT_NAME_UPPERCASE}_INSTANCE:-default}.loadbalancer.server.port=8000"
-      ## This exposes the service on the Traefik entrypoint named websecure (on port :443)
-      - "traefik.http.routers.${CREATE_TEMPLATE_PROJECT_NAME}-${${CREATE_TEMPLATE_PROJECT_NAME_UPPERCASE}_INSTANCE:-default}.entrypoints=websecure"
-      ## This creates a middleware to filter traffic by client source IP address range:
-      - "traefik.http.middlewares.${CREATE_TEMPLATE_PROJECT_NAME}-${${CREATE_TEMPLATE_PROJECT_NAME_UPPERCASE}_INSTANCE:-default}-whitelist.ipwhitelist.sourcerange=${${CREATE_TEMPLATE_PROJECT_NAME_UPPERCASE}_IP_SOURCERANGE}"
-      ## This enables the middleware to operate on this service:
-      - "traefik.http.routers.${CREATE_TEMPLATE_PROJECT_NAME}-${${CREATE_TEMPLATE_PROJECT_NAME_UPPERCASE}_INSTANCE:-default}.middlewares=${CREATE_TEMPLATE_PROJECT_NAME}-${${CREATE_TEMPLATE_PROJECT_NAME_UPPERCASE}_INSTANCE:-default}-whitelist"
+    ## All labels are templated inside of docker-compose.instance.yaml ...
+    labels: []
 
     ## Security options
     security_opt:

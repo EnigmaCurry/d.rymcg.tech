@@ -1,0 +1,40 @@
+#@ load("@ytt:data", "data")
+#@ project = data.values.project
+#@ instance = data.values.instance
+#@ context = data.values.context
+#@ traefik_host_var = data.values.traefik_host_var
+#@ development_mode = data.values.development_mode in ('true','True')
+#@ ip_sourcerange_var = data.values.ip_sourcerange_var
+#@ enable_http_auth = "http_auth" in data.values and len(data.values.http_auth.strip()) > 0
+#@ http_auth_var = data.values.http_auth_var
+
+#! Create Traefik middlware for this instance and config:
+#@ middleware = ["{}-{}-ipwhitelist".format(project, instance)]
+#@ if enable_http_auth:
+#@     middleware.append("{}-{}-basicauth".format(project, instance))
+#@ end
+
+x-instance:
+  project: #@ project
+  instance: #@ instance
+  context: #@ context
+
+#@yaml/text-templated-strings
+services:
+  #! this service name must match the same one in docker-compose.yaml:
+  whoami:
+    labels:
+      - "traefik.enable=true"
+      #! This is the router rule that matches the domain name with the service:
+      - "traefik.http.routers.(@= project @)-(@= instance @).rule=Host(`${(@= traefik_host_var @)}`)"
+      #! This exposes the service on the Traefik entrypoint named websecure (on port :443)
+      - "traefik.http.routers.(@= project @)-(@= instance @).entrypoints=websecure"
+      #! This creates a middleware to filter traffic by client source IP address range:
+      - "traefik.http.middlewares.(@= project @)-(@= instance @)-ipwhitelist.ipwhitelist.sourcerange=${(@= ip_sourcerange_var @)}"
+      #@ if enable_http_auth:
+      - "traefik.http.middlewares.(@= project @)-(@= instance @)-basicauth.basicauth.users=${(@= http_auth_var @)}"
+      #@ end
+      - "traefik.http.routers.(@= project @)-(@= instance @).middlewares=(@= ','.join(middleware) @)"
+
+      #! loadbalancer.server.port is only needed if the Dockerfile did not use EXPOSE:
+      #! - "traefik.http.services.(@= project @)-(@= instance @).loadbalancer.server.port=8000"
