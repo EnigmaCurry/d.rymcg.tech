@@ -620,7 +620,7 @@ make           Run a make command for the given d.rymcg.tech project name
 ## Documentation sub-commands:
 help                  Show this help screen
 list                  List available d.rymcg.tech projects
-                      (not including external projects)
+                      (not including external projects, unless you symlink them into ROOT_DIR)
 readme [PROJECT]      Open the README.md for the given project name
 readme                Open the main d.rymcg.tech README.md in your browser
 readme raspberry_pi   Open the RASPBERRY_PI.md documentation

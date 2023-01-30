@@ -49,7 +49,7 @@ __help() {
     (
         echo -e "help\tShow this help screen"
         echo -e "list\tList available d.rymcg.tech projects"
-        echo -e "\t(excluding external projects)"
+        echo -e "\t(not including external projects, unless you symlink them into ROOT_DIR)"
         echo -e "readme\tOpen the main d.rymcg.tech README.md in your browser"
         echo -e "readme [PROJECT]\tOpen the README.md for the given project name"
         while IFS=' ' read -ra DOC_WORDS; do
