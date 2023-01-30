@@ -116,7 +116,7 @@ __make() {
 __list_projects() {
     (
         if [[ "$1" == "--raw" ]]; then
-            find "${ROOT_DIR}" -maxdepth 1 -type d -printf "%P\n" | grep -v "^_" | grep -v "^\." | sort -u | xargs -iXX /bin/bash -c "test -f ${ROOT_DIR}/XX/Makefile && echo XX"
+            find -L "${ROOT_DIR}" -maxdepth 1 -type d -printf "%P\n" | grep -v "^_" | grep -v "^\." | sort -u | xargs -iXX /bin/bash -c "test -f ${ROOT_DIR}/XX/Makefile && echo XX"
         else
             echo "List of available d.rymcg.tech projects (not including external projects):"
             echo ""
