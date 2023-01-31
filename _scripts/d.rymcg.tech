@@ -78,7 +78,7 @@ __create() {
         echo "Available templates:"
         find "${ROOT_DIR}/_templates" -maxdepth 1 -type d -printf "%P\n" | column
         echo ""
-        ask_no_blank "Enter the template name to use" TEMPLATE_NAME bare
+        ask_no_blank "Enter the template name to use" TEMPLATE_NAME whoami
         echo ""
     fi
     ${BIN}/create "${PROJECT_NAME}" "${TEMPLATE_NAME}" "./${PROJECT_NAME}"
