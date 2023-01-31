@@ -76,7 +76,7 @@ __create() {
         TEMPLATE_NAME="$2"
     else
         echo "Available templates:"
-        find "${ROOT_DIR}/_templates" -maxdepth 1 -type d -printf "%P\n" | column
+        find "${ROOT_DIR}/_templates" -maxdepth 1 -type d -printf "%P\n" | grep -v "^_" | column
         echo ""
         ask_no_blank "Enter the template name to use" TEMPLATE_NAME whoami
         echo ""
