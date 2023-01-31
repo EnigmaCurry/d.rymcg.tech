@@ -19,7 +19,7 @@ INSTANCE_SUFFIX ?= $(shell (set +x; [[ "${instance}" == "default" ]] && echo "" 
 INSTANCE_URL_SUFFIX ?= $(shell (set +x; [[ "${instance}" == "default" ]] && echo "" || echo "-${instance}") )
 CONTEXT_INSTANCE ?= "${DOCKER_CONTEXT}_${instance}"
 ENV_FILE ?= ".env_${CONTEXT_INSTANCE}"
-PROJECT ?= $(shell basename $${PWD})
+PROJECT ?= $(shell basename "$${PWD}")
 PROJECT_NAME ?= ${PROJECT}${INSTANCE_SUFFIX}
 CWD_PROJECT_NAME ?= ${PROJECT}${INSTANCE_SUFFIX}
 CWD_PROJECT_INSTANCE ?= ${PROJECT}_${instance}

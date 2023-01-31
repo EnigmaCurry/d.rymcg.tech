@@ -18,6 +18,13 @@ PROJECT_NAME="$1"
 TEMPLATE_NAME="$2"
 OUTPUT_DIR="$3"
 
+if (echo "${PROJECT_NAME}" | grep -q " "); then
+    fault "PROJECT_NAME cannot have spaces"
+fi
+if (echo "${OUTPUT_DIR}" | grep -q " "); then
+    fault "OUTPUT_DIR cannot have spaces"
+fi
+
 if [[ -e "${OUTPUT_DIR}" ]]; then
     if [[ -d "${OUTPUT_DIR}" ]]; then
         fault "The directory already exists: ${OUTPUT_DIR}"
@@ -25,7 +32,9 @@ if [[ -e "${OUTPUT_DIR}" ]]; then
     fault "There is an existing file with the same name: ${OUTPUT_DIR}"
 fi
 
-mkdir -p "${OUTPUT_DIR}"
+## Ensure we are creating a new blank directory:
+mkdir -p "$(dirname \"${OUTPUT_DIR}\")"
+mkdir "${OUTPUT_DIR}"
 
 TEMPLATE_DIR="${ROOT_DIR}/_templates/${TEMPLATE_NAME}"
 TEMPLATE_FILES=("docker-compose.yaml" "docker-compose.instance.yaml" "Makefile" ".env-dist")
@@ -43,16 +52,21 @@ done
 TEMPLATE_VARS='${CREATE_TEMPLATE_PROJECT_NAME},${CREATE_TEMPLATE_PROJECT_URL_NAME},${CREATE_TEMPLATE_PROJECT_NAME_UPPERCASE},${CREATE_TEMPLATE_ROOT_DIR}'
 
 export CREATE_TEMPLATE_ROOT_DIR="${ROOT_DIR}"
-export CREATE_TEMPLATE_PROJECT_NAME="$(echo ${PROJECT_NAME} | tr '[:upper:]' '[:lower:]' | tr ' ' '_' | tr '-' '_')"
-export CREATE_TEMPLATE_PROJECT_NAME_UPPERCASE="$(echo ${CREATE_TEMPLATE_PROJECT_NAME} | tr '[:lower:]' '[:upper:]')"
-export CREATE_TEMPLATE_PROJECT_URL_NAME="$(echo ${CREATE_TEMPLATE_PROJECT_NAME} | tr '_' '-')"
+export CREATE_TEMPLATE_PROJECT_NAME="$(echo ${PROJECT_NAME} | tr ' ' '-')"
+export CREATE_TEMPLATE_PROJECT_NAME_UPPERCASE="$(echo ${CREATE_TEMPLATE_PROJECT_NAME} | tr '[:lower:]' '[:upper:]' | tr '-' '_')"
+export CREATE_TEMPLATE_PROJECT_URL_NAME="$(echo ${CREATE_TEMPLATE_PROJECT_NAME} | tr '[:upper:]' '[:lower:]' | tr '_' '-')"
+
+echo "CREATE_TEMPLATE_PROJECT_NAME=${CREATE_TEMPLATE_PROJECT_NAME}"
+echo "CREATE_TEMPLATE_PROJECT_NAME_UPPERCASE=${CREATE_TEMPLATE_PROJECT_NAME_UPPERCASE}"
 
 ## TODO: use ytt to template YAML instead of envsubst
 ## HOWEVER, this is blocked on https://github.com/carvel-dev/ytt/issues/63
 
+echo "Copying generic Makefile header ..."
+cat "${TEMPLATE_DIR}/../_common/Makefile.generic" | envsubst "${TEMPLATE_VARS}" > "${OUTPUT_DIR}/Makefile"
+
 for filename in ${TEMPLATE_FILES[@]}; do
     echo "# Rendering from template: ${OUTPUT_DIR}/${filename}"
-    rm -f "${OUTPUT_DIR}/${filename}"
     if [[ "$filename" == "docker-compose.instance.yaml" ]]; then
         ## Add the common traefik instance header to docker-compose.instance.yaml:
         cat "${TEMPLATE_DIR}/../_common/instance_header.yaml" > "${OUTPUT_DIR}/${filename}"

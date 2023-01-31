@@ -1,8 +1,8 @@
 version: "3.9"
 services:
-  ## The name of your service - flask is just an example -
+  ## The API service:
   ## If you change this name, change it in docker-compose.instance.yaml too:
-  flask:
+  api:
     ## Build the docker image from the local Dockerfile source:
     build:
       context: flask
