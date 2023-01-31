@@ -6,14 +6,14 @@ include ${ROOT_DIR}/_scripts/Makefile.instance
 
 .PHONY: config-hook
 config-hook:
-	## config-hook is for the custom configuration the user must enter when running `make config`:
-	# reconfigure_ask will ask the user to enter the value for a variable, with the given prompt, with the given default value, and save it to the env file:
+### config-hook is for the custom configuration the user must enter when running `make config`:
+### reconfigure_ask will ask the user to enter the value for a variable, with the given prompt, with the given default value, and save it to the env file:
 	@${BIN}/reconfigure_ask ${ENV_FILE} ${CREATE_TEMPLATE_PROJECT_NAME_UPPERCASE}_TRAEFIK_HOST "Enter the ${CREATE_TEMPLATE_PROJECT_NAME} domain name" ${CREATE_TEMPLATE_PROJECT_URL_NAME}${INSTANCE_URL_SUFFIX}.${ROOT_DOMAIN}
-	# reconfigure will directly set a value in the env file:
+### reconfigure will directly set a value in the env file:
 	@${BIN}/reconfigure ${ENV_FILE} ${CREATE_TEMPLATE_PROJECT_NAME_UPPERCASE}_INSTANCE=$${instance:-default}
-	# configure IP filter:
+### configure IP filter:
 	@${BIN}/reconfigure_ask ${ENV_FILE} ${CREATE_TEMPLATE_PROJECT_NAME_UPPERCASE}_IP_SOURCERANGE "Enter the client IP Address range filter (CIDR)" 0.0.0.0/0
-	# Configure HTTP Auth:
+### Configure HTTP Auth:
 	@(${BIN}/confirm $$(test -n "$$(${BIN}/dotenv -f ${ENV_FILE} get ${CREATE_TEMPLATE_PROJECT_NAME_UPPERCASE}_HTTP_AUTH)" && echo yes || echo no) "Do you want to enable HTTP Basic Authentication" "?" && ${BIN}/reconfigure_htpasswd ${ENV_FILE} ${CREATE_TEMPLATE_PROJECT_NAME_UPPERCASE}_HTTP_AUTH) || ${BIN}/reconfigure ${CREATE_TEMPLATE_PROJECT_NAME_UPPERCASE}_HTTP_AUTH=''
 
 
