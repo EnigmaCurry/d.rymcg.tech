@@ -51,12 +51,18 @@ export CREATE_TEMPLATE_PROJECT_URL_NAME="$(echo ${CREATE_TEMPLATE_PROJECT_NAME} 
 ## HOWEVER, this is blocked on https://github.com/carvel-dev/ytt/issues/63
 
 for filename in ${TEMPLATE_FILES[@]}; do
-    echo "# Rendering ${OUTPUT_DIR}/${filename}"
-    cat "${TEMPLATE_DIR}/${filename}" | envsubst "${TEMPLATE_VARS}" > "${OUTPUT_DIR}/${filename}"
+    echo "# Rendering from template: ${OUTPUT_DIR}/${filename}"
+    rm -f "${OUTPUT_DIR}/${filename}"
+    if [[ "$filename" == "docker-compose.instance.yaml" ]]; then
+        ## Add the common traefik instance header to docker-compose.instance.yaml:
+        cat "${TEMPLATE_DIR}/../_common/instance_header.yaml" > "${OUTPUT_DIR}/${filename}"
+    fi
+    ## Add the template
+    cat "${TEMPLATE_DIR}/${filename}" | envsubst "${TEMPLATE_VARS}" >> "${OUTPUT_DIR}/${filename}"
 done
 
 for filename in ${COPY_FILES[@]}; do
-    echo "# Copying ${OUTPUT_DIR}/${filename}"
+    #echo "# Copying ${OUTPUT_DIR}/${filename}"
     cp -v "${TEMPLATE_DIR}/${filename}" "${OUTPUT_DIR}/"
 done
 echo "# Copying template directories ..."
