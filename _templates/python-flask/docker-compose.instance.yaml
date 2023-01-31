@@ -2,13 +2,13 @@
 #! This creates the router, and applies the standard HTTP authentication and IP filtering middlewares:
 #! basic_traefik_config args takes the NAMES of the environment variables to reference, not the values themselves.
 services:
-  whoami: #@ basic_traefik_config(service="whoami", traefik_host_var="${CREATE_TEMPLATE_PROJECT_NAME_UPPERCASE}_TRAEFIK_HOST", ip_sourcerange_var="${CREATE_TEMPLATE_PROJECT_NAME_UPPERCASE}_IP_SOURCERANGE", http_auth_var="${CREATE_TEMPLATE_PROJECT_NAME_UPPERCASE}_HTTP_AUTH", port=None)
+  flask: #@ basic_traefik_config(service="flask", traefik_host_var="${CREATE_TEMPLATE_PROJECT_NAME_UPPERCASE}_TRAEFIK_HOST", ip_sourcerange_var="${CREATE_TEMPLATE_PROJECT_NAME_UPPERCASE}_IP_SOURCERANGE", http_auth_var="${CREATE_TEMPLATE_PROJECT_NAME_UPPERCASE}_HTTP_AUTH", port=None)
 ---
 #@overlay/match by=overlay.all, expects=1
 ---
 #! Add the rest of the customization here and it will merge it with the above:
 services:
-  whoami:
+  flask:
     labels:
       - "additional custom label 1 - ignore this - example only"
       - "additional custom label 2 - ignore this - example only"
