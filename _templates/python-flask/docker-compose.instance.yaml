@@ -1,3 +1,5 @@
+#! See the header file in ../_common/instance_header.yaml
+
 #! Add the standard traefik labels to all your services:
 #! This creates the router, and applies the standard HTTP authentication and IP filtering middlewares:
 #! basic_traefik_config args takes the NAMES of the environment variables to reference, not the values themselves.
@@ -7,14 +9,17 @@ volumes: {}
 ---
 #@overlay/match by=overlay.all, expects=1
 ---
-#! Add all custom config here:
+#! Custom config for Flask:
 services:
   #@overlay/match-child-defaults missing_ok=True
   api:
     #@ if development_mode:
     command:
+      #! Add the gunicorn live-reload argument:
       - --reload
     volumes:
+      #! Overlay the development source code volume onto the container's /code directory:
+      #! `make dev-sync` will rsync development files to this volume for the server to reload:
       - development:/code
     #@ end
     labels:
@@ -22,6 +27,7 @@ services:
 
 #@overlay/match-child-defaults missing_ok=True
 volumes:
+  #! Create the volume for `make dev-sync` to rsync files to:
   #@ if development_mode:
   development:
   #@ end

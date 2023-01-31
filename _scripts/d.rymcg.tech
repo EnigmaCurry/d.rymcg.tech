@@ -66,10 +66,16 @@ __help() {
 
 __create() {
     echo "This script will create a new docker-compose project and integrate d.rymcg.tech Makefiles"
+    name_pattern="^[a-zA-Z_\-]+$"
     if [[ $# -gt 0 ]]; then
         PROJECT_NAME="$1"
+        test -n "${PROJECT_NAME}" && fault "Error: Invalid characters in PROJECT_NAME -- valid regex: ${name_pattern}"
     else
-        ask_no_blank "Enter a name for the new docker-compose project" PROJECT_NAME
+        name_pattern="^[a-zA-Z_\-]+$"
+        while ! [[ "${PROJECT_NAME}" =~ $name_pattern ]]; do
+            test -n "${PROJECT_NAME}" && echo "Error: Invalid characters in PROJECT_NAME -- valid regex: ${name_pattern}"
+            ask_no_blank "Enter a name for the new docker-compose project" PROJECT_NAME
+        done
         echo ""
     fi
     PROJECT_NAME=$(echo "$PROJECT_NAME" | tr ' ' '-')

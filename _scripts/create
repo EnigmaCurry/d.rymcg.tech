@@ -18,11 +18,12 @@ PROJECT_NAME="$1"
 TEMPLATE_NAME="$2"
 OUTPUT_DIR="$3"
 
-if (echo "${PROJECT_NAME}" | grep -q " "); then
-    fault "PROJECT_NAME cannot have spaces"
+name_pattern="^[\Wa-zA-Z_\-]+$"
+if ! [[ "${PROJECT_NAME}" =~ $name_pattern ]]; then
+    fault "PROJECT_NAME contains invalid characters"
 fi
-if (echo "${OUTPUT_DIR}" | grep -q " "); then
-    fault "OUTPUT_DIR cannot have spaces"
+if ! [[ "$(basename "${OUTPUT_DIR}")" =~ $name_pattern ]]; then
+    fault "OUTPUT_DIR contains invalid characters"
 fi
 
 if [[ -e "${OUTPUT_DIR}" ]]; then

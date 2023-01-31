@@ -9,7 +9,6 @@ services:
       args:
         UID: ${${CREATE_TEMPLATE_PROJECT_NAME_UPPERCASE}_UID}
         GID: ${${CREATE_TEMPLATE_PROJECT_NAME_UPPERCASE}_GID}
-        USERNAME: ${CREATE_TEMPLATE_PROJECT_NAME}
     ## user is optional, it overrides the USER of the Dockerfile
     user: ${${CREATE_TEMPLATE_PROJECT_NAME_UPPERCASE}_UID}:${${CREATE_TEMPLATE_PROJECT_NAME_UPPERCASE}_GID}
     environment:
