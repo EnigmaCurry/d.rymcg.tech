@@ -13,8 +13,8 @@ your workstation.
 This project is an example of a so-called
 ["external"](https://github.com/enigmacurry/d.rymcg.tech#integrating-external-projects)
 project to `d.rymcg.tech`, as it does not live in the same source tree
-as `d.rymcg.tech`, but makes a link to inherit its Makefiles and to
-gain its superpowers.
+as `d.rymcg.tech`, but creates a link to it to inherit its Makefiles,
+and to gain its superpowers.
 
 ## Configure
 
@@ -56,7 +56,7 @@ of the directory, be sure to update the name in `build.context` in
 `docker-compose.yaml`.
 
 If you don't need to build an image, but instead you want to pull an
-image from a docker registry, remove the `build` directive and replace
-with `image: your_image_name`, and then you can delete the
-[whoami](whoami) directory (no Dockerfile is needed if you are just
-pulling a prebuilt image).
+image from a docker registry, remove the `build` directive (in
+`docker-compose.yaml`) and replace with `image: your_image_name`, and
+then you can delete the [whoami](whoami) directory (because no
+Dockerfile is needed if you are just pulling a prebuilt image).

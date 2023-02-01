@@ -904,9 +904,10 @@ To do this same thing manually, here are the steps:
  * In your own project repository directory, create the files for
    `docker-compose.yaml`, `Makefile`, `.env-dist`, `.gitignore`and
    `README.md`. As an example, you can use any of the d.rymcg.tech
-   sub-projects, like [whoami](whoami), or take a look at the [bare
-   template](_templates/bare) that `d.rymcg.tech create` uses (the
-   template requires the use of `envsubst`).
+   sub-projects, like [whoami](whoami), or take a look at the
+   [_templates](_templates) that `d.rymcg.tech create` uses (the
+   templates require the use of `envsubst` and `ytt`, but still render
+   to pure `docker compose` in the end).
 
 Create the `Makefile` in your own separate repository so that it
 includes the main d.rymcg.tech `Makefile.projects` file from
