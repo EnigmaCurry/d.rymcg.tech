@@ -5,6 +5,7 @@
 #@ project = data.values.project
 #@ instance = data.values.instance
 #@ context = data.values.context
+#@ traefik_host = data.values.traefik_host
 #@ traefik_host_var = data.values.traefik_host_var
 #@ development_mode = data.values.development_mode in ('true','True')
 #@ ip_sourcerange_var = data.values.ip_sourcerange_var
@@ -12,41 +13,38 @@
 #@ http_auth_var = data.values.http_auth_var
 
 #@ load("@ytt:overlay", "overlay")
-#@yaml/text-templated-strings
-#@ def basic_traefik_config(service, traefik_host_var=traefik_host_var, ip_sourcerange_var=ip_sourcerange_var, http_auth_var=http_auth_var, port=None):
-labels:
-  - "traefik.enable=true"
-  - "traefik.http.routers.(@= project @)-(@= instance @)-(@= service @).rule=Host(`${(@= traefik_host_var @)}`)"
-  - "traefik.http.routers.(@= project @)-(@= instance @)-(@= service @).entrypoints=websecure"
-  - "traefik.http.middlewares.(@= project @)-(@= instance @)-(@= service @)-ipwhitelist.ipwhitelist.sourcerange=${(@= ip_sourcerange_var @)}"
-  #@ if enable_http_auth:
-  - "traefik.http.middlewares.(@= project @)-(@= instance @)-(@= service @)-basicauth.basicauth.users=${(@= http_auth_var @)}"
-  #@ end
-  #! Create Traefik middlware for this instance and config:
-  #@ middleware = ["{}-{}-{}-ipwhitelist".format(project, instance, service)]
-  #@ if enable_http_auth:
-  #@     middleware.append("{}-{}-{}-basicauth".format(project, instance, service))
-  #@ end
-  - "traefik.http.routers.(@= project @)-(@= instance @)-(@= service @).middlewares=(@= ','.join(middleware) @)"
-  #@ if port != None:
-  #! The server.port only needs to be specified if the Dockerfile did not use EXPOSE:
-  - "traefik.http.services.(@= project @)-(@= instance @)-(@= service @).loadbalancer.server.port=(@= port @)"
-  #@ end
+
+#@ def basic_environment():
 #@yaml/text-templated-strings
 environment:
   #! Standard environment variables all containers should define:
-  - PROJECT=(@= project @)
-  - INSTANCE=(@= instance @)
-  - CONTEXT=(@= context @)
+  - DOCKER_PROJECT=(@= project @)
+  - DOCKER_INSTANCE=(@= instance @)
+  - DOCKER_CONTEXT=(@= context @)
   - DEVELOPMENT_MODE=(@= data.values.development_mode @)
-  - TRAEFIK_HOST=${(@= traefik_host_var @)}
 #@ end
 
-x-instance:
-  project: #@ project
-  instance: #@ instance
-  context: #@ context
+#@yaml/text-templated-strings
+#@ def basic_traefik_router(router, rule, entrypoint="websecure", middlewares=('ipwhitelist','basicauth')):
+#@ enabled_middlewares = []
+#@ router = "{}-{}-{}".format(project,instance,router)
+labels:
+  - "traefik.http.routers.(@= router @).rule=(@= rule @)"
+  - "traefik.http.routers.(@= router @).entrypoints=(@= entrypoint @)"
+  #@ if 'ipwhitelist' in middlewares:
+  #@ enabled_middlewares.append("{}-ipwhitelist".format(router))
+  - "traefik.http.middlewares.(@= router @)-ipwhitelist.ipwhitelist.sourcerange=${(@= ip_sourcerange_var @)}"
+  #@ end
+  #@ if 'basicauth' in middlewares and enable_http_auth:
+  #@ enabled_middlewares.append("{}-basicauth".format(router))
+  - "traefik.http.middlewares.(@= router @)-basicauth.basicauth.users=${(@= http_auth_var @)}"
+  #@ end
+  - "traefik.http.routers.(@= router @).middlewares=(@= ','.join(enabled_middlewares) @)"
+#@ end
+
+services: {}
 
 #! End of standard boilerplate.
 #! Custom services section starts here ...
 
+---
