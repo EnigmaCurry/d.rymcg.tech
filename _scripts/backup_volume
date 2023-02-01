@@ -9,6 +9,13 @@
 ## it works like this: DEST_DIR must be empty, or if not, it must
 ## contain a file/directory of the name specified by PATH_SENTINEL.
 
+### This implementation works by SSH to the Docker host server
+### and then finding the volume under /var/lib/docker/data to rsync
+
+### There is an alternative implementation in the script
+### `volume_rsync`, which works by connecting an rsync container
+### directly to the volume over stdin/stdout.
+
 BIN=$(dirname ${BASH_SOURCE})
 source ${BIN}/funcs.sh
 

@@ -1,0 +1,28 @@
+#!/bin/bash
+
+### Continously watch a local directory for changes, and rsync immediately to a docker volume.
+## dev-sync VOLUME SRC DEST
+set -e
+
+BIN=$(dirname ${BASH_SOURCE})
+source ${BIN}/funcs.sh
+
+if [[ $# -lt 2 ]]; then
+    fault "Invalid arguments. The correct arguments are: VOLUME SRC_DIR [DEST_DIR]"
+fi
+
+VOLUME="${1}"
+SRC_DIR="${2}"
+if [[ $# == 3 ]]; then
+    DEST_DIR="${3}"
+else
+    DEST_DIR="/"
+fi
+
+${BIN}/volume_mkdir "${VOLUME}"
+while [[ true ]] ; do
+    echo "Syncing ..."
+    ${BIN}/volume_rsync "${VOLUME}" -av --delete --exclude '.#' "${SRC_DIR}/" "volume:/data/${DEST_DIR}"
+    echo "Waiting for changes ..."
+    inotifywait -r -t 600 -e modify,delete,create,move --exclude '\.#.*' .
+done

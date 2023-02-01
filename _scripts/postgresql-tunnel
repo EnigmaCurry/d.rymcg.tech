@@ -1,0 +1,48 @@
+#!/bin/bash
+
+## Create a tunnel to the postgres service container:
+## postgresql-tunnel ENV_FILE SERVICE INSTANCE LOCAL_PGPORT
+BIN=$(dirname ${BASH_SOURCE})
+source ${BIN}/funcs.sh
+set -e
+
+if [[ $# -lt 1 ]] || [[ $# -gt 4 ]]; then
+    fault "Invalid args. The correct args are: ENV_FILE SERVICE INSTANCE LOCAL_PGPORT"
+fi
+
+ENV_FILE="${1}"
+PROJECT=$(basename $(realpath $(dirname ${ENV_FILE})))
+SERVICE="${2}"
+INSTANCE="${3:-default}"
+PGPORT="${4:-$(random_port)}"
+echo "PGPORT=${PGPORT}"
+check_var ENV_FILE PROJECT SERVICE INSTANCE PGPORT
+
+SSH_HOST=$(docker context inspect | jq -r ".[0].Endpoints.docker.Host" | sed 's|^ssh://||')
+check_var SSH_HOST
+CONTAINER="$(docker compose --env-file ${ENV_FILE} ps ${SERVICE} --format json | jq ".[0].Name" -r)"
+if [[ -z "${CONTAINER}" ]]; then
+    fault "Could not find the database container."
+fi
+DB_IP=$(docker inspect ${CONTAINER} | jq -r ".[0].NetworkSettings.Networks[\"${PROJECT}_${INSTANCE}\"].IPAddress");
+if [[ -z "${DB_IP}" ]]; then
+    fault "Could not find the database container IP address."
+fi
+
+grab_env_var() {
+    docker inspect ${CONTAINER} | jq -r ".[0].Config.Env" | grep "${1}" | sed -E -e 's/",$//g' -e 's/^\W+"//' -e "s/${1}=//"
+}
+export PGUSER=$(grab_env_var POSTGRES_USER)
+export PGPASSWORD=$(grab_env_var POSTGRES_PASSWORD)
+export PGDATABASE=$(grab_env_var POSTGRES_DB)
+export PGHOST=localhost
+export PGPORT=${PGPORT}
+export PGSSLMODE=allow
+check_var PGUSER PGPASSWORD PGDATABASE PGHOST PGPORT PGSSLMODE
+unset PGSSLKEY PGSSLROOTCERT PGSSLCERT
+
+set -x
+ssh -N -L ${PGPORT}:${DB_IP}:5432 -o ControlMaster=no -o ControlPersist=no ${SSH_HOST} &
+
+echo "Started SSH tunnel to PostgreSQL database"
+bash --rcfile <(echo -e "PS1='[${PGDATABASE} DB] $ "${PS1}"'\necho -e '\n## PostgreSQL client variables set in this subshell:'\nenv | grep ^PG\necho ") -i

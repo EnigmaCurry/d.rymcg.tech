@@ -1,8 +1,13 @@
 #!/bin/bash
 
 BIN=$(dirname ${BASH_SOURCE})
-
+source ${BIN}/funcs.sh
+echo "Args: $@"
 ENV_FILE=$1; shift
+
+if [[ $# == 0 ]]; then
+    fault "reconfigure: missing arguments"
+fi
 
 ## Edit/create the .env file setting the vars given as args.
 test -f ${ENV_FILE} || cp .env-dist ${ENV_FILE}

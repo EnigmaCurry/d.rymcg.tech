@@ -82,10 +82,10 @@ get_root_domain() {
 
 docker_compose() {
     ENV_FILE=${ENV_FILE:-.env_$(${BIN}/docker_context)}
-    PROJECT_NAME="$(basename $PWD)"
+    PROJECT_NAME="$(basename \"$PWD\")"
     if [[ -n "${instance:-${INSTANCE}}" ]] && [[ "${ENV_FILE}" != ".env_${DOCKER_CONTEXT}_${instance:-${INSTANCE}}" ]]; then
         ENV_FILE="${ENV_FILE}_${instance:-${INSTANCE}}"
-        PROJECT_NAME="$(basename $PWD)_${instance:-${INSTANCE}}"
+        PROJECT_NAME="$(basename \"$PWD\")_${instance:-${INSTANCE}}"
     fi
     set -ex
     docker compose ${DOCKER_COMPOSE_FILE_ARGS:--f docker-compose.yaml} --env-file="${ENV_FILE}" --project-name="${PROJECT_NAME}" "$@"
@@ -93,10 +93,10 @@ docker_compose() {
 
 docker_run() {
     ENV_FILE=${ENV_FILE:-.env_$(${BIN}/docker_context)}
-    PROJECT_NAME="$(basename $PWD)"
+    PROJECT_NAME="$(basename \"$PWD\")"
     if [[ -n "${instance:-${INSTANCE}}" ]] && [[ "${ENV_FILE}" != ".env_${DOCKER_CONTEXT}_${instance:-${INSTANCE}}" ]]; then
         ENV_FILE="${ENV_FILE}_${instance:-${INSTANCE}}"
-        PROJECT_NAME="$(basename $PWD)_${instance:-${INSTANCE}}"
+        PROJECT_NAME="$(basename \"$PWD\")_${instance:-${INSTANCE}}"
     fi
     set -ex
     docker run --rm --env-file=${ENV_FILE} "$@"
@@ -104,10 +104,10 @@ docker_run() {
 
 docker_exec() {
     ENV_FILE=${ENV_FILE:-.env_$(${BIN}/docker_context)}
-    PROJECT_NAME="$(basename $PWD)"
+    PROJECT_NAME="$(basename \"$PWD\")"
     if [[ -n "${instance:-${INSTANCE}}" ]] && [[ "${ENV_FILE}" != ".env_${DOCKER_CONTEXT}_${instance:-${INSTANCE}}" ]]; then
         ENV_FILE="${ENV_FILE}_${instance:-${INSTANCE}}"
-        PROJECT_NAME="$(basename $PWD)_${instance:-${INSTANCE}}"
+        PROJECT_NAME="$(basename \"$PWD\")_${instance:-${INSTANCE}}"
     fi
     set -ex
     docker exec --env-file=${ENV_FILE} "$@"
@@ -154,9 +154,18 @@ volume_ls() {
 volume_mkdir() {
     if [[ $# -gt 0 ]]; then
         VOLUME="${1}"; shift
-        docker volume create "${VOLUME}"
-        docker run --rm -i -v "${VOLUME}:/data" -w /data alpine mkdir -p "$@"
+        exe docker volume create "${VOLUME}"
+        if [[ $# -gt 0 ]]; then
+            exe docker run --rm -i -v "${VOLUME}:/data" -w /data alpine mkdir -p "$@"
+        fi
     else
         fault "Usage: volume_mkdir [PATH ...]"
     fi
+}
+
+random_port() {
+    LOW_PORT="${1:-49152}"; HIGH_PORT="${2:-65535}"
+    comm -23 <(seq "${LOW_PORT}" "${HIGH_PORT}") <(ss -tan | awk '{print $4}' | cut -d':' -f2 | \
+                                                       grep "[0-9]\{1,5\}" | sort | uniq) 2>/dev/null | \
+        shuf 2>/dev/null | head -n 1; true
 }

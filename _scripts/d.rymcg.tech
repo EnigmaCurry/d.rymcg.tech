@@ -65,20 +65,28 @@ __help() {
 }
 
 __create() {
-    echo "This script will create a new docker-compose project and integrate d.rymcg.tech Makefiles"
+    name_pattern='^[a-zA-Z][a-zA-Z0-9_-]*$'
     if [[ $# -gt 0 ]]; then
         PROJECT_NAME="$1"
+        if ! [[ "${PROJECT_NAME}" =~ $name_pattern ]]; then
+            fault "Error: Invalid characters in PROJECT_NAME -- valid regex: ${name_pattern}"
+        fi
     else
-        ask_no_blank "Enter a name for the new docker-compose project" PROJECT_NAME
+        echo "This script will create a new docker-compose project and integrate d.rymcg.tech Makefiles"
+        while ! [[ "${PROJECT_NAME}" =~ $name_pattern ]]; do
+            test -n "${PROJECT_NAME}" && echo "Error: Invalid characters in PROJECT_NAME -- valid regex: ${name_pattern}"
+            ask_no_blank "Enter a name for the new docker-compose project" PROJECT_NAME
+        done
         echo ""
     fi
+    PROJECT_NAME=$(echo "$PROJECT_NAME" | tr ' ' '-')
     if [[ $# -gt 1 ]]; then
         TEMPLATE_NAME="$2"
     else
         echo "Available templates:"
         find "${ROOT_DIR}/_templates" -maxdepth 1 -type d -printf "%P\n" | grep -v "^_" | column
         echo ""
-        ask_no_blank "Enter the template name to use" TEMPLATE_NAME whoami
+        ask_no_blank "Enter the template name to use" TEMPLATE_NAME
         echo ""
     fi
     ${BIN}/create "${PROJECT_NAME}" "${TEMPLATE_NAME}" "./${PROJECT_NAME}"
@@ -233,7 +241,7 @@ __d.rymcg.tech_completions() {
             MAKE_TARGETS="$(make -C "${PROJECT_DIR}" -qp 2>/dev/null | awk -F':' '/^[a-zA-Z0-9][^$#\/\t=]*:([^=]|$)/ {split($1,A,/ /);for(i in A)print A[i]}' | sort -u)"
             COMPREPLY=($(compgen -W "${MAKE_TARGETS}" "${COMP_WORDS[3]}"))
         elif [[ "${COMP_WORDS[1]}" == "create" ]]; then
-            COMPREPLY=("bare")
+            COMPREPLY=($(compgen -W "$(find ${ROOT_DIR}/_templates -maxdepth 1 -type d -printf "%P\n" | grep -v "^_")" "${COMP_WORDS[3]}"))
         fi
     fi
 }
