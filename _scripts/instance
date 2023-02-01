@@ -1,7 +1,10 @@
 #!/bin/bash
 
 set -e
+BIN=$(dirname ${BASH_SOURCE})
+source ${BIN}/funcs.sh
 
+valid_regex='^[a-zA-Z][a-zA-Z0-9_-]*$'
 if [[ -z "${instance}" ]]; then
     EXISTING_ENVS=$(ls .env_${DOCKER_CONTEXT}_* 2>/dev/null | sed "s/.env_${DOCKER_CONTEXT}_//" || true)
     if [[ -n "$EXISTING_ENVS" ]]; then
@@ -9,7 +12,13 @@ if [[ -z "${instance}" ]]; then
         echo "${EXISTING_ENVS}"
         echo ""
     fi
-    read -p "Enter an instance name to create/edit"$'\x0a: ' instance
+    while [[ -z "${instance}" ]]; do
+        read -p "Enter an instance name to create/edit"$'\x0a: ' instance
+        if ! [[ "${instance}" =~ $valid_regex ]]; then
+            error "Invalid instance name. Try again."
+            unset instance
+        fi
+    done
 fi
 
 test -z "$instance" && echo "Missing required instance name." && exit 1
