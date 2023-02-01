@@ -11,3 +11,6 @@ override-hook:
 #### This sets the standard override variables for docker-compose.instance.yaml - add your own at the end:
 	@${BIN}/docker_compose_override ${ENV_FILE} ${BASIC_OVERRIDES}
 
+.PHONY: dev-sync
+dev-sync:
+	@${BIN}/dev-sync ${CREATE_TEMPLATE_PROJECT_NAME}_development flask

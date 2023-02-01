@@ -18,7 +18,7 @@ PROJECT_NAME="$1"
 TEMPLATE_NAME="$2"
 OUTPUT_DIR="$3"
 
-name_pattern="^[\Wa-zA-Z_\-]+$"
+name_pattern="^[\Wa-zA-Z0-9_\-]+$"
 if ! [[ "${PROJECT_NAME}" =~ $name_pattern ]]; then
     fault "PROJECT_NAME contains invalid characters"
 fi
@@ -34,7 +34,7 @@ if [[ -e "${OUTPUT_DIR}" ]]; then
 fi
 
 ## Ensure we are creating a new blank directory:
-mkdir -p "$(dirname \"${OUTPUT_DIR}\")"
+mkdir -p "$(dirname "${OUTPUT_DIR}")"
 mkdir "${OUTPUT_DIR}"
 
 TEMPLATE_DIR="${ROOT_DIR}/_templates/${TEMPLATE_NAME}"
