@@ -164,5 +164,8 @@ volume_mkdir() {
 }
 
 random_port() {
-    comm -23 <(seq 49152 65535) <(ss -tan | awk '{print $4}' | cut -d':' -f2 | grep "[0-9]\{1,5\}" | sort | uniq) | shuf 2>/dev/null | head -n 1; true
+    LOW_PORT="${1:-49152}"; HIGH_PORT="${2:-65535}"
+    comm -23 <(seq "${LOW_PORT}" "${HIGH_PORT}") <(ss -tan | awk '{print $4}' | cut -d':' -f2 | \
+                                                       grep "[0-9]\{1,5\}" | sort | uniq) 2>/dev/null | \
+        shuf 2>/dev/null | head -n 1; true
 }
