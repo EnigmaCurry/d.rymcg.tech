@@ -36,11 +36,11 @@ source ${BIN}/funcs.sh
 __help() {
     echo "Found ROOT_DIR=${ROOT_DIR}"
     echo ""
-    echo "## Main d.rymcg.tech sub-commands:"
+    echo "## Main d.rymcg.tech sub-commands - Optional arguments are printed in brackets [OPTIONAL_ARG]"
     (
-        echo -e "cd\tEnter a sub-shell and go to the ROOT_DIR directory"
-        echo -e "create\tCreate a new external project"
-        echo -e "make\tRun a make command for the given d.rymcg.tech project name"
+        echo -e "cd [SUBDIR]\tEnter a sub-shell and go to the ROOT_DIR directory (or given subdirectory)"
+        echo -e "create [PROJECT] [TEMPLATE]\tCreate a new external project from a template"
+        echo -e "make [PROJECT] [ARGS ...]\tRun a \`make\` command for the given d.rymcg.tech project name"
         echo -e "context [DOCKER_CONTEXT]\tView or set the current docker context"
         echo -e "completion\tSetup TAB completion in your shell"
     ) | expand -t 30
@@ -49,7 +49,7 @@ __help() {
     (
         echo -e "help\tShow this help screen"
         echo -e "list\tList available d.rymcg.tech projects"
-        echo -e "\t(excluding external projects)"
+        echo -e "\t(not including external projects, unless you symlink them into ROOT_DIR)"
         echo -e "readme\tOpen the main d.rymcg.tech README.md in your browser"
         echo -e "readme [PROJECT]\tOpen the README.md for the given project name"
         while IFS=' ' read -ra DOC_WORDS; do
@@ -65,20 +65,28 @@ __help() {
 }
 
 __create() {
-    echo "This script will create a new docker-compose project and integrate d.rymcg.tech Makefiles"
+    name_pattern='^[a-zA-Z][a-zA-Z0-9_-]*$'
     if [[ $# -gt 0 ]]; then
         PROJECT_NAME="$1"
+        if ! [[ "${PROJECT_NAME}" =~ $name_pattern ]]; then
+            fault "Error: Invalid characters in PROJECT_NAME -- valid regex: ${name_pattern}"
+        fi
     else
-        ask_no_blank "Enter a name for the new docker-compose project" PROJECT_NAME
+        echo "This script will create a new docker-compose project and integrate d.rymcg.tech Makefiles"
+        while ! [[ "${PROJECT_NAME}" =~ $name_pattern ]]; do
+            test -n "${PROJECT_NAME}" && echo "Error: Invalid characters in PROJECT_NAME -- valid regex: ${name_pattern}"
+            ask_no_blank "Enter a name for the new docker-compose project" PROJECT_NAME
+        done
         echo ""
     fi
+    PROJECT_NAME=$(echo "$PROJECT_NAME" | tr ' ' '-')
     if [[ $# -gt 1 ]]; then
         TEMPLATE_NAME="$2"
     else
         echo "Available templates:"
-        find "${ROOT_DIR}/_templates" -maxdepth 1 -type d -printf "%P\n" | column
+        find "${ROOT_DIR}/_templates" -maxdepth 1 -type d -printf "%P\n" | grep -v "^_" | column
         echo ""
-        ask_no_blank "Enter the template name to use" TEMPLATE_NAME bare
+        ask_no_blank "Enter the template name to use" TEMPLATE_NAME
         echo ""
     fi
     ${BIN}/create "${PROJECT_NAME}" "${TEMPLATE_NAME}" "./${PROJECT_NAME}"
@@ -116,7 +124,7 @@ __make() {
 __list_projects() {
     (
         if [[ "$1" == "--raw" ]]; then
-            find "${ROOT_DIR}" -maxdepth 1 -type d -printf "%P\n" | grep -v "^_" | grep -v "^\." | sort -u | xargs -iXX /bin/bash -c "test -f ${ROOT_DIR}/XX/Makefile && echo XX"
+            find -L "${ROOT_DIR}" -maxdepth 1 -type d -printf "%P\n" | grep -v "^_" | grep -v "^\." | sort -u | xargs -iXX /bin/bash -c "test -f ${ROOT_DIR}/XX/Makefile && echo XX"
         else
             echo "List of available d.rymcg.tech projects (not including external projects):"
             echo ""
@@ -176,6 +184,11 @@ __context() {
     fi
 }
 
+__run_script() {
+    CMD="${1}"; shift
+    ${ROOT_DIR}/_scripts/${CMD} "$@"
+}
+
 __d.rymcg.tech_completions() {
     ### BASH completion
     ## dev links:
@@ -188,6 +201,7 @@ __d.rymcg.tech_completions() {
     ## COMPREPLY is an array variable used to store the output completions
     ROOT_PROJECT_PLACEHOLDER="^-+$"
     INFO_WORDS=$(d.rymcg.tech info INFO_WORDS)
+    ROOT_DIR=$(d.rymcg.tech info ROOT_DIR)
 
     if [[ ${COMP_CWORD} == 1 ]]; then
         ## Complete the main command:
@@ -207,16 +221,17 @@ __d.rymcg.tech_completions() {
                 COMPREPLY=($(compgen -W "$(__d.rymcg.tech_documentation_words) ${ALL_PROJECTS}" "${COMP_WORDS[2]}"));;
             make)
                 COMPREPLY=($(compgen -W "-- ${ALL_PROJECTS}" "${COMP_WORDS[2]}"));;
+            context)
+                COMPREPLY=($(compgen -W "$(docker context ls --format '{{.Name}}')" "${COMP_WORDS[2]}"));;
             info)
                 COMPREPLY=($(compgen -W "${INFO_WORDS}" "${COMP_WORDS[2]}"));;
-            context)
-                COMPREPLY=($(compgen -W "$(docker context ls --format '{{.Name}}')" "${COMP_WORDS[2]}"))
+            script)
+                COMPREPLY=($(compgen -W "$(find ${ROOT_DIR}/_scripts -executable -printf '%P\n' | grep -v d.rymcg.tech)" "${COMP_WORDS[2]}"));;
         esac
     elif [[ ${COMP_CWORD} == 3 ]]; then
         ## Dispatch completion for the sub-commands second argument:
         ## d.rymcg.tech make traefik <TAB> ...
         if [[ "${COMP_WORDS[1]}" == "make" ]]; then
-            ROOT_DIR=$(d.rymcg.tech info ROOT_DIR)
             PROJECT=${COMP_WORDS[2]}
             PROJECT_DIR="${ROOT_DIR}/${PROJECT}"
             if [[ "${PROJECT}" =~ ${ROOT_PROJECT_PLACEHOLDER} ]]; then
@@ -226,7 +241,7 @@ __d.rymcg.tech_completions() {
             MAKE_TARGETS="$(make -C "${PROJECT_DIR}" -qp 2>/dev/null | awk -F':' '/^[a-zA-Z0-9][^$#\/\t=]*:([^=]|$)/ {split($1,A,/ /);for(i in A)print A[i]}' | sort -u)"
             COMPREPLY=($(compgen -W "${MAKE_TARGETS}" "${COMP_WORDS[3]}"))
         elif [[ "${COMP_WORDS[1]}" == "create" ]]; then
-            COMPREPLY=("bare")
+            COMPREPLY=($(compgen -W "$(find ${ROOT_DIR}/_templates -maxdepth 1 -type d -printf "%P\n" | grep -v "^_")" "${COMP_WORDS[3]}"))
         fi
     fi
 }
@@ -294,6 +309,8 @@ main() {
                 __info "$@";;
             context)
                 __context "$@";;
+            script)
+                __run_script "$@";;
             *)
                 fault "Invalid command"
         esac

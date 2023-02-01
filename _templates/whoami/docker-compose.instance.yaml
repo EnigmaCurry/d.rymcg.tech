@@ -1,0 +1,35 @@
+#! Compose the services from reusable fragments, in steps:
+#! All the YAML will be merged together in the end.
+
+---
+#@overlay/match by=overlay.all, expects=1
+---
+#! basic_environment
+#! Create the basic environment variables for ALL your services:
+#@overlay/match-child-defaults missing_ok=True
+services:
+  whoami: #@ basic_environment()
+
+---
+#@overlay/match by=overlay.all, expects=1
+---
+#! basic_traefik_router(router, rule, middlewares=('ipwhitelist','basicauth'))
+#! Adds a router with the given name, rule, and middlewares.
+#! If you need multiple routes for the same service, duplicate this entire section.
+#@overlay/match-child-defaults missing_ok=True
+#@yaml/text-templated-strings
+services:
+  whoami: #@ basic_traefik_router(router="whoami", rule="Host(`${${CREATE_TEMPLATE_PROJECT_NAME_UPPERCASE}_TRAEFIK_HOST}`)")
+
+---
+#@overlay/match by=overlay.all, expects=1
+---
+#! Add the rest of the customization here and it will merge it with the above:
+#@overlay/match-child-defaults missing_ok=True
+services:
+  whoami:
+    labels:
+      #! Traefik is disabled for this service by default, unless you enable it here:
+      - "traefik.enable=true"
+      #! server.port is needed only if the Dockerfile did not use EXPOSE or if you need to override it:
+      #! - "traefik.http.services.(@= project @)-(@= instance @)-(@= service @).loadbalancer.server.port=8000"

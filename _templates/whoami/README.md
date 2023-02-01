@@ -52,8 +52,8 @@ make open
 The [whoami](whoami) sub-directory contains the source for the image
 that this service builds. It is just an example, and can be replaced
 with your own Dockerfile for your own service. If you change the name
-of the directory, be sure to update the `docker-compose.yaml`
-`build.context` as well.
+of the directory, be sure to update the name in `build.context` in
+`docker-compose.yaml`.
 
 If you don't need to build an image, but instead you want to pull an
 image from a docker registry, remove the `build` directive and replace

@@ -620,7 +620,7 @@ make           Run a make command for the given d.rymcg.tech project name
 ## Documentation sub-commands:
 help                  Show this help screen
 list                  List available d.rymcg.tech projects
-                      (not including external projects)
+                      (not including external projects, unless you symlink them into ROOT_DIR)
 readme [PROJECT]      Open the README.md for the given project name
 readme                Open the main d.rymcg.tech README.md in your browser
 readme raspberry_pi   Open the RASPBERRY_PI.md documentation
@@ -631,7 +631,8 @@ readme license        Open the LICENSE.txt software license
 ```
 
 You can use this script to run the make targets for any of the bundled
-projects, usable from any working directory:
+projects, usable from any working directory, and with full tab
+completion support:
 
  * `d.rymcg.tech list` (retrieve list of all available projects)
  * `d.rymcg.tech make -- status` (view status of all installed

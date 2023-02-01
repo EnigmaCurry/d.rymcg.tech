@@ -1,0 +1,82 @@
+version: "3.9"
+services:
+  ## The name of your service - whoami is just an example -
+  ## If you change this name, change it in docker-compose.instance.yaml too:
+  whoami:
+    ## Build the docker image from the local Dockerfile source:
+    build:
+      context: whoami
+      args:
+        UID: ${${CREATE_TEMPLATE_PROJECT_NAME_UPPERCASE}_UID}
+        GID: ${${CREATE_TEMPLATE_PROJECT_NAME_UPPERCASE}_GID}
+        USERNAME: ${CREATE_TEMPLATE_PROJECT_NAME}
+    ## user is optional, it overrides the USER of the Dockerfile
+    user: ${${CREATE_TEMPLATE_PROJECT_NAME_UPPERCASE}_UID}:${${CREATE_TEMPLATE_PROJECT_NAME_UPPERCASE}_GID}
+    environment:
+      ### Standard environment variables all containers should define:
+      - PROJECT=${CREATE_TEMPLATE_PROJECT_NAME}
+      - INSTANCE=${${CREATE_TEMPLATE_PROJECT_NAME_UPPERCASE}_INSTANCE}
+      - ${CREATE_TEMPLATE_PROJECT_NAME_UPPERCASE}_INSTANCE
+    ## Setting a restart policy is important, especially in case of system reboot:
+    restart: unless-stopped
+
+    ## All labels are templated inside of docker-compose.instance.yaml ...
+    labels: []
+
+    ## Security options
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    sysctls:
+      - net.ipv4.ip_unprivileged_port_start=1024
+    cap_add:
+      ## These are all of the available Linux system capabilities that containers can access
+      ## https://man.archlinux.org/man/capabilities.7
+      ##
+      ## These are the capabilities that Docker would add by default,
+      ## except not, because we use cap_drop: ALL
+      ## https://github.com/moby/moby/blob/2b9de2e24a9877843c1998366ac97959c12b45aa/oci/caps/defaults.go#L6-L19
+      ## You can try commenting these out and test if you app works
+      ## without them:
+      - CHOWN
+      - DAC_OVERRIDE
+      - FSETID
+      - FOWNER
+      - MKNOD
+      - NET_RAW
+      - SETGID
+      - SETUID
+      - SETFCAP
+      - SETPCAP
+      - NET_BIND_SERVICE
+      - SYS_CHROOT
+      - KILL
+      - AUDIT_WRITE
+      ## The rest of these are PRIVILEGED capabilities:
+      ## Unless you know you need one of these, you should delete
+      ## them, or leave them commented out, they are for reference only!
+      ## - AUDIT_CONTROL
+      ## - AUDIT_READ
+      ## - BLOCK_SUSPEND
+      ## - DAC_READ_SEARCH
+      ## - IPC_LOCK
+      ## - IPC_OWNER
+      ## - LEASE
+      ## - LINUX_IMMUTABLE
+      ## - MAC_ADMIN
+      ## - MAC_OVERRIDE
+      ## - NET_ADMIN
+      ## - NET_BROADCAST
+      ## - SYS_ADMIN
+      ## - SYS_BOOT
+      ## - SYSLOG
+      ## - SYS_MODULE
+      ## - SYS_NICE
+      ## - SYS_PACCT
+      ## - SYS_PTRACE
+      ## - SYS_RAWIO
+      ## - SYS_RESOURCE
+      ## - SYS_TIME
+      ## - SYS_TTY_CONFIG
+      ## - WAKE_ALARM
