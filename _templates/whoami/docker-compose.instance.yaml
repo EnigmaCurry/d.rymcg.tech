@@ -13,7 +13,9 @@ services:
 ---
 #@overlay/match by=overlay.all, expects=1
 ---
-#! basic_traefik_router - adds a router with the given name and rule.
+#! basic_traefik_router(router, rule, middlewares=('ipwhitelist','basicauth'))
+#! Adds a router with the given name, rule, and middlewares.
+#! If you need multiple routes for the same service, duplicate this entire section.
 #@overlay/match-child-defaults missing_ok=True
 #@yaml/text-templated-strings
 services:
