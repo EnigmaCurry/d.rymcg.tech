@@ -8,4 +8,4 @@ RUN addgroup -g ${GID} ${USERNAME} && \
 COPY --from=traefik/whoami:latest /whoami /usr/local/bin/whoami
 
 EXPOSE 8000
-CMD /usr/local/bin/whoami --port 8000 --name "${PROJECT}_${INSTANCE}"
+CMD /usr/local/bin/whoami --port 8000 --name "${DOCKER_PROJECT}_${DOCKER_INSTANCE}"
