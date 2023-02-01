@@ -1,14 +1,51 @@
-#! Add the basic traefik labels to all your services:
-#! This creates the router, and applies the standard HTTP authentication and IP filtering middlewares:
-#! basic_traefik_config args takes the NAMES of the environment variables to reference, not the values themselves.
+#! Compose the services from reusable fragments, in steps:
+#! All the YAML will be merged together in the end.
+
+---
+#@overlay/match by=overlay.all, expects=1
+---
+#! basic_service
+#! Create the basic service environment and security context for each of your services
+#@overlay/match-child-defaults missing_ok=True
 services:
-  flask: #@ basic_traefik_config(service="flask", traefik_host_var="${CREATE_TEMPLATE_PROJECT_NAME_UPPERCASE}_TRAEFIK_HOST", ip_sourcerange_var="${CREATE_TEMPLATE_PROJECT_NAME_UPPERCASE}_IP_SOURCERANGE", http_auth_var="${CREATE_TEMPLATE_PROJECT_NAME_UPPERCASE}_HTTP_AUTH", port=None)
+  api: #@ basic_service()
+  database: #@ basic_service()
+
+---
+#@overlay/match by=overlay.all, expects=1
+---
+#! basic_traefik_router(router, rule, middlewares=('ipwhitelist','basicauth'))
+#! Adds a router with the given name, rule, and middlewares.
+#! If you need multiple routes for the same service, duplicate this entire section.
+#@overlay/match-child-defaults missing_ok=True
+#@yaml/text-templated-strings
+services:
+  api: #@ basic_traefik_router(router="api", rule="Host(`${${CREATE_TEMPLATE_PROJECT_NAME_UPPERCASE}_TRAEFIK_HOST}`)")
+
 ---
 #@overlay/match by=overlay.all, expects=1
 ---
 #! Add the rest of the customization here and it will merge it with the above:
+#@overlay/match-child-defaults missing_ok=True
 services:
-  flask:
+  api:
+    #@ if development_mode:
+    command: ["flask","--app","app","--debug","run","--host","0.0.0.0","--port","8000"]
+    volumes:
+      #! Overlay the development source code volume onto the container's /code directory:
+      #! `make dev-sync` will rsync development files to this volume for the server to reload:
+      - development:/code
+    #@ end
     labels:
-      - "additional custom label 1 - ignore this - example only"
-      - "additional custom label 2 - ignore this - example only"
+      #! Traefik is disabled for this service by default, unless you enable it here:
+      - "traefik.enable=true"
+      #! server.port is needed only if the Dockerfile did not use EXPOSE or if you need to override it:
+      #! - "traefik.http.services.(@= project @)-(@= instance @)-(@= service @).loadbalancer.server.port=8000"
+
+#@overlay/match missing_ok=True
+#@overlay/match-child-defaults missing_ok=True
+volumes:
+  #! Create the volume for `make dev-sync` to rsync files to:
+  #@ if development_mode:
+  development:
+  #@ end
