@@ -1,5 +1,7 @@
 #!/bin/bash
 
+### Create a new external project directory based upon a template
+
 ## BIN is the _scripts directory inside of d.rymcg.tech
 BIN=$(dirname $(realpath ${BASH_SOURCE}))
 ## ROOT_DIR is the root path of the d.rymcg.tech project
