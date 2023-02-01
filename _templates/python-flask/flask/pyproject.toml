@@ -1,5 +1,5 @@
 [tool.poetry]
-name = "api"
+name = "app"
 version = "0.1.0"
 description = "example flask app"
 authors = ["EnigmaCurry <ryan@enigmacurry.com>"]

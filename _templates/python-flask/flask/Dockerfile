@@ -24,9 +24,7 @@ ENV PATH=/home/${USERNAME}/.local/bin:/usr/local/bin:/usr/local/sbin:/usr/local/
 WORKDIR /code
 COPY --from=gather-requirements-txt /tmp/requirements.txt requirements.txt
 RUN pip install --no-cache-dir --upgrade -r requirements.txt
-COPY ./api api
-COPY ./entrypoint.sh /usr/local/bin/entrypoint
+COPY ./app app
 VOLUME /code
 EXPOSE 8000
-ENTRYPOINT ["/usr/local/bin/entrypoint"]
-
+CMD gunicorn --worker-tmp-dir /dev/shm --workers=2 --threads=4 --worker-class=gthread --bind 0.0.0.0 app:app

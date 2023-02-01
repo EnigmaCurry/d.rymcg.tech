@@ -30,9 +30,7 @@ services:
 services:
   api:
     #@ if development_mode:
-    command:
-      #! Add the gunicorn live-reload argument:
-      - --reload
+    command: ["flask","--app","app","--debug","run","--host","0.0.0.0","--port","8000"]
     volumes:
       #! Overlay the development source code volume onto the container's /code directory:
       #! `make dev-sync` will rsync development files to this volume for the server to reload:
