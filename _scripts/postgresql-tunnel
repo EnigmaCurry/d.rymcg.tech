@@ -24,7 +24,7 @@ CONTAINER="$(docker compose --env-file ${ENV_FILE} ps ${SERVICE} --format json |
 if [[ -z "${CONTAINER}" ]]; then
     fault "Could not find the database container."
 fi
-DB_IP=$(docker inspect ${CONTAINER} | jq -r ".[0].NetworkSettings.Networks.${PROJECT}_${INSTANCE}.IPAddress");
+DB_IP=$(docker inspect ${CONTAINER} | jq -r ".[0].NetworkSettings.Networks[\"${PROJECT}_${INSTANCE}\"].IPAddress");
 if [[ -z "${DB_IP}" ]]; then
     fault "Could not find the database container IP address."
 fi
