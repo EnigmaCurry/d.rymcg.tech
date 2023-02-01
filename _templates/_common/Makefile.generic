@@ -18,3 +18,4 @@ config-hook-basic-traefik:
 ### Configure HTTP Auth:
 	@(${BIN}/confirm $$(test -n "$$(${BIN}/dotenv -f ${ENV_FILE} get ${CREATE_TEMPLATE_PROJECT_NAME_UPPERCASE}_HTTP_AUTH)" && echo yes || echo no) "Do you want to enable HTTP Basic Authentication" "?" && ${BIN}/reconfigure_htpasswd ${ENV_FILE} ${CREATE_TEMPLATE_PROJECT_NAME_UPPERCASE}_HTTP_AUTH) || ${BIN}/reconfigure ${ENV_FILE} ${CREATE_TEMPLATE_PROJECT_NAME_UPPERCASE}_HTTP_AUTH=''
 	@(${BIN}/confirm $$(test "$$(${BIN}/dotenv -f ${ENV_FILE} get ${CREATE_TEMPLATE_PROJECT_NAME_UPPERCASE}_DEVELOPMENT_MODE)" == "true" && echo yes || echo no) "Do you want to enable live-reload development mode" "?" && ${BIN}/reconfigure ${ENV_FILE} ${CREATE_TEMPLATE_PROJECT_NAME_UPPERCASE}_DEVELOPMENT_MODE=true) || ${BIN}/reconfigure ${ENV_FILE} ${CREATE_TEMPLATE_PROJECT_NAME_UPPERCASE}_DEVELOPMENT_MODE=false
+

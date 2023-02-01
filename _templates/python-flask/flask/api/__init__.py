@@ -2,6 +2,8 @@ from flask import Flask, request
 from werkzeug.middleware.proxy_fix import ProxyFix
 import os
 
+from .database import db
+
 app = Flask(__name__)
 
 ## Configure WSGI to trust X-Forwarded-For header from Traefik Proxy
