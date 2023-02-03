@@ -16,7 +16,7 @@ SSH_UID=$(ssh ${SSH_HOST} id -u)
 DAEMON_CONF=${DAEMON_CONF:-/etc/docker/daemon.json}
 
 echo "## Checking Docker Daemon config (${DAEMON_CONF}) ..."
-ssh ${SSH_HOST} sh -c "test -f ${DAEMON_CONF} || sudo sh -c 'echo {} > ${DAEMON_CONF}'"
+ssh ${SSH_HOST} sh -c "test -f ${DAEMON_CONF} || ${SUDO_PREFIX} sh -c 'echo {} > ${DAEMON_CONF}'"
 if [[ $cmd == "check" ]]; then
     # Just check for the setting, don't configure anything:
     ssh ${SSH_HOST} "${SUDO_PREFIX} grep userns-remap ${DAEMON_CONF}" || echo "Not using userns-remap"
