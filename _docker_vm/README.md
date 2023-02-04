@@ -500,8 +500,21 @@ sudo gparted /dev/nbd0
 sudo qemu-nbd -d /dev/nbd0
 
 ## Restart the VM
-## Be patient for the VM to restart, it runs fsck on boot.
+## Be patient for the VM to restart, it will wait for the swap mount to fail:
 systemctl --user start docker-vm
+
+## SSH into the VM to prepare the new swap partition:
+ssh docker-vm
+## Create new swap:
+mkswap /dev/sda5
+## Copy the UUID string from the new swap partition:
+blkid /dev/sda5
+## Edit the VM /etc/fstab and change the UUID for swap:
+nano /etc/fstab
+## Reboot the server, (it should be quicker this time)
+reboot
+
+## SSH back in, and check swap space with `free -m`
 ```
 
 
