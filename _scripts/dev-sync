@@ -22,7 +22,7 @@ fi
 ${BIN}/volume_mkdir "${VOLUME}"
 while [[ true ]] ; do
     echo "Syncing ..."
-    ${BIN}/volume_rsync "${VOLUME}" -av --delete --exclude '.#' "${SRC_DIR}/" "volume:/data/${DEST_DIR}"
+    ${BIN}/volume_rsync "${VOLUME}" -av --delete --exclude={'.git','.#','target'} "${SRC_DIR}/" "volume:/data/${DEST_DIR}"
     echo "Waiting for changes ..."
     inotifywait -r -t 600 -e modify,delete,create,move --exclude '\.#.*' .
 done
