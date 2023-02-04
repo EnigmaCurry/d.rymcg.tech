@@ -78,7 +78,7 @@ the self-signed certificate on a per-domain basis. You can still use
 all of the projects that do not require TLS, or for those projects
 that include their own self-signed certificates (eg.
 [postgresql](../postgresql)).
-
+    
 To get around this TLS problem, you may reconfigure
 [Traefik](../traefik/docker-compose.yaml) to use the [DNS-01 challenge
 type](https://doc.traefik.io/traefik/user-guides/docker-compose/acme-dns/),
@@ -467,6 +467,43 @@ export DOCKER_DEFAULT_PLATFORM=linux/arm64
 docker run --rm -t ubuntu uname -m
 
 ```
+
+## Resize VM disk image
+
+If you want to increase the size of the root partion of an already
+installed VM, you can follow [this guide on resizing qcow2 disk
+images](https://linuxconfig.org/how-to-resize-a-qcow2-disk-image-on-linux).
+Here's the gist:
+
+```
+## Shutdown VM
+systemctl --user stop docker-vm
+cd ~/git/vendor/enigmacurry/d.rymcg.tech/_docker_vm/VMs
+
+## Resize the disk
+GROW_SIZE=+50G
+qemu-img resize docker-vm.qcow "${GROW_SIZE}"
+
+## Attach the disk image device:
+sudo modprobe nbd max_part=10
+sudo qemu-nbd -c /dev/nbd0 docker-vm.qcow
+
+## Use the GUI gparted tool to operate on the disk partitions:
+sudo gparted /dev/nbd0
+
+## 1) delete the extended and swap partitions, but take note of the size.
+## 2) Resize the root partition, but leave a little space at the end for new swap
+## 3) Create new extended/swap partitions at the end.
+## Commit changes
+
+## Detach the disk image device:
+sudo qemu-nbd -d /dev/nbd0
+
+## Restart the VM
+## Be patient for the VM to restart, it runs fsck on boot.
+systemctl --user start docker-vm
+```
+
 
 ## Credits
 
