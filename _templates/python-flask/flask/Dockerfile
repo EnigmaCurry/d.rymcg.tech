@@ -3,7 +3,8 @@ ARG UID=1000
 ARG GID=1000
 ARG USERNAME=python-user
 RUN groupadd -g "${GID}" "${USERNAME}" && \
-    adduser --uid "${UID}" --gid "${GID}" --gecos "" --disabled-password "${USERNAME}"
+    adduser --uid "${UID}" --gid "${GID}" \
+    --gecos "" --disabled-password "${USERNAME}"
 USER ${USERNAME}
 ENV PATH=/home/${USERNAME}/.local/bin:/usr/local/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
 WORKDIR /tmp
@@ -18,7 +19,8 @@ ARG UID=1000
 ARG GID=1000
 ARG USERNAME=python-user
 RUN groupadd -g "${GID}" "${USERNAME}" && \
-    adduser --uid "${UID}" --gid "${GID}" --gecos "" --disabled-password "${USERNAME}"
+    adduser --uid "${UID}" --gid "${GID}" \
+    --gecos "" --disabled-password "${USERNAME}"
 USER ${USERNAME}
 ENV PATH=/home/${USERNAME}/.local/bin:/usr/local/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
 WORKDIR /code
