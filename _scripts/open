@@ -35,7 +35,7 @@ if [[ "${PROTOCOL}" == "https" ]]; then
 elif [[ "${PROTOCOL}" == "http" ]]; then
     PORT=${4:-$(${BIN}/dotenv -f ${ROOT_ENV_FILE} get PUBLIC_HTTP_PORT || echo 80)}
 fi
-if [[ -z "${PORT}" ]] || [[ "$PORT" == "80" ]] || [[ "$PORT" == "443" ]]; then
+if [[ -z "${PORT}" ]] || [[ "$PORT" == "80" ]] || [[ "$PORT" == "443" ]] || [[ "${HOST}" =~ ":" ]]; then
     PORT=""
 else
     PORT=":${PORT}"
