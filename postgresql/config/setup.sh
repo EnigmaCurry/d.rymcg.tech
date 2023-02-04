@@ -8,7 +8,7 @@ ROOT_CA_NAME="${ROOT_CA_NAME:-Example CA}"
 # 100 year certificate expiration by default:
 CERTIFICATE_EXPIRATION="${CERTIFICATE_EXPIRATION:-876000h}"
 # Allowed IP address source range:
-ALLOWED_IP_SOURCERANGE="${ALLOWED_IP_SOURCERANGE:-0.0.0.0/0}"
+POSTGRES_ALLOWED_IP_SOURCERANGE="${POSTGRES_ALLOWED_IP_SOURCERANGE:-0.0.0.0/0}"
 ## The certificates are only created one time, on the first startup.. Unless
 ## FORCE_NEW_CERTIFICATES=true, which will then overrwrite the existing
 ## certificates with a brand new PKI (CA+server+client certs).

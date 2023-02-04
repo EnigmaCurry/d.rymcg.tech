@@ -15,7 +15,7 @@ services:
       - POSTGRES_USER=${POSTGRES_ADMIN_USER}
       - POSTGRES_LIMITED_USER=${POSTGRES_DB}
       - POSTGRES_TRAEFIK_HOST
-      - ALLOWED_IP_SOURCERANGE
+      - POSTGRES_ALLOWED_IP_SOURCERANGE
       - FORCE_NEW_CERTIFICATES
       - EXTRA_DATABASES
     volumes:
@@ -43,5 +43,5 @@ services:
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U $$POSTGRES_USER -d $$POSTGRES_DB"]
     ports:
-      - ${EXTERNAL_TCP_PORT}:5432
+      - ${POSTGRES_EXTERNAL_TCP_PORT}:5432
     command: postgres -c 'config_file=/etc/postgresql/postgresql.conf'
