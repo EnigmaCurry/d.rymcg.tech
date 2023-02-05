@@ -1,13 +1,15 @@
+ORIGINAL_MAKEFILE=$(realpath $(firstword $(MAKEFILE_LIST)))
+
 .PHONY: clean # Remove current context/instance environment file and saved passwords.json
 clean:
 	@echo "ENV_FILE=${ENV_FILE}"
 	@ENV_FILE=${ENV_FILE}; set -x && rm -f $${ENV_FILE} docker-compose.override_${CONTEXT_INSTANCE}.yaml
-	@echo "# Removed current context/instance environment files only."
+	@echo "# Removed current context/instance environment files."
 	@[[ -f passwords.json ]] && TEMP_PWD_FILE=$$(mktemp) && cat passwords.json | jq 'del(.["'${DOCKER_CONTEXT}'"])' >$${TEMP_PWD_FILE} && mv $${TEMP_PWD_FILE} passwords.json && echo "# Removed all entries from passwords.json for context: ${DOCKER_CONTEXT}" || true
+	@grep "^clean-hook:" "${ORIGINAL_MAKEFILE}" >/dev/null 2>&1 && make -e --no-print-directory clean-hook || true
+
 
 .PHONY: clean-all # Remove all environment files and saved passwords.json
-clean-all:
-	@echo "ENV_FILE=${ENV_FILE}"
-	@ENV_FILE=${ENV_FILE}; set -x && rm -f .env_* docker-compose.override*.yaml
-	@echo "# Removed all context/instance environment files."
-	@rm -f passwords.json && echo "# Removed passwords.json"
+clean-all: clean
+	set -x && rm -f .env_* docker-compose.override*.yaml passwords.json
+	@echo "# Removed all context/instance environment and passwords files."
