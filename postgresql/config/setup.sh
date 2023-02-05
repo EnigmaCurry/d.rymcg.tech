@@ -14,6 +14,12 @@ POSTGRES_ALLOWED_IP_SOURCERANGE="${POSTGRES_ALLOWED_IP_SOURCERANGE:-0.0.0.0/0}"
 ## certificates with a brand new PKI (CA+server+client certs).
 FORCE_NEW_CERTIFICATES="${FORCE_NEW_CERTIFICATES:-false}"
 
+## You can use the default EC key type or the RSA key type.
+## EC Keys use PK12 key type (`-----BEGIN EC PRIVATE KEY-----`)
+## RSA Keys use PKCS8 key type (`-----BEGIN PRIVATE KEY-----`)
+### set key type to RSA for use with sqlx https://github.com/launchbadge/sqlx/pull/1850
+KEY_ARGS="--kty RSA --size 2048"
+
 create_config() {
     cd ${CONFIG_DIR}
     TEMPLATE=/template/s3-proxy.template.yml
@@ -38,13 +44,13 @@ create_certs() {
     echo "Creating new PKI - CA + server + client certificates ... "
 
     ## Create the root Certificate Authority:
-    step certificate create --insecure --no-password --profile root-ca "${ROOT_CA_NAME}" root_ca.crt root_ca.key
+    step certificate create --insecure --no-password --profile root-ca ${KEY_ARGS} "${ROOT_CA_NAME}" root_ca.crt root_ca.key
 
     ## Create the server certificate:
-    step certificate create --insecure --no-password --profile leaf "${POSTGRES_TRAEFIK_HOST}" server.crt server.key --not-after="${CERTIFICATE_EXPIRATION}" --ca root_ca.crt --ca-key root_ca.key
+    step certificate create --insecure --no-password --profile leaf ${KEY_ARGS} "${POSTGRES_TRAEFIK_HOST}" server.crt server.key --not-after="${CERTIFICATE_EXPIRATION}" --ca root_ca.crt --ca-key root_ca.key
 
     ## Create the client certificate:
-    step certificate create --insecure --no-password --profile leaf "${POSTGRES_LIMITED_USER}" client.crt client.key --not-after="${CERTIFICATE_EXPIRATION}" --ca root_ca.crt --ca-key root_ca.key
+    step certificate create --insecure --no-password --profile leaf ${KEY_ARGS} "${POSTGRES_LIMITED_USER}" client.crt client.key --not-after="${CERTIFICATE_EXPIRATION}" --ca root_ca.crt --ca-key root_ca.key
 
     ## Make a copy of the client key in DER PK8 format (DBeaver needs this)
     openssl pkcs8 -topk8 -inform PEM -outform DER -nocrypt -in client.key -out client.pk8.key
