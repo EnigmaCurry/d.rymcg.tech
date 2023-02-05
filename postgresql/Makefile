@@ -28,9 +28,10 @@ client:
 	@echo
 	@echo ^^ Enjoy
 
-.PHONY: clean # Remove client certificates and keys from local directory
-clean:
+.PHONY: clean-hook # Remove client certificates and keys from local directory
+clean-hook:
 	rm -f *.crt *.key
+	@echo "# Removed postgresql client certificates."
 
 .PHONY: diagram # Make a pictoral diagram of your database table models
 diagram:
