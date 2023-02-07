@@ -52,8 +52,8 @@ create_certs() {
     ## Create the client certificate:
     step certificate create --insecure --no-password --profile leaf ${KEY_ARGS} "${POSTGRES_LIMITED_USER}" client.crt client.key --not-after="${CERTIFICATE_EXPIRATION}" --ca root_ca.crt --ca-key root_ca.key
 
-    ## Make a copy of the client key in DER PK8 format (DBeaver needs this)
-    openssl pkcs8 -topk8 -inform PEM -outform DER -nocrypt -in client.key -out client.pk8.key
+    ## Make a copy of the client key in PK8 format - rust-native-tls needs this.
+    openssl pkcs8 -topk8 -nocrypt -in client.key -out client.pk8.key
 
     ## Fix permissions for the postgres group to access:
     chmod 0040 {root_ca,server,client}.{key,crt} client.pk8.key
