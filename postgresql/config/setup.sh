@@ -14,11 +14,11 @@ POSTGRES_ALLOWED_IP_SOURCERANGE="${POSTGRES_ALLOWED_IP_SOURCERANGE:-0.0.0.0/0}"
 ## certificates with a brand new PKI (CA+server+client certs).
 FORCE_NEW_CERTIFICATES="${FORCE_NEW_CERTIFICATES:-false}"
 
-## You can use the default EC key type or the RSA key type.
+## You can use the default EC key type or change to the RSA key type.
 ## EC Keys use PK12 key type (`-----BEGIN EC PRIVATE KEY-----`)
 ## RSA Keys use PKCS8 key type (`-----BEGIN PRIVATE KEY-----`)
-### set key type to RSA for use with sqlx https://github.com/launchbadge/sqlx/pull/1850
-KEY_ARGS="--kty RSA --size 2048"
+#KEY_ARGS="--kty RSA --size 2048"
+KEY_ARGS=""
 
 create_config() {
     cd ${CONFIG_DIR}
