@@ -224,6 +224,16 @@ remote docker service and connects directly to the unix domain socket for
 postgres. This connects you to the database as the `root` superuser. This is the
 only way that the `root` user is allowed to connect.
 
+## Local database
+
+You can start a subshell with all the correct variable set for local
+access with any postgresql client, eg. psql or dbeaver.
+
+```
+## Create subshell environment with connection details set in env vars:
+make localdb
+```
+
 ## Import sample databases
 
 You can import the sample

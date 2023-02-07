@@ -60,6 +60,9 @@ connection-variables:
 	@echo export PGSSLKEY=$$(realpath .)/$$(${BIN}/dotenv -f ${ENV_FILE} get POSTGRES_TRAEFIK_HOST)_$$(${BIN}/dotenv -f ${ENV_FILE} get POSTGRES_DB).key
 	@echo export PGSSLROOTCERT=$$(realpath .)/$$(${BIN}/dotenv -f ${ENV_FILE} get POSTGRES_TRAEFIK_HOST)_ca.crt
 
+.PHONY: localdb
+localdb: client
+	@export PGHOST=$$(${BIN}/dotenv -f ${ENV_FILE} get POSTGRES_TRAEFIK_HOST); export PGPORT=$$(${BIN}/dotenv -f ${ENV_FILE} get POSTGRES_EXTERNAL_TCP_PORT); export PGUSER=$$(${BIN}/dotenv -f ${ENV_FILE} get POSTGRES_DB); export PGDATABASE=$$(${BIN}/dotenv -f ${ENV_FILE} get POSTGRES_DB); export PGSSLMODE=verify-full; export PGSSLCERT=$$(realpath .)/$$(${BIN}/dotenv -f ${ENV_FILE} get POSTGRES_TRAEFIK_HOST)_$$(${BIN}/dotenv -f ${ENV_FILE} get POSTGRES_DB).crt; export PGSSLKEY=$$(realpath .)/$$(${BIN}/dotenv -f ${ENV_FILE} get POSTGRES_TRAEFIK_HOST)_$$(${BIN}/dotenv -f ${ENV_FILE} get POSTGRES_DB).key; export PGSSLROOTCERT=$$(realpath .)/$$(${BIN}/dotenv -f ${ENV_FILE} get POSTGRES_TRAEFIK_HOST)_ca.crt; export DATABASE_URL="postgres://"; bash --rcfile <(echo -e "PS1='[$${PGDATABASE} DB] $$ "$${PS1}"'") -i
 
 .PHONY: chinook # Import Chinook sample database
 chinook:
