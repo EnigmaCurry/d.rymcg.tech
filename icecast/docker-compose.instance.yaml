@@ -1,0 +1,7 @@
+#@ load("@ytt:data", "data")
+services:
+  icecast:
+    #@ if data.values.icecast_allow_direct_map_port == "true":
+    ports:
+      - #@ "{}:8000".format(data.values.icecast_direct_map_port)
+    #@ end
