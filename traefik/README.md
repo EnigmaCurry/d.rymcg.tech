@@ -538,6 +538,9 @@ Traefik [.env](.env-dist) file :
 | `TRAEFIK_WEBSECURE_ENTRYPOINT_ENABLED`     | (bool) Enable websecure (port 443) entrypoint                                    | `true`,`false`                                |
 | `TRAEFIK_WEBSECURE_ENTRYPOINT_HOST`        | Host ip address to bind websecure entrypoint                                     | `0.0.0.0`                                     |
 | `TRAEFIK_WEBSECURE_ENTRYPOINT_PORT`        | Host TCP port to bind websecure entrypoint                                       | `443`                                         |
+| `TRAEFIK_WEB_PLAIN_ENTRYPOINT_ENABLED`     | (bool) Enable web_plain (port 8000) entrypoint                                   | `true`,`false`                                |
+| `TRAEFIK_WEB_PLAIN_ENTRYPOINT_HOST`        | Host ip address to bind web_plain entrypoint                                     | `0.0.0.0`                                     |
+| `TRAEFIK_WEB_PLAIN_ENTRYPOINT_PORT`        | Host TCP port to bind web_plain entrypoint                                       | `8000`                                          |
 | `TRAEFIK_MQTT_ENTRYPOINT_ENABLED`          | (bool) Enable mqtt (port 443) entrypoint                                         |                                               |
 | `TRAEFIK_MQTT_ENTRYPOINT_HOST`             | Host ip address to bind mqtt entrypoint                                          | `0.0.0.0`                                     |
 | `TRAEFIK_MQTT_ENTRYPOINT_PORT`             | Host TCP port to bind mqtt entrypoint                                            | `8883`                                        |
