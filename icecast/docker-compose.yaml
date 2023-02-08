@@ -1,0 +1,50 @@
+version: "3.3"
+
+volumes:
+  config:
+  logs:
+
+services:
+  config:
+    build:
+      context: config
+    security_opt:
+      - no-new-privileges:true
+    environment:
+      - ICECAST_TRAEFIK_HOST
+      - ICECAST_INSTANCE
+      - ICECAST_IP_SOURCERANGE
+      - ICECAST_UID
+      - ICECAST_GID
+      - ICECAST_LOCATION
+      - ICECAST_ADMIN
+      - ICECAST_LIMIT_CLIENTS
+      - ICECAST_LIMIT_SOURCES
+      - ICECAST_LIMIT_QUEUE_SIZE
+      - ICECAST_LIMIT_CLIENT_TIMEOUT
+      - ICECAST_LIMIT_HEADER_TIMEOUT
+      - ICECAST_LIMIT_SOURCE_TIMEOUT
+      - ICECAST_LIMIT_BURST_ON_CONNECT
+      - ICECAST_LIMIT_BURST_SIZE
+      - ICECAST_AUTHENTICATION_SOURCE_PASSWORD
+      - ICECAST_AUTHENTICATION_RELAY_PASSWORD
+      - ICECAST_AUTHENTICATION_ADMIN_USER
+      - ICECAST_AUTHENTICATION_ADMIN_PASSWORD
+      - ICECAST_FILESERVE
+    volumes:
+      - config:/config
+
+  icecast:
+    depends_on: ['config']
+    build:
+      context: icecast
+    volumes:
+      - config:/config
+      - logs:/var/log/icecast
+    restart: unless-stopped
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.icecast-${ICECAST_INSTANCE:-default}.rule=Host(`${ICECAST_TRAEFIK_HOST}`)"
+      - "traefik.http.routers.icecast-${ICECAST_INSTANCE:-default}.entrypoints=websecure"
+      - "traefik.http.middlewares.icecast-${ICECAST_INSTANCE:-default}-whitelist.ipwhitelist.sourcerange=${ICECAST_IP_SOURCERANGE}"
+      - "traefik.http.routers.icecast-${ICECAST_INSTANCE:-default}.middlewares=icecast-${ICECAST_INSTANCE:-default}-whitelist"

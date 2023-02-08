@@ -443,6 +443,7 @@ Install these services at your leisure/preference:
 * [Filestash](filestash) - a web based file manager with customizable backend storage providers
 * [FreshRSS](freshrss) - an RSS reader / proxy
 * [Gitea](gitea) - Git host (like self-hosted GitHub) and oauth server
+* [Icecast](icecast) - a SHOUTcast compatible streaming multimedia server
 * [Invidious](invidious) - a Youtube proxy
 * [Jitsi Meet](jitsi-meet) - a video conferencing and screencasting service
 * [Jupyterlab](jupyterlab) - a web based code editing environment / reproducible research tool
