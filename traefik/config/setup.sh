@@ -30,6 +30,9 @@ ytt_template() {
         -v websecure_entrypoint_enabled="${TRAEFIK_WEBSECURE_ENTRYPOINT_ENABLED}" \
         -v websecure_entrypoint_host="${TRAEFIK_WEBSECURE_ENTRYPOINT_HOST}" \
         -v websecure_entrypoint_port="${TRAEFIK_WEBSECURE_ENTRYPOINT_PORT}" \
+        -v web_plain_entrypoint_enabled="${TRAEFIK_WEB_PLAIN_ENTRYPOINT_ENABLED}" \
+        -v web_plain_entrypoint_host="${TRAEFIK_WEB_PLAIN_ENTRYPOINT_HOST}" \
+        -v web_plain_entrypoint_port="${TRAEFIK_WEB_PLAIN_ENTRYPOINT_PORT}" \
         -v mqtt_entrypoint_enabled="${TRAEFIK_MQTT_ENTRYPOINT_ENABLED}" \
         -v mqtt_entrypoint_host="${TRAEFIK_MQTT_ENTRYPOINT_HOST}" \
         -v mqtt_entrypoint_port="${TRAEFIK_MQTT_ENTRYPOINT_PORT}" \
