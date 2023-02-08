@@ -10,8 +10,8 @@ compatible with [Shoutcast](https://en.wikipedia.org/wiki/SHOUTcast)
 make config
 ```
 
-Icecast uses different passwords for different roles: Sources, Relays
-and , Admin. `make config` will create randomized passwords and save
+Icecast uses different passwords for different roles: Sources, Relays,
+and Admin. `make config` will create randomized passwords and save
 them to your `.env_{DOCKER_CONTEXT}` file.
 
 If your client does not support TLS, you can bind the icecast port
