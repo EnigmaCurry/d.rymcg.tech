@@ -60,10 +60,10 @@ settings for your own environment:
    `ICECAST_AUTHENTICATION_SOURCE_PASSWORD`
  * Change the port `8001` to the same value as your `ICECAST_DIRECT_MAP_PORT`.
 
-Save the config file to `~/.config/darkice/default.cfg`:
+Save the config file to `~/.config/darkice/default.conf`:
 
 ```
-## ~/.config/darkice/default.cfg
+## ~/.config/darkice/default.conf
 # sample DarkIce configuration file, edit for your needs before using
 # see the darkice.cfg man page for details
 
@@ -109,7 +109,7 @@ localDumpFile	= dump.mp4  # local dump file
 You can start the darkice client for testing:
 
 ```
-darkice -c ~/.config/darkice/default.cfg
+darkice -c ~/.config/darkice/default.conf
 ```
 
 You can enable the systemd unit so that it starts up automatically:
