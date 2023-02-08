@@ -46,4 +46,4 @@ set -x
 ssh -N -L ${PGPORT}:${DB_IP}:5432 -o ControlMaster=no -o ControlPersist=no ${SSH_HOST} &
 
 echo "Started SSH tunnel to PostgreSQL database"
-bash --rcfile <(echo -e "PS1='\[\033[01;31m\]DB conn [\[\033[01;37m\]${CONTAINER}\[\033[01;31m\]] \[\033[01;32m\][\u@\h\[\033[01;37m\] \W\[\033[01;32m\]] $ \[\033[0m\]'\necho -e '\n## PostgreSQL client variables set in this subshell:'\nenv | grep ^PG\necho DATABASE_URL=${DATABASE_URL}\necho ") -i
+bash --rcfile <(echo -e "PS1='\[\033[01;31m\]DB conn [\[\033[01;37m\]${CONTAINER}\[\033[01;31m\]] \[\033[01;32m\][\u@\h\[\033[01;37m\] \W\[\033[01;32m\]] $ \[\033[0m\]'\necho -e '\n## PostgreSQL client variables set in this subshell:'\nenv | grep ^PG\necho DATABASE_URL=${DATABASE_URL}\nalias make='make --no-print-directory'\necho ") -i
