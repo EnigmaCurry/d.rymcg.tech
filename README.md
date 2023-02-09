@@ -679,6 +679,8 @@ arg to open the root README):
 d.rymcg.tech readme traefik
 ```
 
+#### Project specific shell aliases
+
 You can add additional command aliases to your shell (put these in
 your `~/.bashrc` *after* the `eval` line that loads the main
 `d.rymcg.tech` script):
