@@ -698,15 +698,15 @@ With this alias installed, instead of running `make -C
 simply run `traefik install`.
 
 If you have created an [external
-project](#integrating-external-projects) (eg. named `foo`), you can
+project](#integrating-external-projects) (eg. named `mikeapp`), you can
 create a command alias for it:
 
 ```
-__d.rymcg.tech_project_alias foo ~/git/foo
+__d.rymcg.tech_project_alias mikeapp ~/git/mikeapp
 ```
 
-With this alias installed, instead of running `make -C ~/git/foo
-install` you can now simply run `foo install`.
+With this alias installed, instead of running `make -C ~/git/mikeapp
+install` you can now simply run `mikeapp install`.
 
 
 If you want a different alias for the main script, you can add that too:
