@@ -1,20 +1,21 @@
 #!/bin/bash
 
 ## Create a tunnel to the postgres service container:
-## postgresql-tunnel ENV_FILE SERVICE INSTANCE LOCAL_PGPORT
+## postgresql-tunnel ENV_FILE SERVICE INSTANCE [COMMAND]
 BIN=$(dirname ${BASH_SOURCE})
 source ${BIN}/funcs.sh
 set -e
 
-if [[ $# -lt 1 ]] || [[ $# -gt 4 ]]; then
-    fault "Invalid args. The correct args are: ENV_FILE SERVICE INSTANCE LOCAL_PGPORT"
+if [[ $# -lt 1 ]]; then
+    echo "Args: $@"
+    fault "Invalid args. The correct args are: ENV_FILE SERVICE INSTANCE [COMMAND ...]"
 fi
 
-ENV_FILE="${1}"
+ENV_FILE="${1}"; shift
+SERVICE="${1}"; shift
+INSTANCE="${1:-default}"; test -n "$1" && shift
 PROJECT=$(basename $(realpath $(dirname ${ENV_FILE})))
-SERVICE="${2}"
-INSTANCE="${3:-default}"
-PGPORT="${4:-$(random_port)}"
+PGPORT="${PGPORT:-$(random_port)}"; 
 echo "PGPORT=${PGPORT}"
 check_var ENV_FILE PROJECT SERVICE INSTANCE PGPORT
 
@@ -42,8 +43,12 @@ export DATABASE_URL="postgres://${PGHOST}/${PGDATABASE}"
 check_var PGUSER PGPASSWORD PGDATABASE PGHOST PGPORT PGSSLMODE
 unset PGSSLKEY PGSSLROOTCERT PGSSLCERT
 
-set -x
-ssh -N -L ${PGPORT}:${DB_IP}:5432 -o ControlMaster=no -o ControlPersist=no ${SSH_HOST} &
+(set -x; ssh -N -L ${PGPORT}:${DB_IP}:5432 -o ControlMaster=no -o ControlPersist=no ${SSH_HOST} &)
 
 echo "Started SSH tunnel to PostgreSQL database"
-bash --rcfile <(echo -e "PS1='\[\033[01;31m\]DB conn [\[\033[01;37m\]${CONTAINER}\[\033[01;31m\]] \[\033[01;32m\][\u@\h\[\033[01;37m\] \W\[\033[01;32m\]] $ \[\033[0m\]'\necho -e '\n## PostgreSQL client variables set in this subshell:'\nenv | grep ^PG\necho DATABASE_URL=${DATABASE_URL}\nalias make='make --no-print-directory'\necho ") -i
+
+if [[ -z "$@" ]]; then
+    bash --rcfile <(echo -e "PS1='\[\033[01;31m\]DB conn [\[\033[01;37m\]${CONTAINER}\[\033[01;31m\]] \[\033[01;32m\][\u@\h\[\033[01;37m\] \W\[\033[01;32m\]] $ \[\033[0m\]'\necho -e '\n## PostgreSQL client variables set in this subshell:'\nenv | grep ^PG\necho DATABASE_URL=${DATABASE_URL}\nalias make='make --no-print-directory'\necho ") -i
+else
+    $@
+fi
