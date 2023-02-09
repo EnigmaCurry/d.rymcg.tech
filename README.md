@@ -718,6 +718,12 @@ __d.rymcg.tech_cli_alias dry
 With this alias installed, you can now run `dry` in place of
 `d.rymcg.tech`.
 
+To get a synopsis of all of these completion commands, run:
+
+```
+d.rymcg.tech completion
+```
+
 ## Creating multiple instances of a service
 
 By default, each project supports deploying a single instance per
