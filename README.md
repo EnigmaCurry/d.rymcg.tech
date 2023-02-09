@@ -597,7 +597,7 @@ skeleton template, and to create shorter command aliases for any
 project.
 
 To install the script, you need to add it to your `PATH` shell
-variable, and at your option, evaluate the Bash shell completion
+variable, and at your option, evaluate the Bash shell tab completion
 script:
 
 ```
@@ -689,6 +689,9 @@ your `~/.bashrc` *after* the `eval` line that loads the main
 ## Create a short alias for the Traefik project:
 __d.rymcg.tech_project_alias traefik
 ```
+
+(This command creates the shell alias called `traefik`, as well as the
+Bash shell tab completion for it.)
 
 With this alias installed, instead of running `make -C
 ~/git/vendor/enigmacurry/d.rymcg.tech/traefik install` you can now
