@@ -479,7 +479,7 @@ Bespoke things:
 * [certificate-ca](_terminal/certificate-ca) Experimental ad-hoc certifcate CA. Creates
   self-signed certificates for situations where you don't want to use Let's
   Encrypt.
-* [Linux Shell Containers](_terminal/linux) create bash aliases that
+* [Linux Shell Containers](_terminal/linux) create Bash aliases that
   automatically build and run programs in Docker containers.
 * [_docker_vm](_docker_vm#readme) Run Docker in a Virtual Machine (KVM) on Linux.
 
@@ -554,7 +554,7 @@ directory you are in.
    URL and you can copy and paste it).
  * See `make help` (or just run `make`) for a list of all the other available
    targets, including `make status`, `make start`, `make stop` and `make
-   destroy`. Be sure to recognize that `make` has tab completion in bash :)
+   destroy`. Be sure to recognize that `make` has tab completion in Bash :)
  * You can also run `make status` in the root directory of the cloned
    source. This will list all of the installed/running applications.
 
@@ -585,38 +585,26 @@ For a more in depth guide on using the Makefiles, see
 ### Using the `d.rymcg.tech` CLI script (optional)
 
 By default, both `make` and `docker compose` expect you to change your
-working directory to use them (however, you *can* work around this
-using `make -C` and `docker compose -f`). There is a third option to
-use the eponymous [`d.rymcg.tech` script](_scripts/d.rymcg.tech)
-included in this repository. In addition to letting you run any
-project `make` target from any working directory, this script also
-offers a convenient way to create [external
-projects](#integrating-external-projects) from a skeleton template.
+working directory to use them (note: you *can* work around this by
+using `make -C` or `docker compose -f`).
+
+However, there is a third option to use the eponymous [`d.rymcg.tech`
+script](_scripts/d.rymcg.tech) included in this repository. In
+addition to letting you run any project's `make` targets from any
+working directory, this shell script also offers a convenient way to
+create [external projects](#integrating-external-projects) from a
+skeleton template, and to create shorter command aliases for any
+project.
 
 To install the script, you need to add it to your `PATH` shell
-variable, and add optional aliases and BASH completion support:
+variable, and at your option, evaluate the Bash shell completion
+script:
 
 ```
-#### To enable BASH shell completion support for d.rymcg.tech,
+#### To enable Bash shell completion support for d.rymcg.tech,
 #### add the following lines into your ~/.bashrc ::
 export PATH=${PATH}:${HOME}/git/vendor/enigmacurry/d.rymcg.tech/_scripts/user
 eval "$(d.rymcg.tech completion bash)"
-
-#### Optional aliases you may wish to uncomment:
-#### If you want to quickly access a sub-project you can do that too:
-#### For example, instead of running this long command:
-####   make -C ~/git/vendor/enigmacurry/d.rymcg.tech/traefik config
-#### Now you can run just: traefik config
-#### You can do this for any sub-project name:
-# __d.rymcg.tech_project_alias traefik
-
-#### If you have external projects, you can create an alias for those too:
-#### Also add the full path to the external project:
-#### For example, external project 'foo' in the directory ~/git/foo
-# __d.rymcg.tech_project_alias foo ~/git/foo
-
-#### If you want a shorter alias than d.rymcg.tech (eg. 'dry') you can add it:
-# __d.rymcg.tech_cli_alias dry
 ```
 
 Once installed, run `d.rymcg.tech` to see the command help text.
@@ -691,6 +679,40 @@ arg to open the root README):
 d.rymcg.tech readme traefik
 ```
 
+You can add additional command aliases to your shell (put these in
+your `~/.bashrc` *after* the `eval` line that loads the main
+`d.rymcg.tech` script):
+
+```
+## Create a short alias for the Traefik project:
+__d.rymcg.tech_project_alias traefik
+```
+
+With this alias installed, instead of running `make -C
+~/git/vendor/enigmacurry/d.rymcg.tech/traefik install` you can now
+simply run `traefik install`.
+
+If you have created an [external
+project](#integrating-external-projects) (eg. named `foo`), you can
+create a command alias for it:
+
+```
+__d.rymcg.tech_project_alias foo ~/git/foo
+```
+
+With this alias installed, instead of running `make -C ~/git/foo
+install` you can now simply run `foo install`.
+
+
+If you want a different alias for the main script, you can add that too:
+
+```
+__d.rymcg.tech_cli_alias dry
+```
+
+With this alias installed, you can now run `dry` in place of
+`d.rymcg.tech`.
+
 ## Creating multiple instances of a service
 
 By default, each project supports deploying a single instance per
@@ -714,14 +736,13 @@ By default, all of the `make` targets will use the default
 environment, but you can tell it use the instance environment instead,
 by setting the `instance` (or `INSTANCE`) variable:
 
-```
-make instance=foo config     # Configure a new or existing instance named foo
-make instance=bar config     # (Re)configures bar instance
-make instance=foo install    # This (re)installs only the foo instance
-make instance=bar install    # (Re)installs only bar instance
-make instance=foo ps         # This shows the containers status of the foo instance
-make instance=foo stop       # This stops the foo instance
-make instance=bar destroy    # This destroys only the bar instance
+``` make instance=foo config # Configure a new or existing instance
+named foo make instance=bar config # (Re)configures bar instance make
+instance=foo install # This (re)installs only the foo instance make
+instance=bar install # (Re)installs only bar instance make
+instance=foo ps # This shows the containers status of the foo instance
+make instance=foo stop # This stops the foo instance make instance=bar
+destroy # This destroys only the bar instance
 
 # Show the status of all instances of the current project subdirectory:
 make status
@@ -761,7 +782,7 @@ Set WHOAMI_INSTANCE=foo
 whoami $
 ```
 
-Inside the sub-shell, the `PS1` BASH prompt has been set so that it
+Inside the sub-shell, the `PS1` Bash prompt has been set so that it
 will remind you of your current locked instance:
 `(context=d.rymcg.tech project=whoami instance=foo)`. You have access
 to all of the same `make` targets as before, but now they will apply
