@@ -594,21 +594,29 @@ offers a convenient way to create [external
 projects](#integrating-external-projects) from a skeleton template.
 
 To install the script, you need to add it to your `PATH` shell
-variable, and optionally enable the BASH completion support:
+variable, and add optional aliases and BASH completion support:
 
 ```
-##  Add this at the bottom of your ~/.bashrc config:
-
-## d.rymcg.tech
-export PATH="${HOME}/git/vendor/enigmacurry/d.rymcg.tech/_scripts/user:${PATH}"
-## optional TAB completion:
+#### To enable BASH shell completion support for d.rymcg.tech,
+#### add the following lines into your ~/.bashrc ::
+export PATH=${PATH}:${HOME}/git/vendor/enigmacurry/d.rymcg.tech/_scripts/user
 eval "$(d.rymcg.tech completion bash)"
-complete -F __d.rymcg.tech_completions d.rymcg.tech
 
-## You might want to use a more convenient alias, (eg. 'dry'),
-#alias dry="d.rymcg.tech"
-## You can make completion support work for the alias too:
-#complete -F __d.rymcg.tech_completions dry
+#### Optional aliases you may wish to uncomment:
+#### If you want to quickly access a sub-project you can do that too:
+#### For example, instead of running this long command:
+####   make -C ~/git/vendor/enigmacurry/d.rymcg.tech/traefik config
+#### Now you can run just: traefik config
+#### You can do this for any sub-project name:
+# __d.rymcg.tech_project_alias traefik
+
+#### If you have external projects, you can create an alias for those too:
+#### Also add the full path to the external project:
+#### For example, external project 'foo' in the directory ~/git/foo
+# __d.rymcg.tech_project_alias foo ~/git/foo
+
+#### If you want a shorter alias than d.rymcg.tech (eg. 'dry') you can add it:
+# __d.rymcg.tech_cli_alias dry
 ```
 
 Once installed, run `d.rymcg.tech` to see the command help text.
