@@ -602,7 +602,7 @@ variable, and optionally enable the BASH completion support:
 ## d.rymcg.tech
 export PATH="${HOME}/git/vendor/enigmacurry/d.rymcg.tech/_scripts/user:${PATH}"
 ## optional TAB completion:
-eval $(d.rymcg.tech completion bash)
+eval "$(d.rymcg.tech completion bash)"
 complete -F __d.rymcg.tech_completions d.rymcg.tech
 
 ## You might want to use a more convenient alias, (eg. 'dry'),

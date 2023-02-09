@@ -273,13 +273,12 @@ __completion() {
         echo "## add the following lines into your ~/.bashrc ::"
         echo ""
         echo "export PATH=${USER_SCRIPT_PATH}:\${PATH}"
-        echo "eval \$(d.rymcg.tech completion bash)"
+        echo "eval \"\$(d.rymcg.tech completion bash)"\"
         echo "complete -F __d.rymcg.tech_completions d.rymcg.tech"
         echo ""
     else
         if [[ "${1}" == "bash" ]]; then
             declare -f __d.rymcg.tech_documentation_words
-            echo ";"
             declare -f __d.rymcg.tech_completions
         else
             fault "Sorry, this script only support BASH shell completion"
