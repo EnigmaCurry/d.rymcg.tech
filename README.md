@@ -672,10 +672,13 @@ project](#integrating-external-projects):
 d.rymcg.tech create
 ```
 
-Open the README for any project in your web browser (omit the second
-arg to open the root README):
+Open the README for any project in your web browser:
 
 ```
+## Open the main README
+d.rymcg.tech readme
+
+## Open the Traefik README
 d.rymcg.tech readme traefik
 ```
 
@@ -702,6 +705,7 @@ project](#integrating-external-projects) (eg. named `mikeapp`), you can
 create a command alias for it:
 
 ```
+## External project alias:
 __d.rymcg.tech_project_alias mikeapp ~/git/mikeapp
 ```
 
@@ -712,6 +716,7 @@ install` you can now simply run `mikeapp install`.
 If you want a different alias for the main script, you can add that too:
 
 ```
+## Alternative alias to d.rymcg.tech
 __d.rymcg.tech_cli_alias dry
 ```
 
