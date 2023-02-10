@@ -1,5 +1,8 @@
 # d.rymcg.tech
 
+[![License: MIT](_meta/img/license-MIT.svg)](https://github.com/EnigmaCurry/d.rymcg.tech/blob/master/LICENSE.txt)
+[![Chat on Matrix](_meta/img/matrix-badge.svg)](https://matrix.to/#/#d.rymcg.tech:enigmacurry.com)
+
 This is a collection of Docker Compose projects consisting of
 [Traefik](https://doc.traefik.io/traefik/) as a TLS HTTP/TCP reverse
 proxy and other various self-hosted applications and services behind
