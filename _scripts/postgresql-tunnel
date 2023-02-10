@@ -18,6 +18,7 @@ PROJECT=$(basename $(realpath $(dirname ${ENV_FILE})))
 PGPORT="${PGPORT:-$(random_port)}"; 
 echo "PGPORT=${PGPORT}"
 check_var ENV_FILE PROJECT SERVICE INSTANCE PGPORT
+DOCKER_CONTEXT=$(${BIN}/docker_context)
 
 SSH_HOST=$(docker context inspect | jq -r ".[0].Endpoints.docker.Host" | sed 's|^ssh://||')
 check_var SSH_HOST
@@ -48,7 +49,7 @@ unset PGSSLKEY PGSSLROOTCERT PGSSLCERT
 echo "Started SSH tunnel to PostgreSQL database"
 
 if [[ -z "$@" ]]; then
-    bash --rcfile <(echo -e "PS1='\[\033[01;31m\]DB conn [\[\033[01;37m\]${CONTAINER}\[\033[01;31m\]] \[\033[01;32m\][\u@\h\[\033[01;37m\] \W\[\033[01;32m\]] $ \[\033[0m\]'\necho -e '\n## PostgreSQL client variables set in this subshell:'\nenv | grep ^PG\necho DATABASE_URL=${DATABASE_URL}\nalias make='make --no-print-directory'\necho ") -i
+    bash --rcfile <(echo -e "PS1='\[\033[01;31m\]DB:[\[\033[01;37m\]${PGUSER}@${DOCKER_CONTEXT}:${INSTANCE}\[\033[01;31m\]] \[\033[01;32m\][\u@\h\[\033[01;37m\] \W\[\033[01;32m\]]\[\033[0m\] $ '\necho -e '\n## PostgreSQL client variables set in this subshell:'\nenv | grep ^PG\necho DATABASE_URL=${DATABASE_URL}\nalias make='make --no-print-directory'\necho ") -i
 else
     $@
 fi
