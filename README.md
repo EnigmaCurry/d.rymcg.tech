@@ -33,6 +33,7 @@ configuration derived from your customized `.env` file.
 - [Creating multiple instances of a service](#creating-multiple-instances-of-a-service)
 - [Backup .env files](#backup-env-files-optional)
 - [Integrating external projects](#integrating-external-projects)
+- [Questions and discussion](#questions-and-discussion)
 
 ## All configuration comes from the environment
 
@@ -988,3 +989,15 @@ make install
 make open
 # etc
 ```
+
+## Questions and discussion
+
+If you have a question, or have some feedback, you can join us on [the
+Matrix chat room](https://matrix.to/#/#d.rymcg.tech:enigmacurry.com).
+You can also use the [discussions
+interface](https://github.com/EnigmaCurry/d.rymcg.tech/discussions) on
+github.
+
+Feature suggestions, bug reports, and pull requests, are all welcome
+on the github repository, but only open source self-hostable software
+is acceptable for inclusion in this repository.
