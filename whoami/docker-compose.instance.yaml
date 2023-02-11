@@ -2,7 +2,7 @@
 #! References:
 #!   https://carvel.dev/ytt
 #!   https://docs.docker.com/compose/extends/#adding-and-overriding-configuration
-#!   https://github.com/enigmaCurry/d.rymcg.tech#overriding-docker-composeyaml-per-instance
+#!   https://github.com/enigmacurry/d.rymcg.tech#overriding-docker-composeyaml-per-instance
 
 #! ### Standard project vars:
 #@ load("@ytt:data", "data")
@@ -34,5 +34,7 @@ services:
       #@ end
       - "traefik.http.routers.(@= router @).middlewares=(@= ','.join(enabled_middlewares) @)"
 
-      #! whoami is mapped to a userspace port >1024:
+      #! Override the default port that whoami binds to, so that it lives in userspace >1024:
+      #! You don't normally need to do this, as long as your image has
+      #! an EXPOSE directive in it, Traefik will autodetect it, but this is how you can override it:
       - "traefik.http.services.(@= router @).loadbalancer.server.port=8000"
