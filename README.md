@@ -516,6 +516,10 @@ For all of the containers that you wish to install, do the following:
    `docker-compose.yaml`
  * Copy the example `.env-dist` to `.env`
  * Edit all of the variables in `.env` according to the example and comments.
+ * Create the
+   [`docker-compose.override.yaml`](https://docs.docker.com/compose/extends/#multiple-compose-files)
+   (follow the template given in `docker-compose.instance.yaml`) for
+   your instance.
  * Follow the README for instructons to start the containers.
    Generally, all you need to do is run: `docker compose up --build
    -d` (This is the same thing that `make install` does)
