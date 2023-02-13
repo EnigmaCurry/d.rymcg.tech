@@ -59,6 +59,9 @@ EOF
 }
 if [[ -f passwords.json ]]; then
     URL_PASSWORD=$(jq -r '(.["'${CONTEXT_INSTANCE}'"][0].username) + ":" + (.["'${CONTEXT_INSTANCE}'"][0].url_encoded)' <passwords.json)"@"
+    if [[ "${URL_PASSWORD}" == ":@" ]]; then
+        URL_PASSWORD=""
+    fi
 else
     URL_PASSWORD=""
 fi

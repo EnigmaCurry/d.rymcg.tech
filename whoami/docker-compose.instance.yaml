@@ -22,19 +22,25 @@ services:
     labels:
       #! Services must opt-in to be proxied by Traefik:
       - "traefik.enable=true"
+
+      #! 'router' is the fully qualified key in traefik for this router/service: project + instance + service
       #@ router = "{}-{}-{}".format(project,instance,service)
+
       #! The host matching router rule:
       - "traefik.http.routers.(@= router @).rule=Host(`(@= traefik_host @)`)"
       - "traefik.http.routers.(@= router @).entrypoints=websecure"
       #@ enabled_middlewares.append("{}-ipwhitelist".format(router))
       - "traefik.http.middlewares.(@= router @)-ipwhitelist.ipwhitelist.sourcerange=(@= ip_sourcerange @)"
+
       #@ if enable_http_auth:
       #@ enabled_middlewares.append("{}-basicauth".format(router))
       - "traefik.http.middlewares.(@= router @)-basicauth.basicauth.users=(@= http_auth @)"
       #@ end
-      - "traefik.http.routers.(@= router @).middlewares=(@= ','.join(enabled_middlewares) @)"
 
       #! Override the default port that whoami binds to, so that it lives in userspace >1024:
       #! You don't normally need to do this, as long as your image has
       #! an EXPOSE directive in it, Traefik will autodetect it, but this is how you can override it:
       - "traefik.http.services.(@= router @).loadbalancer.server.port=8000"
+
+      #! Apply all middlewares (do this at the end!)
+      - "traefik.http.routers.(@= router @).middlewares=(@= ','.join(enabled_middlewares) @)"
