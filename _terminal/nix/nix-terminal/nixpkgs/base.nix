@@ -3,14 +3,15 @@
 {
   # Home Manager needs a bit of information about you and the
   # paths it should manage.
-  home.username = "root";
-  home.homeDirectory = "/root";
+  home.username = "nix-user";
+  home.homeDirectory = "/home/nix-user";
 
   # Packages to install in userspace:
   home.packages = [
-    pkgs.su
     pkgs.findutils
     pkgs.coreutils
+    pkgs.git
+    pkgs.openssh
     pkgs.ncurses
     pkgs.htop
     pkgs.openssl

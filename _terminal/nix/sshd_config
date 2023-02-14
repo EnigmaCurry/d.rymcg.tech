@@ -1,8 +1,0 @@
-PermitRootLogin yes
-AuthorizedKeysFile	.ssh/authorized_keys
-PasswordAuthentication no
-KbdInteractiveAuthentication no
-UsePAM yes
-PrintMotd no # pam does that
-Subsystem	sftp	internal-sftp
-
