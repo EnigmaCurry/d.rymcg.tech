@@ -19,6 +19,10 @@ make config
 make instance
 ```
 
+You will be asked to enter the SSH connection information for the
+docker host that this container will *manage* (*not* the docker server
+it is *deployed* on.)
+
 # Build
 
 ```
@@ -68,8 +72,24 @@ repository has been automatically cloned to
 [`d.rymcg.tech`](../../README.md#using-the-drymcgtech-cli-script-optional)
 command line script is pre-installed on the `PATH`.
 
-You now need to create your ssh keys, ssh config file, and create your
-remote docker contexts.
+SSH keys will be created automatically. The SSH config will be
+populated with your `NIX_DOCKER_SSH_{HOST,USER,PORT}` details. The
+docker context will be created for you.
+
+To finish the docker client setup, you must manually copy the created
+SSH public key, to your docker host's `.ssh/authorized_keys` file:
+
+```
+## Copy this key to the docker server's authorized_keys:
+cat ~/.ssh/id_rsa.pub
+```
+
+Once the key is installed on the server, you should now be able to
+control the remote docker host from within the container:
+
+```
+docker info
+```
 
 # Uninstall
 

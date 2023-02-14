@@ -26,3 +26,7 @@ services:
       - NIX_GIT_REPO
       - NIX_GIT_BRANCH
       - NIX_USER_NAME
+      - NIX_DOCKER_SSH_HOST
+      - NIX_DOCKER_SSH_USER
+      - NIX_DOCKER_SSH_PORT
+

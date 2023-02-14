@@ -15,16 +15,15 @@
     pkgs.procps
     pkgs.less
     pkgs.coreutils
-    pkgs.openssh
     pkgs.ncurses
     pkgs.htop
     pkgs.openssl
     pkgs.apacheHttpd
     pkgs.jq
-    pkgs.sshfs
     pkgs.gnumake
     pkgs.gnused
     pkgs.inetutils
+    pkgs.psmisc
   ];
 
   # This value determines the Home Manager release that your
