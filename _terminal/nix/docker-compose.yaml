@@ -1,7 +1,7 @@
 version: "3.9"
 
 volumes:
-  user-home:
+  user-git:
 
 services:
   nix-user:
@@ -9,6 +9,8 @@ services:
     hostname: nix-${INSTANCE:-default}
     build:
       context: nix-user
+      args:
+        NIX_HOMEMANAGER_BASE: ${NIX_HOMEMANAGER_BASE:-common.nix}
     security_opt:
       - no-new-privileges:true
     cap_drop:
@@ -17,4 +19,10 @@ services:
       - net.ipv4.ip_unprivileged_port_start=1024
     restart: unless-stopped
     volumes:
-      - user-home:/home/${NIX_USER_NAME}
+      - user-git:/home/${NIX_USER_NAME}/git
+    environment:
+      - NIX_HOMEMANAGER_HOME
+      - NIX_GIT_CLONE
+      - NIX_GIT_REPO
+      - NIX_GIT_BRANCH
+      - NIX_USER_NAME

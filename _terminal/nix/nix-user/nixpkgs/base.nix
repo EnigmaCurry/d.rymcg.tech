@@ -1,5 +1,8 @@
 { config, pkgs, ... }:
 
+# References:
+#  https://www.bekk.christmas/post/2021/16/dotfiles-with-nix-and-home-manager
+#  https://nix-community.github.io/home-manager/options.html
 {
   # Home Manager needs a bit of information about you and the
   # paths it should manage.
@@ -9,8 +12,9 @@
   # Packages to install in userspace:
   home.packages = [
     pkgs.findutils
+    pkgs.procps
+    pkgs.less
     pkgs.coreutils
-    pkgs.git
     pkgs.openssh
     pkgs.ncurses
     pkgs.htop
