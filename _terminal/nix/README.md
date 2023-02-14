@@ -6,6 +6,9 @@ container to manage *other* docker hosts with d.rymcg.tech. This keeps
 your .env files seperate per admin container (ie. one admin container
 per docker context to manage).
 
+You will need to setup [d.rymcg.tech](../../README.md) on at least one
+workstation before you can setup your first admin container.
+
 # Config
 
 ```
