@@ -33,13 +33,6 @@ if [[ ! -e "${NIX_GIT_CLONE}" ]]; then
     fi
 fi
 
-if [[ -e .config/nixpkgs/home.nix ]] && [[ ! -L .config/nixpkgs/home.nix ]]; then
-    fault "Error: Found an existing .config/nixpkgs/home.nix - you should not create a home.nix, but set NIX_HOMEMANAGER_HOME environment variable, and set it to the name of a file with a different name, and a symlink will be created to home.nix at startup."
-else
-    rm -f  ${HOME}/.config/nixpkgs/home.nix
-    ln -s ${HOME}/.config/nixpkgs/${NIX_HOMEMANAGER_HOME} ${HOME}/.config/nixpkgs/home.nix
-fi
-
 (set -x; home-manager switch)
 
 if [[ ! -f .ssh/id_rsa ]]; then

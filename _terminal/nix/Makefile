@@ -11,4 +11,5 @@ config-hook:
 
 .PHONY: shell
 shell:
-	@while docker compose --env-file ${ENV_FILE} --project-name "${CWD_PROJECT_NAME}" exec -it $${service:-nix-user} /bin/bash -c "test ! -f .bashrc"; do sleep 1; done; docker compose --env-file ${ENV_FILE} --project-name "${CWD_PROJECT_NAME}" exec -it $${service:-nix-user} /bin/bash
+	@HAD_TO_WAIT=false; while docker compose --env-file ${ENV_FILE} --project-name "${CWD_PROJECT_NAME}" exec -it $${service:-nix-user} /bin/bash -c "test ! -f .bashrc"; do echo "Still waiting for \`home-manager switch\` to finish ..."; sleep 10; HAD_TO_WAIT=true; done; if [[ "$$HAD_TO_WAIT" == "true" ]]; then sleep 2; fi;
+	@docker compose --env-file ${ENV_FILE} --project-name "${CWD_PROJECT_NAME}" exec -it $${service:-nix-user} /bin/bash

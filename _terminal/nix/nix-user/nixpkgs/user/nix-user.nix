@@ -1,10 +1,14 @@
 { config, pkgs, ... }:
 
-# NB the files in nix_home are copied into the image at ~/.config/nixpkgs/
-# The nixpkgs directory is also copied to the same location.
-# So you should reference imports as a relative path of the nixpkgs directory as if they all exist in the same directory:
+# NB this file will be moved to ~/.config/nixpkgs/home.nix during the image build.
+# So all path references should be relative to ~/.config/nixpkgs (regardless of where this file lives in git.)
 {
-  imports = [ ./common.nix ];
+  imports = [
+    ./common.nix
+    ./user/emacs.nix
+    ./user/ssh.nix
+  ];
+
   home.packages = [
     pkgs.cowsay
   ];

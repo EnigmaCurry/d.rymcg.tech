@@ -1,12 +1,12 @@
 { config, pkgs, ... }:
 
 {
+  ## Import all the non-user config:
   imports = [
     ./base.nix
-    ./docker.nix
-    ./emacs.nix
-    ./git.nix
-    ./ssh.nix
-    ./python.nix
+    ./base/core.nix
+    ./base/docker.nix
+    ./base/python.nix
+    ./base/development.nix
   ];
 }

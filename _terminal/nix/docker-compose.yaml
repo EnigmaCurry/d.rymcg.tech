@@ -10,7 +10,11 @@ services:
     build:
       context: nix-user
       args:
-        NIX_HOMEMANAGER_BASE: ${NIX_HOMEMANAGER_BASE:-common.nix}
+        NIX_USER_NAME: ${NIX_USER_NAME}
+        NIX_USER_UID: ${NIX_USER_UID}
+        NIX_USER_GID: ${NIX_USER_GID}
+        NIX_HOMEMANAGER_HOME: ${NIX_HOMEMANAGER_HOME}
+        NIX_HOMEMANAGER_VERSION: ${NIX_HOMEMANAGER_VERSION}
     security_opt:
       - no-new-privileges:true
     cap_drop:
@@ -21,6 +25,7 @@ services:
     volumes:
       - user-git:/home/${NIX_USER_NAME}/git
     environment:
+      - NIX_HOMEMANAGER_VERSION
       - NIX_HOMEMANAGER_HOME
       - NIX_GIT_CLONE
       - NIX_GIT_REPO
