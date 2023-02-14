@@ -15,7 +15,6 @@ services:
       - ALL
     sysctls:
       - net.ipv4.ip_unprivileged_port_start=1024
-    #user: ${NIX_USER_UID}:${NIX_USER_GID}
     restart: unless-stopped
     volumes:
       - user-home:/home/${NIX_USER_NAME}

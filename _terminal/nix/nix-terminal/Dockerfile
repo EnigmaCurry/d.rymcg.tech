@@ -2,6 +2,7 @@ FROM debian:bullseye-slim as home-manager-base
 ARG NIX_USER_NAME=nix-user
 ARG NIX_USER_UID=1000
 ARG NIX_USER_GID=1000
+COPY entrypoint.sh /usr/local/bin/entrypoint
 RUN mkdir -p /home/${NIX_USER_NAME}/.config/environment.d && \
     addgroup --gid ${NIX_USER_GID} ${NIX_USER_NAME} && \
     apt-get update && \
@@ -9,7 +10,8 @@ RUN mkdir -p /home/${NIX_USER_NAME}/.config/environment.d && \
     adduser --no-create-home --uid ${NIX_USER_UID} \
       --gid ${NIX_USER_GID} ${NIX_USER_NAME} --gecos GECOS --disabled-password && \
     mkdir /nix && \
-    chown -R ${NIX_USER_UID}:${NIX_USER_GID} /nix /home/${NIX_USER_NAME}
+    chown -R ${NIX_USER_UID}:${NIX_USER_GID} /nix /home/${NIX_USER_NAME} && \
+    chmod a+x /usr/local/bin/entrypoint
 
 USER ${NIX_USER_NAME}
 WORKDIR /home/${NIX_USER_NAME}
@@ -23,5 +25,4 @@ RUN curl -L https://nixos.org/nix/install | sh && \
     nix-shell '<home-manager>' -A install && \
     home-manager switch
 COPY --chown=${NIX_USER_UID}:${NIX_USER_GID} bashrc /home/${NIX_USER_NAME}/.bashrc
-
-CMD /bin/sh -c 'while true; do sleep 3; done;'
+ENTRYPOINT /usr/local/bin/entrypoint
