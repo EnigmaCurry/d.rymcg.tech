@@ -15,4 +15,9 @@
     pkgs.sshfs
     pkgs.keychain
   ];
+
+  programs.keychain = {
+    enable = true;
+    enableBashIntegration = true;
+  };
 }

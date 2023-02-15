@@ -35,3 +35,5 @@ COPY --chown=${NIX_USER_UID}:${NIX_USER_GID} nixpkgs/home.nix .config/nixpkgs/ho
 COPY --chown=${NIX_USER_UID}:${NIX_USER_GID} entrypoint.sh bin/entrypoint
 RUN chmod a+x bin/entrypoint
 ENTRYPOINT /home/${NIX_USER_NAME}/bin/entrypoint
+VOLUME /home/${NIX_USER_NAME}
+VOLUME /nix

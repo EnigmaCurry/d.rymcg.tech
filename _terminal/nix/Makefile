@@ -1,5 +1,5 @@
 ROOT_DIR = ../..
-include ${ROOT_DIR}/_scripts/Makefile.projects
+include ${ROOT_DIR}/_scripts/Makefile.projects-custom-install
 include ${ROOT_DIR}/_scripts/Makefile.instance
 
 .PHONY: config-hook
@@ -11,5 +11,13 @@ config-hook:
 
 .PHONY: shell
 shell:
-	@HAD_TO_WAIT=false; while docker compose --env-file ${ENV_FILE} --project-name "${CWD_PROJECT_NAME}" exec -it $${service:-nix-user} /bin/bash -c "test ! -f .bashrc"; do echo "Still waiting for \`home-manager switch\` to finish ..."; sleep 10; HAD_TO_WAIT=true; done; if [[ "$$HAD_TO_WAIT" == "true" ]]; then sleep 2; fi;
-	@docker compose --env-file ${ENV_FILE} --project-name "${CWD_PROJECT_NAME}" exec -it $${service:-nix-user} /bin/bash
+	@docker compose --env-file ${ENV_FILE} --project-name "${CWD_PROJECT_NAME}" run --rm -it $${service:-nix-user} /bin/bash
+
+.PHONY: dev-sync
+dev-sync:
+	@${BIN}/dev-sync ${CWD_PROJECT_NAME}_home nix-user/nixpkgs .config/nixpkgs
+
+.PHONY: install
+install: build
+	@echo "Build complete."
+	@echo "No background services are required. You can now run \`make shell\` on demand."

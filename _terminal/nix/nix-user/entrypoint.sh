@@ -27,15 +27,16 @@ check_var(){
 check_var NIX_HOMEMANAGER_HOME NIX_GIT_CLONE NIX_GIT_REPO
 
 if [[ ! -e "${NIX_GIT_CLONE}" ]]; then
-    git clone "${NIX_GIT_REPO}" "${NIX_GIT_CLONE}"
+    (set -e; git clone "${NIX_GIT_REPO}" "${NIX_GIT_CLONE}")
     if [[ -n "${NIX_GIT_BRANCH}" ]]; then
-        git checkout "${NIX_GIT_BRANCH}"
+        (set -e; git -C "${NIX_GIT_CLONE}" checkout "${NIX_GIT_BRANCH}")
     fi
 fi
 
 (set -x; home-manager switch)
 
 if [[ ! -f .ssh/id_rsa ]]; then
+    echo "## Generting new SSH key"
     ssh-keygen -q -t rsa -N '' -f ~/.ssh/id_rsa <<<y >/dev/null 2>&1
 fi
 
@@ -53,5 +54,4 @@ EOF
     docker context use ${NIX_DOCKER_SSH_HOST}
 fi
 
-echo "## Sleeping forever ... "
-/bin/sh -c 'while true; do sleep 3; done;'
+bash
