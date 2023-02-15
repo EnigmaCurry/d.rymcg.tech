@@ -1,7 +1,5 @@
 { config, pkgs, ... }:
 
-# NB this file will be moved to ~/.config/nixpkgs/home.nix during the image build.
-# So all path references should be relative to ~/.config/nixpkgs (regardless of where this file lives in git.)
 {
   imports = [
     ./common.nix
@@ -16,7 +14,7 @@
   programs.bash = {
     enable = true;
     bashrcExtra = ''
-    PS1='\[\e[0m\][\[\e[0;38;5;226;48;5;16m\]\u\[\e[0;94;48;5;16m\]@\[\e[0;3;38;5;160;48;5;16m\]\H\[\e[0m\]]\[\e[0m\] ''$ '
+    PS1='\[\e[0m\][\[\e[0;38;5;226;48;5;16m\]\u\[\e[0;94;48;5;16m\]@\[\e[0;3;38;5;160;48;5;16m\]\H\[\e[0m\]]\[\e[0m\] \W ''$ '
     export PATH=''${HOME}/.nix-profile/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:''${HOME}/git/vendor/enigmacurry/d.rymcg.tech/_scripts/user
 
     #### To enable BASH shell completion support for d.rymcg.tech,
@@ -40,7 +38,7 @@
     #### If you want a shorter alias than d.rymcg.tech (eg. 'dry') you can add it:
     # __d.rymcg.tech_cli_alias dry
 
-    cowsay "Welcome to Nix"
+    cowsay -f meow "Welcome to ''${HOSTNAME} on ''${DOCKER_IMAGE:-unknown}"
     '';
   };
 }

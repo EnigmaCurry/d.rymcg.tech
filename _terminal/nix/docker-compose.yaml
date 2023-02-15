@@ -10,6 +10,7 @@ services:
     build:
       context: nix-user
       args:
+        DOCKER_IMAGE: debian:bullseye-slim
         NIX_USER_NAME: ${NIX_USER_NAME}
         NIX_USER_UID: ${NIX_USER_UID}
         NIX_USER_GID: ${NIX_USER_GID}
