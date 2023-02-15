@@ -1,17 +1,20 @@
 # nix-user
 
 This is a containerized pet "workstation" based upon the
-[nix](https://nixos.org/) package manager.
+[nix](https://nixos.org/) package manager and
+[home-manager](https://github.com/nix-community/home-manager#readme).
+You can run your entire Docker development environment inside of this
+container, or you can use a hybrid configuration where you still use a
+text editor on your localhost workstation, and synchronize development
+files into the container volume on the fly.
 
-This can be a useful environment for [d.rymcg.tech](../../README.md).
-You can create this as an admin container to manage *other* docker
-hosts with `d.rymcg.tech`. This keeps your .env files seperate per
-admin container (ie. one admin container per docker context to
-manage).
+This container can be useful for running
+[d.rymcg.tech](../../README.md) and keeping several isolated
+environments for managing *other* Docker hosts.
 
-This README assumes you already have [d.rymcg.tech](../../README.md)
-installed on your host workstation. Once installed, use your terminal
-and change to this directory:
+This README assumes you have already installed
+[d.rymcg.tech](../../README.md) on your host workstation. Once
+installed, use your terminal and change to this directory:
 
 ```
 ## After you install d.rymcg.tech ...
@@ -29,9 +32,10 @@ make instance
 ```
 
 You will be asked to enter the SSH connection information for the
-docker host that this container will *manage* (*not* the docker server
-it is *deployed* on.) This will be used to automatically create the
-ssh config and docker context (clients only).
+Docker host that this container will *manage* (*not* intended to be
+the same docker server it is *deployed* on.) This information will be
+used to automatically create the ssh config and docker context
+(clients only).
 
 ## Build
 
@@ -40,7 +44,8 @@ make build
 ```
 
 This will build the docker image, and apply all of the non-personal
-config in [nixpkgs/base.nix](nix-user/nixpkgs/base.nix).
+config in [nixpkgs/base.nix](nix-user/nixpkgs/base.nix) as a cached
+image layer (this will help speed up the image build process)
 
 ## Shell
 
@@ -53,15 +58,23 @@ make shell
 ```
 
 The volumes for `/home/nix-user` (home directory) and `/nix` (the
-user's nix store) are created on first startup. the `/nix` volume
-especially is quite large, and takes 1-2 minutes to finish copying, so
-be patient. This is much faster on subsequent starts.
+user's nix store) are created during the initial build process, and
+*copied* on first startup. Each instance is a "fat" copy. The `/nix`
+volume especially is quite large (~2GB), and takes 1-2 minutes to
+finish copying, so be patient. The volumes persist, so the startup
+time will be much improved on the second time you run `make shell`.
 
-You can run several independent shells at the same time, each running
-in a separate containers, but they share the same home directory and
-the same `/nix` store.
+The [entrypoint](nix-user/entrypoint.sh) is run on every startup, and
+it will create the SSH keys (if needed), and clone the `d.rymcg.tech`
+git repository (if not already), runs `home-manager switch`, and then
+starts an interactive Bash shell. You can press `Ctrl-D` or type
+`exit` to leave the shell.
 
-In order to run totally separate containers with different data, you
+You can run several independent shells at the same time (in separate
+terminals), and each runs in a different container, but each instance
+shares the same home directory and the same `/nix` store.
+
+In order to run totally separate containers, with different data, you
 must use separate instances. For that, use [`make
 instance`](../../README.md#creating-multiple-instances-of-a-service).
 
