@@ -20,6 +20,14 @@ check_var(){
     fi
 }
 
+check_num(){
+    local var=$1
+    check_var var
+    if ! [[ $LENGTH =~ ^[0-9]+$ ]] ; then
+        fault "${var} is not a number: ${!var}"
+    fi
+}
+
 ask() {
     ## Ask the user a question and set the given variable name with their answer
     local __prompt="${1}"; local __var="${2}"; local __default="${3}"
