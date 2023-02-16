@@ -27,6 +27,7 @@ services:
   app:
     image: plausible/analytics:v1.5.0
     restart: always
+    # This command works, but seems like it could be simplified. TODO.
     command: sh -c "sleep 10 && /entrypoint.sh db createdb && /entrypoint.sh db migrate && /entrypoint.sh run"
     depends_on:
       - db
