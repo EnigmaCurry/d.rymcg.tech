@@ -1,37 +1,36 @@
-version: "3.3"
+version: "3.9"
 services:
   mail:
     image: bytemark/smtp
     restart: always
 
-  plausible_db:
+  db:
     # supported versions are 12, 13, and 14
     image: postgres:14-alpine
     restart: always
     volumes:
       - db-data:/var/lib/postgresql/data
     environment:
-      - POSTGRES_PASSWORD=postgres
+      - POSTGRES_PASSWORD=${PLAUSIBLE_POSTGRES_KEY}
 
-  plausible_events_db:
-    image: clickhouse/clickhouse-server:22.6-alpine
+  events_db:
+    build:
+      context: clickhouse
     restart: always
     volumes:
       - event-data:/var/lib/clickhouse
-      - ./clickhouse/clickhouse-config.xml:/etc/clickhouse-server/config.d/logging.xml:ro
-      - ./clickhouse/clickhouse-user-config.xml:/etc/clickhouse-server/users.d/logging.xml:ro
     ulimits:
       nofile:
         soft: 262144
         hard: 262144
 
-  plausible:
-    image: plausible/analytics:latest
+  app:
+    image: plausible/analytics:v1.5.0
     restart: always
     command: sh -c "sleep 10 && /entrypoint.sh db createdb && /entrypoint.sh db migrate && /entrypoint.sh run"
     depends_on:
-      - plausible_db
-      - plausible_events_db
+      - db
+      - events_db
       - mail
     # ports:
     #   - 8000:8000
@@ -39,16 +38,14 @@ services:
       - PLAUSIBLE_TRAEFIK_HOST
       - BASE_URL=https://${PLAUSIBLE_TRAEFIK_HOST}
       - SECRET_KEY_BASE=${PLAUSIBLE_SECRET_KEY_BASE}
+      - DATABASE_URL=postgres://postgres:${PLAUSIBLE_POSTGRES_KEY}@db:5432/plausible_db
     labels:
       - "traefik.enable=true"
       - "traefik.http.routers.plausible.rule=Host(`${PLAUSIBLE_TRAEFIK_HOST}`)"
       - "traefik.http.routers.plausible.entrypoints=websecure"
-      - "traefik.http.services.plausible.loadbalancer.server.port=8000"
 
 volumes:
   db-data:
-    driver: local
   event-data:
-    driver: local
   geoip:
-    driver: local
+  
