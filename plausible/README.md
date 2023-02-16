@@ -1,4 +1,4 @@
-# Jupyterlab
+# Plausible
 
 [Plausible](https://github.com/plausible/analytics) is privacy respecting analytics alternative.
 
