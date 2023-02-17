@@ -15,25 +15,24 @@ services:
         NIX_USER_NAME: ${NIX_USER_NAME}
         NIX_USER_UID: ${NIX_USER_UID}
         NIX_USER_GID: ${NIX_USER_GID}
-        NIX_HOMEMANAGER_HOME: ${NIX_HOMEMANAGER_HOME}
-        NIX_HOMEMANAGER_VERSION: ${NIX_HOMEMANAGER_VERSION}
     security_opt:
       - no-new-privileges:true
     cap_drop:
       - ALL
-    sysctls:
-      - net.ipv4.ip_unprivileged_port_start=1024
+    # sysctls:
+    #   - net.ipv4.ip_unprivileged_port_start=1024
     restart: unless-stopped
     volumes:
       - home:/home/${NIX_USER_NAME}
       - nix:/nix
     environment:
+      - NIX_USER_NAME
       - NIX_HOMEMANAGER_VERSION
-      - NIX_HOMEMANAGER_HOME
+      - NIX_GIT_USERNAME
+      - NIX_GIT_EMAIL
       - NIX_GIT_CLONE
       - NIX_GIT_REPO
       - NIX_GIT_BRANCH
-      - NIX_USER_NAME
       - NIX_DOCKER_SSH_HOST
       - NIX_DOCKER_SSH_USER
       - NIX_DOCKER_SSH_PORT

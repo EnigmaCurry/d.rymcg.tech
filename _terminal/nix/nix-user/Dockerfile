@@ -11,29 +11,26 @@ RUN addgroup --gid ${NIX_USER_GID} ${NIX_USER_NAME} && \
     adduser --uid ${NIX_USER_UID} \
       --gid ${NIX_USER_GID} ${NIX_USER_NAME} --gecos GECOS --disabled-password && \
     mkdir /nix && \
-    chown -R ${NIX_USER_UID}:${NIX_USER_GID} /nix
+    chown -R ${NIX_USER_UID}:${NIX_USER_GID} /nix && \
+    chown ${NIX_USER_UID}:${NIX_USER_GID} /usr/local/bin
 
 USER ${NIX_USER_NAME}
 WORKDIR /home/${NIX_USER_NAME}
 ENV USER=${NIX_USER_NAME}
 ENV PATH=/home/${NIX_USER_NAME}/.nix-profile/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
-ARG NIX_HOMEMANAGER_VERSION
-ENV NIX_USER_NAME=${NIX_USER_NAME} NIX_HOMEMANAGER_VERSION=${NIX_HOMEMANAGER_VERSION}
-COPY --chown=${NIX_USER_UID}:${NIX_USER_GID} nixpkgs/base.nix nixpkgs/common.nix .config/nixpkgs/
-COPY --chown=${NIX_USER_UID}:${NIX_USER_GID} nixpkgs/base/* .config/nixpkgs/base/
-RUN cp -f .config/nixpkgs/common.nix .config/nixpkgs/home.nix && \
+ENV NIX_USER_NAME=${NIX_USER_NAME}
+RUN mkdir -p .config/nix && \
+    ln -s ~/.config/nixpkgs/nix.conf ~/.config/nix/nix.conf && \
     curl -L https://nixos.org/nix/install | sh && \
     nix-channel --add \
       https://github.com/nix-community/home-manager/archive/master.tar.gz home-manager && \
     nix-channel --update && \
     nix-shell '<home-manager>' -A install && \
-    rm -f .config/nixpkgs/home.nix && \
     rm -f .bashrc .profile && \
     mkdir git
-COPY --chown=${NIX_USER_UID}:${NIX_USER_GID} nixpkgs/user .config/nixpkgs/user
-COPY --chown=${NIX_USER_UID}:${NIX_USER_GID} nixpkgs/home.nix .config/nixpkgs/home.nix
-COPY --chown=${NIX_USER_UID}:${NIX_USER_GID} entrypoint.sh bin/entrypoint
-RUN chmod a+x bin/entrypoint
-ENTRYPOINT /home/${NIX_USER_NAME}/bin/entrypoint
+COPY --chown=${NIX_USER_UID}:${NIX_USER_GID} nixpkgs .config/nixpkgs
+COPY --chown=${NIX_USER_UID}:${NIX_USER_GID} entrypoint.sh /usr/local/bin/entrypoint
+RUN chmod a+x /usr/local/bin/entrypoint
+ENTRYPOINT ["/usr/local/bin/entrypoint"]
 VOLUME /home/${NIX_USER_NAME}
 VOLUME /nix

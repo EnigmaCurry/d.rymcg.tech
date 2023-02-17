@@ -5,6 +5,8 @@ include ${ROOT_DIR}/_scripts/Makefile.instance
 .PHONY: config-hook
 config-hook:
 	@${BIN}/reconfigure ${ENV_FILE} NIX_INSTANCE=$${INSTANCE:-default}
+	@${BIN}/reconfigure_ask ${ENV_FILE} NIX_GIT_USERNAME "Enter your git username" "$$(git config --global --get user.name)"
+	@${BIN}/reconfigure_ask ${ENV_FILE} NIX_GIT_EMAIL "Enter your git email address" "$$(git config --global --get user.email)"
 	@${BIN}/reconfigure_ask ${ENV_FILE} NIX_DOCKER_SSH_HOST "Enter the Docker SSH host that this container will manage"
 	@${BIN}/reconfigure_ask ${ENV_FILE} NIX_DOCKER_SSH_USER "Enter the Docker SSH username" root
 	@${BIN}/reconfigure_ask ${ENV_FILE} NIX_DOCKER_SSH_PORT "Enter the Docker SSH port" 22
