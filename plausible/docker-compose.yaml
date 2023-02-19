@@ -4,7 +4,7 @@ services:
     image: bytemark/smtp
     restart: always
 
-  db:
+  plausible_db:
     # supported versions are 12, 13, and 14
     image: postgres:14-alpine
     restart: always
@@ -12,8 +12,11 @@ services:
       - db-data:/var/lib/postgresql/data
     environment:
       - POSTGRES_PASSWORD=${PLAUSIBLE_POSTGRES_PASS}
+      - POSTGRES_PASSWORD=postgres
+      - POSTGRES_USER=postgres
+      # - POSTGRES_DB=plausible_db
 
-  events_db:
+  plausible_events_db:
     build:
       context: clickhouse
     restart: always
@@ -24,14 +27,14 @@ services:
         soft: 262144
         hard: 262144
 
-  app:
-    image: plausible/analytics:v1.5.0
+  plausible:
+    image: plausible/analytics:v1.5.1
     restart: always
     # This command works, but seems like it could be simplified. TODO.
     command: sh -c "sleep 10 && /entrypoint.sh db createdb && /entrypoint.sh db migrate && /entrypoint.sh run"
     depends_on:
-      - db
-      - events_db
+      - plausible_db
+      - plausible_events_db
       - mail
     # ports:
     #   - 8000:8000
@@ -39,7 +42,7 @@ services:
       - PLAUSIBLE_TRAEFIK_HOST
       - BASE_URL=https://${PLAUSIBLE_TRAEFIK_HOST}
       - SECRET_KEY_BASE=${PLAUSIBLE_SECRET_KEY_BASE}
-      - DATABASE_URL=postgres://postgres:${PLAUSIBLE_POSTGRES_PASS}@db:5432/plausible_db
+      - DATABASE_URL=postgres://postgres:postgres@plausible_db:5432/plausible_db
     labels:
       - "traefik.enable=true"
       - "traefik.http.routers.plausible.rule=Host(`${PLAUSIBLE_TRAEFIK_HOST}`)"
