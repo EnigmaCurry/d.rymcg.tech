@@ -1,6 +1,7 @@
 # Plausible
 
-[Plausible](https://github.com/plausible/analytics) is privacy respecting analytics alternative.
+[Plausible](https://github.com/plausible/analytics) is a privacy
+respecting website visitor analytics engine.
 
 ## Config
 
