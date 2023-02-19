@@ -939,8 +939,9 @@ framework.
 
 The easiest method of creating an external project, is by setting up
 the [`d.rymcg.tech`
-script](https://github.com/EnigmaCurry/d.rymcg.tech/tree/cli-script#using-the-drymcgtech-cli-script-optional),
+script](https://github.com/EnigmaCurry/d.rymcg.tech/blob/master/README.md#using-the-drymcgtech-cli-script-optional),
 then run:
+
 
 ```
 ## Run this from any directory:
