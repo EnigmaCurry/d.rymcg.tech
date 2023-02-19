@@ -12,9 +12,7 @@ services:
       - db-data:/var/lib/postgresql/data
     environment:
       - POSTGRES_PASSWORD=${PLAUSIBLE_POSTGRES_PASS}
-      # - POSTGRES_PASSWORD=postgres
       - POSTGRES_USER=postgres
-      # - POSTGRES_DB=plausible_db
 
   plausible_events_db:
     build:
