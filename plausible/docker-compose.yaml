@@ -12,7 +12,7 @@ services:
       - db-data:/var/lib/postgresql/data
     environment:
       - POSTGRES_PASSWORD=${PLAUSIBLE_POSTGRES_PASS}
-      - POSTGRES_PASSWORD=postgres
+      # - POSTGRES_PASSWORD=postgres
       - POSTGRES_USER=postgres
       # - POSTGRES_DB=plausible_db
 
@@ -42,7 +42,7 @@ services:
       - PLAUSIBLE_TRAEFIK_HOST
       - BASE_URL=https://${PLAUSIBLE_TRAEFIK_HOST}
       - SECRET_KEY_BASE=${PLAUSIBLE_SECRET_KEY_BASE}
-      - DATABASE_URL=postgres://postgres:postgres@plausible_db:5432/plausible_db
+      - DATABASE_URL=postgres://postgres:${PLAUSIBLE_POSTGRES_PASS}@plausible_db:5432/plausible_db
     labels:
       - "traefik.enable=true"
       - "traefik.http.routers.plausible.rule=Host(`${PLAUSIBLE_TRAEFIK_HOST}`)"
