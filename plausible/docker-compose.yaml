@@ -13,7 +13,7 @@ services:
       - db:/var/lib/postgresql/data
     environment:
       - POSTGRES_DATABASE=plausible
-      - POSTGRES_PASSWORD=${PLAUSIBLE_POSTGRES_PASS}
+      - POSTGRES_PASSWORD=${PLAUSIBLE_POSTGRES_PASSWORD}
       - POSTGRES_USER=plausible
 
   events_db:
@@ -40,7 +40,7 @@ services:
       - PLAUSIBLE_TRAEFIK_HOST
       - BASE_URL=https://${PLAUSIBLE_TRAEFIK_HOST}
       - SECRET_KEY_BASE=${PLAUSIBLE_SECRET_KEY_BASE}
-      - DATABASE_URL=postgres://plausible:${PLAUSIBLE_POSTGRES_PASS}@db:5432/plausible
+      - DATABASE_URL=postgres://plausible:${PLAUSIBLE_POSTGRES_PASSWORD}@db:5432/plausible
       - CLICKHOUSE_DATABASE_URL=http://events_db:8123/plausible_events_db
     labels:
       - "traefik.enable=true"
