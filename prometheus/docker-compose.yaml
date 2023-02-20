@@ -1,0 +1,71 @@
+version: "3.9"
+
+volumes:
+  prometheus:
+  grafana:
+
+services:
+  # https://github.com/prometheus/node_exporter
+  # node_exporter collects the Host system metrics
+  node-exporter:
+    profiles:
+      - node-exporter
+    image: prom/node-exporter:${PROMETHEUS_NODE_EXPORTER_VERSION}
+    pid: host
+    restart: unless-stopped
+    volumes:
+      - '/proc:/host/proc:ro'
+      - '/sys:/host/sys:ro'
+      - '/:/rootfs:ro'
+    command:
+      - '--path.procfs=/host/proc'
+      - '--path.rootfs=/rootfs'
+      - '--path.sysfs=/host/sys'
+      - '--collector.filesystem.mount-points-exclude=^/(sys|proc|dev|host|etc)($$|/)'
+
+  prometheus:
+    profiles:
+      - default
+    build:
+      context: prometheus
+      args:
+        PROMETHEUS_VERSION: ${PROMETHEUS_VERSION}
+    restart: unless-stopped
+    volumes:
+      - prometheus:/prometheus
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+      - '--web.console.libraries=/etc/prometheus/console_libraries'
+      - '--web.console.templates=/etc/prometheus/consoles'
+      - '--web.enable-lifecycle'
+
+  grafana:
+    profiles:
+      - default
+    build:
+      context: grafana
+      args:
+        GRAFANA_VERSION: ${PROMETHEUS_GRAFANA_VERSION}
+    restart: unless-stopped
+    volumes:
+      - grafana:/var/lib/grafana
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.prometheus-grafana-${PROMETHEUS_INSTANCE:-default}.rule=Host(`${PROMETHEUS_METRICS_TRAEFIK_HOST}`)"
+      - "traefik.http.routers.prometheus-grafana-${PROMETHEUS_INSTANCE:-default}.entrypoints=websecure"
+
+  cadvisor:
+    profiles:
+      - cadvisor
+    image: gcr.io/cadvisor/cadvisor:${PROMETHEUS_CADVISOR_VERSION}
+    container_name: cadvisor
+    volumes:
+      - /:/rootfs:ro
+      - /var/run:/var/run:rw
+      - /sys:/sys:ro
+      - /var/lib/docker/:/var/lib/docker:ro
+    # labels:
+    #   - "traefik.enable=true"
+    #   - "traefik.http.routers.prometheus-cadvisor-${PROMETHEUS_INSTANCE:-default}.rule=Host(`${PROMETHEUS_CADVISOR_TRAEFIK_HOST}`)"
+    #   - "traefik.http.routers.prometheus-cadvisor-${PROMETHEUS_INSTANCE:-default}.entrypoints=websecure"
