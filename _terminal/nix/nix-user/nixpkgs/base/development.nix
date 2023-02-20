@@ -14,6 +14,7 @@
     pkgs.openssh
     pkgs.sshfs
     pkgs.keychain
+    pkgs.glow
   ];
 
   programs.keychain = {

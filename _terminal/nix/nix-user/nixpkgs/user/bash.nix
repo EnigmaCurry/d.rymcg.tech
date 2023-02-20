@@ -10,8 +10,8 @@
     bashrcExtra = ''
     #### To enable BASH shell completion support for d.rymcg.tech,
     #### add the following lines into your ~/.bashrc ::
-    #export PATH=''${PATH}:''${HOME}/git/vendor/enigmacurry/d.rymcg.tech/_scripts/user
-    #eval "''$(d.rymcg.tech completion bash)"
+    export PATH=''${PATH}:''${HOME}/git/vendor/enigmacurry/d.rymcg.tech/_scripts/user
+    eval "''$(d.rymcg.tech completion bash)"
     #### Optional aliases you may wish to uncomment:
     #### If you want to quickly access a sub-project you can do that too:
     #### For example, instead of running this long command:

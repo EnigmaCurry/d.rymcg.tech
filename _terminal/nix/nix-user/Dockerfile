@@ -7,7 +7,7 @@ ARG NIX_USER_GID=1000
 ENV DOCKER_IMAGE=${DOCKER_IMAGE}
 RUN addgroup --gid ${NIX_USER_GID} ${NIX_USER_NAME} && \
     apt-get update && \
-    DEBIAN_FRONTEND=noninteractive apt-get install -y curl xz-utils && \
+    DEBIAN_FRONTEND=noninteractive apt-get install -y git curl xz-utils && \
     adduser --uid ${NIX_USER_UID} \
       --gid ${NIX_USER_GID} ${NIX_USER_NAME} --gecos GECOS --disabled-password && \
     mkdir /nix && \

@@ -145,9 +145,17 @@ __readme() {
             DOCS_INDEX["${doc}"]="${doc}"
         done
         if [[ "${NAME_UPPERCASE}" == "LICENSE" ]]; then
-            exe xdg-open "https://github.com/EnigmaCurry/d.rymcg.tech/blob/master/LICENSE.txt"
+            if ! command -v xdg-open; then
+                exe less ${ROOT_DIR}/LICENSE.txt
+            else
+                exe xdg-open "https://github.com/EnigmaCurry/d.rymcg.tech/blob/master/LICENSE.txt"
+            fi
         elif [[ -v DOCS_INDEX["${NAME_UPPERCASE}"] ]]; then
-            exe xdg-open "https://github.com/EnigmaCurry/d.rymcg.tech/blob/master/${NAME_UPPERCASE}.md#readme"
+            if ! command -v xdg-open && command -v glow; then
+                exe glow -p ${ROOT_DIR}/${NAME_UPPERCASE}.md
+            else
+                exe xdg-open "https://github.com/EnigmaCurry/d.rymcg.tech/blob/master/${NAME_UPPERCASE}.md#readme"
+            fi
         else
             echo ${DOCS_INDEX["${NAME_UPPERCASE}"]}
             __make "${NAME}" readme "$@"
