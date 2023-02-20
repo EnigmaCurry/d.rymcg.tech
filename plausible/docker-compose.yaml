@@ -1,53 +1,52 @@
 version: "3.9"
+
 services:
   mail:
     image: bytemark/smtp
     restart: always
 
-  plausible_db:
+  db:
     # supported versions are 12, 13, and 14
     image: postgres:14-alpine
     restart: always
     volumes:
-      - db-data:/var/lib/postgresql/data
+      - db:/var/lib/postgresql/data
     environment:
+      - POSTGRES_DATABASE=plausible
       - POSTGRES_PASSWORD=${PLAUSIBLE_POSTGRES_PASS}
-      - POSTGRES_USER=postgres
+      - POSTGRES_USER=plausible
 
-  plausible_events_db:
+  events_db:
     build:
       context: clickhouse
     restart: always
     volumes:
-      - event-data:/var/lib/clickhouse
+      - events_db:/var/lib/clickhouse
     ulimits:
       nofile:
         soft: 262144
         hard: 262144
 
-  plausible:
+  app:
     image: plausible/analytics:v1.5.1
     restart: always
     # This command works, but seems like it could be simplified. TODO.
     command: sh -c "sleep 10 && /entrypoint.sh db createdb && /entrypoint.sh db migrate && /entrypoint.sh run"
     depends_on:
-      - plausible_db
-      - plausible_events_db
+      - db
+      - events_db
       - mail
-    # ports:
-    #   - 8000:8000
     environment:
       - PLAUSIBLE_TRAEFIK_HOST
       - BASE_URL=https://${PLAUSIBLE_TRAEFIK_HOST}
       - SECRET_KEY_BASE=${PLAUSIBLE_SECRET_KEY_BASE}
-      - DATABASE_URL=postgres://postgres:${PLAUSIBLE_POSTGRES_PASS}@plausible_db:5432/plausible_db
+      - DATABASE_URL=postgres://plausible:${PLAUSIBLE_POSTGRES_PASS}@db:5432/plausible
+      - CLICKHOUSE_DATABASE_URL=http://events_db:8123/plausible_events_db
     labels:
       - "traefik.enable=true"
       - "traefik.http.routers.plausible.rule=Host(`${PLAUSIBLE_TRAEFIK_HOST}`)"
       - "traefik.http.routers.plausible.entrypoints=websecure"
 
 volumes:
-  db-data:
-  event-data:
-  geoip:
-  
+  db:
+  events_db:
