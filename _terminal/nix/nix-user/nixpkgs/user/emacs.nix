@@ -5,6 +5,9 @@ let
 in {
   programs.emacs = {
     enable = true;
+    extraPackages = epkgs: [
+      epkgs.vterm
+    ];
   };
 
   # EnigmaCurry emacs config

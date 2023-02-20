@@ -15,6 +15,9 @@
     pkgs.sshfs
     pkgs.keychain
     pkgs.glow
+    pkgs.gcc
+    pkgs.libtool
+    pkgs.cmake
   ];
 
   programs.keychain = {
