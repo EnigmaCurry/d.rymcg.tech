@@ -461,6 +461,7 @@ Install these services at your leisure/preference:
 * [Node-RED](nodered) - a graphical event pipeline editor
 * [Ntfy.sh](ntfy.sh) - a simple HTTP-based pub-sub notification service
 * [Piwigo](piwigo) - a photo gallery and manager
+* [Plausible](plausible) - a privacy friendly web visitor analytics engine
 * [PostgreSQL](postgresql) - a database server configured with mutual TLS authentication for public networks
 * [PrivateBin](privatebin) - a minimal, encrypted, zero-knowledge, pastebin
 * [QBittorrent-Wireguard](qbittorrent-wireguard) - A Bittorrent (libtorrent v2) client with a combined VPN client
