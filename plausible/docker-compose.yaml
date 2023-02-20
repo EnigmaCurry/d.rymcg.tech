@@ -42,6 +42,7 @@ services:
       - SECRET_KEY_BASE=${PLAUSIBLE_SECRET_KEY_BASE}
       - DATABASE_URL=postgres://plausible:${PLAUSIBLE_POSTGRES_PASSWORD}@db:5432/plausible
       - CLICKHOUSE_DATABASE_URL=http://events_db:8123/plausible_events_db
+      - DISABLE_REGISTRATION=${PLAUSIBLE_DISABLE_REGISTRATION}
     labels:
       - "traefik.enable=true"
       - "traefik.http.routers.plausible.rule=Host(`${PLAUSIBLE_TRAEFIK_HOST}`)"
