@@ -58,7 +58,7 @@ bastion docker host, that only hosts these pet nix containers, and you
 can configure your other Docker server to only allow admin access from
 the bastion host. For example, you could simply turn off the bastion
 host to deny all access, and only turn it on when you need to change
-something. A great use for a usb powered raspberry pi zero.
+something. A great use for a small ARM64 raspberry pi.
 
 ## Config
 
@@ -142,6 +142,8 @@ automatically setup with the following:
    [`d.rymcg.tech`](../../README.md#using-the-drymcgtech-cli-script-optional)
    command line script is pre-installed, and available on the `$PATH`
    from any directory.
+ * [EnigmaCurry's emacs config](https://github.com/enigmacurry/emacs)
+   has been installed in `~/.emacs.d`
 
 To finish the docker client setup, you must manually copy the created
 SSH public key, to your other Docker host's `authorized_keys` file:
