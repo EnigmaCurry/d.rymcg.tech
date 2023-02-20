@@ -1,3 +1,4 @@
+#@ load("@ytt:data", "data")
 global:
   scrape_interval: 1m
 
@@ -7,11 +8,15 @@ scrape_configs:
     static_configs:
     - targets: ["localhost:9090"]
 
+  #@ if data.values.node_exporter_enabled == "true":
   - job_name: "node"
     static_configs:
     - targets: ["node-exporter:9100"]
+  #@ end
 
+  #@ if data.values.cadvisor_enabled == "true":
   - job_name: "cadvisor"
     scrape_interval: 5s
     static_configs:
     - targets: ["cadvisor:8080"]
+  #@ end

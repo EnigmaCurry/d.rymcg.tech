@@ -1,10 +1,22 @@
 version: "3.9"
 
 volumes:
-  prometheus:
+  prometheus_config:
+  prometheus_data:
   grafana:
 
 services:
+  config:
+    build:
+      context: config
+      args:
+        PROMETHEUS_CONFIG_YTT_VERSION: ${PROMETHEUS_CONFIG_YTT_VERSION}
+    environment:
+      - PROMETHEUS_NODE_EXPORTER_ENABLED
+      - PROMETHEUS_CADVISOR_ENABLED
+    volumes:
+      - prometheus_config:/etc/prometheus
+
   # https://github.com/prometheus/node_exporter
   # node_exporter collects the Host system metrics
   node-exporter:
@@ -13,6 +25,7 @@ services:
     image: prom/node-exporter:${PROMETHEUS_NODE_EXPORTER_VERSION}
     pid: host
     restart: unless-stopped
+    container_name: node-exporter
     volumes:
       - '/proc:/host/proc:ro'
       - '/sys:/host/sys:ro'
@@ -24,15 +37,15 @@ services:
       - '--collector.filesystem.mount-points-exclude=^/(sys|proc|dev|host|etc)($$|/)'
 
   prometheus:
+    depends_on:
+      - config
     profiles:
       - default
-    build:
-      context: prometheus
-      args:
-        PROMETHEUS_VERSION: ${PROMETHEUS_VERSION}
+    image: prom/prometheus:${PROMETHEUS_VERSION}
     restart: unless-stopped
     volumes:
-      - prometheus:/prometheus
+      - prometheus_config:/etc/prometheus
+      - prometheus_data:/prometheus
     command:
       - '--config.file=/etc/prometheus/prometheus.yml'
       - '--storage.tsdb.path=/prometheus'
@@ -41,6 +54,8 @@ services:
       - '--web.enable-lifecycle'
 
   grafana:
+    depends_on:
+      - prometheus
     profiles:
       - default
     build:
@@ -60,12 +75,15 @@ services:
       - cadvisor
     image: gcr.io/cadvisor/cadvisor:${PROMETHEUS_CADVISOR_VERSION}
     container_name: cadvisor
+    command:
+      - "--housekeeping_interval=30s"
+      - "--docker_only=true"
+      - "--disable_metrics=percpu,sched,tcp,udp,disk,diskIO,accelerator,hugetlb,referenced_memory,cpu_topology,resctrl"
     volumes:
       - /:/rootfs:ro
       - /var/run:/var/run:rw
       - /sys:/sys:ro
       - /var/lib/docker/:/var/lib/docker:ro
-    # labels:
-    #   - "traefik.enable=true"
-    #   - "traefik.http.routers.prometheus-cadvisor-${PROMETHEUS_INSTANCE:-default}.rule=Host(`${PROMETHEUS_CADVISOR_TRAEFIK_HOST}`)"
-    #   - "traefik.http.routers.prometheus-cadvisor-${PROMETHEUS_INSTANCE:-default}.entrypoints=websecure"
+      - /etc/machine-id:/etc/machine-id:ro
+      - /etc/localtime:/etc/localtime:ro
+

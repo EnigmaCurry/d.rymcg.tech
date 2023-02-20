@@ -1,4 +1,4 @@
-# Prometheus / Node-Exporter / cAdvisor / Grafana
+# Prometheus + Node-Exporter + cAdvisor + Grafana
 
 [Prometheus](https://prometheus.io/docs/introduction/overview/) is an
 open-source systems monitoring and alerting toolkit.
@@ -22,6 +22,7 @@ make config
 
 * Set the metrics domainname for grafana.
 * Choose whether to run node-exporter or not (For collecting the Host metrics).
+* Choose whether to run cAdvisor or not (For collecting container metrics).
 
 ```
 make install

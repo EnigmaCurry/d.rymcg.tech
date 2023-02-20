@@ -464,7 +464,7 @@ Install these services at your leisure/preference:
 * [Plausible](plausible) - a privacy friendly web visitor analytics engine
 * [PostgreSQL](postgresql) - a database server configured with mutual TLS authentication for public networks
 * [PrivateBin](privatebin) - a minimal, encrypted, zero-knowledge, pastebin
-* [Prometheus](prometheus) - a systems monitoring and alerting toolkit
+* [Prometheus](prometheus) - a systems monitoring and alerting toolkit (+ node-exporter + cAdvisor + Grafana)
 * [QBittorrent-Wireguard](qbittorrent-wireguard) - A Bittorrent (libtorrent v2) client with a combined VPN client
 * [Rdesktop](rdesktop) - a web based remote desktop (X11) in a container
 * [S3-proxy](s3-proxy) - an HTTP directory index for S3 backend
