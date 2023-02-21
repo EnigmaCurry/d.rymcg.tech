@@ -439,6 +439,7 @@ Install these first:
 Install these services at your leisure/preference:
 
 * [ArchiveBox](archivebox) - a website archiving tool
+* [Autoheal](autoheal) - a Docker container healthcheck monitor with auto-restart service
 * [Baikal](baikal) - a lightweight CalDAV+CardDAV server
 * [Bitwarden](bitwarden_rs) - a password manager
 * [CryptPad](cryptpad) - a collaborative document and spreadsheet editor 

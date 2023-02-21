@@ -1,0 +1,20 @@
+version: "3.9"
+
+services:
+  autoheal:
+    build:
+      context: https://github.com/willfarrell/docker-autoheal.git#${AUTOHEAL_VERSION}
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    restart: unless-stopped
+    environment:
+      - AUTOHEAL_CONTAINER_LABEL
+      - AUTOHEAL_INTERVAL
+      - AUTOHEAL_START_PERIOD
+      - AUTOHEAL_DEFAULT_STOP_TIMEOUT
+      - CURL_TIMEOUT=${AUTOHEAL_CURL_TIMEOUT}
+      - WEBHOOK_URL=${AUTOHEAL_WEBHOOK_URL}
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
