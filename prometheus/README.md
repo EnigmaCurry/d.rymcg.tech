@@ -43,10 +43,10 @@ You will be prompted to change the admin password on first login.
 
 This configurations comes with the following dashboards preinstalled:
 
- * [Node Exporter Full](https://grafana.com/grafana/dashboards/1860-node-exporter-full/)
- * [cAdvisor Exporter](https://grafana.com/grafana/dashboards/14282-cadvisor-exporter/)
+ * [Node Exporter Full](https://grafana.com/grafana/dashboards/1860-node-exporter-full/) - this shows the docker host metrics
+ * [cAdvisor Exporter](https://grafana.com/grafana/dashboards/14282-cadvisor-exporter/) - this shows the container metrics
 
-You can fine new dashboards on
+You can find new dashboards on
 [grafana.com](https://grafana.com/grafana/dashboards/). Add new
 dashboards, by downloading the JSON file into the
 [grafana/dashboards](grafana/dashboards) directory, and they will be
