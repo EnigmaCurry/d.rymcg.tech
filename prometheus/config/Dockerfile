@@ -5,6 +5,6 @@ RUN apt update && apt install -y wget && wget "https://github.com/vmware-tanzu/c
 FROM ytt
 WORKDIR /template
 VOLUME /config
-COPY setup.sh prometheus.yml ./
+COPY setup.sh prometheus.yml alertmanager.yml ./
 RUN chmod a+x setup.sh
 CMD ["./setup.sh"]
