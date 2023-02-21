@@ -1,5 +1,8 @@
 # d.rymcg.tech
 
+[![License: MIT](_meta/img/license-MIT.svg)](https://github.com/EnigmaCurry/d.rymcg.tech/blob/master/LICENSE.txt)
+[![Chat on Matrix](_meta/img/matrix-badge.svg)](https://matrix.to/#/#d.rymcg.tech:enigmacurry.com)
+
 This is a collection of Docker Compose projects consisting of
 [Traefik](https://doc.traefik.io/traefik/) as a TLS HTTP/TCP reverse
 proxy and other various self-hosted applications and services behind
@@ -33,6 +36,7 @@ configuration derived from your customized `.env` file.
 - [Creating multiple instances of a service](#creating-multiple-instances-of-a-service)
 - [Backup .env files](#backup-env-files-optional)
 - [Integrating external projects](#integrating-external-projects)
+- [Questions and discussion](#questions-and-discussion)
 
 ## All configuration comes from the environment
 
@@ -163,20 +167,21 @@ or off. See the [Traefik](traefik) configuration for more details.
 Depending on which services you actually install, and how they are
 configured, you may need to open these ports in your firewall:
 
-| Type       | Protocol | Port Range | Description                           |
-|------------|----------|------------|---------------------------------------|
-| SSH        | TCP      | 22         | Host SSH server (direct-map)          |
-| HTTP       | TCP      | 80         | Traefik HTTP entrypoint (web)         |
-| HTTP+TLS   | TCP      | 443        | Traefik HTTPS entrypoint (websecure)  |
-| TCP socket | TCP      | 1704       | Traefik Snapcast (audio) entrypoint   |
-| TCP socket | TCP      | 1705       | Traefik Snapcast (control) entrypoint |
-| SSH        | TCP      | 2222       | Traefik Gitea SSH (TCP) entrypoint    |
-| SSH        | TCP      | 2223       | SFTP container SSH (TCP) (direct-map) |
-| TLS        | TCP      | 5432       | PostgreSQL mTLS DBaaS (direct-map)    |
-| TCP socket | TCP      | 6600       | Traefik Mopidy (MPD) entrypoint       |
-| TLS        | TCP      | 8883       | Traefik MQTT (TLS) entrypoint         |
-| WebRTC     | UDP      | 10000      | Jitsi Meet video bridge (direct-map)  |
-| VPN        | UDP      | 51820      | Wireguard (Traefik VPN)  (direct-map) |
+| Type       | Protocol | Port Range | Description                                               |
+|------------|----------|------------|-----------------------------------------------------------|
+| SSH        | TCP      | 22         | Host SSH server (direct-map)                              |
+| HTTP       | TCP      | 80         | Traefik HTTP entrypoint (web; redirects to websecure)     |
+| HTTP+TLS   | TCP      | 443        | Traefik HTTPS entrypoint (websecure)                      |
+| TCP socket | TCP      | 1704       | Traefik Snapcast (audio) entrypoint                       |
+| TCP socket | TCP      | 1705       | Traefik Snapcast (control) entrypoint                     |
+| SSH        | TCP      | 2222       | Traefik Gitea SSH (TCP) entrypoint                        |
+| SSH        | TCP      | 2223       | SFTP container SSH (TCP) (direct-map)                     |
+| TLS        | TCP      | 5432       | PostgreSQL mTLS DBaaS (direct-map)                        |
+| TCP socket | TCP      | 6600       | Traefik Mopidy (MPD) entrypoint                           |
+| HTTP       | TCP      | 8000       | Traefik HTTP entrypoint (web_plain; explicitly non-https) |
+| TLS        | TCP      | 8883       | Traefik MQTT (TLS) entrypoint                             |
+| WebRTC     | UDP      | 10000      | Jitsi Meet video bridge (direct-map)                      |
+| VPN        | UDP      | 51820      | Wireguard (Traefik VPN)  (direct-map)                     |
 
 The ports that are listed as `(direct-map)` are not connected to
 Traefik, but are directly exposed (public) to the docker host network.
@@ -434,6 +439,7 @@ Install these first:
 Install these services at your leisure/preference:
 
 * [ArchiveBox](archivebox) - a website archiving tool
+* [Autoheal](autoheal) - a Docker container healthcheck monitor with auto-restart service
 * [Baikal](baikal) - a lightweight CalDAV+CardDAV server
 * [Bitwarden](bitwarden_rs) - a password manager
 * [CryptPad](cryptpad) - a collaborative document and spreadsheet editor 
@@ -442,6 +448,7 @@ Install these services at your leisure/preference:
 * [Filestash](filestash) - a web based file manager with customizable backend storage providers
 * [FreshRSS](freshrss) - an RSS reader / proxy
 * [Gitea](gitea) - Git host (like self-hosted GitHub) and oauth server
+* [Icecast](icecast) - a SHOUTcast compatible streaming multimedia server
 * [Invidious](invidious) - a Youtube proxy
 * [Jitsi Meet](jitsi-meet) - a video conferencing and screencasting service
 * [Jupyterlab](jupyterlab) - a web based code editing environment / reproducible research tool
@@ -455,6 +462,7 @@ Install these services at your leisure/preference:
 * [Node-RED](nodered) - a graphical event pipeline editor
 * [Ntfy.sh](ntfy.sh) - a simple HTTP-based pub-sub notification service
 * [Piwigo](piwigo) - a photo gallery and manager
+* [Plausible](plausible) - a privacy friendly web visitor analytics engine
 * [PostgreSQL](postgresql) - a database server configured with mutual TLS authentication for public networks
 * [PrivateBin](privatebin) - a minimal, encrypted, zero-knowledge, pastebin
 * [QBittorrent-Wireguard](qbittorrent-wireguard) - A Bittorrent (libtorrent v2) client with a combined VPN client
@@ -477,7 +485,7 @@ Bespoke things:
 * [certificate-ca](_terminal/certificate-ca) Experimental ad-hoc certifcate CA. Creates
   self-signed certificates for situations where you don't want to use Let's
   Encrypt.
-* [Linux Shell Containers](_terminal/linux) create bash aliases that
+* [Linux Shell Containers](_terminal/linux) create Bash aliases that
   automatically build and run programs in Docker containers.
 * [_docker_vm](_docker_vm#readme) Run Docker in a Virtual Machine (KVM) on Linux.
 
@@ -552,7 +560,7 @@ directory you are in.
    URL and you can copy and paste it).
  * See `make help` (or just run `make`) for a list of all the other available
    targets, including `make status`, `make start`, `make stop` and `make
-   destroy`. Be sure to recognize that `make` has tab completion in bash :)
+   destroy`. Be sure to recognize that `make` has tab completion in Bash :)
  * You can also run `make status` in the root directory of the cloned
    source. This will list all of the installed/running applications.
 
@@ -583,30 +591,26 @@ For a more in depth guide on using the Makefiles, see
 ### Using the `d.rymcg.tech` CLI script (optional)
 
 By default, both `make` and `docker compose` expect you to change your
-working directory to use them (however, you *can* work around this
-using `make -C` and `docker compose -f`). There is a third option to
-use the eponymous [`d.rymcg.tech` script](_scripts/d.rymcg.tech)
-included in this repository. In addition to letting you run any
-project `make` target from any working directory, this script also
-offers a convenient way to create [external
-projects](#integrating-external-projects) from a skeleton template.
+working directory to use them (note: you *can* work around this by
+using `make -C` or `docker compose -f`).
+
+However, there is a third option to use the eponymous [`d.rymcg.tech`
+script](_scripts/d.rymcg.tech) included in this repository. In
+addition to letting you run any project's `make` targets from any
+working directory, this shell script also offers a convenient way to
+create [external projects](#integrating-external-projects) from a
+skeleton template, and to create shorter command aliases for any
+project.
 
 To install the script, you need to add it to your `PATH` shell
-variable, and optionally enable the BASH completion support:
+variable, and at your option, evaluate the Bash shell tab completion
+script:
 
 ```
-##  Add this at the bottom of your ~/.bashrc config:
-
-## d.rymcg.tech
-export PATH="${HOME}/git/vendor/enigmacurry/d.rymcg.tech/_scripts/user:${PATH}"
-## optional TAB completion:
-eval $(d.rymcg.tech completion bash)
-complete -F __d.rymcg.tech_completions d.rymcg.tech
-
-## You might want to use a more convenient alias, (eg. 'dry'),
-#alias dry="d.rymcg.tech"
-## You can make completion support work for the alias too:
-#complete -F __d.rymcg.tech_completions dry
+#### To enable Bash shell completion support for d.rymcg.tech,
+#### add the following lines into your ~/.bashrc ::
+export PATH=${PATH}:${HOME}/git/vendor/enigmacurry/d.rymcg.tech/_scripts/user
+eval "$(d.rymcg.tech completion bash)"
 ```
 
 Once installed, run `d.rymcg.tech` to see the command help text.
@@ -674,11 +678,61 @@ project](#integrating-external-projects):
 d.rymcg.tech create
 ```
 
-Open the README for any project in your web browser (omit the second
-arg to open the root README):
+Open the README for any project in your web browser:
 
 ```
+## Open the main README
+d.rymcg.tech readme
+
+## Open the Traefik README
 d.rymcg.tech readme traefik
+```
+
+#### Project specific shell aliases
+
+You can add additional command aliases to your shell (put these in
+your `~/.bashrc` *after* the `eval` line that loads the main
+`d.rymcg.tech` script):
+
+```
+## Create a short alias for the Traefik project:
+__d.rymcg.tech_project_alias traefik
+```
+
+(This command creates the shell alias called `traefik`, as well as the
+Bash shell tab completion for it.)
+
+With this alias installed, instead of running `make -C
+~/git/vendor/enigmacurry/d.rymcg.tech/traefik install` you can now
+simply run `traefik install`.
+
+If you have created an [external
+project](#integrating-external-projects) (eg. named `mikeapp`), you can
+create a command alias for it:
+
+```
+## External project alias:
+__d.rymcg.tech_project_alias mikeapp ~/git/mikeapp
+```
+
+With this alias installed, instead of running `make -C ~/git/mikeapp
+install` you can now simply run `mikeapp install`.
+
+
+If you want a different alias for the main script, you can add that too:
+
+```
+## Alternative alias to d.rymcg.tech
+__d.rymcg.tech_cli_alias dry
+```
+
+With this alias installed, you can now run `dry` in place of
+`d.rymcg.tech`.
+
+To get a synopsis of all of these completion commands, run:
+
+```
+d.rymcg.tech completion
 ```
 
 ## Creating multiple instances of a service
@@ -704,14 +758,13 @@ By default, all of the `make` targets will use the default
 environment, but you can tell it use the instance environment instead,
 by setting the `instance` (or `INSTANCE`) variable:
 
-```
-make instance=foo config     # Configure a new or existing instance named foo
-make instance=bar config     # (Re)configures bar instance
-make instance=foo install    # This (re)installs only the foo instance
-make instance=bar install    # (Re)installs only bar instance
-make instance=foo ps         # This shows the containers status of the foo instance
-make instance=foo stop       # This stops the foo instance
-make instance=bar destroy    # This destroys only the bar instance
+``` make instance=foo config # Configure a new or existing instance
+named foo make instance=bar config # (Re)configures bar instance make
+instance=foo install # This (re)installs only the foo instance make
+instance=bar install # (Re)installs only bar instance make
+instance=foo ps # This shows the containers status of the foo instance
+make instance=foo stop # This stops the foo instance make instance=bar
+destroy # This destroys only the bar instance
 
 # Show the status of all instances of the current project subdirectory:
 make status
@@ -751,7 +804,7 @@ Set WHOAMI_INSTANCE=foo
 whoami $
 ```
 
-Inside the sub-shell, the `PS1` BASH prompt has been set so that it
+Inside the sub-shell, the `PS1` Bash prompt has been set so that it
 will remind you of your current locked instance:
 `(context=d.rymcg.tech project=whoami instance=foo)`. You have access
 to all of the same `make` targets as before, but now they will apply
@@ -888,8 +941,9 @@ framework.
 
 The easiest method of creating an external project, is by setting up
 the [`d.rymcg.tech`
-script](https://github.com/EnigmaCurry/d.rymcg.tech/tree/cli-script#using-the-drymcgtech-cli-script-optional),
+script](https://github.com/EnigmaCurry/d.rymcg.tech/blob/master/README.md#using-the-drymcgtech-cli-script-optional),
 then run:
+
 
 ```
 ## Run this from any directory:
@@ -941,3 +995,15 @@ make install
 make open
 # etc
 ```
+
+## Questions and discussion
+
+If you have a question, or have some feedback, you can join us on [the
+Matrix chat room](https://matrix.to/#/#d.rymcg.tech:enigmacurry.com).
+You can also use the [discussions
+interface](https://github.com/EnigmaCurry/d.rymcg.tech/discussions) on
+github.
+
+Feature suggestions, bug reports, and pull requests, are all welcome
+on the github repository, but only open source self-hostable software
+is acceptable for inclusion in this repository.

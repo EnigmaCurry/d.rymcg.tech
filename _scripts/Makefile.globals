@@ -27,6 +27,7 @@ PROJECT_INSTANCE ?= ${CWD_PROJECT_INSTANCE}
 PROJECT_VOLUME_PREFIX = ${PROJECT}${INSTANCE_SUFFIX}
 DOCKER_COMPOSE_FILE_ARGS ?= $(shell (set +x; [[ -f docker-compose.override_${CONTEXT_INSTANCE}.yaml ]] && echo "-f docker-compose.yaml -f docker-compose.override_${CONTEXT_INSTANCE}.yaml" || echo "-f docker-compose.yaml") )
 export DEFAULT_SAVE_CLEARTEXT_PASSWORDS_JSON ?= $(shell ${BIN}/dotenv -f ${ROOT_ENV} get DEFAULT_SAVE_CLEARTEXT_PASSWORDS_JSON)
+PROJECT_MAKEFILE=$(realpath $(firstword $(MAKEFILE_LIST)))
 
 .PHONY: all
 all: help

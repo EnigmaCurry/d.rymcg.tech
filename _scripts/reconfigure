@@ -2,7 +2,6 @@
 
 BIN=$(dirname ${BASH_SOURCE})
 source ${BIN}/funcs.sh
-echo "Args: $@"
 ENV_FILE=$1; shift
 
 if [[ $# == 0 ]]; then

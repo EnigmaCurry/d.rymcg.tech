@@ -7,8 +7,8 @@ error(){ echo "Error: $@" >/dev/stderr; }
 fault(){ test -n "$1" && error $1; echo "Exiting." >/dev/stderr; exit 1; }
 exe() { (set -x; "$@"); }
 check_var(){
-    __missing=false
-    __vars="$@"
+    local __missing=false
+    local __vars="$@"
     for __var in ${__vars}; do
         if [[ -z "${!__var}" ]]; then
             error "${__var} variable is missing."
@@ -20,20 +20,40 @@ check_var(){
     fi
 }
 
+check_num(){
+    local var=$1
+    check_var var
+    if ! [[ $LENGTH =~ ^[0-9]+$ ]] ; then
+        fault "${var} is not a number: ${!var}"
+    fi
+}
+
 ask() {
-    __prompt=${1}; __var=${2}; __default=${3}
+    ## Ask the user a question and set the given variable name with their answer
+    local __prompt="${1}"; local __var="${2}"; local __default="${3}"
     read -e -p "${__prompt}"$'\x0a: ' -i "${__default}" ${__var}
     export ${__var}
 }
 
 ask_no_blank() {
-    __prompt=${1}; __var=${2}; __default=${3}
+    ## Ask the user a question and set the given variable name with their answer
+    ## If the answer is blank, repeat the question.
+    local __prompt="${1}"; local __var="${2}"; local __default="${3}"
     while true; do
         read -e -p "${__prompt}"$'\x0a: ' -i "${__default}" ${__var}
         export ${__var}
         [[ -z "${!__var}" ]] || break
     done
 }
+
+ask_echo() {
+    ## Ask the user a question then print the non-blank answer to stdout
+    (
+        ask_no_blank "$1" ASK_ECHO_VARNAME >/dev/stderr
+        echo "${ASK_ECHO_VARNAME}"
+    )
+}
+
 
 require_input() {
     ## require_input {PROMPT} {VAR} {DEFAULT}
@@ -55,14 +75,14 @@ docker_run_with_env() {
         declare -n returned_string=$1; shift;
         ## The rest of the args are the names of the environment vars:
         ## Return a string full of all the docker environment vars and values
-        __args=""; for var in "$@"; do
+        local __args=""; for var in "$@"; do
                        test -z ${!var} && fault "$var is not set!"
                        __args="${__args} -e $var=${!var}"
                    done
         returned_string="${__args}"
     }
     ## Get the array of vars passed by name:
-    name=$1[@]; ___vars=("${!name}"); ___vars=${___vars[@]}; shift;
+    local name=$1[@]; local ___vars=("${!name}"); ___vars=${___vars[@]}; shift;
     ## Construct the env var args string and put into DOCKER_ENV:
     docker_env DOCKER_ENV $___vars
     ## Run Docker with the environment set and the rest of the args sent:
@@ -71,7 +91,7 @@ docker_run_with_env() {
 }
 
 get_root_domain() {
-    ENV_FILE=${BIN}/../.env_$(${BIN}/docker_context)
+    local ENV_FILE=${BIN}/../.env_$(${BIN}/docker_context)
     if [[ -f ${ENV_FILE} ]]; then
         ${BIN}/dotenv -f ${ENV_FILE} get ROOT_DOMAIN
     else
@@ -81,8 +101,8 @@ get_root_domain() {
 }
 
 docker_compose() {
-    ENV_FILE=${ENV_FILE:-.env_$(${BIN}/docker_context)}
-    PROJECT_NAME="$(basename \"$PWD\")"
+    local ENV_FILE=${ENV_FILE:-.env_$(${BIN}/docker_context)}
+    local PROJECT_NAME="$(basename \"$PWD\")"
     if [[ -n "${instance:-${INSTANCE}}" ]] && [[ "${ENV_FILE}" != ".env_${DOCKER_CONTEXT}_${instance:-${INSTANCE}}" ]]; then
         ENV_FILE="${ENV_FILE}_${instance:-${INSTANCE}}"
         PROJECT_NAME="$(basename \"$PWD\")_${instance:-${INSTANCE}}"
@@ -92,8 +112,8 @@ docker_compose() {
 }
 
 docker_run() {
-    ENV_FILE=${ENV_FILE:-.env_$(${BIN}/docker_context)}
-    PROJECT_NAME="$(basename \"$PWD\")"
+    local ENV_FILE=${ENV_FILE:-.env_$(${BIN}/docker_context)}
+    local PROJECT_NAME="$(basename \"$PWD\")"
     if [[ -n "${instance:-${INSTANCE}}" ]] && [[ "${ENV_FILE}" != ".env_${DOCKER_CONTEXT}_${instance:-${INSTANCE}}" ]]; then
         ENV_FILE="${ENV_FILE}_${instance:-${INSTANCE}}"
         PROJECT_NAME="$(basename \"$PWD\")_${instance:-${INSTANCE}}"
@@ -103,8 +123,8 @@ docker_run() {
 }
 
 docker_exec() {
-    ENV_FILE=${ENV_FILE:-.env_$(${BIN}/docker_context)}
-    PROJECT_NAME="$(basename \"$PWD\")"
+    local ENV_FILE=${ENV_FILE:-.env_$(${BIN}/docker_context)}
+    local PROJECT_NAME="$(basename \"$PWD\")"
     if [[ -n "${instance:-${INSTANCE}}" ]] && [[ "${ENV_FILE}" != ".env_${DOCKER_CONTEXT}_${instance:-${INSTANCE}}" ]]; then
         ENV_FILE="${ENV_FILE}_${instance:-${INSTANCE}}"
         PROJECT_NAME="$(basename \"$PWD\")_${instance:-${INSTANCE}}"
@@ -134,7 +154,7 @@ EOF
 volume_rsync() {
     docker image inspect localhost/rsync >/dev/null || docker build -t localhost/rsync ${ROOT_DIR}/_terminal/rsync
     if [[ $# -gt 0 ]]; then
-        VOLUME="${1}"; shift
+        local VOLUME="${1}"; shift
         docker volume inspect "${VOLUME}" >/dev/null
         rsync --rsh="docker run -i --rm -v ${VOLUME}:/data -w /data localhost/rsync" "$@"
     else
@@ -144,7 +164,7 @@ volume_rsync() {
 
 volume_ls() {
     if [[ $# -gt 0 ]]; then
-        VOLUME="${1}"; shift
+        local VOLUME="${1}"; shift
         docker run --rm -i -v "${VOLUME}:/data" -w /data alpine find
     else
         fault "Usage: volume_ls VOLUME_NAME"
@@ -153,7 +173,7 @@ volume_ls() {
 
 volume_mkdir() {
     if [[ $# -gt 0 ]]; then
-        VOLUME="${1}"; shift
+        local VOLUME="${1}"; shift
         exe docker volume create "${VOLUME}"
         if [[ $# -gt 0 ]]; then
             exe docker run --rm -i -v "${VOLUME}:/data" -w /data alpine mkdir -p "$@"
@@ -164,7 +184,7 @@ volume_mkdir() {
 }
 
 random_port() {
-    LOW_PORT="${1:-49152}"; HIGH_PORT="${2:-65535}"
+    local LOW_PORT="${1:-49152}"; HIGH_PORT="${2:-65535}"
     comm -23 <(seq "${LOW_PORT}" "${HIGH_PORT}") <(ss -tan | awk '{print $4}' | cut -d':' -f2 | \
                                                        grep "[0-9]\{1,5\}" | sort | uniq) 2>/dev/null | \
         shuf 2>/dev/null | head -n 1; true

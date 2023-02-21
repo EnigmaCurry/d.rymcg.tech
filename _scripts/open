@@ -13,9 +13,9 @@ source ${BIN}/funcs.sh
 
 check_var ENV_FILE ROOT_DIR DOCKER_CONTEXT CONTEXT_INSTANCE
 
-#echo "ENV_FILE=${ENV_FILE}"
 #echo "CONTEXT_INSTANCE=${CONTEXT_INSTANCE}"
 if [[ ! -f "${ENV_FILE}" ]]; then
+    echo "ENV_FILE=${ENV_FILE}"
     echo "ENV_FILE not found"
     exit 1
 fi
@@ -29,13 +29,12 @@ fi
 URL_PATH=${1:-"/"}
 HOST=${2:-$(grep -m 1 -oP "TRAEFIK_HOST=\K.*" ${ENV_FILE})}
 PROTOCOL=${3:-"https"}
-echo ${PROTOCOL}
 if [[ "${PROTOCOL}" == "https" ]]; then
     PORT=${4:-$(${BIN}/dotenv -f ${ROOT_ENV_FILE} get PUBLIC_HTTPS_PORT || echo 443)}
 elif [[ "${PROTOCOL}" == "http" ]]; then
     PORT=${4:-$(${BIN}/dotenv -f ${ROOT_ENV_FILE} get PUBLIC_HTTP_PORT || echo 80)}
 fi
-if [[ -z "${PORT}" ]] || [[ "$PORT" == "80" ]] || [[ "$PORT" == "443" ]]; then
+if [[ -z "${PORT}" ]] || [[ "$PORT" == "80" ]] || [[ "$PORT" == "443" ]] || [[ "${HOST}" =~ ":" ]]; then
     PORT=""
 else
     PORT=":${PORT}"

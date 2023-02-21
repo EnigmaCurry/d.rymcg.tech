@@ -8,11 +8,17 @@ ROOT_CA_NAME="${ROOT_CA_NAME:-Example CA}"
 # 100 year certificate expiration by default:
 CERTIFICATE_EXPIRATION="${CERTIFICATE_EXPIRATION:-876000h}"
 # Allowed IP address source range:
-ALLOWED_IP_SOURCERANGE="${ALLOWED_IP_SOURCERANGE:-0.0.0.0/0}"
+POSTGRES_ALLOWED_IP_SOURCERANGE="${POSTGRES_ALLOWED_IP_SOURCERANGE:-0.0.0.0/0}"
 ## The certificates are only created one time, on the first startup.. Unless
 ## FORCE_NEW_CERTIFICATES=true, which will then overrwrite the existing
 ## certificates with a brand new PKI (CA+server+client certs).
 FORCE_NEW_CERTIFICATES="${FORCE_NEW_CERTIFICATES:-false}"
+
+## You can use the default EC key type or change to the RSA key type.
+## EC Keys use PK12 key type (`-----BEGIN EC PRIVATE KEY-----`)
+## RSA Keys use PKCS8 key type (`-----BEGIN PRIVATE KEY-----`)
+#KEY_ARGS="--kty RSA --size 2048"
+KEY_ARGS=""
 
 create_config() {
     cd ${CONFIG_DIR}
@@ -38,16 +44,16 @@ create_certs() {
     echo "Creating new PKI - CA + server + client certificates ... "
 
     ## Create the root Certificate Authority:
-    step certificate create --insecure --no-password --profile root-ca "${ROOT_CA_NAME}" root_ca.crt root_ca.key
+    step certificate create --insecure --no-password --profile root-ca ${KEY_ARGS} "${ROOT_CA_NAME}" root_ca.crt root_ca.key
 
     ## Create the server certificate:
-    step certificate create --insecure --no-password --profile leaf "${POSTGRES_TRAEFIK_HOST}" server.crt server.key --not-after="${CERTIFICATE_EXPIRATION}" --ca root_ca.crt --ca-key root_ca.key
+    step certificate create --insecure --no-password --profile leaf ${KEY_ARGS} "${POSTGRES_TRAEFIK_HOST}" server.crt server.key --not-after="${CERTIFICATE_EXPIRATION}" --ca root_ca.crt --ca-key root_ca.key
 
     ## Create the client certificate:
-    step certificate create --insecure --no-password --profile leaf "${POSTGRES_LIMITED_USER}" client.crt client.key --not-after="${CERTIFICATE_EXPIRATION}" --ca root_ca.crt --ca-key root_ca.key
+    step certificate create --insecure --no-password --profile leaf ${KEY_ARGS} "${POSTGRES_LIMITED_USER}" client.crt client.key --not-after="${CERTIFICATE_EXPIRATION}" --ca root_ca.crt --ca-key root_ca.key
 
-    ## Make a copy of the client key in DER PK8 format (DBeaver needs this)
-    openssl pkcs8 -topk8 -inform PEM -outform DER -nocrypt -in client.key -out client.pk8.key
+    ## Make a copy of the client key in PK8 format - rust-native-tls needs this.
+    openssl pkcs8 -topk8 -nocrypt -in client.key -out client.pk8.key
 
     ## Fix permissions for the postgres group to access:
     chmod 0040 {root_ca,server,client}.{key,crt} client.pk8.key

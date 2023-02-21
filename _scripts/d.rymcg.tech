@@ -189,6 +189,37 @@ __run_script() {
     ${ROOT_DIR}/_scripts/${CMD} "$@"
 }
 
+__d.rymcg.tech_cli_alias() {
+    local ALIAS="$1"
+    alias $1='d.rymcg.tech'
+    complete -F __d.rymcg.tech_completions $1
+
+}
+
+__d.rymcg.tech_project_alias() {
+    local ROOT_DIR=$(d.rymcg.tech info ROOT_DIR)
+    __ALIAS="${1}"
+    __PROJECT_DIR="${2}"
+    test -z "${__PROJECT_DIR}" && __PROJECT_DIR="${ROOT_DIR}/${__ALIAS}"
+    export __ALIAS __PROJECT_DIR
+    alias $1="make --no-print-directory -C ${__PROJECT_DIR}"
+    read -r -d '' FUNC <<'EOF'
+function _${__ALIAS}_complete {
+    local __PROJECT_DIR=${__PROJECT_DIR}
+    MAKE_TARGETS="$(make -C "${__PROJECT_DIR}" -qp 2>/dev/null | awk -F':' '/^[a-zA-Z0-9][^$#\/\t=]*:([^=]|$)/ {split($1,A,/ /);for(i in A)print A[i]}' | grep -v "^Makefile$" | sort -u)"
+    if [[ ${COMP_CWORD} == 1 ]]; then
+        COMPREPLY=($(compgen -W "${MAKE_TARGETS}" "${COMP_WORDS[1]}"))
+    else
+        COMPREPLY=()
+    fi
+}
+EOF
+    FUNC=$(echo "${FUNC}" | envsubst '${__ALIAS} ${__PROJECT_DIR}')
+    eval "${FUNC}"
+    complete -o filenames -F _${__ALIAS}_complete ${__ALIAS}
+    unset __ALIAS __PROJECT_DIR
+}
+
 __d.rymcg.tech_completions() {
     ### BASH completion
     ## dev links:
@@ -206,7 +237,7 @@ __d.rymcg.tech_completions() {
     if [[ ${COMP_CWORD} == 1 ]]; then
         ## Complete the main command:
         ## d.rymcg.tech <TAB> ...
-        COMMANDS="help create cd make list readme info context"
+        COMMANDS="help create cd make list readme info context completion"
         COMPREPLY=($(compgen -W "${COMMANDS}" "${COMP_WORDS[1]}"))
     elif [[ ${COMP_CWORD} == 2 ]]; then
         ALL_PROJECTS=$(d.rymcg.tech list --raw)
@@ -269,18 +300,34 @@ __completion() {
     # Print the completion script to be evaluated
     USER_SCRIPT_PATH=$(echo "${ROOT_DIR}/_scripts/user" | sed "s|${HOME}|\$\{HOME\}|")
     if [[ $# -lt 1 ]]; then
-        echo "## To enable BASH shell completion support for d.rymcg.tech,"
-        echo "## add the following lines into your ~/.bashrc ::"
+        echo "#### To enable BASH shell completion support for d.rymcg.tech,"
+        echo "#### add the following lines into your ~/.bashrc ::"
+        echo "export PATH=\${PATH}:${USER_SCRIPT_PATH}"
+        echo 'eval "$(d.rymcg.tech completion bash)"'
         echo ""
-        echo "export PATH=${USER_SCRIPT_PATH}:\${PATH}"
-        echo "eval \$(d.rymcg.tech completion bash)"
-        echo "complete -F __d.rymcg.tech_completions d.rymcg.tech"
+        echo "#### Optional aliases you may wish to uncomment:"
+        echo "#### If you want to quickly access a sub-project you can do that too:"
+        echo "#### For example, instead of running this long command:"
+        echo "####   make -C ~/git/vendor/enigmacurry/d.rymcg.tech/traefik config"
+        echo "#### Now you can run just: traefik config"
+        echo "#### You can do this for any sub-project name:"
+        echo "# __d.rymcg.tech_project_alias traefik"
+        echo ""
+        echo "#### If you have external projects, you can create an alias for those too:"
+        echo "#### Also add the full path to the external project:"
+        echo "#### For example, external project 'foo' in the directory ~/git/foo"
+        echo "# __d.rymcg.tech_project_alias foo ~/git/foo"
+        echo ""
+        echo "#### If you want a shorter alias than d.rymcg.tech (eg. 'dry') you can add it:"
+        echo "# __d.rymcg.tech_cli_alias dry"
         echo ""
     else
         if [[ "${1}" == "bash" ]]; then
             declare -f __d.rymcg.tech_documentation_words
-            echo ";"
             declare -f __d.rymcg.tech_completions
+            declare -f __d.rymcg.tech_project_alias
+            declare -f __d.rymcg.tech_cli_alias
+            echo "complete -F __d.rymcg.tech_completions d.rymcg.tech"
         else
             fault "Sorry, this script only support BASH shell completion"
         fi
