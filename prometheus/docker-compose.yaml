@@ -3,6 +3,7 @@ version: "3.9"
 volumes:
   prometheus_config:
   prometheus_data:
+  alertmanager_config:
   grafana:
 
 services:
@@ -14,8 +15,10 @@ services:
     environment:
       - PROMETHEUS_NODE_EXPORTER_ENABLED
       - PROMETHEUS_CADVISOR_ENABLED
+      - PROMETHEUS_ALERTMANAGER_ENABLED
     volumes:
       - prometheus_config:/etc/prometheus
+      - alertmanager_config:/etc/alertmanager
 
   # https://github.com/prometheus/node_exporter
   # node_exporter collects the Host system metrics
@@ -69,6 +72,8 @@ services:
       - "traefik.enable=true"
       - "traefik.http.routers.prometheus-grafana-${PROMETHEUS_INSTANCE:-default}.rule=Host(`${PROMETHEUS_METRICS_TRAEFIK_HOST}`)"
       - "traefik.http.routers.prometheus-grafana-${PROMETHEUS_INSTANCE:-default}.entrypoints=websecure"
+      - "traefik.http.middlewares.prometheus-${PROMETHEUS_INSTANCE:-default}-whitelist.ipwhitelist.sourcerange=${PROMETHEUS_METRICS_IP_SOURCERANGE}"
+      - "traefik.http.routers.prometheus-${PROMETHEUS_INSTANCE:-default}.middlewares=prometheus-${PROMETHEUS_INSTANCE:-default}-whitelist"
 
   cadvisor:
     profiles:
@@ -87,3 +92,14 @@ services:
       - /etc/machine-id:/etc/machine-id:ro
       - /etc/localtime:/etc/localtime:ro
 
+  alertmanager:
+    depends_on:
+      - config
+    profiles:
+      - alertmanager
+    image: prom/alertmanager:${PROMETHEUS_ALERTMANAGER_VERSION}
+    restart: unless-stopped
+    volumes:
+      - alertmanager_config:/etc/alertmanager
+    command:
+      - '--config.file=/etc/alertmanager/alertmanager.yml'

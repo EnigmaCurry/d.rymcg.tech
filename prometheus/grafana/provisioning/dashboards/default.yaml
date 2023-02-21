@@ -5,5 +5,5 @@ providers:
     folder: Services # The folder where to place the dashboards
     type: file
     options:
-      path: /usr/local/lib/grafana/dashboards
+      path: /etc/grafana/provisioning/dashboards
 

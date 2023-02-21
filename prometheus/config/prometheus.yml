@@ -20,3 +20,10 @@ scrape_configs:
     static_configs:
     - targets: ["cadvisor:8080"]
   #@ end
+
+#@ if data.values.alertmanager_enabled == "true":
+alerting:
+  alertmanagers:
+    - static_configs:
+      - targets: ['alertmanager:9093']
+#@ end

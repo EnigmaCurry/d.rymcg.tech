@@ -10,12 +10,19 @@ config-hook:
 	@${BIN}/confirm $$(test "$$(${BIN}/dotenv -f ${ENV_FILE} get PROMETHEUS_NODE_EXPORTER_ENABLED)" == true && echo yes || echo no) "Do you want to run node-exporter to collect the Host system metrics" "?" && ${BIN}/reconfigure ${ENV_FILE} PROMETHEUS_NODE_EXPORTER_ENABLED=true || ${BIN}/reconfigure ${ENV_FILE} PROMETHEUS_NODE_EXPORTER_ENABLED=false
 	@echo
 	@${BIN}/confirm $$(test "$$(${BIN}/dotenv -f ${ENV_FILE} get PROMETHEUS_CADVISOR_ENABLED)" == true && echo yes || echo no) "Do you want to run cAdvisor to collect container metrics" "?" && ${BIN}/reconfigure ${ENV_FILE} PROMETHEUS_CADVISOR_ENABLED=true || ${BIN}/reconfigure ${ENV_FILE} PROMETHEUS_CADVISOR_ENABLED=false
-#	@test "$$(${BIN}/dotenv -f ${ENV_FILE} get PROMETHEUS_CADVISOR_ENABLED)" == true && ${BIN}/reconfigure_ask ${ENV_FILE} PROMETHEUS_CADVISOR_TRAEFIK_HOST "Enter the cadvisor dashboard domain name" cadvisor${INSTANCE_URL_SUFFIX}.${ROOT_DOMAIN} || true
+	@echo
+	@${BIN}/confirm $$(test "$$(${BIN}/dotenv -f ${ENV_FILE} get PROMETHEUS_ALERTMANAGER_ENABLED)" == true && echo yes || echo no) "Do you want to run alertmanager to collect container metrics" "?" && ${BIN}/reconfigure ${ENV_FILE} PROMETHEUS_ALERTMANAGER_ENABLED=true || ${BIN}/reconfigure ${ENV_FILE} PROMETHEUS_ALERTMANAGER_ENABLED=false
+	@echo
+	@test "$$(${BIN}/dotenv -f ${ENV_FILE} get PROMETHEUS_ALERTMANAGER_ENABLED)" == true && (${BIN}/confirm $$(test "$$(${BIN}/dotenv -f ${ENV_FILE} get PROMETHEUS_ALERTMANAGER_SMTP_ENABLED)" == true && echo yes || echo no) "Do you want to send notifications via SMTP (email)" "?" && ${BIN}/reconfigure ${ENV_FILE} PROMETHEUS_ALERTMANAGER_SMTP_ENABLED=true || ${BIN}/reconfigure ${ENV_FILE} PROMETHEUS_ALERTMANAGER_SMTP_ENABLED=false) || ${BIN}/reconfigure ${ENV_FILE} PROMETHEUS_ALERTMANAGER_SMTP_ENABLED=false || true
+	@test "$$(${BIN}/dotenv -f ${ENV_FILE} get PROMETHEUS_ALERTMANAGER_SMTP_FROM)" == true && ${BIN}/reconfigure_ask ${ENV_FILE} PROMETHEUS_ALERTMANAGER_SMTP_FROM "Enter the SMTP default sender from address" prometheus@${ROOT_DOMAIN} || true
+	@test "$$(${BIN}/dotenv -f ${ENV_FILE} get PROMETHEUS_ALERTMANAGER_SMTP_ENABLED)" == true && ${BIN}/reconfigure_ask ${ENV_FILE} PROMETHEUS_ALERTMANAGER_SMTP_SMARTHOST "Enter the SMTP smarthost domain and port" smtp.example.com:465  || true
+	@test "$$(${BIN}/dotenv -f ${ENV_FILE} get PROMETHEUS_ALERTMANAGER_SMTP_ENABLED)" == true && ${BIN}/reconfigure_ask ${ENV_FILE} PROMETHEUS_ALERTMANAGER_SMTP_AUTH_USERNAME "Enter the SMTP authentication username"  || true
+	@test "$$(${BIN}/dotenv -f ${ENV_FILE} get PROMETHEUS_ALERTMANAGER_SMTP_ENABLED)" == true && ${BIN}/reconfigure_ask ${ENV_FILE} PROMETHEUS_ALERTMANAGER_SMTP_AUTH_PASSWORD "Enter the SMTP authentication password"  || true
 	@make --no-print-directory compose-profiles
 
 .PHONY: compose-profiles
 compose-profiles:
-	@${BIN}/reconfigure_compose_profiles ${ENV_FILE} PROMETHEUS_NODE_EXPORTER_ENABLED=node-exporter PROMETHEUS_CADVISOR_ENABLED=cadvisor
+	@${BIN}/reconfigure_compose_profiles ${ENV_FILE} PROMETHEUS_NODE_EXPORTER_ENABLED=node-exporter PROMETHEUS_CADVISOR_ENABLED=cadvisor PROMETHEUS_ALERTMANAGER_ENABLED=alertmanager
 
 .PHONY: shell
 shell:
