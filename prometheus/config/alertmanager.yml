@@ -3,9 +3,25 @@
 #@ load("@ytt:data", "data")
 #@ if data.values.alertmanager_enabled == "true":
 global:
-  # The smarthost and SMTP sender used for mail notifications.
+  #@ if data.values.smtp_enabled == "true":
+  #! The smarthost and SMTP sender used for mail notifications.
   smtp_smarthost: #@ data.values.smtp_smarthost
   smtp_auth_username: #@ data.values.smtp_auth_username
   smtp_auth_password: #@ data.values.smtp_auth_password
   smtp_from: #@ data.values.smtp_from
+  #@ end
+
+route:
+  #@ if data.values.smtp_enabled == "true":
+  group_by: [Alertname]
+  receiver: admin
+  #@ end
+
+receivers:
+  #@ if data.values.smtp_enabled == "true":
+  - name: admin
+    email_configs:
+      - to: #@ data.values.smtp_to
+  #@ end
 #@ end
+
