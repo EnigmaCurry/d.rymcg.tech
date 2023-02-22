@@ -1,0 +1,32 @@
+#!/bin/bash
+
+## reconfigure_ask_validate_regex ENV_FILE VAR "this is the prompt" "this is the default" "regex-to-validate-against"
+## if default is not required, use single - to indicate blank
+ENV_FILE="$1"; var="$2"; prompt="$3"; default="$4"; regex="$5";
+
+BIN=$(dirname ${BASH_SOURCE})
+source ${BIN}/funcs.sh
+
+check_var ENV_FILE var prompt default regex
+
+## Make new .env if it doesn't exist:
+test -f ${ENV_FILE} || cp .env-dist ${ENV_FILE}
+
+example=$(grep -m 1 -oP "^$var=\K.*" .env-dist)
+existing=$(grep -m 1 -oP "^$var=\K.*" ${ENV_FILE})
+
+# echo "existing=$existing"
+# echo "example =$example"
+# echo "default =$default"
+# echo "regex   =$regex"
+
+while true; do
+    ${BIN}/reconfigure_ask ${ENV_FILE} "${var}" "${prompt}" "${default}"
+    val="$(${BIN}/dotenv -f ${ENV_FILE} get ${var})"
+    if [[ "${val}" =~ ${regex} ]]; then
+        break
+    else
+        echo "Invalid input, must match regex: ${regex}"
+        echo ""
+    fi
+done
