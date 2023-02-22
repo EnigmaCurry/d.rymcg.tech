@@ -51,3 +51,14 @@ You can find new dashboards on
 dashboards, by downloading the JSON file into the
 [grafana/dashboards](grafana/dashboards) directory, and they will be
 made available the next time you run `make install`.
+
+## Alerts
+
+If you enabled alertmanager and SMTP via `make config`, you can test that alerts are working:
+
+```
+make test-alert
+```
+
+This should fire off a test alert email to your configured email
+address (`PROMETHEUS_ALERTMANAGER_SMTP_TO`)

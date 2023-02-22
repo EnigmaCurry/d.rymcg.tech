@@ -124,3 +124,9 @@ services:
       resources:
         limits:
           memory: ${PROMETHEUS_ALERTMANAGER_MEMORY_LIMIT}
+
+  alert-test:
+    profiles:
+      - alert-test
+    image: curlimages/curl
+    command: curl --json '[{"labels":{"alertname":"test-alert"}}]' http://alertmanager:9093/api/v1/alerts
