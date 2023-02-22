@@ -35,7 +35,6 @@ services:
     image: prom/node-exporter:${PROMETHEUS_NODE_EXPORTER_VERSION}
     pid: host
     restart: unless-stopped
-    container_name: node-exporter
     volumes:
       - '/proc:/host/proc:ro'
       - '/sys:/host/sys:ro'
@@ -62,6 +61,10 @@ services:
       - '--web.console.libraries=/etc/prometheus/console_libraries'
       - '--web.console.templates=/etc/prometheus/consoles'
       - '--web.enable-lifecycle'
+    deploy:
+      resources:
+        limits:
+          memory: ${PROMETHEUS_MEMORY_LIMIT}
 
   grafana:
     depends_on:
@@ -81,12 +84,15 @@ services:
       - "traefik.http.routers.prometheus-grafana-${PROMETHEUS_INSTANCE:-default}.entrypoints=websecure"
       - "traefik.http.middlewares.prometheus-${PROMETHEUS_INSTANCE:-default}-whitelist.ipwhitelist.sourcerange=${PROMETHEUS_METRICS_IP_SOURCERANGE}"
       - "traefik.http.routers.prometheus-${PROMETHEUS_INSTANCE:-default}.middlewares=prometheus-${PROMETHEUS_INSTANCE:-default}-whitelist"
+    deploy:
+      resources:
+        limits:
+          memory: ${PROMETHEUS_GRAFANA_MEMORY_LIMIT}
 
   cadvisor:
     profiles:
       - cadvisor
     image: gcr.io/cadvisor/cadvisor:${PROMETHEUS_CADVISOR_VERSION}
-    container_name: cadvisor
     command:
       - "--housekeeping_interval=30s"
       - "--docker_only=true"
@@ -98,6 +104,10 @@ services:
       - /var/lib/docker/:/var/lib/docker:ro
       - /etc/machine-id:/etc/machine-id:ro
       - /etc/localtime:/etc/localtime:ro
+    deploy:
+      resources:
+        limits:
+          memory: ${PROMETHEUS_CADVISOR_MEMORY_LIMIT}
 
   alertmanager:
     depends_on:
@@ -110,3 +120,7 @@ services:
       - alertmanager_config:/etc/alertmanager
     command:
       - '--config.file=/etc/alertmanager/alertmanager.yml'
+    deploy:
+      resources:
+        limits:
+          memory: ${PROMETHEUS_ALERTMANAGER_MEMORY_LIMIT}
