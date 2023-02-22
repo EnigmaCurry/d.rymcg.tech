@@ -87,7 +87,7 @@ services:
   traefik:
     profiles:
       - default
-    depends_on: ['geoip_database','config']
+    depends_on: ['config']
     build:
       context: .
       args:

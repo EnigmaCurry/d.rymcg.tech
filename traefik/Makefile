@@ -68,7 +68,7 @@ config-wireguard-client:
 
 .PHONY: open # Start SSH tunnel and open the Traefik Dashboard
 open:
-	@export DOCKER_CONTEXT=${DOCKER_CONTEXT} ENV_FILE=${ENV_FILE} CONTEXT_INSTANCE=${CONTEXT_INSTANCE}; DASHBOARD_PORT=$$(comm -23 <(seq 49152 65535) <(ss -tan | awk '{print $4}' | cut -d':' -f2 | grep "[0-9]\{1,5\}" | sort | uniq) | shuf | head -n 1) && curl localhost:$${DASHBOARD_PORT} 2>&1 >/dev/null && ${BIN}/open /dashboard/#/http/routers 127.0.0.1:$${DASHBOARD_PORT} http || (set -x; ssh -N -L $${DASHBOARD_PORT}:127.0.0.1:8080 $$(docker context inspect | jq -r '.[0]["Endpoints"]["docker"]["Host"]' | sed 's|^ssh://||') &  echo "Starting SSH Tunnel ..." && sleep 5 && ${BIN}/open /dashboard/#/http/routers 127.0.0.1:$${DASHBOARD_PORT} http)
+	@export ENV_FILE=${ENV_FILE} CONTEXT_INSTANCE=${CONTEXT_INSTANCE} PORT_FORWARD="$$(${BIN}/port_forward ${ENV_FILE} traefik 127.0.0.1:8080)"; if [[ ! "$${PORT_FORWARD}" =~ [0-9]+ ]]; then ${BIN}/fault "Could not get the SSH forwarded port"; else ${BIN}/open /dashboard/#/http/routers 127.0.0.1:$${PORT_FORWARD} http; fi;
 
 .PHONY: close # Stop the dashboard SSH tunnel
 close:

@@ -23,8 +23,8 @@ check_var(){
 check_num(){
     local var=$1
     check_var var
-    if ! [[ $LENGTH =~ ^[0-9]+$ ]] ; then
-        fault "${var} is not a number: ${!var}"
+    if ! [[ ${!var} =~ ^[0-9]+$ ]] ; then
+        fault "${var} is not a number: '${!var}'"
     fi
 }
 
