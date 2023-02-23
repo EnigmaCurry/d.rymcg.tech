@@ -19,9 +19,12 @@ docker run --rm -it \
 ```
 
 Inside the container you would have an SSH client, and docker command
-(client) installed, with d.rymcg.tech pre-git-cloned, and you setup
-your docker context just regular d.rymcg.tech, with the entire home
-directory stored as a docker volume.
+(client) installed, with d.rymcg.tech pre-git-cloned to
+`~/git/vendor/enigmacurry/d.rymcg.tech`, the bash shell setup for the
+`d.rymcg.tech` CLI script, and all is left for you to do is setup your
+docker (SSH) context just like with regular d.rymcg.tech, and the
+entire home directory (along with all your `.env` files) stored as a
+docker volume.
 
 But I think its useful to still install d.rymcg.tech natively, this
 lets you manage multiple environments at the same time. Here's the
@@ -52,11 +55,12 @@ in the home directory. In order to add programs to the environment,
 you must rebuild the base images, otherwise programs that you install
 in the container are gone the next time you start.
 
-Docker natively has the ability to attach to containers with `docker
-attach`, and you can even do this multiple times, and run the same
-terminal session from multiple windows (a bit like having `screen` or
-`tmux`, but builtin to Docker itself). This is what the `shell attach`
-uses too. Once attached, there is a key combination that can detach:
+Docker natively has the ability to attach to containers with [`docker
+attach`](https://docs.docker.com/engine/reference/commandline/attach/),
+and you can even do this multiple times, and run the same terminal
+session from multiple windows (a bit like having `screen` or `tmux`,
+but builtin to Docker itself). This is what the `shell attach` uses
+too. Once attached, there is a key combination that can detach:
 `Ctrl-P Ctrl-Q`. Once detached, the Bash shell is still running, and
 so is the container. It can be reattachd at will, but as soon as you
 end Bash, the container stops and is automatically removed (but the
@@ -71,8 +75,12 @@ production web server, but only the container has one, because it
 stores the SSH key for it.
 
 Keeping your production docker context in a container, lets you turn
-it off, and lockdown access. You can simply turn the docker server
-running your shell environments off. This server could be a VM running
-on your laptop (with an encrypted root filesystem; just power down to
-secure it), or as a seperate device like a raspberry pi (also with
-encryped root partition for offline protection or from theft.)
+it off, and lockdown access. *To prevent access, you can simply turn
+the docker server running your shell environments off*. This server
+could be a VM running on your laptop or as a seperate device like a
+raspberry pi (in either case, use an encrypted file system, to keep
+secrets safe when offline, or if physically stolen.)
+
+[See these instructions for creating an encrypted Docker server on a
+raspberry
+pi.](https://gist.github.com/devgioele/e897c341b8d1c18d58b44ffe21d72cf6)

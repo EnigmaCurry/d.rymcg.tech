@@ -301,7 +301,7 @@ __d.rymcg.tech_documentation_words() {
     declare -A DOCS_INDEX
     while IFS= read -r line; do
         DOCS_INDEX["$line"]="$line"
-    done <<< $(git -C "${ROOT_DIR}" ls-tree --name-only origin/master | \
+    done <<< $(git -C "${ROOT_DIR}" ls-tree --name-only HEAD | \
                    grep -E "(\.txt$|\.md$)" | \
                    sed -e 's/\.txt$//' -e 's/\.md$//')
     if [[ "$1" == "--lowercase" ]]; then
