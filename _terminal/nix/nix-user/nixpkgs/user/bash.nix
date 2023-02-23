@@ -26,7 +26,7 @@
     #### If you want a shorter alias than d.rymcg.tech (eg. 'dry') you can add it:
     # __d.rymcg.tech_cli_alias dry
 
-    cowsay -f meow -W 49 "Welcome to ''${HOSTNAME} on ''${DOCKER_IMAGE:-unknown}. I am a pet container, and all data in /home/''${USER} and /nix is persisted in docker volumes."
+    cowsay -f meow -W 49 "Welcome to ''${HOSTNAME} on ''${DOCKER_IMAGE:-unknown}. I am a pet container, and all data in /home/''${USER} is persisted to a docker volume."
     '';
   };
 }

@@ -1,20 +1,49 @@
 version: "3.9"
 
 volumes:
-  nix:
   home:
 
 services:
-  nix-user:
-    container_name: nix-${INSTANCE:-default}
-    hostname: nix-${INSTANCE:-default}
+  nix-base:
+    profiles:
+      - build-base
+    image: ${NIX_BASE_IMAGE_TAG}
     build:
       context: nix-user
+      dockerfile: Dockerfile.base
       args:
         DOCKER_IMAGE: debian:bullseye-slim
         NIX_USER_NAME: ${NIX_USER_NAME}
         NIX_USER_UID: ${NIX_USER_UID}
         NIX_USER_GID: ${NIX_USER_GID}
+
+  nix-common:
+    profiles:
+      - build-common
+    image: ${NIX_COMMON_IMAGE_TAG}
+    build:
+      context: nix-user
+      dockerfile: Dockerfile.common
+      args:
+        BASE_IMAGE: ${NIX_BASE_IMAGE_TAG}
+        NIX_HOMEMANAGER_VERSION: ${NIX_HOMEMANAGER_VERSION}
+
+  nix-user:
+    container_name: nix-${INSTANCE:-default}
+    hostname: nix-${INSTANCE:-default}
+    image: ${NIX_USER_IMAGE_TAG}
+    build:
+      context: nix-user
+      args:
+        COMMON_BASE_IMAGE: ${NIX_COMMON_IMAGE_TAG}
+        NIX_GIT_USERNAME: ${NIX_GIT_USERNAME}
+        NIX_GIT_EMAIL: ${NIX_GIT_EMAIL}
+        NIX_GIT_D_RYMCG_TECH_CLONE: ${NIX_GIT_D_RYMCG_TECH_CLONE}
+        NIX_GIT_D_RYMCG_TECH_REPO: ${NIX_GIT_D_RYMCG_TECH_REPO}
+        NIX_GIT_D_RYMCG_TECH_BRANCH: ${NIX_GIT_D_RYMCG_TECH_BRANCH}
+        NIX_DOCKER_SSH_HOST: ${NIX_DOCKER_SSH_HOST}
+        NIX_DOCKER_SSH_USER: ${NIX_DOCKER_SSH_USER}
+        NIX_DOCKER_SSH_PORT: ${NIX_DOCKER_SSH_PORT}
     security_opt:
       - no-new-privileges:true
     cap_drop:
@@ -24,16 +53,3 @@ services:
     restart: unless-stopped
     volumes:
       - home:/home/${NIX_USER_NAME}
-      - nix:/nix
-    environment:
-      - NIX_USER_NAME
-      - NIX_HOMEMANAGER_VERSION
-      - NIX_GIT_USERNAME
-      - NIX_GIT_EMAIL
-      - NIX_GIT_D_RYMCG_TECH_CLONE
-      - NIX_GIT_D_RYMCG_TECH_REPO
-      - NIX_GIT_BRANCH
-      - NIX_DOCKER_SSH_HOST
-      - NIX_DOCKER_SSH_USER
-      - NIX_DOCKER_SSH_PORT
-

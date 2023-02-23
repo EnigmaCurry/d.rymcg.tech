@@ -1,6 +1,16 @@
 ROOT_DIR = ../..
-include ${ROOT_DIR}/_scripts/Makefile.projects-custom-install
+include ${ROOT_DIR}/_scripts/Makefile.projects-custom-build-custom-install
 include ${ROOT_DIR}/_scripts/Makefile.instance
+
+.PHONY: build # build and retag the base images
+build:
+	@docker compose --env-file ${ENV_FILE} build nix-base
+	@docker compose --env-file ${ENV_FILE} build nix-common
+
+.PHONY: build-cached # build the base images only if the image tags do not already exist
+build-cached:
+	@NIX_BASE_IMAGE_TAG=$$(dotenv -f ${ENV_FILE} get NIX_BASE_IMAGE_TAG); (docker image inspect $${NIX_BASE_IMAGE_TAG} >/dev/null && echo "Found cached image: $${NIX_BASE_IMAGE_TAG}") || docker compose --env-file ${ENV_FILE} build nix-base
+	@NIX_COMMON_IMAGE_TAG=$$(dotenv -f ${ENV_FILE} get NIX_COMMON_IMAGE_TAG); (docker image inspect $${NIX_COMMON_IMAGE_TAG} >/dev/null && echo "Found cached image: $${NIX_COMMON_IMAGE_TAG}") || docker compose --env-file ${ENV_FILE} build nix-common
 
 .PHONY: config-hook
 config-hook:
@@ -13,7 +23,7 @@ config-hook:
 
 .PHONY: shell
 shell:
-	@docker compose --env-file ${ENV_FILE} --project-name "${CWD_PROJECT_NAME}" run --rm -it $${service:-nix-user} /bin/bash
+	@docker compose --env-file ${ENV_FILE} --project-name "${CWD_PROJECT_NAME}" run --name "nix-${INSTANCE}-$${NAME:-1}" --rm -it $${service:-nix-user} /bin/bash
 
 .PHONY: dev-sync
 dev-sync:
