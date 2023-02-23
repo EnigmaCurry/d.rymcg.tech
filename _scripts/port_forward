@@ -1,0 +1,36 @@
+#!/bin/bash
+
+## Open an SSH tunnel to a container port and map it to localhost
+## port_forward ENV_FILE SERVICE REMOTE_PORT [LOCAL_PORT]
+## stdout prints the port
+
+BIN=$(dirname ${BASH_SOURCE})
+source ${BIN}/funcs.sh
+
+ENV_FILE="${1}"
+SERVICE="${2}"
+REMOTE_PORT="${3}"
+LOCAL_PORT="${4:-$(comm -23 <(seq 49152 65535) <(ss -tan | awk '{print $4}' | cut -d':' -f2 | grep "[0-9]\{1,5\}" | sort | uniq) | shuf | head -n 1)}"
+
+check_var ENV_FILE SERVICE REMOTE_PORT LOCAL_PORT
+
+if [[ "${REMOTE_PORT}" =~ .+:.+ ]]; then
+    REMOTE_IP_ADDRESS="$(echo ${REMOTE_PORT} | cut -d ":" -f 1)"
+    REMOTE_PORT="$(echo ${REMOTE_PORT} | cut -d ":" -f 2)"
+else
+    CONTAINER_ID="$(docker compose --env-file ${ENV_FILE} ps -q ${SERVICE})"
+    DOCKER_NETWORK="$(docker inspect "${CONTAINER_ID}" | jq -r ".[0].NetworkSettings.Networks | keys[]" | head -1)"
+    REMOTE_IP_ADDRESS="$(docker inspect "${CONTAINER_ID}" | jq -r ".[0].NetworkSettings.Networks[\"${DOCKER_NETWORK}\"].IPAddress")"
+fi
+
+check_num LOCAL_PORT REMOTE_PORT
+
+SSH_HOST="$(docker context inspect | jq -r '.[0]["Endpoints"]["docker"]["Host"]' | sed 's|^ssh://||')"
+check_var SSH_HOST
+
+nohup ssh -N -L ${LOCAL_PORT}:${REMOTE_IP_ADDRESS}:${REMOTE_PORT} ${SSH_HOST} &
+echo "Starting SSH Tunnel ..." >/dev/stderr
+sleep 5
+
+## The LOCAL_PORT is to be the only thing printed to stdout:
+echo ${LOCAL_PORT}

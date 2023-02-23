@@ -9,4 +9,4 @@ passwords.json
 /mikeapp/
 docker-compose.override*.yaml
 dump.*
-tasks.org
+/tasks.org
