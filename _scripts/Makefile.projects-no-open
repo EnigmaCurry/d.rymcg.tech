@@ -3,6 +3,7 @@ include ${ROOT_DIR}/_scripts/Makefile.help
 include ${ROOT_DIR}/_scripts/Makefile.build
 include ${ROOT_DIR}/_scripts/Makefile.install
 include ${ROOT_DIR}/_scripts/Makefile.lifecycle
+include ${ROOT_DIR}/_scripts/Makefile.pull
 include ${ROOT_DIR}/_scripts/Makefile.override
 include ${ROOT_DIR}/_scripts/Makefile.clean
 include ${ROOT_DIR}/_scripts/Makefile.reconfigure

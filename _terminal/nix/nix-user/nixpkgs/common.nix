@@ -2,10 +2,14 @@
 
 {
   imports = [
-    ./common/core.nix
+    ./common/packages.nix
     ./common/docker.nix
     ./common/python.nix
     ./common/development.nix
+    ./common/git.nix
+    ./common/bash.nix
+    ./common/powerline-go.nix
+    ./common/emacs.nix
   ];
   # Home Manager needs a bit of information about you and the
   # paths it should manage.

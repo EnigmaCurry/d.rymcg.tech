@@ -42,6 +42,3 @@ status:
 logs:
 	@make --no-print-directory docker-compose-lifecycle-cmd EXTRA_ARGS="logs -f ${service}"
 
-.PHONY: pull # Pull docker images from registry
-pull:
-	@make --no-print-directory docker-compose-lifecycle-cmd EXTRA_ARGS="pull"

@@ -60,6 +60,23 @@ the bastion host. For example, you could simply turn off the bastion
 host to deny all access, and only turn it on when you need to change
 something. A great use for a small ARM64 raspberry pi.
 
+## Run the prebuilt image from the registry with zero config
+
+If you just want to run the prebuild image, you can do this straight
+with docker, with nothing else required:
+
+```
+docker run --rm -it \
+  --name nix-user \
+  --hostname nix-user \
+  -v nix-user:/home/nix-user \
+  registry.digitalocean.com/rymcg-tech/nix-common:v0.0.1
+```
+
+This image has no user customization, but you can add it after the
+fact. If you want to customize the image and build your own, keep
+reading the next sections.
+
 ## Config
 
 ```
@@ -76,16 +93,43 @@ the same docker server it is *deployed* on.) This information will be
 used to automatically create the ssh config and docker context
 (clients only).
 
-## Build
+## Build (or pull) the images
+
+You can build the full image set locally:
 
 ```
+## Build and retag images locally:
 make build
 ```
 
-This will build the docker image, and apply all of the non-personal
-config in [nixpkgs/common.nix](nix-user/nixpkgs/common.nix). The
-personalized configuration is applied later on, during the shell
-startup.
+Building creates three docker images:
+
+ * base - the base image contains a base Debian OS with nix and
+   home-manager preinstalled.
+ * common - the common image contains all of the nix configuration
+   from [nixpkgs/common.nix](nix-user/nixpkgs/common.nix), which
+   installs all of the packages that a user may need, including the
+   `d.rymcg.tech` CLI script. This does *not* include any
+   user-personalized information.
+ * user - the user image is the final layer, which includes the
+   user-personalized configuration from
+   [nixpkgs/user.nix](nix-user/nixpkgs/user.nix) (This image is
+   generally not published, but built locally, on top of the base and
+   common images.)
+
+The nix build process is a bit heavy, and it may even fail, if you
+have less than 8GB of memory (including swap). If you don't wish to
+build the images locally, you can pull the pre-built base+common
+images from the community public docker registry instead:
+
+```
+## Pull the tagged base+common images from the registry:
+## NOTE: these images are not (yet) built automatically by CI and may be outdated:
+make pull
+
+## When you pull the base images, you still need to build the user image locally:
+make build-user
+```
 
 ## Shell
 
@@ -93,28 +137,47 @@ There is no need to run `make install`, as there are no backend
 services required. Simply start the shell on demand:
 
 ```
-## Be patient, this takes a few minutes the first time:
 make shell
 ```
 
-This creates volumes for `/home/nix-user` (the user's home directory)
-and `/nix` (the user's nix store) and these are pre-populated with
-data generated from the image, which is *copied* on first startup.
-Each instance is a "fat" copy of the data from the image. The `/nix`
-volume especially is quite large (~2GB), and takes 1-2 minutes to
-finish copying on first start, so please be patient. The volumes will
-persist, so the startup time will be much improved for the second time
-you run `make shell`.
+This creates a named volume for `/home/nix-user` (the container user's
+home directory) and is pre-populated with data generated from the
+image, which is *copied* on first startup. This is a "pet" container
+setup, where the contents of the home directory are divorced from the
+image at the point of first creation, so even if you rebuild the
+image, it won't affect the contents of the volume. To create a fresh
+container, from scratch, you must use a new volume, or delete the old
+one.
 
-The [entrypoint](nix-user/entrypoint.sh) is run on every startup, and
-it will create the SSH keys (if needed), and clone the `d.rymcg.tech`
-git repository (if not already), runs `home-manager switch`, and then
-starts an interactive Bash shell. You can press `Ctrl-D` or type
-`exit` to leave/shutdown the shell.
+The [entrypoint](nix-user/entrypoint.sh) is run on every startup,
+which runs `home-manager switch` which rebuilds all of the user
+configuration, and then starts an interactive Bash shell. You can
+press `Ctrl-D` or type `exit` to leave/shutdown the shell.
+
+All of the nix program data is stored in `/nix` and it is important to
+know that this directory is *not* saved in any volume. You may install
+new programs as you wish, but unless you modify the base images, these
+modifications are ephemeral, and are lost once the container exits.
+This may be a useful feature, in order to try out new things, but you
+will need to write them into your nix config, and run `make build`, to
+make these changes permanent.
 
 You can run several independent shells at the same time (in separate
 terminals), and each runs in a different container, but each instance
-shares the same home directory and the same `/nix` store.
+shares the same home directory and the same `/nix` store. Since each
+shell runs as a separate container, each session requires a unique
+name: the default name is `1`, so if your instance is named `default`,
+the first shell that you start will be named `nix-default-1`. To
+create a second shell, using the same instance, you need to specify
+the name:
+
+```
+## Specify a name for opening additional shells of the same instance:
+make shell name=foo
+```
+
+In the example above, the new shell will start, and is named
+`nix-default-foo`.
 
 In order to run totally separate containers, with different data, you
 must use separate instances. For that, use [`make
