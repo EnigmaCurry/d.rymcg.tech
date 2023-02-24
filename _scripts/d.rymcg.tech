@@ -31,6 +31,8 @@ ROOT_DIR=$(dirname ${BIN})
      echo "This script will not function properly if it has been moved." >/dev/stderr
      exit 1)
 
+SHELL_CONTAINER_ROOT=${ROOT_DIR}/_terminal/nix
+
 source ${BIN}/funcs.sh
 
 __help() {
@@ -40,18 +42,9 @@ __help() {
     (
         echo -e "cd [SUBDIR]\tEnter a sub-shell and go to the ROOT_DIR directory (or given subdirectory)."
         echo -e "create [PROJECT] [TEMPLATE]\tCreate a new external project from a template."
-        echo -e "make [PROJECT] [ARGS ...]\tRun a \`make\` command for the given d.rymcg.tech project name."
+        echo -e "make [PROJECT] [ARGS ...]\tRun a \`make\` command for the given d.rymcg.tech project name (See \`list\`)."
         echo -e "context [DOCKER_CONTEXT]\tView or set the current docker context."
         echo -e "completion\tSetup TAB completion in your shell."
-        echo -e "shell [help]\tContainerized Bash shell environments, preconfigured as a Docker development workstation."
-        echo -e "shell build\tBuild the base docker images for the shell environments."
-        echo -e "shell pull\tPull the tagged base docker images from the regisry (so you don't have to build it)."
-        echo -e "shell run [INSTANCE] [TTY]\tStart a shell terminal, for a given instance, and unique terminal TTY name."
-        echo -e "shell attach [INSTANCE] [TTY]\tAttach to a running shell, for a given instance, and terminal TTY name."
-        echo -e "\t(The INSTANCE name corresponds with the shared volume;"
-        echo -e "\tand the TTY name with the container that mounts it.)"
-        echo -e "shell ls\tList all running shell environment containers."
-        echo -e "shell volume [ls]\tList all shell environment volumes (including mounted and unmounted)."
     ) | expand -t 30
     echo ""
     echo "## Documentation sub-commands:"
@@ -60,7 +53,7 @@ __help() {
         echo -e "list\tList available d.rymcg.tech projects"
         echo -e "\t(not including external projects, unless you symlink them into ROOT_DIR)"
         echo -e "readme\tOpen the main d.rymcg.tech README.md in your browser"
-        echo -e "readme [PROJECT]\tOpen the README.md for the given project name"
+        echo -e "readme [PROJECT]\tOpen the README.md for the given project name (See \`list\`)."
         while IFS=' ' read -ra DOC_WORDS; do
             for word in "${DOC_WORDS[@]}"; do
                 FILE_EXTENSION="md"
@@ -71,6 +64,7 @@ __help() {
         #echo -e "info\tInternal read-only information for shell completion support"
     ) | expand -t 30
     echo ""
+    __shell help
 }
 
 __create() {
@@ -254,7 +248,7 @@ __d.rymcg.tech_completions() {
     if [[ ${COMP_CWORD} == 1 ]]; then
         ## Complete the main command:
         ## d.rymcg.tech <TAB> ...
-        COMMANDS="help create cd make list readme info context completion"
+        COMMANDS="help create cd make list readme info context completion shell"
         COMPREPLY=($(compgen -W "${COMMANDS}" "${COMP_WORDS[1]}"))
     elif [[ ${COMP_CWORD} == 2 ]]; then
         ALL_PROJECTS=$(d.rymcg.tech list --raw)
@@ -275,6 +269,8 @@ __d.rymcg.tech_completions() {
                 COMPREPLY=($(compgen -W "${INFO_WORDS}" "${COMP_WORDS[2]}"));;
             script)
                 COMPREPLY=($(compgen -W "$(find ${ROOT_DIR}/_scripts -executable -printf '%P\n' | grep -v d.rymcg.tech)" "${COMP_WORDS[2]}"));;
+            shell)
+                COMPREPLY=($(compgen -W "$(__d.rymcg.tech_shell_words)" "${COMP_WORDS[2]}"));;
         esac
     elif [[ ${COMP_CWORD} == 3 ]]; then
         ## Dispatch completion for the sub-commands second argument:
@@ -341,6 +337,7 @@ __completion() {
     else
         if [[ "${1}" == "bash" ]]; then
             declare -f __d.rymcg.tech_documentation_words
+            declare -f __d.rymcg.tech_shell_words
             declare -f __d.rymcg.tech_completions
             declare -f __d.rymcg.tech_project_alias
             declare -f __d.rymcg.tech_cli_alias
@@ -348,6 +345,58 @@ __completion() {
         else
             fault "Sorry, this script only support BASH shell completion"
         fi
+    fi
+}
+
+__d.rymcg.tech_shell_words() {
+    echo "help clean config instance build pull push run attach ls status volume destroy"
+}
+__shell() {
+    if [[ "$#" == 0 || "$1" == "help" ]]; then
+        (
+        echo "## Create containerized Docker development pet workstation environments:"
+        echo -e "shell [help]\tShow this help screen."
+        echo -e "shell config [INSTANCE]\tConfigure a shell environment instance config file (INSTANCE=default if not specified)."
+        echo -e "shell build [INSTANCE]\tBuild the base docker images for the shell environment."
+        echo -e "\t(In $(echo ${ROOT_DIR} | sed "s|^${HOME}|\~|g")/_terminal/nix/.env_{DOCKER_CONTEXT}_{INSTANCE})"
+        echo -e "shell pull\tPull the tagged base docker images from the registry (so you don't have to build it)."
+        echo -e "shell push\tPush the tagged base docker images to the registry (from your locally built images)."
+        echo -e "shell run [INSTANCE] [TTY]\tStart a shell terminal in the foreground, given an instance, and unique TTY name."
+        echo -e "shell start [INSTANCE] [TTY]\tStart a shell terminal in the background, given an instance, and unique TTY name."
+        echo -e "shell attach [INSTANCE] [TTY]\tAttach to a running shell, for a given instance, and terminal TTY name."
+        echo -e "\t(The INSTANCE name corresponds with the volume; and the TTY name corresponds with the container"
+        echo -e "\tthat mounts it. The default INSTANCE is \`default\`, and the default TTY is \`1\`."
+        echo -e "\tThe container name and its hostname are prefixed with \`nix-\`, so the default is \`nix-default-1\`)"
+        echo -e "shell ls\tList all running shell environment containers."
+        echo -e "shell volume [ls]\tList all shell environment volumes (including mounted and unmounted)."
+        echo -e "shell destroy [INSTANCE]\tDestroy the container and volume of the given instance (or the \`default\` instance)."
+        ) | expand -t 30
+    elif [[ "$1" == "clean" ]]; then
+        make --no-print-directory -C "${SHELL_CONTAINER_ROOT}" clean "INSTANCE=${2:-default}"
+    elif [[ "$1" == "build" ]]; then
+        make --no-print-directory -C "${SHELL_CONTAINER_ROOT}" build "INSTANCE=${2:-default}"
+    elif [[ "$1" == "config" || "$1" == "instance" ]]; then
+        make --no-print-directory -C "${SHELL_CONTAINER_ROOT}" config "INSTANCE=${2:-default}"
+    elif [[ "$1" == "pull" ]]; then
+        make --no-print-directory -C "${SHELL_CONTAINER_ROOT}" pull
+    elif [[ "$1" == "push" ]]; then
+        make --no-print-directory -C "${SHELL_CONTAINER_ROOT}" push
+    elif [[ "$1" == "run" ]]; then
+        make --no-print-directory -C "${SHELL_CONTAINER_ROOT}" shell "INSTANCE=${2:-default}" "TTY=${3:-1}"
+    elif [[ "$1" == "stop" ]]; then
+        make --no-print-directory -C "${SHELL_CONTAINER_ROOT}" stop "INSTANCE=${2:-default}" "TTY=${3:-1}"
+    elif [[ "$1" == "start" ]]; then
+        make --no-print-directory -C "${SHELL_CONTAINER_ROOT}" start "INSTANCE=${2:-default}" "TTY=${3:-1}"
+    elif [[ "$1" == "attach" ]]; then
+        make --no-print-directory -C "${SHELL_CONTAINER_ROOT}" attach "INSTANCE=${2:-default}" "TTY=${3:-1}"
+    elif [[ "$1" == "ls" || "$1" == "status" ]]; then
+        make --no-print-directory -C "${SHELL_CONTAINER_ROOT}" status
+    elif [[ "$1" == "destroy" ]]; then
+        make --no-print-directory -C "${SHELL_CONTAINER_ROOT}" destroy "INSTANCE=${2:-default}"
+    elif [[ "$1" == "volume" ]]; then
+        echo "TODO"
+    else
+        fault "Unknown command: ${1}"
     fi
 }
 
@@ -375,6 +424,8 @@ main() {
                 __context "$@";;
             script)
                 __run_script "$@";;
+            shell)
+                __shell "$@";;
             *)
                 fault "Invalid command"
         esac

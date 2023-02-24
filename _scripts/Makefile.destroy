@@ -1,0 +1,3 @@
+.PHONY: destroy # Deletes containers AND data volumes
+destroy: check-instance-project
+	@${BIN}/confirm no "Do you want to destroy all $$(basename $${PWD}) services AND volumes for the given context/instance (${ENV_FILE})" "?" && (make --no-print-directory destroy-hook-pre-rule-exists 2>/dev/null && make --no-print-directory destroy-hook-pre || true) && make --no-print-directory docker-compose-lifecycle-cmd  EXTRA_ARGS="down -v" && (make --no-print-directory destroy-hook-post-rule-exists 2>/dev/null && make --no-print-directory destroy-hook-post || true)

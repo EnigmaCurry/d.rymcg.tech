@@ -8,6 +8,8 @@
   programs.bash = {
     enable = true;
     bashrcExtra = ''
+    set -o ignoreeof
+
     #### To enable BASH shell completion support for d.rymcg.tech,
     #### add the following lines into your ~/.bashrc ::
     export PATH=''${PATH}:''${HOME}/git/vendor/enigmacurry/d.rymcg.tech/_scripts/user

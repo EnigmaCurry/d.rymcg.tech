@@ -1,0 +1,4 @@
+.PHONY: logs # Tail all containers logs (set SERVICE=name to filter for one)
+logs:
+	@make --no-print-directory docker-compose-lifecycle-cmd EXTRA_ARGS="logs -f ${service}"
+

@@ -1,44 +1,10 @@
-.PHONY: config # Configure .env file
-config: check-instance-project
-	@echo "Configuring environment file: ${ENV_FILE}"
-	@make -e --no-print-directory config-hook override instance=${INSTANCE}
-
-.PHONY: start # Start services
-start:
-	@make -e --no-print-directory override instance=${INSTANCE}
-	@make --no-print-directory docker-compose-lifecycle-cmd EXTRA_ARGS="up -d ${service}"
-
-.PHONY: up
-up: build
-	@make -e --no-print-directory override instance=${INSTANCE}
-	@make --no-print-directory docker-compose-lifecycle-cmd EXTRA_ARGS="up ${service}"
-
-.PHONY: stop # Stops services
-stop:
-	@make --no-print-directory docker-compose-lifecycle-cmd EXTRA_ARGS="stop ${service}"
-
-.PHONY: down
-down:
-	@make --no-print-directory docker-compose-lifecycle-cmd EXTRA_ARGS="down"
-
-.PHONY: restart # Restart services
-restart:
-	@make --no-print-directory docker-compose-lifecycle-cmd EXTRA_ARGS="restart ${service}"
-
-.PHONY: destroy # Deletes containers AND data volumes
-destroy: check-instance-project
-	@${BIN}/confirm no "Do you want to destroy all $$(basename $${PWD}) services AND volumes for the given context/instance (${ENV_FILE})" "?" && (make --no-print-directory destroy-hook-pre-rule-exists 2>/dev/null && make --no-print-directory destroy-hook-pre || true) && make --no-print-directory docker-compose-lifecycle-cmd  EXTRA_ARGS="down -v" && (make --no-print-directory destroy-hook-post-rule-exists 2>/dev/null && make --no-print-directory destroy-hook-post || true)
-
-.PHONY: ps # Show containers status (docker compose ps)
-ps:
-	@echo "Showing containers for a single instance (use \`make status\` to see all instances.)"
-	@make --no-print-directory docker-compose-lifecycle-cmd EXTRA_ARGS="ps -a"
-
-.PHONY: status # Show status of all instances
-status:
-	@(echo -e "NAME\tENV\tID\tIMAGE\tSTATE\tHEALTH\tPORTS" && docker ps --filter "label=com.docker.compose.project.working_dir=$${PWD}" -q | xargs -iXX docker inspect XX | jq '.[0]' | jq -r '(.Name[1:]) + "\t" + (.Config.Labels["com.docker.compose.project.environment_file"] | split("/";"")[-1]) + "\t" + .Id[:10] + "\t" + .Config.Image + "\t" + .State.Status + "\t" + (.State.Health.Status|tostring) + "\t" + (.NetworkSettings.Ports|tostring) ') | column -t
-
-.PHONY: logs # Tail all containers logs (set SERVICE=name to filter for one)
-logs:
-	@make --no-print-directory docker-compose-lifecycle-cmd EXTRA_ARGS="logs -f ${service}"
-
+include ${ROOT_DIR}/_scripts/Makefile.status
+include ${ROOT_DIR}/_scripts/Makefile.start
+include ${ROOT_DIR}/_scripts/Makefile.stop
+include ${ROOT_DIR}/_scripts/Makefile.up
+include ${ROOT_DIR}/_scripts/Makefile.down
+include ${ROOT_DIR}/_scripts/Makefile.config
+include ${ROOT_DIR}/_scripts/Makefile.restart
+include ${ROOT_DIR}/_scripts/Makefile.destroy
+include ${ROOT_DIR}/_scripts/Makefile.ps
+include ${ROOT_DIR}/_scripts/Makefile.logs

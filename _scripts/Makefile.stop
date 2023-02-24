@@ -1,0 +1,3 @@
+.PHONY: stop # Stops services
+stop:
+	@make --no-print-directory docker-compose-lifecycle-cmd EXTRA_ARGS="stop ${service}"

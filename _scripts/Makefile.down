@@ -1,0 +1,3 @@
+.PHONY: down
+down:
+	@make --no-print-directory docker-compose-lifecycle-cmd EXTRA_ARGS="down"

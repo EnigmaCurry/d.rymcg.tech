@@ -32,7 +32,7 @@ services:
         NIX_GIT_D_RYMCG_TECH_REF: ${NIX_GIT_D_RYMCG_TECH_REF}
 
   nix-user:
-    hostname: nix-${INSTANCE:-default}-${INSTANCE_SUB_NAME:-1}
+    hostname: ${NIX_GENERIC_PREFIX}-${INSTANCE:-default}${NIX_INSTANCE_SUFFIX}
     image: ${NIX_USER_IMAGE_TAG}
     build:
       context: nix-user
@@ -52,3 +52,5 @@ services:
     restart: unless-stopped
     volumes:
       - home:/home/${NIX_USER_NAME}
+    environment:
+      - INSTANCE_SUFFIX
