@@ -387,22 +387,7 @@ __shell() {
         echo -e "shell [INSTANCE] --destroy\tDestroy all the instance TTY containers AND their home directory volume."
         echo -e "shell [INSTANCE] --status\tShow a list of all the running instance TTY containers."
         ) | expand -t 40
-        (
-        echo -e ""
-        echo -e "## Create a Bash alias for your shell container instances:"
-        echo -e "alias foo=\"d.rymcg.tech shell foo\""
-        echo -e ""
-        echo -e "## Use the above instance alias like this:"
-        echo -e "foo\tAttach to the foo instance container on TTY '1'."
-        echo -e "foo 2\tAttach to the foo instance container on TTY '2'."
-        echo -e "foo --start\tStart the foo instance container in the background on TTY '1'."
-        echo -e "foo bar --start\tStart the foo instance container in the background on TTY 'bar'."
-        echo -e "foo --stop\tStop the container of the foo instance on TTY '1'."
-        echo -e "foo --destroy\tDestroy all of the foo instance containers and the home directory volume."
-        echo -e "foo --status\tShow all of the running foo instance TTY containers."
-        echo -e "foo --sync\tSynchronize the local nixpkgs config to the foo instance volume."
-        echo -e "foo --dev-sync\tContinuously synchronize the local nixpkgs config to the foo instance volume."
-        ) | expand -t 30
+        __shell_alias_help
     else
         INSTANCE="default"; TTY="1"; targets="";
         arg_position=0
@@ -410,6 +395,7 @@ __shell() {
             if [[ "${arg}" =~ ^-.* ]]; then
                 ## Parse keyword arguments:
                 case "${arg}" in
+                    --help) __shell_alias_help; exit;;
                     --clean) targets="${targets} clean";;
                     --config) targets="${targets} config";;
                     --build) targets="${targets} build";;
@@ -438,6 +424,33 @@ __shell() {
         fi
         (set -x; make --no-print-directory -C "${SHELL_CONTAINER_ROOT}" ${targets} "INSTANCE=${INSTANCE}" "TTY=${TTY}")
     fi
+}
+
+__shell_alias_help() {
+        (
+            echo -e ""
+            echo -e "## Create a Bash alias for each of your shell container instances (eg. \`foo\`):"
+            echo -e "__d.rymcg.tech_shell_alias foo"
+            echo -e ""
+            echo -e "## Then use the \`foo\` instance alias like this:"
+            echo -e "## foo [TTY] --args ..."
+            echo -e ""
+            echo -e "foo\tConfigure, Build, Start, and Attach to the \`nix-foo-1\` container on TTY '1'."
+            echo -e "foo 2\tConfigure, Build, Start, and Attach to the \`nix-foo-2\` container on TTY '2'."
+            echo -e "foo --help\tShow this help message."
+            echo -e "foo --config\tCreate/Edit the foo instance \`.env_{DOCKER_CONTEXT}_{INSTANCE}\` config file."
+            echo -e "\t(The .env file is saved to ${ROOT_DIR}/_terminal/nix)"
+            echo -e "foo --clean\tDelete the foo instance \`.env_{DOCKER_CONTEXT}_{INSTANCE}\` config file."
+            echo -e "foo --build\tBuild the container images for the foo instance."
+            echo -e "foo --start\tStart the \`nix-foo-1\` instance container in the background on TTY '1'."
+            echo -e "foo --stop\tStop the container of the foo instance on TTY '1'."
+            echo -e "foo bar --start\tStart the \`nix-foo-bar\` instance container in the background on TTY 'bar'."
+            echo -e "foo bar --restart\tStop and Restart the foo instance container in the background on TTY 'bar'."
+            echo -e "foo --destroy\tDestroy ALL of the foo instance containers and the home directory volume."
+            echo -e "foo --status\tShow all of the running foo instance TTY containers."
+            echo -e "foo --sync\tSynchronize the local nixpkgs config to the foo instance volume."
+            echo -e "foo --dev-sync\tContinuously synchronize the local nixpkgs config to the foo instance volume."
+        ) | expand -t 30
 }
 
 main() {

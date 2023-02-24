@@ -8,6 +8,12 @@ container's terminal, or you can use a hybrid configuration where you
 still use a text editor and other tools on your local workstation, but
 synchronize development files into the container volume, on the fly.
 
+This project is wrapped by the eponymous `d.rymcg.tech` CLI script, as
+outlined in [SHELL_CONTAINER.md](../../SHELL_CONTAINER.md) (which you
+should probably read first before reading this; the current document
+outlines the build process that the CLI script uses underneath the
+covers.)
+
 This container is useful for running things like
 [d.rymcg.tech](../../README.md), for keeping several isolated
 development/production environments, and for managing *other* Docker
