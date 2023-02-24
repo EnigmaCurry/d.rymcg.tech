@@ -64,7 +64,7 @@ __help() {
         #echo -e "info\tInternal read-only information for shell completion support"
     ) | expand -t 30
     echo ""
-    __shell help
+    __shell --help
 }
 
 __create() {
@@ -204,8 +204,14 @@ __d.rymcg.tech_cli_alias() {
     local ALIAS="$1"
     alias $1='d.rymcg.tech'
     complete -F __d.rymcg.tech_completions $1
-
 }
+
+__d.rymcg.tech_shell_alias() {
+    local ALIAS="$1"
+    alias $1="d.rymcg.tech shell $1"
+    complete -F __d.rymcg.tech_shell_completions $1
+}
+
 
 __d.rymcg.tech_project_alias() {
     local ROOT_DIR=$(d.rymcg.tech info ROOT_DIR)
@@ -270,7 +276,7 @@ __d.rymcg.tech_completions() {
             script)
                 COMPREPLY=($(compgen -W "$(find ${ROOT_DIR}/_scripts -executable -printf '%P\n' | grep -v d.rymcg.tech)" "${COMP_WORDS[2]}"));;
             shell)
-                COMPREPLY=($(compgen -W "$(__d.rymcg.tech_shell_words)" "${COMP_WORDS[2]}"));;
+                COMPREPLY=($(compgen -W "$(__d.rymcg.tech_shell_words)" "'"${COMP_WORDS[2]}"'"));;
         esac
     elif [[ ${COMP_CWORD} == 3 ]]; then
         ## Dispatch completion for the sub-commands second argument:
@@ -286,10 +292,19 @@ __d.rymcg.tech_completions() {
             COMPREPLY=($(compgen -W "${MAKE_TARGETS}" "${COMP_WORDS[3]}"))
         elif [[ "${COMP_WORDS[1]}" == "create" ]]; then
             COMPREPLY=($(compgen -W "$(find ${ROOT_DIR}/_templates -maxdepth 1 -type d -printf "%P\n" | grep -v "^_")" "${COMP_WORDS[3]}"))
+        elif [[ "${COMP_WORDS[1]}" == "shell" ]]; then
+            COMPREPLY=($(compgen -W "$(__d.rymcg.tech_shell_words)" "'"${COMP_WORDS[3]}"'"))
+        fi
+    elif [[ ${COMP_CWORD} == 4 ]]; then
+        if [[ "${COMP_WORDS[1]}" == "shell" ]]; then
+            COMPREPLY=($(compgen -W "$(__d.rymcg.tech_shell_words)" "'"${COMP_WORDS[4]}"'"))
         fi
     fi
 }
 
+__d.rymcg.tech_shell_completions() {
+    COMPREPLY=($(compgen -W "$(__d.rymcg.tech_shell_words)" "'"${COMP_WORDS[${COMP_CWORD}]}"'"))
+}
 
 __d.rymcg.tech_documentation_words() {
     ROOT_DIR=$(d.rymcg.tech info ROOT_DIR)
@@ -337,8 +352,10 @@ __completion() {
     else
         if [[ "${1}" == "bash" ]]; then
             declare -f __d.rymcg.tech_documentation_words
-            declare -f __d.rymcg.tech_shell_words
             declare -f __d.rymcg.tech_completions
+            declare -f __d.rymcg.tech_shell_words
+            declare -f __d.rymcg.tech_shell_completions
+            declare -f __d.rymcg.tech_shell_alias
             declare -f __d.rymcg.tech_project_alias
             declare -f __d.rymcg.tech_cli_alias
             echo "complete -F __d.rymcg.tech_completions d.rymcg.tech"
@@ -349,54 +366,45 @@ __completion() {
 }
 
 __d.rymcg.tech_shell_words() {
-    echo "help clean config instance build pull push run attach ls status volume destroy"
+    echo "--clean --config --build --start --restart --stop --destroy --attach --status --sync --dev-sync"
 }
+
 __shell() {
-    if [[ "$#" == 0 || "$1" == "help" ]]; then
+    if [[ "$#" == 0 || "$1" == "--help" ]]; then
         (
         echo "## Create containerized Docker development pet workstation environments:"
-        echo -e "shell [help]\tShow this help screen."
-        echo -e "shell config [INSTANCE]\tConfigure a shell environment instance config file (INSTANCE=default if not specified)."
-        echo -e "shell build [INSTANCE]\tBuild the base docker images for the shell environment."
-        echo -e "\t(In $(echo ${ROOT_DIR} | sed "s|^${HOME}|\~|g")/_terminal/nix/.env_{DOCKER_CONTEXT}_{INSTANCE})"
-        echo -e "shell pull\tPull the tagged base docker images from the registry (so you don't have to build it)."
-        echo -e "shell push\tPush the tagged base docker images to the registry (from your locally built images)."
-        echo -e "shell run [INSTANCE] [TTY]\tStart a shell terminal in the foreground, given an instance, and unique TTY name."
-        echo -e "shell start [INSTANCE] [TTY]\tStart a shell terminal in the background, given an instance, and unique TTY name."
-        echo -e "shell attach [INSTANCE] [TTY]\tAttach to a running shell, for a given instance, and terminal TTY name."
-        echo -e "\t(The INSTANCE name corresponds with the volume; and the TTY name corresponds with the container"
-        echo -e "\tthat mounts it. The default INSTANCE is \`default\`, and the default TTY is \`1\`."
-        echo -e "\tThe container name and its hostname are prefixed with \`nix-\`, so the default is \`nix-default-1\`)"
-        echo -e "shell ls\tList all running shell environment containers."
-        echo -e "shell volume [ls]\tList all shell environment volumes (including mounted and unmounted)."
-        echo -e "shell destroy [INSTANCE]\tDestroy the container and volume of the given instance (or the \`default\` instance)."
+        echo -e "shell [--help]\tShow this help screen."
+        echo -e "shell [INSTANCE] [TTY] [--attach]\tConfigure, build, start, and attach to the given INSTANCE and TTY name."
+        echo -e "\t(The INSTANCE correlates with the shared volume name,"
+        echo -e "\tand the TTY correlates with a particular running container name."
+        echo -e "\tThe default INSTANCE is \`default\`, and the default TTY is \`1\`.)"
+        echo -e "shell [INSTANCE] [TTY] --config\tConfigure the instance .env file."
+        echo -e "shell [INSTANCE] [TTY] --clean\tDelete the instance .env file."
+        echo -e "shell [INSTANCE] [TTY] --build\tBuild the instance docker image."
+        echo -e "shell [INSTANCE] [TTY] --start\tStart the instance TTY container in the background."
+        echo -e "shell [INSTANCE] [TTY] --stop\tStop the instance TTY container."
+        echo -e "shell [INSTANCE] --sync\tSynchronize local nixpkgs config to the container volume."
+        echo -e "shell [INSTANCE] --dev-sync\tContinuously synchronize local nixpkgs config to the container volume."
+        echo -e "shell [INSTANCE] --destroy\tDestroy all the instance TTY containers AND their home directory volume."
+        echo -e "shell [INSTANCE] --status\tShow a list of all the running instance TTY containers."
+        ) | expand -t 40
+        (
+        echo -e ""
+        echo -e "## Create a Bash shell alias for your container instances:"
+        echo -e "alias foo=\"d.rymcg.tech shell foo\""
+        echo -e ""
+        echo -e "## Use the above instance alias like this:"
+        echo -e "foo\tAttach to the foo instance container on TTY 1."
+        echo -e "foo 2\tAttach to the foo instance container on TTY 2."
+        echo -e "foo --start\tStart the foo instance container in the background."
+        echo -e "foo --stop\tStop the foo instance container."
+        echo -e "foo --destroy\tDestroy the foo instance container."
+        echo -e "foo --status\tShow all the running foo instance TTY containers."
+        echo -e "foo --sync\tSynchronize local nixpkgs config to the container volume."
+        echo -e "foo --dev-sync\tContinuously synchronize local nixpkgs config to the container volume."
         ) | expand -t 30
-    elif [[ "$1" == "clean" ]]; then
-        make --no-print-directory -C "${SHELL_CONTAINER_ROOT}" clean "INSTANCE=${2:-default}"
-    elif [[ "$1" == "build" ]]; then
-        make --no-print-directory -C "${SHELL_CONTAINER_ROOT}" build "INSTANCE=${2:-default}"
-    elif [[ "$1" == "config" || "$1" == "instance" ]]; then
-        make --no-print-directory -C "${SHELL_CONTAINER_ROOT}" config "INSTANCE=${2:-default}"
-    elif [[ "$1" == "pull" ]]; then
-        make --no-print-directory -C "${SHELL_CONTAINER_ROOT}" pull
-    elif [[ "$1" == "push" ]]; then
-        make --no-print-directory -C "${SHELL_CONTAINER_ROOT}" push
-    elif [[ "$1" == "run" ]]; then
-        make --no-print-directory -C "${SHELL_CONTAINER_ROOT}" shell "INSTANCE=${2:-default}" "TTY=${3:-1}"
-    elif [[ "$1" == "stop" ]]; then
-        make --no-print-directory -C "${SHELL_CONTAINER_ROOT}" stop "INSTANCE=${2:-default}" "TTY=${3:-1}"
-    elif [[ "$1" == "start" ]]; then
-        make --no-print-directory -C "${SHELL_CONTAINER_ROOT}" start "INSTANCE=${2:-default}" "TTY=${3:-1}"
-    elif [[ "$1" == "attach" ]]; then
-        make --no-print-directory -C "${SHELL_CONTAINER_ROOT}" attach "INSTANCE=${2:-default}" "TTY=${3:-1}"
-    elif [[ "$1" == "ls" || "$1" == "status" ]]; then
-        make --no-print-directory -C "${SHELL_CONTAINER_ROOT}" status
-    elif [[ "$1" == "destroy" ]]; then
-        make --no-print-directory -C "${SHELL_CONTAINER_ROOT}" destroy "INSTANCE=${2:-default}"
-    elif [[ "$1" == "volume" ]]; then
-        make --no-print-directory -C "${SHELL_CONTAINER_ROOT}" volume-list
-    elif [[ "$1" == "-" ]]; then ## DWIM (Do what I mean) ...
-        shift; INSTANCE="default"; TTY="1"; targets="";
+    else
+        INSTANCE="default"; TTY="1"; targets="";
         arg_position=0
         for arg in "$@"; do
             if [[ "${arg}" =~ ^-.* ]]; then
@@ -406,10 +414,13 @@ __shell() {
                     --config) targets="${targets} config";;
                     --build) targets="${targets} build";;
                     --start) targets="${targets} start";;
+                    --restart) targets="${targets} restart";;
                     --stop) targets="${targets} stop";;
                     --destroy) targets="${targets} destroy";;
                     --attach) targets="${targets} attach";;
                     --status) targets="${targets} status";;
+                    --sync) targets="${targets} dev-sync SYNC_ONCE=true";;
+                    --dev-sync) targets="${targets} dev-sync";;
                     *) fault "Bad argument: ${arg}"
                 esac
             else
@@ -425,9 +436,7 @@ __shell() {
         if [[ -z "${targets}" ]]; then
             targets="attach"
         fi
-        make --no-print-directory -C "${SHELL_CONTAINER_ROOT}" ${targets} "INSTANCE=${INSTANCE}" "TTY=${TTY}"
-    else
-        fault "Unknown command: ${1}"
+        (set -x; make --no-print-directory -C "${SHELL_CONTAINER_ROOT}" ${targets} "INSTANCE=${INSTANCE}" "TTY=${TTY}")
     fi
 }
 

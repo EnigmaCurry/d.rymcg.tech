@@ -18,6 +18,7 @@ include ${ROOT_DIR}/_scripts/Makefile.instance
 
 TTY ?= 1
 tty ?= ${TTY}
+SYNC_ONCE ?= false
 
 .PHONY: config-hook
 config-hook:
@@ -65,31 +66,34 @@ pull:
 	docker pull $$(dotenv -f ${ENV_FILE} get NIX_BASE_IMAGE_TAG)
 	docker pull $$(dotenv -f ${ENV_FILE} get NIX_COMMON_IMAGE_TAG)
 
-.PHONY: shell # Start a new shell container in the foreground
+.PHONY: shell # Start a new shell TTY container in the foreground
 shell:
 #### This must copy the env file to a temp file and set INSTANCE_SUFFIX as the hostname cannot be derrived from an env var passed on the command line?!
 	@if [[ -f "${ENV_FILE}" ]]; then TEMPFILE=$$(mktemp /tmp/${PROJECT_NAME}.XXX.env); cp ${ENV_FILE} "$${TEMPFILE}"; ${BIN}/reconfigure "$${TEMPFILE}" "NIX_INSTANCE_SUFFIX=-${tty}"; NIX_GENERIC_PREFIX=$$(dotenv -f "$${TEMPFILE}" get NIX_GENERIC_PREFIX); (set -x; docker compose --env-file $${TEMPFILE} --project-name "${CWD_PROJECT_NAME}" run ${DAEMON_MODE_ARG} --name=$${NIX_GENERIC_PREFIX}-${INSTANCE}-${tty} --rm -it $${service:-shell}); rm -f $${TEMPFILE}; else echo "Env file is missing: ${ENV_FILE}"; echo -e "Try running: make config instance=${INSTANCE}\nOr: d.rymcg.tech shell config ${INSTANCE}"; fi
 
-.PHONY: stop # Stop/remove the container
+.PHONY: stop # Stop/remove the TTY container
 stop:
 	@NIX_GENERIC_PREFIX=$$(dotenv -f "${ENV_FILE}" get NIX_GENERIC_PREFIX);	docker rm -f $${NIX_GENERIC_PREFIX}-${INSTANCE}-${tty}
 
-.PHONY: start # Start a new shell container in the background
+.PHONY: start # Start a new shell TTY container in the background
 start:
 	make --no-print-directory shell DAEMON_MODE_ARG=-d ENV_FILE=${ENV_FILE} instance=${instance} tty=${tty}
 
-.PHONY: destroy # Deletes all containers AND the data volume for the given INSTANCE
+.PHONY: restart # Restart the shell TTY container in the background
+restart: stop start
+
+.PHONY: destroy # Deletes all the TTY containers AND the data volume for the given INSTANCE
 destroy:
 	@NIX_GENERIC_PREFIX=$$(dotenv -f "${ENV_FILE}" get NIX_GENERIC_PREFIX); ${BIN}/confirm no "Do you want to destroy all the containers AND volumes for the given context/instance (${DOCKER_CONTEXT}/${INSTANCE})" "?" && docker ps -q --filter="name=^$${NIX_GENERIC_PREFIX}-${INSTANCE}-" | xargs -iXX docker rm -f XX && docker volume rm -f nix_${INSTANCE}_home
 
 
 .PHONY: attach # Attach to an existing shell container
 attach: config-if-neccessary
-	@CONTAINER_NAME="$$(dotenv -f "${ENV_FILE}" get NIX_GENERIC_PREFIX)-${INSTANCE}-${tty}"; if docker inspect "$${CONTAINER_NAME}" >/dev/null; then (set -x; docker attach "$${CONTAINER_NAME}"); else make --no-print-directory build-cached start ENV_FILE=${ENV_FILE} instance=${instance} tty=${tty} && docker attach "$${CONTAINER_NAME}"; fi || true
+	@CONTAINER_NAME="$$(dotenv -f "${ENV_FILE}" get NIX_GENERIC_PREFIX)-${INSTANCE}-${tty}"; if docker inspect "$${CONTAINER_NAME}" >/dev/null; then (set -x; docker attach --detach-keys="ctrl-\\" "$${CONTAINER_NAME}"); else make --no-print-directory build-cached start ENV_FILE=${ENV_FILE} instance=${instance} tty=${tty} && (set -x; docker attach --detach-keys="ctrl-\\" "$${CONTAINER_NAME}"); fi || true
 
 .PHONY: dev-sync
 dev-sync:
-	@${BIN}/dev-sync ${CWD_PROJECT_NAME}_home nix-user/nixpkgs .config/nixpkgs
+	@export SYNC_ONCE="${SYNC_ONCE}"; ${BIN}/dev-sync ${CWD_PROJECT_NAME}_home nix-user/nixpkgs .config/nixpkgs
 
 .PHONY: install
 install: build
@@ -106,4 +110,4 @@ volume-list:
 
 .PHONY: status # Show status of containers
 status:
-	@(echo -e "NAME\tENV\tID\tIMAGE\tSTATE\tHEALTH\tPORTS" && (set -x; docker ps --filter "label=tech.rymcg.d.shell.instance=${INSTANCE}" -q) | xargs -iXX docker inspect XX | jq '.[0]' | jq -r '(.Name[1:]) + "\t" + (.Config.Labels["com.docker.compose.project.environment_file"] | split("/";"")[-1]) + "\t" + .Id[:10] + "\t" + .Config.Image + "\t" + .State.Status + "\t" + (.State.Health.Status|tostring) + "\t" + (.NetworkSettings.Ports|tostring) ') | column -t
+	@(echo -e "NAME\tENV\tID\tIMAGE\tSTATE\tHEALTH\tPORTS" && docker ps --filter "label=tech.rymcg.d.shell.instance=${INSTANCE}" -q | xargs -iXX docker inspect XX | jq '.[0]' | jq -r '(.Name[1:]) + "\t" + (.Config.Labels["com.docker.compose.project.environment_file"] | split("/";"")[-1]) + "\t" + .Id[:10] + "\t" + .Config.Image + "\t" + .State.Status + "\t" + (.State.Health.Status|tostring) + "\t" + (.NetworkSettings.Ports|tostring) ') | column -t

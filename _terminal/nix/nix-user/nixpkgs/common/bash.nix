@@ -30,9 +30,12 @@
     export __ROOT_BASH_PID="''${__ROOT_BASH_PID:-$BASHPID}"
     if [[ "$BASHPID" -eq "$__ROOT_BASH_PID" ]]; then
         ## not in a subshell ..
-        cowsay -f meow -W 49 "Welcome to ''${HOSTNAME} on ''${DOCKER_IMAGE:-unknown}. I am a pet container, and all data in /home/''${USER} is persisted to a docker volume. Press Ctrl-P Ctrl-Q to detach from this session and leave it running in the background."
+        cowsay -f meow -W 49 "Welcome to ''${HOSTNAME} on ''${DOCKER_IMAGE:-unknown}. I am a pet container, and all data in /home/''${USER} is persisted to a docker volume. Press Ctrl-\ to detach from this session and leave it running in the background."
         ## Ignore Ctrl-D (End of File) for shell exit
-        #set -o ignoreeof
+        export IGNOREEOF=2
+    else
+        ## in a subshell ..
+        unset IGNOREEOF
     fi
 
     '';

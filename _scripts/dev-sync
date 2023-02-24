@@ -2,6 +2,7 @@
 
 ### Continously watch a local directory for changes, and rsync immediately to a docker volume.
 ## dev-sync VOLUME SRC DEST
+### Set SYNC_ONCE=true to only do it once, otherwise do it continuously.
 set -e
 
 BIN=$(dirname ${BASH_SOURCE})
@@ -19,10 +20,18 @@ else
     DEST_DIR="/"
 fi
 
-${BIN}/volume_mkdir "${VOLUME}"
-while [[ true ]] ; do
-    echo "Syncing ..."
+sync() {
     ${BIN}/volume_rsync "${VOLUME}" -av --delete --exclude={'.git','.#','target'} "${SRC_DIR}/" "volume:/data/${DEST_DIR}"
-    echo "Waiting for changes ..."
-    inotifywait -r -t 600 -e modify,delete,create,move --exclude '\.#.*' .
-done
+}
+
+${BIN}/volume_mkdir "${VOLUME}"
+if [[ "${SYNC_ONCE}" == "true" ]]; then
+    sync
+else
+    while [[ true ]] ; do
+        echo "Syncing ..."
+        sync
+        echo "Waiting for changes ..."
+        inotifywait -r -t 600 -e modify,delete,create,move --exclude '\.#.*' .
+    done
+fi

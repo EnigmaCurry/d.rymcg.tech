@@ -19,6 +19,6 @@ ENV NIX_GIT_USERNAME=${NIX_GIT_USERNAME} \
     NIX_DOCKER_SSH_PORT=${NIX_DOCKER_SSH_PORT}
 
 COPY --chown=${NIX_USER_UID}:${NIX_USER_GID} nixpkgs .config/nixpkgs
-RUN home-manager build
+RUN home-manager switch
 ENTRYPOINT ["/usr/local/bin/entrypoint"]
 VOLUME /home/${NIX_USER_NAME}
