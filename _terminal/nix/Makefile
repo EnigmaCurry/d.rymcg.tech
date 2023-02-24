@@ -76,12 +76,12 @@ start:
 
 .PHONY: destroy # Deletes all containers AND the data volume for the given INSTANCE
 destroy:
-	@NIX_GENERIC_PREFIX=$$(dotenv -f "${ENV_FILE}" get NIX_GENERIC_PREFIX); ${BIN}/confirm no "Do you want to destroy all the containers AND volumes for the given context/instance (${DOCKER_CONTEXT}/${INSTANCE})" "?" && docker ps -q --filter="name=^$${NIX_GENERIC_PREFIX}-${INSTANCE}-" | xargs -iXX docker rm -f XX && docker volume rm -f $${NIX_GENERIC_PREFIX}_${INSTANCE}_home
+	@NIX_GENERIC_PREFIX=$$(dotenv -f "${ENV_FILE}" get NIX_GENERIC_PREFIX); ${BIN}/confirm no "Do you want to destroy all the containers AND volumes for the given context/instance (${DOCKER_CONTEXT}/${INSTANCE})" "?" && docker ps -q --filter="name=^$${NIX_GENERIC_PREFIX}-${INSTANCE}-" | xargs -iXX docker rm -f XX && docker volume rm -f nix_${INSTANCE}_home
 
 
 .PHONY: attach # Attach to an existing shell container
 attach: config-if-neccessary
-	@CONTAINER_NAME="$$(dotenv -f "${ENV_FILE}" get NIX_GENERIC_PREFIX)-${INSTANCE}-${tty}"; if docker inspect "$${CONTAINER_NAME}" >/dev/null; then (set -x; docker attach "$${CONTAINER_NAME}"); else make --no-print-directory start ENV_FILE=${ENV_FILE} instance=${instance} tty=${tty} && docker attach "$${CONTAINER_NAME}"; fi
+	@CONTAINER_NAME="$$(dotenv -f "${ENV_FILE}" get NIX_GENERIC_PREFIX)-${INSTANCE}-${tty}"; if docker inspect "$${CONTAINER_NAME}" >/dev/null; then (set -x; docker attach "$${CONTAINER_NAME}"); else make --no-print-directory start ENV_FILE=${ENV_FILE} instance=${instance} tty=${tty} && docker attach "$${CONTAINER_NAME}"; fi || true
 
 .PHONY: dev-sync
 dev-sync:
@@ -91,3 +91,11 @@ dev-sync:
 install: build
 	@echo "Build complete."
 	@echo "No background services are required. You can now run \`make shell\` on demand."
+
+.PHONY: volume-list
+volume-list:
+	@echo "## Found these volumes from various shell containers:"
+	@docker volume ls -q --filter="name=^nix_.*_home"
+	@echo ""
+	@echo "## Use \`d.rymcg.tech shell destroy INSTANCE\`"
+	@echo "## Or to manually delete them, use \`docker rm -f VOLUME\`"

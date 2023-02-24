@@ -51,10 +51,7 @@ The fundamental identity of any of the many shell environments is the
 removed automatically when they exit. Just quit the container Bash
 shell with `Ctrl-D` and the container will self-destruct, but the
 volume will remain, so it can be restarted again, and have all the
-same files in the home directory as before. In order to add programs
-to the environment, you must rebuild the base images (because `/nix`
-is not inside the volume), otherwise programs that you install in the
-container will be gone the next time you start it.
+same files in the home directory as before.
 
 Docker natively has the ability to attach to containers with [`docker
 attach`](https://docs.docker.com/engine/reference/commandline/attach/),

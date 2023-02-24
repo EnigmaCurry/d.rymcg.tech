@@ -8,8 +8,6 @@
   programs.bash = {
     enable = true;
     bashrcExtra = ''
-    set -o ignoreeof
-
     #### To enable BASH shell completion support for d.rymcg.tech,
     #### add the following lines into your ~/.bashrc ::
     export PATH=''${PATH}:''${HOME}/git/vendor/enigmacurry/d.rymcg.tech/_scripts/user
@@ -28,7 +26,15 @@
     #### If you want a shorter alias than d.rymcg.tech (eg. 'dry') you can add it:
     # __d.rymcg.tech_cli_alias dry
 
-    cowsay -f meow -W 49 "Welcome to ''${HOSTNAME} on ''${DOCKER_IMAGE:-unknown}. I am a pet container, and all data in /home/''${USER} is persisted to a docker volume."
+    ## Do a few things in the first spawned shell, but not in any subshell:
+    export __ROOT_BASH_PID="''${__ROOT_BASH_PID:-$BASHPID}"
+    if [[ "$BASHPID" -eq "$__ROOT_BASH_PID" ]]; then
+        ## not in a subshell ..
+        cowsay -f meow -W 49 "Welcome to ''${HOSTNAME} on ''${DOCKER_IMAGE:-unknown}. I am a pet container, and all data in /home/''${USER} is persisted to a docker volume. Press Ctrl-P Ctrl-Q to detach from this session and leave it running in the background."
+        ## Ignore Ctrl-D (End of File) for shell exit
+        set -o ignoreeof
+    fi
+
     '';
   };
 }
