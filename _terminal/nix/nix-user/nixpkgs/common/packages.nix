@@ -13,5 +13,7 @@
     pkgs.gnused
     pkgs.gnugrep
     pkgs.findutils
+    pkgs.ripgrep
+    pkgs.gotty
   ];
 }

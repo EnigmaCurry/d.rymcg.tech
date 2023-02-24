@@ -8,14 +8,14 @@ ARG NIX_GIT_D_RYMCG_TECH_REF
 
 ENV NIX_HOMEMANAGER_VERSION=${NIX_HOMEMANAGER_VERSION} NIX_GIT_D_RYMCG_TECH_CLONE=${NIX_GIT_D_RYMCG_TECH_CLONE} NIX_GIT_D_RYMCG_TECH_REPO=${NIX_GIT_D_RYMCG_TECH_REPO} NIX_GIT_D_RYMCG_TECH_REF=${NIX_GIT_D_RYMCG_TECH_REF}
 
-COPY --chown=${NIX_USER_UID}:${NIX_USER_GID} entrypoint.sh /usr/local/bin/entrypoint
-RUN chmod a+x /usr/local/bin/entrypoint
-
 COPY --chown=${NIX_USER_UID}:${NIX_USER_GID} nixpkgs/nix.conf .config/nixpkgs/nix.conf
 COPY --chown=${NIX_USER_UID}:${NIX_USER_GID} nixpkgs/common.nix .config/nixpkgs/home.nix
 COPY --chown=${NIX_USER_UID}:${NIX_USER_GID} nixpkgs/common .config/nixpkgs/common
 
 RUN home-manager switch
 
+COPY --chown=${NIX_USER_UID}:${NIX_USER_GID} entrypoint.sh /usr/local/bin/entrypoint
+RUN chmod a+x /usr/local/bin/entrypoint
 ENTRYPOINT ["/usr/local/bin/entrypoint"]
+
 VOLUME /home/${NIX_USER_NAME}

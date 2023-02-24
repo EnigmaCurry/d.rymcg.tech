@@ -8,7 +8,6 @@ include ${ROOT_DIR}/_scripts/Makefile.open
 include ${ROOT_DIR}/_scripts/Makefile.reconfigure
 include ${ROOT_DIR}/_scripts/Makefile.readme
 
-include ${ROOT_DIR}/_scripts/Makefile.status
 include ${ROOT_DIR}/_scripts/Makefile.config
 include ${ROOT_DIR}/_scripts/Makefile.ps
 include ${ROOT_DIR}/_scripts/Makefile.logs
@@ -46,10 +45,15 @@ build-base:
 build-user:
 	@docker compose --env-file ${ENV_FILE} build nix-user
 
-.PHONY: build-cached # build the base images only if the image tags do not already exist
-build-cached:
+.PHONY: build-cached-base # build the base images only if the image tags do not already exist
+build-cached-base:
 	@NIX_BASE_IMAGE_TAG=$$(dotenv -f ${ENV_FILE} get NIX_BASE_IMAGE_TAG); (docker image inspect $${NIX_BASE_IMAGE_TAG} >/dev/null && echo "Found cached image: $${NIX_BASE_IMAGE_TAG}") || docker compose --env-file ${ENV_FILE} build nix-base
 	@NIX_COMMON_IMAGE_TAG=$$(dotenv -f ${ENV_FILE} get NIX_COMMON_IMAGE_TAG); (docker image inspect $${NIX_COMMON_IMAGE_TAG} >/dev/null && echo "Found cached image: $${NIX_COMMON_IMAGE_TAG}") || docker compose --env-file ${ENV_FILE} build nix-common
+
+.PHONY: build-cached # build the images only if they don't exist already
+build-cached: build-cached-base
+	@NIX_USER_IMAGE_TAG=$$(dotenv -f ${ENV_FILE} get NIX_USER_IMAGE_TAG); (docker image inspect $${NIX_USER_IMAGE_TAG} >/dev/null && echo "Found cached image: $${NIX_USER_IMAGE_TAG}") || docker compose --env-file ${ENV_FILE} build nix-user
+
 
 .PHONY: push # push the tagged nix-base and nix-common images to the Docker registry
 push:
@@ -64,7 +68,7 @@ pull:
 .PHONY: shell # Start a new shell container in the foreground
 shell:
 #### This must copy the env file to a temp file and set INSTANCE_SUFFIX as the hostname cannot be derrived from an env var passed on the command line?!
-	@if [[ -f "${ENV_FILE}" ]]; then TEMPFILE=$$(mktemp /tmp/${PROJECT_NAME}.XXX.env); cp ${ENV_FILE} "$${TEMPFILE}"; ${BIN}/reconfigure "$${TEMPFILE}" "NIX_INSTANCE_SUFFIX=-${tty}"; NIX_GENERIC_PREFIX=$$(dotenv -f "$${TEMPFILE}" get NIX_GENERIC_PREFIX); (set -x; docker compose --env-file $${TEMPFILE} --project-name "${CWD_PROJECT_NAME}" run ${DAEMON_MODE_ARG} --name=$${NIX_GENERIC_PREFIX}-${INSTANCE}-${tty} --rm -it $${service:-nix-user} /bin/bash); rm -f $${TEMPFILE}; else echo "Env file is missing: ${ENV_FILE}"; echo -e "Try running: make config instance=${INSTANCE}\nOr: d.rymcg.tech shell config ${INSTANCE}"; fi
+	@if [[ -f "${ENV_FILE}" ]]; then TEMPFILE=$$(mktemp /tmp/${PROJECT_NAME}.XXX.env); cp ${ENV_FILE} "$${TEMPFILE}"; ${BIN}/reconfigure "$${TEMPFILE}" "NIX_INSTANCE_SUFFIX=-${tty}"; NIX_GENERIC_PREFIX=$$(dotenv -f "$${TEMPFILE}" get NIX_GENERIC_PREFIX); (set -x; docker compose --env-file $${TEMPFILE} --project-name "${CWD_PROJECT_NAME}" run ${DAEMON_MODE_ARG} --name=$${NIX_GENERIC_PREFIX}-${INSTANCE}-${tty} --rm -it $${service:-shell}); rm -f $${TEMPFILE}; else echo "Env file is missing: ${ENV_FILE}"; echo -e "Try running: make config instance=${INSTANCE}\nOr: d.rymcg.tech shell config ${INSTANCE}"; fi
 
 .PHONY: stop # Stop/remove the container
 stop:
@@ -81,7 +85,7 @@ destroy:
 
 .PHONY: attach # Attach to an existing shell container
 attach: config-if-neccessary
-	@CONTAINER_NAME="$$(dotenv -f "${ENV_FILE}" get NIX_GENERIC_PREFIX)-${INSTANCE}-${tty}"; if docker inspect "$${CONTAINER_NAME}" >/dev/null; then (set -x; docker attach "$${CONTAINER_NAME}"); else make --no-print-directory start ENV_FILE=${ENV_FILE} instance=${instance} tty=${tty} && docker attach "$${CONTAINER_NAME}"; fi || true
+	@CONTAINER_NAME="$$(dotenv -f "${ENV_FILE}" get NIX_GENERIC_PREFIX)-${INSTANCE}-${tty}"; if docker inspect "$${CONTAINER_NAME}" >/dev/null; then (set -x; docker attach "$${CONTAINER_NAME}"); else make --no-print-directory build-cached start ENV_FILE=${ENV_FILE} instance=${instance} tty=${tty} && docker attach "$${CONTAINER_NAME}"; fi || true
 
 .PHONY: dev-sync
 dev-sync:
@@ -99,3 +103,7 @@ volume-list:
 	@echo ""
 	@echo "## Use \`d.rymcg.tech shell destroy INSTANCE\`"
 	@echo "## Or to manually delete them, use \`docker rm -f VOLUME\`"
+
+.PHONY: status # Show status of containers
+status:
+	@(echo -e "NAME\tENV\tID\tIMAGE\tSTATE\tHEALTH\tPORTS" && (set -x; docker ps --filter "label=tech.rymcg.d.shell.instance=${INSTANCE}" -q) | xargs -iXX docker inspect XX | jq '.[0]' | jq -r '(.Name[1:]) + "\t" + (.Config.Labels["com.docker.compose.project.environment_file"] | split("/";"")[-1]) + "\t" + .Id[:10] + "\t" + .Config.Image + "\t" + .State.Status + "\t" + (.State.Health.Status|tostring) + "\t" + (.NetworkSettings.Ports|tostring) ') | column -t

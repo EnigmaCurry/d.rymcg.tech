@@ -2,6 +2,8 @@ version: "3.9"
 
 volumes:
   home:
+    labels:
+      - "tech.rymcg.d.shell=true"
 
 services:
   nix-base:
@@ -32,7 +34,8 @@ services:
         NIX_GIT_D_RYMCG_TECH_REF: ${NIX_GIT_D_RYMCG_TECH_REF}
 
   nix-user:
-    hostname: ${NIX_GENERIC_PREFIX}-${INSTANCE:-default}${NIX_INSTANCE_SUFFIX}
+    profiles:
+      - build-user
     image: ${NIX_USER_IMAGE_TAG}
     build:
       context: nix-user
@@ -43,14 +46,25 @@ services:
         NIX_DOCKER_SSH_HOST: ${NIX_DOCKER_SSH_HOST}
         NIX_DOCKER_SSH_USER: ${NIX_DOCKER_SSH_USER}
         NIX_DOCKER_SSH_PORT: ${NIX_DOCKER_SSH_PORT}
+    volumes:
+      - home:/home/${NIX_USER_NAME}
+
+  shell:
+    profiles:
+      - run-shell
+    image: ${NIX_USER_IMAGE_TAG}
+    hostname: ${NIX_GENERIC_PREFIX}-${INSTANCE:-default}${NIX_INSTANCE_SUFFIX}
+    restart: unless-stopped
+    volumes:
+      - home:/home/${NIX_USER_NAME}
     security_opt:
       - no-new-privileges:true
     cap_drop:
       - ALL
     # sysctls:
     #   - net.ipv4.ip_unprivileged_port_start=1024
-    restart: unless-stopped
-    volumes:
-      - home:/home/${NIX_USER_NAME}
     environment:
       - INSTANCE_SUFFIX
+    labels:
+      - "tech.rymcg.d.shell=true"
+      - "tech.rymcg.d.shell.instance=${INSTANCE:-default}"
