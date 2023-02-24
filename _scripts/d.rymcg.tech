@@ -405,7 +405,7 @@ __shell() {
                     --destroy) targets="${targets} destroy";;
                     --attach) targets="${targets} attach";;
                     --status) targets="${targets} status";;
-                    --sync) targets="${targets} dev-sync SYNC_ONCE=true";;
+                    --sync) targets="${targets} sync";;
                     --dev-sync) targets="${targets} dev-sync";;
                     *) fault "Bad argument: ${arg}"
                 esac

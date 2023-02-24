@@ -18,12 +18,11 @@ include ${ROOT_DIR}/_scripts/Makefile.instance
 
 TTY ?= 1
 tty ?= ${TTY}
-SYNC_ONCE ?= false
 
 .PHONY: config-hook
 config-hook:
 	@${BIN}/reconfigure ${ENV_FILE} NIX_INSTANCE=${INSTANCE}
-	@${BIN}/reconfigure_ask ${ENV_FILE} NIX_GENERIC_PREFIX "Enter the generic hostname prefix (not the instance name, but it goes before it)" nix
+	@${BIN}/reconfigure_ask ${ENV_FILE} NIX_GENERIC_PREFIX "Enter the generic hostname prefix (not the instance name, but it displays before it)" nix
 	@${BIN}/reconfigure_ask ${ENV_FILE} NIX_GIT_USERNAME "Enter your git name (username or full name)" "$$(git config --global --get user.name)"
 	@${BIN}/reconfigure_ask ${ENV_FILE} NIX_GIT_EMAIL "Enter your git email address" "$$(git config --global --get user.email)"
 	@ALLOW_BLANK=0 ${BIN}/reconfigure_ask ${ENV_FILE} NIX_DOCKER_SSH_HOST "Enter the Docker SSH host that this container will manage (eg. docker.example.com)"
@@ -91,9 +90,13 @@ destroy:
 attach: config-if-neccessary
 	@CONTAINER_NAME="$$(dotenv -f "${ENV_FILE}" get NIX_GENERIC_PREFIX)-${INSTANCE}-${tty}"; if docker inspect "$${CONTAINER_NAME}" >/dev/null; then (set -x; docker attach --detach-keys="ctrl-\\" "$${CONTAINER_NAME}"); else make --no-print-directory build-cached start ENV_FILE=${ENV_FILE} instance=${instance} tty=${tty} && (set -x; docker attach --detach-keys="ctrl-\\" "$${CONTAINER_NAME}"); fi || true
 
-.PHONY: dev-sync
+.PHONY: sync # Synchronize the local nixpkgs to the container volume (one time)
+sync:
+	@export SYNC_ONCE="true"; ${BIN}/dev-sync ${CWD_PROJECT_NAME}_home nix-user/nixpkgs .config/nixpkgs
+
+.PHONY: dev-sync # Continuously synchronize the local nixpkgs to the container volume
 dev-sync:
-	@export SYNC_ONCE="${SYNC_ONCE}"; ${BIN}/dev-sync ${CWD_PROJECT_NAME}_home nix-user/nixpkgs .config/nixpkgs
+	@${BIN}/dev-sync ${CWD_PROJECT_NAME}_home nix-user/nixpkgs .config/nixpkgs
 
 .PHONY: install
 install: build

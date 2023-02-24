@@ -1,8 +1,17 @@
 # Docker on Raspberry Pi
 
-## Install Rasbian
+Consider following [this guide for setting up Arch Linux with an
+encrypted root filesystem, and with SSH
+unlock](https://gist.github.com/devgioele/e897c341b8d1c18d58b44ffe21d72cf6)
+(tested), or [this other guide for setting up encryption on
+Raspbian](https://github.com/ViRb3/pi-encrypted-boot-ssh) (untested)
+but if you don't want to go to that trouble, you can install Raspbian
+normally, without encryption:
 
- * Download the latest [Raspberry Pi OS Lite (64-bit) image zip file](https://downloads.raspberrypi.org/raspios_lite_arm64/images/?C=M;O=D).
+## Install Raspbian
+
+ * Download the latest [Raspberry Pi OS Lite (64-bit) image zip
+   file](https://downloads.raspberrypi.org/raspios_lite_arm64/images/?C=M;O=D).
  * For example as of 2022-01-28 that would be:
 
 ```

@@ -2,9 +2,10 @@
 
 `d.rymcg.tech` has support for creating containerized "pet"
 workstation development environments, which you can use for all of
-your Docker development and deployment needs, which helps to keep
-various project files separate, and to compartmentalize/secure the
-secrets stored in your project's `.env` files.
+your Docker development work and/or deployment contexts, which helps
+to keep various project files separate, and to compartmentalize access
+to your production Docker servers, and to guard secrets stored in
+`.env` files.
 
 There are two methods for creating these containers, which you can
 choose depending on your needs:
@@ -103,3 +104,77 @@ a different volume for the home directory.
 
 TODO.
 
+## Secure access to the Docker API (socket)
+
+These pet containers can be used as part of a layered security
+protocol for accessing/modifying your production Docker servers.
+
+Consider how you access your own Docker server: if you have followed
+all of the [guidelines for creating a Docker
+host](https://github.com/EnigmaCurry/d.rymcg.tech#create-a-docker-host),
+then you will have created a Docker server that is remotely controlled
+over SSH using the `root` user account on the server.
+
+The usage of `root` is (mostly) unavoidable, due to the design of
+Docker (anyone able to use the Docker API is able to execute commands
+as the same user running the Docker daemon, which is
+[[almost](https://docs.docker.com/engine/security/rootless/)] always
+`root`). Likewise, when using a different account that has been added
+to the system `docker` group, it is the same thing as if being given
+access to `root`, without even needing a password! Therefore, securing
+access to the Docker API is imperative!
+
+By default, a Docker server does not expose its socket over the
+network, however it can be accessed remotely through SSH. So the
+security of the socket comes down to the security of your SSH keys. If
+you leave your SSH keys unprotected, anyone with access to those keys
+can modify your Docker server. Leaving unprotected SSH keys to your
+produciton server, laying around on your single-user laptop, is
+probably unwise.
+
+One method for securing various SSH keys, is to use separate system
+accounts on your workstation (laptop). That way, your regular user
+(uid=1000), cannot access the files of the production user account
+(uid=1001). This is cumbersome, because you will need to switch
+accounts to maintain different systems, so you will likely need to use
+*another* system account that can manages access to these accounts
+(via `sudo`). Make sure your laptop has full disk encryption for
+security *at rest*.
+
+The proposed, alternative strategy, is to use these pet containers
+instead of regular system accounts. Each pet container will have a
+separate clone of d.rymcg.tech source code, and configure their own
+SSH (client) access to your production Docker hosts. Configured
+appropriately, each container will only be able to access a limited
+number of Docker contexts under their purview.
+
+To control access, you need at least *two* docker servers, preferably
+running on different hosts:
+
+```
+  Your laptop -> connects over SSH to ...
+     Docker server #1 running the pet container -> connects over SSH to ...
+       Real Docker server #2 running your production workloads.
+```
+
+You can use your normal workstation account to attach to these pet
+containers, and do whatever work you need inside them. To secure
+access, when you're done using them for the time being, is simple:
+just turn off the Docker server that runs the pet container!
+
+If only the pet container has access to your production docker server,
+and if that pet container is offline, then that means that you can't
+access the production server. Simple! If you use an *encrypted*
+filesystem on your Docker server (`#1`, running the pet container),
+that requires a secure passphrase entered on boot, then the access of
+your SSH keys is safe *at rest* (ie. when the server is turned off, or
+if the the server is unplugged and stolen.)
+
+You don't need a very powerful machine to run the pet containers, any
+arm64 raspberry pi or similar device will work. Having a seperate
+device makes it easy to turn it on and off and disconnect it. See
+these [instructions for creating a raspberry pi running an encrypted
+root filesystem, with remote SSH
+unlock](https://gist.github.com/devgioele/e897c341b8d1c18d58b44ffe21d72cf6).
+Also see the general instructions in
+[RASPBERRY_PI.md](RASPBERRY_PI.md) for installing Docker.
