@@ -45,6 +45,7 @@ __help() {
         echo -e "make [PROJECT] [ARGS ...]\tRun a \`make\` command for the given d.rymcg.tech project name (See \`list\`)."
         echo -e "context [DOCKER_CONTEXT]\tView or set the current docker context."
         echo -e "completion\tSetup TAB completion in your shell."
+        echo -e "shell [--help]\tCreate a containerized pet workstation environment preconfigured for Docker devlopment"
     ) | expand -t 30
     echo ""
     echo "## Documentation sub-commands:"
@@ -63,8 +64,6 @@ __help() {
         done <<< "$(__d.rymcg.tech_documentation_words --lowercase | sed 's/readme//')"
         #echo -e "info\tInternal read-only information for shell completion support"
     ) | expand -t 30
-    echo ""
-    __shell --help
 }
 
 __create() {
@@ -366,13 +365,13 @@ __completion() {
 }
 
 __d.rymcg.tech_shell_words() {
-    echo "--clean --config --build --start --restart --stop --destroy --attach --status --sync --dev-sync"
+    echo "--clean --config --build --start --restart --stop --destroy --attach --status --sync --dev-sync --help"
 }
 
 __shell() {
     if [[ "$#" == 0 || "$1" == "--help" ]]; then
         (
-        echo "## Create containerized Docker development pet workstation environments:"
+        echo "## Create containerized pet workstation environments, preconfigured for Docker devlopment:"
         echo -e "shell [--help]\tShow this help screen."
         echo -e "shell [INSTANCE] [TTY] [--attach]\tConfigure, build, start, and attach to the given INSTANCE and TTY name."
         echo -e "\t(The INSTANCE correlates with the shared volume name,"
@@ -390,18 +389,19 @@ __shell() {
         ) | expand -t 40
         (
         echo -e ""
-        echo -e "## Create a Bash shell alias for your container instances:"
+        echo -e "## Create a Bash alias for your shell container instances:"
         echo -e "alias foo=\"d.rymcg.tech shell foo\""
         echo -e ""
         echo -e "## Use the above instance alias like this:"
-        echo -e "foo\tAttach to the foo instance container on TTY 1."
-        echo -e "foo 2\tAttach to the foo instance container on TTY 2."
-        echo -e "foo --start\tStart the foo instance container in the background."
-        echo -e "foo --stop\tStop the foo instance container."
-        echo -e "foo --destroy\tDestroy the foo instance container."
-        echo -e "foo --status\tShow all the running foo instance TTY containers."
-        echo -e "foo --sync\tSynchronize local nixpkgs config to the container volume."
-        echo -e "foo --dev-sync\tContinuously synchronize local nixpkgs config to the container volume."
+        echo -e "foo\tAttach to the foo instance container on TTY '1'."
+        echo -e "foo 2\tAttach to the foo instance container on TTY '2'."
+        echo -e "foo --start\tStart the foo instance container in the background on TTY '1'."
+        echo -e "foo bar --start\tStart the foo instance container in the background on TTY 'bar'."
+        echo -e "foo --stop\tStop the container of the foo instance on TTY '1'."
+        echo -e "foo --destroy\tDestroy all of the foo instance containers and the home directory volume."
+        echo -e "foo --status\tShow all of the running foo instance TTY containers."
+        echo -e "foo --sync\tSynchronize the local nixpkgs config to the foo instance volume."
+        echo -e "foo --dev-sync\tContinuously synchronize the local nixpkgs config to the foo instance volume."
         ) | expand -t 30
     else
         INSTANCE="default"; TTY="1"; targets="";
