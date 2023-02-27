@@ -1,0 +1,29 @@
+#@ load("@ytt:data", "data")
+global:
+  scrape_interval: 1m
+
+scrape_configs:
+  - job_name: "prometheus"
+    scrape_interval: 1m
+    static_configs:
+    - targets: ["localhost:9090"]
+
+  #@ if data.values.node_exporter_enabled == "true":
+  - job_name: "node"
+    static_configs:
+    - targets: ["node-exporter:9100"]
+  #@ end
+
+  #@ if data.values.cadvisor_enabled == "true":
+  - job_name: "cadvisor"
+    scrape_interval: 5s
+    static_configs:
+    - targets: ["cadvisor:8080"]
+  #@ end
+
+#@ if data.values.alertmanager_enabled == "true":
+alerting:
+  alertmanagers:
+    - static_configs:
+      - targets: ['alertmanager:9093']
+#@ end

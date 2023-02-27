@@ -1,0 +1,14 @@
+version: "3.9"
+
+services:
+  unhealthy-example:
+    container_name: unhealthy-example
+    build:
+      context: .
+    restart: unless-stopped
+    environment:
+      - TIMEOUT
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+    labels:
+      - autoheal=true

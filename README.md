@@ -439,6 +439,7 @@ Install these first:
 Install these services at your leisure/preference:
 
 * [ArchiveBox](archivebox) - a website archiving tool
+* [Autoheal](autoheal) - a Docker container healthcheck monitor with auto-restart service
 * [Baikal](baikal) - a lightweight CalDAV+CardDAV server
 * [Bitwarden](bitwarden_rs) - a password manager
 * [CryptPad](cryptpad) - a collaborative document and spreadsheet editor 
@@ -461,8 +462,10 @@ Install these services at your leisure/preference:
 * [Node-RED](nodered) - a graphical event pipeline editor
 * [Ntfy.sh](ntfy.sh) - a simple HTTP-based pub-sub notification service
 * [Piwigo](piwigo) - a photo gallery and manager
+* [Plausible](plausible) - a privacy friendly web visitor analytics engine
 * [PostgreSQL](postgresql) - a database server configured with mutual TLS authentication for public networks
 * [PrivateBin](privatebin) - a minimal, encrypted, zero-knowledge, pastebin
+* [Prometheus](prometheus) - a systems monitoring and alerting toolkit (+ node-exporter + cAdvisor + Grafana)
 * [QBittorrent-Wireguard](qbittorrent-wireguard) - A Bittorrent (libtorrent v2) client with a combined VPN client
 * [Rdesktop](rdesktop) - a web based remote desktop (X11) in a container
 * [S3-proxy](s3-proxy) - an HTTP directory index for S3 backend
@@ -960,8 +963,9 @@ framework.
 
 The easiest method of creating an external project, is by setting up
 the [`d.rymcg.tech`
-script](https://github.com/EnigmaCurry/d.rymcg.tech/tree/cli-script#using-the-drymcgtech-cli-script-optional),
+script](https://github.com/EnigmaCurry/d.rymcg.tech/blob/master/README.md#using-the-drymcgtech-cli-script-optional),
 then run:
+
 
 ```
 ## Run this from any directory:
