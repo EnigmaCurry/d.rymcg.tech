@@ -348,6 +348,10 @@ __completion() {
         echo "#### If you want a shorter alias than d.rymcg.tech (eg. 'dry') you can add it:"
         echo "# __d.rymcg.tech_cli_alias dry"
         echo ""
+        echo "#### Create the 'foo' shell container alias:"
+        echo "## See https://github.com/EnigmaCurry/d.rymcg.tech/blob/master/SHELL_CONTAINER.md"
+        echo "# __d.rymcg.tech_shell_alias foo"
+        echo ""
     else
         if [[ "${1}" == "bash" ]]; then
             declare -f __d.rymcg.tech_documentation_words
@@ -365,7 +369,7 @@ __completion() {
 }
 
 __d.rymcg.tech_shell_words() {
-    echo "--clean --config --build --start --restart --stop --destroy --attach --status --sync --dev-sync --help"
+    echo "--clean --config --build --start --restart --stop --rm --destroy --attach --status --ls --sync --dev-sync --help --web --web-start --web-stop --web-open --open"
 }
 
 __shell() {
@@ -373,20 +377,10 @@ __shell() {
         (
         echo "## Create containerized pet workstation environments, preconfigured for Docker devlopment:"
         echo -e "shell [--help]\tShow this help screen."
-        echo -e "shell [INSTANCE] [TTY] [--attach]\tConfigure, build, start, and attach to the given INSTANCE and TTY name."
-        echo -e "\t(The INSTANCE correlates with the shared volume name,"
-        echo -e "\tand the TTY correlates with a particular running container name."
-        echo -e "\tThe default INSTANCE is \`default\`, and the default TTY is \`1\`.)"
-        echo -e "shell [INSTANCE] [TTY] --config\tConfigure the instance .env file."
-        echo -e "shell [INSTANCE] [TTY] --clean\tDelete the instance .env file."
-        echo -e "shell [INSTANCE] [TTY] --build\tBuild the instance docker image."
-        echo -e "shell [INSTANCE] [TTY] --start\tStart the instance TTY container in the background."
-        echo -e "shell [INSTANCE] [TTY] --stop\tStop the instance TTY container."
-        echo -e "shell [INSTANCE] --sync\tSynchronize local nixpkgs config to the container volume."
-        echo -e "shell [INSTANCE] --dev-sync\tContinuously synchronize local nixpkgs config to the container volume."
-        echo -e "shell [INSTANCE] --destroy\tDestroy all the instance TTY containers AND their home directory volume."
-        echo -e "shell [INSTANCE] --status\tShow a list of all the running instance TTY containers."
-        ) | expand -t 40
+        echo -e "shell [INSTANCE] [TTY] [--args]\t Where are args are any of the following keyword arguments:"
+        echo -e "$(__d.rymcg.tech_shell_words | fold -s | sed 's/^/\t/')]"
+        echo -e "(The INSTANCE correlates with the shared volume name, and the TTY correlates with a particular running container name. The default INSTANCE is \`default\`, and the default TTY is \`1\`.)" | fold -s
+        ) | sed 's/ $//' | expand -t 40
         __shell_alias_help
     else
         INSTANCE="default"; TTY="1"; targets="";
@@ -402,11 +396,18 @@ __shell() {
                     --start) targets="${targets} start";;
                     --restart) targets="${targets} restart";;
                     --stop) targets="${targets} stop";;
+                    --rm) targets="${targets} stop";;
                     --destroy) targets="${targets} destroy";;
                     --attach) targets="${targets} attach";;
                     --status) targets="${targets} status";;
+                    --ls) targets="${targets} status";;
                     --sync) targets="${targets} sync";;
                     --dev-sync) targets="${targets} dev-sync";;
+                    --web) targets="${targets} web-start";;
+                    --web-start) targets="${targets} web-start";;
+                    --web-stop) targets="${targets} web-stop";;
+                    --web-open) targets="${targets} open";;
+                    --open) targets="${targets} open";;
                     *) fault "Bad argument: ${arg}"
                 esac
             else

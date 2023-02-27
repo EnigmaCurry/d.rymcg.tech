@@ -730,6 +730,14 @@ __d.rymcg.tech_cli_alias dry
 With this alias installed, you can now run `dry` in place of
 `d.rymcg.tech`.
 
+You can also create an alias to a container shell, see
+[SHELL_CONTAINER.md](SHELL_CONTAINER.md):
+
+```
+#### Create the 'foo' shell container alias:
+__d.rymcg.tech_shell_alias foo
+```
+
 To get a synopsis of all of these completion commands, run:
 
 ```

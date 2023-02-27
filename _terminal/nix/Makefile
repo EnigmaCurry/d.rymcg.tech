@@ -23,11 +23,18 @@ tty ?= ${TTY}
 config-hook:
 	@${BIN}/reconfigure ${ENV_FILE} NIX_INSTANCE=${INSTANCE}
 	@${BIN}/reconfigure_ask ${ENV_FILE} NIX_GENERIC_PREFIX "Enter the generic hostname prefix (not the instance name, but it displays before it)" nix
+	@echo
 	@${BIN}/reconfigure_ask ${ENV_FILE} NIX_GIT_USERNAME "Enter your git name (username or full name)" "$$(git config --global --get user.name)"
 	@${BIN}/reconfigure_ask ${ENV_FILE} NIX_GIT_EMAIL "Enter your git email address" "$$(git config --global --get user.email)"
-	@ALLOW_BLANK=0 ${BIN}/reconfigure_ask ${ENV_FILE} NIX_DOCKER_SSH_HOST "Enter the Docker SSH host that this container will manage (eg. docker.example.com)"
+	@echo
+	@ALLOW_BLANK=0 ${BIN}/reconfigure_ask ${ENV_FILE} NIX_DOCKER_SSH_HOST "Enter the secondary Docker SSH host that this container will manage (eg. docker.example.com)"
 	@${BIN}/reconfigure_ask ${ENV_FILE} NIX_DOCKER_SSH_USER "Enter the Docker SSH username" root
 	@${BIN}/reconfigure_ask ${ENV_FILE} NIX_DOCKER_SSH_PORT "Enter the Docker SSH port" 22
+	@echo
+	@${BIN}/confirm $$(test "$$(${BIN}/dotenv -f ${ENV_FILE} get NIX_WEB_ENABLE)" == "true" && echo "yes" || echo "no") "Do you want to enable web access for the shell container (password protected)" "?" && ${BIN}/reconfigure ${ENV_FILE} NIX_WEB_ENABLE=true || ${BIN}/reconfigure ${ENV_FILE} NIX_WEB_ENABLE=false
+	@test "$$(${BIN}/dotenv -f ${ENV_FILE} get NIX_WEB_ENABLE)" == "true" && ${BIN}/reconfigure_ask ${ENV_FILE} NIX_WEB_TRAEFIK_HOST "Enter the web portal domain for the shell container" shell${INSTANCE_URL_SUFFIX}.${ROOT_DOMAIN} || true
+	@test "$$(${BIN}/dotenv -f ${ENV_FILE} get NIX_WEB_ENABLE)" == "true" && ${BIN}/reconfigure_htpasswd ${ENV_FILE} NIX_WEB_HTTP_AUTH || true
+	@echo "$$(${BIN}/dotenv -f ${ENV_FILE} get NIX_WEB_ENABLE)"
 
 .PHONY: config-if-neccessary
 config-if-neccessary:
@@ -68,15 +75,23 @@ pull:
 .PHONY: shell # Start a new shell TTY container in the foreground
 shell:
 #### This must copy the env file to a temp file and set INSTANCE_SUFFIX as the hostname cannot be derrived from an env var passed on the command line?!
-	@if [[ -f "${ENV_FILE}" ]]; then TEMPFILE=$$(mktemp /tmp/${PROJECT_NAME}.XXX.env); cp ${ENV_FILE} "$${TEMPFILE}"; ${BIN}/reconfigure "$${TEMPFILE}" "NIX_INSTANCE_SUFFIX=-${tty}"; NIX_GENERIC_PREFIX=$$(dotenv -f "$${TEMPFILE}" get NIX_GENERIC_PREFIX); (set -x; docker compose --env-file $${TEMPFILE} --project-name "${CWD_PROJECT_NAME}" run ${DAEMON_MODE_ARG} --name=$${NIX_GENERIC_PREFIX}-${INSTANCE}-${tty} --rm -it $${service:-shell}); rm -f $${TEMPFILE}; else echo "Env file is missing: ${ENV_FILE}"; echo -e "Try running: make config instance=${INSTANCE}\nOr: d.rymcg.tech shell config ${INSTANCE}"; fi
+	@if [[ -f "${ENV_FILE}" ]]; then TEMPFILE=$$(mktemp /tmp/${PROJECT_NAME}.XXX.env); cp ${ENV_FILE} "$${TEMPFILE}"; ${BIN}/reconfigure "$${TEMPFILE}" "NIX_INSTANCE_SUFFIX=-${tty}"; NIX_GENERIC_PREFIX=$$(dotenv -f "$${TEMPFILE}" get NIX_GENERIC_PREFIX); (set -x; docker compose --env-file $${TEMPFILE} --project-name "${CWD_PROJECT_NAME}" run ${DAEMON_MODE_ARG} --build --name=$${NIX_GENERIC_PREFIX}-${INSTANCE}-${tty} --rm -it $${service:-shell}); rm -f $${TEMPFILE}; else echo "Env file is missing: ${ENV_FILE}"; echo -e "Try running: make config instance=${INSTANCE}\nOr: d.rymcg.tech shell config ${INSTANCE}"; fi
 
 .PHONY: stop # Stop/remove the TTY container
 stop:
-	@NIX_GENERIC_PREFIX=$$(dotenv -f "${ENV_FILE}" get NIX_GENERIC_PREFIX);	docker rm -f $${NIX_GENERIC_PREFIX}-${INSTANCE}-${tty}
+	@NIX_GENERIC_PREFIX=$$(dotenv -f "${ENV_FILE}" get NIX_GENERIC_PREFIX);	docker rm -f $${NIX_GENERIC_PREFIX}-${INSTANCE}-${tty} $${NIX_GENERIC_PREFIX}-${INSTANCE}-${tty}-web
 
 .PHONY: start # Start a new shell TTY container in the background
 start:
 	make --no-print-directory shell DAEMON_MODE_ARG=-d ENV_FILE=${ENV_FILE} instance=${instance} tty=${tty}
+
+.PHONY: web-start # Start a new shell TTY container as a password protected web-enabled portal
+web-start:
+	make --no-print-directory shell open DAEMON_MODE_ARG=-d ENV_FILE=${ENV_FILE} instance=${instance} tty=${tty}-web service=web-shell
+
+.PHONY: web-stop # Stop/remove the web-enabled TTY container
+web-stop:
+	@NIX_GENERIC_PREFIX=$$(dotenv -f "${ENV_FILE}" get NIX_GENERIC_PREFIX);	docker rm -f $${NIX_GENERIC_PREFIX}-${INSTANCE}-${tty}-web
 
 .PHONY: restart # Restart the shell TTY container in the background
 restart: stop start

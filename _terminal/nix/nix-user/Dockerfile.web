@@ -1,0 +1,4 @@
+ARG NIX_USER_IMAGE_TAG
+FROM ${NIX_USER_IMAGE_TAG}
+EXPOSE 8080
+ENTRYPOINT /home/nix-user/.nix-profile/bin/gotty -w --max-connection 1 --reconnect --title-format "{{ .user }}@{{ .hostname }}" bash

@@ -53,7 +53,7 @@ services:
     profiles:
       - run-shell
     image: ${NIX_USER_IMAGE_TAG}
-    hostname: ${NIX_GENERIC_PREFIX}-${INSTANCE:-default}${NIX_INSTANCE_SUFFIX}
+    hostname: ${NIX_GENERIC_PREFIX}-${NIX_INSTANCE:-default}${NIX_INSTANCE_SUFFIX}
     restart: unless-stopped
     volumes:
       - home:/home/${NIX_USER_NAME}
@@ -68,3 +68,33 @@ services:
     labels:
       - "tech.rymcg.d.shell=true"
       - "tech.rymcg.d.shell.instance=${INSTANCE:-default}"
+
+  web-shell:
+    profiles:
+      - run-web-shell
+    build:
+      context: nix-user
+      dockerfile: Dockerfile.web
+      args:
+        NIX_USER_IMAGE_TAG: ${NIX_USER_IMAGE_TAG}
+    hostname: ${NIX_GENERIC_PREFIX}-${NIX_INSTANCE:-default}${NIX_INSTANCE_SUFFIX}
+    restart: unless-stopped
+    volumes:
+      - home:/home/${NIX_USER_NAME}
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    # sysctls:
+    #   - net.ipv4.ip_unprivileged_port_start=1024
+    environment:
+      - INSTANCE_SUFFIX
+    labels:
+      - "tech.rymcg.d.shell=true"
+      - "tech.rymcg.d.shell.instance=${INSTANCE:-default}"
+      - "tech.rymcg.d.web-enabled=true"
+      - "traefik.enable=true"
+      - "traefik.http.routers.nix-web-shell-${NIX_INSTANCE:-default}.rule=Host(`${NIX_WEB_TRAEFIK_HOST}`)"
+      - "traefik.http.routers.nix-web-shell-${NIX_INSTANCE:-default}.entrypoints=websecure"
+      - "traefik.http.routers.nix-web-shell-${NIX_INSTANCE:-default}.middlewares=nix-web-shell-${NIX_INSTANCE:-default}-auth"
+      - "traefik.http.middlewares.nix-web-shell-${NIX_INSTANCE:-default}-auth.basicauth.users=${NIX_WEB_HTTP_AUTH}"
