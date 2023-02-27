@@ -32,6 +32,7 @@ ROOT_DIR=$(dirname ${BIN})
      exit 1)
 
 SHELL_CONTAINER_ROOT=${ROOT_DIR}/_terminal/nix
+FULL_COMMAND_ARGS="$@"
 
 source ${BIN}/funcs.sh
 
@@ -377,9 +378,9 @@ __shell() {
         (
         echo "## Create containerized pet workstation environments, preconfigured for Docker devlopment:"
         echo -e "shell [--help]\tShow this help screen."
-        echo -e "shell [INSTANCE] [TTY] [--args]\t Where are args are any of the following keyword arguments:"
+        echo -e "shell [INSTANCE] [TTY] [--args]\tKeyword arguments may be any of the following:"
         echo -e "$(__d.rymcg.tech_shell_words | fold -s | sed 's/^/\t/')]"
-        echo -e "(The INSTANCE correlates with the shared volume name, and the TTY correlates with a particular running container name. The default INSTANCE is \`default\`, and the default TTY is \`1\`.)" | fold -s
+        echo -e "(The INSTANCE correlates with the shared volume name, and the TTY correlates with a particular running container name. The default INSTANCE is \`default\`, and the default TTY is \`1\`. Create a per-INSTANCE shell alias, as shown below, and then you only need to specify TTY.)" | fold -s
         ) | sed 's/ $//' | expand -t 40
         __shell_alias_help
     else
@@ -428,30 +429,33 @@ __shell() {
 }
 
 __shell_alias_help() {
-        (
-            echo -e ""
-            echo -e "## Create a Bash alias for each of your shell container instances (eg. \`foo\`):"
-            echo -e "__d.rymcg.tech_shell_alias foo"
-            echo -e ""
-            echo -e "## Then use the \`foo\` instance alias like this:"
-            echo -e "## foo [TTY] --args ..."
-            echo -e ""
-            echo -e "foo\tConfigure, Build, Start, and Attach to the \`nix-foo-1\` container on TTY '1'."
-            echo -e "foo 2\tConfigure, Build, Start, and Attach to the \`nix-foo-2\` container on TTY '2'."
-            echo -e "foo --help\tShow this help message."
-            echo -e "foo --config\tCreate/Edit the foo instance \`.env_{DOCKER_CONTEXT}_{INSTANCE}\` config file."
-            echo -e "\t(The .env file is saved to ${ROOT_DIR}/_terminal/nix)"
-            echo -e "foo --clean\tDelete the foo instance \`.env_{DOCKER_CONTEXT}_{INSTANCE}\` config file."
-            echo -e "foo --build\tBuild the container images for the foo instance."
-            echo -e "foo --start\tStart the \`nix-foo-1\` instance container in the background on TTY '1'."
-            echo -e "foo --stop\tStop the container of the foo instance on TTY '1'."
-            echo -e "foo bar --start\tStart the \`nix-foo-bar\` instance container in the background on TTY 'bar'."
-            echo -e "foo bar --restart\tStop and Restart the foo instance container in the background on TTY 'bar'."
-            echo -e "foo --destroy\tDestroy ALL of the foo instance containers and the home directory volume."
-            echo -e "foo --status\tShow all of the running foo instance TTY containers."
-            echo -e "foo --sync\tSynchronize the local nixpkgs config to the foo instance volume."
-            echo -e "foo --dev-sync\tContinuously synchronize the local nixpkgs config to the foo instance volume."
-        ) | expand -t 30
+    # Get the name of the alias used from the full command: shell foo --help
+    local instance=$(echo ${FULL_COMMAND_ARGS} | cut -d " " -f 2 | grep -v -- '--' | sed 's/ //g')
+    test -z "${instance}" && instance=foo
+    (
+        echo -e ""
+        echo -e "## Create a Bash alias for each of your shell container instances (eg. \`${instance}\`):"
+        echo -e "__d.rymcg.tech_shell_alias ${instance}"
+        echo -e ""
+        echo -e "## Then use the \`${instance}\` instance alias like this:"
+        echo -e "## ${instance} [TTY] --args ..."
+        echo -e ""
+        echo -e "${instance}\tConfigure, Build, Start, and Attach to the \`nix-${instance}-1\` container on TTY '1'."
+        echo -e "${instance} 2\tConfigure, Build, Start, and Attach to the \`nix-${instance}-2\` container on TTY '2'."
+        echo -e "${instance} --help\tShow this help message."
+        echo -e "${instance} --config\tCreate/Edit the ${instance} instance \`.env_{DOCKER_CONTEXT}_{INSTANCE}\` config file."
+        echo -e "\t(The .env file is saved to ${ROOT_DIR}/_terminal/nix)"
+        echo -e "${instance} --clean\tDelete the ${instance} instance \`.env_{DOCKER_CONTEXT}_{INSTANCE}\` config file."
+        echo -e "${instance} --build\tBuild the container images for the ${instance} instance."
+        echo -e "${instance} --start\tStart the \`nix-${instance}-1\` instance container in the background on TTY '1'."
+        echo -e "${instance} --stop\tStop the container of the ${instance} instance on TTY '1'."
+        echo -e "${instance} bar --start\tStart the \`nix-${instance}-bar\` instance container in the background on TTY 'bar'."
+        echo -e "${instance} bar --restart\tStop and Restart the ${instance} instance container in the background on TTY 'bar'."
+        echo -e "${instance} --destroy\tDestroy ALL of the ${instance} instance containers and the home directory volume."
+        echo -e "${instance} --status\tShow all of the running ${instance} instance TTY containers."
+        echo -e "${instance} --sync\tSynchronize the local nixpkgs config to the ${instance} instance volume."
+        echo -e "${instance} --dev-sync\tContinuously synchronize the local nixpkgs config to the ${instance} instance volume."
+    ) | expand -t 30
 }
 
 main() {
