@@ -8,7 +8,8 @@ source ${BIN}/funcs.sh
 echo ""
 echo "This will create a new bucket, policy, group, and user."
 
-vars=(BUCKET POLICYNAME GROUPNAME USERNAME SECRETKEY)
+check_var MINIO_TRAEFIK_PORT
+vars=(BUCKET POLICYNAME GROUPNAME USERNAME SECRETKEY MINIO_TRAEFIK_PORT)
 require_input "Enter a new bucket name" BUCKET test
 require_input "Enter a new policy name" POLICYNAME ${BUCKET}
 require_input "Enter a new group name" GROUPNAME ${BUCKET}
@@ -46,7 +47,7 @@ FOF
 
 set -e
 ## Configure endpoint with root credentials:
-mc alias set minio https://${MINIO_TRAEFIK_HOST} ${MINIO_ROOT_USER} ${MINIO_ROOT_PASSWORD}
+mc alias set minio https://${MINIO_TRAEFIK_HOST}:${MINIO_TRAEFIK_PORT} ${MINIO_ROOT_USER} ${MINIO_ROOT_PASSWORD}
 ## Generate secret key:
 SECRETKEY=${SECRETKEY}
 ## Create user:
