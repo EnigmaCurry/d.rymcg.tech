@@ -474,7 +474,6 @@ Install these services at your leisure/preference:
 * [Thttpd](thttpd) - a tiny/turbo/throttling HTTP server for serving static files
 * [TiddlyWiki (WebDAV version)](tiddlywiki-webdav) - A personal wiki stored in a single static HTML file
 * [TiddlyWiki (NodeJS version)](tiddlywiki-nodejs) - Advanced server edition of TiddlyWiki with image CDN
-* [Tiny Tiny RSS](ttrss) - an RSS reader / proxy
 * [Traefik-forward-auth](traefik-forward-auth) - Traefik oauth middleware
 * [Transmission-Wireguard](transmission-wireguard) - An older but very popular Bittorrent (v1) client with a combined VPN client
 * [Vaultward](vaultwarden) - a bitwarden compatible password manager written in Rust (formerly bitwarden_rs)
