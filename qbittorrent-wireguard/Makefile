@@ -17,7 +17,7 @@ config-hook:
 	@${BIN}/reconfigure_ask ${ENV_FILE} QBITTORRENT_VPN_CLIENT_INTERFACE_PEER_DNS "Enter the wireguard Interface DNS"
 	@${BIN}/reconfigure_ask ${ENV_FILE} QBITTORRENT_VPN_CLIENT_PEER_PUBLIC_KEY "Enter the Peer PublicKey (ends with =)"
 	@${BIN}/reconfigure_ask ${ENV_FILE} QBITTORRENT_VPN_CLIENT_PEER_ENDPOINT "Enter the Peer Endpoint (host:port)"
-	@${BIN}/reconfigure_ask ${ENV_FILE} QBITTORRENT_IP_SOURCE_RANGE "Enter the allowed client IP source range (eg. 192.168.1.1/24 or 0.0.0.0/0)"
+	@${BIN}/reconfigure_ask ${ENV_FILE} QBITTORRENT_IP_SOURCERANGE "Enter the allowed client IP source range (eg. 192.168.1.1/24 or 0.0.0.0/0)"
 	@${BIN}/reconfigure_htpasswd ${ENV_FILE} QBITTORRENT_HTTP_AUTH
 
 .PHONY: shell
