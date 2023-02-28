@@ -441,7 +441,6 @@ Install these services at your leisure/preference:
 * [ArchiveBox](archivebox) - a website archiving tool
 * [Autoheal](autoheal) - a Docker container healthcheck monitor with auto-restart service
 * [Baikal](baikal) - a lightweight CalDAV+CardDAV server
-* [Bitwarden](bitwarden_rs) - a password manager
 * [CryptPad](cryptpad) - a collaborative document and spreadsheet editor 
 * [DrawIO](drawio) - a diagram / whiteboard editor tool
 * [Ejabberd](ejabberd) - an XMPP (Jabber) server
@@ -478,6 +477,7 @@ Install these services at your leisure/preference:
 * [Tiny Tiny RSS](ttrss) - an RSS reader / proxy
 * [Traefik-forward-auth](traefik-forward-auth) - Traefik oauth middleware
 * [Transmission-Wireguard](transmission-wireguard) - An older but very popular Bittorrent (v1) client with a combined VPN client
+* [Vaultward](vaultwarden) - a bitwarden compatible password manager written in Rust (formerly bitwarden_rs)
 * [Websocketd](websocketd) - a websocket / CGI server
 * [XBrowserSync](xbs) - a bookmark manager
 
