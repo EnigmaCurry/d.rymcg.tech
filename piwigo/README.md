@@ -35,5 +35,9 @@ Enter the Database configuration:
  * Password: Use the `MARIADB_PASSWORD` from your `.env_${DOCKER_CONTEXT}_default` file.
  * Database name: `piwigo`
 
-Note that piwigo has an update mechanism builtin, that must be run
-periodically; updating the docker image is insufficient.
+## Upgrade
+
+Upgrading piwigo requires two steps:
+
+ * Update the `PIWIGO_VERSION` variable in the .env file.
+ * Run the builtin updater to update the volume config files.

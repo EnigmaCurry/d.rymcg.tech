@@ -10,5 +10,5 @@ config-hook:
 
 .PHONY: admin # Open the admin page
 admin:
-	@${BIN}/open /admin
+	@ENV_FILE="${ENV_FILE}" CONTEXT_INSTANCE="${CONTEXT_INSTANCE}" ${BIN}/open /admin
 

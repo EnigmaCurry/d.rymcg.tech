@@ -9,11 +9,11 @@ fi
 BIN=$(dirname ${BASH_SOURCE})
 source ${BIN}/funcs.sh
 ENV_FILE=$1; shift
-YTT_DATA_ARGS=""
 
 test -f docker-compose.instance.yaml || (echo "Missing docker-compose.instance.yaml. This project has not been setup with an override template yet." && exit 1)
 
 DOCKER_CONTEXT=$(${BIN}/docker_context)
+check_var DOCKER_CONTEXT
 instance=${instance:-${INSTANCE}}
 if [[ -n "${instance}" ]]; then
     CONTEXT_INSTANCE="${DOCKER_CONTEXT}_${instance}"
@@ -22,28 +22,41 @@ else
 fi
 OVERRIDE="docker-compose.override_${CONTEXT_INSTANCE}.yaml"
 
+YTT_DATA_ARGS="--data-value context=${DOCKER_CONTEXT}"
+
 for var in "$@"; do
     ytt_var="${var}"
     value=""
+    #### The variable arguments have three forms:
+    ####   name=VARIABLE_NAME    # sets the name field to the value of VARIABLE_NAME in the .env file
+    ####   name=:VARIABLE_NAME   # sets the name field the literal string "VARIABLE_NAME"
+    ####   name=@VARIABLE_NAME   # sets the name field the literal string '${VARIABLE_NAME}'
     if [[ "${var}" == *"=:"* ]]; then
         # Get literal value from command line
         parts=(${var//=:/ }); var=${parts[0]}; value=${parts[@]:1};
         ytt_var="${var}"
-    else
+    elif [[ "${var}" == *"=@"* ]]; then
+        # Get literal value from command line and wrap it as a variable name ('VAR' becomes literal '${VAR}')
+        parts=(${var//=@/ }); var=${parts[0]}; value="\${${parts[1]}}";
+        ytt_var="${var}"
+    elif [[ "${var}" == *"="* ]]; then
         # Get value from env file
-        if [[ "${var}" == *"="* ]]; then
-            # Make it an alias to a var in the env file:
-            parts=(${var//=/ }); var_alias=${parts[0]}; var=${parts[@]:1};
-            ytt_var="${var_alias}"
-        fi
+        parts=(${var//=/ }); var_alias=${parts[0]}; var=${parts[@]:1};
+        ytt_var="${var_alias}"
         value="$(${BIN}/dotenv -f ${ENV_FILE} get $var)" || true
+    else
+        fault "Invalid arg var: ${var}"
     fi
-    test -z "${value}" && echo "${var} is blank." && continue
+    test -z "${value}" && echo "${var} is blank."
     ytt_var=$(echo "$ytt_var" | tr '[:upper:]' '[:lower:]')
-    YTT_DATA_ARGS="${YTT_DATA_ARGS} --data-value ${ytt_var}=\"${value}\""
+    YTT_DATA_ARGS="${YTT_DATA_ARGS} --data-value ${ytt_var}='${value}'"
 done
 
 echo '#' ytt ${YTT_DATA_ARGS} \< docker-compose.instance.yaml \> ${OVERRIDE}
-ytt ${YTT_DATA_ARGS} < docker-compose.instance.yaml > ${OVERRIDE}
+cat <<EOF > ${OVERRIDE}
+## DO NOT EDIT - This Docker Compose override file is generated from the docker-compose.instance.yaml template.
+## This file is automatically recreated whenever you run \`make config\` or \`make install\`.
+EOF
+ytt ${YTT_DATA_ARGS} < docker-compose.instance.yaml >> ${OVERRIDE}
 
 echo "Created docker-compose override: ${OVERRIDE}"

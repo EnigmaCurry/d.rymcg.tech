@@ -10,7 +10,7 @@ accordingly.
 
 Run `make install`
 
-Immediately configure the application, it is unsecure by default until
+Immediately configure the application, it is insecure by default until
 you set it up!
 
 Run `make open`

@@ -31,7 +31,9 @@ services:
       - data:/data
     labels:
       - "traefik.enable=true"
-      - "traefik.http.routers.maubot.rule=Host(`${MAUBOT_TRAEFIK_HOST}`)"
-      - "traefik.http.routers.maubot.entrypoints=websecure"
-      - "traefik.http.services.maubot.loadBalancer.server.port=29316"
+      - "traefik.http.routers.maubot-${MAUBOT_INSTANCE:-default}.rule=Host(`${MAUBOT_TRAEFIK_HOST}`)"
+      - "traefik.http.routers.maubot-${MAUBOT_INSTANCE:-default}.entrypoints=websecure"
+      - "traefik.http.services.maubot-${MAUBOT_INSTANCE:-default}.loadBalancer.server.port=29316"
+      - "traefik.http.middlewares.maubot-${MAUBOT_INSTANCE:-default}-ipwhitelist.ipwhitelist.sourcerange=${MAUBOT_IP_SOURCERANGE}"
+      - "traefik.http.routers.maubot-${MAUBOT_INSTANCE:-default}.middlewares=maubot-${MAUBOT_INSTANCE:-default}-ipwhitelist"
 

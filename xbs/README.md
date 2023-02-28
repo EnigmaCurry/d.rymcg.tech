@@ -25,5 +25,10 @@ make install
 ## Open in your browser
 
 ```
+## Wait for the service to become HEALTH=healthy - then press Ctrl-C to quit watch
+watch make status
+```
+
+```
 make open
 ```

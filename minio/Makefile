@@ -10,7 +10,7 @@ config-hook:
 
 .PHONY: bucket # Make a bucket and access credentials
 bucket:
-	ENV_FILE=${ENV_FILE} ./create_bucket_and_user.sh
+	@ENV_FILE=${ENV_FILE} MINIO_TRAEFIK_PORT="$$(${BIN}/dotenv -f ${ROOT_DIR}/${ROOT_ENV} get PUBLIC_HTTPS_PORT)" ./create_bucket_and_user.sh
 
 .PHONY: mc # Run mc shell
 mc:
