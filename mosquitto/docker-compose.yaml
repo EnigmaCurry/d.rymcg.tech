@@ -29,8 +29,7 @@ services:
       - "traefik.tcp.routers.mqtt.tls=true"
       - "traefik.tcp.routers.mqtt.tls.domains[0].main=${MOSQUITTO_TRAEFIK_HOST}"
       - "traefik.tcp.routers.mqtt.tls.certresolver=${MOSQUITTO_ACME_CERT_RESOLVER}"
-      ## To limit MQTT to VPN access only:
-      ## (you should change the entrypoint binding address in traefik config too)
-      #- "traefik.tcp.routers.mqtt.middlewares=vpn-ipwhitelist@docker"
+      - "traefik.tcp.middlewares.mqtt-ipwhitelist.ipwhitelist.sourcerange=${MOSQUITTO_IP_SOURCERANGE}"
+      - "traefik.tcp.routers.mqtt.middlewares=mqtt-ipwhitelist"
     volumes:
       - mosquitto:/mosquitto
