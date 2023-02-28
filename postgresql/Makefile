@@ -1,27 +1,30 @@
 ROOT_DIR = ..
 include ${ROOT_DIR}/_scripts/Makefile.projects
+include ${ROOT_DIR}/_scripts/Makefile.instance
 
 .PHONY: config-hook
 config-hook:
-	@${BIN}/reconfigure_ask ${ENV_FILE} POSTGRES_TRAEFIK_HOST "Enter the postgres domain name" postgres.${ROOT_DOMAIN}
+	@${BIN}/reconfigure ${ENV_FILE} POSTGRES_INSTANCE=$${instance:-default}
+	@${BIN}/reconfigure_ask ${ENV_FILE} POSTGRES_TRAEFIK_HOST "Enter the postgres domain name" postgres${INSTANCE_URL_SUFFIX}.${ROOT_DOMAIN}
+	@${BIN}/reconfigure_ask ${ENV_FILE} POSTGRES_EXTERNAL_TCP_PORT "Enter the public postgres TCP port" 5432
 	@${BIN}/reconfigure_ask ${ENV_FILE} POSTGRES_DB "Enter the database name" tweedle
 	@${BIN}/reconfigure_ask ${ENV_FILE} POSTGRES_ALLOWED_IP_SOURCERANGE "Enter the allowed client IP address range (CIDR with netmask) (use 0.0.0.0/0 to allow all)"
-	@${BIN}/reconfigure ${ENV_FILE} POSTGRES_ADMIN_PASSWORD=$(shell openssl rand -hex 45)
+	@${BIN}/reconfigure_password ${ENV_FILE} POSTGRES_ADMIN_PASSWORD
 
 .PHONY: psql # Open psql shell
 psql:
-	@docker-compose --env-file ${ENV_FILE} exec --user postgres postgres /usr/bin/psql
+	@docker-compose --env-file ${ENV_FILE} --project-name="${PROJECT_NAME}" exec --user postgres postgres /usr/bin/psql
 
 .PHONY: shell # Open bash shell
 shell:
-	@docker-compose --env-file ${ENV_FILE} exec --user postgres postgres /bin/bash
+	@docker-compose --env-file ${ENV_FILE} --project-name="${PROJECT_NAME}" exec --user postgres postgres /bin/bash
 
 .PHONY: client # Get client certificate and private key files
 client:
-	@docker-compose --env-file ${ENV_FILE} exec --user postgres postgres cat /etc/postgresql/root_ca.crt > $$(${BIN}/dotenv -f ${ENV_FILE} get POSTGRES_TRAEFIK_HOST)_ca.crt && echo "Wrote ./$$(${BIN}/dotenv -f ${ENV_FILE} get POSTGRES_TRAEFIK_HOST)_ca.crt"
-	@docker-compose --env-file ${ENV_FILE} exec --user postgres postgres cat /etc/postgresql/client.crt > $$(${BIN}/dotenv -f ${ENV_FILE} get POSTGRES_TRAEFIK_HOST)_$$(${BIN}/dotenv -f ${ENV_FILE} get POSTGRES_DB).crt && echo "Wrote ./$$(${BIN}/dotenv -f ${ENV_FILE} get POSTGRES_TRAEFIK_HOST)_$$(${BIN}/dotenv -f ${ENV_FILE} get POSTGRES_DB).crt"
-	@docker-compose --env-file ${ENV_FILE} exec --user postgres postgres cat /etc/postgresql/client.key > $$(${BIN}/dotenv -f ${ENV_FILE} get POSTGRES_TRAEFIK_HOST)_$$(${BIN}/dotenv -f ${ENV_FILE} get POSTGRES_DB).key && echo "Wrote ./$$(${BIN}/dotenv -f ${ENV_FILE} get POSTGRES_TRAEFIK_HOST)_$$(${BIN}/dotenv -f ${ENV_FILE} get POSTGRES_DB).key"
-	@docker-compose --env-file ${ENV_FILE} exec --user postgres postgres cat /etc/postgresql/client.pk8.key > $$(${BIN}/dotenv -f ${ENV_FILE} get POSTGRES_TRAEFIK_HOST)_$$(${BIN}/dotenv -f ${ENV_FILE} get POSTGRES_DB).pk8.key && echo "Wrote ./$$(${BIN}/dotenv -f ${ENV_FILE} get POSTGRES_TRAEFIK_HOST)_$$(${BIN}/dotenv -f ${ENV_FILE} get POSTGRES_DB).pk8.key"
+	@docker-compose --env-file ${ENV_FILE}  --project-name="${PROJECT_NAME}" exec --user postgres postgres cat /etc/postgresql/root_ca.crt > $$(${BIN}/dotenv -f ${ENV_FILE} get POSTGRES_TRAEFIK_HOST)_ca.crt && echo "Wrote ./$$(${BIN}/dotenv -f ${ENV_FILE} get POSTGRES_TRAEFIK_HOST)_ca.crt"
+	@docker-compose --env-file ${ENV_FILE}  --project-name="${PROJECT_NAME}" exec --user postgres postgres cat /etc/postgresql/client.crt > $$(${BIN}/dotenv -f ${ENV_FILE} get POSTGRES_TRAEFIK_HOST)_$$(${BIN}/dotenv -f ${ENV_FILE} get POSTGRES_DB).crt && echo "Wrote ./$$(${BIN}/dotenv -f ${ENV_FILE} get POSTGRES_TRAEFIK_HOST)_$$(${BIN}/dotenv -f ${ENV_FILE} get POSTGRES_DB).crt"
+	@docker-compose --env-file ${ENV_FILE}  --project-name="${PROJECT_NAME}" exec --user postgres postgres cat /etc/postgresql/client.key > $$(${BIN}/dotenv -f ${ENV_FILE} get POSTGRES_TRAEFIK_HOST)_$$(${BIN}/dotenv -f ${ENV_FILE} get POSTGRES_DB).key && echo "Wrote ./$$(${BIN}/dotenv -f ${ENV_FILE} get POSTGRES_TRAEFIK_HOST)_$$(${BIN}/dotenv -f ${ENV_FILE} get POSTGRES_DB).key"
+	@docker-compose --env-file ${ENV_FILE}  --project-name="${PROJECT_NAME}" exec --user postgres postgres cat /etc/postgresql/client.pk8.key > $$(${BIN}/dotenv -f ${ENV_FILE} get POSTGRES_TRAEFIK_HOST)_$$(${BIN}/dotenv -f ${ENV_FILE} get POSTGRES_DB).pk8.key && echo "Wrote ./$$(${BIN}/dotenv -f ${ENV_FILE} get POSTGRES_TRAEFIK_HOST)_$$(${BIN}/dotenv -f ${ENV_FILE} get POSTGRES_DB).pk8.key"
 	@chmod 0600 *.crt *.key
 	@echo
 	@make --no-print-directory connection-variables
@@ -40,8 +43,8 @@ diagram:
 .PHONY: certificates # Make new certificates (overwriting the old ones)
 certificates: build
 	@${BIN}/confirm no "This will destroy the existing CA, server, and client certificates and create new ones."
-	@docker-compose --env-file=${ENV_FILE} run -e FORCE_NEW_CERTIFICATES=true config
-	@docker-compose --env-file=${ENV_FILE} restart postgres
+	@docker-compose --env-file=${ENV_FILE}  --project-name="${PROJECT_NAME}" run -e FORCE_NEW_CERTIFICATES=true config
+	@docker-compose --env-file=${ENV_FILE}  --project-name="${PROJECT_NAME}" restart postgres
 
 .PHONY: connection-string
 connection-string:
@@ -66,7 +69,7 @@ localdb: client
 
 .PHONY: chinook # Import Chinook sample database
 chinook:
-	docker-compose --env-file=${ENV_FILE} exec postgres /bin/sh -c 'createdb chinook && psql -c "create role chinook; grant chinook to $${POSTGRES_DB};" && PGUSER=$${POSTGRES_DB} pgloader https://github.com/lerocha/chinook-database/raw/master/ChinookDatabase/DataSources/Chinook_Sqlite_AutoIncrementPKs.sqlite pgsql:///chinook'
+	docker-compose --env-file=${ENV_FILE}  --project-name="${PROJECT_NAME}" exec postgres /bin/sh -c 'createdb chinook && psql -c "create role chinook; grant chinook to $${POSTGRES_DB};" && PGUSER=$${POSTGRES_DB} pgloader https://github.com/lerocha/chinook-database/raw/master/ChinookDatabase/DataSources/Chinook_Sqlite_AutoIncrementPKs.sqlite pgsql:///chinook'
 
 .PHONY: psql-alias # Get the psql alias with baked connection string
 psql-alias:
