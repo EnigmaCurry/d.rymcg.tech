@@ -15,12 +15,7 @@ services:
     cap_drop:
       - ALL
     user: ${THTTPD_UID}:${THTTPD_GID}
-    labels:
-      - "traefik.enable=true"
-      - "traefik.http.routers.thttpd-${THTTPD_INSTANCE:-default}.rule=Host(`${THTTPD_TRAEFIK_HOST}`)"
-      - "traefik.http.routers.thttpd-${THTTPD_INSTANCE:-default}.entrypoints=websecure"
-      ## Authentication:
-      #- "traefik.http.middlewares.thttpd-auth.basicauth.users=${THTTPD_HTTP_AUTH}"
-      #- "traefik.http.routers.thttpd.middlewares=thttpd-auth@docker"
+    # Labels are defined in docker-compose.instance.yaml
+    labels: []
     volumes:
       - files:/home/web

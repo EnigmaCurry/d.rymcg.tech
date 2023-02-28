@@ -3,6 +3,16 @@
 [Filestash](https://github.com/mickael-kerjean/filestash) is a web-based file
 manager, connecting to many different storage backends.
 
+This configuration requires HTTP Basic Authentication in front of the
+application. This is due to the fact that **I consider filestash to be
+insecure by default**, and because it performs the backend
+authentication *on the client*. I have enforced HTTP basic
+authentication as a simple mitigation against leaking these
+credentials publicly, however *you must trust all of your users as if
+you were giving them your backend storage credentials directly.* If
+you create a storage backend, and save the default password, the
+backend storage credentials are visible to all client users.
+
 ## Config
 
 Run `make config` or copy `.env-dist` to `.env_${DOCKER_CONTEXT}_default` and edit the variables:
@@ -21,7 +31,14 @@ Run `make open` to open the main application page. This will pre-populate the
 username and password, and open your browser to the page. (See the URL with the
 username/password in your terminal.)
 
-You must setup an admin account on first login, with a separate password.
+You must setup an admin account on first login, with a *separate* password.
+
+Open the admin page to create at least one storage backend for your
+users to connect to:
+
+```
+make admin
+```
 
 ## Setup example with S3 storage
 

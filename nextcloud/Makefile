@@ -1,9 +1,11 @@
 ROOT_DIR = ..
 include ${ROOT_DIR}/_scripts/Makefile.projects-custom-build
+include ${ROOT_DIR}/_scripts/Makefile.instance
 
 .PHONY: config-hook
 config-hook:
-	@${BIN}/reconfigure_ask ${ENV_FILE} NEXTCLOUD_TRAEFIK_HOST "Enter the nextcloud domain name" nc.${ROOT_DOMAIN}
+	@${BIN}/reconfigure ${ENV_FILE} NEXTCLOUD_INSTANCE=$${instance:-default}
+	@${BIN}/reconfigure_ask ${ENV_FILE} NEXTCLOUD_TRAEFIK_HOST "Enter the nextcloud domain name" nextcloud${INSTANCE_URL_SUFFIX}.${ROOT_DOMAIN}
 	@${BIN}/reconfigure_ask ${ENV_FILE} OBJECTSTORE_S3_HOST "Enter the Primary S3 endpoint domain name"
 	@${BIN}/reconfigure_ask ${ENV_FILE} OBJECTSTORE_S3_BUCKET "Enter the Primary S3 bucket name"
 	@${BIN}/reconfigure_ask ${ENV_FILE} OBJECTSTORE_S3_KEY "Enter the Primary S3 Access Key"

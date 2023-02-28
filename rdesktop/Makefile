@@ -1,5 +1,6 @@
 ROOT_DIR = ..
 include ${ROOT_DIR}/_scripts/Makefile.projects-custom-build
+include ${ROOT_DIR}/_scripts/Makefile.instance
 
 .PHONY: build # Build the docker image
 build:
@@ -7,6 +8,7 @@ build:
 
 .PHONY: config-hook
 config-hook:
+	@${BIN}/reconfigure ${ENV_FILE} RDESKTOP_INSTANCE=$${instance:-default}
 	@${BIN}/reconfigure_ask ${ENV_FILE} RDESKTOP_TRAEFIK_HOST "Enter the remote desktop domain name" rdesktop.${ROOT_DOMAIN}
 	@${BIN}/reconfigure_htpasswd ${ENV_FILE} RDESKTOP_HTTP_AUTH
 	@${BIN}/reconfigure ${ENV_FILE} TZ=UTC

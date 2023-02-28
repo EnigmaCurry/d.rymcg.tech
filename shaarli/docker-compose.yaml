@@ -25,5 +25,7 @@ services:
       - shaarli-data:/var/www/shaarli/data
     labels:
       - "traefik.enable=true"
-      - "traefik.http.routers.shaarli.rule=Host(`${SHAARLI_TRAEFIK_HOST}`)"
-      - "traefik.http.routers.shaarli.entrypoints=websecure"
+      - "traefik.http.routers.shaarli-${SHAARLI_INSTANCE:-default}.rule=Host(`${SHAARLI_TRAEFIK_HOST}`)"
+      - "traefik.http.routers.shaarli-${SHAARLI_INSTANCE:-default}.entrypoints=websecure"
+      - "traefik.http.middlewares.shaarli-${SHAARLI_INSTANCE:-default}-ipwhitelist.ipwhitelist.sourcerange=${SHAARLI_IP_SOURCERANGE}"
+      - "traefik.http.routers.shaarli-${SHAARLI_INSTANCE:-default}.middlewares=shaarli-${SHAARLI_INSTANCE:-default}-ipwhitelist"

@@ -7,11 +7,11 @@ config-hook:
 
 .PHONY: admin # Create admin account (this clears ALL accounts and creates a new admin)
 admin:
-	./create_user.sh admin
+	@ENV_FILE=${ENV_FILE} ./create_user.sh admin
 
 .PHONY: user # Create an additional account
 user:
-	./create_user.sh
+	@ENV_FILE=${ENV_FILE} ./create_user.sh
 
 .PHONY: list-users # List the user accounts and hashed passwords
 list-users:
@@ -20,3 +20,8 @@ list-users:
 .PHONY: shell # Enter container shell
 shell:
 	@docker-compose --env-file ${ENV_FILE} exec $${service:-mosquitto} /bin/sh
+
+.PHONY: client # Create a temporary client shell
+client:
+	@docker run --rm -it eclipse-mosquitto:$$(${BIN}/dotenv -f ${ENV_FILE} get MOSQUITTO_VERSION) /bin/sh
+

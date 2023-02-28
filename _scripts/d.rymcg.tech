@@ -93,11 +93,10 @@ __create() {
 }
 
 __change-directory() {
-    echo "Entering sub-shell. Press Ctrl-D to pop back to the parent shell."
     if [[ $# -gt 0 ]]; then
-        /bin/bash --rcfile <(echo "cd ${ROOT_DIR}/$1")
+        __make $1 cd
     else
-        /bin/bash --rcfile <(echo "cd ${ROOT_DIR}")
+        __make -- cd
     fi
     echo "Exited sub-shell."
 }
@@ -112,7 +111,7 @@ __make() {
             PROJECT_DIR=${ROOT_DIR}/${PROJECT_NAME}
         fi
         test -d "${PROJECT_DIR}" || fault "Project directory does not exist: ${PROJECT_DIR}"
-        make -C "${PROJECT_DIR}" "$@"
+        make --no-print-directory -C "${PROJECT_DIR}" "$@"
     else
         __list_projects
         error "Missing project name argument. Choose one from the above."
@@ -358,6 +357,8 @@ main() {
                 __context "$@";;
             script)
                 __run_script "$@";;
+            status)
+                __make -- status | sed "s|\./|${ROOT_DIR}/|g";;
             *)
                 fault "Invalid command"
         esac

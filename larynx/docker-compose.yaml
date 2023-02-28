@@ -2,7 +2,7 @@ version: "3.9"
 
 services:
   app:
-    image: rhasspy/larynx
+    image: rhasspy/larynx:${LARYNX_VERSION}
     restart: unless-stopped
     security_opt:
       - no-new-privileges:true
@@ -10,12 +10,14 @@ services:
       - home:/root
     labels:
       - "traefik.enable=true"
-      - "traefik.http.routers.larynx.rule=Host(`${LARYNX_TRAEFIK_HOST}`)"
-      - "traefik.http.routers.larynx.entrypoints=websecure"
+      - "traefik.http.routers.larynx-${LARYNX_INSTANCE:-default}.rule=Host(`${LARYNX_TRAEFIK_HOST}`)"
+      - "traefik.http.routers.larynx-${LARYNX_INSTANCE:-default}.entrypoints=websecure"
       ## Authentication:
-      - "traefik.http.routers.larynx.middlewares=larynx-auth@docker"
-      - "traefik.http.middlewares.larynx-auth.basicauth.users=${LARYNX_HTTP_AUTH}"
-      - "traefik.http.middlewares.larynx-auth.basicauth.realm=Larynx"
+      - "traefik.http.routers.larynx-${LARYNX_INSTANCE:-default}.middlewares=larynx-auth@docker"
+      - "traefik.http.middlewares.larynx-${LARYNX_INSTANCE:-default}-auth.basicauth.users=${LARYNX_HTTP_AUTH}"
+      - "traefik.http.middlewares.larynx-${LARYNX_INSTANCE:-default}-auth.basicauth.realm=Larynx"
+      - "traefik.http.middlewares.larynx-${LARYNX_INSTANCE:-default}-ipwhitelist.ipwhitelist.sourcerange=${LARYNX_IP_SOURCERANGE}"
+      - "traefik.http.routers.larynx-${LARYNX_INSTANCE:-default}.middlewares=larynx-${LARYNX_INSTANCE:-default}-ipwhitelist,larynx-${LARYNX_INSTANCE:-default}-auth"
 
 volumes:
   home:

@@ -1,10 +1,11 @@
 ROOT_DIR = ..
 include ${ROOT_DIR}/_scripts/Makefile.projects
+include ${ROOT_DIR}/_scripts/Makefile.instance
 
 .PHONY: config-hook
 config-hook:
-	@${BIN}/reconfigure_ask ${ENV_FILE} XBS_TRAEFIK_HOST "Enter the xbs domain name" xbs.${ROOT_DOMAIN}
-	@${BIN}/reconfigure ${ENV_FILE} DB_PASSWORD=$(shell openssl rand -base64 45)
+	@${BIN}/reconfigure_ask ${ENV_FILE} XBS_TRAEFIK_HOST "Enter the xbs domain name" xbs${INSTANCE_URL_SUFFIX}.${ROOT_DOMAIN}
+	@${BIN}/reconfigure_password ${ENV_FILE} XBS_DB_PASSWORD
 
 .PHONY: shell
 shell:

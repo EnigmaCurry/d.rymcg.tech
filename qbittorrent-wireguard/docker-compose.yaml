@@ -42,7 +42,8 @@ services:
       - "traefik.http.services.qbittorrent-${QBITTORRENT_INSTANCE:-default}.loadBalancer.server.port=8080"
       ## Authentication:
       - "traefik.http.middlewares.qbittorrent-${QBITTORRENT_INSTANCE:-default}-auth.basicauth.users=${QBITTORRENT_HTTP_AUTH}"
-      - "traefik.http.routers.qbittorrent-${QBITTORRENT_INSTANCE:-default}.middlewares=qbittorrent-${QBITTORRENT_INSTANCE:-default}-auth@docker"
+      - "traefik.http.middlewares.qbittorrent-${QBITTORRENT_INSTANCE:-default}-ipwhitelist.ipwhitelist.sourcerange=${QBITTORRENT_IP_SOURCERANGE}"
+      - "traefik.http.routers.qbittorrent-${QBITTORRENT_INSTANCE:-default}.middlewares=qbittorrent-${QBITTORRENT_INSTANCE:-default}-ipwhitelist,qbittorrent-${QBITTORRENT_INSTANCE:-default}-auth"
 
   qbittorrent-config:
     build:

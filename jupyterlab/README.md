@@ -5,17 +5,19 @@ progamming notebook, for Python and other languages.
 
 Run `make config` and set the jupyterlab domain name.
 
-Run `make install` to deploy.
+Run `make install` to deploy it.
+
+Run `watch make status` and wait for the service to come online with
+`HEALTH=healthy`. (Press `Ctrl-C` to quit watch.)
 
 Run `make open` to open the application URL in your browser.
 
-All work saved in `/home/jovyan/work` is saved to a the
-`jupyterlab_work` docker volume.
+Run `make token` to view the token necessary to login, which is also
+found stored in the `.env_{DOCKER_CONTEXT}_{INSTANCE}` config file.
 
-The token to access the server changes each time the container starts,
-to find the token look at the logs:
+All work saved in `/home/jovyan/work` is saved to a docker volume.
 
-```
-make logs
-```
+## Extensions
+
+ * https://github.com/kpe/jupyterlab-emacskeys
 

@@ -4,6 +4,9 @@
 [Rhasspy](https://rhasspy.readthedocs.io/en/latest/) project. It runs as a
 service, so you can send text and get a .wav file back in return.
 
+FYI: last time I tried this, it was broken and there were no voices
+available. If you know how to fix it, please send a PR.
+
 Run `make config` to configure the larynx domain name and
 username/password.
 

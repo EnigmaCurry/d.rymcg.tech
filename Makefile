@@ -6,6 +6,7 @@ help:
 	@grep -h '^.PHONY: .* #' Makefile ${ROOT_DIR}/_scripts/Makefile.globals | sed 's/\.PHONY: \(.*\) # \(.*\)/make \1 \t- \2/' | expand -t20
 
 include _scripts/Makefile.globals
+include _scripts/Makefile.cd
 
 .PHONY: check-deps
 check-deps:
@@ -34,8 +35,7 @@ build:
 	find ./ | grep docker-compose.yaml$ | xargs dirname | xargs -iXX docker-compose --env-file=XX/${ENV_FILE} -f XX/docker-compose.yaml build
 
 .PHONY: open # Open the repository website README
-open:
-	xdg-open https://github.com/enigmacurry/d.rymcg.tech#readme
+open: readme
 
 .PHONY: status # Check status of all sub-projects
 status:

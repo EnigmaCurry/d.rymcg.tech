@@ -1,6 +1,6 @@
 {
   "db": {
-    "host": "xbs-db-1",
+    "host": "db",
     "status": {
       "message": "welcome to my XBS service!"
     },

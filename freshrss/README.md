@@ -5,11 +5,10 @@ Compare with [ttrss](../ttrss)
 ## Config
 
 Run `make config` or copy `.env-dist` to
-`.env_${DOCKER_CONTEXT}_default` and set the vars:
+`.env_{DOCKER_CONTEXT}_{INSTANCE}` and set the vars:
 
  * `FRESHRSS_TRAEFIK_HOST` the domain name for FreshRSS.
  * `TIME_ZONE` the timezone of the server
-
 
 Bring up the server : `make install`
 

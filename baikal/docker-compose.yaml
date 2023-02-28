@@ -6,7 +6,7 @@ volumes:
 
 services:
   baikal:
-    image: "ckulka/baikal:nginx"
+    image: "ckulka/baikal:${BAIKAL_VERSION}"
     security_opt:
       - no-new-privileges:true
     cap_drop:
@@ -17,12 +17,12 @@ services:
       - SETGID
       - SETUID
       - FOWNER
+      - NET_BIND_SERVICE
       # - FSETID
       # - MKNOD
       # - NET_RAW
       # - SETFCAP
       # - SETPCAP
-      # - NET_BIND_SERVICE
       # - SYS_CHROOT
       # - KILL
       # - AUDIT_WRITE
@@ -31,6 +31,8 @@ services:
       - "traefik.enable=true"
       - "traefik.http.routers.baikal-${BAIKAL_INSTANCE:-default}.rule=Host(`${BAIKAL_TRAEFIK_HOST}`)"
       - "traefik.http.routers.baikal-${BAIKAL_INSTANCE:-default}.entrypoints=websecure"
+      - "traefik.http.middlewares.baikal-${BAIKAL_INSTANCE:-default}-ipwhitelist.ipwhitelist.sourcerange=${BAIKAL_IP_SOURCERANGE}"
+      - "traefik.http.routers.baikal-${BAIKAL_INSTANCE:-default}.middlewares=baikal-${BAIKAL_INSTANCE:-default}-ipwhitelist"
     volumes:
       - baikal_config:/var/www/baikal/config
       - baikal_data:/var/www/baikal/Specific

@@ -10,9 +10,5 @@ services:
     read_only: true
     volumes:
       - data:/srv/data
-    labels:
-      - "traefik.enable=true"
-      - "traefik.http.routers.privatebin.rule=Host(`${PRIVATEBIN_TRAEFIK_HOST}`)"
-      - "traefik.http.routers.privatebin.entrypoints=websecure"
-      - "traefik.http.routers.privatebin.tls=true"
-
+    # Labels are defined in docker-compose.instance.yaml
+    labels: []

@@ -1,7 +1,6 @@
 # Mosquitto
 [Mosquitto](https://mosquitto.org/) is an MQTT pub/sub message broker. 
 
-
 You can use it in combination with [node-red](../nodered) to create easy task
 automation pipelines.
 
@@ -15,22 +14,32 @@ Good blog posts:
  * [S-MQTTT, or: secure-MQTT-over-Traefik](https://jurian.slui.mn/posts/smqttt-or-secure-mqtt-over-traefik/)
  * [MQTT – How to use ACLs and multiple user accounts](https://blog.jaimyn.dev/mqtt-use-acls-multiple-user-accounts/)
 
+## Enable MQTT Traefik Entrypoint
+
+You must enable the MQTT Traefik entrypoint (TCP port 8883) and
+reinstall Traefik:
+
+```
+make -C ../traefik reconfigure var=TRAEFIK_MQTT_ENTRYPOINT_ENABLED=true
+make -C ../traefik install
+```
+
 ## Config
 
 Run `make config` or copy `.env-dist` to
 `.env_${DOCKER_CONTEXT}_default`, and edit variables accordingly.
 
  * `MOSQUITTO_TRAEFIK_HOST` the external domain name to forward from traefik.
- 
+
 Before starting mosquitto, create the user accounts you need:
 
 ```
 make admin
 ```
 
-The `admin` password will be printed to the terminal. 
+The `admin` password will be printed to the terminal.
 
-You can add additional users and print their passwords: 
+You can add additional users and print their passwords:
 
 ```
 make user
@@ -48,7 +57,14 @@ Start mosquitto with `make install` or `docker-compose up -d`
 
 ## Test it
 
-Install the `mosquitto` client package with your package manager.
+You must install the `mosquitto` client package with the same version
+(`MOSQUITTO_VERSION` in your .env file), so it is easiest to run a
+container for testing:
+
+```
+## Create a shell with mosquitto client (same version) installed:
+make client
+```
 
 Subscribe to a topic:
 

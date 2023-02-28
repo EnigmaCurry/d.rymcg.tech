@@ -25,9 +25,10 @@ services:
     restart: unless-stopped
     labels:
       - "traefik.enable=true"
-      - "traefik.http.routers.gpodder.rule=Host(`${RDESKTOP_TRAEFIK_HOST}`)"
-      - "traefik.http.routers.gpodder.entrypoints=websecure"
-      - "traefik.http.services.gpodder.loadbalancer.server.port=3000"
+      - "traefik.http.routers.rdesktop-${RDESKTOP_INSTANCE:-default}.rule=Host(`${RDESKTOP_TRAEFIK_HOST}`)"
+      - "traefik.http.routers.rdesktop-${RDESKTOP_INSTANCE:-default}.entrypoints=websecure"
+      - "traefik.http.services.rdesktop-${RDESKTOP_INSTANCE:-default}.loadbalancer.server.port=3000"
       # auth
-      - "traefik.http.middlewares.gpodder-auth.basicauth.users=${RDESKTOP_HTTP_AUTH}"
-      - "traefik.http.routers.gpodder.middlewares=gpodder-auth@docker"
+      - "traefik.http.middlewares.rdesktop-${RDESKTOP_INSTANCE:-default}-auth.basicauth.users=${RDESKTOP_HTTP_AUTH}"
+      - "traefik.http.middlewares.rdesktop-${RDESKTOP_INSTANCE:-default}-ipwhitelist.ipwhitelist.sourcerange=${RDESKTOP_IP_SOURCERANGE}"
+      - "traefik.http.routers.rdesktop-${RDESKTOP_INSTANCE:-default}.middlewares=rdesktop-${RDESKTOP_INSTANCE:-default}-ipwhitelist,rdesktop-${RDESKTOP_INSTANCE:-default}-auth"

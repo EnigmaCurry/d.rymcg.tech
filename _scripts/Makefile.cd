@@ -1,0 +1,5 @@
+.PHONY: cd # Enter a Bash sub-shell and change working directory to the project root
+cd:
+	@echo "Changing directory to ${CURDIR}"
+	@echo "Entering sub-shell (press Ctrl-D to pop back out)"
+	@bash --rcfile <(echo "source ~/.bashrc; unset PROMPT_COMMAND; PS1=\"[@] \$${PS1}\"") -i

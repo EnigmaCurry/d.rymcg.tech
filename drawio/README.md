@@ -5,6 +5,8 @@ based diagram tool. This deployment uses the
 [jgraph/docker-drawio](https://github.com/jgraph/docker-drawio) docker
 image.
 
+Note: this image is not working on arm64.
+
 ## Configure
 
 ```

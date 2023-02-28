@@ -5,12 +5,12 @@ services:
     security_opt:
       - no-new-privileges:true
     environment:
-      - "MONGO_INITDB_DATABASE=$DB_NAME"
-      - "MONGO_INITDB_ROOT_PASSWORD=$DB_PASSWORD"
-      - "MONGO_INITDB_ROOT_USERNAME=$DB_USERNAME"
-      - "XBS_DB_NAME=$DB_NAME"
-      - "XBS_DB_PASSWORD=$DB_PASSWORD"
-      - "XBS_DB_USERNAME=$DB_USERNAME"
+      - "MONGO_INITDB_DATABASE=${XBS_DB_NAME}"
+      - "MONGO_INITDB_ROOT_PASSWORD=${XBS_DB_PASSWORD}"
+      - "MONGO_INITDB_ROOT_USERNAME=${XBS_DB_USERNAME}"
+      - "XBS_DB_NAME=${XBS_DB_NAME}"
+      - "XBS_DB_PASSWORD=${XBS_DB_PASSWORD}"
+      - "XBS_DB_USERNAME=${XBS_DB_USERNAME}"
     build: ./db
     restart: "unless-stopped"
     volumes:
@@ -24,8 +24,8 @@ services:
     security_opt:
       - no-new-privileges:true
     environment:
-      - "XBROWSERSYNC_DB_PWD=$DB_PASSWORD"
-      - "XBROWSERSYNC_DB_USER=$DB_USERNAME"
+      - "XBROWSERSYNC_DB_PWD=${XBS_DB_PASSWORD}"
+      - "XBROWSERSYNC_DB_USER=${XBS_DB_USERNAME}"
     healthcheck:
       test: [ "CMD", "node", "/usr/src/api/healthcheck.js" ]
       interval: "1m"
@@ -35,9 +35,11 @@ services:
     restart: "unless-stopped"
     labels:
       - "traefik.enable=true"
-      - "traefik.http.routers.xbs.rule=Host(`${XBS_TRAEFIK_HOST}`)"
-      - "traefik.http.routers.xbs.entrypoints=websecure"
-      - "traefik.http.services.xbs.loadbalancer.server.port=8080"
+      - "traefik.http.routers.xbs-${XBS_INSTANCE:-default}.rule=Host(`${XBS_TRAEFIK_HOST}`)"
+      - "traefik.http.routers.xbs-${XBS_INSTANCE:-default}.entrypoints=websecure"
+      - "traefik.http.services.xbs-${XBS_INSTANCE:-default}.loadbalancer.server.port=8080"
+      - "traefik.http.middlewares.xbs-${XBS_INSTANCE:-default}-ipwhitelist.ipwhitelist.sourcerange=${XBS_IP_SOURCERANGE}"
+      - "traefik.http.routers.xbs-${XBS_INSTANCE:-default}.middlewares=xbs-${XBS_INSTANCE:-default}-ipwhitelist"
 
 volumes:
   xbs-db-backups:
