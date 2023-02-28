@@ -16,7 +16,7 @@ services:
 
   mosquitto:
     depends_on: ['config']
-    image: "eclipse-mosquitto"
+    image: "eclipse-mosquitto:${MOSQUITTO_VERSION}"
     security_opt:
       - no-new-privileges:true
     restart: unless-stopped
@@ -28,6 +28,7 @@ services:
       - "traefik.tcp.services.mqtt.loadBalancer.server.port=1883"
       - "traefik.tcp.routers.mqtt.tls=true"
       - "traefik.tcp.routers.mqtt.tls.domains[0].main=${MOSQUITTO_TRAEFIK_HOST}"
+      - "traefik.tcp.routers.mqtt.tls.certresolver=${MOSQUITTO_ACME_CERT_RESOLVER}"
       ## To limit MQTT to VPN access only:
       ## (you should change the entrypoint binding address in traefik config too)
       #- "traefik.tcp.routers.mqtt.middlewares=vpn-ipwhitelist@docker"
