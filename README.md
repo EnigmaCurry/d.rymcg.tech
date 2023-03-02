@@ -476,6 +476,7 @@ Install these services at your leisure/preference:
 * [TiddlyWiki (NodeJS version)](tiddlywiki-nodejs) - Advanced server edition of TiddlyWiki with image CDN
 * [Traefik-forward-auth](traefik-forward-auth) - Traefik oauth middleware
 * [Transmission-Wireguard](transmission-wireguard) - An older but very popular Bittorrent (v1) client with a combined VPN client
+* [Tiny Tiny RSS](ttrss) - an RSS reader / proxy
 * [Vaultward](vaultwarden) - a bitwarden compatible password manager written in Rust (formerly bitwarden_rs)
 * [Websocketd](websocketd) - a websocket / CGI server
 * [XBrowserSync](xbs) - a bookmark manager
