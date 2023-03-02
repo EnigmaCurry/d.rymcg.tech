@@ -23,7 +23,7 @@ services:
       - TTRSS_DB_USER=ttrss
       - TTRSS_DB_NAME=ttrss
       - TTRSS_DB_PASS
-      - TTRSS_SELF_URL_PATH=https://${TTRSS_TRAEFIK_HOST}/tt-rss
+      - TTRSS_SELF_URL_PATH=https://${TTRSS_TRAEFIK_HOST}${TTRSS_TRAEFIK_PORT}/tt-rss
     volumes:
       - app:/var/www/html
       - ./config.d:/opt/tt-rss/config.d:ro
