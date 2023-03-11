@@ -5,7 +5,7 @@ volumes:
 
 services:
   filestash:
-    image: machines/filestash
+    image: machines/filestash:${FILESTASH_VERSION}
     security_opt:
       - no-new-privileges:true
     restart: unless-stopped
@@ -16,7 +16,9 @@ services:
       ## Password protected main router:
       - "traefik.http.routers.filestash-${FILESTASH_INSTANCE:-default}.rule=Host(`${FILESTASH_TRAEFIK_HOST}`)"
       - "traefik.http.routers.filestash-${FILESTASH_INSTANCE:-default}.entrypoints=websecure"
-      - "traefik.http.routers.filestash-${FILESTASH_INSTANCE:-default}.middlewares=filestash-${FILESTASH_INSTANCE:-default}-auth"
       - "traefik.http.middlewares.filestash-${FILESTASH_INSTANCE:-default}-auth.basicauth.users=${FILESTASH_AUTH}"
+      - "traefik.http.middlewares.filestash-${FILESTASH_INSTANCE:-default}-ipwhitelist.ipwhitelist.sourcerange=${FILESTASH_IP_SOURCERANGE}"
+      - "traefik.http.routers.filestash-${FILESTASH_INSTANCE:-default}.middlewares=filestash-${FILESTASH_INSTANCE:-default}-ipwhitelist,filestash-${FILESTASH_INSTANCE:-default}-auth"
+
     volumes:
       - state:/app/data/state

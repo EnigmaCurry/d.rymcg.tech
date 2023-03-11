@@ -11,15 +11,16 @@ Run `make config` and answer the following questions:
 
 ## Install
 
-Run `DOCKER_BUILDKIT=0 make install`
+Run `make install`
 
-Setting `DOCKER_BUILDKIT=0` will [avoid this
-bug](https://github.com/moby/buildkit/issues/1684) (which, even though it is
-closed/resolved, it is still not working right without this fix..)
+Run `watch make status` and wait for the service to finish starting
+and become `healthy` (press Ctrl-C to quit watch).
+
+Run `make open` to open the app.
 
 ## Change the password
 
  * The default username is: `admin`
  * The default password is: `password`
- 
+
 You must change this immediately!

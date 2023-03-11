@@ -15,12 +15,12 @@ services:
     environment:
       - POSTGRES_DB=invidious
       - POSTGRES_USER=invidious
-      - POSTGRES_PASSWORD
+      - POSTGRES_PASSWORD=${INVIDIOUS_POSTGRES_PASSWORD}
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U $$POSTGRES_USER -d $$POSTGRES_DB"]
-
+      
   invidious:
-    image: quay.io/invidious/invidious:latest
+    image: quay.io/invidious/invidious:${INVIDIOUS_VERSION}
     # build:
     #   context: https://github.com/iv-org/invidious.git
     #   dockerfile: docker/Dockerfile
@@ -34,7 +34,7 @@ services:
         feed_threads: 1
         db:
           user: invidious
-          password: ${POSTGRES_PASSWORD}
+          password: ${INVIDIOUS_POSTGRES_PASSWORD}
           host: postgres
           port: 5432
           dbname: invidious
@@ -48,13 +48,5 @@ services:
       retries: 2
     depends_on:
       - postgres
-    labels:
-      - "traefik.enable=true"
-      - "traefik.http.routers.invidious.rule=Host(`${INVIDIOUS_TRAEFIK_HOST}`)"
-      - "traefik.http.routers.invidious.entrypoints=websecure"
-      ## Authentication:
-      - "traefik.http.middlewares.invidious-auth.basicauth.users=${INVIDIOUS_HTTP_AUTH}"
-      - "traefik.http.routers.invidious.middlewares=invidious-auth@docker"
-      - "traefik.http.middlewares.invidious-auth.basicauth.realm=${INVIDIOUS_REALM}"
-
-
+    # labels are defined in docker-compose.instance.yaml:
+    labels: []

@@ -1,6 +1,6 @@
 {
   "db": {
-    "host": "xbs-db-1",
+    "host": "db",
     "status": {
       "message": "Wooskey XBS service!"
     },

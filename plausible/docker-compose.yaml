@@ -45,8 +45,10 @@ services:
       - DISABLE_REGISTRATION=${PLAUSIBLE_DISABLE_REGISTRATION}
     labels:
       - "traefik.enable=true"
-      - "traefik.http.routers.plausible.rule=Host(`${PLAUSIBLE_TRAEFIK_HOST}`)"
-      - "traefik.http.routers.plausible.entrypoints=websecure"
+      - "traefik.http.routers.plausible-${PLAUSIBLE_INSTANCE:-default}.rule=Host(`${PLAUSIBLE_TRAEFIK_HOST}`)"
+      - "traefik.http.routers.plausible-${PLAUSIBLE_INSTANCE:-default}.entrypoints=websecure"
+      - "traefik.http.middlewares.plausible-${PLAUSIBLE_INSTANCE:-default}-ipwhitelist.ipwhitelist.sourcerange=${PLAUSIBLE_IP_SOURCERANGE}"
+      - "traefik.http.routers.plausible-${PLAUSIBLE_INSTANCE:-default}.middlewares=plausible-${PLAUSIBLE_INSTANCE:-default}-ipwhitelist"
 
 volumes:
   db:
