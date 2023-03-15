@@ -7,14 +7,20 @@ services:
   jupyterlab:
     build:
       context: .
+      args:
+        JUPYTERLAB_IMAGE: ${JUPYTERLAB_IMAGE}
     security_opt:
       - no-new-privileges:true
     restart: unless-stopped
+    environment:
+      JUPYTER_TOKEN: ${JUPYTERLAB_JUPYTER_TOKEN}
     labels:
       - "traefik.enable=true"
-      - "traefik.http.routers.jupyterlab.rule=Host(`${JUPYTERLAB_TRAEFIK_HOST}`)"
-      - "traefik.http.routers.jupyterlab.entrypoints=websecure"
-      - "traefik.http.services.jupyterlab.loadBalancer.server.port=8888"
+      - "traefik.http.routers.jupyterlab-${JUPYTERLAB_INSTANCE:-default}.rule=Host(`${JUPYTERLAB_TRAEFIK_HOST}`)"
+      - "traefik.http.routers.jupyterlab-${JUPYTERLAB_INSTANCE:-default}.entrypoints=websecure"
+      - "traefik.http.services.jupyterlab-${JUPYTERLAB_INSTANCE:-default}.loadBalancer.server.port=8888"
+      - "traefik.http.middlewares.jupyterlab-${JUPYTERLAB_INSTANCE:-default}-ipwhitelist.ipwhitelist.sourcerange=${JUPYTERLAB_IP_SOURCERANGE}"
+      - "traefik.http.routers.jupyterlab-${JUPYTERLAB_INSTANCE:-default}.middlewares=jupyterlab-${JUPYTERLAB_INSTANCE:-default}-ipwhitelist"
     volumes:
       - work:/home/jovyan/work
 

@@ -20,18 +20,11 @@ else
     DEST_DIR="/"
 fi
 
-sync() {
-    ${BIN}/volume_rsync "${VOLUME}" -av --delete --exclude={'.git','.#','target'} "${SRC_DIR}/" "volume:/data/${DEST_DIR}"
-}
-
 ${BIN}/volume_mkdir "${VOLUME}"
-if [[ "${SYNC_ONCE}" == "true" ]]; then
-    sync
-else
-    while [[ true ]] ; do
-        echo "Syncing ..."
-        sync
-        echo "Waiting for changes ..."
-        inotifywait -r -t 600 -e modify,delete,create,move --exclude '\.#.*' .
-    done
-fi
+set +e
+while [[ true ]] ; do
+    echo "Syncing ..."
+    ${BIN}/volume_rsync "${VOLUME}" -av --delete --exclude={'.git','.*','target','node_modules','build','dist'} "${SRC_DIR}/" "volume:/data/${DEST_DIR}"
+    echo "Waiting for changes ..."
+    inotifywait -r -t 600 -e modify,delete,create,move --exclude '\.#.*' .
+done

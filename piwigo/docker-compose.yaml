@@ -2,19 +2,19 @@ version: "3.9"
 
 services:
   db:
-    image: mariadb
+    image: mariadb:${PIWIGO_MARIADB_VERSION}
     security_opt:
       - no-new-privileges:true
     restart: always
     environment:
-      MARIADB_ROOT_PASSWORD: ${MARIADB_ROOT_PASSWORD}
-      MARIADB_DATABASE: ${MARIADB_DATABASE}
-      MARIADB_USER: ${MARIADB_USER}
-      MARIADB_PASSWORD: ${MARIADB_PASSWORD}
+      MARIADB_ROOT_PASSWORD: ${PIWIGO_MARIADB_ROOT_PASSWORD}
+      MARIADB_DATABASE: ${PIWIGO_MARIADB_DATABASE}
+      MARIADB_USER: ${PIWIGO_MARIADB_USER}
+      MARIADB_PASSWORD: ${PIWIGO_MARIADB_PASSWORD}
     volumes:
       - mariadb:/var/lib/mysql
   piwigo:
-    image: linuxserver/piwigo:latest
+    image: linuxserver/piwigo:${PIWIGO_VERSION}
     security_opt:
       - no-new-privileges:true
     restart: unless-stopped
@@ -25,11 +25,8 @@ services:
       - PUID=1000
       - PGID=1000
       - TZ=${TIMEZONE}
-    labels:
-      - "traefik.enable=true"
-      - "traefik.http.routers.piwigo.rule=Host(`${PIWIGO_TRAEFIK_HOST}`)"
-      - "traefik.http.routers.piwigo.entrypoints=websecure"
-
+    # labels are defined in docker-compose.instance.yaml:
+    labels: []
 volumes:
   config:
   gallery:
