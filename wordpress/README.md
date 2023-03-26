@@ -10,3 +10,7 @@ d.rymcg allows you to easily self host many personal apps and services with trae
 - `make config`
 - `make install`
 
+## Testing / Destroying
+- `make destroy` will delete everything in the instance
+- `make clean` will delete your configured .env and derived compose files.
+
