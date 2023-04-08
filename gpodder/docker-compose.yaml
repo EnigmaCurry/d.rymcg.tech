@@ -1,0 +1,21 @@
+version: "2.1"
+
+volumes:
+  config:
+  downloads:
+  
+services:
+  gpodder:
+    image: xthursdayx/gpodder-docker
+    container_name: gpodder
+    environment:
+      - PUID=${GPODDER_UID}
+      - PGID=${GPODDER_GID}
+      - TZ=${GPODDER_TZ}
+      - PASSWORD=${GPODDER_PW}
+    volumes:
+      - config:/config
+      - downloads:/downloads
+    ports:
+      - 3000:${GPODDER_PORT}
+    restart: unless-stopped
