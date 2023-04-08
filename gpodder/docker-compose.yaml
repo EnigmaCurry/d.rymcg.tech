@@ -16,6 +16,12 @@ services:
     volumes:
       - config:/config
       - downloads:/downloads
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.nextcloud-${GPODDER_INSTANCE:-default}.rule=Host(`${GPODDER_TRAEFIK_HOST}`)"
+      - "traefik.http.routers.nextcloud-${GPODDER_INSTANCE:-default}.entrypoints=websecure"
+      - "traefik.http.middlewares.nextcloud-${GPODDER_INSTANCE:-default}-ipwhitelist.ipwhitelist.sourcerange=${GPODDER_IP_SOURCERANGE}"
+      - "traefik.http.routers.nextcloud-${GPODDER_INSTANCE:-default}.middlewares=nextcloud-${GPODDER_INSTANCE:-default}-ipwhitelist"
     ports:
       - 3000:${GPODDER_PORT}
     restart: unless-stopped
