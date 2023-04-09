@@ -111,19 +111,6 @@ entryPoints:
   #@ if data.values.mqtt_entrypoint_enabled == "true":
   mqtt:
     address: #@ data.values.mqtt_entrypoint_host + ":" + data.values.mqtt_entrypoint_port
-    http:
-      tls:
-        #@ if data.values.acme_enabled == "true":
-        certResolver: #@ data.values.acme_cert_resolver
-        domains:
-          #@ for domain in json.decode(data.values.acme_cert_domains):
-          - main: #@ domain[0]
-            sans:
-              #@ for secondary in domain[1]:
-              - #@ secondary
-              #@ end
-          #@ end
-        #@ end
   #@ end
   #@ if data.values.ssh_entrypoint_enabled == "true":
   ssh:
