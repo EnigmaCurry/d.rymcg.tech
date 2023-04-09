@@ -1,0 +1,23 @@
+version: "3.7"
+volumes:
+  audiobooks:
+  podcasts:
+  config:
+  metadata:
+    
+services:
+  audiobookshelf:
+    image: ghcr.io/advplyr/audiobookshelf:latest
+    ports:
+      - 13378:80
+    volumes:
+      - audiobooks:/audiobooks
+      - podcasts:/podcasts
+      - config:/config
+      - metadata:/metadata
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.audiobookshelf-${AUDIOBOOKSHELF_INSTANCE:-default}.rule=Host(`${AUDIOBOOKSHELF_TRAEFIK_HOST}`)"
+      - "traefik.http.routers.audiobookshelf-${AUDIOBOOKSHELF_INSTANCE:-default}.entrypoints=websecure"
+      - "traefik.http.middlewares.audiobookshelf-${AUDIOBOOKSHELF_INSTANCE:-default}-ipwhitelist.ipwhitelist.sourcerange=${AUDIOBOOKSHELF_IP_SOURCERANGE}"
+      - "traefik.http.routers.audiobookshelf-${AUDIOBOOKSHELF_INSTANCE:-default}.middlewares=audiobookshelf-${AUDIOBOOKSHELF_INSTANCE:-default}-ipwhitelist"
