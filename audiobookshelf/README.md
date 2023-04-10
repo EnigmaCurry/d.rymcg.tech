@@ -1,4 +1,4 @@
-[Audiobookshelf](https://github.com/traefik/whoami)
+[Audiobookshelf](https://github.com/advplyr/audiobookshelf)
 is a self-hosted audiobook and podcast server.
 
 ## Setup
