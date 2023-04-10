@@ -439,7 +439,7 @@ Install these first:
 Install these services at your leisure/preference:
 
 * [ArchiveBox](archivebox) - a website archiving tool
-* [Audiobookshel](audiobookshelf) - an audiobook and podcast server
+* [Audiobookshelf](audiobookshelf) - an audiobook and podcast server
 * [Autoheal](autoheal) - a Docker container healthcheck monitor with auto-restart service
 * [Baikal](baikal) - a lightweight CalDAV+CardDAV server
 * [CryptPad](cryptpad) - a collaborative document and spreadsheet editor 
