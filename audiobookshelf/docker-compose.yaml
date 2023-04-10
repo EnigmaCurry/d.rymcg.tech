@@ -1,0 +1,17 @@
+version: "3.7"
+
+volumes:
+  audiobooks:
+  podcasts:
+  config:
+  metadata:
+
+services:
+  audiobookshelf:
+    image: ghcr.io/advplyr/audiobookshelf:${AUDIOBOOKSHELF_VERSION}
+    volumes:
+      - audiobooks:/audiobooks
+      - podcasts:/podcasts
+      - config:/config
+      - metadata:/metadata
+    labels: [] ## All labels are defined in docker-compose.instance.yaml
