@@ -15,7 +15,7 @@ user:
 
 .PHONY: list-users # List the user accounts and hashed passwords
 list-users:
-	docker compose exec mosquitto cat /mosquitto/config/passwd
+	docker compose --env-file=${ENV_FILE} exec mosquitto cat /mosquitto/config/passwd
 
 .PHONY: shell # Enter container shell
 shell:
