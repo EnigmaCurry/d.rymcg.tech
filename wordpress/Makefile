@@ -23,14 +23,3 @@ override-hook:
 ####   name=@VARIABLE_NAME   # sets the template 'name' field to the literal string '${VARIABLE_NAME}'
 ####                         # (used for regular docker-compose expansion of env vars by name.)
 	@${BIN}/docker_compose_override ${ENV_FILE} project=:wp instance=@WP_INSTANCE traefik_host=@WP_TRAEFIK_HOST http_auth=WP_HTTP_AUTH http_auth_var=@WP_HTTP_AUTH ip_sourcerange=@WP_IP_SOURCERANGE
-
-
-WP_TRAEFIK_HOST=wp.d.example.com
-WP_VERSION=6.1.1
-WP_MARIADB_VERSION=10.9
-WP_INSTANCE=
-
-WP_DB_DATABASE=wp
-WP_DB_ROOT_PASSWORD=
-WP_DB_USER=wpuser
-WP_DB_PASSWORD=
