@@ -1,12 +1,12 @@
 # Update this to point to your d.ry repo
-ROOT_DIR = ${HOME}/git/d.rymcg.tech
+ROOT_DIR = ${HOME}/git/vendor/enigmacurry/d.rymcg.tech
 include ${ROOT_DIR}/_scripts/Makefile.projects-external
 include ${ROOT_DIR}/_scripts/Makefile.instance
 
 .PHONY: config-hook
 config-hook:
 	@${BIN}/reconfigure ${ENV_FILE} WP_INSTANCE=${instance}
-	@${BIN}/reconfigure_ask ${ENV_FILE} WP_TRAEFIK_HOST "Enter the wp domain name" ${INSTANCE_URL_SUFFIX}.${ROOT_DOMAIN}
+	@${BIN}/reconfigure_ask ${ENV_FILE} WP_TRAEFIK_HOST "Enter the wp domain name" wp${INSTANCE_URL_SUFFIX}.${ROOT_DOMAIN}
 	@${BIN}/reconfigure_password ${ENV_FILE} WP_DB_ROOT_PASSWORD
 	@${BIN}/reconfigure_password ${ENV_FILE} WP_DB_PASSWORD
 
