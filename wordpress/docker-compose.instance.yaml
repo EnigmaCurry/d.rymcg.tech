@@ -23,6 +23,11 @@ services:
       #! Services must opt-in to be proxied by Traefik:
       - "traefik.enable=true"
 
+
+      #!###
+      #!###
+      #!### main router:
+      #!###
       #! 'router' is the fully qualified key in traefik for this router/service: project + instance + service
       #@ router = "{}-{}-{}".format(project,instance,service)
 
@@ -39,3 +44,31 @@ services:
 
       #! Apply all middlewares (do this at the end!)
       - "traefik.http.routers.(@= router @).middlewares=(@= ','.join(enabled_middlewares) @)"
+
+      #!###
+      #!###
+      #!###
+      #!###
+      #!### wp-content/upload attachments-router:
+      #! 'attachments_router' is the fully qualified key in traefik for this router/service: project + instance + service
+      #@ attachments_router = "{}-{}-{}-no-hotlink-attachments".format(project,instance,service)
+
+      #! The host matching attachments-router rule:
+      - "traefik.http.routers.(@= attachments_router @).rule=Host(`(@= traefik_host @)`) && PathPrefix(`/wp-content/uploads`)"
+      - "traefik.http.routers.(@= attachments_router @).entrypoints=websecure"
+      #@ enabled_middlewares.append("{}-ipwhitelist".format(attachments_router))
+      - "traefik.http.middlewares.(@= attachments_router @)-ipwhitelist.ipwhitelist.sourcerange=(@= ip_sourcerange @)"
+
+      #@ if enable_http_auth:
+      #@ enabled_middlewares.append("{}-basicauth".format(attachments_router))
+      - "traefik.http.middlewares.(@= attachments_router @)-basicauth.basicauth.users=(@= http_auth @)"
+      #@ end
+
+      #@ enabled_middlewares.append("{}-referer-check".format(attachments_router))
+      - "traefik.http.middlewares.(@= attachments_router @)-referer-check.plugin.referer.Type=white"
+      - "traefik.http.middlewares.(@= attachments_router @)-referer-check.plugin.referer.EmptyReferer=false"
+      - "traefik.http.middlewares.(@= attachments_router @)-referer-check.plugin.referer.Domains[0]=(@= traefik_host @)"
+      - "traefik.http.middlewares.(@= attachments_router @)-referer-check.plugin.referer.Domains[1]=(@= traefik_host @):8443"
+
+      #! Apply all middlewares (do this at the end!)
+      - "traefik.http.routers.(@= attachments_router @).middlewares=(@= ','.join(enabled_middlewares) @)"
