@@ -324,11 +324,13 @@ This configuration has builtin support for the following plugins:
    middleware that returns 401 Forbidden. (Enable by setting
    `TRAEFIK_PLUGIN_BLOCKPATH=true`)
    ([whoami](../whoami/docker-compose.yaml) has an example)
- * [geoip2](https://github.com/GiGInnovationLabs/traefikgeoip2) -
+ * [geoip2](https://github.com/forestvpn/traefikgeoip2) -
    middleware that adds headers containing geographic location based
    upon IP address. (Enable by setting
    `TRAEFIK_PLUGIN_MAXMIND_GEOIP=true`)
    ([whoami](../whoami/docker-compose.yaml) has an example)
+ * [referer](https://github.com/moonlightwatch/referer) -
+   middleware that prevents foreign referal URLs.
 
 You can add third party plugins by modifying the
 [Dockerfile](Dockerfile), and follow the example of blockpath. You

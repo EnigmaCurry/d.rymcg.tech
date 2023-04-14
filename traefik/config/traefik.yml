@@ -22,7 +22,7 @@ experimental:
     #@ end
     #@ if data.values.plugin_maxmind_geoip == "true":
     geoip:
-      modulename: github.com/GiGInnovationLabs/traefikgeoip2
+      modulename: github.com/forestvpn/traefikgeoip2
     #@ end
     #@ if data.values.plugin_referer == "true":
     referer:
