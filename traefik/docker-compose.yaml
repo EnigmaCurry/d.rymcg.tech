@@ -93,11 +93,11 @@ services:
       context: .
       args:
         TRAEFIK_IMAGE: ${TRAEFIK_IMAGE}
-        BLOCKPATH_MODULE: github.com/traefik/plugin-blockpath
+        BLOCKPATH_MODULE: ${TRAEFIK_BLOCKPATH_MODULE}
         BLOCKPATH_GIT_BRANCH: master
-        REFERER_MODULE: github.com/moonlightwatch/referer
+        REFERER_MODULE: ${TRAEFIK_REFERER_MODULE}
         REFERER_GIT_BRANCH: master
-        MAXMIND_GEOIP_MODULE: github.com/GiGInnovationLabs/traefikgeoip2
+        MAXMIND_GEOIP_MODULE: ${TRAEFIK_GEOIP_MODULE}
         MAXMIND_GIT_BRANCH: main
         TRAEFIK_UID: ${TRAEFIK_UID}
         TRAEFIK_GID: ${TRAEFIK_GID}
