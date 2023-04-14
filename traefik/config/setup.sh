@@ -24,6 +24,7 @@ ytt_template() {
         -v plugins="${TRAEFIK_PLUGINS}" \
         -v plugin_blockpath="${TRAEFIK_PLUGIN_BLOCKPATH}" \
         -v plugin_maxmind_geoip="${TRAEFIK_PLUGIN_MAXMIND_GEOIP}" \
+        -v plugin_referer="${TRAEFIK_PLUGIN_REFERER}" \
         -v web_entrypoint_enabled="${TRAEFIK_WEB_ENTRYPOINT_ENABLED}" \
         -v web_entrypoint_host="${TRAEFIK_WEB_ENTRYPOINT_HOST}" \
         -v web_entrypoint_port="${TRAEFIK_WEB_ENTRYPOINT_PORT}" \
