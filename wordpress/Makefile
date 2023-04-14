@@ -25,3 +25,7 @@ override-hook:
 ####   name=@VARIABLE_NAME   # sets the template 'name' field to the literal string '${VARIABLE_NAME}'
 ####                         # (used for regular docker-compose expansion of env vars by name.)
 	@${BIN}/docker_compose_override ${ENV_FILE} project=:wp instance=@WP_INSTANCE traefik_host=@WP_TRAEFIK_HOST http_auth=WP_HTTP_AUTH http_auth_var=@WP_HTTP_AUTH ip_sourcerange=@WP_IP_SOURCERANGE enable_anti_hotlink=WP_ANTI_HOTLINK anti_hotlink_referers_extra=WP_ANTI_HOTLINK_REFERERS_EXTRA anti_hotlink_allow_empty_referer=WP_ANTI_HOTLINK_ALLOW_EMPTY_REFERER
+
+.PHONY: shell
+shell:
+	@docker-compose --env-file ${ENV_FILE} exec -it $${service:-wp} /bin/sh -c "/bin/bash || /bin/sh"
