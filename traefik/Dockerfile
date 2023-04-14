@@ -2,8 +2,10 @@ ARG TRAEFIK_IMAGE
 
 ## Install plugins from source repositories:
 FROM alpine:3 as plugins
-ARG BLOCKPATH_MODULE=github.com/traefik/plugin-blockpath
-ARG BLOCKPATH_GIT_BRANCH=master
+ARG BLOCKPATH_MODULE
+ARG BLOCKPATH_GIT_BRANCH
+ARG REFERER_MODULE
+ARG REFERER_GIT_BRANCH
 ## GEOIP module has been disabled because it was deleted upstream:
 # ARG MAXMIND_GEOIP_MODULE=github.com/GiGInnovationLabs/traefikgeoip2
 # ARG MAXMIND_GIT_BRANCH=main
@@ -13,6 +15,8 @@ RUN apk add --update git && \
 # RUN git clone https://${MAXMIND_GEOIP_MODULE}.git \
 #     /plugins-local/src/${MAXMIND_GEOIP_MODULE} \
 #     --depth 1 --single-branch --branch ${MAXMIND_GIT_BRANCH}
+RUN git clone https://${REFERER_MODULE}.git /plugins-local/src/${REFERER_MODULE} \
+      --depth 1 --single-branch --branch ${REFERER_GIT_BRANCH}
 
 FROM ${TRAEFIK_IMAGE}
 ARG TRAEFIK_UID TRAEFIK_GID TRAEFIK_DOCKER_GID

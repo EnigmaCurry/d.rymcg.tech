@@ -24,6 +24,10 @@ experimental:
     geoip:
       modulename: github.com/GiGInnovationLabs/traefikgeoip2
     #@ end
+    #@ if data.values.plugin_referer == "true":
+    referer:
+      modulename: github.com/moonlightwatch/referer
+    #@ end
 #@ end
 
 providers:
