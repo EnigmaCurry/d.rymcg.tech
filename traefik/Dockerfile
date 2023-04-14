@@ -6,16 +6,15 @@ ARG BLOCKPATH_MODULE
 ARG BLOCKPATH_GIT_BRANCH
 ARG REFERER_MODULE
 ARG REFERER_GIT_BRANCH
-## GEOIP module has been disabled because it was deleted upstream:
-# ARG MAXMIND_GEOIP_MODULE=github.com/GiGInnovationLabs/traefikgeoip2
-# ARG MAXMIND_GIT_BRANCH=main
+ARG MAXMIND_GEOIP_MODULE
+ARG MAXMIND_GIT_BRANCH
 RUN apk add --update git && \
-    git clone https://${BLOCKPATH_MODULE}.git /plugins-local/src/${BLOCKPATH_MODULE} \
+    git clone https://${BLOCKPATH_MODULE}.git /plugins-local/src/github.com/traefik/plugin-blockpath \
       --depth 1 --single-branch --branch ${BLOCKPATH_GIT_BRANCH}
-# RUN git clone https://${MAXMIND_GEOIP_MODULE}.git \
-#     /plugins-local/src/${MAXMIND_GEOIP_MODULE} \
-#     --depth 1 --single-branch --branch ${MAXMIND_GIT_BRANCH}
-RUN git clone https://${REFERER_MODULE}.git /plugins-local/src/${REFERER_MODULE} \
+RUN git clone https://${MAXMIND_GEOIP_MODULE}.git \
+    /plugins-local/src/github.com/forestvpn/traefikgeoip2 \
+    --depth 1 --single-branch --branch ${MAXMIND_GIT_BRANCH}
+RUN git clone https://${REFERER_MODULE}.git /plugins-local/src/github.com/moonlightwatch/referer \
       --depth 1 --single-branch --branch ${REFERER_GIT_BRANCH}
 
 FROM ${TRAEFIK_IMAGE}
