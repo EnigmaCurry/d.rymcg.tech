@@ -14,18 +14,20 @@ guide to the answers you should pick depending on which kind of
 deployment you want:
 
  * Public Wordpress (default):
-  * Set `WP_TRAEFIK_HOST` to the domain name you want to use.
-  * Say `N` to the question about `HTTP Basic Authentication`.
-  * Say `Y` or `N` to enable `anti-hotlinking of images`.
-  * Allowing clients that send an empty referer is your choice.
-  * Say `N` to creating a static HTML wordpress export.
+
+   * Set `WP_TRAEFIK_HOST` to the domain name you want to use.
+   * Say `N` to the question about `HTTP Basic Authentication`.
+   * Say `Y` or `N` to enable `anti-hotlinking of images`.
+   * Allowing clients that send an empty referer is your choice.
+   * Say `N` to creating a static HTML wordpress export.
 
  * Private Wordpress (more secure; with optional **public** HTML snapshot):
-  * Set `WP_TRAEFIK_HOST` to the domain name you want to use.
-  * Say `Y` to the question about `HTTP Basic Authentication`.
-  * Say `Y` or `N` to enable `anti-hotlinking of images` (applicable
-    to both private and/or public static websites).
-  * Say `N` or `Y` to creating a **public** static HTML wordpress export.
+
+   * Set `WP_TRAEFIK_HOST` to the domain name you want to use.
+   * Say `Y` to the question about `HTTP Basic Authentication`.
+   * Say `Y` or `N` to enable `anti-hotlinking of images` (applicable
+     to both private and/or public static websites).
+   * Say `N` or `Y` to creating a **public** static HTML wordpress export.
 
 - `make install`
 - `make status`
