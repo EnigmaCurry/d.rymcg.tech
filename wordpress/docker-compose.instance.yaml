@@ -10,12 +10,17 @@
 #@ instance = data.values.instance
 #@ context = data.values.context
 #@ traefik_host = data.values.traefik_host
+#@ traefik_host_static = data.values.traefik_host_static
 #@ ip_sourcerange = data.values.ip_sourcerange
 #@ enable_http_auth = len(data.values.http_auth.strip()) > 0
 #@ http_auth = data.values.http_auth_var
 #@ enable_anti_hotlink = data.values.enable_anti_hotlink == "true"
 #@ anti_hotlink_referers_extra = data.values.anti_hotlink_referers_extra
 #@ anti_hotlink_allow_empty_referer = data.values.anti_hotlink_allow_empty_referer
+#@ enable_wp2static = data.values.enable_wp2static == "true"
+#@ ip_sourcerange_static = data.values.ip_sourcerange_static
+#@ enable_http_auth_static = len(data.values.http_auth_static.strip()) > 0
+#@ http_auth_static = data.values.http_auth_static_var
 #@ enabled_middlewares = []
 
 #@yaml/text-templated-strings
@@ -83,3 +88,72 @@ services:
 
       #! Apply all middlewares (do this at the end!)
       - "traefik.http.routers.(@= attachments_router @).middlewares=(@= ','.join(enabled_middlewares) @)"
+
+  #@ if enable_wp2static:
+  wp-static:
+    build:
+      context: nginx-static
+    security_opt:
+      - no-new-privileges:true
+    volumes:
+      - wp_wp2static:/usr/share/nginx/html:ro
+    #@ service = "wp-static"
+    labels:
+      #! Services must opt-in to be proxied by Traefik:
+      - "traefik.enable=true"
+
+      #! 'router' is the fully qualified key in traefik for this router/service: project + instance + service
+      #@ router = "{}-{}-{}".format(project,instance,service)
+      #@ enabled_middlewares = []
+
+      #! The host matching router rule:
+      - "traefik.http.routers.(@= router @).rule=Host(`(@= traefik_host_static @)`)"
+      - "traefik.http.routers.(@= router @).entrypoints=websecure"
+      #@ enabled_middlewares.append("{}-ipwhitelist".format(router))
+      - "traefik.http.middlewares.(@= router @)-ipwhitelist.ipwhitelist.sourcerange=(@= ip_sourcerange_static @)"
+
+      #@ if enable_http_auth_static:
+      #@ enabled_middlewares.append("{}-basicauth".format(router))
+      - "traefik.http.middlewares.(@= router @)-basicauth.basicauth.users=(@= http_auth_static @)"
+      #@ end
+
+      #! Apply all middlewares (do this at the end!)
+      - "traefik.http.routers.(@= router @).middlewares=(@= ','.join(enabled_middlewares) @)"
+
+      #!###
+      #!###
+      #!###
+      #!###
+      #!### wp-content/upload attachments-router:
+      #! 'attachments_router' is the fully qualified key in traefik for this router/service: project + instance + service
+      #@ attachments_router = "{}-{}-{}-attachments".format(project,instance,service)
+      #@ enabled_middlewares = []
+
+      #! The host matching attachments-router rule:
+      - "traefik.http.routers.(@= attachments_router @).rule=Host(`(@= traefik_host_static @)`) && PathPrefix(`/wp-content/uploads`)"
+      - "traefik.http.routers.(@= attachments_router @).entrypoints=websecure"
+      #@ enabled_middlewares.append("{}-ipwhitelist".format(attachments_router))
+      - "traefik.http.middlewares.(@= attachments_router @)-ipwhitelist.ipwhitelist.sourcerange=(@= ip_sourcerange_static @)"
+
+      #@ if enable_http_auth_static:
+      #@ enabled_middlewares.append("{}-basicauth".format(attachments_router))
+      - "traefik.http.middlewares.(@= attachments_router @)-basicauth.basicauth.users=(@= http_auth_static @)"
+      #@ end
+
+      #@ if enable_anti_hotlink:
+      #@ enabled_middlewares.append("{}-referer-check".format(attachments_router))
+      - "traefik.http.middlewares.(@= attachments_router @)-referer-check.plugin.referer.Type=white"
+      - "traefik.http.middlewares.(@= attachments_router @)-referer-check.plugin.referer.EmptyReferer=(@= anti_hotlink_allow_empty_referer @)"
+      - "traefik.http.middlewares.(@= attachments_router @)-referer-check.plugin.referer.Domains[0]=(@= traefik_host_static @)"
+      - "traefik.http.middlewares.(@= attachments_router @)-referer-check.plugin.referer.Domains[1]=(@= traefik_host_static @):8443"
+      #@ referer_index = 1
+      #@ for extra_referer in anti_hotlink_referers_extra.strip().split(","):
+      #@ referer_index += 1
+      - "traefik.http.middlewares.(@= attachments_router @)-referer-check.plugin.referer.Domains[(@= str(referer_index) @)]=(@= extra_referer @)"
+      #@ end
+      #@ end
+
+      #! Apply all middlewares (do this at the end!)
+      - "traefik.http.routers.(@= attachments_router @).middlewares=(@= ','.join(enabled_middlewares) @)"
+
+  #@ end

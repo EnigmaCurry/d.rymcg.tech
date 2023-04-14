@@ -12,4 +12,11 @@ RUN /tmp/install_composer.sh && \
     cd wp2static && \
     git checkout ${WP2STATIC_VERSION} && \
     rm -rf .git && \
-    COMPOSER_ALLOW_SUPERUSER=1 composer install
+    COMPOSER_ALLOW_SUPERUSER=1 composer install && \
+    mkdir -p /var/www/html/wp-content/uploads /var/www/static && \
+    ln -s /var/www/static /var/www/html/wp-content/uploads/wp2static-processed-site && \
+    chown -R www-data:www-data /var/www/html /var/www/static
+VOLUME /var/www/html /var/www/static
+
+
+
