@@ -1,7 +1,7 @@
 # Smokeping
 
 [Smokeping](https://oss.oetiker.ch/smokeping/) is a network latency
-measurement tool and for tracking it over time.
+measurement tool
 
 ## Setup
 
