@@ -473,6 +473,7 @@ Install these services at your leisure/preference:
 * [S3-proxy](s3-proxy#readme) - an HTTP directory index for S3 backend
 * [SFTP](sftp#readme) - a secure file server
 * [Shaarli](shaarli#readme) - a bookmark manager
+* [Smokeping](smokeping#readme) - a network latency measurement tool
 * [Syncthing](syncthing#readme) - a multi-device file synchronization tool
 * [Thttpd](thttpd#readme) - a tiny/turbo/throttling HTTP server for serving static files
 * [TiddlyWiki (WebDAV version)](tiddlywiki-webdav#readme) - A personal wiki stored in a single static HTML file
