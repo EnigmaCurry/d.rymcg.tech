@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<!-- credit https://codepen.io/theyve/pen/zpxrLG -->
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+
+    <title>404 Not Found</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <link rel="icon" href="favicon.thinking.png" />
+    <style>
+      body {
+        height: 100vh;
+        background: #121212;
+        padding: 1em;
+        overflow: hidden;
+      }
+
+      .background-wrapper {
+        position: relative;
+        width: 100%;
+        height: 100%;
+        -webkit-user-select: none;
+        -moz-user-select: none;
+        -ms-user-select: none;
+        user-select: none;
+      }
+      .background-wrapper h1 {
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%) rotate(-45deg);
+        font-size: 60vmax;
+        color: #282828;
+        letter-spacing: 0.025em;
+        margin: 0;
+        transition: 750ms ease-in-out;
+      }
+
+      a {
+        border: 2px solid #555;
+        padding: 0.5em 0.8em;
+        position: fixed;
+        z-index: 1;
+        color: #555;
+        text-decoration: none;
+        display: flex;
+        align-items: center;
+        transition: 150ms;
+      }
+      a svg > polyline {
+        transition: 150ms;
+      }
+      a:hover {
+        color: #333;
+        background: #dadada;
+        border-color: transparent;
+      }
+      a:hover svg > polyline {
+        stroke: #000;
+      }
+      a:hover + .background-wrapper > h1 {
+        color: #dadada;
+      }
+
+      p {
+        color: #dadada;
+        font-size: calc(1em + 3vmin);
+        position: fixed;
+        bottom: 1rem;
+        right: 1.5rem;
+        margin: 0;
+        text-align: right;
+        text-shadow: -1px -1px 0 #121212, 1px 1px 0 #121212, -1px 1px 0 #121212,
+          1px -1px 0 #121212;
+      }
+      @media screen and (min-width: 340px) {
+        p {
+          width: 70%;
+        }
+      }
+      @media screen and (min-width: 560px) {
+        p {
+          width: 50%;
+        }
+      }
+      @media screen and (min-width: 940px) {
+        p {
+          width: 30%;
+        }
+      }
+      @media screen and (min-width: 1300px) {
+        p {
+          width: 25%;
+        }
+      }
+    </style>
+
+    <script>
+      window.console = window.console || function (t) {};
+    </script>
+  </head>
+
+  <body translate="no">
+    <div class="background-wrapper">
+      <h1 id="visual">404</h1>
+    </div>
+    <p>The page you’re looking for does not exist.</p>
+
+    <script id="rendered-js">
+      const visual = document.getElementById("visual");
+      const events = ["resize", "load"];
+
+      events.forEach(function (e) {
+        window.addEventListener(e, function () {
+          const width = window.innerWidth;
+          const height = window.innerHeight;
+          const ratio = 45 / (width / height);
+          visual.style.transform =
+            "translate(-50%, -50%) rotate(-" + ratio + "deg) scale(0.5)";
+        });
+      });
+    </script>
+  </body>
+</html>
