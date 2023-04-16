@@ -7,6 +7,8 @@ services:
       args:
         REDBEAN_VERSION: ${CALCPAD_REDBEAN_VERSION}
         CALCPAD_VERSION: ${CALCPAD_VERSION}
+        CALCPAD_UID: ${CALCPAD_UID}
+        CALCPAD_GID: ${CALCPAD_GID}
     security_opt:
       - no-new-privileges:true
     cap_drop:
