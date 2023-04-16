@@ -70,6 +70,9 @@ ytt_template() {
         -v root_domain="${TRAEFIK_ROOT_DOMAIN}" \
         -v vpn_root_domain="${TRAEFIK_VPN_ROOT_DOMAIN}" \
         -v network_mode="${TRAEFIK_NETWORK_MODE}" \
+        -v error_handler_403_service="${TRAEFIK_ERROR_HANDLER_403_SERVICE}" \
+        -v error_handler_404_service="${TRAEFIK_ERROR_HANDLER_404_SERVICE}" \
+        -v error_handler_500_service="${TRAEFIK_ERROR_HANDLER_500_SERVICE}" \
         > ${dst}
     success=$?
     echo "[ ! ] GENERATED NEW CONFIG FILE :::  ${dst}"
