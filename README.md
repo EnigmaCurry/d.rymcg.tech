@@ -468,6 +468,7 @@ Install these services at your leisure/preference:
 * [Prometheus](prometheus) - a systems monitoring and alerting toolkit (+ node-exporter + cAdvisor + Grafana)
 * [QBittorrent-Wireguard](qbittorrent-wireguard) - A Bittorrent (libtorrent v2) client with a combined VPN client
 * [Rdesktop](rdesktop) - a web based remote desktop (X11) in a container
+* [Redbean](redbean) - a small website server bundled in a single executable zip file.
 * [S3-proxy](s3-proxy) - an HTTP directory index for S3 backend
 * [SFTP](sftp) - a secure file server
 * [Shaarli](shaarli) - a bookmark manager
