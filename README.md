@@ -433,55 +433,55 @@ things are working correctly.
 
 Install these first:
 
-* [Traefik](traefik) - HTTP / TLS / TCP / UDP reverse proxy
-* [Whoami](whoami) - HTTP test service
+* [Traefik](traefik#readme) - HTTP / TLS / TCP / UDP reverse proxy
+* [Whoami](whoami#readme) - HTTP test service
 
 Install these services at your leisure/preference:
 
-* [ArchiveBox](archivebox) - a website archiving tool
-* [Audiobookshelf](audiobookshelf) - an audiobook and podcast server
-* [Autoheal](autoheal) - a Docker container healthcheck monitor with auto-restart service
-* [Baikal](baikal) - a lightweight CalDAV+CardDAV server
-* [CryptPad](cryptpad) - a collaborative document and spreadsheet editor 
-* [DrawIO](drawio) - a diagram / whiteboard editor tool
-* [Ejabberd](ejabberd) - an XMPP (Jabber) server
-* [Filestash](filestash) - a web based file manager with customizable backend storage providers
-* [FreshRSS](freshrss) - an RSS reader / proxy
-* [Gitea](gitea) - Git host (like self-hosted GitHub) and oauth server
-* [Icecast](icecast) - a SHOUTcast compatible streaming multimedia server
-* [Invidious](invidious) - a Youtube proxy
-* [Jitsi Meet](jitsi-meet) - a video conferencing and screencasting service
-* [Jupyterlab](jupyterlab) - a web based code editing environment / reproducible research tool
-* [Larynx](larynx) - a speech synthesis engine
-* [Matterbridge](matterbridge) - a chat room bridge (IRC, Matrix, XMPP, etc)
-* [Maubot](maubot) - a matrix Bot
-* [Minio](minio) - an S3 storage server
-* [Mopidy](mopidy) - a streaming music server built with MPD and Snapcast
-* [Mosquitto](mosquitto) - an MQTT server
-* [Nextcloud](nextcloud) - a collaborative file server
-* [Node-RED](nodered) - a graphical event pipeline editor
-* [Ntfy.sh](ntfy.sh) - a simple HTTP-based pub-sub notification service
-* [Piwigo](piwigo) - a photo gallery and manager
-* [Plausible](plausible) - a privacy friendly web visitor analytics engine
-* [PostgreSQL](postgresql) - a database server configured with mutual TLS authentication for public networks
-* [PrivateBin](privatebin) - a minimal, encrypted, zero-knowledge, pastebin
-* [Prometheus](prometheus) - a systems monitoring and alerting toolkit (+ node-exporter + cAdvisor + Grafana)
-* [QBittorrent-Wireguard](qbittorrent-wireguard) - A Bittorrent (libtorrent v2) client with a combined VPN client
-* [Rdesktop](rdesktop) - a web based remote desktop (X11) in a container
-* [Redbean](redbean) - a small website server bundled in a single executable zip file.
-* [S3-proxy](s3-proxy) - an HTTP directory index for S3 backend
-* [SFTP](sftp) - a secure file server
-* [Shaarli](shaarli) - a bookmark manager
-* [Syncthing](syncthing) - a multi-device file synchronization tool
-* [Thttpd](thttpd) - a tiny/turbo/throttling HTTP server for serving static files
-* [TiddlyWiki (WebDAV version)](tiddlywiki-webdav) - A personal wiki stored in a single static HTML file
-* [TiddlyWiki (NodeJS version)](tiddlywiki-nodejs) - Advanced server edition of TiddlyWiki with image CDN
-* [Traefik-forward-auth](traefik-forward-auth) - Traefik oauth middleware
-* [Transmission-Wireguard](transmission-wireguard) - An older but very popular Bittorrent (v1) client with a combined VPN client
-* [Tiny Tiny RSS](ttrss) - an RSS reader / proxy
-* [Vaultward](vaultwarden) - a bitwarden compatible password manager written in Rust (formerly bitwarden_rs)
-* [Websocketd](websocketd) - a websocket / CGI server
-* [XBrowserSync](xbs) - a bookmark manager
+* [ArchiveBox](archivebox#readme) - a website archiving tool
+* [Audiobookshelf](audiobookshelf#readme) - an audiobook and podcast server
+* [Autoheal](autoheal#readme) - a Docker container healthcheck monitor with auto-restart service
+* [Baikal](baikal#readme) - a lightweight CalDAV+CardDAV server
+* [CryptPad](cryptpad#readme) - a collaborative document and spreadsheet editor 
+* [DrawIO](drawio#readme) - a diagram / whiteboard editor tool
+* [Ejabberd](ejabberd#readme) - an XMPP (Jabber) server
+* [Filestash](filestash#readme) - a web based file manager with customizable backend storage providers
+* [FreshRSS](freshrss#readme) - an RSS reader / proxy
+* [Gitea](gitea#readme) - Git host (like self-hosted GitHub) and oauth server
+* [Icecast](icecast#readme) - a SHOUTcast compatible streaming multimedia server
+* [Invidious](invidious#readme) - a Youtube proxy
+* [Jitsi Meet](jitsi-meet#readme) - a video conferencing and screencasting service
+* [Jupyterlab](jupyterlab#readme) - a web based code editing environment / reproducible research tool
+* [Larynx](larynx#readme) - a speech synthesis engine
+* [Matterbridge](matterbridge#readme) - a chat room bridge (IRC, Matrix, XMPP, etc)
+* [Maubot](maubot#readme) - a matrix Bot
+* [Minio](minio#readme) - an S3 storage server
+* [Mopidy](mopidy#readme) - a streaming music server built with MPD and Snapcast
+* [Mosquitto](mosquitto#readme) - an MQTT server
+* [Nextcloud](nextcloud#readme) - a collaborative file server
+* [Node-RED](nodered#readme) - a graphical event pipeline editor
+* [Ntfy.sh](ntfy.sh#readme) - a simple HTTP-based pub-sub notification service
+* [Piwigo](piwigo#readme) - a photo gallery and manager
+* [Plausible](plausible#readme) - a privacy friendly web visitor analytics engine
+* [PostgreSQL](postgresql#readme) - a database server configured with mutual TLS authentication for public networks
+* [PrivateBin](privatebin#readme) - a minimal, encrypted, zero-knowledge, pastebin
+* [Prometheus](prometheus#readme) - a systems monitoring and alerting toolkit (+ node-exporter + cAdvisor + Grafana)
+* [QBittorrent-Wireguard](qbittorrent-wireguard#readme) - A Bittorrent (libtorrent v2) client with a combined VPN client
+* [Rdesktop](rdesktop#readme) - a web based remote desktop (X11) in a container
+* [Redbean](redbean#readme) - a small website server bundled in a single executable zip file.
+* [S3-proxy](s3-proxy#readme) - an HTTP directory index for S3 backend
+* [SFTP](sftp#readme) - a secure file server
+* [Shaarli](shaarli#readme) - a bookmark manager
+* [Syncthing](syncthing#readme) - a multi-device file synchronization tool
+* [Thttpd](thttpd#readme) - a tiny/turbo/throttling HTTP server for serving static files
+* [TiddlyWiki (WebDAV version)](tiddlywiki-webdav#readme) - A personal wiki stored in a single static HTML file
+* [TiddlyWiki (NodeJS version)](tiddlywiki-nodejs#readme) - Advanced server edition of TiddlyWiki with image CDN
+* [Traefik-forward-auth](traefik-forward-auth#readme) - Traefik oauth middleware
+* [Transmission-Wireguard](transmission-wireguard#readme) - An older but very popular Bittorrent (v1) client with a combined VPN client
+* [Tiny Tiny RSS](ttrss#readme) - an RSS reader / proxy
+* [Vaultward](vaultwarden#readme) - a bitwarden compatible password manager written in Rust (formerly bitwarden_rs)
+* [Websocketd](websocketd#readme) - a websocket / CGI server
+* [XBrowserSync](xbs#readme) - a bookmark manager
 
 Bespoke things:
 
