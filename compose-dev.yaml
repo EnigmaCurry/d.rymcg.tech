@@ -9,6 +9,6 @@ services:
     hostname: workstation-${INSTANCE:-default}
     volumes:
       - home:/home/docker
-
+      - /var/run/docker.sock:/var/run/docker.sock:ro
 volumes:
   home:
