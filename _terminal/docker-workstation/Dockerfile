@@ -18,5 +18,6 @@ RUN git clone ${GIT_REPO} ${ROOT_DIR}; \
     git checkout ${GIT_BRANCH}
 VOLUME /root
 WORKDIR ${ROOT_DIR}
+ENV ENV=~/.profile
 ADD bashrc.sh /root/.bashrc
 CMD /bin/sleep infinity
