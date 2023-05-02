@@ -11,10 +11,6 @@ RUN set -eux; \
     echo "dash dash/sh boolean false" | debconf-set-selections; \
     DEBIAN_FRONTEND=noninteractive dpkg-reconfigure dash;
 
-ENV ENV ~/.profile
-USER docker
-
-
 FROM docker-base as d-rymcg-tech-workstation
 ARG GIT_REPO=https://github.com/EnigmaCurry/d.rymcg.tech.git GIT_BRANCH=master ROOT_DIR=/root/git/vendor/enigmacurry/d.rymcg.tech
 RUN git clone ${GIT_REPO} ${ROOT_DIR}; \
