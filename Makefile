@@ -114,3 +114,8 @@ install-cli:
 docker-workstation:
 	docker compose -f compose-dev.yaml build
 	docker compose -f compose-dev.yaml run --rm -it -e INSTANCE=${INSTANCE} workstation /bin/bash
+
+.PHONY: docker-workstation-clean
+docker-workstation-clean:
+	docker compose -f compose-dev.yaml kill
+	docker compose -f compose-dev.yaml down -v
