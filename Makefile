@@ -113,4 +113,4 @@ install-cli:
 .PHONY: docker-workstation
 docker-workstation:
 	docker compose -f compose-dev.yaml build
-	docker compose -f compose-dev.yaml run --rm -it workstation
+	docker compose -f compose-dev.yaml run --rm -it -e INSTANCE=${INSTANCE} workstation /bin/bash
