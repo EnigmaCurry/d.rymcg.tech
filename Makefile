@@ -109,3 +109,8 @@ install-cli:
 	@echo "## then you can make completion support for the alias too:"
 	@echo "#complete -F __d.rymcg.tech_completions dry"
 	@echo ""
+
+.PHONY: docker-workstation
+docker-workstation:
+	docker compose -f compose-dev.yaml build
+	docker compose -f compose-dev.yaml run --rm -it workstation
