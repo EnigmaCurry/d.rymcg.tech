@@ -1,7 +1,7 @@
 FROM debian:bullseye-slim as docker-base
 RUN set -eux; \
     DEBIAN_FRONTEND=noninteractive apt-get -qq update; \
-    DEBIAN_FRONTEND=noninteractive apt-get -qq install bash build-essential openssl apache2-utils xdg-utils jq sshfs wireguard ca-certificates curl gnupg; \
+    DEBIAN_FRONTEND=noninteractive apt-get -qq install bash build-essential openssl apache2-utils xdg-utils jq sshfs wireguard ca-certificates curl gnupg bsdextrautils; \
     install -m 0755 -d /etc/apt/keyrings; \
     curl -fsSL https://download.docker.com/linux/debian/gpg | gpg --dearmor -o /etc/apt/keyrings/docker.gpg; \
     chmod a+r /etc/apt/keyrings/docker.gpg; \
