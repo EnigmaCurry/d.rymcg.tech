@@ -22,4 +22,3 @@ RUN git clone ${GIT_REPO} ${ROOT_DIR}; \
 VOLUME /home/docker
 WORKDIR ${ROOT_DIR}
 CMD /bin/sleep infinity
-
