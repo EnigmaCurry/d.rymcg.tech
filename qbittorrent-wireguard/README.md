@@ -82,20 +82,13 @@ Once up and running, you can configure qBittorrent in its web UI, but
 qBittorrent's configs are reset on each startup of the Docker container.
 So we set them in environment variables on each startup. 
 
-The qBittorrent configurations are not include in `make config` - you'll
+The qBittorrent configurations are not included in `make config` - you'll
 need to manually edit your `.env` file to adjust them.
 
 You might need to install qBittorrent and set the variable in the its web
 UI, then copy the value from
 `/var/lib/docker/volumes/<container's volume name>/qBittorrent/_data/qBittorrent/qBittorrent.conf`
 (on the host) and paste it your `.env` file. 
-
-You can set other qBittorrent configurations not already in your `.env` file
-by adding the configuration's name from qBittorrent.conf. E.g., to set the
-qBittorrent config "Connection\UPnP", add "QBITTORRENT_ConnectionUPnP=" to
-your `.env` file, followed by whatever value you want to set. Notice that you
-should preceed the qBittorrent config name with "QBITTORRENT_" and remove
-all "\\" from the config name.
 
 In your `.env` file, the lines in \[brackets\] are simply qBittorrent
 configuration categories, for your reference.
