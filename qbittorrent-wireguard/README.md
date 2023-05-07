@@ -77,6 +77,7 @@ Enter the following information as prompted:
 
 All these client credentials are stored in your `.env` file.
 
+#### qBittorrent config options
 Once up and running, you can configure qBittorrent in its web UI, but
 qBittorrent's configs are reset on each startup of the Docker container.
 So we set them in environment variables on each startup. 
