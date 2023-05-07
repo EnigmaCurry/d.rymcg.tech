@@ -80,7 +80,8 @@ All these client credentials are stored in your `.env` file.
 #### qBittorrent config options
 Once up and running, you can configure qBittorrent in its web UI, but
 qBittorrent's configs are reset on each startup of the Docker container.
-So we set them in environment variables on each startup. 
+So we set them in environment variables, so they can be reapplied on each
+startup. 
 
 The qBittorrent configurations are not included in `make config` - you'll
 need to manually edit your `.env` file to adjust them.
@@ -94,7 +95,6 @@ In your `.env` file, the lines in \[brackets\] are simply qBittorrent
 configuration categories, for your reference.
 
 If you change any qBittorrent config values, run `make install`.
-
 
 Other settings that are not configured by `make config` and you should
 use the default:
