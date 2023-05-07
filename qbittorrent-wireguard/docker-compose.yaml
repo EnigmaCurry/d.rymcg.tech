@@ -55,6 +55,42 @@ services:
       - QBITTORRENT_RPC_BIND_ADDRESS
       - QBITTORRENT_BLOCKLIST_URL
       - QBITTORRENT_PEER_PORT
+      - QBITTORRENT_OnTorrentAddedEnabled
+      - QBITTORRENT_OnTorrentAddedProgram
+      - QBITTORRENT_enabled
+      - QBITTORRENT_program
+      - QBITTORRENT_SessionAddExtensionToIncompleteFiles
+      - QBITTORRENT_SessionAlternativeGlobalDLSpeedLimit
+      - QBITTORRENT_SessionAlternativeGlobalUPSpeedLimit
+      - QBITTORRENT_SessionDefaultSavePath
+      - QBITTORRENT_SessionDisableAutoTMMByDefault
+      - QBITTORRENT_SessionDisableAutoTMMTriggersCategorySavePathChanged
+      - QBITTORRENT_SessionDisableAutoTMMTriggersDefaultSavePathChanged
+      - QBITTORRENT_SessionExcludedFileNames
+      - QBITTORRENT_SessionIgnoreSlowTorrentsForQueueing
+      - QBITTORRENT_SessionMaxActiveDownloads
+      - QBITTORRENT_SessionMaxActiveTorrents
+      - QBITTORRENT_SessionMaxActiveUploads
+      - QBITTORRENT_SessionTempPath
+      - QBITTORRENT_SessionTempPathEnabled
+      - QBITTORRENT_SessionTorrentExportDirectory
+      - QBITTORRENT_AutoDeleteAddedTorrentFile
+      - QBITTORRENT_DownloadsSavePath
+      - QBITTORRENT_DownloadsTempPath
+      - QBITTORRENT_GeneralLocale
+      - QBITTORRENT_MailNotificationemail
+      - QBITTORRENT_MailNotificationenabled
+      - QBITTORRENT_MailNotificationpassword
+      - QBITTORRENT_MailNotificationreq_auth
+      - QBITTORRENT_MailNotificationreq_ssl
+      - QBITTORRENT_MailNotificationsender
+      - QBITTORRENT_MailNotificationsmtp_server
+      - QBITTORRENT_MailNotificationusername
+      - QBITTORRENT_WebUICustomHTTPHeaders
+      - QBITTORRENT_WebUICustomHTTPHeadersEnabled
+      - QBITTORRENT_WebUIHostHeaderValidation
+      - QBITTORRENT_WebUIReverseProxySupportEnabled
+      - QBITTORRENT_WebUITrustedReverseProxiesList
     volumes:
       - qbittorrent-config:/config
 
