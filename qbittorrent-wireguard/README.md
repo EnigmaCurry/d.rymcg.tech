@@ -77,6 +77,33 @@ Enter the following information as prompted:
 
 All these client credentials are stored in your `.env` file.
 
+Once up and running, you can configure qBittorrent in its web UI, but
+qBittorrent's configs are reset on each startup of the Docker container.
+So we set them in environment variables on each startup. 
+
+The qBittorrent configurations are not include in `make config` - you'll
+need to manually edit your `.env` file to adjust them.
+
+You might need to install qBittorrent and set the variable in the its web
+UI, then copy the value from /var/lib/docker/volumes/<container's volume name>/qBittorrent/_data/qBittorrent/qBittorrent.conf
+(on the host) and paste it your `.env` file. An example of this is if you
+set a password to log into qBittorrent's web UI: qBittorrent saves a hash
+of the password, which you'll need to copy from qBittorrent.conf and paste
+into your `.env` file.
+
+You can set other qBittorrent configurations not already in your `.env` file
+by adding the configuration's name from qBittorrent.conf. E.g., to set the
+qBittorrent config "Connection\UPnP", add "QBITTORRENT_ConnectionUPnP=" to
+your `.env` file, followed by whatever value you want to set. Notice that you
+should preceed the qBittorrent config name with "QBITTORRENT_" and remove
+all "\" from the config name.
+
+In your `.env` file, the lines in \[brackets\] are simply qBittorrent
+configuration categories, for your reference.
+
+If you change any of these qBittorrent config values, run `make install`.
+
+
 Other settings that are not configured by `make config` and you should
 use the default:
 
