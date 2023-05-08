@@ -1,22 +1,24 @@
 # Localhost Docker on KVM Virtual Machine
 
+This configuration will run a secure Docker environment in a KVM
+(qemu) Virtual Machine (VM) as an unprivileged systemd user service on
+your local workstation (or on a server). This is optimized for private
+localhost development purposes, but can also be used to host public
+services for your LAN, or to have multiple individual docker VMs on a
+single large server and publish to the internet. This can be a good
+way of separating security concerns, or for creating segmented
+namespaces like dev/test/prod, but all colocated on the same physical
+server.
+
 **Update**: [Docker Desktop](https://docs.docker.com/desktop) is now
 available for all three major platforms: Linux, Windows, and Mac. So
 for desktop users, Docker Desktop may be used instead of these
-instructions. For command-line Linux users, these instructions are
-still working great, and also offer better security (Docker Desktop is
-convenient, but insecure: it allows bind mounts and binding to ports
-<1024, whereas `_docker_vm` runs as a regular unprivileged user
-process.)
-
-Run a secure Docker environment in a KVM (qemu) Virtual Machine (VM)
-as an unprivileged systemd user service on your local workstation (or
-on a server). This is optimized for private localhost development
-purposes, but can also be used to host public services for your LAN,
-or to have multiple individual docker VMs on a single large server and
-publish to the internet. This can be a good way of separating security
-concerns, or for creating segmented namespaces like dev/test/prod, but
-all colocated on the same physical server.
+instructions, to accomplish a similar result. For command-line Linux
+users, these instructions are still working great, and also offer
+better security (Docker Desktop is convenient, but insecure: it allows
+bind mounts and binding to ports <1024, whereas `_docker_vm` runs as a
+regular unprivileged user process. Additionally, although Docker
+itself is open source, Docker Desktop is not.)
 
 ## Background
 
@@ -180,8 +182,9 @@ Makefile, which become the default settings):
 
  * `VMNAME` - the name of the VM
  * `DISTRO` - the [debian distribution
-   name](https://www.debian.org/releases/) (eg. bullseye, buster,
-   jessie) for the VM.
+   name](https://www.debian.org/releases/) (eg. bookworm, bullseye)
+   for the VM. The default is now to use bookworm (which is currently
+   unstable, but includes a more up-to-date Linux kernel version.)
  * `DISK` - the size of the VM disk image (eg. `20G`)
  * `MEMORY` - the size of the RAM in MB (eg `2048`)
  * `SSH_PORT` - the external SSH port mapped on the Host (eg `10022`)
@@ -193,6 +196,12 @@ Makefile, which become the default settings):
    mirror](https://www.debian.org/mirror/list) to install from.
  * `HOSTFWD_HOST` - the IP address of the host to serve on (default `127.0.0.1`,
    set to `*` to listen on all network interfaces.)
+ * `NETBOOT_IMAGE` - the URL to the netboot installer archive. The
+   default is automatically derrived from the `DISTRO` you choose,
+   however you may need to set this to use the "daily" build instead,
+   if you installing a non-stable version of Debian (currently
+   required for Debian bookworm). (eg `export
+   NETBOOT_IMAGE=https://d-i.debian.org/daily-images/amd64/daily/netboot/netboot.tar.gz`
 
 ## Create the Docker VM
 
@@ -206,6 +215,13 @@ cd ~/git/vendor/enigmacurry/d.rymcg.tech/_docker_vm
 ```
 
 Run:
+
+```
+## Do this part only if DISTRO=bookworm (the default):
+### ONLY required while bookworm is still in testing!
+### This will not be needed for Debian stable.
+export NETBOOT_IMAGE=https://d-i.debian.org/daily-images/amd64/daily/netboot/netboot.tar.gz
+```
 
 ```
 # Run this inside the _docker_vm directory (where this same README.md exists):
