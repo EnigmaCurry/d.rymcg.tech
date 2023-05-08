@@ -2,7 +2,7 @@ version: "3.9"
 
 volumes:
   grocy-data:
-    
+
 services:
   grocy:
     image: lscr.io/linuxserver/grocy:${GROCY_VERSION}
@@ -11,14 +11,10 @@ services:
       - PUID=${GROCY_UID}
       - GUID=${GROCY_GID}
       - TZ=${GROCY_TZ}
+      - CURRENCY=${GROCY_CURRENCY}
+      - CULTURE=${GROCY_CULTURE}
     volumes:
       - grocy-data:/config
-#    ports:
-#      - 9283:80
     restart: unless-stopped
-    labels:
-      - "traefik.enable=true"
-      - "traefik.http.routers.grocy-${GROCY_INSTANCE:-default}.rule=Host(`${GROCY_TRAEFIK_HOST}`)"
-      - "traefik.http.routers.grocy-${GROCY_INSTANCE:-default}.entrypoints=websecure"
-      - "traefik.http.middlewares.grocy-${GROCY_INSTANCE:-default}-ipwhitelist.ipwhitelist.sourcerange=${GROCY_IP_SOURCERANGE}"
-      - "traefik.http.routers.grocy-${GROCY_INSTANCE:-default}.middlewares=grocy-${GROCY_INSTANCE:-default}-ipwhitelist"
+    # Labels are in docker-compose.instance.yaml
+    labels: []

@@ -2,7 +2,7 @@
 
 [Grocy](https://grocy.info/)
 is a web-based self-hosted groceries & household management solution for
-your home. 
+your home.
 
 ## Configure
 
@@ -27,3 +27,10 @@ Run:
 ```
 make open
 ```
+
+Login with the default credentials:
+
+ * Username: `admin`
+ * Password: `admin`
+
+(You should immediately change these upon login)
