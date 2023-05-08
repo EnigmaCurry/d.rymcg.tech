@@ -2,7 +2,7 @@
 
 set -e
 
-VMNAME=${VMNAME:-"bullseye_vm"}
+VMNAME=${VMNAME:-"bookworm_vm"}
 MEMORY=${MEMORY:-2048}
 SSH_PORT=${SSH_PORT:-10022}
 VMROOT=$(realpath "VMs")
