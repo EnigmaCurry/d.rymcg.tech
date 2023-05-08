@@ -1,0 +1,19 @@
+version: "3.9"
+
+volumes:
+  etc:
+  home:
+
+services:
+  linux:
+    runtime: sysbox-runc
+    build:
+      context: linux-systemd
+      args:
+        INSTALL_PACKAGES: ${SYSBOX_SYSTEMD_INSTALL_PACKAGES}
+    security_opt:
+      - no-new-privileges:true
+    restart: unless-stopped
+    volumes:
+      - etc:/etc
+      - home:/home
