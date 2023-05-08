@@ -7,15 +7,20 @@
 set -e
 
 ## Export all vars to be used in the template preseed.cfg:
-export DISTRO=${DISTRO:-buster}
+export DISTRO=${DISTRO:-bookworm}
 export DISK=${DISK:-10G}
 export VMNAME=${VMNAME:-"${DISTRO}_vm"}
 export DOMAIN=${DOMAIN:-localdomain}
 export LOCALE=${LOCALE:-en_US}
 export DEBIAN_MIRROR=${DEBIAN_MIRROR:-mirrors.vcea.wsu.edu}
 export TIMEZONE=${TIMEZONE:-Etc/UTC}
-export AUTHORIZED_KEYS="$(ssh-add -L)"
+export AUTHORIZED_KEYS=${AUTHORIZED_KEYS:-$(ssh-add -L | head -1)}
 export VMROOT=$(realpath "VMs")
+export NETBOOT_IMAGE=${NETBOOT_IMAGE:-https://${DEBIAN_MIRROR}/debian/dists/${DISTRO}/main/installer-amd64/current/images/netboot/netboot.tar.gz}
+
+## To use a development netboot installer (currently required for Debian bookworm):
+#export NETBOOT_IMAGE=https://d-i.debian.org/daily-images/amd64/daily/netboot/netboot.tar.gz
+
 
 mkdir -p netboot
 NETBOOT_TARBALL=$(realpath netboot/netboot-${DISTRO}.tar.gz)
@@ -61,11 +66,8 @@ NC_PID=$(sh -c 'echo $$ ; exec > ${VMROOT}/${VMNAME}-installer.log 2>&1 ; exec n
 trap 'echo "Cleaning up processes..."; kill ${PYTHON_PID} ${NC_PID}; echo "Removing temporary directory ${TEMP} ..."; rm -rf ${TEMP}' EXIT
 
 echo "Downloading Debian ${DISTRO} x86_64 netboot installer..."
-if ! test -f ${NETBOOT_TARBALL}; then
-    trap "rm -f ${NETBOOT_TARBALL}" SIGINT
-    curl --location --output ${NETBOOT_TARBALL} https://${DEBIAN_MIRROR}/debian/dists/${DISTRO}/main/installer-amd64/current/images/netboot/netboot.tar.gz || rm ${NETBOOT_TARBALL}
-    trap - SIGINT
-fi
+rm -f ${NETBOOT_TARBALL}
+curl --location --output ${NETBOOT_TARBALL} ${NETBOOT_IMAGE} || rm ${NETBOOT_TARBALL}
 mkdir -p tftpserver
 pushd tftpserver
 tar xzvf ${NETBOOT_TARBALL}

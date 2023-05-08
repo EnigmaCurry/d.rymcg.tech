@@ -1,7 +1,7 @@
 #############################################
 ### Default variables (can be overriden by environment or hardcoded here):
 #############################################
-DISTRO ?= bullseye
+DISTRO ?= bookworm
 VMNAME ?= docker-vm
 DISK ?= 30G
 MEMORY ?= 4096
@@ -97,7 +97,7 @@ remove-ssh-config:
 
 .PHONY: clean
 clean: check-name stop uninstall remove-ssh-config
-	rm -rf ${VMROOT}/${VMNAME}.qcow ${VMROOT}/${VMNAME}-root-pass.txt build.* ${VMROOT}/${VMNAME}-installer.log
+	rm -rf netboot/ ${VMROOT}/${VMNAME}.qcow ${VMROOT}/${VMNAME}-root-pass.txt build.* ${VMROOT}/${VMNAME}-installer.log
 
 .PHONY: build
 build: check-name
