@@ -1,23 +1,32 @@
 # sysbox-systemd
 
 [sysbox](https://github.com/nestybox/sysbox#readme) is a container
-runtime that lets you create arbitrary Linux workloads as containers,
-with Docker. This configuration is setup to run systemd, in order to
-run any arbitrary/legacy Linux service, or to use systemd Timers as a
-cron replacement, or generally any sort of "pet" shell environment.
-sysbox is unique in that it is an alternative `runc`, usable by
-Docker, and it does not use a virtual machine, and is flexible enough
-to be installed *inside* of any virtualized host, regardless of
-whether or not that host has nested virtualization (hardware) support.
-In short, sysbox extends the capability of Docker, to run any sort of
-process that would *normally* require a Virtual Machine (or bare metal
-install), but inside of a small unprivileged container instead.
-
-[systemd](https://wiki.archlinux.org/title/Systemd) is a traditional
-init system (service manager) for Linux, used for starting system
+runtime that improves process level isolation to a level comparable to
+that of Virtual Machines, but without requiring the inefficient
+resource hogging of virtualization, nor any hardware accleration
+support. sysbox lets you create containers running any
+arbitrary/legacy Linux workload. This configuration is setup to run
+[systemd](https://wiki.archlinux.org/title/Systemd) as a containerized
+PID 1, which is a traditional init system (service manager) for Linux.
+With systemd you can run
 [Services](https://wiki.archlinux.org/title/Systemd#Examples) and
 [Timers](https://wiki.archlinux.org/title/Systemd/Timers) (cron
-replacement).
+replacement), or generally any sort of "pet" shell environment that
+you can install directly via the container shell terminal.
+
+sysbox is unique in that it is an alternative
+[`runc`](https://www.docker.com/blog/runc/), usable by Docker, for
+starting unprivileged container processes. Plus, it does not use any
+Virtual Machine technology, and yet is flexible enough to be installed
+*inside* of any existing virtualized host, regardless of whether or
+not that host has nested virtualization hardware support (because it
+doesn't need it).
+
+In short, sysbox extends the capabilities of Docker, giving it the
+power to run containers for things that normally don't/cannot run as
+containers. Beware, running systemd inside of Docker is far outside
+the normal container development standard practice, but it can still
+be useful/fun in certain contexts.
 
 ## Dependencies
 
@@ -242,5 +251,5 @@ through Traefik proxy:
 make open
 ```
 
-(This will open the secure HTTPS URL of SYSBOX_SYSTEMD_TRAEFIK_HOST in
-your web browser.)
+(This will open the secure HTTPS URL of `SYSBOX_SYSTEMD_TRAEFIK_HOST`
+in your web browser.)
