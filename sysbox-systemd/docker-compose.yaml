@@ -1,0 +1,25 @@
+version: "3.9"
+
+volumes:
+  etc:
+  home:
+  usr_local:
+
+services:
+  linux:
+    runtime: sysbox-runc
+    container_name: sysbox-systemd-linux-${SYSBOX_SYSTEMD_INSTANCE:-default}
+    hostname: sysbox-systemd-linux-${SYSBOX_SYSTEMD_INSTANCE:-default}
+    build:
+      context: linux-systemd
+      args:
+        INSTALL_PACKAGES: ${SYSBOX_SYSTEMD_INSTALL_PACKAGES}
+    sysctls:
+      - net.ipv4.ip_unprivileged_port_start=0
+    security_opt:
+      - no-new-privileges:true
+    restart: unless-stopped
+    volumes:
+      - etc:/etc
+      - home:/home
+      - usr_local:/usr/local

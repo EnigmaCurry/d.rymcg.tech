@@ -378,6 +378,12 @@ make logs
 commands and/or type `make` and then press your TAB key to show
 completions.)
 
+## Install sysbox (optional)
+
+If you wish to install [sysbox](../sysbox-systemd#readme), now would
+be a good time to install `sysbox-runc`, because it is best to install
+it before any containers.
+
 ## Firewall
 
 By default, all of the TCP ports that are listed in the Makefile

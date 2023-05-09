@@ -477,6 +477,7 @@ Install these services at your leisure/preference:
 * [Shaarli](shaarli#readme) - a bookmark manager
 * [Smokeping](smokeping#readme) - a network latency measurement tool
 * [Syncthing](syncthing#readme) - a multi-device file synchronization tool
+* [Sysbox-Systemd](sysbox-systemd#readme) - a traditional service manager for Linux running in an unprivileged container via sysbox-runc
 * [Thttpd](thttpd#readme) - a tiny/turbo/throttling HTTP server for serving static files
 * [TiddlyWiki (WebDAV version)](tiddlywiki-webdav#readme) - A personal wiki stored in a single static HTML file
 * [TiddlyWiki (NodeJS version)](tiddlywiki-nodejs#readme) - Advanced server edition of TiddlyWiki with image CDN
