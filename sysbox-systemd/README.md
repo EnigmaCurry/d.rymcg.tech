@@ -229,22 +229,12 @@ User-Agent: curl/7.74.0
 Accept: */*
 ```
 
-## Running a network service
-
-The `whoami` service is bound to all of the container networks, which
-by default are only exposed to the private docker network (and not
-publicly to your LAN).
-
-To expose ports of the container publicly, you must edit the
-`.env_{DOCKER_CONTEXT}` file and modify `SYSBOX_SYSTEMD_PUBLIC_PORTS`
-as shown above. To expose the whoami service publicly on port `8123`,
-set `SYSBOX_SYSTEMD_PUBLIC_PORTS=8123:80` and re-run `make install`.
-
-Test that the service now responds from your workstation or any other
-machine on the same LAN (or from the internet if there is no
-firewall/NAT preventing it):
+The same result should work from any other machine, over the network,
+through Traefik proxy:
 
 ```
-## Use the ip address (x.x.x.x) of the host docker machine:
-curl http://x.x.x.x:8123
+make open
 ```
+
+(This will open the secure HTTPS URL of SYSBOX_SYSTEMD_TRAEFIK_HOST in
+your web browser.)
