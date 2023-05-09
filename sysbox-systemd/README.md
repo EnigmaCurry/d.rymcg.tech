@@ -97,3 +97,154 @@ as in Debian bookworm.
 
 ## Install
 
+```
+make config
+```
+
+(`make config` configures the `default` instance. You may also use
+`make instance` to configure a differently named
+[instance](https://github.com/EnigmaCurry/d.rymcg.tech#creating-multiple-instances-of-a-service))
+
+You may wish to customize the `.env_{DOCKER_CONTEXT}` file and edit
+these variables:
+
+ * `SYSBOX_SYSTEMD_INSTALL_PACKAGES` this is a list of packages to
+   install when building the image. Any additional packages that you
+   install manually later (ie. ones not in this list) are not saved in
+   the image, and are removed when the container is removed.
+ * `SYSBOX_SYSTEMD_PUBLIC_PORTS` this is a list port mappings to
+   expose to the public network, separted by spaces. (eg. `8000:80
+   2222:22` would map two ports: public host port `8000` mapping to
+   container port `80`, and public host port `2222` mapping to
+   container port `22`.)
+
+```
+make install
+```
+
+## Access the environment
+
+Start a shell in the current instance:
+
+```
+make shell
+```
+
+The following directories are mounted to persisten volumes:
+
+ * `/etc`
+ * `/home`
+ * `/usr/local`
+
+All other files in `/` are ephemeral, and would be removed if the
+container is removed (eg. `make uninstall` does this). You may use
+`make stop` and this will stop the container, still retaining all the
+data in `/` (because the container is only stopped, not deleted); if
+used this way, you can use it as a sort of "pet" container where you
+can install whatever you want, imperatively. `make destroy` would
+remove both the container AND all of the data volumes.
+
+## Create your own systemd services
+
+Inside the shell (`make shell`), you can now create whatever systemd
+processes you need. The [Arch Linux systemd
+documentation](https://wiki.archlinux.org/title/Systemd) is an
+excellent resource, and several service examples can be found in the
+[systemd.service man
+page](https://man.archlinux.org/man/systemd.service.5#EXAMPLES)
+
+### Example systemd service
+
+As an example, you can install the
+[whoami](https://github.com/traefik/whoami) service. You may be
+familiar with installing whoami as a docker container, but this time
+around you will install it as a systemd service instead.
+
+Install the whomai binary:
+
+```
+WHOAMI_ARCH=amd64
+WHOAMI_VERSION=v1.9.0
+
+wget https://github.com/traefik/whoami/releases/download/${WHOAMI_VERSION}/whoami_${WHOAMI_VERSION}_linux_${WHOAMI_ARCH}.tar.gz
+tar xfv whoami_${WHOAMI_VERSION}_linux_${WHOAMI_ARCH}.tar.gz whoami
+install whoami /usr/local/bin
+```
+
+Create the service file:
+
+```
+cat <<EOF > /etc/systemd/system/whoami.service
+[Unit]
+Description=whoami
+After=network.target
+
+[Service]
+User=www-data
+ExecStart=/usr/local/bin/whoami
+Restart=always
+
+[Install]
+WantedBy=multi-user.target
+EOF
+```
+
+Reload the systemd configuration files:
+
+```
+systemctl daemon-reload
+```
+
+Enable the service:
+
+```
+systemctl enable --now whoami
+```
+
+Check that its running:
+
+```
+systemctl status whoami
+```
+
+(Assuming it works, it should show `Active: active (running)` and for
+how long its been running.)
+
+Test the service is working:
+
+```
+curl http://localhost
+```
+
+This should return the standard `whoami` output, for example:
+
+```
+Hostname: sysbox-systemd-linux-stuff
+IP: 127.0.0.1
+IP: 172.25.18.2
+RemoteAddr: 127.0.0.1:39878
+GET / HTTP/1.1
+Host: localhost
+User-Agent: curl/7.74.0
+Accept: */*
+```
+
+## Running a network service
+
+The `whoami` service is bound to all of the container networks, which
+by default are only exposed to the private docker network (and not
+publicly to your LAN).
+
+To expose ports of the container publicly, you must edit the
+`.env_{DOCKER_CONTEXT}` file and modify `SYSBOX_SYSTEMD_PUBLIC_PORTS`
+as shown above. To expose the whoami service publicly on port `8123`,
+set `SYSBOX_SYSTEMD_PUBLIC_PORTS=8123:80` and re-run `make install`.
+
+Test that the service now responds from your workstation or any other
+machine on the same LAN (or from the internet if there is no
+firewall/NAT preventing it):
+
+```
+## Use the ip address (x.x.x.x) of the host docker machine:
+curl http://x.x.x.x:8123
+```

@@ -1,5 +1,6 @@
 ROOT_DIR = ..
 include ${ROOT_DIR}/_scripts/Makefile.projects
+include ${ROOT_DIR}/_scripts/Makefile.instance
 
 .PHONY: config-hook
 config-hook:
@@ -7,4 +8,4 @@ config-hook:
 
 .PHONY: shell
 shell:
-	@docker compose --env-file ${ENV_FILE} exec -it $${service:-linux} /bin/bash
+	@set -x; docker compose --project-name sysbox-systemd_$${instance:-default} --env-file ${ENV_FILE} exec -it $${service:-linux} /bin/bash

@@ -29,6 +29,6 @@ RUN DEBIAN_FRONTEND=noninteractive apt -y update; \
 
 VOLUME /etc
 VOLUME /home
-
+WORKDIR /root
 STOPSIGNAL SIGRTMIN+3
 ENTRYPOINT [ "/sbin/init", "--log-level=info" ]
