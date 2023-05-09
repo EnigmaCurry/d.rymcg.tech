@@ -1,13 +1,12 @@
-# Wordpress for d.rymcg.tech
-This is a wordpress implementation for [d.rymcg.tech](https://github.com/EnigmaCurry/d.rymcg.tech). 
+# Wordpress
 
-## About
-d.rymcg allows you to easily self host many personal apps and services with traefik routing domains and subdomains to appropriate containers.
+This is the [wordpress](https://wordpress.org) CMS/blogging platform.
 
 ## Setup
-- Follow the instructions at [d.rymcg.tech](https://github.com/EnigmaCurry/d.rymcg.tech).
-- Update the Makefile in this repo to point to the d.rymcg.tech repo ROOT on your system.
-- `make config`
+
+```
+make config
+```
 
 This will ask you some questions to generate the config. Here is a
 guide to the answers you should pick depending on which kind of
@@ -29,9 +28,18 @@ deployment you want:
      to both private and/or public static websites).
    * Say `N` or `Y` to creating a **public** static HTML wordpress export.
 
-- `make install`
-- `make status`
-- `make open`
+
+```
+make install
+```
+
+```
+make status
+```
+
+```
+make open
+```
 
 You must immediately configure the wordpress instance in your browser,
 setting the site title, and creating the admin account and password.
