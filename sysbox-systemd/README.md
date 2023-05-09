@@ -3,12 +3,12 @@
 [sysbox](https://github.com/nestybox/sysbox#readme) is a container
 runtime that improves process level isolation to a level comparable to
 that of Virtual Machines, but without requiring the inefficient
-resource hogging of virtualization, nor any hardware accleration
-support. sysbox lets you create containers running any
-arbitrary/legacy Linux workload. This configuration is setup to run
-[systemd](https://wiki.archlinux.org/title/Systemd) as a containerized
-PID 1, which is a traditional init system (service manager) for Linux.
-With systemd you can run
+resource hogging that comes with virtualization, and not needing any
+hardware acceleration support. sysbox lets you create containers
+running any arbitrary/legacy Linux workload. This configuration is
+setup to run [systemd](https://wiki.archlinux.org/title/Systemd) as a
+containerized PID 1, which is a traditional init system (service
+manager) for Linux. With systemd you can run
 [Services](https://wiki.archlinux.org/title/Systemd#Examples) and
 [Timers](https://wiki.archlinux.org/title/Systemd/Timers) (cron
 replacement), or generally any sort of "pet" shell environment that
@@ -46,8 +46,8 @@ releases](https://github.com/nestybox/sysbox/releases), or you may
 check if your specific distribution has it in their own package
 manager (eg. `sysbox-ce` or `sysbox-ce-bin` in the Arch Linux AUR).
 
-Always follow the main sysbox installation instuctions, as this page
-may contain outdated information. The follow sections contain
+Always follow the main sysbox installation instructions, as this page
+may contain outdated information. The following sections contain
 abbreviated sysbox installation procedures and notes.
 
 #### Check your Linux kernel version
@@ -110,7 +110,7 @@ I suggest you [install kernel
 6.1](https://www.linuxcapable.com/how-to-install-latest-linux-kernel-on-debian-linux/)
 as in Debian bookworm.
 
-## Install
+## Config
 
 ```
 make config
@@ -118,7 +118,7 @@ make config
 
 (`make config` configures the `default` instance. You may also use
 `make instance` to configure a differently named
-[instance](https://github.com/EnigmaCurry/d.rymcg.tech#creating-multiple-instances-of-a-service))
+[instance](https://github.com/EnigmaCurry/d.rymcg.tech#creating-multiple-instances-of-a-service).)
 
 You may wish to customize the `.env_{DOCKER_CONTEXT}` file and edit
 these variables:
@@ -126,12 +126,21 @@ these variables:
  * `SYSBOX_SYSTEMD_INSTALL_PACKAGES` this is a list of packages to
    install when building the image. Any additional packages that you
    install manually later (ie. ones not in this list) are not saved in
-   the image, and are removed when the container is removed.
- * `SYSBOX_SYSTEMD_PUBLIC_PORTS` this is a list port mappings to
-   expose to the public network, separted by spaces. (eg. `8000:80
-   2222:22` would map two ports: public host port `8000` mapping to
-   container port `80`, and public host port `2222` mapping to
-   container port `22`.)
+   the image, and are removed if/when the container is removed.
+
+ * `SYSBOX_SYSTEMD_PUBLIC_PORTS` this is a list of port mappings for
+   Docker to expose on the public network, separted by spaces. (eg.
+   `8000:8080 1322:22` would map two ports: public host port `8000`
+   mapping to container port `8080`; and public host port `1322`
+   mapping to container port `22`.) Note: it is not necessary to map
+   to the container HTTP port `80` nor HTTPS port `443`, as these
+   ports are automatically proxied by the [Traefik](../traefik)
+   service, and routed via the hostname set in the
+   `SYSBOX_SYSTEMD_TRAEFIK_HOST` environment variable, and referenced
+   in the [docker-compose.instance.yaml](docker-compose.instance.yaml)
+   service template.
+
+## Install
 
 ```
 make install
@@ -145,28 +154,28 @@ Start a shell in the current instance:
 make shell
 ```
 
-The following directories are mounted to persisten volumes:
+The following directories are mounted to persistent Docker volumes:
 
  * `/etc`
  * `/home`
  * `/usr/local`
 
 All other files in `/` are ephemeral, and would be removed if the
-container is removed (eg. `make uninstall` does this). You may use
-`make stop` and this will stop the container, still retaining all the
-data in `/` (because the container is only stopped, not deleted); if
-used this way, you can use it as a sort of "pet" container where you
-can install whatever you want, imperatively. `make destroy` would
+container is ever removed (eg. `make uninstall` does this). You may
+use `make stop` and this will stop the container, still retaining all
+the data in `/` (because the container is only stopped, not deleted);
+if used this way, you can use it as a sort of "pet" container where
+you can install whatever you want, imperatively. `make destroy` would
 remove both the container AND all of the data volumes.
 
 ## Create your own systemd services
 
-Inside the shell (`make shell`), you can now create whatever systemd
-processes you need. The [Arch Linux systemd
+Inside the shell (run `make shell`), you can now create whatever
+systemd processes you need. The [Arch Linux systemd
 documentation](https://wiki.archlinux.org/title/Systemd) is an
 excellent resource, and several service examples can be found in the
 [systemd.service man
-page](https://man.archlinux.org/man/systemd.service.5#EXAMPLES)
+page](https://man.archlinux.org/man/systemd.service.5#EXAMPLES).
 
 ### Example systemd service
 
@@ -175,7 +184,7 @@ As an example, you can install the
 familiar with installing whoami as a docker container, but this time
 around you will install it as a systemd service instead.
 
-Install the whomai binary:
+Install the whomai binary from the release tarball:
 
 ```
 WHOAMI_ARCH=amd64
@@ -253,3 +262,51 @@ make open
 
 (This will open the secure HTTPS URL of `SYSBOX_SYSTEMD_TRAEFIK_HOST`
 in your web browser.)
+
+
+## Run sshd as a systemd service
+
+You can configure an OpenSSH server, using the debian package manager
+`apt`:
+
+```
+### Inside the container shell (`make shell`)
+
+## Install the ssh package:
+apt install -y ssh
+
+## Create a new user account:
+adduser fred
+
+## Enable the ssh service and make it run on container startup:
+systemctl enable --now ssh
+```
+
+Edit the `.env_{DOCKER_CONTEXT}` file and create a port mapping for
+SSH (use a public port number >1024 in order to not conflict with the
+docker host ssh service port):
+
+```
+SYSBOX_SYSTEMD_PUBLIC_PORTS=1322:22
+```
+
+Restart the container:
+
+```
+make install
+```
+
+Now from your workstation, or any other machine on the network,
+connect to it using the username and public port number you chose:
+
+```
+ssh fred@x.x.x.x -p 1322
+```
+
+Don't forget to follow good SSH practice: 
+
+ * Setup client SSH keys, add them to the container's
+`/home/fred/.ssh/authorized_keys` file.
+ * Disable password authentication: set `PasswordAuthentication=no` in
+the container's `/etc/ssh/sshd_config` file
+ * Restart ssh: `systemctl restart ssh`.

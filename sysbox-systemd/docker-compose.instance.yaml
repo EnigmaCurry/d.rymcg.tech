@@ -11,6 +11,7 @@
 #@ context = data.values.context
 #@ traefik_host = data.values.traefik_host
 #@ ip_sourcerange = data.values.ip_sourcerange
+#@ ports = [port for port in data.values.ports.split(" ") if port != ""]
 #@ enable_http_auth = len(data.values.http_auth.strip()) > 0
 #@ http_auth = data.values.http_auth_var
 #@ enabled_middlewares = []
@@ -41,3 +42,8 @@ services:
 
       #! Apply all middlewares (do this at the end!)
       - "traefik.http.routers.(@= router @).middlewares=(@= ','.join(enabled_middlewares) @)"
+
+    ports:
+      #@ for port in ports:
+      - #@ port
+      #@ end
