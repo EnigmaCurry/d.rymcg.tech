@@ -13,6 +13,12 @@ In short, sysbox extends the capability of Docker, to run any sort of
 process that would *normally* require a Virtual Machine (or bare metal
 install), but inside of a small unprivileged container instead.
 
+[systemd](https://wiki.archlinux.org/title/Systemd) is a traditional
+init system (service manager) for Linux, used for starting system
+[Services](https://wiki.archlinux.org/title/Systemd#Examples) and
+[Timers](https://wiki.archlinux.org/title/Systemd/Timers) (cron
+replacement).
+
 ## Dependencies
 
 ### Docker host
