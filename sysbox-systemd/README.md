@@ -129,7 +129,7 @@ these variables:
    the image, and are removed if/when the container is removed.
 
  * `SYSBOX_SYSTEMD_PUBLIC_PORTS` this is a list of port mappings for
-   Docker to expose on the public network, separted by spaces. (eg.
+   Docker to expose on the public network, separated by spaces. (eg.
    `8000:8080 1322:22` would map two ports: public host port `8000`
    mapping to container port `8080`; and public host port `1322`
    mapping to container port `22`.) Note: it is not necessary to map
