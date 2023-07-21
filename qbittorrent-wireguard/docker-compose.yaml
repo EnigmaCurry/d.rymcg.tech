@@ -73,10 +73,12 @@ services:
       - QBITTORRENT_SessionMaxActiveUploads
       - QBITTORRENT_SessionTempPath
       - QBITTORRENT_SessionTempPathEnabled
+      - QBITTORRENT_SessionQueueingSystemEnabled
       - QBITTORRENT_SessionTorrentExportDirectory
       - QBITTORRENT_AutoDeleteAddedTorrentFile
       - QBITTORRENT_DownloadsSavePath
       - QBITTORRENT_DownloadsTempPath
+      - QBITTORRENT_SessionTorrentContentLayout
       - QBITTORRENT_GeneralLocale
       - QBITTORRENT_MailNotificationemail
       - QBITTORRENT_MailNotificationenabled
@@ -89,13 +91,19 @@ services:
       - QBITTORRENT_WebUICustomHTTPHeaders
       - QBITTORRENT_WebUICustomHTTPHeadersEnabled
       - QBITTORRENT_WebUIHostHeaderValidation
+      - QBITTORRENT_WebUILocalHostAuth
       - QBITTORRENT_WebUIReverseProxySupportEnabled
       - QBITTORRENT_WebUITrustedReverseProxiesList
+      - QBITTORRENT_WebUIPassword_PBKDF2
+      - QBITTORRENT_WebUIServerDomains
+      - QBITTORRENT_WebUIUsername
+      - QBITTORRENT_WebUIAuthSubnetWhitelistEnabled
+      - QBITTORRENT_WebUIAuthSubnetWhitelist
     volumes:
       - qbittorrent-config:/config
 
   qbittorrent:
-    image: linuxserver/qbittorrent
+    image: linuxserver/qbittorrent:${QBITTORRENT_VERSION}
     network_mode: "service:wireguard"
     depends_on:
       - wireguard
