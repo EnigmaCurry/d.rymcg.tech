@@ -18,10 +18,8 @@ You'll also be prompted to enter a few configurations for PhotoPrism,
 but there are other Photoprism options you can configure by manually
 editing your `.env_{DOCKER_CONTEXT}` file. If you add more media volumes,
 be sure to add them to `docker-compose.yaml` as well; and if you add an
-import volume, be sure to uncomment the "base 
-
-There are other Photoprism options you can configure by manually editing
-your `.env_{DOCKER_CONTEXT}` file.
+import volume, be sure to uncomment the corresponding line in the 
+`photoprism` service in `docker-compose.yaml` as well.
 
 ## Install
 
