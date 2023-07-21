@@ -86,7 +86,7 @@ startup.
 The qBittorrent configurations are not included in `make config` - you'll
 need to manually edit your `.env` file to adjust them.
 
-You might need to install qBittorrent and set the variable in the its web
+You might need to install qBittorrent and set the variable in its web
 UI, then copy the value from
 `/var/lib/docker/volumes/<container's volume name>/_data/qBittorrent/qBittorrent.conf`
 (on the host) and paste it your `.env` file. 
