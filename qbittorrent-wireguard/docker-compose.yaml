@@ -103,7 +103,7 @@ services:
       - qbittorrent-config:/config
 
   qbittorrent:
-    image: linuxserver/qbittorrent:amd64-4.5.4
+    image: linuxserver/qbittorrent:${QBITTORRENT_VERSION}
     network_mode: "service:wireguard"
     depends_on:
       - wireguard
