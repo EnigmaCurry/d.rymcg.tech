@@ -47,5 +47,8 @@ make reinstall
 
 ## Notes
 
-Traefik listens for SSH connections on TCP port 2222 and forwards directly to
-the builtin Gitea SSH service.
+To make sure Traefik listens for SSH connections on TCP port 2222 and
+forwards directly to the builtin Gitea SSH service, your `.env_` file for
+Traefik must have `TRAEFIK_SSH_ENTRYPOINT_ENABLED=true`. If you need to
+update your Traefik `.env_` file, be sure to run `make install` in the
+`traefik` directory again.
