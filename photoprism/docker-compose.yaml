@@ -1,0 +1,132 @@
+version: '3.5'
+
+# Note:
+# - Running PhotoPrism on a server with less than 4 GB of swap space or setting a memory/swap limit can cause unexpected
+#   restarts ("crashes"), for example, when the indexer temporarily needs more memory to process large files.
+#
+# Setup Guides:
+# - https://docs.photoprism.app/getting-started/docker-compose/
+# - https://docs.photoprism.app/getting-started/raspberry-pi/
+# - https://www.photoprism.app/kb/activation
+#
+# Troubleshooting Checklists:
+# - https://docs.photoprism.app/getting-started/troubleshooting/
+# - https://docs.photoprism.app/getting-started/troubleshooting/docker/
+# - https://docs.photoprism.app/getting-started/troubleshooting/mariadb/
+#
+# CLI Commands:
+# - https://docs.photoprism.app/getting-started/docker-compose/#command-line-interface
+#
+# All commands may have to be prefixed with "sudo" when not running as root.
+# This will point the home directory shortcut ~ to /root in volume mounts.
+
+volumes:
+  photoprism-infra:
+  photoprism-mariadb:
+
+services:
+  photoprism:
+    image: photoprism/photoprism:${PHOTOPRISM_VERSION}
+    ## If the service gets stuck in a restart loop, this points to a memory, filesystem, network, or database issue:
+    ## https://docs.photoprism.app/getting-started/troubleshooting/#fatal-server-errors
+    restart: unless-stopped
+    stop_grace_period: 10s
+    depends_on:
+      - mariadb
+# are these security options safe? or do i want `no-new-privileges:true` and `cap_drop:      - ALL`?
+    security_opt:
+      - seccomp:unconfined 
+      - apparmor:unconfined
+    #ports:
+    #  - "2342:2342" # HTTP port (host:container)
+    environment:
+      - PHOTOPRISM_ADMIN_USER
+      - PHOTOPRISM_ADMIN_PASSWORD
+      - PHOTOPRISM_AUTH_MODE
+      - PHOTOPRISM_SITE_URL
+      - PHOTOPRISM_DISABLE_TLS
+      - PHOTOPRISM_ORIGINALS_LIMIT               
+      - PHOTOPRISM_HTTP_COMPRESSION           
+      - PHOTOPRISM_LOG_LEVEL              
+      - PHOTOPRISM_READONLY                  
+      - PHOTOPRISM_EXPERIMENTAL               
+      - PHOTOPRISM_DISABLE_CHOWN             
+      - PHOTOPRISM_DISABLE_WEBDAV            
+      - PHOTOPRISM_DISABLE_SETTINGS          
+      - PHOTOPRISM_DISABLE_TENSORFLOW        
+      - PHOTOPRISM_DISABLE_FACES             
+      - PHOTOPRISM_DISABLE_CLASSIFICATION    
+      - PHOTOPRISM_DISABLE_VECTORS           
+      - PHOTOPRISM_DISABLE_RAW               
+      - PHOTOPRISM_RAW_PRESETS               
+      - PHOTOPRISM_JPEG_QUALITY               
+      - PHOTOPRISM_DETECT_NSFW               
+      - PHOTOPRISM_UPLOAD_NSFW                 
+      - PHOTOPRISM_DATABASE_DRIVER          
+      - PHOTOPRISM_DATABASE_SERVER    
+      - PHOTOPRISM_DATABASE_NAME        
+      - PHOTOPRISM_DATABASE_USER        
+      - PHOTOPRISM_DATABASE_PASSWORD  
+      - PHOTOPRISM_SITE_CAPTION
+      - PHOTOPRISM_SITE_DESCRIPTION              
+      - PHOTOPRISM_SITE_AUTHOR
+      ## Run as a non-root user after initialization (supported: 0, 33, 50-99, 500-600, and 900-1200):
+      - PHOTOPRISM_UID
+      - PHOTOPRISM_GID
+      - PHOTOPRISM_UMASK
+      ## Run/install on first startup (options: update https gpu tensorflow davfs clitools clean):
+      # - PHOTOPRISM_INIT
+      ## Hardware Video Transcoding
+      # - PHOTOPRISM_FFMPEG_ENCODER
+      # - PHOTOPRISM_FFMPEG_BITRATE
+      # - PHOTOPRISM_FFMPEG_RESOLUTION
+    ## Start as non-root user before initialization (supported: 0, 33, 50-99, 500-600, and 900-1200):
+    user: ${PHOTOPRISM_UID}:${PHOTOPRISM_GID}
+    ## Share hardware devices with FFmpeg and TensorFlow (optional):
+    # devices:
+    #  - "/dev/dri:/dev/dri"                         # Intel QSV
+    #  - "/dev/nvidia0:/dev/nvidia0"                 # Nvidia CUDA
+    #  - "/dev/nvidiactl:/dev/nvidiactl"
+    #  - "/dev/nvidia-modeset:/dev/nvidia-modeset"
+    #  - "/dev/nvidia-nvswitchctl:/dev/nvidia-nvswitchctl"
+    #  - "/dev/nvidia-uvm:/dev/nvidia-uvm"
+    #  - "/dev/nvidia-uvm-tools:/dev/nvidia-uvm-tools"
+    #  - "/dev/video11:/dev/video11"                 # Video4Linux Video Encode Device (h264_v4l2m2m)
+    working_dir: "/photoprism"                          # do not change or remove
+    volumes:
+      - photoprism-infra:/photoprism/storage            # *Writable* storage folder for cache, database, and sidecar files (DO NOT REMOVE)
+      - type: bind                                      # Original media files (DO NOT REMOVE)
+        source: ${PHOTOPRISM_ORIGINALS_VOLUME}
+        target: /photoprism/originals
+      ## Optionally, you can add additional media volumes. Example:
+      # - type: bind                                      # Additional original media files
+      #   source: ${PHOTOPRISM_HOST_MEDIA_VOLUME_2}
+      #   target: /photoprism/originals/${PHOTOPRISM_CONTAINER_MEDIA_DIR_2}
+      ## *Optional* base folder from which files can be imported to originals
+      # - ${PHOTOPRISM_HOST_IMPORT_VOLUME}:/photoprism/import
+    # All labels are defined in the template: docker-compose.instance.yaml
+    # The labels will merge together here from the template output:
+    #   docker-compose.override_{DOCKER_CONTEXT}_{INSTANCE}.yaml
+    labels: []
+
+  mariadb:
+    image: mariadb:10.11
+    ## If MariaDB gets stuck in a restart loop, this points to a memory or filesystem issue:
+    ## https://docs.photoprism.app/getting-started/troubleshooting/#fatal-server-errors
+    restart: unless-stopped
+    stop_grace_period: 5s
+# are these security options safe? or do i want `no-new-privileges:true` and `cap_drop:      - ALL`?
+    security_opt: # see https://github.com/MariaDB/mariadb-docker/issues/434#issuecomment-1136151239
+      - seccomp:unconfined
+      - apparmor:unconfined
+    command: mariadbd --innodb-buffer-pool-size=512M --transaction-isolation=READ-COMMITTED --character-set-server=utf8mb4 --collation-server=utf8mb4_unicode_ci --max-connections=512 --innodb-rollback-on-timeout=OFF --innodb-lock-wait-timeout=120
+    ## Never store database files on an unreliable device such as a USB flash drive, an SD card, or a shared network folder:
+    volumes:
+      - photoprism-mariadb:/var/lib/mysql # DO NOT REMOVE
+    environment:
+      - MARIADB_AUTO_UPGRADE
+      - MARIADB_INITDB_SKIP_TZINFO
+      - MARIADB_DATABASE
+      - MARIADB_USER
+      - MARIADB_PASSWORD
+      - MARIADB_ROOT_PASSWORD
