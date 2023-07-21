@@ -1,6 +1,6 @@
 # qbittorrent-wireguard
 
-This is the [qBittorrent](https://https://www.qbittorrent.org/) Bittorrent
+This is the [qBittorrent](https://www.qbittorrent.org/) Bittorrent
 client combined with the [Wireguard](https://www.wireguard.com/) VPN
 service. Connect wireguard to your VPN provider and anonymize your
 peer connections.
@@ -88,13 +88,18 @@ need to manually edit your `.env` file to adjust them.
 
 You might need to install qBittorrent and set the variable in the its web
 UI, then copy the value from
-`/var/lib/docker/volumes/<container's volume name>/qBittorrent/_data/qBittorrent/qBittorrent.conf`
+`/var/lib/docker/volumes/<container's volume name>/_data/qBittorrent/qBittorrent.conf`
 (on the host) and paste it your `.env` file. 
 
 In your `.env` file, the lines in \[brackets\] are simply qBittorrent
 configuration categories, for your reference.
 
-If you change any qBittorrent config values, run `make install`.
+If you add any additional qBittorrent configs to your `.env` file, you'll also
+need to add them to `docker-compose.yaml` and
+`qbittorrent-config/template/qBittorrent.conf`. You can follow the examples
+already in those files for formatting and naming conventions.
+
+If you change or add any qBittorrent config values, run `make install`.
 
 Other settings that are not configured by `make config` and you should
 use the default:
