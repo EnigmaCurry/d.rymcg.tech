@@ -33,10 +33,10 @@ services:
     stop_grace_period: 10s
     depends_on:
       - mariadb
-# are these security options safe? or do i want `no-new-privileges:true` and `cap_drop:      - ALL`?
     security_opt:
-      - seccomp:unconfined 
-      - apparmor:unconfined
+      - no-new-privileges:true
+      #- seccomp:unconfined 
+      #- apparmor:unconfined
     #ports:
     #  - "2342:2342" # HTTP port (host:container)
     environment:
@@ -115,10 +115,10 @@ services:
     ## https://docs.photoprism.app/getting-started/troubleshooting/#fatal-server-errors
     restart: unless-stopped
     stop_grace_period: 5s
-# are these security options safe? or do i want `no-new-privileges:true` and `cap_drop:      - ALL`?
     security_opt: # see https://github.com/MariaDB/mariadb-docker/issues/434#issuecomment-1136151239
-      - seccomp:unconfined
-      - apparmor:unconfined
+      - no-new-privileges:true
+      #- seccomp:unconfined
+      #- apparmor:unconfined
     command: mariadbd --innodb-buffer-pool-size=512M --transaction-isolation=READ-COMMITTED --character-set-server=utf8mb4 --collation-server=utf8mb4_unicode_ci --max-connections=512 --innodb-rollback-on-timeout=OFF --innodb-lock-wait-timeout=120
     ## Never store database files on an unreliable device such as a USB flash drive, an SD card, or a shared network folder:
     volumes:
