@@ -11,13 +11,14 @@ config-hook:
 	@${BIN}/reconfigure_ask ${ENV_FILE} PHOTOPRISM_TRAEFIK_HOST "Enter the photoprism domain name" photoprism${INSTANCE_URL_SUFFIX}.${ROOT_DOMAIN}
 	@${BIN}/reconfigure ${ENV_FILE} PHOTOPRISM_INSTANCE=$${instance:-default}
 	@${BIN}/reconfigure_htpasswd ${ENV_FILE} PHOTOPRISM_HTTP_AUTH default=no
-	
+	@${BIN}/reconfigure_password ${ENV_FILE} PHOTOPRISM_DATABASE_PASSWORD 32
+
 	@echo ""
 	@${BIN}/reconfigure_ask ${ENV_FILE} PHOTOPRISM_ADMIN_USER "Enter the admin user name" ${PHOTOPRISM_ADMIN_USER}
 	@echo ""
-	@${BIN}/reconfigure_ask ${ENV_FILE} PHOTOPRISM_ADMIN_PASSWORD "Enter the admin password" ${PHOTOPRISM_ADMIN_PASSWORD}
+#	@${BIN}/reconfigure_ask ${ENV_FILE} PHOTOPRISM_ADMIN_PASSWORD "Enter the admin password" ${PHOTOPRISM_ADMIN_PASSWORD} 
 	@echo ""
-	@${BIN}/reconfigure_ask ${ENV_FILE} PHOTOPRISM_ORIGINALS_VOLUME "Enter the admin password" ${PHOTOPRISM_ORIGINALS_VOLUME}
+	@${BIN}/reconfigure_ask ${ENV_FILE} PHOTOPRISM_ORIGINALS_VOLUME "Enter the host volume where your media files will live" ${PHOTOPRISM_ORIGINALS_VOLUME}
 	@echo ""
 	@${BIN}/reconfigure_ask ${ENV_FILE} PHOTOPRISM_SITE_CAPTION "Enter the site caption" ${PHOTOPRISM_SITE_CAPTION}
 	@echo ""
