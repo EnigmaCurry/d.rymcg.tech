@@ -113,7 +113,7 @@ use the default:
    protected by username/password or IP filter). You can modify this
    to access certain peers that dont' need a VPN (eg. on your LAN).
 
-# Deploy
+## Deploy
 
 Once configured, deploy it:
 
@@ -123,4 +123,47 @@ make install
 
 ```
 make open
+```
+
+## Verify the VPN is functional
+
+The [wireguard service does not have an integrated
+killswitch](https://github.com/linuxserver/docker-wireguard/issues/139) -
+if for any reason wireguard fails to start, including for reasons of
+misconfiguration and/or host incompatibilities, then qbittorrent will
+*NOT* be protected, and will be using the local internet connection
+instead of the VPN.
+
+Before using the service, you should verify that your VPN is working:
+
+```
+# Check that both wireguard and qbittorent are running (two containers:)
+make status
+
+# Check the logs, make sure there isn't an error:
+make logs
+
+# Exec into the qbittorrent container and check the ip address being used:
+# (This should report your VPN connection details, not your local connection)
+curl ifconfig.co/json
+```
+
+## Issues with IPv6
+
+On arm64 I had an issue with ipv6 with this error reported from wireguard:
+
+```
+qbittorrent-wireguard-wireguard-1    | [#] ip6tables-restore -n
+qbittorrent-wireguard-wireguard-1    | modprobe: can't load module ip6_tables (kernel/net/ipv6/netfilter/ip6_tables.ko.zst): invalid module formatqbittorrent-wireguard-wireguard-1    | ip6tables-restore v1.8.8 (legacy): ip6tables-restore: unable to initialize table 'raw'
+```
+
+This may have been a host issue, but I was able to work around it by simply removing ipv6 support in the configuration.
+
+```
+## To disable ipv6 In your .env file:
+
+# Don't set an ipv6 address:
+QBITTORRENT_VPN_CLIENT_INTERFACE_IPV6=
+# Remove the ::0/0 from the QBITTORRENT_VPN_CLIENT_PEER_ALLOWED_IPS list:
+QBITTORRENT_VPN_CLIENT_PEER_ALLOWED_IPS=0.0.0.0/0
 ```
