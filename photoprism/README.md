@@ -34,8 +34,12 @@ make open
 ```
 
 This will automatically open the page in your web browser, and will
-prefill the password if you enabled it (and chose to store it in
-`passwords.json`).
+prefill the HTTP Basic Authentication password if you enabled it (and chose
+to store it in `passwords.json`).
+
+Photoprism also has it's own authentication, and the initial password for
+the "admin" account (whatever you entered for `PHOTOPRISM_ADMIN_USER`)
+is "password". You should change this from within Photoprism.
 
 ## Destroy
 
