@@ -44,7 +44,7 @@ services:
 
   app:
     image: nextcloud:apache
-    restart: always
+    restart: unless-stopped
     security_opt:
       - no-new-privileges:true
     volumes:
@@ -97,7 +97,7 @@ services:
     image: nextcloud:apache
     security_opt:
       - no-new-privileges:true
-    restart: always
+    restart: unless-stopped
     volumes:
       - data:/var/www/html
     entrypoint: /cron.sh
