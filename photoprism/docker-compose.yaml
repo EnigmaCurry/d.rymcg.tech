@@ -41,10 +41,10 @@ services:
     #  - "2342:2342" # HTTP port (host:container)
     environment:
       - PHOTOPRISM_ADMIN_USER
-      - PHOTOPRISM_ADMIN_PASSWORD
+      - PHOTOPRISM_ADMIN_PASSWORD=password
       - PHOTOPRISM_AUTH_MODE
       - PHOTOPRISM_SITE_URL=https://${PHOTOPRISM_TRAEFIK_HOST}
-      - PHOTOPRISM_DISABLE_TLS=false
+      - PHOTOPRISM_DISABLE_TLS=true
       - PHOTOPRISM_ORIGINALS_LIMIT               
       - PHOTOPRISM_HTTP_COMPRESSION           
       - PHOTOPRISM_LOG_LEVEL              

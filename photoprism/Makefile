@@ -16,8 +16,6 @@ config-hook:
 	@echo ""
 	@${BIN}/reconfigure_ask ${ENV_FILE} PHOTOPRISM_ADMIN_USER "Enter the admin user name" ${PHOTOPRISM_ADMIN_USER}
 	@echo ""
-#	@${BIN}/reconfigure_ask ${ENV_FILE} PHOTOPRISM_ADMIN_PASSWORD "Enter the admin password" ${PHOTOPRISM_ADMIN_PASSWORD} 
-	@echo ""
 	@${BIN}/reconfigure_ask ${ENV_FILE} PHOTOPRISM_ORIGINALS_VOLUME "Enter the host volume where your media files will live" ${PHOTOPRISM_ORIGINALS_VOLUME}
 	@echo ""
 	@${BIN}/reconfigure_ask ${ENV_FILE} PHOTOPRISM_SITE_CAPTION "Enter the site caption" ${PHOTOPRISM_SITE_CAPTION}
@@ -26,7 +24,7 @@ config-hook:
 	@echo ""
 	@${BIN}/reconfigure_ask ${ENV_FILE} PHOTOPRISM_SITE_AUTHOR "Enter the site author" ${PHOTOPRISM_SITE_AUTHOR}
 	@echo ""
-	echo "There are other Photoprism options you can configure by manually editing your `${ENV_FILE}` file."
+	@echo "There are other Photoprism options you can configure by manually editing your \`${ENV_FILE}\` file."
 	@echo ""
 
 
