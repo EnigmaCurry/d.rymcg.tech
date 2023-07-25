@@ -145,6 +145,7 @@ make logs
 
 # Exec into the qbittorrent container and check the ip address being used:
 # (This should report your VPN connection details, not your local connection)
+make shell
 curl ifconfig.co/json
 ```
 
