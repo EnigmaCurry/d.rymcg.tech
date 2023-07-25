@@ -464,6 +464,7 @@ Install these services at your leisure/preference:
 * [Node-RED](nodered#readme) - a graphical event pipeline editor
 * [Ntfy.sh](ntfy.sh#readme) - a simple HTTP-based pub-sub notification service
 * [Pairdrop](pairdrop#readme) - a webapp (PWA) to send files and messages peer to peer.
+* [Photoprism](photoprism#readme) - a photo gallery and manager
 * [Piwigo](piwigo#readme) - a photo gallery and manager
 * [Plausible](plausible#readme) - a privacy friendly web visitor analytics engine
 * [PostgreSQL](postgresql#readme) - a database server configured with mutual TLS authentication for public networks
