@@ -8,6 +8,7 @@ config-hook:
 	@${BIN}/reconfigure_password ${ENV_FILE} INVIDIOUS_POSTGRES_PASSWORD
 	@${BIN}/reconfigure ${ENV_FILE} INVIDIOUS_INSTANCE=$${instance:-default}
 	@${BIN}/reconfigure_htpasswd ${ENV_FILE} INVIDIOUS_HTTP_AUTH default=yes
+	@${BIN}/reconfigure_password ${ENV_FILE} INVIDIOUS_HMAC_KEY 32
 
 .PHONY: override-hook
 override-hook:
