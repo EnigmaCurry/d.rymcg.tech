@@ -13,17 +13,17 @@ services:
       - db_data:/var/lib/mysql
     restart: always
     environment:
-      MARIADB_ROOT_PASSWORD: ${WP_DB_ROOT_PASSWORD}
-      MARIADB_DATABASE: ${WP_DB_DATABASE}
-      MARIADB_USER: ${WP_DB_USER}
-      MARIADB_PASSWORD: ${WP_DB_PASSWORD}
+      MARIADB_ROOT_PASSWORD: ${WORDPRESS_DB_ROOT_PASSWORD}
+      MARIADB_DATABASE: ${WORDPRESS_DB_NAME}
+      MARIADB_USER: ${WORDPRESS_DB_USER}
+      MARIADB_PASSWORD: ${WORDPRESS_DB_PASSWORD}
 
   wp:
     build:
       context: wordpress
       args:
-        WORDPRESS_VERSION: ${WP_VERSION}
-        WP2STATIC_VERSION: ${WP_WP2STATIC_VERSION}
+        WORDPRESS_VERSION: ${WORDPRESS_VERSION}
+        WP2STATIC_VERSION: ${WORDPRESS_WP2STATIC_VERSION}
     security_opt:
       - no-new-privileges:true
     volumes:
@@ -32,9 +32,9 @@ services:
     restart: always
     environment:
       - WORDPRESS_DB_HOST=db
-      - WORDPRESS_DB_USER=${WP_DB_USER}
-      - WORDPRESS_DB_PASSWORD=${WP_DB_PASSWORD}
-      - WORDPRESS_DB_NAME=${WP_DB_DATABASE}
+      - WORDPRESS_DB_USER=${WORDPRESS_DB_USER}
+      - WORDPRESS_DB_PASSWORD=${WORDPRESS_DB_PASSWORD}
+      - WORDPRESS_DB_NAME=${WORDPRESS_DB_NAME}
     # labels are defined in docker-compose.instance.yaml:
     labels: []
 
