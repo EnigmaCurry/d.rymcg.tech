@@ -8,25 +8,37 @@ x-logging: &default-logging
 
 volumes:
   lemmy-config:
+  lemmy-nginx-config:
   lemmy-ui-themes:
   lemmy-pictrs:
   lemmy-postgres:
   
 services:
-#  proxy:
-#    image: nginx:1-alpine
-#    ports:
+  nginx-config:
+    build:
+      context: nginx-config
+    security_opt:
+      - no-new-privileges:true
+    environment:
+      - PRINT_NGINX_CONFIG=${PRINT_NGINX_CONFIG}
+    volumes:
+      - lemmy-nginx-config:/etc/nginx
+
+  proxy:
+    image: nginx:1-alpine
+    ports:
       # actual and only port facing any connection from outside
       # Note, change the left number if port 1236 is already in use on your system
       # You could use port 80 if you won't use a reverse proxy
-#      - "{{ lemmy_port }}:8536"
-#    volumes:
-#      - ./nginx_internal.conf:/etc/nginx/nginx.conf:ro,Z
-#    restart: always
-#    logging: *default-logging
-#    depends_on:
-#      - pictrs
-#      - lemmy-ui
+      - "${LEMMY_NIGNX_PORT}:8536"
+    volumes:
+      - lemmy-nginx-config:/etc/nginx
+    restart: always
+    logging: *default-logging
+    depends_on:
+      - pictrs
+      - lemmy-ui
+    labels: []
 
   config:
     build:
@@ -72,7 +84,6 @@ services:
     restart: unless-stopped
     logging: *default-logging
     user: ${LEMMY_UID}:${LEMMY_GID}
-    labels: []
 
   pictrs:
     image: asonix/pictrs:${ASONIX_PICTRS_VERSION}
