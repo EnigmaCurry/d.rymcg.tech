@@ -852,7 +852,8 @@ To exit the sub-shell, press `Ctrl-D` or type `exit` and you will
 return to the original parent shell and working directory.
 
 If you want to enter the sub-shell without automatically running `make
-config`, you can run `make switch` rather than `make instance`.
+config`, you can run `make switch instance=foo` rather than
+`make instance`.
 
 ### Overriding docker-compose.yaml per-instance
 
