@@ -28,22 +28,31 @@ services:
 #      - pictrs
 #      - lemmy-ui
 
-  lemmy:
-    #image: dessalines/lemmy:${LEMMY_VERSION}
+  config:
     build:
       context: config
-      args:
-        LEMMY_VERSION: ${LEMMY_VERSION}
-#    hostname: lemmy_${LEMMY_INSTANCE}
+    security_opt:
+      - no-new-privileges:true
+    environment:
+      - POSTGRES_PW=${LEMMY_POSTGRES_PW}
+      - TRAEFIK_HOST=${LEMMY_TRAEFIK_HOST}
+      - PRINT_CONFIG=${LEMMY_PRINT_CONFIG}
+    volumes:
+      - lemmy-config:/config
+
+  lemmy:
+    image: dessalines/lemmy:${LEMMY_VERSION}
+    hostname: lemmy_${LEMMY_INSTANCE}
     security_opt:
       - no-new-privileges:true
     restart: unless-stopped
     logging: *default-logging
     environment:
       - RUST_LOG="warn"
-#    volumes:
+    volumes:
 #      - ./lemmy.hjson:/config/config.hjson:Z
-#      - lemmy-config:/config/config.hjson:Z
+#      - lemmy-config/config.hjson:/config/config.hjson:Z
+      - lemmy-config:/config
     depends_on:
       - postgres
       - pictrs

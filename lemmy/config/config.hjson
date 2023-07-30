@@ -4,16 +4,16 @@
 
   database: {
     host: postgres
-    password: "${LEMMY_POSTGRES_PW}"
+    password: "${POSTGRES_PW}"
   }
-  hostname: "${LEMMY_TRAEFIK_HOST}"
+  hostname: "${TRAEFIK_HOST}"
   pictrs: {
     url: "http://pictrs:8080/"
-    api_key: "${LEMMY_POSTGRES_PW}"
+    api_key: "${POSTGRES_PW}"
   }
   email: {
     smtp_server: "postfix:25"
-    smtp_from_address: "noreply@${LEMMY_TRAEFIK_HOST}"
+    smtp_from_address: "noreply@${TRAEFIK_HOST}"
     tls_type: "none"
   }
 }
