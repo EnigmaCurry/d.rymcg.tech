@@ -17,11 +17,6 @@ services:
   proxy:
     build:
       context: nginx
-    ports:
-      # actual and only port facing any connection from outside
-      # Note, change the left number if port 1236 is already in use on your system
-      # You could use port 80 if you won't use a reverse proxy
-      - "8536:8536"
     volumes:
       - lemmy-nginx-config:/etc/nginx
     restart: always
