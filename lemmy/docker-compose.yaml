@@ -14,18 +14,9 @@ volumes:
   lemmy-postgres:
 
 services:
-  nginx-config:
-    build:
-      context: nginx-config
-    security_opt:
-      - no-new-privileges:true
-    environment:
-      - PRINT_NGINX_CONFIG=${PRINT_NGINX_CONFIG}
-    volumes:
-      - lemmy-nginx-config:/etc/nginx
-
   proxy:
-    image: nginx:1-alpine
+    build:
+      context: nginx
     ports:
       # actual and only port facing any connection from outside
       # Note, change the left number if port 1236 is already in use on your system
@@ -38,7 +29,6 @@ services:
     depends_on:
       - pictrs
       - lemmy-ui
-      - nginx-config
     labels: []
 
   config:
