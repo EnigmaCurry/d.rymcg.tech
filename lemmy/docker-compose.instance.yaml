@@ -40,7 +40,7 @@ services:
       #! Override the default port that proxy binds to, so that it lives in userspace >1024:
       #! You don't normally need to do this, as long as your image has
       #! an EXPOSE directive in it, Traefik will autodetect it, but this is how you can override it:
-      - "traefik.http.services.(@= router @).loadbalancer.server.port=${LEMMY_NIGNX_PORT}"
+      - "traefik.http.services.(@= router @).loadbalancer.server.port=8536"
 
       #! Apply all middlewares (do this at the end!)
       - "traefik.http.routers.(@= router @).middlewares=(@= ','.join(enabled_middlewares) @)"
