@@ -12,7 +12,7 @@ volumes:
   lemmy-ui-themes:
   lemmy-pictrs:
   lemmy-postgres:
-  
+
 services:
   nginx-config:
     build:
@@ -38,6 +38,7 @@ services:
     depends_on:
       - pictrs
       - lemmy-ui
+      - nginx-config
     labels: []
 
   config:
