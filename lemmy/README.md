@@ -36,5 +36,5 @@ prefill the password if you enabled it (and chose to store it in
 make destroy
 ```
 
-This completely removes the container (and would also delete all its
-volumes; but `whoami` hasn't got any data to store.)
+This completely removes the container and all its
+volumes.
