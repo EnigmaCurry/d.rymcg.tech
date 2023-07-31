@@ -70,7 +70,7 @@ services:
     user: ${LEMMY_UID}:${LEMMY_GID}
 
   pictrs:
-    image: asonix/pictrs:${ASONIX_PICTRS_VERSION}
+    image: asonix/pictrs:${LEMMY_ASONIX_PICTRS_VERSION}
     # this needs to match the pictrs url in lemmy.hjson
     hostname: pictrs
     # we can set options to pictrs like this, here we set max. image size and forced format for conversion
