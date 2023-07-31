@@ -1,0 +1,126 @@
+version: "3.7"
+
+x-logging: &default-logging
+  driver: "json-file"
+  options:
+    max-size: "50m"
+    max-file: "4"
+
+volumes:
+  lemmy-config:
+  lemmy-nginx-config:
+  lemmy-ui-themes:
+  lemmy-pictrs:
+  lemmy-postgres:
+
+services:
+  proxy:
+    build:
+      context: nginx
+    volumes:
+      - lemmy-nginx-config:/etc/nginx
+    restart: always
+    logging: *default-logging
+    depends_on:
+      - pictrs
+      - lemmy-ui
+    labels: []
+
+  config:
+    build:
+      context: config
+    security_opt:
+      - no-new-privileges:true
+    environment:
+      - POSTGRES_PW=${LEMMY_POSTGRES_PW}
+      - TRAEFIK_HOST=${LEMMY_TRAEFIK_HOST}
+      - PRINT_CONFIG=${LEMMY_PRINT_CONFIG}
+    volumes:
+      - lemmy-config:/config
+
+  lemmy:
+    image: dessalines/lemmy:${LEMMY_VERSION}
+    hostname: lemmy_${LEMMY_INSTANCE}
+    security_opt:
+      - no-new-privileges:true
+    restart: unless-stopped
+    logging: *default-logging
+    environment:
+      - RUST_LOG="warn"
+    volumes:
+      - lemmy-config:/config
+    depends_on:
+      - postgres
+      - pictrs
+
+  lemmy-ui:
+    image: dessalines/lemmy-ui:${LEMMY_UI_VERSION}
+    environment:
+      - LEMMY_UI_LEMMY_INTERNAL_HOST=lemmy:8536
+      - LEMMY_UI_LEMMY_EXTERNAL_HOST=${LEMMY_TRAEFIK_HOST}
+      - LEMMY_UI_HTTPS=false
+    volumes:
+      - lemmy-ui-themes:/app/extra_themes
+    depends_on:
+      - lemmy
+    security_opt:
+      - no-new-privileges:true
+    restart: unless-stopped
+    logging: *default-logging
+    user: ${LEMMY_UID}:${LEMMY_GID}
+
+  pictrs:
+    image: asonix/pictrs:${LEMMY_ASONIX_PICTRS_VERSION}
+    # this needs to match the pictrs url in lemmy.hjson
+    hostname: pictrs
+    # we can set options to pictrs like this, here we set max. image size and forced format for conversion
+    # entrypoint: /sbin/tini -- /usr/local/bin/pict-rs -p /mnt -m 4 --image-format webp
+    environment:
+      # No need to whatever this is:
+      #- PICTRS_OPENTELEMETRY_URL=http://otel:4137
+      - PICTRS__API_KEY=${LEMMY_POSTGRES_PW}
+      - RUST_LOG=debug
+      - RUST_BACKTRACE=full
+      - PICTRS__MEDIA__VIDEO_CODEC=vp9
+      - PICTRS__MEDIA__GIF__MAX_WIDTH=256
+      - PICTRS__MEDIA__GIF__MAX_HEIGHT=256
+      - PICTRS__MEDIA__GIF__MAX_AREA=65536
+      - PICTRS__MEDIA__GIF__MAX_FRAME_COUNT=400
+    user: 991:991
+    volumes:
+      - lemmy-pictrs:/mnt:Z
+    security_opt:
+      - no-new-privileges:true
+    restart: unless-stopped
+    logging: *default-logging
+    deploy:
+      resources:
+        limits:
+          memory: 690m
+
+  postgres:
+    image: postgres:15-alpine
+    hostname: postgres
+    environment:
+      - POSTGRES_USER=lemmy
+      - POSTGRES_PASSWORD=${LEMMY_POSTGRES_PW}
+      - POSTGRES_DB=lemmy
+    volumes:
+      - lemmy-postgres:/var/lib/postgresql/data:Z
+# The next line seems to be for optional postgres config. We've not updated
+# the next line for d.rymcg.tech, so it's commented out.
+#      - ./customPostgresql.conf:/etc/postgresql.conf
+    security_opt:
+      - no-new-privileges:true
+    restart: unless-stopped
+    logging: *default-logging
+
+  postfix:
+    image: mwader/postfix-relay
+    hostname: postfix
+    environment:
+      - POSTFIX_myhostname=${LEMMY_TRAEFIK_HOST}
+    security_opt:
+      - no-new-privileges:true
+    restart: unless-stopped
+    logging: *default-logging
