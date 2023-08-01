@@ -15,6 +15,9 @@
 #@ http_auth = data.values.http_auth_var
 #@ enabled_middlewares = []
 
+#! ### Custom instance vars:
+#@ lemmy_private = data.values.http_auth_var
+
 #@yaml/text-templated-strings
 services:
   proxy:
@@ -42,5 +45,13 @@ services:
       #! an EXPOSE directive in it, Traefik will autodetect it, but this is how you can override it:
       - "traefik.http.services.(@= router @).loadbalancer.server.port=8536"
 
+      #! Block access to `/feeds` (RSS) due to a bug that leaks private info via feeds:
+      #! https://github.com/LemmyNet/lemmy/issues/3785
+      #@ if lemmy_private == "true":
+      - "traefik.http.routers.(@= router @).middlewares=strip-feeds@file,error-page@file"
+      - "traefik.http.middlewares.strip-feeds.stripprefix.prefixes=/feeds"
+      - "traefik.http.middlewares.error-page.errors.status=404"
+      #@ end
+      
       #! Apply all middlewares (do this at the end!)
       - "traefik.http.routers.(@= router @).middlewares=(@= ','.join(enabled_middlewares) @)"
