@@ -15,8 +15,8 @@
 #@ http_auth = data.values.http_auth_var
 #@ enabled_middlewares = []
 
-#! ### Custom instance vars:
-#@ lemmy_private = data.values.http_auth_var
+#! ### Custom project vars:
+#@ lemmy_private = data.values.lemmy_private
 
 #@yaml/text-templated-strings
 services:
@@ -48,9 +48,8 @@ services:
       #! Block access to `/feeds` (RSS) due to a bug that leaks private info via feeds:
       #! https://github.com/LemmyNet/lemmy/issues/3785
       #@ if lemmy_private == "true":
-      - "traefik.http.routers.(@= router @).middlewares=strip-feeds@file,error-page@file"
-      - "traefik.http.middlewares.strip-feeds.stripprefix.prefixes=/feeds"
-      - "traefik.http.middlewares.error-page.errors.status=404"
+      #@ enabled_middlewares.append("{}-blockpath".format(router))
+      - "traefik.http.middlewares.(@= router @)-blockpath.plugin.blockpath.regex=^/feeds.*"
       #@ end
       
       #! Apply all middlewares (do this at the end!)
