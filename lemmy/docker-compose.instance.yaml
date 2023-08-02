@@ -16,7 +16,7 @@
 #@ enabled_middlewares = []
 
 #! ### Custom project vars:
-#@ lemmy_private = data.values.lemmy_private
+#@ lemmy_private = data.values.lemmy_private == "true"
 
 #@yaml/text-templated-strings
 services:
@@ -47,7 +47,7 @@ services:
 
       #! Block access to `/feeds` (RSS) due to a bug that leaks private info via feeds:
       #! https://github.com/LemmyNet/lemmy/issues/3785
-      #@ if lemmy_private == "true":
+      #@ if lemmy_private:
       #@ enabled_middlewares.append("{}-blockpath".format(router))
       - "traefik.http.middlewares.(@= router @)-blockpath.plugin.blockpath.regex=^/feeds.*"
       #@ end
