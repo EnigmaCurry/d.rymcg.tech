@@ -1,0 +1,9 @@
+.env
+.env_*
+/*.tgz
+/*.tgz.gpg
+passwords.json
+.gitmodules
+docker-compose.override*.yaml
+dump.*
+tasks.org
