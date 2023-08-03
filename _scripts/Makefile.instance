@@ -4,4 +4,4 @@ instance: check-in-subshell
 
 .PHONY: switch # Switch to the given INSTANCE and enter a new subshell for it
 switch: check-in-subshell
-	@unset instance; MAKE_INSTANCE_SOURCE_RCFILE=${MAKE_INSTANCE_SOURCE_RCFILE}; DOCKER_CONTEXT=${DOCKER_CONTEXT} ENV_FILE=${ENV_FILE} ${BIN}/switch
+	@unset INSTANCE; unset instance; MAKE_INSTANCE_SOURCE_RCFILE=${MAKE_INSTANCE_SOURCE_RCFILE}; DOCKER_CONTEXT=${DOCKER_CONTEXT} ENV_FILE=${ENV_FILE} ${BIN}/switch

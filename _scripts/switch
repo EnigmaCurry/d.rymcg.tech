@@ -4,7 +4,7 @@ set -e
 BIN=$(dirname ${BASH_SOURCE})
 source ${BIN}/funcs.sh
 
-instance=${INSTANCE}
+[[ -z ${switchto_instance} ]] && instance=${INSTANCE} || instance=${switchto_instance}
 
 valid_regex='^[a-zA-Z][a-zA-Z0-9_-]*$'
 if [[ -z "${instance}" ]]; then
@@ -26,18 +26,22 @@ fi
 test -z "$instance" && echo "Missing required instance name." && exit 1
 
 ROOT_DIR=..
-ENV_FILE=$(echo "${ENV_FILE}" | sed 's/_default//' | sed 's/_'${instance}'//')
+ENV_FILE=$(echo "${ENV_FILE}" | sed 's/_[^_]*$//')
 NEW_ENV_FILE="${ENV_FILE}_${instance}"
-source ${ROOT_DIR}/${ENV_FILE}
+ROOT_ENV_FILE=".env_${DOCKER_CONTEXT}"
+source "${ROOT_DIR}/${ROOT_ENV_FILE}"
 
 if [[ ! -f "${NEW_ENV_FILE}" ]]; then
-    read -p "instance ${instance} doesn't exist, do you want to create a new instance? (y/N) "$'\x0a: ' makenew
+    read -p "Instance ${instance} doesn't exist, do you want to create a new instance? (y/N) "$'\x0a: ' makenew
     makenew=${makenew:-n}
     if [[ $makenew == [yY] ]]; then
         echo "making new instance..."
         echo ""
         #sleep 1
-        make instance
+        make --no-print-directory instance newinstance=${instance}
+        exit 0
+    else
+        echo "No instance created or switched to."
         exit 0
     fi
 fi

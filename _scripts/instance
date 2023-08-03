@@ -4,6 +4,8 @@ set -e
 BIN=$(dirname ${BASH_SOURCE})
 source ${BIN}/funcs.sh
 
+[[ ! -z newinstance ]] && instance=${newinstance}
+
 valid_regex='^[a-zA-Z][a-zA-Z0-9_-]*$'
 if [[ -z "${instance}" ]]; then
     EXISTING_ENVS=$(ls .env_${DOCKER_CONTEXT}_* 2>/dev/null | sed "s/.env_${DOCKER_CONTEXT}_//" || true)
@@ -25,4 +27,4 @@ test -z "$instance" && echo "Missing required instance name." && exit 1
 ENV_FILE=$(echo "${ENV_FILE}" | sed 's/_default//')
 NEW_ENV_FILE="${ENV_FILE}_${instance}"
 test ! -f "${NEW_ENV_FILE}" && make --no-print-directory config INSTANCE="${instance}" ENV_FILE="${NEW_ENV_FILE}" DOCKER_CONTEXT=${DOCKER_CONTEXT}
-make --no-print-directory switch INSTANCE="${instance}" ENV_FILE="${NEW_ENV_FILE}" DOCKER_CONTEXT=${DOCKER_CONTEXT}
+make --no-print-directory switch switchto_instance="${instance}" ENV_FILE="${NEW_ENV_FILE}" DOCKER_CONTEXT=${DOCKER_CONTEXT}
