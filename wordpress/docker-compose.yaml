@@ -1,0 +1,44 @@
+version: "3.9"
+
+services:
+  db:
+    # We use a mariadb image which supports both amd64 & arm64 architecture
+    image: mariadb:10.6.4-focal
+    security_opt:
+      - no-new-privileges:true
+    # If you really want to use MySQL, uncomment the following line
+    #image: mysql:8.0.27
+    command: '--default-authentication-plugin=mysql_native_password'
+    volumes:
+      - db_data:/var/lib/mysql
+    restart: always
+    environment:
+      MARIADB_ROOT_PASSWORD: ${WORDPRESS_DB_ROOT_PASSWORD}
+      MARIADB_DATABASE: ${WORDPRESS_DB_NAME}
+      MARIADB_USER: ${WORDPRESS_DB_USER}
+      MARIADB_PASSWORD: ${WORDPRESS_DB_PASSWORD}
+
+  wp:
+    build:
+      context: wordpress
+      args:
+        WORDPRESS_VERSION: ${WORDPRESS_VERSION}
+        WP2STATIC_VERSION: ${WORDPRESS_WP2STATIC_VERSION}
+    security_opt:
+      - no-new-privileges:true
+    volumes:
+      - wp_data:/var/www/html
+      - wp_wp2static:/var/www/static
+    restart: always
+    environment:
+      - WORDPRESS_DB_HOST=db
+      - WORDPRESS_DB_USER=${WORDPRESS_DB_USER}
+      - WORDPRESS_DB_PASSWORD=${WORDPRESS_DB_PASSWORD}
+      - WORDPRESS_DB_NAME=${WORDPRESS_DB_NAME}
+    # labels are defined in docker-compose.instance.yaml:
+    labels: []
+
+volumes:
+  db_data:
+  wp_data:
+  wp_wp2static:
