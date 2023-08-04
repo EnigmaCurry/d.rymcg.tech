@@ -1,0 +1,17 @@
+---
+# For configuration options and examples, please see:
+# https://gethomepage.dev/en/configs/services
+
+- Wooskey Services:
+  - Cryptpad:
+    href: https://cryptpad.d.thewooskeys.com/drive
+    description: My Docs
+    icon: cryptpad.png
+    server: d.thewooskeys.com
+    container: cryptpad-cryptpad-1
+  - Traefik:
+    href: http://admin:Squid%20Head%21@127.0.0.1:65201/dashboard/#/http/routers
+    description: Traefik Dashboard
+    icon: traefik.png
+    server: d.thewooskeys.com
+    container: traefik-traefik-1
