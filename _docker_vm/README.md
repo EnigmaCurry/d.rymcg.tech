@@ -217,13 +217,6 @@ cd ~/git/vendor/enigmacurry/d.rymcg.tech/_docker_vm
 Run:
 
 ```
-## Do this part only if DISTRO=bookworm (the default):
-### ONLY required while bookworm is still in testing!
-### This will not be needed for Debian stable.
-export NETBOOT_IMAGE=https://d-i.debian.org/daily-images/amd64/daily/netboot/netboot.tar.gz
-```
-
-```
 # Run this inside the _docker_vm directory (where this same README.md exists):
 make
 ```
