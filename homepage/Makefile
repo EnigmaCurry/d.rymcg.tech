@@ -9,8 +9,10 @@ config-hook:
 #### reconfigure sets the value of a variable in the .env file without asking.
 #### reconfigure_htpasswd will configure the HTTP Basic Authentication setting the var name and with a provided default value.
 	@${BIN}/reconfigure_ask ${ENV_FILE} HOMEPAGE_TRAEFIK_HOST "Enter the homepage domain name" homepage${INSTANCE_URL_SUFFIX}.${ROOT_DOMAIN}
+	@${BIN}/confirm $$([[ $$(${BIN}/dotenv -f ${ENV_FILE} get HOMEPAGE_ENABLE_DOCKER) == "true" ]] && echo "yes" || echo "no") "Do you want to enable docker service discovery" "?" && ${BIN}/reconfigure ${ENV_FILE} HOMEPAGE_ENABLE_DOCKER=true || ${BIN}/reconfigure ${ENV_FILE} HOMEPAGE_ENABLE_DOCKER=false
 	@${BIN}/reconfigure ${ENV_FILE} HOMEPAGE_INSTANCE=$${instance:-default}
 	@${BIN}/reconfigure_htpasswd ${ENV_FILE} HOMEPAGE_HTTP_AUTH default=no
+	@${BIN}/reconfigure_password ${ENV_FILE} HOMEPAGE_WEBHOOK_HMAC_SECRET 45
 
 .PHONY: override-hook
 override-hook:
@@ -24,4 +26,8 @@ override-hook:
 ####                         # (this hardcodes the string into docker-compose.override.yaml)
 ####   name=@VARIABLE_NAME   # sets the template 'name' field to the literal string '${VARIABLE_NAME}'
 ####                         # (used for regular docker-compose expansion of env vars by name.)
-	@${BIN}/docker_compose_override ${ENV_FILE} project=:homepage instance=@HOMEPAGE_INSTANCE traefik_host=@HOMEPAGE_TRAEFIK_HOST http_auth=HOMEPAGE_HTTP_AUTH http_auth_var=@HOMEPAGE_HTTP_AUTH ip_sourcerange=@HOMEPAGE_IP_SOURCERANGE
+	@${BIN}/docker_compose_override ${ENV_FILE} project=:homepage instance=@HOMEPAGE_INSTANCE traefik_host=@HOMEPAGE_TRAEFIK_HOST http_auth=HOMEPAGE_HTTP_AUTH http_auth_var=@HOMEPAGE_HTTP_AUTH ip_sourcerange=@HOMEPAGE_IP_SOURCERANGE enable_docker=HOMEPAGE_ENABLE_DOCKER reloader_path_prefix=HOMEPAGE_RELOADER_PATH_PREFIX
+
+.PHONY: shell
+shell:
+	@docker compose --env-file ${ENV_FILE} exec -it $${service:-homepage} /bin/sh -c "/bin/bash || /bin/sh"
