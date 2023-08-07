@@ -42,10 +42,13 @@ let last_log = "Last log is empty."
 
 app.post(`${PATH_PREFIX}/restart`, (req, res, next) => {
     if (verify_signature(req)) {
-        console.log(`Request body: ${JSON.stringify(req.body)}`)
+        //console.log(`Request body: ${JSON.stringify(req.body)}`)
         console.log("Restarting ...")
-        child_process.exec("sh restart.sh", {}, (code, stdout, stderr) => {
+        child_process.exec("bash /app/reloader/restart.sh", {}, (code, stdout, stderr) => {
             last_log = code ? stderr : stdout
+            if (code) {
+                console.error("ERROR:",last_log)
+            }
         });
         res.writeHead(200)
         res.end("200 OK: Restart request received.\n")

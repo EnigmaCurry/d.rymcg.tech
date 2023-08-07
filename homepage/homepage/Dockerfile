@@ -1,6 +1,7 @@
 ARG HOMEPAGE_VERSION
 FROM ghcr.io/benphelps/homepage:${HOMEPAGE_VERSION}
-WORKDIR /app/reloader
+RUN apk add --no-cache bash openssh git envsubst
+WORKDIR /app
 ADD . /app/reloader
-RUN npm install
-CMD ["/bin/sh", "start.sh"]
+RUN cd /app/reloader && npm install
+CMD ["/bin/sh", "/app/reloader/start.sh"]
