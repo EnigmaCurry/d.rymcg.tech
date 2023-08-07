@@ -450,7 +450,7 @@ Install these services at your leisure/preference:
 * [FreshRSS](freshrss#readme) - an RSS reader / proxy
 * [Gitea](gitea#readme) - Git host (like self-hosted GitHub) and oauth server
 * [Grocy](grocy#readme) - a grocery & household management/chore solution
-* [Homepage](homepage#readme) - an application dashboard wit integrations
+* [Homepage](homepage#readme) - an application dashboard with several integrations
 * [Icecast](icecast#readme) - a SHOUTcast compatible streaming multimedia server
 * [Invidious](invidious#readme) - a Youtube proxy
 * [Jitsi Meet](jitsi-meet#readme) - a video conferencing and screencasting service
