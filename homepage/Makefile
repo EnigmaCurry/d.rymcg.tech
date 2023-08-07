@@ -12,7 +12,7 @@ config-hook:
 	@${BIN}/confirm $$([[ $$(${BIN}/dotenv -f ${ENV_FILE} get HOMEPAGE_ENABLE_DOCKER) == "true" ]] && echo "yes" || echo "no") "Do you want to enable docker service discovery" "?" && ${BIN}/reconfigure ${ENV_FILE} HOMEPAGE_ENABLE_DOCKER=true || ${BIN}/reconfigure ${ENV_FILE} HOMEPAGE_ENABLE_DOCKER=false
 	@${BIN}/reconfigure ${ENV_FILE} HOMEPAGE_INSTANCE=$${instance:-default}
 	@${BIN}/reconfigure_htpasswd ${ENV_FILE} HOMEPAGE_HTTP_AUTH default=no
-	@${BIN}/reconfigure_password ${ENV_FILE} HOMEPAGE_WEBHOOK_HMAC_SECRET 45
+	@${BIN}/reconfigure_password ${ENV_FILE} HOMEPAGE_RELOADER_HMAC_SECRET 45
 
 .PHONY: override-hook
 override-hook:

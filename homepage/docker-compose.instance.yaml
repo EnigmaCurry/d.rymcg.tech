@@ -37,6 +37,7 @@ services:
       #! The host matching router rule:
       - "traefik.http.routers.(@= router @).rule=Host(`(@= traefik_host @)`)"
       - "traefik.http.routers.(@= router @).entrypoints=websecure"
+      - "traefik.http.routers.(@= router @).service=(@= router @)"
       #@ enabled_middlewares.append("{}-ipwhitelist".format(router))
       - "traefik.http.middlewares.(@= router @)-ipwhitelist.ipwhitelist.sourcerange=(@= ip_sourcerange @)"
 
@@ -45,9 +46,16 @@ services:
       - "traefik.http.middlewares.(@= router @)-basicauth.basicauth.users=(@= http_auth @)"
       #@ end
 
+      - "traefik.http.services.(@= router @).loadbalancer.server.port=3000"
+      
       #! Apply all middlewares (do this at the end!)
       - "traefik.http.routers.(@= router @).middlewares=(@= ','.join(enabled_middlewares) @)"
 
       #@ reloader_router = "{}-{}-{}".format(project,instance,"reloader")
-      - "traefik.http.routers.(@= reloader_router @).rule=Host(`(@= traefik_host @)`) && PathPrefix(`/(@= reloader_path_prefix @)`)"
+      - "traefik.http.routers.(@= reloader_router @).rule=Host(`(@= traefik_host @)`) && PathPrefix(`(@= reloader_path_prefix @)`)"
       - "traefik.http.routers.(@= reloader_router @).entrypoints=websecure"
+      #! Override the default port that whoami binds to, so that it lives in userspace >1024:
+      #! You don't normally need to do this, as long as your image has
+      #! an EXPOSE directive in it, Traefik will autodetect it, but this is how you can override it:
+      - "traefik.http.services.(@= reloader_router @).loadbalancer.server.port=8070"
+      - "traefik.http.routers.(@= reloader_router @).service=(@= reloader_router @)"

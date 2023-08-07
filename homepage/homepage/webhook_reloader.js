@@ -42,9 +42,9 @@ let last_log = "Last log is empty."
 
 app.post(`${PATH_PREFIX}/restart`, (req, res, next) => {
     if (verify_signature(req)) {
-        consle.log(`Request body: ${req.body}`)
+        console.log(`Request body: ${JSON.stringify(req.body)}`)
         console.log("Restarting ...")
-        child_process.exec("restart.sh", {}, (code, stdout, stderr) => {
+        child_process.exec("sh restart.sh", {}, (code, stdout, stderr) => {
             last_log = code ? stderr : stdout
         });
         res.writeHead(200)
@@ -60,6 +60,7 @@ app.post(`${PATH_PREFIX}/restart`, (req, res, next) => {
 
 try{
     server.listen(PORT);
+    console.log("")
     console.log(`Reloader webhook started at:\nhttp://${ip.address()}:${PORT}${PATH_PREFIX}/restart`);
 } catch(err){
     console.log(`Unable to start the webhook server, probably the port ${PORT} is busy.`);
