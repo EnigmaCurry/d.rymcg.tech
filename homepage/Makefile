@@ -9,10 +9,18 @@ config-hook:
 #### reconfigure sets the value of a variable in the .env file without asking.
 #### reconfigure_htpasswd will configure the HTTP Basic Authentication setting the var name and with a provided default value.
 	@${BIN}/reconfigure_ask ${ENV_FILE} HOMEPAGE_TRAEFIK_HOST "Enter the homepage domain name" homepage${INSTANCE_URL_SUFFIX}.${ROOT_DOMAIN}
+	@echo ""
 	@${BIN}/confirm $$([[ $$(${BIN}/dotenv -f ${ENV_FILE} get HOMEPAGE_ENABLE_DOCKER) == "true" ]] && echo "yes" || echo "no") "Do you want to enable docker service discovery" "?" && ${BIN}/reconfigure ${ENV_FILE} HOMEPAGE_ENABLE_DOCKER=true || ${BIN}/reconfigure ${ENV_FILE} HOMEPAGE_ENABLE_DOCKER=false
+	@echo ""
 	@${BIN}/reconfigure ${ENV_FILE} HOMEPAGE_INSTANCE=$${instance:-default}
 	@${BIN}/reconfigure_htpasswd ${ENV_FILE} HOMEPAGE_HTTP_AUTH default=no
+	@echo ""
 	@${BIN}/reconfigure_password ${ENV_FILE} HOMEPAGE_RELOADER_HMAC_SECRET 45
+	@echo ""
+	@${BIN}/reconfigure_ask ${ENV_FILE} HOMEPAGE_TEMPLATE_REPO "Enter the git repository used to make the config. All environment variables will be substituted in the templates via envsubst. Cloning from private git repositores is supported, but you must create a deploy key first." "git@github.com:YourUsername/my-private-homepage-template.git"
+	@echo ""
+	@${BIN}/confirm $$([[ $$(${BIN}/dotenv -f ${ENV_FILE} get HOMEPAGE_TEMPLATE_REPO_SYNC_ON_START) == "true" ]] && echo "yes" || echo "no") "Do you want to reset your config on every startup from the HOMEPAGE_TEMPLATE_REPO? (Warning: ALL of your existing homepage config would be deleted every time the container restarts)" "?" && ${BIN}/reconfigure ${ENV_FILE} HOMEPAGE_TEMPLATE_REPO_SYNC_ON_START=true || ${BIN}/reconfigure ${ENV_FILE} HOMEPAGE_TEMPLATE_REPO_SYNC_ON_START=false
+	@echo ""
 
 .PHONY: override-hook
 override-hook:
