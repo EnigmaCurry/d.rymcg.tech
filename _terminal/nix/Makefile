@@ -54,32 +54,32 @@ build-user:
 
 .PHONY: build-cached-base # build the base images only if the image tags do not already exist
 build-cached-base:
-	@NIX_BASE_IMAGE_TAG=$$(dotenv -f ${ENV_FILE} get NIX_BASE_IMAGE_TAG); (docker image inspect $${NIX_BASE_IMAGE_TAG} >/dev/null && echo "Found cached image: $${NIX_BASE_IMAGE_TAG}") || docker compose --env-file ${ENV_FILE} build nix-base
-	@NIX_COMMON_IMAGE_TAG=$$(dotenv -f ${ENV_FILE} get NIX_COMMON_IMAGE_TAG); (docker image inspect $${NIX_COMMON_IMAGE_TAG} >/dev/null && echo "Found cached image: $${NIX_COMMON_IMAGE_TAG}") || docker compose --env-file ${ENV_FILE} build nix-common
+	@NIX_BASE_IMAGE_TAG=$$(${BIN}/dotenv -f ${ENV_FILE} get NIX_BASE_IMAGE_TAG); (docker image inspect $${NIX_BASE_IMAGE_TAG} >/dev/null && echo "Found cached image: $${NIX_BASE_IMAGE_TAG}") || docker compose --env-file ${ENV_FILE} build nix-base
+	@NIX_COMMON_IMAGE_TAG=$$(${BIN}/dotenv -f ${ENV_FILE} get NIX_COMMON_IMAGE_TAG); (docker image inspect $${NIX_COMMON_IMAGE_TAG} >/dev/null && echo "Found cached image: $${NIX_COMMON_IMAGE_TAG}") || docker compose --env-file ${ENV_FILE} build nix-common
 
 .PHONY: build-cached # build the images only if they don't exist already
 build-cached: build-cached-base
-	@NIX_USER_IMAGE_TAG=$$(dotenv -f ${ENV_FILE} get NIX_USER_IMAGE_TAG); (docker image inspect $${NIX_USER_IMAGE_TAG} >/dev/null && echo "Found cached image: $${NIX_USER_IMAGE_TAG}") || docker compose --env-file ${ENV_FILE} build nix-user
+	@NIX_USER_IMAGE_TAG=$$(${BIN}/dotenv -f ${ENV_FILE} get NIX_USER_IMAGE_TAG); (docker image inspect $${NIX_USER_IMAGE_TAG} >/dev/null && echo "Found cached image: $${NIX_USER_IMAGE_TAG}") || docker compose --env-file ${ENV_FILE} build nix-user
 
 
 .PHONY: push # push the tagged nix-base and nix-common images to the Docker registry
 push:
-	docker push $$(dotenv -f ${ENV_FILE} get NIX_BASE_IMAGE_TAG)
-	docker push $$(dotenv -f ${ENV_FILE} get NIX_COMMON_IMAGE_TAG)
+	docker push $$(${BIN}/dotenv -f ${ENV_FILE} get NIX_BASE_IMAGE_TAG)
+	docker push $$(${BIN}/dotenv -f ${ENV_FILE} get NIX_COMMON_IMAGE_TAG)
 
 .PHONY: pull # push the tagged nix-base and nix-common images to the Docker registry
 pull:
-	docker pull $$(dotenv -f ${ENV_FILE} get NIX_BASE_IMAGE_TAG)
-	docker pull $$(dotenv -f ${ENV_FILE} get NIX_COMMON_IMAGE_TAG)
+	docker pull $$(${BIN}/dotenv -f ${ENV_FILE} get NIX_BASE_IMAGE_TAG)
+	docker pull $$(${BIN}/dotenv -f ${ENV_FILE} get NIX_COMMON_IMAGE_TAG)
 
 .PHONY: shell # Start a new shell TTY container in the foreground
 shell:
 #### This must copy the env file to a temp file and set INSTANCE_SUFFIX as the hostname cannot be derrived from an env var passed on the command line?!
-	@if [[ -f "${ENV_FILE}" ]]; then TEMPFILE=$$(mktemp /tmp/${PROJECT_NAME}.XXX.env); cp ${ENV_FILE} "$${TEMPFILE}"; ${BIN}/reconfigure "$${TEMPFILE}" "NIX_INSTANCE_SUFFIX=-${tty}"; NIX_GENERIC_PREFIX=$$(dotenv -f "$${TEMPFILE}" get NIX_GENERIC_PREFIX); (set -x; docker compose --env-file $${TEMPFILE} --project-name "${CWD_PROJECT_NAME}" run ${DAEMON_MODE_ARG} --build --name=$${NIX_GENERIC_PREFIX}-${INSTANCE}-${tty} --rm -it $${service:-shell}); rm -f $${TEMPFILE}; else echo "Env file is missing: ${ENV_FILE}"; echo -e "Try running: make config instance=${INSTANCE}\nOr: d.rymcg.tech shell config ${INSTANCE}"; fi
+	@if [[ -f "${ENV_FILE}" ]]; then TEMPFILE=$$(mktemp /tmp/${PROJECT_NAME}.XXX.env); cp ${ENV_FILE} "$${TEMPFILE}"; ${BIN}/reconfigure "$${TEMPFILE}" "NIX_INSTANCE_SUFFIX=-${tty}"; NIX_GENERIC_PREFIX=$$(${BIN}/dotenv -f "$${TEMPFILE}" get NIX_GENERIC_PREFIX); (set -x; docker compose --env-file $${TEMPFILE} --project-name "${CWD_PROJECT_NAME}" run ${DAEMON_MODE_ARG} --build --name=$${NIX_GENERIC_PREFIX}-${INSTANCE}-${tty} --rm -it $${service:-shell}); rm -f $${TEMPFILE}; else echo "Env file is missing: ${ENV_FILE}"; echo -e "Try running: make config instance=${INSTANCE}\nOr: d.rymcg.tech shell config ${INSTANCE}"; fi
 
 .PHONY: stop # Stop/remove the TTY container
 stop:
-	@NIX_GENERIC_PREFIX=$$(dotenv -f "${ENV_FILE}" get NIX_GENERIC_PREFIX);	docker rm -f $${NIX_GENERIC_PREFIX}-${INSTANCE}-${tty} $${NIX_GENERIC_PREFIX}-${INSTANCE}-${tty}-web
+	@NIX_GENERIC_PREFIX=$$(${BIN}/dotenv -f "${ENV_FILE}" get NIX_GENERIC_PREFIX);	docker rm -f $${NIX_GENERIC_PREFIX}-${INSTANCE}-${tty} $${NIX_GENERIC_PREFIX}-${INSTANCE}-${tty}-web
 
 .PHONY: start # Start a new shell TTY container in the background
 start:
@@ -91,19 +91,19 @@ web-start:
 
 .PHONY: web-stop # Stop/remove the web-enabled TTY container
 web-stop:
-	@NIX_GENERIC_PREFIX=$$(dotenv -f "${ENV_FILE}" get NIX_GENERIC_PREFIX);	docker rm -f $${NIX_GENERIC_PREFIX}-${INSTANCE}-${tty}-web
+	@NIX_GENERIC_PREFIX=$$(${BIN}/dotenv -f "${ENV_FILE}" get NIX_GENERIC_PREFIX);	docker rm -f $${NIX_GENERIC_PREFIX}-${INSTANCE}-${tty}-web
 
 .PHONY: restart # Restart the shell TTY container in the background
 restart: stop start
 
 .PHONY: destroy # Deletes all the TTY containers AND the data volume for the given INSTANCE
 destroy:
-	@NIX_GENERIC_PREFIX=$$(dotenv -f "${ENV_FILE}" get NIX_GENERIC_PREFIX); ${BIN}/confirm no "Do you want to destroy all the containers AND volumes for the given context/instance (${DOCKER_CONTEXT}/${INSTANCE})" "?" && docker ps -q --filter="name=^$${NIX_GENERIC_PREFIX}-${INSTANCE}-" | xargs -iXX docker rm -f XX && docker volume rm -f nix_${INSTANCE}_home
+	@NIX_GENERIC_PREFIX=$$(${BIN}/dotenv -f "${ENV_FILE}" get NIX_GENERIC_PREFIX); ${BIN}/confirm no "Do you want to destroy all the containers AND volumes for the given context/instance (${DOCKER_CONTEXT}/${INSTANCE})" "?" && docker ps -q --filter="name=^$${NIX_GENERIC_PREFIX}-${INSTANCE}-" | xargs -iXX docker rm -f XX && docker volume rm -f nix_${INSTANCE}_home
 
 
 .PHONY: attach # Attach to an existing shell container
 attach: config-if-neccessary
-	@CONTAINER_NAME="$$(dotenv -f "${ENV_FILE}" get NIX_GENERIC_PREFIX)-${INSTANCE}-${tty}"; if docker inspect "$${CONTAINER_NAME}" >/dev/null; then (set -x; docker attach --detach-keys="ctrl-\\" "$${CONTAINER_NAME}"); else make --no-print-directory build-cached start ENV_FILE=${ENV_FILE} instance=${instance} tty=${tty} && (set -x; docker attach --detach-keys="ctrl-\\" "$${CONTAINER_NAME}"); fi || true
+	@CONTAINER_NAME="$$(${BIN}/dotenv -f "${ENV_FILE}" get NIX_GENERIC_PREFIX)-${INSTANCE}-${tty}"; if docker inspect "$${CONTAINER_NAME}" >/dev/null; then (set -x; docker attach --detach-keys="ctrl-\\" "$${CONTAINER_NAME}"); else make --no-print-directory build-cached start ENV_FILE=${ENV_FILE} instance=${instance} tty=${tty} && (set -x; docker attach --detach-keys="ctrl-\\" "$${CONTAINER_NAME}"); fi || true
 
 .PHONY: sync # Synchronize the local nixpkgs to the container volume (one time)
 sync:
