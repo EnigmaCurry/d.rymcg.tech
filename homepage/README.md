@@ -44,7 +44,7 @@ you need to copy and paste into your Gitea, Github, or Gitlab
 repository settings (Search for Deploy Key in the settings, and add
 this public key to allow cloning from the private repository.)
 
-![2023-08-07T00:40:50,971689020-06:00](https://github.com/EnigmaCurry/d.rymcg.tech/assets/43061/c39b28e2-01d5-4890-94f7-ea4ed690ce72)
+![2023-08-07T00:40:50,971689020-06:00](https://github.com/EnigmaCurry/d.rymcg.tech/assets/43061/2b74a83f-27ff-4a74-8614-060775dcfacf)
 
 ## Install
 
@@ -86,8 +86,10 @@ Second you must configure your Gitea, Github, or Gitlab repository to
 add the webhook.
 
  * Webhook URL is of the format: `https://homepage.example.com/reloader/restart`
+ * Choose the data type: `application/json`
  * Webhook Secret is found in your `.env_{INSTANCE}` as
    `HOMEPAGE_RELOADER_HMAC_SECRET`. This secret is used to validate
    that the request is actually coming from your git host.
 
-![2023-08-07T00:39:36,722487208-06:00](https://github.com/EnigmaCurry/d.rymcg.tech/assets/43061/ab4d6a7b-2b07-4fd3-8d11-30de66639c81)
+![2023-08-07T00:39:36,722487208-06:00](https://github.com/EnigmaCurry/d.rymcg.tech/assets/43061/5a0001c3-505d-4984-a114-a9bd1f8ea33b)
+
