@@ -44,6 +44,8 @@ you need to copy and paste into your Gitea, Github, or Gitlab
 repository settings (Search for Deploy Key in the settings, and add
 this public key to allow cloning from the private repository.)
 
+![2023-08-07T00:40:50,971689020-06:00](https://github.com/EnigmaCurry/d.rymcg.tech/assets/43061/c39b28e2-01d5-4890-94f7-ea4ed690ce72)
+
 ## Install
 
 ```
@@ -88,3 +90,4 @@ add the webhook.
    `HOMEPAGE_RELOADER_HMAC_SECRET`. This secret is used to validate
    that the request is actually coming from your git host.
 
+![2023-08-07T00:39:36,722487208-06:00](https://github.com/EnigmaCurry/d.rymcg.tech/assets/43061/ab4d6a7b-2b07-4fd3-8d11-30de66639c81)
