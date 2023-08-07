@@ -55,11 +55,60 @@ services:
       - QBITTORRENT_RPC_BIND_ADDRESS
       - QBITTORRENT_BLOCKLIST_URL
       - QBITTORRENT_PEER_PORT
+      - QBITTORRENT_OnTorrentAddedEnabled
+      - QBITTORRENT_OnTorrentAddedProgram
+      - QBITTORRENT_enabled
+      - QBITTORRENT_program
+      - QBITTORRENT_SessionAddExtensionToIncompleteFiles
+      - QBITTORRENT_SessionAlternativeGlobalDLSpeedLimit
+      - QBITTORRENT_SessionAlternativeGlobalUPSpeedLimit
+      - QBITTORRENT_SessionDefaultSavePath
+      - QBITTORRENT_SessionDisableAutoTMMByDefault
+      - QBITTORRENT_SessionDisableAutoTMMTriggersCategorySavePathChanged
+      - QBITTORRENT_SessionDisableAutoTMMTriggersDefaultSavePathChanged
+      - QBITTORRENT_SessionExcludedFileNames
+      - QBITTORRENT_SessionIgnoreSlowTorrentsForQueueing
+      - QBITTORRENT_SessionMaxActiveDownloads
+      - QBITTORRENT_SessionMaxActiveTorrents
+      - QBITTORRENT_SessionMaxActiveUploads
+      - QBITTORRENT_SessionTempPath
+      - QBITTORRENT_SessionTempPathEnabled
+      - QBITTORRENT_SessionQueueingSystemEnabled
+      - QBITTORRENT_SessionTorrentExportDirectory
+      - QBITTORRENT_AutoDeleteAddedTorrentFile
+      - QBITTORRENT_DownloadsSavePath
+      - QBITTORRENT_DownloadsTempPath
+      - QBITTORRENT_SessionTorrentContentLayout
+      - QBITTORRENT_GeneralLocale
+      - QBITTORRENT_MailNotificationemail
+      - QBITTORRENT_MailNotificationenabled
+      - QBITTORRENT_MailNotificationpassword
+      - QBITTORRENT_MailNotificationreq_auth
+      - QBITTORRENT_MailNotificationreq_ssl
+      - QBITTORRENT_MailNotificationsender
+      - QBITTORRENT_MailNotificationsmtp_server
+      - QBITTORRENT_MailNotificationusername
+      - QBITTORRENT_WebUICustomHTTPHeaders
+      - QBITTORRENT_WebUICustomHTTPHeadersEnabled
+      - QBITTORRENT_WebUIHostHeaderValidation
+      - QBITTORRENT_WebUILocalHostAuth
+      - QBITTORRENT_WebUIReverseProxySupportEnabled
+      - QBITTORRENT_WebUITrustedReverseProxiesList
+      - QBITTORRENT_Schedulerdays
+      - QBITTORRENT_Schedulerend_time
+      - QBITTORRENT_Schedulerstart_time
+      - QBITTORRENT_SessionUseAlternativeGlobalSpeedLimit
+      - QBITTORRENT_SessionBandwidthSchedulerEnabled
+      - QBITTORRENT_WebUIPassword_PBKDF2
+      - QBITTORRENT_WebUIServerDomains
+      - QBITTORRENT_WebUIUsername
+      - QBITTORRENT_WebUIAuthSubnetWhitelistEnabled
+      - QBITTORRENT_WebUIAuthSubnetWhitelist
     volumes:
       - qbittorrent-config:/config
 
   qbittorrent:
-    image: linuxserver/qbittorrent
+    image: linuxserver/qbittorrent:${QBITTORRENT_VERSION}
     network_mode: "service:wireguard"
     depends_on:
       - wireguard

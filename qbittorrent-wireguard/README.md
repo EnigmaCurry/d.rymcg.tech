@@ -1,6 +1,6 @@
 # qbittorrent-wireguard
 
-This is the [qBittorrent](https://https://www.qbittorrent.org/) Bittorrent
+This is the [qBittorrent](https://www.qbittorrent.org/) Bittorrent
 client combined with the [Wireguard](https://www.wireguard.com/) VPN
 service. Connect wireguard to your VPN provider and anonymize your
 peer connections.
@@ -77,6 +77,30 @@ Enter the following information as prompted:
 
 All these client credentials are stored in your `.env` file.
 
+#### qBittorrent config options
+Once up and running, you can configure qBittorrent in its web UI, but
+qBittorrent's configs are reset on each startup of the Docker container.
+So we set them in environment variables, so they can be reapplied on each
+startup. 
+
+The qBittorrent configurations are not included in `make config` - you'll
+need to manually edit your `.env` file to adjust them.
+
+You might need to install qBittorrent and set the variable in its web
+UI, then copy the value from
+`/var/lib/docker/volumes/<container's volume name>/_data/qBittorrent/qBittorrent.conf`
+(on the host) and paste it your `.env` file. 
+
+In your `.env` file, the lines in \[brackets\] are simply qBittorrent
+configuration categories, for your reference.
+
+If you add any additional qBittorrent configs to your `.env` file, you'll also
+need to add them to `docker-compose.yaml` and
+`qbittorrent-config/template/qBittorrent.conf`. You can follow the examples
+already in those files for formatting and naming conventions.
+
+If you change or add any qBittorrent config values, run `make install`.
+
 Other settings that are not configured by `make config` and you should
 use the default:
 
@@ -89,7 +113,7 @@ use the default:
    protected by username/password or IP filter). You can modify this
    to access certain peers that dont' need a VPN (eg. on your LAN).
 
-# Deploy
+## Deploy
 
 Once configured, deploy it:
 
@@ -99,4 +123,48 @@ make install
 
 ```
 make open
+```
+
+## Verify the VPN is functional
+
+The [wireguard service does not have an integrated
+killswitch](https://github.com/linuxserver/docker-wireguard/issues/139) -
+if for any reason wireguard fails to start, including for reasons of
+misconfiguration and/or host incompatibilities, then qbittorrent will
+*NOT* be protected, and will be using the local internet connection
+instead of the VPN.
+
+Before using the service, you should verify that your VPN is working:
+
+```
+# Check that both wireguard and qbittorent are running (two containers:)
+make status
+
+# Check the logs, make sure there isn't an error:
+make logs
+
+# Exec into the qbittorrent container and check the ip address being used:
+# (This should report your VPN connection details, not your local connection)
+make shell
+curl ifconfig.co/json
+```
+
+## Issues with IPv6
+
+On arm64 I had an issue with ipv6 with this error reported from wireguard:
+
+```
+qbittorrent-wireguard-wireguard-1    | [#] ip6tables-restore -n
+qbittorrent-wireguard-wireguard-1    | modprobe: can't load module ip6_tables (kernel/net/ipv6/netfilter/ip6_tables.ko.zst): invalid module formatqbittorrent-wireguard-wireguard-1    | ip6tables-restore v1.8.8 (legacy): ip6tables-restore: unable to initialize table 'raw'
+```
+
+This may have been a host issue, but I was able to work around it by simply removing ipv6 support in the configuration.
+
+```
+## To disable ipv6 In your .env file:
+
+# Don't set an ipv6 address:
+QBITTORRENT_VPN_CLIENT_INTERFACE_IPV6=
+# Remove the ::0/0 from the QBITTORRENT_VPN_CLIENT_PEER_ALLOWED_IPS list:
+QBITTORRENT_VPN_CLIENT_PEER_ALLOWED_IPS=0.0.0.0/0
 ```

@@ -24,6 +24,7 @@ ytt_template() {
         -v plugins="${TRAEFIK_PLUGINS}" \
         -v plugin_blockpath="${TRAEFIK_PLUGIN_BLOCKPATH}" \
         -v plugin_maxmind_geoip="${TRAEFIK_PLUGIN_MAXMIND_GEOIP}" \
+        -v plugin_referer="${TRAEFIK_PLUGIN_REFERER}" \
         -v web_entrypoint_enabled="${TRAEFIK_WEB_ENTRYPOINT_ENABLED}" \
         -v web_entrypoint_host="${TRAEFIK_WEB_ENTRYPOINT_HOST}" \
         -v web_entrypoint_port="${TRAEFIK_WEB_ENTRYPOINT_PORT}" \
@@ -69,6 +70,9 @@ ytt_template() {
         -v root_domain="${TRAEFIK_ROOT_DOMAIN}" \
         -v vpn_root_domain="${TRAEFIK_VPN_ROOT_DOMAIN}" \
         -v network_mode="${TRAEFIK_NETWORK_MODE}" \
+        -v error_handler_403_service="${TRAEFIK_ERROR_HANDLER_403_SERVICE}" \
+        -v error_handler_404_service="${TRAEFIK_ERROR_HANDLER_404_SERVICE}" \
+        -v error_handler_500_service="${TRAEFIK_ERROR_HANDLER_500_SERVICE}" \
         > ${dst}
     success=$?
     echo "[ ! ] GENERATED NEW CONFIG FILE :::  ${dst}"

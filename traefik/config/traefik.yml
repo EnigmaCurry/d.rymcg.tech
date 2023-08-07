@@ -22,7 +22,11 @@ experimental:
     #@ end
     #@ if data.values.plugin_maxmind_geoip == "true":
     geoip:
-      modulename: github.com/GiGInnovationLabs/traefikgeoip2
+      modulename: github.com/forestvpn/traefikgeoip2
+    #@ end
+    #@ if data.values.plugin_referer == "true":
+    referer:
+      modulename: github.com/moonlightwatch/referer
     #@ end
 #@ end
 
@@ -98,6 +102,16 @@ entryPoints:
               - #@ secondary
               #@ end
           #@ end
+        #@ end
+      middlewares:
+        #@ if len(data.values.error_handler_403_service):
+        - traefik-websecure-error-handler-403@file
+        #@ end
+        #@ if len(data.values.error_handler_404_service):
+        - traefik-websecure-error-handler-404@file
+        #@ end
+        #@ if len(data.values.error_handler_500_service):
+        - traefik-websecure-error-handler-500@file
         #@ end
   #@ end
   #@ if data.values.xmpp_c2s_entrypoint_enabled == "true":

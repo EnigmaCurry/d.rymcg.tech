@@ -1,11 +1,6 @@
 ROOT_DIR = ..
 include ${ROOT_DIR}/_scripts/Makefile.projects-no-open
 
-## TODO: delete this, because we don't need a specific vpn network anymore..
-# .PHONY: network # Create Docker networks
-# network:
-# 	@[[ $$(${BIN}/dotenv -f ${ENV_FILE} get TRAEFIK_VPN_ENTRYPOINT_ENABLED) == "true" ]] && (docker network inspect traefik-vpn >/dev/null 2>&1 || (echo "" && echo "Creating traefik-vpn network ..." && docker network create traefik-vpn --subnet "$$(${BIN}/dotenv -f ${ENV_FILE} get TRAEFIK_VPN_SUBNET)" || true)) && echo "" && echo "Traefik VPN network:" && docker network ls | grep traefik-vpn && docker network inspect traefik-vpn | grep Subnet && echo "Traefik VPN entrypoint: $$(${BIN}/dotenv -f ${ENV_FILE} get TRAEFIK_VPN_ENTRYPOINT_HOST):$$(${BIN}/dotenv -f ${ENV_FILE} get TRAEFIK_VPN_ENTRYPOINT_PORT)" || true
-
 .PHONY: config-hook
 config-hook: traefik-user config-ask compose-profiles 
 	@echo ""

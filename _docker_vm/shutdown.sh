@@ -2,7 +2,7 @@
 
 set -e
 
-VMNAME=${VMNAME:-"bullseye_vm"}
+VMNAME=${VMNAME:-"bookworm_vm"}
 QMP_SOCKET=/tmp/${VMNAME}-qmp-sock
 
 cat <<EOF | socat -t 30 - unix-connect:${QMP_SOCKET}
