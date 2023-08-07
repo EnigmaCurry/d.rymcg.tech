@@ -15,6 +15,10 @@
 #@ http_auth = data.values.http_auth_var
 #@ enabled_middlewares = []
 
+#! ### Custom project vars:
+#@ photoprism_admin_user = data.values.PHOTOPRISM_ADMIN_USER
+#@ photoprism_homepage_admin_password = data.values.PHOTOPRISM_HOMEPAGE_ADMIN_PASSWORD
+
 #@yaml/text-templated-strings
 services:
   photoprism:
@@ -44,3 +48,15 @@ services:
 
       #! Apply all middlewares (do this at the end!)
       - "traefik.http.routers.(@= router @).middlewares=(@= ','.join(enabled_middlewares) @)"
+
+      #! Homepage labels for auto-discovery and config:
+      - "homepage.group=Group A"
+      - "homepage.name=PhotoPrism"
+      - "homepage.icon=photoprism.png"
+      - "homepage.href=http://(@= traefik_host @)"
+      - "homepage.description=AI-Powered Photos App for the Decentralized Web"
+      - "homepage.widget.type=photoprism"
+      - "homepage.widget.url=http://(@= traefik_host @)"
+      - "homepage.widget.username=(@= photoprism_admin_user @)"
+      - "homepage.widget.password=(@= photoprism_homepage_admin_password @)"
+      - "homepage.widget.fields=[\"albums\", \"photos\", \"videos\", "people\"]"

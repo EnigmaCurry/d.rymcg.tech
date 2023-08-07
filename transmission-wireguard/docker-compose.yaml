@@ -43,6 +43,18 @@ services:
       ## Authentication:
       - "traefik.http.middlewares.transmission-${TRANSMISSION_INSTANCE:-default}-auth.basicauth.users=${TRANSMISSION_HTTP_AUTH}"
       - "traefik.http.routers.transmission-${TRANSMISSION_INSTANCE:-default}.middlewares=transmission-${TRANSMISSION_INSTANCE:-default}-auth@docker"
+      ## Homepage labels for auto-discovery and config:
+      - "homepage.group=Group A"
+      - "homepage.name=Transmission"
+      - "homepage.icon=transmission.png"
+      - "homepage.href=http://${TRANSMISSION_TRAEFIK_HOST}"
+      - "homepage.description=Transmission client in a Wireguard VPN"
+      - "homepage.widget.type=transmission"
+      - "homepage.widget.url=http://${TRANSMISSION_TRAEFIK_HOST}"
+      - "homepage.widget.username="
+      - "homepage.widget.password="
+      - "homepage.widget.fields=[\"leech\", \"download\", \"seed\", "upload\"]"
+      - "homepage.widget.rpcUrl=${TRANSMISSION_WEB_HOME}"
 
   transmission-config:
     build:

@@ -13,6 +13,9 @@
 #@ ip_sourcerange = data.values.ip_sourcerange
 #@ enabled_middlewares = []
 
+#! ### Custom project vars:
+#@ audiobookshelf_api_key = data.values.AUDIOBOOKSHELF_API_KEY
+
 #@yaml/text-templated-strings
 services:
   audiobookshelf:
@@ -30,3 +33,14 @@ services:
 
       #! Apply all middlewares (do this at the end!)
       - "traefik.http.routers.(@= router @).middlewares=(@= ','.join(enabled_middlewares) @)"
+
+      #! Homepage labels for auto-discovery and config:
+      - "homepage.group=Group A"
+      - "homepage.name=Audiobookshelf"
+      - "homepage.icon=audiobookshelf.png"
+      - "homepage.href=http://(@= traefik_host @)"
+      - "homepage.description=Self-hosted audiobook and podcast server"
+      - "homepage.widget.type=audiobookshelf"
+      - "homepage.widget.url=http://(@= traefik_host @)"
+      - "homepage.widget.key=(@= audiobookshelf_api_key @)"
+      - "homepage.widget.fields=[\"podcasts\", \"podcastsDuration\", \"books\", \"booksDuration\"] 
