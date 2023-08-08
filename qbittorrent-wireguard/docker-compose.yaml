@@ -44,17 +44,6 @@ services:
       - "traefik.http.middlewares.qbittorrent-${QBITTORRENT_INSTANCE:-default}-auth.basicauth.users=${QBITTORRENT_HTTP_AUTH}"
       - "traefik.http.middlewares.qbittorrent-${QBITTORRENT_INSTANCE:-default}-ipwhitelist.ipwhitelist.sourcerange=${QBITTORRENT_IP_SOURCERANGE}"
       - "traefik.http.routers.qbittorrent-${QBITTORRENT_INSTANCE:-default}.middlewares=qbittorrent-${QBITTORRENT_INSTANCE:-default}-ipwhitelist,qbittorrent-${QBITTORRENT_INSTANCE:-default}-auth"
-      ## Homepage labels for auto-discovery and config:
-      - "homepage.group=Group A"
-      - "homepage.name=qBittorrent"
-      - "homepage.icon=qbittorrent.png"
-      - "homepage.href=http://${QBITTORRENT_TRAEFIK_HOST}"
-      - "homepage.description=qBittorrent client in a Wireguard VPN"
-      - "homepage.widget.type=qbittorrent"
-      - "homepage.widget.url=http://${QBITTORRENT_TRAEFIK_HOST}"
-      - "homepage.widget.username="
-      - "homepage.widget.password="
-      - "homepage.widget.fields=[\"leech\", \"download\", \"seed\", "upload\"]"
 
   qbittorrent-config:
     build:

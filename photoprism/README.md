@@ -15,7 +15,7 @@ Authentication. It automatically saves your responses into the
 configuration file `.env_{DOCKER_CONTEXT}`.
 
 You'll also be prompted to enter a few configurations for PhotoPrism,
-but there are other PhotoPrism options you can configure by manually
+but there are other Photoprism options you can configure by manually
 editing your `.env_{DOCKER_CONTEXT}` file. If you add more media volumes,
 be sure to add them to `docker-compose.yaml` as well; and if you add an
 import volume, be sure to uncomment the corresponding line in the 
@@ -37,12 +37,9 @@ This will automatically open the page in your web browser, and will
 prefill the HTTP Basic Authentication password if you enabled it (and chose
 to store it in `passwords.json`).
 
-PhotoPrism also has it's own authentication, and the initial password for
+Photoprism also has it's own authentication, and the initial password for
 the "admin" account (whatever you entered for `PHOTOPRISM_ADMIN_USER`)
-is "password". Once you change the default admin password from within Photoprism,
-paste the new password into `PHOTOPRISM_HOMEPAGE_ADMIN_PASSWORD` in your
-`.env_{DOCKER_CONTEXT}` file, then run `make install` again. This will allow
-PhotoPrism to be automatically discovered by Homepage, if you use that service.
+is "password". You should change this from within Photoprism.
 
 ## Destroy
 
@@ -50,4 +47,5 @@ PhotoPrism to be automatically discovered by Homepage, if you use that service.
 make destroy
 ```
 
-This completely removes the container and delete all its volumes.
+This completely removes the container (and would also delete all its
+volumes).

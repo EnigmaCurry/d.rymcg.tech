@@ -40,4 +40,4 @@ override-hook:
 ####                         # (this hardcodes the string into docker-compose.override.yaml)
 ####   name=@VARIABLE_NAME   # sets the template 'name' field to the literal string '${VARIABLE_NAME}'
 ####                         # (used for regular docker-compose expansion of env vars by name.)
-	@${BIN}/docker_compose_override ${ENV_FILE} project=:photoprism instance=@PHOTOPRISM_INSTANCE traefik_host=@PHOTOPRISM_TRAEFIK_HOST http_auth=PHOTOPRISM_HTTP_AUTH http_auth_var=@PHOTOPRISM_HTTP_AUTH ip_sourcerange=@PHOTOPRISM_IP_SOURCERANGE photoprism_admin_user=@PHOTOPRISM_ADMIN_USER photoprism_homepage_admin_password=@PHOTOPRISM_HOMEPAGE_ADMIN_PASSWORD
+	@${BIN}/docker_compose_override ${ENV_FILE} project=:photoprism instance=@PHOTOPRISM_INSTANCE traefik_host=@PHOTOPRISM_TRAEFIK_HOST http_auth=PHOTOPRISM_HTTP_AUTH http_auth_var=@PHOTOPRISM_HTTP_AUTH ip_sourcerange=@PHOTOPRISM_IP_SOURCERANGE
