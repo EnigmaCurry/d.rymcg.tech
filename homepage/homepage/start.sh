@@ -14,7 +14,7 @@ then
 fi
 REPO_DOMAIN=$(echo "${HOMEPAGE_TEMPLATE_REPO}" | grep -oP '(?<=@|:\/\/)([^\/:]+)' | sed 's/[^@]*@//')
 REPO_PORT=$(echo "${HOMEPAGE_TEMPLATE_REPO}" | grep -oP '(?<=:)\d+') || 22
-if ! grep "[$( echo ${REPO_DOMAIN} | sed 's/\./\\./g' )]:${REPO_PORT}" "S{SSH_KNOWNHOSTS_FILE}" > /dev/null
+if ! grep "[$( echo ${REPO_DOMAIN} | sed 's/\./\\./g' )]:${REPO_PORT}" "${SSH_KNOWNHOSTS_FILE}" > /dev/null
 then
     ssh-keyscan -t rsa -p "${REPO_PORT}" "${REPO_DOMAIN}" 2>/dev/null | grep -v '^#' >> "${SSH_KNOWNHOSTS_FILE}"
 fi
