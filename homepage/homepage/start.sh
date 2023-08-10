@@ -26,7 +26,7 @@ fi
 
 ## Clone the user supplied template repository if supplied:
 if [[ -n "${HOMEPAGE_TEMPLATE_REPO}" ]]; then
-    if ls /app/config/*.yaml >/dev/null && [[ "${HOMEPAGE_TEMPLATE_REPO_SYNC_ON_START}" != "true" ]]; then
+    if ls /app/config/*.yaml >/dev/null 2>&1 && [[ "${HOMEPAGE_TEMPLATE_REPO_SYNC_ON_START}" != "true" ]]; then
         echo "Found existing config files in /app/config, so skipping HOMEPAGE_TEMPLATE_REPO sync"
         echo "(Set HOMEPAGE_TEMPLATE_REPO_SYNC_ON_START=true to force syncing)"
     else
