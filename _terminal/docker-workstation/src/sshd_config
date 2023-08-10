@@ -5,7 +5,8 @@ HostKey /etc/ssh/keys/ssh_host_ed25519_key
 HostKey /etc/ssh/keys/ssh_host_rsa_key
 
 UsePam yes
-PrintMotd yes
+## motd is printed by pam, so don't print it twice:
+PrintMotd no
 
 UseDNS no
 

@@ -10,6 +10,7 @@ RUN set -eux; \
     mkdir -m 0755 -p /run/sshd;
 ADD sshd_config /etc/ssh/sshd_config
 ADD --chmod=0700 sshd_entrypoint.sh /usr/local/bin/sshd_entrypoint.sh
+WORKDIR /root
 ENTRYPOINT /usr/local/bin/sshd_entrypoint.sh
 
 FROM openssh-base as d.rymcg.tech-base

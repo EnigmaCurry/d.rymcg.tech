@@ -5,6 +5,8 @@ Description=A pet workstation container for d.rymcg.tech
 Image=localhost/${PODMAN_WORKSTATION_IMAGE}-${PODMAN_WORKSTATION_INSTANCE}
 Volume=${PODMAN_WORKSTATION_IMAGE}-${PODMAN_WORKSTATION_INSTANCE}:/root
 Label=d.rymcg.tech-podman-workstation=${PODMAN_WORKSTATION_IMAGE}-${PODMAN_WORKSTATION_INSTANCE}
+PublishPort=${PODMAN_SSH_IP_ADDRESS}:${PODMAN_SSH_PORT}:22
+HostName=${PODMAN_WORKSTATION_HOSTNAME}
 
 [Service]
 Restart=always

@@ -1,0 +1,9 @@
+
+Host ${PODMAN_WORKSTATION_HOSTNAME}
+     Hostname ${PODMAN_SSH_IP_ADDRESS}
+     Port ${PODMAN_SSH_PORT}
+     User root
+     ControlMaster auto
+     ControlPersist yes
+     ControlPath /tmp/ssh-%u-%r@%h:%p
+
