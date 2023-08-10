@@ -1,0 +1,13 @@
+[Unit]
+Description=A pet workstation container for d.rymcg.tech
+
+[Container]
+Image=localhost/${PODMAN_WORKSTATION_IMAGE}-${PODMAN_WORKSTATION_INSTANCE}
+Volume=${PODMAN_WORKSTATION_IMAGE}-${PODMAN_WORKSTATION_INSTANCE}:/root
+Label=d.rymcg.tech-podman-workstation=${PODMAN_WORKSTATION_IMAGE}-${PODMAN_WORKSTATION_INSTANCE}
+
+[Service]
+Restart=always
+
+[Install]
+WantedBy=${PODMAN_WORKSTATION_SYSTEMD_WANTED_BY}

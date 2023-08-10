@@ -1,0 +1,5 @@
+   Welcome to your d.rymcg.tech pet workstation container
+--{{    https://github.com/EnigmaCurry/d.rymcg.tech    }}--
+
+Run `d.rymcg.tech help` to see all available commands.
+

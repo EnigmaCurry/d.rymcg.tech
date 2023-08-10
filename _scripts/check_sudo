@@ -1,0 +1,15 @@
+#!/bin/bash
+## Check for sudo privileges
+
+set -e
+BIN=$(dirname "${BASH_SOURCE}")
+source ${BIN}/funcs.sh
+
+if ! which sudo >/dev/null; then
+    fault "sudo not installed."
+fi
+
+# Thanks to Gerald https://superuser.com/a/1183480
+if ! (A=$(sudo -n -v 2>&1);test -z "$A" || echo "$A" | grep -q asswor) ; then
+    fault "It looks like you don't have sudo privileges."
+fi

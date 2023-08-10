@@ -2,23 +2,24 @@
 
 This configuration will run a secure Docker environment in a KVM
 (qemu) Virtual Machine (VM) as an unprivileged systemd user service on
-your local workstation (or on a server). This is optimized for private
-localhost development purposes, but can also be used to host public
-services for your LAN, or to have multiple individual docker VMs on a
-single large server and publish to the internet. This can be a good
-way of separating security concerns, or for creating segmented
+your local Linux workstation (or on a server). This is optimized for
+private localhost development purposes, but can also be used to host
+public services for your LAN, or to have multiple individual docker
+VMs on a single large server and publish to the internet. This can be
+a good way of separating security concerns, or for creating segmented
 namespaces like dev/test/prod, but all colocated on the same physical
 server.
 
-**Update**: [Docker Desktop](https://docs.docker.com/desktop) is now
-available for all three major platforms: Linux, Windows, and Mac. So
-for desktop users, Docker Desktop may be used instead of these
-instructions, to accomplish a similar result. For command-line Linux
-users, these instructions are still working great, and also offer
-better security (Docker Desktop is convenient, but insecure: it allows
-bind mounts and binding to ports <1024, whereas `_docker_vm` runs as a
-regular unprivileged user process. Additionally, although Docker
-itself is open source, Docker Desktop is not.)
+[Docker Desktop](https://docs.docker.com/desktop) is a similar
+project, and has the advantage of being cross-platform for Linux,
+Windows, and Mac. For Linux-exclusive users, I feel that these
+instructions offer a superior solution, and offers better security
+(Docker Desktop is convenient, but insecure: it allows bind mounts and
+binding to ports <1024, whereas `_docker_vm` runs as a regular
+unprivileged user process. Docker Desktop runs in the same userspace
+as your normal account, whereas this configuration can be installed in
+a dedicated unix user account. Additionally, although Docker itself is
+open source, Docker Desktop is not.)
 
 ## Background
 
@@ -41,9 +42,7 @@ development on your laptop before even thinking about setting one up.
 (Or, you may have a server, but its already being used for other
 non-docker things.) In that case, the recommendation is to run Docker
 inside of a VM and connect to it just like you would a remote Docker
-server. This exact recipe is used for Docker Desktop, so if you're
-using Docker Desktop, you can quit reading this, you're already
-running Docker in a VM.
+server.
 
 This guide is for Linux workstation/server users only! This will show
 you how to automatically install a new KVM virtual machine with the
@@ -80,7 +79,7 @@ the self-signed certificate on a per-domain basis. You can still use
 all of the projects that do not require TLS, or for those projects
 that include their own self-signed certificates (eg.
 [postgresql](../postgresql)).
-    
+
 To get around this TLS problem, you may reconfigure
 [Traefik](../traefik/docker-compose.yaml) to use the [DNS-01 challenge
 type](https://doc.traefik.io/traefik/user-guides/docker-compose/acme-dns/),
@@ -159,20 +158,65 @@ And prevent it from starting:
 sudo systemctl mask docker
 ```
 
-## Add your user to the KVM group
+## Setup SSH key
+
+To access the VM, you will be using SSH from your regular user
+account. Make sure you have created an SSH keypair. Copy your public
+key to a temporary file world readable:
 
 ```
-# Add your user to the kvm group:
-sudo gpasswd -a ${USER} kvm
-newgrp kvm
+# Point to your actual ssh public key (this is the default for RSA keys):
+SSH_PUB_KEY=~/.ssh/id_rsa.pub
+
+# Copy the public key to /tmp/my-ssh-key.pub
+# so it can be copied to the VM user later:
+cp ${SSH_PUB_KEY} /tmp/my-ssh-key.pub
+chmod 0644 /tmp/my-ssh-key.pub
 ```
 
-To make the setting permanent, you should log out of your (desktop)
-session and log back in.
+## Create a new dedicated system account for running the VM
 
-(Note: I still consider this "unprivileged" access. Adding a user to
-the `kvm` group is far safer than adding your user to the `docker`
-group.)
+You *can* run the virtual machine under your system's normal user
+account, however, it is much more secure to create a separate user
+account for this purpose. This way you can segment the permissions of
+the VM and its files away from the day-to-day usage of your
+workstation (For example, you shouldn't be running a web browser in
+the same user account as the virtual machine).
+
+For demo purposes, this tutorial will create a new user account called
+`docker-vm`. You may want to create several separate accounts for
+different projects/jobs/clients to separate permissions further.
+
+Since you will use SSH to control the docker server(s), you can still
+setup access them from your normal user account. Your normal account
+will only have access through SSH, and so to lock things down, you can
+simply turn off the VM, and then your normal account won't be able to
+access the data anymore, even at rest, since it lives in the
+`docker-vm` home directory that you don't have access to.
+
+Create the new `docker-vm` user account, and add it to the `kvm`
+group:
+
+```
+useradd -m docker-vm -G kvm
+```
+
+## Clone the d.rymcg.tech repository in the `docker-vm` account
+
+Login to the new account from your normal account, using `sudo`:
+
+```
+sudo su docker-vm
+```
+
+Clone the d.rymcg.tech source code, and enter the `_docker_vm`
+directory:
+
+```
+git clone https://github.com/EnigmaCurry/d.rymcg.tech.git \
+    ~/git/vendor/enigmacurry/d.rymcg.tech
+cd ~/git/vendor/enigmacurry/d.rymcg.tech/_docker_vm/
+```
 
 ## Review the config in the Makefile
 
@@ -202,26 +246,25 @@ Makefile, which become the default settings):
    if you installing a non-stable version of Debian (currently
    required for Debian bookworm). (eg `export
    NETBOOT_IMAGE=https://d-i.debian.org/daily-images/amd64/daily/netboot/netboot.tar.gz`
+ * `AUTHORIZED_SSH_KEY` - the SSH client public key (string) to be
+   allowed external access into the VM.
 
-## Create the Docker VM
+## Configure settings and build the VM
 
-If you haven't already, clone this git repository to your workstation
-and change to this directory (`_docker_vm`):
-
-```
-git clone https://github.com/EnigmaCurry/d.rymcg.tech.git \
-    ~/git/vendor/enigmacurry/d.rymcg.tech
-cd ~/git/vendor/enigmacurry/d.rymcg.tech/_docker_vm
-```
-
-Run:
+The configuration is to be created in your current shell environment
+(which are then automatically copied into the systemd service file.)
 
 ```
-## Do this part only if DISTRO=bookworm (the default):
-### ONLY required while bookworm is still in testing!
-### This will not be needed for Debian stable.
-export NETBOOT_IMAGE=https://d-i.debian.org/daily-images/amd64/daily/netboot/netboot.tar.gz
+# Still inside the shell for the docker-vm account (sudo su docker-vm),
+# Set these environment variables (and any others from the section above):
+
+# Choose the virtual filesystem size:
+DISK=60G
+# Copy the public authorized SSH key you previously copied to /tmp/my-ssh-key.pub
+AUTHORIZED_SSH_KEY=$(cat /tmp/my-ssh-key.pub)
 ```
+
+Create the Docker VM:
 
 ```
 # Run this inside the _docker_vm directory (where this same README.md exists):
@@ -244,67 +287,17 @@ Running `make` multiple times is safe, if the disk image is found, installation
 is skipped. If you ever do want to start completely from the beginning, run
 `make clean` first (this would delete your existing VM).
 
+## Wait for the login prompt
+
 When running `make` for the first time, wait for the install to finish
-and the VM will reboot and show a login prompt. Leave it running in
-your terminal, and open a new secondary terminal session to follow the
-next steps.
+and the VM will reboot and show a login prompt. 
 
-Switch your local docker context to the new VM:
-
-```
-docker context use docker-vm
-```
-
-(You can see all the available contexts and switch between them:
-`docker context ls`, the script automatically created the `docker-vm`
-context for you. The docker context references the name listed in your
-`~/.ssh/config` not the IP address.)
-
-Now you should be able to control the remote Docker server using the
-local Docker client. Try running this from your local workstation:
-
-```
-docker info | head
-```
-
-(You should see the name of the VM in the `Context` line at the start of the
-output, which indicates that you are talking to the correct docker backend.)
-
-You should be able to run any docker commands now, try:
-
-```
-docker run --rm -it -p 80:80 traefik/whoami
-```
-
-(This starts a test webserver on port 80 of the VM. The default `EXTRA_PORTS`
-setting maps localhost:8000 to docker-vm:80. So you can open your web browser to
-to http://localhost:8000 to view the page served by the container.)
-
-The script automatically added an SSH configuration in `~/.ssh/config`, which
-facilitates the docker context. You can also use this configuration to SSH
-interactively:
-
-```
-# You don't normally need to SSH to the VM interactively, but you can:
-
-# ssh docker-vm
-```
-
-Shutdown the VM once you've tested things are working:
-
-```
-ssh docker-vm shutdown -h now
-```
-
-(You should now find that the original `make` command has now exited,
-in the first terminal session.)
+Press `Ctrl-C` now to stop the VM.
 
 ## Install the systemd service and optionally start it on boot
 
 You can install the systemd service to control the VM and/or startup
 on boot, explained in the following steps:
-
-Make sure the VM is shutdown. (`ssh docker-vm shutdown -h now`)
 
 If you want to automatically start the Docker VM on startup, you must
 enable ["systemd
