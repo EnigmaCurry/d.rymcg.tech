@@ -12,27 +12,27 @@ if ! grep github.com "${SSH_KNOWNHOSTS_FILE}" > /dev/null
 then
      echo "github.com ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABgQCj7ndNxQowgcQnjshcLrqPEiiphnt+VTTvDP6mHBL9j1aNUkY4Ue1gvwnGLVlOhGeYrnZaMgRK6+PKCUXaDbC7qtbW8gIkhL7aGCsOr/C56SJMy/BCZfxd1nWzAOxSDPgVsmerOBYfNqltV9/hWCqBywINIR+5dIg6JTJ72pcEpEjcYgXkE2YEFXV1JHnsKgbLWNlhScqb2UmyRkQyytRLtL+38TGxkxCflmO+5Z8CSSNY7GidjMIZ7Q4zMjA2n1nGrlTDkzwDCsw+wqFPGQA179cnfGWOWRVruj16z6XyvxvjJwbz0wQZ75XK5tKSb7FNyeIEs4TT4jk+S4dhPeAUC5y+bDYirYgM4GC7uEnztnZyaVWQ7B381AK4Qdrwt51ZqExKbQpTUNn+EjqoTwvqNj4kqx5QUCI0ThS/YkOxJCXmPUWZbhjpCg56i+2aB6CmK2JGhn57K5mj0MNdBXA4/WnwH6XoPWJzK5Nyu2zB3nAZp+S5hpQs+p1vN1/wsjk=" >> "${SSH_KNOWNHOSTS_FILE}"
 fi
-## Pull domain from HOMEPAGE_TEMPLATE_REPO, which can be in 1 of 2 formats:
-## it@github.com:YourUsername/my-private-homepage-template.git
-## https://github.com/EnigmaCurry/d.rymcg.tech_homepage-template.git
-REPO_DOMAIN=$(echo "${HOMEPAGE_TEMPLATE_REPO}" | grep -oP '(?<=@|:\/\/)([^\/:]+)' | sed 's/[^@]*@//')
-## Pull port from HOMEPAGE_TEMPLATE_REPO.
-## I'm not setting the default port of 22 if no port is designated in
-## HOMEPAGE_TEMPLATE_REPO because when a domain without a specified port
-## is added to known_hosts, it's added without a port - I'm trying
-## to grep for the HOMEPAGE_TEMPLATE_REPO in known_hosts, so if it doesn't
-## have a port there, I don't want to grep for a port.
-REPO_PORT=$(echo "${HOMEPAGE_TEMPLATE_REPO}" | grep -oP '(?<=:)\d+')
-if [[ ! -z "${REPO_PORT}" ]]; then
-    GREP_REPO="[${REPO_DOMAIN}]:${REPO_PORT}"
-else
-    GREP_REPO="${REPO_DOMAIN}"
-fi
-## I'm adding backslashes before . [ and ] in the domain because when I grep
-## for HOMEPAGE_TEMPLATE_REPO, these characters need to be escaped.
-if ! grep "$(echo "${GREP_REPO}" | sed 's/\./\\./g; s/\[/\\[/g; s/\]/\\]/g')" "${SSH_KNOWNHOSTS_FILE}" > /dev/null
-then
-    ssh-keyscan -t rsa -p "${REPO_PORT}" "${REPO_DOMAIN}" 2>/dev/null | grep -v '^#' >> "${SSH_KNOWNHOSTS_FILE}"
+## Pull domain from HOMEPAGE_TEMPLATE_REPO:
+## HOMEPAGE_TEMPLATE_REPO can be in 1 of 2 formats:
+## 1) git@github.com:YourUsername/my-private-homepage-template.git
+## 2) https://github.com/EnigmaCurry/d.rymcg.tech_homepage-template.git
+## Deploy Keys are only needed for format 1.
+REPO_DOMAIN=$(echo "${HOMEPAGE_TEMPLATE_REPO}" | grep -oP '(?<=@)([^\/:]+)' | sed 's/[^@]*@//')
+## If HOMEPAGE_TEMPLATE_REPO is in format 1:
+if [[ ! -z "${REPO_DOMAIN}" ]]; then
+    ## Pull custom port from HOMEPAGE_TEMPLATE_REPO:
+    REPO_PORT=$(echo "${HOMEPAGE_TEMPLATE_REPO}" | grep -oP '(?<=:)\d+')
+    ## known_hosts lists hostnames differently when the server uses a custom port. 
+    if [[ ! -z "${REPO_PORT}" ]]; then
+        GREP_REPO="[${REPO_DOMAIN}]:${REPO_PORT}"
+    else
+        GREP_REPO="${REPO_DOMAIN}"
+    fi
+    if ! grep -F "${GREP_REPO}" "${SSH_KNOWNHOSTS_FILE}" > /dev/null
+    then
+        ## ssh-keyscan returns a commented line (begins with #) for each result, we don't want that line
+        ssh-keyscan -t rsa -p "${REPO_PORT:-22}" "${REPO_DOMAIN}" | grep -v '^#' >> "${SSH_KNOWNHOSTS_FILE}"
+    fi
 fi
 
 ## Clone the user supplied template repository if supplied:
