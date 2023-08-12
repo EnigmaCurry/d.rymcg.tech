@@ -1,18 +1,5 @@
 #!/bin/bash
 
-## Create git SSH key
-SSH_DIR="/app/config/ssh"
-SSH_KEYFILE="${SSH_DIR}/id_rsa"
-SSH_KNOWNHOSTS_FILE="${SSH_DIR}/known_hosts"
-test -f "${SSH_KEYFILE}" && export GIT_SSH_COMMAND="ssh -i '${SSH_KEYFILE}' -o UserKnownHostsFile='${SSH_KNOWNHOSTS_FILE}'"
-
-## Add known SSH host keys:
-mkdir -p ${SSH_DIR}
-touch "${SSH_KNOWNHOSTS_FILE}"
-if ! grep github.com "${SSH_KNOWNHOSTS_FILE}" > /dev/null
-then
-     echo "github.com ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABgQCj7ndNxQowgcQnjshcLrqPEiiphnt+VTTvDP6mHBL9j1aNUkY4Ue1gvwnGLVlOhGeYrnZaMgRK6+PKCUXaDbC7qtbW8gIkhL7aGCsOr/C56SJMy/BCZfxd1nWzAOxSDPgVsmerOBYfNqltV9/hWCqBywINIR+5dIg6JTJ72pcEpEjcYgXkE2YEFXV1JHnsKgbLWNlhScqb2UmyRkQyytRLtL+38TGxkxCflmO+5Z8CSSNY7GidjMIZ7Q4zMjA2n1nGrlTDkzwDCsw+wqFPGQA179cnfGWOWRVruj16z6XyvxvjJwbz0wQZ75XK5tKSb7FNyeIEs4TT4jk+S4dhPeAUC5y+bDYirYgM4GC7uEnztnZyaVWQ7B381AK4Qdrwt51ZqExKbQpTUNn+EjqoTwvqNj4kqx5QUCI0ThS/YkOxJCXmPUWZbhjpCg56i+2aB6CmK2JGhn57K5mj0MNdBXA4/WnwH6XoPWJzK5Nyu2zB3nAZp+S5hpQs+p1vN1/wsjk=" >> "${SSH_KNOWNHOSTS_FILE}"
-fi
 ## Pull domain from HOMEPAGE_TEMPLATE_REPO:
 ## HOMEPAGE_TEMPLATE_REPO can be in 1 of 2 formats:
 ## 1) git@github.com:YourUsername/my-private-homepage-template.git
@@ -21,6 +8,15 @@ fi
 REPO_DOMAIN=$(echo "${HOMEPAGE_TEMPLATE_REPO}" | grep -oP '(?<=@)([^\/:]+)' | sed 's/[^@]*@//')
 ## If HOMEPAGE_TEMPLATE_REPO is in format 1:
 if [[ ! -z "${REPO_DOMAIN}" ]]; then
+    ## Create git SSH key
+    SSH_DIR="/app/config/ssh"
+    SSH_KEYFILE="${SSH_DIR}/id_rsa"
+    SSH_KNOWNHOSTS_FILE="${SSH_DIR}/known_hosts"
+    test -f "${SSH_KEYFILE}" && export GIT_SSH_COMMAND="ssh -i '${SSH_KEYFILE}' -o UserKnownHostsFile='${SSH_KNOWNHOSTS_FILE}'"
+
+    ## Add known SSH host keys:
+    mkdir -p ${SSH_DIR}
+    touch "${SSH_KNOWNHOSTS_FILE}"
     ## Pull custom port from HOMEPAGE_TEMPLATE_REPO:
     REPO_PORT=$(echo "${HOMEPAGE_TEMPLATE_REPO}" | grep -oP '(?<=:)\d+')
     ## known_hosts lists hostnames differently when the server uses a custom port. 
