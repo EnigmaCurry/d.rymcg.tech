@@ -7,6 +7,7 @@ SSH_KNOWNHOSTS_FILE="${SSH_DIR}/known_hosts"
 test -f "${SSH_KEYFILE}" && export GIT_SSH_COMMAND="ssh -i '${SSH_KEYFILE}' -o UserKnownHostsFile='${SSH_KNOWNHOSTS_FILE}'"
 
 ## Add known SSH host keys:
+mkdir -p ${SSH_DIR}
 touch "${SSH_KNOWNHOSTS_FILE}"
 if ! grep github.com "${SSH_KNOWNHOSTS_FILE}" > /dev/null
 then
