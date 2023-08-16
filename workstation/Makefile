@@ -12,4 +12,6 @@ config-hook:
 
 .PHONY: shell # Enter the virtual workstation shell
 shell:
-	@make --no-print-directory docker-compose-lifecycle-cmd EXTRA_ARGS="exec -it workstation /bin/bash"
+# Use setpriv to login so we set all the groups correctly:
+# (This won't be required when logging in via SSH)
+	@make --no-print-directory docker-compose-lifecycle-cmd EXTRA_ARGS="exec -it -u root -e HOME=/home/$$(${BIN}/dotenv -f ${ENV_FILE} get WORKSTATION_USER) -e USER=$$(${BIN}/dotenv -f ${ENV_FILE} get WORKSTATION_USER) -w /home/$$(${BIN}/dotenv -f ${ENV_FILE} get WORKSTATION_USER) workstation setpriv --reuid=$$(${BIN}/dotenv -f ${ENV_FILE} get WORKSTATION_UID) --regid=$$(${BIN}/dotenv -f ${ENV_FILE} get WORKSTATION_GID) --init-groups /bin/bash"
