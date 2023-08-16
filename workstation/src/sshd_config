@@ -5,7 +5,8 @@ HostKey /home/ssh/keys/ssh_host_ed25519_key
 HostKey /home/ssh/keys/ssh_host_rsa_key
 PidFile /home/ssh/sshd.pid
 
-UsePam yes
+## Don't use pam because it requires root:
+UsePam no
 ## motd is printed by pam, so don't print it twice:
 PrintMotd no
 
@@ -20,4 +21,4 @@ PasswordAuthentication no
 KbdInteractiveAuthentication no
 ChallengeResponseAuthentication no
 
-# LogLevel VERBOSE
+LogLevel DEBUG

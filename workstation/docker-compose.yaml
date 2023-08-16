@@ -4,7 +4,7 @@ volumes:
   workstation-home:
 
 services:
-  virtual-workstation:
+  workstation:
     build:
       context: src
       args:
