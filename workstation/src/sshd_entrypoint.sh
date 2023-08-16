@@ -14,8 +14,10 @@ useradd -d ${WORKSTATION_HOME} -m --uid=${WORKSTATION_UID} --gid=${WORKSTATION_G
 gpasswd -a ${WORKSTATION_USER} sudo
 mkdir -p ${WORKSTATION_HOME}/ssh/keys
 chown -R ${WORKSTATION_USER}:${WORKSTATION_USER} ${WORKSTATION_HOME} /run/sshd
-cat /usr/local/template/d.rymcg.tech-workstation/bashrc.sh >> ${WORKSTATION_HOME}/.bashrc
 echo "+:${WORKSTATION_USER}:ALL" >> /etc/security/access.conf
+if ! grep 'd.rymcg.tech' ${WORKSTATION_HOME}/.bashrc; then
+    cat /usr/local/template/d.rymcg.tech-workstation/bashrc.sh >> ${WORKSTATION_HOME}/.bashrc
+fi
 
 ## Create the sshd_config:
 mkdir -p /etc/ssh

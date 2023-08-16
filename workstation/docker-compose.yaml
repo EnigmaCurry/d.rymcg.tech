@@ -15,10 +15,11 @@ services:
     ports:
       - ${WORKSTATION_PUBLIC_SSH_PORT}:2222
     restart: unless-stopped
-    container_name: workstation-${INSTANCE:-default}
-    hostname: workstation-${INSTANCE:-default}
+    container_name: workstation-${WORKSTATION_DOCKER_CONTEXT}-${INSTANCE:-default}
+    hostname: workstation-${WORKSTATION_DOCKER_CONTEXT}-${INSTANCE:-default}
     environment:
       - WORKSTATION_UID
       - WORKSTATION_GID
       - WORKSTATION_USER
+      - WORKSTATION_DOCKER_CONTEXT
     labels: []
