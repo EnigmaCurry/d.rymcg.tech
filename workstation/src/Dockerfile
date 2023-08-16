@@ -1,5 +1,5 @@
 FROM debian:bookworm-slim as openssh-base
-ARG VIRTUAL_WORKSTATION_UID VIRTUAL_WORKSTATION_GID VIRTUAL_WORKSTATION_USER
+ARG WORKSTATION_UID WORKSTATION_GID WORKSTATION_USER
 RUN set -eux; \
     DEBIAN_FRONTEND=noninteractive apt-get -qq update; \
     DEBIAN_FRONTEND=noninteractive apt-get -qq install bash curl openssh-server ssh-import-id; \
@@ -8,11 +8,11 @@ RUN set -eux; \
     rm -rf /etc/ssh; \
     rm -rf /var/lib/apt/lists/*; \
     mkdir -m 0755 -p /run/sshd; \
-    groupadd -g ${VIRTUAL_WORKSTATION_GID} ${VIRTUAL_WORKSTATION_USER}; \
-    useradd -d /home -m --uid=${VIRTUAL_WORKSTATION_UID} --gid=${VIRTUAL_WORKSTATION_GID} ${VIRTUAL_WORKSTATION_USER}; \
-    chown -R ${VIRTUAL_WORKSTATION_USER}:${VIRTUAL_WORKSTATION_USER} /home /run/sshd;
+    groupadd -g ${WORKSTATION_GID} ${WORKSTATION_USER}; \
+    useradd -d /home -m --uid=${WORKSTATION_UID} --gid=${WORKSTATION_GID} ${WORKSTATION_USER}; \
+    chown -R ${WORKSTATION_USER}:${WORKSTATION_USER} /home /run/sshd;
 
-USER ${VIRTUAL_WORKSTATION_USER}
+USER ${WORKSTATION_USER}
 WORKDIR /home
 RUN mkdir -p ssh/keys
 ADD --chown=root:root --chmod=0444 sshd_config /etc/ssh/sshd_config
