@@ -1,4 +1,4 @@
-# Virtual Docker Workstation
+# Container Workstation in Docker
 
 This is a development container that includes the Bash shell and the
 docker command line tools, to be used as a "workstation" with
