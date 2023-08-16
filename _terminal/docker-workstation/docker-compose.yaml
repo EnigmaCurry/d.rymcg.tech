@@ -1,0 +1,22 @@
+version: "3.9"
+
+volumes:
+  workstation-home:
+
+services:
+  virtual-workstation:
+    build:
+      context: src
+      args:
+        VIRTUAL_WORKSTATION_UID: ${VIRTUAL_WORKSTATION_UID}
+        VIRTUAL_WORKSTATION_GID: ${VIRTUAL_WORKSTATION_GID}
+        VIRTUAL_WORKSTATION_USER: ${VIRTUAL_WORKSTATION_USER}
+    security_opt:
+      - no-new-privileges:true
+    sysctls:
+      - net.ipv4.ip_unprivileged_port_start=1024
+    user: ${VIRTUAL_WORKSTATION_UID}:${VIRTUAL_WORKSTATION_GID}
+    volumes:
+      - workstation-home:/home
+    restart: unless-stopped
+    labels: []
