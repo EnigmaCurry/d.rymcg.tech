@@ -264,7 +264,7 @@ DISK=60G
 AUTHORIZED_SSH_KEY=$(cat /tmp/my-ssh-key.pub)
 ```
 
-Create the Docker VM:
+Run:
 
 ```
 # Run this inside the _docker_vm directory (where this same README.md exists):
