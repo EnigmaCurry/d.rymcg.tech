@@ -14,7 +14,7 @@ export DOMAIN=${DOMAIN:-localdomain}
 export LOCALE=${LOCALE:-en_US}
 export DEBIAN_MIRROR=${DEBIAN_MIRROR:-mirrors.vcea.wsu.edu}
 export TIMEZONE=${TIMEZONE:-Etc/UTC}
-export AUTHORIZED_SSH_KEY=${AUTHORIZED_SSH_KEY}
+export AUTHORIZED_KEYS=${AUTHORIZED_KEYS:-$(ssh-add -L | head -1)}
 export VMROOT=$(realpath "VMs")
 export NETBOOT_IMAGE=${NETBOOT_IMAGE:-https://${DEBIAN_MIRROR}/debian/dists/${DISTRO}/main/installer-amd64/current/images/netboot/netboot.tar.gz}
 
@@ -22,14 +22,14 @@ export NETBOOT_IMAGE=${NETBOOT_IMAGE:-https://${DEBIAN_MIRROR}/debian/dists/${DI
 #export NETBOOT_IMAGE=https://d-i.debian.org/daily-images/amd64/daily/netboot/netboot.tar.gz
 
 
-mkdir -p netboot "${VMROOT}"
+mkdir -p netboot
 NETBOOT_TARBALL=$(realpath netboot/netboot-${DISTRO}.tar.gz)
 MAC=${MAC:-"52:54:98:76:54:32"}
 DISK_IMAGE="${VMROOT}/${VMNAME}.qcow"
 
 test -f ${DISK_IMAGE} && echo "Existing disk image found for ${VMNAME}. Skipping installation." && exit 0
 
-test -z "${AUTHORIZED_SSH_KEY}" && echo "AUTHORIZED_SSH_KEY not set." && exit 1
+test -z "${AUTHORIZED_KEYS}" && echo "You must first run 'ssh-keygen' to create your user's SSH key, and then add your key to the ssh-agent." && exit 1
 
 
 check_dep(){
