@@ -3,7 +3,7 @@ version: "3.9"
 services:
   workstation:
     build:
-      context: _terminal/docker-workstation
+      context: _workstation
     image: localhost/docker-workstation
     container_name: workstation-${INSTANCE:-default}
     hostname: workstation-${INSTANCE:-default}

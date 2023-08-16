@@ -5,7 +5,7 @@ docker command line tools, to be used as a "workstation" with
 [d.rymcg.tech](https://github.com/EnigmaCurry/d.rymcg.tech).
 
 This is the default container installed via the root
-[compose-dev.yaml](../../compose-dev.yaml), which is automatically
+[compose-dev.yaml](../compose-dev.yaml), which is automatically
 used when creating a [Docker Desktop Dev
 Environment](https://docs.docker.com/desktop/dev-environments/set-up/).
 This is a competing solution to the [Nix user

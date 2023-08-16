@@ -8,15 +8,17 @@ services:
     build:
       context: src
       args:
-        VIRTUAL_WORKSTATION_UID: ${VIRTUAL_WORKSTATION_UID}
-        VIRTUAL_WORKSTATION_GID: ${VIRTUAL_WORKSTATION_GID}
-        VIRTUAL_WORKSTATION_USER: ${VIRTUAL_WORKSTATION_USER}
+        WORKSTATION_UID: ${WORKSTATION_UID}
+        WORKSTATION_GID: ${WORKSTATION_GID}
+        WORKSTATION_USER: ${WORKSTATION_USER}
     security_opt:
       - no-new-privileges:true
     sysctls:
       - net.ipv4.ip_unprivileged_port_start=1024
-    user: ${VIRTUAL_WORKSTATION_UID}:${VIRTUAL_WORKSTATION_GID}
+    user: ${WORKSTATION_UID}:${WORKSTATION_GID}
     volumes:
       - workstation-home:/home
     restart: unless-stopped
+    container_name: workstation-${INSTANCE:-default}
+    hostname: workstation-${INSTANCE:-default}
     labels: []
