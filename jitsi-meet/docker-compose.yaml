@@ -16,7 +16,7 @@ networks:
 services:
     # Frontend
     web:
-        image: jitsi/web:stable-6865
+        image: jitsi/web:${JITSI_WEB_VERSION}
         restart: ${RESTART_POLICY}
         volumes:
             - web_config:/config:Z
