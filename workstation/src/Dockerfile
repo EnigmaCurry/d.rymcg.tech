@@ -23,5 +23,4 @@ FROM openssh-base as d.rymcg.tech-base
 ADD d.rymcg.tech_motd.txt /etc/motd
 RUN set -eux; \
     mkdir -p /usr/local/template/d.rymcg.tech-workstation;
-ADD bashrc.sh install_d.rymcg.tech.sh /usr/local/template/d.rymcg.tech-workstation/
-
+ADD bash_profile.sh bashrc.sh install_d.rymcg.tech.sh /usr/local/template/d.rymcg.tech-workstation/

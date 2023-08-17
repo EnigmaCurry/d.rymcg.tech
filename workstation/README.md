@@ -1,27 +1,41 @@
 # Container Workstation Service
 
-This container is used to control your native Docker instance from
-within Docker itself (Docker *in* Docker). It includes the Bash shell,
-all of the docker command line tools, and can be used as a full
-workstation for
+This service is used to control your native Docker instance from
+within Docker itself (Docker *in* Docker) or any remote Docker context
+(SSH). It includes the Bash shell, all of the docker command line
+tools, and can be used as a full workstation for
 [d.rymcg.tech](https://github.com/EnigmaCurry/d.rymcg.tech).
 
 This container runs the OpenSSH service on port 2222 (by default).
-This port is mapped publicly to the external network of the Docker
+This port is public and mapped to the external network of the Docker
 server, so any authorized user can SSH into your workstation
 container, from anywhere accessible on the public network, and it
 *requires* SSH key-based authentication.
 
-*Warning*: this is a privileged container and it directly mounts the
-Docker socket of the host `/var/run/docker.sock` into this container.
-. This means that the container workstation has full root control over
-the host machine. This should be treated as a secure developer
-workstation, running trusted software, but it is only as secure as you
-keep your client SSH keys secure. Always remember that you should
-exclusively install Docker Engine on dedicated machines, whether bare
-metal or in a Virtual Machine. *Never* install Docker Engine natively
-on a workstation/laptop, otherwise you risk exposing private user
-files.
+## Warning and notices
+
+This is a privileged container and it directly mounts the Docker
+socket of the host `/var/run/docker.sock` into this container. This
+means that the container workstation has full root control over the
+host machine. This should only be used to run trusted software, and to
+be treated as a secure developer workstation, but it is only as secure
+as you keep your client SSH keys.
+
+Always remember that you should exclusively install Docker Engine on
+dedicated machines, whether bare metal or in a Virtual Machine.
+*Never* install Docker Engine natively on a multi-use
+workstation/laptop, otherwise you risk exposing private user files.
+
+Keep your workstations separate from your servers! Don't install your
+workstation on a production server! In fact, don't install this on any
+server accessible from the internet. Instead, create localhost docker
+VMs, or something like a raspberry pi on your local network, and use
+these as your workstation (a separate dedicated machine is great for
+this purpose because you can power it off to secure its access, plus a
+raspberry pi is plenty powerful to run just the workstation, and have
+a remote docker server do the heavy lifting). Setup remote docker
+contexts (SSH) for all your production servers and control everything
+from your secure workstation container.
 
 ## Configure
 
@@ -49,7 +63,16 @@ for more information.
 ## Install
 
 ```
+## Install and start the sshd service:
 make install
+```
+
+## Destroy
+
+
+```
+## To delete the container AND the data volume:
+make destroy
 ```
 
 ## Configure the client
@@ -167,3 +190,36 @@ ryan@workstation-m1-default:~$
 
 (Of course you should see your own chosen username, docker hostname,
 and instance names)
+
+## Ephemeral filesystem and instance volume
+
+Each workstation instance has its own home directory mounted as a
+(docker) named volume. All important files you wish to retain should
+be stored in the home directory. All other directories on the system
+are ephemeral, and will be deleted when the container is removed. The
+SSH host keys are stored under `~/ssh/keys`, and so the identity of
+the SSH server is retained with the volume and not the container.
+
+The user account has `sudo` privileges, so it can become `root`, and
+install new software, or do other maintaince tasks. All software that
+you install (unless it is placed under the home directory) is deleted
+when the container is removed.
+
+## Mount external git repositories
+
+You may wish to mount a host directory containing your git
+repositories into the workstation. All source code repositories inside
+the container are assumed to live under `~/git`. These files are
+normally stored in the named volume (along with all other
+files/directories from the home directory). But if you mount an
+external directory you can more easily edit files from outside the
+container using your host editor tools.
+
+In the `.env_{CONTEXT}_{INSTANCE}` file, set the following variable to
+mount an external host directory:
+
+```
+WORKSTATION_GIT_VOLUME=/home/ryan/git
+```
+
+Make sure to read the warning about how this might expose your secrets 

@@ -7,13 +7,12 @@ services:
   workstation:
     build:
       context: src
-    sysctls:
-      - net.ipv4.ip_unprivileged_port_start=1024
+    ## !! Extra volumes are defined in docker_compose.instance.yaml !!
     volumes:
       - workstation-home:/home
       - /var/run/docker.sock:/var/run/docker.sock:ro
-    ports:
-      - ${WORKSTATION_PUBLIC_SSH_PORT}:2222
+    ## !! Extra ports are defined in docker_compose.instance.yaml !!
+    ports: []
     restart: unless-stopped
     container_name: workstation-${WORKSTATION_DOCKER_CONTEXT}-${INSTANCE:-default}
     hostname: workstation-${WORKSTATION_DOCKER_CONTEXT}-${INSTANCE:-default}
@@ -22,4 +21,5 @@ services:
       - WORKSTATION_GID
       - WORKSTATION_USER
       - WORKSTATION_DOCKER_CONTEXT
+      - WORKSTATION_SSH_PORT
     labels: []

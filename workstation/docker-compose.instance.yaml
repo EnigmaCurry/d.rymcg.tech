@@ -1,0 +1,25 @@
+#! This is a ytt template file for docker-compose.override.yaml
+#! References:
+#!   https://carvel.dev/ytt
+#!   https://docs.docker.com/compose/extends/#adding-and-overriding-configuration
+#!   https://github.com/enigmacurry/d.rymcg.tech#overriding-docker-composeyaml-per-instance
+
+#@ load("@ytt:data", "data")
+#@ instance = data.values.instance
+#@ git_volume = data.values.git_volume
+#@ workstation_user = data.values.workstation_user
+#@ ssh_port = data.values.ssh_port
+#@ enable_docker_socket = data.values.enable_docker_socket == "true"
+
+#@yaml/text-templated-strings
+services:
+  workstation:
+    ports:
+      - ${WORKSTATION_PUBLIC_SSH_PORT}:${WORKSTATION_PUBLIC_SSH_PORT}
+    volumes:
+      #@ if enable_docker_socket:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      #@ end
+      #@ if len(git_volume) > 0:
+      - (@= git_volume @):/home/(@= workstation_user @)/git
+      #@ end
