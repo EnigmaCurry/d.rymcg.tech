@@ -499,6 +499,7 @@ Bespoke things:
 * [Linux Shell Containers](_terminal/linux) create Bash aliases that
   automatically build and run programs in Docker containers.
 * [_docker_vm](_docker_vm#readme) Run Docker in a Virtual Machine (KVM) on Linux.
+* [workstation](workstation) Create a virtual workstation with SSH service in a container.
 
 ## Command line interaction
 
