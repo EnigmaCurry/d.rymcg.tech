@@ -17,8 +17,9 @@ Authentication. It automatically saves your responses into the
 configuration file `.env_{DOCKER_CONTEXT}`.
 
 You customize Podfetch via environment variables, so after you make
-a change, re-run `make install`. You can also manage users and podcasts
-via Podfetch's CLI.
+a change in your `.env_{DOCKER_CONTEXT}`, re-run `make install`.
+You can also manage users and podcasts via Podfetch's
+[CLI](https://github.com/SamTV12345/PodFetch/blob/main/docs/CLI.md).
 
 ## Install
 
