@@ -468,6 +468,7 @@ Install these services at your leisure/preference:
 * [Photoprism](photoprism#readme) - a photo gallery and manager
 * [Piwigo](piwigo#readme) - a photo gallery and manager
 * [Plausible](plausible#readme) - a privacy friendly web visitor analytics engine
+* [Podfetch](podfetch#readme) - a self-hosted podcast manager
 * [PostgreSQL](postgresql#readme) - a database server configured with mutual TLS authentication for public networks
 * [PrivateBin](privatebin#readme) - a minimal, encrypted, zero-knowledge, pastebin
 * [Prometheus](prometheus#readme) - a systems monitoring and alerting toolkit (+ node-exporter + cAdvisor + Grafana)

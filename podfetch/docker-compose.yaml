@@ -1,0 +1,35 @@
+version: "3"
+
+volumes:
+  postgres:
+  podcasts:
+
+services:
+  podfetch:
+    image: samuel19982/podfetch:${PODFETCH_VERSION}
+    user: ${PODFETCH_UID:-1000}:${PODFETCH_GID:-1000}
+    restart: unless-stopped
+    volumes:
+      - podcasts:/app/podcasts
+    environment:
+      - POLLING_INTERVAL=300
+      - SERVER_URL=https://${PODFETCH_TRAEFIK_HOST}
+      - DATABASE_URL=postgresql://postgres:${PODFETCH_POSTGRES_PW}@postgres/podfetch
+      - DB_CONNECTIONS=10 # optional
+      - BASIC_AUTH=${PODFETCH_BASIC_AUTH}
+      - USERNAME=${PODFETCH_USERNAME}
+      - PASSWORD=${PODFETCH_PASSWORD}
+    # All labels are defined in the template: docker-compose.instance.yaml
+    # The labels will merge together here from the template output:
+    #   docker-compose.override_{DOCKER_CONTEXT}_{INSTANCE}.yaml
+    labels: []
+  postgres:
+    image: postgres
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: ${PODFETCH_POSTGRES_PW}
+      PGDATA: /data/postgres
+      POSTGRES_DB: podfetch
+    volumes:
+      - postgres:/data/postgres
+    restart: unless-stopped
