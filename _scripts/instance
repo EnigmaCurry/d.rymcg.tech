@@ -3,28 +3,47 @@
 set -e
 BIN=$(dirname ${BASH_SOURCE})
 source ${BIN}/funcs.sh
-
-[[ ! -z newinstance ]] && instance=${newinstance}
+ROOT_DIR=..
+ROOT_ENV_FILE=".env_${DOCKER_CONTEXT}"
 
 valid_regex='^[a-zA-Z][a-zA-Z0-9_-]*$'
-if [[ -z "${instance}" ]]; then
-    EXISTING_ENVS=$(ls .env_${DOCKER_CONTEXT}_* 2>/dev/null | sed "s/.env_${DOCKER_CONTEXT}_//" || true)
-    if [[ -n "$EXISTING_ENVS" ]]; then
-        echo "Existing environments:"
-        echo "${EXISTING_ENVS}"
-        echo ""
-    fi
-    while [[ -z "${instance}" ]]; do
-        read -p "Enter an instance name to create/edit"$'\x0a: ' instance
-        if ! [[ "${instance}" =~ $valid_regex ]]; then
-            error "Invalid instance name. Try again."
-            unset instance
+if [[ "${showmenu}" == "true" ]]; then
+#    if [[ -z "${instance}" ]]; then
+        EXISTING_ENVS=$(ls .env_${DOCKER_CONTEXT}_* 2>/dev/null | sed "s/.env_${DOCKER_CONTEXT}_//" || true)
+        if [[ -n "$EXISTING_ENVS" ]]; then
+            echo "Existing environments:"
+            echo "${EXISTING_ENVS}"
+            echo ""
         fi
-    done
+        while [[ -z "${newinstance}" ]]; do
+            if [[ call == "switch" ]]; then
+                read -p "Enter an instance name to switch to"$'\x0a: ' newinstance
+            else
+                read -p "Enter an instance name to create/edit"$'\x0a: ' newinstance
+            fi
+            if ! [[ "${newinstance}" =~ $valid_regex ]]; then
+                error "Invalid instance name. Try again."
+                unset newinstance
+            fi
+        done
+#    fi
 fi
 
-test -z "$instance" && echo "Missing required instance name." && exit 1
-ENV_FILE=$(echo "${ENV_FILE}" | sed 's/_default//')
-NEW_ENV_FILE="${ENV_FILE}_${instance}"
-test ! -f "${NEW_ENV_FILE}" && make --no-print-directory config INSTANCE="${instance}" ENV_FILE="${NEW_ENV_FILE}" DOCKER_CONTEXT=${DOCKER_CONTEXT}
-make --no-print-directory switch switchto_instance="${instance}" ENV_FILE="${NEW_ENV_FILE}" DOCKER_CONTEXT=${DOCKER_CONTEXT}
+test -z "$newinstance" && echo "Missing required instance name." && exit 1
+
+ENV_FILE=$(echo "${ENV_FILE}" | sed "s/_default//; s/_${newinstance}//")
+NEW_ENV_FILE="${ENV_FILE}_${newinstance}"
+if [[ "${call}" == "instance" ]]; then
+    #test ! -f "${NEW_ENV_FILE}" &&
+    make --no-print-directory config INSTANCE="${newinstance}" ENV_FILE="${NEW_ENV_FILE}" DOCKER_CONTEXT=${DOCKER_CONTEXT}
+fi
+
+source "${ROOT_DIR}/${ROOT_ENV_FILE}"
+
+#make --no-print-directory switch switchto_instance="${instance}" ENV_FILE="${NEW_ENV_FILE}" DOCKER_CONTEXT=${DOCKER_CONTEXT}
+echo "## Entering sub-shell for instance ${newinstance}".
+echo "## Press Ctrl-D to exit or type \`exit\`."
+INSTANCE="${newinstance}"
+export instance="${newinstance}"
+#test ! -z "${newinstance}" && read -p "Enter the temporary default instance name:"$'\x0a: ' newinstance
+bash --rcfile <(echo "test -f \"${MAKE_INSTANCE_SOURCE_RCFILE}\" && source \"${MAKE_INSTANCE_SOURCE_RCFILE}\"; export TERM=$TERM; PATH=$PATH; export INSTANCE=${instance}; export PROJECT_INSTANCE=$(basename ${PWD})_${instance}; export PROJECT=$(basename $PWD); export INSTANCE_SUBSHELL=true; unset ENV_FILE; unset MAKELEVEL; PS1='\n(context=$(${BIN}/docker_context) project=$(basename $PWD) instance=${instance})\n\W $ '") -i
