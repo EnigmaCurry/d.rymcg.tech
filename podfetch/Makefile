@@ -9,8 +9,14 @@ config-hook:
 #### reconfigure sets the value of a variable in the .env file without asking.
 #### reconfigure_htpasswd will configure the HTTP Basic Authentication setting the var name and with a provided default value.
 	@${BIN}/reconfigure_ask ${ENV_FILE} PODFETCH_TRAEFIK_HOST "Enter the Podfetch domain name" podfetch${INSTANCE_URL_SUFFIX}.${ROOT_DOMAIN}
+	@echo ""
 	@${BIN}/reconfigure ${ENV_FILE} PODFETCH_INSTANCE=$${instance:-default}
+	@echo ""
+	@echo "You can configure HTTP Authentication through Traefik, Podfetch's internal Basic Authentication, or neither - but not both."
 	@${BIN}/reconfigure_htpasswd ${ENV_FILE} PODFETCH_HTTP_AUTH default=no
+	@echo ""
+	@test -z "$$(${BIN}/dotenv -f ${ENV_FILE} get PODFETCH_HTTP_AUTH)" && ${BIN}/confirm yes "Enable Podfetch's Basic Authentication" "?" && ${BIN}/reconfigure ${ENV_FILE} PODFETCH_BASIC_AUTH=true && ${BIN}/reconfigure_ask ${ENV_FILE} PODFETCH_USERNAME "Enter your username" "-" && ${BIN}/reconfigure_ask ${ENV_FILE} PODFETCH_PASSWORD "Enter your password" "-" || ${BIN}/reconfigure ${ENV_FILE} PODFETCH_BASIC_AUTH=false
+	@echo ""
 	@${BIN}/reconfigure_password ${ENV_FILE} PODFETCH_POSTGRES_PW 32
 
 .PHONY: override-hook
@@ -25,14 +31,14 @@ override-hook:
 ####                         # (this hardcodes the string into docker-compose.override.yaml)
 ####   name=@VARIABLE_NAME   # sets the template 'name' field to the literal string '${VARIABLE_NAME}'
 ####                         # (used for regular docker-compose expansion of env vars by name.)
-	@${BIN}/docker_compose_override ${ENV_FILE} project=:podfetch instance=@PODFETCH_INSTANCE traefik_host=@PODFETCH_TRAEFIK_HOST http_auth=PODFETCH_HTTP_AUTH http_auth_var=@PODFETCH_HTTP_AUTH ip_sourcerange=@PODFETCH_IP_SOURCERANGE
+	@${BIN}/docker_compose_override ${ENV_FILE} project=:podfetch instance=@PODFETCH_INSTANCE traefik_host=@PODFETCH_TRAEFIK_HOST http_auth=PODFETCH_HTTP_AUTH http_auth_var=@PODFETCH_HTTP_AUTH ip_sourcerange=@PODFETCH_IP_SOURCERANGE podfetch_basic_auth=PODFETCH_BASIC_AUTH podfetch_basic_auth_var=@PODFETCH_BASIC_AUTH podfetch_username=@PODFETCH_USERNAME podfetch_password=@PODFETCH_PASSWORD
 
-#### need to flesh this out - want to add a way to manage podfetch users via make 
+#### need to flesh this out - want to add a way to manage podfetch users via `make` 
 .PHONY: users
 users:
 	@docker compose --env-file ${ENV_FILE} exec -it $${service:-proxy} /app/podfetch users"
 
-#### need to flesh this out - want to add a way to manage podfetch podcasts via make 
+#### need to flesh this out - want to add a way to manage podfetch podcasts via `make` 
 .PHONY: podcasts
 podcasts:
 	@docker compose --env-file ${ENV_FILE} exec -it $${service:-proxy} /app/podfetch podcasts"
