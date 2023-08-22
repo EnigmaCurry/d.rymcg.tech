@@ -15,7 +15,7 @@ config-hook:
 	@echo "You can configure HTTP Authentication through Traefik, Podfetch's internal Basic Authentication, or neither - but not both."
 	@${BIN}/reconfigure_htpasswd ${ENV_FILE} PODFETCH_HTTP_AUTH default=no
 	@echo ""
-	@test -z "$$(${BIN}/dotenv -f ${ENV_FILE} get PODFETCH_HTTP_AUTH)" && ${BIN}/confirm yes "Enable Podfetch's Basic Authentication" "?" && ${BIN}/reconfigure ${ENV_FILE} PODFETCH_BASIC_AUTH=true && ${BIN}/reconfigure_ask ${ENV_FILE} PODFETCH_USERNAME "Enter your username" "-" && ${BIN}/reconfigure_ask ${ENV_FILE} PODFETCH_PASSWORD "Enter your password" "-" || ${BIN}/reconfigure ${ENV_FILE} PODFETCH_BASIC_AUTH=false
+	@test -n "$$(${BIN}/dotenv -f ${ENV_FILE} get PODFETCH_HTTP_AUTH)" && ${BIN}/reconfigure ${ENV_FILE} PODFETCH_BASIC_AUTH=false || (${BIN}/confirm yes "Enable Podfetch's Basic Authentication" "?" && ${BIN}/reconfigure ${ENV_FILE} PODFETCH_BASIC_AUTH=true && ${BIN}/reconfigure_ask ${ENV_FILE} PODFETCH_USERNAME "Enter your username" "-" && ALLOW_BLANK=1 ${BIN}/reconfigure_ask ${ENV_FILE} PODFETCH_PASSWORD "Enter your password (leave blank to generate a random password)" "-" && (test -z "$$(${BIN}/dotenv -f ${ENV_FILE} get PODFETCH_PASSWORD)" && ${BIN}/reconfigure_password ${ENV_FILE} PODFETCH_PASSWORD 32 || true)) || ${BIN}/reconfigure ${ENV_FILE} PODFETCH_BASIC_AUTH=false
 	@echo ""
 	@${BIN}/reconfigure_password ${ENV_FILE} PODFETCH_POSTGRES_PW 32
 
