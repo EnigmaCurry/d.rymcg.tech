@@ -27,6 +27,7 @@ services:
       #@ if enable_docker:
       - /var/run/docker.sock:/var/run/docker.sock:ro #! (optional) For docker integrations
       #@ end
+      - config:/app/public/images #! (optional) So Homepage can use images from config dir
     labels:
       #! Services must opt-in to be proxied by Traefik:
       - "traefik.enable=true"
