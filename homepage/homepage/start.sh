@@ -48,6 +48,8 @@ if [[ -n "${HOMEPAGE_TEMPLATE_REPO}" ]]; then
                 cat "${file}" | envsubst > $out_path
                 echo "Rendered template file: $out_path"
             done
+            mv "${TMP_CLONE}/!(*.yaml|Dockerfile)" /app/config/
+            
             rm -rf ${TMP_CLONE}
         else
             echo "ERROR: Could not clone from git repository: ${HOMEPAGE_TEMPLATE_REPO}"
