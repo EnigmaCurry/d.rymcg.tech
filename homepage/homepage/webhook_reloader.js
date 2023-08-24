@@ -23,12 +23,13 @@ const PATH_PREFIX = get_config("RELOAD_WEBHOOK_PATH_PREFIX", "")
 const HMAC_SECRET = get_config("RELOAD_WEBHOOK_HMAC_SECRET")
 
 const verify_signature = (req) => {
-    if (req.body === undefined || req.body === {}) {
+    console.error("Request body:", typeof req.body);
+    if (req.body === undefined || req.body === "") {
         return false;
     } else {
         const signature = crypto
               .createHmac("sha256", HMAC_SECRET)
-              .update(JSON.stringify(req.body))
+              .update(req.body)
               .digest("hex")
         const signature_received = req.get("x-hub-signature-256");
         const signature_expected = `sha256=${signature}`;
@@ -44,7 +45,7 @@ const verify_signature = (req) => {
 }
 
 const app = express();
-app.use(bodyParser.json())
+app.use(bodyParser.text({type: "*/*"}))
 const server = http.createServer(app);
 
 let last_log = "Last log is empty."
