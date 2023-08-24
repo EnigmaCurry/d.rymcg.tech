@@ -852,10 +852,10 @@ etc...
 To exit the sub-shell, press `Ctrl-D` or type `exit` and you will
 return to the original parent shell and working directory.
 
-When you create a new instance, `make config` will automatically run.
-When you switch to an existing instance (either via `make instance` or
-`make switch`), `make config` will not automatically run, but you can run
-it manually.
+When you create a new instance, `make config` will automatically run. You
+may switch to an existing instance with either: `make instance` or
+`make switch` (the former will re-run `make config` while the latter
+will not).
 
 ### Overriding docker-compose.yaml per-instance
 
