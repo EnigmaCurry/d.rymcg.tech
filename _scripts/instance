@@ -8,25 +8,23 @@ ROOT_ENV_FILE=".env_${DOCKER_CONTEXT}"
 
 valid_regex='^[a-zA-Z][a-zA-Z0-9_-]*$'
 if [[ "${showmenu}" == "true" ]]; then
-#    if [[ -z "${instance}" ]]; then
-        EXISTING_ENVS=$(ls .env_${DOCKER_CONTEXT}_* 2>/dev/null | sed "s/.env_${DOCKER_CONTEXT}_//" || true)
-        if [[ -n "$EXISTING_ENVS" ]]; then
-            echo "Existing environments:"
-            echo "${EXISTING_ENVS}"
-            echo ""
+    EXISTING_ENVS=$(ls .env_${DOCKER_CONTEXT}_* 2>/dev/null | sed "s/.env_${DOCKER_CONTEXT}_//" || true)
+    if [[ -n "$EXISTING_ENVS" ]]; then
+        echo "Existing environments:"
+        echo "${EXISTING_ENVS}"
+        echo ""
+    fi
+    while [[ -z "${newinstance}" ]]; do
+        if [[ call == "switch" ]]; then
+            read -p "Enter an instance name to switch to"$'\x0a: ' newinstance
+        else
+            read -p "Enter an instance name to create/edit"$'\x0a: ' newinstance
         fi
-        while [[ -z "${newinstance}" ]]; do
-            if [[ call == "switch" ]]; then
-                read -p "Enter an instance name to switch to"$'\x0a: ' newinstance
-            else
-                read -p "Enter an instance name to create/edit"$'\x0a: ' newinstance
-            fi
-            if ! [[ "${newinstance}" =~ $valid_regex ]]; then
-                error "Invalid instance name. Try again."
-                unset newinstance
-            fi
-        done
-#    fi
+        if ! [[ "${newinstance}" =~ $valid_regex ]]; then
+            error "Invalid instance name. Try again."
+            unset newinstance
+        fi
+    done
 fi
 
 test -z "$newinstance" && echo "Missing required instance name." && exit 1
