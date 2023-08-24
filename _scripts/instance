@@ -38,7 +38,6 @@ fi
 
 source "${ROOT_DIR}/${ROOT_ENV_FILE}"
 
-#make --no-print-directory switch switchto_instance="${instance}" ENV_FILE="${NEW_ENV_FILE}" DOCKER_CONTEXT=${DOCKER_CONTEXT}
 echo "## Entering sub-shell for instance ${newinstance}".
 echo "## Press Ctrl-D to exit or type \`exit\`."
 INSTANCE="${newinstance}"
