@@ -1,7 +1,20 @@
+define instance_arg_present
+	ifeq ($(findstring instance=, $(strip $(filter-out --%,$(MAKEFLAGS)))), instance=)
+		showmenu := false
+		newinstance := ${instance}
+	else
+		showmenu := true
+		newinstance := ""
+	endif
+endef
+
+
 .PHONY: instance # Create a duplicate instance with its own .env_{DOCKER_CONTEXT}_{INSTANCE} config file
 instance: check-in-subshell
-	@unset INSTANCE; unset instance; DOCKER_CONTEXT=${DOCKER_CONTEXT} ENV_FILE=${ENV_FILE} ${BIN}/instance
+	$(eval $(instance_arg_present))
+	@unset INSTANCE; unset instance; MAKE_INSTANCE_SOURCE_RCFILE=${MAKE_INSTANCE_SOURCE_RCFILE} DOCKER_CONTEXT=${DOCKER_CONTEXT} ENV_FILE=${ENV_FILE} showmenu=${showmenu} newinstance=${newinstance} call=instance ${BIN}/instance
 
 .PHONY: switch # Switch to the given INSTANCE and enter a new subshell for it
 switch: check-in-subshell
-	@(export instance="${instance}"; test -z "$${instance}" && read -p "Enter the temporary default instance name:"$$'\x0a: ' instance; bash --rcfile <(echo "test -f \"${MAKE_INSTANCE_SOURCE_RCFILE}\" && source \"${MAKE_INSTANCE_SOURCE_RCFILE}\"; export TERM=$$TERM; PATH=$$PATH; export INSTANCE=$${instance}; export PROJECT_INSTANCE=$$(basename $${PWD})_$${instance}; export PROJECT=$$(basename $$PWD); export INSTANCE_SUBSHELL=true; unset ENV_FILE; unset MAKELEVEL; PS1='\n(context=$$(${BIN}/docker_context) project=$$(basename $$PWD) instance=$${instance})\n\W $$ '") -i)
+	$(eval $(instance_arg_present))
+	@unset INSTANCE; unset instance; MAKE_INSTANCE_SOURCE_RCFILE=${MAKE_INSTANCE_SOURCE_RCFILE} DOCKER_CONTEXT=${DOCKER_CONTEXT} ENV_FILE=${ENV_FILE} showmenu=${showmenu} newinstance=${newinstance} call=switch ${BIN}/instance
