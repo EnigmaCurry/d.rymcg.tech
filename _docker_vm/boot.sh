@@ -29,7 +29,8 @@ echo ""
 echo "Booting Docker VM now ... "
 
 (set -x
-qemu-system-x86_64 \
+ qemu-system-x86_64 \
+  -cpu host \
   -hda "${VMROOT}/${DISK_IMAGE}" \
   -smp $(nproc) \
   -netdev user,id=net0,net=10.0.2.0/24,hostfwd=tcp:${HOSTFWD_HOST}:${SSH_PORT}-:22,${EXTRA_PORTS}hostname=${VMNAME},domainname=${DOMAIN} \

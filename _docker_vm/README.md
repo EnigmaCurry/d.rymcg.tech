@@ -159,6 +159,31 @@ And prevent it from starting:
 sudo systemctl mask docker
 ```
 
+## Ensure your system is ready for virtualization
+
+Your system requires hardware virtualization support
+([HVM](https://en.wikipedia.org/wiki/Hardware-assisted_virtualization),
+which most modern systems support, but the feature may or may not have
+been enabled in your system firmware.
+
+Check the output of these commands for more information about enabling
+this support:
+
+```
+## You should see kvm_intel or kvm_amd or some other kvm module loaded:
+lsmod | grep kvm
+
+## If that doesn't show the modules, try:
+sudo modprobe kvm_intel
+sudo modprobe kvm_amd
+
+## If the UEFI or BIOS is blocking the kvm module, this will report that:
+sudo dmesg | grep kvm
+```
+
+Reboot your computer and go into the UEFI/BIOS settings and check if
+there is a flag you need to enable to turn on hardware virtualiation.
+
 ## Add your user to the KVM group
 
 ```
