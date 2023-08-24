@@ -90,6 +90,7 @@ add the webhook.
  * Webhook Secret is found in your `.env_{INSTANCE}` as
    `HOMEPAGE_RELOADER_HMAC_SECRET`. This secret is used to validate
    that the request is actually coming from your git host.
+ * No extra authorization header is required.
 
 ![2023-08-07T00:39:36,722487208-06:00](https://github.com/EnigmaCurry/d.rymcg.tech/assets/43061/5a0001c3-505d-4984-a114-a9bd1f8ea33b)
 

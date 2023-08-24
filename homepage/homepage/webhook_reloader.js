@@ -30,7 +30,16 @@ const verify_signature = (req) => {
               .createHmac("sha256", HMAC_SECRET)
               .update(JSON.stringify(req.body))
               .digest("hex")
-        return `sha256=${signature}` === req.get("x-hub-signature-256")
+        const signature_received = req.get("x-hub-signature-256");
+        const signature_expected = `sha256=${signature}`;
+        if (signature_received === signature_expected) {
+            return true;
+        } else {
+            console.error("Received invalid x-hub-signature-256 ::")
+            console.error(`Received signature: ${signature_received}`)
+            console.error(`Expected signature: ${signature_expected}`)
+            return false;
+        }
     }
 }
 
