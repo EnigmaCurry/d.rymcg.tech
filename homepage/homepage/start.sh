@@ -1,5 +1,8 @@
 #!/bin/bash
 
+# Log everything, fail early:
+set -ex
+
 ## Pull domain from HOMEPAGE_TEMPLATE_REPO:
 ## HOMEPAGE_TEMPLATE_REPO can be in 1 of 2 formats:
 ## 1) git@github.com:YourUsername/my-private-homepage-template.git
@@ -12,23 +15,19 @@ if [[ ! -z "${REPO_DOMAIN}" ]]; then
     SSH_DIR="/app/config/ssh"
     SSH_KEYFILE="${SSH_DIR}/id_rsa"
     SSH_KNOWNHOSTS_FILE="${SSH_DIR}/known_hosts"
-    test -f "${SSH_KEYFILE}" && export GIT_SSH_COMMAND="ssh -i '${SSH_KEYFILE}' -o UserKnownHostsFile='${SSH_KNOWNHOSTS_FILE}'"
 
     ## Add known SSH host keys:
     mkdir -p ${SSH_DIR}
     touch "${SSH_KNOWNHOSTS_FILE}"
     ## Pull custom port from HOMEPAGE_TEMPLATE_REPO:
-    REPO_PORT=$(echo "${HOMEPAGE_TEMPLATE_REPO}" | grep -oP '(?<=:)\d+')
-    ## known_hosts lists hostnames differently when the server uses a custom port. 
-    if [[ ! -z "${REPO_PORT}" ]]; then
+    GREP_REPO="${REPO_DOMAIN}"
+    if echo "${HOMEPAGE_TEMPLATE_REPO}" | grep "^ssh://"; then
+        REPO_PORT=$(echo "${HOMEPAGE_TEMPLATE_REPO}" | grep -oP '(?<=:)\d+')
+        ## known_hosts lists hostnames differently when the server uses a custom port:
         GREP_REPO="[${REPO_DOMAIN}]:${REPO_PORT}"
-    else
-        GREP_REPO="${REPO_DOMAIN}"
     fi
-    if ! grep -F "${GREP_REPO}" "${SSH_KNOWNHOSTS_FILE}" > /dev/null
-    then
-        ## ssh-keyscan returns a commented line (begins with #) for each result, we don't want that line
-        ssh-keyscan -t rsa -p "${REPO_PORT:-22}" "${REPO_DOMAIN}" | grep -v '^#' >> "${SSH_KNOWNHOSTS_FILE}"
+    if ! grep -F "${GREP_REPO}" "${SSH_KNOWNHOSTS_FILE}" > /dev/null; then
+        ssh-keyscan -p "${REPO_PORT:-22}" "${REPO_DOMAIN}" >> "${SSH_KNOWNHOSTS_FILE}"
     fi
 fi
 
@@ -40,6 +39,7 @@ if [[ -n "${HOMEPAGE_TEMPLATE_REPO}" ]]; then
     else
         echo "Cloning personal template repository: ${HOMEPAGE_TEMPLATE_REPO}"
         TMP_CLONE=$(mktemp -d)
+        export GIT_SSH_COMMAND="ssh -i '${SSH_KEYFILE}' -o UserKnownHostsFile='${SSH_KNOWNHOSTS_FILE}'"
         git clone --depth 1 ${HOMEPAGE_TEMPLATE_REPO} ${TMP_CLONE}
         if [[ $? == 0 ]]; then
             rm -rf /app/config/*.yaml
@@ -48,9 +48,8 @@ if [[ -n "${HOMEPAGE_TEMPLATE_REPO}" ]]; then
                 cat "${file}" | envsubst > $out_path
                 echo "Rendered template file: $out_path"
             done
-            rm -rf ${TMP_CLONE}/.* && rm ${TMP_CLONE}/Dockerfile && rm ${TMP_CLONE}/*.yaml
-            mv ${TMP_CLONE}/* /app/config/
-
+            rm -f ${TMP_CLONE}/*.yaml
+            rsync -a ${TMP_CLONE}/ /app/config/
             rm -rf ${TMP_CLONE}
         else
             echo "ERROR: Could not clone from git repository: ${HOMEPAGE_TEMPLATE_REPO}"
