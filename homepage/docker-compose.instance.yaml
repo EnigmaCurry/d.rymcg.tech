@@ -48,7 +48,7 @@ services:
       #@ end
 
       - "traefik.http.services.(@= router @).loadbalancer.server.port=3000"
-      
+
       #! Apply all middlewares (do this at the end!)
       - "traefik.http.routers.(@= router @).middlewares=(@= ','.join(enabled_middlewares) @)"
 
