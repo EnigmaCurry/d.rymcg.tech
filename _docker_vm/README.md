@@ -10,16 +10,6 @@ way of separating security concerns, or for creating segmented
 namespaces like dev/test/prod, but all colocated on the same physical
 server.
 
-**Update**: [Docker Desktop](https://docs.docker.com/desktop) is now
-available for all three major platforms: Linux, Windows, and Mac. So
-for desktop users, Docker Desktop may be used instead of these
-instructions, to accomplish a similar result. For command-line Linux
-users, these instructions are still working great, and also offer
-better security (Docker Desktop is convenient, but insecure: it allows
-bind mounts and binding to ports <1024, whereas `_docker_vm` runs as a
-regular unprivileged user process. Additionally, although Docker
-itself is open source, Docker Desktop is not.)
-
 ## Background
 
 I don't think it's wise to run the Docker daemon natively on your
