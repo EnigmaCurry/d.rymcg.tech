@@ -20,11 +20,14 @@ The initial config is populated from an external template repository
 configurable by setting `HOMEPAGE_TEMPLATE_REPO` in your
 `.env_{INSTANCE}` file (set to
 [github.com/EnigmaCurry/d.rymcg.tech_homepage-template](https://github.com/EnigmaCurry/d.rymcg.tech_homepage-template)
-by default)
+by default). You may fork the template repository to create your own custom homepage
+configuration, and this container can be configured to automatically pull from your fork,
+and to trigger an automatic rebuild/redeploy on git push via webhook. Your fork can be a
+public or private repository. (Tested on gitea and github).
 
 homepage has support for loading information from the docker socket,
 but this has been turned off by default for security reasons, if you
-wish to enable the support, answer the question posed by `make config`
+wish to enable this support, answer the question posed by `make config`
 and/or set `HOMEPAGE_ENABLE_DOCKER=true` in your `.env_{INSTANCE}`
 file.
 
