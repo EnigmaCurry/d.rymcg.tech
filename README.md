@@ -102,15 +102,10 @@ private Traefik service with a
 [Wireguard](https://github.com/EnigmaCurry/d.rymcg.tech/tree/master/traefik#wireguard-vpn)
 VPN.
 
-For local development purposes, you can install Docker in a virtual
-machine (and remotely control it from your local workstation), this
-ensures that you use your development environment the same way as you
-would a production server. See [_docker_vm](_docker_vm#readme) for
-details on how and why to install Docker in KVM/Qemu. You can also
-install [Docker Desktop](https://docs.docker.com/desktop) on Linux,
-Windows, or Mac (although Docker Desktop is a bit less secure than our
-bespoke [_docker_vm](_docker_vm#readme)).
-
+For local development purposes, you can [install Docker on a raspberry pi](RASPBERRY_PI.md) or you can [install Docker in a virtual
+machine](_docker_vm#readme) (in all scenarios you will remotely control Docker from your native workstation), this
+ensures that your development environment is deployed in the same way as you would a production server. Never install Docker on your native workstation/desktop! (Or, if you do, never give your normal user account any docker privileges!) See [_docker_vm](_docker_vm#readme) for
+details on how and why to install Docker in KVM/Qemu. Please note that Docker Desktop is not currently supported because [it does not support host networking](https://docs.docker.com/network/network-tutorial-host/), and the Traefik configuration relies upon this (if you know a way around this, please open an issue/PR). (If you don't use Linux on your workstation, you may have better luck installing Docker yourself inside of a traditional virtual machine like VMWare or Virtualbox, and then setting up an SSH service so you can access the VM remotely from your native desktop (the docker *client* works just fine from WSL2); or even easier would be to [install Docker on a raspberry pi](https://github.com/EnigmaCurry/d.rymcg.tech/blob/master/RASPBERRY_PI.md) and connect it on your LAN.
 
 ### Setup DNS for your domain and Docker server
 
