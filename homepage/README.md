@@ -73,7 +73,7 @@ it with someone else.
 make destroy
 ```
 
-This completely removes the container and all its volumes.
+This completely removes the container and all of the data.
 
 ## Reloading Webhook (optional)
 
