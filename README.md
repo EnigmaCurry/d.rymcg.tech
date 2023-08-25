@@ -450,6 +450,7 @@ Install these services at your leisure/preference:
 * [FreshRSS](freshrss#readme) - an RSS reader / proxy
 * [Gitea](gitea#readme) - Git host (like self-hosted GitHub) and oauth server
 * [Grocy](grocy#readme) - a grocery & household management/chore solution
+* [Homepage](homepage#readme) - an application dashboard with several integrations
 * [Icecast](icecast#readme) - a SHOUTcast compatible streaming multimedia server
 * [Invidious](invidious#readme) - a Youtube proxy
 * [Jitsi Meet](jitsi-meet#readme) - a video conferencing and screencasting service
@@ -471,7 +472,7 @@ Install these services at your leisure/preference:
 * [PostgreSQL](postgresql#readme) - a database server configured with mutual TLS authentication for public networks
 * [PrivateBin](privatebin#readme) - a minimal, encrypted, zero-knowledge, pastebin
 * [Prometheus](prometheus#readme) - a systems monitoring and alerting toolkit (+ node-exporter + cAdvisor + Grafana)
-* [QBittorrent-Wireguard](qbittorrent-wireguard#readme) - A Bittorrent (libtorrent v2) client with a combined VPN client
+* [QBittorrent-Wireguard](qbittorrent-wireguard#readme) - a Bittorrent (libtorrent v2) client with a combined VPN client
 * [Rdesktop](rdesktop#readme) - a web based remote desktop (X11) in a container
 * [Redbean](redbean#readme) - a small website server bundled in a single executable zip file.
 * [S3-proxy](s3-proxy#readme) - an HTTP directory index for S3 backend
@@ -481,7 +482,7 @@ Install these services at your leisure/preference:
 * [Syncthing](syncthing#readme) - a multi-device file synchronization tool
 * [Sysbox-Systemd](sysbox-systemd#readme) - a traditional service manager for Linux running in an unprivileged container via sysbox-runc
 * [Thttpd](thttpd#readme) - a tiny/turbo/throttling HTTP server for serving static files
-* [TiddlyWiki (WebDAV version)](tiddlywiki-webdav#readme) - A personal wiki stored in a single static HTML file
+* [TiddlyWiki (WebDAV version)](tiddlywiki-webdav#readme) - a personal wiki stored in a single static HTML file
 * [TiddlyWiki (NodeJS version)](tiddlywiki-nodejs#readme) - Advanced server edition of TiddlyWiki with image CDN
 * [Traefik-forward-auth](traefik-forward-auth#readme) - Traefik oauth middleware
 * [Transmission-Wireguard](transmission-wireguard#readme) - An older but very popular Bittorrent (v1) client with a combined VPN client
