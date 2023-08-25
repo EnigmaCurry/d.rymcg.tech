@@ -63,7 +63,8 @@ make open
 
 This will automatically open the page in your web browser, and will
 prefill the password if you enabled it (and chose to store it in
-`passwords.json`).
+`passwords.json`). You may bookmark the link it prints out and that 
+way you can store the username and password in your browser.
 
 ## Destroy
 
