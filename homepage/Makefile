@@ -17,9 +17,10 @@ config-hook:
 	@echo ""
 	@${BIN}/reconfigure_password ${ENV_FILE} HOMEPAGE_RELOADER_HMAC_SECRET 45
 	@echo ""
-	@${BIN}/reconfigure_ask ${ENV_FILE} HOMEPAGE_TEMPLATE_REPO "Enter the git repository used to make the config. All environment variables will be substituted in the templates via envsubst. Cloning from private git repositores is supported, but you must create a deploy key first."
-	@echo ""
-	@${BIN}/confirm $$([[ $$(${BIN}/dotenv -f ${ENV_FILE} get HOMEPAGE_TEMPLATE_REPO_SYNC_ON_START) == "true" ]] && echo "yes" || echo "no") "Do you want to reset your config on every startup from the HOMEPAGE_TEMPLATE_REPO? (Warning: ALL of your existing homepage config would be deleted every time the container restarts)" "?" && ${BIN}/reconfigure ${ENV_FILE} HOMEPAGE_TEMPLATE_REPO_SYNC_ON_START=true || ${BIN}/reconfigure ${ENV_FILE} HOMEPAGE_TEMPLATE_REPO_SYNC_ON_START=false
+	@${BIN}/confirm $$([[ $$(${BIN}/dotenv -f ${ENV_FILE} get HOMEPAGE_AUTO_CONFIG) == "true" ]] && echo "yes" || echo "no") "Do you want Homepage to autoconfigure with all your running d.rymcg.tech apps in the current docker context" "?" && ${BIN}/reconfigure ${ENV_FILE} HOMEPAGE_AUTO_CONFIG=true && $(MAKE) autoconfig \
+	|| ( ${BIN}/reconfigure ${ENV_FILE} HOMEPAGE_AUTO_CONFIG=false \
+	&& echo "" && ${BIN}/reconfigure_ask ${ENV_FILE} HOMEPAGE_TEMPLATE_REPO "Enter the git repository used to make the config. All environment variables will be substituted in the templates via envsubst. Cloning from private git repositores is supported, but you must create a deploy key first." \
+	&& echo "" && ${BIN}/confirm $$([[ $$(${BIN}/dotenv -f ${ENV_FILE} get HOMEPAGE_TEMPLATE_REPO_SYNC_ON_START) == "true" ]] && echo "yes" || echo "no") "Do you want to reset your config on every startup from the HOMEPAGE_TEMPLATE_REPO? (Warning: ALL of your existing homepage config would be deleted every time the container restarts)" "?" && ${BIN}/reconfigure ${ENV_FILE} HOMEPAGE_TEMPLATE_REPO_SYNC_ON_START=true || ${BIN}/reconfigure ${ENV_FILE} HOMEPAGE_TEMPLATE_REPO_SYNC_ON_START=false )
 	@echo ""
 
 .PHONY: override-hook
@@ -43,3 +44,7 @@ shell:
 .PHONY: git-deploy-key
 git-deploy-key: override
 	@docker compose --env-file ${ENV_FILE} --project-name=${PROJECT_NAME} -f docker-compose.yaml -f "docker-compose.override_${DOCKER_CONTEXT}_${INSTANCE}.yaml" run --rm -it homepage /bin/sh -c "mkdir -p /app/config/ssh/ && ssh-keygen -f /app/config/ssh/id_rsa -t rsa -P '' -C 'homepage-deploy-${DOCKER_CONTEXT}_${INSTANCE}'; (test -f /app/config/ssh/id_rsa.pub && echo '' && echo '# Public key fingerprint:' && ssh-keygen -lf /app/config/ssh/id_rsa.pub && echo '' && echo '# Public Deploy Key (Create this as a new deploy key in Gitea/Github repository settings):' && echo '' && cat /app/config/ssh/id_rsa.pub && echo '' || echo 'No public SSH key found.')"
+
+.PHONY: autoconfig
+autoconfig:
+	@ROOT_DIR=${ROOT_DIR} DOCKER_CONTEXT=${DOCKER_CONTEXT} HOMEPAGE_ENABLE_DOCKER=${HOMEPAGE_ENABLE_DOCKER} ENV_FILE=${ENV_FILE} ./homepage_autoconfig.sh
