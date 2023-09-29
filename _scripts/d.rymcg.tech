@@ -183,6 +183,14 @@ __context() {
     fi
 }
 
+__branch() {
+    if [[ $# == 0 ]]; then
+        exe git branch
+    else
+        exe git checkout "$@"
+    fi        
+}
+
 __run_script() {
     CMD="${1}"; shift
     ${ROOT_DIR}/_scripts/${CMD} "$@"
@@ -236,7 +244,7 @@ __d.rymcg.tech_completions() {
     if [[ ${COMP_CWORD} == 1 ]]; then
         ## Complete the main command:
         ## d.rymcg.tech <TAB> ...
-        COMMANDS="help create cd make list readme info context completion"
+        COMMANDS="help create cd make list readme info context completion branch"
         COMPREPLY=($(compgen -W "${COMMANDS}" "${COMP_WORDS[1]}"))
     elif [[ ${COMP_CWORD} == 2 ]]; then
         ALL_PROJECTS=$(d.rymcg.tech list --raw)
@@ -257,6 +265,8 @@ __d.rymcg.tech_completions() {
                 COMPREPLY=($(compgen -W "${INFO_WORDS}" "${COMP_WORDS[2]}"));;
             script)
                 COMPREPLY=($(compgen -W "$(find ${ROOT_DIR}/_scripts -executable -printf '%P\n' | grep -v d.rymcg.tech)" "${COMP_WORDS[2]}"));;
+            branch)
+                COMPREPLY=($(compgen -W "$(git branch | grep -v '^\*' | sed 's/^[[:space:]]*//')" "${COMP_WORDS[2]}"));;
         esac
     elif [[ ${COMP_CWORD} == 3 ]]; then
         ## Dispatch completion for the sub-commands second argument:
@@ -355,6 +365,8 @@ main() {
                 __info "$@";;
             context)
                 __context "$@";;
+            branch)
+                __branch "$@";;
             script)
                 __run_script "$@";;
             status)
