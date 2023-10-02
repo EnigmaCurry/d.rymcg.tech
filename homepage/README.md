@@ -1,6 +1,6 @@
-# homepage
+# Homepage
 
-[homepage](https://github.com/benphelps/homepage) is a modern (fully static,
+[Homepage](https://github.com/benphelps/homepage) is a modern (fully static,
 fast), secure (fully proxied), highly customizable application dashboard
 with integrations for more than 25 services and translations for over 15
 languages.
@@ -16,16 +16,22 @@ you want to configure a username/password via HTTP Basic Authentication.
 It automatically saves your responses into the configuration file
 `.env_{INSTANCE}`.
 
-The initial config is populated from an external template repository
-configurable by setting `HOMEPAGE_TEMPLATE_REPO` in your
-`.env_{INSTANCE}` file (set to
-[github.com/EnigmaCurry/d.rymcg.tech_homepage-template](https://github.com/EnigmaCurry/d.rymcg.tech_homepage-template)
-by default). You may fork the template repository to create your own custom homepage
-configuration, and this container can be configured to automatically pull from your fork,
-and to trigger an automatic rebuild/redeploy on git push via webhook. Your fork can be a
-public or private repository. (Tested on gitea and github).
+By default (when HOMEPAGE_AUTO_CONFIG=true), Homepage will automatically be
+configured for all your d.rymcg.tech apps running on the current Docker
+context. To update the Homepage configuration whenever your running
+d.rymcg.tech apps change, you will need to run `make config` and
+`make install` in the `homepage` directory.
 
-homepage has support for loading information from the docker socket,
+When HOMEPAGE_AUTO_CONFIG=false, Homepage will be configured an external
+template repository configurable by setting `HOMEPAGE_TEMPLATE_REPO` in your
+`.env_{INSTANCE}` file. A template repo can be forked from
+[github.com/EnigmaCurry/d.rymcg.tech_homepage-template](https://github.com/EnigmaCurry/d.rymcg.tech_homepage-template)
+to create your own custom Homepage configuration, and this container can be
+configured to automatically pull from your fork, and to trigger an automatic
+rebuild/redeploy on git push via webhook. Your fork can be a public or
+private repository. (Tested on gitea and github).
+
+Homepage has support for loading information from the docker socket,
 but this has been turned off by default for security reasons, if you
 wish to enable this support, answer the question posed by `make config`
 and/or set `HOMEPAGE_ENABLE_DOCKER=true` in your `.env_{INSTANCE}`
@@ -33,9 +39,9 @@ file.
 
 ## Generate deploy key (if using a private template repository)
 
-Before you install, if you have customized `HOMEPAGE_TEMPLATE_REPO`,
-and have set it to a private git repository, you will need to create
-an SSH deploy key in order to be able to clone it automatically:
+Before you install, if `HOMEPAGE_AUTO_CONFIG=false` and you have customized
+`HOMEPAGE_TEMPLATE_REPO` and have set it to a private git repository, you will
+need to create an SSH deploy key in order to be able to clone it automatically:
 
 ```
 make git-deploy-key
