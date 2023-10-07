@@ -8,6 +8,16 @@ account. The default `.env-dist` is setup to use a self-hosted
 commented out example, or use [any other oauth2
 provider](https://github.com/thomseddon/traefik-forward-auth/wiki/Provider-Setup).
 
+## Important Security Note
+
+Using OpenID/OAuth2 will require a login to access your app, but it will not
+affect what a successfully logged-in person can do in your app. If your app has
+built-in authentication and can check the user header that
+traefik-forward-auth sends, then your app can limit what the logged-in person
+can do in the app. But if your app can't check the user header, or if your app
+doesn't have built-in authentication at all, then any person with an account
+on your Gitea server can log into your app and have full access.
+
 ## Configuration
 
 Follow the directions to deploy [gitea](../gitea), create a root
