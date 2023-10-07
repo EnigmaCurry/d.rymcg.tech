@@ -11,7 +11,7 @@ provider](https://github.com/thomseddon/traefik-forward-auth/wiki/Provider-Setup
 ## Configuration
 
 Follow the directions to deploy [gitea](../gitea), create a root
-account and login.
+account, and login.
 
 Now in this directory (`traefik-forward-auth`), run:
 
@@ -40,7 +40,14 @@ Answer the questions to configure the following environment variables:
 
 ## Enable Traefik Routes for authentication
 
-You can add authentication to any Traefik router by applying the
+### d.rymcg.tech configured apps
+Many d.rymcg.tech apps have been configured to ask you when you run their
+`make config` if you want to configure Oauth2 for them. As an alternative to
+running `make config`, you can manually edit your `.env_{INSTANCE}` file for
+an app and set the value of `<APPNAME>_OAUTH2` to `yes`. 
+
+### Manually configure any Traefik router
+Or you can manually add Oauth2 authentication to any Traefik router by applying the
 middleware: `traefik-forward-auth` (In this example, the name of the
 route is `foo`):
 
@@ -48,9 +55,47 @@ route is `foo`):
       - "traefik.http.routers.foo.middlewares=traefik-forward-auth@docker"
 ```
 
-See the commented out example in
-[whoami](../whoami/docker-compose.yaml), it is preset for the domain
-auth.whoami.{yourdomain}.
+### Configure a d.rymcg.tech app to ask for Oauth2 when running `make config`
+To configure a d.rymcg.tech app to ask about Oauth2 when running `make config`
+(if it hasn't already been so configured), you'll need to edit the
+`.env-dist`, `docker-compose.instance.yaml`, and `Makefile` files.
+See the [whoami](../whoami/) app for examples.
+ * `.env-dist`
+  * Add the following env var to `.env-dist` (and adding the comment is a good idea):
+```
+# OAUTH2
+# Set to `yes` to use OpenID/OAuth2 authentication via the
+# traefik-forward-auth service in d.rymcg.tech.
+# Using OpenID/OAuth2 will require login to access your app,
+# but it will not affect what a successfully logged-in person can do in your
+# app. If your app has built-in authentication and can check the user
+# header that traefik-forward-auth sends, then your app can limit what the
+# logged-in person can do in the app. But if your app can't check the user
+# header, or if your app doesn't have built-in authentication at all, then
+# any person with an account on your Gitea server can log into your app and
+# have full access.
+WHOAMI_OAUTH2=no
+```
+  * (Be sure to change `WHOAMI` to the same prefix as the rest of the env vars in your `.env_{INSTANCE}` file)
+
+ * `Makefile`
+  * Add the following line to the recipe for the `config-hook` target:
+```
+ 	@${BIN}/reconfigure_oauth2 ${ENV_FILE} WHOAMI_OAUTH2 default=$$( ${BIN}/dotenv -f ${ENV_FILE} get WHOAMI_OAUTH2 )
+```
+  * Add ` oauth2=WHOAMI_OAUTH2` to the end of the existing line in the receipe for the `override-hook` target.
+  * (For all 3 instances of `WHOAMI_OAUTH2`, be sure to change `WHOAMI` to the same prefix as the rest of the env vars in your `.env_{INSTANCE}` file)
+ * `docker-compose.instance.yaml`
+  * Add the following line to the `#! ### Standard project vars:` section:
+```
+#@ enable_oauth2 = data.values.oauth2
+```
+  * Add the following 3 lines in the `labels` section, *before* the `#! Apply all middlewares (do this at the end!)` line:
+```
+      #@ if enable_oauth2 == "yes":
+      #@ enabled_middlewares.append("traefik-forward-auth@docker")
+      #@ end
+```
 
 ## Logging out
 
