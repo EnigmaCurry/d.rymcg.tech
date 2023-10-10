@@ -9,6 +9,8 @@ config-hook:
 	@${BIN}/reconfigure_password ${ENV_FILE} PIWIGO_MARIADB_PASSWORD
 	@${BIN}/reconfigure_ask ${ENV_FILE} TIMEZONE "Enter your timezone" UTC
 	@${BIN}/reconfigure_htpasswd ${ENV_FILE} PIWIGO_HTTP_AUTH default=no
+	@${BIN}/reconfigure_oauth2 ${ENV_FILE} PIWIGO_OAUTH2 default=$$( ${BIN}/dotenv -f ${ENV_FILE} get PIWIGO_OAUTH2 )
+	@echo ""
 
 .PHONY: override-hook
 override-hook:
@@ -22,4 +24,4 @@ override-hook:
 ####                         # (this hardcodes the string into docker-compose.override.yaml)
 ####   name=@VARIABLE_NAME   # sets the template 'name' field to the literal string '${VARIABLE_NAME}'
 ####                         # (used for regular docker-compose expansion of env vars by name.)
-	@${BIN}/docker_compose_override ${ENV_FILE} project=:piwigo instance=@PIWIGO_INSTANCE traefik_host=@PIWIGO_TRAEFIK_HOST http_auth=PIWIGO_HTTP_AUTH http_auth_var=@PIWIGO_HTTP_AUTH ip_sourcerange=@PIWIGO_IP_SOURCERANGE
+	@${BIN}/docker_compose_override ${ENV_FILE} project=:piwigo instance=@PIWIGO_INSTANCE traefik_host=@PIWIGO_TRAEFIK_HOST http_auth=PIWIGO_HTTP_AUTH http_auth_var=@PIWIGO_HTTP_AUTH ip_sourcerange=@PIWIGO_IP_SOURCERANGE oauth2=PIWIGO_OAUTH2
