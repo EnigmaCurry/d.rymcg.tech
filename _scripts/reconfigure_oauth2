@@ -36,7 +36,7 @@ if [[ ${1} =~ ^default= ]]; then
         DEFAULT_ENABLED_OAUTH2=yes
     fi
     echo ""
-    echo "Using OpenID/OAuth2 will require a login to access your app, but it will not affect what a successfully logged-in person can do in your app. If your app has built-in authentication *and* can check the user header that traefik-forward-auth sends, then your app can limit what the logged-in person can do in the app. But if your app can't check the user header, or if your app doesn't have built-in authentication at all, then any person with an account on your Gitea server can log into your app and have full access."
+    echo "Using OpenID/OAuth2 will require a login to access your app, but it will not affect what a successfully logged-in person can do in your app. If your app has a built-in authorization mechanism that can check for the user header that traefik-forward-auth sends, then your app can limit what the logged-in person can do in the app. But if your app can't check the user header, or if your app doesn't have built-in authorization at all, then any person with an account on your Gitea server can log into your app and have full acces"
     #$(${BIN}/confirm $$([[ $$(${BIN}/dotenv -f ${ENV_FILE} get ${VAR}) == "true" ]] && echo "yes" || echo "no") "Do you want to enable OpenID/OAuth2" "?" && ${BIN}/reconfigure ${ENV_FILE} ${VAR}=true || ${BIN}/reconfigure ${ENV_FILE} ${VAR}=false)
     ${BIN}/confirm ${DEFAULT_ENABLED_OAUTH2} "Do you want to enable OpenID/OAuth2" "?" || disable_oauth2
 fi
