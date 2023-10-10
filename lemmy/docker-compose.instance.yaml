@@ -13,6 +13,7 @@
 #@ ip_sourcerange = data.values.ip_sourcerange
 #@ enable_http_auth = len(data.values.http_auth.strip()) > 0
 #@ http_auth = data.values.http_auth_var
+#@ enable_oauth2 = data.values.oauth2
 #@ enabled_middlewares = []
 
 #! ### Custom project vars:
@@ -38,6 +39,10 @@ services:
       #@ if enable_http_auth:
       #@ enabled_middlewares.append("{}-basicauth".format(router))
       - "traefik.http.middlewares.(@= router @)-basicauth.basicauth.users=(@= http_auth @)"
+      #@ end
+
+      #@ if enable_oauth2 == "yes":
+      #@ enabled_middlewares.append("traefik-forward-auth@docker")
       #@ end
 
       #! Override the default port that proxy binds to, so that it lives in userspace >1024:

@@ -12,6 +12,8 @@ config-hook:
 	@${BIN}/reconfigure_password ${ENV_FILE} WORDPRESS_DB_PASSWORD
 	@${BIN}/reconfigure_htpasswd ${ENV_FILE} WORDPRESS_HTTP_AUTH default=no
 	@echo ""
+	@${BIN}/reconfigure_oauth2 ${ENV_FILE} WORDPRESS_OAUTH2 default=$$( ${BIN}/dotenv -f ${ENV_FILE} get WORDPRESS_OAUTH2 )
+	@echo ""
 	@${BIN}/confirm $$([[ $$(${BIN}/dotenv -f ${ENV_FILE} get WORDPRESS_ANTI_HOTLINK) == "true" ]] && echo "yes" || echo "no") "Do you want to enable anti-hotlinking of images" "?" && ${BIN}/reconfigure ${ENV_FILE} WORDPRESS_ANTI_HOTLINK=true || ${BIN}/reconfigure ${ENV_FILE} WORDPRESS_ANTI_HOTLINK=false || true
 	@echo ""
 	@[[ $$(${BIN}/dotenv -f ${ENV_FILE} get WORDPRESS_ANTI_HOTLINK) == "true" ]] && ${BIN}/confirm $$([[ $$(${BIN}/dotenv -f ${ENV_FILE} get WORDPRESS_ANTI_HOTLINK_ALLOW_EMPTY_REFERER) == "true" ]] && echo "yes" || echo "no") "Should a client that sends an empty referer be allowed to view attachments" "?" && ${BIN}/reconfigure ${ENV_FILE} WORDPRESS_ANTI_HOTLINK_ALLOW_EMPTY_REFERER=true || ${BIN}/reconfigure ${ENV_FILE} WORDPRESS_ANTI_HOTLINK_ALLOW_EMPTY_REFERER=false || true
@@ -33,7 +35,7 @@ override-hook:
 ####                         # (this hardcodes the string into docker-compose.override.yaml)
 ####   name=@VARIABLE_NAME   # sets the template 'name' field to the literal string '${VARIABLE_NAME}'
 ####                         # (used for regular docker-compose expansion of env vars by name.)
-	@${BIN}/docker_compose_override ${ENV_FILE} project=:wp instance=@WORDPRESS_INSTANCE traefik_host=@WORDPRESS_TRAEFIK_HOST http_auth=WORDPRESS_HTTP_AUTH http_auth_var=@WORDPRESS_HTTP_AUTH ip_sourcerange=@WORDPRESS_IP_SOURCERANGE enable_anti_hotlink=WORDPRESS_ANTI_HOTLINK anti_hotlink_referers_extra=@WORDPRESS_ANTI_HOTLINK_REFERERS_EXTRA anti_hotlink_allow_empty_referer=@WORDPRESS_ANTI_HOTLINK_ALLOW_EMPTY_REFERER enable_wp2static=WORDPRESS_WP2STATIC traefik_host_static=@WORDPRESS_TRAEFIK_HOST_STATIC http_auth_static=WORDPRESS_HTTP_AUTH_STATIC http_auth_static_var=@WORDPRESS_HTTP_AUTH_STATIC ip_sourcerange_static=@WORDPRESS_IP_SOURCERANGE_STATIC
+	@${BIN}/docker_compose_override ${ENV_FILE} project=:wp instance=@WORDPRESS_INSTANCE traefik_host=@WORDPRESS_TRAEFIK_HOST http_auth=WORDPRESS_HTTP_AUTH http_auth_var=@WORDPRESS_HTTP_AUTH ip_sourcerange=@WORDPRESS_IP_SOURCERANGE enable_anti_hotlink=WORDPRESS_ANTI_HOTLINK anti_hotlink_referers_extra=@WORDPRESS_ANTI_HOTLINK_REFERERS_EXTRA anti_hotlink_allow_empty_referer=@WORDPRESS_ANTI_HOTLINK_ALLOW_EMPTY_REFERER enable_wp2static=WORDPRESS_WP2STATIC traefik_host_static=@WORDPRESS_TRAEFIK_HOST_STATIC http_auth_static=WORDPRESS_HTTP_AUTH_STATIC http_auth_static_var=@WORDPRESS_HTTP_AUTH_STATIC ip_sourcerange_static=@WORDPRESS_IP_SOURCERANGE_STATIC oauth2=WORDPRESS_OAUTH2
 
 .PHONY: shell
 shell:
