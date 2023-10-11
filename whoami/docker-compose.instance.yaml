@@ -42,6 +42,13 @@ services:
       #@ enabled_middlewares.append("traefik-forward-auth@docker")
       #@ end
 
+      #! TODO: Make this configurable!
+      - "traefik.http.middlewares.(@= router @)-header-authorization.plugin.headauth.header.name=X-Forwarded-User"
+      - "traefik.http.middlewares.(@= router @)-header-authorization.plugin.headauth.allowed=root@localhost"
+      - "traefik.http.middlewares.(@= router @)-header-authorization.plugin.headauth.methods=GET,HEAD,POST,PUT,DELETE,CONNECT,OPTIONS,TRACE,PATCH"
+
+      #@ enabled_middlewares.append("{}-header-authorization".format(router))
+
       #! Override the default port that whoami binds to, so that it lives in userspace >1024:
       #! You don't normally need to do this, as long as your image has
       #! an EXPOSE directive in it, Traefik will autodetect it, but this is how you can override it:

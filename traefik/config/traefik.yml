@@ -29,7 +29,7 @@ experimental:
       modulename: github.com/moonlightwatch/referer
     #@ end
     #@ if data.values.plugin_header_authorization == "true":
-    headerAuthorization:
+    headauth:
       modulename: github.com/poloyacero/headauth
     #@ end
 #@ end
