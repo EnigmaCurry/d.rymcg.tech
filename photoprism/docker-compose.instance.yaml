@@ -14,6 +14,7 @@
 #@ enable_http_auth = len(data.values.http_auth.strip()) > 0
 #@ http_auth = data.values.http_auth_var
 #@ enable_oauth2 = data.values.oauth2
+#@ authorized_emails = data.values.authorized_emails
 #@ enabled_middlewares = []
 
 #@yaml/text-templated-strings
@@ -40,6 +41,10 @@ services:
 
       #@ if enable_oauth2 == "yes":
       #@ enabled_middlewares.append("traefik-forward-auth@docker")
+      - "traefik.http.middlewares.(@= router @)-header-authorization.plugin.headauth.header.name=X-Forwarded-User"
+      - "traefik.http.middlewares.(@= router @)-header-authorization.plugin.headauth.allowed=(@= authorized_emails @)"
+      - "traefik.http.middlewares.(@= router @)-header-authorization.plugin.headauth.methods=GET,HEAD,POST,PUT,DELETE,CONNECT,OPTIONS,TRACE,PATCH"
+      #@ enabled_middlewares.append("{}-header-authorization".format(router))
       #@ end
 
       #! Override the default port that photoprism binds to, so that it lives in userspace >1024:

@@ -11,7 +11,7 @@ config-hook:
 	@${BIN}/reconfigure_ask ${ENV_FILE} PHOTOPRISM_TRAEFIK_HOST "Enter the photoprism domain name" photoprism${INSTANCE_URL_SUFFIX}.${ROOT_DOMAIN}
 	@${BIN}/reconfigure ${ENV_FILE} PHOTOPRISM_INSTANCE=$${instance:-default}
 	@${BIN}/reconfigure_htpasswd ${ENV_FILE} PHOTOPRISM_HTTP_AUTH default=no
-	@${BIN}/reconfigure_oauth2 ${ENV_FILE} PHOTOPRISM_OAUTH2 default=$$( ${BIN}/dotenv -f ${ENV_FILE} get PHOTOPRISM_OAUTH2 )
+	@${BIN}/reconfigure_oauth2 ${ENV_FILE} PHOTOPRISM_OAUTH2 default=$$( ${BIN}/dotenv -f ${ENV_FILE} get PHOTOPRISM_OAUTH2 ) PHOTOPRISM_AUTHORIZED_IDENTITIES
 	@echo ""
 	@${BIN}/reconfigure_password ${ENV_FILE} PHOTOPRISM_DATABASE_PASSWORD 32
 
@@ -42,4 +42,4 @@ override-hook:
 ####                         # (this hardcodes the string into docker-compose.override.yaml)
 ####   name=@VARIABLE_NAME   # sets the template 'name' field to the literal string '${VARIABLE_NAME}'
 ####                         # (used for regular docker-compose expansion of env vars by name.)
-	@${BIN}/docker_compose_override ${ENV_FILE} project=:photoprism instance=@PHOTOPRISM_INSTANCE traefik_host=@PHOTOPRISM_TRAEFIK_HOST http_auth=PHOTOPRISM_HTTP_AUTH http_auth_var=@PHOTOPRISM_HTTP_AUTH ip_sourcerange=@PHOTOPRISM_IP_SOURCERANGE oauth2=PHOTOPRISM_OAUTH2
+	@${BIN}/docker_compose_override ${ENV_FILE} project=:photoprism instance=@PHOTOPRISM_INSTANCE traefik_host=@PHOTOPRISM_TRAEFIK_HOST http_auth=PHOTOPRISM_HTTP_AUTH http_auth_var=@PHOTOPRISM_HTTP_AUTH ip_sourcerange=@PHOTOPRISM_IP_SOURCERANGE oauth2=PHOTOPRISM_OAUTH2 authorized_emails=PHOTOPRISM_AUTHORIZED_IDENTITIES

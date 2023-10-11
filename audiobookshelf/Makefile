@@ -6,7 +6,7 @@ include ${ROOT_DIR}/_scripts/Makefile.instance
 config-hook:
 	@${BIN}/reconfigure_ask ${ENV_FILE} AUDIOBOOKSHELF_TRAEFIK_HOST "Enter the website domain name" audiobookshelf${INSTANCE_URL_SUFFIX}.${ROOT_DOMAIN}
 	@${BIN}/reconfigure ${ENV_FILE} AUDIOBOOKSHELF_INSTANCE=${instance}
-	@${BIN}/reconfigure_oauth2 ${ENV_FILE} AUDIOBOOKSHELF_OAUTH2 default=$$( ${BIN}/dotenv -f ${ENV_FILE} get AUDIOBOOKSHELF_OAUTH2 )
+	@${BIN}/reconfigure_oauth2 ${ENV_FILE} AUDIOBOOKSHELF_OAUTH2 default=$$( ${BIN}/dotenv -f ${ENV_FILE} get AUDIOBOOKSHELF_OAUTH2 ) AUDIOBOOKSHELF_AUTHORIZED_IDENTITIES
 	@echo ""
 
 .PHONY: override-hook
@@ -21,7 +21,7 @@ override-hook:
 ####                         # (this hardcodes the string into docker-compose.override.yaml)
 ####   name=@VARIABLE_NAME   # sets the template 'name' field to the literal string '${VARIABLE_NAME}'
 ####                         # (used for regular docker-compose expansion of env vars by name.)
-	@${BIN}/docker_compose_override ${ENV_FILE} project=:audiobookshelf instance=@AUDIOBOOKSHELF_INSTANCE traefik_host=@AUDIOBOOKSHELF_TRAEFIK_HOST http_auth=AUDIOBOOKSHELF_HTTP_AUTH http_auth_var=@AUDIOBOOKSHELF_HTTP_AUTH ip_sourcerange=@AUDIOBOOKSHELF_IP_SOURCERANGE oauth2=AUDIOBOOKSHELF_OAUTH2
+	@${BIN}/docker_compose_override ${ENV_FILE} project=:audiobookshelf instance=@AUDIOBOOKSHELF_INSTANCE traefik_host=@AUDIOBOOKSHELF_TRAEFIK_HOST http_auth=AUDIOBOOKSHELF_HTTP_AUTH http_auth_var=@AUDIOBOOKSHELF_HTTP_AUTH ip_sourcerange=@AUDIOBOOKSHELF_IP_SOURCERANGE oauth2=AUDIOBOOKSHELF_OAUTH2 authorized_emails=AUDIOBOOKSHELF_AUTHORIZED_IDENTITIES
 
 
 .PHONY: shell # Enter container shell

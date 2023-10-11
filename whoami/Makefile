@@ -11,7 +11,7 @@ config-hook:
 	@${BIN}/reconfigure_ask ${ENV_FILE} WHOAMI_TRAEFIK_HOST "Enter the whoami domain name" whoami${INSTANCE_URL_SUFFIX}.${ROOT_DOMAIN}
 	@${BIN}/reconfigure ${ENV_FILE} WHOAMI_INSTANCE=$${instance:-default}
 	@${BIN}/reconfigure_htpasswd ${ENV_FILE} WHOAMI_HTTP_AUTH default=no
-	@${BIN}/reconfigure_oauth2 ${ENV_FILE} WHOAMI_OAUTH2 default=$$( ${BIN}/dotenv -f ${ENV_FILE} get WHOAMI_OAUTH2 )
+	@${BIN}/reconfigure_oauth2 ${ENV_FILE} WHOAMI_OAUTH2 default=$$( ${BIN}/dotenv -f ${ENV_FILE} get WHOAMI_OAUTH2 ) WHOAMI_AUTHORIZED_IDENTITIES
 	@echo ""
 
 .PHONY: override-hook
@@ -26,4 +26,4 @@ override-hook:
 ####                         # (this hardcodes the string into docker-compose.override.yaml)
 ####   name=@VARIABLE_NAME   # sets the template 'name' field to the literal string '${VARIABLE_NAME}'
 ####                         # (used for regular docker-compose expansion of env vars by name.)
-	@${BIN}/docker_compose_override ${ENV_FILE} project=:whoami instance=@WHOAMI_INSTANCE traefik_host=@WHOAMI_TRAEFIK_HOST http_auth=WHOAMI_HTTP_AUTH http_auth_var=@WHOAMI_HTTP_AUTH ip_sourcerange=@WHOAMI_IP_SOURCERANGE oauth2=WHOAMI_OAUTH2
+	@${BIN}/docker_compose_override ${ENV_FILE} project=:whoami instance=@WHOAMI_INSTANCE traefik_host=@WHOAMI_TRAEFIK_HOST http_auth=WHOAMI_HTTP_AUTH http_auth_var=@WHOAMI_HTTP_AUTH ip_sourcerange=@WHOAMI_IP_SOURCERANGE oauth2=WHOAMI_OAUTH2 authorized_emails=WHOAMI_AUTHORIZED_IDENTITIES
