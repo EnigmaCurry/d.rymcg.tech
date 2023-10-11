@@ -32,10 +32,6 @@ you want:
      to both private and/or public static websites).
    * Say `N` or `Y` to creating a **public** static HTML wordpress export.
 
-This will ask you to enter the domain name to use.
-It automatically saves your responses into the configuration file
-`.env_{INSTANCE}`.
-
 ### Authentication and Authorization
 
 Running `make config` will ask whether or not

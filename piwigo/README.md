@@ -46,6 +46,7 @@ header, or if your app doesn't have built-in authorization at all, then any
 person with an account on your Gitea server that you permit to log into your
 app will have full access.
 
+
 Once the `.env_${DOCKER_CONTEXT}_default` file is configured install piwigo:
 
 ```
