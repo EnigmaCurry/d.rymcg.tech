@@ -353,8 +353,9 @@ to web servers running in project containers.
 
 ## OAuth2 authentication
 
-You can start the [traefik-forward-auth](../traefik-forward-auth) service to
-enable OAuth2 authentication to your [gitea](../gitea) identity provider.
+You can start the [traefik-forward-auth](../traefik-forward-auth)
+service to enable OAuth2 authentication to your [gitea](../gitea)
+identity provider (or any external OAuth2 provider).
 
 It is important to understand the difference between authentication
 and authorization:
@@ -376,11 +377,11 @@ user for the session, and it only needs to decide what that user is
 allowed to do (ie. the app should define a map of email address to
 permissions that it enforces per request).
 
-However, many applications do not support this style authorization by
-trusted header. To add authorization to an unsupported application,
+However, many applications do not support this style of authorization
+by trusted header. To add authorization to an unsupported application,
 you may use the provided [header authorization
-middleware](github.com/enigmacurry/traefik-header-authorization),
-and can be configured simply by running this make target:
+middleware](github.com/enigmacurry/traefik-header-authorization), and
+can be configured simply by running this make target:
 
 ```
 # Configure the header authorization middleware:
