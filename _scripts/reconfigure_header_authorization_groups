@@ -32,21 +32,36 @@ list_groups() {
         return 0
     fi
 
-    echo "Here is a list of your current authorization groups:"
+    echo "Here is a list of your current authorization groups and their users:"
     echo "${TRAEFIK_HEADER_AUTHORIZATION_GROUPS}" | jq .
 }
 
 add_users_to_group() {
     TRAEFIK_HEADER_AUTHORIZATION_GROUPS=$(${BIN}/dotenv -f ${ENV_FILE} get TRAEFIK_HEADER_AUTHORIZATION_GROUPS)
-    ask 'Enter the name of the group to manage' group_name
+    ## List current groups
+    echo "Here are the current groups:"
+    jq -r --sort-keys 'keys[]' <<< ${TRAEFIK_HEADER_AUTHORIZATION_GROUPS}
+    groups=($(jq -r '. | keys[]' <<< ${TRAEFIK_HEADER_AUTHORIZATION_GROUPS}))
+    echo
+    
+    ## Ask for group to edit or create
+    ask 'Enter the name of the group to create/manage (enter blank to return to menu)' group_name
     if [[ $group_name == "" ]]; then
-        echo "group name cannot be blank."
+        print_help
         return 0
     fi
     echo
+    ## Don't display group's users if group doesn't already exist
+    if echo "${groups[@]}" | grep -qw "$group_name"; then
+        echo "Here are the user IDs already in the $group_name group:"
+        jq -r --sort-keys ".${group_name}[]" <<< ${TRAEFIK_HEADER_AUTHORIZATION_GROUPS}
+        echo
+    fi
+    
+    ## Ask for user IDs to add to group
     users=()
     readarray -t users < <(echo "${TRAEFIK_HEADER_AUTHORIZATION_GROUPS}" | jq -r -c ". | select(.${group_name}) | .${group_name}[]")
-    echo "Enter the new user ids to add, one per line:"
+    echo "Enter the new user id(s) to add, one per line:"
     while :
     do
         ask "Enter a user ID (enter blank to skip)" user_id
@@ -55,6 +70,8 @@ add_users_to_group() {
         fi
         users+=("${user_id}")
     done
+    
+    ## Add user IDs to group
     users=$(jq --compact-output --null-input '$ARGS.positional | unique' --args -- "${users[@]}")
     TRAEFIK_HEADER_AUTHORIZATION_GROUPS=$(echo "${TRAEFIK_HEADER_AUTHORIZATION_GROUPS}" | jq --compact-output "(.${group_name} = ${users})")
     ${BIN}/dotenv -f ${ENV_FILE} set TRAEFIK_HEADER_AUTHORIZATION_GROUPS="${TRAEFIK_HEADER_AUTHORIZATION_GROUPS}"
@@ -63,13 +80,70 @@ add_users_to_group() {
     list_groups
 }
 
-delete_group() {
+remove_users_from_group() {
     TRAEFIK_HEADER_AUTHORIZATION_GROUPS=$(${BIN}/dotenv -f ${ENV_FILE} get TRAEFIK_HEADER_AUTHORIZATION_GROUPS)
-    ask 'Enter the name of the group to delete' group_name
+    ## List current groups
+    echo "Here are the current groups:"
+    jq -r --sort-keys 'keys[]' <<< ${TRAEFIK_HEADER_AUTHORIZATION_GROUPS}
+    groups=($(jq -r '. | keys[]' <<< ${TRAEFIK_HEADER_AUTHORIZATION_GROUPS}))
+    echo
+
+    ## Ask for group to delete user IDs from
+    ask 'Enter the name of the group to delete users from (enter blank to return to menu)' group_name
     if [[ $group_name == "" ]]; then
-        echo "group name cannot be blank."
+        print_help
+        return 0
+    ## Don't display group's users if group doesn't already exist
+    elif ! echo "${groups[@]}" | grep -qw "$group_name"; then
+        echo "Group ${group_name} doesn't exist. Returning to menu."
+        echo
+        sleep 2
         return 0
     fi
+
+    ## List user IDs in the selected group
+    echo
+    echo "Here are the user IDs in the $group_name group:"
+    jq -r --sort-keys ".${group_name}[]" <<< ${TRAEFIK_HEADER_AUTHORIZATION_GROUPS}
+    existing_users=()
+    readarray -t existing_users < <(echo "${TRAEFIK_HEADER_AUTHORIZATION_GROUPS}" | jq -r -c ". | select(.${group_name}) | .${group_name}[]")
+    echo
+    
+    ## Ask for user ID(s) to delete
+    echo "Enter the user ID(s) to delete, one per line:"
+    delete_users=()
+    while :
+    do
+        ask "Enter a user ID to delete (enter blank to skip)" user_id
+        if [[ $user_id == "" ]]; then
+            break
+        fi
+        delete_users+=("${user_id}")
+    done
+    
+    ## Delete user ID(s) from group
+    TRAEFIK_HEADER_AUTHORIZATION_GROUPS=$(jq --argjson users '["${delete_users[@]}"]' '."${group_name}" |= map(select(. | IN("${delete_users[@]}") | not))' <<< ${TRAEFIK_HEADER_AUTHORIZATION_GROUPS})
+    echo "here: ${TRAEFIK_HEADER_AUTHORIZATION_GROUPS}" #debug 
+    echo
+    PENDING_CHANGES=1
+    list_groups
+}
+
+delete_group() {
+    TRAEFIK_HEADER_AUTHORIZATION_GROUPS=$(${BIN}/dotenv -f ${ENV_FILE} get TRAEFIK_HEADER_AUTHORIZATION_GROUPS)
+    ## List current groups
+    echo "Here are the current groups:"
+    jq -r --sort-keys 'keys[]' <<< ${TRAEFIK_HEADER_AUTHORIZATION_GROUPS}
+    groups=($(jq -r '. | keys[]' <<< ${TRAEFIK_HEADER_AUTHORIZATION_GROUPS}))
+    echo
+
+    ## Ask for group to delete
+    ask 'Enter the name of the group to delete (enter blank to return to menu)' group_name
+    if [[ $group_name == "" ]]; then
+        print_help
+        return 0
+    fi
+    ## Delete group
     TRAEFIK_HEADER_AUTHORIZATION_GROUPS=$(echo "${TRAEFIK_HEADER_AUTHORIZATION_GROUPS}" | jq --compact-output "del(.${group_name})")
     ${BIN}/dotenv -f ${ENV_FILE} set TRAEFIK_HEADER_AUTHORIZATION_GROUPS="${TRAEFIK_HEADER_AUTHORIZATION_GROUPS}"
     echo "Wrote new TRAEFIK_HEADER_AUTHORIZATION_GROUPS to ${ENV_FILE}"
@@ -110,6 +184,8 @@ do
         delete_group
     elif [[ $COMMAND = "m" || $COMMAND == "middlewares" ]]; then
         list_middlewares
+    elif [[ $COMMAND = "r" || $COMMAND == "remove" ]]; then
+        remove_users_from_group
     else
         echo "Invalid command."
     fi
