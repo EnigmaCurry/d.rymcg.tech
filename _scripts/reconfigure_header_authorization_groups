@@ -21,7 +21,8 @@ print_help() {
     echo ' * Type `d` to delete an existing group.'
     echo ' * Type `a` to add users to a group.'
     echo ' * Type `r` to remove users from a group.'
-    echo -e ' * Type `m` to list the LIVE header-auth middleware configs\n    (Note: you may need to still re-run `make install` first to reflect your changes!).'
+    echo ' * Type `m` to list the LIVE header-auth middleware configs'
+    echo '   (Note: you may need to still re-run `make install` first to reflect your changes!).'
     echo ' * Type `?` or `help` to see this help message again.'
 }
 
@@ -38,12 +39,15 @@ list_groups() {
 
 add_users_to_group() {
     TRAEFIK_HEADER_AUTHORIZATION_GROUPS=$(${BIN}/dotenv -f ${ENV_FILE} get TRAEFIK_HEADER_AUTHORIZATION_GROUPS)
+    if [[ $TRAEFIK_HEADER_AUTHORIZATION_GROUPS == "" ]]; then
+        TRAEFIK_HEADER_AUTHORIZATION_GROUPS="{}"
+    fi
     ## List current groups
     echo "Here are the current groups:"
     jq -r --sort-keys 'keys[]' <<< ${TRAEFIK_HEADER_AUTHORIZATION_GROUPS}
     groups=($(jq -r '. | keys[]' <<< ${TRAEFIK_HEADER_AUTHORIZATION_GROUPS}))
     echo
-    
+
     ## Ask for group to edit or create
     ask 'Enter the name of the group to create/manage (enter blank to return to menu)' group_name
     if [[ $group_name == "" ]]; then
@@ -57,7 +61,7 @@ add_users_to_group() {
         jq -r --sort-keys ".${group_name}[]" <<< ${TRAEFIK_HEADER_AUTHORIZATION_GROUPS}
         echo
     fi
-    
+
     ## Ask for user IDs to add to group
     users=()
     readarray -t users < <(echo "${TRAEFIK_HEADER_AUTHORIZATION_GROUPS}" | jq -r -c ". | select(.${group_name}) | .${group_name}[]")
@@ -70,7 +74,7 @@ add_users_to_group() {
         fi
         users+=("${user_id}")
     done
-    
+
     ## Add user IDs to group
     users=$(jq --compact-output --null-input '$ARGS.positional | unique' --args -- "${users[@]}")
     TRAEFIK_HEADER_AUTHORIZATION_GROUPS=$(echo "${TRAEFIK_HEADER_AUTHORIZATION_GROUPS}" | jq --compact-output "(.${group_name} = ${users})")
@@ -82,6 +86,9 @@ add_users_to_group() {
 
 remove_users_from_group() {
     TRAEFIK_HEADER_AUTHORIZATION_GROUPS=$(${BIN}/dotenv -f ${ENV_FILE} get TRAEFIK_HEADER_AUTHORIZATION_GROUPS)
+    if [[ $TRAEFIK_HEADER_AUTHORIZATION_GROUPS == "" ]]; then
+        TRAEFIK_HEADER_AUTHORIZATION_GROUPS="{}"
+    fi
     ## List current groups
     echo "Here are the current groups:"
     jq -r --sort-keys 'keys[]' <<< ${TRAEFIK_HEADER_AUTHORIZATION_GROUPS}
@@ -108,7 +115,7 @@ remove_users_from_group() {
     existing_users=()
     readarray -t existing_users < <(echo "${TRAEFIK_HEADER_AUTHORIZATION_GROUPS}" | jq -r -c ". | select(.${group_name}) | .${group_name}[]")
     echo
-    
+
     ## Ask for user ID(s) to delete
     echo "Enter the user ID(s) to delete, one per line:"
     delete_users=()
@@ -120,17 +127,24 @@ remove_users_from_group() {
         fi
         delete_users+=("${user_id}")
     done
-    
+
     ## Delete user ID(s) from group
-    TRAEFIK_HEADER_AUTHORIZATION_GROUPS=$(jq --argjson users '["${delete_users[@]}"]' '."${group_name}" |= map(select(. | IN("${delete_users[@]}") | not))' <<< ${TRAEFIK_HEADER_AUTHORIZATION_GROUPS})
-    echo "here: ${TRAEFIK_HEADER_AUTHORIZATION_GROUPS}" #debug 
+    for user in "${delete_users[@]}"; do
+        TRAEFIK_HEADER_AUTHORIZATION_GROUPS=$(jq --compact-output "del(.${group_name}[] | select (. == \"${user}\"))" <<< "${TRAEFIK_HEADER_AUTHORIZATION_GROUPS}")
+        echo "removed $user"
+    done
+    ${BIN}/dotenv -f ${ENV_FILE} set TRAEFIK_HEADER_AUTHORIZATION_GROUPS="${TRAEFIK_HEADER_AUTHORIZATION_GROUPS}"
     echo
+    echo "Wrote new TRAEFIK_HEADER_AUTHORIZATION_GROUPS to ${ENV_FILE}"
     PENDING_CHANGES=1
     list_groups
 }
 
 delete_group() {
     TRAEFIK_HEADER_AUTHORIZATION_GROUPS=$(${BIN}/dotenv -f ${ENV_FILE} get TRAEFIK_HEADER_AUTHORIZATION_GROUPS)
+    if [[ $TRAEFIK_HEADER_AUTHORIZATION_GROUPS == "" ]]; then
+        TRAEFIK_HEADER_AUTHORIZATION_GROUPS="{}"
+    fi
     ## List current groups
     echo "Here are the current groups:"
     jq -r --sort-keys 'keys[]' <<< ${TRAEFIK_HEADER_AUTHORIZATION_GROUPS}
