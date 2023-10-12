@@ -360,22 +360,27 @@ It is important to understand the difference between authentication
 and authorization:
 
  * authentication identifies who a user *is*. (This is what
-   traefik-forward-auth does.)
+     traefik-forward-auth does for you, sitting in front of your app.)
  * authorization is a process that determines what a user should be
-   *allowed to do* (This what the application should do).
+   *allowed to do* (This is what every application should do for itself).
 
+To summarize: traefik-forward-auth, by itself, only cares about
+identity, not about permissions.
+
+Permissions are to be implemented in the app itself.
 Traefik-Forward-Auth operates by setting a trusted header
 `X-Forwarded-User` that contains the authenticated users email
-address. The application should trust this header to be the real
-authenticated user for the session, and it only needs to decide what
-that user is allowed to do.
+address. The application receives this header on every request coming
+from the proxy. It should trust this header to be a real authenticated
+user for the session, and it only needs to decide what that user is
+allowed to do (ie. the app should define a map of email address to
+permissions that it enforces per request).
 
 However, many applications do not support this style authorization by
 trusted header. To add authorization to an unsupported application,
-you may use the
-[provided](github.com/enigmacurry/traefik-header-authorization)
-middleware, simply by running this make target:
-
+you may use the provided [header authorization
+middleware](github.com/enigmacurry/traefik-header-authorization),
+and can be configured simply by running this make target:
 
 ```
 # Configure the header authorization middleware:
