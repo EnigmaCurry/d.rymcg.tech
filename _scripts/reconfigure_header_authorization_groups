@@ -1,0 +1,116 @@
+#!/bin/bash
+
+## reconfigure_header_authorization_groups ENV_FILE
+
+BIN=$(dirname ${BASH_SOURCE})
+source ${BIN}/funcs.sh
+set -eo pipefail
+
+ENV_FILE=../traefik/${1}
+shift
+## Make new .env if it doesn't exist:
+test -f ${ENV_FILE} || cp ../traefik/.env-dist ${ENV_FILE}
+
+PENDING_CHANGES=0
+
+print_help() {
+    echo "Docker context: $(docker context inspect | jq -r '.[0].Name')"
+    echo "User Group Manager:"
+    echo ' * Type `q` to quit.'
+    echo ' * Type `l` or `p` to print all groups and users.'
+    echo ' * Type `d` to delete an existing group.'
+    echo ' * Type `a` to add users to a group.'
+    echo ' * Type `r` to remove users from a group.'
+    echo -e ' * Type `m` to list the LIVE header-auth middleware configs\n    (Note: you may need to still re-run `make install` first to reflect your changes!).'
+    echo ' * Type `?` or `help` to see this help message again.'
+}
+
+list_groups() {
+    TRAEFIK_HEADER_AUTHORIZATION_GROUPS=$(${BIN}/dotenv -f ${ENV_FILE} get TRAEFIK_HEADER_AUTHORIZATION_GROUPS)
+    if [[ $TRAEFIK_HEADER_AUTHORIZATION_GROUPS == "{}" || $TRAEFIK_HEADER_AUTHORIZATION_GROUPS == "" ]]; then
+        echo "No authorization groups have been defined yet."
+        return 0
+    fi
+
+    echo "Here is a list of your current authorization groups:"
+    echo "${TRAEFIK_HEADER_AUTHORIZATION_GROUPS}" | jq .
+}
+
+add_users_to_group() {
+    TRAEFIK_HEADER_AUTHORIZATION_GROUPS=$(${BIN}/dotenv -f ${ENV_FILE} get TRAEFIK_HEADER_AUTHORIZATION_GROUPS)
+    ask 'Enter the name of the group to manage' group_name
+    if [[ $group_name == "" ]]; then
+        echo "group name cannot be blank."
+        return 0
+    fi
+    echo
+    users=()
+    readarray -t users < <(echo "${TRAEFIK_HEADER_AUTHORIZATION_GROUPS}" | jq -r -c ". | select(.${group_name}) | .${group_name}[]")
+    echo "Enter the new user ids to add, one per line:"
+    while :
+    do
+        ask "Enter a user ID (enter blank to skip)" user_id
+        if [[ $user_id == "" ]]; then
+            break
+        fi
+        users+=("${user_id}")
+    done
+    users=$(jq --compact-output --null-input '$ARGS.positional | unique' --args -- "${users[@]}")
+    TRAEFIK_HEADER_AUTHORIZATION_GROUPS=$(echo "${TRAEFIK_HEADER_AUTHORIZATION_GROUPS}" | jq --compact-output "(.${group_name} = ${users})")
+    ${BIN}/dotenv -f ${ENV_FILE} set TRAEFIK_HEADER_AUTHORIZATION_GROUPS="${TRAEFIK_HEADER_AUTHORIZATION_GROUPS}"
+    echo "Wrote new TRAEFIK_HEADER_AUTHORIZATION_GROUPS to ${ENV_FILE}"
+    PENDING_CHANGES=1
+    list_groups
+}
+
+delete_group() {
+    TRAEFIK_HEADER_AUTHORIZATION_GROUPS=$(${BIN}/dotenv -f ${ENV_FILE} get TRAEFIK_HEADER_AUTHORIZATION_GROUPS)
+    ask 'Enter the name of the group to delete' group_name
+    if [[ $group_name == "" ]]; then
+        echo "group name cannot be blank."
+        return 0
+    fi
+    TRAEFIK_HEADER_AUTHORIZATION_GROUPS=$(echo "${TRAEFIK_HEADER_AUTHORIZATION_GROUPS}" | jq --compact-output "del(.${group_name})")
+    ${BIN}/dotenv -f ${ENV_FILE} set TRAEFIK_HEADER_AUTHORIZATION_GROUPS="${TRAEFIK_HEADER_AUTHORIZATION_GROUPS}"
+    echo "Wrote new TRAEFIK_HEADER_AUTHORIZATION_GROUPS to ${ENV_FILE}"
+    PENDING_CHANGES=1
+    list_groups
+}
+
+list_middlewares() {
+    exe docker compose --env-file=${ENV_FILE} exec -it traefik /bin/sh -c "cat /data/config/dynamic/header-authorization.yml"
+    echo
+    echo '## REMEMBER: if you have not yet re-run `make install` for Traefik,'
+    echo '## your live configration may be out sync with your .env file.'
+}
+
+print_help
+while :
+do
+    echo ""
+    ask 'Enter command (for help type `?`)' COMMAND
+    echo ""
+    if [[ $COMMAND == 'q' || $COMMAND == "quit" ]]; then
+        echo ""
+        if [[ $PENDING_CHANGES -ne 0 ]]; then
+            if ${BIN}/confirm no "Do you want to restart Traefik now" "?"; then
+                make install
+            else
+                echo 'Remember to restart Traefik (`make install`) for group changes to take effect!'
+            fi
+        fi
+        exit 0
+    elif [[ $COMMAND == '?' || $COMMAND == "help" ]]; then
+        print_help
+    elif [[ $COMMAND == "l" || $COMMAND == "p" || $COMMAND == "list" ]]; then
+        list_groups || true
+    elif [[ $COMMAND = "a" || $COMMAND == "add" ]]; then
+        add_users_to_group
+    elif [[ $COMMAND = "d" || $COMMAND == "delete" ]]; then
+        delete_group
+    elif [[ $COMMAND = "m" || $COMMAND == "middlewares" ]]; then
+        list_middlewares
+    else
+        echo "Invalid command."
+    fi
+done

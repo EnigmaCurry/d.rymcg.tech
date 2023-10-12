@@ -127,3 +127,7 @@ logs-access:
 .PHONY: debug # Restart Traefik with debug logging for one time only
 debug:
 	@EXISTING_TRAEFIK_LOG_LEVEL=$$(${BIN}/dotenv -f ${ENV_FILE} get TRAEFIK_LOG_LEVEL) && ${BIN}/reconfigure ${ENV_FILE} TRAEFIK_LOG_LEVEL=debug && make --no-print-directory install; STARTED=$$?; ${BIN}/reconfigure ${ENV_FILE} TRAEFIK_LOG_LEVEL=$${EXISTING_TRAEFIK_LOG_LEVEL} && [[ "$$STARTED" == "0" ]] && make --no-print-directory logs-traefik
+
+.PHONY: groups
+groups:
+	@${BIN}/reconfigure_header_authorization_groups ${ENV_FILE}

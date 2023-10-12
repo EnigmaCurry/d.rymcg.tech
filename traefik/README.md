@@ -356,6 +356,40 @@ to web servers running in project containers.
 You can start the [traefik-forward-auth](../traefik-forward-auth) service to
 enable OAuth2 authentication to your [gitea](../gitea) identity provider.
 
+It is important to understand the difference between authentication
+and authorization:
+
+ * authentication identifies who a user *is*. (This is what
+   traefik-forward-auth does.)
+ * authorization is a process that determines what a user should be
+   *allowed to do* (This what the application should do).
+
+Traefik-Forward-Auth operates by setting a trusted header
+`X-Forwarded-User` that contains the authenticated users email
+address. The application should trust this header to be the real
+authenticated user for the session, and it only needs to decide what
+that user is allowed to do.
+
+However, many applications do not support this style authorization by
+trusted header. To add authorization to an unsupported application,
+you may use the
+[provided](github.com/enigmacurry/traefik-header-authorization)
+middleware, simply by running this make target:
+
+
+```
+# Configure the header authorization middleware:
+make groups
+```
+
+This will configure the `TRAEFIK_HEADER_AUTHORIZATION_GROUPS`
+environment variable in your .env file (which is a serialized JSON map
+of groups and allowed usernames). Remember to re-install traefik after
+making any changes.
+
+Each app must apply the middleware to filter users based on the group
+the middleware is designed for (TODO: document how the apps do this).
+
 ## Wireguard VPN
 
 By default Traefik is setup to use the `host` network, which is used

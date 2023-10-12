@@ -74,6 +74,7 @@ ytt_template() {
         -v error_handler_403_service="${TRAEFIK_ERROR_HANDLER_403_SERVICE}" \
         -v error_handler_404_service="${TRAEFIK_ERROR_HANDLER_404_SERVICE}" \
         -v error_handler_500_service="${TRAEFIK_ERROR_HANDLER_500_SERVICE}" \
+        --data-value-yaml header_authorization_groups="${TRAEFIK_HEADER_AUTHORIZATION_GROUPS}" \
         > ${dst}
     success=$?
     echo "[ ! ] GENERATED NEW CONFIG FILE :::  ${dst}"
