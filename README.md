@@ -4,7 +4,7 @@
 [![Chat on Matrix](_meta/img/matrix-badge.svg)](https://matrix.to/#/#d.rymcg.tech:enigmacurry.com)
 
 This is a collection of Docker Compose projects consisting of
-[Traefik](https://doc.traefik.io/traefik/) as a TLS HTTP/TCP reverse
+[Traefik](https://doc.traefik.io/traefik/) as a TLS HTTP/TCP/UDP reverse
 proxy and other various self-hosted applications and services behind
 this proxy. Each project is in its own sub-directory containing its
 own `docker-compose.yaml` and `.env-dist` sample config file. This
@@ -44,13 +44,14 @@ All of these projects are configured soley via environment variables
 written to Docker [.env](https://docs.docker.com/compose/env-file/)
 files.
 
-The `.env` files are to be kept secret in each project directory
-(because they include things like passwords and keys) and are
-therefore excluded from the git repository via `.gitignore`. Each
-project includes a `.env-dist` file, which is a sample that must be
-copied to create your own secret `.env` file and edited according to
-the example. (Or run `make config` to run a setup wizard to create the
-`.env` file for you by answering some questions interactively.)
+The `.env` files for each application instance are to be kept secret
+because they include things like passwords and keys, and these should
+be kept on a secure workstation and not commited to git (they are
+ignored via `.gitignore`) . Each project includes a `.env-dist` file,
+which is a sample that must be copied to create your own secret `.env`
+file and edited according to the example. (Or run `make config` to run
+a setup wizard to create the `.env` file for you by answering some
+questions interactively.)
 
 For containers that do not support environment variable configuration,
 a sidecar container is included (usually called `config`) that will
@@ -93,19 +94,37 @@ If you need a semi-private development or staging server, and want to
 be able to share some public URLs for your services, you can protect
 your services by turning on Traefik's [HTTP Basic
 Authentication](https://doc.traefik.io/traefik/middlewares/http/basicauth/)
-or
+or [OAuth2 Authentication](traefik/README.md#oauth2-authentication)
+and
 [IPWhitelist](https://doc.traefik.io/traefik/middlewares/http/ipwhitelist/)
 middlewares (see
 [s3-proxy](https://github.com/EnigmaCurry/d.rymcg.tech/blob/f77aaaa5a2705eedaf29a4cdc32f91cdb65e66f7/s3-proxy/docker-compose.yaml#L35-L41)
-for an example that uses both of these) or you can make an exclusively
-private Traefik service with a
+for an example that uses both basic auth and ip whitelist) or you can
+make an exclusively private Traefik service with a
 [Wireguard](https://github.com/EnigmaCurry/d.rymcg.tech/tree/master/traefik#wireguard-vpn)
 VPN.
 
-For local development purposes, you can [install Docker on a raspberry pi](RASPBERRY_PI.md) or you can [install Docker in a virtual
-machine](_docker_vm#readme) (in all scenarios you will remotely control Docker from your native workstation), this
-ensures that your development environment is deployed in the same way as you would a production server. Never install Docker on your native workstation/desktop! (Or, if you do, never give your normal user account any docker privileges!) See [_docker_vm](_docker_vm#readme) for
-details on how and why to install Docker in KVM/Qemu. Please note that Docker Desktop is not currently supported because [it does not support host networking](https://docs.docker.com/network/network-tutorial-host/), and the Traefik configuration relies upon this (if you know a way around this, please open an issue/PR). (If you don't use Linux on your workstation, you may have better luck installing Docker yourself inside of a traditional virtual machine like VMWare or Virtualbox, and then setting up an SSH service so you can access the VM remotely from your native desktop (the docker *client* works just fine from WSL2); or even easier would be to [install Docker on a raspberry pi](https://github.com/EnigmaCurry/d.rymcg.tech/blob/master/RASPBERRY_PI.md) and connect it on your LAN.
+For local development purposes, you can [install Docker on a raspberry
+pi](RASPBERRY_PI.md) or you can [install Docker in a virtual
+machine](_docker_vm#readme) (in all scenarios you will remotely
+control Docker from your native workstation), this ensures that your
+development environment is deployed in the same way as you would a
+production server. Never install Docker on your native
+workstation/desktop! (Or, if you do, never give your normal user
+account any docker privileges!) See [_docker_vm](_docker_vm#readme)
+for details on how and why to install Docker in KVM/Qemu. Please note
+that Docker Desktop is not currently supported because [it does not
+support host
+networking](https://docs.docker.com/network/network-tutorial-host/),
+and the Traefik configuration relies upon this (if you know a way
+around this, please open an issue/PR). (If you don't use Linux on your
+workstation, you may have better luck installing Docker yourself
+inside of a traditional virtual machine like VMWare or Virtualbox, and
+then setting up an SSH service so you can access the VM remotely from
+your native desktop (the docker *client* works just fine from WSL2);
+or even easier would be to [install Docker on a raspberry
+pi](https://github.com/EnigmaCurry/d.rymcg.tech/blob/master/RASPBERRY_PI.md)
+and connect it on your LAN.
 
 ### Setup DNS for your domain and Docker server
 
@@ -520,42 +539,12 @@ README files reflect the `make` command style for config. Editing the
 `.env` files by hand still offers you more control, with more freedom
 for experimentation, and this option always remains available.
 
-### Using `docker compose` by hand
-
-For all of the containers that you wish to install, do the following:
-
- * Read the README.md file found in the sub-project directory.
- * Open your terminal and `cd` to the project directory containing
-   `docker-compose.yaml`
- * Copy the example `.env-dist` to `.env`
- * Edit all of the variables in `.env` according to the example and comments.
- * Create a
-   [`docker-compose.override.yaml`](https://docs.docker.com/compose/extends/#multiple-compose-files)
-   file by hand, copying from the template given in
-   `docker-compose.instance.yaml` (If the project does not have this
-   file, you can skip this step.) This [ytt](https://carvel.dev/ytt/)
-   template is mainly used for the service container labels, and has
-   logic for choosing which Traefik middlewares to apply. So you just
-   need to remove (comment out) the lines that don't apply in your
-   case. The override files are not committed into git, as they are
-   normally dynamically generated by the Makefiles and rendering from
-   the template on the fly. If you want to maintain these files by
-   hand, you can remove the exclusion of them from the
-   [.gitignore](.gitignore) and commit them with your own forked
-   repository.
- * Follow the README for instructions to start the containers.
-   Generally, all you need to do is run: `docker compose up --build
-   -d` (This is the same thing that `make install` does)
-
-When using `docker compose` by hand, it uses the `.env` file name by
-default. To use any other filename, specify the `--env-file` argument
-(eg. when deploying multiple instances).
-
 ### Using the Makefiles
 
-Alternatively, each project has a `Makefile` that helps to simplify
-configuration and startup. You can use the Makefiles to automatically
-edit the `.env` files and to start the services for you.
+Each project has a `Makefile` that helps to simplify installation and
+maintainance. You can use the Makefiles to automatically edit the
+`.env` files and to start the services for you (and this way you won't
+have to run any docker commands by hand).
 
 The most important thing to know is that `make` looks for a `Makefile`
 in your *current* working directory. `make` is contextual to the
@@ -618,12 +607,12 @@ For a more in depth guide on using the Makefiles, see
 ### Using the `d.rymcg.tech` CLI script (optional)
 
 By default, both `make` and `docker compose` expect you to change your
-working directory to use them (note: you *can* work around this by
-using `make -C` or `docker compose -f`).
+working directory to use them, and so this is sometimes inconvenient.
+You *can* work around this by using `make -C` or `docker compose -f`,
+but another option is to use the eponymous [`d.rymcg.tech`
+script](_scripts/d.rymcg.tech) that is included in this repository.
 
-However, there is a third option to use the eponymous [`d.rymcg.tech`
-script](_scripts/d.rymcg.tech) included in this repository. In
-addition to letting you run any project's `make` targets from any
+In addition to letting you run any project's `make` targets from any
 working directory, this shell script also offers a convenient way to
 create [external projects](#integrating-external-projects) from a
 skeleton template, and to create shorter command aliases for any
@@ -761,6 +750,42 @@ To get a synopsis of all of these completion commands, run:
 ```
 d.rymcg.tech completion
 ```
+
+### Using `docker compose` by hand (optional)
+
+This project was originally designed to be a pure docker compose
+project, and it still is. The `make` commands or the `d.rymcg.tech`
+wrapper script are the recommended methods to use, however you can
+still use `docker compose` by hand if you wish.
+
+For all of the containers that you wish to install, do the following:
+
+ * Read the README.md file found in the sub-project directory.
+ * Open your terminal and `cd` to the project directory containing
+   `docker-compose.yaml`
+ * Copy the example `.env-dist` to `.env`
+ * Edit all of the variables in `.env` according to the example and comments.
+ * Create a
+   [`docker-compose.override.yaml`](https://docs.docker.com/compose/extends/#multiple-compose-files)
+   file by hand, copying from the template given in
+   `docker-compose.instance.yaml` (If the project does not have this
+   file, you can skip this step.) This [ytt](https://carvel.dev/ytt/)
+   template is mainly used for the service container labels, and has
+   logic for choosing which Traefik middlewares to apply. So you just
+   need to remove (comment out) the lines that don't apply in your
+   case. The override files are not committed into git, as they are
+   normally dynamically generated by the Makefiles and rendering from
+   the template on the fly. If you want to maintain these files by
+   hand, you can remove the exclusion of them from the
+   [.gitignore](.gitignore) and commit them with your own forked
+   repository.
+ * Follow the README for instructions to start the containers.
+   Generally, all you need to do is run: `docker compose up --build
+   -d` (This is the same thing that `make install` does)
+
+When using `docker compose` by hand, it uses the `.env` file name by
+default. To use any other filename, specify the `--env-file` argument
+(eg. when deploying multiple instances).
 
 ## Creating multiple instances of a service
 
