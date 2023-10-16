@@ -81,6 +81,14 @@ make certs
 (Follow the [certificate manager](#certificate-manager) section for a
 detailed example of creating certificates and then come back here.)
 
+```
+make groups
+```
+
+(`make groups` is only required if you configure Oauth2 authentication -
+follow the [Oauth2 authentication](#oauth2-authentication) section for
+instructions how to create authoriation groups, and then come back here.)
+
 Double check that the config has now been created in your
 `.env_${DOCKER_CONTEXT}_default` file and make any final edits (there are a
 few settings that are not covered by the wizard, so you may want to
@@ -381,7 +389,7 @@ However, many applications do not support this style of authorization
 by trusted header. To add authorization to an unsupported application,
 you may use the provided [header authorization
 middleware](github.com/enigmacurry/traefik-header-authorization), and
-can be configured simply by running this make target:
+it can be configured simply by running this make target:
 
 ```
 # Configure the header authorization middleware:
@@ -391,10 +399,13 @@ make groups
 This will configure the `TRAEFIK_HEADER_AUTHORIZATION_GROUPS`
 environment variable in your .env file (which is a serialized JSON map
 of groups and allowed usernames). Remember to re-install traefik after
-making any changes.
+making any changes to your authorization groups or permitted email addresses.
 
 Each app must apply the middleware to filter users based on the group
-the middleware is designed for (TODO: document how the apps do this).
+the middleware is designed for. Once you run `make groups` and configure
+authorization groups in the `traefik` folder, when you run `make config` for
+that app and elect to configure Oauth2 authentication, you will be asked to
+assign one of those groups to your app.
 
 ## Wireguard VPN
 

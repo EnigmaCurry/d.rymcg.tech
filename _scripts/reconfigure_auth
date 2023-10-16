@@ -1,0 +1,52 @@
+#!/bin/bash
+
+## reconfigure_auth VAR_PREFIX
+## Subsume all the authentication and authorization configurations in 1 script
+
+BIN=$(dirname ${BASH_SOURCE})
+source ${BIN}/funcs.sh
+set -eo pipefail
+
+ENV_FILE=$1
+VAR_PREFIX=$2
+
+## note: should we add comments to reconfigure_htpasswd and reconfigure_oauth2 indicating they were designed to be called by this script, not independently?
+
+unset_auth() {
+	# Unset _HTTP_AUTH
+    ${BIN}/reconfigure ${ENV_FILE} "${VAR_PREFIX}_HTTP_AUTH"=
+    TMP_PASSWORD=$(mktemp)
+    cat passwords.json | jq "del(.\"${CONTEXT_INSTANCE}\")" > ${TMP_PASSWORD} && mv ${TMP_PASSWORD} passwords.json
+	
+	## Unset _OAUTH2
+    ${BIN}/reconfigure ${ENV_FILE} "${VAR_PREFIX}_OAUTH2"=no
+	exit 0
+}
+
+## Set default based on current auth settings in ENV_FILE
+http_auth=$(${BIN}/dotenv -f ${ENV_FILE} get ${VAR_PREFIX}_HTTP_AUTH)
+oauth2_auth=$(${BIN}/dotenv -f ${ENV_FILE} get ${VAR_PREFIX}_OAUTH2)
+if [[ -n "${http_auth}" ]]; then
+	default=2
+elif [[ "${oauth2_auth}" == "yes" ]]; then
+	default=3
+else
+	default=1
+fi
+
+## Ask user which authentication configuration they want
+source ${BIN}/reconfigure_menu "No|Yes, with HTTP Basic Authentication| Yes, with Oauth2" "Do you want to enable Authentication?" ${default} 1 1
+
+## Configure authentication per user's choice
+case ${menu_result} in
+	1)
+		unset_auth
+		;;
+	2)
+		source ${BIN}/reconfigure_htpasswd ${ENV_FILE} ${VAR_PREFIX}_HTTP_AUTH default=no
+		;;
+	3)
+		${BIN}/reconfigure_oauth2 ${ENV_FILE} ${VAR_PREFIX}_OAUTH2 default=$( ${BIN}/dotenv -f ${ENV_FILE} get ${VAR_PREFIX}_OAUTH2 ) ${VAR_PREFIX}_AUTHORIZED_GROUP
+		;;
+esac
+

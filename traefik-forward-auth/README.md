@@ -8,10 +8,11 @@ account. The default `.env-dist` is setup to use a self-hosted
 commented out example, or use [any other oauth2
 provider](https://github.com/thomseddon/traefik-forward-auth/wiki/Provider-Setup).
 
-## Important Security Note
+## SECURITY NOTE
 
-Using OpenID/OAuth2 will require a login to access your app and you can configure
-basic authorization by entering email addresses that are allowed to log into
+Using OpenID/OAuth2 will require a login to access your app. You can configure
+basic authorization by [creating groups](https://github.com/EnigmaCurry/d.rymcg.tech/blob/header-authorization/traefik/README.md#oauth2-authentication)
+of email addresses that are allowed to log into
 your app. Email addresses must match those of accounts on your Gitea instance.
 For example, if you have accounts on your Gitea instance for
 alice@example.com and bob@demo.com, and you only want Alice to be able to
@@ -64,15 +65,19 @@ Answer the questions to configure the following environment variables:
 Many d.rymcg.tech apps have been configured to ask you when you run their
 `make config` if you want to configure Oauth2 for them. As an alternative to
 running `make config`, you can manually edit your `.env_{INSTANCE}` file for
-an app and set the value of `<APPNAME>_OAUTH2` to `yes`. 
+an app and set the value of `<APPNAME>_OAUTH2` to `yes`, and
+`<APPNAME>_AUTHORIZED_GROUP` to the name of an authorization group you created
+when you ran `make groups` in the `traefik` folder. 
 
 ### Manually configure any Traefik router
 Or you can manually add Oauth2 authentication to any Traefik router by applying the
-middleware: `traefik-forward-auth` (In this example, the name of the
-route is `foo`):
+middleware: `traefik-forward-auth`, and basic authorization by applying the middleware:
+`header-authorizatin-group-AUTHORIZED_GROUP` (be sure to replace AUTHORIZED_GROUP
+with the name of an authorization group you created when you ran `make groups` in
+the `traefik` folder). In this example, the name of the route is `foo`:
 
 ```
-      - "traefik.http.routers.foo.middlewares=traefik-forward-auth@docker"
+      - "traefik.http.routers.foo.middlewares=traefik-forward-auth@docker,header-authorization-group-AUTHORIZED_GROUP@file"
 ```
 
 ### Configure a d.rymcg.tech app to ask for Oauth2 when running `make config`
@@ -80,8 +85,10 @@ To configure a d.rymcg.tech app to ask about Oauth2 when running `make config`
 (if it hasn't already been so configured), you'll need to edit the
 `.env-dist`, `docker-compose.instance.yaml`, and `Makefile` files.
 See the [whoami](../whoami/) app for examples.
- * `.env-dist`
-  * Add the following env var to `.env-dist` (and adding the comment is a good idea):
+```
+.env-dist
+```
+* Add the following env vars to `.env-dist` (and adding the comments is a good idea):
 ```
 # OAUTH2
 # Set to `yes` to use OpenID/OAuth2 authentication via the
@@ -95,31 +102,40 @@ See the [whoami](../whoami/) app for examples.
 # any person with an account on your Gitea server can log into your app and
 # have full access.
 WHOAMI_OAUTH2=no
+# In addition to Oauth2 authentication, you can configure basic authorization
+# by entering which authorization group can log into your app. You create
+# groups of email addresses in the `traefik` folder by running `makr groups`. 
+WHOAMI_AUTHORIZED_GROUP=
 ```
-  * (Be sure to change `WHOAMI` to the same prefix as the rest of the env vars in your `.env_{INSTANCE}` file)
+* (Be sure to replace `WHOAMI` with the same prefix as the rest of the env vars in your `.env_{INSTANCE}` file.)
 
- * `Makefile`
-  * Add the following line to the recipe for the `config-hook` target:
 ```
- 	@${BIN}/reconfigure_oauth2 ${ENV_FILE} WHOAMI_OAUTH2 default=$$( ${BIN}/dotenv -f ${ENV_FILE} get WHOAMI_OAUTH2 )
+Makefile
 ```
-  * Add ` oauth2=WHOAMI_OAUTH2` to the end of the existing line in the receipe for the `override-hook` target.
-  * (For all 3 instances of `WHOAMI_OAUTH2`, be sure to change `WHOAMI` to the same prefix as the rest of the env vars in your `.env_{INSTANCE}` file)
- * `docker-compose.instance.yaml`
-  * Add the following line to the `#! ### Standard project vars:` section:
+* Add the following line to the recipe for the `config-hook` target:
 ```
-#@ enable_oauth2 = data.values.oauth2
+ 	@${BIN}/reconfigure_auth ${ENV_FILE} WHOAMI
 ```
-  * Add the following 3 lines in the `labels` section, *before* the `#! Apply all middlewares (do this at the end!)` line:
+* Add ` oauth2=WHOAMI_OAUTH2 authorized_group=WHOAMI_AUTHORIZED_GROUP` to the end of the existing line in the receipe for the `override-hook` target.
+* (Be sure to replace all instances of `WHOAMI` with the same prefix as the rest of the env vars in your `.env_{INSTANCE}` file.)
+```
+docker-compose.instance.yaml
+```
+* Add the following line to the `#! ### Standard project vars:` section:
+```
+#@ authorized_group = data.values.authorized_group
+```
+* Add the following 4 lines in the `labels` section, *before* the `#! Apply all middlewares (do this at the end!)` line:
 ```
       #@ if enable_oauth2 == "yes":
       #@ enabled_middlewares.append("traefik-forward-auth@docker")
+      #@ enabled_middlewares.append("header-authorization-group-{}@file".format(authorized_group))
       #@ end
 ```
 
 ## Logging out
 
-User logout is a multi-phase endevour:
+User logout is a multi-phase endeavour:
 
  * The user browses to any authenticated domain + `/_oauth/logout`.
    (eg. `https://whatever.example.com/_oauth/logout`). This deletes

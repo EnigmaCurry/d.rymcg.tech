@@ -19,7 +19,7 @@ print_help() {
     echo ' * Type `q` to quit.'
     echo ' * Type `l` or `p` to print all groups and users.'
     echo ' * Type `d` to delete an existing group.'
-    echo ' * Type `a` to add users to a group.'
+    echo ' * Type `a` to add users to an exsiting or new group.'
     echo ' * Type `r` to remove users from a group.'
     echo ' * Type `m` to list the LIVE header-auth middleware configs'
     echo '   (Note: you may need to still re-run `make install` first to reflect your changes!).'
@@ -103,8 +103,7 @@ remove_users_from_group() {
     ## Don't display group's users if group doesn't already exist
     elif ! echo "${groups[@]}" | grep -qw "$group_name"; then
         echo "Group ${group_name} doesn't exist. Returning to menu."
-        echo
-        sleep 2
+        sleep 1
         return 0
     fi
 
@@ -156,7 +155,13 @@ delete_group() {
     if [[ $group_name == "" ]]; then
         print_help
         return 0
+    ## Don't delete group if group doesn't already exist
+    elif ! echo "${groups[@]}" | grep -qw "$group_name"; then
+        echo "Group ${group_name} doesn't exist. Returning to menu."
+        sleep 1
+        return 0
     fi
+
     ## Delete group
     TRAEFIK_HEADER_AUTHORIZATION_GROUPS=$(echo "${TRAEFIK_HEADER_AUTHORIZATION_GROUPS}" | jq --compact-output "del(.${group_name})")
     ${BIN}/dotenv -f ${ENV_FILE} set TRAEFIK_HEADER_AUTHORIZATION_GROUPS="${TRAEFIK_HEADER_AUTHORIZATION_GROUPS}"

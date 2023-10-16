@@ -97,8 +97,8 @@ or
 [IPWhitelist](https://doc.traefik.io/traefik/middlewares/http/ipwhitelist/)
 middlewares (see
 [s3-proxy](https://github.com/EnigmaCurry/d.rymcg.tech/blob/f77aaaa5a2705eedaf29a4cdc32f91cdb65e66f7/s3-proxy/docker-compose.yaml#L35-L41)
-for an example that uses both of these) or you can make an exclusively
-private Traefik service with a
+for an example that uses both of these), or by turning on [Oauth2 authentication](https://github.com/EnigmaCurry/d.rymcg.tech/tree/master/traefik-forward-auth)
+,or you can make an exclusively private Traefik service with a
 [Wireguard](https://github.com/EnigmaCurry/d.rymcg.tech/tree/master/traefik#wireguard-vpn)
 VPN.
 
