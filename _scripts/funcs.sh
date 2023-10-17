@@ -189,3 +189,7 @@ random_port() {
                                                        grep "[0-9]\{1,5\}" | sort | uniq) 2>/dev/null | \
         shuf 2>/dev/null | head -n 1; true
 }
+
+wizard() {
+    ${BIN}/script-wizard "$@"
+}

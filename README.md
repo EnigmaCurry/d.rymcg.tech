@@ -75,7 +75,7 @@ all of the dependent files are fully contained by Docker itself
 state is managed as part of the container/volume lifecycle.
 
 ## Prerequisites
-### Create a Docker host
+### Create a Docker host (server)
 
 [Install Docker
 Server](https://docs.docker.com/engine/install/#server) on your own
@@ -215,7 +215,21 @@ find traefik and the wireguard server/client in this latter category).
 Each sub-project directory also has a `make status` with useful
 per-project information.
 
-## Setup
+## Setup Workstation
+
+Your local "workstation" is assumed to be a Linux desktop/laptop
+computer, or another Linux system that you remotely connect to via
+SSH:
+
+ * Tested workstation architectures:
+   * Linux x86_64 (64 bit Intel or AMD)
+   * Linux aarch64 (64 bit ARM)
+   * Arch Linux and Ubuntu have been regularly tested.
+ * Other operating systems and architectures have not been tested, and
+may require customization (please [open an
+issue](https://github.com/EnigmaCurry/script-wizard/issues)).
+ * Your workstation should not be the same machine as the docker
+   server (unless docker is in its own virtual machine).
 
 ### Install Docker CLI tools
 
@@ -266,14 +280,15 @@ installation:
 docker buildx install
 ```
 
-### Install workstation tools (optional)
+### Install workstation tools
 
-There are also **optional** helper scripts and Makefiles included,
-that will have some additional system package requirements (Note:
-these Makefiles are just convenience wrappers for creating/modifying
-your `.env` files and for running `docker compose`, so these are not
-required to use if you would rather just edit your `.env` files by
-hand and/or run `docker compose` manually.):
+The Makefiles have extra dependencies in order to help configure and
+manage your containers. These dependencies are optional, but strongly
+recommended. (The Makefiles are strictly convenience wrappers for
+creating/modifying your `.env` files, and for running `docker compose`
+commands, so if you would rather just edit your `.env` files by hand
+and/or run `docker compose` manually, these dependencies may be
+skipped):
 
    * Base development tools including `bash`, `make`, `sed`, `xargs`, and
      `shred`.
@@ -418,6 +433,12 @@ Run the configuration wizard, and answer the questions:
 ## Run this command inside the root source directory of d.rymcg.tech:
 make config
 ```
+
+This will check your system for the dependencies and alert you if you
+need to install something. All of the Makefiles depend on a helper
+utility called
+[script-wizard](https://github.com/enigmacurry/script-wizard), which
+is automatically installed the first time you run `make config`.
 
 (This writes the main project level variables into a file named
 `.env_${DOCKER_CONTEXT}` (eg. `.env_d.example.com`) in the root source

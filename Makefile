@@ -8,16 +8,24 @@ help:
 include _scripts/Makefile.globals
 include _scripts/Makefile.cd
 
+.PHONY: install-script-wizard
+install-script-wizard:
+	_scripts/install_script-wizard
+
+.PHONY: script-wizard
+script-wizard:
+	@test -f _scripts/script-wizard && (echo "Found script-wizard: $$(_scripts/script-wizard --version) (${ROOT_DIR}/_scripts/script-wizard)" || _scripts/install_script-wizard)
+
 .PHONY: check-deps
 check-deps:
-	_scripts/check_deps docker sed awk xargs openssl htpasswd jq
+	_scripts/check_deps docker sed awk xargs openssl htpasswd jq curl
 
 .PHONY: check-docker
 check-docker:
 	@docker info >/dev/null && echo "Docker is running." || (echo "Could not connect to Docker!" && false)
 
 .PHONY: config # Configure main variables
-config: check-deps check-docker
+config: script-wizard check-deps check-docker
 #	@${BIN}/userns-remap check
 	@echo ""
 	@${BIN}/confirm yes "This will make a configuration for the current docker context (${DOCKER_CONTEXT})"
@@ -119,4 +127,3 @@ docker-workstation:
 docker-workstation-clean:
 	docker compose -f compose-dev.yaml kill
 	docker compose -f compose-dev.yaml down -v
-  
