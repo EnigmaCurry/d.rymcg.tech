@@ -70,3 +70,4 @@ if test -f ${BIN}/script-wizard; then
     fi
 fi
 download
+echo "Installed new script-wizard version: $(${BIN}/script-wizard --version | cut -d ' ' -f 2) (${BIN}/script-wizard)"

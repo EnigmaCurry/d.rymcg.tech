@@ -19,5 +19,7 @@ check_var ENV_FILE var prompt selections
 ## Make new .env if it doesn't exist:
 test -f ${ENV_FILE} || cp .env-dist ${ENV_FILE}
 
-answer=$(eval "${BIN}/script-wizard select ${prompt@Q} ${selections[@]@Q}" | jq -cRn '[inputs]')
+DEFAULT=$(${BIN}/dotenv -f "${ENV_FILE}" get "${var}")
+
+answer=$(eval "${BIN}/script-wizard select ${prompt@Q} ${selections[@]@Q} --default '$DEFAULT'")
 ${BIN}/reconfigure ${ENV_FILE} ${var}="${answer}"
