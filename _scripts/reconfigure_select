@@ -1,0 +1,23 @@
+#!/bin/bash
+
+## reconfigure_select ENV_FILE VAR PROMPT CHOICE...
+## Shows the user a multiple select UI and edits the config file variable VAR with a JSON list of all the selections
+
+## Example:
+## ${BIN}/reconfigure_select .env THINGS "select many THINGS" "Thing 1" "Thing 2" "Something else"
+
+ENV_FILE="$1"; shift
+var="$1"; shift
+prompt="$1"; shift
+selections=("$@")
+
+BIN=$(dirname ${BASH_SOURCE})
+source ${BIN}/funcs.sh
+
+check_var ENV_FILE var prompt selections
+
+## Make new .env if it doesn't exist:
+test -f ${ENV_FILE} || cp .env-dist ${ENV_FILE}
+
+answer=$(eval "${BIN}/script-wizard select ${prompt@Q} ${selections[@]@Q}" | jq -cRn '[inputs]')
+${BIN}/reconfigure ${ENV_FILE} ${var}="${answer}"
