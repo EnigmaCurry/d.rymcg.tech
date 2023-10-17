@@ -14,7 +14,7 @@ install-script-wizard:
 
 .PHONY: script-wizard
 script-wizard:
-	@test -f _scripts/script-wizard && (echo "Found script-wizard: $$(_scripts/script-wizard --version) (${ROOT_DIR}/_scripts/script-wizard)" || _scripts/install_script-wizard)
+	@test -f _scripts/script-wizard && echo "Found script-wizard: $$(_scripts/script-wizard --version) (${ROOT_DIR}/_scripts/script-wizard)" || _scripts/install_script-wizard
 
 .PHONY: check-deps
 check-deps:
