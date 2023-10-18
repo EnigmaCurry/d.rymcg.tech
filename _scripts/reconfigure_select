@@ -21,5 +21,5 @@ test -f ${ENV_FILE} || cp .env-dist ${ENV_FILE}
 
 DEFAULT=$(${BIN}/dotenv -f "${ENV_FILE}" get "${var}")
 
-answer=$(eval "${BIN}/script-wizard select ${prompt@Q} ${selections[@]@Q} --default '$DEFAULT'")
+answer=$(eval "${BIN}/script-wizard select --json ${prompt@Q} ${selections[@]@Q} --default '$DEFAULT'")
 ${BIN}/reconfigure ${ENV_FILE} ${var}="${answer}"
