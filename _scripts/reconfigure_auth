@@ -14,7 +14,6 @@ VAR_PREFIX=$2
 
 unset_oauth2() {
     ${BIN}/reconfigure ${ENV_FILE} "${VAR_PREFIX}_OAUTH2"=
-    exit 0
 }
 unset_http_auth() {
     ${BIN}/reconfigure ${ENV_FILE} "${VAR_PREFIX}_HTTP_AUTH"=
