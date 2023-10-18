@@ -1,6 +1,6 @@
 #!/bin/bash
 
-## reconfigure_oauth2 VAR [default=yes|no] VAR2
+## reconfigure_oauth2 VAR_PREFIX [default=yes|no]
 
 ## If no default given, unconditionally set the Oauth2 environment variable VAR via wizard.
 ## If the default is given, the user will be asked if they want Oauth2 or not, defaulting to the yes or no supplied.
@@ -12,19 +12,17 @@ set -e
 ENV_FILE=${1}
 shift
 
-## env var for oauth2
-VAR=${1}
+VAR_PREFIX=${1}
 shift
 
-## env var for authorized emails
-VAR2=${2}   
+DEFAULT=${1}
 
 enable_oauth2() {
-    ${BIN}/reconfigure ${ENV_FILE} ${VAR}=yes
+    ${BIN}/reconfigure ${ENV_FILE} ${VAR_PREFIX}_OAUTH2=yes
 }
 
 disable_oauth2() {
-    ${BIN}/reconfigure ${ENV_FILE} ${VAR}=no
+    ${BIN}/reconfigure ${ENV_FILE} ${VAR_PREFIX}_OAUTH2=
     exit 0
 }
 
@@ -36,11 +34,11 @@ CONTEXT_INSTANCE=$(basename $ENV_FILE | sed 's/.env_//')
 
 if [[ ${1} =~ ^default= ]]; then
     DEFAULT_ENABLED_OAUTH2=no
-    if [[ ${1} =~ ^default=yes$ ]] || [[ $(${BIN}/dotenv -f ${ENV_FILE} get ${VAR}) == "yes" ]]; then
+    if [[ ${1} =~ ^default=yes$ ]] || [[ $(${BIN}/dotenv -f ${ENV_FILE} get ${VAR_PREFIX}_OAUTH2) == "yes" ]]; then
         DEFAULT_ENABLED_OAUTH2=yes
     fi
     echo 
-    echo "Using OpenID/OAuth2 will require a login to access your app. You can configure basic authorization by assigning an authorization group (authorization groupscontain email addresses that are allowed to log into your app - you configure authorization groups by running \`make groups\` in the \`traefik\` directory)."
+    echo "Using OpenID/OAuth2 will require a login to access your app. You can configure basic authorization by assigning an authorization group (authorization groups contain email addresses that are allowed to log into your app - you configure authorization groups by running \`make groups\` in the \`traefik\` directory)."
     echo 
     echo "SECURITY NOTE: Using OpenID/OAuth2 is on top of any authentication/authorization service your app provides. OpenID/Oauth2 will require a login to access your app and permit only specific logins, but it will not affect what a successfully logged-in person can do in your app. If your app has a built-in authorization mechanism that can check for the user header that traefik-forward-auth sends, then your app can limit what the logged-in person can do in the app. But if your app can't check the user header, or if your app doesn't have built-in authorization at all, then any person with an account on your Gitea server that you permit to log into your app will have full access."
     echo
@@ -61,6 +59,6 @@ if [[ $TRAEFIK_HEADER_AUTHORIZATION_GROUPS == "" ]]; then
     TRAEFIK_HEADER_AUTHORIZATION_GROUPS="{}"
 fi
 groups=($(jq -r '. | keys[]' <<< ${TRAEFIK_HEADER_AUTHORIZATION_GROUPS}))
-## Ask user which header authorization group to assign to this app
-authorized_group=$(${BIN}/dotenv -f ${ENV_FILE} get ${VAR2})
-${BIN}/reconfigure_choose ${ENV_FILE} ${VAR2} "Which authorization group do you want to permit access to this app?" ${groups[@]}
+## Ask user which header authorization group to permit access to this app
+authorized_group=$(${BIN}/dotenv -f ${ENV_FILE} get ${VAR_PREFIX}_OAUTH2_AUTHORIZED_GROUP)
+${BIN}/reconfigure_choose ${ENV_FILE} ${VAR_PREFIX}_OAUTH2_AUTHORIZED_GROUP "Which authorization group do you want to permit access to this app?" ${groups[@]}
