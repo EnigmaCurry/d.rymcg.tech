@@ -478,20 +478,20 @@ Install these first:
 
 Install these recommended backbone applications next:
 
-* [Gitea](gitea#readme) - Git host (like self-hosted GitHub) and
-  OAuth2 server.
-  * A great self-hosted git forge.
-  * Great self-hosted OAuth2 identity service, which supports 2FA
-    including hardware tokens, even if you have no need for a git
-    forge.
-* [Traefik-forward-auth](traefik-forward-auth#readme) - Traefik OAuth2
-  authentication middleware.
+* [Gitea](gitea#readme)
+  * A git host (like self-hosted GitHub) and OAuth2 server.
+  * Like GitHub, it can act as an OAuth2 identity service, which
+    supports 2FA including hardware tokens, even if you have no need
+    for a git forge, install this!
+* [Traefik-forward-auth](traefik-forward-auth#readme)
+  * Traefik OAuth2 authentication middleware.
   * Required if you want OAuth2 authentication. You'll combine this
     with your gitea instance (or another external Oauth provider) to
     add authentication to any of your apps.
-* [Homepage](homepage#readme) - an application dashboard with several integrations
-  * Homepage acts as a dashboard or launcher for all your other apps.
-  * Not required for any other functionality.
+* [Homepage](homepage#readme)
+  * Homepage acts as a dashboard or launcher for all your other apps
+    (but this is not required for any other functionality, if you
+    don't need it.)
 
 Install these other services at your leisure/preference:
 
