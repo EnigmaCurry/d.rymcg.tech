@@ -13,8 +13,7 @@ VAR_PREFIX=$2
 ## note: should we add comments to reconfigure_htpasswd and reconfigure_oauth2 indicating they were designed to be called by this script, not independently?
 
 unset_oauth2() {
-    ${BIN}/reconfigure ${ENV_FILE} "${VAR_PREFIX}_OAUTH2"=no
-    exit 0
+    ${BIN}/reconfigure ${ENV_FILE} "${VAR_PREFIX}_OAUTH2"=
 }
 unset_http_auth() {
     ${BIN}/reconfigure ${ENV_FILE} "${VAR_PREFIX}_HTTP_AUTH"=
