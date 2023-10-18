@@ -228,7 +228,7 @@ SSH:
    * Arch Linux and Ubuntu have been regularly tested.
  * Other operating systems and architectures have not been tested, and
 may require customization (please [open an
-issue](https://github.com/EnigmaCurry/script-wizard/issues)).
+issue](https://github.com/EnigmaCurry/d.rymcg.tech/issues)).
  * Your workstation should not be the same machine as the docker
    server (unless docker is in its own virtual machine).
 
