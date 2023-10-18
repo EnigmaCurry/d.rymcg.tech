@@ -12,15 +12,14 @@ VAR_PREFIX=$2
 
 ## note: should we add comments to reconfigure_htpasswd and reconfigure_oauth2 indicating they were designed to be called by this script, not independently?
 
-unset_auth() {
-    # Unset _HTTP_AUTH
+unset_oauth2() {
+    ${BIN}/reconfigure ${ENV_FILE} "${VAR_PREFIX}_OAUTH2"=no
+    exit 0
+}
+unset_http_auth() {
     ${BIN}/reconfigure ${ENV_FILE} "${VAR_PREFIX}_HTTP_AUTH"=
     TMP_PASSWORD=$(mktemp)
     cat passwords.json | jq "del(.\"${CONTEXT_INSTANCE}\")" > ${TMP_PASSWORD} && mv ${TMP_PASSWORD} passwords.json
-    
-    ## Unset _OAUTH2
-    ${BIN}/reconfigure ${ENV_FILE} "${VAR_PREFIX}_OAUTH2"=no
-    exit 0
 }
 
 prompt="Do you want to enable Authentication?"
@@ -41,17 +40,17 @@ choice=$(eval "${BIN}/script-wizard choose ${prompt@Q} ${options[@]@Q} --default
 ## Configure authentication per user's choice
 case "${choice}" in
     No)
-        unset_auth
+        unset_oauth2
+        unset_http_auth
         ;;
     *HTTP*)
-        ${BIN}/reconfigure_htpasswd ${ENV_FILE} ${VAR_PREFIX}_HTTP_AUTH default=no
+        ${BIN}/reconfigure_htpasswd ${ENV_FILE} ${VAR_PREFIX}_HTTP_AUTH default=no && unset_oauth2
         ;;
     *Oauth2*)
     echo "${VAR_PREFIX}_OAUTH2" #debug
-        ${BIN}/reconfigure_oauth2 ${ENV_FILE} ${VAR_PREFIX}_OAUTH2 default=$( ${BIN}/dotenv -f ${ENV_FILE} get ${VAR_PREFIX}_OAUTH2 ) ${VAR_PREFIX}_AUTHORIZED_GROUP
+        ${BIN}/reconfigure_oauth2 ${ENV_FILE} ${VAR_PREFIX}_OAUTH2 default=$( ${BIN}/dotenv -f ${ENV_FILE} get ${VAR_PREFIX}_OAUTH2 ) ${VAR_PREFIX}_OAUTH2_AUTHORIZED_GROUP && unset_http_auth
         ;;
     *)
         echo "Unknown option."
         exit 1
 esac
-
