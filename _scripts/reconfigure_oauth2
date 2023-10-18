@@ -47,6 +47,9 @@ if [[ ${1} =~ ^default= ]]; then
     echo "Using OpenID/OAuth2 will require a login to access your app. You can configure basic authorization by assigning an authorization group (authorization groups contain email addresses that are allowed to log into your app - you configure authorization groups by running \`make groups\` in the \`traefik\` directory)."
     echo
 
+    ## Check if traefik-forward-auth is installed:
+    docker inspect traefik-forward-auth >/dev/null || (echo "traefik-forward-auth is not installed. Follow the directions at https://github.com/EnigmaCurry/d.rymcg.tech/tree/master/traefik-forward-auth#readme and then retry this" && exit 1)
+
     ${BIN}/confirm ${DEFAULT_ENABLED_OAUTH2} "Do you want to enable OpenID/OAuth2" "?"  || disable_oauth2
 fi
 ## Update var in .env* file
