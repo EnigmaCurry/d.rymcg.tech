@@ -13,7 +13,7 @@ VAR_PREFIX=$2
 ## note: should we add comments to reconfigure_htpasswd and reconfigure_oauth2 indicating they were designed to be called by this script, not independently?
 
 unset_oauth2() {
-    ${BIN}/reconfigure ${ENV_FILE} "${VAR_PREFIX}_OAUTH2"=no
+    ${BIN}/reconfigure ${ENV_FILE} "${VAR_PREFIX}_OAUTH2"=
     exit 0
 }
 unset_http_auth() {
@@ -28,11 +28,11 @@ options=("No" "Yes, with HTTP Basic Authentication" "Yes, with Oauth2")
 http_auth=$(${BIN}/dotenv -f ${ENV_FILE} get ${VAR_PREFIX}_HTTP_AUTH)
 oauth2_auth=$(${BIN}/dotenv -f ${ENV_FILE} get ${VAR_PREFIX}_OAUTH2)
 if [[ -n "${http_auth}" ]]; then
-    default="Yes, with HTTP Basic Authentication"
+    default="${options[1]}"
 elif [[ "${oauth2_auth}" == "yes" ]]; then
-    default="Yes, with Oauth2"
+    default="${options[2]}"
 else
-    default="No"
+    default="${options[0]}"
 fi
 ## Ask user which authentication configuration they want
 choice=$(eval "${BIN}/script-wizard choose ${prompt@Q} ${options[@]@Q} --default ${default@Q}")
@@ -47,8 +47,7 @@ case "${choice}" in
         ${BIN}/reconfigure_htpasswd ${ENV_FILE} ${VAR_PREFIX}_HTTP_AUTH default=no && unset_oauth2
         ;;
     *Oauth2*)
-    echo "${VAR_PREFIX}_OAUTH2" #debug
-        ${BIN}/reconfigure_oauth2 ${ENV_FILE} ${VAR_PREFIX}_OAUTH2 default=$( ${BIN}/dotenv -f ${ENV_FILE} get ${VAR_PREFIX}_OAUTH2 ) ${VAR_PREFIX}_OAUTH2_AUTHORIZED_GROUP && unset_http_auth
+        ${BIN}/reconfigure_oauth2 ${ENV_FILE} ${VAR_PREFIX} default=$( ${BIN}/dotenv -f ${ENV_FILE} get ${VAR_PREFIX}_OAUTH2 ) && unset_http_auth
         ;;
     *)
         echo "Unknown option."
