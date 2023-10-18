@@ -29,7 +29,7 @@ configuration derived from your customized `.env` file.
 
 - [All configuration comes from the environment](#all-configuration-comes-from-the-environment)
 - [Prerequisites](#prerequisites)
-- [Setup](#setup)
+- [Setup Workstation](#setup-workstation)
 - [Main configuration](#main-configuration)
 - [Install applications](#install-applications)
 - [Command line interaction](#command-line-interaction)
@@ -308,13 +308,13 @@ skipped):
 On Arch Linux, run this to install all these dependencies:
 
 ```
-pacman -S bash base-devel openssl apache xdg-utils jq sshfs wireguard-tools
+pacman -S bash base-devel openssl apache xdg-utils jq sshfs wireguard-tools curl
 ```
 
 For Debian or Ubuntu, run:
 
 ```
-apt-get install bash build-essential openssl apache2-utils xdg-utils jq sshfs wireguard
+apt-get install bash build-essential openssl apache2-utils xdg-utils jq sshfs wireguard curl
 ```
 
 ### Setup SSH access to the server
