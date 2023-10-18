@@ -476,7 +476,24 @@ Install these first:
 * [Traefik](traefik#readme) - HTTP / TLS / TCP / UDP reverse proxy
 * [Whoami](whoami#readme) - HTTP test service
 
-Install these services at your leisure/preference:
+Install these recommended backbone applications next:
+
+* [Gitea](gitea#readme) - Git host (like self-hosted GitHub) and
+  OAuth2 server.
+  * A great self-hosted git forge.
+  * Great self-hosted OAuth2 identity service, which supports 2FA
+    including hardware tokens, even if you have no need for a git
+    forge.
+* [Traefik-forward-auth](traefik-forward-auth#readme) - Traefik OAuth2
+  authentication middleware.
+  * Required if you want OAuth2 authentication. You'll combine this
+    with your gitea instance (or another external Oauth provider) to
+    add authentication to any of your apps.
+* [Homepage](homepage#readme) - an application dashboard with several integrations
+  * Homepage acts as a dashboard or launcher for all your other apps.
+  * Not required for any other functionality.
+
+Install these other services at your leisure/preference:
 
 * [ArchiveBox](archivebox#readme) - a website archiving tool
 * [Audiobookshelf](audiobookshelf#readme) - an audiobook and podcast server
@@ -488,9 +505,7 @@ Install these services at your leisure/preference:
 * [Ejabberd](ejabberd#readme) - an XMPP (Jabber) server
 * [Filestash](filestash#readme) - a web based file manager with customizable backend storage providers
 * [FreshRSS](freshrss#readme) - an RSS reader / proxy
-* [Gitea](gitea#readme) - Git host (like self-hosted GitHub) and oauth server
 * [Grocy](grocy#readme) - a grocery & household management/chore solution
-* [Homepage](homepage#readme) - an application dashboard with several integrations
 * [Icecast](icecast#readme) - a SHOUTcast compatible streaming multimedia server
 * [Invidious](invidious#readme) - a Youtube proxy
 * [Jitsi Meet](jitsi-meet#readme) - a video conferencing and screencasting service
@@ -524,7 +539,6 @@ Install these services at your leisure/preference:
 * [Thttpd](thttpd#readme) - a tiny/turbo/throttling HTTP server for serving static files
 * [TiddlyWiki (WebDAV version)](tiddlywiki-webdav#readme) - a personal wiki stored in a single static HTML file
 * [TiddlyWiki (NodeJS version)](tiddlywiki-nodejs#readme) - Advanced server edition of TiddlyWiki with image CDN
-* [Traefik-forward-auth](traefik-forward-auth#readme) - Traefik oauth middleware
 * [Transmission-Wireguard](transmission-wireguard#readme) - An older but very popular Bittorrent (v1) client with a combined VPN client
 * [Tiny Tiny RSS](ttrss#readme) - an RSS reader / proxy
 * [Vaultward](vaultwarden#readme) - a bitwarden compatible password manager written in Rust (formerly bitwarden_rs)
