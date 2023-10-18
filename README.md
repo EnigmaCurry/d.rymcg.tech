@@ -304,6 +304,8 @@ skipped):
       simply printing the URL that you can copy and paste.)
    * `wireguard` (client for connecting to the [traefik
      wireguard](traefik#wireguard-vpn) VPN)
+   * `curl` (for downloading an installing external dependencies:
+     [script-wizard](https://github.com/enigmacurry/script-wizard))
 
 On Arch Linux, run this to install all these dependencies:
 
@@ -435,16 +437,18 @@ Run the configuration wizard, and answer the questions:
 make config
 ```
 
-This will check your system for the dependencies and alert you if you
-need to install something. All of the Makefiles depend on a helper
-utility called
+Running `make config`, in the root project directory, writes the main
+project level variables into a file named `.env_${DOCKER_CONTEXT}`
+(eg. `.env_d.example.com`) in the root source directory, based upon
+the name of the current Docker context. This file is excluded from the
+git repository via `.gitignore`.)
+
+All of the Makefiles depend on a helper utility called
 [script-wizard](https://github.com/enigmacurry/script-wizard), which
 is automatically installed the first time you run `make config`.
 
-(This writes the main project level variables into a file named
-`.env_${DOCKER_CONTEXT}` (eg. `.env_d.example.com`) in the root source
-directory, based upon the name of the current Docker context. This
-file is excluded from the git repository via `.gitignore`.)
+This will also check your system for the dependencies and alert you if
+you need to install something.
 
 The `ROOT_DOMAIN` variable is saved in `.env_${DOCKER_CONTEXT}` and
 will serve as the default root domain of all of the sub-project
