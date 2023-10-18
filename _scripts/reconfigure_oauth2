@@ -39,67 +39,28 @@ if [[ ${1} =~ ^default= ]]; then
     if [[ ${1} =~ ^default=yes$ ]] || [[ $(${BIN}/dotenv -f ${ENV_FILE} get ${VAR}) == "yes" ]]; then
         DEFAULT_ENABLED_OAUTH2=yes
     fi
-    echo ""
-    echo "Using OpenID/OAuth2 will require a login to access your app. You can configure basic authorization by entering email addresses that are allowed to log into your app. Email addresses must match those of accounts on your Gitea instance. For example, if you have accounts on your Gitea instance for alice@example.com and bob@demo.com, and you only want Alice to be able to access this app, only enter \`alice@example.com\`."
-    echo ""
+    echo 
+    echo "Using OpenID/OAuth2 will require a login to access your app. You can configure basic authorization by assigning an authorization group (authorization groupscontain email addresses that are allowed to log into your app - you configure authorization groups by running \`make groups\` in the \`traefik\` directory)."
+    echo 
     echo "SECURITY NOTE: Using OpenID/OAuth2 is on top of any authentication/authorization service your app provides. OpenID/Oauth2 will require a login to access your app and permit only specific logins, but it will not affect what a successfully logged-in person can do in your app. If your app has a built-in authorization mechanism that can check for the user header that traefik-forward-auth sends, then your app can limit what the logged-in person can do in the app. But if your app can't check the user header, or if your app doesn't have built-in authorization at all, then any person with an account on your Gitea server that you permit to log into your app will have full access."
+    echo
 
-    ${BIN}/confirm ${DEFAULT_ENABLED_OAUTH2} "Do you want to enable OpenID/OAuth2" "?" || disable_oauth2
+    ${BIN}/confirm ${DEFAULT_ENABLED_OAUTH2} "Do you want to enable OpenID/OAuth2" "?"  || disable_oauth2
 fi
 ## Update var in .env* file
 enable_oauth2
 
 echo
 
+
 ## header-authorization-group
 
 ## Get list of configured groups
-# debug: don't hardcode env var in next line!------------------------------------------------------------------------------------------------------------
-TRAEFIK_HEADER_AUTHORIZATION_GROUPS=$(${BIN}/dotenv -f ../traefik/.env_ssh.d.thewooskeys.com_default get TRAEFIK_HEADER_AUTHORIZATION_GROUPS)
+TRAEFIK_HEADER_AUTHORIZATION_GROUPS=$(${BIN}/dotenv -f ../traefik/${ENV_FILE} get TRAEFIK_HEADER_AUTHORIZATION_GROUPS)
 if [[ $TRAEFIK_HEADER_AUTHORIZATION_GROUPS == "" ]]; then
     TRAEFIK_HEADER_AUTHORIZATION_GROUPS="{}"
 fi
 groups=($(jq -r '. | keys[]' <<< ${TRAEFIK_HEADER_AUTHORIZATION_GROUPS}))
-## Convert `groups` to pipe-separated string
-options=$(IFS=\|; echo "${groups[*]}")
-
-## Set defaut
-authorized_group=$(${BIN}/dotenv -f ${ENV_FILE} get ${VAR_PREFIX})
-
 ## Ask user which header authorization group to assign to this app
-source ${BIN}/reconfigure_menu "${options}" "Which authorization group do you want to permit access to this app?" - 1 1
-
-echo ${menu_result} #debug
-echo "menu_result->group: ${groups[$(( ${menu_result} - 1 ))]}" #debug
-${BIN}/reconfigure ${ENV_FILE} ${VAR2}="${groups[$(( ${menu_result} - 1 ))]}"
-exit #debug
-
-
-## Authorized email addresses
-
-## Check if authorized email addresses have already been configured
-append_emails=""
-authorized=$(${BIN}/dotenv -f ${ENV_FILE} get ${VAR2})
-if [[ -n ${authorized} ]]; then
-    echo "These email addresses are already authorized: ${authorized}"
-    ${BIN}/confirm no "Do you want to delete them and authorize new email addresses" "?" && authorized="" || delete_emails=false
-fi
-if [[ ${delete_emails} == false ]]; then
-    ${BIN}/confirm no "Do you want to authorize additional email addresses" "?" && append_emails="additional " && authorized+="," || exit 0  
-fi
-
-## Ask for new/additional authorized email addresses
-identities=()
-echo "Enter ${append_emails}email addresses that are authorized to access the app, one per line:"
-while :
-do
-    ask "Enter an email address (enter blank to skip)" identity
-    if [[ $identity == "" ]]; then
-        break
-    fi
-    identities+=(${identity})
-done
-authorized+=$( IFS=$','; echo "${identities[*]}" )
-
-## Update var2 in .env* file
-${BIN}/reconfigure ${ENV_FILE} ${VAR2}=${authorized}
+authorized_group=$(${BIN}/dotenv -f ${ENV_FILE} get ${VAR2})
+${BIN}/reconfigure_choose ${ENV_FILE} ${VAR2} "Which authorization group do you want to permit access to this app?" ${groups[@]}
