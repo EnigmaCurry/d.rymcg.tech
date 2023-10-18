@@ -66,8 +66,8 @@ Many d.rymcg.tech apps have been configured to ask you when you run their
 `make config` if you want to configure Oauth2 for them. As an alternative to
 running `make config`, you can manually edit your `.env_{INSTANCE}` file for
 an app and set the value of `<APPNAME>_OAUTH2` to `yes`, and
-`<APPNAME>_AUTHORIZED_GROUP` to the name of an authorization group you created
-when you ran `make groups` in the `traefik` folder. 
+`<APPNAME>_OAUTH2_AUTHORIZED_GROUP` to the name of an authorization group you
+created when you ran `make groups` in the `traefik` folder. 
 
 ### Manually configure any Traefik router
 Or you can manually add Oauth2 authentication to any Traefik router by applying the
@@ -104,8 +104,8 @@ See the [whoami](../whoami/) app for examples.
 WHOAMI_OAUTH2=no
 # In addition to Oauth2 authentication, you can configure basic authorization
 # by entering which authorization group can log into your app. You create
-# groups of email addresses in the `traefik` folder by running `makr groups`. 
-WHOAMI_AUTHORIZED_GROUP=
+# groups of email addresses in the `traefik` folder by running `make groups`. 
+WHOAMI_OAUTH2_AUTHORIZED_GROUP=
 ```
 * (Be sure to replace `WHOAMI` with the same prefix as the rest of the env vars in your `.env_{INSTANCE}` file.)
 
@@ -116,7 +116,7 @@ Makefile
 ```
  	@${BIN}/reconfigure_auth ${ENV_FILE} WHOAMI
 ```
-* Add ` oauth2=WHOAMI_OAUTH2 authorized_group=WHOAMI_AUTHORIZED_GROUP` to the end of the existing line in the receipe for the `override-hook` target.
+* Add ` oauth2=WHOAMI_OAUTH2 authorized_group=WHOAMI_OAUTH2_AUTHORIZED_GROUP` to the end of the existing line in the receipe for the `override-hook` target.
 * (Be sure to replace all instances of `WHOAMI` with the same prefix as the rest of the env vars in your `.env_{INSTANCE}` file.)
 ```
 docker-compose.instance.yaml

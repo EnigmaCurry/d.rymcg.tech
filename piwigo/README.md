@@ -24,18 +24,21 @@ Alternatively to running `make config`, you can manually copy
 
 ### Authentication and Authorization
 
-Running `make config` will ask whether or not
-you want to configure a username/password via HTTP Basic Authentication.
+Running `make config` will ask whether or not you want to configure
+authentication for your app (on top of any authentication your app provides).
+You can choose to enter username/password logins via HTTP Basic Authentication,
+or authorization groups containing email addresses via OpenID/OAuth2 (to
+configure your authorization groups, run `make config` in the `traefik` directory).
 
-It will also ask if you want to use OpenID/OAuth2 authentication. Using
-OpenID/OAuth2 will require a login to access your app and you can configure
-basic authorization by entering email addresses that are allowed to log into
+*SECURITY NOTE:* Using OpenID/OAuth2 will require a login to access
+your app. You can configure basic authorization by [creating groups](https://github.com/EnigmaCurry/d.rymcg.tech/blob/header-authorization/traefik/README.md#oauth2-authentication)
+of email addresses that are allowed to log into
 your app. Email addresses must match those of accounts on your Gitea instance.
 For example, if you have accounts on your Gitea instance for
 alice@example.com and bob@demo.com, and you only want Alice to be able to
 access this app, only enter `alice@example.com`.
 
-**Security Note:** Using OpenID/OAuth2 is on top of any
+Using OpenID/OAuth2 is on top of any
 authentication/authorization service your app provides. OpenID/Oauth2 will
 require a login to access your app and permit only specific logins, but it
 will not affect what a successfully logged-in person can do in your app. If

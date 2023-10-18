@@ -16,8 +16,11 @@ It automatically saves your responses into the configuration file
 
 ### Authentication and Authorization
 
-Running `make config` will ask whether or not
-you want to configure a username/password via HTTP Basic Authentication.
+Running `make config` will ask whether or not you want to configure
+authentication for your app (on top of any authentication your app provides).
+You can choose to enter username/password logins via HTTP Basic Authentication,
+or authorization groups containing email addresses via OpenID/OAuth2 (to
+configure your authorization groups, run `make config` in the `traefik` directory).
 
 *SECURITY NOTE:* Using OpenID/OAuth2 will require a login to access
 your app. You can configure basic authorization by [creating groups](https://github.com/EnigmaCurry/d.rymcg.tech/blob/header-authorization/traefik/README.md#oauth2-authentication)
