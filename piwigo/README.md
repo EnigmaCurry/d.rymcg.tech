@@ -26,28 +26,21 @@ Alternatively to running `make config`, you can manually copy
 
 Running `make config` will ask whether or not you want to configure
 authentication for your app (on top of any authentication your app provides).
-You can choose to enter username/password logins via HTTP Basic Authentication,
-or authorization groups containing email addresses via OpenID/OAuth2 (to
-configure your authorization groups, run `make config` in the `traefik` directory).
+You can configure OpenID/OAuth2 or HTTP Basic Authentication.
 
-*SECURITY NOTE:* Using OpenID/OAuth2 will require a login to access
-your app. You can configure basic authorization by [creating groups](https://github.com/EnigmaCurry/d.rymcg.tech/blob/header-authorization/traefik/README.md#oauth2-authentication)
-of email addresses that are allowed to log into
-your app. Email addresses must match those of accounts on your Gitea instance.
-For example, if you have accounts on your Gitea instance for
-alice@example.com and bob@demo.com, and you only want Alice to be able to
-access this app, only enter `alice@example.com`.
+OAuth2 uses traefik-forward-auth to delegate authentication to an external
+authority (eg. a self-deployed Gitea instance). Accessing this app will
+require all users to login through that external service first. Once
+authenticated, they may be authorized access only if their login id matches the
+member list of the predefined authorization group configured for the app
+(`WHOAMI_OAUTH2_AUTHORIZED_GROUP`). Authorization groups are defined in the
+Traefik config (`TRAEFIK_HEADER_AUTHORIZATION_GROUPS`) and can be
+[created/modified](https://github.com/EnigmaCurry/d.rymcg.tech/blob/master/traefik/README.md#oauth2-authentication)
+by running `make groups` in the `traefik` directory.
 
-Using OpenID/OAuth2 is on top of any
-authentication/authorization service your app provides. OpenID/Oauth2 will
-require a login to access your app and permit only specific logins, but it
-will not affect what a successfully logged-in person can do in your app. If
-your app has a built-in authorization mechanism that can check for the user
-header that traefik-forward-auth sends, then your app can limit what the
-logged-in person can do in the app. But if your app can't check the user
-header, or if your app doesn't have built-in authorization at all, then any
-person with an account on your Gitea server that you permit to log into your
-app will have full access.
+For HTTP Basic Authentication, you will be prompted to enter username/password
+logins which are stored in that app's `.env_{INSTANCE}` file.
+
 
 
 Once the `.env_${DOCKER_CONTEXT}_default` file is configured install piwigo:

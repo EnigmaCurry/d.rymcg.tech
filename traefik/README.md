@@ -87,7 +87,7 @@ make groups
 
 (`make groups` is only required if you configure Oauth2 authentication -
 follow the [Oauth2 authentication](#oauth2-authentication) section for
-instructions how to create authoriation groups, and then come back here.)
+instructions how to create authorization groups, and then come back here.)
 
 Double check that the config has now been created in your
 `.env_${DOCKER_CONTEXT}_default` file and make any final edits (there are a
@@ -398,8 +398,12 @@ make groups
 
 This will configure the `TRAEFIK_HEADER_AUTHORIZATION_GROUPS`
 environment variable in your .env file (which is a serialized JSON map
-of groups and allowed usernames). Remember to re-install traefik after
-making any changes to your authorization groups or permitted email addresses.
+of groups and allowed usernames). Email addresses must match those of accounts
+on your Gitea instance. For example, if you have accounts on your Gitea
+instance for alice@example.com and bob@demo.com, and you only want Alice to
+be able to access this app, only enter `alice@example.com`. Remember to
+re-install traefik after making any changes to your authorization groups or
+permitted email addresses.
 
 Each app must apply the middleware to filter users based on the group
 the middleware is designed for. Once you run `make groups` and configure
