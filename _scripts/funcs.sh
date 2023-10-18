@@ -31,7 +31,7 @@ check_num(){
 ask() {
     ## Ask the user a question and set the given variable name with their answer
     local __prompt="${1}"; local __var="${2}"; local __default="${3}"
-    read -e -p "${__prompt}"$'\x0a: ' -i "${__default}" ${__var}
+    read -e -p "${__prompt}"$'\x0a\e[32m:\e[0m ' -i "${__default}" ${__var}
     export ${__var}
 }
 
@@ -40,7 +40,7 @@ ask_no_blank() {
     ## If the answer is blank, repeat the question.
     local __prompt="${1}"; local __var="${2}"; local __default="${3}"
     while true; do
-        read -e -p "${__prompt}"$'\x0a: ' -i "${__default}" ${__var}
+        read -e -p "${__prompt}"$'\x0a\e[32m:\e[0m ' -i "${__default}" ${__var}
         export ${__var}
         [[ -z "${!__var}" ]] || break
     done
