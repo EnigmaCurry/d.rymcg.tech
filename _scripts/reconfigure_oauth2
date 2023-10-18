@@ -49,6 +49,9 @@ if [[ ${1} =~ ^default= ]]; then
     echo "SECURITY NOTE: Using OpenID/OAuth2 is on top of any authentication/authorization service your app provides. OpenID/Oauth2 will require a login to access your app and permit only specific logins, but it will not affect what a successfully logged-in person can do in your app. If your app has a built-in authorization mechanism that can check for the user header that traefik-forward-auth sends, then your app can limit what the logged-in person can do in the app. But if your app can't check the user header, or if your app doesn't have built-in authorization at all, then any person with an account on your Gitea server that you permit to log into your app will have full access."
     echo
 
+    ## Check if traefik-forward-auth is installed:
+    docker inspect traefik-forward-auth >/dev/null || (echo "traefik-forward-auth is not installed. Follow the directions at https://github.com/EnigmaCurry/d.rymcg.tech/tree/master/traefik-forward-auth#readme and then retry this" && exit 1)
+
     ${BIN}/confirm ${DEFAULT_ENABLED_OAUTH2} "Do you want to enable OpenID/OAuth2" "?"  || disable_oauth2
 fi
 ## Update var in .env* file
