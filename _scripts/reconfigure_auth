@@ -9,6 +9,7 @@ set -eo pipefail
 
 ENV_FILE=$1
 VAR_PREFIX=$2
+export __D_RY_CONFIG_ENTRY=reconfigure_auth
 
 ## note: should we add comments to reconfigure_htpasswd and reconfigure_oauth2 indicating they were designed to be called by this script, not independently?
 
