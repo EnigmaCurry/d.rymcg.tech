@@ -6,7 +6,6 @@ source ${BIN}/funcs.sh
 ## Confirm with the user.
 ## Check env for the var YES, if it equals "yes" then bypass this confirm.
 ## This version depends on `script-wizard` being installed.
-## For a pure bash version, use `confirm.sh` instead.
 test ${YES:-no} == "yes" && exit 0
 
 default=$1; prompt=$2; question=${3:-". Proceed?"}
