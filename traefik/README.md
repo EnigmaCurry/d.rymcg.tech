@@ -45,6 +45,9 @@ should be the first thing you install in your deployment.
    it can read all the environment variables of all your containers,
    and can escalate itself to root level access, through the use of
    the docker API.)
+ * Authentication is provided on a per app basis with HTTP Basic
+   Authentication or OAuth2, with a general group based authorization
+   middleware adaptable to secure any application.
 
 ## Config
 
@@ -390,8 +393,8 @@ permissions that it enforces per request).
 However, many applications do not support this style of authorization
 by trusted header. To add authorization to an unsupported application,
 you may use the provided [header authorization
-middleware](github.com/enigmacurry/traefik-header-authorization), and
-it can be configured simply by running this make target:
+middleware](https://github.com/enigmacurry/traefik-header-authorization),
+and it can be configured simply by running this make target:
 
 ```
 # Configure the header authorization middleware:
