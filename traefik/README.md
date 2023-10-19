@@ -376,23 +376,27 @@ and authorization:
  * authentication identifies who a user *is*. (This is what
      traefik-forward-auth does for you, sitting in front of your app.)
  * authorization is a process that determines what a user should be
-   *allowed to do* (This is what every application should do for itself).
+   *allowed to do* (This is what every application should do for
+   itself, or another middleware described below).
 
 To summarize: traefik-forward-auth, by itself, only cares about
 identity, not about permissions.
 
-Permissions are to be implemented in the app itself.
+Permissions (authorization) are to be implemented in the app itself.
 Traefik-Forward-Auth operates by setting a trusted header
 `X-Forwarded-User` that contains the authenticated users email
 address. The application receives this header on every request coming
 from the proxy. It should trust this header to be a real authenticated
 user for the session, and it only needs to decide what that user is
 allowed to do (ie. the app should define a map of email address to
-permissions that it enforces per request).
+permissions that it enforces per request; the app database only needs
+to store user registrations, and their permission roles, but doesn't
+need to store any user passwords.).
 
-However, many applications do not support this style of authorization
-by trusted header. To add authorization to an unsupported application,
-you may use the provided [header authorization
+However, many applications do not support this style of delegated
+authentication by trusted header. To add authorization to an
+unsupported application, you may use the provided [header
+authorization
 middleware](https://github.com/enigmacurry/traefik-header-authorization),
 and it can be configured simply by running this make target:
 
@@ -403,18 +407,24 @@ make groups
 
 This will configure the `TRAEFIK_HEADER_AUTHORIZATION_GROUPS`
 environment variable in your .env file (which is a serialized JSON map
-of groups and allowed usernames). Email addresses must match those of accounts
-on your Gitea instance. For example, if you have accounts on your Gitea
-instance for alice@example.com and bob@demo.com, and you only want Alice to
-be able to access this app, only enter `alice@example.com`. Remember to
-re-install traefik after making any changes to your authorization groups or
-permitted email addresses.
+of groups and allowed usernames). Email addresses must match those of
+accounts on your Gitea instance. For example, if you have accounts on
+your Gitea instance for alice@example.com and bob@demo.com, and you
+only want Alice to be able to access this app, only enter
+`alice@example.com`. Remember to re-install traefik after making any
+changes to your authorization groups or permitted email addresses.
 
 Each app must apply the middleware to filter users based on the group
 the middleware is designed for. Once you run `make groups` and configure
 authorization groups in the `traefik` folder, when you run `make config` for
 that app and elect to configure Oauth2 authentication, you will be asked to
 assign one of those groups to your app.
+
+While this extra middleware can get you "in the door" of any app, its
+still ultimately up to the app as to what you can do when you get
+there, so if the app doesn't understand the `X-Forwarded-User` header,
+you may also need to login through the app interface itself, after
+having already logged in through gitea.
 
 ## Wireguard VPN
 
