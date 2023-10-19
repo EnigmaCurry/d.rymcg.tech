@@ -7,8 +7,7 @@ config-hook:
 	@${BIN}/reconfigure_ask ${ENV_FILE} INVIDIOUS_TRAEFIK_HOST "Enter the invidious domain name" yt${INSTANCE_URL_SUFFIX}.${ROOT_DOMAIN}
 	@${BIN}/reconfigure_password ${ENV_FILE} INVIDIOUS_POSTGRES_PASSWORD
 	@${BIN}/reconfigure ${ENV_FILE} INVIDIOUS_INSTANCE=$${instance:-default}
-	@${BIN}/reconfigure_htpasswd ${ENV_FILE} INVIDIOUS_HTTP_AUTH default=yes
-	@${BIN}/reconfigure_oauth2 ${ENV_FILE} INVIDIOUS_OAUTH2 default=$$( ${BIN}/dotenv -f ${ENV_FILE} get INVIDIOUS_OAUTH2 ) INVIDIOUS_AUTHORIZED_IDENTITIES
+	@${BIN}/reconfigure_auth ${ENV_FILE} INVIDIOUS
 	@echo ""
 	@${BIN}/reconfigure_password ${ENV_FILE} INVIDIOUS_HMAC_KEY 32
 
@@ -24,4 +23,4 @@ override-hook:
 ####                         # (this hardcodes the string into docker-compose.override.yaml)
 ####   name=@VARIABLE_NAME   # sets the template 'name' field to the literal string '${VARIABLE_NAME}'
 ####                         # (used for regular docker-compose expansion of env vars by name.)
-	@${BIN}/docker_compose_override ${ENV_FILE} project=:invidious instance=@INVIDIOUS_INSTANCE traefik_host=@INVIDIOUS_TRAEFIK_HOST http_auth=INVIDIOUS_HTTP_AUTH http_auth_var=@INVIDIOUS_HTTP_AUTH ip_sourcerange=@INVIDIOUS_IP_SOURCERANGE oauth2=INVIDIOUS_OAUTH2 authorized_emails=INVIDIOUS_AUTHORIZED_IDENTITIES
+	@${BIN}/docker_compose_override ${ENV_FILE} project=:invidious instance=@INVIDIOUS_INSTANCE traefik_host=@INVIDIOUS_TRAEFIK_HOST http_auth=INVIDIOUS_HTTP_AUTH http_auth_var=@INVIDIOUS_HTTP_AUTH ip_sourcerange=@INVIDIOUS_IP_SOURCERANGE oauth2=INVIDIOUS_OAUTH2 authorized_group=INVIDIOUS_OAUTH2_AUTHORIZED_GROUP
