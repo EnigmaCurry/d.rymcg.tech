@@ -19,7 +19,9 @@ unset_oauth2() {
 unset_http_auth() {
     ${BIN}/reconfigure ${ENV_FILE} "${VAR_PREFIX}_HTTP_AUTH"=
     TMP_PASSWORD=$(mktemp)
-    cat passwords.json | jq "del(.\"${CONTEXT_INSTANCE}\")" > ${TMP_PASSWORD} && mv ${TMP_PASSWORD} passwords.json
+    if [[ -f passwords.json ]]; then
+        cat passwords.json | jq "del(.\"${CONTEXT_INSTANCE}\")" > ${TMP_PASSWORD} && mv ${TMP_PASSWORD} passwords.json
+    fi
 }
 
 prompt="Do you want to enable Authentication?"
