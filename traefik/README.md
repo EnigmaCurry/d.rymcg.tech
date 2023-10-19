@@ -247,7 +247,7 @@ a description of the most relevant options to edit:
  * `TRAEFIK_DASHBOARD` if set to `true`, this will turn on the
    [Traefik
    Dashboard](https://doc.traefik.io/traefik/operations/dashboard/).
- * `TRAEFIK_DASHBOARD_HTTP_AUTH` this is the htpasswd encoded username/password to
+ * `TRAEFIK_DASHBOARD_AUTH` this is the htpasswd encoded username/password to
    access the Traefik API and dashboard. If you ran `make config` this would be
    filled in for you, simply by answering the questions.
 
@@ -585,7 +585,7 @@ Traefik [.env](.env-dist) file :
 | `TRAEFIK_ACME_ENABLED`                     | (bool) Enable ACME TLS certificate resolver                                      | `true`,`false`                                |
 | `TRAEFIK_CONFIG_VERBOSE`                   | (bool) Print config to logs                                                      | `false`,`true`                                |
 | `TRAEFIK_CONFIG_YTT_VERSION`               | YTT tool version                                                                 | `v0.43.0`                                     |
-| `TRAEFIK_DASHBOARD_HTTP_AUTH`                   | The htpasswd encoded password for the dashboard                                  | `$$apr1$$125jLjJS$$9WiXscLMURiMbC0meZXMv1`    |
+| `TRAEFIK_DASHBOARD_AUTH`                   | The htpasswd encoded password for the dashboard                                  | `$$apr1$$125jLjJS$$9WiXscLMURiMbC0meZXMv1`    |
 | `TRAEFIK_DASHBOARD_ENTRYPOINT_ENABLED`     | (bool) Enable the dashboard entrypoint                                           | `true`, `false`                               |
 | `TRAEFIK_DASHBOARD_ENTRYPOINT_HOST`        | The IP address to bind to                                                        | `127.0.0.1` (host networking) `0.0.0.0` (VPN) |
 | `TRAEFIK_DASHBOARD_ENTRYPOINT_PORT`        | The TCP port for the daashboard                                                  | `8080`                                        |
