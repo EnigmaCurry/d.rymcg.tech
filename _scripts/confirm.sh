@@ -1,7 +1,9 @@
 #!/bin/bash
 
-## Confirm with the user - PURE BASH version
-## Check env for the var YES, if it equals "yes" then bypass this confirm
+## Confirm with the user.
+## Check env for the var YES, if it equals "yes" then bypass this confirm.
+## This version is written in pure bash.
+## Alternatively, use `confirm` for a script-wizard version with normalized outputs.
 test ${YES:-no} == "yes" && exit 0
 
 default=$1; prompt=$2; question=${3:-". Proceed?"}
