@@ -12,18 +12,18 @@ shift
 test -f ${ENV_FILE} || cp ../traefik/.env-dist ${ENV_FILE}
 
 PENDING_CHANGES=0
-
 print_help() {
+    key() { color "light green" "$*";}
     echo "Docker context: $(docker context inspect | jq -r '.[0].Name')"
     echo "User Group Manager:"
-    echo ' * Type `q` to quit.'
-    echo ' * Type `l` or `p` to print all groups and users.'
-    echo ' * Type `d` to delete an existing group.'
-    echo ' * Type `a` to add users to an exsiting or new group.'
-    echo ' * Type `r` to remove users from a group.'
-    echo ' * Type `m` to list the LIVE header-auth middleware configs'
-    echo '   (Note: you may need to still re-run `make install` first to reflect your changes!).'
-    echo ' * Type `?` or `help` to see this help message again.'
+    echo -e " * Type \`$(key q)\` to quit."
+    echo -e " * Type \`$(key l)\` or \`$(key p)\` to print all groups and users."
+    echo -e " * Type \`$(key d)\` to delete an existing group."
+    echo -e " * Type \`$(key a)\` to add users to an exsiting or new group."
+    echo -e " * Type \`$(key r)\` to remove users from a group."
+    echo -e " * Type \`$(key m)\` to list the LIVE header-auth middleware configs"
+    echo "   (Note: you may need to still re-run \`make install\` first to reflect your changes!)."
+    echo -e " * Type \`$(key ?)\` or \`$(key help)\` to see this help message again."
 }
 
 list_groups() {

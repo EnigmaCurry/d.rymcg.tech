@@ -193,3 +193,38 @@ random_port() {
 wizard() {
     ${BIN}/script-wizard "$@"
 }
+
+color() {
+    ## Print text in ANSI color
+    set -e
+    if [[ $# -lt 2 ]]; then
+        fault "Not enough args: expected COLOR and TEXT arguments"
+    fi
+    local COLOR_CODE_PREFIX='\033['
+    local COLOR_CODE_SUFFIX='m'
+    local COLOR=$1; shift
+    local TEXT="$*"
+    local LIGHT=1
+    check_var COLOR TEXT
+    case "${COLOR}" in
+        "black") COLOR=30; LIGHT=0;;
+        "red") COLOR=31; LIGHT=0;;
+        "green") COLOR=32; LIGHT=0;;
+        "brown") COLOR=33; LIGHT=0;;
+        "orange") COLOR=33; LIGHT=0;;
+        "blue") COLOR=34; LIGHT=0;;
+        "purple") COLOR=35; LIGHT=0;;
+        "cyan") COLOR=36; LIGHT=0;;
+        "light gray") COLOR=37; LIGHT=0;;
+        "dark gray") COLOR=30; LIGHT=1;;
+        "light red") COLOR=31; LIGHT=1;;
+        "light green") COLOR=32; LIGHT=1;;
+        "yellow") COLOR=33; LIGHT=1;;
+        "light blue") COLOR=34; LIGHT=1;;
+        "light purple") COLOR=35; LIGHT=1;;
+        "light cyan") COLOR=36; LIGHT=1;;
+        "white") COLOR=37; LIGHT=1;;
+        *) fault "Unknown color"
+    esac
+    echo -en "${COLOR_CODE_PREFIX}${LIGHT};${COLOR}${COLOR_CODE_SUFFIX}${TEXT}${COLOR_CODE_PREFIX}0;0${COLOR_CODE_SUFFIX}"
+}
