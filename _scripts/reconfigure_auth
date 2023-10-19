@@ -47,7 +47,7 @@ case "${choice}" in
         ${BIN}/reconfigure_htpasswd ${ENV_FILE} ${VAR_PREFIX}_HTTP_AUTH default=no && unset_oauth2
         ;;
     *Oauth2*)
-        ${BIN}/reconfigure_oauth2 ${ENV_FILE} ${VAR_PREFIX} default=$( ${BIN}/dotenv -f ${ENV_FILE} get ${VAR_PREFIX}_OAUTH2 ) && unset_http_auth
+        ${BIN}/reconfigure_oauth2 ${ENV_FILE} ${VAR_PREFIX} && unset_http_auth
         ;;
     *)
         echo "Unknown option."
