@@ -82,12 +82,14 @@ make certs
 detailed example of creating certificates and then come back here.)
 
 ```
+# Optional: Make security groups for header authorization middleware:
 make groups
 ```
 
-(`make groups` is only required if you configure Oauth2 authentication -
-follow the [Oauth2 authentication](#oauth2-authentication) section for
-instructions how to create authorization groups, and then come back here.)
+(`make groups` is only required if you want to configure Oauth2
+authentication - follow the [Oauth2
+authentication](#oauth2-authentication) section for instructions how
+to create authorization groups, or you can do that anytime later.)
 
 Double check that the config has now been created in your
 `.env_${DOCKER_CONTEXT}_default` file and make any final edits (there are a
