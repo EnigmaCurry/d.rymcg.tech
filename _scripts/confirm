@@ -11,4 +11,25 @@ test ${YES:-no} == "yes" && exit 0
 
 default=$1; prompt=$2; question=${3:-". Proceed?"}
 
-wizard confirm "$prompt$question" "$default"
+check_var default prompt question
+
+if [[ -f ${BIN}/script-wizard ]]; then
+    ## Check if script-wizard is installed, and prefer to use that:
+    wizard confirm "$prompt$question" "$default"
+else
+    ## Otherwise use a pure bash version:
+    if [[ $default == "y" || $default == "yes" || $default == "ok" ]]; then
+        dflt="Y/n"
+    else
+        dflt="y/N"
+    fi
+
+    read -e -p $'\e[32m?\e[0m '"${prompt}${question} (${dflt}): " answer
+    answer=${answer:-${default}}
+
+    if [[ ${answer,,} == "y" || ${answer,,} == "yes" || ${answer,,} == "ok" ]]; then
+        exit 0
+    else
+        exit 1
+    fi
+fi

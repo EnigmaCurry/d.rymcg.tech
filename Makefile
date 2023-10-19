@@ -14,7 +14,7 @@ install-script-wizard:
 	@echo "This utility can automatically install a required helper tool called script-wizard."
 	@echo "See https://github.com/enigmacurry/script-wizard"
 	@echo
-	@${BIN}/confirm.sh yes 'Do you wish to automatically install script-wizard into `_scripts/script-wizard`' "?" || (echo "OK, then you must download/build script-wizard and put it into the _scripts directory yourself." && echo && exit 1)
+	@${BIN}/confirm yes 'Do you wish to automatically install script-wizard into `_scripts/script-wizard`' "?" || (echo "OK, then you must download/build script-wizard and put it into the _scripts directory yourself." && echo && exit 1)
 	_scripts/install_script-wizard
 	@echo
 
