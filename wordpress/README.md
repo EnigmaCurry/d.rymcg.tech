@@ -43,7 +43,7 @@ authority (eg. a self-deployed Gitea instance). Accessing this app will
 require all users to login through that external service first. Once
 authenticated, they may be authorized access only if their login id matches the
 member list of the predefined authorization group configured for the app
-(`WHOAMI_OAUTH2_AUTHORIZED_GROUP`). Authorization groups are defined in the
+(`WORDPRESS_OAUTH2_AUTHORIZED_GROUP`). Authorization groups are defined in the
 Traefik config (`TRAEFIK_HEADER_AUTHORIZATION_GROUPS`) and can be
 [created/modified](https://github.com/EnigmaCurry/d.rymcg.tech/blob/master/traefik/README.md#oauth2-authentication)
 by running `make groups` in the `traefik` directory.

@@ -19,7 +19,7 @@ Alternatively to running `make config`, you can manually copy
  * `MARIADB_PASSWORD` the mysql user password
  * `TIMEZONE` the timezone, in the format of [TZ database name](https://en.wikipedia.org/wiki/List_of_tz_database_time_zones)
  * `PIWIGO_OAUTH2` set to `yes` to configure Oauth2 authentication (in addition to Piwigo's own internal authentication)
- * `PIWIGO_AUTHORIZED_IDENTITIES` enter a comma-separated list of email addresses authorized to log into this app (must match Gitea accounts)
+ * `PIWIGO_OAUTH2_AUTHORIZED_GROUP` the name of an authorization group that you a created when you ran `make groups` in the `traefik` directory
  * `PIWIGO_HTTP_AUTH` it's easiest to configure this variable via `make config`, but you can manually enter 1 or more credentials in the format `<username>:<password hashed by htpasswd>[,<username2>:<htpasswd-hashed password 2>...]`
 
 ### Authentication and Authorization
@@ -33,7 +33,7 @@ authority (eg. a self-deployed Gitea instance). Accessing this app will
 require all users to login through that external service first. Once
 authenticated, they may be authorized access only if their login id matches the
 member list of the predefined authorization group configured for the app
-(`WHOAMI_OAUTH2_AUTHORIZED_GROUP`). Authorization groups are defined in the
+(`PIWIGO_OAUTH2_AUTHORIZED_GROUP`). Authorization groups are defined in the
 Traefik config (`TRAEFIK_HEADER_AUTHORIZATION_GROUPS`) and can be
 [created/modified](https://github.com/EnigmaCurry/d.rymcg.tech/blob/master/traefik/README.md#oauth2-authentication)
 by running `make groups` in the `traefik` directory.

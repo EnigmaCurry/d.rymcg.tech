@@ -133,7 +133,7 @@ docker-compose.instance.yaml
 
 ## Logging out
 
-User logout is a multi-phase endeavour:
+User logout is a multi-phase endeavor:
 
  * The user browses to any authenticated domain + `/_oauth/logout`.
    (eg. `https://whatever.example.com/_oauth/logout`). This deletes
