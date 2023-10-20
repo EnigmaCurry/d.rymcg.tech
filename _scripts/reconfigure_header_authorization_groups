@@ -90,7 +90,7 @@ manage_user(){
     for GROUP in ${existing_groups[@]}; do
         readarray -t group_users < <(echo "${TRAEFIK_HEADER_AUTHORIZATION_GROUPS}" | jq -r ".\"${GROUP}\"[]")
         if element_in_array "${GROUP}" "${GROUP_SELECTION[@]}"; then
-            echo "group: $group"
+            echo "group: $GROUP"
             group_users+=("${USER_TO_EDIT}")
             ## Add user to selected groups:
             group_users=$(jq --compact-output --null-input '$ARGS.positional | unique' --args -- "${group_users[@]}")
