@@ -6,6 +6,8 @@ BIN=$(dirname ${BASH_SOURCE})
 source ${BIN}/funcs.sh
 set -e
 
+export __D_RY_CONFIG_ENTRY=reconfigure_auth
+
 ENV_FILE=../traefik/${1}
 shift
 ## Make new .env if it doesn't exist:
@@ -15,7 +17,7 @@ echo ""
 if ${BIN}/confirm $([[ $(${BIN}/dotenv -f ${ENV_FILE} get TRAEFIK_DASHBOARD_ENTRYPOINT_ENABLED) == "true" ]] && echo yes || echo no) "Do you want to enable the Traefik dashboard" "?"; then
     ${BIN}/reconfigure ${ENV_FILE} TRAEFIK_DASHBOARD_ENTRYPOINT_ENABLED=true
     echo "It's important to protect the dashboard and so a username/password is required."
-	${BIN}/reconfigure_htpasswd ${ENV_FILE} TRAEFIK_DASHBOARD_AUTH
+	${BIN}/reconfigure_htpasswd ${ENV_FILE} TRAEFIK_DASHBOARD_HTTP_AUTH
 else
     ${BIN}/reconfigure ${ENV_FILE} TRAEFIK_DASHBOARD_ENTRYPOINT_ENABLED=false
 fi
