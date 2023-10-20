@@ -139,8 +139,9 @@ remove_group_users() {
     if [[ -z "${GROUP}" ]]; then return 1; fi
     local TRAEFIK_HEADER_AUTHORIZATION_GROUPS=$(${BIN}/dotenv -f ${ENV_FILE} get TRAEFIK_HEADER_AUTHORIZATION_GROUPS)
     readarray -t existing_users < <(echo "${TRAEFIK_HEADER_AUTHORIZATION_GROUPS}" | jq -r ".\"${GROUP}\"[]")
-    local membership=$(jq -c -n '$ARGS.positional' --args "${existing_users[@]}")
-    membership=$(wizard select "Managing group ${GROUP} :: editing group membership ::" ${existing_users[@]} --default "${membership}" --json)
+    local membership="${existing_users[@]@Q}"
+    membership=$(jq -c -n '$ARGS.positional' --args ${membership})
+    membership=$(eval wizard select "'Managing group ${GROUP} :: editing group membership ::'" --default "'${membership}'" --json -- ${existing_users[@]})
     TRAEFIK_HEADER_AUTHORIZATION_GROUPS=$(echo "${TRAEFIK_HEADER_AUTHORIZATION_GROUPS}" | jq --compact-output "(.${GROUP} = ${membership})")
     echo TRAEFIK_HEADER_AUTHORIZATION_GROUPS=$TRAEFIK_HEADER_AUTHORIZATION_GROUPS
     ${BIN}/dotenv -f ${ENV_FILE} set TRAEFIK_HEADER_AUTHORIZATION_GROUPS="${TRAEFIK_HEADER_AUTHORIZATION_GROUPS}"
