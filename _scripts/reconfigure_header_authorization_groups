@@ -15,7 +15,7 @@ manage_groups() {
     local TRAEFIK_HEADER_AUTHORIZATION_GROUPS=$(${BIN}/dotenv -f ${ENV_FILE} get TRAEFIK_HEADER_AUTHORIZATION_GROUPS)
     readarray -t existing_groups < <(echo "${TRAEFIK_HEADER_AUTHORIZATION_GROUPS}" | jq keys | jq -r ".[]")
     local GROUP
-    GROUP=$(eval "wizard choose 'Choose a group to manage' ${existing_groups[@]@Q} 'Create a new group'")
+    GROUP=$(eval "wizard choose 'Choose a group to manage' -- ${existing_groups[@]@Q} 'Create a new group'")
     if [[ "${GROUP}" == "Create a new group" ]]; then
         create_group
     else
@@ -31,7 +31,7 @@ manage_group() {
     do
         set +e
         local TASK
-        TASK=$(wizard choose "Managing group ${GROUP} :: select a task ::" "Add members" "Remove members" "List all members" "Delete group")
+        TASK=$(wizard choose -- "Managing group ${GROUP} :: select a task ::" "Add members" "Remove members" "List all members" "Delete group")
         if [[ "$?" != "0" ]]; then
             return 1
         fi
@@ -62,7 +62,7 @@ manage_users() {
         done
         IFS=$'\n' users=($(sort <<<"${users[*]}" | uniq)); unset IFS;
         local USER_TO_EDIT
-        USER_TO_EDIT="$(eval "wizard choose 'Select a user by id' 'Create a new user' ${users[@]@Q}")"
+        USER_TO_EDIT="$(eval "wizard choose 'Select a user by id' 'Create a new user' -- ${users[@]@Q}")"
         if [[ "$USER_TO_EDIT" == "Create a new user" ]]; then
             USER_TO_EDIT=$(wizard ask "Enter the user id for the new user:")
         fi
@@ -85,7 +85,7 @@ manage_user(){
     echo "user_groups: ${user_groups[@]}"
     local user_groups_json=$(jq -c -n '$ARGS.positional | unique' --args -- "${user_groups[@]}")
     local GROUP_SELECTION
-    GROUP_SELECTION=$(eval "wizard select 'Editing user ${USER_TO_EDIT} :: Select group membership' ${existing_groups[@]@Q} --default '${user_groups_json}'")
+    GROUP_SELECTION=$(eval "wizard select 'Editing user ${USER_TO_EDIT} :: Select group membership' --default '${user_groups_json}' -- ${existing_groups[@]@Q}")
     readarray -t GROUP_SELECTION < <(echo "$GROUP_SELECTION")
     for GROUP in ${existing_groups[@]}; do
         readarray -t group_users < <(echo "${TRAEFIK_HEADER_AUTHORIZATION_GROUPS}" | jq -r ".\"${GROUP}\"[]")
@@ -120,7 +120,7 @@ add_group_members() {
     echo "Enter the new user id(s) to add, one per line:"
     while :
     do
-        user_id=$(wizard ask "Enter a user ID (press Esc or enter a blank value to finish)" --allow-blank)
+        user_id=$(wizard ask 'Enter a user ID (press Esc or enter a blank value to finish)' --allow-blank)
         if [[ $user_id == "" ]]; then
             break
         fi
