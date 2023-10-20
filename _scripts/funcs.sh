@@ -228,3 +228,9 @@ color() {
     esac
     echo -en "${COLOR_CODE_PREFIX}${LIGHT};${COLOR}${COLOR_CODE_SUFFIX}${TEXT}${COLOR_CODE_PREFIX}0;0${COLOR_CODE_SUFFIX}"
 }
+
+element_in_array () {
+  local e match="$1"; shift;
+  for e; do [[ "$e" == "$match" ]] && return 0; done
+  return 1
+}
