@@ -31,7 +31,7 @@ manage_group() {
     do
         set +e
         local TASK
-        TASK=$(wizard choose -- "Managing group ${GROUP} :: select a task ::" "Add members" "Remove members" "List all members" "Delete group")
+        TASK=$(wizard choose -- "Managing group ${GROUP} :: select a task ::" "Add members" "Edit members" "List all members" "Delete group")
         if [[ "$?" != "0" ]]; then
             return 1
         fi
