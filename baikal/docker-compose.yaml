@@ -27,12 +27,7 @@ services:
       # - KILL
       # - AUDIT_WRITE
     restart: unless-stopped
-    labels:
-      - "traefik.enable=true"
-      - "traefik.http.routers.baikal-${BAIKAL_INSTANCE:-default}.rule=Host(`${BAIKAL_TRAEFIK_HOST}`)"
-      - "traefik.http.routers.baikal-${BAIKAL_INSTANCE:-default}.entrypoints=websecure"
-      - "traefik.http.middlewares.baikal-${BAIKAL_INSTANCE:-default}-ipwhitelist.ipwhitelist.sourcerange=${BAIKAL_IP_SOURCERANGE}"
-      - "traefik.http.routers.baikal-${BAIKAL_INSTANCE:-default}.middlewares=baikal-${BAIKAL_INSTANCE:-default}-ipwhitelist"
+    labels: []
     volumes:
       - baikal_config:/var/www/baikal/config
       - baikal_data:/var/www/baikal/Specific
