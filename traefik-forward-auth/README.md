@@ -63,7 +63,7 @@ to access this app, only enter `alice@example.com`.
 Many d.rymcg.tech apps have been configured to ask you when you run their
 `make config` if you want to configure Oauth2 for them. As an alternative to
 running `make config`, you can manually edit your `.env_{INSTANCE}` file for
-an app and set the value of `<APPNAME>_OAUTH2` to `yes`, and
+an app and set the value of `<APPNAME>_OAUTH2` to `true`, and
 `<APPNAME>_OAUTH2_AUTHORIZED_GROUP` to the name of an authorization group you
 created when you ran `make groups` in the `traefik` folder. 
 
@@ -89,7 +89,7 @@ See the [whoami](../whoami/) app for examples.
 * Add the following env vars to `.env-dist` (and adding the comments is a good idea):
 ```
 # OAUTH2
-# Set to `yes` to use OpenID/OAuth2 authentication via the
+# Set to `true` to use OpenID/OAuth2 authentication via the
 # traefik-forward-auth service in d.rymcg.tech.
 # Using OpenID/OAuth2 will require login to access your app,
 # but it will not affect what a successfully logged-in person can do in your
@@ -125,7 +125,7 @@ docker-compose.instance.yaml
 ```
 * Add the following 4 lines in the `labels` section, *before* the `#! Apply all middlewares (do this at the end!)` line:
 ```
-      #@ if enable_oauth2 == "yes":
+      #@ if enable_oauth2:
       #@ enabled_middlewares.append("traefik-forward-auth@docker")
       #@ enabled_middlewares.append("header-authorization-group-{}@file".format(authorized_group))
       #@ end
