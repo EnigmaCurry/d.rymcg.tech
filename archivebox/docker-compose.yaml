@@ -35,17 +35,7 @@ services:
     volumes:
       - data:/data
     restart: unless-stopped
-    labels:
-      - "traefik.enable=true"
-      - "traefik.http.routers.archivebox-${ARCHIVEBOX_INSTANCE:-default}.rule=Host(`${ARCHIVEBOX_TRAEFIK_HOST}`)"
-      - "traefik.http.routers.archivebox-${ARCHIVEBOX_INSTANCE:-default}.entrypoints=websecure"
-      - "traefik.http.routers.archivebox-${ARCHIVEBOX_INSTANCE:-default}.service=archivebox-${ARCHIVEBOX_INSTANCE:-default}"
-      - "traefik.http.services.archivebox-${ARCHIVEBOX_INSTANCE:-default}.loadbalancer.server.port=8000"
-      ## Authentication:
-      - "traefik.http.middlewares.archivebox-${ARCHIVEBOX_INSTANCE:-default}-auth.basicauth.users=${ARCHIVEBOX_HTTP_AUTH}"
-      - "traefik.http.middlewares.archivebox-${ARCHIVEBOX_INSTANCE:-default}-auth.basicauth.removeHeader=true"
-      - "traefik.http.middlewares.archivebox-${ARCHIVEBOX_INSTANCE:-default}-ipwhitelist.ipwhitelist.sourcerange=${ARCHIVEBOX_IP_SOURCERANGE}"
-      - "traefik.http.routers.archivebox-${ARCHIVEBOX_INSTANCE:-default}.middlewares=archivebox-${ARCHIVEBOX_INSTANCE:-default}-ipwhitelist,archivebox-${ARCHIVEBOX_INSTANCE:-default}-auth"
+    labels: []
 
   public-api-gateway:
     build:
