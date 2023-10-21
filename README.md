@@ -487,7 +487,6 @@ Install these services at your leisure/preference:
 * [PrivateBin](privatebin#readme) - a minimal, encrypted, zero-knowledge, pastebin
 * [Prometheus](prometheus#readme) - a systems monitoring and alerting toolkit (+ node-exporter + cAdvisor + Grafana)
 * [QBittorrent-Wireguard](qbittorrent-wireguard#readme) - a Bittorrent (libtorrent v2) client with a combined VPN client
-* [Rdesktop](rdesktop#readme) - a web based remote desktop (X11) in a container
 * [Redbean](redbean#readme) - a small website server bundled in a single executable zip file.
 * [S3-proxy](s3-proxy#readme) - an HTTP directory index for S3 backend
 * [SFTP](sftp#readme) - a secure file server
