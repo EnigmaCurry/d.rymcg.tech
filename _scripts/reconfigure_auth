@@ -27,8 +27,14 @@ unset_http_auth() {
 prompt="Do you want to enable Authentication?"
 options=("No" "Yes, with HTTP Basic Authentication" "Yes, with Oauth2")
 ## Set default based on current auth settings in ENV_FILE
+
+set +e
 http_auth=$(${BIN}/dotenv -f ${ENV_FILE} get ${VAR_PREFIX}_HTTP_AUTH)
+if [[ "$?" != "0" ]]; then fault "could not read ${VAR_PREFIX}_HTTP_AUTH from env file"; fi
 oauth2_auth=$(${BIN}/dotenv -f ${ENV_FILE} get ${VAR_PREFIX}_OAUTH2)
+if [[ "$?" != "0" ]]; then fault "could not read ${VAR_PREFIX}_OAUTH2 from env file"; fi
+set -e
+
 if [[ -n "${http_auth}" ]]; then
     default="${options[1]}"
 elif [[ "${oauth2_auth}" == "yes" ]]; then
