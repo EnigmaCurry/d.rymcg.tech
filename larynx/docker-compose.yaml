@@ -8,16 +8,7 @@ services:
       - no-new-privileges:true
     volumes:
       - home:/root
-    labels:
-      - "traefik.enable=true"
-      - "traefik.http.routers.larynx-${LARYNX_INSTANCE:-default}.rule=Host(`${LARYNX_TRAEFIK_HOST}`)"
-      - "traefik.http.routers.larynx-${LARYNX_INSTANCE:-default}.entrypoints=websecure"
-      ## Authentication:
-      - "traefik.http.routers.larynx-${LARYNX_INSTANCE:-default}.middlewares=larynx-auth@docker"
-      - "traefik.http.middlewares.larynx-${LARYNX_INSTANCE:-default}-auth.basicauth.users=${LARYNX_HTTP_AUTH}"
-      - "traefik.http.middlewares.larynx-${LARYNX_INSTANCE:-default}-auth.basicauth.realm=Larynx"
-      - "traefik.http.middlewares.larynx-${LARYNX_INSTANCE:-default}-ipwhitelist.ipwhitelist.sourcerange=${LARYNX_IP_SOURCERANGE}"
-      - "traefik.http.routers.larynx-${LARYNX_INSTANCE:-default}.middlewares=larynx-${LARYNX_INSTANCE:-default}-ipwhitelist,larynx-${LARYNX_INSTANCE:-default}-auth"
+    labels: []
 
 volumes:
   home:
