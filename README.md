@@ -4,13 +4,15 @@
 [![Chat on Matrix](_meta/img/matrix-badge.svg)](https://matrix.to/#/#d.rymcg.tech:enigmacurry.com)
 
 This is a collection of Docker Compose projects consisting of
-[Traefik](https://doc.traefik.io/traefik/) as a TLS HTTP/TCP/UDP reverse
-proxy and other various self-hosted applications and services behind
-this proxy. Each project is in its own sub-directory containing its
-own `docker-compose.yaml` and `.env-dist` sample config file. This
+[Traefik](https://doc.traefik.io/traefik/) as a TLS HTTP/TCP/UDP
+reverse proxy and other various self-hosted applications and services
+behind this proxy. Each project is in its own sub-directory containing
+its own `docker-compose.yaml` and `.env-dist` sample config file. This
 structure allows you to pick and choose which services you wish to
 enable. You may also integrate your own external Docker Compose
-projects into this framework.
+projects into this framework. All apps can be secured with the
+self-hosted authentication and authorization middlewares (OAuth2 with
+Gitea and/or basic auth).
 
 Each project has a `Makefile` to simplify configuration, installation,
 and maintainance tasks. The setup for any sub-project is as easy as
