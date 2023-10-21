@@ -22,7 +22,7 @@ VAR_PREFIX=${1}
 shift
 
 enable_oauth2() {
-    ${BIN}/reconfigure ${ENV_FILE} ${VAR_PREFIX}_OAUTH2=yes
+    ${BIN}/reconfigure ${ENV_FILE} ${VAR_PREFIX}_OAUTH2=true
 }
 
 disable_oauth2() {

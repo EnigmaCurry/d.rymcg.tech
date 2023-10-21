@@ -37,7 +37,7 @@ set -e
 
 if [[ -n "${http_auth}" ]]; then
     default="${options[1]}"
-elif [[ "${oauth2_auth}" == "yes" ]]; then
+elif [[ "${oauth2_auth}" == "true" ]]; then
     default="${options[2]}"
 else
     default="${options[0]}"
