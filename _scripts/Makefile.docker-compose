@@ -12,3 +12,6 @@ docker-compose-lifecycle-cmd: check-instance-project
 docker-compose-build: check-instance-project
 	@make --no-print-directory docker-compose-lifecycle-cmd EXTRA_ARGS="build ${EXTRA_ARGS} ${service}"
 
+.PHONY: docker-compose-shell
+docker-compose-shell:
+	@COMMAND=$${COMMAND:-"/bin/bash || /bin/sh"}; make --no-print-directory docker-compose-lifecycle-cmd EXTRA_ARGS="exec -it ${SERVICE} /bin/sh -c '$${COMMAND}'"
