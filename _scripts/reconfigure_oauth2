@@ -8,6 +8,7 @@
 BIN=$(dirname ${BASH_SOURCE})
 source ${BIN}/funcs.sh
 set -e
+DOCKER_CONTEXT=$(docker context ls --format "{{.Current}} {{.Name}}" | grep -oP "^true \K.*")
 
 if [[ ${__D_RY_CONFIG_ENTRY} != reconfigure_auth ]]; then
     echo "\`${BASH_SOURCE}\` was designed to be called from \`reconfigure_auth\`."
@@ -43,7 +44,6 @@ docker inspect traefik-forward-auth >/dev/null || (echo "traefik-forward-auth is
 enable_oauth2
 
 echo
-
 
 ## header-authorization-group
 
