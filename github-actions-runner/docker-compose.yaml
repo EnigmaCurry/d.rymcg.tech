@@ -23,9 +23,9 @@ services:
     build:
       context: .
     environment:
-      - REPOSITORY
-      - RUNNER_TOKEN
-    hostname: ${RUNNER_NAME}
+      - REPOSITORY=${GITHUB_ACTIONS_RUNNER_REPOSITORY}
+      - RUNNER_TOKEN=${GITHUB_ACTIONS_RUNNER_TOKEN}
+    hostname: ${GITHUB_ACTIONS_RUNNER_INSTANCE}
     security_opt:
       - no-new-privileges:true
     volumes:
