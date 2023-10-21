@@ -48,7 +48,7 @@ echo
 ## header-authorization-group
 
 ## Get list of configured groups
-TRAEFIK_HEADER_AUTHORIZATION_GROUPS=$(${BIN}/dotenv -f ../traefik/${ENV_FILE} get TRAEFIK_HEADER_AUTHORIZATION_GROUPS)
+TRAEFIK_HEADER_AUTHORIZATION_GROUPS=$(${BIN}/dotenv -f ../traefik/.env_${DOCKER_CONTEXT}_default get TRAEFIK_HEADER_AUTHORIZATION_GROUPS)
 if [[ $TRAEFIK_HEADER_AUTHORIZATION_GROUPS == "" ]]; then
     TRAEFIK_HEADER_AUTHORIZATION_GROUPS="{}"
 fi
