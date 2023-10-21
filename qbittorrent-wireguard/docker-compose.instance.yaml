@@ -20,7 +20,7 @@
 #@yaml/text-templated-strings
 services:
   wireguard:
-    #@ service = "qbittorrent"
+    #@ service = "wireguard"
     labels:
       #! Services must opt-in to be proxied by Traefik:
       - "traefik.enable=true"
