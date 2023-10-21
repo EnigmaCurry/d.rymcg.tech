@@ -35,15 +35,7 @@ services:
       - wireguard:/config
       - /lib/modules:/lib/modules
     restart: always
-    labels:
-      - "traefik.enable=true"
-      - "traefik.http.routers.qbittorrent-${QBITTORRENT_INSTANCE:-default}.rule=Host(`${QBITTORRENT_TRAEFIK_HOST}`)"
-      - "traefik.http.routers.qbittorrent-${QBITTORRENT_INSTANCE:-default}.entrypoints=websecure"
-      - "traefik.http.services.qbittorrent-${QBITTORRENT_INSTANCE:-default}.loadBalancer.server.port=8080"
-      ## Authentication:
-      - "traefik.http.middlewares.qbittorrent-${QBITTORRENT_INSTANCE:-default}-auth.basicauth.users=${QBITTORRENT_HTTP_AUTH}"
-      - "traefik.http.middlewares.qbittorrent-${QBITTORRENT_INSTANCE:-default}-ipwhitelist.ipwhitelist.sourcerange=${QBITTORRENT_IP_SOURCERANGE}"
-      - "traefik.http.routers.qbittorrent-${QBITTORRENT_INSTANCE:-default}.middlewares=qbittorrent-${QBITTORRENT_INSTANCE:-default}-ipwhitelist,qbittorrent-${QBITTORRENT_INSTANCE:-default}-auth"
+    labels: []
 
   qbittorrent-config:
     build:
