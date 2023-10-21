@@ -126,6 +126,8 @@ services:
       - "traefik:/data"
       - "/var/run/docker.sock:/var/run/docker.sock:ro"
       - "geoip_database:/var/lib/traefikgeoip2/"
+    labels:
+      - "TRAEFIK_HEADER_AUTHORIZATION_GROUPS=${TRAEFIK_HEADER_AUTHORIZATION_GROUPS}"
 
   geoip_database:
     profiles:

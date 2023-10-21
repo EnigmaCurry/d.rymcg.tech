@@ -208,7 +208,8 @@ delete_group() {
 }
 
 check_does_traefik_need_restart() {
-    NEW_AUTHORIZATION_GROUPS=$(${BIN}/dotenv -f ${ENV_FILE} get TRAEFIK_HEADER_AUTHORIZATION_GROUPS)
+    local NEW_AUTHORIZATION_GROUPS=$(${BIN}/dotenv -f ${ENV_FILE} get TRAEFIK_HEADER_AUTHORIZATION_GROUPS)
+    local EXISTING_AUTHORIZATION_GROUPS=$(docker inspect traefik-traefik-1 | jq -r '.[0].Config.Labels.["TRAEFIK_HEADER_AUTHORIZATION_GROUPS"]')
     if [[ "$EXISTING_AUTHORIZATION_GROUPS" != "$NEW_AUTHORIZATION_GROUPS" ]]; then
         if ${BIN}/confirm no "Config change detected. Do you want to restart Traefik now" "?"; then
             make install
@@ -225,8 +226,6 @@ list_middlewares() {
     echo '## REMEMBER: if you have not yet re-run `make install` for Traefik,'
     echo '## your live configration may be out sync with your .env file.'
 }
-
-EXISTING_AUTHORIZATION_GROUPS=$(${BIN}/dotenv -f ${ENV_FILE} get TRAEFIK_HEADER_AUTHORIZATION_GROUPS)
 
 while :
 do
