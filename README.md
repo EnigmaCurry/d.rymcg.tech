@@ -222,6 +222,27 @@ find traefik and the wireguard server/client in this latter category).
 Each sub-project directory also has a `make status` with useful
 per-project information.
 
+### Configure Docker bridge networks (optional)
+
+By default, Docker will only reserve enough IP addresses for a total
+of 30 user-defined networks. This means that, by default, you can only
+deploy up to 30 apps per docker server.
+
+If you would like more than 30, you can increase the range of IP
+addresses that Docker reserves. On your Docker server, edit
+`/etc/docker/daemon.json` (create this file if it does not exist), and
+merge the following configuration:
+
+```
+{
+  "default-address-pools": [
+    {"base": "172.17.0.0/16", "size": 24}
+  ]
+}
+```
+
+and restart the docker daemon, or reboot the server.
+
 ## Setup Workstation
 
 Your local "workstation" is assumed to be a Linux desktop/laptop
