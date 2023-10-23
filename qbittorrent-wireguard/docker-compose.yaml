@@ -83,7 +83,6 @@ services:
       - QBITTORRENT_WebUICustomHTTPHeaders
       - QBITTORRENT_WebUICustomHTTPHeadersEnabled
       - QBITTORRENT_WebUIHostHeaderValidation
-      - QBITTORRENT_WebUILocalHostAuth
       - QBITTORRENT_WebUIReverseProxySupportEnabled
       - QBITTORRENT_WebUITrustedReverseProxiesList
       - QBITTORRENT_Schedulerdays
@@ -92,10 +91,7 @@ services:
       - QBITTORRENT_SessionUseAlternativeGlobalSpeedLimit
       - QBITTORRENT_SessionBandwidthSchedulerEnabled
       - QBITTORRENT_WebUIPassword_PBKDF2
-      - QBITTORRENT_WebUIServerDomains
       - QBITTORRENT_WebUIUsername
-      - QBITTORRENT_WebUIAuthSubnetWhitelistEnabled
-      - QBITTORRENT_WebUIAuthSubnetWhitelist
     volumes:
       - qbittorrent-config:/config
 
