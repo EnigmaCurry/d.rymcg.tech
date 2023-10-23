@@ -234,3 +234,8 @@ element_in_array () {
   for e; do [[ "$e" == "$match" ]] && return 0; done
   return 1
 }
+
+gen_password() {
+    LENGTH=${1:-30}
+    openssl rand -base64 ${LENGTH} | tr '=' '0' | tr '+' '0' | tr '/' '0' | tr '\n' '0' | head -c ${LENGTH}
+}
