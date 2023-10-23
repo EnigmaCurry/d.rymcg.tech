@@ -80,18 +80,11 @@ services:
       - QBITTORRENT_MailNotificationsender
       - QBITTORRENT_MailNotificationsmtp_server
       - QBITTORRENT_MailNotificationusername
-      - QBITTORRENT_WebUICustomHTTPHeaders
-      - QBITTORRENT_WebUICustomHTTPHeadersEnabled
-      - QBITTORRENT_WebUIHostHeaderValidation
-      - QBITTORRENT_WebUIReverseProxySupportEnabled
-      - QBITTORRENT_WebUITrustedReverseProxiesList
       - QBITTORRENT_Schedulerdays
       - QBITTORRENT_Schedulerend_time
       - QBITTORRENT_Schedulerstart_time
       - QBITTORRENT_SessionUseAlternativeGlobalSpeedLimit
       - QBITTORRENT_SessionBandwidthSchedulerEnabled
-      - QBITTORRENT_WebUIPassword_PBKDF2
-      - QBITTORRENT_WebUIUsername
     volumes:
       - qbittorrent-config:/config
 
