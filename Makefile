@@ -8,19 +8,9 @@ help:
 include _scripts/Makefile.globals
 include _scripts/Makefile.cd
 
-.PHONY: install-script-wizard
-install-script-wizard:
-	@echo
-	@echo "This utility can automatically install a required helper tool called script-wizard."
-	@echo "See https://github.com/enigmacurry/script-wizard"
-	@echo
-	@${BIN}/confirm yes 'Do you wish to automatically install script-wizard into `_scripts/script-wizard`' "?" || (echo "OK, then you must download/build script-wizard and put it into the _scripts directory yourself." && echo && exit 1)
-	_scripts/install_script-wizard
-	@echo
-
 .PHONY: script-wizard
 script-wizard:
-	@test -f _scripts/script-wizard && echo "Found script-wizard: $$(_scripts/script-wizard --version) (${ROOT_DIR}/_scripts/script-wizard)" || make --no-print-directory install-script-wizard
+	_scripts/install_script-wizard
 
 .PHONY: check-deps
 check-deps:

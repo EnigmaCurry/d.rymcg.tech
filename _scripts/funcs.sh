@@ -236,6 +236,33 @@ element_in_array () {
 }
 
 gen_password() {
+    set -eo pipefail
     LENGTH=${1:-30}
     openssl rand -base64 ${LENGTH} | tr '=' '0' | tr '+' '0' | tr '/' '0' | tr '\n' '0' | head -c ${LENGTH}
+}
+
+version_spec() {
+    ## Check the lock file to see if the apps INSTALLED_VERSION is ok
+    # version_spec APP_NAME INSTALLED_VERSION
+    set -eo pipefail
+    # The name of the app:
+    local APP=$1;
+    check_var APP
+    # The installed version to check against the lock file version, could be blank:
+    local CHECK_VERSION=$2;
+    local VERSION_LOCK="${ROOT_DIR}/.tools.lock.json"
+    if [[ ! -f "$VERSION_LOCK" ]]; then
+        fault "The version lock spec file is missing: ${VERSION_LOCK}"
+    fi
+    # Grab the locked version of APP from the lock file:
+    local LOCKED_VERSION=$(jq -r ".dependencies.[\"${APP}\"]" ${ROOT_DIR}/.tools.lock.json)
+    (test -z "${LOCKED_VERSION}" || test "${LOCKED_VERSION}" == "null") && fault "The app '${APP}' is not listed in ${VERSION_LOCK}"
+
+    # Return the locked version string:
+    echo ${LOCKED_VERSION}
+
+    # But error if the installed version is different than the locked version:
+    if [[ -n "${CHECK_VERSION}" ]] && [[ "${VERSION}" != "${CHECK_VERSION}" ]]; then
+        fault "Installed ${APP} version ${CHECK_VERSION} does not match the locked version: ${LOCKED_VERSION}"
+    fi
 }
