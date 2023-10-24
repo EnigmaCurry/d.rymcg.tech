@@ -86,10 +86,10 @@ detailed example of creating certificates and then come back here.)
 
 ```
 # Optional: Make security groups for header authorization middleware:
-make groups
+make sentry
 ```
 
-(`make groups` is only required if you want to configure Oauth2
+(`make sentry` is only required if you want to configure Oauth2
 authentication - follow the [Oauth2
 authentication](#oauth2-authentication) section for instructions how
 to create authorization groups, or you can do that anytime later.)
@@ -402,7 +402,7 @@ and it can be configured simply by running this make target:
 
 ```
 # Configure the header authorization middleware:
-make groups
+make sentry
 ```
 
 This will configure the `TRAEFIK_HEADER_AUTHORIZATION_GROUPS`
@@ -415,7 +415,7 @@ only want Alice to be able to access this app, only enter
 changes to your authorization groups or permitted email addresses.
 
 Each app must apply the middleware to filter users based on the group
-the middleware is designed for. Once you run `make groups` and configure
+the middleware is designed for. Once you run `make sentry` and configure
 authorization groups in the `traefik` folder, when you run `make config` for
 that app and elect to configure Oauth2 authentication, you will be asked to
 assign one of those groups to your app.
