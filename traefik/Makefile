@@ -130,6 +130,7 @@ debug:
 
 .PHONY: sentry
 sentry:
+	@make --no-print-directory -C "${ROOT_DIR}" script-wizard
 	@${BIN}/reconfigure_header_authorization ${ENV_FILE}
 
 .PHONY: sentry-callback

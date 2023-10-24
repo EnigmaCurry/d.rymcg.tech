@@ -106,6 +106,7 @@ manage_user(){
 }
 
 list_group_members() {
+    set -eo pipefail
     local GROUP=$1
     local TRAEFIK_HEADER_AUTHORIZATION_GROUPS=$(${BIN}/dotenv -f ${ENV_FILE} get TRAEFIK_HEADER_AUTHORIZATION_GROUPS)
     echo
@@ -114,6 +115,7 @@ list_group_members() {
 }
 
 add_group_members() {
+    set -eo pipefail
     local GROUP=$1
     local TRAEFIK_HEADER_AUTHORIZATION_GROUPS=$(${BIN}/dotenv -f ${ENV_FILE} get TRAEFIK_HEADER_AUTHORIZATION_GROUPS)
     readarray -t users < <(echo "${TRAEFIK_HEADER_AUTHORIZATION_GROUPS}" | jq -r ".\"${GROUP}\"[]")
@@ -209,7 +211,7 @@ delete_group() {
 
 check_does_traefik_need_restart() {
     local NEW_AUTHORIZATION_GROUPS=$(${BIN}/dotenv -f ${ENV_FILE} get TRAEFIK_HEADER_AUTHORIZATION_GROUPS)
-    local EXISTING_AUTHORIZATION_GROUPS=$(docker inspect traefik-traefik-1 | jq -r '.[0].Config.Labels.["TRAEFIK_HEADER_AUTHORIZATION_GROUPS"]')
+    local EXISTING_AUTHORIZATION_GROUPS=$(docker inspect traefik-traefik-1 | jq -r '.[0].Config.Labels."TRAEFIK_HEADER_AUTHORIZATION_GROUPS"')
     if [[ "$EXISTING_AUTHORIZATION_GROUPS" != "$NEW_AUTHORIZATION_GROUPS" ]]; then
         if ${BIN}/confirm no "Config change detected. Do you want to restart Traefik now" "?"; then
             make install
