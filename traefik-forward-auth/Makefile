@@ -11,7 +11,7 @@ config-hook:
 	@echo "You should now create a new OAuth2 application: "
 	@echo "Set the 'Application Name' the same as AUTH_HOST (or whatever you like)"
 	@echo "Set the 'Redirect URL' using https://AUTH_HOST/_oauth, eg. https://auth.${ROOT_DOMAIN}/_oauth"
-	@PUBLIC_HTTPS_PORT=$$(${BIN}/dotenv -f ../.env_${DOCKER_CONTEXT} get PUBLIC_HTTPS_PORT); if [[ "$$PUBLIC_HTTPS_PORT" == "443" ]]; then PUBLIC_HTTPS_PORT=""; fi; ${BIN}/reconfigure ${ENV_FILE} TRAEFIK_FORWARD_AUTH_HTTPS_PORT=:$${PUBLIC_HTTPS_PORT}
+	@PUBLIC_HTTPS_PORT=$$(${BIN}/dotenv -f ../.env_${DOCKER_CONTEXT} get PUBLIC_HTTPS_PORT); if [[ "$$PUBLIC_HTTPS_PORT" == "443" ]]; then PUBLIC_HTTPS_PORT=""; else PUBLIC_HTTPS_PORT=":${PUBLIC_HTTPS_PORT}"; fi; ${BIN}/reconfigure ${ENV_FILE} TRAEFIK_FORWARD_AUTH_HTTPS_PORT=$${PUBLIC_HTTPS_PORT}
 	@GITEA_DOMAIN=$$(${BIN}/dotenv -f ${ENV_FILE} get TRAEFIK_FORWARD_AUTH_GITEA_DOMAIN); HTTPS_PORT=$$(${BIN}/dotenv -f ${ENV_FILE} get TRAEFIK_FORWARD_AUTH_HTTPS_PORT); xdg-open https://$${GITEA_DOMAIN}$${HTTPS_PORT}/user/settings/applications
 	@${BIN}/reconfigure_ask ${ENV_FILE} TRAEFIK_FORWARD_AUTH_PROVIDERS_GENERIC_OAUTH_CLIENT_ID "Copy and Paste the OAuth2 client ID here"
 	@${BIN}/reconfigure_ask ${ENV_FILE} TRAEFIK_FORWARD_AUTH_PROVIDERS_GENERIC_OAUTH_CLIENT_SECRET "Copy and Paste the OAuth2 client secret here"
