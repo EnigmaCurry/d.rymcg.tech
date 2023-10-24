@@ -30,6 +30,8 @@ Answer the questions to configure the following environment variables:
    * Enter the `Application Name`, the same as
      `TRAEFIK_FORWARD_AUTH_HOST`, eg `auth.example.com`.
    * Enter the `Redirect URL`, eg `https://auth.example.com/_oauth`.
+    * (If you use a non-standard HTTPS port, make sure to include it, eg. `https://auth.example.com:8443/_oauth`.)
+    * Click `Create Application`.
    * Copy the Client ID and Secret shown.
  * `TRAEFIK_FORWARD_AUTH_PROVIDERS_GENERIC_OAUTH_CLIENT_ID` enter the
    Client ID shown on the OAuth2 application page in gitea.
@@ -38,11 +40,12 @@ Answer the questions to configure the following environment variables:
  * `TRAEFIK_FORWARD_AUTH_LOGOUT_REDIRECT` Enter the URL to redirect
    after logging out, eg `https://git.example.com/logout`.
 
-## Enable Traefik Routes for authentication
+## Enable sentry authentication for Traefik routes
 
-When you run `make config` for an app, you will be asked whether or not you
-want to configure authentication for that app (on top of any authentication
-the app provides). You can configure OpenID/OAuth2 or HTTP Basic Authentication.
+When you run `make config` for an app, you will be asked whether or
+not you want to configure sentry authentication for the app (on top of
+any authentication the app provides). You can choose None, Basic
+Authentication, or OpenID/OAuth2 through traefik-forward-auth.
 
 OAuth2 uses traefik-forward-auth to delegate authentication to an
 external authority (eg. a self-deployed Gitea instance). Accessing
@@ -53,11 +56,28 @@ configured for the app (eg. `WHOAMI_OAUTH2_AUTHORIZED_GROUP`).
 Authorization groups are defined in the Traefik config
 (`TRAEFIK_HEADER_AUTHORIZATION_GROUPS`) and can be
 [created/modified](https://github.com/EnigmaCurry/d.rymcg.tech/blob/master/traefik/README.md#oauth2-authentication)
-by running `make groups` in the `traefik` directory. Email addresses
-that you enter must match those of accounts on your Gitea instance.
+by running `make sentry` in the `traefik` directory:
+
+```
+cd ~/git/vendor/enigmacurry/d.rymcg.tech/traefik
+make sentry
+```
+
+Use the interactive menus to create all the groups and users that you
+need for all your apps (you can return later to add more). Each app
+can only have one group, but many apps can share the same group.
+Groups are comprised of email addresses of the users that are members
+of that group. The email addresses of the group must match those of
+accounts on your Gitea instance (or external OAuth provider).
+
 For example, if you have accounts on your Gitea instance for
-alice@example.com and bob@demo.com, and you only want Alice to be able
-to access this app, only enter `alice@example.com`.
+`alice@example.com` and `bob@demo.com`, and you only want Alice to be
+able to access the `whoami` app, create a new group (eg. `whoami`),
+and add `alice@example.com` as the only member of that group. Then
+configure the whoami instance to require OAuth2 (eg. set
+`WHOAMI_OAUTH2=true` in the whoami .env) and set the group to use too
+(eg. `WHOAMI_OAUTH2_AUTHORIZED_GROUP=whoami`), reinstall both Traefik
+and the whoami app, and test that only `alice@example.com` can login.
 
 ### d.rymcg.tech configured apps
 Many d.rymcg.tech apps have been configured to ask you when you run their

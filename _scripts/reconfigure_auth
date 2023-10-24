@@ -24,7 +24,7 @@ unset_http_auth() {
     fi
 }
 
-prompt="Do you want to enable Authentication?"
+prompt="Do you want to enable sentry authentication in front of this app (effectively making the entire site private)?"
 options=("No" "Yes, with HTTP Basic Authentication" "Yes, with Oauth2")
 ## Set default based on current auth settings in ENV_FILE
 

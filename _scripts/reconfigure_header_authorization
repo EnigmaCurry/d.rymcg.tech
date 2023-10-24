@@ -1,6 +1,6 @@
 #!/bin/bash
 
-## reconfigure_header_authorization_groups ENV_FILE
+## reconfigure_header_authorization ENV_FILE
 
 BIN=$(dirname ${BASH_SOURCE})
 source ${BIN}/funcs.sh
@@ -227,24 +227,75 @@ list_middlewares() {
     echo '## your live configration may be out sync with your .env file.'
 }
 
-while :
-do
-    echo ""
-    set +e
-    TASK=$(wizard choose "Security Group Manager (main menu):" "Group Manager" "User Manager" "List all members" "Quit")
-    if [[ $? != 0 ]]; then
-        check_does_traefik_need_restart
-        exit 0
+list_callback_urls() {
+    set -eo pipefail
+    readarray -t projects < <(docker compose ls -q)
+    local DOCKER_CONTEXT=$(docker context ls --format "{{.Current}} {{.Name}}" | grep -oP "^true \K.*")
+    local ROOT_ENV_FILE=${ROOT_DIR}/.env_${DOCKER_CONTEXT}
+    https_port=$(${BIN}/dotenv -f ${ROOT_ENV_FILE} get PUBLIC_HTTPS_PORT)
+    if [[ -z "$https_port" ]]; then
+        fault "Could not get PUBLIC_HTTPS_PORT from root .env file"
     fi
-    case "${TASK}" in
-        "Group Manager")
-            (manage_groups);;
-        "User Manager")
-            (manage_users);;
-        "List all members")
-            (list_groups);;
-        "Quit")
+    domains=()
+    echo "## This is the list of OAuth2 callback URLs for all deployed apps:"
+    echo "## If you installed traefik-forward-auth in AUTH HOST mode (default) you don't need this, otherwise keep reading:"
+    echo "## You need to copy/paste these into your Gitea OAuth2 application 'Redirect URIs' setting."
+    echo "## Generate this list again with this command: d.rymcg.tech make traefik sentry-callback"
+    echo "## Collecting callback URLs for all deployed applications ..."
+    echo ""
+    for project in ${projects[@]}; do
+        readarray -t services < <(docker compose -p "$project" ps --services -q)
+        for service in ${services[@]}; do
+            env_file=$(docker inspect "${service}" | jq -r '.[0].Config.Labels["com.docker.compose.project.environment_file"]')
+            if [[ -n "${env_file}" ]] && [[ "${env_file}" != "null" ]] && [[ -f "${env_file}" ]]; then
+                traefik_host=$(grep -E "^.*_TRAEFIK_HOST" "${env_file}" | head -1 | cut -d '=' -f 2)
+                if [[ -n "${traefik_host}" ]]; then
+                    domains+=("${traefik_host}")
+                fi
+            fi
+        done
+    done
+    IFS=$'\n' domains=($(sort <<<"${domains[*]}" | uniq)); unset IFS;
+    for domain in ${domains[@]}; do
+        if [[ "${https_port}" == "443" ]]; then
+            echo "https://${domain}/_oauth"
+        else
+            echo "https://${domain}:${https_port}/_oauth"
+        fi
+    done
+    echo ""
+}
+
+CMD=$1; shift;
+if [[ -z "$CMD" ]]; then
+    while :
+    do
+        echo ""
+        set +e
+        TASK=$(wizard choose "Sentry Authorization Manager (main menu):" "Group Manager" "User Manager" "List all members" "List authorized callback URLs" "Quit")
+        if [[ $? != 0 ]]; then
             check_does_traefik_need_restart
-            exit 0;;
+            exit 0
+        fi
+        case "${TASK}" in
+            "Group Manager")
+                (manage_groups);;
+            "User Manager")
+                (manage_users);;
+            "List all members")
+                (list_groups);;
+            "List authorized callback URLs")
+                (list_callback_urls  || fault "Error");;
+            "Quit")
+                check_does_traefik_need_restart
+                exit 0;;
+        esac
+    done
+else
+    case "${CMD}" in
+        "list-callback-urls")
+            (list_callback_urls  || fault "Error");;
+        *)
+            fault "Invalid command";;
     esac
-done
+fi
