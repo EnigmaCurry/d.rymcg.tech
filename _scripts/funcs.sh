@@ -255,7 +255,8 @@ version_spec() {
         fault "The version lock spec file is missing: ${VERSION_LOCK}"
     fi
     # Grab the locked version of APP from the lock file:
-    local LOCKED_VERSION=$(jq -r "[\"dependencies.${APP}\"]" ${ROOT_DIR}/.tools.lock.json)
+    set -x
+    local LOCKED_VERSION=$(jq -r ".dependencies.\"${APP}\"" ${ROOT_DIR}/.tools.lock.json)
     (test -z "${LOCKED_VERSION}" || test "${LOCKED_VERSION}" == "null") && fault "The app '${APP}' is not listed in ${VERSION_LOCK}"
 
     # Return the locked version string:
