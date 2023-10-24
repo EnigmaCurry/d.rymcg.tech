@@ -579,6 +579,9 @@ Bespoke things:
   automatically build and run programs in Docker containers.
 * [_docker_vm](_docker_vm#readme) Run Docker in a Virtual Machine (KVM) on Linux.
 
+Also check the [_attic](_attic) directory for a collection of old and
+broken things.
+
 ## Command line interaction
 
 As alluded to earlier, this project offers multiple ways to control
