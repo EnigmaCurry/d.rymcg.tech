@@ -170,8 +170,9 @@ You might call this a "deep logout", and honestly, its kind of hacky.
 So, think about it this way: don't use logout, and don't expect your
 users to logout. Google never intends for you to logout. When's the
 last time you had to login to Stack Overlow? So, why should your
-self-hosted docker stack? Just stay logged in, and manage your cookies
-the features of your web browser. You have several good options:
+self-hosted docker stack implement logout? Just stay logged in, and
+manage your cookies through your web browser's features. You have
+several good options when it comes to browser cookie management:
 
  * Use incognito mode for a quick way to test with a brand new session.
  * Tune your browser settings so that it clears cookies when you close
@@ -187,4 +188,5 @@ the features of your web browser. You have several good options:
 Any of these tools will help the developer or admin to test multiple
 accounts, however regular users will not need these, as they are
 expected to only have a single gitea account, and it is usually
-expected for them to stay logged in.
+expected for them to always stay logged in unless the gitea session
+and traefik-forward-auth cookies both expire.
