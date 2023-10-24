@@ -45,7 +45,7 @@ registration:
 
 ```
 # Allow public registrations, but don't forget to disable this again later.
-gmake enable-registration
+make enable-registration
 ```
 
 ## Security
