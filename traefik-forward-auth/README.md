@@ -165,3 +165,26 @@ User logout is a multi-phase endeavor:
  * Finally the user is redirected to the main gitea login page, eg.
    `https://git.example.com/user/login` and is now completely logged
    out.
+
+You might call this a "deep logout", and honestly, its kind of hacky.
+So, think about it this way: don't use logout, and don't expect your
+users to logout. Google never intends for you to logout. When's the
+last time you had to login to Stack Overlow? So, why should your
+self-hosted docker stack? Just stay logged in, and manage your cookies
+the features of your web browser. You have several good options:
+
+ * Use incognito mode for a quick way to test with a brand new session.
+ * Tune your browser settings so that it clears cookies when you close
+   it.
+ * Use [Firefox Multi-Account
+   Containers](https://support.mozilla.org/en-US/kb/containers) so
+   that new tabs are created in a new temporary session by default.
+ * Use
+   [SessionBox](https://microsoftedge.microsoft.com/addons/detail/sessionbox-free-multi-l/hmedjmnkphdghfpnbibnibobaliahhfn)
+   on Microsoft Edge, which I am told is similar to Firefox
+   Multi-Account containers.
+
+Any of these tools will help the developer or admin to test multiple
+accounts, however regular users will not need these, as they are
+expected to only have a single gitea account, and it is usually
+expected for them to stay logged in.
