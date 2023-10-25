@@ -4,19 +4,11 @@ volumes:
   node-red:
 
 services:
-  node-red:
+  nodered:
     image: "nodered/node-red"
     security_opt:
       - no-new-privileges:true
     restart: unless-stopped
-    labels:
-      - "traefik.enable=true"
-      - "traefik.http.routers.nodered-${NODERED_INSTANCE:-default}.rule=Host(`${NODERED_TRAEFIK_HOST}`)"
-      - "traefik.http.routers.nodered-${NODERED_INSTANCE:-default}.entrypoints=websecure"
-      ## Authentication:
-      - "traefik.http.middlewares.nodered-${NODERED_INSTANCE:-default}-auth.basicauth.users=${NODERED_HTTP_AUTH}"
-      - "traefik.http.middlewares.nodered-${NODERED_INSTANCE:-default}-auth.basicauth.realm=Node-RED"
-      - "traefik.http.middlewares.nodered-${NODERED_INSTANCE:-default}-ipwhitelist.ipwhitelist.sourcerange=${NODERED_IP_SOURCERANGE}"
-      - "traefik.http.routers.nodered-${NODERED_INSTANCE:-default}.middlewares=nodered-${NODERED_INSTANCE:-default}-ipwhitelist,nodered-${NODERED_INSTANCE:-default}-auth@docker"
+    labels: []
     volumes:
       - node-red:/data

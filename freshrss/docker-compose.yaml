@@ -1,8 +1,8 @@
 version: "3.9"
 
 services:
-  freshrss-app:
-    image: freshrss/freshrss:latest
+  freshrss:
+    image: freshrss/freshrss:${FRESHRSS_VERSION}
     restart: unless-stopped
     volumes:
       - data:/var/www/FreshRSS/data
@@ -10,13 +10,7 @@ services:
     environment:
       CRON_MIN: '*/20'
       TZ: ${TIME_ZONE}
-    labels:
-      - "traefik.enable=true"
-      - "traefik.http.routers.freshrss-${INSTANCE:-default}.rule=Host(`${FRESHRSS_TRAEFIK_HOST}`)"
-      - "traefik.http.routers.freshrss-${INSTANCE:-default}.entrypoints=websecure"
-      - "traefik.http.middlewares.freshrss-${INSTANCE:-default}-ipwhitelist.ipwhitelist.sourcerange=${FRESHRSS_IP_SOURCERANGE}"
-      - "traefik.http.routers.freshrss-${INSTANCE:-default}.middlewares=freshrss-${INSTANCE:-default}-ipwhitelist"
-
+    labels: []
 volumes:
   data:
   extensions:

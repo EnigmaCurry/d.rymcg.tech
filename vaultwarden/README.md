@@ -8,6 +8,10 @@ rewritten in Rust, formerly known as bitwarden_rs.
 make config
 ```
 
+Check the config in the `.env_${DOCKER_CONTEXT}_${INSTANCE}` file.
+Check that the pinned `VAULTWARDEN_VERSION` is actually the latest
+version.
+
 ```
 make install
 ```
@@ -64,10 +68,6 @@ few mitigations you can apply to make this a bit more secure:
    `VAULTWARDEN_SIGNUPS_ALLOWED=false` in the
    `.env_{DOCKER_CONTEXT}_{INSTANCE}` file (or run `make
    disable-registration`).
- * Make sure to set the base path security string, set
-   `VAULTWARDEN_BASE_PATH=xxxxxxxxxxx` in the
-   `.env_{DOCKER_CONTEXT}_{INSTANCE}` file (this is asked for in `make
-   config`).
  * By default this container accepts connections from all IP
    addresses, however you can limit this by editing the
    `VAULTWARDEN_IP_SOURCERANGE` variable in the

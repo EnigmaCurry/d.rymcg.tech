@@ -1,0 +1,92 @@
+#!/bin/bash
+
+BIN=$(realpath $(dirname ${BASH_SOURCE}))
+source ${BIN}/funcs.sh
+set -e
+
+${BIN}/check_deps curl jq
+
+get_latest_version() {
+    echo "## Checking for latest version of script-wizard:" > /dev/stderr
+    (set -x; curl -sL https://api.github.com/repos/EnigmaCurry/script-wizard/releases/latest | jq -r ".tag_name"  | sed 's/^v//')
+}
+
+check_os() {
+    local SUPPORTED_OS=$@
+    if ! echo "${SUPPORTED_OS[@]}" | grep -F --word-regexp "$(uname -s)" >/dev/null; then
+        echo -e "\nError: Your operating system ($(uname -s)) is not supported by script-wizard (yet)."
+        echo -e "Please file an issue at https://github.com/EnigmaCurry/script-wizard/issues\n"
+        echo "Supported operating systems: ${SUPPORTED_OS[@]}"
+        exit 1
+    else
+        echo "Found supported OS: $(uname -s)"
+    fi
+}
+
+check_os_architecture() {
+    local OS=$1; shift;
+    local SUPPORTED_ARCHITECTURES=$@
+    if [[ "$(uname -s)" == "${OS}" ]]; then
+        if ! echo "${SUPPORTED_ARCHITECTURES[@]}" | grep -F --word-regexp "$(uname -m)" >/dev/null; then
+            echo -e "\nError: Your system architecture ($(uname -m)) is not supported by script-wizard (yet)."
+            echo -e "Please file an issue at https://github.com/EnigmaCurry/script-wizard/issues\n"
+            echo "Supported architectures: ${SUPPORTED_ARCHITECTURES[@]}"
+            exit 1
+        fi
+        echo "Found supported architecture: $(uname -m)"
+    else
+        return 1
+    fi
+}
+
+download() {
+    local SCRIPT_WIZARD_TARBALL="script-wizard-$(uname -s)-$(uname -m).tar.gz"
+    local VERSION=${1:-latest}
+    local SCRIPT_WIZARD_DOWNLOAD_URL="https://github.com/Enigmacurry/script-wizard/releases/latest/download/${SCRIPT_WIZARD_TARBALL}"
+    if [[ "$VERSION" != "latest" ]]; then
+        SCRIPT_WIZARD_DOWNLOAD_URL="https://github.com/Enigmacurry/script-wizard/releases/download/v${VERSION}/${SCRIPT_WIZARD_TARBALL}"
+    fi
+    local TMP_DIR=$(mktemp -d)
+    cd ${TMP_DIR}
+    echo "## Downloading ..."
+    exe curl -LO "${SCRIPT_WIZARD_DOWNLOAD_URL}"
+    tar xfvz "${SCRIPT_WIZARD_TARBALL}"
+    mv ${TMP_DIR}/script-wizard ${BIN}
+}
+
+## Check all supported OS:
+check_os Linux
+## Check each supported architectures per OS:
+check_os_architecture Linux x86_64 aarch64
+
+#LATEST_RELEASE=$(get_latest_version)
+VERSION_LOCK_FILE=${BIN}/../.tools.lock.json
+if [[ ! -f "${VERSION_LOCK_FILE}" ]]; then
+    fault "The version lock spec file is missing: ${VERSION_LOCK_FILE}"
+fi
+LOCKED_VERSION=$(version_spec script-wizard)
+#echo "Latest released version: ${LATEST_RELEASE}"
+if test -f ${BIN}/script-wizard; then
+    echo "script-wizard is already installed: ${BIN}/script-wizard"
+    INSTALLED_VERSION=$(${BIN}/script-wizard --version | cut -d ' ' -f 2)
+    echo "script-wizard version (installed): ${INSTALLED_VERSION}"
+    echo "Required locked version: ${LOCKED_VERSION}"
+    if [[ "$INSTALLED_VERSION" == "$LOCKED_VERSION" ]]; then
+        echo "You already have the required version of script-wizard installed."
+        exit 0
+    else
+        echo "Re-installing required version ..."
+    fi
+fi
+
+echo
+echo "This utility can automatically install a required helper tool called script-wizard."
+echo "See https://github.com/enigmacurry/script-wizard"
+echo
+${BIN}/confirm yes 'Do you wish to automatically install script-wizard into `_scripts/script-wizard`' "?" || fault "OK, then you must download/build script-wizard and put it into the _scripts directory yourself."
+echo "## Running script-wizard installer ..."
+echo "## See https://github.com/enigmacurry/script-wizard"
+
+download "${LOCKED_VERSION}"
+echo "Installed new script-wizard version: $(${BIN}/script-wizard --version | cut -d ' ' -f 2) (${BIN}/script-wizard)"
+echo

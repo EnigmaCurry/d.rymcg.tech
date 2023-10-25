@@ -1,10 +1,13 @@
 .PHONY: clean # Remove current context/instance environment file and saved passwords.json
 clean:
+	@${BIN}/clean_instance # checks if instance exists and faults here
 	@echo "ENV_FILE=${ENV_FILE}"
 	@ENV_FILE=${ENV_FILE}; set -x && rm -f $${ENV_FILE} docker-compose.override_${CONTEXT_INSTANCE}.yaml
+	@echo
 	@echo "# Removed current context/instance environment files."
 	@[[ -f passwords.json ]] && TEMP_PWD_FILE=$$(mktemp) && cat passwords.json | jq 'del(.["'${DOCKER_CONTEXT}'"])' >$${TEMP_PWD_FILE} && mv $${TEMP_PWD_FILE} passwords.json && echo "# Removed all entries from passwords.json for context: ${DOCKER_CONTEXT}" || true
 	@grep "^clean-hook:" "${PROJECT_MAKEFILE}" >/dev/null 2>&1 && make -e --no-print-directory clean-hook || true
+	@echo
 
 
 .PHONY: clean-all # Remove all environment files and saved passwords.json

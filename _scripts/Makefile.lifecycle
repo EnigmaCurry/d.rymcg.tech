@@ -2,6 +2,8 @@
 config: check-instance-project
 	@echo "Configuring environment file: ${ENV_FILE}"
 	@make -e --no-print-directory config-hook override instance=${INSTANCE}
+	@echo ""
+	@echo "Remember to run 'make install' to deploy your changes."
 
 .PHONY: start # Start services
 start:

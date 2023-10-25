@@ -4,13 +4,19 @@
 [![Chat on Matrix](_meta/img/matrix-badge.svg)](https://matrix.to/#/#d.rymcg.tech:enigmacurry.com)
 
 This is a collection of Docker Compose projects consisting of
-[Traefik](https://doc.traefik.io/traefik/) as a TLS HTTP/TCP/UDP reverse
-proxy and other various self-hosted applications and services behind
-this proxy. Each project is in its own sub-directory containing its
-own `docker-compose.yaml` and `.env-dist` sample config file. This
+[Traefik](https://doc.traefik.io/traefik/) as a TLS HTTP/TCP/UDP
+reverse proxy and other various self-hosted applications and services
+behind this proxy. Each project is in its own sub-directory containing
+its own `docker-compose.yaml` and `.env-dist` sample config file. This
 structure allows you to pick and choose which services you wish to
 enable. You may also integrate your own external Docker Compose
 projects into this framework.
+
+All (http) apps are secured with automatic Lets Encrypt TLS
+certificates, along with configurable self-hosted authentication
+middleware (OAuth2 with Gitea and/or HTTP Basic auth), as well as user
+group authorization middlewares. Even non-http apps may be secured
+with the optional VPN (Wireguard) support.
 
 Each project has a `Makefile` to simplify configuration, installation,
 and maintainance tasks. The setup for any sub-project is as easy as
@@ -29,7 +35,7 @@ configuration derived from your customized `.env` file.
 
 - [All configuration comes from the environment](#all-configuration-comes-from-the-environment)
 - [Prerequisites](#prerequisites)
-- [Setup](#setup)
+- [Setup Workstation](#setup-workstation)
 - [Main configuration](#main-configuration)
 - [Install applications](#install-applications)
 - [Command line interaction](#command-line-interaction)
@@ -75,7 +81,7 @@ all of the dependent files are fully contained by Docker itself
 state is managed as part of the container/volume lifecycle.
 
 ## Prerequisites
-### Create a Docker host
+### Create a Docker host (server)
 
 [Install Docker
 Server](https://docs.docker.com/engine/install/#server) on your own
@@ -99,8 +105,9 @@ and
 [IPWhitelist](https://doc.traefik.io/traefik/middlewares/http/ipwhitelist/)
 middlewares (see
 [s3-proxy](https://github.com/EnigmaCurry/d.rymcg.tech/blob/f77aaaa5a2705eedaf29a4cdc32f91cdb65e66f7/s3-proxy/docker-compose.yaml#L35-L41)
-for an example that uses both basic auth and ip whitelist) or you can
-make an exclusively private Traefik service with a
+for an example that uses both of these), or by turning on [Oauth2
+authentication](https://github.com/EnigmaCurry/d.rymcg.tech/tree/master/traefik-forward-auth)
+,or you can make an exclusively private Traefik service with a
 [Wireguard](https://github.com/EnigmaCurry/d.rymcg.tech/tree/master/traefik#wireguard-vpn)
 VPN.
 
@@ -215,7 +222,42 @@ find traefik and the wireguard server/client in this latter category).
 Each sub-project directory also has a `make status` with useful
 per-project information.
 
-## Setup
+### Configure Docker bridge networks (optional)
+
+By default, Docker will only reserve enough IP addresses for a total
+of 30 user-defined networks. This means that, by default, you can only
+deploy up to 30 apps per docker server.
+
+If you would like more than 30, you can increase the range of IP
+addresses that Docker reserves. On your Docker server, edit
+`/etc/docker/daemon.json` (create this file if it does not exist), and
+merge the following configuration:
+
+```
+{
+  "default-address-pools": [
+    {"base": "172.17.0.0/16", "size": 24}
+  ]
+}
+```
+
+and restart the docker daemon, or reboot the server.
+
+## Setup Workstation
+
+Your local "workstation" is assumed to be a Linux desktop/laptop
+computer, or another Linux system that you remotely connect to via
+SSH:
+
+ * Tested workstation architectures:
+   * Linux x86_64 (64 bit Intel or AMD)
+   * Linux aarch64 (64 bit ARM)
+   * Arch Linux and Ubuntu have been regularly tested.
+ * Other operating systems and architectures have not been tested, and
+may require customization (please [open an
+issue](https://github.com/EnigmaCurry/d.rymcg.tech/issues)).
+ * Your workstation should not be the same machine as the docker
+   server (unless docker is in its own virtual machine).
 
 ### Install Docker CLI tools
 
@@ -266,14 +308,15 @@ installation:
 docker buildx install
 ```
 
-### Install workstation tools (optional)
+### Install workstation tools
 
-There are also **optional** helper scripts and Makefiles included,
-that will have some additional system package requirements (Note:
-these Makefiles are just convenience wrappers for creating/modifying
-your `.env` files and for running `docker compose`, so these are not
-required to use if you would rather just edit your `.env` files by
-hand and/or run `docker compose` manually.):
+The Makefiles have extra dependencies in order to help configure and
+manage your containers. These dependencies are optional, but strongly
+recommended. (The Makefiles are strictly convenience wrappers for
+creating/modifying your `.env` files, and for running `docker compose`
+commands, so if you would rather just edit your `.env` files by hand
+and/or run `docker compose` manually, these dependencies may be
+skipped):
 
    * Base development tools including `bash`, `make`, `sed`, `xargs`, and
      `shred`.
@@ -288,17 +331,19 @@ hand and/or run `docker compose` manually.):
       simply printing the URL that you can copy and paste.)
    * `wireguard` (client for connecting to the [traefik
      wireguard](traefik#wireguard-vpn) VPN)
+   * `curl` (for downloading an installing external dependencies:
+     [script-wizard](https://github.com/enigmacurry/script-wizard))
 
 On Arch Linux, run this to install all these dependencies:
 
 ```
-pacman -S bash base-devel openssl apache xdg-utils jq sshfs wireguard-tools
+pacman -S bash base-devel openssl apache xdg-utils jq sshfs wireguard-tools curl
 ```
 
 For Debian or Ubuntu, run:
 
 ```
-apt-get install bash build-essential openssl apache2-utils xdg-utils jq sshfs wireguard
+apt-get install bash build-essential openssl apache2-utils xdg-utils jq sshfs wireguard curl
 ```
 
 ### Setup SSH access to the server
@@ -419,10 +464,18 @@ Run the configuration wizard, and answer the questions:
 make config
 ```
 
-(This writes the main project level variables into a file named
-`.env_${DOCKER_CONTEXT}` (eg. `.env_d.example.com`) in the root source
-directory, based upon the name of the current Docker context. This
-file is excluded from the git repository via `.gitignore`.)
+Running `make config`, in the root project directory, writes the main
+project level variables into a file named `.env_${DOCKER_CONTEXT}`
+(eg. `.env_d.example.com`) in the root source directory, based upon
+the name of the current Docker context. This file is excluded from the
+git repository via `.gitignore`.)
+
+All of the Makefiles depend on a helper utility called
+[script-wizard](https://github.com/enigmacurry/script-wizard), which
+is automatically installed the first time you run `make config`.
+
+This will also check your system for the dependencies and alert you if
+you need to install something.
 
 The `ROOT_DOMAIN` variable is saved in `.env_${DOCKER_CONTEXT}` and
 will serve as the default root domain of all of the sub-project
@@ -450,21 +503,35 @@ Install these first:
 * [Traefik](traefik#readme) - HTTP / TLS / TCP / UDP reverse proxy
 * [Whoami](whoami#readme) - HTTP test service
 
-Install these services at your leisure/preference:
+Install these recommended backbone applications next:
+
+* [Gitea](gitea#readme)
+  * A git host (like self-hosted GitHub) and OAuth2 server.
+  * Like GitHub, it can act as an OAuth2 identity service, which
+    supports 2FA including hardware tokens, even if you have no need
+    for a git forge, install this!
+* [Traefik-forward-auth](traefik-forward-auth#readme)
+  * Traefik OAuth2 authentication middleware.
+  * Required if you want OAuth2 authentication. You'll combine this
+    with your gitea instance (or another external Oauth provider) to
+    add authentication to any of your apps.
+* [Homepage](homepage#readme)
+  * Homepage acts as a dashboard or launcher for all your other apps
+    (but this is not required for any other functionality, if you
+    don't need it.)
+
+Install these other services at your leisure/preference:
 
 * [ArchiveBox](archivebox#readme) - a website archiving tool
 * [Audiobookshelf](audiobookshelf#readme) - an audiobook and podcast server
 * [Autoheal](autoheal#readme) - a Docker container healthcheck monitor with auto-restart service
 * [Baikal](baikal#readme) - a lightweight CalDAV+CardDAV server
 * [CalcPad](calcpad#readme) - a different take on the caculator
-* [CryptPad](cryptpad#readme) - a collaborative document and spreadsheet editor
 * [DrawIO](drawio#readme) - a diagram / whiteboard editor tool
 * [Ejabberd](ejabberd#readme) - an XMPP (Jabber) server
 * [Filestash](filestash#readme) - a web based file manager with customizable backend storage providers
 * [FreshRSS](freshrss#readme) - an RSS reader / proxy
-* [Gitea](gitea#readme) - Git host (like self-hosted GitHub) and oauth server
 * [Grocy](grocy#readme) - a grocery & household management/chore solution
-* [Homepage](homepage#readme) - an application dashboard with several integrations
 * [Icecast](icecast#readme) - a SHOUTcast compatible streaming multimedia server
 * [Invidious](invidious#readme) - a Youtube proxy
 * [Jitsi Meet](jitsi-meet#readme) - a video conferencing and screencasting service
@@ -497,8 +564,6 @@ Install these services at your leisure/preference:
 * [Thttpd](thttpd#readme) - a tiny/turbo/throttling HTTP server for serving static files
 * [TiddlyWiki (WebDAV version)](tiddlywiki-webdav#readme) - a personal wiki stored in a single static HTML file
 * [TiddlyWiki (NodeJS version)](tiddlywiki-nodejs#readme) - Advanced server edition of TiddlyWiki with image CDN
-* [Traefik-forward-auth](traefik-forward-auth#readme) - Traefik oauth middleware
-* [Transmission-Wireguard](transmission-wireguard#readme) - An older but very popular Bittorrent (v1) client with a combined VPN client
 * [Tiny Tiny RSS](ttrss#readme) - an RSS reader / proxy
 * [Vaultward](vaultwarden#readme) - a bitwarden compatible password manager written in Rust (formerly bitwarden_rs)
 * [Websocketd](websocketd#readme) - a websocket / CGI server
@@ -513,6 +578,9 @@ Bespoke things:
 * [Linux Shell Containers](_terminal/linux) create Bash aliases that
   automatically build and run programs in Docker containers.
 * [_docker_vm](_docker_vm#readme) Run Docker in a Virtual Machine (KVM) on Linux.
+
+Also check the [_attic](_attic) directory for a collection of old and
+broken things.
 
 ## Command line interaction
 

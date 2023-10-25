@@ -127,3 +127,12 @@ logs-access:
 .PHONY: debug # Restart Traefik with debug logging for one time only
 debug:
 	@EXISTING_TRAEFIK_LOG_LEVEL=$$(${BIN}/dotenv -f ${ENV_FILE} get TRAEFIK_LOG_LEVEL) && ${BIN}/reconfigure ${ENV_FILE} TRAEFIK_LOG_LEVEL=debug && make --no-print-directory install; STARTED=$$?; ${BIN}/reconfigure ${ENV_FILE} TRAEFIK_LOG_LEVEL=$${EXISTING_TRAEFIK_LOG_LEVEL} && [[ "$$STARTED" == "0" ]] && make --no-print-directory logs-traefik
+
+.PHONY: sentry
+sentry:
+	@make --no-print-directory -C "${ROOT_DIR}" script-wizard
+	@${BIN}/reconfigure_header_authorization ${ENV_FILE}
+
+.PHONY: sentry-callback
+sentry-callback:
+	@${BIN}/reconfigure_header_authorization ${ENV_FILE} list-callback-urls

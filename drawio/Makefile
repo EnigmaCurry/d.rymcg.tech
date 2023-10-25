@@ -6,8 +6,7 @@ include ${ROOT_DIR}/_scripts/Makefile.instance
 config-hook:
 	@${BIN}/reconfigure ${ENV_FILE} DRAWIO_INSTANCE=${instance}
 	@${BIN}/reconfigure_ask ${ENV_FILE} DRAWIO_TRAEFIK_HOST "Enter the drawio domain name" diagram${INSTANCE_URL_SUFFIX}.${ROOT_DOMAIN}
-	@${BIN}/reconfigure_htpasswd ${ENV_FILE} DRAWIO_HTTP_AUTH default=no
-	@${BIN}/reconfigure_oauth2 ${ENV_FILE} DRAWIO_OAUTH2 default=$$( ${BIN}/dotenv -f ${ENV_FILE} get DRAWIO_OAUTH2 )
+	@${BIN}/reconfigure_auth ${ENV_FILE} DRAWIO
 	@echo ""
 	
 
@@ -23,4 +22,4 @@ override-hook:
 ####                         # (this hardcodes the string into docker-compose.override.yaml)
 ####   name=@VARIABLE_NAME   # sets the template 'name' field to the literal string '${VARIABLE_NAME}'
 ####                         # (used for regular docker-compose expansion of env vars by name.)
-	@${BIN}/docker_compose_override ${ENV_FILE} project=:drawio instance=@DRAWIO_INSTANCE traefik_host=@DRAWIO_TRAEFIK_HOST http_auth=DRAWIO_HTTP_AUTH http_auth_var=@DRAWIO_HTTP_AUTH ip_sourcerange=@DRAWIO_IP_SOURCERANGE oauth2=DRAWIO_OAUTH2
+	@${BIN}/docker_compose_override ${ENV_FILE} project=:drawio instance=@DRAWIO_INSTANCE traefik_host=@DRAWIO_TRAEFIK_HOST http_auth=DRAWIO_HTTP_AUTH http_auth_var=@DRAWIO_HTTP_AUTH ip_sourcerange=@DRAWIO_IP_SOURCERANGE oauth2=DRAWIO_OAUTH2 authorized_group=DRAWIO_OAUTH2_AUTHORIZED_GROUP

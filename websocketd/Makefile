@@ -8,7 +8,7 @@ config-hook:
 	@${BIN}/reconfigure_ask ${ENV_FILE} WEBSOCKETD_TRAEFIK_HOST "Enter the websocketd domain name" socket${INSTANCE_URL_SUFFIX}.${ROOT_DOMAIN}
 	@${BIN}/reconfigure_ask ${ENV_FILE} WEBSOCKETD_APP_PATH "Enter the websocketd application path" /app
 	@${BIN}/confirm $$([[ $$(${BIN}/dotenv -f ${ENV_FILE} get WEBSOCKETD_DEV_CONSOLE) == "true" ]] && echo "yes" || echo "no") "Do you want to enable dev console?" "?" && ${BIN}/reconfigure ${ENV_FILE} WEBSOCKETD_DEV_CONSOLE=true || ${BIN}/reconfigure ${ENV_FILE} WEBSOCKETD_DEV_CONSOLE=false
-	@${BIN}/reconfigure_htpasswd ${ENV_FILE} WEBSOCKETD_HTTP_AUTH default=no
+	@${BIN}/reconfigure_auth ${ENV_FILE} WEBSOCKETD
 
 .PHONY: open # Open dev console
 open:
@@ -26,4 +26,4 @@ override-hook:
 ####                         # (this hardcodes the string into docker-compose.override.yaml)
 ####   name=@VARIABLE_NAME   # sets the template 'name' field to the literal string '${VARIABLE_NAME}'
 ####                         # (used for regular docker-compose expansion of env vars by name.)
-	@${BIN}/docker_compose_override ${ENV_FILE} project=:websocketd instance=@WEBSOCKETD_INSTANCE traefik_host=@WEBSOCKETD_TRAEFIK_HOST http_auth=WEBSOCKETD_HTTP_AUTH http_auth_var=@WEBSOCKETD_HTTP_AUTH ip_sourcerange=@WEBSOCKETD_IP_SOURCERANGE
+	@${BIN}/docker_compose_override ${ENV_FILE} project=:websocketd instance=@WEBSOCKETD_INSTANCE traefik_host=@WEBSOCKETD_TRAEFIK_HOST http_auth=WEBSOCKETD_HTTP_AUTH http_auth_var=@WEBSOCKETD_HTTP_AUTH ip_sourcerange=@WEBSOCKETD_IP_SOURCERANGE  oauth2=WEBSOCKETD_OAUTH2 authorized_group=WEBSOCKETD_OAUTH2_AUTHORIZED_GROUP

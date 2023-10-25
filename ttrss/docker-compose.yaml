@@ -14,8 +14,7 @@ services:
       - db:/var/lib/postgresql/data
 
   app:
-    build:
-      context: https://github.com/EnigmaCurry/fox-ttrss-docker-compose.git#master:app
+    image: cthulhoo/ttrss-fpm-pgsql-static:latest
     security_opt:
       - no-new-privileges:true
     restart: unless-stopped
@@ -26,13 +25,12 @@ services:
       - TTRSS_SELF_URL_PATH=https://${TTRSS_TRAEFIK_HOST}${TTRSS_TRAEFIK_PORT}/tt-rss
     volumes:
       - app:/var/www/html
-      - ./config.d:/opt/tt-rss/config.d:ro
+      - config:/opt/tt-rss/config.d:ro
     depends_on:
       - db
 
   backups:
-    build:
-      context: https://github.com/EnigmaCurry/fox-ttrss-docker-compose.git#master:app
+    image: cthulhoo/ttrss-fpm-pgsql-static:latest
     environment:
       - TTRSS_DB_USER=ttrss
       - TTRSS_DB_NAME=ttrss
@@ -49,8 +47,7 @@ services:
     command: /opt/tt-rss/dcron.sh -f
 
   updater:
-    build:
-      context: https://github.com/EnigmaCurry/fox-ttrss-docker-compose.git#master:app
+    image: cthulhoo/ttrss-fpm-pgsql-static:latest
     environment:
       - TTRSS_DB_USER=ttrss
       - TTRSS_DB_NAME=ttrss
@@ -67,8 +64,7 @@ services:
     command: /opt/tt-rss/updater.sh
 
   web-nginx:
-    build:
-      context: https://github.com/EnigmaCurry/fox-ttrss-docker-compose.git#master:web-nginx
+    image: cthulhoo/ttrss-web-nginx:latest
     security_opt:
       - no-new-privileges:true
     restart: unless-stopped
@@ -76,15 +72,11 @@ services:
       - app:/var/www/html:ro
     depends_on:
       - app
-    labels:
-      - "traefik.enable=true"
-      - "traefik.http.routers.ttrss.rule=Host(`${TTRSS_TRAEFIK_HOST}`)"
-      - "traefik.http.routers.ttrss.entrypoints=websecure"
-      - "traefik.http.middlewares.ttrss-${TTRSS_INSTANCE:-default}-ipwhitelist.ipwhitelist.sourcerange=${TTRSS_IP_SOURCERANGE}"
-      - "traefik.http.routers.ttrss-${TTRSS_INSTANCE:-default}.middlewares=ttrss-${TTRSS_INSTANCE:-default}-ipwhitelist"
+    labels: []
 
 volumes:
   db:
   app:
   certs:
   backups:
+  config:

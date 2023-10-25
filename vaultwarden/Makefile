@@ -6,8 +6,8 @@ include ${ROOT_DIR}/_scripts/Makefile.instance
 config-hook:
 	@${BIN}/reconfigure_ask ${ENV_FILE} VAULTWARDEN_TRAEFIK_HOST "Enter the vaultwarden domain name" vaultwarden${INSTANCE_URL_SUFFIX}.${ROOT_DOMAIN}
 	@${BIN}/reconfigure ${ENV_FILE} VAULTWARDEN_INSTANCE=$${instance:-default}
-	@${BIN}/confirm yes "Would you like to set a base path to obfuscate the URL with an appended security string" "?" && ${BIN}/reconfigure_password ${ENV_FILE} VAULTWARDEN_BASE_PATH || ${BIN}/reconfigure ${ENV_FILE} VAULTWARDEN_BASE_PATH=''
 	@test "$$(${BIN}/dotenv -f ${ENV_FILE} get VAULTWARDEN_SIGNUPS_ALLOWED)" == "true" && echo && echo "Warning: Public registration is enabled." && echo "After creating your first account, you may disable registration: \`make disable-registration\`." || true
+	@${BIN}/reconfigure_auth ${ENV_FILE} VAULTWARDEN
 
 .PHONY: enable-registration
 enable-registration:
@@ -21,4 +21,18 @@ disable-registration:
 
 .PHONY: open
 open:
-	@ENV_FILE=${ENV_FILE} CONTEXT_INSTANCE=${CONTEXT_INSTANCE} ${BIN}/open "/$$(dotenv -f ${ENV_FILE} get VAULTWARDEN_BASE_PATH)/"
+	@ENV_FILE=${ENV_FILE} CONTEXT_INSTANCE=${CONTEXT_INSTANCE} ${BIN}/open "$$(${BIN}/dotenv -f ${ENV_FILE} get VAULTWARDEN_BASE_PATH)/"
+
+.PHONY: override-hook
+override-hook:
+#### This sets the override template variables for docker-compose.instance.yaml:
+#### The template dynamically renders to docker-compose.override_{DOCKER_CONTEXT}_{INSTANCE}.yaml
+#### These settings are used to automatically generate the service container labels, and traefik config, inside the template.
+#### The variable arguments have three forms: `=` `=:` `=@`
+####   name=VARIABLE_NAME    # sets the template 'name' field to the value of VARIABLE_NAME found in the .env file
+####                         # (this hardcodes the value into docker-compose.override.yaml)
+####   name=:VARIABLE_NAME   # sets the template 'name' field to the literal string 'VARIABLE_NAME'
+####                         # (this hardcodes the string into docker-compose.override.yaml)
+####   name=@VARIABLE_NAME   # sets the template 'name' field to the literal string '${VARIABLE_NAME}'
+####                         # (used for regular docker-compose expansion of env vars by name.)
+	@${BIN}/docker_compose_override ${ENV_FILE} project=:vaultwarden instance=@VAULTWARDEN_INSTANCE traefik_host=@VAULTWARDEN_TRAEFIK_HOST http_auth=VAULTWARDEN_HTTP_AUTH http_auth_var=@VAULTWARDEN_HTTP_AUTH ip_sourcerange=@VAULTWARDEN_IP_SOURCERANGE oauth2=VAULTWARDEN_OAUTH2 authorized_group=VAULTWARDEN_OAUTH2_AUTHORIZED_GROUP

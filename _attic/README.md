@@ -1,6 +1,12 @@
 # Attic
 
-Heres things that are half baked or don't work anymore. Caveat Emptor.
+Things living in the _attic directory application that are no longer
+supported, and could be broken, but at least they all worked at one
+point in time or the other. With a bit of love and care these could be
+fixed up, and moved back into the root directory.
+
+Caveat Emptor!
 
 * [Mailu](mailu) - an email service suite. Run a private mail server connected to a public relay host.
-* [Tiny Tiny RSS](ttrss) - an RSS reader / proxy
+* [transmission-wireguard](transmission-wireguard) - an older but very popular Bittorrent (v1) client with a combined VPN client
+* [CryptPad](cryptpad) - a collaborative document and spreadsheet editor stuck on an old unsupported version.

@@ -5,7 +5,7 @@ client combined with the [Wireguard](https://www.wireguard.com/) VPN
 service. Connect wireguard to your VPN provider and anonymize your
 peer connections.
 
-You might prefer [qBittorrent-wireguard](../qbittorrent-wireguard)
+You might prefer [qBittorrent-wireguard](../../qbittorrent-wireguard)
 instead of this, because its based off libtorrent, and because
 transmission lags behind in modern torrent v2 support, and
 transmission 3.0.0 has numerous [bugs regarding how many files you can

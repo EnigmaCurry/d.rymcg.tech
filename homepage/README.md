@@ -11,19 +11,9 @@ languages.
 make config
 ```
 
-This will ask you to enter the domain name to use, and whether or not
-you want to configure a username/password via HTTP Basic Authentication.
+This will ask you to enter the domain name to use.
 It automatically saves your responses into the configuration file
 `.env_{INSTANCE}`.
-
-It will also ask if you want to use OpenID/OAuth2 authentication. 
-Using OpenID/OAuth2 will require a login to access your app, but it will not
-affect what a successfully logged-in person can do in your app. If your app has
-a built-in authorization mechanism that can check for the user header that
-traefik-forward-auth sends, then your app can limit what the logged-in person
-can do in the app. But if your app can't check the user header, or if your app
-doesn't have built-in authorization at all, then any person with an account
-on your Gitea server can log into your app and have full acces
 
 By default (when HOMEPAGE_AUTO_CONFIG=true), Homepage will automatically be
 configured for all your d.rymcg.tech apps running on the current Docker
@@ -45,6 +35,26 @@ but this has been turned off by default for security reasons, if you
 wish to enable this support, answer the question posed by `make config`
 and/or set `HOMEPAGE_ENABLE_DOCKER=true` in your `.env_{INSTANCE}`
 file.
+
+### Authentication and Authorization
+
+Running `make config` will ask whether or not you want to configure
+authentication for your app (on top of any authentication your app provides).
+You can configure OpenID/OAuth2 or HTTP Basic Authentication.
+
+OAuth2 uses traefik-forward-auth to delegate authentication to an external
+authority (eg. a self-deployed Gitea instance). Accessing this app will
+require all users to login through that external service first. Once
+authenticated, they may be authorized access only if their login id matches the
+member list of the predefined authorization group configured for the app
+(`HOMEPAGE_OAUTH2_AUTHORIZED_GROUP`). Authorization groups are defined in the
+Traefik config (`TRAEFIK_HEADER_AUTHORIZATION_GROUPS`) and can be
+[created/modified](https://github.com/EnigmaCurry/d.rymcg.tech/blob/master/traefik/README.md#oauth2-authentication)
+by running `make groups` in the `traefik` directory.
+
+For HTTP Basic Authentication, you will be prompted to enter username/password
+logins which are stored in that app's `.env_{INSTANCE}` file.
+
 
 ## Generate deploy key (if using a private template repository)
 
@@ -88,7 +98,7 @@ it with someone else.
 make destroy
 ```
 
-This completely removes the container and all of the data.
+This completely removes the container and all of the data, including the Git deploy key.
 
 ## Reloading Webhook (optional)
 
