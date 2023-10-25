@@ -611,9 +611,12 @@ Traefik [.env](.env-dist) file :
 | `TRAEFIK_PLUGIN_MAXMIND_GEOIP`             | (bool) Enable GeoIP plugin                                                       | `false`, `true`                               |
 | `TRAEFIK_ROOT_DOMAIN`                      | The default root domain of every service                                         | `d.rymcg.tech`                                |
 | `TRAEFIK_SEND_ANONYMOUS_USAGE`             | (bool) Whether to send usage data to Traefik Labs                                | `false`, `true`                               |
-| `TRAEFIK_SNAPCAST_ENTRYPOINT_ENABLED`      | (bool) Enable snapcast (unencrypted) entrypoint                                  |                                               |
+| `TRAEFIK_SNAPCAST_ENTRYPOINT_ENABLED`      | (bool) Enable snapcast (unencrypted) entrypoint                                  | `false`,`true`                                |
 | `TRAEFIK_SNAPCAST_ENTRYPOINT_HOST`         | Host ip address to bind snapcast entrypoint                                      | `0.0.0.0`                                     |
 | `TRAEFIK_SNAPCAST_ENTRYPOINT_PORT`         | Host TCP port to bind snapcast entrypoint                                        | `1704`                                        |
+| `TRAEFIK_MUMBLE_ENTRYPOINT_ENABLED`        | (bool) Enable mumble entrypoint                                                  | `false`,`true`                                |
+| `TRAEFIK_MUMBLE_ENTRYPOINT_HOST`           | Host ip address to bind mumble entrypoint                                        | `0.0.0.0`                                     |
+| `TRAEFIK_MUMBLE_ENTRYPOINT_PORT`           | Host TCP port to bind mumble entrypoint                                          | `64738`                                       |
 | `TRAEFIK_SSH_ENTRYPOINT_ENABLED`           | (bool) Enable ssh (port 2222) entrypoint                                         | `true`,`false`                                |
 | `TRAEFIK_SSH_ENTRYPOINT_HOST`              | Host ip address to bind ssh entrypoint                                           | `0.0.0.0`                                     |
 | `TRAEFIK_SSH_ENTRYPOINT_PORT`              | Host TCP port to bind ssh entrypoint                                             | `2222`                                        |

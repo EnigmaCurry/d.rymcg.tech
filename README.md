@@ -203,6 +203,7 @@ configured, you may need to open these ports in your firewall:
 | TLS        | TCP      | 8883       | Traefik MQTT (TLS) entrypoint                             |
 | WebRTC     | UDP      | 10000      | Jitsi Meet video bridge (direct-map)                      |
 | VPN        | UDP      | 51820      | Wireguard (Traefik VPN)  (direct-map)                     |
+| TCP socket | TCP      | 64738      | Traefik Mumble (VoIP) entrypoint                          |
 
 The ports that are listed as `(direct-map)` are not connected to
 Traefik, but are directly exposed (public) to the docker host network.
