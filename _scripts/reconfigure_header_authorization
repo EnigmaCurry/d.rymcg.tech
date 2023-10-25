@@ -1,0 +1,303 @@
+#!/bin/bash
+
+## reconfigure_header_authorization ENV_FILE
+
+BIN=$(dirname ${BASH_SOURCE})
+source ${BIN}/funcs.sh
+
+ENV_FILE=../traefik/${1}
+shift
+## Make new .env if it doesn't exist:
+test -f ${ENV_FILE} || cp ../traefik/.env-dist ${ENV_FILE}
+
+manage_groups() {
+    set -eo pipefail
+    local TRAEFIK_HEADER_AUTHORIZATION_GROUPS=$(${BIN}/dotenv -f ${ENV_FILE} get TRAEFIK_HEADER_AUTHORIZATION_GROUPS)
+    readarray -t existing_groups < <(echo "${TRAEFIK_HEADER_AUTHORIZATION_GROUPS}" | jq keys | jq -r ".[]")
+    local GROUP
+    GROUP=$(eval "wizard choose 'Choose a group to manage' -- ${existing_groups[@]@Q} 'Create a new group'")
+    if [[ "${GROUP}" == "Create a new group" ]]; then
+        create_group
+    else
+        manage_group "${GROUP}"
+    fi
+}
+
+manage_group() {
+    set -eo pipefail
+    local GROUP=$1
+    if [[ -z "${GROUP}" ]]; then return 1; fi
+    while :
+    do
+        set +e
+        local TASK
+        TASK=$(wizard choose -- "Managing group ${GROUP} :: select a task ::" "Add members" "Edit members" "List all members" "Delete group")
+        if [[ "$?" != "0" ]]; then
+            return 1
+        fi
+        case "${TASK}" in
+            "Add members")
+                (add_group_members "${GROUP}");;
+            "Edit members")
+                (edit_group_users "${GROUP}");;
+            "List all members")
+                list_group_members "${GROUP}";;
+            "Delete group")
+                wizard confirm "Do you really want to delete the group ${GROUP}?" no && delete_group "${GROUP}" && break
+        esac
+    done
+}
+
+manage_users() {
+    set -eo pipefail
+    while :
+    do
+        local TRAEFIK_HEADER_AUTHORIZATION_GROUPS=$(${BIN}/dotenv -f ${ENV_FILE} get TRAEFIK_HEADER_AUTHORIZATION_GROUPS)
+        readarray -t existing_groups < <(echo "${TRAEFIK_HEADER_AUTHORIZATION_GROUPS}" | jq keys | jq -r ".[]")
+        local GROUP
+        users=()
+        for GROUP in ${existing_groups[@]}; do
+            readarray -t group_users < <(echo "${TRAEFIK_HEADER_AUTHORIZATION_GROUPS}" | jq -r ".\"${GROUP}\"[]")
+            users+=( "${group_users[@]}" )
+        done
+        IFS=$'\n' users=($(sort <<<"${users[*]}" | uniq)); unset IFS;
+        local USER_TO_EDIT
+        USER_TO_EDIT="$(eval "wizard choose 'Select a user by id' 'Create a new user' -- ${users[@]@Q}")"
+        if [[ "$USER_TO_EDIT" == "Create a new user" ]]; then
+            USER_TO_EDIT=$(wizard ask "Enter the user id for the new user:")
+        fi
+        manage_user "$USER_TO_EDIT"
+    done
+}
+
+manage_user(){
+    set -eo pipefail
+    local USER_TO_EDIT=$1
+    local TRAEFIK_HEADER_AUTHORIZATION_GROUPS=$(${BIN}/dotenv -f ${ENV_FILE} get TRAEFIK_HEADER_AUTHORIZATION_GROUPS)
+    readarray -t existing_groups < <(echo "${TRAEFIK_HEADER_AUTHORIZATION_GROUPS}" | jq keys | jq -r ".[]")
+    local user_groups=()
+    for GROUP in ${existing_groups[@]}; do
+        readarray -t group_users < <(echo "${TRAEFIK_HEADER_AUTHORIZATION_GROUPS}" | jq -r ".\"${GROUP}\"[]")
+        if element_in_array "$USER_TO_EDIT" "${group_users[@]}"; then
+            user_groups+=("${GROUP}")
+        fi
+    done
+    echo "user_groups: ${user_groups[@]}"
+    local user_groups_json=$(jq -c -n '$ARGS.positional | unique' --args -- "${user_groups[@]}")
+    local GROUP_SELECTION
+    GROUP_SELECTION=$(eval "wizard select 'Editing user ${USER_TO_EDIT} :: Select group membership' --default '${user_groups_json}' -- ${existing_groups[@]@Q}")
+    readarray -t GROUP_SELECTION < <(echo "$GROUP_SELECTION")
+    for GROUP in ${existing_groups[@]}; do
+        readarray -t group_users < <(echo "${TRAEFIK_HEADER_AUTHORIZATION_GROUPS}" | jq -r ".\"${GROUP}\"[]")
+        if element_in_array "${GROUP}" "${GROUP_SELECTION[@]}"; then
+            echo "group: $GROUP"
+            group_users+=("${USER_TO_EDIT}")
+            ## Add user to selected groups:
+            group_users=$(jq --compact-output --null-input '$ARGS.positional | unique' --args -- "${group_users[@]}")
+            TRAEFIK_HEADER_AUTHORIZATION_GROUPS=$(echo "${TRAEFIK_HEADER_AUTHORIZATION_GROUPS}" | jq --compact-output "(.[\"${GROUP}\"] = ${group_users})")
+        else
+            ## Remove user from unselected groups:
+            TRAEFIK_HEADER_AUTHORIZATION_GROUPS=$(echo "${TRAEFIK_HEADER_AUTHORIZATION_GROUPS}" | jq --compact-output "del(.[\"${GROUP}\"][] | select(index(\"${USER_TO_EDIT}\")))")
+        fi
+    done
+    echo "New config: ${TRAEFIK_HEADER_AUTHORIZATION_GROUPS}"
+    ${BIN}/dotenv -f ${ENV_FILE} set TRAEFIK_HEADER_AUTHORIZATION_GROUPS="${TRAEFIK_HEADER_AUTHORIZATION_GROUPS}"
+    echo "Wrote new TRAEFIK_HEADER_AUTHORIZATION_GROUPS to ${ENV_FILE}"
+}
+
+list_group_members() {
+    set -eo pipefail
+    local GROUP=$1
+    local TRAEFIK_HEADER_AUTHORIZATION_GROUPS=$(${BIN}/dotenv -f ${ENV_FILE} get TRAEFIK_HEADER_AUTHORIZATION_GROUPS)
+    echo
+    echo "${TRAEFIK_HEADER_AUTHORIZATION_GROUPS}" | jq -r ".\"${GROUP}\"[]"
+    echo
+}
+
+add_group_members() {
+    set -eo pipefail
+    local GROUP=$1
+    local TRAEFIK_HEADER_AUTHORIZATION_GROUPS=$(${BIN}/dotenv -f ${ENV_FILE} get TRAEFIK_HEADER_AUTHORIZATION_GROUPS)
+    readarray -t users < <(echo "${TRAEFIK_HEADER_AUTHORIZATION_GROUPS}" | jq -r ".\"${GROUP}\"[]")
+    echo "Enter the new user id(s) to add, one per line:"
+    while :
+    do
+        user_id=$(wizard ask 'Enter a user ID (press Esc or enter a blank value to finish)' --allow-blank)
+        if [[ $user_id == "" ]]; then
+            break
+        fi
+        users+=("${user_id}")
+    done
+    ## Add user IDs to group
+    users=$(jq --compact-output --null-input '$ARGS.positional | unique' --args -- "${users[@]}")
+    TRAEFIK_HEADER_AUTHORIZATION_GROUPS=$(echo "${TRAEFIK_HEADER_AUTHORIZATION_GROUPS}" | jq --compact-output "(.${GROUP} = ${users})")
+    ${BIN}/dotenv -f ${ENV_FILE} set TRAEFIK_HEADER_AUTHORIZATION_GROUPS="${TRAEFIK_HEADER_AUTHORIZATION_GROUPS}"
+    echo "Wrote new TRAEFIK_HEADER_AUTHORIZATION_GROUPS to ${ENV_FILE}"
+}
+
+edit_group_users() {
+    set -eo pipefail
+    local GROUP=$1
+    if [[ -z "${GROUP}" ]]; then return 1; fi
+    local TRAEFIK_HEADER_AUTHORIZATION_GROUPS=$(${BIN}/dotenv -f ${ENV_FILE} get TRAEFIK_HEADER_AUTHORIZATION_GROUPS)
+    readarray -t existing_users < <(echo "${TRAEFIK_HEADER_AUTHORIZATION_GROUPS}" | jq -r ".\"${GROUP}\"[]")
+    local membership="${existing_users[@]@Q}"
+    membership=$(jq -c -n '$ARGS.positional' --args ${membership})
+    membership=$(eval wizard select "'Managing group ${GROUP} :: unselect users to remove from group ::'" --default "'${membership}'" --json -- ${existing_users[@]})
+    TRAEFIK_HEADER_AUTHORIZATION_GROUPS=$(echo "${TRAEFIK_HEADER_AUTHORIZATION_GROUPS}" | jq --compact-output "(.${GROUP} = ${membership})")
+    echo TRAEFIK_HEADER_AUTHORIZATION_GROUPS=$TRAEFIK_HEADER_AUTHORIZATION_GROUPS
+    ${BIN}/dotenv -f ${ENV_FILE} set TRAEFIK_HEADER_AUTHORIZATION_GROUPS="${TRAEFIK_HEADER_AUTHORIZATION_GROUPS}"
+    echo "Wrote new TRAEFIK_HEADER_AUTHORIZATION_GROUPS to ${ENV_FILE}"
+}
+
+
+list_groups() {
+    set -eo pipefail
+    local TRAEFIK_HEADER_AUTHORIZATION_GROUPS=$(${BIN}/dotenv -f ${ENV_FILE} get TRAEFIK_HEADER_AUTHORIZATION_GROUPS)
+    if [[ $TRAEFIK_HEADER_AUTHORIZATION_GROUPS == "{}" || $TRAEFIK_HEADER_AUTHORIZATION_GROUPS == "" ]]; then
+        echo "No authorization groups have been defined yet."
+        return 0
+    fi
+
+    echo "Here is a list of your current authorization groups and their users:"
+    echo
+    echo "${TRAEFIK_HEADER_AUTHORIZATION_GROUPS}" | jq -C . | sed 's/^/    /'
+}
+
+create_group() {
+    set -eo pipefail
+    local GROUP
+    GROUP=$(wizard ask "Enter the name of the group to create:")
+
+    ## Check if the group exists already:
+    local TRAEFIK_HEADER_AUTHORIZATION_GROUPS=$(${BIN}/dotenv -f ${ENV_FILE} get TRAEFIK_HEADER_AUTHORIZATION_GROUPS)
+    local INDEX=$(echo "$TRAEFIK_HEADER_AUTHORIZATION_GROUPS" | jq --compact-output 'keys | index("'${GROUP}'")')
+    if [[ $INDEX != "null" ]]; then
+        echo "Group ${GROUP} already exists."
+        return 0
+    fi
+
+    users=()
+    if wizard confirm "Do you want to add users to this group now?" no; then
+        echo "Enter the new user id(s) to add, one per line:"
+        while :
+        do
+            user_id=$(wizard ask "Enter a user ID (Press Esc or enter a blank value to finish)" --allow-blank)
+            if [[ $user_id == "" ]]; then
+                break
+            fi
+            users+=("${user_id}")
+        done
+    fi
+
+    ## Add the new group:
+     users=$(jq --compact-output --null-input '$ARGS.positional | unique' --args -- "${users[@]}")
+    local TRAEFIK_HEADER_AUTHORIZATION_GROUPS=$(echo "${TRAEFIK_HEADER_AUTHORIZATION_GROUPS}" | jq --compact-output "(.${GROUP} = ${users})")
+    ${BIN}/dotenv -f ${ENV_FILE} set TRAEFIK_HEADER_AUTHORIZATION_GROUPS="${TRAEFIK_HEADER_AUTHORIZATION_GROUPS}"
+    echo "Wrote new TRAEFIK_HEADER_AUTHORIZATION_GROUPS to ${ENV_FILE}"
+
+}
+
+delete_group() {
+    set -eo pipefail
+    local GROUP=$1
+    if [[ -z "${GROUP}" ]]; then return 1; fi
+    local TRAEFIK_HEADER_AUTHORIZATION_GROUPS=$(${BIN}/dotenv -f ${ENV_FILE} get TRAEFIK_HEADER_AUTHORIZATION_GROUPS)
+    ## Delete group
+    TRAEFIK_HEADER_AUTHORIZATION_GROUPS=$(echo "${TRAEFIK_HEADER_AUTHORIZATION_GROUPS}" | jq --compact-output "del(.${GROUP})")
+    ${BIN}/dotenv -f ${ENV_FILE} set TRAEFIK_HEADER_AUTHORIZATION_GROUPS="${TRAEFIK_HEADER_AUTHORIZATION_GROUPS}"
+    echo "Wrote new TRAEFIK_HEADER_AUTHORIZATION_GROUPS to ${ENV_FILE}"
+}
+
+check_does_traefik_need_restart() {
+    local NEW_AUTHORIZATION_GROUPS=$(${BIN}/dotenv -f ${ENV_FILE} get TRAEFIK_HEADER_AUTHORIZATION_GROUPS)
+    local EXISTING_AUTHORIZATION_GROUPS=$(docker inspect traefik-traefik-1 | jq -r '.[0].Config.Labels."TRAEFIK_HEADER_AUTHORIZATION_GROUPS"')
+    if [[ "$EXISTING_AUTHORIZATION_GROUPS" != "$NEW_AUTHORIZATION_GROUPS" ]]; then
+        if ${BIN}/confirm no "Config change detected. Do you want to restart Traefik now" "?"; then
+            make install
+        else
+            echo 'Remember to restart Traefik (`make install`) for group changes to take effect!'
+        fi
+    fi
+}
+
+list_middlewares() {
+    set -eo pipefail
+    exe docker compose --env-file=${ENV_FILE} exec -it traefik /bin/sh -c "cat /data/config/dynamic/header-authorization.yml"
+    echo
+    echo '## REMEMBER: if you have not yet re-run `make install` for Traefik,'
+    echo '## your live configration may be out sync with your .env file.'
+}
+
+list_callback_urls() {
+    set -eo pipefail
+    readarray -t projects < <(docker compose ls -q)
+    local DOCKER_CONTEXT=$(docker context ls --format "{{.Current}} {{.Name}}" | grep -oP "^true \K.*")
+    local ROOT_ENV_FILE=${ROOT_DIR}/.env_${DOCKER_CONTEXT}
+    https_port=$(${BIN}/dotenv -f ${ROOT_ENV_FILE} get PUBLIC_HTTPS_PORT)
+    if [[ -z "$https_port" ]]; then
+        fault "Could not get PUBLIC_HTTPS_PORT from root .env file"
+    fi
+    domains=()
+    echo "## This is the list of OAuth2 callback URLs for all deployed apps:"
+    echo "## If you installed traefik-forward-auth in AUTH HOST mode (default) you don't need this, otherwise keep reading:"
+    echo "## You need to copy/paste these into your Gitea OAuth2 application 'Redirect URIs' setting."
+    echo "## Generate this list again with this command: d.rymcg.tech make traefik sentry-callback"
+    echo "## Collecting callback URLs for all deployed applications ..."
+    echo ""
+    for project in ${projects[@]}; do
+        readarray -t services < <(docker compose -p "$project" ps --services -q)
+        for service in ${services[@]}; do
+            env_file=$(docker inspect "${service}" | jq -r '.[0].Config.Labels["com.docker.compose.project.environment_file"]')
+            if [[ -n "${env_file}" ]] && [[ "${env_file}" != "null" ]] && [[ -f "${env_file}" ]]; then
+                traefik_host=$(grep -E "^.*_TRAEFIK_HOST" "${env_file}" | head -1 | cut -d '=' -f 2)
+                if [[ -n "${traefik_host}" ]]; then
+                    domains+=("${traefik_host}")
+                fi
+            fi
+        done
+    done
+    IFS=$'\n' domains=($(sort <<<"${domains[*]}" | uniq)); unset IFS;
+    for domain in ${domains[@]}; do
+        if [[ "${https_port}" == "443" ]]; then
+            echo "https://${domain}/_oauth"
+        else
+            echo "https://${domain}:${https_port}/_oauth"
+        fi
+    done
+    echo ""
+}
+
+CMD=$1; shift;
+if [[ -z "$CMD" ]]; then
+    while :
+    do
+        echo ""
+        set +e
+        TASK=$(wizard choose "Sentry Authorization Manager (main menu):" "Group Manager" "User Manager" "List all members" "List authorized callback URLs" "Quit")
+        if [[ $? != 0 ]]; then
+            check_does_traefik_need_restart
+            exit 0
+        fi
+        case "${TASK}" in
+            "Group Manager")
+                (manage_groups);;
+            "User Manager")
+                (manage_users);;
+            "List all members")
+                (list_groups);;
+            "List authorized callback URLs")
+                (list_callback_urls  || fault "Error");;
+            "Quit")
+                check_does_traefik_need_restart
+                exit 0;;
+        esac
+    done
+else
+    case "${CMD}" in
+        "list-callback-urls")
+            (list_callback_urls  || fault "Error");;
+        *)
+            fault "Invalid command";;
+    esac
+fi

@@ -31,7 +31,7 @@ check_num(){
 ask() {
     ## Ask the user a question and set the given variable name with their answer
     local __prompt="${1}"; local __var="${2}"; local __default="${3}"
-    read -e -p "${__prompt}"$'\x0a: ' -i "${__default}" ${__var}
+    read -e -p "${__prompt}"$'\x0a\e[32m:\e[0m ' -i "${__default}" ${__var}
     export ${__var}
 }
 
@@ -40,7 +40,7 @@ ask_no_blank() {
     ## If the answer is blank, repeat the question.
     local __prompt="${1}"; local __var="${2}"; local __default="${3}"
     while true; do
-        read -e -p "${__prompt}"$'\x0a: ' -i "${__default}" ${__var}
+        read -e -p "${__prompt}"$'\x0a\e[32m:\e[0m ' -i "${__default}" ${__var}
         export ${__var}
         [[ -z "${!__var}" ]] || break
     done
@@ -188,4 +188,82 @@ random_port() {
     comm -23 <(seq "${LOW_PORT}" "${HIGH_PORT}") <(ss -tan | awk '{print $4}' | cut -d':' -f2 | \
                                                        grep "[0-9]\{1,5\}" | sort | uniq) 2>/dev/null | \
         shuf 2>/dev/null | head -n 1; true
+}
+
+wizard() {
+    ${BIN}/script-wizard "$@"
+}
+
+color() {
+    ## Print text in ANSI color
+    set -e
+    if [[ $# -lt 2 ]]; then
+        fault "Not enough args: expected COLOR and TEXT arguments"
+    fi
+    local COLOR_CODE_PREFIX='\033['
+    local COLOR_CODE_SUFFIX='m'
+    local COLOR=$1; shift
+    local TEXT="$*"
+    local LIGHT=1
+    check_var COLOR TEXT
+    case "${COLOR}" in
+        "black") COLOR=30; LIGHT=0;;
+        "red") COLOR=31; LIGHT=0;;
+        "green") COLOR=32; LIGHT=0;;
+        "brown") COLOR=33; LIGHT=0;;
+        "orange") COLOR=33; LIGHT=0;;
+        "blue") COLOR=34; LIGHT=0;;
+        "purple") COLOR=35; LIGHT=0;;
+        "cyan") COLOR=36; LIGHT=0;;
+        "light gray") COLOR=37; LIGHT=0;;
+        "dark gray") COLOR=30; LIGHT=1;;
+        "light red") COLOR=31; LIGHT=1;;
+        "light green") COLOR=32; LIGHT=1;;
+        "yellow") COLOR=33; LIGHT=1;;
+        "light blue") COLOR=34; LIGHT=1;;
+        "light purple") COLOR=35; LIGHT=1;;
+        "light cyan") COLOR=36; LIGHT=1;;
+        "white") COLOR=37; LIGHT=1;;
+        *) fault "Unknown color"
+    esac
+    echo -en "${COLOR_CODE_PREFIX}${LIGHT};${COLOR}${COLOR_CODE_SUFFIX}${TEXT}${COLOR_CODE_PREFIX}0;0${COLOR_CODE_SUFFIX}"
+}
+
+element_in_array () {
+  local e match="$1"; shift;
+  for e; do [[ "$e" == "$match" ]] && return 0; done
+  return 1
+}
+
+gen_password() {
+    set -eo pipefail
+    LENGTH=${1:-30}
+    openssl rand -base64 ${LENGTH} | tr '=' '0' | tr '+' '0' | tr '/' '0' | tr '\n' '0' | head -c ${LENGTH}
+}
+
+version_spec() {
+    ## Check the lock file to see if the apps INSTALLED_VERSION is ok
+    # version_spec APP_NAME INSTALLED_VERSION
+    set -eo pipefail
+    # The name of the app:
+    local APP=$1;
+    check_var APP
+    # The installed version to check against the lock file version, could be blank:
+    local CHECK_VERSION=$2;
+    local VERSION_LOCK="${ROOT_DIR}/.tools.lock.json"
+    if [[ ! -f "$VERSION_LOCK" ]]; then
+        fault "The version lock spec file is missing: ${VERSION_LOCK}"
+    fi
+    # Grab the locked version of APP from the lock file:
+    set -x
+    local LOCKED_VERSION=$(jq -r ".dependencies.\"${APP}\"" ${ROOT_DIR}/.tools.lock.json)
+    (test -z "${LOCKED_VERSION}" || test "${LOCKED_VERSION}" == "null") && fault "The app '${APP}' is not listed in ${VERSION_LOCK}"
+
+    # Return the locked version string:
+    echo ${LOCKED_VERSION}
+
+    # But error if the installed version is different than the locked version:
+    if [[ -n "${CHECK_VERSION}" ]] && [[ "${VERSION}" != "${CHECK_VERSION}" ]]; then
+        fault "Installed ${APP} version ${CHECK_VERSION} does not match the locked version: ${LOCKED_VERSION}"
+    fi
 }

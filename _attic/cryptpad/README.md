@@ -3,6 +3,11 @@
 [CryptPad](https://cryptpad.fr/) is an encrypted, open source office
 collaboration suite.
 
+WARNING: this config has not been updated in a while, and it is no
+longer using the latest version. There is an [open issue to upgrade
+cryptpad](https://github.com/EnigmaCurry/d.rymcg.tech/issues/30), but
+there are some difficulties that need to be overcome.
+
 CryptPad is designed to serve its content over two domains, a `main`
 domain, and a `sandbox` domain (eg `pad.d.example.com` and
 `pad-sandbox.d.example.com`). Account passwords and cryptographic content

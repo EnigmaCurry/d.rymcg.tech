@@ -1,13 +1,15 @@
 ROOT_DIR = ..
 include ${ROOT_DIR}/_scripts/Makefile.projects-no-open
+include ${ROOT_DIR}/_scripts/Makefile.instance
 
 .PHONY: config-hook
 config-hook:
-	@${BIN}/reconfigure_ask ${ENV_FILE} MAUBOT_TRAEFIK_HOST "Enter the maubot domain name" maubot.${ROOT_DOMAIN}
+	@${BIN}/reconfigure_ask ${ENV_FILE} MAUBOT_TRAEFIK_HOST "Enter the maubot domain name" maubot${INSTANCE_URL_SUFFIX}.${ROOT_DOMAIN}
 	@${BIN}/reconfigure ${ENV_FILE} MAUBOT_INSTANCE=$${instance:-default}
 	@${BIN}/reconfigure_ask ${ENV_FILE} MATRIX_HOMESERVER "Enter the matrix homeserver"
 	@${BIN}/reconfigure_ask ${ENV_FILE} MAUBOT_ADMIN_USER "Enter the maubot admin username to create" admin
 	@${BIN}/reconfigure_password ${ENV_FILE} MAUBOT_ADMIN_PASSWORD
+	@${BIN}/reconfigure_auth ${ENV_FILE} MAUBOT
 
 .PHONY: open # Open the web-browser to the service URL
 open:
@@ -28,3 +30,17 @@ login:
 	@echo "Enter the Matrix password account."
 	@docker-compose --env-file ${ENV_FILE} exec maubot mbc auth --update-client
 
+
+.PHONY: override-hook
+override-hook:
+#### This sets the override template variables for docker-compose.instance.yaml:
+#### The template dynamically renders to docker-compose.override_{DOCKER_CONTEXT}_{INSTANCE}.yaml
+#### These settings are used to automatically generate the service container labels, and traefik config, inside the template.
+#### The variable arguments have three forms: `=` `=:` `=@`
+####   name=VARIABLE_NAME    # sets the template 'name' field to the value of VARIABLE_NAME found in the .env file
+####                         # (this hardcodes the value into docker-compose.override.yaml)
+####   name=:VARIABLE_NAME   # sets the template 'name' field to the literal string 'VARIABLE_NAME'
+####                         # (this hardcodes the string into docker-compose.override.yaml)
+####   name=@VARIABLE_NAME   # sets the template 'name' field to the literal string '${VARIABLE_NAME}'
+####                         # (used for regular docker-compose expansion of env vars by name.)
+	@${BIN}/docker_compose_override ${ENV_FILE} project=:maubot instance=@MAUBOT_INSTANCE traefik_host=@MAUBOT_TRAEFIK_HOST http_auth=MAUBOT_HTTP_AUTH http_auth_var=@MAUBOT_HTTP_AUTH ip_sourcerange=@MAUBOT_IP_SOURCERANGE oauth2=MAUBOT_OAUTH2 authorized_group=MAUBOT_OAUTH2_AUTHORIZED_GROUP

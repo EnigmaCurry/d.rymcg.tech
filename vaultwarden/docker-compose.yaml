@@ -20,27 +20,11 @@ services:
       - SIGNUPS_ALLOWED=${VAULTWARDEN_SIGNUPS_ALLOWED}
       - SHOW_PASSWORD_HINT=${VAULTWARDEN_SHOW_PASSWORD_HINT}
       - INVITATIONS_ALLOWED=${VAULTWARDEN_INVITATIONS_ALLOWED}
-      - DOMAIN=https://${VAULTWARDEN_TRAEFIK_HOST}/${VAULTWARDEN_BASE_PATH}
+      - DOMAIN=https://${VAULTWARDEN_TRAEFIK_HOST}/
     volumes:
       - data:/data
     # labels are defined in docker-compose.instance.yaml
-    labels:
-      - "traefik.enable=true"
-
-      - "traefik.http.routers.vaultwarden-${INSTANCE:-default}.rule=Host(`${VAULTWARDEN_TRAEFIK_HOST}`) && PathPrefix(`/${VAULTWARDEN_BASE_PATH}`)"
-      - "traefik.http.routers.vaultwarden-${INSTANCE:-default}.service=vaultwarden-${INSTANCE:-default}"
-      - "traefik.http.routers.vaultwarden-${INSTANCE:-default}.entrypoints=websecure"
-      - "traefik.http.services.vaultwarden-${INSTANCE:-default}.loadbalancer.server.port=80"
-
-      - "traefik.http.middlewares.vaultwarden-${INSTANCE:-default}-ipwhitelist.ipwhitelist.sourcerange=${VAULTWARDEN_IP_SOURCERANGE}"
-
-      - "traefik.http.routers.vaultwarden-${INSTANCE:-default}-websocket.rule=Host(`${VAULTWARDEN_TRAEFIK_HOST}`) && Path(`/notifications/hub`)"
-      - "traefik.http.routers.vaultwarden-${INSTANCE:-default}-websocket.service=vaultwarden-${INSTANCE:-default}-websocket"
-      - "traefik.http.routers.vaultwarden-${INSTANCE:-default}-websocket.entrypoints=websecure"
-      - "traefik.http.services.vaultwarden-${INSTANCE:-default}-websocket.loadbalancer.server.port=3012"
-
-      - "traefik.http.routers.vaultwarden-${INSTANCE:-default}.middlewares=vaultwarden-${INSTANCE:-default}-ipwhitelist"
-      - "traefik.http.routers.vaultwarden-${INSTANCE:-default}-websocket.middlewares=vaultwarden-${INSTANCE:-default}-ipwhitelist"
+    labels: []
 
 volumes:
   data:

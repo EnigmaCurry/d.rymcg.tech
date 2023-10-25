@@ -10,7 +10,7 @@ config-hook:
 #### reconfigure_htpasswd will configure the HTTP Basic Authentication setting the var name and with a provided default value.
 	@${BIN}/reconfigure_ask ${ENV_FILE} PAIRDROP_TRAEFIK_HOST "Enter the pairdrop domain name" pairdrop${INSTANCE_URL_SUFFIX}.${ROOT_DOMAIN}
 	@${BIN}/reconfigure ${ENV_FILE} PAIRDROP_INSTANCE=$${instance:-default}
-	@${BIN}/reconfigure_htpasswd ${ENV_FILE} PAIRDROP_HTTP_AUTH default=no
+	@${BIN}/reconfigure_auth ${ENV_FILE} PAIRDROP
 
 .PHONY: override-hook
 override-hook:
@@ -24,7 +24,7 @@ override-hook:
 ####                         # (this hardcodes the string into docker-compose.override.yaml)
 ####   name=@VARIABLE_NAME   # sets the template 'name' field to the literal string '${VARIABLE_NAME}'
 ####                         # (used for regular docker-compose expansion of env vars by name.)
-	@${BIN}/docker_compose_override ${ENV_FILE} project=:pairdrop instance=@PAIRDROP_INSTANCE traefik_host=@PAIRDROP_TRAEFIK_HOST http_auth=PAIRDROP_HTTP_AUTH http_auth_var=@PAIRDROP_HTTP_AUTH ip_sourcerange=@PAIRDROP_IP_SOURCERANGE
+	@${BIN}/docker_compose_override ${ENV_FILE} project=:pairdrop instance=@PAIRDROP_INSTANCE traefik_host=@PAIRDROP_TRAEFIK_HOST http_auth=PAIRDROP_HTTP_AUTH http_auth_var=@PAIRDROP_HTTP_AUTH ip_sourcerange=@PAIRDROP_IP_SOURCERANGE oauth2=PAIRDROP_OAUTH2 authorized_group=PAIRDROP_OAUTH2_AUTHORIZED_GROUP
 
 .PHONY: shell
 shell:
