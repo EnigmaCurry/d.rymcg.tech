@@ -154,3 +154,7 @@ entryPoints:
   web_plain:
     address: #@ data.values.web_plain_entrypoint_host + ":" + data.values.web_plain_entrypoint_port
   #@ end
+  #@ if data.values.mumble_entrypoint_enabled == "true":
+  mumble:
+    address: #@ data.values.mumble_entrypoint_host + ":" + data.values.mumble_entrypoint_port
+  #@ end
