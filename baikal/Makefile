@@ -22,3 +22,6 @@ override-hook:
 ####                         # (used for regular docker-compose expansion of env vars by name.)
 	@${BIN}/docker_compose_override ${ENV_FILE} project=:baikal instance=@BAIKAL_INSTANCE traefik_host=@BAIKAL_TRAEFIK_HOST http_auth=BAIKAL_HTTP_AUTH http_auth_var=@BAIKAL_HTTP_AUTH ip_sourcerange=@BAIKAL_IP_SOURCERANGE oauth2=BAIKAL_OAUTH2 authorized_group=BAIKAL_OAUTH2_AUTHORIZED_GROUP
 
+.PHONY: shell
+shell:
+	@make --no-print-directory docker-compose-shell SERVICE=baikal

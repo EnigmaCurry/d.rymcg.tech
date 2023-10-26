@@ -6,3 +6,7 @@ include ${ROOT_DIR}/_scripts/Makefile.instance
 config-hook:
 	@${BIN}/reconfigure_ask ${ENV_FILE} REPOSITORY "Enter the github repository URL"
 	@${BIN}/reconfigure_ask ${ENV_FILE} RUNNER_TOKEN "Enter the GitHub runner token"
+
+.PHONY: shell
+shell:
+	@container=$$(eval "${BIN}/script-wizard choose 'docker exec -it into which container?' 'docker' 'runner' --default 'docker'") && make --no-print-directory docker-compose-shell SERVICE=$${container}

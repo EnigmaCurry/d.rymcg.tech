@@ -16,3 +16,6 @@ bucket:
 mc:
 	./mc_shell.sh
 
+.PHONY: shell
+shell:
+	@make --no-print-directory docker-compose-shell SERVICE=minio
