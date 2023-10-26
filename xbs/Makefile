@@ -10,8 +10,7 @@ config-hook:
 
 .PHONY: shell
 shell:
-	@make --no-print-directory docker-compose-lifecycle-cmd EXTRA_ARGS="exec -it api /bin/sh"
-
+	@container=$$(eval "${BIN}/script-wizard choose 'docker exec -it into which container?' 'db' 'api' --default 'api'") && make --no-print-directory docker-compose-shell SERVICE=$${container}
 
 .PHONY: override-hook
 override-hook:

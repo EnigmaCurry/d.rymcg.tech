@@ -24,5 +24,4 @@ override-hook:
 
 .PHONY: shell
 shell:
-	@set -x; docker compose --project-name sysbox-systemd_$${instance:-default} --env-file ${ENV_FILE} exec -it $${service:-linux} /bin/bash
-
+	@make --no-print-directory docker-compose-shell SERVICE=linux

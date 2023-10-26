@@ -15,7 +15,7 @@ config-hook:
 
 .PHONY: shell
 shell:
-	@make --no-print-directory docker-compose-lifecycle-cmd EXTRA_ARGS="exec tiddlywiki /bin/sh"
+	@container=$$(eval "${BIN}/script-wizard choose 'docker exec -it into which container?' 'tiddlywiki' 'git-autocommit' --default 'tiddlywiki'") && make --no-print-directory docker-compose-shell SERVICE=$${container}
 
 .PHONY: open
 open:

@@ -28,7 +28,9 @@ config-hook:
 
 .PHONY: shell
 shell:
-	@make --no-print-directory docker-compose-lifecycle-cmd EXTRA_ARGS="exec tiddlywiki-nodejs /bin/sh"
+	@make --no-print-directory docker-compose-lifecycle-cmd EXTRA_ARGS="exec tiddlywiki-nodejs /bin/sh".PHONY: shell
+shell:
+	@container=$$(eval "${BIN}/script-wizard choose 'docker exec -it into which container?' 'tiddlywiki-static' 'tiddlywiki-base' 'tiddlywiki-nodejs' 'watcher' 's3-proxy' --default 'tiddlywiki-nodejs'") && make --no-print-directory docker-compose-shell SERVICE=$${container}
 
 .PHONY: watcher-shell
 watcher-shell:

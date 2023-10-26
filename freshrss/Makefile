@@ -8,7 +8,6 @@ config-hook:
 	@${BIN}/reconfigure ${ENV_FILE} FRESHRSS_INSTANCE=$${instance:-default}
 	@${BIN}/reconfigure_auth ${ENV_FILE} FRESHRSS
 
-
 .PHONY: override-hook
 override-hook:
 #### This sets the override template variables for docker-compose.instance.yaml:
@@ -22,3 +21,7 @@ override-hook:
 ####   name=@VARIABLE_NAME   # sets the template 'name' field to the literal string '${VARIABLE_NAME}'
 ####                         # (used for regular docker-compose expansion of env vars by name.)
 	@${BIN}/docker_compose_override ${ENV_FILE} project=:freshrss instance=@FRESHRSS_INSTANCE traefik_host=@FRESHRSS_TRAEFIK_HOST http_auth=FRESHRSS_HTTP_AUTH http_auth_var=@FRESHRSS_HTTP_AUTH ip_sourcerange=@FRESHRSS_IP_SOURCERANGE oauth2=FRESHRSS_OAUTH2 authorized_group=FRESHRSS_OAUTH2_AUTHORIZED_GROUP
+
+.PHONY: shell
+shell:
+	@make --no-print-directory docker-compose-shell SERVICE=freshrss

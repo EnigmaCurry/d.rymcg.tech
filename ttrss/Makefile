@@ -26,3 +26,7 @@ override-hook:
 ####   name=@VARIABLE_NAME   # sets the template 'name' field to the literal string '${VARIABLE_NAME}'
 ####                         # (used for regular docker-compose expansion of env vars by name.)
 	@${BIN}/docker_compose_override ${ENV_FILE} project=:ttrss instance=@TTRSS_INSTANCE traefik_host=@TTRSS_TRAEFIK_HOST http_auth=TTRSS_HTTP_AUTH http_auth_var=@TTRSS_HTTP_AUTH ip_sourcerange=@TTRSS_IP_SOURCERANGE oauth2=TTRSS_OAUTH2 authorized_group=TTRSS_OAUTH2_AUTHORIZED_GROUP
+
+.PHONY: shell
+shell:
+	@container=$$(eval "${BIN}/script-wizard choose 'docker exec -it into which container?' 'db' 'app' 'backups' 'updater' 'web-nginx' --default 'app'") && make --no-print-directory docker-compose-shell SERVICE=$${container}
