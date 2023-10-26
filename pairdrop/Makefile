@@ -28,4 +28,4 @@ override-hook:
 
 .PHONY: shell
 shell:
-	@docker-compose --env-file ${ENV_FILE} exec -it $${service:-pairdrop} /bin/sh -c "/bin/bash || /bin/sh"
+	@make --no-print-directory docker-compose-shell SERVICE=pairdrop

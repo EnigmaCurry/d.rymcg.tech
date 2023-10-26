@@ -26,4 +26,6 @@ override-hook:
 ####                         # (used for regular docker-compose expansion of env vars by name.)
 	@${BIN}/docker_compose_override ${ENV_FILE} project=:s3proxy instance=@S3PROXY_INSTANCE traefik_host=@S3PROXY_TRAEFIK_HOST http_auth=S3PROXY_HTTP_AUTH http_auth_var=@S3PROXY_HTTP_AUTH ip_sourcerange=@S3PROXY_IP_SOURCERANGE  oauth2=S3PROXY_OAUTH2 authorized_group=S3PROXY_OAUTH2_AUTHORIZED_GROUP
 
-
+.PHONY: shell
+shell:
+	@make --no-print-directory docker-compose-shell SERVICE=s3-proxy

@@ -11,12 +11,11 @@ config-hook:
 
 .PHONY: shell
 shell:
-	@docker-compose --env-file ${ENV_FILE} exec jupyterlab /bin/bash
+	@make --no-print-directory docker-compose-shell SERVICE=jupyterlab
 
 .PHONY: token
 token:
 	@echo $$(${BIN}/dotenv -f ${ENV_FILE} get JUPYTERLAB_JUPYTER_TOKEN)
-
 
 .PHONY: override-hook
 override-hook:

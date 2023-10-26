@@ -30,7 +30,6 @@ login:
 	@echo "Enter the Matrix password account."
 	@docker-compose --env-file ${ENV_FILE} exec maubot mbc auth --update-client
 
-
 .PHONY: override-hook
 override-hook:
 #### This sets the override template variables for docker-compose.instance.yaml:
@@ -44,3 +43,7 @@ override-hook:
 ####   name=@VARIABLE_NAME   # sets the template 'name' field to the literal string '${VARIABLE_NAME}'
 ####                         # (used for regular docker-compose expansion of env vars by name.)
 	@${BIN}/docker_compose_override ${ENV_FILE} project=:maubot instance=@MAUBOT_INSTANCE traefik_host=@MAUBOT_TRAEFIK_HOST http_auth=MAUBOT_HTTP_AUTH http_auth_var=@MAUBOT_HTTP_AUTH ip_sourcerange=@MAUBOT_IP_SOURCERANGE oauth2=MAUBOT_OAUTH2 authorized_group=MAUBOT_OAUTH2_AUTHORIZED_GROUP
+
+.PHONY: shell
+shell:
+	@make --no-print-directory docker-compose-shell SERVICE=maubot

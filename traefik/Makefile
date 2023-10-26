@@ -82,19 +82,11 @@ config-inspect:
 
 .PHONY: shell
 shell:
-	docker compose --env-file=${ENV_FILE} exec -it traefik /bin/sh
+	@container=$$(eval "${BIN}/script-wizard choose 'docker exec -it into which container?' 'traefik' 'geoip_database' 'wireguard' 'wireguard-client' --default 'traefik'") && make --no-print-directory docker-compose-shell SERVICE=$${container}
 
 .PHONY: shell-root
 shell-root:
 	docker compose --env-file=${ENV_FILE} exec --user root -it traefik /bin/sh
-
-.PHONY: shell-wireguard
-shell-wireguard:
-	docker compose --env-file=${ENV_FILE} exec -it wireguard /bin/bash
-
-.PHONY: shell-wireguard-client
-shell-wireguard-client:
-	docker compose --env-file=${ENV_FILE} exec -it wireguard-client /bin/sh
 
 .PHONY: show-wireguard-peers
 show-wireguard-peers:

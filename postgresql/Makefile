@@ -12,9 +12,9 @@ config-hook:
 psql:
 	@docker-compose --env-file ${ENV_FILE} exec --user postgres postgres /usr/bin/psql
 
-.PHONY: shell # Open bash shell
+.PHONY: shell
 shell:
-	@docker-compose --env-file ${ENV_FILE} exec --user postgres postgres /bin/bash
+	@make --no-print-directory docker-compose-shell SERVICE=psotgres
 
 .PHONY: client # Get client certificate and private key files
 client:

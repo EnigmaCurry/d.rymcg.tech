@@ -15,3 +15,7 @@ user:
 .PHONY: user-list # List of user accounts
 user-list:
 	@docker compose --env-file ${ENV_FILE} exec prosody find /config/data/meet%2ejitsi/accounts -type f -exec basename {} .dat \;
+
+.PHONY: shell
+shell:
+	@container=$$(eval "${BIN}/script-wizard choose 'docker exec -it into which container?' 'web' 'prosody' 'jicofo' 'jvb' --default 'web'") && make --no-print-directory docker-compose-shell SERVICE=$${container} 

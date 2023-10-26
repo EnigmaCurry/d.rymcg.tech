@@ -20,7 +20,6 @@ config-hook:
 	@echo ""
 	@[[ $$(${BIN}/dotenv -f ${ENV_FILE} get WORDPRESS_WP2STATIC) == "true" ]] && ${BIN}/reconfigure_ask ${ENV_FILE} WORDPRESS_TRAEFIK_HOST_STATIC "Enter the static wp domain name" static${INSTANCE_URL_SUFFIX}.${ROOT_DOMAIN} || true
 
-
 .PHONY: override-hook
 override-hook:
 #### This sets the override template variables for docker-compose.instance.yaml:
@@ -37,7 +36,7 @@ override-hook:
 
 .PHONY: shell
 shell:
-	@docker-compose --env-file ${ENV_FILE} exec -it $${service:-wp} /bin/sh -c "/bin/bash || /bin/sh"
+	@container=$$(eval "${BIN}/script-wizard choose 'docker exec -it into which container?' 'wp' 'db' --default 'wp'") && make --no-print-directory docker-compose-shell SERVICE=$${container}
 
 open-hook:
 	${BIN}/open /wp-admin

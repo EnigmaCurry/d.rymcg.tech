@@ -50,7 +50,7 @@ destroy-hook-post:
 
 .PHONY: shell
 shell:
-	@make --no-print-directory docker-compose-lifecycle-cmd EXTRA_ARGS="exec -it sftp /bin/bash"
+	@make --no-print-directory docker-compose-shell SERVICE=sftp
 
 .PHONY: ssh-copy-id
 ssh-copy-id: unlock-mutable-config

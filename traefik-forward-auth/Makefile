@@ -18,3 +18,6 @@ config-hook:
 	@GITEA_DOMAIN=$$(${BIN}/dotenv -f ${ENV_FILE} get TRAEFIK_FORWARD_AUTH_GITEA_DOMAIN); ${BIN}/reconfigure_ask ${ENV_FILE} TRAEFIK_FORWARD_AUTH_LOGOUT_REDIRECT "Enter the logout redirect URL" https://$${GITEA_DOMAIN}$$(${BIN}/dotenv -f ${ENV_FILE} get TRAEFIK_FORWARD_AUTH_HTTPS_PORT)/logout
 	@GITEA_DOMAIN=$$(${BIN}/dotenv -f ${ENV_FILE} get TRAEFIK_FORWARD_AUTH_GITEA_DOMAIN); HTTPS_PORT=$$(${BIN}/dotenv -f ${ENV_FILE} get TRAEFIK_FORWARD_AUTH_HTTPS_PORT); ${BIN}/reconfigure ${ENV_FILE} TRAEFIK_FORWARD_AUTH_SECRET="$(shell openssl rand -base64 45)" TRAEFIK_FORWARD_AUTH_PROVIDERS_GENERIC_OAUTH_AUTH_URL="https://$${GITEA_DOMAIN}$${HTTPS_PORT}/login/oauth/authorize" TRAEFIK_FORWARD_AUTH_PROVIDERS_GENERIC_OAUTH_TOKEN_URL="https://$${GITEA_DOMAIN}$${HTTPS_PORT}/login/oauth/access_token" TRAEFIK_FORWARD_AUTH_PROVIDERS_GENERIC_OAUTH_USER_URL="https://$${GITEA_DOMAIN}$${HTTPS_PORT}/api/v1/user"
 
+.PHONY: shell
+shell:
+	@make --no-print-directory docker-compose-shell SERVICE=traefik-forward-auth

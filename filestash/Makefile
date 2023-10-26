@@ -12,7 +12,6 @@ config-hook:
 admin:
 	@ENV_FILE="${ENV_FILE}" CONTEXT_INSTANCE="${CONTEXT_INSTANCE}" ${BIN}/open /admin
 
-
 .PHONY: override-hook
 override-hook:
 #### This sets the override template variables for docker-compose.instance.yaml:
@@ -26,3 +25,7 @@ override-hook:
 ####   name=@VARIABLE_NAME   # sets the template 'name' field to the literal string '${VARIABLE_NAME}'
 ####                         # (used for regular docker-compose expansion of env vars by name.)
 	@${BIN}/docker_compose_override ${ENV_FILE} project=:filestash instance=@FILESTASH_INSTANCE traefik_host=@FILESTASH_TRAEFIK_HOST http_auth=FILESTASH_HTTP_AUTH http_auth_var=@FILESTASH_HTTP_AUTH ip_sourcerange=@FILESTASH_IP_SOURCERANGE oauth2=FILESTASH_OAUTH2 authorized_group=FILESTASH_OAUTH2_AUTHORIZED_GROUP
+
+.PHONY: shell
+shell:
+	@make --no-print-directory docker-compose-shell SERVICE=filestash

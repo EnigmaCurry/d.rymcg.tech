@@ -28,7 +28,6 @@ config-hook:
 	@echo "There are other Photoprism options you can configure by manually editing your \`${ENV_FILE}\` file."
 	@echo ""
 
-
 .PHONY: override-hook
 override-hook:
 #### This sets the override template variables for docker-compose.instance.yaml:
@@ -42,3 +41,7 @@ override-hook:
 ####   name=@VARIABLE_NAME   # sets the template 'name' field to the literal string '${VARIABLE_NAME}'
 ####                         # (used for regular docker-compose expansion of env vars by name.)
 	@${BIN}/docker_compose_override ${ENV_FILE} project=:photoprism instance=@PHOTOPRISM_INSTANCE traefik_host=@PHOTOPRISM_TRAEFIK_HOST http_auth=PHOTOPRISM_HTTP_AUTH http_auth_var=@PHOTOPRISM_HTTP_AUTH ip_sourcerange=@PHOTOPRISM_IP_SOURCERANGE oauth2=PHOTOPRISM_OAUTH2 authorized_group=PHOTOPRISM_OAUTH2_AUTHORIZED_GROUP
+
+.PHONY: shell
+shell:
+	@container=$$(eval "${BIN}/script-wizard choose 'docker exec -it into which container?' 'photoprism' 'mariadb' --default 'photoprism'") && make --no-print-directory docker-compose-shell SERVICE=$${container}

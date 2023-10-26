@@ -35,3 +35,7 @@ override-hook:
 ####   name=@VARIABLE_NAME   # sets the template 'name' field to the literal string '${VARIABLE_NAME}'
 ####                         # (used for regular docker-compose expansion of env vars by name.)
 	@${BIN}/docker_compose_override ${ENV_FILE} project=:archivebox instance=@ARCHIVEBOX_INSTANCE traefik_host=@ARCHIVEBOX_TRAEFIK_HOST http_auth=ARCHIVEBOX_HTTP_AUTH http_auth_var=@ARCHIVEBOX_HTTP_AUTH ip_sourcerange=@ARCHIVEBOX_IP_SOURCERANGE oauth2=ARCHIVEBOX_OAUTH2 authorized_group=ARCHIVEBOX_OAUTH2_AUTHORIZED_GROUP
+
+.PHONY: shell
+shell:
+	@container=$$(eval "${BIN}/script-wizard choose 'docker exec -it into which container?' 'archivebox' 'public-api-gateway' --default 'archivebox'") && make --no-print-directory docker-compose-shell SERVICE=$${container}

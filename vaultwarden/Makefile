@@ -36,3 +36,7 @@ override-hook:
 ####   name=@VARIABLE_NAME   # sets the template 'name' field to the literal string '${VARIABLE_NAME}'
 ####                         # (used for regular docker-compose expansion of env vars by name.)
 	@${BIN}/docker_compose_override ${ENV_FILE} project=:vaultwarden instance=@VAULTWARDEN_INSTANCE traefik_host=@VAULTWARDEN_TRAEFIK_HOST http_auth=VAULTWARDEN_HTTP_AUTH http_auth_var=@VAULTWARDEN_HTTP_AUTH ip_sourcerange=@VAULTWARDEN_IP_SOURCERANGE oauth2=VAULTWARDEN_OAUTH2 authorized_group=VAULTWARDEN_OAUTH2_AUTHORIZED_GROUP
+
+.PHONY: shell
+shell:
+	@make --no-print-directory docker-compose-shell SERVICE=vaultwarden

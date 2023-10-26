@@ -17,7 +17,7 @@ config-hook:
 
 .PHONY: shell
 shell:
-	@docker-compose --env-file ${ENV_FILE} exec -it $${service:-mopidy} /bin/sh -c "/bin/bash || /bin/sh"
+	@container=$$(eval "${BIN}/script-wizard choose 'docker exec -it into which container?' 'mopidy' 'snapserver' 'drawio' --default 'mopidy'") && make --no-print-directory docker-compose-shell SERVICE=$${container}
 
 .PHONY: library
 library:

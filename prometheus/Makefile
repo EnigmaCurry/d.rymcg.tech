@@ -28,7 +28,7 @@ compose-profiles:
 
 .PHONY: shell
 shell:
-	@docker-compose --env-file ${ENV_FILE} exec -it $${service:-grafana} /bin/sh -c "/bin/bash || /bin/sh"
+	@container=$$(eval "${BIN}/script-wizard choose 'docker exec -it into which container?' 'node-exporter' 'prometheus' 'grafana' 'cadvisor' 'alertmanager' 'alert-test' --default 'grafana'") && make --no-print-directory docker-compose-shell SERVICE=$${container}
 
 .PHONY: local-alertmanager
 local-alertmanager:

@@ -17,9 +17,9 @@ user:
 list-users:
 	docker compose --env-file=${ENV_FILE} exec mosquitto cat /mosquitto/config/passwd
 
-.PHONY: shell # Enter container shell
+.PHONY: shell
 shell:
-	@docker-compose --env-file ${ENV_FILE} exec $${service:-mosquitto} /bin/sh
+	@make --no-print-directory docker-compose-shell SERVICE=mosquitto
 
 .PHONY: client # Create a temporary client shell
 client:
