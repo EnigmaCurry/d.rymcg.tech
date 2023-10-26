@@ -1,5 +1,5 @@
 ROOT_DIR = ..
-include ${ROOT_DIR}/_scripts/Makefile.projects
+include ${ROOT_DIR}/_scripts/Makefile.projects-no-open
 include ${ROOT_DIR}/_scripts/Makefile.instance
 
 .PHONY: config-hook
@@ -32,3 +32,22 @@ override-hook:
 shell:
 	@make --no-print-directory docker-compose-shell SERVICE=mumble COMMAND=/bin/bash
 
+.PHONY: open
+open:
+	@echo "##"
+	@echo "## Download the mumble client from your package manager"
+	@echo "## or from https://www.mumble.info/"
+	@echo "##"
+	@echo "## Use your mumble client to connect to your server:"
+	@echo "##  address: $$(${BIN}/dotenv -f ${ENV_FILE} get MUMBLE_TRAEFIK_HOST)"
+	@echo "##  port: $$(${BIN}/dotenv -f ../traefik/.env_${DOCKER_CONTEXT}_default get TRAEFIK_MUMBLE_ENTRYPOINT_PORT)"
+	@echo "##  username: SuperUser"
+	@echo "##  password: $$(${BIN}/dotenv -f ${ENV_FILE} get MUMBLE_SUPERUSER_PASSWORD)"
+	@echo "##"
+	@echo "## Open access and user registration is enabled by default!"
+	@echo "## Use the SuperUser account to edit the global ACLs to change these defaults."
+	@echo "##"
+
+.PHONY: client
+client:
+	@./client.sh
