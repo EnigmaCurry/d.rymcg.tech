@@ -13,6 +13,7 @@ services:
       - no-new-privileges:true
     environment:
       - POSTGRES_DB
+      - POSTGRES_INSTANCE
       - POSTGRES_USER=${POSTGRES_ADMIN_USER}
       - POSTGRES_LIMITED_USER=${POSTGRES_DB}
       - POSTGRES_HOST
@@ -38,6 +39,7 @@ services:
       - backup:/var/lib/pgbackrest
     environment:
       - POSTGRES_DB
+      - POSTGRES_INSTANCE
       - PGDATABASE=${POSTGRES_DB}
       - POSTGRES_USER=${POSTGRES_ADMIN_USER}
       - PGUSER=${POSTGRES_ADMIN_USER}

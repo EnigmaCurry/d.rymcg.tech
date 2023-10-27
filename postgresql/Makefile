@@ -4,19 +4,20 @@ include ${ROOT_DIR}/_scripts/Makefile.instance
 
 .PHONY: config-hook
 config-hook:
+	@${BIN}/reconfigure ${ENV_FILE} POSTGRES_INSTANCE=$${instance:-default}
 	@${BIN}/reconfigure_ask ${ENV_FILE} POSTGRES_HOST "Enter the postgres domain name" postgres${INSTANCE_URL_SUFFIX}.${ROOT_DOMAIN}
-	@${BIN}/reconfigure_ask ${ENV_FILE} POSTGRES_EXTERNAL_TCP_PORT "Enter the public TCP port to listen on" 5432
+	@${BIN}/reconfigure_ask ${ENV_FILE} POSTGRES_EXTERNAL_TCP_PORT "Enter the unique public TCP port to listen on" 5432
 	@${BIN}/reconfigure_ask ${ENV_FILE} POSTGRES_DB "Enter the main database name for this instance" tweedle
 	@${BIN}/reconfigure_ask ${ENV_FILE} POSTGRES_ALLOWED_IP_SOURCERANGE "Enter the allowed client IP address range (CIDR with netmask) (use 0.0.0.0/0 to allow all)"
-	@${BIN}/reconfigure ${ENV_FILE} POSTGRES_ADMIN_PASSWORD=$(shell openssl rand -hex 45)
+	@${BIN}/reconfigure_password ${ENV_FILE} POSTGRES_ADMIN_PASSWORD
 
 .PHONY: psql # Open psql shell
 psql:
-	@make --no-print-directory docker-compose-shell SERVICE=postgres COMMAND=/usr/bin/psql
+	@make --no-print-directory docker-compose-shell SERVICE=postgres USERNAME=postgres CD=/var/lib/postgresql COMMAND=/usr/bin/psql
 
 .PHONY: shell
 shell:
-	@make --no-print-directory docker-compose-shell SERVICE=postgres
+	@make --no-print-directory docker-compose-shell SERVICE=postgres USERNAME=postgres CD=/var/lib/postgresql
 
 .PHONY: client # Get client certificate and private key files
 client:
