@@ -27,6 +27,7 @@ RUN apt-get update && \
     cd .. \
 
     ## Cleanup
+    cd /root && \
     rm -rf /src && \
     apt-get remove -y build-essential git postgresql-server-dev-all && \
     apt-get -y autoremove && \
@@ -34,3 +35,4 @@ RUN apt-get update && \
     rm -rf /var/lib/apt/lists /var/cache/apt/archives
 
 COPY init-user.sh /docker-entrypoint-initdb.d/init-user.sh
+WORKDIR /root

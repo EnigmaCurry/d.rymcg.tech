@@ -3,6 +3,7 @@ version: "3.9"
 volumes:
   config:
   data:
+  backup:
 
 services:
   config:
@@ -34,6 +35,7 @@ services:
     volumes:
       - data:/var/lib/postgresql/data
       - config:/etc/postgresql
+      - backup:/var/lib/pgbackrest
     environment:
       - POSTGRES_DB
       - PGDATABASE=${POSTGRES_DB}
