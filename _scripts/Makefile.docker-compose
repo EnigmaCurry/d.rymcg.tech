@@ -14,4 +14,10 @@ docker-compose-build: check-instance-project
 
 .PHONY: docker-compose-shell
 docker-compose-shell:
-	@COMMAND=$${COMMAND:-"/bin/bash || /bin/sh"}; make --no-print-directory docker-compose-lifecycle-cmd EXTRA_ARGS="exec -it ${SERVICE} /bin/sh -c '$${COMMAND}'"
+	@echo '## Starting shell ...'
+	@echo '## Available arguments for `make shell`:'
+	@echo '## USERNAME: the user to run the shell as. (defaults to the docker image USER)'
+	@echo '## COMMAND: the interactive command to run. (defaults to /bin/bash || /bin/sh)'
+	@echo '## CD: the working directory to use for COMMAND'
+	@echo
+	@COMMAND=$${COMMAND:-"if [ -f /bin/bash ]; then /bin/bash; else /bin/sh; fi;"}; USERNAME_ARG=$$(test -z "$$USERNAME" && echo "" || echo "-u '$$USERNAME'"); CD_ARG=$$(test -z "$$CD" && echo "" || echo "-w '$$CD'"); make --no-print-directory docker-compose-lifecycle-cmd EXTRA_ARGS="exec -it $${USERNAME_ARG} $${CD_ARG} ${SERVICE} /bin/sh -c '$${COMMAND}'"
