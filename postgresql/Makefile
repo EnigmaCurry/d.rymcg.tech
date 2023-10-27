@@ -4,7 +4,7 @@ include ${ROOT_DIR}/_scripts/Makefile.projects
 .PHONY: config-hook
 config-hook:
 	@${BIN}/reconfigure_ask ${ENV_FILE} POSTGRES_TRAEFIK_HOST "Enter the postgres domain name" postgres.${ROOT_DOMAIN}
-	@${BIN}/reconfigure_ask ${ENV_FILE} POSTGRES_DB "Enter the database name" tweedle
+	@${BIN}/reconfigure_ask ${ENV_FILE} POSTGRES_DB "Enter the (first) database name" tweedle
 	@${BIN}/reconfigure_ask ${ENV_FILE} POSTGRES_ALLOWED_IP_SOURCERANGE "Enter the allowed client IP address range (CIDR with netmask) (use 0.0.0.0/0 to allow all)"
 	@${BIN}/reconfigure ${ENV_FILE} POSTGRES_ADMIN_PASSWORD=$(shell openssl rand -hex 45)
 
@@ -14,7 +14,7 @@ psql:
 
 .PHONY: shell
 shell:
-	@make --no-print-directory docker-compose-shell SERVICE=psotgres
+	@make --no-print-directory docker-compose-shell SERVICE=postgres
 
 .PHONY: client # Get client certificate and private key files
 client:

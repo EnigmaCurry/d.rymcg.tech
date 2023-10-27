@@ -27,6 +27,8 @@ services:
       context: .
       args:
         POSTGRES_VERSION: ${POSTGRES_VERSION}
+        PGBACKREST_VERSION: ${POSTGRES_PGBACKREST_VERSION}
+        PGRATIONAL_VERSION: ${POSTGRES_PGRATIONAL_VERSION}
     restart: unless-stopped
     security_opt:
       - no-new-privileges:true
