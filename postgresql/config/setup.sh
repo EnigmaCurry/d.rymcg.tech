@@ -47,7 +47,7 @@ create_certs() {
     step certificate create --insecure --no-password --profile root-ca ${KEY_ARGS} "${ROOT_CA_NAME}" root_ca.crt root_ca.key
 
     ## Create the server certificate:
-    step certificate create --insecure --no-password --profile leaf ${KEY_ARGS} "${POSTGRES_TRAEFIK_HOST}" server.crt server.key --not-after="${CERTIFICATE_EXPIRATION}" --ca root_ca.crt --ca-key root_ca.key
+    step certificate create --insecure --no-password --profile leaf ${KEY_ARGS} "${POSTGRES_HOST}" server.crt server.key --not-after="${CERTIFICATE_EXPIRATION}" --ca root_ca.crt --ca-key root_ca.key
 
     ## Create the client certificate:
     step certificate create --insecure --no-password --profile leaf ${KEY_ARGS} "${POSTGRES_LIMITED_USER}" client.crt client.key --not-after="${CERTIFICATE_EXPIRATION}" --ca root_ca.crt --ca-key root_ca.key

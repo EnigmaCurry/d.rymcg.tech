@@ -1,9 +1,7 @@
 ARG POSTGRES_VERSION=14
 
 FROM postgres:${POSTGRES_VERSION}
-ARG PGBACKREST_VERSION=2.48
 ARG PGRATIONAL_VERSION=v0.0.2
-
 WORKDIR /src
 RUN apt-get update && \
     DEBIAN_FRONTEND=noninteractive apt-get install -y curl && \

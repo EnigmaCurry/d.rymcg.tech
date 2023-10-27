@@ -80,11 +80,9 @@ make config
 
 Answer the questions:
 
- * `POSTGRES_TRAEFIK_HOST` This is the public hostname that your PostgreSQL
-   server will run on. (Traefik is not actually used, see notes above. However,
-   the `*_TRAEFIK_HOST` naming scheme is used throughout this project, so this
-   name is appropriate still for the purpose of indicating the external host
-   name.)
+ * `POSTGRES_HOST` This is the public hostname that your PostgreSQL
+   server will run on (the port, 5432, is publicly exposed on the
+   docker host; Traefik is not used in this case).
  * `POSTGRES_DB` The name of the database to create.
  * `ALLOWED_IP_SOURCERANGE` The allowed client IP network range in CIDR format
    with netmask. To allow any client to connect enter `0.0.0.0/0` or to enter a
