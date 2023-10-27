@@ -10,14 +10,15 @@ config-hook:
 	@${BIN}/reconfigure_ask ${ENV_FILE} POSTGRES_DB "Enter the main database name for this instance" tweedle
 	@${BIN}/reconfigure_ask ${ENV_FILE} POSTGRES_ALLOWED_IP_SOURCERANGE "Enter the allowed client IP address range (CIDR with netmask) (use 0.0.0.0/0 to allow all)"
 	@${BIN}/reconfigure_password ${ENV_FILE} POSTGRES_ADMIN_PASSWORD
-
+	@${BIN}/reconfigure ${ENV_FILE} POSTGRES_PGBACKREST=$$(${BIN}/confirm $$(test "$$(${BIN}/dotenv -f ${ENV_FILE} get POSTGRES_PGBACKREST)" == "true" && echo yes || echo no) "Do you want to enable backups" "?" && echo true || echo false)
+	@if [[ "$$(${BIN}/dotenv -f ${ENV_FILE} get POSTGRES_PGBACKREST)" == "true" ]]; then ${BIN}/confirm $$(test "$$(${BIN}/dotenv -f ${ENV_FILE} get POSTGRES_PGBACKREST_ENCRYPTION_PASSPHRASE)" != "" && echo yes || echo no) "Do you want to enable encryption for the backup" "?" && ${BIN}/reconfigure_password ${ENV_FILE} POSTGRES_PGBACKREST_ENCRYPTION_PASSPHRASE || ${BIN}/reconfigure ${ENV_FILE} POSTGRES_PGBACKREST_ENCRYPTION_PASSPHRASE=; fi
 .PHONY: psql # Open psql shell
 psql:
 	@make --no-print-directory docker-compose-shell SERVICE=postgres USERNAME=$${USERNAME:-postgres} CD=/var/lib/postgresql COMMAND=/usr/bin/psql
 
 .PHONY: shell
 shell:
-	@make --no-print-directory docker-compose-shell SERVICE=postgres USERNAME=$${USERNAME:-postgres} CD=/var/lib/postgresql
+	@make --no-print-directory docker-compose-shell SERVICE=postgres USERNAME=$${USERNAME:-root} CD=/var/lib/postgresql
 
 .PHONY: client # Get client certificate and private key files
 client:
@@ -74,3 +75,7 @@ chinook:
 .PHONY: psql-alias # Get the psql alias with baked connection string
 psql-alias:
 	@echo "alias psql=\"psql '$$(make --no-print-directory connection-string)'\""
+
+.PHONY: backup # Enable backups
+backup:
+	@./backup.sh

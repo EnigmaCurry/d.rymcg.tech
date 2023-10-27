@@ -19,6 +19,7 @@ services:
       - POSTGRES_HOST
       - POSTGRES_ALLOWED_IP_SOURCERANGE
       - FORCE_NEW_CERTIFICATES
+      - POSTGRES_PGBACKREST
       - EXTRA_DATABASES
     volumes:
       - config:/config
