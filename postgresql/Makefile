@@ -13,11 +13,11 @@ config-hook:
 
 .PHONY: psql # Open psql shell
 psql:
-	@make --no-print-directory docker-compose-shell SERVICE=postgres USERNAME=postgres CD=/var/lib/postgresql COMMAND=/usr/bin/psql
+	@make --no-print-directory docker-compose-shell SERVICE=postgres USERNAME=$${USERNAME:-postgres} CD=/var/lib/postgresql COMMAND=/usr/bin/psql
 
 .PHONY: shell
 shell:
-	@make --no-print-directory docker-compose-shell SERVICE=postgres USERNAME=postgres CD=/var/lib/postgresql
+	@make --no-print-directory docker-compose-shell SERVICE=postgres USERNAME=$${USERNAME:-postgres} CD=/var/lib/postgresql
 
 .PHONY: client # Get client certificate and private key files
 client:
