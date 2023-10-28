@@ -13,7 +13,6 @@ POSTGRES_ALLOWED_IP_SOURCERANGE="${POSTGRES_ALLOWED_IP_SOURCERANGE:-0.0.0.0/0}"
 ## FORCE_NEW_CERTIFICATES=true, which will then overrwrite the existing
 ## certificates with a brand new PKI (CA+server+client certs).
 FORCE_NEW_CERTIFICATES="${FORCE_NEW_CERTIFICATES:-false}"
-
 ## You can use the default EC key type or change to the RSA key type.
 ## EC Keys use PK12 key type (`-----BEGIN EC PRIVATE KEY-----`)
 ## RSA Keys use PKCS8 key type (`-----BEGIN PRIVATE KEY-----`)
@@ -22,17 +21,15 @@ KEY_ARGS=""
 
 create_config() {
     cd ${CONFIG_DIR}
-    TEMPLATE=/template/s3-proxy.template.yml
-    CONFIG=${CONFIG_DIR}/s3-proxy.yml
-
     mkdir -p ${CONFIG_DIR}
     cat /template/postgresql.conf | envsubst > postgresql.conf
     echo "[ ! ] GENERATED NEW CONFIG FILE ::: ${CONFIG_DIR}/postgresql.conf"
     cat /template/pg_hba.conf | envsubst > pg_hba.conf
     echo "[ ! ] GENERATED NEW CONFIG FILE ::: ${CONFIG_DIR}/pg_hba.conf"
+}
 
-    if [[ "${POSTGRES_PGBACKREST}" == "true" ]]; then
-        cat <<'EOF' >> postgresql.conf
+configure_postgres_archive() {
+    cat <<'EOF' >> postgresql.conf
 
 archive_command = 'pgbackrest --stanza=apps archive-push %p'
 archive_mode = on
@@ -40,16 +37,38 @@ max_wal_senders = 3
 wal_level = replica
 
 EOF
+}
+
+create_pgbackrest_config() {
+    if [[ "${POSTGRES_PGBACKREST}" == "true" ]]; then
+        configure_postgres_archive
         cat <<EOF > pgbackrest.conf
 [apps]
 pg1-path=/var/lib/postgresql/data
 
+[global:archive-push]
+compress-level=3
+
 [global]
 start-fast=y
+EOF
+        if [[ "${POSTGRES_PGBACKREST_LOCAL}" == "true" ]]; then
+            configure_pgbackrest_local
+        fi
+        if [[ "${POSTGRES_PGBACKREST_S3}" == "true" ]]; then
+            configure_pgbackrest_s3
+        fi
+    fi
+}
+
+configure_pgbackrest_local() {
+    ## ASSUMES that [global] section is already at the bottom!
+    cat <<EOF >> pgbackrest.conf
 repo1-block=y
 repo1-bundle=y
 repo1-path=/var/lib/pgbackrest
-repo1-retention-full=2
+repo1-retention-full=${POSTGRES_PGBACKREST_LOCAL_RETENTION_FULL:-2}
+repo1-retention-diff=${POSTGRES_PGBACKREST_LOCAL_RETENTION_DIFF:-2}
 EOF
         if [[ -n "${POSTGRES_PGBACKREST_ENCRYPTION_PASSPHRASE}" ]]; then
             cat <<EOF >> pgbackrest.conf
@@ -57,12 +76,29 @@ repo1-cipher-pass=${POSTGRES_PGBACKREST_ENCRYPTION_PASSPHRASE}
 repo1-cipher-type=aes-256-cbc
 EOF
         fi
-        cat <<EOF >> pgbackrest.conf
+}
 
-[global:archive-push]
-compress-level=3
+configure_pgbackrest_s3() {
+    ## ASSUMES that [global] section is already at the bottom!
+    cat <<EOF >> pgbackrest.conf
+repo2-type=s3
+repo2-block=y
+repo2-bundle=y
+repo2-path=/apps-repo
+repo2-s3-bucket=${POSTGRES_PGBACKREST_S3_BUCKET}
+repo2-s3-endpoint=${POSTGRES_PGBACKREST_S3_ENDPOINT}
+repo2-s3-key=${POSTGRES_PGBACKREST_S3_KEY_ID}
+repo2-s3-key-secret=${POSTGRES_PGBACKREST_S3_KEY_SECRET}
+repo2-s3-region=${POSTGRES_PGBACKREST_S3_REGION}
+repo2-retention-full=${POSTGRES_PGBACKREST_S3_RETENTION_FULL:-2}
+repo2-retention-diff=${POSTGRES_PGBACKREST_S3_RETENTION_DIFF:-2}
 EOF
-    fi
+        if [[ -n "${POSTGRES_PGBACKREST_ENCRYPTION_PASSPHRASE}" ]]; then
+            cat <<EOF >> pgbackrest.conf
+repo2-cipher-pass=${POSTGRES_PGBACKREST_ENCRYPTION_PASSPHRASE}
+repo2-cipher-type=aes-256-cbc
+EOF
+        fi
 }
 
 create_certs() {
@@ -99,4 +135,5 @@ create_certs() {
 
 
 create_config
+create_pgbackrest_config
 create_certs

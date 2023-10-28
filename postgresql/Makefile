@@ -10,8 +10,20 @@ config-hook:
 	@${BIN}/reconfigure_ask ${ENV_FILE} POSTGRES_DB "Enter the main database name for this instance" tweedle
 	@${BIN}/reconfigure_ask ${ENV_FILE} POSTGRES_ALLOWED_IP_SOURCERANGE "Enter the allowed client IP address range (CIDR with netmask) (use 0.0.0.0/0 to allow all)"
 	@${BIN}/reconfigure_password ${ENV_FILE} POSTGRES_ADMIN_PASSWORD
+	@echo
 	@${BIN}/reconfigure ${ENV_FILE} POSTGRES_PGBACKREST=$$(${BIN}/confirm $$(test "$$(${BIN}/dotenv -f ${ENV_FILE} get POSTGRES_PGBACKREST)" == "true" && echo yes || echo no) "Do you want to enable backups" "?" && echo true || echo false)
-	@if [[ "$$(${BIN}/dotenv -f ${ENV_FILE} get POSTGRES_PGBACKREST)" == "true" ]]; then ${BIN}/confirm $$(test "$$(${BIN}/dotenv -f ${ENV_FILE} get POSTGRES_PGBACKREST_ENCRYPTION_PASSPHRASE)" != "" && echo yes || echo no) "Do you want to enable encryption for the backup" "?" && ${BIN}/reconfigure_password ${ENV_FILE} POSTGRES_PGBACKREST_ENCRYPTION_PASSPHRASE || ${BIN}/reconfigure ${ENV_FILE} POSTGRES_PGBACKREST_ENCRYPTION_PASSPHRASE=; fi
+	@if [[ "$$(${BIN}/dotenv -f ${ENV_FILE} get POSTGRES_PGBACKREST)" == "true" ]]; then ${BIN}/confirm $$(test "$$(${BIN}/dotenv -f ${ENV_FILE} get POSTGRES_PGBACKREST_ENCRYPTION_PASSPHRASE)" != "" && echo yes || echo no) "Do you want to enable encryption for the backups" "?" && ${BIN}/reconfigure_password ${ENV_FILE} POSTGRES_PGBACKREST_ENCRYPTION_PASSPHRASE && echo && echo "Remember to backup a copy of your .env file! It contains your encryption key!" || ${BIN}/reconfigure ${ENV_FILE} POSTGRES_PGBACKREST_ENCRYPTION_PASSPHRASE=; fi
+
+	@echo
+	@if [[ "$$(${BIN}/dotenv -f ${ENV_FILE} get POSTGRES_PGBACKREST)" == "true" ]]; then CHOICE="$$(${BIN}/script-wizard choose 'Choose the backup repositories to enable:' 'Local volume only' 'Local volume + Remote S3' 'Remote S3 only')"; case "$${CHOICE}" in 'Local volume only') ${BIN}/reconfigure ${ENV_FILE} POSTGRES_PGBACKREST_LOCAL=true; ${BIN}/reconfigure ${ENV_FILE} POSTGRES_PGBACKREST_S3=false ;; 'Local volume + Remote S3') ${BIN}/reconfigure ${ENV_FILE} POSTGRES_PGBACKREST_LOCAL=true; ${BIN}/reconfigure ${ENV_FILE} POSTGRES_PGBACKREST_S3=true;; 'Remote S3 only') ${BIN}/reconfigure ${ENV_FILE} POSTGRES_PGBACKREST_LOCAL=false; ${BIN}/reconfigure ${ENV_FILE} POSTGRES_PGBACKREST_S3=true;; esac; fi
+
+	@echo
+	@if [[ "$$(${BIN}/dotenv -f ${ENV_FILE} get POSTGRES_PGBACKREST)" == "true" ]] && [[ "$$(${BIN}/dotenv -f ${ENV_FILE} get POSTGRES_PGBACKREST_LOCAL)" == "true" ]]; then ${BIN}/reconfigure_ask ${ENV_FILE} POSTGRES_PGBACKREST_LOCAL_RETENTION_FULL "Enter the number of full backups to retain locally" && ${BIN}/reconfigure_ask ${ENV_FILE} POSTGRES_PGBACKREST_LOCAL_RETENTION_DIFF "Enter the number of differential backups to retain locally"; fi
+
+	@echo
+	@if [[ "$$(${BIN}/dotenv -f ${ENV_FILE} get POSTGRES_PGBACKREST)" == "true" ]] && [[ "$$(${BIN}/dotenv -f ${ENV_FILE} get POSTGRES_PGBACKREST_S3)" == "true" ]]; then ${BIN}/reconfigure_ask ${ENV_FILE} POSTGRES_PGBACKREST_S3_ENDPOINT "Enter the S3 endpoint (domain name)" && ${BIN}/reconfigure_ask ${ENV_FILE} POSTGRES_PGBACKREST_S3_REGION "Enter the S3 region" && ${BIN}/reconfigure_ask ${ENV_FILE} POSTGRES_PGBACKREST_S3_BUCKET "Enter the S3 bucket name" && ${BIN}/reconfigure_ask ${ENV_FILE} POSTGRES_PGBACKREST_S3_KEY_ID "Enter the S3 access key ID" && ${BIN}/reconfigure_ask ${ENV_FILE} POSTGRES_PGBACKREST_S3_KEY_SECRET "Enter the S3 secret key" && ${BIN}/reconfigure_ask ${ENV_FILE} POSTGRES_PGBACKREST_S3_RETENTION_FULL "Enter the number of full backups to retain on S3" && ${BIN}/reconfigure_ask ${ENV_FILE} POSTGRES_PGBACKREST_S3_RETENTION_DIFF "Enter the number of differential backups to retain on S3"; fi
+
+
 .PHONY: psql # Open psql shell
 psql:
 	@make --no-print-directory docker-compose-shell SERVICE=postgres USERNAME=$${USERNAME:-postgres} CD=/var/lib/postgresql COMMAND=/usr/bin/psql
