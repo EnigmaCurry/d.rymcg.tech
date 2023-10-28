@@ -55,9 +55,9 @@ mc admin user add minio ${USERNAME} ${SECRETKEY}
 ## Create group:
 mc admin group add minio ${GROUPNAME} ${USERNAME}
 ## Create policy:
-mc admin policy add minio ${POLICYNAME} ${TEMP_POLICY}
+mc admin policy create minio ${POLICYNAME} ${TEMP_POLICY}
 ## Assign policy to group:
-mc admin policy set minio ${POLICYNAME} group=${GROUPNAME}
+mc admin policy attach minio ${POLICYNAME} --group ${GROUPNAME}
 ## Create bucket:
 mc mb minio/${BUCKET}
 ###
