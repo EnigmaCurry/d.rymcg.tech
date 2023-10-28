@@ -9,7 +9,7 @@ echo INSTANCE=${INSTANCE}
 echo INSTANCE_SUFFIX=${INSTANCE_SUFFIX}
 export PROJECT_NAME
 export INSTANCE
-export INSTNACE_SUFFIX
+export INSTANCE_SUFFIX
 export ENV_FILE
 
 pgbackrest_cmd() {
