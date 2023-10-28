@@ -272,7 +272,12 @@ either/both of which you will need in order to restore from backup!**
 ### Examples with remote S3 backup:
 
 To configure a remote S3 backup, you simply need to configure the
-following environment variables in your .env file:
+following environment variables in your .env file. This information
+can all be entered by hand, when you run `make config`:
+
+You must provision the S3 endpoint and/or credentials beforehand, and
+then answer the questions to fill in the information for these
+variables:
 
  * `POSTGRES_PGBACKREST_S3_ENDPOINT` - the S3 endpoint domain name (eg. `s3.us-east-1.amazonaws.com`)
  * `POSTGRES_PGBACKREST_S3_REGION` - the S3 region name (eg.
@@ -283,15 +288,11 @@ following environment variables in your .env file:
  * `POSTGRES_PGBACKREST_S3_RETENTION_FULL` - the number of full backups to keep in the archive (eg. 4)
  * `POSTGRES_PGBACKREST_S3_RETENTION_DIFF` - the number of differential backups to keep in the archive (eg. 8)
 
-You must provision the S3 endpoint and/or credentials beforehand. This
-information can all be entered when you run `make config`.
-
 ### S3 bucket policy
 
-Here is the custom policy you need to create on your S3 endpoint,
+Here is the custom policy you may need to create on your S3 endpoint,
 which provides the appropriate permissions for pgbackrest to manage
 your backups in your S3 bucket:
-
 
 ```
 {
