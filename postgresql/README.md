@@ -269,6 +269,16 @@ remote).
 contains your S3 credentials, and your encryption passphrase,
 either/both of which you will need in order to restore from backup!**
 
+### Example with local backup to docker volume:
+
+To configure a local backup, you simply need to configure the
+following environment variables in your .env file. This information
+can all be entered by hand, when you run `make config`:
+
+ * `POSTGRES_PGBACKREST_LOCAL=true` - this must be set to `true` to enable local backup.
+ * `POSTGRES_PGBACKREST_LOCAL_RETENTION_FULL` - the number of full backups to keep in the archive (eg. 2)
+ * `POSTGRES_PGBACKREST_LOCAL_RETENTION_DIFF` - the number of differential backups to keep in the archive (eg. 4)
+
 ### Examples with remote S3 backup:
 
 To configure a remote S3 backup, you simply need to configure the
@@ -279,6 +289,7 @@ You must provision the S3 endpoint and/or credentials beforehand, and
 then answer the questions to fill in the information for these
 variables:
 
+ * `POSTGRES_PGBACKREST_S3=true` - this must be set to `true` to enable S3 backup.
  * `POSTGRES_PGBACKREST_S3_ENDPOINT` - the S3 endpoint domain name (eg. `s3.us-east-1.amazonaws.com`)
  * `POSTGRES_PGBACKREST_S3_REGION` - the S3 region name (eg.
    `us-east-1`, or leave it blank if your endpoint doesnt use regions)
