@@ -61,12 +61,6 @@ than perhaps the IP whitelist, which you can also do on your firewall anyway. So
 instead, this project maps the port directly on the external docker host network
 port.)
 
-## This does not do backups (yet)
-
-This will probably eventually incorporate
-[EnigmaCurry/postgresql-backup-s3](https://github.com/EnigmaCurry/postgresql-backup-s3)
-to automatically backup and upload to S3. But its not been done yet!
-
 ## Configure
 
 Make sure you have followed the main project level [README.md](../README.md) to
@@ -253,3 +247,128 @@ from psql shell.)
 
 You can use this as an example for loading any other dataset.
 
+## Backup
+
+Backups can be configured to be performed automatically with
+[pgbackrest](https://pgbackrest.org/), which can be configured to
+store them on any combination of these storage backends:
+
+ * Locally stored to a separate volume (`backup`) on the same Docker
+   host. (`POSTGRES_PGBACKREST_LOCAL=true`)
+ * Remotely stored to an S3 bucket on an external host.
+   (`POSTGRES_PGBACKREST_S3=true`)
+
+Pgbackrest can optionally encrypt your backups (eg. if you don't
+control/trust your own S3 endpoint)
+(`POSTGRES_PGBACKREST_ENCRYPTION_PASSPHRASE`). By default, there is no
+passphrase set, and so encryption is disabled. If you set a
+passphrase, it will enable encryption for all backups (local and
+remote).
+
+**Make sure you keep a copy of the .env file in a secure vault, as it
+contains your S3 credentials, and your encryption passphrase,
+either/both of which you will need in order to restore from backup!**
+
+### Examples with remote S3 backup:
+
+To configure a remote S3 backup, you simply need to configure the
+following environment variables in your .env file:
+
+ * `POSTGRES_PGBACKREST_S3_ENDPOINT` - the S3 endpoint domain name (eg. `s3.us-east-1.amazonaws.com`)
+ * `POSTGRES_PGBACKREST_S3_REGION` - the S3 region name (eg.
+   `us-east-1`, or leave it blank if your endpoint doesnt use regions)
+ * `POSTGRES_PGBACKREST_S3_BUCKET` - the S3 bucket name (eg. `my-bucket`)
+ * `POSTGRES_PGBACKREST_S3_KEY_ID` - the S3 API account ID (this is the bucket login)
+ * `POSTGRES_PGBACKREST_S3_KEY_SECRET` - the S3 secret key (this is the bucket password)
+ * `POSTGRES_PGBACKREST_S3_RETENTION_FULL` - the number of full backups to keep in the archive (eg. 4)
+ * `POSTGRES_PGBACKREST_S3_RETENTION_DIFF` - the number of differential backups to keep in the archive (eg. 8)
+
+You must provision the S3 endpoint and/or credentials beforehand. This
+information can all be entered when you run `make config`.
+
+### S3 bucket policy
+
+Here is the custom policy you need to create on your S3 endpoint,
+which provides the appropriate permissions for pgbackrest to manage
+your backups in your S3 bucket:
+
+
+```
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Effect": "Allow",
+      "Action": "s3:ListBucket",
+      "Resource": "arn:aws:s3:::BUCKET_NAME",
+      "Condition": {"StringEquals":{"s3:prefix":["","apps-repo"],"s3:delimiter":["/"]}}
+    },
+    {
+      "Effect": "Allow",
+      "Action": "s3:ListBucket",
+      "Resource": "arn:aws:s3:::BUCKET_NAME",
+      "Condition": {"StringLike":{"s3:prefix":["apps-repo/*"]}}
+    },
+    {
+      "Effect": "Allow",
+      "Action": [
+        "s3:PutObject",
+        "s3:PutObjectTagging",
+        "s3:GetObject",
+        "s3:DeleteObject"
+      ],
+      "Resource": "arn:aws:s3:::BUCKET_NAME/apps-repo/*"
+    }
+  ]
+}
+```
+
+**NOTE**: There are three instances of the string `BUCKET_NAME` in the
+example policy above that you must replace with your own actual bucket
+name.
+
+### Minio (self-hosted S3 server)
+
+Minio is an open-source self-hosted S3 server. You can easily install
+Minio on your docker server. Follow the directions at
+[minio](https://github.com/EnigmaCurry/d.rymcg.tech/tree/master/minio)
+and especially [the instructions for creating a bucket, policy, and
+credentials](https://github.com/EnigmaCurry/d.rymcg.tech/tree/master/minio#create-a-bucket)
+
+Once you know the mini endpoint
+
+### Example with Wasabi (commerical service)
+
+[Wasabi](https://wasabi.com/) is an inexpensive cloud storage vendor with an S3
+compatible API, and with a pricing and usage model perfect for backups.
+
+ * Create a wasabi account and [log in to the console](https://console.wasabisys.com/)
+ * Click on `Buckets` in the menu, then click `Create Bucket`. Choose a unique
+   name for the bucket. Select the region, then click `Create Bucket`.
+ * Click on `Policies` in the menu, then click `Create Policy`. Enter
+   any name for the policy, but its easiest to name it the same thing
+   as the bucket. Copy and paste the full policy document from the
+   section above, into the policy form, careful to replace all
+   instances of `BUCKET_NAME` with your chosen bucket name.
+
+ * Once the policy document is edited, click `Create Policy`.
+
+ * Click on `Users` in the menu, then click `Create User`.
+
+   * Enter any username you like, but its easiest to name the user the same as
+     the bucket.
+   * Check the type of access as `Programatic`.
+   * Click `Next`.
+   * Skip the Groups screen.
+   * On the Policies page, click the dropdown called `Attach Policy To User` and
+   find the name of the policy you created above.
+   * Click `Next`.
+   * Review and click `Create User.`
+   * View the Access and Secret keys. Click `Copy Keys To Clipboard`.
+   * Paste the keys into a temporary buffer in your editor to save them, you
+     will need to copy them into the script that you download in the next
+     section.
+   * You will need to know the [S3 endpoint URLs for
+     wasabi](https://wasabi-support.zendesk.com/hc/en-us/articles/360015106031-What-are-the-service-URLs-for-Wasabi-s-different-storage-regions-)
+     later, which are dependent on the Region you chose for the bucket. (eg.
+     `s3.us-west-1.wasabisys.com`)
