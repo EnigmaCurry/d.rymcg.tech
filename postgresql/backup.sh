@@ -21,12 +21,17 @@ pgbackrest_cmd() {
     docker_compose exec -u postgres postgres sh -c "set -x; pgbackrest ${EXTRA_ARGS} $@"
 }
 
-restart() {
-    make --no-print-directory restart
+wait_for_ready() {
     docker_wait_for_healthcheck $(make --no-print-directory docker-compose-lifecycle-cmd EXTRA_ARGS="ps -a postgres -q")
 }
 
+restart() {
+    make --no-print-directory restart
+    wait_for_ready
+}
+
 set -e
+wait_for_ready
 pgbackrest_cmd stanza-create
 pgbackrest_cmd check
 pgbackrest_cmd backup
