@@ -288,11 +288,35 @@ variables:
  * `POSTGRES_PGBACKREST_S3_RETENTION_FULL` - the number of full backups to keep in the archive (eg. 4)
  * `POSTGRES_PGBACKREST_S3_RETENTION_DIFF` - the number of differential backups to keep in the archive (eg. 8)
 
-### S3 bucket policy
+### Minio (self-hosted S3 server)
 
-Here is the custom policy you may need to create on your S3 endpoint,
-which provides the appropriate permissions for pgbackrest to manage
-your backups in your S3 bucket:
+Minio is an open-source self-hosted S3 server. You can easily install
+Minio on your docker server. Follow the directions at
+[minio](https://github.com/EnigmaCurry/d.rymcg.tech/tree/master/minio)
+and especially [the instructions for creating a bucket, policy, and
+credentials](https://github.com/EnigmaCurry/d.rymcg.tech/tree/master/minio#create-a-bucket)
+
+The default bucket policy that the minio `make bucket` utility creates
+will work fine. It is a little bit less restrictive than the policy
+that the pgbackrest documentation suggests for you to use, but it will
+work nonetheless. You may wish to login to the minio admin console and
+create a new policy, and you can copy for the same policy shown in the
+example below for Wasabi.
+
+### Wasabi (commerical S3 service)
+
+[Wasabi](https://wasabi.com/) is an inexpensive cloud storage vendor with an S3
+compatible API, and with a pricing and usage model perfect for backups.
+
+ * Create a wasabi account and [log in to the console](https://console.wasabisys.com/)
+ * Click on `Buckets` in the menu, then click `Create Bucket`. Choose a unique
+   name for the bucket. Select the region, then click `Create Bucket`.
+ * Click on `Policies` in the menu, then click `Create Policy`. Enter
+   any name for the policy, but its easiest to name it the same thing
+   as the bucket. Copy and paste the full policy document as show
+   below, into the policy form, careful to replace all instances of
+   the string `BUCKET_NAME` (3 instances) with your chosen bucket
+   name:
 
 ```
 {
@@ -323,34 +347,6 @@ your backups in your S3 bucket:
   ]
 }
 ```
-
-**NOTE**: There are three instances of the string `BUCKET_NAME` in the
-example policy above that you must replace with your own actual bucket
-name.
-
-### Minio (self-hosted S3 server)
-
-Minio is an open-source self-hosted S3 server. You can easily install
-Minio on your docker server. Follow the directions at
-[minio](https://github.com/EnigmaCurry/d.rymcg.tech/tree/master/minio)
-and especially [the instructions for creating a bucket, policy, and
-credentials](https://github.com/EnigmaCurry/d.rymcg.tech/tree/master/minio#create-a-bucket)
-
-Once you know the mini endpoint
-
-### Example with Wasabi (commerical service)
-
-[Wasabi](https://wasabi.com/) is an inexpensive cloud storage vendor with an S3
-compatible API, and with a pricing and usage model perfect for backups.
-
- * Create a wasabi account and [log in to the console](https://console.wasabisys.com/)
- * Click on `Buckets` in the menu, then click `Create Bucket`. Choose a unique
-   name for the bucket. Select the region, then click `Create Bucket`.
- * Click on `Policies` in the menu, then click `Create Policy`. Enter
-   any name for the policy, but its easiest to name it the same thing
-   as the bucket. Copy and paste the full policy document from the
-   section above, into the policy form, careful to replace all
-   instances of `BUCKET_NAME` with your chosen bucket name.
 
  * Once the policy document is edited, click `Create Policy`.
 
