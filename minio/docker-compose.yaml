@@ -18,7 +18,7 @@ services:
     labels:
       - "traefik.enable=true"
       ## Minio public API:
-      - "traefik.http.routers.minio-public.rule=Host(`${MINIO_TRAEFIK_HOST}`)"
+      - "traefik.http.routers.minio-public.rule=Host(`${MINIO_TRAEFIK_HOST}`) || HostRegexp(`{subdomain:.+}.${MINIO_TRAEFIK_HOST}`)"
       - "traefik.http.routers.minio-public.entrypoints=websecure"
       - "traefik.http.routers.minio-public.service=minio-public@docker"
       - "traefik.http.services.minio-public.loadbalancer.server.port=9000"
