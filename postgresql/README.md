@@ -288,7 +288,7 @@ variables:
  * `POSTGRES_PGBACKREST_S3_RETENTION_FULL` - the number of full backups to keep in the archive (eg. 4)
  * `POSTGRES_PGBACKREST_S3_RETENTION_DIFF` - the number of differential backups to keep in the archive (eg. 8)
 
-### Minio (self-hosted S3 server)
+#### Backup to Minio (self-hosted S3 server)
 
 Minio is an open-source self-hosted S3 server. You can easily install
 Minio on your docker server. Follow the directions at
@@ -303,7 +303,7 @@ work nonetheless. You may wish to login to the minio admin console and
 create a new policy, and you can copy for the same policy shown in the
 example below for Wasabi.
 
-### Wasabi (commerical S3 service)
+#### Backup to Wasabi (commerical S3 service)
 
 [Wasabi](https://wasabi.com/) is an inexpensive cloud storage vendor with an S3
 compatible API, and with a pricing and usage model perfect for backups.
