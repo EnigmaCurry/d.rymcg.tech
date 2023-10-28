@@ -29,6 +29,9 @@ RUN apt-get update && \
     apt-get update && \
     DEBIAN_FRONTEND=noninteractive apt-get install -y pgbackrest && \
 
+    rm /etc/pgbackrest.conf && \
+    ln -s /etc/postgresql/pgbackrest.conf /etc/pgbackrest.conf  && \
+
     ## Cleanup
     cd /root && \
 #    rm -rf /src && \

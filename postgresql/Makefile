@@ -78,4 +78,4 @@ psql-alias:
 
 .PHONY: backup # Enable backups
 backup:
-	@./backup.sh
+	@ENV_FILE="${ENV_FILE}" PROJECT_NAME="${PROJECT_NAME}" INSTANCE_SUFFIX="${INSTANCE_SUFFIX}" ./backup.sh

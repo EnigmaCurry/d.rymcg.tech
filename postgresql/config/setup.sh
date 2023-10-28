@@ -32,29 +32,32 @@ create_config() {
     echo "[ ! ] GENERATED NEW CONFIG FILE ::: ${CONFIG_DIR}/pg_hba.conf"
 
     if [[ "${POSTGRES_PGBACKREST}" == "true" ]]; then
-        cat <<'EOF' >> /etc/postgresql/postgresql.conf
+        cat <<'EOF' >> postgresql.conf
 
-archive_command = 'pgbackrest --stanza=demo archive-push %p'
+archive_command = 'pgbackrest --stanza=apps archive-push %p'
 archive_mode = on
 max_wal_senders = 3
 wal_level = replica
 
 EOF
-        cat <<EOF > /etc/pgbackrest.conf
+        cat <<EOF > pgbackrest.conf
 [apps]
 pg1-path=/var/lib/postgresql/data
 
 [global]
+start-fast=y
+repo1-block=y
+repo1-bundle=y
+repo1-path=/var/lib/pgbackrest
+repo1-retention-full=2
 EOF
         if [[ -n "${POSTGRES_PGBACKREST_ENCRYPTION_PASSPHRASE}" ]]; then
-            cat <<EOF >> /etc/pgbackrest.conf
+            cat <<EOF >> pgbackrest.conf
 repo1-cipher-pass=${POSTGRES_PGBACKREST_ENCRYPTION_PASSPHRASE}
 repo1-cipher-type=aes-256-cbc
 EOF
         fi
-        cat <<EOF >> /etc/pgbackrest.conf
-repo1-path=/var/lib/pgbackrest
-repo1-retention-full=2
+        cat <<EOF >> pgbackrest.conf
 
 [global:archive-push]
 compress-level=3

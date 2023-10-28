@@ -101,9 +101,9 @@ get_root_domain() {
 }
 
 docker_compose() {
-    local ENV_FILE=${ENV_FILE:-.env_$(${BIN}/docker_context)}
-    local PROJECT_NAME=$(basename ${PWD})
+    check_var PROJECT_NAME ENV_FILE
     echo "PROJECT_NAME=${PROJECT_NAME}"
+    echo "ENV_FILE=${ENV_FILE}"
     if [[ -n "${instance:-${INSTANCE}}" ]] && [[ "${ENV_FILE}" != ".env_${DOCKER_CONTEXT}_${instance:-${INSTANCE}}" ]]; then
         ENV_FILE="${ENV_FILE}_${instance:-${INSTANCE}}"
         PROJECT_NAME="$(basename $PWD)_${instance:-${INSTANCE}}"
@@ -129,6 +129,26 @@ docker_exec() {
         PROJECT_NAME="$(basename ${PWD})_${instance:-${INSTANCE}}"
     fi
     (set -ex; docker exec --env-file=${ENV_FILE} "$@")
+}
+
+docker_wait_for_healthcheck() {
+    local container_id=$1
+    check_var container_id
+    local attempts=150;
+    echo "## Waiting for container healthcheck: ${container_id}"
+    while [[ "${attempts}" -gt 0 ]]; do
+        if [[ "$(docker inspect -f {{.State.Health.Status}} $container_id)" == "healthy" ]]; then
+            echo "## HEALTHY - Container ${container_id} healthcheck passed."
+            exit 0
+        fi
+        if [ $(( attempts % 10 )) -eq 9 ]; then
+            echo "## Still waiting for container ${container_id} to start ..."
+        fi
+        attempts=$((attempts-1))
+        sleep 2;
+    done
+    echo "## UNHEALTHY - Container ${container_id} still has not started yet." >/dev/stderr
+    exit 1
 }
 
 ytt() {
