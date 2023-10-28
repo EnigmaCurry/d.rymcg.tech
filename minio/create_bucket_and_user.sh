@@ -36,6 +36,7 @@ cat <<FOF > ${TEMP_POLICY}
      "Effect": "Allow",
      "Action": [
        "s3:PutObject",
+       "s3:PutObjectTagging",
        "s3:GetObject",
        "s3:DeleteObject"
      ],
