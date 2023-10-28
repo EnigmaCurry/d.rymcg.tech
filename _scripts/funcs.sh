@@ -139,7 +139,7 @@ docker_wait_for_healthcheck() {
     while [[ "${attempts}" -gt 0 ]]; do
         if [[ "$(docker inspect -f {{.State.Health.Status}} $container_id)" == "healthy" ]]; then
             echo "## HEALTHY - Container ${container_id} healthcheck passed."
-            exit 0
+            return 0
         fi
         if [ $(( attempts % 10 )) -eq 9 ]; then
             echo "## Still waiting for container ${container_id} to start ..."
