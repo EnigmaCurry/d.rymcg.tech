@@ -26,7 +26,7 @@ config-hook:
 
 .PHONY: psql # Open psql DATABASE
 psql:
-	@DATABASE="$${DATABASE:-$$(${BIN}/dotenv -f ${ENV_FILE} get POSTGRES_DB)}"; make --no-print-directory docker-compose-shell SERVICE=postgres USERNAME=$${USERNAME:-postgres} CD=/var/lib/postgresql COMMAND="/usr/bin/psql -d $${DATABASE}"
+	@DATABASE="$${DATABASE:-$$(${BIN}/dotenv -f ${ENV_FILE} get POSTGRES_DB)}"; make --no-print-directory docker-compose-shell SERVICE=postgres USERNAME=$${USERNAME:-root} CD=/var/lib/postgresql COMMAND="/usr/bin/psql -d $${DATABASE}"
 
 .PHONY: shell
 shell:
