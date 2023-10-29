@@ -439,3 +439,52 @@ You can see information about the latest backups performed:
 ```
 make backup-info
 ```
+
+### Scheduled backup via tinycron
+
+When backups are turned on, scheduled jobs are started to run backups
+automatically. You can customize the frequency and retention sizes in
+the `.env_{DOCKER_CONTEXT}_{INSTANCE}` file. 
+
+Recall that there are two repositories:
+
+ * local
+ * s3
+
+And two levels of backups:
+
+ * full
+ * diff
+
+And so there is a matrix of configs for these attributes:
+
+```
+POSTGRES_PGBACKREST_LOCAL_RETENTION_FULL=1
+POSTGRES_PGBACKREST_LOCAL_RETENTION_DIFF=28
+POSTGRES_PGBACKREST_S3_RETENTION_FULL=4
+POSTGRES_PGBACKREST_S3_RETENTION_DIFF=28
+```
+
+ * `POSTGRES_PGBACKREST_LOCAL_RETENTION_FULL=1` means for the local backup to retain only one full backup.
+ * `POSTGRES_PGBACKREST_LOCAL_RETENTION_DIFF=28` means for the local backup to retain up to twenty eight diff backups.
+ * `POSTGRES_PGBACKREST_S3_RETENTION_FULL=1` means for the s3 backup to retain up to four full backups.
+ * `POSTGRES_PGBACKREST_S3_RETENTION_DIFF=28` means for the s3 backup to retain up to twenty eight diff backups.
+
+The backup schedule for each type is specified in cron format. This
+example shows how to make one full backup per week, with a
+differential backup made every 6 hours (28/week).
+
+```
+### Cron scheduled backups:
+### Use cronexpr format: https://github.com/gorhill/cronexpr
+## eg. weekly at 2 AM on Sunday morning: 0 0 2 * * 0 *
+## eg. daily at midnight: @daily
+## eg. every six hours stating at 3AM: 0 0 3/6 * * * *
+POSTGRES_PGBACKREST_LOCAL_SCHEDULE_FULL=0 0 0 * * 0 *
+POSTGRES_PGBACKREST_LOCAL_SCHEDULE_DIFF=0 0 3/6 * * * *
+POSTGRES_PGBACKREST_S3_SCHEDULE_FULL=0 0 0 * * 0 *
+POSTGRES_PGBACKREST_S3_SCHEDULE_DIFF=0 0 3/6 * * * *
+```
+
+Rembmer to `make install` after editing your .env file to apply your
+changes.

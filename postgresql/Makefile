@@ -92,14 +92,15 @@ psql-alias:
 .PHONY: backup
 backup:
 	@echo 'please choose to either `make backup-local` or `make backup-s3`'
+	@exit 1
 
 .PHONY: backup-local # Backup to local pgbackrest repository
 backup-local:
-	@ENV_FILE="${ENV_FILE}" PROJECT_NAME="${PROJECT_NAME}" INSTANCE_SUFFIX="${INSTANCE_SUFFIX}" ./backup.sh backup-local
+	@ENV_FILE="${ENV_FILE}" PROJECT_NAME="${PROJECT_NAME}" INSTANCE_SUFFIX="${INSTANCE_SUFFIX}" ./backup.sh backup-local && echo "SUCCESS"
 
 .PHONY: backup-s3 # Backup to remote s3 pgbackrest repository
 backup-s3:
-	@ENV_FILE="${ENV_FILE}" PROJECT_NAME="${PROJECT_NAME}" INSTANCE_SUFFIX="${INSTANCE_SUFFIX}" ./backup.sh backup-s3
+	@ENV_FILE="${ENV_FILE}" PROJECT_NAME="${PROJECT_NAME}" INSTANCE_SUFFIX="${INSTANCE_SUFFIX}" ./backup.sh backup-s3 && echo "SUCCESS"
 
 .PHONY: backup-info # Get info on latest backups
 backup-info:
