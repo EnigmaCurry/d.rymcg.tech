@@ -467,7 +467,7 @@ POSTGRES_PGBACKREST_S3_RETENTION_DIFF=28
 
  * `POSTGRES_PGBACKREST_LOCAL_RETENTION_FULL=1` means for the local backup to retain only one full backup.
  * `POSTGRES_PGBACKREST_LOCAL_RETENTION_DIFF=28` means for the local backup to retain up to twenty eight diff backups.
- * `POSTGRES_PGBACKREST_S3_RETENTION_FULL=1` means for the s3 backup to retain up to four full backups.
+ * `POSTGRES_PGBACKREST_S3_RETENTION_FULL=4` means for the s3 backup to retain up to four full backups.
  * `POSTGRES_PGBACKREST_S3_RETENTION_DIFF=28` means for the s3 backup to retain up to twenty eight diff backups.
 
 The backup schedule for each type is specified in cron format. This
