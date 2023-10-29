@@ -1,8 +1,13 @@
 ARG POSTGRES_VERSION
+
+FROM golang:1 as tinycron
+RUN git clone https://github.com/EnigmaCurry/tinycron.git /usr/src/tinycron
+WORKDIR /usr/src/tinycron
+RUN make build
+
 FROM postgres:${POSTGRES_VERSION} as build
 ARG PGRATIONAL_VERSION
 RUN apt-get update && \
-    ## Install pg_rational
     mkdir -p /src && \
     cd /src && \
     DEBIAN_FRONTEND=noninteractive apt-get install -y build-essential git postgresql-server-dev-all pgloader && \
@@ -12,11 +17,10 @@ RUN apt-get update && \
     make && \
     make install
 
-ARG POSTGRES_VERSION
 FROM postgres:${POSTGRES_VERSION}
 ARG POSTGRES_VERSION
 RUN apt-get update && \
-    DEBIAN_FRONTEND=noninteractive apt-get install -y curl pgloader && \
+    DEBIAN_FRONTEND=noninteractive apt-get install -y curl pgloader cron procps daemontools && \
 
     ## Install pgBackRest
     echo "deb https://apt.postgresql.org/pub/repos/apt $(cat /etc/os-release | grep "VERSION_CODENAME" | cut -d '=' -f 2)-pgdg main" \
@@ -48,4 +52,13 @@ COPY --from=build --chmod=0644 /src/pg_rational/pg_rational.control /src/pg_rati
 COPY --from=build --chmod=0755 /src/pg_rational/pg_rational.so /usr/lib/postgresql/${POSTGRES_VERSION}/lib/
 COPY --from=build --chmod=0644 /src/pg_rational/pg_rational.bc /usr/lib/postgresql/${POSTGRES_VERSION}/lib/bitcode/pg_rational/
 COPY --from=build --chmod=0644 /usr/lib/postgresql/${POSTGRES_VERSION}/lib/bitcode/pg_rational.index.bc /usr/lib/postgresql/${POSTGRES_VERSION}/lib/bitcode/pg_rational.index.bc
+
 WORKDIR /root
+COPY --from=tinycron /usr/src/tinycron/build/tinycron /usr/local/bin/tinycron
+COPY entrypoint.sh /usr/local/bin/entrypoint.sh
+COPY healthcheck.sh /usr/local/bin/healthcheck.sh
+RUN chmod +x /usr/local/bin/entrypoint.sh && \
+    chmod +x /usr/local/bin/healthcheck.sh && \
+    mkdir -p /var/lib/postgresql && \
+    chown postgres:postgres /var/lib/postgresql
+ENTRYPOINT /usr/local/bin/entrypoint.sh

@@ -21,7 +21,7 @@ config-hook:
 	@if [[ "$$(${BIN}/dotenv -f ${ENV_FILE} get POSTGRES_PGBACKREST)" == "true" ]] && [[ "$$(${BIN}/dotenv -f ${ENV_FILE} get POSTGRES_PGBACKREST_LOCAL)" == "true" ]]; then ${BIN}/reconfigure_ask ${ENV_FILE} POSTGRES_PGBACKREST_LOCAL_RETENTION_FULL "Enter the number of full backups to retain locally" && ${BIN}/reconfigure_ask ${ENV_FILE} POSTGRES_PGBACKREST_LOCAL_RETENTION_DIFF "Enter the number of differential backups to retain locally"; fi
 
 	@echo
-	@if [[ "$$(${BIN}/dotenv -f ${ENV_FILE} get POSTGRES_PGBACKREST)" == "true" ]] && [[ "$$(${BIN}/dotenv -f ${ENV_FILE} get POSTGRES_PGBACKREST_S3)" == "true" ]]; then ${BIN}/reconfigure_ask ${ENV_FILE} POSTGRES_PGBACKREST_S3_ENDPOINT "Enter the S3 endpoint (domain:port) (may omit :port if its 443)" && ${BIN}/reconfigure_ask ${ENV_FILE} POSTGRES_PGBACKREST_S3_REGION "Enter the S3 region" && ${BIN}/reconfigure_ask ${ENV_FILE} POSTGRES_PGBACKREST_S3_BUCKET "Enter the S3 bucket name" && ${BIN}/reconfigure_ask ${ENV_FILE} POSTGRES_PGBACKREST_S3_KEY_ID "Enter the S3 access key ID" && ${BIN}/reconfigure_ask ${ENV_FILE} POSTGRES_PGBACKREST_S3_KEY_SECRET "Enter the S3 secret key" && ${BIN}/reconfigure_ask ${ENV_FILE} POSTGRES_PGBACKREST_S3_RETENTION_FULL "Enter the number of full backups to retain on S3" && ${BIN}/reconfigure_ask ${ENV_FILE} POSTGRES_PGBACKREST_S3_RETENTION_DIFF "Enter the number of differential backups to retain on S3"; fi
+	@if [[ "$$(${BIN}/dotenv -f ${ENV_FILE} get POSTGRES_PGBACKREST)" == "true" ]] && [[ "$$(${BIN}/dotenv -f ${ENV_FILE} get POSTGRES_PGBACKREST_S3)" == "true" ]]; then ${BIN}/reconfigure_ask ${ENV_FILE} POSTGRES_PGBACKREST_S3_ENDPOINT "Enter the S3 endpoint (domain:port) (may omit :port if its 443)" && ${BIN}/reconfigure_ask ${ENV_FILE} POSTGRES_PGBACKREST_S3_REGION "Enter the S3 region" && ${BIN}/reconfigure_ask ${ENV_FILE} POSTGRES_PGBACKREST_S3_BUCKET "Enter the S3 bucket name" && ${BIN}/reconfigure_ask ${ENV_FILE} POSTGRES_PGBACKREST_S3_KEY_ID "Enter the S3 access key ID" $$(${BIN}/dotenv -f ${ENV_FILE} get POSTGRES_PGBACKREST_S3_BUCKET) && ${BIN}/reconfigure_ask ${ENV_FILE} POSTGRES_PGBACKREST_S3_KEY_SECRET "Enter the S3 secret key" && ${BIN}/reconfigure_ask ${ENV_FILE} POSTGRES_PGBACKREST_S3_RETENTION_FULL "Enter the number of full backups to retain on S3" && ${BIN}/reconfigure_ask ${ENV_FILE} POSTGRES_PGBACKREST_S3_RETENTION_DIFF "Enter the number of differential backups to retain on S3"; fi
 
 
 .PHONY: psql # Open psql shell
@@ -30,7 +30,7 @@ psql:
 
 .PHONY: shell
 shell:
-	@make --no-print-directory docker-compose-shell SERVICE=postgres USERNAME=$${USERNAME:-root} CD=/var/lib/postgresql
+	@if [[ "$${DOCKER_COMPOSE_PROFILES}" == "maintainance" ]]; then SERVICE=postgres-maintainance; fi; make --no-print-directory docker-compose-shell SERVICE=$${SERVICE:-postgres} USERNAME=$${USERNAME:-root} CD=/var/lib/postgresql
 
 .PHONY: client # Get client certificate and private key files
 client:
@@ -96,4 +96,9 @@ backup:
 .PHONY: restore # Restore
 restore:
 	@ENV_FILE="${ENV_FILE}" PROJECT_NAME="${PROJECT_NAME}" INSTANCE_SUFFIX="${INSTANCE_SUFFIX}" ./backup.sh restore
+
+.PHONY: maintainance # Reconfigure maintainance mode
+maintainance:
+	@${BIN}/reconfigure ${ENV_FILE} POSTGRES_MAINTAINANCE_MODE="$(${BIN}/confirm no "Do you want to enable maintainance mode" "?" && echo true || echo false)"
+	@${BIN}/confirm yes "Would you like to restart postgres now? (POSTGRES_MAINTAINANCE_MODE=$$(${BIN}/dotenv -f ${ENV_FILE} get POSTGRES_MAINTAINANCE_MODE))" "?" && make --no-print-directory restart
 
