@@ -44,7 +44,7 @@ backup_s3() {
     if [[ "$(${BIN}/dotenv -f ${ENV_FILE} get POSTGRES_PGBACKREST_S3)"  == "true" ]]; then
         pgbackrest_cmd backup --repo=2
     else
-        echo "## Skipping local backup as POSTGRES_PGBACKREST_S3 != true"
+        echo "## Skipping  backup as POSTGRES_PGBACKREST_S3 != true"
     fi
 }
 
@@ -77,12 +77,12 @@ case "${cmd}" in
     backup-local)
         stanza_create
         backup_local
-        pgbackrest_cmd info
-        pgbackrest_cmd check
         ;;
     backup-s3)
         stanza_create
         backup_s3
+        ;;
+    info)
         pgbackrest_cmd info
         pgbackrest_cmd check
         ;;
