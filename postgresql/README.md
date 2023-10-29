@@ -249,9 +249,9 @@ You can use this as an example for loading any other dataset.
 
 ## Backup
 
-Backups can be configured to be performed automatically with
-[pgbackrest](https://pgbackrest.org/), which can be configured to
-store them on any combination of these storage backends:
+Your databases may be configured to backup automatically with
+[pgbackrest](https://pgbackrest.org/), which can be configured to be
+stored on any combination of these storage backends:
 
  * Locally stored to a separate volume (`backup`) on the same Docker
    host. (`POSTGRES_PGBACKREST_LOCAL=true`)
@@ -430,3 +430,12 @@ d.rymcg.tech make postgresql destroy restore-s3 start
 Note that in a real disaster scenario you will need to restore your
 `.env_{DOCKER_CONTEXT}_{INSTANCE}` file first, as it contains the S3
 credentials and encryption passphrase necessarry to run the restore.
+
+
+### Get backup information
+
+You can see information about the latest backups performed:
+
+```
+make backup-info
+```
