@@ -82,7 +82,7 @@ localdb: client
 
 .PHONY: chinook # Import Chinook sample database
 chinook:
-	make --no-print-directory docker-compose-lifecycle-cmd EXTRA_ARGS="exec postgres /bin/sh -c 'createdb chinook && psql -c \"create role chinook; grant chinook to $${POSTGRES_DB};\" && PGUSER=$${POSTGRES_DB} pgloader https://github.com/lerocha/chinook-database/raw/master/ChinookDatabase/DataSources/Chinook_Sqlite_AutoIncrementPKs.sqlite pgsql:///chinook'"
+	@POSTGRES_DB=$$(${BIN}/dotenv -f ${ENV_FILE} get POSTGRES_DB); COMMAND="createdb chinook && psql -c 'create role chinook; grant chinook to $${POSTGRES_DB}; alter database chinook OWNER TO $${POSTGRES_DB};' && PGUSER=$${POSTGRES_DB} pgloader https://github.com/lerocha/chinook-database/raw/master/ChinookDatabase/DataSources/Chinook_Sqlite_AutoIncrementPKs.sqlite pgsql:///chinook"; make --no-print-directory docker-compose-lifecycle-cmd EXTRA_ARGS="exec postgres /bin/sh -c $${COMMAND@Q}"
 
 .PHONY: psql-alias # Get the psql alias with baked connection string
 psql-alias:
