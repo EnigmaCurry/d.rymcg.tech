@@ -24,9 +24,9 @@ config-hook:
 	@if [[ "$$(${BIN}/dotenv -f ${ENV_FILE} get POSTGRES_PGBACKREST)" == "true" ]] && [[ "$$(${BIN}/dotenv -f ${ENV_FILE} get POSTGRES_PGBACKREST_S3)" == "true" ]]; then ${BIN}/reconfigure_ask ${ENV_FILE} POSTGRES_PGBACKREST_S3_ENDPOINT "Enter the S3 endpoint (domain:port) (may omit :port if its 443)" && ${BIN}/reconfigure_ask ${ENV_FILE} POSTGRES_PGBACKREST_S3_REGION "Enter the S3 region" && ${BIN}/reconfigure_ask ${ENV_FILE} POSTGRES_PGBACKREST_S3_BUCKET "Enter the S3 bucket name" && ${BIN}/reconfigure_ask ${ENV_FILE} POSTGRES_PGBACKREST_S3_KEY_ID "Enter the S3 access key ID" $$(${BIN}/dotenv -f ${ENV_FILE} get POSTGRES_PGBACKREST_S3_BUCKET) && ${BIN}/reconfigure_ask ${ENV_FILE} POSTGRES_PGBACKREST_S3_KEY_SECRET "Enter the S3 secret key" && ${BIN}/reconfigure_ask ${ENV_FILE} POSTGRES_PGBACKREST_S3_RETENTION_FULL "Enter the number of full backups to retain on S3" && ${BIN}/reconfigure_ask ${ENV_FILE} POSTGRES_PGBACKREST_S3_RETENTION_DIFF "Enter the number of differential backups to retain on S3"; fi
 
 
-.PHONY: psql # Open psql shell
+.PHONY: psql # Open psql DATABASE
 psql:
-	@make --no-print-directory docker-compose-shell SERVICE=postgres USERNAME=$${USERNAME:-postgres} CD=/var/lib/postgresql COMMAND=/usr/bin/psql
+	@DATABASE="$${DATABASE:-$$(${BIN}/dotenv -f ${ENV_FILE} get POSTGRES_DB)}"; make --no-print-directory docker-compose-shell SERVICE=postgres USERNAME=$${USERNAME:-postgres} CD=/var/lib/postgresql COMMAND="/usr/bin/psql -d $${DATABASE}"
 
 .PHONY: shell
 shell:
@@ -89,16 +89,24 @@ chinook:
 psql-alias:
 	@echo "alias psql=\"psql '$$(make --no-print-directory connection-string)'\""
 
-.PHONY: backup # Backup now
-backup:
-	@ENV_FILE="${ENV_FILE}" PROJECT_NAME="${PROJECT_NAME}" INSTANCE_SUFFIX="${INSTANCE_SUFFIX}" ./backup.sh now
+.PHONY: backup-local # Backup to local pgbackrest repository
+backup-local:
+	@ENV_FILE="${ENV_FILE}" PROJECT_NAME="${PROJECT_NAME}" INSTANCE_SUFFIX="${INSTANCE_SUFFIX}" ./backup.sh backup-local
 
-.PHONY: restore # Restore
-restore:
-	@ENV_FILE="${ENV_FILE}" PROJECT_NAME="${PROJECT_NAME}" INSTANCE_SUFFIX="${INSTANCE_SUFFIX}" ./backup.sh restore
+.PHONY: backup-s3 # Backup to remote s3 pgbackrest repository
+backup-s3:
+	@ENV_FILE="${ENV_FILE}" PROJECT_NAME="${PROJECT_NAME}" INSTANCE_SUFFIX="${INSTANCE_SUFFIX}" ./backup.sh backup-s3
+
+.PHONY: restore-local # Restore from local backup
+restore-local:
+	@ENV_FILE="${ENV_FILE}" PROJECT_NAME="${PROJECT_NAME}" INSTANCE_SUFFIX="${INSTANCE_SUFFIX}" ./backup.sh restore-local
+
+.PHONY: restore-s3 # Restore from s3 backup
+restore-s3:
+	@ENV_FILE="${ENV_FILE}" PROJECT_NAME="${PROJECT_NAME}" INSTANCE_SUFFIX="${INSTANCE_SUFFIX}" ./backup.sh restore-s3
 
 .PHONY: maintainance # Reconfigure maintainance mode
 maintainance:
-	@${BIN}/reconfigure ${ENV_FILE} POSTGRES_MAINTAINANCE_MODE="$(${BIN}/confirm no "Do you want to enable maintainance mode" "?" && echo true || echo false)"
-	@${BIN}/confirm yes "Would you like to restart postgres now? (POSTGRES_MAINTAINANCE_MODE=$$(${BIN}/dotenv -f ${ENV_FILE} get POSTGRES_MAINTAINANCE_MODE))" "?" && make --no-print-directory restart
+	@${BIN}/reconfigure ${ENV_FILE} POSTGRES_MAINTAINANCE_MODE="$$(${BIN}/confirm no 'Do you want to enable maintainance mode' '?' && echo true || echo false)"
+	@${BIN}/confirm yes "Would you like to restart postgres now? (POSTGRES_MAINTAINANCE_MODE=$$(${BIN}/dotenv -f ${ENV_FILE} get POSTGRES_MAINTAINANCE_MODE))" "?" && make --no-print-directory install
 

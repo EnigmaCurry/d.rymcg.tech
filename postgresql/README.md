@@ -314,6 +314,16 @@ work nonetheless. You may wish to login to the minio admin console and
 create a new policy, and you can copy for the same policy shown in the
 example below for Wasabi.
 
+Quickstart:
+
+```
+d.rymcg.tech make minio destroy clean config install bucket
+```
+
+Enter the bucket name `postgres-apps` and choose the default for
+everything else. Copy the endpoint, access-key, and secret-key for
+entering into the postgres config later.
+
 #### Create a bucket on Wasabi (commerical S3 service)
 
 [Wasabi](https://wasabi.com/) is an inexpensive cloud storage vendor with an S3
@@ -384,8 +394,14 @@ compatible API, and with a pricing and usage model perfect for backups.
 
 ### Start backup now
 
+Choose which backup you want to do, local or s3:
+
 ```
-make backup
+## Make local backup to docker volume
+make backup-local
+
+## Make remote backup to s3 bucket
+make backup-s3
 ```
 
 ### Start restore now
@@ -393,6 +409,24 @@ make backup
 This will shutdown the postgres service, DELETE all data, and restart
 in maintaince mode, and restore the latest backup from S3:
 
+Choose which backup you want to restore from:
+
 ```
-make restore
+## Restore from local backup:
+make restore-local
+
+## Restore from s3 backup:
+make restore-s3
 ```
+
+Note that you can restore with either a running instance, or from no
+instance at all:
+
+```
+## Destroy the existing instance and restore from s3 and start it up:
+d.rymcg.tech make postgresql destroy restore-s3 start
+```
+
+Note that in a real disaster scenario you will need to restore your
+`.env_{DOCKER_CONTEXT}_{INSTANCE}` file first, as it contains the S3
+credentials and encryption passphrase necessarry to run the restore.
