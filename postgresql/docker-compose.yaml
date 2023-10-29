@@ -37,6 +37,8 @@ services:
 
   postgres:
     depends_on: [config]
+    profiles:
+      - default
     build:
       context: .
       args:
@@ -62,3 +64,28 @@ services:
     ports:
       - ${POSTGRES_EXTERNAL_TCP_PORT}:5432
     command: postgres -c 'config_file=/etc/postgresql/postgresql.conf'
+
+  postgres-maintainance:
+    depends_on: [config]
+    profiles:
+      - maintainance
+    build:
+      context: .
+      args:
+        POSTGRES_VERSION: ${POSTGRES_VERSION}
+        PGRATIONAL_VERSION: ${POSTGRES_PGRATIONAL_VERSION}
+    security_opt:
+      - no-new-privileges:true
+    volumes:
+      - data:/var/lib/postgresql/data
+      - config:/etc/postgresql
+      - backup:/var/lib/pgbackrest
+    environment:
+      - POSTGRES_DB
+      - POSTGRES_INSTANCE
+      - PGDATABASE=${POSTGRES_DB}
+      - POSTGRES_USER=${POSTGRES_ADMIN_USER}
+      - PGUSER=${POSTGRES_ADMIN_USER}
+      - POSTGRES_PASSWORD=${POSTGRES_ADMIN_PASSWORD}
+      - POSTGRES_LIMITED_USER=${POSTGRES_DB}
+    command: /usr/bin/sleep infinity

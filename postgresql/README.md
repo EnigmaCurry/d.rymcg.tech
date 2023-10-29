@@ -380,3 +380,19 @@ compatible API, and with a pricing and usage model perfect for backups.
      wasabi](https://wasabi-support.zendesk.com/hc/en-us/articles/360015106031-What-are-the-service-URLs-for-Wasabi-s-different-storage-regions-)
      later, which are dependent on the Region you chose for the bucket. (eg.
      `s3.us-west-1.wasabisys.com`)
+
+
+### Start backup now
+
+```
+make backup
+```
+
+### Start restore now
+
+This will shutdown the postgres service, DELETE all data, and restart
+in maintaince mode, and restore the latest backup from S3:
+
+```
+make restore
+```

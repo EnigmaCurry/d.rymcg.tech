@@ -82,12 +82,18 @@ localdb: client
 
 .PHONY: chinook # Import Chinook sample database
 chinook:
+	@${BIN}/docker_wait_for_healthcheck $$(make --no-print-directory docker-compose-lifecycle-cmd EXTRA_ARGS="ps -a postgres -q")
 	@POSTGRES_DB=$$(${BIN}/dotenv -f ${ENV_FILE} get POSTGRES_DB); COMMAND="createdb chinook && psql -c 'create role chinook; grant chinook to $${POSTGRES_DB}; alter database chinook OWNER TO $${POSTGRES_DB};' && PGUSER=$${POSTGRES_DB} pgloader https://github.com/lerocha/chinook-database/raw/master/ChinookDatabase/DataSources/Chinook_Sqlite_AutoIncrementPKs.sqlite pgsql:///chinook"; make --no-print-directory docker-compose-lifecycle-cmd EXTRA_ARGS="exec postgres /bin/sh -c $${COMMAND@Q}"
 
 .PHONY: psql-alias # Get the psql alias with baked connection string
 psql-alias:
 	@echo "alias psql=\"psql '$$(make --no-print-directory connection-string)'\""
 
-.PHONY: backup # Enable backups
+.PHONY: backup # Backup now
 backup:
-	@ENV_FILE="${ENV_FILE}" PROJECT_NAME="${PROJECT_NAME}" INSTANCE_SUFFIX="${INSTANCE_SUFFIX}" ./backup.sh
+	@ENV_FILE="${ENV_FILE}" PROJECT_NAME="${PROJECT_NAME}" INSTANCE_SUFFIX="${INSTANCE_SUFFIX}" ./backup.sh now
+
+.PHONY: restore # Restore
+restore:
+	@ENV_FILE="${ENV_FILE}" PROJECT_NAME="${PROJECT_NAME}" INSTANCE_SUFFIX="${INSTANCE_SUFFIX}" ./backup.sh restore
+
