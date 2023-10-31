@@ -229,6 +229,33 @@ color() {
     echo -en "${COLOR_CODE_PREFIX}${LIGHT};${COLOR}${COLOR_CODE_SUFFIX}${TEXT}${COLOR_CODE_PREFIX}0;0${COLOR_CODE_SUFFIX}"
 }
 
+colorize() {
+    ## Highlight text patterns in stdin with ANSI color
+    set -e
+    if [[ $# -lt 2 ]]; then
+        fault "Not enough args: expected COLOR and PATTERN arguments"
+    fi
+    local COLOR=$1; shift
+    local PATTERN=$1; shift
+    check_var COLOR PATTERN
+    case "${COLOR}" in
+        "black") COLOR=30;;
+        "red") COLOR=31;;
+        "green") COLOR=32;;
+        "brown") COLOR=33;;
+        "orange") COLOR=33;;
+        "blue") COLOR=34;;
+        "purple") COLOR=35;;
+        "cyan") COLOR=36;;
+        "white") COLOR=37;;
+        *) fault "Unknown color"
+    esac
+    PATTERN='^.*'"${PATTERN}"'.*$|'
+    readarray stdin
+    echo "${stdin[@]}" | \
+        GREP_COLORS="mt=01;${COLOR}" grep --color -E "${PATTERN}"
+}
+
 element_in_array () {
   local e match="$1"; shift;
   for e; do [[ "$e" == "$match" ]] && return 0; done
