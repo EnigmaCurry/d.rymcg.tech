@@ -177,7 +177,6 @@ __info() {
 
 __context() {
     if [[ $# == 0 ]]; then
-        # Run `docker context ls` and store the output in a variable
         exe docker context ls | colorize "green" ' \* '
     else
         exe docker context use "$@"
