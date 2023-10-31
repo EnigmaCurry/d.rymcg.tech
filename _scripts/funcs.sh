@@ -251,7 +251,6 @@ colorize() {
         *) fault "Unknown color"
     esac
     PATTERN='^.*'"${PATTERN}"'.*$|'
-    echo "PATTERN=${PATTERN}"
     readarray stdin
     echo "${stdin[@]}" | \
         GREP_COLORS="mt=01;${COLOR}" grep --color -E "${PATTERN}"
