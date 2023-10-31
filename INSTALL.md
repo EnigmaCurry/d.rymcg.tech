@@ -24,9 +24,16 @@ in order.
 > on your existing machine. A Raspberry Pi, separate from your main
 > computer, is excellent for this role.
 
-Follow the guide in [RASPBERRY_PI.md](RASPBERRY_PI.md)
+Follow the guide in [RASPBERRY_PI.md](RASPBERRY_PI.md) for installing
+Raspbian Lite and Docker onto your Raspberry Pi. For the purposes of
+this guide, the raspberry pi does not need to run the Docker daemon.
+After installation, you can disable the Docker service on the pi:
 
-## Purchase and register an Internet domain name
+```
+## Run this on the pi to disable Docker daemon:
+sudo systemctl mask --now docker
+```
+
 ## Create a DigitalOcean account
 
 > [!NOTE]
@@ -39,13 +46,52 @@ Follow the guide in [RASPBERRY_PI.md](RASPBERRY_PI.md)
 > "cloud agnostic", the platform just needs to have a Linux kernel, be
 > able to run Docker, and have an SSH server to access it remotely.
 
+## Purchase and register an Internet domain name
+
+> [!NOTE]
+> You may use any domain registrar you want, I recommend
+> [gandi.net](https://gandi.net)
+
 ## Transfer your domain name to use DigitalOcean DNS
 
 > [!NOTE]
 > DigitalOcean DNS is used for documentation purposes,
 > any DNS provider can do the same thing.
 
+On your domain registrar provider's interface (eg. gandi.net),
+configure your domain name DNS server setting. Set it to use these
+DigitalOcean DNS servers:
+
+ * `ns1.digitalocean.com`
+ * `ns2.digitalocean.com`
+ * `ns3.digitalocean.com`
+
 ## Create a Docker server on DigitalOcean
+
+ * Create a DigitalOcean account and login to
+   [cloud.digitalocean.com](https://cloud.digitalocean.com)
+ * Click `Create`, then `Droplet`
+ * Navigate to the `Marketplace` tab, then choose the `Docker XX.X on Ubuntu` image.
+ * Choose whatever droplet size you need (at least 2GB ram recommended for most installs).
+ * Optional: Add a block storage device, in order to store your Docker volumes.
+   (This is useful to store data separate from the droplet lifecycle. If your
+   basic droplet size is sufficient, and you perform regular backups, this might
+   not be needed.)
+ * Choose datacenter/region. Note: block storage and floating IPs are bound to
+   the datacenter you choose.
+ * Add your SSH key.
+ * Choose a hostname.
+ * Click `Create Droplet`
+ * Optional: Create a Floating IP address. This is useful if you need to
+   re-create your droplet, but do not want to update the DNS. Navigate to the
+   droplet page, find `Floating IP` and click `Enable Now`.
+ * Add a DNS record for the Floating IP address (or the droplet public IP
+   address if you opted not to use a Floating IP.) Use a wildcard name like
+   `*.d.example.com`, so that any subdomain in place of `*` will resolve to your
+   droplet. You may use your own DNS host or you may use DigitalOcean DNS (go to
+   `Networking` / `Domains`, add or find your domain, create record, enter name
+   as `*.d.example.com`, and direct to your floating or droplet IP.)
+
 ## Install `d.rymcg.tech` tools on your workstation
 
  * Create remote docker context on your workstation

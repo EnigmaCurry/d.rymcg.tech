@@ -12,7 +12,7 @@ wget https://downloads.raspberrypi.org/raspios_lite_arm64/images/raspios_lite_ar
  * Insert your sd-card, and check what the root device name is called, with
    `lsblk` based upon device size. In my case it is called `mmcblk0`.
  * Write the zip file to the sdcard device (make sure to replace `/dev/mmcblk0` with your device name):
- 
+
 ```
 unzip -p 2022-01-28-raspios-bullseye-arm64-lite.zip | \
    sudo dd of=/dev/mmcblk0 bs=4M conv=fsync status=progress
@@ -24,7 +24,7 @@ unzip -p 2022-01-28-raspios-bullseye-arm64-lite.zip | \
    this will enable the SSH server on the pi.)
  * Unmount the sd-card (eg. `umount /mnt`) and remove the sd-card.
  * Place the sd-card into the raspberry pi, connect ethernet, and turn it on.
- 
+
 ## Setup SSH access
 
 Now setup the connection from your workstation to the raspberry pi:
@@ -44,11 +44,11 @@ Host pi
     ControlPath /tmp/ssh-%u-%r@%h:%p
 ```
  * Now test SSH connection works and SSH into the pi (eg `ssh pi`)
- 
+
 ## Setup Raspbian
 
  * On the pi, edit the file `/boot/config.txt` (eg. `sudo nano /boot/config.txt`)
-   * Add the following line at the bottom: 
+   * Add the following line at the bottom:
    ```
    gpu_mem=16
    ```
@@ -58,7 +58,7 @@ Host pi
  * After reboot, reconnect via SSH, then run `free -m` to show available RAM. (On a
    raspberry pi 3 with 1G of RAM, you should now see a total of **975MB** whereas before the
    gpu_mem fix it was only **926MB**.)
-   
+
 ## Install Docker
 
  * On the pi, install docker:
@@ -70,7 +70,7 @@ Host pi
    sudo usermod -aG docker pi
    ```
  * Test docker is working:
- 
+
  ```
  docker run hello-world
  ```
@@ -93,7 +93,24 @@ run on the pi:
 docker info | grep -iE "(Name|Context)"
 ```
 
+## Disable Docker daemon if you don't need it
+
+If you are setting up the pi to use as a client workstation only, then
+you do not need to run the Docker daemon on the pi. You may disable
+the Docker daemon by running:
+
+```
+sudo systemctl mask --now docker
+```
+
 ## Setup Log2Ram
 
 You can increase the expected lifespan of your SD card by installing
 [log2ram](https://github.com/azlux/log2ram#log2ram)
+
+
+## Setup Zram
+
+You can gain a bit more free RAM by installing
+[Zram](https://wiki.debian.org/ZRam). Also see [this blog about
+ZRam](https://blog.rymcg.tech/blog/linux/zram/)
