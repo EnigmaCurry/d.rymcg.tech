@@ -17,17 +17,18 @@ in order.
 ## Setup a new Raspberry Pi workstation
 
 > [!NOTE]
-> If you read between the lines, you can set this up on any
-> Linux computer. For proper hygiene/separation on a per-project
-> basis, it is recommended to use a clean OS install (possibly on a
-> virtual machine), or simply creating a dedicated/secure user account
-> on your existing machine. A Raspberry Pi, separate from your main
-> computer, is excellent for this role.
+> While thse instructions suggest to use a Raspberry Pi, you can set
+> this up on any Linux computer. For proper hygiene/separation, it is
+> recommended to use a clean OS install (possibly on a virtual
+> machine), or simply creating a dedicated/secure user account on your
+> existing machine, on a per-project basis. A Raspberry Pi, separate
+> from your main computer, is excellent for this role.
 
 Follow the guide in [RASPBERRY_PI.md](RASPBERRY_PI.md) for installing
 Raspbian Lite and Docker onto your Raspberry Pi. For the purposes of
-this guide, the raspberry pi does not need to run the Docker daemon.
-After installation, you can disable the Docker service on the pi:
+this guide, the workstation does not need to run the Docker daemon.
+After installation, you can disable the Docker service on the
+workstation:
 
 ```
 ## Run this on the pi to disable Docker daemon:
@@ -102,12 +103,14 @@ DigitalOcean DNS servers:
  * Create a TLS certificate and sign it with Let's Encrypt.
 
 ## Install the Whoami service to test web service connectivity.
+
 ## Install Gitea and traefik-forward-auth for strong User authentication/authorization.
 
  * Configure Traefik `make sentry` to create users and groups to add
    OAuth to any app using your Gitea user accounts.
 
 ## Install Homepage to use as a dashboard
+
 ## Install minio S3 storage server
 
  * Install rclone-browser to upload files to your S3 server
@@ -116,4 +119,10 @@ DigitalOcean DNS servers:
 ## Install SFTP volume manager
 
  * Install thttpd server to serve files publicly in the web browser
+
+## Install gitea action runner (TODO)
+
+ * create hugo blog and build it with gitea action runner.
+ * compile redbean server with builtin static blog content.
+
 
