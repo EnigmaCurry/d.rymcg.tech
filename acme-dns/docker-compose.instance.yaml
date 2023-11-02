@@ -11,8 +11,6 @@
 #@ context = data.values.context
 #@ traefik_host = data.values.traefik_host
 #@ ip_sourcerange = data.values.ip_sourcerange
-#@ enable_http_auth = len(data.values.http_auth.strip()) > 0
-#@ http_auth = data.values.http_auth_var
 
 #@ dns_entrypoint = data.values.traefik_dns_entrypoint_var
 
@@ -26,6 +24,8 @@ services:
       #! Services must opt-in to be proxied by Traefik:
       - "traefik.enable=true"
 
+      #! HTTP:
+
       #! 'router' is the fully qualified key in traefik for this router/service: project + instance + service
       #@ router = "{}-{}-{}".format(project,instance,service)
 
@@ -35,12 +35,16 @@ services:
       #@ enabled_middlewares.append("{}-ipwhitelist".format(router))
       - "traefik.http.middlewares.(@= router @)-ipwhitelist.ipwhitelist.sourcerange=(@= ip_sourcerange @)"
 
-      #@ if enable_http_auth:
-      #@ enabled_middlewares.append("{}-basicauth".format(router))
-      - "traefik.http.middlewares.(@= router @)-basicauth.basicauth.users=(@= http_auth @)"
-      #@ end
+      #@ enabled_middlewares.append("{}-ratelimit".format(router))
+      - "traefik.http.middlewares.(@= router @)-ratelimit.ratelimit.average=1"
+      - "traefik.http.middlewares.(@= router @)-ratelimit.ratelimit.period=1m"
+      - "traefik.http.middlewares.(@= router @)-ratelimit.ratelimit.burst=5"
 
       - "traefik.http.services.(@= router @).loadbalancer.server.port=8000"
 
       #! Apply all middlewares (do this at the end!)
       - "traefik.http.routers.(@= router @).middlewares=(@= ','.join(enabled_middlewares) @)"
+
+      #! DNS on UDP:
+      - "traefik.udp.routers.(@= router @).entrypoints=dns"
+      - "traefik.udp.services.(@= router @).loadBalancer.server.port=5353"

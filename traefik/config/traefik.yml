@@ -175,5 +175,5 @@ entryPoints:
   #@ end
   #@ if data.values.dns_entrypoint_enabled == "true":
   dns:
-    address: #@ data.values.dns_entrypoint_host + ":" + data.values.dns_entrypoint_port
+    address: #@ data.values.dns_entrypoint_host + ":" + data.values.dns_entrypoint_port + "/udp"
   #@ end
