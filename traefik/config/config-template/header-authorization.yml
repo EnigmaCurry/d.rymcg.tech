@@ -1,5 +1,6 @@
 #@ load("@ytt:data", "data")
 #@yaml/text-templated-strings
+#@ if len(data.values.header_authorization_groups) > 0:
 http:
   middlewares:
     #@ for group in data.values.header_authorization_groups:
@@ -20,3 +21,4 @@ http:
             name: X-Forwarded-User
           allowed: #@ data.values.header_authorization_groups[group]
     #@ end
+#@ end
