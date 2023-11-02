@@ -9,7 +9,7 @@ config-hook:
 #### reconfigure_htpasswd will configure the HTTP Basic Authentication setting the var name and with a provided default value.
 	@${BIN}/reconfigure_ask ${ENV_FILE} ACME_DNS_TRAEFIK_HOST "Enter the acme-dns domain name" acme-dns${INSTANCE_URL_SUFFIX}.${ROOT_DOMAIN}
 	@${BIN}/reconfigure ${ENV_FILE} ACME_DNS_INSTANCE=$${instance:-default}
-	@${BIN}/reconfigure ${ENV_FILE} ACME_DNS_ACME_CA_EMAIL=$$(${BIN}/dotenv -f get ../traefik/.env_${DOCKER_CONTEXT}_default TRAEFIK_ACME_CA_EMAIL)
+	@${BIN}/reconfigure ${ENV_FILE} ACME_DNS_ACME_CA_EMAIL=$$(${BIN}/dotenv -f "../traefik/.env_${DOCKER_CONTEXT}_default" get TRAEFIK_ACME_CA_EMAIL)
 	@__D_RY_CONFIG_ENTRY=reconfigure_auth ${BIN}/reconfigure_htpasswd ${ENV_FILE} ACME_DNS_HTTP_AUTH
 	@echo ""
 

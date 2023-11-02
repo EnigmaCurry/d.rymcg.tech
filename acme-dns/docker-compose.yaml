@@ -11,15 +11,17 @@ services:
     security_opt:
       - no-new-privileges:true
     environment:
+      - ACME_DNS_TRAEFIK_HOST
       - ACME_DNS_ADMIN_EMAIL
       - ACME_DNS_PUBLIC_IP
-      - ACME_DNS_ENABLE_REGISTRATION
+      - ACME_DNS_DISABLE_REGISTRATION
       - ACME_DNS_ACME_CA_EMAIL
     volumes:
       - config:/config
 
   acme-dns:
     image: ${ACME_DNS_IMAGE}:${ACME_DNS_VERSION}
+    depends_on: ['config']
     restart: unless-stopped
     security_opt:
       - no-new-privileges:true
