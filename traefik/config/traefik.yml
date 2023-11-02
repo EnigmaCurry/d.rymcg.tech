@@ -154,3 +154,7 @@ entryPoints:
   web_plain:
     address: #@ data.values.web_plain_entrypoint_host + ":" + data.values.web_plain_entrypoint_port
   #@ end
+  #@ if data.values.dns_entrypoint_enabled == "true":
+  dns:
+    address: #@ data.values.dns_entrypoint_host + ":" + data.values.dns_entrypoint_port
+  #@ end
