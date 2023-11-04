@@ -44,3 +44,7 @@ check-in-subshell:
 
 %-rule-exists:
 	@$(MAKE) -n $* &> /dev/null
+
+.PHONY: script-wizard
+script-wizard:
+	${BIN}/install_script-wizard
