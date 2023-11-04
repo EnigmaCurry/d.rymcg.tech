@@ -8,10 +8,6 @@ help:
 include _scripts/Makefile.globals
 include _scripts/Makefile.cd
 
-.PHONY: script-wizard
-script-wizard:
-	_scripts/install_script-wizard
-
 .PHONY: check-deps
 check-deps:
 	_scripts/check_deps docker sed awk xargs openssl htpasswd jq curl
