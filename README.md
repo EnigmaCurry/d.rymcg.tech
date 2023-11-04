@@ -806,10 +806,10 @@ If you want a different alias for the main script, you can add that too:
 
 ```
 ## Alternative alias to d.rymcg.tech
-__d.rymcg.tech_cli_alias dry
+__d.rymcg.tech_cli_alias d
 ```
 
-With this alias installed, you can now run `dry` in place of
+With this alias installed, you can now just run `d` in place of
 `d.rymcg.tech`.
 
 To get a synopsis of all of these completion commands, run:
