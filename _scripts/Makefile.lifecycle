@@ -1,5 +1,5 @@
 .PHONY: config # Configure .env file
-config: check-instance-project
+config: check-instance-project script-wizard
 	@echo "Configuring environment file: ${ENV_FILE}"
 	@make -e --no-print-directory config-hook override instance=${INSTANCE}
 	@echo ""
