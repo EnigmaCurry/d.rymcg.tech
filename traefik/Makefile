@@ -2,37 +2,47 @@ ROOT_DIR = ..
 include ${ROOT_DIR}/_scripts/Makefile.projects-no-open
 
 .PHONY: config-hook
-config-hook: traefik-user config-ask compose-profiles 
+config-hook: config-menu config-domain compose-profiles 
 	@echo ""
 	@echo 'Base configuration complete.'
 	@echo 'Run `make certs` to configure certificate domains.'
 	@echo "Examine the environment file: ${ENV_FILE}"
 	@echo 'Then run `make install` to (re)install.'
 
-.PHONY: traefik-user
-traefik-user:
-	@SSH_HOST=$$(docker context inspect | jq -r ".[0].Endpoints.docker.Host"); if [[ "$${SSH_HOST}" == unix://* ]]; then echo "Not creating the traefik-user because there is no SSH context" ; else (SSH_UID=$$(ssh $${SSH_HOST} id -u); [[ $SSH_UID != "0" ]] && SUDO_PREFIX="sudo" || SUDO_PREFIX=""; (ssh $${SSH_HOST} id traefik && echo "Traefik user exists.") || (ssh $${SSH_HOST} $${SUDO_PREFIX} adduser --disabled-login --disabled-password --gecos GECOS traefik && ssh $${SSH_HOST} $${SUDO_PREFIX} gpasswd -a traefik docker)); fi;
+.PHONY: config-menu
+config-menu:
+	@ENV_FILE=${ENV_FILE} ./setup.sh main_menu || true
 
-.PHONY: config-ask
-config-ask:
+.PHONY: config-domain
+config-domain:
 	@${BIN}/reconfigure ${ENV_FILE} TRAEFIK_ROOT_DOMAIN=${ROOT_DOMAIN}
-	@${BIN}/reconfigure_acme ${ENV_FILE}
+
+.PHONY: config-dashboard
+config-dashboard:
 	@${BIN}/reconfigure_dashboard ${ENV_FILE}
-	@echo ""
+
+.PHONY: config-acme
+config-acme:
+	@${BIN}/reconfigure_acme ${ENV_FILE}
+
+.PHONY: config-error-pages
+config-error-pages:
+	@TRAEFIK_ERROR_PAGES_TEMPLATE="$$(${BIN}/dotenv -f ${ENV_FILE} get TRAEFIK_ERROR_PAGES_TEMPLATE)"; ${BIN}/reconfigure ${ENV_FILE} TRAEFIK_ERROR_PAGES_TEMPLATE="$$(${BIN}/script-wizard choose --default $${TRAEFIK_ERROR_PAGES_TEMPLATE:-l7-light}  'Select an error page theme (https://github.com/tarampampam/error-pages#-templates)' ghost l7-light l7-dark shuffle noise hacker-terminal cats lost-in-space app-down connection matrix orient)"
+
+.PHONY: config-middleware
+config-middleware:
 	@${BIN}/confirm $$([[ $$(${BIN}/dotenv -f ${ENV_FILE} get TRAEFIK_PLUGIN_MAXMIND_GEOIP) == "true" ]] && echo "yes" || echo "no") "Do you want to enable the MaxMind GeoIP client locator plugin" "?" && ${BIN}/reconfigure ${ENV_FILE} TRAEFIK_PLUGIN_MAXMIND_GEOIP=true || ${BIN}/reconfigure ${ENV_FILE} TRAEFIK_PLUGIN_MAXMIND_GEOIP=false || true
 	@[[ $$(${BIN}/dotenv -f ${ENV_FILE} get TRAEFIK_PLUGIN_MAXMIND_GEOIP) == "true" ]] && echo "You may create a free MaxMind account: https://www.maxmind.com/en/geolite2/signup" && echo "Login to your MaxMind account and create a License Key." && echo "" && ${BIN}/reconfigure_ask ${ENV_FILE} TRAEFIK_GEOIPUPDATE_ACCOUNT_ID "Enter your MaxMind account ID" && ${BIN}/reconfigure_ask ${ENV_FILE} TRAEFIK_GEOIPUPDATE_LICENSE_KEY "Enter your MaxMind license key" && ${BIN}/reconfigure_ask ${ENV_FILE} TRAEFIK_GEOIPUPDATE_EDITION_IDS "Enter the GeoIP database IDs you wish to install" "GeoLite2-ASN GeoLite2-City GeoLite2-Country" || true
-	@echo ""
-	@${BIN}/confirm $$([[ $$(${BIN}/dotenv -f ${ENV_FILE} get TRAEFIK_VPN_ENABLED) == "true" ]] && echo "yes" || echo "no") "Do you want to run Traefik exclusively inside a VPN (wireguard server mode)" "?" && make --no-print-directory config-wireguard || ${BIN}/reconfigure ${ENV_FILE} TRAEFIK_VPN_ENABLED=false || true
-	@echo ""
-	@[[ $$(${BIN}/dotenv -f ${ENV_FILE} get TRAEFIK_VPN_ENABLED) != "true" ]] && ${BIN}/confirm $$([[ $$(${BIN}/dotenv -f ${ENV_FILE} get TRAEFIK_VPN_CLIENT_ENABLED) == "true" ]] && echo "yes" || echo "no") "Do you want to run Traefik as a reverse proxy for an external VPN (wireguard client mode)" "?" && make --no-print-directory config-wireguard-client || ${BIN}/reconfigure ${ENV_FILE} TRAEFIK_VPN_CLIENT_ENABLED=false || true
-	@[[ $$(${BIN}/dotenv -f ${ENV_FILE} get TRAEFIK_VPN_ENABLED) != "true" ]] && [[ $$(${BIN}/dotenv -f ${ENV_FILE} get TRAEFIK_VPN_CLIENT_ENABLED) != "true" ]] && ${BIN}/reconfigure ${ENV_FILE} TRAEFIK_NETWORK_MODE=host TRAEFIK_DASHBOARD_ENTRYPOINT_HOST=127.0.0.1 || true
-	@TRAEFIK_ERROR_PAGES_TEMPLATE="$$(${BIN}/dotenv -f ${ENV_FILE} get TRAEFIK_ERROR_PAGES_TEMPLATE)"; ${BIN}/reconfigure ${ENV_FILE} TRAEFIK_ERROR_PAGES_TEMPLATE="$$(${BIN}/script-wizard choose --default $${TRAEFIK_ERROR_PAGES_TEMPLATE:-l7-light}  'Select an error page theme (https://github.com/tarampampam/error-pages#-templates)' ghost l7-light l7-dark shuffle noise hacker-terminal cats lost-in-space app-down connection matrix orient)"
-	@SSH_HOST=$$(docker context inspect | jq -r ".[0].Endpoints.docker.Host"); if [[ "$${SSH_HOST}" == unix://* ]]; then ${BIN}/reconfigure ${ENV_FILE} TRAEFIK_UID=1000 ; else (TRAEFIK_UID=$$(ssh $${SSH_HOST} id -u traefik) && ${BIN}/dotenv -f ${ENV_FILE} set TRAEFIK_UID=$${TRAEFIK_UID} && echo "Set TRAEFIK_UID=$${TRAEFIK_UID}"); fi || true
-	@SSH_HOST=$$(docker context inspect | jq -r ".[0].Endpoints.docker.Host"); if [[ "$${SSH_HOST}" == unix://* ]]; then ${BIN}/reconfigure ${ENV_FILE} TRAEFIK_GID=1000 ; else (TRAEFIK_GID=$$(ssh $${SSH_HOST} id -g traefik) && ${BIN}/dotenv -f ${ENV_FILE} set TRAEFIK_GID=$${TRAEFIK_GID} && echo "Set TRAEFIK_GID=$${TRAEFIK_GID}"); fi || true
-	@SSH_HOST=$$(docker context inspect | jq -r ".[0].Endpoints.docker.Host"); if [[ "$${SSH_HOST}" == unix://* ]]; then ${BIN}/reconfigure ${ENV_FILE} TRAEFIK_DOCKER_GID=$$(getent group docker | cut -d ':' -f 3); else (TRAEFIK_DOCKER_GID=$$(ssh $$(docker context inspect | jq -r ".[0].Endpoints.docker.Host") getent group docker | cut -d: -f3) && ${BIN}/dotenv -f ${ENV_FILE} set TRAEFIK_DOCKER_GID=$${TRAEFIK_DOCKER_GID} && echo "Set TRAEFIK_DOCKER_GID=$${TRAEFIK_DOCKER_GID}"); fi || true
 
 .PHONY: config-wireguard
 config-wireguard:
+	@${BIN}/confirm $$([[ $$(${BIN}/dotenv -f ${ENV_FILE} get TRAEFIK_VPN_ENABLED) == "true" ]] && echo "yes" || echo "no") "Do you want to run Traefik exclusively inside a VPN (wireguard server mode)" "?" && make --no-print-directory config-wireguard-server || ${BIN}/reconfigure ${ENV_FILE} TRAEFIK_VPN_ENABLED=false || true
+	@echo ""
+	@[[ $$(${BIN}/dotenv -f ${ENV_FILE} get TRAEFIK_VPN_ENABLED) != "true" ]] && ${BIN}/confirm $$([[ $$(${BIN}/dotenv -f ${ENV_FILE} get TRAEFIK_VPN_CLIENT_ENABLED) == "true" ]] && echo "yes" || echo "no") "Do you want to run Traefik as a reverse proxy for an external VPN (wireguard client mode)" "?" && make --no-print-directory config-wireguard-client || ${BIN}/reconfigure ${ENV_FILE} TRAEFIK_VPN_CLIENT_ENABLED=false || true
+	@[[ $$(${BIN}/dotenv -f ${ENV_FILE} get TRAEFIK_VPN_ENABLED) != "true" ]] && [[ $$(${BIN}/dotenv -f ${ENV_FILE} get TRAEFIK_VPN_CLIENT_ENABLED) != "true" ]] && ${BIN}/reconfigure ${ENV_FILE} TRAEFIK_NETWORK_MODE=host TRAEFIK_DASHBOARD_ENTRYPOINT_HOST=127.0.0.1 || true
+
+.PHONY: config-wireguard-server
+config-wireguard-server:
 	@${BIN}/reconfigure_ask ${ENV_FILE} TRAEFIK_VPN_HOST "Enter the public Traefik VPN hostname" vpn.${ROOT_DOMAIN}
 	@${BIN}/reconfigure ${ENV_FILE} TRAEFIK_VPN_ROOT_DOMAIN=${ROOT_DOMAIN}
 	@${BIN}/reconfigure_ask ${ENV_FILE} TRAEFIK_VPN_SUBNET "Enter the Traefik VPN private subnet (no mask)"
