@@ -4,10 +4,8 @@ include ${ROOT_DIR}/_scripts/Makefile.projects-no-open
 .PHONY: config-hook
 config-hook: config-menu config-domain compose-profiles 
 	@echo ""
-	@echo 'Base configuration complete.'
-	@echo 'Run `make certs` to configure certificate domains.'
+	@echo 'Configuration complete.'
 	@echo "Examine the environment file: ${ENV_FILE}"
-	@echo 'Then run `make install` to (re)install.'
 
 .PHONY: config-menu
 config-menu:
@@ -16,10 +14,6 @@ config-menu:
 .PHONY: config-domain
 config-domain:
 	@${BIN}/reconfigure ${ENV_FILE} TRAEFIK_ROOT_DOMAIN=${ROOT_DOMAIN}
-
-.PHONY: config-dashboard
-config-dashboard:
-	@${BIN}/reconfigure_dashboard ${ENV_FILE}
 
 .PHONY: config-acme
 config-acme:

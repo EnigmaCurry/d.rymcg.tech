@@ -13,9 +13,15 @@ source ${BIN}/funcs.sh
 set -e
 
 main_menu() {
-    wizard menu "Traefik config main menu" \
-           "Walk me through everything = ./setup.sh everything" \
-           "Create Traefik system user on Docker host = ./setup.sh traefik_user"
+    separator '###' 60 "Traefik Config"
+    echo "For first time setup, visit each of the following menu items, in order."
+    echo "For reconfiguration, you can skip to the section you want:"
+    wizard menu "Traefik config main menu:" \
+           "Create Traefik system user on Docker host = ./setup.sh traefik_user" \
+           "Configure dashboard = ./setup.sh dashboard" \
+           "Configure ACME (Let's Encrypt) = make config-acme" \
+           "Configure TLS certificates and domains = make certs" \
+           "Exit = exit 2"
 }
 
 everything() {
@@ -37,7 +43,7 @@ traefik_user() {
         SSH_UID=$(ssh ${SSH_HOST} id -u);
         [[ $SSH_UID != "0" ]] && SUDO_PREFIX="sudo" || SUDO_PREFIX="";
         if ssh ${SSH_HOST} id traefik; then
-            echo "Traefik user exists."
+            echo "Traefik user already exists."
         else
             ssh ${SSH_HOST} ${SUDO_PREFIX} adduser \
                 --disabled-login --disabled-password \
@@ -60,6 +66,20 @@ traefik_uid() {
               TRAEFIK_UID=${TRAEFIK_UID} \
               TRAEFIK_GID=${TRAEFIK_GID} \
               TRAEFIK_DOCKER_GID=${TRAEFIK_DOCKER_GID}
+    fi
+}
+
+dashboard() {
+    ## Make new .env if it doesn't exist:
+    test -f ${ENV_FILE} || cp ./.env-dist ${ENV_FILE}
+    echo ""
+    if ${BIN}/confirm $([[ $(${BIN}/dotenv -f ${ENV_FILE} get TRAEFIK_DASHBOARD_ENTRYPOINT_ENABLED) == "true" ]] && echo yes || echo no) "Do you want to enable the Traefik dashboard" "?"; then
+        ${BIN}/reconfigure ${ENV_FILE} TRAEFIK_DASHBOARD_ENTRYPOINT_ENABLED=true
+        echo
+        echo "It's important to protect the dashboard and so a username/password is required."
+	    __D_RY_CONFIG_ENTRY=reconfigure_auth ${BIN}/reconfigure_htpasswd ${ENV_FILE} TRAEFIK_DASHBOARD_HTTP_AUTH
+    else
+        ${BIN}/reconfigure ${ENV_FILE} TRAEFIK_DASHBOARD_ENTRYPOINT_ENABLED=false
     fi
 }
 
