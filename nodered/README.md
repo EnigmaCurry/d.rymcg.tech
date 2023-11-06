@@ -19,3 +19,7 @@ watch make status
 ```
 make open
 ```
+
+## Installed addons
+
+[node-red-contrib-matrix-chat](https://github.com/Skylar-Tech/node-red-contrib-matrix-chat)
