@@ -15,14 +15,24 @@ set -e
 main_menu() {
     base_config
     separator '###' 60 "Traefik Config"
-    echo "For first time setup, visit each of the following menu items, in order."
-    echo "When re-configuring, you may skip to the section you want:"
+    echo "During first time setup, you must complete the following tasks:"
+    echo
+    echo " * Create traefik system user on Docker host"
+    echo " * Configure ACME"
+    echo " * Configure TLS certificates"
+    echo " * Install traefik"
+    echo
+
+    separator '~~' 60
+
     wizard menu "Traefik config main menu:" \
            "Create system user on Docker host = ./setup.sh traefik_user" \
            "Configure entrypoints (including dashboard) = ./setup.sh entrypoints" \
-           "Configure error page template = ./setup.sh error_pages" \
            "Configure ACME (Let's Encrypt) = make config-acme" \
            "Configure TLS certificates and domains (make certs) = make certs" \
+           "Configure middleware (including auth) = ./setup.sh middleware" \
+           "Configure error page template = ./setup.sh error_pages" \
+           "Configure wireguard VPN = ./setup.sh wireguard" \
            "Reinstall Traefik (make install) = make install" \
            "Exit = exit 2"
 }
@@ -98,7 +108,7 @@ get_enabled_entrypoints() {
 entrypoints() {
     wizard menu "Traefik entrypoint config" \
            "Show enabled entrypoints = ./setup.sh get_enabled_entrypoints" \
-           "Configure all entrypoints = ./setup.sh config_list_entrypoints"
+           "Configure available entrypoints = ./setup.sh config_list_entrypoints"
 }
 
 config_list_entrypoints() {
@@ -162,6 +172,69 @@ error_pages() {
 if [[ "$#" -lt 1 ]]; then
     fault "Wrong number of arguments. Try running \`make config\` instead."
 fi
+
+middleware() {
+    wizard menu "Traefik middleware config:" \
+           "MaxMind geoIP locator = ./setup.sh maxmind_geoip" \
+           "OAuth2 sentry authorization (make sentry) = make sentry"
+}
+
+maxmind_geoip() {
+    if ${BIN}/confirm $([[ $(${BIN}/dotenv -f ${ENV_FILE} get TRAEFIK_PLUGIN_MAXMIND_GEOIP) == "true" ]] && echo "yes" || echo "no") "Do you want to enable the MaxMind GeoIP client locator plugin" "?"; then
+        ${BIN}/reconfigure ${ENV_FILE} TRAEFIK_PLUGIN_MAXMIND_GEOIP=true
+    else
+        ${BIN}/reconfigure ${ENV_FILE} TRAEFIK_PLUGIN_MAXMIND_GEOIP=false
+    fi
+    if [[ $(${BIN}/dotenv -f ${ENV_FILE} get TRAEFIK_PLUGIN_MAXMIND_GEOIP) == "true" ]]; then
+        echo "You may create a free MaxMind account: https://www.maxmind.com/en/geolite2/signup"
+        echo "Login to your MaxMind account and create a License Key."
+        echo ""
+        ${BIN}/reconfigure_ask ${ENV_FILE} TRAEFIK_GEOIPUPDATE_ACCOUNT_ID "Enter your MaxMind account ID"
+        ${BIN}/reconfigure_ask ${ENV_FILE} TRAEFIK_GEOIPUPDATE_LICENSE_KEY "Enter your MaxMind license key"
+        ${BIN}/reconfigure_ask ${ENV_FILE} TRAEFIK_GEOIPUPDATE_EDITION_IDS "Enter the GeoIP database IDs you wish to install" "GeoLite2-ASN GeoLite2-City GeoLite2-Country"
+    fi
+}
+
+wireguard() {
+    if ${BIN}/confirm $([[ $(${BIN}/dotenv -f ${ENV_FILE} get TRAEFIK_VPN_ENABLED) == "true" ]] && echo "yes" || echo "no") "Do you want to run Traefik exclusively inside a VPN (wireguard server mode)" "?"; then
+        ${BIN}/reconfigure_ask ${ENV_FILE} TRAEFIK_VPN_HOST "Enter the public Traefik VPN hostname" vpn.${ROOT_DOMAIN}
+	    ${BIN}/reconfigure ${ENV_FILE} TRAEFIK_VPN_ROOT_DOMAIN=${ROOT_DOMAIN}
+	    ${BIN}/reconfigure_ask ${ENV_FILE} TRAEFIK_VPN_SUBNET "Enter the Traefik VPN private subnet (no mask)"
+	    ${BIN}/reconfigure_ask ${ENV_FILE} TRAEFIK_VPN_ADDRESS "Enter the Traefik VPN private IP address" 10.13.16.1
+	    ${BIN}/reconfigure_ask ${ENV_FILE} TRAEFIK_VPN_PORT "Enter the Traefik VPN TCP port number"
+	    ${BIN}/reconfigure_ask_multi ${ENV_FILE} TRAEFIK_WEB_ENTRYPOINT_HOST,TRAEFIK_WEBSECURE_ENTRYPOINT_HOST,TRAEFIK_MQTT_ENTRYPOINT_HOST,TRAEFIK_SSH_ENTRYPOINT_HOST "Enter the Traefik VPN IP address to bind all the entrypoints to" 10.13.16.1
+	    ${BIN}/reconfigure ${ENV_FILE} TRAEFIK_VPN_ENABLED=true TRAEFIK_NETWORK_MODE=service:wireguard TRAEFIK_VPN_ALLOWED_IPS=$(${BIN}/dotenv -f ${ENV_FILE} get TRAEFIK_VPN_SUBNET)/24 TRAEFIK_DASHBOARD_ENTRYPOINT_HOST="0.0.0.0"
+	    ${BIN}/reconfigure_ask ${ENV_FILE} TRAEFIK_VPN_PEERS "Enter the Traefik VPN peers list"
+    else
+        ${BIN}/reconfigure ${ENV_FILE} TRAEFIK_VPN_ENABLED=false
+	    ${BIN}/reconfigure ${ENV_FILE} TRAEFIK_DASHBOARD_ENTRYPOINT_HOST=127.0.0.1 TRAEFIK_WEB_ENTRYPOINT_HOST=0.0.0.0 TRAEFIK_WEBSECURE_ENTRYPOINT_HOST=0.0.0.0 TRAEFIK_WEB_PLAIN_ENTRYPOINT_HOST=0.0.0.0 TRAEFIK_MQTT_ENTRYPOINT_HOST=0.0.0.0 TRAEFIK_SSH_ENTRYPOINT_HOST=0.0.0.0 TRAEFIK_XMPP_C2S_ENTRYPOINT_HOST=0.0.0.0 TRAEFIK_XMPP_S2S_ENTRYPOINT_HOST=0.0.0.0 TRAEFIK_MPD_ENTRYPOINT_HOST=0.0.0.0 TRAEFIK_SNAPCAST_ENTRYPOINT_HOST=0.0.0.0 TRAEFIK_SNAPCAST_CONTROL_ENTRYPOINT_HOST=0.0.0.0
+    fi
+	echo ""
+	if [[ $(${BIN}/dotenv -f ${ENV_FILE} get TRAEFIK_VPN_ENABLED) != "true" ]]; then
+        if ${BIN}/confirm $([[ $(${BIN}/dotenv -f ${ENV_FILE} get TRAEFIK_VPN_CLIENT_ENABLED) == "true" ]] && echo "yes" || echo "no") "Do you want to run Traefik as a reverse proxy for an external VPN (wireguard client mode)" "?"; then
+            echo ""
+	        ${BIN}/reconfigure_ask ${ENV_FILE} TRAEFIK_VPN_ROOT_DOMAIN "Enter the ROOT_DOMAIN used by the server config"
+	        ${BIN}/reconfigure_ask ${ENV_FILE} TRAEFIK_VPN_CLIENT_PEER_SERVICES "Enter the list of VPN service names that the client should reverse proxy (comma separated; hostnames only)" whoami
+	        echo "Scan the QR code for the client credentials printed in the wireguard server's log. Copy the details from the decoded QR code (The first line should be: [Interface]):"
+	        ${BIN}/reconfigure_ask ${ENV_FILE} TRAEFIK_VPN_CLIENT_INTERFACE_ADDRESS "Enter the wireguard client Interface Address"
+	        ${BIN}/reconfigure_ask ${ENV_FILE} TRAEFIK_VPN_CLIENT_INTERFACE_PRIVATE_KEY "Enter the wireguard PrivateKey (ends with =)"
+	        ${BIN}/reconfigure_ask ${ENV_FILE} TRAEFIK_VPN_CLIENT_INTERFACE_LISTEN_PORT "Enter the wireguard listen port" 51820
+	        ${BIN}/reconfigure_ask ${ENV_FILE} TRAEFIK_VPN_CLIENT_INTERFACE_PEER_DNS "Enter the wireguard Interface DNS" 10.13.16.1
+	        ${BIN}/reconfigure_ask ${ENV_FILE} TRAEFIK_VPN_CLIENT_PEER_PUBLIC_KEY "Enter the Peer PublicKey (ends with =)"
+	        ${BIN}/reconfigure_ask ${ENV_FILE} TRAEFIK_VPN_CLIENT_PEER_PRESHARED_KEY "Enter the Peer PresharedKey (ends with =)"
+	        ${BIN}/reconfigure_ask ${ENV_FILE} TRAEFIK_VPN_CLIENT_PEER_ENDPOINT "Enter the Peer Endpoint (host:port)"
+	        ${BIN}/reconfigure_ask ${ENV_FILE} TRAEFIK_VPN_CLIENT_PEER_ALLOWED_IPS "Enter the Peer AllowedIPs"
+	        ${BIN}/reconfigure_ask ${ENV_FILE} TRAEFIK_VPN_ADDRESS "Enter the Traefik VPN private IP address" 10.13.16.1
+	        ${BIN}/reconfigure ${ENV_FILE} TRAEFIK_VPN_CLIENT_ENABLED=true TRAEFIK_NETWORK_MODE=service:wireguard-client TRAEFIK_DASHBOARD_ENTRYPOINT_HOST="0.0.0.0"
+        else
+            ${BIN}/reconfigure ${ENV_FILE} TRAEFIK_VPN_CLIENT_ENABLED=false
+        fi
+    fi
+	if [[ $(${BIN}/dotenv -f ${ENV_FILE} get TRAEFIK_VPN_ENABLED) != "true" ]] && [[ $(${BIN}/dotenv -f ${ENV_FILE} get TRAEFIK_VPN_CLIENT_ENABLED) != "true" ]]; then
+        ${BIN}/reconfigure ${ENV_FILE} TRAEFIK_NETWORK_MODE=host TRAEFIK_DASHBOARD_ENTRYPOINT_HOST=127.0.0.1
+    fi
+	make --no-print-directory compose-profiles
+}
 
 echo
 check_var ENV_FILE
