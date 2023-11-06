@@ -4,9 +4,10 @@ BIN=$(realpath $(dirname ${BASH_SOURCE}))
 source ${BIN}/funcs.sh
 set -e
 
-${BIN}/check_deps curl jq
+${BIN}/check_deps jq
 
 get_latest_version() {
+    ${BIN}/check_deps curl
     echo "## Checking for latest version of script-wizard:" > /dev/stderr
     (set -x; curl -sL https://api.github.com/repos/EnigmaCurry/script-wizard/releases/latest | jq -r ".tag_name"  | sed 's/^v//')
 }
@@ -48,6 +49,7 @@ download() {
     fi
     local TMP_DIR=$(mktemp -d)
     cd ${TMP_DIR}
+    ${BIN}/check_deps curl
     echo "## Downloading ..."
     exe curl -LO "${SCRIPT_WIZARD_DOWNLOAD_URL}"
     tar xfvz "${SCRIPT_WIZARD_TARBALL}"

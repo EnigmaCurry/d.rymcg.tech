@@ -28,6 +28,12 @@ check_num(){
     fi
 }
 
+debug_var() {
+    local var=$1
+    check_var var
+    echo "## DEBUG: ${var}=${!var}" > /dev/stderr
+}
+
 ask() {
     ## Ask the user a question and set the given variable name with their answer
     local __prompt="${1}"; local __var="${2}"; local __default="${3}"

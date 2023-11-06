@@ -2,10 +2,9 @@ ROOT_DIR = ..
 include ${ROOT_DIR}/_scripts/Makefile.projects-no-open
 
 .PHONY: config-hook
-config-hook: config-menu config-domain compose-profiles 
+config-hook: config-menu config-domain compose-profiles
 	@echo ""
-	@echo 'Configuration complete.'
-	@echo "Examine the environment file: ${ENV_FILE}"
+	@echo "Examine the configured environment file: ${ENV_FILE}"
 
 .PHONY: config-menu
 config-menu:
@@ -18,10 +17,6 @@ config-domain:
 .PHONY: config-acme
 config-acme:
 	@${BIN}/reconfigure_acme ${ENV_FILE}
-
-.PHONY: config-error-pages
-config-error-pages:
-	@TRAEFIK_ERROR_PAGES_TEMPLATE="$$(${BIN}/dotenv -f ${ENV_FILE} get TRAEFIK_ERROR_PAGES_TEMPLATE)"; ${BIN}/reconfigure ${ENV_FILE} TRAEFIK_ERROR_PAGES_TEMPLATE="$$(${BIN}/script-wizard choose --default $${TRAEFIK_ERROR_PAGES_TEMPLATE:-l7-light}  'Select an error page theme (https://github.com/tarampampam/error-pages#-templates)' ghost l7-light l7-dark shuffle noise hacker-terminal cats lost-in-space app-down connection matrix orient)"
 
 .PHONY: config-middleware
 config-middleware:
