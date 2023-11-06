@@ -48,7 +48,7 @@ traefik_user() {
             ssh ${SSH_HOST} ${SUDO_PREFIX} adduser \
                 --disabled-login --disabled-password \
                 --gecos GECOS traefik && \
-                ssh ${SSH_HOST} ${SUDO_PREFIX} gpasswd -a traefik docker
+                ssh ${SSH_HOST} ${SUDO_PREFIX} gpasswd -a traefik docker || fault "There was a problem creating the traefik user. You must create the traefik user on the Docker host by hand, and set the TRAEFIK_UID and TRAEFIK_GID in the .env file."
         fi
     fi
 }
