@@ -5,7 +5,10 @@ volumes:
 
 services:
   nodered:
-    image: "nodered/node-red"
+    build:
+      context: nodered
+      args:
+        NODERED_VERSION: ${NODERED_VERSION}
     security_opt:
       - no-new-privileges:true
     restart: unless-stopped
