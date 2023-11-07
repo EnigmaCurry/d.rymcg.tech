@@ -405,6 +405,7 @@ separator() {
         echo "${sep}"
     fi
     echo
+}
 
 parse_vars_from_env_file() {
     local f=$1
