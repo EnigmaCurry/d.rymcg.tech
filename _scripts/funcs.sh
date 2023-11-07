@@ -293,3 +293,9 @@ version_spec() {
         fault "Installed ${APP} version ${CHECK_VERSION} does not match the locked version: ${LOCKED_VERSION}"
     fi
 }
+
+parse_vars_from_env_file() {
+    local f=$1
+    check_var f
+    grep -oP "^[a-zA-Z_0-9]+=" ${f} | sed 's/=//'
+}

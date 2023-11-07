@@ -48,3 +48,7 @@ check-in-subshell:
 .PHONY: script-wizard
 script-wizard:
 	${BIN}/install_script-wizard
+
+.PHONY: check-dist-vars
+check-dist-vars:
+	@if [[ -f ${ENV_FILE} ]]; then ${BIN}/validate_env_file ${ENV_FILE}; fi
