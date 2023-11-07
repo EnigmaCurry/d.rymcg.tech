@@ -405,4 +405,9 @@ separator() {
         echo "${sep}"
     fi
     echo
+
+parse_vars_from_env_file() {
+    local f=$1
+    check_var f
+    grep -oP "^[a-zA-Z_0-9]+=" ${f} | sed 's/=//'
 }
