@@ -434,7 +434,7 @@ wait_until_healthy() {
             break
         fi
         local random_container=$(random_element "${containers[@]}")
-        debug_var random_container
+        #debug_var random_container
         local inspect_json=$(docker inspect ${random_container})
         local name=$(echo "${inspect_json}" | jq -r ".[0].Name" | sed 's|^/||')
         local status=$(echo "${inspect_json}" | jq -r ".[0].State.Status")
