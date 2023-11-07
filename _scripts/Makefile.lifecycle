@@ -47,3 +47,6 @@ logs:
 pull:
 	@make --no-print-directory docker-compose-lifecycle-cmd EXTRA_ARGS="pull"
 
+.PHONY: wait # Wait until deployment is started and healthy
+wait:
+	@CONTAINER_IDS= ${BIN}/wait_until_healthy "$$(make --no-print-directory docker-compose-lifecycle-cmd EXTRA_ARGS='ps -a -q')"

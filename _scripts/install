@@ -1,0 +1,21 @@
+#!/bin/bash
+
+BIN=$(dirname ${BASH_SOURCE})
+source ${BIN}/funcs.sh
+set -e
+
+check_var ENV_FILE ROOT_ENV ROOT_DIR
+
+${BIN}/confirm yes "This tool is provided for your convenience, please read the README of each project before installation."
+
+test -f "${ROOT_ENV}" || make -C ${ROOT_DIR} config
+
+readarray -t all_projects < <(get_all_projects)
+PROJECT=$(wizard choose "Select a project to install" "${all_projects[@]}")
+
+echo "Configuring ${PROJECT} ..."
+PROJECT_DIR=${ROOT_DIR}/${PROJECT}
+test -d ${PROJECT_DIR} || fault "Invalid project directory: ${PROJECT_DIR}"
+test -f ${PROJECT_DIR}/Makefile || fault "Missing Makefile: ${PROJECT_DIR}/Makefile"
+echo Project dir: ${PROJECT_DIR}
+make -C ${PROJECT_DIR} config install wait open

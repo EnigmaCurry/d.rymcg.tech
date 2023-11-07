@@ -119,3 +119,7 @@ docker-workstation:
 docker-workstation-clean:
 	docker compose -f compose-dev.yaml kill
 	docker compose -f compose-dev.yaml down -v
+
+.PHONY: install
+install:
+	ENV_FILE=${ENV_FILE} ROOT_ENV=${ROOT_ENV} DOCKER_CONTEXT=${DOCKER_CONTEXT} ROOT_DIR=${ROOT_DIR} ${BIN}/install

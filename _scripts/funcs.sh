@@ -412,3 +412,57 @@ parse_vars_from_env_file() {
     check_var f
     grep -oP "^[a-zA-Z_0-9]+=" ${f} | sed 's/=//'
 }
+
+get_all_projects() {
+    ROOT_DIR=$(realpath ${BIN}/..)
+    find "${ROOT_DIR}" -maxdepth 1 -type d -printf "%P\n" | grep -v "^_" | grep -v "^\." | sort -u | xargs -iXX /bin/bash -c "test -f ${ROOT_DIR}/XX/Makefile && echo XX"
+}
+
+wait_until_healthy() {
+    echo "Waiting until all services are started and become healthy ..."
+    local containers=()
+
+    while IFS= read -r CONTAINER_ID; do
+        local inspect_json=$(docker inspect ${CONTAINER_ID})
+        local name=$(echo "${inspect_json}" | jq -r ".[0].Name" | sed 's|^/||')
+        containers+=("$name")
+    done <<< "$@"
+    local attempts=0
+    while true; do
+        attempts=$((attempts+1))
+        if [[ "${#containers}" == "0" ]]; then
+            break
+        fi
+        local random_container=$(random_element "${containers[@]}")
+        debug_var random_container
+        local inspect_json=$(docker inspect ${random_container})
+        local name=$(echo "${inspect_json}" | jq -r ".[0].Name" | sed 's|^/||')
+        local status=$(echo "${inspect_json}" | jq -r ".[0].State.Status")
+        local health=$(echo "${inspect_json}" | jq -r ".[0].State.Health.Status")
+        if [[ "$status" == "running" ]] && ([[ "$health" == "healthy" ]] || [[ "$health" == "null" ]]); then
+            containers=( "${containers[@]/${name}}" )
+            if [[ "${#containers}" == "0" ]]; then
+                break
+            elif [[ "${attempts}" -gt 15 ]]; then
+                echo "Still waiting for services to finish starting: ${containers[@]}"
+            fi
+        fi
+
+        if [[ "${attempts}" -gt 150 ]]; then
+            fault "Gave up waiting for services to start."
+        fi
+        if [[ "$((attempts%5))" == 0 ]]; then
+            echo "Still waiting for services to finish starting: ${containers[@]}"
+        fi
+        sleep 2
+    done
+    echo "All services healthy."
+}
+
+random_element() {
+    local arr=("$@")
+    if [[ "${#@}" -lt 1 ]]; then
+        fault "Need more args"
+    fi
+    echo "${arr[ $RANDOM % ${#arr[@]} ]}"
+}

@@ -92,6 +92,13 @@ __create() {
     ${BIN}/create "${PROJECT_NAME}" "${TEMPLATE_NAME}" "./${PROJECT_NAME}"
 }
 
+__install() {
+    if [[ $# -gt 0 ]]; then
+        fault "install does not take any args"
+    fi
+    make --no-print-directory -C ${ROOT_DIR} install
+}
+
 __change-directory() {
     if [[ $# -gt 0 ]]; then
         __make $1 cd
@@ -128,7 +135,7 @@ __list_projects() {
             echo "List of available d.rymcg.tech projects (not including external projects):"
             echo ""
             set +e
-            find "${ROOT_DIR}" -maxdepth 1 -type d -printf "%P\n" | grep -v "^_" | grep -v "^\." | sort -u | xargs -iXX /bin/bash -c "test -f ${ROOT_DIR}/XX/Makefile && echo XX" | column
+            get_all_projects | column
             echo ""
         fi
     )
@@ -236,7 +243,7 @@ __d.rymcg.tech_completions() {
     if [[ ${COMP_CWORD} == 1 ]]; then
         ## Complete the main command:
         ## d.rymcg.tech <TAB> ...
-        COMMANDS="help create cd make list readme info context completion"
+        COMMANDS="help create cd make list readme info context completion install"
         COMPREPLY=($(compgen -W "${COMMANDS}" "${COMP_WORDS[1]}"))
     elif [[ ${COMP_CWORD} == 2 ]]; then
         ALL_PROJECTS=$(d.rymcg.tech list --raw)
@@ -353,6 +360,8 @@ main() {
                 __completion "$@";;
             info)
                 __info "$@";;
+            install)
+                __install "$@";;
             context)
                 __context "$@";;
             script)
