@@ -1,7 +1,7 @@
 .PHONY: config # Configure .env file
 config: check-instance-project script-wizard check-dist-vars
 	@echo
-    @echo "Configuring environment file: ${ENV_FILE}"
+	@echo "Configuring environment file: ${ENV_FILE}"
 	@make -e --no-print-directory config-hook override instance=${INSTANCE}
 	@echo ""
 	@echo "Remember to run 'make install' to deploy your changes."
