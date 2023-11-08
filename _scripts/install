@@ -48,3 +48,10 @@ if ${BIN}/confirm yes "Configuration is complete. Would you like to install it n
 else
     echo "OK. You can install this by running: d.rymcg.tech make ${PROJECT} install"
 fi
+
+WHAT_NOW=$(wizard choose --numeric "You have finished the config for ${PROJECT}. What do you want to do know" "I'm all done for now" "I want to install more apps")
+if [[ "${WHAT_NOW}" == 1 ]]; then
+    make -C "${ROOT_DIR}" install
+else
+    echo "See you later."
+fi
