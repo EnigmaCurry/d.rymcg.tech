@@ -5,6 +5,7 @@ ROOT_DIR=${ROOT_DIR:-$(dirname ${BIN})}
 
 error(){ echo "Error: $@" >/dev/stderr; }
 fault(){ test -n "$1" && error $1; echo "Exiting." >/dev/stderr; exit 1; }
+cancel(){ echo "Canceled." >/dev/stderr; exit 2; }
 exe() { (set -x; "$@"); }
 check_var(){
     local __missing=false
@@ -465,4 +466,50 @@ random_element() {
         fault "Need more args"
     fi
     echo "${arr[ $RANDOM % ${#arr[@]} ]}"
+}
+
+confirm() {
+    ## Confirm with the user.
+    ## Check env for the var YES, if it equals "yes" then bypass this confirm.
+    ## This version depends on `script-wizard` being installed.
+    test ${YES:-no} == "yes" && exit 0
+
+    local default=$1; local prompt=$2; local question=${3:-". Proceed?"}
+
+    check_var default prompt question
+
+    if [[ -f ${BIN}/script-wizard ]]; then
+        ## Check if script-wizard is installed, and prefer to use that:
+        local exit_code=0
+        wizard confirm --cancel-code=2 "$prompt$question" "$default" && exit_code=$? || exit_code=$?
+        if [[ "${exit_code}" == "2" ]]; then
+            cancel
+        fi
+        return ${exit_code}
+    else
+        ## Otherwise use a pure bash version:
+        if [[ $default == "y" || $default == "yes" || $default == "ok" ]]; then
+            dflt="Y/n"
+        else
+            dflt="y/N"
+        fi
+
+        read -e -p $'\e[32m?\e[0m '"${prompt}${question} (${dflt}): " answer
+        answer=${answer:-${default}}
+
+        if [[ ${answer,,} == "y" || ${answer,,} == "yes" || ${answer,,} == "ok" ]]; then
+            return 0
+        else
+            return 1
+        fi
+    fi
+}
+
+choose() {
+    local exit_code=0
+    wizard choose --cancel-code=2 "$@" && exit_code=$? || exit_code=$?
+    if [[ "${exit_code}" == "2" ]]; then
+        cancel
+    fi
+    return ${exit_code}
 }
