@@ -86,11 +86,11 @@ then
     test -n "${TRAEFIK_ACME_DNS_VARNAME_2}" && \
         ALLOW_BLANK=1 ${BIN}/reconfigure_ask ${ENV_FILE} TRAEFIK_ACME_DNS_VARNAME_3 "Enter the 3rd DNS provider variable name (or leave blank)"  || ${BIN}/reconfigure ${ENV_FILE} TRAEFIK_ACME_DNS_VARNAME_3=""
     TRAEFIK_ACME_DNS_VARNAME_3=$(${BIN}/dotenv -f ${ENV_FILE} get TRAEFIK_ACME_DNS_VARNAME_3)
-    
+
     test -n "${TRAEFIK_ACME_DNS_VARNAME_3}" && \
         ALLOW_BLANK=1 ${BIN}/reconfigure_ask ${ENV_FILE} TRAEFIK_ACME_DNS_VARNAME_4 "Enter the 4th DNS provider variable name (or leave blank)"  || ${BIN}/reconfigure ${ENV_FILE} TRAEFIK_ACME_DNS_VARNAME_4=""
     TRAEFIK_ACME_DNS_VARNAME_4=$(${BIN}/dotenv -f ${ENV_FILE} get TRAEFIK_ACME_DNS_VARNAME_4)
-    
+
     test -n "${TRAEFIK_ACME_DNS_VARNAME_4}" && \
         ALLOW_BLANK=1 ${BIN}/reconfigure_ask ${ENV_FILE} TRAEFIK_ACME_DNS_VARNAME_5 "Enter the 5th DNS provider variable name (or leave blank)"  || ${BIN}/reconfigure ${ENV_FILE} TRAEFIK_ACME_DNS_VARNAME_5=""
     TRAEFIK_ACME_DNS_VARNAME_5=$(${BIN}/dotenv -f ${ENV_FILE} get TRAEFIK_ACME_DNS_VARNAME_5)
