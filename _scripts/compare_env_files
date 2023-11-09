@@ -1,0 +1,25 @@
+#!/bin/bash
+
+BIN=$(dirname ${BASH_SOURCE})
+source ${BIN}/funcs.sh
+set -e
+
+ENV_FILE_1=$1
+ENV_FILE_2=$2
+check_var ENV_FILE_1 ENV_FILE_2
+
+test -f ${ENV_FILE_1} || fault "Missing ${ENV_FILE_1} : file does not exist"
+test -f ${ENV_FILE_2} || fault "Missing ${ENV_FILE_2} : file does not exist"
+
+readarray -t vars_1 < <(parse_vars_from_env_file ${ENV_FILE_1})
+readarray -t vars_2 < <(parse_vars_from_env_file ${ENV_FILE_2})
+readarray -t missing < <(echo ${vars_1[@]} ${vars_2[@]} | tr ' ' '\n' | sort | uniq -u)
+
+if [[ ${#missing} -gt 0 ]]; then
+    #echo "## The following variables are contained in ${ENV_FILE_2} but not in ${ENV_FILE_1}:"
+    for var in "${missing[@]}"; do
+        if ! grep -oP "^${var}=" ${ENV_FILE_1} >/dev/null; then
+            echo "${var}"
+        fi
+    done
+fi

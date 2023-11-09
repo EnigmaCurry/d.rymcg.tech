@@ -89,6 +89,7 @@ services:
       - TRAEFIK_ERROR_HANDLER_404_SERVICE
       - TRAEFIK_ERROR_HANDLER_500_SERVICE
       - TRAEFIK_HEADER_AUTHORIZATION_GROUPS
+
   traefik:
     profiles:
       - default

@@ -1,0 +1,61 @@
+#!/bin/bash
+
+BIN=$(dirname ${BASH_SOURCE})
+source ${BIN}/funcs.sh
+set -e
+
+install() {
+    check_var ENV_FILE ROOT_ENV ROOT_DIR
+    test -f "${ROOT_ENV}" || make -C ${ROOT_DIR} config
+
+    echo
+    echo "Notice: this is a turbo-charged convenience wrapper for configuring and installing d.rymcg.tech apps. This should work for most apps that follow the 'make config' + 'make install' strategy. However, there are a minority of apps that deviate from this generic path, and have additional steps listed in the project README. For those apps, this tool does not capture those extra steps. So, you should double check the project README to be sure." | fold -w 80 -s | sed 's/ $//g'
+    echo
+
+    readarray -t all_projects < <(get_all_projects)
+    PROJECT=$(choose "Select a project to install" "${all_projects[@]}")
+    PROJECT_DIR=${ROOT_DIR}/${PROJECT}
+
+    echo
+
+    if confirm yes "Before configuration, would you like to read the ${PROJECT} README (recommended)" "?"; then
+        make -C "${PROJECT_DIR}" readme
+        echo
+        confirm yes "The README should now open up in your web browser (if it does not, copy the URL from the output above). When you're finished reading, this script will proceed to configure, and then install ${PROJECT}. (Press Ctrl-C to cancel)" ""
+        echo
+    fi
+
+    echo "Configuring ${PROJECT} ..."
+    test -d "${PROJECT_DIR}" || fault "Invalid project directory: ${PROJECT_DIR}"
+    test -f "${PROJECT_DIR}"/Makefile || fault "Missing Makefile: ${PROJECT_DIR}/Makefile"
+    echo Project dir: "${PROJECT_DIR}"
+    make -C "${PROJECT_DIR}" config || fault "Configuration did not finish."
+
+    if confirm yes "Configuration is complete. Would you like to install it now" "?"; then
+        echo "Installing ${PROJECT} ..."
+        make -C "${PROJECT_DIR}" install || fault "install failed"
+        echo "Waiting for ${PROJECT} service healthchecks ..."
+        make -C "${PROJECT_DIR}" wait
+
+        echo
+        echo "The app is ready:"
+        make -C "${PROJECT_DIR}" --no-print-directory get-instance-url
+        echo
+        echo "## Note: the url listed *might* be incorrect, check the README to be sure."
+        echo
+        if confirm yes "Would you like to open the app now" "?"; then
+            make -C "${PROJECT_DIR}" --no-print-directory open
+        fi
+    else
+        echo "OK. You can install this by running: d.rymcg.tech make ${PROJECT} install"
+    fi
+
+    WHAT_NOW=$(choose --numeric "You have finished the config for ${PROJECT}. What do you want to do now" "I'm all done for now" "I want to install more apps")
+    if [[ "${WHAT_NOW}" == 1 ]]; then
+        make -C "${ROOT_DIR}" install
+    else
+        echo "See you later."
+    fi
+}
+
+install

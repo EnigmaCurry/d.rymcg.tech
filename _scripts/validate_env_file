@@ -1,0 +1,59 @@
+#!/bin/bash
+
+#!/bin/bash
+
+BIN=$(dirname ${BASH_SOURCE})
+source ${BIN}/funcs.sh
+set -e
+
+ENV_FILE=$1
+check_var ENV_FILE
+ENV_DIR="$(dirname ${ENV_FILE})"
+ENV_DIST="${ENV_DIR}/.env-dist"
+
+test -f "${ENV_FILE}" || fault "Missing env file: ${ENV_FILE}"
+test -f "${ENV_DIST}" || fault "Missing env-dist file: ${ENV_DIST}"
+
+readarray -t vars < <(parse_vars_from_env_file "${ENV_FILE}")
+if [[ "${#vars}" -lt 1 ]]; then
+    fault "Could not parse any variables from ${ENV_FILE}. Is the file empty?"
+fi
+
+readarray -t missing_in_env < <(${BIN}/compare_env_files "${ENV_FILE}" "${ENV_DIST}")
+readarray -t missing_in_dist < <(${BIN}/compare_env_files "${ENV_DIST}" "${ENV_FILE}")
+
+if [[ "${#missing_in_env}" != "0" ]]; then
+    echo
+    echo "Error: Your existing environment file (${ENV_FILE}) is missing these variables from .env-dist:" >/dev/stderr
+    for var in "${missing_in_env[@]}"; do
+        echo "${var}"
+    done
+    if ${BIN}/confirm no "Would you like to automatically import the default values from .env-dist" "?"; then
+        for var in "${missing_in_env[@]}"; do
+            default_val=$(${BIN}/dotenv -f ${ENV_DIST} get "${var}")
+            ${BIN}/dotenv -f "${ENV_FILE}" set "${var}=${default_val}"
+            echo "Set ${var}=${default_val}"
+        done
+    else
+        fault "You must copy all the variables from .env-dist into your .env file: ${ENV_FILE}"
+    fi
+    echo
+fi
+
+if [[ "${#missing_in_dist}" != "0" ]]; then
+    echo
+    echo "Warning: Your existing environment file (${ENV_FILE}) contains variables not found in .env-dist:" >/dev/stderr
+    for var in "${missing_in_dist[@]}"; do
+        echo "${var}"
+    done
+    if ${BIN}/confirm no "Would you like to automatically remove these variables from ${ENV_FILE}? (Note: this only removes the variables, it may still leave old/invalid comments in your .env file)" "?"; then
+        tmpfile=$(mktemp)
+        for var in "${missing_in_dist[@]}"; do
+            grep -v -P "^${var}=.*" "${ENV_FILE}" > ${tmpfile}
+            cat "${tmpfile}" > "${ENV_FILE}"
+            echo "Removed ${var}"
+        done
+    fi
+    echo
+fi
+

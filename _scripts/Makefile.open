@@ -1,3 +1,7 @@
 .PHONY: open # Open the web-browser to the service URL
 open:
 	@export DOCKER_CONTEXT=${DOCKER_CONTEXT}; export ENV_FILE=${ENV_FILE}; export CONTEXT_INSTANCE=${CONTEXT_INSTANCE}; if grep "^open-hook:" "${PROJECT_MAKEFILE}" >/dev/null 2>&1; then echo ok ; make -e --no-print-directory open-hook; else ${BIN}/open; fi
+
+.PHONY: get-instance-url
+get-instance-url:
+	@export DOCKER_CONTEXT=${DOCKER_CONTEXT}; export ENV_FILE=${ENV_FILE}; export CONTEXT_INSTANCE=${CONTEXT_INSTANCE}; ${BIN}/get_instance_url;

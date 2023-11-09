@@ -11,63 +11,7 @@
 BIN=$(dirname ${BASH_SOURCE})
 source ${BIN}/funcs.sh
 
-DOCKER_CONTEXT=${DOCKER_CONTEXT:-$(${BIN}/docker_context)}
-check_var ENV_FILE ROOT_DIR DOCKER_CONTEXT CONTEXT_INSTANCE
-
-#echo "CONTEXT_INSTANCE=${CONTEXT_INSTANCE}"
-if [[ ! -f "${ENV_FILE}" ]]; then
-    echo "ENV_FILE=${ENV_FILE}"
-    echo "ENV_FILE not found"
-    exit 1
-fi
-ROOT_ENV_FILE="${ROOT_DIR}/.env_${DOCKER_CONTEXT}"
-#echo "ROOT_ENV_FILE=${ROOT_ENV_FILE}"
-if [[ ! -f "${ROOT_ENV_FILE}" ]]; then
-    echo "ROOT_ENV_FILE not found"
-    exit 1
-fi
-
-URL_PATH=${1:-"/"}
-HOST=${2:-$(grep -m 1 -oP "TRAEFIK_HOST=\K.*" ${ENV_FILE})}
-PROTOCOL=${3:-"https"}
-if [[ "${PROTOCOL}" == "https" ]]; then
-    PORT=${4:-$(${BIN}/dotenv -f ${ROOT_ENV_FILE} get PUBLIC_HTTPS_PORT || echo 443)}
-elif [[ "${PROTOCOL}" == "http" ]]; then
-    PORT=${4:-$(${BIN}/dotenv -f ${ROOT_ENV_FILE} get PUBLIC_HTTP_PORT || echo 80)}
-fi
-if [[ -z "${PORT}" ]] || [[ "$PORT" == "80" ]] || [[ "$PORT" == "443" ]] || [[ "${HOST}" =~ ":" ]]; then
-    PORT=""
-else
-    PORT=":${PORT}"
-fi
-if [[ ${URL_PATH} != /* ]]; then
-    echo "URL must start with /"
-    exit 1
-fi
-if [[ -z ${HOST} ]]; then
-    echo "Hostname must not be blank"
-    exit 1
-fi
-
-## Use 'jq' if installed, otherwise use the docker (Alpine) version:
-source $(dirname ${BASH_SOURCE})/wrapper.sh
-jq() {
-    wrapper_build jq <<EOF
-FROM alpine
-RUN apk add -U jq
-EOF
-    wrapper jq "${@}" </dev/stdin
-}
-if [[ -f passwords.json ]]; then
-    URL_PASSWORD=$(jq -r '(.["'${CONTEXT_INSTANCE}'"][0].username) + ":" + (.["'${CONTEXT_INSTANCE}'"][0].url_encoded)' <passwords.json)"@"
-    if [[ "${URL_PASSWORD}" == ":@" ]]; then
-        URL_PASSWORD=""
-    fi
-else
-    URL_PASSWORD=""
-fi
-
-URL="${PROTOCOL}://${URL_PASSWORD}${HOST}${PORT}${URL_PATH}"
+URL=$(${BIN}/get_instance_url "$@")
 
 if which xdg-open >/dev/null 2>&1; then
     (set -x; xdg-open "${URL}")

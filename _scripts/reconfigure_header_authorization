@@ -268,6 +268,15 @@ list_callback_urls() {
     echo ""
 }
 
+## check if traefik-forward-auth is installed:
+echo
+if ! docker inspect traefik-forward-auth >/dev/null; then
+    echo "You must install traefik-forward-auth (and gitea) first before configuring the authorization middleware"
+    echo "See https://github.com/EnigmaCurry/d.rymcg.tech/tree/master/traefik-forward-auth#readme"
+    echo "See https://github.com/EnigmaCurry/d.rymcg.tech/tree/master/gitea#readme"
+    exit 0
+fi
+
 CMD=$1; shift;
 if [[ -z "$CMD" ]]; then
     while :

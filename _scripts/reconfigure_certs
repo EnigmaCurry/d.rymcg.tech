@@ -119,11 +119,7 @@ do
     if [[ $COMMAND == 'q' || $COMMAND == "quit" ]]; then
         echo ""
         if [[ $PENDING_CHANGES -ne 0 ]]; then
-            if ${BIN}/confirm no "Do you want to restart Traefik now" "?"; then
-                make install
-            else
-                echo 'Remember to restart Traefik (`make install`) for new certificates to be issued.'
-            fi
+            echo 'Remember to restart Traefik (`make install`) for new certificates to be issued.'
         fi
         exit 0
     elif [[ $COMMAND == '?' || $COMMAND == "help" ]]; then
