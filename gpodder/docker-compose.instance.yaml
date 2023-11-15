@@ -15,6 +15,7 @@
 #@ http_auth = data.values.http_auth_var
 #@ enable_oauth2 = data.values.oauth2 == "true"
 #@ authorized_group = data.values.authorized_group
+#@ port = data.values.port
 #@ enabled_middlewares = []
 
 #@yaml/text-templated-strings
@@ -47,7 +48,7 @@ services:
       #! Override the default port that gpodder binds to, so that it lives in userspace >1024:
       #! You don't normally need to do this, as long as your image has
       #! an EXPOSE directive in it, Traefik will autodetect it, but this is how you can override it:
-      - "traefik.http.services.(@= router @).loadbalancer.server.port=8000"
+      - "traefik.http.services.(@= router @).loadbalancer.server.port=(@= port @)"
 
       #! Apply all middlewares (do this at the end!)
       - "traefik.http.routers.(@= router @).middlewares=(@= ','.join(enabled_middlewares) @)"

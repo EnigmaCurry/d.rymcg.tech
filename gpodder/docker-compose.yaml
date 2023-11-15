@@ -17,6 +17,6 @@ services:
       - config:/config
       - downloads:/downloads
     labels: []
-    ports:
-      - 3000:${GPODDER_PORT}
+    #ports:
+    #  - 3000:${GPODDER_PORT}
     restart: unless-stopped

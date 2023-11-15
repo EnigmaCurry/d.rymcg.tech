@@ -8,7 +8,7 @@ config-hook:
 #### reconfigure_ask asks the user a question to set the variable into the .env file, and with a provided default value.
 #### reconfigure sets the value of a variable in the .env file without asking.
 #### reconfigure_htpasswd will configure the HTTP Basic Authentication setting the var name and with a provided default value.
-	@${BIN}/wizard BLAH ${ENV_FILE} GPODDER_TRAEFIK_HOST "Enter the gpodder domain name" gpodder${INSTANCE_URL_SUFFIX}.${ROOT_DOMAIN}
+	@${BIN}/reconfigure_ask ${ENV_FILE} GPODDER_TRAEFIK_HOST "Enter the gpodder domain name" gpodder${INSTANCE_URL_SUFFIX}.${ROOT_DOMAIN}
 	@${BIN}/reconfigure ${ENV_FILE} GPODDER_INSTANCE=$${instance:-default}
 	@${BIN}/reconfigure_auth ${ENV_FILE} GPODDER
 	@${BIN}/reconfigure_ask ${ENV_FILE} GPODDER_IP_SOURCERANGE "Enter the client IP Address range filter (CIDR)" 0.0.0.0/0
@@ -32,7 +32,7 @@ override-hook:
 ####                         # (this hardcodes the string into docker-compose.override.yaml)
 ####   name=@VARIABLE_NAME   # sets the template 'name' field to the literal string '${VARIABLE_NAME}'
 ####                         # (used for regular docker-compose expansion of env vars by name.)
-	@${BIN}/docker_compose_override ${ENV_FILE} project=:gpodder instance=@GPODDER_INSTANCE traefik_host=@GPODDER_TRAEFIK_HOST http_auth=GPODDER_HTTP_AUTH http_auth_var=@GPODDER_HTTP_AUTH ip_sourcerange=@GPODDER_IP_SOURCERANGE oauth2=GPODDER_OAUTH2 authorized_group=GPODDER_OAUTH2_AUTHORIZED_GROUP
+	@${BIN}/docker_compose_override ${ENV_FILE} project=:gpodder instance=@GPODDER_INSTANCE traefik_host=@GPODDER_TRAEFIK_HOST http_auth=GPODDER_HTTP_AUTH http_auth_var=@GPODDER_HTTP_AUTH ip_sourcerange=@GPODDER_IP_SOURCERANGE oauth2=GPODDER_OAUTH2 authorized_group=GPODDER_OAUTH2_AUTHORIZED_GROUP port=GPODDER_PORT
 
 .PHONY: shell
 shell:
