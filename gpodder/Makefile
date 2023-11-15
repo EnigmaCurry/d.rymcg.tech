@@ -12,7 +12,6 @@ config-hook:
 	@${BIN}/reconfigure ${ENV_FILE} GPODDER_INSTANCE=$${instance:-default}
 	@${BIN}/reconfigure_auth ${ENV_FILE} GPODDER
 	@${BIN}/reconfigure_ask ${ENV_FILE} GPODDER_IP_SOURCERANGE "Enter the client IP Address range filter (CIDR)" 0.0.0.0/0
-	@(${BIN}/confirm $$(test "$$(${BIN}/dotenv -f ${ENV_FILE} get GPODDER_DEVELOPMENT_MODE)" == "true" && echo yes || echo no) "Do you want to enable live-reload development mode" "?" && ${BIN}/reconfigure ${ENV_FILE} GPODDER_DEVELOPMENT_MODE=true) || ${BIN}/reconfigure ${ENV_FILE} GPODDER_DEVELOPMENT_MODE=false
 	@${BIN}/reconfigure_ask ${ENV_FILE} GPODDER_UID "Enter the UID the docker container should run as" "54321"
 	@${BIN}/reconfigure_ask ${ENV_FILE} GPODDER_GID "Enter the GID the docker container should run as" "54321"
 	@${BIN}/reconfigure_ask ${ENV_FILE} GPODDER_PW "Enter password for the gPodder GUI (optional)" 
