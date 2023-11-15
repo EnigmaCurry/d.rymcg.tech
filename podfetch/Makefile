@@ -12,6 +12,8 @@ config-hook:
 	@echo ""
 	@${BIN}/reconfigure ${ENV_FILE} PODFETCH_INSTANCE=$${instance:-default}
 	@echo ""
+	@(${BIN}/confirm $$(test "$$(${BIN}/dotenv -f ${ENV_FILE} get PODFETCH_GPODDER_INTEGRATION_ENABLED)" == "true" && echo yes || echo no) "Do you want to enable the GPodder API" "?" && ${BIN}/reconfigure ${ENV_FILE} PODFETCH_GPODDER_INTEGRATION_ENABLED=true) || ${BIN}/reconfigure ${ENV_FILE} PODFETCH_GPODDER_INTEGRATION_ENABLED=false
+	@echo
 	@echo "You can configure HTTP Authentication through Traefik, Podfetch's internal Basic Authentication, or neither - but not both."
 	@${BIN}/reconfigure_htpasswd ${ENV_FILE} PODFETCH_HTTP_AUTH default=no
 	@echo ""
