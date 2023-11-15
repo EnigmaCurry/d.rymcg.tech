@@ -1,0 +1,32 @@
+#!/bin/bash
+
+## reconfigure_editor ENV_FILE VAR PROMPT
+## Allows user to edit a variable in the .env file using a full text editor
+## Output is serialized to a JSON string.
+
+## Example:
+## ${BIN}/reconfigure_editor .env BIOGRAPHY "Tell me about yourself"
+
+ENV_FILE="$1"; shift
+var="$1"; shift
+prompt="$1"; shift
+
+BIN=$(dirname ${BASH_SOURCE})
+source ${BIN}/funcs.sh
+
+check_var ENV_FILE var prompt
+
+## Make new .env if it doesn't exist:
+test -f ${ENV_FILE} || cp .env-dist ${ENV_FILE}
+
+DEFAULT=$(${BIN}/dotenv -f "${ENV_FILE}" get "${var}")
+answer=$(eval "${BIN}/script-wizard editor ${prompt@Q} --json --default '$DEFAULT'")
+
+## Strip everything before the first double quote " of the properly
+## JSON formatted string: This fixes a bug when inquire reads the text
+## coming from emacsclient "Waiting for Emacs..." and it prepended
+## that to the output.
+answer=$(echo "${answer}" | sed 's/^[^\"]*//')
+
+## Set the final answer:
+${BIN}/reconfigure ${ENV_FILE} ${var}="${answer}"

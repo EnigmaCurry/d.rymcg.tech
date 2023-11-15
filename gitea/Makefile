@@ -9,3 +9,6 @@ config-hook:
 	@${BIN}/reconfigure_ask ${ENV_FILE} APP_NAME "Enter the service description" "$${instance:-default} - git hosting"
 	@PUBLIC_HTTPS_PORT="$$(${BIN}/dotenv -f ${ROOT_DIR}/${ROOT_ENV} get PUBLIC_HTTPS_PORT)"; test -n "$${PUBLIC_HTTPS_PORT}" && ${BIN}/reconfigure ${ENV_FILE} "GITEA__server__ROOT_URL=https://$$(${BIN}/dotenv -f ${ENV_FILE} get GITEA_TRAEFIK_HOST):$${PUBLIC_HTTPS_PORT}" || ${BIN}/reconfigure ${ENV_FILE} "GITEA__server__ROOT_URL=https://$$(${BIN}/dotenv -f ${ENV_FILE} get GITEA_TRAEFIK_HOST)"
 
+.PHONY: shell
+shell:
+	@make --no-print-directory docker-compose-shell SERVICE=gitea

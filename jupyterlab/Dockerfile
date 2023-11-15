@@ -7,8 +7,8 @@ RUN apt update -y && apt install less
 
 USER jovyan
 ENV port 8888
-RUN jupyter labextension install jupyterlab-emacskeys && \
-    mkdir -p $HOME/.jupyter/lab/user-settings/@jupyterlab/apputils-extension
+#RUN jupyter labextension install jupyterlab-emacskeys
+RUN mkdir -p $HOME/.jupyter/lab/user-settings/@jupyterlab/apputils-extension
 COPY themes.jupyterlab-settings $HOME/.jupyter/lab/user-settings/@jupyterlab/apputils-extension/
 COPY commands.jupyterlab-settings $HOME/.jupyter/lab/user-settings/@jupyterlab/codemirror-extension/
 COPY shortcuts.jupyterlab-settings $HOME/.jupyter/lab/user-settings/@jupyterlab/shortcuts-extension/

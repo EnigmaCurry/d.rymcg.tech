@@ -26,7 +26,7 @@ CWD_PROJECT_INSTANCE ?= ${PROJECT}_${instance}
 PROJECT_INSTANCE ?= ${CWD_PROJECT_INSTANCE}
 PROJECT_VOLUME_PREFIX = ${PROJECT}${INSTANCE_SUFFIX}
 DOCKER_COMPOSE_FILE_ARGS ?= $(shell (set +x; [[ -f docker-compose.override_${CONTEXT_INSTANCE}.yaml ]] && echo "-f docker-compose.yaml -f docker-compose.override_${CONTEXT_INSTANCE}.yaml" || echo "-f docker-compose.yaml") )
-export DEFAULT_SAVE_CLEARTEXT_PASSWORDS_JSON ?= $(shell ${BIN}/dotenv -f ${ROOT_ENV} get DEFAULT_SAVE_CLEARTEXT_PASSWORDS_JSON)
+export DEFAULT_SAVE_CLEARTEXT_PASSWORDS_JSON ?= $(shell ${BIN}/dotenv -f ".env_$(shell docker context ls --format "{{.Current}} {{.Name}}" | grep -oP "^true \K.*")" get DEFAULT_SAVE_CLEARTEXT_PASSWORDS_JSON)
 PROJECT_MAKEFILE=$(realpath $(firstword $(MAKEFILE_LIST)))
 
 .PHONY: all
@@ -44,3 +44,11 @@ check-in-subshell:
 
 %-rule-exists:
 	@$(MAKE) -n $* &> /dev/null
+
+.PHONY: script-wizard
+script-wizard:
+	${BIN}/install_script-wizard
+
+.PHONY: check-dist-vars
+check-dist-vars:
+	@if [[ -f ${ENV_FILE} ]]; then ${BIN}/validate_env_file ${ENV_FILE}; fi

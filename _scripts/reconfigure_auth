@@ -1,0 +1,63 @@
+#!/bin/bash
+
+## reconfigure_auth VAR_PREFIX
+## Subsume all the authentication and authorization configurations in 1 script
+
+BIN=$(dirname ${BASH_SOURCE})
+source ${BIN}/funcs.sh
+set -eo pipefail
+
+ENV_FILE=$1
+VAR_PREFIX=$2
+export __D_RY_CONFIG_ENTRY=reconfigure_auth
+
+## note: should we add comments to reconfigure_htpasswd and reconfigure_oauth2 indicating they were designed to be called by this script, not independently?
+
+unset_oauth2() {
+    ${BIN}/reconfigure ${ENV_FILE} "${VAR_PREFIX}_OAUTH2"=
+}
+unset_http_auth() {
+    ${BIN}/reconfigure ${ENV_FILE} "${VAR_PREFIX}_HTTP_AUTH"=
+    TMP_PASSWORD=$(mktemp)
+    if [[ -f passwords.json ]]; then
+        cat passwords.json | jq "del(.\"${CONTEXT_INSTANCE}\")" > ${TMP_PASSWORD} && mv ${TMP_PASSWORD} passwords.json
+    fi
+}
+
+prompt="Do you want to enable sentry authentication in front of this app (effectively making the entire site private)?"
+options=("No" "Yes, with HTTP Basic Authentication" "Yes, with Oauth2")
+## Set default based on current auth settings in ENV_FILE
+
+set +e
+http_auth=$(${BIN}/dotenv -f ${ENV_FILE} get ${VAR_PREFIX}_HTTP_AUTH)
+if [[ "$?" != "0" ]]; then fault "could not read ${VAR_PREFIX}_HTTP_AUTH from env file"; fi
+oauth2_auth=$(${BIN}/dotenv -f ${ENV_FILE} get ${VAR_PREFIX}_OAUTH2)
+if [[ "$?" != "0" ]]; then fault "could not read ${VAR_PREFIX}_OAUTH2 from env file"; fi
+set -e
+
+if [[ -n "${http_auth}" ]]; then
+    default="${options[1]}"
+elif [[ "${oauth2_auth}" == "true" ]]; then
+    default="${options[2]}"
+else
+    default="${options[0]}"
+fi
+## Ask user which authentication configuration they want
+choice=$(eval "${BIN}/script-wizard choose ${prompt@Q} ${options[@]@Q} --default ${default@Q}")
+
+## Configure authentication per user's choice
+case "${choice}" in
+    No)
+        unset_oauth2
+        unset_http_auth
+        ;;
+    *HTTP*)
+        ${BIN}/reconfigure_htpasswd ${ENV_FILE} ${VAR_PREFIX}_HTTP_AUTH default=no && unset_oauth2
+        ;;
+    *Oauth2*)
+        ${BIN}/reconfigure_oauth2 ${ENV_FILE} ${VAR_PREFIX} && unset_http_auth
+        ;;
+    *)
+        echo "Unknown option."
+        exit 1
+esac

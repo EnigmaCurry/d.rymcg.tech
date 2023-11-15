@@ -2,16 +2,24 @@ ARG TRAEFIK_IMAGE
 
 ## Install plugins from source repositories:
 FROM alpine:3 as plugins
-ARG BLOCKPATH_MODULE=github.com/traefik/plugin-blockpath
-ARG BLOCKPATH_GIT_BRANCH=master
-ARG MAXMIND_GEOIP_MODULE=github.com/GiGInnovationLabs/traefikgeoip2
-ARG MAXMIND_GIT_BRANCH=main
+ARG BLOCKPATH_MODULE
+ARG BLOCKPATH_GIT_BRANCH
+ARG REFERER_MODULE
+ARG REFERER_GIT_BRANCH
+ARG MAXMIND_GEOIP_MODULE
+ARG MAXMIND_GIT_BRANCH
+ARG HEADER_AUTHORIZATION_MODULE
+ARG HEADER_AUTHORIZATION_GIT_BRANCH
 RUN apk add --update git && \
-    git clone https://${BLOCKPATH_MODULE}.git /plugins-local/src/${BLOCKPATH_MODULE} \
-      --depth 1 --single-branch --branch ${BLOCKPATH_GIT_BRANCH} && \
-    git clone https://${MAXMIND_GEOIP_MODULE}.git \
-      /plugins-local/src/${MAXMIND_GEOIP_MODULE} \
-      --depth 1 --single-branch --branch ${MAXMIND_GIT_BRANCH}
+    git clone https://${BLOCKPATH_MODULE}.git /plugins-local/src/github.com/traefik/plugin-blockpath \
+      --depth 1 --single-branch --branch ${BLOCKPATH_GIT_BRANCH}
+RUN git clone https://${MAXMIND_GEOIP_MODULE}.git \
+    /plugins-local/src/github.com/forestvpn/traefikgeoip2 \
+    --depth 1 --single-branch --branch ${MAXMIND_GIT_BRANCH}
+RUN git clone https://${REFERER_MODULE}.git /plugins-local/src/github.com/moonlightwatch/referer \
+      --depth 1 --single-branch --branch ${REFERER_GIT_BRANCH}
+RUN git clone https://${HEADER_AUTHORIZATION_MODULE}.git /plugins-local/src/github.com/poloyacero/headauth \
+      --depth 1 --single-branch --branch ${HEADER_AUTHORIZATION_GIT_BRANCH}
 
 FROM ${TRAEFIK_IMAGE}
 ARG TRAEFIK_UID TRAEFIK_GID TRAEFIK_DOCKER_GID

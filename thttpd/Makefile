@@ -6,11 +6,11 @@ include ${ROOT_DIR}/_scripts/Makefile.instance
 config-hook:
 	@${BIN}/reconfigure_ask ${ENV_FILE} THTTPD_TRAEFIK_HOST "Enter the website domain name" thttpd${INSTANCE_URL_SUFFIX}.${ROOT_DOMAIN}
 	@${BIN}/reconfigure ${ENV_FILE} THTTPD_INSTANCE=${instance}
-	@${BIN}/reconfigure_htpasswd ${ENV_FILE} THTTPD_HTTP_AUTH default=no
+	@${BIN}/reconfigure_auth ${ENV_FILE} THTTPD
 
 .PHONY: shell
 shell:
-	docker compose --env-file=${ENV_FILE} exec -it thttpd /bin/sh
+	@make --no-print-directory docker-compose-shell SERVICE=thttpd
 
 .PHONY: override-hook
 override-hook:
@@ -24,4 +24,4 @@ override-hook:
 ####                         # (this hardcodes the string into docker-compose.override.yaml)
 ####   name=@VARIABLE_NAME   # sets the template 'name' field to the literal string '${VARIABLE_NAME}'
 ####                         # (used for regular docker-compose expansion of env vars by name.)
-	@${BIN}/docker_compose_override ${ENV_FILE} project=:thttpd instance=@THTTPD_INSTANCE traefik_host=@THTTPD_TRAEFIK_HOST http_auth=THTTPD_HTTP_AUTH http_auth_var=@THTTPD_HTTP_AUTH ip_sourcerange=@THTTPD_IP_SOURCERANGE
+	@${BIN}/docker_compose_override ${ENV_FILE} project=:thttpd instance=@THTTPD_INSTANCE traefik_host=@THTTPD_TRAEFIK_HOST http_auth=THTTPD_HTTP_AUTH http_auth_var=@THTTPD_HTTP_AUTH ip_sourcerange=@THTTPD_IP_SOURCERANGE oauth2=THTTPD_OAUTH2 authorized_group=THTTPD_OAUTH2_AUTHORIZED_GROUP

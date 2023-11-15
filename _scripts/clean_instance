@@ -1,0 +1,25 @@
+#!/bin/bash
+
+BIN=$(realpath $(dirname ${BASH_SOURCE}))
+source ${BIN}/funcs.sh
+INSTANCE=${INSTANCE:-default}
+
+set -eo pipefail
+
+get_services_json() {
+    make --no-print-directory docker-compose-lifecycle-cmd EXTRA_ARGS="ps -a --format json"
+}
+
+get_services() {
+    make --no-print-directory docker-compose-lifecycle-cmd EXTRA_ARGS="ps -a"
+}
+
+if [[ "$(get_services_json)" == "[]" ]]; then
+    exit 0
+fi
+
+get_services
+echo
+echo "## There is an existing instance that must be destroyed (\`make destroy\`) before cleaning can happen."
+echo
+exit 1

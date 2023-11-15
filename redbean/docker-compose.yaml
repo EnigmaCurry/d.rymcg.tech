@@ -1,0 +1,22 @@
+version: "3.9"
+
+services:
+  web:
+    image: localhost/redbean:${REDBEAN_TARGET}-${REDBEAN_VERSION}
+    build:
+      context: redbean
+      args:
+        REDBEAN_VERSION: ${REDBEAN_VERSION}
+        REDBEAN_UID: ${REDBEAN_UID}
+        REDBEAN_GID: ${REDBEAN_GID}
+        REDBEAN_TARGET: ${REDBEAN_TARGET}
+        REDBEAN_HTML_TEMPLATE: ${REDBEAN_HTML_TEMPLATE}
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    sysctls:
+      - net.ipv4.ip_unprivileged_port_start=1024
+    restart: unless-stopped
+    # All labels are defined in the template: docker-compose.instance.yaml
+    labels: []

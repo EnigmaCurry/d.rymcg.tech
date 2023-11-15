@@ -4,13 +4,19 @@
 [![Chat on Matrix](_meta/img/matrix-badge.svg)](https://matrix.to/#/#d.rymcg.tech:enigmacurry.com)
 
 This is a collection of Docker Compose projects consisting of
-[Traefik](https://doc.traefik.io/traefik/) as a TLS HTTP/TCP reverse
-proxy and other various self-hosted applications and services behind
-this proxy. Each project is in its own sub-directory containing its
-own `docker-compose.yaml` and `.env-dist` sample config file. This
+[Traefik](https://doc.traefik.io/traefik/) as a TLS HTTP/TCP/UDP
+reverse proxy and other various self-hosted applications and services
+behind this proxy. Each project is in its own sub-directory containing
+its own `docker-compose.yaml` and `.env-dist` sample config file. This
 structure allows you to pick and choose which services you wish to
 enable. You may also integrate your own external Docker Compose
 projects into this framework.
+
+All (http) apps are secured with automatic Lets Encrypt TLS
+certificates, along with configurable self-hosted authentication
+middleware (OAuth2 with Gitea and/or HTTP Basic auth), as well as user
+group authorization middlewares. Even non-http apps may be secured
+with the optional VPN (Wireguard) support.
 
 Each project has a `Makefile` to simplify configuration, installation,
 and maintainance tasks. The setup for any sub-project is as easy as
@@ -29,7 +35,7 @@ configuration derived from your customized `.env` file.
 
 - [All configuration comes from the environment](#all-configuration-comes-from-the-environment)
 - [Prerequisites](#prerequisites)
-- [Setup](#setup)
+- [Setup Workstation](#setup-workstation)
 - [Main configuration](#main-configuration)
 - [Install applications](#install-applications)
 - [Command line interaction](#command-line-interaction)
@@ -44,13 +50,14 @@ All of these projects are configured soley via environment variables
 written to Docker [.env](https://docs.docker.com/compose/env-file/)
 files.
 
-The `.env` files are to be kept secret in each project directory
-(because they include things like passwords and keys) and are
-therefore excluded from the git repository via `.gitignore`. Each
-project includes a `.env-dist` file, which is a sample that must be
-copied to create your own secret `.env` file and edited according to
-the example. (Or run `make config` to run a setup wizard to create the
-`.env` file for you by answering some questions interactively.)
+The `.env` files for each application instance are to be kept secret
+because they include things like passwords and keys, and these should
+be kept on a secure workstation and not commited to git (they are
+ignored via `.gitignore`) . Each project includes a `.env-dist` file,
+which is a sample that must be copied to create your own secret `.env`
+file and edited according to the example. (Or run `make config` to run
+a setup wizard to create the `.env` file for you by answering some
+questions interactively.)
 
 For containers that do not support environment variable configuration,
 a sidecar container is included (usually called `config`) that will
@@ -74,7 +81,7 @@ all of the dependent files are fully contained by Docker itself
 state is managed as part of the container/volume lifecycle.
 
 ## Prerequisites
-### Create a Docker host
+### Create a Docker host (server)
 
 [Install Docker
 Server](https://docs.docker.com/engine/install/#server) on your own
@@ -93,24 +100,38 @@ If you need a semi-private development or staging server, and want to
 be able to share some public URLs for your services, you can protect
 your services by turning on Traefik's [HTTP Basic
 Authentication](https://doc.traefik.io/traefik/middlewares/http/basicauth/)
-or
+or [OAuth2 Authentication](traefik/README.md#oauth2-authentication)
+and
 [IPWhitelist](https://doc.traefik.io/traefik/middlewares/http/ipwhitelist/)
 middlewares (see
 [s3-proxy](https://github.com/EnigmaCurry/d.rymcg.tech/blob/f77aaaa5a2705eedaf29a4cdc32f91cdb65e66f7/s3-proxy/docker-compose.yaml#L35-L41)
-for an example that uses both of these) or you can make an exclusively
-private Traefik service with a
+for an example that uses both of these), or by turning on [Oauth2
+authentication](https://github.com/EnigmaCurry/d.rymcg.tech/tree/master/traefik-forward-auth)
+,or you can make an exclusively private Traefik service with a
 [Wireguard](https://github.com/EnigmaCurry/d.rymcg.tech/tree/master/traefik#wireguard-vpn)
 VPN.
 
-For local development purposes, you can install Docker in a virtual
-machine (and remotely control it from your local workstation), this
-ensures that you use your development environment the same way as you
-would a production server. See [_docker_vm](_docker_vm#readme) for
-details on how and why to install Docker in KVM/Qemu. You can also
-install [Docker Desktop](https://docs.docker.com/desktop) on Linux,
-Windows, or Mac (although Docker Desktop is a bit less secure than our
-bespoke [_docker_vm](_docker_vm#readme)).
-
+For local development purposes, you can [install Docker on a raspberry
+pi](RASPBERRY_PI.md) or you can [install Docker in a virtual
+machine](_docker_vm#readme) (in all scenarios you will remotely
+control Docker from your native workstation), this ensures that your
+development environment is deployed in the same way as you would a
+production server. Never install Docker on your native
+workstation/desktop! (Or, if you do, never give your normal user
+account any docker privileges!) See [_docker_vm](_docker_vm#readme)
+for details on how and why to install Docker in KVM/Qemu. Please note
+that Docker Desktop is not currently supported because [it does not
+support host
+networking](https://docs.docker.com/network/network-tutorial-host/),
+and the Traefik configuration relies upon this (if you know a way
+around this, please open an issue/PR). (If you don't use Linux on your
+workstation, you may have better luck installing Docker yourself
+inside of a traditional virtual machine like VMWare or Virtualbox, and
+then setting up an SSH service so you can access the VM remotely from
+your native desktop (the docker *client* works just fine from WSL2);
+or even easier would be to [install Docker on a raspberry
+pi](https://github.com/EnigmaCurry/d.rymcg.tech/blob/master/RASPBERRY_PI.md)
+and connect it on your LAN.
 
 ### Setup DNS for your domain and Docker server
 
@@ -201,7 +222,42 @@ find traefik and the wireguard server/client in this latter category).
 Each sub-project directory also has a `make status` with useful
 per-project information.
 
-## Setup
+### Configure Docker bridge networks (optional)
+
+By default, Docker will only reserve enough IP addresses for a total
+of 30 user-defined networks. This means that, by default, you can only
+deploy up to 30 apps per docker server.
+
+If you would like more than 30, you can increase the range of IP
+addresses that Docker reserves. On your Docker server, edit
+`/etc/docker/daemon.json` (create this file if it does not exist), and
+merge the following configuration:
+
+```
+{
+  "default-address-pools": [
+    {"base": "172.17.0.0/16", "size": 24}
+  ]
+}
+```
+
+and restart the docker daemon, or reboot the server.
+
+## Setup Workstation
+
+Your local "workstation" is assumed to be a Linux desktop/laptop
+computer, or another Linux system that you remotely connect to via
+SSH:
+
+ * Tested workstation architectures:
+   * Linux x86_64 (64 bit Intel or AMD)
+   * Linux aarch64 (64 bit ARM)
+   * Arch Linux and Ubuntu have been regularly tested.
+ * Other operating systems and architectures have not been tested, and
+may require customization (please [open an
+issue](https://github.com/EnigmaCurry/d.rymcg.tech/issues)).
+ * Your workstation should not be the same machine as the docker
+   server (unless docker is in its own virtual machine).
 
 ### Install Docker CLI tools
 
@@ -252,14 +308,15 @@ installation:
 docker buildx install
 ```
 
-### Install workstation tools (optional)
+### Install workstation tools
 
-There are also **optional** helper scripts and Makefiles included,
-that will have some additional system package requirements (Note:
-these Makefiles are just convenience wrappers for creating/modifying
-your `.env` files and for running `docker compose`, so these are not
-required to use if you would rather just edit your `.env` files by
-hand and/or run `docker compose` manually.):
+The Makefiles have extra dependencies in order to help configure and
+manage your containers. These dependencies are optional, but strongly
+recommended. (The Makefiles are strictly convenience wrappers for
+creating/modifying your `.env` files, and for running `docker compose`
+commands, so if you would rather just edit your `.env` files by hand
+and/or run `docker compose` manually, these dependencies may be
+skipped):
 
    * Base development tools including `bash`, `make`, `sed`, `xargs`, and
      `shred`.
@@ -274,17 +331,19 @@ hand and/or run `docker compose` manually.):
       simply printing the URL that you can copy and paste.)
    * `wireguard` (client for connecting to the [traefik
      wireguard](traefik#wireguard-vpn) VPN)
+   * `curl` (for downloading an installing external dependencies:
+     [script-wizard](https://github.com/enigmacurry/script-wizard))
 
 On Arch Linux, run this to install all these dependencies:
 
 ```
-pacman -S bash base-devel openssl apache xdg-utils jq sshfs wireguard-tools
+pacman -S bash base-devel openssl apache xdg-utils jq sshfs wireguard-tools curl
 ```
 
 For Debian or Ubuntu, run:
 
 ```
-apt-get install bash build-essential openssl apache2-utils xdg-utils jq sshfs wireguard
+apt-get install bash build-essential openssl apache2-utils xdg-utils jq sshfs wireguard curl
 ```
 
 ### Setup SSH access to the server
@@ -405,10 +464,18 @@ Run the configuration wizard, and answer the questions:
 make config
 ```
 
-(This writes the main project level variables into a file named
-`.env_${DOCKER_CONTEXT}` (eg. `.env_d.example.com`) in the root source
-directory, based upon the name of the current Docker context. This
-file is excluded from the git repository via `.gitignore`.)
+Running `make config`, in the root project directory, writes the main
+project level variables into a file named `.env_${DOCKER_CONTEXT}`
+(eg. `.env_d.example.com`) in the root source directory, based upon
+the name of the current Docker context. This file is excluded from the
+git repository via `.gitignore`.)
+
+All of the Makefiles depend on a helper utility called
+[script-wizard](https://github.com/enigmacurry/script-wizard), which
+is automatically installed the first time you run `make config`.
+
+This will also check your system for the dependencies and alert you if
+you need to install something.
 
 The `ROOT_DOMAIN` variable is saved in `.env_${DOCKER_CONTEXT}` and
 will serve as the default root domain of all of the sub-project
@@ -433,53 +500,75 @@ things are working correctly.
 
 Install these first:
 
-* [Traefik](traefik) - HTTP / TLS / TCP / UDP reverse proxy
-* [Whoami](whoami) - HTTP test service
+* [Traefik](traefik#readme) - HTTP / TLS / TCP / UDP reverse proxy
+* [Whoami](whoami#readme) - HTTP test service
 
-Install these services at your leisure/preference:
+Install these recommended backbone applications next:
 
-* [ArchiveBox](archivebox) - a website archiving tool
-* [Autoheal](autoheal) - a Docker container healthcheck monitor with auto-restart service
-* [Baikal](baikal) - a lightweight CalDAV+CardDAV server
-* [CryptPad](cryptpad) - a collaborative document and spreadsheet editor 
-* [DrawIO](drawio) - a diagram / whiteboard editor tool
-* [Ejabberd](ejabberd) - an XMPP (Jabber) server
-* [Filestash](filestash) - a web based file manager with customizable backend storage providers
-* [FreshRSS](freshrss) - an RSS reader / proxy
-* [Gitea](gitea) - Git host (like self-hosted GitHub) and oauth server
-* [Icecast](icecast) - a SHOUTcast compatible streaming multimedia server
-* [Invidious](invidious) - a Youtube proxy
-* [Jitsi Meet](jitsi-meet) - a video conferencing and screencasting service
-* [Jupyterlab](jupyterlab) - a web based code editing environment / reproducible research tool
-* [Larynx](larynx) - a speech synthesis engine
-* [Matterbridge](matterbridge) - a chat room bridge (IRC, Matrix, XMPP, etc)
-* [Maubot](maubot) - a matrix Bot
-* [Minio](minio) - an S3 storage server
-* [Mopidy](mopidy) - a streaming music server built with MPD and Snapcast
-* [Mosquitto](mosquitto) - an MQTT server
-* [Nextcloud](nextcloud) - a collaborative file server
-* [Node-RED](nodered) - a graphical event pipeline editor
-* [Ntfy.sh](ntfy.sh) - a simple HTTP-based pub-sub notification service
-* [Piwigo](piwigo) - a photo gallery and manager
-* [Plausible](plausible) - a privacy friendly web visitor analytics engine
-* [PostgreSQL](postgresql) - a database server configured with mutual TLS authentication for public networks
-* [PrivateBin](privatebin) - a minimal, encrypted, zero-knowledge, pastebin
-* [Prometheus](prometheus) - a systems monitoring and alerting toolkit (+ node-exporter + cAdvisor + Grafana)
-* [QBittorrent-Wireguard](qbittorrent-wireguard) - A Bittorrent (libtorrent v2) client with a combined VPN client
-* [Rdesktop](rdesktop) - a web based remote desktop (X11) in a container
-* [S3-proxy](s3-proxy) - an HTTP directory index for S3 backend
-* [SFTP](sftp) - a secure file server
-* [Shaarli](shaarli) - a bookmark manager
-* [Syncthing](syncthing) - a multi-device file synchronization tool
-* [Thttpd](thttpd) - a tiny/turbo/throttling HTTP server for serving static files
-* [TiddlyWiki (WebDAV version)](tiddlywiki-webdav) - A personal wiki stored in a single static HTML file
-* [TiddlyWiki (NodeJS version)](tiddlywiki-nodejs) - Advanced server edition of TiddlyWiki with image CDN
-* [Traefik-forward-auth](traefik-forward-auth) - Traefik oauth middleware
-* [Transmission-Wireguard](transmission-wireguard) - An older but very popular Bittorrent (v1) client with a combined VPN client
-* [Tiny Tiny RSS](ttrss) - an RSS reader / proxy
-* [Vaultward](vaultwarden) - a bitwarden compatible password manager written in Rust (formerly bitwarden_rs)
-* [Websocketd](websocketd) - a websocket / CGI server
-* [XBrowserSync](xbs) - a bookmark manager
+* [Gitea](gitea#readme)
+  * A git host (like self-hosted GitHub) and OAuth2 server.
+  * Like GitHub, it can act as an OAuth2 identity service, which
+    supports 2FA including hardware tokens, even if you have no need
+    for a git forge, install this!
+* [Traefik-forward-auth](traefik-forward-auth#readme)
+  * Traefik OAuth2 authentication middleware.
+  * Required if you want OAuth2 authentication. You'll combine this
+    with your gitea instance (or another external Oauth provider) to
+    add authentication to any of your apps.
+* [Homepage](homepage#readme)
+  * Homepage acts as a dashboard or launcher for all your other apps
+    (but this is not required for any other functionality, if you
+    don't need it.)
+
+Install these other services at your leisure/preference:
+
+* [ArchiveBox](archivebox#readme) - a website archiving tool
+* [Audiobookshelf](audiobookshelf#readme) - an audiobook and podcast server
+* [Autoheal](autoheal#readme) - a Docker container healthcheck monitor with auto-restart service
+* [Baikal](baikal#readme) - a lightweight CalDAV+CardDAV server
+* [CalcPad](calcpad#readme) - a different take on the caculator
+* [DrawIO](drawio#readme) - a diagram / whiteboard editor tool
+* [Ejabberd](ejabberd#readme) - an XMPP (Jabber) server
+* [Filestash](filestash#readme) - a web based file manager with customizable backend storage providers
+* [FreshRSS](freshrss#readme) - an RSS reader / proxy
+* [Grocy](grocy#readme) - a grocery & household management/chore solution
+* [Icecast](icecast#readme) - a SHOUTcast compatible streaming multimedia server
+* [Invidious](invidious#readme) - a Youtube proxy
+* [Jitsi Meet](jitsi-meet#readme) - a video conferencing and screencasting service
+* [Jupyterlab](jupyterlab#readme) - a web based code editing environment / reproducible research tool
+* [Larynx](larynx#readme) - a speech synthesis engine
+* [Lemmy](lemmy#readme) - a link aggregator and forum for the fediverse
+* [Matterbridge](matterbridge#readme) - a chat room bridge (IRC, Matrix, XMPP, etc)
+* [Maubot](maubot#readme) - a matrix Bot
+* [Minio](minio#readme) - an S3 storage server
+* [Mopidy](mopidy#readme) - a streaming music server built with MPD and Snapcast
+* [Mosquitto](mosquitto#readme) - an MQTT server
+* [Nextcloud](nextcloud#readme) - a collaborative file server
+* [Node-RED](nodered#readme) - a graphical event pipeline editor
+* [Ntfy.sh](ntfy.sh#readme) - a simple HTTP-based pub-sub notification service
+* [Pairdrop](pairdrop#readme) - a webapp (PWA) to send files and messages peer to peer.
+* [Photoprism](photoprism#readme) - a photo gallery and manager
+* [Piwigo](piwigo#readme) - a photo gallery and manager
+* [Plausible](plausible#readme) - a privacy friendly web visitor analytics engine
+* [PostgreSQL](postgresql#readme) - a database server configured with mutual TLS authentication for public networks
+* [PrivateBin](privatebin#readme) - a minimal, encrypted, zero-knowledge, pastebin
+* [Prometheus](prometheus#readme) - a systems monitoring and alerting toolkit (+ node-exporter + cAdvisor + Grafana)
+* [QBittorrent-Wireguard](qbittorrent-wireguard#readme) - a Bittorrent (libtorrent v2) client with a combined VPN client
+* [Redbean](redbean#readme) - a small website server bundled in a single executable zip file.
+* [S3-proxy](s3-proxy#readme) - an HTTP directory index for S3 backend
+* [SFTP](sftp#readme) - a secure file server
+* [Shaarli](shaarli#readme) - a bookmark manager
+* [Smokeping](smokeping#readme) - a network latency measurement tool
+* [Syncthing](syncthing#readme) - a multi-device file synchronization tool
+* [Sysbox-Systemd](sysbox-systemd#readme) - a traditional service manager for Linux running in an unprivileged container via sysbox-runc
+* [Thttpd](thttpd#readme) - a tiny/turbo/throttling HTTP server for serving static files
+* [TiddlyWiki (WebDAV version)](tiddlywiki-webdav#readme) - a personal wiki stored in a single static HTML file
+* [TiddlyWiki (NodeJS version)](tiddlywiki-nodejs#readme) - Advanced server edition of TiddlyWiki with image CDN
+* [Tiny Tiny RSS](ttrss#readme) - an RSS reader / proxy
+* [Vaultward](vaultwarden#readme) - a bitwarden compatible password manager written in Rust (formerly bitwarden_rs)
+* [Websocketd](websocketd#readme) - a websocket / CGI server
+* [Wordpress](wordpress#readme) - an ubiquitous blogging / CMS platform, with a plugin to build a static HTML site snapshot.
+* [XBrowserSync](xbs#readme) - a bookmark manager
 
 Bespoke things:
 
@@ -489,6 +578,9 @@ Bespoke things:
 * [Linux Shell Containers](_terminal/linux) create Bash aliases that
   automatically build and run programs in Docker containers.
 * [_docker_vm](_docker_vm#readme) Run Docker in a Virtual Machine (KVM) on Linux.
+
+Also check the [_attic](_attic) directory for a collection of old and
+broken things.
 
 ## Command line interaction
 
@@ -514,42 +606,12 @@ README files reflect the `make` command style for config. Editing the
 `.env` files by hand still offers you more control, with more freedom
 for experimentation, and this option always remains available.
 
-### Using `docker compose` by hand
-
-For all of the containers that you wish to install, do the following:
-
- * Read the README.md file found in the sub-project directory.
- * Open your terminal and `cd` to the project directory containing
-   `docker-compose.yaml`
- * Copy the example `.env-dist` to `.env`
- * Edit all of the variables in `.env` according to the example and comments.
- * Create a
-   [`docker-compose.override.yaml`](https://docs.docker.com/compose/extends/#multiple-compose-files)
-   file by hand, copying from the template given in
-   `docker-compose.instance.yaml` (If the project does not have this
-   file, you can skip this step.) This [ytt](https://carvel.dev/ytt/)
-   template is mainly used for the service container labels, and has
-   logic for choosing which Traefik middlewares to apply. So you just
-   need to remove (comment out) the lines that don't apply in your
-   case. The override files are not committed into git, as they are
-   normally dynamically generated by the Makefiles and rendering from
-   the template on the fly. If you want to maintain these files by
-   hand, you can remove the exclusion of them from the
-   [.gitignore](.gitignore) and commit them with your own forked
-   repository.
- * Follow the README for instructions to start the containers.
-   Generally, all you need to do is run: `docker compose up --build
-   -d` (This is the same thing that `make install` does)
-
-When using `docker compose` by hand, it uses the `.env` file name by
-default. To use any other filename, specify the `--env-file` argument
-(eg. when deploying multiple instances).
-
 ### Using the Makefiles
 
-Alternatively, each project has a `Makefile` that helps to simplify
-configuration and startup. You can use the Makefiles to automatically
-edit the `.env` files and to start the services for you.
+Each project has a `Makefile` that helps to simplify installation and
+maintainance. You can use the Makefiles to automatically edit the
+`.env` files and to start the services for you (and this way you won't
+have to run any docker commands by hand).
 
 The most important thing to know is that `make` looks for a `Makefile`
 in your *current* working directory. `make` is contextual to the
@@ -612,12 +674,12 @@ For a more in depth guide on using the Makefiles, see
 ### Using the `d.rymcg.tech` CLI script (optional)
 
 By default, both `make` and `docker compose` expect you to change your
-working directory to use them (note: you *can* work around this by
-using `make -C` or `docker compose -f`).
+working directory to use them, and so this is sometimes inconvenient.
+You *can* work around this by using `make -C` or `docker compose -f`,
+but another option is to use the eponymous [`d.rymcg.tech`
+script](_scripts/d.rymcg.tech) that is included in this repository.
 
-However, there is a third option to use the eponymous [`d.rymcg.tech`
-script](_scripts/d.rymcg.tech) included in this repository. In
-addition to letting you run any project's `make` targets from any
+In addition to letting you run any project's `make` targets from any
 working directory, this shell script also offers a convenient way to
 create [external projects](#integrating-external-projects) from a
 skeleton template, and to create shorter command aliases for any
@@ -744,10 +806,10 @@ If you want a different alias for the main script, you can add that too:
 
 ```
 ## Alternative alias to d.rymcg.tech
-__d.rymcg.tech_cli_alias dry
+__d.rymcg.tech_cli_alias d
 ```
 
-With this alias installed, you can now run `dry` in place of
+With this alias installed, you can now just run `d` in place of
 `d.rymcg.tech`.
 
 To get a synopsis of all of these completion commands, run:
@@ -755,6 +817,42 @@ To get a synopsis of all of these completion commands, run:
 ```
 d.rymcg.tech completion
 ```
+
+### Using `docker compose` by hand (optional)
+
+This project was originally designed to be a pure docker compose
+project, and it still is. The `make` commands or the `d.rymcg.tech`
+wrapper script are the recommended methods to use, however you can
+still use `docker compose` by hand if you wish.
+
+For all of the containers that you wish to install, do the following:
+
+ * Read the README.md file found in the sub-project directory.
+ * Open your terminal and `cd` to the project directory containing
+   `docker-compose.yaml`
+ * Copy the example `.env-dist` to `.env`
+ * Edit all of the variables in `.env` according to the example and comments.
+ * Create a
+   [`docker-compose.override.yaml`](https://docs.docker.com/compose/extends/#multiple-compose-files)
+   file by hand, copying from the template given in
+   `docker-compose.instance.yaml` (If the project does not have this
+   file, you can skip this step.) This [ytt](https://carvel.dev/ytt/)
+   template is mainly used for the service container labels, and has
+   logic for choosing which Traefik middlewares to apply. So you just
+   need to remove (comment out) the lines that don't apply in your
+   case. The override files are not committed into git, as they are
+   normally dynamically generated by the Makefiles and rendering from
+   the template on the fly. If you want to maintain these files by
+   hand, you can remove the exclusion of them from the
+   [.gitignore](.gitignore) and commit them with your own forked
+   repository.
+ * Follow the README for instructions to start the containers.
+   Generally, all you need to do is run: `docker compose up --build
+   -d` (This is the same thing that `make install` does)
+
+When using `docker compose` by hand, it uses the `.env` file name by
+default. To use any other filename, specify the `--env-file` argument
+(eg. when deploying multiple instances).
 
 ## Creating multiple instances of a service
 
@@ -843,8 +941,10 @@ etc...
 To exit the sub-shell, press `Ctrl-D` or type `exit` and you will
 return to the original parent shell and working directory.
 
-If you want to enter the sub-shell without automatically running `make
-config`, you can run `make switch` rather than `make instance`.
+When you create a new instance, `make config` will automatically run. You
+may switch to an existing instance with either: `make instance` or
+`make switch` (the former will re-run `make config` while the latter
+will not).
 
 ### Overriding docker-compose.yaml per-instance
 

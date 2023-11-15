@@ -1,0 +1,20 @@
+version: "3.9"
+
+volumes:
+  grocy-data:
+
+services:
+  grocy:
+    image: lscr.io/linuxserver/grocy:${GROCY_VERSION}
+    container_name: grocy
+    environment:
+      - PUID=${GROCY_UID}
+      - GUID=${GROCY_GID}
+      - TZ=${GROCY_TZ}
+      - CURRENCY=${GROCY_CURRENCY}
+      - CULTURE=${GROCY_CULTURE}
+    volumes:
+      - grocy-data:/config
+    restart: unless-stopped
+    # Labels are in docker-compose.instance.yaml
+    labels: []

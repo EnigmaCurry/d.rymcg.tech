@@ -10,14 +10,14 @@ include _scripts/Makefile.cd
 
 .PHONY: check-deps
 check-deps:
-	_scripts/check_deps docker sed awk xargs openssl htpasswd jq
+	_scripts/check_deps docker sed awk xargs openssl htpasswd jq curl
 
 .PHONY: check-docker
 check-docker:
 	@docker info >/dev/null && echo "Docker is running." || (echo "Could not connect to Docker!" && false)
 
 .PHONY: config # Configure main variables
-config: check-deps check-docker
+config: script-wizard check-deps check-docker
 #	@${BIN}/userns-remap check
 	@echo ""
 	@${BIN}/confirm yes "This will make a configuration for the current docker context (${DOCKER_CONTEXT})"
@@ -109,3 +109,17 @@ install-cli:
 	@echo "## then you can make completion support for the alias too:"
 	@echo "#complete -F __d.rymcg.tech_completions dry"
 	@echo ""
+
+.PHONY: docker-workstation
+docker-workstation:
+	docker compose -f compose-dev.yaml build
+	docker compose -f compose-dev.yaml run --rm -it -e INSTANCE=${INSTANCE} workstation /bin/bash
+
+.PHONY: docker-workstation-clean
+docker-workstation-clean:
+	docker compose -f compose-dev.yaml kill
+	docker compose -f compose-dev.yaml down -v
+
+.PHONY: install
+install:
+	ENV_FILE=${ENV_FILE} ROOT_ENV=${ROOT_ENV} DOCKER_CONTEXT=${DOCKER_CONTEXT} ROOT_DIR=${ROOT_DIR} CONTEXT_INSTANCE=${CONTEXT_INSTANCE} ${BIN}/install

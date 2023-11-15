@@ -38,6 +38,8 @@ services:
       - TRAEFIK_PLUGINS=${TRAEFIK_PLUGINS:-true}
       - TRAEFIK_PLUGIN_BLOCKPATH=${TRAEFIK_PLUGIN_BLOCKPATH:-true}
       - TRAEFIK_PLUGIN_MAXMIND_GEOIP=${TRAEFIK_PLUGIN_MAXMIND_GEOIP:-false}
+      - TRAEFIK_PLUGIN_REFERER=${TRAEFIK_PLUGIN_REFERER:-true}
+      - TRAEFIK_PLUGIN_HEADER_AUTHORIZATION=${TRAEFIK_PLUGIN_HEADER_AUTHORIZATION:-true}
       - TRAEFIK_WEB_ENTRYPOINT_ENABLED=${TRAEFIK_WEB_ENTRYPOINT_ENABLED:-false}
       - TRAEFIK_WEB_ENTRYPOINT_HOST=${TRAEFIK_WEB_ENTRYPOINT_HOST:-0.0.0.0}
       - TRAEFIK_WEB_ENTRYPOINT_PORT=${TRAEFIK_WEB_ENTRYPOINT_PORT:-80}
@@ -71,7 +73,7 @@ services:
       - TRAEFIK_DASHBOARD_ENTRYPOINT_ENABLED=${TRAEFIK_DASHBOARD_ENTRYPOINT_ENABLED:-false}
       - TRAEFIK_DASHBOARD_ENTRYPOINT_HOST=${TRAEFIK_DASHBOARD_ENTRYPOINT_HOST:-127.0.0.1}
       - TRAEFIK_DASHBOARD_ENTRYPOINT_PORT=${TRAEFIK_DASHBOARD_ENTRYPOINT_PORT:-8080}
-      - TRAEFIK_DASHBOARD_AUTH
+      - TRAEFIK_DASHBOARD_HTTP_AUTH
       - TRAEFIK_VPN_ADDRESS
       - TRAEFIK_VPN_ENABLED=${TRAEFIK_VPN_ENABLED:-false}
       - TRAEFIK_VPN_CLIENT_ENABLED=${TRAEFIK_VPN_CLIENT_ENABLED:-false}
@@ -83,6 +85,10 @@ services:
       - TRAEFIK_VPN_ROOT_DOMAIN=${TRAEFIK_VPN_ROOT_DOMAIN:-example.com}
       - TRAEFIK_NETWORK_MODE
       - TRAEFIK_ROOT_DOMAIN
+      - TRAEFIK_ERROR_HANDLER_403_SERVICE
+      - TRAEFIK_ERROR_HANDLER_404_SERVICE
+      - TRAEFIK_ERROR_HANDLER_500_SERVICE
+      - TRAEFIK_HEADER_AUTHORIZATION_GROUPS
 
   traefik:
     profiles:
@@ -92,10 +98,14 @@ services:
       context: .
       args:
         TRAEFIK_IMAGE: ${TRAEFIK_IMAGE}
-        BLOCKPATH_MODULE: github.com/traefik/plugin-blockpath
+        BLOCKPATH_MODULE: ${TRAEFIK_BLOCKPATH_MODULE}
         BLOCKPATH_GIT_BRANCH: master
-        MAXMIND_GEOIP_MODULE: github.com/GiGInnovationLabs/traefikgeoip2
+        REFERER_MODULE: ${TRAEFIK_REFERER_MODULE}
+        REFERER_GIT_BRANCH: master
+        MAXMIND_GEOIP_MODULE: ${TRAEFIK_GEOIP_MODULE}
         MAXMIND_GIT_BRANCH: main
+        HEADER_AUTHORIZATION_MODULE: ${TRAEFIK_HEADER_AUTHORIZATION_MODULE}
+        HEADER_AUTHORIZATION_GIT_BRANCH: main
         TRAEFIK_UID: ${TRAEFIK_UID}
         TRAEFIK_GID: ${TRAEFIK_GID}
         TRAEFIK_DOCKER_GID: ${TRAEFIK_DOCKER_GID}
@@ -117,6 +127,8 @@ services:
       - "traefik:/data"
       - "/var/run/docker.sock:/var/run/docker.sock:ro"
       - "geoip_database:/var/lib/traefikgeoip2/"
+    labels:
+      - "TRAEFIK_HEADER_AUTHORIZATION_GROUPS=${TRAEFIK_HEADER_AUTHORIZATION_GROUPS}"
 
   geoip_database:
     profiles:
@@ -204,3 +216,21 @@ services:
       - 80:80
       - 443:443
       - 127.0.0.1:8080:8080
+
+  error-pages:
+    image: ${TRAEFIK_ERROR_PAGES_IMAGE}
+    environment:
+      TEMPLATE_NAME: ${TRAEFIK_ERROR_PAGES_TEMPLATE}
+    labels:
+      traefik.enable: true
+      # use as "fallback" for any NON-registered services (with priority below normal)
+      traefik.http.routers.error-pages-router.rule: HostRegexp(`{host:.+}`)
+      traefik.http.routers.error-pages-router.priority: 10
+      traefik.http.routers.error-pages-router.entrypoints: web,websecure
+      traefik.http.routers.error-pages-router.middlewares: error-pages-middleware
+      traefik.http.middlewares.error-pages-middleware.errors.status: 400-599
+      traefik.http.middlewares.error-pages-middleware.errors.service: error-pages-service@docker
+      traefik.http.middlewares.error-pages-middleware.errors.query: /{status}.html
+      traefik.http.services.error-pages-service.loadbalancer.server.port: 8080
+    depends_on:
+      - traefik

@@ -24,6 +24,8 @@ ytt_template() {
         -v plugins="${TRAEFIK_PLUGINS}" \
         -v plugin_blockpath="${TRAEFIK_PLUGIN_BLOCKPATH}" \
         -v plugin_maxmind_geoip="${TRAEFIK_PLUGIN_MAXMIND_GEOIP}" \
+        -v plugin_header_authorization="${TRAEFIK_PLUGIN_HEADER_AUTHORIZATION}" \
+        -v plugin_referer="${TRAEFIK_PLUGIN_REFERER}" \
         -v web_entrypoint_enabled="${TRAEFIK_WEB_ENTRYPOINT_ENABLED}" \
         -v web_entrypoint_host="${TRAEFIK_WEB_ENTRYPOINT_HOST}" \
         -v web_entrypoint_port="${TRAEFIK_WEB_ENTRYPOINT_PORT}" \
@@ -42,7 +44,7 @@ ytt_template() {
         -v dashboard_entrypoint_enabled="${TRAEFIK_DASHBOARD_ENTRYPOINT_ENABLED}" \
         -v dashboard_entrypoint_host="${TRAEFIK_DASHBOARD_ENTRYPOINT_HOST}" \
         -v dashboard_entrypoint_port="${TRAEFIK_DASHBOARD_ENTRYPOINT_PORT}" \
-        -v dashboard_auth="${TRAEFIK_DASHBOARD_AUTH}" \
+        -v dashboard_auth="${TRAEFIK_DASHBOARD_HTTP_AUTH}" \
         -v vpn_address="${TRAEFIK_VPN_ADDRESS}" \
         -v vpn_enabled="${TRAEFIK_VPN_ENABLED}" \
         -v vpn_subnet="${TRAEFIK_VPN_SUBNET}" \
@@ -69,6 +71,10 @@ ytt_template() {
         -v root_domain="${TRAEFIK_ROOT_DOMAIN}" \
         -v vpn_root_domain="${TRAEFIK_VPN_ROOT_DOMAIN}" \
         -v network_mode="${TRAEFIK_NETWORK_MODE}" \
+        -v error_handler_403_service="${TRAEFIK_ERROR_HANDLER_403_SERVICE}" \
+        -v error_handler_404_service="${TRAEFIK_ERROR_HANDLER_404_SERVICE}" \
+        -v error_handler_500_service="${TRAEFIK_ERROR_HANDLER_500_SERVICE}" \
+        --data-value-yaml header_authorization_groups="${TRAEFIK_HEADER_AUTHORIZATION_GROUPS}" \
         > ${dst}
     success=$?
     echo "[ ! ] GENERATED NEW CONFIG FILE :::  ${dst}"

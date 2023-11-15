@@ -35,15 +35,7 @@ services:
       - wireguard:/config
       - /lib/modules:/lib/modules
     restart: always
-    labels:
-      - "traefik.enable=true"
-      - "traefik.http.routers.qbittorrent-${QBITTORRENT_INSTANCE:-default}.rule=Host(`${QBITTORRENT_TRAEFIK_HOST}`)"
-      - "traefik.http.routers.qbittorrent-${QBITTORRENT_INSTANCE:-default}.entrypoints=websecure"
-      - "traefik.http.services.qbittorrent-${QBITTORRENT_INSTANCE:-default}.loadBalancer.server.port=8080"
-      ## Authentication:
-      - "traefik.http.middlewares.qbittorrent-${QBITTORRENT_INSTANCE:-default}-auth.basicauth.users=${QBITTORRENT_HTTP_AUTH}"
-      - "traefik.http.middlewares.qbittorrent-${QBITTORRENT_INSTANCE:-default}-ipwhitelist.ipwhitelist.sourcerange=${QBITTORRENT_IP_SOURCERANGE}"
-      - "traefik.http.routers.qbittorrent-${QBITTORRENT_INSTANCE:-default}.middlewares=qbittorrent-${QBITTORRENT_INSTANCE:-default}-ipwhitelist,qbittorrent-${QBITTORRENT_INSTANCE:-default}-auth"
+    labels: []
 
   qbittorrent-config:
     build:
@@ -55,11 +47,49 @@ services:
       - QBITTORRENT_RPC_BIND_ADDRESS
       - QBITTORRENT_BLOCKLIST_URL
       - QBITTORRENT_PEER_PORT
+      - QBITTORRENT_OnTorrentAddedEnabled
+      - QBITTORRENT_OnTorrentAddedProgram
+      - QBITTORRENT_enabled
+      - QBITTORRENT_program
+      - QBITTORRENT_SessionAddExtensionToIncompleteFiles
+      - QBITTORRENT_SessionAlternativeGlobalDLSpeedLimit
+      - QBITTORRENT_SessionAlternativeGlobalUPSpeedLimit
+      - QBITTORRENT_SessionDefaultSavePath
+      - QBITTORRENT_SessionDisableAutoTMMByDefault
+      - QBITTORRENT_SessionDisableAutoTMMTriggersCategorySavePathChanged
+      - QBITTORRENT_SessionDisableAutoTMMTriggersDefaultSavePathChanged
+      - QBITTORRENT_SessionExcludedFileNames
+      - QBITTORRENT_SessionIgnoreSlowTorrentsForQueueing
+      - QBITTORRENT_SessionMaxActiveDownloads
+      - QBITTORRENT_SessionMaxActiveTorrents
+      - QBITTORRENT_SessionMaxActiveUploads
+      - QBITTORRENT_SessionTempPath
+      - QBITTORRENT_SessionTempPathEnabled
+      - QBITTORRENT_SessionQueueingSystemEnabled
+      - QBITTORRENT_SessionTorrentExportDirectory
+      - QBITTORRENT_AutoDeleteAddedTorrentFile
+      - QBITTORRENT_DownloadsSavePath
+      - QBITTORRENT_DownloadsTempPath
+      - QBITTORRENT_SessionTorrentContentLayout
+      - QBITTORRENT_GeneralLocale
+      - QBITTORRENT_MailNotificationemail
+      - QBITTORRENT_MailNotificationenabled
+      - QBITTORRENT_MailNotificationpassword
+      - QBITTORRENT_MailNotificationreq_auth
+      - QBITTORRENT_MailNotificationreq_ssl
+      - QBITTORRENT_MailNotificationsender
+      - QBITTORRENT_MailNotificationsmtp_server
+      - QBITTORRENT_MailNotificationusername
+      - QBITTORRENT_Schedulerdays
+      - QBITTORRENT_Schedulerend_time
+      - QBITTORRENT_Schedulerstart_time
+      - QBITTORRENT_SessionUseAlternativeGlobalSpeedLimit
+      - QBITTORRENT_SessionBandwidthSchedulerEnabled
     volumes:
       - qbittorrent-config:/config
 
   qbittorrent:
-    image: linuxserver/qbittorrent
+    image: linuxserver/qbittorrent:${QBITTORRENT_VERSION}
     network_mode: "service:wireguard"
     depends_on:
       - wireguard
