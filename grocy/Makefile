@@ -10,7 +10,8 @@ config-hook:
 #### reconfigure_htpasswd will configure the HTTP Basic Authentication setting the var name and with a provided default value.
 	@${BIN}/reconfigure_ask ${ENV_FILE} GROCY_TRAEFIK_HOST "Enter the grocy domain name" grocy${INSTANCE_URL_SUFFIX}.${ROOT_DOMAIN}
 	@${BIN}/reconfigure ${ENV_FILE} GROCY_INSTANCE=$${instance:-default}
-	@${BIN}/reconfigure_htpasswd ${ENV_FILE} GROCY_HTTP_AUTH default=no
+	@${BIN}/reconfigure_auth ${ENV_FILE} GROCY
+	@echo ""
 
 .PHONY: override-hook
 override-hook:
@@ -24,4 +25,8 @@ override-hook:
 ####                         # (this hardcodes the string into docker-compose.override.yaml)
 ####   name=@VARIABLE_NAME   # sets the template 'name' field to the literal string '${VARIABLE_NAME}'
 ####                         # (used for regular docker-compose expansion of env vars by name.)
-	@${BIN}/docker_compose_override ${ENV_FILE} project=:grocy instance=@GROCY_INSTANCE traefik_host=@GROCY_TRAEFIK_HOST http_auth=GROCY_HTTP_AUTH http_auth_var=@GROCY_HTTP_AUTH ip_sourcerange=@GROCY_IP_SOURCERANGE
+	@${BIN}/docker_compose_override ${ENV_FILE} project=:grocy instance=@GROCY_INSTANCE traefik_host=@GROCY_TRAEFIK_HOST http_auth=GROCY_HTTP_AUTH http_auth_var=@GROCY_HTTP_AUTH ip_sourcerange=@GROCY_IP_SOURCERANGE oauth2=GROCY_OAUTH2 authorized_group=GROCY_OAUTH2_AUTHORIZED_GROUP
+
+.PHONY: shell
+shell:
+	@make --no-print-directory docker-compose-shell SERVICE=grocy

@@ -10,3 +10,5 @@ passwords.json
 docker-compose.override*.yaml
 dump.*
 tasks.org
+node_modules
+_scripts/script-wizard

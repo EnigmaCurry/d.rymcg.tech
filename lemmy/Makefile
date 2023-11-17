@@ -10,8 +10,9 @@ config-hook:
 #### reconfigure_htpasswd will configure the HTTP Basic Authentication setting the var name and with a provided default value.
 	@${BIN}/reconfigure_ask ${ENV_FILE} LEMMY_TRAEFIK_HOST "Enter the lemmy domain name" lemmy${INSTANCE_URL_SUFFIX}.${ROOT_DOMAIN}
 	@${BIN}/reconfigure ${ENV_FILE} LEMMY_INSTANCE=$${instance:-default}
-	@${BIN}/reconfigure_htpasswd ${ENV_FILE} LEMMY_HTTP_AUTH default=no
+	@echo ""
 	@${BIN}/reconfigure_password ${ENV_FILE} LEMMY_POSTGRES_PW 32
+	@${BIN}/confirm no "Would you like to reconfigure authentication? (NOTE: this will make your Lemmy instance fully private with no federation features, so don't do this if you want to read from other lemmy instances!)" "" && ${BIN}/reconfigure_auth ${ENV_FILE} LEMMY
 
 .PHONY: override-hook
 override-hook:
@@ -25,8 +26,9 @@ override-hook:
 ####                         # (this hardcodes the string into docker-compose.override.yaml)
 ####   name=@VARIABLE_NAME   # sets the template 'name' field to the literal string '${VARIABLE_NAME}'
 ####                         # (used for regular docker-compose expansion of env vars by name.)
-	@${BIN}/docker_compose_override ${ENV_FILE} project=:lemmy instance=@LEMMY_INSTANCE traefik_host=@LEMMY_TRAEFIK_HOST http_auth=LEMMY_HTTP_AUTH http_auth_var=@LEMMY_HTTP_AUTH ip_sourcerange=@LEMMY_IP_SOURCERANGE lemmy_private=LEMMY_PRIVATE
+	@${BIN}/docker_compose_override ${ENV_FILE} project=:lemmy instance=@LEMMY_INSTANCE traefik_host=@LEMMY_TRAEFIK_HOST http_auth=LEMMY_HTTP_AUTH http_auth_var=@LEMMY_HTTP_AUTH ip_sourcerange=@LEMMY_IP_SOURCERANGE lemmy_private=LEMMY_PRIVATE oauth2=LEMMY_OAUTH2 authorized_group=LEMMY_OAUTH2_AUTHORIZED_GROUP
 
 .PHONY: shell
 shell:
-	@docker compose --env-file ${ENV_FILE} exec -it $${service:-proxy} /bin/sh -c "/bin/bash || /bin/sh"
+	@container=$$(eval "${BIN}/script-wizard choose 'docker exec -it into which container?' 'proxy' 'config' 'lemmy' 'lemmy-ui' 'pictrs' 'postgres' 'postfix' --default 'proxy'") && make --no-print-directory docker-compose-shell SERVICE=$${container}
+

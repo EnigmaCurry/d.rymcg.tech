@@ -19,7 +19,7 @@ config-hook:
 
 .PHONY: shell
 shell:
-	docker compose --env-file=${ENV_FILE} exec -it ntfy /bin/sh
+	@make --no-print-directory docker-compose-shell SERVICE=ntfy
 
 .PHONY: user
 user:

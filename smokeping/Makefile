@@ -10,7 +10,7 @@ config-hook:
 #### reconfigure_htpasswd will configure the HTTP Basic Authentication setting the var name and with a provided default value.
 	@${BIN}/reconfigure_ask ${ENV_FILE} SMOKEPING_TRAEFIK_HOST "Enter the smokeping domain name" smokeping${INSTANCE_URL_SUFFIX}.${ROOT_DOMAIN}
 	@${BIN}/reconfigure ${ENV_FILE} SMOKEPING_INSTANCE=$${instance:-default}
-	@${BIN}/reconfigure_htpasswd ${ENV_FILE} SMOKEPING_HTTP_AUTH default=no
+	@${BIN}/reconfigure_auth ${ENV_FILE} SMOKEPING
 
 .PHONY: override-hook
 override-hook:
@@ -24,8 +24,8 @@ override-hook:
 ####                         # (this hardcodes the string into docker-compose.override.yaml)
 ####   name=@VARIABLE_NAME   # sets the template 'name' field to the literal string '${VARIABLE_NAME}'
 ####                         # (used for regular docker-compose expansion of env vars by name.)
-	@${BIN}/docker_compose_override ${ENV_FILE} project=:smokeping instance=@SMOKEPING_INSTANCE traefik_host=@SMOKEPING_TRAEFIK_HOST http_auth=SMOKEPING_HTTP_AUTH http_auth_var=@SMOKEPING_HTTP_AUTH ip_sourcerange=@SMOKEPING_IP_SOURCERANGE
+	@${BIN}/docker_compose_override ${ENV_FILE} project=:smokeping instance=@SMOKEPING_INSTANCE traefik_host=@SMOKEPING_TRAEFIK_HOST http_auth=SMOKEPING_HTTP_AUTH http_auth_var=@SMOKEPING_HTTP_AUTH ip_sourcerange=@SMOKEPING_IP_SOURCERANGE  oauth2=SMOKEPING_OAUTH2 authorized_group=SMOKEPING_OAUTH2_AUTHORIZED_GROUP
 
 .PHONY: shell
 shell:
-	@docker-compose --env-file ${ENV_FILE} exec -it $${service:-smokeping} /bin/sh -c "/bin/bash || /bin/sh"
+	@make --no-print-directory docker-compose-shell SERVICE=smokeping

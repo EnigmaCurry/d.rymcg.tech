@@ -28,6 +28,10 @@ experimental:
     referer:
       modulename: github.com/moonlightwatch/referer
     #@ end
+    #@ if data.values.plugin_header_authorization == "true":
+    headauth:
+      modulename: github.com/poloyacero/headauth
+    #@ end
 #@ end
 
 providers:
@@ -44,6 +48,25 @@ providers:
 
 global:
   sendAnonymousUsage: #@ data.values.send_anonymous_usage == "true"
+
+#! Setup the default cert only for those domains configured for the *first* ACME cert:
+#! The expected case is that the first certificate will have a wildcard so it captures everything
+#! The thing to avoid is listing every single SAN of all the other certs, so just going to use the first one.
+#@ acme_cert_domains = json.decode(data.values.acme_cert_domains)
+#@ first_cert = acme_cert_domains[0] if len(acme_cert_domains) else []
+#@ if len(first_cert) and data.values.acme_enabled == "true":
+tls:
+  stores:
+    default:
+      defaultGeneratedCert:
+        resolver: #@ data.values.acme_cert_resolver
+        domain:
+          main: #@ first_cert[0]
+          sans:
+            #@ for secondary in first_cert[1:]:
+            - #@ secondary
+            #@ end
+#@ end
 
 certificatesResolvers:
   production:

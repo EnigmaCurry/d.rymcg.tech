@@ -1,7 +1,10 @@
 .PHONY: config # Configure .env file
-config: check-instance-project
+config: check-instance-project script-wizard check-dist-vars
+	@echo
 	@echo "Configuring environment file: ${ENV_FILE}"
 	@make -e --no-print-directory config-hook override instance=${INSTANCE}
+	@echo ""
+	@echo "Remember to run 'make install' to deploy your changes."
 
 .PHONY: start # Start services
 start:
@@ -43,3 +46,7 @@ logs:
 .PHONY: pull # Pull docker images from registry
 pull:
 	@make --no-print-directory docker-compose-lifecycle-cmd EXTRA_ARGS="pull"
+
+.PHONY: wait # Wait until deployment is started and healthy
+wait:
+	@CONTAINER_IDS= ${BIN}/wait_until_healthy "$$(make --no-print-directory docker-compose-lifecycle-cmd EXTRA_ARGS='ps -a -q')"

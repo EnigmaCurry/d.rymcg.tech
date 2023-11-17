@@ -10,16 +10,6 @@ way of separating security concerns, or for creating segmented
 namespaces like dev/test/prod, but all colocated on the same physical
 server.
 
-**Update**: [Docker Desktop](https://docs.docker.com/desktop) is now
-available for all three major platforms: Linux, Windows, and Mac. So
-for desktop users, Docker Desktop may be used instead of these
-instructions, to accomplish a similar result. For command-line Linux
-users, these instructions are still working great, and also offer
-better security (Docker Desktop is convenient, but insecure: it allows
-bind mounts and binding to ports <1024, whereas `_docker_vm` runs as a
-regular unprivileged user process. Additionally, although Docker
-itself is open source, Docker Desktop is not.)
-
 ## Background
 
 I don't think it's wise to run the Docker daemon natively on your
@@ -158,6 +148,31 @@ And prevent it from starting:
 ```
 sudo systemctl mask docker
 ```
+
+## Ensure your system is ready for virtualization
+
+Your system requires hardware virtualization support
+([HVM](https://en.wikipedia.org/wiki/Hardware-assisted_virtualization),
+which most modern systems support, but the feature may or may not have
+been enabled in your system firmware.
+
+Check the output of these commands for more information about enabling
+this support:
+
+```
+## You should see kvm_intel or kvm_amd or some other kvm module loaded:
+lsmod | grep kvm
+
+## If that doesn't show the modules, try:
+sudo modprobe kvm_intel
+sudo modprobe kvm_amd
+
+## If the UEFI or BIOS is blocking the kvm module, this will report that:
+sudo dmesg | grep kvm
+```
+
+Reboot your computer and go into the UEFI/BIOS settings and check if
+there is a flag you need to enable to turn on hardware virtualiation.
 
 ## Add your user to the KVM group
 

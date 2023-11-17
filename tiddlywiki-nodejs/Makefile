@@ -12,7 +12,7 @@ config-hook:
 	@${BIN}/reconfigure ${ENV_FILE} TIDDLYWIKI_NODEJS_INSTANCE=${instance}
 	@echo ""
 	@echo "Configure the admin account credentials:"
-	@${BIN}/reconfigure_htpasswd ${ENV_FILE} TIDDLYWIKI_NODEJS_HTTP_AUTH
+	@__D_RY_CONFIG_ENTRY=reconfigure_auth ${BIN}/reconfigure_htpasswd ${ENV_FILE} TIDDLYWIKI_NODEJS_HTTP_AUTH
 	@echo ""
 	@${BIN}/confirm $$([[ "$$(${BIN}/dotenv -f ${ENV_FILE} get TIDDLYWIKI_PUBLIC_IP_SOURCERANGE)" == "0.0.0.0/0" ]] && echo "yes" || echo "no") "Do you want to enable public read-only access" "?" && ${BIN}/reconfigure ${ENV_FILE} TIDDLYWIKI_PUBLIC_IP_SOURCERANGE=0.0.0.0/0 || ${BIN}/reconfigure ${ENV_FILE} TIDDLYWIKI_PUBLIC_IP_SOURCERANGE=0.0.0.0/32
 	@echo ""
@@ -28,16 +28,17 @@ config-hook:
 
 .PHONY: shell
 shell:
-	@make --no-print-directory docker-compose-lifecycle-cmd EXTRA_ARGS="exec tiddlywiki-nodejs /bin/sh"
+	@make --no-print-directory docker-compose-lifecycle-cmd EXTRA_ARGS="exec tiddlywiki-nodejs /bin/sh".PHONY: shell
+shell:
+	@container=$$(eval "${BIN}/script-wizard choose 'docker exec -it into which container?' 'tiddlywiki-static' 'tiddlywiki-base' 'tiddlywiki-nodejs' 'watcher' 's3-proxy' --default 'tiddlywiki-nodejs'") && make --no-print-directory docker-compose-shell SERVICE=$${container}
 
 .PHONY: watcher-shell
 watcher-shell:
 	@make --no-print-directory docker-compose-lifecycle-cmd EXTRA_ARGS="exec watcher /bin/bash"
 
-
 # .PHONY: override-hook
 # override-hook:
-# 	@${BIN}/docker_compose_override ${ENV_FILE} TIDDLYWIKI_NODEJS_PUBLIC_HTTP_AUTH
+# 	@${BIN}/docker_compose_override ${ENV_FILE}
 
 .PHONY: ssh-keygen
 ssh-keygen:

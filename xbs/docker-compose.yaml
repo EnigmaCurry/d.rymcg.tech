@@ -18,7 +18,10 @@ services:
       - "xbs-db-backups:/data/backups"
 
   api:
-    build: ./api
+    build:
+      context: ./api
+      args:
+        XBS_VERSION: 1.1.13
     depends_on:
       - "db"
     security_opt:
@@ -33,13 +36,7 @@ services:
       retries: 5
       start_period: "30s"
     restart: "unless-stopped"
-    labels:
-      - "traefik.enable=true"
-      - "traefik.http.routers.xbs-${XBS_INSTANCE:-default}.rule=Host(`${XBS_TRAEFIK_HOST}`)"
-      - "traefik.http.routers.xbs-${XBS_INSTANCE:-default}.entrypoints=websecure"
-      - "traefik.http.services.xbs-${XBS_INSTANCE:-default}.loadbalancer.server.port=8080"
-      - "traefik.http.middlewares.xbs-${XBS_INSTANCE:-default}-ipwhitelist.ipwhitelist.sourcerange=${XBS_IP_SOURCERANGE}"
-      - "traefik.http.routers.xbs-${XBS_INSTANCE:-default}.middlewares=xbs-${XBS_INSTANCE:-default}-ipwhitelist"
+    labels: []
 
 volumes:
   xbs-db-backups:

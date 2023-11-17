@@ -13,6 +13,8 @@
 #@ ip_sourcerange = data.values.ip_sourcerange
 #@ enable_http_auth = len(data.values.http_auth.strip()) > 0
 #@ http_auth = data.values.http_auth_var
+#@ enable_oauth2 = data.values.oauth2 == "true"
+#@ authorized_group = data.values.authorized_group
 #@ enabled_middlewares = []
 
 #! ### Custom project vars:
@@ -35,11 +37,6 @@ services:
       #@ enabled_middlewares.append("{}-ipwhitelist".format(router))
       - "traefik.http.middlewares.(@= router @)-ipwhitelist.ipwhitelist.sourcerange=(@= ip_sourcerange @)"
 
-      #@ if enable_http_auth:
-      #@ enabled_middlewares.append("{}-basicauth".format(router))
-      - "traefik.http.middlewares.(@= router @)-basicauth.basicauth.users=(@= http_auth @)"
-      #@ end
-
       #! Override the default port that proxy binds to, so that it lives in userspace >1024:
       #! You don't normally need to do this, as long as your image has
       #! an EXPOSE directive in it, Traefik will autodetect it, but this is how you can override it:
@@ -51,6 +48,17 @@ services:
       #@ enabled_middlewares.append("{}-blockpath".format(router))
       - "traefik.http.middlewares.(@= router @)-blockpath.plugin.blockpath.regex=^/feeds.*"
       #@ end
-      
+
+      #@ if enable_http_auth:
+      #@ enabled_middlewares.append("{}-basicauth".format(router))
+      - "traefik.http.middlewares.(@= router @)-basicauth.basicauth.users=(@= http_auth @)"
+      #@ end
+
+      #@ if enable_oauth2:
+      #@ enabled_middlewares.append("traefik-forward-auth@docker")
+      #@ enabled_middlewares.append("header-authorization-group-{}@file".format(authorized_group))
+      #@ end
+
+
       #! Apply all middlewares (do this at the end!)
       - "traefik.http.routers.(@= router @).middlewares=(@= ','.join(enabled_middlewares) @)"
