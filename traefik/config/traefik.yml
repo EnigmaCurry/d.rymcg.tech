@@ -186,3 +186,7 @@ entryPoints:
         - traefik-websecure-error-handler-500@file
         #@ end
   #@ end
+  #@ if data.values.dns_entrypoint_enabled == "true":
+  dns:
+    address: #@ data.values.dns_entrypoint_host + ":" + data.values.dns_entrypoint_port + "/udp"
+  #@ end
