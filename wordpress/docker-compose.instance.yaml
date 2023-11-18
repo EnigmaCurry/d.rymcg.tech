@@ -50,6 +50,7 @@ services:
       #@ if enable_http_auth:
       #@ enabled_middlewares.append("{}-basicauth".format(router))
       - "traefik.http.middlewares.(@= router @)-basicauth.basicauth.users=(@= http_auth @)"
+      - "traefik.http.middlewares.(@= router @)-basicauth.basicauth.headerField=X-Forwarded-User"
       #@ end
 
       #@ if enable_oauth2:
@@ -78,6 +79,7 @@ services:
       #@ if enable_http_auth:
       #@ enabled_middlewares.append("{}-basicauth".format(attachments_router))
       - "traefik.http.middlewares.(@= attachments_router @)-basicauth.basicauth.users=(@= http_auth @)"
+      - "traefik.http.middlewares.(@= attachments_router @)-basicauth.basicauth.headerField=X-Forwarded-User"
       #@ end
 
       #@ if enable_anti_hotlink:
@@ -122,6 +124,7 @@ services:
       #@ if enable_http_auth_static:
       #@ enabled_middlewares.append("{}-basicauth".format(router))
       - "traefik.http.middlewares.(@= router @)-basicauth.basicauth.users=(@= http_auth_static @)"
+      - "traefik.http.middlewares.(@= router @)-basicauth.basicauth.headerField=X-Forwarded-User"
       #@ end
 
       #! Apply all middlewares (do this at the end!)
@@ -145,6 +148,7 @@ services:
       #@ if enable_http_auth_static:
       #@ enabled_middlewares.append("{}-basicauth".format(attachments_router))
       - "traefik.http.middlewares.(@= attachments_router @)-basicauth.basicauth.users=(@= http_auth_static @)"
+      - "traefik.http.middlewares.(@= attachments_router @)-basicauth.basicauth.headerField=X-Forwarded-User"
       #@ end
 
       #@ if enable_anti_hotlink:
