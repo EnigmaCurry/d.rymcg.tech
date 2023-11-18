@@ -12,6 +12,7 @@ services:
     environment:
       - MINIO_ROOT_USER
       - MINIO_ROOT_PASSWORD
+      - MINIO_DOMAIN=${MINIO_TRAEFIK_HOST}
     volumes:
       - data:/data
     command: server /data --console-address ":9001"

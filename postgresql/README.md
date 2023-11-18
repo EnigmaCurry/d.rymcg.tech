@@ -61,12 +61,6 @@ than perhaps the IP whitelist, which you can also do on your firewall anyway. So
 instead, this project maps the port directly on the external docker host network
 port.)
 
-## This does not do backups (yet)
-
-This will probably eventually incorporate
-[EnigmaCurry/postgresql-backup-s3](https://github.com/EnigmaCurry/postgresql-backup-s3)
-to automatically backup and upload to S3. But its not been done yet!
-
 ## Configure
 
 Make sure you have followed the main project level [README.md](../README.md) to
@@ -80,11 +74,9 @@ make config
 
 Answer the questions:
 
- * `POSTGRES_TRAEFIK_HOST` This is the public hostname that your PostgreSQL
-   server will run on. (Traefik is not actually used, see notes above. However,
-   the `*_TRAEFIK_HOST` naming scheme is used throughout this project, so this
-   name is appropriate still for the purpose of indicating the external host
-   name.)
+ * `POSTGRES_HOST` This is the public hostname that your PostgreSQL
+   server will run on (the port, 5432, is publicly exposed on the
+   docker host; Traefik is not used in this case).
  * `POSTGRES_DB` The name of the database to create.
  * `ALLOWED_IP_SOURCERANGE` The allowed client IP network range in CIDR format
    with netmask. To allow any client to connect enter `0.0.0.0/0` or to enter a
@@ -255,3 +247,244 @@ from psql shell.)
 
 You can use this as an example for loading any other dataset.
 
+## Backup
+
+Your databases may be configured to backup automatically with
+[pgbackrest](https://pgbackrest.org/), which can be configured to be
+stored on any combination of these storage backends:
+
+ * Locally stored to a separate volume (`backup`) on the same Docker
+   host. (`POSTGRES_PGBACKREST_LOCAL=true`)
+ * Remotely stored to an S3 bucket on an external host.
+   (`POSTGRES_PGBACKREST_S3=true`)
+
+Pgbackrest can optionally encrypt your backups (eg. if you don't
+control/trust your own S3 endpoint)
+(`POSTGRES_PGBACKREST_ENCRYPTION_PASSPHRASE`). By default, there is no
+passphrase set, and so encryption is disabled. If you set a
+passphrase, it will enable encryption for all backups (local and
+remote).
+
+**Make sure you keep a copy of the .env file in a secure vault, as it
+contains your S3 credentials, and your encryption passphrase,
+either/both of which you will need in order to restore from backup!**
+
+### Example with local backup to docker volume:
+
+To configure a local backup, you simply need to configure the
+following environment variables in your .env file. This information
+can all be entered by hand, when you run `make config`:
+
+ * `POSTGRES_PGBACKREST_LOCAL=true` - this must be set to `true` to enable local backup.
+ * `POSTGRES_PGBACKREST_LOCAL_RETENTION_FULL` - the number of full backups to keep in the archive (eg. 2)
+ * `POSTGRES_PGBACKREST_LOCAL_RETENTION_DIFF` - the number of differential backups to keep in the archive (eg. 4)
+
+### Examples with remote S3 backup:
+
+To configure a remote S3 backup, you simply need to configure the
+following environment variables in your .env file. This information
+can all be entered by hand, when you run `make config`:
+
+You must provision the S3 endpoint and/or credentials beforehand, and
+then answer the questions to fill in the information for these
+variables:
+
+ * `POSTGRES_PGBACKREST_S3=true` - this must be set to `true` to enable S3 backup.
+ * `POSTGRES_PGBACKREST_S3_ENDPOINT` - the S3 endpoint domain name (eg. `s3.us-east-1.amazonaws.com`)
+ * `POSTGRES_PGBACKREST_S3_REGION` - the S3 region name (eg.
+   `us-east-1`, or leave it blank if your endpoint doesnt use regions)
+ * `POSTGRES_PGBACKREST_S3_BUCKET` - the S3 bucket name (eg. `my-bucket`)
+ * `POSTGRES_PGBACKREST_S3_KEY_ID` - the S3 API account ID (this is the bucket login)
+ * `POSTGRES_PGBACKREST_S3_KEY_SECRET` - the S3 secret key (this is the bucket password)
+ * `POSTGRES_PGBACKREST_S3_RETENTION_FULL` - the number of full backups to keep in the archive (eg. 4)
+ * `POSTGRES_PGBACKREST_S3_RETENTION_DIFF` - the number of differential backups to keep in the archive (eg. 8)
+
+#### Create a bucket on Minio (self-hosted S3 server)
+
+Minio is an open-source self-hosted S3 server. You can easily install
+Minio on your docker server. Follow the directions at
+[minio](https://github.com/EnigmaCurry/d.rymcg.tech/tree/master/minio)
+and especially [the instructions for creating a bucket, policy, and
+credentials](https://github.com/EnigmaCurry/d.rymcg.tech/tree/master/minio#create-a-bucket)
+
+The default bucket policy that the minio `make bucket` utility creates
+will work fine. It is a little bit less restrictive than the policy
+that the pgbackrest documentation suggests for you to use, but it will
+work nonetheless. You may wish to login to the minio admin console and
+create a new policy, and you can copy for the same policy shown in the
+example below for Wasabi.
+
+Quickstart:
+
+```
+d.rymcg.tech make minio destroy clean config install bucket
+```
+
+Enter the bucket name `postgres-apps` and choose the default for
+everything else. Copy the endpoint, access-key, and secret-key for
+entering into the postgres config later.
+
+#### Create a bucket on Wasabi (commerical S3 service)
+
+[Wasabi](https://wasabi.com/) is an inexpensive cloud storage vendor with an S3
+compatible API, and with a pricing and usage model perfect for backups.
+
+ * Create a wasabi account and [log in to the console](https://console.wasabisys.com/)
+ * Click on `Buckets` in the menu, then click `Create Bucket`. Choose a unique
+   name for the bucket. Select the region, then click `Create Bucket`.
+ * Click on `Policies` in the menu, then click `Create Policy`. Enter
+   any name for the policy, but its easiest to name it the same thing
+   as the bucket. Copy and paste the full policy document as show
+   below, into the policy form, careful to replace all instances of
+   the string `BUCKET_NAME` (3 instances) with your chosen bucket
+   name:
+
+```
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Effect": "Allow",
+      "Action": "s3:ListBucket",
+      "Resource": "arn:aws:s3:::BUCKET_NAME",
+      "Condition": {"StringEquals":{"s3:prefix":["","apps-repo"],"s3:delimiter":["/"]}}
+    },
+    {
+      "Effect": "Allow",
+      "Action": "s3:ListBucket",
+      "Resource": "arn:aws:s3:::BUCKET_NAME",
+      "Condition": {"StringLike":{"s3:prefix":["apps-repo/*"]}}
+    },
+    {
+      "Effect": "Allow",
+      "Action": [
+        "s3:PutObject",
+        "s3:PutObjectTagging",
+        "s3:GetObject",
+        "s3:DeleteObject"
+      ],
+      "Resource": "arn:aws:s3:::BUCKET_NAME/apps-repo/*"
+    }
+  ]
+}
+```
+
+ * Once the policy document is edited, click `Create Policy`.
+
+ * Click on `Users` in the menu, then click `Create User`.
+
+   * Enter any username you like, but its easiest to name the user the same as
+     the bucket.
+   * Check the type of access as `Programatic`.
+   * Click `Next`.
+   * Skip the Groups screen.
+   * On the Policies page, click the dropdown called `Attach Policy To User` and
+   find the name of the policy you created above.
+   * Click `Next`.
+   * Review and click `Create User.`
+   * View the Access and Secret keys. Click `Copy Keys To Clipboard`.
+   * Paste the keys into a temporary buffer in your editor to save them, you
+     will need to copy them into the script that you download in the next
+     section.
+   * You will need to know the [S3 endpoint URLs for
+     wasabi](https://wasabi-support.zendesk.com/hc/en-us/articles/360015106031-What-are-the-service-URLs-for-Wasabi-s-different-storage-regions-)
+     later, which are dependent on the Region you chose for the bucket. (eg.
+     `s3.us-west-1.wasabisys.com`)
+
+
+### Start backup now
+
+Choose which backup you want to do, local or s3:
+
+```
+## Make local backup to docker volume
+make backup-local
+
+## Make remote backup to s3 bucket
+make backup-s3
+```
+
+### Start restore now
+
+This will shutdown the postgres service, DELETE all data, and restart
+in maintaince mode, and restore the latest backup from S3:
+
+Choose which backup you want to restore from:
+
+```
+## Restore from local backup:
+make restore-local
+
+## Restore from s3 backup:
+make restore-s3
+```
+
+Note that you can restore with either a running instance, or from no
+instance at all:
+
+```
+## Destroy the existing instance and restore from s3 and start it up:
+d.rymcg.tech make postgresql destroy restore-s3 start
+```
+
+Note that in a real disaster scenario you will need to restore your
+`.env_{DOCKER_CONTEXT}_{INSTANCE}` file first, as it contains the S3
+credentials and encryption passphrase necessarry to run the restore.
+
+
+### Get backup information
+
+You can see information about the latest backups performed:
+
+```
+make backup-info
+```
+
+### Scheduled backup via tinycron
+
+When backups are turned on, scheduled jobs are started to run backups
+automatically. You can customize the frequency and retention sizes in
+the `.env_{DOCKER_CONTEXT}_{INSTANCE}` file. 
+
+Recall that there are two repositories:
+
+ * local
+ * s3
+
+And two levels of backups:
+
+ * full
+ * diff
+
+And so there is a matrix of configs for these attributes:
+
+```
+POSTGRES_PGBACKREST_LOCAL_RETENTION_FULL=1
+POSTGRES_PGBACKREST_LOCAL_RETENTION_DIFF=28
+POSTGRES_PGBACKREST_S3_RETENTION_FULL=4
+POSTGRES_PGBACKREST_S3_RETENTION_DIFF=28
+```
+
+ * `POSTGRES_PGBACKREST_LOCAL_RETENTION_FULL=1` means for the local backup to retain only one full backup.
+ * `POSTGRES_PGBACKREST_LOCAL_RETENTION_DIFF=28` means for the local backup to retain up to twenty eight diff backups.
+ * `POSTGRES_PGBACKREST_S3_RETENTION_FULL=4` means for the s3 backup to retain up to four full backups.
+ * `POSTGRES_PGBACKREST_S3_RETENTION_DIFF=28` means for the s3 backup to retain up to twenty eight diff backups.
+
+The backup schedule for each type is specified in cron format. This
+example shows how to make one full backup per week, with a
+differential backup made every 6 hours (28/week).
+
+```
+### Cron scheduled backups:
+### Use cronexpr format: https://github.com/gorhill/cronexpr
+## eg. weekly at 2 AM on Sunday morning: 0 0 2 * * 0 *
+## eg. daily at midnight: @daily
+## eg. every six hours stating at 3AM: 0 0 3/6 * * * *
+POSTGRES_PGBACKREST_LOCAL_SCHEDULE_FULL=0 0 0 * * 0 *
+POSTGRES_PGBACKREST_LOCAL_SCHEDULE_DIFF=0 0 3/6 * * * *
+POSTGRES_PGBACKREST_S3_SCHEDULE_FULL=0 0 0 * * 0 *
+POSTGRES_PGBACKREST_S3_SCHEDULE_DIFF=0 0 3/6 * * * *
+```
+
+Rembmer to `make install` after editing your .env file to apply your
+changes.

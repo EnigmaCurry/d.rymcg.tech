@@ -3,6 +3,7 @@ version: "3.9"
 volumes:
   config:
   data:
+  backup:
 
 services:
   config:
@@ -12,36 +13,57 @@ services:
       - no-new-privileges:true
     environment:
       - POSTGRES_DB
+      - POSTGRES_INSTANCE
       - POSTGRES_USER=${POSTGRES_ADMIN_USER}
       - POSTGRES_LIMITED_USER=${POSTGRES_DB}
-      - POSTGRES_TRAEFIK_HOST
+      - POSTGRES_HOST
       - POSTGRES_ALLOWED_IP_SOURCERANGE
       - FORCE_NEW_CERTIFICATES
-      - EXTRA_DATABASES
+      - POSTGRES_PGBACKREST
+      - POSTGRES_PGBACKREST_REPOSITORIES
+      - POSTGRES_PGBACKREST_LOCAL
+      - POSTGRES_PGBACKREST_LOCAL_RETENTION_FULL
+      - POSTGRES_PGBACKREST_LOCAL_RETENTION_DIFF
+      - POSTGRES_PGBACKREST_S3
+      - POSTGRES_PGBACKREST_S3_RETENTION_FULL
+      - POSTGRES_PGBACKREST_S3_RETENTION_DIFF
+      - POSTGRES_PGBACKREST_S3_ENDPOINT
+      - POSTGRES_PGBACKREST_S3_BUCKET
+      - POSTGRES_PGBACKREST_S3_REGION
+      - POSTGRES_PGBACKREST_S3_KEY_ID
+      - POSTGRES_PGBACKREST_S3_KEY_SECRET
     volumes:
       - config:/config
 
   postgres:
     depends_on: [config]
     build:
-      context: .
+      context: postgres
       args:
         POSTGRES_VERSION: ${POSTGRES_VERSION}
+        PGRATIONAL_VERSION: ${POSTGRES_PGRATIONAL_VERSION}
     restart: unless-stopped
     security_opt:
       - no-new-privileges:true
     volumes:
       - data:/var/lib/postgresql/data
       - config:/etc/postgresql
+      - backup:/var/lib/pgbackrest
     environment:
       - POSTGRES_DB
+      - POSTGRES_HOST
+      - POSTGRES_INSTANCE
       - PGDATABASE=${POSTGRES_DB}
       - POSTGRES_USER=${POSTGRES_ADMIN_USER}
       - PGUSER=${POSTGRES_ADMIN_USER}
       - POSTGRES_PASSWORD=${POSTGRES_ADMIN_PASSWORD}
       - POSTGRES_LIMITED_USER=${POSTGRES_DB}
+      - POSTGRES_PGBACKREST_LOCAL_SCHEDULE_FULL
+      - POSTGRES_PGBACKREST_LOCAL_SCHEDULE_DIFF
+      - POSTGRES_PGBACKREST_S3_SCHEDULE_FULL
+      - POSTGRES_PGBACKREST_S3_SCHEDULE_DIFF
+      - POSTGRES_MAINTAINANCE_MODE
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U $$POSTGRES_USER -d $$POSTGRES_DB"]
+      test: ["CMD-SHELL", "/usr/local/bin/healthcheck.sh"]
     ports:
       - ${POSTGRES_EXTERNAL_TCP_PORT}:5432
-    command: postgres -c 'config_file=/etc/postgresql/postgresql.conf'
