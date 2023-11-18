@@ -14,8 +14,7 @@ config-hook:
 	@echo ""
 	@(${BIN}/confirm $$(test "$$(${BIN}/dotenv -f ${ENV_FILE} get PODFETCH_GPODDER_INTEGRATION_ENABLED)" == "true" && echo yes || echo no) "Do you want to enable the GPodder API" "?" && ${BIN}/reconfigure ${ENV_FILE} PODFETCH_GPODDER_INTEGRATION_ENABLED=true) || ${BIN}/reconfigure ${ENV_FILE} PODFETCH_GPODDER_INTEGRATION_ENABLED=false
 	@echo
-	@echo "You can configure HTTP Authentication through Traefik, Podfetch's internal Basic Authentication, or neither - but not both."
-	@${BIN}/reconfigure_htpasswd ${ENV_FILE} PODFETCH_HTTP_AUTH default=no
+	@${BIN}/reconfigure_auth ${ENV_FILE} PODFETCH
 	@echo ""
 	@test -n "$$(${BIN}/dotenv -f ${ENV_FILE} get PODFETCH_HTTP_AUTH)" && ${BIN}/reconfigure ${ENV_FILE} PODFETCH_BASIC_AUTH=false || (${BIN}/confirm yes "Enable Podfetch's Basic Authentication" "?" && ${BIN}/reconfigure ${ENV_FILE} PODFETCH_BASIC_AUTH=true && ${BIN}/reconfigure_ask ${ENV_FILE} PODFETCH_USERNAME "Enter your username" "-" && ALLOW_BLANK=1 ${BIN}/reconfigure_ask ${ENV_FILE} PODFETCH_PASSWORD "Enter your password (leave blank to generate a random password)" "-" && (test -z "$$(${BIN}/dotenv -f ${ENV_FILE} get PODFETCH_PASSWORD)" && ${BIN}/reconfigure_password ${ENV_FILE} PODFETCH_PASSWORD 32 || true)) || ${BIN}/reconfigure ${ENV_FILE} PODFETCH_BASIC_AUTH=false
 	@echo ""
@@ -33,7 +32,7 @@ override-hook:
 ####                         # (this hardcodes the string into docker-compose.override.yaml)
 ####   name=@VARIABLE_NAME   # sets the template 'name' field to the literal string '${VARIABLE_NAME}'
 ####                         # (used for regular docker-compose expansion of env vars by name.)
-	@${BIN}/docker_compose_override ${ENV_FILE} project=:podfetch instance=@PODFETCH_INSTANCE traefik_host=@PODFETCH_TRAEFIK_HOST http_auth=PODFETCH_HTTP_AUTH http_auth_var=@PODFETCH_HTTP_AUTH ip_sourcerange=@PODFETCH_IP_SOURCERANGE podfetch_basic_auth=PODFETCH_BASIC_AUTH podfetch_basic_auth_var=@PODFETCH_BASIC_AUTH podfetch_username=@PODFETCH_USERNAME podfetch_password=@PODFETCH_PASSWORD
+	@${BIN}/docker_compose_override ${ENV_FILE} project=:podfetch instance=@PODFETCH_INSTANCE traefik_host=@PODFETCH_TRAEFIK_HOST http_auth=PODFETCH_HTTP_AUTH http_auth_var=@PODFETCH_HTTP_AUTH ip_sourcerange=@PODFETCH_IP_SOURCERANGE oauth2=PODFETCH_OAUTH2 authorized_group=PODFETCH_OAUTH2_AUTHORIZED_GROUP
 
 #### need to flesh this out - want to add a way to manage podfetch users via `make` 
 .PHONY: users

@@ -13,24 +13,13 @@
 #@ ip_sourcerange = data.values.ip_sourcerange
 #@ enable_http_auth = len(data.values.http_auth.strip()) > 0
 #@ http_auth = data.values.http_auth_var
-
-#! ### Custom service vars
-#@ enable_podfetch_basic_auth = data.values.podfetch_basic_auth == "true"
-#@ podfetch_basic_auth_var = data.values.podfetch_basic_auth_var
-#@ podfetch_username = data.values.podfetch_username
-#@ podfetch_password = data.values.podfetch_password
+#@ enable_oauth2 = data.values.oauth2 == "true"
+#@ authorized_group = data.values.authorized_group
 #@ enabled_middlewares = []
 
 #@yaml/text-templated-strings
 services:
   podfetch:
-    environment:
-      #@ if enable_podfetch_basic_auth:
-      - BASIC_AUTH=(@= podfetch_basic_auth_var @)
-      - USERNAME=(@= podfetch_username @)
-      - PASSWORD=(@= podfetch_password @)
-      #@ end
-
     #@ service = "podfetch"
     labels:
       #! Services must opt-in to be proxied by Traefik:
@@ -48,6 +37,11 @@ services:
       #@ if enable_http_auth:
       #@ enabled_middlewares.append("{}-basicauth".format(router))
       - "traefik.http.middlewares.(@= router @)-basicauth.basicauth.users=(@= http_auth @)"
+      #@ end
+
+      #@ if enable_oauth2:
+      #@ enabled_middlewares.append("traefik-forward-auth@docker")
+      #@ enabled_middlewares.append("header-authorization-group-{}@file".format(authorized_group))
       #@ end
 
       #! Override the default port that podfetch binds to, so that it lives in userspace >1024:
