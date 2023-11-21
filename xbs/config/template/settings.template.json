@@ -1,9 +1,9 @@
 {
   "db": {
-    "host": "db",
-    "status": {
-      "message": "${XBS_MESSAGE}"
-    },
-    "location": "${XBS_LOCATION}"
-  }
+    "host": "db"
+  },
+  "status": {
+    "message": "${XBS_MESSAGE}"
+  },
+  "location": "${XBS_LOCATION}"
 }
