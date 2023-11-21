@@ -5,6 +5,9 @@ include ${ROOT_DIR}/_scripts/Makefile.instance
 .PHONY: config-hook
 config-hook:
 	@${BIN}/reconfigure_ask ${ENV_FILE} XBS_TRAEFIK_HOST "Enter the xbs domain name" xbs${INSTANCE_URL_SUFFIX}.${ROOT_DOMAIN}
+	@${BIN}/reconfigure_ask ${ENV_FILE} XBS_LOCATION "Enter the xbs location"
+	@${BIN}/reconfigure_ask ${ENV_FILE} XBS_MESSAGE "Enter the xbs welcome message"
+
 	@${BIN}/reconfigure_password ${ENV_FILE} XBS_DB_PASSWORD
 	@${BIN}/reconfigure_auth ${ENV_FILE} XBS
 
