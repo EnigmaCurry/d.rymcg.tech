@@ -1,9 +1,0 @@
-{
-  "db": {
-    "host": "db",
-    "status": {
-      "message": "Wooskey XBS service!"
-    },
-    "location": "us"
-  }
-}

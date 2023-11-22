@@ -37,6 +37,7 @@ services:
       #@ if enable_http_auth:
       #@ enabled_middlewares.append("{}-basicauth".format(router))
       - "traefik.http.middlewares.(@= router @)-basicauth.basicauth.users=(@= http_auth @)"
+      - "traefik.http.middlewares.(@= router @)-basicauth.basicauth.headerField=X-Forwarded-User"
       #@ end
 
       - "traefik.http.middlewares.(@= router @)-stripprefix.stripprefix.prefixes=${WEBSOCKETD_APP_PATH}"
