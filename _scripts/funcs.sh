@@ -515,3 +515,34 @@ choose() {
     fi
     return ${exit_code}
 }
+
+netmask_to_prefix() {
+    #thanks agc https://stackoverflow.com/a/50419919
+    c=0 x=0$( printf '%o' ${1//./ } )
+    while [ $x -gt 0 ]; do
+        let c+=$((x%2)) 'x>>=1'
+    done
+    echo $c ;
+}
+
+prefix_to_netmask () {
+    #thanks https://forum.archive.openwrt.org/viewtopic.php?id=47986&p=1#p220781
+    set -- $(( 5 - ($1 / 8) )) 255 255 255 255 $(( (255 << (8 - ($1 % 8))) & 255 )) 0 0 0
+    [ $1 -gt 1 ] && shift $1 || shift
+    echo ${1-0}.${2-0}.${3-0}.${4-0}
+}
+
+validate_ip_address () {
+    #thanks https://stackoverflow.com/a/21961938
+    echo "$@" | grep -o -E  '(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)' >/dev/null
+}
+
+validate_ip_network() {
+    #thanks https://stackoverflow.com/a/21961938
+    PREFIX=$(echo "$@" | grep -o -P "/\K[[:digit:]]+$")
+    if [[ "${PREFIX}" -ge 0 ]] && [[ "${PREFIX}" -le 32 ]]; then
+        echo "$@" | grep -o -E  '(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)/[[:digit:]]+' >/dev/null
+    else
+        return 1
+    fi
+}
