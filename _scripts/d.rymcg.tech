@@ -43,6 +43,7 @@ __help() {
         echo -e "make [PROJECT] [ARGS ...]\tRun a \`make\` command for the given d.rymcg.tech project name"
         echo -e "context\tView or set the current docker context"
         echo -e "completion\tSetup TAB completion in your shell"
+        echo -e "git\tRun git commands on the d.rymcg.tech ROOT_DIR"
     ) | expand -t 30
     echo ""
     echo "## Documentation sub-commands:"
@@ -193,6 +194,10 @@ __context() {
     fi
 }
 
+__git() {
+    git -C ${ROOT_DIR} "$@"
+}
+
 __run_script() {
     CMD="${1}"; shift
     ${ROOT_DIR}/_scripts/${CMD} "$@"
@@ -202,7 +207,6 @@ __d.rymcg.tech_cli_alias() {
     local ALIAS="$1"
     alias $1='d.rymcg.tech'
     complete -F __d.rymcg.tech_completions $1
-
 }
 
 __d.rymcg.tech_project_alias() {
@@ -246,7 +250,7 @@ __d.rymcg.tech_completions() {
     if [[ ${COMP_CWORD} == 1 ]]; then
         ## Complete the main command:
         ## d.rymcg.tech <TAB> ...
-        COMMANDS="help create cd make list readme info context completion install"
+        COMMANDS="help create cd make list readme info context git completion install"
         COMPREPLY=($(compgen -W "${COMMANDS}" "${COMP_WORDS[1]}"))
     elif [[ ${COMP_CWORD} == 2 ]]; then
         ALL_PROJECTS=$(d.rymcg.tech list --raw)
@@ -265,6 +269,8 @@ __d.rymcg.tech_completions() {
                 COMPREPLY=($(compgen -W "$(docker context ls --format '{{.Name}}')" "${COMP_WORDS[2]}"));;
             info)
                 COMPREPLY=($(compgen -W "${INFO_WORDS}" "${COMP_WORDS[2]}"));;
+            git)
+                COMPREPLY=($(compgen -W "branch checkout" "${COMP_WORDS[2]}"));;
             script)
                 COMPREPLY=($(compgen -W "$(find ${ROOT_DIR}/_scripts -executable -printf '%P\n' | grep -v d.rymcg.tech)" "${COMP_WORDS[2]}"));;
         esac
@@ -367,6 +373,8 @@ main() {
                 __install "$@";;
             context)
                 __context "$@";;
+            git)
+                __git "$@";;
             script)
                 __run_script "$@";;
             status)
