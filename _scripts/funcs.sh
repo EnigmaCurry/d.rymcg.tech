@@ -9,6 +9,10 @@ fault(){ test -n "$1" && error $1; stderr "Exiting."; exit 1; }
 cancel(){ stderr "Canceled."; exit 2; }
 exe() { (set -x; "$@"); }
 print_array(){ printf '%s\n' "$@"; }
+trim_trailing_whitespace() { sed -e 's/[[:space:]]*$//'; }
+trim_leading_whitespace() { sed -e 's/^[[:space:]]*//'; }
+trim_whitespace() { trim_leading_whitespace | trim_trailing_whitespace; }
+wizard() { ${BIN}/script-wizard "$@"; }
 check_var(){
     local __missing=false
     local __vars="$@"
@@ -205,10 +209,6 @@ random_port() {
     comm -23 <(seq "${LOW_PORT}" "${HIGH_PORT}") <(ss -tan | awk '{print $4}' | cut -d':' -f2 | \
                                                        grep "[0-9]\{1,5\}" | sort | uniq) 2>/dev/null | \
         shuf 2>/dev/null | head -n 1; true
-}
-
-wizard() {
-    ${BIN}/script-wizard "$@"
 }
 
 color() {
