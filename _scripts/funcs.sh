@@ -3,10 +3,12 @@
 BIN=$(dirname ${BASH_SOURCE})
 ROOT_DIR=${ROOT_DIR:-$(dirname ${BIN})}
 
-error(){ echo "Error: $@" >/dev/stderr; }
-fault(){ test -n "$1" && error $1; echo "Exiting." >/dev/stderr; exit 1; }
-cancel(){ echo "Canceled." >/dev/stderr; exit 2; }
+stderr(){ echo "$@" >/dev/stderr; }
+error(){ stderr "Error: $@"; }
+fault(){ test -n "$1" && error $1; stderr "Exiting."; exit 1; }
+cancel(){ stderr "Canceled."; exit 2; }
 exe() { (set -x; "$@"); }
+print_array(){ printf '%s\n' "$@"; }
 check_var(){
     local __missing=false
     local __vars="$@"
@@ -33,6 +35,14 @@ debug_var() {
     local var=$1
     check_var var
     echo "## DEBUG: ${var}=${!var}" > /dev/stderr
+}
+
+debug_array() {
+    local -n ary=$1
+    echo "## DEBUG: Array '$1' contains:"
+    for i in "${!ary[@]}"; do
+        echo "## ${i} = ${ary[$i]}"
+    done
 }
 
 ask() {
