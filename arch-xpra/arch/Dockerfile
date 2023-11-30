@@ -1,0 +1,38 @@
+FROM archlinux as base_packages
+ARG ARCH_MIRROR
+RUN echo "Server = ${ARCH_MIRROR}"'/$repo/os/$arch' > /etc/pacman.d/mirrorlist
+RUN pacman -Syyu --noconfirm --disable-download-timeout
+ARG BASE_PACKAGES
+RUN pacman -S --noconfirm --disable-download-timeout ${BASE_PACKAGES}
+
+FROM base_packages as sshd-sudo-workstation
+RUN pacman -S --noconfirm openssh sudo --disable-download-timeout
+RUN mkdir -p /etc/ssh/keys && \
+    sed -ie 's/^#\(en_US\.UTF-8 UTF-8\)/\1/' /etc/locale.gen && \
+    locale-gen && \
+    rm /etc/ssh/sshd_config && \
+    echo "LogLevel VERBOSE" >> /etc/ssh/sshd_config && \
+    echo "Subsystem       sftp    /usr/lib/ssh/sftp-server" >> /etc/ssh/sshd_config && \
+    echo "HostKey /etc/ssh/keys/ssh_host_rsa_key" >> /etc/ssh/sshd_config && \
+    echo "HostKey /etc/ssh/keys/ssh_host_ecdsa_key" >> /etc/ssh/sshd_config && \
+    echo "HostKey /etc/ssh/keys/ssh_host_ed25519_key" >> /etc/ssh/sshd_config && \
+    echo "PasswordAuthentication no" >> /etc/ssh/sshd_config && \
+    echo "AddressFamily inet" >> /etc/ssh/sshd_config && \
+    echo "X11UseLocalhost no" >> /etc/ssh/sshd_config && \
+    echo "X11Forwarding yes" >> /etc/ssh/sshd_config
+ARG USERNAME
+ENV USERNAME=${USERNAME}
+RUN useradd -mU -s /bin/bash "${USERNAME}" && \
+    echo "${USERNAME}:$(openssl rand -base64 32)" | chpasswd && \
+    echo "${USERNAME} ALL=(ALL:ALL) NOPASSWD: ALL" > "/etc/sudoers.d/${USERNAME}" && \
+    echo "AllowUsers ${USERNAME}" >> /etc/ssh/sshd_config && \
+    rm -f "/home/${USERNAME}/{.bashrc,.bash_profile}"
+
+ADD bashrc.sh /etc/bash.bashrc
+ADD profile.sh /etc/profile
+EXPOSE 22
+CMD [ ! -f /etc/ssh/keys/ssh_host_rsa_key ] && ssh-keygen -A && mv /etc/ssh/ssh_host* /etc/ssh/keys/; mkdir -p "/home/${USERNAME}/.ssh" && echo "$AUTHORIZED_KEY" > "/home/${USERNAME}/.ssh/authorized_keys"; chown -R "${USERNAME}:${USERNAME}" "/home/${USERNAME}/.ssh"; chmod 0755 "/home/${USERNAME}/.ssh"; chmod 0700 "/home/${USERNAME}/.ssh/authorized_keys"; /bin/sshd -D -e
+
+FROM sshd-sudo-workstation as d.rymcg.tech
+ARG EXTRA_PACKAGES
+RUN test -n "${EXTRA_PACKAGES}" && pacman -S --noconfirm --disable-download-timeout ${EXTRA_PACKAGES} || echo "No extra packages to install"
