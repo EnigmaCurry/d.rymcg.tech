@@ -6,10 +6,9 @@ and you can use this as your remote Docker workstation. All of your
 d.rymcg.tech environment and files will live inside this container (or
 its volumes). You can setup access for all of your Docker server
 instances to be exclusively controlled through this container
-workstation, via SSH. By storing all of the environment files,
-secrets, and authentication tokens, inside this container, you can
-prevent leaking these secrets to your normal laptop/workstation
-filesystem.
+workstation, via SSH. By storing inside this container, all of the
+environment files, secrets, and authentication tokens, you can prevent
+leaking these secrets to your normal laptop/workstation filesystem.
 
 Once you've configured this container to be the sole docker client for
 your digital empire, locking down access is trivial: simply turn off
