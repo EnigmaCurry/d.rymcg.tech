@@ -103,14 +103,18 @@ make install
 
 ## Connect to it via SSH
 
+You can connect to container through SSH. Using the `make shell`
+command does not require any further configuration:
+
 ```
 make shell
 ```
 
-This will connect to the container via SSH (on port 2222 by default)
+This will connect you to the container via SSH (on port 2222 by
+default) and run the default shell.
 
-You may want to create an SSH config entry in your `~/.ssh/config`
-file:
+You may also want to create an SSH config entry in your
+`~/.ssh/config` file:
 
 ```
 # Put this in ~/.ssh/config:
@@ -122,13 +126,15 @@ Host docker-workstation
     Port 2222
     # Enter the username configured for the workstation container:
     User user
+    # Enable X11 forwarding:
+    ForwardX11 yes
     # Enable SSH connection sharing:
     ControlMaster auto
     ControlPersist yes
     ControlPath /tmp/ssh-%u-%r@%h:%p
 ```
 
-With the config in place, you can connect directly:
+With the new config in place, you can connect directly via ssh:
 
 ```
 ssh docker-workstation
@@ -140,6 +146,27 @@ This container includes my own custom [Emacs
 enviornment](https://github.com/enigmacurry/emacs#readme), which you
 can configure to use your own config (and git repository), or if you
 don't want to use Emacs, you can disable it entirely in the config.
+
+Emacs can be run as a daemon, and that way allow you to restore your
+session if you ever get disconnected.
+
+First, start the Emacs daemon:
+
+```
+ssh docker-workstation emacs --daemon
+```
+
+The first time this runs, it will build the Emacs packages, and then
+start the daemon in the background.
+
+You can connect to your session once it has started:
+
+```
+ssh docker-workstation emacsclient -c
+```
+
+You may disconnect and reattach, and the session will persist for as
+long as the Emacs daemon is running.
 
 ## Custom Packages
 
