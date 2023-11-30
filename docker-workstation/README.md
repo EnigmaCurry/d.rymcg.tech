@@ -15,11 +15,11 @@ laptop/workstation. Only turn it back on when you need to install new
 containers or do some kind of maintainance; turn it back off, and this
 becomes a powerful form of access control.
 
-The image includes all of the depenencies you need to run an SSH
-service, for a Docker client, the d.rymcg.tech tools, and a full Emacs
-and web browser develoment environment. You will be able to connect to
-the container via SSH, and with X11 forwarding enabled, be able to run
-its graphical applications (eg. Emacs and Firefox) remotely from your
+The image includes all of the dependencies you need to run an SSH
+service, a Docker client, the d.rymcg.tech tools, and a full Emacs and
+web browser develoment environment. You will be able to connect to the
+container via SSH, and with X11 forwarding enabled, be able to run its
+graphical applications (eg. Emacs and Firefox) remotely from your
 local client computer. Although Emacs can also be used from a terminal
 user interface (`emacs -nw`), having a fully graphical Firefox is
 helpful to do maintainance tasks like view the Traefik dashboard
