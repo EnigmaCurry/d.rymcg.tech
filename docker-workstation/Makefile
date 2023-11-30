@@ -26,4 +26,13 @@ root-shell:
 
 .PHONY: shell
 shell:
-	@HOST=$$(docker context inspect | jq -r '.[].Endpoints.docker.Host' | sed 's|ssh://||'); ssh -Y $${HOST} -p 2222 -l $$(${BIN}/dotenv -f ${ENV_FILE} get DOCKER_WORKSTATION_USERNAME)
+	@HOST=$$(docker context inspect | jq -r '.[].Endpoints.docker.Host' | sed 's|ssh://||'); echo -e "\n## Entering $$(${BIN}/dotenv -f ${ENV_FILE} get DOCKER_WORKSTATION_HOSTNAME) shell ..." && ssh -Y $${HOST} -p $$(${BIN}/dotenv -f ${ENV_FILE} get DOCKER_WORKSTATION_SSH_PORT) -l $$(${BIN}/dotenv -f ${ENV_FILE} get DOCKER_WORKSTATION_USERNAME) ${COMMAND}
+
+.PHONY: emacs-daemon
+emacs-daemon:
+	@make --no-print-directory shell COMMAND="emacs --daemon"
+
+.PHONY: emacsclient
+emacsclient:
+	@make --no-print-directory shell COMMAND="emacsclient -c"
+
