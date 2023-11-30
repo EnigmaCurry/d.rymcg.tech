@@ -71,17 +71,14 @@ image. But for Arch Linux, I think this would be an anti-pattern; you
 should build it yourself, fresh, but you could then publish your
 custom image to make it easier for yourself to re-use).
 
-The image includes all of the depenencies you need to run an SSH
-service, for a Docker client, the d.rymcg.tech tools, and a full Emacs
-and web browser develoment environment. You will be able to connect to
-the container via SSH, enable X11 forwarding, and able to run its
-graphical applications (eg. Emacs and Firefox) remotely from your
-local client computer. Although Emacs can also be used from a terminal
-user interface (`emacs -nw`), having a fully graphical Firefox allows
-you to do maintainance tasks like view the Traefik dashboard (which is
-not normally accessible, except through local SSH forward. X11
-forwarding allows you to view the dashboard from a third device, your
-client laptop).
+You will be able to connect to the container via SSH, enable X11
+forwarding, and be able to run its graphical applications (eg. Emacs
+and Firefox) remotely from your local client computer. Although Emacs
+can also be used from a terminal user interface (`emacs -nw`), having
+a fully graphical Firefox is helpful to do maintainance tasks like
+view the Traefik dashboard (which is not normally accessible, except
+through local SSH forward. X11 forwarding allows you to view the
+dashboard from a third device: your client laptop).
 
 ```
 ## Build the image - be patient!
