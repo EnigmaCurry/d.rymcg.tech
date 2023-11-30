@@ -52,7 +52,8 @@ workstation container on the same physical machine. (The important
 point here is that the VM disk files should be owned by a separate
 user from your normal one, and so they cannot be read by rogue
 processes in your main account. You want to ensure that the only way
-your normal account can access it, is through SSH.)
+your normal account can access it, is through SSH, and only when its
+turned on.)
 
 ## Config
 
