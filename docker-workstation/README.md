@@ -5,7 +5,7 @@ This is an Arch Linux based development container for
 and you can use this as your remote Docker workstation. All of your
 d.rymcg.tech .env files and tools will live inside this container (or
 its volumes). Once installed, you can setup access for all of your
-remote Docker server instances to be exclusively controlled through
+remote Docker server instances, to be exclusively controlled through
 this container workstation, via SSH.
 
 Once you've configured this container to be the sole docker client for
@@ -49,7 +49,7 @@ Enter the information asked:
 
  * `DOCKER_WORKSTATION_HOSTNAME` - the hostname for the new container
  * `DOCKER_WORKSTATION_USERNAME` - the username for the new user account inside the container
- * `DOCKER_WORKSTATION_AUTHORIZED_KEY` - the SSH public key to authorized access
+ * `DOCKER_WORKSTATION_AUTHORIZED_KEY` - the SSH public key for authorized access
 
 You should already have an SSH key on your normal laptop/workstation.
 If not, run `ssh-keygen`. Copy the public key (eg. from
@@ -71,16 +71,17 @@ image. But for Arch Linux, I think this would be an anti-pattern; you
 should build it yourself, fresh, but you could then publish your
 custom image to make it easier for yourself to re-use).
 
-The image includes all of the depenencies you will need for a Docker
-client, d.rymcg.tech, and a full Emacs and web browser develoment
-environment. You will be able to connect to the container via SSH,
-enable X11 forwarding, and able to run its graphical applications (eg.
-Emacs and Firefox) remotely from your local client computer. Although
-Emacs can also be used from a terminal user interface (`emacs -nw`),
-having a fully graphical Firefox allows you to do maintainance tasks
-like view the Traefik dashboard (which is not normally accessible,
-except through local SSH forward. X11 forwarding allows you to view
-the dashboard from a third device, your client laptop).
+The image includes all of the depenencies you need to run an SSH
+service, for a Docker client, the d.rymcg.tech tools, and a full Emacs
+and web browser develoment environment. You will be able to connect to
+the container via SSH, enable X11 forwarding, and able to run its
+graphical applications (eg. Emacs and Firefox) remotely from your
+local client computer. Although Emacs can also be used from a terminal
+user interface (`emacs -nw`), having a fully graphical Firefox allows
+you to do maintainance tasks like view the Traefik dashboard (which is
+not normally accessible, except through local SSH forward. X11
+forwarding allows you to view the dashboard from a third device, your
+client laptop).
 
 ```
 ## Build the image - be patient!
