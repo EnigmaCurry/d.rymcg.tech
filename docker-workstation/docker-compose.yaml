@@ -1,0 +1,30 @@
+version: "3.9"
+
+volumes:
+  sshd_keys:
+  user_home:
+
+services:
+  docker-workstation:
+    build:
+      context: arch
+      args:
+        ARCH_MIRROR: ${DOCKER_WORKSTATION_ARCH_MIRROR}
+        USERNAME: ${DOCKER_WORKSTATION_USERNAME}
+        BASE_PACKAGES: ${DOCKER_WORKSTATION_BASE_PACKAGES}
+        EXTRA_PACKAGES: ${DOCKER_WORKSTATION_EXTRA_PACKAGES}
+        EMACS_CONFIG_REPO: ${DOCKER_WORKSTATION_EMACS_CONFIG_REPO}
+        EMACS_CONFIG_BRANCH: ${DOCKER_WORKSTATION_EMACS_CONFIG_BRANCH}
+    hostname: ${DOCKER_WORKSTATION_HOSTNAME}
+    environment:
+      - AUTHORIZED_KEY=${DOCKER_WORKSTATION_AUTHORIZED_KEY}
+    restart: unless-stopped
+    ports:
+      - ${DOCKER_WORKSTATION_SSH_PORT}:22
+    volumes:
+      - sshd_keys:/etc/ssh/keys
+      - user_home:/home/${DOCKER_WORKSTATION_USERNAME}
+    # All labels are defined in the template: docker-compose.instance.yaml
+    # The labels will merge together here from the template output:
+    #   docker-compose.override_{DOCKER_CONTEXT}_{INSTANCE}.yaml
+    labels: []

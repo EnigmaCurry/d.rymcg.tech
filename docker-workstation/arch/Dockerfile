@@ -10,16 +10,8 @@ RUN pacman -S --noconfirm openssh sudo --disable-download-timeout
 RUN mkdir -p /etc/ssh/keys && \
     sed -ie 's/^#\(en_US\.UTF-8 UTF-8\)/\1/' /etc/locale.gen && \
     locale-gen && \
-    rm /etc/ssh/sshd_config && \
-    echo "LogLevel VERBOSE" >> /etc/ssh/sshd_config && \
-    echo "Subsystem       sftp    /usr/lib/ssh/sftp-server" >> /etc/ssh/sshd_config && \
-    echo "HostKey /etc/ssh/keys/ssh_host_rsa_key" >> /etc/ssh/sshd_config && \
-    echo "HostKey /etc/ssh/keys/ssh_host_ecdsa_key" >> /etc/ssh/sshd_config && \
-    echo "HostKey /etc/ssh/keys/ssh_host_ed25519_key" >> /etc/ssh/sshd_config && \
-    echo "PasswordAuthentication no" >> /etc/ssh/sshd_config && \
-    echo "AddressFamily inet" >> /etc/ssh/sshd_config && \
-    echo "X11UseLocalhost no" >> /etc/ssh/sshd_config && \
-    echo "X11Forwarding yes" >> /etc/ssh/sshd_config
+    rm /etc/ssh/sshd_config
+ADD sshd_config /etc/ssh/sshd_config
 ARG USERNAME
 ENV USERNAME=${USERNAME}
 RUN useradd -mU -s /bin/bash "${USERNAME}" && \
@@ -36,14 +28,20 @@ CMD [ ! -f /etc/ssh/keys/ssh_host_rsa_key ] && ssh-keygen -A && mv /etc/ssh/ssh_
 FROM sshd-sudo-workstation as d.rymcg.tech
 ARG EXTRA_PACKAGES
 ARG USERNAME
+ARG EMACS_CONFIG_REPO
+ARG EMACS_CONFIG_BRANCH
 RUN test -n "${EXTRA_PACKAGES}" && pacman -S --noconfirm --disable-download-timeout ${EXTRA_PACKAGES} || echo "No extra packages to install"
 USER ${USERNAME}
-RUN git clone https://github.com/EnigmaCurry/emacs.git ~/git/vendor/enigmacurry/emacs && \
+RUN git clone "${EMACS_CONFIG_REPO}" \
+    ~/git/vendor/enigmacurry/emacs && \
+    git -C ~/git/vendor/enigmacurry/emacs checkout "${EMACS_CONFIG_BRANCH}" && \
     mkdir ~/.emacs.d && \
     ls -1 ~/git/vendor/enigmacurry/emacs/*.el | xargs -iXX ln -s XX ~/.emacs.d && \
     mkdir ~/.emacs.d/straight && \
     ln -s ~/git/vendor/enigmacurry/emacs/straight-versions ~/.emacs.d/straight/versions && \
-    chown -R ${USERNAME}:${USERNAME} ~
+    chown -R "${USERNAME}:${USERNAME}" ~
 RUN yes | emacs --batch --load ~/.emacs.d/init.el
 
 USER root
+VOLUME /home/${USERNAME}
+
