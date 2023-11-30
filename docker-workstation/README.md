@@ -3,23 +3,41 @@
 This is an Arch Linux based development container for
 [d.rymcg.tech](d.rymcg.tech). Install this on a secure Docker server,
 and you can use this as your remote Docker workstation. All of your
-d.rymcg.tech files will live inside this container (or its volumes).
-You can setup access for all of your remote Docker server instances to
-be exclusively controlled through this container workstation, via SSH.
-By storing inside this container, all of the environment files,
-secrets, and authentication tokens, you can prevent leaking these
-secrets to your normal laptop/workstation filesystem.
+d.rymcg.tech .env files and tools will live inside this container (or
+its volumes). You can setup access for all of your remote Docker
+server instances to be exclusively controlled through this container
+workstation, via SSH.
 
 Once you've configured this container to be the sole docker client for
 your digital empire, locking down access is trivial: simply turn off
-this container, and only turn it back on when you need to perform some
-maintainance.
+this container, and nothing will remain on your normal
+laptop/workstation. Only turn it back on when you need to install new
+containers or do some kind of maintainance; turn it back off, and this
+becomes a powerful form of access control.
 
-It is recommended to install this on a secure Docker server that is
-*separate* from your production Docker servers. Although this
-container is protected by an SSH key (and SSH passwords are disabled),
-you may want to layer more security, by running this on a private LAN,
-not accessible from the internet, or from inside of a VPN.
+## Where should you install this?
+
+It is recommended to install this container on a secure Docker server
+(or VM) that is *separate* from your production Docker servers (and to
+be able to be shutdown separately, when not needed). Although access
+to this container is protected by an SSH key (and SSH passwords are
+disabled), you may still want to segment access by network, by running
+this only on a private LAN, not accessible from the internet, or from
+inside of a VPN, or behind a jump host.
+
+As an alternative to a remote Docker server, if you have limited
+compute resources, you could setup a secure VM on your normal
+laptop/workstation, using
+[_docker_vm](https://github.com/EnigmaCurry/d.rymcg.tech/tree/master/_docker_vm#localhost-docker-on-kvm-virtual-machine),
+making sure to install the VM in a *separate dedicated user account*
+from the one you normally use. You can then start/stop the VM using
+`sudo` to control the secondary user account. As long as your `sudo`
+access is secured properly, you can securely run a "remote"
+workstation container on the same physical machine. (The important
+point here is that the VM disk files should be owned by a separate
+user from your normal one, and so they cannot be read by rogue
+processes in your main account. You want to ensure that the only way
+your normal account can access it, is through SSH.)
 
 ## Config
 
