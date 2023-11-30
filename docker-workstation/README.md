@@ -72,6 +72,8 @@ If not, run `ssh-keygen`. Copy the public key (eg. from
 key should be one long line like `ssh-rsa AAAAA...` or
 `ecdsa-sha2-nistp256 AAAA...`)
 
+Configuration for multiple SSH keys is not provided at this time.
+
 ## Build
 
 This is a *fat* container, which contains dozens of preinstalled Arch
