@@ -17,7 +17,7 @@ maintainance.
 
 It is recommended to install this on a secure Docker server that is
 *separate* from your production Docker servers. Although this
-container is protected by SSH keys (and SSH passwords are disabled),
+container is protected by an SSH key (and SSH passwords are disabled),
 you may want to layer more security, by running this on a private LAN,
 not accessible from the internet, or from inside of a VPN.
 
