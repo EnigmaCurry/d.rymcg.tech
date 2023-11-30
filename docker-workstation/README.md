@@ -78,7 +78,10 @@ can also be used from a terminal user interface (`emacs -nw`), having
 a fully graphical Firefox is helpful to do maintainance tasks like
 view the Traefik dashboard (which is not normally accessible, except
 through local SSH forward. X11 forwarding allows you to view the
-dashboard from a third device: your client laptop).
+dashboard from a third device: your client laptop). Because the
+browser runs over X11 forwarding, you can safely use the password
+manager builtin to Firefox, where its database is stored securely
+inside the container (and not in your local home directory).
 
 ```
 ## Build the image - be patient!
