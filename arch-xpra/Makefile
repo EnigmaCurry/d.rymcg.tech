@@ -20,8 +20,8 @@ root-shell:
 
 .PHONY: open
 open:
-	@TERM=xterm-256color HOST=$$(docker context inspect | jq -r '.[].Endpoints.docker.Host' | sed 's|ssh://||'); ssh -Y $${HOST} -p 2222 -l gary emacsclient -c
+	@TERM=xterm-256color HOST=$$(docker context inspect | jq -r '.[].Endpoints.docker.Host' | sed 's|ssh://||'); ssh -Y $${HOST} -p 2222 -l $$(${BIN}/dotenv -f ${ENV_FILE} get ARCH_XPRA_USERNAME) emacsclient -c
 
 .PHONY: shell
 shell:
-	@TERM=xterm-256color HOST=$$(docker context inspect | jq -r '.[].Endpoints.docker.Host' | sed 's|ssh://||'); ssh -Y $${HOST} -p 2222 -l $$(${BIN}/dotenv -f ${ENV_FILE} get ARCH_XPRA_USERNAME)
+	@HOST=$$(docker context inspect | jq -r '.[].Endpoints.docker.Host' | sed 's|ssh://||'); ssh -Y $${HOST} -p 2222 -l $$(${BIN}/dotenv -f ${ENV_FILE} get ARCH_XPRA_USERNAME)

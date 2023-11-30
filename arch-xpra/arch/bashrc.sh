@@ -45,10 +45,3 @@ if [[ -d ${HOME}/git/vendor/enigmacurry/d.rymcg.tech/_scripts/user ]]; then
     ## Example project alias: creates a shorter command used just for the Traefik project:
     __d.rymcg.tech_project_alias traefik
 fi
-
-if command -v powerline-daemon >/dev/null; then
-    powerline-daemon -q
-    POWERLINE_BASH_CONTINUATION=1
-    POWERLINE_BASH_SELECT=1
-    . /usr/share/powerline/bindings/bash/powerline.sh
-fi

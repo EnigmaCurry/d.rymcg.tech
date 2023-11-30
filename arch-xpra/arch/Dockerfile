@@ -35,4 +35,15 @@ CMD [ ! -f /etc/ssh/keys/ssh_host_rsa_key ] && ssh-keygen -A && mv /etc/ssh/ssh_
 
 FROM sshd-sudo-workstation as d.rymcg.tech
 ARG EXTRA_PACKAGES
+ARG USERNAME
 RUN test -n "${EXTRA_PACKAGES}" && pacman -S --noconfirm --disable-download-timeout ${EXTRA_PACKAGES} || echo "No extra packages to install"
+USER ${USERNAME}
+RUN git clone https://github.com/EnigmaCurry/emacs.git ~/git/vendor/enigmacurry/emacs && \
+    mkdir ~/.emacs.d && \
+    ls -1 ~/git/vendor/enigmacurry/emacs/*.el | xargs -iXX ln -s XX ~/.emacs.d && \
+    mkdir ~/.emacs.d/straight && \
+    ln -s ~/git/vendor/enigmacurry/emacs/straight-versions ~/.emacs.d/straight/versions && \
+    chown -R ${USERNAME}:${USERNAME} ~
+RUN yes | emacs --batch --load ~/.emacs.d/init.el
+
+USER root
