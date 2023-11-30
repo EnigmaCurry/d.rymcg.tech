@@ -65,23 +65,23 @@ environment, as well as the Firefox web browser. It could take up to
 10 or 20 minutes to build everything. This is Arch Linux, so you are
 recommended to build this image yourself, thereby downloading the
 latest packages. (This is why this container is not provided as an
-image you can pull from a registry: A variation on this could be made
-upon a non-rolling release like Debian, and published as a semi-static
-image. But for Arch Linux, I think this would be an anti-pattern; you
-should build it yourself, fresh, but you could then publish your
-custom image to make it easier for yourself to re-use).
+image you can pull from a registry, but a variation on this could be
+made upon a non-rolling release like Debian, and published as a
+semi-static image. But for Arch Linux, I think this would be an
+anti-pattern; you should build it yourself, fresh, but you could then
+publish your custom image to make it easier for yourself to re-use).
 
-You will be able to connect to the container via SSH, enable X11
-forwarding, and be able to run its graphical applications (eg. Emacs
-and Firefox) remotely from your local client computer. Although Emacs
-can also be used from a terminal user interface (`emacs -nw`), having
-a fully graphical Firefox is helpful to do maintainance tasks like
-view the Traefik dashboard (which is not normally accessible, except
-through local SSH forward. X11 forwarding allows you to view the
-dashboard from a third device: your client laptop). Because the
-browser runs over X11 forwarding, you can safely use the password
-manager builtin to Firefox, where its database is stored securely
-inside the container (and not in your local home directory).
+You will be able to connect to the container via SSH, and with X11
+forwarding enabled, be able to run its graphical applications
+(eg. Emacs and Firefox) remotely from your local client computer.
+Although Emacs can also be used from a terminal user interface (`emacs
+-nw`), having a fully graphical Firefox is helpful to do maintainance
+tasks like view the Traefik dashboard (which is not normally
+accessible, except through local SSH forward. X11 forwarding allows
+you to view the dashboard from a third device: your client laptop).
+Because the browser runs over X11 forwarding, you can safely use the
+password manager builtin to Firefox, where its database is stored
+securely inside the container (and not in your local home directory).
 
 ```
 ## Build the image - be patient!
