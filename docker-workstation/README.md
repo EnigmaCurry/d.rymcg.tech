@@ -196,7 +196,7 @@ USERNAME="user"
 
 ## Select all the base layer packages to install:
 ## (Double check .env-dist for the canonical BASE_PACKAGES list)
-BASE_PACKAGES=="bash xpra openssl git docker docker-compose docker-buildx base-devel cmake apache xdg-utils jq sshfs wireguard-tools curl wget xorg-xauth python python-pip inetutils keychain man-db emacs firefox"
+BASE_PACKAGES="bash xpra openssl git docker docker-compose docker-buildx base-devel cmake apache xdg-utils jq sshfs wireguard-tools curl wget xorg-xauth python python-pip inetutils keychain man-db emacs firefox"
 
 ## Install extra packages in the top layer 
 ## (its faster to rebuild with new packages if you add them here rather than BASE_PACKAGES)
