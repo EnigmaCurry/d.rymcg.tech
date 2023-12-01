@@ -170,32 +170,37 @@ docker build -t docker-workstation \
   https://github.com/EnigmaCurry/d.rymcg.tech.git#:docker-workstation/arch
 ```
 
-(You may add any of the [build
-arguments](https://docs.docker.com/build/guide/build-args/) to the
-build command to change the default values: `ARCH_MIRROR`, `USERNAME`,
-`BASE_PACKAGES`, `EXTRA_PACKAGES`, `EMACS_CONFIG_REPO`,
-`EMACS_CONFIG_BRANCH`. For example, add `--build-arg=USERNAME=ryan` to
-change the default username)
+(You may want to change some the default [build
+arguments](https://docs.docker.com/build/guide/build-args/) from the
+config: `ARCH_MIRROR`, `USERNAME`, `BASE_PACKAGES`, `EXTRA_PACKAGES`,
+`EMACS_CONFIG_REPO`, and/or `EMACS_CONFIG_BRANCH`. For example, add
+`--build-arg=USERNAME=ryan` to change the default username.)
 
-Now that you have built an image called `docker-workstation`, you can
-start the container. Make sure the `HOST`, `AUTHORIZED_KEY` and
-`SSH_PORT` variables are set at *runtime*:
+Now that you have built the image (named `docker-workstation`) you can
+start the container from it. You need to set the `AUTHORIZED_KEY`
+variable at runtime, which is to set your SSH public key required for
+logging in. Also, make sure to customize the container name/hostname
+(`workstation`), and the external SSH port (`2222`), and the same user
+that the image was built for (`user` by default), all of which are
+required to set at *runtime*:
 
 ```
-## Set the hostname (also used as the container name):
-HOST=workstation
-## Set the external ssh port:
+## Required runtime variables:
+# Set your SSH public key used for logging in (eg. from ~/.ssh/id_rsa.pub):
+AUTHORIZED_KEY="ssh-rsa AAAAA..."
+NAME=workstation
 SSH_PORT=2222
-## Set your actual SSH public key here:
-AUTHORIZED_KEY="ssh-rsa AAAA......"
-```
+# USERNAME must be the same username that you set for the image build arg:
+USERNAME=user
 
-```
+## Start the container:
 docker run -d \
-  --name "${HOST}" \
-  --hostname "${HOST}" \
+  --name "${NAME}" \
+  --hostname "${NAME}" \
   -e AUTHORIZED_KEY="${AUTHORIZED_KEY}" \
   -p "${SSH_PORT}:22" \
+  -v docker-workstation_sshd_keys:/etc/ssh/keys
+  -v docker-workstation_user_home:/home/${USERNAME}
   docker-workstation
 ```
 
