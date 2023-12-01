@@ -9,6 +9,9 @@ you can setup access for all of your remote Docker server contexts,
 each to be exclusively controlled through this single container
 workstation.
 
+![Your laptop/workstation, the Docker Container Worksation, and the
+production Docker host](container_workstation.png)
+
 Once you've configured this container to be the sole docker client for
 your digital empire, locking down access becomes trivial: simply turn
 off this container, and nothing will remain on your normal
@@ -54,9 +57,9 @@ Docker server (or VM) that is *separate* from your production Docker
 servers (and be able to be shutdown, separately, when it's not
 needed). Although access to this container is protected by an SSH key
 (and SSH passwords have been disabled), you may still want to segment
-access by network, by running this only on a private LAN, not
-accessible from the internet, or from inside of a VPN, or behind a
-jump host.
+access by network, having it be not accessible publicly from the
+internet, by running this on a private LAN, or from inside of a VPN,
+or from behind another jump host.
 
 If you have limited compute resources, and as an alternative to a
 remote Docker server, you could setup a secure VM on your normal
