@@ -180,9 +180,10 @@ Now that you have built the image (named `docker-workstation`) you can
 start the container from it. You need to set the `AUTHORIZED_KEY`
 variable at runtime, which is to set your SSH public key required for
 logging in. Also, make sure to customize the container name/hostname
-(`workstation`), and the external SSH port (`2222`), and the same user
-that the image was built for (`user` by default), all of which are
-required to set at *runtime*:
+(`workstation`), and the external SSH port (`2222`), and you need to
+set a volume mount point using the same `USERNAME` that the image was
+built for (`user` by default), all of which are required to set at
+*runtime*:
 
 ```
 ## Required runtime variables:
