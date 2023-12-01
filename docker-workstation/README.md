@@ -31,15 +31,31 @@ forwarding, you can safely use the bookmarks and password manager
 builtin to Firefox, where its database is stored securely inside the
 container (and not in your local home directory).
 
-## Where should I install this?
+## Definitions
 
-It is recommended to install this container on a secure Docker server
-(or VM) that is *separate* from your production Docker servers (and be
-able to be shutdown, separately, when it's not needed). Although
-access to this container is protected by an SSH key (and SSH passwords
-have been disabled), you may still want to segment access by network,
-by running this only on a private LAN, not accessible from the
-internet, or from inside of a VPN, or behind a jump host.
+A workstation is a personal computer, one that you are directly logged
+into and interacting with. A worksation is usually a physical computer
+that you touch, like a laptop. However, a workstation can also be a
+remote computer. The distinction between a workstation and a server,
+is not about hardware, but rather the role that the machine is
+deployed as. In the context of Docker, a workstation is what uses the
+`docker` command line *client*. A Docker host is the *server* that
+runs the docker daemon, and all your containers.
+
+So the Docker Workstation Container, is a workstation, that runs as a
+docker container, that is setup as a *client* to control *other*
+Docker hosts, via SSH.
+
+## Where should I install this container?
+
+It is recommended to install the workstation container on a secure
+Docker server (or VM) that is *separate* from your production Docker
+servers (and be able to be shutdown, separately, when it's not
+needed). Although access to this container is protected by an SSH key
+(and SSH passwords have been disabled), you may still want to segment
+access by network, by running this only on a private LAN, not
+accessible from the internet, or from inside of a VPN, or behind a
+jump host.
 
 If you have limited compute resources, and as an alternative to a
 remote Docker server, you could setup a secure VM on your normal
