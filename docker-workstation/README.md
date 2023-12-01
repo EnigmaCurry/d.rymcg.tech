@@ -5,8 +5,8 @@ This is an Arch Linux based development container for
 and you can use this as your remote Docker workstation. All of your
 d.rymcg.tech `.env` files and tools will live inside this container
 (in a volume). Once installed, you can setup access for all of your
-remote Docker server instances, to be exclusively controlled through
-this one container workstation, via SSH.
+remote Docker server contexts, each to be exclusively controlled
+through this single container workstation, via SSH.
 
 Once you've configured this container to be the sole docker client for
 your digital empire, locking down access becomes trivial: simply turn
@@ -27,9 +27,9 @@ is helpful to do maintainance tasks like viewing the Traefik dashboard
 (which is not normally accessible, except through local SSH forward.
 With X11 forwarding, this allows you to view the dashboard from a
 third device: your client laptop). Because the browser runs over X11
-forwarding, you can safely use the password manager builtin to
-Firefox, where its database is stored securely inside the container
-(and not in your local home directory).
+forwarding, you can safely use the bookmarks and password manager
+builtin to Firefox, where its database is stored securely inside the
+container (and not in your local home directory).
 
 ## Where should I install this?
 
@@ -275,10 +275,20 @@ There are three important config variables related to packages:
    them, and you want to bake them into the image permanently (giving
    the build more efficient storage).
 
-You may also install packages manually, on-the-fly, by running
-`pacman` commands inside the container. Be aware, that these packages
-are not persisted to any volume, and would vanish as soon as you
-upgrade or rebuild the container. Persistent packages, as well as
-config changes, need to be made apart of the Dockerfile, or introduced
-by an environment variable (`DOCKER_WORKSTATION_BASE_PACKAGES` and/or
+## Persitence
+
+Containers don't persist files unless they are stored in a volume.
+This container only has two volumes, mounted to:
+
+ * `/etc/ssh/keys`
+ * `/home/${DOCKER_WORKSTATION_USERNAME}`
+
+Files stored in any of these locations are persistent, even if you
+rebuild or upgrade the container. Any files, including packages you
+install, that are not stored here are lost when you rebuild or upgrade
+the container.
+
+All permanent customization must be done in the Dockerfile, or via one
+of the customizable environment variables: (eg.
+`DOCKER_WORKSTATION_BASE_PACKAGES` and/or
 `DOCKER_WORKSTATION_EXTRA_PACKAGES`).
