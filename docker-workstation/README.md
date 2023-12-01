@@ -2,7 +2,7 @@
 
 This is an Arch Linux based development container for
 [d.rymcg.tech](d.rymcg.tech). Install this on a secure Docker server,
-and you can use this as your remote Docker workstation that you
+and use this as your remote Docker workstation (client), that you
 connect to through SSH. All of your d.rymcg.tech `.env` files and
 tools will live inside this container (in a volume). Once installed,
 you can setup access for all of your remote Docker server contexts,
@@ -535,6 +535,29 @@ container workstation shell:
  * [Set remote Docker context](https://github.com/enigmacurry/d.rymcg.tech#set-remote-docker-context)
  
 You need to follow both steps for *each* remote Docker host to manage.
+
+### Setup Firefox
+
+Open a vterm terminal session in Emacs: `C-c t`
+
+At the command prompt, type `firefox` and press Enter.
+
+Through the power of X11 forwarding, you should now see Firefox appear
+on your screen.
+
+Setting up Firefox should be straight forward, do it however you like.
+
+If you use Firefox on your native workstation as well, I recommend
+that you use a different theme to differentiate the two windows from
+different hosts. Maybe use Dark mode on one, but not the other.
+
+The nice thing about using Firefox over X11 is that you can safely use
+the bookmarks and password manager, and they won't leave any trace on
+your local workstation.
+
+One more thing to note is that Emacs has a very capable text-only web
+browser called Eww (`M-x eww`), which you can use for most
+documentation sites and is loads faster than Firefox.
 
 ### Setup d.rymcg.tech
 
