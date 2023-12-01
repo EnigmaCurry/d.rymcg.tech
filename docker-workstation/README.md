@@ -4,9 +4,9 @@ This is an Arch Linux based development container for
 [d.rymcg.tech](d.rymcg.tech). Install this on a secure Docker server,
 and you can use this as your remote Docker workstation. All of your
 d.rymcg.tech `.env` files and tools will live inside this container
-(and its volumes). Once installed, you can setup access for all of
-your remote Docker server instances, to be exclusively controlled
-through this one container workstation, via SSH.
+(in a volume). Once installed, you can setup access for all of your
+remote Docker server instances, to be exclusively controlled through
+this one container workstation, via SSH.
 
 Once you've configured this container to be the sole docker client for
 your digital empire, locking down access becomes trivial: simply turn
@@ -274,3 +274,11 @@ There are three important config variables related to packages:
    `DOCKER_WORKSTATION_BASE_PACKAGES` later after you are done testing
    them, and you want to bake them into the image permanently (giving
    the build more efficient storage).
+
+You may also install packages manually, on-the-fly, by running
+`pacman` commands inside the container. Be aware, that these packages
+are not persisted to any volume, and would vanish as soon as you
+upgrade or rebuild the container. Persistent packages, as well as
+config changes, need to be made apart of the Dockerfile, or introduced
+by an environment variable (`DOCKER_WORKSTATION_BASE_PACKAGES` and/or
+`DOCKER_WORKSTATION_EXTRA_PACKAGES`).
