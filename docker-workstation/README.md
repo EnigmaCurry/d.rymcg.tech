@@ -301,10 +301,10 @@ make emacs-daemon
 ```
 
 The first time this runs, it needs to do some final package builiding
-steps (I don't know why, it should have all been built in the
-Dockerfile, but it does seem to go faster than the initial build, so
-idunno). When its done building, it will start the daemon in the
-background.
+steps (I don't know why this happens twice, it should have all been
+built in the Dockerfile already, however it does seem to go faster the
+second time, so idunno). When its done building, it will start the
+daemon in the background.
 
 You can connect to your session once it has started:
 
