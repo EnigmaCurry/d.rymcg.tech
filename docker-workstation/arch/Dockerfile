@@ -18,7 +18,8 @@ RUN useradd -mU -s /bin/bash "${USERNAME}" && \
     echo "${USERNAME}:$(openssl rand -base64 32)" | chpasswd && \
     echo "${USERNAME} ALL=(ALL:ALL) NOPASSWD: ALL" > "/etc/sudoers.d/${USERNAME}" && \
     echo "AllowUsers ${USERNAME}" >> /etc/ssh/sshd_config && \
-    rm -f "/home/${USERNAME}/{.bashrc,.bash_profile}"
+    rm -f "/home/${USERNAME}/{.bashrc,.bash_profile}" && \
+    chown -R "${USERNAME}:${USERNAME}" "/home/${USERNAME}/"
 
 ADD bashrc.sh /etc/bash.bashrc
 ADD profile.sh /etc/profile
@@ -30,18 +31,22 @@ ARG EXTRA_PACKAGES=
 ARG USERNAME
 ARG EMACS_CONFIG_REPO
 ARG EMACS_CONFIG_BRANCH
+ARG EMACS_BOOTSTRAP
 RUN test -n "${EXTRA_PACKAGES}" && pacman -S --noconfirm --disable-download-timeout ${EXTRA_PACKAGES} || echo "No extra packages to install"
 USER ${USERNAME}
-RUN git clone "${EMACS_CONFIG_REPO}" \
-    ~/git/vendor/enigmacurry/emacs && \
-    git -C ~/git/vendor/enigmacurry/emacs checkout "${EMACS_CONFIG_BRANCH}" && \
+RUN test "${EMACS_BOOTSTRAP}" == "true" && \
+    git clone "${EMACS_CONFIG_REPO}" ~/git/emacs && \
+    git -C ~/git/emacs checkout "${EMACS_CONFIG_BRANCH}" && \
     mkdir ~/.emacs.d && \
-    ls -1 ~/git/vendor/enigmacurry/emacs/*.el | xargs -iXX ln -s XX ~/.emacs.d && \
+    ls -1 ~/git/emacs/*.el | xargs -iXX ln -s XX ~/.emacs.d && \
+    (test -d ~/git/emacs/straight-versions && \
     mkdir ~/.emacs.d/straight && \
-    ln -s ~/git/vendor/enigmacurry/emacs/straight-versions ~/.emacs.d/straight/versions && \
-    chown -R "${USERNAME}:${USERNAME}" ~
-RUN yes | emacs --batch --load ~/.emacs.d/init.el
+    ln -s ~/git/emacs/straight-versions \
+    ~/.emacs.d/straight/versions) || \
+    true
+RUN test "${EMACS_BOOTSTRAP}" == "true" && \
+    emacs --batch --load ~/.emacs.d/init.el || \
+    true
 
-USER root
 VOLUME /home/${USERNAME}
-
+USER root

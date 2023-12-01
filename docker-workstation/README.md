@@ -202,9 +202,11 @@ BASE_PACKAGES=="bash xpra openssl git docker docker-compose docker-buildx base-d
 ## (its faster to rebuild with new packages if you add them here rather than BASE_PACKAGES)
 EXTRA_PACKAGES=""
 
-## You can set your own emacs config repository, or you can borrow mine:
+## You can set your own Emacs config repository, or you can borrow mine:
 EMACS_CONFIG_REPO="https://github.com/EnigmaCurry/emacs.git"
 EMACS_CONFIG_BRANCH="straight"
+## You can disable the Emacs config entirely, if you set this to false:
+EMACS_BOOTSTRAP=true
 
 ## You can customize the d.rymcg.tech git repo and branch:
 D_RYMCG_TECH_REPO=https://github.com/EnigmaCurry/d.rymcg.tech.git
@@ -217,6 +219,7 @@ docker build -t docker-workstation \
     --build-arg=USERNAME="${USERNAME}" \
     --build-arg=BASE_PACKAGES="${BASE_PACKAGES}" \
     --build-arg=EXTRA_PACKAGES="${EXTRA_PACKAGES}" \
+    --build-arg=EMACS_BOOTSTRAP="${EMACS_BOOTSTRAP}" \
     --build-arg=EMACS_CONFIG_REPO="${EMACS_CONFIG_REPO}" \
     --build-arg=EMACS_CONFIG_BRANCH="${EMACS_CONFIG_BRANCH}" \
   ${D_RYMCG_TECH_REPO}#${D_RYMCG_TECH_BRANCH}:docker-workstation/arch
@@ -297,8 +300,11 @@ make emacs-daemon
 ## ssh docker-workstation emacs --daemon
 ```
 
-The first time this runs, it will build the Emacs packages, and then
-start the daemon in the background.
+The first time this runs, it needs to do some final package builiding
+steps (I don't know why, it should have all been built in the
+Dockerfile, but it does seem to go faster than the initial build, so
+idunno). When its done building, it will start the daemon in the
+background.
 
 You can connect to your session once it has started:
 
@@ -311,6 +317,15 @@ make emacsclient
 
 You are allowed to disconnect and reattach; the session will persist
 for as long as the Emacs daemon is running.
+
+If your Emacs process goes haywire, you might need to kill it:
+
+```
+make kill-emacs
+
+## Or directly:
+## ssh docker-workstation killall emacs
+```
 
 ## Custom Packages
 
