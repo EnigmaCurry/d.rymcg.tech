@@ -79,7 +79,7 @@ through SSH, and only when its turned on.)
 ## Two ways to install the container workstation
 
 There are two ways to install this, depending on whether or not you
-already have installed [d.rymcg.tech](d.rymcg.tech) someplace yet:
+have already installed [d.rymcg.tech](d.rymcg.tech) someplace yet:
 
  1) So if you already have a primary workstation (eg. the laptop in
  the left side of the graphic above), and you have already installed
