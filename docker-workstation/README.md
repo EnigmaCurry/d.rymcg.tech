@@ -294,7 +294,7 @@ There are three important config variables related to packages:
    them, and you want to bake them into the image permanently (giving
    the build more efficient storage).
 
-## Persitence
+## Persistence
 
 Containers don't persist files unless they are stored in a volume.
 This container only has two volumes, mounted to:
