@@ -2,28 +2,29 @@
 
 This is an Arch Linux based development container for
 [d.rymcg.tech](d.rymcg.tech). Install this on a secure Docker server,
-and you can use this as your remote Docker workstation. All of your
-d.rymcg.tech `.env` files and tools will live inside this container
-(in a volume). Once installed, you can setup access for all of your
-remote Docker server contexts, each to be exclusively controlled
-through this single container workstation, via SSH.
+and you can use this as your remote Docker workstation that you
+connect to through SSH. All of your d.rymcg.tech `.env` files and
+tools will live inside this container (in a volume). Once installed,
+you can setup access for all of your remote Docker server contexts,
+each to be exclusively controlled through this single container
+workstation.
 
 Once you've configured this container to be the sole docker client for
 your digital empire, locking down access becomes trivial: simply turn
 off this container, and nothing will remain on your normal
-laptop/workstation. Only turn it back on when you need to install new
-containers or do some kind of maintainance; then you can turn it back
-off, and this becomes a powerful form of access control.
+laptop/workstation. Only turn it back on if you need to install new
+containers, or do some kind of maintainance; turn it back off when
+you're done, and this becomes a powerful form of access control.
 
-The Docker image, that you will build, includes all of the
-dependencies that you need to run an SSH service, a Docker client, the
-d.rymcg.tech tools, and a full Emacs and web browser develoment
-environment. You will be able to connect to the container via SSH, and
-with X11 forwarding enabled, be able to run its graphical applications
-(eg. Emacs and Firefox) remotely from your local client computer.
-Although Emacs can also be used from a terminal user interface (`emacs
--nw`), having a fully graphical Firefox, living inside the container,
-is helpful to do maintainance tasks like viewing the Traefik dashboard
+You will build a Docker image that includes all of the dependencies
+that you need to run an SSH service, a Docker client, the d.rymcg.tech
+tools, and a full Emacs and web browser develoment environment. You
+will be able to connect to the container via SSH, and with X11
+forwarding enabled, be able to run its graphical applications (eg.
+Emacs and Firefox) remotely from your local client computer. Although
+Emacs can also be used from a terminal user interface (`emacs -nw`),
+having a fully graphical Firefox, living inside the container, is
+helpful to do maintainance tasks like viewing the Traefik dashboard
 (which is not normally accessible, except through local SSH forward.
 With X11 forwarding, this allows you to view the dashboard from a
 third device: your client laptop). Because the browser runs over X11
