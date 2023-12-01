@@ -76,18 +76,29 @@ they cannot be read by rogue processes in your main account. You want
 to ensure that the only way your normal account can access it, is
 through SSH, and only when its turned on.)
 
-## Two ways to install
+## Two ways to install the container workstation
 
-There are two ways to install this:
+There are two ways to install this, depending on whether or not you
+already have installed [d.rymcg.tech](d.rymcg.tech) someplace yet:
 
- 1) From an existing local install of d.rymcg.tech, setup only to
- control the Docker host that will run the worksation container (but
- *not* setup to access the production Docker server!)
- 
- 2) Directly on the docker host, which has zero dependencies other
- than docker.
+ 1) So if you already have a primary workstation (eg. the laptop in
+ the left side of the graphic above), and you have already installed
+ `d.rymcg.tech` on it, and have already setup a remote Docker context
+ for a *dedicated* host that you want to install to, (and critically,
+ you have *not* setup the workstation to access any of the production
+ Docker servers!), then you can configure this and install via
+ Makefile, the normal d.rymcg.tech way. This might be the way to go if
+ you want to have several container workstations, and need a central
+ place to control them all.
+  
+ 2) Or, you can install this container directly on the Docker host
+ command line. This method requires zero dependencies other than a
+ Docker server. You might choose this method if you want this
+ container workstation to become your *primary* workstation, and not
+ beholden to any other. You can then access it through SSH, from any
+ dumb client that you give your private SSH key.
 
-### Install with d.rymcg.tech
+### Install from an existing d.rymcg.tech workstation
 
 #### Config (make config)
 
@@ -108,6 +119,10 @@ key should be one long line like `ssh-rsa AAAAA...` or
 `ecdsa-sha2-nistp256 AAAA...`)
 
 Configuration for multiple SSH keys is not provided at this time.
+
+Note: this container does not require Traefik. The SSH service listens
+directly on any host TCP port you choose, see
+`DOCKER_WORKSTATION_SSH_PORT` in your .env file.
 
 #### Build (make build)
 
@@ -157,24 +172,55 @@ with the root shell. To connect to the root shell, run:
 make root-shell
 ```
 
-### Install with Docker (no dependencies)
+### Install directly on the Docker host (no dependencies)
 
-If you are creating a Docker host for the sole purpose of running this
-container, you may not feel it necessary to install d.rymcg.tech, just
-for this one container. Alternatively, you can build and install the
-container directly on the Docker host:
+If you don't have a [d.rymcg.tech](d.rymcg.tech) workstation setup
+yet, you can install this container workstation directly on an
+existing Docker host. You can then setup the container workstation to
+*be* your primary workstation. This requires no dependencies other
+than Docker itself. You can configure everything as variables directly
+copied into your shell:
 
 ```
-# Build the image directly on the Docker host:
+## Copy all of this into your text editor in a temporary buffer.
+## Edit all the required build argument variables herein.
+## After editing, copy and paste all into the Docker host shell, and press Enter.
+
+## Choose the Arch Linux mirror chosen from this list: 
+##   https://archlinux.org/mirrorlist/all/https/
+## (Don't include the `/$repo/os/$arch` suffix.)
+ARCH_MIRROR="https://mirror.rackspace.com/archlinux"
+
+## Choose the username you want to have inside the container:
+USERNAME="user"
+
+## Select all the base layer packages to install:
+## (Double check .env-dist for the canonical BASE_PACKAGES list)
+BASE_PACKAGES=="bash xpra openssl git docker docker-compose docker-buildx base-devel cmake apache xdg-utils jq sshfs wireguard-tools curl wget xorg-xauth python python-pip inetutils keychain man-db emacs firefox"
+
+## Install extra packages in the top layer 
+## (its faster to rebuild with new packages if you add them here rather than BASE_PACKAGES)
+EXTRA_PACKAGES=""
+
+## You can set your own emacs config repository, or you can borrow mine:
+EMACS_CONFIG_REPO="https://github.com/EnigmaCurry/emacs.git"
+EMACS_CONFIG_BRANCH="straight"
+
+## You can customize the d.rymcg.tech git repo and branch:
+D_RYMCG_TECH_REPO=https://github.com/EnigmaCurry/d.rymcg.tech.git
+D_RYMCG_TECH_BRANCH=master
+
+# Build the image:
+# (Double check docker-compose.yaml for the canonical build arguments)
 docker build -t docker-workstation \
-  https://github.com/EnigmaCurry/d.rymcg.tech.git#:docker-workstation/arch
+    --build-arg=ARCH_MIRROR="${ARCH_MIRROR}" \
+    --build-arg=USERNAME="${USERNAME}" \
+    --build-arg=BASE_PACKAGES="${BASE_PACKAGES}" \
+    --build-arg=EXTRA_PACKAGES="${EXTRA_PACKAGES}" \
+    --build-arg=EMACS_CONFIG_REPO="${EMACS_CONFIG_REPO}" \
+    --build-arg=EMACS_CONFIG_BRANCH="${EMACS_CONFIG_BRANCH}" \
+  ${D_RYMCG_TECH_REPO}#${D_RYMCG_TECH_BRANCH}:docker-workstation/arch
 ```
-
-(You may want to change some the default [build
-arguments](https://docs.docker.com/build/guide/build-args/) from the
-config: `ARCH_MIRROR`, `USERNAME`, `BASE_PACKAGES`, `EXTRA_PACKAGES`,
-`EMACS_CONFIG_REPO`, and/or `EMACS_CONFIG_BRANCH`. For example, add
-`--build-arg=USERNAME=ryan` to change the default username.)
 
 Now that you have built the image (named `docker-workstation`) you can
 start the container from it. You need to set the `AUTHORIZED_KEY`
@@ -222,10 +268,8 @@ Host docker-workstation
     User user
     # Enable X11 forwarding:
     ForwardX11 yes
-    # Enable SSH connection sharing:
-    ControlMaster auto
-    ControlPersist yes
-    ControlPath /tmp/ssh-%u-%r@%h:%p
+    # Note: don't enable connection sharing ControlMaster,ControlPersist,ControlPath
+    # otherwise, emacsclient often fails complaining about "could not find terminal" ?
 ```
 
 With the new config in place, you can connect directly via ssh:
@@ -249,7 +293,7 @@ First, start the Emacs daemon:
 ```
 make emacs-daemon
 
-## Or:
+## Or directly:
 ## ssh docker-workstation emacs --daemon
 ```
 
@@ -261,7 +305,7 @@ You can connect to your session once it has started:
 ```
 make emacsclient
 
-## Or:
+## Or directly:
 ## ssh docker-workstation emacsclient -c
 ```
 

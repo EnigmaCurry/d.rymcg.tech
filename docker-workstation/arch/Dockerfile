@@ -1,8 +1,8 @@
 FROM archlinux as base_packages
-ARG ARCH_MIRROR=https://mirror.rackspace.com/archlinux
+ARG ARCH_MIRROR
 RUN echo "Server = ${ARCH_MIRROR}"'/$repo/os/$arch' > /etc/pacman.d/mirrorlist
 RUN pacman -Syyu --noconfirm --disable-download-timeout
-ARG BASE_PACKAGES="bash xpra openssl git docker docker-compose docker-buildx base-devel cmake apache xdg-utils jq sshfs wireguard-tools curl wget xorg-xauth python python-pip inetutils keychain man-db emacs firefox"
+ARG BASE_PACKAGES
 RUN pacman -S --noconfirm --disable-download-timeout ${BASE_PACKAGES}
 
 FROM base_packages as sshd-sudo-workstation
@@ -12,7 +12,7 @@ RUN mkdir -p /etc/ssh/keys && \
     locale-gen && \
     rm /etc/ssh/sshd_config
 ADD sshd_config /etc/ssh/sshd_config
-ARG USERNAME=user
+ARG USERNAME
 ENV USERNAME=${USERNAME}
 RUN useradd -mU -s /bin/bash "${USERNAME}" && \
     echo "${USERNAME}:$(openssl rand -base64 32)" | chpasswd && \
@@ -27,9 +27,9 @@ CMD [ ! -f /etc/ssh/keys/ssh_host_rsa_key ] && ssh-keygen -A && mv /etc/ssh/ssh_
 
 FROM sshd-sudo-workstation as d.rymcg.tech
 ARG EXTRA_PACKAGES=
-ARG USERNAME=user
-ARG EMACS_CONFIG_REPO=https://github.com/EnigmaCurry/emacs.git
-ARG EMACS_CONFIG_BRANCH=straight
+ARG USERNAME
+ARG EMACS_CONFIG_REPO
+ARG EMACS_CONFIG_BRANCH
 RUN test -n "${EXTRA_PACKAGES}" && pacman -S --noconfirm --disable-download-timeout ${EXTRA_PACKAGES} || echo "No extra packages to install"
 USER ${USERNAME}
 RUN git clone "${EMACS_CONFIG_REPO}" \
