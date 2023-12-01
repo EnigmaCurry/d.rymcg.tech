@@ -367,3 +367,184 @@ All permanent customization must be done in the Dockerfile, or via one
 of the customizable environment variables: (eg.
 `DOCKER_WORKSTATION_BASE_PACKAGES` and/or
 `DOCKER_WORKSTATION_EXTRA_PACKAGES`).
+
+## Workstation Walkthrough
+
+By now, you should have a container workstation up and running. I'll
+assume that you allowed it to bootstrap the Emacs config using my own
+(EnigmaCurry) repository, and that you can successfully launch a
+graphical Emacs session over X11.
+
+I'll briefly walk you through how to use the Emacs interface, setup
+Firefox to your liking, and configure some remote Docker contexts.
+
+### Emacs tutorial
+
+If you're brand new to Emacs, the built-in tutorial:
+ 
+ * Emacs uses keyboard shortcuts to access various commands.
+ * On your keyboard, hold down the `Control` key and then press the
+   `h` key. (Normally printed as `C-h` in Emacs manuals).
+ * This will open a completion menu (aka hydra) at the bottom of the
+   screen, showing you what commands you can type after having pressed
+   the `C-h` command.
+ * Press `t` to run the `help-with-tutorial` command.
+
+Follow the tutorial to get acquainted with basic movement, and then
+come back here when you're done.
+
+#### Emacs shell (vterm)
+
+Emacs has a builtin terminal, so you don't have to run a separate
+program to access the container shell, you just open `vterm` in Emacs.
+
+Lets open a terminal session in Emacs, use `C-c t`, which means:
+
+ * `C-c` is caled a keyboard chord. `C` means the Control key, and `c`
+   means the letter `c` key. You need to hold down the Control key and
+   press the `c` key at the same time, then let go of both. (The `-`
+   between `C` and `c` is not literal, it means to hold a chord of
+   keys down at the same time: `Control` and `c`)
+ * The space between `C-c` and `t` means to let go of the keys.
+ * So it's `C-c`, let go, and `t` by itself.
+
+`C-c t`.
+
+You should now have a split screen, showing two windows: the first
+window is showing the original buffer you were in, and the second
+windowis showing you a new terminal session named `*vterm*`.
+
+Emacs calls these splits "windows", so each of the two buffers you see
+is in one of two "windows". This is not the same thing as what your
+Operating System calls a window. In Emacs documentation, these OS
+windows are instead called Frames.
+
+So `*vterm*` is now running in a second (emacs) window. You can switch
+between the windows by typing `C-x o`. If you type it again, you cycle
+back to the other window. If you had three windows, it would cycle
+between all three. But its probably best to stick to only two windows
+while getting the hang of things.
+
+Buffers are what you type text into. Buffers are like files, but they
+are separate, ephemeral, and live in application memory. Buffers often
+live offscreen, but can be also be displayed in windows. Multiple
+windows can be shown split in a frame, so you can see multiple buffers
+at a time.
+
+`*vterm*` is a buffer, and it runs a terminal session, you can dismiss
+the buffer to make it go offscreen, but the terminal will still be
+running in the background.
+
+Just press `C-c t` again to make the window dissapear.
+
+You can have multiple vterm sessions in multiple buffers. To start a
+new session, press `C-u C-c t`. You should now see a new buffer called
+`*vterm<2>*` appear in a new window.
+
+That complex sequence means press `C-u`, let go, `C-c`, let go, `t`.
+
+`C-u` is called the Universal prefix. Its very common for an Emacs
+command to take on alternate form, that takes a prefix argument to
+slightly change the meaning of the command. In this case we tell the
+`C-c t` command that instead of popping back and forth with the
+original `*vterm*` window like we had been doing, by supplying `C-u`
+in front we tell it we want a *new* vterm session instead.
+
+#### Managing buffers
+
+Now you might have too many buffers and you can't see them all in
+windows, where did they go? A window can only show one buffer at a
+time, and while you can split a frame to show multiple windows,
+eventually you will have a lot more buffers open than windows.
+
+You can change the buffer that a window will show:
+
+ * `C-x b` shows a list of the most recently opened buffers, allowing
+   you to switch the current buffer. Use the arrows to go up and down,
+   type part of the name to narrow the results, and press Enter when
+   the one you want is selected.
+ * `C-x B` shows a menu of all buffers in a larger window. (That means
+   press `C-x`, let go, and then press `Shift` and `B`)
+ * The buffer menu is perhaps easier to see everything with, and works
+   similarly, you can put your cursor on any line in the menu and
+   press Enter to go there.
+
+So you can switch between your two `*vterm*` buffers:
+
+ * `C-x b` type `vterm`, and find the first `*vterm*` buffer, and
+   press Enter.
+ * `C-x b` again, type `vterm` and find the second `*vterm*<2>`, and
+   press Enter.
+   
+The way `C-x b` behaves, makes it easiest to switch between the two
+most recently used buffers, so you can quickly press Enter without
+looking, because the last buffer is automatically selected.
+
+It should also be noted that `C-c t` pops back and forth between the
+most recently used vterm buffer.
+
+#### What are Emacs prefix keys?
+
+You've now seen command that start with `C-c` and `C-x`, what's the
+difference?
+
+`C-c`, `C-x`, (and `C-u`) are called prefix keys. When you press them,
+they wait for further orders. They are beckoning you to enter another
+sub-command to run. If you change your mind midway through, press
+`C-g`. By using prefix keys you can access dozens, maybe hundreds, of
+keyboard shortcuts. (By using nested hydras, you can access hundreds,
+maybe thousands).
+
+By convention only, `C-c` is customary for the user to customize, so
+Emacs doesn't have any factory bindings that use it. `C-x` on the
+other hand, is exclusively used by Emacs core keybindings. But of
+course, you're free to go counter to this convention.
+
+`C-g` is not a prefix key. `C-g` as a command all by itself means to
+quit whatever you're currently doing, and it works across almost all
+Emacs packages this way.
+
+
+#### Tell me about the emacs daemon?
+
+When you start Emacs with the command `emacs --daemon`, you are
+starting Emacs in the background. It remains running even if you log
+out of the terminal session that started it. This lets you connect to
+it again and again, even if you connection dies, you can reconnect and
+enter the same long running session. If you kill the emacs daemon, or
+if the container is shutdown, the session will go away, and you will
+have to start a new daemon process.
+
+`emacsclient` is the client program that has the ability to connect to
+the daemon process. If you already have an `emacsclient` frame open,
+it will attempt not open a new one, it will try to open in the
+existing frame. To connect to the same daemon, but force the creation
+of a new frame, run `emacsclient -c`.
+
+
+### Setup production Docker host access
+
+The workstation needs to create client configurations for the
+production Docker hosts.
+
+Follow these steps from the main d.rymcg.tech README, inside the
+container workstation shell:
+
+ * [Setup SSH access to the
+   server](https://github.com/enigmacurry/d.rymcg.tech#setup-ssh-access-to-the-server)
+ * [Set remote Docker context](https://github.com/enigmacurry/d.rymcg.tech#set-remote-docker-context)
+ 
+You need to follow both steps for *each* remote Docker host to manage.
+
+### Setup d.rymcg.tech
+
+Follow these step from the main d.rymcg.tech README, inside the
+container workstation shell:
+
+ * [Clone this repository to your workstation](https://github.com/enigmacurry/d.rymcg.tech#clone-this-repository-to-your-workstation)
+ * [Main
+   configuration](https://github.com/enigmacurry/d.rymcg.tech#main-configuration)
+ * [Install Traefik](https://github.com/EnigmaCurry/d.rymcg.tech/tree/master/traefik#readme)
+ * [Install
+   whoami](https://github.com/EnigmaCurry/d.rymcg.tech/tree/master/whoami#readme)
+   to test that Traefik works.
