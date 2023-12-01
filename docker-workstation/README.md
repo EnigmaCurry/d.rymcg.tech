@@ -56,7 +56,20 @@ they cannot be read by rogue processes in your main account. You want
 to ensure that the only way your normal account can access it, is
 through SSH, and only when its turned on.)
 
-## Config
+## Two ways to install
+
+There are two ways to install this:
+
+ 1) From an existing local install of d.rymcg.tech, setup only to
+ control the Docker host that will run the worksation container (but
+ *not* setup to access the production Docker server!)
+ 
+ 2) Directly on the docker host, which has zero dependencies other
+ than docker.
+
+### Install with d.rymcg.tech
+
+#### Config (make config)
 
 ```
 make config
@@ -76,7 +89,7 @@ key should be one long line like `ssh-rsa AAAAA...` or
 
 Configuration for multiple SSH keys is not provided at this time.
 
-## Build
+#### Build (make build)
 
 This is a *fat* container, which contains dozens of preinstalled Arch
 Linux packages, comprising a full Docker and Emacs development
@@ -95,7 +108,7 @@ publish your custom image to make it easier for yourself to re-use).
 make build
 ```
 
-## Install
+#### Install (make install)
 
 Once you have built the image, you can install it:
 
@@ -103,7 +116,7 @@ Once you have built the image, you can install it:
 make install
 ```
 
-## Connect to it via SSH
+#### Connect to it via SSH (make shell)
 
 You can connect to container through SSH. Using the `make shell`
 command does not require any further configuration:
@@ -115,7 +128,70 @@ make shell
 This will connect you to the container via SSH (on port 2222 by
 default) and run the default shell.
 
-You may also want to create an SSH config entry in your
+#### Connect to the root shell via docker
+
+If for some reason SSH does not connect you, you can debug the service
+with the root shell. To connect to the root shell, run:
+
+```
+make root-shell
+```
+
+### Install with Docker (no dependencies)
+
+If you are creating a Docker host for the sole purpose of running this
+container, you may not feel it necessary to install d.rymcg.tech, just
+for this one container. Alternatively, you can build and install the
+container directly on the Docker host:
+
+```
+## Run this directly on the Docker host:
+
+# Set the build arguments as variables:
+ARCH_MIRROR="http://mirrors.xmission.com/archlinux"
+USERNAME="user"
+BASE_PACKAGES="bash xpra openssl git docker docker-compose docker-buildx base-devel cmake apache xdg-utils jq sshfs wireguard-tools curl wget xorg-xauth python python-pip inetutils keychain man-db emacs firefox"
+EXTRA_PACKAGES=""
+EMACS_CONFIG_REPO="https://github.com/EnigmaCurry/emacs.git"
+EMACS_CONFIG_BRANCH="straight"
+
+# Build the image:
+docker build -t docker-workstation \
+    --build-arg=ARCH_MIRROR="${ARCH_MIRROR}" \
+    --build-arg=USERNAME="${USERNAME}" \
+    --build-arg=BASE_PACKAGES="${BASE_PACKAGES}" \
+    --build-arg=EXTRA_PACKAGES="${EXTRA_PACKAGES}" \
+    --build-arg=EMACS_CONFIG_REPO="${EMACS_CONFIG_REPO}" \
+    --build-arg=EMACS_CONFIG_BRANCH="${EMACS_CONFIG_BRANCH}" \
+  https://github.com/EnigmaCurry/d.rymcg.tech.git#:docker-workstation/arch
+```
+
+Now you have an image called `docker-workstation`, you can start the
+container. Make sure to set the `HOST`, `AUTHORIZED_KEY` and
+`SSH_PORT` variables, they are required at *runtime*:
+
+
+```
+## Set the hostname (also used as the container name):
+HOST=workstation
+
+## Set the external ssh port:
+SSH_PORT=2222
+
+## Set your actual SSH public key here:
+AUTHORIZED_KEY="ssh-rsa AAAA......"
+
+docker run -d \
+  --name "${HOST}" \
+  --hostname "${HOST}" \
+  -e AUTHORIZED_KEY="${AUTHORIZED_KEY}" \
+  -p "${SSH_PORT}:22" \
+  docker-workstation
+```
+
+## Configure SSH client
+
+To make connecting easy, you should create an SSH config entry in your
 `~/.ssh/config` file:
 
 ```
