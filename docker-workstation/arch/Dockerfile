@@ -2,7 +2,7 @@ FROM archlinux as base_packages
 ARG ARCH_MIRROR=https://mirror.rackspace.com/archlinux
 RUN echo "Server = ${ARCH_MIRROR}"'/$repo/os/$arch' > /etc/pacman.d/mirrorlist
 RUN pacman -Syyu --noconfirm --disable-download-timeout
-ARG BASE_PACKAGES=bash xpra openssl git docker docker-compose docker-buildx base-devel cmake apache xdg-utils jq sshfs wireguard-tools curl wget xorg-xauth python python-pip inetutils keychain man-db emacs firefox
+ARG BASE_PACKAGES="bash xpra openssl git docker docker-compose docker-buildx base-devel cmake apache xdg-utils jq sshfs wireguard-tools curl wget xorg-xauth python python-pip inetutils keychain man-db emacs firefox"
 RUN pacman -S --noconfirm --disable-download-timeout ${BASE_PACKAGES}
 
 FROM base_packages as sshd-sudo-workstation
