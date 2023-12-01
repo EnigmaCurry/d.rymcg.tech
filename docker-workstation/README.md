@@ -165,30 +165,21 @@ for this one container. Alternatively, you can build and install the
 container directly on the Docker host:
 
 ```
-## Set these build arguments directly in the shell on the Docker host:
-ARCH_MIRROR="http://mirrors.xmission.com/archlinux"
-USERNAME="user"
-BASE_PACKAGES="bash xpra openssl git docker docker-compose docker-buildx base-devel cmake apache xdg-utils jq sshfs wireguard-tools curl wget xorg-xauth python python-pip inetutils keychain man-db emacs firefox"
-EXTRA_PACKAGES=""
-EMACS_CONFIG_REPO="https://github.com/EnigmaCurry/emacs.git"
-EMACS_CONFIG_BRANCH="straight"
-```
-
-```
 # Build the image directly on the Docker host:
 docker build -t docker-workstation \
-    --build-arg=ARCH_MIRROR="${ARCH_MIRROR}" \
-    --build-arg=USERNAME="${USERNAME}" \
-    --build-arg=BASE_PACKAGES="${BASE_PACKAGES}" \
-    --build-arg=EXTRA_PACKAGES="${EXTRA_PACKAGES}" \
-    --build-arg=EMACS_CONFIG_REPO="${EMACS_CONFIG_REPO}" \
-    --build-arg=EMACS_CONFIG_BRANCH="${EMACS_CONFIG_BRANCH}" \
   https://github.com/EnigmaCurry/d.rymcg.tech.git#:docker-workstation/arch
 ```
 
-Now you have an image called `docker-workstation`, you can start the
-container. Make sure the `HOST`, `AUTHORIZED_KEY` and `SSH_PORT`
-variables are set at *runtime*:
+(You may add any of the [build
+arguments](https://docs.docker.com/build/guide/build-args/) to the
+build command to change the default values: `ARCH_MIRROR`, `USERNAME`,
+`BASE_PACKAGES`, `EXTRA_PACKAGES`, `EMACS_CONFIG_REPO`,
+`EMACS_CONFIG_BRANCH`. For example, add `--build-arg=USERNAME=ryan` to
+change the default username)
+
+Now that you have built an image called `docker-workstation`, you can
+start the container. Make sure the `HOST`, `AUTHORIZED_KEY` and
+`SSH_PORT` variables are set at *runtime*:
 
 ```
 ## Set the hostname (also used as the container name):
