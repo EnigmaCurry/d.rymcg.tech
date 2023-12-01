@@ -249,8 +249,8 @@ docker run -d \
   --hostname "${NAME}" \
   -e AUTHORIZED_KEY="${AUTHORIZED_KEY}" \
   -p "${SSH_PORT}:22" \
-  -v docker-workstation_sshd_keys:/etc/ssh/keys
-  -v docker-workstation_user_home:/home/${USERNAME}
+  -v docker-workstation_sshd_keys:/etc/ssh/keys \
+  -v docker-workstation_user_home:/home/${USERNAME} \
   docker-workstation
 ```
 
