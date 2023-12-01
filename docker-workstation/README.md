@@ -138,7 +138,7 @@ make install
 
 #### Connect to it via SSH (make shell)
 
-You can connect to container through SSH. Using the `make shell`
+You can connect to the container through SSH. Using the `make shell`
 command does not require any further configuration:
 
 ```
@@ -148,7 +148,7 @@ make shell
 This will connect you to the container via SSH (on port 2222 by
 default) and run the default shell.
 
-#### Connect to the root shell via docker
+#### Connect to the root shell (make root-shell)
 
 If for some reason SSH does not connect you, you can debug the service
 with the root shell. To connect to the root shell, run:
@@ -165,17 +165,17 @@ for this one container. Alternatively, you can build and install the
 container directly on the Docker host:
 
 ```
-## Run this directly on the Docker host:
-
-# Set the build arguments as variables:
+## Set these build arguments directly in the shell on the Docker host:
 ARCH_MIRROR="http://mirrors.xmission.com/archlinux"
 USERNAME="user"
 BASE_PACKAGES="bash xpra openssl git docker docker-compose docker-buildx base-devel cmake apache xdg-utils jq sshfs wireguard-tools curl wget xorg-xauth python python-pip inetutils keychain man-db emacs firefox"
 EXTRA_PACKAGES=""
 EMACS_CONFIG_REPO="https://github.com/EnigmaCurry/emacs.git"
 EMACS_CONFIG_BRANCH="straight"
+```
 
-# Build the image:
+```
+# Build the image directly on the Docker host:
 docker build -t docker-workstation \
     --build-arg=ARCH_MIRROR="${ARCH_MIRROR}" \
     --build-arg=USERNAME="${USERNAME}" \
@@ -187,20 +187,19 @@ docker build -t docker-workstation \
 ```
 
 Now you have an image called `docker-workstation`, you can start the
-container. Make sure to set the `HOST`, `AUTHORIZED_KEY` and
-`SSH_PORT` variables, they are required at *runtime*:
-
+container. Make sure the `HOST`, `AUTHORIZED_KEY` and `SSH_PORT`
+variables are set at *runtime*:
 
 ```
 ## Set the hostname (also used as the container name):
 HOST=workstation
-
 ## Set the external ssh port:
 SSH_PORT=2222
-
 ## Set your actual SSH public key here:
 AUTHORIZED_KEY="ssh-rsa AAAA......"
+```
 
+```
 docker run -d \
   --name "${HOST}" \
   --hostname "${HOST}" \
@@ -209,7 +208,7 @@ docker run -d \
   docker-workstation
 ```
 
-## Configure SSH client
+## Configure SSH client (on your native laptop/workstation)
 
 To make connecting easy, you should create an SSH config entry in your
 `~/.ssh/config` file:
