@@ -1,62 +1,60 @@
-# Example docker compose project
+# ${CREATE_TEMPLATE_PROJECT_NAME}
 
-This example wraps [traefik/whoami](https://github.com/traefik/whoami)
-as an example of a containerized service, built from Dockerfile.
+This is a template project based on
+[whoami](https://github.com/traefik/whoami), which is a tiny Go
+webserver that prints some information on every request. It is useful
+as a basic deployment and connectivity test, and you can replace it in
+docker-compose.yaml with any service that you want.
 
-## Setup
-
-This example project integrates with
-[d.rymcg.tech](https://github.com/EnigmaCurry/d.rymcg.tech#readme).
-Before proceeding, you must first clone and setup `d.rymcg.tech` on
-your workstation.
-
-This project is an example of a so-called
-["external"](https://github.com/enigmacurry/d.rymcg.tech#integrating-external-projects)
-project to `d.rymcg.tech`, as it does not live in the same source tree
-as `d.rymcg.tech`, but creates a link to it to inherit its Makefiles,
-and to gain its superpowers.
-
-## Configure
-
-Once
-[d.rymcg.tech](https://github.com/EnigmaCurry/d.rymcg.tech#readme) has
-been installed, you can come back to this directory.
-
-Run:
+## Config
 
 ```
 make config
 ```
 
-This will create the `.env_{DOCKER_CONTEXT}` configuration file for
-your service.
+This will ask you to enter the domain name to use.
+It automatically saves your responses into the configuration file
+`.env_{INSTANCE}`.
+
+### Authentication and Authorization
+
+Running `make config` will ask whether or not you want to configure
+authentication for your app (on top of any authentication your app provides).
+You can configure OpenID/OAuth2 or HTTP Basic Authentication.
+
+OAuth2 uses traefik-forward-auth to delegate authentication to an external
+authority (eg. a self-deployed Gitea instance). Accessing this app will
+require all users to login through that external service first. Once
+authenticated, they may be authorized access only if their login id matches the
+member list of the predefined authorization group configured for the app
+(`WHOAMI_OAUTH2_AUTHORIZED_GROUP`). Authorization groups are defined in the
+Traefik config (`TRAEFIK_HEADER_AUTHORIZATION_GROUPS`) and can be
+[created/modified](https://github.com/EnigmaCurry/d.rymcg.tech/blob/master/traefik/README.md#oauth2-authentication)
+by running `make groups` in the `traefik` directory.
+
+For HTTP Basic Authentication, you will be prompted to enter username/password
+logins which are stored in that app's `.env_{INSTANCE}` file.
 
 ## Install
-
-Run:
 
 ```
 make install
 ```
 
-## Open in your web browser
-
-Run:
+## Open
 
 ```
 make open
 ```
 
-## Customizing
+This will automatically open the page in your web browser, and will
+prefill the HTTP Basic Authentication password if you enabled it (and
+if you chose to store it locally in `passwords.json`).
 
-The [whoami](whoami) sub-directory contains the source for the image
-that this service builds. It is just an example, and can be replaced
-with your own Dockerfile for your own service. If you change the name
-of the directory, be sure to update the name in `build.context` in
-`docker-compose.yaml`.
+## Destroy
 
-If you don't need to build an image, but instead you want to pull an
-image from a docker registry, remove the `build` directive (in
-`docker-compose.yaml`) and replace with `image: your_image_name`, and
-then you can delete the [whoami](whoami) directory (because no
-Dockerfile is needed if you are just pulling a prebuilt image).
+```
+make destroy
+```
+
+This completely removes the container and all of its volumes.

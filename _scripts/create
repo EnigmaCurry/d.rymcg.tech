@@ -41,8 +41,8 @@ mkdir -p "$(dirname "${OUTPUT_DIR}")"
 mkdir "${OUTPUT_DIR}"
 
 TEMPLATE_DIR="${ROOT_DIR}/_templates/${TEMPLATE_NAME}"
-TEMPLATE_FILES=("docker-compose.yaml" "docker-compose.instance.yaml" "Makefile" ".env-dist")
-COPY_FILES=(".gitignore" "README.md")
+TEMPLATE_FILES=("docker-compose.yaml" "docker-compose.instance.yaml" "Makefile" "README.md" ".env-dist")
+COPY_FILES=(".gitignore")
 
 if [[ ! -d "${TEMPLATE_DIR}" ]]; then
     fault "The template directory is missing: ${TEMPLATE_DIR}"
@@ -66,15 +66,8 @@ echo "CREATE_TEMPLATE_PROJECT_NAME_UPPERCASE=${CREATE_TEMPLATE_PROJECT_NAME_UPPE
 ## TODO: use ytt to template YAML instead of envsubst
 ## HOWEVER, this is blocked on https://github.com/carvel-dev/ytt/issues/63
 
-echo "Copying generic Makefile header ..."
-cat "${TEMPLATE_DIR}/../_common/Makefile.generic" | envsubst "${TEMPLATE_VARS}" > "${OUTPUT_DIR}/Makefile"
-
 for filename in ${TEMPLATE_FILES[@]}; do
     echo "# Rendering from template: ${OUTPUT_DIR}/${filename}"
-    if [[ "$filename" == "docker-compose.instance.yaml" ]]; then
-        ## Add the common traefik instance header to docker-compose.instance.yaml:
-        cat "${TEMPLATE_DIR}/../_common/instance_header.yaml" > "${OUTPUT_DIR}/${filename}"
-    fi
     ## Add the template
     cat "${TEMPLATE_DIR}/${filename}" | envsubst "${TEMPLATE_VARS}" >> "${OUTPUT_DIR}/${filename}"
 done
