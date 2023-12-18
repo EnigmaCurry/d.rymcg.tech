@@ -53,12 +53,17 @@ for template in ${TEMPLATE_FILES[@]}; do
     fi
 done
 
-TEMPLATE_VARS='${CREATE_TEMPLATE_PROJECT_NAME},${CREATE_TEMPLATE_PROJECT_URL_NAME},${CREATE_TEMPLATE_PROJECT_NAME_UPPERCASE},${CREATE_TEMPLATE_ROOT_DIR}'
+# These are all the explicit vars that envsubst will replace (ignores others):
+#NB: envsubst requires literal variable references in single quotes:
+TEMPLATE_VARS='${CREATE_TEMPLATE_TEMPLATE_NAME},${CREATE_TEMPLATE_PROJECT_NAME},${CREATE_TEMPLATE_PROJECT_URL_NAME},${CREATE_TEMPLATE_PROJECT_NAME_UPPERCASE},${CREATE_TEMPLATE_ROOT_DIR},${CREATE_TEMPLATE_TIMESTAMP},${CREATE_TEMPLATE_D_RYMCG_TECH_VERSION}'
 
+export CREATE_TEMPLATE_TEMPLATE_NAME="${TEMPLATE_NAME}"
 export CREATE_TEMPLATE_ROOT_DIR="${ROOT_DIR}"
 export CREATE_TEMPLATE_PROJECT_NAME="$(echo ${PROJECT_NAME} | tr ' ' '-')"
 export CREATE_TEMPLATE_PROJECT_NAME_UPPERCASE="$(echo ${CREATE_TEMPLATE_PROJECT_NAME} | tr '[:lower:]' '[:upper:]' | tr '-' '_')"
 export CREATE_TEMPLATE_PROJECT_URL_NAME="$(echo ${CREATE_TEMPLATE_PROJECT_NAME} | tr '[:upper:]' '[:lower:]' | tr '_' '-')"
+export CREATE_TEMPLATE_TIMESTAMP="$(date)"
+export CREATE_TEMPLATE_D_RYMCG_TECH_VERSION="$(git -C ${ROOT_DIR} rev-parse HEAD)"
 
 echo "CREATE_TEMPLATE_PROJECT_NAME=${CREATE_TEMPLATE_PROJECT_NAME}"
 echo "CREATE_TEMPLATE_PROJECT_NAME_UPPERCASE=${CREATE_TEMPLATE_PROJECT_NAME_UPPERCASE}"
@@ -68,8 +73,13 @@ echo "CREATE_TEMPLATE_PROJECT_NAME_UPPERCASE=${CREATE_TEMPLATE_PROJECT_NAME_UPPE
 
 for filename in ${TEMPLATE_FILES[@]}; do
     echo "# Rendering from template: ${OUTPUT_DIR}/${filename}"
-    ## Add the template
-    cat "${TEMPLATE_DIR}/${filename}" | envsubst "${TEMPLATE_VARS}" >> "${OUTPUT_DIR}/${filename}"
+    case "$filename" in
+        README.md)
+            ## Remove "Note:..." from the first line of the README template:
+            (set +e; head -1 "${TEMPLATE_DIR}/${filename}" | grep -v "^Note:" ; tail -n +2 "${TEMPLATE_DIR}/${filename}") | envsubst "${TEMPLATE_VARS}" > "${OUTPUT_DIR}/${filename}";;
+        *)
+            cat "${TEMPLATE_DIR}/${filename}" | envsubst "${TEMPLATE_VARS}" > "${OUTPUT_DIR}/${filename}";;
+    esac
 done
 
 for filename in ${COPY_FILES[@]}; do

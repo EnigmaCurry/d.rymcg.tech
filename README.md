@@ -570,6 +570,13 @@ Install these other services at your leisure/preference:
 * [Wordpress](wordpress#readme) - an ubiquitous blogging / CMS platform, with a plugin to build a static HTML site snapshot.
 * [XBrowserSync](xbs#readme) - a bookmark manager
 
+You can create a new application from an existing template, copy from
+the [whoami](whoami) example, or use the [`d.rymcg.tech create`
+tool](#integrating-external-projects).
+
+* [whoami template]()
+* [python-flask template]()
+
 Bespoke things:
 
 * [certificate-ca](_terminal/certificate-ca) Experimental ad-hoc certifcate CA. Creates

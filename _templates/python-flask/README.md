@@ -1,4 +1,5 @@
-# Example Flask docker compose project
+Note: This directory is a d.rymcg.tech template intended for use with the `d.rymcg.tech create` command line tool, you should not copy from these files directly.
+# ${CREATE_TEMPLATE_PROJECT_NAME}
 
 ## Setup
 
@@ -119,3 +120,11 @@ separate for each instance.
 This could be useful for having a "production" and "development"
 instance on the same box (at the risk of the integrity of the
 "production" instance, if you choose to do this).
+
+## Historical note
+
+This project was initialized from a
+[d.rymcg.tech](https://github.com/EnigmaCurry/d.rymcg.tech) template
+called `${CREATE_TEMPLATE_TEMPLATE_NAME}` on
+`${CREATE_TEMPLATE_TIMESTAMP}` (version
+[${CREATE_TEMPLATE_D_RYMCG_TECH_VERSION}](https://github.com/EnigmaCurry/d.rymcg.tech/tree/${CREATE_TEMPLATE_D_RYMCG_TECH_VERSION}/_templates)).
