@@ -1058,14 +1058,13 @@ Enter the name of the backup file, and all of the `.env` and
 ## Integrating external projects
 
 You may create your own external projects, and/or integrate your
-existing docker-compose projects, from existing/external git
-repositories, and have them use the d.rymcg.tech framework.
+existing docker-compose projects, including from external git
+repositories, and have them use the same d.rymcg.tech framework.
 
 The easiest method of creating an external project, is by setting up
 the [`d.rymcg.tech`
 script](https://github.com/EnigmaCurry/d.rymcg.tech/blob/master/README.md#using-the-drymcgtech-cli-script-optional),
 then run:
-
 
 ```
 ## Run this from any directory:
@@ -1101,6 +1100,17 @@ include ${ROOT_DIR}/_scripts/Makefile.instance
 config-hook:
 	@${BIN}/reconfigure_ask ${ENV_FILE} EXAMPLE_TRAEFIK_HOST "Enter the example domain name" example.${ROOT_DOMAIN}
 	@${BIN}/reconfigure_ask ${ENV_FILE} EXAMPLE_OTHER_VAR "Enter the example other variable"
+```
+
+By convention, external project Makefiles should always hardcode the
+enigmacurry git vendor path: `ROOT_DIR = ${HOME}/git/vendor/enigmacurry/d.rymcg.tech`, 
+(but you may want to use your own directory if you have forked this
+project and you have introduced unmerged changes):
+
+```
+## As long as everyone uses this same ROOT_DIR, then we can all share the same configs:
+## (You might also create this path as a symlink, if you don't like this convention):
+ROOT_DIR = ${HOME}/git/vendor/enigmacurry/d.rymcg.tech
 ```
 
 A minimal `Makefile`, like the one above, should include a
