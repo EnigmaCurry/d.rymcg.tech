@@ -1,7 +1,7 @@
 # Attic
 
-Things living in the _attic directory application that are no longer
-supported, and could be broken, but at least they all worked at one
+Things living in the _attic directory are applications that are no longer
+supported, and might be broken, but at least they all worked at one
 point in time or the other. With a bit of love and care these could be
 fixed up, and moved back into the root directory.
 
