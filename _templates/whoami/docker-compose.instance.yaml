@@ -21,6 +21,10 @@
 services:
   ${CREATE_TEMPLATE_PROJECT_NAME}:
     #@ service = "${CREATE_TEMPLATE_PROJECT_NAME}"
+    environment:
+      - DOCKER_PROJECT=(@= project @)
+      - DOCKER_INSTANCE=(@= instance @)
+      - DOCKER_CONTEXT=(@= context @)
     labels:
       #! Services must opt-in to be proxied by Traefik:
       - "traefik.enable=true"
