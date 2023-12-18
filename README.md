@@ -1057,9 +1057,9 @@ Enter the name of the backup file, and all of the `.env` and
 
 ## Integrating external projects
 
-You can integrate your own docker-compose projects that exist in
-external git repositories, and have them use the d.rymcg.tech
-framework.
+You may create your own external projects, and/or integrate your
+existing docker-compose projects, from existing/external git
+repositories, and have them use the d.rymcg.tech framework.
 
 The easiest method of creating an external project, is by setting up
 the [`d.rymcg.tech`
@@ -1072,7 +1072,7 @@ then run:
 d.rymcg.tech create
 ```
 
-To do this same thing manually, here are the steps:
+Alternatively you can create your project by hand:
 
  * Create a new project directory, or clone your existing project, to
    any directory. (It does not need to be a sub-directory of
@@ -1094,7 +1094,8 @@ elsewhere:
 
 # ROOT_DIR can be a relative or absolute path to the d.rymcg.tech directory:
 ROOT_DIR = ${HOME}/git/vendor/enigmacurry/d.rymcg.tech
-include ${ROOT_DIR}/_scripts/Makefile.projects-external
+include ${ROOT_DIR}/_scripts/Makefile.projects
+include ${ROOT_DIR}/_scripts/Makefile.instance
 
 .PHONY: config-hook # Configure .env file
 config-hook:
