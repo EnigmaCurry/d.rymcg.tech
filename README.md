@@ -570,12 +570,10 @@ Install these other services at your leisure/preference:
 * [Wordpress](wordpress#readme) - an ubiquitous blogging / CMS platform, with a plugin to build a static HTML site snapshot.
 * [XBrowserSync](xbs#readme) - a bookmark manager
 
-You can create a new application from an existing template, copy from
-the [whoami](whoami) example, or use the [`d.rymcg.tech create`
-tool](#integrating-external-projects).
-
-* [whoami template]()
-* [python-flask template]()
+You can create a new application by using any other application as an
+example, ([whoami](whoami) is the most basic one), or use the
+[`d.rymcg.tech create` tool](#integrating-external-projects) which
+includes additional development templates.
 
 Bespoke things:
 
