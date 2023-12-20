@@ -156,20 +156,55 @@ docker_exec() {
 
 ytt() {
     set -e
-    docker image inspect localhost/ytt >/dev/null || docker build -t localhost/ytt -f- . >/dev/null <<'EOF'
+    local IMAGE=localhost/ytt
+    docker image inspect ${IMAGE} >/dev/null || docker build -t ${IMAGE} -f- . >/dev/null <<'EOF'
 FROM debian:stable-slim as ytt
 ARG YTT_VERSION=v0.44.3
 RUN apt-get update && apt-get install -y wget && wget "https://github.com/vmware-tanzu/carvel-ytt/releases/download/${YTT_VERSION}/ytt-linux-$(dpkg --print-architecture)" -O ytt && install ytt /usr/local/bin/ytt
 EOF
     non_template_commands_pattern="(help|completion|fmt|version)"
     if [[ "$@" == "" ]]; then
-        CMD="docker run --rm -i localhost/ytt ytt help"
+        CMD="docker run --rm -i ${IMAGE} ytt help"
     elif [[ "$1" =~ $non_template_commands_pattern ]]; then
-        CMD="docker run --rm -i localhost/ytt ytt ${@}"
+        CMD="docker run --rm -i ${IMAGE} ytt ${@}"
     else
-        CMD="docker run --rm -i localhost/ytt ytt -f- ${@}"
+        CMD="docker run --rm -i ${IMAGE} ytt -f- ${@}"
     fi
     eval $CMD
+}
+
+yq() {
+    set -e
+    local IMAGE=localhost/yq
+    docker image inspect ${IMAGE} >/dev/null || docker build -t ${IMAGE} -f- . >/dev/null <<'EOF'
+FROM debian:stable-slim as yq
+RUN apt-get update && apt-get install -y yq
+EOF
+    docker run --rm -i "${IMAGE}" yq "${@}"
+}
+
+read_stdin_or_args() {
+    # Read from stdin or args but not both:
+    if [ -t 0 ]; then
+        # Reading from command line arguments:
+        if [[ $# -lt 1 ]]; then
+            fault "No input given"
+        fi        
+        echo "$@"
+    else
+        if [[ $# -gt 0 ]]; then
+            fault "Cannot process stdin and command arguments at the same time"
+        fi        
+        cat
+    fi
+}
+
+yaml_to_json() {
+    read_stdin_or_args "$@" | yq -j -c
+}
+
+json_to_yaml() {
+    read_stdin_or_args "$@" | yq -y
 }
 
 volume_rsync() {
@@ -520,6 +555,15 @@ confirm() {
 choose() {
     local exit_code=0
     wizard choose --cancel-code=2 "$@" && exit_code=$? || exit_code=$?
+    if [[ "${exit_code}" == "2" ]]; then
+        cancel
+    fi
+    return ${exit_code}
+}
+
+select_wizard() {
+    local exit_code=0
+    wizard select --cancel-code=2 "$@" && exit_code=$? || exit_code=$?
     if [[ "${exit_code}" == "2" ]]; then
         cancel
     fi
