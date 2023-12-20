@@ -207,6 +207,11 @@ json_to_yaml() {
     read_stdin_or_args "$@" | yq -y
 }
 
+array_to_json() {
+    # array_to_json "${THINGS[@]}"
+    printf '%s\n' "$@" | jq -R . | jq -c -s .
+}
+
 volume_rsync() {
     docker image inspect localhost/rsync >/dev/null || docker build -t localhost/rsync ${ROOT_DIR}/_terminal/rsync
     if [[ $# -gt 0 ]]; then
