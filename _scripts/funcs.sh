@@ -212,6 +212,11 @@ array_to_json() {
     printf '%s\n' "$@" | jq -R . | jq -c -s .
 }
 
+array_join() {
+    # array_join "," "${THINGS[@]}"
+    array_to_json "$@" | jq -r 'join(",")'
+}
+
 volume_rsync() {
     docker image inspect localhost/rsync >/dev/null || docker build -t localhost/rsync ${ROOT_DIR}/_terminal/rsync
     if [[ $# -gt 0 ]]; then
