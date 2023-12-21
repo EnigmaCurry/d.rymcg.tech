@@ -1,7 +1,9 @@
-# Nginx and PHP
+# Nginx
 
 This project contains the [nginx](https://hub.docker.com/_/nginx)
-webserver and [php-fpm](https://hub.docker.com/r/bitnami/php-fpm).
+webserver and optional profiles for running PHP scripts with
+[php-fpm](https://hub.docker.com/r/bitnami/php-fpm) and optional
+postgres database.
 
 ## Config
 
