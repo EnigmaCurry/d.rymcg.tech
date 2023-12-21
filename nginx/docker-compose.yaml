@@ -1,0 +1,55 @@
+version: "3.9"
+
+volumes:
+  app:
+  redis:
+
+services:
+  nginx:
+    profiles:
+      - nginx
+    build:
+      context: nginx
+      args:
+        VERSION: ${NGINX_VERSION}
+        TEMPLATE: ${NGINX_TEMPLATE}
+        HOST: ${NGINX_TRAEFIK_HOST}
+        ADMINER_ENABLE: ${NGINX_PHP_ADMINER_ENABLE}
+    restart: always
+    volumes:
+      - "app:/app"
+
+  php-fpm:
+    profiles:
+      - php-fpm
+    build:
+      context: php-fpm
+      args:
+        VERSION: ${NGINX_PHP_VERSION}
+        DEBUG_MODE: ${NGINX_DEBUG_MODE}
+        ADMINER_ENABLE: ${NGINX_PHP_ADMINER_ENABLE}
+    restart: always
+    working_dir: /app
+    volumes:
+      - "app:/app"
+
+  redis:
+    profiles:
+      # Always enable redis when PHP is enabled:
+      - php-fpm
+    image: "redis:${NGINX_REDIS_VERSION}"
+    command: redis-server --save 60 1 --loglevel warning
+    environment:
+      ALLOW_EMPTY_PASSWORD: "yes"
+    volumes:
+      - "redis:/data"
+
+  postgres:
+    profiles:
+      - postgres
+    image: postgres:${NGINX_POSTGRES_VERSION}
+    restart: always
+    environment:
+      POSTGRES_PASSWORD: ${NGINX_POSTGRES_PASSWORD}
+      POSTGRES_DB: ${NGINX_POSTGRES_DB}
+      
