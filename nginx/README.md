@@ -39,6 +39,16 @@ configure them manually, set the variables in the config file
    `NGINX_DEBUG_MODE=true`. This will enable printing error tracebacks in
    the browser.
 
+## Install
+
+```
+make install
+```
+
+```
+make open
+```
+
 ## Redis
 
 Redis is automatically activated along when the `php-fpm` profile is
