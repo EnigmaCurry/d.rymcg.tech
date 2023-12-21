@@ -1,7 +1,7 @@
 version: "3.9"
 
 volumes:
-  app:
+  files:
   redis:
 
 services:
@@ -14,10 +14,9 @@ services:
         VERSION: ${NGINX_VERSION}
         TEMPLATE: ${NGINX_TEMPLATE}
         HOST: ${NGINX_TRAEFIK_HOST}
-        ADMINER_ENABLE: ${NGINX_PHP_ADMINER_ENABLE}
     restart: always
     volumes:
-      - "app:/app"
+      - "files:/app"
 
   php-fpm:
     profiles:
@@ -27,11 +26,11 @@ services:
       args:
         VERSION: ${NGINX_PHP_VERSION}
         DEBUG_MODE: ${NGINX_DEBUG_MODE}
-        ADMINER_ENABLE: ${NGINX_PHP_ADMINER_ENABLE}
+        PHP_INDEX_FILE: ${NGINX_PHP_INDEX_FILE:-default.php}
     restart: always
     working_dir: /app
     volumes:
-      - "app:/app"
+      - "files:/app"
 
   redis:
     profiles:

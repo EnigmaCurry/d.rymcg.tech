@@ -17,8 +17,8 @@ ARG DEBUG_MODE
 RUN test "${DEBUG_MODE}" == "true" && echo "display_errors = On" > /opt/bitnami/php/etc/conf.d/01_debug_mode.ini || true
 
 ## Default PHP index file:
-COPY --chmod=0555 phpinfo.php /app/public/index.php
-ADD --chmod=0555 https://github.com/vrana/adminer/releases/download/v4.8.1/adminer-4.8.1-en.php /app/public/adminer.php
+ARG PHP_INDEX_FILE=default.php
+ADD --chmod=0555 ${PHP_INDEX_FILE} /app/public/index.php
 
 WORKDIR /app
 VOLUME /app
