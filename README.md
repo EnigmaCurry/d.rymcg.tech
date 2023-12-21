@@ -571,6 +571,11 @@ Install these other services at your leisure/preference:
 * [Wordpress](wordpress#readme) - an ubiquitous blogging / CMS platform, with a plugin to build a static HTML site snapshot.
 * [XBrowserSync](xbs#readme) - a bookmark manager
 
+You can create a new application by using any other application as an
+example, ([whoami](whoami) is the most basic one), or use the
+[`d.rymcg.tech create` tool](#integrating-external-projects) which
+includes additional development templates.
+
 Bespoke things:
 
 * [certificate-ca](_terminal/certificate-ca) Experimental ad-hoc certifcate CA. Creates
@@ -1058,22 +1063,21 @@ Enter the name of the backup file, and all of the `.env` and
 
 ## Integrating external projects
 
-You can integrate your own docker-compose projects that exist in
-external git repositories, and have them use the d.rymcg.tech
-framework.
+You may create your own external projects, and/or integrate your
+existing docker-compose projects, including from external git
+repositories, and have them use the same d.rymcg.tech framework.
 
 The easiest method of creating an external project, is by setting up
 the [`d.rymcg.tech`
 script](https://github.com/EnigmaCurry/d.rymcg.tech/blob/master/README.md#using-the-drymcgtech-cli-script-optional),
 then run:
 
-
 ```
 ## Run this from any directory:
 d.rymcg.tech create
 ```
 
-To do this same thing manually, here are the steps:
+Alternatively you can create your project by hand:
 
  * Create a new project directory, or clone your existing project, to
    any directory. (It does not need to be a sub-directory of
@@ -1095,12 +1099,24 @@ elsewhere:
 
 # ROOT_DIR can be a relative or absolute path to the d.rymcg.tech directory:
 ROOT_DIR = ${HOME}/git/vendor/enigmacurry/d.rymcg.tech
-include ${ROOT_DIR}/_scripts/Makefile.projects-external
+include ${ROOT_DIR}/_scripts/Makefile.projects
+include ${ROOT_DIR}/_scripts/Makefile.instance
 
 .PHONY: config-hook # Configure .env file
 config-hook:
 	@${BIN}/reconfigure_ask ${ENV_FILE} EXAMPLE_TRAEFIK_HOST "Enter the example domain name" example.${ROOT_DOMAIN}
 	@${BIN}/reconfigure_ask ${ENV_FILE} EXAMPLE_OTHER_VAR "Enter the example other variable"
+```
+
+By convention, external project Makefiles should always hardcode the
+enigmacurry git vendor path: `ROOT_DIR = ${HOME}/git/vendor/enigmacurry/d.rymcg.tech`, 
+(but you may want to use your own directory if you have forked this
+project and you have introduced unmerged changes):
+
+```
+## As long as everyone uses this same ROOT_DIR, then we can all share the same configs:
+## (You might also create this path as a symlink, if you don't like this convention):
+ROOT_DIR = ${HOME}/git/vendor/enigmacurry/d.rymcg.tech
 ```
 
 A minimal `Makefile`, like the one above, should include a

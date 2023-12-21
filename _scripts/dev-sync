@@ -6,6 +6,7 @@ set -e
 
 BIN=$(dirname ${BASH_SOURCE})
 source ${BIN}/funcs.sh
+${BIN}/check_deps inotifywait
 
 if [[ $# -lt 2 ]]; then
     fault "Invalid arguments. The correct arguments are: VOLUME SRC_DIR [DEST_DIR]"
