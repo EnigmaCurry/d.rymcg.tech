@@ -83,10 +83,9 @@ __create() {
     if [[ $# -gt 1 ]]; then
         TEMPLATE_NAME="$2"
     else
-        echo "Available templates:"
-        find "${ROOT_DIR}/_templates" -maxdepth 1 -type d -printf "%P\n" | grep -v "^_" | column
+        readarray -t AVAIL_TEMPLATES < <(find "${ROOT_DIR}/_templates" -maxdepth 1 -type d -printf "%P\n" | grep -v "^_" | grep -v "^$")
         echo ""
-        ask_no_blank "Enter the template name to use" TEMPLATE_NAME
+        TEMPLATE_NAME=$(choose "Choose a template:" "${AVAIL_TEMPLATES[@]}")
         echo ""
     fi
     ${BIN}/create "${PROJECT_NAME}" "${TEMPLATE_NAME}" "./${PROJECT_NAME}"

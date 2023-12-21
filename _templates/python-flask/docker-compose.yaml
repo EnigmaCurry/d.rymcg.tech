@@ -3,6 +3,9 @@ services:
   ## The Flask API service:
   ## If you change this name, change it in docker-compose.instance.yaml too:
   api:
+    depends_on:
+      database:
+        condition: service_healthy
     ## Build the docker image from the local Dockerfile source:
     build:
       context: flask
@@ -17,17 +20,18 @@ services:
       - PGDATABASE=${${CREATE_TEMPLATE_PROJECT_NAME_UPPERCASE}_POSTGRES_DATABASE}
       - PGUSER=${${CREATE_TEMPLATE_PROJECT_NAME_UPPERCASE}_POSTGRES_USER}
       - PGPASSWORD=${${CREATE_TEMPLATE_PROJECT_NAME_UPPERCASE}_POSTGRES_PASSWORD}
-
+      - DOCKER_PROJECT=
   ## The PostgreSQL database service:
   ## If you change this name, change it in docker-compose.instance.yaml too:
   database:
-    image: postgres:15
+    image: postgres:16
     environment:
       - POSTGRES_PASSWORD=${${CREATE_TEMPLATE_PROJECT_NAME_UPPERCASE}_POSTGRES_PASSWORD}
       - POSTGRES_USER=${${CREATE_TEMPLATE_PROJECT_NAME_UPPERCASE}_POSTGRES_USER}
       - POSTGRES_DB=${${CREATE_TEMPLATE_PROJECT_NAME_UPPERCASE}_POSTGRES_DATABASE}
     volumes:
       - database:/var/lib/postgresql/data
-
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $$POSTGRES_USER -d $$POSTGRES_DB"]
 volumes:
   database:

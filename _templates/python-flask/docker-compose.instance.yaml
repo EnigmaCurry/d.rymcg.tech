@@ -1,34 +1,27 @@
-#! Compose the services from reusable fragments, in steps:
-#! All the YAML will be merged together in the end.
+#! This is a ytt template file for docker-compose.override.yaml
+#! References:
+#!   https://carvel.dev/ytt
+#!   https://docs.docker.com/compose/extends/#adding-and-overriding-configuration
+#!   https://github.com/enigmacurry/d.rymcg.tech#overriding-docker-composeyaml-per-instance
 
----
-#@overlay/match by=overlay.all, expects=1
----
-#! basic_service
-#! Create the basic service environment and security context for each of your services
-#@overlay/match-child-defaults missing_ok=True
-services:
-  api: #@ basic_service()
-  database: #@ basic_service()
+#! ### Standard project vars:
+#@ load("@ytt:data", "data")
+#@ project = data.values.project
+#@ instance = data.values.instance
+#@ context = data.values.context
+#@ traefik_host = data.values.traefik_host
+#@ ip_sourcerange = data.values.ip_sourcerange
+#@ enable_http_auth = len(data.values.http_auth.strip()) > 0
+#@ http_auth = data.values.http_auth_var
+#@ enable_oauth2 = data.values.oauth2 == "true"
+#@ authorized_group = data.values.authorized_group
+#@ development_mode = data.values.development_mode
+#@ enabled_middlewares = []
 
----
-#@overlay/match by=overlay.all, expects=1
----
-#! basic_traefik_router(router, rule, middlewares=('ipwhitelist','basicauth'))
-#! Adds a router with the given name, rule, and middlewares.
-#! If you need multiple routes for the same service, duplicate this entire section.
-#@overlay/match-child-defaults missing_ok=True
 #@yaml/text-templated-strings
 services:
-  api: #@ basic_traefik_router(router="api", rule="Host(`${${CREATE_TEMPLATE_PROJECT_NAME_UPPERCASE}_TRAEFIK_HOST}`)")
-
----
-#@overlay/match by=overlay.all, expects=1
----
-#! Add the rest of the customization here and it will merge it with the above:
-#@overlay/match-child-defaults missing_ok=True
-services:
   api:
+    #@ service = "api"
     #@ if development_mode:
     command: ["flask","--app","app","--debug","run","--host","0.0.0.0","--port","8000"]
     volumes:
@@ -36,16 +29,43 @@ services:
       #! `make dev-sync` will rsync development files to this volume for the server to reload:
       - development:/code
     #@ end
+    environment:
+      - DOCKER_PROJECT=(@= project @)
+      - DOCKER_INSTANCE=(@= instance @)
+      - DOCKER_CONTEXT=(@= context @)
+      - DEVELOPMENT_MODE=(@= data.values.development_mode @)
     labels:
-      #! Traefik is disabled for this service by default, unless you enable it here:
+      #! Services must opt-in to be proxied by Traefik:
       - "traefik.enable=true"
-      #! server.port is needed only if the Dockerfile did not use EXPOSE or if you need to override it:
-      #! - "traefik.http.services.(@= project @)-(@= instance @)-(@= service @).loadbalancer.server.port=8000"
 
-#@overlay/match missing_ok=True
-#@overlay/match-child-defaults missing_ok=True
+      #! 'router' is the fully qualified key in traefik for this router/service: project + instance + service
+      #@ router = "{}-{}-{}".format(project,instance,service)
+
+      #! The host matching router rule:
+      - "traefik.http.routers.(@= router @).rule=Host(`(@= traefik_host @)`)"
+      - "traefik.http.routers.(@= router @).entrypoints=websecure"
+      #@ enabled_middlewares.append("{}-ipwhitelist".format(router))
+      - "traefik.http.middlewares.(@= router @)-ipwhitelist.ipwhitelist.sourcerange=(@= ip_sourcerange @)"
+      #@ if enable_http_auth:
+      #@ enabled_middlewares.append("{}-basicauth".format(router))
+      - "traefik.http.middlewares.(@= router @)-basicauth.basicauth.users=(@= http_auth @)"
+      - "traefik.http.middlewares.(@= router @)-basicauth.basicauth.headerField=X-Forwarded-User"
+      #@ end
+
+      #@ if enable_oauth2:
+      #@ enabled_middlewares.append("traefik-forward-auth@docker")
+      #@ enabled_middlewares.append("header-authorization-group-{}@file".format(authorized_group))
+      #@ end
+
+      #! You may need to override the default port that the service binds to:
+      #! You don't normally need to do this, as long as your image has
+      #! an EXPOSE directive in it, Traefik will autodetect it, but this is how you can override it:
+      #!- "traefik.http.services.(@= router @).loadbalancer.server.port=8000"
+
+      #! Apply all middlewares (do this at the end!)
+      - "traefik.http.routers.(@= router @).middlewares=(@= ','.join(enabled_middlewares) @)"
+
 volumes:
-  #! Create the volume for `make dev-sync` to rsync files to:
   #@ if development_mode:
   development:
   #@ end
