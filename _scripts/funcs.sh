@@ -123,10 +123,10 @@ get_root_domain() {
 
 docker_compose() {
     local ENV_FILE=${ENV_FILE:-.env_$(${BIN}/docker_context)}
-    local PROJECT_NAME="$(basename \"$PWD\")"
+    local PROJECT_NAME="$(basename "$PWD")"
     if [[ -n "${instance:-${INSTANCE}}" ]] && [[ "${ENV_FILE}" != ".env_${DOCKER_CONTEXT}_${instance:-${INSTANCE}}" ]]; then
         ENV_FILE="${ENV_FILE}_${instance:-${INSTANCE}}"
-        PROJECT_NAME="$(basename \"$PWD\")_${instance:-${INSTANCE}}"
+        PROJECT_NAME="$(basename "$PWD")_${instance:-${INSTANCE}}"
     fi
     set -ex
     docker compose ${DOCKER_COMPOSE_FILE_ARGS:--f docker-compose.yaml} --env-file="${ENV_FILE}" --project-name="${PROJECT_NAME}" "$@"

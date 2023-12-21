@@ -18,7 +18,7 @@ reinstall: uninstall install
 
 .PHONY: override-hook
 override-hook:
-	@${BIN}/docker_compose_override ${ENV_FILE} SFTP_USERS SFTP_VOLUMES
+	@${BIN}/docker_compose_override ${ENV_FILE} sftp_users=SFTP_USERS sftp_volumes=SFTP_VOLUMES
 
 .PHONY: build-hook-post
 build-hook-post: sshd_config lock-immutable-config
