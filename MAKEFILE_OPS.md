@@ -17,7 +17,7 @@ Follow the installation steps outlined in the main
 optional workstation tools`), this will install Make and all the other
 tools you need.
 
-## A general introdcution to GNU Make
+## A general introduction to GNU Make
 
 [GNU Make](https://www.gnu.org/software/make/) is a general
 abstraction for any set of software tasks by creating short names for
