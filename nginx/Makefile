@@ -25,7 +25,7 @@ config-hook:
 	@echo "phpinfo.php - this installs a phpinfo() page."
 	@echo "http://.../adminer.php - this installs the Adminer tool from github."
 	@echo
-	@${BIN}/dotenv -f ${ENV_FILE} get DOCKER_COMPOSE_PROFILES | sed 's/,/\n/g' | grep php-fpm >/dev/null && ${BIN}/reconfigure_choose ${ENV_FILE} NGINX_PHP_INDEX_FILE "Choose the index PHP file to install" "default.php" "phpinfo.php" "https://github.com/adminerevo/adminerevo/releases/download/v4.8.3/adminer-4.8.3.php"
+	@${BIN}/dotenv -f ${ENV_FILE} get DOCKER_COMPOSE_PROFILES | sed 's/,/\n/g' | grep php-fpm >/dev/null && ${BIN}/reconfigure_choose ${ENV_FILE} NGINX_PHP_INDEX_FILE "Choose the index PHP file to install" "default.php" "phpinfo.php" "https://github.com/adminerevo/adminerevo/releases/download/v4.8.3/adminer-4.8.3.php" || true
 #### Configure auth:
 	@${BIN}/reconfigure_auth ${ENV_FILE} NGINX
 
