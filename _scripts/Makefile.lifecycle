@@ -6,6 +6,15 @@ config: check-instance-project script-wizard check-dist-vars
 	@echo ""
 	@echo "Remember to run 'make install' to deploy your changes."
 
+.PHONY: config-dist # Copy the .env-dist to the current .env file
+config-dist: 
+	@echo
+	@echo "Configuring environment file: ${ENV_FILE}"
+	@cp .env-dist ${ENV_FILE}
+	@echo ""
+	@echo "Copied the default .env-dist file. Edit ${ENV_FILE} by hand."
+
+
 .PHONY: start # Start services
 start:
 	@make --no-print-directory docker-compose-lifecycle-cmd EXTRA_ARGS="up -d ${service}"
