@@ -48,11 +48,12 @@ echo
 ## header-authorization-group
 
 ## Get list of configured groups
-TRAEFIK_HEADER_AUTHORIZATION_GROUPS=$(${BIN}/dotenv -f ../traefik/.env_${DOCKER_CONTEXT}_default get TRAEFIK_HEADER_AUTHORIZATION_GROUPS)
+TRAEFIK_HEADER_AUTHORIZATION_GROUPS=$(${BIN}/dotenv -f ${ROOT_DIR}/traefik/.env_${DOCKER_CONTEXT}_default get TRAEFIK_HEADER_AUTHORIZATION_GROUPS)
 if [[ $TRAEFIK_HEADER_AUTHORIZATION_GROUPS == "" ]]; then
     TRAEFIK_HEADER_AUTHORIZATION_GROUPS="{}"
 fi
 groups=($(jq -r '. | keys[]' <<< ${TRAEFIK_HEADER_AUTHORIZATION_GROUPS}))
 ## Ask user which header authorization group to permit access to this app
 authorized_group=$(${BIN}/dotenv -f ${ENV_FILE} get ${VAR_PREFIX}_OAUTH2_AUTHORIZED_GROUP)
+
 ${BIN}/reconfigure_choose ${ENV_FILE} ${VAR_PREFIX}_OAUTH2_AUTHORIZED_GROUP "Which authorization group do you want to permit access to this app?" ${groups[@]}
