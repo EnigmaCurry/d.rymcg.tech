@@ -621,7 +621,8 @@ d.rymcg.tech make traefik-forward-auth config-dist
 Open the file in your text editor:
 `~/git/vendor/enigmacurry/d.rymcg.tech/traefik-forward-auth/.env_docker-dev_default`
 (this example is the .env file for the specific Docker context name
-`docker-dev`, yours may vary.)
+`docker-dev`, yours may vary, check the output of the previous command
+to be sure of the name.)
 
  * Set `TRAEFIK_FORWARD_AUTH_SECRET`: run `openssl rand -base64 45` to
    generate a long random secret value.
@@ -711,3 +712,104 @@ based upon the `X-Forwarded-User` header. In this configuration, all
 valid GitHub users would be passed to your application, and your
 application would need to make the determination itself if the user
 (email address) should be allowed access.
+
+## Deploy a python web app in development mode
+
+Create a new project directory anyplace you like:
+
+```
+mkdir -p ~/projects
+cd ~/projects
+```
+
+You can create a new Python Flask project from a d.rymcg.tech
+template:
+
+```
+d.rymcg.tech create py-test
+```
+
+Choose the `python-flask` template.
+
+A new directory is created called `py-test`
+
+```
+cd py-test
+```
+
+Inside this directory you will see several new files inherited from
+the template:
+
+ * `README.md`
+ * `Makefile`
+ * `docker-compose.yaml`
+ * `docker-compose.instance.yaml`
+ * `.env-dist`
+ * And one directory: `flask`
+
+These are all the files you need for a new d.rymcg.tech based project.
+
+Run the config tool:
+
+```
+make config
+```
+
+Enter the `PY_TEST_TRAEFIK_HOST` variable: the default will create a
+valid domain based off of your current docker context, the default
+should work out of the box.
+
+Choose what kind of authentication you want, you can configure it to
+use the same OAuth2 group (`whoami`) as before, it should work the
+same way. HTTP Basic authenication uses a username and password that
+you configure; it is somewhat easier to share links with clients this
+way. If your Docker server is available on the internet, I would
+recommend you configure at least some form of authentication,
+otherwise you may get unwanted strangers looking at your development
+sites.
+
+There are few more env vars you should set in the
+`.env_{DOCKER_CONTEXT}_{INSTANCE}` file: 
+
+ * You may restrict access by IP address by setting
+`PY_TEST_IP_SOURCERANGE="x.x.x.x/32"` (replace `x.x.x.x` with your
+workstation's public IP address.) This can be useful as an alternative
+to setting up authentication.
+
+ * Set `PY_TEST_DEVELOPMENT_MODE=true` to enable development mode in
+   your python app.
+   
+Now deploy the app:
+
+```
+make install
+```
+
+Now open the app in your browser:
+
+```
+make open
+```
+
+(This might not work on WSL, I don't know. It works on Linux.)
+
+Now run the development file synchronizer:
+
+```
+make dev-sync
+```
+
+Leave the `dev-sync` command running in your terminal, and open a new
+terminal to continue running other things.
+
+Now open the file in your text editor called `flask/app/__init__.py`.
+This is the main application file. Edit the file to change its
+behaviour. As soon as you save it, the `dev-sync` should automatically
+synchronize it to the server. After a few seconds, the python app
+should reload and your changes redeployed.
+
+Check the application log for any errors:
+
+```
+make logs
+````
