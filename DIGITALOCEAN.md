@@ -2,6 +2,9 @@
 
 You can use [DigitalOcean](https://www.digitalocean.com/) to host a docker server online.
 
+Note: this doc leaves out a lot of important bits. Read the main
+[d.rymcg.tech README](README.md) to fill in those gaps!
+
 ## Create a droplet on DigitalOcean:
 
  * Create a DigitalOcean account and login to
