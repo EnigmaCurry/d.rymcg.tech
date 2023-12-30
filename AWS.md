@@ -400,8 +400,11 @@ Create the IAM user:
 
 ## Setup your workstation with d.rymcg.tech tools
 
-Follow the section in the [d.rymcg.tech
-README](https://github.com/EnigmaCurry/d.rymcg.tech#setup-workstation)
+Follow the sections in the d.rymcg.tech README for [install
+workstation
+tools](https://github.com/EnigmaCurry/d.rymcg.tech#install-workstation-tools)
+and [setup
+workstation](https://github.com/EnigmaCurry/d.rymcg.tech#setup-workstation)
 for setting up your Workstation. If you are on WSL2 or MacOS you
 should install [Docker Desktop](https://docs.docker.com/desktop/).
 
