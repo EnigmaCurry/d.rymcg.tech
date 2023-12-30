@@ -5,9 +5,7 @@ include ${ROOT_DIR}/_scripts/Makefile.projects
 config-hook:
 	@${BIN}/reconfigure_ask ${ENV_FILE} TRAEFIK_FORWARD_AUTH_HOST "Enter the traefik-foward-auth host domain name" auth.${ROOT_DOMAIN}
 	@${BIN}/reconfigure_ask ${ENV_FILE} TRAEFIK_FORWARD_AUTH_COOKIE_DOMAIN "Enter the cookie domain name (ie ROOT domain)" ${ROOT_DOMAIN}
-
 	@${BIN}/reconfigure_password ${ENV_FILE} TRAEFIK_FORWARD_AUTH_SECRET 45
-
 	@echo
 	@ENV_FILE=${ENV_FILE} ROOT_DIR=${ROOT_DIR} bash ./configure_https_port.sh || true
 
