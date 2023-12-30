@@ -373,7 +373,7 @@ Create the IAM policy:
  
  * Replace both instances of the text `Z11111112222222333333` with
    your actual Hosted Zone id for your domain.
- * Replace the domain `example.com` with your actual domain mame
+ * Replace the domain `example.com` with your actual domain name
    (leaving the `_acme-challenge.` prefix in place).
  * Click `Next`
  * Enter a descriptive policy name like `docker-dev-route53`.
