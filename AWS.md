@@ -3,6 +3,10 @@
 You can use [AWS](https://aws.amazon.com/ec2/) to host a docker server
 online.
 
+Note: this doc is meant to be followed linearly, but it leaves out a
+lot of important bits. Read the main [d.rymcg.tech README](README.md)
+to fill in those gaps!
+
 ## Create SSH keypair
 
 On your workstation, create a new keypair named after your deployment:
