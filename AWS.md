@@ -3,18 +3,6 @@
 You can use [AWS](https://aws.amazon.com/ec2/) to host a docker server
 online.
 
-## Create an elastic IP address
-
-Create an elastic IP address for your EC2 instance, so that you can
-keep the same IP address, even if you need to destroy and recreate
-your EC2 instance:
-
- * Login to the AWS console.
- * Go to the EC2 dashboard.
- * Under `Network & Security`, click `Elastic IPs`.
- * Click the `Allocate Elastic IP address` button.
- * Use the default settings, and click `Allocate`.
-
 ## Create SSH keypair
 
 On your workstation, create a new keypair named after your deployment:
@@ -80,9 +68,19 @@ Upload your public key to AWS:
      * A second one for the Docker images and volumes: 50GB.
 
    * Verify everything is correct, and click the `Launch Instance` button.
-  * Go to the EC2 dashboard.
-  * Find the new instance you created and click on its instance id.
-  * Copy the Public IPv4 address.
+
+## Create an elastic IP address
+
+Create an elastic IP address for your EC2 instance, so that you can
+keep the same IP address, even if you need to destroy and recreate
+your EC2 instance:
+
+ * Login to the AWS console.
+ * Go to the EC2 dashboard.
+ * Under `Network & Security`, click `Elastic IPs`.
+ * Click the `Allocate Elastic IP address` button.
+ * Use the default settings, and click `Allocate`.
+ * Associate the elastic IP address to the EC2 instance you created.
 
 ## Create the DNS records for the EC2 instance
 
@@ -91,7 +89,7 @@ Upload your public key to AWS:
  * Click `Create Record`.
    * Enter the `Record name`: `docker-dev`
    * Choose the `Record type`: `A`
-   * Enter the value: Paste the public IPv4 address of your EC2 instance.
+   * Enter the value: Paste the public IPv4 address of your elastic IP address.
    * Click the `Add another record` button.
    * Enter the second `Record name`: `*.docker-dev`
    * Click the `Create Records` button.
