@@ -103,13 +103,10 @@ following new config for your EC2 instance:
 
 ```
 Host docker-dev
-     Hostname x.x.x.x
+     Hostname docker-dev.example.com
      User admin
      IdentityFile ~/.ssh/aws-docker-dev
 ```
-
-Replace `docker-dev` with the name of your EC2 instance, and replace
-`x.x.x.x` with the IPv4 address of the server.
 
 ## Test logging into the server from your workstation
 
