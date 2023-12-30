@@ -1,4 +1,4 @@
-.PHONY: config # Configure .env file
+.PHONY: config # Configure the .env_{DOCKER_CONTEXT}_{INSTANCE} file
 config: check-instance-project script-wizard check-dist-vars
 	@echo
 	@echo "Configuring environment file: ${ENV_FILE}"
@@ -6,13 +6,23 @@ config: check-instance-project script-wizard check-dist-vars
 	@echo ""
 	@echo "Remember to run 'make install' to deploy your changes."
 
-.PHONY: config-dist # Copy the .env-dist to the current .env file
+.PHONY: config-dist # Copy the .env-dist to the .env_{DOCKER_CONTEXT}_{INSTANCE} file
 config-dist: 
 	@echo
 	@echo "Configuring environment file: ${ENV_FILE}"
 	@cp .env-dist ${ENV_FILE}
 	@echo ""
 	@echo "Copied the default .env-dist file. Edit ${ENV_FILE} by hand."
+
+.PHONY: config-edit # Edit .env_{DOCKER_CONTEXT}_{INSTANCE} in your preferred $EDITOR
+config-edit:
+	@echo
+	@echo "Configuring environment file: ${ENV_FILE}"
+	@test -z "$$EDITOR" && echo "You need to set your preferred editor in the EDITOR shell variable." && false || true
+	@echo "Opening $${EDITOR} ..."
+	@$$EDITOR ${ENV_FILE} &
+	@echo ""
+	@echo ""
 
 
 .PHONY: start # Start services
