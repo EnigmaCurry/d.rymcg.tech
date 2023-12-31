@@ -33,6 +33,8 @@ ROOT_DIR=$(dirname ${BIN})
 
 source ${BIN}/funcs.sh
 
+export D_RYMCG_TECH_SCRIPT=true
+
 __help() {
     echo "Found ROOT_DIR=${ROOT_DIR}"
     echo ""
@@ -117,7 +119,7 @@ __make() {
             PROJECT_DIR=${ROOT_DIR}/${PROJECT_NAME}
         fi
         test -d "${PROJECT_DIR}" || fault "Project directory does not exist: ${PROJECT_DIR}"
-        make --no-print-directory -C "${PROJECT_DIR}" "$@"
+        make --no-print-directory -C "${PROJECT_DIR}" "$@" D_RYMCG_TECH_CLI_ALIAS=${D_RYMCG_TECH_CLI_ALIAS:-d.rymcg.tech}
     else
         __list_projects
         error "Missing project name argument. Choose one from the above."
@@ -199,7 +201,7 @@ __run_script() {
 
 __d.rymcg.tech_cli_alias() {
     local ALIAS="$1"
-    alias $1='d.rymcg.tech'
+    alias $1='d.rymcg.tech D_RYMCG_TECH_ALIAS=${ALIAS}'
     complete -F __d.rymcg.tech_completions $1
 
 }
@@ -210,7 +212,7 @@ __d.rymcg.tech_project_alias() {
     __PROJECT_DIR="${2}"
     test -z "${__PROJECT_DIR}" && __PROJECT_DIR="${ROOT_DIR}/${__ALIAS}"
     export __ALIAS __PROJECT_DIR
-    alias $1="make --no-print-directory -C ${__PROJECT_DIR}"
+    alias $1="make --no-print-directory -C ${__PROJECT_DIR} D_RYMCG_TECH_PROJECT_ALIAS=${__ALIAS}"
     read -r -d '' FUNC <<'EOF'
 function _${__ALIAS}_complete {
     local __PROJECT_DIR=${__PROJECT_DIR}
