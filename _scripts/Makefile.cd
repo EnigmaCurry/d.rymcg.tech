@@ -2,4 +2,4 @@
 cd:
 	@echo "Changing directory to ${CURDIR}"
 	@echo "Entering sub-shell (press Ctrl-D to pop back out)"
-	@bash --rcfile <(echo "source ~/.bashrc; unset PROMPT_COMMAND; PS1=\"[@] \$${PS1}\"") -i
+	@bash --rcfile <(echo "source ~/.bashrc; unset MAKEFLAGS PROMPT_COMMAND D_RYMCG_TECH_CLI_ALIAS D_RYMCG_TECH_PROJECT_ALIAS D_RYMCG_TECH_SCRIPT; PS1=\"[@] \$${PS1}\"") -i
