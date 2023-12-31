@@ -1,0 +1,9 @@
+LogLevel VERBOSE
+Subsystem       sftp    /usr/lib/ssh/sftp-server
+HostKey /etc/ssh/keys/ssh_host_rsa_key
+HostKey /etc/ssh/keys/ssh_host_ecdsa_key
+HostKey /etc/ssh/keys/ssh_host_ed25519_key
+PasswordAuthentication no
+AddressFamily inet
+X11UseLocalhost no
+X11Forwarding yes

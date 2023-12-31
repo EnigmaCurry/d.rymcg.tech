@@ -1,0 +1,573 @@
+# Docker Workstation Container
+
+This is an Arch Linux based development container for
+[d.rymcg.tech](d.rymcg.tech). Install this on a secure Docker server,
+and use this as your remote Docker workstation (client), that you
+connect to through SSH. All of your d.rymcg.tech `.env` files and
+tools will live inside this container (in a volume). Once installed,
+you can setup access for all of your remote Docker server contexts,
+each to be exclusively controlled through this single container
+workstation.
+
+![Your laptop/workstation, the Docker Container Worksation, and the
+production Docker host](container_workstation.png)
+
+Once you've configured this container to be the sole docker client for
+your digital empire, locking down access becomes trivial: simply turn
+off this container, and nothing will remain on your normal
+laptop/workstation. Only turn it back on if you need to install new
+containers, or do some kind of maintainance; turn it back off when
+you're done, and this becomes a powerful form of access control.
+
+You will build a Docker image that includes all of the dependencies
+that you need to run an SSH service, a Docker client, the d.rymcg.tech
+tools, and a full Emacs and web browser develoment environment. You
+will be able to connect to the container via SSH, and with X11
+forwarding enabled, be able to run its graphical applications (eg.
+Emacs and Firefox) remotely from your local client computer. Although
+Emacs can also be used from a terminal user interface (`emacs -nw`),
+having a fully graphical Firefox, living inside the container, is
+helpful to do maintainance tasks like viewing the Traefik dashboard
+(which is not normally accessible, except through local SSH forward.
+With X11 forwarding, this allows you to view the dashboard from a
+third device: your client laptop). Because the browser runs over X11
+forwarding, you can safely use the bookmarks and password manager
+builtin to Firefox, where its database is stored securely inside the
+container (and not in your local home directory).
+
+## Definitions
+
+A workstation is a personal computer, one that you are directly logged
+into and interacting with. A worksation is usually a physical computer
+that you touch, like a laptop. However, a workstation can also be a
+remote computer. The distinction between a workstation and a server,
+is not about hardware, but rather the role that the machine is
+deployed as. In the context of Docker, a workstation is what uses the
+`docker` command line *client*. A Docker host is the *server* that
+runs the docker daemon, and all your containers.
+
+So the Docker Workstation Container, is a workstation, that runs as a
+docker container, that is setup as a *client* to control *other*
+Docker hosts, via SSH.
+
+## Where should I install this container?
+
+It is recommended to install the workstation container on a secure
+Docker server (or VM) that is *separate* from your production Docker
+servers (and be able to be shutdown, separately, when it's not
+needed). Although access to this container is protected by an SSH key
+(and SSH passwords have been disabled), you may still want to segment
+access by network, having it be not accessible publicly from the
+internet, by running this on a private LAN, or from inside of a VPN,
+or from behind another jump host.
+
+If you have limited compute resources, and as an alternative to a
+remote Docker server, you could setup a secure VM on your normal
+laptop/workstation, using the
+[_docker_vm](https://github.com/EnigmaCurry/d.rymcg.tech/tree/master/_docker_vm#localhost-docker-on-kvm-virtual-machine),
+making sure to install the VM in a *separate dedicated user account*
+from the one you normally use. You can then start/stop the VM using
+`sudo` to control the secondary user account. As long as your `sudo`
+access is secured properly, you can securely run a "remote"
+workstation container on the same physical machine, isolated in two
+separate userspaces. (The important point here is that the VM disk
+files should be owned by a separate user from your normal one, and so
+they cannot be read by rogue processes in your main account. You want
+to ensure that the only way your normal account can access it, is
+through SSH, and only when its turned on.)
+
+## Two ways to install the container workstation
+
+There are two ways to install this, depending on whether or not you
+have already installed [d.rymcg.tech](d.rymcg.tech) someplace yet:
+
+ 1) So if you already have a primary workstation (eg. the laptop in
+ the left side of the graphic above), and you have already installed
+ `d.rymcg.tech` on it, and have already setup a remote Docker context
+ for a *dedicated* host that you want to install to, (and critically,
+ you have *not* setup the workstation to access any of the production
+ Docker servers!), then you can configure this and install via
+ Makefile, the normal d.rymcg.tech way. This might be the way to go if
+ you want to have several container workstations, and need a central
+ place to control them all.
+  
+ 2) Or, you can install this container directly on the Docker host
+ command line. This method requires zero dependencies other than a
+ Docker server. You might choose this method if you want this
+ container workstation to become your *primary* workstation, and not
+ beholden to any other. You can then access it through SSH, from any
+ dumb client that you give your private SSH key.
+
+### Install from an existing d.rymcg.tech workstation
+
+#### Config (make config)
+
+```
+make config
+```
+
+Enter the information asked:
+
+ * `DOCKER_WORKSTATION_HOSTNAME` - the hostname for the new container
+ * `DOCKER_WORKSTATION_USERNAME` - the username for the new user account inside the container
+ * `DOCKER_WORKSTATION_AUTHORIZED_KEY` - the SSH public key for authorized access
+
+You should already have an SSH key on your normal laptop/workstation.
+If not, run `ssh-keygen`. Copy the public key (eg. from
+`~/.ssh/id_rsa.pub`) and set it as `DOCKER_WORKSTATION_AUTHORIZED_KEY`. (The
+key should be one long line like `ssh-rsa AAAAA...` or
+`ecdsa-sha2-nistp256 AAAA...`)
+
+Configuration for multiple SSH keys is not provided at this time.
+
+Note: this container does not require Traefik. The SSH service listens
+directly on any host TCP port you choose, see
+`DOCKER_WORKSTATION_SSH_PORT` in your .env file.
+
+#### Build (make build)
+
+This is a *fat* container, which contains dozens of preinstalled Arch
+Linux packages, comprising a full Docker and Emacs development
+environment, as well as the Firefox web browser. It could take up to
+10 or 20 minutes to build everything. This is Arch Linux, so you are
+recommended to build this image yourself, thereby downloading the
+latest packages. (This is why this container is not provided as an
+image you can pull from a registry, but a variation on this could be
+made upon a non-rolling release like Debian, and published as a
+semi-static image. But for Arch Linux, I think this would be an
+anti-pattern; you should build it yourself, fresh, but you could then
+publish your custom image to make it easier for yourself to re-use).
+
+```
+## Build the image - be patient!
+make build
+```
+
+#### Install (make install)
+
+Once you have built the image, you can install it:
+
+```
+make install
+```
+
+#### Connect to it via SSH (make shell)
+
+You can connect to the container through SSH. Using the `make shell`
+command does not require any further configuration:
+
+```
+make shell
+```
+
+This will connect you to the container via SSH (on port 2222 by
+default) and run the default shell.
+
+#### Connect to the root shell (make root-shell)
+
+If for some reason SSH does not connect you, you can debug the service
+with the root shell. To connect to the root shell, run:
+
+```
+make root-shell
+```
+
+### Install directly on the Docker host (no dependencies)
+
+If you don't have a [d.rymcg.tech](d.rymcg.tech) workstation setup
+yet, you can install this container workstation directly on an
+existing Docker host. You can then setup the container workstation to
+*be* your primary workstation. This requires no dependencies other
+than Docker itself. You can configure everything as variables directly
+copied into your shell:
+
+```
+## Copy all of this into your text editor in a temporary buffer.
+## Edit all the required build argument variables herein.
+## After editing, copy and paste all into the Docker host shell, and press Enter.
+
+## Choose the Arch Linux mirror chosen from this list: 
+##   https://archlinux.org/mirrorlist/all/https/
+## (Don't include the `/$repo/os/$arch` suffix.)
+ARCH_MIRROR="https://mirror.rackspace.com/archlinux"
+
+## Choose the username you want to have inside the container:
+USERNAME="user"
+
+## Select all the base layer packages to install:
+## (Double check .env-dist for the canonical BASE_PACKAGES list)
+BASE_PACKAGES="bash xpra openssl git docker docker-compose docker-buildx base-devel cmake apache xdg-utils jq sshfs wireguard-tools curl wget xorg-xauth python python-pip inetutils keychain man-db emacs firefox"
+
+## Install extra packages in the top layer 
+## (its faster to rebuild with new packages if you add them here rather than BASE_PACKAGES)
+EXTRA_PACKAGES=""
+
+## You can set your own Emacs config repository, or you can borrow mine:
+EMACS_CONFIG_REPO="https://github.com/EnigmaCurry/emacs.git"
+EMACS_CONFIG_BRANCH="straight"
+## You can disable the Emacs config entirely, if you set this to false:
+EMACS_BOOTSTRAP=true
+
+## You can customize the d.rymcg.tech git repo and branch:
+D_RYMCG_TECH_REPO=https://github.com/EnigmaCurry/d.rymcg.tech.git
+D_RYMCG_TECH_BRANCH=master
+
+# Build the image:
+# (Double check docker-compose.yaml for the canonical build arguments)
+docker build -t docker-workstation \
+    --build-arg=ARCH_MIRROR="${ARCH_MIRROR}" \
+    --build-arg=USERNAME="${USERNAME}" \
+    --build-arg=BASE_PACKAGES="${BASE_PACKAGES}" \
+    --build-arg=EXTRA_PACKAGES="${EXTRA_PACKAGES}" \
+    --build-arg=EMACS_BOOTSTRAP="${EMACS_BOOTSTRAP}" \
+    --build-arg=EMACS_CONFIG_REPO="${EMACS_CONFIG_REPO}" \
+    --build-arg=EMACS_CONFIG_BRANCH="${EMACS_CONFIG_BRANCH}" \
+  ${D_RYMCG_TECH_REPO}#${D_RYMCG_TECH_BRANCH}:docker-workstation/arch
+```
+
+Now that you have built the image (named `docker-workstation`) you can
+start the container from it. You need to set the `AUTHORIZED_KEY`
+variable at runtime, which is to set your SSH public key required for
+logging in. Also, make sure to customize the container name/hostname
+(`workstation`), and the external SSH port (`2222`), and you need to
+set a volume mount point using the same `USERNAME` that the image was
+built for (`user` by default), all of which are required to set at
+*runtime*:
+
+```
+## Required runtime variables:
+# Set your SSH public key used for logging in (eg. from ~/.ssh/id_rsa.pub):
+AUTHORIZED_KEY="ssh-rsa AAAAA..."
+NAME=workstation
+SSH_PORT=2222
+# USERNAME must be the same username that you set for the image build arg:
+USERNAME=user
+
+## Start the container:
+docker run -d \
+  --name "${NAME}" \
+  --hostname "${NAME}" \
+  -e AUTHORIZED_KEY="${AUTHORIZED_KEY}" \
+  -p "${SSH_PORT}:22" \
+  -v docker-workstation_sshd_keys:/etc/ssh/keys \
+  -v docker-workstation_user_home:/home/${USERNAME} \
+  docker-workstation
+```
+
+## Configure SSH client (on your native laptop/workstation)
+
+To make connecting easy, you should create an SSH config entry in your
+`~/.ssh/config` file:
+
+```
+# Put this in ~/.ssh/config:
+# Name the Host whatever you want:
+Host docker-workstation
+    # Enter the real IP address or the DNS name of the Docker host:
+    Hostname x.x.x.x
+    # Enter the external SSH port forwarding to the container port 22:
+    Port 2222
+    # Enter the username configured for the workstation container:
+    User user
+    # Enable X11 forwarding:
+    ForwardX11 yes
+    # Note: don't enable connection sharing ControlMaster,ControlPersist,ControlPath
+    # otherwise, emacsclient often fails complaining about "could not find terminal" ?
+```
+
+With the new config in place, you can connect directly via ssh:
+
+```
+ssh docker-workstation
+```
+
+## Emacs
+
+This container includes my own custom [Emacs
+enviornment](https://github.com/enigmacurry/emacs#readme), which you
+can configure to use your own config (and git repository), or if you
+don't want to use Emacs, you can disable it entirely in the config.
+
+Emacs can be run as a daemon, and that way allow you to restore your
+session if you ever get disconnected.
+
+First, start the Emacs daemon:
+
+```
+make emacs-daemon
+
+## Or directly:
+## ssh docker-workstation emacs --daemon
+```
+
+The first time this runs, it needs to do some final package builiding
+steps (I don't know why this happens twice, it should have all been
+built in the Dockerfile already, however it does seem to go faster the
+second time, so idunno). When its done building, it will start the
+daemon in the background.
+
+You can connect to your session once it has started:
+
+```
+make emacsclient
+
+## Or directly:
+## ssh docker-workstation emacsclient -c
+```
+
+You are allowed to disconnect and reattach; the session will persist
+for as long as the Emacs daemon is running.
+
+If your Emacs process goes haywire, you might need to kill it:
+
+```
+make kill-emacs
+
+## Or directly:
+## ssh docker-workstation killall emacs
+```
+
+## Custom Packages
+
+If you don't want to use Emacs, you can install whatever editors you
+want, from the Arch Linux repositories. You can also install whatever
+other packages you want, fully customizing your own image.
+
+There are three important config variables related to packages:
+
+ * `DOCKER_WORKSTATION_ARCH_MIRROR` this is the Arch Linux package
+   repository (mirror) - you should customize this for a fast local
+   mirror for your location, choose from the [the global mirror
+   list](https://archlinux.org/mirrorlist/all/).
+ * `DOCKER_WORKSTATION_BASE_PACKAGES` this is a list of all the
+   packages that should be installed in the base layer of the image.
+ * `DOCKER_WORKSTATION_EXTRA_PACKAGES` this is a list of all the
+   additional packages that should be installed at the end of the
+   image. When you want to test a new package, add them to the extra
+   list, and rebuild the image (the build will be faster than adding
+   it the the base list). You can consider moving these packages into
+   `DOCKER_WORKSTATION_BASE_PACKAGES` later after you are done testing
+   them, and you want to bake them into the image permanently (giving
+   the build more efficient storage).
+
+## Persistence
+
+Containers don't persist files unless they are stored in a volume.
+This container only has two volumes, mounted to:
+
+ * `/etc/ssh/keys`
+ * `/home/${DOCKER_WORKSTATION_USERNAME}`
+
+Files stored in any of these locations are persistent, even if you
+rebuild or upgrade the container. Any files, including packages you
+install, that are not stored here are lost when you rebuild or upgrade
+the container.
+
+All permanent customization must be done in the Dockerfile, or via one
+of the customizable environment variables: (eg.
+`DOCKER_WORKSTATION_BASE_PACKAGES` and/or
+`DOCKER_WORKSTATION_EXTRA_PACKAGES`).
+
+## Workstation Walkthrough
+
+By now, you should have a container workstation up and running. I'll
+assume that you allowed it to bootstrap the Emacs config using my own
+(EnigmaCurry) repository, and that you can successfully launch a
+graphical Emacs session over X11.
+
+I'll briefly walk you through how to use the Emacs interface, setup
+Firefox to your liking, and configure some remote Docker contexts.
+
+### Emacs tutorial
+
+If you're brand new to Emacs, the built-in tutorial:
+ 
+ * Emacs uses keyboard shortcuts to access various commands.
+ * On your keyboard, hold down the `Control` key and then press the
+   `h` key. (Normally printed as `C-h` in Emacs manuals).
+ * This will open a completion menu (aka hydra) at the bottom of the
+   screen, showing you what commands you can type after having pressed
+   the `C-h` command.
+ * Press `t` to run the `help-with-tutorial` command.
+
+Follow the tutorial to get acquainted with basic movement, and then
+come back here when you're done.
+
+#### Emacs shell (vterm)
+
+Emacs has a builtin terminal, so you don't have to run a separate
+program to access the container shell, you just open `vterm` in Emacs.
+
+Lets open a terminal session in Emacs, use `C-c t`, which means:
+
+ * `C-c` is caled a keyboard chord. `C` means the Control key, and `c`
+   means the letter `c` key. You need to hold down the Control key and
+   press the `c` key at the same time, then let go of both. (The `-`
+   between `C` and `c` is not literal, it means to hold a chord of
+   keys down at the same time: `Control` and `c`)
+ * The space between `C-c` and `t` means to let go of the keys.
+ * So it's `C-c`, let go, and `t` by itself.
+
+`C-c t`.
+
+You should now have a split screen, showing two windows: the first
+window is showing the original buffer you were in, and the second
+windowis showing you a new terminal session named `*vterm*`.
+
+Emacs calls these splits "windows", so each of the two buffers you see
+is in one of two "windows". This is not the same thing as what your
+Operating System calls a window. In Emacs documentation, these OS
+windows are instead called Frames.
+
+So `*vterm*` is now running in a second (emacs) window. You can switch
+between the windows by typing `C-x o`. If you type it again, you cycle
+back to the other window. If you had three windows, it would cycle
+between all three. But its probably best to stick to only two windows
+while getting the hang of things.
+
+Buffers are what you type text into. Buffers are like files, but they
+are separate, ephemeral, and live in application memory. Buffers often
+live offscreen, but can be also be displayed in windows. Multiple
+windows can be shown split in a frame, so you can see multiple buffers
+at a time.
+
+`*vterm*` is a buffer, and it runs a terminal session, you can dismiss
+the buffer to make it go offscreen, but the terminal will still be
+running in the background.
+
+Just press `C-c t` again to make the window dissapear.
+
+You can have multiple vterm sessions in multiple buffers. To start a
+new session, press `C-u C-c t`. You should now see a new buffer called
+`*vterm<2>*` appear in a new window.
+
+That complex sequence means press `C-u`, let go, `C-c`, let go, `t`.
+
+`C-u` is called the Universal prefix. Its very common for an Emacs
+command to take on alternate form, that takes a prefix argument to
+slightly change the meaning of the command. In this case we tell the
+`C-c t` command that instead of popping back and forth with the
+original `*vterm*` window like we had been doing, by supplying `C-u`
+in front we tell it we want a *new* vterm session instead.
+
+#### Managing buffers
+
+Now you might have too many buffers and you can't see them all in
+windows, where did they go? A window can only show one buffer at a
+time, and while you can split a frame to show multiple windows,
+eventually you will have a lot more buffers open than windows.
+
+You can change the buffer that a window will show:
+
+ * `C-x b` shows a list of the most recently opened buffers, allowing
+   you to switch the current buffer. Use the arrows to go up and down,
+   type part of the name to narrow the results, and press Enter when
+   the one you want is selected.
+ * `C-x B` shows a menu of all buffers in a larger window. (That means
+   press `C-x`, let go, and then press `Shift` and `B`)
+ * The buffer menu is perhaps easier to see everything with, and works
+   similarly, you can put your cursor on any line in the menu and
+   press Enter to go there.
+
+So you can switch between your two `*vterm*` buffers:
+
+ * `C-x b` type `vterm`, and find the first `*vterm*` buffer, and
+   press Enter.
+ * `C-x b` again, type `vterm` and find the second `*vterm*<2>`, and
+   press Enter.
+   
+The way `C-x b` behaves, makes it easiest to switch between the two
+most recently used buffers, so you can quickly press Enter without
+looking, because the last buffer is automatically selected.
+
+It should also be noted that `C-c t` pops back and forth between the
+most recently used vterm buffer.
+
+#### What are Emacs prefix keys?
+
+You've now seen command that start with `C-c` and `C-x`, what's the
+difference?
+
+`C-c`, `C-x`, (and `C-u`) are called prefix keys. When you press them,
+they wait for further orders. They are beckoning you to enter another
+sub-command to run. If you change your mind midway through, press
+`C-g`. By using prefix keys you can access dozens, maybe hundreds, of
+keyboard shortcuts. (By using nested hydras, you can access hundreds,
+maybe thousands).
+
+By convention only, `C-c` is customary for the user to customize, so
+Emacs doesn't have any factory bindings that use it. `C-x` on the
+other hand, is exclusively used by Emacs core keybindings. But of
+course, you're free to go counter to this convention.
+
+`C-g` is not a prefix key. `C-g` as a command all by itself means to
+quit whatever you're currently doing, and it works across almost all
+Emacs packages this way.
+
+
+#### Tell me about the emacs daemon?
+
+When you start Emacs with the command `emacs --daemon`, you are
+starting Emacs in the background. It remains running even if you log
+out of the terminal session that started it. This lets you connect to
+it again and again, even if you connection dies, you can reconnect and
+enter the same long running session. If you kill the emacs daemon, or
+if the container is shutdown, the session will go away, and you will
+have to start a new daemon process.
+
+`emacsclient` is the client program that has the ability to connect to
+the daemon process. If you already have an `emacsclient` frame open,
+it will attempt not open a new one, it will try to open in the
+existing frame. To connect to the same daemon, but force the creation
+of a new frame, run `emacsclient -c`.
+
+
+### Setup production Docker host access
+
+The workstation needs to create client configurations for the
+production Docker hosts.
+
+Follow these steps from the main d.rymcg.tech README, inside the
+container workstation shell:
+
+ * [Setup SSH access to the
+   server](https://github.com/enigmacurry/d.rymcg.tech#setup-ssh-access-to-the-server)
+ * [Set remote Docker context](https://github.com/enigmacurry/d.rymcg.tech#set-remote-docker-context)
+ 
+You need to follow both steps for *each* remote Docker host to manage.
+
+### Setup Firefox
+
+Open a vterm terminal session in Emacs: `C-c t`
+
+At the command prompt, type `firefox` and press Enter.
+
+Through the power of X11 forwarding, you should now see Firefox appear
+on your screen.
+
+Setting up Firefox should be straight forward, do it however you like.
+
+If you use Firefox on your native workstation as well, I recommend
+that you use a different theme to differentiate the two windows from
+different hosts. Maybe use Dark mode on one, but not the other.
+
+The nice thing about using Firefox over X11 is that you can safely use
+the bookmarks and password manager, and they won't leave any trace on
+your local workstation.
+
+One more thing to note is that Emacs has a very capable text-only web
+browser called Eww (`M-x eww`), which you can use for most
+documentation sites and is loads faster than Firefox.
+
+### Setup d.rymcg.tech
+
+Follow these step from the main d.rymcg.tech README, inside the
+container workstation shell:
+
+ * [Clone this repository to your workstation](https://github.com/enigmacurry/d.rymcg.tech#clone-this-repository-to-your-workstation)
+ * [Main
+   configuration](https://github.com/enigmacurry/d.rymcg.tech#main-configuration)
+ * [Install Traefik](https://github.com/EnigmaCurry/d.rymcg.tech/tree/master/traefik#readme)
+ * [Install
+   whoami](https://github.com/EnigmaCurry/d.rymcg.tech/tree/master/whoami#readme)
+   to test that Traefik works.
