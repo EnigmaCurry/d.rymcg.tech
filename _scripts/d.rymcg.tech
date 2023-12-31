@@ -119,7 +119,7 @@ __make() {
             PROJECT_DIR=${ROOT_DIR}/${PROJECT_NAME}
         fi
         test -d "${PROJECT_DIR}" || fault "Project directory does not exist: ${PROJECT_DIR}"
-        make --no-print-directory -C "${PROJECT_DIR}" "$@" D_RYMCG_TECH_CLI_ALIAS=${D_RYMCG_TECH_CLI_ALIAS:-d.rymcg.tech}
+        make --no-print-directory -C "${PROJECT_DIR}" "$@" D_RYMCG_TECH_CLI_ALIAS=${D_RYMCG_TECH_CLI_ALIAS}
     else
         __list_projects
         error "Missing project name argument. Choose one from the above."
@@ -201,7 +201,7 @@ __run_script() {
 
 __d.rymcg.tech_cli_alias() {
     local ALIAS="$1"
-    alias $1='d.rymcg.tech D_RYMCG_TECH_ALIAS=${ALIAS}'
+    alias $1='d.rymcg.tech D_RYMCG_TECH_CLI_ALIAS=${ALIAS}'
     complete -F __d.rymcg.tech_completions $1
 
 }
