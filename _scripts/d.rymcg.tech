@@ -201,7 +201,7 @@ __run_script() {
 
 __d.rymcg.tech_cli_alias() {
     local ALIAS="$1"
-    alias $1='d.rymcg.tech D_RYMCG_TECH_CLI_ALIAS=${ALIAS}'
+    alias $1="D_RYMCG_TECH_CLI_ALIAS=${ALIAS} d.rymcg.tech "
     complete -F __d.rymcg.tech_completions $1
 
 }
