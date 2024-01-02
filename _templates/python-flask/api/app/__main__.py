@@ -1,6 +1,10 @@
 from . import app
 from werkzeug.middleware.proxy_fix import ProxyFix
-from .lib.config import (
+
+import sys, os
+sys.path.insert(0, os.path.dirname(__file__))
+
+from lib.config import (
     logging,
     APP_PREFIX,
     HTTP_HOST,
@@ -9,8 +13,13 @@ from .lib.config import (
     LOG_LEVEL,
     APP_SECRET_KEY,
 )
+from routes import setup_routes
 
 log = logging.getLogger("app")
+
+app.secret_key = APP_SECRET_KEY
+
+setup_routes(app)
 
 ## Configure WSGI to trust X-Forwarded-For header from Traefik Proxy
 # https://flask.palletsprojects.com/en/2.2.x/deploying/proxy_fix/
