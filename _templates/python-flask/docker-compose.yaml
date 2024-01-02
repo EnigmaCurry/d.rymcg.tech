@@ -8,7 +8,7 @@ services:
         condition: service_healthy
     ## Build the docker image from the local Dockerfile source:
     build:
-      context: flask
+      context: api
       args:
         UID: ${${CREATE_TEMPLATE_PROJECT_NAME_UPPERCASE}_UID}
         GID: ${${CREATE_TEMPLATE_PROJECT_NAME_UPPERCASE}_GID}

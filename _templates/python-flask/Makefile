@@ -1,4 +1,6 @@
 ROOT_DIR = ${CREATE_TEMPLATE_ROOT_DIR}
+VIRTUALENV_DIR=$(shell realpath virtualenv)
+
 include ${ROOT_DIR}/_scripts/Makefile.projects
 include ${ROOT_DIR}/_scripts/Makefile.instance
 
@@ -40,3 +42,47 @@ dev-sync:
 localdb:
 	@${BIN}/postgresql-tunnel ${ENV_FILE} database ${INSTANCE}
 
+
+
+
+###
+### Local non-docker python development inside virtualenv:
+###
+
+.PHONY: local-check-deps
+local-check-deps:
+	${BIN}/check_deps python3
+
+.PHONY: local-install # Creates a virtual environment and install all dependencies
+local-install: local-check-deps
+	python3 -m venv ${VIRTUALENV_DIR}
+	${VIRTUALENV_DIR}/bin/python -m pip install --upgrade pip
+	${VIRTUALENV_DIR}/bin/pip install -r requirements/requirements.txt -r requirements/dev.requirements.txt
+
+.PHONY: local-dev # Starts localhost development server
+local-dev:
+	PYTHONPATH=$(shell realpath api) DNOTES_LOG_LEVEL=debug DNOTES_DB=development.sqlite3 ${VIRTUALENV_DIR}/bin/python -m app
+
+.PHONY: local-dev-public # Starts public development server on all network interfaces (0.0.0.0)
+local-dev-public:
+	DNOTES_HTTP_HOST=0.0.0.0 ${MAKE} dev
+
+.PHONY: local-prod # Starts production server
+local-prod:
+	DNOTES_DEPLOYMENT=prod DNOTES_DB=prod.sqlite3 ${VIRTUALENV_DIR}/bin/python app.py
+
+.PHONY: local-clean # Deletes the virtual environment
+local-clean:
+	rm -rf ${VIRTUALENV_DIR}
+
+.PHONY: local-activate # Enters a sub-shell with the virtualenv activated
+local-activate:
+	$${SHELL} --rcfile <(echo "source ${VIRTUALENV_DIR}/bin/activate")
+
+.PHONY: local-test # Runs tests
+local-test:
+	${VIRTUALENV_DIR}/bin/python -m pytest --doctest-modules --ignore=_stuff
+
+.PHONY: local-upgrade # Upgrades Python package versions in requirements files
+local-upgrade:
+	${VIRTUALENV_DIR}/bin/python -m pur -r requirements/requirements.txt -r requirements/dev.requirements.txt

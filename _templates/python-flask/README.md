@@ -75,7 +75,7 @@ clients.
 
 On Arch linux, you want to install the postgres client package: `sudo pacman -S postgresql-libs`
 
-On Ubuntu: `sudo apt-get install -y postgresql-client`
+On Ubuntu: `sudo apt-get install -y postgresql-client libpq-dev python3-dev`
 
 Inside the `make localdb` shell, you can run any of the standard
 postgresql client tools: `psql`, `createdb`, `createuser`, `pg_dump`,

@@ -1,7 +1,9 @@
+import sys
+import os
+print(sys.path)
 from flask import Flask, request
 from werkzeug.middleware.proxy_fix import ProxyFix
 from flask import render_template
-import os
 
 from .database import db
 
