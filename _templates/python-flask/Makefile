@@ -61,15 +61,15 @@ local-install: local-check-deps
 
 .PHONY: local-dev # Starts localhost development server
 local-dev:
-	PYTHONPATH=$(shell realpath api) DNOTES_LOG_LEVEL=debug DNOTES_DB=development.sqlite3 ${VIRTUALENV_DIR}/bin/python -m app
+	PYTHONPATH=$(shell realpath api) API_LOG_LEVEL=debug API_DB=development.sqlite3 ${VIRTUALENV_DIR}/bin/python -m app
 
 .PHONY: local-dev-public # Starts public development server on all network interfaces (0.0.0.0)
 local-dev-public:
-	DNOTES_HTTP_HOST=0.0.0.0 ${MAKE} dev
+	API_HTTP_HOST=0.0.0.0 ${MAKE} dev
 
 .PHONY: local-prod # Starts production server
 local-prod:
-	DNOTES_DEPLOYMENT=prod DNOTES_DB=prod.sqlite3 ${VIRTUALENV_DIR}/bin/python app.py
+	API_DEPLOYMENT=prod API_DB=prod.sqlite3 ${VIRTUALENV_DIR}/bin/python app.py
 
 .PHONY: local-clean # Deletes the virtual environment
 local-clean:

@@ -6,7 +6,6 @@ from models.hello import (
     count_user_greetings,
     find_all_users,
 )
-from lib.config import WERKZEUG_RELOADING
 from lib.template import render
 import logging
 
@@ -22,13 +21,8 @@ hello = Blueprint("hello", __name__, template_folder="templates")
 
 @hello.record_once
 def init(context):
-    """Initialize the hello module ONCE on app startup"""
-    # Only run this in the main flask thread, not the workzeug reloader, otherwise this might be called twice:
-    ## https://stackoverflow.com/questions/25504149/why-does-running-the-flask-dev-server-run-itself-twice/25504196#25504196
-    if not WERKZEUG_RELOADING:
-        log.debug("Creating database tables if they don't exist")
-        create_tables_hello()
-
+    """Initialize the hello module on app startup"""
+    create_tables_hello()
 
 @hello.route("/", defaults={"salutation": "hello"})
 @hello.route("/<salutation>")

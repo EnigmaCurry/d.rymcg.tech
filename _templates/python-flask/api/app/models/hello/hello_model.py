@@ -1,9 +1,11 @@
 import os
+import logging
 from logging import DEBUG
 from lib.config import LOG_LEVEL, DB
 from lib import db
 import aiosql
 
+log = logging.getLogger(__name__)
 
 queries = aiosql.from_path(
     os.path.join(os.path.dirname(os.path.realpath(__file__)), "hello.sql"),
@@ -12,6 +14,7 @@ queries = aiosql.from_path(
 
 
 def create_tables_hello():
+    log.debug("Creating database tables if they don't exist already")
     with db() as conn:
         queries.create_table_greeting(conn)
 
