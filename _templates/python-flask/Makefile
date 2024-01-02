@@ -57,7 +57,7 @@ local-check-deps:
 local-install: local-check-deps
 	python3 -m venv ${VIRTUALENV_DIR}
 	${VIRTUALENV_DIR}/bin/python -m pip install --upgrade pip
-	${VIRTUALENV_DIR}/bin/pip install -r requirements/requirements.txt -r requirements/dev.requirements.txt
+	${VIRTUALENV_DIR}/bin/pip install -r api/requirements/requirements.txt -r api/requirements/dev.requirements.txt
 
 .PHONY: local-dev # Starts localhost development server
 local-dev:
@@ -85,4 +85,4 @@ local-test:
 
 .PHONY: local-upgrade # Upgrades Python package versions in requirements files
 local-upgrade:
-	${VIRTUALENV_DIR}/bin/python -m pur -r requirements/requirements.txt -r requirements/dev.requirements.txt
+	${VIRTUALENV_DIR}/bin/python -m pur -r api/requirements/requirements.txt -r api/requirements/dev.requirements.txt

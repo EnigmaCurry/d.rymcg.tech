@@ -1,4 +1,4 @@
-# Flask docker container source files
+# Flask API container source files
 
  * The [Dockerfile](Dockerfile) builds the container image.
 
