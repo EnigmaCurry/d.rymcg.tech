@@ -38,10 +38,12 @@ shell:
 dev-sync:
 	@${BIN}/dev-sync ${CREATE_TEMPLATE_PROJECT_NAME}_development flask
 
-.PHONY: localdb # Open BASH shell with remote DB connection through SSH
+.PHONY: localdb
 localdb:
 	@${BIN}/postgresql-tunnel ${ENV_FILE} database ${INSTANCE}
 
+.PHONY: local-db # Open BASH shell with remote DB connection through SSH
+local-db: localdb
 
 
 

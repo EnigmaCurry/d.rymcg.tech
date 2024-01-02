@@ -11,6 +11,5 @@ WORKDIR /code
 COPY requirements/requirements.txt requirements.txt
 RUN pip install --no-cache-dir --upgrade -r requirements.txt
 COPY ./app app
-VOLUME /code
 EXPOSE 8000
 CMD gunicorn --worker-tmp-dir /dev/shm --workers=2 --threads=4 --worker-class=gthread --bind 0.0.0.0 api:app

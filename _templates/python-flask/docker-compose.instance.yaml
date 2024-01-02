@@ -15,7 +15,7 @@
 #@ http_auth = data.values.http_auth_var
 #@ enable_oauth2 = data.values.oauth2 == "true"
 #@ authorized_group = data.values.authorized_group
-#@ development_mode = data.values.development_mode
+#@ development_mode = data.values.development_mode == "true"
 #@ enabled_middlewares = []
 
 #@yaml/text-templated-strings
