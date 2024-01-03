@@ -43,9 +43,7 @@ def count_user_encounters(username):
         else:
             return times_greeted
 
-
-def find_all_users():
-    """Return a list of all the users that have been greeted"""
+def top_visitors():
+    """Return the top 10 visitors"""
     with db() as conn:
-        return queries.get_users(conn)
-
+        return queries.top_visitors(conn)

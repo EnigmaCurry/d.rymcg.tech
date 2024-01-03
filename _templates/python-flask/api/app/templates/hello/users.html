@@ -1,8 +1,8 @@
-These are all the users who have been greeted:
+<h1>Top visitors:</h1>
 
-<ul>
+<table border>
+    <tr><th>Username</th><th>Total encounters</th></tr>
     {% for user in users %}
-    <li>{{ user[0] }}</li>
+    <tr><td>{{ user[0] }}</td><td>{{ user[1] }}</td></tr>
     {% endfor %}
-</ul>
-
+</table>

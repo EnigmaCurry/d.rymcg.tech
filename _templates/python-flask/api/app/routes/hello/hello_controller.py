@@ -4,7 +4,7 @@ from models.hello import (
     create_tables_hello,
     log_user_encounter,
     count_user_encounters,
-    find_all_users,
+    top_visitors
 )
 from lib.template import render
 import logging
@@ -41,7 +41,6 @@ def greeting(salutation):
     )
 
 
-@hello.route("/users")
-def users():
-    all_users = find_all_users()
-    return render(f"hello/users.html", users=all_users)
+@hello.route("/stats")
+def stats():
+    return render(f"hello/users.html", users=top_visitors())

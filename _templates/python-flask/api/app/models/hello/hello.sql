@@ -1,4 +1,7 @@
--- PostgreSQL version
+-- PostgreSQL version --
+-- see aiosql operators manual:
+-- https://nackjicholson.github.io/aiosql/defining-sql-queries.html#operators
+--
 --
 -- name: ddl_lock#
 -- Call this to ensure that only one client can perform DDL at a time:
@@ -24,16 +27,24 @@ insert into visitor (name, salutation, ip_address)
 -- name: count_user_encounters$
 -- Read how many times a user has been greeted
 select
-  count(*)
+  count(*) as total_visits
 from
   visitor
 where
-  name = :username;
+  name = :username
+group by
+  name;
 
--- name: get_users
--- Get all the usernames who have been greeted
-select distinct
-  name
+-- name: top_visitors
+-- List the top 10 visitors
+select
+  name,
+  count(*) as total_visits
 from
-  greeting;
+  visitor
+group by
+  name
+order by
+  total_visits desc
+limit 10;
 
