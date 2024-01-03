@@ -31,8 +31,11 @@ setup_routes(app)
 # https://flask.palletsprojects.com/en/2.2.x/deploying/proxy_fix/
 app.wsgi_app = ProxyFix(app.wsgi_app, x_for=1, x_proto=1, x_host=1, x_port=1)
 
-if __name__ == "__main__":
+def main():
     log.warning(
         f"{APP_PREFIX}_DEPLOYMENT={DEPLOYMENT} - Startup in {'LOCAL' if HTTP_HOST == '127.0.0.1' else 'PUBLIC'} {str(DEPLOYMENT)} mode"
     )
     app.run(host=HTTP_HOST, port=HTTP_PORT, debug=(DEPLOYMENT == "dev"))
+
+if __name__ == "__main__":
+    main()
