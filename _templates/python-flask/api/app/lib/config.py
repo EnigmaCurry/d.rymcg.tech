@@ -49,7 +49,7 @@ APP_MEDIA_FOLDER = get_config(
 UPLOAD_FOLDER = get_config(
     "UPLOAD_FOLDER", os.path.join(APP_ROOT, "static/_resources/temp")
 )
-RESIZE_FOLDER = get_config("RESIZE_FOLDER", os.path.join(APP_ROOT, APP_MEDIA_FOLDER))
+RESIZE_FOLDER = get_config("RESIZE_FOLDER", os.path.join(str(APP_ROOT), str(APP_MEDIA_FOLDER)))
 
 if DEPLOYMENT == "dev":
     HTTP_HOST = get_config("HTTP_HOST", "127.0.0.1")

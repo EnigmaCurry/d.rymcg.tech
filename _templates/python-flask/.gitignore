@@ -7,3 +7,4 @@ passwords.json
 docker-compose.override*.yaml
 virtualenv
 __pycache__
+uploads

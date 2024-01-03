@@ -21,6 +21,10 @@ services:
       - PGUSER=${${CREATE_TEMPLATE_PROJECT_NAME_UPPERCASE}_POSTGRES_USER}
       - PGPASSWORD=${${CREATE_TEMPLATE_PROJECT_NAME_UPPERCASE}_POSTGRES_PASSWORD}
       - DOCKER_PROJECT=
+      - UPLOAD_FOLDER=${${CREATE_TEMPLATE_PROJECT_NAME_UPPERCASE}_UPLOAD_FOLDER}
+    volumes:
+      - uploads:${${CREATE_TEMPLATE_PROJECT_NAME_UPPERCASE}_UPLOAD_FOLDER}
+
   ## The PostgreSQL database service:
   ## If you change this name, change it in docker-compose.instance.yaml too:
   database:
@@ -33,5 +37,7 @@ services:
       - database:/var/lib/postgresql/data
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U $$POSTGRES_USER -d $$POSTGRES_DB"]
+
 volumes:
   database:
+  uploads:
