@@ -12,7 +12,7 @@ def setup_routes(app):
         """Redirect the root page to the default blueprint"""
         return redirect("/hello")
 
-    log.debug(app.url_map)
+    log.info(app.url_map)
 
     @app.route("/well")
     def hello_world():

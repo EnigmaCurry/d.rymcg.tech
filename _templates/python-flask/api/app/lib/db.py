@@ -1,27 +1,34 @@
-import contextlib
-import sqlite3
-from logging import DEBUG
-from .config import DB, DB_POOL_MAX_OVERFLOW, DB_POOL_SIZE
+from psycopg2.pool import SimpleConnectionPool
+from contextlib import contextmanager
+from dataclasses import dataclass
+import os
 
-# import sqlalchemy.pool
+## Thanks Bob https://codereview.stackexchange.com/q/257671
+@dataclass
+class PostgresSimpleConnectionPool:
 
-## Common code for interfacing with Sqlite:
+    pool: SimpleConnectionPool
 
-# maintain a connection pool to be able to reuse existing DB connections:
-# connection_pool = sqlalchemy.pool.QueuePool(
-#     lambda: sqlite3.connect(DB),
-#     max_overflow=DB_POOL_MAX_OVERFLOW,
-#     pool_size=DB_POOL_SIZE,
-# )
+    @contextmanager
+    def connection(self, commit: bool = False):
+        conn = self.pool.getconn()
+        try:
+            yield conn
+            if commit:
+                conn.commit()
+        except Exception:
+            conn.rollback()
+            raise
+        finally:
+            self.pool.putconn(conn)
+
+    @contextmanager
+    def cursor(self, commit: bool = True):
+        with self.connection(commit) as conn:
+            with conn.cursor() as cur:
+                yield cur
 
 
-@contextlib.contextmanager
-def db():
-    """Context manager for opening (and closing) the database
-    connection within the same local thread as a request.
-    """
-    # With a database like postgres you would want to use a connection pool,
-    # but with sqlite I don't think it matters?
-    conn = sqlite3.connect(DB)
-    with conn:
-        yield conn
+_connection_pool = SimpleConnectionPool(1, 10, "")
+pool = PostgresSimpleConnectionPool(pool=_connection_pool)
+db = pool.connection

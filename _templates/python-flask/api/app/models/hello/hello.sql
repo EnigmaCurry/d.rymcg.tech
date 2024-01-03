@@ -1,31 +1,39 @@
--- name: create_table_greeting#
-create table if not exists greeting (
-  name text not null primary key,
-  times_greeted integer default (0)
+-- PostgreSQL version
+--
+-- name: ddl_lock#
+-- Call this to ensure that only one client can perform DDL at a time:
+select
+  pg_advisory_xact_lock(1);
+
+-- name: create_table_visitor#
+create table if not exists visitor (
+  encounter bigserial not null primary key,
+  name varchar not null,
+  salutation varchar not null,
+  ip_address varchar not null
 );
 
--- name: increment_user_greetings$
--- Increment the number of times a user has been greeted
-insert into greeting (name, times_greeted)
-  values (:username, 1)
-on conflict (name)
-  do update set
-    times_greeted = COALESCE(times_greeted, 1) + 1
-  returning
-    times_greeted;
+-- name: create_index_visitor_name#
+create index if not exists visitor_name_idx on visitor ("name");
 
--- name: count_user_greetings$
+-- name: log_user_encounter!
+-- Log an encounter with a user
+insert into visitor (name, salutation, ip_address)
+  values (:username, :salutation, :ip_address);
+
+-- name: count_user_encounters$
 -- Read how many times a user has been greeted
 select
-  times_greeted
+  count(*)
 from
-  greeting
+  visitor
 where
   name = :username;
 
 -- name: get_users
 -- Get all the usernames who have been greeted
-select
+select distinct
   name
 from
   greeting;
+

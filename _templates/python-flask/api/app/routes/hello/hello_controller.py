@@ -2,8 +2,8 @@ from flask import request, Blueprint, session, abort
 from jinja2 import TemplateNotFound
 from models.hello import (
     create_tables_hello,
-    increment_user_greetings,
-    count_user_greetings,
+    log_user_encounter,
+    count_user_encounters,
     find_all_users,
 )
 from lib.template import render
@@ -29,7 +29,8 @@ def init(context):
 def greeting(salutation):
     # Gather data from the request and from the Database:
     name = request.args.get("name", "bob")
-    times_greeted = increment_user_greetings(name)
+    log_user_encounter(name, salutation, request.remote_addr)
+    times_greeted = count_user_encounters(name)
     # times_greeted = count_user_greetings(name)
     # Render the view and return it:
     return render(
