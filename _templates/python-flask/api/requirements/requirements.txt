@@ -22,10 +22,10 @@ requests==2.31.0
 urllib3==2.1.0
 Werkzeug==3.0.1
 yarg==0.1.9
-aiosql==v9.0
+aiosql==v9.2
 sqlalchemy==2.0.25
-pydantic==v2.1.1
+pydantic==v2.5.3
 flask-pydantic==v0.11.0
 WTForms==3.1.1
-flask_wtf==v1.1.1
+flask_wtf==v1.2.1
 
