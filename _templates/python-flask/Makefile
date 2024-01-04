@@ -30,13 +30,13 @@ override-hook:
 ####                         # (used for regular docker-compose expansion of env vars by name.)
 	@${BIN}/docker_compose_override ${ENV_FILE} project=:${CREATE_TEMPLATE_PROJECT_NAME} instance=@${CREATE_TEMPLATE_PROJECT_NAME_UPPERCASE}_INSTANCE traefik_host=@${CREATE_TEMPLATE_PROJECT_NAME_UPPERCASE}_TRAEFIK_HOST http_auth=${CREATE_TEMPLATE_PROJECT_NAME_UPPERCASE}_HTTP_AUTH http_auth_var=@${CREATE_TEMPLATE_PROJECT_NAME_UPPERCASE}_HTTP_AUTH ip_sourcerange=@${CREATE_TEMPLATE_PROJECT_NAME_UPPERCASE}_IP_SOURCERANGE oauth2=${CREATE_TEMPLATE_PROJECT_NAME_UPPERCASE}_OAUTH2 authorized_group=${CREATE_TEMPLATE_PROJECT_NAME_UPPERCASE}_OAUTH2_AUTHORIZED_GROUP development_mode=${CREATE_TEMPLATE_PROJECT_NAME_UPPERCASE}_DEVELOPMENT_MODE
 
-.PHONY: shell
+.PHONY: shell # Enter shell of api container (or set service=name to enter a different one)
 shell:
 	@make --no-print-directory docker-compose-shell SERVICE=${CREATE_TEMPLATE_PROJECT_NAME}
 
-.PHONY: dev-sync
-dev-sync:
-	@${BIN}/dev-sync ${CREATE_TEMPLATE_PROJECT_NAME}_development flask
+# .PHONY: dev-sync
+# dev-sync:
+# 	@${BIN}/dev-sync ${CREATE_TEMPLATE_PROJECT_NAME}_development flask
 
 .PHONY: localdb
 localdb:
@@ -61,10 +61,13 @@ local-install: local-check-deps
 	${VIRTUALENV_DIR}/bin/python -m pip install --upgrade pip
 	${VIRTUALENV_DIR}/bin/pip install -r api/requirements/requirements.txt -r api/requirements/dev.requirements.txt
 
-.PHONY: local-dev # Starts localhost development server
+.PHONY: local-dev
 local-dev:
 	mkdir uploads
 	PYTHONPATH=$(shell realpath api) API_UPLOAD_FOLDER="$(shell realpath uploads)" API_LOG_LEVEL=debug API_DB=development.sqlite3 ${VIRTUALENV_DIR}/bin/python -m app
+
+.PHONY: dev # Starts localhost development server
+dev: local-install local-dev
 
 .PHONY: local-dev-public # Starts public development server on all network interfaces (0.0.0.0)
 local-dev-public:

@@ -15,25 +15,16 @@
 #@ http_auth = data.values.http_auth_var
 #@ enable_oauth2 = data.values.oauth2 == "true"
 #@ authorized_group = data.values.authorized_group
-#@ development_mode = data.values.development_mode == "true"
 #@ enabled_middlewares = []
 
 #@yaml/text-templated-strings
 services:
   api:
     #@ service = "api"
-    #@ if development_mode:
-    command: ["flask","--app","app","--debug","run","--host","0.0.0.0","--port","8000"]
-    volumes:
-      #! Overlay the development source code volume onto the container's /code directory:
-      #! `make dev-sync` will rsync development files to this volume for the server to reload:
-      - development:/code
-    #@ end
     environment:
       - DOCKER_PROJECT=(@= project @)
       - DOCKER_INSTANCE=(@= instance @)
       - DOCKER_CONTEXT=(@= context @)
-      - DEVELOPMENT_MODE=(@= data.values.development_mode @)
     labels:
       #! Services must opt-in to be proxied by Traefik:
       - "traefik.enable=true"
@@ -65,7 +56,3 @@ services:
       #! Apply all middlewares (do this at the end!)
       - "traefik.http.routers.(@= router @).middlewares=(@= ','.join(enabled_middlewares) @)"
 
-volumes:
-  #@ if development_mode:
-  development:
-  #@ end
