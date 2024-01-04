@@ -85,6 +85,12 @@ require_input() {
     test -v ${!2} && fault "$2 must not be blank."
 }
 
+make_var_name() {
+    # Make an environment variable out of any string
+    # Replaces all invalid characters with a single _
+    echo "$@" | sed -e 's/  */_/g' -e 's/--*/_/g' -e 's/[^a-zA-Z0-9_]/_/g' -e 's/__*/_/g' -e 's/.*/\U&/' -e 's/__*$//' -e 's/^__*//'
+}
+
 docker_run_with_env() {
     ## Runs docker container with the listed environment variables set.
     ## Pass VARS as the name of an array containing the env var names.

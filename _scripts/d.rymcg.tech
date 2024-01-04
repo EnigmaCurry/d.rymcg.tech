@@ -67,6 +67,14 @@ __help() {
 }
 
 __create() {
+    if [[ $# -gt 1 ]]; then
+        TEMPLATE_REPO="$2"
+    else
+        AVAIL_TEMPLATES=("Python Flask - https://github.com/EnigmaCurry/flask-template")
+        echo ""
+        TEMPLATE_REPO=$(choose "Choose a template:" "${AVAIL_TEMPLATES[@]}" | sed 's/.*- //')
+        echo ""
+    fi
     name_pattern='^[a-zA-Z][a-zA-Z0-9_-]*$'
     if [[ $# -gt 0 ]]; then
         PROJECT_NAME="$1"
@@ -74,7 +82,7 @@ __create() {
             fault "Error: Invalid characters in PROJECT_NAME -- valid regex: ${name_pattern}"
         fi
     else
-        echo "This script will create a new docker-compose project and integrate d.rymcg.tech Makefiles"
+        echo "This script will create a new docker-compose project and integrate d.rymcg.tech Makefiles" | fold -sw 70 && echo
         while ! [[ "${PROJECT_NAME}" =~ $name_pattern ]]; do
             test -n "${PROJECT_NAME}" && echo "Error: Invalid characters in PROJECT_NAME -- valid regex: ${name_pattern}"
             ask_no_blank "Enter a name for the new docker-compose project" PROJECT_NAME
@@ -82,15 +90,7 @@ __create() {
         echo ""
     fi
     PROJECT_NAME=$(echo "$PROJECT_NAME" | tr ' ' '-')
-    if [[ $# -gt 1 ]]; then
-        TEMPLATE_NAME="$2"
-    else
-        readarray -t AVAIL_TEMPLATES < <(find "${ROOT_DIR}/_templates" -maxdepth 1 -type d -printf "%P\n" | grep -v "^_" | grep -v "^$")
-        echo ""
-        TEMPLATE_NAME=$(choose "Choose a template:" "${AVAIL_TEMPLATES[@]}")
-        echo ""
-    fi
-    ${BIN}/create "${PROJECT_NAME}" "${TEMPLATE_NAME}" "./${PROJECT_NAME}"
+    ${BIN}/create "${PROJECT_NAME}" "${TEMPLATE_REPO}" "./${PROJECT_NAME}"
 }
 
 __install() {
