@@ -91,4 +91,5 @@ local-test:
 
 .PHONY: local-upgrade # Upgrades Python package versions in requirements files
 local-upgrade:
-	${VIRTUALENV_DIR}/bin/python -m pur -r api/requirements/requirements.txt -r api/requirements/dev.requirements.txt
+	${VIRTUALENV_DIR}/bin/python -m pur -r api/requirements/requirements.txt
+	${VIRTUALENV_DIR}/bin/python -m pur -r api/requirements/dev.requirements.txt
