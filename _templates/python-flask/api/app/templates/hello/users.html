@@ -1,0 +1,14 @@
+<style>
+ th, td {
+     padding: 15px;
+ }
+</style>
+
+<h1>Top visitors:</h1>
+
+<table border>
+    <tr><th>Username</th><th>Total encounters</th></tr>
+    {% for user in users %}
+    <tr><td>{{ user[0] }}</td><td>{{ user[1] }}</td></tr>
+    {% endfor %}
+</table>

@@ -1,4 +1,6 @@
 ROOT_DIR = ${CREATE_TEMPLATE_ROOT_DIR}
+VIRTUALENV_DIR=$(shell realpath virtualenv)
+
 include ${ROOT_DIR}/_scripts/Makefile.projects
 include ${ROOT_DIR}/_scripts/Makefile.instance
 
@@ -28,15 +30,65 @@ override-hook:
 ####                         # (used for regular docker-compose expansion of env vars by name.)
 	@${BIN}/docker_compose_override ${ENV_FILE} project=:${CREATE_TEMPLATE_PROJECT_NAME} instance=@${CREATE_TEMPLATE_PROJECT_NAME_UPPERCASE}_INSTANCE traefik_host=@${CREATE_TEMPLATE_PROJECT_NAME_UPPERCASE}_TRAEFIK_HOST http_auth=${CREATE_TEMPLATE_PROJECT_NAME_UPPERCASE}_HTTP_AUTH http_auth_var=@${CREATE_TEMPLATE_PROJECT_NAME_UPPERCASE}_HTTP_AUTH ip_sourcerange=@${CREATE_TEMPLATE_PROJECT_NAME_UPPERCASE}_IP_SOURCERANGE oauth2=${CREATE_TEMPLATE_PROJECT_NAME_UPPERCASE}_OAUTH2 authorized_group=${CREATE_TEMPLATE_PROJECT_NAME_UPPERCASE}_OAUTH2_AUTHORIZED_GROUP development_mode=${CREATE_TEMPLATE_PROJECT_NAME_UPPERCASE}_DEVELOPMENT_MODE
 
-.PHONY: shell
+.PHONY: shell # Enter shell of api container (or set service=name to enter a different one)
 shell:
 	@make --no-print-directory docker-compose-shell SERVICE=${CREATE_TEMPLATE_PROJECT_NAME}
 
-.PHONY: dev-sync
-dev-sync:
-	@${BIN}/dev-sync ${CREATE_TEMPLATE_PROJECT_NAME}_development flask
+# .PHONY: dev-sync
+# dev-sync:
+# 	@${BIN}/dev-sync ${CREATE_TEMPLATE_PROJECT_NAME}_development flask
 
-.PHONY: localdb # Open BASH shell with remote DB connection through SSH
+.PHONY: localdb
 localdb:
 	@${BIN}/postgresql-tunnel ${ENV_FILE} database ${INSTANCE}
 
+.PHONY: local-db # Open BASH shell with remote DB connection through SSH
+local-db: localdb
+
+
+
+###
+### Local non-docker python development inside virtualenv:
+###
+
+.PHONY: local-check-deps
+local-check-deps:
+	${BIN}/check_deps python3
+
+.PHONY: local-install # Creates a virtual environment and install all dependencies
+local-install: local-check-deps
+	python3 -m venv ${VIRTUALENV_DIR}
+	${VIRTUALENV_DIR}/bin/python -m pip install --upgrade pip
+	${VIRTUALENV_DIR}/bin/pip install -r api/requirements/requirements.txt -r api/requirements/dev.requirements.txt
+
+.PHONY: local-dev
+local-dev:
+	mkdir uploads
+	PYTHONPATH=$(shell realpath api) API_UPLOAD_FOLDER="$(shell realpath uploads)" API_LOG_LEVEL=debug API_DB=development.sqlite3 ${VIRTUALENV_DIR}/bin/python -m app
+
+.PHONY: dev # Starts localhost development server
+dev: local-install local-dev
+
+.PHONY: local-dev-public # Starts public development server on all network interfaces (0.0.0.0)
+local-dev-public:
+	API_HTTP_HOST=0.0.0.0 ${MAKE} local-dev
+
+.PHONY: local-prod # Starts production server
+local-prod:
+	API_DEPLOYMENT=prod API_DB=prod.sqlite3 ${VIRTUALENV_DIR}/bin/python app.py
+
+.PHONY: local-clean # Deletes the virtual environment
+local-clean:
+	rm -rf ${VIRTUALENV_DIR}
+
+.PHONY: local-activate # Enters a sub-shell with the virtualenv activated
+local-activate:
+	$${SHELL} --rcfile <(echo "source ${VIRTUALENV_DIR}/bin/activate")
+
+.PHONY: local-test # Runs tests
+local-test:
+	${VIRTUALENV_DIR}/bin/python -m pytest --doctest-modules --ignore=_stuff
+
+.PHONY: local-upgrade # Upgrades Python package versions in requirements files
+local-upgrade:
+	${VIRTUALENV_DIR}/bin/python -m pur -r api/requirements/requirements.txt -r api/requirements/dev.requirements.txt

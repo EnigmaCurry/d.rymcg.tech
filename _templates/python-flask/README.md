@@ -45,21 +45,6 @@ Run:
 make open
 ```
 
-## Development mode
-
-If you turn on development mode in the config
-(`{PROJECT}_DEVELOPMENT_MODE=true`), then the container will start
-attached to the `development` volume. You can edit the source files
-locally, and rsync changes to this volume automatically. The server
-will detect the new files and automatically restart.
-
-To start the synchronization process, run:
-
-```
-## Leave this running in a separate terminal:
-make dev-sync
-```
-
 ## Local Database
 
 To access the database directly from your workstation, run:
@@ -75,7 +60,7 @@ clients.
 
 On Arch linux, you want to install the postgres client package: `sudo pacman -S postgresql-libs`
 
-On Ubuntu: `sudo apt-get install -y postgresql-client`
+On Ubuntu: `sudo apt-get install -y postgresql-client libpq-dev python3-dev`
 
 Inside the `make localdb` shell, you can run any of the standard
 postgresql client tools: `psql`, `createdb`, `createuser`, `pg_dump`,
@@ -97,6 +82,38 @@ Keep this shell open, and you can use graphical client like
 [DBeaver](https://dbeaver.io/) (when creating the connection in
 DBeaver make sure to copy all the settings for host, port, database,
 user, and password, as shown in the subshell session.)
+
+## Local development mode
+
+You can install a Python virtual environment (`virtualenv`) for local
+development mode. This virtualenv does not run in a container, but it
+require you to install the remote database service.
+
+Ensure that you have installed the remote database:
+
+```
+make install service=database
+```
+
+Install the local virtualenv:
+
+```
+make local-install
+```
+
+To start the local development server, you must first start the
+`local-db` connection. Enter the `local-db` shell:
+
+```
+make local-db
+```
+
+Once inside the `local-db` shell, you can start the local server:
+
+```
+## This only works inside the local-db shell:
+make dev
+```
 
 ## Instantiation
 

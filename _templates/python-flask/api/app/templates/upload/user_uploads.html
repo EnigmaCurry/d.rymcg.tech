@@ -1,0 +1,13 @@
+<h1>Uploads from {{ user }}</h1>
+
+<table border>
+    <tr>
+        <th>Username</th>
+        <th>Original filename</th>
+    </tr>
+    {% for upload in uploads %}
+    <tr>
+        <td>{{ upload[0] }}</td><td>{{ upload[1] }}</td>
+    </tr>
+    {% endfor %}
+</table>
