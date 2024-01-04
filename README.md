@@ -758,15 +758,18 @@ Press `Ctrl-D` to exit the sub-shell and jump back to wherever you
 came from.
 
 From any working directory, you can create a new, [external
-project](#integrating-external-projects), based upon one of the
-[included templates](_templates):
+project](#integrating-external-projects), from an external repository
+URL:
 
 ```
 # This creates a new project directory in your current working directory:
 # It will ask you to enter the name of the project and choose the template.
-# Optional 2nd and 3rd args will skip the asking: PROJECT_NAME TEMPLATE_NAME
+# Optional 2nd and 3rd args will skip the asking: PROJECT_NAME TEMPLATE_REPO
 d.rymcg.tech create
 ```
+
+Check out the example [Python Flask template
+repository](https://github.com/EnigmaCurry/flask-template/).
 
 Open any project's README file directly in your web browser:
 
