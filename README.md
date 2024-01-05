@@ -1089,9 +1089,8 @@ Alternatively you can create your project by hand:
    `docker-compose.yaml`, `Makefile`, `.env-dist`, `.gitignore`and
    `README.md`. As an example, you can use any of the d.rymcg.tech
    sub-projects, like [whoami](whoami), or take a look at the
-   [_templates](_templates) that `d.rymcg.tech create` uses (the
-   templates require the use of `envsubst` and `ytt`, but still render
-   to pure `docker compose` in the end).
+   [flask-template](https://github.com/EnigmaCurry/flask-template/)
+   that can be instantiated from `d.rymcg.tech create`.
 
 Create the `Makefile` in your own separate repository so that it
 includes the main d.rymcg.tech `Makefile.projects` file from
