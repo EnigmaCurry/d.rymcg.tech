@@ -1,0 +1,25 @@
+#!/bin/bash
+
+# Print help messages for d.rymcg.tech project Makefiles
+
+BIN=$(dirname ${BASH_SOURCE})
+ROOT_DIR=$(dirname ${BIN})
+
+source ${BIN}/funcs.sh
+
+if [[ "$#" -lt 2 ]]; then
+    fault "Missing args {PROJECT_DIR} {Makefiles...}"
+fi
+
+PROJECT_DIR="$1"; shift
+MAKEFILES="$@"
+
+D_RYMCG_TECH_MAKEFILES="$(export ROOT_DIR=${ROOT_DIR}; cat ${MAKEFILES} | grep "Makefile" | cut -d " " -f 2 | envsubst 'ROOT_DIR=${ROOT_DIR}')"
+
+echo "# Global project targets:"
+(grep -h '^.PHONY: .* #' ${D_RYMCG_TECH_MAKEFILES} | sed 's/\.PHONY: \(.*\) # \(.*\)/make \1 \t- \2/' | expand -t25) | sort -u
+
+echo
+echo "# Project targets:"
+(grep -h '^.PHONY: .* #' ${MAKEFILES} | sed 's/\.PHONY: \(.*\) # \(.*\)/make \1 \t- \2/' | expand -t25) | sort -u
+echo
