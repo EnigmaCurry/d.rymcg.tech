@@ -42,8 +42,14 @@ fi
 ## Ensure we are creating a new blank directory:
 git clone "${TEMPLATE_REPO}" "${OUTPUT_DIR}"
 
-cd "${OUTPUT_DIR}"
+make -C "${OUTPUT_DIR}" APP_NAME="${PROJECT_NAME}"
 
-make APP_NAME="${PROJECT_NAME}"
+echo
+echo "# To create a Bash alias for this project, put this in ~/.bashrc :"
+echo
+echo "   __d.rymcg.tech_project_alias ${PROJECT_NAME} $(realpath ${OUTPUT_DIR})"
+echo
 
+echo
 echo "# Finished creating new project directory : ${OUTPUT_DIR}"
+echo
