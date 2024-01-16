@@ -20,11 +20,19 @@ else
     DEST_DIR="/"
 fi
 
+DO_FIRST_TIME_CHECKS=true
+
 ${BIN}/volume_mkdir "${VOLUME}"
 set +e
 while [[ true ]] ; do
-    echo "Syncing ..."
+    if [[ "${DO_CHECKS_FIRST_TIME}" == true ]]; then
+        DO_FIRST_TIME_CHECKS=false
+    else
+        # Only do volume_rsync checks the first time:
+        export DISABLE_VOLUME_RSYNC_CHECKS=true
+    fi
     ${BIN}/volume_rsync "${VOLUME}" -av --delete --exclude={'.git','.*','target','node_modules','build','dist'} "${SRC_DIR}/" "volume:/data/${DEST_DIR}"
+    echo ""
     echo "Waiting for changes ..."
     inotifywait -r -t 600 -e modify,delete,create,move --exclude '\.#.*' .
 done
