@@ -224,14 +224,24 @@ array_join() {
 }
 
 volume_rsync() {
-    docker image inspect localhost/rsync >/dev/null || docker build -t localhost/rsync ${ROOT_DIR}/_terminal/rsync
-    if [[ $# -gt 0 ]]; then
-        local VOLUME="${1}"; shift
-        docker volume inspect "${VOLUME}" >/dev/null
-        rsync --rsh="docker run -i --rm -v ${VOLUME}:/data -w /data localhost/rsync" "$@"
+    if [[ $# -lt 2 ]]; then
+        fault "Usage: volume_rsync VOLUME ARGS..."
     else
-        fault "Usage: volume_ls VOLUME_NAME {ARGS}"
+        local VOLUME="${1}"; shift
+        check_var VOLUME
     fi
+    if [[ "${DISABLE_VOLUME_RSYNC_CHECKS}" != "true" ]]; then
+        echo "Doing initial rsync checks for volume: ${VOLUME} ..."
+        # Check that the localhost/rsync image exists, if not build it:
+        docker image inspect localhost/rsync >/dev/null || docker build -t localhost/rsync ${ROOT_DIR}/_terminal/rsync
+        # Check that the volume we will sync to already exists:
+        if ! docker volume inspect "${VOLUME}" >/dev/null; then
+            fault "You must create the '${VOLUME}' volume before running this."
+        fi
+    fi
+    echo "Syncing ..."
+    TIMEFORMAT='total time: %2Rs'
+    time rsync --rsh="docker run -i --rm -v ${VOLUME}:/data -w /data localhost/rsync" "$@"
 }
 
 volume_ls() {
