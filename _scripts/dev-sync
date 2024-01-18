@@ -31,7 +31,7 @@ while [[ true ]] ; do
         # Only do volume_rsync checks the first time:
         export DISABLE_VOLUME_RSYNC_CHECKS=true
     fi
-    ${BIN}/volume_rsync "${VOLUME}" -av --delete --exclude={'.git','.*','target','node_modules','build','dist'} "${SRC_DIR}/" "volume:/data/${DEST_DIR}"
+    ${BIN}/volume_rsync "${VOLUME}" -av --delete --exclude={'.git','.*','passwords.json','target','node_modules','build','dist','docker-compose.*','Dockerfile*'} "${SRC_DIR}/" "volume:/data/${DEST_DIR}"
     echo ""
     echo "Waiting for changes ..."
     inotifywait -r -t 600 -e modify,delete,create,move --exclude '\.#.*' .
