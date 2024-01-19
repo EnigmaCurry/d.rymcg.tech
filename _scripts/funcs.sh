@@ -38,7 +38,7 @@ check_num(){
 debug_var() {
     local var=$1
     check_var var
-    echo "## DEBUG: ${var}=${!var}" > /dev/stderr
+    stderr "## DEBUG: ${var}=${!var}"
 }
 
 debug_array() {
@@ -125,6 +125,24 @@ get_root_domain() {
         echo "Could not find $(abspath ${ENV_FILE})"
         fault "Run `make config` in the root project directory first."
     fi
+}
+
+dotenv_get() {
+    VAR=$1; shift
+    check_var ENV_FILE VAR
+    if [[ ! -f ${ENV_FILE} ]]; then
+        fault "Missing ENV_FILE :: ${ENV_FILE}"
+    else
+        VAL="$(${BIN}/dotenv -f ${ENV_FILE} get ${VAR})"
+        # Check if the first and last characters are double quotes
+        if [[ ${VAL:0:1} == "\"" && ${VAL: -1} == "\"" ]]; then
+            # Remove the first and last character (the double quotes)
+            VAL="${VAL:1:${#VAL}-2}"
+        fi
+        check_var VAL
+        echo "${VAL}"
+        #stderr "## dotenv_get ${VAR}=${VAL}"
+    fi    
 }
 
 docker_compose() {
