@@ -124,6 +124,7 @@ config_list_entrypoints() {
         [xmpp_c2s]="XMPP (ejabberd) client-to-server endpoint"
         [xmpp_s2s]="XMPP (ejabberd) server-to-server endpoint"
         [mpd]="Music Player Daemon (mopidy) control endpoint"
+        [redis]="Redis in-memory database endpoint"
         [snapcast]="Snapcast (snapcast) audio endpoint"
         [snapcast_control]="Snapcast (snapcast) control endpoint"
     )
