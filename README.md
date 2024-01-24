@@ -198,6 +198,7 @@ configured, you may need to open these ports in your firewall:
 | SSH        | TCP      | 2222       | Traefik Gitea SSH (TCP) entrypoint                        |
 | SSH        | TCP      | 2223       | SFTP container SSH (TCP) (direct-map)                     |
 | TLS        | TCP      | 5432       | PostgreSQL mTLS DBaaS (direct-map)                        |
+| TCP+TLS    | TCP      | 6380       | Traefik Redis in-memory database entrypoint               |
 | TCP socket | TCP      | 6600       | Traefik Mopidy (MPD) entrypoint                           |
 | HTTP       | TCP      | 8000       | Traefik HTTP entrypoint (web_plain; explicitly non-https) |
 | TLS        | TCP      | 8883       | Traefik MQTT (TLS) entrypoint                             |

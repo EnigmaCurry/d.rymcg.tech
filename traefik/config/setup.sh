@@ -68,6 +68,9 @@ ytt_template() {
         -v snapcast_control_entrypoint_host="${TRAEFIK_SNAPCAST_CONTROL_ENTRYPOINT_HOST}" \
         -v snapcast_entrypoint_port="${TRAEFIK_SNAPCAST_ENTRYPOINT_PORT}" \
         -v snapcast_control_entrypoint_port="${TRAEFIK_SNAPCAST_CONTROL_ENTRYPOINT_PORT}" \
+        -v redis_entrypoint_enabled="${TRAEFIK_REDIS_ENTRYPOINT_ENABLED}" \
+        -v redis_entrypoint_host="${TRAEFIK_REDIS_ENTRYPOINT_HOST}" \
+        -v redis_entrypoint_port="${TRAEFIK_REDIS_ENTRYPOINT_PORT}" \
         -v root_domain="${TRAEFIK_ROOT_DOMAIN}" \
         -v vpn_root_domain="${TRAEFIK_VPN_ROOT_DOMAIN}" \
         -v network_mode="${TRAEFIK_NETWORK_MODE}" \

@@ -170,6 +170,10 @@ entryPoints:
   snapcast_control:
     address: #@ data.values.snapcast_control_entrypoint_host + ":" + data.values.snapcast_control_entrypoint_port
   #@ end
+  #@ if data.values.redis_entrypoint_enabled == "true":
+  redis:
+    address: #@ data.values.redis_entrypoint_host + ":" + data.values.redis_entrypoint_port
+  #@ end
   #@ if data.values.web_plain_entrypoint_enabled == "true":
   web_plain:
     address: #@ data.values.web_plain_entrypoint_host + ":" + data.values.web_plain_entrypoint_port
