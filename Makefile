@@ -3,7 +3,7 @@ ROOT_DIR = .
 .PHONY: help # Display this help screen
 help:
 	@echo "Main Makefile help:"
-	@grep -h '^.PHONY: .* #' Makefile ${ROOT_DIR}/_scripts/Makefile.globals | sed 's/\.PHONY: \(.*\) # \(.*\)/make \1 \t- \2/' | expand -t20
+	@grep -h '^.PHONY: .* #' Makefile ${ROOT_DIR}/_scripts/Makefile.globals | sed 's/\.PHONY: \(.*\) # \(.*\)/make \1 \t- \2/' | expand -t31
 
 include _scripts/Makefile.globals
 include _scripts/Makefile.cd
