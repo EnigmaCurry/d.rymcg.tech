@@ -194,14 +194,7 @@ Find the unique identifier (UUID) of the disk:
 sudo blkid | grep /dev/xvdb
 ```
 
-For example, this might return something that looks like:
-
-```
-# Example blkid output:
-/dev/xvdb: UUID="14416f5d-5152-4d89-bfdd-966be4dd8891" BLOCK_SIZE="4096" TYPE="ext4"
-```
-
-Copy the UUID value printed.
+For example, this might return an UUID that looks like `14416f5d-5152-4d89-bfdd-966be4dd8891`. Copy the UUID value printed and use it in the next command instead of the example provided.
 
 Create a new entry in `/etc/fstab` to automatically mount the
 filesystem:
