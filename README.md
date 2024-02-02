@@ -338,13 +338,13 @@ skipped):
 On Arch Linux, run this to install all these dependencies:
 
 ```
-pacman -S bash base-devel openssl apache xdg-utils jq sshfs wireguard-tools curl
+pacman -S bash base-devel openssl apache xdg-utils jq sshfs wireguard-tools curl inotify-tools
 ```
 
 For Debian or Ubuntu, run:
 
 ```
-apt-get install bash build-essential openssl apache2-utils xdg-utils jq sshfs wireguard curl
+apt-get install bash build-essential openssl apache2-utils xdg-utils jq sshfs wireguard curl inotify-tools
 ```
 
 ### Setup SSH access to the server
