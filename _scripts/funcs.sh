@@ -248,10 +248,10 @@ volume_rsync() {
         local VOLUME="${1}"; shift
         check_var VOLUME
     fi
+    # Check that the localhost/rsync image exists, if not build it:
+    docker image inspect localhost/rsync >/dev/null || docker build -t localhost/rsync ${ROOT_DIR}/_terminal/rsync
     if [[ "${DISABLE_VOLUME_RSYNC_CHECKS}" != "true" ]]; then
         echo "Doing initial rsync checks for volume: ${VOLUME} ..."
-        # Check that the localhost/rsync image exists, if not build it:
-        docker image inspect localhost/rsync >/dev/null || docker build -t localhost/rsync ${ROOT_DIR}/_terminal/rsync
         # Check that the volume we will sync to already exists:
         if ! docker volume inspect "${VOLUME}" >/dev/null; then
             fault "You must create the '${VOLUME}' volume before running this."
