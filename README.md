@@ -334,6 +334,9 @@ skipped):
      wireguard](traefik#wireguard-vpn) VPN)
    * `curl` (for downloading an installing external dependencies:
      [script-wizard](https://github.com/enigmacurry/script-wizard))
+   * `inotify-tools` for any any project that has implemented
+     [dev-sync](_scripts/dev-sync), which can be used to synchronize
+     local files into container volumes.
 
 On Arch Linux, run this to install all these dependencies:
 
