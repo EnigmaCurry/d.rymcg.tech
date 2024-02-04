@@ -80,17 +80,9 @@ audit:
 netstat:
 	ssh $$(docker context inspect $$(${BIN}/docker_context) --format "{{ .Endpoints.docker.Host }}") netstat -plunt
 
-.PHONY: userns-remap # Configure the Docker server for User Namespace Remap
+.PHONY: userns-remap # Configure the Docker server for User/Root Namespace Remap
 userns-remap:
-	@${BIN}/userns-remap true
-
-.PHONY: userns-remap-off # Configure the Docker server for Root Namespace
-userns-remap-off:
-	@${BIN}/userns-remap false
-
-.PHONY: userns-remap-check # Check the current Docker User Namespace Remap setting
-userns-remap-check:
-	@${BIN}/userns-remap check
+	@${BIN}/userns-remap $(filter-out $@,$(MAKECMDGOALS))
 
 .PHONY: readme # Open the README.md in your web browser
 readme:

@@ -8,8 +8,13 @@ set -e
 
 BIN=$(dirname ${BASH_SOURCE})
 cmd=$1
-[[ $# -lt 1 ]] && echo "Missing command argument: {check,true,false}" && exit 1
-
+if [[ $# -lt 1 ]]; then
+        echo "Missing command argument:"
+        echo "make userns-remap on           - Configure the Docker server for User Namespace Remap"
+        echo "make userns-remap off          - Configure the Docker server for Root Namespace"
+        echo "make userns-remap check        - Check the current Docker User Namespace Remap setting"
+        exit 0
+fi
 DOCKER_HOST=$(docker context inspect | jq -r ".[0].Endpoints.docker.Host" | sed 's|ssh://||g');
 if [[ $DOCKER_HOST =~ :[0-9]+$ ]]; then
     SSH_HOST=$(echo "$DOCKER_HOST" | sed 's/:.*//')
@@ -37,7 +42,7 @@ else
     else
         echo "## userns-remap setting not found"
     fi
-    if [[ $cmd == "true" ]]; then
+    if [[ $cmd == "on" ]]; then
         TMP_CONFIG=$(mktemp) && \
             ssh -p ${SSH_PORT} ${SSH_HOST} cat ${DAEMON_CONF} \
                 | jq '.["userns-remap"]="default"' \
@@ -47,7 +52,7 @@ else
             && ssh -p ${SSH_PORT} ${SSH_HOST} "${SUDO_PREFIX} sh -c \"mv ${TMP_CONFIG} ${DAEMON_CONF} && chmod 0644 ${DAEMON_CONF} && echo '## Restarting Docker ...' && systemctl restart docker && echo '## Docker restarted' && id dockremap && echo '# /etc/subuid' && cat /etc/subuid && echo '## Success'\"" \
                 || echo '## Fail'
         ${0} check
-    elif [[ $cmd == "false" ]]; then
+    elif [[ $cmd == "off" ]]; then
         TMP_CONFIG=$(mktemp) && \
             ssh -p ${SSH_PORT} ${SSH_HOST} cat ${DAEMON_CONF} \
                 | jq 'del(.["userns-remap"])' \
