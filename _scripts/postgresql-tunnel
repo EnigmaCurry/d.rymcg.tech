@@ -24,6 +24,9 @@ debug_var PGPORT
 check_var ENV_FILE PROJECT SERVICE INSTANCE PGPORT
 DOCKER_CONTEXT=$(${BIN}/docker_context)
 
+# If not using the default docker network, set the NETWORK env var to the right one:
+NETWORK=${NETWORK:-${PROJECT}_${INSTANCE}}
+
 SSH_HOST=$(docker context inspect | jq -r ".[0].Endpoints.docker.Host" | sed 's|^ssh://||')
 check_var SSH_HOST
 debug_var SSH_HOST
@@ -32,7 +35,7 @@ debug_var CONTAINER
 if [[ -z "${CONTAINER}" ]]; then
     fault "Could not find the database container."
 fi
-DB_IP=$(docker inspect ${CONTAINER} | jq -r ".[0].NetworkSettings.Networks[\"${PROJECT}_${INSTANCE}\"].IPAddress");
+DB_IP=$(docker inspect ${CONTAINER} | jq -r ".[0].NetworkSettings.Networks[\"${NETWORK}\"].IPAddress");
 debug_var DB_IP
 
 if [[ -z "${DB_IP}" ]]; then
