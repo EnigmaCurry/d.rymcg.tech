@@ -44,8 +44,8 @@ services:
       #! The host matching router rule:
       - "traefik.http.routers.(@= router @).rule=Host(`(@= traefik_host @)`)"
       - "traefik.http.routers.(@= router @).entrypoints=websecure"
-      #@ enabled_middlewares.append("{}-ipwhitelist".format(router))
-      - "traefik.http.middlewares.(@= router @)-ipwhitelist.ipwhitelist.sourcerange=(@= ip_sourcerange @)"
+      #@ enabled_middlewares.append("{}-ipallowlist".format(router))
+      - "traefik.http.middlewares.(@= router @)-ipallowlist.ipallowlist.sourcerange=(@= ip_sourcerange @)"
 
       #@ if enable_http_auth:
       #@ enabled_middlewares.append("{}-basicauth".format(router))
@@ -73,8 +73,8 @@ services:
       #! The host matching attachments-router rule:
       - "traefik.http.routers.(@= attachments_router @).rule=Host(`(@= traefik_host @)`) && PathPrefix(`/wp-content/uploads`)"
       - "traefik.http.routers.(@= attachments_router @).entrypoints=websecure"
-      #@ enabled_middlewares.append("{}-ipwhitelist".format(attachments_router))
-      - "traefik.http.middlewares.(@= attachments_router @)-ipwhitelist.ipwhitelist.sourcerange=(@= ip_sourcerange @)"
+      #@ enabled_middlewares.append("{}-ipallowlist".format(attachments_router))
+      - "traefik.http.middlewares.(@= attachments_router @)-ipallowlist.ipallowlist.sourcerange=(@= ip_sourcerange @)"
 
       #@ if enable_http_auth:
       #@ enabled_middlewares.append("{}-basicauth".format(attachments_router))
@@ -118,8 +118,8 @@ services:
       #! The host matching router rule:
       - "traefik.http.routers.(@= router @).rule=Host(`(@= traefik_host_static @)`)"
       - "traefik.http.routers.(@= router @).entrypoints=websecure"
-      #@ enabled_middlewares.append("{}-ipwhitelist".format(router))
-      - "traefik.http.middlewares.(@= router @)-ipwhitelist.ipwhitelist.sourcerange=(@= ip_sourcerange_static @)"
+      #@ enabled_middlewares.append("{}-ipallowlist".format(router))
+      - "traefik.http.middlewares.(@= router @)-ipallowlist.ipallowlist.sourcerange=(@= ip_sourcerange_static @)"
 
       #@ if enable_http_auth_static:
       #@ enabled_middlewares.append("{}-basicauth".format(router))
@@ -142,8 +142,8 @@ services:
       #! The host matching attachments-router rule:
       - "traefik.http.routers.(@= attachments_router @).rule=Host(`(@= traefik_host_static @)`) && PathPrefix(`/wp-content/uploads`)"
       - "traefik.http.routers.(@= attachments_router @).entrypoints=websecure"
-      #@ enabled_middlewares.append("{}-ipwhitelist".format(attachments_router))
-      - "traefik.http.middlewares.(@= attachments_router @)-ipwhitelist.ipwhitelist.sourcerange=(@= ip_sourcerange_static @)"
+      #@ enabled_middlewares.append("{}-ipallowlist".format(attachments_router))
+      - "traefik.http.middlewares.(@= attachments_router @)-ipallowlist.ipallowlist.sourcerange=(@= ip_sourcerange_static @)"
 
       #@ if enable_http_auth_static:
       #@ enabled_middlewares.append("{}-basicauth".format(attachments_router))

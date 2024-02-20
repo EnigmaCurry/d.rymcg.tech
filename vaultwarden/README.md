@@ -76,8 +76,8 @@ few mitigations you can apply to make this a bit more secure:
    whitelist. For example, if you wanted to only allow two different
    IP adresses, you could set it like this:
    `VAULTWARDEN_IP_SOURCERANGE=192.168.45.13/32,10.10.10.1/32`. For
-   more information see the [Traefik IPWhitelist
-   docs](https://doc.traefik.io/traefik/middlewares/http/ipwhitelist/).
+   more information see the [Traefik IPAllowlist
+   docs](https://doc.traefik.io/traefik/middlewares/http/ipallowlist/).
  * Use a hardware key with webauthn support, like
    [solokey](https://solokeys.com/).
  * Disable invitations, set `VAULTWARDEN_INVITATIONS_ALLOWED=false`.

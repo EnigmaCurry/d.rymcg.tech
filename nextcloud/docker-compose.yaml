@@ -70,8 +70,8 @@ services:
       - "traefik.enable=true"
       - "traefik.http.routers.nextcloud-${NEXTCLOUD_INSTANCE:-default}.rule=Host(`${NEXTCLOUD_TRAEFIK_HOST}`)"
       - "traefik.http.routers.nextcloud-${NEXTCLOUD_INSTANCE:-default}.entrypoints=websecure"
-      - "traefik.http.middlewares.nextcloud-${NEXTCLOUD_INSTANCE:-default}-ipwhitelist.ipwhitelist.sourcerange=${NEXTCLOUD_IP_SOURCERANGE}"
-      - "traefik.http.routers.nextcloud-${NEXTCLOUD_INSTANCE:-default}.middlewares=nextcloud-${NEXTCLOUD_INSTANCE:-default}-ipwhitelist"
+      - "traefik.http.middlewares.nextcloud-${NEXTCLOUD_INSTANCE:-default}-ipallowlist.ipallowlist.sourcerange=${NEXTCLOUD_IP_SOURCERANGE}"
+      - "traefik.http.routers.nextcloud-${NEXTCLOUD_INSTANCE:-default}.middlewares=nextcloud-${NEXTCLOUD_INSTANCE:-default}-ipallowlist"
       # the following were intended to allow dav discovery in nextcloud, but didn't work
       #- "traefik.frontend.redirect.permanent='true'"
       #- "traefik.frontend.redirect.regex='https://(.*)/.well-known/(card|cal)dav'"
