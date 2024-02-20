@@ -20,7 +20,7 @@ make config
 
 You can limit traffic based on source IP address for either or both of these
 domain names, by expressing a [CIDR ip range
-filter](https://doc.traefik.io/traefik/middlewares/tcp/ipwhitelist/):
+filter](https://doc.traefik.io/traefik/middlewares/tcp/ipallowlist/):
 
  * `S3_SOURCERANGE` - This is the IP address filter for `MINIO_TRAEFIK_HOST`
  * `CONSOLE_SOURCERANGE` - This is the IP address filter for `MINIO_CONSOLE_TRAEFIK_HOST`

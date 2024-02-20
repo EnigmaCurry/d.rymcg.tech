@@ -34,8 +34,8 @@ services:
       #! The host matching router rule:
       - "traefik.http.routers.(@= router @).rule=Host(`(@= traefik_host @)`)"
       - "traefik.http.routers.(@= router @).entrypoints=websecure"
-      #@ enabled_middlewares.append("{}-ipwhitelist".format(router))
-      - "traefik.http.middlewares.(@= router @)-ipwhitelist.ipwhitelist.sourcerange=(@= ip_sourcerange @)"
+      #@ enabled_middlewares.append("{}-ipallowlist".format(router))
+      - "traefik.http.middlewares.(@= router @)-ipallowlist.ipallowlist.sourcerange=(@= ip_sourcerange @)"
 
       #! Override the default port that proxy binds to, so that it lives in userspace >1024:
       #! You don't normally need to do this, as long as your image has

@@ -102,7 +102,7 @@ your services by turning on Traefik's [HTTP Basic
 Authentication](https://doc.traefik.io/traefik/middlewares/http/basicauth/)
 or [OAuth2 Authentication](traefik/README.md#oauth2-authentication)
 and
-[IPWhitelist](https://doc.traefik.io/traefik/middlewares/http/ipwhitelist/)
+[IPAllowlist](https://doc.traefik.io/traefik/middlewares/http/ipallowlist/)
 middlewares (see
 [s3-proxy](https://github.com/EnigmaCurry/d.rymcg.tech/blob/f77aaaa5a2705eedaf29a4cdc32f91cdb65e66f7/s3-proxy/docker-compose.yaml#L35-L41)
 for an example that uses both of these), or by turning on [Oauth2

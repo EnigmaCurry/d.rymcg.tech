@@ -50,5 +50,5 @@ services:
       - "traefik.enable=true"
       - "traefik.http.routers.ntfy.rule=Host(`${NTFY_TRAEFIK_HOST}`)"
       - "traefik.http.routers.ntfy.entrypoints=websecure"
-      - "traefik.http.middlewares.ntfy-whitelist.ipwhitelist.sourcerange=${NTFY_IP_SOURCERANGE}"
+      - "traefik.http.middlewares.ntfy-whitelist.ipallowlist.sourcerange=${NTFY_IP_SOURCERANGE}"
       - "traefik.http.routers.ntfy.middlewares=ntfy-whitelist"

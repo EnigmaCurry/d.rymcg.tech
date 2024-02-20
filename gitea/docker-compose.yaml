@@ -40,8 +40,8 @@ services:
       - "traefik.http.routers.gitea-${GITEA_INSTANCE:-default}-web.entrypoints=websecure"
       - "traefik.http.routers.gitea-${GITEA_INSTANCE:-default}-web.service=gitea-${GITEA_INSTANCE:-default}-web"
       - "traefik.http.services.gitea-${GITEA_INSTANCE:-default}-web.loadbalancer.server.port=3000"
-      - "traefik.http.middlewares.gitea-${GITEA_INSTANCE:-default}-ipwhitelist.ipwhitelist.sourcerange=${GITEA_IP_SOURCERANGE}"
-      - "traefik.http.routers.gitea-${GITEA_INSTANCE:-default}-web.middlewares=gitea-${GITEA_INSTANCE:-default}-ipwhitelist"
+      - "traefik.http.middlewares.gitea-${GITEA_INSTANCE:-default}-ipallowlist.ipallowlist.sourcerange=${GITEA_IP_SOURCERANGE}"
+      - "traefik.http.routers.gitea-${GITEA_INSTANCE:-default}-web.middlewares=gitea-${GITEA_INSTANCE:-default}-ipallowlist"
       ## SSH
       - "traefik.tcp.routers.gitea-${GITEA_INSTANCE:-default}-ssh.rule=HostSNI(`*`)"
       - "traefik.tcp.routers.gitea-${GITEA_INSTANCE:-default}-ssh.entrypoints=ssh"
@@ -53,14 +53,14 @@ services:
       - "traefik.http.middlewares.gitea-${GITEA_INSTANCE:-default}-logout1.headers.customresponseheaders.Set-Cookie=gitea_incredible=deleted; Max-Age=0"
       - "traefik.http.middlewares.gitea-${GITEA_INSTANCE:-default}-logout-redirect1.redirectregex.regex=.*"
       - "traefik.http.middlewares.gitea-${GITEA_INSTANCE:-default}-logout-redirect1.redirectregex.replacement=https://${GITEA_TRAEFIK_HOST}/logout2"
-      - "traefik.http.routers.gitea-${GITEA_INSTANCE:-default}-logout1.middlewares=gitea-${GITEA_INSTANCE:-default}-ipwhitelist,gitea-${GITEA_INSTANCE:-default}-logout1,gitea-${GITEA_INSTANCE:-default}-logout-redirect1"
+      - "traefik.http.routers.gitea-${GITEA_INSTANCE:-default}-logout1.middlewares=gitea-${GITEA_INSTANCE:-default}-ipallowlist,gitea-${GITEA_INSTANCE:-default}-logout1,gitea-${GITEA_INSTANCE:-default}-logout-redirect1"
       ## Logout phase 2 (deletes 'i_like_gitea' cookie):
       - "traefik.http.routers.gitea-${GITEA_INSTANCE:-default}-logout2.rule=Host(`${GITEA_TRAEFIK_HOST}`) && Path(`/logout2`)"
       - "traefik.http.routers.gitea-${GITEA_INSTANCE:-default}-logout2.entrypoints=websecure"
       - "traefik.http.middlewares.gitea-${GITEA_INSTANCE:-default}-logout2.headers.customresponseheaders.Set-Cookie=i_like_gitea=deleted; Max-Age=0"
       - "traefik.http.middlewares.gitea-${GITEA_INSTANCE:-default}-logout-redirect2.redirectregex.regex=.*"
       - "traefik.http.middlewares.gitea-${GITEA_INSTANCE:-default}-logout-redirect2.redirectregex.replacement=https://${GITEA_TRAEFIK_HOST}/user/login"
-      - "traefik.http.routers.gitea-${GITEA_INSTANCE:-default}-logout2.middlewares=gitea-${GITEA_INSTANCE:-default}-ipwhitelist,gitea-${GITEA_INSTANCE:-default}-logout2,gitea-${GITEA_INSTANCE:-default}-logout-redirect2"
+      - "traefik.http.routers.gitea-${GITEA_INSTANCE:-default}-logout2.middlewares=gitea-${GITEA_INSTANCE:-default}-ipallowlist,gitea-${GITEA_INSTANCE:-default}-logout2,gitea-${GITEA_INSTANCE:-default}-logout-redirect2"
 
 
 volumes:
