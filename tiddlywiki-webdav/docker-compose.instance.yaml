@@ -23,9 +23,9 @@ services:
       - "traefik.http.middlewares.tiddlywiki-strip-headers.headers.customrequestheaders.X-Admin-WebAuth-User="
       - "traefik.http.middlewares.tiddlywiki-strip-headers.headers.customrequestheaders.X-Public-WebAuth-User="
       #! Public IP filter:
-      - "traefik.http.middlewares.tiddlywiki-${TIDDLYWIKI_INSTANCE:-default}-whitelist.ipwhitelist.sourcerange=${TIDDLYWIKI_PUBLIC_IP_SOURCERANGE}"
+      - "traefik.http.middlewares.tiddlywiki-${TIDDLYWIKI_INSTANCE:-default}-whitelist.ipallowlist.sourcerange=${TIDDLYWIKI_PUBLIC_IP_SOURCERANGE}"
       #! Admin IP filter:
-      - "traefik.http.middlewares.tiddlywiki-${TIDDLYWIKI_INSTANCE:-default}-admin-whitelist.ipwhitelist.sourcerange=${TIDDLYWIKI_ADMIN_IP_SOURCERANGE}"
+      - "traefik.http.middlewares.tiddlywiki-${TIDDLYWIKI_INSTANCE:-default}-admin-whitelist.ipallowlist.sourcerange=${TIDDLYWIKI_ADMIN_IP_SOURCERANGE}"
       #! Replace all forwarded paths to /index.html
       - "traefik.http.middlewares.tiddlywiki-${TIDDLYWIKI_INSTANCE:-default}-replacepath.replacepath.path=/index.html"
       #! Public Authentication:

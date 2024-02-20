@@ -75,13 +75,13 @@ services:
       - "traefik.http.routers.archivebox-${ARCHIVEBOX_INSTANCE:-default}-api-gateway.service=archivebox-${ARCHIVEBOX_INSTANCE:-default}-api-gateway"
       - "traefik.http.services.archivebox-${ARCHIVEBOX_INSTANCE:-default}-api-gateway.loadbalancer.server.port=8000"
       ## Authentication:
-      - "traefik.http.routers.archivebox-${ARCHIVEBOX_INSTANCE:-default}-api-gateway.middlewares=archivebox-${ARCHIVEBOX_INSTANCE:-default}-ipwhitelist,archivebox-${ARCHIVEBOX_INSTANCE:-default}-auth"
+      - "traefik.http.routers.archivebox-${ARCHIVEBOX_INSTANCE:-default}-api-gateway.middlewares=archivebox-${ARCHIVEBOX_INSTANCE:-default}-ipallowlist,archivebox-${ARCHIVEBOX_INSTANCE:-default}-auth"
 
       ## Anonymous access for GET /api-gateway/page ONLY:
       - "traefik.http.routers.archivebox-${ARCHIVEBOX_INSTANCE:-default}-public-api.rule=Host(`${ARCHIVEBOX_TRAEFIK_HOST}`) && Path(`/api-gateway/page`) && Method(`GET`)"
       - "traefik.http.routers.archivebox-${ARCHIVEBOX_INSTANCE:-default}-public-api.entrypoints=websecure"
       - "traefik.http.routers.archivebox-${ARCHIVEBOX_INSTANCE:-default}-public-api.service=archivebox-${ARCHIVEBOX_INSTANCE:-default}-api-gateway"
-      - "traefik.http.routers.archivebox-${ARCHIVEBOX_INSTANCE:-default}-public-api.middlewares=archivebox-${ARCHIVEBOX_INSTANCE:-default}-ipwhitelist"
+      - "traefik.http.routers.archivebox-${ARCHIVEBOX_INSTANCE:-default}-public-api.middlewares=archivebox-${ARCHIVEBOX_INSTANCE:-default}-ipallowlist"
 
 
 

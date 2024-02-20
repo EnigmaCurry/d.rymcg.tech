@@ -47,8 +47,8 @@ services:
       - "traefik.enable=true"
       - "traefik.http.routers.plausible-${PLAUSIBLE_INSTANCE:-default}.rule=Host(`${PLAUSIBLE_TRAEFIK_HOST}`)"
       - "traefik.http.routers.plausible-${PLAUSIBLE_INSTANCE:-default}.entrypoints=websecure"
-      - "traefik.http.middlewares.plausible-${PLAUSIBLE_INSTANCE:-default}-ipwhitelist.ipwhitelist.sourcerange=${PLAUSIBLE_IP_SOURCERANGE}"
-      - "traefik.http.routers.plausible-${PLAUSIBLE_INSTANCE:-default}.middlewares=plausible-${PLAUSIBLE_INSTANCE:-default}-ipwhitelist"
+      - "traefik.http.middlewares.plausible-${PLAUSIBLE_INSTANCE:-default}-ipallowlist.ipallowlist.sourcerange=${PLAUSIBLE_IP_SOURCERANGE}"
+      - "traefik.http.routers.plausible-${PLAUSIBLE_INSTANCE:-default}.middlewares=plausible-${PLAUSIBLE_INSTANCE:-default}-ipallowlist"
 
 volumes:
   db:

@@ -19,7 +19,7 @@ the `Authentication` section in `docker-compose.yaml`.
 ## Limiting traffic
 
 You can limit traffic based on source IP address by expressing a [CIDR ip range
-filter](https://doc.traefik.io/traefik/middlewares/tcp/ipwhitelist/).
+filter](https://doc.traefik.io/traefik/middlewares/tcp/ipallowlist/).
 
 Allow all IP ranges:
 

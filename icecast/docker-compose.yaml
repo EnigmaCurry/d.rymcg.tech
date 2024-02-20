@@ -46,5 +46,5 @@ services:
       - "traefik.enable=true"
       - "traefik.http.routers.icecast-${ICECAST_INSTANCE:-default}.rule=Host(`${ICECAST_TRAEFIK_HOST}`)"
       - "traefik.http.routers.icecast-${ICECAST_INSTANCE:-default}.entrypoints=websecure"
-      - "traefik.http.middlewares.icecast-${ICECAST_INSTANCE:-default}-whitelist.ipwhitelist.sourcerange=${ICECAST_IP_SOURCERANGE}"
+      - "traefik.http.middlewares.icecast-${ICECAST_INSTANCE:-default}-whitelist.ipallowlist.sourcerange=${ICECAST_IP_SOURCERANGE}"
       - "traefik.http.routers.icecast-${ICECAST_INSTANCE:-default}.middlewares=icecast-${ICECAST_INSTANCE:-default}-whitelist"

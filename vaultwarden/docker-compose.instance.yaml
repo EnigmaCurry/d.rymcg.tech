@@ -40,8 +40,8 @@ services:
       - "traefik.http.routers.(@= router @)-websocket.entrypoints=websecure"
       - "traefik.http.services.(@= router @)-websocket.loadbalancer.server.port=3012"
 
-      #@ enabled_middlewares.append("{}-ipwhitelist".format(router))
-      - "traefik.http.middlewares.(@= router @)-ipwhitelist.ipwhitelist.sourcerange=(@= ip_sourcerange @)"
+      #@ enabled_middlewares.append("{}-ipallowlist".format(router))
+      - "traefik.http.middlewares.(@= router @)-ipallowlist.ipallowlist.sourcerange=(@= ip_sourcerange @)"
 
       #@ if enable_http_auth:
       #@ enabled_middlewares.append("{}-basicauth".format(router))

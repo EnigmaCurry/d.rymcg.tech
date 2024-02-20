@@ -19,8 +19,8 @@ services:
       - "traefik.http.routers.jupyterlab-${JUPYTERLAB_INSTANCE:-default}.rule=Host(`${JUPYTERLAB_TRAEFIK_HOST}`)"
       - "traefik.http.routers.jupyterlab-${JUPYTERLAB_INSTANCE:-default}.entrypoints=websecure"
       - "traefik.http.services.jupyterlab-${JUPYTERLAB_INSTANCE:-default}.loadBalancer.server.port=8888"
-      - "traefik.http.middlewares.jupyterlab-${JUPYTERLAB_INSTANCE:-default}-ipwhitelist.ipwhitelist.sourcerange=${JUPYTERLAB_IP_SOURCERANGE}"
-      - "traefik.http.routers.jupyterlab-${JUPYTERLAB_INSTANCE:-default}.middlewares=jupyterlab-${JUPYTERLAB_INSTANCE:-default}-ipwhitelist"
+      - "traefik.http.middlewares.jupyterlab-${JUPYTERLAB_INSTANCE:-default}-ipallowlist.ipallowlist.sourcerange=${JUPYTERLAB_IP_SOURCERANGE}"
+      - "traefik.http.routers.jupyterlab-${JUPYTERLAB_INSTANCE:-default}.middlewares=jupyterlab-${JUPYTERLAB_INSTANCE:-default}-ipallowlist"
     volumes:
       - work:/home/jovyan/work
 

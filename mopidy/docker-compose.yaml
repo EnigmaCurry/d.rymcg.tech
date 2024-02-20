@@ -37,7 +37,7 @@ services:
       - "traefik.tcp.routers.mopidy-${MOPIDY_INSTANCE:-default}.entrypoints=mpd"
       - "traefik.tcp.routers.mopidy-${MOPIDY_INSTANCE:-default}.service=mopidy-${MOPIDY_INSTANCE:-default}"
       - "traefik.tcp.services.mopidy-${MOPIDY_INSTANCE:-default}.loadBalancer.server.port=6600"
-      - "traefik.tcp.middlewares.mopidy-${MOPIDY_INSTANCE:-default}-whitelist.ipwhitelist.sourcerange=${MOPIDY_MPD_IP_SOURCERANGE}"
+      - "traefik.tcp.middlewares.mopidy-${MOPIDY_INSTANCE:-default}-whitelist.ipallowlist.sourcerange=${MOPIDY_MPD_IP_SOURCERANGE}"
       - "traefik.tcp.routers.mopidy-${MOPIDY_INSTANCE:-default}.middlewares=mopidy-${MOPIDY_INSTANCE:-default}-whitelist"
 
   snapserver:
@@ -56,19 +56,19 @@ services:
       - "traefik.http.services.snapserver-${MOPIDY_INSTANCE:-default}.loadbalancer.server.port=1780"
       - "traefik.http.routers.snapserver-${MOPIDY_INSTANCE:-default}.rule=Host(`${MOPIDY_TRAEFIK_HOST}`)"
       - "traefik.http.routers.snapserver-${MOPIDY_INSTANCE:-default}.entrypoints=websecure"
-      - "traefik.http.middlewares.snapserver-${MOPIDY_INSTANCE:-default}-whitelist.ipwhitelist.sourcerange=${MOPIDY_SNAPCAST_IP_SOURCERANGE}"
+      - "traefik.http.middlewares.snapserver-${MOPIDY_INSTANCE:-default}-whitelist.ipallowlist.sourcerange=${MOPIDY_SNAPCAST_IP_SOURCERANGE}"
       - "traefik.http.routers.snapserver-${MOPIDY_INSTANCE:-default}.middlewares=snapserver-${MOPIDY_INSTANCE:-default}-whitelist"
       ## Audio streaming:
       - "traefik.tcp.routers.snapserver-audio-${MOPIDY_INSTANCE:-default}.rule=ClientIP(`0.0.0.0/0`)"
       - "traefik.tcp.routers.snapserver-audio-${MOPIDY_INSTANCE:-default}.entrypoints=snapcast"
       - "traefik.tcp.routers.snapserver-audio-${MOPIDY_INSTANCE:-default}.service=snapserver-audio-${MOPIDY_INSTANCE:-default}"
       - "traefik.tcp.services.snapserver-audio-${MOPIDY_INSTANCE:-default}.loadBalancer.server.port=1704"
-      - "traefik.tcp.middlewares.snapserver-audio-${MOPIDY_INSTANCE:-default}-whitelist.ipwhitelist.sourcerange=${MOPIDY_SNAPCAST_IP_SOURCERANGE}"
+      - "traefik.tcp.middlewares.snapserver-audio-${MOPIDY_INSTANCE:-default}-whitelist.ipallowlist.sourcerange=${MOPIDY_SNAPCAST_IP_SOURCERANGE}"
       - "traefik.tcp.routers.snapserver-audio-${MOPIDY_INSTANCE:-default}.middlewares=snapserver-audio-${MOPIDY_INSTANCE:-default}-whitelist"
       ## Control protocol:
       - "traefik.tcp.routers.snapserver-control-${MOPIDY_INSTANCE:-default}.rule=ClientIP(`0.0.0.0/0`)"
       - "traefik.tcp.routers.snapserver-control-${MOPIDY_INSTANCE:-default}.entrypoints=snapcast_control"
       - "traefik.tcp.routers.snapserver-control-${MOPIDY_INSTANCE:-default}.service=snapserver-control-${MOPIDY_INSTANCE:-default}"
       - "traefik.tcp.services.snapserver-control-${MOPIDY_INSTANCE:-default}.loadBalancer.server.port=1705"
-      - "traefik.tcp.middlewares.snapserver-control-${MOPIDY_INSTANCE:-default}-whitelist.ipwhitelist.sourcerange=${MOPIDY_SNAPCAST_CONTROL_IP_SOURCERANGE}"
+      - "traefik.tcp.middlewares.snapserver-control-${MOPIDY_INSTANCE:-default}-whitelist.ipallowlist.sourcerange=${MOPIDY_SNAPCAST_CONTROL_IP_SOURCERANGE}"
       - "traefik.tcp.routers.snapserver-control-${MOPIDY_INSTANCE:-default}.middlewares=snapserver-control-${MOPIDY_INSTANCE:-default}-whitelist"

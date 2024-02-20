@@ -41,8 +41,8 @@ services:
       - "traefik.http.routers.(@= router @).rule=Host(`(@= traefik_host @)`)"
       - "traefik.http.routers.(@= router @).entrypoints=websecure"
       - "traefik.http.routers.(@= router @).service=(@= router @)"
-      #@ enabled_middlewares.append("{}-ipwhitelist".format(router))
-      - "traefik.http.middlewares.(@= router @)-ipwhitelist.ipwhitelist.sourcerange=(@= ip_sourcerange @)"
+      #@ enabled_middlewares.append("{}-ipallowlist".format(router))
+      - "traefik.http.middlewares.(@= router @)-ipallowlist.ipallowlist.sourcerange=(@= ip_sourcerange @)"
 
       #@ if enable_http_auth:
       #@ enabled_middlewares.append("{}-basicauth".format(router))

@@ -93,21 +93,21 @@ services:
       - "traefik.http.routers.mailu-redirect.entrypoints=websecure"
       - "traefik.http.middlewares.mailu-redirect.redirectregex.regex=^https://${MAILU_TRAEFIK_HOST}/(.*)"
       - "traefik.http.middlewares.mailu-redirect.redirectregex.replacement=https://${MAILU_TRAEFIK_HOST}:442/$${1}"
-      - "traefik.http.routers.mailu-redirect.middlewares=vpn-ipwhitelist@docker,mailu-redirect@docker"
+      - "traefik.http.routers.mailu-redirect.middlewares=vpn-ipallowlist@docker,mailu-redirect@docker"
       ## SMTP :465 with TLS passthrough:
       - "traefik.tcp.routers.mailu-smtp.rule=HostSNI(`${MAILU_TRAEFIK_HOST}`)"
       - "traefik.tcp.routers.mailu-smtp.entrypoints=smtp"
       - "traefik.tcp.routers.mailu-smtp.tls.passthrough=true"
       - "traefik.tcp.routers.mailu-smtp.service=mailu-smtp"
       - "traefik.tcp.services.mailu-smtp.loadbalancer.server.port=465"
-      - "traefik.tcp.routers.mailu-smtp.middlewares=vpn-ipwhitelist@docker"
+      - "traefik.tcp.routers.mailu-smtp.middlewares=vpn-ipallowlist@docker"
       ## IMAP :993 with TLS passthrough:
       - "traefik.tcp.routers.mailu-imap.rule=HostSNI(`${MAILU_TRAEFIK_HOST}`)"
       - "traefik.tcp.routers.mailu-imap.entrypoints=imap"
       - "traefik.tcp.routers.mailu-imap.tls.passthrough=true"
       - "traefik.tcp.routers.mailu-imap.service=mailu-imap"
       - "traefik.tcp.services.mailu-imap.loadbalancer.server.port=993"
-      - "traefik.tcp.routers.mailu-imap.middlewares=vpn-ipwhitelist@docker"
+      - "traefik.tcp.routers.mailu-imap.middlewares=vpn-ipallowlist@docker"
 
   resolver:
     image: ${DOCKER_ORG}/${DOCKER_PREFIX:-}unbound:${MAILU_VERSION}
