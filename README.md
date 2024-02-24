@@ -350,6 +350,12 @@ For Debian or Ubuntu, run:
 apt-get install bash build-essential openssl apache2-utils xdg-utils jq sshfs wireguard curl inotify-tools
 ```
 
+For Fedora, run:
+
+```
+dnf install bash openssl xdg-utils jq sshfs curl inotify-tools httpd-tools make wireguard-tools
+```
+
 ### Setup SSH access to the server
 
 Make sure that your local workstation user account is setup for SSH
