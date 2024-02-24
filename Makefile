@@ -29,6 +29,7 @@ config: script-wizard check-deps check-docker
 	@echo "into passwords.json (in each project directory). If you were to press Enter without answering the question,"
 	@echo "the default answer is No (displayed as y/N). You may change the default response to Yes (displayed as Y/n)."
 	@${BIN}/confirm $$([[ "$$(${BIN}/dotenv -f ${ENV_FILE} get DEFAULT_SAVE_CLEARTEXT_PASSWORDS_JSON)"  == "true" ]] && echo yes || echo no) "Do you want to save cleartext passwords in passwords.json by default" "?" && ${BIN}/reconfigure ${ROOT_ENV} DEFAULT_SAVE_CLEARTEXT_PASSWORDS_JSON=true || ${BIN}/reconfigure ${ROOT_ENV} DEFAULT_SAVE_CLEARTEXT_PASSWORDS_JSON=false
+	@[[ -n "${USERNAME}" ]] && echo && echo "WARNING: the USERNAME variable is already set in your environment. This configuration is non-standard (Bash should use the USER variable instead). Having USERNAME set by default will interfere with the 'make shell' command. Some distros (eg. Fedora) set USERNAME by default. You must unset this variable before using the 'make shell' target. You can unset this variable in your ~/.bashrc file by adding the line: 'unset USERNAME'" | fold -s && echo
 
 .PHONY: build # Build all container images
 build:
