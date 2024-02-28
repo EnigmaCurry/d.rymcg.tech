@@ -73,11 +73,27 @@ pull:
 wait:
 	@CONTAINER_IDS= ${BIN}/wait_until_healthy "$$(make --no-print-directory docker-compose-lifecycle-cmd EXTRA_ARGS='ps -a -q')"
 
-.PHONY: labels # Print the docker labels of the given service (SERVICE=name argument required)
-labels:
-	@if test "${service}" == ""; then ${BIN}/fault "Missing SERVICE argument."; fi
-	@docker inspect ${PROJECT}-${service}-1  | jq .[].Config.Labels
-
 .PHONY: network-subnet # Find the docker subnet CIDR for the current project/instance
 network-subnet:
 	@docker network inspect ${PROJECT}_${INSTANCE} | jq -r .[].IPAM.Config[].Subnet
+
+.PHONY: inspect # Inspect the given service (SERVICE=name argument required)
+inspect:
+	@if test "${service}" == ""; then ${BIN}/fault "Missing SERVICE argument."; fi
+	@docker inspect ${PROJECT}-${service}-1  | jq ${JQARGS}
+
+.PHONY: inspect-env # Print the environment variables for the given service 
+inspect-env:
+	@make --no-print-directory inspect JQARGS=".[].Config.Env" | jq -r -c '.[]'
+
+.PHONY: inspect-labels # Print the docker labels of the given service (SERVICE=name argument required)
+inspect-labels:
+	@make --no-print-directory inspect JQARGS=".[].Config.Labels"
+
+.PHONY: inspect-network # Print the network config of the given service 
+inspect-network:
+	@make --no-print-directory inspect JQARGS=".[].NetworkSettings.Networks"
+
+.PHONY: inspect-mounts # Print the volume mounts of the given service
+inspect-mounts:
+	@make --no-print-directory inspect JQARGS=".[].Mounts"
