@@ -2,13 +2,20 @@
 
 You can use [DigitalOcean](https://www.digitalocean.com/) to host a docker server online.
 
+Note: this doc leaves out a lot of important bits. Read the main
+[d.rymcg.tech README](README.md) to fill in those gaps!
+
 ## Create a droplet on DigitalOcean:
 
  * Create a DigitalOcean account and login to
    [cloud.digitalocean.com](https://cloud.digitalocean.com)
  * Click `Create`, then `Droplet`
  * Navigate to the `Marketplace` tab, then choose the `Docker XX.X on Ubuntu` image.
- * Choose whatever droplet size you need (at least 2GB ram recommended for most installs).
+ * Choose whatever droplet size you need (at least 2GB ram recommended
+   for most installs, but to economize you can [totally get away with
+   swap and/or Zram](https://blog.rymcg.tech/blog/linux/zram/). I
+   regularly use a 512MB+zram droplet and use it for all development
+   purposes).
  * Optional: Add a block storage device, in order to store your Docker volumes.
    (This is useful to store data separate from the droplet lifecycle. If your
    basic droplet size is sufficient, and you perform regular backups, this might

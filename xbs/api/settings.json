@@ -1,9 +1,0 @@
-{
-  "db": {
-    "host": "db",
-    "status": {
-      "message": "welcome to my XBS service!"
-    },
-    "location": "us"
-  }
-}

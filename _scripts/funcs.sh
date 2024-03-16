@@ -3,9 +3,16 @@
 BIN=$(dirname ${BASH_SOURCE})
 ROOT_DIR=${ROOT_DIR:-$(dirname ${BIN})}
 
-error(){ echo "Error: $@" >/dev/stderr; }
-fault(){ test -n "$1" && error $1; echo "Exiting." >/dev/stderr; exit 1; }
+stderr(){ echo "$@" >/dev/stderr; }
+error(){ stderr "Error: $@"; }
+fault(){ test -n "$1" && error $1; stderr "Exiting."; exit 1; }
+cancel(){ stderr "Canceled."; exit 2; }
 exe() { (set -x; "$@"); }
+print_array(){ printf '%s\n' "$@"; }
+trim_trailing_whitespace() { sed -e 's/[[:space:]]*$//'; }
+trim_leading_whitespace() { sed -e 's/^[[:space:]]*//'; }
+trim_whitespace() { trim_leading_whitespace | trim_trailing_whitespace; }
+wizard() { ${BIN}/script-wizard "$@"; }
 check_var(){
     local __missing=false
     local __vars="$@"
@@ -28,10 +35,24 @@ check_num(){
     fi
 }
 
+debug_var() {
+    local var=$1
+    check_var var
+    stderr "## DEBUG: ${var}=${!var}"
+}
+
+debug_array() {
+    local -n ary=$1
+    echo "## DEBUG: Array '$1' contains:"
+    for i in "${!ary[@]}"; do
+        echo "## ${i} = ${ary[$i]}"
+    done
+}
+
 ask() {
     ## Ask the user a question and set the given variable name with their answer
     local __prompt="${1}"; local __var="${2}"; local __default="${3}"
-    read -e -p "${__prompt}"$'\x0a\e[32m:\e[0m ' -i "${__default}" ${__var}
+    read -e -p "${__prompt}"$'\x0a: ' -i "${__default}" ${__var}
     export ${__var}
 }
 
@@ -40,7 +61,7 @@ ask_no_blank() {
     ## If the answer is blank, repeat the question.
     local __prompt="${1}"; local __var="${2}"; local __default="${3}"
     while true; do
-        read -e -p "${__prompt}"$'\x0a\e[32m:\e[0m ' -i "${__default}" ${__var}
+        read -e -p "${__prompt}"$'\x0a: ' -i "${__default}" ${__var}
         export ${__var}
         [[ -z "${!__var}" ]] || break
     done
@@ -62,6 +83,12 @@ require_input() {
     read -e -p "$1$dflt: " $2
     eval $2=${!2:-${3}}
     test -v ${!2} && fault "$2 must not be blank."
+}
+
+make_var_name() {
+    # Make an environment variable out of any string
+    # Replaces all invalid characters with a single _
+    echo "$@" | sed -e 's/  */_/g' -e 's/--*/_/g' -e 's/[^a-zA-Z0-9_]/_/g' -e 's/__*/_/g' -e 's/.*/\U&/' -e 's/__*$//' -e 's/^__*//'
 }
 
 docker_run_with_env() {
@@ -100,12 +127,30 @@ get_root_domain() {
     fi
 }
 
+dotenv_get() {
+    VAR=$1; shift
+    check_var ENV_FILE VAR
+    if [[ ! -f ${ENV_FILE} ]]; then
+        fault "Missing ENV_FILE :: ${ENV_FILE}"
+    else
+        VAL="$(${BIN}/dotenv -f ${ENV_FILE} get ${VAR})"
+        # Check if the first and last characters are double quotes
+        if [[ ${VAL:0:1} == "\"" && ${VAL: -1} == "\"" ]]; then
+            # Remove the first and last character (the double quotes)
+            VAL="${VAL:1:${#VAL}-2}"
+        fi
+        check_var VAL
+        echo "${VAL}"
+        #stderr "## dotenv_get ${VAR}=${VAL}"
+    fi    
+}
+
 docker_compose() {
     local ENV_FILE=${ENV_FILE:-.env_$(${BIN}/docker_context)}
-    local PROJECT_NAME="$(basename \"$PWD\")"
+    local PROJECT_NAME="$(basename "$PWD")"
     if [[ -n "${instance:-${INSTANCE}}" ]] && [[ "${ENV_FILE}" != ".env_${DOCKER_CONTEXT}_${instance:-${INSTANCE}}" ]]; then
         ENV_FILE="${ENV_FILE}_${instance:-${INSTANCE}}"
-        PROJECT_NAME="$(basename \"$PWD\")_${instance:-${INSTANCE}}"
+        PROJECT_NAME="$(basename "$PWD")_${instance:-${INSTANCE}}"
     fi
     set -ex
     docker compose ${DOCKER_COMPOSE_FILE_ARGS:--f docker-compose.yaml} --env-file="${ENV_FILE}" --project-name="${PROJECT_NAME}" "$@"
@@ -135,31 +180,86 @@ docker_exec() {
 
 ytt() {
     set -e
-    docker image inspect localhost/ytt >/dev/null || docker build -t localhost/ytt -f- . >/dev/null <<'EOF'
+    local IMAGE=localhost/ytt
+    docker image inspect ${IMAGE} >/dev/null || docker build -t ${IMAGE} -f- . >/dev/null <<'EOF'
 FROM debian:stable-slim as ytt
 ARG YTT_VERSION=v0.44.3
 RUN apt-get update && apt-get install -y wget && wget "https://github.com/vmware-tanzu/carvel-ytt/releases/download/${YTT_VERSION}/ytt-linux-$(dpkg --print-architecture)" -O ytt && install ytt /usr/local/bin/ytt
 EOF
     non_template_commands_pattern="(help|completion|fmt|version)"
     if [[ "$@" == "" ]]; then
-        CMD="docker run --rm -i localhost/ytt ytt help"
+        CMD="docker run --rm -i ${IMAGE} ytt help"
     elif [[ "$1" =~ $non_template_commands_pattern ]]; then
-        CMD="docker run --rm -i localhost/ytt ytt ${@}"
+        CMD="docker run --rm -i ${IMAGE} ytt ${@}"
     else
-        CMD="docker run --rm -i localhost/ytt ytt -f- ${@}"
+        CMD="docker run --rm -i ${IMAGE} ytt -f- ${@}"
     fi
     eval $CMD
 }
 
-volume_rsync() {
-    docker image inspect localhost/rsync >/dev/null || docker build -t localhost/rsync ${ROOT_DIR}/_terminal/rsync
-    if [[ $# -gt 0 ]]; then
-        local VOLUME="${1}"; shift
-        docker volume inspect "${VOLUME}" >/dev/null
-        rsync --rsh="docker run -i --rm -v ${VOLUME}:/data -w /data localhost/rsync" "$@"
+yq() {
+    set -e
+    local IMAGE=localhost/yq
+    docker image inspect ${IMAGE} >/dev/null || docker build -t ${IMAGE} -f- . >/dev/null <<'EOF'
+FROM debian:stable-slim as yq
+RUN apt-get update && apt-get install -y yq
+EOF
+    docker run --rm -i "${IMAGE}" yq "${@}"
+}
+
+read_stdin_or_args() {
+    # Read from stdin or args but not both:
+    if [ -t 0 ]; then
+        # Reading from command line arguments:
+        if [[ $# -lt 1 ]]; then
+            fault "No input given"
+        fi        
+        echo "$@"
     else
-        fault "Usage: volume_ls VOLUME_NAME {ARGS}"
+        if [[ $# -gt 0 ]]; then
+            fault "Cannot process stdin and command arguments at the same time"
+        fi        
+        cat
     fi
+}
+
+yaml_to_json() {
+    read_stdin_or_args "$@" | yq -j -c
+}
+
+json_to_yaml() {
+    read_stdin_or_args "$@" | yq -y
+}
+
+array_to_json() {
+    # array_to_json "${THINGS[@]}"
+    printf '%s\n' "$@" | jq -R . | jq -c -s .
+}
+
+array_join() {
+    # array_join "," "${THINGS[@]}"
+    array_to_json "$@" | jq -r 'join(",")'
+}
+
+volume_rsync() {
+    if [[ $# -lt 2 ]]; then
+        fault "Usage: volume_rsync VOLUME ARGS..."
+    else
+        local VOLUME="${1}"; shift
+        check_var VOLUME
+    fi
+    # Check that the localhost/rsync image exists, if not build it:
+    docker image inspect localhost/rsync >/dev/null || docker build -t localhost/rsync ${ROOT_DIR}/_terminal/rsync
+    if [[ "${DISABLE_VOLUME_RSYNC_CHECKS}" != "true" ]]; then
+        echo "Doing initial rsync checks for volume: ${VOLUME} ..."
+        # Check that the volume we will sync to already exists:
+        if ! docker volume inspect "${VOLUME}" >/dev/null; then
+            fault "You must create the '${VOLUME}' volume before running this."
+        fi
+    fi
+    echo "Syncing ..."
+    TIMEFORMAT='total time: %2Rs'
+    time rsync --rsh="docker run -i --rm -v ${VOLUME}:/data -w /data localhost/rsync" "$@"
 }
 
 volume_ls() {
@@ -188,10 +288,6 @@ random_port() {
     comm -23 <(seq "${LOW_PORT}" "${HIGH_PORT}") <(ss -tan | awk '{print $4}' | cut -d':' -f2 | \
                                                        grep "[0-9]\{1,5\}" | sort | uniq) 2>/dev/null | \
         shuf 2>/dev/null | head -n 1; true
-}
-
-wizard() {
-    ${BIN}/script-wizard "$@"
 }
 
 color() {
@@ -229,6 +325,33 @@ color() {
     echo -en "${COLOR_CODE_PREFIX}${LIGHT};${COLOR}${COLOR_CODE_SUFFIX}${TEXT}${COLOR_CODE_PREFIX}0;0${COLOR_CODE_SUFFIX}"
 }
 
+colorize() {
+    ## Highlight text patterns in stdin with ANSI color
+    set -e
+    if [[ $# -lt 2 ]]; then
+        fault "Not enough args: expected COLOR and PATTERN arguments"
+    fi
+    local COLOR=$1; shift
+    local PATTERN=$1; shift
+    check_var COLOR PATTERN
+    case "${COLOR}" in
+        "black") COLOR=30;;
+        "red") COLOR=31;;
+        "green") COLOR=32;;
+        "brown") COLOR=33;;
+        "orange") COLOR=33;;
+        "blue") COLOR=34;;
+        "purple") COLOR=35;;
+        "cyan") COLOR=36;;
+        "white") COLOR=37;;
+        *) fault "Unknown color"
+    esac
+    PATTERN='^.*'"${PATTERN}"'.*$|'
+    readarray stdin
+    echo "${stdin[@]}" | \
+        GREP_COLORS="mt=01;${COLOR}" grep --color -E "${PATTERN}"
+}
+
 element_in_array () {
   local e match="$1"; shift;
   for e; do [[ "$e" == "$match" ]] && return 0; done
@@ -255,7 +378,6 @@ version_spec() {
         fault "The version lock spec file is missing: ${VERSION_LOCK}"
     fi
     # Grab the locked version of APP from the lock file:
-    set -x
     local LOCKED_VERSION=$(jq -r ".dependencies.\"${APP}\"" ${ROOT_DIR}/.tools.lock.json)
     (test -z "${LOCKED_VERSION}" || test "${LOCKED_VERSION}" == "null") && fault "The app '${APP}' is not listed in ${VERSION_LOCK}"
 
@@ -265,5 +387,260 @@ version_spec() {
     # But error if the installed version is different than the locked version:
     if [[ -n "${CHECK_VERSION}" ]] && [[ "${VERSION}" != "${CHECK_VERSION}" ]]; then
         fault "Installed ${APP} version ${CHECK_VERSION} does not match the locked version: ${LOCKED_VERSION}"
+    fi
+}
+
+text_centered() {
+    local columns="$1"
+    check_var columns
+    shift
+    local text="$@"
+    check_var text
+    printf "%*s\n" $(( (${#text} + columns) / 2)) "$text"
+}
+
+text_centered_full() {
+    local columns="$(tput cols)"
+    text_centered ${columns} "$@"
+}
+
+text_centered_wrap() {
+    local wrap="$1"
+    check_var wrap
+    shift;
+    local wrap_rev="${wrap}"
+    wrap_rev=$(text_reverse "${wrap}")
+    local columns="$1"
+    check_var columns
+    shift;
+    local wrap_length=${#wrap}
+    local text="$@"
+    check_var text
+    centered_text=$(text_centered "${columns}" "${text}")
+    trailing_whitespace=$(text_repeat $((${#centered_text}-${#text})) " ")
+    whitespace_offset=${wrap_length}
+    new_text="${wrap}${centered_text:${#wrap}}${trailing_whitespace:${whitespace_offset}}${wrap}"
+    if [[ $((wrap_length%2)) -eq 0 ]] && [[ $((${#new_text}%2)) -eq 1 ]]; then
+        whitespace_offset=$((whitespace_offset-1))
+    elif [[ $((wrap_length%2)) -eq 1 ]] && [[ $((${#new_text}%2)) -eq 1 ]]; then
+        whitespace_offset=$((whitespace_offset-1))
+    fi
+    new_text="${wrap}${centered_text:${#wrap}}${trailing_whitespace:${whitespace_offset}}${wrap_rev}"
+    echo "${new_text}"
+}
+
+text_repeat() {
+    local repeat="$1";
+    check_var repeat
+    shift
+    local text="$@"
+    check_var text
+    readarray -t repeated < <(yes "${text}" | head -n ${repeat})
+    printf "%s" "${repeated[@]}"
+    echo
+}
+
+text_reverse() {
+    local text="$@"
+    check_var text
+    for((i=${#text}-1;i>=0;i--)); do rev="$rev${text:$i:1}"; done
+    echo "${rev}"
+}
+
+text_mirror() {
+    local text="$@"
+    check_var text
+    rev=$(text_reverse "${text}")
+    echo "${text}${rev}"
+}
+
+text_line() {
+    # Fill a line of the target width with a repeating pattern
+    # If width is 0, fill the entire line.
+    local width="$1";
+    local pattern="$2";
+    check_var width
+    shift 2
+    if [[ "${width}" == "0" ]]; then
+        width="$(tput cols)"
+    fi
+    local pattern_length="${#pattern}"
+    text_repeat $((width/pattern_length)) "${pattern}"
+    if [[ "$#" -gt 0 ]]; then
+        echo "$(text_centered "$*")"
+        text_repeat $((width/pattern_length)) "${pattern}"
+    fi
+}
+
+separator() {
+    local pattern="$1"
+    check_var pattern
+    shift
+    local width="$1"
+    check_var width
+    shift
+    if [[ "${width}" == "0" ]]; then
+        width="$(tput cols)"
+    fi
+    local text="$@"
+    echo
+    local sep=$(text_line ${width} "${pattern}")
+    local index_half=$((${#sep}/2))
+    sep="${sep:0:${index_half}}"
+    sep=$(text_mirror "${sep}")
+    local columns="${#sep}"
+    echo "${sep}"
+    if [[ -n "${text}" ]]; then
+        text_centered_wrap "${pattern}" "${columns}" "${text}"
+        echo "${sep}"
+    fi
+    echo
+}
+
+parse_vars_from_env_file() {
+    local f=$1
+    check_var f
+    grep -oP "^[a-zA-Z_0-9]+=" ${f} | sed 's/=//'
+}
+
+get_all_projects() {
+    ROOT_DIR=$(realpath ${BIN}/..)
+    find "${ROOT_DIR}" -maxdepth 1 -type d -printf "%P\n" | grep -v "^_" | grep -v "^\." | sort -u | xargs -iXX /bin/bash -c "test -f ${ROOT_DIR}/XX/Makefile && echo XX"
+}
+
+wait_until_healthy() {
+    echo "Waiting until all services are started and become healthy ..."
+    local containers=()
+
+    while IFS= read -r CONTAINER_ID; do
+        local inspect_json=$(docker inspect ${CONTAINER_ID})
+        local name=$(echo "${inspect_json}" | jq -r ".[0].Name" | sed 's|^/||')
+        containers+=("$name")
+    done <<< "$@"
+    local attempts=0
+    while true; do
+        attempts=$((attempts+1))
+        if [[ "${#containers}" == "0" ]]; then
+            break
+        fi
+        local random_container=$(random_element "${containers[@]}")
+        if [[ -z "${random_container}" ]]; then
+            continue
+        fi
+        local inspect_json=$(docker inspect ${random_container})
+        local name=$(echo "${inspect_json}" | jq -r ".[0].Name" | sed 's|^/||')
+        local status=$(echo "${inspect_json}" | jq -r ".[0].State.Status")
+        local health=$(echo "${inspect_json}" | jq -r ".[0].State.Health.Status")
+        if [[ "$status" == "running" ]] && ([[ "$health" == "healthy" ]] || [[ "$health" == "null" ]]); then
+            containers=( "${containers[@]/${name}}" )
+            if [[ "${#containers}" == "0" ]]; then
+                break
+            elif [[ "${attempts}" -gt 15 ]]; then
+                echo "Still waiting for services to finish starting: ${containers[@]}"
+            fi
+        fi
+
+        if [[ "${attempts}" -gt 150 ]]; then
+            fault "Gave up waiting for services to start."
+        fi
+        if [[ "$((attempts%5))" == 0 ]]; then
+            echo "Still waiting for services to finish starting: ${containers[@]}"
+        fi
+        sleep 2
+    done
+    echo "All services healthy."
+}
+
+random_element() {
+    local arr=("$@")
+    if [[ "${#@}" -lt 1 ]]; then
+        fault "Need more args"
+    fi
+    echo "${arr[ $RANDOM % ${#arr[@]} ]}"
+}
+
+confirm() {
+    ## Confirm with the user.
+    ## Check env for the var YES, if it equals "yes" then bypass this confirm.
+    ## This version depends on `script-wizard` being installed.
+    test ${YES:-no} == "yes" && exit 0
+
+    local default=$1; local prompt=$2; local question=${3:-". Proceed?"}
+
+    check_var default prompt question
+
+    if [[ -f ${BIN}/script-wizard ]]; then
+        ## Check if script-wizard is installed, and prefer to use that:
+        local exit_code=0
+        wizard confirm --cancel-code=2 "$prompt$question" "$default" && exit_code=$? || exit_code=$?
+        if [[ "${exit_code}" == "2" ]]; then
+            cancel
+        fi
+        return ${exit_code}
+    else
+        ## Otherwise use a pure bash version:
+        if [[ $default == "y" || $default == "yes" || $default == "ok" ]]; then
+            dflt="Y/n"
+        else
+            dflt="y/N"
+        fi
+
+        read -e -p "${prompt}${question} (${dflt}): " answer
+        answer=${answer:-${default}}
+
+        if [[ ${answer,,} == "y" || ${answer,,} == "yes" || ${answer,,} == "ok" ]]; then
+            return 0
+        else
+            return 1
+        fi
+    fi
+}
+
+choose() {
+    local exit_code=0
+    wizard choose --cancel-code=2 "$@" && exit_code=$? || exit_code=$?
+    if [[ "${exit_code}" == "2" ]]; then
+        cancel
+    fi
+    return ${exit_code}
+}
+
+select_wizard() {
+    local exit_code=0
+    wizard select --cancel-code=2 "$@" && exit_code=$? || exit_code=$?
+    if [[ "${exit_code}" == "2" ]]; then
+        cancel
+    fi
+    return ${exit_code}
+}
+
+netmask_to_prefix() {
+    #thanks agc https://stackoverflow.com/a/50419919
+    c=0 x=0$( printf '%o' ${1//./ } )
+    while [ $x -gt 0 ]; do
+        let c+=$((x%2)) 'x>>=1'
+    done
+    echo $c ;
+}
+
+prefix_to_netmask () {
+    #thanks https://forum.archive.openwrt.org/viewtopic.php?id=47986&p=1#p220781
+    set -- $(( 5 - ($1 / 8) )) 255 255 255 255 $(( (255 << (8 - ($1 % 8))) & 255 )) 0 0 0
+    [ $1 -gt 1 ] && shift $1 || shift
+    echo ${1-0}.${2-0}.${3-0}.${4-0}
+}
+
+validate_ip_address () {
+    #thanks https://stackoverflow.com/a/21961938
+    echo "$@" | grep -o -E  '(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)' >/dev/null
+}
+
+validate_ip_network() {
+    #thanks https://stackoverflow.com/a/21961938
+    PREFIX=$(echo "$@" | grep -o -P "/\K[[:digit:]]+$")
+    if [[ "${PREFIX}" -ge 0 ]] && [[ "${PREFIX}" -le 32 ]]; then
+        echo "$@" | grep -o -E  '(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)/[[:digit:]]+' >/dev/null
+    else
+        return 1
     fi
 }

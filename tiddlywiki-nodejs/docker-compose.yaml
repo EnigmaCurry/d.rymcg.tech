@@ -26,7 +26,7 @@ services:
       - "traefik.http.routers.tiddlywiki-static-${TIDDLYWIKI_NODEJS_INSTANCE:-default}.middlewares=tiddlywiki-static-${TIDDLYWIKI_NODEJS_INSTANCE:-default}-whitelist"
       #! Middlewares
       #! IP filter:
-      - "traefik.http.middlewares.tiddlywiki-static-${TIDDLYWIKI_NODEJS_INSTANCE:-default}-whitelist.ipwhitelist.sourcerange=${TIDDLYWIKI_PUBLIC_IP_SOURCERANGE}"
+      - "traefik.http.middlewares.tiddlywiki-static-${TIDDLYWIKI_NODEJS_INSTANCE:-default}-whitelist.ipallowlist.sourcerange=${TIDDLYWIKI_PUBLIC_IP_SOURCERANGE}"
 
       #! /logout/logged_out:
       - "traefik.http.routers.tiddlywiki-static-${TIDDLYWIKI_NODEJS_INSTANCE:-default}-logged-out.rule=Host(`${TIDDLYWIKI_NODEJS_TRAEFIK_HOST}`) && Path(`/logout/logged_out.html`)"
@@ -115,7 +115,7 @@ services:
       - "traefik.http.routers.tiddlywiki-nodejs-${TIDDLYWIKI_NODEJS_INSTANCE:-default}.middlewares=tiddlywiki-nodejs-${TIDDLYWIKI_NODEJS_INSTANCE:-default}-whitelist,tiddlywiki-nodejs-${TIDDLYWIKI_NODEJS_INSTANCE:-default}-auth,tiddlywiki-nodejs-${TIDDLYWIKI_NODEJS_INSTANCE:-default}-login-redirect,tiddlywiki-nodejs-${TIDDLYWIKI_NODEJS_INSTANCE:-default}-logout-redirect"
       #! Middlewares
       #! IP filter:
-      - "traefik.http.middlewares.tiddlywiki-nodejs-${TIDDLYWIKI_NODEJS_INSTANCE:-default}-whitelist.ipwhitelist.sourcerange=${TIDDLYWIKI_NODEJS_IP_SOURCERANGE}"
+      - "traefik.http.middlewares.tiddlywiki-nodejs-${TIDDLYWIKI_NODEJS_INSTANCE:-default}-whitelist.ipallowlist.sourcerange=${TIDDLYWIKI_NODEJS_IP_SOURCERANGE}"
       #! Authentication:
       - "traefik.http.middlewares.tiddlywiki-nodejs-${TIDDLYWIKI_NODEJS_INSTANCE:-default}-auth.basicauth.users=${TIDDLYWIKI_NODEJS_HTTP_AUTH}"
       #! Redirect /login back to /

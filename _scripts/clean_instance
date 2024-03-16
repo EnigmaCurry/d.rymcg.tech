@@ -7,14 +7,14 @@ INSTANCE=${INSTANCE:-default}
 set -eo pipefail
 
 get_services_json() {
-    make --no-print-directory docker-compose-lifecycle-cmd EXTRA_ARGS="ps -a --format json"
+    make --no-print-directory docker-compose-lifecycle-cmd EXTRA_ARGS="ps -a --format json 2>/dev/null"
 }
 
 get_services() {
     make --no-print-directory docker-compose-lifecycle-cmd EXTRA_ARGS="ps -a"
 }
 
-if [[ "$(get_services_json)" == "[]" ]]; then
+if [[ "$(get_services_json)" == "[]" ]] || [[ "$(get_services_json)" == "" ]]; then
     exit 0
 fi
 

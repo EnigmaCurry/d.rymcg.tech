@@ -585,7 +585,7 @@ Traefik [.env](.env-dist) file :
 | `TRAEFIK_ACME_ENABLED`                     | (bool) Enable ACME TLS certificate resolver                                      | `true`,`false`                                |
 | `TRAEFIK_CONFIG_VERBOSE`                   | (bool) Print config to logs                                                      | `false`,`true`                                |
 | `TRAEFIK_CONFIG_YTT_VERSION`               | YTT tool version                                                                 | `v0.43.0`                                     |
-| `TRAEFIK_DASHBOARD_HTTP_AUTH`                   | The htpasswd encoded password for the dashboard                                  | `$$apr1$$125jLjJS$$9WiXscLMURiMbC0meZXMv1`    |
+| `TRAEFIK_DASHBOARD_HTTP_AUTH`              | The htpasswd encoded password for the dashboard                                  | `$$apr1$$125jLjJS$$9WiXscLMURiMbC0meZXMv1`    |
 | `TRAEFIK_DASHBOARD_ENTRYPOINT_ENABLED`     | (bool) Enable the dashboard entrypoint                                           | `true`, `false`                               |
 | `TRAEFIK_DASHBOARD_ENTRYPOINT_HOST`        | The IP address to bind to                                                        | `127.0.0.1` (host networking) `0.0.0.0` (VPN) |
 | `TRAEFIK_DASHBOARD_ENTRYPOINT_PORT`        | The TCP port for the daashboard                                                  | `8080`                                        |
@@ -617,6 +617,9 @@ Traefik [.env](.env-dist) file :
 | `TRAEFIK_MUMBLE_ENTRYPOINT_ENABLED`        | (bool) Enable mumble entrypoint                                                  | `false`,`true`                                |
 | `TRAEFIK_MUMBLE_ENTRYPOINT_HOST`           | Host ip address to bind mumble entrypoint                                        | `0.0.0.0`                                     |
 | `TRAEFIK_MUMBLE_ENTRYPOINT_PORT`           | Host TCP port to bind mumble entrypoint                                          | `64738`                                       |
+| `TRAEFIK_REDIS_ENTRYPOINT_ENABLED`         | (bool) Enable redis  entrypoint                                                  |                                               |
+| `TRAEFIK_REDIS_ENTRYPOINT_HOST`            | Host ip address to bind redis entrypoint                                         | `0.0.0.0`                                     |
+| `TRAEFIK_REDIS_ENTRYPOINT_PORT`            | Host TCP port to bind redis entrypoint                                           | `1704`                                        |
 | `TRAEFIK_SSH_ENTRYPOINT_ENABLED`           | (bool) Enable ssh (port 2222) entrypoint                                         | `true`,`false`                                |
 | `TRAEFIK_SSH_ENTRYPOINT_HOST`              | Host ip address to bind ssh entrypoint                                           | `0.0.0.0`                                     |
 | `TRAEFIK_SSH_ENTRYPOINT_PORT`              | Host TCP port to bind ssh entrypoint                                             | `2222`                                        |
@@ -647,4 +650,4 @@ Traefik [.env](.env-dist) file :
 | `TRAEFIK_WEB_ENTRYPOINT_PORT`              | Host TCP port to bind web entrypoint                                             | `80`                                          |
 | `TRAEFIK_WEB_PLAIN_ENTRYPOINT_ENABLED`     | (bool) Enable web_plain (port 8000) entrypoint                                   | `true`,`false`                                |
 | `TRAEFIK_WEB_PLAIN_ENTRYPOINT_HOST`        | Host ip address to bind web_plain entrypoint                                     | `0.0.0.0`                                     |
-| `TRAEFIK_WEB_PLAIN_ENTRYPOINT_PORT`        | Host TCP port to bind web_plain entrypoint                                       | `8000`                                          |
+| `TRAEFIK_WEB_PLAIN_ENTRYPOINT_PORT`        | Host TCP port to bind web_plain entrypoint                                       | `8000`                                        |

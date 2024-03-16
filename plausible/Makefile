@@ -11,4 +11,4 @@ config-hook:
 
 .PHONY: shell
 shell:
-	@docker-compose --env-file ${ENV_FILE} exec -it $${service:-app} /bin/sh -c "/bin/bash || /bin/sh"
+	@container=$$(eval "${BIN}/script-wizard choose 'docker exec -it into which container?' 'mail' 'db' 'events_db' 'app' --default 'app'") && make --no-print-directory docker-compose-shell SERVICE=$${container}

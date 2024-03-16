@@ -13,11 +13,14 @@ set -eo pipefail
 echo "ROOT_DIR=${ROOT_DIR}"
 
 if [[ $# != 3 ]]; then
-    fault "Usage: create PROJECT_NAME TEMPLATE_NAME OUTPUT_DIR"
+    fault "Usage: create PROJECT_NAME TEMPLATE_REPO OUTPUT_DIR"
 fi
 
+# The new project name:
 PROJECT_NAME="$1"
-TEMPLATE_NAME="$2"
+# The template repository URL:
+TEMPLATE_REPO="$2"
+# The output directory:
 OUTPUT_DIR="$3"
 
 name_pattern='^[a-zA-Z][a-zA-Z0-9_-]*$'
@@ -37,54 +40,16 @@ if [[ -e "${OUTPUT_DIR}" ]]; then
 fi
 
 ## Ensure we are creating a new blank directory:
-mkdir -p "$(dirname "${OUTPUT_DIR}")"
-mkdir "${OUTPUT_DIR}"
+git clone "${TEMPLATE_REPO}" "${OUTPUT_DIR}"
 
-TEMPLATE_DIR="${ROOT_DIR}/_templates/${TEMPLATE_NAME}"
-TEMPLATE_FILES=("docker-compose.yaml" "docker-compose.instance.yaml" "Makefile" ".env-dist")
-COPY_FILES=(".gitignore" "README.md")
+make -C "${OUTPUT_DIR}" APP_NAME="${PROJECT_NAME}"
 
-if [[ ! -d "${TEMPLATE_DIR}" ]]; then
-    fault "The template directory is missing: ${TEMPLATE_DIR}"
-fi
-for template in ${TEMPLATE_FILES[@]}; do
-    if [[ ! -f "${TEMPLATE_DIR}/${template}" ]]; then
-        fault "The template is missing ${template} : ${TEMPLATE_DIR}"
-    fi
-done
+echo
+echo "# To create a Bash alias for this project, put this in ~/.bashrc :"
+echo
+echo "   __d.rymcg.tech_project_alias ${PROJECT_NAME} $(realpath ${OUTPUT_DIR})"
+echo
 
-TEMPLATE_VARS='${CREATE_TEMPLATE_PROJECT_NAME},${CREATE_TEMPLATE_PROJECT_URL_NAME},${CREATE_TEMPLATE_PROJECT_NAME_UPPERCASE},${CREATE_TEMPLATE_ROOT_DIR}'
-
-export CREATE_TEMPLATE_ROOT_DIR="${ROOT_DIR}"
-export CREATE_TEMPLATE_PROJECT_NAME="$(echo ${PROJECT_NAME} | tr ' ' '-')"
-export CREATE_TEMPLATE_PROJECT_NAME_UPPERCASE="$(echo ${CREATE_TEMPLATE_PROJECT_NAME} | tr '[:lower:]' '[:upper:]' | tr '-' '_')"
-export CREATE_TEMPLATE_PROJECT_URL_NAME="$(echo ${CREATE_TEMPLATE_PROJECT_NAME} | tr '[:upper:]' '[:lower:]' | tr '_' '-')"
-
-echo "CREATE_TEMPLATE_PROJECT_NAME=${CREATE_TEMPLATE_PROJECT_NAME}"
-echo "CREATE_TEMPLATE_PROJECT_NAME_UPPERCASE=${CREATE_TEMPLATE_PROJECT_NAME_UPPERCASE}"
-
-## TODO: use ytt to template YAML instead of envsubst
-## HOWEVER, this is blocked on https://github.com/carvel-dev/ytt/issues/63
-
-echo "Copying generic Makefile header ..."
-cat "${TEMPLATE_DIR}/../_common/Makefile.generic" | envsubst "${TEMPLATE_VARS}" > "${OUTPUT_DIR}/Makefile"
-
-for filename in ${TEMPLATE_FILES[@]}; do
-    echo "# Rendering from template: ${OUTPUT_DIR}/${filename}"
-    if [[ "$filename" == "docker-compose.instance.yaml" ]]; then
-        ## Add the common traefik instance header to docker-compose.instance.yaml:
-        cat "${TEMPLATE_DIR}/../_common/instance_header.yaml" > "${OUTPUT_DIR}/${filename}"
-    fi
-    ## Add the template
-    cat "${TEMPLATE_DIR}/${filename}" | envsubst "${TEMPLATE_VARS}" >> "${OUTPUT_DIR}/${filename}"
-done
-
-for filename in ${COPY_FILES[@]}; do
-    #echo "# Copying ${OUTPUT_DIR}/${filename}"
-    cp -v "${TEMPLATE_DIR}/${filename}" "${OUTPUT_DIR}/"
-done
-echo "# Copying template directories ..."
-find ${TEMPLATE_DIR} -maxdepth 1 -type d -printf "%P\n" | xargs -iXX cp -av "${TEMPLATE_DIR}/XX" "${OUTPUT_DIR}/XX"
-
-echo ""
-echo "# Finished creating new project directory: ${OUTPUT_DIR}"
+echo
+echo "# Finished creating new project directory : ${OUTPUT_DIR}"
+echo

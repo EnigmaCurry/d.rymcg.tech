@@ -1,4 +1,6 @@
 .PHONY: help # Show this help screen
 help:
-	@echo "Makefile help for $(realpath .):"
-	@grep -h '^.PHONY: .* #' $$(export ROOT_DIR=${ROOT_DIR}; cat ${ROOT_DIR}/_scripts/Makefile.projects | grep "Makefile" | cut -d " " -f 2 | envsubst 'ROOT_DIR=$${ROOT_DIR}') | sed 's/\.PHONY: \(.*\) # \(.*\)/make \1 \t- \2/' | expand -t25
+	@${BIN}/project_help $(realpath .) ${ROOT_DIR}/_scripts/Makefile.projects ${PROJECT_MAKEFILE}
+
+#old:
+#	@grep -h '^.PHONY: .* #' $$(export ROOT_DIR=${ROOT_DIR}; cat ${ROOT_DIR}/_scripts/Makefile.projects | grep "Makefile" | cut -d " " -f 2 | envsubst 'ROOT_DIR=$${ROOT_DIR}') | sed 's/\.PHONY: \(.*\) # \(.*\)/make \1 \t- \2/' | expand -t25

@@ -39,7 +39,7 @@ override-hook:
 
 .PHONY: shell
 shell:
-	@docker compose --env-file ${ENV_FILE} exec -it $${service:-homepage} /bin/sh -c "/bin/bash || /bin/sh"
+	@make --no-print-directory docker-compose-shell SERVICE=homepage
 
 .PHONY: git-deploy-key
 git-deploy-key: override

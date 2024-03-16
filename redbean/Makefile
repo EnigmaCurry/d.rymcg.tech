@@ -26,7 +26,6 @@ override-hook:
 ####                         # (used for regular docker-compose expansion of env vars by name.)
 	@${BIN}/docker_compose_override ${ENV_FILE} project=:redbean instance=@REDBEAN_INSTANCE traefik_host=@REDBEAN_TRAEFIK_HOST http_auth=REDBEAN_HTTP_AUTH http_auth_var=@REDBEAN_HTTP_AUTH ip_sourcerange=@REDBEAN_IP_SOURCERANGE traefik_mode=REDBEAN_TRAEFIK_MODE oauth2=REDBEAN_OAUTH2 authorized_group=REDBEAN_OAUTH2_AUTHORIZED_GROUP
 
-
 .PHONY: shell
 shell:
-	@docker-compose --env-file ${ENV_FILE} exec -it $${service:-web} /bin/sh -c "/bin/bash || /bin/sh"
+	@make --no-print-directory docker-compose-shell SERVICE=web

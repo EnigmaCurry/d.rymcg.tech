@@ -24,3 +24,7 @@ override-hook:
 ####   name=@VARIABLE_NAME   # sets the template 'name' field to the literal string '${VARIABLE_NAME}'
 ####                         # (used for regular docker-compose expansion of env vars by name.)
 	@${BIN}/docker_compose_override ${ENV_FILE} project=:invidious instance=@INVIDIOUS_INSTANCE traefik_host=@INVIDIOUS_TRAEFIK_HOST http_auth=INVIDIOUS_HTTP_AUTH http_auth_var=@INVIDIOUS_HTTP_AUTH ip_sourcerange=@INVIDIOUS_IP_SOURCERANGE oauth2=INVIDIOUS_OAUTH2 authorized_group=INVIDIOUS_OAUTH2_AUTHORIZED_GROUP
+
+.PHONY: shell
+shell:
+	@container=$$(eval "${BIN}/script-wizard choose 'docker exec -it into which container?' 'postgres' 'invidious' --default 'invidious'") && make --no-print-directory docker-compose-shell SERVICE=$${container} 

@@ -1,0 +1,9 @@
+#@ load("@ytt:data", "data")
+#@yaml/text-templated-strings
+http:
+  middlewares:
+    strip-headers:
+      headers:
+        customrequestheaders:
+          #! Strip these headers from all incoming requests:
+          X-Forwarded-User: ""

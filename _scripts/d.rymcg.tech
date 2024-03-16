@@ -33,6 +33,8 @@ ROOT_DIR=$(dirname ${BIN})
 
 source ${BIN}/funcs.sh
 
+export D_RYMCG_TECH_SCRIPT=true
+
 __help() {
     echo "Found ROOT_DIR=${ROOT_DIR}"
     echo ""
@@ -41,7 +43,7 @@ __help() {
         echo -e "cd [SUBDIR]\tEnter a sub-shell and go to the ROOT_DIR directory (or given subdirectory)"
         echo -e "create [PROJECT] [TEMPLATE]\tCreate a new external project from a template"
         echo -e "make [PROJECT] [ARGS ...]\tRun a \`make\` command for the given d.rymcg.tech project name"
-        echo -e "context [DOCKER_CONTEXT]\tView or set the current docker context"
+        echo -e "context\tView or set the current docker context"
         echo -e "completion\tSetup TAB completion in your shell"
     ) | expand -t 30
     echo ""
@@ -65,6 +67,14 @@ __help() {
 }
 
 __create() {
+    if [[ $# -gt 1 ]]; then
+        TEMPLATE_REPO="$2"
+    else
+        AVAIL_TEMPLATES=("Python Flask - https://github.com/EnigmaCurry/flask-template")
+        echo ""
+        TEMPLATE_REPO=$(choose "Choose a template:" "${AVAIL_TEMPLATES[@]}" | sed 's/.*- //')
+        echo ""
+    fi
     name_pattern='^[a-zA-Z][a-zA-Z0-9_-]*$'
     if [[ $# -gt 0 ]]; then
         PROJECT_NAME="$1"
@@ -72,7 +82,7 @@ __create() {
             fault "Error: Invalid characters in PROJECT_NAME -- valid regex: ${name_pattern}"
         fi
     else
-        echo "This script will create a new docker-compose project and integrate d.rymcg.tech Makefiles"
+        echo "This script will create a new docker-compose project and integrate d.rymcg.tech Makefiles" | fold -sw 70 && echo
         while ! [[ "${PROJECT_NAME}" =~ $name_pattern ]]; do
             test -n "${PROJECT_NAME}" && echo "Error: Invalid characters in PROJECT_NAME -- valid regex: ${name_pattern}"
             ask_no_blank "Enter a name for the new docker-compose project" PROJECT_NAME
@@ -80,16 +90,14 @@ __create() {
         echo ""
     fi
     PROJECT_NAME=$(echo "$PROJECT_NAME" | tr ' ' '-')
-    if [[ $# -gt 1 ]]; then
-        TEMPLATE_NAME="$2"
-    else
-        echo "Available templates:"
-        find "${ROOT_DIR}/_templates" -maxdepth 1 -type d -printf "%P\n" | grep -v "^_" | column
-        echo ""
-        ask_no_blank "Enter the template name to use" TEMPLATE_NAME
-        echo ""
+    ${BIN}/create "${PROJECT_NAME}" "${TEMPLATE_REPO}" "./${PROJECT_NAME}"
+}
+
+__install() {
+    if [[ $# -gt 0 ]]; then
+        fault "install does not take any args"
     fi
-    ${BIN}/create "${PROJECT_NAME}" "${TEMPLATE_NAME}" "./${PROJECT_NAME}"
+    make --no-print-directory -C ${ROOT_DIR} install
 }
 
 __change-directory() {
@@ -111,7 +119,7 @@ __make() {
             PROJECT_DIR=${ROOT_DIR}/${PROJECT_NAME}
         fi
         test -d "${PROJECT_DIR}" || fault "Project directory does not exist: ${PROJECT_DIR}"
-        make --no-print-directory -C "${PROJECT_DIR}" "$@"
+        make --no-print-directory -C "${PROJECT_DIR}" "$@" D_RYMCG_TECH_CLI_ALIAS=${D_RYMCG_TECH_CLI_ALIAS}
     else
         __list_projects
         error "Missing project name argument. Choose one from the above."
@@ -128,7 +136,7 @@ __list_projects() {
             echo "List of available d.rymcg.tech projects (not including external projects):"
             echo ""
             set +e
-            find "${ROOT_DIR}" -maxdepth 1 -type d -printf "%P\n" | grep -v "^_" | grep -v "^\." | sort -u | xargs -iXX /bin/bash -c "test -f ${ROOT_DIR}/XX/Makefile && echo XX" | column
+            get_all_projects | column
             echo ""
         fi
     )
@@ -176,10 +184,13 @@ __info() {
 }
 
 __context() {
-    if [[ $# == 0 ]]; then
-        exe docker context ls
+    if [[ $# == 0 ]] || [[ "$1" == "list" ]]; then
+        readarray -t CONTEXTS < <(docker context list -q)
+        local CURRENT_CONTEXT=$(docker context show)
+        local CHOSEN_CONTEXT=$(wizard choose "Select the Docker context to use" "${CONTEXTS[@]}" --default "${CURRENT_CONTEXT}")
+        docker context use "${CHOSEN_CONTEXT}"
     else
-        exe docker context use "$@"
+        exe docker context "$@"
     fi
 }
 
@@ -190,7 +201,7 @@ __run_script() {
 
 __d.rymcg.tech_cli_alias() {
     local ALIAS="$1"
-    alias $1='d.rymcg.tech'
+    alias $1="D_RYMCG_TECH_CLI_ALIAS=${ALIAS} d.rymcg.tech "
     complete -F __d.rymcg.tech_completions $1
 
 }
@@ -201,7 +212,7 @@ __d.rymcg.tech_project_alias() {
     __PROJECT_DIR="${2}"
     test -z "${__PROJECT_DIR}" && __PROJECT_DIR="${ROOT_DIR}/${__ALIAS}"
     export __ALIAS __PROJECT_DIR
-    alias $1="make --no-print-directory -C ${__PROJECT_DIR}"
+    alias $1="make --no-print-directory -C ${__PROJECT_DIR} D_RYMCG_TECH_PROJECT_ALIAS=${__ALIAS}"
     read -r -d '' FUNC <<'EOF'
 function _${__ALIAS}_complete {
     local __PROJECT_DIR=${__PROJECT_DIR}
@@ -236,7 +247,7 @@ __d.rymcg.tech_completions() {
     if [[ ${COMP_CWORD} == 1 ]]; then
         ## Complete the main command:
         ## d.rymcg.tech <TAB> ...
-        COMMANDS="help create cd make list readme info context completion"
+        COMMANDS="help create cd make list readme info context completion install"
         COMPREPLY=($(compgen -W "${COMMANDS}" "${COMP_WORDS[1]}"))
     elif [[ ${COMP_CWORD} == 2 ]]; then
         ALL_PROJECTS=$(d.rymcg.tech list --raw)
@@ -353,6 +364,8 @@ main() {
                 __completion "$@";;
             info)
                 __info "$@";;
+            install)
+                __install "$@";;
             context)
                 __context "$@";;
             script)

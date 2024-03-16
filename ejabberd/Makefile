@@ -15,3 +15,7 @@ register:
 .PHONY: room
 room:
 	@ENV_FILE="${ENV_FILE}" EJABBERD_HOST="$$(${BIN}/dotenv -f ${ENV_FILE} get EJABBERD_HOST)" ${BIN}/env_ask ROOM="Enter the new room to create (dont enter the domain name)" ./helper.sh create_room
+
+.PHONY: shell
+shell:
+	@make --no-print-directory docker-compose-shell SERVICE=ejabberd

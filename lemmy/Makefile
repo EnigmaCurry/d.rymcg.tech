@@ -30,4 +30,5 @@ override-hook:
 
 .PHONY: shell
 shell:
-	@docker compose --env-file ${ENV_FILE} exec -it $${service:-proxy} /bin/sh -c "/bin/bash || /bin/sh"
+	@container=$$(eval "${BIN}/script-wizard choose 'docker exec -it into which container?' 'proxy' 'config' 'lemmy' 'lemmy-ui' 'pictrs' 'postgres' 'postfix' --default 'proxy'") && make --no-print-directory docker-compose-shell SERVICE=$${container}
+

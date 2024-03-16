@@ -102,7 +102,7 @@ your services by turning on Traefik's [HTTP Basic
 Authentication](https://doc.traefik.io/traefik/middlewares/http/basicauth/)
 or [OAuth2 Authentication](traefik/README.md#oauth2-authentication)
 and
-[IPWhitelist](https://doc.traefik.io/traefik/middlewares/http/ipwhitelist/)
+[IPAllowlist](https://doc.traefik.io/traefik/middlewares/http/ipallowlist/)
 middlewares (see
 [s3-proxy](https://github.com/EnigmaCurry/d.rymcg.tech/blob/f77aaaa5a2705eedaf29a4cdc32f91cdb65e66f7/s3-proxy/docker-compose.yaml#L35-L41)
 for an example that uses both of these), or by turning on [Oauth2
@@ -198,6 +198,7 @@ configured, you may need to open these ports in your firewall:
 | SSH        | TCP      | 2222       | Traefik Gitea SSH (TCP) entrypoint                        |
 | SSH        | TCP      | 2223       | SFTP container SSH (TCP) (direct-map)                     |
 | TLS        | TCP      | 5432       | PostgreSQL mTLS DBaaS (direct-map)                        |
+| TCP+TLS    | TCP      | 6380       | Traefik Redis in-memory database entrypoint               |
 | TCP socket | TCP      | 6600       | Traefik Mopidy (MPD) entrypoint                           |
 | HTTP       | TCP      | 8000       | Traefik HTTP entrypoint (web_plain; explicitly non-https) |
 | TLS        | TCP      | 8883       | Traefik MQTT (TLS) entrypoint                             |
@@ -334,17 +335,26 @@ skipped):
      wireguard](traefik#wireguard-vpn) VPN)
    * `curl` (for downloading an installing external dependencies:
      [script-wizard](https://github.com/enigmacurry/script-wizard))
+   * `inotify-tools` for any any project that has implemented
+     [dev-sync](_scripts/dev-sync), which can be used to synchronize
+     local files into container volumes.
 
 On Arch Linux, run this to install all these dependencies:
 
 ```
-pacman -S bash base-devel openssl apache xdg-utils jq sshfs wireguard-tools curl
+pacman -S bash base-devel openssl apache xdg-utils jq sshfs wireguard-tools curl inotify-tools
 ```
 
 For Debian or Ubuntu, run:
 
 ```
-apt-get install bash build-essential openssl apache2-utils xdg-utils jq sshfs wireguard curl
+apt-get install bash build-essential openssl apache2-utils xdg-utils jq sshfs wireguard curl inotify-tools
+```
+
+For Fedora, run:
+
+```
+dnf install bash openssl xdg-utils jq sshfs curl inotify-tools httpd-tools make wireguard-tools
 ```
 
 ### Setup SSH access to the server
@@ -545,6 +555,7 @@ Install these other services at your leisure/preference:
 * [Mopidy](mopidy#readme) - a streaming music server built with MPD and Snapcast
 * [Mosquitto](mosquitto#readme) - an MQTT server
 * [Nextcloud](nextcloud#readme) - a collaborative file server
+* [Nginx](nginx#readme) - a webserver configured with fast-cgi support for PHP scripts.
 * [Node-RED](nodered#readme) - a graphical event pipeline editor
 * [Ntfy.sh](ntfy.sh#readme) - a simple HTTP-based pub-sub notification service
 * [Pairdrop](pairdrop#readme) - a webapp (PWA) to send files and messages peer to peer.
@@ -570,6 +581,11 @@ Install these other services at your leisure/preference:
 * [Websocketd](websocketd#readme) - a websocket / CGI server
 * [Wordpress](wordpress#readme) - an ubiquitous blogging / CMS platform, with a plugin to build a static HTML site snapshot.
 * [XBrowserSync](xbs#readme) - a bookmark manager
+
+You can create a new application by using any other application as an
+example, ([whoami](whoami) is the most basic one), or use the
+[`d.rymcg.tech create` tool](#integrating-external-projects) which
+includes additional development templates.
 
 Bespoke things:
 
@@ -753,15 +769,18 @@ Press `Ctrl-D` to exit the sub-shell and jump back to wherever you
 came from.
 
 From any working directory, you can create a new, [external
-project](#integrating-external-projects), based upon one of the
-[included templates](_templates):
+project](#integrating-external-projects), from an external repository
+URL:
 
 ```
 # This creates a new project directory in your current working directory:
 # It will ask you to enter the name of the project and choose the template.
-# Optional 2nd and 3rd args will skip the asking: PROJECT_NAME TEMPLATE_NAME
+# Optional 2nd and 3rd args will skip the asking: PROJECT_NAME TEMPLATE_REPO
 d.rymcg.tech create
 ```
+
+Check out the example [Python Flask template
+repository](https://github.com/EnigmaCurry/flask-template/).
 
 Open any project's README file directly in your web browser:
 
@@ -807,10 +826,10 @@ If you want a different alias for the main script, you can add that too:
 
 ```
 ## Alternative alias to d.rymcg.tech
-__d.rymcg.tech_cli_alias dry
+__d.rymcg.tech_cli_alias d
 ```
 
-With this alias installed, you can now run `dry` in place of
+With this alias installed, you can now just run `d` in place of
 `d.rymcg.tech`.
 
 To get a synopsis of all of these completion commands, run:
@@ -1058,22 +1077,21 @@ Enter the name of the backup file, and all of the `.env` and
 
 ## Integrating external projects
 
-You can integrate your own docker-compose projects that exist in
-external git repositories, and have them use the d.rymcg.tech
-framework.
+You may create your own external projects, and/or integrate your
+existing docker-compose projects, including from external git
+repositories, and have them use the same d.rymcg.tech framework.
 
 The easiest method of creating an external project, is by setting up
 the [`d.rymcg.tech`
 script](https://github.com/EnigmaCurry/d.rymcg.tech/blob/master/README.md#using-the-drymcgtech-cli-script-optional),
 then run:
 
-
 ```
 ## Run this from any directory:
 d.rymcg.tech create
 ```
 
-To do this same thing manually, here are the steps:
+Alternatively you can create your project by hand:
 
  * Create a new project directory, or clone your existing project, to
    any directory. (It does not need to be a sub-directory of
@@ -1082,9 +1100,8 @@ To do this same thing manually, here are the steps:
    `docker-compose.yaml`, `Makefile`, `.env-dist`, `.gitignore`and
    `README.md`. As an example, you can use any of the d.rymcg.tech
    sub-projects, like [whoami](whoami), or take a look at the
-   [_templates](_templates) that `d.rymcg.tech create` uses (the
-   templates require the use of `envsubst` and `ytt`, but still render
-   to pure `docker compose` in the end).
+   [flask-template](https://github.com/EnigmaCurry/flask-template/)
+   that can be instantiated from `d.rymcg.tech create`.
 
 Create the `Makefile` in your own separate repository so that it
 includes the main d.rymcg.tech `Makefile.projects` file from
@@ -1095,12 +1112,24 @@ elsewhere:
 
 # ROOT_DIR can be a relative or absolute path to the d.rymcg.tech directory:
 ROOT_DIR = ${HOME}/git/vendor/enigmacurry/d.rymcg.tech
-include ${ROOT_DIR}/_scripts/Makefile.projects-external
+include ${ROOT_DIR}/_scripts/Makefile.projects
+include ${ROOT_DIR}/_scripts/Makefile.instance
 
 .PHONY: config-hook # Configure .env file
 config-hook:
 	@${BIN}/reconfigure_ask ${ENV_FILE} EXAMPLE_TRAEFIK_HOST "Enter the example domain name" example.${ROOT_DOMAIN}
 	@${BIN}/reconfigure_ask ${ENV_FILE} EXAMPLE_OTHER_VAR "Enter the example other variable"
+```
+
+By convention, external project Makefiles should always hardcode the
+enigmacurry git vendor path: `ROOT_DIR = ${HOME}/git/vendor/enigmacurry/d.rymcg.tech`, 
+(but you may want to use your own directory if you have forked this
+project and you have introduced unmerged changes):
+
+```
+## As long as everyone uses this same ROOT_DIR, then we can all share the same configs:
+## (You might also create this path as a symlink, if you don't like this convention):
+ROOT_DIR = ${HOME}/git/vendor/enigmacurry/d.rymcg.tech
 ```
 
 A minimal `Makefile`, like the one above, should include a

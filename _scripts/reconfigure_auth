@@ -42,6 +42,7 @@ elif [[ "${oauth2_auth}" == "true" ]]; then
 else
     default="${options[0]}"
 fi
+
 ## Ask user which authentication configuration they want
 choice=$(eval "${BIN}/script-wizard choose ${prompt@Q} ${options[@]@Q} --default ${default@Q}")
 
