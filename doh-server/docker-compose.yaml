@@ -1,0 +1,19 @@
+version: "3.9"
+
+services:
+  doh-server:
+    build:
+      context: doh-server
+    command: doh-proxy -H ${DOH_TRAEFIK_HOST} -u ${DOH_UPSTREAM_DNS}:${DOH_UPSTREAM_DNS_PORT} -l 0.0.0.0:3000 -g ${DOH_PUBLIC_IP_ADDRESS}
+  # doh-server works without dnscrypt right now.
+  # dnscrypt:
+  #   image: ${DNSCRYPT_IMAGE}
+  #   restart: always
+  #   command: init -N ${DNSCRYPT_TRAEFIK_HOST} -E '${DNSCRYPT_PUBLIC_IP_ADDRESS}:443'
+  #   volumes:
+  #     - keys:/opt/encrypted-dns/etc/keys
+  #   environment:
+  #     - TZ='UTC'
+
+# volumes:
+#   keys:
