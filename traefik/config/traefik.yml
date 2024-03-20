@@ -190,3 +190,7 @@ entryPoints:
         - traefik-websecure-error-handler-500@file
         #@ end
   #@ end
+  #@ if data.values.mumble_entrypoint_enabled == "true":
+  mumble:
+    address: #@ data.values.mumble_entrypoint_host + ":" + data.values.mumble_entrypoint_port
+  #@ end

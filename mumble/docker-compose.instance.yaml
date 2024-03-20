@@ -1,0 +1,41 @@
+#! This is a ytt template file for docker-compose.override.yaml
+#! References:
+#!   https://carvel.dev/ytt
+#!   https://docs.docker.com/compose/extends/#adding-and-overriding-configuration
+#!   https://github.com/enigmacurry/d.rymcg.tech#overriding-docker-composeyaml-per-instance
+
+#! ### Standard project vars:
+#@ load("@ytt:data", "data")
+#@ project = data.values.project
+#@ instance = data.values.instance
+#@ context = data.values.context
+#@ traefik_host = data.values.traefik_host
+#@ ip_sourcerange = data.values.ip_sourcerange
+#@ enabled_middlewares = []
+
+#@yaml/text-templated-strings
+services:
+  mumble:
+    #@ service = "mumble"
+    labels:
+      #! Services must opt-in to be proxied by Traefik:
+      - "traefik.enable=true"
+
+      #! 'router' is the fully qualified key in traefik for this router/service: project + instance + service
+      #@ router = "{}-{}-{}".format(project,instance,service)
+
+      #! Mumble TCP:
+      - "traefik.tcp.routers.(@= router @).rule=HostSNI(`*`)"
+      - "traefik.tcp.routers.(@= router @).entrypoints=mumble"
+      #@ enabled_middlewares.append("{}-ipallowlist".format(router))
+      - "traefik.tcp.middlewares.(@= router @)-ipallowlist.ipallowlist.sourcerange=(@= ip_sourcerange @)"
+
+      #! Mumble UDP:
+      #!- "traefik.udp.routers.(@= router @).rule=Host(`*`)"
+      #!- "traefik.udp.routers.(@= router @).entrypoints=mumble"
+      #!#@ enabled_middlewares.append("{}-ipallowlist".format(router))
+      #!- "traefik.udp.middlewares.(@= router @)-ipallowlist.ipallowlist.sourcerange=(@= ip_sourcerange @)"
+
+      #! Apply all middlewares (do this at the end!)
+      - "traefik.tcp.routers.(@= router @).middlewares=(@= ','.join(enabled_middlewares) @)"
+      #! - "traefik.udp.routers.(@= router @).middlewares=(@= ','.join(enabled_middlewares) @)"
