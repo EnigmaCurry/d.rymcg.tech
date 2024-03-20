@@ -27,14 +27,14 @@ services:
       #! Mumble TCP:
       - "traefik.tcp.routers.(@= router @).rule=HostSNI(`*`)"
       - "traefik.tcp.routers.(@= router @).entrypoints=mumble"
-      #@ enabled_middlewares.append("{}-ipwhitelist".format(router))
-      - "traefik.tcp.middlewares.(@= router @)-ipwhitelist.ipwhitelist.sourcerange=(@= ip_sourcerange @)"
+      #@ enabled_middlewares.append("{}-ipallowlist".format(router))
+      - "traefik.tcp.middlewares.(@= router @)-ipallowlist.ipallowlist.sourcerange=(@= ip_sourcerange @)"
 
       #! Mumble UDP:
       #!- "traefik.udp.routers.(@= router @).rule=Host(`*`)"
       #!- "traefik.udp.routers.(@= router @).entrypoints=mumble"
-      #!#@ enabled_middlewares.append("{}-ipwhitelist".format(router))
-      #!- "traefik.udp.middlewares.(@= router @)-ipwhitelist.ipwhitelist.sourcerange=(@= ip_sourcerange @)"
+      #!#@ enabled_middlewares.append("{}-ipallowlist".format(router))
+      #!- "traefik.udp.middlewares.(@= router @)-ipallowlist.ipallowlist.sourcerange=(@= ip_sourcerange @)"
 
       #! Apply all middlewares (do this at the end!)
       - "traefik.tcp.routers.(@= router @).middlewares=(@= ','.join(enabled_middlewares) @)"

@@ -14,6 +14,8 @@ make config
 make install
 ```
 
+This takes almost an eternity to build, sorry about that. Just be
+patient.
 
 ## Background info on Mumble
 
