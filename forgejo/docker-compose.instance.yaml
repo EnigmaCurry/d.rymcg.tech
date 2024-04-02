@@ -1,0 +1,62 @@
+#! This is a ytt template file for docker-compose.override.yaml
+#! References:
+#!   https://carvel.dev/ytt
+#!   https://docs.docker.com/compose/extends/#adding-and-overriding-configuration
+#!   https://github.com/enigmacurry/d.rymcg.tech#overriding-docker-composeyaml-per-instance
+
+#! ### Standard project vars:
+#@ load("@ytt:data", "data")
+#@ project = data.values.project
+#@ instance = data.values.instance
+#@ context = data.values.context
+#@ traefik_host = data.values.traefik_host
+#@ ip_sourcerange = data.values.ip_sourcerange
+#@ forgejo_port = data.values.forgejo_port
+#@ enabled_middlewares = []
+
+#@yaml/text-templated-strings
+services:
+  forgejo:
+    #@ service = "forgejo"
+    labels:
+      #! Services must opt-in to be proxied by Traefik:
+      - "traefik.enable=true"
+
+      #! 'router' is the fully qualified key in traefik for this router/service: project + instance + service
+      #@ router = "{}-{}-{}".format(project,instance,service)
+
+      #! The host matching router rule:
+      - "traefik.http.routers.(@= router @).rule=Host(`(@= traefik_host @)`)"
+      - "traefik.http.routers.(@= router @).entrypoints=websecure"
+
+      #! SSH
+      - "traefik.tcp.routers.(@= router @)-ssh.rule=HostSNI(`*`)"
+      - "traefik.tcp.routers.(@= router @)-ssh.entrypoints=ssh"
+      - "traefik.tcp.routers.(@= router @)-ssh.service=(@= router @)-ssh"
+      - "traefik.tcp.services.(@= router @)-ssh.loadbalancer.server.port=22"
+
+      #@ enabled_middlewares.append("{}-ipwhitelist".format(router))
+      - "traefik.http.middlewares.(@= router @)-ipwhitelist.ipwhitelist.sourcerange=(@= ip_sourcerange @)"
+
+      #! Override the default port that forgejo binds to, so that it lives in userspace >1024:
+      #! You don't normally need to do this, as long as your image has
+      #! an EXPOSE directive in it, Traefik will autodetect it, but this is how you can override it:
+      - "traefik.http.services.(@= router @).loadbalancer.server.port=3000"
+
+      #! Logout phase 1 (deletes 'forgejo_incredible' cookie):
+      - "traefik.http.routers.(@= router @)-logout1.rule=Host(`(@= traefik_host @)`) && Path(`/logout`)"
+      - "traefik.http.routers.(@= router @)-logout1.entrypoints=websecure"
+      - "traefik.http.middlewares.(@= router @)-logout1.headers.customresponseheaders.Set-Cookie=forgejo_incredible=deleted; Max-Age=0"
+      - "traefik.http.middlewares.(@= router @)-logout-redirect1.redirectregex.regex=.*"
+      - "traefik.http.middlewares.(@= router @)-logout-redirect1.redirectregex.replacement=https://(@= traefik_host @)/logout2"
+      - "traefik.http.routers.(@= router @)-logout1.middlewares=(@= router @)-ipwhitelist,(@= router @)-logout1,(@= router @)-logout-redirect1"
+      #! Logout phase 2 (deletes 'i_like_forgejo' cookie):
+      - "traefik.http.routers.(@= router @)-logout2.rule=Host(`(@= traefik_host @)`) && Path(`/logout2`)"
+      - "traefik.http.routers.(@= router @)-logout2.entrypoints=websecure"
+      - "traefik.http.middlewares.(@= router @)-logout2.headers.customresponseheaders.Set-Cookie=i_like_forgejo=deleted; Max-Age=0"
+      - "traefik.http.middlewares.(@= router @)-logout-redirect2.redirectregex.regex=.*"
+      - "traefik.http.middlewares.(@= router @)-logout-redirect2.redirectregex.replacement=https://(@= traefik_host @)/user/login"
+      - "traefik.http.routers.(@= router @)-logout2.middlewares=(@= router @)-ipwhitelist,(@= router @)-logout2,(@= router @)-logout-redirect2"
+
+      #! Apply all middlewares (do this at the end!)
+      - "traefik.http.routers.(@= router @).middlewares=(@= ','.join(enabled_middlewares) @)"
