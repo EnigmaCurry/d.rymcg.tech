@@ -15,6 +15,7 @@ services:
       - FORGEJO__server__SSH_PORT=${FORGEJO_SSH_PORT}
       - FORGEJO__server__SSH_LISTEN_PORT=22
       - FORGEJO__server__DISABLE_SSH
+      - FORGEJO__server__MINIMUM_KEY_SIZE_CHECK
       - APP_NAME
       - FORGEJO__service__DISABLE_REGISTRATION
       - FORGEJO__service__REQUIRE_SIGNIN_VIEW
@@ -33,15 +34,15 @@ services:
     cap_drop:
       - ALL
     volumes:
-      - data:/data
+      - data:/var/lib/gitea
       #- config:/etc/gitea
       - /etc/timezone:/etc/timezone:ro
       - /etc/localtime:/etc/localtime:ro
     networks:
       - forgejo
     ports:
-      - ${FOREGJO_PORT}:3000
-      - ${FOREGJO_SSH_PORT}:22
+      - ${FORGEJO_PORT}:3000
+      - ${FORGEJO_SSH_PORT}:22
     labels: []
 
 volumes:
