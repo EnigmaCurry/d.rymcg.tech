@@ -1,6 +1,7 @@
 # Wireguard
 
-This configuration is for a standalone Wireguard VPN server. 
+This configuration is for a standalone Wireguard VPN server (no
+integration with Traefik).
 
 ## d.rymcg.tech provides two different wireguard configs
 
@@ -13,7 +14,7 @@ translation.
 
 Reasons you may wish to use this wireguard config:
 
- * If you want to tunnel your outgoing internet traffic from anywhere
+ * If you want to tunnel your outgoing internet traffic from anywhere,
    through a fixed public gateway (droplet / VPS).
  * If you want to run a private server from random locations, and have
    no ability to open a public port on your internet router.
@@ -28,9 +29,34 @@ Reasons you may wish to use the
    from several clients in various locations (eg. a company wide
    intranet service).
  * If you want to run a private HTTP server at a fixed location (home,
-   office), accessible from the cloud, and you *are capable* of
-   opening a public port for wireguard (eg. 51820) through your local
-   internet router.
- * If you want to create a public gateway for your private HTTP
+   office), and you *are capable* of opening a public port for
+   wireguard (eg. 51820) through your local internet router/firewall,
+   for making it accessible from the cloud.
+ * If you want to create a public cloud gateway for your private HTTP
    servers located at fixed locations (home/office).
+
+## Config
+
+```
+make config
+```
+
+Enter the following required config settings:
+
+ * `WIREGUARD_HOST` the fully qualified domain name or public IP
+   address of the wireguard service (eg. `wireguard.example.com`). If
+   you enter a DNS name, it must be pointed to the public IP address
+   of the server.
+ * `WIREGUARD_PEERS` the comma separated list of all the peer configs
+   to create. Each peer name must be alphanumeric with no spaces, no
+   dashes, no underscores. (eg. `client1,client2,client3`)
+
+There are additional/optional configuration you can make in your .env
+file by hand, see the comments in [.env-dist](.env-dist).
+
+## Install
+
+```
+make install
+```
 
