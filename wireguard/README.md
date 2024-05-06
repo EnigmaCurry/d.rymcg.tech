@@ -13,10 +13,10 @@ translation.
 
 Reasons you may wish to use this wireguard config:
 
- * If you want to tunnel your outgoing internet traffic through a
-   public gateway (droplet / VPS).
- * If you want to run a private server at your home, but you have no
-   ability to open a public port on your internet router.
+ * If you want to tunnel your outgoing internet traffic from anywhere
+   through a fixed public gateway (droplet / VPS).
+ * If you want to run a private server from random locations, and have
+   no ability to open a public port on your internet router.
  * If you want to create a generic VPN, for multiple clients, that you
    can use as a base layer network to build your own services on top
    of (and no built-in integration with Traefik).
@@ -27,9 +27,10 @@ Reasons you may wish to use the
  * If you want to run a private HTTP server in the cloud, acessible
    from several clients in various locations (eg. a company wide
    intranet service).
- * If you want to run a private HTTP server at home, accessible from
-   the cloud, and you *are capable* of opening a public port for
-   wireguard (eg. 51820) through your home internet router.
+ * If you want to run a private HTTP server at a fixed location (home,
+   office), accessible from the cloud, and you *are capable* of
+   opening a public port for wireguard (eg. 51820) through your local
+   internet router.
  * If you want to create a public gateway for your private HTTP
-   servers located at home/office.
+   servers located at fixed locations (home/office).
 
