@@ -1,7 +1,8 @@
 # Wireguard
 
-This configuration is for a standalone Wireguard VPN server (no
-integration with Traefik).
+This configuration is for a standalone
+[Wireguard](https://www.wireguard.com/) VPN server (no integration
+with Traefik).
 
 ## d.rymcg.tech provides two different wireguard configs
 
