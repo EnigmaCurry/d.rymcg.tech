@@ -84,12 +84,6 @@ up() {
     ip rule add not fwmark 1234 table 2468
     ip rule add table main suppress_prefixlength 0
     
-    ## Add all the routes from the comma separated list of WG_PEER_ALLOWED_IPS:
-    # for i in ${WG_PEER_ALLOWED_IPS//,/ }
-    # do
-    #     ip route add ${i} via ${WG_PEER_ROUTE} dev ${WG_INTERFACE}
-    # done
-   
     ## Show the interface config:
     ip addr show dev ${WG_INTERFACE}
     
