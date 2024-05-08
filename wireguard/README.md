@@ -125,9 +125,9 @@ Routing"](https://www.wireguard.com/netns/#the-classic-solutions)
 guide/section from wireguard.com, which it is documented that this
 loosly follows the same thing that
 [wg-quick](https://git.zx2c4.com/wireguard-tools/about/src/man/wg-quick.8)
-does, just in a more transparent fashion. The wireguard.com guide also
+does, just in a more transparent fashion. The wireguard.com guide
 shows an even cooler, superior method, using network namespaces, and
-they have included a script for that method. It is slightly more
-complex than the "classic solution", and their script does not appear
-to be compatible with tools like NetworkManager, so [vpn.sh](vpn.sh)
-has not yet attempted to implement the namespace method.
+they included a script for that method. It is slightly more complex
+than the "classic solution", and their script does not appear to be
+compatible with tools like NetworkManager, so [vpn.sh](vpn.sh) has not
+yet attempted to implement the namespace method.
