@@ -99,11 +99,12 @@ Alternatively, this repository includes its own script
 [vpn.sh](vpn.sh) which is a simple Bash script that invokes the `wg`
 and `ip` commands directly, requiring no further dependencies. This
 script is designed for the use case where you want to route ALL
-non-local traffic through the VPN, for the typical privacy enhancement
-use case.
+non-local traffic through the VPN, for the typical consumer privacy
+enhancement use case.
 
-Simply copy the settings from your peer config into the variables at
-the top of the script ([vpn.sh](vpn.sh)) and run:
+Simply copy the settings from your peer config (`make
+show-wireguard-peers`) into the variables at the top of the script
+([vpn.sh](vpn.sh)) and run:
 
 ```
 ./vpn.sh up
