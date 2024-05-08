@@ -24,6 +24,7 @@ services:
       - ALLOWEDIPS=${WIREGUARD_ALLOWEDIPS}
       - PERSISTENTKEEPALIVE_PEERS=${WIREGUARD_PERSISTENTKEEPALIVE_PEERS}
       - LOG_CONFS=${WIREGUARD_LOG_CONFS}
+      - PUBLIC_PEER_PORTS=${WIREGUARD_PUBLIC_PEER_PORTS}
     volumes:
       - wireguard:/config
       - /lib/modules:/lib/modules
