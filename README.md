@@ -341,19 +341,19 @@ skipped):
 On Arch Linux, run this to install all these dependencies:
 
 ```
-pacman -S bash base-devel openssl apache xdg-utils jq sshfs wireguard-tools curl inotify-tools
+pacman -S bash base-devel git openssl apache xdg-utils jq sshfs wireguard-tools curl inotify-tools
 ```
 
 For Debian or Ubuntu, run:
 
 ```
-apt-get install bash build-essential openssl apache2-utils xdg-utils jq sshfs wireguard curl inotify-tools
+apt-get install bash build-essential git openssl apache2-utils xdg-utils jq sshfs wireguard curl inotify-tools
 ```
 
 For Fedora, run:
 
 ```
-dnf install bash openssl xdg-utils jq sshfs curl inotify-tools httpd-tools make wireguard-tools
+dnf install bash openssl git xdg-utils jq sshfs curl inotify-tools httpd-tools make wireguard-tools
 ```
 
 ### Setup SSH access to the server
