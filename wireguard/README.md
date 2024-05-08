@@ -15,21 +15,25 @@ routing and translation.
 
 Reasons you may wish to use this wireguard config:
 
- * If you want a layer 4 (TCP/UDP) tunnel for privacy enhanced
-   internet access and browsing (typical consumer VPN setup).
+ * If you want a **layer 4** (TCP/UDP) tunnel for privacy enhanced
+   internet access and browsing (typical consumer VPN setup, SNAT IP
+   masquerading).
+ * If you want to expose a **layer 4** private service (TCP/UDP)
+   behind a NAT firewall to the public internet (DNAT port forwarding)
+   through your public Docker gateway (droplet/VPS).
  * If you want full manual control for more advanced routing.
 
 Reasons you may wish to use the
 [Traefik](../traefik/README.md#wireguard-vpn) wireguard instead:
 
- * If you want to run a private layer 7 (HTTP) service in the cloud,
+ * If you want to run a private **layer 7** (HTTP) service in the cloud,
    accessible from various locations, (eg. a company wide intranet
    service).
- * If you want to run a private layer 7 (HTTP) service at home, or the
-   office, and you are capable of opening a public UDP port (51820) in
-   your firewall.
- * If you want to create a public gateway (droplet/VPS) for your
-   private VPN service running at home/office.
+ * If you want to run a public or private **layer 7** (HTTP) service
+   at a fixed location (eg. home or office), and you are capable of
+   opening a public UDP port (51820) in your firewall.
+ * If you want to create a gateway (droplet/VPS) for your private VPN
+   **layer 7** (HTTP) service, to expose it to the public internet.
 
 ## Config
 
@@ -56,6 +60,25 @@ Enter the following required config settings:
 
 There are additional/optional configuration you can make in your .env
 file by hand, see the comments in [.env-dist](.env-dist).
+
+### Configure public peer ports (optional)
+
+You may wish to run servers at home that typically are not accessible
+from the internet. If you wish to expose these services to the public
+internet, you can set `WIREGUARD_PUBLIC_PEER_PORTS` in your .env file,
+and this will setup port forwarding (DNAT) through the VPN. This is
+accomplished through the wireguard tunnel, so there is no need to open
+a port in your LAN router.
+
+For example, to open ports 443 and 53, running on two separate VPN
+clients:
+
+```
+# Format is a comma separated list of 4-tuples: PEER_IP_ADDRESS:PEER_PORT:PUBLIC_PORT:PORT_TYPE,...
+WIREGUARD_PUBLIC_PEER_PORTS=10.13.17.2:443:443:tcp,10.13.17.3:53:53:udp
+```
+
+For more details, see the full comments in [.env-dist](.env-dist).
 
 ## Install
 
