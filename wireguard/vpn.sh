@@ -5,7 +5,7 @@ set -e
 ## NOTE: this config is for forwarding ALL non-local traffic through wireguard.
 ## First: install wireguard server according to:
 ##   https://github.com/EnigmaCurry/d.rymcg.tech/tree/master/wireguard
-## Then run: `make wg-show-wireguard-peers` to get the client config details.
+## Then run: `make show-wireguard-peers` to get the client config details.
 
 ## Setup:
 ## Copy all the details from the generated config into these variables:
