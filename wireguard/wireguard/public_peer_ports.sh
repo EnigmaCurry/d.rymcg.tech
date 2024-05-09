@@ -4,7 +4,6 @@
 
 for port_map in ${PUBLIC_PEER_PORTS//,/ }
 do
-    # call your procedure/other scripts here below
     IFS=':' read -r -a __conf <<< "${port_map}"
     PEER="${__conf[0]}"
     PEER_PORT="${__conf[1]}"
