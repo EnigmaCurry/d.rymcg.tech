@@ -24,7 +24,7 @@ override-hook:
 ####                         # (this hardcodes the string into docker-compose.override.yaml)
 ####   name=@VARIABLE_NAME   # sets the template 'name' field to the literal string '${VARIABLE_NAME}'
 ####                         # (used for regular docker-compose expansion of env vars by name.)
-	@${BIN}/docker_compose_override ${ENV_FILE} project=:wireguard instance=@WIREGUARD_INSTANCE
+	@${BIN}/docker_compose_override ${ENV_FILE} project=:wireguard instance=@WIREGUARD_INSTANCE public_peer_ports=WIREGUARD_PUBLIC_PEER_PORTS
 
 .PHONY: shell
 shell:

@@ -3,7 +3,10 @@ volumes:
 
 services:
   wireguard:
-    image: ${WIREGUARD_IMAGE}
+    build:
+      context: wireguard
+      args:
+        WIREGUARD_IMAGE: ${WIREGUARD_IMAGE}
     cap_add:
       - NET_ADMIN
       - SYS_MODULE
@@ -22,9 +25,9 @@ services:
       - PEERDNS=${WIREGUARD_PEERDNS}
       - INTERNAL_SUBNET=${WIREGUARD_SUBNET}
       - ALLOWEDIPS=${WIREGUARD_ALLOWEDIPS}
-      - PERSISTENTKEEPALIVE_PEERS=${WIREGUARD_PERSISTENTKEEPALIVE_PEERS}
+      - PERSISTENTKEEPALIVE_PEERS=${WIREGUARD_PERSISTENTKEEPALIVE_PEERS:-}
       - LOG_CONFS=${WIREGUARD_LOG_CONFS}
-      - PUBLIC_PEER_PORTS=${WIREGUARD_PUBLIC_PEER_PORTS}
+      - PUBLIC_PEER_PORTS=${WIREGUARD_PUBLIC_PEER_PORTS:-}
     volumes:
       - wireguard:/config
       - /lib/modules:/lib/modules
