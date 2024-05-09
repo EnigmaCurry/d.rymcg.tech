@@ -9,20 +9,27 @@ set -e
 
 ## Setup:
 ## Copy all the details from the generated config into these variables:
+# Name of the local wireguard interface to create:
 WG_INTERFACE=wg0
+# The private VPN IP address this client should use:
 WG_ADDRESS=10.13.17.2
+# The private key of this client:
 WG_PRIVATE_KEY=xxxxxxxxxxxxxxxxxxxxxxxxx
+# The UDP port this client listens on (not really used if its behind a firewall)
 WG_LISTEN_PORT=51820
+# The DNS setting to use when the VPN is active:
 WG_DNS=10.13.17.1
+# The public key of the peer to connect to (ie. the wireguard server):
 WG_PEER_PUBLIC_KEY=xxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+# The preshared key provided by the wireguard server:
 WG_PEER_PRESHARED_KEY=xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+# The domain name and public wireguard port (UDP) of the public wireguard server
 WG_PEER_ENDPOINT=wireguard.example.com:51820
+# The IP addresses that are allowed to traverse the VPN (0.0.0.0/0 means ALL traffic)
 WG_PEER_ALLOWED_IPS=0.0.0.0/0
-WG_PEER_ROUTE=10.13.17.1
+# The interval in seconds to send keep-alive pings to the server (0 means OFF):
+WG_PERSISTENT_KEEPALIVE=0
 # ..End setup
-
-## Reruns this script as root if it wasn't already:
-[[ $UID != 0 ]] && exec sudo -E "$(readlink -f "$0")" "$@"
 
 ## helper functions:
 stderr(){ echo "$@" >/dev/stderr; }
@@ -70,7 +77,8 @@ up() {
        peer ${WG_PEER_PUBLIC_KEY} \
        preshared-key ${TMP_PEER_PRESHARED_KEYFILE} \
        endpoint ${WG_PEER_ENDPOINT} \
-       allowed-ips ${WG_PEER_ALLOWED_IPS}
+       allowed-ips ${WG_PEER_ALLOWED_IPS} \
+       persistent-keepalive ${WG_PERSISTENT_KEEPALIVE}
 
     ## Bring up the interface:
     ip link set ${WG_INTERFACE} up
@@ -102,14 +110,19 @@ usage() {
     exit 1
 }
 
-if [[ $# == 0 ]]; then
-    usage
+if [[ $UID != 0 ]]; then
+    ## Automatically rerun this script as root:
+    exec sudo -E "$(readlink -f "$0")" "$@"
+else
+    if [[ $# == 0 ]]; then
+        usage
+    fi
+    command="$1"
+    shift
+    ## Command argument:
+    case "$command" in
+        up) up "$@" ;;
+        down) down "$@" ;;
+        *) usage;;
+    esac
 fi
-command="$1"
-shift
-
-case "$command" in
-    up) up "$@" ;;
-    down) down "$@" ;;
-    *) usage;;
-esac
