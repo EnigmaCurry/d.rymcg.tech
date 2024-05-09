@@ -28,11 +28,11 @@ WG_PEER_PUBLIC_KEY=xxxxxxxxxxxxxxxxxxxxxxxx
 WG_PEER_PRESHARED_KEY=xxxxxxxxxxxxxxxxxxxxxxxxxx
 # The domain name and public wireguard port (UDP) of the public wireguard server
 WG_PEER_ENDPOINT=wireguard.example.com:51820
-# The list of IP networks (CIDR) that are allowed to traverse the VPN:
+# The list of IP networks (CIDR) that are allowed to traverse the VPN (ipv4 and/or ipv6):
 # (eg. to allow only two subnets: WG_PEER_ALLOWED_IPS=10.13.17.0/24,192.168.45.0/24  )
-# (specify comma separated list of CIDR networks. 0.0.0.0/0 means ALL non-local traffic.)
+# (specify comma separated list of CIDR networks. 0.0.0.0/0,::0/0 means ALL non-local traffic.)
 # (conversely, networks that are NOT listed here will NOT go over the VPN.)
-WG_PEER_ALLOWED_IPS=0.0.0.0/0
+WG_PEER_ALLOWED_IPS=0.0.0.0/0,::0/0
 # The interval in seconds to send keep-alive pings to the server (0 means OFF):
 # This is REQUIRED if you run a public SERVER from behind a NAT firewall.
 WG_PERSISTENT_KEEPALIVE=25
@@ -168,6 +168,7 @@ disable_vpn_dns() {
         # it doesn't exist?
         fault "${TMP_RESOLV_CONF} does not exist. Failed to restore prior /etc/resolv.conf !"
     fi
+    rm -f ${TMP_RESOLV_CONF}
     echo "# Restored prior /etc/resolv.conf for non-VPN use."
 }
 

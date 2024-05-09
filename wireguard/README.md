@@ -21,7 +21,7 @@ Reasons you may wish to use this wireguard config:
    internet access and roaming (a typical consumer privacy shield,
    with SNAT IP masquerading). All of your internet traffic will
    appear to originate from your fixed public server IP address (not
-   your home).
+   your local router's).
  * If you want to expose a **layer 4** private service (TCP/UDP),
    running behind a NAT firewall, to the public internet (DNAT port
    forwarding), using a public gateway (running on a droplet/VPS) as
@@ -141,9 +141,12 @@ Alternatively, this repository includes its own script
 and `ip` commands directly, requiring no further dependencies. This
 script is designed for the use case where you want to route ALL
 non-local (non-LAN) traffic, of the entire machine, through the VPN,
-which is typical of consumer privacy shields.
+which is typical of consumer privacy shields. If you want configure it
+so only *some* routes go over the VPN, while others remain on your
+native connection, you can customize the `WG_PEER_ALLOWED_IPS`
+variable (see the comments in [.env-dist](.env-dist) for details.)
 
-Simply copy the settings from your peer config (`make
+Simply copy all of the settings shown from your peer config (`make
 show-wireguard-peers`) into the variables at the top of the script
 ([vpn.sh](vpn.sh)) and then run the script to start the VPN:
 
@@ -169,3 +172,123 @@ they included a script for that method. It is slightly more complex
 than this "classic solution", and their script does not appear to be
 compatible with tools like NetworkManager, so [vpn.sh](vpn.sh) has not
 yet attempted to implement the namespace method.
+
+### Example script configuration
+
+Suppose that when you ran `make config` you created three clients:
+`archdev,bob,mary`.
+
+In order to setup the clients, you need to view the configuration for
+each of these peers (which includes the wireguard keys required to
+connect).
+
+Run `make show-wireguard-peers`. It will print the config for all
+three peers `archdev`, `bob`, and `mary`. 
+
+Let's consider only the first one, `archdev`. Here is an example
+output for the config file for `archdev`, which is printed at the top
+of the output of `make show-wireguard-peers`:
+
+```
+## /config/peer_archdev/peer_archdev.conf
+[Interface]
+Address = 10.13.17.2
+PrivateKey = oNnzcPVu/iXpfxQQSS84U0vwdm4ODHJm2/gVONV10kU=
+ListenPort = 51820
+DNS = 10.13.17.1
+
+[Peer]
+PublicKey = vHH1QfTfX0exdowq4HkChUiwl5cVHSG35iDELm+vFno=
+PresharedKey = IWJpkj8FeajeoqnRATnccNZAo+KZOwEPF8m0mRTHYUY=
+Endpoint = wireguard.example.net:51820
+AllowedIPs = 0.0.0.0/0,::0/0
+
+### bob and mary configs follow after this, ignore them for now ....
+```
+
+Notice that the `archdev` config is annotated with the comment showing
+the config file path inside the server wireguard container
+(`/config/peer_archdev/peer_archdev.conf`), and the `bob` and `mary`
+ones are printed after that.
+
+Log into the client computer that `archdev` uses, and download the
+[vpn.sh](vpn.sh) script onto that computer. Open the script in a text
+editor, and you will need to copy the information shown from the peer
+config into the variables at the top of the script. Here is what you
+need to edit into the top part of that file, with the same values as
+shown in the peer config (make sure you change `WG_PRIVATE_KEY`,
+`WG_PEER_PUBLIC_KEY`, `WG_PEER_PRESHARED_KEY`, and `WG_PEER_ENDPOINT`,
+your actual values WILL BE DIFFERENT, all of the other settings can
+probably be left alone.):
+
+```
+## An Excerpt from the vpn.sh script (near the top of the file)
+## You'll need to change at least these four variables:
+WG_PRIVATE_KEY=oNnzcPVu/iXpfxQQSS84U0vwdm4ODHJm2/gVONV10kU=
+WG_PEER_PUBLIC_KEY=vHH1QfTfX0exdowq4HkChUiwl5cVHSG35iDELm+vFno=
+WG_PEER_PRESHARED_KEY=IWJpkj8FeajeoqnRATnccNZAo+KZOwEPF8m0mRTHYUY=
+WG_PEER_ENDPOINT=wireguard.example.net:51820
+```
+
+In order to run the script, the user will need to be `root`, or at
+least have [sudo](https://wiki.archlinux.org/title/Sudo) privileges.
+
+Now that the file is edited, you can run it to start the VPN client:
+
+```
+## Make the script executable:
+chmod a+x ./vpn.sh
+
+## To start the VPN client:
+
+./vpn.sh up
+
+## To stop the VPN client:
+
+./vpn.sh down
+```
+
+### Split routing
+
+By default, the [vpn.sh](vpn.sh) client script is setup to force ALL
+non-local (non-LAN) traffic over the VPN. If you want to make it so
+only some traffic goes over the VPN, while the rest should go over
+your normal connection, you can customize the variable called
+`WG_PEER_ALLOWED_IPS` in the script (it does not matter how the server
+is configured, it is the *client* that gets to decide this setting!)
+
+By default, the value is set to `WG_PEER_ALLOWED_IPS=0.0.0.0/0,::0/0`,
+which means that ALL non-local (non-LAN) traffic (both ipv4 and ipv6)
+will go over the VPN. That's usually what you want for a typical
+consumer privacy shield.
+
+If you have more advanced use cases, you can customize it. For
+example, if you have two subnets you want to go over the VPN, but
+everything else to go over the normal connection, set it like this
+(comma separated [CIDR
+notation](https://en.wikipedia.org/wiki/CIDR#CIDR_notation))
+`WG_PEER_ALLOWED_IPS=10.13.17.0/24,192.168.100.0/24`. Every network
+range that is listed in this list will go over the VPN, and
+conversely, everything *NOT* in that list will go over your normal
+internet connection.
+
+
+## Destroy VPN and all credentials
+
+The server and client keys are stored in the volume of the wireguard
+container on the server. If you want to delete them all, you can
+simply destroy the container volume:
+
+
+```
+# Remove the wireguard server, volume, and ALL of the wireguard keys:
+make destroy
+```
+
+To recreate the wireguard, and issue NEW keys to all clients, simply
+reinstall:
+
+```
+## Since the wireguard volume does not exist anymore, it will be recreated, creating new keys:
+make install
+```
