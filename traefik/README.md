@@ -428,6 +428,12 @@ having already logged in through gitea.
 
 ## Wireguard VPN
 
+> [!NOTE]
+> This section describes how to make Traefik act as a **Layer 7**
+> (HTTP) VPN, typical of company wide intranets. If you want a **Layer
+> 4** (TCP/UDP) VPN, typical of consumer privacy shields, check out the
+> separate [wireguard](../wireguard#readme) config].
+
 By default Traefik is setup to use the `host` network, which is used
 for *public* (internet or LAN) servers. Alternatively, you can start a
 wireguard VPN server sidecar container and bind Traefik exclusively to

@@ -1,0 +1,24 @@
+#! This is a ytt template file for docker-compose.override.yaml
+#! References:
+#!   https://carvel.dev/ytt
+#!   https://docs.docker.com/compose/extends/#adding-and-overriding-configuration
+#!   https://github.com/enigmacurry/d.rymcg.tech#overriding-docker-composeyaml-per-instance
+
+#! ### Standard project vars:
+#@ load("@ytt:data", "data")
+#@ project = data.values.project
+#@ instance = data.values.instance
+#@ context = data.values.context
+#@ port_map = data.values.public_peer_ports.split(",")
+
+#@yaml/text-templated-strings
+services:
+  wireguard:
+    #@ service = "wireguard"
+    labels:
+      - wireguard=true
+    ports:
+#@yaml/text-templated-strings
+#@ for peer, peer_port, public_port, port_type in [x.split(":") for x in port_map]:
+      - (@= public_port @):(@= peer_port @)/(@= port_type @)
+#@ end
