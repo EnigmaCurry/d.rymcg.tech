@@ -10,6 +10,8 @@
 #@ instance = data.values.instance
 #@ context = data.values.context
 #@ port_map = data.values.public_peer_ports.split(",")
+#@ ipv6_enable = data.values.ipv6_enable == "true"
+#@ ipv6_docker_subnet = data.values.ipv6_docker_subnet
 
 #@yaml/text-templated-strings
 services:
@@ -17,8 +19,22 @@ services:
     #@ service = "wireguard"
     labels:
       - wireguard=true
+#@ if ipv6_enable:
+    networks:
+      - ip6net
+#@ end
     ports:
 #@yaml/text-templated-strings
-#@ for peer, peer_port, public_port, port_type in [x.split(":") for x in port_map]:
+#@ for peer, peer_port, public_port, port_type in [x.split("-") for x in port_map]:
       - (@= public_port @):(@= peer_port @)/(@= port_type @)
+#@ end
+
+#@ if ipv6_enable:
+#@yaml/text-templated-strings
+networks:
+  ip6net:
+    enable_ipv6: true
+    ipam:
+      config:
+        - subnet: (@= ipv6_docker_subnet @)
 #@ end
