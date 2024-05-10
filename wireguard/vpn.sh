@@ -202,7 +202,7 @@ EOF
     echo "   journalctl --unit vpn"
 }
 
-systemd-disable() { # : Disable scheduled backups and remove systemd timers
+systemd-disable() { # Remove and disable Systemd service
     systemctl disable --now vpn.service
     rm -f ${WG_SERVICE}
     systemctl daemon-reload
