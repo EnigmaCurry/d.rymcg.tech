@@ -180,7 +180,7 @@ disable_vpn_dns() {
 
 
 systemd-enable() { # Install and enable Systemd service
-    cat <<EOF > /etc/systemd/service/${WG_SERVICE}.service
+    cat <<EOF > /etc/systemd/system/${WG_SERVICE}.service
 [Unit]
 Description=wireguard service (vpn.sh) $(realpath ${BASH_SOURCE})
 After=network.target
@@ -205,7 +205,7 @@ EOF
 
 systemd-disable() { # Remove and disable Systemd service
     systemctl disable --now vpn.service
-    rm -f /etc/systemd/service/${WG_SERVICE}.service
+    rm -f /etc/systemd/system/${WG_SERVICE}.service
     systemctl daemon-reload
 }
 
