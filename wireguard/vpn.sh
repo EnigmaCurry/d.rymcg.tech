@@ -35,6 +35,8 @@ WG_PEER_ALLOWED_IPS=0.0.0.0/0,::0/0
 # The interval in seconds to send keep-alive pings to the server (0 means OFF):
 # This is REQUIRED if you run a public SERVER from behind a NAT firewall.
 WG_PERSISTENT_KEEPALIVE=25
+# The name of the systemd service:
+WG_SERVICE=vpn
 # ..End setup
 
 ## helper functions:
@@ -178,8 +180,7 @@ disable_vpn_dns() {
 
 
 systemd-enable() { # Install and enable Systemd service
-    mkdir -p $(dirname $WG_SERVICE)
-    cat <<EOF > ${WG_SERVICE}
+    cat <<EOF > /etc/systemd/service/${WG_SERVICE}.service
 [Unit]
 Description=wireguard service (vpn.sh) $(realpath ${BASH_SOURCE})
 After=network.target
@@ -204,7 +205,7 @@ EOF
 
 systemd-disable() { # Remove and disable Systemd service
     systemctl disable --now vpn.service
-    rm -f ${WG_SERVICE}
+    rm -f /etc/systemd/service/${WG_SERVICE}.service
     systemctl daemon-reload
 }
 
