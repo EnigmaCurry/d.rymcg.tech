@@ -1,5 +1,4 @@
 #!/bin/bash
-set -e
 
 ## Setup a native wireguard client without using wg-quick nor Docker...
 ## NOTE: this config is for forwarding ALL non-local traffic through wireguard.
@@ -60,7 +59,7 @@ check_deps() {
 ## script actions:
 up() {
     check_deps wg ip
-    set -x
+    set -ex
     ## Copy the private and preshared keys to temporary files:
     TMP_PRIVATE_KEYFILE=$(mktemp)
     TMP_PEER_PRESHARED_KEYFILE=$(mktemp)
@@ -123,7 +122,7 @@ up() {
 
 down() {
     check_deps ip
-    set -x
+    set -ex
     ip link del dev ${WG_INTERFACE}
     if [[ "${WG_USE_VPN_DNS}" == "true" ]]; then
         disable_vpn_dns
