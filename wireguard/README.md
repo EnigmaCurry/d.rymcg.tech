@@ -222,7 +222,7 @@ Log into the client computer that `archdev` uses, and download the
 editor, and you will need to copy the information shown from the peer
 config into the variables at the top of the script. Here is what you
 need to edit into the top part of that file, with the same values as
-shown in the peer config (make sure you change `WG_PRIVATE_KEY`,
+shown in the peer config (make sure you change`WG_ADDRESS`, `WG_PRIVATE_KEY`,
 `WG_PEER_PUBLIC_KEY`, `WG_PEER_PRESHARED_KEY`, and `WG_PEER_ENDPOINT`,
 your actual values WILL BE DIFFERENT, all of the other settings can
 probably be left alone.):
@@ -230,6 +230,7 @@ probably be left alone.):
 ```
 ## An Excerpt from the vpn.sh script (near the top of the file)
 ## You'll need to change at least these four variables according to your config:
+WG_ADDRESS=10.13.17.2
 WG_PRIVATE_KEY=oNnzcPVu/iXpfxQQSS84U0vwdm4ODHJm2/gVONV10kU=
 WG_PEER_PUBLIC_KEY=vHH1QfTfX0exdowq4HkChUiwl5cVHSG35iDELm+vFno=
 WG_PEER_PRESHARED_KEY=IWJpkj8FeajeoqnRATnccNZAo+KZOwEPF8m0mRTHYUY=
