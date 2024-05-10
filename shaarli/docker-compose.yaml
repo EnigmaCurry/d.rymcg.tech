@@ -8,7 +8,6 @@
 # - SHAARLI_TRAEFIK_HOST      Fully Qualified Domain Name for the Shaarli instance
 # - SHAARLI_DOCKER_TAG        Shaarli docker tag to use
 #                             See: https://hub.docker.com/r/shaarli/shaarli/tags
-version: '3'
 
 volumes:
   shaarli-cache:
