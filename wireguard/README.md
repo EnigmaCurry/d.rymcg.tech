@@ -12,21 +12,22 @@ integration with Traefik Proxy).
 > The one included with Traefik is a layer 7 (HTTP) proxy. On the other hand, 
 > this config is used as a generic layer 4 (TCP/UDP) VPN service, which is lower
 > level than the one integrated with Traefik. On the whole, this one
-> is a much simpler configuration, but each one has specific
+> is much simpler to configure, but each one has specific
 > tradeoffs.
 
 Reasons you may wish to use this wireguard config:
 
  * If you want a **layer 4** (TCP/UDP) tunnel for privacy enhanced
-   internet access and roaming (a typical consumer privacy shield,
-   with SNAT IP masquerading). All of your internet traffic will
-   appear to originate from your fixed public server IP address (not
-   your local router's).
+   internet access with roaming capability (eg. a typical consumer
+   privacy shield, with SNAT IP masquerading). All of your internet
+   traffic will appear to originate from your fixed public server IP
+   address (not your local router's).
  * If you want to expose a **layer 4** private service (TCP/UDP),
    running behind a NAT firewall, to the public internet (DNAT port
    forwarding), using a public gateway (running on a droplet/VPS) as
    the go between. This does not require any opening of ports on the
    local router (only the public gateway server needs open ports).
+ * You want optional IPv6 support.
 
 Reasons you may wish to use the *other* [Traefik integrated
 wireguard](../traefik/README.md#wireguard-vpn) instead of this one:
@@ -35,21 +36,21 @@ wireguard](../traefik/README.md#wireguard-vpn) instead of this one:
    cloud, accessible from various locations, (eg. a company wide
    intranet service).
  * If you want to expose *select* **layer 7** (HTTP) applications
-   (based on domain name), to the public internet, from a fixed
+   (routed based on domain name), to the public internet, from a fixed
    location (eg. home or office), and you are capable of opening a
    public UDP port (eg. 51820) in each location's firewall.
 
 ## Config
 
-Setup d.rymcg.tech on a public server (VPS) according to the main
+ * Setup d.rymcg.tech on a public server (VPS) according to the main
 [README.md](../README.md) (Note: you do not need to install Traefik on
 the public VPS.)
 
-Create a public DNS entry for your wireguard server (eg.
+ * Create a public DNS entry for your wireguard server (eg.
 `wireguard.example.com`) pointing to the IP address of your Docker
 host server.
 
-From this directory, run:
+Next, from this directory, run:
 
 ```
 make config     # This creates the .env_{CONTEXT} config file.
@@ -57,28 +58,28 @@ make config     # This creates the .env_{CONTEXT} config file.
 
 Answer the questions to enter the following required config settings:
 
- * `WIREGUARD_HOST` enter the fully qualified domain name you chose
+ * `WIREGUARD_HOST` - Enter the fully qualified domain name you chose
    for this wireguard service (eg. `wireguard.example.com`).
- * `WIREGUARD_PEERS` enter the comma separated list of all the peer
+ * `WIREGUARD_PEERS` - Enter the comma separated list of all the peer
    configs to create. Each peer name must be alphanumeric with **no**
    spaces, **no** dashes, **no** underscores. (eg.
    `myclient1,myclient2,myclient3`)
 
-There are additional/optional configuration you can make in your
-`.env_{CONTEXT}` file by hand, see the comments in
-[.env-dist](.env-dist).
+There are additional variables in the `.env_{CONTEXT}` file you may
+wish to edit by hand, see the comments in [.env-dist](.env-dist).
 
 ### Configure public peer ports (optional)
 
-You may wish to run servers at home that typically are not accessible
-from the internet. To do so, set `WIREGUARD_PUBLIC_PEER_PORTS` in your
-.env file, and this will setup port forwarding (DNAT) through the VPN
-tunnel. There is no need to open a port in your LAN router, and so it
-should work from any random internet hotspot, or other networks
-outside of your control.
+You may wish to run public services at home, which typically are not
+accessible from the internet. To expose these services to the world,
+set `WIREGUARD_PUBLIC_PEER_PORTS` in your .env file, and this will
+setup port forwarding (DNAT) through the VPN tunnel. There is no need
+to open any port in your LAN router, and so it should work from any
+random internet hotspot, or most other networks outside of your
+control.
 
-For example, to open ports 443 and 53, running on two separate VPN
-clients:
+For example, to open ports `443` and `53` publicly, running on two
+separate VPN clients:
 
 ```
 # Format is a comma separated list of 4-tuples: 
@@ -87,7 +88,7 @@ WIREGUARD_PUBLIC_PEER_PORTS=10.13.17.2-443-443-tcp,10.13.17.3-53-53-udp
 ```
 
 > [!NOTE] 
-> The 4-tuple is separated with dashes `-` not the traditional colon
+> The 4-tuple port mapping is separated with dashes `-` not the traditional colon
 > `:` because that is reserved for IPv6 addresses. If you want create a public peer port for an IPv6 address it would be like `WIREGUARD_PUBLIC_PEER_PORTS=fd8c:8ac3:9074:5183::2-443-443-tcp`
 
 For each peer that runs a server behind a NAT firewall, you must
@@ -96,7 +97,7 @@ connection stays available for incoming requests. Set
 `WIREGUARD_PERSISTENTKEEPALIVE_PEERS`:
 
 ```
-# Specify the list of peers to send a keep alive packets to:
+# Specify the list of peers to send keep alive packets to:
 # (eg 'all', or a comma separated list of peer names. Set blank to turn it off.)
 WIREGUARD_PERSISTENTKEEPALIVE_PEERS=all
 ```
@@ -148,7 +149,7 @@ non-local (non-LAN) traffic, of the entire machine, through the VPN,
 which is typical of consumer privacy shields. If you want configure it
 so only *some* routes go over the VPN, while others remain on your
 native connection, you can customize the `WG_PEER_ALLOWED_IPS`
-variable (see the comments in [.env-dist](.env-dist) for details.)
+variable (see the comments in [vpn.sh](vpn.sh) for details.)
 
 Simply copy all of the settings shown from your peer config (`make
 show-wireguard-peers`) into the variables at the top of the script
@@ -183,17 +184,18 @@ Suppose that when you ran `make config` you created three clients:
 `archdev,bob,mary`.
 
 In order to setup the clients, you need to view the configuration for
-each of these peers (which includes the wireguard keys required to
-connect).
+each of these peers (which includes the unique wireguard keys required
+for each client to connect).
 
 Run `make show-wireguard-peers`. It will print the config for all
 three peers `archdev`, `bob`, and `mary`. 
 
 Let's consider only the first one, `archdev`. Here is an example
-output for the config file for `archdev`, which is printed at the top
-of the output of `make show-wireguard-peers`:
+output for the config file for `archdev`:
 
 ```
+## Example output of `make show-wireguard-peers` ...
+
 ## /config/peer_archdev/peer_archdev.conf
 [Interface]
 Address = 10.13.17.2
@@ -227,7 +229,7 @@ probably be left alone.):
 
 ```
 ## An Excerpt from the vpn.sh script (near the top of the file)
-## You'll need to change at least these four variables:
+## You'll need to change at least these four variables according to your config:
 WG_PRIVATE_KEY=oNnzcPVu/iXpfxQQSS84U0vwdm4ODHJm2/gVONV10kU=
 WG_PEER_PUBLIC_KEY=vHH1QfTfX0exdowq4HkChUiwl5cVHSG35iDELm+vFno=
 WG_PEER_PRESHARED_KEY=IWJpkj8FeajeoqnRATnccNZAo+KZOwEPF8m0mRTHYUY=
@@ -258,24 +260,26 @@ By default, the [vpn.sh](vpn.sh) client script is setup to force ALL
 non-local (non-LAN) traffic over the VPN. If you want to make it so
 only some traffic goes over the VPN, while the rest should go over
 your normal connection, you can customize the variable called
-`WG_PEER_ALLOWED_IPS` in the script (it does not matter how the server
-is configured, it is the *client* that gets to decide this setting!)
+`WG_PEER_ALLOWED_IPS` in the script.
 
-By default, the value is set to `WG_PEER_ALLOWED_IPS=0.0.0.0/0,::0/0`,
-which means that ALL non-local (non-LAN) traffic (both ipv4 and ipv6)
-will go over the VPN. That's usually what you want for a typical
-consumer privacy shield.
+By default, this value is set to
+`WG_PEER_ALLOWED_IPS=0.0.0.0/0,::0/0`, which means that ALL non-local
+(non-LAN) traffic (both ipv4 and ipv6) will go over the VPN. That's
+usually what you want for a typical consumer privacy shield.
 
 If you have more advanced use cases, you can customize it. For
 example, if you have two subnets you want to go over the VPN, but
-everything else to go over the normal connection, set it like this
-(comma separated [CIDR
-notation](https://en.wikipedia.org/wiki/CIDR#CIDR_notation))
+everything else you want to go over the normal connection, set it like
+this (comma separated [CIDR
+notation](https://en.wikipedia.org/wiki/CIDR#CIDR_notation)):
 `WG_PEER_ALLOWED_IPS=10.13.17.0/24,192.168.100.0/24`. Every network
 range that is listed in this list will go over the VPN, and
 conversely, everything *NOT* in that list will go over your normal
 internet connection.
 
+You can use a tool like
+[tracepath](https://man.archlinux.org/man/tracepath.8) to confirm
+which route a particular connection will take.
 
 ## Destroy VPN and all credentials
 
@@ -289,7 +293,7 @@ simply destroy the container volume:
 make destroy
 ```
 
-To recreate the wireguard, and issue NEW keys to all clients, simply
+To recreate the wireguard server, and issue NEW keys to all clients, simply
 reinstall:
 
 ```
@@ -297,13 +301,13 @@ reinstall:
 make install
 ```
 
-## IPv6
+## IPv6 (optional)
 
-The
-[linuxserver/docker-wireguard](https://github.com/linuxserver/docker-wireguard)
-container that this config is based upon [does not officially support
+The container image
+([linuxserver/docker-wireguard](https://github.com/linuxserver/docker-wireguard))
+that this config is based upon [does not officially support
 IPv6](https://github.com/linuxserver/docker-wireguard/pull/183#issuecomment-1273242895),
-however, this configuration has modified the image to make it work.
+however, this configuration has been modified to make it work.
 
 ### Prepare the Docker host for IPv6
 
@@ -318,8 +322,8 @@ consult the [DigitalOcean documentation for enabling
 IPv6](https://docs.digitalocean.com/products/networking/ipv6/how-to/enable/#on-existing-droplets)
 (hint: enable IPv6 *before* you create the droplet).
 
-You must edit the Docker daemon configuration file to enable IPv6,
-because as of Docker 25 it is still not enabled in the default
+You also must edit the Docker daemon configuration file to enable
+IPv6, because as of Docker 25 it is still not enabled in the default
 configuration. [Consult the Docker documentation for
 details](https://docs.docker.com/config/daemon/ipv6/).
 
@@ -349,28 +353,33 @@ and change the following variables for IPv6:
  * `WIREGUARD_IPV6_ENABLE=true` - this is the setting that controls
    whether or not you wish to enable IPv6 at all. By default, it is
    set to `false`, disabling the feature entirely.
+   
  * `WIREGUARD_SUBNET_IPV6` - this is the IPv6 subnet to use for your
-   peers. It should be in the dedicated private range starting with
-   `fd`. You can [generate a random subnet on this
+   peers (analagous to the the `WIREGUARD_SUBNET` setting used for
+   IPv4). The subnet you choose should be in the dedicated private
+   range starting with `fd`. This setting should NOT be in CIDR
+   notation, instead it should simply end in a single digit `0` to
+   indicate the start of the range and each new client will increment
+   this digit by one. You can [generate a random subnet on this
    page](https://simpledns.plus/private-ipv6) (or just use the one
    provided in the default config, if it doesn't conflict for you).
 
  * `WIREGUARD_ALLOWEDIPS` - this is the list of IP ranges that are
-   allowed to be trafficed on the VPN. It can contain both IPv4 and
+   allowed to be trafficked on the VPN. It can contain both IPv4 and
    IPv6 ranges. By default, the value is `0.0.0.0/0,::0/0` meaning ALL
    ipv4 and ALL ipv6 address are allowed. Make sure the ranges you
-   pick are in [CIDR
+   pick are set in [CIDR
    notation](https://en.wikipedia.org/wiki/CIDR#CIDR_notation),
    separated by commas to specify multiple ranges.
 
- * `WIREGUARD_PUBLIC_PEER_PORT` - if you want to make your private
+ * `WIREGAURD_PUBLIC_PEER_PORTS` - if you want to make your private
    services public, you can add the port mapping to the list in
-   `WIREGUARD_PUBLIC_PEER_PORT`. It accepts both IPv4 and IPv6
+   `WIREGAURD_PUBLIC_PEER_PORTS`. It accepts both IPv4 and IPv6
    addresses. Because of this, each port mapping uses the `-`
    character rather than the traditional `:` character (since `:` is
    used in IPv6 addresses). For example, if you wanted to open port
    443 on both IPv4 and IPv6, you could use the following example:
-   `WIREGUARD_PUBLIC_PEER_PORTS=10.13.17.2-443-443-tcp,fd5c:d2af:a2c6:7d61::2-443-443-tcp`
+   `WIREGAURD_PUBLIC_PEER_PORTS=10.13.17.2-443-443-tcp,fd5c:d2af:a2c6:7d61::2-443-443-tcp`
 
  * `WIREGUARD_IPV6_DOCKER_SUBNET` - this is the subnet used for the
    Docker container networking interfacing with the host. It should
