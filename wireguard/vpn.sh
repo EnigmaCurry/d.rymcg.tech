@@ -176,8 +176,40 @@ disable_vpn_dns() {
 }
 
 
+
+systemd-enable() { # Install and enable Systemd service
+    mkdir -p $(dirname $WG_SERVICE)
+    cat <<EOF > ${WG_SERVICE}
+[Unit]
+Description=wireguard service (vpn.sh) $(realpath ${BASH_SOURCE})
+After=network.target
+Wants=network.target
+
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+ExecStart=$(realpath ${BASH_SOURCE}) up
+ExecStop=$(realpath ${BASH_SOURCE}) down
+
+[Install]
+WantedBy=network.target
+EOF
+
+    systemctl daemon-reload
+    systemctl enable --now vpn.service
+    systemctl status ${WG_SERVICE} --no-pager
+    echo "You can watch the logs with this command:"
+    echo "   journalctl --unit vpn"
+}
+
+systemd-disable() { # : Disable scheduled backups and remove systemd timers
+    systemctl disable --now vpn.service
+    rm -f ${WG_SERVICE}
+    systemctl daemon-reload
+}
+
 usage() {
-    echo "Usage: $0 up|down" >&2
+    echo "Usage: $0 up|down|systemd-enable|systemd-disable" >&2
     exit 1
 }
 
@@ -194,6 +226,8 @@ else
     case "$command" in
         up) up "$@" ;;
         down) down "$@" ;;
+        systemd-enable) systemd-enable "$@" ;;
+        systemd-disable) systemd-disable "$@" ;;
         *) usage;;
     esac
 fi
