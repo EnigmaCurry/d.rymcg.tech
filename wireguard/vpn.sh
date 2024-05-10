@@ -11,10 +11,10 @@ set -e
 ## Copy all the details from the generated config into these variables:
 # Name of the local wireguard interface to create:
 WG_INTERFACE=wg0
-# The private VPN IP address this client should use:
+# The list of private VPN IP addresses this client should use, comma separated:
 WG_ADDRESS=10.13.17.2
 # The private key of this client:
-WG_PRIVATE_KEY=xxxxxxxxxxxxxxxxxxxxxxxxxxx
+WG_PRIVATE_KEY=xxxxxxxxxxxxx
 # The UDP port this client listens on:
 # (this is not really used nor important if this is behind a firewall.)
 WG_LISTEN_PORT=51820  
@@ -23,9 +23,9 @@ WG_USE_VPN_DNS=true
 # The DNS setting to use while the VPN is active (only used if WG_USE_VPN_DNS=true):
 WG_DNS=10.13.17.1
 # The public key of the peer to connect to (ie. the wireguard server):
-WG_PEER_PUBLIC_KEY=xxxxxxxxxxxxxxxxxxxxxxxx
+WG_PEER_PUBLIC_KEY=xxxxxxxxxxxx
 # The preshared key provided by the wireguard server:
-WG_PEER_PRESHARED_KEY=xxxxxxxxxxxxxxxxxxxxxxxxxx
+WG_PEER_PRESHARED_KEY=xxxxxxxxxxxx
 # The domain name and public wireguard port (UDP) of the public wireguard server
 WG_PEER_ENDPOINT=wireguard.example.com:51820
 # The list of IP networks (CIDR) that are allowed to traverse the VPN (ipv4 and/or ipv6):
@@ -70,8 +70,10 @@ up() {
     ## Create the wireguard network interface:
     ip link add dev ${WG_INTERFACE} type wireguard
 
-    ## Assign the IP address to the interface:
-    ip addr add ${WG_ADDRESS}/24 dev ${WG_INTERFACE}
+    ## Assign the IP addresses to the interface:
+    for address in ${WG_ADDRESS//,/ }; do
+        ip addr add ${address} dev ${WG_INTERFACE}
+    done
 
     ## Set the private key file:
     wg set ${WG_INTERFACE} \
@@ -102,6 +104,8 @@ up() {
     done
     ip rule add not fwmark 1234 table 2468
     ip rule add table main suppress_prefixlength 0
+    ip -6 rule add not fwmark 1234 table 2468
+    ip -6 rule add table main suppress_prefixlength 0
 
     # Replace /etc/resolv.conf with VPN's DNS setting:
     if [[ "${WG_USE_VPN_DNS}" == "true" ]]; then

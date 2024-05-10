@@ -82,9 +82,13 @@ clients:
 
 ```
 # Format is a comma separated list of 4-tuples: 
-#         PEER_IP_ADDRESS:PEER_PORT:PUBLIC_PORT:PORT_TYPE,...
-WIREGUARD_PUBLIC_PEER_PORTS=10.13.17.2:443:443:tcp,10.13.17.3:53:53:udp
+#         PEER_IP_ADDRESS-PEER_PORT-PUBLIC_PORT-PORT_TYPE,...
+WIREGUARD_PUBLIC_PEER_PORTS=10.13.17.2-443-443-tcp,10.13.17.3-53-53-udp
 ```
+
+> [!NOTE] 
+> The 4-tuple is separated with dashes `-` not the traditional colon
+> `:` because that is reserved for IPv6 addresses. If you want create a public peer port for an IPv6 address it would be like `WIREGUARD_PUBLIC_PEER_PORTS=fd8c:8ac3:9074:5183::2-443-443-tcp`
 
 For each peer that runs a server behind a NAT firewall, you must
 enable the "keep alive" setting. This will ensure that the wireguard
@@ -292,3 +296,101 @@ reinstall:
 ## Since the wireguard volume does not exist anymore, it will be recreated, creating new keys:
 make install
 ```
+
+## IPv6
+
+The
+[linuxserver/docker-wireguard](https://github.com/linuxserver/docker-wireguard)
+container that this config is based upon [does not officially support
+IPv6](https://github.com/linuxserver/docker-wireguard/pull/183#issuecomment-1273242895),
+however, this configuration has modified the image to make it work.
+
+### Prepare the Docker host for IPv6
+
+There are a few requirements in order to get IPv6 to work:
+
+ * The host platform that you run your wireguard server on must
+natively support IPv6. 
+ * You must configure the Docker daemon to enable IPv6.
+
+For example, if you are using DigitalOcean to run your Docker server,
+consult the [DigitalOcean documentation for enabling
+IPv6](https://docs.digitalocean.com/products/networking/ipv6/how-to/enable/#on-existing-droplets)
+(hint: enable IPv6 *before* you create the droplet).
+
+You must edit the Docker daemon configuration file to enable IPv6,
+because as of Docker 25 it is still not enabled in the default
+configuration. [Consult the Docker documentation for
+details](https://docs.docker.com/config/daemon/ipv6/).
+
+On your Docker server, as root, edit the file
+`/etc/docker/daemon.json`. This file does not exist by default, so if
+it doesn't exist, you must create it. Enter the following into the
+(new) file:
+
+```
+{
+  "experimental": true,
+  "ip6tables": true
+}
+```
+
+Restart Docker, (or just reboot your server):
+
+```
+sudo systemctl restart docker
+```
+
+### Configure IPv6 for the wireguard server
+
+You must edit the `.env_{CONTEXT}` file (created after `make config`),
+and change the following variables for IPv6:
+
+ * `WIREGUARD_IPV6_ENABLE=true` - this is the setting that controls
+   whether or not you wish to enable IPv6 at all. By default, it is
+   set to `false`, disabling the feature entirely.
+ * `WIREGUARD_SUBNET_IPV6` - this is the IPv6 subnet to use for your
+   peers. It should be in the dedicated private range starting with
+   `fd`. You can [generate a random subnet on this
+   page](https://simpledns.plus/private-ipv6) (or just use the one
+   provided in the default config, if it doesn't conflict for you).
+
+ * `WIREGUARD_ALLOWEDIPS` - this is the list of IP ranges that are
+   allowed to be trafficed on the VPN. It can contain both IPv4 and
+   IPv6 ranges. By default, the value is `0.0.0.0/0,::0/0` meaning ALL
+   ipv4 and ALL ipv6 address are allowed. Make sure the ranges you
+   pick are in [CIDR
+   notation](https://en.wikipedia.org/wiki/CIDR#CIDR_notation),
+   separated by commas to specify multiple ranges.
+
+ * `WIREGUARD_PUBLIC_PEER_PORT` - if you want to make your private
+   services public, you can add the port mapping to the list in
+   `WIREGUARD_PUBLIC_PEER_PORT`. It accepts both IPv4 and IPv6
+   addresses. Because of this, each port mapping uses the `-`
+   character rather than the traditional `:` character (since `:` is
+   used in IPv6 addresses). For example, if you wanted to open port
+   443 on both IPv4 and IPv6, you could use the following example:
+   `WIREGUARD_PUBLIC_PEER_PORTS=10.13.17.2-443-443-tcp,fd5c:d2af:a2c6:7d61::2-443-443-tcp`
+
+ * `WIREGUARD_IPV6_DOCKER_SUBNET` - this is the subnet used for the
+   Docker container networking interfacing with the host. It should
+   NOT be the same subnet as `WIREGUARD_SUBNET_IPV6`. Choose a unique
+   subnet by [generating another random
+   subnet](https://simpledns.plus/private-ipv6) (or just use the
+   default one provided).
+   
+Check the comments in [.env-dist](.env-dist) for more details.
+
+### Configure IPv6 for the vpn.sh script
+
+Configuring the [vpn.sh](vpn.sh) script should be straight forward,
+you just copy the information directly from the values provided by
+`make show-wireguard-peers`. Here is a brief description of the config
+as it relates to IPv6:
+
+ * `WG_ADDRESS` is a list of the IP addresses to assign to the client `wg0` network interface. By default you will have an IPv4 address only. But if the wireguard server has IPv6 enabled, you will have both listed, eg. `WG_ADDRESS=10.13.17.2,fd5c:d2af:a2c6:7d61::2`
+ 
+ * `WG_PEER_ALLOWED_IPS` is a list of the allowed network ranges, both
+   IPv4 and IPv6, exactly like the `WIREGUARD_ALLOWEDIPS` setting for
+   the server. eg. `WG_PEER_ALLOWED_IPS=0.0.0.0/0,::0/0`.
+
