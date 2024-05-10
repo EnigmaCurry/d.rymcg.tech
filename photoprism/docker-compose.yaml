@@ -1,4 +1,3 @@
-version: '3.5'
 
 # Note:
 # - Running PhotoPrism on a server with less than 4 GB of swap space or setting a memory/swap limit can cause unexpected
