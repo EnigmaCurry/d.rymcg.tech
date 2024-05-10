@@ -282,6 +282,44 @@ You can use a tool like
 [tracepath](https://man.archlinux.org/man/tracepath.8) to confirm
 which route a particular connection will take.
 
+### Systemd service (start on boot)
+
+When you run `./vpn.sh up`, it only sets up the VPN temporarily. If
+you reboot the machine, the VPN will no longer be running. You can
+install a [systemd](https://wiki.archlinux.org/title/Systemd) service
+in order to start the VPN every time you start your computer.
+
+To create the systemd service, run:
+
+```
+./vpn systemd-enable
+```
+
+This will create a systemd unit file at
+`/etc/systemd/service/vpn.service`.
+
+You can now manage the VPN as any other systemd service.
+
+To view the logs:
+
+```
+systemctl status vpn
+```
+
+To disable the VPN:
+
+```
+systemctl disable --now vpn
+```
+
+To re-enable the VPN:
+
+```
+systemctl enable --now vpn
+```
+
+With the service enabled, the service will start automatically on every system boot.
+
 ## Destroy VPN and all credentials
 
 The server and client keys are stored in the volume of the wireguard
