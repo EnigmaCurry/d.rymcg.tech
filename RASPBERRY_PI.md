@@ -69,7 +69,8 @@ Host pi
  
 ## Setup Raspbian
 
-> [!Note] the gpu_mem setting only work on the Raspberry Pi 4 and earlier. It has [no effect on Raspberry Pi 5](https://www.raspberrypi.com/documentation/computers/legacy_config_txt.html#legacy-memory-options).
+> [!Note] 
+> the gpu_mem setting only work on the Raspberry Pi 4 and earlier. It has [no effect on Raspberry Pi 5](https://www.raspberrypi.com/documentation/computers/legacy_config_txt.html#legacy-memory-options).
 
  * On the pi, edit the file `/boot/firmware/config.txt` (eg. `sudo nano /boot/firmware/config.txt`)
    * Add the following line at the bottom: 
