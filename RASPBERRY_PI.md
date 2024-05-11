@@ -90,7 +90,7 @@ Host pi
    ```
    curl -sSL https://get.docker.com | sh
    ```
- * Add the `pi` user to the docker group:
+ * Add the `pi` user (or whatever user you setup) to the docker group:
    ```
    sudo usermod -aG docker pi
    ```
