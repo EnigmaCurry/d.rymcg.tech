@@ -7,21 +7,25 @@ rpi-imager from another computer, which allows you to setup the user
 account, network settings, and SSH credentials all from the imager
 software.
 
- * Click on the menu labled `Rasperry Pi Device`
+ * [Download the Raspberry PI
+   Imager](https://www.raspberrypi.com/software/) or install
+   `rpi-imager` from your package manager.
+ * Run `rpi-imager`.
+ * Click on the menu labled `Rasperry Pi Device`.
    * Choose your model of raspberry pi.
    
  * Click on the menu labeled `Operating System`
    * Choose `Raspberry PI OS (other)`
    * Choose `Raspberry PI OS Lite (64-bit)`.
    
- * Click on the menu labeled `Storage`
+ * Click on the menu labeled `Storage`.
    * Choose the Storage device to install to.
    * You may need to change the ownership of the device (eg. I had to
      do `sudo chown ryan /dev/sdb` first).
      
- * Click `Next`
+ * Click `Next`.
  
- * Click `Edit Settings`
+ * Click `Edit Settings`.
  
    * On the `General` tab:
    
@@ -49,8 +53,6 @@ software.
  
  * Once complete, unplug the sd-card, put it into the raspberry pi,
    plug in the ethernet, and power it on.
-
-[Download the Raspberry PI Imager](https://www.raspberrypi.com/software/)
 
 ## Setup ssh config on your workstation
 
