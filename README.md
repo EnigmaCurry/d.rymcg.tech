@@ -558,6 +558,7 @@ Install these other services at your leisure/preference:
 * [Nginx](nginx#readme) - a webserver configured with fast-cgi support for PHP scripts.
 * [Node-RED](nodered#readme) - a graphical event pipeline editor
 * [Ntfy.sh](ntfy.sh#readme) - a simple HTTP-based pub-sub notification service
+* [OpenWebRX](openwebrx#readme) - a multi-user SDR receiver (Software Defined Radio / ham radio) software with a web interface.
 * [Pairdrop](pairdrop#readme) - a webapp (PWA) to send files and messages peer to peer.
 * [Photoprism](photoprism#readme) - a photo gallery and manager
 * [Piwigo](piwigo#readme) - a photo gallery and manager
