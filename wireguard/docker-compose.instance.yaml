@@ -26,7 +26,7 @@ services:
     ports:
 #@yaml/text-templated-strings
 #@ for peer, peer_port, public_port, port_type in [x.split("-") for x in port_map]:
-      - (@= public_port @):(@= peer_port @)/(@= port_type @)
+      - (@= public_port @):(@= public_port @)/(@= port_type @)
 #@ end
 
 #@ if ipv6_enable:
