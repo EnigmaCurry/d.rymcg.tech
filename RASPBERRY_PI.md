@@ -6,7 +6,9 @@ The best way to install raspbian onto an sd-card is to use the
 rpi-imager from another computer, which allows you to setup the user account, network settings, and SSH credentials all from the imager software.
 
 [Download the Raspberry PI Imager](https://www.raspberrypi.com/software/)
- 
+
+## Setup ssh config on your workstation
+
  * Create an SSH config entry in `$HOME/.ssh/config` like so (replace `X.X.X.X` with the ip address of the pi):
 ```
 Host pi
