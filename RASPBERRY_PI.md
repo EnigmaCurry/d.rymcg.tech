@@ -40,7 +40,7 @@ software.
      * Choose `Allow pulbic-key authentication only`
      * Paste the list of your SSH public keys into the box. (Find them
        on your workstation by running `ssh-add -L` or look in
-       ``~/.ssh/*.pub`)
+       `~/.ssh/*.pub`)
        
    * On the `Options` tab:
    
