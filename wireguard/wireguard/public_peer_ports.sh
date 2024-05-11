@@ -9,12 +9,13 @@ do
     PEER_PORT="${__conf[1]}"
     PUBLIC_PORT="${__conf[2]}"
     PORT_TYPE="${__conf[3]}"
+    PUBLIC_INTERFACE=eth0
     if [[ "${PEER_IP}" == *"."* ]]; then
         # IPv4
-        iptables -t nat -A PREROUTING -p "${PORT_TYPE}" --dport "${PUBLIC_PORT}" -j DNAT --to-destination "${PEER_IP}:${PEER_PORT}"
+        iptables -t nat -A PREROUTING -p "${PORT_TYPE}" -i "${PUBLIC_INTERFACE}" --dport "${PUBLIC_PORT}" -j DNAT --to-destination "${PEER_IP}:${PEER_PORT}"
     elif [[ "${PEER_IP}" == *":"* ]]; then
         # IPv6
-        ip6tables -t nat -A PREROUTING -p "${PORT_TYPE}" --dport "${PUBLIC_PORT}" -j DNAT --to-destination "[${PEER_IP}]:${PEER_PORT}"
+        ip6tables -t nat -A PREROUTING -p "${PORT_TYPE}"  -i "${PUBLIC_INTERFACE}" --dport "${PUBLIC_PORT}" -j DNAT --to-destination "[${PEER_IP}]:${PEER_PORT}"
     else
         echo "Invalid PEER_IP: ${PEER_IP}"
         continue
