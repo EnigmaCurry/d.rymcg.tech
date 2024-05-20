@@ -311,10 +311,10 @@ which route a particular connection will take.
 [vpn.sh](vpn.sh) automatically manages your system `/etc/resolv.conf`
 by default, configurable by the following environment variables:
 
- * `WG_USE_VPN_DNS=true` (default) - `true` means create a new
-   `/etc/resolv.con` file using the `WG_DNS` nameserver value. `false`
-   means don't touch `/etc/resolv.conf`, leaving whatever setting is
-   already there.
+ * `WG_USE_VPN_DNS=true` (default) - `true` means to create a new
+   `/etc/resolv.conf` file using the `WG_DNS` nameserver value.
+   `false` means don't touch `/etc/resolv.conf`, leaving whatever
+   setting is already there.
  * `WG_DNS=10.13.17.1` (default) - set this to your preferred DNS
    resolver address.
  
