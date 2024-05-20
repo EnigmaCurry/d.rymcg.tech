@@ -329,7 +329,7 @@ browsers with a DNS-over-HTTP privacy setting.)
 If you do not want `vpn.sh` to touch your `/etc/resolv.conf`, set
 `WG_USE_VPN_DNS=false`.
 
-> ![Note] 
+> [!Note] 
 > When you run `./vpn.sh up`, with the setting `WG_USE_VPN_DNS=true`,
 > the script will copy the original (ie. non-vpn) `/etc/resolv.conf` to
 > `/tmp/vpn.sh.non-vpn-resolv.conf` as a backup, and then creates a new
