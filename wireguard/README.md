@@ -167,8 +167,8 @@ curl -O https://raw.githubusercontent.com/EnigmaCurry/d.rymcg.tech/master/wiregu
 ```
 
 Simply copy all of the settings shown from your peer config (`make
-show-wireguard-peers`) into the variables at the top of the script
-([vpn.sh](vpn.sh)) and then run the script to start the VPN:
+show-wireguard-peers`) into the variables at the top of the script and
+then run the script to start the VPN:
 
 ```
 chmod +x vpn.sh
