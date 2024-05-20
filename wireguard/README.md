@@ -140,22 +140,38 @@ including:
    which is included with the main wireguard-tools distribution.
  * [NetworkManager](https://www.xmodulo.com/wireguard-vpn-network-manager-gui.html)
    which includes a GUI style configuration.
+ * [vpn.sh](vpn.sh) included in this repository as our own custom
+   script for this config.
 
-Alternatively, this repository includes its own script
-[vpn.sh](vpn.sh) which is a simple Bash script that invokes the `wg`
-and `ip` commands directly, requiring no further dependencies. This
-script is designed for the use case where you want to route ALL
-non-local (non-LAN) traffic, of the entire machine, through the VPN,
-which is typical of consumer privacy shields. If you want configure it
-so only *some* routes go over the VPN, while others remain on your
-native connection, you can customize the `WG_PEER_ALLOWED_IPS`
-variable (see the comments in [vpn.sh](vpn.sh) for details.)
+### vpn.sh
 
-Simply copy all of the settings shown from your peer config (`make
-show-wireguard-peers`) into the variables at the top of the script
-([vpn.sh](vpn.sh)) and then run the script to start the VPN:
+This repository includes its own script [vpn.sh](vpn.sh) which is a
+simple Bash script that invokes the `wg` and `ip` commands directly,
+requiring no further dependencies.
+
+Client requirements:
+
+ * Any Linux machine, native or virtual, with `root` access or any
+   account with `sudo` privileges. (No Docker required!)
+ * Install all dependent packages: `bash`, `iproute2`,
+   `wireguard-tools`.
+ 
+   * Arch: `pacman -S bash iproute2 wireguard-tools`
+   * Debian/Ubuntu: `apt install bash iproute2 wireguard-tools`
+   * Fedora: `dnf install bash iproute wireguard-tools`
+
+Download the script:
 
 ```
+curl -O https://raw.githubusercontent.com/EnigmaCurry/d.rymcg.tech/master/wireguard/vpn.sh
+```
+
+Simply copy all of the settings shown from your peer config (`make
+show-wireguard-peers`) into the variables at the top of the script and
+then run the script to start the VPN:
+
+```
+chmod +x vpn.sh
 ./vpn.sh up
 ```
 
@@ -164,6 +180,14 @@ To bring the connection back down again, run:
 ```
 ./vpn.sh down
 ```
+
+Test that the connection behaves correctly using tools like `ping`,
+`tracepath` (or `traceroute`), and external IP finding tools like
+`curl ifconfig.me`. Now that you know it works, continue reading to
+learn about how to enable the systemd service, so that it starts
+automatically on boot.
+
+### History
 
 This script was written according to ["The Classic Solutions: Improved
 Rule-based
@@ -281,6 +305,40 @@ internet connection.
 You can use a tool like
 [tracepath](https://man.archlinux.org/man/tracepath.8) to confirm
 which route a particular connection will take.
+
+### Client DNS setting
+
+[vpn.sh](vpn.sh) automatically manages your system `/etc/resolv.conf`
+by default, configurable by the following environment variables:
+
+ * `WG_USE_VPN_DNS=true` (default) - `true` means create a new
+   `/etc/resolv.con` file using the `WG_DNS` nameserver value. `false`
+   means don't touch `/etc/resolv.conf`, leaving whatever setting is
+   already there.
+ * `WG_DNS=10.13.17.1` (default) - set this to your preferred DNS
+   resolver address.
+ 
+The default values are setup for preventing DNS leaks, forcing all
+system level DNS queries to go to the wireguard server directly. (in
+this case, a "leak" would be where the DNS was allowed to go to your
+local LAN resolver, instead of through the VPN. The default values
+prevent this.) Please be advised that not all applications will honor
+`/etc/resolv.conf`, and may use their own settings (especially
+browsers with a DNS-over-HTTP privacy setting.)
+
+If you do not want `vpn.sh` to touch your `/etc/resolv.conf`, set
+`WG_USE_VPN_DNS=false`.
+
+> ![Note] 
+> When you run `./vpn.sh up`, with the setting `WG_USE_VPN_DNS=true`,
+> the script will copy the original (ie. non-vpn) `/etc/resolv.conf` to
+> `/tmp/vpn.sh.non-vpn-resolv.conf` as a backup, and then creates a new
+> `/etc/resolv.conf` that forces the use of the `WG_DNS` nameserver
+> address. This is so that when you run `./vpn.sh down` it can restore
+> the original `/etc/resolv.conf`. It is important that this occurs
+> *before* system reboots, otherwise the wrong file will be in place on
+> next boot. Therefore, it is recommended to use the systemd service,
+> which takes care of this step for you.
 
 ### Systemd service (start on boot)
 
