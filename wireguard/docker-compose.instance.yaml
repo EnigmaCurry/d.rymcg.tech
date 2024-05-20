@@ -23,10 +23,13 @@ services:
     networks:
       - ip6net
 #@ end
+
+#@ if port_map not in ([],[""]):
     ports:
 #@yaml/text-templated-strings
 #@ for peer, peer_port, public_port, port_type in [x.split("-") for x in port_map]:
       - (@= public_port @):(@= public_port @)/(@= port_type @)
+#@ end
 #@ end
 
 #@ if ipv6_enable:
