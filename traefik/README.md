@@ -449,13 +449,13 @@ a few possible changes to your configs you'll need to consider:
 If you are creating certificates manually (via [step-ca](../step-ca)
 project, `make client-cert`), then you can skip enabling ACME, which
 is only needed if you want a fully automatic Let's Encrypt-like
-experience.
+experience instead.
 
 ### Add the Step CA root certificate to the Traefik trust store
 
 Set the following variables in your Traefik `.env_{CONTEXT}` file:
 
- * `TRAEFIK_STEP_CA_ENABLED=true` (set this to true to enable the Step-CA root CA cert)
+ * `TRAEFIK_STEP_CA_ENABLED=true`
  * `TRAEFIK_STEP_CA_ENDPOINT=https://ca.example.com` (set this to your Step-CA root URL)
  * `TRAEFIK_STEP_CA_FINGERPRINT=xxxxxxxxxxxxxxxxxxxx` (set this to
    your Step-CA fingerprint, eg. use `make inspect-fingerprint` in the
@@ -463,16 +463,16 @@ Set the following variables in your Traefik `.env_{CONTEXT}` file:
 
 Make sure to reinstall Traefik (`make install`) for these settings to
 take effect. The image will be rebuilt, baking in your root CA
-certificate. This runs `step-cli`, it retrieves the CA cert chain from
-your Step-CA endpoint, verifies the fingerprint, and then writes the
-CA cert permanently into the Traefik system's trust store (ie.
-container image).
+certificate. The [Dockerfile](Dockerfile) runs `step-cli`, it
+retrieves the CA cert chain from your Step-CA endpoint, verifies the
+fingerprint, and then writes the CA cert permanently into the Traefik
+system's trust store (ie. container image layer).
 
 You can test that the certificate is trusted and valid, using the
 `curl` command from inside of the trafeik container shell:
 
 ```
-# Enter the traefik container:
+# Enter the traefik container shell:
 make shell
 ```
 
