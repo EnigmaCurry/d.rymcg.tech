@@ -100,7 +100,8 @@ initial installation process.
 
 Once completed, it will create two new files on your worksation:
 
- * `certs/{DOMAIN}.crt` - This is the *public* certificate file for your host.
+ * `certs/{DOMAIN}.crt` - This is the *public* certificate file for
+   your host, along with the full public CA certificate chain.
  * `certs/{DOMAIN}.key` - This the *private* key file (do not share)!
 
 You can inspect the certificate file, and gather important details about it:
@@ -108,3 +109,54 @@ You can inspect the certificate file, and gather important details about it:
 ```
 step-cli certificate inspect certs/{DOMAIN}.crt
 ```
+
+Install the certificate and key files into your target host
+environment. The details of which are up to you, it is outside the
+scope of this README.
+
+> [!NOTE]
+> The key file is **NOT** encrypted, keep it safe!
+
+## Setup TLS clients
+
+The certificates that Step-CA creates are untrusted by mainstream
+trust stores, both as part of your operating system, and separately by
+your web browser. Before clients can trust these certificates, you
+will need to add the CA certificate chain to each of their
+truststores.
+
+ * Here is the [trust
+   management](https://wiki.archlinux.org/title/TLS#Trust_management)
+   document on the Arch Linux wiki. It is also applicable to most
+   other Linux distributions.
+ * For other operating systems, you will need to consult their
+   documentation for how you add root CA certificates.
+
+To export the root CA certificate chain, run:
+
+```
+make inspect-ca-cert
+```
+
+You can also find the same thing publicly from your server at
+`https://ca.example.com/roots.pem`.
+
+If your client already has the `step-cli` tool installed and
+configured for your CA, you can install the certs automatically:
+
+```
+# Install your public CA certificate into your user trust store:
+step-cli certificate install $(step-cli path)/certs/root_ca.crt
+```
+
+And if you want remove it again later:
+
+```
+# Uninstall your public CA certificate from your user trust store:
+step-cli certificate uninstall $(step-cli path)/certs/root_ca.crt
+```
+
+This will make simple command line programs, like `curl` work with
+your certificates. However, web browsers have completley separate
+truststores, and these must be configured separately (also, not
+recommended for most users).

@@ -53,3 +53,6 @@ client-bootstrap:
 client-cert:
 	@DOMAIN=$$(${BIN}/ask_echo "Enter the domain name to be certified"); ${STEP} ca certificate "$${DOMAIN}" "certs/$${DOMAIN}.crt" "certs/$${DOMAIN}.key" && ${STEP} certificate inspect "certs/$${DOMAIN}.crt"
 
+.PHONY: inspect-ca-cert # Retrieve the Step-CA root CA certificate chain:
+inspect-ca-cert:
+	@make --no-print-directory docker-compose-shell SERVICE=step-ca COMMAND="step ca roots" 2>/dev/null
