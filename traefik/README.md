@@ -455,17 +455,51 @@ experience.
 
 Set the following variables in your Traefik `.env_{CONTEXT}` file:
 
- * `TRAEFIK_ACME_ENABLED=true`
+ * `TRAEFIK_STEP_CA_ENABLED=true` (set this to true to enable the Step-CA root CA cert)
  * `TRAEFIK_STEP_CA_ENDPOINT=https://ca.example.com` (set this to your Step-CA root URL)
  * `TRAEFIK_STEP_CA_FINGERPRINT=xxxxxxxxxxxxxxxxxxxx` (set this to
-   your Step-CA fingerprint, eg. use `make inspect-fingerprint` in
-   [step-ca](../step-ca) project)
+   your Step-CA fingerprint, eg. use `make inspect-fingerprint` in the
+   [step-ca](../step-ca) project to find it.)
 
 Make sure to reinstall Traefik (`make install`) for these settings to
 take effect. The image will be rebuilt, baking in your root CA
-certificate. This runs `step-cli`, to bootstrap and install the root
-certificates: it etrieves it from your Step-CA endpoint, and writes it
-permanently into the Traefik system's trust store (container image).
+certificate. This runs `step-cli`, it retrieves the CA cert chain from
+your Step-CA endpoint, verifies the fingerprint, and then writes the
+CA cert permanently into the Traefik system's trust store (ie.
+container image).
+
+You can test that the certificate is trusted and valid, using the
+`curl` command from inside of the trafeik container shell:
+
+```
+# Enter the traefik container:
+make shell
+```
+
+```
+# Inside the container, test the certificate trust with curl:
+# Use the full URL to your Step-CA server:
+curl https://ca.example.com
+```
+
+If it works, you should see `404 error not found`, which is good (the
+root URL `/` is actually a 404). What you should *NOT* see is an error
+message about the certificate being invalid:
+
+```
+## Example error you should NOT see:
+curl: (60) SSL certificate problem: unable to get local issuer certificate
+More details here: https://curl.se/docs/sslcerts.html
+
+curl failed to verify the legitimacy of the server and therefore could not
+establish a secure connection to it. To learn more about this situation and
+how to fix it, please visit the web page mentioned above.
+```
+
+If the certificates have been installed correctly, you shouldn't see
+the example error above. All programs running in the container,
+including `curl`, and Traefik itself, will now trust any certificate
+signed by your Step-CA instance.
 
 ### Enable Step-CA ACME (optional)
 
