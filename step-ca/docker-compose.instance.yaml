@@ -30,6 +30,9 @@ services:
       - "traefik.tcp.routers.(@= router @).tls.passthrough=true"
       #@ enabled_middlewares.append("{}-ipallowlist".format(router))
       - "traefik.tcp.middlewares.(@= router @)-ipallowlist.ipallowlist.sourcerange=(@= ip_sourcerange @)"
+
+      - "traefik.tcp.services.(@= router @).loadbalancer.server.port=9000"
+
       
       #! Apply all middlewares (do this at the end!)
       - "traefik.tcp.routers.(@= router @).middlewares=(@= ','.join(enabled_middlewares) @)"
