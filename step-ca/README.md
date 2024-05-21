@@ -2,8 +2,8 @@
 
 [Step-CA](https://smallstep.com/docs/step-ca/) is a secure, online,
 self-hosted Certificate Authority (CA). Its purpose is to issue (sign)
-X.509 (TLS) and/or SSH certificates, and to securely store the private
-key of the root CA.
+X.509 (TLS) certificates, and to securely store the private key for
+the root CA.
 
 ## Config
 
@@ -181,12 +181,13 @@ can change the password (assuming you still know the current one).
 make change-password
 ```
 
-> [!NOTE] The change password will ask you *twice* to enter passwords.
-> Don't get confused! It's not asking for confirmation! The first time
-> you must enter the OLD password (to decrypt), and the second time
-> you must enter the NEW password (to encrypt). The passwords should
-> be different! If you change your mind half-way through, press
-> `Ctrl-C` to abort.
+> [!NOTE] 
+> The change password script will ask you to enter two separate
+> passwords.. Don't get confused, it's not asking for confirmation!
+> The first question is asking for the OLD password (to decrypt), and the
+> second questions is asking you for the NEW password (to encrypt). The
+> passwords should be different! If you change your mind half-way
+> through, press `Ctrl-C` to abort.
 
 It's a good idea to immediately change the password, so that the
 initial password is no longer sitting in the docker container logs.
