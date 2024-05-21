@@ -127,7 +127,7 @@ The certificates that Step-CA creates are untrusted by mainstream
 trust stores, both as part of your operating system, and separately by
 your web browser. Before clients can trust these certificates, you
 will need to add the CA certificate chain to each of their
-truststores.
+trust stores.
 
  * Here is the [trust
    management](https://wiki.archlinux.org/title/TLS#Trust_management)
@@ -161,9 +161,10 @@ step-cli certificate uninstall $(step-cli path)/certs/root_ca.crt
 ```
 
 This will make simple command line programs, like `curl` work with
-your certificates. However, web browsers have completley separate
-truststores, and these must be configured separately (also, not
-recommended for most users).
+your certificates. However, web browsers have completly separate trust
+stores, and these must be configured separately (also, it's not
+recommended for most users to mess with their browsers security in
+this way unless you really know what you're doing).
 
 ## Security concerns
 
@@ -178,7 +179,8 @@ You have a few ways to mitigate undesired access:
 
  * Run your Docker host machine inside of a secure private network,
    behind a firewall, or VPN.
- * Set `STEP_CA_IP_SOURCERANGE` in your `.env_{CONTEXT}` file.
+ * Set `STEP_CA_IP_SOURCERANGE` in your `.env_{CONTEXT}` file, to
+   limit the range of source IP addresses that are allowed access.
  * Turn off your server when not in use.
  
 That last step is the most important one to consider. Install step-ca
@@ -187,4 +189,4 @@ what you use for anything else. You want to be able to *turn off* this
 machine entirely, taking it offline, when you don't need it. If you
 install other stuff on the same (virtual) machine, it defeats this
 purpose. Of course, if you intend for this to be a full time service,
-you may not afford this option.
+you may not afford this option, so you can do what you wish.
