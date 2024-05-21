@@ -114,6 +114,11 @@ You can inspect the certificate file, and gather important details about it:
 step-cli certificate inspect certs/{DOMAIN}.crt
 ```
 
+The certificate has an expiration set in the future, according to the
+default value set as
+`STEP_CA_AUTHORITY_CLAIMS_DEFAULT_TLS_CERT_DURATION` in your
+`.env_{CONTEXT}` file.
+
 Install the certificate and key files into your target host
 environment. The details of which are up to you, it is outside the
 scope of this README.
@@ -165,6 +170,26 @@ your certificates. However, web browsers have completly separate trust
 stores, and these must be configured separately (also, it's not
 recommended for most users to mess with their browsers security in
 this way unless you really know what you're doing).
+
+## Changing the root CA managerial passphrase
+
+You must retain the manager passphrase in order to use the service. If
+you lose it, I don't think there's a way to get it back. However, you
+can change the password (assuming you still know the current one).
+
+```
+make change-password
+```
+
+> [!NOTE] The change password will ask you *twice* to enter passwords.
+> Don't get confused! It's not asking for confirmation! The first time
+> you must enter the OLD password (to decrypt), and the second time
+> you must enter the NEW password (to encrypt). The passwords should
+> be different! If you change your mind half-way through, press
+> `Ctrl-C` to abort.
+
+It's a good idea to immediately change the password, so that the
+initial password is no longer sitting in the docker container logs.
 
 ## Security concerns
 

@@ -16,10 +16,14 @@ services:
       - AUTHORITY_CLAIMS_MAX_TLS_CERT_DURATION=${STEP_CA_AUTHORITY_CLAIMS_MAX_TLS_CERT_DURATION}
       - AUTHORITY_POLICY_X509_ALLOW_DNS=${STEP_CA_AUTHORITY_POLICY_X509_ALLOW_DNS}
       - AUTHORITY_CLAIMS_DEFAULT_TLS_CERT_DURATION=${STEP_CA_AUTHORITY_CLAIMS_DEFAULT_TLS_CERT_DURATION}
+      - AUTHORITY_CLAIMS_DISABLE_RENEWAL=${STEP_CA_AUTHORITY_CLAIMS_DISABLE_RENEWAL}
 
   step-ca:
     depends_on: [config]
-    image: "${STEP_CA_IMAGE}"
+    build:
+      context: step-ca
+      args:
+        IMAGE: ${STEP_CA_IMAGE}
     security_opt:
       - no-new-privileges:true
     sysctls:

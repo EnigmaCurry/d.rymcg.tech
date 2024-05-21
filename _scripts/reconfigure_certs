@@ -57,14 +57,14 @@ create_certificate_domains() {
     else
         DEFAULT_DOMAIN=""
     fi
-    ask 'Enter the main domain for this certificate (eg. `d.rymcg.tech` or `*.d.rymcg.tech`)' domain $DEFAULT_DOMAIN
+    ask 'Enter the main domain (CN) for this certificate (eg. `d.rymcg.tech` or `*.d.rymcg.tech`)' domain $DEFAULT_DOMAIN
 
     if [[ $domain == "" ]]; then
         echo "domain cannot be blank."
         return 0
     fi
     sans=()
-    echo "Now enter the SANS domains, one per line:"
+    echo "Now enter additional domains (SANS), one per line:"
     while :
     do
         ask "Enter a secondary domain (enter blank to skip)" second

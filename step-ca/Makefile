@@ -51,8 +51,13 @@ client-bootstrap:
 
 .PHONY: client-cert
 client-cert:
-	@DOMAIN=$$(${BIN}/ask_echo "Enter the domain name to be certified"); ${STEP} ca certificate "$${DOMAIN}" "certs/$${DOMAIN}.crt" "certs/$${DOMAIN}.key" && ${STEP} certificate inspect "certs/$${DOMAIN}.crt"
+	@DOMAIN=$$(${BIN}/ask_echo "Enter the domain name to be certified"); ${STEP} ca certificate "$${DOMAIN}" "certs/$${DOMAIN}.crt" "certs/$${DOMAIN}.key" --not-after "$$(${BIN}/dotenv -f ${ENV_FILE} get STEP_CA_AUTHORITY_CLAIMS_DEFAULT_TLS_CERT_DURATION)" && ${STEP} certificate inspect "certs/$${DOMAIN}.crt"
 
 .PHONY: inspect-ca-cert # Retrieve the Step-CA root CA certificate chain:
 inspect-ca-cert:
 	@make --no-print-directory docker-compose-shell SERVICE=step-ca COMMAND="step ca roots" 2>/dev/null
+
+.PHONY: change-password # Change the managerial password for the root CA:
+change-password:
+	@make --no-print-directory docker-compose-lifecycle-cmd EXTRA_ARGS="cp script/change_password.sh step-ca:/tmp/change_password.sh"
+	@make --no-print-directory docker-compose-shell SERVICE=step-ca COMMAND="/bin/bash /tmp/change_password.sh"

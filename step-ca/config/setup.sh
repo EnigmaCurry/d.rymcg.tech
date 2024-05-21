@@ -8,6 +8,8 @@ array_to_json() {
 }
 
 config_set() {
+    # For setting a literal config value from a string
+    # config_set KEY ARG
     (
         set -e
         tmp=$(mktemp)
@@ -20,6 +22,8 @@ config_set() {
 }
 
 config_set_array() {
+    # For setting a JSON list value from a comma separated string
+    # config_set_array KEY THING1,THING2,THING3...
     (
         set -e
         tmp=$(mktemp)
@@ -34,12 +38,32 @@ config_set_array() {
 }
 
 
+config_set_bool() {
+    # For setting a literal config value from a bool
+    # config_set KEY ARG
+    (
+        set -e
+        tmp=$(mktemp)
+        KEY="${1}"
+        ARG="${2}"
+        if [[ "${ARG}" == "true" ]] || [[ "${ARG}" == "false" ]]; then
+            jq "${KEY} = ${ARG}" ${CA_JSON} > "$tmp"
+        else
+            echo "config_set_bool was given a non-bool value: ${ARG}"
+        fi
+        mv "$tmp" ${CA_JSON}
+        echo "Set ${KEY} = ${ARG}"
+    )
+}
+
+
 edit_config() {
     if [[ -f ${CA_JSON} ]]; then
         echo
         config_set .authority.claims.minTLSCertDuration "${AUTHORITY_CLAIMS_MIN_TLS_CERT_DURATION}"
         config_set .authority.claims.maxTLSCertDuration "${AUTHORITY_CLAIMS_MAX_TLS_CERT_DURATION}"
         config_set .authority.claims.defaultTLSCertDuration "${AUTHORITY_CLAIMS_DEFAULT_TLS_CERT_DURATION}"
+        config_set_bool .authority.claims.disableRenewal "${AUTHORITY_CLAIMS_DISABLE_RENEWAL}"
         config_set_array .authority.policy.x509.allow.dns "${AUTHORITY_POLICY_X509_ALLOW_DNS}"
     else
         echo "ERROR: Missing ${CA_JSON} - This is normal if you're starting fresh."
