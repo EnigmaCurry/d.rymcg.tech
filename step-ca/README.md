@@ -10,8 +10,6 @@ self-hosted Certificate Authority (CA). Its purpose is to issue
 make config
 ```
 
-## Install
-
 You must run step-ca interactively, for the first time only. This is important
 because you need to make a record of the CA password, which is only
 printed one time in the log:
@@ -38,7 +36,7 @@ press `Ctrl-C`, and the service will automatically shutdown. You will
 need this password for later when you request new certificates to be
 created.
 
-> [!NOTE]
+> [!NOTE] 
 > Starting the container up one time, and then shutting it
 > down, also served another purpose: on the first run, the Step-CA
 > service automatically creates `/home/step/config/ca.json` (in the
@@ -47,9 +45,12 @@ created.
 > already exist (it wants to modify an existing config file), and
 > since its supposed to run *before* the step-ca container, we must
 > run it manually, one time only. This ensures that `ca.json` now
-> exists in the config volume.
+> exists in the config volume, and now the `config` container can
+> fully manage this file going forward..
 
-Now you can install the service permanently:
+## Install
+
+Once configured, you can install the service permanently:
 
 ```
 make install
