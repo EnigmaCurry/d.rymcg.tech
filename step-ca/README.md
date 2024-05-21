@@ -1,8 +1,8 @@
 # Step-CA
 
 [step-ca](https://smallstep.com/docs/step-ca/) is a secure, online,
-self-hosted Certificate Authority (CA), for issuing (signing) X.509
-(TLS) and/or SSH certificates.
+self-hosted Certificate Authority (CA). Its purpose is to issue
+(sign) X.509 (TLS) and/or SSH certificates.
 
 ## Config
 
