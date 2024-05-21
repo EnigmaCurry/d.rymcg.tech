@@ -123,7 +123,7 @@ Install the certificate and key files into your target host
 environment. The details of which are up to you, it is outside the
 scope of this README.
 
-> [!NOTE]
+> [!WARNING]
 > The key file is **NOT** encrypted, keep it safe!
 
 ## Setup TLS clients
