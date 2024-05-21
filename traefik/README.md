@@ -426,6 +426,49 @@ there, so if the app doesn't understand the `X-Forwarded-User` header,
 you may also need to login through the app interface itself, after
 having already logged in through gitea.
 
+## Step CA
+
+If you want to use self-signed certificates with
+[step-ca](../step-ca), there are two possible changes you need to make
+to Traefik:
+
+ 1) Add the root CA certificate to the Traefik trust store.
+ 2) Enable ACME to issue automatic certificates and renewals.
+
+### Add the Step CA root certificate to the Traefik trust store
+
+Set the following variables in your Traefik `.env_{CONTEXT}` file:
+
+ * `TRAEFIK_ACME_ENABLED=true`
+ * `TRAEFIK_STEP_CA_ENDPOINT=https://ca.example.com` (set this to your Step-CA root URL)
+ * `TRAEFIK_STEP_CA_FINGERPRINT=xxxxxxxxxxxxxxxxxxxx` (set this to
+   your Step-CA fingerprint, eg. use `make inspect-fingerprint` in
+   [step-ca](../step-ca) project)
+ 
+Make sure to restart Traefik for these settings to take effect.
+ 
+If you are creating certificates by hand (ie. in [step-ca](../step-ca)
+project, `make client-cert`), you only need to do step #1. (You won't
+be needing ACME.)
+
+### Enable Step-CA ACME (optional)
+
+To enable ACME with Step-CA, the ACME provisioner must be enabled:
+
+```
+## In step-ca project directory:
+make enable-acme
+```
+
+Next edit the Traefik `.env_{CONTEXT}` file to change the production cert resolver URL:
+
+ * `TRAEFIK_ACME_CERT_RESOLVER=production`
+ * `TRAEFIK_ACME_CERT_RESOLVER_PRODUCTION=https://ca.example.com/acme/acme/directory`
+
+The production cert resolver should now be pointing to your Step-CA
+URL with the extra path `/acme/acme/directory` on the end. Restart
+Traefik.
+
 ## Wireguard VPN
 
 > [!NOTE]
@@ -581,6 +624,9 @@ Traefik [.env](.env-dist) file :
 | `TRAEFIK_ACME_CA_EMAIL`                    | Your email to send to Lets Encrypt                                               | `you@example.com` (can be blank)              |
 | `TRAEFIK_ACME_CERT_DOMAINS`                | The JSON list of all certificate domans                                          | Use `make certs` to manage                    |
 | `TRAEFIK_ACME_CERT_RESOLVER`               | Lets Encrypt API environment                                                     | `production`,`staging`                        |
+| `TRAEFIK_ACME_CERT_RESOLVER_PRODUCTION`    | ACME production endpoint API URL                                                 | `https://acme-v02.api.letsencrypt.org/directory` |
+| `TRAEFIK_ACME_CERT_RESOLVER_STAGING`       | ACME staging endpoint API URL                                                    | `https://acme-staging-v02.api.letsencrypt.org/directory` |
+| `TRAEFIK_ACME_CERT_RESOLVER`               | Lets Encrypt API environment                                                     | `production`,`staging`                        |
 | `TRAEFIK_ACME_CHALLENGE`                   | The ACME challenge type                                                          | `tls`,`dns`                                   |
 | `TRAEFIK_ACME_DNS_PROVIDER`                | The LEGO DNS provider name                                                       | `digitalocean`                                |
 | `TRAEFIK_ACME_DNS_VARNAME_1`               | The first LEGO DNS variable name                                                 | `DO_AUTH_TOKEN`                               |
@@ -654,3 +700,6 @@ Traefik [.env](.env-dist) file :
 | `TRAEFIK_WEB_PLAIN_ENTRYPOINT_ENABLED`     | (bool) Enable web_plain (port 8000) entrypoint                                   | `true`,`false`                                |
 | `TRAEFIK_WEB_PLAIN_ENTRYPOINT_HOST`        | Host ip address to bind web_plain entrypoint                                     | `0.0.0.0`                                     |
 | `TRAEFIK_WEB_PLAIN_ENTRYPOINT_PORT`        | Host TCP port to bind web_plain entrypoint                                       | `8000`                                        |
+| `TRAEFIK_STEP_CA_ENABLED`                  | (bool) Enable Step CA trusted CA                                                 | `true`,`false`                                |
+| `TRAEFIK_STEP_CA_ENDPOINT`                 | Step-CA server URL                                                               | `https://ca.example.com`                      |
+| `TRAEFIK_STEP_CA_FINGERPRINT`              | Step-CA root CA fingerprint                                                      | `xxxxxxxxxxxx`                                |
