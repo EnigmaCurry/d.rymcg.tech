@@ -59,5 +59,25 @@ inspect-ca-cert:
 
 .PHONY: change-password # Change the managerial password for the root CA:
 change-password:
+	@echo
+	@echo "## Note: after you confirm to proceed, this will ask you two questions:"
+	@echo
+	@echo "##  For question #1 enter the OLD password."
+	@echo "##  For question #2 enter the NEW password."
+	@echo
+	@echo "## There will be NO confirmations after this point."
+	@echo "## YOUR TYPING (or paste) MUST BE PERFECT!"
+	@echo "## TAKE YOUR TIME, GET IT RIGHT!"
+	@echo "## If in doubt, press Ctrl-C multiple times to abort."
+	@echo
+	@${BIN}/confirm no "This will change the root CA passphrase. Did you read all the above" "?"
+	@echo ""
 	@make --no-print-directory docker-compose-lifecycle-cmd EXTRA_ARGS="cp script/change_password.sh step-ca:/tmp/change_password.sh"
 	@make --no-print-directory docker-compose-shell SERVICE=step-ca COMMAND="/bin/bash /tmp/change_password.sh"
+
+.PHONY: enable-acme # Enable the ACME server
+enable-acme:
+	@${BIN}/confirm no "This will enable the ACME server"
+	@echo ""
+	@make --no-print-directory docker-compose-lifecycle-cmd EXTRA_ARGS="cp script/enable_acme.sh step-ca:/tmp/enable_acme.sh"
+	@make --no-print-directory docker-compose-shell SERVICE=step-ca COMMAND="/bin/bash /tmp/enable_acme.sh"

@@ -72,7 +72,7 @@ certificatesResolvers:
   production:
     #@ if data.values.acme_enabled == "true":
     acme:
-      caserver: https://acme-v02.api.letsencrypt.org/directory
+      caserver: #@ data.values.acme_cert_resolver_production
       email: #@ data.values.acme_ca_email
       storage: /data/acme-production.json
       #@ if data.values.acme_challenge.lower() in ["dns","dns-01"]:
@@ -88,7 +88,7 @@ certificatesResolvers:
   staging:
     #@ if data.values.acme_enabled == "true":
     acme:
-      caserver: https://acme-staging-v02.api.letsencrypt.org/directory
+      caserver: #@ data.values.acme_cert_resolver_staging
       email: #@ data.values.acme_ca_email
       storage: /data/acme-staging.json
       #@ if data.values.acme_challenge.lower() in ["dns","dns-01"]:
@@ -101,6 +101,25 @@ certificatesResolvers:
         entryPoint: web
       #@ end
     #@ end
+  #@ if data.values.step_ca_enabled == "true":
+  step-ca:
+    #@ if data.values.acme_enabled == "true":
+    acme:
+      caserver: #@ data.values.step_ca_endpoint + "/acme/acme/directory"
+      email: #@ data.values.acme_ca_email
+      storage: /data/acme-step-ca.json
+      #@ if data.values.acme_challenge.lower() in ["dns","dns-01"]:
+      dnsChallenge:
+        provider: #@ data.values.acme_dns_provider
+      #@ elif data.values.acme_challenge.lower() in ["tls","tls-alpn-01"]:
+      tlsChallenge: {}
+      #@ elif data.values.acme_challenge.lower() in ["http", "http-01"]:
+      httpChallenge:
+        entryPoint: web
+      #@ end
+    #@ end
+  #@ end
+
 entryPoints:
   #@ if data.values.web_entrypoint_enabled == "true":
   web:

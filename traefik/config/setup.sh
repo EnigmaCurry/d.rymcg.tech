@@ -14,6 +14,8 @@ ytt_template() {
         -v acme_enabled="${TRAEFIK_ACME_ENABLED}" \
         -v acme_ca_email="${TRAEFIK_ACME_CA_EMAIL}" \
         -v acme_challenge="${TRAEFIK_ACME_CHALLENGE}" \
+        -v acme_cert_resolver_production="${TRAEFIK_ACME_CERT_RESOLVER_PRODUCTION}" \
+        -v acme_cert_resolver_staging="${TRAEFIK_ACME_CERT_RESOLVER_STAGING}" \
         -v acme_dns_provider="${TRAEFIK_ACME_DNS_PROVIDER}" \
         -v access_logs_enabled="${TRAEFIK_ACCESS_LOGS_ENABLED}" \
         -v access_logs_path="${TRAEFIK_ACCESS_LOGS_PATH}" \
@@ -77,6 +79,9 @@ ytt_template() {
         -v error_handler_403_service="${TRAEFIK_ERROR_HANDLER_403_SERVICE}" \
         -v error_handler_404_service="${TRAEFIK_ERROR_HANDLER_404_SERVICE}" \
         -v error_handler_500_service="${TRAEFIK_ERROR_HANDLER_500_SERVICE}" \
+        -v step_ca_enabled="${TRAEFIK_STEP_CA_ENABLED}" \
+        -v step_ca_endpoint="${TRAEFIK_STEP_CA_ENDPOINT}" \
+        -v step_ca_fingerprint="${TRAEFIK_STEP_CA_FINGERPRINT}" \
         --data-value-yaml header_authorization_groups="${TRAEFIK_HEADER_AUTHORIZATION_GROUPS}" \
         > ${dst}
     success=$?

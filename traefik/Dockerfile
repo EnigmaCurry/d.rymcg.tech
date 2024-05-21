@@ -25,7 +25,7 @@ FROM ${TRAEFIK_IMAGE}
 ARG TRAEFIK_UID TRAEFIK_GID TRAEFIK_DOCKER_GID
 COPY --from=plugins /plugins-local /plugins-local
 COPY entrypoint.sh  /entrypoint_ensure_config.sh
-RUN apk --no-cache add curl jq libcap && \
+RUN apk --no-cache add curl jq libcap step-cli && \
     chmod a+x /entrypoint_ensure_config.sh && \
     addgroup -g ${TRAEFIK_GID} traefik && \
     getent group ${TRAEFIK_DOCKER_GID} || addgroup -g ${TRAEFIK_DOCKER_GID} docker && \
@@ -34,6 +34,10 @@ RUN apk --no-cache add curl jq libcap && \
     mkdir /data && \
     chown traefik:traefik /data && \
     setcap cap_net_bind_service=+ep /usr/local/bin/traefik
+ARG STEP_CA_ENABLED STEP_CA_ENDPOINT STEP_CA_FINGERPRINT
+RUN test "${STEP_CA_ENABLED}" = "true" && \
+    step ca bootstrap --ca-url "${STEP_CA_ENDPOINT}" --fingerprint "${STEP_CA_FINGERPRINT}" --install --force || \
+    true
 USER traefik
 ENTRYPOINT ["/entrypoint_ensure_config.sh"]
 VOLUME /data

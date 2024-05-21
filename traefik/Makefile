@@ -39,11 +39,11 @@ config-inspect:
 
 .PHONY: shell
 shell:
-	@container=$$(eval "${BIN}/script-wizard choose 'docker exec -it into which container?' 'traefik' 'geoip_database' 'wireguard' 'wireguard-client' --default 'traefik'") && make --no-print-directory docker-compose-shell SERVICE=$${container}
+	@make --no-print-directory docker-compose-shell service=$${service:-$${SERVICE:-traefik}}
 
 .PHONY: shell-root
 shell-root:
-	docker compose --env-file=${ENV_FILE} exec --user root -it traefik /bin/sh
+	@make --no-print-directory docker-compose-shell service=$${service:-$${SERVICE:-traefik}} USERNAME=root
 
 .PHONY: show-wireguard-peers
 show-wireguard-peers:
