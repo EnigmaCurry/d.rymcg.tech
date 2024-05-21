@@ -1,8 +1,9 @@
 # Step-CA
 
-[step-ca](https://smallstep.com/docs/step-ca/) is a secure, online,
-self-hosted Certificate Authority (CA). Its purpose is to issue
-(sign) X.509 (TLS) and/or SSH certificates.
+[Step-CA](https://smallstep.com/docs/step-ca/) is a secure, online,
+self-hosted Certificate Authority (CA). Its purpose is to issue (sign)
+X.509 (TLS) and/or SSH certificates, and to securely store the private
+key of the root CA.
 
 ## Config
 
@@ -37,16 +38,18 @@ need this password for later when you request new certificates to be
 created.
 
 > [!NOTE] 
-> Starting the container up one time, and then shutting it
-> down, also served another purpose: on the first run, the Step-CA
-> service automatically creates `/home/step/config/ca.json` (in the
-> container volume), this is important to know the order in which it
-> creates it, because our `config` container requires this file to
-> already exist (it wants to modify an existing config file), and
-> since its supposed to run *before* the step-ca container, we must
-> run it manually, one time only. This ensures that `ca.json` now
-> exists in the config volume, and now the `config` container can
-> fully manage this file going forward..
+> Starting the container up one time, and then shutting it down, also
+> served another purpose: on the first run, the Step-CA service
+> automatically creates `/home/step/config/ca.json` (in the container
+> volume), this is important to know the order in which it creates it,
+> because our `config` container requires this file to already exist
+> (it wants to modify an existing config file), and since its supposed
+> to run *before* the step-ca container, we must run it manually, one
+> time only. This ensures that `ca.json` now exists in the config
+> volume, and now the `config` container can fully manage this file
+> going forward. In other words: the config values you set in your
+> `.env_{CONTEXT}` file will only take affect after the SECOND time
+> the container boots.
 
 ## Install
 
@@ -68,7 +71,8 @@ interaction with Step-CA is done with the command line client
 you should install on your workstation, using your package manager, or
 according to those instructions.
 
-> [!NOTE] Some packages install only the binary named `step-cli`.
+> [!NOTE] 
+> Some packages install only the binary named `step-cli`.
 > `step-cli` is just another name for `step`. However, most of the
 > Step-CA documentation uses the `step` name in place of `step-cli`.
 > So if your package doesn't install `step` (Arch Linux is this way),
@@ -102,7 +106,7 @@ Once completed, it will create two new files on your worksation:
 
  * `certs/{DOMAIN}.crt` - This is the *public* certificate file for
    your host, along with the full public CA certificate chain.
- * `certs/{DOMAIN}.key` - This the *private* key file (do not share)!
+ * `certs/{DOMAIN}.key` - This is the *private* key file (do not share)!
 
 You can inspect the certificate file, and gather important details about it:
 
@@ -160,3 +164,27 @@ This will make simple command line programs, like `curl` work with
 your certificates. However, web browsers have completley separate
 truststores, and these must be configured separately (also, not
 recommended for most users).
+
+## Security concerns
+
+Obviously, having your root CA available publicly on the internet is a
+lot less safe than running it in a secure private network. And even
+that is less safe than running
+[step-cli](https://smallstep.com/docs/step-cli/installation/) and
+creating a new CA directly, on air-gapped laptop. Use the most locked
+down environment that you can feel slightly inconvenienced to use.
+
+You have a few ways to mitigate undesired access:
+
+ * Run your Docker host machine inside of a secure private network,
+   behind a firewall, or VPN.
+ * Set `STEP_CA_IP_SOURCERANGE` in your `.env_{CONTEXT}` file.
+ * Turn off your server when not in use.
+ 
+That last step is the most important one to consider. Install step-ca
+on a completely separate Docker host (virtual) machine, separate from
+what you use for anything else. You want to be able to *turn off* this
+machine entirely, taking it offline, when you don't need it. If you
+install other stuff on the same (virtual) machine, it defeats this
+purpose. Of course, if you intend for this to be a full time service,
+you may not afford this option.
