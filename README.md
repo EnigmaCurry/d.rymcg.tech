@@ -555,10 +555,10 @@ Install these other services at your leisure/preference:
 * [Mopidy](mopidy#readme) - a streaming music server built with MPD and Snapcast
 * [Mosquitto](mosquitto#readme) - an MQTT server
 * [Nextcloud](nextcloud#readme) - a collaborative file server
-* [Nginx](nginx#readme) - a webserver configured with fast-cgi support for PHP scripts.
+* [Nginx](nginx#readme) - a webserver configured with fast-cgi support for PHP scripts
 * [Node-RED](nodered#readme) - a graphical event pipeline editor
 * [Ntfy.sh](ntfy.sh#readme) - a simple HTTP-based pub-sub notification service
-* [Pairdrop](pairdrop#readme) - a webapp (PWA) to send files and messages peer to peer.
+* [Pairdrop](pairdrop#readme) - a webapp (PWA) to send files and messages peer to peer
 * [Photoprism](photoprism#readme) - a photo gallery and manager
 * [Piwigo](piwigo#readme) - a photo gallery and manager
 * [Plausible](plausible#readme) - a privacy friendly web visitor analytics engine
@@ -566,11 +566,12 @@ Install these other services at your leisure/preference:
 * [PrivateBin](privatebin#readme) - a minimal, encrypted, zero-knowledge, pastebin
 * [Prometheus](prometheus#readme) - a systems monitoring and alerting toolkit (+ node-exporter + cAdvisor + Grafana)
 * [QBittorrent-Wireguard](qbittorrent-wireguard#readme) - a Bittorrent (libtorrent v2) client with a combined VPN client
-* [Redbean](redbean#readme) - a small website server bundled in a single executable zip file.
+* [Redbean](redbean#readme) - a small website server bundled in a single executable zip file
 * [S3-proxy](s3-proxy#readme) - an HTTP directory index for S3 backend
 * [SFTP](sftp#readme) - a secure file server
 * [Shaarli](shaarli#readme) - a bookmark manager
 * [Smokeping](smokeping#readme) - a network latency measurement tool
+* [Step-CA](step-ca) - a secure, online, self-hosted Certificate Authority (CA)
 * [Syncthing](syncthing#readme) - a multi-device file synchronization tool
 * [Sysbox-Systemd](sysbox-systemd#readme) - a traditional service manager for Linux running in an unprivileged container via sysbox-runc
 * [Thttpd](thttpd#readme) - a tiny/turbo/throttling HTTP server for serving static files
@@ -579,20 +580,15 @@ Install these other services at your leisure/preference:
 * [Tiny Tiny RSS](ttrss#readme) - an RSS reader / proxy
 * [Vaultward](vaultwarden#readme) - a bitwarden compatible password manager written in Rust (formerly bitwarden_rs)
 * [Websocketd](websocketd#readme) - a websocket / CGI server
-* [Wordpress](wordpress#readme) - an ubiquitous blogging / CMS platform, with a plugin to build a static HTML site snapshot.
+* [Wordpress](wordpress#readme) - an ubiquitous blogging / CMS platform, with a plugin to build a static HTML site snapshot
 * [Wireguard](wireguard#readme) - a Virtual Private Network (VPN) and simple client script (not integrated with Traefik)
 * [XBrowserSync](xbs#readme) - a bookmark manager
 
 You can create a new application by using any other application as an
-example, ([whoami](whoami) is the most basic one), or use the
-[`d.rymcg.tech create` tool](#integrating-external-projects) which
-includes additional development templates.
+example, ([whoami](whoami) is the most basic one).
 
 Bespoke things:
 
-* [certificate-ca](_terminal/certificate-ca) Experimental ad-hoc certifcate CA. Creates
-  self-signed certificates for situations where you don't want to use Let's
-  Encrypt.
 * [Linux Shell Containers](_terminal/linux) create Bash aliases that
   automatically build and run programs in Docker containers.
 * [_docker_vm](_docker_vm#readme) Run Docker in a Virtual Machine (KVM) on Linux.
