@@ -101,24 +101,6 @@ certificatesResolvers:
         entryPoint: web
       #@ end
     #@ end
-  #@ if data.values.step_ca_enabled == "true":
-  step-ca:
-    #@ if data.values.acme_enabled == "true":
-    acme:
-      caserver: #@ data.values.step_ca_endpoint + "/acme/acme/directory"
-      email: #@ data.values.acme_ca_email
-      storage: /data/acme-step-ca.json
-      #@ if data.values.acme_challenge.lower() in ["dns","dns-01"]:
-      dnsChallenge:
-        provider: #@ data.values.acme_dns_provider
-      #@ elif data.values.acme_challenge.lower() in ["tls","tls-alpn-01"]:
-      tlsChallenge: {}
-      #@ elif data.values.acme_challenge.lower() in ["http", "http-01"]:
-      httpChallenge:
-        entryPoint: web
-      #@ end
-    #@ end
-  #@ end
 
 entryPoints:
   #@ if data.values.web_entrypoint_enabled == "true":

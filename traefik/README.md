@@ -426,14 +426,30 @@ there, so if the app doesn't understand the `X-Forwarded-User` header,
 you may also need to login through the app interface itself, after
 having already logged in through gitea.
 
-## Step CA
+## Step CA (self-hosted ACME certificate provisioner)
 
-If you want to use self-signed certificates with
-[step-ca](../step-ca), there are two possible changes you need to make
-to Traefik:
+Creating TLS certificates with [Step-CA](../step-ca) is a similar
+experience as with Let's Encrypt, because both services use a common
+API (ACME), to facilitate signing requests, and renewals, of X.509
+certificates. The differences are: all of the certitficates signed by
+Step-CA will be "self-signed" (and untrusted by browsers by default),
+however, all of the crypto infrastructure is self-hosted inside of
+*your* domain. Step-CA also brings the additional feature of
+[mTLS](https://smallstep.com/hello-mtls/doc/server/traefik), for
+mutual authentication of both client and server (afaik Let's Encrypt
+doesn't issue client certs, so this is a bonus with Step-CA).
 
- 1) Add the root CA certificate to the Traefik trust store.
- 2) Enable ACME to issue automatic certificates and renewals.
+If you want to use self-signed certificates with Step-CA, there are
+a few possible changes to your configs you'll need to consider:
+
+ 1) Add the root CA certificate to the Traefik container's trust store.
+ 2) Enable ACME in your Step-CA instance.
+ 3) Enable ACME in your Traefik config.
+ 
+If you are creating certificates manually (via [step-ca](../step-ca)
+project, `make client-cert`), then you can skip enabling ACME, which
+is only needed if you want a fully automatic Let's Encrypt-like
+experience.
 
 ### Add the Step CA root certificate to the Traefik trust store
 
@@ -444,30 +460,41 @@ Set the following variables in your Traefik `.env_{CONTEXT}` file:
  * `TRAEFIK_STEP_CA_FINGERPRINT=xxxxxxxxxxxxxxxxxxxx` (set this to
    your Step-CA fingerprint, eg. use `make inspect-fingerprint` in
    [step-ca](../step-ca) project)
- 
-Make sure to restart Traefik for these settings to take effect.
- 
-If you are creating certificates by hand (ie. in [step-ca](../step-ca)
-project, `make client-cert`), you only need to do step #1. (You won't
-be needing ACME.)
+
+Make sure to reinstall Traefik (`make install`) for these settings to
+take effect. The image will be rebuilt, baking in your root CA
+certificate. This runs `step-cli`, to bootstrap and install the root
+certificates: it etrieves it from your Step-CA endpoint, and writes it
+permanently into the Traefik system's trust store (container image).
 
 ### Enable Step-CA ACME (optional)
 
-To enable ACME with Step-CA, the ACME provisioner must be enabled:
+To automate the creation and signing of TLS certificates, you will
+want to enable ACME.
 
 ```
 ## In step-ca project directory:
 make enable-acme
 ```
 
-Next edit the Traefik `.env_{CONTEXT}` file to change the production cert resolver URL:
+Next, edit the Traefik `.env_{CONTEXT}` file to change the production cert resolver URL:
 
- * `TRAEFIK_ACME_CERT_RESOLVER=production`
+ * `TRAEFIK_ACME_CERT_RESOLVER=production` (make sure this says
+   `production`)
  * `TRAEFIK_ACME_CERT_RESOLVER_PRODUCTION=https://ca.example.com/acme/acme/directory`
+   (point this to your Step-CA ACME endpoint)
 
 The production cert resolver should now be pointing to your Step-CA
-URL with the extra path `/acme/acme/directory` on the end. Restart
-Traefik.
+URL, with the extra path `/acme/acme/directory` added on the end. Do
+not change the name to anything other than `production`; only change
+the URL. Reinstall Traefik (`make install`).
+
+You can also setup a `staging` endpoint if you really want to (eg. set
+`TRAEFIK_ACME_CERT_RESOLVER_STAGING=https://staging.ca.example.com/acme/acme/directory`
+and `TRAEFIK_ACME_CERT_RESOLVER=staging`). However, these are your
+only two options, defined in [traefik's certificatesResolvers
+list](https://github.com/EnigmaCurry/d.rymcg.tech/blob/de000cb8b5fe1686925c3f167221ed74372860ba/traefik/config/traefik.yml#L71-L103).
+Use `production` or `staging`.
 
 ## Wireguard VPN
 
