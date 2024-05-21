@@ -38,16 +38,16 @@ press `Ctrl-C`, and the service will automatically shutdown. You will
 need this password for later when you request new certificates to be
 created.
 
-> [!NOTE] 
+> [!NOTE]
 > Starting the container up one time, and then shutting it
 > down, also served another purpose: on the first run, the Step-CA
 > service automatically creates `/home/step/config/ca.json` (in the
 > container volume), this is important to know the order in which it
 > creates it, because our `config` container requires this file to
 > already exist (it wants to modify an existing config file), and
-> since its supposed to run *before* the step-ca container. So, by
-> running the service one time, and shutting it down, it ensures that
-> file now exists in the config volume.
+> since its supposed to run *before* the step-ca container, we must
+> run it manually, one time only. This ensures that `ca.json` now
+> exists in the config volume.
 
 Now you can install the service permanently:
 
