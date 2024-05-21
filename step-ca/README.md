@@ -12,7 +12,7 @@ make config
 
 ## Install
 
-You must run step-ca the first time interactively. This is important
+You must run step-ca interactively, for the first time only. This is important
 because you need to make a record of the CA password, which is only
 printed one time in the log:
 
@@ -21,8 +21,7 @@ printed one time in the log:
 make up service=step-ca
 ```
 
-In the log output, you should find your new password, which is only
-printed this one time:
+In the log output, you should find your new password:
 
 ```
 step-ca-1  | 👉 Your CA administrative password is: xxxxxxxxxxxxxxxxxxxxxxxxx
