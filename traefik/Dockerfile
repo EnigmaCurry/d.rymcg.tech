@@ -34,10 +34,13 @@ RUN apk --no-cache add curl jq libcap step-cli && \
     mkdir /data && \
     chown traefik:traefik /data && \
     setcap cap_net_bind_service=+ep /usr/local/bin/traefik
-ARG STEP_CA_ENABLED STEP_CA_ENDPOINT STEP_CA_FINGERPRINT
-RUN test "${STEP_CA_ENABLED}" = "true" && \
-    step ca bootstrap --ca-url "${STEP_CA_ENDPOINT}" --fingerprint "${STEP_CA_FINGERPRINT}" --install --force || \
-    true
+ARG STEP_CA_ENABLED STEP_CA_ENDPOINT STEP_CA_FINGERPRINT STEP_CA_ZERO_CERTS
+RUN test "${STEP_CA_ENABLED}" != "true" && exit || \
+    step ca bootstrap --ca-url "${STEP_CA_ENDPOINT}" --fingerprint "${STEP_CA_FINGERPRINT}"
+RUN test "${STEP_CA_ZERO_CERTS}" != "true" && exit || \
+    rm -f /etc/ssl/certs/* && \
+    step ca roots > /etc/ssl/certs/ca-certificates.crt && \
+    chmod uog-w /etc/ssl/certs /etc/ssl/certs/ca-certificates.crt
 USER traefik
 ENTRYPOINT ["/entrypoint_ensure_config.sh"]
 VOLUME /data

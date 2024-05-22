@@ -460,6 +460,7 @@ Set the following variables in your Traefik `.env_{CONTEXT}` file:
  * `TRAEFIK_STEP_CA_FINGERPRINT=xxxxxxxxxxxxxxxxxxxx` (set this to
    your Step-CA fingerprint, eg. use `make inspect-fingerprint` in the
    [step-ca](../step-ca) project to find it.)
+ * `TRAFEIK_STEP_CA_ZERO_CERTS=true` (set this true if you want to delete all other CA certs.)
 
 Make sure to reinstall Traefik (`make install`) for these settings to
 take effect. The image will be rebuilt, baking in your root CA
@@ -764,3 +765,4 @@ Traefik [.env](.env-dist) file :
 | `TRAEFIK_STEP_CA_ENABLED`                  | (bool) Enable Step CA trusted CA                                                 | `true`,`false`                                |
 | `TRAEFIK_STEP_CA_ENDPOINT`                 | Step-CA server URL                                                               | `https://ca.example.com`                      |
 | `TRAEFIK_STEP_CA_FINGERPRINT`              | Step-CA root CA fingerprint                                                      | `xxxxxxxxxxxx`                                |
+| `TRAEFIK_STEP_CA_ZERO_CERTS`               | (bool) Remove all other CA certs from the system                                 | `false`                                       |

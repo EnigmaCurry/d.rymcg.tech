@@ -119,6 +119,7 @@ services:
         STEP_CA_ENABLED: ${TRAEFIK_STEP_CA_ENABLED:-false}
         STEP_CA_ENDPOINT: ${TRAEFIK_STEP_CA_ENDPOINT}
         STEP_CA_FINGERPRINT: ${TRAEFIK_STEP_CA_FINGERPRINT}
+        STEP_CA_ZERO_CERTS: ${TRAFEIK_STEP_CA_ZERO_CERTS}
     restart: unless-stopped
     network_mode: ${TRAEFIK_NETWORK_MODE:-host}
     cap_drop:
