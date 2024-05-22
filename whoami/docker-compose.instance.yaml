@@ -15,6 +15,7 @@
 #@ http_auth = data.values.http_auth_var
 #@ enable_oauth2 = data.values.oauth2 == "true"
 #@ authorized_group = data.values.authorized_group
+#@ enable_mtls_auth = data.values.enable_mtls_auth == "true"
 #@ enabled_middlewares = []
 
 #@yaml/text-templated-strings
@@ -31,7 +32,7 @@ services:
       #! The host matching router rule:
       - "traefik.http.routers.(@= router @).rule=Host(`(@= traefik_host @)`)"
       - "traefik.http.routers.(@= router @).entrypoints=websecure"
-      #!- "traefik.http.routers.(@= router @).tls.options=step_ca_mTLS@file"
+
       #@ enabled_middlewares.append("{}-ipallowlist".format(router))
       - "traefik.http.middlewares.(@= router @)-ipallowlist.ipallowlist.sourcerange=(@= ip_sourcerange @)"
       #@ if enable_http_auth:
@@ -45,6 +46,10 @@ services:
       #@ enabled_middlewares.append("header-authorization-group-{}@file".format(authorized_group))
       #@ end
 
+      #@ if enable_mtls_auth:
+      - "traefik.http.routers.(@= router @).tls.options=step_ca_mTLS@file"
+      #@ end
+      
       #! Override the default port that whoami binds to, so that it lives in userspace >1024:
       #! You don't normally need to do this, as long as your image has
       #! an EXPOSE directive in it, Traefik will autodetect it, but this is how you can override it:

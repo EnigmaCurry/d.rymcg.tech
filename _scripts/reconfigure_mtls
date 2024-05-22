@@ -1,0 +1,28 @@
+#!/bin/bash
+
+## reconfigure_mtls VAR_PREFIX
+
+BIN=$(dirname ${BASH_SOURCE})
+source ${BIN}/funcs.sh
+set -e
+
+if [[ ${__D_RY_CONFIG_ENTRY} != reconfigure_auth ]]; then
+    echo "\`${BASH_SOURCE}\` was designed to be called from \`reconfigure_auth\`."
+    echo
+    exit 1
+fi
+
+ENV_FILE=${1}
+shift
+
+VAR_PREFIX=${1}
+shift
+
+## Make new .env if it doesn't exist:
+test -f ${ENV_FILE} || cp .env-dist ${ENV_FILE}
+
+## Update var in .env* file
+${BIN}/reconfigure ${ENV_FILE} ${VAR_PREFIX}_MTLS_AUTH=true
+
+echo
+

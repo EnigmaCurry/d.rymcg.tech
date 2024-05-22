@@ -23,9 +23,12 @@ unset_http_auth() {
         cat passwords.json | jq "del(.\"${CONTEXT_INSTANCE}\")" > ${TMP_PASSWORD} && mv ${TMP_PASSWORD} passwords.json
     fi
 }
+unset_mtls_auth() {
+    ${BIN}/reconfigure ${ENV_FILE} "${VAR_PREFIX}_MTLS_AUTH"=false
+}
 
 prompt="Do you want to enable sentry authentication in front of this app (effectively making the entire site private)?"
-options=("No" "Yes, with HTTP Basic Authentication" "Yes, with Oauth2")
+options=("No" "Yes, with HTTP Basic Authentication" "Yes, with Oauth2" "Yes, with Mutual TLS (mTLS)")
 ## Set default based on current auth settings in ENV_FILE
 
 set +e
@@ -33,12 +36,16 @@ http_auth=$(${BIN}/dotenv -f ${ENV_FILE} get ${VAR_PREFIX}_HTTP_AUTH)
 if [[ "$?" != "0" ]]; then fault "could not read ${VAR_PREFIX}_HTTP_AUTH from env file"; fi
 oauth2_auth=$(${BIN}/dotenv -f ${ENV_FILE} get ${VAR_PREFIX}_OAUTH2)
 if [[ "$?" != "0" ]]; then fault "could not read ${VAR_PREFIX}_OAUTH2 from env file"; fi
+mtls_auth=$(${BIN}/dotenv -f ${ENV_FILE} get ${VAR_PREFIX}_MTLS_AUTH)
+if [[ "$?" != "0" ]]; then fault "could not read ${VAR_PREFIX}_MTLS_AUTH from env file"; fi
 set -e
 
 if [[ -n "${http_auth}" ]]; then
     default="${options[1]}"
 elif [[ "${oauth2_auth}" == "true" ]]; then
     default="${options[2]}"
+elif [[ "${mtls_auth}" == "true" ]]; then
+    default="${options[3]}"
 else
     default="${options[0]}"
 fi
@@ -51,12 +58,16 @@ case "${choice}" in
     No)
         unset_oauth2
         unset_http_auth
+        unset_mtls_auth
         ;;
     *HTTP*)
-        ${BIN}/reconfigure_htpasswd ${ENV_FILE} ${VAR_PREFIX}_HTTP_AUTH default=no && unset_oauth2
+        ${BIN}/reconfigure_htpasswd ${ENV_FILE} ${VAR_PREFIX}_HTTP_AUTH default=no && unset_oauth2 && unset_mtls_auth
         ;;
     *Oauth2*)
-        ${BIN}/reconfigure_oauth2 ${ENV_FILE} ${VAR_PREFIX} && unset_http_auth
+        ${BIN}/reconfigure_oauth2 ${ENV_FILE} ${VAR_PREFIX} && unset_http_auth && unset_mtls_auth
+        ;;
+    *mTLS*)
+        ${BIN}/reconfigure_mtls ${ENV_FILE} ${VAR_PREFIX} && unset_http_auth && unset_oauth2
         ;;
     *)
         echo "Unknown option."
