@@ -35,7 +35,7 @@ cert: certs
 
 .PHONY: certs # Make TLS Certificates
 certs:
-	@${BIN}/reconfigure_certs ${ENV_FILE}
+	@${BIN}/reconfigure_certs ${ENV_FILE} main
 
 .PHONY: config-inspect # Inspect the live configuration
 config-inspect:
