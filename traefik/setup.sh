@@ -28,6 +28,7 @@ main_menu() {
     wizard menu "Traefik config main menu:" \
            "Create system user on Docker host = ./setup.sh traefik_user" \
            "Configure entrypoints (including dashboard) = ./setup.sh entrypoints" \
+           "Configure Certificate Authorities (CA) = make config-ca" \
            "Configure ACME (Let's Encrypt or Step-CA) = make config-acme" \
            "Configure TLS certificates and domains (make certs) = make certs" \
            "Configure middleware (including auth) = ./setup.sh middleware" \

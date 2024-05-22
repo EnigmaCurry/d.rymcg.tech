@@ -23,8 +23,8 @@ lets_encrypt() {
     echo "If you give Let's Encrypt your email address, they will send you alerts when your certificates are about to expire, or about other misconfigurations."
     ${BIN}/reconfigure_ask ${ENV_FILE} TRAEFIK_ACME_CA_EMAIL "Enter your email address (not required; blank to skip)"
 
-    ACME_CHALLENGE=$(wizard choose --numeric "Which type of ACME challenge should be used??" \
-                      "TLS-ALPN-01 (default for public servers, easy)" \
+    ACME_CHALLENGE=$(wizard choose --numeric "Which type of ACME challenge should be used?" \
+                      "TLS-ALPN-01 (default for public servers, easy, but no wildcard certs)" \
                       "DNS-01 (requires API key, but good behind firewalls, and allows wildcard certs)")
     case ${ACME_CHALLENGE} in
         0) ${BIN}/reconfigure ${ENV_FILE} TRAEFIK_ACME_CHALLENGE=tls;;
@@ -74,28 +74,6 @@ lets_encrypt() {
     fi    
 }
 
-step_ca() {
-    if wizard confirm "Do you want to add Step-CA root certificates to the container's trust store?" $(test "${BIN}/dotenv -f ${ENV_FILE} get TRAEFIK_STEP_CA_ENABLE" == "true" && echo "yes" || echo "no"); then
-        ${BIN}/reconfigure ${ENV_FILE} TRAEFIK_STEP_CA_ENABLED=true
-    else
-        ${BIN}/reconfigure ${ENV_FILE} TRAEFIK_STEP_CA_ENABLED=false
-        return
-    fi
-    ${BIN}/reconfigure_ask ${ENV_FILE} TRAEFIK_STEP_CA_ENDPOINT "Enter your Step-CA endpoint URL"
-    echo ""
-    ${BIN}/reconfigure_ask ${ENV_FILE} TRAEFIK_STEP_CA_FINGERPRINT "Enter your Step-CA root CA certificate fingerprint"
-    ${BIN}/reconfigure ${ENV_FILE} TRAEFIK_STEP_CA_ENABLED=true
-    SYSTEM_CA_CERTS=$(wizard choose --numeric "How do you want to configure the container's trust store?" \
-                             "Keep all the system level CA certs, just add Step-CA to the list." \
-                             "Delete all the system level CA certs, and make Step-CA the only one.")
-    case ${SYSTEM_CA_CERTS} in
-        0) ${BIN}/reconfigure ${ENV_FILE} TRAEFIK_STEP_CA_ZERO_CERTS=false;;
-        1) ${BIN}/reconfigure ${ENV_FILE} TRAEFIK_STEP_CA_ZERO_CERTS=true;;
-        2) disable;;
-        *) return;;
-    esac
-}
-
 step_ca_acme() {
     ${BIN}/reconfigure ${ENV_FILE} TRAEFIK_ACME_ENABLED=true
     ${BIN}/reconfigure ${ENV_FILE} TRAEFIK_ACME_CERT_RESOLVER=production
@@ -131,14 +109,12 @@ main() {
     PROVIDER=$(wizard choose --numeric "Which ACME provider do you want to use?" \
                     "Let's Encrypt (ACME)" \
                     "Step-CA (ACME)" \
-                    "Disable ACME but still configure Step-CA root cert" \
                     "Disable ACME" \
                     "Cancel / Go back")
     case ${PROVIDER} in
         0) lets_encrypt;;
         1) step_ca_acme;;
-        2) step_ca;;
-        3) disable;;
+        2) disable;;
         *) return;;
     esac
 }
