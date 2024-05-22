@@ -117,6 +117,7 @@ step_ca_acme() {
 
 disable() {
     ${BIN}/reconfigure ${ENV_FILE} TRAEFIK_ACME_ENABLED=false
+    ${BIN}/reconfigure ${ENV_FILE} TRAEFIK_STEP_CA_ENABLED=false
 }
 
 main() {

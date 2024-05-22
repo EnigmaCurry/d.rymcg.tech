@@ -90,14 +90,16 @@ make client-bootstrap
 
 ## Create and sign X.509 (TLS) certificates
 
-Each time you want to create a certificate, run:
+Each time you want to create a new certificate, run:
 
 ```
-make client-cert
+make cert
 ```
 
-This will prompt you to enter the fully qualified domain name of the
-host you want to create the certificate for.
+This will prompt you to enter the subject name (CN), or fully
+qualified domain name, of the host/entity you want to create the
+certificate for. (eg. certificates may be created for a server, or for
+a client, in the same way.)
 
 You are required to enter the passphrase that you copied during the
 initial installation process.

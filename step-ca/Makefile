@@ -49,9 +49,9 @@ inspect-config:
 client-bootstrap:
 	@TRAEFIK_HOST=$$(${BIN}/dotenv -f ${ENV_FILE} get STEP_CA_TRAEFIK_HOST); FINGERPRINT=$$(make --no-print-directory inspect-fingerprint); echo "# CA Host: https://$${TRAEFIK_HOST}"; echo "# CA Fingerprint: $${FINGERPRINT}"; ${STEP} ca bootstrap --ca-url "$${TRAEFIK_HOST}" --fingerprint $${FINGERPRINT}
 
-.PHONY: client-cert
-client-cert:
-	@DOMAIN=$$(${BIN}/ask_echo "Enter the domain name to be certified"); ${STEP} ca certificate "$${DOMAIN}" "certs/$${DOMAIN}.crt" "certs/$${DOMAIN}.key" --not-after "$$(${BIN}/dotenv -f ${ENV_FILE} get STEP_CA_AUTHORITY_CLAIMS_DEFAULT_TLS_CERT_DURATION)" && ${STEP} certificate inspect "certs/$${DOMAIN}.crt"
+.PHONY: cert
+cert:
+	@CN=$$(${BIN}/ask_echo "Enter the subject (CN) to be certified, a domain name, or a client name"); ${STEP} ca certificate "$${CN}" "certs/$${CN}.crt" "certs/$${CN}.key" --not-after "$$(${BIN}/dotenv -f ${ENV_FILE} get STEP_CA_AUTHORITY_CLAIMS_DEFAULT_TLS_CERT_DURATION)" && ${STEP} certificate inspect "certs/$${CN}.crt"
 
 .PHONY: inspect-ca-cert # Retrieve the Step-CA root CA certificate chain:
 inspect-ca-cert:

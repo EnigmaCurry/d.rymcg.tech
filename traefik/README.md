@@ -447,7 +447,7 @@ a few possible changes to your configs you'll need to consider:
  3) Enable ACME in your Traefik config.
  
 If you are creating certificates manually (via [step-ca](../step-ca)
-project, `make client-cert`), then you can skip enabling ACME, which
+project, `make cert`), then you can skip enabling ACME, which
 is only needed if you want a fully automatic Let's Encrypt-like
 experience instead.
 
