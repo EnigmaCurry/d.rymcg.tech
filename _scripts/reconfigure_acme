@@ -6,102 +6,145 @@ BIN=$(dirname ${BASH_SOURCE})
 source ${BIN}/funcs.sh
 set -e
 
+lets_encrypt() {
+    ${BIN}/reconfigure ${ENV_FILE} TRAEFIK_ACME_ENABLED=true
+    ${BIN}/reconfigure ${ENV_FILE} TRAEFIK_ACME_CERT_RESOLVER_PRODUCTION=https://acme-v02.api.letsencrypt.org/directory
+    ${BIN}/reconfigure ${ENV_FILE} TRAEFIK_ACME_CERT_RESOLVER_STAGING=https://acme-staging-v02.api.letsencrypt.org/directory
+
+    LE_ENV=$(wizard choose --numeric "Which LE environment do you want to use?" \
+                      "Production (recommended!)" \
+                      "Staging (untrusted / testing)")
+    case ${LE_ENV} in
+        1) ${BIN}/reconfigure ${ENV_FILE} TRAEFIK_ACME_CERT_RESOLVER=staging;;
+        *)  ${BIN}/reconfigure ${ENV_FILE} TRAEFIK_ACME_CERT_RESOLVER=production;;
+     esac
+        
+    echo ""
+    echo "If you give Let's Encrypt your email address, they will send you alerts when your certificates are about to expire, or about other misconfigurations."
+    ${BIN}/reconfigure_ask ${ENV_FILE} TRAEFIK_ACME_CA_EMAIL "Enter your email address (not required; blank to skip)"
+
+    ACME_CHALLENGE=$(wizard choose --numeric "Which type of ACME challenge should be used??" \
+                      "TLS-ALPN-01 (default for public servers, easy)" \
+                      "DNS-01 (requires API key, but good behind firewalls, and allows wildcard certs)")
+    case ${ACME_CHALLENGE} in
+        0) ${BIN}/reconfigure ${ENV_FILE} TRAEFIK_ACME_CHALLENGE=tls;;
+        1) ${BIN}/reconfigure ${ENV_FILE} TRAEFIK_ACME_CHALLENGE=dns;;
+     esac
+    
+    if [[ "$(${BIN}/dotenv -f ${ENV_FILE} get TRAEFIK_ACME_CHALLENGE)" == "dns" ]]; then
+        echo ""
+        echo "Find the provider code of your supported DNS provider here:"
+        echo "https://go-acme.github.io/lego/dns/#dns-providers"
+        echo ""
+        ${BIN}/reconfigure_ask ${ENV_FILE} TRAEFIK_ACME_DNS_PROVIDER "Enter the LEGO code for your DNS Provider" digitalocean
+        echo ""
+        echo "Find the necessary variable names for your provider:"
+        echo "For example for DigitalOcean, see:"
+        echo "  https://go-acme.github.io/lego/dns/digitalocean/"
+        echo "  (eg. digitalocean requires the DO_AUTH_TOKEN variable)"
+        echo "You need to enter the NAMES of these variables that your provider needs."
+        echo "You can enter up to 5 variable names and/or leave them blank"
+
+        ${BIN}/reconfigure_ask ${ENV_FILE} TRAEFIK_ACME_DNS_VARNAME_1 "Enter the 1st DNS provider variable name" DO_AUTH_TOKEN
+        TRAEFIK_ACME_DNS_VARNAME_1=$(${BIN}/dotenv -f ${ENV_FILE} get TRAEFIK_ACME_DNS_VARNAME_1)
+
+        test -n "${TRAEFIK_ACME_DNS_VARNAME_1}" && \
+            ALLOW_BLANK=1 ${BIN}/reconfigure_ask ${ENV_FILE} TRAEFIK_ACME_DNS_VARNAME_2 "Enter the 2nd DNS provider variable name (or leave blank)"  || ${BIN}/reconfigure ${ENV_FILE} TRAEFIK_ACME_DNS_VARNAME_2=""
+        TRAEFIK_ACME_DNS_VARNAME_2=$(${BIN}/dotenv -f ${ENV_FILE} get TRAEFIK_ACME_DNS_VARNAME_2)
+
+        test -n "${TRAEFIK_ACME_DNS_VARNAME_2}" && \
+            ALLOW_BLANK=1 ${BIN}/reconfigure_ask ${ENV_FILE} TRAEFIK_ACME_DNS_VARNAME_3 "Enter the 3rd DNS provider variable name (or leave blank)"  || ${BIN}/reconfigure ${ENV_FILE} TRAEFIK_ACME_DNS_VARNAME_3=""
+        TRAEFIK_ACME_DNS_VARNAME_3=$(${BIN}/dotenv -f ${ENV_FILE} get TRAEFIK_ACME_DNS_VARNAME_3)
+
+        test -n "${TRAEFIK_ACME_DNS_VARNAME_3}" && \
+            ALLOW_BLANK=1 ${BIN}/reconfigure_ask ${ENV_FILE} TRAEFIK_ACME_DNS_VARNAME_4 "Enter the 4th DNS provider variable name (or leave blank)"  || ${BIN}/reconfigure ${ENV_FILE} TRAEFIK_ACME_DNS_VARNAME_4=""
+        TRAEFIK_ACME_DNS_VARNAME_4=$(${BIN}/dotenv -f ${ENV_FILE} get TRAEFIK_ACME_DNS_VARNAME_4)
+
+        test -n "${TRAEFIK_ACME_DNS_VARNAME_4}" && \
+            ALLOW_BLANK=1 ${BIN}/reconfigure_ask ${ENV_FILE} TRAEFIK_ACME_DNS_VARNAME_5 "Enter the 5th DNS provider variable name (or leave blank)"  || ${BIN}/reconfigure ${ENV_FILE} TRAEFIK_ACME_DNS_VARNAME_5=""
+        TRAEFIK_ACME_DNS_VARNAME_5=$(${BIN}/dotenv -f ${ENV_FILE} get TRAEFIK_ACME_DNS_VARNAME_5)
+
+        echo ""
+        echo "Now to enter the values for the custom DNS API variables:"
+        test -n "${TRAEFIK_ACME_DNS_VARNAME_1}" && ${BIN}/reconfigure_ask ${ENV_FILE} ${TRAEFIK_ACME_DNS_VARNAME_1} "Enter the value for ${TRAEFIK_ACME_DNS_VARNAME_1}" - || true
+        test -n "${TRAEFIK_ACME_DNS_VARNAME_2}" && ${BIN}/reconfigure_ask ${ENV_FILE} ${TRAEFIK_ACME_DNS_VARNAME_2} "Enter the value for ${TRAEFIK_ACME_DNS_VARNAME_2}" - || true
+        test -n "${TRAEFIK_ACME_DNS_VARNAME_3}" && ${BIN}/reconfigure_ask ${ENV_FILE} ${TRAEFIK_ACME_DNS_VARNAME_3} "Enter the value for ${TRAEFIK_ACME_DNS_VARNAME_3}" - || true
+        test -n "${TRAEFIK_ACME_DNS_VARNAME_4}" && ${BIN}/reconfigure_ask ${ENV_FILE} ${TRAEFIK_ACME_DNS_VARNAME_4} "Enter the value for ${TRAEFIK_ACME_DNS_VARNAME_4}" - || true
+        test -n "${TRAEFIK_ACME_DNS_VARNAME_5}" && ${BIN}/reconfigure_ask ${ENV_FILE} ${TRAEFIK_ACME_DNS_VARNAME_5} "Enter the value for ${TRAEFIK_ACME_DNS_VARNAME_5}" - || true
+    fi    
+}
+
+step_ca() {
+    if wizard confirm "Do you want to add Step-CA root certificates to the container's trust store?" $(test "${BIN}/dotenv -f ${ENV_FILE} get TRAEFIK_STEP_CA_ENABLE" == "true" && echo "yes" || echo "no"); then
+        ${BIN}/reconfigure ${ENV_FILE} TRAEFIK_STEP_CA_ENABLED=true
+    else
+        ${BIN}/reconfigure ${ENV_FILE} TRAEFIK_STEP_CA_ENABLED=false
+        return
+    fi
+    ${BIN}/reconfigure_ask ${ENV_FILE} TRAEFIK_STEP_CA_ENDPOINT "Enter your Step-CA endpoint URL"
+    echo ""
+    ${BIN}/reconfigure_ask ${ENV_FILE} TRAEFIK_STEP_CA_FINGERPRINT "Enter your Step-CA root CA certificate fingerprint"
+    ${BIN}/reconfigure ${ENV_FILE} TRAEFIK_STEP_CA_ENABLED=true
+    SYSTEM_CA_CERTS=$(wizard choose --numeric "How do you want to configure the container's trust store?" \
+                             "Keep all the system level CA certs, just add Step-CA to the list." \
+                             "Delete all the system level CA certs, and make Step-CA the only one.")
+    case ${SYSTEM_CA_CERTS} in
+        0) ${BIN}/reconfigure ${ENV_FILE} TRAEFIK_STEP_CA_ZERO_CERTS=false;;
+        1) ${BIN}/reconfigure ${ENV_FILE} TRAEFIK_STEP_CA_ZERO_CERTS=true;;
+        2) disable;;
+        *) return;;
+    esac
+}
+
+step_ca_acme() {
+    ${BIN}/reconfigure ${ENV_FILE} TRAEFIK_ACME_ENABLED=true
+    ${BIN}/reconfigure ${ENV_FILE} TRAEFIK_ACME_CERT_RESOLVER=production
+    echo ""
+    step_ca
+
+    TRAEFIK_ACME_CERT_RESOLVER_PRODUCTION="$(${BIN}/dotenv -f ${ENV_FILE} get TRAEFIK_ACME_CERT_RESOLVER_PRODUCTION)"
+    TRAEFIK_STEP_CA_ENABLED="$(${BIN}/dotenv -f ${ENV_FILE} get TRAEFIK_STEP_CA_ENABLED)"
+    TRAEFIK_STEP_CA_ENDPOINT="$(${BIN}/dotenv -f ${ENV_FILE} get TRAEFIK_STEP_CA_ENDPOINT)"
+    if [[ "${TRAEFIK_ACME_CERT_RESOLVER_PRODUCTION}" == *"api.letsencrypt.org"* ]] || [[ "${TRAEFIK_ACME_CERT_RESOLVER_PRODUCTION}" == *"ca.example.com"* ]]; then
+        if [[ "${TRAEFIK_STEP_CA_ENABLED}" == "true" ]]; then
+            ${BIN}/reconfigure ${ENV_FILE} TRAEFIK_ACME_CERT_RESOLVER_PRODUCTION=${TRAEFIK_STEP_CA_ENDPOINT}/acme/acme/directory
+        else
+            ${BIN}/reconfigure ${ENV_FILE} TRAEFIK_ACME_CERT_RESOLVER_PRODUCTION=https://ca.example.com/acme/acme/directory
+        fi
+    fi
+    ${BIN}/reconfigure_ask ${ENV_FILE} TRAEFIK_ACME_CERT_RESOLVER_PRODUCTION "Enter the Step-CA ACME service endpoint URL"
+}
+
+disable() {
+    ${BIN}/reconfigure ${ENV_FILE} TRAEFIK_ACME_ENABLED=false
+}
+
+main() {
+    ## Make new .env if it doesn't exist:
+    test -f ${ENV_FILE} || cp .env-dist ${ENV_FILE}
+    CMD="${BASH_SOURCE} ${ENV_FILE}"
+    echo
+    echo "ACME is an API that automatically manages TLS certificates."
+    echo "This config supports both Let's Encrypt and Step-CA."
+    echo
+    PROVIDER=$(wizard choose --numeric "Which ACME provider do you want to use?" \
+                    "Let's Encrypt (ACME)" \
+                    "Step-CA (ACME)" \
+                    "Disable ACME but still configure Step-CA root cert" \
+                    "Disable ACME" \
+                    "Cancel / Go back")
+    case ${PROVIDER} in
+        0) lets_encrypt;;
+        1) step_ca_acme;;
+        2) step_ca;;
+        3) disable;;
+        *) return;;
+    esac
+}
+
+echo
 ENV_FILE=${1}
 shift
-## Make new .env if it doesn't exist:
-test -f ${ENV_FILE} || cp .env-dist ${ENV_FILE}
+check_var ENV_FILE
 
-echo ""
-echo "To configure ACME (Automatic Certificate Management Environment) with Let's Encrypt,"
-echo "AT LEAST one of the following conditions must apply:"
-echo " - Your Docker server is on the internet with TCP port 443 open publicly."
-echo " - You plan to use the DNS-01 challenge type (this would allow for a Docker server that is closed behind a firewall; see https://letsencrypt.org/docs/challenge-types/#dns-01-challenge)"
-echo ""
-echo "If none of the above applies to you, then you should *not* enable ACME."
-if ${BIN}/confirm $(test "$(${BIN}/dotenv -f ${ENV_FILE} get TRAEFIK_ACME_ENABLED)" == "true" && echo yes || echo no) "Do you want to enable ACME with Let's Encrypt" "?";
-then
-    ${BIN}/reconfigure ${ENV_FILE} TRAEFIK_ACME_ENABLED=true
-else
-    ${BIN}/reconfigure ${ENV_FILE} TRAEFIK_ACME_ENABLED=false
-    exit 0
-fi
-
-echo ""
-echo "The Let's Encrypt API has 'production' and 'staging' environments."
-echo "Use production to generate 'real' (trusted) certificates that are valid in most browsers."
-echo "Production is rate-limited. Staging has a much higher limit, but only creates untrusted self-signed certificates."
-echo "You should always prefer to use the production API (even in development) as long as you plan on leaving the Traefik container deployed long-term (Traefik is conservative and stays under the rate limit. If you need to work on Traefik itself, and/or might need to delete the traefik volume often, use staging instead (otherwise, you will quickly go over the limit)."
-echo "(Note: If you need to change this setting later, you must destroy the traefik volume and/or delete /data/acme*.json, so its better to use separate docker contexts dedicated for production and/or testing.)"
-echo ""
-${BIN}/confirm $([[ $(${BIN}/dotenv -f ${ENV_FILE} get TRAEFIK_ACME_CERT_RESOLVER) == "production" ]] && echo yes || echo no) "Do you want to use the production Let's Encrypt API" "?" && ${BIN}/reconfigure ${ENV_FILE} TRAEFIK_ACME_CERT_RESOLVER=production ||  ${BIN}/reconfigure ${ENV_FILE} TRAEFIK_ACME_CERT_RESOLVER=staging
-
-echo ""
-echo "If you give Let's Encrypt your email address, they will send you alerts when your certificates are about to expire, or about other misconfigurations."
-${BIN}/reconfigure_ask ${ENV_FILE} TRAEFIK_ACME_CA_EMAIL "Enter your email address (not required; blank to skip)"
-
-echo ""
-echo "ACME requires Traefik to complete a challenge to prove ownership of the domains used for the certificates."
-echo "This challenge can be completed over TLS or DNS. See https://letsencrypt.org/docs/challenge-types"
-echo "Here are the pros and cons of these two challenge types:"
-echo "* TLS challenge is easier, but won't work if TCP port 443 is firewalled."
-echo "* TLS challenge does not support wildcard domains. (*.example.com)"
-echo "* DNS challenge is recommended, but requires you to store a"
-echo "  security sensitive API token from your DNS provider as an environment variable."
-echo "* DNS challenge works through DNS, so no public port needs to be opened."
-echo "  This will allow you to generate real valid certs for your private LAN services."
-echo "* Regardless of the challenge type, all non-wildcard domain names will be leaked (\"advertised\")"
-echo "  to the public via Certificate Transparency (CT) logs, see https://letsencrypt.org/docs/ct-logs/"
-echo "  (you may therefore see lots of requests come in as soon as you deploy services)"
-echo "* DNS challenge allows wildcard domains (*.example.com), which prevents the subdomain names"
-echo "  from being leaked. (Only the root domain will still be leaked.)"
-echo "* If you choose DNS challenge, exercise caution with your DNS API tokens, and consider the"
-echo "  principle of Least Privilege."
-echo "* Other challenge types are not supported. (eg. HTTP)"
-echo ""
-
-if ${BIN}/confirm $(test "$(${BIN}/dotenv -f ${ENV_FILE} get TRAEFIK_ACME_CHALLENGE)" == "dns" && echo yes || echo no) \
-         "Do you want to use the ACME DNS challenge type" "?";
-then
-    ${BIN}/reconfigure ${ENV_FILE} TRAEFIK_ACME_CHALLENGE=dns
-    echo ""
-    echo "Find the provider code of your supported DNS provider here:"
-    echo "https://go-acme.github.io/lego/dns/#dns-providers"
-    echo ""
-    ${BIN}/reconfigure_ask ${ENV_FILE} TRAEFIK_ACME_DNS_PROVIDER "Enter the LEGO code for your DNS Provider" digitalocean
-    echo ""
-    echo "Find the necessary variable names for your provider:"
-    echo "For example for DigitalOcean, see:"
-    echo "  https://go-acme.github.io/lego/dns/digitalocean/"
-    echo "  (eg. digitalocean requires the DO_AUTH_TOKEN variable)"
-    echo "You need to enter the NAMES of these variables that your provider needs."
-    echo "You can enter up to 5 variable names and/or leave them blank"
-
-    ${BIN}/reconfigure_ask ${ENV_FILE} TRAEFIK_ACME_DNS_VARNAME_1 "Enter the 1st DNS provider variable name" DO_AUTH_TOKEN
-    TRAEFIK_ACME_DNS_VARNAME_1=$(${BIN}/dotenv -f ${ENV_FILE} get TRAEFIK_ACME_DNS_VARNAME_1)
-
-    test -n "${TRAEFIK_ACME_DNS_VARNAME_1}" && \
-        ALLOW_BLANK=1 ${BIN}/reconfigure_ask ${ENV_FILE} TRAEFIK_ACME_DNS_VARNAME_2 "Enter the 2nd DNS provider variable name (or leave blank)"  || ${BIN}/reconfigure ${ENV_FILE} TRAEFIK_ACME_DNS_VARNAME_2=""
-    TRAEFIK_ACME_DNS_VARNAME_2=$(${BIN}/dotenv -f ${ENV_FILE} get TRAEFIK_ACME_DNS_VARNAME_2)
-
-    test -n "${TRAEFIK_ACME_DNS_VARNAME_2}" && \
-        ALLOW_BLANK=1 ${BIN}/reconfigure_ask ${ENV_FILE} TRAEFIK_ACME_DNS_VARNAME_3 "Enter the 3rd DNS provider variable name (or leave blank)"  || ${BIN}/reconfigure ${ENV_FILE} TRAEFIK_ACME_DNS_VARNAME_3=""
-    TRAEFIK_ACME_DNS_VARNAME_3=$(${BIN}/dotenv -f ${ENV_FILE} get TRAEFIK_ACME_DNS_VARNAME_3)
-
-    test -n "${TRAEFIK_ACME_DNS_VARNAME_3}" && \
-        ALLOW_BLANK=1 ${BIN}/reconfigure_ask ${ENV_FILE} TRAEFIK_ACME_DNS_VARNAME_4 "Enter the 4th DNS provider variable name (or leave blank)"  || ${BIN}/reconfigure ${ENV_FILE} TRAEFIK_ACME_DNS_VARNAME_4=""
-    TRAEFIK_ACME_DNS_VARNAME_4=$(${BIN}/dotenv -f ${ENV_FILE} get TRAEFIK_ACME_DNS_VARNAME_4)
-
-    test -n "${TRAEFIK_ACME_DNS_VARNAME_4}" && \
-        ALLOW_BLANK=1 ${BIN}/reconfigure_ask ${ENV_FILE} TRAEFIK_ACME_DNS_VARNAME_5 "Enter the 5th DNS provider variable name (or leave blank)"  || ${BIN}/reconfigure ${ENV_FILE} TRAEFIK_ACME_DNS_VARNAME_5=""
-    TRAEFIK_ACME_DNS_VARNAME_5=$(${BIN}/dotenv -f ${ENV_FILE} get TRAEFIK_ACME_DNS_VARNAME_5)
-
-    echo ""
-    echo "Now to enter the values for the custom DNS API variables:"
-    test -n "${TRAEFIK_ACME_DNS_VARNAME_1}" && ${BIN}/reconfigure_ask ${ENV_FILE} ${TRAEFIK_ACME_DNS_VARNAME_1} "Enter the value for ${TRAEFIK_ACME_DNS_VARNAME_1}" - || true
-    test -n "${TRAEFIK_ACME_DNS_VARNAME_2}" && ${BIN}/reconfigure_ask ${ENV_FILE} ${TRAEFIK_ACME_DNS_VARNAME_2} "Enter the value for ${TRAEFIK_ACME_DNS_VARNAME_2}" - || true
-    test -n "${TRAEFIK_ACME_DNS_VARNAME_3}" && ${BIN}/reconfigure_ask ${ENV_FILE} ${TRAEFIK_ACME_DNS_VARNAME_3} "Enter the value for ${TRAEFIK_ACME_DNS_VARNAME_3}" - || true
-    test -n "${TRAEFIK_ACME_DNS_VARNAME_4}" && ${BIN}/reconfigure_ask ${ENV_FILE} ${TRAEFIK_ACME_DNS_VARNAME_4} "Enter the value for ${TRAEFIK_ACME_DNS_VARNAME_4}" - || true
-    test -n "${TRAEFIK_ACME_DNS_VARNAME_5}" && ${BIN}/reconfigure_ask ${ENV_FILE} ${TRAEFIK_ACME_DNS_VARNAME_5} "Enter the value for ${TRAEFIK_ACME_DNS_VARNAME_5}" - || true
-else
-    ${BIN}/reconfigure ${ENV_FILE} TRAEFIK_ACME_CHALLENGE=tls
-fi
+$@

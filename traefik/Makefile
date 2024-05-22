@@ -16,7 +16,7 @@ config-domain:
 
 .PHONY: config-acme
 config-acme:
-	@${BIN}/reconfigure_acme ${ENV_FILE}
+	@${BIN}/reconfigure_acme ${ENV_FILE} main
 
 .PHONY: open # Start SSH tunnel and open the Traefik Dashboard
 open:
