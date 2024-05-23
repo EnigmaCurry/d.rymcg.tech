@@ -17,6 +17,7 @@ ytt_template() {
         -v acme_cert_resolver_production="${TRAEFIK_ACME_CERT_RESOLVER_PRODUCTION}" \
         -v acme_cert_resolver_staging="${TRAEFIK_ACME_CERT_RESOLVER_STAGING}" \
         -v acme_dns_provider="${TRAEFIK_ACME_DNS_PROVIDER}" \
+        -v acme_certificates_duration="${TRAEFIK_ACME_CERTIFICATES_DURATION}" \
         -v access_logs_enabled="${TRAEFIK_ACCESS_LOGS_ENABLED}" \
         -v access_logs_path="${TRAEFIK_ACCESS_LOGS_PATH}" \
         -v file_provider_watch="${TRAEFIK_FILE_PROVIDER_WATCH}" \

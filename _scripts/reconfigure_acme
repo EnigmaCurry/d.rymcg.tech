@@ -18,6 +18,7 @@ choose_challenge() {
 
 lets_encrypt() {
     ${BIN}/reconfigure ${ENV_FILE} TRAEFIK_ACME_ENABLED=true
+    ${BIN}/reconfigure ${ENV_FILE} TRAEFIK_ACME_CERTIFICATES_DURATION=2160
     ${BIN}/reconfigure ${ENV_FILE} TRAEFIK_ACME_CERT_RESOLVER_PRODUCTION=https://acme-v02.api.letsencrypt.org/directory
     ${BIN}/reconfigure ${ENV_FILE} TRAEFIK_ACME_CERT_RESOLVER_STAGING=https://acme-staging-v02.api.letsencrypt.org/directory
 
@@ -80,6 +81,7 @@ lets_encrypt() {
 
 step_ca_acme() {
     ${BIN}/reconfigure ${ENV_FILE} TRAEFIK_ACME_ENABLED=true
+    ${BIN}/reconfigure ${ENV_FILE} TRAEFIK_ACME_CERTIFICATES_DURATION=24
     ${BIN}/reconfigure ${ENV_FILE} TRAEFIK_ACME_CERT_RESOLVER=production
     echo ""
 

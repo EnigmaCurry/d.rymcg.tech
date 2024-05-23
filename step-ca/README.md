@@ -109,6 +109,9 @@ Once completed, it will create two new files on your worksation:
  * `certs/{DOMAIN}.crt` - This is the *public* certificate file for
    your host, along with the full public CA certificate chain.
  * `certs/{DOMAIN}.key` - This is the *private* key file (do not share)!
+ * `certs/{DOMAIN}.p12` - This is the *private* key in an encrypted
+   format (this is what the password it asked you was for). This is
+   the preferred format for importing into a web browser.
 
 You can inspect the certificate file, and gather important details about it:
 
@@ -251,7 +254,10 @@ https://ca.example.com/acme/acme/directory
 
 ### Enable mTLS in Trafeik config
 
-In the Traefik `make config` menu, also choose `Configure Certificate
+Traefik needs to install the root CA certificate in order to trust
+your client certificates.
+
+In the Traefik `make config` menu, choose `Configure Certificate
 Authorities (CA)`. You need to import your Step-CA root certificate
 into your Traefik container's trust store. Choose one of the options
 that does this, and it will prompt you for the endpoint and
@@ -259,6 +265,15 @@ fingerprint.
 
  * Endpoint: `https://ca.example.com`
  * Fingerprint: get this by running `make inspect-fingerprint` in the step-ca project.
+
+Strong mTLS depends on both the client and server using certificates
+from the same CA chain. However, you can relax that if you want. It
+does not technically matter what ACME provider the server uses, it can
+use Let's Encrypt, or Step-CA. The clients will be using Step-CA, but
+they likely already have the Let's Encrypt CA trusted too (because of
+the operating system and browser bundled CAs), so either will work. In
+some cases that will be preferred, because clients won't need to add
+modify their trust store, just add a single client certificate.
 
 ### Enable mTLS for an app
 
@@ -348,4 +363,54 @@ unique IDs inside of your organization:
 NAME.users.example.com
 ```
 
+## Testing TLS with curl
 
+Assuming you have already deployed [whoami](../whoami) and configured
+it for mTLS, and you have the following config:
+
+```
+ROOT_STEP_CA_CERT=~/.step/certs/root_ca.crt
+CLIENT_CERT=~/git/vendor/enigmacurry/d.rymcg.tech/step-ca/certs/tony.clients.whoami.example.com.crt
+CLIENT_KEY=~/git/vendor/enigmacurry/d.rymcg.tech/step-ca/certs/tony.clients.whoami.example.com.key
+
+WHOAMI_URL=https://whoami.example.com
+```
+
+### Test the root CA
+
+If your system has no trust of the Step-CA root certificate, curl will
+show you this error, which is normal of any "self-signed" certificate:
+
+```
+$ curl ${WHOAMI_URL}
+curl: (60) SSL certificate problem: unable to get local issuer certificate
+More details here: https://curl.se/docs/sslcerts.html
+
+curl failed to verify the legitimacy of the server and therefore could not
+establish a secure connection to it. To learn more about this situation and
+how to fix it, please visit the web page mentioned above.
+```
+
+It means that curl is politely refusing to show you the content
+because the certificate is not trusted. However, you can bypass the
+check with the `--insecure` (or `-k`) flag:
+
+```
+## UNSAFE: This will bypass TLS validation entirely, allowing any certificate.
+curl --insecure ${WHOAMI_URL}
+```
+
+To fix this, you can add the root CA to your system trust store:
+
+```
+## Only do this if you're really sure you've secured your passwords!
+step-cli certificate install ${ROOT_STEP_CA_CERT}
+```
+
+### Test mTLS
+
+If your server requires mTLS, but you haven't provided your client
+certificate and key, you'll get this error:
+
+```
+```
