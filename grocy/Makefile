@@ -25,7 +25,7 @@ override-hook:
 ####                         # (this hardcodes the string into docker-compose.override.yaml)
 ####   name=@VARIABLE_NAME   # sets the template 'name' field to the literal string '${VARIABLE_NAME}'
 ####                         # (used for regular docker-compose expansion of env vars by name.)
-	@${BIN}/docker_compose_override ${ENV_FILE} project=:grocy instance=@GROCY_INSTANCE traefik_host=@GROCY_TRAEFIK_HOST http_auth=GROCY_HTTP_AUTH http_auth_var=@GROCY_HTTP_AUTH ip_sourcerange=@GROCY_IP_SOURCERANGE oauth2=GROCY_OAUTH2 authorized_group=GROCY_OAUTH2_AUTHORIZED_GROUP
+	@${BIN}/docker_compose_override ${ENV_FILE} project=:grocy instance=@GROCY_INSTANCE traefik_host=@GROCY_TRAEFIK_HOST http_auth=GROCY_HTTP_AUTH http_auth_var=@GROCY_HTTP_AUTH ip_sourcerange=@GROCY_IP_SOURCERANGE oauth2=GROCY_OAUTH2 authorized_group=GROCY_OAUTH2_AUTHORIZED_GROUP enable_mtls_auth=GROCY_MTLS_AUTH mtls_authorized_certs=GROCY_MTLS_AUTHORIZED_CERTS
 
 .PHONY: shell
 shell:
