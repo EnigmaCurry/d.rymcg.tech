@@ -218,3 +218,134 @@ machine entirely, taking it offline, when you don't need it. If you
 install other stuff on the same (virtual) machine, it defeats this
 purpose. Of course, if you intend for this to be a full time service,
 you may not afford this option, so you can do what you wish.
+
+## ACME
+
+By default, Step-CA only configures the
+[JWK](https://smallstep.com/docs/step-ca/provisioners/#jwk)
+provisioner, which basically means it's limited to the manual
+certificate requests like `make cert` does.
+
+ACME is an API that offers a more automatic process of requesting,
+issuing, and renewing TLS certificates. If you're familiar with Let's
+Encrypt, you've already been using ACME. Step-CA offers the same
+experience through this common API.
+
+To turn on ACME, run:
+
+```
+make enable-acme
+```
+
+In your [Traefik](../traefik) instance, you will want to configure
+ACME to point to your Step-CA instance. In the traefik directory, run
+`make config`, and choose `Configure ACME`, choose `Step-CA` and you
+will be prompted to enter the ACME endpoint URL, which is:
+
+```
+# This is the endpoint URL for Step-CA at ca.example.com ::
+https://ca.example.com/acme/acme/directory
+```
+
+## Mutual TLS (mTLS)
+
+### Enable mTLS in Trafeik config
+
+In the Traefik `make config` menu, also choose `Configure Certificate
+Authorities (CA)`. You need to import your Step-CA root certificate
+into your Traefik container's trust store. Choose one of the options
+that does this, and it will prompt you for the endpoint and
+fingerprint.
+
+ * Endpoint: `https://ca.example.com`
+ * Fingerprint: get this by running `make inspect-fingerprint` in the step-ca project.
+
+### Enable mTLS for an app
+
+Not every app is setup for mTLS, nor does it make sense to do so in a
+lot of cases, but a few of them have been given this new option, like
+[whoami](../whoami) and [nginx](../nginx). In their respective `make
+config` menus, is the option to turn on mTLS authentication (``).
+
+```
+? Do you want to enable sentry authentication in front of this app (effectively making the entire site private)?  
+  No
+  Yes, with HTTP Basic Authentication
+  Yes, with Oauth2
+> Yes, with Mutual TLS (mTLS)
+```
+
+Choosing this option enables mTLS for the given app. The next question
+asks about what certificates it should allow in.
+
+```
+NGINX_MTLS_AUTHORIZED_CERTS: Enter comma separated list of allowed client certificate names (or blank to allow all) (eg. *.clients.www.example.com)
+: *.clients.whoami.test.rymcg.tech,bob.geocities.com
+```
+
+In the example above, it would only let users in if the fit all of the following criteria:
+
+ * The user must present a valid TLS certicate for all HTTP requests.
+   (eg. with curl `--cacert`,`--cert`,`--key` options) and it must be
+   signed by your own Step-CA instance.
+ * The client certificate name (CN) value must match the list of
+   `NGINX_MTLS_AUTHORIZED_CERTS` (wildcards allowed), comma separated.
+ 
+So any of these clients are allowed access, assuming they are signed
+by our Step-CA instance, and because they match the list of authorized
+domains:
+
+   * ✅ `bob.clients.whoami.test.rymcg.tech`
+   * ✅ `alice.clients.whoami.test.rymcg.tech`
+   * ✅ `ANYTHING.clients.whoami.test.rymcg.tech`
+   * ✅ `bob.geocities.com`
+
+None, of these clients are allowed access, not only because they
+wouldn't be signed by our Step-CA instance, but also because they
+don't match our list of authorized domains:
+  
+   * ❌ `thing2.rymcg.tech`
+   * ❌ `ads.google.com`
+   * ❌ `ANYTHING.else`
+
+### Creating client certificates
+
+You create client certificates the same way you create server
+cerificates:
+
+```
+make cert
+```
+
+You will be asked to enter the name (CN) which must be a name that is
+allowed by your Step-CA instance.
+
+You can also generate client ceritificates via ACME, if you want to
+setup a client that way. Give
+[acme.sh](https://github.com/acmesh-official/acme.sh) a try.
+
+### Naming client certificates (CN)
+
+Although client certificate names do have to look like internet domain
+names, but unless you're issuing client certificates via ACME, they do
+not need to have DNS. You are free to make up whatever domain names
+you want for your user certificates. However, here is a good naming
+convention you may want to use, as a subdomain of the app you are
+creating the certificates for:
+
+```
+NAME.clients.app.example.com
+```
+
+If you create your client certificates like that, they will retain a
+relation back to where they are supposed to go. However, if a user
+needs access to multiple apps, they will need to manage certificates.
+
+A better way might be to create a central store where users have
+unique IDs inside of your organization:
+
+```
+NAME.users.example.com
+```
+
+
