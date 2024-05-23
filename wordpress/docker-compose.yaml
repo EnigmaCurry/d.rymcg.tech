@@ -1,7 +1,7 @@
 
 services:
   db:
-    # We use a mariadb image which supports both amd64 & arm64 architecture
+    # We recommend a mariadb image which supports both amd64 & arm64 architecture
     image: mariadb:${WORDPRESS_MARIADB_VERSION}
     security_opt:
       - no-new-privileges:true
