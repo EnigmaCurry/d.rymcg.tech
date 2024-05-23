@@ -278,8 +278,8 @@ modify their trust store, just add a single client certificate.
 ### Enable mTLS for an app
 
 Most d.rymcg.tech apps have been made compatible with mTLS sentry
-authentication. In their respective `make config` menus, is the option
-to turn on mTLS authentication (``).
+authentication. In each of their respective `make config` menus, there
+is the option to turn on mTLS authentication:
 
 ```
 ? Do you want to enable sentry authentication in front of this app (effectively making the entire site private)?  
