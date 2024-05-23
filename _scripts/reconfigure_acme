@@ -6,6 +6,16 @@ BIN=$(dirname ${BASH_SOURCE})
 source ${BIN}/funcs.sh
 set -e
 
+choose_challenge() {
+    ACME_CHALLENGE=$(wizard choose --numeric "Which type of ACME challenge should be used?" \
+                            "TLS-ALPN-01 (default for public servers, easy, but no wildcard certs)" \
+                            "DNS-01 (requires API key, but good behind firewalls, and allows wildcard certs)")
+    case ${ACME_CHALLENGE} in
+        0) ${BIN}/reconfigure ${ENV_FILE} TRAEFIK_ACME_CHALLENGE=tls;;
+        1) ${BIN}/reconfigure ${ENV_FILE} TRAEFIK_ACME_CHALLENGE=dns;;
+    esac
+}
+
 lets_encrypt() {
     ${BIN}/reconfigure ${ENV_FILE} TRAEFIK_ACME_ENABLED=true
     ${BIN}/reconfigure ${ENV_FILE} TRAEFIK_ACME_CERT_RESOLVER_PRODUCTION=https://acme-v02.api.letsencrypt.org/directory
@@ -18,18 +28,12 @@ lets_encrypt() {
         1) ${BIN}/reconfigure ${ENV_FILE} TRAEFIK_ACME_CERT_RESOLVER=staging;;
         *)  ${BIN}/reconfigure ${ENV_FILE} TRAEFIK_ACME_CERT_RESOLVER=production;;
      esac
-        
+
+    choose_challenge
+    
     echo ""
     echo "If you give Let's Encrypt your email address, they will send you alerts when your certificates are about to expire, or about other misconfigurations."
     ${BIN}/reconfigure_ask ${ENV_FILE} TRAEFIK_ACME_CA_EMAIL "Enter your email address (not required; blank to skip)"
-
-    ACME_CHALLENGE=$(wizard choose --numeric "Which type of ACME challenge should be used?" \
-                      "TLS-ALPN-01 (default for public servers, easy, but no wildcard certs)" \
-                      "DNS-01 (requires API key, but good behind firewalls, and allows wildcard certs)")
-    case ${ACME_CHALLENGE} in
-        0) ${BIN}/reconfigure ${ENV_FILE} TRAEFIK_ACME_CHALLENGE=tls;;
-        1) ${BIN}/reconfigure ${ENV_FILE} TRAEFIK_ACME_CHALLENGE=dns;;
-     esac
     
     if [[ "$(${BIN}/dotenv -f ${ENV_FILE} get TRAEFIK_ACME_CHALLENGE)" == "dns" ]]; then
         echo ""
@@ -78,8 +82,9 @@ step_ca_acme() {
     ${BIN}/reconfigure ${ENV_FILE} TRAEFIK_ACME_ENABLED=true
     ${BIN}/reconfigure ${ENV_FILE} TRAEFIK_ACME_CERT_RESOLVER=production
     echo ""
-    step_ca
 
+    choose_challenge
+    
     TRAEFIK_ACME_CERT_RESOLVER_PRODUCTION="$(${BIN}/dotenv -f ${ENV_FILE} get TRAEFIK_ACME_CERT_RESOLVER_PRODUCTION)"
     TRAEFIK_STEP_CA_ENABLED="$(${BIN}/dotenv -f ${ENV_FILE} get TRAEFIK_STEP_CA_ENABLED)"
     TRAEFIK_STEP_CA_ENDPOINT="$(${BIN}/dotenv -f ${ENV_FILE} get TRAEFIK_STEP_CA_ENDPOINT)"

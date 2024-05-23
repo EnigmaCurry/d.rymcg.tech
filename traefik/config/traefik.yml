@@ -32,6 +32,14 @@ experimental:
     headauth:
       modulename: github.com/poloyacero/headauth
     #@ end
+    #@ if data.values.plugin_cert_auth == "true":
+    certauthz:
+      modulename: github.com/famedly/traefik-certauthz
+    #@ end
+    #@ if data.values.plugin_mtls_header == "true":
+    mtlsheader:
+      modulename: github.com/pnxs/traefik-plugin-mtls-header
+    #@ end
 #@ end
 
 providers:

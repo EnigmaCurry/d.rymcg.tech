@@ -46,7 +46,7 @@ main() {
         echo "You may want to remove all the other public CA certs, but be warned that this can break some core operating system things, but in order to create a secure server, you're going to have to break some things."
         echo        
     ) | fold -s -w 80
-    PROVIDER=$(wizard choose --numeric "How do you want to configure the list of trusted Certificate Authorities (CA)?" \
+    PROVIDER=$(wizard choose -c0 --numeric "How do you want to configure the list of trusted Certificate Authorities (CA)?" \
                     "Use the stock list, (alpine: ca-certificates ca-certificates-bundle)." \
                     "Use the stock list, plus add my own root Step-CA certificate." \
                     "Delete the entire list, and add my own root Step-CA certificate." \
