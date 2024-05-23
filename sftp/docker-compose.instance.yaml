@@ -1,6 +1,6 @@
 #@yaml/text-templated-strings
 #@ load("@ytt:data", "data")
-#@ if "sftp_volumes" in data.values and data.values["sftp_volumes"] != '':
+#@ if "sftp_volumes" in data.values and len(data.values["sftp_volumes"].strip()):
 volumes:
   #! List the external volumes you want to mount into sftp:
   #@ for vol,user,mnt in [x.split(":") for x in data.values.sftp_volumes.split(",")]:
