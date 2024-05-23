@@ -25,8 +25,8 @@ override-hook:
 ####                         # (this hardcodes the string into docker-compose.override.yaml)
 ####   name=@VARIABLE_NAME   # sets the template 'name' field to the literal string '${VARIABLE_NAME}'
 ####                         # (used for regular docker-compose expansion of env vars by name.)
-	@${BIN}/docker_compose_override ${ENV_FILE} project=:forgejo instance=@FORGEJO_INSTANCE traefik_host=@FORGEJO_TRAEFIK_HOST ip_sourcerange=@FORGEJO_IP_SOURCERANGE forgejo_port=@FORGEJO_PORT
-	
+	@${BIN}/docker_compose_override ${ENV_FILE} project=:forgejo instance=@FORGEJO_INSTANCE traefik_host=@FORGEJO_TRAEFIK_HOST ip_sourcerange=@FORGEJO_IP_SOURCERANGE
+
 .PHONY: shell
 shell:
 	@make --no-print-directory docker-compose-shell SERVICE=forgejo

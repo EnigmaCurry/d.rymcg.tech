@@ -1,13 +1,10 @@
-version: "3.9"
-
-
 networks:
   forgejo:
     external: false
 
 services:
   forgejo:
-    image: codeberg.org/forgejo/forgejo:${FORGEJO_VERSION}
+    image: ${FORGEJO_IMAGE}
     restart: always
     environment:
       - FORGEJO__server__ROOT_URL
@@ -40,9 +37,6 @@ services:
       - /etc/localtime:/etc/localtime:ro
     networks:
       - forgejo
-    ports:
-      - ${FORGEJO_PORT}:3000
-      - ${FORGEJO_SSH_PORT}:22
     labels: []
 
 volumes:
