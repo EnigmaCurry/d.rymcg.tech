@@ -144,8 +144,8 @@ User logout is a multi-phase endeavor:
    the `_foward_auth` cookie.
  * Then the user is redirected to the the URL specified by
    `TRAEFIK_FORWARD_AUTH_LOGOUT_REDIRECT`. This redirect will delete
-   the cookies for forgejo (logging out of forgejo): `forgejo_incredible`
-   and `i_like_forgejo`.
+   the cookies for forgejo (logging out of forgejo): `gitea_incredible`
+   and `i_like_gitea`.
  * Finally the user is redirected to the main forgejo login page, eg.
    `https://git.example.com/user/login` and is now completely logged
    out.

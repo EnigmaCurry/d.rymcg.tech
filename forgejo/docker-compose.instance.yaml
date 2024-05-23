@@ -44,17 +44,17 @@ services:
       #! an EXPOSE directive in it, Traefik will autodetect it, but this is how you can override it:
       - "traefik.http.services.(@= router @).loadbalancer.server.port=3000"
 
-      #! Logout phase 1 (deletes 'forgejo_incredible' cookie):
+      #! Logout phase 1 (deletes 'gitea_incredible' cookie):
       - "traefik.http.routers.(@= router @)-logout1.rule=Host(`(@= traefik_host @)`) && Path(`/logout`)"
       - "traefik.http.routers.(@= router @)-logout1.entrypoints=websecure"
-      - "traefik.http.middlewares.(@= router @)-logout1.headers.customresponseheaders.Set-Cookie=forgejo_incredible=deleted; Max-Age=0"
+      - "traefik.http.middlewares.(@= router @)-logout1.headers.customresponseheaders.Set-Cookie=gitea_incredible=deleted; Max-Age=0"
       - "traefik.http.middlewares.(@= router @)-logout-redirect1.redirectregex.regex=.*"
       - "traefik.http.middlewares.(@= router @)-logout-redirect1.redirectregex.replacement=https://(@= traefik_host @)/logout2"
       - "traefik.http.routers.(@= router @)-logout1.middlewares=(@= router @)-ipallowlist,(@= router @)-logout1,(@= router @)-logout-redirect1"
-      #! Logout phase 2 (deletes 'i_like_forgejo' cookie):
+      #! Logout phase 2 (deletes 'i_like_gitea' cookie):
       - "traefik.http.routers.(@= router @)-logout2.rule=Host(`(@= traefik_host @)`) && Path(`/logout2`)"
       - "traefik.http.routers.(@= router @)-logout2.entrypoints=websecure"
-      - "traefik.http.middlewares.(@= router @)-logout2.headers.customresponseheaders.Set-Cookie=i_like_forgejo=deleted; Max-Age=0"
+      - "traefik.http.middlewares.(@= router @)-logout2.headers.customresponseheaders.Set-Cookie=i_like_gitea=deleted; Max-Age=0"
       - "traefik.http.middlewares.(@= router @)-logout-redirect2.redirectregex.regex=.*"
       - "traefik.http.middlewares.(@= router @)-logout-redirect2.redirectregex.replacement=https://(@= traefik_host @)/user/login"
       - "traefik.http.routers.(@= router @)-logout2.middlewares=(@= router @)-ipallowlist,(@= router @)-logout2,(@= router @)-logout-redirect2"
