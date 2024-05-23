@@ -39,7 +39,7 @@ certs:
 
 .PHONY: config-inspect # Inspect the live configuration
 config-inspect:
-	@docker-compose --env-file ${ENV_FILE} exec traefik sh -c "find /data/config -type f | xargs -iXX sh -c \"echo \#\! XX && cat XX && echo ''\""
+	@docker compose --env-file ${ENV_FILE} exec traefik sh -c "find /data/config -type f | xargs -iXX sh -c \"echo \#\! XX && cat XX && echo ''\""
 
 .PHONY: shell
 shell:
@@ -67,15 +67,15 @@ wireguard-reset:
 
 .PHONY: destroy-wireguard
 destroy-wireguard:
-	@docker-compose --env-file ${ENV_FILE} --profile wireguard down -v
+	@docker compose --env-file ${ENV_FILE} --profile wireguard down -v
 
 .PHONY: logs-traefik # Tail the Traefik logs
 logs-traefik:
-	@docker-compose --env-file ${ENV_FILE} --profile default logs -f
+	@make --no-print-directory logs service=traefik
 
 .PHONY: logs-access # Tail the access logs
 logs-access:
-	@docker-compose --env-file ${ENV_FILE} --profile default exec -it traefik sh -c 'tail -f /data/access.log | jq'
+	@docker compose --env-file ${ENV_FILE} --profile default exec -it traefik sh -c 'tail -f /data/access.log | jq'
 
 .PHONY: debug # Restart Traefik with debug logging for one time only
 debug:

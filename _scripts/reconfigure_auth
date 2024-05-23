@@ -12,28 +12,34 @@ VAR_PREFIX=$2
 export __D_RY_CONFIG_ENTRY=reconfigure_auth
 
 prompt="Do you want to enable sentry authentication in front of this app (effectively making the entire site private)?"
-options=("No" "Yes, with HTTP Basic Authentication" "Yes, with Oauth2")
+options=("No")
 ## Set default based on current auth settings in ENV_FILE
 
+DISABLE_HTTP=false
+DISABLE_OAUTH=false
 DISABLE_MTLS=false
 
 set +e
 http_auth=$(${BIN}/dotenv -f ${ENV_FILE} get ${VAR_PREFIX}_HTTP_AUTH)
-if [[ "$?" != "0" ]]; then fault "could not read ${VAR_PREFIX}_HTTP_AUTH from env file"; fi
+if [[ "$?" != "0" ]]; then DISABLE_HTTP=true; http_auth="";  fi
 oauth2_auth=$(${BIN}/dotenv -f ${ENV_FILE} get ${VAR_PREFIX}_OAUTH2)
-if [[ "$?" != "0" ]]; then fault "could not read ${VAR_PREFIX}_OAUTH2 from env file"; fi
+if [[ "$?" != "0" ]]; then DISABLE_OAUTH=true; oauth2_auth=""; fi
 mtls_auth=$(${BIN}/dotenv -f ${ENV_FILE} get ${VAR_PREFIX}_MTLS_AUTH)
 if [[ "$?" != "0" ]]; then DISABLE_MTLS=true; mtls_auth=false; fi
 set -e
 
 unset_oauth2() {
-    ${BIN}/reconfigure ${ENV_FILE} "${VAR_PREFIX}_OAUTH2"=
+    if [[ "${DISABLE_OAUTH}" == "false" ]]; then
+        ${BIN}/reconfigure ${ENV_FILE} "${VAR_PREFIX}_OAUTH2"=
+    fi
 }
 unset_http_auth() {
-    ${BIN}/reconfigure ${ENV_FILE} "${VAR_PREFIX}_HTTP_AUTH"=
-    TMP_PASSWORD=$(mktemp)
-    if [[ -f passwords.json ]]; then
-        cat passwords.json | jq "del(.\"${CONTEXT_INSTANCE}\")" > ${TMP_PASSWORD} && mv ${TMP_PASSWORD} passwords.json
+    if [[ "${DISABLE_HTTP}" == "false" ]]; then
+        ${BIN}/reconfigure ${ENV_FILE} "${VAR_PREFIX}_HTTP_AUTH"=
+        TMP_PASSWORD=$(mktemp)
+        if [[ -f passwords.json ]]; then
+            cat passwords.json | jq "del(.\"${CONTEXT_INSTANCE}\")" > ${TMP_PASSWORD} && mv ${TMP_PASSWORD} passwords.json
+        fi
     fi
 }
 unset_mtls_auth() {
@@ -43,6 +49,12 @@ unset_mtls_auth() {
 }
 
 
+if [[ "${DISABLE_HTTP}" == "false" ]]; then
+    options+=("Yes, with HTTP Basic Authentication")
+fi
+if [[ "${DISABLE_OAUTH}" == "false" ]]; then
+    options+=("Yes, with Oauth2")
+fi
 if [[ "${DISABLE_MTLS}" == "false" ]]; then
     options+=("Yes, with Mutual TLS (mTLS)")
 fi
