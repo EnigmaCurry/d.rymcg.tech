@@ -49,9 +49,11 @@ services:
 
       #@ if enable_mtls_auth:
       - "traefik.http.routers.(@= router @).tls.options=step_ca_mTLS@file"
+        #@ if len(mtls_authorized_certs):
       - "traefik.http.middlewares.mtlsauth-(@= router @).plugin.certauthz.domains=(@= mtls_authorized_certs @)"
-      #@ enabled_middlewares.append("mtlsauth-{}".format(router))
-      #@ enabled_middlewares.append("mtls-header@file")
+        #@ enabled_middlewares.append("mtlsauth-{}".format(router))
+        #@ end
+        #@ enabled_middlewares.append("mtls-header@file")
       #@ end
       
       #! Override the default port that the app binds to:

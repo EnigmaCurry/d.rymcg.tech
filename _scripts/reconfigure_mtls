@@ -37,7 +37,13 @@ ${BIN}/reconfigure ${ENV_FILE} ${VAR_PREFIX}_MTLS_AUTH=true
     echo
 ) | fold -s -w 80
 
-${BIN}/reconfigure_ask ${ENV_FILE} ${VAR_PREFIX}_MTLS_AUTHORIZED_CERTS "Enter comma separated list of allowed client certificate names (wildcard allowed)"
+(
+    echo
+    echo "${VAR_PREFIX}_MTLS_AUTHORIZED_CERTS contains a list of allowed client certificate names (CN)."
+    echo "If you enter a blank value for this, it will allow ANY cert signed by your Step-CA instance."
+    echo
+)
+ALLOW_BLANK=1 ${BIN}/reconfigure_ask ${ENV_FILE} ${VAR_PREFIX}_MTLS_AUTHORIZED_CERTS "Enter comma separated list of allowed client certificate names (or blank to allow all)"
 
 echo
 
