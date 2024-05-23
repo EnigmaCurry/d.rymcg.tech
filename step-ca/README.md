@@ -277,10 +277,9 @@ modify their trust store, just add a single client certificate.
 
 ### Enable mTLS for an app
 
-Not every app is setup for mTLS, nor does it make sense to do so in a
-lot of cases, but a few of them have been given this new option, like
-[whoami](../whoami) and [nginx](../nginx). In their respective `make
-config` menus, is the option to turn on mTLS authentication (``).
+Most d.rymcg.tech apps have been made compatible with mTLS sentry
+authentication. In their respective `make config` menus, is the option
+to turn on mTLS authentication (``).
 
 ```
 ? Do you want to enable sentry authentication in front of this app (effectively making the entire site private)?  
@@ -322,6 +321,22 @@ don't match our list of authorized domains:
    * ❌ `thing2.rymcg.tech`
    * ❌ `ads.google.com`
    * ❌ `ANYTHING.else`
+
+### In-app Authorization
+
+The `{APP}_MTLS_AUTHORIZED_CERTS` variable does a crude form of
+authorization for the app as a whole (it lets some certs in, while
+rejecting others). For finer grained permissions than that, you need
+to ask the app itself to do it, Traefik can't do it alone.
+
+The `mtlsheader` middleware will forward the authenticated client
+certificate name (CN) to the proxied service, via the header named
+`X-Client-CN`. This is verified information that tells the backend app
+the unique name of the client, based upon the signed name (CN) of the
+certificate. Using this information, the application routes can do
+fine grained authoriation (eg. sending http `200` or `403` codes on a
+per page basis, based on user permissions stored in a database row per
+name (CN)).
 
 ### Creating client certificates
 

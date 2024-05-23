@@ -21,7 +21,7 @@ override-hook:
 ####                         # (this hardcodes the string into docker-compose.override.yaml)
 ####   name=@VARIABLE_NAME   # sets the template 'name' field to the literal string '${VARIABLE_NAME}'
 ####                         # (used for regular docker-compose expansion of env vars by name.)
-	@${BIN}/docker_compose_override ${ENV_FILE} project=:audiobookshelf instance=@AUDIOBOOKSHELF_INSTANCE traefik_host=@AUDIOBOOKSHELF_TRAEFIK_HOST http_auth=AUDIOBOOKSHELF_HTTP_AUTH http_auth_var=@AUDIOBOOKSHELF_HTTP_AUTH ip_sourcerange=@AUDIOBOOKSHELF_IP_SOURCERANGE oauth2=AUDIOBOOKSHELF_OAUTH2 authorized_group=AUDIOBOOKSHELF_OAUTH2_AUTHORIZED_GROUP
+	@${BIN}/docker_compose_override ${ENV_FILE} project=:audiobookshelf instance=@AUDIOBOOKSHELF_INSTANCE traefik_host=@AUDIOBOOKSHELF_TRAEFIK_HOST http_auth=AUDIOBOOKSHELF_HTTP_AUTH http_auth_var=@AUDIOBOOKSHELF_HTTP_AUTH ip_sourcerange=@AUDIOBOOKSHELF_IP_SOURCERANGE oauth2=AUDIOBOOKSHELF_OAUTH2 authorized_group=AUDIOBOOKSHELF_OAUTH2_AUTHORIZED_GROUP enable_mtls_auth=AUDIOBOOKSHELF_MTLS_AUTH mtls_authorized_certs=AUDIOBOOKSHELF_MTLS_AUTHORIZED_CERTS
 
 .PHONY: shell
 shell:
