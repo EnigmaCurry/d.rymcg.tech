@@ -14,7 +14,7 @@ projects into this framework.
 
 All (http) apps are secured with automatic Lets Encrypt TLS
 certificates, along with configurable self-hosted authentication
-middleware (OAuth2 with Gitea and/or HTTP Basic auth), as well as user
+middleware (OAuth2 with Forgejo and/or HTTP Basic auth), as well as user
 group authorization middlewares. Even non-http apps may be secured
 with the optional VPN (Wireguard) support.
 
@@ -195,7 +195,7 @@ configured, you may need to open these ports in your firewall:
 | HTTP+TLS   | TCP      | 443        | Traefik HTTPS entrypoint (websecure)                      |
 | TCP socket | TCP      | 1704       | Traefik Snapcast (audio) entrypoint                       |
 | TCP socket | TCP      | 1705       | Traefik Snapcast (control) entrypoint                     |
-| SSH        | TCP      | 2222       | Traefik Gitea SSH (TCP) entrypoint                        |
+| SSH        | TCP      | 2222       | Traefik Forgejo SSH (TCP) entrypoint                        |
 | SSH        | TCP      | 2223       | SFTP container SSH (TCP) (direct-map)                     |
 | TLS        | TCP      | 5432       | PostgreSQL mTLS DBaaS (direct-map)                        |
 | TCP+TLS    | TCP      | 6380       | Traefik Redis in-memory database entrypoint               |
@@ -515,15 +515,16 @@ Install these first:
 
 Install these recommended backbone applications next:
 
-* [Gitea](gitea#readme)
-  * A git host (like self-hosted GitHub) and OAuth2 server.
+* [Forgejo](forgejo#readme)
+  * A git host (fork of Gitea/Gogs, which is similar to self-hosted
+    GitHub) and OAuth2 server.
   * Like GitHub, it can act as an OAuth2 identity service, which
     supports 2FA including hardware tokens, even if you have no need
     for a git forge, install this!
 * [Traefik-forward-auth](traefik-forward-auth#readme)
   * Traefik OAuth2 authentication middleware.
   * Required if you want OAuth2 authentication. You'll combine this
-    with your gitea instance (or another external Oauth provider) to
+    with your forgejo instance (or another external Oauth provider) to
     add authentication to any of your apps.
 * [Homepage](homepage#readme)
   * Homepage acts as a dashboard or launcher for all your other apps
@@ -541,7 +542,6 @@ Install these other services at your leisure/preference:
 * [DrawIO](drawio#readme) - a diagram / whiteboard editor tool
 * [Ejabberd](ejabberd#readme) - an XMPP (Jabber) server
 * [Filestash](filestash#readme) - a web based file manager with customizable backend storage providers
-* [Forgejo](forgejo#readme) - a git forge, a fork of Gitea, a fork of Gogs
 * [FreshRSS](freshrss#readme) - an RSS reader / proxy
 * [Grocy](grocy#readme) - a grocery & household management/chore solution
 * [Icecast](icecast#readme) - a SHOUTcast compatible streaming multimedia server
