@@ -541,6 +541,7 @@ Install these other services at your leisure/preference:
 * [DrawIO](drawio#readme) - a diagram / whiteboard editor tool
 * [Ejabberd](ejabberd#readme) - an XMPP (Jabber) server
 * [Filestash](filestash#readme) - a web based file manager with customizable backend storage providers
+* [Forgejo](forgejo#readme) - a git forge, a fork of Gitea, a fork of Gogs
 * [FreshRSS](freshrss#readme) - an RSS reader / proxy
 * [Grocy](grocy#readme) - a grocery & household management/chore solution
 * [Icecast](icecast#readme) - a SHOUTcast compatible streaming multimedia server

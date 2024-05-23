@@ -1,0 +1,44 @@
+networks:
+  forgejo:
+    external: false
+
+services:
+  forgejo:
+    image: ${FORGEJO_IMAGE}
+    restart: always
+    environment:
+      - FORGEJO__server__ROOT_URL
+      - FORGEJO__server__SSH_DOMAIN=${FORGEJO_TRAEFIK_HOST}
+      - FORGEJO__server__SSH_PORT=${FORGEJO_SSH_PORT}
+      - FORGEJO__server__SSH_LISTEN_PORT=22
+      - FORGEJO__server__DISABLE_SSH
+      - FORGEJO__server__MINIMUM_KEY_SIZE_CHECK
+      - APP_NAME
+      - FORGEJO__service__DISABLE_REGISTRATION
+      - FORGEJO__service__REQUIRE_SIGNIN_VIEW
+      - FORGEJO__service__REGISTER_EMAIL_CONFIRM
+      - FORGEJO__service__ENABLE_NOTIFY_MAIL
+      - FORGEJO__service__ALLOW_ONLY_EXTERNAL_REGISTRATION
+      - FORGEJO__service__ENABLE_CAPTCHA
+      - FORGEJO__service__DEFAULT_KEEP_EMAIL_PRIVATE
+      - FORGEJO__service__DEFAULT_ALLOW_CREATE_ORGANIZATION
+      - FORGEJO__service__DEFAULT_ENABLE_TIMETRACKING
+      - FORGEJO__service__NO_REPLY_ADDRESS
+      - FORGEJO__session__SESSION_LIFE_TIME
+      - FORGEJO__security__LOGIN_REMEMBER_DAYS
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    volumes:
+      - data:/var/lib/gitea
+      #- config:/etc/gitea
+      - /etc/timezone:/etc/timezone:ro
+      - /etc/localtime:/etc/localtime:ro
+    networks:
+      - forgejo
+    labels: []
+
+volumes:
+  data:
+  #config:
