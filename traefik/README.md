@@ -344,7 +344,18 @@ This configuration has builtin support for the following plugins:
    ([whoami](../whoami/docker-compose.yaml) has an example)
  * [referer](https://github.com/moonlightwatch/referer) -
    middleware that prevents foreign referal URLs.
-
+ * [headauth](https://github.com/poloyacero/headauth) used for
+   implementing OAuth2 sentry authorization, which filters allowed
+   users by groups, and it forwards the authenticated user in the
+   `X-Forwarded-User` header field to your app.
+ * [certauthz](github.com/famedly/traefik-certauthz) used for
+   implementing mTLS sentry authorization based on a filter of allowed
+   client certificates.
+ * [mtlsheader](github.com/pnxs/traefik-plugin-mtls-header) also used
+   for implementing mTLS sentry authentication, it forwards the
+   client's authenticated name (CN) as the `X-Client-CN` header field
+   to your app.
+ 
 You can add third party plugins by modifying the
 [Dockerfile](Dockerfile), and follow the example of blockpath. You
 also need to [add your plugin to the traefik static

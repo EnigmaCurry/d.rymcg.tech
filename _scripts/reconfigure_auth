@@ -11,7 +11,20 @@ ENV_FILE=$1
 VAR_PREFIX=$2
 export __D_RY_CONFIG_ENTRY=reconfigure_auth
 
-## note: should we add comments to reconfigure_htpasswd and reconfigure_oauth2 indicating they were designed to be called by this script, not independently?
+prompt="Do you want to enable sentry authentication in front of this app (effectively making the entire site private)?"
+options=("No" "Yes, with HTTP Basic Authentication" "Yes, with Oauth2")
+## Set default based on current auth settings in ENV_FILE
+
+DISABLE_MTLS=false
+
+set +e
+http_auth=$(${BIN}/dotenv -f ${ENV_FILE} get ${VAR_PREFIX}_HTTP_AUTH)
+if [[ "$?" != "0" ]]; then fault "could not read ${VAR_PREFIX}_HTTP_AUTH from env file"; fi
+oauth2_auth=$(${BIN}/dotenv -f ${ENV_FILE} get ${VAR_PREFIX}_OAUTH2)
+if [[ "$?" != "0" ]]; then fault "could not read ${VAR_PREFIX}_OAUTH2 from env file"; fi
+mtls_auth=$(${BIN}/dotenv -f ${ENV_FILE} get ${VAR_PREFIX}_MTLS_AUTH)
+if [[ "$?" != "0" ]]; then DISABLE_MTLS=true; mtls_auth=false; fi
+set -e
 
 unset_oauth2() {
     ${BIN}/reconfigure ${ENV_FILE} "${VAR_PREFIX}_OAUTH2"=
@@ -24,21 +37,15 @@ unset_http_auth() {
     fi
 }
 unset_mtls_auth() {
-    ${BIN}/reconfigure ${ENV_FILE} "${VAR_PREFIX}_MTLS_AUTH"=false
+    if [[ "${DISABLE_MTLS}" == "false" ]]; then
+        ${BIN}/reconfigure ${ENV_FILE} "${VAR_PREFIX}_MTLS_AUTH"=false
+    fi
 }
 
-prompt="Do you want to enable sentry authentication in front of this app (effectively making the entire site private)?"
-options=("No" "Yes, with HTTP Basic Authentication" "Yes, with Oauth2" "Yes, with Mutual TLS (mTLS)")
-## Set default based on current auth settings in ENV_FILE
 
-set +e
-http_auth=$(${BIN}/dotenv -f ${ENV_FILE} get ${VAR_PREFIX}_HTTP_AUTH)
-if [[ "$?" != "0" ]]; then fault "could not read ${VAR_PREFIX}_HTTP_AUTH from env file"; fi
-oauth2_auth=$(${BIN}/dotenv -f ${ENV_FILE} get ${VAR_PREFIX}_OAUTH2)
-if [[ "$?" != "0" ]]; then fault "could not read ${VAR_PREFIX}_OAUTH2 from env file"; fi
-mtls_auth=$(${BIN}/dotenv -f ${ENV_FILE} get ${VAR_PREFIX}_MTLS_AUTH)
-if [[ "$?" != "0" ]]; then fault "could not read ${VAR_PREFIX}_MTLS_AUTH from env file"; fi
-set -e
+if [[ "${DISABLE_MTLS}" == "false" ]]; then
+    options+=("Yes, with Mutual TLS (mTLS)")
+fi
 
 if [[ -n "${http_auth}" ]]; then
     default="${options[1]}"
