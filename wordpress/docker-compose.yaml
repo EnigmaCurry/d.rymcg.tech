@@ -1,8 +1,8 @@
 
 services:
   db:
-    # We use a mariadb image which supports both amd64 & arm64 architecture
-    image: mariadb:10.6.4-focal
+    # We recommend a mariadb image which supports both amd64 & arm64 architecture
+    image: mariadb:${WORDPRESS_MARIADB_VERSION}
     security_opt:
       - no-new-privileges:true
     # If you really want to use MySQL, uncomment the following line
