@@ -14,7 +14,7 @@ projects into this framework.
 
 All (http) apps are secured with automatic Lets Encrypt TLS
 certificates, along with configurable self-hosted authentication
-middleware (OAuth2 with Forgejo and/or HTTP Basic auth), as well as user
+middleware (mTLS, OAuth2 with Forgejo and/or HTTP Basic auth), as well as user
 group authorization middlewares. Even non-http apps may be secured
 with the optional VPN (Wireguard) support.
 
@@ -99,15 +99,12 @@ instructions on creating a secure Docker host on DigitalOcean.
 If you need a semi-private development or staging server, and want to
 be able to share some public URLs for your services, you can protect
 your services by turning on Traefik's [HTTP Basic
-Authentication](https://doc.traefik.io/traefik/middlewares/http/basicauth/)
-or [OAuth2 Authentication](traefik/README.md#oauth2-authentication)
-and
+Authentication](https://doc.traefik.io/traefik/middlewares/http/basicauth/),
+[OAuth2 Authentication](traefik/README.md#oauth2-authentication),
+[mTLS with Step-CA](../step-ca#readme) and
 [IPAllowlist](https://doc.traefik.io/traefik/middlewares/http/ipallowlist/)
-middlewares (see
-[s3-proxy](https://github.com/EnigmaCurry/d.rymcg.tech/blob/f77aaaa5a2705eedaf29a4cdc32f91cdb65e66f7/s3-proxy/docker-compose.yaml#L35-L41)
-for an example that uses both of these), or by turning on [Oauth2
-authentication](https://github.com/EnigmaCurry/d.rymcg.tech/tree/master/traefik-forward-auth)
-,or you can make an exclusively private Traefik service with a
+middlewares, or you can make an exclusively private Traefik service
+with a
 [Wireguard](https://github.com/EnigmaCurry/d.rymcg.tech/tree/master/traefik#wireguard-vpn)
 VPN.
 
