@@ -31,7 +31,8 @@ services:
       #@ router = "{}-{}-{}".format(project,instance,service)
 
       #! The host matching router rule:
-      - "traefik.http.routers.(@= router @).rule=Host(`(@= traefik_host @)`) && (HeadersRegexp(`Authorization`,`.+`) || Path(`/login`)) && !PathPrefix(`/logout`) && !PathPrefix(`/s3-proxy`)"
+      #! Access requires authentication via X-Forwarded-User (which is common for Basic auth, OAuth2, and mTLS)
+      - "traefik.http.routers.(@= router @).rule=Host(`(@= traefik_host @)`) && (HeadersRegexp(`X-Forwarded-User`,`.+`) || Path(`/login`)) && !PathPrefix(`/logout`) && !PathPrefix(`/s3-proxy`)"
       - "traefik.http.routers.(@= router @).entrypoints=websecure"
 
       #@ enabled_middlewares.append("{}-ipallowlist".format(router))
@@ -55,11 +56,6 @@ services:
         #@ end
         #@ enabled_middlewares.append("mtls-header@file")
       #@ end
-      
-      #! Override the default port that the app binds to:
-      #! You don't normally need to do this, as long as your image has
-      #! an EXPOSE directive in it, Traefik will autodetect it, but this is how you can override it:
-      - "traefik.http.services.(@= router @).loadbalancer.server.port=8000"
 
       #! Apply all middlewares (do this at the end!)
       - "traefik.http.routers.(@= router @).middlewares=(@= ','.join(enabled_middlewares) @)"

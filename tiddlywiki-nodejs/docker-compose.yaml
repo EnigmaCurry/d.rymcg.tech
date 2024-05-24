@@ -1,4 +1,3 @@
-
 volumes:
   static:
   data:
@@ -89,38 +88,38 @@ services:
       options:
         syslog-address: "udp://${TIDDLYWIKI_LOGGING_SUBNET_PREFIX:-172.45.17}.2:2000"
         syslog-format: "rfc5424"
-    labels:
-      - "traefik.enable=true"
-      #! Access requires HTTP Basic Auth:
-      - "traefik.http.routers.tiddlywiki-nodejs-${TIDDLYWIKI_NODEJS_INSTANCE:-default}.rule=Host(`${TIDDLYWIKI_NODEJS_TRAEFIK_HOST}`) && (HeadersRegexp(`Authorization`,`.+`) || Path(`/login`)) && !PathPrefix(`/logout`) && !PathPrefix(`/s3-proxy`)"
-      - "traefik.http.routers.tiddlywiki-nodejs-${TIDDLYWIKI_NODEJS_INSTANCE:-default}.entrypoints=websecure"
-      - "traefik.http.routers.tiddlywiki-nodejs-${TIDDLYWIKI_NODEJS_INSTANCE:-default}.middlewares=tiddlywiki-nodejs-${TIDDLYWIKI_NODEJS_INSTANCE:-default}-whitelist,tiddlywiki-nodejs-${TIDDLYWIKI_NODEJS_INSTANCE:-default}-auth,tiddlywiki-nodejs-${TIDDLYWIKI_NODEJS_INSTANCE:-default}-login-redirect,tiddlywiki-nodejs-${TIDDLYWIKI_NODEJS_INSTANCE:-default}-logout-redirect"
-      #! Middlewares
-      #! IP filter:
-      - "traefik.http.middlewares.tiddlywiki-nodejs-${TIDDLYWIKI_NODEJS_INSTANCE:-default}-whitelist.ipallowlist.sourcerange=${TIDDLYWIKI_NODEJS_IP_SOURCERANGE}"
-      #! Authentication:
-      - "traefik.http.middlewares.tiddlywiki-nodejs-${TIDDLYWIKI_NODEJS_INSTANCE:-default}-auth.basicauth.users=${TIDDLYWIKI_NODEJS_HTTP_AUTH}"
-      #! Redirect /login back to /
-      - "traefik.http.middlewares.tiddlywiki-nodejs-${TIDDLYWIKI_NODEJS_INSTANCE:-default}-login-redirect.redirectregex.regex=^https://${TIDDLYWIKI_NODEJS_TRAEFIK_HOST}/login"
-      - "traefik.http.middlewares.tiddlywiki-nodejs-${TIDDLYWIKI_NODEJS_INSTANCE:-default}-login-redirect.redirectregex.replacement=https://${TIDDLYWIKI_NODEJS_TRAEFIK_HOST}/"
+    labels: []
+      # - "traefik.enable=true"
+      # #! Access requires HTTP Basic Auth:
+      # - "traefik.http.routers.tiddlywiki-nodejs-${TIDDLYWIKI_NODEJS_INSTANCE:-default}.rule=Host(`${TIDDLYWIKI_NODEJS_TRAEFIK_HOST}`) && (HeadersRegexp(`Authorization`,`.+`) || Path(`/login`)) && !PathPrefix(`/logout`) && !PathPrefix(`/s3-proxy`)"
+      # - "traefik.http.routers.tiddlywiki-nodejs-${TIDDLYWIKI_NODEJS_INSTANCE:-default}.entrypoints=websecure"
+      # - "traefik.http.routers.tiddlywiki-nodejs-${TIDDLYWIKI_NODEJS_INSTANCE:-default}.middlewares=tiddlywiki-nodejs-${TIDDLYWIKI_NODEJS_INSTANCE:-default}-whitelist,tiddlywiki-nodejs-${TIDDLYWIKI_NODEJS_INSTANCE:-default}-auth,tiddlywiki-nodejs-${TIDDLYWIKI_NODEJS_INSTANCE:-default}-login-redirect,tiddlywiki-nodejs-${TIDDLYWIKI_NODEJS_INSTANCE:-default}-logout-redirect"
+      # #! Middlewares
+      # #! IP filter:
+      # - "traefik.http.middlewares.tiddlywiki-nodejs-${TIDDLYWIKI_NODEJS_INSTANCE:-default}-whitelist.ipallowlist.sourcerange=${TIDDLYWIKI_NODEJS_IP_SOURCERANGE}"
+      # #! Authentication:
+      # - "traefik.http.middlewares.tiddlywiki-nodejs-${TIDDLYWIKI_NODEJS_INSTANCE:-default}-auth.basicauth.users=${TIDDLYWIKI_NODEJS_HTTP_AUTH}"
+      # #! Redirect /login back to /
+      # - "traefik.http.middlewares.tiddlywiki-nodejs-${TIDDLYWIKI_NODEJS_INSTANCE:-default}-login-redirect.redirectregex.regex=^https://${TIDDLYWIKI_NODEJS_TRAEFIK_HOST}/login"
+      # - "traefik.http.middlewares.tiddlywiki-nodejs-${TIDDLYWIKI_NODEJS_INSTANCE:-default}-login-redirect.redirectregex.replacement=https://${TIDDLYWIKI_NODEJS_TRAEFIK_HOST}/"
 
-      #! Redirect /logout to /logout/clear
-      - "traefik.http.routers.tiddlywiki-nodejs-${TIDDLYWIKI_NODEJS_INSTANCE:-default}-logout.rule=Host(`${TIDDLYWIKI_NODEJS_TRAEFIK_HOST}`) && Path(`/logout`)"
-      - "traefik.http.routers.tiddlywiki-nodejs-${TIDDLYWIKI_NODEJS_INSTANCE:-default}-logout.entrypoints=websecure"
-      - "traefik.http.routers.tiddlywiki-nodejs-${TIDDLYWIKI_NODEJS_INSTANCE:-default}-logout.middlewares=tiddlywiki-nodejs-${TIDDLYWIKI_NODEJS_INSTANCE:-default}-auth,tiddlywiki-nodejs-${TIDDLYWIKI_NODEJS_INSTANCE:-default}-logout-redirect"
-      #! This dummy password simply overwrites the logging out users other password.
-      - "traefik.http.middlewares.tiddlywiki-nodejs-${TIDDLYWIKI_NODEJS_INSTANCE:-default}-logout-redirect.redirectregex.regex=^https://${TIDDLYWIKI_NODEJS_TRAEFIK_HOST}/logout"
-      - "traefik.http.middlewares.tiddlywiki-nodejs-${TIDDLYWIKI_NODEJS_INSTANCE:-default}-logout-redirect.redirectregex.replacement=https://logmeout:logmeout@${TIDDLYWIKI_NODEJS_TRAEFIK_HOST}/logout/clear"
+      # #! Redirect /logout to /logout/clear
+      # - "traefik.http.routers.tiddlywiki-nodejs-${TIDDLYWIKI_NODEJS_INSTANCE:-default}-logout.rule=Host(`${TIDDLYWIKI_NODEJS_TRAEFIK_HOST}`) && Path(`/logout`)"
+      # - "traefik.http.routers.tiddlywiki-nodejs-${TIDDLYWIKI_NODEJS_INSTANCE:-default}-logout.entrypoints=websecure"
+      # - "traefik.http.routers.tiddlywiki-nodejs-${TIDDLYWIKI_NODEJS_INSTANCE:-default}-logout.middlewares=tiddlywiki-nodejs-${TIDDLYWIKI_NODEJS_INSTANCE:-default}-auth,tiddlywiki-nodejs-${TIDDLYWIKI_NODEJS_INSTANCE:-default}-logout-redirect"
+      # #! This dummy password simply overwrites the logging out users other password.
+      # - "traefik.http.middlewares.tiddlywiki-nodejs-${TIDDLYWIKI_NODEJS_INSTANCE:-default}-logout-redirect.redirectregex.regex=^https://${TIDDLYWIKI_NODEJS_TRAEFIK_HOST}/logout"
+      # - "traefik.http.middlewares.tiddlywiki-nodejs-${TIDDLYWIKI_NODEJS_INSTANCE:-default}-logout-redirect.redirectregex.replacement=https://logmeout:logmeout@${TIDDLYWIKI_NODEJS_TRAEFIK_HOST}/logout/clear"
 
 
-      #! /logout/clear
-      - "traefik.http.routers.tiddlywiki-nodejs-${TIDDLYWIKI_NODEJS_INSTANCE:-default}-logout-clear.rule=Host(`${TIDDLYWIKI_NODEJS_TRAEFIK_HOST}`) && Path(`/logout/clear`)"
-      - "traefik.http.routers.tiddlywiki-nodejs-${TIDDLYWIKI_NODEJS_INSTANCE:-default}-logout-clear.entrypoints=websecure"
-      - "traefik.http.routers.tiddlywiki-nodejs-${TIDDLYWIKI_NODEJS_INSTANCE:-default}-logout-clear.middlewares=tiddlywiki-nodejs-${TIDDLYWIKI_NODEJS_INSTANCE:-default}-logout-auth,tiddlywiki-nodejs-${TIDDLYWIKI_NODEJS_INSTANCE:-default}-logout-clear-redirect"
-      #! This is the hardcoded logout password: "logmeout"
-      - "traefik.http.middlewares.tiddlywiki-nodejs-${TIDDLYWIKI_NODEJS_INSTANCE:-default}-logout-auth.basicauth.users=logmeout:$$apr1$$lAbWjVMX$$7PWdAzaa/LNRUY8kSad95/"
-      - "traefik.http.middlewares.tiddlywiki-nodejs-${TIDDLYWIKI_NODEJS_INSTANCE:-default}-logout-clear-redirect.redirectregex.regex=^https://${TIDDLYWIKI_NODEJS_TRAEFIK_HOST}/logout/clear"
-      - "traefik.http.middlewares.tiddlywiki-nodejs-${TIDDLYWIKI_NODEJS_INSTANCE:-default}-logout-clear-redirect.redirectregex.replacement=https://${TIDDLYWIKI_NODEJS_TRAEFIK_HOST}/logout/logged_out.html"
+      # #! /logout/clear
+      # - "traefik.http.routers.tiddlywiki-nodejs-${TIDDLYWIKI_NODEJS_INSTANCE:-default}-logout-clear.rule=Host(`${TIDDLYWIKI_NODEJS_TRAEFIK_HOST}`) && Path(`/logout/clear`)"
+      # - "traefik.http.routers.tiddlywiki-nodejs-${TIDDLYWIKI_NODEJS_INSTANCE:-default}-logout-clear.entrypoints=websecure"
+      # - "traefik.http.routers.tiddlywiki-nodejs-${TIDDLYWIKI_NODEJS_INSTANCE:-default}-logout-clear.middlewares=tiddlywiki-nodejs-${TIDDLYWIKI_NODEJS_INSTANCE:-default}-logout-auth,tiddlywiki-nodejs-${TIDDLYWIKI_NODEJS_INSTANCE:-default}-logout-clear-redirect"
+      # #! This is the hardcoded logout password: "logmeout"
+      # - "traefik.http.middlewares.tiddlywiki-nodejs-${TIDDLYWIKI_NODEJS_INSTANCE:-default}-logout-auth.basicauth.users=logmeout:$$apr1$$lAbWjVMX$$7PWdAzaa/LNRUY8kSad95/"
+      # - "traefik.http.middlewares.tiddlywiki-nodejs-${TIDDLYWIKI_NODEJS_INSTANCE:-default}-logout-clear-redirect.redirectregex.regex=^https://${TIDDLYWIKI_NODEJS_TRAEFIK_HOST}/logout/clear"
+      # - "traefik.http.middlewares.tiddlywiki-nodejs-${TIDDLYWIKI_NODEJS_INSTANCE:-default}-logout-clear-redirect.redirectregex.replacement=https://${TIDDLYWIKI_NODEJS_TRAEFIK_HOST}/logout/logged_out.html"
 
 
   watcher:
