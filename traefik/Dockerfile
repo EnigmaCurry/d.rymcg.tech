@@ -44,7 +44,7 @@ RUN apk --no-cache add curl jq libcap step-cli && \
     setcap cap_net_bind_service=+ep /usr/local/bin/traefik
 ARG STEP_CA_ENABLED STEP_CA_ENDPOINT STEP_CA_FINGERPRINT
 RUN test "${STEP_CA_ENABLED}" != "true" && exit || \
-    step ca bootstrap --ca-url "${STEP_CA_ENDPOINT}" --fingerprint "${STEP_CA_FINGERPRINT}" && \
+    step ca bootstrap --ca-url "${STEP_CA_ENDPOINT}" --install --force --fingerprint "${STEP_CA_FINGERPRINT}" && \
     step ca roots > /step_ca_root.crt && \
     chmod 0444 /step_ca_root.crt
 ARG STEP_CA_ZERO_CERTS
