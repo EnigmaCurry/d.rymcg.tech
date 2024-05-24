@@ -1,5 +1,11 @@
 include ${ROOT_DIR}/_scripts/Makefile.docker-compose
 
+## Set BUILDKIT_PROGRESS=plain to see full build output.
+
+.PHONY: build-plain # Build continer image, with plain log output.
+build-plain:
+	BUILDKIT_PROGRESS=plain make --no-print-directory build
+
 .PHONY: build # Build container images
 build:
 	@make -e --no-print-directory override instance=${INSTANCE}

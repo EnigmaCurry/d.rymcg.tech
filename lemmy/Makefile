@@ -26,7 +26,7 @@ override-hook:
 ####                         # (this hardcodes the string into docker-compose.override.yaml)
 ####   name=@VARIABLE_NAME   # sets the template 'name' field to the literal string '${VARIABLE_NAME}'
 ####                         # (used for regular docker-compose expansion of env vars by name.)
-	@${BIN}/docker_compose_override ${ENV_FILE} project=:lemmy instance=@LEMMY_INSTANCE traefik_host=@LEMMY_TRAEFIK_HOST http_auth=LEMMY_HTTP_AUTH http_auth_var=@LEMMY_HTTP_AUTH ip_sourcerange=@LEMMY_IP_SOURCERANGE lemmy_private=LEMMY_PRIVATE oauth2=LEMMY_OAUTH2 authorized_group=LEMMY_OAUTH2_AUTHORIZED_GROUP
+	@${BIN}/docker_compose_override ${ENV_FILE} project=:lemmy instance=@LEMMY_INSTANCE traefik_host=@LEMMY_TRAEFIK_HOST http_auth=LEMMY_HTTP_AUTH http_auth_var=@LEMMY_HTTP_AUTH ip_sourcerange=@LEMMY_IP_SOURCERANGE lemmy_private=LEMMY_PRIVATE oauth2=LEMMY_OAUTH2 authorized_group=LEMMY_OAUTH2_AUTHORIZED_GROUP enable_mtls_auth=LEMMY_MTLS_AUTH mtls_authorized_certs=LEMMY_MTLS_AUTHORIZED_CERTS
 
 .PHONY: shell
 shell:

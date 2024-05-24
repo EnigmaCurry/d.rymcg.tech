@@ -1,0 +1,7 @@
+http:
+  middlewares:
+    mtls-header:
+      plugin:
+        mtlsheader:
+          headers:
+            X-Client-CN: 'CN=[[.Cert.Subject.CommonName]]'

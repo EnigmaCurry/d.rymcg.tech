@@ -11,34 +11,60 @@ ENV_FILE=$1
 VAR_PREFIX=$2
 export __D_RY_CONFIG_ENTRY=reconfigure_auth
 
-## note: should we add comments to reconfigure_htpasswd and reconfigure_oauth2 indicating they were designed to be called by this script, not independently?
-
-unset_oauth2() {
-    ${BIN}/reconfigure ${ENV_FILE} "${VAR_PREFIX}_OAUTH2"=
-}
-unset_http_auth() {
-    ${BIN}/reconfigure ${ENV_FILE} "${VAR_PREFIX}_HTTP_AUTH"=
-    TMP_PASSWORD=$(mktemp)
-    if [[ -f passwords.json ]]; then
-        cat passwords.json | jq "del(.\"${CONTEXT_INSTANCE}\")" > ${TMP_PASSWORD} && mv ${TMP_PASSWORD} passwords.json
-    fi
-}
-
 prompt="Do you want to enable sentry authentication in front of this app (effectively making the entire site private)?"
-options=("No" "Yes, with HTTP Basic Authentication" "Yes, with Oauth2")
+options=("No")
 ## Set default based on current auth settings in ENV_FILE
+
+DISABLE_HTTP=false
+DISABLE_OAUTH=false
+DISABLE_MTLS=false
 
 set +e
 http_auth=$(${BIN}/dotenv -f ${ENV_FILE} get ${VAR_PREFIX}_HTTP_AUTH)
-if [[ "$?" != "0" ]]; then fault "could not read ${VAR_PREFIX}_HTTP_AUTH from env file"; fi
+if [[ "$?" != "0" ]]; then DISABLE_HTTP=true; http_auth="";  fi
 oauth2_auth=$(${BIN}/dotenv -f ${ENV_FILE} get ${VAR_PREFIX}_OAUTH2)
-if [[ "$?" != "0" ]]; then fault "could not read ${VAR_PREFIX}_OAUTH2 from env file"; fi
+if [[ "$?" != "0" ]]; then DISABLE_OAUTH=true; oauth2_auth=""; fi
+mtls_auth=$(${BIN}/dotenv -f ${ENV_FILE} get ${VAR_PREFIX}_MTLS_AUTH)
+if [[ "$?" != "0" ]]; then DISABLE_MTLS=true; mtls_auth=false; fi
 set -e
+
+unset_oauth2() {
+    if [[ "${DISABLE_OAUTH}" == "false" ]]; then
+        ${BIN}/reconfigure ${ENV_FILE} "${VAR_PREFIX}_OAUTH2"=
+    fi
+}
+unset_http_auth() {
+    if [[ "${DISABLE_HTTP}" == "false" ]]; then
+        ${BIN}/reconfigure ${ENV_FILE} "${VAR_PREFIX}_HTTP_AUTH"=
+        TMP_PASSWORD=$(mktemp)
+        if [[ -f passwords.json ]]; then
+            cat passwords.json | jq "del(.\"${CONTEXT_INSTANCE}\")" > ${TMP_PASSWORD} && mv ${TMP_PASSWORD} passwords.json
+        fi
+    fi
+}
+unset_mtls_auth() {
+    if [[ "${DISABLE_MTLS}" == "false" ]]; then
+        ${BIN}/reconfigure ${ENV_FILE} "${VAR_PREFIX}_MTLS_AUTH"=false
+    fi
+}
+
+
+if [[ "${DISABLE_HTTP}" == "false" ]]; then
+    options+=("Yes, with HTTP Basic Authentication")
+fi
+if [[ "${DISABLE_OAUTH}" == "false" ]]; then
+    options+=("Yes, with Oauth2")
+fi
+if [[ "${DISABLE_MTLS}" == "false" ]]; then
+    options+=("Yes, with Mutual TLS (mTLS)")
+fi
 
 if [[ -n "${http_auth}" ]]; then
     default="${options[1]}"
 elif [[ "${oauth2_auth}" == "true" ]]; then
     default="${options[2]}"
+elif [[ "${mtls_auth}" == "true" ]]; then
+    default="${options[3]}"
 else
     default="${options[0]}"
 fi
@@ -51,12 +77,16 @@ case "${choice}" in
     No)
         unset_oauth2
         unset_http_auth
+        unset_mtls_auth
         ;;
     *HTTP*)
-        ${BIN}/reconfigure_htpasswd ${ENV_FILE} ${VAR_PREFIX}_HTTP_AUTH default=no && unset_oauth2
+        ${BIN}/reconfigure_htpasswd ${ENV_FILE} ${VAR_PREFIX}_HTTP_AUTH default=no && unset_oauth2 && unset_mtls_auth
         ;;
     *Oauth2*)
-        ${BIN}/reconfigure_oauth2 ${ENV_FILE} ${VAR_PREFIX} && unset_http_auth
+        ${BIN}/reconfigure_oauth2 ${ENV_FILE} ${VAR_PREFIX} && unset_http_auth && unset_mtls_auth
+        ;;
+    *mTLS*)
+        ${BIN}/reconfigure_mtls ${ENV_FILE} ${VAR_PREFIX} && unset_http_auth && unset_oauth2
         ;;
     *)
         echo "Unknown option."

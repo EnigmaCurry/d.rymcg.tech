@@ -21,7 +21,7 @@ override-hook:
 ####                         # (this hardcodes the string into docker-compose.override.yaml)
 ####   name=@VARIABLE_NAME   # sets the template 'name' field to the literal string '${VARIABLE_NAME}'
 ####                         # (used for regular docker-compose expansion of env vars by name.)
-	@${BIN}/docker_compose_override ${ENV_FILE} project=:nodered instance=@NODERED_INSTANCE traefik_host=@NODERED_TRAEFIK_HOST http_auth=NODERED_HTTP_AUTH http_auth_var=@NODERED_HTTP_AUTH ip_sourcerange=@NODERED_IP_SOURCERANGE oauth2=NODERED_OAUTH2 authorized_group=NODERED_OAUTH2_AUTHORIZED_GROUP
+	@${BIN}/docker_compose_override ${ENV_FILE} project=:nodered instance=@NODERED_INSTANCE traefik_host=@NODERED_TRAEFIK_HOST http_auth=NODERED_HTTP_AUTH http_auth_var=@NODERED_HTTP_AUTH ip_sourcerange=@NODERED_IP_SOURCERANGE oauth2=NODERED_OAUTH2 authorized_group=NODERED_OAUTH2_AUTHORIZED_GROUP enable_mtls_auth=NODERED_MTLS_AUTH mtls_authorized_certs=NODERED_MTLS_AUTHORIZED_CERTS
 
 .PHONY: shell
 shell:

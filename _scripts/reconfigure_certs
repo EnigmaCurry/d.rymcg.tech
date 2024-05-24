@@ -6,65 +6,95 @@ BIN=$(dirname ${BASH_SOURCE})
 source ${BIN}/funcs.sh
 set -e
 
-ENV_FILE=../traefik/${1}
-shift
-## Make new .env if it doesn't exist:
-test -f ${ENV_FILE} || cp ../traefik/.env-dist ${ENV_FILE}
-
 PENDING_CHANGES=0
 
-print_help() {
-    echo "Docker context: $(docker context inspect | jq -r '.[0].Name')"
-    echo "Certificate manager:"
-    echo ' * Type `q` or `quit` to quit the certificate manager.'
-    echo ' * Type `l` or `list` to list certificate domains.'
-    echo ' * Type `d` or `delete` to delete an existing certificate domain.'
-    echo ' * Type `c` or `n` or `new` to create a new certificate domain.'
-    echo ' * Type `?` or `help` to see this help message again.'
-}
-
-list_domains() {
+manage_certificates() {
     TRAEFIK_ACME_CERT_DOMAINS=$(${BIN}/dotenv -f ${ENV_FILE} get TRAEFIK_ACME_CERT_DOMAINS)
     if [[ $TRAEFIK_ACME_CERT_DOMAINS == "[]" || $TRAEFIK_ACME_CERT_DOMAINS == "" ]]; then
         echo "No certificate domains are configured."
-        return 1
+        if [[ $TRAEFIK_ACME_CERT_DOMAINS == "" ]]; then
+            ${BIN}/reconfigure ${ENV_FILE} TRAEFIK_ACME_CERT_DOMAINS="[]"
+        fi
+        echo ""
+        return
     fi
 
-    echo "Here is a list of your current certificate domains:"
     CERT_INDEX=0
+    LINES=()
     while :
     do
-        DOMAIN=$(echo $TRAEFIK_ACME_CERT_DOMAINS | jq -r ".[${CERT_INDEX}][0]")
+        CN=$(echo $TRAEFIK_ACME_CERT_DOMAINS | jq -r ".[${CERT_INDEX}][0]")
         SANS=$(echo $TRAEFIK_ACME_CERT_DOMAINS | jq -rc ".[${CERT_INDEX}][1]")
-        if [[ $DOMAIN == "null" ]]; then
+        if [[ $CN == "null" ]]; then
             break
         fi
         if [[ $SANS != "null" && ${SANS} != "[]" ]]; then
             SANS=$(echo "${SANS}" | sed -e 's/\[//g' -e 's/\]//g' -e 's/"//g' -e 's/,/ /g')
-            echo "$((${CERT_INDEX} + 1))) ${DOMAIN} (${SANS})"
+            LINES+=("$((${CERT_INDEX} + 1))) ${CN} (${SANS})")
         else
-            echo "$((${CERT_INDEX} + 1))) ${DOMAIN}"
+            LINES+=("$((${CERT_INDEX} + 1))) ${CN}")
         fi
         CERT_INDEX=$((CERT_INDEX+1))
     done
+
+    CERT_INDEX=$(wizard choose -c0 --numeric "Select a certificate to edit" "${LINES[@]}")
+    if [[ -z "${CERT_INDEX}" ]]; then
+        return
+    else
+        edit_certificate $CERT_INDEX
+    fi
 }
 
-create_certificate_domains() {
-    echo "Configure the domains for the new certificate:"
+create_cert() {
+    ## Create blank cert, then immediately edit it:
     TRAEFIK_ACME_CERT_DOMAINS=$(${BIN}/dotenv -f ${ENV_FILE} get TRAEFIK_ACME_CERT_DOMAINS)
-    if [[ $TRAEFIK_ACME_CERT_DOMAINS == "[]" || $TRAEFIK_ACME_CERT_DOMAINS == "" ]]; then
-        DEFAULT_DOMAIN=$(get_root_domain)
-    else
-        DEFAULT_DOMAIN=""
-    fi
-    ask 'Enter the main domain for this certificate (eg. `d.rymcg.tech` or `*.d.rymcg.tech`)' domain $DEFAULT_DOMAIN
+    CERT_INDEX=$(echo "${TRAEFIK_ACME_CERT_DOMAINS}" | jq length)
+    TRAEFIK_ACME_CERT_DOMAINS=$(echo "${TRAEFIK_ACME_CERT_DOMAINS}" | jq -c '. |= .+ [["",[]]]' )
+    ${BIN}/reconfigure ${ENV_FILE} TRAEFIK_ACME_CERT_DOMAINS="${TRAEFIK_ACME_CERT_DOMAINS}"
+    PENDING_CHANGES=1
+    edit_certificate_cn_and_sans ${CERT_INDEX} CREATE
+}
 
-    if [[ $domain == "" ]]; then
-        echo "domain cannot be blank."
-        return 0
+edit_certificate() {
+    CERT_INDEX=$1
+    check_num CERT_INDEX
+
+    CN=$(echo $TRAEFIK_ACME_CERT_DOMAINS | jq -r ".[${CERT_INDEX}][0]")
+    SANS=$(echo $TRAEFIK_ACME_CERT_DOMAINS | jq -rc ".[${CERT_INDEX}][1]")
+
+    echo "Certificate Request #${CERT_INDEX} :"
+    echo "  Subject (CN) (main domain name): ${CN}"
+    echo "  Alternates (SANS) (secondary domain names): ${SANS}"
+    echo
+    CHOICE=$(wizard choose -c0 --numeric "Edit certificate" \
+                    "Re-enter the certificate domain names (CN and SANS)" \
+                    "Delete this certificate" \
+                    "Done / Go back")
+    case ${CHOICE} in
+        0) edit_certificate_cn_and_sans ${CERT_INDEX};;
+        1) delete_certificate ${CERT_INDEX};;
+        *) manage_certificates;;
+    esac
+}
+
+edit_certificate_cn_and_sans() {
+    CERT_INDEX=$1
+    CREATE=$2
+    check_num CERT_INDEX
+    TRAEFIK_ACME_CERT_DOMAINS=$(${BIN}/dotenv -f ${ENV_FILE} get TRAEFIK_ACME_CERT_DOMAINS)
+    CN=$(echo $TRAEFIK_ACME_CERT_DOMAINS | jq -r ".[${CERT_INDEX}][0]")
+    SANS=$(echo $TRAEFIK_ACME_CERT_DOMAINS | jq -rc ".[${CERT_INDEX}][1]")
+    if [[ $CN == "null" ]]; then
+        CN=""
     fi
+    if [[ ${CN} == "" ]]; then
+        DEFAULT_CN=$(get_root_domain)
+    else
+        DEFAULT_CN="${CN}"
+    fi
+    ask_no_blank 'Enter the main domain (CN) for this certificate (eg. `d.rymcg.tech` or `*.d.rymcg.tech`)' domain $DEFAULT_CN
     sans=()
-    echo "Now enter the SANS domains, one per line:"
+    echo "Now enter additional domains (SANS), one per line:"
     while :
     do
         ask "Enter a secondary domain (enter blank to skip)" second
@@ -82,56 +112,56 @@ create_certificate_domains() {
     done
     echo ""
 
-    ${BIN}/confirm yes "Do you want to configure a certificate with these domains" "?" || return 0
+    [[ -n "$CREATE" ]] || ${BIN}/confirm yes "Do you want to save these changes" "?" || return 0
     sans=$(for secondary in "${sans[@]}"; do
                echo "${secondary}"
            done | jq --raw-input --slurp 'split("\n") | map(select(. != ""))' | jq -c)
     domains=$(jq -cn "[\"${domain}\", ${sans}]")
     TRAEFIK_ACME_CERT_DOMAINS=$(${BIN}/dotenv -f ${ENV_FILE} get TRAEFIK_ACME_CERT_DOMAINS)
-    TRAEFIK_ACME_CERT_DOMAINS=$(echo "${TRAEFIK_ACME_CERT_DOMAINS}" | jq -c ". |= .+ [${domains}]")
-    ${BIN}/dotenv -f ${ENV_FILE} set TRAEFIK_ACME_CERT_DOMAINS="${TRAEFIK_ACME_CERT_DOMAINS}"
-    echo "Set TRAEFIK_ACME_CERT_DOMAINS=${TRAEFIK_ACME_CERT_DOMAINS}"
+
+    TRAEFIK_ACME_CERT_DOMAINS=$(echo "${TRAEFIK_ACME_CERT_DOMAINS}" | jq -c --argjson index "$CERT_INDEX" ".[$CERT_INDEX] |= $domains" )
+    ${BIN}/reconfigure ${ENV_FILE} TRAEFIK_ACME_CERT_DOMAINS="${TRAEFIK_ACME_CERT_DOMAINS}"
     PENDING_CHANGES=1
+    if [[ -n "${CREATE}" ]]; then
+        return
+    else
+        manage_certificates
+    fi
 }
 
-delete_certificate_domains() {
-    list_domains || return 0
+delete_certificate() {
+    CERT_INDEX=$1
+    check_num CERT_INDEX
+    ${BIN}/confirm yes "Do you want to delete this certificate" "?" || return 0
     TRAEFIK_ACME_CERT_DOMAINS=$(${BIN}/dotenv -f ${ENV_FILE} get TRAEFIK_ACME_CERT_DOMAINS)
-    ask "Enter the certificate number to delete" CERT_TO_DELETE
-    selected=$(echo "${TRAEFIK_ACME_CERT_DOMAINS}" | jq -c ".[$((${CERT_TO_DELETE} - 1))]")
-    if [[ $selected != "null" ]]; then
-        TRAEFIK_ACME_CERT_DOMAINS=$(echo ${TRAEFIK_ACME_CERT_DOMAINS} | jq -c "del(.[$((${CERT_TO_DELETE} - 1))])")
-        ${BIN}/dotenv -f ${ENV_FILE} set TRAEFIK_ACME_CERT_DOMAINS="${TRAEFIK_ACME_CERT_DOMAINS}"
-        echo "Deleted ${selected}"
-        echo "Set TRAEFIK_ACME_CERT_DOMAINS=${TRAEFIK_ACME_CERT_DOMAINS}"
-        PENDING_CHANGES=1
-    else
-        echo "Invalid certificate selection"
-    fi
+    TRAEFIK_ACME_CERT_DOMAINS=$(echo "${TRAEFIK_ACME_CERT_DOMAINS}" | jq -c "del(.[$CERT_INDEX])")
+    ${BIN}/reconfigure ${ENV_FILE} TRAEFIK_ACME_CERT_DOMAINS="${TRAEFIK_ACME_CERT_DOMAINS}"
+    PENDING_CHANGES=1
+    manage_certificates
 }
 
-print_help
-while :
+main() {
+    ## Make new .env if it doesn't exist:
+    test -f ${ENV_FILE} || cp ../traefik/.env-dist ${ENV_FILE}
+    
+    while :
 do
-    echo ""
-    ask 'Enter command (for help type `?`)' COMMAND
-    echo ""
-    if [[ $COMMAND == 'q' || $COMMAND == "quit" ]]; then
-        echo ""
-        if [[ $PENDING_CHANGES -ne 0 ]]; then
-            echo 'Remember to restart Traefik (`make install`) for new certificates to be issued.'
-        fi
-        exit 0
-    elif [[ $COMMAND == '?' || $COMMAND == "help" ]]; then
-        print_help
-    elif [[ $COMMAND == "l" || $COMMAND == "list" ]]; then
-        list_domains || true
-    elif [[ $COMMAND = "n" || $COMMAND == "new" || \
-            $COMMAND == "c" || ${COMMAND} == "create" ]]; then
-        create_certificate_domains
-    elif [[ $COMMAND = "d" || $COMMAND == "delete" ]]; then
-        delete_certificate_domains
-    else
-        echo "Invalid command."
-    fi
+    CHOICE=$(wizard choose -c0 --numeric "Configure Traefik TLS certificates" \
+                    "Manage all certificates." \
+                    "Create a new certificate." \
+                    "Done / Go back")
+    case ${CHOICE} in
+        0) manage_certificates;;
+        1) create_cert;;
+        2) break;;
+        *) break;;
+    esac
 done
+}
+
+echo
+ENV_FILE=${1}
+shift
+check_var ENV_FILE
+
+$@

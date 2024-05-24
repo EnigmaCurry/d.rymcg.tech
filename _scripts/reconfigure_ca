@@ -1,0 +1,69 @@
+#!/bin/bash
+
+## reconfigure_ca ENV_FILE
+
+BIN=$(dirname ${BASH_SOURCE})
+source ${BIN}/funcs.sh
+set -e
+
+step_ca() {
+    ${BIN}/reconfigure_ask ${ENV_FILE} TRAEFIK_STEP_CA_ENDPOINT "Enter your Step-CA endpoint URL"
+    echo ""
+    ${BIN}/reconfigure_ask ${ENV_FILE} TRAEFIK_STEP_CA_FINGERPRINT "Enter your Step-CA root CA certificate fingerprint"
+}
+
+stock() {
+    ${BIN}/reconfigure ${ENV_FILE} TRAEFIK_STEP_CA_ENABLED=false
+    ${BIN}/reconfigure ${ENV_FILE} TRAEFIK_STEP_CA_ZERO_CERTS=false
+}
+
+stock_plus_step_ca() {
+    ${BIN}/reconfigure ${ENV_FILE} TRAEFIK_STEP_CA_ENABLED=true
+    ${BIN}/reconfigure ${ENV_FILE} TRAEFIK_STEP_CA_ZERO_CERTS=false
+    step_ca
+}
+
+empty() {
+    ${BIN}/reconfigure ${ENV_FILE} TRAEFIK_STEP_CA_ENABLED=false
+    ${BIN}/reconfigure ${ENV_FILE} TRAEFIK_STEP_CA_ZERO_CERTS=true
+}
+
+empty_plus_step_ca() {
+    ${BIN}/reconfigure ${ENV_FILE} TRAEFIK_STEP_CA_ENABLED=true
+    ${BIN}/reconfigure ${ENV_FILE} TRAEFIK_STEP_CA_ZERO_CERTS=true
+    step_ca
+}
+
+main() {
+    ## Make new .env if it doesn't exist:
+    test -f ${ENV_FILE} || cp .env-dist ${ENV_FILE}
+    CMD="${BASH_SOURCE} ${ENV_FILE}"
+    (
+        echo
+        echo "This alpine-based container comes bundled, by default, with a long list of standard public CA certs. (eg. \`apk add ca-certificates ca-certificates-bundle\`)."
+        echo
+        echo "You may want to add your own Step-CA certificate as your own trusted CA."
+        echo "You may want to remove all the other public CA certs, but be warned that this can break some core operating system things, but in order to create a secure server, you're going to have to break some things."
+        echo        
+    ) | fold -s -w 80
+    PROVIDER=$(wizard choose -c0 --numeric "How do you want to configure the list of trusted Certificate Authorities (CA)?" \
+                    "Use the stock list, (alpine: ca-certificates ca-certificates-bundle)." \
+                    "Use the stock list, plus add my own root Step-CA certificate." \
+                    "Delete the entire list, and add my own root Step-CA certificate." \
+                    "Delete the entire list." \
+                    "Cancel / Go back.")
+    case ${PROVIDER} in
+        0) stock;;
+        1) stock_plus_step_ca;;
+        2) empty_plus_step_ca;;
+        3) empty;;
+        *) return;;
+    esac
+}
+
+echo
+ENV_FILE=${1}
+shift
+check_var ENV_FILE
+
+$@

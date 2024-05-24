@@ -16,7 +16,11 @@ config-domain:
 
 .PHONY: config-acme
 config-acme:
-	@${BIN}/reconfigure_acme ${ENV_FILE}
+	@${BIN}/reconfigure_acme ${ENV_FILE} main
+
+.PHONY: config-ca
+config-ca:
+	@${BIN}/reconfigure_ca ${ENV_FILE} main
 
 .PHONY: open # Start SSH tunnel and open the Traefik Dashboard
 open:
@@ -31,19 +35,19 @@ cert: certs
 
 .PHONY: certs # Make TLS Certificates
 certs:
-	@${BIN}/reconfigure_certs ${ENV_FILE}
+	@${BIN}/reconfigure_certs ${ENV_FILE} main
 
 .PHONY: config-inspect # Inspect the live configuration
 config-inspect:
-	@docker-compose --env-file ${ENV_FILE} exec traefik sh -c "find /data/config -type f | xargs -iXX sh -c \"echo \#\! XX && cat XX && echo ''\""
+	@docker compose --env-file ${ENV_FILE} exec traefik sh -c "find /data/config -type f | xargs -iXX sh -c \"echo \#\! XX && cat XX && echo ''\""
 
 .PHONY: shell
 shell:
-	@container=$$(eval "${BIN}/script-wizard choose 'docker exec -it into which container?' 'traefik' 'geoip_database' 'wireguard' 'wireguard-client' --default 'traefik'") && make --no-print-directory docker-compose-shell SERVICE=$${container}
+	@make --no-print-directory docker-compose-shell service=$${service:-$${SERVICE:-traefik}}
 
 .PHONY: shell-root
 shell-root:
-	docker compose --env-file=${ENV_FILE} exec --user root -it traefik /bin/sh
+	@make --no-print-directory docker-compose-shell service=$${service:-$${SERVICE:-traefik}} USERNAME=root
 
 .PHONY: show-wireguard-peers
 show-wireguard-peers:
@@ -63,15 +67,15 @@ wireguard-reset:
 
 .PHONY: destroy-wireguard
 destroy-wireguard:
-	@docker-compose --env-file ${ENV_FILE} --profile wireguard down -v
+	@docker compose --env-file ${ENV_FILE} --profile wireguard down -v
 
 .PHONY: logs-traefik # Tail the Traefik logs
 logs-traefik:
-	@docker-compose --env-file ${ENV_FILE} --profile default logs -f
+	@make --no-print-directory logs service=traefik
 
 .PHONY: logs-access # Tail the access logs
 logs-access:
-	@docker-compose --env-file ${ENV_FILE} --profile default exec -it traefik sh -c 'tail -f /data/access.log | jq'
+	@docker compose --env-file ${ENV_FILE} --profile default exec -it traefik sh -c 'tail -f /data/access.log | jq'
 
 .PHONY: debug # Restart Traefik with debug logging for one time only
 debug:

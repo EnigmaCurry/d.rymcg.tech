@@ -344,7 +344,18 @@ This configuration has builtin support for the following plugins:
    ([whoami](../whoami/docker-compose.yaml) has an example)
  * [referer](https://github.com/moonlightwatch/referer) -
    middleware that prevents foreign referal URLs.
-
+ * [headauth](https://github.com/poloyacero/headauth) used for
+   implementing OAuth2 sentry authorization, which filters allowed
+   users by groups, and it forwards the authenticated user in the
+   `X-Forwarded-User` header field to your app.
+ * [certauthz](github.com/famedly/traefik-certauthz) used for
+   implementing mTLS sentry authorization based on a filter of allowed
+   client certificates.
+ * [mtlsheader](github.com/pnxs/traefik-plugin-mtls-header) also used
+   for implementing mTLS sentry authentication, it forwards the
+   client's authenticated name (CN) as the `X-Client-CN` header field
+   to your app.
+ 
 You can add third party plugins by modifying the
 [Dockerfile](Dockerfile), and follow the example of blockpath. You
 also need to [add your plugin to the traefik static
@@ -425,6 +436,111 @@ still ultimately up to the app as to what you can do when you get
 there, so if the app doesn't understand the `X-Forwarded-User` header,
 you may also need to login through the app interface itself, after
 having already logged in through gitea.
+
+## Step CA (self-hosted ACME certificate provisioner)
+
+Creating TLS certificates with [Step-CA](../step-ca) is a similar
+experience as with Let's Encrypt, because both services use a common
+API (ACME), to facilitate signing requests, and renewals, of X.509
+certificates. The differences are: all of the certitficates signed by
+Step-CA will be "self-signed" (and untrusted by browsers by default),
+however, all of the crypto infrastructure is self-hosted inside of
+*your* domain. Step-CA also brings the additional feature of
+[mTLS](https://smallstep.com/hello-mtls/doc/server/traefik), for
+mutual authentication of both client and server (afaik Let's Encrypt
+doesn't issue client certs, so this is a bonus with Step-CA).
+
+If you want to use self-signed certificates with Step-CA, there are
+a few possible changes to your configs you'll need to consider:
+
+ 1) Add the root CA certificate to the Traefik container's trust store.
+ 2) Enable ACME in your Step-CA instance.
+ 3) Enable ACME in your Traefik config.
+ 
+If you are creating certificates manually (via [step-ca](../step-ca)
+project, `make cert`), then you can skip enabling ACME, which
+is only needed if you want a fully automatic Let's Encrypt-like
+experience instead.
+
+### Add the Step CA root certificate to the Traefik trust store
+
+Set the following variables in your Traefik `.env_{CONTEXT}` file:
+
+ * `TRAEFIK_STEP_CA_ENABLED=true`
+ * `TRAEFIK_STEP_CA_ENDPOINT=https://ca.example.com` (set this to your Step-CA root URL)
+ * `TRAEFIK_STEP_CA_FINGERPRINT=xxxxxxxxxxxxxxxxxxxx` (set this to
+   your Step-CA fingerprint, eg. use `make inspect-fingerprint` in the
+   [step-ca](../step-ca) project to find it.)
+ * `TRAFEIK_STEP_CA_ZERO_CERTS=true` (set this true if you want to delete all other CA certs.)
+
+Make sure to reinstall Traefik (`make install`) for these settings to
+take effect. The image will be rebuilt, baking in your root CA
+certificate. The [Dockerfile](Dockerfile) runs `step-cli`, it
+retrieves the CA cert chain from your Step-CA endpoint, verifies the
+fingerprint, and then writes the CA cert permanently into the Traefik
+system's trust store (ie. container image layer).
+
+You can test that the certificate is trusted and valid, using the
+`curl` command from inside of the trafeik container shell:
+
+```
+# Enter the traefik container shell:
+make shell
+```
+
+```
+# Inside the container, test the certificate trust with curl:
+# Use the full URL to your Step-CA server:
+curl https://ca.example.com
+```
+
+If it works, you should see `404 error not found`, which is good (the
+root URL `/` is actually a 404). What you should *NOT* see is an error
+message about the certificate being invalid:
+
+```
+## Example error you should NOT see:
+curl: (60) SSL certificate problem: unable to get local issuer certificate
+More details here: https://curl.se/docs/sslcerts.html
+
+curl failed to verify the legitimacy of the server and therefore could not
+establish a secure connection to it. To learn more about this situation and
+how to fix it, please visit the web page mentioned above.
+```
+
+If the certificates have been installed correctly, you shouldn't see
+the example error above. All programs running in the container,
+including `curl`, and Traefik itself, will now trust any certificate
+signed by your Step-CA instance.
+
+### Enable Step-CA ACME (optional)
+
+To automate the creation and signing of TLS certificates, you will
+want to enable ACME.
+
+```
+## In step-ca project directory:
+make enable-acme
+```
+
+Next, edit the Traefik `.env_{CONTEXT}` file to change the production cert resolver URL:
+
+ * `TRAEFIK_ACME_CERT_RESOLVER=production` (make sure this says
+   `production`)
+ * `TRAEFIK_ACME_CERT_RESOLVER_PRODUCTION=https://ca.example.com/acme/acme/directory`
+   (point this to your Step-CA ACME endpoint)
+
+The production cert resolver should now be pointing to your Step-CA
+URL, with the extra path `/acme/acme/directory` added on the end. Do
+not change the name to anything other than `production`; only change
+the URL. Reinstall Traefik (`make install`).
+
+You can also setup a `staging` endpoint if you really want to (eg. set
+`TRAEFIK_ACME_CERT_RESOLVER_STAGING=https://staging.ca.example.com/acme/acme/directory`
+and `TRAEFIK_ACME_CERT_RESOLVER=staging`). However, these are your
+only two options, defined in [traefik's certificatesResolvers
+list](https://github.com/EnigmaCurry/d.rymcg.tech/blob/de000cb8b5fe1686925c3f167221ed74372860ba/traefik/config/traefik.yml#L71-L103).
+Use `production` or `staging`.
 
 ## Wireguard VPN
 
@@ -581,6 +697,9 @@ Traefik [.env](.env-dist) file :
 | `TRAEFIK_ACME_CA_EMAIL`                    | Your email to send to Lets Encrypt                                               | `you@example.com` (can be blank)              |
 | `TRAEFIK_ACME_CERT_DOMAINS`                | The JSON list of all certificate domans                                          | Use `make certs` to manage                    |
 | `TRAEFIK_ACME_CERT_RESOLVER`               | Lets Encrypt API environment                                                     | `production`,`staging`                        |
+| `TRAEFIK_ACME_CERT_RESOLVER_PRODUCTION`    | ACME production endpoint API URL                                                 | `https://acme-v02.api.letsencrypt.org/directory` |
+| `TRAEFIK_ACME_CERT_RESOLVER_STAGING`       | ACME staging endpoint API URL                                                    | `https://acme-staging-v02.api.letsencrypt.org/directory` |
+| `TRAEFIK_ACME_CERT_RESOLVER`               | Lets Encrypt API environment                                                     | `production`,`staging`                        |
 | `TRAEFIK_ACME_CHALLENGE`                   | The ACME challenge type                                                          | `tls`,`dns`                                   |
 | `TRAEFIK_ACME_DNS_PROVIDER`                | The LEGO DNS provider name                                                       | `digitalocean`                                |
 | `TRAEFIK_ACME_DNS_VARNAME_1`               | The first LEGO DNS variable name                                                 | `DO_AUTH_TOKEN`                               |
@@ -654,3 +773,7 @@ Traefik [.env](.env-dist) file :
 | `TRAEFIK_WEB_PLAIN_ENTRYPOINT_ENABLED`     | (bool) Enable web_plain (port 8000) entrypoint                                   | `true`,`false`                                |
 | `TRAEFIK_WEB_PLAIN_ENTRYPOINT_HOST`        | Host ip address to bind web_plain entrypoint                                     | `0.0.0.0`                                     |
 | `TRAEFIK_WEB_PLAIN_ENTRYPOINT_PORT`        | Host TCP port to bind web_plain entrypoint                                       | `8000`                                        |
+| `TRAEFIK_STEP_CA_ENABLED`                  | (bool) Enable Step CA trusted CA                                                 | `true`,`false`                                |
+| `TRAEFIK_STEP_CA_ENDPOINT`                 | Step-CA server URL                                                               | `https://ca.example.com`                      |
+| `TRAEFIK_STEP_CA_FINGERPRINT`              | Step-CA root CA fingerprint                                                      | `xxxxxxxxxxxx`                                |
+| `TRAEFIK_STEP_CA_ZERO_CERTS`               | (bool) Remove all other CA certs from the system                                 | `false`                                       |

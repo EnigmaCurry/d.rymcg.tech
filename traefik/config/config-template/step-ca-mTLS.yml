@@ -1,0 +1,6 @@
+tls:
+  options:
+    step_ca_mTLS:
+      clientAuth:
+        caFiles: ["/step_ca_root.crt"]
+        clientAuthType: "RequireAndVerifyClientCert"

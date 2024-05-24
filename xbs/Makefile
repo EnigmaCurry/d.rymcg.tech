@@ -27,4 +27,4 @@ override-hook:
 ####                         # (this hardcodes the string into docker-compose.override.yaml)
 ####   name=@VARIABLE_NAME   # sets the template 'name' field to the literal string '${VARIABLE_NAME}'
 ####                         # (used for regular docker-compose expansion of env vars by name.)
-	@${BIN}/docker_compose_override ${ENV_FILE} project=:xbs instance=@XBS_INSTANCE traefik_host=@XBS_TRAEFIK_HOST http_auth=XBS_HTTP_AUTH http_auth_var=@XBS_HTTP_AUTH ip_sourcerange=@XBS_IP_SOURCERANGE oauth2=XBS_OAUTH2 authorized_group=XBS_OAUTH2_AUTHORIZED_GROUP
+	@${BIN}/docker_compose_override ${ENV_FILE} project=:xbs instance=@XBS_INSTANCE traefik_host=@XBS_TRAEFIK_HOST http_auth=XBS_HTTP_AUTH http_auth_var=@XBS_HTTP_AUTH ip_sourcerange=@XBS_IP_SOURCERANGE oauth2=XBS_OAUTH2 authorized_group=XBS_OAUTH2_AUTHORIZED_GROUP enable_mtls_auth=XBS_MTLS_AUTH mtls_authorized_certs=XBS_MTLS_AUTHORIZED_CERTS

@@ -10,6 +10,10 @@ ARG MAXMIND_GEOIP_MODULE
 ARG MAXMIND_GIT_BRANCH
 ARG HEADER_AUTHORIZATION_MODULE
 ARG HEADER_AUTHORIZATION_GIT_BRANCH
+ARG CERT_AUTH_MODULE
+ARG CERT_AUTH_GIT_BRANCH
+ARG MTLS_HEADER_MODULE
+ARG MTLS_HEADER_GIT_BRANCH
 RUN apk add --update git && \
     git clone https://${BLOCKPATH_MODULE}.git /plugins-local/src/github.com/traefik/plugin-blockpath \
       --depth 1 --single-branch --branch ${BLOCKPATH_GIT_BRANCH}
@@ -20,12 +24,16 @@ RUN git clone https://${REFERER_MODULE}.git /plugins-local/src/github.com/moonli
       --depth 1 --single-branch --branch ${REFERER_GIT_BRANCH}
 RUN git clone https://${HEADER_AUTHORIZATION_MODULE}.git /plugins-local/src/github.com/poloyacero/headauth \
       --depth 1 --single-branch --branch ${HEADER_AUTHORIZATION_GIT_BRANCH}
+RUN git clone https://${CERT_AUTH_MODULE}.git /plugins-local/src/github.com/famedly/traefik-certauthz \
+      --depth 1 --single-branch --branch ${CERT_AUTH_GIT_BRANCH}
+RUN git clone https://${MTLS_HEADER_MODULE}.git /plugins-local/src/github.com/pnxs/traefik-plugin-mtls-header \
+      --depth 1 --single-branch --branch ${MTLS_HEADER_GIT_BRANCH}
 
 FROM ${TRAEFIK_IMAGE}
 ARG TRAEFIK_UID TRAEFIK_GID TRAEFIK_DOCKER_GID
 COPY --from=plugins /plugins-local /plugins-local
 COPY entrypoint.sh  /entrypoint_ensure_config.sh
-RUN apk --no-cache add curl jq libcap && \
+RUN apk --no-cache add curl jq libcap step-cli && \
     chmod a+x /entrypoint_ensure_config.sh && \
     addgroup -g ${TRAEFIK_GID} traefik && \
     getent group ${TRAEFIK_DOCKER_GID} || addgroup -g ${TRAEFIK_DOCKER_GID} docker && \
@@ -34,6 +42,16 @@ RUN apk --no-cache add curl jq libcap && \
     mkdir /data && \
     chown traefik:traefik /data && \
     setcap cap_net_bind_service=+ep /usr/local/bin/traefik
+ARG STEP_CA_ENABLED STEP_CA_ENDPOINT STEP_CA_FINGERPRINT
+RUN test "${STEP_CA_ENABLED}" != "true" && exit || \
+    step ca bootstrap --ca-url "${STEP_CA_ENDPOINT}" --install --force --fingerprint "${STEP_CA_FINGERPRINT}" && \
+    step ca roots > /step_ca_root.crt && \
+    chmod 0444 /step_ca_root.crt
+ARG STEP_CA_ZERO_CERTS
+RUN test "${STEP_CA_ZERO_CERTS}" != "true" && exit || \
+    rm -f /etc/ssl/certs/* && \
+    ln -s /step_ca_root.crt /etc/ssl/certs/ca-certificates.crt && \
+    chmod uog-w /etc/ssl/certs
 USER traefik
 ENTRYPOINT ["/entrypoint_ensure_config.sh"]
 VOLUME /data

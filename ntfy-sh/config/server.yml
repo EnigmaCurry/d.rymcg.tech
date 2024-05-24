@@ -1,5 +1,5 @@
 #@ load("@ytt:data", "data")
-base-url: #@ data.values.traefik_host
+base-url: https://#@ data.values.traefik_host
 auth-file: /etc/ntfy/user.db
 auth-default-access: #@ data.values.auth_default_access
 #! firebase-key-file: "/etc/ntfy/firebase.json"

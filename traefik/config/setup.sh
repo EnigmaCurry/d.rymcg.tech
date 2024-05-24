@@ -14,7 +14,10 @@ ytt_template() {
         -v acme_enabled="${TRAEFIK_ACME_ENABLED}" \
         -v acme_ca_email="${TRAEFIK_ACME_CA_EMAIL}" \
         -v acme_challenge="${TRAEFIK_ACME_CHALLENGE}" \
+        -v acme_cert_resolver_production="${TRAEFIK_ACME_CERT_RESOLVER_PRODUCTION}" \
+        -v acme_cert_resolver_staging="${TRAEFIK_ACME_CERT_RESOLVER_STAGING}" \
         -v acme_dns_provider="${TRAEFIK_ACME_DNS_PROVIDER}" \
+        -v acme_certificates_duration="${TRAEFIK_ACME_CERTIFICATES_DURATION}" \
         -v access_logs_enabled="${TRAEFIK_ACCESS_LOGS_ENABLED}" \
         -v access_logs_path="${TRAEFIK_ACCESS_LOGS_PATH}" \
         -v file_provider_watch="${TRAEFIK_FILE_PROVIDER_WATCH}" \
@@ -25,7 +28,9 @@ ytt_template() {
         -v plugin_blockpath="${TRAEFIK_PLUGIN_BLOCKPATH}" \
         -v plugin_maxmind_geoip="${TRAEFIK_PLUGIN_MAXMIND_GEOIP}" \
         -v plugin_header_authorization="${TRAEFIK_PLUGIN_HEADER_AUTHORIZATION}" \
+        -v plugin_cert_auth="${TRAEFIK_PLUGIN_CERT_AUTH}" \
         -v plugin_referer="${TRAEFIK_PLUGIN_REFERER}" \
+        -v plugin_mtls_header="${TRAEFIK_PLUGIN_MTLS_HEADER}" \
         -v web_entrypoint_enabled="${TRAEFIK_WEB_ENTRYPOINT_ENABLED}" \
         -v web_entrypoint_host="${TRAEFIK_WEB_ENTRYPOINT_HOST}" \
         -v web_entrypoint_port="${TRAEFIK_WEB_ENTRYPOINT_PORT}" \
@@ -77,6 +82,9 @@ ytt_template() {
         -v error_handler_403_service="${TRAEFIK_ERROR_HANDLER_403_SERVICE}" \
         -v error_handler_404_service="${TRAEFIK_ERROR_HANDLER_404_SERVICE}" \
         -v error_handler_500_service="${TRAEFIK_ERROR_HANDLER_500_SERVICE}" \
+        -v step_ca_enabled="${TRAEFIK_STEP_CA_ENABLED}" \
+        -v step_ca_endpoint="${TRAEFIK_STEP_CA_ENDPOINT}" \
+        -v step_ca_fingerprint="${TRAEFIK_STEP_CA_FINGERPRINT}" \
         --data-value-yaml header_authorization_groups="${TRAEFIK_HEADER_AUTHORIZATION_GROUPS}" \
         > ${dst}
     success=$?

@@ -7,3 +7,4 @@ http:
         customrequestheaders:
           #! Strip these headers from all incoming requests:
           X-Forwarded-User: ""
+          X-Client-Cn: ""

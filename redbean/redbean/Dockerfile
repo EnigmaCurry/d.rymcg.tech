@@ -3,10 +3,11 @@ ARG REDBEAN_VERSION
 ARG REDBEAN_TARGET
 RUN export DEBIAN_FRONTEND=noninteractive && \
     apt-get update && \
-    apt-get install -y git build-essential zip
+    apt-get install -y git build-essential zip curl
 WORKDIR /tmp/build
 RUN git clone https://github.com/jart/cosmopolitan && \
-    cd cosmopolitan && \
+    cd cosmopolitan
+RUN cd cosmopolitan && \
     git checkout ${REDBEAN_VERSION} && \
     make -j8 o//tool/net/${REDBEAN_TARGET}
 

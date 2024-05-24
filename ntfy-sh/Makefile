@@ -2,10 +2,12 @@ ROOT_DIR = ..
 GRANT_MODE ?= ro
 
 include ${ROOT_DIR}/_scripts/Makefile.projects
+include ${ROOT_DIR}/_scripts/Makefile.instance
 
 .PHONY: config-hook
 config-hook:
-	@${BIN}/reconfigure_ask ${ENV_FILE} NTFY_TRAEFIK_HOST "Enter the ntfy domain name" ntfy.${ROOT_DOMAIN}
+	@${BIN}/reconfigure_ask ${ENV_FILE} NTFY_TRAEFIK_HOST "Enter the ntfy domain name" ntfy${INSTANCE_URL_SUFFIX}.${ROOT_DOMAIN}
+	@${BIN}/reconfigure ${ENV_FILE} NTFY_INSTANCE=$${instance:-default}
 	@echo ""
 	@${BIN}/reconfigure_ask ${ENV_FILE} NTFY_IP_SOURCERANGE "Enter the nework subnet filter (eg. 0.0.0.0/0 to allow all; 192.168.1.1/32 to deny all but one address)" 0.0.0.0/0
 	@echo ""
@@ -16,6 +18,21 @@ config-hook:
 	@echo "  deny-all = deny all unauthenticated users"
 	@echo "write-only mode is recommended. write-only will require a configured password to receive notifications, but will let anyone send you them. Choose long unguessable channel names and treat them as preshared keys with your senders."
 	@${BIN}/reconfigure_ask ${ENV_FILE} NTFY_AUTH_DEFAULT_ACCESS "Enter the default access rule" write-only
+	@${BIN}/reconfigure_auth ${ENV_FILE} NTFY
+
+.PHONY: override-hook
+override-hook:
+#### This sets the override template variables for docker-compose.instance.yaml:
+#### The template dynamically renders to docker-compose.override_{DOCKER_CONTEXT}_{INSTANCE}.yaml
+#### These settings are used to automatically generate the service container labels, and traefik config, inside the template.
+#### The variable arguments have three forms: `=` `=:` `=@`
+####   name=VARIABLE_NAME    # sets the template 'name' field to the value of VARIABLE_NAME found in the .env file
+####                         # (this hardcodes the value into docker-compose.override.yaml)
+####   name=:VARIABLE_NAME   # sets the template 'name' field to the literal string 'VARIABLE_NAME'
+####                         # (this hardcodes the string into docker-compose.override.yaml)
+####   name=@VARIABLE_NAME   # sets the template 'name' field to the literal string '${VARIABLE_NAME}'
+####                         # (used for regular docker-compose expansion of env vars by name.)
+	@${BIN}/docker_compose_override ${ENV_FILE} project=:ntfy instance=@NTFY_INSTANCE traefik_host=@NTFY_TRAEFIK_HOST ip_sourcerange=@NTFY_IP_SOURCERANGE enable_mtls_auth=NTFY_MTLS_AUTH mtls_authorized_certs=NTFY_MTLS_AUTHORIZED_CERTS
 
 .PHONY: shell
 shell:

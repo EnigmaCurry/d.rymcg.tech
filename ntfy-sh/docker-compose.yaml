@@ -45,9 +45,4 @@ services:
       - cache:/var/cache/ntfy
       - config:/etc/ntfy
     restart: unless-stopped
-    labels:
-      - "traefik.enable=true"
-      - "traefik.http.routers.ntfy.rule=Host(`${NTFY_TRAEFIK_HOST}`)"
-      - "traefik.http.routers.ntfy.entrypoints=websecure"
-      - "traefik.http.middlewares.ntfy-whitelist.ipallowlist.sourcerange=${NTFY_IP_SOURCERANGE}"
-      - "traefik.http.routers.ntfy.middlewares=ntfy-whitelist"
+    labels: []

@@ -12,6 +12,7 @@ config-hook:
 	@${BIN}/reconfigure ${ENV_FILE} FORGEJO_INSTANCE=$${instance:-default}
 	@${BIN}/reconfigure_ask ${ENV_FILE} APP_NAME "Enter the service description" "$${instance:-default} - git hosting"
 	@PUBLIC_HTTPS_PORT="$$(${BIN}/dotenv -f ${ROOT_DIR}/${ROOT_ENV} get PUBLIC_HTTPS_PORT)"; test -n "$${PUBLIC_HTTPS_PORT}" && ${BIN}/reconfigure ${ENV_FILE} "FORGEJO__server__ROOT_URL=https://$$(${BIN}/dotenv -f ${ENV_FILE} get FORGEJO_TRAEFIK_HOST):$${PUBLIC_HTTPS_PORT}" || ${BIN}/reconfigure ${ENV_FILE} "FORGEJO__server__ROOT_URL=https://$$(${BIN}/dotenv -f ${ENV_FILE} get FORGEJO_TRAEFIK_HOST)"
+	@${BIN}/reconfigure_auth ${ENV_FILE} FORGEJO
 
 .PHONY: override-hook
 override-hook:
@@ -25,7 +26,7 @@ override-hook:
 ####                         # (this hardcodes the string into docker-compose.override.yaml)
 ####   name=@VARIABLE_NAME   # sets the template 'name' field to the literal string '${VARIABLE_NAME}'
 ####                         # (used for regular docker-compose expansion of env vars by name.)
-	@${BIN}/docker_compose_override ${ENV_FILE} project=:forgejo instance=@FORGEJO_INSTANCE traefik_host=@FORGEJO_TRAEFIK_HOST ip_sourcerange=@FORGEJO_IP_SOURCERANGE
+	@${BIN}/docker_compose_override ${ENV_FILE} project=:forgejo instance=@FORGEJO_INSTANCE traefik_host=@FORGEJO_TRAEFIK_HOST ip_sourcerange=@FORGEJO_IP_SOURCERANGE  enable_mtls_auth=FORGEJO_MTLS_AUTH mtls_authorized_certs=FORGEJO_MTLS_AUTHORIZED_CERTS
 
 .PHONY: shell
 shell:

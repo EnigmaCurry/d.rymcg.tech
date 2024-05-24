@@ -1,0 +1,82 @@
+#! This is a ytt template file for docker-compose.override.yaml
+#! References:
+#!   https://carvel.dev/ytt
+#!   https://docs.docker.com/compose/extends/#adding-and-overriding-configuration
+#!   https://github.com/enigmacurry/d.rymcg.tech#overriding-docker-composeyaml-per-instance
+
+#! ### Standard project vars:
+#@ load("@ytt:data", "data")
+#@ project = data.values.project
+#@ instance = data.values.instance
+#@ context = data.values.context
+#@ traefik_host = data.values.traefik_host
+#@ ip_sourcerange = data.values.ip_sourcerange
+#@ enable_http_auth = len(data.values.http_auth.strip()) > 0
+#@ http_auth = data.values.http_auth_var
+#@ enable_oauth2 = data.values.oauth2 == "true"
+#@ authorized_group = data.values.authorized_group
+#@ enable_mtls_auth = data.values.enable_mtls_auth == "true"
+#@ mtls_authorized_certs = data.values.mtls_authorized_certs
+#@ minio_console_host = data.values.minio_console_host
+#@ minio_console_ip_sourcerange = data.values.minio_console_ip_sourcerange
+#@ public_middlewares = []
+#@ minio_console_middlewares = []
+
+#@yaml/text-templated-strings
+services:
+  minio:
+    #@ service = "minio"
+    labels:
+      #! Services must opt-in to be proxied by Traefik:
+      - "traefik.enable=true"
+
+      #@ router_public = "{}-public-{}-{}".format(project,instance,service)
+      #@ router_console = "{}-console-{}-{}".format(project,instance,service)
+      
+      #! The host matching router rules:
+      - "traefik.http.routers.(@= router_public @).rule=Host(`(@= traefik_host @)`) || HostRegexp(`{subdomain:.+}.(@= traefik_host @)`)"
+      - "traefik.http.routers.(@= router_public @).entrypoints=websecure"
+      - "traefik.http.routers.(@= router_console @).rule=Host(`(@= minio_console_host @)`)"
+      - "traefik.http.routers.(@= router_console @).entrypoints=websecure"
+
+      - "traefik.http.routers.(@= router_public @).service=(@= router_public @)"
+      - "traefik.http.services.(@= router_public @).loadbalancer.server.port=9000"
+      - "traefik.http.routers.(@= router_console @).service=(@= router_console @)"
+      - "traefik.http.services.(@= router_console @).loadbalancer.server.port=9001"
+      
+      #@ public_middlewares.append("{}-ipallowlist".format(router_public))
+      #@ minio_console_middlewares.append("{}-ipallowlist".format(router_console))
+      - "traefik.http.middlewares.(@= router_public @)-ipallowlist.ipallowlist.sourcerange=(@= ip_sourcerange @)"
+      - "traefik.http.middlewares.(@= router_console @)-ipallowlist.ipallowlist.sourcerange=(@= minio_console_ip_sourcerange @)"
+      #@ if enable_http_auth:
+      #@ public_middlewares.append("{}-basicauth".format(router_public))
+      #@ minio_console_middlewares.append("{}-basicauth".format(router_console))
+      - "traefik.http.middlewares.(@= router_public @)-basicauth.basicauth.users=(@= http_auth @)"
+      - "traefik.http.middlewares.(@= router_console @)-basicauth.basicauth.users=(@= http_auth @)"
+      - "traefik.http.middlewares.(@= router_public @)-basicauth.basicauth.headerField=X-Forwarded-User"
+      - "traefik.http.middlewares.(@= router_console @)-basicauth.basicauth.headerField=X-Forwarded-User"
+      #@ end
+
+      #@ if enable_oauth2:
+      #@ public_middlewares.append("traefik-forward-auth@docker")
+      #@ minio_console_middlewares.append("traefik-forward-auth@docker")
+      #@ public_middlewares.append("header-authorization-group-{}@file".format(authorized_group))
+      #@ minio_console_middlewares.append("header-authorization-group-{}@file".format(authorized_group))
+      #@ end
+
+      #@ if enable_mtls_auth:
+      - "traefik.http.routers.(@= router_public @).tls.options=step_ca_mTLS@file"
+      - "traefik.http.routers.(@= router_console @).tls.options=step_ca_mTLS@file"
+        #@ if len(mtls_authorized_certs):
+      - "traefik.http.middlewares.mtlsauth-(@= router_public @).plugin.certauthz.domains=(@= mtls_authorized_certs @)"
+      - "traefik.http.middlewares.mtlsauth-(@= router_console @).plugin.certauthz.domains=(@= mtls_authorized_certs @)"
+        #@ public_middlewares.append("mtlsauth-{}".format(router_public))
+        #@ minio_console_middlewares.append("mtlsauth-{}".format(router_console))
+        #@ end
+        #@ public_middlewares.append("mtls-header@file")
+        #@ minio_console_middlewares.append("mtls-header@file")
+      #@ end
+      
+      #! Apply all middlewares (do this at the end!)
+      - "traefik.http.routers.(@= router_public @).middlewares=(@= ','.join(public_middlewares) @)"
+      - "traefik.http.routers.(@= router_console @).middlewares=(@= ','.join(minio_console_middlewares) @)"

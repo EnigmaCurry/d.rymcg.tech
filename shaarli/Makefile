@@ -19,7 +19,7 @@ override-hook:
 ####                         # (this hardcodes the string into docker-compose.override.yaml)
 ####   name=@VARIABLE_NAME   # sets the template 'name' field to the literal string '${VARIABLE_NAME}'
 ####                         # (used for regular docker-compose expansion of env vars by name.)
-	@${BIN}/docker_compose_override ${ENV_FILE} project=:shaarli instance=@SHAARLI_INSTANCE traefik_host=@SHAARLI_TRAEFIK_HOST http_auth=SHAARLI_HTTP_AUTH http_auth_var=@SHAARLI_HTTP_AUTH ip_sourcerange=@SHAARLI_IP_SOURCERANGE oauth2=SHAARLI_OAUTH2 authorized_group=SHAARLI_OAUTH2_AUTHORIZED_GROUP
+	@${BIN}/docker_compose_override ${ENV_FILE} project=:shaarli instance=@SHAARLI_INSTANCE traefik_host=@SHAARLI_TRAEFIK_HOST http_auth=SHAARLI_HTTP_AUTH http_auth_var=@SHAARLI_HTTP_AUTH ip_sourcerange=@SHAARLI_IP_SOURCERANGE oauth2=SHAARLI_OAUTH2 authorized_group=SHAARLI_OAUTH2_AUTHORIZED_GROUP enable_mtls_auth=SHAARLI_MTLS_AUTH mtls_authorized_certs=SHAARLI_MTLS_AUTHORIZED_CERTS
 
 .PHONY: shell
 shell:

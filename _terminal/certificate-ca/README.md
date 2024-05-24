@@ -1,4 +1,8 @@
 # certificate-ca
+
+> [!WARNING]
+> This is deprecated in favor of [Step-CA](../../step-ca#readme)
+
 This is a simple script to manage an OpenSSL Certificate Authority inside of a
 docker volume, and tool to generate and sign certificates and store these inside
 other docker volumes.

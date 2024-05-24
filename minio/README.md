@@ -52,6 +52,24 @@ make bucket
 You don't have to use this script, you can instead create everything
 from the GUI console, following the instructions in the next section.
 
+### Step-CA certificate
+
+If you have enabled Traefik to use Step-CA as its certificate
+resolver, you will need to configure the `mc` client to trust it.
+Ensure you have the proper config in your minio `.env_{CONTEXT}` file,
+and according to your [step-ca](../step-ca) config:
+
+```
+## Minio Step-CA config:
+MINIO_STEP_CA_ENABLED=true
+MINIO_STEP_CA_ENDPOINT=https://ca.example.com
+MINIO_STEP_CA_FINGERPRINT=xxxxxxxxxxx
+```
+
+This will add the Step-CA certificate to the trust store of the
+utility `mc` container, and `make bucket` should work, and it will
+trust the certifcate.
+
 ## Using Minio "console" to create bucket and credentials
 
 The "console" is a web application that lets you graphically interact
@@ -122,3 +140,4 @@ Create a user, credentials, and assign to the group:
 
 [s3-proxy](../s3-proxy) is another service you can deploy that is an HTTP proxy
 for s3, so that regular web clients can access your S3 buckets.
+

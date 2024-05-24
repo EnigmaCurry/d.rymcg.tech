@@ -17,7 +17,8 @@ require_input "Enter a new user name" USERNAME ${GROUPNAME}
 SECRETKEY=$(openssl rand -base64 45)
 
 ## Run the mc container and pipe in the script to do everything:
-DOCKER_ARGS="--env-file ${ENV_FILE:-.env} --rm -i --entrypoint=/bin/bash quay.io/minio/mc"
+DOCKER_ARGS="--env-file ${ENV_FILE:-.env} --rm -i --entrypoint=/bin/bash localhost/mc"
+make --no-print-directory build service=mc
 cat <<'EOF' | docker_run_with_env vars ${DOCKER_ARGS}
 set -x
 echo USERNAME=${USERNAME}
