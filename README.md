@@ -3,14 +3,14 @@
 [![License: MIT](_meta/img/license-MIT.svg)](https://github.com/EnigmaCurry/d.rymcg.tech/blob/master/LICENSE.txt)
 [![Chat on Matrix](_meta/img/matrix-badge.svg)](https://matrix.to/#/#d.rymcg.tech:enigmacurry.com)
 
-This is a collection of Docker Compose projects consisting of
+This is a collection of Docker Compose projects, consisting of
 [Traefik](https://doc.traefik.io/traefik/) as a TLS HTTP/TCP/UDP
-reverse proxy and other various self-hosted applications and services
-behind this proxy. Each project is in its own sub-directory containing
-its own `docker-compose.yaml` and `.env-dist` sample config file. This
-structure allows you to pick and choose which services you wish to
-enable. You may also integrate your own external Docker Compose
-projects into this framework.
+reverse proxy, and other open-source self-hosted applications and
+services behind it. Each project is in its own sub-directory
+containing its own `docker-compose.yaml` and `.env-dist` sample config
+file. This structure allows you to pick and choose which services you
+wish to enable. You may also integrate your own external Docker
+Compose projects into this framework.
 
 All (http) apps are secured with automatic TLS certificates (Let's
 Encrypt or Step-CA), along with configurable self-hosted
