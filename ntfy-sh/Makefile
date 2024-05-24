@@ -7,6 +7,7 @@ include ${ROOT_DIR}/_scripts/Makefile.instance
 .PHONY: config-hook
 config-hook:
 	@${BIN}/reconfigure_ask ${ENV_FILE} NTFY_TRAEFIK_HOST "Enter the ntfy domain name" ntfy${INSTANCE_URL_SUFFIX}.${ROOT_DOMAIN}
+	@${BIN}/reconfigure ${ENV_FILE} NTFY_INSTANCE=$${instance:-default}
 	@echo ""
 	@${BIN}/reconfigure_ask ${ENV_FILE} NTFY_IP_SOURCERANGE "Enter the nework subnet filter (eg. 0.0.0.0/0 to allow all; 192.168.1.1/32 to deny all but one address)" 0.0.0.0/0
 	@echo ""
