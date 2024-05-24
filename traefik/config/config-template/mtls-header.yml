@@ -5,3 +5,4 @@ http:
         mtlsheader:
           headers:
             X-Client-CN: 'CN=[[.Cert.Subject.CommonName]]'
+            X-Forwarded-User: 'CN=[[.Cert.Subject.CommonName]]'
