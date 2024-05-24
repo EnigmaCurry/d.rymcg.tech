@@ -11,26 +11,26 @@ networks:
         - subnet: ${TIDDLYWIKI_LOGGING_SUBNET_PREFIX:-172.45.17}.0/24
 
 services:
-  tiddlywiki-static:
-    profiles:
-      - default
-    build:
-      context: static
-    volumes:
-      - static:/www:ro
-    labels:
-      - "traefik.enable=true"
-      - "traefik.http.routers.tiddlywiki-static-${TIDDLYWIKI_NODEJS_INSTANCE:-default}.rule=Host(`${TIDDLYWIKI_NODEJS_TRAEFIK_HOST}`)"
-      - "traefik.http.routers.tiddlywiki-static-${TIDDLYWIKI_NODEJS_INSTANCE:-default}.entrypoints=websecure"
-      - "traefik.http.routers.tiddlywiki-static-${TIDDLYWIKI_NODEJS_INSTANCE:-default}.middlewares=tiddlywiki-static-${TIDDLYWIKI_NODEJS_INSTANCE:-default}-whitelist"
-      #! Middlewares
-      #! IP filter:
-      - "traefik.http.middlewares.tiddlywiki-static-${TIDDLYWIKI_NODEJS_INSTANCE:-default}-whitelist.ipallowlist.sourcerange=${TIDDLYWIKI_PUBLIC_IP_SOURCERANGE}"
+  # tiddlywiki-static:
+  #   profiles:
+  #     - default
+  #   build:
+  #     context: static
+  #   volumes:
+  #     - static:/www:ro
+  #   labels:
+  #     - "traefik.enable=true"
+  #     - "traefik.http.routers.tiddlywiki-static-${TIDDLYWIKI_NODEJS_INSTANCE:-default}.rule=Host(`${TIDDLYWIKI_NODEJS_TRAEFIK_HOST}`)"
+  #     - "traefik.http.routers.tiddlywiki-static-${TIDDLYWIKI_NODEJS_INSTANCE:-default}.entrypoints=websecure"
+  #     - "traefik.http.routers.tiddlywiki-static-${TIDDLYWIKI_NODEJS_INSTANCE:-default}.middlewares=tiddlywiki-static-${TIDDLYWIKI_NODEJS_INSTANCE:-default}-whitelist"
+  #     #! Middlewares
+  #     #! IP filter:
+  #     - "traefik.http.middlewares.tiddlywiki-static-${TIDDLYWIKI_NODEJS_INSTANCE:-default}-whitelist.ipallowlist.sourcerange=${TIDDLYWIKI_PUBLIC_IP_SOURCERANGE}"
 
-      #! /logout/logged_out:
-      - "traefik.http.routers.tiddlywiki-static-${TIDDLYWIKI_NODEJS_INSTANCE:-default}-logged-out.rule=Host(`${TIDDLYWIKI_NODEJS_TRAEFIK_HOST}`) && Path(`/logout/logged_out.html`)"
-      - "traefik.http.routers.tiddlywiki-static-${TIDDLYWIKI_NODEJS_INSTANCE:-default}-logged-out.entrypoints=websecure"
-    restart: unless-stopped
+  #     #! /logout/logged_out:
+  #     - "traefik.http.routers.tiddlywiki-static-${TIDDLYWIKI_NODEJS_INSTANCE:-default}-logged-out.rule=Host(`${TIDDLYWIKI_NODEJS_TRAEFIK_HOST}`) && Path(`/logout/logged_out.html`)"
+  #     - "traefik.http.routers.tiddlywiki-static-${TIDDLYWIKI_NODEJS_INSTANCE:-default}-logged-out.entrypoints=websecure"
+  #   restart: unless-stopped
 
   config:
     profiles:
@@ -74,23 +74,6 @@ services:
       - TIDDLYWIKI_NODEJS_INSTANCE=${TIDDLYWIKI_NODEJS_INSTANCE:-default}
     security_opt:
       - no-new-privileges:true
-    # cap_drop:
-    #   - ALL
-    # cap_add:
-    #   - CHOWN
-    #   - SETGID
-    #   - SETUID
-    #   - DAC_OVERRIDE
-    #   - FOWNER
-    #   - FSETID
-    #   # - MKNOD
-    #   # - NET_RAW
-    #   # - SETFCAP
-    #   # - SETPCAP
-    #   - NET_BIND_SERVICE
-    #   # - SYS_CHROOT
-    #   # - KILL
-    #   # - AUDIT_WRITE
     volumes:
       - data:/tiddlywiki
     restart: unless-stopped
