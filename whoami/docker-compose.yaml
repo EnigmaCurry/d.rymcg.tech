@@ -1,15 +1,18 @@
-
 services:
   whoami:
-    image: "traefik/whoami"
-    security_opt:
-      - no-new-privileges:true
+    # Docker image is configurable per config file:
+    image: ${WHOAMI_IMAGE}
+    # whoami needs no special privileges, so we drop them all. see SECURITY.md for details.
     cap_drop:
       - ALL
+    security_opt:
+      - no-new-privileges:true
+    # Good practice to not allow unprivileged processes to use ports <1024:
     sysctls:
       - net.ipv4.ip_unprivileged_port_start=1024
+    # This command is unique to whoami, for most apps you don't need to specify any command:
     command: --port 8000 --name ${WHOAMI_INSTANCE:-default}
-    user: ${WHOAMI_UID}:${WHOAMI_GID}
+    # Restart policy ensures this service always starts on boot unless manually shutdown:
     restart: unless-stopped
     # All labels are defined in the template: docker-compose.instance.yaml
     # The labels will merge together here from the template output:

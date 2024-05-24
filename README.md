@@ -3,20 +3,20 @@
 [![License: MIT](_meta/img/license-MIT.svg)](https://github.com/EnigmaCurry/d.rymcg.tech/blob/master/LICENSE.txt)
 [![Chat on Matrix](_meta/img/matrix-badge.svg)](https://matrix.to/#/#d.rymcg.tech:enigmacurry.com)
 
-This is a collection of Docker Compose projects consisting of
+This is a collection of Docker Compose projects, consisting of
 [Traefik](https://doc.traefik.io/traefik/) as a TLS HTTP/TCP/UDP
-reverse proxy and other various self-hosted applications and services
-behind this proxy. Each project is in its own sub-directory containing
-its own `docker-compose.yaml` and `.env-dist` sample config file. This
-structure allows you to pick and choose which services you wish to
-enable. You may also integrate your own external Docker Compose
-projects into this framework.
+reverse proxy, and other open-source self-hosted applications and
+services behind it. Each project is in its own sub-directory
+containing its own `docker-compose.yaml` and `.env-dist` sample config
+file. This structure allows you to pick and choose which services you
+wish to enable. You may also integrate your own external Docker
+Compose projects into this framework.
 
-All (http) apps are secured with automatic Lets Encrypt TLS
-certificates, along with configurable self-hosted authentication
-middleware (OAuth2 with Gitea and/or HTTP Basic auth), as well as user
-group authorization middlewares. Even non-http apps may be secured
-with the optional VPN (Wireguard) support.
+All (http) apps are secured with automatic TLS certificates (Let's
+Encrypt or Step-CA), along with configurable self-hosted
+authentication middleware (mTLS, OAuth2, or HTTP Basic auth), as well
+as user group authorization middlewares. Even non-http apps may be
+secured with the optional VPN (Wireguard) support.
 
 Each project has a `Makefile` to simplify configuration, installation,
 and maintainance tasks. The setup for any sub-project is as easy as
@@ -99,15 +99,12 @@ instructions on creating a secure Docker host on DigitalOcean.
 If you need a semi-private development or staging server, and want to
 be able to share some public URLs for your services, you can protect
 your services by turning on Traefik's [HTTP Basic
-Authentication](https://doc.traefik.io/traefik/middlewares/http/basicauth/)
-or [OAuth2 Authentication](traefik/README.md#oauth2-authentication)
-and
+Authentication](https://doc.traefik.io/traefik/middlewares/http/basicauth/),
+[OAuth2 Authentication](traefik/README.md#oauth2-authentication),
+[mTLS with Step-CA](../step-ca#readme) and
 [IPAllowlist](https://doc.traefik.io/traefik/middlewares/http/ipallowlist/)
-middlewares (see
-[s3-proxy](https://github.com/EnigmaCurry/d.rymcg.tech/blob/f77aaaa5a2705eedaf29a4cdc32f91cdb65e66f7/s3-proxy/docker-compose.yaml#L35-L41)
-for an example that uses both of these), or by turning on [Oauth2
-authentication](https://github.com/EnigmaCurry/d.rymcg.tech/tree/master/traefik-forward-auth)
-,or you can make an exclusively private Traefik service with a
+middlewares, or you can make an exclusively private Traefik service
+with a
 [Wireguard](https://github.com/EnigmaCurry/d.rymcg.tech/tree/master/traefik#wireguard-vpn)
 VPN.
 
@@ -195,7 +192,7 @@ configured, you may need to open these ports in your firewall:
 | HTTP+TLS   | TCP      | 443        | Traefik HTTPS entrypoint (websecure)                      |
 | TCP socket | TCP      | 1704       | Traefik Snapcast (audio) entrypoint                       |
 | TCP socket | TCP      | 1705       | Traefik Snapcast (control) entrypoint                     |
-| SSH        | TCP      | 2222       | Traefik Gitea SSH (TCP) entrypoint                        |
+| SSH        | TCP      | 2222       | Traefik Forgejo SSH (TCP) entrypoint                        |
 | SSH        | TCP      | 2223       | SFTP container SSH (TCP) (direct-map)                     |
 | TLS        | TCP      | 5432       | PostgreSQL mTLS DBaaS (direct-map)                        |
 | TCP+TLS    | TCP      | 6380       | Traefik Redis in-memory database entrypoint               |
@@ -515,15 +512,16 @@ Install these first:
 
 Install these recommended backbone applications next:
 
-* [Gitea](gitea#readme)
-  * A git host (like self-hosted GitHub) and OAuth2 server.
+* [Forgejo](forgejo#readme)
+  * A git host (fork of Gitea/Gogs, which is similar to self-hosted
+    GitHub) and OAuth2 server.
   * Like GitHub, it can act as an OAuth2 identity service, which
     supports 2FA including hardware tokens, even if you have no need
     for a git forge, install this!
 * [Traefik-forward-auth](traefik-forward-auth#readme)
   * Traefik OAuth2 authentication middleware.
   * Required if you want OAuth2 authentication. You'll combine this
-    with your gitea instance (or another external Oauth provider) to
+    with your forgejo instance (or another external Oauth provider) to
     add authentication to any of your apps.
 * [Homepage](homepage#readme)
   * Homepage acts as a dashboard or launcher for all your other apps
@@ -541,7 +539,6 @@ Install these other services at your leisure/preference:
 * [DrawIO](drawio#readme) - a diagram / whiteboard editor tool
 * [Ejabberd](ejabberd#readme) - an XMPP (Jabber) server
 * [Filestash](filestash#readme) - a web based file manager with customizable backend storage providers
-* [Forgejo](forgejo#readme) - a git forge, a fork of Gitea, a fork of Gogs
 * [FreshRSS](freshrss#readme) - an RSS reader / proxy
 * [Grocy](grocy#readme) - a grocery & household management/chore solution
 * [Icecast](icecast#readme) - a SHOUTcast compatible streaming multimedia server
@@ -556,10 +553,10 @@ Install these other services at your leisure/preference:
 * [Mopidy](mopidy#readme) - a streaming music server built with MPD and Snapcast
 * [Mosquitto](mosquitto#readme) - an MQTT server
 * [Nextcloud](nextcloud#readme) - a collaborative file server
-* [Nginx](nginx#readme) - a webserver configured with fast-cgi support for PHP scripts.
+* [Nginx](nginx#readme) - a webserver configured with fast-cgi support for PHP scripts
 * [Node-RED](nodered#readme) - a graphical event pipeline editor
-* [Ntfy.sh](ntfy.sh#readme) - a simple HTTP-based pub-sub notification service
-* [Pairdrop](pairdrop#readme) - a webapp (PWA) to send files and messages peer to peer.
+* [Ntfy-sh](ntfy-sh#readme) - a simple HTTP-based pub-sub notification service
+* [Pairdrop](pairdrop#readme) - a webapp (PWA) to send files and messages peer to peer
 * [Photoprism](photoprism#readme) - a photo gallery and manager
 * [Piwigo](piwigo#readme) - a photo gallery and manager
 * [Plausible](plausible#readme) - a privacy friendly web visitor analytics engine
@@ -567,33 +564,27 @@ Install these other services at your leisure/preference:
 * [PrivateBin](privatebin#readme) - a minimal, encrypted, zero-knowledge, pastebin
 * [Prometheus](prometheus#readme) - a systems monitoring and alerting toolkit (+ node-exporter + cAdvisor + Grafana)
 * [QBittorrent-Wireguard](qbittorrent-wireguard#readme) - a Bittorrent (libtorrent v2) client with a combined VPN client
-* [Redbean](redbean#readme) - a small website server bundled in a single executable zip file.
+* [Redbean](redbean#readme) - a small website server bundled in a single executable zip file
 * [S3-proxy](s3-proxy#readme) - an HTTP directory index for S3 backend
 * [SFTP](sftp#readme) - a secure file server
 * [Shaarli](shaarli#readme) - a bookmark manager
 * [Smokeping](smokeping#readme) - a network latency measurement tool
+* [Step-CA](step-ca) - a secure, online, self-hosted Certificate Authority (CA)
 * [Syncthing](syncthing#readme) - a multi-device file synchronization tool
 * [Sysbox-Systemd](sysbox-systemd#readme) - a traditional service manager for Linux running in an unprivileged container via sysbox-runc
 * [Thttpd](thttpd#readme) - a tiny/turbo/throttling HTTP server for serving static files
-* [TiddlyWiki (WebDAV version)](tiddlywiki-webdav#readme) - a personal wiki stored in a single static HTML file
-* [TiddlyWiki (NodeJS version)](tiddlywiki-nodejs#readme) - Advanced server edition of TiddlyWiki with image CDN
 * [Tiny Tiny RSS](ttrss#readme) - an RSS reader / proxy
 * [Vaultward](vaultwarden#readme) - a bitwarden compatible password manager written in Rust (formerly bitwarden_rs)
 * [Websocketd](websocketd#readme) - a websocket / CGI server
-* [Wordpress](wordpress#readme) - an ubiquitous blogging / CMS platform, with a plugin to build a static HTML site snapshot.
+* [Wordpress](wordpress#readme) - an ubiquitous blogging / CMS platform, with a plugin to build a static HTML site snapshot
 * [Wireguard](wireguard#readme) - a Virtual Private Network (VPN) and simple client script (not integrated with Traefik)
 * [XBrowserSync](xbs#readme) - a bookmark manager
 
 You can create a new application by using any other application as an
-example, ([whoami](whoami) is the most basic one), or use the
-[`d.rymcg.tech create` tool](#integrating-external-projects) which
-includes additional development templates.
+example, ([whoami](whoami) is the most basic one).
 
 Bespoke things:
 
-* [certificate-ca](_terminal/certificate-ca) Experimental ad-hoc certifcate CA. Creates
-  self-signed certificates for situations where you don't want to use Let's
-  Encrypt.
 * [Linux Shell Containers](_terminal/linux) create Bash aliases that
   automatically build and run programs in Docker containers.
 * [_docker_vm](_docker_vm#readme) Run Docker in a Virtual Machine (KVM) on Linux.

@@ -32,6 +32,14 @@ experimental:
     headauth:
       modulename: github.com/poloyacero/headauth
     #@ end
+    #@ if data.values.plugin_cert_auth == "true":
+    certauthz:
+      modulename: github.com/famedly/traefik-certauthz
+    #@ end
+    #@ if data.values.plugin_mtls_header == "true":
+    mtlsheader:
+      modulename: github.com/pnxs/traefik-plugin-mtls-header
+    #@ end
 #@ end
 
 providers:
@@ -72,7 +80,7 @@ certificatesResolvers:
   production:
     #@ if data.values.acme_enabled == "true":
     acme:
-      caserver: https://acme-v02.api.letsencrypt.org/directory
+      caserver: #@ data.values.acme_cert_resolver_production
       email: #@ data.values.acme_ca_email
       storage: /data/acme-production.json
       #@ if data.values.acme_challenge.lower() in ["dns","dns-01"]:
@@ -84,11 +92,12 @@ certificatesResolvers:
       httpChallenge:
         entryPoint: web
       #@ end
+      certificatesDuration: #@ data.values.acme_certificates_duration
     #@ end
   staging:
     #@ if data.values.acme_enabled == "true":
     acme:
-      caserver: https://acme-staging-v02.api.letsencrypt.org/directory
+      caserver: #@ data.values.acme_cert_resolver_staging
       email: #@ data.values.acme_ca_email
       storage: /data/acme-staging.json
       #@ if data.values.acme_challenge.lower() in ["dns","dns-01"]:
@@ -100,7 +109,9 @@ certificatesResolvers:
       httpChallenge:
         entryPoint: web
       #@ end
+      certificatesDuration: #@ data.values.acme_certificates_duration
     #@ end
+
 entryPoints:
   #@ if data.values.web_entrypoint_enabled == "true":
   web:

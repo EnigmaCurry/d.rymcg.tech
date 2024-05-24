@@ -24,7 +24,7 @@ override-hook:
 ####                         # (this hardcodes the string into docker-compose.override.yaml)
 ####   name=@VARIABLE_NAME   # sets the template 'name' field to the literal string '${VARIABLE_NAME}'
 ####                         # (used for regular docker-compose expansion of env vars by name.)
-	@${BIN}/docker_compose_override ${ENV_FILE} project=:filestash instance=@FILESTASH_INSTANCE traefik_host=@FILESTASH_TRAEFIK_HOST http_auth=FILESTASH_HTTP_AUTH http_auth_var=@FILESTASH_HTTP_AUTH ip_sourcerange=@FILESTASH_IP_SOURCERANGE oauth2=FILESTASH_OAUTH2 authorized_group=FILESTASH_OAUTH2_AUTHORIZED_GROUP
+	@${BIN}/docker_compose_override ${ENV_FILE} project=:filestash instance=@FILESTASH_INSTANCE traefik_host=@FILESTASH_TRAEFIK_HOST http_auth=FILESTASH_HTTP_AUTH http_auth_var=@FILESTASH_HTTP_AUTH ip_sourcerange=@FILESTASH_IP_SOURCERANGE oauth2=FILESTASH_OAUTH2 authorized_group=FILESTASH_OAUTH2_AUTHORIZED_GROUP enable_mtls_auth=FILESTASH_MTLS_AUTH mtls_authorized_certs=FILESTASH_MTLS_AUTHORIZED_CERTS
 
 .PHONY: shell
 shell:

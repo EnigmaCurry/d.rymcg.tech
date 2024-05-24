@@ -15,10 +15,45 @@
 #@ http_auth = data.values.http_auth_var
 #@ enable_oauth2 = data.values.oauth2 == "true"
 #@ authorized_group = data.values.authorized_group
+#@ enable_mtls_auth = data.values.enable_mtls_auth == "true"
+#@ mtls_authorized_certs = data.values.mtls_authorized_certs
+#@ enabled_api_gateway_middlewares = []
+#@ enabled_public_middlewares = []
 #@ enabled_middlewares = []
 
 #@yaml/text-templated-strings
 services:
+  public-api-gateway:
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.archivebox-${ARCHIVEBOX_INSTANCE:-default}-api-gateway.rule=Host(`${ARCHIVEBOX_TRAEFIK_HOST}`) && PathPrefix(`/api-gateway`)"
+      - "traefik.http.routers.archivebox-${ARCHIVEBOX_INSTANCE:-default}-api-gateway.entrypoints=websecure"
+      - "traefik.http.routers.archivebox-${ARCHIVEBOX_INSTANCE:-default}-api-gateway.service=archivebox-${ARCHIVEBOX_INSTANCE:-default}-api-gateway"
+      - "traefik.http.services.archivebox-${ARCHIVEBOX_INSTANCE:-default}-api-gateway.loadbalancer.server.port=8000"
+      #! Authentication:
+      - "traefik.http.routers.archivebox-${ARCHIVEBOX_INSTANCE:-default}-api-gateway.middlewares=archivebox-${ARCHIVEBOX_INSTANCE:-default}-ipallowlist,archivebox-${ARCHIVEBOX_INSTANCE:-default}-auth"
+
+      #! Anonymous access for GET /api-gateway/page ONLY:
+      - "traefik.http.routers.archivebox-${ARCHIVEBOX_INSTANCE:-default}-public-api.rule=Host(`${ARCHIVEBOX_TRAEFIK_HOST}`) && Path(`/api-gateway/page`) && Method(`GET`)"
+      - "traefik.http.routers.archivebox-${ARCHIVEBOX_INSTANCE:-default}-public-api.entrypoints=websecure"
+      - "traefik.http.routers.archivebox-${ARCHIVEBOX_INSTANCE:-default}-public-api.service=archivebox-${ARCHIVEBOX_INSTANCE:-default}-api-gateway"
+      - "traefik.http.routers.archivebox-${ARCHIVEBOX_INSTANCE:-default}-public-api.middlewares=archivebox-${ARCHIVEBOX_INSTANCE:-default}-ipallowlist"
+
+      #@ if enable_mtls_auth:
+      - "traefik.http.routers.archivebox-${ARCHIVEBOX_INSTANCE:-default}-api-gateway.tls.options=step_ca_mTLS@file"
+      - "traefik.http.routers.archivebox-${ARCHIVEBOX_INSTANCE:-default}-public-api.tls.options=step_ca_mTLS@file"
+        #@ if len(mtls_authorized_certs):
+      - "traefik.http.middlewares.mtlsauth-archivebox-${ARCHIVEBOX_INSTANCE:-default}-api-gateway.plugin.certauthz.domains=(@= mtls_authorized_certs @)"
+        #@ enabled_api_gateway_middlewares.append("mtlsauth-archivebox-${ARCHIVEBOX_INSTANCE:-default}-api-gateway")
+        #@ enabled_public_middlewares.append("mtlsauth-archivebox-${ARCHIVEBOX_INSTANCE:-default}-api-gateway")
+        #@ end
+        #@ enabled_middlewares.append("mtls-header@file")
+      #@ end
+
+      #! Apply all middlewares (do this at the end!)
+      - "traefik.http.routers.archivebox-${ARCHIVEBOX_INSTANCE:-default}-api-gateway.middlewares=(@= ','.join(enabled_api_gateway_middlewares) @)"
+      - "traefik.http.routers.archivebox-${ARCHIVEBOX_INSTANCE:-default}-public-api.middlewares=(@= ','.join(enabled_public_middlewares) @)"
+      
   archivebox:
     #@ service = "archivebox"
     labels:
@@ -42,6 +77,15 @@ services:
       #@ if enable_oauth2:
       #@ enabled_middlewares.append("traefik-forward-auth@docker")
       #@ enabled_middlewares.append("header-authorization-group-{}@file".format(authorized_group))
+      #@ end
+
+      #@ if enable_mtls_auth:
+      - "traefik.http.routers.(@= router @).tls.options=step_ca_mTLS@file"
+        #@ if len(mtls_authorized_certs):
+      - "traefik.http.middlewares.mtlsauth-(@= router @).plugin.certauthz.domains=(@= mtls_authorized_certs @)"
+        #@ enabled_middlewares.append("mtlsauth-{}".format(router))
+        #@ end
+        #@ enabled_middlewares.append("mtls-header@file")
       #@ end
 
       #! Override the default port that archivebox binds to:

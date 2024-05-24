@@ -1,0 +1,49 @@
+#!/bin/bash
+
+## reconfigure_mtls VAR_PREFIX
+
+BIN=$(dirname ${BASH_SOURCE})
+source ${BIN}/funcs.sh
+set -e
+
+if [[ ${__D_RY_CONFIG_ENTRY} != reconfigure_auth ]]; then
+    echo "\`${BASH_SOURCE}\` was designed to be called from \`reconfigure_auth\`."
+    echo
+    exit 1
+fi
+
+ENV_FILE=${1}
+shift
+
+VAR_PREFIX=${1}
+shift
+
+## Make new .env if it doesn't exist:
+test -f ${ENV_FILE} || cp .env-dist ${ENV_FILE}
+
+${BIN}/reconfigure ${ENV_FILE} ${VAR_PREFIX}_MTLS_AUTH=true
+
+(
+    echo
+    echo "################################################################################"
+    echo
+    echo "Mutual TLS (mTLS) is setup on a per-app basis. Clients authenticate themselves with a TLS certificate(+key) signed by your Step-CA instance, and these are filtered against a list of approved client domains (${VAR_PREFIX}_MTLS_AUTHORIZED_CERTS), for fine grained access control."
+    echo
+    echo "(These domains do not require real IPs nor DNS, you can just make them up when you create the certificates.) "
+    echo
+    echo "For example if the app is whoami.example.com you might use:"
+    echo "    *.clients.whoami.example.com"
+    echo "as your allowed client domain, and create your client certificates for the names: bob.clients.whoami.example.com and alice.clients.whoami.example.com and either would be able to connect to this service."
+    echo
+) | fold -s -w 80
+
+(
+    echo
+    echo "${VAR_PREFIX}_MTLS_AUTHORIZED_CERTS contains a list of allowed client certificate names (CN)."
+    echo "If you enter a blank value for this, it will allow ANY cert signed by your Step-CA instance."
+    echo
+)
+ALLOW_BLANK=1 ${BIN}/reconfigure_ask ${ENV_FILE} ${VAR_PREFIX}_MTLS_AUTHORIZED_CERTS "Enter comma separated list of allowed client certificate names (or blank to allow all)"
+
+echo
+

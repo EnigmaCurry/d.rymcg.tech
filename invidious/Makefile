@@ -23,7 +23,7 @@ override-hook:
 ####                         # (this hardcodes the string into docker-compose.override.yaml)
 ####   name=@VARIABLE_NAME   # sets the template 'name' field to the literal string '${VARIABLE_NAME}'
 ####                         # (used for regular docker-compose expansion of env vars by name.)
-	@${BIN}/docker_compose_override ${ENV_FILE} project=:invidious instance=@INVIDIOUS_INSTANCE traefik_host=@INVIDIOUS_TRAEFIK_HOST http_auth=INVIDIOUS_HTTP_AUTH http_auth_var=@INVIDIOUS_HTTP_AUTH ip_sourcerange=@INVIDIOUS_IP_SOURCERANGE oauth2=INVIDIOUS_OAUTH2 authorized_group=INVIDIOUS_OAUTH2_AUTHORIZED_GROUP
+	@${BIN}/docker_compose_override ${ENV_FILE} project=:invidious instance=@INVIDIOUS_INSTANCE traefik_host=@INVIDIOUS_TRAEFIK_HOST http_auth=INVIDIOUS_HTTP_AUTH http_auth_var=@INVIDIOUS_HTTP_AUTH ip_sourcerange=@INVIDIOUS_IP_SOURCERANGE oauth2=INVIDIOUS_OAUTH2 authorized_group=INVIDIOUS_OAUTH2_AUTHORIZED_GROUP enable_mtls_auth=INVIDIOUS_MTLS_AUTH mtls_authorized_certs=INVIDIOUS_MTLS_AUTHORIZED_CERTS
 
 .PHONY: shell
 shell:

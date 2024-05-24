@@ -4,12 +4,12 @@
 is a Traefik middleware to facilitate OpenID/OAuth2 authentication.
 You can use this to login to your applications using an external
 account. The default `.env-dist` is setup to use a self-hosted
-[Gitea](../gitea) instance, or you can use [any other oauth2
+[Forgejo](../forgejo) instance, or you can use [any other oauth2
 provider](https://github.com/thomseddon/traefik-forward-auth/wiki/Provider-Setup).
 
 ## Configuration
 
-Follow the directions to deploy [gitea](../gitea), create a root
+Follow the directions to deploy [forgejo](../forgejo), create a root
 account, and login.
 
 Now in this directory (`traefik-forward-auth`), run:
@@ -22,7 +22,7 @@ Answer the questions to configure the environment variables. If in
 doubt, use the default value provided.
 
 If you need to edit the config by hand, see the commented out examples
-in [.env-dist](.env-dist), for Gitea, GitHub, and Google.
+in [.env-dist](.env-dist), for Forgejo, GitHub, and Google.
 
 ## Enable sentry authentication for Traefik routes
 
@@ -32,7 +32,7 @@ any authentication the app provides). You can choose None, Basic
 Authentication, or OpenID/OAuth2 through traefik-forward-auth.
 
 OAuth2 uses traefik-forward-auth to delegate authentication to an
-external authority (eg. a self-deployed Gitea instance). Accessing
+external authority (eg. a self-deployed Forgejo instance). Accessing
 this app will require all users to login through that external service
 first. Once authenticated, they may be authorized access only if their
 login id matches the member list of the predefined authorization group
@@ -52,9 +52,9 @@ need for all your apps (you can return later to add more). Each app
 can only have one group, but many apps can share the same group.
 Groups are comprised of email addresses of the users that are members
 of that group. The email addresses of the group must match those of
-accounts on your Gitea instance (or external OAuth provider).
+accounts on your Forgejo instance (or external OAuth provider).
 
-For example, if you have accounts on your Gitea instance for
+For example, if you have accounts on your Forgejo instance for
 `alice@example.com` and `bob@demo.com`, and you only want Alice to be
 able to access the `whoami` app, create a new group (eg. `whoami`),
 and add `alice@example.com` as the only member of that group. Then
@@ -101,7 +101,7 @@ See the [whoami](../whoami/) app for examples.
 # header that traefik-forward-auth sends, then your app can limit what the
 # logged-in person can do in the app. But if your app can't check the user
 # header, or if your app doesn't have built-in authentication at all, then
-# any person with an account on your Gitea server can log into your app and
+# any person with an account on your Forgejo server can log into your app and
 # have full access.
 WHOAMI_OAUTH2=no
 # In addition to Oauth2 authentication, you can configure basic authorization
@@ -144,9 +144,9 @@ User logout is a multi-phase endeavor:
    the `_foward_auth` cookie.
  * Then the user is redirected to the the URL specified by
    `TRAEFIK_FORWARD_AUTH_LOGOUT_REDIRECT`. This redirect will delete
-   the cookies for gitea (logging out of gitea): `gitea_incredible`
+   the cookies for forgejo (logging out of forgejo): `gitea_incredible`
    and `i_like_gitea`.
- * Finally the user is redirected to the main gitea login page, eg.
+ * Finally the user is redirected to the main forgejo login page, eg.
    `https://git.example.com/user/login` and is now completely logged
    out.
 
@@ -171,6 +171,6 @@ several good options when it comes to browser cookie management:
 
 Any of these tools will help the developer or admin to test multiple
 accounts, however regular users will not need these, as they are
-expected to only have a single gitea account, and it is usually
-expected for them to always stay logged in unless the gitea session
+expected to only have a single forgejo account, and it is usually
+expected for them to always stay logged in unless the forgejo session
 and traefik-forward-auth cookies both expire.
