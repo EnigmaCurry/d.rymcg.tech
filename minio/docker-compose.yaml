@@ -14,3 +14,13 @@ services:
       - data:/data
     command: server /data --console-address ":9001"
     labels: []
+
+  mc:
+    profiles: ['tools']
+    image: localhost/mc
+    build:
+      context: mc
+      args:
+        STEP_CA_ENABLED: ${MINIO_STEP_CA_ENABLED}
+        STEP_CA_ENDPOINT: ${MINIO_STEP_CA_ENDPOINT}
+        STEP_CA_FINGERPRINT: ${MINIO_STEP_CA_FINGERPRINT}
