@@ -73,9 +73,18 @@ trust the certifcate.
 ## Using Minio "console" to create bucket and credentials
 
 The "console" is a web application that lets you graphically interact
-with your minio instance. Log into the console (eg.
-`https:://console.s3.example.com`) using the root user and the
-password you set in `.env_${DOCKER_CONTEXT}_default`.
+with your minio instance. By default, all access is prevented by the
+following config in your `.env_{CONTEXT}` file:
+
+```
+## Console is disabled if this is set to 0.0.0.0/32
+## Change this to 0.0.0.0/0 to allow all ip addresses:
+CONSOLE_SOURCERANGE="0.0.0.0/32"
+```
+
+Log into the console (eg. `https:://console.s3.example.com`) using the
+root user and the password you set in
+`.env_${DOCKER_CONTEXT}_default`.
 
 Create a bucket:
 
