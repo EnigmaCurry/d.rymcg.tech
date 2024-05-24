@@ -86,18 +86,23 @@ step_ca_acme() {
     echo ""
 
     choose_challenge
-    
+
     TRAEFIK_ACME_CERT_RESOLVER_PRODUCTION="$(${BIN}/dotenv -f ${ENV_FILE} get TRAEFIK_ACME_CERT_RESOLVER_PRODUCTION)"
-    TRAEFIK_STEP_CA_ENABLED="$(${BIN}/dotenv -f ${ENV_FILE} get TRAEFIK_STEP_CA_ENABLED)"
-    TRAEFIK_STEP_CA_ENDPOINT="$(${BIN}/dotenv -f ${ENV_FILE} get TRAEFIK_STEP_CA_ENDPOINT)"
-    if [[ "${TRAEFIK_ACME_CERT_RESOLVER_PRODUCTION}" == *"api.letsencrypt.org"* ]] || [[ "${TRAEFIK_ACME_CERT_RESOLVER_PRODUCTION}" == *"ca.example.com"* ]]; then
-        if [[ "${TRAEFIK_STEP_CA_ENABLED}" == "true" ]]; then
-            ${BIN}/reconfigure ${ENV_FILE} TRAEFIK_ACME_CERT_RESOLVER_PRODUCTION=${TRAEFIK_STEP_CA_ENDPOINT}/acme/acme/directory
-        else
-            ${BIN}/reconfigure ${ENV_FILE} TRAEFIK_ACME_CERT_RESOLVER_PRODUCTION=https://ca.example.com/acme/acme/directory
-        fi
+    TRAEFIK_ACME_CERT_RESOLVER_STAGING="$(${BIN}/dotenv -f ${ENV_FILE} get TRAEFIK_ACME_CERT_RESOLVER_STAGING)"
+    if [[ "${TRAEFIK_ACME_CERT_RESOLVER_PRODUCTION}" == *"api.letsencrypt.org"* ]]; then
+        ${BIN}/reconfigure ${ENV_FILE} TRAEFIK_ACME_CERT_RESOLVER_PRODUCTION=https://ca.example.com/acme/acme/directory
+    fi
+    if [[ "${TRAEFIK_ACME_CERT_RESOLVER_STAGING}" == *"api.letsencrypt.org"* ]]; then
+        ${BIN}/reconfigure ${ENV_FILE} TRAEFIK_ACME_CERT_RESOLVER_STAGING=https://ca.example.com/acme/acme/directory
     fi
     ${BIN}/reconfigure_ask ${ENV_FILE} TRAEFIK_ACME_CERT_RESOLVER_PRODUCTION "Enter the Step-CA ACME service endpoint URL"
+    TRAEFIK_ACME_CERT_RESOLVER_PRODUCTION="$(${BIN}/dotenv -f ${ENV_FILE} get TRAEFIK_ACME_CERT_RESOLVER_PRODUCTION)"
+    TRAEFIK_ACME_CERT_RESOLVER_STAGING="$(${BIN}/dotenv -f ${ENV_FILE} get TRAEFIK_ACME_CERT_RESOLVER_STAGING)"
+    TRAEFIK_STEP_CA_ENABLED="$(${BIN}/dotenv -f ${ENV_FILE} get TRAEFIK_STEP_CA_ENABLED)"
+    TRAEFIK_STEP_CA_ENDPOINT="$(${BIN}/dotenv -f ${ENV_FILE} get TRAEFIK_STEP_CA_ENDPOINT)"
+    if [[ "${TRAEFIK_ACME_CERT_RESOLVER_STAGING}" == *"ca.example.com"* ]]; then
+        ${BIN}/reconfigure ${ENV_FILE} TRAEFIK_ACME_CERT_RESOLVER_STAGING=${TRAEFIK_ACME_CERT_RESOLVER_PRODUCTION}
+    fi
 }
 
 disable() {
@@ -113,7 +118,18 @@ main() {
     echo "ACME is an API that automatically manages TLS certificates."
     echo "This config supports both Let's Encrypt and Step-CA."
     echo
-    PROVIDER=$(wizard choose --numeric "Which ACME provider do you want to use?" \
+    DEFAULT_CHOICE=0
+    TRAEFIK_ACME_ENABLED="$(${BIN}/dotenv -f ${ENV_FILE} get TRAEFIK_ACME_ENABLED)"
+    TRAEFIK_ACME_CERT_RESOLVER_PRODUCTION="$(${BIN}/dotenv -f ${ENV_FILE} get TRAEFIK_ACME_CERT_RESOLVER_PRODUCTION)"
+    if [[ "${TRAEFIK_ACME_ENABLED}" != "true" ]]; then
+        DEFAULT_CHOICE=2 # Disabled
+    elif [[ "${TRAEFIK_ACME_CERT_RESOLVER_PRODUCTION}" == *"api.letsencrypt.org"* ]]; then
+        DEFAULT_CHOICE=0 # Lets encrypt
+    else
+        DEFAULT_CHOICE=1 # Step-CA
+    fi
+    
+    PROVIDER=$(wizard choose -d $DEFAULT_CHOICE --numeric "Which ACME provider do you want to use?" \
                     "Let's Encrypt (ACME)" \
                     "Step-CA (ACME)" \
                     "Disable ACME" \

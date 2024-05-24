@@ -174,3 +174,41 @@ accounts, however regular users will not need these, as they are
 expected to only have a single forgejo account, and it is usually
 expected for them to always stay logged in unless the forgejo session
 and traefik-forward-auth cookies both expire.
+
+## Step-CA
+
+If you are using a self-hosted Certificate Authority like
+[step-ca](../step-ca), you will need to configure the
+traefik-forward-auth container to trust your root CA certificate. See
+the following config variables in your `.env_{CONTEXT}` file:
+
+```
+## Step-CA root certificates:
+TRAEFIK_FORWARD_AUTH_STEP_CA_ENABLED=true
+TRAEFIK_FORWARD_AUTH_STEP_CA_ENDPOINT=https://ca.example.com
+TRAEFIK_FORWARD_AUTH_STEP_CA_FINGERPRINT=xxxxxxxxxxxxxxxxxxxxxxxx
+## Delete all other CAs that came from the alpine ca-certificates:
+TRAEFIK_FORWARD_AUTH_STEP_CA_ZERO_CERTS=false
+```
+
+ * `TRAEFIK_FORWARD_AUTH_STEP_CA_ENABLED` must be `true` to turn on
+   this feature.
+ * `TRAEFIK_FORWARD_AUTH_STEP_CA_ENDPOINT` must be the main URL for
+   your [step-ca](../step-ca) instance.
+ * `TRAEFIK_FORWARD_AUTH_STEP_CA_FINGERPRINT` must be the public
+   fingerprint of your Step-CA instance (eg `make
+   inspect-fingerprint`).
+
+### Verify the trusted CAs list
+
+You can double check the full list of trusted CAs in your
+traefik-forward-auth instance (it must be copied to your workstation
+because the container is built from `scratch`, with no userspace
+tools):
+
+```
+## You must copy the file to your workstation first:
+docker cp traefik-forward-auth:/etc/ssl/certs/ca-certificates.crt .
+
+less ca-certificates.crt
+```
