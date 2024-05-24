@@ -1,7 +1,13 @@
-
 services:
   traefik-forward-auth:
-    image: thomseddon/traefik-forward-auth:2
+    build:
+      context: traefik-forward-auth
+      args:
+        BASE_IMAGE: ${TRAEFIK_FORWARD_AUTH_BASE_IMAGE}
+        STEP_CA_ENABLED: ${TRAEFIK_FORWARD_AUTH_STEP_CA_ENABLED}
+        STEP_CA_ENDPOINT: ${TRAEFIK_FORWARD_AUTH_STEP_CA_ENDPOINT}
+        STEP_CA_FINGERPRINT: ${TRAEFIK_FORWARD_AUTH_STEP_CA_FINGERPRINT}
+        STEP_CA_ZERO_CERTS: ${TRAEFIK_FORWARD_AUTH_STEP_CA_ZERO_CERTS}
     container_name: traefik-forward-auth
     security_opt:
       - no-new-privileges:true
