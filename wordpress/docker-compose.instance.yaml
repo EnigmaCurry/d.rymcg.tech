@@ -23,6 +23,8 @@
 #@ http_auth_static = data.values.http_auth_static_var
 #@ enable_oauth2 = data.values.oauth2 == "true"
 #@ authorized_group = data.values.authorized_group
+#@ enable_mtls_auth = data.values.enable_mtls_auth == "true"
+#@ mtls_authorized_certs = data.values.mtls_authorized_certs
 #@ enabled_middlewares = []
 
 #@yaml/text-templated-strings
@@ -56,6 +58,15 @@ services:
       #@ if enable_oauth2:
       #@ enabled_middlewares.append("traefik-forward-auth@docker")
       #@ enabled_middlewares.append("header-authorization-group-{}@file".format(authorized_group))
+      #@ end
+      
+      #@ if enable_mtls_auth:
+      - "traefik.http.routers.(@= router @).tls.options=step_ca_mTLS@file"
+        #@ if len(mtls_authorized_certs):
+      - "traefik.http.middlewares.mtlsauth-(@= router @).plugin.certauthz.domains=(@= mtls_authorized_certs @)"
+        #@ enabled_middlewares.append("mtlsauth-{}".format(router))
+        #@ end
+        #@ enabled_middlewares.append("mtls-header@file")
       #@ end
 
       #! Apply all middlewares (do this at the end!)
@@ -95,6 +106,15 @@ services:
       #@ end
       #@ end
 
+      #@ if enable_mtls_auth:
+      - "traefik.http.routers.(@= attachments_router @).tls.options=step_ca_mTLS@file"
+        #@ if len(mtls_authorized_certs):
+      - "traefik.http.middlewares.mtlsauth-(@= attachments_router @).plugin.certauthz.domains=(@= mtls_authorized_certs @)"
+        #@ enabled_middlewares.append("mtlsauth-{}".format(attachments_router))
+        #@ end
+        #@ enabled_middlewares.append("mtls-header@file")
+      #@ end
+    
       #! Apply all middlewares (do this at the end!)
       - "traefik.http.routers.(@= attachments_router @).middlewares=(@= ','.join(enabled_middlewares) @)"
 
