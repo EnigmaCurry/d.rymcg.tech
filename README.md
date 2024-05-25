@@ -247,7 +247,7 @@ SSH:
  * Tested workstation architectures:
    * Linux x86_64 (64 bit Intel or AMD)
    * Linux aarch64 (64 bit ARM)
-   * Arch Linux and Ubuntu have been regularly tested.
+   * Arch Linux, Debian, and Fedora have been regularly tested.
  * Other operating systems and architectures have not been tested, and
 may require customization (please [open an
 issue](https://github.com/EnigmaCurry/d.rymcg.tech/issues)).
@@ -269,12 +269,9 @@ You need to install the following tools on your local workstation:
    (For Docker Desktop, `docker compose` is already installed. For
    Linux, it is a separate installation.)
  * [Install docker
-   buildx](https://docs.docker.com/build/buildx/install/) (optional,
-   and *none* of the projects require it) - "Docker Buildx, is a CLI
+   buildx](https://docs.docker.com/build/buildx/install/) - "Docker Buildx, is a CLI
    plugin that extends the docker command with the full support of the
-   features provided by BuildKit builder toolkit." and it allows you
-   to do cool things like [Heredocs in
-   Dockerfiles](https://www.docker.com/blog/introduction-to-heredocs-in-dockerfiles/).
+   features provided by BuildKit builder toolkit." This is now a required dependency of Docker 25.
 
 For Arch Linux, run: `sudo pacman -S docker docker-compose docker-buildx`
 
