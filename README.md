@@ -66,10 +66,7 @@ variables, and is run automatically before the main application starts
 up (therefore the config file is dynamically generated at each
 startup).
 
-This project stores all application data in Docker **named volumes**.
-Many samples of docker-compose that are written by other people, and
-that you may find out there on the internet, will map native host
-directories into their container paths. **Host-mounted directories are
+This project stores all application data in Docker **named volumes** as opposed to host mounted directories. **Host-mounted directories are
 considered an anti-pattern and will never be used in this project,
 unless there is a compelling reason to do so.** For more information
 see [Rule 3 of the 12 factor app
