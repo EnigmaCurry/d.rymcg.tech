@@ -9,10 +9,11 @@ set -eo pipefail
 
 ENV_FILE=$1
 VAR_PREFIX=$2
+REQUIRED=$3
 export __D_RY_CONFIG_ENTRY=reconfigure_auth
 
-prompt="Do you want to enable sentry authentication in front of this app (effectively making the entire site private)?"
-options=("No")
+prompt="Do you want to enable sentry authorization in front of this app (effectively making the entire site private)?"
+options=()
 ## Set default based on current auth settings in ENV_FILE
 
 DISABLE_HTTP=false
@@ -49,27 +50,48 @@ unset_mtls_auth() {
 }
 
 
+if [[ "${REQUIRED,,}" == "required" ]]; then
+    prompt="Sentry authorization is required for this application, but you get to pick what kind of authentication to use."
+    YES_ANSWER_PREFIX="Use"
+else
+    options+=("No")
+    YES_ANSWER_PREFIX="Yes,"
+fi
 if [[ "${DISABLE_HTTP}" == "false" ]]; then
-    options+=("Yes, with HTTP Basic Authentication")
+    options+=("${YES_ANSWER_PREFIX} sentry authorization with HTTP Basic authentication (username / password)")
 fi
 if [[ "${DISABLE_OAUTH}" == "false" ]]; then
-    options+=("Yes, with Oauth2")
+    options+=("${YES_ANSWER_PREFIX} sentry authorization with Oauth2 authentication")
 fi
 if [[ "${DISABLE_MTLS}" == "false" ]]; then
-    options+=("Yes, with Mutual TLS (mTLS)")
+    options+=("${YES_ANSWER_PREFIX} sentry authorization with Mutual TLS (mTLS) certificates")
 fi
 
-if [[ -n "${http_auth}" ]]; then
-    default="${options[1]}"
-elif [[ "${oauth2_auth}" == "true" ]]; then
-    default="${options[2]}"
-elif [[ "${mtls_auth}" == "true" ]]; then
-    default="${options[3]}"
+if [[ "${REQUIRED,,}" == "required" ]]; then
+    # Index of default choice gets shifted down one when "No" option is removed:
+    if [[ -n "${http_auth}" ]]; then
+        default="${options[0]}"
+    elif [[ "${oauth2_auth}" == "true" ]]; then
+        default="${options[1]}"
+    elif [[ "${mtls_auth}" == "true" ]]; then
+        default="${options[2]}"
+    else
+        default="${options[0]}"
+    fi
 else
-    default="${options[0]}"
+    if [[ -n "${http_auth}" ]]; then
+        default="${options[1]}"
+    elif [[ "${oauth2_auth}" == "true" ]]; then
+        default="${options[2]}"
+    elif [[ "${mtls_auth}" == "true" ]]; then
+        default="${options[3]}"
+    else
+        default="${options[0]}"
+    fi
 fi
 
 ## Ask user which authentication configuration they want
+echo
 choice=$(eval "${BIN}/script-wizard choose ${prompt@Q} ${options[@]@Q} --default ${default@Q}")
 
 ## Configure authentication per user's choice

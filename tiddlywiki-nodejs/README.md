@@ -3,9 +3,9 @@
 This is the NodeJS version of [TiddlyWiki](https://tiddlywiki.com/), a
 personal and shareable self-hosted wiki with powerful single-file/json
 import/export features (TiddlyWiki is to wikis as SQLite is to
-databases), and frictionless editability and publishing. This package
+databases), with frictionless editability and publishing. This package
 creates a hybrid static / admin interface: a static snapshot for
-public guests, and dynamic live edit for authenticated admins.
+public guests, and dynamic live editing for authenticated admins.
 
 Note: there are two different versions of TiddlyWiki packaged by d.rymcg.tech:
 
