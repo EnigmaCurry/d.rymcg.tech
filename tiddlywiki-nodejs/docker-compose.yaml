@@ -145,45 +145,45 @@ services:
       logging:
         ipv4_address: ${TIDDLYWIKI_LOGGING_SUBNET_PREFIX:-172.45.17}.2
 
-  s3-proxy-config:
-    profiles:
-      - default
-    build:
-      context: s3-proxy-config
-    security_opt:
-      - no-new-privileges:true
-    environment:
-      - S3_ENDPOINT=${TIDDLYWIKI_NODEJS_S3_ENDPOINT}
-      - S3_BUCKET=${TIDDLYWIKI_NODEJS_S3_BUCKET}
-      - S3_ACCESS_KEY_ID=${TIDDLYWIKI_NODEJS_S3_ACCESS_KEY_ID}
-      - S3_SECRET_KEY=${TIDDLYWIKI_NODEJS_S3_SECRET_KEY}
-      - PRINT_CONFIG
-    volumes:
-      - s3-proxy-config:/proxy/conf
+  # s3-proxy-config:
+  #   profiles:
+  #     - default
+  #   build:
+  #     context: s3-proxy-config
+  #   security_opt:
+  #     - no-new-privileges:true
+  #   environment:
+  #     - S3_ENDPOINT=${TIDDLYWIKI_NODEJS_S3_ENDPOINT}
+  #     - S3_BUCKET=${TIDDLYWIKI_NODEJS_S3_BUCKET}
+  #     - S3_ACCESS_KEY_ID=${TIDDLYWIKI_NODEJS_S3_ACCESS_KEY_ID}
+  #     - S3_SECRET_KEY=${TIDDLYWIKI_NODEJS_S3_SECRET_KEY}
+  #     - PRINT_CONFIG
+  #   volumes:
+  #     - s3-proxy-config:/proxy/conf
 
-  s3-proxy:
-    profiles:
-      - default
-    depends_on: ['s3-proxy-config']
-    build:
-      context: https://github.com/EnigmaCurry/s3-proxy.git#self-buildable
-    restart: unless-stopped
-    security_opt:
-      - no-new-privileges:true
-    volumes:
-      - s3-proxy-config:/proxy/conf
-    labels:
-      - "traefik.enable=true"
-      ## Public:
-      - "traefik.http.routers.tiddlywiki-nodejs-${TIDDLYWIKI_NODEJS_INSTANCE:-default}-s3proxy-public.rule=Host(`${TIDDLYWIKI_NODEJS_TRAEFIK_HOST}`) && PathPrefix(`/s3-proxy`) && Method(`GET`)"
-      - "traefik.http.routers.tiddlywiki-nodejs-${TIDDLYWIKI_NODEJS_INSTANCE:-default}-s3proxy-public.entrypoints=websecure"
-      - "traefik.http.routers.tiddlywiki-nodejs-${TIDDLYWIKI_NODEJS_INSTANCE:-default}-s3proxy-public.middlewares=tiddlywiki-static-${TIDDLYWIKI_NODEJS_INSTANCE:-default}-whitelist,tiddlywiki-nodejs-s3proxy-stripprefix,tiddlywiki-nodejs-s3proxy-addprefix"
-      ## Private:
-      - "traefik.http.routers.tiddlywiki-nodejs-${TIDDLYWIKI_NODEJS_INSTANCE:-default}-s3proxy-private.rule=Host(`${TIDDLYWIKI_NODEJS_TRAEFIK_HOST}`) && PathPrefix(`/s3-proxy`) && Method(`GET`) && HeadersRegexp(`Authorization`,`.+`)"
-      - "traefik.http.routers.tiddlywiki-nodejs-${TIDDLYWIKI_NODEJS_INSTANCE:-default}-s3proxy-private.entrypoints=websecure"
-      - "traefik.http.routers.tiddlywiki-nodejs-${TIDDLYWIKI_NODEJS_INSTANCE:-default}-s3proxy-private.middlewares=tiddlywiki-nodejs-${TIDDLYWIKI_NODEJS_INSTANCE:-default}-whitelist,tiddlywiki-nodejs-${TIDDLYWIKI_NODEJS_INSTANCE:-default}-auth,tiddlywiki-nodejs-s3proxy-stripprefix,tiddlywiki-nodejs-s3proxy-addprefix"
+  # s3-proxy:
+  #   profiles:
+  #     - default
+  #   depends_on: ['s3-proxy-config']
+  #   build:
+  #     context: https://github.com/EnigmaCurry/s3-proxy.git#self-buildable
+  #   restart: unless-stopped
+  #   security_opt:
+  #     - no-new-privileges:true
+  #   volumes:
+  #     - s3-proxy-config:/proxy/conf
+  #   labels:
+  #     - "traefik.enable=true"
+  #     ## Public:
+  #     - "traefik.http.routers.tiddlywiki-nodejs-${TIDDLYWIKI_NODEJS_INSTANCE:-default}-s3proxy-public.rule=Host(`${TIDDLYWIKI_NODEJS_TRAEFIK_HOST}`) && PathPrefix(`/s3-proxy`) && Method(`GET`)"
+  #     - "traefik.http.routers.tiddlywiki-nodejs-${TIDDLYWIKI_NODEJS_INSTANCE:-default}-s3proxy-public.entrypoints=websecure"
+  #     - "traefik.http.routers.tiddlywiki-nodejs-${TIDDLYWIKI_NODEJS_INSTANCE:-default}-s3proxy-public.middlewares=tiddlywiki-static-${TIDDLYWIKI_NODEJS_INSTANCE:-default}-whitelist,tiddlywiki-nodejs-s3proxy-stripprefix,tiddlywiki-nodejs-s3proxy-addprefix"
+  #     ## Private:
+  #     - "traefik.http.routers.tiddlywiki-nodejs-${TIDDLYWIKI_NODEJS_INSTANCE:-default}-s3proxy-private.rule=Host(`${TIDDLYWIKI_NODEJS_TRAEFIK_HOST}`) && PathPrefix(`/s3-proxy`) && Method(`GET`) && HeadersRegexp(`Authorization`,`.+`)"
+  #     - "traefik.http.routers.tiddlywiki-nodejs-${TIDDLYWIKI_NODEJS_INSTANCE:-default}-s3proxy-private.entrypoints=websecure"
+  #     - "traefik.http.routers.tiddlywiki-nodejs-${TIDDLYWIKI_NODEJS_INSTANCE:-default}-s3proxy-private.middlewares=tiddlywiki-nodejs-${TIDDLYWIKI_NODEJS_INSTANCE:-default}-whitelist,tiddlywiki-nodejs-${TIDDLYWIKI_NODEJS_INSTANCE:-default}-auth,tiddlywiki-nodejs-s3proxy-stripprefix,tiddlywiki-nodejs-s3proxy-addprefix"
 
-      ## Middlewares:
-      - "traefik.http.middlewares.tiddlywiki-nodejs-s3proxy-stripprefix.stripprefix.prefixes=/s3-proxy"
-      - "traefik.http.middlewares.tiddlywiki-nodejs-s3proxy-stripprefix.stripprefix.forceSlash=false"
-      - "traefik.http.middlewares.tiddlywiki-nodejs-s3proxy-addprefix.addprefix.prefix=/tiddlywiki/files"
+  #     ## Middlewares:
+  #     - "traefik.http.middlewares.tiddlywiki-nodejs-s3proxy-stripprefix.stripprefix.prefixes=/s3-proxy"
+  #     - "traefik.http.middlewares.tiddlywiki-nodejs-s3proxy-stripprefix.stripprefix.forceSlash=false"
+  #     - "traefik.http.middlewares.tiddlywiki-nodejs-s3proxy-addprefix.addprefix.prefix=/tiddlywiki/files"

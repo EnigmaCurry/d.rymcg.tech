@@ -67,14 +67,27 @@ if [[ "${DISABLE_MTLS}" == "false" ]]; then
     options+=("${YES_ANSWER_PREFIX} sentry authorization with Mutual TLS (mTLS) certificates")
 fi
 
-if [[ -n "${http_auth}" ]]; then
-    default="${options[1]}"
-elif [[ "${oauth2_auth}" == "true" ]]; then
-    default="${options[2]}"
-elif [[ "${mtls_auth}" == "true" ]]; then
-    default="${options[3]}"
+if [[ "${REQUIRED,,}" == "required" ]]; then
+    # Index of default choice gets shifted down one when "No" option is removed:
+    if [[ -n "${http_auth}" ]]; then
+        default="${options[0]}"
+    elif [[ "${oauth2_auth}" == "true" ]]; then
+        default="${options[1]}"
+    elif [[ "${mtls_auth}" == "true" ]]; then
+        default="${options[2]}"
+    else
+        default="${options[0]}"
+    fi
 else
-    default="${options[0]}"
+    if [[ -n "${http_auth}" ]]; then
+        default="${options[1]}"
+    elif [[ "${oauth2_auth}" == "true" ]]; then
+        default="${options[2]}"
+    elif [[ "${mtls_auth}" == "true" ]]; then
+        default="${options[3]}"
+    else
+        default="${options[0]}"
+    fi
 fi
 
 ## Ask user which authentication configuration they want

@@ -40,13 +40,11 @@ override-hook:
 
 .PHONY: shell
 shell:
-	@make --no-print-directory docker-compose-lifecycle-cmd EXTRA_ARGS="exec tiddlywiki-nodejs /bin/sh".PHONY: shell
-shell:
-	@container=$$(eval "${BIN}/script-wizard choose 'docker exec -it into which container?' 'tiddlywiki-static' 'tiddlywiki-base' 'tiddlywiki-nodejs' 'watcher' 's3-proxy' --default 'tiddlywiki-nodejs'") && make --no-print-directory docker-compose-shell SERVICE=$${container}
+	@make --no-print-directory docker-compose-shell SERVICE=$${SERVICE:-tiddlywiki-nodejs}
 
 .PHONY: watcher-shell
 watcher-shell:
-	@make --no-print-directory docker-compose-lifecycle-cmd EXTRA_ARGS="exec watcher /bin/bash"
+	@make --no-print-directory docker-compose-shell SERVICE=$${SERVICE:-watcher}
 
 # .PHONY: override-hook
 # override-hook:

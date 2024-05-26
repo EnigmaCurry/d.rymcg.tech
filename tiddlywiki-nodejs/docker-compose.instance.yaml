@@ -31,8 +31,7 @@ services:
       #@ router = "{}-{}-{}".format(project,instance,service)
 
       #! The host matching router rule:
-      #! Access requires authentication via X-Forwarded-User (which is common for Basic auth, OAuth2, and mTLS)
-      - "traefik.http.routers.(@= router @).rule=Host(`(@= traefik_host @)`) && (HeadersRegexp(`X-Forwarded-User`,`.+`) || Path(`/login`)) && !PathPrefix(`/logout`) && !PathPrefix(`/s3-proxy`)"
+      - "traefik.http.routers.(@= router @).rule=Host(`(@= traefik_host @)`) && && !PathPrefix(`/s3-proxy`)"
       - "traefik.http.routers.(@= router @).entrypoints=websecure"
 
       #@ enabled_middlewares.append("{}-ipallowlist".format(router))
