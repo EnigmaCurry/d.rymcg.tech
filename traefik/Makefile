@@ -6,6 +6,9 @@ config-hook: config-menu config-domain compose-profiles
 	@echo ""
 	@echo "Examine the configured environment file: ${ENV_FILE}"
 
+config-hook-echo-postscript:
+	@echo "Remember to run \`make install\` after all config changes (or choose it in the menu)."
+
 .PHONY: config-menu
 config-menu:
 	@ENV_FILE=${ENV_FILE} DOCKER_CONTEXT=${DOCKER_CONTEXT} ROOT_DOMAIN=${ROOT_DOMAIN} ./setup.sh main_menu || true

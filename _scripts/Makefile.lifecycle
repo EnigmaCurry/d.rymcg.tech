@@ -2,7 +2,9 @@
 config: check-instance-project script-wizard check-dist-vars
 	@echo
 	@echo "Configuring environment file: ${ENV_FILE}"
-	@make -e --no-print-directory config-hook override instance=${INSTANCE}
+	@make -e --no-print-directory config-hook override config-hook-echo-postscript instance=${INSTANCE}
+
+config-hook-echo-postscript: # Override this to disable the install hint:
 	@echo ""
 	@echo "Remember to run the 'install' command to deploy your changes:"
 	@echo
