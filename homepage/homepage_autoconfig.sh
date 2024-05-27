@@ -3,6 +3,7 @@
 set -e
 
 HOMEPAGE_ENABLE_DOCKER=$(${ROOT_DIR}/_scripts/dotenv -f ${ENV_FILE} get HOMEPAGE_ENABLE_DOCKER)
+HOMEPAGE_PUBLIC_HTTPS_PORT=$(${ROOT_DIR}/_scripts/dotenv -f ${ENV_FILE} get HOMEPAGE_PUBLIC_HTTPS_PORT)
 
 # Make config dir
 config_dir="./homepage/homepage_config"
@@ -211,6 +212,7 @@ for fullpath in "${sorted_env_paths[@]}"; do
     
     # Get the *_TRAEFIK_HOST value from the .env file
     if [[ -n "${container_running}" ]]; then
+      port=$([[ "${HOMEPAGE_PUBLIC_HTTPS_PORT}" == '443' ]] && echo '' || echo ':'${HOMEPAGE_PUBLIC_HTTPS_PORT})
       traefik_host=$(${ROOT_DIR}/_scripts/dotenv -f ${fullpath} get $(echo "${appdir}" | tr '[:lower:]' '[:upper:]' | tr '-' '_')"_TRAEFIK_HOST" || echo "#")
       
       # We're assuming there's an icon in the https://github.com/walkxcode/dashboard-icons repo (which Homepage integrates with) matching the app name. It's a safe assumption, but if wrong then the only repercussion is either a broken-image icon, a default "logo" image by Homepage, or no icon at all. The dashboard-icons repo names icons using Kebab Case.
@@ -224,7 +226,7 @@ for fullpath in "${sorted_env_paths[@]}"; do
     - ${appdir}:
         description: "Instance: \`${env_instance}\`"
         icon: ${icon}.png
-        href: https://${traefik_host}
+        href: https://${traefik_host}${port}
         abbr: ${abbr}
 EOF
     ## In order to expose docker container stats, we need to find a way to determine which of the apps containers to add to the Homepage config (eg., `tiddlywiki-nodejs-s3-proxy-1` or `tiddlywiki-nodejs-tiddlywiki-nodejs-1`)
