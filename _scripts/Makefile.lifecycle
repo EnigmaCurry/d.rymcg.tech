@@ -73,7 +73,7 @@ pull:
 
 .PHONY: wait # Wait until deployment is started and healthy
 wait:
-	@CONTAINER_IDS= ${BIN}/wait_until_healthy "$$(make --no-print-directory docker-compose-lifecycle-cmd EXTRA_ARGS='ps -a -q')"
+	@CONTAINER_IDS= ${BIN}/wait_until_healthy "${PROJECT_NAME}" "$$(make --no-print-directory docker-compose-lifecycle-cmd EXTRA_ARGS='ps -a -q')"
 
 .PHONY: network-subnet # Find the docker subnet CIDR for the current project/instance
 network-subnet:

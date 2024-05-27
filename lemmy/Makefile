@@ -12,7 +12,7 @@ config-hook:
 	@${BIN}/reconfigure ${ENV_FILE} LEMMY_INSTANCE=$${instance:-default}
 	@echo ""
 	@${BIN}/reconfigure_password ${ENV_FILE} LEMMY_POSTGRES_PW 32
-	@${BIN}/confirm no "Would you like to reconfigure authentication? (NOTE: this will make your Lemmy instance fully private with no federation features, so don't do this if you want to read from other lemmy instances!)" "" && ${BIN}/reconfigure_auth ${ENV_FILE} LEMMY
+	@${BIN}/confirm no "Would you like to reconfigure authentication? (NOTE: this will make your Lemmy instance fully private with no federation features, so don't do this if you want to read from other lemmy instances!)" "" && ${BIN}/reconfigure_auth ${ENV_FILE} LEMMY || true
 
 .PHONY: override-hook
 override-hook:
