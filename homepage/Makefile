@@ -16,7 +16,9 @@ config-hook:
 	@${BIN}/reconfigure_auth ${ENV_FILE} HOMEPAGE
 	@echo ""
 	@${BIN}/reconfigure_password ${ENV_FILE} HOMEPAGE_RELOADER_HMAC_SECRET 45
-	@echo ""
+	@echo 
+	@${BIN}/reconfigure ${ENV_FILE} HOMEPAGE_PUBLIC_HTTPS_PORT=$$([[ -z $$(${BIN}/dotenv -f ${ENV_FILE} get HOMEPAGE_PUBLIC_HTTPS_PORT) ]] && echo $$(${BIN}/dotenv -f ../${ROOT_ENV} get PUBLIC_HTTPS_PORT) || echo $$(${BIN}/dotenv -f ${ENV_FILE} get HOMEPAGE_PUBLIC_HTTPS_PORT))
+	@echo 
 	@${BIN}/confirm $$([[ $$(${BIN}/dotenv -f ${ENV_FILE} get HOMEPAGE_AUTO_CONFIG) == "true" ]] && echo "yes" || echo "no") "Do you want to auto-configure Homepage and to discover all of your running d.rymcg.tech apps of the current docker context" "?" && ${BIN}/reconfigure ${ENV_FILE} HOMEPAGE_AUTO_CONFIG=true && $(MAKE) autoconfig \
 	|| ( ${BIN}/reconfigure ${ENV_FILE} HOMEPAGE_AUTO_CONFIG=false \
 	&& echo "" && ${BIN}/reconfigure_ask ${ENV_FILE} HOMEPAGE_TEMPLATE_REPO "Enter the git repository used to make the config. All environment variables will be substituted in the templates via envsubst. Cloning from private git repositores is supported, but you must create a deploy key first." \
