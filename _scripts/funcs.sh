@@ -511,11 +511,13 @@ get_all_projects() {
 wait_until_healthy() {
     echo "Waiting until all services are started and become healthy ..."
     local containers=()
+    PROJECT_NAME=$1
+    shift
 
     while IFS= read -r CONTAINER_ID; do
         local inspect_json=$(docker inspect ${CONTAINER_ID})
         local name=$(echo "${inspect_json}" | jq -r ".[0].Name" | sed 's|^/||')
-        containers+=("$name")
+        if [[ "${name}" != "${PROJECT_NAME}-config-1" ]]; then containers+=("$name"); fi
     done <<< "$@"
     local attempts=0
     while true; do
