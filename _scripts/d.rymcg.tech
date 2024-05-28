@@ -45,6 +45,7 @@ __help() {
         echo -e "make [PROJECT] [ARGS ...]\tRun a \`make\` command for the given d.rymcg.tech project name"
         echo -e "context\tView or set the current docker context"
         echo -e "completion\tSetup TAB completion in your shell"
+        echo -e "ssh [COMMAND ...]\tRun command or shell on active docker context SSH host"
     ) | expand -t 30
     echo ""
     echo "## Documentation sub-commands:"
@@ -91,6 +92,12 @@ __create() {
     fi
     PROJECT_NAME=$(echo "$PROJECT_NAME" | tr ' ' '-')
     ${BIN}/create "${PROJECT_NAME}" "${TEMPLATE_REPO}" "./${PROJECT_NAME}"
+}
+
+__ssh() {
+    SSH_HOST=$(docker context inspect --format '{{.Endpoints.docker.Host}}' | sed 's|ssh://||')
+    check_var SSH_HOST
+    (set -x; ssh ${SSH_HOST} $@)
 }
 
 __install() {
@@ -189,6 +196,53 @@ __context() {
         local CURRENT_CONTEXT=$(docker context show)
         local CHOSEN_CONTEXT=$(wizard choose "Select the Docker context to use" "${CONTEXTS[@]}" --default "${CURRENT_CONTEXT}")
         docker context use "${CHOSEN_CONTEXT}"
+    elif [[ "$1" == "new" ]]; then
+        echo
+        confirm yes "This command can help create a new SSH config and Docker context"
+        echo
+        CHOICE=$(wizard choose --numeric "You must specify the SSH config entry to use" "I already have an SSH host entry in ~/.ssh/config that I want to use" "I want to make a new SSH host entry in ~/.ssh/config")
+        if [[ "${CHOICE}" == 0 ]]; then
+            SSH_HOST=$(choose "Choose an existing SSH Host config" $(cat ~/.ssh/config | grep -Po "^Host \K.*"))
+        elif [[ "${CHOICE}" == 1 ]]; then
+            SSH_HOST=$(wizard ask "Enter the new SSH context name (short host name) :")
+            SSH_HOSTNAME=$(wizard ask "Enter the fully qualified SSH Host DNS name :")
+            if docker context inspect ${SSH_HOST} >/dev/null 2>&1; then
+                error "There is already a Docker context called ${SSH_HOST}."
+                fault "You must edit ~/.ssh/config by hand and remove the Host entry named ${SSH_HOST}."
+            fi
+            TMP_CONFIG=$(mktemp)
+            check_var SSH_HOST SSH_HOSTNAME
+            cat <<EOF > ${TMP_CONFIG}
+Host ${SSH_HOST}
+     Hostname ${SSH_HOSTNAME}
+     User root
+     ControlMaster auto
+     ControlPersist yes
+     ControlPath /tmp/ssh-%u-%r@%h:%p
+EOF
+            echo "## Here is the new SSH config entry:"
+            cat ${TMP_CONFIG}
+            echo
+            confirm "no" "Do you want to append this config to ~/.ssh/config" "?"
+            cat ${TMP_CONFIG} >> ~/.ssh/config
+            rm -f ${TMP_CONFIG}
+        else
+            fault invalid choice
+        fi
+        check_var SSH_HOST
+        if docker context inspect ${SSH_HOST} >/dev/null 2>&1; then
+            echo
+            error "There is already a Docker context named ${SSH_HOST}"
+            confirm no "Do you want to remove and recreate this context" "?"
+            docker context rm -f ${SSH_HOST}
+        fi
+        docker context create "${SSH_HOST}" --description "Created by 'd.rymcg.tech context new'" --docker "host=ssh://${SSH_HOST}"
+        echo
+        echo "## Here are all your configured Docker contexts:"
+        docker context ls
+        echo ""
+        confirm "no" "Do you want to switch to the new ${SSH_HOST} context now" "?"
+        docker context use ${SSH_HOST}
     else
         exe docker context "$@"
     fi
@@ -247,7 +301,7 @@ __d.rymcg.tech_completions() {
     if [[ ${COMP_CWORD} == 1 ]]; then
         ## Complete the main command:
         ## d.rymcg.tech <TAB> ...
-        COMMANDS="help create cd make list readme info context completion install"
+        COMMANDS="help create cd make list readme info context completion install ssh"
         COMPREPLY=($(compgen -W "${COMMANDS}" "${COMP_WORDS[1]}"))
     elif [[ ${COMP_CWORD} == 2 ]]; then
         ALL_PROJECTS=$(d.rymcg.tech list --raw)
@@ -370,6 +424,8 @@ main() {
                 __context "$@";;
             script)
                 __run_script "$@";;
+            ssh)
+                __ssh "$@";;
             status)
                 __make -- status | sed "s|\./|${ROOT_DIR}/|g";;
             *)
