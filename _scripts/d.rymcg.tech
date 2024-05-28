@@ -193,7 +193,7 @@ __info() {
 
 __context() {
     if [[ $# == 0 ]] || [[ "$1" == "list" ]]; then
-        readarray -t CONTEXTS < <(docker context list -q)
+        readarray -t CONTEXTS < <(docker context list -q | grep -v default)
         local CURRENT_CONTEXT=$(docker context show)
         local CHOSEN_CONTEXT=$(wizard choose "Select the Docker context to use" "${CONTEXTS[@]}" --default "${CURRENT_CONTEXT}")
         docker context use "${CHOSEN_CONTEXT}"
