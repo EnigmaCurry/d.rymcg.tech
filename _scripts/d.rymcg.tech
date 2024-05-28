@@ -101,6 +101,11 @@ __ssh() {
     (set -x; ssh ${SSH_HOST} $@)
 }
 
+__install_docker() {
+    confirm yes "This will install Docker on the host of your remote Docker context."
+    d.rymcg.tech ssh 'curl -fsSL https://get.docker.com | sh'
+}
+
 __install() {
     if [[ $# -gt 0 ]]; then
         fault "install does not take any args"
@@ -308,7 +313,7 @@ __d.rymcg.tech_completions() {
     if [[ ${COMP_CWORD} == 1 ]]; then
         ## Complete the main command:
         ## d.rymcg.tech <TAB> ...
-        COMMANDS="help create cd make list readme info context new-context completion install ssh"
+        COMMANDS="help create cd make list readme info context new-context completion install install-docker ssh"
         COMPREPLY=($(compgen -W "${COMMANDS}" "${COMP_WORDS[1]}"))
     elif [[ ${COMP_CWORD} == 2 ]]; then
         ALL_PROJECTS=$(d.rymcg.tech list --raw)
@@ -427,6 +432,8 @@ main() {
                 __info "$@";;
             install)
                 __install "$@";;
+            install-docker)
+                __install_docker "$@";;
             context)
                 __context "$@";;
             new-context)
