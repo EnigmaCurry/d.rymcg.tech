@@ -197,6 +197,8 @@ __context() {
         local CURRENT_CONTEXT=$(docker context show)
         local CHOSEN_CONTEXT=$(wizard choose "Select the Docker context to use" "${CONTEXTS[@]}" --default "${CURRENT_CONTEXT}")
         docker context use "${CHOSEN_CONTEXT}"
+    elif [[ "$1" == "new" ]]; then
+        __new_context
     else
         exe docker context "$@"
     fi
@@ -232,7 +234,7 @@ EOF
             cat ${TMP_CONFIG}
             echo
             confirm "no" "Do you want to append this config to ~/.ssh/config" "?"
-            cat ${TMP_CONFIG} >> ~/.ssh/config
+            (echo; cat ${TMP_CONFIG}; echo) >> ~/.ssh/config
             rm -f ${TMP_CONFIG}
         else
             fault invalid choice
