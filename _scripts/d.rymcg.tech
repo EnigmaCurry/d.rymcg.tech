@@ -211,13 +211,15 @@ __new_context() {
             SSH_HOST=$(choose "Choose an existing SSH Host config" $(cat ~/.ssh/config | grep -Po "^Host \K.*"))
         elif [[ "${CHOICE}" == 1 ]]; then
             SSH_HOST=$(wizard ask "Enter the new SSH context name (short host name) :")
-            SSH_HOSTNAME=$(wizard ask "Enter the fully qualified SSH Host DNS name :")
-            if docker context inspect ${SSH_HOST} >/dev/null 2>&1; then
-                error "There is already a Docker context called ${SSH_HOST}."
+            if grep "^Host ${SSH_HOST}$" ~/.ssh/config  >/dev/null 2>&1; then
+                error "There is already an SSH config named ${SSH_HOST}."
                 fault "You must edit ~/.ssh/config by hand and remove the Host entry named ${SSH_HOST}."
             fi
+            SSH_HOSTNAME=$(wizard ask "Enter the fully qualified SSH Host DNS name :")
             TMP_CONFIG=$(mktemp)
             check_var SSH_HOST SSH_HOSTNAME
+            [[ "$SSH_HOST" == "default" ]] && \
+                fault "SSH host must not be named default."
             cat <<EOF > ${TMP_CONFIG}
 Host ${SSH_HOST}
      Hostname ${SSH_HOSTNAME}
