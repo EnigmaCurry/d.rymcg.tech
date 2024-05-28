@@ -47,6 +47,8 @@ __help() {
         echo -e "new-context\tCreate a new Docker context"
         echo -e "ssh [COMMAND ...]\tRun command or shell on active docker context SSH host"
         echo -e "completion\tSetup TAB completion in your shell"
+        echo -e "install\tInstall an app interactively"
+        echo -e "install-docker\tInstall Docker Engine on the host"
     ) | expand -t 30
     echo ""
     echo "## Documentation sub-commands:"
