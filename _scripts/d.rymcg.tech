@@ -106,6 +106,8 @@ __ssh() {
 __install_docker() {
     confirm yes "This will install Docker on the host of your remote Docker context."
     d.rymcg.tech ssh 'curl -fsSL https://get.docker.com | sh'
+    d.rymcg.tech ssh 'systemctl enable --now docker'
+    d.rymcg.tech ssh 'systemctl status docker'
 }
 
 __install() {
