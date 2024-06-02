@@ -10,6 +10,7 @@ config-hook:
 #### reconfigure sets the value of a variable in the .env file without asking.
 #### reconfigure_htpasswd will configure the HTTP Basic Authentication setting the var name and with a provided default value.
 	@${BIN}/reconfigure_ask ${ENV_FILE} STEP_CA_TRAEFIK_HOST "Enter the step-ca domain name" ca${INSTANCE_URL_SUFFIX}.${ROOT_DOMAIN}
+	@${BIN}/reconfigure ${ENV_FILE} STEP_CA_PUBLIC_HTTPS_PORT=$$([[ -z $$(${BIN}/dotenv -f ${ENV_FILE} get STEP_CA_PUBLIC_HTTPS_PORT) ]] && echo $$(${BIN}/dotenv -f ../${ROOT_ENV} get PUBLIC_HTTPS_PORT) || echo $$(${BIN}/dotenv -f ${ENV_FILE} get STEP_CA_PUBLIC_HTTPS_PORT))
 	@${BIN}/reconfigure ${ENV_FILE} STEP_CA_INSTANCE=$${instance:-default}
 	@${BIN}/reconfigure_ask ${ENV_FILE} STEP_CA_AUTHORITY_POLICY_X509_ALLOW_DNS "Enter the list of allowed domain wildcards (comma separated)"
 	@echo ""
@@ -45,9 +46,9 @@ inspect-fingerprint:
 inspect-config:
 	@make --no-print-directory docker-compose-shell SERVICE=step-ca COMMAND="cat ~/config/ca.json" 2>/dev/null
 
-.PHONY: client-bootstrap
+.PHONY: client-bootstrap # Bootstrap the client's step-cli
 client-bootstrap:
-	@TRAEFIK_HOST=$$(${BIN}/dotenv -f ${ENV_FILE} get STEP_CA_TRAEFIK_HOST); FINGERPRINT=$$(make --no-print-directory inspect-fingerprint); echo "# CA Host: https://$${TRAEFIK_HOST}"; echo "# CA Fingerprint: $${FINGERPRINT}"; ${STEP} ca bootstrap --ca-url "$${TRAEFIK_HOST}" --fingerprint $${FINGERPRINT}
+	@TRAEFIK_HOST=$$(${BIN}/dotenv -f ${ENV_FILE} get STEP_CA_TRAEFIK_HOST); STEP_CA_PUBLIC_HTTPS_PORT=$$(${BIN}/dotenv -f ${ENV_FILE} get STEP_CA_PUBLIC_HTTPS_PORT); FINGERPRINT=$$(make --no-print-directory inspect-fingerprint); echo "# CA Host: https://$${TRAEFIK_HOST}:$${STEP_CA_PUBLIC_HTTPS_PORT}"; echo "# CA Fingerprint: $${FINGERPRINT}"; ${STEP} ca bootstrap --ca-url "$${TRAEFIK_HOST}:$${STEP_CA_PUBLIC_HTTPS_PORT}" --fingerprint $${FINGERPRINT}
 
 .PHONY: cert # Create certificate
 cert:
