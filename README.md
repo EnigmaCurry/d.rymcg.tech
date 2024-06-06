@@ -107,12 +107,12 @@ VPN.
 
 For local development purposes, you can [install Docker on a raspberry
 pi](RASPBERRY_PI.md) or you can [install Docker in a virtual
-machine](_docker_vm#readme) (in all scenarios you will remotely
+machine](_libvirt#readme) (in all scenarios you will remotely
 control Docker from your native workstation), this ensures that your
 development environment is deployed in the same way as you would a
 production server. Never install Docker on your native
 workstation/desktop! (Or, if you do, never give your normal user
-account any docker privileges!) See [_docker_vm](_docker_vm#readme)
+account any docker privileges!) See [_libvirt](_libvirt#readme)
 for details on how and why to install Docker in KVM/Qemu. Please note
 that Docker Desktop is not currently supported because [it does not
 support host
@@ -581,7 +581,7 @@ Bespoke things:
 
 * [Linux Shell Containers](_terminal/linux) create Bash aliases that
   automatically build and run programs in Docker containers.
-* [_docker_vm](_docker_vm#readme) Run Docker in a Virtual Machine (KVM) on Linux.
+* [_libvirt](_libvirt#readme) Run Docker in a Virtual Machine (KVM) on Linux.
 
 Also check the [_attic](_attic) directory for a collection of old and
 broken things.
