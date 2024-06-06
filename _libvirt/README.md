@@ -2,4 +2,3 @@
 
 Run Docker VMs on your workstation in a dedicated user account, using
 KVM / libvirt.
-
