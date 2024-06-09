@@ -45,11 +45,11 @@ compose-profiles:
 shell:
 	@container=$$(eval "${BIN}/script-wizard choose 'docker exec -it into which container?' 'node-exporter' 'prometheus' 'grafana' 'cadvisor' 'alertmanager' 'alert-test' --default 'grafana'") && make --no-print-directory docker-compose-shell SERVICE=$${container}
 
-.PHONY: local-alertmanager # need summary here
+.PHONY: local-alertmanager # Forward alerts to local environment
 local-alertmanager:
 	@export ENV_FILE=${ENV_FILE} CONTEXT_INSTANCE=${CONTEXT_INSTANCE} PORT_FORWARD="$$(${BIN}/port_forward ${ENV_FILE} alertmanager 9093)"; if [[ ! "$${PORT_FORWARD}" =~ [0-9]+ ]]; then ${BIN}/fault "Could not get the SSH forwarded port"; else echo "Local port forward established on localhost:$${PORT_FORWARD}"; fi;
 
-.PHONY: test-alert # need summary here
+.PHONY: test-alert # Perform a test alert
 test-alert:
 	@docker compose --env-file ${ENV_FILE} run --rm -it alert-test
 	@echo 
