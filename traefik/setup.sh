@@ -66,7 +66,8 @@ traefik_user() {
 
             if ${BIN}/confirm yes "There is no ${TRAEFIK_USER} user created on the Docker host yet. Would you like to create this user automatically? (Note: this can fail if your system does not have the 'adduser' command, so read the directions that it will print out if this fails!)"; then
                 ssh ${SSH_HOST} ${SUDO_PREFIX} \
-                    adduser --shell /usr/sbin/nologin --system ${TRAEFIK_USER} && \
+                    adduser --shell /usr/sbin/nologin --system ${TRAEFIK_USER} \
+                    --group && \
                     ssh ${SSH_HOST} ${SUDO_PREFIX} gpasswd -a ${TRAEFIK_USER} docker || fault "There was a problem creating the ${TRAEFIK_USER} user. Are you logging in as root?"
                 echo "Successfully created the ${TRAEFIK_USER} user!"
                 traefik_uid
