@@ -18,7 +18,7 @@ SECRETKEY=$(openssl rand -base64 45)
 
 ## Run the mc container and pipe in the script to do everything:
 DOCKER_ARGS="--env-file ${ENV_FILE:-.env} --rm -i --entrypoint=/bin/bash localhost/mc"
-make --no-print-directory build-force service=mc
+make --no-print-directory build service=mc
 cat <<'EOF' | docker_run_with_env vars ${DOCKER_ARGS}
 set -x
 echo USERNAME=${USERNAME}
