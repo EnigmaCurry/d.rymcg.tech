@@ -11,7 +11,7 @@ RUN npm install -g tiddlywiki@${TIDDLYWIKI_NODEJS_VERSION}
 RUN TMP_DIR=$(mktemp -d) && cd ${TMP_DIR} && \
     wget https://github.com/felixhayashi/TW5-TiddlyMap/archive/refs/tags/v${TIDDLYWIKI_NODEJS_TIDDLYMAP_VERSION}.zip && \
     unzip v${TIDDLYWIKI_NODEJS_TIDDLYMAP_VERSION}.zip && \
-    cp -a TW5-TiddlyMap-0.17.15/dist/* /usr/local/lib/node_modules/tiddlywiki/plugins
+    cp -a TW5-TiddlyMap-${TIDDLYWIKI_NODEJS_TIDDLYMAP_VERSION}/dist/* /usr/local/lib/node_modules/tiddlywiki/plugins
 RUN TMP_DIR=$(mktemp -d) && cd ${TMP_DIR} && \
     wget https://github.com/flibbles/tw5-vis-network/archive/refs/heads/master.zip && \
     unzip master.zip && \
