@@ -28,9 +28,8 @@ check_num LOCAL_PORT REMOTE_PORT
 SSH_HOST="$(docker context inspect | jq -r '.[0]["Endpoints"]["docker"]["Host"]' | sed 's|^ssh://||')"
 check_var SSH_HOST
 
-nohup ssh -N -L ${LOCAL_PORT}:${REMOTE_IP_ADDRESS}:${REMOTE_PORT} ${SSH_HOST} &
+${BIN}/exe nohup ssh -N -L ${LOCAL_PORT}:${REMOTE_IP_ADDRESS}:${REMOTE_PORT} ${SSH_HOST} &
 echo "Starting SSH Tunnel ..." >/dev/stderr
-echo "ssh -N -L ${LOCAL_PORT}:${REMOTE_IP_ADDRESS}:${REMOTE_PORT} ${SSH_HOST}" >/dev/stderr
 sleep 5
 
 ## The LOCAL_PORT is to be the only thing printed to stdout:
