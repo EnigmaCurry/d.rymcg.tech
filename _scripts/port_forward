@@ -30,6 +30,7 @@ check_var SSH_HOST
 
 nohup ssh -N -L ${LOCAL_PORT}:${REMOTE_IP_ADDRESS}:${REMOTE_PORT} ${SSH_HOST} &
 echo "Starting SSH Tunnel ..." >/dev/stderr
+echo "ssh -N -L ${LOCAL_PORT}:${REMOTE_IP_ADDRESS}:${REMOTE_PORT} ${SSH_HOST}" >/dev/stderr
 sleep 5
 
 ## The LOCAL_PORT is to be the only thing printed to stdout:
