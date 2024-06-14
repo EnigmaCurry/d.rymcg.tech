@@ -14,14 +14,6 @@ should be the first thing you install in your deployment.
    maintain for Traefik, because Traefik can bind to any port on the
    host. (*It is the responsibility of your external firewall to block
    unintended public access*).
- * Alternatively, Traefik can bind to the network of a wireguard VPN;
-   in the form of either a server configuration (serving to other VPN
-   clients), or as a client reverse proxy (forwarding private services
-   to public non-VPN clients). In this mode, Traefik will bind
-   directly to the wireguard container network (`network_mode:
-   service:wireguard` or `network_mode: service:wireguard-client` and
-   then the wireguard server itself will bind to the host port `51820`
-   by default, for authorized clients to connect to.)
  * TLS certificates are automatically managed by ACME, but the
    certificate domains are manually defined using the `make certs`
    tool. Traefik
@@ -72,8 +64,8 @@ make config
 ```
 
 Follow the prompts and answer the questions. You will configure the
-ACME certificate resolver, the Traefik dashboard access credentials,
-Traefik plugins, and optionally the VPN server or client.
+ACME certificate resolver, the Traefik dashboard access credentials, and 
+Traefik plugins.
 
 Next, you can configure the TLS certificates. Run:
 
@@ -550,25 +542,25 @@ Use `production` or `staging`.
 > 4** (TCP/UDP) VPN, typical of consumer privacy shields, check out the
 > separate [wireguard](../wireguard#readme) config].
 
-By default Traefik is setup to use the `host` network, which is used
+By default, Traefik is setup to use the `host` network, which is used
 for *public* (internet or LAN) servers. Alternatively, you can start a
-wireguard VPN server sidecar container and bind Traefik exclusively to
-the private network (`TRAEFIK_VPN_ENABLED=true`). As a third
+wireguard VPN server sidecar container, and bind Traefik exclusively
+to the private network (`TRAEFIK_VPN_ENABLED=true`). As a third
 configuration, you can have a public Traefik server that can reverse
 proxy to the VPN to expose private services publicly
 (`TRAEFIK_VPN_CLIENT_ENABLED=true`).
 
 The easiest way to configure any of these configurations is to run the
-`make config` script. Watch for the following questions to turn the
-wireguard services on:
+`make config` script. Watch for the following mutually exclusive
+questions, to turn the wireguard services on:
 
- * `Do you want to run Traefik exclusively inside a VPN?` Say yes to
-   this question to configure the wireguard server and bind the
-   traefik container to the wireguard container network.
- * `Do you want to run Traefik as a reverse proxy for an external
-   VPN?` Say yes to this question to configure the wireguard client
-   and bind the Traefik container to the wireguard client container
-   network.
+ * `Do you want to run Traefik exclusively in a VPN? (wireguard server
+   mode)` Say yes to this question to configure the wireguard server
+   and bind the traefik container to the wireguard container network.
+ * `Do you want to run Traefik as a reverse proxy (public ingress)
+   into a VPN? (wireguard client mode)` Say yes to this question to
+   configure the wireguard client and bind the Traefik container to
+   the wireguard client container network.
  * If you say N to both questions, Traefik will bind to the `host`
    network.
 

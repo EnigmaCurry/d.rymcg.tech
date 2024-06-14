@@ -85,6 +85,8 @@ ytt_template() {
         -v step_ca_enabled="${TRAEFIK_STEP_CA_ENABLED}" \
         -v step_ca_endpoint="${TRAEFIK_STEP_CA_ENDPOINT}" \
         -v step_ca_fingerprint="${TRAEFIK_STEP_CA_FINGERPRINT}" \
+        -v layer_7_tls_proxy_enabled="${TRAEFIK_LAYER_7_TLS_PROXY_ENABLED}" \
+        -v layer_7_tls_proxy_routes="${TRAEFIK_LAYER_7_TLS_PROXY_ROUTES}" \
         --data-value-yaml header_authorization_groups="${TRAEFIK_HEADER_AUTHORIZATION_GROUPS}" \
         > ${dst}
     success=$?
