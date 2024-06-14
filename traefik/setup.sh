@@ -296,9 +296,9 @@ layer_7_tls_proxy() {
         echo "## Layer 7 TLS Proxy is ENABLED."
         layer_7_tls_proxy_get_routes
         wizard menu "Layer 7 TLS Proxy:" \
-               "Add new layer 7 ingress route = ./setup.sh layer_7_tls_proxy_add_ingress_route" \
                "List layer 7 ingress routes = ./setup.sh layer_7_tls_proxy_get_routes" \
-               "Delete layer 7 ingress routes = ./setup.sh layer_7_tls_proxy_manage_ingress_routes" \
+               "Add new layer 7 ingress route = ./setup.sh layer_7_tls_proxy_add_ingress_route" \
+               "Remove layer 7 ingress routes = ./setup.sh layer_7_tls_proxy_manage_ingress_routes" \
                "Disable layer 7 TLS Proxy = ./setup.sh layer_7_tls_proxy_disable" \
                "Exit = exit 2"
     else
@@ -310,14 +310,66 @@ layer_7_tls_proxy() {
 }
 
 wireguard() {
-    wizard choose "Should this Traefik instance connect to a wireguard VPN?" \
+    set_all_entrypoint_host() {
+        # Set all entrypoint host vars, except for the traefik dashboard:
+        HOST=$1; shift; check_var HOST;
+        readarray -t entrypoints < <(get_all_entrypoints | grep -v "^dashboard$")
+        for var in "${entrypoints[@]}"; do
+            ${BIN}/reconfigure ${ENV_FILE} "TRAEFIK_${var^^}_ENTRYPOINT_HOST=${HOST}"
+        done        
+    }
+    set_public_no_wireguard() {
+        ${BIN}/reconfigure ${ENV_FILE} \
+              TRAEFIK_VPN_ENABLED=false \
+              TRAEFIK_VPN_CLIENT_ENABLED=false \
+              TRAEFIK_DASHBOARD_ENTRYPOINT_HOST=127.0.0.1
+        set_all_entrypoint_host 0.0.0.0
+    }
+    set_wireguard_server() {
+        ${BIN}/reconfigure ${ENV_FILE} \
+              TRAEFIK_VPN_ENABLED=true \
+              TRAEFIK_VPN_CLIENT_ENABLED=false \
+              TRAEFIK_DASHBOARD_ENTRYPOINT_HOST=127.0.0.1
+        echo
+        case $(wizard choose --numeric \
+               "Should Traefik bind itself exclusively to the VPN interface?" \
+               "No, Traefik should work on all interfaces (including the VPN)." \
+               "Yes, Traefik should only listen on the VPN interface." \
+               "Cancel / Go back.") in
+            0) set_all_entrypoint_host 0.0.0.0;;
+            1) set_all_entrypoint_host $(${BIN}/dotenv -f ${ENV_FILE} get TRAEFIK_VPN_ADDRESS);;
+            *) return;;
+        esac        
+    }
+    set_wireguard_client() {
+        ${BIN}/reconfigure ${ENV_FILE} \
+              TRAEFIK_VPN_ENABLED=false \
+              TRAEFIK_VPN_CLIENT_ENABLED=true \
+              TRAEFIK_DASHBOARD_ENTRYPOINT_HOST=127.0.0.1
+        echo
+        case $(wizard choose --numeric \
+               "Should Traefik bind itself exclusively to the VPN interface?" \
+               "No, Traefik should work on all interfaces (including the VPN)." \
+               "Yes, Traefik should only listen on the VPN interface." \
+               "Cancel / Go back.") in
+            0) set_all_entrypoint_host 0.0.0.0;;
+            1) set_all_entrypoint_host $(${BIN}/dotenv -f ${ENV_FILE} get TRAEFIK_VPN_CLIENT_INTERFACE_ADDRESS);;
+            *) return;;
+        esac
+
+    }    
+    case $(wizard choose --numeric \
+           "Should this Traefik instance connect to a wireguard VPN?" \
            "No, Traefik should use the host network directly." \
            "Yes, and this Traefik instance should start the wireguard server." \
-           "Yes, but this Traefik instance needs credentials to connect to an outside VPN."
-    echo
-    wizard choose "Should Traefik bind itself exclusively to the VPN interface?" \
-           "No, Traefik should work on all interfaces (including the VPN)." \
-           "Yes, Traefik should only listen on the VPN interface."
+           "Yes, but this Traefik instance needs credentials to connect to an outside VPN." \
+           "Cancel / Go back.") in
+        0) set_public_no_wireguard;;
+        1) set_wireguard_server;;
+        2) set_wireguard_client;;
+        3) exit 2;;
+        *) fault "Wizard choose overflow!?";;
+    esac
 }
 
 # wireguard() {

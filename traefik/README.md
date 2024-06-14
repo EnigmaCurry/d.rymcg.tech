@@ -544,8 +544,8 @@ Use `production` or `staging`.
 
 By default, Traefik is setup to use the `host` network, which is used
 for *public* (internet or LAN) servers. Alternatively, you can start a
-wireguard VPN server sidecar container, and bind Traefik exclusively
-to the private network (`TRAEFIK_VPN_ENABLED=true`). As a third
+wireguard VPN sidecar container, and bind Traefik exclusively to the
+private network (`TRAEFIK_VPN_ENABLED=true`). As a third
 configuration, you can have a public Traefik server that can reverse
 proxy to the VPN to expose private services publicly
 (`TRAEFIK_VPN_CLIENT_ENABLED=true`).
