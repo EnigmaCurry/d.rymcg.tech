@@ -221,6 +221,7 @@ services:
     cap_add:
       - NET_ADMIN
       - SYS_MODULE
+    network_mode: host
     sysctls:
       - net.ipv4.conf.all.src_valid_mark=1
     restart: unless-stopped
@@ -231,10 +232,6 @@ services:
     volumes:
       - wireguard-client:/config
       - /lib/modules:/lib/modules
-    ports:
-      - 80:80
-      - 443:443
-      - 127.0.0.1:8080:8080
 
   error-pages:
     profiles:

@@ -65,7 +65,7 @@ status:
 
 .PHONY: logs # Tail all containers logs (set SERVICE=name to filter for one)
 logs:
-	@make --no-print-directory docker-compose-lifecycle-cmd EXTRA_ARGS="logs -f ${service}"
+	@make --no-print-directory docker-compose-lifecycle-cmd EXTRA_ARGS="logs -f ${service} -t"
 
 .PHONY: pull # Pull docker images from registry
 pull:

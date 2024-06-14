@@ -36,6 +36,7 @@ main_menu() {
            "Configure wireguard VPN = ./setup.sh wireguard" \
            "Configure layer 7 TLS Proxy = ./setup.sh layer_7_tls_proxy" \
            "Reinstall Traefik (make install) = make install" \
+           "Tail Traefik logs = make logs service=traefik" \
            "Exit = exit 2"
 }
 
@@ -322,7 +323,8 @@ wireguard() {
         ${BIN}/reconfigure ${ENV_FILE} \
               TRAEFIK_VPN_ENABLED=false \
               TRAEFIK_VPN_CLIENT_ENABLED=false \
-              TRAEFIK_DASHBOARD_ENTRYPOINT_HOST=127.0.0.1
+              TRAEFIK_DASHBOARD_ENTRYPOINT_HOST=127.0.0.1 \
+              TRAEFIK_NETWORK_MODE=host
         set_all_entrypoint_host 0.0.0.0
     }
     set_wireguard_server() {
@@ -336,8 +338,14 @@ wireguard() {
                "No, Traefik should work on all interfaces (including the VPN)." \
                "Yes, Traefik should only listen on the VPN interface." \
                "Cancel / Go back.") in
-            0) set_all_entrypoint_host 0.0.0.0;;
-            1) set_all_entrypoint_host $(${BIN}/dotenv -f ${ENV_FILE} get TRAEFIK_VPN_ADDRESS);;
+            0)
+                ${BIN}/reconfigure ${ENV_FILE} "TRAEFIK_NETWORK_MODE=host"
+                set_all_entrypoint_host 0.0.0.0
+                ;;
+            1)
+                ${BIN}/reconfigure ${ENV_FILE} "TRAEFIK_NETWORK_MODE=service:wireguard"
+                set_all_entrypoint_host $(${BIN}/dotenv -f ${ENV_FILE} get TRAEFIK_VPN_ADDRESS)
+                ;;
             *) return;;
         esac        
     }
@@ -352,8 +360,14 @@ wireguard() {
                "No, Traefik should work on all interfaces (including the VPN)." \
                "Yes, Traefik should only listen on the VPN interface." \
                "Cancel / Go back.") in
-            0) set_all_entrypoint_host 0.0.0.0;;
-            1) set_all_entrypoint_host $(${BIN}/dotenv -f ${ENV_FILE} get TRAEFIK_VPN_CLIENT_INTERFACE_ADDRESS);;
+            0)
+                ${BIN}/reconfigure ${ENV_FILE} "TRAEFIK_NETWORK_MODE=host"
+                set_all_entrypoint_host 0.0.0.0
+                ;;
+            1)
+                ${BIN}/reconfigure ${ENV_FILE} "TRAEFIK_NETWORK_MODE=service:wireguard-client"
+                set_all_entrypoint_host $(${BIN}/dotenv -f ${ENV_FILE} get TRAEFIK_VPN_CLIENT_INTERFACE_ADDRESS)
+                ;;
             *) return;;
         esac
 

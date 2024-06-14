@@ -4,7 +4,7 @@
 #@ tls_proxy_routes = data.values.layer_7_tls_proxy_routes
 
 #@yaml/text-templated-strings
-#@ if tls_proxy_enabled:
+#@ if tls_proxy_enabled and len(tls_proxy_routes):
 tcp:
   services:
     #@ for route in tls_proxy_routes.split(","):
