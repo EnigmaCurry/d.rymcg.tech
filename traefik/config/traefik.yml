@@ -123,7 +123,6 @@ entryPoints:
   #@ end
   #@ if data.values.websecure_entrypoint_enabled == "true":
   websecure:
-    asDefault: true
     address: #@ data.values.websecure_entrypoint_host + ":" + data.values.websecure_entrypoint_port
     http:
       tls:

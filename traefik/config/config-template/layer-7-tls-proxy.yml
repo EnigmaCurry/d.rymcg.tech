@@ -20,6 +20,8 @@ tcp:
     #@ domain = route.split(":")[0]
     #@ service = domain.replace(".","-")
     (@= service @)-proxy:
+      entryPoints:
+        - "websecure"
       rule: "HostSNI(`(@= domain @)`)"
       service: "(@= service @)-proxy"
       tls:

@@ -34,6 +34,7 @@ main_menu() {
            "Configure middleware (including auth) = ./setup.sh middleware" \
            "Configure error page template = ./setup.sh error_pages" \
            "Configure wireguard VPN = ./setup.sh wireguard" \
+           "Configure layer 7 TLS Proxy = ./setup.sh layer_7_tls_proxy" \
            "Reinstall Traefik (make install) = make install" \
            "Exit = exit 2"
 }
@@ -197,27 +198,115 @@ maxmind_geoip() {
     fi
 }
 
-layer_7_tls_proxy() {
-    echo
-    wizard choose "Layer 7 TLS Proxy" \
-           "Add new Layer 7 ingress route." \
-           "Manage existing Layer 7 ingress routes."
-    echo
-    ask "Enter the domain for the route" ROUTE_DOMAIN_RULE www.example.com
-    echo
-    ask "Enter the IP address to forward to" ROUTE_IP_ADDRESS 10.13.16.2
+layer_7_tls_proxy_get_routes() {
+    local ENABLED=$(${BIN}/dotenv -f ${ENV_FILE} get TRAEFIK_LAYER_7_TLS_PROXY_ENABLED)
+    local ROUTES=$(${BIN}/dotenv -f ${ENV_FILE} get TRAEFIK_LAYER_7_TLS_PROXY_ROUTES)
+    if [ "${ENABLED}" != "true" ] || [ -z "${ROUTES}" ]; then
+        echo "## No routes defined." >/dev/stderr
+        return
+    fi
+    echo "## Configured Routes:" >/dev/stderr
+    (echo "${ROUTES}" | tr ',' '\n' | sed 's/:/\t/g' | sort -u) | column -t
+}
 
+layer_7_tls_proxy_add_ingress_route() {
+    echo "Adding new layer 7 TLS proxy route - "
     echo
-    wizard choose "Layer 7 ingress routes" \
-           "Add new Layer 7 route." \
-           "Manage existing Layer 7 routes."
+    echo " * Make sure to set your route DNS to point to this Traefik instance."
+    echo " * The public port must be 443, but any destination port can be used."
+    echo " * Make sure your backend server provides its own passthrough certificate."
     echo
-    wizard select "Select Routes to DELETE:" \
-           "www.example.com - 10.13.16.2" \
-           "time.example.org - 10.13.16.3"
+    while
+        ask_no_blank "Enter the public domain (SNI) for the route:" ROUTE_DOMAIN www.${ROOT_DOMAIN}
+        if layer_7_tls_proxy_get_routes 2>/dev/null | grep "^${ROUTE_DOMAIN}\W" >/dev/null 2>&1; then
+            echo
+            echo "## That domain is already used in an existing ingress route:"
+            layer_7_tls_proxy_get_routes 2>/dev/null | grep "^${ROUTE_DOMAIN}\W"
+            echo
+            continue
+        fi
+        false
+    do true; done
     echo
-    confirm yes "Do you want to delete these routes" "?"
-    echo    
+    while
+        ask_no_blank "Enter the destination IP address to forward to:" ROUTE_IP_ADDRESS 10.13.16.2
+        if ! validate_ip_address ${ROUTE_IP_ADDRESS}; then
+            echo "Invalid IP address."
+            continue
+        fi
+        false
+    do true; done
+    echo
+    while
+        ask_no_blank "Enter the destination TCP port to forward to:" ROUTE_PORT 443
+        if ! [[ ${ROUTE_PORT} =~ ^[0-9]+$ ]] ; then
+            echo "Route port is invalid."
+            continue
+        fi
+        false
+    do true; done
+    local ROUTES=$(${BIN}/dotenv -f ${ENV_FILE} get TRAEFIK_LAYER_7_TLS_PROXY_ROUTES)
+    if [[ -n "${ROUTES}" ]]; then
+        ROUTES="${ROUTES},"
+    fi
+    ROUTES="${ROUTES}${ROUTE_DOMAIN}:${ROUTE_IP_ADDRESS}:${ROUTE_PORT}"
+    ${BIN}/reconfigure ${ENV_FILE} "TRAEFIK_LAYER_7_TLS_PROXY_ROUTES=${ROUTES}"
+}
+
+layer_7_tls_proxy_manage_ingress_routes() {
+    mapfile -t routes < <( layer_7_tls_proxy_get_routes )
+    if [[ "${#routes[@]}" == 0 ]]; then
+        return
+    fi
+    mapfile -t to_delete < <(wizard select "Select routes to DELETE:" "${routes[@]}")
+    debug_array to_delete
+    echo
+    if confirm no "Do you really want to delete these routes" "?"; then
+        local ROUTES_TMP=$(mktemp)
+        local TO_DELETE_TMP=$(mktemp)
+        local ROUTES_EDIT=$(mktemp)
+        (IFS=$'\n'; echo "${routes[*]}") | sort -u > "${ROUTES_TMP}"
+        (IFS=$'\n'; echo "${to_delete[*]}") | sort -u > "${TO_DELETE_TMP}"
+        local ROUTES=$(comm -23 "${ROUTES_TMP}" "${TO_DELETE_TMP}" | tr '\t' ':' | tr '\n' ',')
+        echo ok
+        ${BIN}/reconfigure ${ENV_FILE} "TRAEFIK_LAYER_7_TLS_PROXY_ROUTES=${ROUTES}"
+    fi
+    echo
+    layer_7_tls_proxy_get_routes
+}
+
+layer_7_tls_proxy_disable() {
+    local ENABLED=$(${BIN}/dotenv -f ${ENV_FILE} get TRAEFIK_LAYER_7_TLS_PROXY_ENABLED)
+    if [[ "${ENABLED}" == "true" ]]; then
+        confirm yes "Do you want to disable the layer 7 TLS proxy" "?" && \
+            ${BIN}/reconfigure ${ENV_FILE} TRAEFIK_LAYER_7_TLS_PROXY_ENABLED=false
+        echo "## Layer 7 TLS Proxy is DISABLED."
+        exit 2
+    else
+        fault "TRAEFIK_LAYER_7_TLS_PROXY_ENABLED already disabled!?"
+    fi
+}
+
+layer_7_tls_proxy() {
+    echo "## Layer 7 TLS Proxy can forward TLS connections to direct IP addresses."
+    echo
+    local ENABLED=$(${BIN}/dotenv -f ${ENV_FILE} get TRAEFIK_LAYER_7_TLS_PROXY_ENABLED)
+    if [[ "${ENABLED}" == "true" ]]; then
+        echo
+        echo "## Layer 7 TLS Proxy is ENABLED."
+        layer_7_tls_proxy_get_routes
+        wizard menu "Layer 7 TLS Proxy:" \
+               "Add new layer 7 ingress route = ./setup.sh layer_7_tls_proxy_add_ingress_route" \
+               "List layer 7 ingress routes = ./setup.sh layer_7_tls_proxy_get_routes" \
+               "Delete layer 7 ingress routes = ./setup.sh layer_7_tls_proxy_manage_ingress_routes" \
+               "Disable layer 7 TLS Proxy = ./setup.sh layer_7_tls_proxy_disable" \
+               "Exit = exit 2"
+    else
+        echo "## Layer 7 TLS Proxy is DISABLED."
+        confirm no "Do you want to enable the layer 7 TLS proxy" "?" && \
+            ${BIN}/reconfigure ${ENV_FILE} TRAEFIK_LAYER_7_TLS_PROXY_ENABLED=true && \
+            layer_7_tls_proxy || true
+    fi
 }
 
 wireguard() {
