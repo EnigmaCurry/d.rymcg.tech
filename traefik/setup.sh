@@ -118,9 +118,12 @@ get_enabled_entrypoints() {
                 local port="$(${BIN}/dotenv -f ${ENV_FILE} get TRAEFIK_${ENTRYPOINT}_ENTRYPOINT_PORT)"
                 echo "${e} ${host} ${port} tcp"
             done
-            layer_4_tcp_udp_get_entrypoints            
+            get_custom_entrypoints
         ) | sort -u
     ) | column -t
+    echo
+    echo " * REMINDER: Reconfigure all upstream firewalls accordingly."
+
 }
 
 entrypoints() {
@@ -128,7 +131,7 @@ entrypoints() {
     wizard menu "Traefik entrypoint config" \
            "Show enabled entrypoints = ./setup.sh get_enabled_entrypoints" \
            "Configure stock entrypoints = ./setup.sh config_list_entrypoints" \
-           "Configure custom entrypoints = ./setup.sh layer_4_tcp_udp"
+           "Configure custom entrypoints = ./setup.sh custom_entrypoints"
 }
 
 config_list_entrypoints() {
@@ -183,6 +186,8 @@ config_entrypoint() {
     else
         ${BIN}/reconfigure ${ENV_FILE} "TRAEFIK_${ENTRYPOINT}_ENTRYPOINT_ENABLED=false"
     fi
+    echo
+    echo
 }
 
 error_pages() {
@@ -329,32 +334,41 @@ layer_7_tls_proxy() {
     fi
 }
 
-layer_4_tcp_udp() {
-    echo "## Layer 4 Custom Entrypoints can add new TCP or UDP port bindings."
+custom_entrypoints() {
+    echo "## Custom Entrypoints can add new TCP or UDP port bindings."
     echo
-    wizard menu "Layer 4 Custom Entrypoints:" \
-           "List custom entrypoints = ./setup.sh layer_4_tcp_udp_get_entrypoints" \
-           "Add new custom entrypoint = ./setup.sh layer_4_tcp_udp_custom_entrypoint" \
-           "Remove custom entrypoints = ./setup.sh layer_4_tcp_udp_manage_entrypoints" \
+    wizard menu "Custom Entrypoints:" \
+           "List custom entrypoints = ./setup.sh get_custom_entrypoints" \
+           "Add new custom entrypoint = ./setup.sh add_custom_entrypoint" \
+           "Remove custom entrypoints = ./setup.sh manage_custom_entrypoints" \
            "Exit = exit 2"
 }
 
+layer_4_tcp_udp_proxy() {
+    echo "## Layer 4 TCP/UDP Proxy can forward traffic to other machines."
+    echo
+    wizard menu "Layer 4 TCP/UDP Proxy:" \
+           "List layer 4 ingress routes = ./setup.sh layer_4_tcp_udp_get_routes" \
+           "Add new layer 4 ingress route = ./setup.sh layer_4_tcp_udp_add_ingress_route" \
+           "Remove layer 4 ingress routes = ./setup.sh layer_4_tcp_udp_manage_routes" \
+           "Exit = exit 2"
+}
 
-layer_4_tcp_udp_get_entrypoints() {
+get_custom_entrypoints() {
     local ENTRYPOINTS=$(${BIN}/dotenv -f ${ENV_FILE} get TRAEFIK_CUSTOM_ENTRYPOINTS)
     if [ -z "${ENTRYPOINTS}" ]; then
-        echo "## No custom entrypoints defined." >/dev/stderr
+        #echo "## No custom entrypoints defined." >/dev/stderr
         return
     fi
     (echo "${ENTRYPOINTS}" | tr ',' '\n' | sed 's/:/\t/g' | sort -u) | column -t
 }
 
 
-layer_4_tcp_udp_manage_entrypoints() {
+manage_custom_entrypoints() {
     local CUSTOM_ENTRYPOINTS=$(${BIN}/dotenv -f ${ENV_FILE} get TRAEFIK_CUSTOM_ENTRYPOINTS)
     mapfile -t entrypoints < <( echo "${CUSTOM_ENTRYPOINTS}" | tr ',' '\n' )
     if [ -z "${CUSTOM_ENTRYPOINTS}" ] || [[ "${#entrypoints[@]}" == 0 ]]; then
-        echo "## No custom entrypoints defined." >/dev/stderr
+        #echo "## No custom entrypoints defined." >/dev/stderr
         return
     fi
     mapfile -t to_delete < <(wizard select "Select entrypoints to DELETE:" "${entrypoints[@]}")
@@ -373,11 +387,11 @@ layer_4_tcp_udp_manage_entrypoints() {
         ${BIN}/reconfigure ${ENV_FILE} "TRAEFIK_CUSTOM_ENTRYPOINTS=${ENTRYPOINTS}"
     fi
     echo
-    layer_4_tcp_udp_get_entrypoints
+    get_custom_entrypoints
 }
 
 
-layer_4_tcp_udp_custom_entrypoint() {
+add_custom_entrypoint() {
     echo "Adding custom TCP/UDP entrypoint - "
     echo
     echo " * Make sure to enable the port in all upstream firewalls."
