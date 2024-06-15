@@ -29,10 +29,6 @@ config-ca:
 open:
 	@export ENV_FILE=${ENV_FILE} CONTEXT_INSTANCE=${CONTEXT_INSTANCE} PORT_FORWARD="$$(${BIN}/port_forward ${ENV_FILE} traefik 127.0.0.1:8080)"; if [[ ! "$${PORT_FORWARD}" =~ [0-9]+ ]]; then ${BIN}/fault "Could not get the SSH forwarded port"; else ${BIN}/open /dashboard/#/http/routers 127.0.0.1:$${PORT_FORWARD} http; fi;
 
-.PHONY: close # Stop the dashboard SSH tunnel
-close:
-	pkill -f "^ssh -N -L 8080:localhost:8080 ssh.${ROOT_DOMAIN}"
-
 .PHONY: cert
 cert: certs
 
