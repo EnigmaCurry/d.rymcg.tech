@@ -538,42 +538,37 @@ Use `production` or `staging`.
 
 > [!NOTE]
 > This section describes how to make Traefik act as a **Layer 7**
-> (HTTP) VPN, typical of company wide intranets. If you want a **Layer
+> (TLS) VPN, typical of company wide intranets. If you want a **Layer
 > 4** (TCP/UDP) VPN, typical of consumer privacy shields, check out the
 > separate [wireguard](../wireguard#readme) config].
 
-By default, Traefik is setup to use the `host` network, which is used
-for *public* (internet or LAN) servers. Alternatively, you can start a
-wireguard VPN sidecar container, and bind Traefik exclusively to the
-private network (`TRAEFIK_VPN_ENABLED=true`). As a third
-configuration, you can have a public Traefik server that can reverse
-proxy to the VPN to expose private services publicly
-(`TRAEFIK_VPN_CLIENT_ENABLED=true`).
+This config uses the following environment variables to configure
+wireguard, and the default value is shown:
+
+ * `TRAEFIK_VPN_ENABLED=false` - If `true`, enable the wireguard *server* sidecar.
+ * `TRAEFIK_VPN_CLIENT_ENABLED=false` - If `true`, enable the wireguard *client* sidecar.
+ * `TRAEFIK_NETWORK_MODE=host` - Set the network mode of the
+   container, to `host`, `service:wireguard`, or
+   `service:wireguard-client`.
+ * `TRAEFIK_*_ENTRYPOINT_HOST=0.0.0.0` - Each entrypoint configures
+   the IP address it should listen on, which can make the entrypoints
+   public (`0.0.0.0`) or private (`10.13.16.2`) accordingly.
 
 The easiest way to configure any of these configurations is to run the
-`make config` script. Watch for the following mutually exclusive
-questions, to turn the wireguard services on:
+`make config` script. 
 
- * `Do you want to run Traefik exclusively in a VPN? (wireguard server
-   mode)` Say yes to this question to configure the wireguard server
-   and bind the traefik container to the wireguard container network.
- * `Do you want to run Traefik as a reverse proxy (public ingress)
-   into a VPN? (wireguard client mode)` Say yes to this question to
-   configure the wireguard client and bind the Traefik container to
-   the wireguard client container network.
- * If you say N to both questions, Traefik will bind to the `host`
-   network.
+ * Choose the `Configure wireguard VPN` menu option.
 
-Note: Traefik can only bind to a single network at a time, so you may
-choose to configure `TRAEFIK_VPN_ENABLED=true`, **or**
-`TRAEFIK_VPN_CLIENT_ENABLED=true`, or neither, *but not both
-simultaneously*. To use a client and a server connected to the same
-VPN, you should deploy Traefik to two separate docker contexts.
+You may want to have several Traefik instances all on the same VPN.
+You will need to designate *one* of them to be the wireguard "server"
+(ie. the most public one), and the rest of them are to be wireguard
+"clients".
 
 ### Retrieve client credentials
 
-There are two ways to retrieve the client credentials from the server,
-which you will need to enter into your client:
+Once you've started a wireguard server instance, you will need to copy
+the credentials to your clients. There are two ways to retrieve the
+client credentials from the server:
 
    * `make show-wireguard-peers` - output text config of each peer.
    * `make show-wireguard-peers-qr` - QR encoded output to scan with
@@ -589,91 +584,6 @@ may need to clean up the existing server connection:
 ## Same as `wg-quick down wg0` on the server:
 make wireguard-reset
 ```
-
-### Wireguard VPN client
-
-[![Traefik VPN Reverse
-Proxy](doc/Traefik-VPN-Proxy.jpg)](https://raw.githubusercontent.com/EnigmaCurry/d.rymcg.tech/master/traefik/doc/Traefik-VPN-Proxy.jpg)
-
-Consider the use-case for Traefik as a VPN client:
-
- * You have a Docker server hosted on the public internet.
- * You run Traefik on your public Docker server, with
-   `TRAEFIK_VPN_ENABLED=true`, (this Traefik server can *only* be
-   accessed from the private wireguard network)
- * You have an office LAN with multiple clients, all behind an office
-   router firewall, they would all like to access your private Traefik
-   instance, but they can't access it without a VPN client, and its
-   too cumbersome to install the client on all the office computers.
- * So, you configure a small computer in the office (eg. raspberry pi)
-   as the only computer that needs to connect to the VPN.
- * The local office Traefik instance runs in the wireguard client
-   configuration, with `TRAEFIK_VPN_CLIENT_ENABLED=true` and forwards
-   all requests it receives from the local LAN over to the private
-   Traefik instance on the VPN.
- * You selectively configure `TRAEFIK_VPN_CLIENT_PEER_SERVICES`, which
-   is the list of private services you wish to expose.
- * All the office workers can now access these private VPN services
-   with no authorization, but only from the secure office network,
-   connecting through the local proxy (rasbperry pi).
-
-Consider adding on to the above use-case with a third internet server:
-
- * You create a new Docker server on the public internet.
- * You run Traefik on the second docker server, with
-`TRAEFIK_VPN_CLIENT_ENABLED=true` connecting to the first docker
-server running with `TRAEFIK_VPN_ENABLED=true`.
- * You selectively configure `TRAEFIK_VPN_CLIENT_PEER_SERVICES`, which
-   is the list of private services you wish to expose.
- * You can expose any service from any computer connected to the same
-   wireguard private network, by creating a Traefik
-   service,router,middleware, and serversTransport. Follow the example
-   of [vpn-client.yml](config/config-template/vpn-client.yml)
- * Now the allowed private services are exposed to the public
-   internet.
-
-To configure Traefik as a VPN client, run `make config`:
-
- * When you are asked `Do you want to run Traefik exclusively inside a
-   VPN?` answer **N**. When you are asked `Do you want to run Traefik
-   as a reverse proxy for an external VPN?` answer **Y**.
-
- * Once you tell `make config` that you want to run the vpn client, it
-   will ask you to enter all of the same details found in the output
-   of the server's `make show-wireguard-peers`. The crednetials are
-   then permantely stored in the traefik .env file.
-
- * When asked to `Enter the list of VPN service names that the client
-   should reverse proxy`, you should enter a list of the names all of
-   the private services you want to forward. For example, if you want
-   to forward the `whoami` and the `piwigo` services, you would answer
-   `whoami,piwigo`
-
-Once reconfigured, run `make install` and the configuration will be
-regenerated, creating a new router and middleware to accomplish the
-forwarding.
-
-The private Traefik server has configured `TRAEFIK_ROOT_DOMAIN` (eg.
-`d.rymcg.tech`) and the Traefik vpn client has a copy of this as
-`TRAEFIK_VPN_ROOT_DOMAIN`. It uses this information to translate from
-public domain to the private domain.
-
-For example:
-
- * Suppose the VPN server's private Traefik instance is configured with
-   `TRAEFIK_ROOT_DOMAIN=private.example.com`
- * Suppose the VPN client's public Traefik instance is configured with
-   `TRAEFIK_ROOT_DOMAIN=public.example.com` and
-   `TRAEFIK_VPN_ROOT_DOMAIN=private.example.com`
- * Suppose the VPN server has deployed the `whoami` service and the
-   Traefik client server has configured
-   `TRAEFIK_VPN_CLIENT_PEER_SERVICES=whoami` in order to forward
-   requests to the private whoami service.
-
-In the above scenario, any request coming into the public Traefik
-client server for the domain `whoami.public.example.com` will get
-translated to the host `whoami.private.example.com` and forwarded to
-the private Traefik VPN server instance.
 
 ## Environment Variables
 
@@ -754,7 +664,6 @@ Traefik [.env](.env-dist) file :
 | `TRAEFIK_VPN_PEERS`                        | The number or list of clients to create                                          | `client1,client2`, `1`                        |
 | `TRAEFIK_VPN_PEER_DNS`                     | The DNS server that clients are advertised to use                                | `auto` (uses host), `1.1.1.1`                 |
 | `TRAEFIK_VPN_PORT`                         | The TCP port to bind the VPN server to                                           | `51820`                                       |
-| `TRAEFIK_VPN_ROOT_DOMAIN`                  | Root domain of the VPN services                                                  | `d.rymcg.tech`                                |
 | `TRAEFIK_VPN_SUBNET`                       | The first .0 IP address of the private VPN subnet                                | `10.13.16.0`                                  |
 | `TRAEFIK_WEBSECURE_ENTRYPOINT_ENABLED`     | (bool) Enable websecure (port 443) entrypoint                                    | `true`,`false`                                |
 | `TRAEFIK_WEBSECURE_ENTRYPOINT_HOST`        | Host ip address to bind websecure entrypoint                                     | `0.0.0.0`                                     |
