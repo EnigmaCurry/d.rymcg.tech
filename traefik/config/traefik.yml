@@ -112,7 +112,16 @@ certificatesResolvers:
       certificatesDuration: #@ data.values.acme_certificates_duration
     #@ end
 
+#@yaml/text-templated-strings
 entryPoints:
+  #@ for custom_entrypoint in data.values.custom_entrypoints.split(","):
+  #@ if not len(custom_entrypoint):
+  #@ continue
+  #@ end
+  #@ entrypoint,listen_host,listen_port,protocol = custom_entrypoint.split(":")
+  (@= entrypoint @):
+    address: #@ listen_host + ":" + listen_port + "/" + protocol
+  #@ end
   #@ if data.values.web_entrypoint_enabled == "true":
   web:
     address: #@ data.values.web_entrypoint_host + ":" + data.values.web_entrypoint_port

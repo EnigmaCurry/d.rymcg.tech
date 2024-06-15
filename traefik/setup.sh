@@ -37,13 +37,20 @@ main_menu() {
            "Configure layer 7 TLS Proxy = ./setup.sh layer_7_tls_proxy" \
            "Configure layer 4 TCP/UDP Proxy = ./setup.sh layer_4_tcp_udp_proxy" \
            "Reinstall Traefik (make install) = make install" \
-           "Show Traefik errors = make logs-out service=traefik | grep level=error || true" \
+           "View logs = ./setup.sh logs" \
            "Exit = exit 2"
 }
 
 base_config() {
     ## Make new .env if it doesn't exist:
     test -f ${ENV_FILE} || cp .env-dist ${ENV_FILE}
+}
+
+logs() {
+    wizard menu "Traefik logs:" \
+           "Review Traefik logs = make logs-out service=traefik | less +G" \
+           "Review Config logs = make logs-out service=config | less +G" \
+           "Exit = exit 2"
 }
 
 traefik_user() {
@@ -101,18 +108,27 @@ get_all_entrypoints() {
 
 get_enabled_entrypoints() {
     readarray -t entrypoints < <(sed -n "s/^.*TRAEFIK_\s*\(\S*\)_ENTRYPOINT_ENABLED=true$/\1/p" "${ENV_FILE}" | tr '[:upper:]' '[:lower:]')
-    (for e in "${entrypoints[@]}"; do
-        local ENTRYPOINT="$(echo "${e}" | tr '[:lower:]' '[:upper:]')"
-        local host="$(${BIN}/dotenv -f ${ENV_FILE} get TRAEFIK_${ENTRYPOINT}_ENTRYPOINT_HOST)"
-        local port="$(${BIN}/dotenv -f ${ENV_FILE} get TRAEFIK_${ENTRYPOINT}_ENTRYPOINT_PORT)"
-        echo "${e} - ${host}:${port}"
-    done) | column -t -s "-"
+    (
+        echo -e "Entrypoint\tListen_address\tListen_port\tProtocol"
+        echo -e "----------\t--------------\t-----------\t--------"
+        (
+            for e in "${entrypoints[@]}"; do
+                local ENTRYPOINT="$(echo "${e}" | tr '[:lower:]' '[:upper:]')"
+                local host="$(${BIN}/dotenv -f ${ENV_FILE} get TRAEFIK_${ENTRYPOINT}_ENTRYPOINT_HOST)"
+                local port="$(${BIN}/dotenv -f ${ENV_FILE} get TRAEFIK_${ENTRYPOINT}_ENTRYPOINT_PORT)"
+                echo "${e} ${host} ${port} tcp"
+            done
+            layer_4_tcp_udp_get_entrypoints            
+        ) | sort -u
+    ) | column -t
 }
 
 entrypoints() {
+    get_enabled_entrypoints
     wizard menu "Traefik entrypoint config" \
            "Show enabled entrypoints = ./setup.sh get_enabled_entrypoints" \
-           "Configure available entrypoints = ./setup.sh config_list_entrypoints"
+           "Configure stock entrypoints = ./setup.sh config_list_entrypoints" \
+           "Configure custom entrypoints = ./setup.sh layer_4_tcp_udp"
 }
 
 config_list_entrypoints() {
@@ -242,7 +258,7 @@ layer_7_tls_proxy_add_ingress_route() {
     while
         ask_no_blank "Enter the destination TCP port to forward to:" ROUTE_PORT 443
         if ! [[ ${ROUTE_PORT} =~ ^[0-9]+$ ]] ; then
-            echo "Route port is invalid."
+            echo "Port is invalid."
             continue
         fi
         false
@@ -261,6 +277,9 @@ layer_7_tls_proxy_manage_ingress_routes() {
         return
     fi
     mapfile -t to_delete < <(wizard select "Select routes to DELETE:" "${routes[@]}")
+    if [[ "${#to_delete[@]}" == 0 ]]; then
+        return
+    fi
     debug_array to_delete
     echo
     if confirm no "Do you really want to delete these routes" "?"; then
@@ -269,8 +288,7 @@ layer_7_tls_proxy_manage_ingress_routes() {
         local ROUTES_EDIT=$(mktemp)
         (IFS=$'\n'; echo "${routes[*]}") | sort -u > "${ROUTES_TMP}"
         (IFS=$'\n'; echo "${to_delete[*]}") | sort -u > "${TO_DELETE_TMP}"
-        local ROUTES=$(comm -23 "${ROUTES_TMP}" "${TO_DELETE_TMP}" | tr '\t' ':' | tr '\n' ',')
-        echo ok
+        local ROUTES=$(comm -23 "${ROUTES_TMP}" "${TO_DELETE_TMP}" | tr '\t' ':' | tr '\n' ',' | sed 's/,\{1,\}/,/g' | sed 's/^,*//;s/,*$//')
         ${BIN}/reconfigure ${ENV_FILE} "TRAEFIK_LAYER_7_TLS_PROXY_ROUTES=${ROUTES}"
     fi
     echo
@@ -309,6 +327,111 @@ layer_7_tls_proxy() {
             ${BIN}/reconfigure ${ENV_FILE} TRAEFIK_LAYER_7_TLS_PROXY_ENABLED=true && \
             layer_7_tls_proxy || true
     fi
+}
+
+layer_4_tcp_udp() {
+    echo "## Layer 4 Custom Entrypoints can add new TCP or UDP port bindings."
+    echo
+    wizard menu "Layer 4 Custom Entrypoints:" \
+           "List custom entrypoints = ./setup.sh layer_4_tcp_udp_get_entrypoints" \
+           "Add new custom entrypoint = ./setup.sh layer_4_tcp_udp_custom_entrypoint" \
+           "Remove custom entrypoints = ./setup.sh layer_4_tcp_udp_manage_entrypoints" \
+           "Exit = exit 2"
+}
+
+
+layer_4_tcp_udp_get_entrypoints() {
+    local ENTRYPOINTS=$(${BIN}/dotenv -f ${ENV_FILE} get TRAEFIK_CUSTOM_ENTRYPOINTS)
+    if [ -z "${ENTRYPOINTS}" ]; then
+        echo "## No custom entrypoints defined." >/dev/stderr
+        return
+    fi
+    (echo "${ENTRYPOINTS}" | tr ',' '\n' | sed 's/:/\t/g' | sort -u) | column -t
+}
+
+
+layer_4_tcp_udp_manage_entrypoints() {
+    local CUSTOM_ENTRYPOINTS=$(${BIN}/dotenv -f ${ENV_FILE} get TRAEFIK_CUSTOM_ENTRYPOINTS)
+    mapfile -t entrypoints < <( echo "${CUSTOM_ENTRYPOINTS}" | tr ',' '\n' )
+    if [ -z "${CUSTOM_ENTRYPOINTS}" ] || [[ "${#entrypoints[@]}" == 0 ]]; then
+        echo "## No custom entrypoints defined." >/dev/stderr
+        return
+    fi
+    mapfile -t to_delete < <(wizard select "Select entrypoints to DELETE:" "${entrypoints[@]}")
+    if [[ "${#to_delete[@]}" == 0 ]]; then
+        return
+    fi
+    debug_array to_delete
+    echo
+    if confirm no "Do you really want to delete these entrypoints" "?"; then
+        local ENTRYPOINTS_TMP=$(mktemp)
+        local TO_DELETE_TMP=$(mktemp)
+        local ENTRYPOINTS_EDIT=$(mktemp)
+        (IFS=$'\n'; echo "${entrypoints[*]}") | sort -u > "${ENTRYPOINTS_TMP}"
+        (IFS=$'\n'; echo "${to_delete[*]}") | sort -u > "${TO_DELETE_TMP}"
+        local ENTRYPOINTS=$(comm -23 "${ENTRYPOINTS_TMP}" "${TO_DELETE_TMP}" | tr '\t' ':' | tr '\n' ',' | sed 's/,\{1,\}/,/g' | sed 's/^,*//;s/,*$//')
+        ${BIN}/reconfigure ${ENV_FILE} "TRAEFIK_CUSTOM_ENTRYPOINTS=${ENTRYPOINTS}"
+    fi
+    echo
+    layer_4_tcp_udp_get_entrypoints
+}
+
+
+layer_4_tcp_udp_custom_entrypoint() {
+    echo "Adding custom TCP/UDP entrypoint - "
+    echo
+    echo " * Make sure to enable the port in all upstream firewalls."
+    echo " * Make sure each entrypoint has a unique lower-case one-word name."
+    local CUSTOM_ENTRYPOINTS=$(${BIN}/dotenv -f ${ENV_FILE} get TRAEFIK_CUSTOM_ENTRYPOINTS)
+    ENTRYPOINT=""
+    while
+        ask_no_blank "Enter the new entrypoint name:" ENTRYPOINT "${ENTRYPOINT}"
+        if echo ${ENTRYPOINT} | grep -vP "^[a-z][a-z0-9]*$" >/dev/null 2>&1; then
+            echo
+            echo "## That name is invalid. Try again:"
+            continue
+        fi
+        if (get_all_entrypoints | grep "^${ENTRYPOINT}$" >/dev/null 2>&1) || \
+           (echo ",${CUSTOM_ENTRYPOINTS}" | grep ",${ENTRYPOINT}:" >/dev/null 2>&1); then
+            echo
+            echo "## That entrypoint name is already taken."
+            echo
+            continue
+        fi
+        false
+    do true; done
+    echo
+    while
+        ask_no_blank "Enter the entrypoint listen address:" ENTRYPOINT_IP_ADDRESS 0.0.0.0
+        if ! validate_ip_address ${ENTRYPOINT_IP_ADDRESS}; then
+            echo "Invalid IP address."
+            continue
+        fi
+        false
+    do true; done
+    echo
+    while
+        ask_no_blank "Enter the entrypoint port:" ENTRYPOINT_PORT
+        if ! [[ ${ENTRYPOINT_PORT} =~ ^[0-9]+$ ]] ; then
+            echo "Port is invalid."
+            continue
+        fi
+        false
+    do true; done
+    echo
+    while
+        ask_no_blank "Enter the protocol (tcp or udp):" PROTOCOL tcp
+        if ! [[ ${PROTOCOL} =~ ^(tcp|udp)$ ]] ; then
+            echo "Protocol must be tcp or udp."
+            continue
+        fi
+        false
+    do true; done    
+    if [[ -n "${CUSTOM_ENTRYPOINTS}" ]]; then
+        CUSTOM_ENTRYPOINTS="${CUSTOM_ENTRYPOINTS},"
+    fi
+    CUSTOM_ENTRYPOINTS="${CUSTOM_ENTRYPOINTS}${ENTRYPOINT}:${ENTRYPOINT_IP_ADDRESS}:${ENTRYPOINT_PORT}:${PROTOCOL}"
+    ${BIN}/reconfigure ${ENV_FILE} "TRAEFIK_CUSTOM_ENTRYPOINTS=${CUSTOM_ENTRYPOINTS}"
 }
 
 wireguard() {
