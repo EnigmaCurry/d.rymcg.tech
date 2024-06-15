@@ -37,7 +37,7 @@ main_menu() {
            "Configure layer 7 TLS Proxy = ./setup.sh layer_7_tls_proxy" \
            "Configure layer 4 TCP/UDP Proxy = ./setup.sh layer_4_tcp_udp_proxy" \
            "Reinstall Traefik (make install) = make install" \
-           "View logs = ./setup.sh logs" \
+           "Administration functions = ./setup.sh admin" \
            "Exit = exit 2"
 }
 
@@ -46,11 +46,36 @@ base_config() {
     test -f ${ENV_FILE} || cp .env-dist ${ENV_FILE}
 }
 
-logs() {
-    wizard menu "Traefik logs:" \
-           "Review Traefik logs = make logs-out service=traefik | less +G" \
-           "Review Config logs = make logs-out service=config | less +G" \
-           "Exit = exit 2"
+admin() {
+    wizard menu "Traefik Admin:" \
+           "Check status = make status" \
+           "Review Traefik logs (Q to quit) = make logs-out service=traefik | less +G" \
+           "Review config logs (Q to quit) = make logs-out service=config | less +G" \
+           "Set logging level = ./setup.sh log_level" \
+           "Uninstall Traefik (keeps data) = make uninstall" \
+           "Reinstall Traefik (forced) = make reinstall" \
+           "Enter traefik container shell = make shell service=traefik" \
+           "Enter wireguard server shell = make shell service=wireguard" \
+           "Enter wireguard client shell = make shell service=wireguard-client" \
+           "Cancel / Go back = exit 2"
+}
+
+log_level() {
+    local LOG_LEVELS=(error, warn, info, debug)
+    local default=1
+    local log_level="$(${BIN}/dotenv -f ${ENV_FILE} get TRAEFIK_LOG_LEVEL)"
+    case "${log_level}" in
+        error) default=0;;
+        warn) default=1;;
+        info) default=2;;
+        debug) default=3;;
+    esac
+    wizard menu --default ${default} --once "Traefik Log Level:" \
+           "error - only show errors. = ${BIN}/reconfigure ${ENV_FILE} TRAEFIK_LOG_LEVEL=error" \
+           "warn - show warnings and errors. = ${BIN}/reconfigure ${ENV_FILE} TRAEFIK_LOG_LEVEL=warn" \
+           "info - show info, warnings, and errors. = ${BIN}/reconfigure ${ENV_FILE} TRAEFIK_LOG_LEVEL=info" \
+           "debug - show debug, info, warnings, and errors. = ${BIN}/reconfigure ${ENV_FILE} TRAEFIK_LOG_LEVEL=debug" \
+           "Cancel / Go back = exit 2"
 }
 
 traefik_user() {
@@ -122,8 +147,9 @@ get_enabled_entrypoints() {
         ) | sort -u
     ) | column -t
     echo
-    echo " * REMINDER: Reconfigure all upstream firewalls accordingly."
-
+    echo " * REMINDER: Restart Traefik to apply changes."
+    echo "             Reconfigure all upstream firewalls accordingly."
+    echo
 }
 
 entrypoints() {
@@ -325,7 +351,7 @@ layer_7_tls_proxy() {
                "Add new layer 7 ingress route = ./setup.sh layer_7_tls_proxy_add_ingress_route" \
                "Remove layer 7 ingress routes = ./setup.sh layer_7_tls_proxy_manage_ingress_routes" \
                "Disable layer 7 TLS Proxy = ./setup.sh layer_7_tls_proxy_disable" \
-               "Exit = exit 2"
+               "Cancel / Go back = exit 2"
     else
         echo "## Layer 7 TLS Proxy is DISABLED."
         confirm no "Do you want to enable the layer 7 TLS proxy" "?" && \
@@ -341,7 +367,7 @@ custom_entrypoints() {
            "List custom entrypoints = ./setup.sh get_custom_entrypoints" \
            "Add new custom entrypoint = ./setup.sh add_custom_entrypoint" \
            "Remove custom entrypoints = ./setup.sh manage_custom_entrypoints" \
-           "Exit = exit 2"
+           "Cancel / Go back = exit 2"
 }
 
 layer_4_tcp_udp_proxy() {
@@ -351,7 +377,7 @@ layer_4_tcp_udp_proxy() {
            "List layer 4 ingress routes = ./setup.sh layer_4_tcp_udp_get_routes" \
            "Add new layer 4 ingress route = ./setup.sh layer_4_tcp_udp_add_ingress_route" \
            "Remove layer 4 ingress routes = ./setup.sh layer_4_tcp_udp_manage_routes" \
-           "Exit = exit 2"
+           "Cancel / Go back = exit 2"
 }
 
 get_custom_entrypoints() {

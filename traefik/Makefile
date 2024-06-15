@@ -7,7 +7,7 @@ config-hook: config-menu config-domain compose-profiles
 	@echo "Examine the configured environment file: ${ENV_FILE}"
 
 config-hook-echo-postscript:
-	@echo "Remember to run \`make install\` after all config changes (or choose it in the menu)."
+	@echo "Remember to re-install Traefik after all config changes."
 
 .PHONY: config-menu
 config-menu:
