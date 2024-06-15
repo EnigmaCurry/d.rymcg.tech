@@ -2,9 +2,10 @@
 config: check-instance-project script-wizard check-dist-vars
 	@echo
 	@echo "Configuring environment file: ${ENV_FILE}"
-	@make -e --no-print-directory config-hook override config-hook-echo-postscript instance=${INSTANCE}
+	@make -e --no-print-directory config-hook override instance=${INSTANCE}
+	@make -e --no-print-directory list-targets | grep "^config-hook-echo-postscript$$" >/dev/null && make -e --no-print-directory config-hook-echo-postscript instance=${INSTANCE} || make -e --no-print-directory config-hook-echo-postscript-default instance=${INSTANCE}
 
-config-hook-echo-postscript: # Override this to disable the install hint:
+config-hook-echo-postscript-default: 
 	@echo ""
 	@echo "Remember to run the 'install' command to deploy your changes:"
 	@echo
@@ -65,7 +66,16 @@ status:
 
 .PHONY: logs # Tail all containers logs (set SERVICE=name to filter for one)
 logs:
-	@make --no-print-directory docker-compose-lifecycle-cmd EXTRA_ARGS="logs -f ${service} -t"
+	@make --no-print-directory docker-compose-lifecycle-cmd EXTRA_ARGS="logs -f -t ${service}"
+
+.PHONY: logs-out # Output all containers logs (set SERVICE=name to filter for one)
+logs-out:
+	@make --no-print-directory docker-compose-lifecycle-cmd EXTRA_ARGS="logs -t ${service}"
+
+.PHONY: logs-truncate # Truncate container log (SERVICE=name argument required)
+logs-truncate:
+	@if test "${service}" == ""; then ${BIN}/fault "Missing SERVICE argument."; fi
+	@${BIN}/docker_ssh truncate -s0 "$$(docker inspect --format='{{.LogPath}}' ${PROJECT_NAME}-${service}-1)"
 
 .PHONY: pull # Pull docker images from registry
 pull:
@@ -82,7 +92,7 @@ network-subnet:
 .PHONY: inspect # Inspect the given service (SERVICE=name argument required)
 inspect:
 	@if test "${service}" == ""; then ${BIN}/fault "Missing SERVICE argument."; fi
-	@docker inspect ${PROJECT}-${service}-1  | jq ${JQARGS}
+	@docker inspect ${PROJECT_NAME}-${service}-1  | jq ${JQARGS}
 
 .PHONY: inspect-env # Print the environment variables for the given service 
 inspect-env:

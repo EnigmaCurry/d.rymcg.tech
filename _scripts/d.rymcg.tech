@@ -97,12 +97,6 @@ __create() {
     ${BIN}/create "${PROJECT_NAME}" "${TEMPLATE_REPO}" "./${PROJECT_NAME}"
 }
 
-__ssh() {
-    SSH_HOST=$(docker context inspect --format '{{.Endpoints.docker.Host}}' | sed 's|ssh://||')
-    check_var SSH_HOST
-    (set -x; ssh ${SSH_HOST} $@)
-}
-
 __install_docker() {
     confirm yes "This will install Docker on the host of your remote Docker context."
     d.rymcg.tech ssh 'curl -fsSL https://get.docker.com | sh'
@@ -445,7 +439,7 @@ main() {
             script)
                 __run_script "$@";;
             ssh)
-                __ssh "$@";;
+                docker_ssh "$@";;
             status)
                 __make -- status | sed "s|\./|${ROOT_DIR}/|g";;
             *)

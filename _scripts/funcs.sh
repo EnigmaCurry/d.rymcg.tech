@@ -178,6 +178,12 @@ docker_exec() {
     docker exec --env-file=${ENV_FILE} "$@"
 }
 
+docker_ssh() {
+    SSH_HOST=$(docker context inspect --format '{{.Endpoints.docker.Host}}' | sed 's|ssh://||')
+    check_var SSH_HOST
+    (set -x; ssh ${SSH_HOST} $@)
+}
+
 ytt() {
     set -e
     local IMAGE=localhost/ytt
