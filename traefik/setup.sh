@@ -325,54 +325,98 @@ wireguard() {
               TRAEFIK_VPN_CLIENT_ENABLED=false \
               TRAEFIK_DASHBOARD_ENTRYPOINT_HOST=127.0.0.1 \
               TRAEFIK_NETWORK_MODE=host
+        make --no-print-directory compose-profiles
         set_all_entrypoint_host 0.0.0.0
     }
     set_wireguard_server() {
         ${BIN}/reconfigure ${ENV_FILE} \
               TRAEFIK_VPN_ENABLED=true \
               TRAEFIK_VPN_CLIENT_ENABLED=false \
-              TRAEFIK_DASHBOARD_ENTRYPOINT_HOST=127.0.0.1
+              TRAEFIK_DASHBOARD_ENTRYPOINT_HOST=127.0.0.1 \
+              TRAEFIK_NETWORK_MODE=service:wireguard
         echo
-        case $(wizard choose --numeric \
+        make --no-print-directory compose-profiles
+        local DEFAULT_CHOICE=0
+        if [[ "$(${BIN}/dotenv -f ${ENV_FILE} get TRAEFIK_WEBSECURE_ENTRYPOINT_HOST)" != "0.0.0.0" ]]; then
+            DEFAULT_CHOICE=1
+        fi
+        case $(wizard choose --default ${DEFAULT_CHOICE} --numeric \
                "Should Traefik bind itself exclusively to the VPN interface?" \
                "No, Traefik should work on all interfaces (including the VPN)." \
                "Yes, Traefik should only listen on the VPN interface." \
                "Cancel / Go back.") in
             0)
-                ${BIN}/reconfigure ${ENV_FILE} "TRAEFIK_NETWORK_MODE=host"
                 set_all_entrypoint_host 0.0.0.0
                 ;;
             1)
-                ${BIN}/reconfigure ${ENV_FILE} "TRAEFIK_NETWORK_MODE=service:wireguard"
                 set_all_entrypoint_host $(${BIN}/dotenv -f ${ENV_FILE} get TRAEFIK_VPN_ADDRESS)
                 ;;
             *) return;;
-        esac        
+        esac
+        echo
+        ${BIN}/reconfigure_ask ${ENV_FILE} TRAEFIK_VPN_HOST "Enter the public Traefik VPN hostname" ${ROOT_DOMAIN}
+ 	    ${BIN}/reconfigure_ask ${ENV_FILE} TRAEFIK_VPN_SUBNET "Enter the Traefik VPN private subnet (no mask)"
+ 	    ${BIN}/reconfigure_ask ${ENV_FILE} TRAEFIK_VPN_ADDRESS "Enter the Traefik VPN private IP address" 10.13.16.1
+ 	    ${BIN}/reconfigure_ask ${ENV_FILE} TRAEFIK_VPN_PORT "Enter the Traefik VPN TCP port number"
+        local VPN_PEERS=$(${BIN}/dotenv -f ${ENV_FILE} get TRAEFIK_VPN_PEERS)
+        while
+            ask_no_blank "Enter the Traefik VPN peers list" VPN_PEERS "${VPN_PEERS}"
+            if ! [[ "${VPN_PEERS}" =~ ^[a-zA-Z0-9,]+$ ]]; then
+                echo 
+                echo "Invalid peers list: each peer name must be alphanumeric, no spaces, dashes, underscores etc."
+                echo
+                continue
+            fi
+            false
+        do true; done
+        ${BIN}/reconfigure ${ENV_FILE} \
+              TRAEFIK_VPN_PEERS="${VPN_PEERS}" \
+              TRAEFIK_VPN_ALLOWED_IPS=$(${BIN}/dotenv -f ${ENV_FILE} get TRAEFIK_VPN_SUBNET)/24
     }
     set_wireguard_client() {
         ${BIN}/reconfigure ${ENV_FILE} \
               TRAEFIK_VPN_ENABLED=false \
               TRAEFIK_VPN_CLIENT_ENABLED=true \
-              TRAEFIK_DASHBOARD_ENTRYPOINT_HOST=127.0.0.1
+              TRAEFIK_DASHBOARD_ENTRYPOINT_HOST=127.0.0.1 \
+              TRAEFIK_NETWORK_MODE=service:wireguard-client
         echo
-        case $(wizard choose --numeric \
+        make --no-print-directory compose-profiles
+        local DEFAULT_CHOICE=0
+        if [[ "$(${BIN}/dotenv -f ${ENV_FILE} get TRAEFIK_WEBSECURE_ENTRYPOINT_HOST)" != "0.0.0.0" ]]; then
+            DEFAULT_CHOICE=1
+        fi
+        case $(wizard choose --default ${DEFAULT_CHOICE} --numeric \
                "Should Traefik bind itself exclusively to the VPN interface?" \
-               "No, Traefik should work on all interfaces (including the VPN)." \
+               "No, Traefik should work on all host interfaces (including the VPN)." \
                "Yes, Traefik should only listen on the VPN interface." \
                "Cancel / Go back.") in
             0)
-                ${BIN}/reconfigure ${ENV_FILE} "TRAEFIK_NETWORK_MODE=host"
                 set_all_entrypoint_host 0.0.0.0
                 ;;
             1)
-                ${BIN}/reconfigure ${ENV_FILE} "TRAEFIK_NETWORK_MODE=service:wireguard-client"
                 set_all_entrypoint_host $(${BIN}/dotenv -f ${ENV_FILE} get TRAEFIK_VPN_CLIENT_INTERFACE_ADDRESS)
                 ;;
             *) return;;
         esac
-
-    }    
-    case $(wizard choose --numeric \
+ 	    echo "Scan the QR code for the client credentials printed in the wireguard server's log. Copy the details from the decoded QR code (The first line should be: [Interface]):"
+ 	    ${BIN}/reconfigure_ask ${ENV_FILE} TRAEFIK_VPN_CLIENT_INTERFACE_ADDRESS "Enter the wireguard client Interface Address"
+ 	    ${BIN}/reconfigure_ask ${ENV_FILE} TRAEFIK_VPN_CLIENT_INTERFACE_PRIVATE_KEY "Enter the wireguard PrivateKey (ends with =)"
+ 	    ${BIN}/reconfigure_ask ${ENV_FILE} TRAEFIK_VPN_CLIENT_INTERFACE_LISTEN_PORT "Enter the wireguard listen port" 51820
+ 	    ${BIN}/reconfigure_ask ${ENV_FILE} TRAEFIK_VPN_CLIENT_INTERFACE_PEER_DNS "Enter the wireguard Interface DNS" 10.13.16.1
+ 	    ${BIN}/reconfigure_ask ${ENV_FILE} TRAEFIK_VPN_CLIENT_PEER_PUBLIC_KEY "Enter the Peer PublicKey (ends with =)"
+ 	    ${BIN}/reconfigure_ask ${ENV_FILE} TRAEFIK_VPN_CLIENT_PEER_PRESHARED_KEY "Enter the Peer PresharedKey (ends with =)"
+ 	    ${BIN}/reconfigure_ask ${ENV_FILE} TRAEFIK_VPN_CLIENT_PEER_ENDPOINT "Enter the Peer Endpoint (host:port)"
+ 	    ${BIN}/reconfigure_ask ${ENV_FILE} TRAEFIK_VPN_CLIENT_PEER_ALLOWED_IPS "Enter the Peer AllowedIPs"
+    }
+    local VPN_ENABLED=$(${BIN}/dotenv -f ${ENV_FILE} get TRAEFIK_VPN_ENABLED)
+    local VPN_CLIENT_ENABLED=$(${BIN}/dotenv -f ${ENV_FILE} get TRAEFIK_VPN_CLIENT_ENABLED)
+    local DEFAULT_CHOICE=0
+    if [[ "${VPN_ENABLED}" == "true" ]]; then
+        DEFAULT_CHOICE=1
+    elif [[ "${VPN_CLIENT_ENABLED}" == "true" ]]; then
+        DEFAULT_CHOICE=2
+    fi
+    case $(wizard choose --default ${DEFAULT_CHOICE} --numeric \
            "Should this Traefik instance connect to a wireguard VPN?" \
            "No, Traefik should use the host network directly." \
            "Yes, and this Traefik instance should start the wireguard server." \
@@ -388,8 +432,8 @@ wireguard() {
 
 # wireguard() {
 #     wireguard_server() {
-#         wireguard_disable_client
-#         ${BIN}/reconfigure_ask ${ENV_FILE} TRAEFIK_VPN_HOST "Enter the public Traefik VPN hostname" ${ROOT_DOMAIN}
+#       wireguard_disable_client
+#       ${BIN}/reconfigure_ask ${ENV_FILE} TRAEFIK_VPN_HOST "Enter the public Traefik VPN hostname" ${ROOT_DOMAIN}
 # 	    #${BIN}/reconfigure ${ENV_FILE} TRAEFIK_VPN_ROOT_DOMAIN=${ROOT_DOMAIN}
 # 	    ${BIN}/reconfigure_ask ${ENV_FILE} TRAEFIK_VPN_SUBNET "Enter the Traefik VPN private subnet (no mask)"
 # 	    ${BIN}/reconfigure_ask ${ENV_FILE} TRAEFIK_VPN_ADDRESS "Enter the Traefik VPN private IP address" 10.13.16.1
