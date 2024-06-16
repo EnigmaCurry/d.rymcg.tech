@@ -37,18 +37,14 @@ config() {
     echo
     separator '~~' 60
     wizard menu "Traefik Configuration:" \
-           "Create system user on Docker host = ./setup.sh traefik_user" \
-           "Configure entrypoints (including dashboard) = ./setup.sh entrypoints" \
-           "Configure certificate authorities (CA) = make config-ca" \
-           "Configure ACME (Let's Encrypt or Step-CA) = make config-acme" \
-           "Configure TLS certificates and domains (make certs) = make certs" \
-           "Configure middleware (including auth) = ./setup.sh middleware" \
-           "Configure error page template = ./setup.sh error_pages" \
-           "Configure wireguard VPN = ./setup.sh wireguard" \
-           "Configure layer 7 TLS proxy = ./setup.sh layer_7_tls_proxy" \
-           "Configure layer 4 TCP/UDP proxy = ./setup.sh layer_4_tcp_udp_proxy" \
-           "Configure logging level = ./setup.sh configure_log_level" \
-           "Configure access logs = ./setup.sh configure_access_logs" \
+           "Traefik user = ./setup.sh traefik_user" \
+           "Entrypoints (including dashboard) = ./setup.sh entrypoints" \
+           "TLS certificates and authorities = ./setup.sh config_tls" \
+           "Middleware (including sentry auth) = ./setup.sh middleware" \
+           "Advanced Routing (Layer 7 / Layer 4 / Wireguard) = ./setup.sh routes_menu" \
+           "Error page template = ./setup.sh error_pages" \
+           "Logging level = ./setup.sh configure_log_level" \
+           "Access logs = ./setup.sh configure_access_logs" \
            "Cancel / Go back = exit 2"
 }
 
@@ -311,7 +307,7 @@ layer_7_tls_proxy_get_routes() {
 layer_7_tls_proxy_add_ingress_route() {
     echo "Adding new layer 7 TLS proxy route - "
     echo
-    echo " * Make sure to set your route DNS to point to this Traefik instance."
+    echo " * Make sure to set your route's DNS record to point to this Traefik instance."
     echo " * The public port must be 443, but any destination port can be used."
     echo " * Make sure your backend server provides its own passthrough certificate."
     echo
@@ -458,7 +454,7 @@ layer_4_tcp_udp_add_ingress_route() {
     echo
     echo " * Each layer 4 route requires a unique entrypoint (ie. port)."
     echo " * Before you can create a route, you must create a 'custom entrypoint'."
-    echo " * Make sure to set your route DNS to point to this Traefik instance."
+    echo " * Make sure to set your route's DNS record to point to this Traefik instance."
     echo " * Don't use this for TLS (or HTTPS) - prefer layer 7 proxy instead."
     echo
     local ROUTES=$(${BIN}/dotenv -f ${ENV_FILE} get TRAEFIK_LAYER_4_TCP_UDP_PROXY_ROUTES)
@@ -626,6 +622,24 @@ add_custom_entrypoint() {
     fi
     CUSTOM_ENTRYPOINTS="${CUSTOM_ENTRYPOINTS}${ENTRYPOINT}:${ENTRYPOINT_IP_ADDRESS}:${ENTRYPOINT_PORT}:${PROTOCOL}"
     ${BIN}/reconfigure ${ENV_FILE} "TRAEFIK_CUSTOM_ENTRYPOINTS=${CUSTOM_ENTRYPOINTS}"
+}
+
+routes_menu() {
+    echo
+    wizard menu "Traefik routes" \
+           "Configure layer 7 TLS proxy = ./setup.sh layer_7_tls_proxy" \
+           "Configure layer 4 TCP/UDP proxy = ./setup.sh layer_4_tcp_udp_proxy" \
+           "Configure wireguard VPN = ./setup.sh wireguard" \
+           "Cancel / Go back = exit 2"
+}
+
+
+config_tls() {
+    wizard menu "Traefik TLS config:" \
+           "Configure certificate authorities (CA) = make config-ca" \
+           "Configure ACME (Let's Encrypt or Step-CA) = make config-acme" \
+           "Configure TLS certificates (make certs) = make certs" \
+           "Cancel / Go back = exit 2"
 }
 
 wireguard() {
