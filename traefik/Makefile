@@ -44,19 +44,19 @@ certs:
 config-inspect:
 	@docker compose --env-file ${ENV_FILE} exec traefik sh -c "find /data/config -type f | xargs -iXX sh -c \"echo \#\! XX && cat XX && echo ''\""
 
-.PHONY: shell
+.PHONY: shell # Enter a shell on the container
 shell:
 	@make --no-print-directory docker-compose-shell service=$${service:-$${SERVICE:-traefik}}
 
-.PHONY: shell-root
+.PHONY: shell-root # Enter a shell on the container as root
 shell-root:
 	@make --no-print-directory docker-compose-shell service=$${service:-$${SERVICE:-traefik}} USERNAME=root
 
-.PHONY: show-wireguard-peers
+.PHONY: show-wireguard-peers # Show connection info for wireguard peers
 show-wireguard-peers:
 	docker compose --env-file=${ENV_FILE} exec -it wireguard /bin/sh -c 'ls /config/peer*/*.conf | xargs -iXX sh -c "echo && echo \#\#\ XX && cat XX"'
 
-.PHONY: show-wireguard-peers-qr
+.PHONY: show-wireguard-peers-qr # Show QR codes for wireguard peers
 show-wireguard-peers-qr:
 	docker compose --env-file=${ENV_FILE} exec -it wireguard /bin/sh -c 'ls /config/peer*/*.conf | xargs -iXX sh -c "echo && echo \#\#\ XX && qrencode -t ansiutf8 < XX"'
 

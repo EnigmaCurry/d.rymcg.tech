@@ -5,6 +5,7 @@ volumes:
 services:
   plantuml-server:
     image: jgraph/plantuml-server
+    restart: unless-stopped
     security_opt:
       - no-new-privileges:true
     cap_drop:
@@ -17,6 +18,7 @@ services:
       - fonts_volume:/usr/share/fonts/drawio
   image-export:
     image: jgraph/export-server
+    restart: unless-stopped
     security_opt:
       - no-new-privileges:true
     cap_drop:
@@ -31,6 +33,7 @@ services:
       - DRAWIO_SERVER_URL=${DRAWIO_TRAEFIK_HOST}
   drawio:
     image: jgraph/drawio
+    restart: unless-stopped
     security_opt:
       - no-new-privileges:true
     cap_drop:

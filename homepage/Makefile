@@ -43,7 +43,7 @@ override-hook:
 shell:
 	@make --no-print-directory docker-compose-shell SERVICE=homepage
 
-.PHONY: git-deploy-key
+.PHONY: git-deploy-key # Create deploy key to clone your private config repo
 git-deploy-key: override
 	@docker compose --env-file ${ENV_FILE} --project-name=${PROJECT_NAME} -f docker-compose.yaml -f "docker-compose.override_${DOCKER_CONTEXT}_${INSTANCE}.yaml" run --rm -it homepage /bin/sh -c "mkdir -p /app/config/ssh/ && ssh-keygen -f /app/config/ssh/id_rsa -t rsa -P '' -C 'homepage-deploy-${DOCKER_CONTEXT}_${INSTANCE}'; (test -f /app/config/ssh/id_rsa.pub && echo '' && echo '# Public key fingerprint:' && ssh-keygen -lf /app/config/ssh/id_rsa.pub && echo '' && echo '# Public Deploy Key (Create this as a new deploy key in Gitea/Github repository settings):' && echo '' && cat /app/config/ssh/id_rsa.pub && echo '' || echo 'No public SSH key found.')"
 
