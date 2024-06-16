@@ -58,7 +58,7 @@ show-wireguard-peers-qr:
 
 .PHONY: compose-profiles
 compose-profiles:
-	@${BIN}/reconfigure_compose_profiles ${ENV_FILE} TRAEFIK_PLUGIN_MAXMIND_GEOIP=geoip_update TRAEFIK_VPN_ENABLED=wireguard TRAEFIK_VPN_CLIENT_ENABLED=wireguard-client
+	@${BIN}/reconfigure_compose_profiles ${ENV_FILE} TRAEFIK_PLUGIN_MAXMIND_GEOIP=geoip_update TRAEFIK_VPN_ENABLED=wireguard TRAEFIK_VPN_CLIENT_ENABLED=wireguard-client TRAEFIK_ERROR_PAGES_ENABLED=error-pages
 
 .PHONY: wireguard-reset
 wireguard-reset:

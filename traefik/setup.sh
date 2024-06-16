@@ -13,11 +13,12 @@ source ${BIN}/funcs.sh
 set -e
 
 main_menu() {
+    clear
     base_config
     separator '###' 60 "Traefik Config"    
-    wizard menu "Traefik:" \
+    wizard menu "Main menu:" \
            "Config = ./setup.sh config" \
-           "Install (make install) = make install" \
+           "Install (make install) = make compose-profiles install" \
            "Admin = ./setup.sh admin" \
            "Exit = exit 2"
 }
@@ -28,13 +29,14 @@ base_config() {
 }
 
 config() {
+    clear
     echo "During first time setup, you must complete the following tasks:"
     echo
-    echo " * Create traefik system user on Docker host"
-    echo " * Configure ACME"
-    echo " * Configure TLS certificates"
-    echo " * Install traefik"
+    echo " * Create Traefik user."
+    echo " * Configure TLS certificates and ACME (optional)."
+    echo " * Install traefik."
     echo
+    echo "Traefik must be re-installed to apply any changes."
     separator '~~' 60
     wizard menu "Traefik Configuration:" \
            "Traefik user = ./setup.sh traefik_user" \
@@ -262,8 +264,17 @@ config_entrypoint() {
 }
 
 error_pages() {
-    TRAEFIK_ERROR_PAGES_TEMPLATE="$(${BIN}/dotenv -f ${ENV_FILE} get TRAEFIK_ERROR_PAGES_TEMPLATE)"
-    ${BIN}/reconfigure ${ENV_FILE} TRAEFIK_ERROR_PAGES_TEMPLATE="$(${BIN}/script-wizard choose --default ${TRAEFIK_ERROR_PAGES_TEMPLATE:-l7-light}  'Select an error page theme (https://github.com/tarampampam/error-pages#-templates)' ghost l7-light l7-dark shuffle noise hacker-terminal cats lost-in-space app-down connection matrix orient)"
+    echo
+    echo "## See https://github.com/tarampampam/error-pages"
+    echo
+    local ENABLED=$(${BIN}/dotenv -f ${ENV_FILE} get TRAEFIK_ERROR_PAGES_ENABLED)
+    if ${BIN}/confirm "${ENABLED}" "Do you want to enable the default error page template" "?"; then
+        ${BIN}/reconfigure ${ENV_FILE} "TRAEFIK_ERROR_PAGES_ENABLED=true"
+        TRAEFIK_ERROR_PAGES_TEMPLATE="$(${BIN}/dotenv -f ${ENV_FILE} get TRAEFIK_ERROR_PAGES_TEMPLATE)"
+        ${BIN}/reconfigure ${ENV_FILE} TRAEFIK_ERROR_PAGES_TEMPLATE="$(${BIN}/script-wizard choose --default ${TRAEFIK_ERROR_PAGES_TEMPLATE:-l7-light}  'Select an error page theme (https://github.com/tarampampam/error-pages#-templates)' ghost l7-light l7-dark shuffle noise hacker-terminal cats lost-in-space app-down connection matrix orient)"
+    else
+        ${BIN}/reconfigure ${ENV_FILE} "TRAEFIK_ERROR_PAGES_ENABLED=false"
+    fi
 }
 
 if [[ "$#" -lt 1 ]]; then
@@ -734,7 +745,6 @@ wireguard() {
  	    ${BIN}/reconfigure_ask ${ENV_FILE} TRAEFIK_VPN_CLIENT_INTERFACE_ADDRESS "Enter the wireguard client Interface Address"
  	    ${BIN}/reconfigure_ask ${ENV_FILE} TRAEFIK_VPN_CLIENT_INTERFACE_PRIVATE_KEY "Enter the wireguard PrivateKey (ends with =)"
  	    ${BIN}/reconfigure_ask ${ENV_FILE} TRAEFIK_VPN_CLIENT_INTERFACE_LISTEN_PORT "Enter the wireguard listen port" 51820
- 	    ${BIN}/reconfigure_ask ${ENV_FILE} TRAEFIK_VPN_CLIENT_INTERFACE_PEER_DNS "Enter the wireguard Interface DNS" 10.13.16.1
  	    ${BIN}/reconfigure_ask ${ENV_FILE} TRAEFIK_VPN_CLIENT_PEER_PUBLIC_KEY "Enter the Peer PublicKey (ends with =)"
  	    ${BIN}/reconfigure_ask ${ENV_FILE} TRAEFIK_VPN_CLIENT_PEER_PRESHARED_KEY "Enter the Peer PresharedKey (ends with =)"
  	    ${BIN}/reconfigure_ask ${ENV_FILE} TRAEFIK_VPN_CLIENT_PEER_ENDPOINT "Enter the Peer Endpoint (host:port)"

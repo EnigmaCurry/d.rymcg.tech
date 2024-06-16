@@ -580,6 +580,11 @@ confirm() {
     if [[ -f ${BIN}/script-wizard ]]; then
         ## Check if script-wizard is installed, and prefer to use that:
         local exit_code=0
+        if [[ $default == "y" || $default == "true" ]]; then
+            default="yes"
+        elif [[ $default == "n" || $default == "false" ]]; then
+            default="no"
+        fi
         wizard confirm --cancel-code=2 "$prompt$question" "$default" && exit_code=$? || exit_code=$?
         if [[ "${exit_code}" == "2" ]]; then
             cancel
@@ -587,7 +592,7 @@ confirm() {
         return ${exit_code}
     else
         ## Otherwise use a pure bash version:
-        if [[ $default == "y" || $default == "yes" || $default == "ok" ]]; then
+        if [[ $default == "y" || $default == "yes" || $default == "true" ]]; then
             dflt="Y/n"
         else
             dflt="y/N"
@@ -596,7 +601,7 @@ confirm() {
         read -e -p "${prompt}${question} (${dflt}): " answer
         answer=${answer:-${default}}
 
-        if [[ ${answer,,} == "y" || ${answer,,} == "yes" || ${answer,,} == "ok" ]]; then
+        if [[ ${answer,,} == "y" || ${answer,,} == "yes" || ${answer,,} == "true" ]]; then
             return 0
         else
             return 1
