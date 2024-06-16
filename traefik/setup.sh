@@ -14,30 +14,11 @@ set -e
 
 main_menu() {
     base_config
-    separator '###' 60 "Traefik Config"
-    echo "During first time setup, you must complete the following tasks:"
-    echo
-    echo " * Create traefik system user on Docker host"
-    echo " * Configure ACME"
-    echo " * Configure TLS certificates"
-    echo " * Install traefik"
-    echo
-
-    separator '~~' 60
-
-    wizard menu "Traefik config main menu:" \
-           "Create system user on Docker host = ./setup.sh traefik_user" \
-           "Configure entrypoints (including dashboard) = ./setup.sh entrypoints" \
-           "Configure Certificate Authorities (CA) = make config-ca" \
-           "Configure ACME (Let's Encrypt or Step-CA) = make config-acme" \
-           "Configure TLS certificates and domains (make certs) = make certs" \
-           "Configure middleware (including auth) = ./setup.sh middleware" \
-           "Configure error page template = ./setup.sh error_pages" \
-           "Configure wireguard VPN = ./setup.sh wireguard" \
-           "Configure layer 7 TLS Proxy = ./setup.sh layer_7_tls_proxy" \
-           "Configure layer 4 TCP/UDP Proxy = ./setup.sh layer_4_tcp_udp_proxy" \
-           "Reinstall Traefik (make install) = make install" \
-           "Administration functions = ./setup.sh admin" \
+    separator '###' 60 "Traefik Config"    
+    wizard menu "Traefik:" \
+           "Config = ./setup.sh config" \
+           "Install (make install) = make install" \
+           "Admin = ./setup.sh admin" \
            "Exit = exit 2"
 }
 
@@ -46,21 +27,71 @@ base_config() {
     test -f ${ENV_FILE} || cp .env-dist ${ENV_FILE}
 }
 
-admin() {
-    wizard menu "Traefik Admin:" \
-           "Check status = make status" \
-           "Review Traefik logs (Q to quit) = make logs-out service=traefik | less +G" \
-           "Review config logs (Q to quit) = make logs-out service=config | less +G" \
-           "Set logging level = ./setup.sh log_level" \
-           "Uninstall Traefik (keeps data) = make uninstall" \
-           "Reinstall Traefik (forced) = make reinstall" \
-           "Enter traefik container shell = make shell service=traefik" \
-           "Enter wireguard server shell = make shell service=wireguard" \
-           "Enter wireguard client shell = make shell service=wireguard-client" \
+config() {
+    echo "During first time setup, you must complete the following tasks:"
+    echo
+    echo " * Create traefik system user on Docker host"
+    echo " * Configure ACME"
+    echo " * Configure TLS certificates"
+    echo " * Install traefik"
+    echo
+    separator '~~' 60
+    wizard menu "Traefik Configuration:" \
+           "Create system user on Docker host = ./setup.sh traefik_user" \
+           "Configure entrypoints (including dashboard) = ./setup.sh entrypoints" \
+           "Configure certificate authorities (CA) = make config-ca" \
+           "Configure ACME (Let's Encrypt or Step-CA) = make config-acme" \
+           "Configure TLS certificates and domains (make certs) = make certs" \
+           "Configure middleware (including auth) = ./setup.sh middleware" \
+           "Configure error page template = ./setup.sh error_pages" \
+           "Configure wireguard VPN = ./setup.sh wireguard" \
+           "Configure layer 7 TLS proxy = ./setup.sh layer_7_tls_proxy" \
+           "Configure layer 4 TCP/UDP proxy = ./setup.sh layer_4_tcp_udp_proxy" \
+           "Configure logging level = ./setup.sh configure_log_level" \
+           "Configure access logs = ./setup.sh configure_access_logs" \
            "Cancel / Go back = exit 2"
 }
 
-log_level() {
+admin() {
+    wizard menu "Traefik Admin:" \
+           "Review logs = ./setup.sh logs" \
+           "Manage containers = ./setup.sh manage_containers" \
+           "Show wireguard peer config = make show-wireguard-peers" \
+           "Cancel / Go back = exit 2"
+}
+
+shell_menu() {
+    wizard menu "Enter shell:" \
+           "Enter traefik shell = make shell service=traefik" \
+           "Enter wireguard server shell = make shell service=wireguard" \
+           "Enter wireguard client shell = make shell service=wireguard-client" \
+           "Cancel / Go back = exit 2"    
+}
+
+manage_containers() {
+    wizard menu "Traefik Container Management:" \
+           "Container status = make status" \
+           "Container shell = ./setup.sh shell_menu" \
+           "Uninstall Traefik (keeps data) = make uninstall" \
+           "Reinstall Traefik (forced) = make reinstall" \
+           "Destroy Traefik (uninstall and remove all data) = make destroy" \
+           "Cancel / Go back = exit 2"    
+}
+
+logs() {
+    echo
+    echo "## Note: This menu can only show log snapshots, it cannot follow live logs."
+    echo "## For live logging, try the commands shown in parentheses instead (by hand)."
+    wizard menu "Traefik Logs:" \
+           "Review Traefik logs (Q to quit) (make logs service=traefik) = make logs-out service=traefik | less -r +G" \
+           "Review config logs (Q to quit) (make logs service=config) = make logs-out service=config | less -r +G" \
+           "Review wireguard logs (Q to quit) (make logs service=wireguard) = make logs-out service=wireguard | less -r +G" \
+           "Review wireguard-client logs (Q to quit) (make logs service=wireguard-client) = make logs-out service=wireguard-client | less -r +G" \
+           "Review access logs (Q to quit) (make logs-access) = make logs-access-out | less -r +G" \
+           "Cancel / Go back = exit 2"    
+}
+
+configure_log_level() {
     local LOG_LEVELS=(error, warn, info, debug)
     local default=1
     local log_level="$(${BIN}/dotenv -f ${ENV_FILE} get TRAEFIK_LOG_LEVEL)"
@@ -76,6 +107,20 @@ log_level() {
            "info - show info, warnings, and errors. = ${BIN}/reconfigure ${ENV_FILE} TRAEFIK_LOG_LEVEL=info" \
            "debug - show debug, info, warnings, and errors. = ${BIN}/reconfigure ${ENV_FILE} TRAEFIK_LOG_LEVEL=debug" \
            "Cancel / Go back = exit 2"
+}
+
+configure_access_logs() {
+    local access_logs_enabled="$(${BIN}/dotenv -f ${ENV_FILE} get TRAEFIK_ACCESS_LOGS_ENABLED)"
+    local enabled_default=no
+    if [[ "${access_logs_enabled}" == "true" ]]; then
+        enabled_default=yes
+    fi
+    if ${BIN}/confirm "${enabled_default}" "Do you want to enable the access log" "?"
+    then
+        ${BIN}/reconfigure ${ENV_FILE} "TRAEFIK_ACCESS_LOGS_ENABLED=true"
+    else
+        ${BIN}/reconfigure ${ENV_FILE} "TRAEFIK_ACCESS_LOGS_ENABLED=false"
+    fi
 }
 
 traefik_user() {
@@ -130,9 +175,11 @@ traefik_uid() {
 get_all_entrypoints() {
     sed -n "s/^.*TRAEFIK_\s*\(\S*\)_ENTRYPOINT_ENABLED=.*$/\1/p" .env-dist | tr '[:upper:]' '[:lower:]'
 }
-
 get_enabled_entrypoints() {
-    readarray -t entrypoints < <(sed -n "s/^.*TRAEFIK_\s*\(\S*\)_ENTRYPOINT_ENABLED=true$/\1/p" "${ENV_FILE}" | tr '[:upper:]' '[:lower:]')
+    sed -n "s/^.*TRAEFIK_\s*\(\S*\)_ENTRYPOINT_ENABLED=true$/\1/p" "${ENV_FILE}" | tr '[:upper:]' '[:lower:]'
+}
+list_enabled_entrypoints() {
+    readarray -t entrypoints < <(get_enabled_entrypoints)
     (
         echo -e "Entrypoint\tListen_address\tListen_port\tProtocol"
         echo -e "----------\t--------------\t-----------\t--------"
@@ -143,7 +190,7 @@ get_enabled_entrypoints() {
                 local port="$(${BIN}/dotenv -f ${ENV_FILE} get TRAEFIK_${ENTRYPOINT}_ENTRYPOINT_PORT)"
                 echo "${e} ${host} ${port} tcp"
             done
-            get_custom_entrypoints
+            list_custom_entrypoints
         ) | sort -u
     ) | column -t
     echo
@@ -153,11 +200,13 @@ get_enabled_entrypoints() {
 }
 
 entrypoints() {
-    get_enabled_entrypoints
+    list_enabled_entrypoints
     wizard menu "Traefik entrypoint config" \
-           "Show enabled entrypoints = ./setup.sh get_enabled_entrypoints" \
+           "Show enabled entrypoints = ./setup.sh list_enabled_entrypoints" \
            "Configure stock entrypoints = ./setup.sh config_list_entrypoints" \
-           "Configure custom entrypoints = ./setup.sh custom_entrypoints"
+           "Configure custom entrypoints = ./setup.sh custom_entrypoints" \
+           "Cancel / Go back = exit 2"
+
 }
 
 config_list_entrypoints() {
@@ -228,7 +277,8 @@ fi
 middleware() {
     wizard menu "Traefik middleware config:" \
            "MaxMind geoIP locator = ./setup.sh maxmind_geoip" \
-           "OAuth2 sentry authorization (make sentry) = make sentry"
+           "OAuth2 sentry authorization (make sentry) = make sentry" \
+           "Cancel / Go back = exit 2"
 }
 
 maxmind_geoip() {
@@ -251,10 +301,10 @@ layer_7_tls_proxy_get_routes() {
     local ENABLED=$(${BIN}/dotenv -f ${ENV_FILE} get TRAEFIK_LAYER_7_TLS_PROXY_ENABLED)
     local ROUTES=$(${BIN}/dotenv -f ${ENV_FILE} get TRAEFIK_LAYER_7_TLS_PROXY_ROUTES)
     if [ "${ENABLED}" != "true" ] || [ -z "${ROUTES}" ]; then
-        echo "## No routes defined." >/dev/stderr
+        echo "## No layer 7 routes defined." >/dev/stderr
         return
     fi
-    echo "## Configured Routes:" >/dev/stderr
+    echo "## Configured Layer 7 Routes:" >/dev/stderr
     (echo "${ROUTES}" | tr ',' '\n' | sed 's/:/\t/g' | sort -u) | column -t
 }
 
@@ -364,7 +414,7 @@ custom_entrypoints() {
     echo "## Custom Entrypoints can add new TCP or UDP port bindings."
     echo
     wizard menu "Custom Entrypoints:" \
-           "List custom entrypoints = ./setup.sh get_custom_entrypoints" \
+           "List custom entrypoints = ./setup.sh list_custom_entrypoints" \
            "Add new custom entrypoint = ./setup.sh add_custom_entrypoint" \
            "Remove custom entrypoints = ./setup.sh manage_custom_entrypoints" \
            "Cancel / Go back = exit 2"
@@ -373,14 +423,119 @@ custom_entrypoints() {
 layer_4_tcp_udp_proxy() {
     echo "## Layer 4 TCP/UDP Proxy can forward traffic to other machines."
     echo
+    layer_4_tcp_udp_list_routes
     wizard menu "Layer 4 TCP/UDP Proxy:" \
-           "List layer 4 ingress routes = ./setup.sh layer_4_tcp_udp_get_routes" \
+           "List layer 4 ingress routes = ./setup.sh layer_4_tcp_udp_list_routes" \
            "Add new layer 4 ingress route = ./setup.sh layer_4_tcp_udp_add_ingress_route" \
-           "Remove layer 4 ingress routes = ./setup.sh layer_4_tcp_udp_manage_routes" \
+           "Remove layer 4 ingress routes = ./setup.sh layer_4_tcp_udp_proxy_manage_ingress_routes" \
            "Cancel / Go back = exit 2"
 }
 
+layer_4_tcp_udp_list_routes() {
+    local ROUTES="$(layer_4_tcp_udp_get_routes)"
+    if [[ -z "${ROUTES}" ]]; then
+        return
+    fi
+    ( echo "## Configured Layer 4 Routes:" >/dev/stderr
+      echo -e "Entrypoint\tDestination_address\tDestination_port"
+      echo -e "----------\t-------------------\t----------------"
+      echo "${ROUTES}" ) \
+        | column -t
+}
+
+layer_4_tcp_udp_get_routes() {
+    local ENABLED=$(${BIN}/dotenv -f ${ENV_FILE} get TRAEFIK_LAYER_4_TCP_UDP_PROXY_ENABLED)
+    local ROUTES=$(${BIN}/dotenv -f ${ENV_FILE} get TRAEFIK_LAYER_4_TCP_UDP_PROXY_ROUTES)
+    if [ "${ENABLED}" != "true" ] || [ -z "${ROUTES}" ]; then
+        echo "## No layer 4 routes defined." >/dev/stderr
+        return
+    fi
+    echo "${ROUTES}" | tr ',' '\n' | sed 's/:/\t/g' | sort -u
+}
+
+layer_4_tcp_udp_add_ingress_route() {
+    echo "Adding new layer 4 TCP/UDP proxy route - "
+    echo
+    echo " * Each layer 4 route requires a unique entrypoint (ie. port)."
+    echo " * Before you can create a route, you must create a 'custom entrypoint'."
+    echo " * Make sure to set your route DNS to point to this Traefik instance."
+    echo " * Don't use this for TLS (or HTTPS) - prefer layer 7 proxy instead."
+    echo
+    local ROUTES=$(${BIN}/dotenv -f ${ENV_FILE} get TRAEFIK_LAYER_4_TCP_UDP_PROXY_ROUTES)
+    readarray -t entrypoints < <(get_enabled_entrypoints | grep -v '^web$' | grep -v '^websecure$' | grep -v '^dashboard$')
+    readarray -t -O"${#entrypoints[@]}" entrypoints < <(get_custom_entrypoints)
+    readarray -t used_entrypoints < <(echo ${ROUTES} | tr ',' '\n' | cut -d: -f1 | grep -v "^$")
+    readarray -t unused_entrypoints < <(comm -3 <(printf "%s\n" "${entrypoints[@]}" | sort | grep -v "^$") <(printf "%s\n" "${used_entrypoints[@]}" | sort | grep -v "^$") | sort -n)
+
+    # debug_array entrypoints
+    # debug_array used_entrypoints
+    # debug_array unused_entrypoints
+    if [[ "${#unused_entrypoints[@]}" == 0 ]]; then
+        echo
+        echo "## Error: No unused entrypoints exist."
+        echo "## You must create a new custom entrypoint first."
+        echo
+        return
+    fi
+    local ENTRYPOINT=$(wizard choose "Entrypoint" "${unused_entrypoints[@]}")
+    while
+        ask_no_blank "Enter the destination IP address to forward to:" ROUTE_IP_ADDRESS 10.13.16.2
+        if ! validate_ip_address ${ROUTE_IP_ADDRESS}; then
+            echo "Invalid IP address."
+            continue
+        fi
+        false
+    do true; done
+    echo
+    local DEFAULT_PORT=$(${BIN}/dotenv -f ${ENV_FILE} get TRAEFIK_${ENTRYPOINT^^}_ENTRYPOINT_PORT || (${BIN}/dotenv -f ${ENV_FILE} get TRAEFIK_CUSTOM_ENTRYPOINTS | tr ',' '\n' | grep "^${ENTRYPOINT}:" | cut -d: -f3))
+    while
+        ask_no_blank "Enter the destination TCP port to forward to:" ROUTE_PORT "${DEFAULT_PORT}"
+        if ! [[ ${ROUTE_PORT} =~ ^[0-9]+$ ]] ; then
+            echo "Port is invalid."
+            continue
+        fi
+        false
+    do true; done
+    echo
+    if [[ -n "${ROUTES}" ]]; then
+        ROUTES="${ROUTES},"
+    fi
+    ROUTES="${ROUTES}${ENTRYPOINT}:${ROUTE_IP_ADDRESS}:${ROUTE_PORT}"
+    ${BIN}/reconfigure ${ENV_FILE} "TRAEFIK_LAYER_4_TCP_UDP_PROXY_ROUTES=${ROUTES}"
+    layer_4_tcp_udp_list_routes    
+}
+
+layer_4_tcp_udp_proxy_manage_ingress_routes() {
+    mapfile -t routes < <( layer_4_tcp_udp_get_routes )
+    debug_array routes
+    if [[ "${#routes[@]}" == 0 ]]; then
+        return
+    fi
+    mapfile -t to_delete < <(wizard select "Select routes to DELETE:" "${routes[@]}")
+    if [[ "${#to_delete[@]}" == 0 ]]; then
+        return
+    fi
+    debug_array to_delete
+    echo
+    if confirm no "Do you really want to delete these routes" "?"; then
+        local ROUTES_TMP=$(mktemp)
+        local TO_DELETE_TMP=$(mktemp)
+        local ROUTES_EDIT=$(mktemp)
+        (IFS=$'\n'; echo "${routes[*]}") | sort -u > "${ROUTES_TMP}"
+        (IFS=$'\n'; echo "${to_delete[*]}") | sort -u > "${TO_DELETE_TMP}"
+        local ROUTES=$(comm -23 "${ROUTES_TMP}" "${TO_DELETE_TMP}" | tr '\t' ':' | tr '\n' ',' | sed 's/,\{1,\}/,/g' | sed 's/^,*//;s/,*$//')
+        ${BIN}/reconfigure ${ENV_FILE} "TRAEFIK_LAYER_4_TCP_UDP_PROXY_ROUTES=${ROUTES}"
+    fi
+    echo
+    layer_4_tcp_udp_list_routes
+}
+
 get_custom_entrypoints() {
+    local ENTRYPOINTS=$(${BIN}/dotenv -f ${ENV_FILE} get TRAEFIK_CUSTOM_ENTRYPOINTS)
+    (echo "${ENTRYPOINTS}" | tr ',' '\n' | cut -d: -f1 | sort -u)
+}
+
+list_custom_entrypoints() {
     local ENTRYPOINTS=$(${BIN}/dotenv -f ${ENV_FILE} get TRAEFIK_CUSTOM_ENTRYPOINTS)
     if [ -z "${ENTRYPOINTS}" ]; then
         #echo "## No custom entrypoints defined." >/dev/stderr
@@ -388,7 +543,6 @@ get_custom_entrypoints() {
     fi
     (echo "${ENTRYPOINTS}" | tr ',' '\n' | sed 's/:/\t/g' | sort -u) | column -t
 }
-
 
 manage_custom_entrypoints() {
     local CUSTOM_ENTRYPOINTS=$(${BIN}/dotenv -f ${ENV_FILE} get TRAEFIK_CUSTOM_ENTRYPOINTS)
@@ -413,7 +567,7 @@ manage_custom_entrypoints() {
         ${BIN}/reconfigure ${ENV_FILE} "TRAEFIK_CUSTOM_ENTRYPOINTS=${ENTRYPOINTS}"
     fi
     echo
-    get_custom_entrypoints
+    list_custom_entrypoints
 }
 
 
@@ -589,7 +743,7 @@ wireguard() {
         0) set_public_no_wireguard;;
         1) set_wireguard_server;;
         2) set_wireguard_client;;
-        3) exit 2;;
+        3) return;;
         *) fault "Wizard choose overflow!?";;
     esac
 }

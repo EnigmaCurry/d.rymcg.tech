@@ -19,7 +19,7 @@ config-domain:
 
 .PHONY: config-acme
 config-acme:
-	@${BIN}/reconfigure_acme ${ENV_FILE} main
+	@${BIN}/reconfigure_acme ${ENV_FILE} main || true
 
 .PHONY: config-ca
 config-ca:
@@ -74,7 +74,11 @@ logs-traefik:
 
 .PHONY: logs-access # Tail the access logs
 logs-access:
-	@docker compose --env-file ${ENV_FILE} --profile default exec -it traefik sh -c 'tail -f /data/access.log | jq'
+	@docker compose --env-file ${ENV_FILE} --profile "$(${BIN}/dotenv -f ${ENV_FILE} get DOCKER_COMPOSE_PROFILES)" exec -it traefik sh -c 'tail -f /data/access.log | jq -c'
+
+.PHONY: logs-access-out
+logs-access-out:
+	@docker compose --env-file ${ENV_FILE} --profile "$(${BIN}/dotenv -f ${ENV_FILE} get DOCKER_COMPOSE_PROFILES)" exec -it traefik sh -c 'tail -n 10000 /data/access.log | jq -c'
 
 .PHONY: debug # Restart Traefik with debug logging for one time only
 debug:
