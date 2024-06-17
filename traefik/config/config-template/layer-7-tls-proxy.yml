@@ -8,10 +8,14 @@
 tcp:
   services:
     #@ for route in tls_proxy_routes.split(","):
-    #@ domain, ip_address, port = route.split(":")
+    #@ domain, ip_address, port, proxy_protocol = route.split(":")
     #@ service = domain.replace(".","-")
     (@= service @)-proxy:
       loadBalancer:
+        #@ if int(proxy_protocol) > 0:
+        proxyProtocol:
+          version: #@ proxy_protocol
+        #@ end
         servers:
           - address: "(@= ip_address @):(@= port @)"
     #@ end

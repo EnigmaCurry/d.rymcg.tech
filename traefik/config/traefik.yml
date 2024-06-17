@@ -135,6 +135,13 @@ entryPoints:
   #@ if data.values.websecure_entrypoint_enabled == "true":
   websecure:
     address: #@ data.values.websecure_entrypoint_host + ":" + data.values.websecure_entrypoint_port
+    #@ if len(data.values.websecure_entrypoint_proxy_protocol_trusted_ips.strip()):
+    proxyProtocol:
+      trustedIPs:
+        #@ for allowed_net in data.values.websecure_entrypoint_proxy_protocol_trusted_ips.split(","):
+        - "(@= allowed_net @)"
+        #@ end
+    #@ end
     http:
       tls:
         #@ if data.values.acme_enabled == "true":
@@ -163,18 +170,46 @@ entryPoints:
   #@ if data.values.xmpp_c2s_entrypoint_enabled == "true":
   xmpp_c2s:
     address: #@ data.values.xmpp_c2s_entrypoint_host + ":" + data.values.xmpp_c2s_entrypoint_port
+    #@ if len(data.values.xmpp_c2s_entrypoint_proxy_protocol_trusted_ips.strip()):
+    proxyProtocol:
+      trustedIPs:
+        #@ for allowed_net in data.values.xmpp_c2s_entrypoint_proxy_protocol_trusted_ips.split(","):
+        - "(@= allowed_net @)"
+        #@ end
+    #@ end
   #@ end
   #@ if data.values.xmpp_s2s_entrypoint_enabled == "true":
   xmpp_s2s:
     address: #@ data.values.xmpp_s2s_entrypoint_host + ":" + data.values.xmpp_s2s_entrypoint_port
+    #@ if len(data.values.xmpp_s2s_entrypoint_proxy_protocol_trusted_ips.strip()):
+    proxyProtocol:
+      trustedIPs:
+        #@ for allowed_net in data.values.xmpp_s2s_entrypoint_proxy_protocol_trusted_ips.split(","):
+        - "(@= allowed_net @)"
+        #@ end
+    #@ end
   #@ end
   #@ if data.values.mqtt_entrypoint_enabled == "true":
   mqtt:
     address: #@ data.values.mqtt_entrypoint_host + ":" + data.values.mqtt_entrypoint_port
+    #@ if len(data.values.mqtt_entrypoint_proxy_protocol_trusted_ips.strip()):
+    proxyProtocol:
+      trustedIPs:
+        #@ for allowed_net in data.values.mqtt_entrypoint_proxy_protocol_trusted_ips.split(","):
+        - "(@= allowed_net @)"
+        #@ end
+    #@ end
   #@ end
   #@ if data.values.ssh_entrypoint_enabled == "true":
   ssh:
     address: #@ data.values.ssh_entrypoint_host + ":" + data.values.ssh_entrypoint_port
+    #@ if len(data.values.ssh_entrypoint_proxy_protocol_trusted_ips.strip()):
+    proxyProtocol:
+      trustedIPs:
+        #@ for allowed_net in data.values.ssh_entrypoint_proxy_protocol_trusted_ips.split(","):
+        - "(@= allowed_net @)"
+        #@ end
+    #@ end
   #@ end
   #@ if data.values.dashboard_entrypoint_enabled == "true":
   traefik:
@@ -183,22 +218,57 @@ entryPoints:
   #@ if data.values.mpd_entrypoint_enabled == "true":
   mpd:
     address: #@ data.values.mpd_entrypoint_host + ":" + data.values.mpd_entrypoint_port
+    #@ if len(data.values.mpd_entrypoint_proxy_protocol_trusted_ips.strip()):
+    proxyProtocol:
+      trustedIPs:
+        #@ for allowed_net in data.values.mpd_entrypoint_proxy_protocol_trusted_ips.split(","):
+        - "(@= allowed_net @)"
+        #@ end
+    #@ end
   #@ end
   #@ if data.values.snapcast_entrypoint_enabled == "true":
   snapcast:
     address: #@ data.values.snapcast_entrypoint_host + ":" + data.values.snapcast_entrypoint_port
+    #@ if len(data.values.snapcast_entrypoint_proxy_protocol_trusted_ips.strip()):
+    proxyProtocol:
+      trustedIPs:
+        #@ for allowed_net in data.values.snapcast_entrypoint_proxy_protocol_trusted_ips.split(","):
+        - "(@= allowed_net @)"
+        #@ end
+    #@ end
   #@ end
   #@ if data.values.snapcast_control_entrypoint_enabled == "true":
   snapcast_control:
     address: #@ data.values.snapcast_control_entrypoint_host + ":" + data.values.snapcast_control_entrypoint_port
+    #@ if len(data.values.snapcast_control_entrypoint_proxy_protocol_trusted_ips.strip()):
+    proxyProtocol:
+      trustedIPs:
+        #@ for allowed_net in data.values.snapcast_control_entrypoint_proxy_protocol_trusted_ips.split(","):
+        - "(@= allowed_net @)"
+        #@ end
+    #@ end
   #@ end
   #@ if data.values.redis_entrypoint_enabled == "true":
   redis:
     address: #@ data.values.redis_entrypoint_host + ":" + data.values.redis_entrypoint_port
+    #@ if len(data.values.redis_entrypoint_proxy_protocol_trusted_ips.strip()):
+    proxyProtocol:
+      trustedIPs:
+        #@ for allowed_net in data.values.redis_entrypoint_proxy_protocol_trusted_ips.split(","):
+        - "(@= allowed_net @)"
+        #@ end
+    #@ end
   #@ end
   #@ if data.values.web_plain_entrypoint_enabled == "true":
   web_plain:
     address: #@ data.values.web_plain_entrypoint_host + ":" + data.values.web_plain_entrypoint_port
+    #@ if len(data.values.web_plain_entrypoint_proxy_protocol_trusted_ips.strip()):
+    proxyProtocol:
+      trustedIPs:
+        #@ for allowed_net in data.values.web_plain_entrypoint_proxy_protocol_trusted_ips.split(","):
+        - "(@= allowed_net @)"
+        #@ end
+    #@ end
     http:
       middlewares:
         - strip-headers@file

@@ -315,6 +315,19 @@ layer_7_tls_proxy_get_routes() {
     (echo "${ROUTES}" | tr ',' '\n' | sed 's/:/\t/g' | sort -u) | column -t
 }
 
+layer_7_tls_proxy_list_routes() {
+    local ROUTES="$(layer_7_tls_proxy_get_routes)"
+    if [[ -z "${ROUTES}" ]]; then
+        return
+    fi
+    ( 
+      echo -e "Entrypoint\tDestination_address\tDestination_port\tProxy_protocol"
+      echo -e "----------\t-------------------\t----------------\t--------------"
+      echo "${ROUTES}" ) \
+        | column -t
+}
+
+
 layer_7_tls_proxy_add_ingress_route() {
     echo "Adding new layer 7 TLS proxy route - "
     echo
@@ -351,11 +364,19 @@ layer_7_tls_proxy_add_ingress_route() {
         fi
         false
     do true; done
+    local ROUTE_PROXY_PROTOCOL=0
+    echo "##"
+    echo "## See https://www.haproxy.org/download/2.0/doc/proxy-protocol.txt"
+    echo
+    if confirm no "Do you want to enable Proxy Protocol for this route" "?"; then
+        ROUTE_PROXY_PROTOCOL=2
+    fi
+
     local ROUTES=$(${BIN}/dotenv -f ${ENV_FILE} get TRAEFIK_LAYER_7_TLS_PROXY_ROUTES)
     if [[ -n "${ROUTES}" ]]; then
         ROUTES="${ROUTES},"
     fi
-    ROUTES="${ROUTES}${ROUTE_DOMAIN}:${ROUTE_IP_ADDRESS}:${ROUTE_PORT}"
+    ROUTES="${ROUTES}${ROUTE_DOMAIN}:${ROUTE_IP_ADDRESS}:${ROUTE_PORT}:${ROUTE_PROXY_PROTOCOL}"
     ${BIN}/reconfigure ${ENV_FILE} "TRAEFIK_LAYER_7_TLS_PROXY_ROUTES=${ROUTES}"
 }
 
@@ -380,7 +401,7 @@ layer_7_tls_proxy_manage_ingress_routes() {
         ${BIN}/reconfigure ${ENV_FILE} "TRAEFIK_LAYER_7_TLS_PROXY_ROUTES=${ROUTES}"
     fi
     echo
-    layer_7_tls_proxy_get_routes
+    layer_7_tls_proxy_list_routes
 }
 
 layer_7_tls_proxy_disable() {
@@ -402,9 +423,9 @@ layer_7_tls_proxy() {
     if [[ "${ENABLED}" == "true" ]]; then
         echo
         echo "## Layer 7 TLS Proxy is ENABLED."
-        layer_7_tls_proxy_get_routes
+        layer_7_tls_proxy_list_routes
         wizard menu "Layer 7 TLS Proxy:" \
-               "List layer 7 ingress routes = ./setup.sh layer_7_tls_proxy_get_routes" \
+               "List layer 7 ingress routes = ./setup.sh layer_7_tls_proxy_list_routes" \
                "Add new layer 7 ingress route = ./setup.sh layer_7_tls_proxy_add_ingress_route" \
                "Remove layer 7 ingress routes = ./setup.sh layer_7_tls_proxy_manage_ingress_routes" \
                "Disable layer 7 TLS Proxy = ./setup.sh layer_7_tls_proxy_disable" \
