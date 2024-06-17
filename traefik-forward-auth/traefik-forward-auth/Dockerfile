@@ -6,8 +6,8 @@ ARG BASE_IMAGE
 FROM alpine:3 as step_ca
 ARG STEP_CA_ENABLED STEP_CA_ENDPOINT STEP_CA_FINGERPRINT STEP_CA_ZERO_CERTS
 RUN apk add -U step-cli ca-certificates
-RUN [[ "$STEP_CA_ENABLED" == "true" ]] && \
-    step ca bootstrap --ca-url "${STEP_CA_ENDPOINT}" --fingerprint "${STEP_CA_FINGERPRINT}"
+RUN ([[ "$STEP_CA_ENABLED" == "true" ]] && \
+    step ca bootstrap --ca-url "${STEP_CA_ENDPOINT}" --fingerprint "${STEP_CA_FINGERPRINT}")  || true
 RUN ([[ "$STEP_CA_ENABLED" == "true" ]] && [[ "$STEP_CA_ZERO_CERTS" == "true" ]] && \
     cat /root/.step/certs/root_ca.crt > /etc/ssl/certs/ca-certificates.crt) || true
 RUN ([[ "$STEP_CA_ENABLED" == "true" ]] && [[ "$STEP_CA_ZERO_CERTS" != "true" ]] && \
