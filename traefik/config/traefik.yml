@@ -120,13 +120,27 @@ entryPoints:
   #@ if not len(custom_entrypoint):
   #@ continue
   #@ end
-  #@ entrypoint,listen_host,listen_port,protocol = custom_entrypoint.split(":")
+  #@ entrypoint,listen_host,listen_port,protocol,trusted_nets = custom_entrypoint.split(":")
   (@= entrypoint @):
     address: #@ listen_host + ":" + listen_port + "/" + protocol
+    #@ if len(trusted_nets):
+    proxyProtocol:
+      trustedIPs:
+        #@ for allowed_net in trusted_nets.split("-"):
+        - "(@ allowed_net @)"
+        #@ end
+    #@ end
   #@ end
   #@ if data.values.web_entrypoint_enabled == "true":
   web:
     address: #@ data.values.web_entrypoint_host + ":" + data.values.web_entrypoint_port
+    #@ if len(data.values.web_entrypoint_proxy_protocol_trusted_ips.strip()):
+    proxyProtocol:
+      trustedIPs:
+        #@ for allowed_net in data.values.web_entrypoint_proxy_protocol_trusted_ips.split(","):
+        - "(@= allowed_net @)"
+        #@ end
+    #@ end
     http:
       redirections:
         entryPoint:

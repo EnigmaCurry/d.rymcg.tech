@@ -244,7 +244,7 @@ config_entrypoint() {
     if [[ "$(${BIN}/dotenv -f ${ENV_FILE} get TRAEFIK_${ENTRYPOINT}_ENTRYPOINT_ENABLED)" == "true" ]]; then
        enabled_default="yes"
     fi
-    if ${BIN}/confirm "${enabled_default}" "Do you want to enable the ${entrypoint} entrypoint?"; then
+    if ${BIN}/confirm "${enabled_default}" "Do you want to enable the ${entrypoint} entrypoint" "?"; then
         ${BIN}/reconfigure ${ENV_FILE} "TRAEFIK_${ENTRYPOINT}_ENTRYPOINT_ENABLED=true"
         if [[ "${entrypoint}" == "dashboard" ]]; then
             echo
@@ -256,10 +256,22 @@ config_entrypoint() {
             ${BIN}/reconfigure_ask ${ENV_FILE} "TRAEFIK_${ENTRYPOINT}_ENTRYPOINT_HOST" "Enter the host ip address to listen on (0.0.0.0 to listen on all interfaces)"
             ${BIN}/reconfigure_ask ${ENV_FILE} "TRAEFIK_${ENTRYPOINT}_ENTRYPOINT_PORT" "Enter the host port to listen on"
         fi
+        local trusted_ips="$(${BIN}/dotenv -f ${ENV_FILE} get TRAEFIK_${ENTRYPOINT}_ENTRYPOINT_PROXY_PROTOCOL_TRUSTED_IPS)"
+        local default_choice=0
+        if [[ -n "${trusted_ips}" ]]; then
+            default_choice=1
+        fi
+        echo
+        case $(wizard choose --default ${default_choice} --numeric \
+                      "Is this entrypoint downstream from another trusted proxy?" \
+                      "No, clients dial directly to this server. (Turn off Proxy Protocol)" \
+                      "Yes, clients are proxied through a trusted server. (Turn on Proxoy Protocol)") in
+            0) ${BIN}/reconfigure ${ENV_FILE} "TRAEFIK_${ENTRYPOINT}_ENTRYPOINT_PROXY_PROTOCOL_TRUSTED_IPS=";;
+            1) ${BIN}/reconfigure_ask ${ENV_FILE} "TRAEFIK_${ENTRYPOINT}_ENTRYPOINT_PROXY_PROTOCOL_TRUSTED_IPS" "Enter the comma separated list of trusted upstream proxy servers (CIDR)" 10.13.16.1/32;;
+        esac
     else
         ${BIN}/reconfigure ${ENV_FILE} "TRAEFIK_${ENTRYPOINT}_ENTRYPOINT_ENABLED=false"
     fi
-    echo
     echo
 }
 
@@ -648,11 +660,24 @@ add_custom_entrypoint() {
             continue
         fi
         false
-    do true; done    
+    do true; done
+    local trusted_ips="$(${BIN}/dotenv -f ${ENV_FILE} get "TRAEFIK_${ENTRYPOINT^^}_ENTRYPOINT_PROXY_PROTOCOL_TRUSTED_IPS=")"
+    local default_choice=0
+    if [[ -n "${trusted_ips}" ]]; then
+        default_choice=1
+    fi
+    case $(wizard choose --default ${default_choice} --numeric \
+                  "Is this entrypoint downstream from another trusted proxy?" \
+                  "No, clients dial directly to this server. (Turn off Proxy Protocol)" \
+                  "Yes, clients are proxied through another trusted proxy. (Turn on Proxoy Protocol)") in
+        0) ${BIN}/reconfigure ${ENV_FILE} "TRAEFIK_${ENTRYPOINT^^}_ENTRYPOINT_PROXY_PROTOCOL_TRUSTED_IPS=";;
+        1) ${BIN}/reconfigure_ask ${ENV_FILE} "TRAEFIK_${ENTRYPOINT^^}_ENTRYPOINT_PROXY_PROTOCOL_TRUSTED_IPS" "Enter the comma separated list of trusted upstream proxy servers (CIDR)" 10.13.16.1/32;;
+    esac
+
     if [[ -n "${CUSTOM_ENTRYPOINTS}" ]]; then
         CUSTOM_ENTRYPOINTS="${CUSTOM_ENTRYPOINTS},"
     fi
-    CUSTOM_ENTRYPOINTS="${CUSTOM_ENTRYPOINTS}${ENTRYPOINT}:${ENTRYPOINT_IP_ADDRESS}:${ENTRYPOINT_PORT}:${PROTOCOL}"
+    CUSTOM_ENTRYPOINTS="${CUSTOM_ENTRYPOINTS}${ENTRYPOINT}:${ENTRYPOINT_IP_ADDRESS}:${ENTRYPOINT_PORT}:${PROTOCOL}:${TRUSTED_NETS}"
     ${BIN}/reconfigure ${ENV_FILE} "TRAEFIK_CUSTOM_ENTRYPOINTS=${CUSTOM_ENTRYPOINTS}"
 }
 

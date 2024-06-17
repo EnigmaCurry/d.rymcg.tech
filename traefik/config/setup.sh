@@ -34,6 +34,7 @@ ytt_template() {
         -v web_entrypoint_enabled="${TRAEFIK_WEB_ENTRYPOINT_ENABLED}" \
         -v web_entrypoint_host="${TRAEFIK_WEB_ENTRYPOINT_HOST}" \
         -v web_entrypoint_port="${TRAEFIK_WEB_ENTRYPOINT_PORT}" \
+        -v web_entrypoint_proxy_protocol_trusted_ips="${TRAEFIK_WEB_ENTRYPOINT_PROXY_PROTOCOL_TRUSTED_IPS}" \
         -v websecure_entrypoint_enabled="${TRAEFIK_WEBSECURE_ENTRYPOINT_ENABLED}" \
         -v websecure_entrypoint_host="${TRAEFIK_WEBSECURE_ENTRYPOINT_HOST}" \
         -v websecure_entrypoint_port="${TRAEFIK_WEBSECURE_ENTRYPOINT_PORT}" \
