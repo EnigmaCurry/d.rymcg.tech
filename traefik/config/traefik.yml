@@ -127,7 +127,7 @@ entryPoints:
     proxyProtocol:
       trustedIPs:
         #@ for allowed_net in trusted_nets.split("-"):
-        - "(@ allowed_net @)"
+        - "(@= allowed_net @)"
         #@ end
     #@ end
   #@ end
