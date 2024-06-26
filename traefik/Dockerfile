@@ -1,7 +1,7 @@
 ARG TRAEFIK_IMAGE
 
 ## Install plugins from source repositories:
-FROM alpine:3 as plugins
+FROM alpine:3 AS plugins
 ARG BLOCKPATH_MODULE
 ARG BLOCKPATH_GIT_BRANCH
 ARG REFERER_MODULE
