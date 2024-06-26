@@ -144,10 +144,22 @@ traefik_user() {
             fi
 
             if ${BIN}/confirm yes "There is no ${TRAEFIK_USER} user created on the Docker host yet. Would you like to create this user automatically? (Note: this can fail if your system does not have the 'adduser' command, so read the directions that it will print out if this fails!)"; then
-                ssh ${SSH_HOST} ${SUDO_PREFIX} \
-                    adduser --shell /usr/sbin/nologin --system ${TRAEFIK_USER} \
-                    --group && \
-                    ssh ${SSH_HOST} ${SUDO_PREFIX} gpasswd -a ${TRAEFIK_USER} docker || fault "There was a problem creating the ${TRAEFIK_USER} user. Are you logging in as root?"
+                local detected_OS=$(ssh ${SSH_HOST} cat /etc/os-release | grep -Po '^ID=\K.*')
+                local user_group_arg
+                case "$detected_OS" in
+                    fedora)
+                        user_group_arg="--user-group";;
+                    debian|ubuntu)
+                        user_group_arg="--group";;
+                    *)
+                        user_group_arg="--group";;
+                esac
+                (set -x
+                 ssh ${SSH_HOST} ${SUDO_PREFIX} \
+                     adduser --shell /usr/sbin/nologin --system \
+                     ${user_group_arg} ${TRAEFIK_USER}
+                )
+                ssh ${SSH_HOST} ${SUDO_PREFIX} gpasswd -a ${TRAEFIK_USER} docker || fault "There was a problem creating the ${TRAEFIK_USER} user. Are you logging in as root?"
                 echo "Successfully created the ${TRAEFIK_USER} user!"
                 traefik_uid
             fi
