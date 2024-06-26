@@ -14,9 +14,11 @@
 #@     end
 #@   end
 #@ end
-#@ for entrypoint, dest_ip, dest_port in tcp_udp_proxy_routes.split(","):
-#@   if len(data.values.get("{}_entrypoint_proxy_protocol_trusted_ips".format(entrypoint))):
-#@     proxy_protocols[entrypoint] = True
+#@ if len(tcp_udp_proxy_routes):
+#@   for entrypoint, dest_ip, dest_port in tcp_udp_proxy_routes.split(","):
+#@     if len(data.values.get("{}_entrypoint_proxy_protocol_trusted_ips".format(entrypoint))):
+#@       proxy_protocols[entrypoint] = True
+#@     end
 #@   end
 #@ end
 

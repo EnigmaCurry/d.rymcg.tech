@@ -358,7 +358,7 @@ layer_7_tls_proxy_list_routes() {
 
 
 layer_7_tls_proxy_add_ingress_route() {
-    echo "Adding new layer 7 TLS proxy route - "
+    echo "Adding a new layer 7 TLS proxy route - "
     echo
     echo " * Make sure to set your route's DNS record to point to this Traefik instance."
     echo " * The public port must be 443, but any destination port can be used."
@@ -437,11 +437,10 @@ layer_7_tls_proxy_disable() {
     local ENABLED=$(${BIN}/dotenv -f ${ENV_FILE} get TRAEFIK_LAYER_7_TLS_PROXY_ENABLED)
     if [[ "${ENABLED}" == "true" ]]; then
         confirm yes "Do you want to disable the layer 7 TLS proxy" "?" && \
-            ${BIN}/reconfigure ${ENV_FILE} TRAEFIK_LAYER_7_TLS_PROXY_ENABLED=false
-        echo "## Layer 7 TLS Proxy is DISABLED."
-        exit 2
+            ${BIN}/reconfigure ${ENV_FILE} TRAEFIK_LAYER_7_TLS_PROXY_ENABLED=false && \
+            echo "## Layer 7 TLS Proxy is DISABLED." && exit 2
     else
-        fault "TRAEFIK_LAYER_7_TLS_PROXY_ENABLED already disabled!?"
+        echo "## Layer 7 TLS Proxy is DISABLED." && exit 2
     fi
 }
 
@@ -450,14 +449,23 @@ layer_7_tls_proxy() {
     echo
     local ENABLED=$(${BIN}/dotenv -f ${ENV_FILE} get TRAEFIK_LAYER_7_TLS_PROXY_ENABLED)
     if [[ "${ENABLED}" == "true" ]]; then
-        echo
-        echo "## Layer 7 TLS Proxy is ENABLED."
-        layer_7_tls_proxy_list_routes
-        wizard menu "Layer 7 TLS Proxy:" \
-               "List layer 7 ingress routes = ./setup.sh layer_7_tls_proxy_list_routes" \
-               "Add new layer 7 ingress route = ./setup.sh layer_7_tls_proxy_add_ingress_route" \
-               "Remove layer 7 ingress routes = ./setup.sh layer_7_tls_proxy_manage_ingress_routes" \
-               "Disable layer 7 TLS Proxy = ./setup.sh layer_7_tls_proxy_disable"
+        while :
+        do
+            echo
+            echo "## Layer 7 TLS Proxy is ENABLED."
+            layer_7_tls_proxy_list_routes
+            wizard menu --once --cancel-code 2 "Layer 7 TLS Proxy:" \
+                   "List layer 7 ingress routes = ./setup.sh layer_7_tls_proxy_list_routes" \
+                   "Add new layer 7 ingress route = ./setup.sh layer_7_tls_proxy_add_ingress_route" \
+                   "Remove layer 7 ingress routes = ./setup.sh layer_7_tls_proxy_manage_ingress_routes" \
+                   "Disable layer 7 TLS Proxy = ./setup.sh layer_7_tls_proxy_disable"
+            local EXIT_CODE=$?
+            case "$EXIT_CODE" in
+                0) continue;;
+                2) return 0;;
+                *) return 1;;
+            esac
+        done
     else
         echo "## Layer 7 TLS Proxy is DISABLED."
         confirm no "Do you want to enable the layer 7 TLS proxy" "?" && \
@@ -480,20 +488,34 @@ layer_4_tcp_udp_proxy() {
     echo
     local ENABLED=$(${BIN}/dotenv -f ${ENV_FILE} get TRAEFIK_LAYER_4_TCP_UDP_PROXY_ENABLED)
     if [[ "${ENABLED}" == "true" ]]; then
+        while :
         echo
         echo "## Layer 4 TCP/UDP Proxy is ENABLED."
         layer_4_tcp_udp_list_routes
-        wizard menu "Layer 4 TCP/UDP Proxy:" \
+        wizard menu --cancel-code 2 "Layer 4 TCP/UDP Proxy:" \
                "List layer 4 ingress routes = ./setup.sh layer_4_tcp_udp_list_routes" \
                "Add new layer 4 ingress route = ./setup.sh layer_4_tcp_udp_add_ingress_route" \
-               "Remove layer 4 ingress routes = ./setup.sh layer_4_tcp_udp_proxy_manage_ingress_routes"
+               "Remove layer 4 ingress routes = ./setup.sh layer_4_tcp_udp_proxy_manage_ingress_routes" \
+               "Disable layer 4 TCP/UDP Proxy = ./setup.sh layer_4_tcp_udp_proxy_disable"
     else
-        echo "## Layer 7 TLS Proxy is ENABLED."
+        echo "## Layer 4 TCP/UDP Proxy is DISABLED."
         confirm no "Do you want to enable the layer 4 TCP/UDP proxy" "?" && \
             ${BIN}/reconfigure ${ENV_FILE} TRAEFIK_LAYER_4_TCP_UDP_PROXY_ENABLED=true && \
             layer_4_tcp_udp_proxy || true
     fi
 }
+
+layer_4_tcp_udp_proxy_disable() {
+    local ENABLED=$(${BIN}/dotenv -f ${ENV_FILE} get TRAEFIK_LAYER_4_TCP_UDP_PROXY_ENABLED)
+    if [[ "${ENABLED}" == "true" ]]; then
+        confirm yes "Do you want to disable the layer 4 TLS proxy" "?" && \
+            ${BIN}/reconfigure ${ENV_FILE} TRAEFIK_LAYER_4_TCP_UDP_PROXY_ENABLED=false && \
+            echo "## Layer 4 TLS Proxy is DISABLED." && exit 2
+    else
+        echo "## Layer 4 TLS Proxy is DISABLED." && exit 2
+    fi
+}
+
 
 layer_4_tcp_udp_list_routes() {
     local ROUTES="$(layer_4_tcp_udp_get_routes)"
@@ -518,7 +540,7 @@ layer_4_tcp_udp_get_routes() {
 }
 
 layer_4_tcp_udp_add_ingress_route() {
-    echo "Adding new layer 4 TCP/UDP proxy route - "
+    echo "Adding a new layer 4 TCP/UDP proxy route - "
     echo
     echo " * Each layer 4 route requires a unique entrypoint (ie. port)."
     echo " * Before you can create a route, you must create a 'custom entrypoint'."
@@ -537,7 +559,7 @@ layer_4_tcp_udp_add_ingress_route() {
     if [[ "${#unused_entrypoints[@]}" == 0 ]]; then
         echo
         echo "## Error: No unused entrypoints exist."
-        echo "## You must create a new custom entrypoint first."
+        echo "## You need to create a new (stock or custom) entrypoint first."
         echo
         return
     fi
@@ -636,7 +658,7 @@ manage_custom_entrypoints() {
 
 
 add_custom_entrypoint() {
-    echo "Adding custom TCP/UDP entrypoint - "
+    echo "Adding a custom TCP/UDP entrypoint - "
     echo
     echo " * Make sure to enable the port in all upstream firewalls."
     echo " * Make sure each entrypoint has a unique lower-case one-word name."
@@ -645,7 +667,7 @@ add_custom_entrypoint() {
     ENTRYPOINT=""
     while
         ask_no_blank "Enter the new entrypoint name:" ENTRYPOINT "${ENTRYPOINT}"
-        if echo ${ENTRYPOINT} | grep -vP "^[a-z][a-z0-9]*$" >/dev/null 2>&1; then
+        if echo ${ENTRYPOINT} | grep -vP "^[a-z][_a-z0-9]*$" >/dev/null 2>&1; then
             echo
             echo "## That name is invalid. Try again:"
             continue
@@ -705,8 +727,8 @@ add_custom_entrypoint() {
 routes_menu() {
     echo
     wizard menu "Traefik routes" \
-           "Configure layer 7 TLS proxy = ./setup.sh layer_7_tls_proxy" \
-           "Configure layer 4 TCP/UDP proxy = ./setup.sh layer_4_tcp_udp_proxy" \
+           "Configure layer 7 TLS proxy = ./setup.sh layer_7_tls_proxy || true" \
+           "Configure layer 4 TCP/UDP proxy = ./setup.sh layer_4_tcp_udp_proxy || true" \
            "Configure wireguard VPN = ./setup.sh wireguard"
 }
 
@@ -751,8 +773,7 @@ wireguard() {
         case $(wizard choose --default ${DEFAULT_CHOICE} --numeric \
                "Should Traefik bind itself exclusively to the VPN interface?" \
                "No, Traefik should work on all interfaces (including the VPN)." \
-               "Yes, Traefik should only listen on the VPN interface." \
-               "Cancel / Go back.") in
+               "Yes, Traefik should only listen on the VPN interface.") in
             0)
                 set_all_entrypoint_host 0.0.0.0
                 ;;
@@ -796,8 +817,7 @@ wireguard() {
         case $(wizard choose --default ${DEFAULT_CHOICE} --numeric \
                "Should Traefik bind itself exclusively to the VPN interface?" \
                "No, Traefik should work on all host interfaces (including the VPN)." \
-               "Yes, Traefik should only listen on the VPN interface." \
-               "Cancel / Go back.") in
+               "Yes, Traefik should only listen on the VPN interface.") in
             0)
                 set_all_entrypoint_host 0.0.0.0
                 ;;
@@ -827,13 +847,11 @@ wireguard() {
            "Should this Traefik instance connect to a wireguard VPN?" \
            "No, Traefik should use the host network directly." \
            "Yes, and this Traefik instance should start the wireguard server." \
-           "Yes, but this Traefik instance needs credentials to connect to an outside VPN." \
-           "Cancel / Go back.") in
+           "Yes, but this Traefik instance needs credentials to connect to an outside VPN.") in
         0) set_public_no_wireguard;;
         1) set_wireguard_server;;
         2) set_wireguard_client;;
-        3) return;;
-        *) fault "Wizard choose overflow!?";;
+        *) return;;
     esac
 }
 
