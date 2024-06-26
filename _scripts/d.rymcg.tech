@@ -45,6 +45,7 @@ __help() {
         echo -e "make [PROJECT] [ARGS ...]\tRun a \`make\` command for the given d.rymcg.tech project name"
         echo -e "context\tView or set the current Docker context"
         echo -e "new-context\tCreate a new Docker context"
+        echo -e "tmp-context\tUse a temporary Docker context in a sub-shell"
         echo -e "ssh [COMMAND ...]\tRun command or shell on active docker context SSH host"
         echo -e "completion\tSetup TAB completion in your shell"
         echo -e "install\tInstall an app interactively"
@@ -202,9 +203,19 @@ __context() {
         docker context use "${CHOSEN_CONTEXT}"
     elif [[ "$1" == "new" ]]; then
         __new_context
+    elif [[ "$1" == "tmp" ]]; then
+        __context_tmp
     else
         exe docker context "$@"
     fi
+}
+
+__context_tmp() {
+    readarray -t CONTEXTS < <(docker context list -q | grep -v default)
+    local CURRENT_CONTEXT=$(docker context show)
+    local CHOSEN_CONTEXT=$(wizard choose "Choose a temporary docker context" "${CONTEXTS[@]}" --default "${CURRENT_CONTEXT}")
+    test -z "$CHOSEN_CONTEXT" && fault "No context selected."
+    (   export IN_FD ERR_FD;   exec {IN_FD}<&0 {ERR_FD}>&2 2> /dev/null;   export DOCKER_CONTEXT="${CHOSEN_CONTEXT}"; echo 'PS1="[${DOCKER_CONTEXT}] $PS1"; exec <&"$IN_FD" {IN_FD}<&- 2>&"$ERR_FD" {ERR_FD}>&-' |     bash -i; )
 }
 
 __new_context() {
@@ -311,7 +322,7 @@ __d.rymcg.tech_completions() {
     if [[ ${COMP_CWORD} == 1 ]]; then
         ## Complete the main command:
         ## d.rymcg.tech <TAB> ...
-        COMMANDS="help create cd make list readme info context new-context completion install install-docker ssh"
+        COMMANDS="help create cd make list readme info context new-context tmp-context completion install install-docker ssh"
         COMPREPLY=($(compgen -W "${COMMANDS}" "${COMP_WORDS[1]}"))
     elif [[ ${COMP_CWORD} == 2 ]]; then
         ALL_PROJECTS=$(d.rymcg.tech list --raw)
@@ -436,6 +447,8 @@ main() {
                 __context "$@";;
             new-context)
                 __new_context "$@";;
+            tmp-context)
+                __context_tmp "$@";;
             script)
                 __run_script "$@";;
             ssh)
