@@ -25,14 +25,16 @@ the Traefik .env file, the file provider will watch for changes in the
 `/data/config/dynamic` directory and reload the dynamic config without
 needing to restart Traefik.
 
-If you have dynamic configuration that you do not want to permanently
-store in this git repository, put it in
-[context-template](context-template), within another sub-directory
-amed after the docker context (eg. `./context-template/foo/bar.yml`
-for the docker context named `foo`, and this would get written to
-`/data/config/dynamic/foo/bar.yml` in the traefik volume).
-
 Dynamic configuration may also come from the [Docker
 provider](https://doc.traefik.io/traefik/providers/docker/) via docker
 labels on the service containers. This can be turned off by setting
 `TRAEFIK_DOCKER_PROVIDER=false`.
+
+If you have dynamic configuration that you do not want to permanently
+store in this git repository, put it in
+[context-template](context-template), within another sub-directory
+named after the docker context (eg. `./context-template/foo/bar.yml`
+for the docker context named `foo`, and this would get written to
+`/data/config/dynamic/foo/bar.yml` in the traefik volume). Other
+sub-directories of `context-template`, that are named differently than
+the current Docker context, are *not* copied to the traefik volume.
