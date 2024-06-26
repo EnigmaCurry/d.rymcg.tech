@@ -22,7 +22,7 @@ main_menu() {
                "Config = ./setup.sh config" \
                "Install (make install) = make compose-profiles install" \
                "Admin = ./setup.sh admin" \
-               "Exit = exit 2"
+               "Exit (ESC) = exit 2"
         local EXIT_CODE=$?
         if [[ "${EXIT_CODE}" == "2" ]]; then
             exit 0
@@ -60,7 +60,7 @@ admin() {
     wizard menu "Traefik Admin:" \
            "Review logs = ./setup.sh logs" \
            "Manage containers = ./setup.sh manage_containers" \
-           "Show wireguard peer config = make show-wireguard-peers"
+           "Manage wireguard = ./setup.sh manage_wireguard"
 }
 
 shell_menu() {
@@ -72,23 +72,30 @@ shell_menu() {
 
 manage_containers() {
     wizard menu "Traefik Container Management:" \
-           "Container status = make status" \
-           "Container shell = ./setup.sh shell_menu" \
-           "Uninstall Traefik (keeps data) = make uninstall" \
-           "Reinstall Traefik (forced) = make reinstall" \
-           "Destroy Traefik (uninstall and remove all data) = make destroy"
+           "make status - Container status = make status" \
+           "make shell - Container shell = ./setup.sh shell_menu" \
+           "make uninstall - Uninstall Traefik (keeps data) = make uninstall" \
+           "make reinstall - Reinstall Traefik (forced) = make reinstall" \
+           "make destroy - Destroy Traefik (uninstall and remove all data) = make destroy"
 }
+
+manage_wireguard() {
+    wizard menu "Traefik Wireguard:" \
+           "make show-wireguard-peers - Show wireguard peer config = make show-wireguard-peers" \
+           "make show-wireguard-peers-qr - Show wireguard peer config in QR code format = make show-wireguard-peers-qr"
+}
+
 
 logs() {
     echo
     echo "## Note: This menu can only show log snapshots, it cannot follow live logs."
     echo "## For live logging, try the commands shown in parentheses instead (by hand)."
     wizard menu "Traefik Logs:" \
-           "Review Traefik logs (Q to quit) (make logs service=traefik) = make logs-out service=traefik | less -r +G" \
-           "Review config logs (Q to quit) (make logs service=config) = make logs-out service=config | less -r +G" \
-           "Review wireguard logs (Q to quit) (make logs service=wireguard) = make logs-out service=wireguard | less -r +G" \
-           "Review wireguard-client logs (Q to quit) (make logs service=wireguard-client) = make logs-out service=wireguard-client | less -r +G" \
-           "Review access logs (Q to quit) (make logs-access) = make logs-access-out | less -r +G"
+           "make logs service=traefik - Review Traefik logs (Q to quit) = make logs-out service=traefik | less -r +G" \
+           "make logs service=config - Review config logs (Q to quit) = make logs-out service=config | less -r +G" \
+           "make logs service=wireguard - Review wireguard logs (Q to quit) = make logs-out service=wireguard | less -r +G" \
+           "make logs service=wireguard-client - Review wireguard-client logs (Q to quit) = make logs-out service=wireguard-client | less -r +G" \
+           "make logs-access - Review access logs (Q to quit) = make logs-access-out | less -r +G"
 }
 
 configure_log_level() {
@@ -192,8 +199,8 @@ get_enabled_entrypoints() {
 list_enabled_entrypoints() {
     readarray -t entrypoints < <(get_enabled_entrypoints)
     (
-        echo -e "Entrypoint\tListen_address\tListen_port\tProtocol"
-        echo -e "----------\t--------------\t-----------\t--------"
+        echo -e "Entrypoint\tListen_address\tListen_port\tProtocol\tUpstream_proxy"
+        echo -e "----------\t--------------\t-----------\t--------\t--------------"
         (
             for e in "${entrypoints[@]}"; do
                 local ENTRYPOINT="$(echo "${e}" | tr '[:lower:]' '[:upper:]')"
@@ -633,6 +640,7 @@ add_custom_entrypoint() {
     echo
     echo " * Make sure to enable the port in all upstream firewalls."
     echo " * Make sure each entrypoint has a unique lower-case one-word name."
+    echo
     local CUSTOM_ENTRYPOINTS=$(${BIN}/dotenv -f ${ENV_FILE} get TRAEFIK_CUSTOM_ENTRYPOINTS)
     ENTRYPOINT=""
     while
