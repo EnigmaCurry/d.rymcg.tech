@@ -1,29 +1,33 @@
 #@ load("@ytt:data", "data")
+#@ load("@ytt:struct", "struct")
 
 #@ tcp_udp_proxy_enabled = data.values.layer_4_tcp_udp_proxy_enabled == "true"
 #@ tcp_udp_proxy_routes = data.values.layer_4_tcp_udp_proxy_routes
 #@ custom_entrypoints = data.values.custom_entrypoints
 #@ udp_entrypoints = [e.split(":")[0] for e in custom_entrypoints.split(",") if len(e) and e.split(":")[3] == "udp"]
+#@ config = struct.decode(data.values)
 
+
+#@yaml/text-templated-strings
+#@ if tcp_udp_proxy_enabled and len(tcp_udp_proxy_routes):
 #@ proxy_protocols = {}
 #@ for e in custom_entrypoints.split(","):
 #@   if len(e):
-#@     entrypoint, dest_ip, dest_port, protocol, nets = custom_entrypoints.split(":")
+#@     entrypoint, dest_ip, dest_port, protocol, nets = e.split(":")
 #@     if len(nets):
 #@       proxy_protocols[entrypoint] = True
 #@     end
 #@   end
 #@ end
-#@ if len(tcp_udp_proxy_routes):
-#@   for entrypoint, dest_ip, dest_port in tcp_udp_proxy_routes.split(","):
-#@     if len(data.values.get("{}_entrypoint_proxy_protocol_trusted_ips".format(entrypoint))):
+#@ for r in tcp_udp_proxy_routes.split(","):
+#@   if len(r):
+#@     entrypoint = r.split(":")[0]
+#@     proxproto = config.get("{}_entrypoint_proxy_protocol_trusted_ips".format(entrypoint))
+#@     if proxproto and len(proxproto):
 #@       proxy_protocols[entrypoint] = True
 #@     end
 #@   end
 #@ end
-
-#@yaml/text-templated-strings
-#@ if tcp_udp_proxy_enabled and len(tcp_udp_proxy_routes):
 tcp:
   services:
     #@ for route in tcp_udp_proxy_routes.split(","):
