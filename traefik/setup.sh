@@ -489,14 +489,22 @@ layer_4_tcp_udp_proxy() {
     local ENABLED=$(${BIN}/dotenv -f ${ENV_FILE} get TRAEFIK_LAYER_4_TCP_UDP_PROXY_ENABLED)
     if [[ "${ENABLED}" == "true" ]]; then
         while :
-        echo
-        echo "## Layer 4 TCP/UDP Proxy is ENABLED."
-        layer_4_tcp_udp_list_routes
-        wizard menu --cancel-code 2 "Layer 4 TCP/UDP Proxy:" \
-               "List layer 4 ingress routes = ./setup.sh layer_4_tcp_udp_list_routes" \
-               "Add new layer 4 ingress route = ./setup.sh layer_4_tcp_udp_add_ingress_route" \
-               "Remove layer 4 ingress routes = ./setup.sh layer_4_tcp_udp_proxy_manage_ingress_routes" \
-               "Disable layer 4 TCP/UDP Proxy = ./setup.sh layer_4_tcp_udp_proxy_disable"
+        do
+            echo
+            echo "## Layer 4 TCP/UDP Proxy is ENABLED."
+            layer_4_tcp_udp_list_routes
+            wizard menu --cancel-code 2 "Layer 4 TCP/UDP Proxy:" \
+                   "List layer 4 ingress routes = ./setup.sh layer_4_tcp_udp_list_routes" \
+                   "Add new layer 4 ingress route = ./setup.sh layer_4_tcp_udp_add_ingress_route" \
+                   "Remove layer 4 ingress routes = ./setup.sh layer_4_tcp_udp_proxy_manage_ingress_routes" \
+                   "Disable layer 4 TCP/UDP Proxy = ./setup.sh layer_4_tcp_udp_proxy_disable"
+            local EXIT_CODE=$?
+            case "$EXIT_CODE" in
+                0) continue;;
+                2) return 0;;
+                *) return 1;;
+            esac
+        done
     else
         echo "## Layer 4 TCP/UDP Proxy is DISABLED."
         confirm no "Do you want to enable the layer 4 TCP/UDP proxy" "?" && \
