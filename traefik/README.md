@@ -5,42 +5,6 @@ TCP / UDP reverse proxy and load balancer. Traefik is the front-most
 gateway for (almost) all of the projects hosted by d.rymcg.tech, and
 should be the first thing you install in your deployment.
 
-## Implementation
-
- * By default Traefik binds to the host network, which gives Traefik
-   the ability to directly access any container network, and not
-   needing to attach every container to a specific proxy network.
-   Sharing the host network also means there is no list of ports to
-   maintain for Traefik, because Traefik can bind to any port on the
-   host. (*It is the responsibility of your external firewall to block
-   unintended public access*).
- * TLS certificates are automatically managed by ACME, but the
-   certificate domains are manually defined using the `make certs`
-   tool. Traefik
-   [certresolvers](https://doc.traefik.io/traefik/routing/routers/#certresolver)
-   are ***not*** being used on the router level, but instead apply to
-   the entire entrypoint (`websecure`) as a whole. You only need to
-   configure the router rules with a `Host` that matches one of your
-   certificates (otherwise it may use an untrusted temporary
-   self-signed certificate).
- * The Traefik static configuration is no longer defined in
-   `docker-compose.yaml`, but it is templated inside of
-   [traefik.yml](config/traefik.yml) which is rendered automatically
-   via the [ytt](https://carvel.dev/ytt/) tool when you run `make
-   install`. (This happens inside the [config](config) container, so
-   you don't need to install ytt on your workstation.)
- * Traefik does not run as root, but under a dedicated system (host)
-   user account named `traefik` (this user is automatically created on
-   the host, the first time you run `make config`). The `traefik` user
-   is added to the `docker` group, so that it can access the docker
-   socket. This is still very much considred a privileged account, as
-   it can read all the environment variables of all your containers,
-   and can escalate itself to root level access, through the use of
-   the docker API.)
- * Authentication is provided on a per app basis with HTTP Basic
-   Authentication or OAuth2, with a general group based authorization
-   middleware adaptable to secure any application.
-
 ## Config
 
 Open your terminal, and change to this directory (`traefik`).
@@ -63,35 +27,38 @@ Run the interactive configuration wizard:
 make config
 ```
 
-Follow the prompts and answer the questions. You will configure the
-ACME certificate resolver, the Traefik dashboard access credentials, and 
-Traefik plugins.
-
-Next, you can configure the TLS certificates. Run:
+You are presented an interctive menu to configure Traefik:
 
 ```
-make certs
+? Traefik:  
+> Config
+  Install (make install)
+  Admin
+  Exit (ESC)
 ```
 
-(Follow the [certificate manager](#certificate-manager) section for a
-detailed example of creating certificates and then come back here.)
 
-```
-# Optional: Make security groups for header authorization middleware:
-make sentry
-```
+Go into the `Config` sub-menu, go down the list. You don't necessarily
+have to visit all of the menus, but here are the most important ones
+to configure:
 
-(`make sentry` is only required if you want to configure Oauth2
-authentication - follow the [Oauth2
-authentication](#oauth2-authentication) section for instructions how
-to create authorization groups, or you can do that anytime later.)
+ * `Traefik user`
+ * `Entrypoints`
+   * `Configure stock entrypoints`
+     * `dashboard` - Enable the Traefik Dashboard, and set a
+       username/password for it.
+ * `TLS certificates and authorities`
+   * `Configure ACME`
+   * `Configure TLS certificates`
 
-Double check that the config has now been created in your
-`.env_${DOCKER_CONTEXT}_default` file and make any final edits (there are a
-few settings that are not covered by the wizard, so you may want to
-set them by hand). Also note that you can re-run `make config`
-anytime, and it will remember your choices from the last time and make
-those the default answers.
+Once you've gone through the config menus and made your choices,
+double check that the config has now been created in your
+`.env_${DOCKER_CONTEXT}_default` file, and make any final edits by
+hand (there are a few settings that are not covered by the wizard).
+The menu config program's sole job is to edit this file for you, but
+any edits you make by hand will take precedence. Also note that you
+can re-run `make config` anytime, and it will read your choices from
+the this file, and make those your default answers.
 
 Once you're happy with the config, install Traefik:
 
@@ -99,13 +66,19 @@ Once you're happy with the config, install Traefik:
 make install
 ```
 
+(You may also choose the `Reinstall Traefik` option directly from the
+`make config` menu.)
+
 Check the Traefik logs for any errors:
 
 ```
 make logs
 ```
 
-Open the dashboard:
+(You may also choose the `Admin` -> `Review Logs` option in the `make
+config` menu.)
+
+Open the Traefik dashboard (optional):
 
 ```
 make open
@@ -117,69 +90,47 @@ in the dashboard.
 
 ## Certificate manager
 
-Most sub-projects of d.rymcg.tech *do not* specify any certificate
-resolver via the docker provider labels on the container/router.
-Instead, certificates are explicitly managed by the Traefik [static
-configuration
-template](https://github.com/EnigmaCurry/d.rymcg.tech/blob/e6a4d0285f04d6d7f07fb9a5ec403ba421229747/traefik/config/traefik.yml#L80-L87)
-directly on the entrypoint. Therefore you must configure the
-certificate domains, *and reinstall Traefik*, before these
-certificates may be used.
+By convention, d.rymcg.tech sub-projects do not provision, nor even
+request, their own TLS certificates. All TLS certificates are to be
+explicitly managed by the Traefik [static configuration
+template](https://github.com/EnigmaCurry/d.rymcg.tech/blob/e6a4d0285f04d6d7f07fb9a5ec403ba421229747/traefik/config/traefik.yml#L80-L87),
+directly on the entrypoint (and not on the route!). Therefore, you
+must configure all of the certificate domain names via `make config`,
+and then *reinstall Traefik*, before any new certificates may be used.
+(ACME may be used to automatically issue and renew these certificates,
+once defined.) Applications provided by d.rymcg.tech will never
+specify their own Traefik cert resolvers, they should rely upon one of
+the staticly defined certificate resolvers instead. Applications that
+provide routes that do not have a matching certificate, will
+automatically use the `TRAEFIK DEFAULT` certificate, which is
+self-signed, and not trusted in browsers.
 
-`make certs` is an interactive tool that configures the
-`TRAEFIK_ACME_CERT_DOMAINS` variable in the Traefik
-`.env_${DOCKER_CONTEXT}_default` file, which is stored as a JSON list of
-domains. This variable feeds the static configuration template, which
-builds the configuration on each startup of the Traefik container.
+In the `make config` menu, choose:
 
-```
-$ make certs
-Certificate manager:
- * Type `q` or `quit` to quit the certificate manager.
- * Type `l` or `list` to list certificate domains.
- * Type `d` or `delete` to delete an existing certificate domain.
- * Type `c` or `n` or `new` to create a new certificate domain.
- * Type `?` or `help` to see this help message again.
-```
+ * `TLS certificates and authorities`
+   * `Configure ACME`
+     * Choose `Let's Encrypt`
+     * Choose `Production`
+     * Choose `TLS-ALPN-01` for most public servers (otherwise choose
+       `DNS-01` for advanced use-cases, but this alos requires storing
+       an API key for your DNS provider.)
+   * `Configure TLS certificates`
+     * Choose `Create a new certificate.`
+     * Enter the fully qualified doman name (CN) of your application.
+       (eg. `whoami.example.com`)
+     * Enter alternative domain names (SANS) to also include on the
+       same certificate.
+     * Enter blank to finish entering domain names.
 
-For example, suppose you are deploying the [whoami](../whoami)
-service, and you want a TLS certificate for that deployment.
-
-Press `c` to create a new certificate domain.
-
-```
-Configure the domains for the new certificate:
-Enter the main domain for this certificate (eg. `d.rymcg.tech` or `*.d.rymcg.tech`):
-```
-
-At this prompt, enter the main domain, the same way as you chose for
-`WHOAMI_TRAEFIK_HOST` in the whoami .env file, eg:
-`whoami.d.example.com`. If you chose to use the DNS challenge type,
-this can be a wildcard domain instead, eg `*.d.example.com`.
-
-```
-Enter a secondary domain (enter blank to skip)
-```
-
-At the second prompt here, you can enter additional domains or
-wildcards to be listed on the same certificate (SANS; Subject
-Alternative Names). For the TLS challenge, wildcards are not allowed,
-so you must enter all the domains you want to have explicitly as SANS,
-eg. `whoami2.d.example.com`, `whoami3.d.example.com`, etc. (enter each
-domain separately, then press Enter on a blank line to finish.)
-
-You can create several certificate domains, and each one can have
-several SANS domains. The final list of all your certificate
+You can create several certificates, and each certificate may list
+several domains (CN+SANS). The final list of all your certificate
 domains+SANS is saved back into your `.env_${DOCKER_CONTEXT}_default`
 file in the `TRAEFIK_ACME_CERT_DOMAINS` variable as a JSON nested
 list. When you run `make install` this is pushed into the [static
 configuration
 template](https://github.com/EnigmaCurry/d.rymcg.tech/blob/e6a4d0285f04d6d7f07fb9a5ec403ba421229747/traefik/config/traefik.yml#L80-L87).
 
-Back at the main menu, type `q` to quit the certificate manager. If
-you made changes, it will ask you if you would like to restart
-Traefik. If you'd rather wait, thats fine, just run `make install`
-when its convenient to restart Traefik.
+Make sure you reinstall Traefik after making configuration changes.
 
 ## Traefik config templating
 
@@ -198,10 +149,10 @@ configuration](https://doc.traefik.io/traefik/getting-started/configuration-over
  * The ytt templates placed in the [config-templates](config/config-templates) directory are
    loaded by the Traefik [file
    provider](https://doc.traefik.io/traefik/providers/file/).
- * The templates placed in the [user-templates](config/user-templates)
-   directory are ignored by the git repository and serve as a
-   local-only config store, they are loaded identically as the
-   `config-templates` directory.
+ * The templates placed in the
+   [context-templates](config/context-templates) directory are ignored
+   by the git repository and serve as a local-only config store, they
+   are loaded on a per-Docker-Context basis.
  * The [Docker
    provider](https://doc.traefik.io/traefik/providers/docker/) loads
    dynamic configuration directly from Docker container labels.
@@ -678,3 +629,38 @@ Traefik [.env](.env-dist) file :
 | `TRAEFIK_STEP_CA_ENDPOINT`                 | Step-CA server URL                                                               | `https://ca.example.com`                      |
 | `TRAEFIK_STEP_CA_FINGERPRINT`              | Step-CA root CA fingerprint                                                      | `xxxxxxxxxxxx`                                |
 | `TRAEFIK_STEP_CA_ZERO_CERTS`               | (bool) Remove all other CA certs from the system                                 | `false`                                       |
+
+## Implementation
+
+ * By default, Traefik binds to the host network, which gives it the
+   ability to directly access any container, and not need to attach to
+   any specific Docker networks. Sharing the host network also means
+   there is no list of ports to publish for Traefik, because the host
+   network is allowed to bind to any port. (*It is the responsibility
+   of your external firewall to block access to unintended ports*).
+ * TLS certificates are explicitly defined using the `make certs`
+   tool, and automatically issued/renewed by ACME. However, Traefik
+   [certresolvers](https://doc.traefik.io/traefik/routing/routers/#certresolver)
+   are ***not*** being used on the router level, but are applied to
+   the entire entrypoint (`websecure`) as a whole. You only need to
+   configure the router rules with a `Host` that matches one of your
+   certificates (otherwise it may use an untrusted temporary
+   self-signed certificate).
+ * The Traefik static configuration is no longer defined in
+   `docker-compose.yaml`, but it is templated inside of
+   [traefik.yml](config/traefik.yml) which is rendered automatically
+   via the [ytt](https://carvel.dev/ytt/) tool when you run `make
+   install`. (This happens inside the [config](config) container, so
+   you don't need to install ytt on your workstation.)
+ * Traefik does not run as root, but under a dedicated system (host)
+   user account named `traefik` (this user is automatically created on
+   the host, the first time you run `make config`). The `traefik` user
+   is added to the `docker` group, so that it can access the docker
+   socket. This is still very much considred a privileged account, as
+   it can read all the environment variables of all your containers,
+   and can escalate itself to root level access, through the use of
+   the docker API.)
+ * Authentication is provided on a per app basis with HTTP Basic
+   Authentication, OAuth2, or mTLS, and includes senty authorization
+   middleware, to prevent unauthorized access.
+
