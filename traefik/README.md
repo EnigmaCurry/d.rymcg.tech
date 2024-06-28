@@ -9,28 +9,16 @@ should be the first thing you install in your deployment.
 
 Open your terminal, and change to this directory (`traefik`).
 
-Traefik needs limited, but privileged, access to your Docker host.
-Rather than run as root, you must create a new `traefik` user account
-for it to use instead. You can do this with the Makefile target:
-
-```
-make traefik-user
-
-## You can do this manually if you prefer (on the Docker Host:)
-# adduser --disabled-login --disabled-password --gecos GECOS traefik
-# gpasswd -a traefik docker
-```
-
 Run the interactive configuration wizard:
 
 ```
 make config
 ```
 
-You are presented an interctive menu to configure Traefik:
+You are presented an interactive menu to configure Traefik:
 
 ```
-? Traefik:  
+? Traefik:
 > Config
   Install (make install)
   Admin
@@ -43,6 +31,9 @@ have to visit all of the menus, but here are the most important ones
 to configure:
 
  * `Traefik user`
+   * Traefik needs limited, but privileged, access to your Docker
+     host. Rather than run as root, you must create a new `traefik`
+     user account for it to use instead.
  * `Entrypoints`
    * `Configure stock entrypoints`
      * `dashboard` - Enable the Traefik Dashboard, and set a
@@ -151,15 +142,17 @@ configuration](https://doc.traefik.io/traefik/getting-started/configuration-over
    provider](https://doc.traefik.io/traefik/providers/file/).
  * The templates placed in the
    [context-templates](config/context-templates) directory are ignored
-   by the git repository and serve as a local-only config store, they
-   are loaded on a per-Docker-Context basis.
+   by the git repository, and serve as a local-only config store, they
+   are loaded on a per-Docker-Context basis from sub-directories named
+   after each context. This lets you customize a particular Traefik
+   instance.
  * The [Docker
    provider](https://doc.traefik.io/traefik/providers/docker/) loads
-   dynamic configuration directly from Docker container labels.
-
-You can turn off the file provider by setting
-`TRAEFIK_FILE_PROVIDER=false` and/or turn off the Docker provider by
-setting `TRAEFIK_DOCKER_PROVIDER=false`.
+   dynamic configuration directly from Docker container labels,
+   allowing applications to configure their own routes and middleware.
+   You can turn off the file provider by setting
+   `TRAEFIK_FILE_PROVIDER=false` and/or turn off the Docker provider
+   by setting `TRAEFIK_DOCKER_PROVIDER=false`.
 
 You can inspect the live traefik config after the templating has been
 applied:
@@ -247,6 +240,17 @@ Traefik includes a dashboard to help visualize your configuration and detect
 errors. The dashboard service is not exposed to the internet, so you must tunnel
 throuh SSH to your docker server in order to see it. 
 
+The Traefik dashboard is disabled by default! To access the dashboard,
+the `dashboard` entrypoint must be enabled via `make config`, before
+following the rest of these steps:
+
+In the `make config` menu, choose:
+ * `Entrypoints`
+   * `Configure stock entrypoints`
+     * `dashboard` - Enable the Traefik Dashboard, and set a
+       username/password for it.
+ * Reinstall Traefik
+
 A Makefile target is setup to easily access the private dashboard through an SSH
 tunnel:
 
@@ -271,8 +275,10 @@ web browser to access it. Enter the username/password you configured.
 
 ## Traefik plugins
 
-Traefik plugins are automatically cloned from a source repository and
-built into a custom container image, whenever you run `make install`.
+The Traefik container image is rebuilt each time you run `make
+install` (or by choosing `Reinstall Traefik` from the menu). At that
+time, Traefik plugins are automatically cloned from a git source
+repository, and built into a custom container image.
 
 This configuration has builtin support for the following plugins:
 
@@ -320,9 +326,9 @@ to web servers running in project containers.
 
 ## OAuth2 authentication
 
-You can start the [traefik-forward-auth](../traefik-forward-auth)
-service to enable OAuth2 authentication to your [gitea](../gitea)
-identity provider (or any external OAuth2 provider).
+If you install the [traefik-forward-auth](../traefik-forward-auth)
+service, you can enable OAuth2 authentication to your
+[forgejo](../forgejo) identity provider (or any external OAuth2 provider).
 
 It is important to understand the difference between authentication
 and authorization:
@@ -662,5 +668,4 @@ Traefik [.env](.env-dist) file :
    the docker API.)
  * Authentication is provided on a per app basis with HTTP Basic
    Authentication, OAuth2, or mTLS, and includes senty authorization
-   middleware, to prevent unauthorized access.
-
+   middleware, to prevent unauthorized access. 
