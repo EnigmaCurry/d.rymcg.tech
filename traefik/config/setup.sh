@@ -2,6 +2,8 @@
 set -e
 
 CONFIG_DIR=/data/config
+DYNAMIC_CONFIG_DIR=${CONFIG_DIR}/dynamic
+INSTANCE_CONFIG_DIR=${DYNAMIC_CONFIG_DIR}/${DOCKER_CONTEXT:-instance}
 
 ytt_template() {
     src=$1; dst=$2;
@@ -113,14 +115,28 @@ ytt_template() {
 
 create_config() {
     rm -rf ${CONFIG_DIR}
-    mkdir -p ${CONFIG_DIR}/dynamic
+    mkdir -p ${DYNAMIC_CONFIG_DIR} ${INSTANCE_CONFIG_DIR}
     ## Traefik static config:
     ytt_template traefik.yml ${CONFIG_DIR}/traefik.yml
     ## Traefik dynamic config:
     for src in $(find . -type f \
-                  | grep -v "./traefik.yml" \
-                  | grep -E '(.yaml|.yml)$'); do
-        dst=${CONFIG_DIR}/dynamic/$(basename ${src})
+                     | grep -v "^./traefik.yml$" \
+                     | grep -v "^./context-template" \
+                     | grep -E '(.yaml|.yml)$'); do
+        dst=${DYNAMIC_CONFIG_DIR}/$(basename ${src})
+        set +e
+        (ytt_template ${src} ${dst})
+        if [[ "$?" != "0" ]]; then
+            echo "ERROR: CRITICAL: Dynamic config template failed, therefore removing all the config."
+            rm -rf ${CONFIG_DIR}
+            exit 1
+        fi
+        set -e
+    done
+    ## Templates specific to an indvidual Docker context, by name:
+    for src in $(find ./context-template -type f \
+                     | grep -E "^./context-template/${DOCKER_CONTEXT}/.*(.yaml|.yml)$"); do
+        dst=${INSTANCE_CONFIG_DIR}/$(basename ${src})
         set +e
         (ytt_template ${src} ${dst})
         if [[ "$?" != "0" ]]; then

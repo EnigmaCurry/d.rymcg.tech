@@ -18,6 +18,7 @@ services:
     volumes:
       - traefik:/data
     environment:
+      - DOCKER_CONTEXT=${DOCKER_CONTEXT}
       - TRAEFIK_SEND_ANONYMOUS_USAGE=${TRAEFIK_SEND_ANONYMOUS_USAGE:-false}
       - TRAEFIK_CONFIG_VERBOSE=${TRAEFIK_CONFIG_VERBOSE:-false}
       - TRAEFIK_ACME_CA_EMAIL
