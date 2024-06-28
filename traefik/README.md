@@ -36,7 +36,7 @@ to configure:
      user account for it to use instead.
  * `Entrypoints`
    * `Configure stock entrypoints`
-     * `dashboard` - Enable the Traefik Dashboard, and set a
+     * `dashboard` - Optionally, enable the Traefik Dashboard, and set a
        username/password for it.
  * `TLS certificates and authorities`
    * `Configure ACME`
