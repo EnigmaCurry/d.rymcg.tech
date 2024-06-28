@@ -103,8 +103,8 @@ In the `make config` menu, choose:
      * Choose `Let's Encrypt`
      * Choose `Production`
      * Choose `TLS-ALPN-01` for most public servers (otherwise choose
-       `DNS-01` for advanced use-cases, but this alos requires storing
-       an API key for your DNS provider.)
+       `DNS-01` for advanced use-cases, but this also requires storing
+       the security sensitive API key of your DNS provider.)
    * `Configure TLS certificates`
      * Choose `Create a new certificate.`
      * Enter the fully qualified doman name (CN) of your application.
@@ -150,9 +150,10 @@ configuration](https://doc.traefik.io/traefik/getting-started/configuration-over
    provider](https://doc.traefik.io/traefik/providers/docker/) loads
    dynamic configuration directly from Docker container labels,
    allowing applications to configure their own routes and middleware.
-   You can turn off the file provider by setting
-   `TRAEFIK_FILE_PROVIDER=false` and/or turn off the Docker provider
-   by setting `TRAEFIK_DOCKER_PROVIDER=false`.
+   
+You can turn off the file provider by setting
+`TRAEFIK_FILE_PROVIDER=false` and/or turn off the Docker provider by
+setting `TRAEFIK_DOCKER_PROVIDER=false`.
 
 You can inspect the live traefik config after the templating has been
 applied:
