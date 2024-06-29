@@ -41,7 +41,10 @@ services:
       - no-new-privileges:true
 
   app:
-    image: nextcloud:apache
+    build:
+      context: nextcloud
+      args:
+        NEXTCLOUD_IMAGE: ${NEXTCLOUD_IMAGE}
     restart: unless-stopped
     security_opt:
       - no-new-privileges:true
