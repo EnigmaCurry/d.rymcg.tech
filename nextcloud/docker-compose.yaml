@@ -10,13 +10,13 @@ services:
     environment:
       - POSTGRES_DB=nextcloud
       - POSTGRES_USER=nextcloud
-      - POSTGRES_PASSWORD=${DATABASE_PASSWORD}
+      - POSTGRES_PASSWORD=${NEXTCLOUD_DATABASE_PASSWORD}
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U $$POSTGRES_USER -d $$POSTGRES_DB"]
 
   postgres_backup:
     build:
-      context: ${BACKUP_POSTGRES_GIT_SRC}
+      context: ${NEXTCLOUD_BACKUP_POSTGRES_GIT_SRC}
     restart: unless-stopped
     depends_on:
       - postgres
@@ -24,22 +24,21 @@ services:
       - POSTGRES_HOST=postgres
       - POSTGRES_DATABASE=all
       - POSTGRES_USER=nextcloud
-      - POSTGRES_PASSWORD=${DATABASE_PASSWORD}
-      - S3_ACCESS_KEY_ID=${BACKUP_S3_KEY}
-      - S3_SECRET_ACCESS_KEY=${BACKUP_S3_SECRET}
-      - S3_BUCKET=${BACKUP_S3_BUCKET}
+      - POSTGRES_PASSWORD=${NEXTCLOUD_DATABASE_PASSWORD}
+      - S3_ACCESS_KEY_ID=${NEXTCLOUD_BACKUP_S3_KEY}
+      - S3_SECRET_ACCESS_KEY=${NEXTCLOUD_BACKUP_S3_SECRET}
+      - S3_BUCKET=${NEXTCLOUD_BACKUP_S3_BUCKET}
       - S3_PREFIX=${NEXTCLOUD_TRAEFIK_HOST}/postgres
-      - S3_ENDPOINT=https://${BACKUP_S3_HOST}
+      - S3_ENDPOINT=https://${NEXTCLOUD_BACKUP_S3_HOST}
       - S3_S3V4=yes
-      - SCHEDULE=${DATABASE_BACKUP_SCHEDULE}
-      - ENCRYPTION_PASSWORD=${BACKUP_ENCRYPTION_PASSWORD}
+      - SCHEDULE=${NEXTCLOUD_DATABASE_BACKUP_SCHEDULE}
+      - ENCRYPTION_PASSWORD=${NEXTCLOUD_BACKUP_ENCRYPTION_PASSWORD}
 
   redis:
     image: redis:alpine
     restart: unless-stopped
     security_opt:
       - no-new-privileges:true
-    restart: always
 
   app:
     image: nextcloud:apache
@@ -48,29 +47,17 @@ services:
       - no-new-privileges:true
     volumes:
       - data:/var/www/html
+      #- photos:/var/www/html/data
     environment:
       - POSTGRES_DB=nextcloud
       - POSTGRES_USER=nextcloud
       - POSTGRES_HOST=postgres
-      - POSTGRES_PASSWORD=${DATABASE_PASSWORD}
+      - POSTGRES_PASSWORD=${NEXTCLOUD_DATABASE_PASSWORD}
       - REDIS_HOST=redis
-      - OBJECTSTORE_S3_BUCKET
-      - OBJECTSTORE_S3_SSL=true
-      - OBJECTSTORE_S3_USEPATH_STYLE=true
-      - OBJECTSTORE_S3_AUTOCREATE=true
-      - OBJECTSTORE_S3_KEY
-      - OBJECTSTORE_S3_SECRET
-      - OBJECTSTORE_S3_HOST
-      - OBJECTSTORE_S3_PORT=443
     depends_on:
       - postgres
       - redis
-    labels:
-      - "traefik.enable=true"
-      - "traefik.http.routers.nextcloud-${NEXTCLOUD_INSTANCE:-default}.rule=Host(`${NEXTCLOUD_TRAEFIK_HOST}`)"
-      - "traefik.http.routers.nextcloud-${NEXTCLOUD_INSTANCE:-default}.entrypoints=websecure"
-      - "traefik.http.middlewares.nextcloud-${NEXTCLOUD_INSTANCE:-default}-ipallowlist.ipallowlist.sourcerange=${NEXTCLOUD_IP_SOURCERANGE}"
-      - "traefik.http.routers.nextcloud-${NEXTCLOUD_INSTANCE:-default}.middlewares=nextcloud-${NEXTCLOUD_INSTANCE:-default}-ipallowlist"
+    labels: []
       # the following were intended to allow dav discovery in nextcloud, but didn't work
       #- "traefik.frontend.redirect.permanent='true'"
       #- "traefik.frontend.redirect.regex='https://(.*)/.well-known/(card|cal)dav'"
@@ -85,11 +72,11 @@ services:
       - data:/data
     environment:
       ## See https://github.com/lobaro/restic-backup-docker#environment-variables
-      - RESTIC_REPOSITORY=s3:https://${BACKUP_S3_HOST}/${BACKUP_S3_BUCKET}/${NEXTCLOUD_TRAEFIK_HOST}/data
-      - RESTIC_PASSWORD=${BACKUP_ENCRYPTION_PASSWORD}
-      - BACKUP_CRON=${APP_BACKUP_SCHEDULE}
-      - AWS_ACCESS_KEY_ID=${BACKUP_S3_KEY}
-      - AWS_SECRET_ACCESS_KEY=${BACKUP_S3_SECRET}
+      - RESTIC_REPOSITORY=s3:https://${NEXTCLOUD_BACKUP_S3_HOST}/${NEXTCLOUD_BACKUP_S3_BUCKET}/${NEXTCLOUD_TRAEFIK_HOST}/data
+      - RESTIC_PASSWORD=${NEXTCLOUD_BACKUP_ENCRYPTION_PASSWORD}
+      - BACKUP_CRON=${NEXTCLOUD_APP_BACKUP_SCHEDULE}
+      - AWS_ACCESS_KEY_ID=${NEXTCLOUD_BACKUP_S3_KEY}
+      - AWS_SECRET_ACCESS_KEY=${NEXTCLOUD_BACKUP_S3_SECRET}
       - RESTIC_FORGET_ARGS=--prune --keep-daily 7 --keep-weekly 4 --keep-monthly 6 --keep-yearly 3
 
   cron:
@@ -107,3 +94,4 @@ services:
 volumes:
   postgres:
   data:
+  #photos:
