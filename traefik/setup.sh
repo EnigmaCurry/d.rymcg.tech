@@ -357,7 +357,6 @@ layer_7_tls_proxy_list_routes() {
         | column -t
 }
 
-
 layer_7_tls_proxy_add_ingress_route() {
     echo "Adding a new layer 7 TLS proxy route - "
     echo
