@@ -299,7 +299,7 @@ error_pages() {
     echo "## See https://github.com/tarampampam/error-pages"
     echo
     local ENABLED=$(${BIN}/dotenv -f ${ENV_FILE} get TRAEFIK_ERROR_PAGES_ENABLED)
-    if ${BIN}/confirm "${ENABLED}" "Do you want to enable the default error page template" "?"; then
+    if ${BIN}/confirm "${ENABLED}" "Do you want to enable a custom error page template" "?"; then
         ${BIN}/reconfigure ${ENV_FILE} "TRAEFIK_ERROR_PAGES_ENABLED=true"
         TRAEFIK_ERROR_PAGES_TEMPLATE="$(${BIN}/dotenv -f ${ENV_FILE} get TRAEFIK_ERROR_PAGES_TEMPLATE)"
         ${BIN}/reconfigure ${ENV_FILE} TRAEFIK_ERROR_PAGES_TEMPLATE="$(${BIN}/script-wizard choose --default ${TRAEFIK_ERROR_PAGES_TEMPLATE:-l7-light}  'Select an error page theme (https://github.com/tarampampam/error-pages#-templates)' ghost l7-light l7-dark shuffle noise hacker-terminal cats lost-in-space app-down connection matrix orient)"
