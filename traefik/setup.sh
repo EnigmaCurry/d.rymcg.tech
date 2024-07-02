@@ -426,7 +426,7 @@ layer_7_tls_proxy_manage_ingress_routes() {
         local ROUTES_EDIT=$(mktemp)
         (IFS=$'\n'; echo "${routes[*]}") | sort -u > "${ROUTES_TMP}"
         (IFS=$'\n'; echo "${to_delete[*]}") | sort -u > "${TO_DELETE_TMP}"
-        local ROUTES=$(comm -23 "${ROUTES_TMP}" "${TO_DELETE_TMP}" | tr '\t' ':' | tr '\n' ',' | sed 's/,\{1,\}/,/g' | sed 's/^,*//;s/,*$//')
+        local ROUTES=$(comm -23 "${ROUTES_TMP}" "${TO_DELETE_TMP}" | sed 's/[ \t]\+/:/g' | tr '\n' ',' | sed 's/,\{1,\}/,/g' | sed 's/^,*//;s/,*$//')
         ${BIN}/reconfigure ${ENV_FILE} "TRAEFIK_LAYER_7_TLS_PROXY_ROUTES=${ROUTES}"
     fi
     echo
@@ -617,7 +617,7 @@ layer_4_tcp_udp_proxy_manage_ingress_routes() {
         local ROUTES_EDIT=$(mktemp)
         (IFS=$'\n'; echo "${routes[*]}") | sort -u > "${ROUTES_TMP}"
         (IFS=$'\n'; echo "${to_delete[*]}") | sort -u > "${TO_DELETE_TMP}"
-        local ROUTES=$(comm -23 "${ROUTES_TMP}" "${TO_DELETE_TMP}" | tr '\t' ':' | tr '\n' ',' | sed 's/,\{1,\}/,/g' | sed 's/^,*//;s/,*$//')
+        local ROUTES=$(comm -23 "${ROUTES_TMP}" "${TO_DELETE_TMP}" | sed 's/[ \t]\+/:/g' | tr '\n' ',' | sed 's/,\{1,\}/,/g' | sed 's/^,*//;s/,*$//')
         ${BIN}/reconfigure ${ENV_FILE} "TRAEFIK_LAYER_4_TCP_UDP_PROXY_ROUTES=${ROUTES}"
     fi
     echo
