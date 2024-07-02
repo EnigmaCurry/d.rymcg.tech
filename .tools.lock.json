@@ -1,6 +1,6 @@
 {
-    "Description": "This file is used to configure the required versions of external application dependencies. End users should not need to edit these, but they are set by the d.rymcg.tech authors.",
+    "Description": "This file is used to configure the required versions of external application dependencies. End users should not need to edit these, but they may be updated from time to time by the d.rymcg.tech authors.",
     "dependencies": {
-        "script-wizard": "0.1.27"
+        "script-wizard": "0.1.34"
     }
 }
