@@ -64,6 +64,10 @@ compose-profiles:
 wireguard-reset:
 	docker compose --env-file=${ENV_FILE} exec -it wireguard wg-quick down wg0
 
+.PHONY: wireguard-client-reset
+wireguard-client-reset:
+	docker compose --env-file=${ENV_FILE} exec -it wireguard-client wg-quick down wg0
+
 .PHONY: destroy-wireguard
 destroy-wireguard:
 	@docker compose --env-file ${ENV_FILE} --profile wireguard down -v
