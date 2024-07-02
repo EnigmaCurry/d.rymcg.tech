@@ -206,10 +206,6 @@ services:
       - wireguard-client
     build:
       context: wireguard-client-config
-    security_opt:
-      - no-new-privileges:true
-    cap_drop:
-      - ALL
     environment:
       - TRAEFIK_VPN_ENTRYPOINT_HOST
       - TRAEFIK_VPN_CLIENT_INTERFACE_ADDRESS
