@@ -531,8 +531,8 @@ layer_4_tcp_udp_list_routes() {
         return
     fi
     ( echo "## Configured Layer 4 Routes:" >/dev/stderr
-      echo -e "Entrypoint\tDestination_address\tDestination_port"
-      echo -e "----------\t-------------------\t----------------"
+      echo -e "Entrypoint\tDestination_address\tDestination_port\tProxy_protocol"
+      echo -e "----------\t-------------------\t----------------\t--------------"
       echo "${ROUTES}" ) \
         | column -t
 }
@@ -591,10 +591,17 @@ layer_4_tcp_udp_add_ingress_route() {
         false
     do true; done
     echo
+    local ROUTE_PROXY_PROTOCOL=0
+    echo "##"
+    echo "## See https://www.haproxy.org/download/2.0/doc/proxy-protocol.txt"
+    echo
+    if confirm no "Do you want to enable Proxy Protocol for this route" "?"; then
+        ROUTE_PROXY_PROTOCOL=2
+    fi
     if [[ -n "${ROUTES}" ]]; then
         ROUTES="${ROUTES},"
     fi
-    ROUTES="${ROUTES}${ENTRYPOINT}:${ROUTE_IP_ADDRESS}:${ROUTE_PORT}"
+    ROUTES="${ROUTES}${ENTRYPOINT}:${ROUTE_IP_ADDRESS}:${ROUTE_PORT}:${ROUTE_PROXY_PROTOCOL}"
     ${BIN}/reconfigure ${ENV_FILE} "TRAEFIK_LAYER_4_TCP_UDP_PROXY_ROUTES=${ROUTES}"
     layer_4_tcp_udp_list_routes    
 }
