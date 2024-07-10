@@ -529,6 +529,7 @@ Install these other services at your leisure/preference:
 * [Autoheal](autoheal#readme) - a Docker container healthcheck monitor with auto-restart service
 * [Baikal](baikal#readme) - a lightweight CalDAV+CardDAV server
 * [CalcPad](calcpad#readme) - a different take on the caculator
+* [Calibre](calibre#readme) - an ebook manager
 * [DOH-server](doh-server#readme) - a DNS-over-HTTPs proxy resolver
 * [DrawIO](drawio#readme) - a diagram / whiteboard editor tool
 * [Ejabberd](ejabberd#readme) - an XMPP (Jabber) server
