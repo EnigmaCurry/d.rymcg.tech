@@ -50,10 +50,6 @@ application correctly:
  * Enter a new password.
  * Click `Save`.
  
-
-
-
-
 ### Enable Upload
 
 By default, there is no option to upload books, until you enable the
@@ -66,3 +62,6 @@ feature to do so.
  * Click `Enable Uploads`.
  * Click `Save`.
  
+### Use SFTP
+
+To manage the books en-masse, use the [sftp](../sftp) container.
