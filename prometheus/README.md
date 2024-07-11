@@ -24,6 +24,11 @@ make config
 * Choose whether to run node-exporter or not (For collecting the Host metrics).
 * Choose whether to run cAdvisor or not (For collecting container metrics).
 
+By default, this installs Node Exporter, cAdvisor, and Alertmanager targets
+for the host (of (i.e., your Docker context). When you run `make config` you'll
+have the opportunity to add or change targets. You can also add targets from
+within the Prometheus UI, but they will not be saved if the container is reinstalled.
+
 ```
 make install
 ```
@@ -48,13 +53,13 @@ This configurations comes with the following dashboards preinstalled:
 
 You can find new dashboards on
 [grafana.com](https://grafana.com/grafana/dashboards/). Add new
-dashboards, by downloading the JSON file into the
-[grafana/dashboards](grafana/dashboards) directory, and they will be
+dashboards by downloading the JSON file into the
+[grafana/provisioning/dashboards](grafana/provisioning/dashboards) directory, and they will be
 made available the next time you run `make install`.
 
 ## Alerts
 
-If you enabled alertmanager and SMTP via `make config`, you can test that alerts are working:
+If you enabled Alertmanager and SMTP via `make config`, you can test that alerts are working:
 
 ```
 make test-alert
