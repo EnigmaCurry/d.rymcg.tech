@@ -14,16 +14,17 @@ config-hook:
 	@${BIN}/reconfigure_password ${ENV_FILE} PEERTUBE_SECRET 32
 	@${BIN}/reconfigure_password ${ENV_FILE} PEERTUBE_POSTGRES_PASSWORD 45
 	@echo
-	@echo "You can configure Peertube to send emails via a custom SMTP server that you configure or via the Postfix service installed with Peertube."
 	@${BIN}/reconfigure_ask ${ENV_FILE} PEERTUBE_ADMIN_EMAIL "Enter an email address for the Peertube admin user" admin@$$(${BIN}/dotenv -f ${ENV_FILE} get PEERTUBE_TRAEFIK_HOST)
 	@${BIN}/reconfigure_ask ${ENV_FILE} PEERTUBE_SMTP_FROM "Enter an admin email address to be used as the \"From\" address" noreply@$$(${BIN}/dotenv -f ${ENV_FILE} get PEERTUBE_TRAEFIK_HOST)
+	@echo
+	@echo "You can configure Peertube to send emails via a custom SMTP server that you configure or via the Postfix service installed with Peertube."
 	@${BIN}/confirm $$(test "$$(${BIN}/dotenv -f ${ENV_FILE} get PEERTUBE_SMTP_HOSTNAME)" == 'postfix' && echo no || echo yes) "Do you want Peertube to send emails from a custom SMTP server" "?" && ( \
 		${BIN}/reconfigure_ask ${ENV_FILE} PEERTUBE_SMTP_HOSTNAME "Enter the SMTP server hostname" && \
 		${BIN}/reconfigure_ask ${ENV_FILE} PEERTUBE_SMTP_PORT "Enter the SMTP server port" 25 && \
 		${BIN}/reconfigure_ask ${ENV_FILE} PEERTUBE_SMTP_USERNAME "Enter the SMTP server login" && \
 		${BIN}/reconfigure_ask ${ENV_FILE} PEERTUBE_SMTP_PASSWORD "Enter the SMTP server password" && \
-		${BIN}/confirm no "Does the SMTP server use TLS" "?" && ${BIN}/reconfigure ${ENV_FILE} PEERTUBE_SMTP_TLS=true || ${BIN}/reconfigure ${ENV_FILE} PEERTUBE_SMTP_TLS=false && \
-		${BIN}/confirm no "Disable STARTTLS" "?" && ${BIN}/reconfigure ${ENV_FILE} PEERTUBE_SMTP_DISABLE_STARTTLS=true || ${BIN}/reconfigure ${ENV_FILE} PEERTUBE_SMTP_DISABLE_STARTTLS=false \
+		${BIN}/confirm $$(test "$$(${BIN}/dotenv -f ${ENV_FILE} get PEERTUBE_SMTP_TLS)" == 'true' && echo yes || echo no) "Does the SMTP server use TLS" "?" && ${BIN}/reconfigure ${ENV_FILE} PEERTUBE_SMTP_TLS=true || ${BIN}/reconfigure ${ENV_FILE} PEERTUBE_SMTP_TLS=false && \
+		${BIN}/confirm $$(test "$$(${BIN}/dotenv -f ${ENV_FILE} get PEERTUBE_SMTP_DISABLE_STARTTLS)" == 'true' && echo yes || echo no) "Disable STARTTLS" "?" && ${BIN}/reconfigure ${ENV_FILE} PEERTUBE_SMTP_DISABLE_STARTTLS=true || ${BIN}/reconfigure ${ENV_FILE} PEERTUBE_SMTP_DISABLE_STARTTLS=false \
 	) || ( \
 		${BIN}/reconfigure ${ENV_FILE} PEERTUBE_SMTP_HOSTNAME=postfix && \
 		${BIN}/reconfigure ${ENV_FILE} PEERTUBE_SMTP_PORT=25 && \
