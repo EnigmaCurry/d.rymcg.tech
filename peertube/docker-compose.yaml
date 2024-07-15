@@ -1,0 +1,77 @@
+services:
+  peertube:
+    # If you don't want to use the official image and build one from sources:
+    # build:
+    #   context: .
+    #   dockerfile: ./support/docker/production/Dockerfile.bookworm
+    image: chocobozzz/peertube:${PEERTUBE_IMAGE}
+    environment:
+      - PEERTUBE_DB_USERNAME=${PEERTUBE_POSTGRES_USER}
+      - PEERTUBE_DB_PASSWORD=${PEERTUBE_POSTGRES_PASSWORD}
+      - PEERTUBE_DB_SSL=${PEERTUBE_DB_SSL}
+      - PEERTUBE_DB_HOSTNAME=postgres
+      - PEERTUBE_WEBSERVER_HOSTNAME=${PEERTUBE_TRAEFIK_HOST}
+      - PEERTUBE_TRUST_PROXY=${PEERTUBE_TRUST_PROXY}
+      - PEERTUBE_SECRET=${PEERTUBE_SECRET}
+      - PEERTUBE_SMTP_USERNAME=${PEERTUBE_SMTP_USERNAME}
+      - PEERTUBE_SMTP_PASSWORD=${PEERTUBE_SMTP_PASSWORD}
+      - PEERTUBE_SMTP_HOSTNAME=${PEERTUBE_SMTP_HOSTNAME}
+      - PEERTUBE_SMTP_PORT=${PEERTUBE_SMTP_PORT}
+      - PEERTUBE_SMTP_FROM=${PEERTUBE_SMTP_FROM}
+      - PEERTUBE_SMTP_TLS=${PEERTUBE_SMTP_TLS}
+      - PEERTUBE_SMTP_DISABLE_STARTTLS=${PEERTUBE_SMTP_DISABLE_STARTTLS}
+      - PEERTUBE_ADMIN_EMAIL=${PEERTUBE_ADMIN_EMAIL}
+      - POSTFIX_myhostname=${PEERTUBE_POSTFIX_myhostname}
+      - OPENDKIM_DOMAINS=${PEERTUBE_OPENDKIM_DOMAINS}
+      - OPENDKIM_RequireSafeKeys=${PEERTUBE_OPENDKIM_RequireSafeKeys}
+      - PEERTUBE_OBJECT_STORAGE_UPLOAD_ACL_PUBLIC="public-read"
+      - PEERTUBE_OBJECT_STORAGE_UPLOAD_ACL_PRIVATE="private"
+      - PEERTUBE_LOG_LEVEL=${PEERTUBE_LOG_LEVEL}
+    ports:
+      # Comment next line if you don't want to use the live feature
+      - "1935:1935" 
+      # Uncomment next line if you use another webserver/proxy or test PeerTube in local, otherwise not suitable for production
+      - "9000:9000"
+    volumes:
+      - data:/data
+      - config:/config
+    depends_on:
+      - postgres
+      - redis
+      - postfix
+    restart: "unless-stopped"
+
+  postgres:
+    image: postgres:${PEERTUBE_POSTGRES_IMAGE}
+    environment:
+      - POSTGRES_USER=${PEERTUBE_POSTGRES_USER}
+      - POSTGRES_PASSWORD=${PEERTUBE_POSTGRES_PASSWORD}
+      - POSTGRES_DB=peertube
+    volumes:
+      - postgres:/var/lib/postgresql/data
+    restart: "unless-stopped"
+
+  redis:
+    image: redis:6-alpine
+    volumes:
+      - redis:/data
+    restart: "unless-stopped"
+
+  postfix:
+    image: mwader/postfix-relay
+    environment:
+      - PEERTUBE_ADMIN_EMAIL=${PEERTUBE_ADMIN_EMAIL}
+      - PEERTUBE_SMTP_FROM=${PEERTUBE_SMTP_FROM}
+      - POSTFIX_myhostname=${PEERTUBE_POSTFIX_myhostname}
+      - OPENDKIM_DOMAINS=${PEERTUBE_OPENDKIM_DOMAINS}
+      - OPENDKIM_RequireSafeKeys=${PEERTUBE_OPENDKIM_RequireSafeKeys}  
+    volumes:
+      - postfix:/etc/opendkim/keys
+    restart: "unless-stopped"
+
+volumes:
+  postfix:
+  redis:
+  postgres:
+  config:
+  data:
