@@ -572,7 +572,6 @@ Install these other services at your leisure/preference:
 * [Vaultward](vaultwarden#readme) - a bitwarden compatible password manager written in Rust (formerly bitwarden_rs)
 * [Websocketd](websocketd#readme) - a websocket / CGI server
 * [Wordpress](wordpress#readme) - an ubiquitous blogging / CMS platform, with a plugin to build a static HTML site snapshot
-* [Wireguard](wireguard#readme) - a Virtual Private Network (VPN) and simple client script (not integrated with Traefik)
 * [XBrowserSync](xbs#readme) - a bookmark manager
 
 You can create a new application by using any other application as an

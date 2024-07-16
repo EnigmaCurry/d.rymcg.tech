@@ -1,0 +1,34 @@
+#@ load("@ytt:data", "data")
+
+#@ tls_proxy_enabled = data.values.layer_7_tls_proxy_enabled == "true"
+#@ tls_proxy_routes = data.values.layer_7_tls_proxy_routes
+
+#@yaml/text-templated-strings
+#@ if tls_proxy_enabled and len(tls_proxy_routes):
+tcp:
+  services:
+    #@ for route in tls_proxy_routes.split(","):
+    #@ domain, ip_address, port, proxy_protocol = route.split(":")
+    #@ service = domain.replace(".","-")
+    (@= service @)-proxy:
+      loadBalancer:
+        #@ if int(proxy_protocol) > 0:
+        proxyProtocol:
+          version: #@ proxy_protocol
+        #@ end
+        servers:
+          - address: "(@= ip_address @):(@= port @)"
+    #@ end
+  routers:
+    #@ for route in tls_proxy_routes.split(","):
+    #@ domain = route.split(":")[0]
+    #@ service = domain.replace(".","-")
+    (@= service @)-proxy:
+      entryPoints:
+        - "websecure"
+      rule: "HostSNI(`(@= domain @)`)"
+      service: "(@= service @)-proxy"
+      tls:
+        passthrough: true
+    #@ end
+#@ end

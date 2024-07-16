@@ -5,65 +5,9 @@ TCP / UDP reverse proxy and load balancer. Traefik is the front-most
 gateway for (almost) all of the projects hosted by d.rymcg.tech, and
 should be the first thing you install in your deployment.
 
-## Implementation
-
- * By default Traefik binds to the host network, which gives Traefik
-   the ability to directly access any container network, and not
-   needing to attach every container to a specific proxy network.
-   Sharing the host network also means there is no list of ports to
-   maintain for Traefik, because Traefik can bind to any port on the
-   host. (*It is the responsibility of your external firewall to block
-   unintended public access*).
- * Alternatively, Traefik can bind to the network of a wireguard VPN;
-   in the form of either a server configuration (serving to other VPN
-   clients), or as a client reverse proxy (forwarding private services
-   to public non-VPN clients). In this mode, Traefik will bind
-   directly to the wireguard container network (`network_mode:
-   service:wireguard` or `network_mode: service:wireguard-client` and
-   then the wireguard server itself will bind to the host port `51820`
-   by default, for authorized clients to connect to.)
- * TLS certificates are automatically managed by ACME, but the
-   certificate domains are manually defined using the `make certs`
-   tool. Traefik
-   [certresolvers](https://doc.traefik.io/traefik/routing/routers/#certresolver)
-   are ***not*** being used on the router level, but instead apply to
-   the entire entrypoint (`websecure`) as a whole. You only need to
-   configure the router rules with a `Host` that matches one of your
-   certificates (otherwise it may use an untrusted temporary
-   self-signed certificate).
- * The Traefik static configuration is no longer defined in
-   `docker-compose.yaml`, but it is templated inside of
-   [traefik.yml](config/traefik.yml) which is rendered automatically
-   via the [ytt](https://carvel.dev/ytt/) tool when you run `make
-   install`. (This happens inside the [config](config) container, so
-   you don't need to install ytt on your workstation.)
- * Traefik does not run as root, but under a dedicated system (host)
-   user account named `traefik` (this user is automatically created on
-   the host, the first time you run `make config`). The `traefik` user
-   is added to the `docker` group, so that it can access the docker
-   socket. This is still very much considred a privileged account, as
-   it can read all the environment variables of all your containers,
-   and can escalate itself to root level access, through the use of
-   the docker API.)
- * Authentication is provided on a per app basis with HTTP Basic
-   Authentication or OAuth2, with a general group based authorization
-   middleware adaptable to secure any application.
-
 ## Config
 
 Open your terminal, and change to this directory (`traefik`).
-
-Traefik needs limited, but privileged, access to your Docker host.
-Rather than run as root, you must create a new `traefik` user account
-for it to use instead. You can do this with the Makefile target:
-
-```
-make traefik-user
-
-## You can do this manually if you prefer (on the Docker Host:)
-# adduser --disabled-login --disabled-password --gecos GECOS traefik
-# gpasswd -a traefik docker
-```
 
 Run the interactive configuration wizard:
 
@@ -71,35 +15,41 @@ Run the interactive configuration wizard:
 make config
 ```
 
-Follow the prompts and answer the questions. You will configure the
-ACME certificate resolver, the Traefik dashboard access credentials,
-Traefik plugins, and optionally the VPN server or client.
-
-Next, you can configure the TLS certificates. Run:
+You are presented an interactive menu to configure Traefik:
 
 ```
-make certs
+? Traefik:
+> Config
+  Install (make install)
+  Admin
+  Exit (ESC)
 ```
 
-(Follow the [certificate manager](#certificate-manager) section for a
-detailed example of creating certificates and then come back here.)
 
-```
-# Optional: Make security groups for header authorization middleware:
-make sentry
-```
+Go into the `Config` sub-menu, go down the list. You don't necessarily
+have to visit all of the menus, but here are the most important ones
+to configure:
 
-(`make sentry` is only required if you want to configure Oauth2
-authentication - follow the [Oauth2
-authentication](#oauth2-authentication) section for instructions how
-to create authorization groups, or you can do that anytime later.)
+ * `Traefik user`
+   * Traefik needs limited, but privileged, access to your Docker
+     host. Rather than run as root, you must create a new `traefik`
+     user account for it to use instead.
+ * `Entrypoints`
+   * `Configure stock entrypoints`
+     * `dashboard` - Optionally, enable the Traefik Dashboard, and set a
+       username/password for it.
+ * `TLS certificates and authorities`
+   * `Configure ACME`
+   * `Configure TLS certificates`
 
-Double check that the config has now been created in your
-`.env_${DOCKER_CONTEXT}_default` file and make any final edits (there are a
-few settings that are not covered by the wizard, so you may want to
-set them by hand). Also note that you can re-run `make config`
-anytime, and it will remember your choices from the last time and make
-those the default answers.
+Once you've gone through the config menus and made your choices,
+double check that the config has now been created in your
+`.env_${DOCKER_CONTEXT}_default` file, and make any final edits by
+hand (there are a few settings that are not covered by the wizard).
+The menu config program's sole job is to edit this file for you, but
+any edits you make by hand will take precedence. Also note that you
+can re-run `make config` anytime, and it will read your choices from
+the this file, and make those your default answers.
 
 Once you're happy with the config, install Traefik:
 
@@ -107,13 +57,19 @@ Once you're happy with the config, install Traefik:
 make install
 ```
 
+(You may also choose the `Reinstall Traefik` option directly from the
+`make config` menu.)
+
 Check the Traefik logs for any errors:
 
 ```
 make logs
 ```
 
-Open the dashboard:
+(You may also choose the `Admin` -> `Review Logs` option in the `make
+config` menu.)
+
+Open the Traefik dashboard (optional):
 
 ```
 make open
@@ -125,69 +81,47 @@ in the dashboard.
 
 ## Certificate manager
 
-Most sub-projects of d.rymcg.tech *do not* specify any certificate
-resolver via the docker provider labels on the container/router.
-Instead, certificates are explicitly managed by the Traefik [static
-configuration
-template](https://github.com/EnigmaCurry/d.rymcg.tech/blob/e6a4d0285f04d6d7f07fb9a5ec403ba421229747/traefik/config/traefik.yml#L80-L87)
-directly on the entrypoint. Therefore you must configure the
-certificate domains, *and reinstall Traefik*, before these
-certificates may be used.
+By convention, d.rymcg.tech sub-projects do not provision, nor even
+request, their own TLS certificates. All TLS certificates are to be
+explicitly managed by the Traefik [static configuration
+template](https://github.com/EnigmaCurry/d.rymcg.tech/blob/e6a4d0285f04d6d7f07fb9a5ec403ba421229747/traefik/config/traefik.yml#L80-L87),
+directly on the entrypoint (and not on the route!). Therefore, you
+must configure all of the certificate domain names via `make config`,
+and then *reinstall Traefik*, before any new certificates may be used.
+(ACME may be used to automatically issue and renew these certificates,
+once defined.) Applications provided by d.rymcg.tech will never
+specify their own Traefik cert resolvers, they should rely upon one of
+the staticly defined certificate resolvers instead. Applications that
+provide routes that do not have a matching certificate, will
+automatically use the `TRAEFIK DEFAULT` certificate, which is
+self-signed, and not trusted in browsers.
 
-`make certs` is an interactive tool that configures the
-`TRAEFIK_ACME_CERT_DOMAINS` variable in the Traefik
-`.env_${DOCKER_CONTEXT}_default` file, which is stored as a JSON list of
-domains. This variable feeds the static configuration template, which
-builds the configuration on each startup of the Traefik container.
+In the `make config` menu, choose:
 
-```
-$ make certs
-Certificate manager:
- * Type `q` or `quit` to quit the certificate manager.
- * Type `l` or `list` to list certificate domains.
- * Type `d` or `delete` to delete an existing certificate domain.
- * Type `c` or `n` or `new` to create a new certificate domain.
- * Type `?` or `help` to see this help message again.
-```
+ * `TLS certificates and authorities`
+   * `Configure ACME`
+     * Choose `Let's Encrypt`
+     * Choose `Production`
+     * Choose `TLS-ALPN-01` for most public servers (otherwise choose
+       `DNS-01` for advanced use-cases, but this also requires storing
+       the security sensitive API key of your DNS provider.)
+   * `Configure TLS certificates`
+     * Choose `Create a new certificate.`
+     * Enter the fully qualified doman name (CN) of your application.
+       (eg. `whoami.example.com`)
+     * Enter alternative domain names (SANS) to also include on the
+       same certificate.
+     * Enter blank to finish entering domain names.
 
-For example, suppose you are deploying the [whoami](../whoami)
-service, and you want a TLS certificate for that deployment.
-
-Press `c` to create a new certificate domain.
-
-```
-Configure the domains for the new certificate:
-Enter the main domain for this certificate (eg. `d.rymcg.tech` or `*.d.rymcg.tech`):
-```
-
-At this prompt, enter the main domain, the same way as you chose for
-`WHOAMI_TRAEFIK_HOST` in the whoami .env file, eg:
-`whoami.d.example.com`. If you chose to use the DNS challenge type,
-this can be a wildcard domain instead, eg `*.d.example.com`.
-
-```
-Enter a secondary domain (enter blank to skip)
-```
-
-At the second prompt here, you can enter additional domains or
-wildcards to be listed on the same certificate (SANS; Subject
-Alternative Names). For the TLS challenge, wildcards are not allowed,
-so you must enter all the domains you want to have explicitly as SANS,
-eg. `whoami2.d.example.com`, `whoami3.d.example.com`, etc. (enter each
-domain separately, then press Enter on a blank line to finish.)
-
-You can create several certificate domains, and each one can have
-several SANS domains. The final list of all your certificate
+You can create several certificates, and each certificate may list
+several domains (CN+SANS). The final list of all your certificate
 domains+SANS is saved back into your `.env_${DOCKER_CONTEXT}_default`
 file in the `TRAEFIK_ACME_CERT_DOMAINS` variable as a JSON nested
 list. When you run `make install` this is pushed into the [static
 configuration
 template](https://github.com/EnigmaCurry/d.rymcg.tech/blob/e6a4d0285f04d6d7f07fb9a5ec403ba421229747/traefik/config/traefik.yml#L80-L87).
 
-Back at the main menu, type `q` to quit the certificate manager. If
-you made changes, it will ask you if you would like to restart
-Traefik. If you'd rather wait, thats fine, just run `make install`
-when its convenient to restart Traefik.
+Make sure you reinstall Traefik after making configuration changes.
 
 ## Traefik config templating
 
@@ -206,14 +140,17 @@ configuration](https://doc.traefik.io/traefik/getting-started/configuration-over
  * The ytt templates placed in the [config-templates](config/config-templates) directory are
    loaded by the Traefik [file
    provider](https://doc.traefik.io/traefik/providers/file/).
- * The templates placed in the [user-templates](config/user-templates)
-   directory are ignored by the git repository and serve as a
-   local-only config store, they are loaded identically as the
-   `config-templates` directory.
+ * The templates placed in the
+   [context-templates](config/context-templates) directory are ignored
+   by the git repository, and serve as a local-only config store, they
+   are loaded on a per-Docker-Context basis from sub-directories named
+   after each context. This lets you customize a particular Traefik
+   instance.
  * The [Docker
    provider](https://doc.traefik.io/traefik/providers/docker/) loads
-   dynamic configuration directly from Docker container labels.
-
+   dynamic configuration directly from Docker container labels,
+   allowing applications to configure their own routes and middleware.
+   
 You can turn off the file provider by setting
 `TRAEFIK_FILE_PROVIDER=false` and/or turn off the Docker provider by
 setting `TRAEFIK_DOCKER_PROVIDER=false`.
@@ -304,6 +241,17 @@ Traefik includes a dashboard to help visualize your configuration and detect
 errors. The dashboard service is not exposed to the internet, so you must tunnel
 throuh SSH to your docker server in order to see it. 
 
+The Traefik dashboard is disabled by default! To access the dashboard,
+the `dashboard` entrypoint must be enabled via `make config`, before
+following the rest of these steps:
+
+In the `make config` menu, choose:
+ * `Entrypoints`
+   * `Configure stock entrypoints`
+     * `dashboard` - Enable the Traefik Dashboard, and set a
+       username/password for it.
+ * Reinstall Traefik
+
 A Makefile target is setup to easily access the private dashboard through an SSH
 tunnel:
 
@@ -328,8 +276,10 @@ web browser to access it. Enter the username/password you configured.
 
 ## Traefik plugins
 
-Traefik plugins are automatically cloned from a source repository and
-built into a custom container image, whenever you run `make install`.
+The Traefik container image is rebuilt each time you run `make
+install` (or by choosing `Reinstall Traefik` from the menu). At that
+time, Traefik plugins are automatically cloned from a git source
+repository, and built into a custom container image.
 
 This configuration has builtin support for the following plugins:
 
@@ -377,9 +327,9 @@ to web servers running in project containers.
 
 ## OAuth2 authentication
 
-You can start the [traefik-forward-auth](../traefik-forward-auth)
-service to enable OAuth2 authentication to your [gitea](../gitea)
-identity provider (or any external OAuth2 provider).
+If you install the [traefik-forward-auth](../traefik-forward-auth)
+service, you can enable OAuth2 authentication to your
+[forgejo](../forgejo) identity provider (or any external OAuth2 provider).
 
 It is important to understand the difference between authentication
 and authorization:
@@ -546,42 +496,37 @@ Use `production` or `staging`.
 
 > [!NOTE]
 > This section describes how to make Traefik act as a **Layer 7**
-> (HTTP) VPN, typical of company wide intranets. If you want a **Layer
+> (TLS) VPN, typical of company wide intranets. If you want a **Layer
 > 4** (TCP/UDP) VPN, typical of consumer privacy shields, check out the
 > separate [wireguard](../wireguard#readme) config].
 
-By default Traefik is setup to use the `host` network, which is used
-for *public* (internet or LAN) servers. Alternatively, you can start a
-wireguard VPN server sidecar container and bind Traefik exclusively to
-the private network (`TRAEFIK_VPN_ENABLED=true`). As a third
-configuration, you can have a public Traefik server that can reverse
-proxy to the VPN to expose private services publicly
-(`TRAEFIK_VPN_CLIENT_ENABLED=true`).
+This config uses the following environment variables to configure
+wireguard, and the default value is shown:
+
+ * `TRAEFIK_VPN_ENABLED=false` - If `true`, enable the wireguard *server* sidecar.
+ * `TRAEFIK_VPN_CLIENT_ENABLED=false` - If `true`, enable the wireguard *client* sidecar.
+ * `TRAEFIK_NETWORK_MODE=host` - Set the network mode of the
+   container, to `host`, `service:wireguard`, or
+   `service:wireguard-client`.
+ * `TRAEFIK_*_ENTRYPOINT_HOST=0.0.0.0` - Each entrypoint configures
+   the IP address it should listen on, which can make the entrypoints
+   public (`0.0.0.0`) or private (`10.13.16.2`) accordingly.
 
 The easiest way to configure any of these configurations is to run the
-`make config` script. Watch for the following questions to turn the
-wireguard services on:
+`make config` script. 
 
- * `Do you want to run Traefik exclusively inside a VPN?` Say yes to
-   this question to configure the wireguard server and bind the
-   traefik container to the wireguard container network.
- * `Do you want to run Traefik as a reverse proxy for an external
-   VPN?` Say yes to this question to configure the wireguard client
-   and bind the Traefik container to the wireguard client container
-   network.
- * If you say N to both questions, Traefik will bind to the `host`
-   network.
+ * Choose the `Configure wireguard VPN` menu option.
 
-Note: Traefik can only bind to a single network at a time, so you may
-choose to configure `TRAEFIK_VPN_ENABLED=true`, **or**
-`TRAEFIK_VPN_CLIENT_ENABLED=true`, or neither, *but not both
-simultaneously*. To use a client and a server connected to the same
-VPN, you should deploy Traefik to two separate docker contexts.
+You may want to have several Traefik instances all on the same VPN.
+You will need to designate *one* of them to be the wireguard "server"
+(ie. the most public one), and the rest of them are to be wireguard
+"clients".
 
 ### Retrieve client credentials
 
-There are two ways to retrieve the client credentials from the server,
-which you will need to enter into your client:
+Once you've started a wireguard server instance, you will need to copy
+the credentials to your clients. There are two ways to retrieve the
+client credentials from the server:
 
    * `make show-wireguard-peers` - output text config of each peer.
    * `make show-wireguard-peers-qr` - QR encoded output to scan with
@@ -597,91 +542,6 @@ may need to clean up the existing server connection:
 ## Same as `wg-quick down wg0` on the server:
 make wireguard-reset
 ```
-
-### Wireguard VPN client
-
-[![Traefik VPN Reverse
-Proxy](doc/Traefik-VPN-Proxy.jpg)](https://raw.githubusercontent.com/EnigmaCurry/d.rymcg.tech/master/traefik/doc/Traefik-VPN-Proxy.jpg)
-
-Consider the use-case for Traefik as a VPN client:
-
- * You have a Docker server hosted on the public internet.
- * You run Traefik on your public Docker server, with
-   `TRAEFIK_VPN_ENABLED=true`, (this Traefik server can *only* be
-   accessed from the private wireguard network)
- * You have an office LAN with multiple clients, all behind an office
-   router firewall, they would all like to access your private Traefik
-   instance, but they can't access it without a VPN client, and its
-   too cumbersome to install the client on all the office computers.
- * So, you configure a small computer in the office (eg. raspberry pi)
-   as the only computer that needs to connect to the VPN.
- * The local office Traefik instance runs in the wireguard client
-   configuration, with `TRAEFIK_VPN_CLIENT_ENABLED=true` and forwards
-   all requests it receives from the local LAN over to the private
-   Traefik instance on the VPN.
- * You selectively configure `TRAEFIK_VPN_CLIENT_PEER_SERVICES`, which
-   is the list of private services you wish to expose.
- * All the office workers can now access these private VPN services
-   with no authorization, but only from the secure office network,
-   connecting through the local proxy (rasbperry pi).
-
-Consider adding on to the above use-case with a third internet server:
-
- * You create a new Docker server on the public internet.
- * You run Traefik on the second docker server, with
-`TRAEFIK_VPN_CLIENT_ENABLED=true` connecting to the first docker
-server running with `TRAEFIK_VPN_ENABLED=true`.
- * You selectively configure `TRAEFIK_VPN_CLIENT_PEER_SERVICES`, which
-   is the list of private services you wish to expose.
- * You can expose any service from any computer connected to the same
-   wireguard private network, by creating a Traefik
-   service,router,middleware, and serversTransport. Follow the example
-   of [vpn-client.yml](config/config-template/vpn-client.yml)
- * Now the allowed private services are exposed to the public
-   internet.
-
-To configure Traefik as a VPN client, run `make config`:
-
- * When you are asked `Do you want to run Traefik exclusively inside a
-   VPN?` answer **N**. When you are asked `Do you want to run Traefik
-   as a reverse proxy for an external VPN?` answer **Y**.
-
- * Once you tell `make config` that you want to run the vpn client, it
-   will ask you to enter all of the same details found in the output
-   of the server's `make show-wireguard-peers`. The crednetials are
-   then permantely stored in the traefik .env file.
-
- * When asked to `Enter the list of VPN service names that the client
-   should reverse proxy`, you should enter a list of the names all of
-   the private services you want to forward. For example, if you want
-   to forward the `whoami` and the `piwigo` services, you would answer
-   `whoami,piwigo`
-
-Once reconfigured, run `make install` and the configuration will be
-regenerated, creating a new router and middleware to accomplish the
-forwarding.
-
-The private Traefik server has configured `TRAEFIK_ROOT_DOMAIN` (eg.
-`d.rymcg.tech`) and the Traefik vpn client has a copy of this as
-`TRAEFIK_VPN_ROOT_DOMAIN`. It uses this information to translate from
-public domain to the private domain.
-
-For example:
-
- * Suppose the VPN server's private Traefik instance is configured with
-   `TRAEFIK_ROOT_DOMAIN=private.example.com`
- * Suppose the VPN client's public Traefik instance is configured with
-   `TRAEFIK_ROOT_DOMAIN=public.example.com` and
-   `TRAEFIK_VPN_ROOT_DOMAIN=private.example.com`
- * Suppose the VPN server has deployed the `whoami` service and the
-   Traefik client server has configured
-   `TRAEFIK_VPN_CLIENT_PEER_SERVICES=whoami` in order to forward
-   requests to the private whoami service.
-
-In the above scenario, any request coming into the public Traefik
-client server for the domain `whoami.public.example.com` will get
-translated to the host `whoami.private.example.com` and forwarded to
-the private Traefik VPN server instance.
 
 ## Environment Variables
 
@@ -762,7 +622,6 @@ Traefik [.env](.env-dist) file :
 | `TRAEFIK_VPN_PEERS`                        | The number or list of clients to create                                          | `client1,client2`, `1`                        |
 | `TRAEFIK_VPN_PEER_DNS`                     | The DNS server that clients are advertised to use                                | `auto` (uses host), `1.1.1.1`                 |
 | `TRAEFIK_VPN_PORT`                         | The TCP port to bind the VPN server to                                           | `51820`                                       |
-| `TRAEFIK_VPN_ROOT_DOMAIN`                  | Root domain of the VPN services                                                  | `d.rymcg.tech`                                |
 | `TRAEFIK_VPN_SUBNET`                       | The first .0 IP address of the private VPN subnet                                | `10.13.16.0`                                  |
 | `TRAEFIK_WEBSECURE_ENTRYPOINT_ENABLED`     | (bool) Enable websecure (port 443) entrypoint                                    | `true`,`false`                                |
 | `TRAEFIK_WEBSECURE_ENTRYPOINT_HOST`        | Host ip address to bind websecure entrypoint                                     | `0.0.0.0`                                     |
@@ -777,3 +636,37 @@ Traefik [.env](.env-dist) file :
 | `TRAEFIK_STEP_CA_ENDPOINT`                 | Step-CA server URL                                                               | `https://ca.example.com`                      |
 | `TRAEFIK_STEP_CA_FINGERPRINT`              | Step-CA root CA fingerprint                                                      | `xxxxxxxxxxxx`                                |
 | `TRAEFIK_STEP_CA_ZERO_CERTS`               | (bool) Remove all other CA certs from the system                                 | `false`                                       |
+
+## Implementation
+
+ * By default, Traefik binds to the host network, which gives it the
+   ability to directly access any container, and not need to attach to
+   any specific Docker networks. Sharing the host network also means
+   there is no list of ports to publish for Traefik, because the host
+   network is allowed to bind to any port. (*It is the responsibility
+   of your external firewall to block access to unintended ports*).
+ * TLS certificates are explicitly defined using the `make certs`
+   tool, and automatically issued/renewed by ACME. However, Traefik
+   [certresolvers](https://doc.traefik.io/traefik/routing/routers/#certresolver)
+   are ***not*** being used on the router level, but are applied to
+   the entire entrypoint (`websecure`) as a whole. You only need to
+   configure the router rules with a `Host` that matches one of your
+   certificates (otherwise it may use an untrusted temporary
+   self-signed certificate).
+ * The Traefik static configuration is no longer defined in
+   `docker-compose.yaml`, but it is templated inside of
+   [traefik.yml](config/traefik.yml) which is rendered automatically
+   via the [ytt](https://carvel.dev/ytt/) tool when you run `make
+   install`. (This happens inside the [config](config) container, so
+   you don't need to install ytt on your workstation.)
+ * Traefik does not run as root, but under a dedicated system (host)
+   user account named `traefik` (this user is automatically created on
+   the host, the first time you run `make config`). The `traefik` user
+   is added to the `docker` group, so that it can access the docker
+   socket. This is still very much considred a privileged account, as
+   it can read all the environment variables of all your containers,
+   and can escalate itself to root level access, through the use of
+   the docker API.)
+ * Authentication is provided on a per app basis with HTTP Basic
+   Authentication, OAuth2, or mTLS, and includes senty authorization
+   middleware, to prevent unauthorized access. 
