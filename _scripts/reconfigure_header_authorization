@@ -241,7 +241,7 @@ list_callback_urls() {
     domains=()
     echo "## This is the list of OAuth2 callback URLs for all deployed apps:"
     echo "## If you installed traefik-forward-auth in AUTH HOST mode (default) you don't need this, otherwise keep reading:"
-    echo "## You need to copy/paste these into your Gitea OAuth2 application 'Redirect URIs' setting."
+    echo "## You need to copy/paste these into your Forgejo OAuth2 application 'Redirect URIs' setting."
     echo "## Generate this list again with this command: d.rymcg.tech make traefik sentry-callback"
     echo "## Collecting callback URLs for all deployed applications ..."
     echo ""
@@ -271,9 +271,9 @@ list_callback_urls() {
 ## check if traefik-forward-auth is installed:
 echo
 if ! docker inspect traefik-forward-auth >/dev/null; then
-    echo "You must install traefik-forward-auth (and gitea) first before configuring the authorization middleware"
+    echo "You must install traefik-forward-auth (and forgejo) first before configuring the authorization middleware"
     echo "See https://github.com/EnigmaCurry/d.rymcg.tech/tree/master/traefik-forward-auth#readme"
-    echo "See https://github.com/EnigmaCurry/d.rymcg.tech/tree/master/gitea#readme"
+    echo "See https://github.com/EnigmaCurry/d.rymcg.tech/tree/master/forgejo#readme"
     exit 0
 fi
 

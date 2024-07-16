@@ -7,7 +7,7 @@ config-hook: config-menu config-domain compose-profiles
 	@echo "Examine the configured environment file: ${ENV_FILE}"
 
 config-hook-echo-postscript:
-	@echo "Remember to run \`make install\` after all config changes (or choose it in the menu)."
+	@echo "Remember to re-install Traefik after all config changes."
 
 .PHONY: config-menu
 config-menu:
@@ -19,7 +19,7 @@ config-domain:
 
 .PHONY: config-acme
 config-acme:
-	@${BIN}/reconfigure_acme ${ENV_FILE} main
+	@${BIN}/reconfigure_acme ${ENV_FILE} main || true
 
 .PHONY: config-ca
 config-ca:
@@ -28,10 +28,6 @@ config-ca:
 .PHONY: open # Start SSH tunnel and open the Traefik Dashboard
 open:
 	@export ENV_FILE=${ENV_FILE} CONTEXT_INSTANCE=${CONTEXT_INSTANCE} PORT_FORWARD="$$(${BIN}/port_forward ${ENV_FILE} traefik 127.0.0.1:8080)"; if [[ ! "$${PORT_FORWARD}" =~ [0-9]+ ]]; then ${BIN}/fault "Could not get the SSH forwarded port"; else ${BIN}/open /dashboard/#/http/routers 127.0.0.1:$${PORT_FORWARD} http; fi;
-
-.PHONY: close # Stop the dashboard SSH tunnel
-close:
-	pkill -f "^ssh -N -L 8080:localhost:8080 ssh.${ROOT_DOMAIN}"
 
 .PHONY: cert
 cert: certs
@@ -62,11 +58,15 @@ show-wireguard-peers-qr:
 
 .PHONY: compose-profiles
 compose-profiles:
-	@${BIN}/reconfigure_compose_profiles ${ENV_FILE} TRAEFIK_PLUGIN_MAXMIND_GEOIP=geoip_update TRAEFIK_VPN_ENABLED=wireguard TRAEFIK_VPN_CLIENT_ENABLED=wireguard-client
+	@${BIN}/reconfigure_compose_profiles ${ENV_FILE} TRAEFIK_PLUGIN_MAXMIND_GEOIP=geoip_update TRAEFIK_VPN_ENABLED=wireguard TRAEFIK_VPN_CLIENT_ENABLED=wireguard-client TRAEFIK_ERROR_PAGES_ENABLED=error-pages
 
 .PHONY: wireguard-reset
 wireguard-reset:
 	docker compose --env-file=${ENV_FILE} exec -it wireguard wg-quick down wg0
+
+.PHONY: wireguard-client-reset
+wireguard-client-reset:
+	docker compose --env-file=${ENV_FILE} exec -it wireguard-client wg-quick down wg0
 
 .PHONY: destroy-wireguard
 destroy-wireguard:
@@ -78,7 +78,11 @@ logs-traefik:
 
 .PHONY: logs-access # Tail the access logs
 logs-access:
-	@docker compose --env-file ${ENV_FILE} --profile default exec -it traefik sh -c 'tail -f /data/access.log | jq'
+	@docker compose --env-file ${ENV_FILE} --profile "$(${BIN}/dotenv -f ${ENV_FILE} get DOCKER_COMPOSE_PROFILES)" exec -it traefik sh -c 'tail -f /data/access.log | jq -c'
+
+.PHONY: logs-access-out
+logs-access-out:
+	@docker compose --env-file ${ENV_FILE} --profile "$(${BIN}/dotenv -f ${ENV_FILE} get DOCKER_COMPOSE_PROFILES)" exec -it traefik sh -c 'tail -n 10000 /data/access.log | jq -c'
 
 .PHONY: debug # Restart Traefik with debug logging for one time only
 debug:

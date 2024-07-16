@@ -52,3 +52,7 @@ script-wizard:
 .PHONY: check-dist-vars
 check-dist-vars:
 	@if [[ -f ${ENV_FILE} ]]; then ${BIN}/validate_env_file ${ENV_FILE}; fi
+
+.PHONY: list-targets # List all make targets
+list-targets:
+	@LC_ALL=C $(MAKE) -pRrq -f $(firstword $(MAKEFILE_LIST)) : 2>/dev/null | awk -v RS= -F: '/(^|\n)# Files(\n|$$)/,/(^|\n)# Finished Make data base/ {if ($$1 !~ "^[#.]") {print $$1}}' | sort | grep -E -v -e '^[^[:alnum:]]' -e '^$@$$'

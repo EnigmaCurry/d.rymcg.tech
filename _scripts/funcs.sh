@@ -70,7 +70,8 @@ ask_no_blank() {
 ask_echo() {
     ## Ask the user a question then print the non-blank answer to stdout
     (
-        ask_no_blank "$1" ASK_ECHO_VARNAME >/dev/stderr
+        prompt=$1; shift
+        ask_no_blank "$1" ASK_ECHO_VARNAME $@ >/dev/stderr
         echo "${ASK_ECHO_VARNAME}"
     )
 }
@@ -176,6 +177,12 @@ docker_exec() {
     fi
     set -ex
     docker exec --env-file=${ENV_FILE} "$@"
+}
+
+docker_ssh() {
+    SSH_HOST=$(docker context inspect --format '{{.Endpoints.docker.Host}}' | sed 's|ssh://||')
+    check_var SSH_HOST
+    (set -x; ssh ${SSH_HOST} $@)
 }
 
 ytt() {
@@ -574,6 +581,11 @@ confirm() {
     if [[ -f ${BIN}/script-wizard ]]; then
         ## Check if script-wizard is installed, and prefer to use that:
         local exit_code=0
+        if [[ $default == "y" || $default == "true" ]]; then
+            default="yes"
+        elif [[ $default == "n" || $default == "false" ]]; then
+            default="no"
+        fi
         wizard confirm --cancel-code=2 "$prompt$question" "$default" && exit_code=$? || exit_code=$?
         if [[ "${exit_code}" == "2" ]]; then
             cancel
@@ -581,7 +593,7 @@ confirm() {
         return ${exit_code}
     else
         ## Otherwise use a pure bash version:
-        if [[ $default == "y" || $default == "yes" || $default == "ok" ]]; then
+        if [[ $default == "y" || $default == "yes" || $default == "true" ]]; then
             dflt="Y/n"
         else
             dflt="y/N"
@@ -590,7 +602,7 @@ confirm() {
         read -e -p "${prompt}${question} (${dflt}): " answer
         answer=${answer:-${default}}
 
-        if [[ ${answer,,} == "y" || ${answer,,} == "yes" || ${answer,,} == "ok" ]]; then
+        if [[ ${answer,,} == "y" || ${answer,,} == "yes" || ${answer,,} == "true" ]]; then
             return 0
         else
             return 1
@@ -634,14 +646,14 @@ prefix_to_netmask () {
 
 validate_ip_address () {
     #thanks https://stackoverflow.com/a/21961938
-    echo "$@" | grep -o -E  '(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)' >/dev/null
+    echo "$@" | grep -o -E '^(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)$' >/dev/null
 }
 
 validate_ip_network() {
     #thanks https://stackoverflow.com/a/21961938
     PREFIX=$(echo "$@" | grep -o -P "/\K[[:digit:]]+$")
     if [[ "${PREFIX}" -ge 0 ]] && [[ "${PREFIX}" -le 32 ]]; then
-        echo "$@" | grep -o -E  '(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)/[[:digit:]]+' >/dev/null
+        echo "$@" | grep -o -E '^(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)/[[:digit:]]+$' >/dev/null
     else
         return 1
     fi

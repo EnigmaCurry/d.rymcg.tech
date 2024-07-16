@@ -60,7 +60,7 @@ services:
       - traefik.http.services.cryptpad-${CRYPTPAD_INSTANCE:-default}.loadbalancer.server.port=80
       # HTTPS router rules
       - traefik.http.routers.cryptpad-${CRYPTPAD_INSTANCE:-default}-https.entrypoints=websecure
-      - traefik.http.routers.cryptpad-${CRYPTPAD_INSTANCE:-default}-https.rule=Host(`${CRYPTPAD_TRAEFIK_HOST}`, `${CRYPTPAD_SANDBOX_DOMAIN}`)
+      - traefik.http.routers.cryptpad-${CRYPTPAD_INSTANCE:-default}-https.rule=Host(`${CRYPTPAD_TRAEFIK_HOST}`) || Host(`${CRYPTPAD_SANDBOX_DOMAIN}`)
       - traefik.http.routers.cryptpad-${CRYPTPAD_INSTANCE:-default}-https.service=cryptpad-${CRYPTPAD_INSTANCE:-default}
       # Rewrite CORS headers - For some reason cryptpad is duplicating the CORS headers
       # This makes chromium browsers not load, so this rewrite rule de-duplicates the headers
