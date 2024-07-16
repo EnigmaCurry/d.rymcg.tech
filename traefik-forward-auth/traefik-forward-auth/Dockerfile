@@ -3,7 +3,7 @@
 ARG BASE_IMAGE
 
 ## Build Step-CA certificate store:
-FROM alpine:3 as step_ca
+FROM alpine:3 AS step_ca
 ARG STEP_CA_ENABLED STEP_CA_ENDPOINT STEP_CA_FINGERPRINT STEP_CA_ZERO_CERTS
 RUN apk add -U step-cli ca-certificates
 RUN ([[ "$STEP_CA_ENABLED" == "true" ]] && \
