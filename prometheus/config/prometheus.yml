@@ -1,7 +1,13 @@
 #@ load("@ytt:data", "data")
+
+#@ node_exporter_targets = data.values.node_exporter_targets.split(",")
+#@ cadvisor_targets = data.values.cadvisor_targets.split(",")
+#@ alertmanager_targets = data.values.alertmanager_targets.split(",")
+
 global:
   scrape_interval: 1m
 
+#@yaml/text-templated-strings
 scrape_configs:
   - job_name: "prometheus"
     scrape_interval: 1m
@@ -11,19 +17,20 @@ scrape_configs:
   #@ if data.values.node_exporter_enabled == "true":
   - job_name: "node"
     static_configs:
-    - targets: ["node-exporter:9100"]
+    - targets: #@ node_exporter_targets
   #@ end
 
   #@ if data.values.cadvisor_enabled == "true":
   - job_name: "cadvisor"
     scrape_interval: 5s
     static_configs:
-    - targets: ["cadvisor:8080"]
+    - targets: #@ cadvisor_targets
   #@ end
 
+#@yaml/text-templated-strings
 #@ if data.values.alertmanager_enabled == "true":
 alerting:
   alertmanagers:
     - static_configs:
-      - targets: ['alertmanager:9093']
+      - targets: #@ alertmanager_targets
 #@ end
