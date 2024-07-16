@@ -207,7 +207,8 @@ list_enabled_entrypoints() {
                 local ENTRYPOINT="$(echo "${e}" | tr '[:lower:]' '[:upper:]')"
                 local host="$(${BIN}/dotenv -f ${ENV_FILE} get TRAEFIK_${ENTRYPOINT}_ENTRYPOINT_HOST)"
                 local port="$(${BIN}/dotenv -f ${ENV_FILE} get TRAEFIK_${ENTRYPOINT}_ENTRYPOINT_PORT)"
-                echo "${e} ${host} ${port} tcp"
+                local proxy_protocol="$(${BIN}/dotenv -f ${ENV_FILE} get TRAEFIK_${ENTRYPOINT}_ENTRYPOINT_PROXY_PROTOCOL_TRUSTED_IPS)"
+                echo "${e} ${host} ${port} tcp ${proxy_protocol}"
             done
             list_custom_entrypoints
         ) | sort -u
