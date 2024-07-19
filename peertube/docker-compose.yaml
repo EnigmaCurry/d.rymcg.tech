@@ -4,7 +4,7 @@ services:
     # build:
     #   context: .
     #   dockerfile: ./support/docker/production/Dockerfile.bookworm
-    image: chocobozzz/peertube:${PEERTUBE_IMAGE}
+    image: ${PEERTUBE_IMAGE}
     environment:
       - PEERTUBE_DB_USERNAME=${PEERTUBE_POSTGRES_USER}
       - PEERTUBE_DB_PASSWORD=${PEERTUBE_POSTGRES_PASSWORD}
@@ -21,9 +21,9 @@ services:
       - PEERTUBE_SMTP_TLS=${PEERTUBE_SMTP_TLS}
       - PEERTUBE_SMTP_DISABLE_STARTTLS=${PEERTUBE_SMTP_DISABLE_STARTTLS}
       - PEERTUBE_ADMIN_EMAIL=${PEERTUBE_ADMIN_EMAIL}
-      - POSTFIX_myhostname=${PEERTUBE_POSTFIX_myhostname}
+      - POSTFIX_myhostname=${PEERTUBE_POSTFIX_MYHOSTNAME}
       - OPENDKIM_DOMAINS=${PEERTUBE_OPENDKIM_DOMAINS}
-      - OPENDKIM_RequireSafeKeys=${PEERTUBE_OPENDKIM_RequireSafeKeys}
+      - OPENDKIM_RequireSafeKeys=${PEERTUBE_OPENDKIM_REQUIRESAFEKEYS}
       - PEERTUBE_OBJECT_STORAGE_UPLOAD_ACL_PUBLIC="public-read"
       - PEERTUBE_OBJECT_STORAGE_UPLOAD_ACL_PRIVATE="private"
       - PEERTUBE_LOG_LEVEL=${PEERTUBE_LOG_LEVEL}
@@ -42,7 +42,7 @@ services:
     restart: "unless-stopped"
 
   postgres:
-    image: postgres:${PEERTUBE_POSTGRES_IMAGE}
+    image: ${PEERTUBE_POSTGRES_IMAGE}
     environment:
       - POSTGRES_USER=${PEERTUBE_POSTGRES_USER}
       - POSTGRES_PASSWORD=${PEERTUBE_POSTGRES_PASSWORD}
