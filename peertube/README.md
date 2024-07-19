@@ -1,4 +1,4 @@
-# peertube
+# Peertube
 
 [Peertube](https://github.com/Chocobozzz/PeerTube) is a free, decentralized
 and federated video platform developed as an alternative to other platforms
