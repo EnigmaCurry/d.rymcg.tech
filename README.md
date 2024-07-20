@@ -189,7 +189,9 @@ configured, you may need to open these ports in your firewall:
 | HTTP+TLS   | TCP      | 443        | Traefik HTTPS entrypoint (websecure)                      |
 | TCP socket | TCP      | 1704       | Traefik Snapcast (audio) entrypoint                       |
 | TCP socket | TCP      | 1705       | Traefik Snapcast (control) entrypoint                     |
-| SSH        | TCP      | 2222       | Traefik Forgejo SSH (TCP) entrypoint                        |
+| RTMP       | TCP      | 1935       | Traefik RTMP (real time message protocol) entrypoint      |
+| RTMP+TLS   | TCP      | 1936       | Traefik RTMPS (RTMP + TLS) entrypoint                     |
+| SSH        | TCP      | 2222       | Traefik Forgejo SSH (TCP) entrypoint                      |
 | SSH        | TCP      | 2223       | SFTP container SSH (TCP) (direct-map)                     |
 | TLS        | TCP      | 5432       | PostgreSQL mTLS DBaaS (direct-map)                        |
 | TCP+TLS    | TCP      | 6380       | Traefik Redis in-memory database entrypoint               |
