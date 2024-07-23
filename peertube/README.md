@@ -20,6 +20,10 @@ make config
 
 This will ask you to enter the domain name to use.
 
+To use Peertube's livestreaming, you have to enable either the RTMP or RTMPS
+Traefik entrypoint.
+
+
 ### Authentication and Authorization
 
 Running `make config` will ask whether or not you want to configure

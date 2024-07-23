@@ -62,9 +62,9 @@ services:
     environment:
       - PEERTUBE_ADMIN_EMAIL=${PEERTUBE_ADMIN_EMAIL}
       - PEERTUBE_SMTP_FROM=${PEERTUBE_SMTP_FROM}
-      - POSTFIX_myhostname=${PEERTUBE_POSTFIX_myhostname}
+      - POSTFIX_myhostname=${PEERTUBE_POSTFIX_MYHOSTNAME}
       - OPENDKIM_DOMAINS=${PEERTUBE_OPENDKIM_DOMAINS}
-      - OPENDKIM_RequireSafeKeys=${PEERTUBE_OPENDKIM_RequireSafeKeys}  
+      - OPENDKIM_RequireSafeKeys=${PEERTUBE_OPENDKIM_REQUIRESAFEKEYS}  
     volumes:
       - postfix:/etc/opendkim/keys
     restart: "unless-stopped"

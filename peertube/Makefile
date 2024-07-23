@@ -33,9 +33,11 @@ config-hook:
 		echo && echo "Postfix configuration:" && \
 		${BIN}/reconfigure_ask ${ENV_FILE} PEERTUBE_POSTFIX_myhostname "Enter the domain of your email address" && \
 		# I use `dotenv set` in the next line instead of `reconfigure` because the value needs to have an "=" in it but `reconfigure` strips all "=" \
-		${BIN}/dotenv -f ${ENV_FILE} set PEERTUBE_OPENDKIM_DOMAINS="$$(${BIN}/dotenv -f ${ENV_FILE} get PEERTUBE_POSTFIX_myhostname)=postfix" && echo "Set PEERTUBE_OPENDKIM_DOMAINS=$$(${BIN}/dotenv -f ${ENV_FILE} get PEERTUBE_POSTFIX_myhostname)=postfix" && \
+		${BIN}/dotenv -f ${ENV_FILE} set PEERTUBE_OPENDKIM_DOMAINS="$$(${BIN}/dotenv -f ${ENV_FILE} get PEERTUBE_POSTFIX_myhostname)=postfix" && echo "Set PEERTUBE_OPENDKIM_DOMAINS=$$(${BIN}/dotenv -f ${ENV_FILE} get PEERTUBE_POSTFIX_MYHOSTNAME)=postfix" && \
 		echo "*" && echo "* If you need to customize DKIM, manually edit \`${ENV_FILE}\` and enter appropriate values for the DKIM variables." && echo "*" \
 	)
+	@echo
+	@${BIN}/reconfigure_choose ${ENV_FILE} PEERTUBE_LIVESTREAMING "You can enable livestreaming via RTMP or RTMPS. Choose livestreaming status:" "Disabled" "RTMP" "RTMPS"
 	@echo
 	
 .PHONY: override-hook
@@ -50,7 +52,7 @@ override-hook:
 ####                         # (this hardcodes the string into docker-compose.override.yaml)
 ####   name=@VARIABLE_NAME   # sets the template 'name' field to the literal string '${VARIABLE_NAME}'
 ####                         # (used for regular docker-compose expansion of env vars by name.)
-	@${BIN}/docker_compose_override ${ENV_FILE} project=:peertube instance=@PEERTUBE_INSTANCE traefik_host=@PEERTUBE_TRAEFIK_HOST http_auth=PEERTUBE_HTTP_AUTH http_auth_var=@PEERTUBE_HTTP_AUTH ip_sourcerange=@PEERTUBE_IP_SOURCERANGE oauth2=PEERTUBE_OAUTH2 authorized_group=PEERTUBE_OAUTH2_AUTHORIZED_GROUP enable_mtls_auth=PEERTUBE_MTLS_AUTH mtls_authorized_certs=PEERTUBE_MTLS_AUTHORIZED_CERTS
+	@${BIN}/docker_compose_override ${ENV_FILE} project=:peertube instance=@PEERTUBE_INSTANCE traefik_host=@PEERTUBE_TRAEFIK_HOST http_auth=PEERTUBE_HTTP_AUTH http_auth_var=@PEERTUBE_HTTP_AUTH ip_sourcerange=@PEERTUBE_IP_SOURCERANGE oauth2=PEERTUBE_OAUTH2 authorized_group=PEERTUBE_OAUTH2_AUTHORIZED_GROUP enable_mtls_auth=PEERTUBE_MTLS_AUTH mtls_authorized_certs=PEERTUBE_MTLS_AUTHORIZED_CERTS livestreaming=PEERTUBE_LIVESTREAMING
 
 .PHONY: shell
 shell:

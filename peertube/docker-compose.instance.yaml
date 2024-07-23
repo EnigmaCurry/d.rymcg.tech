@@ -19,6 +19,9 @@
 #@ mtls_authorized_certs = data.values.mtls_authorized_certs
 #@ enabled_middlewares = []
 
+#! ### Project-specific vars:
+#@ livestreaming = data.values.livestreaming
+
 #@yaml/text-templated-strings
 services:
   peertube:
@@ -33,6 +36,20 @@ services:
       #! The host matching router rule:
       - "traefik.http.routers.(@= router @).rule=Host(`(@= traefik_host @)`)"
       - "traefik.http.routers.(@= router @).entrypoints=websecure"
+
+      #! RTMP
+      #@ if livestreaming != "Disabled":
+      - "traefik.tcp.routers.(@= router @)-rtmp.rule=HostSNI(`*`)"
+      - "traefik.tcp.routers.(@= router @)-rtmp.entrypoints=rtmp"
+      - "traefik.tcp.routers.(@= router @)-rtmp.service=(@= router @)-rtmp"
+      - "traefik.tcp.services.(@= router @)-rtmp.loadbalancer.server.port=1935"
+      #@ end
+
+      #! RTMPS
+      #@ if livestreaming == "RTMPS":
+      - "traefik.tcp.services.(@= router @)-rtmps.tls=true" 
+      - "traefik.tcp.services.(@= router @)-rtmps.loadbalancer.server.port=1935"
+      #@ end
 
       #@ enabled_middlewares.append("{}-ipallowlist".format(router))
       - "traefik.http.middlewares.(@= router @)-ipallowlist.ipallowlist.sourcerange=(@= ip_sourcerange @)"
