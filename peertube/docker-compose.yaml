@@ -27,11 +27,6 @@ services:
       - PEERTUBE_OBJECT_STORAGE_UPLOAD_ACL_PUBLIC="public-read"
       - PEERTUBE_OBJECT_STORAGE_UPLOAD_ACL_PRIVATE="private"
       - PEERTUBE_LOG_LEVEL=${PEERTUBE_LOG_LEVEL}
-    ports:
-      # Comment next line if you don't want to use the live feature
-      - "1935:1935" 
-      # Uncomment next line if you use another webserver/proxy or test PeerTube in local, otherwise not suitable for production
-      - "9000:9000"
     volumes:
       - data:/data
       - config:/config

@@ -47,8 +47,7 @@ services:
 
       #! RTMPS
       #@ if livestreaming == "RTMPS":
-      - "traefik.tcp.services.(@= router @)-rtmps.tls=true" 
-      - "traefik.tcp.services.(@= router @)-rtmps.loadbalancer.server.port=1935"
+      - "traefik.tcp.services.(@= router @)-rtmp.tls=true" 
       #@ end
 
       #@ enabled_middlewares.append("{}-ipallowlist".format(router))
