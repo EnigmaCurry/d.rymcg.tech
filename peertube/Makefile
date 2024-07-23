@@ -33,7 +33,7 @@ config-hook:
 		echo && echo "Postfix configuration:" && \
 		${BIN}/reconfigure_ask ${ENV_FILE} PEERTUBE_POSTFIX_myhostname "Enter the domain of your email address" && \
 		# I use `dotenv set` in the next line instead of `reconfigure` because the value needs to have an "=" in it but `reconfigure` strips all "=" \
-		${BIN}/dotenv -f ${ENV_FILE} set PEERTUBE_OPENDKIM_DOMAINS="$$(${BIN}/dotenv -f ${ENV_FILE} get PEERTUBE_POSTFIX_myhostname)=postfix" && echo "Set PEERTUBE_OPENDKIM_DOMAINS=$$(${BIN}/dotenv -f ${ENV_FILE} get PEERTUBE_POSTFIX_MYHOSTNAME)=postfix" && \
+		${BIN}/dotenv -f ${ENV_FILE} set PEERTUBE_OPENDKIM_DOMAINS="$$(${BIN}/dotenv -f ${ENV_FILE} get PEERTUBE_POSTFIX_MYHOSTNAME)=postfix" && echo "Set PEERTUBE_OPENDKIM_DOMAINS=$$(${BIN}/dotenv -f ${ENV_FILE} get PEERTUBE_POSTFIX_MYHOSTNAME)=postfix" && \
 		echo "*" && echo "* If you need to customize DKIM, manually edit \`${ENV_FILE}\` and enter appropriate values for the DKIM variables." && echo "*" \
 	)
 	@echo
