@@ -3,7 +3,7 @@ services:
     build:
       context: traefik-forward-auth
       args:
-        BASE_IMAGE: ${TRAEFIK_FORWARD_AUTH_BASE_IMAGE}
+        BASE_IMAGE: ${TRAEFIK_FORWARD_AUTH_BASE_IMAGE:-thomseddon/traefik-forward-auth:2}
         STEP_CA_ENABLED: ${TRAEFIK_FORWARD_AUTH_STEP_CA_ENABLED}
         STEP_CA_ENDPOINT: ${TRAEFIK_FORWARD_AUTH_STEP_CA_ENDPOINT}
         STEP_CA_FINGERPRINT: ${TRAEFIK_FORWARD_AUTH_STEP_CA_FINGERPRINT}
