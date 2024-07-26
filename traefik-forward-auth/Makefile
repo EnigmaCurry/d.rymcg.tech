@@ -16,6 +16,19 @@ config-hook:
 	@test "google" == $$(${BIN}/dotenv -f ${ENV_FILE} get TRAEFIK_FORWARD_AUTH_SELECTED_PROVIDER) && ENV_FILE=${ENV_FILE} ROOT_DIR=${ROOT_DIR} bash ./configure_google.sh || true
 	@test "discord" == $$(${BIN}/dotenv -f ${ENV_FILE} get TRAEFIK_FORWARD_AUTH_SELECTED_PROVIDER) && ENV_FILE=${ENV_FILE} ROOT_DIR=${ROOT_DIR} bash ./configure_discord.sh || true
 
+.PHONY: override-hook
+override-hook:
+#### This sets the override template variables for docker-compose.instance.yaml:
+#### The template dynamically renders to docker-compose.override_{DOCKER_CONTEXT}_{INSTANCE}.yaml
+#### These settings are used to automatically generate the service container labels, and traefik config, inside the template.
+#### The variable arguments have three forms: `=` `=:` `=@`
+####   name=VARIABLE_NAME    # sets the template 'name' field to the value of VARIABLE_NAME found in the .env file
+####                         # (this hardcodes the value into docker-compose.override.yaml)
+####   name=:VARIABLE_NAME   # sets the template 'name' field to the literal string 'VARIABLE_NAME'
+####                         # (this hardcodes the string into docker-compose.override.yaml)
+####   name=@VARIABLE_NAME   # sets the template 'name' field to the literal string '${VARIABLE_NAME}'
+####                         # (used for regular docker-compose expansion of env vars by name.)
+	@${BIN}/docker_compose_override ${ENV_FILE} project=:traefik-forward-auth instance=@TRAEFIK_FORWARD_AUTH_INSTANCE traefik_host=@TRAEFIK_FORWARD_AUTH_HOST http_auth=TRAEFIK_FORWARD_AUTH_HTTP_AUTH http_auth_var=@TRAEFIK_FORWARD_AUTH_HTTP_AUTH ip_sourcerange=@TRAEFIK_FORWARD_AUTH_IP_SOURCERANGE oauth2=TRAEFIK_FORWARD_AUTH_OAUTH2 authorized_group=TRAEFIK_FORWARD_AUTH_OAUTH2_AUTHORIZED_GROUP enable_mtls_auth=TRAEFIK_FORWARD_AUTH_MTLS_AUTH mtls_authorized_certs=TRAEFIK_FORWARD_AUTH_MTLS_AUTHORIZED_CERTS
 
 .PHONY: shell
 shell:
