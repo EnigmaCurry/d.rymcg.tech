@@ -236,13 +236,14 @@ config_list_entrypoints() {
         [websecure]="HTTPS (TLS encrypted HTTP)"
         [web_plain]="HTTP (unencrypted; specifically NOT redirected to websecure; must use different port than web)"
         [mqtt]="MQTT (mosquitto) pub-sub service"
-        [ssh]="SSH (gitea) git (ssh) endpoint"
-        [xmpp_c2s]="XMPP (ejabberd) client-to-server endpoint"
-        [xmpp_s2s]="XMPP (ejabberd) server-to-server endpoint"
-        [mpd]="Music Player Daemon (mopidy) control endpoint"
-        [redis]="Redis in-memory database endpoint"
-        [snapcast]="Snapcast (snapcast) audio endpoint"
-        [snapcast_control]="Snapcast (snapcast) control endpoint"
+        [ssh]="SSH (forgejo) git (ssh) entrypoint"
+        [xmpp_c2s]="XMPP (ejabberd) client-to-server entrypoint"
+        [xmpp_s2s]="XMPP (ejabberd) server-to-server entrypoint"
+        [mpd]="Music Player Daemon (mopidy) control entrypoint"
+        [redis]="Redis in-memory database entrypoint"
+        [rtmp]="Real-Time Messaging Protocol (unencrypted) entrypoint"
+        [snapcast]="Snapcast (snapcast) audio entrypoint"
+        [snapcast_control]="Snapcast (snapcast) control entrypoint"
     )
     local menu_args=("Select entrypoint to configure:")
     for entrypoint in "${entrypoint_names[@]}"; do

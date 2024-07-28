@@ -273,6 +273,17 @@ entryPoints:
         #@ end
     #@ end
   #@ end
+  #@ if data.values.rtmp_entrypoint_enabled == "true":
+  rtmp:
+    address: #@ data.values.rtmp_entrypoint_host + ":" + data.values.rtmp_entrypoint_port
+    #@ if len(data.values.rtmp_entrypoint_proxy_protocol_trusted_ips.strip()):
+    proxyProtocol:
+      trustedIPs:
+        #@ for allowed_net in data.values.rtmp_entrypoint_proxy_protocol_trusted_ips.split(","):
+        - "(@= allowed_net @)"
+        #@ end
+    #@ end
+  #@ end
   #@ if data.values.web_plain_entrypoint_enabled == "true":
   web_plain:
     address: #@ data.values.web_plain_entrypoint_host + ":" + data.values.web_plain_entrypoint_port
