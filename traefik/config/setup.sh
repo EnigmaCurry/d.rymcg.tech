@@ -89,6 +89,10 @@ ytt_template() {
         -v redis_entrypoint_host="${TRAEFIK_REDIS_ENTRYPOINT_HOST}" \
         -v redis_entrypoint_port="${TRAEFIK_REDIS_ENTRYPOINT_PORT}" \
         -v redis_entrypoint_proxy_protocol_trusted_ips="${TRAEFIK_REDIS_ENTRYPOINT_PROXY_PROTOCOL_TRUSTED_IPS}" \
+        -v rtmp_entrypoint_enabled="${TRAEFIK_RTMP_ENTRYPOINT_ENABLED}" \
+        -v rtmp_entrypoint_host="${TRAEFIK_RTMP_ENTRYPOINT_HOST}" \
+        -v rtmp_entrypoint_port="${TRAEFIK_RTMP_ENTRYPOINT_PORT}" \
+        -v rtmp_entrypoint_proxy_protocol_trusted_ips="${TRAEFIK_RTMP_ENTRYPOINT_PROXY_PROTOCOL_TRUSTED_IPS}" \
         -v root_domain="${TRAEFIK_ROOT_DOMAIN}" \
         -v network_mode="${TRAEFIK_NETWORK_MODE}" \
         -v error_handler_403_service="${TRAEFIK_ERROR_HANDLER_403_SERVICE}" \
