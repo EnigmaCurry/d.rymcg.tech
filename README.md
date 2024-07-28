@@ -189,8 +189,7 @@ configured, you may need to open these ports in your firewall:
 | HTTP+TLS   | TCP      | 443        | Traefik HTTPS entrypoint (websecure)                      |
 | TCP socket | TCP      | 1704       | Traefik Snapcast (audio) entrypoint                       |
 | TCP socket | TCP      | 1705       | Traefik Snapcast (control) entrypoint                     |
-| RTMP       | TCP      | 1935       | Traefik RTMP (real time message protocol) entrypoint      |
-| RTMP+TLS   | TCP      | 1936       | Traefik RTMPS (RTMP + TLS) entrypoint                     |
+| RTMP(s)    | TCP      | 1935       | Traefik RTMP (real time message protocol) entrypoint      |
 | SSH        | TCP      | 2222       | Traefik Forgejo SSH (TCP) entrypoint                      |
 | SSH        | TCP      | 2223       | SFTP container SSH (TCP) (direct-map)                     |
 | TLS        | TCP      | 5432       | PostgreSQL mTLS DBaaS (direct-map)                        |
@@ -554,6 +553,7 @@ Install these other services at your leisure/preference:
 * [Node-RED](nodered#readme) - a graphical event pipeline editor
 * [Ntfy-sh](ntfy-sh#readme) - a simple HTTP-based pub-sub notification service
 * [Pairdrop](pairdrop#readme) - a webapp (PWA) to send files and messages peer to peer
+* [Peertube](peertube#readme) - a decentralized and federated video platform
 * [Photoprism](photoprism#readme) - a photo gallery and manager
 * [Piwigo](piwigo#readme) - a photo gallery and manager
 * [Plausible](plausible#readme) - a privacy friendly web visitor analytics engine
