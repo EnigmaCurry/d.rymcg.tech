@@ -14,5 +14,5 @@ RUN ([[ "$STEP_CA_ENABLED" == "true" ]] && [[ "$STEP_CA_ZERO_CERTS" != "true" ]]
     cat /root/.step/certs/root_ca.crt >> /etc/ssl/certs/ca-certificates.crt) || true
 
 ## Copy Step-CA certificate store into the otherwise unmodified base image:
-FROM ${BASE_IMAGE}
+FROM ${BASE_IMAGE:-thomseddon/traefik-forward-auth:2}
 COPY --from=step_ca /etc/ssl/certs/ca-certificates.crt /etc/ssl/certs

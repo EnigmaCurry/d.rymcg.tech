@@ -126,7 +126,7 @@ services:
     build:
       context: .
       args:
-        TRAEFIK_IMAGE: ${TRAEFIK_IMAGE}
+        TRAEFIK_IMAGE: ${TRAEFIK_IMAGE:-traefik:v3.1}
         BLOCKPATH_MODULE: ${TRAEFIK_BLOCKPATH_MODULE}
         BLOCKPATH_GIT_BRANCH: master
         REFERER_MODULE: ${TRAEFIK_REFERER_MODULE}
@@ -244,7 +244,7 @@ services:
   error-pages:
     profiles:
       - error-pages
-    image: ${TRAEFIK_ERROR_PAGES_IMAGE}
+    image: ${TRAEFIK_ERROR_PAGES_IMAGE:-tarampampam/error-pages:2.25.0}
     environment:
       TEMPLATE_NAME: ${TRAEFIK_ERROR_PAGES_TEMPLATE}
     labels:
