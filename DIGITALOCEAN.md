@@ -72,7 +72,7 @@ Go to the DigitalOcean dashboard, Networking page, click the Firewalls tab.
 
 Create a new firewall: 
  
- * Enter your cluster domain name as the name of the firewall
+ * Enter any name you want for the firewall (eg. use the  domain or server role name to help identify it).
  * Create the following `Inbound Rules`:
  
     | Type   | Protocol | Port Range | Description                      |
