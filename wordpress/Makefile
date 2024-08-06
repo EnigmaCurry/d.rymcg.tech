@@ -1,5 +1,5 @@
 # Update this to point to your d.ry repo
-ROOT_DIR = ${HOME}/git/vendor/enigmacurry/d.rymcg.tech
+ROOT_DIR = ..
 include ${ROOT_DIR}/_scripts/Makefile.projects-external
 include ${ROOT_DIR}/_scripts/Makefile.instance
 
