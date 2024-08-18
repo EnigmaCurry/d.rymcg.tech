@@ -562,6 +562,7 @@ Install these other services at your leisure/preference:
 * [Prometheus](prometheus#readme) - a systems monitoring and alerting toolkit (+ node-exporter + cAdvisor + Grafana)
 * [QBittorrent-Wireguard](qbittorrent-wireguard#readme) - a Bittorrent (libtorrent v2) client with a combined VPN client
 * [Redbean](redbean#readme) - a small website server bundled in a single executable zip file
+* [Redmine](redmine#readme) - a flexible project management web application
 * [S3-proxy](s3-proxy#readme) - an HTTP directory index for S3 backend
 * [SFTP](sftp#readme) - a secure file server
 * [Shaarli](shaarli#readme) - a bookmark manager

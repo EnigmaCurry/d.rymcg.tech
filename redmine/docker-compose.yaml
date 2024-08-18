@@ -1,0 +1,31 @@
+services:
+  redmine:
+    image: ${REDMINE_IMAGE}
+    depends_on:
+      - db
+    restart: unless-stopped
+    environment:
+      - REDMINE_DB_POSTGRES=db
+      - REDMINE_DB_PASSWORD=${REDMINE_DB_PASSWORD}
+      - REDMINE_SECRET_KEY_BASE=${REDMINE_SECRET_KEY_BASE}
+    volumes:
+      - data:/usr/src/redmine/files
+    labels: []
+
+  db:
+    image: ${REDMINE_DB_IMAGE}
+    restart: unless-stopped
+    environment:
+      - POSTGRES_PASSWORD=${REDMINE_DB_PASSWORD}
+      - POSTGRES_DB=redmine
+      - POSTGRES_USER=postgres
+    security_opt:
+      - no-new-privileges:true
+    volumes:
+      - database:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $$POSTGRES_USER -d $$POSTGRES_DB"]
+
+volumes:
+  data:
+  database:
