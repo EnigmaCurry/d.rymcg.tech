@@ -1,0 +1,12 @@
+services:
+  thirteenft:
+    image: ${THIRTEENFT_IMAGE}
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+    # Good practice to not allow unprivileged processes to use ports <1024:
+    sysctls:
+      - net.ipv4.ip_unprivileged_port_start=1024
+    restart: unless-stopped
+    labels: []
