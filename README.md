@@ -1072,27 +1072,15 @@ You may create your own external projects, and/or integrate your
 existing docker-compose projects, including from external git
 repositories, and have them use the same d.rymcg.tech framework.
 
-The easiest method of creating an external project, is by setting up
-the [`d.rymcg.tech`
-script](https://github.com/EnigmaCurry/d.rymcg.tech/blob/master/README.md#using-the-drymcgtech-cli-script-optional),
-then run:
-
-```
-## Run this from any directory:
-d.rymcg.tech create
-```
-
-Alternatively you can create your project by hand:
-
  * Create a new project directory, or clone your existing project, to
    any directory. (It does not need to be a sub-directory of
    `d.rymcg.tech`, but it can be).
  * In your own project repository directory, create the files for
-   `docker-compose.yaml`, `Makefile`, `.env-dist`, `.gitignore`and
-   `README.md`. As an example, you can use any of the d.rymcg.tech
-   sub-projects, like [whoami](whoami), or take a look at the
-   [flask-template](https://github.com/EnigmaCurry/flask-template/)
-   that can be instantiated from `d.rymcg.tech create`.
+   `docker-compose.yaml`, `docker-compose.instance.yaml`, `Makefile`,
+   `.env-dist`, `.gitignore`and `README.md`. As an example, you can
+   use any of the d.rymcg.tech sub-projects, like [whoami](whoami), or
+   take a look at the
+   [flask-template](https://github.com/EnigmaCurry/flask-template/).
 
 Create the `Makefile` in your own separate repository so that it
 includes the main d.rymcg.tech `Makefile.projects` file from
