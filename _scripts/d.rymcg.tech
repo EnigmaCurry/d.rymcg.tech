@@ -41,7 +41,7 @@ __help() {
     echo "## Main d.rymcg.tech sub-commands - Optional arguments are printed in brackets [OPTIONAL_ARG]"
     (
         echo -e "cd [SUBDIR]\tEnter a sub-shell and go to the ROOT_DIR directory (or given subdirectory)"
-        echo -e "create [PROJECT] [TEMPLATE]\tCreate a new external project from a template"
+        #echo -e "create [PROJECT] [TEMPLATE]\tCreate a new external project from a template"
         echo -e "make [PROJECT] [ARGS ...]\tRun a \`make\` command for the given d.rymcg.tech project name"
         echo -e "context\tView or set the current Docker context"
         echo -e "new-context\tCreate a new Docker context"
@@ -71,32 +71,32 @@ __help() {
     echo ""
 }
 
-__create() {
-    if [[ $# -gt 1 ]]; then
-        TEMPLATE_REPO="$2"
-    else
-        AVAIL_TEMPLATES=("Python Flask - https://github.com/EnigmaCurry/flask-template")
-        echo ""
-        TEMPLATE_REPO=$(choose "Choose a template:" "${AVAIL_TEMPLATES[@]}" | sed 's/.*- //')
-        echo ""
-    fi
-    name_pattern='^[a-zA-Z][a-zA-Z0-9_-]*$'
-    if [[ $# -gt 0 ]]; then
-        PROJECT_NAME="$1"
-        if ! [[ "${PROJECT_NAME}" =~ $name_pattern ]]; then
-            fault "Error: Invalid characters in PROJECT_NAME -- valid regex: ${name_pattern}"
-        fi
-    else
-        echo "This script will create a new docker-compose project and integrate d.rymcg.tech Makefiles" | fold -sw 70 && echo
-        while ! [[ "${PROJECT_NAME}" =~ $name_pattern ]]; do
-            test -n "${PROJECT_NAME}" && echo "Error: Invalid characters in PROJECT_NAME -- valid regex: ${name_pattern}"
-            ask_no_blank "Enter a name for the new docker-compose project" PROJECT_NAME
-        done
-        echo ""
-    fi
-    PROJECT_NAME=$(echo "$PROJECT_NAME" | tr ' ' '-')
-    ${BIN}/create "${PROJECT_NAME}" "${TEMPLATE_REPO}" "./${PROJECT_NAME}"
-}
+# __create() {
+#     if [[ $# -gt 1 ]]; then
+#         TEMPLATE_REPO="$2"
+#     else
+#         AVAIL_TEMPLATES=("Python Flask - https://github.com/EnigmaCurry/flask-template")
+#         echo ""
+#         TEMPLATE_REPO=$(choose "Choose a template:" "${AVAIL_TEMPLATES[@]}" | sed 's/.*- //')
+#         echo ""
+#     fi
+#     name_pattern='^[a-zA-Z][a-zA-Z0-9_-]*$'
+#     if [[ $# -gt 0 ]]; then
+#         PROJECT_NAME="$1"
+#         if ! [[ "${PROJECT_NAME}" =~ $name_pattern ]]; then
+#             fault "Error: Invalid characters in PROJECT_NAME -- valid regex: ${name_pattern}"
+#         fi
+#     else
+#         echo "This script will create a new docker-compose project and integrate d.rymcg.tech Makefiles" | fold -sw 70 && echo
+#         while ! [[ "${PROJECT_NAME}" =~ $name_pattern ]]; do
+#             test -n "${PROJECT_NAME}" && echo "Error: Invalid characters in PROJECT_NAME -- valid regex: ${name_pattern}"
+#             ask_no_blank "Enter a name for the new docker-compose project" PROJECT_NAME
+#         done
+#         echo ""
+#     fi
+#     PROJECT_NAME=$(echo "$PROJECT_NAME" | tr ' ' '-')
+#     ${BIN}/create "${PROJECT_NAME}" "${TEMPLATE_REPO}" "./${PROJECT_NAME}"
+# }
 
 __install_docker() {
     confirm yes "This will install Docker on the host of your remote Docker context."
