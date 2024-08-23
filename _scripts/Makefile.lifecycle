@@ -35,7 +35,7 @@ config-edit:
 start:
 	@make --no-print-directory docker-compose-lifecycle-cmd EXTRA_ARGS="up -d ${service}"
 
-.PHONY: up
+.PHONY: up # Start services in the foreground and print logs to stdout. Ctrl-C to quit.
 up: build
 	@make --no-print-directory docker-compose-lifecycle-cmd EXTRA_ARGS="up ${service}"
 
