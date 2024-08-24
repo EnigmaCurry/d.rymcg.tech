@@ -3,7 +3,7 @@
 set -e
 BIN=$(dirname ${BASH_SOURCE})
 source ${BIN}/funcs.sh
-ROOT_DIR=..
+ROOT_DIR=${ROOT_DIR:..}
 ROOT_ENV_FILE=".env_${DOCKER_CONTEXT}"
 
 valid_regex='^[a-zA-Z][a-zA-Z0-9_-]*$'
