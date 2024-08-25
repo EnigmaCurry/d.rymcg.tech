@@ -11,10 +11,16 @@ services:
       context: config
       args:
         PROMETHEUS_CONFIG_YTT_VERSION: ${PROMETHEUS_CONFIG_YTT_VERSION}
+    profiles:
+      - default
+      - alertmanager
     environment:
       - PROMETHEUS_NODE_EXPORTER_ENABLED
+      - PROMETHEUS_NODE_EXPORTER_TARGETS
       - PROMETHEUS_CADVISOR_ENABLED
+      - PROMETHEUS_CADVISOR_TARGETS
       - PROMETHEUS_ALERTMANAGER_ENABLED
+      - PROMETHEUS_ALERTMANAGER_TARGETS
       - PROMETHEUS_ALERTMANAGER_SMTP_ENABLED
       - PROMETHEUS_ALERTMANAGER_SMTP_SMARTHOST
       - PROMETHEUS_ALERTMANAGER_SMTP_AUTH_USERNAME
@@ -86,6 +92,7 @@ services:
     profiles:
       - cadvisor
     image: gcr.io/cadvisor/cadvisor:${PROMETHEUS_CADVISOR_VERSION}
+    restart: unless-stopped
     command:
       - "--housekeeping_interval=30s"
       - "--docker_only=true"

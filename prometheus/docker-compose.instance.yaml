@@ -19,8 +19,12 @@
 #@ mtls_authorized_certs = data.values.mtls_authorized_certs
 #@ enabled_middlewares = []
 
+#! ### Custom app vars:
+#@ prometheus_enabled = data.values.prometheus_enabled == "true"
+
 #@yaml/text-templated-strings
 services:
+  #@ if prometheus_enabled:
   grafana:
     #@ service = "grafana"
     labels:
@@ -58,3 +62,4 @@ services:
       
       #! Apply all middlewares (do this at the end!)
       - "traefik.http.routers.(@= router @).middlewares=(@= ','.join(enabled_middlewares) @)"
+  #@ end

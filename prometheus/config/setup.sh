@@ -6,8 +6,11 @@ ytt_template() {
     [ -e "${src}" ] || (echo "Template not found: ${src}" && exit 1)
     ytt -f ${src} \
         -v node_exporter_enabled=${PROMETHEUS_NODE_EXPORTER_ENABLED} \
+        -v node_exporter_targets=${PROMETHEUS_NODE_EXPORTER_TARGETS} \
         -v cadvisor_enabled=${PROMETHEUS_CADVISOR_ENABLED} \
+        -v cadvisor_targets=${PROMETHEUS_CADVISOR_TARGETS} \
         -v alertmanager_enabled=${PROMETHEUS_ALERTMANAGER_ENABLED} \
+        -v alertmanager_targets=${PROMETHEUS_ALERTMANAGER_TARGETS} \
         -v smtp_enabled=${PROMETHEUS_ALERTMANAGER_SMTP_ENABLED} \
         -v smtp_smarthost=${PROMETHEUS_ALERTMANAGER_SMTP_SMARTHOST} \
         -v smtp_auth_username=${PROMETHEUS_ALERTMANAGER_SMTP_AUTH_USERNAME} \
