@@ -1,0 +1,43 @@
+#! This is a ytt template file for docker-compose.override.yaml
+#! References:
+#!   https://carvel.dev/ytt
+#!   https://docs.docker.com/compose/extends/#adding-and-overriding-configuration
+#!   https://github.com/enigmacurry/d.rymcg.tech#overriding-docker-composeyaml-per-instance
+
+#! ### Standard project vars:
+#@ load("@ytt:data", "data")
+#@ project = data.values.project
+#@ instance = data.values.instance
+#@ context = data.values.context
+#@ traefik_host = data.values.traefik_host
+#@ enabled_middlewares = []
+
+#@yaml/text-templated-strings
+services:
+  traefik-forward-auth:
+    #@ service = "traefik-forward-auth"
+    labels:
+      #! Services must opt-in to be proxied by Traefik:
+      - "traefik.enable=true"
+
+      #! 'router' is the fully qualified key in traefik for this router/service: project + instance + service
+      #! #@ router = "{}-{}-{}".format(project,instance,service)
+      #@ router = "traefik-forward-auth"
+
+      #! The host matching router rule:
+      - "traefik.http.routers.(@= router @).rule=Host(`(@= traefik_host @)`)"
+      - "traefik.http.routers.(@= router @).entrypoints=websecure"
+      - "traefik.http.routers.(@= router @).middlewares=traefik-forward-auth"
+      - "traefik.http.routers.(@= router @).tls=true"
+
+      #! #@ enabled_middlewares.append("{}-forwardAuth".format(router))
+      - "traefik.http.middlewares.(@= router @).forwardAuth.address=http://127.0.0.1:4181"
+      - "traefik.http.middlewares.(@= router @).forwardAuth.authResponseHeaders=X-Forwarded-User"
+
+      #! Override the default port that the app binds to:
+      #! You don't normally need to do this, as long as your image has
+      #! an EXPOSE directive in it, Traefik will autodetect it, but this is how you can override it:
+      - "traefik.http.services.(@= router @).loadbalancer.server.port=4181"
+
+      #! Apply all middlewares (do this at the end!)
+      - "traefik.http.routers.(@= router @).middlewares=(@= ','.join(enabled_middlewares) @)"

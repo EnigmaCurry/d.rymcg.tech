@@ -3,7 +3,7 @@ services:
     build:
       context: traefik-forward-auth
       args:
-        BASE_IMAGE: ${TRAEFIK_FORWARD_AUTH_BASE_IMAGE}
+        BASE_IMAGE: ${TRAEFIK_FORWARD_AUTH_BASE_IMAGE:-thomseddon/traefik-forward-auth:2}
         STEP_CA_ENABLED: ${TRAEFIK_FORWARD_AUTH_STEP_CA_ENABLED}
         STEP_CA_ENDPOINT: ${TRAEFIK_FORWARD_AUTH_STEP_CA_ENDPOINT}
         STEP_CA_FINGERPRINT: ${TRAEFIK_FORWARD_AUTH_STEP_CA_FINGERPRINT}
@@ -16,6 +16,8 @@ services:
       - LOG_LEVEL=${TRAEFIK_FORWARD_AUTH_LOG_LEVEL}
       - AUTH_HOST=${TRAEFIK_FORWARD_AUTH_HOST}${TRAEFIK_FORWARD_AUTH_HTTPS_PORT}
       - COOKIE_DOMAIN=${TRAEFIK_FORWARD_AUTH_COOKIE_DOMAIN}
+      - COOKIE_NAME=${TRAEFIK_FORWARD_AUTH_COOKIE_NAME}
+      - CSRF_COOKIE_NAME=${TRAEFIK_FORWARD_AUTH_COOKIE_NAME}_csrf
       - DEFAULT_PROVIDER=${TRAEFIK_FORWARD_AUTH_DEFAULT_PROVIDER}
       - PROVIDERS_GENERIC_OAUTH_AUTH_URL=${TRAEFIK_FORWARD_AUTH_PROVIDERS_GENERIC_OAUTH_AUTH_URL}
       - PROVIDERS_GENERIC_OAUTH_TOKEN_URL=${TRAEFIK_FORWARD_AUTH_PROVIDERS_GENERIC_OAUTH_TOKEN_URL}
@@ -30,16 +32,7 @@ services:
     command:
       - "--rule.http-options-requests.action=allow"
       - "--rule.http-options-requests.rule=Method(`OPTIONS`)"
-    labels:
-      - "traefik.enable=true"
-      - "traefik.http.services.traefik-forward-auth.loadbalancer.server.port=4181"
-      - "traefik.http.middlewares.traefik-forward-auth.forwardAuth.address=http://127.0.0.1:4181"
-      - "traefik.http.middlewares.traefik-forward-auth.forwardAuth.authResponseHeaders=X-Forwarded-User"
-
-      - "traefik.http.routers.traefik-forward-auth.rule=Host(`${TRAEFIK_FORWARD_AUTH_HOST}`)"
-      - "traefik.http.routers.traefik-forward-auth.entrypoints=websecure"
-      - "traefik.http.routers.traefik-forward-auth.tls=true"
-      - "traefik.http.routers.traefik-forward-auth.middlewares=traefik-forward-auth"
+    labels: []
     ports:
       - 127.0.0.1:4181:4181
     restart: always
