@@ -565,6 +565,7 @@ Install these other services at your leisure/preference:
 * [Redbean](redbean#readme) - a small website server bundled in a single executable zip file
 * [Redmine](redmine#readme) - a flexible project management web application
 * [S3-proxy](s3-proxy#readme) - an HTTP directory index for S3 backend
+* [SearXNG](searxng#readme) - a privacy-respecting, hackable metasearch engine
 * [SFTP](sftp#readme) - a secure file server
 * [Shaarli](shaarli#readme) - a bookmark manager
 * [Smokeping](smokeping#readme) - a network latency measurement tool
