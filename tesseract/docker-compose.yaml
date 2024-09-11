@@ -1,0 +1,13 @@
+services:
+  tesseract:
+    image: ${TESSERACT_IMAGE}
+    environment:
+      PUBLIC_INSTANCE_URL: ${TESSERACT_PUBLIC_LEMMY_URL}
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+    sysctls:
+      - net.ipv4.ip_unprivileged_port_start=1024
+    restart: unless-stopped
+    labels: []
