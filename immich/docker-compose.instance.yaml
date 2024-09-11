@@ -23,6 +23,7 @@
 #@ ml_hwaccel_type = data.values.ml_hwaccel_type
 #@ transcode_hwaccel_type = data.values.transcode_hwaccel_type
 #@ upload_location = data.values.upload_location
+#@ use_external_volume = data.values.use_external_volume == "true"
 
 #@yaml/text-templated-strings
 services:
@@ -169,6 +170,14 @@ services:
 volumes:
   model-cache:
   database:
-  #@ if not (upload_location[0]=="/" or upload_location[0]=="~" or upload_location[0]=="."):
-  (@= upload_location @):
+  #@ if use_external_volume:
+  uploads:
+    driver: local
+    driver_opts:
+      type: none
+      o: bind
+      device: (@= upload_location @)
+  #@ end
+  #@ if not use_external_volume:
+  uploads:
   #@ end

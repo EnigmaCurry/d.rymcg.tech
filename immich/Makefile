@@ -13,9 +13,16 @@ config-hook:
 	@echo
 	@${BIN}/reconfigure_choose ${ENV_FILE} IMMICH_TRANSCODE_HWACCEL_TYPE "Select the hardware acceleration to use for transcoding" "None" "CPU" "NVENC" "QSV" "RKMPP" "VAAPI" "VAAPI-WSL"
 	@echo
-	@echo "Enter the path on the host where you want Immich to upload new images (e.g., \`/mnt/photos\`, \`~/images\`, \`../pictures\`), or enter a name to be used as a named Docker volume which will be created for you (e.g., \"photos\")."
-	@${BIN}/reconfigure_ask ${ENV_FILE} IMMICH_UPLOAD_LOCATION "Enter the upload location" $(${BIN}/dotenv -f "${ENV_FILE}" get "IMMICH_UPLOAD_LOCATION")
-	@echo
+	@choices=('bind mount' 'Docker volume'); \
+		[[ "$$(${BIN}/dotenv -f ${ENV_FILE} get IMMICH_USE_EXTERNAL_VOLUME)" == "false" ]] && default='Docker volume' || default='bind mount'; \
+		answer=$$(eval "${BIN}/script-wizard choose 'Select whether you want Immich to upload images to a bind mount on the host or to a named Docker volume' $${choices[@]@Q} --default '$$default'"); \
+		if [ "$$answer" = "bind mount" ]; then \
+			${BIN}/reconfigure ${ENV_FILE} IMMICH_USE_EXTERNAL_VOLUME=true; \
+			ALLOW_BLANK=0 ${BIN}/reconfigure_ask ${ENV_FILE} IMMICH_UPLOAD_LOCATION "Enter the path on the host where you want Immich to upload new images (e.g., \"/mnt/photos\" or \"~/images\")." $$(${BIN}/dotenv -f "${ENV_FILE}" get "IMMICH_UPLOAD_LOCATION"); \
+		else \
+			${BIN}/reconfigure ${ENV_FILE} IMMICH_USE_EXTERNAL_VOLUME=false; \
+		fi
+	@echo 
 	
 .PHONY: override-hook
 override-hook:
@@ -29,7 +36,7 @@ override-hook:
 ####                         # (this hardcodes the string into docker-compose.override.yaml)
 ####   name=@VARIABLE_NAME   # sets the template 'name' field to the literal string '${VARIABLE_NAME}'
 ####                         # (used for regular docker-compose expansion of env vars by name.)
-	@${BIN}/docker_compose_override ${ENV_FILE} project=:immich instance=@IMMICH_INSTANCE traefik_host=@IMMICH_TRAEFIK_HOST http_auth=IMMICH_HTTP_AUTH http_auth_var=@IMMICH_HTTP_AUTH ip_sourcerange=@IMMICH_IP_SOURCERANGE oauth2=IMMICH_OAUTH2 authorized_group=IMMICH_OAUTH2_AUTHORIZED_GROUP enable_mtls_auth=IMMICH_MTLS_AUTH mtls_authorized_certs=IMMICH_MTLS_AUTHORIZED_CERTS ml_hwaccel_type=IMMICH_ML_HWACCEL_TYPE upload_location=IMMICH_UPLOAD_LOCATION transcode_hwaccel_type=IMMICH_TRANSCODE_HWACCEL_TYPE
+	@${BIN}/docker_compose_override ${ENV_FILE} project=:immich instance=@IMMICH_INSTANCE traefik_host=@IMMICH_TRAEFIK_HOST http_auth=IMMICH_HTTP_AUTH http_auth_var=@IMMICH_HTTP_AUTH ip_sourcerange=@IMMICH_IP_SOURCERANGE oauth2=IMMICH_OAUTH2 authorized_group=IMMICH_OAUTH2_AUTHORIZED_GROUP enable_mtls_auth=IMMICH_MTLS_AUTH mtls_authorized_certs=IMMICH_MTLS_AUTHORIZED_CERTS ml_hwaccel_type=IMMICH_ML_HWACCEL_TYPE use_external_volume=IMMICH_USE_EXTERNAL_VOLUME upload_location=IMMICH_UPLOAD_LOCATION transcode_hwaccel_type=IMMICH_TRANSCODE_HWACCEL_TYPE
 
 .PHONY: shell
 shell:

@@ -2,7 +2,7 @@ services:
   immich:
     image: ${IMMICH_IMAGE:-ghcr.io/immich-app/immich-server:release}
     volumes:
-      - ${IMMICH_UPLOAD_LOCATION}:/usr/src/app/upload
+      - uploads:/usr/src/app/upload
       - /etc/localtime:/etc/localtime:ro
     environment:
       - IMMICH_LOG_LEVEL=${IMMICH_LOG_LEVEL}
@@ -61,5 +61,3 @@ services:
       start_period: 5m
     command: ["postgres", "-c", "shared_preload_libraries=vectors.so", "-c", 'search_path="$$user", public, vectors', "-c", "logging_collector=on", "-c", "max_wal_size=2GB", "-c", "shared_buffers=512MB", "-c", "wal_compression=on"]
     restart: unless-stopped
-
-    
