@@ -71,7 +71,7 @@ ask_echo() {
     ## Ask the user a question then print the non-blank answer to stdout
     (
         prompt=$1; shift
-        ask_no_blank "$1" ASK_ECHO_VARNAME $@ >/dev/stderr
+        ask_no_blank "$prompt" ASK_ECHO_VARNAME $@ >/dev/stderr
         echo "${ASK_ECHO_VARNAME}"
     )
 }
