@@ -60,6 +60,7 @@ services:
 
       #@ if enable_mtls_auth:
       - "traefik.http.routers.(@= router @).tls.options=step_ca_mTLS@file"
+      - "traefik.http.routers.(@= reloader_router @).tls.options=step_ca_mTLS@file"
         #@ if len(mtls_authorized_certs):
       - "traefik.http.middlewares.mtlsauth-(@= router @).plugin.certauthz.domains=(@= mtls_authorized_certs @)"
         #@ enabled_middlewares.append("mtlsauth-{}".format(router))
