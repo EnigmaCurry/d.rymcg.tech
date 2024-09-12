@@ -539,6 +539,7 @@ Install these other services at your leisure/preference:
 * [FreshRSS](freshrss#readme) - an RSS reader / proxy
 * [Grocy](grocy#readme) - a grocery & household management/chore solution
 * [Icecast](icecast#readme) - a SHOUTcast compatible streaming multimedia server
+* [Immich](immich#readme) - a photo gallery
 * [Invidious](invidious#readme) - a Youtube proxy
 * [Jitsi Meet](jitsi-meet#readme) - a video conferencing and screencasting service
 * [Jupyterlab](jupyterlab#readme) - a web based code editing environment / reproducible research tool
