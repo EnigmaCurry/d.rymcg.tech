@@ -1,0 +1,183 @@
+#! This is a ytt template file for docker-compose.override.yaml
+#! References:
+#!   https://carvel.dev/ytt
+#!   https://docs.docker.com/compose/extends/#adding-and-overriding-configuration
+#!   https://github.com/enigmacurry/d.rymcg.tech#overriding-docker-composeyaml-per-instance
+
+#! ### Standard project vars:
+#@ load("@ytt:data", "data")
+#@ project = data.values.project
+#@ instance = data.values.instance
+#@ context = data.values.context
+#@ traefik_host = data.values.traefik_host
+#@ ip_sourcerange = data.values.ip_sourcerange
+#@ enable_http_auth = len(data.values.http_auth.strip()) > 0
+#@ http_auth = data.values.http_auth_var
+#@ enable_oauth2 = data.values.oauth2 == "true"
+#@ authorized_group = data.values.authorized_group
+#@ enable_mtls_auth = data.values.enable_mtls_auth == "true"
+#@ mtls_authorized_certs = data.values.mtls_authorized_certs
+#@ enabled_middlewares = []
+
+#! ### Project-specific vars:
+#@ ml_hwaccel_type = data.values.ml_hwaccel_type
+#@ transcode_hwaccel_type = data.values.transcode_hwaccel_type
+#@ upload_location = data.values.upload_location
+#@ use_external_volume = data.values.use_external_volume == "true"
+
+#@yaml/text-templated-strings
+services:
+  machine-learning:
+    #@ service = "machine-learning"
+    #@ if ml_hwaccel_type == "ArmNN":
+    image: ${IMMICH_ML_IMAGE:-ghcr.io/immich-app/immich-machine-learning:release}-armnn
+    devices:
+      - /dev/mali0:/dev/mali0
+    volumes:
+      #! Mali firmware for your chipset (not always required depending on the driver)
+      - /lib/firmware/mali_csffw.bin:/lib/firmware/mali_csffw.bin:ro 
+      #! Mali driver for your chipset (always required)
+      - /usr/lib/libmali.so:/usr/lib/libmali.so:ro 
+    #@ end
+    #@ if ml_hwaccel_type == "Cuda":
+    image: ${IMMICH_ML_IMAGE:-ghcr.io/immich-app/immich-machine-learning:release}
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: 1
+              capabilities:
+                - gpu
+    #@ end
+    #@ if ml_hwaccel_type == "OpenVINO":
+    image: ${IMMICH_ML_IMAGE:-ghcr.io/immich-app/immich-machine-learning:release}-openvino
+    device_cgroup_rules:
+      - 'c 189:* rmw'
+    devices:
+      - /dev/dri:/dev/dri
+    volumes:
+      - /dev/bus/usb:/dev/bus/usb
+    #@ end
+    #@ if ml_hwaccel_type == "OpenVINO-WSL":
+    image: ${IMMICH_ML_IMAGE:-ghcr.io/immich-app/immich-machine-learning:release}-openvinowsl
+    devices:
+      - /dev/dri:/dev/dri
+      - /dev/dxg:/dev/dxg
+    volumes:
+      - /dev/bus/usb:/dev/bus/usb
+      - /usr/lib/wsl:/usr/lib/wsl
+    #@ end
+    #@ if not (ml_hwaccel_type == "OpenVINO-WSL" or ml_hwaccel_type == "OpenVINO" or ml_hwaccel_type == "Cuda" or ml_hwaccel_type == "ArmNN"):
+    image: ${IMMICH_ML_IMAGE:-ghcr.io/immich-app/immich-machine-learning:release}
+    #@ end    
+    
+  immich:
+    #@ service = "immich"
+    #@ if transcode_hwaccel_type == "NVENC":
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: 1
+              capabilities:
+                - gpu
+                - compute
+                - video
+    #@ end
+    #@ if transcode_hwaccel_type == "QSV":
+    devices:
+      - /dev/dri:/dev/dri
+    #@ end
+    #@ if transcode_hwaccel_type == "RKMPP":
+    #! enables full access to /sys and /proc, still far better than privileged: true
+    security_opt: 
+      - systempaths=unconfined
+      - apparmor=unconfined
+    group_add:
+      - video
+    devices:
+      - /dev/rga:/dev/rga
+      - /dev/dri:/dev/dri
+      - /dev/dma_heap:/dev/dma_heap
+      - /dev/mpp_service:/dev/mpp_service
+      #! only required to enable OpenCL-accelerated HDR -> SDR tonemapping
+      #!- /dev/mali0:/dev/mali0 
+    volumes:
+      #! only required to enable OpenCL-accelerated HDR -> SDR tonemapping
+      #!- /etc/OpenCL:/etc/OpenCL:ro 
+      #! only required to enable OpenCL-accelerated HDR -> SDR tonemapping
+      #!- /usr/lib/aarch64-linux-gnu/libmali.so.1:/usr/lib/aarch64-linux-gnu/libmali.so.1:ro 
+    #@ end
+    #@ if transcode_hwaccel_type == "VAAPI":
+    devices:
+      - /dev/dri:/dev/dri
+    #@ end
+    #@ if transcode_hwaccel_type == "VAAPI-WSL":
+    #! use this for VAAPI if you're running Immich in WSL2
+    devices:
+      - /dev/dri:/dev/dri
+    volumes:
+      - /usr/lib/wsl:/usr/lib/wsl
+    environment:
+      - LD_LIBRARY_PATH=/usr/lib/wsl/lib
+      - LIBVA_DRIVER_NAME=d3d12
+    #@ end
+
+    labels:
+      #! Services must opt-in to be proxied by Traefik:
+      - "traefik.enable=true"
+
+      #! 'router' is the fully qualified key in traefik for this router/service: project + instance + service
+      #@ router = "{}-{}-{}".format(project,instance,service)
+
+      #! The host matching router rule:
+      - "traefik.http.routers.(@= router @).rule=Host(`(@= traefik_host @)`)"
+      - "traefik.http.routers.(@= router @).entrypoints=websecure"
+
+      #@ enabled_middlewares.append("{}-ipallowlist".format(router))
+      - "traefik.http.middlewares.(@= router @)-ipallowlist.ipallowlist.sourcerange=(@= ip_sourcerange @)"
+      #@ if enable_http_auth:
+      #@ enabled_middlewares.append("{}-basicauth".format(router))
+      - "traefik.http.middlewares.(@= router @)-basicauth.basicauth.users=(@= http_auth @)"
+      - "traefik.http.middlewares.(@= router @)-basicauth.basicauth.headerField=X-Forwarded-User"
+      #@ end
+
+      #@ if enable_oauth2:
+      #@ enabled_middlewares.append("traefik-forward-auth@docker")
+      #@ enabled_middlewares.append("header-authorization-group-{}@file".format(authorized_group))
+      #@ end
+
+      #@ if enable_mtls_auth:
+      - "traefik.http.routers.(@= router @).tls.options=step_ca_mTLS@file"
+        #@ if len(mtls_authorized_certs):
+      - "traefik.http.middlewares.mtlsauth-(@= router @).plugin.certauthz.domains=(@= mtls_authorized_certs @)"
+        #@ enabled_middlewares.append("mtlsauth-{}".format(router))
+        #@ end
+        #@ enabled_middlewares.append("mtls-header@file")
+      #@ end
+      
+      #! Override the default port that the app binds to:
+      #! You don't normally need to do this, as long as your image has
+      #! an EXPOSE directive in it, Traefik will autodetect it, but this is how you can override it:
+      #! - "traefik.http.services.(@= router @).loadbalancer.server.port=8000"
+
+      #! Apply all middlewares (do this at the end!)
+      - "traefik.http.routers.(@= router @).middlewares=(@= ','.join(enabled_middlewares) @)"
+
+#@yaml/text-templated-strings
+volumes:
+  model-cache:
+  database:
+  #@ if use_external_volume:
+  uploads:
+    driver: local
+    driver_opts:
+      type: none
+      o: bind
+      device: (@= upload_location @)
+  #@ end
+  #@ if not use_external_volume:
+  uploads:
+  #@ end
