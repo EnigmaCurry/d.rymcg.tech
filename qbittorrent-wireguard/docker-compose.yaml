@@ -34,7 +34,7 @@ services:
     volumes:
       - wireguard:/config
       - /lib/modules:/lib/modules
-    restart: always
+    restart: unless-stopped
     labels: []
 
   qbittorrent-config:
@@ -104,4 +104,4 @@ services:
       - type: bind
         source: ${QBITTORRENT_DOWNLOAD_VOLUME}
         target: /downloads
-    restart: always
+    restart: unless-stopped
