@@ -573,6 +573,7 @@ Install these other services at your leisure/preference:
 * [Step-CA](step-ca) - a secure, online, self-hosted Certificate Authority (CA)
 * [Syncthing](syncthing#readme) - a multi-device file synchronization tool
 * [Sysbox-Systemd](sysbox-systemd#readme) - a traditional service manager for Linux running in an unprivileged container via sysbox-runc
+* [Tesseract](tesseract#readme) - a front-end for Lemmy instances
 * [Thttpd](thttpd#readme) - a tiny/turbo/throttling HTTP server for serving static files
 * [Tiny Tiny RSS](ttrss#readme) - an RSS reader / proxy
 * [Vaultward](vaultwarden#readme) - a bitwarden compatible password manager written in Rust (formerly bitwarden_rs)
