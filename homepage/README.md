@@ -11,7 +11,9 @@ languages.
 make config
 ```
 
-This will ask you to enter the domain name to use.
+This will ask you to enter the main domain name to use for homepage,
+as well as a secondary domain name to use for webhooks.
+
 It automatically saves your responses into the configuration file
 `.env_{INSTANCE}`.
 
