@@ -427,7 +427,7 @@ main() {
             ssh)
                 docker_ssh "$@";;
             status)
-                __make -- status | sed "s|\./|${ROOT_DIR}/|g";;
+                __make -- status | sed "s|\./|${ROOT_DIR}/|g" | less -FSX;;
             *)
                 fault "Invalid command"
         esac

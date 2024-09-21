@@ -58,11 +58,11 @@ destroy: check-instance-project
 .PHONY: ps # Show containers status (docker compose ps)
 ps:
 	@echo "Showing containers for a single instance (use \`make status\` to see all instances.)"
-	@make --no-print-directory docker-compose-lifecycle-cmd EXTRA_ARGS="ps -a"
+	@make --no-print-directory docker-compose-lifecycle-cmd EXTRA_ARGS="ps -a" | less -FSX
 
 .PHONY: status # Show status of all instances
 status:
-	@(echo -e "NAME\tENV\tID\tIMAGE\tSTATE\tHEALTH\tPORTS" && docker ps --filter "label=com.docker.compose.project.working_dir=$${PWD}" -q | xargs -iXX docker inspect XX | jq '.[0]' | jq -r '(.Name[1:]) + "\t" + (.Config.Labels["com.docker.compose.project.environment_file"] | split("/";"")[-1]) + "\t" + .Id[:10] + "\t" + .Config.Image + "\t" + .State.Status + "\t" + (.State.Health.Status|tostring) + "\t" + (.NetworkSettings.Ports|tostring) ') | column -t
+	@(echo -e "NAME\tENV\tID\tIMAGE\tSTATE\tHEALTH\tPORTS" && docker ps --filter "label=com.docker.compose.project.working_dir=$${PWD}" -q | xargs -iXX docker inspect XX | jq '.[0]' | jq -r '(.Name[1:]) + "\t" + (.Config.Labels["com.docker.compose.project.environment_file"] | split("/";"")[-1]) + "\t" + .Id[:10] + "\t" + .Config.Image + "\t" + .State.Status + "\t" + (.State.Health.Status|tostring) + "\t" + (.NetworkSettings.Ports|tostring) ') | column -t | less -FSX
 
 .PHONY: logs # Tail all containers logs (set SERVICE=name to filter for one)
 logs:
