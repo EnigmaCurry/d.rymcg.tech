@@ -40,7 +40,7 @@ services:
       - /usr/lib/libmali.so:/usr/lib/libmali.so:ro 
     #@ end
     #@ if ml_hwaccel_type == "Cuda":
-    image: ${IMMICH_ML_IMAGE:-ghcr.io/immich-app/immich-machine-learning:release}
+    image: ${IMMICH_ML_IMAGE:-ghcr.io/immich-app/immich-machine-learning:release}-cuda
     deploy:
       resources:
         reservations:

@@ -5,7 +5,6 @@ services:
       - uploads:/usr/src/app/upload
       - /etc/localtime:/etc/localtime:ro
     environment:
-      - IMMICH_LOG_LEVEL=${IMMICH_LOG_LEVEL}
       - IMMICH_TRUSTED_PROXIES=${IMMICH_TRUSTED_PROXIES}
       - DB_PASSWORD=${IMMICH_DB_PASSWORD}
       - DB_USERNAME=${IMMICH_DB_USER}
