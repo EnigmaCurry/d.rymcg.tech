@@ -101,6 +101,3 @@ delete-admin-users:
 .PHONY: add-plugins # Add plugins
 add-plugins:
 	@tar -C ${ROOT_DIR}/yourls/plugins -cf - . | docker exec -i yourls-yourls-1 tar -xf - -C /var/www/html/user/plugins/
-
-
-	
