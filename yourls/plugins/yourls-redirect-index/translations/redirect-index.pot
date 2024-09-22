@@ -1,0 +1,53 @@
+#, fuzzy
+msgid ""
+msgstr ""
+"Project-Id-Version: Redirect Index\n"
+"POT-Creation-Date: 2015-07-01 23:39+0100\n"
+"PO-Revision-Date: 2015-03-22 19:25-0000\n"
+"Last-Translator: Tom Slominski <me@tomslominski>\n"
+"Language-Team: \n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"X-Generator: Poedit 1.8.2\n"
+"X-Poedit-KeywordsList: yourls__;yourls_e;yourls_s;yourls_se;"
+"yourls_esc_attr__;yourls_esc_html__;yourls_x;yourls_ex;yourls_esc_attr_x;"
+"yourls_esc_html_x;yourls_n:1,2;yourls_nx:1,2;yourls_n_noop:1,2;"
+"yourls_nx_noop:1,2\n"
+"X-Poedit-Basepath: ..\n"
+"X-Poedit-SourceCharset: UTF-8\n"
+"Plural-Forms: nplurals=2; plural=(n != 1);\n"
+"X-Poedit-SearchPath-0: .\n"
+
+#: index.php:19
+msgid "YOURLS Redirect Index"
+msgstr ""
+
+#: index.php:20
+msgid ""
+"Have you set the redirect URL in the YOURLS admin panel? If you're having "
+"trouble, check out the <a href=\"https://github.com/tomslominski/yourls-"
+"redirect-index\">project page</a>."
+msgstr ""
+
+#: plugin.php:17 plugin.php:43
+msgid "Redirect Index"
+msgstr ""
+
+#: plugin.php:44
+msgid "Save"
+msgstr ""
+
+#: plugin.php:46
+msgid "Have you copied the index.php file into your YOURLS base directory?"
+msgstr ""
+
+#: plugin.php:76
+msgid "URL saved successfully."
+msgstr ""
+
+#: plugin.php:79
+msgid ""
+"URL could not be saved. It's either the same as the existing URL or "
+"something else failed."
+msgstr ""

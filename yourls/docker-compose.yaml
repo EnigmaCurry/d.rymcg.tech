@@ -1,0 +1,44 @@
+services:
+  yourls:
+    build:
+      context: yourls
+      args:
+        YOURLS_IMAGE: ${YOURLS_IMAGE}
+    restart: unless-stopped
+    depends_on:
+      - mysql
+    environment:
+      YOURLS_DB_PASS: ${MYSQL_ROOT_PASSWORD}
+      YOURLS_SITE: https://${YOURLS_TRAEFIK_HOST}
+      YOURLS_USER: ${YOURLS_USER}
+      YOURLS_PASS: ${YOURLS_PASS}
+      YOURLS_UNIQUE_URLS: ${YOURLS_UNIQUE_URLS}
+      YOURLS_COOKIEKEY: ${YOURLS_COOKIEKEY}
+      YOURLS_USER_PASSWORDS: ${YOURLS_USER_PASSWORDS}
+      YOURLS_PROXY: ${YOURLS_PROXY}
+    labels: []
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost/admin"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+    volumes:
+      - yourls:/var/www/html
+
+  mysql:
+    image: mysql
+    restart: unless-stopped
+    environment:
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
+      MYSQL_DATABASE: yourls
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+    volumes:
+      - mysql_data:/var/lib/mysql
+      
+volumes:
+  yourls:
+  mysql_data:

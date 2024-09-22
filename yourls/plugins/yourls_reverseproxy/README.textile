@@ -1,0 +1,23 @@
+h2. YOURLS Reverse Proxy Plugin
+
+Fixes the user IPs to point to the actual user instead of your cloud provider's infrastructure IPs, for now the following providers and their headers are supported:
+* Cloudflare: This information is gathered from _CF-Connecting-IP_ and applied as a filter to _yourls_get_IP()_
+* Heroku: This information is gathered from _X-Forwarded-For_ and applied as a filter to _yourls_get_IP()_
+
+h3. Why?
+
+Due to how CloudFlare is essentially a reverse proxy between your server and the internet at large, your server will end up seeing the reverse proxy instead of the client requesting the pagethe server will see the proxy IPs instead of the real IP that[1]
+and Heroku has router infrastructure which behaves in a similar fashion.[3]
+
+h3. Installation
+
+# Fetch/pull/download the repo
+# Copy the folder _reverseproxy_ into _YOURLS_ABSPATH/user/plugins_ where _YOURLS_ABSPATH_ is the location your YOURLS install is located in.
+# Activate plugin on administrator interface.
+# ???
+# Profit!
+
+
+fn1. "https://support.cloudflare.com/hc/en-us/articles/200170786-Restoring-original-visitor-IPs-Logging-visitor-IP-addresses-with-mod-cloudflare-":https://support.cloudflare.com/hc/en-us/articles/200170786-Restoring-original-visitor-IPs-Logging-visitor-IP-addresses-with-mod-cloudflare-
+
+fn2. "https://devcenter.heroku.com/articles/http-routing#heroku-headers":https://devcenter.heroku.com/articles/http-routing#heroku-headers
