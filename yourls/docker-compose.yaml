@@ -17,7 +17,6 @@ services:
       YOURLS_PASS: ${YOURLS_PASS}
       YOURLS_UNIQUE_URLS: ${YOURLS_UNIQUE_URLS}
       YOURLS_COOKIEKEY: ${YOURLS_COOKIEKEY}
-      YOURLS_PROXY: ${YOURLS_PROXY}
     labels: []
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost/admin"]
