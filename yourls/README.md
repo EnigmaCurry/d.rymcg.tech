@@ -57,45 +57,22 @@ make install
 ### Plugins
 
 There are many plugins available for YOURLS [here](https://github.com/YOURLS/awesome?tab=readme-ov-file#themes).
-This instance will install the following plugins automatically (you can decide
-whether to activate them in the administration interface):
+In addition to the standard plugins that YOURLS comes with, this instance
+will install the following plugins automatically (you can decide whether to
+activate them in the administration interface):
 - Download Plugin
 - Force Lowercase
-- Redirect Index
-- Preview URL
-- Expiry
-- Favicon
-- Reverse Proxy
-- ShortShort	
-- Sleeky (theme)
-- Air66 (theme)
+- Change Password
 
 Most plugins have a very simple installation process: just copy their
 `plugin.php` (and possibly other files the plugin requires) into
 `/var/www/html/user/plugins/<plugin_name>/` in the `yourls-yourls-1` container.
-You can do this manually or the "Download Plugin" plugin allows you to do
-this from the UI, but you can also use `make add-plugins` to add them from
-your d.rymcg.tech workstation.
-1. In the `yourls/plugins/` directory on your d.rymcg.tech workstation, create
-a new directory and name it the name of the plugin you want to install
-(e.g., `yourls/plugins/new-plugin/`).
-1. Copy the plugin's `plugin.php` flle (and any other files the plugin
-requires) into `yourls/plugins/new-plugin/`.
-1. Run `make add-plugins`.
+You can do this manually or via the "Download Plugin" plugin, which allows you
+to do this from the UI.
 
-This will copy the contents of `yourls/plugins/` on your d.rymcg.tech
-workstation into the `/var/www/html/user/plugins/` directory in the
-`yourls-yourls-1` container, and all such plugins will then be available to
-activate in the UI. If a plugin requires any other configuration or setup
-(e.g., moving files to the root html directory, entering an API key, unzipping
-files), you'll need to to it manually.
-
-Also, note that if you make any changes to the contents of a `/var/www/html/user/plugins/<plugin_name>/`
-directory in the `yourls-yourls-1` container, they will be overwritten by the
-contents of the `yourls/plugins/<plugin_name>/` directory on your d.rymcg.tech
-workstation. Once you have installed a plugin, you can remove its directory
-from the `yourls/plugins/` (but, of course, you'll need to re-add it if you
-ever want to re-install it).
+Some plugins and themes require more manual installation or configuration
+(e.g., unzipping files, moving files to the root html directory, entering an
+API key).
 
 ## Open
 
