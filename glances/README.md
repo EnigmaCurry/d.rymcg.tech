@@ -9,6 +9,15 @@ different container management systems such as Docker, LXC. The information
 is presented in an easy to read dashboard and can also be used for remote
 monitoring of systems via a web interface or command line interface. 
 
+## Warning
+
+This container has privileged access to your host, and full control of
+Docker via bind mount socket. It also uses the docker flag
+`network_mode: host`. This gives unlimited access to your host
+network. You should not install this unless you completely trust this
+service. To enforce the use of Traefik as your entrypoint, your
+external firewall should block TCP ports 61208 and 61209.
+
 ## Config
 
 ```
@@ -18,6 +27,14 @@ make config
 This will ask you to enter the domain name to use.
 It automatically saves your responses into the configuration file
 `.env_{INSTANCE}`.
+
+It will also ask you if you want Glances to be able to report on container
+metrics in addition to the metrics of the host you are installing it on.
+In order for Glances to report on container metrics, it requires access to
+the host's Docker socket. Be aware that allowing access to the Docker socket
+is not safe because it effectively grants full control over the Docker
+daemon, enabling a container or attacker to escalate privileges, manipulate
+containers, and potentially compromise the host system.
 
 ### Authentication and Authorization
 
