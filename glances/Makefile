@@ -8,7 +8,7 @@ config-hook:
 	@${BIN}/reconfigure ${ENV_FILE} GLANCES_INSTANCE=$${instance:-default}
 	@${BIN}/reconfigure_auth ${ENV_FILE} GLANCES
 	@echo
-	@${BIN}/confirm no "Do you want to enable Nvidia GPU support" "?" && ${BIN}/reconfigure ${ENV_FILE} GLANCES_GPU=true || ${BIN}/reconfigure ${ENV_FILE} GLANCES_GPU=false
+	@${BIN}/confirm $$("$$(${BIN}/dotenv -f ${ENV_FILE} get GLANCES_GPU)" == "false" && echo 'yes' || echo 'no') "Do you want to enable Nvidia GPU support" "?" && ${BIN}/reconfigure ${ENV_FILE} GLANCES_GPU=true || ${BIN}/reconfigure ${ENV_FILE} GLANCES_GPU=false
 	@echo
 	@echo "Glances can report on container metrics if you allow it access to the host's Docker socket. Be aware that allowing access to the Docker socket is not safe because it effectively grants full control over the Docker daemon, enabling a container or attacker to escalate privileges, manipulate containers, and potentially compromise the host system."
 	@${BIN}/confirm $$("$$(${BIN}/dotenv -f ${ENV_FILE} get GLANCES_CONTAINER_METRICS)" == "false" && echo 'yes' || echo 'no') "Do you want to enable container metrics" "?" && ${BIN}/reconfigure ${ENV_FILE} GLANCES_CONTAINER_METRICS=true || ${BIN}/reconfigure ${ENV_FILE} GLANCES_CONTAINER_METRICS=false
