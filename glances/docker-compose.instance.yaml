@@ -21,6 +21,7 @@
 
 #! ### Project-specific vars:
 #@ gpu_support = data.values.gpu_support == "true"
+#@ container_metrics = data.values.container_metrics == "true"
 
 #@yaml/text-templated-strings
 services:
@@ -37,6 +38,13 @@ services:
               capabilities: [gpu]
     #@ end
     
+    volumes:
+      #@ if container_metrics:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      #@ end
+      #! The following line causes Glances to display host's OS detail instead of container's
+      - /etc/os-release:/etc/os-release:ro
+
     labels:
       #! Services must opt-in to be proxied by Traefik:
       - "traefik.enable=true"
