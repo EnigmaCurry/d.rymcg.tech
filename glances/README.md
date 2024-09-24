@@ -14,7 +14,7 @@ monitoring of systems via a web interface or command line interface.
 This container uses the docker flag `network_mode: host`, which gives
 unlimited access to your host network. There is also configurable
 support for mounting the Docker socket, which provides full root
-access to your host. You should not install this if you completely
+access to your host. You should not install this unless you completely
 trust this service. To enforce the use of Traefik as your entrypoint,
 your external firewall should block TCP ports 61208 and 61209.
 
