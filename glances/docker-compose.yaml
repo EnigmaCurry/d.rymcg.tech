@@ -1,0 +1,15 @@
+services:
+  glances:
+    image: ${GLANCES_IMAGE}
+    restart: unless-stopped
+    pid: host
+    privileged: true
+    network_mode: "host"
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      # The following line causes Glances to display host's OS detail instead of container's
+      - /etc/os-release:/etc/os-release:ro
+    environment:
+      - TZ=${GLANCES_TZ}
+      - "GLANCES_OPT=-w ${GLANCES_OPTIONS}"
+    labels: []

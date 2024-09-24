@@ -537,6 +537,7 @@ Install these other services at your leisure/preference:
 * [Ejabberd](ejabberd#readme) - an XMPP (Jabber) server
 * [Filestash](filestash#readme) - a web based file manager with customizable backend storage providers
 * [FreshRSS](freshrss#readme) - an RSS reader / proxy
+* [Glances](glances#readme) - an open-source system cross-platform monitoring tool
 * [Grocy](grocy#readme) - a grocery & household management/chore solution
 * [Icecast](icecast#readme) - a SHOUTcast compatible streaming multimedia server
 * [Immich](immich#readme) - a photo gallery
