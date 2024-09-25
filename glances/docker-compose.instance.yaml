@@ -22,6 +22,7 @@
 #! ### Project-specific vars:
 #@ gpu_support = data.values.gpu_support == "true"
 #@ container_metrics = data.values.container_metrics == "true"
+#@ host_hd = data.values.host_hd == "true"
 
 #@yaml/text-templated-strings
 services:
@@ -41,6 +42,9 @@ services:
     volumes:
       #@ if container_metrics:
       - /var/run/docker.sock:/var/run/docker.sock:ro
+      #@ end
+      #@ if host_hd:
+      - /:/host-hd:ro
       #@ end
       #! The following line causes Glances to display host's OS detail instead of container's
       - /etc/os-release:/etc/os-release:ro
