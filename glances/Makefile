@@ -13,7 +13,7 @@ config-hook:
 	@echo "Glances can report on container metrics if you allow it access to the host's Docker socket. Be aware that allowing access to the Docker socket is not safe because it effectively grants full control over the Docker daemon, enabling a container or attacker to escalate privileges, manipulate containers, and potentially compromise the host system."
 	@${BIN}/confirm $$("$$(${BIN}/dotenv -f ${ENV_FILE} get GLANCES_CONTAINER_METRICS)" == "false" && echo 'yes' || echo 'no') "Do you want to enable container metrics" "?" && ${BIN}/reconfigure ${ENV_FILE} GLANCES_CONTAINER_METRICS=true || ${BIN}/reconfigure ${ENV_FILE} GLANCES_CONTAINER_METRICS=false
 	@echo
-	@${BIN}/confirm $$("$$(${BIN}/dotenv -f ${ENV_FILE} get GLANCES_HOST_HD)" == "false" && echo 'yes' || echo 'no') "Do you want to bind mount \`/\` on the host so that Glances can report on disk space available on the host" "?" && ${BIN}/reconfigure ${ENV_FILE} GLANCES_HOST_HD=true || ${BIN}/reconfigure ${ENV_FILE} GLANCES_HOST_HD=false
+	@${BIN}/confirm $$("$$(${BIN}/dotenv -f ${ENV_FILE} get GLANCES_MOUNT_HOST_FILESYSTEM)" == "false" && echo 'yes' || echo 'no') "Do you want to bind mount \`/\` on the host so that Glances can report on disk space available on the host" "?" && ${BIN}/reconfigure ${ENV_FILE} GLANCES_MOUNT_HOST_FILESYSTEM=true || ${BIN}/reconfigure ${ENV_FILE} GLANCES_MOUNT_HOST_FILESYSTEM=false
 	@echo
 
 .PHONY: override-hook
@@ -28,7 +28,7 @@ override-hook:
 ####                         # (this hardcodes the string into docker-compose.override.yaml)
 ####   name=@VARIABLE_NAME   # sets the template 'name' field to the literal string '${VARIABLE_NAME}'
 ####                         # (used for regular docker-compose expansion of env vars by name.)
-	@${BIN}/docker_compose_override ${ENV_FILE} project=:glances instance=@GLANCES_INSTANCE traefik_host=@GLANCES_TRAEFIK_HOST http_auth=GLANCES_HTTP_AUTH http_auth_var=@GLANCES_HTTP_AUTH ip_sourcerange=@GLANCES_IP_SOURCERANGE oauth2=GLANCES_OAUTH2 authorized_group=GLANCES_OAUTH2_AUTHORIZED_GROUP enable_mtls_auth=GLANCES_MTLS_AUTH mtls_authorized_certs=GLANCES_MTLS_AUTHORIZED_CERTS gpu_support=GLANCES_GPU container_metrics=GLANCES_CONTAINER_METRICS host_hd=GLANCES_HOST_HD
+	@${BIN}/docker_compose_override ${ENV_FILE} project=:glances instance=@GLANCES_INSTANCE traefik_host=@GLANCES_TRAEFIK_HOST http_auth=GLANCES_HTTP_AUTH http_auth_var=@GLANCES_HTTP_AUTH ip_sourcerange=@GLANCES_IP_SOURCERANGE oauth2=GLANCES_OAUTH2 authorized_group=GLANCES_OAUTH2_AUTHORIZED_GROUP enable_mtls_auth=GLANCES_MTLS_AUTH mtls_authorized_certs=GLANCES_MTLS_AUTHORIZED_CERTS gpu_support=GLANCES_GPU container_metrics=GLANCES_CONTAINER_METRICS mount_host_filesystem=GLANCES_MOUNT_HOST_FILESYSTEM
 
 .PHONY: shell
 shell:
