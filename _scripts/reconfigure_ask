@@ -6,6 +6,7 @@
 ## This ONLY edits the lines with the given variable names in them.
 
 ENV_FILE="$1"; var="$2"; prompt="$3"; default="$4";
+ALLOW_BLANK=${ALLOW_BLANK:-0}
 
 BIN=$(dirname ${BASH_SOURCE})
 source ${BIN}/funcs.sh
@@ -38,7 +39,7 @@ if [[ "${#example}" -ne "0" ]]; then
 fi
 while true; do
     read -e -p "${var}: ${prompt}${example}"$'\x0a: ' -i "${default}" answer
-    if [[ -n ${answer} || -z ${default} || "${ALLOW_BLANK}" == 1 ]]; then
+    if [[ -n "${answer}" || (-z "${default}" && "${ALLOW_BLANK}" == 1) || "${ALLOW_BLANK}" == 1 ]]; then
         break
     fi
 done
