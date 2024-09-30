@@ -3,6 +3,11 @@
 [Filestash](https://github.com/mickael-kerjean/filestash) is a web-based file
 manager, connecting to many different storage backends.
 
+### Authentication and Authorization
+
+See [AUTH.md](../AUTH.md) for information on adding external authentication on
+top of your app.
+
 This configuration requires HTTP Basic Authentication in front of the
 application. This is due to the fact that **I consider filestash to be
 insecure by default**, and because it performs the backend

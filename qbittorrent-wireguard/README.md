@@ -119,6 +119,11 @@ use the default:
    protected by username/password or IP filter). You can modify this
    to access certain peers that dont' need a VPN (eg. on your LAN).
 
+### Authentication and Authorization
+
+See [AUTH.md](../AUTH.md) for information on adding external authentication on
+top of your app.
+
 ## Deploy
 
 Once configured, deploy it:

@@ -10,6 +10,11 @@ Run `make config` or copy `.env-dist` to
  * `FRESHRSS_TRAEFIK_HOST` the domain name for FreshRSS.
  * `TIME_ZONE` the timezone of the server
 
+### Authentication and Authorization
+
+See [AUTH.md](../AUTH.md) for information on adding external authentication on
+top of your app.
+
 Bring up the server : `make install`
 
 Open the browser page: `make open`
