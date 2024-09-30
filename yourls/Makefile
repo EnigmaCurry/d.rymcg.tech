@@ -35,7 +35,7 @@ shell:
 
 open-hook:
 	${BIN}/open /admin
-	
+
 .PHONY: list-admin-users # List admin users
 list-admin-users:
 # Pull the config.php file from the Docker container
