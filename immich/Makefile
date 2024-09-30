@@ -23,7 +23,7 @@ config-hook:
 			${BIN}/reconfigure ${ENV_FILE} IMMICH_USE_EXTERNAL_VOLUME=false; \
 		fi
 	@echo 
-	
+
 .PHONY: override-hook
 override-hook:
 #### This sets the override template variables for docker-compose.instance.yaml:
