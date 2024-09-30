@@ -8,8 +8,8 @@ config-hook:
 	@${BIN}/reconfigure ${ENV_FILE} YOURLS_INSTANCE=$${instance:-default}
 	@${BIN}/reconfigure_auth ${ENV_FILE} YOURLS
 	@echo
-	@${BIN}/reconfigure_ask ${ENV_FILE} YOURLS_USER "Enter the admin username for your YOURLS instance"
-	@${BIN}/reconfigure_ask ${ENV_FILE} YOURLS_PASS "Enter the password for '"$$(${BIN}/dotenv -f ${ENV_FILE} get YOURLS_USER)"'"
+	@${BIN}/reconfigure_ask ${ENV_FILE} YOURLS_USER "Enter the admin username for your YOURLS instance" -
+	@${BIN}/reconfigure_ask ${ENV_FILE} YOURLS_PASS "Enter the password for '"$$(${BIN}/dotenv -f ${ENV_FILE} get YOURLS_USER)"'" -
 	@echo
 	@${BIN}/reconfigure_password ${ENV_FILE} MYSQL_ROOT_PASSWORD 45
 	@${BIN}/reconfigure_password ${ENV_FILE} YOURLS_COOKIEKEY 45
@@ -35,7 +35,7 @@ shell:
 
 open-hook:
 	${BIN}/open /admin
-	
+
 .PHONY: list-admin-users # List admin users
 list-admin-users:
 # Pull the config.php file from the Docker container
