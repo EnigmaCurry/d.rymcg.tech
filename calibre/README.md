@@ -21,6 +21,11 @@ pre-baked username and password necessary to login the first time:
 After you login, and change the default password, you can then
 consider turning off the sentry authorization.
 
+### Authentication and Authorization
+
+See [AUTH.md](../AUTH.md) for information on adding external authentication on
+top of your app.
+
 ## Install
 
 ```

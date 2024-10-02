@@ -13,8 +13,10 @@ these into your `.env_${DOCKER_CONTEXT}_default` file.
 
 Run `make config`. 
 
-If public access is desired without any username/password required, comment out
-the `Authentication` section in `docker-compose.yaml`.
+### Authentication and Authorization
+
+See [AUTH.md](../AUTH.md) for information on adding external authentication on
+top of your app.
 
 ## Limiting traffic
 

@@ -13,8 +13,12 @@ This will ask you to enter the domain name to use.
 It automatically saves your responses into the configuration file
 `.env_{INSTANCE}`.
 
-### Auth
+### Authentication and Authorization
 
+See [AUTH.md](../AUTH.md) for information on adding external authentication on
+top of your app.
+
+*NOTE:*
 If you turn on the Traefik auth middlewares, Lemmy cannot federate
 properly (not even to pull from other instances). However, with auth
 turned on, the app will still work as a fully private instance.

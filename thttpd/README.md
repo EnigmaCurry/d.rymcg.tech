@@ -16,6 +16,11 @@ they will be copied into the initial volume created. You can also use
 the [sftp](../sftp) service, and upload new files into the shared
 volume (`thttpd_files` or `thttpd_${INSTANCE}_files`).
 
+### Authentication and Authorization
+
+See [AUTH.md](../AUTH.md) for information on adding external authentication on
+top of your app.
+
 ## Install
 
 Run `make install`
