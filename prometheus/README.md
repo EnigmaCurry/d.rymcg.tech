@@ -24,6 +24,11 @@ make config
 * Choose whether to run node-exporter or not (For collecting the Host metrics).
 * Choose whether to run cAdvisor or not (For collecting container metrics).
 
+### Authentication and Authorization
+
+See [AUTH.md](../AUTH.md) for information on adding external authentication on
+top of your app.
+
 ```
 make install
 ```

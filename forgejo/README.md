@@ -20,6 +20,13 @@ format](https://codeberg.org/forgejo/forgejo/src/branch/forgejo/contrib/environm
 but make sure you also copy the added variable names to the
 `docker-compose.yaml` environment section, otherwise they will not be seen.
 
+### Authentication and Authorization
+
+See [AUTH.md](../AUTH.md) for information on adding external authentication on
+top of your app. *Note:* You can't add Oauth2 on top of Forgejo because Forgejo
+would then try to access itself to see if the user had access to Forgejo, but
+it couldn't access itself without access - this recursion wouldn't work.
+
 ## Initial setup
 
 Bring up the service with `make install`, then immediately open the

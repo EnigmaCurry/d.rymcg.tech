@@ -5,6 +5,11 @@ progamming notebook, for Python and other languages.
 
 Run `make config` and set the jupyterlab domain name.
 
+## Authentication and Authorization
+
+See [AUTH.md](../AUTH.md) for information on adding external authentication on
+top of your app.
+
 Run `make install` to deploy it.
 
 Run `watch make status` and wait for the service to come online with
