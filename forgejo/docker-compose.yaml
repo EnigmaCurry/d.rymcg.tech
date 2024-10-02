@@ -5,7 +5,7 @@ networks:
 services:
   forgejo:
     image: ${FORGEJO_IMAGE}
-    restart: always
+    restart: unless-stopped
     environment:
       - FORGEJO__server__ROOT_URL
       - FORGEJO__server__SSH_DOMAIN=${FORGEJO_TRAEFIK_HOST}

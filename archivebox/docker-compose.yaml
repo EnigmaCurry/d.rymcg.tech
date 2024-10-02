@@ -58,7 +58,7 @@ services:
       # - SYS_CHROOT
       # - KILL
       # - AUDIT_WRITE
-    restart: "no"
+    restart: unless-stopped
     environment:
       - ARCHIVEBOX_BASE_URL=http://archivebox:8000
       - API_BASE_URL=https://${ARCHIVEBOX_TRAEFIK_HOST}

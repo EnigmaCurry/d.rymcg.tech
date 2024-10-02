@@ -18,7 +18,7 @@ services:
       context: nginx
     volumes:
       - lemmy-nginx-config:/etc/nginx
-    restart: always
+    restart: unless-stopped
     logging: *default-logging
     depends_on:
       - pictrs

@@ -2,12 +2,12 @@
 services:
   mail:
     image: bytemark/smtp
-    restart: always
+    restart: unless-stopped
 
   db:
     # supported versions are 12, 13, and 14
     image: postgres:14-alpine
-    restart: always
+    restart: unless-stopped
     volumes:
       - db:/var/lib/postgresql/data
     environment:
@@ -18,7 +18,7 @@ services:
   events_db:
     build:
       context: clickhouse
-    restart: always
+    restart: unless-stopped
     volumes:
       - events_db:/var/lib/clickhouse
     ulimits:
@@ -28,7 +28,7 @@ services:
 
   app:
     image: plausible/analytics:v1.5.1
-    restart: always
+    restart: unless-stopped
     # This command works, but seems like it could be simplified. TODO.
     command: sh -c "sleep 10 && /entrypoint.sh db createdb && /entrypoint.sh db migrate && /entrypoint.sh run"
     depends_on:
