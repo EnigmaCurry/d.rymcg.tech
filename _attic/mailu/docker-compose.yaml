@@ -42,7 +42,7 @@ services:
   # External dependencies
   redis:
     image: redis:alpine
-    restart: always
+    restart: unless-stopped
     volumes:
       - "redis:/data"
     depends_on:
@@ -53,7 +53,7 @@ services:
   # Core services
   front:
     image: ${DOCKER_ORG}/${DOCKER_PREFIX:-}nginx:${MAILU_VERSION}
-    restart: always
+    restart: unless-stopped
     env_file: ${ENV_FILE}
     logging:
       driver: json-file
@@ -111,14 +111,14 @@ services:
   resolver:
     image: ${DOCKER_ORG}/${DOCKER_PREFIX:-}unbound:${MAILU_VERSION}
     env_file: ${ENV_FILE}
-    restart: always
+    restart: unless-stopped
     networks:
       default:
         ipv4_address: ${SUBNET_PREFIX}.254
 
   admin:
     image: ${DOCKER_ORG}/${DOCKER_PREFIX:-}admin:${MAILU_VERSION}
-    restart: always
+    restart: unless-stopped
     env_file: ${ENV_FILE}
     volumes:
       - "data:/data"
@@ -131,7 +131,7 @@ services:
 
   imap:
     image: ${DOCKER_ORG}/${DOCKER_PREFIX:-}dovecot:${MAILU_VERSION}
-    restart: always
+    restart: unless-stopped
     env_file: ${ENV_FILE}
     volumes:
       - "mail:/mail"
@@ -145,7 +145,7 @@ services:
   smtp:
     depends_on: ['config']
     image: ${DOCKER_ORG}/${DOCKER_PREFIX:-}postfix:${MAILU_VERSION}
-    restart: always
+    restart: unless-stopped
     env_file: ${ENV_FILE}
     volumes:
       - "mailqueue:/queue"
@@ -159,7 +159,7 @@ services:
   antispam:
     image: ${DOCKER_ORG}/${DOCKER_PREFIX:-}rspamd:${MAILU_VERSION}
     hostname: antispam
-    restart: always
+    restart: unless-stopped
     env_file: ${ENV_FILE}
     volumes:
       - "filter:/var/lib/rspamd"
@@ -174,7 +174,7 @@ services:
 
   webdav:
     image: ${DOCKER_ORG}/${DOCKER_PREFIX:-}radicale:${MAILU_VERSION}
-    restart: always
+    restart: unless-stopped
     env_file: ${ENV_FILE}
     volumes:
       - "dav:/data"
@@ -187,7 +187,7 @@ services:
     #image: ${DOCKER_ORG}/${DOCKER_PREFIX:-}fetchmail:${MAILU_VERSION}
     build:
        context: https://github.com/EnigmaCurry/Mailu.git#fetchmail:optional/fetchmail
-    restart: always
+    restart: unless-stopped
     env_file: ${ENV_FILE}
     volumes:
       - "data:/data"
@@ -199,7 +199,7 @@ services:
   # Webmail
   webmail:
     image: ${DOCKER_ORG}/${DOCKER_PREFIX:-}roundcube:${MAILU_VERSION}
-    restart: always
+    restart: unless-stopped
     env_file: ${ENV_FILE}
     volumes:
       - "webmail:/data"

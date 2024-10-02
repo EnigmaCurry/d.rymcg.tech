@@ -4,7 +4,7 @@ services:
     image: mariadb:${PIWIGO_MARIADB_VERSION}
     security_opt:
       - no-new-privileges:true
-    restart: always
+    restart: unless-stopped
     environment:
       MARIADB_ROOT_PASSWORD: ${PIWIGO_MARIADB_ROOT_PASSWORD}
       MARIADB_DATABASE: ${PIWIGO_MARIADB_DATABASE}

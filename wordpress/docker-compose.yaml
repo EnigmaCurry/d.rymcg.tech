@@ -10,7 +10,7 @@ services:
     command: '--default-authentication-plugin=mysql_native_password'
     volumes:
       - db_data:/var/lib/mysql
-    restart: always
+    restart: unless-stopped
     environment:
       MARIADB_ROOT_PASSWORD: ${WORDPRESS_DB_ROOT_PASSWORD}
       MARIADB_DATABASE: ${WORDPRESS_DB_NAME}
@@ -28,7 +28,7 @@ services:
     volumes:
       - wp_data:/var/www/html
       - wp_wp2static:/var/www/static
-    restart: always
+    restart: unless-stopped
     environment:
       - WORDPRESS_DB_HOST=db
       - WORDPRESS_DB_USER=${WORDPRESS_DB_USER}
