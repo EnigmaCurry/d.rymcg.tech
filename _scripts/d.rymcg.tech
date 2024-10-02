@@ -45,6 +45,7 @@ __help() {
         echo -e "context\tView or set the current Docker context"
         echo -e "new-context\tCreate a new Docker context"
         echo -e "tmp-context\tUse a temporary Docker context in a sub-shell"
+        echo -e "config\tConfigure the current Docker context"
         echo -e "ssh [COMMAND ...]\tRun command or shell on active docker context SSH host"
         echo -e "completion\tSetup TAB completion in your shell"
         echo -e "install\tInstall an app interactively"
@@ -298,7 +299,7 @@ __d.rymcg.tech_completions() {
     if [[ ${COMP_CWORD} == 1 ]]; then
         ## Complete the main command:
         ## d.rymcg.tech <TAB> ...
-        COMMANDS="help create cd make list readme info context new-context tmp-context completion install install-docker status ssh audit"
+        COMMANDS="help create cd make list readme info context new-context tmp-context completion install install-docker status ssh audit config"
         COMPREPLY=($(compgen -W "${COMMANDS}" "${COMP_WORDS[1]}"))
     elif [[ ${COMP_CWORD} == 2 ]]; then
         ALL_PROJECTS=$(d.rymcg.tech list --raw)
@@ -430,7 +431,9 @@ main() {
             status)
                 __make -- status | sed "s|\./|${ROOT_DIR}/|g" | less -FSX;;
             audit)
-                make --no-print-directory audit | less -FSX;;
+                __make -- audit | less -FSX;;
+            config)
+                __make -- config;;
             *)
                 fault "Invalid command"
         esac
