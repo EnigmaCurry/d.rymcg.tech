@@ -189,10 +189,29 @@ __context() {
 __context_tmp() {
     readarray -t CONTEXTS < <(docker context list -q | grep -v default)
     local CURRENT_CONTEXT=$(docker context show)
-    local CHOSEN_CONTEXT=$(wizard choose "Choose a temporary docker context" "${CONTEXTS[@]}" --default "${CURRENT_CONTEXT}")
+    local CHOSEN_CONTEXT="$1";
+    if [[ -z "${CHOSEN_CONTEXT}" ]]; then
+        CHOSEN_CONTEXT=$(wizard choose "Choose a temporary docker context" "${CONTEXTS[@]}" --default "${CURRENT_CONTEXT}")
+    else
+        shift;
+    fi
+    
     test -z "$CHOSEN_CONTEXT" && fault "No context selected."
-    echo "Entering sub-shell DOCKER_CONTEXT=${CHOSEN_CONTEXT}"
-    bash --rcfile <(echo "DOCKER_CONTEXT=${CHOSEN_CONTEXT}; source ~/.bashrc; unset MAKEFLAGS PROMPT_COMMAND D_RYMCG_TECH_CLI_ALIAS D_RYMCG_TECH_PROJECT_ALIAS D_RYMCG_TECH_SCRIPT; PS1=\"[@:\$DOCKER_CONTEXT] \${PS1}\"") -i
+    if ! element_in_array "$CHOSEN_CONTEXT" "${CONTEXTS[@]}"; then
+        fault "Context ${CHOSEN_CONTEXT} does not exist.";
+    fi
+    if [[ $# == 0 ]]; then
+        echo "Entering sub-shell DOCKER_CONTEXT=${CHOSEN_CONTEXT}"
+        bash --rcfile <(echo "DOCKER_CONTEXT=${CHOSEN_CONTEXT}; source ~/.bashrc; unset MAKEFLAGS PROMPT_COMMAND D_RYMCG_TECH_CLI_ALIAS D_RYMCG_TECH_PROJECT_ALIAS D_RYMCG_TECH_SCRIPT; PS1=\"[@:\$DOCKER_CONTEXT] \${PS1}\"") -i
+    else
+        echo "+ DOCKER_CONTEXT=${CHOSEN_CONTEXT}"
+        if [[ "$1" == "d" ]]; then
+            shift
+            DOCKER_CONTEXT="${CHOSEN_CONTEXT}" exe d.rymcg.tech $@
+        else
+            DOCKER_CONTEXT="${CHOSEN_CONTEXT}" exe $@
+        fi        
+    fi
 }
 
 __new_context() {
