@@ -189,7 +189,7 @@ ytt() {
     set -e
     local IMAGE=localhost/ytt
     docker image inspect ${IMAGE} >/dev/null || docker build -t ${IMAGE} -f- . >/dev/null <<'EOF'
-FROM debian:stable-slim as ytt
+FROM debian:stable-slim AS ytt
 ARG YTT_VERSION=v0.44.3
 RUN apt-get update && apt-get install -y wget && wget "https://github.com/vmware-tanzu/carvel-ytt/releases/download/${YTT_VERSION}/ytt-linux-$(dpkg --print-architecture)" -O ytt && install ytt /usr/local/bin/ytt
 EOF
@@ -208,7 +208,7 @@ yq() {
     set -e
     local IMAGE=localhost/yq
     docker image inspect ${IMAGE} >/dev/null || docker build -t ${IMAGE} -f- . >/dev/null <<'EOF'
-FROM debian:stable-slim as yq
+FROM debian:stable-slim AS yq
 RUN apt-get update && apt-get install -y yq
 EOF
     docker run --rm -i "${IMAGE}" yq "${@}"
