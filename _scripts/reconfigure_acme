@@ -34,7 +34,7 @@ lets_encrypt() {
     
     echo ""
     echo "If you give Let's Encrypt your email address, they will send you alerts when your certificates are about to expire, or about other misconfigurations."
-    ${BIN}/reconfigure_ask ${ENV_FILE} TRAEFIK_ACME_CA_EMAIL "Enter your email address (not required; blank to skip)"
+    ALLOW_BLANK=1 ${BIN}/reconfigure_ask ${ENV_FILE} TRAEFIK_ACME_CA_EMAIL "Enter your email address (not required; blank to skip)"
     
     if [[ "$(${BIN}/dotenv -f ${ENV_FILE} get TRAEFIK_ACME_CHALLENGE)" == "dns" ]]; then
         echo ""
