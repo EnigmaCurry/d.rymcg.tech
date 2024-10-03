@@ -788,23 +788,24 @@ d.rymcg.tech readme
 d.rymcg.tech readme traefik
 ```
 
-#### Project specific shell aliases
+#### Project and context specific shell aliases
 
 You can add additional command aliases to your shell (put these in
 your `~/.bashrc` *after* the `eval` line that loads the main
 `d.rymcg.tech` script):
 
 ```
-## Example project alias: creates a shorter command used just for the Traefik project:
-__d.rymcg.tech_project_alias traefik
+## Alternative alias to shorten `d.rymcg.tech` to simply `d`:
+__d.rymcg.tech_cli_alias d
 ```
 
-(This command creates the shell alias called `traefik`, as well as the
-Bash shell tab completion for it.)
+You can make project specific aliases:
 
-With this alias installed, instead of running `make -C
-~/git/vendor/enigmacurry/d.rymcg.tech/traefik install` you can now
-simply run `traefik install`.
+```
+## Example project alias: creates a shorter command used just for the Traefik project:\
+## e.g., `traefik config`, `traefik install`
+__d.rymcg.tech_project_alias traefik
+```
 
 If you have created an [external
 project](#integrating-external-projects) (eg. named `mikeapp`), you can
@@ -812,21 +813,17 @@ create a command alias for it:
 
 ```
 ## Example external project alias:
+## e.g., `mikeapp config`, `mikeapp install`
 __d.rymcg.tech_project_alias mikeapp ~/git/mikeapp
 ```
 
-With this alias installed, instead of running `make -C ~/git/mikeapp
-install` you can now simply run `mikeapp install`.
-
-If you want a different alias for the main script, you can add that too:
+You can also do context specific aliases:
 
 ```
-## Alternative alias to d.rymcg.tech
-__d.rymcg.tech_cli_alias d
+## Example context alias: creates a shorter command used just for the given Docker context:
+## e.g., `sentry make traefik config`, `sentry make traefik install`.
+__d.rymcg.tech_context_alias sentry
 ```
-
-With this alias installed, you can now just run `d` in place of
-`d.rymcg.tech`.
 
 To get a synopsis of all of these completion commands, run:
 

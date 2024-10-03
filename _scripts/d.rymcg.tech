@@ -202,7 +202,7 @@ __context_tmp() {
     fi
     if [[ $# == 0 ]]; then
         echo "Entering sub-shell DOCKER_CONTEXT=${CHOSEN_CONTEXT}"
-        bash --rcfile <(echo "DOCKER_CONTEXT=${CHOSEN_CONTEXT}; source ~/.bashrc; unset MAKEFLAGS PROMPT_COMMAND D_RYMCG_TECH_CLI_ALIAS D_RYMCG_TECH_PROJECT_ALIAS D_RYMCG_TECH_SCRIPT; PS1=\"[@:\$DOCKER_CONTEXT] \${PS1}\"") -i
+        bash --rcfile <(echo "DOCKER_CONTEXT=${CHOSEN_CONTEXT}; source ~/.bashrc; unset MAKEFLAGS PROMPT_COMMAND D_RYMCG_TECH_CLI_ALIAS D_RYMCG_TECH_CONTEXT_ALIAS D_RYMCG_TECH_PROJECT_ALIAS D_RYMCG_TECH_SCRIPT; PS1=\"[@:\$DOCKER_CONTEXT] \${PS1}\"") -i
     else
         echo "+ DOCKER_CONTEXT=${CHOSEN_CONTEXT}"
         if [[ "$1" == "d" ]]; then
@@ -299,6 +299,14 @@ EOF
     eval "${FUNC}"
     complete -o filenames -F _${__ALIAS}_complete ${__ALIAS}
     unset __ALIAS __PROJECT_DIR
+}
+
+__d.rymcg.tech_context_alias() {
+    local ROOT_DIR=$(d.rymcg.tech info ROOT_DIR)
+    __CONTEXT="${1}"
+    export __CONTEXT
+    alias $1="D_RYMCG_TECH_CONTEXT_ALIAS=${__CONTEXT} d.rymcg.tech tmp-context ${__CONTEXT} d.rymcg.tech"
+    complete -F __d.rymcg.tech_completions $1
 }
 
 __d.rymcg.tech_completions() {
@@ -399,14 +407,22 @@ __completion() {
         echo "#### For example, external project 'foo' in the directory ~/git/foo"
         echo "# __d.rymcg.tech_project_alias foo ~/git/foo"
         echo ""
-        echo "#### If you want a shorter alias than d.rymcg.tech (eg. 'dry') you can add it:"
-        echo "# __d.rymcg.tech_cli_alias dry"
+        echo "#### If you want to quickly access a particular Docker context (eg. 'sentry'):"
+        echo "#### For example, instead of running this long command:"
+        echo "####   d tmp-context sentry d make traefik config"
+        echo "#### Now you can run just: sentry make traefik config"
+        echo "#### You can do this for any Docker context:"
+        echo "# __d.rymcg.tech_context_alias sentry"
+        echo ""
+        echo "#### If you want a shorter alias than d.rymcg.tech (eg. 'd') you can add it:"
+        echo "# __d.rymcg.tech_cli_alias d"
         echo ""
     else
         if [[ "${1}" == "bash" ]]; then
             declare -f __d.rymcg.tech_documentation_words
             declare -f __d.rymcg.tech_completions
             declare -f __d.rymcg.tech_project_alias
+            declare -f __d.rymcg.tech_context_alias
             declare -f __d.rymcg.tech_cli_alias
             echo "complete -F __d.rymcg.tech_completions d.rymcg.tech"
         else
