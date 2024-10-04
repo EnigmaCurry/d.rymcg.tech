@@ -56,4 +56,8 @@ groups=($(jq -r '. | keys[]' <<< ${TRAEFIK_HEADER_AUTHORIZATION_GROUPS}))
 ## Ask user which header authorization group to permit access to this app
 authorized_group=$(${BIN}/dotenv -f ${ENV_FILE} get ${VAR_PREFIX}_OAUTH2_AUTHORIZED_GROUP)
 
+if [ ${#groups[@]} -eq 0 ]; then
+    fault "No Traefik authorization groups exist. You need to create some authorization groups in the Traefik config first before you can select the OAuth2 option in the app."
+fi
+
 ${BIN}/reconfigure_choose ${ENV_FILE} ${VAR_PREFIX}_OAUTH2_AUTHORIZED_GROUP "Which authorization group do you want to permit access to this app?" ${groups[@]}
