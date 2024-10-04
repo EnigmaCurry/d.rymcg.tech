@@ -172,7 +172,7 @@ create_group() {
     ## Check if the group exists already:
     local TRAEFIK_HEADER_AUTHORIZATION_GROUPS=$(${BIN}/dotenv -f ${ENV_FILE} get TRAEFIK_HEADER_AUTHORIZATION_GROUPS)
     local INDEX=$(echo "$TRAEFIK_HEADER_AUTHORIZATION_GROUPS" | jq --compact-output 'keys | index("'${GROUP}'")')
-    if [[ $INDEX != "null" ]]; then
+    if [[ -n "$TRAEFIK_HEADER_AUTHORIZATION_GROUPS" && $INDEX != "null" ]]; then
         echo "Group ${GROUP} already exists."
         return 0
     fi
