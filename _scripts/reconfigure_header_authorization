@@ -171,8 +171,11 @@ create_group() {
 
     ## Check if the group exists already:
     local TRAEFIK_HEADER_AUTHORIZATION_GROUPS=$(${BIN}/dotenv -f ${ENV_FILE} get TRAEFIK_HEADER_AUTHORIZATION_GROUPS)
+    if [[ -z "$TRAEFIK_HEADER_AUTHORIZATION_GROUPS" ]]; then
+        TRAEFIK_HEADER_AUTHORIZATION_GROUPS="{}"
+    fi
     local INDEX=$(echo "$TRAEFIK_HEADER_AUTHORIZATION_GROUPS" | jq --compact-output 'keys | index("'${GROUP}'")')
-    if [[ -n "$TRAEFIK_HEADER_AUTHORIZATION_GROUPS" && $INDEX != "null" ]]; then
+    if [[ $INDEX != "null" ]]; then
         echo "Group ${GROUP} already exists."
         return 0
     fi
@@ -191,7 +194,7 @@ create_group() {
     fi
 
     ## Add the new group:
-     users=$(jq --compact-output --null-input '$ARGS.positional | unique' --args -- "${users[@]}")
+    users=$(jq --compact-output --null-input '$ARGS.positional | unique' --args -- "${users[@]}")
     local TRAEFIK_HEADER_AUTHORIZATION_GROUPS=$(echo "${TRAEFIK_HEADER_AUTHORIZATION_GROUPS}" | jq --compact-output "(.${GROUP} = ${users})")
     ${BIN}/dotenv -f ${ENV_FILE} set TRAEFIK_HEADER_AUTHORIZATION_GROUPS="${TRAEFIK_HEADER_AUTHORIZATION_GROUPS}"
     echo "Wrote new TRAEFIK_HEADER_AUTHORIZATION_GROUPS to ${ENV_FILE}"
