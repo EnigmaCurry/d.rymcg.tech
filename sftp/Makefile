@@ -55,13 +55,19 @@ shell:
 .PHONY: ssh-copy-id
 ssh-copy-id: unlock-mutable-config
 	ssh-add -L
-	@export ENV_FILE="${ENV_FILE}"; [[ -z "$${SSH_USER:-$${user}}" ]] && read -p "Which SSH username do you want authorize with your local keys? : " SSH_USER; AUTH_FILE="/etc/ssh/keys/$${SSH_USER:-${user}}_authorized_keys"; source ${BIN}/funcs.sh; ssh-add -L | docker_exec -i --user root $$(docker_compose ps -q sftp) sh -c "cat >> $${AUTH_FILE} && sort -u -o $${AUTH_FILE} $${AUTH_FILE} && chmod 0600 $${AUTH_FILE} && chown $${SSH_USER:-${user}}:$${SSH_USER:-${user}} $${AUTH_FILE}"
+	@export ENV_FILE="${ENV_FILE}"; [[ -z "$${SSH_USER:-$${user}}" ]] && read -p "Which SSH username do you want to authorize with your local keys? : " SSH_USER; AUTH_FILE="/etc/ssh/keys/$${SSH_USER:-${user}}_authorized_keys"; source ${BIN}/funcs.sh; ssh-add -L | docker_exec -i --user root $$(docker_compose ps -q sftp) sh -c "cat >> $${AUTH_FILE} && sort -u -o $${AUTH_FILE} $${AUTH_FILE} && chmod 0600 $${AUTH_FILE} && chown $${SSH_USER:-${user}}:$${SSH_USER:-${user}} $${AUTH_FILE}"
 	@make --no-print-directory lock-immutable-config
 
 
 .PHONY: ssh-clear-id
 ssh-clear-id: unlock-mutable-config
-	@export ENV_FILE="${ENV_FILE}"; [[ -z "$${SSH_USER:-$${user}}" ]] && read -p "Which SSH username do you want deauthorize from all keys? : " SSH_USER; AUTH_FILE="/etc/ssh/keys/$${SSH_USER:-${user}}_authorized_keys"; source ${BIN}/funcs.sh; ssh-add -L | docker_exec -i --user root $$(docker_compose ps -q sftp) sh -c "truncate -s 0 $${AUTH_FILE}"
+	@export ENV_FILE="${ENV_FILE}"; [[ -z "$${SSH_USER:-$${user}}" ]] && read -p "Which SSH username do you want to deauthorize all keys from? : " SSH_USER; AUTH_FILE="/etc/ssh/keys/$${SSH_USER:-${user}}_authorized_keys"; source ${BIN}/funcs.sh; ssh-add -L | docker_exec -i --user root $$(docker_compose ps -q sftp) sh -c "truncate -s 0 $${AUTH_FILE}"
+	@make --no-print-directory lock-immutable-config
+
+
+.PHONY: ssh-authorize-key
+ssh-authorize-key: unlock-mutable-config
+	@export ENV_FILE="${ENV_FILE}"; [[ -z "$${SSH_USER:-$${user}}" ]] && read -p "Which SSH username do you want to add a key for? : " SSH_USER; read -p "Enter the SSH public key : " SSH_PUBKEY; AUTH_FILE="/etc/ssh/keys/$${SSH_USER:-${user}}_authorized_keys"; source ${BIN}/funcs.sh; echo "$${SSH_PUBKEY}" | docker_exec -i --user root $$(docker_compose ps -q sftp) sh -c "cat >> $${AUTH_FILE} && sort -u -o $${AUTH_FILE} $${AUTH_FILE} && chmod 0600 $${AUTH_FILE} && chown $${SSH_USER:-${user}}:$${SSH_USER:-${user}} $${AUTH_FILE}"
 	@make --no-print-directory lock-immutable-config
 
 

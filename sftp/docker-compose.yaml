@@ -41,6 +41,7 @@ services:
        - SETGID
        - SETUID
        - FOWNER
+       - KILL
        ### Unused capabilities:
        # - AUDIT_CONTROL
        # - AUDIT_READ
@@ -49,7 +50,6 @@ services:
        # - FSETID
        # - IPC_LOCK
        # - IPC_OWNER
-       # - KILL
        # - LEASE
        # - LINUX_IMMUTABLE
        # - MAC_ADMIN
