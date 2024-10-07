@@ -577,7 +577,7 @@ Install these other services at your leisure/preference:
 * [Tesseract](tesseract#readme) - a front-end for Lemmy instances
 * [Thttpd](thttpd#readme) - a tiny/turbo/throttling HTTP server for serving static files
 * [Tiny Tiny RSS](ttrss#readme) - an RSS reader / proxy
-* [Vaultward](vaultwarden#readme) - a bitwarden compatible password manager written in Rust (formerly bitwarden_rs)
+* [Vaultwarden](vaultwarden#readme) - a bitwarden compatible password manager written in Rust (formerly bitwarden_rs)
 * [Websocketd](websocketd#readme) - a websocket / CGI server
 * [Wordpress](wordpress#readme) - an ubiquitous blogging / CMS platform, with a plugin to build a static HTML site snapshot
 * [XBrowserSync](xbs#readme) - a bookmark manager
