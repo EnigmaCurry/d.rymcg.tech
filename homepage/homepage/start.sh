@@ -60,7 +60,7 @@ if [[ "${HOMEPAGE_AUTO_CONFIG}" == false ]]; then
     fi
 else
     rm -rf /app/config/*
-    mv /app/reloader/homepage_config/* /app/config/
+    test -d /app/reloader/homepage_config/ && mv /app/reloader/homepage_config/* /app/config/
     rm -rf /app/reloader/homepage_config
 fi
 
