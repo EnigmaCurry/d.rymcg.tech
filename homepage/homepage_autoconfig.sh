@@ -2,6 +2,12 @@
 
 set -e
 
+if [[ "${HOMEPAGE_AUTO_CONFIG}" != "true" ]]; then
+    echo "## HOMEPAGE_AUTO_CONFIG=${HOMEPAGE_AUTO_CONFIG}" > /dev/stderr
+    echo "## Skipping auto config.." > /dev/stderr
+    exit 0
+fi
+
 HOMEPAGE_ENABLE_DOCKER=$(${ROOT_DIR}/_scripts/dotenv -f ${ENV_FILE} get HOMEPAGE_ENABLE_DOCKER)
 HOMEPAGE_PUBLIC_HTTPS_PORT=$(${ROOT_DIR}/_scripts/dotenv -f ${ENV_FILE} get HOMEPAGE_PUBLIC_HTTPS_PORT)
 
