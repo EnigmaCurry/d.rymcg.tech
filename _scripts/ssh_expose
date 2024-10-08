@@ -87,6 +87,35 @@ __find_tunnel_local_port() {
     return 1
 }
 
+__one_shot_tunnel() {
+    local CONTEXT=$1
+    local PUBLIC_PORT=$2
+    local LOCAL_PORT=$3
+    check_var CONTEXT PUBLIC_PORT LOCAL_PORT
+    systemd-run \
+        --user \
+        --unit=${UNIT} \
+        --scope autossh \
+        -o StrictHostKeyChecking=accept-new \
+        -o ControlMaster=no \
+        -o ControlPersist=no \
+        -o ControlPath=none \
+        -N -M 0 \
+        -R 0.0.0.0:${PUBLIC_PORT}:0.0.0.0:${LOCAL_PORT} \
+        ${CONTEXT} &
+    echo "## Reverse Tunnel process started. "
+    debug_var PUBLIC_PORT
+    debug_var LOCAL_PORT
+    echo ""
+    echo "## Show status:"
+    echo "systemctl --user status ${UNIT}.scope"
+    echo ""
+    echo "## Stop tunnel:"
+    echo "systemctl --user stop ${UNIT}.scope"
+    echo ""
+    sleep 2
+    echo ""
+}
 main() {
     if [[ $# -gt 1 ]]; then
         CONTEXT=$1
@@ -100,29 +129,7 @@ main() {
             systemctl --user stop ${UNIT}.scope && echo "Tunnel closed for public port $PUBLIC_PORT."
         else
             UNIT="reverse-tunnel-${CONTEXT}-${PUBLIC_PORT}-${LOCAL_PORT}"
-            systemd-run \
-                --user \
-                --unit=${UNIT} \
-                --scope autossh \
-                -o StrictHostKeyChecking=accept-new \
-                -o ControlMaster=no \
-                -o ControlPersist=no \
-                -o ControlPath=none \
-                -N -M 0 \
-                -R 0.0.0.0:${PUBLIC_PORT}:0.0.0.0:${LOCAL_PORT} \
-                ${CONTEXT} &
-            echo "## Reverse Tunnel process started. "
-            debug_var PUBLIC_PORT
-            debug_var LOCAL_PORT
-            echo ""
-            echo "## Show status:"
-            echo "systemctl --user status ${UNIT}.scope"
-            echo ""
-            echo "## Stop tunnel:"
-            echo "systemctl --user stop ${UNIT}.scope"
-            echo ""
-            sleep 2
-            echo ""
+            __one_shot_tunnel "${CONTEXT}" "${PUBLIC_PORT}" "${LOCAL_PORT}"
             __print_active_tunnels
         fi
     else
