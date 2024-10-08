@@ -26,6 +26,9 @@ services:
         VERSION: ${NGINX_PHP_VERSION}
         DEBUG_MODE: ${NGINX_DEBUG_MODE}
         PHP_INDEX_FILE: ${NGINX_PHP_INDEX_FILE:-default.php}
+    environment:
+      UID: ${NGINX_OWNER_UID}
+      GID: ${NGINX_OWNER_GID}
     restart: unless-stopped
     working_dir: /app
     volumes:

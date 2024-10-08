@@ -20,5 +20,10 @@ RUN test "${DEBUG_MODE}" == "true" && echo "display_errors = On" > /opt/bitnami/
 ARG PHP_INDEX_FILE=default.php
 ADD --chmod=0555 ${PHP_INDEX_FILE} /app/public/index.php
 
+COPY entrypoint.sh /usr/local/bin/entrypoint.sh
+RUN chmod +x /usr/local/bin/entrypoint.sh
+ENTRYPOINT ["/usr/local/bin/entrypoint.sh"]
+CMD ["php-fpm"]
+
 WORKDIR /app
 VOLUME /app

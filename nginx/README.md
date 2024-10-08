@@ -10,7 +10,6 @@ postgres database.
 ```
 make config
 ```
-
 The [default configuration](.env-dist) disables PHP
 (`DOCKER_COMPOSE_PROFILES=` blank), and so by default it is
 essentially just a static file server.
