@@ -12,7 +12,7 @@ const bodyParser = require('body-parser')
 const get_config = function(var_name, default_value) {
     let value = process.env[var_name] != undefined ? process.env[var_name] : default_value;
     if (value === undefined) {
-        console.error(`No value supplied for environment variable ${var_name} and no default was provided.`)
+        console.error(`reloader: No value supplied for environment variable ${var_name} and no default was provided.`)
         process.exit(1)
     }
     return value;
@@ -23,7 +23,7 @@ const PATH_PREFIX = get_config("RELOAD_WEBHOOK_PATH_PREFIX", "")
 const HMAC_SECRET = get_config("RELOAD_WEBHOOK_HMAC_SECRET")
 
 const verify_signature = (req) => {
-    console.error("Request body:", typeof req.body);
+    console.error("reloader: Request body:", typeof req.body);
     if (req.body === undefined || req.body === "") {
         return false;
     } else {
@@ -36,9 +36,9 @@ const verify_signature = (req) => {
         if (signature_received === signature_expected) {
             return true;
         } else {
-            console.error("Received invalid x-hub-signature-256 ::")
-            console.error(`Received signature: ${signature_received}`)
-            console.error(`Expected signature: ${signature_expected}`)
+            console.error("reloader: Received invalid x-hub-signature-256 ::")
+            console.error(`reloader: Received signature: ${signature_received}`)
+            console.error(`reloader: Expected signature: ${signature_expected}`)
             return false;
         }
     }
@@ -52,29 +52,29 @@ let last_log = "Last log is empty."
 
 app.post(`${PATH_PREFIX}/restart`, (req, res, next) => {
     if (verify_signature(req)) {
-        //console.log(`Request body: ${JSON.stringify(req.body)}`)
-        console.log("Restarting ...")
+        //console.log(`reloader: Request body: ${JSON.stringify(req.body)}`)
+        console.log("reloader: Restarting ...")
         child_process.exec("bash /app/reloader/restart.sh", {}, (code, stdout, stderr) => {
             last_log = code ? stderr : stdout
             if (code) {
-                console.error("ERROR:",last_log)
+                console.error("reloader: ERROR:",last_log)
             }
         });
         res.writeHead(200)
         res.end("200 OK: Restart request received.\n")
-        console.log("200 OK: Restart request received.")
+        console.log("reloader: 200 OK: Restart request received.")
     } else {
         res.writeHead(401)
         res.end("401 Unauthorized: invalid request signature.\n")
-        console.error("401 Unauthorized: invalid request signature")
+        console.error("reloader: 401 Unauthorized: invalid request signature")
     }
 })
 
 
 try{
     server.listen(PORT);
-    console.log("")
-    console.log(`Reloader webhook started at:\nhttp://${ip.address()}:${PORT}${PATH_PREFIX}/restart`);
+    console.log("reloader: ")
+    console.log(`reloader: Reloader webhook started at:\nhttp://${ip.address()}:${PORT}${PATH_PREFIX}/restart`);
 } catch(err){
-    console.log(`Unable to start the webhook server, probably the port ${PORT} is busy.`);
+    console.log(`reloader: Unable to start the webhook server, probably the port ${PORT} is busy.`);
 }
