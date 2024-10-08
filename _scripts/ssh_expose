@@ -1,0 +1,134 @@
+#!/bin/bash
+
+## BIN is the _scripts directory inside of d.rymcg.tech
+BIN=$(dirname $(realpath ${BASH_SOURCE}))
+source ${BIN}/funcs.sh
+
+__help() {
+    echo "## Expose a local workstation port to a public sentry port."
+    echo "##"
+    echo "## ssh_expose CONTEXT PUBLIC_PORT [LOCAL_PORT]"
+    echo "## Example: expose local port 22 (default) to public port 2220"
+    echo "##    ssh_expose sentry 2220"
+    echo "## Example: expose local port 8000 to public port 8888"
+    echo "##    ssh_expose sentry 8888 8000"
+    echo "## Example to close public port 8888:"
+    echo "##    ssh_expose sentry 8888 close"
+    echo
+}
+
+__print_active_tunnels() {
+    # Capture the list of reverse-tunnel- units in an array
+    tunnels=($(systemctl --user list-units --all --no-legend --no-pager --plain | awk '/^reverse-tunnel-.*\.scope/{print $1}'))
+    # Check if the array is empty
+    if [ ${#tunnels[@]} -eq 0 ]; then
+        echo "No tunnels"
+    else
+        # Initialize an array to store the combined parsed data (HOST, PUBLIC_PORT, PRIVATE_PORT)
+        parsed_tunnels=()
+
+        # Parse the HOST, PUBLIC_PORT, and PRIVATE_PORT for each tunnel
+        for tunnel in "${tunnels[@]}"; do
+            # Strip "reverse-tunnel-" prefix and extract HOST, PUBLIC_PORT, and PRIVATE_PORT
+            name=$(echo "$tunnel" | sed 's/^reverse-tunnel-//; s/\.scope$//')
+            host=$(echo "$name" | cut -d'-' -f1)
+            public_port=$(echo "$name" | cut -d'-' -f2)
+            private_port=$(echo "$name" | cut -d'-' -f3)
+
+            # Store the parsed values as a single string for sorting
+            parsed_tunnels+=("$host $public_port $private_port")
+        done
+
+        # Sort the parsed data by HOST (alphabetically), PUBLIC_PORT and PRIVATE_PORT (numerically)
+        sorted_tunnels=$(printf "%s\n" "${parsed_tunnels[@]}" | sort -k1,1 -k2,2n -k3,3n)
+
+        # Print the sorted results with headers
+        printf "%-15s %-12s %-12s\n" "HOST" "PUBLIC_PORT" "PRIVATE_PORT"
+        printf "%-15s %-12s %-12s\n" "----" "-----------" "------------"
+
+        # Display the sorted results
+        printf "%s\n" "$sorted_tunnels" | while read -r line; do
+            host=$(echo "$line" | awk '{print $1}')
+            public_port=$(echo "$line" | awk '{print $2}')
+            private_port=$(echo "$line" | awk '{print $3}')
+            printf "%-15s %-12s %-12s\n" "$host" "$public_port" "$private_port"
+        done
+    fi
+}
+
+__find_tunnel_local_port() {
+    local remote_port=$1  # The REMOTE_PORT (PUBLIC_PORT) to search for
+
+    if [[ -z "$remote_port" ]]; then
+        echo "Usage: find_tunnel_local_port <REMOTE_PORT>"
+        return 1
+    fi
+
+    # Capture the list of reverse-tunnel- units in an array
+    local tunnels=($(systemctl --user list-units --all --no-legend --no-pager --plain | awk '/^reverse-tunnel-.*\.scope/{print $1}'))
+
+    # Iterate over the tunnels to find the one matching the given REMOTE_PORT
+    for tunnel in "${tunnels[@]}"; do
+        # Strip "reverse-tunnel-" prefix and extract CONTEXT, PUBLIC_PORT, and LOCAL_PORT
+        local name=$(echo "$tunnel" | sed 's/^reverse-tunnel-//; s/\.scope$//')
+        local context=$(echo "$name" | cut -d'-' -f1)
+        local public_port=$(echo "$name" | cut -d'-' -f2)
+        local local_port=$(echo "$name" | cut -d'-' -f3)
+
+        # If the PUBLIC_PORT matches the given REMOTE_PORT, return the associated LOCAL_PORT
+        if [[ "$public_port" == "$remote_port" ]]; then
+            echo "$local_port"
+            return 0
+        fi
+    done
+
+    # If no match is found, return an error
+    echo "No tunnel found for REMOTE_PORT $remote_port"
+    return 1
+}
+
+main() {
+    if [[ $# -gt 1 ]]; then
+        CONTEXT=$1
+        PUBLIC_PORT=$2
+        check_var CONTEXT PUBLIC_PORT
+        LOCAL_PORT=${3:-22}
+
+        if [[ "${LOCAL_PORT}" == "close" ]]; then
+            LOCAL_PORT=$(__find_tunnel_local_port ${PUBLIC_PORT})
+            UNIT="reverse-tunnel-${CONTEXT}-${PUBLIC_PORT}-${LOCAL_PORT}"
+            systemctl --user stop ${UNIT}.scope && echo "Tunnel closed for public port $PUBLIC_PORT."
+        else
+            UNIT="reverse-tunnel-${CONTEXT}-${PUBLIC_PORT}-${LOCAL_PORT}"
+            systemd-run \
+                --user \
+                --unit=${UNIT} \
+                --scope autossh \
+                -o StrictHostKeyChecking=accept-new \
+                -o ControlMaster=no \
+                -o ControlPersist=no \
+                -o ControlPath=none \
+                -N -M 0 \
+                -R 0.0.0.0:${PUBLIC_PORT}:0.0.0.0:${LOCAL_PORT} \
+                ${CONTEXT} &
+            echo "## Reverse Tunnel process started. "
+            debug_var PUBLIC_PORT
+            debug_var LOCAL_PORT
+            echo ""
+            echo "## Show status:"
+            echo "systemctl --user status ${UNIT}.scope"
+            echo ""
+            echo "## Stop tunnel:"
+            echo "systemctl --user stop ${UNIT}.scope"
+            echo ""
+            sleep 2
+            echo ""
+            __print_active_tunnels
+        fi
+    else
+        __help
+        __print_active_tunnels
+    fi
+}
+
+main "$@"
