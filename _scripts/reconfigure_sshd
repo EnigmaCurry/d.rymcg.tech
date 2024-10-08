@@ -1,7 +1,6 @@
 #!/bin/bash
 
-## Reconfigure sshd_config on a remote context and then restart sshd.
-## Specify the context and then the list of sshd_config values to set:
+## Reconfigure sshd_config on a remote context and restart sshd.
 ## Example: reconfigure_sshd sentry GatewayPorts=yes PermitRootLogin=prohibit-password
 
 ## BIN is the _scripts directory inside of d.rymcg.tech
@@ -9,28 +8,52 @@ BIN=$(dirname $(realpath ${BASH_SOURCE}))
 source ${BIN}/funcs.sh
 
 __help() {
-    echo "## Reconfigure sshd_config on a remote context and then restart sshd."
-    echo "## Specify the context and then the list of sshd_config values to set:"
-    echo "${BASH_SOURCE} sentry GatewayPorts=yes PermitRootLogin=prohibit-password"
+    echo "## Reconfigure sshd_config on a remote context and restart sshd."
+    echo "## Example: reconfigure_sshd sentry GatewayPorts=yes PermitRootLogin=prohibit-password"
 }
+
 
 main() {
     if [[ $# -gt 1 ]]; then
         CONTEXT=$1
         shift  # Remove the first argument (context) from the list
-        echo "## Configuring the following settings:"
+
+        # Create a temporary file for sshd_config changes on the remote server using mktemp
+        TMP_FILE=$(ssh ${CONTEXT} "mktemp /tmp/sshd_config.XXXXXX")
+
+        # Ensure that the temporary file was created successfully
+        if [[ -z "${TMP_FILE}" ]]; then
+            echo "Failed to create a temporary file on the remote server."
+            exit 1
+        fi
+
+        echo "Created temporary file ${TMP_FILE} on the remote server."
+
+        # Copy the existing sshd_config to the temporary file on the remote server
+        ssh ${CONTEXT} "sudo cp /etc/ssh/sshd_config ${TMP_FILE}"
+
         # Iterate over all remaining arguments (configurations)
         for CONFIG in "$@"; do
             # Extract the configuration key and value from each argument (e.g., "GatewayPorts=yes")
             KEY=$(echo "$CONFIG" | cut -d'=' -f1)
             VALUE=$(echo "$CONFIG" | cut -d'=' -f2)
 
-            # Apply the configuration to the remote server's sshd_config
-            ssh ${CONTEXT} "sudo sed -i '/^#${KEY}/d; /^${KEY}/d' /etc/ssh/sshd_config && echo '${KEY} ${VALUE}' | sudo tee -a /etc/ssh/sshd_config"
+            # Apply the configuration to the temporary file
+            ssh ${CONTEXT} "sudo sed -i '/^#${KEY}/d; /^${KEY}/d' ${TMP_FILE} && echo '${KEY} ${VALUE}' | sudo tee -a ${TMP_FILE}"
         done
 
-        # Restart sshd after applying all configurations
-        ssh ${CONTEXT} "sudo systemctl restart sshd && echo '## sshd restarted successfully.' || echo '## sshd restart failed!'"
+        # Validate the temporary sshd configuration file
+        ssh ${CONTEXT} "sudo sshd -t -f ${TMP_FILE}"
+        if [[ $? -eq 0 ]]; then
+            echo "## SSH configuration is valid. Applying changes..."
+            # Move the temporary file to replace the original sshd_config
+            ssh ${CONTEXT} "sudo mv ${TMP_FILE} /etc/ssh/sshd_config && sudo systemctl restart sshd && echo '## sshd restarted successfully' || echo '## sshd restart failed'"
+        else
+            echo "## Invalid sshd configuration. Cancelling changes."
+            # Clean up the temporary file if validation fails
+            ssh ${CONTEXT} "sudo rm -f ${TMP_FILE}"
+        fi
+
     else
         __help
     fi
