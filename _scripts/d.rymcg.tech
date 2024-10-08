@@ -473,6 +473,7 @@ main() {
                 __run_script reconfigure_sshd "${DOCKER_CONTEXT}" "$@";;
             ssh-expose)
                 local CURRENT_CONTEXT=$(docker context show)
+                export D_RYMCG_TECH_CLI_ALIAS=${CURRENT_CONTEXT:-d.rymcg.tech}
                 __run_script ssh_expose "${CURRENT_CONTEXT}" $@;;
             config)
                 __make -- config;;
