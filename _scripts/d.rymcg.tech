@@ -206,7 +206,7 @@ __context_tmp() {
         echo "Entering sub-shell DOCKER_CONTEXT=${CHOSEN_CONTEXT}"
         bash --rcfile <(echo "DOCKER_CONTEXT=${CHOSEN_CONTEXT}; source ~/.bashrc; unset MAKEFLAGS PROMPT_COMMAND D_RYMCG_TECH_CLI_ALIAS D_RYMCG_TECH_CONTEXT_ALIAS D_RYMCG_TECH_PROJECT_ALIAS D_RYMCG_TECH_SCRIPT; PS1=\"[@:\$DOCKER_CONTEXT] \${PS1}\"") -i
     else
-        echo "+ DOCKER_CONTEXT=${CHOSEN_CONTEXT}"
+        echo "+ DOCKER_CONTEXT=${CHOSEN_CONTEXT}" >/dev/stderr
         if [[ "$1" == "d" ]]; then
             shift
             DOCKER_CONTEXT="${CHOSEN_CONTEXT}" exe d.rymcg.tech $@
