@@ -11,7 +11,7 @@ ENV_FILE=$1
 VAR_PREFIX=$2
 export __D_RY_CONFIG_ENTRY=reconfigure_auth
 
-prompt="Do you want to enable sentry authentication in front of this app (effectively making the entire site private)?"
+prompt="Do you want to enable sentry authorization in front of this app (effectively making the entire site private)?"
 options=("No")
 ## Set default based on current auth settings in ENV_FILE
 
