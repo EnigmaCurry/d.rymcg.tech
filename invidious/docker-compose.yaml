@@ -1,4 +1,3 @@
-
 volumes:
   database:
 
@@ -19,7 +18,7 @@ services:
       test: ["CMD-SHELL", "pg_isready -U $$POSTGRES_USER -d $$POSTGRES_DB"]
       
   invidious:
-    image: quay.io/invidious/invidious:${INVIDIOUS_VERSION}
+    image: ${INVIDIOUS_IMAGE}
     # build:
     #   context: https://github.com/iv-org/invidious.git
     #   dockerfile: docker/Dockerfile
