@@ -226,13 +226,18 @@ for fullpath in "${sorted_env_paths[@]}"; do
       
       # Abbreviation = 1st 2 characters of app name, used if no icon exists
       abbr="${appdir:0:2}"
+      path="/"
+      # Override URL path for certain apps:
+      if [[ "$appdir" == "yourls" ]]; then
+          path="/admin"
+      fi
       
       # Add configs for this app to services.yaml
       cat <<EOF >> "${config_dir}/services.yaml"
     - ${appdir}:
         description: "Instance: \`${env_instance}\`"
         icon: ${icon}.png
-        href: https://${traefik_host}${port}
+        href: https://${traefik_host}${port}${path}
         abbr: ${abbr}
 EOF
     ## In order to expose docker container stats, we need to find a way to determine which of the apps containers to add to the Homepage config (eg., `tiddlywiki-nodejs-s3-proxy-1` or `tiddlywiki-nodejs-tiddlywiki-nodejs-1`)
