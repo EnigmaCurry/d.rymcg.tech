@@ -1,0 +1,39 @@
+#!/bin/bash
+
+## Reconfigure sshd_config on a remote context and then restart sshd.
+## Specify the context and then the list of sshd_config values to set:
+## Example: reconfigure_sshd sentry GatewayPorts=yes PermitRootLogin=prohibit-password
+
+## BIN is the _scripts directory inside of d.rymcg.tech
+BIN=$(dirname $(realpath ${BASH_SOURCE}))
+source ${BIN}/funcs.sh
+
+__help() {
+    echo "## Reconfigure sshd_config on a remote context and then restart sshd."
+    echo "## Specify the context and then the list of sshd_config values to set:"
+    echo "${BASH_SOURCE} sentry GatewayPorts=yes PermitRootLogin=prohibit-password"
+}
+
+main() {
+    if [[ $# -gt 1 ]]; then
+        CONTEXT=$1
+        shift  # Remove the first argument (context) from the list
+        echo "## Configuring the following settings:"
+        # Iterate over all remaining arguments (configurations)
+        for CONFIG in "$@"; do
+            # Extract the configuration key and value from each argument (e.g., "GatewayPorts=yes")
+            KEY=$(echo "$CONFIG" | cut -d'=' -f1)
+            VALUE=$(echo "$CONFIG" | cut -d'=' -f2)
+
+            # Apply the configuration to the remote server's sshd_config
+            ssh ${CONTEXT} "sudo sed -i '/^#${KEY}/d; /^${KEY}/d' /etc/ssh/sshd_config && echo '${KEY} ${VALUE}' | sudo tee -a /etc/ssh/sshd_config"
+        done
+
+        # Restart sshd after applying all configurations
+        ssh ${CONTEXT} "sudo systemctl restart sshd && echo '## sshd restarted successfully.' || echo '## sshd restart failed!'"
+    else
+        __help
+    fi
+}
+
+main "$@"
