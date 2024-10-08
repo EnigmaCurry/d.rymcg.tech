@@ -53,7 +53,7 @@ __help() {
         echo -e "status\tShow status of all installed services"
         echo -e "audit\tPrint security audit of running containers"
         echo -e "sshd-config [Var=value ...]\tReconfigure the host SSH daemon of the remote context"
-        echo -e "ssh-expose PORT\tExpose the workstation's SSH service to a public sentry port"
+        echo -e "ssh-expose PORT\tExpose a workstation's port to a public server port"
     ) | expand -t 30
     echo ""
     echo "## Documentation sub-commands:"
