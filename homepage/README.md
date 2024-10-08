@@ -30,7 +30,7 @@ template repository configurable by setting `HOMEPAGE_TEMPLATE_REPO` in your
 to create your own custom Homepage configuration, and this container can be
 configured to automatically pull from your fork, and to trigger an automatic
 rebuild/redeploy on git push via webhook. Your fork can be a public or
-private repository. (Tested on gitea and github).
+private repository. (Tested on forgejo and github).
 
 Homepage has support for loading information from the docker socket,
 but this has been turned off by default for security reasons, if you
@@ -55,7 +55,7 @@ make git-deploy-key
 
 This will generate and save a new SSH key in the config volume
 (`/app/config/ssh/id_rsa`). It will print out the public key, which
-you need to copy and paste into your Gitea, Github, or Gitlab
+you need to copy and paste into your Forgejo, Github, or Gitlab
 repository settings (Search for Deploy Key in the settings, and add
 this public key to allow cloning from the private repository.)
 
@@ -99,7 +99,7 @@ your `.env_{INSTANCE}` file. Note that this will *delete* your
 existing config, and redownload the template repository on *each*
 restart of the container.
 
-Second you must configure your Gitea, Github, or Gitlab repository to
+Second you must configure your Forgejo, Github, or Gitlab repository to
 add the webhook.
 
  * Webhook URL is of the format: `https://homepage.example.com/reloader/restart`
