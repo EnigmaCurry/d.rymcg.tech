@@ -15,6 +15,12 @@ This will ask you to enter the domain name to use.
 It automatically saves your responses into the configuration file
 `.env_{INSTANCE}`.
 
+If you are using ARM64, you must select the appropriate image:
+
+```
+make reconfigure var=INVIDIOUS_IMAGE=quay.io/invidious/invidious:latest-arm64
+```
+
 ### Authentication and Authorization
 
 See [AUTH.md](../AUTH.md) for information on adding external authentication on
