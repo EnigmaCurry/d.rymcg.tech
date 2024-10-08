@@ -10,8 +10,8 @@ config-hook:
 	@ENV_FILE=${ENV_FILE} ROOT_DIR=${ROOT_DIR} bash ./configure_https_port.sh || true
 
 	@echo
-	@${BIN}/reconfigure_choose ${ENV_FILE} TRAEFIK_FORWARD_AUTH_SELECTED_PROVIDER "Select the OAuth provider to use" "gitea" "github" "google" "discord"
-	@test "gitea" == $$(${BIN}/dotenv -f ${ENV_FILE} get TRAEFIK_FORWARD_AUTH_SELECTED_PROVIDER) && ENV_FILE=${ENV_FILE} ROOT_DIR=${ROOT_DIR} bash ./configure_gitea.sh || true
+	@${BIN}/reconfigure_choose ${ENV_FILE} TRAEFIK_FORWARD_AUTH_SELECTED_PROVIDER "Select the OAuth provider to use" "forgejo" "github" "google" "discord"
+	@test "forgejo" == $$(${BIN}/dotenv -f ${ENV_FILE} get TRAEFIK_FORWARD_AUTH_SELECTED_PROVIDER) && ENV_FILE=${ENV_FILE} ROOT_DIR=${ROOT_DIR} bash ./configure_forgejo.sh || true
 	@test "github" == $$(${BIN}/dotenv -f ${ENV_FILE} get TRAEFIK_FORWARD_AUTH_SELECTED_PROVIDER) && ENV_FILE=${ENV_FILE} ROOT_DIR=${ROOT_DIR} bash ./configure_github.sh || true
 	@test "google" == $$(${BIN}/dotenv -f ${ENV_FILE} get TRAEFIK_FORWARD_AUTH_SELECTED_PROVIDER) && ENV_FILE=${ENV_FILE} ROOT_DIR=${ROOT_DIR} bash ./configure_google.sh || true
 	@test "discord" == $$(${BIN}/dotenv -f ${ENV_FILE} get TRAEFIK_FORWARD_AUTH_SELECTED_PROVIDER) && ENV_FILE=${ENV_FILE} ROOT_DIR=${ROOT_DIR} bash ./configure_discord.sh || true
