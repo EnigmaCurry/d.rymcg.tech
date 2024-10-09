@@ -29,6 +29,11 @@ services:
     environment:
       UID: ${NGINX_OWNER_UID}
       GID: ${NGINX_OWNER_GID}
+      PGHOST: postgres
+      PGUSER: postgres
+      PGDATABASE: ${NGINX_POSTGRES_DB}
+      PGPASSWORD: ${NGINX_POSTGRES_PASSWORD}
+      PGPORT: 5432
     restart: unless-stopped
     working_dir: /app
     volumes:

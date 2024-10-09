@@ -7,7 +7,7 @@ RUN DEBIAN_FRONTEND=noninteractive apt-get update && \
     pecl channel-update pecl.php.net && \
     pecl install redis && \
     docker-php-ext-configure gd --with-jpeg --with-freetype && \
-    docker-php-ext-install opcache gd pgsql && \
+    docker-php-ext-install opcache gd pgsql pdo_pgsql && \
     docker-php-ext-enable opcache
 
 
