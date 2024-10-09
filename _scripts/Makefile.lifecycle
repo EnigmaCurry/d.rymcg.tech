@@ -9,7 +9,7 @@ config-hook-echo-postscript-default:
 	@echo ""
 	@echo "Remember to run the 'install' command to deploy your changes:"
 	@echo
-	@if [[ -n "$${D_RYMCG_TECH_PROJECT_ALIAS}" ]]; then echo "   $${D_RYMCG_TECH_PROJECT_ALIAS} install"; elif [[ -n "$${D_RYMCG_TECH_CONTEXT_ALIAS}" ]]; then echo "   $${D_RYMCG_TECH_CONTEXT_ALIAS} make ${PROJECT} install"; elif [[ -n "$${D_RYMCG_TECH_CLI_ALIAS}" ]]; then echo "   $${D_RYMCG_TECH_CLI_ALIAS} make ${PROJECT} install"; elif [[ "$${D_RYMCG_TECH_SCRIPT}" == "true" ]]; then echo "   d.rymcg.tech make ${PROJECT} install";  else echo "   make install"; fi;
+	@INSTANCE="$${instance:-$${INSTANCE}}"; test "$${INSTANCE}" == "default" && unset INSTANCE; test -n "$${INSTANCE}" && INSTANCE_POSTSCRIPT=" instance=$${INSTANCE}"; if [[ -n "$${D_RYMCG_TECH_PROJECT_ALIAS}" ]]; then echo "   $${D_RYMCG_TECH_PROJECT_ALIAS} install$${INSTANCE_POSTSCRIPT}"; elif [[ -n "$${D_RYMCG_TECH_CONTEXT_ALIAS}" ]]; then echo "   $${D_RYMCG_TECH_CONTEXT_ALIAS} make ${PROJECT} install$${INSTANCE_POSTSCRIPT}"; elif [[ -n "$${D_RYMCG_TECH_CLI_ALIAS}" ]]; then echo "   $${D_RYMCG_TECH_CLI_ALIAS} make ${PROJECT} install$${INSTANCE_POSTSCRIPT}"; elif [[ "$${D_RYMCG_TECH_SCRIPT}" == "true" ]]; then echo "   d.rymcg.tech make ${PROJECT} install$${INSTANCE_POSTSCRIPT}";  else echo "   make install$${INSTANCE_POSTSCRIPT}"; fi;
 	@echo
 
 .PHONY: config-dist # Copy the .env-dist to the .env_{DOCKER_CONTEXT}_{INSTANCE} file
