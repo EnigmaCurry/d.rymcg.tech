@@ -1,0 +1,21 @@
+#!/bin/bash
+
+### Reset a single env var back to the dist default.
+## reconfigure_dist ENV_FILE VAR
+
+ENV_FILE="$1"; var="$2";
+
+ENV_DIST=$(dirname ${ENV_FILE})/.env-dist
+test -f ${ENV_DIST} || fault "Could not find ${ENV_DIST}"
+
+BIN=$(dirname ${BASH_SOURCE})
+source ${BIN}/funcs.sh
+
+check_var ENV_FILE ENV_DIST var
+
+## Make new .env if it doesn't exist:
+test -f ${ENV_FILE} || cp .env-dist ${ENV_FILE}
+
+DEFAULT="$(${BIN}/dotenv -f ${ENV_DIST} get ${var})"
+${BIN}/dotenv -f ${ENV_FILE} set ${var}="${DEFAULT}"
+echo set ${var}=${DEFAULT}
