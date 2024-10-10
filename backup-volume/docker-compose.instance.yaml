@@ -1,0 +1,39 @@
+#! This is a ytt template file for docker-compose.override.yaml
+#! References:
+#!   https://carvel.dev/ytt
+#!   https://docs.docker.com/compose/extends/#adding-and-overriding-configuration
+#!   https://github.com/enigmacurry/d.rymcg.tech#overriding-docker-composeyaml-per-instance
+
+#! ### Standard project vars:
+#@ load("@ytt:data", "data")
+#@ project = data.values.project
+#@ instance = data.values.instance
+#@ context = data.values.context
+#@ use_docker = data.values.use_docker == "true"
+#@ backup_volumes = data.values.backup_volumes.split(",")
+
+#@yaml/text-templated-strings
+volumes:
+  #! List the external volumes you want to mount into the backup:
+  #@ if len(backup_volumes) and len(backup_volumes[0]) != 0:
+  #@ for vol in backup_volumes:
+  (@= vol @):
+    external: true
+  #@ end
+  #@ end
+
+#@yaml/text-templated-strings
+services:
+  backup:
+    labels: []
+    volumes:
+      #@ if use_docker:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      #@ end
+      #! Mount extra volumes to backup here:
+      #! Must mount these as /backup/$volume:
+      #@ if len(backup_volumes) and len(backup_volumes[0]) != 0:
+      #@ for vol in backup_volumes:
+      - #@ "{vol}:/backup/{vol}".format(vol=vol)
+      #@ end
+      #@ end
