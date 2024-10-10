@@ -24,7 +24,7 @@ config-dist:
 config-edit:
 	@echo
 	@echo "Configuring environment file: ${ENV_FILE}"
-	@test -z "$$EDITOR" && echo "You need to set your preferred editor in the EDITOR shell variable." && false || true
+	@if [[ -z "$$EDITOR" ]]; then echo "You need to set your preferred editor in the EDITOR shell variable." && false; fi
 	@echo "Opening $${EDITOR} ..."
 	@$$EDITOR ${ENV_FILE} &
 	@echo ""
