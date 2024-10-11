@@ -24,7 +24,7 @@ override-hook:
 ####                         # (this hardcodes the string into docker-compose.override.yaml)
 ####   name=@VARIABLE_NAME   # sets the template 'name' field to the literal string '${VARIABLE_NAME}'
 ####                         # (used for regular docker-compose expansion of env vars by name.)
-	@${BIN}/docker_compose_override ${ENV_FILE} project=:backup instance=@BACKUP_INSTANCE use_docker=BACKUP_USE_DOCKER backup_volumes=BACKUP_VOLUMES
+	@${BIN}/docker_compose_override ${ENV_FILE} project=:backup instance=@BACKUP_INSTANCE use_docker=BACKUP_USE_DOCKER backup_volumes=BACKUP_VOLUMES backup_archive=BACKUP_ARCHIVE aws_part_size=BACKUP_AWS_PART_SIZE
 
 .PHONY: shell
 shell:
