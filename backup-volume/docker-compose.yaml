@@ -1,6 +1,7 @@
 services:
   backup:
-    image: ${BACKUP_IMAGE}
+    build:
+      context: https://github.com/EnigmaCurry/docker-volume-backup.git
     # cap_drop:
     #   - ALL
     security_opt:
