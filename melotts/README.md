@@ -16,6 +16,5 @@ make clean
 make install
 ```
 
-MeloTTS is built from source, so it may take many minutes to complete.
-
-
+The MeloTTS image is built from source, so it may take many minutes to
+complete.
