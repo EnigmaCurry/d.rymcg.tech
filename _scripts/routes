@@ -12,16 +12,49 @@ get_entrypoint_port() {
     check_var entrypoint_name
     local traefik_env="${ROOT_DIR}/traefik/${ENV_FILE}"
     test -f ${traefik_env} || fault "Could not find traefik env file: ${traefik_env}"
+    debug_var traefik_env
+    set -x
     ${BIN}/dotenv -f "${traefik_env}" get "TRAEFIK_${entrypoint_name^^}_ENTRYPOINT_PORT"
 }
 
+# Function to get layer 4 routes if enabled
+get_layer_4_routes() {
+    cd ${ROOT_DIR}
+    local traefik_env="${ROOT_DIR}/traefik/${ENV_FILE}"
+    test -f ${traefik_env} || fault "Could not find traefik env file: ${traefik_env}"
+    debug_var traefik_env
+    set -x
+    local layer_4_enabled=$(${BIN}/dotenv -f "${traefik_env}" get "TRAEFIK_LAYER_4_TCP_UDP_PROXY_ENABLED")
+    if [[ "$layer_4_enabled" == "true" ]]; then
+        ${BIN}/dotenv -f "${traefik_env}" get "TRAEFIK_LAYER_4_TCP_UDP_PROXY_ROUTES"
+    else
+        echo ""
+    fi
+}
+
+# Function to get layer 7 routes if enabled
+get_layer_7_routes() {
+    cd ${ROOT_DIR}
+    local traefik_env="${ROOT_DIR}/traefik/${ENV_FILE}"
+    test -f ${traefik_env} || fault "Could not find traefik env file: ${traefik_env}"
+    debug_var traefik_env
+    set -x
+    local layer_7_enabled=$(${BIN}/dotenv -f "${traefik_env}" get "TRAEFIK_LAYER_7_TLS_PROXY_ENABLED")
+    if [[ "$layer_7_enabled" == "true" ]]; then
+        ${BIN}/dotenv -f "${traefik_env}" get "TRAEFIK_LAYER_7_TLS_PROXY_ROUTES"
+    else
+        echo ""
+    fi
+}
+
 main() {
-    # Print list of Traefik container routes
+    
+# Print list of Traefik container routes
     {
         # Generate formatted output
         {
-            echo "Container_Name Entrypoint URL"
-            echo "-------------- ---------- ---"
+            echo "Service Entrypoint URL Destination"
+            echo "-------------- ---------- --- ----------"
             docker ps -q | while read -r container_id; do
                 docker inspect "$container_id" | jq -r '
                 .[] | .Name as $name | .Config.Labels as $labels
@@ -49,9 +82,37 @@ main() {
                         port=$(get_entrypoint_port "$entrypoint")
                         url="${url//PORT_PLACEHOLDER/$port}"
                     fi
-                    echo "$container_name $entrypoint $url"
+                    echo "$container_name $entrypoint $url -"
                 done
             done
+
+            # Print layer 4 routes if enabled
+            layer_4_routes=$(get_layer_4_routes)
+            if [[ -n "$layer_4_routes" ]]; then
+                IFS=',' read -ra routes <<< "$layer_4_routes"
+                declare -A seen_routes
+                for route in "${routes[@]}"; do
+                    IFS=':' read -r protocol ip_address port _ <<< "$route"
+                    if [[ -z "${seen_routes[$route]}" ]]; then
+                        echo "- layer-4 ${protocol}://${ip_address}:${port} ${ip_address}:${port}"
+                        seen_routes[$route]=1
+                    fi
+                done
+            fi
+
+            # Print layer 7 routes if enabled
+            layer_7_routes=$(get_layer_7_routes)
+            if [[ -n "$layer_7_routes" ]]; then
+                IFS=',' read -ra routes <<< "$layer_7_routes"
+                declare -A seen_routes
+                for route in "${routes[@]}"; do
+                    IFS=':' read -r domain ip_address port _ <<< "$route"
+                    if [[ -z "${seen_routes[$route]}" ]]; then
+                        echo "- layer-7 https://${domain} ${ip_address}:${port}"
+                        seen_routes[$route]=1
+                    fi
+                done
+            fi
         } | column -t
     } | {
         # Split output to stderr and stdout
