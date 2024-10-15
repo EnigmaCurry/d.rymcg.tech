@@ -1,0 +1,66 @@
+#!/bin/bash
+
+BIN=$(realpath $(dirname ${BASH_SOURCE}))
+source ${BIN}/funcs.sh
+check_var ENV_FILE ROOT_DIR
+set -eo pipefail
+
+# Function to get the port number for a given entrypoint from the .env file
+get_entrypoint_port() {
+    cd ${ROOT_DIR}
+    local entrypoint_name="$1"
+    check_var entrypoint_name
+    local traefik_env="${ROOT_DIR}/traefik/${ENV_FILE}"
+    test -f ${traefik_env} || fault "Could not find traefik env file: ${traefik_env}"
+    debug_var traefik_env
+    set -x
+    ${BIN}/dotenv -f "${traefik_env}" get "TRAEFIK_${entrypoint_name^^}_ENTRYPOINT_PORT"
+}
+
+main() {
+    # Print list of Traefik container routes
+    {
+        # Generate formatted output
+        {
+            echo "Container_Name Entrypoint URL"
+            echo "-------------- ---------- ---"
+            docker ps -q | while read -r container_id; do
+                docker inspect "$container_id" | jq -r --arg env_file "$ENV_FILE" '
+                .[] | .Name as $name | .Config.Labels as $labels
+                | ($labels | to_entries[]
+                    | select(.key | test("traefik\\.http\\.routers\\..*\\.rule"))
+                    | .key as $rule_key
+                    | .value as $rule_value
+                    | ($labels[$rule_key | sub("\\.rule$"; ".entrypoints")] // "unknown") as $entrypoints_value
+                    | ($rule_value | capture("Host\\(`(?<host>[^`]*)`\\)(\\s*&&\\s*Path\\(`(?<path>[^`]*)`\\))?")) as $captured
+                    | $name[1:] + " " + $entrypoints_value + " " +
+                    (
+                        "https://" + $captured.host +
+                        (
+                            if $entrypoints_value == "websecure" then "" else
+                                ":PORT_PLACEHOLDER"
+                            end
+                        ) +
+                        ($captured.path // "/")
+                    )
+                )' | while read -r container_name entrypoint url; do
+                    if [[ "$entrypoint" != "websecure" ]]; then
+                        port=$(get_entrypoint_port "$entrypoint")
+                        url="${url//PORT_PLACEHOLDER/$port}"
+                    fi
+                    echo "$container_name $entrypoint $url"
+                done
+            done
+        } | column -t
+    } | {
+        # Split output to stderr and stdout
+        read -r header
+        read -r line
+        >&2 echo "$header"
+        >&2 echo "$line"
+        cat
+    } | less -FSX
+    
+}
+
+main

@@ -95,3 +95,7 @@ sentry:
 .PHONY: sentry-callback
 sentry-callback:
 	@${BIN}/reconfigure_header_authorization ${ENV_FILE} list-callback-urls
+
+.PHONY: routes # List of all the application routes
+routes:
+	@ENV_FILE=${ENV_FILE} ${BIN}/routes

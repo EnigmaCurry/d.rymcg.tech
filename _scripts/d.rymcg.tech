@@ -54,6 +54,7 @@ __help() {
         echo -e "audit\tPrint security audit of running containers"
         echo -e "sshd-config [Var=value ...]\tReconfigure the host SSH daemon of the remote context"
         echo -e "ssh-expose PORT\tExpose a workstation's port to a public server port"
+        echo -e "routes\tPrint the list of Traefik routes"
     ) | expand -t 30
     echo ""
     echo "## Documentation sub-commands:"
@@ -328,7 +329,7 @@ __d.rymcg.tech_completions() {
     if [[ ${COMP_CWORD} == 1 ]]; then
         ## Complete the main command:
         ## d.rymcg.tech <TAB> ...
-        COMMANDS="help create cd make list readme info context new-context tmp-context completion install install-docker status ssh audit sshd-config ssh-expose config"
+        COMMANDS="help create cd make list readme info context new-context tmp-context completion install install-docker status ssh audit sshd-config ssh-expose routes config"
         COMPREPLY=($(compgen -W "${COMMANDS}" "${COMP_WORDS[1]}"))
     elif [[ ${COMP_CWORD} == 2 ]]; then
         ALL_PROJECTS=$(d.rymcg.tech list --raw)
@@ -393,7 +394,7 @@ __completion() {
     if [[ $# -lt 1 ]]; then
         echo "#### To enable BASH shell completion support for d.rymcg.tech,"
         echo "#### add the following lines into your ~/.bashrc ::"
-        echo "export PATH=\${PATH}:${USER_SCRIPT_PATH}"
+        echo "export PATH=\${PATH}:${USER_SCRIPT_RATH}"
         echo 'eval "$(d.rymcg.tech completion bash)"'
         echo ""
         echo "#### Optional aliases you may wish to uncomment:"
@@ -475,6 +476,8 @@ main() {
                 local CURRENT_CONTEXT=$(docker context show)
                 export D_RYMCG_TECH_CLI_ALIAS=${CURRENT_CONTEXT:-d.rymcg.tech}
                 __run_script ssh_expose "${CURRENT_CONTEXT}" $@;;
+            routes)
+               __run_script routes;;
             config)
                 __make -- config;;
             *)
