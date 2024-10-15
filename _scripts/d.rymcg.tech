@@ -477,7 +477,7 @@ main() {
                 export D_RYMCG_TECH_CLI_ALIAS=${CURRENT_CONTEXT:-d.rymcg.tech}
                 __run_script ssh_expose "${CURRENT_CONTEXT}" $@;;
             routes)
-               __run_script routes;;
+                d.rymcg.tech make traefik routes;;
             config)
                 __make -- config;;
             *)

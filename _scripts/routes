@@ -25,26 +25,29 @@ main() {
             echo "Container_Name Entrypoint URL"
             echo "-------------- ---------- ---"
             docker ps -q | while read -r container_id; do
-                docker inspect "$container_id" | jq -r --arg env_file "$ENV_FILE" '
+                docker inspect "$container_id" | jq -r '
                 .[] | .Name as $name | .Config.Labels as $labels
                 | ($labels | to_entries[]
-                    | select(.key | test("traefik\\.http\\.routers\\..*\\.rule"))
+                    | select(.key | test("traefik\\.http\\.routers\\..*\\.rule") or test("traefik\\.tcp\\.routers\\..*\\.rule"))
                     | .key as $rule_key
                     | .value as $rule_value
                     | ($labels[$rule_key | sub("\\.rule$"; ".entrypoints")] // "unknown") as $entrypoints_value
-                    | ($rule_value | capture("Host\\(`(?<host>[^`]*)`\\)(\\s*&&\\s*Path\\(`(?<path>[^`]*)`\\))?")) as $captured
+                    | ($rule_value | capture("(Host|HostSNI)\\(`(?<host>[^`]*)`\\)(\\s*&&\\s*Path\\(`(?<path>[^`]*)`\\))?")) as $captured
                     | $name[1:] + " " + $entrypoints_value + " " +
                     (
-                        "https://" + $captured.host +
-                        (
-                            if $entrypoints_value == "websecure" then "" else
-                                ":PORT_PLACEHOLDER"
-                            end
-                        ) +
+                        (if $entrypoints_value == "web" then "http://"
+                         elif $entrypoints_value == "web_plain" then "http://"
+                         elif $rule_key | test("traefik\\.http\\.") then "https://"
+                         else $entrypoints_value + "://" end) +
+                        $captured.host +
+                        (if $entrypoints_value == "web" then ""
+                         elif $entrypoints_value == "websecure" then ""
+                         elif $entrypoints_value == "web_plain" then ":PORT_PLACEHOLDER"
+                         else ":PORT_PLACEHOLDER" end) +
                         ($captured.path // "/")
                     )
                 )' | while read -r container_name entrypoint url; do
-                    if [[ "$entrypoint" != "websecure" ]]; then
+                    if [[ "$entrypoint" != "web" && "$entrypoint" != "websecure" ]]; then
                         port=$(get_entrypoint_port "$entrypoint")
                         url="${url//PORT_PLACEHOLDER/$port}"
                     fi
@@ -60,7 +63,6 @@ main() {
         >&2 echo "$line"
         cat
     } | less -FSX
-    
 }
 
 main
