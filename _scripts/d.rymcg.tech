@@ -394,7 +394,7 @@ __completion() {
     if [[ $# -lt 1 ]]; then
         echo "#### To enable BASH shell completion support for d.rymcg.tech,"
         echo "#### add the following lines into your ~/.bashrc ::"
-        echo "export PATH=\${PATH}:${USER_SCRIPT_RATH}"
+        echo "export PATH=\${PATH}:${USER_SCRIPT_PATH}"
         echo 'eval "$(d.rymcg.tech completion bash)"'
         echo ""
         echo "#### Optional aliases you may wish to uncomment:"
