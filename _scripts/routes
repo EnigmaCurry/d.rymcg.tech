@@ -12,8 +12,6 @@ get_entrypoint_port() {
     check_var entrypoint_name
     local traefik_env="${ROOT_DIR}/traefik/${ENV_FILE}"
     test -f ${traefik_env} || fault "Could not find traefik env file: ${traefik_env}"
-    debug_var traefik_env
-    set -x
     ${BIN}/dotenv -f "${traefik_env}" get "TRAEFIK_${entrypoint_name^^}_ENTRYPOINT_PORT"
 }
 
