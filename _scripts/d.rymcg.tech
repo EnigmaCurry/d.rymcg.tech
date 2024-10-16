@@ -77,10 +77,15 @@ __help() {
 }
 
 __install_docker() {
-    confirm yes "This will install Docker on the host of your remote Docker context."
-    d.rymcg.tech ssh 'curl -fsSL https://get.docker.com | sh'
-    d.rymcg.tech ssh 'systemctl enable --now docker'
-    d.rymcg.tech ssh 'systemctl status docker'
+    if [[ "$1" == "--local" ]]; then
+        confirm yes "This will install Docker the local machine"
+        curl -fsSL https://get.docker.com | sh
+    else
+        confirm yes "This will install Docker on the host of your remote Docker context."
+        d.rymcg.tech ssh 'curl -fsSL https://get.docker.com | sh'
+        d.rymcg.tech ssh 'systemctl enable --now docker'
+        d.rymcg.tech ssh 'systemctl status docker'
+    fi
 }
 
 __install() {

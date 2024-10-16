@@ -45,12 +45,16 @@ services:
     volumes:
       - postgres:/var/lib/postgresql/data
     restart: "unless-stopped"
+    labels:
+      - "backup-volume.stop-during-backup=true"
 
   redis:
     image: redis:6-alpine
     volumes:
       - redis:/data
     restart: "unless-stopped"
+    labels:
+      - "backup-volume.stop-during-backup=true"
 
   postfix:
     image: mwader/postfix-relay
@@ -63,6 +67,8 @@ services:
     volumes:
       - postfix:/etc/opendkim/keys
     restart: "unless-stopped"
+    labels:
+      - "backup-volume.stop-during-backup=true"
 
 volumes:
   postfix:

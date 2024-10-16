@@ -39,6 +39,9 @@ services:
       retries: 5
     volumes:
       - mysql_data:/var/lib/mysql
+    labels:
+      - "backup-volume.stop-during-backup=true"
+
       
 volumes:
   yourls:

@@ -32,6 +32,8 @@ services:
       - no-new-privileges:true
     cap_drop:
       - NET_RAW
+    labels:
+      - "backup-volume.stop-during-backup=true"
 
   redis:
     image: docker.io/redis:6.2-alpine@sha256:2d1463258f2764328496376f5d965f20c6a67f66ea2b06dc42af351f75248792
@@ -43,6 +45,8 @@ services:
       - no-new-privileges:true
     cap_drop:
       - NET_RAW
+    labels:
+      - "backup-volume.stop-during-backup=true"
 
   database:
     image: docker.io/tensorchord/pgvecto-rs:pg14-v0.2.0@sha256:90724186f0a3517cf6914295b5ab410db9ce23190a2d9d0b9dd6463e3fa298f0
@@ -60,3 +64,5 @@ services:
       start_period: 5m
     command: ["postgres", "-c", "shared_preload_libraries=vectors.so", "-c", 'search_path="$$user", public, vectors', "-c", "logging_collector=on", "-c", "max_wal_size=2GB", "-c", "shared_buffers=512MB", "-c", "wal_compression=on"]
     restart: unless-stopped
+    labels:
+      - "backup-volume.stop-during-backup=true"
