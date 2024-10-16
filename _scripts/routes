@@ -116,6 +116,10 @@ main() {
         >&2 echo "$line"
         cat
     } | less -FSX
+
+echo
+echo "Note: these are the traefik configured routes, but may not necessarily reflect Traefik's current state." | fold -w 70 | sed 's/^/## /'
+
 }
 
 main
