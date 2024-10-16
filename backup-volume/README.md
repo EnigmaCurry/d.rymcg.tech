@@ -80,7 +80,7 @@ purposes, choose S3:
 > Which remote storage do you want to use? s3
 
 BACKUP_AWS_ENDPOINT: Enter the S3 endpoint (e.g., s3.example.com)
-: s3.pi5.forwarding.network
+: s3.d.example.com
 BACKUP_AWS_S3_BUCKET_NAME: Enter the S3 bucket name (e.g., my-bucket)
 : backup-test-1
 BACKUP_AWS_ACCESS_KEY_ID: Enter the S3 access key id (e.g., my-access-key)
