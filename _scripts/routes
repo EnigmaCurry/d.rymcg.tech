@@ -116,7 +116,7 @@ main() {
         echo "$line"
         cat
         echo
-        echo "Note: these configured routes may not necessarily reflect Traefik's current state." | fmt -w 50 | sed 's/^/## /'
+        echo "Note: these routes are configured, but may not necessarily reflect Traefik's current state." | fmt -w 50 | sed 's/^/## /'
     } | less -FSX
 
 
