@@ -11,7 +11,10 @@ fi
 ## Edit/create the .env file setting the vars given as args.
 test -f ${ENV_FILE} || cp .env-dist ${ENV_FILE}
 for var in "$@"; do
-    parts=(${var//=/ }); var=${parts[0]}; val=${parts[@]:1};
+    echo hmmm ${var[@]}
+    key="${var%%=*}" #Get everything before the first '='.
+    val="${var#*=}"  #Get everything after the first '='
+    var=${key}
     if [[ -n "${var}" ]]; then
         if ! grep -E "^${var}=" ${ENV_FILE} >/dev/null; then
             echo "ERROR: ${var} not found in ${ENV_FILE}"

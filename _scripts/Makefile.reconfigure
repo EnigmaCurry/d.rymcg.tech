@@ -1,9 +1,9 @@
 .PHONY: reconfigure # reconfigure a single environment variable (reconfigure var=THING=VALUE)
 reconfigure:
-	@[[ "${var}" != "" ]] || (echo -e "Error: Invalid argument, must set var.\n## Use: make reconfigure var=SETTING=VALUE" && false)
-	@parts=($${var//=/ }); ${BIN}/reconfigure ${ENV_FILE} $${parts[0]}=$${parts[@]:1}
+	@[[ -n "$${var}" ]] || (echo -e "Error: Invalid argument, must set var.\n## Use: make reconfigure var=VAR_NAME=VALUE" && false)
+	@${BIN}/reconfigure ${ENV_FILE} "$${var%%=*}=$${var#*=}"
 
 .PHONY: dotenv_get # Retrieve a single environment variable (dotenv_get var=THING)
 dotenv_get:
-	@[[ "${var}" != "" ]] || (echo -e "Error: Invalid argument, must set var.\n## Use: make dotenv_get var=SETTING" && false)
-	@parts=($${var//=/ }); export ENV_FILE=${ENV_FILE}; ${BIN}/dotenv_get $${parts[0]}
+	@[[ -n "$${var}" ]] || (echo -e "Error: Invalid argument, must set var.\n## Use: make dotenv_get var=VAR_NAME" && false)
+	@export ENV_FILE=${ENV_FILE}; ${BIN}/dotenv_get "$${var%%=*}"
