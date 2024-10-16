@@ -13,6 +13,8 @@ services:
       - POSTGRES_PASSWORD=${NEXTCLOUD_DATABASE_PASSWORD}
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U $$POSTGRES_USER -d $$POSTGRES_DB"]
+    labels:
+      - "backup-volume.stop-during-backup=true"
 
   postgres_backup:
     build:
@@ -39,6 +41,8 @@ services:
     restart: unless-stopped
     security_opt:
       - no-new-privileges:true
+    labels:
+      - "backup-volume.stop-during-backup=true"
 
   app:
     build:
@@ -93,6 +97,8 @@ services:
     depends_on:
       - postgres
       - redis
+    labels:
+      - "backup-volume.stop-during-backup=true"
 
 volumes:
   postgres:

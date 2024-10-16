@@ -42,6 +42,8 @@ services:
       - '--path.rootfs=/rootfs'
       - '--path.sysfs=/host/sys'
       - '--collector.filesystem.mount-points-exclude=^/(sys|proc|dev|host|etc)($$|/)'
+    labels:
+      - "backup-volume.stop-during-backup=true"
 
   prometheus:
     depends_on:
@@ -63,6 +65,8 @@ services:
       resources:
         limits:
           memory: ${PROMETHEUS_MEMORY_LIMIT}
+    labels:
+      - "backup-volume.stop-during-backup=true"
 
   grafana:
     depends_on:
@@ -101,6 +105,8 @@ services:
       resources:
         limits:
           memory: ${PROMETHEUS_CADVISOR_MEMORY_LIMIT}
+    labels:
+      - "backup-volume.stop-during-backup=true"
 
   alertmanager:
     depends_on:
@@ -117,6 +123,8 @@ services:
       resources:
         limits:
           memory: ${PROMETHEUS_ALERTMANAGER_MEMORY_LIMIT}
+    labels:
+      - "backup-volume.stop-during-backup=true"
 
   alert-test:
     profiles:

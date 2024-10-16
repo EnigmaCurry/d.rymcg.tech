@@ -38,6 +38,8 @@ services:
     working_dir: /app
     volumes:
       - "files:/app"
+    labels:
+      - "backup-volume.stop-during-backup=true"
 
   redis:
     profiles:
@@ -49,7 +51,10 @@ services:
       ALLOW_EMPTY_PASSWORD: "yes"
     volumes:
       - "redis:/data"
+    labels:
+      - "backup-volume.stop-during-backup=true"
 
+      
   postgres:
     profiles:
       - postgres
@@ -58,4 +63,6 @@ services:
     environment:
       POSTGRES_PASSWORD: ${NGINX_POSTGRES_PASSWORD}
       POSTGRES_DB: ${NGINX_POSTGRES_DB}
+    labels:
+      - "backup-volume.stop-during-backup=true"
       

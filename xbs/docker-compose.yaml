@@ -33,6 +33,8 @@ services:
     volumes:
       - "xbs-db-data:/data/db"
       - "xbs-db-backups:/data/backups"
+    labels:
+      - "backup-volume.stop-during-backup=true"
 
   api:
     build:

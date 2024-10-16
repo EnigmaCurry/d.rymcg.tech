@@ -129,3 +129,5 @@ services:
       - MARIADB_USER=photoprism
       - MARIADB_PASSWORD=${PHOTOPRISM_DATABASE_PASSWORD}
       - MARIADB_ROOT_PASSWORD=${PHOTOPRISM_DATABASE_PASSWORD}
+    labels:
+      - "backup-volume.stop-during-backup=true"
