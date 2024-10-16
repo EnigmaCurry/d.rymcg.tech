@@ -73,7 +73,7 @@ BACKUP_RETENTION_DAYS: Rotate backups older than how many days? (eg. 30)
 : 30
 ```
 
-You can choose any of the supported storage mechanisms, for demo
+You can choose any of the supported storage mechanisms. For demo
 purposes, choose S3:
 
 ```stdout
