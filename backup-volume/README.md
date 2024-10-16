@@ -27,9 +27,9 @@ and restarting them after the backup is done.
 
 ## Prepare an S3 bucket offsite
 
-You may use your own [minio](../minio) service, or any third party
-provider (AWS, DigitalOcean, Wasabi, etc.) You need the following
-information:
+You may use your own [minio](../minio) service (preferably installed
+on a separate server), or any third party offsite provider (AWS,
+DigitalOcean, Wasabi, etc.) You will need the following information:
 
  * S3 Endpoint domain. e.g., `s3.example.com`.
  * S3 bucket name. e.g., `test`
@@ -93,10 +93,7 @@ BACKUP_AWS_S3_PATH: Choose a directory inside the bucket (blank for root)
 : 
 ```
 
-Enter the connection information for the S3 bucket. (You can create a
-bucket using
-[minio](https://github.com/EnigmaCurry/d.rymcg.tech/tree/master/minio#readme),
-preferably installed on a separate server).
+Enter the connection information for the S3 bucket.
 
 
 ```
