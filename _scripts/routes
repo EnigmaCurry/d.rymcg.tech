@@ -118,7 +118,7 @@ main() {
     } | less -FSX
 
 echo
-echo "Note: these are the traefik configured routes, but may not necessarily reflect Traefik's current state." | fold -w 70 | sed 's/^/## /'
+echo "Note: these are the traefik configured routes, but they may not necessarily reflect Traefik's current state." | fold -w 70 | sed 's/^/## /'
 
 }
 
