@@ -10,16 +10,16 @@ and restarting them after the backup is done.
 > especially at the time when you need to restore a volume from
 > backup. Each backup iteration is a full complete backup contained in
 > a compressed `backup-XXXX.tar.gz` file and then copied to your
-> offsite S3 storage provider. There is no incremental backup feature,
-> all of the files are duplicated into each backup everytime.
-> Automatic pruning of old backups can save some space, but the space
-> and time efficiency of this style backup is diminished compared to
-> an incremental backup process like [restic](https://restic.net/).
-> backup-volume is probably not the right solution for backup of large
-> datasets like photos and videos, however it is still very useful for
-> backing up smaller volumes. The feature that lets you shutdown
-> containers before backup starts, creates a safe and *generic* way of
-> backing up any container volume.
+> offsite S3 storage provider. *There is no incremental backup
+> feature*! All of the files are duplicated into each backup
+> everytime. Automatic pruning of old backups can save some space, but
+> the space and time efficiency of this style of backup is diminished
+> compared to an incremental backup process like
+> [restic](https://restic.net/). backup-volume is probably not the
+> right solution for backup of large datasets like photos and videos,
+> however it is still very useful for backing up smaller volumes. The
+> feature that lets you shutdown containers before backup starts,
+> creates a safe and *generic* way of backing up any container volume.
 
 ## Prepare an S3 bucket offsite
 
