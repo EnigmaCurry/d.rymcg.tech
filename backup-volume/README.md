@@ -56,31 +56,29 @@ Select multiple existing volumes to backup together:
 v [ ] traefik_traefik
 ```
 
+Choose the schedule in [cron
+format](https://github.com/EnigmaCurry/d.rymcg.tech/blob/73648904e5a954e17077368c299a23a19947ab16/backup-volume/.env-dist#L23-L59):
+
 
 ```stdout
 BACKUP_CRON_EXPRESSION: Enter the cron expression (eg. @daily)
 : @daily
 ```
 
-Choose the schedule in [cron
-format](https://github.com/EnigmaCurry/d.rymcg.tech/blob/73648904e5a954e17077368c299a23a19947ab16/backup-volume/.env-dist#L23-L59).
+Choose the retention length (number of days) to keep backup archives
+before automatic pruning happens:
 
 ```stdout
 BACKUP_RETENTION_DAYS: Rotate backups older than how many days? (eg. 30)
 : 30
 ```
 
-Choose the retention length (number of days) to keep backup archives
-before automatic pruning happens.
+You can choose any of the supported storage mechanisms, for demo
+purposes, choose S3:
 
 ```stdout
 > Which remote storage do you want to use? s3
-```
 
-You can choose any of the supported storage mechanisms, for demo
-purposes, choose S3.
-
-```stdout
 BACKUP_AWS_ENDPOINT: Enter the S3 endpoint (e.g., s3.example.com)
 : s3.pi5.forwarding.network
 BACKUP_AWS_S3_BUCKET_NAME: Enter the S3 bucket name (e.g., my-bucket)
@@ -93,15 +91,12 @@ BACKUP_AWS_S3_PATH: Choose a directory inside the bucket (blank for root)
 : 
 ```
 
-Enter the connection information for the S3 bucket.
-
+You may optionally preserve an additional copy of the archive in a
+local volume:
 
 ```
 > Do you want to keep a local backup in addition to the remote one? No
 ```
-
-You may optionally preserve an additional copy of the archive in a
-local volume.
 
 ## Install
 
