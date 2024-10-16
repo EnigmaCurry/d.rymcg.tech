@@ -112,13 +112,13 @@ main() {
         # Split output to stderr and stdout
         read -r header
         read -r line
-        >&2 echo "$header"
-        >&2 echo "$line"
+        echo "$header"
+        echo "$line"
         cat
+        echo
+        echo "Note: these configured routes may not necessarily reflect Traefik's current state." | fmt -w 50 | sed 's/^/## /'
     } | less -FSX
 
-echo
-echo "Note: these are the traefik configured routes, but they may not necessarily reflect Traefik's current state." | fold -w 70 | sed 's/^/## /'
 
 }
 
