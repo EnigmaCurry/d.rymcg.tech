@@ -16,6 +16,8 @@ services:
       MARIADB_DATABASE: ${WORDPRESS_DB_NAME}
       MARIADB_USER: ${WORDPRESS_DB_USER}
       MARIADB_PASSWORD: ${WORDPRESS_DB_PASSWORD}
+    labels:
+      - "backup-volume.stop-during-backup=true"
 
   wp:
     build:

@@ -245,7 +245,8 @@ array_to_json() {
 
 array_join() {
     # array_join "," "${THINGS[@]}"
-    array_to_json "$@" | jq -r 'join(",")'
+    local join=$1; shift
+    array_to_json "$@" | jq -r "join(\"${join}\")"
 }
 
 volume_rsync() {

@@ -24,6 +24,7 @@ services:
   api:
     #@ service = "xbs"
     labels:
+      - "backup-volume.stop-during-backup=true"
       #! Services must opt-in to be proxied by Traefik:
       - "traefik.enable=true"
 

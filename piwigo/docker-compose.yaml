@@ -12,6 +12,9 @@ services:
       MARIADB_PASSWORD: ${PIWIGO_MARIADB_PASSWORD}
     volumes:
       - mariadb:/var/lib/mysql
+    labels:
+      - "backup-volume.stop-during-backup=true"
+
   piwigo:
     image: linuxserver/piwigo:${PIWIGO_VERSION}
     security_opt:
