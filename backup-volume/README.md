@@ -43,7 +43,7 @@ DigitalOcean, Wasabi, etc.) You will need the following information:
 make config
 ```
 
-Select some existing volumes to backup together.
+Select multiple existing volumes to backup together:
 
 ```stdout
 ? Select all the volumes to backup
