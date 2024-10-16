@@ -20,6 +20,10 @@ and restarting them after the backup is done.
 > however it is still very useful for backing up smaller volumes. The
 > feature that lets you shutdown containers before backup starts,
 > creates a safe and *generic* way of backing up any container volume.
+>
+> A future version (in development) will need to address the
+> incremental backup situation by replacing the existing backup
+> procedure with restic.
 
 ## Prepare an S3 bucket offsite
 
