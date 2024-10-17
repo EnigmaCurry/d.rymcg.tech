@@ -10,6 +10,7 @@
 #@ instance = data.values.instance
 #@ context = data.values.context
 #@ use_docker = data.values.use_docker == "true"
+#@ use_postfix_relay = data.values.use_postfix_relay == "true"
 #@ backup_volumes = data.values.backup_volumes.split(",")
 #@ backup_archive = data.values.backup_archive
 #@ aws_part_size = data.values.aws_part_size
@@ -27,10 +28,21 @@ volumes:
   archive:
   #@ end
 
+#@ if use_postfix_relay:
+networks:
+  postfix-relay_default:
+    external: true
+#@ end
+
 #@yaml/text-templated-strings
 services:
   backup:
     labels: []
+    #@ if use_postfix_relay:
+    networks:
+      - default
+      - postfix-relay_default
+    #@ end
     environment:
       - INSTANCE=${BACKUP_INSTANCE}
       - BACKUP_CRON_EXPRESSION=${BACKUP_CRON_EXPRESSION}
@@ -97,12 +109,6 @@ services:
       - NOTIFICATION_LEVEL=${BACKUP_NOTIFICATION_LEVEL}
       - DOCKER_HOST=${BACKUP_DOCKER_HOST}
       - LOCK_TIMEOUT=${BACKUP_LOCK_TIMEOUT}
-      - EMAIL_NOTIFICATION_RECIPIENT=${BACKUP_EMAIL_NOTIFICATION_RECIPIENT}
-      - EMAIL_NOTIFICATION_SENDER=${BACKUP_EMAIL_NOTIFICATION_SENDER}
-      - EMAIL_SMTP_HOST=${BACKUP_EMAIL_SMTP_HOST}
-      - EMAIL_SMTP_PASSWORD=${BACKUP_EMAIL_SMTP_PASSWORD}
-      - EMAIL_SMTP_USERNAME=${BACKUP_EMAIL_SMTP_USERNAME}
-      - EMAIL_SMTP_PORT=${BACKUP_EMAIL_SMTP_PORT}
     volumes:
       #@ if use_docker:
       - /var/run/docker.sock:/var/run/docker.sock:ro
