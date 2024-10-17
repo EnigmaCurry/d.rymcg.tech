@@ -4,13 +4,16 @@ include ${ROOT_DIR}/_scripts/Makefile.instance
 
 .PHONY: config-hook
 config-hook:
-#### This interactive configuration wizard creates the .env_{DOCKER_CONTEXT}_{INSTANCE} config file using .env-dist as the template:
-#### reconfigure_ask asks the user a question to set the variable into the .env file, and with a provided default value.
-#### reconfigure sets the value of a variable in the .env file without asking.
-#### reconfigure_htpasswd will configure the HTTP Basic Authentication setting the var name and with a provided default value.
-	@${BIN}/reconfigure ${ENV_FILE} BACKUP_INSTANCE=$${instance:-default}
-	@PROJECT_INSTANCE=${PROJECT_INSTANCE} ROOT_DIR=${ROOT_DIR} ROOT_ENV=${ROOT_ENV} ENV_FILE=${ENV_FILE} ./setup.sh
-	@echo ""
+	@${BIN}/reconfigure ${ENV_FILE} POSTFIX_RELAY_INSTANCE=$${instance:-default}
+	@${BIN}/reconfigure_ask ${ENV_FILE} POSTFIX_RELAY_TRAEFIK_HOST "Enter the domain name for this instance" smtp${INSTANCE_URL_SUFFIX}.${ROOT_DOMAIN}
+	@echo
+	@${BIN}/reconfigure_ask ${ENV_FILE} POSTFIX_RELAY_RELAYHOST "Enter the outgoing SMTP server domain:port"
+	@${BIN}/reconfigure_ask ${ENV_FILE}  POSTFIX_RELAY_RELAYHOST_USERNAME "Enter the outgoing SMTP server username"
+	@${BIN}/reconfigure_ask ${ENV_FILE}  POSTFIX_RELAY_RELAYHOST_PASSWORD "Enter the outgoing SMTP server password"
+	@echo
+	@echo
+	@${BIN}/reconfigure ${ENV_FILE} POSTFIX_RELAY_POSTFIX_mynetworks="$$(${BIN}/select_docker_network_cidr 'Select the Docker networks allowed to send mail')"
+	@${BIN}/reconfigure_ask ${ENV_FILE}  POSTFIX_RELAY_MASQUERADED_DOMAINS "Enter the root domain mask to hide sender hostnames" $$(${BIN}/dotenv -f ${ROOT_DIR}/${ROOT_ENV} get ROOT_DOMAIN)
 
 .PHONY: override-hook
 override-hook:
@@ -24,8 +27,8 @@ override-hook:
 ####                         # (this hardcodes the string into docker-compose.override.yaml)
 ####   name=@VARIABLE_NAME   # sets the template 'name' field to the literal string '${VARIABLE_NAME}'
 ####                         # (used for regular docker-compose expansion of env vars by name.)
-	@${BIN}/docker_compose_override ${ENV_FILE} project=:backup instance=@BACKUP_INSTANCE use_docker=BACKUP_USE_DOCKER backup_volumes=BACKUP_VOLUMES backup_archive=BACKUP_ARCHIVE aws_part_size=BACKUP_AWS_PART_SIZE use_postfix_relay=BACKUP_NOTIFICATION_USE_POSTFIX_RELAY
+	@${BIN}/docker_compose_override ${ENV_FILE} project=:postfix-relay instance=@POSTFIX_RELAY_INSTANCE
 
 .PHONY: shell
 shell:
-	@make --no-print-directory docker-compose-shell SERVICE=backup
+	@make --no-print-directory docker-compose-shell SERVICE=postfix-relay
