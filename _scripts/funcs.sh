@@ -659,3 +659,15 @@ validate_ip_network() {
         return 1
     fi
 }
+
+select_docker_network_cidr() {
+    PROMPT=${1:-Select multiple Docker networks}
+    docker_networks=($(docker network ls --format '{{.Name}}' | grep -vE '^(host|none|bridge)$'))
+    readarray -t selected_networks < <(wizard select "${PROMPT}" "${docker_networks[@]}")
+    docker_network_cidrs=()
+    for network in "${selected_networks[@]}"; do
+        cidr=$(docker network inspect "$network" --format '{{range .IPAM.Config}}{{.Subnet}}{{end}}')
+        docker_network_cidrs+=("$cidr")
+    done
+    array_join "," "${docker_network_cidrs[@]}"
+}
