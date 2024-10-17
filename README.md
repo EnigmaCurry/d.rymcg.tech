@@ -522,9 +522,9 @@ Install these recommended backbone applications next:
   * Homepage acts as a dashboard or launcher for all your other apps
     (but this is not required for any other functionality, if you
     don't need it.)
-* [Postfix-Relay](postfix-relay#readme) - a simple email forwarding
-  service (SMTP) which can be used by any other container that needs
-  to send email.
+* [Postfix-Relay](postfix-relay#readme)
+  * A simple email forwarding service (SMTP) which can be used by any
+    other container that needs to send email.
 
 Install these other services at your leisure/preference:
 
