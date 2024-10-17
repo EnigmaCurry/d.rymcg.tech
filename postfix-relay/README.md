@@ -12,7 +12,7 @@ outgoing SMTP server which all mail will be forwarded to.
 make config
 ```
 
-Enter a the domain name for this postfix instance:
+Enter the domain name for this postfix instance:
 
 ```
 POSTFIX_RELAY_TRAEFIK_HOST: Enter the domain name for this instance
@@ -50,7 +50,7 @@ Select which network subdomains should be masked at the root domain
 email headers):
 
 ```
-POSTFIX_RELAY_MASQUERADED_DOMAINS: Enter the root domain mask to hide sender hostnames
+POSTFIX_RELAY_MASQUERADED_DOMAINS: Enter the root domains (separated by space) that should mask its sub-domains
 : example.com example.org
 ```
 
