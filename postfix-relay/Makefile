@@ -11,8 +11,8 @@ config-hook:
 	@${BIN}/reconfigure_ask ${ENV_FILE}  POSTFIX_RELAY_RELAYHOST_USERNAME "Enter the outgoing SMTP server username"
 	@${BIN}/reconfigure_ask ${ENV_FILE}  POSTFIX_RELAY_RELAYHOST_PASSWORD "Enter the outgoing SMTP server password"
 	@echo
+	@${BIN}/reconfigure ${ENV_FILE} POSTFIX_RELAY_POSTFIX_mynetworks="$$(docker network inspect "${PROJECT}_${INSTANCE}" --format '{{range .IPAM.Config}}{{.Subnet}}{{end}}')"
 	@echo
-	@${BIN}/reconfigure ${ENV_FILE} POSTFIX_RELAY_POSTFIX_mynetworks="$$(${BIN}/select_docker_network_cidr 'Select the Docker networks allowed to send mail')"
 	@${BIN}/reconfigure_ask ${ENV_FILE}  POSTFIX_RELAY_MASQUERADED_DOMAINS "Enter the root domains (separated by space) that should mask its sub-domains" $$(${BIN}/dotenv -f ${ROOT_DIR}/${ROOT_ENV} get ROOT_DOMAIN)
 
 .PHONY: override-hook
