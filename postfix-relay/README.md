@@ -32,19 +32,6 @@ POSTFIX_RELAY_RELAYHOST_PASSWORD: Enter the outgoing SMTP server password
 : xxxxxxxxxxxxxxxxxxxx
 ```
 
-Select which other Docker networks should be allowed to send mail:
-
-```
-? Select the Docker networks allowed to send mail
-> [x] backup-volume_default
-  [ ] filestash_test_default
-  [x] forgejo_forgejo
-  [ ] homepage_default
-  [ ] immich_default
-  [ ] invidious_default
-v [ ] jupyterlab_default
-```
-
 Select which network subdomains should be masked at the root domain
 (this is optional, and can be used to hide private subdomains from the
 email headers):
