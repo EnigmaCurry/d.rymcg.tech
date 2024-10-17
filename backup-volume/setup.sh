@@ -197,13 +197,43 @@ configure_azure() {
           BACKUP_AZURE_STORAGE_PRIMARY_ACCOUNT_KEY "Enter the Azure storage primary account key"
 }
 
+configure_notifications() {
+    echo
+    DEFAULT=$(${BIN}/dotenv -f ${ENV_FILE} get BACKUP_NOTIFICATION_TYPE)
+    CHOSEN=$(wizard choose --default "${DEFAULT}" "Do you want to receive notifications for backup failure?" "No." "Yes, via email." "Yes, via webhook.")
+    ${BIN}/reconfigure ${ENV_FILE} "BACKUP_NOTIFICATION_TYPE=${CHOSEN}"
+    case "$CHOSEN" in
+        "No.")
+            ${BIN}/reconfigure ${ENV_FILE} "BACKUP_NOTIFICATION_URLS="
+            ;;
+        "Yes, via email.")
+            ROOT_DOMAIN=$(${BIN}/dotenv -f ${ROOT_DIR}/${ROOT_ENV} get ROOT_DOMAIN)
+            ask_no_blank "Enter the sender email address" SENDER_ADDRESS "${PROJECT_INSTANCE//_/\-}@${ROOT_DOMAIN}"
+            ask_no_blank "Enter the recipient email address" RECIPIENT_ADDRESS
+            ${BIN}/reconfigure ${ENV_FILE} "BACKUP_NOTIFICATION_URLS=smtp://postfix-relay-postfix-relay-1:587/?fromAddress=${SENDER_ADDRESS}&toAddresses=${RECIPIENT_ADDRESS}&useStartTLS=false"
+            ;;
+        "Yes, via webhook.")
+            ask_no_blank "Enter the webhook URL" WEBHOOK_URL
+            if [[ "$WEBHOOK_URL" != */ ]]; then
+                WEBHOOK_URL="$WEBHOOK_URL/"
+            fi
+            WEBHOOK_URL="generic://${WEBHOOK_URL#https://}?template=json"
+            ${BIN}/reconfigure ${ENV_FILE} "BACKUP_NOTIFICATION_URLS=${WEBHOOK_URL}"
+            ;;
+        *)
+            fault "Invalid choice."
+            ;;
+    esac
+}
+
 setup() {
     source ../_scripts/funcs.sh
     set -e
-    check_var ROOT_DIR ENV_FILE
+    check_var ROOT_DIR ENV_FILE PROJECT_INSTANCE ROOT_ENV
     configure_backups
     configure_cron
     configure_remote
+    configure_notifications
 }
 
 setup
