@@ -12,9 +12,8 @@ config-hook:
 	@${BIN}/reconfigure_ask ${ENV_FILE}  POSTFIX_RELAY_RELAYHOST_PASSWORD "Enter the outgoing SMTP server password"
 	@echo
 	@echo
-	@${BIN}/reconfigure_ask ${ENV_FILE}  POSTFIX_RELAY_POSTFIX_mynetworks "Enter the allowed sender network CIDR ranges"
+	@${BIN}/reconfigure ${ENV_FILE} POSTFIX_RELAY_POSTFIX_mynetworks="$$(${BIN}/select_docker_network_cidr 'Select the Docker networks allowed to send mail')"
 	@${BIN}/reconfigure_ask ${ENV_FILE}  POSTFIX_RELAY_MASQUERADED_DOMAINS "Enter the root domain mask to hide sender hostnames" $$(${BIN}/dotenv -f ${ROOT_DIR}/${ROOT_ENV} get ROOT_DOMAIN)
-
 
 .PHONY: override-hook
 override-hook:

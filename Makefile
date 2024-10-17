@@ -124,3 +124,16 @@ docker-workstation-clean:
 .PHONY: install # Install a new sub-project with Docker
 install:
 	ENV_FILE=${ENV_FILE} ROOT_ENV=${ROOT_ENV} DOCKER_CONTEXT=${DOCKER_CONTEXT} ROOT_DIR=${ROOT_DIR} CONTEXT_INSTANCE=${CONTEXT_INSTANCE} ${BIN}/install
+
+.PHONY: networks # List Docker networks
+networks:
+	@docker_networks=$$(docker network ls --format '{{.Name}}' | grep -vE '^(host|none|bridge)$$'); \
+	(printf "%-35s %-20s %-10s %-10s %-20s\n" "Network Name" "CIDR" "Driver" "Scope" "Gateway"; \
+	echo "------------------------------------------------------------------------------------------------"; \
+	for network in $$docker_networks; do \
+	  cidr=$$(docker network inspect $$network --format '{{range .IPAM.Config}}{{.Subnet}}{{end}}'); \
+	  driver=$$(docker network inspect $$network --format '{{.Driver}}'); \
+	  scope=$$(docker network inspect $$network --format '{{.Scope}}'); \
+	  gateway=$$(docker network inspect $$network --format '{{range .IPAM.Config}}{{.Gateway}}{{end}}'); \
+	  printf "%-35s %-20s %-10s %-10s %-20s\n" $$network $$cidr $$driver $$scope $$gateway; \
+	done) | less -FSX
