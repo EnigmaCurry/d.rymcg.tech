@@ -31,25 +31,34 @@ EOF
 sudo systemctl enable --now ssh
 ssh-keyscan -H localhost >> ~/.ssh/known_hosts
 ssh "${HOST}" whoami
+if docker context ls --format '{{.Name}}' | grep -q "^${CONTEXT}$"; then
+    docker context rm "${CONTEXT}" -f
+    echo "Docker context '${CONTEXT}' deleted."
+fi
 docker context create "${CONTEXT}" --docker "host=ssh://${HOST}"
 docker context use "${CONTEXT}"
 git clone https://github.com/EnigmaCurry/d.rymcg.tech.git \
     ${HOME}/git/vendor/enigmacurry/d.rymcg.tech
-cat <<'EOF' >> ~/.bashrc
-
-export EDITOR=nano
+mkdir -p ~/.config/d.rymcg.tech
+cat <<'EOF' > ~/.config/d.rymcg.tech/bashrc
 ## d.rymcg.tech cli tool:
+export EDITOR=${EDITOR:-nano}
 export PATH=${PATH}:${HOME}/git/vendor/enigmacurry/d.rymcg.tech/_scripts/user
 eval "$(d.rymcg.tech completion bash)"
 __d.rymcg.tech_cli_alias d
-## Fix for the root user to always use default context:
+## Fix for the root user to always use the default context:
 if [ "$(whoami)" = "root" ]; then
   export DOCKER_CONTEXT=default
 fi
 EOF
-cat <<EOF >> ~/.bashrc
+cat <<EOF >> ~/.config/d.rymcg.tech/bashrc
 ## Add d.rymcg.tech alias for each Docker context:
 __d.rymcg.tech_context_alias ${CONTEXT} ${ALIAS}
+EOF
+cat <<EOF >> ~/.bashrc
+
+## d.rymcg.tech
+source ~/.config/d.rymcg.tech/bashrc
 
 EOF
 source ~/.bashrc
