@@ -5,7 +5,11 @@
 ## Ask interactive questions to edit/create your .env file
 ## This ONLY edits the lines with the given variable names in them.
 
+## If USE_ENV == true, then if the same var that reconfigure_ask is
+## asking for is already set, then immediately use that value without asking.
+
 ENV_FILE="$1"; var="$2"; prompt="$3"; default="$4";
+USE_ENV=${USE_ENV:-false}
 ALLOW_BLANK=${ALLOW_BLANK:-0}
 
 BIN=$(dirname ${BASH_SOURCE})
@@ -15,6 +19,11 @@ check_var ENV_FILE var prompt
 
 ## Make new .env if it doesn't exist:
 test -f ${ENV_FILE} || cp .env-dist ${ENV_FILE}
+
+if [[ "$USE_ENV" == "true" ]] && [ -v "${var}" ]; then
+    ${BIN}/dotenv -f "${ENV_FILE}" set "${var}=${!var}"
+    exit 0
+fi
 
 example=$(grep -m 1 -oP "^$var=\K.*" .env-dist)
 existing=$(grep -m 1 -oP "^$var=\K.*" ${ENV_FILE})
