@@ -49,7 +49,7 @@ fi
 EOF
 cat <<EOF >> ~/.bashrc
 ## Add d.rymcg.tech alias for each Docker context:
-__d.rymcg.tech_context_alias ${CONTEXT}
+__d.rymcg.tech_context_alias ${CONTEXT} ${ALIAS}
 
 EOF
 source ~/.bashrc
