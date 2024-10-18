@@ -7,6 +7,7 @@
 ## CONTEXT = the name of the Docker context to setup (Default $SSH_HOST).
 ## ALIAS = the contextual alias for d.rymcg.tech (Default $CONTEXT).
 ## ROOT_DOMAIN = the root sub-domain used for apps (Default $SSH_HOST).
+## SYS_BOX = boolean to specify whether to install Sysbox or not.
 ## 
 ## You may run this script directly from curl:
 ## 
@@ -20,6 +21,8 @@ export SSH_HOST="${SSH_HOST:-localhost}"
 export CONTEXT="${CONTEXT:-${SSH_HOST}}"
 export ROOT_DOMAIN="${ROOT_DOMAIN:-${SSH_HOST}}"
 export ALIAS="${ALIAS:-${CONTEXT}}"
+export SYSBOX=${SYSBOX:-false}
+export SYSBOX_URL=${SYSBOX_URL:-https://downloads.nestybox.com/sysbox/releases/v0.6.4/sysbox-ce_0.6.4-0.linux_$(uname -m | sed -e 's/x86_64/amd64/' -e 's/aarch64/arm64/').deb}
 
 (set -ex
 if [ ! -f /etc/debian_version ]; then
@@ -106,6 +109,15 @@ source ~/.bashrc
 ## Configure d.rymcg.tech:
 ROOT_DOMAIN=${ROOT_DOMAIN} USE_ENV=true YES=yes \
 d.rymcg.tech tmp-context localhost d.rymcg.tech config
+
+## Install sysbox:
+if [[ "${SYSBOX}" == "true" ]]; then
+    sudo DEBIAN_FRONTEND=noninteractive apt install -y \
+         jq fuse rsync linux-headers-$(uname -r)
+    TMP_FILE=$(mktemp)
+    wget -O ${TMP_FILE} "${SYSBOX_URL}"
+    dpkg -i ${TMP_FILE}
+fi
 
 ##
 ## Done
