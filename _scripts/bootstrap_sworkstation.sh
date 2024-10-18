@@ -1,6 +1,6 @@
 #!/bin/bash
 ## Quick setup of a d.rymcg.tech Sworkstation in a fresh debian VM:
-## ROOT_DOMAIN=d.example.com bash <(curl https://gist.githubusercontent.com/EnigmaCurry/c6fc7afe756b1a2741ee869c870fc845/raw)
+## ROOT_DOMAIN=d.example.com bash <(curl https://raw.githubusercontent.com/EnigmaCurry/d.rymcg.tech/refs/heads/master/_scripts/bootstrap_sworkstation.sh)
 (set -ex
 if [ ! -f /etc/debian_version ]; then
     echo "This script should only be run on Debian-based systems."
