@@ -1,6 +1,6 @@
 #!/bin/bash
 ## Quick setup of a d.rymcg.tech Sworkstation in a fresh debian VM:
-## CONTEXT=l ROOT_DOMAIN=d.example.com bash <(curl https://raw.githubusercontent.com/EnigmaCurry/d.rymcg.tech/refs/heads/master/_scripts/bootstrap_sworkstation.sh)
+## ALIAS=l ROOT_DOMAIN=d.example.com bash <(curl https://raw.githubusercontent.com/EnigmaCurry/d.rymcg.tech/refs/heads/master/_scripts/bootstrap_sworkstation.sh)
 (set -ex
 if [ ! -f /etc/debian_version ]; then
     echo "This script should only be run on Debian-based systems."
@@ -9,6 +9,7 @@ fi
 HOST="${HOST:-localhost}"
 CONTEXT="${CONTEXT:-${HOST}}"
 ROOT_DOMAIN="${ROOT_DOMAIN:-${HOST}}"
+ALIAS="${ALIAS:-${CONTEXT}}"
 sudo apt-get update
 sudo DEBIAN_FRONTEND=noninteractive apt-get install \
     --assume-yes \
