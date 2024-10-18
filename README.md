@@ -3,6 +3,8 @@
 [![License: MIT](_meta/img/license-MIT.svg)](https://github.com/EnigmaCurry/d.rymcg.tech/blob/master/LICENSE.txt)
 [![Chat on Matrix](_meta/img/matrix-badge.svg)](https://matrix.to/#/#d.rymcg.tech:enigmacurry.com)
 
+> ℹ️ **New book available now!**: [Portable Docker: Build and Deploy Anywhere with WireGuard Tunneling](https://book.rymcg.tech/portable-docker/)
+
 This is a collection of Docker Compose projects, consisting of
 [Traefik](https://doc.traefik.io/traefik/) as a TLS HTTP/TCP/UDP
 reverse proxy, and other open-source self-hosted applications and
@@ -30,8 +32,6 @@ running:
 
 Under the covers, setup is pure `docker compose`, with *all*
 configuration derived from your customized `.env` file.
-
-> ℹ️ **New book available now!**: [Portable Docker: Build and Deploy Anywhere with WireGuard Tunneling](https://book.rymcg.tech/portable-docker/)
 
 # Contents
 
