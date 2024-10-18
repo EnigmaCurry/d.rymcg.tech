@@ -60,5 +60,5 @@ echo
 echo
 echo "## Installation finished."
 echo "## Log out and log back in (or source ~/.bashrc)"
-echo "## Use the 'localhost' alias to manage the local Docker host."
+echo "## Use the '${ALIAS}' alias to manage the local Docker host."
 )
