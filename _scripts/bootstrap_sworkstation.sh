@@ -7,14 +7,14 @@
 ## CONTEXT = the name of the Docker context to setup (Default $SSH_HOST).
 ## ALIAS = the contextual alias for d.rymcg.tech (Default $CONTEXT).
 ## ROOT_DOMAIN = the root sub-domain used for apps (Default $SSH_HOST).
-## SYS_BOX = boolean to specify whether to install Sysbox or not.
+## SYSBOX = boolean to specify whether to install Sysbox or not.
 ## 
 ## You may run this script directly from curl:
 ## 
-## ALIAS=l ROOT_DOMAIN=d.example.com bash <(curl -L https://github.com/EnigmaCurry/d.rymcg.tech/blob/master/_scripts/bootstrap_sworkstation.sh?raw=true)
+## ALIAS=l ROOT_DOMAIN=d.example.com SYSBOX=false bash <(curl -L https://github.com/EnigmaCurry/d.rymcg.tech/blob/master/_scripts/bootstrap_sworkstation.sh?raw=true)
 ##
 ## This whole script is written in a sub-shell, so it is safe to copy
-## and paste directly into your bash shell, just remember to set the vars first.
+## and paste it directly into your bash shell, just remember to set the vars first.
 ##
 
 export SSH_HOST="${SSH_HOST:-localhost}"
@@ -50,7 +50,9 @@ ssh-keygen -t ed25519 -N "" -f ~/.ssh/id_ed25519
 cat ~/.ssh/id_ed25519.pub | sudo tee -a /root/.ssh/authorized_keys
 remove_ssh_host_entry() {
     local host_name="$1"
-    test -f ~/.ssh/config && sed -i "/^Host ${host_name}$/,/^Host /{ /^Host ${host_name}$/d; /^Host /!d }" ~/.ssh/config || true
+    if [[ -f ~/.ssh/config ]]; then
+        sed -i "/^Host ${host_name}$/,/^Host /{ /^Host ${host_name}$/d; /^Host /!d }" ~/.ssh/config
+    fi
 }
 remove_ssh_host_entry "${CONTEXT}"
 cat <<EOF >> ~/.ssh/config
