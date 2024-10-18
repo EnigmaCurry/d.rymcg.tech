@@ -316,7 +316,7 @@ __d.rymcg.tech_context_alias() {
     __ALIAS="${2:-${1}}"
     export __CONTEXT
     alias ${__ALIAS}="D_RYMCG_TECH_CONTEXT_ALIAS=${__ALIAS} d.rymcg.tech tmp-context ${__CONTEXT} d.rymcg.tech"
-    complete -F __d.rymcg.tech_completions $1
+    complete -F __d.rymcg.tech_completions ${__ALIAS}
 }
 
 __d.rymcg.tech_completions() {
