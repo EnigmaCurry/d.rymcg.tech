@@ -50,7 +50,7 @@ ssh-keygen -t ed25519 -N "" -f ~/.ssh/id_ed25519
 cat ~/.ssh/id_ed25519.pub | sudo tee -a /root/.ssh/authorized_keys
 remove_ssh_host_entry() {
     local host_name="$1"
-    sed -i "/^Host ${host_name}$/,/^Host /{ /^Host ${host_name}$/d; /^Host /!d }" ~/.ssh/config
+    test -f ~/.ssh/config && sed -i "/^Host ${host_name}$/,/^Host /{ /^Host ${host_name}$/d; /^Host /!d }" ~/.ssh/config
 }
 remove_ssh_host_entry "${CONTEXT}"
 cat <<EOF >> ~/.ssh/config
