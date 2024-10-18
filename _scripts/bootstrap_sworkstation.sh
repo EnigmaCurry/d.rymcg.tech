@@ -1,5 +1,6 @@
 #!/bin/bash
-## Quick setup of a d.rymcg.tech Sworkstation in a fresh debian VM:
+## Quick bootstrap of a d.rymcg.tech Sworkstation:
+## (Only requires a freshly installed Debian-like host.)
 ## Configuration is via environment variables:
 ##
 ## SSH_HOST = the SSH host to setup (Default localhost).
@@ -13,7 +14,7 @@
 ##
 ## This whole script is written in a sub-shell, so it is safe to copy
 ## and paste directly into your bash shell, just remember to set the vars first.
-## 
+##
 
 export SSH_HOST="${SSH_HOST:-localhost}"
 export CONTEXT="${CONTEXT:-${SSH_HOST}}"
