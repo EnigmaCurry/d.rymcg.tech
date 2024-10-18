@@ -31,6 +31,8 @@ running:
 Under the covers, setup is pure `docker compose`, with *all*
 configuration derived from your customized `.env` file.
 
+> ℹ️ **New book available now!**: [Portable Docker: Build and Deploy Anywhere with WireGuard Tunneling](https://book.rymcg.tech/portable-docker/)
+
 # Contents
 
 - [All configuration comes from the environment](#all-configuration-comes-from-the-environment)
