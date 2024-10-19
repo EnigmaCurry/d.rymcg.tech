@@ -1,4 +1,18 @@
-# registry
+# Registry
+
+[Docker Registry](https://distribution.github.io/distribution/) is a
+service to store and distribute Docker container images (OCI images)
+to your Docker hosts (e.g., `docker push`, `docker pull`).
+
+If you only have one Docker server, running a registry is kind of
+pointless. Reasons you might need a registry are:
+
+ * You have multiple Docker servers and you want an image cache that
+   they can all share.
+ * You have built your own custom images that you want to distribute.
+ * You want to run [faasd](../faasd) and need a place to store your
+   function container images.
+ * You want to store images for any reason.
 
 ## Config
 
@@ -13,10 +27,11 @@ REGISTRY_TRAEFIK_HOST: Enter the registry domain name (eg. registry.example.com)
 : registry.d.example.com
 ```
 
-It is highly recommended to configure some form of sentry
-authorization in front of your registry, this will keep it safe from
-tampering by unauthorized users. Choose either `HTTP Basic
-Authentication` or `Mutual TLS (mTLS)`:
+The registry has a fully public API, so it is highly recommended to
+configure some form of sentry authorization mechanisms in front of
+your registry which will keep it secure from unauthorized users.
+Choose either `HTTP Basic Authentication` (username/password) or
+`Mutual TLS (mTLS)` (certificate):
 
 ```stdout
 ? Do you want to enable sentry authorization in front of this app (effectively making the entire site private)?  
