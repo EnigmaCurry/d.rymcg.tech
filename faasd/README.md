@@ -75,30 +75,8 @@ mv container-registry.service /etc/systemd/system/
 systemctl enable --now container-registry.service
 ```
 
-## Install Faasd
-
- * [Install faasd according to the Raspberry Pi docs](https://blog.alexellis.io/faasd-for-lightweight-serverless), abbreviated here:
+## Retrieve Faasd admin password
    
-```
-## Inside the faasd container shell:
-git clone https://github.com/openfaas/faasd ~/git/vendor/openfaas/faasd
-cd ~/git/vendor/openfaas/faasd
-sudo ./hack/install.sh
-```
-   
-Faasd should now be running via systemd:
-
-```
-## Inside the faasd container shell:
-sudo systemctl status faasd
-sudo systemctl status faasd-provider
-
-sudo journalctl -t default:gateway --lines 40
-sudo journalctl -t default:nats --lines 40
-sudo journalctl -t default:queue-worker --lines 40
-sudo journalctl -t default:prometheus --lines 40
-```
-
 Retrieve the password and save it someplace safe (the PASSWORD var
 will be used temporarily):
 
@@ -114,14 +92,7 @@ echo ${PASSWORD}
 ## Inside the faasd container shell:
 export OPENFAAS_URL=http://localhost:8080
 echo $PASSWORD | faas-cli login --password-stdin
-
-# Calling the OpenFaaS server to validate the credentials...
-# credentials saved for admin http://localhost:8080
 ```
-
-> ℹ️ faas-cli can also be used remotely if you change `localhost` to
-> the IP address of the VM, but for demo purposes the faas-cli client
-> will be used directly on the server via localhost.
 
 ## Create your own function
 
