@@ -7,16 +7,12 @@ volumes:
 services:
   linux:
     runtime: sysbox-runc
-    container_name: sysbox-systemd-linux-${SYSBOX_SYSTEMD_INSTANCE:-default}
+    container_name: sysbox-systemd-linux-${SYSBOX_SYSTEMD_INSTANCE:-default}-1
     hostname: sysbox-systemd-linux-${SYSBOX_SYSTEMD_INSTANCE:-default}
     build:
       context: linux-systemd
       args:
         INSTALL_PACKAGES: ${SYSBOX_SYSTEMD_INSTALL_PACKAGES}
-    sysctls:
-      - net.ipv4.ip_unprivileged_port_start=0
-    security_opt:
-      - no-new-privileges:true
     restart: unless-stopped
     volumes:
       - etc:/etc

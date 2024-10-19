@@ -4,8 +4,10 @@ include ${ROOT_DIR}/_scripts/Makefile.instance
 
 .PHONY: config-hook
 config-hook:
-	@${BIN}/reconfigure_ask ${ENV_FILE} SYSBOX_SYSTEMD_TRAEFIK_HOST "Enter the service domain name" $${INSTANCE:-my-service}.${ROOT_DOMAIN}
-	@${BIN}/reconfigure ${ENV_FILE} SYSBOX_SYSTEMD_INSTANCE=$${instance:-default}
+	@${BIN}/reconfigure_ask ${ENV_FILE} FAASD_TRAEFIK_HOST "Enter the faasd domain name" faasd${INSTANCE_URL_SUFFIX}.${ROOT_DOMAIN}
+	@${BIN}/reconfigure ${ENV_FILE} FAASD_INSTANCE=$${instance:-default}
+	@${BIN}/reconfigure_auth ${ENV_FILE} FAASD
+	@echo ""
 
 .PHONY: override-hook
 override-hook:
@@ -19,8 +21,8 @@ override-hook:
 ####                         # (this hardcodes the string into docker-compose.override.yaml)
 ####   name=@VARIABLE_NAME   # sets the template 'name' field to the literal string '${VARIABLE_NAME}'
 ####                         # (used for regular docker-compose expansion of env vars by name.)
-	@${BIN}/docker_compose_override ${ENV_FILE} project=:sysbox-systemd instance=@SYSBOX_SYSTEMD_INSTANCE traefik_host=@SYSBOX_SYSTEMD_TRAEFIK_HOST http_auth=SYSBOX_SYSTEMD_HTTP_AUTH http_auth_var=@SYSBOX_SYSTEMD_HTTP_AUTH ip_sourcerange=@SYSBOX_SYSTEMD_IP_SOURCERANGE ports=SYSBOX_SYSTEMD_PUBLIC_PORTS privileged=SYSBOX_PRIVILEGED
+	@${BIN}/docker_compose_override ${ENV_FILE} project=:faasd instance=@FAASD_INSTANCE traefik_host=@FAASD_TRAEFIK_HOST http_auth=FAASD_HTTP_AUTH http_auth_var=@FAASD_HTTP_AUTH ip_sourcerange=@FAASD_IP_SOURCERANGE oauth2=FAASD_OAUTH2 authorized_group=FAASD_OAUTH2_AUTHORIZED_GROUP enable_mtls_auth=FAASD_MTLS_AUTH mtls_authorized_certs=FAASD_MTLS_AUTHORIZED_CERTS privileged=FAASD_PRIVILEGED
 
 .PHONY: shell
 shell:
-	@make --no-print-directory docker-compose-shell SERVICE=linux
+	@make --no-print-directory docker-compose-shell SERVICE=faasd
