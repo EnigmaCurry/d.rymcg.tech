@@ -1,17 +1,18 @@
 # Faasd
 
 [Faasd](https://github.com/openfaas/faasd) is a lightweight compute
-platform for running serverless functions in short-lived containers
-created on demand. Faasd does not natively support Docker, it runs its
-own container runner, and it is also dependent on systemd. However, it
-can be forced to run in Docker with
+platform for running "serverless" functions in short-lived containers
+that are created on demand. Faasd does not natively support Docker (it
+runs its own container runner and it is dependent on systemd),
+however, it can be forced to run in Docker with
 [sysbox](https://github.com/nestybox/sysbox#readme).
 
-## Configure sysbox host
+## Configure sysbox on the Docker host
 
 Login to your Docker host as root, and install sysbox:
 
 ```
+## Run this on the docker host:
 (set -ex
 sudo DEBIAN_FRONTEND=noninteractive apt install -y \
      jq fuse rsync linux-headers-$(uname -r)
@@ -21,9 +22,10 @@ dpkg -i ${TMP_FILE}
 rm -f ${TMP_FILE})
 ```
 
-## Config
+## Config faasd
 
 ```
+## Run this on your workstation:
 d make faasd config
 ```
 
@@ -32,9 +34,10 @@ d make faasd config
 # : faasd.example.com
 ```
 
-## Install
+## Install faasd
 
 ```
+## Run this on your workstation:
 d make faasd install
 ```
 
@@ -43,6 +46,7 @@ d make faasd install
 Enter the faasd container shell:
 
 ```
+## Run this on your workstation:
 d make faasd shell
 ```
 
