@@ -19,7 +19,7 @@ override-hook:
 ####                         # (this hardcodes the string into docker-compose.override.yaml)
 ####   name=@VARIABLE_NAME   # sets the template 'name' field to the literal string '${VARIABLE_NAME}'
 ####                         # (used for regular docker-compose expansion of env vars by name.)
-	@${BIN}/docker_compose_override ${ENV_FILE} project=:sysbox-systemd instance=@SYSBOX_SYSTEMD_INSTANCE traefik_host=@SYSBOX_SYSTEMD_TRAEFIK_HOST http_auth=SYSBOX_SYSTEMD_HTTP_AUTH http_auth_var=@SYSBOX_SYSTEMD_HTTP_AUTH ip_sourcerange=@SYSBOX_SYSTEMD_IP_SOURCERANGE ports=SYSBOX_SYSTEMD_PUBLIC_PORTS
+	@${BIN}/docker_compose_override ${ENV_FILE} project=:sysbox-systemd instance=@SYSBOX_SYSTEMD_INSTANCE traefik_host=@SYSBOX_SYSTEMD_TRAEFIK_HOST http_auth=SYSBOX_SYSTEMD_HTTP_AUTH http_auth_var=@SYSBOX_SYSTEMD_HTTP_AUTH ip_sourcerange=@SYSBOX_SYSTEMD_IP_SOURCERANGE ports=SYSBOX_SYSTEMD_PUBLIC_PORTS privileged=SYSBOX_PRIVILEGED
 
 .PHONY: shell
 shell:

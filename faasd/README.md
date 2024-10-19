@@ -218,6 +218,25 @@ curl https://www.postb.in/api/bin/${POSTBIN}/req/shift | jq
 
  * Setup your Docker host with
    [d.rymcg.tech](https://github.com/enigmacurry/d.rymcg.tech#readme).
- * Setup your Docker host with
+ * Install
    [sysbox-systemd](https://github.com/EnigmaCurry/d.rymcg.tech/tree/master/sysbox-systemd#readme).
-   
+
+Configure and start a sysbox enabled container:
+
+```
+d.rymcg.tech make sysbox-systemd config
+d.rymcg.tech make sysbox-systemd install
+```
+
+Enter the shell for the container:
+
+```
+d.rymcg.tech make sysbox-systemd shell
+```
+
+Show that systemd is running:
+
+```
+## Inside the sysbox container shell:
+systemctl status
+```

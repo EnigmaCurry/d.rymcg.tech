@@ -13,10 +13,6 @@ services:
       context: linux-systemd
       args:
         INSTALL_PACKAGES: ${SYSBOX_SYSTEMD_INSTALL_PACKAGES}
-    sysctls:
-      - net.ipv4.ip_unprivileged_port_start=0
-    security_opt:
-      - no-new-privileges:true
     restart: unless-stopped
     volumes:
       - etc:/etc
