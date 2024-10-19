@@ -109,6 +109,21 @@ On the client computer:
 
 There is no need to run `docker login` when using mTLS.
 
+## Restrict access by IP address
+
+By default the access is allowed to `0.0.0.0/0` which allows all
+traffic. Restrict access to your list of subnets, for example:
+
+```
+make reconfigure var=REGISTRY_IP_SOURCERANGE=192.168.1.0/24,10.13.13.0/24
+```
+
+And then reinstall:
+
+```
+make install
+```
+
 ## Instances
 
 If you need to store images with different access credentials, you
