@@ -3,7 +3,7 @@ FROM debian:bookworm
 RUN DEBIAN_FRONTEND=noninteractive apt -y update && \
     DEBIAN_FRONTEND=noninteractive apt -y install --no-install-recommends \
     procps systemd systemd-sysv libsystemd0 ca-certificates iptables iproute2 \
-    kmod locales sudo udev less wget curl git jq podman
+    kmod locales sudo udev less wget curl git jq podman fuse-overlayfs
 
 RUN ln -s /usr/bin/podman /usr/local/bin/docker && \
     echo "ReadKMsg=no" >> /etc/systemd/journald.conf && \
