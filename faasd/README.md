@@ -66,10 +66,11 @@ EOF
 > ℹ️ Configuring the cgroup_manager is done to avoid this error: `Error:
 > cannot open sd-bus: No such file or directory: OCI not found`
 
-## Docker registry
+## Setup container registry
 
-Faasd deploys its containers by pulling from a Docker registry, so you
-must provision one or use a third party service.
+Faasd deploys its containers by pulling from a Docker container
+registry, so you must provision one yourself or use a third party
+service.
 
  * Create a local Docker registry for testing purposes:
  
@@ -126,9 +127,6 @@ echo ${PASSWORD}
 
 ### Log in with faas-cli
 
-> ℹ️ You can login directly from the VM, or remotely by changing
-> `localhost` to the IP address of the VM:
-
 ```
 ## Inside the sysbox container shell:
 export OPENFAAS_URL=http://localhost:8080
@@ -137,6 +135,10 @@ echo $PASSWORD | faas-cli login --password-stdin
 # Calling the OpenFaaS server to validate the credentials...
 # credentials saved for admin http://localhost:8080
 ```
+
+> ℹ️ faas-cli can also be used remotely if you change `localhost` to
+> the IP address of the VM, but for demo purposes the faas-cli client
+> will be used directly on the server via localhost.
 
 ## Create your own function
 
