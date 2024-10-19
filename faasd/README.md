@@ -193,3 +193,7 @@ curl -L -d "Hello public" https://test:a_secure_passphrase@faasd.example.com/fun
 This should route your domain name (`faasd.example.com`) TLS port
 `443` through Traefik, verifying your username and password, and then
 forward to the faasd backend port `8080`.
+
+## Test faas-cli from remote workstation
+
+Gonna need a registry for this...
