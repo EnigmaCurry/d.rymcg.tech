@@ -7,64 +7,51 @@ own container runner, and it is also dependent on systemd. However, it
 can be forced to run in Docker with
 [sysbox-systemd](../sysbox-systemd).
 
-## Configure sysbox container
+## Configure sysbox host
 
- * Setup your Docker host with
-   [d.rymcg.tech](https://github.com/enigmacurry/d.rymcg.tech#readme).
- * Install
-   [sysbox-systemd](https://github.com/EnigmaCurry/d.rymcg.tech/tree/master/sysbox-systemd#readme).
-
-> ℹ️ These instructions assume you have a d.rymcg.tech context alias
-> named `d`, but your alias may be different.
-
-Configure the container:
+Login to your Docker host as root, and install sysbox:
 
 ```
-d make sysbox-systemd config
+(set -ex
+sudo DEBIAN_FRONTEND=noninteractive apt install -y \
+     jq fuse rsync linux-headers-$(uname -r)
+TMP_FILE=$(mktemp)
+wget -O ${TMP_FILE} "https://downloads.nestybox.com/sysbox/releases/v0.6.4/sysbox-ce_0.6.4-0.linux_$(uname -m | sed -e 's/x86_64/amd64/' -e 's/aarch64/arm64/').deb"
+dpkg -i ${TMP_FILE}
+rm -f ${TMP_FILE})
 ```
 
-Give the container system root privileges:
+## Config
 
 ```
-d make sysbox-systemd reconfigure var=SYSBOX_PRIVILEGED=true
+d make faasd config
 ```
 
-Install it:
-
-```
-d make sysbox-systemd install
-```
-
-Enter the shell for the container:
-
-```
-d make sysbox-systemd shell
+```stdout
+# FAASD_TRAEFIK_HOST: Enter the faasd domain name (eg. faasd.example.com)
+# : faasd.example.com
 ```
 
-Show that systemd is running:
+## Install
 
 ```
-## Inside the sysbox container shell:
-systemctl status
+d make faasd install
 ```
 
-Install podman and configure it to masquerade as Docker:
- 
+## Finish faasd install via the shell
+
+Enter the faasd container shell:
+
 ```
-## Inside the sysbox container shell:
-sudo apt update
-sudo apt install -y git jq podman
-
-sudo ln -s /usr/bin/podman /usr/local/bin/docker
-
-cat <<EOF | sudo tee /etc/containers/containers.conf
-[engine]
-cgroup_manager = "cgroupfs"
-EOF
+d make faasd shell
 ```
 
-> ℹ️ Configuring the cgroup_manager is done to avoid this error: `Error:
-> cannot open sd-bus: No such file or directory: OCI not found`
+Inside the shell, run the faasd installation script:
+
+```
+# Run this in the faasd container shell:
+~/git/vendor/openfaas/faasd/hack/install.sh 
+```
 
 ## Setup container registry
 
@@ -75,21 +62,17 @@ service.
  * Create a local Docker registry for testing purposes:
  
 ```
-## Inside the sysbox container shell:
-sudo podman run -d -p 5000:5000 --name registry registry:2
+## Inside the faasd container shell:
+podman run -d -p 5000:5000 --name registry registry:2
 ```
 
- * Configure podman to use the local registry:
+ * Create service files to start the registry on container startup:
  
 ```
-## Inside the sysbox container shell:
-cat <<'EOF' | sudo tee /etc/containers/registries.conf.d/localhost.conf
-unqualified-search-registries=["localhost:5000","docker.io"]
-
-[[registry]]
-location="localhost:5000"
-insecure=true
-EOF
+## Inside the faasd container shell:
+podman generate systemd --name registry --files --restart-policy always
+mv container-registry.service /etc/systemd/system/
+systemctl enable --now container-registry.service
 ```
 
 ## Install Faasd
@@ -97,7 +80,7 @@ EOF
  * [Install faasd according to the Raspberry Pi docs](https://blog.alexellis.io/faasd-for-lightweight-serverless), abbreviated here:
    
 ```
-## Inside the sysbox container shell:
+## Inside the faasd container shell:
 git clone https://github.com/openfaas/faasd ~/git/vendor/openfaas/faasd
 cd ~/git/vendor/openfaas/faasd
 sudo ./hack/install.sh
@@ -106,7 +89,7 @@ sudo ./hack/install.sh
 Faasd should now be running via systemd:
 
 ```
-## Inside the sysbox container shell:
+## Inside the faasd container shell:
 sudo systemctl status faasd
 sudo systemctl status faasd-provider
 
@@ -120,7 +103,7 @@ Retrieve the password and save it someplace safe (the PASSWORD var
 will be used temporarily):
 
 ```
-## Inside the sysbox container shell:
+## Inside the faasd container shell:
 PASSWORD=$(sudo cat /var/lib/faasd/secrets/basic-auth-password)
 echo ${PASSWORD}
 ```
@@ -128,7 +111,7 @@ echo ${PASSWORD}
 ### Log in with faas-cli
 
 ```
-## Inside the sysbox container shell:
+## Inside the faasd container shell:
 export OPENFAAS_URL=http://localhost:8080
 echo $PASSWORD | faas-cli login --password-stdin
 
@@ -145,7 +128,7 @@ echo $PASSWORD | faas-cli login --password-stdin
 Create a new project directory (`hello`):
 
 ```
-## Inside the sysbox container shell:
+## Inside the faasd container shell:
 faas-cli new --lang python3 \
   hello-world \
   --prefix localhost:5000
@@ -154,14 +137,14 @@ faas-cli new --lang python3 \
 Build and install the image:
 
 ```
-## Inside the sysbox container shell:
+## Inside the faasd container shell:
 faas-cli up -f hello-world.yml
 ```
 
 Test the newly deployed function:
 
 ```
-## Inside the sysbox container shell:
+## Inside the faasd container shell:
 echo "Hello faasd" | faas-cli invoke hello-world
 
 # Hello faasd
@@ -171,14 +154,14 @@ Create a [postb.in endpoint](https://www.postb.in) to use as a
 temporary webhook receiver:
 
 ```
-## Inside the sysbox container shell:
+## Inside the faasd container shell:
 POSTBIN=$(curl -X POST -d "" https://www.postb.in/api/bin | jq -r ".binId")
 ```
 
 Test the function and pass the webhook:
 
 ```
-## Inside the sysbox container shell:
+## Inside the faasd container shell:
 curl -d "Hello faasd" \
   http://127.0.0.1:8080/async-function/hello-world \
   --header "X-Callback-Url: https://www.postb.in/${POSTBIN}" 
@@ -187,7 +170,8 @@ curl -d "Hello faasd" \
 Retrieve (and remove) the response from the receiver:
 
 ```
-## Inside the sysbox container shell:
-curl https://www.postb.in/api/bin/${POSTBIN}/req/shift | jq
+## Inside the faasd container shell:
+curl https://www.postb.in/api/bin/${POSTBIN}/req/shift | jq -r ".body | keys[]"
 ```
 
+This should respond with the same text you sent: `Hello faasd`.
