@@ -98,7 +98,7 @@ export OPENFAAS_URL=http://localhost:8080
 echo $PASSWORD | faas-cli login --password-stdin
 ```
 
-## Create your own function
+## Create and test your own function
 
 Create a new project directory (`hello`):
 
