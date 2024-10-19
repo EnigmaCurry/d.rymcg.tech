@@ -60,3 +60,12 @@ services:
     security_opt:
       - no-new-privileges:true
     #@ end
+
+    volumes:
+      - etc:/etc
+      - home:/home
+      - usr_local:/usr/local
+      #@ if privileged:
+      - /run:/run
+      - /sys/fs/cgroup:/sys/fs/cgroup:ro
+      #@ end

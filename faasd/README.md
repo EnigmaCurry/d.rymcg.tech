@@ -221,17 +221,28 @@ curl https://www.postb.in/api/bin/${POSTBIN}/req/shift | jq
  * Install
    [sysbox-systemd](https://github.com/EnigmaCurry/d.rymcg.tech/tree/master/sysbox-systemd#readme).
 
-Configure and start a sysbox enabled container:
+Configure the container:
 
 ```
-d.rymcg.tech make sysbox-systemd config
-d.rymcg.tech make sysbox-systemd install
+d make sysbox-systemd config
+```
+
+Make it privileged:
+
+```
+d make sysbox-systemd reconfigure var=SYSBOX_PRIVILEGED=true
+```
+
+
+Install it:
+```
+d make sysbox-systemd install
 ```
 
 Enter the shell for the container:
 
 ```
-d.rymcg.tech make sysbox-systemd shell
+d make sysbox-systemd shell
 ```
 
 Show that systemd is running:
