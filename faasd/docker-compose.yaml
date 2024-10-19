@@ -3,6 +3,7 @@ volumes:
   etc:
   home:
   usr_local:
+  var_lib_containers:
 
 services:
   faasd:

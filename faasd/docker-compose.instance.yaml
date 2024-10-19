@@ -58,6 +58,7 @@ services:
       - etc:/etc
       - home:/home
       - usr_local:/usr/local
+      - var_lib_containers:/var/lib/containers
       #@ if privileged:
       - /run:/run
       - /sys/fs/cgroup:/sys/fs/cgroup:ro
