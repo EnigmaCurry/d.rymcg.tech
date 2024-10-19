@@ -7,7 +7,7 @@ volumes:
 services:
   linux:
     runtime: sysbox-runc
-    container_name: sysbox-systemd-linux-${SYSBOX_SYSTEMD_INSTANCE:-default}
+    container_name: sysbox-systemd-linux-${SYSBOX_SYSTEMD_INSTANCE:-default}-1
     hostname: sysbox-systemd-linux-${SYSBOX_SYSTEMD_INSTANCE:-default}
     build:
       context: linux-systemd
