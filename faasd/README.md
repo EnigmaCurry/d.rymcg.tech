@@ -5,7 +5,7 @@ platform for running serverless functions in short-lived containers
 created on demand. Faasd does not natively support Docker, it runs its
 own container runner, and it is also dependent on systemd. However, it
 can be forced to run in Docker with
-[sysbox-systemd](../sysbox-systemd).
+[sysbox](https://github.com/nestybox/sysbox#readme).
 
 ## Configure sysbox host
 
