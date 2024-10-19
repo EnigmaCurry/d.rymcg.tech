@@ -36,13 +36,10 @@ RUN DEBIAN_FRONTEND=noninteractive apt-get clean -y; \
        /usr/share/man/* \
        /usr/share/local/*
 
-COPY entrypoint.sh /usr/local/bin/entrypoint.sh
-RUN chmod +x /usr/local/bin/entrypoint.sh
-ENTRYPOINT ["/usr/local/bin/entrypoint.sh"]
 
 VOLUME /etc
 VOLUME /home
 VOLUME /root
 WORKDIR /root
 STOPSIGNAL SIGRTMIN+3
-
+ENTRYPOINT [ "/sbin/init", "--log-level=info" ]
