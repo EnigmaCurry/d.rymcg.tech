@@ -40,7 +40,7 @@ services:
       - "traefik.http.middlewares.(@= router @)-basicauth.basicauth.headerField=X-Forwarded-User"
       #@ end
 
-      - "traefik.http.services.(@= router @).loadbalancer.server.port=80"
+      - "traefik.http.services.(@= router @).loadbalancer.server.port=8080"
 
       #! Apply all middlewares (do this at the end!)
       - "traefik.http.routers.(@= router @).middlewares=(@= ','.join(enabled_middlewares) @)"
