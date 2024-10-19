@@ -158,3 +158,12 @@ curl https://www.postb.in/api/bin/${POSTBIN}/req/shift | jq -r ".body | keys[]"
 ```
 
 This should respond with the same text you sent: `Bonjour postb.in`.
+
+## Test public route to function
+
+```
+curl -L -d "Hello public" https://faasd.example.com/function/hello-world
+```
+
+This should route your domain name (`faasd.example.com`) TLS port
+`443` through Traefik to the faasd backend port `8080`.

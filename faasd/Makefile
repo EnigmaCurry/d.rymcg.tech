@@ -6,6 +6,8 @@ include ${ROOT_DIR}/_scripts/Makefile.instance
 config-hook:
 	@${BIN}/reconfigure_ask ${ENV_FILE} FAASD_TRAEFIK_HOST "Enter the faasd domain name" faasd${INSTANCE_URL_SUFFIX}.${ROOT_DOMAIN}
 	@${BIN}/reconfigure ${ENV_FILE} FAASD_INSTANCE=$${instance:-default}
+	@${BIN}/reconfigure_auth ${ENV_FILE} FAASD
+	@echo ""
 
 .PHONY: override-hook
 override-hook:
