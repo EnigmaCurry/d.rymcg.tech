@@ -1,0 +1,19 @@
+volumes:
+  registry:
+
+services:
+  registry:
+    image: ${REGISTRY_IMAGE}
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+    sysctls:
+      - net.ipv4.ip_unprivileged_port_start=1024
+    restart: unless-stopped
+    environment:
+      - REGISTRY_HTTP_SECRET=${REGISTRY_HTTP_SECRET}
+    # All labels are defined in the template: docker-compose.instance.yaml
+    labels: []
+    volumes:
+      - registry:/var/lib/registry
