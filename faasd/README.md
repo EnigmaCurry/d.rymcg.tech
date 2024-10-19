@@ -1,10 +1,11 @@
 # Faasd
 
-[Faasd](https://github.com/openfaas/faasd) is a platform for running
-serverless functions as short-lived containers via
-[OpenFaaS](https://www.openfaas.com/). Faasd does not natively support
-Docker, because it is dependent on systemd. However, it can be forced
-to run with [sysbox-systemd](../sysbox-systemd).
+[Faasd](https://github.com/openfaas/faasd) is a lightweight compute
+platform for running serverless functions in short-lived containers
+created on demand. Faasd does not natively support Docker, it runs its
+own container runner, and it is also dependent on systemd. However, it
+can be forced to run in Docker with
+[sysbox-systemd](../sysbox-systemd).
 
 ## Configure sysbox container
 
@@ -13,8 +14,8 @@ to run with [sysbox-systemd](../sysbox-systemd).
  * Install
    [sysbox-systemd](https://github.com/EnigmaCurry/d.rymcg.tech/tree/master/sysbox-systemd#readme).
 
-> ℹ️ These instructions assume you have an context alias named `d`, but
-> your alias may be different.
+> ℹ️ These instructions assume you have a d.rymcg.tech context alias
+> named `d`, but your alias may be different.
 
 Configure the container:
 
@@ -22,7 +23,7 @@ Configure the container:
 d make sysbox-systemd config
 ```
 
-Make it privileged:
+Give the container system root privileges:
 
 ```
 d make sysbox-systemd reconfigure var=SYSBOX_PRIVILEGED=true
@@ -50,15 +51,20 @@ systemctl status
 Install podman and configure it to masquerade as Docker:
  
 ```
+## Inside the sysbox container shell:
 sudo apt update
 sudo apt install -y git jq podman
 
 sudo ln -s /usr/bin/podman /usr/local/bin/docker
+
 cat <<EOF | sudo tee /etc/containers/containers.conf
 [engine]
 cgroup_manager = "cgroupfs"
 EOF
 ```
+
+> ℹ️ Configuring the cgroup_manager is done to avoid this error: `Error:
+> cannot open sd-bus: No such file or directory: OCI not found`
 
  * Create a local Docker registry
  
