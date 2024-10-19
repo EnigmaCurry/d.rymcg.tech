@@ -28,10 +28,10 @@ REGISTRY_TRAEFIK_HOST: Enter the registry domain name (eg. registry.example.com)
 ```
 
 The registry has a fully public API, so it is highly recommended to
-configure some form of sentry authorization mechanisms in front of
-your registry which will keep it secure from unauthorized users.
-Choose either `HTTP Basic Authentication` (username/password) or
-`Mutual TLS (mTLS)` (certificate):
+configure the sentry authorization mechanism of your choice, which
+will keep the registry secure from unauthorized users. Choose either
+`HTTP Basic Authentication` (username+password) or `Mutual TLS (mTLS)`
+(signed certificate):
 
 ```stdout
 ? Do you want to enable sentry authorization in front of this app (effectively making the entire site private)?  
@@ -63,13 +63,13 @@ make install
 
 ## Configure client
 
-To use the registry, configure the docker client to use it:
+To use the registry, configure the docker client:
 
 ```
 docker login registry.example.com
 ```
 
-Enter your credentials for HTTP Basic Authentication:
+Enter the credentials for HTTP Basic Authentication:
 
 ```stdout
 Username: ryan
@@ -93,7 +93,7 @@ Retag the image so that it belongs to your registry now:
 docker tag docker.io/traefik/whoami:latest registry.example.com/traefik/whoami:latest
 ```
 
-Push it to your registry:
+Push it to the new registry:
 
 ```
 docker push registry.example.com/traefik/whoami:latest
