@@ -60,6 +60,7 @@ services:
       - usr_local:/usr/local
       - var_lib:/var/lib
       - opt:/opt
+      - lib_systemd:/lib/systemd
       #@ if privileged:
       - /run:/run
       - /sys/fs/cgroup:/sys/fs/cgroup:ro

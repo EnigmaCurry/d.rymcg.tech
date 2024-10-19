@@ -39,6 +39,9 @@ RUN DEBIAN_FRONTEND=noninteractive apt-get clean -y; \
 VOLUME /etc
 VOLUME /home
 VOLUME /root
+VOLUME /var/lib
+VOLUME /lib/systemd
+VOLUME /opt
 WORKDIR /root
 STOPSIGNAL SIGRTMIN+3
 ENTRYPOINT [ "/sbin/init", "--log-level=info" ]

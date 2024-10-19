@@ -5,6 +5,7 @@ volumes:
   usr_local:
   var_lib:
   opt:
+  lib_systemd:
   
 services:
   faasd:
