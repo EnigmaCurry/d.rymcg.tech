@@ -2,29 +2,62 @@
 
 [Faasd](https://github.com/openfaas/faasd) is a platform for running
 serverless functions as short-lived containers via
-[OpenFaaS](https://www.openfaas.com/).
+[OpenFaaS](https://www.openfaas.com/). Faasd does not natively support
+Docker, because it is dependent on systemd. However, it can be forced
+to run with [sysbox-systemd](../sysbox-systemd).
 
-## Run Faasd in a VM
+## Configure sysbox container
 
-This is hopefully a temporary procedure only necessary to bootstrap
-these docs. The goal is to run faasd in a Docker container, not a VM,
-but the upstream docs expect it to be running in a VM, so we will
-start there.
+ * Setup your Docker host with
+   [d.rymcg.tech](https://github.com/enigmacurry/d.rymcg.tech#readme).
+ * Install
+   [sysbox-systemd](https://github.com/EnigmaCurry/d.rymcg.tech/tree/master/sysbox-systemd#readme).
 
- * Create a VM running Debian:
+> ℹ️ These instructions assume you have an context alias named `d`, but
+> your alias may be different.
 
-   * 2GB RAM.
-   * 1 vCPU.
+Configure the container:
 
- * Login to the VM via SSH, as root.
+```
+d make sysbox-systemd config
+```
 
- * Install podman and configure it to masquerade as docker:
+Make it privileged:
+
+```
+d make sysbox-systemd reconfigure var=SYSBOX_PRIVILEGED=true
+```
+
+Install it:
+
+```
+d make sysbox-systemd install
+```
+
+Enter the shell for the container:
+
+```
+d make sysbox-systemd shell
+```
+
+Show that systemd is running:
+
+```
+## Inside the sysbox container shell:
+systemctl status
+```
+
+Install podman and configure it to masquerade as Docker:
  
 ```
 sudo apt update
 sudo apt install -y git jq podman
 
 sudo ln -s /usr/bin/podman /usr/local/bin/docker
+cat <<EOF | sudo tee /etc/containers/containers.conf
+[engine]
+cgroup_manager = "cgroupfs"
+EOF
 ```
 
  * Create a local Docker registry
@@ -46,7 +79,7 @@ EOF
 ```
 
  * [[https://blog.alexellis.io/faasd-for-lightweight-serverless/][Install
-   faasd according to the Raspberry Pi docs]], abbreviated here:
+faasd according to the Raspberry Pi docs]], abbreviated here:
    
 ```
 ## In the faasd VM:
@@ -182,7 +215,7 @@ faas-cli new --lang python3 \
 Build and install the image:
 
 ```
-faas-cli up -f hello.yml
+faas-cli up -f hello-world.yml
 ```
 
 Test the newly deployed function:
@@ -214,40 +247,3 @@ Retrieve (and remove) the response from the receiver:
 curl https://www.postb.in/api/bin/${POSTBIN}/req/shift | jq
 ```
 
-## Run faasd in a container
-
- * Setup your Docker host with
-   [d.rymcg.tech](https://github.com/enigmacurry/d.rymcg.tech#readme).
- * Install
-   [sysbox-systemd](https://github.com/EnigmaCurry/d.rymcg.tech/tree/master/sysbox-systemd#readme).
-
-Configure the container:
-
-```
-d make sysbox-systemd config
-```
-
-Make it privileged:
-
-```
-d make sysbox-systemd reconfigure var=SYSBOX_PRIVILEGED=true
-```
-
-
-Install it:
-```
-d make sysbox-systemd install
-```
-
-Enter the shell for the container:
-
-```
-d make sysbox-systemd shell
-```
-
-Show that systemd is running:
-
-```
-## Inside the sysbox container shell:
-systemctl status
-```
