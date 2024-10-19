@@ -10,6 +10,7 @@ RUN ln -s /usr/bin/podman /usr/local/bin/docker && \
     printf 'unqualified-search-registries=["localhost:5000","docker.io"]\n\n[[registry]]\nlocation="localhost:5000"\ninsecure=true\n' \
       > /etc/containers/registries.conf.d/localhost.conf && \
     printf '[engine]\ncgroup_manager = "cgroupfs"\n' > /etc/containers/containers.conf && \
+    printf '[storage]\ndriver = "vfs"\n' > /etc/containers/storage.conf && \
     systemctl mask \
        systemd-journald-audit.socket \
        systemd-udevd.service \
