@@ -29,10 +29,35 @@ rm -f ${TMP_FILE})
 d make faasd config
 ```
 
+Enter the domain name to use for the service:
+
 ```stdout
 # FAASD_TRAEFIK_HOST: Enter the faasd domain name (eg. faasd.example.com)
 # : faasd.example.com
 ```
+
+For testing purposes, you should choose to enable HTTP Basic
+Authentication, with a username and password:
+
+```
+? Do you want to enable sentry authorization in front of this app (effectively making the entire site private)?
+  No
+> Yes, with HTTP Basic Authentication
+  Yes, with Oauth2
+  Yes, with Mutual TLS (mTLS)
+
+Enter the username for HTTP Basic Authentication
+: test
+
+Enter the passphrase for test (leave blank to generate a random passphrase)
+: a_secure_passphrase
+
+> Would you like to create additional usernames (for the same access privilege)? No
+
+> Would you like to export the usernames and cleartext passwords to the file passwords.js
+n? No
+```
+
 
 ## Install faasd
 
@@ -162,8 +187,9 @@ This should respond with the same text you sent: `Bonjour postb.in`.
 ## Test public route to function
 
 ```
-curl -L -d "Hello public" https://faasd.example.com/function/hello-world
+curl -L -d "Hello public" https://test:a_secure_passphrase@faasd.example.com/function/hello-world
 ```
 
 This should route your domain name (`faasd.example.com`) TLS port
-`443` through Traefik to the faasd backend port `8080`.
+`443` through Traefik, verifying your username and password, and then
+forward to the faasd backend port `8080`.
