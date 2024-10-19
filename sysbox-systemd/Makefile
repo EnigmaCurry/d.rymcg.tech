@@ -6,7 +6,6 @@ include ${ROOT_DIR}/_scripts/Makefile.instance
 config-hook:
 	@${BIN}/reconfigure_ask ${ENV_FILE} SYSBOX_SYSTEMD_TRAEFIK_HOST "Enter the service domain name" $${INSTANCE:-my-service}.${ROOT_DOMAIN}
 	@${BIN}/reconfigure ${ENV_FILE} SYSBOX_SYSTEMD_INSTANCE=$${instance:-default}
-	@${BIN}/reconfigure_htpasswd ${ENV_FILE} SYSBOX_SYSTEMD_HTTP_AUTH default=no
 
 .PHONY: override-hook
 override-hook:
