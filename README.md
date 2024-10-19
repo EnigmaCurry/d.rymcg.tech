@@ -527,6 +527,8 @@ Install these recommended backbone applications next:
 * [Postfix-Relay](postfix-relay#readme)
   * A simple email forwarding service (SMTP) which can be used by any
     other container that needs to send email.
+* [Registry](registry#readme) 
+  * An OCI container registry for hosting docker container images.
 
 Install these other services at your leisure/preference:
 
