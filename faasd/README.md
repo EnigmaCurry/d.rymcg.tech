@@ -66,7 +66,12 @@ EOF
 > ℹ️ Configuring the cgroup_manager is done to avoid this error: `Error:
 > cannot open sd-bus: No such file or directory: OCI not found`
 
- * Create a local Docker registry
+## Docker registry
+
+Faasd deploys its containers by pulling from a Docker registry, so you
+must provision one or use a third party service.
+
+ * Create a local Docker registry for testing purposes:
  
 ```
 ## Inside the sysbox container shell:
