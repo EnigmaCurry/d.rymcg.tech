@@ -3,10 +3,10 @@ volumes:
   etc:
   home:
   usr_local:
-  var_lib_containers:
 
 services:
   faasd:
+    ## sysbox-runc allows to run systemd inside the container:
     runtime: sysbox-runc
     hostname: faasd-${FAASD_INSTANCE:-default}-1
     build:
