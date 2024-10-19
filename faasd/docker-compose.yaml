@@ -1,12 +1,13 @@
+
+volumes:
+  etc:
+  home:
+  usr_local:
+
 services:
   faasd:
-    image: ${FAASD_IMAGE}
-    cap_drop:
-      - ALL
-    security_opt:
-      - no-new-privileges:true
-    sysctls:
-      - net.ipv4.ip_unprivileged_port_start=1024
+    runtime: sysbox-runc
+    hostname: faasd-${FAASD_INSTANCE:-default}-1
+    build:
+      context: faasd
     restart: unless-stopped
-    # All labels are defined in the template: docker-compose.instance.yaml
-    labels: []
