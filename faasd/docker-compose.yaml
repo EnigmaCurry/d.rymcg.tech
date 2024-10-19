@@ -3,8 +3,9 @@ volumes:
   etc:
   home:
   usr_local:
-  var_lib_containers:
-
+  var_lib:
+  opt:
+  
 services:
   faasd:
     ## sysbox-runc allows to run systemd inside the container:
