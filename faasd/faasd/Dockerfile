@@ -22,8 +22,7 @@ RUN ln -s /usr/bin/podman /usr/local/bin/docker && \
        sys-kernel-tracing.mount
 
 RUN git clone https://github.com/openfaas/faasd ~/git/vendor/openfaas/faasd && \
-    cd ~/git/vendor/openfaas/faasd && \
-    ./hack/install.sh
+    cd ~/git/vendor/openfaas/faasd
 
 ### Cleanup
 RUN DEBIAN_FRONTEND=noninteractive apt-get clean -y; \
