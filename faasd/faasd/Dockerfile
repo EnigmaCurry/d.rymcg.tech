@@ -10,7 +10,6 @@ RUN ln -s /usr/bin/podman /usr/local/bin/docker && \
     printf 'unqualified-search-registries=["localhost:5000","docker.io"]\n\n[[registry]]\nlocation="localhost:5000"\ninsecure=true\n' \
       > /etc/containers/registries.conf.d/localhost.conf && \
     printf '[engine]\ncgroup_manager = "cgroupfs"\n' > /etc/containers/containers.conf && \
-    printf '[storage]\ndriver = "overlay"\nrunroot = "/var/run/containers/storage"\ngraphroot = "/var/lib/containers/storage"\n\n[storage.options]\nmount_program = "/usr/bin/fuse-overlayfs"\n' > /etc/containers/storage.conf && \
     systemctl mask \
        systemd-journald-audit.socket \
        systemd-udevd.service \
@@ -22,8 +21,7 @@ RUN ln -s /usr/bin/podman /usr/local/bin/docker && \
        sys-kernel-debug.mount \
        sys-kernel-tracing.mount
 
-RUN git clone https://github.com/openfaas/faasd ~/git/vendor/openfaas/faasd && \
-    cd ~/git/vendor/openfaas/faasd
+RUN git clone https://github.com/openfaas/faasd ~/git/vendor/openfaas/faasd
 
 ### Cleanup
 RUN DEBIAN_FRONTEND=noninteractive apt-get clean -y; \
