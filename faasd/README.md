@@ -84,8 +84,7 @@ insecure=true
 EOF
 ```
 
- * [[https://blog.alexellis.io/faasd-for-lightweight-serverless/][Install
-faasd according to the Raspberry Pi docs]], abbreviated here:
+ * [Install faasd according to the Raspberry Pi docs](https://blog.alexellis.io/faasd-for-lightweight-serverless), abbreviated here:
    
 ```
 ## In the faasd VM:
