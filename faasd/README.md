@@ -117,12 +117,20 @@ Test the newly deployed function:
 ```
 ## Inside the faasd container shell:
 echo "Hello faasd" | faas-cli invoke hello-world
-
 # Hello faasd
 ```
 
-Create a [postb.in endpoint](https://www.postb.in) to use as a
-temporary webhook receiver:
+Test via HTTP:
+
+```
+## Inside the faasd container shell:
+curl -d "Hello curl" http://127.0.0.1:8080/function/hello-world
+# Hello curl
+```
+
+Test asynchronous function with a callback webhook. Create a [postb.in
+endpoint](https://www.postb.in) to use as a temporary webhook
+receiver:
 
 ```
 ## Inside the faasd container shell:
@@ -133,7 +141,7 @@ Test the function and pass the webhook:
 
 ```
 ## Inside the faasd container shell:
-curl -d "Hello faasd" \
+curl -d "Bonjour postb.in" \
   http://127.0.0.1:8080/async-function/hello-world \
   --header "X-Callback-Url: https://www.postb.in/${POSTBIN}" 
 ```
@@ -145,4 +153,4 @@ Retrieve (and remove) the response from the receiver:
 curl https://www.postb.in/api/bin/${POSTBIN}/req/shift | jq -r ".body | keys[]"
 ```
 
-This should respond with the same text you sent: `Hello faasd`.
+This should respond with the same text you sent: `Bonjour postb.in`.
