@@ -5,12 +5,12 @@ that enables creating customizable and shareable user interfaces for
 machine learning models, making it easier to demo your applications
 with minimal coding effort. It offers features like text inputs, image
 uploads, data tables, and real-time feedback outputs, allowing users
-to interactively explore ML models in their browsers.
+to interactively explore ML models in their web browsers.
 
-This configuration includes the following prebuild apps:
+This configuration includes the following prebuilt apps:
 
- * `hello` - a simple greeting app.
- * `chatbot` - a streaming chatbot agent for a remote
+ * [hello](gradio/hello) - a simple greeting app.
+ * [chatbot](gradio/chatbot) - a streaming chatbot agent for a remote
    [LM Studio](https://lmstudio.ai/) instance.
 
 
