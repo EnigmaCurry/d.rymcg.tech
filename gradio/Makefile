@@ -9,7 +9,7 @@ config-hook:
 #### reconfigure_ask asks the user a question to set the variable into the .env file, and with a provided default value.
 #### reconfigure sets the value of a variable in the .env file without asking.
 #### reconfigure_htpasswd will configure the HTTP Basic Authentication setting the var name and with a provided default value.
-	@${BIN}/reconfigure_ask ${ENV_FILE} GRADIO_TRAEFIK_HOST "Enter the gradio domain name" llm${INSTANCE_URL_SUFFIX}.${ROOT_DOMAIN}
+	@${BIN}/reconfigure_ask ${ENV_FILE} GRADIO_TRAEFIK_HOST "Enter the gradio domain name" gradio${INSTANCE_URL_SUFFIX}.${ROOT_DOMAIN}
 	@${BIN}/reconfigure ${ENV_FILE} GRADIO_INSTANCE=$${instance:-default}
 	@echo
 	@${BIN}/reconfigure_choose ${ENV_FILE} GRADIO_APP "Choose the gradio app to install" $$(find ./gradio -maxdepth 1 -mindepth 1 -type d | xargs -iXX basename XX)
