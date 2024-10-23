@@ -19,6 +19,7 @@
 #@ mtls_authorized_certs = data.values.mtls_authorized_certs
 #@ enabled_middlewares = []
 #@ app = data.values.app
+#@ log_level = data.values.log_level
 #@ chatbot_api = data.values.chatbot_api
 
 #@yaml/text-templated-strings
@@ -32,10 +33,13 @@ services:
     #@ service = "gradio"
     environment:
       - APP_TRAEFIK_HOST=(@= traefik_host @)
+      - APP_APP=(@= app @)
+      - APP_LOG_LEVEL=(@= log_level @)
       - APP_CHATBOT_API=(@= chatbot_api @)
       - DOCKER_PROJECT=(@= project @)
       - DOCKER_INSTANCE=(@= instance @)
       - DOCKER_CONTEXT=(@= context @)
+      - GRADIO_ANALYTICS_ENABLED=False
     labels:
       #! Services must opt-in to be proxied by Traefik:
       - "traefik.enable=true"

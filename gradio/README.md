@@ -12,7 +12,8 @@ This configuration includes the following prebuilt apps:
  * [hello](gradio/hello) - a simple greeting app.
  * [chatbot](gradio/chatbot) - a streaming chatbot agent for a remote
    [LM Studio](https://lmstudio.ai/) instance.
-
+ * [text-to-speech](gradio/text-to-speech) - perform web browser
+   native text to speech.
 
 ## Config
 
@@ -98,3 +99,16 @@ http://192.168.1.2:1234/v1/chat/completions
 ```
 
 This will let Gradio use your LM Studio instance as its backend agent.
+
+## Development
+
+You can create new applications in the [gradio](./gradio)
+sub-directory. To enable automatic reloading on source file changes, run:
+
+```
+make dev
+```
+
+This relies upon having a Rust + Cargo enviornment, and it will
+automatically install
+[cargo-watch](https://github.com/watchexec/cargo-watch)

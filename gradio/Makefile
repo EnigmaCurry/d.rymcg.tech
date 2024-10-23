@@ -44,8 +44,15 @@ override-hook:
 ####                         # (this hardcodes the string into docker-compose.override.yaml)
 ####   name=@VARIABLE_NAME   # sets the template 'name' field to the literal string '${VARIABLE_NAME}'
 ####                         # (used for regular docker-compose expansion of env vars by name.)
-	@${BIN}/docker_compose_override ${ENV_FILE} project=:gradio instance=@GRADIO_INSTANCE traefik_host=@GRADIO_TRAEFIK_HOST http_auth=GRADIO_HTTP_AUTH http_auth_var=@GRADIO_HTTP_AUTH ip_sourcerange=@GRADIO_IP_SOURCERANGE oauth2=GRADIO_OAUTH2 authorized_group=GRADIO_OAUTH2_AUTHORIZED_GROUP enable_mtls_auth=GRADIO_MTLS_AUTH mtls_authorized_certs=GRADIO_MTLS_AUTHORIZED_CERTS app=GRADIO_APP chatbot_api=GRADIO_CHATBOT_API
+	@${BIN}/docker_compose_override ${ENV_FILE} project=:gradio instance=@GRADIO_INSTANCE traefik_host=@GRADIO_TRAEFIK_HOST http_auth=GRADIO_HTTP_AUTH http_auth_var=@GRADIO_HTTP_AUTH ip_sourcerange=@GRADIO_IP_SOURCERANGE oauth2=GRADIO_OAUTH2 authorized_group=GRADIO_OAUTH2_AUTHORIZED_GROUP enable_mtls_auth=GRADIO_MTLS_AUTH mtls_authorized_certs=GRADIO_MTLS_AUTHORIZED_CERTS app=GRADIO_APP chatbot_api=GRADIO_CHATBOT_API log_level=GRADIO_LOG_LEVEL
 
 .PHONY: shell # Enter shell of api container (or set service=name to enter a different one)
 shell:
 	@make --no-print-directory docker-compose-shell SERVICE=gradio
+
+dev:
+	@if ! command -v cargo-watch &> /dev/null; then \
+		echo "Installing cargo-watch..."; \
+		cargo install cargo-watch; \
+	fi
+	cargo watch -s 'sleep 5 && make up'
