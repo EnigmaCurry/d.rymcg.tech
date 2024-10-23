@@ -20,8 +20,27 @@ def get_config(key, default=None):
     return value
 
 def get_logger(name):
-    log = logging.getLogger(name)
-    return log
+    class Logger:
+        def __init__(self, name):
+            self.name = name
+
+        def info(self, message):
+            print(f"[INFO] {self.name}: {message}")
+            sys.stdout.flush()
+
+        def error(self, message):
+            print(f"[ERROR] {self.name}: {message}", file=sys.stderr)
+            sys.stderr.flush()
+
+        def warning(self, message):
+            print(f"[WARNING] {self.name}: {message}")
+            sys.stdout.flush()
+
+        def debug(self, message):
+            print(f"[DEBUG] {self.name}: {message}")
+            sys.stdout.flush()
+
+    return Logger(name)
 
 def invalid_config(variable, error_message):
     "Log error for invalid configuration and quit"
