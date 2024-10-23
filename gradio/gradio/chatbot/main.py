@@ -1,10 +1,4 @@
-import sys
-import gradio as gr
-import requests
-import json
-
-from config import get_logger, TRAEFIK_HOST, CHATBOT_API
-log = get_logger("app")
+from config import *
 
 # Function to stream responses from the LLM, maintaining context
 def query_llm(input_text, history):
@@ -63,7 +57,4 @@ def query_llm(input_text, history):
 # Using gr.ChatInterface to handle streaming
 chatbot = gr.ChatInterface(fn=query_llm, title="LM Studio Chat")
 
-print("Launching Gradio interface ...")
-sys.stdout.flush()
-
-chatbot.launch(server_name="0.0.0.0", server_port=7860)
+launch(chatbot)
