@@ -24,7 +24,7 @@ Choose a host name for the gradio instance:
 
 ```stdout
 GRADIO_TRAEFIK_HOST: Enter the gradio domain name (eg. gradio.example.com)
-: llm.example.com
+: gradio.example.com
 ```
 
 Choose the app to install:
