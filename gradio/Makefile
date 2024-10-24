@@ -18,7 +18,8 @@ config-hook:
 	case $$GRADIO_APP in \
 		"chatbot") \
 			echo "Installing chatbot app"; \
-			${BIN}/reconfigure_ask ${ENV_FILE} GRADIO_CHATBOT_API "Enter the lm-studio API URL" "http://127.0.0.1:1234/v1/chat/completions"; \
+			${BIN}/reconfigure_ask "${ENV_FILE}" GRADIO_CHATBOT_API "Enter the lm-studio API URL" "http://127.0.0.1:1234/v1/chat/completions"; \
+			${BIN}/reconfigure_ask "${ENV_FILE}" GRADIO_CHATBOT_MODELS "Enter the comma separated list of chat models" "codestral-22b-v0.1,gemma-2-27b-it"; \
 			;; \
 		*) \
 			echo "Installing app: $$GRADIO_APP"; \
@@ -44,7 +45,7 @@ override-hook:
 ####                         # (this hardcodes the string into docker-compose.override.yaml)
 ####   name=@VARIABLE_NAME   # sets the template 'name' field to the literal string '${VARIABLE_NAME}'
 ####                         # (used for regular docker-compose expansion of env vars by name.)
-	@${BIN}/docker_compose_override ${ENV_FILE} project=:gradio instance=@GRADIO_INSTANCE traefik_host=@GRADIO_TRAEFIK_HOST http_auth=GRADIO_HTTP_AUTH http_auth_var=@GRADIO_HTTP_AUTH ip_sourcerange=@GRADIO_IP_SOURCERANGE oauth2=GRADIO_OAUTH2 authorized_group=GRADIO_OAUTH2_AUTHORIZED_GROUP enable_mtls_auth=GRADIO_MTLS_AUTH mtls_authorized_certs=GRADIO_MTLS_AUTHORIZED_CERTS app=GRADIO_APP chatbot_api=GRADIO_CHATBOT_API log_level=GRADIO_LOG_LEVEL
+	@${BIN}/docker_compose_override ${ENV_FILE} project=:gradio instance=@GRADIO_INSTANCE traefik_host=@GRADIO_TRAEFIK_HOST http_auth=GRADIO_HTTP_AUTH http_auth_var=@GRADIO_HTTP_AUTH ip_sourcerange=@GRADIO_IP_SOURCERANGE oauth2=GRADIO_OAUTH2 authorized_group=GRADIO_OAUTH2_AUTHORIZED_GROUP enable_mtls_auth=GRADIO_MTLS_AUTH mtls_authorized_certs=GRADIO_MTLS_AUTHORIZED_CERTS app=GRADIO_APP chatbot_api=GRADIO_CHATBOT_API log_level=GRADIO_LOG_LEVEL chatbot_models=GRADIO_CHATBOT_MODELS traefik_entrypoint=GRADIO_TRAEFIK_ENTRYPOINT
 
 .PHONY: shell # Enter shell of api container (or set service=name to enter a different one)
 shell:

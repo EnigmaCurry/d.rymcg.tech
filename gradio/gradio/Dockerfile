@@ -32,11 +32,18 @@ RUN if [ "$BUILD_PIPER" = "true" ]; then \
         mkdir -p /build/piper_models; \
     fi
 
-ARG MODEL_URL=https://huggingface.co/rhasspy/piper-voices/resolve/v1.0.0/en/en_US/amy/low/en_US-amy-low.onnx
+ARG MODEL_URLS=https://huggingface.co/rhasspy/piper-voices/resolve/v1.0.0/en/en_US/amy/low/en_US-amy-low.onnx,https://huggingface.co/rhasspy/piper-voices/resolve/v1.0.0/en/en_US/danny/low/en_US-danny-low.onnx,https://huggingface.co/rhasspy/piper-voices/resolve/v1.0.0/en/en_US/john/medium/en_US-john-medium.onnx,https://huggingface.co/rhasspy/piper-voices/resolve/v1.0.0/en/en_US/lessac/medium/en_US-lessac-medium.onnx
+
 RUN if [ "$BUILD_PIPER" = "true" ]; then \
-        curl -L -o /build/piper_models/$(echo ${MODEL_URL} | xargs basename) ${MODEL_URL}; \
-        curl -L -o /build/piper_models/$(echo ${MODEL_URL} | xargs basename).json ${MODEL_URL}.json; \
+    IFS=','; \
+    for url in $MODEL_URLS; do \
+        model_name=$(basename "$url"); \
+        echo "Downloading model: $model_name"; \
+        curl -L -o /build/piper_models/$model_name $url; \
+        curl -L -o /build/piper_models/$model_name.json $url.json; \
+    done; \
     fi
+
 
 # Stage 2: Final runtime image
 FROM python:3.9-slim
