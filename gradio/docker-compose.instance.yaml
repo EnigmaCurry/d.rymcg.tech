@@ -25,17 +25,12 @@
 #@yaml/text-templated-strings
 services:
   gradio:
+    #@ service = "gradio"
     image: (@= project @)-(@= app @)
     build:
       context: gradio
       args:
         APP: (@= app @)
-    deploy:
-      resources:
-        limits:
-          cpus: "1"
-          memory: "2g"
-    #@ service = "gradio"
     environment:
       - APP_TRAEFIK_HOST=(@= traefik_host @)
       - APP_APP=(@= app @)
