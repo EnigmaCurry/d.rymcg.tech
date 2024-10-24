@@ -200,8 +200,8 @@ get_enabled_entrypoints() {
 list_enabled_entrypoints() {
     readarray -t entrypoints < <(get_enabled_entrypoints)
     (
-        echo -e "Entrypoint\tListen_address\tListen_port\tProtocol\tUpstream_proxy"
-        echo -e "----------\t--------------\t-----------\t--------\t--------------"
+        echo -e "Entrypoint\tListen_address\tListen_port\tProtocol\tUpstream_proxy\tUse_Https"
+        echo -e "----------\t--------------\t-----------\t--------\t--------------\t-------"
         (
             for e in "${entrypoints[@]}"; do
                 local ENTRYPOINT="$(echo "${e}" | tr '[:lower:]' '[:upper:]')"
@@ -644,7 +644,7 @@ list_custom_entrypoints() {
         #echo "## No custom entrypoints defined." >/dev/stderr
         return
     fi
-    (echo "${ENTRYPOINTS}" | tr ',' '\n' | sed 's/:/\t/g' | sort -u) | column -t
+    (echo "${ENTRYPOINTS}" | tr ',' '\n' | sed 's/::/:-:/g' | sed 's/:/\t/g' | sort -u) | column -t
 }
 
 manage_custom_entrypoints() {
@@ -733,11 +733,11 @@ add_custom_entrypoint() {
         0) TRUSTED_NETS=;;
         1) TRUSTED_NETS=$(ask_echo "Enter the comma separated list of trusted upstream proxy servers (CIDR)" 10.13.16.1/32);;
     esac
-
+    USE_HTTPS=$(choose "Does this entrypoint use HTTPS?" "true" "false")
     if [[ -n "${CUSTOM_ENTRYPOINTS}" ]]; then
         CUSTOM_ENTRYPOINTS="${CUSTOM_ENTRYPOINTS},"
     fi
-    CUSTOM_ENTRYPOINTS="${CUSTOM_ENTRYPOINTS}${ENTRYPOINT}:${ENTRYPOINT_IP_ADDRESS}:${ENTRYPOINT_PORT}:${PROTOCOL}:${TRUSTED_NETS}"
+    CUSTOM_ENTRYPOINTS="${CUSTOM_ENTRYPOINTS}${ENTRYPOINT}:${ENTRYPOINT_IP_ADDRESS}:${ENTRYPOINT_PORT}:${PROTOCOL}:${TRUSTED_NETS}:${USE_HTTPS}"
     ${BIN}/reconfigure ${ENV_FILE} "TRAEFIK_CUSTOM_ENTRYPOINTS=${CUSTOM_ENTRYPOINTS}"
 }
 
