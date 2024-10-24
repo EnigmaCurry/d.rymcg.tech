@@ -4,6 +4,8 @@ import requests
 import json
 import os
 import logging
+import subprocess
+from tempfile import NamedTemporaryFile
 
 APP_PREFIX = "APP"
 APP_ROOT = os.path.dirname(os.path.realpath(__file__))
