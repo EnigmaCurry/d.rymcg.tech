@@ -1,21 +1,40 @@
 from config import *
+import markdown  # For converting markdown to HTML
+import requests
 
 log = get_logger(__name__)
 
-def query_llm(input_text, history=None):
+VOICES = {voice: f"/app/piper_models/{voice}.onnx" for voice in ["en_US-lessac-medium", "en_US-danny-low", "en_US-amy-low", "en_US-john-medium"]}
+
+SYSTEM_PROMPTS = { 
+    "shakespearean-tutor": """You are a Shakespearean thespian and assistant that provides helpful, friendly, and informative responses. Your goal is to assist with coding, math, problem-solving, and general knowledge, but with dry wit and humor as a character trait. You always answer with rhyme and meter.""",
+    "code-tutor": """You are an expert programmer and teacher. You provide helpful, friendly, and informative responses. Your goal is to assist with coding, math, problem-solving, and general knowledge. You always provide polite answers.""" 
+}
+
+# Function to query LLM with a preamble and history, limiting context to the last 3 exchanges
+def query_llm(input_text, history=None, model="codestral-22b-v0.1", system_prompt="shakespearean-tutor"):
     if history is None:
         history = []
 
     log.debug(f"User Input: {input_text}")
 
-    # Append the current user input to the history before sending the request
-    messages = [{"role": "user", "content": user_message} if i % 2 == 0 else {"role": "assistant", "content": assistant_message}
-                for i, (user_message, assistant_message) in enumerate(history)]
+    # Limit the history to the last 3 exchanges to avoid over-sensitivity
+    context_length = 3
+    truncated_history = history[-context_length:]
 
-    messages.append({"role": "user", "content": input_text})
+    # Start the conversation with the selected system prompt
+    preamble_prompt = SYSTEM_PROMPTS[system_prompt]
+    messages = [{"role": "system", "content": preamble_prompt}]
+
+    # Append the user and assistant messages from the conversation history
+    messages += [{"role": "user", "content": user_message} if i % 2 == 0 else {"role": "assistant", "content": assistant_message}
+                 for i, (user_message, assistant_message) in enumerate(truncated_history)]
+
+    # Add the current user input to the conversation
+    messages.append({"role": "user", "content": f"Current question: {input_text}"})
 
     payload = {
-        "model": "codestral-22b-v0.1",
+        "model": model,
         "messages": messages,
         "stream": True
     }
@@ -37,21 +56,20 @@ def query_llm(input_text, history=None):
 
         log.debug(f"Assistant Full Response: {full_response}")
 
-        # Append the LLM's response to the history
         history.append((input_text, full_response))
-
-        return full_response, history  # Return the full response and the updated history
+        return full_response, history
     else:
         error_message = f"Error: {response.status_code}"
         log.error(error_message)
         return error_message, history
 
-def generate_tts(text):
+# Function to generate TTS (unchanged)
+def generate_tts(text, voice_model):
     try:
         with NamedTemporaryFile(suffix=".wav", delete=False) as temp_wav:
             command = [
                 "piper",
-                "--model", "/app/piper_models/en_US-amy-low.onnx",
+                "--model", voice_model,
                 "--output_file", temp_wav.name
             ]
 
@@ -71,31 +89,163 @@ def generate_tts(text):
         logging.error(f"Error generating TTS: {e}")
         return None
 
-def chat_with_tts(input_text, history):
+# Function to format chat history with chat bubble styling and markdown rendering
+def format_chat_history(history):
+    history_html = "<div id='history'>"
+    for user_msg, llm_response in reversed(history):  # Most recent at the top
+        # Convert the LLM response from markdown to HTML, including code blocks
+        llm_response_html = markdown.markdown(llm_response, extensions=['fenced_code'])
+
+        history_html += f"""
+            <div class="message llm">
+                <div class="llm_response">{llm_response_html}</div>
+            </div>
+            <div class="message user">
+                <div class="user_query">{user_msg}</div>
+            </div>
+        """
+    history_html += "</div>"
+    return history_html
+
+# Reset function
+def reset_chat():
+    return "", gr.update(value=None, visible=False), [], gr.update(value=""), gr.update(visible=True), gr.update(js="stopAudioAndFocus()")
+
+# Function to validate input
+def check_input_validity(input_text):
+    return gr.update(visible=bool(input_text.strip()))  # Show button only if valid input
+
+# Set global CSS with chat bubble style and scrollable chat history
+css = """
+#history {
+    max-height: 300px;
+    overflow-y: auto;
+    padding: 10px;
+    margin-bottom: 15px;
+    border: 1px solid #ccc;
+    border-radius: 8px;
+}
+
+#history .message {
+    margin: 10px 0;
+}
+
+#history .message.user {
+    text-align: right;
+}
+
+#history .message.llm {
+    text-align: left;
+}
+
+#history .message .user_query {
+    display: inline-block;
+    max-width: 70%;
+    background-color: rgb(174, 200, 148);
+    color: black;
+    padding: 10px;
+    border-radius: 15px;
+    margin-left: 10px;
+}
+
+#history .message .llm_response {
+    display: inline-block;
+    max-width: 90%;
+    background-color: #ffe4c4;
+    color: black;
+    padding: 10px;
+    border-radius: 15px;
+    margin-right: 10px;
+}
+
+gradio-app {
+    background-color: #625d5d !important;
+}
+
+/* Dark Mode Specific Styles */
+@media (prefers-color-scheme: dark) {
+    #history .message .llm_response *,
+    #history .message .llm_response pre code,
+    #history .message .llm_response pre,
+    #history .message .llm_response p {
+        color: black !important;
+    }
+}
+"""
+
+def chat_with_tts(input_text, history, model, speech_synthesis_enabled, voice, system_prompt):
     if not input_text.strip():
         return gr.update(value=""), gr.update(), gr.update(), gr.update(value="")  # Clear everything
 
-    # Get the LLM's response and the updated history
-    response_text, updated_history = query_llm(input_text, history)
+    # Hide the submit button when submitting
+    submit_button_visibility = gr.update(visible=False)
 
-    # Generate the audio using Piper
-    audio_path = generate_tts(response_text)
+    response_text, updated_history = query_llm(input_text, history, model, system_prompt)
 
-    return response_text, audio_path, updated_history, ""  # Return the updated history and clear the textbox
+    audio_path = None
+    audio_visible = False
+    if speech_synthesis_enabled:
+        audio_path = generate_tts(response_text, VOICES[voice]) if voice in VOICES else None
+        audio_visible = True if audio_path else False
 
-with gr.Blocks(title="Voice chat with LM Studio") as interface:
+    chat_history_html = format_chat_history(updated_history)
+
+    # Show the submit button again once the response is received
+    submit_button_visibility = gr.update(visible=True)
+
+    return (
+        gr.update(value=chat_history_html),
+        gr.update(value=audio_path, visible=audio_visible),
+        updated_history,
+        "",
+        submit_button_visibility
+    )
+
+# Build the Gradio interface
+with gr.Blocks(title="Voice chat with LM Studio", css=css) as interface:
     textbox = gr.Textbox(
-        lines=1,  # Single-line input
+        lines=1,
         placeholder="Type your question here and press Enter to submit",
         show_label=True,
         label="Ask LM Studio"
     )
-    history = gr.State()  # This keeps track of the conversation history
+    history = gr.State()  # Stores conversation history
 
-    output_text = gr.Textbox(label="LLM Response")
-    audio_output = gr.Audio(type="filepath", autoplay=True, label="Generated Speech")
+    # Chat history display using HTML
+    chat_history = gr.HTML(label="Chat History")
 
-    # When the input is submitted, chat_with_tts is called and the history is updated
-    textbox.submit(chat_with_tts, inputs=[textbox, history], outputs=[output_text, audio_output, history, textbox])
+    # Collapsible settings section
+    with gr.Accordion("Settings", open=False):
+        model_dropdown = gr.Dropdown(label="Model (be patient when switching)", choices=MODELS, value=MODELS[0])
+        system_prompt_dropdown = gr.Dropdown(label="System Prompt", choices=list(SYSTEM_PROMPTS.keys()), value="shakespearean-tutor")
+        speech_synthesis_toggle = gr.Checkbox(label="Speech Synthesis", value=True)
+        voice_dropdown = gr.Dropdown(label="Voice", choices=list(VOICES.keys()), value="en_US-john-medium", visible=True)
+      
+    # Audio output for generated speech
+    audio_output = gr.Audio(type="filepath", autoplay=True, label="Generated Speech", visible=False)
+
+    # Buttons to submit and reset chat
+    submit_button = gr.Button("Submit", visible=False)
+    reset_button = gr.Button("Reset")
+
+    # Toggle visibility of the voice dropdown
+    def toggle_voice_dropdown(speech_synthesis_enabled):
+        return gr.update(visible=speech_synthesis_enabled)
+
+    speech_synthesis_toggle.change(toggle_voice_dropdown, inputs=speech_synthesis_toggle, outputs=voice_dropdown)
+
+    # Show submit button when input is valid
+    textbox.change(check_input_validity, inputs=textbox, outputs=submit_button)
+
+    # Reset chat
+    reset_button.click(reset_chat, outputs=[chat_history, audio_output, history, textbox, voice_dropdown])
+
+    # Submit button triggers the chat
+    submit_button.click(chat_with_tts, inputs=[textbox, history, model_dropdown, speech_synthesis_toggle, voice_dropdown, system_prompt_dropdown],
+                        outputs=[chat_history, audio_output, history, textbox, submit_button])
+
+    # Submit on Enter key
+    textbox.submit(chat_with_tts, inputs=[textbox, history, model_dropdown, speech_synthesis_toggle, voice_dropdown, system_prompt_dropdown],
+                   outputs=[chat_history, audio_output, history, textbox, submit_button])
 
 launch(interface)
