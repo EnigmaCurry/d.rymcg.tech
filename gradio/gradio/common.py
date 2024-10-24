@@ -4,6 +4,7 @@ import json
 import os
 import logging
 import subprocess
+import re
 from tempfile import NamedTemporaryFile
 
 APP_PREFIX = "APP"
@@ -70,6 +71,20 @@ def get_logger(name):
                 except AttributeError:
                     print(f"Invalid log level: {level}")
     return Logger(name)
+
+def clean_markdown(text):
+    # Remove Markdown links (but keep the link text)
+    text = re.sub(r'\[([^\]]+)\]\([^\)]+\)', r'\1', text)
+    # Remove Markdown bold and italic markers
+    text = re.sub(r'(\*\*|__)(.*?)\1', r'\2', text)  # Bold
+    text = re.sub(r'(\*|_)(.*?)\1', r'\2', text)  # Italic
+    # Remove Markdown headers
+    text = re.sub(r'#+\s*(.*)', r'\1', text)
+    # Remove Markdown bullet points and numbered lists
+    text = re.sub(r'(\*|\-|\+|\d+\.)\s+', '', text)
+    # Remove code blocks and inline code formatting
+    text = re.sub(r'(```.*?```|`)', '', text, flags=re.DOTALL)
+    return text
 
 log = get_logger(APP)
 

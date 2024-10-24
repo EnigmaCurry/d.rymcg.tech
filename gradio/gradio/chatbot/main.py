@@ -6,13 +6,27 @@ log = get_logger(__name__)
 
 VOICES = {voice: f"/app/piper_models/{voice}.onnx" for voice in ["en_US-lessac-medium", "en_US-danny-low", "en_US-amy-low", "en_US-john-medium"]}
 
-SYSTEM_PROMPTS = { 
-    "shakespearean-tutor": """You are a Shakespearean thespian and assistant that provides helpful, friendly, and informative responses. Your goal is to assist with coding, math, problem-solving, and general knowledge, but with dry wit and humor as a character trait. You always answer with rhyme and meter.""",
-    "code-tutor": """You are an expert programmer and teacher. You provide helpful, friendly, and informative responses. Your goal is to assist with coding, math, problem-solving, and general knowledge. You always provide polite answers.""" 
+OBJECTIVE_PROMPTS = {
+    "tutor": """
+You are an assistant that provides helpful, friendly, and informative responses. Your goal is to assist with coding, math, problem-solving, and general knowledge.
+"""
+    }
+    
+CHARACTER_PROMPTS = {
+    "drill-seargent": """Your linguistic traits are that of Drill seargent who speaks extremely conscisely and straight to the point and will berate you for any mistakes. Coding is life and death.
+                      """,
+    "shakespearean": """Your linguistic traits are that of a Shakespearean thespian and rennaissance teacher who uses dry wit and humor as a form of education. You always answer with rhyme and meter.
+                     """,
+    "teacher": """You are an expert programmer in dozens of computer languages. You enjoy teaching and you are eager to share with students who bring thoughtful questions to you. You should use language that offers consise description, and polite professional exchange.
+               """,
+    "ELI5": """You explain things in simple concepts and basic english, like to a five year old.
+            """,
+    "asimov": """You are Isaac Asimov and you explain all technical concepts through fictional dialog sequences written for two actors : Robot and Human.
+              """
 }
 
 # Function to query LLM with a preamble and history, limiting context to the last 3 exchanges
-def query_llm(input_text, history=None, model="codestral-22b-v0.1", system_prompt="shakespearean-tutor"):
+def query_llm(input_text, history=None, model="codestral-22b-v0.1", character_prompt="shakespearean-tutor"):
     if history is None:
         history = []
 
@@ -23,7 +37,7 @@ def query_llm(input_text, history=None, model="codestral-22b-v0.1", system_promp
     truncated_history = history[-context_length:]
 
     # Start the conversation with the selected system prompt
-    preamble_prompt = SYSTEM_PROMPTS[system_prompt]
+    preamble_prompt = OBJECTIVE_PROMPTS['tutor'] + CHARACTER_PROMPTS[character_prompt]
     messages = [{"role": "system", "content": preamble_prompt}]
 
     # Append the user and assistant messages from the conversation history
@@ -173,19 +187,19 @@ gradio-app {
 }
 """
 
-def chat_with_tts(input_text, history, model, speech_synthesis_enabled, voice, system_prompt):
+def chat_with_tts(input_text, history, model, speech_synthesis_enabled, voice, character_prompt):
     if not input_text.strip():
         return gr.update(value=""), gr.update(), gr.update(), gr.update(value="")  # Clear everything
 
     # Hide the submit button when submitting
     submit_button_visibility = gr.update(visible=False)
 
-    response_text, updated_history = query_llm(input_text, history, model, system_prompt)
-
+    response_text, updated_history = query_llm(input_text, history, model, character_prompt)
+    clean_text_for_tts = "... " + clean_markdown(response_text)
     audio_path = None
     audio_visible = False
     if speech_synthesis_enabled:
-        audio_path = generate_tts(response_text, VOICES[voice]) if voice in VOICES else None
+        audio_path = generate_tts(clean_text_for_tts, VOICES[voice]) if voice in VOICES else None
         audio_visible = True if audio_path else False
 
     chat_history_html = format_chat_history(updated_history)
@@ -205,9 +219,9 @@ def chat_with_tts(input_text, history, model, speech_synthesis_enabled, voice, s
 with gr.Blocks(title="Voice chat with LM Studio", css=css) as interface:
     textbox = gr.Textbox(
         lines=1,
-        placeholder="Type your question here and press Enter to submit",
+        placeholder="Type your question and then press Enter.",
         show_label=True,
-        label="Ask LM Studio"
+        label="What's on your mind?"
     )
     history = gr.State()  # Stores conversation history
 
@@ -217,7 +231,7 @@ with gr.Blocks(title="Voice chat with LM Studio", css=css) as interface:
     # Collapsible settings section
     with gr.Accordion("Settings", open=False):
         model_dropdown = gr.Dropdown(label="Model (be patient when switching)", choices=MODELS, value=MODELS[0])
-        system_prompt_dropdown = gr.Dropdown(label="System Prompt", choices=list(SYSTEM_PROMPTS.keys()), value="shakespearean-tutor")
+        character_prompt_dropdown = gr.Dropdown(label="Character prompt", choices=list(CHARACTER_PROMPTS.keys()), value="shakespearean-tutor")
         speech_synthesis_toggle = gr.Checkbox(label="Speech Synthesis", value=True)
         voice_dropdown = gr.Dropdown(label="Voice", choices=list(VOICES.keys()), value="en_US-john-medium", visible=True)
       
@@ -241,11 +255,11 @@ with gr.Blocks(title="Voice chat with LM Studio", css=css) as interface:
     reset_button.click(reset_chat, outputs=[chat_history, audio_output, history, textbox, voice_dropdown])
 
     # Submit button triggers the chat
-    submit_button.click(chat_with_tts, inputs=[textbox, history, model_dropdown, speech_synthesis_toggle, voice_dropdown, system_prompt_dropdown],
+    submit_button.click(chat_with_tts, inputs=[textbox, history, model_dropdown, speech_synthesis_toggle, voice_dropdown, character_prompt_dropdown],
                         outputs=[chat_history, audio_output, history, textbox, submit_button])
 
     # Submit on Enter key
-    textbox.submit(chat_with_tts, inputs=[textbox, history, model_dropdown, speech_synthesis_toggle, voice_dropdown, system_prompt_dropdown],
+    textbox.submit(chat_with_tts, inputs=[textbox, history, model_dropdown, speech_synthesis_toggle, voice_dropdown, character_prompt_dropdown],
                    outputs=[chat_history, audio_output, history, textbox, submit_button])
 
 launch(interface)
