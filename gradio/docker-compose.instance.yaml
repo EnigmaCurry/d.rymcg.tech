@@ -10,6 +10,7 @@
 #@ instance = data.values.instance
 #@ context = data.values.context
 #@ traefik_host = data.values.traefik_host
+#@ traefik_entrypoint = data.values.traefik_entrypoint
 #@ ip_sourcerange = data.values.ip_sourcerange
 #@ enable_http_auth = len(data.values.http_auth.strip()) > 0
 #@ http_auth = data.values.http_auth_var
@@ -21,6 +22,7 @@
 #@ app = data.values.app
 #@ log_level = data.values.log_level
 #@ chatbot_api = data.values.chatbot_api
+#@ chatbot_models = data.values.chatbot_models
 
 #@yaml/text-templated-strings
 services:
@@ -36,6 +38,7 @@ services:
       - APP_APP=(@= app @)
       - APP_LOG_LEVEL=(@= log_level @)
       - APP_CHATBOT_API=(@= chatbot_api @)
+      - APP_CHATBOT_MODELS=(@= chatbot_models @)
       - DOCKER_PROJECT=(@= project @)
       - DOCKER_INSTANCE=(@= instance @)
       - DOCKER_CONTEXT=(@= context @)
@@ -49,7 +52,7 @@ services:
 
       #! The host matching router rule:
       - "traefik.http.routers.(@= router @).rule=Host(`(@= traefik_host @)`)"
-      - "traefik.http.routers.(@= router @).entrypoints=websecure"
+      - "traefik.http.routers.(@= router @).entrypoints=(@= traefik_entrypoint @)"
       #@ enabled_middlewares.append("{}-ipwhitelist".format(router))
       - "traefik.http.middlewares.(@= router @)-ipwhitelist.ipwhitelist.sourcerange=(@= ip_sourcerange @)"
       #@ if enable_http_auth:
