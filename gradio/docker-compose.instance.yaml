@@ -28,7 +28,6 @@
 services:
   gradio:
     #@ service = "gradio"
-    image: (@= project @)-(@= app @)
     build:
       context: gradio
       args:

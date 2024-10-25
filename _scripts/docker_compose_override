@@ -52,11 +52,11 @@ for var in "$@"; do
     YTT_DATA_ARGS="${YTT_DATA_ARGS} --data-value ${ytt_var}='${value}'"
 done
 
-echo '#' ytt ${YTT_DATA_ARGS} \< docker-compose.instance.yaml \> ${OVERRIDE}
+echo '#' ytt ${YTT_DATA_ARGS} \< docker-compose.instance.yaml \>\> ${OVERRIDE}
 cat <<EOF > ${OVERRIDE}
 ## DO NOT EDIT - This Docker Compose override file is generated from the docker-compose.instance.yaml template.
 ## This file is automatically recreated whenever you run \`make config\` or \`make install\`.
+$(ytt ${YTT_DATA_ARGS} < docker-compose.instance.yaml)
 EOF
-ytt ${YTT_DATA_ARGS} < docker-compose.instance.yaml >> ${OVERRIDE}
 
 echo "Created docker-compose override: ${OVERRIDE}"

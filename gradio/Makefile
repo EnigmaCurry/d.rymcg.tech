@@ -56,4 +56,4 @@ dev:
 		echo "Installing cargo-watch..."; \
 		cargo install cargo-watch; \
 	fi
-	cargo watch -s 'sleep 5 && make up'
+	cargo watch -s 'sleep 5 &&  make up'

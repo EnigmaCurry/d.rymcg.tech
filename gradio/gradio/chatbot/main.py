@@ -113,7 +113,7 @@ def format_chat_history(history):
                 <div class="llm_response">{llm_response_html}</div>
             </div>
             <div class="message user">
-                <div class="user_query">{user_msg}</div>
+                <div class="user_query"><pre>{user_msg}</pre></div>
             </div>
         """
     history_html += "</div>"
@@ -121,14 +121,47 @@ def format_chat_history(history):
 
 # Reset function
 def reset_chat():
-    return "", gr.update(value=None, visible=False), [], gr.update(value=""), gr.update(visible=True), gr.update(js="stopAudioAndFocus()")
+    # Check if the textarea is blank; if so, keep the submit button disabled
+    submit_button_interactive = gr.update(interactive=False)
+    reset_button_interactive = gr.update(interactive=False)
+    return (
+        "",  # Chat history
+        gr.update(value=None, visible=False),  # Audio output
+        [],  # History state
+        gr.update(value=""),  # Textbox cleared
+        gr.update(visible=True),  # Voice dropdown remains visible
+        submit_button_interactive,  # Submit button stays disabled if no input
+        reset_button_interactive  # Reset button disabled after reset
+    )
 
-# Function to validate input
-def check_input_validity(input_text):
-    return gr.update(visible=bool(input_text.strip()))  # Show button only if valid input
+# Function to validate input and update reset and submit button interactivity
+def check_input_validity(input_text, history):
+    # Reset button should be interactive if there is history or the input is not empty
+    reset_button_interactive = bool(history) or bool(input_text.strip())
+    # Submit button should only be interactive if there is valid input
+    submit_button_interactive = bool(input_text.strip())
+    return gr.update(interactive=submit_button_interactive), gr.update(interactive=reset_button_interactive)
 
 # Set global CSS with chat bubble style and scrollable chat history
 css = """
+#input-box {
+    display: flex;
+    align-items: center;
+}
+
+#input-box .form {
+    flex-grow: 5 !important; 
+    margin-right: 10px;
+}
+
+#submit-wrapper {
+      flex: 1;
+      min-width: 100px !important;
+}
+#submit-btn {
+    height: 100%;
+}
+
 #history {
     max-height: 50vh;
     overflow-y: auto;
@@ -163,7 +196,7 @@ css = """
 #history .message .llm_response {
     display: inline-block;
     max-width: 90%;
-    background-color: #ffe4c4;
+    background-color: rgb(56, 56, 62);
     color: black;
     padding: 10px;
     border-radius: 15px;
@@ -174,23 +207,31 @@ gradio-app {
     background-color: #625d5d !important;
 }
 
+#history .message .llm_response * {
+    color: white !important;
+    font-size: 2em;
+}
+
+#history .message .user_query * {
+    color: black !important;
+    font-size: 1.2em;
+}
+
+      
 /* Dark Mode Specific Styles */
 @media (prefers-color-scheme: dark) {
-    #history .message .llm_response *,
-    #history .message .llm_response pre code,
-    #history .message .llm_response pre,
-    #history .message .llm_response p {
-        color: black !important;
-    }
 }
 """
 
+# Function to query LLM and handle button interactivity during processing
 def chat_with_tts(input_text, history, model, speech_synthesis_enabled, voice, character_prompt):
     if not input_text.strip():
-        return gr.update(value=""), gr.update(), gr.update(), gr.update(value="")  # Clear everything
+        # Disable the submit button if input is invalid
+        return gr.update(value=""), gr.update(), gr.update(), gr.update(value=""), gr.update(interactive=False), gr.update(interactive=False)
 
-    # Hide the submit button when submitting
-    submit_button_visibility = gr.update(visible=False)
+    # Disable both buttons when processing starts
+    submit_button_interactive = gr.update(interactive=False)
+    reset_button_interactive = gr.update(interactive=False)
 
     response_text, updated_history = query_llm(input_text, history, model, character_prompt)
     clean_text_for_tts = "... " + clean_markdown(response_text)
@@ -202,25 +243,31 @@ def chat_with_tts(input_text, history, model, speech_synthesis_enabled, voice, c
 
     chat_history_html = format_chat_history(updated_history)
 
-    # Show the submit button again once the response is received
-    submit_button_visibility = gr.update(visible=True)
+    # Enable buttons again after processing
+    submit_button_interactive = gr.update(interactive=True)
+    reset_button_interactive = gr.update(interactive=True)
 
     return (
         gr.update(value=chat_history_html),
         gr.update(value=audio_path, visible=audio_visible),
         updated_history,
         "",
-        submit_button_visibility
+        submit_button_interactive,
+        reset_button_interactive
     )
 
 # Build the Gradio interface
 with gr.Blocks(title="Voice chat with LM Studio", css=css) as interface:
-    textbox = gr.Textbox(
-        lines=1,
-        placeholder="Type your question and then press Enter.",
-        show_label=True,
-        label="What's on your mind?"
-    )
+    with gr.Row(elem_id="input-box"):
+        textbox = gr.Textbox(
+            lines=1,
+            placeholder="What's on your mind?",
+            show_label=False,
+            elem_id="input-textarea"
+        )
+        with gr.Column(elem_id="submit-wrapper"):
+            submit_button = gr.Button("Submit", elem_id="submit-btn", interactive=False)  # Initially non-interactive
+
     history = gr.State()  # Stores conversation history
 
     # Chat history display using HTML
@@ -232,13 +279,12 @@ with gr.Blocks(title="Voice chat with LM Studio", css=css) as interface:
         character_prompt_dropdown = gr.Dropdown(label="Character prompt", choices=list(CHARACTER_PROMPTS.keys()), value="shakespearean")
         speech_synthesis_toggle = gr.Checkbox(label="Speech Synthesis", value=True)
         voice_dropdown = gr.Dropdown(label="Voice", choices=list(VOICES.keys()), value="en_US-john-medium", visible=True)
-      
+
     # Audio output for generated speech
     audio_output = gr.Audio(type="filepath", autoplay=True, label="Generated Speech", visible=False)
 
-    # Buttons to submit and reset chat
-    submit_button = gr.Button("Submit", visible=False)
-    reset_button = gr.Button("Reset")
+    # Buttons to reset chat
+    reset_button = gr.Button("Reset", interactive=False)  # Initially non-interactive
 
     # Toggle visibility of the voice dropdown
     def toggle_voice_dropdown(speech_synthesis_enabled):
@@ -246,18 +292,18 @@ with gr.Blocks(title="Voice chat with LM Studio", css=css) as interface:
 
     speech_synthesis_toggle.change(toggle_voice_dropdown, inputs=speech_synthesis_toggle, outputs=voice_dropdown)
 
-    # Show submit button when input is valid
-    textbox.change(check_input_validity, inputs=textbox, outputs=submit_button)
-
     # Reset chat
-    reset_button.click(reset_chat, outputs=[chat_history, audio_output, history, textbox, voice_dropdown])
+    reset_button.click(reset_chat, outputs=[chat_history, audio_output, history, textbox, voice_dropdown, submit_button, reset_button])
+
+    # Validate input and update the submit button and reset button interactivity
+    textbox.change(check_input_validity, inputs=[textbox, history], outputs=[submit_button, reset_button])
 
     # Submit button triggers the chat
     submit_button.click(chat_with_tts, inputs=[textbox, history, model_dropdown, speech_synthesis_toggle, voice_dropdown, character_prompt_dropdown],
-                        outputs=[chat_history, audio_output, history, textbox, submit_button])
+                        outputs=[chat_history, audio_output, history, textbox, submit_button, reset_button])
 
     # Submit on Enter key
     textbox.submit(chat_with_tts, inputs=[textbox, history, model_dropdown, speech_synthesis_toggle, voice_dropdown, character_prompt_dropdown],
-                   outputs=[chat_history, audio_output, history, textbox, submit_button])
+                   outputs=[chat_history, audio_output, history, textbox, submit_button, reset_button])
 
 launch(interface)

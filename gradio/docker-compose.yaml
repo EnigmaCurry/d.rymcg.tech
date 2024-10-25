@@ -1,5 +1,6 @@
 services:
   gradio:
+    image: gradio-${GRADIO_APP}
     # Docker image is configurable per config file:
     cap_drop:
       - ALL
