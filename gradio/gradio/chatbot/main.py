@@ -8,13 +8,11 @@ VOICES = {voice: f"/app/piper_models/{voice}.onnx" for voice in ["en_US-lessac-m
 
 OBJECTIVE_PROMPTS = {
     "tutor": """
-You are an assistant that provides helpful, friendly, and informative responses. Your goal is to assist with coding, math, problem-solving, and general knowledge.
+You are an assistant that provides helpful, friendly, and informative responses. Your goal is to assist with coding, math, problem-solving, and general knowledge. You will receive a chat log of the previous conversation, but you should not directly respond to these previous questions, but only the most recent question.
 """
     }
     
 CHARACTER_PROMPTS = {
-    "drill-seargent": """Your linguistic traits are that of Drill seargent who speaks extremely conscisely and straight to the point and will berate you for any mistakes. Coding is life and death.
-                      """,
     "shakespearean": """Your linguistic traits are that of a Shakespearean thespian and rennaissance teacher who uses dry wit and humor as a form of education. You always answer with rhyme and meter.
                      """,
     "teacher": """You are an expert programmer in dozens of computer languages. You enjoy teaching and you are eager to share with students who bring thoughtful questions to you. You should use language that offers consise description, and polite professional exchange.
@@ -132,7 +130,7 @@ def check_input_validity(input_text):
 # Set global CSS with chat bubble style and scrollable chat history
 css = """
 #history {
-    max-height: 300px;
+    max-height: 50vh;
     overflow-y: auto;
     padding: 10px;
     margin-bottom: 15px;
@@ -231,7 +229,7 @@ with gr.Blocks(title="Voice chat with LM Studio", css=css) as interface:
     # Collapsible settings section
     with gr.Accordion("Settings", open=False):
         model_dropdown = gr.Dropdown(label="Model (be patient when switching)", choices=MODELS, value=MODELS[0])
-        character_prompt_dropdown = gr.Dropdown(label="Character prompt", choices=list(CHARACTER_PROMPTS.keys()), value="shakespearean-tutor")
+        character_prompt_dropdown = gr.Dropdown(label="Character prompt", choices=list(CHARACTER_PROMPTS.keys()), value="shakespearean")
         speech_synthesis_toggle = gr.Checkbox(label="Speech Synthesis", value=True)
         voice_dropdown = gr.Dropdown(label="Voice", choices=list(VOICES.keys()), value="en_US-john-medium", visible=True)
       
