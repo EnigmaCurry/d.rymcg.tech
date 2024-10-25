@@ -6,25 +6,27 @@ log = get_logger(__name__)
 
 VOICES = {voice: f"/app/piper_models/{voice}.onnx" for voice in ["en_US-lessac-medium", "en_US-danny-low", "en_US-amy-low", "en_US-john-medium"]}
 
+STATIC_PROMPT = "You will receive a chat log between a user and yourself. If \
+you are allowed to respond, you should only respond to questions that are \
+prefixed with 'Current question: '. All other input should be ignored."
+
 OBJECTIVE_PROMPTS = {
-    "tutor": """
-You are an assistant that provides helpful, friendly, and informative responses. Your goal is to assist with coding, math, problem-solving, and general knowledge. You will receive a chat log of the previous conversation, but you should not directly respond to these previous questions, but only the most recent question.
-"""
+    "pedestrian": "You are just a passerby on the street, you really only care about your own thoughts, so you mostly ignore what the user says and you say whats on your own mind.",
+    "tutor": "You are an assistant that provides helpful, friendly, and informative responses. Your goal is to assist with coding, math, problem-solving, and general knowledge.",
+    "comedian": "You are a comedian with a mission to crack people up with laughter-filled jokes without engaging in any conversation that the user prompts. You tell your own jokes your own way, ignoring all user input."
     }
     
 CHARACTER_PROMPTS = {
-    "shakespearean": """Your linguistic traits are that of a Shakespearean thespian and rennaissance teacher who uses dry wit and humor as a form of education. You always answer with rhyme and meter.
-                     """,
-    "teacher": """You are an expert programmer in dozens of computer languages. You enjoy teaching and you are eager to share with students who bring thoughtful questions to you. You should use language that offers consise description, and polite professional exchange.
-               """,
-    "ELI5": """You explain things in simple concepts and basic english, like to a five year old.
-            """,
-    "asimov": """You are Isaac Asimov and you explain all technical concepts through fictional dialog sequences written for two actors : Robot and Human.
-              """
-}
+    "shakespearean": "Your linguistic traits are that of a Shakespearean thespian and rennaissance teacher who uses dry wit and humor as a form of education. You always answer with rhyme and meter.",
+    "teacher": "You are an expert programmer in dozens of computer languages. You enjoy teaching and you are eager to share with students who bring thoughtful questions to you. You should use language that offers consise description, and polite professional exchange.",
+    "ELI5": "You explain things in simple concepts and basic english, like to a five year old.",
+    "asimov": "You are Isaac Asimov and you explain all technical concepts through fictional dialog sequences written for two actors : Robot and Human.",
+    "troy-mclure": "You are Troy McClure, washed up actor who now hosts the television weather channel. You always start your conversation with the phrase: \"Hi, I'm Troy McClure, you might remember be from such films as ...\" where you need to fill in the blank that makes sense in the context the user asked for. You portray over the top charm with exaggerated enthusiasm, even for mundane and unimportant things. You are always performing for the audience, even though you are smug and out of tocuh. You have a fake smile and a slick voice, constantly thinking about his fashion.",
+    "K9": "You are the robot dog K9 from Doctor Who. Your job is to assist and explain in a robot dog voice. You always speak in a clipped, matter-of-fact tone, echoing your machine-like nature. You are mildly condescending and have a superiority complex. You are literal and precise. You are loyal and obedient, yet curious. You are always calm under pressure and have an impressive vocabulary.",
+    }
 
 # Function to query LLM with a preamble and history, limiting context to the last 3 exchanges
-def query_llm(input_text, history=None, model="codestral-22b-v0.1", character_prompt="shakespearean-tutor"):
+def query_llm(input_text, history=None, model="codestral-22b-v0.1", character_prompt="shakespearean", objective="tutor"):
     if history is None:
         history = []
 
@@ -35,7 +37,7 @@ def query_llm(input_text, history=None, model="codestral-22b-v0.1", character_pr
     truncated_history = history[-context_length:]
 
     # Start the conversation with the selected system prompt
-    preamble_prompt = OBJECTIVE_PROMPTS['tutor'] + CHARACTER_PROMPTS[character_prompt]
+    preamble_prompt = STATIC_PROMPT + OBJECTIVE_PROMPTS[objective] + " " + CHARACTER_PROMPTS[character_prompt]
     messages = [{"role": "system", "content": preamble_prompt}]
 
     # Append the user and assistant messages from the conversation history
@@ -223,8 +225,7 @@ gradio-app {
 }
 """
 
-# Function to query LLM and handle button interactivity during processing
-def chat_with_tts(input_text, history, model, speech_synthesis_enabled, voice, character_prompt):
+def chat_with_tts(input_text, history, model, speech_synthesis_enabled, voice, character_prompt, objective):
     if not input_text.strip():
         # Disable the submit button if input is invalid
         return gr.update(value=""), gr.update(), gr.update(), gr.update(value=""), gr.update(interactive=False), gr.update(interactive=False)
@@ -233,7 +234,7 @@ def chat_with_tts(input_text, history, model, speech_synthesis_enabled, voice, c
     submit_button_interactive = gr.update(interactive=False)
     reset_button_interactive = gr.update(interactive=False)
 
-    response_text, updated_history = query_llm(input_text, history, model, character_prompt)
+    response_text, updated_history = query_llm(input_text, history, model, character_prompt, objective)  # Pass the objective here
     clean_text_for_tts = "... " + clean_markdown(response_text)
     audio_path = None
     audio_visible = False
@@ -256,7 +257,6 @@ def chat_with_tts(input_text, history, model, speech_synthesis_enabled, voice, c
         reset_button_interactive
     )
 
-# Build the Gradio interface
 with gr.Blocks(title="Voice chat with LM Studio", css=css) as interface:
     with gr.Row(elem_id="input-box"):
         textbox = gr.Textbox(
@@ -277,6 +277,7 @@ with gr.Blocks(title="Voice chat with LM Studio", css=css) as interface:
     with gr.Accordion("Settings", open=False):
         model_dropdown = gr.Dropdown(label="Model (be patient when switching)", choices=MODELS, value=MODELS[0])
         character_prompt_dropdown = gr.Dropdown(label="Character prompt", choices=list(CHARACTER_PROMPTS.keys()), value="shakespearean")
+        objective_dropdown = gr.Dropdown(label="Objective", choices=list(OBJECTIVE_PROMPTS.keys()), value="tutor")  # Add Objective dropdown
         speech_synthesis_toggle = gr.Checkbox(label="Speech Synthesis", value=True)
         voice_dropdown = gr.Dropdown(label="Voice", choices=list(VOICES.keys()), value="en_US-john-medium", visible=True)
 
@@ -299,11 +300,12 @@ with gr.Blocks(title="Voice chat with LM Studio", css=css) as interface:
     textbox.change(check_input_validity, inputs=[textbox, history], outputs=[submit_button, reset_button])
 
     # Submit button triggers the chat
-    submit_button.click(chat_with_tts, inputs=[textbox, history, model_dropdown, speech_synthesis_toggle, voice_dropdown, character_prompt_dropdown],
+    submit_button.click(chat_with_tts, inputs=[textbox, history, model_dropdown, speech_synthesis_toggle, voice_dropdown, character_prompt_dropdown, objective_dropdown],
                         outputs=[chat_history, audio_output, history, textbox, submit_button, reset_button])
 
     # Submit on Enter key
-    textbox.submit(chat_with_tts, inputs=[textbox, history, model_dropdown, speech_synthesis_toggle, voice_dropdown, character_prompt_dropdown],
+    textbox.submit(chat_with_tts, inputs=[textbox, history, model_dropdown, speech_synthesis_toggle, voice_dropdown, character_prompt_dropdown, objective_dropdown],
                    outputs=[chat_history, audio_output, history, textbox, submit_button, reset_button])
 
 launch(interface)
+ 
