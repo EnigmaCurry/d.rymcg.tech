@@ -11,6 +11,11 @@ from prompts import CHARACTER_PROMPTS, OBJECTIVE_PROMPTS, STATIC_PROMPT
 from voices import VOICES
 from css import CSS
 from script import PAGE_SCRIPT
+from morse import (
+    process_markdown_morse_code,
+    extract_morse_code,
+    generate_morse_code_audio,
+)
 
 log = get_logger(__name__)
 
@@ -80,8 +85,8 @@ def query_llm(
                     data = json.loads(data_json)
                     delta_content = data["choices"][0]["delta"].get("content", "")
                     full_response += delta_content
-
         log.debug(f"Assistant Full Response: {full_response}")
+        full_response = process_markdown_morse_code(full_response)
 
         history.append((input_text, full_response))
         return full_response, history
@@ -91,7 +96,6 @@ def query_llm(
         return error_message, history
 
 
-# Function to generate TTS (unchanged)
 def generate_tts(text, voice_model):
     try:
         with NamedTemporaryFile(suffix=".wav", delete=False) as temp_wav:
@@ -187,10 +191,13 @@ def chat(
         input_text, history, model, character_prompt, objective
     )
 
-    clean_text_for_tts = "... " + clean_markdown(response_text)
     audio_path = None
     audio_visible = False
-    if speech_synthesis_enabled:
+    if objective == "telegrapher":
+        clean_text_for_morse_code = "\n\n".join(extract_morse_code(response_text))
+        audio_path = generate_morse_code_audio(clean_text_for_morse_code)
+    elif speech_synthesis_enabled:
+        clean_text_for_tts = "... " + clean_markdown(response_text)
         audio_path = (
             generate_tts(clean_text_for_tts, VOICES[voice]) if voice in VOICES else None
         )
@@ -235,7 +242,7 @@ with gr.Blocks(title="Voice chat with LM Studio", css=CSS) as interface:
     with gr.Accordion("Settings", open=False):
 
         def show_model_dropdown(objective=None):
-            if len(MODELS) <= 1 or objective == "telegrapher":
+            if len(MODELS) <= 1:
                 return gr.Dropdown(
                     label="Model (be patient when switching)",
                     choices=MODELS,

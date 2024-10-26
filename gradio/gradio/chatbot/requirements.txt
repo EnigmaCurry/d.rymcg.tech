@@ -5,3 +5,4 @@ pyaudio
 audioop-lts
 asgiproxy
 gunicorn
+MorseCodePy
