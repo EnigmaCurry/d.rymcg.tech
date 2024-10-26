@@ -1,0 +1,99 @@
+#input-box {
+    display: flex;
+    align-items: center;
+}
+
+#input-box .form {
+    flex-grow: 5 !important; 
+    margin-right: 10px;
+}
+
+#submit-wrapper {
+      flex: 1;
+      min-width: 100px !important;
+}
+#submit-btn {
+    height: 100%;
+}
+
+#history {
+    max-height: 50vh;
+    overflow-y: auto;
+    padding: 10px;
+    margin-bottom: 15px;
+    border: 1px solid #ccc;
+    border-radius: 8px;
+}
+
+#history .message {
+    margin: 10px 0;
+}
+
+#history .message.user {
+    text-align: right;
+}
+
+#history .message.llm {
+    text-align: left;
+}
+
+#history .message .user_query {
+    display: inline-block;
+    max-width: 70%;
+    background-color: rgb(174, 200, 148);
+    color: black;
+    padding: 10px;
+    border-radius: 15px;
+    margin-left: 10px;
+}
+
+#history .message .llm_response {
+    display: inline-block;
+    max-width: 100%;
+    background-color: rgb(56, 56, 62);
+    color: black;
+    padding: 10px;
+    border-radius: 15px;
+    margin-right: 10px;
+}
+
+gradio-app {
+    background-color: #625d5d !important;
+}
+
+#history .message .llm_response * {
+    color: white !important;
+}
+#history .message .llm_response p {
+    font-size: 1.5em;
+}
+#history .message .user_query * {
+    color: black !important;
+}
+#history .message .user_query p {
+    font-size: 1.2em;
+}
+
+#history .message pre {
+    background-color: #180c0c;
+    padding: 1em 1em 1em 2em;
+    border-radius: 1em;
+}
+#history .message code {
+    position: relative;
+    border-radius: 8px;
+    overflow: auto;
+    font-family: 'Courier New', monospace;
+    font-size: 1.2em;
+    max-width: 100%;
+    white-space: pre-wrap; /* Allow wrapping */
+}
+
+/* Optional hover effect for the code block */
+code:hover {
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+}
+      
+/* Dark Mode Specific Styles */
+@media (prefers-color-scheme: dark) {
+}

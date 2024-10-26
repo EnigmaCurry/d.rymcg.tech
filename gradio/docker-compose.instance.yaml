@@ -23,11 +23,12 @@
 #@ log_level = data.values.log_level
 #@ chatbot_api = data.values.chatbot_api
 #@ chatbot_models = data.values.chatbot_models
+#@ uvicorn_workers = data.values.uvicorn_workers
 
 #@yaml/text-templated-strings
 services:
-  gradio:
-    #@ service = "gradio"
+  proxy:
+    #@ service = "proxy"
     build:
       context: gradio
       args:
@@ -36,12 +37,7 @@ services:
       - APP_TRAEFIK_HOST=(@= traefik_host @)
       - APP_APP=(@= app @)
       - APP_LOG_LEVEL=(@= log_level @)
-      - APP_CHATBOT_API=(@= chatbot_api @)
-      - APP_CHATBOT_MODELS=(@= chatbot_models @)
-      - DOCKER_PROJECT=(@= project @)
-      - DOCKER_INSTANCE=(@= instance @)
-      - DOCKER_CONTEXT=(@= context @)
-      - GRADIO_ANALYTICS_ENABLED=False
+      - APP_MODE=proxy
     labels:
       #! Services must opt-in to be proxied by Traefik:
       - "traefik.enable=true"
@@ -81,3 +77,21 @@ services:
 
       #! Apply all middlewares (do this at the end!)
       - "traefik.http.routers.(@= router @).middlewares=(@= ','.join(enabled_middlewares) @)"
+
+  gradio:
+    #@ service = "gradio"
+    build:
+      context: gradio
+      args:
+        APP: (@= app @)
+    environment:
+      - APP_TRAEFIK_HOST=(@= traefik_host @)
+      - APP_APP=(@= app @)
+      - APP_LOG_LEVEL=(@= log_level @)
+      - APP_CHATBOT_API=(@= chatbot_api @)
+      - APP_CHATBOT_MODELS=(@= chatbot_models @)
+      - APP_MODE=gradio
+      - DOCKER_PROJECT=(@= project @)
+      - DOCKER_INSTANCE=(@= instance @)
+      - DOCKER_CONTEXT=(@= context @)
+      - GRADIO_ANALYTICS_ENABLED=False

@@ -1,3 +1,7 @@
+gradio==5.3.0
 requests
-gradio
 markdown
+pyaudio
+audioop-lts
+asgiproxy
+gunicorn

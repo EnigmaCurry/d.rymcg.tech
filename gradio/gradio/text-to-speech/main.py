@@ -1,8 +1,11 @@
 from config import *
+
 log = get_logger(__name__)
+
 
 def start_speech(text):
     return None
+
 
 # Define the JavaScript function directly in the js argument
 js = """
@@ -39,16 +42,17 @@ function speakText(text) {
 }
 """
 
-with gr.Blocks() as interface:
-    inp = gr.Textbox(placeholder="Enter text to speak", show_label=False)
-    out = gr.Textbox(show_label=False)
-    btn = gr.Button("Speak")
-    
-    # Trigger when the button is clicked
-    btn.click(fn=start_speech, inputs=inp, js=js)
-    
-    # Trigger when the Enter key is pressed in the input box
-    inp.submit(fn=start_speech, inputs=inp, js=js)
+if __name__ == "__main__":
+    with gr.Blocks() as interface:
+        inp = gr.Textbox(placeholder="Enter text to speak", show_label=False)
+        out = gr.Textbox(show_label=False)
+        btn = gr.Button("Speak")
 
-log.warn("warning")
-launch(interface)
+        # Trigger when the button is clicked
+        btn.click(fn=start_speech, inputs=inp, js=js)
+
+        # Trigger when the Enter key is pressed in the input box
+        inp.submit(fn=start_speech, inputs=inp, js=js)
+
+    log.warn("warning")
+    launch(interface)

@@ -1,10 +1,7 @@
-# Stage 1: Build Piper and download voice model (optional based on an ARG)
-FROM python:3.9-slim AS builder
+FROM python:3.13-slim AS builder
 
-# Argument to determine whether to build Piper
 ARG BUILD_PIPER=true
 
-# Install dependencies, including espeak-ng and CMake for Piper
 RUN if [ "$BUILD_PIPER" = "true" ]; then \
         apt-get update && \
         apt-get install -y --no-install-recommends \
@@ -19,7 +16,6 @@ RUN if [ "$BUILD_PIPER" = "true" ]; then \
         rm -rf /var/lib/apt/lists/*; \
     fi
 
-# Clone, build, and install Piper
 RUN if [ "$BUILD_PIPER" = "true" ]; then \
         git clone https://github.com/rhasspy/piper.git && \
         cd piper && \
@@ -46,37 +42,41 @@ RUN if [ "$BUILD_PIPER" = "true" ]; then \
 
 
 # Stage 2: Final runtime image
-FROM python:3.9-slim
-
-# Set working directory
+FROM python:3.13-slim
 WORKDIR /app
 ARG APP
 
-# Install espeak-ng runtime libraries needed for Piper to work
-RUN apt-get update && apt-get install -y --no-install-recommends espeak-ng libespeak-ng1 && rm -rf /var/lib/apt/lists/*
+RUN apt-get update && \
+    apt-get install -y --no-install-recommends \
+    espeak-ng libespeak-ng1 python3-pyaudio python3-pip portaudio19-dev \
+    build-essential python3-dev curl procps && \
+    rm -rf /var/lib/apt/lists/*
 
-# Copy the requirements and install Python dependencies
+# Create a dummy pyaudioop package
+RUN mkdir -p /tmp/pyaudioop && \
+    echo "import audioop" > /tmp/pyaudioop/__init__.py && \
+    echo "from setuptools import setup, find_packages; setup(name='pyaudioop', version='1.0', packages=find_packages())" > /tmp/pyaudioop/setup.py && \
+    pip install /tmp/pyaudioop && \
+    rm -rf /tmp/pyaudioop
+
 COPY ${APP}/requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
-# Create Piper model directory (even if not used) to avoid COPY errors
 RUN mkdir -p /app/piper_models
 
-# Conditionally copy Piper binary and models if they were built
 COPY --from=builder /piper/build/piper /usr/local/bin/
 COPY --from=builder /piper/build/pi/lib/ /usr/local/lib/
 COPY --from=builder /piper/build/pi/share/espeak-ng-data/ /usr/share/espeak-ng-data/
 COPY --from=builder /build/piper_models /app/piper_models
 
-# Copy the application code
 COPY common.py ${APP}/ .
 
-# Expose the application port
 EXPOSE 7860
 
-# Set environment variable for Piper model directory (only used if Piper is built)
 ENV PIPER_MODEL_DIR=/app/piper_models
 ENV LD_LIBRARY_PATH=/usr/local/lib:$LD_LIBRARY_PATH
+ENV UVICORN_WORKERS=1
+ENV MODE=gradio
 
-# Command to run the application
-CMD ["python", "main.py"]
+COPY --chmod=755 entrypoint.sh /usr/local/bin/entrypoint.sh
+ENTRYPOINT /usr/local/bin/entrypoint.sh
