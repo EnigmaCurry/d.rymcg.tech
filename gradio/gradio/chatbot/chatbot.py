@@ -153,7 +153,7 @@ def check_input_validity(input_text, history):
     )
 
 
-def chat_with_tts(
+def chat(
     input_text,
     history,
     model,
@@ -161,6 +161,7 @@ def chat_with_tts(
     voice,
     character_prompt,
     objective,
+    tts=True,
 ):
     if not input_text.strip():
         # Disable the submit button if input is invalid
@@ -180,14 +181,18 @@ def chat_with_tts(
     response_text, updated_history = query_llm(
         input_text, history, model, character_prompt, objective
     )  # Pass the objective here
-    clean_text_for_tts = "... " + clean_markdown(response_text)
-    audio_path = None
-    audio_visible = False
-    if speech_synthesis_enabled:
-        audio_path = (
-            generate_tts(clean_text_for_tts, VOICES[voice]) if voice in VOICES else None
-        )
-        audio_visible = True if audio_path else False
+
+    if tts:
+        clean_text_for_tts = "... " + clean_markdown(response_text)
+        audio_path = None
+        audio_visible = False
+        if speech_synthesis_enabled:
+            audio_path = (
+                generate_tts(clean_text_for_tts, VOICES[voice])
+                if voice in VOICES
+                else None
+            )
+            audio_visible = True if audio_path else False
 
     chat_history_html = format_chat_history(updated_history)
 
@@ -195,9 +200,13 @@ def chat_with_tts(
     submit_button_interactive = gr.update(interactive=True)
     reset_button_interactive = gr.update(interactive=True)
 
+    if tts:
+        audio_block = gr.update(value=audio_path, visible=audio_visible)
+    else:
+        audio_block = None
     return (
         gr.update(value=chat_history_html),
-        gr.update(value=audio_path, visible=audio_visible),
+        audio_block,
         updated_history,
         "",
         submit_button_interactive,
@@ -225,23 +234,78 @@ with gr.Blocks(title="Voice chat with LM Studio", css=CSS) as interface:
 
     # Collapsible settings section
     with gr.Accordion("Settings", open=False):
-        model_dropdown = gr.Dropdown(
-            label="Model (be patient when switching)", choices=MODELS, value=MODELS[0]
-        )
-        character_prompt_dropdown = gr.Dropdown(
-            label="Character prompt",
-            choices=list(CHARACTER_PROMPTS.keys()),
-            value="shakespearean",
-        )
+
+        def show_model_dropdown(objective=None):
+            if len(MODELS) <= 1 or objective == "telegrapher":
+                return gr.Dropdown(visible=False)
+            else:
+                return gr.Dropdown(
+                    label="Model (be patient when switching)",
+                    choices=MODELS,
+                    value=MODELS[0],
+                )
+
+        def show_voice_dropdown(objective=None):
+            if objective == "telegrapher":
+                return gr.Dropdown(visible=False)
+            else:
+                return gr.Dropdown(
+                    label="Voice",
+                    choices=list(VOICES.keys()),
+                    value="en_US-john-medium",
+                    visible=True,
+                )
+
+        def show_speech_synthesis_toggle(objective=None):
+            if objective == "telegrapher":
+                return gr.Checkbox(visible=False)
+            else:
+                return gr.Checkbox(label="Speech Synthesis", value=True, visible=True)
+
+        def show_character_prompt(objective=None):
+            if objective == "telegrapher":
+                return gr.Dropdown(visible=False)
+            else:
+                return gr.Dropdown(
+                    label="Character prompt",
+                    choices=list(CHARACTER_PROMPTS.keys()),
+                    value="shakespearean",
+                )
+
         objective_dropdown = gr.Dropdown(
             label="Objective", choices=list(OBJECTIVE_PROMPTS.keys()), value="tutor"
-        )  # Add Objective dropdown
-        speech_synthesis_toggle = gr.Checkbox(label="Speech Synthesis", value=True)
-        voice_dropdown = gr.Dropdown(
-            label="Voice",
-            choices=list(VOICES.keys()),
-            value="en_US-john-medium",
-            visible=True,
+        )
+        model_dropdown = show_model_dropdown()
+        character_prompt_dropdown = show_character_prompt()
+        speech_synthesis_toggle = show_speech_synthesis_toggle()
+        voice_dropdown = show_voice_dropdown()
+
+        objective_dropdown.input(
+            fn=show_voice_dropdown, inputs=objective_dropdown, outputs=voice_dropdown
+        )
+        objective_dropdown.input(
+            fn=show_speech_synthesis_toggle,
+            inputs=objective_dropdown,
+            outputs=speech_synthesis_toggle,
+        )
+        objective_dropdown.input(
+            fn=show_character_prompt,
+            inputs=objective_dropdown,
+            outputs=character_prompt_dropdown,
+        )
+        objective_dropdown.input(
+            fn=show_model_dropdown,
+            inputs=objective_dropdown,
+            outputs=model_dropdown,
+        )
+
+        def toggle_voice_dropdown(speech_synthesis_enabled):
+            return gr.update(visible=speech_synthesis_enabled)
+
+        speech_synthesis_toggle.change(
+            toggle_voice_dropdown,
+            inputs=speech_synthesis_toggle,
+            outputs=voice_dropdown,
         )
 
     # Audio output for generated speech
@@ -252,14 +316,6 @@ with gr.Blocks(title="Voice chat with LM Studio", css=CSS) as interface:
     # Buttons to reset chat
     reset_button = gr.Button("Reset", interactive=False)  # Initially non-interactive
 
-    # Toggle visibility of the voice dropdown
-    def toggle_voice_dropdown(speech_synthesis_enabled):
-        return gr.update(visible=speech_synthesis_enabled)
-
-    speech_synthesis_toggle.change(
-        toggle_voice_dropdown, inputs=speech_synthesis_toggle, outputs=voice_dropdown
-    )
-
     # Reset chat
     reset_button.click(
         reset_chat,
@@ -268,6 +324,7 @@ with gr.Blocks(title="Voice chat with LM Studio", css=CSS) as interface:
             audio_output,
             history,
             textbox,
+            speech_synthesis_toggle,
             voice_dropdown,
             submit_button,
             reset_button,
@@ -283,7 +340,7 @@ with gr.Blocks(title="Voice chat with LM Studio", css=CSS) as interface:
 
     # Submit button triggers the chat
     submit_button.click(
-        chat_with_tts,
+        chat,
         inputs=[
             textbox,
             history,
@@ -305,7 +362,7 @@ with gr.Blocks(title="Voice chat with LM Studio", css=CSS) as interface:
 
     # Submit on Enter key
     textbox.submit(
-        chat_with_tts,
+        chat,
         inputs=[
             textbox,
             history,
