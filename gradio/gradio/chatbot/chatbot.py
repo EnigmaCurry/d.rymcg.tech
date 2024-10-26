@@ -146,6 +146,7 @@ def reset_chat():
         "",  # Chat history
         gr.update(value=None, visible=False),  # Audio output
         [],  # History state
+        gr.update(value=""),  # Checkbox cleared
         gr.update(value=""),  # Textbox cleared
         gr.update(visible=True),  # Voice dropdown remains visible
         submit_button_interactive,  # Submit button stays disabled if no input
