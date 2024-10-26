@@ -36,8 +36,8 @@ SAMPLE_RATE = 44100  # Samples per second
 MORSE_CODE_DICT = {".": "dot", "-": "dash", " ": "space"}
 
 
-def get_morse_timing(wpm):
-    dot_duration = DOT_LENGTH_MS / wpm
+def get_morse_timing(wpm, dot_length):
+    dot_duration = dot_length / wpm
     dash_duration = 3 * dot_duration
     space_duration = 7 * dot_duration
     return dot_duration, dash_duration, space_duration
@@ -51,17 +51,19 @@ def generate_sine_wave(frequency, duration_ms, sample_rate=SAMPLE_RATE):
     return (wave_data * 32767).astype(np.int16)
 
 
-def generate_morse_code_audio(morse_code_text, wpm=10):
-    dot_duration, dash_duration, space_duration = get_morse_timing(wpm)
+def generate_morse_code_audio(
+    morse_code_text, wpm=20, tone=FREQUENCY, dot_length=DOT_LENGTH_MS
+):
+    dot_duration, dash_duration, space_duration = get_morse_timing(wpm, dot_length)
 
     audio_frames = []
     silent_frame = np.zeros(int(SAMPLE_RATE * dot_duration / 1000), dtype=np.int16)
 
     for symbol in morse_code_text:
         if symbol == ".":
-            audio_frames.append(generate_sine_wave(FREQUENCY, dot_duration))
+            audio_frames.append(generate_sine_wave(tone, dot_duration))
         elif symbol == "-":
-            audio_frames.append(generate_sine_wave(FREQUENCY, dash_duration))
+            audio_frames.append(generate_sine_wave(tone, dash_duration))
         elif symbol == " ":
             audio_frames.append(silent_frame * 7)  # Add a longer silence between words
         audio_frames.append(silent_frame)  # Short silence between symbols

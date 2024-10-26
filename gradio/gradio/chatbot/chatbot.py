@@ -49,18 +49,20 @@ def query_llm(
     )
     messages = [{"role": "system", "content": preamble_prompt}]
 
-    # Append the user and assistant messages from the conversation history
-    messages += [
-        (
-            {"role": "user", "content": user_message}
-            if i % 2 == 0
-            else {"role": "assistant", "content": assistant_message}
-        )
-        for i, (user_message, assistant_message) in enumerate(truncated_history)
-    ]
-
-    # Add the current user input to the conversation
-    messages.append({"role": "user", "content": f"Current question: {input_text}"})
+    if objective == "telegrapher":
+        messages.append({"role": "user", "content": f"{input_text}"})
+    else:
+        # Append the user and assistant messages from the conversation history
+        messages += [
+            (
+                {"role": "user", "content": user_message}
+                if i % 2 == 0
+                else {"role": "assistant", "content": assistant_message}
+            )
+            for i, (user_message, assistant_message) in enumerate(truncated_history)
+        ]
+        # Add the current user input to the conversation
+        messages.append({"role": "user", "content": f"Current question: {input_text}"})
 
     if model == None:
         raise AssertionError("Model cannot be None.")
@@ -86,10 +88,10 @@ def query_llm(
                     delta_content = data["choices"][0]["delta"].get("content", "")
                     full_response += delta_content
         log.debug(f"Assistant Full Response: {full_response}")
-        full_response = process_markdown_morse_code(full_response)
+        processed_response = process_markdown_morse_code(full_response)
 
         history.append((input_text, full_response))
-        return full_response, history
+        return processed_response, history
     else:
         error_message = f"Error: {response.status_code}"
         log.error(error_message)
@@ -123,7 +125,9 @@ def format_chat_history(history):
     history_html = "<div id='history'>"
     for user_msg, llm_response in reversed(history):  # Most recent at the top
         # Convert the LLM response from markdown to HTML, including code blocks
-        llm_response_html = markdown.markdown(llm_response, extensions=["fenced_code"])
+        llm_response_html = markdown.markdown(
+            process_markdown_morse_code(llm_response), extensions=["fenced_code"]
+        )
         user_msg = user_msg.replace("\n", "<br/>")
         history_html += f"""
             <div class="message llm">
@@ -148,7 +152,10 @@ def reset_chat():
         [],  # History state
         gr.update(value=""),  # Checkbox cleared
         gr.update(value=""),  # Textbox cleared
-        gr.update(visible=True),  # Voice dropdown remains visible
+        gr.update(),  # Voice dropdown
+        gr.update(),  # wpm slider
+        gr.update(),  # morse frequency slider
+        gr.update(),  # morse dot length slider
         submit_button_interactive,  # Submit button stays disabled if no input
         reset_button_interactive,  # Reset button disabled after reset
     )
@@ -173,6 +180,9 @@ def chat(
     voice,
     character_prompt,
     objective,
+    wpm,
+    morse_frequency,
+    dot_length,
 ):
     if not input_text.strip():
         # Disable the submit button if input is invalid
@@ -195,14 +205,19 @@ def chat(
     audio_path = None
     audio_visible = False
     if objective == "telegrapher":
-        clean_text_for_morse_code = "\n\n".join(extract_morse_code(response_text))
-        audio_path = generate_morse_code_audio(clean_text_for_morse_code)
+        clean_text_for_morse_code = " / / / ".join(extract_morse_code(response_text))
+        audio_path = generate_morse_code_audio(
+            clean_text_for_morse_code,
+            wpm=wpm,
+            tone=morse_frequency,
+            dot_length=dot_length,
+        )
     elif speech_synthesis_enabled:
         clean_text_for_tts = "... " + clean_markdown(response_text)
         audio_path = (
             generate_tts(clean_text_for_tts, VOICES[voice]) if voice in VOICES else None
         )
-        audio_visible = True if audio_path else False
+    audio_visible = True if audio_path else False
 
     chat_history_html = format_chat_history(updated_history)
 
@@ -235,6 +250,7 @@ with gr.Blocks(title="Voice chat with LM Studio", css=CSS) as interface:
             )  # Initially non-interactive
 
     history = gr.State()  # Stores conversation history
+    original_history = gr.State()  # Stores original unmodified history
 
     # Chat history display using HTML
     chat_history = gr.HTML(label="Chat History")
@@ -276,13 +292,52 @@ with gr.Blocks(title="Voice chat with LM Studio", css=CSS) as interface:
                 return gr.Checkbox(label="Speech Synthesis", value=True, visible=True)
 
         def show_character_prompt(objective=None):
+            return gr.Dropdown(
+                label="Character prompt",
+                choices=list(CHARACTER_PROMPTS.keys()),
+                value="none",
+            )
+
+        def show_wpm_slider(objective=None):
             if objective == "telegrapher":
-                return gr.Dropdown(visible=False)
+                return gr.Slider(
+                    minimum=1,
+                    maximum=100,
+                    step=1,
+                    value=20,
+                    label="Words Per Minute (WPM)",
+                    visible=True,
+                )
             else:
-                return gr.Dropdown(
-                    label="Character prompt",
-                    choices=list(CHARACTER_PROMPTS.keys()),
-                    value="shakespearean",
+                return gr.Slider(
+                    minimum=1,
+                    maximum=100,
+                    step=1,
+                    value=20,
+                    label="Words Per Minute (WPM)",
+                    visible=False,
+                )
+
+        def show_morse_frequency_slider(objective=None):
+            values = dict(minimum=300, maximum=1000, step=1, value=700, label="Tone Hz")
+            if objective == "telegrapher":
+                return gr.Slider(**values, visible=True)
+            else:
+                return gr.Slider(
+                    **values,
+                    visible=False,
+                )
+
+        def show_dot_length_slider(objective=None):
+            values = dict(
+                minimum=300, maximum=5000, step=1, value=1200, label="Dot length"
+            )
+            if objective == "telegrapher":
+                return gr.Slider(**values, visible=True)
+            else:
+                return gr.Slider(
+                    **values,
+                    visible=False,
                 )
 
         objective_dropdown = gr.Dropdown(
@@ -292,6 +347,9 @@ with gr.Blocks(title="Voice chat with LM Studio", css=CSS) as interface:
         character_prompt_dropdown = show_character_prompt()
         speech_synthesis_toggle = show_speech_synthesis_toggle()
         voice_dropdown = show_voice_dropdown()
+        wpm_slider = show_wpm_slider()
+        morse_frequency_slider = show_morse_frequency_slider()
+        dot_length_slider = show_dot_length_slider()
 
         objective_dropdown.input(
             fn=show_voice_dropdown, inputs=objective_dropdown, outputs=voice_dropdown
@@ -311,6 +369,21 @@ with gr.Blocks(title="Voice chat with LM Studio", css=CSS) as interface:
             inputs=objective_dropdown,
             outputs=model_dropdown,
         )
+        objective_dropdown.input(
+            fn=show_wpm_slider,
+            inputs=objective_dropdown,
+            outputs=wpm_slider,
+        )
+        objective_dropdown.input(
+            fn=show_morse_frequency_slider,
+            inputs=objective_dropdown,
+            outputs=morse_frequency_slider,
+        )
+        objective_dropdown.input(
+            fn=show_dot_length_slider,
+            inputs=objective_dropdown,
+            outputs=dot_length_slider,
+        )
 
         def toggle_voice_dropdown(speech_synthesis_enabled):
             return gr.update(visible=speech_synthesis_enabled)
@@ -323,7 +396,7 @@ with gr.Blocks(title="Voice chat with LM Studio", css=CSS) as interface:
 
     # Audio output for generated speech
     audio_output = gr.Audio(
-        type="filepath", autoplay=True, label="Generated Speech", visible=False
+        type="filepath", autoplay=True, label="Generated Audio", visible=False
     )
 
     # Buttons to reset chat
@@ -339,6 +412,9 @@ with gr.Blocks(title="Voice chat with LM Studio", css=CSS) as interface:
             textbox,
             speech_synthesis_toggle,
             voice_dropdown,
+            wpm_slider,
+            morse_frequency_slider,
+            dot_length_slider,
             submit_button,
             reset_button,
         ],
@@ -362,6 +438,9 @@ with gr.Blocks(title="Voice chat with LM Studio", css=CSS) as interface:
             voice_dropdown,
             character_prompt_dropdown,
             objective_dropdown,
+            wpm_slider,
+            morse_frequency_slider,
+            dot_length_slider,
         ],
         outputs=[
             chat_history,
@@ -384,6 +463,9 @@ with gr.Blocks(title="Voice chat with LM Studio", css=CSS) as interface:
             voice_dropdown,
             character_prompt_dropdown,
             objective_dropdown,
+            wpm_slider,
+            morse_frequency_slider,
+            dot_length_slider,
         ],
         outputs=[
             chat_history,
