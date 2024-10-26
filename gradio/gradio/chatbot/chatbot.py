@@ -57,8 +57,15 @@ def query_llm(
     # Add the current user input to the conversation
     messages.append({"role": "user", "content": f"Current question: {input_text}"})
 
+    if model == None:
+        raise AssertionError("Model cannot be None.")
     payload = {"model": model, "messages": messages, "stream": True}
 
+    log.debug(
+        "Sending message to LM Studio: {payload}".format(
+            payload=json.dumps(payload).replace("'", "\\'")
+        )
+    )
     response = requests.post(CHATBOT_API, json=payload, stream=True)
 
     if response.status_code == 200:
@@ -161,7 +168,6 @@ def chat(
     voice,
     character_prompt,
     objective,
-    tts=True,
 ):
     if not input_text.strip():
         # Disable the submit button if input is invalid
@@ -174,25 +180,21 @@ def chat(
             gr.update(interactive=False),
         )
 
-    # Disable both buttons when processing starts
     submit_button_interactive = gr.update(interactive=False)
     reset_button_interactive = gr.update(interactive=False)
 
     response_text, updated_history = query_llm(
         input_text, history, model, character_prompt, objective
-    )  # Pass the objective here
+    )
 
-    if tts:
-        clean_text_for_tts = "... " + clean_markdown(response_text)
-        audio_path = None
-        audio_visible = False
-        if speech_synthesis_enabled:
-            audio_path = (
-                generate_tts(clean_text_for_tts, VOICES[voice])
-                if voice in VOICES
-                else None
-            )
-            audio_visible = True if audio_path else False
+    clean_text_for_tts = "... " + clean_markdown(response_text)
+    audio_path = None
+    audio_visible = False
+    if speech_synthesis_enabled:
+        audio_path = (
+            generate_tts(clean_text_for_tts, VOICES[voice]) if voice in VOICES else None
+        )
+        audio_visible = True if audio_path else False
 
     chat_history_html = format_chat_history(updated_history)
 
@@ -200,10 +202,7 @@ def chat(
     submit_button_interactive = gr.update(interactive=True)
     reset_button_interactive = gr.update(interactive=True)
 
-    if tts:
-        audio_block = gr.update(value=audio_path, visible=audio_visible)
-    else:
-        audio_block = None
+    audio_block = gr.update(value=audio_path, visible=audio_visible)
     return (
         gr.update(value=chat_history_html),
         audio_block,
@@ -237,12 +236,18 @@ with gr.Blocks(title="Voice chat with LM Studio", css=CSS) as interface:
 
         def show_model_dropdown(objective=None):
             if len(MODELS) <= 1 or objective == "telegrapher":
-                return gr.Dropdown(visible=False)
+                return gr.Dropdown(
+                    label="Model (be patient when switching)",
+                    choices=MODELS,
+                    value=MODELS[0],
+                    visible=False,
+                )
             else:
                 return gr.Dropdown(
                     label="Model (be patient when switching)",
                     choices=MODELS,
                     value=MODELS[0],
+                    visible=True,
                 )
 
         def show_voice_dropdown(objective=None):
@@ -258,7 +263,7 @@ with gr.Blocks(title="Voice chat with LM Studio", css=CSS) as interface:
 
         def show_speech_synthesis_toggle(objective=None):
             if objective == "telegrapher":
-                return gr.Checkbox(visible=False)
+                return gr.Checkbox(visible=False, value=False)
             else:
                 return gr.Checkbox(label="Speech Synthesis", value=True, visible=True)
 
