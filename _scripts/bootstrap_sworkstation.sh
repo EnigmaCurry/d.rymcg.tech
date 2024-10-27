@@ -118,7 +118,7 @@ if [[ "${SYSBOX}" == "true" ]]; then
          jq fuse rsync linux-headers-$(uname -r)
     TMP_FILE=$(mktemp)
     wget -O ${TMP_FILE} "${SYSBOX_URL}"
-    dpkg -i ${TMP_FILE}
+    sudo dpkg -i ${TMP_FILE}
 fi
 
 ##
