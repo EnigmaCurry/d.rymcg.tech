@@ -78,8 +78,10 @@ docker context use "${CONTEXT}"
 
 ##
 ## Clone the d.rymcg.tech repository:
-git clone https://github.com/EnigmaCurry/d.rymcg.tech.git \
-    ${HOME}/git/vendor/enigmacurry/d.rymcg.tech
+if [[ ! -e ${HOME}/git/vendor/enigmacurry/d.rymcg.tech ]]; then
+    git clone https://github.com/EnigmaCurry/d.rymcg.tech.git \
+        ${HOME}/git/vendor/enigmacurry/d.rymcg.tech
+fi
 
 ##
 ## Add the bash shell integration for d.rymcg.tech:
