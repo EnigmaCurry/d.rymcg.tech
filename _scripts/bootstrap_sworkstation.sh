@@ -13,9 +13,6 @@
 ## 
 ## ALIAS=l ROOT_DOMAIN=d.example.com SYSBOX=false bash <(curl -L https://github.com/EnigmaCurry/d.rymcg.tech/blob/master/_scripts/bootstrap_sworkstation.sh?raw=true)
 ##
-## This whole script is written in a sub-shell, so it is safe to copy
-## and paste it directly into your bash shell, just remember to set the vars first.
-##
 
 export SSH_HOST="${SSH_HOST:-localhost}"
 export CONTEXT="${CONTEXT:-${SSH_HOST}}"

@@ -1,6 +1,15 @@
 #!/bin/bash
 ## Quick bootstrap of a d.rymcg.tech Sworkstation for Fedora-based systems.
-## Requires a freshly installed Fedora-like host.
+## Configuration is via environment variables:
+##
+## SSH_HOST = the SSH host to setup (Default localhost).
+## CONTEXT = the name of the Docker context to setup (Default $SSH_HOST).
+## ALIAS = the contextual alias for d.rymcg.tech (Default $CONTEXT).
+## ROOT_DOMAIN = the root sub-domain used for apps (Default $SSH_HOST).
+## 
+## You may run this script directly from curl:
+## 
+## ALIAS=l ROOT_DOMAIN=d.example.com bash <(curl -L https://github.com/EnigmaCurry/d.rymcg.tech/blob/master/_scripts/bootstrap_sworkstation_fedora.sh?raw=true)
 
 export SSH_HOST="${SSH_HOST:-localhost}"
 export CONTEXT="${CONTEXT:-${SSH_HOST}}"
