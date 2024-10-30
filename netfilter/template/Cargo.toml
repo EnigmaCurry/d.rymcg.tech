@@ -5,4 +5,8 @@ edition = "2021"
 
 [dependencies]
 askama = "0.12.1"
+clap = { version = "4.5.20", features = ["derive", "env"] }
+dotenvy = "0.15.7"
+env_logger = "0.11.5"
 ipnetwork = "0.20.0"
+log = "0.4.22"
