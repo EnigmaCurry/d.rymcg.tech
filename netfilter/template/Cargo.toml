@@ -1,0 +1,7 @@
+[package]
+name = "netfilter-template"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+askama = "0.12.1"
