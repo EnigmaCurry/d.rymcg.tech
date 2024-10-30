@@ -3,8 +3,8 @@ use askama::Template;
 mod chain_policy;
 use chain_policy::ChainPolicy;
 
-#[template(path = "router.nft.txt")]
 #[derive(Template)]
+#[template(path = "router.nft.txt")]
 struct RouterTemplate {
     chain_policy_input: ChainPolicy,
     chain_policy_output: ChainPolicy,

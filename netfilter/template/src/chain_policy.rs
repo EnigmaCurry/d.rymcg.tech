@@ -1,6 +1,5 @@
-use askama::Template;
-
 #[derive(Debug, Clone)]
+#[allow(dead_code)]
 pub enum ChainPolicy {
     Accept,
     Drop,
