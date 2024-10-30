@@ -14,10 +14,6 @@ impl Subnet {
             Err(_) => Err(format!("Invalid subnet format: {}", input)),
         }
     }
-
-    pub fn network(&self) -> IpNetwork {
-        self.network
-    }
 }
 
 impl fmt::Display for Subnet {
