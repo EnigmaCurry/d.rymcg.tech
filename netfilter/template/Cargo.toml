@@ -5,3 +5,4 @@ edition = "2021"
 
 [dependencies]
 askama = "0.12.1"
+ipnetwork = "0.20.0"

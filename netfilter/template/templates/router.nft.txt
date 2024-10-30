@@ -6,46 +6,49 @@ flush ruleset
 # Define table
 table ip filter {
     chain input {
-        type filter hook input priority 0; policy {{ chain_policy_input }};
+        type filter hook input priority 0; policy drop;
         # Allow established and related connections
         ct state established,related accept
+
         # Allow ICMP
-        ip protocol icmp accept
-        # Allow traffic from the local network
-        ip saddr 192.168.1.0/24 accept
+        {% if icmp_accept_lan %}
+        ip protocol icmp iif "{{ interface_lan }}" accept
+        {% endif %}
+        {% if icmp_accept_wan %}
+        ip protocol icmp iif "{{ interface_wan }}" accept
+        {% endif %}
+
         # Drop everything else
         drop
     }
 
     chain forward {
-        type filter hook forward priority 0; policy {{ chain_policy_forward }};
+        type filter hook forward priority 0; policy drop;
         # Allow established and related connections
         ct state established,related accept
         # Allow traffic from local network to internet
-        ip saddr 192.168.1.0/24 accept
-        # Allow traffic from internet to local network (for DNAT)
-        ip daddr 192.168.1.0/24 accept
+        ip saddr {{ subnet_lan }} accept
     }
 
     chain output {
-        type filter hook output priority 0; policy {{ chain_policy_output }};
+        type filter hook output priority 0; policy drop;
     }
 }
 
 # Define NAT table
 table ip nat {
-    # SNAT for outgoing traffic
-    chain postrouting {
-        type nat hook postrouting priority 100; policy {{ chain_policy_postrouting }};
-        # Replace with your external interface IP
-        ip saddr 192.168.1.0/24 snat to 203.0.113.1
-    }
-
     # DNAT for incoming traffic
     chain prerouting {
-        type nat hook prerouting priority 100; policy {{ chain_policy_prerouting }};
+        type nat hook prerouting priority 0; policy accept;
         # Example for port forwarding (change as needed)
-        tcp dport 80 dnat to 192.168.1.100:80
+        # tcp dport 80 dnat to 192.168.1.100:80
+    }
+
+    # SNAT for outgoing traffic
+    chain postrouting {
+        type nat hook postrouting priority 100; policy accept;
+        # Replace with your external interface IP
+        oifname "{{ interface_wan }}" masquerade
     }
 }
 
