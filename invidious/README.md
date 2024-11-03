@@ -21,6 +21,25 @@ If you are using ARM64, you must select the appropriate image:
 make reconfigure var=INVIDIOUS_IMAGE=quay.io/invidious/invidious:latest-arm64
 ```
 
+### Bypass Google's Block
+
+In the ongoing battle to bypass Google's attempt to block non-Google services
+from scraping public Youtube videos and information, the current method for
+Invidious to work is to pass a Proof of Origin Token to Google (if your public
+IP is blocked by Google). To generate po_token and visitor_data identities for
+passing all verification checks on the YouTube side, run:
+```
+docker run quay.io/invidious/youtube-trusted-session-generator
+```
+This must be run on the same public IP address as the one blocked by YouTube.
+When you run `make config`, you will be prompted to enter the `visitor_data`
+and `po_token` values
+
+NOTE: The `po_token` and `visitor_data` tokens will make your entire Invidious
+session more easily traceable by YouTube because it is tied to a unique
+identifier. See additional info here:
+https://docs.invidious.io/installation/#docker-compose-method-production
+
 ### Authentication and Authorization
 
 See [AUTH.md](../AUTH.md) for information on adding external authentication on

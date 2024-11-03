@@ -10,6 +10,8 @@ services:
       - no-new-privileges:true
     volumes:
       - database:/var/lib/postgresql/data
+      #- ./config/sql:/config/sql
+      #- ./docker/init-invidious-db.sh:/docker-entrypoint-initdb.d/init-invidious-db.sh
     environment:
       - POSTGRES_DB=invidious
       - POSTGRES_USER=invidious
@@ -39,13 +41,34 @@ services:
         full_refresh: false
         https_only: false
         domain:
+        statistics_enabled: ${INVIDIOUS_STATISTICS_ENABLED}
         hmac_key: ${INVIDIOUS_HMAC_KEY}
+        signature_server: inv_sig_helper:12999
+        visitor_data: ${INVIDIOUS_VISITOR_DATA}
+        po_token: ${INVIDIOUS_PO_TOKEN}
     healthcheck:
       test: wget -nv --tries=1 --spider http://127.0.0.1:3000/api/v1/comments/jNQXAC9IVRw || exit 1
       interval: 30s
       timeout: 5s
       retries: 2
+    logging:
+      options:
+        max-size: "1G"
+        max-file: "4"
     depends_on:
       - postgres
     # labels are defined in docker-compose.instance.yaml:
     labels: []
+
+  inv_sig_helper:
+    image: quay.io/invidious/inv-sig-helper:latest
+    init: true
+    command: ["--tcp", "0.0.0.0:12999"]
+    environment:
+      - RUST_LOG=info
+    restart: unless-stopped
+    cap_drop:
+      - ALL
+    read_only: true
+    security_opt:
+      - no-new-privileges:true
