@@ -37,8 +37,7 @@ and `po_token` values
 
 NOTE: The `po_token` and `visitor_data` tokens will make your entire Invidious
 session more easily traceable by YouTube because it is tied to a unique
-identifier. See additional info here:
-https://docs.invidious.io/installation/#docker-compose-method-production
+identifier. See additional info [here](https://docs.invidious.io/installation/#docker-compose-method-production).
 
 ### Authentication and Authorization
 
@@ -69,3 +68,7 @@ You should create an invidious account and log into the app, in addition to the
 HTTP basic auth password. If you don't create an account, and you don't login,
 your settings (eg. `Proxy Videos`) are not saved!
 
+Invidious suggests "because of various issues Invidious must be restarted
+often, at least once a day, ideally every hour." The instance of Invidious that
+d.rymcg.tech installs does not automatically restart - we leave this to you
+to decide whether to do it and, if so, how to do it.
