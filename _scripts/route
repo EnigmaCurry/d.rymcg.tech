@@ -146,7 +146,7 @@ list_routes() {
                     else
                         proxy_protocol="-"
                     fi
-                    tcp_or_udp="tcp" ## Don't support udp yet
+                    tcp_or_udp=$(get_entrypoint_value ${entrypoint} protocol)
                     if [[ -z "${seen_routes[$route]}" ]]; then
                         echo "- ${entrypoint} ${tcp_or_udp}://${ip_address}:${port} ${ip_address}:${port} ${proxy_protocol}"
                         seen_routes[$route]=1
