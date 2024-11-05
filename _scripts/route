@@ -189,20 +189,25 @@ list_routes() {
 
 }
 
+fault_usage() {
+    usage
+    fault "$@"
+}
+
 usage() {
     local alias="${D_RYMCG_TECH_CONTEXT_ALIAS:-${D_RYMCG_TECH_CLI_ALIAS:-d.rymcg.tech}}"
     echo "Manage Traefik routes"
     echo 
-    echo "Usage: ${alias} route {list|add|remove} ARGS [options]"
+    echo "Usage: ${alias} route {list|set|remove} ARGS [options]"
     echo 
     echo "Subcommands:"
     echo "  list      - List all routes"
-    echo "  add       - Add a new route"
-    echo "      add (DOMAIN|ENTRYPOINT) DEST_IP DEST_PORT [OPTIONS...]"
+    echo "  set       - Set a new route or update an existing one"
+    echo "      set (DOMAIN|ENTRYPOINT) DEST_IP DEST_PORT [OPTIONS...]"
     echo "  remove    - Remove an existing route"
     echo "      remove (DOMAIN|ENTRYPOINT) [OPTIONS...]"
     echo
-    echo "Options for add / remove:"
+    echo "Options for set / remove:"
     echo "  --layer7                       - create a Layer 7 route (default)"
     echo "  --layer4                       - create a Layer 4 route"
     echo "  --restart [true/false]         - Automatically restart Traefik or not"
@@ -215,32 +220,172 @@ usage() {
     echo
     echo " ${alias} list"
     echo
-    echo "Add Layer 7 route to HTTP(s) destination 192.168.1.2:8000"
+    echo "Set Layer 7 route to HTTP(s) destination 192.168.1.2:8000"
     echo "using the context default proxy protocol option:"
     echo
-    echo " ${alias} route add whoami.example.com 192.168.1.2 8000"
+    echo " ${alias} route set --layer7 whoami.example.com 192.168.1.2 8000"
     echo
-    echo "Add Layer 7 route to HTTP(s) destination 192.168.1.2:8000"
+    echo "Set Layer 7 route to HTTP(s) destination 192.168.1.2:8000"
     echo "forcing the proxy protocol option ON:"
     echo
-    echo " ${alias} route add whoami.example.com 192.168.1.2 8000 --proxy-protocol true"
+    echo " ${alias} route set --layer7 whoami.example.com 192.168.1.2 8000 --proxy-protocol true"
     echo
     echo "Remove Layer 7 route:"
     echo
-    echo " ${alias} route remove whoami.example.com"
+    echo " ${alias} route remove --layer7 whoami.example.com"
     echo
-    echo "Add Layer 4 route to TCP destination 192.168.1.2:9000"
+    echo "Set Layer 4 route to TCP destination 192.168.1.2:9000"
     echo "using an existing entrypoint named 'test'"
-    echo "using the context default proxy protocol option (or add --proxy-protocol true):"
+    echo "using the context default proxy protocol option (or set --proxy-protocol true):"
     echo
-    echo " ${alias} route add test 192.168.1.2 9000 --layer4"
+    echo " ${alias} route set --layer4 test 192.168.1.2 9000"
     echo 
     echo "Remove Layer 4 route:"
     echo
-    echo " ${alias} route remove test"
+    echo " ${alias} route remove --layer4 test"
     echo
     echo "All examples will ask to restart Traefik, unless --restart true/false is set."
     echo
+}
+
+parse_set_route() {
+    local layer="layer7"         # Default to Layer 7
+    local restart="ask"          # Default to asking for a restart
+    local proxy_protocol="false" # Default proxy protocol setting
+    local protocol="tcp"         # Default protocol
+
+    # Initialize variables for required parameters
+    local ENV_FILE
+    local DOMAIN_OR_ENTRYPOINT
+    local DEST_IP
+    local DEST_PORT
+
+    # Parse options and arguments
+    while [[ "$1" != "" ]]; do
+        case "$1" in
+            --layer4)
+                layer="layer4"
+                ;;
+            --layer7)
+                layer="layer7"
+                ;;
+            --restart)
+                shift
+                if [[ "$1" == "true" || "$1" == "false" ]]; then
+                    restart="$1"
+                else
+                    fault_usage " --restart must be followed by 'true' or 'false'"
+                    return 1
+                fi
+                ;;
+            --proxy-protocol)
+                shift
+                if [[ "$1" == "true" || "$1" == "false" ]]; then
+                    proxy_protocol="$1"
+                else
+                    fault_usage " --proxy-protocol must be followed by 'true' or 'false'"
+                    return 1
+                fi
+                ;;
+            --protocol)
+                shift
+                if [[ "$1" == "tcp" || "$1" == "udp" ]]; then
+                    protocol="$1"
+                else
+                    fault_usage " --protocol must be 'tcp' or 'udp'"
+                    return 1
+                fi
+                ;;
+            *)
+                # Positional arguments
+                if [[ -z "$ENV_FILE" ]]; then
+                    ENV_FILE="$1"
+                elif [[ -z "$DOMAIN_OR_ENTRYPOINT" ]]; then
+                    DOMAIN_OR_ENTRYPOINT="$1"
+                elif [[ -z "$DEST_IP" ]]; then
+                    DEST_IP="$1"
+                elif [[ -z "$DEST_PORT" ]]; then
+                    DEST_PORT="$1"
+                else
+                    debug_var ENV_FILE
+                    debug_var DOMAIN_OR_ENTRYPOINT
+                    debug_var DEST_IP
+                    debug_var DEST_PORT
+                    fault_usage "Unexpected argument '$1'"
+                    return 1
+                fi
+                ;;
+        esac
+        shift
+    done
+
+    check_var ENV_FILE DOMAIN_OR_ENTRYPOINT DEST_IP DEST_PORT proxy_protocol
+    source ${BIN}/../traefik/setup.sh
+    case "${layer}" in
+        layer4)
+            reconfigure_layer_4_tcp_udp_proxy_routes "${ENV_FILE}" "${DOMAIN_OR_ENTRYPOINT}" "${DEST_IP}" "${DEST_PORT}" "${proxy_protocol}";;
+        layer7)
+            echo TODO;;
+        *)
+            fault "Invalid layer: ${layer}"
+    esac
+}
+
+parse_remove_route() {
+    local layer="layer7"         # Default to Layer 7
+    local restart="ask"          # Default to asking for a restart
+
+    # Initialize variables for required parameters
+    local ENV_FILE
+    local DOMAIN_OR_ENTRYPOINT
+
+    # Parse options and arguments
+    while [[ "$1" != "" ]]; do
+        case "$1" in
+            --layer4)
+                layer="layer4"
+                ;;
+            --layer7)
+                layer="layer7"
+                ;;
+            --restart)
+                shift
+                if [[ "$1" == "true" || "$1" == "false" ]]; then
+                    restart="$1"
+                else
+                    fault_usage " --restart must be followed by 'true' or 'false'"
+                    return 1
+                fi
+                ;;
+            *)
+                # Positional arguments
+                if [[ -z "$ENV_FILE" ]]; then
+                    ENV_FILE="$1"
+                elif [[ -z "$DOMAIN_OR_ENTRYPOINT" ]]; then
+                    DOMAIN_OR_ENTRYPOINT="$1"
+                else
+                    debug_var ENV_FILE
+                    debug_var DOMAIN_OR_ENTRYPOINT
+                    debug_var DEST_IP
+                    debug_var DEST_PORT
+                    fault_usage "Unexpected argument '$1'"
+                    return 1
+                fi
+                ;;
+        esac
+        shift
+    done
+
+    check_var ENV_FILE DOMAIN_OR_ENTRYPOINT
+    source ${BIN}/../traefik/setup.sh
+    case "${layer}" in
+        layer4)
+            reconfigure_remove_layer_4_tcp_udp_proxy_routes "${ENV_FILE}" "${DOMAIN_OR_ENTRYPOINT}";;
+        layer7)
+            fault TODO;;
+        *)
+            fault "Invalid layer: ${layer}"
+    esac
 }
 
 main() {
@@ -255,23 +400,23 @@ main() {
     else
         args=("$@")
     fi
-    subcommand=$(pop_array args)
+    pop_array args subcommand
     if [[ -z "$subcommand" ]]; then
         usage
         exit 1
     else
         case "$subcommand" in
             list)
-                list_routes $@
+                list_routes
                 ;;
-            add)
-                echo TODO
+            set)
+                parse_set_route "${ENV_FILE}" ${args[@]}
                 ;;
             remove)
-                echo TODO
+                parse_remove_route "${ENV_FILE}" ${args[@]}
                 ;;
             *)
-                echo "Error: Invalid subcommand '$subcommand'."
+                fault_usage " Invalid subcommand '$subcommand'."
                 usage
                 exit 1
                 ;;

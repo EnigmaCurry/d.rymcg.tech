@@ -50,11 +50,18 @@ debug_array() {
 }
 
 pop_array() {
-    # Pop off the first element of an array and echo it:
-    local -n arr=$1
-    local first_element="${arr[0]}"
-    arr=("${arr[@]:1}")
-    echo "$first_element"
+    # Pop off the first element of an array and save it to a variable:
+    local -n __arr=$1       # Bind to array
+    local out_var=$2      # Variable name to store output
+    local first_element="${__arr[0]}"
+    __arr=("${__arr[@]:1}")   # Remove the first element
+
+    if [[ -n "$first_element" ]]; then
+        eval "$out_var=\"$first_element\""
+    else
+        eval "unset $out_var"
+        return 1
+    fi
 }
 
 ask() {
