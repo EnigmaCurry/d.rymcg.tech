@@ -193,7 +193,7 @@ usage() {
     local alias="${D_RYMCG_TECH_CONTEXT_ALIAS:-${D_RYMCG_TECH_CLI_ALIAS:-d.rymcg.tech}}"
     echo "Manage Traefik routes"
     echo 
-    echo "Usage: ${D_RYMCG_TECH_CONTEXT_ALIAS:-d.rymcg.tech} route {list|add|remove} ARGS [options]"
+    echo "Usage: ${alias} route {list|add|remove} ARGS [options]"
     echo 
     echo "Subcommands:"
     echo "  list      - List all routes"
@@ -207,20 +207,40 @@ usage() {
     echo "  --layer4                       - create a Layer 4 route"
     echo "  --restart [true/false]         - Automatically restart Traefik or not"
     echo "  --proxy-protocol [true/false]  - Turn on Proxy Protocol for the route or not"
+    echo "  --protocol [udp/tcp]           - TCP (default) or UDP"
     echo
     echo "Examples:"
     echo
-    echo "Add Layer 7 route:"
-    echo " ${alias} route add whoami.example.com 192.168.1.2 8000" 
+    echo "List all routes:"
+    echo
+    echo " ${alias} list"
+    echo
+    echo "Add Layer 7 route to HTTP(s) destination 192.168.1.2:8000"
+    echo "using the context default proxy protocol option:"
+    echo
+    echo " ${alias} route add whoami.example.com 192.168.1.2 8000"
+    echo
+    echo "Add Layer 7 route to HTTP(s) destination 192.168.1.2:8000"
+    echo "forcing the proxy protocol option ON:"
+    echo
+    echo " ${alias} route add whoami.example.com 192.168.1.2 8000 --proxy-protocol true"
     echo
     echo "Remove Layer 7 route:"
+    echo
     echo " ${alias} route remove whoami.example.com"
     echo
-    echo "Add Layer 4 route (entrypoint test must already exist):"
-    echo " ${alias} route add test 192.168.1.2 8000 --layer4"
+    echo "Add Layer 4 route to TCP destination 192.168.1.2:9000"
+    echo "using an existing entrypoint named 'test'"
+    echo "using the context default proxy protocol option (or add --proxy-protocol true):"
+    echo
+    echo " ${alias} route add test 192.168.1.2 9000 --layer4"
     echo 
     echo "Remove Layer 4 route:"
-    echo " ${alias} route remove test" 
+    echo
+    echo " ${alias} route remove test"
+    echo
+    echo "All examples will ask to restart Traefik, unless --restart true/false is set."
+    echo
 }
 
 main() {
@@ -230,6 +250,7 @@ main() {
             read -a args <<< "${ARGS}"
         else
             usage
+            exit 1
         fi
     else
         args=("$@")
@@ -237,6 +258,7 @@ main() {
     subcommand=$(pop_array args)
     if [[ -z "$subcommand" ]]; then
         usage
+        exit 1
     else
         case "$subcommand" in
             list)
