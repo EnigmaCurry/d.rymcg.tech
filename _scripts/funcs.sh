@@ -49,6 +49,14 @@ debug_array() {
     done
 }
 
+pop_array() {
+    # Pop off the first element of an array and echo it:
+    local -n arr=$1
+    local first_element="${arr[0]}"
+    arr=("${arr[@]:1}")
+    echo "$first_element"
+}
+
 ask() {
     ## Ask the user a question and set the given variable name with their answer
     local __prompt="${1}"; local __var="${2}"; local __default="${3}"

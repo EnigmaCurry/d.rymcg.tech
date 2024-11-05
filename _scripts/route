@@ -11,7 +11,7 @@ check_missing_entrypoint() {
     check_var entrypoint_name
     local traefik_env="${ROOT_DIR}/traefik/${ENV_FILE}"
     test -f ${traefik_env} || fault "Could not find traefik env file: ${traefik_env}"
-    if ${BIN}/dotenv -f "${traefik_env}" get "TRAEFIK_${entrypoint_name^^}_ENTRYPOINT_PORT"; then
+    if ${BIN}/dotenv -f "${traefik_env}" get "TRAEFIK_${entrypoint_name^^}_ENTRYPOINT_PORT" &>/dev/null; then
         return 1
     else
         return 0
@@ -94,14 +94,13 @@ get_docker_container_routes() {
     done
 }
 
-main() {
-    
+list_routes() {    
 # Print list of Traefik container routes
     {
         # Generate formatted output
         {
-            echo "Service Entrypoint URL Destination"
-            echo "-------------- ---------- --- ----------"
+            echo "Service Entrypoint URL Destination Proxy_Protocol"
+            echo "-------------- ---------- --- ---------- --------------"
             get_docker_container_routes
             
             # Print layer 4 routes if enabled
@@ -124,9 +123,14 @@ main() {
                 IFS=',' read -ra routes <<< "$layer_7_routes"
                 declare -A seen_routes
                 for route in "${routes[@]}"; do
-                    IFS=':' read -r domain ip_address port _ <<< "$route"
+                    IFS=':' read -r domain ip_address port proxy_protocol <<< "$route"
                     if [[ -z "${seen_routes[$route]}" ]]; then
-                        echo "- layer-7 https://${domain} ${ip_address}:${port}"
+                        if [[ -n "$proxy_protocol" ]] && [[ "$proxy_protocol" != "0" ]]; then
+                            proxy_protocol="true"
+                        else
+                            proxy_protocol="false"
+                        fi
+                        echo "- layer-7 https://${domain} ${ip_address}:${port} ${proxy_protocol}"
                         seen_routes[$route]=1
                     fi
                 done
@@ -146,9 +150,73 @@ main() {
 
 }
 
-main
-#get_docker_container_routes
-# docker ps -q | while read -r container_id; do
-#     inspect_container ${container_id}
-# done
+usage() {
+    local alias="${D_RYMCG_TECH_CONTEXT_ALIAS:-${D_RYMCG_TECH_CLI_ALIAS:-d.rymcg.tech}}"
+    echo "Manage Traefik routes"
+    echo 
+    echo "Usage: ${D_RYMCG_TECH_CONTEXT_ALIAS:-d.rymcg.tech} route {list|add|remove} ARGS [options]"
+    echo 
+    echo "Subcommands:"
+    echo "  list      - List all routes"
+    echo "  add       - Add a new route"
+    echo "      add (DOMAIN|ENTRYPOINT) DEST_IP DEST_PORT [OPTIONS...]"
+    echo "  remove    - Remove an existing route"
+    echo "      remove (DOMAIN|ENTRYPOINT) [OPTIONS...]"
+    echo
+    echo "Options for add / remove:"
+    echo "  --layer7                       - create a Layer 7 route (default)"
+    echo "  --layer4                       - create a Layer 4 route"
+    echo "  --restart [true/false]         - Automatically restart Traefik or not"
+    echo "  --proxy-protocol [true/false]  - Turn on Proxy Protocol for the route or not"
+    echo
+    echo "Examples:"
+    echo
+    echo "Add Layer 7 route:"
+    echo " ${alias} route add whoami.example.com 192.168.1.2 8000" 
+    echo
+    echo "Remove Layer 7 route:"
+    echo " ${alias} route remove whoami.example.com"
+    echo
+    echo "Add Layer 4 route (entrypoint test must already exist):"
+    echo " ${alias} route add test 192.168.1.2 8000 --layer4"
+    echo 
+    echo "Remove Layer 4 route:"
+    echo " ${alias} route remove test" 
+}
 
+main() {
+    if [[ $# -eq 0 ]]; then
+        # If no args are passed, check for ARGS variable and use that if it exists:
+        if [[ -n "${ARGS}" ]]; then
+            read -a args <<< "${ARGS}"
+        else
+            usage
+        fi
+    else
+        args=("$@")
+    fi
+    subcommand=$(pop_array args)
+    if [[ -z "$subcommand" ]]; then
+        usage
+    else
+        case "$subcommand" in
+            list)
+                list_routes $@
+                ;;
+            add)
+                echo TODO
+                ;;
+            remove)
+                echo TODO
+                ;;
+            *)
+                echo "Error: Invalid subcommand '$subcommand'."
+                usage
+                exit 1
+                ;;
+        esac
+        
+    fi
+}
+
+main $@
