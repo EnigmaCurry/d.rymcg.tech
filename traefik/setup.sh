@@ -600,20 +600,21 @@ layer_4_tcp_udp_add_ingress_route() {
     layer_4_tcp_udp_list_routes    
 }
 
-reconfigure_layer_4_tcp_udp_proxy_routes() {
+reconfigure_layer_X_tcp_udp_proxy_routes() {
     local ENV_FILE=$1
-    local ENTRYPOINT=$2
-    local ROUTE_IP_ADDRESS=$3
-    local ROUTE_PORT=$4
-    local ROUTE_PROXY_PROTOCOL=$5
+    local LAYER_VAR=$2
+    local DOMAIN_OR_ENTRYPOINT=$3
+    local ROUTE_IP_ADDRESS=$4
+    local ROUTE_PORT=$5
+    local ROUTE_PROXY_PROTOCOL=$6
     
-    check_var ENV_FILE ENTRYPOINT ROUTE_IP_ADDRESS ROUTE_PORT ROUTE_PROXY_PROTOCOL
+    check_var ENV_FILE LAYER_VAR DOMAIN_OR_ENTRYPOINT ROUTE_IP_ADDRESS ROUTE_PORT ROUTE_PROXY_PROTOCOL
     
     # Construct the new route string
-    local NEW_ROUTE="${ENTRYPOINT}:${ROUTE_IP_ADDRESS}:${ROUTE_PORT}:${ROUTE_PROXY_PROTOCOL}"
+    local NEW_ROUTE="${DOMAIN_OR_ENTRYPOINT}:${ROUTE_IP_ADDRESS}:${ROUTE_PORT}:${ROUTE_PROXY_PROTOCOL}"
     
     # Get the current routes from the environment variable
-    local ROUTES=$(${BIN}/dotenv -f ${ENV_FILE} get TRAEFIK_LAYER_4_TCP_UDP_PROXY_ROUTES)
+    local ROUTES=$(${BIN}/dotenv -f ${ENV_FILE} get ${LAYER_VAR})
     
     # Initialize an empty string to hold the updated routes
     local UPDATED_ROUTES=""
@@ -623,7 +624,7 @@ reconfigure_layer_4_tcp_udp_proxy_routes() {
     IFS=',' read -ra ROUTE_ARRAY <<< "$ROUTES"
     for ROUTE in "${ROUTE_ARRAY[@]}"; do
         # Check if the entrypoint already exists
-        if [[ "$ROUTE" == ${ENTRYPOINT}:* ]]; then
+        if [[ "$ROUTE" == ${DOMAIN_OR_ENTRYPOINT}:* ]]; then
             # Replace the existing route with the new route
             UPDATED_ROUTES+="${NEW_ROUTE},"
             ENTRY_FOUND=true
@@ -642,18 +643,19 @@ reconfigure_layer_4_tcp_udp_proxy_routes() {
     UPDATED_ROUTES=${UPDATED_ROUTES%,}
     
     # Update the environment variable with the new routes
-    ${BIN}/reconfigure ${ENV_FILE} "TRAEFIK_LAYER_4_TCP_UDP_PROXY_ROUTES=${UPDATED_ROUTES}"
+    ${BIN}/reconfigure ${ENV_FILE} "${LAYER_VAR}=${UPDATED_ROUTES}"
 }
 
-reconfigure_remove_layer_4_tcp_udp_proxy_routes() {
+reconfigure_remove_layer_X_tcp_udp_proxy_routes() {
     local ENV_FILE=$1
-    local ENTRYPOINT=$2
+    local LAYER_VAR=$2
+    local DOMAIN_OR_ENTRYPOINT=$3
 
     # Check that required variables are provided
-    check_var ENV_FILE ENTRYPOINT
+    check_var ENV_FILE LAYER_VAR DOMAIN_OR_ENTRYPOINT
 
     # Get the current routes from the environment variable
-    local ROUTES=$(${BIN}/dotenv -f ${ENV_FILE} get TRAEFIK_LAYER_4_TCP_UDP_PROXY_ROUTES)
+    local ROUTES=$(${BIN}/dotenv -f ${ENV_FILE} get ${LAYER_VAR})
     
     # Initialize an empty string to hold the updated routes
     local UPDATED_ROUTES=""
@@ -661,8 +663,8 @@ reconfigure_remove_layer_4_tcp_udp_proxy_routes() {
     # Split ROUTES by commas and iterate over each route
     IFS=',' read -ra ROUTE_ARRAY <<< "$ROUTES"
     for ROUTE in "${ROUTE_ARRAY[@]}"; do
-        # Check if the route does not match the ENTRYPOINT
-        if [[ "$ROUTE" != ${ENTRYPOINT}:* ]]; then
+        # Check if the route does not match the DOMAIN_OR_ENTRYPOINT
+        if [[ "$ROUTE" != ${DOMAIN_OR_ENTRYPOINT}:* ]]; then
             # If not matching, keep the route
             UPDATED_ROUTES+="${ROUTE},"
         fi
@@ -672,7 +674,7 @@ reconfigure_remove_layer_4_tcp_udp_proxy_routes() {
     UPDATED_ROUTES=${UPDATED_ROUTES%,}
 
     # Update the environment variable with the new routes
-    ${BIN}/reconfigure ${ENV_FILE} "TRAEFIK_LAYER_4_TCP_UDP_PROXY_ROUTES=${UPDATED_ROUTES}"
+    ${BIN}/reconfigure ${ENV_FILE} "${LAYER_VAR}=${UPDATED_ROUTES}"
 }
 
 layer_4_tcp_udp_proxy_manage_ingress_routes() {

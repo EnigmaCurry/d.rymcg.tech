@@ -127,8 +127,8 @@ list_routes() {
     {
         # Generate formatted output
         {
-            echo "#Service Entrypoint URL Destination Upstream_Proxy Forward_HTTPs"
-            echo "#------- ---------- --- ----------- -------------- -------------"
+            echo "Service Entrypoint URL Destination Upstream_Proxy Forward_HTTPs"
+            echo "------- ---------- --- ----------- -------------- -------------"
             get_docker_container_routes
             
             # Print layer 4 routes if enabled
@@ -183,10 +183,8 @@ list_routes() {
         echo "$line"
         cat
         echo
-        echo "##Note: these routes are defined in the configuration, but may not necessarily reflect Traefik's current state until you reinstall it."
+        echo "## Note: these routes are defined in the configuration, but may not necessarily reflect Traefik's current state until you reinstall it."
     } | less -FSX
-
-
 }
 
 fault_usage() {
@@ -249,18 +247,16 @@ usage() {
 }
 
 parse_set_route() {
-    local layer="layer7"         # Default to Layer 7
-    local restart="ask"          # Default to asking for a restart
-    local proxy_protocol="false" # Default proxy protocol setting
-    local protocol="tcp"         # Default protocol
+    local layer="layer7"
+    local restart="ask"
+    local proxy_protocol="false"
+    local protocol="tcp"
 
-    # Initialize variables for required parameters
     local ENV_FILE
     local DOMAIN_OR_ENTRYPOINT
     local DEST_IP
     local DEST_PORT
 
-    # Parse options and arguments
     while [[ "$1" != "" ]]; do
         case "$1" in
             --layer4)
@@ -319,15 +315,32 @@ parse_set_route() {
         shift
     done
 
-    check_var ENV_FILE DOMAIN_OR_ENTRYPOINT DEST_IP DEST_PORT proxy_protocol
+    check_var ENV_FILE DOMAIN_OR_ENTRYPOINT DEST_IP DEST_PORT proxy_protocol ROOT_DIR ROOT_ENV
+    if [[ "$layer" == "layer7" ]]; then
+        proxy_protocol=$(${BIN}/dotenv -f "${ROOT_DIR}/${ROOT_ENV}" get DEFAULT_CLI_ROUTE_LAYER_7_PROXY_PROTOCOL)
+    elif [[ "$layer" == "layer4" ]]; then
+        proxy_protocol=$(${BIN}/dotenv -f "${ROOT_DIR}/${ROOT_ENV}" get DEFAULT_CLI_ROUTE_LAYER_4_PROXY_PROTOCOL)
+    fi
+
     source ${BIN}/../traefik/setup.sh
     case "${layer}" in
         layer4)
-            reconfigure_layer_4_tcp_udp_proxy_routes "${ENV_FILE}" "${DOMAIN_OR_ENTRYPOINT}" "${DEST_IP}" "${DEST_PORT}" "${proxy_protocol}";;
+            reconfigure_layer_X_tcp_udp_proxy_routes "${ENV_FILE}" TRAEFIK_LAYER_4_TCP_UDP_PROXY_ROUTES "${DOMAIN_OR_ENTRYPOINT}" "${DEST_IP}" "${DEST_PORT}" "${proxy_protocol}";;
         layer7)
-            echo TODO;;
+            reconfigure_layer_X_tcp_udp_proxy_routes "${ENV_FILE}" TRAEFIK_LAYER_7_TLS_PROXY_ROUTES "${DOMAIN_OR_ENTRYPOINT}" "${DEST_IP}" "${DEST_PORT}" "${proxy_protocol}";;
         *)
             fault "Invalid layer: ${layer}"
+    esac
+
+    case "${restart}" in
+        ask)
+            confirm no "Do you want to restart Traefik now" "?" && make -C ${ROOT_DIR}/traefik install;;
+        true)
+            make -C ${ROOT_DIR}/traefik install;;
+        false)
+        ;;
+        *)
+        ;;
     esac
 }
 
@@ -338,7 +351,7 @@ parse_remove_route() {
     # Initialize variables for required parameters
     local ENV_FILE
     local DOMAIN_OR_ENTRYPOINT
-
+    
     # Parse options and arguments
     while [[ "$1" != "" ]]; do
         case "$1" in
@@ -380,11 +393,22 @@ parse_remove_route() {
     source ${BIN}/../traefik/setup.sh
     case "${layer}" in
         layer4)
-            reconfigure_remove_layer_4_tcp_udp_proxy_routes "${ENV_FILE}" "${DOMAIN_OR_ENTRYPOINT}";;
+            reconfigure_remove_layer_X_tcp_udp_proxy_routes "${ENV_FILE}" TRAEFIK_LAYER_4_TCP_UDP_PROXY_ROUTES "${DOMAIN_OR_ENTRYPOINT}";;
         layer7)
-            fault TODO;;
+            reconfigure_remove_layer_X_tcp_udp_proxy_routes "${ENV_FILE}" TRAEFIK_LAYER_7_TLS_PROXY_ROUTES "${DOMAIN_OR_ENTRYPOINT}";;
         *)
             fault "Invalid layer: ${layer}"
+    esac
+    
+    case "${restart}" in
+        ask)
+            confirm no "Do you want to restart Traefik now" "?" && make -C ${ROOT_DIR}/traefik install;;
+        true)
+            make -C ${ROOT_DIR}/traefik install;;
+        false)
+        ;;
+        *)
+        ;;
     esac
 }
 
