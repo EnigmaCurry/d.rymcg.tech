@@ -127,8 +127,8 @@ list_routes() {
     {
         # Generate formatted output
         {
-            echo "Service Entrypoint URL Destination Upstream_Proxy Forward_HTTPs"
-            echo "------- ---------- --- ----------- -------------- -------------"
+            echo "#Service Entrypoint URL Destination Upstream_Proxy Forward_HTTPs"
+            echo "#------- ---------- --- ----------- -------------- -------------"
             get_docker_container_routes
             
             # Print layer 4 routes if enabled
@@ -183,7 +183,7 @@ list_routes() {
         echo "$line"
         cat
         echo
-        echo "Note: these routes are defined in the configuration, but may not necessarily reflect Traefik's current state until you reinstall it."
+        echo "##Note: these routes are defined in the configuration, but may not necessarily reflect Traefik's current state until you reinstall it."
     } | less -FSX
 
 
