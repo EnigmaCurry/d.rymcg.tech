@@ -5,27 +5,48 @@ source ${BIN}/funcs.sh
 check_var ENV_FILE ROOT_DIR
 set -eo pipefail
 
-check_missing_entrypoint() {
-    cd ${ROOT_DIR}
+get_entrypoint_value() {
+    cd "${ROOT_DIR}"
     local entrypoint_name="$1"
+    local suffix="$2"
     check_var entrypoint_name
+    check_var suffix
+    check_var ENV_FILE
     local traefik_env="${ROOT_DIR}/traefik/${ENV_FILE}"
-    test -f ${traefik_env} || fault "Could not find traefik env file: ${traefik_env}"
-    if ${BIN}/dotenv -f "${traefik_env}" get "TRAEFIK_${entrypoint_name^^}_ENTRYPOINT_PORT" &>/dev/null; then
+    test -f "${traefik_env}" || fault "Could not find traefik env file: ${traefik_env}"
+    ${BIN}/dotenv -f "${traefik_env}" get "TRAEFIK_${entrypoint_name^^}_ENTRYPOINT_${suffix^^}"
+    if [[ $? != 0 ]]; then
+        # Find custom entrypoint data:
+        TRAEFIK_CUSTOM_ENTRYPOINTS=$(${BIN}/dotenv -f "${traefik_env}" get TRAEFIK_CUSTOM_ENTRYPOINTS)
+        IFS=',' read -ra items <<< "${TRAEFIK_CUSTOM_ENTRYPOINTS}"
+        for item in "${items[@]}"; do
+            if [[ "$item" =~ ^$entrypoint_name: ]]; then
+                IFS=':' read -ra parts <<< "$item"
+                case "${suffix^^}" in
+                    HOST)
+                        echo ${parts[1]};;
+                    PORT)
+                        echo ${parts[2]};;
+                    PROTOCOL)
+                        echo ${parts[3]};;
+                    PROXY_PROTOCOL_TRUSTED_IPS)
+                        echo ${parts[4]};;
+                    USE_HTTPS)
+                        echo ${parts[5]};;
+                esac
+                return 0
+            fi
+        done
+        return 1
+    fi
+}
+
+check_missing_entrypoint_var() {
+    if get_entrypoint_value $@ &>/dev/null; then
         return 1
     else
         return 0
     fi
-}
-
-# Function to get the port number for a given entrypoint from the .env file
-get_entrypoint_port() {
-    cd ${ROOT_DIR}
-    local entrypoint_name="$1"
-    check_var entrypoint_name
-    local traefik_env="${ROOT_DIR}/traefik/${ENV_FILE}"
-    test -f ${traefik_env} || fault "Could not find traefik env file: ${traefik_env}"
-    ${BIN}/dotenv -f "${traefik_env}" get "TRAEFIK_${entrypoint_name^^}_ENTRYPOINT_PORT"
 }
 
 # Function to get layer 4 routes if enabled
@@ -83,13 +104,20 @@ get_docker_container_routes() {
     docker ps -q | while read -r container_id; do
         inspect_container ${container_id} | while read -r container_name entrypoint url; do
             if [[ "$entrypoint" != "web" && "$entrypoint" != "websecure" ]]; then
-                if check_missing_entrypoint "$entrypoint"; then
+                if check_missing_entrypoint_var "$entrypoint" port; then
+                    echo "$container_name MISSING $url - -"
                     continue
                 fi
-                port=$(get_entrypoint_port "$entrypoint")
+                port=$(get_entrypoint_value $entrypoint port)
                 url="${url//PORT_PLACEHOLDER/$port}"
             fi
-            echo "$container_name $entrypoint $url -"
+            proxy_protocol="$(get_entrypoint_value $entrypoint proxy_protocol_trusted_ips)"
+            if [[ -z "${proxy_protocol}" ]]; then
+                proxy_protocol="-"
+            fi
+            
+            destination="$container_name"
+            echo "$container_name $entrypoint $url ${destination} ${proxy_protocol}"
         done
     done
 }
@@ -99,7 +127,7 @@ list_routes() {
     {
         # Generate formatted output
         {
-            echo "Service Entrypoint URL Destination Proxy_Protocol"
+            echo "Service Entrypoint URL Destination Upstream_Proxy"
             echo "-------------- ---------- --- ---------- --------------"
             get_docker_container_routes
             
@@ -109,9 +137,18 @@ list_routes() {
                 IFS=',' read -ra routes <<< "$layer_4_routes"
                 declare -A seen_routes
                 for route in "${routes[@]}"; do
-                    IFS=':' read -r protocol ip_address port _ <<< "$route"
+                    IFS=':' read -r entrypoint ip_address port proxy_protocol <<< "$route"
+                    if [[ -n "$proxy_protocol" ]] && [[ "$proxy_protocol" != "0" ]]; then
+                        set +e
+                        proxy_protocol="$(get_entrypoint_value ${entrypoint} proxy_protocol_trusted_ips)"
+                        proxy_protocol="${proxy_protocol:--}"
+                        set -e
+                    else
+                        proxy_protocol="-"
+                    fi
+                    tcp_or_udp="tcp" ## Don't support udp yet
                     if [[ -z "${seen_routes[$route]}" ]]; then
-                        echo "- layer-4 ${protocol}://${ip_address}:${port} ${ip_address}:${port}"
+                        echo "- ${entrypoint} ${tcp_or_udp}://${ip_address}:${port} ${ip_address}:${port} ${proxy_protocol}"
                         seen_routes[$route]=1
                     fi
                 done
@@ -126,11 +163,12 @@ list_routes() {
                     IFS=':' read -r domain ip_address port proxy_protocol <<< "$route"
                     if [[ -z "${seen_routes[$route]}" ]]; then
                         if [[ -n "$proxy_protocol" ]] && [[ "$proxy_protocol" != "0" ]]; then
-                            proxy_protocol="true"
+                            proxy_protocol="$(get_entrypoint_value websecure proxy_protocol_trusted_ips)"
+                            proxy_protocol="${proxy_protocol:--}"
                         else
-                            proxy_protocol="false"
+                            proxy_protocol="-"
                         fi
-                        echo "- layer-7 https://${domain} ${ip_address}:${port} ${proxy_protocol}"
+                        echo "- websecure https://${domain} ${ip_address}:${port} ${proxy_protocol}"
                         seen_routes[$route]=1
                     fi
                 done
@@ -144,7 +182,7 @@ list_routes() {
         echo "$line"
         cat
         echo
-        echo "Note: these routes are configured, but may not necessarily reflect Traefik's current state." | fmt -w 50 | sed 's/^/## /'
+        echo "Note: these routes are defined in the configuration, but may not necessarily reflect Traefik's current state until you reinstall it."
     } | less -FSX
 
 

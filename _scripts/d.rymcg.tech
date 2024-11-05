@@ -483,7 +483,6 @@ main() {
                 __run_script ssh_expose "${CURRENT_CONTEXT}" $@;;
             route)
                 CMD=$(echo d.rymcg.tech make traefik route ARGS=\"$@\")
-                echo "## ${CMD}"
                 eval ${CMD};;
             routes)
                 d.rymcg.tech make traefik route ARGS="list";;
