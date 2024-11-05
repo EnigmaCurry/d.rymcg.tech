@@ -105,7 +105,7 @@ get_docker_container_routes() {
         inspect_container ${container_id} | while read -r container_name entrypoint url; do
             if [[ "$entrypoint" != "web" && "$entrypoint" != "websecure" ]]; then
                 if check_missing_entrypoint_var "$entrypoint" port; then
-                    echo "$container_name MISSING $url - -"
+                    echo "$container_name MISSING $url - - -"
                     continue
                 fi
                 port=$(get_entrypoint_value $entrypoint port)
@@ -117,7 +117,7 @@ get_docker_container_routes() {
             fi
             
             destination="$container_name"
-            echo "$container_name $entrypoint $url ${destination} ${proxy_protocol}"
+            echo "$container_name $entrypoint $url ${destination} ${proxy_protocol} -"
         done
     done
 }
@@ -127,8 +127,8 @@ list_routes() {
     {
         # Generate formatted output
         {
-            echo "Service Entrypoint URL Destination Upstream_Proxy"
-            echo "-------------- ---------- --- ---------- --------------"
+            echo "Service Entrypoint URL Destination Upstream_Proxy Forward_HTTPs"
+            echo "------- ---------- --- ----------- -------------- -------------"
             get_docker_container_routes
             
             # Print layer 4 routes if enabled
@@ -147,8 +147,9 @@ list_routes() {
                         proxy_protocol="-"
                     fi
                     tcp_or_udp=$(get_entrypoint_value ${entrypoint} protocol)
+                    use_https=$(get_entrypoint_value ${entrypoint} use_https)
                     if [[ -z "${seen_routes[$route]}" ]]; then
-                        echo "- ${entrypoint} ${tcp_or_udp}://${ip_address}:${port} ${ip_address}:${port} ${proxy_protocol}"
+                        echo "- ${entrypoint} ${tcp_or_udp}://${ip_address}:${port} ${ip_address}:${port} ${proxy_protocol} ${use_https}"
                         seen_routes[$route]=1
                     fi
                 done
@@ -168,7 +169,7 @@ list_routes() {
                         else
                             proxy_protocol="-"
                         fi
-                        echo "- websecure https://${domain} ${ip_address}:${port} ${proxy_protocol}"
+                        echo "- websecure https://${domain} ${ip_address}:${port} ${proxy_protocol} -"
                         seen_routes[$route]=1
                     fi
                 done
