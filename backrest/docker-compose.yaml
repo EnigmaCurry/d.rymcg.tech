@@ -2,9 +2,9 @@ services:
   backrest:
     image: garethgeorge/backrest:latest
     volumes:
-      - ./backrest/data:/data
-      - ./backrest/config:/config
-      - ./backrest/cache:/cache
+      - data:/data
+      - config:/config
+      - cache:/cache
       - backrest-restores:/backrest-restores
       # I left these volumes here, commented, as reminders for future additional d.ry functionality
       # [optional] mount local paths to backup here.

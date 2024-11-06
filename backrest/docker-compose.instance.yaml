@@ -70,6 +70,9 @@ services:
 
 #@yaml/text-templated-strings
 volumes:
+  data:
+  config:
+  cache:
   #@ if use_external_volume:
   backrest-restores:
     driver: local
