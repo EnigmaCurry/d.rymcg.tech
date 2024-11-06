@@ -80,7 +80,6 @@ volumes:
       type: none
       o: bind
       device: (@= upload_location @)
-  #@ end
-  #@ if not use_external_volume:
+  #@ else:
   backrest-restores:
   #@ end
