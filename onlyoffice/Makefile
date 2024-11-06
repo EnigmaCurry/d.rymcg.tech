@@ -11,7 +11,13 @@ config-hook:
 	@${BIN}/reconfigure_ask ${ENV_FILE} ONLYOFFICE_TRAEFIK_HOST "Enter the onlyoffice domain name" onlyoffice${INSTANCE_URL_SUFFIX}.${ROOT_DOMAIN}
 	@${BIN}/reconfigure ${ENV_FILE} ONLYOFFICE_INSTANCE=$${instance:-default}
 	@${BIN}/reconfigure_auth ${ENV_FILE} ONLYOFFICE
-	@echo ""
+	@echo
+	@${BIN}/reconfigure_password ${ENV_FILE} ONLYOFFICE_MYSQL_ROOT_PASSWORD 32
+	@${BIN}/reconfigure_password ${ENV_FILE} ONLYOFFICE_MYSQL_SERVER_PASS 32
+	@${BIN}/reconfigure_password ${ENV_FILE} ONLYOFFICE_CORE_MACHINEKEY 32
+	@${BIN}/reconfigure_password ${ENV_FILE} ONLYOFFICE_MAIL_SERVER_DB_PASS 32
+	@${BIN}/reconfigure_password ${ENV_FILE} ONLYOFFICE_DOCUMENT_SERVER_JWT_SECRET 32
+	@echo
 
 .PHONY: override-hook
 override-hook:
