@@ -398,13 +398,7 @@ layer_7_tls_proxy_add_ingress_route() {
     if confirm no "Do you want to enable Proxy Protocol for this route" "?"; then
         ROUTE_PROXY_PROTOCOL=2
     fi
-
-    local ROUTES=$(${BIN}/dotenv -f ${ENV_FILE} get TRAEFIK_LAYER_7_TLS_PROXY_ROUTES)
-    if [[ -n "${ROUTES}" ]]; then
-        ROUTES="${ROUTES},"
-    fi
-    ROUTES="${ROUTES}${ROUTE_DOMAIN}:${ROUTE_IP_ADDRESS}:${ROUTE_PORT}:${ROUTE_PROXY_PROTOCOL}"
-    ${BIN}/reconfigure ${ENV_FILE} "TRAEFIK_LAYER_7_TLS_PROXY_ROUTES=${ROUTES}"
+    reconfigure_layer_X_tcp_udp_proxy_routes "${ENV_FILE}" TRAEFIK_LAYER_7_TLS_PROXY_ROUTES "${ROUTE_DOMAIN}" "${ROUTE_IP_ADDRESS}" "${ROUTE_PORT}" "${ROUTE_PROXY_PROTOCOL}"
 }
 
 layer_7_tls_proxy_manage_ingress_routes() {
@@ -596,7 +590,7 @@ layer_4_tcp_udp_add_ingress_route() {
     if confirm no "Do you want to enable Proxy Protocol for this route" "?"; then
         ROUTE_PROXY_PROTOCOL=2
     fi
-    reconfigure_layer_4_tcp_udp_proxy_routes "${ENV_FILE}" "${ENTRYPOINT}" "${ROUTE_IP_ADDRESS}" "${ROUTE_PORT}" "${ROUTE_PROXY_PROTOCOL}"
+    reconfigure_layer_X_tcp_udp_proxy_routes "${ENV_FILE}" TRAEFIK_LAYER_4_TCP_UDP_PROXY_ROUTES "${ENTRYPOINT}" "${ROUTE_IP_ADDRESS}" "${ROUTE_PORT}" "${ROUTE_PROXY_PROTOCOL}"
     layer_4_tcp_udp_list_routes    
 }
 
