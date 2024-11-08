@@ -9,7 +9,7 @@ config-hook:
 	@${BIN}/reconfigure ${ENV_FILE} NOSTR_RS_RELAY_INSTANCE=$${instance:-default}
 	@${BIN}/reconfigure_auth ${ENV_FILE} NOSTR_RS_RELAY
 	@${BIN}/reconfigure_ask ${ENV_FILE} NOSTR_RS_RELAY_NAME "Enter a logical one-word name for this Nostr instance."
-	@${BIN}/reconfigure_editor ${ENV_FILE} NOSTR_RS_RELAY_DESCRIPTION "Enter a long-form description for this Nostr instance."
+	@${BIN}/reconfigure_ask ${ENV_FILE} NOSTR_RS_RELAY_DESCRIPTION "Enter a description for this Nostr instance."
 	@echo ""
 
 .PHONY: override-hook
