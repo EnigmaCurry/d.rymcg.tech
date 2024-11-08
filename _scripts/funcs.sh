@@ -672,19 +672,38 @@ select_docker_network_cidr() {
     array_join "," "${docker_network_cidrs[@]}"
 }
 
+encode_newlines() {
+    # Replace all newlines with literal \n
+    local result=""
+    while IFS= read -r line || [ -n "$line" ]; do
+        result+="${line}\\n"
+    done
+    result="${result%\\n}"
+    echo -n "$result"
+}
+
+decode_newlines() {
+    # Replace all occurrences of \n with actual newlines
+    local input="$1"
+    echo -e "${input//\\n/$'\n'}"
+}
+
+
 launch_editor_for_response() {
     local tempfile=$(mktemp -p '' input_response.XXXXXXXX)
     local editor="${VISUAL:-${EDITOR:-nano}}"
+    local PROMPT=$1
+    local DEFAULT=$2
     cleanup_editor_temp_response() {
         rm -f "${tempfile}"
-        unset -f cleanup_editor_temp_response
     }
     trap cleanup_editor_temp_response EXIT
     (
+        echo -e -n "$(decode_newlines "${DEFAULT}")"
         echo
         echo
         if [[ -n "$1" ]]; then
-            echo "# $(capitalize_sentence $@)"
+            echo "# $(capitalize_sentence $1)"
         fi
         echo "# Enter your input above. When you are done, save this file and exit."
         if [[ -z "${VISUAL:-${EDITOR}}" ]]; then
@@ -695,7 +714,7 @@ launch_editor_for_response() {
         echo "# The leading and trailing whitespace will be trimmed."
         echo "# Lines beginning with '#' will be ignored."
     )  > "${tempfile}"
-    echo "## Opening your preferred editor: ${editor}"
+    echo "## Opening your preferred editor: ${editor}" >/dev/stderr
     $editor ${tempfile}
     local input=""
     while IFS= read -r line; do
