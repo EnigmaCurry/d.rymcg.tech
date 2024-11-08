@@ -1,10 +1,11 @@
-FROM debian:stable-slim as ytt
-ARG ONLYOFFICE_CONFIG_YTT_VERSION
-RUN apt update && apt install -y wget && wget "https://github.com/vmware-tanzu/carvel-ytt/releases/download/${ONLYOFFICE_CONFIG_YTT_VERSION}/ytt-linux-$(dpkg --print-architecture)" -O ytt && install ytt /usr/local/bin/ytt
+FROM debian:stable-slim AS gettext
+RUN apt-get update && apt-get install -y gettext
 
-FROM ytt
+FROM gettext
 WORKDIR /template
 VOLUME /config
 COPY setup.sh setup.sql onlyoffice.cnf ./
 RUN chmod a+x setup.sh
+#RUN ./setup.sh
 CMD ["./setup.sh"]
+#ENTRYPOINT ["./setup.sh"]

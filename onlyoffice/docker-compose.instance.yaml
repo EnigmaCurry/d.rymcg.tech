@@ -21,8 +21,8 @@
 
 #@yaml/text-templated-strings
 services:
-  onlyoffice-community-server:
-    #@ service = "onlyoffice-community-server"
+  community-server:
+    #@ service = "community-server"
     labels:
       #! Services must opt-in to be proxied by Traefik:
       - "traefik.enable=true"

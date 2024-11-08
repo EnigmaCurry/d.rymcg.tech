@@ -1,3 +1,4 @@
+#@ load("@ytt:data", "data")
 [mysqld]
 sql_mode = 'NO_ENGINE_SUBSTITUTION'
 max_connections = 1000

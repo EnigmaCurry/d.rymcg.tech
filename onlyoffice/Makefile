@@ -35,4 +35,4 @@ override-hook:
 
 .PHONY: shell
 shell:
-	@make --no-print-directory docker-compose-shell SERVICE=onlyoffice
+	@container=$$(eval "${BIN}/script-wizard choose 'docker exec -it into which container?' 'mysql-server' 'community-server' 'elasticsearch' 'document-server' 'mail-server' 'control-panel' --default 'community-server'") && make --no-print-directory docker-compose-shell SERVICE=$${container}
