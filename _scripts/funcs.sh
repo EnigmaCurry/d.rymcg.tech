@@ -671,3 +671,54 @@ select_docker_network_cidr() {
     done
     array_join "," "${docker_network_cidrs[@]}"
 }
+
+launch_editor_for_response() {
+    local tempfile=$(mktemp -p '' input_response.XXXXXXXX)
+    local editor="${VISUAL:-${EDITOR:-nano}}"
+    cleanup_editor_temp_response() {
+        rm -f "${tempfile}"
+        unset -f cleanup_editor_temp_response
+    }
+    trap cleanup_editor_temp_response EXIT
+    (
+        echo
+        echo
+        if [[ -n "$1" ]]; then
+            echo "# $(capitalize_sentence $@)"
+        fi
+        echo "# Enter your input above. When you are done, save this file and exit."
+        if [[ -z "${VISUAL:-${EDITOR}}" ]]; then
+            echo "# Warning: Your preferred EDITOR (or VISUAL) variable was not set."
+            echo "# The \"nano\" editor was launched by default."
+        fi
+        echo "# To cancel this process, exit the editor or save a blank response."
+        echo "# The leading and trailing whitespace will be trimmed."
+        echo "# Lines beginning with '#' will be ignored."
+    )  > "${tempfile}"
+    echo "## Opening your preferred editor: ${editor}"
+    $editor ${tempfile}
+    local input=""
+    while IFS= read -r line; do
+        [[ $line =~ ^#.*$ ]] && continue  # Skip lines that start with '#'
+        input+="${line}"$'\n'
+    done < "${tempfile}"
+    input="${input#"${input%%[![:space:]]*}"}"  # Remove leading whitespace
+    input="${input%"${input##*[![:space:]]}"}"  # Remove trailing whitespace
+    if [[ -z "${input}" ]]; then
+        fault "No input provided."
+    else
+        echo "${input}"
+    fi
+    cleanup_editor_temp_response || return 0
+}
+
+capitalize_sentence() {
+    local sentence="$*"
+    # Capitalize the first character
+    sentence="$(echo "${sentence:0:1}" | tr '[:lower:]' '[:upper:]')${sentence:1}"
+    # Ensure the sentence ends with punctuation (., !, or ?)
+    if [[ ! "$sentence" =~ [.!?]$ ]]; then
+        sentence="${sentence}."
+    fi
+    echo "$sentence"
+}
