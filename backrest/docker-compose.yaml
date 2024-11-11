@@ -1,0 +1,30 @@
+services:
+  backrest:
+    image: garethgeorge/backrest:latest
+    volumes:
+      - data:/data
+      - config:/config
+      - cache:/cache
+      - backrest-restores:/backrest-restores
+      # I left these volumes here, commented, as reminders for future additional d.ry functionality
+      # [optional] mount local paths to backup here.
+      #- /MY-BACKUP-DATA:/userdata
+      # [optional] mount repos if using local storage, not necessary for remotes e.g. B2, S3, etc.
+      #- /MY-REPOS:/repos 
+    environment:
+      # path for backrest data. restic binary and the database are placed here.
+      - BACKREST_DATA=/data
+      # path for the backrest config file.
+      - BACKREST_CONFIG=/config/config.json
+      # path for the restic cache which greatly improves performance.
+      - XDG_CACHE_HOME=/cache
+      # set the timezone for the container, used as the timezone for cron jobs.
+      - TZ=${BACKREST_TIMEZONE}
+    restart: unless-stopped
+    labels: []
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+    sysctls:
+      - net.ipv4.ip_unprivileged_port_start=1024

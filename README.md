@@ -536,7 +536,8 @@ Install these other services at your leisure/preference:
 * [ArchiveBox](archivebox#readme) - a website archiving tool
 * [Audiobookshelf](audiobookshelf#readme) - an audiobook and podcast server
 * [Autoheal](autoheal#readme) - a Docker container healthcheck monitor with auto-restart service
-* [Backup-Volume](backup-volume#readme) - a Docker volume remote backup tool
+* [Backrest](backrest#readme) - a backup tool based on restic
+* [Backup-Volume](backup-volume#readme) - a Docker volume backup tool
 * [Baikal](baikal#readme) - a lightweight CalDAV+CardDAV server
 * [CalcPad](calcpad#readme) - a different take on the caculator
 * [Calibre](calibre#readme) - an ebook manager
