@@ -21,8 +21,8 @@
 
 #@yaml/text-templated-strings
 services:
-  snort-nostr:
-    #@ service = "snort-nostr"
+  snort:
+    #@ service = "snort"
     labels:
       #! Services must opt-in to be proxied by Traefik:
       - "traefik.enable=true"
