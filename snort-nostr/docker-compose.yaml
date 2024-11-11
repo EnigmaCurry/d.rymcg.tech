@@ -1,7 +1,7 @@
 services:
   snort:
     build:
-      context: ${SNORT_NOSTR_GIT_REPO}#${SNORT_NOSTR_GIT_BRANCH}
+      context: snort
       args:
         GIT_REPO: ${SNORT_NOSTR_GIT_REPO}
         GIT_BRANCH: ${SNORT_NOSTR_GIT_BRANCH}
