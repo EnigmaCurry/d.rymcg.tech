@@ -12,8 +12,8 @@ This tool might not be the best choice to backup Docker volumes that
 contain databases and/or other data that frequently changes.
 Consider also
 [backup-volume](https://github.com/EnigmaCurry/d.rymcg.tech/tree/master/backup-volume)
-which has builtin support stopping and restarting containers before
-and after scheduled backups and is therefore safer for file integrity.
+which has builtin support for stopping and restarting containers before
+and after scheduled backups, which is safer for file integrity.
 
 ## Config
 
