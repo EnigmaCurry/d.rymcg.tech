@@ -2,6 +2,9 @@ services:
   snort:
     build:
       context: ${SNORT_NOSTR_GIT_REPO}#${SNORT_NOSTR_GIT_BRANCH}
+      args:
+        GIT_REPO: ${SNORT_NOSTR_GIT_REPO}
+        GIT_BRANCH: ${SNORT_NOSTR_GIT_BRANCH}
     cap_drop:
       - ALL
     security_opt:
