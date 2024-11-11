@@ -6,6 +6,15 @@ restic CLI and makes it easy to create repos, browse snapshots, and restore
 files. Additionally, Backrest can run in the background and take an opinionated
 approach to scheduling snapshots and orchestrating repo health operations.
 
+## Warning
+
+This tool might not be the best choice to backup Docker volumes that
+contain databases and/or other data that frequently changes.
+Consider also
+[backup-volume](https://github.com/EnigmaCurry/d.rymcg.tech/tree/master/backup-volume)
+which has builtin support stopping and restarting containers before
+and after scheduled backups and is therefore safer for file integrity.
+
 ## Config
 
 ```
