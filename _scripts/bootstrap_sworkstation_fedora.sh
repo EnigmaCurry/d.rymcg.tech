@@ -91,10 +91,20 @@ if [ "$(whoami)" = "root" ]; then
 fi
 ## Add d.rymcg.tech alias for each Docker context:
 EOF
-for d_alias in "${ALIASES[@]}"; do
-    cat <<EOF >> ~/.config/d.rymcg.tech/bashrc
+for i in "${!ALIASES[@]}"; do
+    d_alias="${ALIASES[$i]}"
+    
+    if [[ $i -eq 0 ]]; then
+        # First alias
+        cat <<EOF >> ~/.config/d.rymcg.tech/bashrc
 __d.rymcg.tech_context_alias ${CONTEXT} ${d_alias}
 EOF
+    else
+        # Second and subsequent aliases
+        cat <<EOF >> ~/.config/d.rymcg.tech/bashrc
+__d.rymcg.tech_context_alias ${d_alias} ${d_alias}
+EOF
+    fi
 done
 echo >> ~/.bashrc
 cat <<EOF >> ~/.bashrc
