@@ -17,7 +17,7 @@ Compose projects into this framework.
 All (http) apps are secured with automatic TLS certificates (Let's
 Encrypt or Step-CA), along with configurable self-hosted
 authentication middleware (mTLS, OAuth2, or HTTP Basic auth), as well
-as user group authorization middlewares. Even non-http apps may be
+as user group authorization middlewares. Even non-TLS apps may be
 secured with the optional VPN (Wireguard) support.
 
 Each project has a `Makefile` to simplify configuration, installation,
