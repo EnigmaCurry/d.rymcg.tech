@@ -16,6 +16,8 @@ services:
       - drawionet
     volumes:
       - fonts_volume:/usr/share/fonts/drawio
+    labels:
+      - "backup-volume.stop-during-backup=true"
   image-export:
     image: jgraph/export-server
     restart: unless-stopped
@@ -29,6 +31,8 @@ services:
       - drawionet
     volumes:
       - fonts_volume:/usr/share/fonts/drawio
+    labels:
+      - "backup-volume.stop-during-backup=true"
     environment:
       - DRAWIO_SERVER_URL=${DRAWIO_TRAEFIK_HOST}
   drawio:
@@ -63,7 +67,7 @@ services:
       - DRAWIO_GOOGLE_VIEWER_CLIENT_SECRET=${DRAWIO_GOOGLE_VIEWER_CLIENT_SECRET}
       - DRAWIO_MSGRAPH_CLIENT_ID=${DRAWIO_MSGRAPH_CLIENT_ID}
       - DRAWIO_MSGRAPH_CLIENT_SECRET=${DRAWIO_MSGRAPH_CLIENT_SECRET}
-      - DRAWIO_GITLAB_ID=${DRAWIO_GITLAB_ID}
+      - DRAWIO_GITLAB_ID=${DRAWIO_GITLAB_ID}ww
       - DRAWIO_GITLAB_SECRET=${DRAWIO_GITLAB_SECRET}
       - DRAWIO_GITLAB_URL=${DRAWIO_GITLAB_URL}
       - DRAWIO_CLOUD_CONVERT_APIKEY=${DRAWIO_CLOUD_CONVERT_APIKEY}

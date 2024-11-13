@@ -25,7 +25,6 @@
 services:
   public-api-gateway:
     labels:
-      - "backup-volume.stop-during-backup=true"
       - "traefik.enable=true"
       - "traefik.http.routers.archivebox-${ARCHIVEBOX_INSTANCE:-default}-api-gateway.rule=Host(`${ARCHIVEBOX_TRAEFIK_HOST}`) && PathPrefix(`/api-gateway`)"
       - "traefik.http.routers.archivebox-${ARCHIVEBOX_INSTANCE:-default}-api-gateway.entrypoints=websecure"
@@ -58,6 +57,7 @@ services:
   archivebox:
     #@ service = "archivebox"
     labels:
+      - "backup-volume.stop-during-backup=true"
       #! Services must opt-in to be proxied by Traefik:
       - "traefik.enable=true"
 

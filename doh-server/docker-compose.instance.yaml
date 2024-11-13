@@ -18,6 +18,7 @@ services:
   doh-server:
     #@ service = "doh-server"
     labels:
+      - "backup-volume.stop-during-backup=true"
       #! Services must opt-in to be proxied by Traefik:
       - "traefik.enable=true"
 

@@ -9,9 +9,13 @@ services:
     env_file: ${ENV_FILE}
     volumes:
       - config:/etc/matterbridge
+    labels:
+      - "backup-volume.stop-during-backup=true"
 
   matterbridge:
     depends_on: ['config']
     image: 42wim/matterbridge:stable
     volumes:
       - config:/etc/matterbridge:ro
+    labels:
+      - "backup-volume.stop-during-backup=true"

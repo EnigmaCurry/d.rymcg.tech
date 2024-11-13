@@ -27,6 +27,8 @@ services:
       - NTFY_SMTP_SERVER_LISTEN
       - NTFY_SMTP_SERVER_DOMAIN
       - NTFY_SMTP_SERVER_ADDR_PREFIX
+    labels:
+      - "backup-volume.stop-during-backup=true"
 
   ntfy:
     depends_on: ['config']

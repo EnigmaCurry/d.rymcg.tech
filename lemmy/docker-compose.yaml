@@ -36,6 +36,8 @@ services:
       - PRINT_CONFIG=${LEMMY_PRINT_CONFIG}
     volumes:
       - lemmy-config:/config
+    labels:
+      - "backup-volume.stop-during-backup=true"
 
   lemmy:
     image: dessalines/lemmy:${LEMMY_VERSION}
@@ -51,6 +53,8 @@ services:
     depends_on:
       - postgres
       - pictrs
+    labels:
+      - "backup-volume.stop-during-backup=true"
 
   lemmy-ui:
     image: dessalines/lemmy-ui:${LEMMY_UI_VERSION}
@@ -67,6 +71,8 @@ services:
     restart: unless-stopped
     logging: *default-logging
     user: ${LEMMY_UID}:${LEMMY_GID}
+    labels:
+      - "backup-volume.stop-during-backup=true"
 
   pictrs:
     image: asonix/pictrs:${LEMMY_ASONIX_PICTRS_VERSION}
@@ -96,6 +102,8 @@ services:
       resources:
         limits:
           memory: 690m
+    labels:
+      - "backup-volume.stop-during-backup=true"
 
   postgres:
     image: postgres:15-alpine
@@ -113,6 +121,8 @@ services:
       - no-new-privileges:true
     restart: unless-stopped
     logging: *default-logging
+    labels:
+      - "backup-volume.stop-during-backup=true"
 
   postfix:
     image: mwader/postfix-relay
@@ -123,3 +133,5 @@ services:
       - no-new-privileges:true
     restart: unless-stopped
     logging: *default-logging
+    labels:
+      - "backup-volume.stop-during-backup=true"

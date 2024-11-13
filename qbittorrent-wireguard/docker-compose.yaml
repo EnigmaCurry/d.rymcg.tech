@@ -17,6 +17,8 @@ services:
       - QBITTORRENT_VPN_CLIENT_PEER_ENDPOINT
     volumes:
       - wireguard:/config
+    labels:
+      - "backup-volume.stop-during-backup=true"
 
   wireguard:
     depends_on: ['wireguard-config']
@@ -87,6 +89,8 @@ services:
       - QBITTORRENT_SessionBandwidthSchedulerEnabled
     volumes:
       - qbittorrent-config:/config
+    labels:
+      - "backup-volume.stop-during-backup=true"
 
   qbittorrent:
     image: linuxserver/qbittorrent:${QBITTORRENT_VERSION}
@@ -105,3 +109,5 @@ services:
         source: ${QBITTORRENT_DOWNLOAD_VOLUME}
         target: /downloads
     restart: unless-stopped
+    labels:
+      - "backup-volume.stop-during-backup=true"      
