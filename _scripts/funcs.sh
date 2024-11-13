@@ -49,6 +49,21 @@ debug_array() {
     done
 }
 
+pop_array() {
+    # Pop off the first element of an array and save it to a variable:
+    local -n __arr=$1       # Bind to array
+    local out_var=$2      # Variable name to store output
+    local first_element="${__arr[0]}"
+    __arr=("${__arr[@]:1}")   # Remove the first element
+
+    if [[ -n "$first_element" ]]; then
+        eval "$out_var=\"$first_element\""
+    else
+        eval "unset $out_var"
+        return 1
+    fi
+}
+
 ask() {
     ## Ask the user a question and set the given variable name with their answer
     local __prompt="${1}"; local __var="${2}"; local __default="${3}"

@@ -310,10 +310,6 @@ error_pages() {
     fi
 }
 
-if [[ "$#" -lt 1 ]]; then
-    fault "Wrong number of arguments. Try running \`make config\` instead."
-fi
-
 middleware() {
     wizard menu "Traefik middleware config:" \
            "MaxMind geoIP locator = ./setup.sh maxmind_geoip" \
@@ -402,13 +398,7 @@ layer_7_tls_proxy_add_ingress_route() {
     if confirm no "Do you want to enable Proxy Protocol for this route" "?"; then
         ROUTE_PROXY_PROTOCOL=2
     fi
-
-    local ROUTES=$(${BIN}/dotenv -f ${ENV_FILE} get TRAEFIK_LAYER_7_TLS_PROXY_ROUTES)
-    if [[ -n "${ROUTES}" ]]; then
-        ROUTES="${ROUTES},"
-    fi
-    ROUTES="${ROUTES}${ROUTE_DOMAIN}:${ROUTE_IP_ADDRESS}:${ROUTE_PORT}:${ROUTE_PROXY_PROTOCOL}"
-    ${BIN}/reconfigure ${ENV_FILE} "TRAEFIK_LAYER_7_TLS_PROXY_ROUTES=${ROUTES}"
+    reconfigure_layer_X_tcp_udp_proxy_routes "${ENV_FILE}" TRAEFIK_LAYER_7_TLS_PROXY_ROUTES "${ROUTE_DOMAIN}" "${ROUTE_IP_ADDRESS}" "${ROUTE_PORT}" "${ROUTE_PROXY_PROTOCOL}"
 }
 
 layer_7_tls_proxy_manage_ingress_routes() {
@@ -600,12 +590,85 @@ layer_4_tcp_udp_add_ingress_route() {
     if confirm no "Do you want to enable Proxy Protocol for this route" "?"; then
         ROUTE_PROXY_PROTOCOL=2
     fi
-    if [[ -n "${ROUTES}" ]]; then
-        ROUTES="${ROUTES},"
-    fi
-    ROUTES="${ROUTES}${ENTRYPOINT}:${ROUTE_IP_ADDRESS}:${ROUTE_PORT}:${ROUTE_PROXY_PROTOCOL}"
-    ${BIN}/reconfigure ${ENV_FILE} "TRAEFIK_LAYER_4_TCP_UDP_PROXY_ROUTES=${ROUTES}"
+    reconfigure_layer_X_tcp_udp_proxy_routes "${ENV_FILE}" TRAEFIK_LAYER_4_TCP_UDP_PROXY_ROUTES "${ENTRYPOINT}" "${ROUTE_IP_ADDRESS}" "${ROUTE_PORT}" "${ROUTE_PROXY_PROTOCOL}"
     layer_4_tcp_udp_list_routes    
+}
+
+reconfigure_layer_X_tcp_udp_proxy_routes() {
+    local ENV_FILE=$1
+    local LAYER_VAR=$2
+    local DOMAIN_OR_ENTRYPOINT=$3
+    local ROUTE_IP_ADDRESS=$4
+    local ROUTE_PORT=$5
+    local ROUTE_PROXY_PROTOCOL=$6
+    
+    check_var ENV_FILE LAYER_VAR DOMAIN_OR_ENTRYPOINT ROUTE_IP_ADDRESS ROUTE_PORT ROUTE_PROXY_PROTOCOL
+    
+    # Construct the new route string
+    local NEW_ROUTE="${DOMAIN_OR_ENTRYPOINT}:${ROUTE_IP_ADDRESS}:${ROUTE_PORT}:${ROUTE_PROXY_PROTOCOL}"
+    
+    # Get the current routes from the environment variable
+    local ROUTES=$(${BIN}/dotenv -f ${ENV_FILE} get ${LAYER_VAR})
+    
+    # Initialize an empty string to hold the updated routes
+    local UPDATED_ROUTES=""
+    local ENTRY_FOUND=false
+    
+    # Split ROUTES by commas and iterate over each route
+    IFS=',' read -ra ROUTE_ARRAY <<< "$ROUTES"
+    for ROUTE in "${ROUTE_ARRAY[@]}"; do
+        # Check if the entrypoint already exists
+        if [[ "$ROUTE" == ${DOMAIN_OR_ENTRYPOINT}:* ]]; then
+            # Replace the existing route with the new route
+            UPDATED_ROUTES+="${NEW_ROUTE},"
+            ENTRY_FOUND=true
+        else
+            # Otherwise, keep the existing route
+            UPDATED_ROUTES+="${ROUTE},"
+        fi
+    done
+    
+    # If entry was not found, add the new route at the end
+    if [[ "$ENTRY_FOUND" == false ]]; then
+        UPDATED_ROUTES+="${NEW_ROUTE},"
+    fi
+    
+    # Remove the trailing comma
+    UPDATED_ROUTES=${UPDATED_ROUTES%,}
+    
+    # Update the environment variable with the new routes
+    ${BIN}/reconfigure ${ENV_FILE} "${LAYER_VAR}=${UPDATED_ROUTES}"
+}
+
+reconfigure_remove_layer_X_tcp_udp_proxy_routes() {
+    local ENV_FILE=$1
+    local LAYER_VAR=$2
+    local DOMAIN_OR_ENTRYPOINT=$3
+
+    # Check that required variables are provided
+    check_var ENV_FILE LAYER_VAR DOMAIN_OR_ENTRYPOINT
+
+    # Get the current routes from the environment variable
+    local ROUTES=$(${BIN}/dotenv -f ${ENV_FILE} get ${LAYER_VAR})
+    
+    # Initialize an empty string to hold the updated routes
+    local UPDATED_ROUTES=""
+
+    # Split ROUTES by commas and iterate over each route
+    IFS=',' read -ra ROUTE_ARRAY <<< "$ROUTES"
+    for ROUTE in "${ROUTE_ARRAY[@]}"; do
+        # Check if the route does not match the DOMAIN_OR_ENTRYPOINT
+        if [[ "$ROUTE" != ${DOMAIN_OR_ENTRYPOINT}:* ]]; then
+            # If not matching, keep the route
+            UPDATED_ROUTES+="${ROUTE},"
+        fi
+    done
+
+    # Remove the trailing comma if any routes remain
+    UPDATED_ROUTES=${UPDATED_ROUTES%,}
+
+    # Update the environment variable with the new routes
+    ${BIN}/reconfigure ${ENV_FILE} "${LAYER_VAR}=${UPDATED_ROUTES}"
 }
 
 layer_4_tcp_udp_proxy_manage_ingress_routes() {
@@ -872,8 +935,16 @@ wireguard() {
     esac
 }
 
-echo
-check_var ENV_FILE
-check_var DOCKER_CONTEXT
+if [[ "${BASH_SOURCE[0]}" == "${0}" ]]; then
+    ##Script is being run directly
+    echo
+    if [[ "$#" -lt 1 ]]; then
+        fault "Wrong number of arguments. Try running \`make config\` instead."
+    fi
 
-$@
+    check_var ENV_FILE
+    check_var DOCKER_CONTEXT
+
+    $@
+fi
+
