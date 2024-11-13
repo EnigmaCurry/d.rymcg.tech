@@ -10,7 +10,7 @@ include _scripts/Makefile.cd
 
 .PHONY: check-deps # Check dependencies
 check-deps:
-	_scripts/check_deps docker sed awk xargs openssl htpasswd jq curl
+	_scripts/check_deps docker sed awk xargs openssl htpasswd jq curl sponge inotifywait git envsubst xdg-open sshfs wg
 
 .PHONY: check-docker # Check if Docker is running
 check-docker:
