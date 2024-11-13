@@ -8,7 +8,7 @@ if [[ ! -f "${ROOT_ENV}" ]]; then
     fault "Could not find root context env file: ${ROOT_ENV}"
 fi
 
-FAIL2BAN_ENABLED=$(${BIN}/dotenv -f ${ROOT_ENV} get FAIL2BAN_ENABLED)
+ENABLED=$(${BIN}/dotenv -f ${ROOT_ENV} get FAIL2BAN_ENABLED)
 SSHD_ENABLED=$(${BIN}/dotenv -f ${ROOT_ENV} get FAIL2BAN_SSHD_ENABLED)
 SSHD_MAX_RETRY=$(${BIN}/dotenv -f ${ROOT_ENV} get FAIL2BAN_SSHD_MAX_RETRY)
 SSHD_BAN_TIME=$(${BIN}/dotenv -f ${ROOT_ENV} get FAIL2BAN_SSHD_BAN_TIME)
@@ -20,6 +20,11 @@ TRAEFIK_ACCESS_MAX_RETRY=$(${BIN}/dotenv -f ${ROOT_ENV} get FAIL2BAN_TRAEFIK_ACC
 TRAEFIK_ACCESS_BAN_TIME=$(${BIN}/dotenv -f ${ROOT_ENV} get FAIL2BAN_TRAEFIK_ACCESS_BAN_TIME)
 TRAEFIK_ACCESS_FIND_TIME=$(${BIN}/dotenv -f ${ROOT_ENV} get FAIL2BAN_TRAEFIK_ACCESS_FIND_TIME)
 TRAEFIK_ACCESS_ALLOW_IPV6=$(${BIN}/dotenv -f ${ROOT_ENV} get FAIL2BAN_TRAEFIK_ACCESS_ALLOW_IPV6)
+TRAEFIK_ACCESS_ERROR_LIST=$(${BIN}/dotenv -f ${ROOT_ENV} get FAIL2BAN_TRAEFIK_ACCESS_ERROR_LIST)
+TRAEFIK_ACCESS_ERROR_LIST="${TRAEFIK_ACCESS_ERROR_LIST//,/|}"
+TRAEFIK_VPN_SUBNET=$(${BIN}/dotenv -f ${ROOT_DIR}/traefik/${ENV_FILE} get TRAEFIK_VPN_SUBNET)
+IGNORE_IP=$(${BIN}/dotenv -f ${ROOT_ENV} get FAIL2BAN_IGNORE_IP)
+IGNORE_IP="${IGNORE_IP//,/ }"
 
 host_is_debian() {
     d.rymcg.tech ssh '[[ -f /etc/debian_version ]]' &> /dev/null
@@ -64,18 +69,27 @@ install_fail2ban() {
 }
 
 enable_or_disable_fail2ban() {
-    if [[ "${FAIL2BAN_ENABLED}" == "true" ]]; then
+    if [[ "${ENABLED}" == "true" ]]; then
         d.rymcg.tech ssh systemctl enable --now fail2ban
         d.rymcg.tech ssh systemctl restart fail2ban
         sleep 3
         d.rymcg.tech ssh systemctl status fail2ban
         d.rymcg.tech ssh fail2ban-client status
-        echo "Fail2Ban has been ENABLED according to config: FAIL2BAN_ENABLED=${FAIL2BAN_ENABLED}."
+        echo
+        d.rymcg.tech ssh cat /etc/fail2ban/fail2ban.local
+        echo
+        d.rymcg.tech ssh cat /etc/fail2ban/jail.d/sshd.local
+        echo
+        d.rymcg.tech ssh cat /etc/fail2ban/jail.d/traefik.local
+        echo
+        d.rymcg.tech ssh cat /etc/fail2ban/filter.d/traefik-access.conf
+        echo
+        echo "Fail2Ban has been ENABLED according to config: FAIL2BAN_ENABLED=${ENABLED}."
     else
         d.rymcg.tech ssh systemctl disable --now fail2ban
         sleep 3
         d.rymcg.tech ssh systemctl status fail2ban || true
-        echo "Fail2Ban has been DISABLED according to config: FAIL2BAN_ENABLED=${FAIL2BAN_ENABLED}."
+        echo "Fail2Ban has been DISABLED according to config: FAIL2BAN_ENABLED=${ENABLED}."
     fi
 }
 
@@ -87,6 +101,7 @@ bantime = 10m
 findtime = 10m
 maxretry = 5
 allowipv6 = true
+ignoreip = ${IGNORE_IP}
 EOF
 
     if [[ "${SSHD_ENABLED}" == "true" ]]; then
@@ -100,6 +115,7 @@ maxretry = ${SSHD_MAX_RETRY}
 bantime = ${SSHD_BAN_TIME}
 findtime = ${SSHD_FIND_TIME}
 allowipv6 = ${SSHD_ALLOW_IPV6}
+ignoreip = ${IGNORE_IP}
 EOF
     fi
     
@@ -113,11 +129,12 @@ maxretry = ${TRAEFIK_ACCESS_MAX_RETRY}
 bantime = ${TRAEFIK_ACCESS_BAN_TIME}
 findtime = ${TRAEFIK_ACCESS_FIND_TIME}
 allowipv6 = ${TRAEFIK_ACCESS_ALLOW_IPV6}
+ignoreip = ${IGNORE_IP}
 EOF
 
         d.rymcg.tech ssh 'cat > /etc/fail2ban/filter.d/traefik-access.conf' <<EOF
 [Definition]
-failregex = .*"ClientHost":"<HOST>".*"DownstreamStatus":(?:400|403|405|407|429|431).*$
+failregex = .*"ClientHost":"<HOST>".*"DownstreamStatus":(?:${TRAEFIK_ACCESS_ERROR_LIST}).*$
 ignoreregex =
 EOF
     fi
@@ -128,9 +145,15 @@ main() {
               SSHD_ENABLED SSHD_MAX_RETRY SSHD_BAN_TIME SSHD_FIND_TIME \
               SSHD_ALLOW_IPV6 TRAEFIK_ACCESS_LOG TRAEFIK_ACCESS_ENABLED \
               TRAEFIK_ACCESS_MAX_RETRY TRAEFIK_ACCESS_BAN_TIME \
-              TRAEFIK_ACCESS_FIND_TIME TRAEFIK_ACCESS_ALLOW_IPV6
+              TRAEFIK_ACCESS_FIND_TIME TRAEFIK_ACCESS_ALLOW_IPV6 \
+              TRAEFIK_VPN_SUBNET
+    IGNORE_IP="127.0.0.1/8 ${TRAEFIK_VPN_SUBNET}/24 ${IGNORE_IP}"
     echo
-    confirm yes "This will reset and reconfigure fail2ban using the ${DOCKER_CONTEXT} context"
+    if [[ "$ENABLED" == "true" ]]; then
+        confirm yes "This will ENABLE and reset Fail2Ban using your config for context ${DOCKER_CONTEXT}"
+    else
+        confirm yes "This will DISABLE and reset Fail2Ban using your config for context ${DOCKER_CONTEXT}"
+    fi
     install_fail2ban
     configure_fail2ban
     if d.rymcg.tech ssh "test -f ${TRAEFIK_ACCESS_LOG}"; then
