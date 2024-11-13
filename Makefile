@@ -17,7 +17,7 @@ check-docker:
 	@docker info >/dev/null && echo "Docker is running." || (echo "Could not connect to Docker!" && false)
 
 .PHONY: config # Configure main variables
-config: script-wizard check-deps check-docker
+config: script-wizard check-deps check-docker check-dist-vars
 #	@${BIN}/userns-remap check
 	@echo ""
 	@${BIN}/confirm yes "This will make a configuration for the current docker context (${DOCKER_CONTEXT})"
@@ -25,10 +25,9 @@ config: script-wizard check-deps check-docker
 	@echo "Configured ${ROOT_ENV}"
 	@echo "ENV_FILE=${ENV_FILE}"
 	@echo
-	@echo "Every time you configure HTTP Basic Authentication, you are asked if you wish to save the cleartext passwords"
-	@echo "into passwords.json (in each project directory). If you were to press Enter without answering the question,"
-	@echo "the default answer is No (displayed as y/N). You may change the default response to Yes (displayed as Y/n)."
-	@${BIN}/confirm $$([[ "$$(${BIN}/dotenv -f ${ENV_FILE} get DEFAULT_SAVE_CLEARTEXT_PASSWORDS_JSON)"  == "true" ]] && echo yes || echo no) "Do you want to save cleartext passwords in passwords.json by default" "?" && ${BIN}/reconfigure ${ROOT_ENV} DEFAULT_SAVE_CLEARTEXT_PASSWORDS_JSON=true || ${BIN}/reconfigure ${ROOT_ENV} DEFAULT_SAVE_CLEARTEXT_PASSWORDS_JSON=false
+	@${BIN}/confirm $$([[ "$$(${BIN}/dotenv -f ${ROOT_ENV} get DEFAULT_CLI_ROUTE_LAYER_7_PROXY_PROTOCOL)"  == "true" ]] && echo yes || echo no) "Is this server behind another trusted proxy using the proxy protocol" "?" && ${BIN}/reconfigure ${ROOT_ENV} DEFAULT_CLI_ROUTE_LAYER_7_PROXY_PROTOCOL=true DEFAULT_CLI_ROUTE_LAYER_4_PROXY_PROTOCOL=true || ${BIN}/reconfigure ${ROOT_ENV} DEFAULT_CLI_ROUTE_LAYER_7_PROXY_PROTOCOL=false DEFAULT_CLI_ROUTE_LAYER_4_PROXY_PROTOCOL=false
+	@echo
+	@${BIN}/confirm $$([[ "$$(${BIN}/dotenv -f ${ROOT_ENV} get DEFAULT_SAVE_CLEARTEXT_PASSWORDS_JSON)"  == "true" ]] && echo yes || echo no) "Do you want to save cleartext passwords in passwords.json by default" "?" && ${BIN}/reconfigure ${ROOT_ENV} DEFAULT_SAVE_CLEARTEXT_PASSWORDS_JSON=true || ${BIN}/reconfigure ${ROOT_ENV} DEFAULT_SAVE_CLEARTEXT_PASSWORDS_JSON=false
 	@[[ -n "${USERNAME}" ]] && echo && echo "WARNING: the USERNAME variable is already set in your environment. This configuration is non-standard (Bash should use the USER variable instead). Having USERNAME set by default will interfere with the 'make shell' command. Some distros (eg. Fedora) set USERNAME by default. You must unset this variable before using the 'make shell' target. You can unset this variable in your ~/.bashrc file by adding the line: 'unset USERNAME'" | fold -s && echo || true
 
 .PHONY: build # Build all container images

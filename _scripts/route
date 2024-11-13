@@ -1,0 +1,452 @@
+#!/bin/bash
+
+BIN=$(realpath $(dirname ${BASH_SOURCE}))
+source ${BIN}/funcs.sh
+check_var ENV_FILE ROOT_DIR
+set -eo pipefail
+
+get_entrypoint_value() {
+    cd "${ROOT_DIR}"
+    local entrypoint_name="$1"
+    local suffix="$2"
+    check_var entrypoint_name
+    check_var suffix
+    check_var ENV_FILE
+    local traefik_env="${ROOT_DIR}/traefik/${ENV_FILE}"
+    test -f "${traefik_env}" || fault "Could not find traefik env file: ${traefik_env}"
+    ${BIN}/dotenv -f "${traefik_env}" get "TRAEFIK_${entrypoint_name^^}_ENTRYPOINT_${suffix^^}"
+    if [[ $? != 0 ]]; then
+        # Find custom entrypoint data:
+        TRAEFIK_CUSTOM_ENTRYPOINTS=$(${BIN}/dotenv -f "${traefik_env}" get TRAEFIK_CUSTOM_ENTRYPOINTS)
+        IFS=',' read -ra items <<< "${TRAEFIK_CUSTOM_ENTRYPOINTS}"
+        for item in "${items[@]}"; do
+            if [[ "$item" =~ ^$entrypoint_name: ]]; then
+                IFS=':' read -ra parts <<< "$item"
+                case "${suffix^^}" in
+                    HOST)
+                        echo ${parts[1]};;
+                    PORT)
+                        echo ${parts[2]};;
+                    PROTOCOL)
+                        echo ${parts[3]};;
+                    PROXY_PROTOCOL_TRUSTED_IPS)
+                        echo ${parts[4]};;
+                    USE_HTTPS)
+                        echo ${parts[5]};;
+                esac
+                return 0
+            fi
+        done
+        return 1
+    fi
+}
+
+check_missing_entrypoint_var() {
+    if get_entrypoint_value $@ &>/dev/null; then
+        return 1
+    else
+        return 0
+    fi
+}
+
+# Function to get layer 4 routes if enabled
+get_layer_4_routes() {
+    cd ${ROOT_DIR}
+    local traefik_env="${ROOT_DIR}/traefik/${ENV_FILE}"
+    test -f ${traefik_env} || fault "Could not find traefik env file: ${traefik_env}"
+    local layer_4_enabled=$(${BIN}/dotenv -f "${traefik_env}" get "TRAEFIK_LAYER_4_TCP_UDP_PROXY_ENABLED")
+    if [[ "$layer_4_enabled" == "true" ]]; then
+        ${BIN}/dotenv -f "${traefik_env}" get "TRAEFIK_LAYER_4_TCP_UDP_PROXY_ROUTES"
+    else
+        echo ""
+    fi
+}
+
+# Function to get layer 7 routes if enabled
+get_layer_7_routes() {
+    cd ${ROOT_DIR}
+    local traefik_env="${ROOT_DIR}/traefik/${ENV_FILE}"
+    test -f ${traefik_env} || fault "Could not find traefik env file: ${traefik_env}"
+    local layer_7_enabled=$(${BIN}/dotenv -f "${traefik_env}" get "TRAEFIK_LAYER_7_TLS_PROXY_ENABLED")
+    if [[ "$layer_7_enabled" == "true" ]]; then
+        ${BIN}/dotenv -f "${traefik_env}" get "TRAEFIK_LAYER_7_TLS_PROXY_ROUTES"
+    else
+        echo ""
+    fi
+}
+
+inspect_container() {
+    docker inspect "$1" | jq -r '
+                .[] | .Name as $name | .Config.Labels as $labels
+                | ($labels | to_entries[]
+                    | select(.key | test("traefik\\.http\\.routers\\..*\\.rule") or test("traefik\\.tcp\\.routers\\..*\\.rule"))
+                    | .key as $rule_key
+                    | .value as $rule_value
+                    | ($labels[$rule_key | sub("\\.rule$"; ".entrypoints")] // "unknown") as $entrypoints_value
+                    | ($rule_value | capture("(Host|HostSNI)\\(`(?<host>[^`]*)`\\)(\\s*&&\\s*Path\\(`(?<path>[^`]*)`\\))?")) as $captured
+                    | $name[1:] + " " + $entrypoints_value + " " +
+                    (
+                        (if $entrypoints_value == "web" then "http://"
+                         elif $entrypoints_value == "web_plain" then "http://"
+                         elif $rule_key | test("traefik\\.http\\.") then "https://"
+                         else $entrypoints_value + "://" end) +
+                        $captured.host +
+                        (if $entrypoints_value == "web" then ""
+                         elif $entrypoints_value == "websecure" then ""
+                         elif $entrypoints_value == "web_plain" then ":PORT_PLACEHOLDER"
+                         else ":PORT_PLACEHOLDER" end) +
+                        ($captured.path // "/")
+                    )
+                )'
+}
+
+get_docker_container_routes() {
+    docker ps -q | while read -r container_id; do
+        inspect_container ${container_id} | while read -r container_name entrypoint url; do
+            if [[ "$entrypoint" != "web" && "$entrypoint" != "websecure" ]]; then
+                if check_missing_entrypoint_var "$entrypoint" port; then
+                    echo "$container_name MISSING $url - - -"
+                    continue
+                fi
+                port=$(get_entrypoint_value $entrypoint port)
+                url="${url//PORT_PLACEHOLDER/$port}"
+            fi
+            proxy_protocol="$(get_entrypoint_value $entrypoint proxy_protocol_trusted_ips)"
+            if [[ -z "${proxy_protocol}" ]]; then
+                proxy_protocol="-"
+            fi
+            
+            destination="$container_name"
+            echo "$container_name $entrypoint $url ${destination} ${proxy_protocol} -"
+        done
+    done
+}
+
+list_routes() {    
+# Print list of Traefik container routes
+    {
+        # Generate formatted output
+        {
+            echo "Service Entrypoint URL Destination Upstream_Proxy Forward_HTTPs"
+            echo "------- ---------- --- ----------- -------------- -------------"
+            get_docker_container_routes
+            
+            # Print layer 4 routes if enabled
+            layer_4_routes=$(get_layer_4_routes)
+            if [[ -n "$layer_4_routes" ]]; then
+                IFS=',' read -ra routes <<< "$layer_4_routes"
+                declare -A seen_routes
+                for route in "${routes[@]}"; do
+                    IFS=':' read -r entrypoint ip_address port proxy_protocol <<< "$route"
+                    if [[ -n "$proxy_protocol" ]] && [[ "$proxy_protocol" != "0" ]]; then
+                        set +e
+                        proxy_protocol="$(get_entrypoint_value ${entrypoint} proxy_protocol_trusted_ips)"
+                        proxy_protocol="${proxy_protocol:--}"
+                        set -e
+                    else
+                        proxy_protocol="-"
+                    fi
+                    tcp_or_udp=$(get_entrypoint_value ${entrypoint} protocol)
+                    use_https=$(get_entrypoint_value ${entrypoint} use_https)
+                    if [[ -z "${seen_routes[$route]}" ]]; then
+                        echo "- ${entrypoint} ${tcp_or_udp}://${ip_address}:${port} ${ip_address}:${port} ${proxy_protocol} ${use_https}"
+                        seen_routes[$route]=1
+                    fi
+                done
+            fi
+
+            # Print layer 7 routes if enabled
+            layer_7_routes=$(get_layer_7_routes)
+            if [[ -n "$layer_7_routes" ]]; then
+                IFS=',' read -ra routes <<< "$layer_7_routes"
+                declare -A seen_routes
+                for route in "${routes[@]}"; do
+                    IFS=':' read -r domain ip_address port proxy_protocol <<< "$route"
+                    if [[ -z "${seen_routes[$route]}" ]]; then
+                        if [[ -n "$proxy_protocol" ]] && [[ "$proxy_protocol" != "0" ]]; then
+                            proxy_protocol="$(get_entrypoint_value websecure proxy_protocol_trusted_ips)"
+                            proxy_protocol="${proxy_protocol:--}"
+                        else
+                            proxy_protocol="-"
+                        fi
+                        echo "- websecure https://${domain} ${ip_address}:${port} ${proxy_protocol} -"
+                        seen_routes[$route]=1
+                    fi
+                done
+            fi
+        } | column -t
+    } | {
+        # Split output to stderr and stdout
+        read -r header
+        read -r line
+        echo "$header"
+        echo "$line"
+        cat
+        echo
+        echo "## Note: these routes are defined in the configuration, but may not necessarily reflect Traefik's current state until you reinstall it."
+    } | less -FSX
+}
+
+fault_usage() {
+    usage
+    fault "$@"
+}
+
+usage() {
+    local alias="${D_RYMCG_TECH_CONTEXT_ALIAS:-${D_RYMCG_TECH_CLI_ALIAS:-d.rymcg.tech}}"
+    echo "Manage Traefik routes"
+    echo 
+    echo "Usage: ${alias} route {list|set|remove} ARGS [options]"
+    echo 
+    echo "Subcommands:"
+    echo "  list      - List all routes"
+    echo "  set       - Set a new route or update an existing one"
+    echo "      set (DOMAIN|ENTRYPOINT) DEST_IP DEST_PORT [OPTIONS...]"
+    echo "  remove    - Remove an existing route"
+    echo "      remove (DOMAIN|ENTRYPOINT) [OPTIONS...]"
+    echo
+    echo "Options for set / remove:"
+    echo "  --layer7                       - create a Layer 7 route (default)"
+    echo "  --layer4                       - create a Layer 4 route"
+    echo "  --restart [true/false]         - Automatically restart Traefik or not"
+    echo "  --proxy-protocol [true/false]  - Turn on Proxy Protocol for the route or not"
+    echo "  --protocol [udp/tcp]           - TCP (default) or UDP"
+    echo
+    echo "Examples:"
+    echo
+    echo "List all routes:"
+    echo
+    echo " ${alias} list"
+    echo
+    echo "Set Layer 7 route to HTTP(s) destination 192.168.1.2:8000"
+    echo "using the context default proxy protocol option:"
+    echo
+    echo " ${alias} route set --layer7 whoami.example.com 192.168.1.2 8000"
+    echo
+    echo "Set Layer 7 route to HTTP(s) destination 192.168.1.2:8000"
+    echo "forcing the proxy protocol option ON:"
+    echo
+    echo " ${alias} route set --layer7 whoami.example.com 192.168.1.2 8000 --proxy-protocol true"
+    echo
+    echo "Remove Layer 7 route:"
+    echo
+    echo " ${alias} route remove --layer7 whoami.example.com"
+    echo
+    echo "Set Layer 4 route to TCP destination 192.168.1.2:9000"
+    echo "using an existing entrypoint named 'test'"
+    echo "using the context default proxy protocol option (or set --proxy-protocol true):"
+    echo
+    echo " ${alias} route set --layer4 test 192.168.1.2 9000"
+    echo 
+    echo "Remove Layer 4 route:"
+    echo
+    echo " ${alias} route remove --layer4 test"
+    echo
+    echo "All examples will ask to restart Traefik, unless --restart true/false is set."
+    echo
+}
+
+parse_set_route() {
+    local layer="layer7"
+    local restart="ask"
+    local proxy_protocol="false"
+    local protocol="tcp"
+
+    local ENV_FILE
+    local DOMAIN_OR_ENTRYPOINT
+    local DEST_IP
+    local DEST_PORT
+
+    while [[ "$1" != "" ]]; do
+        case "$1" in
+            --layer4)
+                layer="layer4"
+                ;;
+            --layer7)
+                layer="layer7"
+                ;;
+            --restart)
+                shift
+                if [[ "$1" == "true" || "$1" == "false" ]]; then
+                    restart="$1"
+                else
+                    fault_usage " --restart must be followed by 'true' or 'false'"
+                    return 1
+                fi
+                ;;
+            --proxy-protocol)
+                shift
+                if [[ "$1" == "true" || "$1" == "false" ]]; then
+                    proxy_protocol="$1"
+                else
+                    fault_usage " --proxy-protocol must be followed by 'true' or 'false'"
+                    return 1
+                fi
+                ;;
+            --protocol)
+                shift
+                if [[ "$1" == "tcp" || "$1" == "udp" ]]; then
+                    protocol="$1"
+                else
+                    fault_usage " --protocol must be 'tcp' or 'udp'"
+                    return 1
+                fi
+                ;;
+            *)
+                # Positional arguments
+                if [[ -z "$ENV_FILE" ]]; then
+                    ENV_FILE="$1"
+                elif [[ -z "$DOMAIN_OR_ENTRYPOINT" ]]; then
+                    DOMAIN_OR_ENTRYPOINT="$1"
+                elif [[ -z "$DEST_IP" ]]; then
+                    DEST_IP="$1"
+                elif [[ -z "$DEST_PORT" ]]; then
+                    DEST_PORT="$1"
+                else
+                    debug_var ENV_FILE
+                    debug_var DOMAIN_OR_ENTRYPOINT
+                    debug_var DEST_IP
+                    debug_var DEST_PORT
+                    fault_usage "Unexpected argument '$1'"
+                    return 1
+                fi
+                ;;
+        esac
+        shift
+    done
+
+    check_var ENV_FILE DOMAIN_OR_ENTRYPOINT DEST_IP DEST_PORT proxy_protocol ROOT_DIR ROOT_ENV
+    if [[ "$layer" == "layer7" ]]; then
+        proxy_protocol=$(${BIN}/dotenv -f "${ROOT_DIR}/${ROOT_ENV}" get DEFAULT_CLI_ROUTE_LAYER_7_PROXY_PROTOCOL)
+    elif [[ "$layer" == "layer4" ]]; then
+        proxy_protocol=$(${BIN}/dotenv -f "${ROOT_DIR}/${ROOT_ENV}" get DEFAULT_CLI_ROUTE_LAYER_4_PROXY_PROTOCOL)
+    fi
+
+    source ${BIN}/../traefik/setup.sh
+    case "${layer}" in
+        layer4)
+            reconfigure_layer_X_tcp_udp_proxy_routes "${ENV_FILE}" TRAEFIK_LAYER_4_TCP_UDP_PROXY_ROUTES "${DOMAIN_OR_ENTRYPOINT}" "${DEST_IP}" "${DEST_PORT}" "${proxy_protocol}";;
+        layer7)
+            reconfigure_layer_X_tcp_udp_proxy_routes "${ENV_FILE}" TRAEFIK_LAYER_7_TLS_PROXY_ROUTES "${DOMAIN_OR_ENTRYPOINT}" "${DEST_IP}" "${DEST_PORT}" "${proxy_protocol}";;
+        *)
+            fault "Invalid layer: ${layer}"
+    esac
+
+    case "${restart}" in
+        ask)
+            confirm no "Do you want to restart Traefik now" "?" && make -C ${ROOT_DIR}/traefik install;;
+        true)
+            make -C ${ROOT_DIR}/traefik install;;
+        false)
+        ;;
+        *)
+        ;;
+    esac
+}
+
+parse_remove_route() {
+    local layer="layer7"         # Default to Layer 7
+    local restart="ask"          # Default to asking for a restart
+
+    # Initialize variables for required parameters
+    local ENV_FILE
+    local DOMAIN_OR_ENTRYPOINT
+    
+    # Parse options and arguments
+    while [[ "$1" != "" ]]; do
+        case "$1" in
+            --layer4)
+                layer="layer4"
+                ;;
+            --layer7)
+                layer="layer7"
+                ;;
+            --restart)
+                shift
+                if [[ "$1" == "true" || "$1" == "false" ]]; then
+                    restart="$1"
+                else
+                    fault_usage " --restart must be followed by 'true' or 'false'"
+                    return 1
+                fi
+                ;;
+            *)
+                # Positional arguments
+                if [[ -z "$ENV_FILE" ]]; then
+                    ENV_FILE="$1"
+                elif [[ -z "$DOMAIN_OR_ENTRYPOINT" ]]; then
+                    DOMAIN_OR_ENTRYPOINT="$1"
+                else
+                    debug_var ENV_FILE
+                    debug_var DOMAIN_OR_ENTRYPOINT
+                    debug_var DEST_IP
+                    debug_var DEST_PORT
+                    fault_usage "Unexpected argument '$1'"
+                    return 1
+                fi
+                ;;
+        esac
+        shift
+    done
+
+    check_var ENV_FILE DOMAIN_OR_ENTRYPOINT
+    source ${BIN}/../traefik/setup.sh
+    case "${layer}" in
+        layer4)
+            reconfigure_remove_layer_X_tcp_udp_proxy_routes "${ENV_FILE}" TRAEFIK_LAYER_4_TCP_UDP_PROXY_ROUTES "${DOMAIN_OR_ENTRYPOINT}";;
+        layer7)
+            reconfigure_remove_layer_X_tcp_udp_proxy_routes "${ENV_FILE}" TRAEFIK_LAYER_7_TLS_PROXY_ROUTES "${DOMAIN_OR_ENTRYPOINT}";;
+        *)
+            fault "Invalid layer: ${layer}"
+    esac
+    
+    case "${restart}" in
+        ask)
+            confirm no "Do you want to restart Traefik now" "?" && make -C ${ROOT_DIR}/traefik install;;
+        true)
+            make -C ${ROOT_DIR}/traefik install;;
+        false)
+        ;;
+        *)
+        ;;
+    esac
+}
+
+main() {
+    if [[ $# -eq 0 ]]; then
+        # If no args are passed, check for ARGS variable and use that if it exists:
+        if [[ -n "${ARGS}" ]]; then
+            read -a args <<< "${ARGS}"
+        else
+            usage
+            exit 1
+        fi
+    else
+        args=("$@")
+    fi
+    pop_array args subcommand
+    if [[ -z "$subcommand" ]]; then
+        usage
+        exit 1
+    else
+        case "$subcommand" in
+            list)
+                list_routes
+                ;;
+            set)
+                parse_set_route "${ENV_FILE}" ${args[@]}
+                ;;
+            remove)
+                parse_remove_route "${ENV_FILE}" ${args[@]}
+                ;;
+            *)
+                fault_usage " Invalid subcommand '$subcommand'."
+                usage
+                exit 1
+                ;;
+        esac
+        
+    fi
+}
+
+main $@

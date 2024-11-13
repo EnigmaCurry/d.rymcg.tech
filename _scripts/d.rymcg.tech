@@ -54,7 +54,7 @@ __help() {
         echo -e "audit\tPrint security audit of running containers"
         echo -e "sshd-config [Var=value ...]\tReconfigure the host SSH daemon of the remote context"
         echo -e "ssh-expose PORT\tExpose a workstation's port to a public server port"
-        echo -e "routes\tPrint the list of Traefik routes"
+        echo -e "route\tConfigure and/or print routes"
         echo -e "networks\tPrint the list of Docker networks"
         echo -e "fail2ban\tConfigure fail2ban on the Docker host"
     ) | expand -t 30
@@ -337,7 +337,7 @@ __d.rymcg.tech_completions() {
     if [[ ${COMP_CWORD} == 1 ]]; then
         ## Complete the main command:
         ## d.rymcg.tech <TAB> ...
-        COMMANDS="help create cd make list readme info context new-context tmp-context completion install install-docker status ssh audit sshd-config ssh-expose routes fail2ban networks config"
+        COMMANDS="help create cd make list readme info context new-context tmp-context completion install install-docker status ssh audit sshd-config ssh-expose route routes fail2ban networks config"
         COMPREPLY=($(compgen -W "${COMMANDS}" "${COMP_WORDS[1]}"))
     elif [[ ${COMP_CWORD} == 2 ]]; then
         ALL_PROJECTS=$(d.rymcg.tech list --raw)
@@ -481,11 +481,12 @@ main() {
             sshd-config)
                 __run_script reconfigure_sshd "${DOCKER_CONTEXT}" "$@";;
             ssh-expose)
-                local CURRENT_CONTEXT=$(docker context show)
-                export D_RYMCG_TECH_CLI_ALIAS=${CURRENT_CONTEXT:-d.rymcg.tech}
                 __run_script ssh_expose "${CURRENT_CONTEXT}" $@;;
+            route)
+                CMD=$(echo d.rymcg.tech make traefik route ARGS=\"$@\")
+                eval ${CMD};;
             routes)
-                d.rymcg.tech make traefik routes;;
+                d.rymcg.tech make traefik route ARGS="list";;
             fail2ban)
                 d.rymcg.tech make - fail2ban;;
             networks)
