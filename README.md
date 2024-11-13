@@ -17,7 +17,7 @@ Compose projects into this framework.
 All (http) apps are secured with automatic TLS certificates (Let's
 Encrypt or Step-CA), along with configurable self-hosted
 authentication middleware (mTLS, OAuth2, or HTTP Basic auth), as well
-as user group authorization middlewares. Even non-http apps may be
+as user group authorization middlewares. Even non-TLS apps may be
 secured with the optional VPN (Wireguard) support.
 
 Each project has a `Makefile` to simplify configuration, installation,
@@ -536,7 +536,8 @@ Install these other services at your leisure/preference:
 * [ArchiveBox](archivebox#readme) - a website archiving tool
 * [Audiobookshelf](audiobookshelf#readme) - an audiobook and podcast server
 * [Autoheal](autoheal#readme) - a Docker container healthcheck monitor with auto-restart service
-* [Backup-Volume](backup-volume#readme) - a Docker volume remote backup tool
+* [Backrest](backrest#readme) - a backup tool based on restic
+* [Backup-Volume](backup-volume#readme) - a Docker volume backup tool
 * [Baikal](baikal#readme) - a lightweight CalDAV+CardDAV server
 * [CalcPad](calcpad#readme) - a different take on the caculator
 * [Calibre](calibre#readme) - an ebook manager

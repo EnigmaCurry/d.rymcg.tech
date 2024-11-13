@@ -4,17 +4,17 @@
 ##
 ## SSH_HOST = the SSH host to setup (Default localhost).
 ## CONTEXT = the name of the Docker context to setup (Default $SSH_HOST).
-## ALIAS = the contextual alias for d.rymcg.tech (Default $CONTEXT).
+## ALIASES = the list of contextual aliases for d.rymcg.tech (Default $CONTEXT).
 ## ROOT_DOMAIN = the root sub-domain used for apps (Default $SSH_HOST).
 ## 
 ## You may run this script directly from curl:
 ## 
-## ALIAS=l ROOT_DOMAIN=d.example.com bash <(curl -L https://github.com/EnigmaCurry/d.rymcg.tech/blob/master/_scripts/bootstrap_sworkstation_fedora.sh?raw=true)
+## ALIASES=l ROOT_DOMAIN=d.example.com bash <(curl -L https://github.com/EnigmaCurry/d.rymcg.tech/blob/master/_scripts/bootstrap_sworkstation_fedora.sh?raw=true)
 
 export SSH_HOST="${SSH_HOST:-localhost}"
 export CONTEXT="${CONTEXT:-${SSH_HOST}}"
 export ROOT_DOMAIN="${ROOT_DOMAIN:-${SSH_HOST}}"
-export ALIAS="${ALIAS:-${CONTEXT}}"
+IFS=',' read -r -a ALIASES <<< "${ALIASES:-${CONTEXT}}"
 export SYSBOX=${SYSBOX:-false}
 export SYSBOX_URL=${SYSBOX_URL:-https://downloads.nestybox.com/sysbox/releases/v0.6.4/sysbox-ce_0.6.4-0.linux_$(uname -m | sed -e 's/x86_64/amd64/' -e 's/aarch64/arm64/').rpm}
 
@@ -89,11 +89,23 @@ __d.rymcg.tech_cli_alias d
 if [ "$(whoami)" = "root" ]; then
   export DOCKER_CONTEXT=default
 fi
-EOF
-cat <<EOF >> ~/.config/d.rymcg.tech/bashrc
 ## Add d.rymcg.tech alias for each Docker context:
-__d.rymcg.tech_context_alias ${CONTEXT} ${ALIAS}
 EOF
+for i in "${!ALIASES[@]}"; do
+    d_alias="${ALIASES[$i]}"
+    
+    if [[ $i -eq 0 ]]; then
+        # First alias
+        cat <<EOF >> ~/.config/d.rymcg.tech/bashrc
+__d.rymcg.tech_context_alias ${CONTEXT} ${d_alias}
+EOF
+    else
+        # Second and subsequent aliases
+        cat <<EOF >> ~/.config/d.rymcg.tech/bashrc
+__d.rymcg.tech_context_alias ${d_alias} ${d_alias}
+EOF
+    fi
+done
 echo >> ~/.bashrc
 cat <<EOF >> ~/.bashrc
 ## d.rymcg.tech
@@ -112,5 +124,5 @@ echo
 echo
 echo "## Installation finished."
 echo "## Log out and log back in (or source ~/.bashrc)"
-echo "## Use the '${ALIAS}' alias to manage the local Docker host."
+echo "## Use the '${ALIASES}' alias to manage the local Docker host."
 )
