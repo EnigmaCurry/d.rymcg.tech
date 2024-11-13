@@ -1,10 +1,18 @@
 #!/bin/bash
 set -e
 
-BIN=$(dirname $(realpath ${BASH_SOURCE}))
-ROOT_DIR=$(dirname ${BIN})
+source $(dirname $(realpath ${BASH_SOURCE}))/funcs.sh
+SSHD_ENABLED=${TRAEFIK_BAN_ENABLED:-true}
+SSHD_MAX_RETRY=${SSHD_MAX_RETRY:-2}
+SSHD_BAN_TIME=${SSHD_BAN_TIME:-10m}
+SSHD_FIND_TIME=${SSHD_FIND_TIME:-10m}
+SSHD_ALLOW_IPV6=${SSHD_ALLOW_IPV6:-true}
 TRAEFIK_ACCESS_LOG=/var/lib/docker/volumes/traefik_traefik/_data/access.log
-source ${BIN}/funcs.sh
+TRAEFIK_ACCESS_ENABLED=${TRAEFIK_ACCESS_ENABLED:-true}
+TRAEFIK_ACCESS_MAX_RETRY=${TRAEFIK_ACCESS_MAX_RETRY:-5}
+TRAEFIK_ACCESS_BAN_TIME=${TRAEFIK_ACCESS_BAN_TIME:-10m}
+TRAEFIK_ACCESS_FIND_TIME=${TRAEFIK_ACCESS_FIND_TIME:-10m}
+TRAEFIK_ACCESS_ALLOW_IPV6=${TRAEFIK_ACCESS_ALLOW_IPV6:-true}
 
 host_is_debian() {
     d.rymcg.tech ssh '[[ -f /etc/debian_version ]]' &> /dev/null
@@ -66,37 +74,46 @@ maxretry = 5
 allowipv6 = true
 EOF
 
-    d.rymcg.tech ssh 'cat > /etc/fail2ban/jail.d/sshd.local' <<EOF
+    if [[ "${SSHD_ENABLED}" == "true" ]]; then
+        d.rymcg.tech ssh 'cat > /etc/fail2ban/jail.d/sshd.local' <<EOF
 [sshd]
 enabled = true
 port = ssh
 filter = sshd
 backend = systemd
-maxretry = 2
-bantime = 10m
-findtime = 10m
-allowipv6 = false
+maxretry = ${SSHD_MAX_RETRY}
+bantime = ${SSHD_BAN_TIME}
+findtime = ${SSHD_FIND_TIME}
+allowipv6 = ${SSHD_ALLOW_IPV6}
 EOF
+    fi
     
-    d.rymcg.tech ssh 'cat > /etc/fail2ban/jail.d/traefik.local' <<EOF    
+    if [[ "${TRAEFIK_ACCESS_ENABLED}" == "true" ]]; then
+        d.rymcg.tech ssh 'cat > /etc/fail2ban/jail.d/traefik.local' <<EOF    
 [traefik-access]
 enabled = true
 filter = traefik-access
 logpath = ${TRAEFIK_ACCESS_LOG}
-maxretry = 5
-bantime = 2m
-findtime = 10m
+maxretry = ${TRAEFIK_ACCESS_MAX_RETRY}
+bantime = ${TRAEFIK_ACCESS_BAN_TIME}
+findtime = ${TRAEFIK_ACCESS_FIND_TIME}
+allowipv6 = ${TRAEFIK_ACCESS_ALLOW_IPV6}
 EOF
 
-    d.rymcg.tech ssh 'cat > /etc/fail2ban/filter.d/traefik-access.conf' <<EOF
+        d.rymcg.tech ssh 'cat > /etc/fail2ban/filter.d/traefik-access.conf' <<EOF
 [Definition]
 failregex = .*"ClientHost":"<HOST>".*"DownstreamStatus":(?:400|403|405|407|429|431).*$
 ignoreregex =
 EOF
+    fi
 }
 
 main() {
-    check_var ENV_FILE ROOT_ENV DOCKER_CONTEXT ROOT_DIR CONTEXT_INSTANCE
+    check_var ENV_FILE ROOT_ENV DOCKER_CONTEXT ROOT_DIR CONTEXT_INSTANCE \
+              SSHD_ENABLED SSHD_MAX_RETRY SSHD_BAN_TIME SSHD_FIND_TIME \
+              SSHD_ALLOW_IPV6 TRAEFIK_ACCESS_LOG TRAEFIK_ACCESS_ENABLED \
+              TRAEFIK_ACCESS_MAX_RETRY TRAEFIK_ACCESS_BAN_TIME \
+              TRAEFIK_ACCESS_FIND_TIME TRAEFIK_ACCESS_ALLOW_IPV6
     echo
     confirm yes "This will reset and reconfigure fail2ban using the ${DOCKER_CONTEXT} context"
     install_fail2ban
