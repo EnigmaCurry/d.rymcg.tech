@@ -2,17 +2,24 @@
 set -e
 
 source $(dirname $(realpath ${BASH_SOURCE}))/funcs.sh
-SSHD_ENABLED=${TRAEFIK_BAN_ENABLED:-true}
-SSHD_MAX_RETRY=${SSHD_MAX_RETRY:-2}
-SSHD_BAN_TIME=${SSHD_BAN_TIME:-10m}
-SSHD_FIND_TIME=${SSHD_FIND_TIME:-10m}
-SSHD_ALLOW_IPV6=${SSHD_ALLOW_IPV6:-true}
+ROOT_ENV=${ROOT_DIR}/$(basename ${ROOT_ENV})
+
+if [[ ! -f "${ROOT_ENV}" ]]; then
+    fault "Could not find root context env file: ${ROOT_ENV}"
+fi
+
+FAIL2BAN_ENABLED=$(${BIN}/dotenv -f ${ROOT_ENV} get FAIL2BAN_ENABLED)
+SSHD_ENABLED=$(${BIN}/dotenv -f ${ROOT_ENV} get FAIL2BAN_SSHD_ENABLED)
+SSHD_MAX_RETRY=$(${BIN}/dotenv -f ${ROOT_ENV} get FAIL2BAN_SSHD_MAX_RETRY)
+SSHD_BAN_TIME=$(${BIN}/dotenv -f ${ROOT_ENV} get FAIL2BAN_SSHD_BAN_TIME)
+SSHD_FIND_TIME=$(${BIN}/dotenv -f ${ROOT_ENV} get FAIL2BAN_SSHD_FIND_TIME)
+SSHD_ALLOW_IPV6=$(${BIN}/dotenv -f ${ROOT_ENV} get FAIL2BAN_SSHD_ALLOW_IPV6)
 TRAEFIK_ACCESS_LOG=/var/lib/docker/volumes/traefik_traefik/_data/access.log
-TRAEFIK_ACCESS_ENABLED=${TRAEFIK_ACCESS_ENABLED:-true}
-TRAEFIK_ACCESS_MAX_RETRY=${TRAEFIK_ACCESS_MAX_RETRY:-5}
-TRAEFIK_ACCESS_BAN_TIME=${TRAEFIK_ACCESS_BAN_TIME:-10m}
-TRAEFIK_ACCESS_FIND_TIME=${TRAEFIK_ACCESS_FIND_TIME:-10m}
-TRAEFIK_ACCESS_ALLOW_IPV6=${TRAEFIK_ACCESS_ALLOW_IPV6:-true}
+TRAEFIK_ACCESS_ENABLED=$(${BIN}/dotenv -f ${ROOT_ENV} get FAIL2BAN_TRAEFIK_ACCESS_ENABLED)
+TRAEFIK_ACCESS_MAX_RETRY=$(${BIN}/dotenv -f ${ROOT_ENV} get FAIL2BAN_TRAEFIK_ACCESS_MAX_RETRY)
+TRAEFIK_ACCESS_BAN_TIME=$(${BIN}/dotenv -f ${ROOT_ENV} get FAIL2BAN_TRAEFIK_ACCESS_BAN_TIME)
+TRAEFIK_ACCESS_FIND_TIME=$(${BIN}/dotenv -f ${ROOT_ENV} get FAIL2BAN_TRAEFIK_ACCESS_FIND_TIME)
+TRAEFIK_ACCESS_ALLOW_IPV6=$(${BIN}/dotenv -f ${ROOT_ENV} get FAIL2BAN_TRAEFIK_ACCESS_ALLOW_IPV6)
 
 host_is_debian() {
     d.rymcg.tech ssh '[[ -f /etc/debian_version ]]' &> /dev/null
@@ -56,12 +63,20 @@ install_fail2ban() {
     fi
 }
 
-enable_fail2ban() {
-    d.rymcg.tech ssh systemctl enable --now fail2ban
-    d.rymcg.tech ssh systemctl restart fail2ban
-    sleep 3
-    d.rymcg.tech ssh systemctl status fail2ban
-    d.rymcg.tech ssh fail2ban-client status
+enable_or_disable_fail2ban() {
+    if [[ "${FAIL2BAN_ENABLED}" == "true" ]]; then
+        d.rymcg.tech ssh systemctl enable --now fail2ban
+        d.rymcg.tech ssh systemctl restart fail2ban
+        sleep 3
+        d.rymcg.tech ssh systemctl status fail2ban
+        d.rymcg.tech ssh fail2ban-client status
+        echo "Fail2Ban has been ENABLED according to config: FAIL2BAN_ENABLED=${FAIL2BAN_ENABLED}."
+    else
+        d.rymcg.tech ssh systemctl disable --now fail2ban
+        sleep 3
+        d.rymcg.tech ssh systemctl status fail2ban || true
+        echo "Fail2Ban has been DISABLED according to config: FAIL2BAN_ENABLED=${FAIL2BAN_ENABLED}."
+    fi
 }
 
 configure_fail2ban() {
@@ -119,7 +134,7 @@ main() {
     install_fail2ban
     configure_fail2ban
     if d.rymcg.tech ssh "test -f ${TRAEFIK_ACCESS_LOG}"; then
-        enable_fail2ban
+        enable_or_disable_fail2ban
     else
         echo
         if confirm yes "The Traefik access log must be enabled."; then
@@ -127,7 +142,7 @@ main() {
             d.rymcg.tech make traefik reinstall
             sleep 2
             if d.rymcg.tech ssh "test -f ${TRAEFIK_ACCESS_LOG}"; then
-                enable_fail2ban
+                enable_or_disable_fail2ban
             else
                 fault "Could not find traefik access log."
             fi
