@@ -140,3 +140,8 @@ networks:
 .PHONY: fail2ban # Configure fail2ban on this Docker host.
 fail2ban:
 	ENV_FILE=${ENV_FILE} ROOT_ENV=${ROOT_ENV} DOCKER_CONTEXT=${DOCKER_CONTEXT} ROOT_DIR=${ROOT_DIR} CONTEXT_INSTANCE=${CONTEXT_INSTANCE} ${BIN}/fail2ban
+
+.PHONY: reconfigure # reconfigure a single environment variable (reconfigure var=THING=VALUE)
+reconfigure:
+	@[[ -n "$${var}" ]] || (echo -e "Error: Invalid argument, must set var.\n## Use: make reconfigure var=VAR_NAME=VALUE" && false)
+	@${BIN}/reconfigure ${ROOT_ENV} "$${var%%=*}=$${var#*=}"
