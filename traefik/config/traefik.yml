@@ -197,6 +197,9 @@ entryPoints:
         #@ end
       middlewares:
         - strip-headers@file
+        #@ if data.values.plugin_maxmind_geoip == "true":
+        - geoip@file
+        #@ end
         #@ if len(data.values.error_handler_403_service):
         - traefik-websecure-error-handler-403@file
         #@ end
