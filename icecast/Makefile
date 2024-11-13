@@ -19,4 +19,4 @@ shell:
 
 .PHONY: override-hook
 override-hook:
-	@${BIN}/docker_compose_override ${ENV_FILE} ICECAST_ALLOW_DIRECT_MAP_PORT ICECAST_DIRECT_MAP_PORT
+	@${BIN}/docker_compose_override ${ENV_FILE} icecast_allow_direct_map_port=ICECAST_ALLOW_DIRECT_MAP_PORT icecast_direct_map_port=ICECAST_DIRECT_MAP_PORT

@@ -1,0 +1,125 @@
+#! This is a ytt template file for docker-compose.override.yaml
+#! References:
+#!   https://carvel.dev/ytt
+#!   https://docs.docker.com/compose/extends/#adding-and-overriding-configuration
+#!   https://github.com/enigmacurry/d.rymcg.tech#overriding-docker-composeyaml-per-instance
+
+#! ### Standard project vars:
+#@ load("@ytt:data", "data")
+#@ project = data.values.project
+#@ instance = data.values.instance
+#@ context = data.values.context
+#@ use_docker = data.values.use_docker == "true"
+#@ use_postfix_relay = data.values.use_postfix_relay == "true"
+#@ backup_volumes = data.values.backup_volumes.split(",")
+#@ backup_archive = data.values.backup_archive
+#@ aws_part_size = data.values.aws_part_size
+
+#@yaml/text-templated-strings
+volumes:
+  #! List the external volumes you want to mount into the backup:
+  #@ if len(backup_volumes) and len(backup_volumes[0]) != 0:
+  #@ for vol in backup_volumes:
+  (@= vol @):
+    external: true
+  #@ end
+  #@ end
+  #@ if len(backup_archive):
+  archive:
+  #@ end
+
+#@ if use_postfix_relay:
+networks:
+  postfix-relay_default:
+    external: true
+#@ end
+
+#@yaml/text-templated-strings
+services:
+  backup:
+    labels: []
+    #@ if use_postfix_relay:
+    networks:
+      - default
+      - postfix-relay_default
+    #@ end
+    environment:
+      - INSTANCE=${BACKUP_INSTANCE}
+      - BACKUP_CRON_EXPRESSION=${BACKUP_CRON_EXPRESSION}
+      - BACKUP_COMPRESSION=${BACKUP_COMPRESSION}
+      - GZIP_PARALLELISM=${BACKUP_GZIP_PARALLELISM}
+      - BACKUP_FILENAME=${BACKUP_FILENAME}
+      - BACKUP_FILENAME_EXPAND=${BACKUP_FILENAME_EXPAND}
+      - BACKUP_LATEST_SYMLINK=${BACKUP_LATEST_SYMLINK}
+      - BACKUP_FROM_SNAPSHOT=${BACKUP_FROM_SNAPSHOT}
+      - BACKUP_SOURCES=${BACKUP_SOURCES}
+      - BACKUP_EXCLUDE_REGEXP=${BACKUP_EXCLUDE_REGEXP}
+      - BACKUP_SKIP_BACKENDS_FROM_PRUNE=${BACKUP_SKIP_BACKENDS_FROM_PRUNE}
+      - BACKUP_LIFECYCLE_PHASE_ARCHIVE=${BACKUP_LIFECYCLE_PHASE_ARCHIVE}
+      - BACKUP_LIFECYCLE_PHASE_PROCESS=${BACKUP_LIFECYCLE_PHASE_PROCESS}
+      - BACKUP_LIFECYCLE_PHASE_COPY=${BACKUP_LIFECYCLE_PHASE_COPY}
+      - BACKUP_LIFECYCLE_PHASE_PRUNE=${BACKUP_LIFECYCLE_PHASE_PRUNE}
+      - AWS_S3_BUCKET_NAME=${BACKUP_AWS_S3_BUCKET_NAME}
+      - AWS_S3_PATH=${BACKUP_AWS_S3_PATH}
+      - AWS_ACCESS_KEY_ID=${BACKUP_AWS_ACCESS_KEY_ID}
+      - AWS_SECRET_ACCESS_KEY=${BACKUP_AWS_SECRET_ACCESS_KEY}
+      - AWS_IAM_ROLE_ENDPOINT=${BACKUP_AWS_IAM_ROLE_ENDPOINT}
+      - AWS_ENDPOINT=${BACKUP_AWS_ENDPOINT}
+      - AWS_ENDPOINT_PROTO=${BACKUP_AWS_ENDPOINT_PROTO}
+      - AWS_ENDPOINT_INSECURE=${BACKUP_AWS_ENDPOINT_INSECURE}
+      - AWS_ENDPOINT_CA_CERT=${BACKUP_AWS_ENDPOINT_CA_CERT}
+      - AWS_STORAGE_CLASS=${BACKUP_AWS_STORAGE_CLASS}
+      #@ if len(aws_part_size):
+      - AWS_PART_SIZE=(@= aws_part_size @)
+      #@ end
+      - WEBDAV_URL=${BACKUP_WEBDAV_URL}
+      - WEBDAV_PATH=${BACKUP_WEBDAV_PATH}
+      - WEBDAV_USERNAME=${BACKUP_WEBDAV_USERNAME}
+      - WEBDAV_PASSWORD=${BACKUP_WEBDAV_PASSWORD}
+      - WEBDAV_URL_INSECURE=${BACKUP_WEBDAV_URL_INSECURE}
+      - SSH_HOST_NAME=${BACKUP_SSH_HOST_NAME}
+      - SSH_PORT=${BACKUP_SSH_PORT}
+      - SSH_REMOTE_PATH=${BACKUP_SSH_REMOTE_PATH}
+      - SSH_USER=${BACKUP_SSH_USER}
+      - SSH_PASSWORD=${BACKUP_SSH_PASSWORD}
+      - SSH_IDENTITY_FILE=${BACKUP_SSH_IDENTITY_FILE}
+      - SSH_IDENTITY_PASSPHRASE=${BACKUP_SSH_IDENTITY_PASSPHRASE}
+      - AZURE_STORAGE_ACCOUNT_NAME=${BACKUP_AZURE_STORAGE_ACCOUNT_NAME}
+      - AZURE_STORAGE_PRIMARY_ACCOUNT_KEY=${BACKUP_AZURE_STORAGE_PRIMARY_ACCOUNT_KEY}
+      - AZURE_STORAGE_CONNECTION_STRING=${BACKUP_AZURE_STORAGE_CONNECTION_STRING}
+      - AZURE_STORAGE_CONTAINER_NAME=${BACKUP_AZURE_STORAGE_CONTAINER_NAME}
+      - AZURE_STORAGE_ENDPOINT=${BACKUP_AZURE_STORAGE_ENDPOINT}
+      - AZURE_STORAGE_ACCESS_TIER=${BACKUP_AZURE_STORAGE_ACCESS_TIER}
+      - DROPBOX_REMOTE_PATH=${BACKUP_DROPBOX_REMOTE_PATH}
+      - DROPBOX_CONCURRENCY_LEVEL=${BACKUP_DROPBOX_CONCURRENCY_LEVEL}
+      - DROPBOX_APP_KEY=${BACKUP_DROPBOX_APP_KEY}
+      - DROPBOX_APP_SECRET=${BACKUP_DROPBOX_APP_SECRET}
+      - DROPBOX_REFRESH_TOKEN=${BACKUP_DROPBOX_REFRESH_TOKEN}
+      - ARCHIVE=${BACKUP_ARCHIVE}
+      - RETENTION_DAYS=${BACKUP_RETENTION_DAYS}
+      - PRUNING_LEEWAY=${BACKUP_PRUNING_LEEWAY}
+      - PRUNING_PREFIX=${BACKUP_PRUNING_PREFIX}
+      - GPG_PASSPHRASE=${BACKUP_GPG_PASSPHRASE}
+      - GPG_PUBLIC_KEY_RING=${BACKUP_GPG_PUBLIC_KEY_RING}
+      - STOP_DURING_BACKUP_LABEL=${BACKUP_STOP_DURING_BACKUP_LABEL}
+      - STOP_SERVICE_TIMEOUT=${BACKUP_STOP_SERVICE_TIMEOUT}
+      - EXEC_FORWARD_OUTPUT=${BACKUP_EXEC_FORWARD_OUTPUT}
+      - EXEC_LABEL=${BACKUP_EXEC_LABEL}
+      - NOTIFICATION_URLS=${BACKUP_NOTIFICATION_URLS}
+      - NOTIFICATION_LEVEL=${BACKUP_NOTIFICATION_LEVEL}
+      - DOCKER_HOST=${BACKUP_DOCKER_HOST}
+      - LOCK_TIMEOUT=${BACKUP_LOCK_TIMEOUT}
+    volumes:
+      #@ if use_docker:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      #@ end
+      #! Mount extra volumes to backup here:
+      #! Must mount these as /backup/$volume:
+      #@ if len(backup_volumes) and len(backup_volumes[0]) != 0:
+      #@ for vol in backup_volumes:
+      - #@ "{vol}:/backup/{vol}".format(vol=vol)
+      #@ end
+      #@ end
+      #@ if len(backup_archive):
+      - archive:(@= backup_archive @)
+      #@ end

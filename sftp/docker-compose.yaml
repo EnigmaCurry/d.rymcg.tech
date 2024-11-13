@@ -29,6 +29,8 @@ services:
     environment:
       - SFTP_KEYFILE_URL
       - SFTP_USERS
+    labels:
+      - "backup-volume.stop-during-backup=true"
     security_opt:
       - no-new-privileges:true
     cap_drop:

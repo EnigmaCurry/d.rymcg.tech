@@ -44,3 +44,5 @@ services:
     ports:
       - ${POSTGRES_EXTERNAL_TCP_PORT}:5432
     command: postgres -c 'config_file=/etc/postgresql/postgresql.conf'
+    labels:
+      - "backup-volume.stop-during-backup=true"

@@ -49,6 +49,21 @@ debug_array() {
     done
 }
 
+pop_array() {
+    # Pop off the first element of an array and save it to a variable:
+    local -n __arr=$1       # Bind to array
+    local out_var=$2      # Variable name to store output
+    local first_element="${__arr[0]}"
+    __arr=("${__arr[@]:1}")   # Remove the first element
+
+    if [[ -n "$first_element" ]]; then
+        eval "$out_var=\"$first_element\""
+    else
+        eval "unset $out_var"
+        return 1
+    fi
+}
+
 ask() {
     ## Ask the user a question and set the given variable name with their answer
     local __prompt="${1}"; local __var="${2}"; local __default="${3}"
@@ -245,7 +260,8 @@ array_to_json() {
 
 array_join() {
     # array_join "," "${THINGS[@]}"
-    array_to_json "$@" | jq -r 'join(",")'
+    local join=$1; shift
+    array_to_json "$@" | jq -r "join(\"${join}\")"
 }
 
 volume_rsync() {
@@ -657,4 +673,86 @@ validate_ip_network() {
     else
         return 1
     fi
+}
+
+select_docker_network_cidr() {
+    PROMPT=${1:-Select multiple Docker networks}
+    docker_networks=($(docker network ls --format '{{.Name}}' | grep -vE '^(host|none|bridge)$'))
+    readarray -t selected_networks < <(wizard select "${PROMPT}" "${docker_networks[@]}")
+    docker_network_cidrs=()
+    for network in "${selected_networks[@]}"; do
+        cidr=$(docker network inspect "$network" --format '{{range .IPAM.Config}}{{.Subnet}}{{end}}')
+        docker_network_cidrs+=("$cidr")
+    done
+    array_join "," "${docker_network_cidrs[@]}"
+}
+
+encode_newlines() {
+    # Replace all newlines with literal \n
+    local result=""
+    while IFS= read -r line || [ -n "$line" ]; do
+        result+="${line}\\n"
+    done
+    result="${result%\\n}"
+    echo -n "$result"
+}
+
+decode_newlines() {
+    # Replace all occurrences of \n with actual newlines
+    local input="$1"
+    echo -e "${input//\\n/$'\n'}"
+}
+
+
+launch_editor_for_response() {
+    local tempfile=$(mktemp -p '' input_response.XXXXXXXX)
+    local editor="${VISUAL:-${EDITOR:-nano}}"
+    local PROMPT=$1
+    local DEFAULT=$2
+    cleanup_editor_temp_response() {
+        rm -f "${tempfile}"
+    }
+    trap cleanup_editor_temp_response EXIT
+    (
+        echo -e -n "$(decode_newlines "${DEFAULT}")"
+        echo
+        echo
+        if [[ -n "$1" ]]; then
+            echo "# $(capitalize_sentence $1)"
+        fi
+        echo "# Enter your input above. When you are done, save this file and exit."
+        if [[ -z "${VISUAL:-${EDITOR}}" ]]; then
+            echo "# Warning: Your preferred EDITOR (or VISUAL) variable was not set."
+            echo "# The \"nano\" editor was launched by default."
+        fi
+        echo "# To cancel this process, exit the editor or save a blank response."
+        echo "# The leading and trailing whitespace will be trimmed."
+        echo "# Lines beginning with '#' will be ignored."
+    )  > "${tempfile}"
+    echo "## Opening your preferred editor: ${editor}" >/dev/stderr
+    $editor ${tempfile}
+    local input=""
+    while IFS= read -r line; do
+        [[ $line =~ ^#.*$ ]] && continue  # Skip lines that start with '#'
+        input+="${line}"$'\n'
+    done < "${tempfile}"
+    input="${input#"${input%%[![:space:]]*}"}"  # Remove leading whitespace
+    input="${input%"${input##*[![:space:]]}"}"  # Remove trailing whitespace
+    if [[ -z "${input}" ]]; then
+        fault "No input provided."
+    else
+        echo "${input}"
+    fi
+    cleanup_editor_temp_response || return 0
+}
+
+capitalize_sentence() {
+    local sentence="$*"
+    # Capitalize the first character
+    sentence="$(echo "${sentence:0:1}" | tr '[:lower:]' '[:upper:]')${sentence:1}"
+    # Ensure the sentence ends with punctuation (., !, or ?)
+    if [[ ! "$sentence" =~ [.!?]$ ]]; then
+        sentence="${sentence}."
+    fi
+    echo "$sentence"
 }

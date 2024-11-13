@@ -1,0 +1,22 @@
+services:
+  postfix-relay:
+    build:
+      context: ${POSTFIX_RELAY_GIT_REPO}#${POSTFIX_RELAY_GIT_REF}
+    # cap_drop:
+    #   - ALL
+    security_opt:
+      - no-new-privileges:true
+    sysctls:
+      - net.ipv4.ip_unprivileged_port_start=1024
+    restart: unless-stopped
+    environment:
+      POSTFIX_RELAY_POSTFIX_myhostname: ${POSTFIX_RELAY_TRAEFIK_HOST}
+      ALLOWED_SENDER_DOMAINS: ${POSTFIX_RELAY_ALLOWED_SENDER_DOMAINS}
+      ALLOW_EMPTY_SENDER_DOMAINS: ${POSTFIX_RELAY_ALLOW_EMPTY_SENDER_DOMAINS}
+      RELAYHOST: ${POSTFIX_RELAY_RELAYHOST}
+      RELAYHOST_USERNAME: ${POSTFIX_RELAY_RELAYHOST_USERNAME}
+      RELAYHOST_PASSWORD: ${POSTFIX_RELAY_RELAYHOST_PASSWORD}
+      POSTFIX_mynetworks: ${POSTFIX_RELAY_POSTFIX_mynetworks}
+      POSTFIX_message_size_limit: ${POSTFIX_RELAY_POSTFIX_message_size_limit}
+      MASQUERADED_DOMAINS: ${POSTFIX_RELAY_MASQUERADED_DOMAINS}
+      ANONYMIZE_EMAILS: ${POSTFIX_RELAY_ANONYMIZE_EMAILS}

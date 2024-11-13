@@ -51,6 +51,7 @@ script-wizard:
 
 .PHONY: check-dist-vars
 check-dist-vars:
+	@if [[ -f ${ROOT_DIR}/${ROOT_ENV} ]]; then ${BIN}/validate_env_file ${ROOT_DIR}/${ROOT_ENV}; fi
 	@if [[ -f ${ENV_FILE} ]]; then ${BIN}/validate_env_file ${ENV_FILE}; fi
 
 .PHONY: list-targets # List all make targets
