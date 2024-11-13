@@ -35,7 +35,7 @@ sudo DEBIAN_FRONTEND=noninteractive apt-get install \
     -o Dpkg::Options::="--force-confdef" \
     -o Dpkg::Options::="--force-confold" \
     bash build-essential gettext git openssl apache2-utils xdg-utils jq sshfs wireguard \
-    curl inotify-tools w3m nano openssh-server
+    curl inotify-tools w3m nano openssh-server moreutils
 
 ##
 ## Install Docker:
