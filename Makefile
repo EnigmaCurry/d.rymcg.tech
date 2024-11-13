@@ -137,3 +137,7 @@ networks:
 	  gateway=$$(docker network inspect $$network --format '{{range .IPAM.Config}}{{.Gateway}}{{end}}'); \
 	  printf "%-35s %-20s %-10s %-10s %-20s\n" $$network $$cidr $$driver $$scope $$gateway; \
 	done) | less -FSX
+
+.PHONY: fail2ban # Configure fail2ban on this Docker host.
+fail2ban:
+	ENV_FILE=${ENV_FILE} ROOT_ENV=${ROOT_ENV} DOCKER_CONTEXT=${DOCKER_CONTEXT} ROOT_DIR=${ROOT_DIR} CONTEXT_INSTANCE=${CONTEXT_INSTANCE} ${BIN}/fail2ban
