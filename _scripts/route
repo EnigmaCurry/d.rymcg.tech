@@ -249,7 +249,7 @@ usage() {
 parse_set_route() {
     local layer="layer7"
     local restart="ask"
-    local proxy_protocol="false"
+    local proxy_protocol=""
     local protocol="tcp"
 
     local ENV_FILE
@@ -276,8 +276,10 @@ parse_set_route() {
                 ;;
             --proxy-protocol)
                 shift
-                if [[ "$1" == "true" || "$1" == "false" ]]; then
-                    proxy_protocol="$1"
+                if [[ "$1" == "true" ]]; then
+                    proxy_protocol="2"
+                elif [[ "$1" == "false" ]]; then
+                    proxy_protocol="0"
                 else
                     fault_usage " --proxy-protocol must be followed by 'true' or 'false'"
                     return 1
@@ -317,9 +319,9 @@ parse_set_route() {
 
     check_var ENV_FILE DOMAIN_OR_ENTRYPOINT DEST_IP DEST_PORT proxy_protocol ROOT_DIR ROOT_ENV
     if [[ "$layer" == "layer7" ]]; then
-        proxy_protocol=$(${BIN}/dotenv -f "${ROOT_DIR}/${ROOT_ENV}" get DEFAULT_CLI_ROUTE_LAYER_7_PROXY_PROTOCOL)
+        proxy_protocol=${proxy_protocol:-$(${BIN}/dotenv -f "${ROOT_DIR}/${ROOT_ENV}" get DEFAULT_CLI_ROUTE_LAYER_7_PROXY_PROTOCOL)}
     elif [[ "$layer" == "layer4" ]]; then
-        proxy_protocol=$(${BIN}/dotenv -f "${ROOT_DIR}/${ROOT_ENV}" get DEFAULT_CLI_ROUTE_LAYER_4_PROXY_PROTOCOL)
+        proxy_protocol=${proxy_protocol:-$(${BIN}/dotenv -f "${ROOT_DIR}/${ROOT_ENV}" get DEFAULT_CLI_ROUTE_LAYER_4_PROXY_PROTOCOL)}
     fi
 
     source ${BIN}/../traefik/setup.sh
