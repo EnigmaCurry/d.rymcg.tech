@@ -9,12 +9,6 @@ if [[ ! -f "${ROOT_ENV}" ]]; then
 fi
 
 FAIL2BAN_ENABLED=$(${BIN}/dotenv -f ${ROOT_ENV} get FAIL2BAN_ENABLED)
-
-if [[ "${FAIL2BAN_ENABLED}" != "true" ]]; then
-    error "Fail2Ban is disabled in the root context file: ${ROOT_ENV}"
-    fault "FAIL2BAN_ENABLED=${FAIL2BAN_ENABLED}"
-fi
-
 SSHD_ENABLED=$(${BIN}/dotenv -f ${ROOT_ENV} get FAIL2BAN_SSHD_ENABLED)
 SSHD_MAX_RETRY=$(${BIN}/dotenv -f ${ROOT_ENV} get FAIL2BAN_SSHD_MAX_RETRY)
 SSHD_BAN_TIME=$(${BIN}/dotenv -f ${ROOT_ENV} get FAIL2BAN_SSHD_BAN_TIME)
@@ -69,12 +63,20 @@ install_fail2ban() {
     fi
 }
 
-enable_fail2ban() {
-    d.rymcg.tech ssh systemctl enable --now fail2ban
-    d.rymcg.tech ssh systemctl restart fail2ban
-    sleep 3
-    d.rymcg.tech ssh systemctl status fail2ban
-    d.rymcg.tech ssh fail2ban-client status
+enable_or_disable_fail2ban() {
+    if [[ "${FAIL2BAN_ENABLED}" == "true" ]]; then
+        d.rymcg.tech ssh systemctl enable --now fail2ban
+        d.rymcg.tech ssh systemctl restart fail2ban
+        sleep 3
+        d.rymcg.tech ssh systemctl status fail2ban
+        d.rymcg.tech ssh fail2ban-client status
+        echo "Fail2Ban has been ENABLED according to config: FAIL2BAN_ENABLED=${FAIL2BAN_ENABLED}."
+    else
+        d.rymcg.tech ssh systemctl disable --now fail2ban
+        sleep 3
+        d.rymcg.tech ssh systemctl status fail2ban || true
+        echo "Fail2Ban has been DISABLED according to config: FAIL2BAN_ENABLED=${FAIL2BAN_ENABLED}."
+    fi
 }
 
 configure_fail2ban() {
@@ -132,7 +134,7 @@ main() {
     install_fail2ban
     configure_fail2ban
     if d.rymcg.tech ssh "test -f ${TRAEFIK_ACCESS_LOG}"; then
-        enable_fail2ban
+        enable_or_disable_fail2ban
     else
         echo
         if confirm yes "The Traefik access log must be enabled."; then
@@ -140,7 +142,7 @@ main() {
             d.rymcg.tech make traefik reinstall
             sleep 2
             if d.rymcg.tech ssh "test -f ${TRAEFIK_ACCESS_LOG}"; then
-                enable_fail2ban
+                enable_or_disable_fail2ban
             else
                 fault "Could not find traefik access log."
             fi
