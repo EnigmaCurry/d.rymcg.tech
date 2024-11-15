@@ -34,7 +34,7 @@ services:
     volumes:
       - wireguard:/config
       - /lib/modules:/lib/modules
-    restart: always
+    restart: unless-stopped
     labels:
       - "traefik.enable=true"
       - "traefik.http.routers.transmission-${TRANSMISSION_INSTANCE:-default}.rule=Host(`${TRANSMISSION_TRAEFIK_HOST}`)"
@@ -77,4 +77,4 @@ services:
       - type: bind
         source: ${TRANSMISSION_WATCH_VOLUME}
         target: /watch
-    restart: always
+    restart: unless-stopped

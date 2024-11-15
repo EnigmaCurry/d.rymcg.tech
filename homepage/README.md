@@ -11,7 +11,9 @@ languages.
 make config
 ```
 
-This will ask you to enter the domain name to use.
+This will ask you to enter the main domain name to use for homepage,
+as well as a secondary domain name to use for webhooks.
+
 It automatically saves your responses into the configuration file
 `.env_{INSTANCE}`.
 
@@ -28,7 +30,7 @@ template repository configurable by setting `HOMEPAGE_TEMPLATE_REPO` in your
 to create your own custom Homepage configuration, and this container can be
 configured to automatically pull from your fork, and to trigger an automatic
 rebuild/redeploy on git push via webhook. Your fork can be a public or
-private repository. (Tested on gitea and github).
+private repository. (Tested on forgejo and github).
 
 Homepage has support for loading information from the docker socket,
 but this has been turned off by default for security reasons, if you
@@ -38,23 +40,8 @@ file.
 
 ### Authentication and Authorization
 
-Running `make config` will ask whether or not you want to configure
-authentication for your app (on top of any authentication your app provides).
-You can configure OpenID/OAuth2 or HTTP Basic Authentication.
-
-OAuth2 uses traefik-forward-auth to delegate authentication to an external
-authority (eg. a self-deployed Gitea instance). Accessing this app will
-require all users to login through that external service first. Once
-authenticated, they may be authorized access only if their login id matches the
-member list of the predefined authorization group configured for the app
-(`HOMEPAGE_OAUTH2_AUTHORIZED_GROUP`). Authorization groups are defined in the
-Traefik config (`TRAEFIK_HEADER_AUTHORIZATION_GROUPS`) and can be
-[created/modified](https://github.com/EnigmaCurry/d.rymcg.tech/blob/master/traefik/README.md#oauth2-authentication)
-by running `make groups` in the `traefik` directory.
-
-For HTTP Basic Authentication, you will be prompted to enter username/password
-logins which are stored in that app's `.env_{INSTANCE}` file.
-
+See [AUTH.md](../AUTH.md) for information on adding external authentication on
+top of your app.
 
 ## Generate deploy key (if using a private template repository)
 
@@ -68,7 +55,7 @@ make git-deploy-key
 
 This will generate and save a new SSH key in the config volume
 (`/app/config/ssh/id_rsa`). It will print out the public key, which
-you need to copy and paste into your Gitea, Github, or Gitlab
+you need to copy and paste into your Forgejo, Github, or Gitlab
 repository settings (Search for Deploy Key in the settings, and add
 this public key to allow cloning from the private repository.)
 
@@ -112,7 +99,7 @@ your `.env_{INSTANCE}` file. Note that this will *delete* your
 existing config, and redownload the template repository on *each*
 restart of the container.
 
-Second you must configure your Gitea, Github, or Gitlab repository to
+Second you must configure your Forgejo, Github, or Gitlab repository to
 add the webhook.
 
  * Webhook URL is of the format: `https://homepage.example.com/reloader/restart`

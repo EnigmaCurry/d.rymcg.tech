@@ -55,7 +55,3 @@ shell-php:
 .PHONY: shell-redis
 shell-redis:
 	@make --no-print-directory docker-compose-shell SERVICE=redis
-
-.PHONY: compose-profiles
-compose-profiles:
-	@${BIN}/reconfigure_compose_profiles ${ENV_FILE} PROMETHEUS_NODE_EXPORTER_ENABLED=node-exporter PROMETHEUS_CADVISOR_ENABLED=cadvisor PROMETHEUS_ALERTMANAGER_ENABLED=alertmanager

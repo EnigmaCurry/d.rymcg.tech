@@ -13,7 +13,7 @@ services:
         VERSION: ${NGINX_VERSION}
         TEMPLATE: ${NGINX_TEMPLATE}
         HOST: ${NGINX_TRAEFIK_HOST}
-    restart: always
+    restart: unless-stopped
     volumes:
       - "files:/app"
 
@@ -26,10 +26,20 @@ services:
         VERSION: ${NGINX_PHP_VERSION}
         DEBUG_MODE: ${NGINX_DEBUG_MODE}
         PHP_INDEX_FILE: ${NGINX_PHP_INDEX_FILE:-default.php}
-    restart: always
+    environment:
+      UID: ${NGINX_OWNER_UID}
+      GID: ${NGINX_OWNER_GID}
+      PGHOST: postgres
+      PGUSER: postgres
+      PGDATABASE: ${NGINX_POSTGRES_DB}
+      PGPASSWORD: ${NGINX_POSTGRES_PASSWORD}
+      PGPORT: 5432
+    restart: unless-stopped
     working_dir: /app
     volumes:
       - "files:/app"
+    labels:
+      - "backup-volume.stop-during-backup=true"
 
   redis:
     profiles:
@@ -41,13 +51,18 @@ services:
       ALLOW_EMPTY_PASSWORD: "yes"
     volumes:
       - "redis:/data"
+    labels:
+      - "backup-volume.stop-during-backup=true"
 
+      
   postgres:
     profiles:
       - postgres
     image: postgres:${NGINX_POSTGRES_VERSION}
-    restart: always
+    restart: unless-stopped
     environment:
       POSTGRES_PASSWORD: ${NGINX_POSTGRES_PASSWORD}
       POSTGRES_DB: ${NGINX_POSTGRES_DB}
+    labels:
+      - "backup-volume.stop-during-backup=true"
       

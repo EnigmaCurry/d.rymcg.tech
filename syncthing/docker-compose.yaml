@@ -17,3 +17,5 @@ services:
     environment: 
       PUID: ${SYNCTHING_UID}
       PGID: ${SYNCTHING_GID}
+    labels:
+      - "backup-volume.stop-during-backup=true"

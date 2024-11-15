@@ -279,6 +279,69 @@ You should never run a container as `--privileged` or `privileged:
 true`. Instead, you should figure out the exact capabilities it needs
 by process of elimination.
 
+#### Default capabilites to consider dropping:
+
+Here is a description of the default capabilites granted to Docker
+containers and recommendations on when to drop them:
+
+ * `CHOWN`
+   * Allows the container to change file ownership.
+   * Drop this if the container doesn't need to modify file ownership.
+ * `DAC_OVERRIDE`
+   * Bypasses file read, write, and execute permission checks, which
+     is useful for some kinds of containers that need to process files
+     created by other users (e.g. backup processes).
+   * Drop this unless the container needs to access restricted files
+     or directories.
+ * `FOWNER`
+   * Allows bypassing permission checks on operations that affect file
+     ownership.
+   * Drop this if file permission changes are not required.
+ * `FSETID`
+   * Allows setting file system IDs on a file (e.g., setting the
+     set-user-ID or set-group-ID).
+   * Drop this unless the container manages file system IDs.
+ * `KILL`
+   * Allows the container to send signals to other processes
+     (including killing them).
+   * Drop this if the container doesn’t need to manage other
+     processes.
+ * `NET_RAW`
+   * Allows the container to use raw sockets, which can be used for
+     networking tools like ping.
+   * Drop this if the container doesn't need to create or manipulate
+     raw network packets.
+ * `SETGID`
+   * Allows the container to set group IDs.
+   * Drop this if the container doesn't need to change its group
+     permissions.
+ * `SETUID`
+   * Allows the container to set user IDs.
+   * Drop this if the container doesn't need to change its user
+     permissions.
+ * `SETPCAP`
+   * Allows the container to modify process capabilities.
+   * Drop this if the container doesn’t need to modify its
+     capabilities.
+   * The docker flag `--no-new-privileges` supercedes this
+     capabilitiy.
+ * `NET_BIND_SERVICE`
+   * Allows non-root users to bind to low-numbered ports (below 1024
+     or whatever is set by `sysctl:
+     net.ipv4.ip_unprivileged_port_start`).
+   * Drop this if the container doesn’t need to bind to privileged
+     ports (e.g., running a service on port 80).
+ * `SYS_CHROOT`
+   * Allows the container to use the chroot system call, which changes
+     the root directory.
+   * Drop this unless your container uses chroot to restrict the filesystem view.
+ * `MKNOD`
+   * Allows the container to create special files (e.g., device files).
+   * Drop this unless your container needs to create special device files.
+ * `AUDIT_WRITE`
+   * Allows the container to write to the audit logs.
+   * Drop this unless the container is involved in auditing
+     operations.
 
 ## Audit containers
 

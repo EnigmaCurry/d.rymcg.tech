@@ -9,6 +9,11 @@ Run `make config` and answer the following questions:
 
  * Set `TTRSS_TRAEFIK_HOST` set to the domain name for your instance of ttrss.
 
+### Authentication and Authorization
+
+See [AUTH.md](../AUTH.md) for information on adding external authentication on
+top of your app.
+
 ## Install
 
 Run `make install`

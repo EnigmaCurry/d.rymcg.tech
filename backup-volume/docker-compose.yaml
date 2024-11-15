@@ -1,0 +1,17 @@
+services:
+  backup:
+    build:
+      context: ${BACKUP_VOLUME_GIT_REPO}#${BACKUP_VOLUME_GIT_REF:-master}
+    # cap_drop:
+    #   - ALL
+    security_opt:
+      - no-new-privileges:true
+    sysctls:
+      - net.ipv4.ip_unprivileged_port_start=1024
+    restart: unless-stopped
+    # All env vars are defined in the template: docker-compose.instance.yaml
+    environment: []
+    # All labels are defined in the template: docker-compose.instance.yaml
+    labels: []
+    # All volumes are defined in the template: docker-compose.instance.yaml
+    volumes: []

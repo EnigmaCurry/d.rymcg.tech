@@ -12,6 +12,11 @@ Check the config in the `.env_${DOCKER_CONTEXT}_${INSTANCE}` file.
 Check that the pinned `VAULTWARDEN_VERSION` is actually the latest
 version.
 
+### Authentication and Authorization
+
+See [AUTH.md](../AUTH.md) for information on adding external authentication on
+top of your app.
+
 ```
 make install
 ```

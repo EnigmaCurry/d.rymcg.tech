@@ -200,14 +200,15 @@ get_enabled_entrypoints() {
 list_enabled_entrypoints() {
     readarray -t entrypoints < <(get_enabled_entrypoints)
     (
-        echo -e "Entrypoint\tListen_address\tListen_port\tProtocol\tUpstream_proxy"
-        echo -e "----------\t--------------\t-----------\t--------\t--------------"
+        echo -e "Entrypoint\tListen_address\tListen_port\tProtocol\tUpstream_proxy\tUse_Https"
+        echo -e "----------\t--------------\t-----------\t--------\t--------------\t-------"
         (
             for e in "${entrypoints[@]}"; do
                 local ENTRYPOINT="$(echo "${e}" | tr '[:lower:]' '[:upper:]')"
                 local host="$(${BIN}/dotenv -f ${ENV_FILE} get TRAEFIK_${ENTRYPOINT}_ENTRYPOINT_HOST)"
                 local port="$(${BIN}/dotenv -f ${ENV_FILE} get TRAEFIK_${ENTRYPOINT}_ENTRYPOINT_PORT)"
-                echo "${e} ${host} ${port} tcp"
+                local proxy_protocol="$(${BIN}/dotenv -f ${ENV_FILE} get TRAEFIK_${ENTRYPOINT}_ENTRYPOINT_PROXY_PROTOCOL_TRUSTED_IPS)"
+                echo "${e} ${host} ${port} tcp ${proxy_protocol}"
             done
             list_custom_entrypoints
         ) | sort -u
@@ -235,13 +236,14 @@ config_list_entrypoints() {
         [websecure]="HTTPS (TLS encrypted HTTP)"
         [web_plain]="HTTP (unencrypted; specifically NOT redirected to websecure; must use different port than web)"
         [mqtt]="MQTT (mosquitto) pub-sub service"
-        [ssh]="SSH (gitea) git (ssh) endpoint"
-        [xmpp_c2s]="XMPP (ejabberd) client-to-server endpoint"
-        [xmpp_s2s]="XMPP (ejabberd) server-to-server endpoint"
-        [mpd]="Music Player Daemon (mopidy) control endpoint"
-        [redis]="Redis in-memory database endpoint"
-        [snapcast]="Snapcast (snapcast) audio endpoint"
-        [snapcast_control]="Snapcast (snapcast) control endpoint"
+        [ssh]="SSH (forgejo) git (ssh) entrypoint"
+        [xmpp_c2s]="XMPP (ejabberd) client-to-server entrypoint"
+        [xmpp_s2s]="XMPP (ejabberd) server-to-server entrypoint"
+        [mpd]="Music Player Daemon (mopidy) control entrypoint"
+        [redis]="Redis in-memory database entrypoint"
+        [rtmp]="Real-Time Messaging Protocol (unencrypted) entrypoint"
+        [snapcast]="Snapcast (snapcast) audio entrypoint"
+        [snapcast_control]="Snapcast (snapcast) control entrypoint"
     )
     local menu_args=("Select entrypoint to configure:")
     for entrypoint in "${entrypoint_names[@]}"; do
@@ -307,10 +309,6 @@ error_pages() {
         ${BIN}/reconfigure ${ENV_FILE} "TRAEFIK_ERROR_PAGES_ENABLED=false"
     fi
 }
-
-if [[ "$#" -lt 1 ]]; then
-    fault "Wrong number of arguments. Try running \`make config\` instead."
-fi
 
 middleware() {
     wizard menu "Traefik middleware config:" \
@@ -400,13 +398,7 @@ layer_7_tls_proxy_add_ingress_route() {
     if confirm no "Do you want to enable Proxy Protocol for this route" "?"; then
         ROUTE_PROXY_PROTOCOL=2
     fi
-
-    local ROUTES=$(${BIN}/dotenv -f ${ENV_FILE} get TRAEFIK_LAYER_7_TLS_PROXY_ROUTES)
-    if [[ -n "${ROUTES}" ]]; then
-        ROUTES="${ROUTES},"
-    fi
-    ROUTES="${ROUTES}${ROUTE_DOMAIN}:${ROUTE_IP_ADDRESS}:${ROUTE_PORT}:${ROUTE_PROXY_PROTOCOL}"
-    ${BIN}/reconfigure ${ENV_FILE} "TRAEFIK_LAYER_7_TLS_PROXY_ROUTES=${ROUTES}"
+    reconfigure_layer_X_tcp_udp_proxy_routes "${ENV_FILE}" TRAEFIK_LAYER_7_TLS_PROXY_ROUTES "${ROUTE_DOMAIN}" "${ROUTE_IP_ADDRESS}" "${ROUTE_PORT}" "${ROUTE_PROXY_PROTOCOL}"
 }
 
 layer_7_tls_proxy_manage_ingress_routes() {
@@ -598,12 +590,85 @@ layer_4_tcp_udp_add_ingress_route() {
     if confirm no "Do you want to enable Proxy Protocol for this route" "?"; then
         ROUTE_PROXY_PROTOCOL=2
     fi
-    if [[ -n "${ROUTES}" ]]; then
-        ROUTES="${ROUTES},"
-    fi
-    ROUTES="${ROUTES}${ENTRYPOINT}:${ROUTE_IP_ADDRESS}:${ROUTE_PORT}:${ROUTE_PROXY_PROTOCOL}"
-    ${BIN}/reconfigure ${ENV_FILE} "TRAEFIK_LAYER_4_TCP_UDP_PROXY_ROUTES=${ROUTES}"
+    reconfigure_layer_X_tcp_udp_proxy_routes "${ENV_FILE}" TRAEFIK_LAYER_4_TCP_UDP_PROXY_ROUTES "${ENTRYPOINT}" "${ROUTE_IP_ADDRESS}" "${ROUTE_PORT}" "${ROUTE_PROXY_PROTOCOL}"
     layer_4_tcp_udp_list_routes    
+}
+
+reconfigure_layer_X_tcp_udp_proxy_routes() {
+    local ENV_FILE=$1
+    local LAYER_VAR=$2
+    local DOMAIN_OR_ENTRYPOINT=$3
+    local ROUTE_IP_ADDRESS=$4
+    local ROUTE_PORT=$5
+    local ROUTE_PROXY_PROTOCOL=$6
+    
+    check_var ENV_FILE LAYER_VAR DOMAIN_OR_ENTRYPOINT ROUTE_IP_ADDRESS ROUTE_PORT ROUTE_PROXY_PROTOCOL
+    
+    # Construct the new route string
+    local NEW_ROUTE="${DOMAIN_OR_ENTRYPOINT}:${ROUTE_IP_ADDRESS}:${ROUTE_PORT}:${ROUTE_PROXY_PROTOCOL}"
+    
+    # Get the current routes from the environment variable
+    local ROUTES=$(${BIN}/dotenv -f ${ENV_FILE} get ${LAYER_VAR})
+    
+    # Initialize an empty string to hold the updated routes
+    local UPDATED_ROUTES=""
+    local ENTRY_FOUND=false
+    
+    # Split ROUTES by commas and iterate over each route
+    IFS=',' read -ra ROUTE_ARRAY <<< "$ROUTES"
+    for ROUTE in "${ROUTE_ARRAY[@]}"; do
+        # Check if the entrypoint already exists
+        if [[ "$ROUTE" == ${DOMAIN_OR_ENTRYPOINT}:* ]]; then
+            # Replace the existing route with the new route
+            UPDATED_ROUTES+="${NEW_ROUTE},"
+            ENTRY_FOUND=true
+        else
+            # Otherwise, keep the existing route
+            UPDATED_ROUTES+="${ROUTE},"
+        fi
+    done
+    
+    # If entry was not found, add the new route at the end
+    if [[ "$ENTRY_FOUND" == false ]]; then
+        UPDATED_ROUTES+="${NEW_ROUTE},"
+    fi
+    
+    # Remove the trailing comma
+    UPDATED_ROUTES=${UPDATED_ROUTES%,}
+    
+    # Update the environment variable with the new routes
+    ${BIN}/reconfigure ${ENV_FILE} "${LAYER_VAR}=${UPDATED_ROUTES}"
+}
+
+reconfigure_remove_layer_X_tcp_udp_proxy_routes() {
+    local ENV_FILE=$1
+    local LAYER_VAR=$2
+    local DOMAIN_OR_ENTRYPOINT=$3
+
+    # Check that required variables are provided
+    check_var ENV_FILE LAYER_VAR DOMAIN_OR_ENTRYPOINT
+
+    # Get the current routes from the environment variable
+    local ROUTES=$(${BIN}/dotenv -f ${ENV_FILE} get ${LAYER_VAR})
+    
+    # Initialize an empty string to hold the updated routes
+    local UPDATED_ROUTES=""
+
+    # Split ROUTES by commas and iterate over each route
+    IFS=',' read -ra ROUTE_ARRAY <<< "$ROUTES"
+    for ROUTE in "${ROUTE_ARRAY[@]}"; do
+        # Check if the route does not match the DOMAIN_OR_ENTRYPOINT
+        if [[ "$ROUTE" != ${DOMAIN_OR_ENTRYPOINT}:* ]]; then
+            # If not matching, keep the route
+            UPDATED_ROUTES+="${ROUTE},"
+        fi
+    done
+
+    # Remove the trailing comma if any routes remain
+    UPDATED_ROUTES=${UPDATED_ROUTES%,}
+
+    # Update the environment variable with the new routes
+    ${BIN}/reconfigure ${ENV_FILE} "${LAYER_VAR}=${UPDATED_ROUTES}"
 }
 
 layer_4_tcp_udp_proxy_manage_ingress_routes() {
@@ -642,7 +707,7 @@ list_custom_entrypoints() {
         #echo "## No custom entrypoints defined." >/dev/stderr
         return
     fi
-    (echo "${ENTRYPOINTS}" | tr ',' '\n' | sed 's/:/\t/g' | sort -u) | column -t
+    (echo "${ENTRYPOINTS}" | tr ',' '\n' | sed 's/::/:-:/g' | sed 's/:/\t/g' | sort -u) | column -t
 }
 
 manage_custom_entrypoints() {
@@ -731,11 +796,11 @@ add_custom_entrypoint() {
         0) TRUSTED_NETS=;;
         1) TRUSTED_NETS=$(ask_echo "Enter the comma separated list of trusted upstream proxy servers (CIDR)" 10.13.16.1/32);;
     esac
-
+    USE_HTTPS=$(choose "Does this entrypoint use HTTPS?" "true" "false")
     if [[ -n "${CUSTOM_ENTRYPOINTS}" ]]; then
         CUSTOM_ENTRYPOINTS="${CUSTOM_ENTRYPOINTS},"
     fi
-    CUSTOM_ENTRYPOINTS="${CUSTOM_ENTRYPOINTS}${ENTRYPOINT}:${ENTRYPOINT_IP_ADDRESS}:${ENTRYPOINT_PORT}:${PROTOCOL}:${TRUSTED_NETS}"
+    CUSTOM_ENTRYPOINTS="${CUSTOM_ENTRYPOINTS}${ENTRYPOINT}:${ENTRYPOINT_IP_ADDRESS}:${ENTRYPOINT_PORT}:${PROTOCOL}:${TRUSTED_NETS}:${USE_HTTPS}"
     ${BIN}/reconfigure ${ENV_FILE} "TRAEFIK_CUSTOM_ENTRYPOINTS=${CUSTOM_ENTRYPOINTS}"
 }
 
@@ -870,8 +935,16 @@ wireguard() {
     esac
 }
 
-echo
-check_var ENV_FILE
-check_var DOCKER_CONTEXT
+if [[ "${BASH_SOURCE[0]}" == "${0}" ]]; then
+    ##Script is being run directly
+    echo
+    if [[ "$#" -lt 1 ]]; then
+        fault "Wrong number of arguments. Try running \`make config\` instead."
+    fi
 
-$@
+    check_var ENV_FILE
+    check_var DOCKER_CONTEXT
+
+    $@
+fi
+

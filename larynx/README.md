@@ -10,6 +10,11 @@ available. If you know how to fix it, please send a PR.
 Run `make config` to configure the larynx domain name and
 username/password.
 
+## Authentication and Authorization
+
+See [AUTH.md](../AUTH.md) for information on adding external authentication on
+top of your app.
+
 Run `make install` to deploy the app.
 
 Run `make open` to open the page in your browser.

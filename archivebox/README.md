@@ -4,14 +4,13 @@
 website archiving tool to collect, save, and view sites that you want to
 preserve offline (`.html`, `.pdf`, `.warc`).
 
-This configuration includes HTTP Basic Authentication, effectively making the
-entire site private. ArchiveBox has its own authentication system that is an
-additional security layer, but only for the administrative functions. If you
-wish the site to be public, comment out the `Authentication` secton of the
-`docker-compose.yaml`.
-
 If you are new to d.rymcg.tech, make sure to read the main
 [README.md](../README.md) first.
+
+## Authentication and Authorization
+
+See [AUTH.md](../AUTH.md) for information on adding external authentication on
+top of your app.
 
 ## Config
 

@@ -369,8 +369,8 @@ make sentry
 This will configure the `TRAEFIK_HEADER_AUTHORIZATION_GROUPS`
 environment variable in your .env file (which is a serialized JSON map
 of groups and allowed usernames). Email addresses must match those of
-accounts on your Gitea instance. For example, if you have accounts on
-your Gitea instance for alice@example.com and bob@demo.com, and you
+accounts on your Forgejo instance. For example, if you have accounts on
+your Forgejo instance for alice@example.com and bob@demo.com, and you
 only want Alice to be able to access this app, only enter
 `alice@example.com`. Remember to re-install traefik after making any
 changes to your authorization groups or permitted email addresses.
@@ -385,7 +385,7 @@ While this extra middleware can get you "in the door" of any app, its
 still ultimately up to the app as to what you can do when you get
 there, so if the app doesn't understand the `X-Forwarded-User` header,
 you may also need to login through the app interface itself, after
-having already logged in through gitea.
+having already logged in through Forgejo.
 
 ## Step CA (self-hosted ACME certificate provisioner)
 

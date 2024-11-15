@@ -25,6 +25,7 @@
 services:
   public-api-gateway:
     labels:
+      - "backup-volume.stop-during-backup=true"
       - "traefik.enable=true"
       - "traefik.http.routers.archivebox-${ARCHIVEBOX_INSTANCE:-default}-api-gateway.rule=Host(`${ARCHIVEBOX_TRAEFIK_HOST}`) && PathPrefix(`/api-gateway`)"
       - "traefik.http.routers.archivebox-${ARCHIVEBOX_INSTANCE:-default}-api-gateway.entrypoints=websecure"

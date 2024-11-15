@@ -1,0 +1,254 @@
+#!/bin/bash
+
+## BIN is the _scripts directory inside of d.rymcg.tech
+BIN=$(dirname $(realpath ${BASH_SOURCE}))
+source ${BIN}/funcs.sh
+
+__help() {
+    echo "## Exposes a local workstation port to the Docker server on a public port."
+    echo "## ${D_RYMCG_TECH_CLI_ALIAS:-d.rymcg.tech} ssh-expose PUBLIC_PORT LOCAL_PORT [--persistent|--close]"
+    echo "## ${D_RYMCG_TECH_CLI_ALIAS:-d.rymcg.tech} ssh-expose --close-all"
+    echo ""
+    # echo "## Example: expose local port 8000 to public port 8888"
+    # echo "##    ssh_expose sentry 8888 8000"
+    # echo "## Example: create a persistent tunnel"
+    # echo "##    ssh_expose sentry 8888 8000 --persistent"
+    # echo "## Example to close the port and delete the unit"
+    # echo "##    ssh_expose sentry 8888 8000 --close"
+    # echo "## Example to close all tunnels"
+    # echo "##    ssh_expose --close-all"
+    # echo
+}
+
+__print_active_tunnels() {
+    # Capture the list of reverse-tunnel- units (transient and persistent) that are not failed
+    tunnels=($(systemctl --user list-units --all --no-legend --no-pager --plain --state=active | awk '/^reverse-tunnel-.*(\.scope|\.service)/{print $1}'))
+    
+    # Check if the array is empty
+    if [ ${#tunnels[@]} -eq 0 ]; then
+        echo "## No active tunnels."
+    else
+        # Initialize an array to store the combined parsed data (HOST, PUBLIC_PORT, LOCAL_PORT, TYPE)
+        parsed_tunnels=()
+        echo "## Active tunnels:"
+        # Parse the HOST, PUBLIC_PORT, LOCAL_PORT, and TYPE (transient or persistent) for each tunnel
+        for tunnel in "${tunnels[@]}"; do
+            # Strip "reverse-tunnel-" prefix and extract HOST, PUBLIC_PORT, and LOCAL_PORT
+            name=$(echo "$tunnel" | sed 's/^reverse-tunnel-//; s/\.\(scope\|service\)$//')
+            host=$(echo "$name" | cut -d'-' -f1)
+            public_port=$(echo "$name" | cut -d'-' -f2)
+            private_port=$(echo "$name" | cut -d'-' -f3)
+
+            # Determine if the tunnel is persistent or transient
+            if [[ "$tunnel" == *.service ]]; then
+                tunnel_type="persistent"
+            else
+                tunnel_type="transient"
+            fi
+
+            # Store the parsed values
+            parsed_tunnels+=("$host $public_port $private_port $tunnel_type")
+        done
+
+        # Sort the parsed data by HOST (alphabetically), PUBLIC_PORT and LOCAL_PORT (numerically)
+        sorted_tunnels=$(printf "%s\n" "${parsed_tunnels[@]}" | sort -k1,1 -k2,2n -k3,3n)
+
+        # Print the sorted results with headers
+        printf "%-15s %-12s %-12s %-12s\n" "HOST" "PUBLIC_PORT" "LOCAL_PORT" "TYPE"
+        printf "%-15s %-12s %-12s %-12s\n" "----" "-----------" "------------" "----"
+
+        # Display the sorted results
+        printf "%s\n" "$sorted_tunnels" | while read -r line; do
+            host=$(echo "$line" | awk '{print $1}')
+            public_port=$(echo "$line" | awk '{print $2}')
+            private_port=$(echo "$line" | awk '{print $3}')
+            tunnel_type=$(echo "$line" | awk '{print $4}')
+            printf "%-15s %-12s %-12s %-12s\n" "$host" "$public_port" "$private_port" "$tunnel_type"
+        done
+    fi
+}
+
+__create_persistent_tunnel() {
+    local CONTEXT=$1
+    local PUBLIC_PORT=$2
+    local LOCAL_PORT=$3
+    UNIT="reverse-tunnel-${CONTEXT}-${PUBLIC_PORT}-${LOCAL_PORT}"
+
+    # Create the systemd service unit file for the persistent tunnel
+    SERVICE_FILE="${HOME}/.config/systemd/user/${UNIT}.service"
+    mkdir -p "${HOME}/.config/systemd/user"
+
+    cat <<EOF > "$SERVICE_FILE"
+[Unit]
+Description=Reverse SSH Tunnel for ${CONTEXT} (Public: ${PUBLIC_PORT}, Local: ${LOCAL_PORT})
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+ExecStart=/usr/bin/autossh -o StrictHostKeyChecking=accept-new -o ControlMaster=no -o ControlPersist=no -o ControlPath=none -N -M 0 -R 0.0.0.0:${PUBLIC_PORT}:0.0.0.0:${LOCAL_PORT} ${CONTEXT}
+Restart=always
+RestartSec=10        # Retry every 10 seconds
+StartLimitBurst=100
+StartLimitIntervalSec=300  # The burst limit is counted within a 5-minute window (300 seconds)
+
+[Install]
+WantedBy=default.target
+EOF
+
+    # Reload systemd and enable the persistent service
+    systemctl --user daemon-reload
+    systemctl --user enable "${UNIT}.service"
+    systemctl --user start "${UNIT}.service"
+    systemctl --user status "${UNIT}.service" --no-pager
+    echo
+    echo "Persistent tunnel created and started."
+    __print_active_tunnels
+
+    if [ ! -f "/var/lib/systemd/linger/$USER" ]; then
+        echo
+        echo "WARNING: Systemd linger is not enabled for user $USER,"
+        echo "therefore this tunnel cannot be started automatically on boot."
+        echo
+        echo "To enable systemd linger, run:"
+        echo ""
+        echo "   sudo loginctl enable-linger ${USER}"
+        echo
+    fi
+
+}
+
+__one_shot_tunnel() {
+    local CONTEXT=$1
+    local PUBLIC_PORT=$2
+    local LOCAL_PORT=$3
+    check_var CONTEXT PUBLIC_PORT LOCAL_PORT
+    systemd-run \
+        --user \
+        --unit=${UNIT} \
+        --scope autossh \
+        -o StrictHostKeyChecking=accept-new \
+        -o ControlMaster=no \
+        -o ControlPersist=no \
+        -o ControlPath=none \
+        -N -M 0 \
+        -R 0.0.0.0:${PUBLIC_PORT}:0.0.0.0:${LOCAL_PORT} \
+        ${CONTEXT} &
+    echo "## Reverse Tunnel process started. "
+    debug_var PUBLIC_PORT
+    debug_var LOCAL_PORT
+    sleep 2
+    echo ""
+}
+__find_tunnel_local_port() {
+    local remote_port=$1  # The REMOTE_PORT (PUBLIC_PORT) to search for
+
+    if [[ -z "$remote_port" ]]; then
+        echo "Usage: find_tunnel_local_port <REMOTE_PORT>"
+        return 1
+    fi
+
+    # Capture the list of reverse-tunnel- units in an array
+    local tunnels=($(systemctl --user list-units --all --no-legend --no-pager --plain | awk '/^reverse-tunnel-.*\.scope|\.service/{print $1}'))
+
+    # Iterate over the tunnels to find the one matching the given REMOTE_PORT
+    for tunnel in "${tunnels[@]}"; do
+        # Strip "reverse-tunnel-" prefix and extract CONTEXT, PUBLIC_PORT, and LOCAL_PORT
+        local name=$(echo "$tunnel" | sed 's/^reverse-tunnel-//; s/\.scope$//; s/\.service$//')
+        local context=$(echo "$name" | cut -d'-' -f1)
+        local public_port=$(echo "$name" | cut -d'-' -f2)
+        local local_port=$(echo "$name" | cut -d'-' -f3)
+
+        # If the PUBLIC_PORT matches the given REMOTE_PORT, return the associated LOCAL_PORT
+        if [[ "$public_port" == "$remote_port" ]]; then
+            echo "$local_port"
+            return 0
+        fi
+    done
+
+    # If no match is found, return an error
+    echo "No tunnel found for REMOTE_PORT $remote_port"
+    return 1
+}
+
+main() {
+    # Check if the argument is --close-all
+    if [[ "$1" == "--close-all" ]] || [[ "$2" == "--close-all" ]]; then
+        # Capture all active tunnels
+        tunnels=($(systemctl --user list-units --all --no-legend --no-pager --plain --state=active | awk '/^reverse-tunnel-.*(\.scope|\.service)/{print $1}'))
+
+        # Check if there are any active tunnels
+        if [ ${#tunnels[@]} -eq 0 ]; then
+            echo "## No active tunnels to close."
+        else
+            # Iterate over each active tunnel and stop it
+            for tunnel in "${tunnels[@]}"; do
+                if [[ "$tunnel" == *.scope ]]; then
+                    systemctl --user stop "$tunnel" && echo "Transient tunnel $tunnel closed."
+                elif [[ "$tunnel" == *.service ]]; then
+                    systemctl --user stop "$tunnel" && echo "Persistent tunnel $tunnel closed."
+                    systemctl --user disable "$tunnel"
+                    rm -f "${HOME}/.config/systemd/user/$tunnel" && echo "Persistent service file $tunnel removed."
+                fi
+            done
+            systemctl --user daemon-reload
+        fi
+        echo
+        __print_active_tunnels
+        exit 0
+    fi
+
+    if [[ $# -gt 2 ]]; then
+        CONTEXT=$1
+        PUBLIC_PORT=$2
+        LOCAL_PORT=${3}
+        check_var CONTEXT
+        check_num PUBLIC_PORT
+        check_num LOCAL_PORT
+        PERSISTENT=""
+
+        # If the third argument is "close", handle the special case
+        if [[ "$4" == "--close" ]]; then
+            UNIT="reverse-tunnel-${CONTEXT}-${PUBLIC_PORT}-${LOCAL_PORT}"
+
+            # Stop the tunnel:
+            if systemctl --user is-active --quiet "${UNIT}.scope"; then
+                ## Stop transient tunnel:
+                systemctl --user stop "${UNIT}.scope" && echo "Transient tunnel closed for public port $PUBLIC_PORT."
+                echo
+                __print_active_tunnels
+            elif systemctl --user is-active --quiet "${UNIT}.service"; then
+                ## Stop persistent tunnel:
+                systemctl --user stop "${UNIT}.service" && echo "Persistent tunnel closed for public port $PUBLIC_PORT."
+                systemctl --user disable "${UNIT}.service"
+                rm -f "${HOME}/.config/systemd/user/${UNIT}.service" && echo "Persistent service file removed."
+                systemctl --user daemon-reload
+                systemctl --user status "${UNIT}.service" --no-pager
+                echo
+                __print_active_tunnels
+            else
+                echo "No tunnel found: ${UNIT}."
+            fi
+            exit 0
+        fi
+
+        # Check if the --persistent flag is provided
+        if [[ "$4" == "--persistent" ]]; then
+            PERSISTENT="yes"
+        fi
+
+        # Handle starting the tunnel
+        if [[ "$PERSISTENT" == "yes" ]]; then
+            __create_persistent_tunnel "${CONTEXT}" "${PUBLIC_PORT}" "${LOCAL_PORT}"
+        else
+            UNIT="reverse-tunnel-${CONTEXT}-${PUBLIC_PORT}-${LOCAL_PORT}"
+            __one_shot_tunnel "${CONTEXT}" "${PUBLIC_PORT}" "${LOCAL_PORT}"
+            __print_active_tunnels
+        fi
+    else
+        __help
+        __print_active_tunnels
+    fi
+}
+
+
+main "$@"

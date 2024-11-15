@@ -9,8 +9,7 @@ config-hook:
 #### reconfigure sets the value of a variable in the .env file without asking.
 #### reconfigure_htpasswd will configure the HTTP Basic Authentication setting the var name and with a provided default value.
 	@${BIN}/reconfigure_ask ${ENV_FILE} HOMEPAGE_TRAEFIK_HOST "Enter the homepage domain name" homepage${INSTANCE_URL_SUFFIX}.${ROOT_DOMAIN}
-	@echo ""
-	@${BIN}/confirm $$([[ $$(${BIN}/dotenv -f ${ENV_FILE} get HOMEPAGE_ENABLE_DOCKER) == "true" ]] && echo "yes" || echo "no") "Do you want to enable docker service discovery" "?" && ${BIN}/reconfigure ${ENV_FILE} HOMEPAGE_ENABLE_DOCKER=true || ${BIN}/reconfigure ${ENV_FILE} HOMEPAGE_ENABLE_DOCKER=false
+	@${BIN}/reconfigure_ask ${ENV_FILE} HOMEPAGE_WEBHOOK_HOST "Enter the separate webhook domain name" homepage-webhook${INSTANCE_URL_SUFFIX}.${ROOT_DOMAIN}
 	@echo ""
 	@${BIN}/reconfigure ${ENV_FILE} HOMEPAGE_INSTANCE=$${instance:-default}
 	@${BIN}/reconfigure_auth ${ENV_FILE} HOMEPAGE
@@ -18,7 +17,7 @@ config-hook:
 	@${BIN}/reconfigure_password ${ENV_FILE} HOMEPAGE_RELOADER_HMAC_SECRET 45
 	@echo 
 	@${BIN}/reconfigure ${ENV_FILE} HOMEPAGE_PUBLIC_HTTPS_PORT=$$([[ -z $$(${BIN}/dotenv -f ${ENV_FILE} get HOMEPAGE_PUBLIC_HTTPS_PORT) ]] && echo $$(${BIN}/dotenv -f ../${ROOT_ENV} get PUBLIC_HTTPS_PORT) || echo $$(${BIN}/dotenv -f ${ENV_FILE} get HOMEPAGE_PUBLIC_HTTPS_PORT))
-	@echo 
+	@echo ""
 	@${BIN}/confirm $$([[ $$(${BIN}/dotenv -f ${ENV_FILE} get HOMEPAGE_AUTO_CONFIG) == "true" ]] && echo "yes" || echo "no") "Do you want to auto-configure Homepage and to discover all of your running d.rymcg.tech apps of the current docker context" "?" && ${BIN}/reconfigure ${ENV_FILE} HOMEPAGE_AUTO_CONFIG=true && $(MAKE) autoconfig \
 	|| ( ${BIN}/reconfigure ${ENV_FILE} HOMEPAGE_AUTO_CONFIG=false \
 	&& echo "" && ${BIN}/reconfigure_ask ${ENV_FILE} HOMEPAGE_TEMPLATE_REPO "Enter the git repository used to make the config. All environment variables will be substituted in the templates via envsubst. Cloning from private git repositores is supported, but you must create a deploy key first." \
@@ -26,7 +25,7 @@ config-hook:
 	@echo ""
 
 .PHONY: override-hook
-override-hook:
+override-hook: autoconfig
 #### This sets the override template variables for docker-compose.instance.yaml:
 #### The template dynamically renders to docker-compose.override_{DOCKER_CONTEXT}_{INSTANCE}.yaml
 #### These settings are used to automatically generate the service container labels, and traefik config, inside the template.
@@ -37,7 +36,7 @@ override-hook:
 ####                         # (this hardcodes the string into docker-compose.override.yaml)
 ####   name=@VARIABLE_NAME   # sets the template 'name' field to the literal string '${VARIABLE_NAME}'
 ####                         # (used for regular docker-compose expansion of env vars by name.)
-	@${BIN}/docker_compose_override ${ENV_FILE} project=:homepage instance=@HOMEPAGE_INSTANCE traefik_host=@HOMEPAGE_TRAEFIK_HOST http_auth=HOMEPAGE_HTTP_AUTH http_auth_var=@HOMEPAGE_HTTP_AUTH ip_sourcerange=@HOMEPAGE_IP_SOURCERANGE enable_docker=HOMEPAGE_ENABLE_DOCKER reloader_path_prefix=HOMEPAGE_RELOADER_PATH_PREFIX oauth2=HOMEPAGE_OAUTH2 authorized_group=HOMEPAGE_OAUTH2_AUTHORIZED_GROUP enable_mtls_auth=HOMEPAGE_MTLS_AUTH mtls_authorized_certs=HOMEPAGE_MTLS_AUTHORIZED_CERTS
+	@${BIN}/docker_compose_override ${ENV_FILE} project=:homepage instance=@HOMEPAGE_INSTANCE webhook_host=@HOMEPAGE_WEBHOOK_HOST traefik_host=@HOMEPAGE_TRAEFIK_HOST http_auth=HOMEPAGE_HTTP_AUTH http_auth_var=@HOMEPAGE_HTTP_AUTH ip_sourcerange=@HOMEPAGE_IP_SOURCERANGE enable_docker=HOMEPAGE_ENABLE_DOCKER reloader_path_prefix=HOMEPAGE_RELOADER_PATH_PREFIX oauth2=HOMEPAGE_OAUTH2 authorized_group=HOMEPAGE_OAUTH2_AUTHORIZED_GROUP enable_mtls_auth=HOMEPAGE_MTLS_AUTH mtls_authorized_certs=HOMEPAGE_MTLS_AUTHORIZED_CERTS
 
 .PHONY: shell
 shell:
@@ -49,4 +48,4 @@ git-deploy-key: override
 
 .PHONY: autoconfig
 autoconfig:
-	@ROOT_DIR=${ROOT_DIR} DOCKER_CONTEXT=${DOCKER_CONTEXT} HOMEPAGE_ENABLE_DOCKER=${HOMEPAGE_ENABLE_DOCKER} ENV_FILE=${ENV_FILE} ./homepage_autoconfig.sh
+	@ROOT_DIR=${ROOT_DIR} DOCKER_CONTEXT=${DOCKER_CONTEXT} HOMEPAGE_ENABLE_DOCKER=${HOMEPAGE_ENABLE_DOCKER} ENV_FILE=${ENV_FILE} HOMEPAGE_AUTO_CONFIG="$$(${BIN}/dotenv -f ${ENV_FILE} get HOMEPAGE_AUTO_CONFIG)" ./homepage_autoconfig.sh

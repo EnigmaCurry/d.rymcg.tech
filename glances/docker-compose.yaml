@@ -1,0 +1,15 @@
+services:
+  glances:
+    image: ${GLANCES_IMAGE}
+    restart: unless-stopped
+    pid: host
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    network_mode: "host"
+    environment:
+      - TZ=${GLANCES_TZ}
+      - "GLANCES_OPT=-w ${GLANCES_OPTIONS}"
+    labels: []
+    volumes: []

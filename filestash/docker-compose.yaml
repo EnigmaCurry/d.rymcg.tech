@@ -1,10 +1,14 @@
-
 volumes:
   state:
 
 services:
   filestash:
-    image: machines/filestash:${FILESTASH_VERSION}
+    build:
+      context: ${FILESTASH_GIT_REPO}#${FILESTASH_GIT_REF}
+      dockerfile: docker/Dockerfile
+      args:
+        GIT_REPO: ${FILESTASH_GIT_REPO}
+        GIT_REF: ${FILESTASH_GIT_REF}
     security_opt:
       - no-new-privileges:true
     restart: unless-stopped

@@ -1,0 +1,19 @@
+#!/bin/bash
+source $(dirname $(realpath ${BASH_SOURCE}))/funcs.sh
+
+# Configure the Docker host's /etc/docker/daemon.json file.
+set -e
+
+REMOTE_CONF="/etc/docker/daemon.json"
+
+d.rymcg.tech ssh "cat $REMOTE_CONF 2>/dev/null || echo '{}'" | \
+    jq '. + {"exec-opts": ["native.cgroupdriver=systemd"]}' | \
+    sponge | \
+    d.rymcg.tech ssh "sudo tee $REMOTE_CONF > /dev/null"
+
+# Restart Docker remotely to apply the changes
+d.rymcg.tech ssh "sudo systemctl restart docker"
+
+echo "Wrote ${DOCKER_CONTEXT}:/etc/docker/daemon.json"
+d.rymcg.tech ssh "cat ${REMOTE_CONF}"
+

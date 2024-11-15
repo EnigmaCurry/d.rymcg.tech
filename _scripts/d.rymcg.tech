@@ -41,15 +41,24 @@ __help() {
     echo "## Main d.rymcg.tech sub-commands - Optional arguments are printed in brackets [OPTIONAL_ARG]"
     (
         echo -e "cd [SUBDIR]\tEnter a sub-shell and go to the ROOT_DIR directory (or given subdirectory)"
-        echo -e "create [PROJECT] [TEMPLATE]\tCreate a new external project from a template"
         echo -e "make [PROJECT] [ARGS ...]\tRun a \`make\` command for the given d.rymcg.tech project name"
         echo -e "context\tView or set the current Docker context"
         echo -e "new-context\tCreate a new Docker context"
         echo -e "tmp-context\tUse a temporary Docker context in a sub-shell"
+        echo -e "config\tConfigure the current Docker context"
         echo -e "ssh [COMMAND ...]\tRun command or shell on active docker context SSH host"
         echo -e "completion\tSetup TAB completion in your shell"
         echo -e "install\tInstall an app interactively"
         echo -e "install-docker\tInstall Docker Engine on the host"
+        echo -e "status\tShow status of all installed services"
+        echo -e "audit\tPrint security audit of running containers"
+        echo -e "sshd-config [Var=value ...]\tReconfigure the host SSH daemon of the remote context"
+        echo -e "ssh-expose PORT\tExpose a workstation's port to a public server port"
+        echo -e "route\tConfigure and/or print routes"
+        echo -e "networks\tPrint the list of Docker networks"
+        echo -e "fail2ban\tConfigure fail2ban on the Docker host"
+        echo -e "reconfigure\tReconfigure a single env var in the root context config"
+        echo -e "daemon-conf\tReconfigures the Docker host's daemon config"
     ) | expand -t 30
     echo ""
     echo "## Documentation sub-commands:"
@@ -98,11 +107,22 @@ __create() {
     ${BIN}/create "${PROJECT_NAME}" "${TEMPLATE_REPO}" "./${PROJECT_NAME}"
 }
 
+__ssh() {
+    SSH_HOST=$(docker context inspect --format '{{.Endpoints.docker.Host}}' | sed 's|ssh://||')
+    check_var SSH_HOST
+    (set -x; ssh ${SSH_HOST} $@)
+}
+
 __install_docker() {
-    confirm yes "This will install Docker on the host of your remote Docker context."
-    d.rymcg.tech ssh 'curl -fsSL https://get.docker.com | sh'
-    d.rymcg.tech ssh 'systemctl enable --now docker'
-    d.rymcg.tech ssh 'systemctl status docker'
+    if [[ "$1" == "--local" ]]; then
+        confirm yes "This will install Docker the local machine"
+        curl -fsSL https://get.docker.com | sh
+    else
+        confirm yes "This will install Docker on the host of your remote Docker context."
+        d.rymcg.tech ssh 'curl -fsSL https://get.docker.com | sh'
+        d.rymcg.tech ssh 'systemctl enable --now docker'
+        d.rymcg.tech ssh 'systemctl status docker'
+    fi
 }
 
 __install() {
@@ -214,10 +234,29 @@ __context() {
 __context_tmp() {
     readarray -t CONTEXTS < <(docker context list -q | grep -v default)
     local CURRENT_CONTEXT=$(docker context show)
-    local CHOSEN_CONTEXT=$(wizard choose "Choose a temporary docker context" "${CONTEXTS[@]}" --default "${CURRENT_CONTEXT}")
+    local CHOSEN_CONTEXT="$1";
+    if [[ -z "${CHOSEN_CONTEXT}" ]]; then
+        CHOSEN_CONTEXT=$(wizard choose "Choose a temporary docker context" "${CONTEXTS[@]}" --default "${CURRENT_CONTEXT}")
+    else
+        shift;
+    fi
+    
     test -z "$CHOSEN_CONTEXT" && fault "No context selected."
-    echo "Entering sub-shell DOCKER_CONTEXT=${CHOSEN_CONTEXT}"
-    DOCKER_CONTEXT="${CHOSEN_CONTEXT}" bash -i
+    if ! element_in_array "$CHOSEN_CONTEXT" "${CONTEXTS[@]}"; then
+        fault "Context ${CHOSEN_CONTEXT} does not exist.";
+    fi
+    if [[ $# == 0 ]]; then
+        echo "Entering sub-shell DOCKER_CONTEXT=${CHOSEN_CONTEXT}"
+        bash --rcfile <(echo "export DOCKER_CONTEXT=${CHOSEN_CONTEXT}; source ~/.bashrc; unset MAKEFLAGS PROMPT_COMMAND D_RYMCG_TECH_CLI_ALIAS D_RYMCG_TECH_CONTEXT_ALIAS D_RYMCG_TECH_PROJECT_ALIAS D_RYMCG_TECH_SCRIPT; PS1=\"[@:\$DOCKER_CONTEXT] \${PS1}\"") -i
+    else
+        echo "+ DOCKER_CONTEXT=${CHOSEN_CONTEXT}" >/dev/stderr
+        if [[ "$1" == "d" ]]; then
+            shift
+            DOCKER_CONTEXT="${CHOSEN_CONTEXT}" exe d.rymcg.tech $@
+        else
+            DOCKER_CONTEXT="${CHOSEN_CONTEXT}" exe $@
+        fi        
+    fi
 }
 
 __new_context() {
@@ -307,6 +346,15 @@ EOF
     unset __ALIAS __PROJECT_DIR
 }
 
+__d.rymcg.tech_context_alias() {
+    local ROOT_DIR=$(d.rymcg.tech info ROOT_DIR)
+    __CONTEXT="${1}"
+    __ALIAS="${2:-${1}}"
+    export __CONTEXT
+    alias ${__ALIAS}="D_RYMCG_TECH_CONTEXT_ALIAS=${__ALIAS} d.rymcg.tech tmp-context ${__CONTEXT} d.rymcg.tech"
+    complete -F __d.rymcg.tech_completions ${__ALIAS}
+}
+
 __d.rymcg.tech_completions() {
     ### BASH completion
     ## dev links:
@@ -324,7 +372,7 @@ __d.rymcg.tech_completions() {
     if [[ ${COMP_CWORD} == 1 ]]; then
         ## Complete the main command:
         ## d.rymcg.tech <TAB> ...
-        COMMANDS="help create cd make list readme info context new-context tmp-context completion install install-docker ssh"
+        COMMANDS="help create cd make list readme info context new-context tmp-context completion install install-docker status ssh audit sshd-config ssh-expose route routes reconfigure daemon-conf fail2ban networks config"
         COMPREPLY=($(compgen -W "${COMMANDS}" "${COMP_WORDS[1]}"))
     elif [[ ${COMP_CWORD} == 2 ]]; then
         ALL_PROJECTS=$(d.rymcg.tech list --raw)
@@ -405,14 +453,22 @@ __completion() {
         echo "#### For example, external project 'foo' in the directory ~/git/foo"
         echo "# __d.rymcg.tech_project_alias foo ~/git/foo"
         echo ""
-        echo "#### If you want a shorter alias than d.rymcg.tech (eg. 'dry') you can add it:"
-        echo "# __d.rymcg.tech_cli_alias dry"
+        echo "#### If you want to quickly access a particular Docker context (eg. 'sentry'):"
+        echo "#### For example, instead of running this long command:"
+        echo "####   d tmp-context sentry d make traefik config"
+        echo "#### Now you can run just: sentry make traefik config"
+        echo "#### You can do this for any Docker context:"
+        echo "# __d.rymcg.tech_context_alias sentry"
+        echo ""
+        echo "#### If you want a shorter alias than d.rymcg.tech (eg. 'd') you can add it:"
+        echo "# __d.rymcg.tech_cli_alias d"
         echo ""
     else
         if [[ "${1}" == "bash" ]]; then
             declare -f __d.rymcg.tech_documentation_words
             declare -f __d.rymcg.tech_completions
             declare -f __d.rymcg.tech_project_alias
+            declare -f __d.rymcg.tech_context_alias
             declare -f __d.rymcg.tech_cli_alias
             echo "complete -F __d.rymcg.tech_completions d.rymcg.tech"
         else
@@ -427,8 +483,6 @@ main() {
         case ${COMMAND} in
             help)
                 __help "$@";;
-            create)
-                __create "$@";;
             cd)
                 __change-directory "$@";;
             make)
@@ -456,7 +510,28 @@ main() {
             ssh)
                 docker_ssh "$@";;
             status)
-                __make -- status | sed "s|\./|${ROOT_DIR}/|g";;
+                __make -- status | sed "s|\./|${ROOT_DIR}/|g" | less -FSX;;
+            audit)
+                __make -- audit | less -FSX;;
+            sshd-config)
+                __run_script reconfigure_sshd "${DOCKER_CONTEXT}" "$@";;
+            ssh-expose)
+                __run_script ssh_expose "${CURRENT_CONTEXT}" $@;;
+            route)
+                CMD=$(echo d.rymcg.tech make traefik route ARGS=\"$@\")
+                eval ${CMD};;
+            routes)
+                d.rymcg.tech make traefik route ARGS="list";;
+            reconfigure)
+                d.rymcg.tech make - reconfigure $@;;
+            daemon-conf)
+                d.rymcg.tech make - daemon-conf;;
+            fail2ban)
+                d.rymcg.tech make - fail2ban;;
+            networks)
+                __make -- networks;;
+            config)
+                __make -- config;;
             *)
                 fault "Invalid command"
         esac

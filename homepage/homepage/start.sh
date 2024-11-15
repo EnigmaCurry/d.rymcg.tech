@@ -60,8 +60,7 @@ if [[ "${HOMEPAGE_AUTO_CONFIG}" == false ]]; then
     fi
 else
     rm -rf /app/config/*
-    mv /app/reloader/homepage_config/* /app/config/
-    rm -rf /app/reloader/homepage_config
+    cp -a /app/reloader/homepage_config/* /app/config/
 fi
 
 ## Start reloader webhook in the background:

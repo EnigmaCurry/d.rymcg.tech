@@ -253,6 +253,7 @@ You can easily add your own local workstation public keys to any
 existing SFTP user account (`SFTP_USERS`):
 
 ```
+## This copies the key from your running ssh-agent
 make ssh-copy-id
 ```
 
@@ -263,23 +264,15 @@ local workstation keys are queried from your running SSH agent
 You can also bypass the wizard by inputting the username on the command line:
 
 ```
+## This copies the key from your running ssh-agent
 make ssh-copy-id user=ryan
 ```
 
-To import keys other than your local agent's, you can exec directly
-into the container as root. Each user's authorized keyfile is named
-like `/etc/ssh/keys/${USER}_authorized_keys`. This file is normally
-locked and made immutable, and so you must first unlock the
-authorized_keys file to make it mutable:
+To import keys other than your local agent's, by copy and paste:
 
 ```
-## a) Make files mutable, and
-## b) Exec into the running sftp container as root, perform any changes, exit, and
-## c) Make files immutable again:
-make unlock-mutable-config shell lock-immutable-config
-
-## Inside the container, you can run ssh-import-id to import from github, etc:
-#ssh-import-id -o /etc/ssh/keys/ryan_authorized_keys gh:enigmacurry
+## This will prompt you to paste the a public key directly:
+make ssh-authorize-key user=ryan
 ```
 
 Once the public keys are installed, you can test logging into the

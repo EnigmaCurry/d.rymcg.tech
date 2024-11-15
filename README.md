@@ -3,6 +3,8 @@
 [![License: MIT](_meta/img/license-MIT.svg)](https://github.com/EnigmaCurry/d.rymcg.tech/blob/master/LICENSE.txt)
 [![Chat on Matrix](_meta/img/matrix-badge.svg)](https://matrix.to/#/#d.rymcg.tech:enigmacurry.com)
 
+> ℹ️ **New book available now!**: [Portable Docker: Build and Deploy Anywhere with WireGuard Tunneling](https://book.rymcg.tech/portable-docker/)
+
 This is a collection of Docker Compose projects, consisting of
 [Traefik](https://doc.traefik.io/traefik/) as a TLS HTTP/TCP/UDP
 reverse proxy, and other open-source self-hosted applications and
@@ -15,7 +17,7 @@ Compose projects into this framework.
 All (http) apps are secured with automatic TLS certificates (Let's
 Encrypt or Step-CA), along with configurable self-hosted
 authentication middleware (mTLS, OAuth2, or HTTP Basic auth), as well
-as user group authorization middlewares. Even non-http apps may be
+as user group authorization middlewares. Even non-TLS apps may be
 secured with the optional VPN (Wireguard) support.
 
 Each project has a `Makefile` to simplify configuration, installation,
@@ -189,7 +191,8 @@ configured, you may need to open these ports in your firewall:
 | HTTP+TLS   | TCP      | 443        | Traefik HTTPS entrypoint (websecure)                      |
 | TCP socket | TCP      | 1704       | Traefik Snapcast (audio) entrypoint                       |
 | TCP socket | TCP      | 1705       | Traefik Snapcast (control) entrypoint                     |
-| SSH        | TCP      | 2222       | Traefik Forgejo SSH (TCP) entrypoint                        |
+| RTMP(s)    | TCP      | 1935       | Traefik RTMP (real time message protocol) entrypoint      |
+| SSH        | TCP      | 2222       | Traefik Forgejo SSH (TCP) entrypoint                      |
 | SSH        | TCP      | 2223       | SFTP container SSH (TCP) (direct-map)                     |
 | TLS        | TCP      | 5432       | PostgreSQL mTLS DBaaS (direct-map)                        |
 | TCP+TLS    | TCP      | 6380       | Traefik Redis in-memory database entrypoint               |
@@ -332,19 +335,19 @@ skipped):
 On Arch Linux, run this to install all these dependencies:
 
 ```
-pacman -S bash base-devel gettext git openssl apache xdg-utils jq sshfs wireguard-tools curl inotify-tools
+pacman -S bash base-devel gettext git openssl apache xdg-utils jq sshfs wireguard-tools curl inotify-tools w3m moreutils
 ```
 
 For Debian or Ubuntu, run:
 
 ```
-apt-get install bash build-essential gettext git openssl apache2-utils xdg-utils jq sshfs wireguard curl inotify-tools
+apt-get install bash build-essential gettext git openssl apache2-utils xdg-utils jq sshfs wireguard curl inotify-tools w3m moreutils
 ```
 
 For Fedora, run:
 
 ```
-dnf install bash gettext openssl git xdg-utils jq sshfs curl inotify-tools httpd-tools make wireguard-tools
+dnf install bash gettext openssl git xdg-utils jq sshfs curl inotify-tools httpd-tools make wireguard-tools w3m moreutils
 ```
 
 ### Setup SSH access to the server
@@ -521,21 +524,33 @@ Install these recommended backbone applications next:
   * Homepage acts as a dashboard or launcher for all your other apps
     (but this is not required for any other functionality, if you
     don't need it.)
+* [Postfix-Relay](postfix-relay#readme)
+  * A simple email forwarding service (SMTP) which can be used by any
+    other container that needs to send email.
+* [Registry](registry#readme) 
+  * An OCI container registry for hosting docker container images.
 
 Install these other services at your leisure/preference:
 
+* [13ft](thirteenft#readme) - a tool to block ads and bypass paywalls
 * [ArchiveBox](archivebox#readme) - a website archiving tool
 * [Audiobookshelf](audiobookshelf#readme) - an audiobook and podcast server
 * [Autoheal](autoheal#readme) - a Docker container healthcheck monitor with auto-restart service
+* [Backrest](backrest#readme) - a backup tool based on restic
+* [Backup-Volume](backup-volume#readme) - a Docker volume backup tool
 * [Baikal](baikal#readme) - a lightweight CalDAV+CardDAV server
 * [CalcPad](calcpad#readme) - a different take on the caculator
+* [Calibre](calibre#readme) - an ebook manager
 * [DOH-server](doh-server#readme) - a DNS-over-HTTPs proxy resolver
 * [DrawIO](drawio#readme) - a diagram / whiteboard editor tool
 * [Ejabberd](ejabberd#readme) - an XMPP (Jabber) server
 * [Filestash](filestash#readme) - a web based file manager with customizable backend storage providers
 * [FreshRSS](freshrss#readme) - an RSS reader / proxy
+* [Glances](glances#readme) - a cross-platform system monitoring tool
+* [Gradio](gradio#readme) - a configurable web interface for machine learning 
 * [Grocy](grocy#readme) - a grocery & household management/chore solution
 * [Icecast](icecast#readme) - a SHOUTcast compatible streaming multimedia server
+* [Immich](immich#readme) - a photo gallery
 * [Invidious](invidious#readme) - a Youtube proxy
 * [Jitsi Meet](jitsi-meet#readme) - a video conferencing and screencasting service
 * [Jupyterlab](jupyterlab#readme) - a web based code editing environment / reproducible research tool
@@ -551,6 +566,7 @@ Install these other services at your leisure/preference:
 * [Node-RED](nodered#readme) - a graphical event pipeline editor
 * [Ntfy-sh](ntfy-sh#readme) - a simple HTTP-based pub-sub notification service
 * [Pairdrop](pairdrop#readme) - a webapp (PWA) to send files and messages peer to peer
+* [Peertube](peertube#readme) - a decentralized and federated video platform
 * [Photoprism](photoprism#readme) - a photo gallery and manager
 * [Piwigo](piwigo#readme) - a photo gallery and manager
 * [Plausible](plausible#readme) - a privacy friendly web visitor analytics engine
@@ -559,19 +575,23 @@ Install these other services at your leisure/preference:
 * [Prometheus](prometheus#readme) - a systems monitoring and alerting toolkit (+ node-exporter + cAdvisor + Grafana)
 * [QBittorrent-Wireguard](qbittorrent-wireguard#readme) - a Bittorrent (libtorrent v2) client with a combined VPN client
 * [Redbean](redbean#readme) - a small website server bundled in a single executable zip file
+* [Redmine](redmine#readme) - a flexible project management web application
 * [S3-proxy](s3-proxy#readme) - an HTTP directory index for S3 backend
+* [SearXNG](searxng#readme) - a privacy-respecting, hackable metasearch engine
 * [SFTP](sftp#readme) - a secure file server
 * [Shaarli](shaarli#readme) - a bookmark manager
 * [Smokeping](smokeping#readme) - a network latency measurement tool
 * [Step-CA](step-ca) - a secure, online, self-hosted Certificate Authority (CA)
 * [Syncthing](syncthing#readme) - a multi-device file synchronization tool
 * [Sysbox-Systemd](sysbox-systemd#readme) - a traditional service manager for Linux running in an unprivileged container via sysbox-runc
+* [Tesseract](tesseract#readme) - a front-end for Lemmy instances
 * [Thttpd](thttpd#readme) - a tiny/turbo/throttling HTTP server for serving static files
 * [Tiny Tiny RSS](ttrss#readme) - an RSS reader / proxy
-* [Vaultward](vaultwarden#readme) - a bitwarden compatible password manager written in Rust (formerly bitwarden_rs)
+* [Vaultwarden](vaultwarden#readme) - a bitwarden compatible password manager written in Rust (formerly bitwarden_rs)
 * [Websocketd](websocketd#readme) - a websocket / CGI server
 * [Wordpress](wordpress#readme) - an ubiquitous blogging / CMS platform, with a plugin to build a static HTML site snapshot
 * [XBrowserSync](xbs#readme) - a bookmark manager
+* [YOURLS](yourls#readme) - a URL shortener
 
 You can create a new application by using any other application as an
 example, ([whoami](whoami) is the most basic one).
@@ -778,23 +798,24 @@ d.rymcg.tech readme
 d.rymcg.tech readme traefik
 ```
 
-#### Project specific shell aliases
+#### Project and context specific shell aliases
 
 You can add additional command aliases to your shell (put these in
 your `~/.bashrc` *after* the `eval` line that loads the main
 `d.rymcg.tech` script):
 
 ```
-## Example project alias: creates a shorter command used just for the Traefik project:
-__d.rymcg.tech_project_alias traefik
+## Alternative alias to shorten `d.rymcg.tech` to simply `d`:
+__d.rymcg.tech_cli_alias d
 ```
 
-(This command creates the shell alias called `traefik`, as well as the
-Bash shell tab completion for it.)
+You can make project specific aliases:
 
-With this alias installed, instead of running `make -C
-~/git/vendor/enigmacurry/d.rymcg.tech/traefik install` you can now
-simply run `traefik install`.
+```
+## Example project alias: creates a shorter command used just for the Traefik project:\
+## e.g., `traefik config`, `traefik install`
+__d.rymcg.tech_project_alias traefik
+```
 
 If you have created an [external
 project](#integrating-external-projects) (eg. named `mikeapp`), you can
@@ -802,21 +823,17 @@ create a command alias for it:
 
 ```
 ## Example external project alias:
+## e.g., `mikeapp config`, `mikeapp install`
 __d.rymcg.tech_project_alias mikeapp ~/git/mikeapp
 ```
 
-With this alias installed, instead of running `make -C ~/git/mikeapp
-install` you can now simply run `mikeapp install`.
-
-If you want a different alias for the main script, you can add that too:
+You can also do context specific aliases:
 
 ```
-## Alternative alias to d.rymcg.tech
-__d.rymcg.tech_cli_alias d
+## Example context alias: creates a shorter command used just for the given Docker context:
+## e.g., `sentry make traefik config`, `sentry make traefik install`.
+__d.rymcg.tech_context_alias sentry
 ```
-
-With this alias installed, you can now just run `d` in place of
-`d.rymcg.tech`.
 
 To get a synopsis of all of these completion commands, run:
 
@@ -1067,27 +1084,15 @@ You may create your own external projects, and/or integrate your
 existing docker-compose projects, including from external git
 repositories, and have them use the same d.rymcg.tech framework.
 
-The easiest method of creating an external project, is by setting up
-the [`d.rymcg.tech`
-script](https://github.com/EnigmaCurry/d.rymcg.tech/blob/master/README.md#using-the-drymcgtech-cli-script-optional),
-then run:
-
-```
-## Run this from any directory:
-d.rymcg.tech create
-```
-
-Alternatively you can create your project by hand:
-
  * Create a new project directory, or clone your existing project, to
    any directory. (It does not need to be a sub-directory of
    `d.rymcg.tech`, but it can be).
  * In your own project repository directory, create the files for
-   `docker-compose.yaml`, `Makefile`, `.env-dist`, `.gitignore`and
-   `README.md`. As an example, you can use any of the d.rymcg.tech
-   sub-projects, like [whoami](whoami), or take a look at the
-   [flask-template](https://github.com/EnigmaCurry/flask-template/)
-   that can be instantiated from `d.rymcg.tech create`.
+   `docker-compose.yaml`, `docker-compose.instance.yaml`, `Makefile`,
+   `.env-dist`, `.gitignore`and `README.md`. As an example, you can
+   use any of the d.rymcg.tech sub-projects, like [whoami](whoami), or
+   take a look at the
+   [flask-template](https://github.com/EnigmaCurry/flask-template/).
 
 Create the `Makefile` in your own separate repository so that it
 includes the main d.rymcg.tech `Makefile.projects` file from
