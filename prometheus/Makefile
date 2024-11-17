@@ -12,7 +12,7 @@ config-hook:
 	@echo
 	@${BIN}/confirm $$(test "$$(${BIN}/dotenv -f ${ENV_FILE} get PROMETHEUS_CADVISOR_ENABLED)" == true && echo yes || echo no) "Do you want to run cAdvisor to collect container metrics" "?" && ${BIN}/reconfigure ${ENV_FILE} PROMETHEUS_CADVISOR_ENABLED=true || ${BIN}/reconfigure ${ENV_FILE} PROMETHEUS_CADVISOR_ENABLED=false
 	@echo
-	@${BIN}/confirm $$(test "$$(${BIN}/dotenv -f ${ENV_FILE} get PROMETHEUS_ALERTMANAGER_ENABLED)" == true && echo yes || echo no) "Do you want to run alertmanager to collect container metrics" "?" && ${BIN}/reconfigure ${ENV_FILE} PROMETHEUS_ALERTMANAGER_ENABLED=true || ${BIN}/reconfigure ${ENV_FILE} PROMETHEUS_ALERTMANAGER_ENABLED=false
+	@${BIN}/confirm $$(test "$$(${BIN}/dotenv -f ${ENV_FILE} get PROMETHEUS_ALERTMANAGER_ENABLED)" == true && echo yes || echo no) "Do you want to run alertmanager to send notifications" "?" && ${BIN}/reconfigure ${ENV_FILE} PROMETHEUS_ALERTMANAGER_ENABLED=true || ${BIN}/reconfigure ${ENV_FILE} PROMETHEUS_ALERTMANAGER_ENABLED=false
 	@echo
 	@test "$$(${BIN}/dotenv -f ${ENV_FILE} get PROMETHEUS_ALERTMANAGER_ENABLED)" == true && (${BIN}/confirm $$(test "$$(${BIN}/dotenv -f ${ENV_FILE} get PROMETHEUS_ALERTMANAGER_SMTP_ENABLED)" == true && echo yes || echo no) "Do you want to send notifications via SMTP (email)" "?" && ${BIN}/reconfigure ${ENV_FILE} PROMETHEUS_ALERTMANAGER_SMTP_ENABLED=true || ${BIN}/reconfigure ${ENV_FILE} PROMETHEUS_ALERTMANAGER_SMTP_ENABLED=false) || ${BIN}/reconfigure ${ENV_FILE} PROMETHEUS_ALERTMANAGER_SMTP_ENABLED=false || true
 	@test "$$(${BIN}/dotenv -f ${ENV_FILE} get PROMETHEUS_ALERTMANAGER_SMTP_ENABLED)" == true && ${BIN}/reconfigure_ask ${ENV_FILE} PROMETHEUS_ALERTMANAGER_SMTP_FROM "Enter the SMTP default sender from address" prometheus@${ROOT_DOMAIN} || true
@@ -36,7 +36,7 @@ override-hook:
 ####   name=@VARIABLE_NAME   # sets the template 'name' field to the literal string '${VARIABLE_NAME}'
 ####                         # (used for regular docker-compose expansion of env vars by name.)
 	@${BIN}/docker_compose_override ${ENV_FILE} project=:prometheus instance=@PROMETHEUS_INSTANCE traefik_host=@PROMETHEUS_METRICS_TRAEFIK_HOST http_auth=PROMETHEUS_HTTP_AUTH http_auth_var=@PROMETHEUS_HTTP_AUTH ip_sourcerange=@PROMETHEUS_METRICS_IP_SOURCERANGE oauth2=PROMETHEUS_OAUTH2 authorized_group=PROMETHEUS_OAUTH2_AUTHORIZED_GROUP enable_mtls_auth=PROMETHEUS_MTLS_AUTH mtls_authorized_certs=PROMETHEUS_MTLS_AUTHORIZED_CERTS
-	
+
 .PHONY: compose-profiles
 compose-profiles:
 	@${BIN}/reconfigure_compose_profiles ${ENV_FILE} PROMETHEUS_NODE_EXPORTER_ENABLED=node-exporter PROMETHEUS_CADVISOR_ENABLED=cadvisor PROMETHEUS_ALERTMANAGER_ENABLED=alertmanager

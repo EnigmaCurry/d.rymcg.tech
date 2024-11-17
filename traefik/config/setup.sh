@@ -106,6 +106,12 @@ ytt_template() {
         -v layer_4_tcp_udp_proxy_enabled="${TRAEFIK_LAYER_4_TCP_UDP_PROXY_ENABLED}" \
         -v layer_4_tcp_udp_proxy_routes="${TRAEFIK_LAYER_4_TCP_UDP_PROXY_ROUTES}" \
         -v custom_entrypoints="${TRAEFIK_CUSTOM_ENTRYPOINTS}" \
+        -v metrics_prometheus_enable="${TRAEFIK_METRICS_PROMETHEUS_ENABLE}" \
+        -v metrics_prometheus_buckets="${TRAEFIK_METRICS_PROMETHEUS_BUCKETS}" \
+        -v metrics_prometheus_add_entrypoints_labels="${TRAEFIK_METRICS_PROMETHEUS_ADD_ENTRYPOINTS_LABELS}" \
+        -v metrics_prometheus_add_routers_labels="${TRAEFIK_METRICS_PROMETHEUS_ADD_ROUTERS_LABELS}" \
+        -v metrics_prometheus_add_services_labels="${TRAEFIK_METRICS_PROMETHEUS_ADD_SERVICES_LABELS}" \
+        -v metrics_prometheus_header_labels="${TRAEFIK_METRICS_PROMETHEUS_HEADER_LABELS}" \
         --data-value-yaml header_authorization_groups="${TRAEFIK_HEADER_AUTHORIZATION_GROUPS}" \
         > ${dst}
     success=$?

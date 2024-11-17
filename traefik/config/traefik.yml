@@ -336,3 +336,17 @@ entryPoints:
         - traefik-websecure-error-handler-500@file
         #@ end
   #@ end
+
+#@ if data.values.metrics_prometheus_enable == "true":
+metrics:
+  prometheus:
+    buckets:
+      #@ for bucket in data.values.metrics_prometheus_buckets.split(","):
+      - #@ bucket
+      #@ end
+    addEntryPointsLabels: #@ data.values.metrics_prometheus_add_entrypoints_labels
+    addRoutersLabels: #@ data.values.metrics_prometheus_add_routers_labels
+    addServicesLabels: #@ data.values.metrics_prometheus_add_services_labels
+    entrypoint: metrics
+    manualRouting: true
+#@ end
