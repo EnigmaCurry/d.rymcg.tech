@@ -22,6 +22,7 @@ services:
             - web_crontabs:/var/spool/cron/crontabs:Z
             - web_transcripts:/usr/share/jitsi-meet/transcripts:Z
         labels:
+            - "backup-volume.stop-during-backup=true"
             - "traefik.enable=true"
             - "traefik.http.routers.jitsi-meet.rule=Host(`${JITSIMEET_TRAEFIK_HOST}`)"
             - "traefik.http.routers.jitsi-meet.entrypoints=websecure"
@@ -218,6 +219,8 @@ services:
             meet.jitsi:
                 aliases:
                     - ${XMPP_SERVER}
+        labels:
+            - "backup-volume.stop-during-backup=true"
 
     # Focus component
     jicofo:
@@ -269,7 +272,9 @@ services:
             - prosody
         networks:
             meet.jitsi:
-
+        labels:
+            - "backup-volume.stop-during-backup=true"
+    
     # Video bridge
     jvb:
         image: jitsi/jvb:stable-6865
@@ -312,3 +317,5 @@ services:
             - prosody
         networks:
             meet.jitsi:
+        labels:
+            - "backup-volume.stop-during-backup=true"

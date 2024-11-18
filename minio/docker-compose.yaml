@@ -24,3 +24,5 @@ services:
         STEP_CA_ENABLED: ${MINIO_STEP_CA_ENABLED}
         STEP_CA_ENDPOINT: ${MINIO_STEP_CA_ENDPOINT}
         STEP_CA_FINGERPRINT: ${MINIO_STEP_CA_FINGERPRINT}
+    labels:
+      - "backup-volume.stop-during-backup=true"

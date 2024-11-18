@@ -17,6 +17,8 @@ services:
       start_period: "1s"
     volumes:
       - xbs-config:/data
+    labels:
+      - "backup-volume.stop-during-backup=true"
 
   db:
     security_opt:

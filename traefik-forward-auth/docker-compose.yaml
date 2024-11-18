@@ -32,6 +32,7 @@ services:
       - "--rule.http-options-requests.action=allow"
       - "--rule.http-options-requests.rule=Method(`OPTIONS`)"
     labels:
+      - "backup-volume.stop-during-backup=true"
       - "traefik.enable=true"
       - "traefik.http.services.traefik-forward-auth.loadbalancer.server.port=4181"
       - "traefik.http.middlewares.traefik-forward-auth.forwardAuth.address=http://127.0.0.1:4181"

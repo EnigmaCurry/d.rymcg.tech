@@ -28,7 +28,6 @@ services:
       - SMTP_USERNAME=${VAULTWARDEN_SMTP_USERNAME}
       - SMTP_PASSWORD=${VAULTWARDEN_SMTP_PASSWORD}
       - SMTP_TIMEOUT=${VAULTWARDEN_SMTP_TIMEOUT}
-
     volumes:
       - data:/data
     # labels are defined in docker-compose.instance.yaml

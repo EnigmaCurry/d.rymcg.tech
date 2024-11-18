@@ -11,6 +11,8 @@ services:
       - POSTGRES_DB=ttrss
     volumes:
       - db:/var/lib/postgresql/data
+    labels:
+      - "backup-volume.stop-during-backup=true"
 
   app:
     image: cthulhoo/ttrss-fpm-pgsql-static:latest
@@ -27,6 +29,8 @@ services:
       - config:/opt/tt-rss/config.d:ro
     depends_on:
       - db
+    labels:
+      - "backup-volume.stop-during-backup=true"
 
   backups:
     image: cthulhoo/ttrss-fpm-pgsql-static:latest
@@ -44,6 +48,8 @@ services:
     depends_on:
       - db
     command: /opt/tt-rss/dcron.sh -f
+    labels:
+      - "backup-volume.stop-during-backup=true"
 
   updater:
     image: cthulhoo/ttrss-fpm-pgsql-static:latest
@@ -61,6 +67,8 @@ services:
     depends_on:
       - app
     command: /opt/tt-rss/updater.sh
+    labels:
+      - "backup-volume.stop-during-backup=true"
 
   web-nginx:
     image: cthulhoo/ttrss-web-nginx:latest
