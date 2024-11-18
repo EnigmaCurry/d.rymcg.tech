@@ -17,6 +17,8 @@ services:
     volumes:
       - mopidy_config:/mopidy_config
       - snapserver_config:/snapserver_config
+    labels:
+      - "backup-volume.stop-during-backup=true"
 
   mopidy:
     depends_on: ['config']
@@ -30,6 +32,7 @@ services:
       - mopidy_config:/home/mopidy/.config/mopidy
     restart: unless-stopped
     labels:
+      - "backup-volume.stop-during-backup=true"
       - "traefik.enable=true"
       ## MPD client
       - "traefik.tcp.routers.mopidy-${MOPIDY_INSTANCE:-default}.rule=ClientIP(`0.0.0.0/0`)"
@@ -50,6 +53,7 @@ services:
       - snapserver_config:/etc/snapserver
     restart: unless-stopped
     labels:
+      - "backup-volume.stop-during-backup=true"
       - "traefik.enable=true"
       ## Web client:
       - "traefik.http.services.snapserver-${MOPIDY_INSTANCE:-default}.loadbalancer.server.port=1780"

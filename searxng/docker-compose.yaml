@@ -23,7 +23,6 @@ services:
     labels:
       - "backup-volume.stop-during-backup=true"
 
-
   config:
     build:
       context: config

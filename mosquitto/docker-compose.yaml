@@ -12,6 +12,9 @@ services:
       - MOSQUITTO_TRAEFIK_HOST
     volumes:
       - mosquitto:/mosquitto
+    labels:
+      - "backup-volume.stop-during-backup=true"
+
 
   mosquitto:
     depends_on: ['config']
@@ -20,6 +23,7 @@ services:
       - no-new-privileges:true
     restart: unless-stopped
     labels:
+      - "backup-volume.stop-during-backup=true"
       - "traefik.enable=true"
       - "traefik.tcp.routers.mqtt.rule=HostSNI(`${MOSQUITTO_TRAEFIK_HOST}`)"
       - "traefik.tcp.routers.mqtt.entrypoints=mqtt"
