@@ -544,6 +544,7 @@ Install these other services at your leisure/preference:
 * [DOH-server](doh-server#readme) - a DNS-over-HTTPs proxy resolver
 * [DrawIO](drawio#readme) - a diagram / whiteboard editor tool
 * [Ejabberd](ejabberd#readme) - an XMPP (Jabber) server
+* [Faasd](faasd#readme) - a lightweight "serverless" compute platform
 * [Filestash](filestash#readme) - a web based file manager with customizable backend storage providers
 * [FreshRSS](freshrss#readme) - an RSS reader / proxy
 * [Glances](glances#readme) - a cross-platform system monitoring tool
