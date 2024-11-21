@@ -66,7 +66,7 @@ localdb: client
 
 .PHONY: chinook # Import Chinook sample database
 chinook:
-	docker compose --env-file=${ENV_FILE} exec postgres /bin/sh -c 'createdb chinook && psql -c "create role chinook; grant chinook to $${POSTGRES_DB};" && PGUSER=$${POSTGRES_DB} pgloader https://github.com/lerocha/chinook-database/raw/master/ChinookDatabase/DataSources/Chinook_Sqlite_AutoIncrementPKs.sqlite pgsql:///chinook'
+	docker compose --env-file=${ENV_FILE} exec postgres /bin/sh -c 'createdb chinook && psql -c "create role chinook; grant chinook to $${POSTGRES_DB};" && PGUSER=root pgloader https://github.com/lerocha/chinook-database/raw/master/ChinookDatabase/DataSources/Chinook_Sqlite_AutoIncrementPKs.sqlite pgsql:///chinook'
 
 .PHONY: psql-alias # Get the psql alias with baked connection string
 psql-alias:
