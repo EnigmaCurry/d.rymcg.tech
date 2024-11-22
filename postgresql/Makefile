@@ -14,7 +14,7 @@ psql:
 
 .PHONY: shell
 shell:
-	@make --no-print-directory docker compose-shell SERVICE=psotgres
+	@make --no-print-directory docker compose-shell SERVICE=postgres
 
 .PHONY: client # Get client certificate and private key files
 client:
@@ -66,7 +66,12 @@ localdb: client
 
 .PHONY: chinook # Import Chinook sample database
 chinook:
-	docker compose --env-file=${ENV_FILE} exec postgres /bin/sh -c 'createdb chinook && psql -c "create role chinook; grant chinook to $${POSTGRES_DB};" && PGUSER=$${POSTGRES_DB} pgloader https://github.com/lerocha/chinook-database/raw/master/ChinookDatabase/DataSources/Chinook_Sqlite_AutoIncrementPKs.sqlite pgsql:///chinook'
+	@POSTGRES_DB=$$(${BIN}/dotenv -f ${ENV_FILE} get POSTGRES_DB); set -x; docker compose --env-file=${ENV_FILE} exec postgres /bin/sh -c 'createdb chinook && PGUSER=root pgloader https://github.com/lerocha/chinook-database/raw/master/ChinookDatabase/DataSources/Chinook_Sqlite_AutoIncrementPKs.sqlite pgsql:///chinook && psql -c "create role chinook;" && psql -d chinook -c "GRANT chinook to $${POSTGRES_DB}; GRANT ALL PRIVILEGES ON ALL TABLES IN SCHEMA public TO chinook; GRANT ALL PRIVILEGES ON ALL SEQUENCES IN SCHEMA public TO chinook;"'
+
+.PHONY: drop-chinook # Delete the chinook sample database
+drop-chinook:
+	docker compose --env-file=${ENV_FILE} exec postgres /bin/sh -c 'psql -X -c "drop database chinook"' || true
+	docker compose --env-file=${ENV_FILE} exec postgres /bin/sh -c 'psql -X -c "drop role chinook"' || true
 
 .PHONY: psql-alias # Get the psql alias with baked connection string
 psql-alias:

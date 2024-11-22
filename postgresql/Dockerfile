@@ -1,13 +1,15 @@
 ARG POSTGRES_VERSION=17
 
 FROM postgres:${POSTGRES_VERSION}
+ARG PGRATIONAL_GIT_REPO=https://github.com/begriffs/pg_rational.git
 ARG PGRATIONAL_VERSION=v0.0.2
 WORKDIR /src
 RUN apt-get update && \
 
     ## Install pg_rational
-    DEBIAN_FRONTEND=noninteractive apt-get install -y build-essential git postgresql-server-dev-all pgloader && \
-    git clone https://github.com/begriffs/pg_rational.git && \
+    DEBIAN_FRONTEND=noninteractive apt-get install -y build-essential git \
+      postgresql-server-dev-all pgloader && \
+    git clone ${PGRATIONAL_GIT_REPO} && \
     cd pg_rational && \
     git checkout ${PGRATIONAL_VERSION} && \
     make && \
