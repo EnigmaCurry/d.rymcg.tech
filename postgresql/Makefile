@@ -14,7 +14,7 @@ psql:
 
 .PHONY: shell
 shell:
-	@make --no-print-directory docker compose-shell SERVICE=psotgres
+	@make --no-print-directory docker compose-shell SERVICE=postgres
 
 .PHONY: client # Get client certificate and private key files
 client:
