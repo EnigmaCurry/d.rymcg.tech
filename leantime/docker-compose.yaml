@@ -1,0 +1,60 @@
+services:
+  leantime_db:
+    image: ${LEANTIME_MYSQL_IMAGE}
+    volumes:
+      - db_data:/var/lib/mysql
+    restart: unless-stopped
+    environment:
+      - MYSQL_ROOT_PASSWORD=${LEANTIME_MYSQL_ROOT_PASSWORD}
+      - MYSQL_DATABASE=leantime
+      - MYSQL_USER=lean
+      - MYSQL_PASSWORD=${LEANTIME_MYSQL_PASSWORD}
+    command: --character-set-server=UTF8MB4 --collation-server=UTF8MB4_unicode_ci
+
+  leantime:
+    image: ${LEANTIME_IMAGE}
+    restart: unless-stopped
+    volumes:
+      - public_userfiles:/var/www/html/public/userfiles
+      - userfiles:/var/www/html/userfiles
+      - plugins:/var/www/html/app/Plugins
+    environment:
+      - LEAN_PORT=8081
+      - LEAN_APP_URL=https://${LEANTIME_TRAEFIK_HOST}
+      - LEAN_APP_DIR=
+      - LEAN_DEBUG=${LEANTIME_DEBUG}
+      - LEAN_DB_HOST=leantime_db
+      - LEAN_DB_USER=lean
+      - LEAN_DB_PASSWORD=${LEANTIME_MYSQL_PASSWORD}
+      - LEAN_DB_DATABASE=leantime
+      - LEAN_DB_PORT=3306
+      - LEAN_SESSION_PASSWORD=${LEANTIME_SESSION_PASSWORD}
+      - LEAN_EMAIL_RETURN=${LEANTIME_EMAIL_RETURN}
+      - LEAN_EMAIL_USE_SMTP=${LEANTIME_EMAIL_USE_SMTP}
+      - LEAN_EMAIL_SMTP_HOSTS=${LEANTIME_EMAIL_SMTP_HOSTS}
+      - LEAN_EMAIL_SMTP_AUTH=${LEANTIME_EMAIL_SMTP_AUTH}
+      - LEAN_EMAIL_SMTP_USERNAME=${LEANTIME_EMAIL_SMTP_USERNAME}
+      - LEAN_EMAIL_SMTP_PASSWORD=${LEANTIME_EMAIL_SMTP_PASSWORD}
+      - LEAN_EMAIL_SMTP_AUTO_TLS=${LEANTIME_EMAIL_SMTP_AUTO_TLS}
+      - LEAN_EMAIL_SMTP_SECURE=${LEANTIME_EMAIL_SMTP_SECURE}
+      - LEAN_EMAIL_SMTP_SSLNOVERIFY=${LEANTIME_EMAIL_SMTP_SSLNOVERIFY}
+      - LEAN_EMAIL_SMTP_PORT=${LEANTIME_EMAIL_SMTP_PORT}
+    depends_on:
+      - leantime_db
+    #cap_drop:
+    #  - ALL
+    #cap_add:
+    #  - SETGID
+    #  - SETUID
+    # before hardening, need to determine what other capabilities are needed
+    #security_opt:
+    #  - no-new-privileges:true
+    #sysctls:
+    #  - net.ipv4.ip_unprivileged_port_start=1024
+    labels: []
+
+volumes:
+  db_data:
+  userfiles:
+  public_userfiles:
+  plugins:

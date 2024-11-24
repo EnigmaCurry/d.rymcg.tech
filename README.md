@@ -555,6 +555,7 @@ Install these other services at your leisure/preference:
 * [Jitsi Meet](jitsi-meet#readme) - a video conferencing and screencasting service
 * [Jupyterlab](jupyterlab#readme) - a web based code editing environment / reproducible research tool
 * [Larynx](larynx#readme) - a speech synthesis engine
+* [Leantime](leantime#readme) - a project management tool
 * [Lemmy](lemmy#readme) - a link aggregator and forum for the fediverse
 * [Matterbridge](matterbridge#readme) - a chat room bridge (IRC, Matrix, XMPP, etc)
 * [Maubot](maubot#readme) - a matrix Bot
