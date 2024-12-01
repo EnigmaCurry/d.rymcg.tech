@@ -4,6 +4,6 @@
 		"child_process": "^1.0.2",
 		"express": "^4.20.0",
 		"http": "0.0.1-security",
-		"ip": "^2.0.1"
+		"ip": "^2.0.2"
 	}
 }
