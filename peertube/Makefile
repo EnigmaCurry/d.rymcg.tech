@@ -56,4 +56,4 @@ override-hook:
 
 .PHONY: shell
 shell:
-	@make --no-print-directory docker-compose-shell SERVICE=peertube
+	@container=$$(eval "${BIN}/script-wizard choose 'docker exec -it into which container?' 'peertube' 'postgres' 'redis' 'postfix' --default 'peertube'") && make --no-print-directory docker-compose-shell SERVICE=$${container}
