@@ -9,6 +9,7 @@ services:
       - DB_PASSWORD=${IMMICH_DB_PASSWORD}
       - DB_USERNAME=${IMMICH_DB_USER}
       - DB_DATABASE_NAME=${IMMICH_DB}
+      - IMMICH_TELEMETRY_INCLUDE=all
     depends_on:
       - redis
       - database
