@@ -1,0 +1,89 @@
+services:
+  server:
+    image: standardnotes/server
+    #container_name: server_self_hosted
+    restart: unless-stopped
+    #ports:
+    #  - 3000:3000
+    #  - 3125:3104
+    volumes:
+      - logs:/var/lib/server/logs
+      - uploads:/opt/server/packages/files/dist/uploads
+    environment:
+      - DB_HOST=db
+      - DB_PORT=3306
+      - DB_USERNAME=std_notes_user
+      - DB_PASSWORD=${STANDARDNOTES_DB_PASSWORD}
+      - DB_DATABASE=standard_notes_db
+      - DB_TYPE=mysql
+      - AUTH_JWT_SECRET=${STANDARDNOTES_AUTH_JWT_SECRET}
+      - AUTH_SERVER_ENCRYPTION_SERVER_KEY=${STANDARDNOTES_AUTH_SERVER_ENCRYPTION_SERVER_KEY}
+      - VALET_TOKEN_SECRET=${STANDARDNOTES_VALET_TOKEN_SECRET}
+      - REDIS_PORT=6379
+      - REDIS_HOST=cache
+      - CACHE_TYPE=redis
+    #networks:
+    #  - standardnotes_self_hosted
+    #cap_drop:
+    #  - ALL
+    #security_opt:
+    #  - no-new-privileges:true
+    #sysctls:
+    #  - net.ipv4.ip_unprivileged_port_start=1024
+    labels: []
+
+  localstack:
+    image: localstack/localstack:3.0
+    expose:
+      - 4566
+    restart: unless-stopped
+    environment:
+      - SERVICES=sns,sqs
+      - HOSTNAME_EXTERNAL=localstack
+      - LS_LOG=warn
+    volumes:
+      - ./localstSTANDARDNOTES_DB_PASSWORDack/localstack_bootstrap.sh:/etc/localstack/init/ready.d/localstack_bootstrap.sh
+    #networks:
+    #  - standardnotes_self_hosted
+
+  db:
+    image: mysql:8
+    environment:
+      - MYSQL_DATABASE=standard_notes_db
+      - MYSQL_USER=std_notes_user
+      - MYSQL_ROOT_PASSWORD=${STANDARDNOTES_DB_PASSWORD}
+      - MYSQL_PASSWORD=${STANDARDNOTES_DB_PASSWORD}
+    expose:
+      - 3306
+    restart: unless-stopped
+    volumes:
+      - mysql:/var/lib/mysql
+      - mysql_import:/docker-entrypoint-initdb.d
+    #networks:
+    #  - standardnotes_self_hosted
+
+  cache:
+    image: redis:6.0-alpine
+    volumes:
+      - redis:/data
+    expose:
+      - 6379
+    restart: unless-stopped
+    #environment:
+      #- REDIS_PORT=6379
+      #- REDIS_HOST=cache
+      #- CACHE_TYPE=redis
+
+    #networks:
+    #  - standardnotes_self_hosted
+
+volumes:
+  logs:
+  uploads:
+  redis:
+  mysql:
+  mysql_import:
+    
+#networks:
+#  standardnotes_self_hosted:
+#    name: standardnotes_self_hosted
