@@ -1,0 +1,32 @@
+services:
+  speedtest-tracker:
+    image: ${SPEEDTEST_TRACKER_IMAGE}
+    restart: unless-stopped
+    #ports:
+    #    - 8080:80
+    #    - 8443:443
+    environment:
+      - PUID=${SPEEDTEST_TRACKER_UID}
+      - PGID=${SPEEDTEST_TRACKER_GID}
+      - APP_KEY=${SPEEDTEST_TRACKER_APP_KEY}
+      - DB_CONNECTION=sqlite
+      - ADMIN_NAME=${SPEEDTEST_TRACKER_ADMIN_NAME}
+      - ADMIN_EMAIL=${SPEEDTEST_TRACKER_ADMIN_EMAIL}
+      - ADMIN_PASSWORD=${SPEEDTEST_TRACKER_ADMIN_PASSWORD}
+      - DISPLAY_TIMEZONE=${SPEEDTEST_TRACKER_DISPLAY_TIMEZONE}
+      - APP_URL=${SPEEDTEST_TRACKER_TRAEFIK_HOST}
+      - ASSET_URL=${SPEEDTEST_TRACKER_TRAEFIK_HOST}
+    volumes:
+      - data:/config
+      - keys:/config/keys
+    #cap_drop:
+    #  - ALL
+    #security_opt:
+    #  - no-new-privileges:true
+    #sysctls:
+    #  - net.ipv4.ip_unprivileged_port_start=1024
+    labels: []
+  
+volumes:
+  data:
+  keys:
