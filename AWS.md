@@ -351,7 +351,7 @@ Create the IAM policy:
       "Condition": {
         "ForAllValues:StringEquals": {
           "route53:ChangeResourceRecordSetsNormalizedRecordNames": [
-            "_acme-challenge.example.com"
+            "_acme-challenge.docker-dev.example.com"
           ],
           "route53:ChangeResourceRecordSetsRecordTypes": [
             "TXT"
