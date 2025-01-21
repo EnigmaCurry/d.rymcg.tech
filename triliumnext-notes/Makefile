@@ -29,4 +29,4 @@ override-hook:
 
 .PHONY: shell
 shell:
-	@make --no-print-directory docker-compose-shell SERVICE=triliumnext_notes
+	@make --no-print-directory docker-compose-shell SERVICE=triliumnext-notes
