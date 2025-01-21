@@ -1,0 +1,23 @@
+services:
+  triliumnext_notes:
+    image: ${TRILIUMNEXT_NOTES_IMAGE}
+    # triliumnext_notes needs no special privileges, so we drop them all. see SECURITY.md for details.
+    cap_drop:
+      - ALL
+    cap_add:
+      - SYS_ADMIN
+      - CHOWN
+      - SETGID
+      - SETUID
+    security_opt:
+      - no-new-privileges:true
+    # Good practice to not allow unprivileged processes to use ports <1024:
+    sysctls:
+      - net.ipv4.ip_unprivileged_port_start=1024
+    restart: unless-stopped
+    volumes:
+      - data:/home/node/trilium-data
+    labels: []
+
+volumes:
+  data:
