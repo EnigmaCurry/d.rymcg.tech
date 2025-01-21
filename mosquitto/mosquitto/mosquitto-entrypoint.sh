@@ -4,10 +4,16 @@ set -e
 timeout=300  # 5 minutes in seconds
 interval=5   # Check every 5 seconds
 
+if [[ -z "${MOSQUITTO_TRAEFIK_HOST}" ]]; then
+    echo "MOSQUITTO_TRAEFIK_HOST is empty".
+    exit 1
+fi
+
 while [ $timeout -gt 0 ]; do
-    if [ -f /mosquitto/certs/fullchain.pem ] && \
-       [ -f /mosquitto/certs/cert.pem ] && \
-       [ -f /mosquitto/certs/privkey.pem ]; then
+    if [ -f /mosquitto/certs/${MOSQUITTO_TRAEFIK_HOST}.crt ] && \
+       [ -f /mosquitto/certs/${MOSQUITTO_TRAEFIK_HOST}.key ] && \
+       [ -f /mosquitto/certs/root_ca.crt ]; then
+        chown -R mosquitto:mosquitto /mosquitto/certs/*
         echo "## Found full TLS certificate chain."
         break
     fi

@@ -1,12 +1,20 @@
 ROOT_DIR = ..
 include ${ROOT_DIR}/_scripts/Makefile.projects
 
+STEP=step-cli
+
 .PHONY: config-hook
 config-hook:
 	@${BIN}/reconfigure_ask ${ENV_FILE} MOSQUITTO_TRAEFIK_HOST "Enter the MQTT domain name" mqtt.${ROOT_DOMAIN}
-	@${BIN}/reconfigure_ask ${ENV_FILE} MOSQUITTO_CERTBOT_SERVER "Enter the (certbot) Step-CA server ACME directory URL" https://ca.example.com/acme/acme-directory
-	@ALLOW_BLANK=1 ${BIN}/reconfigure_ask ${ENV_FILE} MOSQUITTO_CERTBOT_EMAIL "Enter your (certbot) ACME email address (optional)"
-
+	@${BIN}/reconfigure_ask ${ENV_FILE} MOSQUITTO_STEP_CA_URL "Enter the Step-CA URL" $$(cat $$(${STEP} path)/config/defaults.json | jq -r '."ca-url"')
+	@echo
+	@echo "Retrieving Step-CA fingerprint from $$(${BIN}/dotenv -f ${ENV_FILE} get MOSQUITTO_STEP_CA_URL)/roots.pem ..."
+	@${BIN}/reconfigure_ask ${ENV_FILE} MOSQUITTO_STEP_CA_FINGERPRINT "VERIFY the Step-CA fingerprint" $$(${STEP} ca root | ${STEP} certificate fingerprint)
+	@${BIN}/reconfigure ${ENV_FILE} MOSQUITTO_STEP_CA_TOKEN="" &>/dev/null # clear one-time-user token each time
+	@echo "Retrieving one-time-use token from Step-CA server."
+	@echo "Get ready to enter your root Step-CA ceredentials!"
+	@echo
+	@${BIN}/reconfigure ${ENV_FILE} MOSQUITTO_STEP_CA_TOKEN="$$(step-cli ca token mqtt.z.rymcg.tech --provisioner admin)"
 
 .PHONY: admin # Create admin account (this clears ALL accounts and creates a new admin)
 admin:

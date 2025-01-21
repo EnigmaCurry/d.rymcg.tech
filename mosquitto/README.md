@@ -1,59 +1,66 @@
 # Mosquitto
+
 [Mosquitto](https://mosquitto.org/) is an MQTT pub/sub message broker. 
 
-You can use it in combination with [node-red](../nodered) to create easy task
-automation pipelines.
+Example use cases:
 
-You can use it in combination with [minio](../minio) to respond to S3 bucket
+ * Use it in combination with [node-red](../nodered) to create easy task
+automation pipelines.
+ * Use it in combination with [minio](../minio) to respond to S3 bucket
 events (lambda)
 
-## Background
+## Deploy Step-CA
 
-Good blog posts:
+Mosquitto is configured to use Mutual TLS via [Step-CA](../step-ca):
 
- * [S-MQTTT, or: secure-MQTT-over-Traefik](https://jurian.slui.mn/posts/smqttt-or-secure-mqtt-over-traefik/)
- * [MQTT – How to use ACLs and multiple user accounts](https://blog.jaimyn.dev/mqtt-use-acls-multiple-user-accounts/)
+ * Follow the README to `config` and `install` your
+   [Step-CA](../step-ca) instance (it does not need to be on the same
+   server, but can be).
+ * You do not need to create any certificates or clients by hand.
+ * ACME is not required for this scenario (tokens will be used
+   instead).
 
-## Enable MQTT Traefik Entrypoint
-
-You must enable the MQTT Traefik entrypoint (TCP port 8883) and
-reinstall Traefik:
+Your workstation needs to have the `step-cli` tool installed, and it
+needs to be bootstrapped to connect to your Step-CA server instance.
 
 ```
-make -C ../traefik reconfigure var=TRAEFIK_MQTT_ENTRYPOINT_ENABLED=true
-make -C ../traefik install
+## Use either method:
+
+## Method 1: use the step-ca Makefile target:
+## (you may have already done this if you installed Step-CA on the same machine)
+make -C ~/git/vendor/enigmacurry/d.rymcg.tech/step-ca/ client-bootstrap
+
+## Method 2: if you want to do it manually from a new machine:
+FINGERPRINT=$(curl -sk https://ca.rymcg.tech/roots.pem | \
+  docker run --rm -i smallstep/step-cli step certificate fingerprint -)
+step-cli ca bootstrap --ca-url https://ca.rymcg.tech --fingerprint ${FINGERPRINT}
+
+## Check the status (should print 'ok'):
+step-cli health
 ```
 
 ## Config
 
-Run `make config` or copy `.env-dist` to
-`.env_${DOCKER_CONTEXT}_default`, and edit variables accordingly.
+Run:
+
+```
+make config
+```
+
+Set:
 
  * `MOSQUITTO_TRAEFIK_HOST` the external domain name to forward from traefik.
+ * `MOSQUITTO_STEP_CA_URL` the root URL of your Step-CA instance
+   (e.g., `https://ca.example.com`)
+ * The `MOSQUITTO_STEP_CA_TOKEN` will be automatically set.
 
-Before starting mosquitto, create the user accounts you need:
+## Install
 
-```
-make admin
-```
-
-The `admin` password will be printed to the terminal.
-
-You can add additional users and print their passwords:
+Run:
 
 ```
-make user
+make install
 ```
-
-List all the user accounts:
-
-```
-make list-users
-```
-
-## Run
-
-Start mosquitto with `make install` or `docker-compose up -d`
 
 ## Test it
 

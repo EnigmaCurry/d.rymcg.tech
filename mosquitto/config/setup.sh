@@ -8,7 +8,7 @@ create_config() {
     echo "Creating new config from template (${TEMPLATE}) ..."
     mkdir -p ${CONFIG_DIR}
     rm -f ${CONFIG}
-    cat /template/mosquitto.conf | envsubst > ${CONFIG}
+    cat /template/mosquitto.conf | envsubst '${MOSQUITTO_TRAEFIK_HOST}' > ${CONFIG}
     echo "[ ! ] GENERATED NEW CONFIG FILE ::: ${CONFIG}"
     touch ${CONFIG_DIR}/passwd
     echo "[ ! ] GENERATED NEW CONFIG FILE ::: ${CONFIG}"

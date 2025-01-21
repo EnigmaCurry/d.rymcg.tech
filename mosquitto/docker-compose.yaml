@@ -1,7 +1,6 @@
 volumes:
   mosquitto:
-  certbot-config:
-  certbot-certs:
+  certs:
 
 services:
   config:
@@ -34,25 +33,24 @@ services:
       test: ["CMD", "test", "!", "-f", "/mosquitto/certs/restart-trigger"]
       interval: 10s
       timeout: 5s
+    environment:
+      - MOSQUITTO_TRAEFIK_HOST
     volumes:
       - mosquitto:/mosquitto/config:ro
-      - certbot-certs:/mosquitto/certs:ro
+      - certs:/mosquitto/certs
 
-  certbot:
-    image: certbot/certbot
+  step-cli:
+    build:
+      context: step-cli
+      args:
+        STEP_CLI_IMAGE: ${MOSQUITTO_STEP_CLI_IMAGE}
     environment:
-      - CERTBOT_EMAIL=${MOSQUITTO_CERTBOT_EMAIL}
-      - CERTBOT_SERVER=${MOSQUITTO_CERTBOT_SERVER}
-      - CERTBOT_AGREE_TOS=true
-      - CERTBOT_RSA_KEY_SIZE=4096
-      - CERTBOT_RENEW_BY_DEFAULT=true
-      - CERTBOT_WEBROOT_PATH=/var/www/certbot
+      - MOSQUITTO_ACME_SERVER
+      - MOSQUITTO_ACME_EMAIL
+      - MOSQUITTO_TRAEFIK_HOST
+      - MOSQUITTO_STEP_CA_URL
+      - MOSQUITTO_STEP_CA_FINGERPRINT
+      - MOSQUITTO_STEP_CA_TOKEN
     volumes:
-      - certbot-config:/etc/letsencrypt
-      - certbot-certs:/etc/letsencrypt/live
-    logging:
-      driver: "json-file"
-      options:
-        max-size: "10m"
-        max-file: "3"
+      - certs:/home/step/certs
 
