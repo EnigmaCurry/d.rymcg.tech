@@ -4,6 +4,9 @@ include ${ROOT_DIR}/_scripts/Makefile.projects
 .PHONY: config-hook
 config-hook:
 	@${BIN}/reconfigure_ask ${ENV_FILE} MOSQUITTO_TRAEFIK_HOST "Enter the MQTT domain name" mqtt.${ROOT_DOMAIN}
+	@${BIN}/reconfigure_ask ${ENV_FILE} MOSQUITTO_CERTBOT_SERVER "Enter the (certbot) Step-CA server ACME directory URL" https://ca.example.com/acme/acme-directory
+	@ALLOW_BLANK=1 ${BIN}/reconfigure_ask ${ENV_FILE} MOSQUITTO_CERTBOT_EMAIL "Enter your (certbot) ACME email address (optional)"
+
 
 .PHONY: admin # Create admin account (this clears ALL accounts and creates a new admin)
 admin:

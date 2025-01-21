@@ -13,6 +13,8 @@ create_config() {
     touch ${CONFIG_DIR}/passwd
     echo "[ ! ] GENERATED NEW CONFIG FILE ::: ${CONFIG}"
     cat /template/acl.conf | envsubst > ${ACL}
+    chmod 0700 ${ACL}
+    chown 1883:1883 ${ACL}
     echo "[ ! ] GENERATED NEW ACL FILE ::: ${ACL}"
     [[ $PRINT_CONFIG == true ]] && cat ${CONFIG} && echo "------" && cat ${ACL}
 }

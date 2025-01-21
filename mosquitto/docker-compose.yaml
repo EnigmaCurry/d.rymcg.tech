@@ -1,6 +1,7 @@
-
 volumes:
   mosquitto:
+  certbot-config:
+  certbot-certs:
 
 services:
   config:
@@ -11,28 +12,47 @@ services:
     environment:
       - MOSQUITTO_TRAEFIK_HOST
     volumes:
-      - mosquitto:/mosquitto
+      - mosquitto:/mosquitto/config
     labels:
       - "backup-volume.stop-during-backup=true"
-
 
   mosquitto:
     depends_on: ['config']
-    image: "eclipse-mosquitto:${MOSQUITTO_VERSION}"
+    build:
+      context: mosquitto
+      args:
+        MOSQUITTO_IMAGE: ${MOSQUITTO_IMAGE}
     security_opt:
       - no-new-privileges:true
     restart: unless-stopped
+    ports:
+      - "8884:8884"
     labels:
       - "backup-volume.stop-during-backup=true"
-      - "traefik.enable=true"
-      - "traefik.tcp.routers.mqtt.rule=HostSNI(`${MOSQUITTO_TRAEFIK_HOST}`)"
-      - "traefik.tcp.routers.mqtt.entrypoints=mqtt"
-      - "traefik.tcp.routers.mqtt.service=mqtt"
-      - "traefik.tcp.services.mqtt.loadBalancer.server.port=1883"
-      - "traefik.tcp.routers.mqtt.tls=true"
-      - "traefik.tcp.routers.mqtt.tls.domains[0].main=${MOSQUITTO_TRAEFIK_HOST}"
-      - "traefik.tcp.routers.mqtt.tls.certresolver=${MOSQUITTO_ACME_CERT_RESOLVER}"
-      - "traefik.tcp.middlewares.mqtt-ipallowlist.ipallowlist.sourcerange=${MOSQUITTO_IP_SOURCERANGE}"
-      - "traefik.tcp.routers.mqtt.middlewares=mqtt-ipallowlist"
+    entrypoint: ["/mosquitto/mosquitto-entrypoint.sh"]
+    healthcheck:
+      test: ["CMD", "test", "!", "-f", "/mosquitto/certs/restart-trigger"]
+      interval: 10s
+      timeout: 5s
     volumes:
-      - mosquitto:/mosquitto
+      - mosquitto:/mosquitto/config:ro
+      - certbot-certs:/mosquitto/certs:ro
+
+  certbot:
+    image: certbot/certbot
+    environment:
+      - CERTBOT_EMAIL=${MOSQUITTO_CERTBOT_EMAIL}
+      - CERTBOT_SERVER=${MOSQUITTO_CERTBOT_SERVER}
+      - CERTBOT_AGREE_TOS=true
+      - CERTBOT_RSA_KEY_SIZE=4096
+      - CERTBOT_RENEW_BY_DEFAULT=true
+      - CERTBOT_WEBROOT_PATH=/var/www/certbot
+    volumes:
+      - certbot-config:/etc/letsencrypt
+      - certbot-certs:/etc/letsencrypt/live
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
