@@ -21,8 +21,8 @@
 
 #@yaml/text-templated-strings
 services:
-  triliumnext_notes:
-    #@ service = "triliumnext_notes"
+  triliumnext-notes:
+    #@ service = "triliumnext-notes"
     labels:
       - "backup-volume.stop-during-backup=true"
       #! Services must opt-in to be proxied by Traefik:

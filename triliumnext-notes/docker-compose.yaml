@@ -1,7 +1,8 @@
 services:
-  triliumnext_notes:
+  triliumnext-notes:
     image: ${TRILIUMNEXT_NOTES_IMAGE}
-    # triliumnext_notes needs no special privileges, so we drop them all. see SECURITY.md for details.
+    environment:
+      TRUST_PROXY: 10.13.16.1
     cap_drop:
       - ALL
     cap_add:
