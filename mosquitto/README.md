@@ -97,7 +97,7 @@ and they resolve to the client's Common Name.
 ```
 ## Example ACL for all authenticated users:
 ## All users should be able to read/write to the test (sub)topics:
-## ('pattern' must be used instead of 'topic' when the user is not explict)
+## ('pattern' must be used instead of 'topic' when the user is not explicit.)
 pattern readwrite test/#
 
 ## Example ACL for the user foo.clients.mqtt.example.com :
@@ -111,6 +111,11 @@ topic readwrite devices/doorbell
 user bar.clients.mqtt.example.com
 topic read sensors/temperature
 topic read devices/doorbell
+
+## Example ACL for the user alice.clients.mqtt.example.com :
+## alice cannot access any topics:
+user alice.clients.mqtt.example.com
+
 ```
 
 Be aware that mqtt clients receive no positive feedback on whether or
@@ -258,16 +263,20 @@ certificate key? If that happens to you five years from now, an
 attacker can still use that valid key for another 95 years AND they
 can renew the certificate indefinitely!
 
-Thankfully, you can simply disable access to a given key via the ACL:
+Thankfully, as long as all of your rules are explicit per-user, you
+can simply disable access via the ACL:
 
 ```
-# Deny access to a specific user by not defining any rules
+# Deny access to a user by not specifying any topic rules for them
+# (But!! they can still access topics with non-user specific
+#  ACLs like the example 'pattern readwrite test/#')
 user alice.clients.mqtt.example.com
 
 ```
 
 The certificate will still be valid (until it expires), but it won't
-be able to read or write to any topic.
+be able to read or write to any topic (again, as long as all of your
+rules are all specific to users).
 
 You can also prevent the certificate from being renewed (passive
 revocation):
