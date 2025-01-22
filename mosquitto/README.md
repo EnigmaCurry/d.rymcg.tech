@@ -15,8 +15,7 @@ events (lambda)
 
 ## Deploy Step-CA
 
-Mosquitto is configured to require Mutual TLS via
-[Step-CA](../step-ca):
+Mosquitto is configured to require Mutual TLS:
 
  * Follow the [Step-CA README](../step-ca) to `config` and `install`
    your CA server (it does not need to be on the same machine, but it
