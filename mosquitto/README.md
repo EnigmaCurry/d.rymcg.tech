@@ -201,10 +201,16 @@ flash the certificate into the device ROM along with your software.
 Manually renewing certificates for 100 embedded devices is not exactly
 fun.
 
-Choose an expiration time that is a balance between convenience and
-security. [.env-dist](.env-dist) contains the default setting
-`MOSQUITTO_CLIENT_CERT_EXPIRATION_HOURS=2160`, which sets the client
-certificate expiration to 90 days (via `make cert`).
+The mosquitto server certificate will be renewed automatically by the
+[step-cli](step-cli) sidecar container. You can similarly setup a
+step-cli cron job to maintain any other certificates. For embedded
+devices, you will still probably need to generate/renew certificates
+by hand via `make cert`.
+
+Choose a certificate expiration time that is a balance between
+convenience and security. [.env-dist](.env-dist) contains the default
+setting `MOSQUITTO_CLIENT_CERT_EXPIRATION_HOURS=2160`, which sets the
+client certificate expiration to 90 days (via `make cert`).
 
 2160 hours is also the default MAX setting for Step-CA. If you want to
 have expiration times longer than this you must edit the Step-CA .env
@@ -230,5 +236,5 @@ user alice.clients.mqtt.example.com
 
 ```
 
-The certificate will still be valid, but it won't be able to read or
-write to any topic.
+The certificate will still be valid (until it expires), but it won't
+be able to read or write to any topic.
