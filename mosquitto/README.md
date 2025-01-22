@@ -35,8 +35,10 @@ Mosquitto is configured to require Mutual TLS via
  * ACME is not required for this scenario (one-time-use API tokens
    will be issued instead).
 
-Your workstation needs to have the `step-cli` tool installed, and it
-needs to be bootstrapped to connect to your Step-CA server instance.
+Your workstation needs to have the
+[step-cli](https://smallstep.com/docs/step-cli/installation/) tool
+installed (use your package manager), and it needs to be bootstrapped
+to connect to your Step-CA server instance:
 
 ```
 ## Use either method:
