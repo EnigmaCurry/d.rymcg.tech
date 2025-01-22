@@ -10,6 +10,8 @@ Example use cases:
 automation pipelines.
  * Use it in combination with [minio](../minio) to respond to S3 bucket
 events (lambda)
+ * Write code for an embedded arduino microcontroller (e.g., ESP32) to
+   publish sensor data.
 
 ## Deploy Step-CA
 
@@ -44,9 +46,9 @@ needs to be bootstrapped to connect to your Step-CA server instance.
 make -C ~/git/vendor/enigmacurry/d.rymcg.tech/step-ca/ client-bootstrap
 
 ## Method 2: if you want to do it manually from a new machine:
-FINGERPRINT=$(curl -sk https://ca.rymcg.tech/roots.pem | \
+FINGERPRINT=$(curl -sk https://ca.example.com/roots.pem | \
   docker run --rm -i smallstep/step-cli step certificate fingerprint -)
-step-cli ca bootstrap --ca-url https://ca.rymcg.tech --fingerprint ${FINGERPRINT}
+step-cli ca bootstrap --ca-url https://ca.example.com --fingerprint ${FINGERPRINT}
 
 ## Check the status (should print 'ok'):
 step-cli health
@@ -65,7 +67,8 @@ Set:
  * `MOSQUITTO_TRAEFIK_HOST` the external domain name to forward from traefik.
  * `MOSQUITTO_STEP_CA_URL` the root URL of your Step-CA instance
    (e.g., `https://ca.example.com`)
- * The `MOSQUITTO_STEP_CA_TOKEN` will be automatically set.
+ * The `MOSQUITTO_STEP_CA_TOKEN` will be automatically set, but you
+   will need to enter your root Step-CA credentials to get it.
 
 ## Configure ACL
 
