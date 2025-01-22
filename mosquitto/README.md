@@ -13,21 +13,25 @@ events (lambda)
 
 ## Deploy Step-CA
 
-Mosquitto is configured to use Mutual TLS via [Step-CA](../step-ca):
+Mosquitto is configured to require Mutual TLS via
+[Step-CA](../step-ca):
 
- * Follow the README to `config` and `install` your
-   [Step-CA](../step-ca) instance (it does not need to be on the same
-   server, but can be).
- * Set `STEP_CA_AUTHORITY_POLICY_X509_ALLOW_DNS` to the list of
-   allowed domains, which must include:
+ * Follow the [Step-CA README](../step-ca) to `config` and `install`
+   your CA server (it does not need to be on the same machine, but it
+   can be).
+ * Set `STEP_CA_AUTHORITY_POLICY_X509_ALLOW_DNS` to include the list
+   of allowed domains:
    
-   * The MQTT server domain, e.g., `mqtt.example.com`
-   * The MQTT client domains, e.g., `*.clients.mqtt.example.com`
-   * `STEP_CA_AUTHORITY_POLICY_X509_ALLOW_DNS=mqtt.example.com,*.clients.mqtt.example.com`
-   
- * You do not need to create any certificates or clients by hand.
- * ACME is not required for this scenario (tokens will be used
-   instead).
+   * The domain of the MQTT server, e.g., `mqtt.example.com`
+   * The domains for the MQTT clients, e.g.,
+     `*.clients.mqtt.example.com`
+   * In the Step-CA .env file, set
+     `STEP_CA_AUTHORITY_POLICY_X509_ALLOW_DNS=mqtt.example.com,*.clients.mqtt.example.com`
+ * Come back here as soon as you have run the Step-CA `make install`
+   command. This README will give you the instructions specific to
+   mosquitto.
+ * ACME is not required for this scenario (one-time-use API tokens
+   will be issued instead).
 
 Your workstation needs to have the `step-cli` tool installed, and it
 needs to be bootstrapped to connect to your Step-CA server instance.
