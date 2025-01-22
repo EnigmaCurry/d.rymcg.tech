@@ -77,8 +77,10 @@ Set:
  * `MOSQUITTO_STEP_CA_FINGERPRINT` the Step-CA fingerprint will be
    retrieved automatically from the URL you supplied. You should
    verify it is correct (use Step-CA's `make inspect-fingerprint`).
- * The `MOSQUITTO_STEP_CA_TOKEN` will be automatically set, but you
-   will need to enter your root Step-CA credentials to get it.
+ * The `MOSQUITTO_STEP_CA_TOKEN` is the one-time-use token that you
+   need to get from Step-CA to request a new server certificate. It
+   will be automatically set, but you will need to enter your root
+   Step-CA credentials to get it.
 
 ## Configure ACL
 
