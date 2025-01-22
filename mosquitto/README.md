@@ -69,7 +69,9 @@ make config
 
 Set:
 
- * `MOSQUITTO_TRAEFIK_HOST` the external domain name to forward from traefik.
+ * `MOSQUITTO_TRAEFIK_HOST` the external domain name (e.g,
+   `mqtt.example.com`) (It is not actually forwarded by traefik, but
+   this is the conventional name anyway).
  * `MOSQUITTO_STEP_CA_URL` the root URL of your Step-CA instance
    (e.g., `https://ca.example.com`)
  * The `MOSQUITTO_STEP_CA_TOKEN` will be automatically set, but you
