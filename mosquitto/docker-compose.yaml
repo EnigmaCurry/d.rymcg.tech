@@ -8,7 +8,8 @@ services:
       context: config
     security_opt:
       - no-new-privileges:true
-    environment:
+    environment: 
+      - MOSQUITTO_DOCKER_CONTEXT
       - MOSQUITTO_TRAEFIK_HOST
     volumes:
       - mosquitto:/mosquitto/config

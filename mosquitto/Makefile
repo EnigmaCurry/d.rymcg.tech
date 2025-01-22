@@ -5,6 +5,7 @@ STEP=step-cli
 
 .PHONY: config-hook
 config-hook:
+	@${BIN}/reconfigure ${ENV_FILE} MOSQUITTO_DOCKER_CONTEXT=${DOCKER_CONTEXT}
 	@${BIN}/reconfigure_ask ${ENV_FILE} MOSQUITTO_TRAEFIK_HOST "Enter the MQTT domain name" mqtt.${ROOT_DOMAIN}
 	@${BIN}/reconfigure_ask ${ENV_FILE} MOSQUITTO_STEP_CA_URL "Enter the Step-CA URL" $$(cat $$(${STEP} path)/config/defaults.json | jq -r '."ca-url"')
 	@echo
