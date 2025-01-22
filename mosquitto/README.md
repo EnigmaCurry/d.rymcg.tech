@@ -113,7 +113,7 @@ topic read sensors/temperature
 topic read devices/doorbell
 
 ## Example ACL for the user alice.clients.mqtt.example.com :
-## alice cannot access any topics:
+## alice cannot access any topics other than test/#:
 user alice.clients.mqtt.example.com
 
 ```
