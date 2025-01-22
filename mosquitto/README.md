@@ -86,8 +86,7 @@ By default, no user can read or write to any topic. Rules must be
 added to the per-context ACL file (`acl.conf`) in
 [config/template/context](config/template/context) directory. Use
 [acl.example.conf](config/template/acl.example.conf) as an example.
-The template is re-rendered each time the mosquitto service is
-reinstalled.
+The template is re-rendered each time you `make install`.
 
 The client usernames are the same as the TLS cert Common Name (CN) or
 domain name (e.g., `foo.clients.mqtt.example.com`). The ACL `pattern`
@@ -113,7 +112,7 @@ topic read sensors/temperature
 topic read devices/doorbell
 
 ## Example ACL for the user alice.clients.mqtt.example.com :
-## alice cannot access any topics other than test/#:
+## alice cannot access any topics other than test/# :
 user alice.clients.mqtt.example.com
 
 ```
