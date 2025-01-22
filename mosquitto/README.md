@@ -203,9 +203,17 @@ fun.
 
 The mosquitto server certificate will be renewed automatically by the
 [step-cli](step-cli) sidecar container. You can similarly setup a
-step-cli cron job to maintain any other certificates. For embedded
-devices, you will still probably need to generate/renew certificates
-by hand via `make cert`.
+step-cli cron job to maintain any other certificates:
+
+```
+## This is how any client can renew their own certificate.
+## A client must renew their certificate *before* it expires!
+## Put this into a cronjob
+step-cli ca renew --force CRT_FILE KEY_FILE
+```
+
+For embedded devices, you will still probably need to generate/renew
+certificates by hand via `make cert` and redeploy them.
 
 Choose a certificate expiration time that is a balance between
 convenience and security. [.env-dist](.env-dist) contains the default
@@ -227,7 +235,8 @@ Setting a certificate to expire in 100 years is more convenient for
 devices you want to install and forget, but its also pretty insecure
 given the passage of time. What happens if you lose possession of your
 certificate key? If that happens to you five years from now, an
-attacker can still use that valid key for another 95 years.
+attacker can still use that valid key for another 95 years AND they
+can renew the certificate indefinitely!
 
 Thankfully, you can simply disable access to a given key via the ACL:
 
@@ -239,3 +248,18 @@ user alice.clients.mqtt.example.com
 
 The certificate will still be valid (until it expires), but it won't
 be able to read or write to any topic.
+
+You can also prevent the certificate from being renewed (passive
+revocation):
+
+```
+CERT=certs/foo.clients.mqtt.example.com.crt
+SERIAL=$(cat $CERT | \
+              step certificate inspect --format json | \
+              jq -r .serial_number)
+echo "Going to revoke cert with serial # ${SERIAL}"
+step ca revoke ${SERIAL} --provisioner admin --reason "Key compromise"
+```
+
+**Passive revocation only prevents the certificate from being renewed,
+it does NOT revoke the current certificate.**
