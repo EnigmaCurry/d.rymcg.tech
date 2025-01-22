@@ -191,3 +191,44 @@ mosquitto_pub \
 ```
 
 
+## Increasing TLS certificate validation period
+
+Every TLS certificate is designed to expire at some point. If you can
+automate the renewal, having a short expiration is desirable from a
+security perspective. Sometimes its inconvenient to update TLS
+certificates, for example if you program embedded devices you usually
+flash the certificate into the device ROM along with your software.
+Manually renewing certificates for 100 embedded devices is not exactly
+fun.
+
+Choose an expiration time that is a balance between convenience and
+security. [.env-dist](.env-dist) contains the default setting
+`MOSQUITTO_CLIENT_CERT_EXPIRATION_HOURS=2160`, which sets the client
+certificate expiration to 90 days (via `make cert`).
+
+2160 hours is also the default MAX setting for Step-CA. If you want to
+have expiration times longer than this you must edit the Step-CA .env
+file as well:
+
+```
+## Set Step-CA MAX expiration to 100 years:
+make -C ~/git/vendor/enigmacurry/d.rymcg.tech/step-ca reconfigure var=STEP_CA_AUTHORITY_CLAIMS_MAX_TLS_CERT_DURATION=876582h
+make -C ~/git/vendor/enigmacurry/d.rymcg.tech/step-ca install
+```
+
+Setting a certificate to expire in 100 years is more convenient for
+devices you want to install and forget, but its also pretty insecure
+given the passage of time. What happens if you lose possession of your
+certificate key? If that happens to you five years from now, an
+attacker can still use that valid key for another 95 years.
+
+Thankfully, you can simply disable access to a given key via the ACL:
+
+```
+# Deny access to a specific user by not defining any rules
+user alice.clients.mqtt.example.com
+
+```
+
+The certificate will still be valid, but it won't be able to read or
+write to any topic.
