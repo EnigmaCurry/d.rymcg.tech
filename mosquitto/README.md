@@ -20,15 +20,16 @@ Mosquitto is configured to require Mutual TLS:
  * Follow the [Step-CA README](../step-ca) to `config` and `install`
    your CA server (it does not need to be on the same machine, but it
    can be).
- * Set `STEP_CA_AUTHORITY_POLICY_X509_ALLOW_DNS` to include the list
-   of allowed domains:
+ * When configuring Step-CA, set
+   `STEP_CA_AUTHORITY_POLICY_X509_ALLOW_DNS` to list your allowed
+   domains:
    
-   * The domain of the MQTT server, e.g., `mqtt.example.com` (this
-     could also be a wildcard if you have other services too.)
-   * The wildcard domain for the MQTT clients, e.g.,
+   * Include the domain of the MQTT server, e.g., `mqtt.example.com`
+     (this could also be a wildcard if you have other services that
+     need certificates too.)
+   * Include the wildcard domain for the MQTT clients, e.g.,
      `*.clients.mqtt.example.com`
-   * Put all of the rules together in the Step-CA env file as a comma
-     separated list. Set:
+   * For example:
      `STEP_CA_AUTHORITY_POLICY_X509_ALLOW_DNS=mqtt.example.com,*.clients.mqtt.example.com`
 
  * Come back here as soon as you have run the Step-CA `make install`
@@ -89,6 +90,11 @@ rule directive can substitute `%c` or `%u`, they are both equivalent,
 and they resolve to the client's Common Name.
 
 ```
+## Example ACL for all authenticated users:
+## All users should be able to read/write to the test (sub)topics:
+## ('pattern' must be used instead of 'topic' when the user is not explict)
+pattern readwrite test/#
+
 ## Example ACL for the user foo.clients.mqtt.example.com :
 ## user foo can read or write these topics:
 user foo.clients.mqtt.example.com
