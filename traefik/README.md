@@ -199,10 +199,6 @@ host IP address and port number:
    entrypoint. Use `TRAEFIK_WEBSECURE_ENTRYPOINT_HOST` and
    `TRAEFIK_WEBSECURE_ENTRYPOINT_PORT` to customize the host (default
    `0.0.0.0`) and port number (default `443`).
- * `TRAEFIK_MQTT_ENTRYPOINT_ENABLED=true` enables the MQTT
-   entrypoint. Use `TRAEFIK_MQTT_ENTRYPOINT_HOST` and
-   `TRAEFIK_MQTT_ENTRYPOINT_PORT` to customize the host (default
-   `0.0.0.0`) and port number (default `8883`).
  * `TRAEFIK_SSH_ENTRYPOINT_ENABLED=true` enables the SSH
    entrypoint. Use `TRAEFIK_SSH_ENTRYPOINT_HOST` and
    `TRAEFIK_SSH_ENTRYPOINT_PORT` to customize the host (default
@@ -587,9 +583,6 @@ Traefik [.env](.env-dist) file :
 | `TRAEFIK_MPD_ENTRYPOINT_ENABLED`           | (bool) Enable mpd (unencrypted) entrypoint                                       |                                               |
 | `TRAEFIK_MPD_ENTRYPOINT_HOST`              | Host ip address to bind mpd entrypoint                                           | `0.0.0.0`                                     |
 | `TRAEFIK_MPD_ENTRYPOINT_PORT`              | Host TCP port to bind mpd entrypoint                                             | `6600`                                        |
-| `TRAEFIK_MQTT_ENTRYPOINT_ENABLED`          | (bool) Enable mqtt (port 443) entrypoint                                         |                                               |
-| `TRAEFIK_MQTT_ENTRYPOINT_HOST`             | Host ip address to bind mqtt entrypoint                                          | `0.0.0.0`                                     |
-| `TRAEFIK_MQTT_ENTRYPOINT_PORT`             | Host TCP port to bind mqtt entrypoint                                            | `8883`                                        |
 | `TRAEFIK_NETWORK_MODE`                     | Bind Traefik to host or serivce container networking                             | `host`,`wireguard`,`wireguard-client`         |
 | `TRAEFIK_PLUGINS`                          | (bool) Enable Traefik plugins                                                    | `true`,`false`                                |
 | `TRAEFIK_PLUGIN_BLOCKPATH`                 | (bool) Enable BlockPath plugin                                                   | `true`,`false`                                |
