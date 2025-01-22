@@ -22,17 +22,25 @@ create_config() {
     echo "[ ! ] GENERATED NEW CONFIG FILE ::: ${CONFIG}"
     touch ${CONFIG_DIR}/passwd
     echo "[ ! ] GENERATED NEW CONFIG FILE ::: ${CONFIG}"
-    ACL_TEMPLATE=/template/context/${MOSQUITTO_DOCKER_CONTEXT}/acl.conf
-    if [[ -f ${ACL_TEMPLATE} ]]; then
-        cat ${ACL_TEMPLATE} | envsubst > ${ACL}
+
+    if [[ "${MOSQUITTO_ACL_DISABLE}" == "true" ]]; then
+        rm -f ${ACL}
+        [[ $PRINT_CONFIG == true ]] && cat ${CONFIG}
     else
-        cat /dev/null > ${ACL}
-        echo "[ ! ] WARNING: No context ACL file exists. Wrote blank ACL file."
+        ACL_TEMPLATE=/template/context/${MOSQUITTO_DOCKER_CONTEXT}/acl.conf
+        if [[ -f ${ACL_TEMPLATE} ]]; then
+            cat ${ACL_TEMPLATE} | envsubst > ${ACL}
+        else
+            cat /dev/null > ${ACL}
+            echo "[ ! ] WARNING: No context ACL file exists. Wrote blank ACL file."
+        fi
+        chmod 0700 ${ACL}
+        chown 1883:1883 ${ACL}
+        echo "acl_file /mosquitto/config/acl.conf" >> ${CONFIG}
+        echo "[ ! ] GENERATED NEW ACL FILE ::: ${ACL}"
+        [[ $PRINT_CONFIG == true ]] && cat ${CONFIG}
+        [[ $PRINT_CONFIG == true ]] && echo "-------" && cat ${ACL}
     fi
-    chmod 0700 ${ACL}
-    chown 1883:1883 ${ACL}
-    echo "[ ! ] GENERATED NEW ACL FILE ::: ${ACL}"
-    [[ $PRINT_CONFIG == true ]] && cat ${CONFIG} && echo "------" && cat ${ACL}
 }
 
 create_config
