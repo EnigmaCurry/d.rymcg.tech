@@ -11,9 +11,25 @@ the root CA.
 make config
 ```
 
-You must run step-ca interactively, for the first time only. This is important
-because you need to make a record of the CA password, which is only
-printed one time in the log:
+This creates and configures the `.env_{CONTEXT}_default` file from the
+[.env-dist](.env-dist) template. You may wish to edit this file by
+hand to configure additional settings:
+
+ * `STEP_CA_AUTHORITY_CLAIMS_MIN_TLS_CERT_DURATION=5m` this sets the
+   minimum TLS certificate expiration to 5 minutes.
+ * `STEP_CA_AUTHORITY_CLAIMS_MAX_TLS_CERT_DURATION=2160h` this sets
+   the maximum TLS certificate expiration to 90 days.
+ * `STEP_CA_AUTHORITY_CLAIMS_DEFAULT_TLS_CERT_DURATION=168h` this sets
+   the default TLS certificate expiration to 7 days.
+ * `STEP_CA_AUTHORITY_CLAIMS_DISABLE_RENEWAL=false` this allows
+   certificates to be renewed indefinitely by any client holding the
+   certificate key.
+
+## Retrieve the root Step-CA password
+
+You must run step-ca interactively for the first time only. This is
+important because you need to make a record of the CA password, which
+is only printed one time in the log:
 
 ```
 # Run the step-ca interactively the first time only:
@@ -196,6 +212,8 @@ make change-password
 
 It's a good idea to immediately change the password, so that the
 initial password is no longer sitting in the docker container logs.
+
+## Maximum certification period
 
 ## Security concerns
 

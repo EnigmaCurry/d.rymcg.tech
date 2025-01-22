@@ -198,7 +198,7 @@ configured, you may need to open these ports in your firewall:
 | TCP+TLS    | TCP      | 6380       | Traefik Redis in-memory database entrypoint               |
 | TCP socket | TCP      | 6600       | Traefik Mopidy (MPD) entrypoint                           |
 | HTTP       | TCP      | 8000       | Traefik HTTP entrypoint (web_plain; explicitly non-https) |
-| TLS        | TCP      | 8883       | Traefik MQTT (TLS) entrypoint                             |
+| TLS        | TCP      | 8883       | Mosquitto MQTT (direct-map)                               |
 | WebRTC     | UDP      | 10000      | Jitsi Meet video bridge (direct-map)                      |
 | VPN        | UDP      | 51820      | Wireguard (Traefik VPN)  (direct-map)                     |
 

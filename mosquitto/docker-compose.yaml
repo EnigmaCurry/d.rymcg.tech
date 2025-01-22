@@ -1,6 +1,6 @@
-
 volumes:
   mosquitto:
+  certs:
 
 services:
   config:
@@ -8,31 +8,51 @@ services:
       context: config
     security_opt:
       - no-new-privileges:true
-    environment:
+    environment: 
+      - MOSQUITTO_DOCKER_CONTEXT
       - MOSQUITTO_TRAEFIK_HOST
+      - MOSQUITTO_ACL_DISABLE
     volumes:
-      - mosquitto:/mosquitto
+      - mosquitto:/mosquitto/config
     labels:
       - "backup-volume.stop-during-backup=true"
-
 
   mosquitto:
     depends_on: ['config']
-    image: "eclipse-mosquitto:${MOSQUITTO_VERSION}"
+    build:
+      context: mosquitto
+      args:
+        MOSQUITTO_IMAGE: ${MOSQUITTO_IMAGE}
     security_opt:
       - no-new-privileges:true
     restart: unless-stopped
+    ports:
+      - "8883:8883"
     labels:
       - "backup-volume.stop-during-backup=true"
-      - "traefik.enable=true"
-      - "traefik.tcp.routers.mqtt.rule=HostSNI(`${MOSQUITTO_TRAEFIK_HOST}`)"
-      - "traefik.tcp.routers.mqtt.entrypoints=mqtt"
-      - "traefik.tcp.routers.mqtt.service=mqtt"
-      - "traefik.tcp.services.mqtt.loadBalancer.server.port=1883"
-      - "traefik.tcp.routers.mqtt.tls=true"
-      - "traefik.tcp.routers.mqtt.tls.domains[0].main=${MOSQUITTO_TRAEFIK_HOST}"
-      - "traefik.tcp.routers.mqtt.tls.certresolver=${MOSQUITTO_ACME_CERT_RESOLVER}"
-      - "traefik.tcp.middlewares.mqtt-ipallowlist.ipallowlist.sourcerange=${MOSQUITTO_IP_SOURCERANGE}"
-      - "traefik.tcp.routers.mqtt.middlewares=mqtt-ipallowlist"
+    entrypoint: ["/mosquitto/mosquitto-entrypoint.sh"]
+    healthcheck:
+      test: ["CMD", "test", "!", "-f", "/mosquitto/certs/restart-trigger"]
+      interval: 10s
+      timeout: 5s
+    environment:
+      - MOSQUITTO_TRAEFIK_HOST
     volumes:
-      - mosquitto:/mosquitto
+      - mosquitto:/mosquitto/config:ro
+      - certs:/mosquitto/certs
+
+  step-cli:
+    build:
+      context: step-cli
+      args:
+        STEP_CLI_IMAGE: ${MOSQUITTO_STEP_CLI_IMAGE}
+    environment:
+      - MOSQUITTO_ACME_SERVER
+      - MOSQUITTO_ACME_EMAIL
+      - MOSQUITTO_TRAEFIK_HOST
+      - MOSQUITTO_STEP_CA_URL
+      - MOSQUITTO_STEP_CA_FINGERPRINT
+      - MOSQUITTO_STEP_CA_TOKEN
+    volumes:
+      - certs:/home/step/certs
+

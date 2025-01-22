@@ -235,7 +235,6 @@ config_list_entrypoints() {
         [web]="HTTP (unencrypted; used to redirect requests to use HTTPS)"
         [websecure]="HTTPS (TLS encrypted HTTP)"
         [web_plain]="HTTP (unencrypted; specifically NOT redirected to websecure; must use different port than web)"
-        [mqtt]="MQTT (mosquitto) pub-sub service"
         [ssh]="SSH (forgejo) git (ssh) entrypoint"
         [xmpp_c2s]="XMPP (ejabberd) client-to-server entrypoint"
         [xmpp_s2s]="XMPP (ejabberd) server-to-server entrypoint"

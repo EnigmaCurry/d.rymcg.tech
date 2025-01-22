@@ -52,7 +52,11 @@ client-bootstrap:
 
 .PHONY: cert # Create certificate
 cert:
-	@CN=$$(${BIN}/ask_echo "Enter the subject (CN) to be certified, a domain name, or a client name"); ${STEP} ca certificate "$${CN}" "certs/$${CN}.crt" "certs/$${CN}.key" --not-after "$$(${BIN}/dotenv -f ${ENV_FILE} get STEP_CA_AUTHORITY_CLAIMS_DEFAULT_TLS_CERT_DURATION)" && ${STEP} certificate p12 "certs/$${CN}.p12" "certs/$${CN}.crt" "certs/$${CN}.key" && ${STEP} certificate inspect "certs/$${CN}.crt"
+	@CN=$$(${BIN}/ask_echo "Enter the subject (CN / domain name) to be certified"); ${STEP} ca certificate "$${CN}" "certs/$${CN}.crt" "certs/$${CN}.key" --not-after "$$(${BIN}/dotenv -f ${ENV_FILE} get STEP_CA_AUTHORITY_CLAIMS_DEFAULT_TLS_CERT_DURATION)" && ${STEP} certificate p12 "certs/$${CN}.p12" "certs/$${CN}.crt" "certs/$${CN}.key" && ${STEP} certificate inspect "certs/$${CN}.crt"
+
+.PHONY: token # Make a temporary one time use API token
+token:
+	@CN=$$(${BIN}/ask_echo "Enter the subject (CN / domain name) for the token"); echo; ${STEP} ca token "$${CN}" --not-after 30m
 
 .PHONY: inspect-ca-cert # Retrieve the Step-CA root CA certificate chain:
 inspect-ca-cert:
