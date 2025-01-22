@@ -24,11 +24,14 @@ Mosquitto is configured to require Mutual TLS via
  * Set `STEP_CA_AUTHORITY_POLICY_X509_ALLOW_DNS` to include the list
    of allowed domains:
    
-   * The domain of the MQTT server, e.g., `mqtt.example.com`
-   * The domains for the MQTT clients, e.g.,
+   * The domain of the MQTT server, e.g., `mqtt.example.com` (this
+     could also be a wildcard if you have other services too.)
+   * The wildcard domain for the MQTT clients, e.g.,
      `*.clients.mqtt.example.com`
-   * In the Step-CA .env file, set
+   * Put all of the rules together in the Step-CA env file as a comma
+     separated list. Set:
      `STEP_CA_AUTHORITY_POLICY_X509_ALLOW_DNS=mqtt.example.com,*.clients.mqtt.example.com`
+
  * Come back here as soon as you have run the Step-CA `make install`
    command. This README will give you the instructions specific to
    mosquitto.
@@ -99,6 +102,13 @@ user bar.clients.mqtt.example.com
 topic read sensors/temperature
 topic read devices/doorbell
 ```
+
+Be aware that mqtt clients receive no positive feedback on whether or
+not they have access to a topic. If the client connects (with a valid
+TLS cert), and then subscribes to a channel that it is denied access
+to, it will still appear to have connected to that topic, but it will
+essentially be connected to dead space. No messages can be sent or
+received unless the ACL allows it.
 
 ## Install
 
