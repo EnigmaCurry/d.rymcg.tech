@@ -87,7 +87,7 @@ added to the per-context ACL file (`acl.conf`) in
 [config/template/context](config/template/context) directory. Use
 [acl.example.conf](config/template/acl.example.conf) as an example.
 The template is re-rendered each time the mosquitto service is
-restarted.
+reinstalled.
 
 The client usernames are the same as the TLS cert Common Name (CN) or
 domain name (e.g., `foo.clients.mqtt.example.com`). The ACL `pattern`
