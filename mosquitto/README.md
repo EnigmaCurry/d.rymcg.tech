@@ -218,7 +218,8 @@ file as well:
 
 ```
 ## Set Step-CA MAX expiration to 100 years:
-make -C ~/git/vendor/enigmacurry/d.rymcg.tech/step-ca reconfigure var=STEP_CA_AUTHORITY_CLAIMS_MAX_TLS_CERT_DURATION=876582h
+make -C ~/git/vendor/enigmacurry/d.rymcg.tech/step-ca \
+    reconfigure var=STEP_CA_AUTHORITY_CLAIMS_MAX_TLS_CERT_DURATION=876582h
 make -C ~/git/vendor/enigmacurry/d.rymcg.tech/step-ca install
 ```
 
