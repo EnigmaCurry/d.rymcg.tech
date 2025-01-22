@@ -16,6 +16,13 @@ Mosquitto is configured to use Mutual TLS via [Step-CA](../step-ca):
  * Follow the README to `config` and `install` your
    [Step-CA](../step-ca) instance (it does not need to be on the same
    server, but can be).
+ * Set `STEP_CA_AUTHORITY_POLICY_X509_ALLOW_DNS` to the list of
+   allowed domains, which must include:
+   
+   * The MQTT server domain, e.g., `mqtt.example.com`
+   * The MQTT client domains, e.g., `*.clients.mqtt.example.com`
+   * `STEP_CA_AUTHORITY_POLICY_X509_ALLOW_DNS=mqtt.example.com,*.clients.mqtt.example.com`
+   
  * You do not need to create any certificates or clients by hand.
  * ACME is not required for this scenario (tokens will be used
    instead).
@@ -64,25 +71,42 @@ make install
 
 ## Test it
 
-You must install the `mosquitto` client package with the same version
-(`MOSQUITTO_VERSION` in your .env file), so it is easiest to run a
-container for testing:
+Install the mosquitto package on your workstation:
 
 ```
-## Create a shell with mosquitto client (same version) installed:
-make client
+## on Fedora:
+sudo dnf install mosquitto
 ```
 
-Subscribe to a topic:
+Create a certificate for your mosquitto client:
 
 ```
-PASSWORD=your_admin_password
-mosquitto_sub -h mqtt.example.com -p 8883 -u admin -P ${PASSWORD} -t test
+make cert
 ```
 
-In another terminal, publish to the topic:
-```
-PASSWORD=your_admin_password
-mosquitto_pub -h mqtt.example.com -p 8883 -u admin -P ${PASSWORD} -t test -m "test message"
-```
+ * Enter the `subject (CN / domain name) to be certified`: this should
+   be a unique sub domain name for your client. It can be made up, and
+   does not need DNS. Example: `foo.clients.mqtt.example.com`. It is
+   recommended to use your workstation hostname for the first part.
 
+Connect to the test channel:
+
+```
+(
+HOST=mqtt.example.com
+CN=foo.clients.mqtt.example.com
+CA_CERT=certs/root_ca.crt
+CERT=certs/${CN}.crt
+KEY=certs/${CN}.key
+PORT=8883
+TOPIC=test
+
+mosquitto_sub \
+  -h ${HOST} \
+  --cert ${CERT} \
+  --key ${KEY} \
+  --cafile ${CA_CERT} \
+  -p ${PORT} \
+  -t ${TOPIC}
+)
+```

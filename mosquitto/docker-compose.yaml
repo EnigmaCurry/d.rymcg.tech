@@ -25,7 +25,7 @@ services:
       - no-new-privileges:true
     restart: unless-stopped
     ports:
-      - "8884:8884"
+      - "8883:8883"
     labels:
       - "backup-volume.stop-during-backup=true"
     entrypoint: ["/mosquitto/mosquitto-entrypoint.sh"]
