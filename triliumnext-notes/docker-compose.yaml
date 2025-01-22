@@ -1,23 +1,30 @@
 services:
   triliumnext-notes:
-    image: ${TRILIUMNEXT_NOTES_IMAGE}
+    #image: ${TRILIUMNEXT_NOTES_IMAGE}
+    build:
+      context: ./config
+      dockerfile: Dockerfile
+      args:
+        TRILIUMNEXT_NOTES_IMAGE: ${TRILIUMNEXT_NOTES_IMAGE}
     environment:
-      TRUST_PROXY: 10.13.16.1
-    cap_drop:
-      - ALL
-    cap_add:
-      - SYS_ADMIN
-      - CHOWN
-      - SETGID
-      - SETUID
+      - TRILIUMNEXT_NOTES_TRUSTED_REVERSE_PROXY=${TRILIUMNEXT_NOTES_TRUSTED_REVERSE_PROXY}
+      - TRILIUM_SAFE_MODE=${TRILIUM_SAFE_MODE}
+    #cap_drop:
+    #  - ALL
+    #cap_add:
+    #  - SYS_ADMIN
+    #  - CHOWN
+    #  - SETGID
+    #  - SETUID
     security_opt:
       - no-new-privileges:true
-    # Good practice to not allow unprivileged processes to use ports <1024:
     sysctls:
       - net.ipv4.ip_unprivileged_port_start=1024
     restart: unless-stopped
     volumes:
       - data:/home/node/trilium-data
+      - /etc/timezone:/etc/timezone:ro
+      - /etc/localtime:/etc/localtime:ro
     labels: []
 
 volumes:
