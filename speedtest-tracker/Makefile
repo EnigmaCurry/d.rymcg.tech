@@ -8,13 +8,23 @@ config-hook:
 	@${BIN}/reconfigure ${ENV_FILE} SPEEDTEST_TRACKER_INSTANCE=$${instance:-default}
 	@${BIN}/reconfigure_auth ${ENV_FILE} SPEEDTEST_TRACKER
 	@echo
+	@ALLOW_BLANK=1 ${BIN}/reconfigure_ask ${ENV_FILE} SPEEDTEST_APP_NAME "Enter the application's name as it will appear on the dashboard and in notifications. Or leave this bank to use the default (\"Speedtest Tracker\")"
+	@echo
 	@${BIN}/reconfigure_ask ${ENV_FILE} SPEEDTEST_TRACKER_ADMIN_NAME "Enter the admin user's login name" 
 	@${BIN}/reconfigure_ask ${ENV_FILE} SPEEDTEST_TRACKER_ADMIN_EMAIL "Enter the admin user's email" 
 	@${BIN}/reconfigure_ask ${ENV_FILE} SPEEDTEST_TRACKER_ADMIN_PASSWORD "Enter the admin user's password" 
 	@echo
-	@${BIN}/reconfigure_ask ${ENV_FILE} SPEEDTEST_TRACKER_DISPLAY_TIMEZONE "Enter the server's timezone" 
+	@${BIN}/confirm $$(test "$$(${BIN}/dotenv -f ${ENV_FILE} get SPEEDTEST_PUBLIC_DASHBOARD)" == 'false' && echo no || echo yes) "Do you want enable a public dashboard for guest (unauthenticated) users" "?" && \
+		${BIN}/reconfigure ${ENV_FILE} SPEEDTEST_PUBLIC_DASHBOARD=true || \
+		${BIN}/reconfigure ${ENV_FILE} SPEEDTEST_PUBLIC_DASHBOARD=false
 	@echo
-	@${BIN}/reconfigure_password ${ENV_FILE} SPEEDTEST_TRACKER_APP_KEY 32
+	@${BIN}/reconfigure_ask ${ENV_FILE} SPEEDTEST_TRACKER_DISPLAY_TIMEZONE "Enter the timezone you want timestamps to be displayed in" 
+	@echo
+	@${BIN}/reconfigure_ask ${ENV_FILE} SPEEDTEST_SCHEDULE "Enter the cron expression used to run speedtests on a scheduled basis" 
+	@echo
+	@${BIN}/reconfigure_ask ${ENV_FILE} SPEEDTEST_PRUNE_RESULTS_OLDER_THAN "Enter the number of days to keep results for, or enter 0 (zero) to keep all results" 
+	@echo
+	@${BIN}/reconfigure ${ENV_FILE} SPEEDTEST_TRACKER_APP_KEY=$$(openssl rand -base64 32)
 	@${BIN}/reconfigure ${ENV_FILE} SPEEDTEST_TRACKER_APP_KEY=$$(key=$$(${BIN}/dotenv -f ${ENV_FILE} get SPEEDTEST_TRACKER_APP_KEY); [[ "$${key}" == base64:* ]] && echo "$${key}" || echo "base64:$${key}")
 	@echo
 	@${BIN}/reconfigure_ask ${ENV_FILE} SPEEDTEST_TRACKER_UID "Enter the host UID to map to the container UID" 

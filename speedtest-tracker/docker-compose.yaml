@@ -2,9 +2,6 @@ services:
   speedtest-tracker:
     image: ${SPEEDTEST_TRACKER_IMAGE}
     restart: unless-stopped
-    #ports:
-    #    - 8080:80
-    #    - 8443:443
     environment:
       - PUID=${SPEEDTEST_TRACKER_UID}
       - PGID=${SPEEDTEST_TRACKER_GID}
@@ -15,18 +12,26 @@ services:
       - ADMIN_PASSWORD=${SPEEDTEST_TRACKER_ADMIN_PASSWORD}
       - DISPLAY_TIMEZONE=${SPEEDTEST_TRACKER_DISPLAY_TIMEZONE}
       - APP_URL=${SPEEDTEST_TRACKER_TRAEFIK_HOST}
-      - ASSET_URL=${SPEEDTEST_TRACKER_TRAEFIK_HOST}
+      # Unused because setting as described in docs results in failed CSS 
+      #- ASSET_URL=${SPEEDTEST_TRACKER_TRAEFIK_HOST}
+      - APP_DEBUG=${SPEEDTEST_APP_DEBUG}
+      - PUBLIC_DASHBOARD=${SPEEDTEST_PUBLIC_DASHBOARD}
+      - SPEEDTEST_SCHEDULE=${SPEEDTEST_SCHEDULE}
+      - APP_NAME=${SPEEDTEST_APP_NAME}
+      - PRUNE_RESULTS_OLDER_THAN=${SPEEDTEST_PRUNE_RESULTS_OLDER_THAN}
     volumes:
       - data:/config
       - keys:/config/keys
-    #cap_drop:
-    #  - ALL
-    #security_opt:
-    #  - no-new-privileges:true
-    #sysctls:
-    #  - net.ipv4.ip_unprivileged_port_start=1024
+    sysctls:
+      - net.ipv4.ip_unprivileged_port_start=1024
     labels: []
-  
+    healthcheck:
+        test: curl -fSs APP_URL/api/healthcheck | jq -r .message || exit 1
+        interval: 10s
+        retries: 3
+        start_period: 30s
+        timeout: 10s
+    
 volumes:
   data:
   keys:
