@@ -27,9 +27,6 @@ config-hook:
 	@${BIN}/reconfigure ${ENV_FILE} SPEEDTEST_TRACKER_APP_KEY=$$(openssl rand -base64 32)
 	@${BIN}/reconfigure ${ENV_FILE} SPEEDTEST_TRACKER_APP_KEY=$$(key=$$(${BIN}/dotenv -f ${ENV_FILE} get SPEEDTEST_TRACKER_APP_KEY); [[ "$${key}" == base64:* ]] && echo "$${key}" || echo "base64:$${key}")
 	@echo
-	@${BIN}/reconfigure_ask ${ENV_FILE} SPEEDTEST_TRACKER_UID "Enter the host UID to map to the container UID" 
-	@${BIN}/reconfigure_ask ${ENV_FILE} SPEEDTEST_TRACKER_GID "Enter the host GID to map to the container GID" 
-	@echo
 
 .PHONY: override-hook
 override-hook:
