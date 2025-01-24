@@ -34,6 +34,10 @@ This will automatically open the page in your web browser, and will prefill the
 HTTP Basic Authentication password if you enabled it (and chose to store it in
 `passwords.json`).
 
+The intital admin login is "admin@example.com" and its password is "password".
+You should immediately open the app, click your avatar in the upper right
+corner, and select "Profile" to change your login name, email, and password.
+
 ## Destroy
 
 ```
