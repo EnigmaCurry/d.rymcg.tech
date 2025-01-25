@@ -10,6 +10,8 @@ config-hook:
 	@echo
 	@ALLOW_BLANK=1 ${BIN}/reconfigure_ask ${ENV_FILE} SPEEDTEST_TRACKER_APP_NAME "Enter the application's name as it will appear on the dashboard and in notifications. Or leave this bank to use the default (\"Speedtest Tracker\")"
 	@echo
+	@${BIN}/reconfigure_password ${ENV_FILE} SPEEDTEST_TRACKER_INITIAL_ADMIN_PASSWORD 15
+	@echo
 	@${BIN}/confirm $$(test "$$(${BIN}/dotenv -f ${ENV_FILE} get SPEEDTEST_TRACKER_PUBLIC_DASHBOARD)" == 'false' && echo no || echo yes) "Do you want enable a public dashboard for guest (unauthenticated) users" "?" && \
 		${BIN}/reconfigure ${ENV_FILE} SPEEDTEST_TRACKER_PUBLIC_DASHBOARD=true || \
 		${BIN}/reconfigure ${ENV_FILE} SPEEDTEST_TRACKER_PUBLIC_DASHBOARD=false
@@ -18,11 +20,12 @@ config-hook:
 	@echo
 	@${BIN}/reconfigure_ask ${ENV_FILE} SPEEDTEST_TRACKER_SCHEDULE "Enter the cron expression used to run speedtests on a scheduled basis" 
 	@echo
-	@${BIN}/reconfigure_ask ${ENV_FILE} SPEEDTEST_PRUNE_RESULTS_OLDER_THAN "Enter the number of days to keep results for, or enter 0 (zero) to keep all results" 
+	@${BIN}/reconfigure_ask ${ENV_FILE} SPEEDTEST_TRACKER_PRUNE_RESULTS_OLDER_THAN "Enter the number of days to keep results for, or enter 0 (zero) to keep all results" 
 	@echo
 	@${BIN}/reconfigure ${ENV_FILE} SPEEDTEST_TRACKER_APP_KEY=$$(openssl rand -base64 32)
 	@${BIN}/reconfigure ${ENV_FILE} SPEEDTEST_TRACKER_APP_KEY=$$(key=$$(${BIN}/dotenv -f ${ENV_FILE} get SPEEDTEST_TRACKER_APP_KEY); [[ "$${key}" == base64:* ]] && echo "$${key}" || echo "base64:$${key}")
 	@echo
+	@make show-password && echo && sleep 1
 
 .PHONY: override-hook
 override-hook:
@@ -41,3 +44,11 @@ override-hook:
 .PHONY: shell
 shell:
 	@make --no-print-directory docker-compose-shell SERVICE=speedtest-tracker
+	
+.PHONY: show-password # Show the admin login's initial password
+show-password:
+	@echo
+	@echo "The initial password for the admin login is:  $$(${BIN}/dotenv -f ${ENV_FILE} get SPEEDTEST_TRACKER_INITIAL_ADMIN_PASSWORD)"
+	@echo
+	@echo "You should immediately open the app, click your avatar in the upper right corner, and select "Profile" to change the admin login's password (also, optionally, to change the admin login's name and email address). Once you change the password in the app, this initial password is no longer used."
+	@echo

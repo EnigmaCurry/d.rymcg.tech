@@ -34,9 +34,14 @@ This will automatically open the page in your web browser, and will prefill the
 HTTP Basic Authentication password if you enabled it (and chose to store it in
 `passwords.json`).
 
-The intital admin login is "admin@example.com" and its password is "password".
-You should immediately open the app, click your avatar in the upper right
-corner, and select "Profile" to change your login name, email, and password.
+The intital admin login is "admin@example.com" and its password is randomly
+generated and displayed during `make config`. You can also see the initial
+password via `make show-password`, or find the it in the
+`SPEEDTEST_TRACKER_INITIAL_ADMIN_PASSWORD` variable in the `.env_{INSTANCE}`
+file. You should immediately open the app, click your avatar in the upper right
+corner, and select "Profile" to change the admin login's password (also,
+optionally, to change the admin login's name and email address). Once you change
+the password in the app, this initial password is no longer used.
 
 ## Destroy
 
