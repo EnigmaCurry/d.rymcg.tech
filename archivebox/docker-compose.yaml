@@ -1,10 +1,9 @@
-
 volumes:
   data:
 
 services:
   archivebox:
-    image: archivebox/archivebox:master
+    image: ${ARCHIVEBOX_IMAGE}
     security_opt:
       - no-new-privileges:true
     cap_drop:
