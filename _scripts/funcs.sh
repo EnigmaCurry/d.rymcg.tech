@@ -91,6 +91,15 @@ ask_echo() {
     )
 }
 
+ask_echo_blank() {
+    ## Ask the user a question, allowing blank responses, then print the answer to stdout
+    (
+        prompt=$1; shift
+        ask "$prompt" ASK_ECHO_VARNAME $@ >/dev/stderr
+        echo "${ASK_ECHO_VARNAME}"
+    )
+}
+
 
 require_input() {
     ## require_input {PROMPT} {VAR} {DEFAULT}
