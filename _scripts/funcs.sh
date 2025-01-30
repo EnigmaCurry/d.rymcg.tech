@@ -92,7 +92,7 @@ ask_echo() {
 }
 
 ask_echo_blank() {
-    ## Ask the user a question then print the non-blank answer to stdout
+    ## Ask the user a question, allowing blank responses, then print the answer to stdout
     (
         prompt=$1; shift
         ask "$prompt" ASK_ECHO_VARNAME $@ >/dev/stderr
