@@ -3,7 +3,11 @@ volumes:
 
 services:
   archivebox:
-    image: ${ARCHIVEBOX_IMAGE}
+    #image: ${ARCHIVEBOX_IMAGE}
+    build:
+      context: config
+      args:
+        ARCHIVEBOX_IMAGE: ${ARCHIVEBOX_IMAGE}
     security_opt:
       - no-new-privileges:true
     cap_drop:
@@ -23,6 +27,8 @@ services:
       # - SYS_CHROOT
       # - KILL
       # - AUDIT_WRITE
+      # - SYS_TIME
+      # - SYS_ADMIN
     command: server --quick-init 0.0.0.0:8000
     environment:
       - ALLOWED_HOSTS=*
