@@ -11,7 +11,7 @@ config-hook:
 	@${BIN}/reconfigure_ask ${ENV_FILE} TRILIUMNEXT_NOTES_TRAEFIK_HOST "Enter the TriliumNext Notes domain name" triliumnext-notes${INSTANCE_URL_SUFFIX}.${ROOT_DOMAIN}
 	@${BIN}/reconfigure ${ENV_FILE} TRILIUMNEXT_NOTES_INSTANCE=$${instance:-default}
 	@${BIN}/reconfigure_auth ${ENV_FILE} TRILIUMNEXT_NOTES
-	@echo ""
+	@echo
 
 .PHONY: override-hook
 override-hook:
