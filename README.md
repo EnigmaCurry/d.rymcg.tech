@@ -581,7 +581,7 @@ Install these other services at your leisure/preference:
 * [SFTP](sftp#readme) - a secure file server
 * [Shaarli](shaarli#readme) - a bookmark manager
 * [Smokeping](smokeping#readme) - a network latency measurement tool
-* [Speedtest Tracker](speedtest-tracker#readme) - a network performance monitor
+* [Speedtest Tracker](speedtest-tracker#readme) - a network privacyerformance monitor
 * [Step-CA](step-ca) - a secure, online, self-hosted Certificate Authority (CA)
 * [Syncthing](syncthing#readme) - a multi-device file synchronization tool
 * [Sysbox-Systemd](sysbox-systemd#readme) - a traditional service manager for Linux running in an unprivileged container via sysbox-runc
@@ -970,6 +970,9 @@ When you create a new instance, `make config` will automatically run. You
 may switch to an existing instance with either: `make instance` or
 `make switch` (the former will re-run `make config` while the latter
 will not).
+
+Note: the sub shell only works temporarily for you to focus on a single app. If
+you're doing things outside of that focus, you need to not be in the subshell.
 
 ### Overriding docker-compose.yaml per-instance
 
