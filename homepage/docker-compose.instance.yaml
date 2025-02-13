@@ -22,6 +22,24 @@
 
 #@ enable_docker = data.values.enable_docker == "true"
 #@ reloader_path_prefix = data.values.reloader_path_prefix
+#!
+#@ def get_volume_mounts(volumes_str):
+#@   if volumes_str.strip() == "":
+#@     return []
+#@   end
+#@   pairs = volumes_str.split(",")
+#@   volume_mounts = []
+#@   for pair in pairs:
+#@       pair = pair.strip()
+#@       if ":" not in pair:
+#@         fail("extra_volumes must be a comma-separated list of colon-delimited pairs")
+#@       end
+#@       volume_mounts.append(pair)
+#@   end
+#@   return volume_mounts
+#@ end
+#@ volume_mounts = get_volume_mounts(data.values.extra_volumes)
+#!
 
 #@yaml/text-templated-strings
 services:
@@ -33,6 +51,9 @@ services:
       - /var/run/docker.sock:/var/run/docker.sock:ro #! (optional) For docker integrations
       #@ end
       - config:/app/public/images #! (optional) So Homepage can use images from config dir
+      #@ for vol in volume_mounts:
+      - (@= vol @)
+      #@ end  
     labels:
       - "backup-volume.stop-during-backup=true"
       #! Services must opt-in to be proxied by Traefik:

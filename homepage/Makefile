@@ -36,7 +36,7 @@ override-hook: autoconfig
 ####                         # (this hardcodes the string into docker-compose.override.yaml)
 ####   name=@VARIABLE_NAME   # sets the template 'name' field to the literal string '${VARIABLE_NAME}'
 ####                         # (used for regular docker-compose expansion of env vars by name.)
-	@${BIN}/docker_compose_override ${ENV_FILE} project=:homepage instance=@HOMEPAGE_INSTANCE webhook_host=@HOMEPAGE_WEBHOOK_HOST traefik_host=@HOMEPAGE_TRAEFIK_HOST http_auth=HOMEPAGE_HTTP_AUTH http_auth_var=@HOMEPAGE_HTTP_AUTH ip_sourcerange=@HOMEPAGE_IP_SOURCERANGE enable_docker=HOMEPAGE_ENABLE_DOCKER reloader_path_prefix=HOMEPAGE_RELOADER_PATH_PREFIX oauth2=HOMEPAGE_OAUTH2 authorized_group=HOMEPAGE_OAUTH2_AUTHORIZED_GROUP enable_mtls_auth=HOMEPAGE_MTLS_AUTH mtls_authorized_certs=HOMEPAGE_MTLS_AUTHORIZED_CERTS
+	@${BIN}/docker_compose_override ${ENV_FILE} project=:homepage instance=@HOMEPAGE_INSTANCE webhook_host=@HOMEPAGE_WEBHOOK_HOST traefik_host=@HOMEPAGE_TRAEFIK_HOST http_auth=HOMEPAGE_HTTP_AUTH http_auth_var=@HOMEPAGE_HTTP_AUTH ip_sourcerange=@HOMEPAGE_IP_SOURCERANGE enable_docker=HOMEPAGE_ENABLE_DOCKER reloader_path_prefix=HOMEPAGE_RELOADER_PATH_PREFIX oauth2=HOMEPAGE_OAUTH2 authorized_group=HOMEPAGE_OAUTH2_AUTHORIZED_GROUP enable_mtls_auth=HOMEPAGE_MTLS_AUTH mtls_authorized_certs=HOMEPAGE_MTLS_AUTHORIZED_CERTS extra_volumes=HOMEPAGE_EXTRA_VOLUMES
 
 .PHONY: shell
 shell:
