@@ -1,0 +1,50 @@
+services:
+  frigate:
+    image: ${FRIGATE_IMAGE}
+    #container_name: frigate
+    #privileged: true
+    #cap_drop:
+    #  - ALL
+    #security_opt:
+    #  - no-new-privileges:true
+    #sysctls:
+    #  - net.ipv4.ip_unprivileged_port_start=1024
+    restart: unless-stopped
+    # allow enough time to shut down the various services
+    stop_grace_period: 30s
+    shm_size: ${FRIGATE_SHM_SIZE}
+    devices:
+      - ${FRIGATE_VIDEO_HARDWARE_DEVICE}:${FRIGATE_VIDEO_HARDWARE_DEVICE}
+    volumes:
+      - /etc/localtime:/etc/localtime:ro
+      - config:/config
+      - storage:/media/frigate
+      # Optional: 1GB of memory, reduces SSD/SD Card wear
+      - type: tmpfs 
+        target: /tmp/cache
+        tmpfs:
+          size: 1000000000
+    #ports:
+    #  - "8971:8971"
+    #  # Internal unauthenticated access. Expose carefully.
+    #  # - "5000:5000"
+    #  # RTSP feeds
+    #  - "8554:8554"
+    #  # WebRTC over tcp
+    #  - "8555:8555/tcp"
+    #  # WebRTC over udp
+    #  - "8555:8555/udp"
+    environment:
+      FRIGATE_RTSP_PASSWORD: ${FRIGATE_RTSP_PASSWORD}
+      FRIGATE_TLS_ENABLED: False      
+    labels: []
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: 1 
+              capabilities: [gpu]
+volumes:
+  config:
+  storage:
