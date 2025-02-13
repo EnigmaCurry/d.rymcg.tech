@@ -23,22 +23,22 @@
 #@ enable_docker = data.values.enable_docker == "true"
 #@ reloader_path_prefix = data.values.reloader_path_prefix
 #!
-#@ def get_volume_mounts(host_str, mount_str):
-#@   if host_str.strip() == "" or mount_str.strip() == "":
+#@ def get_volume_mounts(volumes_str):
+#@   if volumes_str.strip() == "":
 #@     return []
 #@   end
-#@   hosts = host_str.split(",")
-#@   mounts = mount_str.split(",")
-#@   if len(hosts) != len(mounts):
-#@     fail("extra_volumes_host and extra_volumes_mountpoint must have the same number of entries")
-#@   end
+#@   pairs = volumes_str.split(",")
 #@   volume_mounts = []
-#@   for i in range(len(hosts)):
-#@       volume_mounts.append(hosts[i].strip() + ":" + mounts[i].strip())
+#@   for pair in pairs:
+#@       pair = pair.strip()
+#@       if ":" not in pair:
+#@         fail("extra_volumes must be a comma-separated list of colon-delimited pairs")
+#@       end
+#@       volume_mounts.append(pair)
 #@   end
 #@   return volume_mounts
 #@ end
-#@ volume_mounts = get_volume_mounts(data.values.extra_volumes_host, data.values.extra_volumes_mountpoint)
+#@ volume_mounts = get_volume_mounts(data.values.extra_volumes)
 #!
 
 #@yaml/text-templated-strings
