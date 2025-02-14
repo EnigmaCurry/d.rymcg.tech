@@ -68,9 +68,9 @@ disable-tls:
 	@echo
 ## Improvement would be to only insert this config if it hasn't already been inserted.
 	@docker exec frigate-frigate-1 sh -c "printf '\ntls:\n    enabled: false\n\n' >> /config/config.yaml" && \
-		echo "Disabled TLS on Frigate's webserver." || \
+		(echo "Disabled TLS on Frigate's webserver." && sleep 1) || \
 		(echo "Error: Failed to disable TLS on Frigate's webserver." && echo && exit 1)
 	@echo
-	@echo "Restarting container..." && sleep 1
+	@echo "Restarting container..."
 	@make restart && echo && echo "Restarted container." || echo "Error: Failed to restart container."
 	@echo

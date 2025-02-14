@@ -1,14 +1,9 @@
 services:
   frigate:
     image: ${FRIGATE_IMAGE}
-    #privileged: true
-    #cap_drop:
-    #  - ALL
-    #security_opt:
-    #  - no-new-privileges:true
-    #sysctls:
-    #  - net.ipv4.ip_unprivileged_port_start=1024
-    restart: unless-stopped
+    sysctls:
+      - net.ipv4.ip_unprivileged_port_start=1024
+    restart: unless-stopped 
     # allow enough time to shut down the various services
     stop_grace_period: 30s
     shm_size: ${FRIGATE_SHM_SIZE}
@@ -24,13 +19,6 @@ services:
     environment:
       FRIGATE_RTSP_PASSWORD: ${FRIGATE_RTSP_PASSWORD}
     labels: []
-    deploy:
-      resources:
-        reservations:
-          devices:
-            - driver: nvidia
-              count: 1 
-              capabilities: [gpu]
 
 volumes:
   config:
