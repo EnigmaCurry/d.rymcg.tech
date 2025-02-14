@@ -19,10 +19,30 @@
 #@ mtls_authorized_certs = data.values.mtls_authorized_certs
 #@ enabled_middlewares = []
 
+#! ### Project-specific vars:
+#@ hardware_acceleration = data.values.hardware_acceleration
+#@ gpu = data.values.gpu
+
 #@yaml/text-templated-strings
 services:
   frigate:
     #@ service = "frigate"
+
+    #@ if hardware_acceleration.strip() != "":
+    devices:
+      - (@= hardware_acceleration @):(@= hardware_acceleration @)
+    #@ end
+
+    #@ if gpu.strip() == "Nvidia":
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: 1 
+              capabilities: [gpu]
+    #@ end
+    
     labels:
       - "backup-volume.stop-during-backup=true"
       #! Services must opt-in to be proxied by Traefik:
