@@ -56,6 +56,12 @@ services:
         #@ end
         #@ enabled_middlewares.append("mtls-header@file")
       #@ end
+      
+      #! Fix for discovery to work for iOS (and OSX?) 
+      #@ enabled_middlewares.append("{}-baikal-dav".format(router))
+      - "traefik.http.middlewares.(@= router @)-baikal-dav.redirectregex.regex=https://(.*)/.well-known/(card|cal)dav"
+      - "traefik.http.middlewares.(@= router @)-baikal-dav.redirectregex.replacement=https://$$1/dav.php/"
+      - "traefik.http.middlewares.(@= router @)-baikal-dav.redirectregex.permanent=true"
 
       #! Apply all middlewares (do this at the end!)
       - "traefik.http.routers.(@= router @).middlewares=(@= ','.join(enabled_middlewares) @)"

@@ -1,4 +1,3 @@
-
 volumes:
   baikal_config:
   baikal_data:
@@ -26,6 +25,8 @@ services:
       # - KILL
       # - AUDIT_WRITE
     restart: unless-stopped
+    environment:  
+      APPLY_HOME_ASSISTANT_FIX: "true"
     labels: []
     volumes:
       - baikal_config:/var/www/baikal/config
