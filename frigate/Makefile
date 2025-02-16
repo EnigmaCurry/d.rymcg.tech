@@ -23,19 +23,19 @@ config-hook:
 	@echo '- E.g., For Intel hwaccel (needs to be updated for your hardware)'
 	@echo '  FRIGATE_VIDEO_HARDWARE_DEVICE=/dev/dri/renderD129'
 	@echo
-	@ALLOW_BLANK=1 ${BIN}/reconfigure_ask ${ENV_FILE} FRIGATE_VIDEO_HARDWARE_DEVICE "Enter the path for hardware acceleration (leave blank for not use hardware acceleration)"
+	@ALLOW_BLANK=1 ${BIN}/reconfigure_ask ${ENV_FILE} FRIGATE_VIDEO_HARDWARE_DEVICE "Enter the path for hardware acceleration (leave blank to not use hardware acceleration)"
 	@echo
 	@echo 'Enter the GPU type, or select "None" for no GPU.'
 	@echo 'Frigate supports many different GPUs, each requiring custom configuration in'
 	@echo "\`docker-compose.yaml\`, Frigate's \`config.conf\`, or both. See here for details:"
 	@echo 'https://docs.frigate.video/configuration/hardware_acceleration/'
-	@echo 
+	@echo ''
 	@echo 'Currently, the d.rymcg.tech installation process only supports Nvidia. If your'
 	@echo "GPU only requires custom configuration in Frigate's \`config.conf\`, you can enter"
 	@echo '"None" here and then customize `config.conf` from within Frigate''s UI. Or feel'
 	@echo 'free to submit a feature request for us to add support for your GPU:'
 	@echo 'https://github.com/EnigmaCurry/d.rymcg.tech/issues'
-	@echo	
+	@echo ''
 	@${BIN}/reconfigure_choose ${ENV_FILE} FRIGATE_GPU "Select the GPU type" "None" "Nvidia"
 	@echo
 
@@ -61,16 +61,4 @@ shell:
 show-admin-user:
 	@echo
 	@docker logs frigate-frigate-1 2>&1 | grep -F '***' || echo "Error: admin credentials were not found in logs."
-	@echo
-
-.PHONY: disable-tls # Disable TLS on Frigate's webserver
-disable-tls:
-	@echo
-## Improvement would be to only insert this config if it hasn't already been inserted.
-	@docker exec frigate-frigate-1 sh -c "printf '\ntls:\n    enabled: false\n\n' >> /config/config.yaml" && \
-		(echo "Disabled TLS on Frigate's webserver." && sleep 1) || \
-		(echo "Error: Failed to disable TLS on Frigate's webserver." && echo && exit 1)
-	@echo
-	@echo "Restarting container..."
-	@make restart && echo && echo "Restarted container." || echo "Error: Failed to restart container."
 	@echo

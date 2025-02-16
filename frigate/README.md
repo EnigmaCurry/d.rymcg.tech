@@ -25,17 +25,6 @@ top of your app.
 make install
 ```
 
-By default, Frigate's webserver only accepts TLS connections. But as we're
-installing it behind Traefik, which terminates TLS and forwards http traffic,
-we need to disable TLS on Frigate's webserver before we can use it. If you
-don't, you'll see a "400 Bad Request: The plain HTTP request was sent to HTTPS
-port" error. Run the following command to disable TLS on Frigate's webserver
-and restart the container:
-
-```
-make disable-tls
-```
-
 ## Open
 
 ```

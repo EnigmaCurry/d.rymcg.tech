@@ -1,5 +1,12 @@
 services:
+  config:
+    build:
+      context: config
+    volumes:
+      - config:/config
   frigate:
+    depends_on:
+      - config
     image: ${FRIGATE_IMAGE}
     sysctls:
       - net.ipv4.ip_unprivileged_port_start=1024
