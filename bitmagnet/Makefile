@@ -14,7 +14,7 @@ config-hook:
 	@echo 
 	@${BIN}/reconfigure_password ${ENV_FILE} BITMAGNET_POSTGRES_PASSWORD
 	@echo 
-	@${BIN}/reconfigure_ask ${ENV_FILE} BITMAGNET_TMDB_API_KEY "Optional: Enter your TMDB API key" 
+	@ALLOW_BLANK=1 ${BIN}/reconfigure_ask ${ENV_FILE} BITMAGNET_TMDB_API_KEY "Optional: Enter your TMDB API key" 
 	@echo
 	@echo "Enter the wireguard config values:"
 	@${BIN}/reconfigure_ask ${ENV_FILE} BITMAGNET_VPN_CLIENT_INTERFACE_PRIVATE_KEY "Enter the wireguard PrivateKey (ends with =)"

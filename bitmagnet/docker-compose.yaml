@@ -8,7 +8,7 @@ services:
     environment:
       # Enable logging to rotating files for ingest to Loki:
       - LOG_FILE_ROTATOR_ENABLED=true
-      - POSTGRES_HOST=postgres
+      - POSTGRES_HOST=172.20.0.10
       - POSTGRES_PASSWORD=${BITMAGNET_POSTGRES_PASSWORD}
       # - TMDB_API_KEY=your_api_key
     network_mode: service:wireguard
@@ -70,11 +70,13 @@ services:
     #extra_hosts:
     #  - "postgres:192.168.55.11"
 
-
   postgres:
     image: postgres:${BITMAGNET_POSTGRES_IMAGE}
     volumes:
       - postgres:/var/lib/postgresql/data
+    networks:
+      postgres:
+        ipv4_address: 172.20.0.10
     #networks:
     #  bitmagnet:
     #    ipv4_address: 192.168.55.11
@@ -217,3 +219,10 @@ volumes:
   postgres:
   data:
   wireguard:
+
+networks:
+  postgres:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 172.20.0.0/16
