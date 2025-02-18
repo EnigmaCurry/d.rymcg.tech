@@ -30,6 +30,7 @@ services:
     environment:
       - TMDB_API_KEY=(@= tmdb_api_key @) 
     #@ end
+    
   wireguard:
     #@ service = "wireguard"
     labels:
