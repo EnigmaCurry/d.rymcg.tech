@@ -1,8 +1,9 @@
-# actual
+# Actual
 
-[actual](https://github.com/traefik/actual) is a tiny Go webserver
-that prints os information and HTTP request to output. It is useful as
-a basic deployment and connectivity test.
+[Actual](https://github.com/actualbudget/actual) is a local-first personal
+finance tool, with functionality for envelope-style or tracking-style budgeting.
+It has a synchronization element so that all your changes can move between
+devices without any heavy lifting.
 
 ## Config
 
