@@ -533,6 +533,7 @@ Install these recommended backbone applications next:
 Install these other services at your leisure/preference:
 
 * [13ft](thirteenft#readme) - a tool to block ads and bypass paywalls
+* [Actual](actual#readme) - a personal finance tool
 * [ArchiveBox](archivebox#readme) - a website archiving tool
 * [Audiobookshelf](audiobookshelf#readme) - an audiobook and podcast server
 * [Autoheal](autoheal#readme) - a Docker container healthcheck monitor with auto-restart service
