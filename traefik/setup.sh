@@ -312,7 +312,8 @@ error_pages() {
 middleware() {
     wizard menu "Traefik middleware config:" \
            "MaxMind geoIP locator = ./setup.sh maxmind_geoip" \
-           "OAuth2 sentry authorization (make sentry) = make sentry"
+           "OAuth2 sentry authorization (make sentry) = make sentry" \
+           "Sablier = ./setup.sh sablier"
 }
 
 maxmind_geoip() {
@@ -328,6 +329,30 @@ maxmind_geoip() {
         ${BIN}/reconfigure_ask ${ENV_FILE} TRAEFIK_GEOIPUPDATE_ACCOUNT_ID "Enter your MaxMind account ID"
         ${BIN}/reconfigure_ask ${ENV_FILE} TRAEFIK_GEOIPUPDATE_LICENSE_KEY "Enter your MaxMind license key"
         ${BIN}/reconfigure_ask ${ENV_FILE} TRAEFIK_GEOIPUPDATE_EDITION_IDS "Enter the GeoIP database IDs you wish to install" "GeoLite2-ASN GeoLite2-City GeoLite2-Country"
+    fi
+}
+
+sablier() {
+    if ${BIN}/confirm $([[ $(${BIN}/dotenv -f ${ENV_FILE} get TRAEFIK_PLUGIN_SABLIER) == "true" ]] && echo "yes" || echo "no") "Do you want to enable the Sablier plugin" "?"; then
+        ${BIN}/reconfigure ${ENV_FILE} TRAEFIK_PLUGIN_SABLIER=true
+    else
+        ${BIN}/reconfigure ${ENV_FILE} TRAEFIK_PLUGIN_SABLIER=false
+    fi
+    if [[ $(${BIN}/dotenv -f ${ENV_FILE} get TRAEFIK_PLUGIN_SABLIER) == "true" ]]; then
+        echo "You may create a free MaxMind account: https://www.maxmind.com/en/geolite2/signup"
+        echo ""
+        ${BIN}/reconfigure_ask ${ENV_FILE} TRAEFIK_SABLIER_LOGGING_LEVEL "Enter the logging level for Sablier"
+        ${BIN}/reconfigure_ask ${ENV_FILE} TRAEFIK_SABLIER_SESSION_DURATION "Enter the default session duration (e.g., \"5m\")"
+        ${BIN}/reconfigure_ask ${ENV_FILE} TRAEFIK_SABLIER_SESSION_EXPIRATION_INTERVAL "Enter the expiration checking interval. Higher duration gives less stress on CPU. If you only use sessions of 1h, setting this to 5m is a good trade-off"
+        ${BIN}/reconfigure_ask ${ENV_FILE} TRAEFIK_SABLIER_STRATEGY "Enter the strategy Sablier should use (\"dynamic\" provides a waiting page for your session, \"blocking\" hangs the request until your session is ready)"
+        if [[ $(${BIN}/dotenv -f ${ENV_FILE} get TRAEFIK_SABLIER_STRATEGY) == "blocking" ]]; then
+            ${BIN}/reconfigure_ask ${ENV_FILE} TRAEFIK_SABLIER_BLOCKING_TIMEOUT "Enter the default timeout used for the \"blocking\" strategy (e.g., \"1m\")"
+        else
+            ALLOW_BLANK=1 ${BIN}/reconfigure_ask ${ENV_FILE} TRAEFIK_SABLIER_DYNAMIC_CUSTOM_THEMES_PATH "Enter the path to custom themes (Sablier will load all .html files recursively) (leave blank to disable)"
+            ${BIN}/reconfigure_ask ${ENV_FILE} TRAEFIK_SABLIER_DYNAMIC_SHOW_DETAILS "Enter \"true\" to show instances details by default in waiting UI, or \"false\" not to"
+            ${BIN}/reconfigure_ask ${ENV_FILE} TRAEFIK_SABLIER_DYNAMIC_DEFAUT_THEME "Enter default theme used for the \"dynamic\" strategy (standard themes are \"ghost\", \"shuffle\", \"hacker-terminal\", and \"matrix\""
+            ${BIN}/reconfigure_ask ${ENV_FILE} TRAEFIK_SABLIER_DYNAMIC_REFRESH_FREQUENCY "Enter the default refresh frequency in the HTML page for the \"dynamic\" strategy (e.g., \"5s\")"
+        fi
     fi
 }
 
