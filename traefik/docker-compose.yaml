@@ -1,6 +1,7 @@
 volumes:
   traefik:
   geoip_database:
+  sablier_config:
   wireguard:
   wireguard-client:
 
@@ -41,6 +42,7 @@ services:
       - TRAEFIK_PLUGIN_MAXMIND_GEOIP=${TRAEFIK_PLUGIN_MAXMIND_GEOIP:-false}
       - TRAEFIK_PLUGIN_REFERER=${TRAEFIK_PLUGIN_REFERER:-true}
       - TRAEFIK_PLUGIN_HEADER_AUTHORIZATION=${TRAEFIK_PLUGIN_HEADER_AUTHORIZATION:-true}
+      - TRAEFIK_PLUGIN_SABLIER=${TRAEFIK_PLUGIN_SABLIER:-false}
       - TRAEFIK_WEB_ENTRYPOINT_ENABLED=${TRAEFIK_WEB_ENTRYPOINT_ENABLED:-false}
       - TRAEFIK_WEB_ENTRYPOINT_HOST=${TRAEFIK_WEB_ENTRYPOINT_HOST:-0.0.0.0}
       - TRAEFIK_WEB_ENTRYPOINT_PORT=${TRAEFIK_WEB_ENTRYPOINT_PORT:-80}
@@ -135,6 +137,8 @@ services:
         CERT_AUTH_GIT_BRANCH: main
         MTLS_HEADER_MODULE: ${TRAEFIK_MTLS_HEADER_MODULE}
         MTLS_HEADER_GIT_BRANCH: main
+        SABLIER_MODULE: ${TRAEFIK_SABLIER_MODULE}
+        SABLIER_GIT_BRANCH: main
         TRAEFIK_UID: ${TRAEFIK_UID}
         TRAEFIK_GID: ${TRAEFIK_GID}
         TRAEFIK_DOCKER_GID: ${TRAEFIK_DOCKER_GID}
@@ -176,6 +180,33 @@ services:
     volumes:
       - "geoip_database:/usr/share/GeoIP"
 
+  sablier:
+    profiles:
+      - sablier
+    image: sablierapp/sablier:1.8.5
+    restart: on-failure:3
+    security_opt:
+      - no-new-privileges:true
+    #cap_drop:
+    #  - ALL
+    # sysctls:
+    #   - net.ipv4.conf.all.src_valid_mark=1
+    environment:
+      - LOGGING_LEVEL=${TRAEFIK_SABLIER_LOGGING_LEVEL}
+      - SESSIONS_DEFAULT_DURATION=${TRAEFIK_SABLIER_SESSION_DURATION}
+      - SESSIONS_EXPIRATION_INTERVAL=${TRAEFIK_SABLIER_SESSION_EXPIRATION_INTERVAL}
+      # We may need to use an override yaml file with templating so if TRAEFIK_SABLIER_STRATEGY=dynamic we add the 4 "DYNAMIC" env vars or if TRAEFIK_SABLIER_STRATEGY=blocking we add the 1 "BLOCKING" env var, because I'm not sure how Sablier will handle having them both set
+      - STRATEGY_DYNAMIC_CUSTOM_THEMES_PATH=${TRAEFIK_SABLIER_DYNAMIC_CUSTOM_THEMES_PATH}
+      - STRATEGY_DYNAMIC_SHOW_DETAILS_BY_DEFAULT=${TRAEFIK_SABLIER_DYNAMIC_SHOW_DETAILS}
+      - STRATEGY_DYNAMIC_DEFAUT_THEME=${TRAEFIK_SABLIER_DYNAMIC_DEFAUT_THEME}
+      - STRATEGY_DYNAMIC_DEFAULT_REFRESH_FREQUENCY=${TRAEFIK_SABLIER_DYNAMIC_REFRESH_FREQUENCY}
+      - STRATEGY_BLOCKING_DEFAULT_TIMEOUT=${TRAEFIK_SABLIER_BLOCKING_TIMEOUT}
+    command:
+        - start
+        - --provider.name=docker
+    volumes:
+      - '/var/run/docker.sock:/var/run/docker.sock'
+      
   wireguard:
     profiles:
       - wireguard
