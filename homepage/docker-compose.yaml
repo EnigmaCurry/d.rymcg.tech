@@ -15,6 +15,7 @@ services:
       - HOMEPAGE_TEMPLATE_REPO
       - HOMEPAGE_TEMPLATE_REPO_SYNC_ON_START
       - HOMEPAGE_AUTO_CONFIG
+      - HOMEPAGE_ALLOWED_HOSTS=${HOMEPAGE_ALLOWED_HOSTS:-${HOMEPAGE_TRAEFIK_HOST}}
     # All volumes are defined in the template: docker-compose.instance.yaml
     volumes: []
     # All labels are defined in the template: docker-compose.instance.yaml
