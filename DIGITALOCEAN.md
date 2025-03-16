@@ -75,14 +75,14 @@ Create a new firewall:
  * Enter any name you want for the firewall (eg. use the  domain or server role name to help identify it).
  * Create the following `Inbound Rules`:
  
-    | Type   | Protocol | Port Range | Description                      |
-    | ------ | -------- | ---------- | -------------------------------- |
-    | SSH    | TCP      |         22 | Host SSH server                  |
-    | HTTP   | TCP      |         80 | Traefik HTTP endpoint            |
-    | HTTPS  | TCP      |        443 | Traefik HTTPS (TLS) endpoint     |
-    | Custom | TCP      |       2222 | Traefik Gitea SSH (TCP) endpoint |
-    | Custom | TCP      |       2223 | SFTP container SSH (TCP)         |
-    | Custom | TCP      |       8883 | Traefik Mosquitto (TLS) endpoint |
+    | Type   | Protocol | Port Range | Description                        |
+    | ------ | -------- | ---------- | ---------------------------------- |
+    | SSH    | TCP      |         22 | Host SSH server                    |
+    | HTTP   | TCP      |         80 | Traefik HTTP endpoint              |
+    | HTTPS  | TCP      |        443 | Traefik HTTPS (TLS) endpoint       |
+    | Custom | TCP      |       2222 | Traefik Forgejo SSH (TCP) endpoint |
+    | Custom | TCP      |       2223 | SFTP container SSH (TCP)           |
+    | Custom | TCP      |       8883 | Traefik Mosquitto (TLS) endpoint   |
  
  * (and any other ports you need.)
  * Search for the Droplet you create and apply the firewall to it.
