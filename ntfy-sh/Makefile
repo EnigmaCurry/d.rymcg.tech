@@ -42,7 +42,7 @@ shell:
 user:
 	@NTFY_PASSWORD=$$(openssl rand -base64 25) && read -e -p "Enter the username to create: " NTFY_USERNAME && docker compose --env-file=${ENV_FILE} exec -e NTFY_PASSWORD=$${NTFY_PASSWORD} ntfy ntfy user add $${NTFY_USERNAME} && echo "Username: $${NTFY_USERNAME}" && echo "Password: $${NTFY_PASSWORD}"
 
-.PHONY: access
+.PHONY: access # Show all users and their granted access
 access:
 	docker compose --env-file=${ENV_FILE} exec -it ntfy ntfy access
 
