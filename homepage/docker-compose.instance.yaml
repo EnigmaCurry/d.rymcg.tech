@@ -52,7 +52,7 @@ services:
       #@ end
       - config:/app/public/images #! (optional) So Homepage can use images from config dir
       #@ for vol in volume_mounts:
-      - (@= vol @)
+      - (@= vol @):ro
       #@ end  
     labels:
       - "backup-volume.stop-during-backup=true"
