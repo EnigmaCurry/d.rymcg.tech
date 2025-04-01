@@ -15,7 +15,10 @@ config-hook:
 	@${BIN}/reconfigure_auth ${ENV_FILE} HOMEPAGE
 	@echo ""
 	@${BIN}/reconfigure_password ${ENV_FILE} HOMEPAGE_RELOADER_HMAC_SECRET 45
-	@echo 
+	@echo
+	@echo "HOMEPAGE_ALLOWED_HOSTS is required, and helps prevent certain kinds of attacks when retrieving data from the homepage API proxy. The value is a comma-separated (no spaces) list of allowed hosts (sometimes with the port) that can host your homepage install. For more information about where / how to set the variable, see https://gethomepage.dev/installation/#homepage_allowed_hosts ."
+	@${BIN}/reconfigure_ask ${ENV_FILE} HOMEPAGE_ALLOWED_HOSTS "Enter the homepage domain name" homepage${INSTANCE_URL_SUFFIX}.${ROOT_DOMAIN}
+	@echo
 	@${BIN}/reconfigure ${ENV_FILE} HOMEPAGE_PUBLIC_HTTPS_PORT=$$([[ -z $$(${BIN}/dotenv -f ${ENV_FILE} get HOMEPAGE_PUBLIC_HTTPS_PORT) ]] && echo $$(${BIN}/dotenv -f ../${ROOT_ENV} get PUBLIC_HTTPS_PORT) || echo $$(${BIN}/dotenv -f ${ENV_FILE} get HOMEPAGE_PUBLIC_HTTPS_PORT))
 	@echo ""
 	@${BIN}/confirm $$([[ $$(${BIN}/dotenv -f ${ENV_FILE} get HOMEPAGE_AUTO_CONFIG) == "true" ]] && echo "yes" || echo "no") "Do you want to auto-configure Homepage and to discover all of your running d.rymcg.tech apps of the current docker context" "?" && ${BIN}/reconfigure ${ENV_FILE} HOMEPAGE_AUTO_CONFIG=true && $(MAKE) autoconfig \
