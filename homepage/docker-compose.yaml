@@ -1,4 +1,3 @@
-
 volumes:
   config:
 
@@ -15,11 +14,10 @@ services:
       - HOMEPAGE_TEMPLATE_REPO
       - HOMEPAGE_TEMPLATE_REPO_SYNC_ON_START
       - HOMEPAGE_AUTO_CONFIG
-      - HOMEPAGE_ALLOWED_HOSTS=${HOMEPAGE_ALLOWED_HOSTS:-${HOMEPAGE_TRAEFIK_HOST}}
+      - HOMEPAGE_ALLOWED_HOSTS=${HOMEPAGE_ALLOWED_HOSTS}
     # All volumes are defined in the template: docker-compose.instance.yaml
     volumes: []
     # All labels are defined in the template: docker-compose.instance.yaml
     # The labels will merge together here from the template output:
     #   docker-compose.override_{DOCKER_CONTEXT}_{INSTANCE}.yaml
     labels: []
-
