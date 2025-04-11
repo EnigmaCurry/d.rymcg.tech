@@ -1,0 +1,70 @@
+networks:
+  postfix-relay_default:
+    external: true
+
+services:
+  config:
+    build:
+      context: config
+    security_opt:
+      - no-new-privileges:true
+    environment:
+      - COMMENTARIO_POSTGRES_PASSWORD
+      - COMMENTARIO_POSTGRES_DB
+      - COMMENTARIO_POSTGRES_USER=postgres
+      - COMMENTARIO_POSTGRES_HOST=postgres
+      - COMMENTARIO_POSTGRES_PORT=5432
+      - COMMENTARIO_SMTP_HOST
+      - COMMENTARIO_SMTP_PORT
+      - COMMENTARIO_SMTP_USERNAME
+      - COMMENTARIO_SMTP_PASSWORD
+    volumes:
+      - config:/config
+
+  commentario:
+    image: ${COMMENTARIO_IMAGE}
+    depends_on:
+      - config
+      - postgres
+    security_opt:
+      - no-new-privileges:true
+    sysctls:
+      - net.ipv4.ip_unprivileged_port_start=1024
+    environment:
+      BASE_URL: https://${COMMENTARIO_TRAEFIK_HOST}
+      SECRETS_FILE: "/config/secrets.yaml"
+      EMAIL_FROM: "${COMMENTARIO_EMAIL_FROM}"
+    volumes:
+      - config:/config
+    restart: unless-stopped
+    networks:
+      - default
+      - postfix-relay_default
+    ## For debug logging, ad -vv
+    #command: ["--host=0.0.0.0", "--port=80", "-vv"]
+    command: ["--host=0.0.0.0", "--port=80", "-v"]
+    # All labels are defined in the template: docker-compose.instance.yaml
+    # The labels will merge together here from the template output:
+    #   docker-compose.override_{DOCKER_CONTEXT}_{INSTANCE}.yaml
+    labels: []
+    
+  postgres:
+    image: postgres:${COMMENTARIO_POSTGRES_VERSION}
+    restart: unless-stopped
+    environment:
+      POSTGRES_PASSWORD: ${COMMENTARIO_POSTGRES_PASSWORD}
+      POSTGRES_DB: ${COMMENTARIO_POSTGRES_DB}
+    security_opt:
+      - no-new-privileges:true
+    volumes:
+      - database:/var/lib/postgresql/data
+    labels:
+      - "backup-volume.stop-during-backup=true"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d $$POSTGRES_DB"]
+
+volumes:
+  database:
+  config:
+
+
