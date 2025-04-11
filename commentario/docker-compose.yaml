@@ -23,7 +23,6 @@ services:
 
   commentario:
     image: ${COMMENTARIO_IMAGE}
-    pull_policy: if_not_present
     depends_on:
       - config
       - postgres
