@@ -31,7 +31,7 @@ make open
 
 Your web browser should automatically open the interface.
 
-*IMPORTANT:* /Immediately/ register a new user account. The first user
+*IMPORTANT:* _Immediately_ register a new user account. The first user
 that registers automatically becomes the superuser.
 
 
