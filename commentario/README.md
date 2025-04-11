@@ -9,16 +9,6 @@ To support outgoing email, install [postfix-relay](../postfix-relay)
 on the same Docker server. Commentario will connect to the same Docker
 network: `postfix-relay_default`.
 
-## Pull Docker image
-
-The commentario image hosted on gitlab may fail to install via
-docker-compose. The workaround is to pull and tag the image manually:
-
-```
-docker pull registry.gitlab.com/comentario/comentario
-docker tag registry.gitlab.com/comentario/comentario localhost/commentario
-```
-
 ## Config
 
 ```
