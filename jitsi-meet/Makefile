@@ -16,6 +16,12 @@ user:
 user-list:
 	@docker compose --env-file ${ENV_FILE} exec prosody find /config/data/meet%2ejitsi/accounts -type f -exec basename {} .dat \;
 
-.PHONY: shell
-shell:
-	@container=$$(eval "${BIN}/script-wizard choose 'docker exec -it into which container?' 'web' 'prosody' 'jicofo' 'jvb' --default 'web'") && make --no-print-directory docker-compose-shell SERVICE=$${container} 
+.PHONY: user-delete # Delete a user account
+user-delete:
+	@users="$$(make --no-print-directory user-list)" && \
+	username="$$(eval "${BIN}/script-wizard choose 'Select the username to delete' $$(echo $$users | tr '\n' ' ')")" && \
+	docker compose --env-file ${ENV_FILE} exec prosody prosodyctl --config /config/prosody.cfg.lua unregister "$$username" meet.jitsi
+
+ .PHONY: shell
+ shell:
+	@container=$$(eval "${BIN}/script-wizard choose 'docker exec -it into which container?' 'web' 'prosody' 'jicofo' 'jvb' --default 'web'") && make --no-print-directory docker-compose-shell SERVICE=$${container}
