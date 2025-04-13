@@ -3,12 +3,6 @@
 [Commentario](https://gitlab.com/comentario/comentario) is a comment
 platform for your websites.
 
-## Deploy postfix-relay
-
-To support outgoing email, install [postfix-relay](../postfix-relay)
-on the same Docker server. Commentario will connect to the same Docker
-network: `postfix-relay_default`.
-
 ## Config
 
 ```

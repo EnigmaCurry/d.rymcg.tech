@@ -1,6 +1,6 @@
-networks:
-  postfix-relay_default:
-    external: true
+#networks:
+#  postfix-relay_default:
+#    external: true
 
 services:
   config:
@@ -39,7 +39,7 @@ services:
     restart: unless-stopped
     networks:
       - default
-      - postfix-relay_default
+      #- postfix-relay_default
     ## For debug logging, ad -vv
     #command: ["--host=0.0.0.0", "--port=80", "-vv"]
     command: ["--host=0.0.0.0", "--port=80", "-v"]
