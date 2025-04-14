@@ -36,3 +36,8 @@ override-hook:
 .PHONY: shell
 shell:
 	@make --no-print-directory docker-compose-shell SERVICE=commentario
+
+.PHONY: psql
+psql:
+	@make --no-print-directory docker-compose-shell SERVICE=postgres COMMAND="psql -U postgres commentario"
+
