@@ -43,7 +43,7 @@ tcp:
 #@ end
 
 #@yaml/text-templated-strings
-#@ if tcp_udp_proxy_enabled and len(tcp_udp_proxy_routes):
+#@ if tcp_udp_proxy_enabled and len(tcp_udp_proxy_routes) and len(udp_entrypoints):
 udp:
   services:
     #@ for route in tcp_udp_proxy_routes.split(","):
