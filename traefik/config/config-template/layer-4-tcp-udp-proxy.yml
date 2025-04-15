@@ -31,6 +31,9 @@ tcp:
     #@ for route in tcp_udp_proxy_routes.split(","):
     #@ entrypoint = route.split(":")[0]
     #@ service = "{}-layer-4-proxy".format(entrypoint)
+    #@ if entrypoint in udp_entrypoints:
+    #@  continue
+    #@ end
     (@= service @)-proxy:
       entryPoints:
         - "(@= entrypoint @)"
