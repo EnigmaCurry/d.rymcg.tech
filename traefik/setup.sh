@@ -574,7 +574,7 @@ layer_4_tcp_udp_add_ingress_route() {
     echo
     local DEFAULT_PORT=$(${BIN}/dotenv -f ${ENV_FILE} get TRAEFIK_${ENTRYPOINT^^}_ENTRYPOINT_PORT || (${BIN}/dotenv -f ${ENV_FILE} get TRAEFIK_CUSTOM_ENTRYPOINTS | tr ',' '\n' | grep "^${ENTRYPOINT}:" | cut -d: -f3))
     while
-        ask_no_blank "Enter the destination TCP port to forward to:" ROUTE_PORT "${DEFAULT_PORT}"
+        ask_no_blank "Enter the destination port to forward to:" ROUTE_PORT "${DEFAULT_PORT}"
         if ! [[ ${ROUTE_PORT} =~ ^[0-9]+$ ]] ; then
             echo "Port is invalid."
             continue
@@ -583,11 +583,14 @@ layer_4_tcp_udp_add_ingress_route() {
     do true; done
     echo
     local ROUTE_PROXY_PROTOCOL=0
+    local PROTOCOL=$(${BIN}/dotenv -f ${ENV_FILE} get TRAEFIK_${ENTRYPOINT^^}_ENTRYPOINT_PORT || (${BIN}/dotenv -f ${ENV_FILE} get TRAEFIK_CUSTOM_ENTRYPOINTS | tr ',' '\n' | grep "^${ENTRYPOINT}:" | cut -d: -f4))
     echo "##"
     echo "## See https://www.haproxy.org/download/2.0/doc/proxy-protocol.txt"
     echo
-    if confirm no "Do you want to enable Proxy Protocol for this route" "?"; then
-        ROUTE_PROXY_PROTOCOL=2
+    if [[ ${PROTOCOL} == "tcp" ]]; then
+        if confirm no "Do you want to enable Proxy Protocol for this route" "?"; then
+            ROUTE_PROXY_PROTOCOL=2
+        fi
     fi
     reconfigure_layer_X_tcp_udp_proxy_routes "${ENV_FILE}" TRAEFIK_LAYER_4_TCP_UDP_PROXY_ROUTES "${ENTRYPOINT}" "${ROUTE_IP_ADDRESS}" "${ROUTE_PORT}" "${ROUTE_PROXY_PROTOCOL}"
     layer_4_tcp_udp_list_routes    
