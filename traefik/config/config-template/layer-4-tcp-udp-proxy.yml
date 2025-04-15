@@ -41,3 +41,32 @@ tcp:
       service: "(@= service @)"
     #@ end
 #@ end
+
+#@yaml/text-templated-strings
+#@ if tcp_udp_proxy_enabled and len(tcp_udp_proxy_routes):
+udp:
+  services:
+    #@ for route in tcp_udp_proxy_routes.split(","):
+    #@ entrypoint, dest_ip, dest_port, proxy_protocol = route.split(":")
+    #@ if entrypoint not in udp_entrypoints:
+    #@  continue
+    #@ end
+    #@ service = "{}-layer-4-proxy".format(entrypoint)
+    (@= service @):
+      loadBalancer:
+        servers:
+          - address: "(@= dest_ip @):(@= dest_port @)"
+    #@ end
+  routers:
+    #@ for route in tcp_udp_proxy_routes.split(","):
+    #@ entrypoint = route.split(":")[0]
+    #@ service = "{}-layer-4-proxy".format(entrypoint)
+    #@ if entrypoint not in udp_entrypoints:
+    #@  continue
+    #@ end
+    (@= service @)-proxy:
+      entryPoints:
+        - "(@= entrypoint @)"
+      service: "(@= service @)"
+    #@ end
+#@ end
