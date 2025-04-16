@@ -5,33 +5,7 @@
 #@ print("tcp_udp_proxy_enabled:", tcp_udp_proxy_enabled)
 #@ tcp_udp_proxy_routes = data.values.layer_4_tcp_udp_proxy_routes
 #@ print("tcp_udp_proxy_routes:", tcp_udp_proxy_routes)
-#@ custom_entrypoints = data.values.custom_entrypoints
-#@ print("custom_entrypoints:", custom_entrypoints)
 #@ config = struct.decode(data.values)
-
-
-#@ def parse_custom_entrypoints(custom_str):
-#@   result = []
-#@   for entry in custom_str.split(","):
-#@     if len(entry):
-#@       parts = entry.split(":")
-#@       name = parts[0]
-#@       ip = parts[1]
-#@       port = parts[2]
-#@       proto = parts[3]
-#@       trusted_proxies = parts[4]
-#@       proxy_protocol = "1" if len(trusted_proxies) > 0 else "0"
-#@       result.append({
-#@         "entrypoint": name,
-#@         "dest_ip": ip,
-#@         "dest_port": port,
-#@         "proxy_protocol": proxy_protocol,
-#@         "proto": proto,
-#@       })
-#@     end
-#@   end
-#@   return result
-#@ end
 
 #@ def parse_proxy_routes(proxy_str):
 #@   result = []
@@ -55,7 +29,7 @@
 #@   return result
 #@ end
 
-#@ all_routes = parse_custom_entrypoints(custom_entrypoints) + parse_proxy_routes(tcp_udp_proxy_routes)
+#@ all_routes = parse_proxy_routes(tcp_udp_proxy_routes)
 
 #@ tcp_routes = [r for r in all_routes if r["proto"] == "tcp"]
 #@ udp_routes = [r for r in all_routes if r["proto"] == "udp"]

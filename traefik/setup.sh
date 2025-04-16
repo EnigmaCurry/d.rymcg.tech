@@ -795,14 +795,17 @@ add_custom_entrypoint() {
         false
     do true; done
     local TRUSTED_NETS=
-    case $(wizard choose --numeric \
-                  "Is this entrypoint downstream from another trusted proxy?" \
-                  "No, clients dial directly to this server. (Turn off Proxy Protocol)" \
-                  "Yes, clients are proxied through another trusted proxy. (Turn on Proxoy Protocol)") in
-        0) TRUSTED_NETS=;;
-        1) TRUSTED_NETS=$(ask_echo "Enter the comma separated list of trusted upstream proxy servers (CIDR)" 10.13.16.1/32);;
-    esac
-    USE_HTTPS=$(choose "Does this entrypoint use HTTPS?" "true" "false")
+    local USE_HTTPS=false
+    if [[ $"${PROTOCOL}" == "tcp" ]]; then
+        case $(wizard choose --numeric \
+                      "Is this entrypoint downstream from another trusted proxy?" \
+                      "No, clients dial directly to this server. (Turn off Proxy Protocol)" \
+                      "Yes, clients are proxied through another trusted proxy. (Turn on Proxoy Protocol)") in
+            0) TRUSTED_NETS=;;
+            1) TRUSTED_NETS=$(ask_echo "Enter the comma separated list of trusted upstream proxy servers (CIDR)" 10.13.16.1/32);;
+        esac
+        USE_HTTPS=$(choose "Does this entrypoint use HTTPS?" "true" "false")
+    fi
     if [[ -n "${CUSTOM_ENTRYPOINTS}" ]]; then
         CUSTOM_ENTRYPOINTS="${CUSTOM_ENTRYPOINTS},"
     fi
