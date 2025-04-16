@@ -1,0 +1,11 @@
+services:
+  iperf:
+    build:
+      context: iperf
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+    restart: unless-stopped
+    # Labels go in docker-compose.instance.yaml:
+    labels: []
