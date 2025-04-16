@@ -2,39 +2,81 @@
 #@ load("@ytt:struct", "struct")
 
 #@ tcp_udp_proxy_enabled = data.values.layer_4_tcp_udp_proxy_enabled == "true"
+#@ print("tcp_udp_proxy_enabled:", tcp_udp_proxy_enabled)
 #@ tcp_udp_proxy_routes = data.values.layer_4_tcp_udp_proxy_routes
-#@ custom_entrypoints = data.values.custom_entrypoints
-#@ udp_entrypoints = [e.split(":")[0] for e in custom_entrypoints.split(",") if len(e) and e.split(":")[3] == "udp"]
+#@ print("tcp_udp_proxy_routes:", tcp_udp_proxy_routes)
 #@ config = struct.decode(data.values)
 
+#@ def parse_proxy_routes(proxy_str):
+#@   result = []
+#@   for entry in proxy_str.split(","):
+#@     if len(entry):
+#@       parts = entry.split(":")
+#@       name = parts[0]
+#@       ip = parts[1]
+#@       port = parts[2]
+#@       proxy_protocol = parts[3]
+#@       proto = "udp" if name.endswith("_udp") else "tcp"
+#@       result.append({
+#@         "entrypoint": name,
+#@         "dest_ip": ip,
+#@         "dest_port": port,
+#@         "proxy_protocol": proxy_protocol,
+#@         "proto": proto,
+#@       })
+#@     end
+#@   end
+#@   return result
+#@ end
+
+#@ all_routes = parse_proxy_routes(tcp_udp_proxy_routes)
+
+#@ tcp_routes = [r for r in all_routes if r["proto"] == "tcp"]
+#@ udp_routes = [r for r in all_routes if r["proto"] == "udp"]
 
 #@yaml/text-templated-strings
-#@ if tcp_udp_proxy_enabled and len(tcp_udp_proxy_routes):
+#@ if tcp_udp_proxy_enabled and len(tcp_routes):
 tcp:
   services:
-    #@ for route in tcp_udp_proxy_routes.split(","):
-    #@ entrypoint, dest_ip, dest_port, proxy_protocol = route.split(":")
-    #@ if entrypoint in udp_entrypoints:
-    #@  continue
-    #@ end
-    #@ service = "{}-layer-4-proxy".format(entrypoint)
+    #@ for route in tcp_routes:
+    #@ service = "{}-layer-4-proxy".format(route['entrypoint'])
     (@= service @):
       loadBalancer:
-        #@ if int(proxy_protocol) > 0:
+        #@ if int(route['proxy_protocol']) > 0:
         proxyProtocol:
           version: 2
         #@ end
         servers:
-          - address: "(@= dest_ip @):(@= dest_port @)"
+          - address: "(@= route['dest_ip'] @):(@= route['dest_port'] @)"
     #@ end
   routers:
-    #@ for route in tcp_udp_proxy_routes.split(","):
-    #@ entrypoint = route.split(":")[0]
-    #@ service = "{}-layer-4-proxy".format(entrypoint)
+    #@ for route in tcp_routes:
+    #@ service = "{}-layer-4-proxy".format(route['entrypoint'])
     (@= service @)-proxy:
       entryPoints:
-        - "(@= entrypoint @)"
+        - "(@= route['entrypoint'] @)"
       rule: "HostSNI(`*`)"
+      service: "(@= service @)"
+    #@ end
+#@ end
+
+#@yaml/text-templated-strings
+#@ if tcp_udp_proxy_enabled and len(udp_routes):
+udp:
+  services:
+    #@ for route in udp_routes:
+    #@ service = "{}-layer-4-proxy".format(route['entrypoint'])
+    (@= service @):
+      loadBalancer:
+        servers:
+          - address: "(@= route['dest_ip'] @):(@= route['dest_port'] @)"
+    #@ end
+  routers:
+    #@ for route in udp_routes:
+    #@ service = "{}-layer-4-proxy".format(route['entrypoint'])
+    (@= service @)-proxy:
+      entryPoints:
+        - "(@= route['entrypoint'] @)"
       service: "(@= service @)"
     #@ end
 #@ end
