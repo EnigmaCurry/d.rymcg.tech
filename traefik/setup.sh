@@ -284,13 +284,15 @@ config_entrypoint() {
             default_choice=1
         fi
         echo
-        case $(wizard choose --default ${default_choice} --numeric \
-                      "Is this entrypoint downstream from another trusted proxy?" \
-                      "No, clients dial directly to this server. (Turn off Proxy Protocol)" \
-                      "Yes, clients are proxied through a trusted server. (Turn on Proxy Protocol)") in
-            0) ${BIN}/reconfigure ${ENV_FILE} "TRAEFIK_${ENTRYPOINT}_ENTRYPOINT_PROXY_PROTOCOL_TRUSTED_IPS=";;
-            1) ${BIN}/reconfigure_ask ${ENV_FILE} "TRAEFIK_${ENTRYPOINT}_ENTRYPOINT_PROXY_PROTOCOL_TRUSTED_IPS" "Enter the comma separated list of trusted upstream proxy servers (CIDR)" 10.13.16.1/32;;
-        esac
+        if [[ "${entrypoint}" != *_udp ]]; then
+            case $(wizard choose --default ${default_choice} --numeric \
+                          "Is this entrypoint downstream from another trusted proxy?" \
+                          "No, clients dial directly to this server. (Turn off Proxy Protocol)" \
+                          "Yes, clients are proxied through a trusted server. (Turn on Proxy Protocol)") in
+                0) ${BIN}/reconfigure ${ENV_FILE} "TRAEFIK_${ENTRYPOINT}_ENTRYPOINT_PROXY_PROTOCOL_TRUSTED_IPS=";;
+                1) ${BIN}/reconfigure_ask ${ENV_FILE} "TRAEFIK_${ENTRYPOINT}_ENTRYPOINT_PROXY_PROTOCOL_TRUSTED_IPS" "Enter the comma separated list of trusted upstream proxy servers (CIDR)" 10.13.16.1/32;;
+            esac
+        fi
     else
         ${BIN}/reconfigure ${ENV_FILE} "TRAEFIK_${ENTRYPOINT}_ENTRYPOINT_ENABLED=false"
     fi

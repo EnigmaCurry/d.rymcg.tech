@@ -28,8 +28,8 @@ services:
       - "traefik.tcp.routers.(@= router @)-tcp.entrypoints=iperf_tcp"
       - "traefik.tcp.routers.(@= router @)-tcp.rule=HostSNI(`*`)"
       - "traefik.tcp.services.(@= router @)-tcp.loadbalancer.server.port=5201"
-      #! - "traefik.udp.routers.(@= router @)-udp.entrypoints=iperf_udp"
-      #! - "traefik.udp.services.(@= router @)-udp.loadbalancer.server.port=5201"
+      - "traefik.udp.routers.(@= router @)-udp.entrypoints=iperf_udp"
+      - "traefik.udp.services.(@= router @)-udp.loadbalancer.server.port=5201"
 
       #@ enabled_middlewares.append("{}-ipallowlist".format(router))
       - "traefik.tcp.middlewares.(@= router @)-ipallowlist.ipallowlist.sourcerange=(@= ip_sourcerange @)"
