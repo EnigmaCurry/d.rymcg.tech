@@ -8,9 +8,9 @@ config-hook:
 #### reconfigure_ask asks the user a question to set the variable into the .env file, and with a provided default value.
 #### reconfigure sets the value of a variable in the .env file without asking.
 #### reconfigure_htpasswd will configure the HTTP Basic Authentication setting the var name and with a provided default value.
-	@${BIN}/reconfigure_ask ${ENV_FILE} WHOAMI_TRAEFIK_HOST "Enter the whoami domain name" whoami${INSTANCE_URL_SUFFIX}.${ROOT_DOMAIN}
-	@${BIN}/reconfigure ${ENV_FILE} WHOAMI_INSTANCE=$${instance:-default}
-	@${BIN}/reconfigure_auth ${ENV_FILE} WHOAMI
+	@${BIN}/reconfigure_ask ${ENV_FILE} IPERF_TRAEFIK_HOST "Enter the iperf domain name" iperf${INSTANCE_URL_SUFFIX}.${ROOT_DOMAIN}
+	@${BIN}/reconfigure_ask ${ENV_FILE} IPERF_IP_SOURCERANGE "Enter the iperf allowed IP range"
+	@${BIN}/reconfigure ${ENV_FILE} IPERF_INSTANCE=$${instance:-default}
 	@echo ""
 
 .PHONY: override-hook
@@ -25,8 +25,8 @@ override-hook:
 ####                         # (this hardcodes the string into docker-compose.override.yaml)
 ####   name=@VARIABLE_NAME   # sets the template 'name' field to the literal string '${VARIABLE_NAME}'
 ####                         # (used for regular docker-compose expansion of env vars by name.)
-	@${BIN}/docker_compose_override ${ENV_FILE} project=:whoami instance=@WHOAMI_INSTANCE traefik_host=@WHOAMI_TRAEFIK_HOST http_auth=WHOAMI_HTTP_AUTH http_auth_var=@WHOAMI_HTTP_AUTH ip_sourcerange=@WHOAMI_IP_SOURCERANGE oauth2=WHOAMI_OAUTH2 authorized_group=WHOAMI_OAUTH2_AUTHORIZED_GROUP enable_mtls_auth=WHOAMI_MTLS_AUTH mtls_authorized_certs=WHOAMI_MTLS_AUTHORIZED_CERTS
+	@${BIN}/docker_compose_override ${ENV_FILE} project=:iperf instance=@IPERF_INSTANCE traefik_host=@IPERF_TRAEFIK_HOST  ip_sourcerange=@IPERF_IP_SOURCERANGE oauth2=IPERF_OAUTH2
 
 .PHONY: shell # Enter container shell
 shell:
-	@make --no-print-directory docker-compose-shell SERVICE=whoami
+	@make --no-print-directory docker-compose-shell SERVICE=iperf

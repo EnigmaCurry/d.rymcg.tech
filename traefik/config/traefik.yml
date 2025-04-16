@@ -324,4 +324,18 @@ entryPoints:
         #@ if len(data.values.error_handler_500_service):
         - traefik-websecure-error-handler-500@file
         #@ end
+  #@ if data.values.iperf_tcp_entrypoint_enabled == "true":
+  iperf_tcp:
+    address: #@ data.values.iperf_tcp_entrypoint_host + ":" + data.values.iperf_tcp_entrypoint_port + "/tcp"
+    #@ if len(data.values.iperf_tcp_entrypoint_proxy_protocol_trusted_ips.strip()):
+    proxyProtocol:
+      trustedIPs:
+        #@ for allowed_net in data.values.iperf_tcp_entrypoint_proxy_protocol_trusted_ips.split(","):
+        - "(@= allowed_net @)"
+        #@ end
+    #@ end
+  #@ end
+  #@ if data.values.iperf_udp_entrypoint_enabled == "true":
+  iperf_udp:
+    address: #@ data.values.iperf_udp_entrypoint_host + ":" + data.values.iperf_udp_entrypoint_port + "/udp"
   #@ end
