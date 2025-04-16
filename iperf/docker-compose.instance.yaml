@@ -24,16 +24,15 @@ services:
       #! 'router' is the fully qualified key in traefik for this router/service: project + instance + service
       #@ router = "{}-{}-{}".format(project,instance,service)
 
-      # TCP and UDP routers:
-      - "traefik.tcp.routers.(@= router @)-tcp.entrypoints=iperf-tcp"
+      #! TCP and UDP routers:
+      - "traefik.tcp.routers.(@= router @)-tcp.entrypoints=iperf_tcp"
+      - "traefik.tcp.routers.(@= router @)-tcp.rule=HostSNI(`*`)"
       - "traefik.tcp.services.(@= router @)-tcp.loadbalancer.server.port=5201"
-      - "traefik.udp.routers.(@= router @)-udp.entrypoints=iperf-udp"
-      - "traefik.udp.services.(@= router @)-udp.loadbalancer.server.port=5201"
+      #! - "traefik.udp.routers.(@= router @)-udp.entrypoints=iperf_udp"
+      #! - "traefik.udp.services.(@= router @)-udp.loadbalancer.server.port=5201"
 
       #@ enabled_middlewares.append("{}-ipallowlist".format(router))
       - "traefik.tcp.middlewares.(@= router @)-ipallowlist.ipallowlist.sourcerange=(@= ip_sourcerange @)"
-      - "traefik.udp.middlewares.(@= router @)-ipallowlist.ipallowlist.sourcerange=(@= ip_sourcerange @)"
       
       #! Apply all middlewares (do this at the end!)
       - "traefik.tcp.routers.(@= router @).middlewares=(@= ','.join(enabled_middlewares) @)"
-      - "traefik.udp.routers.(@= router @).middlewares=(@= ','.join(enabled_middlewares) @)"

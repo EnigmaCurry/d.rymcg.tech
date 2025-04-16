@@ -1,16 +1,11 @@
-version: "3.8"
-
 services:
-  iperf3-server:
+  iperf:
     build:
       context: iperf
     cap_drop:
       - ALL
     security_opt:
       - no-new-privileges:true
-    # ports:
-    #   - "5201:5201/tcp"
-    #   - "5201:5201/udp"
     restart: unless-stopped
-    # Labels go in docker-compose.instance.yaml
+    # Labels go in docker-compose.instance.yaml:
     labels: []

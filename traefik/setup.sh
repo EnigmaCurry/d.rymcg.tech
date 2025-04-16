@@ -243,6 +243,8 @@ config_list_entrypoints() {
         [rtmp]="Real-Time Messaging Protocol (unencrypted) entrypoint"
         [snapcast]="Snapcast (snapcast) audio entrypoint"
         [snapcast_control]="Snapcast (snapcast) control entrypoint"
+        [iperf_tcp]="Iperf3 TCP entrypoint"
+        [iperf_udp]="Iperf3 UDP entrypoint"
     )
     local menu_args=("Select entrypoint to configure:")
     for entrypoint in "${entrypoint_names[@]}"; do
