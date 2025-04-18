@@ -9,7 +9,8 @@ Although Caddy can be used to serve static files, similar to
 [nginx](../nginx), it can also be used as a simple TLS certificate
 resolver/updater to be used by some other (non HTTP) service. The
 certificate and key can be accessed by sharing the `caddy_caddy_data`
-volume.
+volume. (See commented out `my-sidecar` example in
+[docker-compose.yaml](docker-compose.yaml))
 
 ## Config
 
