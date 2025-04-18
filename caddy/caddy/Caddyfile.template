@@ -1,0 +1,8 @@
+{
+  acme_ca https://${ACME_CA}/directory
+}
+
+${DOMAIN} {
+  root * /srv
+  file_server
+}
