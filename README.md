@@ -540,6 +540,7 @@ Install these other services at your leisure/preference:
 * [Backrest](backrest#readme) - a backup tool based on restic
 * [Backup-Volume](backup-volume#readme) - a Docker volume backup tool
 * [Baikal](baikal#readme) - a lightweight CalDAV+CardDAV server
+* [Caddy](caddy#readme) - an HTTP server with automatic TLS (passthrough)
 * [CalcPad](calcpad#readme) - a different take on the caculator
 * [Calibre](calibre#readme) - an ebook manager
 * [Commentario](commentario#readme) - a website comment service
