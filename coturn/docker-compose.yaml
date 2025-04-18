@@ -1,0 +1,53 @@
+volumes:
+  turn_data:
+  caddy_data:
+  caddy_config:
+  caddy_html:
+  
+services:
+  caddy:
+    build:
+      context: caddy
+      args:
+        CADDY_IMAGE: ${COTURN_CADDY_IMAGE}
+    environment:
+      - ACME_AGREE=true
+      - ACME_CA=${COTURN_CADDY_ACME_CA}
+      - DOMAIN=${COTURN_TRAEFIK_HOST}
+    volumes:
+      - caddy_data:/data
+      - caddy_config:/config
+      - caddy_html:/srv
+
+  coturn:
+    depends_on: ['caddy']
+    build:
+      context: coturn
+      args:
+        COTURN_IMAGE: ${COTURN_IMAGE}
+    restart: unless-stopped
+    network_mode: host
+    environment:
+      - REALM=${COTURN_TRAEFIK_HOST}
+      - STATIC_AUTH_SECRET=${COTURN_STATIC_AUTH_SECRET}
+      - CERT_PATH=/data/caddy/certificates/${COTURN_CADDY_ACME_CA}-directory/${COTURN_TRAEFIK_HOST}/${COTURN_TRAEFIK_HOST}.crt
+      - KEY_PATH=/data/caddy/certificates/${COTURN_CADDY_ACME_CA}-directory/${COTURN_TRAEFIK_HOST}/${COTURN_TRAEFIK_HOST}.key
+    command: >
+      -V
+      --use-auth-secret
+      --static-auth-secret=${COTURN_STATIC_AUTH_SECRET}
+      --external-ip=${COTURN_EXTERNAL_IP}
+      --realm=${COTURN_TRAEFIK_HOST}
+      --server-name=${COTURN_TRAEFIK_HOST}
+      --rest-api-separator=:
+      --no-cli
+      --no-tcp-relay
+      --fingerprint
+      --listening-port=3478
+      --min-port=50000
+      --max-port=60000
+      --cert=/var/lib/coturn/certs/fullchain.pem
+      --pkey=/var/lib/coturn/certs/privkey.pem
+    volumes:
+      - turn_data:/var/lib/coturn
+      - caddy_data:/data:ro
