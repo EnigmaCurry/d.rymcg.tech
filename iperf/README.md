@@ -6,10 +6,17 @@ of TCP and/or UDP _through [Traefik](../traefik)_.
 
 ## Enable entrypoint(s)
 
-You must configure [traefik](../traefik) to enable the `iperf_tcp`
-and/or `iperf_udp` entrypoints. If you are using a sentry host
-(wireguard VPN server), you must also configure a Layer 4 route to
-your main Docker server.
+You must configure [traefik](../traefik) to enable the stock
+`iperf_tcp` and/or `iperf_udp` entrypoints. 
+
+ * If you want to test UDP, you must enable both the `iperf_tcp` _and_
+   `iperf_udp` entrypoints.
+ * Both stock entrypoints listen to port `5201` by default, if you
+   want to test different ports, you do not need to modify the iperf
+   service, but simply change the ports on the Traefik entrypoints and
+   it will automatically translate to the container port `5201`.
+ * If you are using a sentry host (wireguard VPN server), you must
+   also configure Layer 4 route(s) to your main Docker server.
 
 ## Config
 
