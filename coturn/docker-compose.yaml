@@ -44,8 +44,8 @@ services:
       --no-tcp-relay
       --fingerprint
       --listening-port=3478
-      --min-port=49160
-      --max-port=49200
+      --min-port=50000
+      --max-port=60000
       --cert=/var/lib/coturn/certs/fullchain.pem
       --pkey=/var/lib/coturn/certs/privkey.pem
     volumes:
