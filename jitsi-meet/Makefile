@@ -30,6 +30,6 @@ user-delete:
 	username="$$(eval "${BIN}/script-wizard choose 'Select the username to delete' $$(echo $$users | tr '\n' ' ')")" && \
 	docker compose --env-file ${ENV_FILE} exec prosody prosodyctl --config /config/prosody.cfg.lua unregister "$$username" meet.jitsi
 
- .PHONY: shell
- shell:
+.PHONY: shell # Enter container shell
+shell:
 	@container=$$(eval "${BIN}/script-wizard choose 'docker exec -it into which container?' 'web' 'prosody' 'jicofo' 'jvb' --default 'web'") && make --no-print-directory docker-compose-shell SERVICE=$${container}
