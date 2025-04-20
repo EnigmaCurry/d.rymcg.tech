@@ -1,0 +1,32 @@
+# Set environment variables required for the script
+set dotenv-load
+
+# These variables can be overridden in a .env file if you want
+GITHUB_TOKEN := ""
+GITHUB_USERNAME := ""
+FORGEJO_URL := ""
+FORGEJO_TOKEN := ""
+FORGEJO_USERNAME := ""
+MIRROR_INTERVAL := "8h0m0s"
+
+# Default target
+default:
+    @just --summary
+
+config:
+    bash ./config.sh
+
+# Check your environment variables
+check-env:
+    @if [ -z "${GITHUB_TOKEN}" ] || [ -z "${GITHUB_USERNAME}" ] || [ -z "${FORGEJO_URL}" ] || [ -z "${FORGEJO_TOKEN}" ] || [ -z "${FORGEJO_USERNAME}" ]; then \
+      echo "Missing one or more required environment variables!" && exit 1; \
+    fi
+    @echo "All required environment variables are set."
+
+# Dry-run: show what would happen
+mirror-dry-run: check-env
+    python github_migrate_to_forgejo.py
+
+# Actually mirror (requires --yes flag)
+mirror-repos: check-env
+    python github_migrate_to_forgejo.py --yes
