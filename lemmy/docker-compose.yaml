@@ -34,6 +34,9 @@ services:
       - POSTGRES_PW=${LEMMY_POSTGRES_PW}
       - TRAEFIK_HOST=${LEMMY_TRAEFIK_HOST}
       - PRINT_CONFIG=${LEMMY_PRINT_CONFIG}
+      - PICTRS_ENABLED=${LEMMY_PICTRS_ENABLED}
+      - PICTRS_INTERVAL=${LEMMY_PICTRS_INTERVAL}
+      - PICTRS_MAX_AGE=${LEMMY_PICTRS_MAX_AGE}
     volumes:
       - lemmy-config:/config
     labels:
@@ -94,6 +97,7 @@ services:
     user: 991:991
     volumes:
       - lemmy-pictrs:/mnt:Z
+      - lemmy-config:/etc/pictrs
     security_opt:
       - no-new-privileges:true
     restart: unless-stopped
