@@ -462,12 +462,12 @@ text_centered_wrap() {
 }
 
 text_repeat() {
-    local repeat="$1";
+    local repeat="$1"
     check_var repeat
     shift
-    local text="$@"
+    local text="$*"
     check_var text
-    readarray -t repeated < <(yes "${text}" | head -n ${repeat})
+    readarray -t repeated < <(yes "${text}" 2>/dev/null | head -n ${repeat})
     printf "%s" "${repeated[@]}"
     echo
 }
