@@ -16,8 +16,12 @@ check-deps:
 check-docker:
 	@docker info >/dev/null && echo "Docker is running." || (echo "Could not connect to Docker!" && false)
 
-.PHONY: config # Configure main variables
-config: script-wizard check-deps check-docker check-dist-vars
+.PHONY: config
+config:
+	@export ROOT_ENV=${ROOT_ENV} ROOT_DIR=${ROOT_DIR} ENV_FILE=${ENV_FILE} DOCKER_CONTEXT=${DOCKER_CONTEXT}; ${ROOT_DIR}/_scripts/setup.sh main_menu
+
+.PHONY: root-config
+root-config: script-wizard check-deps check-docker check-dist-vars
 #	@${BIN}/userns-remap check
 	@echo ""
 	@${BIN}/confirm yes "This will make a configuration for the current docker context (${DOCKER_CONTEXT})"
