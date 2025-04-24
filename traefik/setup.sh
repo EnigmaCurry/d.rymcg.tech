@@ -17,7 +17,7 @@ main_menu() {
     while :
     do
         clear
-        separator '###' 60 "${DOCKER_CONTEXT}"
+        separator '###' 60 "Traefik - ${DOCKER_CONTEXT}"
         wizard menu --cancel-code=2 --once "Traefik:" \
                "Config = ./setup.sh config || true" \
                "Install (make install) = make compose-profiles install || true" \
