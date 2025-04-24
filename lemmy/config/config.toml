@@ -1,0 +1,4 @@
+[pruning]
+enabled = ${PICTRS_ENABLED}
+interval = "${PICTRS_INTERVAL}"
+max_cache_age = "${PICTRS_MAX_AGE}"
