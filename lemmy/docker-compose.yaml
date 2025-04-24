@@ -10,6 +10,7 @@ volumes:
   lemmy-nginx-config:
   lemmy-ui-themes:
   lemmy-pictrs:
+  lemmy-pictrs-config:
   lemmy-postgres:
 
 services:
@@ -39,6 +40,7 @@ services:
       - PICTRS_MAX_AGE=${LEMMY_PICTRS_MAX_AGE}
     volumes:
       - lemmy-config:/config
+      - lemmy-pictrs-config:/pictrs-config
     labels:
       - "backup-volume.stop-during-backup=true"
 
@@ -97,7 +99,7 @@ services:
     user: 991:991
     volumes:
       - lemmy-pictrs:/mnt:Z
-      - lemmy-config:/etc/pictrs
+      - lemmy-pictrs-config:/etc/pictrs
     security_opt:
       - no-new-privileges:true
     restart: unless-stopped
