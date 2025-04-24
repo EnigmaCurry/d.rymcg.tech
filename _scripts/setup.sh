@@ -13,8 +13,8 @@ main_menu() {
         clear
         separator '###' 60 "${DOCKER_CONTEXT}"
         wizard menu --cancel-code=2 --once "d.rymcg.tech:" \
-               "Root Config = make root-config" \
-               "Traefik Config = make -C ${ROOT_DIR}/traefik config" \
+               "Root Config = make root-config || true" \
+               "Traefik Config = make -C ${ROOT_DIR}/traefik config || true" \
                "Exit (ESC) = exit 2"
         local EXIT_CODE=$?
         if [[ "${EXIT_CODE}" == "2" ]]; then
