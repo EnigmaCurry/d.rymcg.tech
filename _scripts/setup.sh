@@ -7,25 +7,31 @@ source ${BIN}/funcs.sh
 set -e
 
 main_menu() {
-    base_config
     while :
     do
-        clear
-        separator '###' 60 "${DOCKER_CONTEXT}"
-        wizard menu --cancel-code=2 --once "d.rymcg.tech:" \
-               "Root Config = make root-config || true" \
-               "Traefik Config = make -C ${ROOT_DIR}/traefik config || true" \
-               "Exit (ESC) = exit 2"
-        local EXIT_CODE=$?
-        if [[ "${EXIT_CODE}" == "2" ]]; then
-            exit 0
+        if [ -f ${ROOT_DIR}/${ROOT_ENV} ]; then
+            clear
+            separator '###' 60 "${DOCKER_CONTEXT}"
+            wizard menu --default 1 --cancel-code=2 --once "d.rymcg.tech:" \
+                   "Root Config = make root-config || true" \
+                   "Traefik Config = make -C ${ROOT_DIR}/traefik config || true" \
+                   "Exit (ESC) = exit 2"
+            local EXIT_CODE=$?
+            if [[ "${EXIT_CODE}" == "2" ]]; then
+                exit 0
+            fi
+        else
+            clear
+            separator '###' 60 "${DOCKER_CONTEXT}"
+            wizard menu --cancel-code=2 --once "d.rymcg.tech:" \
+                   "Root Config = make root-config || true" \
+                   "Exit (ESC) = exit 2"
+            local EXIT_CODE=$?
+            if [[ "${EXIT_CODE}" == "2" ]]; then
+                exit 0
+            fi
         fi
     done
-}
-
-base_config() {
-    ## Make new .env if it doesn't exist:
-    test -f ${ROOT_DIR}/${ROOT_ENV} || cp ${ROOT_DIR}/.env-dist ${ROOT_DIR}/${ROOT_ENV}
 }
 
 if [[ "${BASH_SOURCE[0]}" == "${0}" ]]; then
