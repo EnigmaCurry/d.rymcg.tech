@@ -14,7 +14,7 @@ check-deps:
 
 .PHONY: check-docker # Check if Docker is running
 check-docker:
-	@docker info >/dev/null && echo "Docker is running." || (echo "Could not connect to Docker!" && false)
+	@docker info >/dev/null && echo "Docker is running." || (${BIN}/acknowledge "Could not connect to Docker. You need to setup your Docker context." && false)
 
 .PHONY: config
 config: script-wizard
