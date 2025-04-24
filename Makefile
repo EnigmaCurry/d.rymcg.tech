@@ -18,7 +18,7 @@ check-docker:
 
 .PHONY: config
 config:
-	@export ROOT_ENV=${ROOT_ENV} ROOT_DIR=${ROOT_DIR} ENV_FILE=${ENV_FILE} DOCKER_CONTEXT=${DOCKER_CONTEXT}; ${ROOT_DIR}/_scripts/setup.sh main_menu
+	@export ROOT_ENV=${ROOT_ENV} ROOT_DIR=${ROOT_DIR} ENV_FILE=${ENV_FILE} DOCKER_CONTEXT=${DOCKER_CONTEXT}; ${ROOT_DIR}/_scripts/setup.sh main_menu  || true
 
 .PHONY: root-config
 root-config: script-wizard check-deps check-docker check-dist-vars
