@@ -30,7 +30,7 @@ set -e
 
 unset_oauth2() {
     if [[ "${DISABLE_OAUTH}" == "false" ]]; then
-        ${BIN}/reconfigure ${ENV_FILE} "${VAR_PREFIX}_OAUTH2"=
+        ${BIN}/reconfigure ${ENV_FILE} "${VAR_PREFIX}_OAUTH2"=false
     fi
 }
 unset_http_auth() {
