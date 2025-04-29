@@ -1,0 +1,38 @@
+#!/bin/bash
+
+set -e
+BIN=$(dirname ${BASH_SOURCE})
+source ${BIN}/funcs.sh
+ROOT_DIR=${ROOT_DIR:-..}
+ROOT_ENV_FILE=".env_${DOCKER_CONTEXT}"
+
+valid_regex='^[a-zA-Z][a-zA-Z0-9_-]*$'
+readarray -t EXISTING_ENVS < <(ls .env_${DOCKER_CONTEXT}_* 2>/dev/null | sed "s/.env_${DOCKER_CONTEXT}_//" || true)
+
+# Set default to "default" only if it's not taken
+if [[ ! " ${EXISTING_ENVS[*]} " =~ " default " ]]; then
+    default="default"
+else
+    unset default
+fi
+
+while true; do
+    newinstance=$(wizard ask "Enter a new instance name:" "${default}")
+    if [[ -z "${newinstance}" ]]; then
+        echo "Missing required instance name." >&2
+        exit 1
+    fi
+
+    # Check if newinstance already exists
+    if printf '%s\n' "${EXISTING_ENVS[@]}" | grep -Fxq "${newinstance}"; then
+        echo "Instance '${newinstance}' already exists. Please choose a different name." >&2
+    else
+        break
+    fi
+done
+
+test -z "$newinstance" && echo "Missing required instance name." && exit 1
+
+ENV_FILE=$(echo "${ENV_FILE}" | sed "s/_default//; s/_${newinstance}//")
+NEW_ENV_FILE="${ENV_FILE}_${newinstance}"
+make --no-print-directory config INSTANCE="${newinstance}" ENV_FILE="${NEW_ENV_FILE}" DOCKER_CONTEXT=${DOCKER_CONTEXT}
