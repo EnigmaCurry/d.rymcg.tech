@@ -20,7 +20,7 @@ if [[ "${showmenu}" == "true" ]]; then
             newinstance=$(eval wizard choose "'Enter an instance to switch to'" ${EXISTING_ENVS[@]@Q})
         else
             suggestions=$(jq -c -n '$ARGS.positional | unique' --args -- ${EXISTING_ENVS[@]})
-            if [[ -z "$suggestions" ]]; then
+            if [[ "$suggestions" == "[]" ]]; then
                 default="default"
             fi
             newinstance=$(wizard ask "Enter an instance name to create/edit:" --suggestions "${suggestions}" "${default}")
