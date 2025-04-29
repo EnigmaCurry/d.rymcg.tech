@@ -21,9 +21,9 @@ if [[ "${showmenu}" == "true" ]]; then
         else
             suggestions=$(jq -c -n '$ARGS.positional | unique' --args -- ${EXISTING_ENVS[@]})
             if [[ -z "$suggestions" ]]; then
-                suggestions="default"
+                default="default"
             fi
-            newinstance=$(wizard ask "Enter an instance name to create/edit:" --suggestions "${suggestions}")
+            newinstance=$(wizard ask "Enter an instance name to create/edit:" --suggestions "${suggestions}" "${default}")
         fi
         if ! [[ "${newinstance}" =~ $valid_regex ]]; then
             error "Invalid instance name. Try again."
