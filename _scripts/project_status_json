@@ -4,13 +4,21 @@ set -euo pipefail
 
 # status-json.sh: outputs a JSON array of Docker container status
 # filtered by the compose project working_dir label for the given directory.
+# Optional second arg is a comma-separated list of instances to filter by (third part of env-file basename).
 
-if [ "$#" -lt 1 ]; then
-  echo "Usage: $0 <project-working-dir-path>"
+if [ "$#" -lt 1 ] || [ "$#" -gt 2 ]; then
+  echo "Usage: $0 <project-working-dir-path> [instance1,instance2,...]"
   exit 1
 fi
 
 WORKDIR="$1"
+
+# Parse optional instances list (CSV in $2)
+if [ "$#" -eq 2 ] && [ -n "$2" ]; then
+  IFS=',' read -r -a INSTANCES <<< "$2"
+else
+  INSTANCES=()
+fi
 
 # Collect container IDs for this project
 ids=$(docker ps \
@@ -23,8 +31,33 @@ if [ -z "$ids" ]; then
   exit 0
 fi
 
+# Filter by instances if provided
+filtered_ids=()
+if [ "${#INSTANCES[@]}" -gt 0 ]; then
+  declare -A allowed
+  for inst in "${INSTANCES[@]}"; do
+    allowed["$inst"]=1
+  done
+  for id in $ids; do
+    env_file=$(docker inspect --format '{{index .Config.Labels "com.docker.compose.project.environment_file"}}' "$id")
+    bn=$(basename "$env_file")
+    IFS='_' read -r prefix context inst_name <<< "$bn"
+    if [ "${allowed[$inst_name]+_}" ]; then
+      filtered_ids+=("$id")
+    fi
+  done
+else
+  filtered_ids=( $ids )
+fi
+
+# If after filtering no containers, emit empty JSON array
+if [ "${#filtered_ids[@]}" -eq 0 ]; then
+  echo '[]'
+  exit 0
+fi
+
 # Inspect and transform to slimmed-down JSON
-docker inspect $ids | jq '[.[] | {
+docker inspect "${filtered_ids[@]}" | jq '[.[] | {
   name:    .Name[1:],
   env:     (.Config.Labels["com.docker.compose.project.environment_file"] | split("/") | .[-1]),
   id:      (.Id[:10]),

@@ -66,7 +66,7 @@ status:
 
 .PHONY: status-json # Show status of all instances in JSON format
 status-json:
-	${BIN}/project_status_json $${PWD}
+	${BIN}/project_status_json "$${PWD}" "$${INSTANCES}"
 
 .PHONY: logs # Tail all containers logs (set SERVICE=name to filter for one)
 logs:

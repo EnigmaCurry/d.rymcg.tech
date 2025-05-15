@@ -45,6 +45,10 @@ open: readme
 status:
 	@docker compose ls | sed "s!$${PWD}!.!g"
 
+.PHONY: status-json
+status-json:
+	@docker compose ls --format json | jq
+
 .PHONY: backup-env # Create an encrypted backup of the .env files
 backup-env:
 	@ROOT_DIR=${ROOT_DIR} ${BIN}/backup_env
