@@ -64,6 +64,10 @@ ps:
 status:
 	@(echo -e "NAME\tENV\tID\tIMAGE\tSTATE\tHEALTH\tPORTS" && docker ps --filter "label=com.docker.compose.project.working_dir=$${PWD}" -q | xargs -iXX docker inspect XX | jq '.[0]' | jq -r '(.Name[1:]) + "\t" + (.Config.Labels["com.docker.compose.project.environment_file"] | split("/";"")[-1]) + "\t" + .Id[:10] + "\t" + .Config.Image + "\t" + .State.Status + "\t" + (.State.Health.Status|tostring) + "\t" + (.NetworkSettings.Ports|tostring) ') | column -t | less -FSX
 
+.PHONY: status-json # Show status of all instances in JSON format
+status-json:
+	${BIN}/project_status_json $${PWD}
+
 .PHONY: logs # Tail all containers logs (set SERVICE=name to filter for one)
 logs:
 	@make --no-print-directory docker-compose-lifecycle-cmd EXTRA_ARGS="logs -f -t ${service}"

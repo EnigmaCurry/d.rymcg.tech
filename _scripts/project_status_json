@@ -1,0 +1,36 @@
+#!/usr/bin/env bash
+
+set -euo pipefail
+
+# status-json.sh: outputs a JSON array of Docker container status
+# filtered by the compose project working_dir label for the given directory.
+
+if [ "$#" -lt 1 ]; then
+  echo "Usage: $0 <project-working-dir-path>"
+  exit 1
+fi
+
+WORKDIR="$1"
+
+# Collect container IDs for this project
+ids=$(docker ps \
+  --filter "label=com.docker.compose.project.working_dir=${WORKDIR}" \
+  -q)
+
+# If no containers, emit empty JSON array
+if [ -z "$ids" ]; then
+  echo '[]'
+  exit 0
+fi
+
+# Inspect and transform to slimmed-down JSON
+docker inspect $ids | jq '[.[] | {
+  name:    .Name[1:],
+  env:     (.Config.Labels["com.docker.compose.project.environment_file"] | split("/") | .[-1]),
+  id:      (.Id[:10]),
+  image:   .Config.Image,
+  status:  .State.Status,
+  health:  (.State.Health.Status // ""),
+  labels:  .Config.Labels,
+  ports:   .NetworkSettings.Ports
+}]'
