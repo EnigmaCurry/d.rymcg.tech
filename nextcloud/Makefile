@@ -24,7 +24,9 @@ config-hook:
 	@${BIN}/reconfigure_ask ${ENV_FILE} NEXTCLOUD_BACKUP_S3_BUCKET "Enter the Backup S3 bucket name"
 	@${BIN}/reconfigure_ask ${ENV_FILE} NEXTCLOUD_BACKUP_S3_KEY "Enter the Backup S3 Access Key"
 	@${BIN}/reconfigure_ask ${ENV_FILE} NEXTCLOUD_BACKUP_S3_SECRET "Enter the Backup S3 Secret Key"
-
+	@echo
+	@${BIN}/reconfigure_ask ${ENV_FILE} NEXTCLOUD_PHP_UPLOAD_LIMIT "Enter the maximum PHP file upload size (e.g., \"512M\" or \"2G\")"
+	@${BIN}/reconfigure_ask ${ENV_FILE} NEXTCLOUD_PHP_MEMORY_LIMIT "Enter the PHP memory limit (should match or exceed the max file upload size)"
 	@echo
 	@echo "If you want to have Nextcloud access your already-existing files (e.g., your photo library), the \"External Storage Support\" app in Nextcloud allows you to mount external storage (FTP or SFTP servers, S3 or SWIFT object stores, other Nextcloud servers, WebDAV servers). If none of those protocols work for you, you can map a named Docker volume to a mountpoint in the Nextcloud container and then use the \"External Storage Support\" app to configure Nextcloud to use this mountpoint. Once you create a named Docker volume, you can either copy your files into the volume's path on the host (e.g., \`/var/lib/docker/volumes/nextcloud_<volume-name>/_data/\`), or you can replace that directory on the host with a symlink to another directory or mountpoint that already contains your files."
 	@ALLOW_BLANK=1 ${BIN}/reconfigure_ask ${ENV_FILE} NEXTCLOUD_EXTRA_VOLUME_NAME "Enter an additional volume name (leave blank to not mount an additional volume)"
