@@ -1,0 +1,39 @@
+services:
+  config:
+    build:
+      context: config
+    security_opt:
+      - no-new-privileges:true
+    volumes:
+      - config:/config
+    labels:
+      - "backup-volume.stop-during-backup=true"
+
+  filebrowser:
+    depends_on: ['config']
+    build:
+      context: filebrowser
+      args:     
+        IMAGE: ${FILEBROWSER_IMAGE}
+    cap_drop:
+      - ALL
+    sysctls:
+      - net.ipv4.ip_unprivileged_port_start=1024
+    security_opt:
+      - no-new-privileges:true
+    restart: unless-stopped
+    volumes:
+      - config:/config
+      - srv:/srv
+      - database:/database
+    environment:
+      - AUTH_TYPE=${FILEBROWSER_AUTH_TYPE}
+      - ADMIN_USERNAME=${FILEBROWSER_ADMIN_USERNAME}
+      - ADMIN_PASSWORD=${FILEBROWSER_ADMIN_PASSWORD}
+    # All labels are defined in the template: docker-compose.instance.yaml
+    labels: []
+
+volumes:
+  config:
+  srv:
+  database:
