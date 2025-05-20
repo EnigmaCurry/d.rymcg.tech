@@ -88,5 +88,10 @@ services:
         #@ enabled_middlewares.append("mtls-header@file")
       #@ end
 
+      #@ enabled_middlewares.append("{}-hsts-header".format(router))
+      - "traefik.http.middlewares.(@= router @)-hsts-header.headers.stsSeconds=15552000"
+      - "traefik.http.middlewares.(@= router @)-hsts-header.headers.stsIncludeSubdomains=true"
+      - "traefik.http.middlewares.(@= router @)-hsts-header.headers.stsPreload=true"
+
       #! Apply all middlewares (do this at the end!)
       - "traefik.http.routers.(@= router @).middlewares=(@= ','.join(enabled_middlewares) @)"
