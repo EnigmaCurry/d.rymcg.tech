@@ -52,6 +52,13 @@ RUN test "${STEP_CA_ZERO_CERTS}" != "true" && exit || \
     rm -f /etc/ssl/certs/* && \
     ln -s /step_ca_root.crt /etc/ssl/certs/ca-certificates.crt && \
     chmod uog-w /etc/ssl/certs
+
+# Cache bust the image with the current env file contents.
+# This forces Traefik to restart for all config changes.
+# Actual env file contents go to /dev/null so they don't end up in the image layer.
+ARG ENV_FILE
+COPY ${ENV_FILE} /dev/null
+
 USER traefik
 ENTRYPOINT ["/entrypoint_ensure_config.sh"]
 VOLUME /data
