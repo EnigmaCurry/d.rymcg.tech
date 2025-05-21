@@ -44,6 +44,7 @@ configuration derived from your customized `.env` file.
 - [Creating multiple instances of a service](#creating-multiple-instances-of-a-service)
 - [Backup .env files](#backup-env-files-optional)
 - [Integrating external projects](#integrating-external-projects)
+- [Rclone S3 volumes (cloud storage)](#rclone-s3-volumes-cloud-storage)
 - [Questions and discussion](#questions-and-discussion)
 
 ## All configuration comes from the environment

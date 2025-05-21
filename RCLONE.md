@@ -23,9 +23,9 @@ d.rymcg.tech s3-volume
 
 ## Manual instructions
 
-These are the manual instructions copied directly from the [Rclone
-Docker Volume Plugin](https://rclone.org/docker/#introduction)
-introduction.
+If you do not wish to use the script, follow these manual instructions
+which are copied from the [Rclone Docker Volume
+Plugin](https://rclone.org/docker/#introduction) introduction.
 
 ```
 ## Install the fuse3 package on your host distro:
