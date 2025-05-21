@@ -60,10 +60,10 @@ if ! docker plugin inspect "${DRIVER}" >/dev/null 2>&1; then
     esac
     docker plugin install "rclone/docker-volume-rclone:${PLUGIN_ARCH}" \
            args="-v" --alias rclone --grant-all-permissions
-    # Enabling the plugin after installing it without `--disable` is
-    # not necessary, but I'm leaving it here just in case it's needed
-    # for idempotency
-    docker plugin enable rclone 2>/dev/null
+fi
+# Only enable if not already enabled
+if ! docker plugin inspect rclone --format '{{.Enabled}}' | grep -q true; then
+    docker plugin enable rclone
 fi
 
 RCLONE_S3_PROVIDER=$(${BIN}/dotenv -f ${ROOT_DIR}/${ROOT_ENV} get RCLONE_S3_PROVIDER || true)
