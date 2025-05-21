@@ -1,4 +1,4 @@
-# filebrowser
+# File Browser
 
 [File Browser](https://filebrowser.org) is a web based file manager for multiple users.
 
