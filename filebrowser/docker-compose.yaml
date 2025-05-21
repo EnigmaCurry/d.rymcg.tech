@@ -41,6 +41,6 @@ services:
     labels: []
 
 volumes:
-  srv:
+  # srv:
   config:
   database:

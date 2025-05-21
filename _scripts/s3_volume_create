@@ -17,12 +17,12 @@ if [[ ! -f "$ENV_FILE" ]]; then
 fi
 
 ## Install plugin
-if ! docker plugin inspect "${DRIVER}" 2>&1 >/dev/null; then
-    confirm "The Rclone Docker Volume Plugin is not installed on the server. Do you want to install it" "?"
+if ! docker plugin inspect "${DRIVER}" >/dev/null 2>&1; then
+    confirm yes "The Rclone Docker Volume Plugin is not installed on the server. Do you want to install it" "?"
     if ! ${BIN}/d.rymcg.tech ssh command -v fusermount3; then
         DISTRO=$(${BIN}/d.rymcg.tech ssh ". /etc/os-release && echo \$ID")
         case "$DISTRO" in
-            ubuntu|debian)
+             ubuntu|debian)
                 ${BIN}/d.rymcg.tech ssh "sudo apt-get update && sudo apt-get install -y fuse3"
                 ;;
             fedora)
@@ -60,7 +60,10 @@ if ! docker plugin inspect "${DRIVER}" 2>&1 >/dev/null; then
     esac
     docker plugin install "rclone/docker-volume-rclone:${PLUGIN_ARCH}" \
            args="-v" --alias rclone --grant-all-permissions
-    docker plugin enable rclone
+    # Enabling the plugin after installing it without `--disable` is
+    # not necessary, but I'm leaving it here just in case it's needed
+    # for idempotency
+    docker plugin enable rclone 2>/dev/null
 fi
 
 RCLONE_S3_PROVIDER=$(${BIN}/dotenv -f ${ROOT_DIR}/${ROOT_ENV} get RCLONE_S3_PROVIDER || true)
@@ -69,9 +72,9 @@ RCLONE_S3_REGION=$(${BIN}/dotenv -f ${ROOT_DIR}/${ROOT_ENV} get RCLONE_S3_REGION
 
 echo "## See https://rclone.org/s3/"
 echo
-${BIN}/reconfigure_ask ${ROOT_DIR}/${ROOT_ENV} RCLONE_S3_PROVIDER "Enter the Rclone S3-interoperable provider name (e.g. DigitalOcean)" "${RCLONE_S3_PROVIDER}"
-${BIN}/reconfigure_ask ${ROOT_DIR}/${ROOT_ENV} RCLONE_S3_ENDPOINT "Enter the S3 endpoint URL (e.g. https://nyc3.digitaloceanspaces.com)" "${RCLONE_S3_ENDPOINT}"
-${BIN}/reconfigure_ask ${ROOT_DIR}/${ROOT_ENV} RCLONE_S3_REGION "Enter the S3 region name (e.g. nyc3)" "${RCLONE_S3_REGION}"
+${BIN}/reconfigure_ask ${ROOT_DIR}/${ROOT_ENV} RCLONE_S3_PROVIDER "Enter the Rclone S3-interoperable provider name (e.g., DigitalOcean)" "${RCLONE_S3_PROVIDER}"
+${BIN}/reconfigure_ask ${ROOT_DIR}/${ROOT_ENV} RCLONE_S3_ENDPOINT "Enter the S3 endpoint URL (e.g., https://nyc3.digitaloceanspaces.com)" "${RCLONE_S3_ENDPOINT}"
+${BIN}/reconfigure_ask ${ROOT_DIR}/${ROOT_ENV} RCLONE_S3_REGION "Enter the S3 region name (e.g., nyc3)" "${RCLONE_S3_REGION}"
 
 while true; do
     ask_no_blank "Enter the S3 Bucket name" RCLONE_S3_BUCKET
@@ -90,25 +93,36 @@ ask_no_blank "Enter the S3 Access Key ID" RCLONE_S3_ACCESS_KEY
 ask_no_blank "Enter the S3 Secret Key" RCLONE_S3_SECRET_KEY
 
 ## Choose cache mode: 'writes' or 'full'
-VFS_CACHE_MODE=$(${BIN}/script-wizard choose 'Choose the VFS cache mode' 'writes' 'full'")
+cat <<'EOF'
 
-## Batch write back delay
-## (hint: set write back delay to 0s for short lived containers,
-##        otherwise set higher for efficiency.)
+VFS cache mode
+(hint: full is less efficient but has less delay than writes)
+EOF
+VFS_CACHE_MODE="$(${BIN}/script-wizard choose 'Choose the VFS cache mode' 'writes' 'full')"
+
+cat <<'EOF'
+
+Batch write back delay
+(hint: set write back delay to 0s for short lived containers,
+       otherwise set higher for efficiency)
+EOF
 VFS_WRITE_BACK=5s
-ask_no_blank "Enter the delay (in seconds) for batched writes (e.g. 1s)" VFS_WRITE_BACK "5s"
+ask_no_blank "Enter the delay (in seconds) for batched writes (e.g., 1s)" VFS_WRITE_BACK "${VFS_WRITE_BACK}"
 
-docker volume create ${RCLONE_S3_VOLUME} \
-  --driver rclone \
-  -o type=s3 \
-  -o path=${RCLONE_S3_BUCKET} \
-  -o s3-provider=${RCLONE_S3_PROVIDER} \
-  -o s3-endpoint=${RCLONE_S3_ENDPOINT} \
-  -o s3-region=${RCLONE_S3_REGION} \
-  -o s3-access_key_id=${RCLONE_S3_ACCESS_KEY} \
-  -o s3-secret_access_key=${RCLONE_S3_SECRET_KEY} \
-  -o allow-other=true \
-  -o vfs-cache-mode=${VFS_CACHE_MODE} \
-  -o vfs-write-back=${VFS_WRITE_BACK}
-
-echo "Created volume: ${RCLONE_S3_VOLUME}"
+echo
+if docker volume create ${RCLONE_S3_VOLUME} \
+    --driver rclone \
+    -o type=s3 \
+    -o path=${RCLONE_S3_BUCKET} \
+    -o s3-provider=${RCLONE_S3_PROVIDER} \
+    -o s3-endpoint=${RCLONE_S3_ENDPOINT} \
+    -o s3-region=${RCLONE_S3_REGION} \
+    -o s3-access_key_id=${RCLONE_S3_ACCESS_KEY} \
+    -o s3-secret_access_key=${RCLONE_S3_SECRET_KEY} \
+    -o allow-other=true \
+    -o vfs-cache-mode=${VFS_CACHE_MODE} \
+    -o vfs-write-back=${VFS_WRITE_BACK} >/dev/null; then
+    echo "Created volume: ${RCLONE_S3_VOLUME}"
+else
+    echo "Failed to create volume: ${RCLONE_S3_VOLUME}" >&2
+fi
