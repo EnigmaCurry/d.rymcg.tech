@@ -546,7 +546,6 @@ Install these other services at your leisure/preference:
 * [DrawIO](drawio#readme) - a diagram / whiteboard editor tool
 * [Ejabberd](ejabberd#readme) - an XMPP (Jabber) server
 * [Filebrowser](filebrowser#readme) - a web based file manager
-* [Filestash](filestash#readme) - a web based file manager with customizable backend storage providers
 * [FreshRSS](freshrss#readme) - an RSS reader / proxy
 * [Glances](glances#readme) - a cross-platform system monitoring tool
 * [Gradio](gradio#readme) - a configurable web interface for machine learning 
