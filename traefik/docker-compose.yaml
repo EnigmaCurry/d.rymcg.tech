@@ -129,6 +129,7 @@ services:
     build:
       context: .
       args:
+        ENV_FILE: .env_${DOCKER_CONTEXT}_default
         TRAEFIK_IMAGE: ${TRAEFIK_IMAGE}
         BLOCKPATH_MODULE: ${TRAEFIK_BLOCKPATH_MODULE}
         BLOCKPATH_GIT_BRANCH: master
