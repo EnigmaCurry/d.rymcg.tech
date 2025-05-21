@@ -1,0 +1,40 @@
+#! This is a ytt template file for docker-compose.override.yaml
+#! References:
+#!   https://carvel.dev/ytt
+#!   https://docs.docker.com/compose/extends/#adding-and-overriding-configuration
+#!   https://github.com/enigmacurry/d.rymcg.tech#overriding-docker-composeyaml-per-instance
+
+#! ### Standard project vars:
+#@ load("@ytt:data", "data")
+#@ project = data.values.project
+#@ instance = data.values.instance
+#@ context = data.values.context
+#@ traefik_host = data.values.traefik_host
+#@ enabled_middlewares = []
+
+#@yaml/text-templated-strings
+services:
+  coturn:
+    #@ service = "coturn"
+    labels: []
+  caddy:
+    #@ service = "caddy"
+    labels:
+      - "backup-volume.stop-during-backup=true"
+      #! Services must opt-in to be proxied by Traefik:
+      - "traefik.enable=true"
+
+      #! 'router' is the fully qualified key in traefik for this router/service: project + instance + service
+      #@ router = "{}-{}-{}".format(project,instance,service)
+
+      #! The host matching router rule:
+      - "traefik.tcp.routers.(@= router @).rule=HostSNI(`(@= traefik_host @)`)"
+      - "traefik.tcp.routers.(@= router @).entrypoints=websecure"
+      - "traefik.tcp.routers.(@= router @).tls=true"
+      - "traefik.tcp.routers.(@= router @).tls.passthrough=true"
+
+      #! Override the default port that the app binds to:
+      - "traefik.tcp.services.(@= router @).loadbalancer.server.port=443"
+
+      #! Apply all middlewares (do this at the end!)
+      - "traefik.tcp.routers.(@= router @).middlewares=(@= ','.join(enabled_middlewares) @)"

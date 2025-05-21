@@ -27,6 +27,6 @@ override-hook:
 ####                         # (used for regular docker-compose expansion of env vars by name.)
 	@${BIN}/docker_compose_override ${ENV_FILE} project=:whoami instance=@WHOAMI_INSTANCE traefik_host=@WHOAMI_TRAEFIK_HOST http_auth=WHOAMI_HTTP_AUTH http_auth_var=@WHOAMI_HTTP_AUTH ip_sourcerange=@WHOAMI_IP_SOURCERANGE oauth2=WHOAMI_OAUTH2 authorized_group=WHOAMI_OAUTH2_AUTHORIZED_GROUP enable_mtls_auth=WHOAMI_MTLS_AUTH mtls_authorized_certs=WHOAMI_MTLS_AUTHORIZED_CERTS
 
-.PHONY: shell
+.PHONY: shell # Enter container shell
 shell:
 	@make --no-print-directory docker-compose-shell SERVICE=whoami

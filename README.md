@@ -541,8 +541,11 @@ Install these other services at your leisure/preference:
 * [Backrest](backrest#readme) - a backup tool based on restic
 * [Backup-Volume](backup-volume#readme) - a Docker volume backup tool
 * [Baikal](baikal#readme) - a lightweight CalDAV+CardDAV server
+* [Caddy](caddy#readme) - an HTTP server with automatic TLS (passthrough)
 * [CalcPad](calcpad#readme) - a different take on the caculator
 * [Calibre](calibre#readme) - an ebook manager
+* [Commentario](commentario#readme) - a website comment service
+* [Coturn](coturn#readme) - a TURN relay server for NAT traversal
 * [DOH-server](doh-server#readme) - a DNS-over-HTTPs proxy resolver
 * [DrawIO](drawio#readme) - a diagram / whiteboard editor tool
 * [Ejabberd](ejabberd#readme) - an XMPP (Jabber) server
@@ -554,6 +557,7 @@ Install these other services at your leisure/preference:
 * [Icecast](icecast#readme) - a SHOUTcast compatible streaming multimedia server
 * [Immich](immich#readme) - a photo gallery
 * [Invidious](invidious#readme) - a Youtube proxy
+* [Iperf](iperf#readme) - a bandwidth speed testing service
 * [Jitsi Meet](jitsi-meet#readme) - a video conferencing and screencasting service
 * [Jupyterlab](jupyterlab#readme) - a web based code editing environment / reproducible research tool
 * [Larynx](larynx#readme) - a speech synthesis engine
@@ -593,7 +597,7 @@ Install these other services at your leisure/preference:
 * [TriliumNext Notes](triliumnext-notes#readme) - a note-taking/knowledge base application
 * [Vaultwarden](vaultwarden#readme) - a bitwarden compatible password manager written in Rust (formerly bitwarden_rs)
 * [Websocketd](websocketd#readme) - a websocket / CGI server
-* [Wordpress](wordpress#readme) - an ubiquitous blogging / CMS platform, with a plugin to build a static HTML site snapshot
+* [Wordpress](wordpress#readme) - a ubiquitous blogging / CMS platform, with a plugin to build a static HTML site snapshot
 * [XBrowserSync](xbs#readme) - a bookmark manager
 * [YOURLS](yourls#readme) - a URL shortener
 

@@ -13,6 +13,8 @@ services:
         VERSION: ${NGINX_VERSION}
         TEMPLATE: ${NGINX_TEMPLATE}
         HOST: ${NGINX_TRAEFIK_HOST}
+        OWNER_UID: ${NGINX_OWNER_UID}
+        OWNER_GID: ${NGINX_OWNER_GID}
     restart: unless-stopped
     volumes:
       - "files:/app"
