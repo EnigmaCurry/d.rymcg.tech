@@ -18,6 +18,7 @@
 #@ enable_mtls_auth = data.values.enable_mtls_auth == "true"
 #@ mtls_authorized_certs = data.values.mtls_authorized_certs
 #@ enabled_middlewares = []
+#@ external_volume = data.values.external_volume
 
 #@yaml/text-templated-strings
 services:
@@ -62,3 +63,11 @@ services:
       
       #! Apply all middlewares (do this at the end!)
       - "traefik.http.routers.(@= router @).middlewares=(@= ','.join(enabled_middlewares) @)"
+
+#@yaml/text-templated-strings
+volumes:
+  srv:
+  #@ if len(external_volume):
+    external: true
+    name: (@= external_volume @)
+  #@ end

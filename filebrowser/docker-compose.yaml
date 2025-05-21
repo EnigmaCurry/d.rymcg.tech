@@ -17,6 +17,11 @@ services:
         IMAGE: ${FILEBROWSER_IMAGE}
     cap_drop:
       - ALL
+    cap_add:
+      - SETUID
+      - SETGID
+      - CHOWN
+      - DAC_OVERRIDE
     sysctls:
       - net.ipv4.ip_unprivileged_port_start=1024
     security_opt:
@@ -30,10 +35,12 @@ services:
       - AUTH_TYPE=${FILEBROWSER_AUTH_TYPE}
       - ADMIN_USERNAME=${FILEBROWSER_ADMIN_USERNAME}
       - ADMIN_PASSWORD=${FILEBROWSER_ADMIN_PASSWORD}
+      - FILEBROWSER_UID
+      - FILEBROWSER_GID
     # All labels are defined in the template: docker-compose.instance.yaml
     labels: []
 
 volumes:
-  config:
   srv:
+  config:
   database:

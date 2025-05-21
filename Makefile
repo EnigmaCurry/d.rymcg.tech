@@ -148,3 +148,7 @@ reconfigure:
 
 daemon-conf:
 	@ENV_FILE=${ENV_FILE} ROOT_ENV=${ROOT_ENV} DOCKER_CONTEXT=${DOCKER_CONTEXT} ROOT_DIR=${ROOT_DIR} CONTEXT_INSTANCE=${CONTEXT_INSTANCE}  ${BIN}/docker_daemon_conf
+
+.PHONY: s3-volume
+s3-volume:
+	@ROOT_ENV=${ROOT_ENV} ${BIN}/s3_volume_create

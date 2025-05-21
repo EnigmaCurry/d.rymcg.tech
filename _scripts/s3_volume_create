@@ -1,0 +1,114 @@
+#!/bin/bash
+set -e
+
+BIN=$(realpath $(dirname ${BASH_SOURCE}))
+ROOT_DIR=$(realpath ${BIN}/..)
+ENV_FILE="${ROOT_DIR}/${ROOT_ENV}"
+DRIVER=rclone
+source ${BIN}/funcs.sh
+
+cd ${ROOT_DIR}
+
+S3_BUCKET=$1
+check_var ROOT_ENV ENV_FILE
+
+if [[ ! -f "$ENV_FILE" ]]; then
+    fault "ENV_FILE does not exist: ${ENV_FILE}"
+fi
+
+## Install plugin
+if ! docker plugin inspect "${DRIVER}" 2>&1 >/dev/null; then
+    confirm "The Rclone Docker Volume Plugin is not installed on the server. Do you want to install it" "?"
+    if ! ${BIN}/d.rymcg.tech ssh command -v fusermount3; then
+        DISTRO=$(${BIN}/d.rymcg.tech ssh ". /etc/os-release && echo \$ID")
+        case "$DISTRO" in
+            ubuntu|debian)
+                ${BIN}/d.rymcg.tech ssh "sudo apt-get update && sudo apt-get install -y fuse3"
+                ;;
+            fedora)
+                ${BIN}/d.rymcg.tech ssh "sudo dnf install -y fuse3"
+                ;;
+            arch)
+                ${BIN}/d.rymcg.tech ssh "sudo pacman -Sy --noconfirm fuse3"
+                ;;
+            alpine)
+                ${BIN}/d.rymcg.tech ssh "sudo apk add fuse3"
+                ;;
+            *)
+                echo "Unsupported distribution: $DISTRO"
+                exit 1
+                ;;
+        esac
+    fi
+    ${BIN}/d.rymcg.tech ssh mkdir -p /var/lib/docker-plugins/rclone/config
+    ${BIN}/d.rymcg.tech ssh mkdir -p /var/lib/docker-plugins/rclone/cache
+    ARCH=$(${BIN}/d.rymcg.tech ssh uname -m)
+    case "$ARCH" in
+        x86_64)
+            PLUGIN_ARCH="amd64"
+            ;;
+        aarch64)
+            PLUGIN_ARCH="arm64"
+            ;;
+        armv7l|armv6l)
+            PLUGIN_ARCH="arm-v7"
+            ;;
+        *)
+            echo "Unsupported architecture: $ARCH"
+            exit 1
+            ;;
+    esac
+    docker plugin install "rclone/docker-volume-rclone:${PLUGIN_ARCH}" \
+           args="-v" --alias rclone --grant-all-permissions
+    docker plugin enable rclone
+fi
+
+RCLONE_S3_PROVIDER=$(${BIN}/dotenv -f ${ROOT_DIR}/${ROOT_ENV} get RCLONE_S3_PROVIDER || true)
+RCLONE_S3_ENDPOINT=$(${BIN}/dotenv -f ${ROOT_DIR}/${ROOT_ENV} get RCLONE_S3_ENDPOINT || true)
+RCLONE_S3_REGION=$(${BIN}/dotenv -f ${ROOT_DIR}/${ROOT_ENV} get RCLONE_S3_REGION || true)
+
+echo "## See https://rclone.org/s3/"
+echo
+${BIN}/reconfigure_ask ${ROOT_DIR}/${ROOT_ENV} RCLONE_S3_PROVIDER "Enter the Rclone S3-interoperable provider name (e.g. DigitalOcean)" "${RCLONE_S3_PROVIDER}"
+${BIN}/reconfigure_ask ${ROOT_DIR}/${ROOT_ENV} RCLONE_S3_ENDPOINT "Enter the S3 endpoint URL (e.g. https://nyc3.digitaloceanspaces.com)" "${RCLONE_S3_ENDPOINT}"
+${BIN}/reconfigure_ask ${ROOT_DIR}/${ROOT_ENV} RCLONE_S3_REGION "Enter the S3 region name (e.g. nyc3)" "${RCLONE_S3_REGION}"
+
+while true; do
+    ask_no_blank "Enter the S3 Bucket name" RCLONE_S3_BUCKET
+    RCLONE_S3_VOLUME="s3_${RCLONE_S3_BUCKET}"
+
+    if docker volume inspect "${RCLONE_S3_VOLUME}" >/dev/null 2>&1; then
+        echo
+        echo '!!'
+        echo "Volume '${RCLONE_S3_VOLUME}' already exists. Please choose a different bucket name."
+    else
+        break  # valid, unused volume name
+    fi
+done
+
+ask_no_blank "Enter the S3 Access Key ID" RCLONE_S3_ACCESS_KEY
+ask_no_blank "Enter the S3 Secret Key" RCLONE_S3_SECRET_KEY
+
+## Choose cache mode: 'writes' or 'full'
+VFS_CACHE_MODE=$(${BIN}/script-wizard choose 'Choose the VFS cache mode' 'writes' 'full'")
+
+## Batch write back delay
+## (hint: set write back delay to 0s for short lived containers,
+##        otherwise set higher for efficiency.)
+VFS_WRITE_BACK=5s
+ask_no_blank "Enter the delay (in seconds) for batched writes (e.g. 1s)" VFS_WRITE_BACK "5s"
+
+docker volume create ${RCLONE_S3_VOLUME} \
+  --driver rclone \
+  -o type=s3 \
+  -o path=${RCLONE_S3_BUCKET} \
+  -o s3-provider=${RCLONE_S3_PROVIDER} \
+  -o s3-endpoint=${RCLONE_S3_ENDPOINT} \
+  -o s3-region=${RCLONE_S3_REGION} \
+  -o s3-access_key_id=${RCLONE_S3_ACCESS_KEY} \
+  -o s3-secret_access_key=${RCLONE_S3_SECRET_KEY} \
+  -o allow-other=true \
+  -o vfs-cache-mode=${VFS_CACHE_MODE} \
+  -o vfs-write-back=${VFS_WRITE_BACK}
+
+echo "Created volume: ${RCLONE_S3_VOLUME}"

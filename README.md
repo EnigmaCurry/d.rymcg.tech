@@ -1146,6 +1146,11 @@ make open
 # etc
 ```
 
+## Rclone S3 volumes (cloud storage)
+
+See [RCLONE.md](RCLONE.md) to configure remote Docker volumes backed
+by S3 cloud storage.
+
 ## Questions and discussion
 
 If you have a question, or have some feedback, you can join us on [the
