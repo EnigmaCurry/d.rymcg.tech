@@ -102,6 +102,13 @@ ytt_template() {
         -v layer_4_tcp_udp_proxy_enabled="${TRAEFIK_LAYER_4_TCP_UDP_PROXY_ENABLED}" \
         -v layer_4_tcp_udp_proxy_routes="${TRAEFIK_LAYER_4_TCP_UDP_PROXY_ROUTES}" \
         -v custom_entrypoints="${TRAEFIK_CUSTOM_ENTRYPOINTS}" \
+        -v iperf_tcp_entrypoint_enabled="${TRAEFIK_IPERF_TCP_ENTRYPOINT_ENABLED}" \
+        -v iperf_tcp_entrypoint_host="${TRAEFIK_IPERF_TCP_ENTRYPOINT_HOST}" \
+        -v iperf_tcp_entrypoint_port="${TRAEFIK_IPERF_TCP_ENTRYPOINT_PORT}" \
+        -v iperf_tcp_entrypoint_proxy_protocol_trusted_ips="${TRAEFIK_IPERF_TCP_ENTRYPOINT_PROXY_PROTOCOL_TRUSTED_IPS}" \
+        -v iperf_udp_entrypoint_enabled="${TRAEFIK_IPERF_UDP_ENTRYPOINT_ENABLED}" \
+        -v iperf_udp_entrypoint_host="${TRAEFIK_IPERF_UDP_ENTRYPOINT_HOST}" \
+        -v iperf_udp_entrypoint_port="${TRAEFIK_IPERF_UDP_ENTRYPOINT_PORT}" \
         --data-value-yaml header_authorization_groups="${TRAEFIK_HEADER_AUTHORIZATION_GROUPS}" \
         > ${dst}
     success=$?

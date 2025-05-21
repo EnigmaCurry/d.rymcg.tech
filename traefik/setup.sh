@@ -243,6 +243,8 @@ config_list_entrypoints() {
         [rtmp]="Real-Time Messaging Protocol (unencrypted) entrypoint"
         [snapcast]="Snapcast (snapcast) audio entrypoint"
         [snapcast_control]="Snapcast (snapcast) control entrypoint"
+        [iperf_tcp]="Iperf3 TCP entrypoint"
+        [iperf_udp]="Iperf3 UDP entrypoint"
     )
     local menu_args=("Select entrypoint to configure:")
     for entrypoint in "${entrypoint_names[@]}"; do
@@ -282,13 +284,15 @@ config_entrypoint() {
             default_choice=1
         fi
         echo
-        case $(wizard choose --default ${default_choice} --numeric \
-                      "Is this entrypoint downstream from another trusted proxy?" \
-                      "No, clients dial directly to this server. (Turn off Proxy Protocol)" \
-                      "Yes, clients are proxied through a trusted server. (Turn on Proxy Protocol)") in
-            0) ${BIN}/reconfigure ${ENV_FILE} "TRAEFIK_${ENTRYPOINT}_ENTRYPOINT_PROXY_PROTOCOL_TRUSTED_IPS=";;
-            1) ${BIN}/reconfigure_ask ${ENV_FILE} "TRAEFIK_${ENTRYPOINT}_ENTRYPOINT_PROXY_PROTOCOL_TRUSTED_IPS" "Enter the comma separated list of trusted upstream proxy servers (CIDR)" 10.13.16.1/32;;
-        esac
+        if [[ "${entrypoint}" != *_udp ]]; then
+            case $(wizard choose --default ${default_choice} --numeric \
+                          "Is this entrypoint downstream from another trusted proxy?" \
+                          "No, clients dial directly to this server. (Turn off Proxy Protocol)" \
+                          "Yes, clients are proxied through a trusted server. (Turn on Proxy Protocol)") in
+                0) ${BIN}/reconfigure ${ENV_FILE} "TRAEFIK_${ENTRYPOINT}_ENTRYPOINT_PROXY_PROTOCOL_TRUSTED_IPS=";;
+                1) ${BIN}/reconfigure_ask ${ENV_FILE} "TRAEFIK_${ENTRYPOINT}_ENTRYPOINT_PROXY_PROTOCOL_TRUSTED_IPS" "Enter the comma separated list of trusted upstream proxy servers (CIDR)" 10.13.16.1/32;;
+            esac
+        fi
     else
         ${BIN}/reconfigure ${ENV_FILE} "TRAEFIK_${ENTRYPOINT}_ENTRYPOINT_ENABLED=false"
     fi
@@ -574,7 +578,7 @@ layer_4_tcp_udp_add_ingress_route() {
     echo
     local DEFAULT_PORT=$(${BIN}/dotenv -f ${ENV_FILE} get TRAEFIK_${ENTRYPOINT^^}_ENTRYPOINT_PORT || (${BIN}/dotenv -f ${ENV_FILE} get TRAEFIK_CUSTOM_ENTRYPOINTS | tr ',' '\n' | grep "^${ENTRYPOINT}:" | cut -d: -f3))
     while
-        ask_no_blank "Enter the destination TCP port to forward to:" ROUTE_PORT "${DEFAULT_PORT}"
+        ask_no_blank "Enter the destination port to forward to:" ROUTE_PORT "${DEFAULT_PORT}"
         if ! [[ ${ROUTE_PORT} =~ ^[0-9]+$ ]] ; then
             echo "Port is invalid."
             continue
@@ -583,11 +587,14 @@ layer_4_tcp_udp_add_ingress_route() {
     do true; done
     echo
     local ROUTE_PROXY_PROTOCOL=0
+    local PROTOCOL=$(${BIN}/dotenv -f ${ENV_FILE} get TRAEFIK_${ENTRYPOINT^^}_ENTRYPOINT_PORT || (${BIN}/dotenv -f ${ENV_FILE} get TRAEFIK_CUSTOM_ENTRYPOINTS | tr ',' '\n' | grep "^${ENTRYPOINT}:" | cut -d: -f4))
     echo "##"
     echo "## See https://www.haproxy.org/download/2.0/doc/proxy-protocol.txt"
     echo
-    if confirm no "Do you want to enable Proxy Protocol for this route" "?"; then
-        ROUTE_PROXY_PROTOCOL=2
+    if [[ ${PROTOCOL} == "tcp" ]]; then
+        if confirm no "Do you want to enable Proxy Protocol for this route" "?"; then
+            ROUTE_PROXY_PROTOCOL=2
+        fi
     fi
     reconfigure_layer_X_tcp_udp_proxy_routes "${ENV_FILE}" TRAEFIK_LAYER_4_TCP_UDP_PROXY_ROUTES "${ENTRYPOINT}" "${ROUTE_IP_ADDRESS}" "${ROUTE_PORT}" "${ROUTE_PROXY_PROTOCOL}"
     layer_4_tcp_udp_list_routes    
@@ -788,14 +795,17 @@ add_custom_entrypoint() {
         false
     do true; done
     local TRUSTED_NETS=
-    case $(wizard choose --numeric \
-                  "Is this entrypoint downstream from another trusted proxy?" \
-                  "No, clients dial directly to this server. (Turn off Proxy Protocol)" \
-                  "Yes, clients are proxied through another trusted proxy. (Turn on Proxoy Protocol)") in
-        0) TRUSTED_NETS=;;
-        1) TRUSTED_NETS=$(ask_echo "Enter the comma separated list of trusted upstream proxy servers (CIDR)" 10.13.16.1/32);;
-    esac
-    USE_HTTPS=$(choose "Does this entrypoint use HTTPS?" "true" "false")
+    local USE_HTTPS=false
+    if [[ $"${PROTOCOL}" == "tcp" ]]; then
+        case $(wizard choose --numeric \
+                      "Is this entrypoint downstream from another trusted proxy?" \
+                      "No, clients dial directly to this server. (Turn off Proxy Protocol)" \
+                      "Yes, clients are proxied through another trusted proxy. (Turn on Proxoy Protocol)") in
+            0) TRUSTED_NETS=;;
+            1) TRUSTED_NETS=$(ask_echo "Enter the comma separated list of trusted upstream proxy servers (CIDR)" 10.13.16.1/32);;
+        esac
+        USE_HTTPS=$(choose "Does this entrypoint use HTTPS?" "true" "false")
+    fi
     if [[ -n "${CUSTOM_ENTRYPOINTS}" ]]; then
         CUSTOM_ENTRYPOINTS="${CUSTOM_ENTRYPOINTS},"
     fi

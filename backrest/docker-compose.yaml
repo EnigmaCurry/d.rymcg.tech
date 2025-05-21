@@ -1,6 +1,6 @@
 services:
   backrest:
-    image: garethgeorge/backrest:latest
+    image: ${BACKREST_IMAGE}
     volumes:
       - data:/data
       - config:/config

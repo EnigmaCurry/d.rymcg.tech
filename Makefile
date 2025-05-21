@@ -51,7 +51,9 @@ restore-env:
 
 .PHONY: delete-env # Delete all .env files
 delete-env:
-	@${BIN}/confirm no "This will find and delete ALL of the .env files recursively"
+	@find ${ROOT_DIR} | grep -E '\.env$$|\.env_.*'
+	@${BIN}/confirm no "This will delete ALL of these .env files recursively"
+	@${BIN}/confirm no "ARE YOU REALLY SURE you want to delete ALL of the .env files recursively"
 	@find ${ROOT_DIR} | grep -E '\.env$$|\.env_.*' && find ${ROOT_DIR} | grep -E '\.env$$|\.env_.*' | xargs shred -u || true
 	@echo "Done."
 
