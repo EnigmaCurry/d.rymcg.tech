@@ -11,6 +11,7 @@ config-hook:
 	@${BIN}/reconfigure_ask ${ENV_FILE} FILEBROWSER_TRAEFIK_HOST "Enter the filebrowser domain name" filebrowser${INSTANCE_URL_SUFFIX}.${ROOT_DOMAIN}
 	@${BIN}/reconfigure ${ENV_FILE} FILEBROWSER_INSTANCE=$${instance:-default}
 	@${BIN}/reconfigure_auth ${ENV_FILE} FILEBROWSER
+	@${BIN}/reconfigure_ask ${ENV_FILE} FILEBROWSER_ADMIN_USERNAME "Enter the filebrowser Admin user name or OAuth2 email address" admin
 	@ROOT_DIR=${ROOT_DIR} ENV_FILE=${ENV_FILE} /bin/bash ./setup_auth.sh
 	@${BIN}/reconfigure_password ${ENV_FILE} FILEBROWSER_ADMIN_PASSWORD 45
 	@echo ""
