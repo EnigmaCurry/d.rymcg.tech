@@ -42,6 +42,10 @@ experimental:
     mtlsheader:
       modulename: github.com/pnxs/traefik-plugin-mtls-header
     #@ end
+    #@ if data.values.plugin_api_token == "true":
+    apitoken:
+      modulename: github.com/Aetherinox/traefik-api-token-middleware
+    #@ end
 #@ end
 
 providers:

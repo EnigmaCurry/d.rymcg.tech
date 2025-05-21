@@ -17,6 +17,8 @@
 #@ authorized_group = data.values.authorized_group
 #@ enable_mtls_auth = data.values.enable_mtls_auth == "true"
 #@ mtls_authorized_certs = data.values.mtls_authorized_certs
+#@ bearer_auth_tokens = data.values.bearer_auth_tokens.strip()
+#@ enable_bearer_auth = len(bearer_auth_tokens)
 #@ enabled_middlewares = []
 
 #@yaml/text-templated-strings
@@ -55,6 +57,16 @@ services:
         #@ enabled_middlewares.append("mtlsauth-{}".format(router))
         #@ end
         #@ enabled_middlewares.append("mtls-header@file")
+      #@ end
+
+      #@ if enable_bearer_auth:
+      - "traefik.http.middlewares.bearer-auth-(@= router @).plugin.apitoken.bearerHeader=true"
+      - "traefik.http.middlewares.bearer-auth-(@= router @).plugin.apitoken.bearerHeaderName=Authorization"
+      - "traefik.http.middlewares.bearer-auth-(@= router @).plugin.apitoken.tokens=(@= bearer_auth_tokens @)"
+      - "traefik.http.middlewares.bearer-auth-(@= router @).plugin.apitoken.removeHeadersOnSuccess=true"
+      - "traefik.http.middlewares.bearer-auth-(@= router @).plugin.apitoken.removeTokenNameOnFailure=true"
+      - "traefik.http.middlewares.bearer-auth-(@= router @).plugin.apitoken.timestampUnix=true"
+      #@ enabled_middlewares.append("bearer-auth-{}".format(router))
       #@ end
       
       #! Override the default port that the app binds to:
