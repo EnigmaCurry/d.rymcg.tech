@@ -1,0 +1,49 @@
+#! This is a ytt template file for docker-compose.override.yaml
+#! References:
+#!   https://carvel.dev/ytt
+#!   https://docs.docker.com/compose/extends/#adding-and-overriding-configuration
+#!   https://github.com/enigmacurry/d.rymcg.tech#overriding-docker-composeyaml-per-instance
+
+#! ### Standard project vars:
+#@ load("@ytt:data", "data")
+#@ project = data.values.project
+#@ instance = data.values.instance
+#@ context = data.values.context
+#@ traefik_host = data.values.traefik_host
+#@ grpc_host = data.values.grpc_host
+#@ ip_sourcerange = data.values.ip_sourcerange
+#@ server_enabled_middlewares = []
+#@ grpc_enabled_middlewares = []
+
+#@yaml/text-templated-strings
+services:
+  server:
+    #@ service = "server"
+    labels:
+      - "backup-volume.stop-during-backup=true"
+      #! Services must opt-in to be proxied by Traefik:
+      - "traefik.enable=true"
+
+      #! 'router' is the fully qualified key in traefik for this router/service: project + instance + service
+      #@ router = "{}-{}-{}".format(project,instance,service)
+      #! The host matching router rule:
+      - "traefik.http.routers.(@= router @).rule=Host(`(@= traefik_host @)`)"
+      - "traefik.http.routers.(@= router @).entrypoints=websecure"
+      #@ server_enabled_middlewares.append("{}-ipallowlist".format(router))
+      - "traefik.http.middlewares.(@= router @)-ipallowlist.ipallowlist.sourcerange=(@= ip_sourcerange @)"
+      - "traefik.http.services.(@= router @).loadbalancer.server.port=8000"
+      - "traefik.http.routers.(@= router @).service=(@= router @)"
+      #! Apply all middlewares (do this at the end!)
+      - "traefik.http.routers.(@= router @).middlewares=(@= ','.join(server_enabled_middlewares) @)"
+
+      #! 'grpc_router'
+      #@ grpc_router = "{}-{}-{}".format(project,instance,"grpc")
+      - "traefik.http.routers.(@= grpc_router @).rule=Host(`(@= grpc_host @)`)"
+      - "traefik.http.routers.(@= grpc_router @).entrypoints=websecure"
+      #@ grpc_enabled_middlewares.append("{}-ipallowlist".format(router))
+      - "traefik.http.middlewares.(@= grpc_router @)-ipallowlist.ipallowlist.sourcerange=(@= ip_sourcerange @)"
+      - "traefik.http.services.(@= grpc_router @).loadbalancer.server.port=9000"
+      - "traefik.http.services.(@= grpc_router @).loadbalancer.server.scheme=h2c"
+      - "traefik.http.routers.(@= grpc_router @).service=(@= grpc_router @)"
+      #! Apply all middlewares (do this at the end!)
+      - "traefik.http.routers.(@= grpc_router @).middlewares=(@= ','.join(grpc_enabled_middlewares) @)"
