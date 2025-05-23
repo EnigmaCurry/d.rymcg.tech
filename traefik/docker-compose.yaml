@@ -249,6 +249,7 @@ services:
     profiles:
       - error-pages
     image: ${TRAEFIK_ERROR_PAGES_IMAGE}
+    restart: unless-stopped
     environment:
       TEMPLATE_NAME: ${TRAEFIK_ERROR_PAGES_TEMPLATE}
     labels:
