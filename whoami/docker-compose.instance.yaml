@@ -19,6 +19,7 @@
 #@ mtls_authorized_certs = data.values.mtls_authorized_certs
 #@ bearer_auth_tokens = data.values.bearer_auth_tokens.strip()
 #@ enable_bearer_auth = len(bearer_auth_tokens)
+#@ enable_shared_url_auth = data.values.enable_shared_url_auth == "true"
 #@ enabled_middlewares = []
 
 #@yaml/text-templated-strings
@@ -68,7 +69,14 @@ services:
       - "traefik.http.middlewares.bearer-auth-(@= router @).plugin.apitoken.timestampUnix=true"
       #@ enabled_middlewares.append("bearer-auth-{}".format(router))
       #@ end
-      
+
+      #@ if enable_shared_url_auth:
+      - "traefik.http.middlewares.shared-url-auth-(@= router @).plugin.sharedurl.cookieName=shared_whoami_auth"
+      - "traefik.http.middlewares.shared-url-auth-(@= router @).plugin.sharedurl.jwtSecret=asdfasdf"
+      #@ enabled_middlewares.append("shared-url-auth-{}".format(router))
+      #@ end
+
+
       #! Override the default port that the app binds to:
       #! You don't normally need to do this, as long as your image has
       #! an EXPOSE directive in it, Traefik will autodetect it, but this is how you can override it:

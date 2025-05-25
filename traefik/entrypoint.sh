@@ -29,4 +29,5 @@ else
 fi
 
 sleep 2
+set -x
 exec "$@"

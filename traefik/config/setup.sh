@@ -5,6 +5,8 @@ CONFIG_DIR=/data/config
 DYNAMIC_CONFIG_DIR=${CONFIG_DIR}/dynamic
 INSTANCE_CONFIG_DIR=${DYNAMIC_CONFIG_DIR}/${DOCKER_CONTEXT:-instance}
 
+env
+
 ytt_template() {
     src=$1; dst=$2;
     [ -e "${src}" ] || (echo "Template not found: ${src}" && exit 1)
@@ -34,6 +36,12 @@ ytt_template() {
         -v plugin_referer="${TRAEFIK_PLUGIN_REFERER}" \
         -v plugin_mtls_header="${TRAEFIK_PLUGIN_MTLS_HEADER}" \
         -v plugin_api_token="${TRAEFIK_PLUGIN_API_TOKEN}" \
+        -v plugin_shared_url_auth="${TRAEFIK_PLUGIN_SHARED_URL_AUTH}" \
+        -v shared_url_auth_cookie_name="${TRAEFIK_SHARED_URL_AUTH_COOKIE_NAME}" \
+        -v shared_url_auth_jwt_secret="${TRAEFIK_SHARED_URL_AUTH_JWT_SECRET}" \
+        -v shared_url_auth_jwt_expires="${TRAEFIK_SHARED_URL_AUTH_JWT_EXPIRES}" \
+        -v shared_url_auth_query_param="${TRAEFIK_SHARED_URL_AUTH_QUERY_PARAM}" \
+        -v shared_url_auth_url_expires="${TRAEFIK_SHARED_URL_AUTH_URL_EXPIRES}" \
         -v web_entrypoint_enabled="${TRAEFIK_WEB_ENTRYPOINT_ENABLED}" \
         -v web_entrypoint_host="${TRAEFIK_WEB_ENTRYPOINT_HOST}" \
         -v web_entrypoint_port="${TRAEFIK_WEB_ENTRYPOINT_PORT}" \

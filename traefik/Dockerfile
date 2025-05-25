@@ -32,6 +32,7 @@ RUN git clone https://${MTLS_HEADER_MODULE}.git /plugins-local/src/github.com/pn
       --depth 1 --single-branch --branch ${MTLS_HEADER_GIT_BRANCH}
 RUN git clone https://${API_TOKEN_MODULE}.git /plugins-local/src/github.com/Aetherinox/traefik-api-token-middleware \
       --depth 1 --single-branch --branch ${API_TOKEN_GIT_BRANCH}
+ADD traefik-shared-url-auth /plugins-local/src/github.com/enigmacurry/traefik-shared-url-auth
 
 FROM ${TRAEFIK_IMAGE}
 ARG TRAEFIK_UID TRAEFIK_GID TRAEFIK_DOCKER_GID

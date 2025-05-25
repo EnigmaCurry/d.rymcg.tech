@@ -2,7 +2,7 @@ ROOT_DIR = ..
 include ${ROOT_DIR}/_scripts/Makefile.projects-no-open
 
 .PHONY: config-hook
-config-hook: config-menu config-domain compose-profiles
+config-hook: config-shared-url-middleware config-menu config-domain compose-profiles
 	@echo ""
 	@echo "Examine the configured environment file: ${ENV_FILE}"
 
@@ -16,6 +16,10 @@ config-menu:
 .PHONY: config-domain
 config-domain:
 	@${BIN}/reconfigure ${ENV_FILE} TRAEFIK_ROOT_DOMAIN=${ROOT_DOMAIN}
+
+.PHONY: config-shared-url-middleware
+config-shared-url-middleware:
+	@${BIN}/reconfigure_password ${ENV_FILE} TRAEFIK_SHARED_URL_AUTH_JWT_SECRET 45
 
 .PHONY: config-acme
 config-acme:

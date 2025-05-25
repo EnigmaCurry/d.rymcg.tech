@@ -1,0 +1,12 @@
+displayName: Shared URL Auth
+type: middleware
+iconPath: .assets/icon.png
+
+import: github.com/enigmacurry/traefik-shared-url-auth
+
+summary: 'Authentication middleware using a pre-shared URL with token in a query parameter. A short lived cookie is set to allow any subsequent access without the query parameter.'
+
+testData:
+  Headers:
+    X-Demo: test
+    X-URL: '{{URL}}'

@@ -46,6 +46,10 @@ experimental:
     apitoken:
       modulename: github.com/Aetherinox/traefik-api-token-middleware
     #@ end
+    #@ if data.values.plugin_shared_url_auth == "true":
+    sharedurl:
+      modulename: github.com/enigmacurry/traefik-shared-url-auth
+    #@ end
 #@ end
 
 providers:

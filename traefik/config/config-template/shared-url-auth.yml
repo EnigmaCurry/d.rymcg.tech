@@ -1,0 +1,26 @@
+#@ load("@ytt:data", "data")
+
+#@ shared_url_auth_enabled = data.values.plugin_shared_url_auth == "true"
+#@ cookie_name = data.values.shared_url_auth_cookie_name
+#@ jwt_secret = data.values.shared_url_auth_jwt_secret
+#@ jwt_expires = data.values.shared_url_auth_jwt_expires
+#@ query_param = data.values.shared_url_auth_query_param
+#@ url_expires = data.values.shared_url_auth_url_expires
+
+#@ if shared_url_auth_enabled and (jwt_secret == "" or jwt_secret == None):
+#@   fail("shared-url-auth: jwt_secret must be set (TRAEFIK_SHARED_URL_AUTH_JWT_SECRET)")
+#@ end
+
+#@yaml/text-templated-strings
+#@ if shared_url_auth_enabled:
+http:
+  middlewares:
+    shared-url-auth:
+      plugin:
+        shared-url-auth:
+          cookieName:    (@= cookie_name @)
+          jwtSecret:     (@= jwt_secret @)
+          jwtExpires:    (@= jwt_expires @)
+          queryParam:    (@= query_param @)
+          urlExpires:    (@= url_expires @)
+#@ end
