@@ -14,13 +14,7 @@ networks:
 services:
     # Frontend
     web:
-<<<<<<< Updated upstream
-        image: jitsi/web:${JITSIMEET_VERSION}
-||||||| Stash base
-        image: jitsi/web:${JITSI_WEB_VERSION}
-=======
         image: jitsi/web:stable-${JITSI_WEB_VERSION}
->>>>>>> Stashed changes
         restart: ${RESTART_POLICY}
         volumes:
             - web_config:/config:Z
@@ -206,13 +200,7 @@ services:
 
     # XMPP server
     prosody:
-<<<<<<< Updated upstream
-        image: jitsi/prosody:${JITSIMEET_VERSION}
-||||||| Stash base
-        image: jitsi/prosody:stable-6865
-=======
         image: jitsi/prosody:stable-${JITSI_WEB_VERSION}
->>>>>>> Stashed changes
         restart: ${RESTART_POLICY}
         expose:
             - '5222'
@@ -361,13 +349,7 @@ services:
 
     # Focus component
     jicofo:
-<<<<<<< Updated upstream
-        image: jitsi/jicofo:${JITSIMEET_VERSION}
-||||||| Stash base
-        image: jitsi/jicofo:stable-6865
-=======
         image: jitsi/jicofo:stable-${JITSI_WEB_VERSION}
->>>>>>> Stashed changes
         restart: ${RESTART_POLICY}
         volumes:
             - jicofo:/config:Z
@@ -456,13 +438,7 @@ services:
     
     # Video bridge
     jvb:
-<<<<<<< Updated upstream
-        image: jitsi/jvb:${JITSIMEET_VERSION}
-||||||| Stash base
-        image: jitsi/jvb:stable-6865
-=======
         image: jitsi/jvb:stable-${JITSI_WEB_VERSION}
->>>>>>> Stashed changes
         restart: ${RESTART_POLICY}
         ports:
             - '${JVB_PORT}:${JVB_PORT}/udp'
