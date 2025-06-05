@@ -1,0 +1,72 @@
+---
+ru:
+  easy_gantt_pro:
+    add_task_modal:
+      no_parent: ''
+      title: Добавить задачу
+    baselines:
+      confirm_delete: Вы действительно хотите удалить этот базовый план
+      create_failed: Новый базовый план не может быть создан
+      delete_failed: Базовый план не может быть удален
+      error_not_saved: Вы должны сохранить все изменения в проекте перед созданием
+        базового плана.
+      label_baseline: Базовый план
+      label_same: "-то же-"
+    cashflow:
+      label_cashflow: Cash Flow
+    critical:
+      hide_button: Скрыть критический путь
+      legend_issues: Задача на критическом пути
+      show_button: Показать критический путь
+    lowest_progress:
+      label_progress_date: сроки по прогрессу
+    project_move:
+      error_opening_unsaved: Сохраните, пожалуйста, все изменения в в проекте перед
+        его открытием.
+    resources:
+      label_resources: Ресурсы
+  easy_gantt:
+    button:
+      bulk_edit: Групповое редактирование
+      delayed_issue_filter: Фильтр по просроченным задчам
+      show_lowest_progress_tasks: Показать задачи с самой ранней датой по прогрессу
+      show_only_critical: Фильтр критических задач
+    popup:
+      add_task:
+        heading: Add Issue help
+        text: New Issue of milestone can be created by a click on Issue button (respective
+          Milestone button) or by dragging anywhere in graph
+      baseline:
+        heading: Базовый план - Описание
+        heading_new_baseline: Новый базовый план
+        text: Создание копии изначального проекта для дальнейшиго сравнения
+      critical:
+        heading: Критический Путь - описание
+        text: Длинные последовательности задач, которые должны выполняться своевременно,
+          для соблюдения Дедлайна проекта. Новые задачи на критическом пути не могут
+          уходить в работу, пока предыдущая задача не будет завершена.Если хотябы
+          на одной из задач возникнет задержка, хотябы на день, то и дедлайн проекта
+          будет передвинут на один день вперед, до тех пор, пока одна из задач не
+          будет выполненна на день раньше.
+    scheme_by:
+      label_by_priority: по приоритету
+      label_by_status: по статусу
+      label_by_tracker: по задачам
+      label_color_by: Цвет
+    title:
+      delayed_issue_filter: Показать только задачи, дата по прогрессу которых ранее
+        сегодня
+      show_only_critical: Показать только задачи на Критическом пути
+  easy_pages:
+    modules:
+      easy_global_gantt: Easy gantt
+      easy_project_gantt: Easy gantt
+  easy_proposer:
+    easy_gantt:
+      index:
+        caption: Easy Gantt PRO
+        description: Перейти в Easy Gantt PRO
+  heading_easy_gantts_issues: Easy Gantt PRO
+  label_show_lowest_progress_tasks: Задачи с наименьшим прогрессом
+  text_show_lowest_progress_tasks: Показывать задачи с самой большой задержкой  (отношение
+    длительности на диаграмме Ганта к проценту выполения)

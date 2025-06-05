@@ -1,0 +1,160 @@
+---
+pl:
+  button_print: Drukuj
+  button_project_menu_easy_gantt: Easy Gantt
+  button_top_menu_easy_gantt: Projekty Gantt
+  button_use_actual_delay: Użyj aktualnego opóźnienia
+  easy_gantt:
+    button:
+      close_all: Zamknij wszystko
+      close_all_parent_issues: Zamknij wszystkie zadania nadrzędne
+      create_baseline: Bazy
+      critical_path: Ścieżka krytyczna
+      day_zoom: Dni
+      delayed_project_filter: Filtruj opóźnione projekty
+      jump_today: Skok do dzisiaj
+      load_sample_data: Załaduj proste dane
+      month_zoom: Miesiące
+      print_fit: Dopasuj do strony
+      problem_finder: Problemy
+      reload: Przeładuj (zapisz)
+      remove_delay: Usuń opóźnienie
+      resource_management: Zarządzanie zasobami
+      tool_panel: Narzędzia
+      week_zoom: Tygodnie
+    critical_path:
+      disabled: Wyłączony
+      last: Ostatni
+      last_text: Zadania, które nie powinny być opóźnione
+      longest: Najdłuższy
+      longest_text: Pokaż najdłuższą sekwencję zadań
+    errors:
+      duplicate_link: Nie można utworzyć zduplikowanego linku
+      fresh_milestone: Nie można dodać zadania do niezapisanych kroków milowych. Najpierw
+        zapisz krok milowy.
+      link_target_new: Nie można utworzyć linku do niezapisanego zadania. Najpierw
+        zapisz zmiany.
+      link_target_readonly: Docelowe zadanie jedynie do odczytu
+      loop_link: Nie można utworzyć zapętlonego linku
+      no_rest_api: Easy Gantt potrzebuje włączonego API REST. Włącz go w Administracja
+        -> Ustawienia -> API -> Włącz usługę sieciową REST
+      overdue: powinno się zakończyć w przyszłości lub być już zamknięte
+      overmile: powinno zakończyć się %{effective_date}, aby zachować krok milowy
+      short_delay: powinno być dłuższe niż %{diff}  dni
+      too_short: nie zawiera wystarczającej liczby dni dla %{rest} godzin oszacowanego
+        czasu
+      unsaved_parent: Nie można dodać zadania do niezapisanego zadania nadrzędnego.
+        Najpierw zapisz zmiany
+      unsupported_link_type: Nieobsługiwany typ linku
+    gateway:
+      entity_save_failed: Nie powiodło się zapisanie %{entityType} %{entityName} z
+        powodu błędu
+      send_failed: Wymagane pole
+    label_pro_upgrade: Zaktualizuj do wersji PRO
+    link_dir:
+      link_end: jak poprzedni
+      link_start: jak następujący
+    popup:
+      add_task:
+        heading: Dodaj funkcję zadania
+        text: "Funkcja nowego zadania/kroku milowego jest dostępna jedynie w Easy
+          Gantt PRO \r\n<a href=\"https://www.easyredmine.com/easy-gantt-upgrade-to-pro\">Sprawdź
+          aktualizację!</a>"
+      baseline:
+        heading: Funkcja baz
+        text: "Funkcja baz jest dostępna jedynie w Easy Gantt PRO \r\n<a href=\"https://www.easyredmine.com/easy-gantt-upgrade-to-pro\">Sprawdź
+          aktualizację!</a>"
+      critical:
+        heading: Funkcja ścieżki krytycznej
+        text: "Funkcja ścieżki krytycznej jest dostępna jedynie w Easy Gantt PRO \r\n<a
+          href=\"https://www.easyredmine.com/easy-gantt-upgrade-to-pro\">Sprawdź aktualizację!</a>"
+      resource:
+        heading: Funkcja menedżera zasobów
+        text: Funkcja ścieżki krytycznej jest dostępna jedynie w <a href="https://www.easyredmine.com/">
+          Easy Redmine</a>
+    reload_modal:
+      label_errors: Błędy
+      text_reload_appeal: Czy chcesz zignorować niezapisane pozycje i ponownie załadować
+        dane z serwera?
+      title: Poprawne zapisanie Gantta nie powiodło się
+    sample_global_free:
+      text: Przykładowe dane nie mogą zostać zamknięte. Gantt w stosunku do innych
+        projektów jest dostępny jedynie w wersji PRO
+      video:
+        text: Tutaj możesz zobaczyć większość funkcji Gantta w stosunku do wszystkich
+          projektów
+        title: Przykładowe wideo Gantta w stosunku do wszystkich projektów
+        video_id: EiiqBrrY4m4
+    sample:
+      close_label: Zamknij to okno i załaduj prawdziwe dane projektowe
+      header: Przykładowe dane są załadowane!
+      text: Przygotowaliśmy dla ciebie pewne przykładowe dane w celu <strong>wypróbowania
+        wszystkich  funkcji Easy Gantt bez stresu</strong>.
+      video_label: Zobacz samouczek filmowy
+      video:
+        text: Tutaj możesz zobaczyć większość funkcji tego modułu Gantta
+        title: Przykładowy film
+        video_id: UHgqfsrD59Q
+    text_blocker_milestone: Krok milowy blokuje przeniesienie zadania poza tę datę
+    text_blocker_move_pre: Zadanie posiada relację, która blokuje przesunięcie go
+      poza tę datę
+    title:
+      button_test: Przycisk testowy (tylko dla testowania)
+      day_zoom: Powiększ do skali dni
+      jump_today: Wyświetl linię czasu dla dzisiaj
+      month_zoom: Powiększ do skali miesiąca
+      print_fit: Skaluj Gantta na jedną stronę
+      week_zoom: Powiększ do skali tygodnia
+  easy_printable_templates_categories:
+    easy_gantt: Easy Gantt
+  easy_query:
+    name:
+      easy_gantt_easy_issue_query: Easy Gantt
+      easy_gantt_easy_project_query: Globalny Easy Gantt
+  error_easy_gantt_view_permission: Nie masz uprawnień do zobaczenia Easy Gantt
+  error_epm_easy_gantt_already_active: Easy Gantt jest już aktywny na stronie
+  field_easy_gantt_default_zoom: Domyślne powiększenie
+  field_easy_gantt_relation_delay_in_workdays: Opóźnienie relacji w dniach roboczych
+  field_easy_gantt_show_holidays: Pokaż urlopy
+  field_easy_gantt_show_project_progress: Pokaż postęp projektu
+  field_easy_gantt_show_task_soonest_start: Pokaż najwcześniejsze rozpoczęcie
+  field_keep_link_delay_in_drag: Stałe opóźnienie linku podczas przeciągania
+  field_relation: Relacja
+  heading_delay_popup: Określ opóźnienie w dniach
+  heading_demo_feature_popup: Wkrótce
+  heading_easy_gantts_issues: Bezpłatny Easy Gantt
+  label_easy_gantt: Easy Gantt
+  label_easy_gantt_critical_path: Ścieżka krytyczna
+  label_easy_gantt_settings: Ustawienia Gantta
+  label_filter_group_easy_gantt_easy_issue_query: Pole zadania
+  label_finish_to_finish: Zakończ aby zakończyć
+  label_parent_issue_plural: Zadania nadrzędne
+  label_start_to_finish: Rozpocznij aby zakończyć
+  label_start_to_start: Zacznij aby zacząć
+  link_easy_gantt_plugin: https://www.easyredmine.com/easy-gantt-upgrade-to-pro
+  permission_edit_easy_gantt: Edytuj Easy Gantt i Zarządzanie zasobami w projekcie
+  permission_edit_global_easy_gantt: Edytuj globalne Easy Gantt i Zarządzanie zasobami
+  permission_edit_personal_easy_gantt: Edytuj personalne Easy Gantt i Zarządzanie
+    zasobami
+  permission_view_easy_gantt: Zobacz Easy Gantt i Zarządzanie zasobami w projekcie
+  permission_view_global_easy_gantt: Zobacz globalne Easy Gantt i Zarządzanie zasobami
+  permission_view_personal_easy_gantt: Zobacz personalne Easy Gantt i Zarządzanie
+    zasobami
+  project_default_page:
+    easy_gantt: Easy Gantt
+  project_module_easy_gantt: Easy Gantt
+  text_demo_feature_popup: Ta funkcja będzie dostępna wkrótce.
+  text_easy_gantt_footer: Redmine Gantt powered by Easy
+  text_easy_gantt_keep_link_delay_in_drag: Utrzymaj stałe opóźnienie relacji gdy zadanie
+    jest przeciągane z powrotem
+  text_easy_gantt_print_easy_gantt_current: Pokaż obecny Easy Gantt (działa tylko
+    na stronie, na której jest załadowany Easy Gantt)
+  text_easy_gantt_relation_delay_in_workdays: Nie bierz pod uwagę nieroboczych dni
+    w opóźnieniu relacji
+  text_easy_gantt_show_holidays: Pokaż urlop obecnego użytkownika na Gantt (działa
+    jedynie w Easy Redmine)
+  text_easy_gantt_show_project_progress: Pokaż zakończony procent na pasku projektu
+    (pobranie może być wolne)
+  text_easy_gantt_show_task_soonest_start: Pokaż najbliższe ważne daty dla zadań określonych
+    przez relacje lub zadanie nadrzędne
+  title_easy_gantt_settings: Easy Gantt

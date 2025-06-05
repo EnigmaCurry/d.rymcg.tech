@@ -1,0 +1,73 @@
+---
+pt-BR:
+  easy_gantt_pro:
+    add_task_modal:
+      no_parent: ''
+      title: Adicionar tarefa
+    baselines:
+      confirm_delete: Você realmente quer apagar essa linha de base?
+      create_failed: Linha de base não pode ser criada
+      delete_failed: Linha de base não pode ser apagada
+      error_not_saved: Você deve salvar todas as alterações no projeto antes de criar
+        sua linha de base
+      label_baseline: Linha de base
+      label_same: "-mesmo-"
+    cashflow:
+      label_cashflow: Fluxo de caixa
+    critical:
+      hide_button: Esconder trajeto crítico
+      legend_issues: Tarefas em trajeto crítico
+      show_button: Mostrar trajeto crítico
+    lowest_progress:
+      label_progress_date: Data progresso
+    project_move:
+      error_opening_unsaved: Você deve salvar as alterações antes de abrir o projeto
+    resources:
+      label_resources: Funcionalidade
+  easy_gantt:
+    button:
+      bulk_edit: Edição em massa
+      delayed_issue_filter: Filtrar Problemas de Atraso
+      show_lowest_progress_tasks: Mostrar tarefas com menor data de progresso
+      show_only_critical: Filtro crucial
+    popup:
+      add_task:
+        heading: Adicionar tarefa ajuda
+        text: Nova tarefa ou marco pode ser criado ao clicar o botão de tarefas (ou
+          no caso o botão Marco) ou arrastando em qualquer lugar no gráfico
+      baseline:
+        heading: Descrição da linha de base
+        heading_new_baseline: Linha de base nova
+        text: Cria cópia do projeto para futuras comparações
+      critical:
+        heading: Descrição de trajeto crítico
+        text: A sequência de atividades mais longa em um plano de projeto que deve
+          ser concluída a tempo para o projeto ser concluído na data devida. Uma atividade
+          no trajeto crítico não pode ser iniciada até que a sua atividade antecessora
+          for completada; se for adiada por um dia, todo o projeto será adiado por
+          um dia a menos que a atividade após a atividade retardada seja concluída
+          um dia antes. Para o bom funcionamento de um trajeto crítico, o projeto
+          deve ter apenas 1 tarefa ínicial e uma tarefa final e as tarefas devem ser
+          conectadas com relações.
+    scheme_by:
+      label_by_priority: por Prioridade
+      label_by_status: por Situação
+      label_by_tracker: por Rastreador
+      label_color_by: Coloridos por
+    title:
+      delayed_issue_filter: Mostrar apenas as problemas os qual a data de progresso
+        estiver atrasada hoje
+      show_only_critical: Mostrar somente tarefas no Trajeto crítico
+  easy_pages:
+    modules:
+      easy_global_gantt: Easy Gantt
+      easy_project_gantt: Easy Gantt
+  easy_proposer:
+    easy_gantt:
+      index:
+        caption: Easy Gantt PRO
+        description: Vá para Easy Gantt PRO
+  heading_easy_gantts_issues: Easy Gantt PRO
+  label_show_lowest_progress_tasks: Tarefas de menor progresso
+  text_show_lowest_progress_tasks: Tarefas de exibição com o pior progresso  em relação
+    data (= relação entre data correspondente às tarefas feitas em gantt)

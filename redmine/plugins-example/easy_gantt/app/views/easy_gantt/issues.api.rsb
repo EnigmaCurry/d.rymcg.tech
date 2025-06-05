@@ -1,0 +1,12 @@
+api.easy_gantt_data do
+  api.start_date @start_date
+  api.end_date @end_date
+
+  api_render_columns(api, @query)
+  api_render_projects(api, @projects)
+  api_render_issues(api, @issues, with_columns: true)
+
+  api_render_relations(api, @relations)
+
+  api_render_versions(api, @versions)
+end

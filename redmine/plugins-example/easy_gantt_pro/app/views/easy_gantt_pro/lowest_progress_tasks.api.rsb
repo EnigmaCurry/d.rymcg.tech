@@ -1,0 +1,15 @@
+api.easy_gantt_data do
+
+  api.array :issues do
+    @issues.each do |issue|
+      api.issue do
+        api.id issue.id
+        api.project_id issue.project_id
+        api.name issue.subject
+        api.progress_date @data[issue.project_id][:date]
+        api.url issue_path(issue)
+      end
+    end
+  end
+
+end

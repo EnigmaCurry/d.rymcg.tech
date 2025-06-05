@@ -1,0 +1,74 @@
+---
+nl:
+  easy_gantt_pro:
+    add_task_modal:
+      no_parent: ''
+      title: Voeg taak toe
+    baselines:
+      confirm_delete: Wilt u deze baseline echt verwijderen
+      create_failed: Er kon geen nieuwe baseline worden aangemaakt
+      delete_failed: Baseline kon niet worden verwijderd
+      error_not_saved: U moet alle wijzigingen in het project opslaan voor het aanmaken
+        van zijn baseline
+      label_baseline: Baseline
+      label_same: "-hetzelfde-"
+    cashflow:
+      label_cashflow: Cash Flow
+    critical:
+      hide_button: Verberg Kritiek pad
+      legend_issues: Taak op Kritiek pad
+      show_button: Toon Kritiek pad
+    lowest_progress:
+      label_progress_date: Voortgangsdatum
+    project_move:
+      error_opening_unsaved: U moet eerst de wijzigingen opslaan voor het openen van
+        het project
+    resources:
+      label_resources: Resources
+  easy_gantt:
+    button:
+      bulk_edit: Bulk bewerken
+      delayed_issue_filter: Filter Vertraagde Issues
+      show_lowest_progress_tasks: Toon taken met de laagste voortgangsdatum
+      show_only_critical: Filter Kritiek
+    popup:
+      add_task:
+        heading: Voeg taak hulp toe
+        text: Nieuwe taak of mijlpaal kan aangemaakt worden door te klikken op de
+          Taak button (respectievelijke Mijlpaal button) of door deze naar een willekeurige
+          plek in de grafiek te slepen.
+      baseline:
+        heading: Baseline beschrijving
+        heading_new_baseline: Nieuwe baseline
+        text: Maakt kopie van het project voor verdere vergelijkingen
+      critical:
+        heading: Kritiek pad beschrijving
+        text: Langste opeenvolging van activiteiten in een projectplan dat op tijd
+          moet worden afgerond om het project te voltooien op de vervaldag. Een activiteit
+          op het kritieke pad kan niet worden gestart tot de voorgaande activiteit
+          is voltooid; als deze een dag is uitgesteld, zal het gehele project een
+          dag worden uitgesteld, tenzij de activiteit na de vertraagde activiteit
+          een dag eerder is voltooid. Voor een goede werking van het kritieke pad,
+          moet het project slechts 1 begin- en 1 eindtaak hebben en de taken moeten
+          zijn verbonden met relaties.
+    scheme_by:
+      label_by_priority: op Prioriteit
+      label_by_status: op Status
+      label_by_tracker: op Tracker
+      label_color_by: Kleur op
+    title:
+      delayed_issue_filter: Toon alleen issues met een voortgangsdatum na vandaag
+      show_only_critical: Toon alleen taken op Kritiek pad
+  easy_pages:
+    modules:
+      easy_global_gantt: Easy gantt
+      easy_project_gantt: Easy gantt
+  easy_proposer:
+    easy_gantt:
+      index:
+        caption: Easy Gantt PRO
+        description: Ga naar Easy Gantt PRO
+  heading_easy_gantts_issues: Easy Gantt PRO
+  label_show_lowest_progress_tasks: Taken met laagste voortgang
+  text_show_lowest_progress_tasks: Toon taken met de slechtste voortgangsdatum (=datum
+    die overeenkomt met de voortgangsbalk van de taak in gantt)

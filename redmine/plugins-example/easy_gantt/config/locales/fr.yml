@@ -1,0 +1,163 @@
+---
+fr:
+  button_print: Imprimer
+  button_project_menu_easy_gantt: Easy Gantt
+  button_top_menu_easy_gantt: Easy Gantt
+  button_use_actual_delay: Utilisez le délai réel
+  easy_gantt_toolbar:
+    day: Jours
+    month: Mois
+    week: Semaines
+  easy_gantt:
+    button:
+      close_all: Fermer tout
+      close_all_parent_issues: Fermer toutes les tâches parents
+      create_baseline: Lignes de base
+      critical_path: Chemin critique
+      day_zoom: Jours
+      delayed_project_filter: Filtrer les projets retardés
+      jump_today: Aller à aujourd'hui
+      load_sample_data: Charger données d'échantillon
+      month_zoom: Mois
+      print_fit: Ajuster à la page
+      problem_finder: Problèmes
+      reload: Recharger (sauvegarder)
+      remove_delay: Éliminer délai
+      resource_management: Gestion des resources
+      tool_panel: Outils
+      week_zoom: Semaines
+    critical_path:
+      disabled: Désactivé
+      last: Dernier
+      last_text: Tâches qui ne doivent pas être retardées
+      longest: La plus longue
+      longest_text: Afficher la séquence de tâches la plus longue
+    errors:
+      duplicate_link: Cannot create duplicate link
+      fresh_milestone: Cannot add task to non-saved milestone. Save the milestone
+        first.
+      link_target_new: Vous ne pouvez pas créer un lien vers la tâche non-sauvegardée.
+        Commencez par enregistrer les modifications.
+      link_target_readonly: Tâche cible en lecture seule
+      loop_link: Cannot create looped link
+      no_rest_api: Easy Gantt doit activer REST API. Allumez-le dans Administration
+        - > Paramètres -> API - > Activer REST web service
+      overdue: devrait se terminer à l'avenir ou devrait être déjà fermé
+      overmile: La tâche doit être terminée avant la date d'échéance du jalon
+      short_delay: Devrait être plus long de %{diff} jours
+      too_short: Tâche est trop courte pour le nombre d'heures estimés
+      unsaved_parent: Impossible d'ajouter la tâche au parent non-enregistré. Commencez
+        par enregistrez les modifications.
+      unsupported_link_type: Type de lien non reconnu
+    gateway:
+      entity_save_failed: "%{entityType} %{entityName} n'a pas pu sauvegarder due
+        à une erreur"
+      send_failed: Request failed
+    label_pro_upgrade: Upgrade to PRO version
+    link_dir:
+      link_end: as preceding
+      link_start: as following
+    popup:
+      add_task:
+        heading: Ajouter la tâche fonctionnalité
+        text: Cette fonctionnalité est à venir bientôt. <a href="https://www.easyredmine.com/easy-gantt-upgrade-to-pro">Check
+          the availability here!</a>
+      baseline:
+        heading: Lignes de base disposent
+        text: Baselines fonctionnalité bientôt disponible. <a href="https://www.easyredmine.com/easy-gantt-upgrade-to-pro">Check
+          the availability here!</a>
+      critical:
+        heading: Fonctionnalité du chemin critique
+        text: "Fonctionnalité du chemin critique sera disponible bientôt.\r\n<a href=\"https://www.easyredmine.com/easy-gantt-upgrade-to-pro\">Check
+          the availability here!</a>"
+      resource:
+        heading: Fonctionnalité de gestion de ressources
+        text: Fonctionnalité de gestion de ressources est disponible <a href="https://www.easyredmine.com/">
+          Easy Redmine</a>
+    reload_modal:
+      label_errors: Erreurs
+      text_reload_appeal: Voulez-vous ignorer des éléments non enregistrés et recharger
+        les données à partir du serveur ?
+      title: Gantt n'a pas réussi à enregistrer correctement
+    sample_global_free:
+      text: Sample data cannot be closed. Gantt over all projects is available only
+        in PRO version
+      video:
+        text: Here you can see most of features of Gantt over all projects
+        title: Sample video of Gantt over all projects
+        video_id: EiiqBrrY4m4
+    sample:
+      close_label: Close this window and load real project data
+      header: Sample data are loaded!
+      text: We have prepared some sample data for you to <strong>try all Gantt features
+        with no stress</strong>. We also want to encourage you to watch a video guide
+        showing useful tweaks. Closing this window will load real project data.
+      video_label: Watch video tutorial
+      video:
+        text: Here you can see most of features of this Gantt module
+        title: Sample video
+        video_id: UHgqfsrD59Q
+    text_blocker_milestone: Un jalon empêche la tâche d'être déplacée au-delà de cette
+      date
+    text_blocker_move_pre: La tâche a une relation qui bloque le déplacement de la
+      tâche au-delà de cette date
+    title:
+      button_test: Test button (only for testing)
+      day_zoom: Zoom to day scale
+      jump_today: Display timeline at today
+      month_zoom: Zoom to month scale
+      print_fit: Réduire le diagramme de Gantt à une page
+      week_zoom: Zoom to week scale
+  easy_printable_templates_categories:
+    easy_gantt: Easy Gantt
+  easy_query:
+    name:
+      easy_gantt_easy_issue_query: Easy Gantt
+      easy_gantt_easy_project_query: Global Easy Gantt
+  error_easy_gantt_view_permission: Vous n'êtes pas autorisé à voir Easy Gantt
+  error_epm_easy_gantt_already_active: Easy gantt sur la page est déjà actif
+  field_easy_gantt_default_zoom: Zoom par défaut
+  field_easy_gantt_relation_delay_in_workdays: Délais des relations en journées de
+    travail
+  field_easy_gantt_show_holidays: Afficher les vacances
+  field_easy_gantt_show_project_progress: Afficher les progrès du projet
+  field_easy_gantt_show_task_soonest_start: Afficher le démarrage le plus tôt
+  field_keep_link_delay_in_drag: Délai de lien constant  pendant glissement
+  field_relation: Relation
+  heading_delay_popup: Définir délai en jours
+  heading_demo_feature_popup: À venir
+  heading_easy_gantts_issues: Easy Gantt Free
+  label_easy_gantt: Easy Gantt
+  label_easy_gantt_critical_path: Chemin critique
+  label_easy_gantt_settings: Paramètres de Gantt
+  label_filter_group_easy_gantt_easy_issue_query: Champs de tâches
+  label_finish_to_finish: Terminer pour terminer
+  label_parent_issue_plural: Problèmes parents
+  label_start_to_finish: Début à la fin
+  label_start_to_start: Démarrer pour démarrer
+  link_easy_gantt_plugin: https://www.easyredmine.com/easy-gantt-upgrade-to-pro
+  permission_edit_easy_gantt: Éditer Easy Gantt et gestion des ressources sur un projet
+  permission_edit_global_easy_gantt: Éditer Easy Gantt & Resource management global
+  permission_edit_personal_easy_gantt: Éditer Easy Gantt & Gestion des ressources
+    personnel
+  permission_view_easy_gantt: Voir Easy Gantt et Gestion des ressources sur un projet
+  permission_view_global_easy_gantt: Voir Easy Gantt & Resource management global
+  permission_view_personal_easy_gantt: Voir Easy Gantt & Resource management personnel
+  project_default_page:
+    easy_gantt: Easy Gantt
+  project_module_easy_gantt: Easy Gantt
+  text_demo_feature_popup: Cette fonctionnalité sera disponible bientôt.
+  text_easy_gantt_footer: Redmine Gantt powered by Easy
+  text_easy_gantt_keep_link_delay_in_drag: Maintient le délai de relation constant
+    pendant que la tâche est déplacée en arrière
+  text_easy_gantt_print_easy_gantt_current: Afficher l'actuel Easy Gantt (fonctionne
+    uniquement à partir de la page sur laquelle easy gantt est chargé)
+  text_easy_gantt_relation_delay_in_workdays: Ne pas compter les journées non-ouvrables
+    en délai de relation
+  text_easy_gantt_show_holidays: Afficher les vacances de l'utilisateur actuel sur
+    Gantt ( fonctionne uniquement dans Easy Redmine)
+  text_easy_gantt_show_project_progress: Afficher le pourcentage terminé sur la barre
+    de projet (peut être lent à charger)
+  text_easy_gantt_show_task_soonest_start: Afficher les dates de validité les plus
+    basses pour les tâches définies par des relations ou parent
+  title_easy_gantt_settings: Easy Gantt

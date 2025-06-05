@@ -1,0 +1,183 @@
+---
+cs:
+  button_print: Tisk
+  button_project_menu_easy_gantt: Easy Gantt
+  button_top_menu_easy_gantt: Globální Gantt
+  button_use_actual_delay: Použít skutečné zpoždění
+  easy_gantt_toolbar:
+    day: Dny
+    month: Měsíce
+    week: Týdny
+  easy_gantt:
+    button:
+      close_all: Zavřít vše
+      close_all_parent_issues: Zavřít všechny rodičovské úkoly
+      create_baseline: Baseline
+      critical_path: Kritická cesta
+      day_zoom: Dny
+      delayed_project_filter: Filtrovat zpožděné projekty
+      jump_today: Přejít na dnešek
+      load_sample_data: Nahrát zkušební data
+      month_zoom: Měsíce
+      moth_zoom: Měsíce
+      print_fit: Přizpůsobit stránce
+      problem_finder: Problémy
+      reload: Znovu načíst (uložit)
+      remove_delay: Odstranit zpoždění
+      resource_management: Vytížení zdrojů
+      tool_panel: Nástroje
+      week_zoom: Týdny
+    critical_path:
+      disabled: Vypnuto
+      last: Poslední
+      last_text: Úkoly, které by se neměly odkládat
+      longest: Nejdelší
+      longest_text: Zobrazit nejdelší sled úkolů
+    errors:
+      duplicate_link: Není možné vytvořit zdvojenou vazbu
+      fresh_milestone: Není možné přidat úkol na neuložený milník. Nejprve uložte
+        mílník.
+      link_target_new: Nelze vytvořit vazbu na neuložený úkol. Nejprve uložte změny.
+      link_target_readonly: Cílový úkol pouze pro čtení
+      loop_link: Není možné vytvořit cyklickou vazbu
+      no_rest_api: Easy Gantt potřebuje mít zapnuté REST API. Zapněte ho v Administraci
+        -> Nastavení -> API -> Zapnout službu REST
+      overdue: má skončit v budoucnu, nebo být již uzavřen
+      progress_date_overdue: se opožduje za plánem o %{days} dní
+      overmile: musí končit %{effective_date}, aby dodržel milník
+      short_delay: mělo by být delší o %{diff} dnů
+      too_short: není dost dlouhý pro zbývajících %{rest} hodin odhadovaného času
+      unsaved_parent: Nelze přidat úkol k neuloženému rodiči. Nejprve uložte změny.
+      unsupported_link_type: Nepodporovaný typ vazby
+    gateway:
+      entity_save_failed: "%{entityType} %{entityName} se nepodařilo uložit kvůli
+        chybě"
+      send_failed: 'Následující požadavky se nepodařilo odeslat:'
+    label_pro_upgrade: Upgradovat na PRO verzi
+    link_dir:
+      link_end: jako předchůdce
+      link_start: jako následovník
+    popup:
+      add_task:
+        heading: Přidat úkol
+        text: "Tato funkce je dostupná pouze v Easy Gantt PRO \r\n<a href=\"https://www.easyredmine.com/easy-gantt-upgrade-to-pro\">Upgradovat
+          na PRO verzi</a>"
+      baseline:
+        heading: Baseline
+        text: "Tato funkce je dostupná pouze v Easy Gantt PRO \r\n<a href=\"https://www.easyredmine.com/easy-gantt-upgrade-to-pro\">Upgradovat
+          na PRO verzi</a>"
+      critical:
+        heading: Kritická cesta
+        text: "Tato funkce je dostupná pouze v Easy Gantt PRO \r\n<a href=\"https://www.easyredmine.com/easy-gantt-upgrade-to-pro\">Upgradovat
+          na PRO verzi</a>"
+      resource:
+        heading: Vytížení zdrojů
+        text: Vytížení zdrojů je dostupné v <a href="https://www.easyproject.cz/">
+          Easy Project</a>
+    reload_modal:
+      label_errors: Chyby
+      text_reload_appeal: Chcete ignorovat neuložené položky a znovu načíst data ze
+        serveru?
+      title: Gantt se nepodařilo správně uložit
+    sample_global_free:
+      text: Zkušební data nelze uzavřít. Gantt nad všemi projekty je k dispozici pouze
+        ve verzi PRO.
+      video:
+        text: Zde si můžete prohlédnout většinu funkcí Ganttu nad všemi projekty
+        title: Ukázkové video Ganttu nad všemi projekty
+        video_id: EiiqBrrY4m4
+    sample_video:
+      text: Zde můžete vidět většinu funkcí modulu Easy Gantt
+      title: Ukázkové video
+    sample:
+      active_label: Jsou načtena testovací data!
+      close_label: Zavřít toto okno a načíst skutečná data
+      header: Jsou načtena zkušební data!
+      text: Připravili jsme zkušební data, abyste <strong>vyzkoušeli všechny funkce
+        Easy Ganttu bez obav</strong>. Koukněte se také na video průvodce ukazujícího
+        užitečné triky. Zavřením tohoto okna načtete skutečná data.
+      video_id: UHgqfsrD59Q
+      video_label: Spustit video návod
+      video:
+        text: Zde můžete vidět většinu funkcí modulu Easy Gantt
+        title: Spustit video návod
+        video_id: UHgqfsrD59Q
+    text_blocker_milestone: Milník blokuje posunutí úkolu za toto datum
+    text_blocker_move_pre: Úkol obsahuje vazbu, která blokuje posunutí úkolu za toto
+      datum
+    title:
+      button_test: Testovací tlačítko (pouze pro testování)
+      day_zoom: Dny
+      jump_today: Přejít na dnešek
+      month_zoom: Měsíce
+      week_zoom: Týdny
+  easy_query:
+    name:
+      easy_gantt_easy_issue_query: Easy Gantt
+      easy_gantt_easy_project_query: Globální Easy Gantt
+  error_easy_gantt_view_permission: Nemáte právo vidět Easy Gantt
+  error_epm_easy_gantt_already_active: Easy gantt je na této stránce již aktivní
+  errors:
+    duplicate_link: Cannot create duplicate link
+    fresh_milestone: Cannot add task to non-saved milestone. Save the milestone first.
+    loop_link: Cannot create looped link
+    overmile: Task should end before its milestone
+    too_short: Task is too short for its estimated hours count
+  field_easy_gantt_default_zoom: Výchozí přiblížení
+  field_easy_gantt_show_holidays: Zobrazit svátky
+  field_easy_gantt_show_project_progress: Zobrazit pokrok na projektu
+  field_easy_gantt_show_task_soonest_start: Zobrazit nejdřívější začátek
+  field_keep_link_delay_in_drag: Zachovat zpoždění vazby během přesunu
+  field_relation: Vazba
+  gantt_grid_head_subject: Předmět
+  heading_delay_popup: Nastavte zpoždění úkolu ve dnech
+  heading_demo_feature_popup: Již brzy...
+  heading_easy_gantts_issues: Easy Gantt Free
+  label_easy_gantt: Easy Gantt
+  label_easy_gantt_critical_path: Kritická cesta
+  label_easy_gantt_settings: Nastavení Ganttu
+  label_filter_group_easy_gantt_easy_issue_query: Úkolová pole
+  label_finish_to_finish: Konec na konec
+  label_parent_issue_plural: Rodičovské úkoly
+  label_pro_upgrade: Upgrade to PRO version
+  label_start_to_finish: Začátek na konec
+  label_start_to_start: Začátek na začátek
+  link_easy_gantt_plugin: https://www.easyredmine.com/easy-gantt-upgrade-to-pro
+  permission_edit_easy_gantt: Upravit Easy Gantt & Vytížení zdrojů na projektu
+  permission_edit_global_easy_gantt: Upravit globální Easy Gantt & Vytížení zdrojů
+  permission_edit_personal_easy_gantt: Upravit osobní Easy Gantt & Vytížení zdrojů
+  permission_view_easy_gantt: Zobrazit Easy Gantt & Vytížení zdrojů na projektu
+  permission_view_global_easy_gantt: Zobrazit globální Easy Gantt & Vytížení zdrojů
+  permission_view_personal_easy_gantt: Zobrazit osobní Easy Gantt & Vytížení zdrojů
+  project_default_page:
+    easy_gantt: Easy Gantt
+  project_module_easy_gantt: Easy Gantt
+  sample_global_free:
+    text: Sample data cannot be closed. Gantt over all projects is available only
+      in PRO version
+    video:
+      text: Here you can see most of features of Gantt over all projects
+      title: Sample video of Gantt over all projects
+      video_id: UHgqfsrD59Q
+  sample:
+    close_label: Close this window and load real project data
+    header: Sample data are loaded!
+    text: We have prepared some sample data for you to <strong>try all Gantt features
+      with no stress</strong>. We also want to encourage you to watch a video guide
+      showing useful tweaks. Closing this window will load real project data.
+    video_label: Watch video tutorial
+    video:
+      text: Here you can see most of features of this Gantt module
+      title: Sample video
+      video_id: UHgqfsrD59Q
+  text_demo_feature_popup: Tato funkce bude brzy dostupná.
+  text_easy_gantt_footer: Redmine Gantt powered by Easy
+  text_easy_gantt_keep_link_delay_in_drag: Zachovat zpoždění vazby, když je úkol přetažen
+    zpět
+  text_easy_gantt_show_holidays: Zobrazit aktuální dovolenou uživatelů v Ganttu (funguje
+    pouze v Easy Redmine)
+  text_easy_gantt_show_project_progress: Zobrazit procentuální dokončení na liště
+    projektu (načítání může být pomalé)
+  text_easy_gantt_show_task_soonest_start: Ukázat nejnižší platná data pro úkoly definovaná
+    vazbami nebo rodičem
+  title_easy_gantt_settings: Easy Gantt

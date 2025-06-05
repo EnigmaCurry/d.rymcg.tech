@@ -1,0 +1,42 @@
+<% if @project && Redmine::Plugin.installed?(:easy_baseline) && @project.module_enabled?('easy_baselines') %>
+  <% baselines = Project.where(easy_baseline_for: @project) %>
+
+  <div id="baseline_panel" class="contextual gantt-menu-sub-panel" style="display: none">
+    <%= select_tag(:baseline_select, options_from_collection_for_select(baselines, :id, :name), class: 'gantt-baseline-toolbar-select') %>
+
+    <% if User.current.allowed_to?(:edit_baselines, @project) %>
+      <%= easy_gantt_js_button  l(:button_delete), id: 'baseline_delete', icon: 'icon-del', data: { confirmation: l(:text_are_you_sure) } %>
+      <%= easy_gantt_js_button l(:button_create), id: 'baseline_create', icon: 'icon-save' %>
+    <% end %>
+
+    <%= easy_gantt_help_button(:baseline, no_button: true) %>
+  </div>
+<% end %>
+
+<div id="critical_panel" class="contextual gantt-menu-sub-panel" style="display: none">
+  <span class="gantt-color-square" style="border: 1px solid rgba(200,0,255,1); background-color: rgba(200,0,255,0.1)"></span>
+  <span><%= raw l('easy_gantt_pro.critical.legend_issues') %></span>
+  <%= easy_gantt_js_button :show_only_critical, id: 'button_show_only_critical' %>
+  <a id="critical_show" class="gantt-menu-button button button-2 icon icon-zoom-in" href="javascript:void(0)">
+    <%= sprite_icon('zoom-in', l('easy_gantt_pro.critical.show_button')) %>
+  </a>
+  <%= easy_gantt_help_button(:critical, no_button: true) %>
+</div>
+
+<div id="add_task_panel" class="contextual gantt-menu-sub-panel" style="display: none">
+  <% if @project && User.current.allowed_to?(:add_issues, @project) %>
+    <a id="add_task_issue" class="add_task_type gantt-menu-button button button-2 primary icon icon-add" href="javascript:void(0)">
+      <%= sprite_icon('add', l(:label_issue_new)) %>
+    </a>
+  <% end %>
+
+  <% if @project && User.current.allowed_to?(:manage_versions, @project) %>
+    <a id="add_task_milestone" class="add_task_type gantt-menu-button button button-2 icon icon-add" href="javascript:void(0)">
+      <%= sprite_icon('add', l(:label_version_new)) %>
+    </a>
+    </a>
+  <% end %>
+
+  <%= easy_gantt_help_button(:add_task, no_button: true) %>
+  <span style="display: inline-block; width: 500px"></span>
+</div>

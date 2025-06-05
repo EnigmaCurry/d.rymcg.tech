@@ -1,0 +1,8 @@
+api.array :easy_baselines do
+  @baselines.each do |baseline|
+    api.easy_baseline do
+      api.id                baseline.id
+      api.name              baseline.name
+    end
+  end
+end

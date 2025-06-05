@@ -1,0 +1,12 @@
+---
+pl:
+  easy_baseline_plugin_author: Easy Software
+  easy_baseline_plugin_author_url: http://www.easyproject.cz/pl
+  easy_baseline_plugin_description: ''
+  easy_baseline_plugin_name: Bazy Easy
+  easy_baseline_project_prefix: Baza dla
+  field_easy_baseline_for: Linia bazowa
+  label_create_easy_baseline: Utwórz bazę
+  label_easy_baselines: Bazy Easy
+  label_try_again: Spróbuj ponownie
+  notice_easy_baseline_created: Baza dla projektu %{project_name} została utworzona

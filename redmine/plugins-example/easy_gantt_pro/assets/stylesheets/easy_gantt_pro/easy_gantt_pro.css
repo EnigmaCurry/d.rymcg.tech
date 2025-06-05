@@ -1,0 +1,93 @@
+.gantt_grid_head_cell .gantt_sort.gantt_none {
+    background-image: url(data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAcAAAANCAYAAABlyXS1AAAABmJLR0QA/wD/AP+gvaeTAAAACXBIWXMAAAsTAAALEwEAmpwYAAAAB3RJTUUH4AcbExA7CgFb8AAAAHFJREFUGNNjYEAC9f1T/zNgA/X9U/9vv3jrP7ICRpiEhbMrXOGJvbsZGguzGRnr+6f+t3ByxTDpxL7dDIz////Hbg/tACNOvzEwQBy04/JtDAkPXVWIP9EVeOiqMjAyMjLCBf7///9/+6Vb/3F6DV0CADA7O+B8p/IiAAAAAElFTkSuQmCC)
+}
+
+
+/* BASELINE CSS (start)*/
+.gantt-baseline {
+    position: absolute;
+    border-radius: 2px;
+    opacity: 0.6;
+    margin-top: -7px;
+    height: 12px;
+    background: #ffd180;
+    border: 1px solid rgb(255, 153, 0);
+}
+
+.gantt-baselines .gantt_task_line{
+    margin-top: -9px;
+}
+.gantt-baselines .gantt_line_wrapper {
+    margin-top: -9px;
+}
+.gantt-baselines .gantt_task_link .gantt_link_arrow {
+    margin-top: -10px
+}
+/* BASELINE CSS (end)*/
+/*.gantt_task_line.planned.gantt_milestone-type, */
+.gantt-baseline.gantt_milestone-type {
+    -webkit-transform: scale(0.75) rotate(45deg);
+    -moz-transform: scale(0.75) rotate(45deg);
+    -ms-transform: scale(0.75) rotate(45deg);
+    -o-transform: scale(0.75) rotate(45deg);
+    transform: scale(0.75) rotate(45deg);
+    visibility: visible;
+}
+
+.gantt_task_line.gantt-scheme-project-status-15 .gantt_task_content {
+    /* planned project */
+    background: rgba(78, 191, 103, 0.1);
+    border-color: rgba(58, 160, 81, 1) !important;
+}
+
+.gantt-scheme-project-status-15 {
+    background: rgba(78, 191, 103, 0.1);
+    border-color: rgba(58, 160, 81, 0.1);
+    color: #4ebf67;
+}
+
+.gantt-scheme-project-status-15 a {
+    color: #4ebf67;
+}
+
+.gantt_task_line .gantt_task_content {
+    overflow: hidden;
+}
+.gantt-grid-row-project{
+    font-weight: bold;
+}
+.task-type .gantt_grid_superitem{
+    font-weight: normal;
+}
+.gantt-grid-project-issues-expand{
+    /*display: inline-block;*/
+    border: 1px solid #eeeeaa;
+    background-color: #ffffcc;
+    min-width: 15px;
+    margin: 5px;
+    font-size: 10px;
+    padding: 3px 6px;
+    vertical-align: bottom;
+    border-radius: 3px;
+    color:#888888;
+}
+
+.gantt-issue-lagging, .gantt-issue-lagging .gantt_task_content {
+    background-color: #ffaa44;
+}
+input[type="checkbox"].gantt-grid-checkbox{
+    margin: 5px;
+}
+.gantt-grid-checkbox-cont{
+    display: none;
+    cursor: pointer;
+    position: absolute;
+    left: 0;
+    top: 0;
+}
+.bulk-edit-mode .gantt-grid-checkbox-cont{
+    display: block;
+}
+.bulk-edit-mode .gantt_grid_body_subject{
+    padding-left: 5px;
+}

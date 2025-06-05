@@ -1,0 +1,73 @@
+---
+it:
+  easy_gantt_pro:
+    add_task_modal:
+      no_parent: ''
+      title: Aggiungi task
+    baselines:
+      confirm_delete: Sei sicuro di voler cancellare questa baseline?
+      create_failed: Non è possbile creare una nuova baseline
+      delete_failed: La baseline non può essere cancellata
+      error_not_saved: Devi salvare tutte le modifiche al progetto prima di crearne
+        la baseline
+      label_baseline: Baseline
+      label_same: "-uguale-"
+    cashflow:
+      label_cashflow: Flussi di Cassa
+    critical:
+      hide_button: Nascondi Percorso critico
+      legend_issues: Task nel Percorso critico
+      show_button: Mostra Percorso critico
+    lowest_progress:
+      label_progress_date: Data avanzamento
+    project_move:
+      error_opening_unsaved: Devi salvare le modifiche prima di aprire il progetto
+    resources:
+      label_resources: Risorse
+  easy_gantt:
+    button:
+      bulk_edit: Modifica massiccia
+      delayed_issue_filter: Filtra Questioni Posticipate
+      show_lowest_progress_tasks: Mostra i task con tempo di avanzamento minore
+      show_only_critical: Filtra Criticità
+    popup:
+      add_task:
+        heading: Aggiungi indicazione al task
+        text: Puoi creare nuove task o milestone cliccando rispettivamente i pulsanti
+          Task o Milestone, oppure tramite trascinamento in ogni punto del grafico.
+      baseline:
+        heading: Descrizione baseline
+        heading_new_baseline: Nuova baseline
+        text: Crea una copia del progetto per ulteriori confronti
+      critical:
+        heading: Descrizione percorso critico
+        text: La più lunga sequenza di attività che deve essere portata a termine
+          in tempo affinché il progetto venga completato alla data stabilita. Un'attività
+          nel percorso critico non può avere inizio finché il suo predecessore non
+          sia stato completato; se viene rinviata di un giorno, l'intero progetto
+          subirà questo ritardo, a meno che l'attività seguente non venga ultimata
+          con un giorno di anticipo. Per un corretto funzionamento del percorso critico,
+          il progetto dovrebbe avere un solo task iniziale e uno finale e tutti dovrebbero
+          essere legati da relazioni.
+    scheme_by:
+      label_by_priority: per Priorità
+      label_by_status: per Stato
+      label_by_tracker: per Tracker
+      label_color_by: Colora di
+    title:
+      delayed_issue_filter: Mostra solo questioni con data di completamento precedente
+        a quella attuale
+      show_only_critical: Mostra solo i task sul Percorso critico
+  easy_pages:
+    modules:
+      easy_global_gantt: Easy Gantt
+      easy_project_gantt: Easy Gantt
+  easy_proposer:
+    easy_gantt:
+      index:
+        caption: Easy Gantt PRO
+        description: Vai a Easy Gantt PRO
+  heading_easy_gantts_issues: Easy Gantt PRO
+  label_show_lowest_progress_tasks: Task con avanzamento minore
+  text_show_lowest_progress_tasks: Mostra task con lo stato di avanzamento minore
+    (corrispondente alla barra di completamento del Gantt)

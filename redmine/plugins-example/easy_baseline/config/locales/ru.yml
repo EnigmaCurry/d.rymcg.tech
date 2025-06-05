@@ -1,0 +1,12 @@
+---
+ru:
+  easy_baseline_plugin_author: Easy Software
+  easy_baseline_plugin_author_url: http://www.easyproject.cz/en
+  easy_baseline_plugin_description: ''
+  easy_baseline_plugin_name: Базовый план
+  easy_baseline_project_prefix: Базовый план для
+  field_easy_baseline_for: Базовый план
+  label_create_easy_baseline: Создать базовый план
+  label_easy_baselines: Базовые планы
+  label_try_again: Попробуйте еще раз
+  notice_easy_baseline_created: Базовый план для проекта %{project_name} создан.

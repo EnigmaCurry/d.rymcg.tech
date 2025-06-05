@@ -1,0 +1,565 @@
+{
+  "easy_gantt_data": {
+    "start_date": "2016-03-28",
+    "end_date": "2016-06-08",
+    "columns": [
+      {
+        "name": "subject",
+        "title": "Subject"
+      },
+      {
+        "name": "assigned_to",
+        "title": "Assignee"
+      }
+    ],
+    "projects": [],
+    "issues": [
+      {
+        "id": 371,
+        "name": "Features Specification",
+        "start_date": "2016-03-29",
+        "due_date": "2016-03-29",
+        "estimated_hours": 1.0,
+        "done_ratio": 0,
+        "fixed_version_id": 58,
+        "overdue": true,
+        "project_id": 41,
+        "tracker_id": 5,
+        "priority_id": 9,
+        "status_id": 1,
+        "permissions": {
+          "editable": true
+        },
+        "columns": [
+          {
+            "name": "subject",
+            "value": "Features Specification"
+          },
+          {
+            "name": "assigned_to",
+            "value": ""
+          }
+        ]
+      },
+      {
+        "id": 372,
+        "name": "Creative brief",
+        "start_date": "2016-04-04",
+        "due_date": "2016-04-08",
+        "estimated_hours": 1.0,
+        "done_ratio": 0,
+        "fixed_version_id": 58,
+        "overdue": true,
+        "project_id": 41,
+        "tracker_id": 5,
+        "priority_id": 9,
+        "status_id": 1,
+        "permissions": {
+          "editable": true
+        },
+        "columns": [
+          {
+            "name": "subject",
+            "value": "Creative brief"
+          },
+          {
+            "name": "assigned_to",
+            "value": ""
+          }
+        ]
+      },
+      {
+        "id": 373,
+        "name": "Marketing brief",
+        "start_date": "2016-04-04",
+        "due_date": "2016-04-04",
+        "estimated_hours": 1.0,
+        "done_ratio": 0,
+        "fixed_version_id": 58,
+        "overdue": true,
+        "project_id": 41,
+        "tracker_id": 5,
+        "priority_id": 9,
+        "status_id": 1,
+        "permissions": {
+          "editable": true
+        },
+        "columns": [
+          {
+            "name": "subject",
+            "value": "Marketing brief"
+          },
+          {
+            "name": "assigned_to",
+            "value": ""
+          }
+        ]
+      },
+      {
+        "id": 374,
+        "name": "Wireframes",
+        "start_date": "2016-04-11",
+        "due_date": "2016-04-11",
+        "estimated_hours": 8.0,
+        "done_ratio": 0,
+        "fixed_version_id": 57,
+        "overdue": true,
+        "project_id": 41,
+        "tracker_id": 3,
+        "priority_id": 9,
+        "status_id": 1,
+        "permissions": {
+          "editable": true
+        },
+        "columns": [
+          {
+            "name": "subject",
+            "value": "Wireframes"
+          },
+          {
+            "name": "assigned_to",
+            "value": ""
+          }
+        ]
+      },
+      {
+        "id": 375,
+        "name": "Graphics",
+        "start_date": "2016-04-15",
+        "due_date": "2016-04-18",
+        "estimated_hours": 16.0,
+        "done_ratio": 0,
+        "fixed_version_id": 57,
+        "overdue": true,
+        "project_id": 41,
+        "tracker_id": 3,
+        "priority_id": 9,
+        "status_id": 1,
+        "permissions": {
+          "editable": true
+        },
+        "columns": [
+          {
+            "name": "subject",
+            "value": "Graphics"
+          },
+          {
+            "name": "assigned_to",
+            "value": ""
+          }
+        ]
+      },
+      {
+        "id": 376,
+        "name": "XHTML + CSS coding",
+        "start_date": "2016-04-25",
+        "due_date": "2016-05-02",
+        "estimated_hours": 15.0,
+        "done_ratio": 0,
+        "fixed_version_id": 57,
+        "overdue": true,
+        "project_id": 41,
+        "tracker_id": 3,
+        "priority_id": 9,
+        "status_id": 1,
+        "permissions": {
+          "editable": true
+        },
+        "columns": [
+          {
+            "name": "subject",
+            "value": "XHTML + CSS coding"
+          },
+          {
+            "name": "assigned_to",
+            "value": ""
+          }
+        ]
+      },
+      {
+        "id": 378,
+        "name": "VirtueMart implementation",
+        "start_date": "2016-05-03",
+        "due_date": "2016-05-03",
+        "estimated_hours": 5.0,
+        "done_ratio": 0,
+        "fixed_version_id": 56,
+        "overdue": true,
+        "project_id": 41,
+        "tracker_id": 4,
+        "priority_id": 9,
+        "status_id": 1,
+        "permissions": {
+          "editable": true
+        },
+        "columns": [
+          {
+            "name": "subject",
+            "value": "VirtueMart implementation"
+          },
+          {
+            "name": "assigned_to",
+            "value": ""
+          }
+        ]
+      },
+      {
+        "id": 383,
+        "name": "On-line payments",
+        "start_date": "2016-05-09",
+        "due_date": "2016-05-10",
+        "estimated_hours": 10.0,
+        "done_ratio": 0,
+        "fixed_version_id": 56,
+        "overdue": true,
+        "project_id": 41,
+        "tracker_id": 13,
+        "priority_id": 9,
+        "status_id": 1,
+        "permissions": {
+          "editable": true
+        },
+        "columns": [
+          {
+            "name": "subject",
+            "value": "On-line payments"
+          },
+          {
+            "name": "assigned_to",
+            "value": ""
+          }
+        ]
+      },
+      {
+        "id": 379,
+        "name": "Web structure",
+        "start_date": "2016-05-11",
+        "due_date": "2016-05-11",
+        "estimated_hours": 5.0,
+        "done_ratio": 0,
+        "fixed_version_id": 55,
+        "overdue": true,
+        "project_id": 41,
+        "tracker_id": 4,
+        "priority_id": 9,
+        "status_id": 1,
+        "permissions": {
+          "editable": true
+        },
+        "columns": [
+          {
+            "name": "subject",
+            "value": "Web structure"
+          },
+          {
+            "name": "assigned_to",
+            "value": ""
+          }
+        ]
+      },
+      {
+        "id": 377,
+        "name": "CMS - implementation + setting",
+        "start_date": "2016-05-12",
+        "due_date": "2016-05-12",
+        "estimated_hours": 5.0,
+        "done_ratio": 0,
+        "fixed_version_id": 56,
+        "overdue": true,
+        "project_id": 41,
+        "tracker_id": 4,
+        "priority_id": 9,
+        "status_id": 1,
+        "permissions": {
+          "editable": true
+        },
+        "columns": [
+          {
+            "name": "subject",
+            "value": "CMS - implementation + setting"
+          },
+          {
+            "name": "assigned_to",
+            "value": ""
+          }
+        ]
+      },
+      {
+        "id": 380,
+        "name": "Products",
+        "start_date": "2016-05-16",
+        "due_date": "2016-05-17",
+        "estimated_hours": 10.0,
+        "done_ratio": 0,
+        "fixed_version_id": 55,
+        "overdue": true,
+        "project_id": 41,
+        "tracker_id": 4,
+        "priority_id": 9,
+        "status_id": 1,
+        "permissions": {
+          "editable": true
+        },
+        "columns": [
+          {
+            "name": "subject",
+            "value": "Products"
+          },
+          {
+            "name": "assigned_to",
+            "value": ""
+          }
+        ]
+      },
+      {
+        "id": 381,
+        "name": "Specific features",
+        "start_date": "2016-05-18",
+        "due_date": "2016-05-18",
+        "estimated_hours": 10.0,
+        "done_ratio": 0,
+        "fixed_version_id": 54,
+        "overdue": true,
+        "project_id": 41,
+        "tracker_id": 13,
+        "priority_id": 9,
+        "status_id": 1,
+        "permissions": {
+          "editable": true
+        },
+        "columns": [
+          {
+            "name": "subject",
+            "value": "Specific features"
+          },
+          {
+            "name": "assigned_to",
+            "value": ""
+          }
+        ]
+      },
+      {
+        "id": 382,
+        "name": "Easy Redmine Integration",
+        "start_date": "2016-05-23",
+        "due_date": "2016-05-23",
+        "estimated_hours": 5.0,
+        "done_ratio": 0,
+        "fixed_version_id": 54,
+        "overdue": true,
+        "project_id": 41,
+        "tracker_id": 13,
+        "priority_id": 9,
+        "status_id": 1,
+        "permissions": {
+          "editable": true
+        },
+        "columns": [
+          {
+            "name": "subject",
+            "value": "Easy Redmine Integration"
+          },
+          {
+            "name": "assigned_to",
+            "value": ""
+          }
+        ]
+      },
+      {
+        "id": 384,
+        "name": "Google Analytics",
+        "start_date": "2016-05-25",
+        "due_date": "2016-05-30",
+        "estimated_hours": 3.0,
+        "done_ratio": 0,
+        "fixed_version_id": 53,
+        "overdue": true,
+        "project_id": 41,
+        "tracker_id": 4,
+        "priority_id": 9,
+        "status_id": 1,
+        "permissions": {
+          "editable": true
+        },
+        "columns": [
+          {
+            "name": "subject",
+            "value": "Google Analytics"
+          },
+          {
+            "name": "assigned_to",
+            "value": ""
+          }
+        ]
+      },
+      {
+        "id": 385,
+        "name": "Testing  ",
+        "start_date": "2016-05-30",
+        "due_date": "2016-05-31",
+        "estimated_hours": 10.0,
+        "done_ratio": 0,
+        "fixed_version_id": 53,
+        "overdue": true,
+        "project_id": 41,
+        "tracker_id": 4,
+        "priority_id": 9,
+        "status_id": 1,
+        "permissions": {
+          "editable": true
+        },
+        "columns": [
+          {
+            "name": "subject",
+            "value": "Testing  "
+          },
+          {
+            "name": "assigned_to",
+            "value": ""
+          }
+        ]
+      },
+      {
+        "id": 386,
+        "name": "Debug",
+        "start_date": "2016-06-02",
+        "due_date": "2016-06-07",
+        "estimated_hours": 10.0,
+        "done_ratio": 0,
+        "fixed_version_id": 53,
+        "overdue": true,
+        "project_id": 41,
+        "tracker_id": 13,
+        "priority_id": 9,
+        "status_id": 1,
+        "assigned_to_id": 21,
+        "permissions": {
+          "editable": true
+        },
+        "columns": [
+          {
+            "name": "subject",
+            "value": "Debug"
+          },
+          {
+            "name": "assigned_to",
+            "value": "Ondrej Ezr"
+          }
+        ]
+      },
+      {
+        "id": 387,
+        "name": "Training",
+        "start_date": "2016-06-06",
+        "due_date": "2016-06-07",
+        "estimated_hours": 4.0,
+        "done_ratio": 0,
+        "fixed_version_id": 53,
+        "overdue": true,
+        "project_id": 41,
+        "tracker_id": 4,
+        "priority_id": 9,
+        "status_id": 1,
+        "permissions": {
+          "editable": true
+        },
+        "columns": [
+          {
+            "name": "subject",
+            "value": "Training"
+          },
+          {
+            "name": "assigned_to",
+            "value": ""
+          }
+        ]
+      }
+    ],
+    "relations": [
+      {
+        "id": 27,
+        "source_id": 374,
+        "target_id": 375,
+        "type": "precedes",
+        "delay": 3
+      },
+      {
+        "id": 28,
+        "source_id": 375,
+        "target_id": 376,
+        "type": "precedes",
+        "delay": 4
+      },
+      {
+        "id": 29,
+        "source_id": 376,
+        "target_id": 377,
+        "type": "precedes",
+        "delay": 7
+      },
+      {
+        "id": 30,
+        "source_id": 385,
+        "target_id": 386,
+        "type": "precedes",
+        "delay": 1
+      }
+    ],
+    "versions": [
+      {
+        "id": 58,
+        "name": "Analysis",
+        "start_date": "2016-04-04",
+        "project_id": 41,
+        "permissions": {
+          "editable": true
+        }
+      },
+      {
+        "id": 57,
+        "name": "Design",
+        "start_date": "2016-05-02",
+        "project_id": 41,
+        "permissions": {
+          "editable": true
+        }
+      },
+      {
+        "id": 56,
+        "name": "CMS + E-commerce platform",
+        "start_date": "2016-05-13",
+        "project_id": 41,
+        "permissions": {
+          "editable": true
+        }
+      },
+      {
+        "id": 55,
+        "name": "Content + Products",
+        "start_date": "2016-05-17",
+        "project_id": 41,
+        "permissions": {
+          "editable": true
+        }
+      },
+      {
+        "id": 54,
+        "name": "Easy Redmine integration",
+        "start_date": "2016-05-23",
+        "project_id": 41,
+        "permissions": {
+          "editable": true
+        }
+      },
+      {
+        "id": 53,
+        "name": "Public Launch",
+        "start_date": "2016-06-10",
+        "project_id": 41,
+        "permissions": {
+          "editable": true
+        }
+      }
+    ]
+  }
+}

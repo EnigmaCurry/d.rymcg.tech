@@ -1,0 +1,65 @@
+---
+ko:
+  easy_gantt_pro:
+    add_task_modal:
+      no_parent: ''
+      title: 작업 추가
+    baselines:
+      confirm_delete: 이 기초항목을 삭제하시겠습니까
+      create_failed: 새로운 기준치가 생성될 수 없습니다
+      delete_failed: 기준치를 삭제할 수 없습니다
+      error_not_saved: 기준치를 생성하기 전에 프로젝트의 모든 변경사항을 저장하셔야 합니다
+      label_baseline: 기초
+      label_same: "-동일한-"
+    cashflow:
+      label_cashflow: 현금 흐름
+    critical:
+      hide_button: 중요한 경로 숨기기
+      legend_issues: 중요한 경로의 작업
+      show_button: 중요한 경로 보이기
+    lowest_progress:
+      label_progress_date: 진행일
+    project_move:
+      error_opening_unsaved: 이 프로젝트를  실행하기 전에 먼저 변경사항을 저장해야합니다
+    resources:
+      label_resources: 리소스
+  easy_gantt:
+    button:
+      bulk_edit: 단체 수정
+      delayed_issue_filter: 지연된 문제 필터
+      show_lowest_progress_tasks: 가장 느린 진행 날짜를 가진 작업 보기
+      show_only_critical: 중요 필터
+    popup:
+      add_task:
+        heading: 작업 도우미 추가
+        text: 작업 버튼 (각 중요 시점 버튼)을 클릭하거나 그래프의 아무 곳이나 드래그하여 새로운 작업 혹은 마일스톤을 만들 수 있습니다
+      baseline:
+        heading: 기준치 설명
+        heading_new_baseline: 새로운 기준치
+        text: 더 많은 비교를 위해 프로젝트 사본 만들기
+      critical:
+        heading: 중요한 경로 설명
+        text: 마감일에 프로젝트가 완성 될 때까지 완료해야하는 프로젝트 계획에서 가장 길게 지속되는 활동입니다. 중요 경로의 활동은 이전
+          활동이 완료 될 때까지 시작할 수 없습니다. 하루 동안 지연 될 경우, 지연된 작업의 다음 작업이 완료되지 않는 이상, 전체 프로젝트는
+          하루 지연되게 됩니다. 중요한 경로의 적절한 기능을 위해서, 프로젝트가 단지 1 개의 시작 작업과 1 개의 종료 작업을 가지고 있어야
+          합니다. 또한, 작업의 관계는 연결되어야합니다.
+    scheme_by:
+      label_by_priority: 우선순위 별
+      label_by_status: 상태 별
+      label_by_tracker: 추적기 별로
+      label_color_by: 색으로 칠함
+    title:
+      delayed_issue_filter: 진행날짜가 오늘 이후에 있는 문제만 표시
+      show_only_critical: 중요 필터의 작업만 보기
+  easy_pages:
+    modules:
+      easy_global_gantt: 쉬운 간트
+      easy_project_gantt: 쉬운 간트
+  easy_proposer:
+    easy_gantt:
+      index:
+        caption: 쉬운 간트 PRO
+        description: 쉬운 간트 PRO로 가기
+  heading_easy_gantts_issues: 쉬운 간트 PRO
+  label_show_lowest_progress_tasks: 가장 적게 진행된 작업
+  text_show_lowest_progress_tasks: 가장 느린 진행날짜로 진행되는 작업 보기 (=작업의 완료비율이 간트 막대에 표시됨)

@@ -1,0 +1,138 @@
+---
+zh:
+  button_print: 打印
+  button_project_menu_easy_gantt: Easy Gantt
+  button_top_menu_easy_gantt: 项目甘特图
+  button_use_actual_delay: 采用实际延迟时间
+  easy_gantt:
+    button:
+      close_all: 关闭全部
+      close_all_parent_issues: 关闭所有上一级任务
+      create_baseline: 原始时间线
+      critical_path: 关键路径
+      day_zoom: 天
+      delayed_project_filter: 筛选延误的项目
+      jump_today: 转到今天
+      load_sample_data: 载入示例数据
+      month_zoom: 月
+      print_fit: 适应页面大小
+      problem_finder: 问题
+      reload: 保存
+      remove_delay: 删除延误
+      resource_management: 资源管理
+      tool_panel: 工具栏
+      week_zoom: 周
+    critical_path:
+      disabled: 禁用
+      last: 最近的
+      last_text: 任务不能推迟
+      longest: 最长
+      longest_text: 显示最长的任务队列
+    errors:
+      duplicate_link: 不能创建重复的连接
+      fresh_milestone: 不能给未保存的里程碑添加任务, 请先保存里程碑
+      link_target_new: 不能为未保存任务创建连接, 请先保存任务
+      link_target_readonly: 只读的目标任务
+      loop_link: 不能创建循环的连接
+      no_rest_api: Easy Gantt需要将REST API开启. 请在管理(Administration)->设置 -> API-> 开启REST网络服务中进行设置.
+      overdue: 结束日该是将来的日期, 或者应该是已经完成了.
+      overmile: 必须在 %{effective_date}结束, 以达到里程碑进度要求
+      short_delay: 应当增加 %{diff} 天
+      too_short: 预计要%{rest} 小时, 所给天数不够.
+      unsaved_parent: 上一级任务未保存, 不能在其下添加任务. 请先保存
+      unsupported_link_type: 不支持的连接类型
+    gateway:
+      entity_save_failed: "%{entityType} %{entityName}保存失败"
+      send_failed: 请求失败
+    label_pro_upgrade: 升级到专业版
+    link_dir:
+      link_end: 同上一次
+      link_start: 同下一个
+    popup:
+      add_task:
+        heading: 添加任务属性
+        text: 新任务/里程碑的特性只有有 Easy Gantt PRO(专业版)内可用. 访问 <a href="https://www.easyredmine.com/easy-gantt-upgrade-to-pro">进行更新!</a>
+      baseline:
+        heading: Baseline的属性
+        text: 原始时间线(Baseline)功能仅在Easy Gantt 专业版中可用 <a href="https://www.easyredmine.com/easy-gantt-upgrade-to-pro">检查更新!</a>
+      critical:
+        heading: 关键路径(Path)的属性
+        text: 关键路径的属性只有在Easy Gantt 专业版内可用. 访问<a href="https://www.easyredmine.com/easy-gantt-upgrade-to-pro">进行更新!</a>
+          
+      resource:
+        heading: 资源管理器的属性
+        text: 资源管理器的属性只在 <a href="https://www.easyredmine.com/"> Easy Redmine</a>
+          中可用
+    reload_modal:
+      label_errors: 错误
+      text_reload_appeal: 忽略未保存数据,  重新从服务器下载数据?
+      title: Gantt图没有保存成功
+    sample_global_free:
+      text: 不能关闭示例数据. 所有项目的Gantt只有在专业版中可用.
+      video:
+        text: 在这里可以查看所有项目的甘特图Gantt的属性
+        title: 所有项目的Gantt示例视频
+        video_id: EiiqBrrY4m4
+    sample:
+      close_label: 关闭窗口, 并下载真正的项目数据
+      header: 示例数据下载完成
+      text: 查看一些示例数据来<strong>轻松了解Easy Gantt的特性</strong>. 也可以观看演示视频来进一步提高, 关闭窗口将下载真正的项目数据.
+      video_label: 观看视频教程
+      video:
+        text: 在这里可以了解Gantt模块的大部份特性
+        title: 示例视频
+        video_id: UHgqfsrD59Q
+    text_blocker_milestone: 里程碑不允许该任务移到此日期之后
+    text_blocker_move_pre: 由于一些关系的限制, 该任务不能移到此日期之后
+    title:
+      button_test: 测试按钮(仅作测试用)
+      day_zoom: 放大到按天显示
+      jump_today: 显示今天的时间安排
+      month_zoom: 按月度显示
+      print_fit: 缩放甘特图到一页大小
+      week_zoom: 按周显示
+  easy_printable_templates_categories:
+    easy_gantt: Easy 甘特图
+  easy_query:
+    name:
+      easy_gantt_easy_issue_query: Easy Gantt
+      easy_gantt_easy_project_query: ''
+  error_easy_gantt_view_permission: 你没有查看Easy 甘特图的权限
+  error_epm_easy_gantt_already_active: 本页内的Easy gantt 已经生效!
+  field_easy_gantt_default_zoom: 默认时间单位
+  field_easy_gantt_relation_delay_in_workdays: 工作日内延期关系
+  field_easy_gantt_show_holidays: 显示假日
+  field_easy_gantt_show_project_progress: 显示项目进度
+  field_easy_gantt_show_task_soonest_start: 显示最近的开始时间
+  field_keep_link_delay_in_drag: 拖放时使用固定时间延迟
+  field_relation: 关系
+  heading_delay_popup: 设置延迟天数
+  heading_demo_feature_popup: 马上就绪
+  heading_easy_gantts_issues: Easy Gantt Free
+  label_easy_gantt: Easy Gantt
+  label_easy_gantt_critical_path: 关键路径
+  label_easy_gantt_settings: Easy Gantt 设置
+  label_filter_group_easy_gantt_easy_issue_query: 任务
+  label_finish_to_finish: 以最后结束
+  label_parent_issue_plural: 上一级的问题
+  label_start_to_finish: 从结尾开始
+  label_start_to_start: 从头开始
+  link_easy_gantt_plugin: https://www.easyredmine.com/easy-gantt-upgrade-to-pro
+  permission_edit_easy_gantt: 编辑项目中的Easy Gantt和资源管理
+  permission_edit_global_easy_gantt: 编辑通用Easy Gantt 和资源管理
+  permission_edit_personal_easy_gantt: 编辑个人定制 Easy Gantt & Resource management
+  permission_view_easy_gantt: 查看项目中的Easy Gantt和资源管理
+  permission_view_global_easy_gantt: 查看通用的 Easy Gantt 和资源管理
+  permission_view_personal_easy_gantt: 查看个人定制Easy Gantt & Resource management
+  project_default_page:
+    easy_gantt: Easy Gantt
+  project_module_easy_gantt: Easy Gantt
+  text_demo_feature_popup: 该特性将很快生效
+  text_easy_gantt_footer: 由Easy开发的 Redmine Gantt
+  text_easy_gantt_keep_link_delay_in_drag: 将任务拖放回来时, 保持原有的关系和延误情况
+  text_easy_gantt_print_easy_gantt_current: 显示当前的Easy 甘特图（只有在已载入Easy 甘特图的页面有效）
+  text_easy_gantt_relation_delay_in_workdays: 在相关延误天数计算时, 不要计入非工作日
+  text_easy_gantt_show_holidays: 在Gantt上显示当前用户的假日安排(仅在Easy Redmine上可用)
+  text_easy_gantt_show_project_progress: 在项目进度条上显示完成比例(可能导致加载较慢)
+  text_easy_gantt_show_task_soonest_start: 显示由关系或其前提决定的任务的最近有效日期
+  title_easy_gantt_settings: Easy Gantt

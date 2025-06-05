@@ -1,0 +1,72 @@
+---
+en:
+  easy_gantt_pro:
+    add_task_modal:
+      no_parent: ''
+      title: Add task
+    baselines:
+      confirm_delete: Do you really want to delete this baseline
+      create_failed: New baseline could not be created
+      delete_failed: Baseline could not be deleted
+      error_not_saved: You have to save all changes in project before creating its
+        baseline
+      label_baseline: Baseline
+      label_same: "-same-"
+    cashflow:
+      label_cashflow: Cash Flow
+    critical:
+      hide_button: Hide Critical path
+      legend_issues: Task on Critical path
+      show_button: Show Critical path
+    lowest_progress:
+      label_progress_date: Progress date
+    project_move:
+      error_opening_unsaved: You have to save changes first before opening the project
+    resources:
+      label_resources: Resources
+  easy_gantt:
+    button:
+      bulk_edit: Bulk edit
+      delayed_issue_filter: Filter Delayed Issues
+      show_lowest_progress_tasks: Show tasks with lowest progress date
+      show_only_critical: Filter Critical
+    popup:
+      add_task:
+        heading: Add task help
+        text: New task or milestone can be created by a click on Task button (respective
+          Milestone button) or by dragging anywhere in graph
+      baseline:
+        heading: Baseline description
+        heading_new_baseline: New baseline
+        text: Creates copy of the project for further comparisons
+      critical:
+        heading: Critical path description
+        text: Longest sequence of activities in a project plan which must be completed
+          on time for the project to complete on due date. An activity on the critical
+          path cannot be started until its predecessor activity is complete; if it
+          is delayed for a day, the entire project will be delayed for a day unless
+          the activity following the delayed activity is completed a day earlier.
+          For proper function of a critical path, the project should have just 1 starting
+          and 1 ending task and the tasks should be connected with relations.
+    scheme_by:
+      label_by_priority: by Priority
+      label_by_status: by Status
+      label_by_tracker: by Tracker
+      label_color_by: Color by
+    title:
+      delayed_issue_filter: Show only issues which progress date is behind today
+      show_only_critical: Show only tasks on Critical path
+  easy_pages:
+    modules:
+      easy_global_gantt: Easy gantt
+      easy_project_gantt: Easy gantt
+  easy_proposer:
+    easy_gantt:
+      index:
+        caption: Easy Gantt PRO
+        description: Go to Easy Gantt PRO
+  heading_easy_gantts_issues: Easy Gantt PRO
+  label_show_lowest_progress_tasks: Lowest progress tasks
+  text_show_lowest_progress_tasks: Display tasks with the worst progress date (= date
+    corresponding to task's done ratio bar in gantt)
+  warning_easy_gantt_recalculate_fixed_delay: This count affect relations delay on every task in the system. Are you sure to continue?

@@ -1,0 +1,75 @@
+---
+es:
+  easy_gantt_pro:
+    add_task_modal:
+      no_parent: ''
+      title: Añadir tarea
+    baselines:
+      confirm_delete: Seguro que deseas eliminar esta referencia
+      create_failed: No se ha podido crear la nueva referencia
+      delete_failed: No se ha podido eliminar la referencia
+      error_not_saved: Para crear la referencia del proyecto, debes guardar todos
+        los cambios
+      label_baseline: Referencia
+      label_same: "-igual-"
+    cashflow:
+      label_cashflow: Flujo de liquidez
+    critical:
+      hide_button: Ocultar senda Crítica
+      legend_issues: Tarea en senda Crítica
+      show_button: Mostrar senda Crítica
+    lowest_progress:
+      label_progress_date: Fecha de progreso
+    project_move:
+      error_opening_unsaved: Debes guardar los cambios antes de abrir el proyecto
+    resources:
+      label_resources: Recursos
+  easy_gantt:
+    button:
+      bulk_edit: Edición de volumen
+      delayed_issue_filter: Filtrar Asuntos Pendientes
+      show_lowest_progress_tasks: Mostrar tareas con la fecha de progreso más corta
+      show_only_critical: Filtrar Críticos
+    popup:
+      add_task:
+        heading: Añadir ayuda de tarea
+        text: Se puede crear una nueva tarea u objetivo haciendo clic en el botón
+          de Tarea (o en el botón respectivo de Objetivo) o arrastrándolo a cualquier
+          lugar del gráfico
+      baseline:
+        heading: Descripción de referencia
+        heading_new_baseline: Nueva referencia
+        text: Crea una copia del proyecto para futuras comparaciones
+      critical:
+        heading: Descripción de la senda crítica
+        text: Es la secuencia más extensa de actividades en un plan de proyecto que
+          debe realizarse a tiempo para que el proyecto se finalice en fecha. No se
+          puede iniciar una actividad en la senda crítica hasta que la actividad anterior
+          se haya realizado; si se retrasa durante un día, el proyecto completo se
+          retrasará durante un día, a menos que la actividad correspondiente a la
+          actividad con retraso se realice un día antes. Para que la senda crítica
+          funcione correctamente, el proyecto debería tener solamente 1 tarea de inicio
+          y 1 tarea de finalización, y las tareas deben estar conectadas mediante
+          relaciones.
+    scheme_by:
+      label_by_priority: por Prioridad
+      label_by_status: por Estado
+      label_by_tracker: por Rastreador
+      label_color_by: Color por
+    title:
+      delayed_issue_filter: Mostrar sólo asuntos cuya fecha de progreso es posterior
+        a hoy
+      show_only_critical: Mostrar sólo tareas en senda Crítica
+  easy_pages:
+    modules:
+      easy_global_gantt: Easy gantt
+      easy_project_gantt: Easy Gantt
+  easy_proposer:
+    easy_gantt:
+      index:
+        caption: Easy Gantt PRO
+        description: Ir a Easy Gant PRO
+  heading_easy_gantts_issues: Easy Gantt PRO
+  label_show_lowest_progress_tasks: Tareas con menor progreso
+  text_show_lowest_progress_tasks: Mostrar tareas con la peor fecha de progreso (=
+    fecha correspondiente al gráfico de relación de tareas realizadas en gantt)

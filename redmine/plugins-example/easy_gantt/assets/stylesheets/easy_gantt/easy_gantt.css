@@ -1,0 +1,3295 @@
+/*
+@license
+
+dhtmlxGantt v.3.2.1 Stardard
+This software is covered by GPL license. You also can obtain Commercial or Enterprise license to use it in non-GPL project - please contact sales@dhtmlx.com. Usage without proper license is prohibited.
+
+(c) Dinamenta, UAB.
+*/
+
+body {
+  -webkit-print-color-adjust: exact !important;
+}
+.gridHoverStyle,
+.gridSelection,
+.timelineSelection {
+  background-color: #fff3a1
+}
+.gantt_grid_scale .gantt_grid_head_cell {
+  color: #a6a6a6;
+  border-top: none!important;
+  /*border-right: none!important*/
+}
+/*.gantt_grid_data .gantt_cell {
+    border-right: none;
+    color: #454545
+}*/
+.gantt_task_link .gantt_link_arrow_right {
+  border-width: 6px;
+  margin-top: -3px
+}
+.gantt_task_link .gantt_link_arrow_left {
+  border-width: 6px;
+  margin-left: -6px;
+  margin-top: -3px
+}
+.gantt_task_link .gantt_link_arrow_down,
+.gantt_task_link .gantt_link_arrow_top {
+  border-width: 6px
+}
+.gantt_task_line .gantt_task_progress_drag {
+  bottom: -4px;
+  height: 16px;
+  margin-left: -8px;
+  width: 16px
+}
+.chartHeaderBg {
+  background-color: #fff
+}
+.gantt_task .gantt_task_scale .gantt_scale_cell {
+  color: #a6a6a6;
+  border-right: 1px solid #ebebeb
+}
+
+/*.gantt_row.gantt_project-type,*/
+/*.gantt_row.odd.gantt_project-type {*/
+/*background-color: #edffef*/
+/*}*/
+.gantt_task_row.gantt_project-type,
+.gantt_task_row.odd.gantt_project-type {
+  background-color: #f5fff6
+}
+.gantt_task_line.gantt_project-type {
+  background-color: #65c16f;
+  border: 1px solid #3c9445
+}
+.gantt_task_line.gantt_project-type .gantt_task_progress {
+  background-color: #46ad51
+}
+.buttonBg {
+  background: #fff
+}
+.gantt_cal_light .gantt_btn_set {
+  margin: 5px 10px
+}
+.gantt_btn_set.gantt_cancel_btn_set {
+  background: #fff;
+  color: #454545;
+  border: 1px solid #cecece
+}
+.gantt_btn_set.gantt_save_btn_set {
+  background: #3db9d3;
+  text-shadow: 0 -1px 0 #248a9f;
+  color: #fff
+}
+.gantt_btn_set.gantt_delete_btn_set {
+  background: #ec8e00;
+  text-shadow: 0 -1px 0 #a60;
+  color: #fff
+}
+.gantt_cal_light_wide {
+  padding-left: 0!important;
+  padding-right: 0!important
+}
+.gantt_cal_light_wide .gantt_cal_larea {
+  border-left: none!important;
+  border-right: none!important
+}
+.dhtmlx_popup_button.dhtmlx_ok_button {
+  background: #3db9d3;
+  text-shadow: 0 -1px 0 #248a9f;
+  color: #fff;
+  font-weight: 700;
+  border-width: 0
+}
+.dhtmlx_popup_button.dhtmlx_cancel_button {
+  font-weight: 700;
+  color: #454544
+}
+.gantt_qi_big_icon.icon_edit {
+  color: #454545;
+  background: #fff
+}
+.gantt_qi_big_icon.icon_delete {
+  text-shadow: 0 -1px 0 #a60;
+  background: #ec8e00;
+  color: #fff;
+  border-width: 0
+}
+.gantt_container {
+  font-family: Arial;
+  font-size: 13px;
+  border: 1px solid #cecece;
+  position: relative;
+  white-space: nowrap
+}
+.gantt_grid {
+  border-right: 1px solid #cecece
+}
+.gantt_task_scroll {
+  overflow-x: scroll
+}
+.gantt_task {
+  position: relative
+}
+.gantt_grid,
+.gantt_task {
+  overflow-x: hidden;
+  overflow-y: hidden;
+  display: inline-block;
+  vertical-align: top
+}
+.gantt_grid_scale,
+.gantt_task_scale {
+  color: #6b6b6b;
+  font-size: 12px;
+  border-bottom: 1px solid #cecece;
+  background-color: #fff
+}
+.gantt_scale_line {
+  box-sizing: border-box;
+  -moz-box-sizing: border-box;
+  border-top: 1px solid #cecece
+}
+.gantt_scale_line:first-child {
+  border-top: none
+}
+.gantt_grid_head_cell {
+  display: inline-block;
+  vertical-align: top;
+  border-right: 1px solid #cecece;
+  text-align: center;
+  position: relative;
+  cursor: default;
+  height: 100%;
+  -moz-user-select: -moz-none;
+  -webkit-user-select: none;
+  -user-select: none;
+  -ms-user-select: none;
+  overflow: hidden
+}
+.gantt_scale_line {
+  clear: both
+}
+.gantt_grid_data {
+  width: 100%;
+  overflow: hidden
+}
+.gantt_row {
+  position: relative;
+  -webkit-user-select: none;
+  -moz-user-select: none;
+  -ms-user-select: none;
+  -moz-user-select: -moz-none
+}
+.gantt_add,
+.gantt_grid_head_add {
+  width: 100%;
+  height: 100%;
+  background-image: url(data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAAAGXRFWHRTb2Z0d2FyZQBBZG9iZSBJbWFnZVJlYWR5ccllPAAAAyJpVFh0WE1MOmNvbS5hZG9iZS54bXAAAAAAADw/eHBhY2tldCBiZWdpbj0i77u/IiBpZD0iVzVNME1wQ2VoaUh6cmVTek5UY3prYzlkIj8+IDx4OnhtcG1ldGEgeG1sbnM6eD0iYWRvYmU6bnM6bWV0YS8iIHg6eG1wdGs9IkFkb2JlIFhNUCBDb3JlIDUuMy1jMDExIDY2LjE0NTY2MSwgMjAxMi8wMi8wNi0xNDo1NjoyNyAgICAgICAgIj4gPHJkZjpSREYgeG1sbnM6cmRmPSJodHRwOi8vd3d3LnczLm9yZy8xOTk5LzAyLzIyLXJkZi1zeW50YXgtbnMjIj4gPHJkZjpEZXNjcmlwdGlvbiByZGY6YWJvdXQ9IiIgeG1sbnM6eG1wPSJodHRwOi8vbnMuYWRvYmUuY29tL3hhcC8xLjAvIiB4bWxuczp4bXBNTT0iaHR0cDovL25zLmFkb2JlLmNvbS94YXAvMS4wL21tLyIgeG1sbnM6c3RSZWY9Imh0dHA6Ly9ucy5hZG9iZS5jb20veGFwLzEuMC9zVHlwZS9SZXNvdXJjZVJlZiMiIHhtcDpDcmVhdG9yVG9vbD0iQWRvYmUgUGhvdG9zaG9wIENTNiAoV2luZG93cykiIHhtcE1NOkluc3RhbmNlSUQ9InhtcC5paWQ6NTQ3MjMyMENDNkI0MTFFMjk4MTI5QTg3MDhFNDVDQTkiIHhtcE1NOkRvY3VtZW50SUQ9InhtcC5kaWQ6NTQ3MjMyMERDNkI0MTFFMjk4MTI5QTg3MDhFNDVDQTkiPiA8eG1wTU06RGVyaXZlZEZyb20gc3RSZWY6aW5zdGFuY2VJRD0ieG1wLmlpZDo1NDcyMzIwQUM2QjQxMUUyOTgxMjlBODcwOEU0NUNBOSIgc3RSZWY6ZG9jdW1lbnRJRD0ieG1wLmRpZDo1NDcyMzIwQkM2QjQxMUUyOTgxMjlBODcwOEU0NUNBOSIvPiA8L3JkZjpEZXNjcmlwdGlvbj4gPC9yZGY6UkRGPiA8L3g6eG1wbWV0YT4gPD94cGFja2V0IGVuZD0iciI/PshZT8UAAABbSURBVHjaYrTdeZmBEsCER+4wEP+H4sPkGGCDg020ARR7gb4GIAcYDKMDdPnDyAbYkGG5DVW9cIQMvUdBBAuUY4vDz8iAcZinA2zgCHqAYQMseAywJcYFAAEGAM+UFGuohFczAAAAAElFTkSuQmCC);
+  background-position: center center;
+  background-repeat: no-repeat;
+  cursor: pointer;
+  position: relative;
+  -moz-opacity: .3;
+  opacity: .3
+}
+.gantt_grid_head_cell.gantt_grid_head_add {
+  -moz-opacity: .6;
+  opacity: .6;
+  top: 0
+}
+.gantt_grid_head_cell.gantt_grid_head_add:hover {
+  -moz-opacity: 1;
+  opacity: 1
+}
+@media screen {
+  .gantt_grid_data .gantt_row.odd:hover,
+  .gantt_grid_data .gantt_row:hover {
+    background-color: #fff3a1
+  }
+}
+.gantt_grid_data .gantt_row.odd:hover .gantt_add,
+.gantt_grid_data .gantt_row:hover .gantt_add {
+  -moz-opacity: 1;
+  opacity: 1
+}
+.gantt_row,
+.gantt_task_row {
+  border-bottom: 1px solid #ebebeb;
+  /*background-color: #fff*/
+}
+.gantt_row.odd,
+.gantt_task_row.odd {
+  /*background-color: #fff*/
+}
+.gantt_cell,
+.gantt_grid_head_cell,
+.gantt_row,
+.gantt_scale_cell,
+.gantt_task_cell,
+.gantt_task_row {
+  box-sizing: border-box;
+  -moz-box-sizing: border-box
+}
+.gantt_grid_head_cell,
+.gantt_scale_cell {
+  line-height: inherit
+}
+.gantt_grid .gantt_grid_resize_wrap {
+  cursor: col-resize;
+  position: absolute;
+  width: 13px;
+  z-index: 1
+}
+.gantt_grid_resize_wrap .gantt_grid_resize {
+  background-color: #cecece;
+  width: 1px;
+  margin: 0 auto
+}
+.gantt_drag_marker.gantt_grid_resize_area {
+  background-color: rgba(231, 231, 231, .5);
+  border-left: 1px solid #cecece;
+  border-right: 1px solid #cecece;
+  height: 100%;
+  width: 100%;
+  -moz-box-sizing: border-box;
+  -webkit-box-sizing: border-box;
+  box-sizing: border-box
+}
+.gantt_cell {
+  display: inline-block;
+  vertical-align: top;
+  border-right: 1px solid #ebebeb;
+  padding-left: 6px;
+  padding-right: 6px;
+  height: 100%;
+  overflow: hidden;
+  white-space: nowrap;
+  font-size: 13px
+}
+.gantt_grid_data .gantt_last_cell,
+.gantt_grid_scale .gantt_last_cell,
+.gantt_task_bg .gantt_last_cell,
+.gantt_task_scale .gantt_last_cell {
+  border-right-width: 0
+}
+.gantt_task_bg {
+  overflow: hidden
+}
+.gantt_scale_cell {
+  display: inline-block;
+  white-space: nowrap;
+  overflow: hidden;
+  border-right: 1px solid #cecece;
+  text-align: center;
+  height: 100%
+}
+.gantt_task_cell {
+  display: inline-block;
+  height: 100%;
+  border-right: 1px solid #ebebeb
+}
+.gantt_ver_scroll {
+  width: 0;
+  background-color: transparent;
+  height: 1px;
+  overflow-x: hidden;
+  overflow-y: scroll;
+  display: none;
+  position: absolute;
+  right: 0
+}
+.gantt_ver_scroll>div {
+  width: 1px;
+  height: 1px
+}
+.gantt_hor_scroll {
+  height: 0;
+  background-color: transparent;
+  width: 100%;
+  clear: both;
+  overflow-x: scroll;
+  overflow-y: hidden;
+  display: none
+}
+.gantt_hor_scroll>div {
+  width: 5000px;
+  height: 1px
+}
+.gantt_tree_indent {
+  width: 15px;
+  /*height: 100%;*/
+  display: inline-block
+}
+.gantt_tree_content,
+.gantt_tree_icon {
+  vertical-align: top
+}
+.gantt_tree_icon {
+  width: 28px;
+  height: 100%;
+  display: inline-block;
+  background-repeat: no-repeat;
+  background-position: center center
+}
+.gantt_tree_content {
+  height: 100%;
+  display: inline-block
+}
+.gantt_tree_icon.gantt_open {
+  background-image: url(data:image/gif;base64,R0lGODlhEgASALMJAMrKyt3d3ejp6d7f3+/v75aWlvf39////wAAAP///wAAAAAAAAAAAAAAAAAAAAAAACH/C1hNUCBEYXRhWE1QPD94cGFja2V0IGJlZ2luPSLvu78iIGlkPSJXNU0wTXBDZWhpSHpyZVN6TlRjemtjOWQiPz4gPHg6eG1wbWV0YSB4bWxuczp4PSJhZG9iZTpuczptZXRhLyIgeDp4bXB0az0iQWRvYmUgWE1QIENvcmUgNS4wLWMwNjAgNjEuMTM0Nzc3LCAyMDEwLzAyLzEyLTE3OjMyOjAwICAgICAgICAiPiA8cmRmOlJERiB4bWxuczpyZGY9Imh0dHA6Ly93d3cudzMub3JnLzE5OTkvMDIvMjItcmRmLXN5bnRheC1ucyMiPiA8cmRmOkRlc2NyaXB0aW9uIHJkZjphYm91dD0iIiB4bWxuczp4bXA9Imh0dHA6Ly9ucy5hZG9iZS5jb20veGFwLzEuMC8iIHhtbG5zOnhtcE1NPSJodHRwOi8vbnMuYWRvYmUuY29tL3hhcC8xLjAvbW0vIiB4bWxuczpzdFJlZj0iaHR0cDovL25zLmFkb2JlLmNvbS94YXAvMS4wL3NUeXBlL1Jlc291cmNlUmVmIyIgeG1wOkNyZWF0b3JUb29sPSJBZG9iZSBQaG90b3Nob3AgQ1M1IFdpbmRvd3MiIHhtcE1NOkluc3RhbmNlSUQ9InhtcC5paWQ6M0I5RTczQjVDMDdBMTFFMTgxRjc4Mzk4M0Q3MjVFQzAiIHhtcE1NOkRvY3VtZW50SUQ9InhtcC5kaWQ6M0I5RTczQjZDMDdBMTFFMTgxRjc4Mzk4M0Q3MjVFQzAiPiA8eG1wTU06RGVyaXZlZEZyb20gc3RSZWY6aW5zdGFuY2VJRD0ieG1wLmlpZDozQjlFNzNCM0MwN0ExMUUxODFGNzgzOTgzRDcyNUVDMCIgc3RSZWY6ZG9jdW1lbnRJRD0ieG1wLmRpZDozQjlFNzNCNEMwN0ExMUUxODFGNzgzOTgzRDcyNUVDMCIvPiA8L3JkZjpEZXNjcmlwdGlvbj4gPC9yZGY6UkRGPiA8L3g6eG1wbWV0YT4gPD94cGFja2V0IGVuZD0iciI/PgH//v38+/r5+Pf29fTz8vHw7+7t7Ovq6ejn5uXk4+Lh4N/e3dzb2tnY19bV1NPS0dDPzs3My8rJyMfGxcTDwsHAv769vLu6ubi3trW0s7KxsK+urayrqqmop6alpKOioaCfnp2cm5qZmJeWlZSTkpGQj46NjIuKiYiHhoWEg4KBgH9+fXx7enl4d3Z1dHNycXBvbm1sa2ppaGdmZWRjYmFgX15dXFtaWVhXVlVUU1JRUE9OTUxLSklIR0ZFRENCQUA/Pj08Ozo5ODc2NTQzMjEwLy4tLCsqKSgnJiUkIyIhIB8eHRwbGhkYFxYVFBMSERAPDg0MCwoJCAcGBQQDAgEAACH5BAEAAAkALAAAAAASABIAAARJMMlJq704661B+SAIXAVhnKhBFKSZnmuLImhslXPN3ibi+6pdBXc4IIpB2YkGE1IKAoL0ICUInJNCYMDtDgJYiScUGnHO6LQkAgA7);
+  width: 18px;
+  cursor: pointer
+}
+.gantt_tree_icon.gantt_close {
+  background-image: url(data:image/gif;base64,R0lGODlhEgASALMJAMrKyt3d3ejp6d7f3+/v75aWlvf39wAAAP///////wAAAAAAAAAAAAAAAAAAAAAAACH/C1hNUCBEYXRhWE1QPD94cGFja2V0IGJlZ2luPSLvu78iIGlkPSJXNU0wTXBDZWhpSHpyZVN6TlRjemtjOWQiPz4gPHg6eG1wbWV0YSB4bWxuczp4PSJhZG9iZTpuczptZXRhLyIgeDp4bXB0az0iQWRvYmUgWE1QIENvcmUgNS4wLWMwNjAgNjEuMTM0Nzc3LCAyMDEwLzAyLzEyLTE3OjMyOjAwICAgICAgICAiPiA8cmRmOlJERiB4bWxuczpyZGY9Imh0dHA6Ly93d3cudzMub3JnLzE5OTkvMDIvMjItcmRmLXN5bnRheC1ucyMiPiA8cmRmOkRlc2NyaXB0aW9uIHJkZjphYm91dD0iIiB4bWxuczp4bXA9Imh0dHA6Ly9ucy5hZG9iZS5jb20veGFwLzEuMC8iIHhtbG5zOnhtcE1NPSJodHRwOi8vbnMuYWRvYmUuY29tL3hhcC8xLjAvbW0vIiB4bWxuczpzdFJlZj0iaHR0cDovL25zLmFkb2JlLmNvbS94YXAvMS4wL3NUeXBlL1Jlc291cmNlUmVmIyIgeG1wOkNyZWF0b3JUb29sPSJBZG9iZSBQaG90b3Nob3AgQ1M1IFdpbmRvd3MiIHhtcE1NOkluc3RhbmNlSUQ9InhtcC5paWQ6MzY0QzNGM0VDMDdBMTFFMUE3MDlCNUM2QjU1NDA5RjgiIHhtcE1NOkRvY3VtZW50SUQ9InhtcC5kaWQ6MzY0QzNGM0ZDMDdBMTFFMUE3MDlCNUM2QjU1NDA5RjgiPiA8eG1wTU06RGVyaXZlZEZyb20gc3RSZWY6aW5zdGFuY2VJRD0ieG1wLmlpZDozNjRDM0YzQ0MwN0ExMUUxQTcwOUI1QzZCNTU0MDlGOCIgc3RSZWY6ZG9jdW1lbnRJRD0ieG1wLmRpZDozNjRDM0YzREMwN0ExMUUxQTcwOUI1QzZCNTU0MDlGOCIvPiA8L3JkZjpEZXNjcmlwdGlvbj4gPC9yZGY6UkRGPiA8L3g6eG1wbWV0YT4gPD94cGFja2V0IGVuZD0iciI/PgH//v38+/r5+Pf29fTz8vHw7+7t7Ovq6ejn5uXk4+Lh4N/e3dzb2tnY19bV1NPS0dDPzs3My8rJyMfGxcTDwsHAv769vLu6ubi3trW0s7KxsK+urayrqqmop6alpKOioaCfnp2cm5qZmJeWlZSTkpGQj46NjIuKiYiHhoWEg4KBgH9+fXx7enl4d3Z1dHNycXBvbm1sa2ppaGdmZWRjYmFgX15dXFtaWVhXVlVUU1JRUE9OTUxLSklIR0ZFRENCQUA/Pj08Ozo5ODc2NTQzMjEwLy4tLCsqKSgnJiUkIyIhIB8eHRwbGhkYFxYVFBMSERAPDg0MCwoJCAcGBQQDAgEAACH5BAEAAAkALAAAAAASABIAAARDMMlJq704661B+SAIXAVhnKhBFKSZnmv7wqxVzmpd3Uff5zKEUAi0uV4xm4DAbBIEOkohMKhaB4HoxBMKjTjgsFgSAQA7);
+  width: 18px;
+  cursor: pointer
+}
+.gantt_tree_icon.gantt_blank {
+  width: 18px
+}
+.gantt_tree_icon.gantt_folder_open {
+  background-image: url(data:image/gif;base64,R0lGODlhEgASAJECAJeXl7Gvrf///wAAACH/C1hNUCBEYXRhWE1QPD94cGFja2V0IGJlZ2luPSLvu78iIGlkPSJXNU0wTXBDZWhpSHpyZVN6TlRjemtjOWQiPz4gPHg6eG1wbWV0YSB4bWxuczp4PSJhZG9iZTpuczptZXRhLyIgeDp4bXB0az0iQWRvYmUgWE1QIENvcmUgNS4wLWMwNjAgNjEuMTM0Nzc3LCAyMDEwLzAyLzEyLTE3OjMyOjAwICAgICAgICAiPiA8cmRmOlJERiB4bWxuczpyZGY9Imh0dHA6Ly93d3cudzMub3JnLzE5OTkvMDIvMjItcmRmLXN5bnRheC1ucyMiPiA8cmRmOkRlc2NyaXB0aW9uIHJkZjphYm91dD0iIiB4bWxuczp4bXA9Imh0dHA6Ly9ucy5hZG9iZS5jb20veGFwLzEuMC8iIHhtbG5zOnhtcE1NPSJodHRwOi8vbnMuYWRvYmUuY29tL3hhcC8xLjAvbW0vIiB4bWxuczpzdFJlZj0iaHR0cDovL25zLmFkb2JlLmNvbS94YXAvMS4wL3NUeXBlL1Jlc291cmNlUmVmIyIgeG1wOkNyZWF0b3JUb29sPSJBZG9iZSBQaG90b3Nob3AgQ1M1IFdpbmRvd3MiIHhtcE1NOkluc3RhbmNlSUQ9InhtcC5paWQ6NTdDRDM3QzVDMDZEMTFFMUJGMzhFMDhCN0RGRjBGQ0YiIHhtcE1NOkRvY3VtZW50SUQ9InhtcC5kaWQ6NTdDRDM3QzZDMDZEMTFFMUJGMzhFMDhCN0RGRjBGQ0YiPiA8eG1wTU06RGVyaXZlZEZyb20gc3RSZWY6aW5zdGFuY2VJRD0ieG1wLmlpZDo1N0NEMzdDM0MwNkQxMUUxQkYzOEUwOEI3REZGMEZDRiIgc3RSZWY6ZG9jdW1lbnRJRD0ieG1wLmRpZDo1N0NEMzdDNEMwNkQxMUUxQkYzOEUwOEI3REZGMEZDRiIvPiA8L3JkZjpEZXNjcmlwdGlvbj4gPC9yZGY6UkRGPiA8L3g6eG1wbWV0YT4gPD94cGFja2V0IGVuZD0iciI/PgH//v38+/r5+Pf29fTz8vHw7+7t7Ovq6ejn5uXk4+Lh4N/e3dzb2tnY19bV1NPS0dDPzs3My8rJyMfGxcTDwsHAv769vLu6ubi3trW0s7KxsK+urayrqqmop6alpKOioaCfnp2cm5qZmJeWlZSTkpGQj46NjIuKiYiHhoWEg4KBgH9+fXx7enl4d3Z1dHNycXBvbm1sa2ppaGdmZWRjYmFgX15dXFtaWVhXVlVUU1JRUE9OTUxLSklIR0ZFRENCQUA/Pj08Ozo5ODc2NTQzMjEwLy4tLCsqKSgnJiUkIyIhIB8eHRwbGhkYFxYVFBMSERAPDg0MCwoJCAcGBQQDAgEAACH5BAEAAAIALAAAAAASABIAAAIzlI+pywcPm3mhWgkCsjBOvVkimElG9ZlCBlXd+2XjjLKg5GqoeZXqvsOQXK/ijUZTKVUFADs=)
+}
+.gantt_tree_icon.gantt_folder_closed {
+  background-image: url(data:image/gif;base64,R0lGODlhEgASAJECAJeXl7Gvrf///wAAACH/C1hNUCBEYXRhWE1QPD94cGFja2V0IGJlZ2luPSLvu78iIGlkPSJXNU0wTXBDZWhpSHpyZVN6TlRjemtjOWQiPz4gPHg6eG1wbWV0YSB4bWxuczp4PSJhZG9iZTpuczptZXRhLyIgeDp4bXB0az0iQWRvYmUgWE1QIENvcmUgNS4wLWMwNjAgNjEuMTM0Nzc3LCAyMDEwLzAyLzEyLTE3OjMyOjAwICAgICAgICAiPiA8cmRmOlJERiB4bWxuczpyZGY9Imh0dHA6Ly93d3cudzMub3JnLzE5OTkvMDIvMjItcmRmLXN5bnRheC1ucyMiPiA8cmRmOkRlc2NyaXB0aW9uIHJkZjphYm91dD0iIiB4bWxuczp4bXA9Imh0dHA6Ly9ucy5hZG9iZS5jb20veGFwLzEuMC8iIHhtbG5zOnhtcE1NPSJodHRwOi8vbnMuYWRvYmUuY29tL3hhcC8xLjAvbW0vIiB4bWxuczpzdFJlZj0iaHR0cDovL25zLmFkb2JlLmNvbS94YXAvMS4wL3NUeXBlL1Jlc291cmNlUmVmIyIgeG1wOkNyZWF0b3JUb29sPSJBZG9iZSBQaG90b3Nob3AgQ1M1IFdpbmRvd3MiIHhtcE1NOkluc3RhbmNlSUQ9InhtcC5paWQ6NTAyMTU1RTNDMDZEMTFFMUJGNzZCRThBRkFCRjg4MTIiIHhtcE1NOkRvY3VtZW50SUQ9InhtcC5kaWQ6NTAyMTU1RTRDMDZEMTFFMUJGNzZCRThBRkFCRjg4MTIiPiA8eG1wTU06RGVyaXZlZEZyb20gc3RSZWY6aW5zdGFuY2VJRD0ieG1wLmlpZDo1MDIxNTVFMUMwNkQxMUUxQkY3NkJFOEFGQUJGODgxMiIgc3RSZWY6ZG9jdW1lbnRJRD0ieG1wLmRpZDo1MDIxNTVFMkMwNkQxMUUxQkY3NkJFOEFGQUJGODgxMiIvPiA8L3JkZjpEZXNjcmlwdGlvbj4gPC9yZGY6UkRGPiA8L3g6eG1wbWV0YT4gPD94cGFja2V0IGVuZD0iciI/PgH//v38+/r5+Pf29fTz8vHw7+7t7Ovq6ejn5uXk4+Lh4N/e3dzb2tnY19bV1NPS0dDPzs3My8rJyMfGxcTDwsHAv769vLu6ubi3trW0s7KxsK+urayrqqmop6alpKOioaCfnp2cm5qZmJeWlZSTkpGQj46NjIuKiYiHhoWEg4KBgH9+fXx7enl4d3Z1dHNycXBvbm1sa2ppaGdmZWRjYmFgX15dXFtaWVhXVlVUU1JRUE9OTUxLSklIR0ZFRENCQUA/Pj08Ozo5ODc2NTQzMjEwLy4tLCsqKSgnJiUkIyIhIB8eHRwbGhkYFxYVFBMSERAPDg0MCwoJCAcGBQQDAgEAACH5BAEAAAIALAAAAAASABIAAAIwlI+pywcPm3mhWgkCsjBOvVkimElG9ZlCuYIY6TYs+6bmHDO4igfdD3GNhheV0VQAADs=)
+}
+.gantt_tree_icon.gantt_file {
+  background-image: url(data:image/gif;base64,R0lGODlhEgASAJECAJeXl7Gvrf///wAAACH/C1hNUCBEYXRhWE1QPD94cGFja2V0IGJlZ2luPSLvu78iIGlkPSJXNU0wTXBDZWhpSHpyZVN6TlRjemtjOWQiPz4gPHg6eG1wbWV0YSB4bWxuczp4PSJhZG9iZTpuczptZXRhLyIgeDp4bXB0az0iQWRvYmUgWE1QIENvcmUgNS4wLWMwNjAgNjEuMTM0Nzc3LCAyMDEwLzAyLzEyLTE3OjMyOjAwICAgICAgICAiPiA8cmRmOlJERiB4bWxuczpyZGY9Imh0dHA6Ly93d3cudzMub3JnLzE5OTkvMDIvMjItcmRmLXN5bnRheC1ucyMiPiA8cmRmOkRlc2NyaXB0aW9uIHJkZjphYm91dD0iIiB4bWxuczp4bXA9Imh0dHA6Ly9ucy5hZG9iZS5jb20veGFwLzEuMC8iIHhtbG5zOnhtcE1NPSJodHRwOi8vbnMuYWRvYmUuY29tL3hhcC8xLjAvbW0vIiB4bWxuczpzdFJlZj0iaHR0cDovL25zLmFkb2JlLmNvbS94YXAvMS4wL3NUeXBlL1Jlc291cmNlUmVmIyIgeG1wOkNyZWF0b3JUb29sPSJBZG9iZSBQaG90b3Nob3AgQ1M1IFdpbmRvd3MiIHhtcE1NOkluc3RhbmNlSUQ9InhtcC5paWQ6NzkxQzI4RjZDMDZEMTFFMTgwRjhBQURDQzI3NDU3QUEiIHhtcE1NOkRvY3VtZW50SUQ9InhtcC5kaWQ6NzkxQzI4RjdDMDZEMTFFMTgwRjhBQURDQzI3NDU3QUEiPiA8eG1wTU06RGVyaXZlZEZyb20gc3RSZWY6aW5zdGFuY2VJRD0ieG1wLmlpZDo3OTFDMjhGNEMwNkQxMUUxODBGOEFBRENDMjc0NTdBQSIgc3RSZWY6ZG9jdW1lbnRJRD0ieG1wLmRpZDo3OTFDMjhGNUMwNkQxMUUxODBGOEFBRENDMjc0NTdBQSIvPiA8L3JkZjpEZXNjcmlwdGlvbj4gPC9yZGY6UkRGPiA8L3g6eG1wbWV0YT4gPD94cGFja2V0IGVuZD0iciI/PgH//v38+/r5+Pf29fTz8vHw7+7t7Ovq6ejn5uXk4+Lh4N/e3dzb2tnY19bV1NPS0dDPzs3My8rJyMfGxcTDwsHAv769vLu6ubi3trW0s7KxsK+urayrqqmop6alpKOioaCfnp2cm5qZmJeWlZSTkpGQj46NjIuKiYiHhoWEg4KBgH9+fXx7enl4d3Z1dHNycXBvbm1sa2ppaGdmZWRjYmFgX15dXFtaWVhXVlVUU1JRUE9OTUxLSklIR0ZFRENCQUA/Pj08Ozo5ODc2NTQzMjEwLy4tLCsqKSgnJiUkIyIhIB8eHRwbGhkYFxYVFBMSERAPDg0MCwoJCAcGBQQDAgEAACH5BAEAAAIALAAAAAASABIAAAIylI+pwN16QJiUQiFThRlJm3RRFYSlR5qXMKmXaMDuuMoyOi8n/e6xn8NMHETgh5RaKQsAOw==)
+}
+.gantt_grid_head_cell .gantt_sort {
+  position: absolute;
+  right: 5px;
+  top: 8px;
+  width: 7px;
+  height: 13px;
+  background-repeat: no-repeat;
+  background-position: center center
+}
+.gantt_grid_head_cell .gantt_sort.gantt_asc {
+  background-image: url(data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAcAAAANCAYAAABlyXS1AAAARUlEQVR4nGNgQAKGxib/GbABkIS7b8B/DAUwCRiGK0CXwFBAb1DfP/U/LszwHwi2X7qFgUEArBtdAVwCBmAKMCSQFSDzAWXXaOHsXeqkAAAAAElFTkSuQmCC)
+}
+.gantt_grid_head_cell .gantt_sort.gantt_desc {
+  background-image: url(data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAcAAAANCAYAAABlyXS1AAAARUlEQVR42mNgQAL1/VP/M2ADIIntF2/9x1AAlrh0C47hCmA60DFYwX88gIFGwNDY5D8uDFbg7hvwHx2jmIBTAlkB0e4BAEjlaNtBWJPnAAAAAElFTkSuQmCC)
+}
+.gantt_inserted,
+.gantt_updated {
+  font-weight: 700
+}
+.gantt_deleted {
+  text-decoration: line-through
+}
+.gantt_invalid {
+  background-color: #FFE0E0
+}
+.gantt_error {
+  color: red
+}
+.gantt_status {
+  right: 1px;
+  padding: 5px 10px;
+  background: rgba(155, 155, 155, .1);
+  position: absolute;
+  top: 1px;
+  -webkit-transition: opacity .2s;
+  transition: opacity .2s;
+  opacity: 0
+}
+.gantt_status.gantt_status_visible {
+  opacity: 1
+}
+#gantt_ajax_dots span {
+  -webkit-transition: opacity .2s;
+  transition: opacity .2s;
+  background-repeat: no-repeat;
+  opacity: 0
+}
+#gantt_ajax_dots span.gantt_dot_visible {
+  opacity: 1
+}
+.dhtmlx_message_area {
+  position: fixed;
+  right: 5px;
+  width: 250px;
+  z-index: 1000
+}
+.dhtmlx-message {   // HOSEK
+min-width: 120px;
+  font-family: Arial;
+  z-index: 10000;
+  margin: 5px 5px 10px;
+  -webkit-transition: all .5s ease;
+  -moz-transition: all .5s ease;
+  -o-transition: all .5s ease;
+  transition: all .5s ease;
+  font-size: 14px;
+  color: #000;
+  box-shadow: 3px 3px 3px rgba(0, 0, 0, .07);
+  padding: 0;
+  background-color: #FFF;
+  border-radius: 3px;
+  border: 1px solid #fff
+}
+.dhtmlx-message.hidden {  // HOSEK
+height: 0;
+  padding: 0;
+  border-width: 0;
+  margin: 0;
+  overflow: hidden
+}
+.dhtmlx_modal_box {
+  overflow: hidden;
+  display: inline-block;
+  min-width: 250px;
+  width: 250px;
+  text-align: center;
+  position: fixed;
+  z-index: 20000;
+  box-shadow: 3px 3px 3px rgba(0, 0, 0, .07);
+  font-family: Arial;
+  border-radius: 6px;
+  border: 1px solid #cecece;
+  background: #fff
+}
+.dhtmlx_popup_title {
+  border-top-left-radius: 6px;
+  border-top-right-radius: 6px;
+  border-width: 0
+}
+.dhtmlx_button,
+.dhtmlx_popup_button {
+  border: 1px solid #cecece;
+  height: 30px;
+  line-height: 30px;
+  display: inline-block;
+  margin: 0 5px;
+  border-radius: 4px;
+  background: #fff
+}
+.dhtmlx-message,   /* HOSEK*/
+.dhtmlx_button,
+.dhtmlx_popup_button {
+  user-select: none;
+  -webkit-user-select: none;
+  -moz-user-select: -moz-none;
+  -ms-user-select: none;
+  cursor: pointer
+}
+.dhtmlx_popup_text {
+  overflow: hidden
+}
+.dhtmlx_popup_controls {
+  border-radius: 6px;
+  padding: 10px
+}
+.dhtmlx_popup_button {
+  min-width: 100px
+}
+div.dhx_modal_cover {
+  background-color: #000;
+  cursor: default;
+  filter: alpha(opacity=20);
+  opacity: .2;
+  position: fixed;
+  z-index: 19999;
+  left: 0;
+  top: 0;
+  width: 100%;
+  height: 100%;
+  border: none;
+  zoom: 1
+}
+.dhtmlx-message img,   /* HOSEK */
+.dhtmlx_modal_box img {
+  float: left;
+  margin-right: 20px
+}
+.dhtmlx-alert-error,
+.dhtmlx-confirm-error {
+  border: 1px solid red
+}
+.dhtmlx_button input,
+.dhtmlx_popup_button div {
+  border-radius: 4px;
+  font-size: 14px;
+  -moz-box-sizing: content-box;
+  box-sizing: content-box;
+  padding: 0;
+  margin: 0;
+  vertical-align: top
+}
+.dhtmlx_popup_title {
+  color: #fff;
+  text-shadow: 1px 1px #000;
+  height: 40px;
+  line-height: 40px;
+  font-size: 20px
+}
+.dhtmlx_popup_text {
+  margin: 15px 15px 5px;
+  font-size: 14px;
+  color: #000;
+  min-height: 30px;
+  border-radius: 6px
+}
+
+/* HOSEK  V */
+/*.dhtmlx-error,
+.dhtmlx-info {
+    font-size: 14px;
+    color: #000;
+    box-shadow: 3px 3px 3px rgba(0, 0, 0, .07);
+    padding: 0;
+    background-color: #FFF;
+    border-radius: 3px;
+    border: 1px solid #fff
+}*/
+.dhtmlx-message div {
+  padding: 5px 10px;
+  border-radius: 3px;
+}
+.dhtmlx-info div {
+  background-color: #fff;
+  border: 1px solid #cecece;
+}
+.dhtmlx-error {
+  background-color: #d81b1b;
+  border: 1px solid #ff3c3c;
+}
+.dhtmlx-error div {
+  background-color: #d81b1b;
+  border: 1px solid #940000;
+  color: #FFF;
+}
+.dhtmlx-success {
+  background-color: #2dff2d;
+  border: 1px solid #6CFF6C;
+}
+.dhtmlx-success div {
+  background-color: #2dff2d;
+  border: 1px solid #1B991B;
+  /*color: #FFF*/
+}
+/* HOSEK A */
+.gantt_data_area div,
+.gantt_grid div {
+  -ms-touch-action: none;
+  -webkit-tap-highlight-color: transparent
+}
+.gantt_data_area {
+  position: relative;
+  overflow-x: hidden;
+  overflow-y: hidden;
+  -moz-user-select: -moz-none;
+  -webkit-user-select: none;
+  -ms-user-select: none;
+  user-select: none;
+}
+.gantt_links_area {
+  position: absolute;
+  left: 0;
+  top: 0
+}
+.gantt_side_content,
+.gantt_task_content,
+.gantt_task_progress {
+  line-height: inherit;
+  overflow: hidden;
+  height: 100%
+}
+.gantt_task_content {
+  font-size: 12px;
+  /*color: #fff;*/
+  width: 100%;
+  top: 0;
+  position: absolute;
+  white-space: nowrap;
+  text-align: center
+}
+.gantt_task_progress {
+  text-align: center;
+  z-index: 0;
+  background: #299cb4
+}
+.gantt_task_line {
+  -webkit-border-radius: 2px;
+  -moz-border-radius: 2px;
+  border-radius: 2px;
+  position: absolute;
+  -moz-box-sizing: border-box;
+  box-sizing: border-box;
+  background-color: #3db9d3;
+  border: 1px solid #2898b0;
+  -webkit-user-select: none;
+  -moz-user-select: none;
+  -ms-user-select: none;
+  -moz-user-select: -moz-none
+}
+.gantt_task_line.gantt_drag_move div {
+  cursor: move
+}
+.gantt_touch_move,
+.gantt_touch_progress .gantt_touch_resize {
+  -moz-transform: scale(1.02, 1.1);
+  -o-transform: scale(1.02, 1.1);
+  -webkit-transform: scale(1.02, 1.1);
+  transform: scale(1.02, 1.1);
+  -moz-transform-origin: 50%;
+  -o-transform-origin: 50%;
+  -webkit-transform-origin: 50%;
+  transform-origin: 50%
+}
+.gantt_touch_progress .gantt_task_progress_drag,
+.gantt_touch_resize .gantt_task_drag {
+  -moz-transform: scaleY(1.3);
+  -o-transform: scaleY(1.3);
+  -webkit-transform: scaleY(1.3);
+  transform: scaleY(1.3);
+  -moz-transform-origin: 50%;
+  -o-transform-origin: 50%;
+  -webkit-transform-origin: 50%;
+  transform-origin: 50%
+}
+.gantt_side_content {
+  position: absolute;
+  white-space: nowrap;
+  /*color: #6e6e6e;*/
+  bottom: 1px;
+  /*font-size: 14px*/
+}
+.gantt_side_content.gantt_left {
+  right: 100%;
+  padding-right: 15px
+}
+.gantt_side_content.gantt_right {
+  left: 100%;
+  padding-left: 15px
+}
+.gantt_side_content.gantt_link_crossing {
+  /*bottom: 8.75px*/
+}
+.gantt_link_arrow,
+.gantt_task_link .gantt_line_wrapper {
+  position: absolute;
+  cursor: pointer
+}
+.gantt_line_wrapper div {
+  /*background-color: #ffa011;*/
+  border: 1px solid #ffa011;
+}
+.gantt_task_link:hover .gantt_line_wrapper div {
+  box-shadow: 0 0 5px 0 #ffa011
+}
+.gantt_task_link div.gantt_link_arrow {
+  background-color: transparent;
+  border-style: solid;
+  width: 0;
+  height: 0
+}
+.gantt_link_control {
+  position: absolute;
+  width: 13px;
+  top: 0
+}
+.gantt_link_control div {
+  display: none;
+  cursor: pointer;
+  box-sizing: border-box;
+  position: relative;
+  top: 50%;
+  margin-top: -7.5px;
+  vertical-align: middle;
+  border: 1px solid #929292;
+  -webkit-border-radius: 6.5px;
+  -moz-border-radius: 6.5px;
+  border-radius: 6.5px;
+  height: 13px;
+  width: 13px;
+  background-color: #f0f0f0
+}
+.gantt_link_control div:hover {
+  background-color: #fff
+}
+.gantt_link_control.task_left {
+  left: -13px
+}
+.gantt_link_control.task_right {
+  right: -13px
+}
+.gantt_link_target .gantt_link_control div,
+.gantt_task_line.gantt_selected .gantt_link_control div,
+.gantt_task_line:hover .gantt_link_control div {
+  display: block
+}
+.gantt_link_source,
+.gantt_link_target {
+  box-shadow: 0 0 3px #3db9d3
+}
+.gantt_link_target.link_finish_allow,
+.gantt_link_target.link_start_allow {
+  box-shadow: 0 0 3px #ffbf5e
+}
+.gantt_link_target.link_finish_deny,
+.gantt_link_target.link_start_deny {
+  box-shadow: 0 0 3px #e87e7b
+}
+.link_finish_allow .gantt_link_control.task_right div,
+.link_start_allow .gantt_link_control.task_left div {
+  background-color: #ffbf5e;
+  border-color: #ffa011
+}
+.link_finish_deny .gantt_link_control.task_right div,
+.link_start_deny .gantt_link_control.task_left div {
+  background-color: #e87e7b;
+  border-color: #dd3e3a
+}
+.gantt_link_arrow_right {
+  border-width: 4px 0 4px 6px;
+  border-top-color: transparent!important;
+  border-right-color: transparent!important;
+  border-bottom-color: transparent!important;
+  border-color: #ffa011;
+  margin-top: -1px
+}
+.gantt_link_arrow_left {
+  border-width: 4px 6px 4px 0;
+  margin-top: -1px;
+  border-top-color: transparent!important;
+  border-color: #ffa011;
+  border-bottom-color: transparent!important;
+  border-left-color: transparent!important
+}
+.gantt_link_arrow_top {
+  border-width: 0 4px 6px;
+  border-color: #ffa011;
+  border-top-color: transparent!important;
+  border-right-color: transparent!important;
+  border-left-color: transparent!important
+}
+.gantt_link_arrow_down {
+  border-width: 4px 6px 0 4px;
+  border-color: #ffa011;
+  border-right-color: transparent!important;
+  border-bottom-color: transparent!important;
+  border-left-color: transparent!important
+}
+.gantt_task_drag,
+.gantt_task_progress_drag {
+  cursor: w-resize;
+  height: 100%;
+  display: none;
+  position: absolute
+}
+.gantt_task_line.gantt_selected .gantt_task_drag,
+.gantt_task_line.gantt_selected .gantt_task_progress_drag,
+.gantt_task_line:hover .gantt_task_drag,
+.gantt_task_line:hover .gantt_task_progress_drag {
+  display: block
+}
+.gantt_task_drag {
+  width: 6px;
+  background: url(data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAYAAAACCAYAAAB7Xa1eAAAABmJLR0QA/wD/AP+gvaeTAAAACXBIWXMAAAsTAAALEwEAmpwYAAAAB3RJTUUH3QYDDjkw3UJvAwAAABRJREFUCNdj/P//PwM2wASl/6PTAKrrBf4+lD8LAAAAAElFTkSuQmCC);
+  z-index: 1;
+  top: 0
+}
+.gantt_task_drag.task_left {
+  left: 0
+}
+.gantt_task_drag.task_right {
+  right: 0
+}
+.gantt_task_progress_drag {
+  height: 8px;
+  width: 8px;
+  bottom: -4px;
+  margin-left: -4px;
+  background-position: bottom;
+  background-image: url(data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAALCAYAAAB24g05AAAAGXRFWHRTb2Z0d2FyZQBBZG9iZSBJbWFnZVJlYWR5ccllPAAAAyJpVFh0WE1MOmNvbS5hZG9iZS54bXAAAAAAADw/eHBhY2tldCBiZWdpbj0i77u/IiBpZD0iVzVNME1wQ2VoaUh6cmVTek5UY3prYzlkIj8+IDx4OnhtcG1ldGEgeG1sbnM6eD0iYWRvYmU6bnM6bWV0YS8iIHg6eG1wdGs9IkFkb2JlIFhNUCBDb3JlIDUuMy1jMDExIDY2LjE0NTY2MSwgMjAxMi8wMi8wNi0xNDo1NjoyNyAgICAgICAgIj4gPHJkZjpSREYgeG1sbnM6cmRmPSJodHRwOi8vd3d3LnczLm9yZy8xOTk5LzAyLzIyLXJkZi1zeW50YXgtbnMjIj4gPHJkZjpEZXNjcmlwdGlvbiByZGY6YWJvdXQ9IiIgeG1sbnM6eG1wPSJodHRwOi8vbnMuYWRvYmUuY29tL3hhcC8xLjAvIiB4bWxuczp4bXBNTT0iaHR0cDovL25zLmFkb2JlLmNvbS94YXAvMS4wL21tLyIgeG1sbnM6c3RSZWY9Imh0dHA6Ly9ucy5hZG9iZS5jb20veGFwLzEuMC9zVHlwZS9SZXNvdXJjZVJlZiMiIHhtcDpDcmVhdG9yVG9vbD0iQWRvYmUgUGhvdG9zaG9wIENTNiAoV2luZG93cykiIHhtcE1NOkluc3RhbmNlSUQ9InhtcC5paWQ6MkY3Rjk0RUVDMkYzMTFFMkI1OThEQTA3ODU0OTkzMEEiIHhtcE1NOkRvY3VtZW50SUQ9InhtcC5kaWQ6MkY3Rjk0RUZDMkYzMTFFMkI1OThEQTA3ODU0OTkzMEEiPiA8eG1wTU06RGVyaXZlZEZyb20gc3RSZWY6aW5zdGFuY2VJRD0ieG1wLmlpZDoyRjdGOTRFQ0MyRjMxMUUyQjU5OERBMDc4NTQ5OTMwQSIgc3RSZWY6ZG9jdW1lbnRJRD0ieG1wLmRpZDoyRjdGOTRFREMyRjMxMUUyQjU5OERBMDc4NTQ5OTMwQSIvPiA8L3JkZjpEZXNjcmlwdGlvbj4gPC9yZGY6UkRGPiA8L3g6eG1wbWV0YT4gPD94cGFja2V0IGVuZD0iciI/PobPBzIAAADkSURBVHjaYpk2bRoDDsAExL1QdjEQ/8OmiAWHZk4gXqymqhQM4ty6fU8OSMUA8XdiDBAB4k0a6iqWRga6EKcwMQXduHlnL5DpB8Rv0J2JDFSA+JiOtgZcMwiA2CAxkBxUDVYDLEAKgIpV9XQ0MZwFEgPJAZnHoWpRDAgC4n2W5saiQKfjClQGkBxQDciL+6B6wAbkA/EqJwdrTkUFOQZCAKQGpBbIXA3SCzJggo+XK7OEuBgDsQCkFqgHrBfsBT5eHgZSAUwP2IBfv36TbABMDygdtK1Zv6UESLORaAbIhG6AAAMAKN8wE24DXWcAAAAASUVORK5CYII=);
+  background-repeat: no-repeat;
+  z-index: 2
+}
+.gantt_link_tooltip {
+  box-shadow: 3px 3px 3px #888;
+  background-color: #fff;
+  border-left: 1px dotted #cecece;
+  border-top: 1px dotted #cecece;
+  font-family: Tahoma;
+  font-size: 8pt;
+  color: #444;
+  padding: 6px;
+  line-height: 20px
+}
+.gantt_link_direction {
+  height: 0;
+  border: 0 #ffa011;
+  border-bottom-style: dashed;
+  border-bottom-width: 2px;
+  transform-origin: 0 0;
+  -ms-transform-origin: 0 0;
+  -webkit-transform-origin: 0 0;
+  z-index: 2;
+  margin-left: 1px;
+  position: absolute
+}
+.gantt_grid_data .gantt_row.gantt_selected,
+.gantt_grid_data .gantt_row.odd.gantt_selected,
+.gantt_task_row.gantt_selected {
+  background-color: #fff3a1
+}
+.gantt_task_row.gantt_selected .gantt_task_cell {
+  border-right-color: #ffec6e
+}
+.gantt_task_line.gantt_selected {
+  box-shadow: 0 0 5px #299cb4
+}
+.gantt_task_line.gantt_project-type.gantt_selected {
+  box-shadow: 0 0 5px #46ad51
+}
+.gantt_task_line.gantt_milestone-type {
+  visibility: hidden;
+  background-color: #d33daf;
+  border: 0 solid #61164f;
+  box-sizing: content-box;
+  -moz-box-sizing: content-box
+}
+.gantt_task_line.gantt_milestone-type div {
+  visibility: visible
+}
+.gantt_task_line.gantt_milestone-type .gantt_task_content {
+  background: inherit;
+  border: inherit;
+  border-width: 1px;
+  border-radius: inherit;
+  box-sizing: border-box;
+  -moz-box-sizing: border-box;
+  -webkit-transform: rotate(45deg);
+  -moz-transform: rotate(45deg);
+  -ms-transform: rotate(45deg);
+  -o-transform: rotate(45deg);
+  transform: rotate(45deg)
+}
+.gantt_task_line.gantt_task_inline_color {
+  border-color: #999
+}
+.gantt_task_line.gantt_task_inline_color .gantt_task_progress {
+  background-color: #363636;
+  opacity: .2
+}
+.gantt_task_line.gantt_task_inline_color.gantt_project-type.gantt_selected,
+.gantt_task_line.gantt_task_inline_color.gantt_selected {
+  box-shadow: 0 0 5px #999
+}
+.gantt_task_link.gantt_link_inline_color:hover .gantt_line_wrapper div {
+  box-shadow: 0 0 5px 0 #999
+}
+.gantt_critical_task {
+  background-color: #e63030;
+  border-color: #9d3a3a
+}
+.gantt_critical_task .gantt_task_progress {
+  background-color: rgba(0, 0, 0, .4)
+}
+.gantt_critical_link .gantt_line_wrapper>div {
+  background-color: #e63030
+}
+.gantt_critical_link .gantt_link_arrow {
+  border-color: #e63030
+}
+.gantt_unselectable,
+.gantt_unselectable div {
+  -webkit-user-select: none;
+  -moz-user-select: none;
+  -moz-user-select: -moz-none;
+  -ms-user-select: none;
+}
+.gantt_cal_light {
+  -webkit-tap-highlight-color: transparent;
+  background: #fff;
+  border-radius: 6px;
+  font-family: Arial;
+  border: 1px solid #cecece;
+  color: #6b6b6b;
+  font-size: 12px;
+  position: absolute;
+  z-index: 10001;
+  width: 550px;
+  height: 250px;
+  box-shadow: 3px 3px 3px rgba(0, 0, 0, .07)
+}
+.gantt_cal_light select {
+  font-family: Arial;
+  border: 1px solid #cecece;
+  font-size: 13px;
+  padding: 2px;
+  margin: 0
+}
+.gantt_cal_ltitle {
+  padding: 7px 10px;
+  overflow: hidden;
+  white-space: nowrap;
+  -webkit-border-radius: 6px 6px 0 0;
+  -moz-border-radius-topleft: 6px;
+  -moz-border-radius-bottomleft: 0;
+  -moz-border-radius-topright: 6px;
+  -moz-border-radius-bottomright: 0;
+  border-radius: 6px 6px 0 0
+}
+.gantt_cal_ltitle span {
+  white-space: nowrap
+}
+.gantt_cal_lsection {
+  color: #727272;
+  font-weight: 700;
+  padding: 12px 0 5px 10px
+}
+.gantt_cal_lsection .gantt_fullday {
+  float: right;
+  margin-right: 5px;
+  font-size: 12px;
+  font-weight: 400;
+  line-height: 20px;
+  vertical-align: top;
+  cursor: pointer
+}
+.gantt_cal_lsection {
+  font-size: 13px
+}
+.gantt_cal_ltext {
+  padding: 2px 10px;
+  overflow: hidden
+}
+.gantt_cal_ltext textarea {
+  overflow: auto;
+  font-family: Arial;
+  font-size: 13px;
+  -moz-box-sizing: border-box;
+  -webkit-box-sizing: border-box;
+  box-sizing: border-box;
+  border: 1px solid #cecece;
+  height: 100%;
+  width: 100%;
+  outline: 0!important;
+  resize: none
+}
+.gantt_time {
+  font-weight: 700
+}
+.gantt_cal_light .gantt_title {
+  padding-left: 10px
+}
+.gantt_cal_larea {
+  border: 1px solid #cecece;
+  border-left: none;
+  border-right: none;
+  background-color: #fff;
+  overflow: hidden;
+  height: 1px
+}
+.gantt_btn_set {
+  margin: 10px 7px 5px 10px;
+  padding: 5px 15px 5px 10px;
+  float: left;
+  -webkit-border-radius: 4px;
+  -moz-border-radius: 4px;
+  border-radius: 4px;
+  border-width: 0;
+  border-color: #cecece;
+  border-style: solid;
+  height: 32px;
+  font-weight: 700;
+  background: #fff;
+  -moz-box-sizing: border-box;
+  -webkit-box-sizing: border-box;
+  box-sizing: border-box;
+  cursor: pointer
+}
+.gantt_btn_set div {
+  float: left;
+  font-size: 13px;
+  height: 22px;
+  line-height: 22px;
+  background-repeat: no-repeat;
+  vertical-align: middle
+}
+.gantt_save_btn {
+  background-image: url(data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAAAGXRFWHRTb2Z0d2FyZQBBZG9iZSBJbWFnZVJlYWR5ccllPAAAAyJpVFh0WE1MOmNvbS5hZG9iZS54bXAAAAAAADw/eHBhY2tldCBiZWdpbj0i77u/IiBpZD0iVzVNME1wQ2VoaUh6cmVTek5UY3prYzlkIj8+IDx4OnhtcG1ldGEgeG1sbnM6eD0iYWRvYmU6bnM6bWV0YS8iIHg6eG1wdGs9IkFkb2JlIFhNUCBDb3JlIDUuMy1jMDExIDY2LjE0NTY2MSwgMjAxMi8wMi8wNi0xNDo1NjoyNyAgICAgICAgIj4gPHJkZjpSREYgeG1sbnM6cmRmPSJodHRwOi8vd3d3LnczLm9yZy8xOTk5LzAyLzIyLXJkZi1zeW50YXgtbnMjIj4gPHJkZjpEZXNjcmlwdGlvbiByZGY6YWJvdXQ9IiIgeG1sbnM6eG1wPSJodHRwOi8vbnMuYWRvYmUuY29tL3hhcC8xLjAvIiB4bWxuczp4bXBNTT0iaHR0cDovL25zLmFkb2JlLmNvbS94YXAvMS4wL21tLyIgeG1sbnM6c3RSZWY9Imh0dHA6Ly9ucy5hZG9iZS5jb20veGFwLzEuMC9zVHlwZS9SZXNvdXJjZVJlZiMiIHhtcDpDcmVhdG9yVG9vbD0iQWRvYmUgUGhvdG9zaG9wIENTNiAoV2luZG93cykiIHhtcE1NOkluc3RhbmNlSUQ9InhtcC5paWQ6MTk1OUU5RDFDMzA0MTFFMkExMUZBQTdDNDAzOUE5RjMiIHhtcE1NOkRvY3VtZW50SUQ9InhtcC5kaWQ6MTk1OUU5RDJDMzA0MTFFMkExMUZBQTdDNDAzOUE5RjMiPiA8eG1wTU06RGVyaXZlZEZyb20gc3RSZWY6aW5zdGFuY2VJRD0ieG1wLmlpZDoxOTU5RTlDRkMzMDQxMUUyQTExRkFBN0M0MDM5QTlGMyIgc3RSZWY6ZG9jdW1lbnRJRD0ieG1wLmRpZDoxOTU5RTlEMEMzMDQxMUUyQTExRkFBN0M0MDM5QTlGMyIvPiA8L3JkZjpEZXNjcmlwdGlvbj4gPC9yZGY6UkRGPiA8L3g6eG1wbWV0YT4gPD94cGFja2V0IGVuZD0iciI/PjDroXYAAAEXSURBVHjaYvz//z8DJYCRUgPIAUxAbAnEHiAHMIBcQCwGaRYXF3e6evXqoffv39/dv38/CymaGSUkJBzv3LlzCsj///fv3wdAihkkIQnEvkAshU8zLy+v7a1bt06ANP/79+87kDIAy505cybq06dPr3p7ezuwGQLTfOPGjWP/ESAZLg8kPKBO+g01RBJNszWyZqC6uSgWgIg/f/4shxnS2dnZBjMEqNkSFGBImi8CKTYMA4BYCGjIczRDHC5dunQQSfN7IKWI4UUkjjdMMdCwnw8ePLjwHxV4Yw1gZA5Q47z/2EELzhhCE+ABGvIQWSeQvwcU38QaAML2wHj+C/X3MyAlijeB4ZBoBOIPQGxJKIVSnBsBAgwABddBclWfcZUAAAAASUVORK5CYII=);
+  margin-top: 2px;
+  width: 21px
+}
+.gantt_cancel_btn {
+  margin-top: 2px;
+  background-image: url(data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAAAGXRFWHRTb2Z0d2FyZQBBZG9iZSBJbWFnZVJlYWR5ccllPAAAAyJpVFh0WE1MOmNvbS5hZG9iZS54bXAAAAAAADw/eHBhY2tldCBiZWdpbj0i77u/IiBpZD0iVzVNME1wQ2VoaUh6cmVTek5UY3prYzlkIj8+IDx4OnhtcG1ldGEgeG1sbnM6eD0iYWRvYmU6bnM6bWV0YS8iIHg6eG1wdGs9IkFkb2JlIFhNUCBDb3JlIDUuMy1jMDExIDY2LjE0NTY2MSwgMjAxMi8wMi8wNi0xNDo1NjoyNyAgICAgICAgIj4gPHJkZjpSREYgeG1sbnM6cmRmPSJodHRwOi8vd3d3LnczLm9yZy8xOTk5LzAyLzIyLXJkZi1zeW50YXgtbnMjIj4gPHJkZjpEZXNjcmlwdGlvbiByZGY6YWJvdXQ9IiIgeG1sbnM6eG1wPSJodHRwOi8vbnMuYWRvYmUuY29tL3hhcC8xLjAvIiB4bWxuczp4bXBNTT0iaHR0cDovL25zLmFkb2JlLmNvbS94YXAvMS4wL21tLyIgeG1sbnM6c3RSZWY9Imh0dHA6Ly9ucy5hZG9iZS5jb20veGFwLzEuMC9zVHlwZS9SZXNvdXJjZVJlZiMiIHhtcDpDcmVhdG9yVG9vbD0iQWRvYmUgUGhvdG9zaG9wIENTNiAoV2luZG93cykiIHhtcE1NOkluc3RhbmNlSUQ9InhtcC5paWQ6MDkzMDA3MzlDMzA0MTFFMjg2QTVFMzFEQzgwRkJERDYiIHhtcE1NOkRvY3VtZW50SUQ9InhtcC5kaWQ6MDkzMDA3M0FDMzA0MTFFMjg2QTVFMzFEQzgwRkJERDYiPiA8eG1wTU06RGVyaXZlZEZyb20gc3RSZWY6aW5zdGFuY2VJRD0ieG1wLmlpZDowOTMwMDczN0MzMDQxMUUyODZBNUUzMURDODBGQkRENiIgc3RSZWY6ZG9jdW1lbnRJRD0ieG1wLmRpZDowOTMwMDczOEMzMDQxMUUyODZBNUUzMURDODBGQkRENiIvPiA8L3JkZjpEZXNjcmlwdGlvbj4gPC9yZGY6UkRGPiA8L3g6eG1wbWV0YT4gPD94cGFja2V0IGVuZD0iciI/PmYuYOUAAAEdSURBVHjaYvz//z8DJYAFXWDlypU8QKoIiD2A2AwqfAqIdwBxX3h4+Bdk9YzILgBqtgdS84FYEYeF94E4EWjIQZgAE5LmQCB1AKoZZKMPEAtAMYh9GSp3AKjWD8UFQAEhIPshEIOc3wHENUBb/qJ57SyQMoJyPwKxElDNO1gYFEE17wMKVmIJlzNQzeegrjaA6qmBecEbSvfh0GwMxGeBhoPoemQ9MAO0kEIbl2YTqPAFKK2IbMB3AjabYIkRZmQD7kNpMyI0G0PpO8gGbIUFJj7NQDk2INWIrIcJKfBAKcwJqvkcDs0TgFgXGo19KCkRmpDWQdWDEk0NUoCBoq0FqhkE/IEWbKJKUmZEz43QzFSKIzN1481M5ACAAAMAlfl/lCwRpagAAAAASUVORK5CYII=);
+  width: 20px
+}
+.gantt_delete_btn {
+  background-image: url(data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAAAGXRFWHRTb2Z0d2FyZQBBZG9iZSBJbWFnZVJlYWR5ccllPAAAAyJpVFh0WE1MOmNvbS5hZG9iZS54bXAAAAAAADw/eHBhY2tldCBiZWdpbj0i77u/IiBpZD0iVzVNME1wQ2VoaUh6cmVTek5UY3prYzlkIj8+IDx4OnhtcG1ldGEgeG1sbnM6eD0iYWRvYmU6bnM6bWV0YS8iIHg6eG1wdGs9IkFkb2JlIFhNUCBDb3JlIDUuMy1jMDExIDY2LjE0NTY2MSwgMjAxMi8wMi8wNi0xNDo1NjoyNyAgICAgICAgIj4gPHJkZjpSREYgeG1sbnM6cmRmPSJodHRwOi8vd3d3LnczLm9yZy8xOTk5LzAyLzIyLXJkZi1zeW50YXgtbnMjIj4gPHJkZjpEZXNjcmlwdGlvbiByZGY6YWJvdXQ9IiIgeG1sbnM6eG1wPSJodHRwOi8vbnMuYWRvYmUuY29tL3hhcC8xLjAvIiB4bWxuczp4bXBNTT0iaHR0cDovL25zLmFkb2JlLmNvbS94YXAvMS4wL21tLyIgeG1sbnM6c3RSZWY9Imh0dHA6Ly9ucy5hZG9iZS5jb20veGFwLzEuMC9zVHlwZS9SZXNvdXJjZVJlZiMiIHhtcDpDcmVhdG9yVG9vbD0iQWRvYmUgUGhvdG9zaG9wIENTNiAoV2luZG93cykiIHhtcE1NOkluc3RhbmNlSUQ9InhtcC5paWQ6MjFENzI3NUNDMzA0MTFFMjhBNjJGQTc3MUIyQzYzNEYiIHhtcE1NOkRvY3VtZW50SUQ9InhtcC5kaWQ6MjFENzI3NURDMzA0MTFFMjhBNjJGQTc3MUIyQzYzNEYiPiA8eG1wTU06RGVyaXZlZEZyb20gc3RSZWY6aW5zdGFuY2VJRD0ieG1wLmlpZDoyMUQ3Mjc1QUMzMDQxMUUyOEE2MkZBNzcxQjJDNjM0RiIgc3RSZWY6ZG9jdW1lbnRJRD0ieG1wLmRpZDoyMUQ3Mjc1QkMzMDQxMUUyOEE2MkZBNzcxQjJDNjM0RiIvPiA8L3JkZjpEZXNjcmlwdGlvbj4gPC9yZGY6UkRGPiA8L3g6eG1wbWV0YT4gPD94cGFja2V0IGVuZD0iciI/PmUD0gAAAABvSURBVHjaYvz//z8DIyMjAxYQicReji4J0ofKQNP8HwmgGQbXB8IsWGwDSSwDuioKjY9uBthVjFAXYHUGAQA2kYmBUoAUBpGk0LAwgBvwH+YX4mkwptgLowYMRgOITUyYKRFIN/wnDjQgJySAAAMApryKzL8wjfUAAAAASUVORK5CYII=);
+  margin-top: 2px;
+  width: 20px
+}
+.gantt_cal_cover {
+  width: 100%;
+  height: 100%;
+  position: absolute;
+  z-index: 10000;
+  top: 0;
+  left: 0;
+  background-color: #000;
+  opacity: .1;
+  filter: alpha(opacity=10)
+}
+.gantt_custom_button {
+  padding: 0 3px;
+  font-family: Arial;
+  font-size: 13px;
+  font-weight: 400;
+  margin-right: 10px;
+  margin-top: -5px;
+  cursor: pointer;
+  float: right;
+  height: 21px;
+  width: 90px;
+  border: 1px solid #CECECE;
+  text-align: center;
+  -webkit-border-radius: 4px;
+  -moz-border-radius: 4px;
+  -ms-border-radius: 4px;
+  -o-border-radius: 4px;
+  border-radius: 4px
+}
+.gantt_custom_button div {
+  cursor: pointer;
+  float: none;
+  height: 21px;
+  line-height: 21px;
+  vertical-align: middle
+}
+.gantt_custom_button div:first-child {
+  display: none
+}
+.gantt_cal_light_wide {
+  width: 580px;
+  padding: 2px 4px
+}
+.gantt_cal_light_wide .gantt_cal_larea {
+  -moz-box-sizing: border-box;
+  -webkit-box-sizing: border-box;
+  box-sizing: border-box;
+  border: 1px solid #cecece
+}
+.gantt_cal_light_wide .gantt_cal_lsection {
+  border: 0;
+  float: left;
+  text-align: right;
+  width: 80px;
+  height: 20px;
+  padding: 5px 10px 0 0
+}
+.gantt_cal_light_wide .gantt_wrap_section {
+  position: relative;
+  padding: 10px 0;
+  overflow: hidden;
+  border-bottom: 1px solid #ebebeb
+}
+.gantt_cal_light_wide .gantt_section_time {
+  overflow: hidden;
+  padding-top: 2px!important;
+  padding-right: 0;
+  height: 20px!important
+}
+.gantt_cal_light_wide .gantt_cal_ltext {
+  padding-right: 0
+}
+.gantt_cal_light_wide .gantt_cal_larea {
+  padding: 0 10px;
+  width: 100%
+}
+.gantt_cal_light_wide .gantt_section_time {
+  background: 0 0
+}
+.gantt_cal_light_wide .gantt_cal_checkbox label {
+  padding-left: 0
+}
+.gantt_cal_light_wide .gantt_cal_lsection .gantt_fullday {
+  float: none;
+  margin-right: 0;
+  font-weight: 700;
+  cursor: pointer
+}
+.gantt_cal_light_wide .gantt_custom_button {
+  position: absolute;
+  top: 0;
+  right: 0;
+  margin-top: 2px
+}
+.gantt_cal_light_wide .gantt_repeat_right {
+  margin-right: 55px
+}
+.gantt_cal_light_wide.gantt_cal_light_full {
+  width: 738px
+}
+.gantt_cal_wide_checkbox input {
+  margin-top: 8px;
+  margin-left: 14px
+}
+.gantt_cal_light input {
+  font-size: 13px
+}
+.gantt_section_time {
+  background-color: #fff;
+  white-space: nowrap;
+  padding: 5px 10px;
+  padding-top: 2px!important
+}
+.gantt_section_time .gantt_time_selects {
+  float: left;
+  height: 25px
+}
+.gantt_section_time .gantt_time_selects select {
+  height: 23px;
+  padding: 2px;
+  border: 1px solid #cecece
+}
+.gantt_duration {
+  width: 100px;
+  height: 23px;
+  float: left;
+  white-space: nowrap;
+  margin-left: 20px;
+  line-height: 23px
+}
+.gantt_duration .gantt_duration_dec,
+.gantt_duration .gantt_duration_inc,
+.gantt_duration .gantt_duration_value {
+  -moz-box-sizing: border-box;
+  -webkit-box-sizing: border-box;
+  box-sizing: border-box;
+  text-align: center;
+  vertical-align: top;
+  height: 100%;
+  border: 1px solid #cecece
+}
+.gantt_duration .gantt_duration_value {
+  width: 40px;
+  padding: 3px 4px;
+  border-left-width: 0;
+  border-right-width: 0
+}
+.gantt_duration .gantt_duration_dec,
+.gantt_duration .gantt_duration_inc {
+  width: 20px;
+  padding: 1px 1px 3px;
+  background: #fff
+}
+.gantt_duration .gantt_duration_dec {
+  -moz-border-top-left-radius: 4px;
+  -moz-border-bottom-left-radius: 4px;
+  -webkit-border-top-left-radius: 4px;
+  -webkit-border-bottom-left-radius: 4px;
+  border-top-left-radius: 4px;
+  border-bottom-left-radius: 4px
+}
+.gantt_duration .gantt_duration_inc {
+  margin-right: 4px;
+  -moz-border-top-right-radius: 4px;
+  -moz-border-bottom-right-radius: 4px;
+  -webkit-border-top-right-radius: 4px;
+  -webkit-border-bottom-right-radius: 4px;
+  border-top-right-radius: 4px;
+  border-bottom-right-radius: 4px
+}
+.gantt_cal_quick_info {
+  border: 1px solid #cecece;
+  border-radius: 6px;
+  position: absolute;
+  z-index: 300;
+  box-shadow: 3px 3px 3px rgba(0, 0, 0, .07);
+  background-color: #fff;
+  width: 300px;
+  transition: left .5s ease, right .5s;
+  -moz-transition: left .5s ease, right .5s;
+  -webkit-transition: left .5s ease, right .5s;
+  -o-transition: left .5s ease, right .5s
+}
+.gantt_no_animate {
+  transition: none;
+  -moz-transition: none;
+  -webkit-transition: none;
+  -o-transition: none
+}
+.gantt_cal_quick_info.gantt_qi_left .gantt_qi_big_icon {
+  float: right
+}
+.gantt_cal_qi_title {
+  -webkit-border-radius: 6px 6px 0 0;
+  -moz-border-radius-topleft: 6px;
+  -moz-border-radius-bottomleft: 0;
+  -moz-border-radius-topright: 6px;
+  -moz-border-radius-bottomright: 0;
+  border-radius: 6px 6px 0 0;
+  padding: 5px 0 8px 12px;
+  color: #454545;
+  background-color: #fff;
+  border-bottom: 1px solid #cecece
+}
+.gantt_cal_qi_tdate {
+  font-size: 14px;
+  font-weight: 700
+}
+.gantt_cal_qi_tcontent {
+  font-size: 13px
+}
+.gantt_cal_qi_content {
+  padding: 16px 8px;
+  font-size: 13px;
+  color: #454545;
+  overflow: hidden
+}
+.gantt_cal_qi_controls {
+  -webkit-border-radius: 0 0 6px 6px;
+  -moz-border-radius-topleft: 0;
+  -moz-border-radius-bottomleft: 6px;
+  -moz-border-radius-topright: 0;
+  -moz-border-radius-bottomright: 6px;
+  border-radius: 0 0 6px 6px;
+  padding-left: 7px
+}
+#top-menu .easy-gantt.icon-stats .icon-svg {
+  stroke: orange;
+}
+.gantt_cal_qi_controls .gantt_menu_icon {
+  margin-top: 6px;
+  background-repeat: no-repeat
+}
+.gantt_cal_qi_controls .gantt_menu_icon.icon_edit {
+  width: 20px;
+  background-image: url(data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABQAAAAUCAYAAACNiR0NAAAABmJLR0QA/wD/AP+gvaeTAAAACXBIWXMAAA7EAAAOxAGVKw4bAAAAB3RJTUUH3QYFCjI5ZQj5bAAAAFNJREFUOMvt0zEOACAIA0DkwTymH8bJTRTKZGJXyaWEKPKTCQAH4Ls37cItcDUzsxHNDLZNhCq7Gt1wh9ErV7EjyGAhyGLphlnsClWuS32rn0czAV+vNGrM/LBtAAAAAElFTkSuQmCC)
+}
+.gantt_cal_qi_controls .gantt_menu_icon.icon_delete {
+  width: 20px;
+  background-image: url(data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAAAGXRFWHRTb2Z0d2FyZQBBZG9iZSBJbWFnZVJlYWR5ccllPAAAAyJpVFh0WE1MOmNvbS5hZG9iZS54bXAAAAAAADw/eHBhY2tldCBiZWdpbj0i77u/IiBpZD0iVzVNME1wQ2VoaUh6cmVTek5UY3prYzlkIj8+IDx4OnhtcG1ldGEgeG1sbnM6eD0iYWRvYmU6bnM6bWV0YS8iIHg6eG1wdGs9IkFkb2JlIFhNUCBDb3JlIDUuMy1jMDExIDY2LjE0NTY2MSwgMjAxMi8wMi8wNi0xNDo1NjoyNyAgICAgICAgIj4gPHJkZjpSREYgeG1sbnM6cmRmPSJodHRwOi8vd3d3LnczLm9yZy8xOTk5LzAyLzIyLXJkZi1zeW50YXgtbnMjIj4gPHJkZjpEZXNjcmlwdGlvbiByZGY6YWJvdXQ9IiIgeG1sbnM6eG1wPSJodHRwOi8vbnMuYWRvYmUuY29tL3hhcC8xLjAvIiB4bWxuczp4bXBNTT0iaHR0cDovL25zLmFkb2JlLmNvbS94YXAvMS4wL21tLyIgeG1sbnM6c3RSZWY9Imh0dHA6Ly9ucy5hZG9iZS5jb20veGFwLzEuMC9zVHlwZS9SZXNvdXJjZVJlZiMiIHhtcDpDcmVhdG9yVG9vbD0iQWRvYmUgUGhvdG9zaG9wIENTNiAoV2luZG93cykiIHhtcE1NOkluc3RhbmNlSUQ9InhtcC5paWQ6MjFENzI3NUNDMzA0MTFFMjhBNjJGQTc3MUIyQzYzNEYiIHhtcE1NOkRvY3VtZW50SUQ9InhtcC5kaWQ6MjFENzI3NURDMzA0MTFFMjhBNjJGQTc3MUIyQzYzNEYiPiA8eG1wTU06RGVyaXZlZEZyb20gc3RSZWY6aW5zdGFuY2VJRD0ieG1wLmlpZDoyMUQ3Mjc1QUMzMDQxMUUyOEE2MkZBNzcxQjJDNjM0RiIgc3RSZWY6ZG9jdW1lbnRJRD0ieG1wLmRpZDoyMUQ3Mjc1QkMzMDQxMUUyOEE2MkZBNzcxQjJDNjM0RiIvPiA8L3JkZjpEZXNjcmlwdGlvbj4gPC9yZGY6UkRGPiA8L3g6eG1wbWV0YT4gPD94cGFja2V0IGVuZD0iciI/PmUD0gAAAABvSURBVHjaYvz//z8DIyMjAxYQicReji4J0ofKQNP8HwmgGQbXB8IsWGwDSSwDuioKjY9uBthVjFAXYHUGAQA2kYmBUoAUBpGk0LAwgBvwH+YX4mkwptgLowYMRgOITUyYKRFIN/wnDjQgJySAAAMApryKzL8wjfUAAAAASUVORK5CYII=)
+}
+.gantt_qi_big_icon {
+  font-size: 13px;
+  border-radius: 4px;
+  font-weight: 700;
+  background: #fff;
+  margin: 5px 9px 8px 0;
+  min-width: 60px;
+  line-height: 32px;
+  vertical-align: middle;
+  padding: 0 10px 0 5px;
+  cursor: pointer;
+  border: 1px solid #cecece
+}
+.gantt_cal_qi_controls div {
+  float: left;
+  height: 32px;
+  text-align: center;
+  line-height: 32px
+}
+.gantt_tooltip {
+  box-shadow: 3px 3px 3px rgba(0, 0, 0, .07);
+  background-color: #fff;
+  border-left: 1px solid rgba(0, 0, 0, .07);
+  border-top: 1px solid rgba(0, 0, 0, .07);
+  font-family: Arial;
+  font-size: 8pt;
+  color: #454545;
+  padding: 10px;
+  position: absolute;
+  z-index: 50
+}
+.gantt_marker {
+  height: 100%;
+  width: 2px;
+  top: 0;
+  position: absolute;
+  text-align: center;
+  background-color: rgba(255, 0, 0, .4);
+  -moz-box-sizing: border-box;
+  -webkit-box-sizing: border-box;
+  box-sizing: border-box
+}
+.gantt_marker .gantt_marker_content {
+  padding: 5px;
+  background: inherit;
+  color: #fff;
+  position: absolute;
+  font-size: 12px;
+  line-height: 12px;
+  opacity: .8
+}
+.gantt_marker_area {
+  position: absolute;
+  top: 0;
+  left: 0
+}
+.gantt_noselect {
+  -moz-user-select: -moz-none;
+  -webkit-user-select: none;
+  -ms-user-select: none;
+  user-select: none
+}
+.gantt_drag_marker {
+  position: absolute;
+  font-family: Arial;
+  font-size: 13px
+}
+.gantt_drag_marker .gantt_tree_icon.gantt_blank,
+.gantt_drag_marker .gantt_tree_icon.gantt_close,
+.gantt_drag_marker .gantt_tree_icon.gantt_open,
+.gantt_drag_marker .gantt_tree_indent {
+  display: none
+}
+.gantt_drag_marker,
+.gantt_drag_marker .gantt_row.odd {
+  background-color: #fff
+}
+.gantt_drag_marker .gantt_row {
+  border-left: 1px solid #d2d2d2;
+  border-top: 1px solid #d2d2d2
+}
+.gantt_drag_marker .gantt_cell {
+  border-color: #d2d2d2
+}
+.gantt_row.gantt_over,
+.gantt_task_row.gantt_over {
+  background-color: #0070fe
+}
+.gantt_row.gantt_transparent .gantt_cell {
+  opacity: .7
+}
+.gantt_task_row.gantt_transparent {
+  background-color: #f8fdfd
+}
+.dhtmlx_popup_button.dhtmlx_delete_button {
+  background: #3db9d3;
+  text-shadow: 0 -1px 0 #248a9f;
+  color: #fff;
+  font-weight: 700;
+  border-width: 0
+}
+/*
+
+
+
+*/
+
+@media print {
+  .content-title {
+    display: none;
+  }
+
+  @page {
+    size: landscape
+  }
+
+  .gantt-grid-checkbox-cont {
+    display: none;
+  }
+}
+
+.gantt_container {
+  display: inline-block;
+}
+
+#gantt_cont {
+  position: relative;
+  z-index: 0;
+}
+
+#easy_gantt .weekend {
+  background-color: #F7F7F7;
+}
+
+#easy_gantt .first-date {
+  position: relative;
+}
+
+#easy_gantt .first-date:after {
+  content: "";
+  position: absolute;
+  display: block;
+  left: -1px;
+  top: 0;
+  bottom: 0;
+  border-left: 1px solid #628DB6;
+}
+
+#easy_gantt {
+  position: relative;
+}
+
+.gantt_task_content {
+  overflow: visible;
+  /*color:black;*/
+}
+
+.no_task_controls .gantt_link_control div {
+  display: none !important;
+}
+
+.gantt-fresh .gantt_link_control div {
+  display: none !important;
+}
+
+.no_task_controls .gantt_task_drag, .no_task_controls .gantt_task_progress_drag {
+  display: none !important;
+}
+
+#gantt_link_dialog {
+  border: 1px #000 solid;
+  background-color: #fff;
+  width: 200px;
+  position: absolute;
+  padding: 10px;
+  z-index: 2;
+}
+
+#gantt_link_dialog input[type="number"] {
+  width: 38px;
+}
+
+.gantt-tooltip {
+  position: absolute;
+  display: none;
+  background-color: white;
+  -webkit-box-shadow: 0 0 4px 2px rgba(232, 232, 232, 1);
+  -moz-box-shadow: 0 0 4px 2px rgba(232, 232, 232, 1);
+  box-shadow: 0 0 4px 2px rgba(232, 232, 232, 1);
+  padding: 20px;
+  z-index: 10;
+}
+
+.gantt-tooltip-header {
+  font-size: 1em;
+  padding-bottom: 10px;
+  border-bottom: 1px solid rgba(0, 0, 0, 0.2);
+  margin: 0 0 10px;
+}
+
+.gantt-tooltip-label {
+  font-size: 0.89em;
+  color: #a0a0a0;
+}
+
+.gantt-tooltip-problem {
+  color: #d94838;
+  font-size: smaller;
+}
+
+#easy_gantt.gantt .gantt_task_line.overdue {
+  background-color: #d94838;
+}
+
+#easy_gantt.easy .gantt_task_line, #easy_gantt.easy .gantt_row {
+  padding: 0;
+  border-width: 0 0 1px 0;
+}
+
+.gantt_task_progress {
+  /*background-color: rgba(0, 0, 0, 0.3);*/
+  margin-left: 1px;
+}
+
+#link_popup_button_cont {
+  margin-top: 35px;
+}
+
+#easy_gantt a.disabled:hover {
+  text-decoration: none;
+  cursor: not-allowed;
+}
+
+.milestone-type .gantt_cell {
+  border-right: 0;
+}
+
+.gantt-legend-color-square {
+  border: 1px solid transparent;
+  margin-left: 10px;
+}
+
+.gantt-color-square, .gantt-legend-color-square {
+  width: 15px;
+  height: 15px;
+  display: inline-block;
+  vertical-align: middle;
+  border: 1px solid transparent;
+}
+
+.easy-gantt-legend-symbol {
+  margin-left: 10px;
+}
+
+.gantt_cell {
+  padding: 0;
+}
+
+.gantt_grid {
+  border-right-width: 2px;
+}
+
+.gantt_row .gantt_drag_handle:before {
+  width: 18px;
+  height: 100%;
+  font-size: 20px;
+  font-weight: bold;
+}
+
+.gantt_row:hover .gantt_drag_handle:before {
+  content: '\21F5';
+  opacity: 0.5;
+}
+
+.gantt_row .gantt_drag_handle:hover:before {
+  opacity: 1;
+  content: '\21F5';
+}
+
+.gantt_row.gantt_drag_to_allowed {
+  background-color: #FFEB59;
+}
+
+.gantt_row.gantt_drag_hover {
+  background-color: #eeeeee;
+}
+
+.gantt_row.gantt_drag_to_allowed.gantt_drag_hover {
+  background-color: #FBCF00;
+}
+
+/*#sample_cont.flash {*/
+/*background-image: none;*/
+/*}*/
+.gantt-supertop-panel {
+  position: relative;
+}
+
+#easy_gantt .gantt-sample-flash {
+  font-size: 14px;
+}
+
+.gantt-menu {
+  z-index: 1;
+  position: relative;
+  background-color: #ffffff;
+  padding: 5px 0;
+}
+
+.gantt-footer-menu {
+  padding: 5px 0;
+}
+
+/*.easy-gantt-menu .action-buttons-with-submenu {*/
+/*display: inline;*/
+/*}*/
+.gantt-modal-video {
+  margin-left: 10px;
+  margin-top: 5px;
+}
+
+.gantt_drag_marker {
+  z-index: 1;
+  pointer-events: none;
+}
+
+.gantt_grid_column_resize_wrap, .gantt_grid_columns_resize_wrap {
+  top: 0;
+  height: 100%;
+  cursor: col-resize;
+  position: absolute;
+  /*background-color: red;*/
+  width: 12px
+}
+
+/*.gantt_task_line.parent{*/
+/*background-color: yellow;*/
+/*}*/
+.gantt-sample-close-button {
+  background-color: #cd0a0a;
+  color: white;
+  width: auto;
+  height: auto;
+  float: none;
+  display: inline;
+  margin-left: 25px;
+  padding: 8px 10px 8px 25px;
+  background-position-x: 5px;
+}
+
+/* Easy Redmine < 2016 */
+#easy_gantt.easy .push-left {
+  float: left;
+}
+
+#easy_gantt.easy .push-right {
+  float: right;
+  text-align: right
+}
+
+/*#easy_gantt.easy .gantt-menu p[id^="button_"], #easy_gantt.easy .gantt-menu div[id^="button_"]  {*/
+/*display: inline-block;*/
+/*}*/
+.gantt_grid_data div.empty-type div {
+  display: none;
+}
+
+.gantt_bars_area div.empty-type {
+  display: none;
+}
+
+.gantt_task_line.planned {
+  z-index: 1;
+}
+
+.gantt_link_tooltip.gantt_link_deny {
+  background-color: #ff6666;
+}
+
+@media print {
+  #easy_servicebar {
+    display: none;
+  }
+
+  #easy_gantt_menu {
+    display: none;
+  }
+
+  #easy_gantt_footer {
+    display: none;
+  }
+
+  .flash {
+    display: none;
+  }
+}
+
+.gantt_grid_superitem {
+  font-weight: bold;
+  /*font-style: italic;*/
+  height: 100%;
+  width: 100%;
+  vertical-align: top;
+}
+
+.gantt_grid_scale, .gantt_task_scale {
+  background-color: #ffffff;
+  z-index: 1;
+  position: relative;
+  border-top: 1px solid #cecece;
+  transform: translate(0, -1px);
+}
+
+.gantt_grid_scale .gantt_grid_head_cell, .gantt_task .gantt_task_scale .gantt_scale_cell {
+  color: rgba(72, 72, 72, 0.8);
+}
+
+/*.gantt_scale_cell{*/
+/*overflow: visible;*/
+/*}*/
+
+.gantt-footer-legend {
+  display: inline-block;
+  float: right;
+  margin-top: 20px;
+}
+
+.gantt-legend-symbol {
+  font-size: 15px;
+}
+
+#easy_gantt input.wrong {
+  background-color: #cd0a0a;
+}
+
+.gantt-reload-model-error {
+  color: #cd0a0a;
+}
+
+.gantt_task_line {
+  background-color: inherit !important;
+  border: none !important;
+  box-shadow: none !important;
+}
+
+.gantt_task_line.gantt_selected .gantt_task_content {
+  box-shadow: none !important;
+}
+
+.gantt_task_line.closed .gantt_task_ticks,
+.gantt_task_line.closed .gantt_task_content {
+  background-color: rgba(200, 200, 200, 0.2);
+  border-color: rgba(200, 200, 200, 1);
+}
+
+.gantt_link_point {
+  border-color: rgba(217, 72, 56, 1) !important;
+  background-color: rgba(217, 72, 56, 1) !important;
+}
+
+.gantt_task_drag {
+  background: radial-gradient(rgba(217, 72, 56, 1) 25%, transparent 10%) 1px 1px;
+  background-size: 4px 4px;
+}
+
+.gantt_task_progress_drag {
+  border-bottom: 10px solid rgba(217, 72, 56, 1);
+}
+
+.gantt_line_wrapper div, .gantt_link_arrow {
+  border-color: rgba(255, 125, 30, 1);
+}
+
+.gantt-relation-simple > .gantt_line_wrapper div, .gantt-relation-simple > .gantt_link_arrow {
+  border-color: rgba(30, 120, 255, 1);
+}
+
+.gantt-relation-simple:hover > .gantt_line_wrapper div {
+  box-shadow: 0 0 5px 0 rgba(30, 120, 255, 1);
+}
+.gantt-relation-unlocked > .gantt_line_wrapper div, .gantt-relation-unlocked > .gantt_link_arrow {
+  border-color: rgba(51, 141, 71, 1);
+}
+
+.gantt-relation-unlocked:hover > .gantt_line_wrapper div {
+  box-shadow: 0 0 5px 0 rgba(255, 125, 30, 1);
+}
+
+#easy_gantt .wrong .gantt_line_wrapper div {
+  border-color: rgba(217, 72, 56, 1) !important;
+}
+
+#easy_gantt .wrong .gantt_link_arrow {
+  border-color: rgba(217, 72, 56, 1) !important;
+  border-top-color: transparent !important;
+  border-right-color: transparent !important;
+  border-bottom-color: transparent !important;
+}
+
+.gantt_task_progress_drag {
+  border-bottom: 10px solid rgba(217, 72, 56, 1);
+}
+
+#easy_gantt .gantt_link_arrow_right {
+  border-top-color: transparent !important;
+  border-right-color: transparent !important;
+  border-bottom-color: transparent !important;
+}
+
+.gantt_task_progress_drag {
+  width: 0 !important;
+  height: 0 !important;
+  background: none !important;
+  border-left: 6.5px solid transparent;
+  border-right: 6.5px solid transparent;
+  border-bottom-width: 10px;
+  border-bottom-style: solid;
+  margin-left: -6.5px !important;
+}
+
+.gantt_task_drag {
+  background-size: 4px 4px;
+}
+
+.gantt_link_control.task_left {
+  left: -6.5px;
+  width: 6.5px;
+  border-radius: 6.5px 0 0 6.5px;
+}
+
+.gantt_link_control.task_right {
+  right: -6.5px;
+  width: 6.5px;
+  border-radius: 0 6.5px 6.5px 0;
+}
+
+.gantt_link_control.task_left .gantt_link_point {
+  width: 6.5px;
+  border-radius: 6.5px 0 0 6.5px;
+}
+
+.gantt_link_control.task_right .gantt_link_point {
+  width: 6.5px;
+  border-radius: 0 6.5px 6.5px 0;
+}
+
+@media print {
+  body {
+    margin: 0;
+  }
+
+  .gantt_sort {
+    display: none;
+  }
+}
+
+.gantt-grid-header-collapse-buttons {
+  position: absolute;
+  left: 5px;
+  bottom: 2px;
+}
+
+.gantt-grid-header-collapse-buttons a {
+  font-size: 18px;
+  color: #a6a6a6;
+  font-weight: bold;
+  font-family: monospace;
+  display: inline-block;
+}
+
+.gantt-grid-header-collapse-buttons a.active {
+  font-size: 18px;
+  color: #d94838 !important;
+  background-color: transparent !important;
+  border: none !important;
+}
+
+.gantt-grid-header-collapse-buttons a:hover {
+  font-size: 18px;
+  color: rgba(72, 72, 72, 1);
+  text-decoration: none;
+  background-color: #eeeeee !important;
+  box-shadow: 0 0 15px 5px #eeeeee;
+  border-radius: 11px;
+}
+
+.gantt-grid-checkbox-cont br {
+  display: none;
+}
+
+@media screen {
+  .gantt-icon-parent-issue:before {
+    content: '⥐'
+  }
+
+  .gantt-icon-milestone:before {
+    content: '♦';
+  }
+}
+
+.gantt_task_line.gantt_parent_task-subtype .gantt_task_content {
+  height: 50%;
+  -moz-border-radius-bottomleft: 0;
+  -moz-border-radius-bottomright: 0;
+}
+
+.gantt_task_line.gantt_parent_task-subtype .gantt_task_progress {
+  height: 50%;
+}
+
+.gantt_task_ticks {
+  height: 0;
+  margin-top: -1px;
+  border: 10px solid rgba(51, 141, 71, 1);
+  border-top-width: 0;
+  border-bottom-color: transparent !important;
+  background-color: transparent !important;
+}
+
+.gantt-milestone-icon {
+  transform: scale(0.65) rotate(45deg);
+  width: 16px !important;
+  height: 16px !important;
+  background-color: rgba(62, 91, 118, 1);
+  border: 2px solid rgba(62, 91, 118, 1);
+}
+
+.gantt_row:hover .gantt-bullet-hover-hide {
+  display: none;
+}
+
+.gantt-sum-row-small {
+  font-size: 8px;
+}
+
+.gantt-sum-row-negative {
+  color: red;
+}
+
+#easy_gantt.easy #easy_gantt_menu {
+  z-index: 2;
+  overflow: visible;
+}
+
+#easy_gantt .contextual.settings a {
+  z-index: 1;
+  border: none;
+  padding-right: 0;
+  opacity: 0.6;
+}
+
+#easy_gantt.easy .contextual.settings a {
+  background: none;
+}
+
+#easy_gantt .contextual.settings a:hover {
+  opacity: 1;
+}
+
+#easy_gantt.easy .contextual.settings a:hover {
+  background: none;
+}
+
+.gantt-grid-header-multi {
+  line-height: normal;
+  display: inline-block;
+  white-space: normal;
+}
+
+.gantt_task_relation_stop {
+  position: absolute;
+  width: 8px;
+  top: 0;
+  height: 100%;
+  border: 2px solid rgba(255, 120, 0, 0.5);
+  box-sizing: border-box;
+}
+
+.gantt_task_relation_stop_left {
+  border-right-color: transparent;
+}
+
+.gantt_task_relation_stop_right {
+  border-left-color: transparent;
+  -webkit-transform: translate(-100%);
+  -moz-transform: translate(-100%);
+  -ms-transform: translate(-100%);
+  -o-transform: translate(-100%);
+  transform: translate(-100%);
+}
+
+.gantt-menu-sub-panel {
+  margin-top: 3px;
+}
+
+.gantt_task .gantt-sum-row .gantt_scale_cell {
+  font-weight: bold;
+  color: #260080;
+}
+
+.gantt-menu-problems-count.gantt-with-problems {
+  background-color: red;
+  padding: 1px;
+  border: 1px solid #b0b0b0;
+  border-radius: 4px;
+}
+
+.gantt-menu-problems-list {
+  overflow: auto;
+  position: absolute;
+  z-index: 2;
+  max-width: 600px;
+  margin-top: 5px;
+  border: 2px solid #cecece;
+  background-color: white;
+  right: 0;
+  text-align: left;
+}
+
+.gantt-menu-problems-list ol {
+  margin: 5px 5px 5px -5px;
+}
+
+.gantt-menu-problems-list li {
+  border-bottom: 1px solid #d9d9d9;
+  white-space: nowrap;
+  padding: 5px 25px 5px 5px;
+}
+
+.gantt-menu-problems-list ol,
+.gantt-menu-problems-list a {
+  color: #4b5561;
+}
+
+.gantt-menu-problems-reason {
+  color: red;
+}
+
+.gantt-task-bar-line {
+  position: absolute;
+  left: 0;
+  top: 0;
+  overflow: hidden
+}
+
+@media print {
+  /* Because of gaps between cells in header */
+  .gantt_scale_line.gantt-print__scale-line{
+    font-size: 0;
+  }
+  .gantt_scale_line.gantt-print__scale-line .gantt_scale_cell{
+    font-size: 12px;
+  }
+}
+/*----------------------------------------*/
+/* Vendors */
+/*----------------------------------------*/
+/*----------------------------------------*/
+/* Mixins & Placeholders */
+/*----------------------------------------*/
+/* line 88, plugins/easyproject/easy_plugins/easy_extensions/assets/../../../../easyproject/easy_plugins/easy_extensions/assets/stylesheets/scss/mixins/css3.scss */
+div#easy_gantt.easy .button.active, .easy .easy-gantt__menu-group--tooltiped ul li > .menu-children, .easy .easy-gantt__menu-group--tooltiped ul {
+  -webkit-border-radius: 2px;
+  -moz-border-radius: 2px;
+  border-radius: 2px;
+}
+
+/* line 97, plugins/easyproject/easy_plugins/easy_extensions/assets/../../../../easyproject/easy_plugins/easy_extensions/assets/stylesheets/scss/mixins/css3.scss */
+.easy-gantt__menu .gantt-menu-problems-count.gantt-with-problems {
+  -webkit-border-radius: 5000px;
+  -moz-border-radius: 5000px;
+  border-radius: 5000px;
+}
+
+/* line 118, plugins/easyproject/easy_plugins/easy_extensions/assets/../../../../easyproject/easy_plugins/easy_extensions/assets/stylesheets/scss/mixins/css3.scss */
+.easy .easy-gantt__menu-group--tooltiped ul li > .menu-children, .easy .easy-gantt__menu-group--tooltiped ul {
+  -webkit-box-shadow: 0px 0px 5px 0 rgba(0, 0, 0, 0.125);
+  -moz-box-shadow: 0px 0px 5px 0 rgba(0, 0, 0, 0.125);
+  box-shadow: 0px 0px 5px 0 rgba(0, 0, 0, 0.125);
+}
+
+/* line 130, plugins/easyproject/easy_plugins/easy_extensions/assets/../../../../easyproject/easy_plugins/easy_extensions/assets/stylesheets/scss/mixins/css3.scss */
+div#easy_gantt.easy .active.button {
+  -webkit-box-shadow: inset 0px 1px 10px 0px rgba(0, 0, 0, 0.125);
+  -moz-box-shadow: inset 0px 1px 10px 0px rgba(0, 0, 0, 0.125);
+  box-shadow: inset 0px 1px 10px 0px rgba(0, 0, 0, 0.125);
+}
+
+/* line 305, plugins/easyproject/easy_plugins/easy_extensions/assets/../../../../easyproject/easy_plugins/easy_extensions/assets/stylesheets/scss/mixins/css3.scss */
+.easy-gantt__menu {
+  -webkit-box-sizing: border-box;
+  -moz-box-sizing: border-box;
+  box-sizing: border-box;
+}
+
+/* line 502, plugins/easyproject/easy_plugins/easy_extensions/assets/../../../../easyproject/easy_plugins/easy_extensions/assets/stylesheets/scss/mixins/css3.scss */
+.easy-gantt__menu {
+  display: -webkit-box;
+  display: -moz-box;
+  display: -ms-flexbox;
+  display: -webkit-flex;
+  display: flex;
+}
+
+/* line 524, plugins/easyproject/easy_plugins/easy_extensions/assets/../../../../easyproject/easy_plugins/easy_extensions/assets/stylesheets/scss/mixins/css3.scss */
+.easy-gantt__menu {
+  -webkit-justify-content: space-between;
+  -ms-justify-content: space-between;
+  justify-content: space-between;
+}
+
+/* line 551, plugins/easyproject/easy_plugins/easy_extensions/assets/../../../../easyproject/easy_plugins/easy_extensions/assets/stylesheets/scss/mixins/css3.scss */
+.easy-gantt__menu {
+  -webkit-flex-wrap: wrap;
+  -ms-flex-wrap: wrap;
+  flex-wrap: wrap;
+}
+
+/* line 15, plugins/easyproject/easy_plugins/easy_extensions/assets/../../../../easyproject/easy_plugins/easy_extensions/assets/stylesheets/scss/mixins/typography.scss */
+.easy .easy-gantt__menu-group--tooltiped ul li {
+  font-family: "Open Sans", sans-serif;
+  font-size: 13px;
+  line-height: 1.5;
+  font-weight: normal;
+  color: #42321a;
+}
+
+@media only screen and (min-resolution: 100dpi) {
+  /* line 15, plugins/easyproject/easy_plugins/easy_extensions/assets/../../../../easyproject/easy_plugins/easy_extensions/assets/stylesheets/scss/mixins/typography.scss */
+  .easy .easy-gantt__menu-group--tooltiped ul li {
+    font-size: 14px;
+  }
+}
+
+@media only screen and (max-width: 960px) {
+  /* line 15, plugins/easyproject/easy_plugins/easy_extensions/assets/../../../../easyproject/easy_plugins/easy_extensions/assets/stylesheets/scss/mixins/typography.scss */
+  .easy .easy-gantt__menu-group--tooltiped ul li {
+    font-size: 11px;
+  }
+}
+
+@media only screen and (max-width: 960px) and (min-resolution: 100dpi) {
+  /* line 15, plugins/easyproject/easy_plugins/easy_extensions/assets/../../../../easyproject/easy_plugins/easy_extensions/assets/stylesheets/scss/mixins/typography.scss */
+  .easy .easy-gantt__menu-group--tooltiped ul li {
+    font-size: 13px;
+  }
+}
+
+@media only screen and (min-width: 1401px) {
+  /* line 15, plugins/easyproject/easy_plugins/easy_extensions/assets/../../../../easyproject/easy_plugins/easy_extensions/assets/stylesheets/scss/mixins/typography.scss */
+  .easy .easy-gantt__menu-group--tooltiped ul li {
+    font-size: 14px;
+  }
+}
+
+@media only screen and (min-width: 1401px) and (min-resolution: 100dpi) {
+  /* line 15, plugins/easyproject/easy_plugins/easy_extensions/assets/../../../../easyproject/easy_plugins/easy_extensions/assets/stylesheets/scss/mixins/typography.scss */
+  .easy .easy-gantt__menu-group--tooltiped ul li {
+    font-size: 16px;
+  }
+}
+
+@media only screen and (min-width: 1901px) {
+  /* line 15, plugins/easyproject/easy_plugins/easy_extensions/assets/../../../../easyproject/easy_plugins/easy_extensions/assets/stylesheets/scss/mixins/typography.scss */
+  .easy .easy-gantt__menu-group--tooltiped ul li {
+    font-size: 15px;
+  }
+}
+
+@media only screen and (min-width: 1901px) and (min-resolution: 100dpi) {
+  /* line 15, plugins/easyproject/easy_plugins/easy_extensions/assets/../../../../easyproject/easy_plugins/easy_extensions/assets/stylesheets/scss/mixins/typography.scss */
+  .easy .easy-gantt__menu-group--tooltiped ul li {
+    font-size: 17px;
+  }
+}
+
+/* line 98, plugins/easyproject/easy_plugins/easy_extensions/assets/../../../../easyproject/easy_plugins/easy_extensions/assets/stylesheets/scss/mixins/typography.scss */
+.easy .easy-gantt__menu-group--tooltiped ul li a {
+  -ms-word-break: break-all;
+  word-break: break-word;
+  -webkit-hyphens: auto;
+  -moz-hyphens: auto;
+  -ms-hyphens: auto;
+  hyphens: auto;
+}
+
+/* line 1, plugins/easyproject/easy_plugins/easy_extensions/assets/../../../../easyproject/easy_plugins/easy_extensions/assets/stylesheets/scss/mixins/icons.scss */
+.easy .easy-gantt__menu-group--tooltiped ul li a.submenu:after, .easy-gantt__icon:before {
+  speak: none;
+  font-weight: normal;
+  font-style: normal;
+  text-decoration: none;
+  -webkit-font-smoothing: antialiased;
+  display: inline-block;
+  width: auto;
+  height: auto;
+  background-position: 0% 0%;
+  background-repeat: repeat;
+  background-image: none;
+  vertical-align: baseline;
+}
+
+/* line 21, plugins/easyproject/easy_plugins/easy_extensions/assets/../../../../easyproject/easy_plugins/easy_extensions/assets/stylesheets/scss/mixins/icons.scss */
+.easy .easy-gantt__menu-group--tooltiped ul li a.submenu:after, .easy-gantt__icon:before {
+  font-family: "EasyIcons";
+}
+
+/* line 24, plugins/easyproject/easy_plugins/easy_extensions/assets/../../../../easyproject/easy_plugins/easy_extensions/assets/stylesheets/scss/mixins/icons.scss */
+.easy-gantt__icon {
+  position: relative;
+  background-repeat: no-repeat;
+  background-image: none !important;
+}
+
+/* line 2, plugins/easyproject/easy_plugins/easy_extensions/assets/../../../../easyproject/easy_plugins/easy_extensions/assets/stylesheets/scss/mixins/pseudo.scss */
+.easy .easy-gantt__menu-group--tooltiped ul li > .menu-children:after, .easy .easy-gantt__menu-group--tooltiped ul li > .menu-children:before {
+  content: "";
+  display: block;
+  z-index: 1;
+}
+
+/* line 7, plugins/easyproject/easy_plugins/easy_extensions/assets/../../../../easyproject/easy_plugins/easy_extensions/assets/stylesheets/scss/mixins/pseudo.scss */
+.easy .easy-gantt__menu-group--tooltiped ul li > .menu-children {
+  position: relative;
+}
+
+/* line 12, plugins/easyproject/easy_plugins/easy_extensions/assets/../../../../easyproject/easy_plugins/easy_extensions/assets/stylesheets/scss/mixins/pseudo.scss */
+.easy .easy-gantt__menu-group--tooltiped ul li > .menu-children:after {
+  position: absolute;
+}
+
+/* line 19, plugins/easyproject/easy_plugins/easy_extensions/assets/../../../../easyproject/easy_plugins/easy_extensions/assets/stylesheets/scss/mixins/pseudo.scss */
+.easy .easy-gantt__menu-group--tooltiped ul li > .menu-children:before {
+  position: absolute;
+}
+
+/* line 16, plugins/easyproject/easy_plugins/easy_extensions/assets/../../../../easyproject/easy_plugins/easy_extensions/assets/stylesheets/scss/mixins/buttons.scss */
+.splitcontent .contextual div#easy_gantt.easy .button.active, div#easy_gantt.easy .splitcontent .contextual .button.active {
+  padding: 2.5px 5px !important;
+  font-size: 0.89em;
+}
+
+/* line 19, plugins/easyproject/easy_plugins/easy_extensions/assets/../../../../easyproject/easy_plugins/easy_extensions/assets/stylesheets/scss/mixins/buttons.scss */
+.splitcontent .contextual div#easy_gantt.easy .icon.button.active, div#easy_gantt.easy .splitcontent .contextual .icon.button.active {
+  padding-left: 30px !important;
+}
+
+/* line 21, plugins/easyproject/easy_plugins/easy_extensions/assets/../../../../easyproject/easy_plugins/easy_extensions/assets/stylesheets/scss/mixins/buttons.scss */
+.splitcontent .contextual div#easy_gantt.easy .icon.button.active:before, div#easy_gantt.easy .splitcontent .contextual .icon.button.active:before {
+  width: 30px !important;
+  font-size: 1.1em;
+}
+
+/* line 26, plugins/easyproject/easy_plugins/easy_extensions/assets/../../../../easyproject/easy_plugins/easy_extensions/assets/stylesheets/scss/mixins/buttons.scss */
+#sidebar .splitcontent .contextual div#easy_gantt.easy .button.active, .splitcontent .contextual div#easy_gantt.easy #sidebar .button.active, #sidebar div#easy_gantt.easy .splitcontent .contextual .button.active, div#easy_gantt.easy .splitcontent .contextual #sidebar .button.active, #easy_grid_sidebar .splitcontent .contextual div#easy_gantt.easy .button.active, .splitcontent .contextual div#easy_gantt.easy #easy_grid_sidebar .button.active, #easy_grid_sidebar div#easy_gantt.easy .splitcontent .contextual .button.active, div#easy_gantt.easy .splitcontent .contextual #easy_grid_sidebar .button.active {
+  display: inline-block !important;
+}
+
+/* line 46, plugins/easyproject/easy_plugins/easy_extensions/assets/../../../../easyproject/easy_plugins/easy_extensions/assets/stylesheets/scss/mixins/buttons.scss */
+div#easy_gantt.easy .icon.button.active:before {
+  position: absolute;
+  left: 0;
+  width: 30px;
+  text-align: center;
+  font-size: 1.2em;
+  line-height: 1;
+  color: inherit;
+  top: 50%;
+  margin-top: -0.5em;
+}
+
+/* line 58, plugins/easyproject/easy_plugins/easy_extensions/assets/../../../../easyproject/easy_plugins/easy_extensions/assets/stylesheets/scss/mixins/buttons.scss */
+#sidebar div#easy_gantt.easy .icon.button.active, div#easy_gantt.easy #sidebar .icon.button.active, #easy_grid_sidebar div#easy_gantt.easy .icon.button.active, div#easy_gantt.easy #easy_grid_sidebar .icon.button.active {
+  padding-left: 40px !important;
+}
+
+/* line 60, plugins/easyproject/easy_plugins/easy_extensions/assets/../../../../easyproject/easy_plugins/easy_extensions/assets/stylesheets/scss/mixins/buttons.scss */
+#sidebar div#easy_gantt.easy .icon.button.active:before, div#easy_gantt.easy #sidebar .icon.button.active:before, #easy_grid_sidebar div#easy_gantt.easy .icon.button.active:before, div#easy_gantt.easy #easy_grid_sidebar .icon.button.active:before {
+  width: 40px !important;
+}
+
+/* line 64, plugins/easyproject/easy_plugins/easy_extensions/assets/../../../../easyproject/easy_plugins/easy_extensions/assets/stylesheets/scss/mixins/buttons.scss */
+div#easy_gantt.easy .button.active {
+  font-size: 0.89em;
+  font-weight: bold;
+  display: inline-block;
+  border: 1px solid transparent;
+  padding: 5px 10px;
+  text-align: left;
+  cursor: pointer;
+  position: relative;
+  vertical-align: middle;
+}
+
+/* line 75, plugins/easyproject/easy_plugins/easy_extensions/assets/../../../../easyproject/easy_plugins/easy_extensions/assets/stylesheets/scss/mixins/buttons.scss */
+div#easy_gantt.easy .icon.button.active {
+  padding-left: 30px;
+}
+
+/* line 82, plugins/easyproject/easy_plugins/easy_extensions/assets/../../../../easyproject/easy_plugins/easy_extensions/assets/stylesheets/scss/mixins/buttons.scss */
+#sidebar div#easy_gantt.easy .button.active, div#easy_gantt.easy #sidebar .button.active, #easy_grid_sidebar div#easy_gantt.easy .button.active, div#easy_gantt.easy #easy_grid_sidebar .button.active {
+  display: block;
+  position: relative !important;
+  z-index: 2;
+  padding-left: 20px;
+  margin-bottom: 3px;
+}
+
+@media only screen and (min-width: 641px) {
+  /* line 93, plugins/easyproject/easy_plugins/easy_extensions/assets/../../../../easyproject/easy_plugins/easy_extensions/assets/stylesheets/scss/mixins/buttons.scss */
+  .nosidebar #sidebar div#easy_gantt.easy .button.active:hover, div#easy_gantt.easy .nosidebar #sidebar .button.active:hover, .nosidebar #easy_grid_sidebar div#easy_gantt.easy .button.active:hover, div#easy_gantt.easy .nosidebar #easy_grid_sidebar .button.active:hover {
+    -webkit-animation: sidebar-buttons-slide-left 0.25s forwards;
+    -moz-animation: sidebar-buttons-slide-left 0.25s forwards;
+    -ms-animation: sidebar-buttons-slide-left 0.25s forwards;
+    -o-animation: sidebar-buttons-slide-left 0.25s forwards;
+    animation: sidebar-buttons-slide-left 0.25s forwards;
+  }
+}
+
+/* line 99, plugins/easyproject/easy_plugins/easy_extensions/assets/../../../../easyproject/easy_plugins/easy_extensions/assets/stylesheets/scss/mixins/buttons.scss */
+.form-actions div#easy_gantt.easy .button.active, div#easy_gantt.easy .form-actions .button.active {
+  margin: 3px 0;
+}
+
+@-webkit-keyframes sidebar-buttons-slide-left {
+  from {
+    -webkit-transform: translate(0, 0);
+    -moz-transform: translate(0, 0);
+    -ms-transform: translate(0, 0);
+    -o-transform: translate(0, 0);
+    transform: translate(0, 0);
+  }
+  to {
+    -webkit-transform: translate(-200px, 0);
+    -moz-transform: translate(-200px, 0);
+    -ms-transform: translate(-200px, 0);
+    -o-transform: translate(-200px, 0);
+    transform: translate(-200px, 0);
+  }
+}
+
+@-moz-keyframes sidebar-buttons-slide-left {
+  from {
+    -webkit-transform: translate(0, 0);
+    -moz-transform: translate(0, 0);
+    -ms-transform: translate(0, 0);
+    -o-transform: translate(0, 0);
+    transform: translate(0, 0);
+  }
+  to {
+    -webkit-transform: translate(-200px, 0);
+    -moz-transform: translate(-200px, 0);
+    -ms-transform: translate(-200px, 0);
+    -o-transform: translate(-200px, 0);
+    transform: translate(-200px, 0);
+  }
+}
+
+@-ms-keyframes sidebar-buttons-slide-left {
+  /* line 110, plugins/easyproject/easy_plugins/easy_extensions/assets/../../../../easyproject/easy_plugins/easy_extensions/assets/stylesheets/scss/mixins/buttons.scss */
+  from {
+    -webkit-transform: translate(0, 0);
+    -moz-transform: translate(0, 0);
+    -ms-transform: translate(0, 0);
+    -o-transform: translate(0, 0);
+    transform: translate(0, 0);
+  }
+  /* line 113, plugins/easyproject/easy_plugins/easy_extensions/assets/../../../../easyproject/easy_plugins/easy_extensions/assets/stylesheets/scss/mixins/buttons.scss */
+  to {
+    -webkit-transform: translate(-200px, 0);
+    -moz-transform: translate(-200px, 0);
+    -ms-transform: translate(-200px, 0);
+    -o-transform: translate(-200px, 0);
+    transform: translate(-200px, 0);
+  }
+}
+
+@keyframes sidebar-buttons-slide-left {
+  from {
+    -webkit-transform: translate(0, 0);
+    -moz-transform: translate(0, 0);
+    -ms-transform: translate(0, 0);
+    -o-transform: translate(0, 0);
+    transform: translate(0, 0);
+  }
+  to {
+    -webkit-transform: translate(-200px, 0);
+    -moz-transform: translate(-200px, 0);
+    -ms-transform: translate(-200px, 0);
+    -o-transform: translate(-200px, 0);
+    transform: translate(-200px, 0);
+  }
+}
+
+/* line 152, plugins/easyproject/easy_plugins/easy_extensions/assets/../../../../easyproject/easy_plugins/easy_extensions/assets/stylesheets/scss/mixins/buttons.scss */
+div#easy_gantt.easy .button.active {
+  line-height: 18px;
+  min-height: 18px;
+  background: #007aad;
+  border-color: #004461;
+  color: #ffffff;
+}
+
+/* line 126, plugins/easyproject/easy_plugins/easy_extensions/assets/../../../../easyproject/easy_plugins/easy_extensions/assets/stylesheets/scss/mixins/buttons.scss */
+div#easy_gantt.easy .button.active:hover {
+  color: #ffffff;
+  text-decoration: none;
+  background: #006894;
+}
+
+/* line 131, plugins/easyproject/easy_plugins/easy_extensions/assets/../../../../easyproject/easy_plugins/easy_extensions/assets/stylesheets/scss/mixins/buttons.scss */
+div#easy_gantt.easy .selected.button.active {
+  background: #006894;
+  color: rgba(255, 255, 255, 0.75);
+}
+
+/* line 135, plugins/easyproject/easy_plugins/easy_extensions/assets/../../../../easyproject/easy_plugins/easy_extensions/assets/stylesheets/scss/mixins/buttons.scss */
+.ui-widget-content div#easy_gantt.easy .button.active, div#easy_gantt.easy .ui-widget-content .button.active {
+  color: #ffffff;
+}
+
+/* line 183, plugins/easyproject/easy_plugins/easy_extensions/assets/../../../../easyproject/easy_plugins/easy_extensions/assets/stylesheets/scss/mixins/forms.scss */
+.easy .easy-gantt__menu-group--tooltiped ul li a.submenu:after {
+  position: absolute;
+  right: 1px;
+  top: 1px;
+  bottom: 1px;
+  font-size: 1em;
+  line-height: 2.25;
+  margin: 0;
+  padding: 0;
+  display: block;
+  background: none;
+  border: none;
+  min-width: 20px;
+  text-align: center;
+}
+
+/* line 197, plugins/easyproject/easy_plugins/easy_extensions/assets/../../../../easyproject/easy_plugins/easy_extensions/assets/stylesheets/scss/mixins/forms.scss */
+.easy .easy-gantt__menu-group--tooltiped ul li a.submenu:after {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+}
+
+/* line 204, plugins/easyproject/easy_plugins/easy_extensions/assets/../../../../easyproject/easy_plugins/easy_extensions/assets/stylesheets/scss/mixins/forms.scss */
+.easy .easy-gantt__menu-group--tooltiped ul li a.submenu:after span {
+  display: none;
+}
+
+/* line 124, plugins/easyproject/easy_plugins/easy_extensions/assets/../../../../easyproject/easy_plugins/easy_extensions/assets/stylesheets/scss/mixins/pseudo.scss */
+.easy .easy-gantt__menu-group--tooltiped ul li > .menu-children:before {
+  left: -5px;
+  right: auto;
+  top: 6px;
+  border-top: 5px solid transparent;
+  border-bottom: 5px solid transparent;
+  border-right: 5px solid #dfccaf;
+  border-left: none;
+}
+
+/* line 130, plugins/easyproject/easy_plugins/easy_extensions/assets/../../../../easyproject/easy_plugins/easy_extensions/assets/stylesheets/scss/mixins/pseudo.scss */
+.easy .easy-gantt__menu-group--tooltiped ul li > .menu-children:after {
+  left: -4px;
+  right: auto;
+  top: 6px;
+  border-top: 5px solid transparent;
+  border-bottom: 5px solid transparent;
+  border-right: 5px solid #ffffff;
+  border-left: none;
+}
+
+/* line 32, plugins/easyproject/easy_plugins/easy_extensions/assets/../../../../easyproject/easy_plugins/easy_extensions/assets/stylesheets/scss/mixins/tooltips.scss */
+.easy .easy-gantt__menu-group--tooltiped ul li > .menu-children, .easy .easy-gantt__menu-group--tooltiped ul {
+  position: absolute;
+  background-color: #ffffff;
+  border: 1px solid #dfccaf;
+  color: #42321a;
+  padding: 0.5em;
+  font-size: 11.57px;
+  line-height: 1;
+  margin-top: -0.25em;
+  white-space: pre;
+}
+
+/* line 42, plugins/easyproject/easy_plugins/easy_extensions/assets/../../../../easyproject/easy_plugins/easy_extensions/assets/stylesheets/scss/mixins/tooltips.scss */
+.easy .easy-gantt__menu-group--tooltiped ul a {
+  color: #42321a;
+  text-decoration: underline;
+}
+
+/* line 46, plugins/easyproject/easy_plugins/easy_extensions/assets/../../../../easyproject/easy_plugins/easy_extensions/assets/stylesheets/scss/mixins/tooltips.scss */
+.input-append .easy .easy-gantt__menu-group--tooltiped ul li > .menu-children, .easy .easy-gantt__menu-group--tooltiped ul .input-append li > .menu-children, .input-append .easy .easy-gantt__menu-group--tooltiped ul, .easy .easy-gantt__menu-group--tooltiped .input-append ul {
+  font-weight: normal;
+  margin-top: 1px;
+}
+
+/* line 1, plugins/easyproject/easy_plugins/easy_extensions/assets/../../../../easyproject/easy_plugins/easy_extensions/assets/stylesheets/scss/mixins/menus.scss */
+.easy .easy-gantt__menu-group--tooltiped ul li {
+  padding: 0;
+  padding-left: 30px;
+  border: 1px solid transparent;
+  border-left: none;
+  border-right: none;
+  position: relative;
+  line-height: 1.25;
+}
+
+/* line 10, plugins/easyproject/easy_plugins/easy_extensions/assets/../../../../easyproject/easy_plugins/easy_extensions/assets/stylesheets/scss/mixins/menus.scss */
+.easy .easy-gantt__menu-group--tooltiped ul li:hover {
+  border-color: #fcf1f0 !important;
+  background: #fcf1f0 !important;
+  z-index: 1;
+}
+
+/* line 15, plugins/easyproject/easy_plugins/easy_extensions/assets/../../../../easyproject/easy_plugins/easy_extensions/assets/stylesheets/scss/mixins/menus.scss */
+.easy .easy-gantt__menu-group--tooltiped ul li a {
+  padding: 5px 10px;
+  padding-left: 40px;
+  margin-left: -30px;
+  display: block;
+  text-decoration: none;
+}
+
+/* line 22, plugins/easyproject/easy_plugins/easy_extensions/assets/../../../../easyproject/easy_plugins/easy_extensions/assets/stylesheets/scss/mixins/menus.scss */
+.easy .easy-gantt__menu-group--tooltiped ul li a.active {
+  color: #e50026;
+  background: none;
+  border: none;
+}
+
+/* line 26, plugins/easyproject/easy_plugins/easy_extensions/assets/../../../../easyproject/easy_plugins/easy_extensions/assets/stylesheets/scss/mixins/menus.scss */
+.easy .easy-gantt__menu-group--tooltiped ul li a.active:before {
+  color: #e50026;
+}
+
+/* line 30, plugins/easyproject/easy_plugins/easy_extensions/assets/../../../../easyproject/easy_plugins/easy_extensions/assets/stylesheets/scss/mixins/menus.scss */
+.easy .easy-gantt__menu-group--tooltiped ul li a:before {
+  position: absolute;
+  left: 0;
+  width: 30px;
+  text-align: center;
+  padding-top: 1px;
+  color: #42321a;
+}
+
+/* line 38, plugins/easyproject/easy_plugins/easy_extensions/assets/../../../../easyproject/easy_plugins/easy_extensions/assets/stylesheets/scss/mixins/menus.scss */
+.easy .easy-gantt__menu-group--tooltiped ul li a.submenu {
+  padding-right: 0 !important;
+  background: none !important;
+  position: relative;
+}
+
+/* line 42, plugins/easyproject/easy_plugins/easy_extensions/assets/../../../../easyproject/easy_plugins/easy_extensions/assets/stylesheets/scss/mixins/menus.scss */
+.easy .easy-gantt__menu-group--tooltiped ul li a.submenu:after {
+  content: "\005d" !important;
+  left: auto;
+  font-size: 10px;
+  text-align: left;
+  line-height: 1.9;
+}
+
+/* line 51, plugins/easyproject/easy_plugins/easy_extensions/assets/../../../../easyproject/easy_plugins/easy_extensions/assets/stylesheets/scss/mixins/menus.scss */
+.easy .easy-gantt__menu-group--tooltiped ul li a ~ span {
+  font-size: 0.89em;
+}
+
+/* line 56, plugins/easyproject/easy_plugins/easy_extensions/assets/../../../../easyproject/easy_plugins/easy_extensions/assets/stylesheets/scss/mixins/menus.scss */
+.easy .easy-gantt__menu-group--tooltiped ul {
+  z-index: 1000;
+  margin: 0;
+  list-style: none;
+  font-size: 1.125em;
+  min-width: 200px;
+  padding: 5px 0;
+  white-space: normal !important;
+}
+
+/* line 66, plugins/easyproject/easy_plugins/easy_extensions/assets/../../../../easyproject/easy_plugins/easy_extensions/assets/stylesheets/scss/mixins/menus.scss */
+.easy .easy-gantt__menu-group--tooltiped ul:after {
+  content: '';
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  right: auto;
+  left: 30px;
+  border-left: 1px solid #eee3d4;
+  z-index: 0;
+}
+
+/* line 78, plugins/easyproject/easy_plugins/easy_extensions/assets/../../../../easyproject/easy_plugins/easy_extensions/assets/stylesheets/scss/mixins/menus.scss */
+.easy .easy-gantt__menu-group--tooltiped ul li > .menu-children {
+  display: none;
+  white-space: normal;
+  top: 6px;
+  left: 99%;
+  width: 150px;
+}
+
+/* line 86, plugins/easyproject/easy_plugins/easy_extensions/assets/../../../../easyproject/easy_plugins/easy_extensions/assets/stylesheets/scss/mixins/menus.scss */
+.easy .easy-gantt__menu-group--tooltiped ul li > .menu-children > li + li {
+  border-top: 1px dashed #eee3d4;
+}
+
+/* line 89, plugins/easyproject/easy_plugins/easy_extensions/assets/../../../../easyproject/easy_plugins/easy_extensions/assets/stylesheets/scss/mixins/menus.scss */
+.easy .easy-gantt__menu-group--tooltiped ul li > .menu-children > li a {
+  text-decoration: none;
+  display: block;
+  padding: 0.5em;
+}
+
+/* line 93, plugins/easyproject/easy_plugins/easy_extensions/assets/../../../../easyproject/easy_plugins/easy_extensions/assets/stylesheets/scss/mixins/menus.scss */
+.easy .easy-gantt__menu-group--tooltiped ul li > .menu-children > li a:hover {
+  text-decoration: underline;
+}
+
+/* line 96, plugins/easyproject/easy_plugins/easy_extensions/assets/../../../../easyproject/easy_plugins/easy_extensions/assets/stylesheets/scss/mixins/menus.scss */
+.easy .easy-gantt__menu-group--tooltiped ul li > .menu-children > li a:before {
+  color: #4ebf67;
+  text-decoration: none;
+  margin-right: 5px;
+}
+
+/* line 105, plugins/easyproject/easy_plugins/easy_extensions/assets/../../../../easyproject/easy_plugins/easy_extensions/assets/stylesheets/scss/mixins/menus.scss */
+.easy .easy-gantt__menu-group--tooltiped ul li:hover > .menu-children {
+  display: inline-block;
+}
+
+/* line 111, plugins/easyproject/easy_plugins/easy_extensions/assets/../../../../easyproject/easy_plugins/easy_extensions/assets/stylesheets/scss/mixins/menus.scss */
+.easy .easy-gantt__menu-group--tooltiped {
+  position: relative;
+}
+
+/* line 17, plugins/easyproject/easy_plugins/easy_extensions/assets/../../../../easyproject/easy_plugins/easy_extensions/assets/stylesheets/scss/mixins/material/material__elevation.scss */
+.gantt_task_scale, .gantt_grid_scale {
+  -webkit-box-shadow: material__elevation--shadow_bottom(1), material__elevation--shadow_top(1);
+  -moz-box-shadow: material__elevation--shadow_bottom(1), material__elevation--shadow_top(1);
+  box-shadow: material__elevation--shadow_bottom(1), material__elevation--shadow_top(1);
+}
+
+/* line 20, plugins/easyproject/easy_plugins/easy_extensions/assets/../../../../easyproject/easy_plugins/easy_extensions/assets/stylesheets/scss/mixins/material/material__elevation.scss */
+.easy-gantt__menu .gantt-menu-problems-list {
+  -webkit-box-shadow: material__elevation--shadow_bottom(2), material__elevation--shadow_top(2);
+  -moz-box-shadow: material__elevation--shadow_bottom(2), material__elevation--shadow_top(2);
+  box-shadow: material__elevation--shadow_bottom(2), material__elevation--shadow_top(2);
+}
+
+/* line 26, plugins/easyproject/easy_plugins/easy_extensions/assets/../../../../easyproject/easy_plugins/easy_extensions/assets/stylesheets/scss/mixins/material/material__elevation.scss */
+.easy .easy-gantt__menu-group--tooltiped ul {
+  -webkit-box-shadow: material__elevation--shadow_bottom(4), material__elevation--shadow_top(4);
+  -moz-box-shadow: material__elevation--shadow_bottom(4), material__elevation--shadow_top(4);
+  box-shadow: material__elevation--shadow_bottom(4), material__elevation--shadow_top(4);
+}
+
+/* line 10, plugins/easy_gantt/assets/stylesheets/easy_gantt/sass/_gantt_icons.scss */
+.easy-gantt__icon:before {
+  font-family: "Material Icons", sans-serif;
+}
+
+/* line 14, plugins/easy_gantt/assets/stylesheets/easy_gantt/sass/_gantt_icons.scss */
+.easy-gantt__icon--open:before {
+  content: "\e147";
+}
+
+/* line 14, plugins/easy_gantt/assets/stylesheets/easy_gantt/sass/_gantt_icons.scss */
+.easy-gantt__icon--close:before {
+  content: "\e15c";
+}
+
+/* line 25, plugins/easy_gantt/assets/stylesheets/easy_gantt/sass/_gantt_icons.scss */
+.gantt_tree_icon {
+  margin-right: 7px;
+}
+
+/* line 29, plugins/easy_gantt/assets/stylesheets/easy_gantt/sass/_gantt_icons.scss */
+.gantt_tree_icon.gantt_folder_open {
+  background-image: none;
+}
+
+/* line 31, plugins/easy_gantt/assets/stylesheets/easy_gantt/sass/_gantt_icons.scss */
+.gantt_tree_icon.gantt_folder_open:before {
+  content: url(data:image/gif;base64,R0lGODlhEgASAJECAJeXl7Gvrf///wAAACH/C1hNUCBEYXRhWE1QPD94cGFja2V0IGJlZ2luPSLvu78iIGlkPSJXNU0wTXBDZWhpSHpyZVN6TlRjemtjOWQiPz4gPHg6eG1wbWV0YSB4bWxuczp4PSJhZG9iZTpuczptZXRhLyIgeDp4bXB0az0iQWRvYmUgWE1QIENvcmUgNS4wLWMwNjAgNjEuMTM0Nzc3LCAyMDEwLzAyLzEyLTE3OjMyOjAwICAgICAgICAiPiA8cmRmOlJERiB4bWxuczpyZGY9Imh0dHA6Ly93d3cudzMub3JnLzE5OTkvMDIvMjItcmRmLXN5bnRheC1ucyMiPiA8cmRmOkRlc2NyaXB0aW9uIHJkZjphYm91dD0iIiB4bWxuczp4bXA9Imh0dHA6Ly9ucy5hZG9iZS5jb20veGFwLzEuMC8iIHhtbG5zOnhtcE1NPSJodHRwOi8vbnMuYWRvYmUuY29tL3hhcC8xLjAvbW0vIiB4bWxuczpzdFJlZj0iaHR0cDovL25zLmFkb2JlLmNvbS94YXAvMS4wL3NUeXBlL1Jlc291cmNlUmVmIyIgeG1wOkNyZWF0b3JUb29sPSJBZG9iZSBQaG90b3Nob3AgQ1M1IFdpbmRvd3MiIHhtcE1NOkluc3RhbmNlSUQ9InhtcC5paWQ6NTdDRDM3QzVDMDZEMTFFMUJGMzhFMDhCN0RGRjBGQ0YiIHhtcE1NOkRvY3VtZW50SUQ9InhtcC5kaWQ6NTdDRDM3QzZDMDZEMTFFMUJGMzhFMDhCN0RGRjBGQ0YiPiA8eG1wTU06RGVyaXZlZEZyb20gc3RSZWY6aW5zdGFuY2VJRD0ieG1wLmlpZDo1N0NEMzdDM0MwNkQxMUUxQkYzOEUwOEI3REZGMEZDRiIgc3RSZWY6ZG9jdW1lbnRJRD0ieG1wLmRpZDo1N0NEMzdDNEMwNkQxMUUxQkYzOEUwOEI3REZGMEZDRiIvPiA8L3JkZjpEZXNjcmlwdGlvbj4gPC9yZGY6UkRGPiA8L3g6eG1wbWV0YT4gPD94cGFja2V0IGVuZD0iciI/PgH//v38+/r5+Pf29fTz8vHw7+7t7Ovq6ejn5uXk4+Lh4N/e3dzb2tnY19bV1NPS0dDPzs3My8rJyMfGxcTDwsHAv769vLu6ubi3trW0s7KxsK+urayrqqmop6alpKOioaCfnp2cm5qZmJeWlZSTkpGQj46NjIuKiYiHhoWEg4KBgH9+fXx7enl4d3Z1dHNycXBvbm1sa2ppaGdmZWRjYmFgX15dXFtaWVhXVlVUU1JRUE9OTUxLSklIR0ZFRENCQUA/Pj08Ozo5ODc2NTQzMjEwLy4tLCsqKSgnJiUkIyIhIB8eHRwbGhkYFxYVFBMSERAPDg0MCwoJCAcGBQQDAgEAACH5BAEAAAIALAAAAAASABIAAAIzlI+pywcPm3mhWgkCsjBOvVkimElG9ZlCBlXd+2XjjLKg5GqoeZXqvsOQXK/ijUZTKVUFADs=);
+}
+
+/* line 29, plugins/easy_gantt/assets/stylesheets/easy_gantt/sass/_gantt_icons.scss */
+.gantt_tree_icon.gantt_folder_close {
+  background-image: none;
+}
+
+/* line 31, plugins/easy_gantt/assets/stylesheets/easy_gantt/sass/_gantt_icons.scss */
+.gantt_tree_icon.gantt_folder_close:before {
+  content: url(data:image/gif;base64,R0lGODlhEgASAJECAJeXl7Gvrf///wAAACH/C1hNUCBEYXRhWE1QPD94cGFja2V0IGJlZ2luPSLvu78iIGlkPSJXNU0wTXBDZWhpSHpyZVN6TlRjemtjOWQiPz4gPHg6eG1wbWV0YSB4bWxuczp4PSJhZG9iZTpuczptZXRhLyIgeDp4bXB0az0iQWRvYmUgWE1QIENvcmUgNS4wLWMwNjAgNjEuMTM0Nzc3LCAyMDEwLzAyLzEyLTE3OjMyOjAwICAgICAgICAiPiA8cmRmOlJERiB4bWxuczpyZGY9Imh0dHA6Ly93d3cudzMub3JnLzE5OTkvMDIvMjItcmRmLXN5bnRheC1ucyMiPiA8cmRmOkRlc2NyaXB0aW9uIHJkZjphYm91dD0iIiB4bWxuczp4bXA9Imh0dHA6Ly9ucy5hZG9iZS5jb20veGFwLzEuMC8iIHhtbG5zOnhtcE1NPSJodHRwOi8vbnMuYWRvYmUuY29tL3hhcC8xLjAvbW0vIiB4bWxuczpzdFJlZj0iaHR0cDovL25zLmFkb2JlLmNvbS94YXAvMS4wL3NUeXBlL1Jlc291cmNlUmVmIyIgeG1wOkNyZWF0b3JUb29sPSJBZG9iZSBQaG90b3Nob3AgQ1M1IFdpbmRvd3MiIHhtcE1NOkluc3RhbmNlSUQ9InhtcC5paWQ6NTAyMTU1RTNDMDZEMTFFMUJGNzZCRThBRkFCRjg4MTIiIHhtcE1NOkRvY3VtZW50SUQ9InhtcC5kaWQ6NTAyMTU1RTRDMDZEMTFFMUJGNzZCRThBRkFCRjg4MTIiPiA8eG1wTU06RGVyaXZlZEZyb20gc3RSZWY6aW5zdGFuY2VJRD0ieG1wLmlpZDo1MDIxNTVFMUMwNkQxMUUxQkY3NkJFOEFGQUJGODgxMiIgc3RSZWY6ZG9jdW1lbnRJRD0ieG1wLmRpZDo1MDIxNTVFMkMwNkQxMUUxQkY3NkJFOEFGQUJGODgxMiIvPiA8L3JkZjpEZXNjcmlwdGlvbj4gPC9yZGY6UkRGPiA8L3g6eG1wbWV0YT4gPD94cGFja2V0IGVuZD0iciI/PgH//v38+/r5+Pf29fTz8vHw7+7t7Ovq6ejn5uXk4+Lh4N/e3dzb2tnY19bV1NPS0dDPzs3My8rJyMfGxcTDwsHAv769vLu6ubi3trW0s7KxsK+urayrqqmop6alpKOioaCfnp2cm5qZmJeWlZSTkpGQj46NjIuKiYiHhoWEg4KBgH9+fXx7enl4d3Z1dHNycXBvbm1sa2ppaGdmZWRjYmFgX15dXFtaWVhXVlVUU1JRUE9OTUxLSklIR0ZFRENCQUA/Pj08Ozo5ODc2NTQzMjEwLy4tLCsqKSgnJiUkIyIhIB8eHRwbGhkYFxYVFBMSERAPDg0MCwoJCAcGBQQDAgEAACH5BAEAAAIALAAAAAASABIAAAIwlI+pywcPm3mhWgkCsjBOvVkimElG9ZlCuYIY6TYs+6bmHDO4igfdD3GNhheV0VQAADs=);
+}
+
+/* line 38, plugins/easy_gantt/assets/stylesheets/easy_gantt/sass/_gantt_icons.scss */
+.gantt_tree_icon.gantt_folder_open:before, .gantt_tree_icon.gantt_folder_close:before {
+  vertical-align: sub;
+}
+
+/* line 43, plugins/easy_gantt/assets/stylesheets/easy_gantt/sass/_gantt_icons.scss */
+.gantt_tree_icon.gantt_open, .gantt_tree_icon.gantt_close {
+  margin-right: 0;
+  margin-left: 7px;
+}
+
+/* line 16, plugins/easy_gantt/assets/stylesheets/easy_gantt/sass/_gantt_redmine.scss */
+.redmine .button-important {
+  color: #fff;
+}
+
+/* line 20, plugins/easy_gantt/assets/stylesheets/easy_gantt/sass/_gantt_redmine.scss */
+.redmine .gantt-menu-button {
+  display: inline-block;
+  border-radius: 2px;
+  border: 1px solid #e4e4e4;
+  padding: 8px 16px;
+}
+
+/* line 27, plugins/easy_gantt/assets/stylesheets/easy_gantt/sass/_gantt_redmine.scss */
+.redmine .gantt-menu-button.button-positive {
+  background-color: #4ebf67;
+  border-color: #338d47;
+  color: #ffffff;
+}
+
+/* line 33, plugins/easy_gantt/assets/stylesheets/easy_gantt/sass/_gantt_redmine.scss */
+.redmine .gantt-menu-button.active, .redmine #easy_gantt.redmine .gantt_button.active {
+  background-color: #628DB6;
+  border-color: #3E5B76;
+}
+
+/* line 37, plugins/easy_gantt/assets/stylesheets/easy_gantt/sass/_gantt_redmine.scss */
+.redmine .problem-finder {
+  border: none;
+  padding-right: 0;
+}
+
+/* line 42, plugins/easy_gantt/assets/stylesheets/easy_gantt/sass/_gantt_redmine.scss */
+.redmine .gantt-menu-button.icon, .redmine .gantt_button.icon {
+  background-position-x: 5px;
+}
+
+/* line 51, plugins/easy_gantt/assets/stylesheets/easy_gantt/sass/_gantt_redmine.scss */
+.redmine .icon-youtube {
+  padding-left: 28px;
+}
+
+/* line 54, plugins/easy_gantt/assets/stylesheets/easy_gantt/sass/_gantt_redmine.scss */
+.redmine .icon.icon-filter {
+  background-position-x: 9px;
+  background-position-y: 7px;
+}
+
+/* line 58, plugins/easy_gantt/assets/stylesheets/easy_gantt/sass/_gantt_redmine.scss */
+.redmine .easy-gantt__menu {
+  margin: 0 0 1px;
+  padding: 5px 0 5px 0;
+  background-color: white;
+}
+
+/* line 63, plugins/easy_gantt/assets/stylesheets/easy_gantt/sass/_gantt_redmine.scss */
+.redmine #gantt_cont {
+  /* width: auto !important; */
+  margin: 0;
+}
+
+/* line 67, plugins/easy_gantt/assets/stylesheets/easy_gantt/sass/_gantt_redmine.scss */
+.redmine .gantt_tree_icon {
+  width: 20px;
+}
+
+/* line 69, plugins/easy_gantt/assets/stylesheets/easy_gantt/sass/_gantt_redmine.scss */
+.redmine .gantt_tree_icon:before {
+  vertical-align: sub;
+}
+
+/* line 74, plugins/easy_gantt/assets/stylesheets/easy_gantt/sass/_gantt_redmine.scss */
+.redmine a.active {
+  color: #fff;
+}
+
+/* line 77, plugins/easy_gantt/assets/stylesheets/easy_gantt/sass/_gantt_redmine.scss */
+.redmine a.disabled {
+  opacity: 0.25;
+  color: #484848;
+  font-weight: lighter;
+}
+
+/* line 82, plugins/easy_gantt/assets/stylesheets/easy_gantt/sass/_gantt_redmine.scss */
+.redmine #link_delay_input {
+  width: auto;
+}
+
+/* line 85, plugins/easy_gantt/assets/stylesheets/easy_gantt/sass/_gantt_redmine.scss */
+.redmine .push-left {
+  float: left;
+}
+
+/* line 89, plugins/easy_gantt/assets/stylesheets/easy_gantt/sass/_gantt_redmine.scss */
+.redmine .push-right {
+  float: right;
+  text-align: right;
+}
+
+/* line 94, plugins/easy_gantt/assets/stylesheets/easy_gantt/sass/_gantt_redmine.scss */
+.redmine .gantt-footer p {
+  text-align: center;
+}
+
+/* line 97, plugins/easy_gantt/assets/stylesheets/easy_gantt/sass/_gantt_redmine.scss */
+.redmine #button_close_all_projects {
+  width: 18px;
+  height: 25px;
+  padding: 0;
+  vertical-align: bottom;
+  background-position: 0 50%;
+  background-repeat: no-repeat;
+}
+
+/* line 106, plugins/easy_gantt/assets/stylesheets/easy_gantt/sass/_gantt_redmine.scss */
+.redmine .overdue {
+  color: #e50026;
+}
+
+/* line 109, plugins/easy_gantt/assets/stylesheets/easy_gantt/sass/_gantt_redmine.scss */
+.redmine .contextual {
+  text-align: right;
+}
+
+/* line 112, plugins/easy_gantt/assets/stylesheets/easy_gantt/sass/_gantt_redmine.scss */
+.redmine .easy-gantt__menu-group--tooltiped {
+  position: relative;
+}
+
+/* line 114, plugins/easy_gantt/assets/stylesheets/easy_gantt/sass/_gantt_redmine.scss */
+.redmine .easy-gantt__menu-group--tooltiped ul {
+  position: absolute;
+  right: 0;
+  background-color: white;
+  border: 1px solid #cccccc;
+  padding: 5px;
+  padding-left: 0;
+  min-width: 180px;
+  display: none;
+}
+
+
+
+/* line 132, plugins/easy_gantt/assets/stylesheets/easy_gantt/sass/_gantt_redmine.scss */
+.redmine .easy-gantt__menu-group--tooltiped ul li {
+  display: block;
+}
+
+/* line 135, plugins/easy_gantt/assets/stylesheets/easy_gantt/sass/_gantt_redmine.scss */
+.redmine .easy-gantt__menu-group--tooltiped ul .gantt-menu-button {
+  border: none;
+  padding: 5px 5px 5px 5px;
+  background-color: transparent;
+}
+
+/* line 141, plugins/easy_gantt/assets/stylesheets/easy_gantt/sass/_gantt_redmine.scss */
+.redmine .easy-gantt__menu-group--tooltiped:hover ul {
+  display: block;
+}
+
+@media print {
+  /* line 146, plugins/easy_gantt/assets/stylesheets/easy_gantt/sass/_gantt_redmine.scss */
+  .redmine .gantt_task_progress {
+    border-right: 1px solid #4ebf67;
+    box-sizing: border-box;
+    margin-top: 1px;
+    margin-bottom: 1px;
+    height: calc(100% - 2px);
+  }
+  /* line 153, plugins/easy_gantt/assets/stylesheets/easy_gantt/sass/_gantt_redmine.scss */
+  .redmine .wrong .gantt_task_progress {
+    border-color: #e50026;
+  }
+  /* line 156, plugins/easy_gantt/assets/stylesheets/easy_gantt/sass/_gantt_redmine.scss */
+  .redmine .gantt_project-type .gantt_task_progress {
+    border-color: #009ee0;
+  }
+  /* line 159, plugins/easy_gantt/assets/stylesheets/easy_gantt/sass/_gantt_redmine.scss */
+  .redmine .odd {
+    background: none;
+  }
+}
+
+/* line 16, plugins/easy_gantt/assets/stylesheets/easy_gantt/sass/_gantt_print.scss */
+.gantt-print__header-logo {
+  vertical-align: middle;
+  display: inline-block;
+}
+
+/* line 20, plugins/easy_gantt/assets/stylesheets/easy_gantt/sass/_gantt_print.scss */
+.gantt-print__header-header {
+  display: inline-block;
+  margin: 0;
+}
+
+/* line 24, plugins/easy_gantt/assets/stylesheets/easy_gantt/sass/_gantt_print.scss */
+.gantt-print__header-text {
+  display: inline-block;
+  vertical-align: bottom;
+  margin-left: 20px;
+}
+
+/* line 31, plugins/easy_gantt/assets/stylesheets/easy_gantt/sass/_gantt_print.scss */
+.gantt-print__area {
+  background-color: white;
+}
+
+/* line 35, plugins/easy_gantt/assets/stylesheets/easy_gantt/sass/_gantt_print.scss */
+.gantt-print__strip {
+  border: 1px solid #cecece;
+  overflow: hidden;
+  white-space: nowrap;
+  /*page-break-before:always;*/
+  /*page-break-inside: avoid;*/
+  break-inside: avoid;
+  margin: 10px 0;
+  margin-left: -1px;
+  display: inline-block;
+  background-color: #ffffff;
+  border-left: 0;
+}
+
+/* line 40, plugins/easy_gantt/assets/stylesheets/easy_gantt/sass/_gantt_print.scss */
+.gantt-print__bg-canvas {
+  display: block;
+  /*page-break-before:avoid;*/
+}
+
+/* line 45, plugins/easy_gantt/assets/stylesheets/easy_gantt/sass/_gantt_print.scss */
+.gantt-print__bg {
+  position: absolute;
+  /*page-break-before:avoid;*/
+}
+
+/* line 50, plugins/easy_gantt/assets/stylesheets/easy_gantt/sass/_gantt_print.scss */
+.gantt-print__data-area {
+  /*page-break-before:avoid;*/
+}
+
+/* line 54, plugins/easy_gantt/assets/stylesheets/easy_gantt/sass/_gantt_print.scss */
+.gantt-print__bars-area {
+  position: relative;
+  top: 0;
+}
+
+/* line 59, plugins/easy_gantt/assets/stylesheets/easy_gantt/sass/_gantt_print.scss */
+.gantt-print__scale {
+  transform: none;
+  border-top: 0;
+}
+
+/* line 64, plugins/easy_gantt/assets/stylesheets/easy_gantt/sass/_gantt_print.scss */
+.gantt-print__grid {
+  border: 1px solid #cecece;
+  overflow: hidden;
+  white-space: nowrap;
+  /*page-break-before:always;*/
+  /*page-break-inside: avoid;*/
+  break-inside: avoid;
+  margin: 10px 0;
+  margin-left: -1px;
+  display: inline-block;
+  background-color: #ffffff;
+  border-right: 2px solid #cecece;
+  margin-right: 1px;
+}
+
+/* line 68, plugins/easy_gantt/assets/stylesheets/easy_gantt/sass/_gantt_print.scss */
+.gantt-print__grid .gantt_grid_scale {
+  margin-top: -2px;
+}
+
+/* line 71, plugins/easy_gantt/assets/stylesheets/easy_gantt/sass/_gantt_print.scss */
+.gantt-print__grid .gantt-grid-header-collapse-buttons,
+.gantt-print__grid .gantt_sort {
+  display: none;
+}
+
+/* line 77, plugins/easy_gantt/assets/stylesheets/easy_gantt/sass/_gantt_print.scss */
+.gantt-print__template--nowrap {
+  white-space: nowrap;
+}
+
+/* line 5, plugins/easy_gantt/assets/stylesheets/easy_gantt/sass/_gantt_main.scss */
+div#easy_gantt.easy #easy_gantt_menu {
+  padding-bottom: 7px;
+}
+
+/* line 8, plugins/easy_gantt/assets/stylesheets/easy_gantt/sass/_gantt_main.scss */
+div#easy_gantt.easy #easy_gantt_menu p {
+  margin-bottom: 0;
+}
+
+/* line 12, plugins/easy_gantt/assets/stylesheets/easy_gantt/sass/_gantt_main.scss */
+div#easy_gantt.easy #gantt_footer_buttons {
+  float: left;
+  margin-top: 10px;
+}
+
+/* line 15, plugins/easy_gantt/assets/stylesheets/easy_gantt/sass/_gantt_main.scss */
+div#easy_gantt.easy #gantt_footer_buttons + p {
+  float: right;
+  margin-top: 10px;
+}
+
+/* line 25, plugins/easy_gantt/assets/stylesheets/easy_gantt/sass/_gantt_main.scss */
+#button_jump_today {
+  padding-right: 0;
+  padding-left: 0;
+}
+
+/* line 30, plugins/easy_gantt/assets/stylesheets/easy_gantt/sass/_gantt_main.scss */
+.easy-gantt__menu {
+  user-select: none;
+  position: relative;
+  z-index: 1;
+  background-color: #fdfbf9;
+  padding: 20px;
+  margin: 0 -20px;
+}
+
+/* line 42, plugins/easy_gantt/assets/stylesheets/easy_gantt/sass/_gantt_main.scss */
+.easy-gantt__menu:after {
+  display: none;
+}
+
+/* line 45, plugins/easy_gantt/assets/stylesheets/easy_gantt/sass/_gantt_main.scss */
+.easy-gantt__menu-item {
+  display: inline-block;
+  text-align: left;
+}
+
+/* line 48, plugins/easy_gantt/assets/stylesheets/easy_gantt/sass/_gantt_main.scss */
+.easy-gantt__menu-item .active {
+  color: #e50026 !important;
+}
+
+/* line 50, plugins/easy_gantt/assets/stylesheets/easy_gantt/sass/_gantt_main.scss */
+.easy-gantt__menu-item .active:before {
+  color: #e50026;
+}
+
+/* line 55, plugins/easy_gantt/assets/stylesheets/easy_gantt/sass/_gantt_main.scss */
+.easy-gantt__menu-group {
+  display: inline-block;
+}
+
+/* line 57, plugins/easy_gantt/assets/stylesheets/easy_gantt/sass/_gantt_main.scss */
+.easy-gantt__menu-group ul {
+  margin: 0;
+}
+
+/* line 62, plugins/easy_gantt/assets/stylesheets/easy_gantt/sass/_gantt_main.scss */
+.easy .easy-gantt__menu-group--tooltiped > ul {
+  display: none;
+  right: 0;
+}
+
+/* line 67, plugins/easy_gantt/assets/stylesheets/easy_gantt/sass/_gantt_main.scss */
+.easy .easy-gantt__menu-group--tooltiped:hover > ul {
+  display: block;
+}
+
+/* line 73, plugins/easy_gantt/assets/stylesheets/easy_gantt/sass/_gantt_main.scss */
+.easy .easy-gantt__menu .problem-finder {
+  font-size: 0.89em;
+  color: #42321a;
+}
+
+/* line 76, plugins/easy_gantt/assets/stylesheets/easy_gantt/sass/_gantt_main.scss */
+.easy .easy-gantt__menu .problem-finder.active {
+  background: none;
+  border: none;
+  color: #42321a;
+}
+
+/* line 81, plugins/easy_gantt/assets/stylesheets/easy_gantt/sass/_gantt_main.scss */
+.easy .easy-gantt__menu .problem-finder:hover {
+  text-decoration: none;
+}
+
+/* line 85, plugins/easy_gantt/assets/stylesheets/easy_gantt/sass/_gantt_main.scss */
+.easy-gantt__menu .gantt-menu-problems-list {
+  border-width: 1px !important;
+}
+
+/* line 89, plugins/easy_gantt/assets/stylesheets/easy_gantt/sass/_gantt_main.scss */
+.easy-gantt__menu .gantt-menu-problems-count.gantt-with-problems {
+  font-weight: bold;
+  background: #e50026;
+  border: 1px solid #cc0022;
+  text-align: center;
+  width: 15px;
+  line-height: 15px;
+  display: inline-block;
+  color: white;
+  padding: 2.5px;
+  margin-right: 10px;
+}
+
+/* line 106, plugins/easy_gantt/assets/stylesheets/easy_gantt/sass/_gantt_main.scss */
+.gantt-menu-sub-panel {
+  width: 100%;
+}
+
+/* line 108, plugins/easy_gantt/assets/stylesheets/easy_gantt/sass/_gantt_main.scss */
+.gantt-menu-sub-panel > span {
+  display: none !important;
+}
+
+/* line 113, plugins/easy_gantt/assets/stylesheets/easy_gantt/sass/_gantt_main.scss */
+#button_problem_finder.active {
+  color: #e50026 !important;
+  background: none !important;
+  border: none !important;
+}
+
+/* line 119, plugins/easy_gantt/assets/stylesheets/easy_gantt/sass/_gantt_main.scss */
+.gantt-menu-problems-reason {
+  color: #e50026 !important;
+}
+
+/* line 123, plugins/easy_gantt/assets/stylesheets/easy_gantt/sass/_gantt_main.scss */
+.gantt-grid-milestone-bullet {
+  margin-top: 4px !important;
+  margin-left: 5px;
+  background: #42321a !important;
+  border: none !important;
+}
+
+/* line 128, plugins/easy_gantt/assets/stylesheets/easy_gantt/sass/_gantt_main.scss */
+.gantt-milestone-shared .gantt-grid-milestone-bullet {
+  background: #d94838 !important;
+}
+
+/* line 133, plugins/easy_gantt/assets/stylesheets/easy_gantt/sass/_gantt_main.scss */
+.gantt_subtask_arrow:before {
+  content: '\21B3';
+  opacity: .75;
+}
+
+/* line 138, plugins/easy_gantt/assets/stylesheets/easy_gantt/sass/_gantt_main.scss */
+.gantt_cell + .gantt_cell, .gantt_side_content {
+  color: #42321a !important;
+}
+
+/* line 142, plugins/easy_gantt/assets/stylesheets/easy_gantt/sass/_gantt_main.scss */
+.gantt_grid .gantt_grid_head_cell, .gantt_grid_scale, #gantt_grid, .gantt_scale_cel, .gantt_task_scale {
+  border-color: #eee3d4 !important;
+}
+
+/* line 146, plugins/easy_gantt/assets/stylesheets/easy_gantt/sass/_gantt_main.scss */
+.gantt_grid {
+  border-right-width: 1px !important;
+}
+
+/* line 154, plugins/easy_gantt/assets/stylesheets/easy_gantt/sass/_gantt_main.scss */
+.gantt_grid_data .gantt_row:hover, .gantt_grid_data .gantt_row.odd:hover {
+  background: rgba(229, 0, 38, 0.25);
+}
+
+/* line 158, plugins/easy_gantt/assets/stylesheets/easy_gantt/sass/_gantt_main.scss */
+.gantt_grid_data .gantt_row.closed {
+  background-color: rgba(223, 204, 175, 0.5);
+  border-color: #dfccaf;
+}
+
+/* line 161, plugins/easy_gantt/assets/stylesheets/easy_gantt/sass/_gantt_main.scss */
+.gantt_grid_data .gantt_row.closed .gantt_tree_content {
+  text-decoration: line-through;
+}
+
+/* line 168, plugins/easy_gantt/assets/stylesheets/easy_gantt/sass/_gantt_main.scss */
+.gantt_task_scale, .gantt_grid_scale {
+  z-index: 2 !important;
+  margin-top: -1px;
+}
+
+/* line 174, plugins/easy_gantt/assets/stylesheets/easy_gantt/sass/_gantt_main.scss */
+#gantt_cont {
+  width: auto !important;
+  margin: 0 -21px;
+  background: #ffffff;
+}
+
+/* line 182, plugins/easy_gantt/assets/stylesheets/easy_gantt/sass/_gantt_main.scss */
+.easy .gantt_tree_indent {
+  width: 20px;
+}
+
+/* line 185, plugins/easy_gantt/assets/stylesheets/easy_gantt/sass/_gantt_main.scss */
+.easy .gantt_tree_icon {
+  width: 20px;
+  text-align: center;
+}
+
+/* line 192, plugins/easy_gantt/assets/stylesheets/easy_gantt/sass/_gantt_main.scss */
+div.gantt_task_progress {
+  position: relative;
+  z-index: 1 !important;
+}
+
+/* line 199, plugins/easy_gantt/assets/stylesheets/easy_gantt/sass/_gantt_main.scss */
+div.gantt_task_line.gantt_parent_task-subtype .gantt_task_progress, div.gantt_task_line.gantt_parent_task-subtype .gantt_task_content {
+  height: 100%;
+}
+
+/* line 203, plugins/easy_gantt/assets/stylesheets/easy_gantt/sass/_gantt_main.scss */
+div.gantt_task_line .gantt_task_content {
+  border-radius: 2px;
+  border: 1px solid;
+  box-sizing: border-box;
+}
+
+/* line 208, plugins/easy_gantt/assets/stylesheets/easy_gantt/sass/_gantt_main.scss */
+div.gantt_task_line .gantt_task_content,
+div.gantt_task_line .gantt_task_ticks {
+  background-color: rgba(78, 191, 103, 0.1);
+  border-color: #4ebf67;
+}
+
+/* line 213, plugins/easy_gantt/assets/stylesheets/easy_gantt/sass/_gantt_main.scss */
+div.gantt_task_line .gantt_task_progress {
+  background-color: rgba(78, 191, 103, 0.5);
+}
+
+/* line 217, plugins/easy_gantt/assets/stylesheets/easy_gantt/sass/_gantt_main.scss */
+div.gantt_task_line.wrong .gantt_task_ticks,
+div.gantt_task_line.wrong .gantt_task_content {
+  background-color: rgba(229, 0, 38, 0.1);
+  border-color: #e50026;
+}
+
+/* line 222, plugins/easy_gantt/assets/stylesheets/easy_gantt/sass/_gantt_main.scss */
+div.gantt_task_line.wrong .gantt_task_progress {
+  background-color: rgba(229, 0, 38, 0.5);
+}
+
+/* line 227, plugins/easy_gantt/assets/stylesheets/easy_gantt/sass/_gantt_main.scss */
+div.gantt_task_line.closed .gantt_task_ticks,
+div.gantt_task_line.closed .gantt_task_content {
+  background-color: rgba(223, 204, 175, 0.25);
+  border-color: #dfccaf;
+}
+
+/* line 232, plugins/easy_gantt/assets/stylesheets/easy_gantt/sass/_gantt_main.scss */
+div.gantt_task_line.closed .gantt_task_progress {
+  background-color: rgba(223, 204, 175, 0.5);
+}
+
+/* line 237, plugins/easy_gantt/assets/stylesheets/easy_gantt/sass/_gantt_main.scss */
+div.gantt_task_line.gantt_project-type .gantt_task_content {
+  background-color: rgba(0, 158, 224, 0.25);
+  border-color: #009ee0;
+}
+
+/* line 241, plugins/easy_gantt/assets/stylesheets/easy_gantt/sass/_gantt_main.scss */
+div.gantt_task_line.gantt_project-type div.gantt_task_progress {
+  background-color: rgba(0, 158, 224, 0.5);
+}
+
+/* line 245, plugins/easy_gantt/assets/stylesheets/easy_gantt/sass/_gantt_main.scss */
+div.gantt_task_line.gantt_project-type.wrong .gantt_task_content {
+  background-color: rgba(172, 40, 85, 0.25);
+}
+
+/* line 248, plugins/easy_gantt/assets/stylesheets/easy_gantt/sass/_gantt_main.scss */
+div.gantt_task_line.gantt_project-type.wrong div.gantt_task_progress {
+  background-color: rgba(172, 40, 85, 0.5);
+}
+
+/* line 254, plugins/easy_gantt/assets/stylesheets/easy_gantt/sass/_gantt_main.scss */
+div.gantt_task_line.gantt_milestone-type .gantt_task_content {
+  -webkit-transform: scale(0.65) rotate(45deg);
+  -moz-transform: scale(0.65) rotate(45deg);
+  -ms-transform: scale(0.65) rotate(45deg);
+  -o-transform: scale(0.65) rotate(45deg);
+  transform: scale(0.65) rotate(45deg);
+  background-color: #42321a;
+  border-color: #42321a;
+}
+
+/* line 260, plugins/easy_gantt/assets/stylesheets/easy_gantt/sass/_gantt_main.scss */
+div.gantt_task_line.gantt_milestone-type.gantt-milestone-shared .gantt_task_content {
+  -webkit-transform: scale(0.65) rotate(45deg);
+  -moz-transform: scale(0.65) rotate(45deg);
+  -ms-transform: scale(0.65) rotate(45deg);
+  -o-transform: scale(0.65) rotate(45deg);
+  transform: scale(0.65) rotate(45deg);
+  background-color: #d94838;
+  border-color: #d94838;
+}
+
+/* line 268, plugins/easy_gantt/assets/stylesheets/easy_gantt/sass/_gantt_main.scss */
+div.gantt_task_line.critical .gantt_task_ticks,
+div.gantt_task_line.critical .gantt_task_content {
+  background-color: rgba(200, 0, 255, 0.5);
+  border-color: #c800ff;
+}
+
+/* line 273, plugins/easy_gantt/assets/stylesheets/easy_gantt/sass/_gantt_main.scss */
+div.gantt_task_line.critical .gantt_task_progress {
+  background-color: #c800ff;
+}
+
+/* line 279, plugins/easy_gantt/assets/stylesheets/easy_gantt/sass/_gantt_main.scss */
+.gantt_hor_scroll {
+  z-index: 1;
+}
+
+@font-face{
+  font-family: "Material Icons";
+  src: url("/plugin_assets/easy_gantt/EasyMaterialIcons-Regular.woff2") format("woff2");
+  font-weight: 400;
+  font-style: normal;
+}

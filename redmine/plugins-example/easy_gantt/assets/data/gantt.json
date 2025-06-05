@@ -1,0 +1,84 @@
+{
+  "start_date": "yyyy-mm-dd",
+  "due_date":"yyyy-mm-dd",
+  "columns": [
+    {
+      "name": "name",
+      "title": "Jméno",
+      "mapped":true,
+      "type":"text"
+    },
+    {
+      "name":"start_date",
+      "title":"Počátek",
+      "mapped":true
+    },
+    {
+      "name":"end_date",
+      "title":"Konec",
+      "mapped":true
+    },
+    {
+      "name": "assignee",
+      "title": "Přirazeno",
+      "mapped":true,
+      "type":"select",
+      "completes":"/easy_auto_completer/assignable_users"
+    },
+    {
+      "name": "address",
+      "title": "Adresa",
+      "type":"text"
+    },
+    {
+      "name": "priority",
+      "title": "Priorita",
+      "type":"select",
+      "completes":"/easy_auto_completer/issue_priorities"
+    },
+    {
+      "name":"estimated",
+      "title":"Odhad",
+      "type":"text"
+    }
+  ],
+  "issues": [
+    {
+      "id": 0,
+      "name": "název úkolu",
+      "start_date": "yyyy-mm-dd",
+      "end_date": "yyyy-mm-dd",
+      "estimated": 25,
+      "progress": 0.10,
+      "css": "issue-open project-35 tracker-5 status-1",
+      "assignee": {"id": 65, "name": "lukas"},
+      "version":65,
+
+      "columns": {
+        "address":"Levá 5, Horní Dolní",
+        "priority":"Vysoká",
+        "estimated":256
+      }
+    }
+  ],
+  "projects":[],
+  "versions":[
+    {
+      "id": 65,
+      "name": "název milníku",
+      "start_date": "yyyy-mm-dd",
+      "css": "issue-open project-35 tracker-5 status-1",
+      "milestone":true
+    }
+      
+  ],
+  "relations": [
+    {
+      "id": 5,
+      "source": 6,
+      "target": 7,
+      "type": "precedes",
+      "delay": 0
+    }
+  ]
+}

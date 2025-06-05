@@ -1,0 +1,23 @@
+api.easy_baseline_gantt do
+
+  api.array :issues do
+    @issues.each do |start_date, due_date, done_ratio, source_id|
+      api.issue do
+        api.connected_to_issue_id source_id
+        api.start_date start_date
+        api.due_date due_date
+        api.done_ratio done_ratio
+      end
+    end
+  end
+
+  api.array :versions do
+    @versions.each do |effective_date, source_id|
+      api.version do
+        api.connected_to_version_id source_id
+        api.start_date effective_date
+      end
+    end
+  end
+
+end

@@ -1,0 +1,185 @@
+---
+ru:
+  button_print: Печать
+  button_project_menu_easy_gantt: Диаграмма Ганта Easy
+  button_top_menu_easy_gantt: Диаграмма Ганта
+  button_use_actual_delay: Использовать фактическую задержку
+  easy_gantt_toolbar:
+    day: Дни
+    month: Месяцы
+    week: Недели
+  easy_gantt:
+    buton_create_baseline: Базовый план
+    button_critical_path: Критический путь
+    button_resource_management: Управление персоналом
+    button:
+      close_all: Закрыть все
+      close_all_parent_issues: Закрыть все родительские задачи
+      create_baseline: Базовый план
+      critical_path: Критический путь
+      day_zoom: Дни
+      delayed_project_filter: Фильтр Просроченные Проекты
+      jump_today: Сегодня
+      load_sample_data: Загрузить демо-данные
+      month_zoom: Месяцы
+      print_fit: Подогнать
+      problem_finder: Ошибки
+      reload: Перезагрузить (сохранить)
+      remove_delay: Удалить задержку
+      resource_management: Управление персоналом
+      tool_panel: Инструменты
+      week_zoom: Недели
+    critical_path:
+      disabled: Отключен
+      last: Короткий
+      last_text: Первоочередные задачи
+      longest: Длинный
+      longest_text: Самая длинная последовательность задач
+    error_overmile: Дата выполнения задачи должна находиться до даты Вехи (Версии)
+    error_too_short: Залача слишком короткая для рассчета запланированного времени
+    errors:
+      duplicate_link: Нельзя создать двойную ссылку
+      fresh_milestone: Нельзя добавить задачу к несохраненной вехе. Сначала сохраните
+        веху.
+      link_target_new: Нельзя добавить связь к несохраненной задаче. Сохраните изменения.
+      link_target_readonly: Задача доступна только для чтения
+      loop_link: Невозможно создать цикличную связь
+      no_rest_api: Для работы Easy Gantt требуется REST API. Перейдите в Администрирование->
+        Настройки -> API -> Включить веб-сервис REST
+      overdue: должна заканчиваться в будущем или должна быть уже закрыта
+      overmile: Дата выполнения задачи должна находиться до даты Вехи (Версии)
+      short_delay: должна быть длиннее на  %{diff} дней
+      too_short: недостаточно дней для  %{rest}  часов запланированного времени
+      unsaved_parent: Невозможно добавить задачу к несохраненной родительской задаче.
+        Пожалуйста, сохраните сначала родительскую задачу.
+      unsupported_link_type: Данный тип связи не поддерживатеся
+    gateway:
+      entity_save_failed: "%{entityType} %{entityName} не удалось сохранить из-за
+        ошибки"
+      send_failed: Ошибка запроса
+    label_pro_upgrade: Обновление до PRO-версии
+    link_dir:
+      link_end: предшествует
+      link_start: следует за
+    popup:
+      add_task:
+        heading: Функция "Добавить задачу"
+        text: "Новая задача/веха доступна только в Easy Gantt PRO \r\n<a href=\"https://www.easyredmine.com/easy-gantt-upgrade-to-pro\">Check
+          for update!</a>"
+      baseline:
+        heading: Функция "Базовый план"
+        text: "Базовый план доступен только в Easy Gantt PRO \r\n<a href=\"https://www.easyredmine.com/easy-gantt-upgrade-to-pro\">Check
+          for update!</a>"
+      critical:
+        heading: Фунция - Критический путь
+        text: "Критический путь доступен только в Easy Гант PRO \r\n<a href=\"https://www.easyredmine.com/easy-gantt-upgrade-to-pro\">Проверьте
+          обновления!</a>"
+      resource:
+        heading: Функция  управления  персоналом
+        text: Resource management доступен только в <a href="https://www.easyredmine.com/">
+          Easy Redmine</a>
+    reload_modal:
+      label_errors: Ошибки
+      text_reload_appeal: Вы действительно хотите не сохранить элементы и перезагрузить
+        данные с сервера?
+      title: Не удалось правильно сохранить Гант
+    sample_global_free:
+      text: Демо-данные не могут быть удалены. Гант для всех проектов доступен только
+        в PRO версии.
+      video:
+        text: Здесть вы можете увидеть большинство возможностей Ганта для всех проектов
+        title: Видео-демонстрация возможностей Ганта для всех проектов.
+        video_id: EiiqBrrY4m4
+    sample:
+      close_label: Закройте данное окно и загрузите реальные данные по проекту.
+      header: Демо-данные загружены!
+      text: Мы подготовили специально демо-данные - <strong>попробуйте все возможности
+        Easy Гант без ущерба для Вас!</strong>. Мы также предлагаем вам просмотреть
+        видео-инструкцию, показывающее особенности работы. При закрытии данного окна
+        будут загружены реальные данные по проекту.
+      video_label: Смотреть видео-инструкцию
+      video:
+        text: Здесь вы можете ознакомиться с большинством функций модуля Ганта.
+        title: Демо-видео
+        video_id: UHgqfsrD59Q
+    soon:
+      add_task:
+        heading: Функция Дабавить задачу
+        text: Эта функция скоро появится в продукции. <a href="https://www.easyredmine.com/redmine-gantt-plugin">Проверить
+          доступность!</a>
+      baseline:
+        heading: Функция Базовый План
+        text: Функция "Базовый План" скоро появится в продукции. <a href="https://www.easyredmine.com/redmine-gantt-plugin>Проверить
+          доступность!</a>
+      critical:
+        heading: Функция Критический Путь
+        text: "Функция Критический путь скоро появится в продукции.\r\n<a href=\"https://www.easyredmine.com/redmine-gantt-plugin\">Проверить
+          доступность!</a>"
+      resource:
+        heading: Функция Управление Персоналом
+        text: Функция Управление Персоналом доступна только в <a href="https://www.easyredmine.com/">
+          Easy Redmine</a>
+    text_blocker_milestone: Веха блокирует перемещение задачи вне данной даты
+    text_blocker_move_pre: У данной задачи есть связь, которая не позволяет передвинуть
+      ее вне этой даты
+    title:
+      button_test: Тест (только для тестирования)
+      day_zoom: Отображение временной шкалы по дням
+      jump_today: Показать на графике сегодня
+      month_zoom: Отображение временной шкалы по месяцам
+      print_fit: Вписать диаграмму в страницу
+      week_zoom: Отображение временной шкалы по неделям
+  easy_printable_templates_categories:
+    easy_gantt: Диаграмма Ганта Easy
+  easy_query:
+    name:
+      easy_gantt_easy_issue_query: Easy Гант
+      easy_gantt_easy_project_query: Глобальный Easy Гант
+  error_easy_gantt_view_permission: У вас нет доступа для просмотра Easy Gantt
+  error_epm_easy_gantt_already_active: Easy Гант уже присутствует на этой странице
+  field_easy_gantt_default_zoom: Масштаб по умолчанию
+  field_easy_gantt_relation_delay_in_workdays: Задержка в рабочих днях
+  field_easy_gantt_show_holidays: Показать нерабочие дни
+  field_easy_gantt_show_project_progress: Показать прогресс проекта
+  field_easy_gantt_show_task_soonest_start: Показать скорейшее начало
+  field_keep_link_delay_in_drag: Сохранять задержку при перемещении
+  field_relation: Связь
+  heading_delay_popup: Задать задержку (в днях)
+  heading_demo_feature_popup: Скоро в продукции
+  heading_easy_gantts_issues: Гант по задачам
+  label_easy_gantt: Easy Гант
+  label_easy_gantt_critical_path: Критический путь
+  label_easy_gantt_settings: Настройки Ганта
+  label_filter_group_easy_gantt_easy_issue_query: Поля задачи
+  label_finish_to_finish: Финиш --> Финиш
+  label_parent_issue_plural: Родительские задачи
+  label_start_to_finish: Начало-Окончание
+  label_start_to_start: Старт --> Старт
+  link_easy_gantt_footer: https://www.easyredmine.com/redmine-gantt-plugin
+  link_easy_gantt_plugin: https://www.easyredmine.com/easy-gantt-upgrade-to-pro
+  permission_edit_easy_gantt: Редактировать Easy Гант & Resource management на проекте
+  permission_edit_global_easy_gantt: Редактировать глобальный Easy Гант & Resource
+    management
+  permission_edit_personal_easy_gantt: Реадактировать персональный Easy Gantt & Resource
+    management
+  permission_view_easy_gantt: Отображать Easy Гант & Resource management на проекте
+  permission_view_global_easy_gantt: Отображать глобальный Easy Гант & Resource management
+  permission_view_personal_easy_gantt: Отображать персональный Easy Гант & Resource
+    management
+  project_default_page:
+    easy_gantt: Easy Гант
+  project_module_easy_gantt: Easy Гант
+  text_demo_feature_popup: Эта функия будет скоро доступна
+  text_easy_gantt_footer: Redmine Гант от Easy
+  text_easy_gantt_keep_link_delay_in_drag: Сохранять постоянную задержку при перетаскивании
+    задачи назад
+  text_easy_gantt_print_easy_gantt_current: Показать текущую диаграмму (только для
+    страниц с модулем Easy Gantt)
+  text_easy_gantt_relation_delay_in_workdays: Не учитывать нерабочие дни при запаздывании
+  text_easy_gantt_show_holidays: Показать выходные на Ганте (работают только в Easy
+    Redmine)
+  text_easy_gantt_show_project_progress: Показать процент выполнения на диаграмме
+    (может потребовать дополнительного времени)
+  text_easy_gantt_show_task_soonest_start: Показать минимально допустимые даты для
+    связанных задач или подзадач
+  title_easy_gantt_settings: Easy Гант

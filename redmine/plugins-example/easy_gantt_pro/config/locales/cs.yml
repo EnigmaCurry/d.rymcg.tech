@@ -1,0 +1,76 @@
+---
+cs:
+  easy_gantt_pro:
+    add_task_modal:
+      no_parent: ''
+      title: Přidat úkol
+    add_task:
+      body: Nový úkol verze můžete vytvořit kliknutím na tlačítko Úkol (nebo tlačítko
+        Verze) nebo přetažením kamkoliv do grafu
+      title: Nápověda k přidání úkolu
+    baselines:
+      confirm_delete: Opravdu chcete smazat tuto baseline
+      create_failed: Nová baseline nemohla být vytvořena
+      delete_failed: Baseline nemohla být odstraněna
+      error_not_saved: Musíte uložit všechny změny v projektu před vytvořením baseline
+      label_baseline: Baseline
+      label_same: "-stejný-"
+      off_desc: Zapnout Baseline modul k zobrazení a vytváření baselines.
+      off_link: Nastavení modulu
+      off_title: Baseline modul je vypnutý
+    cashflow:
+      label_cashflow: Peněžní tok
+    critical:
+      hide_button: Skrýt Kritickou cestu
+      legend_issues: Úkol na Kritické cestě
+      show_button: Zobrazit Kritickou cestu
+    lowest_progress:
+      label_progress_date: Datum průběhu
+    project_move:
+      error_opening_unsaved: Musíte nejprve uložit změny před otevřením projektu
+    resources:
+      label_resources: Zdroje
+  easy_gantt:
+    button:
+      bulk_edit: Hromadná úprava
+      delayed_issue_filter: Filtrovat opožděné úkoly
+      show_lowest_progress_tasks: Zobrazit úkoly s nejnižším datem průběhu
+      show_only_critical: Filtrovat kritické
+    popup:
+      add_task:
+        heading: Pomoc s přidáním úkolu
+        text: Nový úkol nebo milník může být vytvořen kliknutím na tlačítko úkolu
+          (respektive tlačítko milníku) nebo přetažením kdekoli v grafu
+      baseline:
+        heading: Popis baseline
+        heading_new_baseline: Nová baseline
+        text: Vytvoří kopii projektu pro další porovnání
+      critical:
+        heading: Popis Kritické cesty
+        text: Nejdelší sled činností v plánu projektu, který musí být dokončen včas,
+          aby byl daný projekt dokončen v řádném termínu. Aktivitu na kritické cestě
+          nelze zahájit, dokud aktivita jejího předchůdce není dokončena; pokud je
+          odložena o jeden den, bude celý projekt odložen o jeden den, ledaže by aktivita
+          navazující na opožděnou aktivitu byla dokončena o den dříve. Pro správnou
+          funkci kritické cesty by projekt měl mít jen jeden počáteční a jeden koncový
+          úkol a tyto úkoly by měly být spojeny vazbami.
+    scheme_by:
+      label_by_priority: Priority
+      label_by_status: Stavu
+      label_by_tracker: Trackeru
+      label_color_by: Barva dle
+    title:
+      delayed_issue_filter: Zobrazit pouze úkoly, jejichž datum průběhu je v minulosti
+      show_only_critical: Zobrazit pouze úkoly na kritické cestě
+  easy_pages:
+    modules:
+      easy_global_gantt: Easy gantt
+  easy_proposer:
+    easy_gantt:
+      index:
+        caption: Easy Gantt PRO
+        description: Přejít na Easy Gantt PRO
+  heading_easy_gantts_issues: Easy Gantt PRO
+  label_show_lowest_progress_tasks: Úkoly s nejpomalejším průběhem
+  text_show_lowest_progress_tasks: Zobrazit úkoly s nejhorším datem průběhu (= datum
+    odpovídající poměru % Hotovo v ganttu)

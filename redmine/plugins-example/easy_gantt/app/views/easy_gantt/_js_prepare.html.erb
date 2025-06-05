@@ -1,0 +1,151 @@
+<%= content_for :header_tags do %>
+  <script type="text/javascript">
+    window.ysy = window.ysy || {};
+    ysy.settings = ysy.settings || {};
+    $.extend(true, ysy.settings, <%= {
+      platform: 'redmine',
+      easyRedmine: false,
+      isGantt: (params[:controller] == 'easy_gantt'),
+      language: I18n.locale.to_s,
+      project: ({ id: @project.id, name: @project.name } if @project),
+      dateFormat: (Setting.date_format.presence || I18n.t('date.formats.default')),
+      nonWorkingWeekDays: EasyGantt.non_working_week_days,
+      milestonePush: false,
+      workDayDelays: Setting.plugin_easy_gantt['relation_delay_in_workdays'],
+      fixedRelations: false,
+      defaultZoom: Setting.plugin_easy_gantt['default_zoom'],
+      paths: {
+        rootPath: home_path
+      },
+      labels: {
+        buttons: {
+          button_delete: l(:button_delete),
+          button_submit: l(:button_submit),
+          button_yes: l(:general_text_Yes),
+          button_no: l(:general_text_No),
+          button_cancel: l(:button_cancel),
+          button_reload: l('easy_gantt.button.reload'),
+          button_save: l(:button_save)
+        },
+        sample_text: l('easy_gantt.sample.text').html_safe,
+        sample_global_free_text: l('easy_gantt.sample_global_free.text').html_safe,
+        date: {
+          month_full: Array(l('date.month_names')).compact,
+          month_short: Array(l('date.abbr_month_names')).compact,
+          day_full: Array(l('date.day_names')).compact,
+          day_short: Array(l('date.abbr_day_names')).compact
+        },
+        types: {
+          project: l(:field_project),
+          issue: l(:field_issue),
+          milestone: l(:field_version),
+          relation: l(:field_relation)
+        },
+        errors: Array(l('activerecord.errors.messages')).compact,
+        errors2: {
+          unsaved_parent: l('easy_gantt.errors.unsaved_parent')
+        },
+        problems: {
+          overMilestone: l('easy_gantt.errors.overmile'),
+          too_short: l('easy_gantt.errors.too_short'),
+          overdue: l('easy_gantt.errors.overdue'),
+          progressDateOverdue: l('easy_gantt.errors.progress_date_overdue'),
+          shortDelay: l('easy_gantt.errors.short_delay')
+        },
+        gateway: {
+          sendFailed: l('easy_gantt.gateway.send_failed'),
+          entitySaveFailed: l('easy_gantt.gateway.entity_save_failed'),
+          allSended: l(:notice_successful_update)
+        },
+        titles: {
+          easyGantt: l(:heading_easy_gantts_issues)
+        },
+        warnings: {
+          change_link_length: l("easy_gantt.errors.change_link_length"),
+        }
+      },
+      styles: {
+        backgrounds:{
+          selected: '#fff3a1',
+          line: 'rgba(200,200,200,0.5)',
+          line_month: '#aaaaff'
+        }
+      }
+    }.to_json.html_safe %>)
+
+    ysy.view = ysy.view || {};
+    ysy.view.templates = $.extend(ysy.view.templates, <%= {
+      TaskTooltip: %{
+        <h3 class="gantt-tooltip-header">{{name}}</h3>
+        {{#start_date}}
+          <div class="gantt-tooltip-start_date"><span class="gantt-tooltip-label">#{l(:field_start_date)}:</span> {{start_date}}</div>
+        {{/start_date}}
+        {{#end_date}}
+          <div class="gantt-tooltip-end_date"><span class="gantt-tooltip-label">#{l(:field_due_date)}:</span> {{end_date}}</div>
+        {{/end_date}}
+        {{#milestone}}
+          <div class="gantt-tooltip-milestone"><span class="gantt-tooltip-label">#{l(:field_version)}:</span> {{milestone.name}}</div>
+        {{/milestone}}
+        {{#columns}}
+          <div class="gantt-tooltip-column-{{name}}"><span class="gantt-tooltip-label">{{label}}:</span> {{value}}</div>
+        {{/columns}}
+        {{#problems}}
+          <div class="gantt-tooltip-problem">{{.}}</div>
+        {{/problems}}
+      },
+      Button: %{
+        <span class="button {{active}}" title="{{title}}">
+          <a id="{{elid}}_button_in" class="gantt_button{{icon}}" href="javascript:void(0)">{{name}}</a>
+        </span>
+      },
+      LinkButton: %{
+        <a class="{{css}}" title="{{title}}" href="javascript:void(0)">{{name}}</a>
+      },
+      SuperPanel: %{},
+      # reloadModal: %{
+      #   <h3 class="title">#{l('easy_gantt.reload_modal.title')}</h3>
+      #   <h4>#{l('easy_gantt.reload_modal.label_errors')}:</h4>
+      #   <ul class="gantt-reload-modal-errors">
+      #     {{#errors}}
+      #       <li class="gantt-reload-model-error">{{.}}</li>
+      #     {{/errors}}
+      #   </ul>
+      #   <p>#{l('easy_gantt.reload_modal.text_reload_appeal')}</p>
+      # },
+      preBlocker: %{
+        <div style="left:{{pos_x}}px" class="gantt_task_relation_stop gantt_task_relation_stop_left" title="#{l('easy_gantt.text_blocker_move_pre')}">
+        </div>
+      },
+      endBlocker: %{
+        <div style="left:{{pos_x}}px" class="gantt_task_relation_stop gantt_task_relation_stop_right" title="#{l('easy_gantt.text_blocker_move_end')}">
+        </div>
+      },
+      ProblemFinder: %{
+        #{l('easy_gantt.button.problem_finder')}:
+        <span class="gantt-menu-problems-count{{#count}} gantt-with-problems{{/count}}">{{count}}</span>
+      },
+      ProblemFinderList: %{
+        <ol>
+          {{#entities}}
+            <li>
+              <a href="javascript:ysy.pro.problemFinder.scrollToEntity('{{entityId}}')">
+                {{#isProject}}#{l(:field_project)}{{/isProject}}{{^isProject}}#{l(:field_issue)}{{/isProject}}: <strong>{{name}}</strong>
+                <br>
+                <span class="gantt-menu-problems-reason">{{text}}</span>
+              </a>
+            </li>
+          {{/entities}}
+          {{#relations}}
+            <li>
+              <a href="javascript:ysy.pro.problemFinder.scrollToEntity('{{entityId}}')">
+                #{l(:field_relation)}: <strong>{{sourceName}}</strong> - <strong>{{targetName}}</strong>
+                <br>
+                <span class="gantt-menu-problems-reason">{{text}}</span>
+              </a>
+            </li>
+          {{/relations}}
+        </ol>
+      }
+    }.to_json.html_safe %>)
+  </script>
+<% end %>

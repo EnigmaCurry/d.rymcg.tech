@@ -1,0 +1,63 @@
+---
+zh:
+  easy_gantt_pro:
+    add_task_modal:
+      no_parent: ''
+      title: 添加任务
+    baselines:
+      confirm_delete: 确定要删除这个原始时间线?
+      create_failed: 不能创建新的 原时间线(Baseline)
+      delete_failed: 该Baseline不能被删除
+      error_not_saved: 在创建Baseline前必须先保存项目中所有变更
+      label_baseline: 原时间线
+      label_same: "- 相同 -"
+    cashflow:
+      label_cashflow: 显示资金
+    critical:
+      hide_button: 不显示关键路径
+      legend_issues: 关键路径上的任务
+      show_button: 显示关键路径
+    lowest_progress:
+      label_progress_date: 进度日期
+    project_move:
+      error_opening_unsaved: 在打开此项目前请先保存变更
+    resources:
+      label_resources: 资源
+  easy_gantt:
+    button:
+      bulk_edit: 批量编辑
+      delayed_issue_filter: 延误原因筛选
+      show_lowest_progress_tasks: 显示各任务最近的进度更新日期
+      show_only_critical: 筛选出关键的
+    popup:
+      add_task:
+        heading: 添加任务帮助
+        text: 通过点击任务(里程碑)按钮, 或在图形中拖放创建新的任务(里程碑)
+      baseline:
+        heading: 原时间线的描述
+        heading_new_baseline: 新建Baseline
+        text: 创建该项目的复本来进行比较
+      critical:
+        heading: 关键路径的描述
+        text: 项目中最长用时的路线上的工作必须在预定时间内完成. 关键路径上的工作只有在其前一个工作完成后才能启动; 如果其中一个工作延误了一天, 则整个项目会延误一天(除非后续有工作提前[完成).
+          一个关键路径只能有一个开始和一个结束任务, 且这些任务之间用关系(Relation)连接
+    scheme_by:
+      label_by_priority: 按优先级
+      label_by_status: 按状态
+      label_by_tracker: 按状态
+      label_color_by: 按颜色
+    title:
+      delayed_issue_filter: 显示原因是进度日期在今天之后的
+      show_only_critical: 仅显示关键路径上的任务
+  easy_pages:
+    modules:
+      easy_global_gantt: Easy gantt(甘特图)
+      easy_project_gantt: Easy 甘特图
+  easy_proposer:
+    easy_gantt:
+      index:
+        caption: Easy 甘特图专业版
+        description: 转到Easy 甘特图专业版
+  heading_easy_gantts_issues: Easy Gantt PRO
+  label_show_lowest_progress_tasks: 进度最慢的任务
+  text_show_lowest_progress_tasks: 显示任务最差的更新日期( 对应任务完成比例的日期, 显示在任务进度条上)

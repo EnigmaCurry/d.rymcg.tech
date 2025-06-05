@@ -1,0 +1,162 @@
+---
+en:
+  button_print: Print
+  button_project_menu_easy_gantt: Easy Gantt
+  button_top_menu_easy_gantt: Projects Gantt
+  button_use_actual_delay: Use actual delay
+  easy_gantt:
+    button:
+      close_all: Close all
+      close_all_parent_issues: Close all parent tasks
+      create_baseline: Baselines
+      critical_path: Critical path
+      day_zoom: Days
+      delayed_project_filter: Filter Delayed Projects
+      jump_today: Jump to today
+      load_sample_data: Load sample data
+      month_zoom: Months
+      print_fit: Fit to page
+      problem_finder: Problems
+      quarter_zoom: Quarters
+      reload: Reload (save)
+      remove_delay: Remove delay
+      resource_management: Resource management
+      tool_panel: Tools
+      week_zoom: Weeks
+      year_zoom: Years
+    critical_path:
+      disabled: Disabled
+      last: Last
+      last_text: Tasks which should not be delayed
+      longest: Longest
+      longest_text: Show longest sequence of tasks
+    errors:
+      duplicate_link: Cannot create duplicate link
+      fresh_milestone: Cannot add task to non-saved milestone. Save the milestone
+        first.
+      link_target_new: Cannot create link to unsaved task. Save the changes first.
+      link_target_readonly: Read-only target task
+      loop_link: Cannot create looped link
+      no_rest_api: Easy Gantt needs REST API enabled. Turn it on in Administration
+        -> Settings -> API -> Enable REST web service
+      overdue: should end in future or should be closed already
+      progress_date_overdue: is behind schedule by %{days} days
+      overmile: should end on %{effective_date} in order to keep milestone
+      short_delay: should be longer by %{diff} days
+      too_short: does not contain enough days for %{rest} hours of estimated time
+      unsaved_parent: Cannot add task to non-saved parent. Save the changes first.
+      unsupported_link_type: Unsupported link type
+      change_link_length: The delay between {{source_task}} and {{target_task}} has been changed to a minimum length of {{minimum_link_length}}
+    gateway:
+      entity_save_failed: "%{entityType} %{entityName} failed to save due to error"
+      send_failed: Request failed
+    label_pro_upgrade: Upgrade to PRO version
+    link_dir:
+      link_end: as preceding
+      link_start: as following
+    popup:
+      add_task:
+        heading: Add task feature
+        text: "New task/milestone feature is available only in Easy Gantt PRO \r\n<a
+          href=\"https://www.easyredmine.com/easy-gantt-upgrade-to-pro\">Check for
+          update!</a>"
+      baseline:
+        heading: Baselines feature
+        text: "Baselines feature is available only in Easy Gantt PRO \r\n<a href=\"https://www.easyredmine.com/easy-gantt-upgrade-to-pro\">Check
+          for update!</a>"
+      critical:
+        heading: Critical path feature
+        text: "Critical path feature is available only in Easy Gantt PRO \r\n<a href=\"https://www.easyredmine.com/easy-gantt-upgrade-to-pro\">Check
+          for update!</a>"
+      resource:
+        heading: Resource manager feature
+        text: Resource management feature is available only in <a href="https://www.easyredmine.com/">
+          Easy Redmine</a>
+    reload_modal:
+      label_errors: Errors
+      text_reload_appeal: Do you want to ignore unsaved items and reload data from
+        server?
+      title: Gantt failed to save properly
+    sample_global_free:
+      text: Sample data cannot be closed. Gantt over all projects is available only
+        in PRO version
+      video:
+        text: Here you can see most of features of Gantt over all projects
+        title: Sample video of Gantt over all projects
+        video_id: EiiqBrrY4m4
+    sample:
+      close_label: Close this window and load real project data
+      header: Sample data are loaded!
+      text: We have prepared some sample data for you to <strong>try all Easy Gantt
+        features with no stress</strong>. We also want to encourage you to watch a
+        video guide showing useful tweaks. Closing this window will load real project
+        data.
+      video_label: Watch video tutorial
+      video:
+        text: Here you can see most of features of this Gantt module
+        title: Sample video
+        video_id: UHgqfsrD59Q
+    text_blocker_milestone: Milestone is blocking task to be moved beyond this date
+    text_blocker_move_pre: Task has relation that blocks moving task beyond this date
+    text_blocker_move_end: At least one following task will be postponed if moved after this date
+    title:
+      button_test: Test button (only for testing)
+      day_zoom: Zoom to day scale
+      jump_today: Display timeline at today
+      month_zoom: Zoom to month scale
+      print_fit: Scale the gantt to one page
+      quarter_zoom: Zoom to quarter scale
+      week_zoom: Zoom to week scale
+      year_zoom: Zoom to year scale
+  easy_printable_templates_categories:
+    easy_gantt: Easy Gantt
+  easy_query:
+    name:
+      easy_gantt_easy_issue_query: Easy Gantt
+      easy_gantt_easy_project_query: Global Easy Gantt
+  error_easy_gantt_view_permission: You do not have permission to see Easy Gantt
+  error_epm_easy_gantt_already_active: Easy gantt on the page is already active
+  field_easy_gantt_default_zoom: Default zoom
+  field_easy_gantt_relation_delay_in_workdays: Relation delays in workdays
+  field_easy_gantt_show_holidays: Show holidays
+  field_easy_gantt_show_project_progress: Show project progress
+  field_easy_gantt_show_task_soonest_start: Show soonest start
+  field_relation: Relation
+  heading_delay_popup: Define delay in days
+  heading_demo_feature_popup: Coming soon
+  heading_easy_gantts_issues: Easy Gantt Free
+  label_easy_gantt: Easy Gantt
+  label_easy_gantt_critical_path: Critical path
+  label_easy_gantt_settings: Gantt settings
+  label_filter_group_easy_gantt_easy_issue_query: Task fields
+  label_finish_to_finish: Finish to finish
+  label_parent_issue_plural: Parent tasks
+  label_start_to_finish: Start to finish
+  label_start_to_start: Start to start
+  link_easy_gantt_plugin: https://www.easyredmine.com/easy-gantt-upgrade-to-pro
+  permission_edit_easy_gantt: Edit Easy Gantt & Resource management on a project
+  permission_edit_global_easy_gantt: Edit global Easy Gantt & Resource management
+  permission_edit_personal_easy_gantt: Edit personal Easy Gantt & Resource management
+  permission_view_easy_gantt: View Easy Gantt & Resource management on a project
+  permission_view_global_easy_gantt: View global Easy Gantt & Resource management
+  permission_view_personal_easy_gantt: View personal Easy Gantt & Resource management
+  project_default_page:
+    easy_gantt: Easy Gantt
+  project_module_easy_gantt: Easy Gantt
+  text_demo_feature_popup: This feature will be available soon.
+  text_easy_gantt_footer: Redmine Gantt powered by Easy
+  text_easy_gantt_print_easy_gantt_current: Show current Easy Gantt (works only from
+    page where is easy gantt loaded)
+  text_easy_gantt_relation_delay_in_workdays: Do not count non-working days in relation
+    delay
+  text_easy_gantt_show_holidays: Show current user holidays on gantt (works only in
+    Easy Redmine)
+  text_easy_gantt_show_project_progress: Show completed percent on project's bar (may
+    be slow to load)
+  text_easy_gantt_show_task_soonest_start: Show lowest valid dates for tasks defined
+    by relations or parent
+  title_easy_gantt_settings: Easy Gantt
+  field_easy_gantt_fixed_delay: Fixed delay
+  text_easy_gantt_fixed_delay: Keep relation delay fixed when task is dragging (works only on easy gantt)
+  label_easy_gantt_recalculate_fixed_delay: recalculate fixed delay
+  notice_easy_gantt_fixed_delay_recalculated: Fixed delay on all relations was recalculated

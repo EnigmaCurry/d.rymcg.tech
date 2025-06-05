@@ -1,0 +1,194 @@
+---
+de:
+  button_print: Drucken
+  button_project_menu_easy_gantt: Easy Gantt
+  button_top_menu_easy_gantt: Projekte Gantt
+  button_use_actual_delay: Aktuelle Verzögerung übernehmen
+  easy_gantt_toolbar:
+    day: Days
+    month: Months
+    week: Weeks
+  easy_gantt:
+    buton_create_baseline: Baselines
+    button_critical_path: Critical path
+    button_resource_management: Ressourcenmanagement
+    button:
+      close_all: Alle schließen
+      close_all_parent_issues: Alle übergeordneten Aufgaben schliessen
+      create_baseline: Basispläne
+      critical_path: Kritischer Weg
+      day_zoom: Tage
+      delayed_project_filter: Verspätete Projekte filtern
+      jump_today: Zum heutigen Tag überspringen
+      load_sample_data: Beispieldaten laden
+      month_zoom: Monate
+      print_fit: Der Seite anpassen
+      problem_finder: Probleme
+      reload: Neu laden (speichern)
+      remove_delay: Die Verzögerung entfernen
+      resource_management: Ressourcenmanagement
+      tool_panel: Werkzeuge
+      week_zoom: Wochen
+    critical_path:
+      disabled: Deaktiviert
+      last: Letzte
+      last_text: Die Aufgaben, die ohne Verspätung erfüllt werden sollen
+      longest: Längste
+      longest_text: Die längste Sequenz anzeigen
+    error_overmile: Task should end before its milestone
+    error_too_short: Task is too short for its estimated hours count
+    errors:
+      duplicate_link: Das Duplikat des Links kann nicht erstellt werden
+      fresh_milestone: "Die Aufgabe kann nicht zu dem nicht gespeicherten Meilenstein
+        hinzugefügt werden.\r\nBitte speichern Sie erst den Meilenstein."
+      link_target_new: Ein Link zur nicht abgespeicherte Aufgabe kann nicht erstellt
+        werden. Bitte die Veränderungen erst speichern.
+      link_target_readonly: Nur-lese-Modus die Zielaufgabe
+      loop_link: Der geloopter Link kann nicht erstellt werden.
+      no_rest_api: Easy Gantt braucht REST API aktiviert. Bitte aktivieren Sie es
+        in der Administration -> Einstellungen-> API -> Aktivieren REST Web Service
+      overdue: Soll in der Zukunft enden oder soll bereits geschlossen werden
+      overmile: Soll am %{effective_date} enden, um den Meilenstein einzuhalten
+      short_delay: Soll länger sein als %{diff} Tage
+      too_short: enthält nicht genug Tage für %{rest} Stunden der abgeschätzten Zeit.
+      unsaved_parent: "Die Aufgabe kann nicht zur nicht gespeicherten übergeordneten
+        Aufgabe hinzugefügt werden.\r\nBitte erst die Änderungen speichern."
+      unsupported_link_type: Der Link Typ wird nicht unterstützt
+    gateway:
+      entity_save_failed: "%{entityType} %{entityName} kann nicht gespeichert werden.
+        Ein Fehler ist aufgetreten."
+      send_failed: Die Anfrage ist fehlgeschlagen
+    label_pro_upgrade: Auf die Pro Version upgraden
+    link_dir:
+      link_end: wie vorangegangen
+      link_start: als nächstes
+    popup:
+      add_task:
+        heading: Eine Funktion der Aufgabe hinzufügen
+        text: "Neue Funktion für eine/einen Aufgabe/Meilenstein ist ausschließlich
+          verfügbar für Easy Gantt PRO  Mitglieder\r\n<a href=\"https://www.easyredmine.com/easy-gantt-upgrade-to-pro\">Check
+          for update!</a>"
+      baseline:
+        heading: Funktion für Basispläne
+        text: "Funktionen für Basisplan ist ausschließlich verfügbar für Easy Gantt
+          PRO Mitglieder\r\n<a href=\"https://www.easyredmine.com/easy-gantt-upgrade-to-pro\">Check
+          for update!</a>"
+      critical:
+        heading: Funktion für den kritischen Weg
+        text: "Funktion für den kritischen Weg ist ausschließlich verfügbar für Easy
+          Gantt PRO Mitglieder\r\n<a href=\"https://www.easyredmine.com/easy-gantt-upgrade-to-pro\">Check
+          for update!</a>"
+      resource:
+        heading: Ressourcenmanager Funktion
+        text: Ressourcenmanagement Funktion steht Ihnen hier zur Verfügung  <a href="https://www.easyredmine.com/">
+          Easy Redmine</a>
+    reload_modal:
+      label_errors: Fehler
+      text_reload_appeal: Möchten Sie nicht gespeicherte Elemente ignorieren und die
+        Daten vom Server neuladen?
+      title: Gantt wurde nicht ordnungsgemäß gespeichert
+    sample_global_free:
+      text: Beispieldaten können nicht geschlossen werden. Gantt über alle Projekte
+        ist nur in der PRO Version verfügrbar
+      video:
+        text: Hier bekommen Sie ein Übersicht über die meisten Funktionen des Gantt
+          über alle Projekte
+        title: Beispielvideo  für Gantt über alle Projekte
+        video_id: EiiqBrrY4m4
+    sample:
+      close_label: Das Fenster schließen und die echten Projektdaten laden
+      header: Beispieldaten sind hochgeladen
+      text: "Wir haben einige Beispieldaten für Sie vorbereitet, um alle Easy Gantt
+        Funktionen ohne Stress testen zu können. Wir möchten Sie auch ermutigen, sich
+        die Video-Anleitung über Optimierungsmethoden anzuschauen.\r\nSchließen Sie
+        dieses Fenster, um das Laden der echten Projektdaten auszulösen."
+      video_label: Die Video-Anleitung anschauen
+      video:
+        text: Hier können Sie die meisten der Funktionen für dieses Gantt Modul sehen
+        title: Beispielvideo
+        video_id: UHgqfsrD59Q
+    soon:
+      add_task:
+        heading: Add Issue feature
+        text: This feature is comming soon. <a href="https://www.easyredmine.com/redmine-gantt-plugin">Check
+          the availability here!</a>
+      baseline:
+        heading: Baselines feature
+        text: Baselines feature is comming soon. <a href="https://www.easyredmine.com/redmine-gantt-plugin>Check
+          the availability here!</a>
+      critical:
+        heading: Critical path feature
+        text: "Critical Path feature is comming soon. \r\n<a href=\"https://www.easyredmine.com/redmine-gantt-plugin\">Check
+          the availability here!</a>"
+      resource:
+        heading: Resource manager feature
+        text: Resource Management feature is available just in <a href="https://www.easyredmine.com/">
+          Easy Redmine</a>
+    text_blocker_milestone: Der Meilenstein blockiert das Verschieben der Aufgabe
+      außerhalb des Datums
+    text_blocker_move_pre: Die Aufgabe hat eine Beziehung, die das Verschieben der
+      Aufgabe außerhalb des Datums verhindert.
+    title:
+      button_test: Test Taste (nur zum Testen)
+      day_zoom: In den täglichen Zeitplan zoomen
+      jump_today: springe zum heutigen Tag
+      month_zoom: In den monatlichen Zeitplan zoomen
+      print_fit: Skalieren Sie das Gantt auf eine Seite
+      week_zoom: In den wöchentlichen Zeitplan zoomen
+  easy_printable_templates_categories:
+    easy_gantt: Easy Gantt
+  easy_query:
+    name:
+      easy_gantt_easy_issue_query: Easy Gantt
+      easy_gantt_easy_project_query: Globales Easy Gantt
+  error_easy_gantt_view_permission: Sie haben nicht die Berechtigung, Easy Gantt zu
+    sehen
+  error_epm_easy_gantt_already_active: Easy Gantt ist auf der Seite bereits aktiv
+  field_easy_gantt_default_zoom: Standard Zoom
+  field_easy_gantt_relation_delay_in_workdays: Relationsverzögerungen in Arbeitstagen
+  field_easy_gantt_show_holidays: Feiertage anzeigen
+  field_easy_gantt_show_project_progress: Den Projektfortschritt anzeigen
+  field_easy_gantt_show_task_soonest_start: Den frühestmöglichen Starttermin anzeigen
+  field_keep_link_delay_in_drag: Konstante Link-Verzögerung beim Ziehen (Drag)
+  field_relation: Beziehung
+  heading_delay_popup: Definition der Verzögerung in Tagen
+  heading_demo_feature_popup: Coming soon
+  heading_easy_gantts_issues: Aufgaben Gantt
+  label_easy_gantt: Easy Gantt
+  label_easy_gantt_critical_path: Kritischer Weg
+  label_easy_gantt_settings: Gantt Einstellungen
+  label_filter_group_easy_gantt_easy_issue_query: Aufgabenfelder
+  label_finish_to_finish: Ende zu Ende
+  label_parent_issue_plural: Probleme der übergeordneten Aufgaben
+  label_start_to_finish: Start zu Ende
+  label_start_to_start: Start zu Start
+  link_easy_gantt_footer: https://www.easyredmine.com/redmine-gantt-plugin
+  link_easy_gantt_plugin: https://www.easyredmine.com/easy-gantt-upgrade-to-pro
+  permission_edit_easy_gantt: Easy Gantt & Ressourcenmanagement in dem Projekt bearbeiten
+  permission_edit_global_easy_gantt: Easy Gantt & Ressourcenmanagement in dem Prokjekt
+    global bearbeiten
+  permission_edit_personal_easy_gantt: Persönliche Easy Gantt & Resource management
+    bearbeiten
+  permission_view_easy_gantt: Easy Gantt & Resourcenmanagement in dem Prokjekt sehen
+  permission_view_global_easy_gantt: Easy Gantt & Ressourcenmanagement in dem Prokjekt
+    global sehen
+  permission_view_personal_easy_gantt: Persönliche Easy Gantt & Ressourcenmanagement
+    sehen
+  project_default_page:
+    easy_gantt: Easy Gantt
+  project_module_easy_gantt: Easy Gantt
+  text_demo_feature_popup: This feature will be available soon.
+  text_easy_gantt_footer: Redmine Gantt powered by Easy
+  text_easy_gantt_keep_link_delay_in_drag: Die Verzögerung der Beziehung konstant
+    beibehalten während die Aufgabe nach hinten gezogen wird
+  text_easy_gantt_print_easy_gantt_current: Aktuelles Easy Gantt anzeigen (funktioniert
+    nur von einer Seite, wo Easy Gantt geladen wird)
+  text_easy_gantt_relation_delay_in_workdays: Rechnen Sie nicht Nichtarbeitstage in
+    der Relationsverzögerung mit.
+  text_easy_gantt_show_holidays: Die aktuellen Feiertage des Benutzers im Gantt- Diagram
+    anzeigen (Die Funktion ist nur in Easy Redmine verfügbar)
+  text_easy_gantt_show_project_progress: Den Fortschritt in Prozent auf dem Balken
+    des Projekts anzeigen (kann die Ladezeit beeinträchtigen)
+  text_easy_gantt_show_task_soonest_start: Die kleinsten zulässigen Daten, die durch
+    Beziehungen oder übergeordnete Aufgaben definiert sind, für die Aufgabe anzeigen
+  title_easy_gantt_settings: Easy Gantt

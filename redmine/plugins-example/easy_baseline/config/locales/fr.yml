@@ -1,0 +1,13 @@
+---
+fr:
+  easy_baseline_plugin_author: Easy Software
+  easy_baseline_plugin_author_url: http://www.easyproject.cz/en
+  easy_baseline_plugin_description: ''
+  easy_baseline_plugin_name: Easy Baseline
+  easy_baseline_project_prefix: ''
+  field_easy_baseline_for: Point de comparaison (baseline)
+  label_create_easy_baseline: Établir un point de comparaison
+  label_easy_baselines: Easy Baselines
+  label_try_again: Essayer à nouveau
+  notice_easy_baseline_created: Ligne de base pour projet %{project_name} créé avec
+    succès

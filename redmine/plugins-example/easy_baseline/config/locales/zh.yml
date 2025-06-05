@@ -1,0 +1,12 @@
+---
+zh:
+  easy_baseline_plugin_author: EASY软件
+  easy_baseline_plugin_author_url: http://www.easyproject.cz/en
+  easy_baseline_plugin_description: Baseline-原始时间线
+  easy_baseline_plugin_name: Easy 原始时间线
+  easy_baseline_project_prefix: '下列项目的原时间线(Baseline):'
+  field_easy_baseline_for: 原时间线
+  label_create_easy_baseline: 创建原时间线(Baseline)
+  label_easy_baselines: Easy原时间线(Baseline)
+  label_try_again: 重试
+  notice_easy_baseline_created: 项目 %{project_name}的原时间线(Baseline)创建成功

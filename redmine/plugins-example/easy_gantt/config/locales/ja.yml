@@ -1,0 +1,146 @@
+---
+ja:
+  button_print: 印刷
+  button_project_menu_easy_gantt: Easy Gantt
+  button_top_menu_easy_gantt: Projects Gantt
+  button_use_actual_delay: 実際の遅延日数を使用
+  easy_gantt:
+    button:
+      close_all: すべて閉じる
+      close_all_parent_issues: すべての親タスクを閉じる
+      create_baseline: ベースライン
+      critical_path: クリティカルパス
+      day_zoom: 日数
+      delayed_project_filter: 遅延しているプロジェクトをフィルタする
+      jump_today: 今日に移動
+      load_sample_data: サンプルデータを読み込む
+      month_zoom: 月数
+      print_fit: ページに合わせる
+      problem_finder: 問題
+      reload: 再読み込み（保存）
+      remove_delay: 遅延を削除
+      resource_management: リソース・マネージメント
+      tool_panel: ツール
+      week_zoom: 週数
+    critical_path:
+      disabled: 無効
+      last: 最終
+      last_text: 遅延できないタスク
+      longest: 最長
+      longest_text: タスクの最長シーケンスを表示
+    errors:
+      duplicate_link: リンクのコピーを作成できません
+      fresh_milestone: 保存されていないマイルストーンにはタスクを追加できません。まず、マイルストーンを保存してください。
+      link_target_new: 保存されていないタスクにはリンクを作成できません。まず、変更を保存してください。
+      link_target_readonly: ターゲット・タスクは読み取り専用です
+      loop_link: 無限ループを作ってはなりません。
+      no_rest_api: このEasy Ganttを使うためには、REST APIを有効にする必要があります。管理⇒設定⇒APIと進み、REST Webサービスを有効にしてください。
+      overdue: あとで完了するか、すでにタスクはクローズされています
+      overmile: マイルストーンを保つには、%{effective date}に完了する必要があります。
+      short_delay: "%{diff} 日以上、必要です"
+      too_short: 予定作業時間%{rest}に対して、日数が不足しています
+      unsaved_parent: 保存されていない親タスクにタスクの追加はできません。まず、変更を保存してください
+      unsupported_link_type: サポートされていないリンクタイプです
+    gateway:
+      entity_save_failed: "%{entityType} %{entityName} はエラーのため、保存できませんでした"
+      send_failed: 要求は失敗しました
+    label_pro_upgrade: PROにアップグレード
+    link_dir:
+      link_end: 前の通り
+      link_start: 以下の通り
+    popup:
+      add_task:
+        heading: タスクの機能追加
+        text: 今回新たに追加されたタスク／マイルストーン機能は、Easy Gantt PROでのみ使用できます。\r\n<a href=\"https://www.easyredmine.com/easy-gantt-upgrade-to-pro\">PROのアップデートされた機能については、こちらからご確認ください！</a>"
+      baseline:
+        heading: ベースライン機能
+        text: "ベースライン機能は、Easy Gantt PROでのみ使用できます。\r\n<a href=\"https://www.easyredmine.com/easy-gantt-upgrade-to-pro\">PROのアップデートされた機能については、こちらからご確認ください！</a>"
+      critical:
+        heading: クリティカルパス機能
+        text: "クリティカルパス機能は、Easy Gantt PROでのみ使用できます。\r\n<a href=\"https://www.easyredmine.com/easy-gantt-upgrade-to-pro\">PROのアップデートされた機能については、こちらからご確認ください！</a>"
+      resource:
+        heading: リソース・マネージャー機能
+        text: リソースマネージメント機能は<a href="https://www.easyredmine.com/">Easy Redmine</a>でのみ使用できます。
+    reload_modal:
+      label_errors: エラー
+      text_reload_appeal: 保存されていない変更を破棄して、サーバのデータを再読み込みしますか？
+      title: Ganttが正しく保存されませんでした。
+    sample_global_free:
+      text: 全プロジェクト横断管理ガントチャートはPROバージョンのみで使用可能です。
+      video:
+        text: 全プロジェクト横断管理ガントチャートの大半の機能はこちらから見ることができます。
+        title: 全プロジェクト横断管理ガントチャートのデモビデオ
+        video_id: zd3M0KYxcXM
+    sample:
+      close_label: このウィンドウを閉じて、実際のプロジェクトデータを読み込む
+      header: サンプルデータが読み込まれました！
+      text: "<strong>Easy Ganttの機能をストレスなく試していただくため</strong>、サンプルデータを用意しました。また、便利な使い方を説明したビデオガイドもご用意しています。このウィンドウを閉じると、実際のプロジェクトデータが読み込まれます。"
+      video_label: ビデオチュートリアルを見る
+      video:
+        text: このGanttモジュールの機能はこちらから見ることができます
+        title: サンプルビデオ
+        video_id: UHgqfsrD59Q
+    text_blocker_milestone: マイルストーンによってタスクの延期がブロックされています。
+    text_blocker_move_end: このタスクをこの日付以降に延期すると、以下のタスクのうち一つ以上のタスクが延期されます。
+    text_blocker_move_pre: このタスクはリレーションにより拘束されているため、このタスクをこの日付以降にずらすことはできません。
+    title:
+      button_test: テスト　ボタン（テスト専用）
+      day_zoom: 日単位で表示
+      jump_today: 今日のチャートを表示する
+      month_zoom: 月単位で表示
+      print_fit: Ganttのチャートを1ページの大きさにする
+      week_zoom: 週単位で表示
+  easy_printable_templates_categories:
+    easy_gantt: Easy Gantt
+  easy_query:
+    name:
+      easy_gantt_easy_issue_query: Easy Gantt
+      easy_gantt_easy_project_query: Global Easy Gantt
+  error_easy_gantt_view_permission: Easy Ganttを見る権限がありません。
+  error_epm_easy_gantt_already_active: 既に有効になっています	このページ上のEasy Ganttはすでに有効になっています。
+  error_small_screen: ガントチャートを表示するには端末の画面が小さすぎます
+  field_easy_gantt_default_zoom: デフォルト・タイムライン
+  field_easy_gantt_fixed_delay: タスク間の固定ラグタイム
+  field_easy_gantt_relation_delay_in_workdays: 作業日数におけるリレーション全体のデレイ
+  field_easy_gantt_show_holidays: 休日の表示
+  field_easy_gantt_show_project_progress: プロジェクト進捗の表示
+  field_easy_gantt_show_task_soonest_start: 最も早い開始日を表示
+  field_keep_link_delay_in_drag: ドラッグ作業中、タスク間ラグタイムは変わりません
+  field_relation: リレーション
+  heading_delay_popup: 遅延を日数で確認
+  heading_demo_feature_popup: Coming soon
+  heading_easy_gantts_issues: Easy Gantt無料版
+  label_easy_gantt: Easy Gantt
+  label_easy_gantt_critical_path: クリティカルパス
+  label_easy_gantt_critical_path: Critical path
+  label_easy_gantt_global: グローバル
+  label_easy_gantt_issue_loaded: 全タスク読み込み完了
+  label_easy_gantt_load: 読み込む
+  label_easy_gantt_recalculate_fixed_delay: タスク間の固定ラグタイムの再計算
+  label_easy_gantt_settings: Gantt設定
+  label_filter_group_easy_gantt_easy_issue_query: タスクフィールド
+  label_finish_to_finish: 終了‐終了
+  label_parent_issue_plural: 親タスク
+  label_start_to_finish: 開始‐終了
+  label_start_to_start: 開始‐開始
+  link_easy_gantt_plugin: https://www.easyredmine.com/easy-gantt-upgrade-to-pro
+  notice_easy_gantt_fixed_delay_recalculated: 関連付けられた全タスク間の固定ラグタイムが再計算完了
+  permission_edit_easy_gantt: 任意のプロジェクト上でEasy Gantt とResource Managementを編集する
+  permission_edit_global_easy_gantt: Easy Gantt（全体）とリソース・マネージメントを編集
+  permission_edit_personal_easy_gantt: Easy Gantt（個別）とリソース・マネージメントを編集
+  permission_view_easy_gantt: プロジェクトのEasy Ganttとリソース・マネージメントを閲覧
+  permission_view_global_easy_gantt: Easy Ganttチャート（全体）とリソース・マネージメントを閲覧
+  permission_view_personal_easy_gantt: Easy Ganttチャート（個別）とリソース・マネージメントを閲覧
+  project_default_page:
+    easy_gantt: Easy Gantt
+  project_module_easy_gantt: Easy Gantt
+  text_demo_feature_popup: 本機能はもうじき利用可能になります
+  text_easy_gantt_fixed_delay: ドラッグバック作業中、タスク間ラグタイムは変わりません
+  text_easy_gantt_footer: Easyにより運営されるRedmine Gantt
+  text_easy_gantt_keep_link_delay_in_drag: タスクがドラッグされてもタスク間の日程は維持
+  text_easy_gantt_print_easy_gantt_current: 現在のEasy Gantt を表示する（Easy Gantt が読み込まれたページからのみ可能です）
+  text_easy_gantt_relation_delay_in_workdays: リレーション遅延による非稼働日をカウントしない
+  text_easy_gantt_show_holidays: ユーザーの休日をGanttに表示する（Easy Redmineでのみ有効）
+  text_easy_gantt_show_project_progress: プロジェクトバー上に進捗率を表示する（読み込み速度が遅い可能性があり）
+  text_easy_gantt_show_task_soonest_start: 親タスク、またはリレーションから規定されるもっとも妥当性の低い日程を表示
+  title_easy_gantt_settings: Easy Gantt

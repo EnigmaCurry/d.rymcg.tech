@@ -1,0 +1,12 @@
+<% if easy_page_modules_data[:query].nil? %>
+  <p>
+    <%= l(:label_easy_page_module_settings_missing) %>
+  </p>
+<% elsif easy_page_modules_data[:can_view] %>
+  <%= render template: 'easy_gantt/index', locals: { show_query: false,
+                                                     query: easy_page_modules_data[:query] } %>
+<% else %>
+  <p>
+    <%= l(:error_easy_gantt_view_permission) %>
+  </p>
+<% end %>

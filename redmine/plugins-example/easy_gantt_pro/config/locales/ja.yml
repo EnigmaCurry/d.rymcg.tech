@@ -1,0 +1,62 @@
+---
+ja:
+  easy_gantt_pro:
+    add_task_modal:
+      no_parent: ''
+      title: チケットの追加
+    baselines:
+      confirm_delete: 本当にこのベースラインを削除してもよろしいですか？
+      create_failed: 新しいベースラインを作成できませんでした
+      delete_failed: ベースラインを削除できませんでした
+      error_not_saved: ベースラインを作成する前に変更を保存してください。
+      label_baseline: ベースライン
+      label_same: "-同じ-"
+    cashflow:
+      label_cashflow: キャッシュフロー
+    critical:
+      hide_button: クリティカルパスを隠す
+      legend_issues: クリティカルパス上のチケット
+      show_button: クリティカルパスを表示
+    lowest_progress:
+      label_progress_date: 進捗日
+    project_move:
+      error_opening_unsaved: プロジェクトを開く前に変更内容を保存してください。
+    resources:
+      label_resources: リソース
+  easy_gantt:
+    button:
+      bulk_edit: 一括編集
+      delayed_issue_filter: 遅延したタスクをフィルタする
+      show_lowest_progress_tasks: 最も遅れているチケットを表示
+      show_only_critical: クリティカルのみ表示
+    popup:
+      add_task:
+        heading: ヘルプ - チケットの追加
+        text: 新しいチケットを作成するには、'新しいチケット'ボタンをクリックするか、ガントチャート内の余白をドラッグしてください。
+      baseline:
+        heading: ベースラインの説明
+        heading_new_baseline: 新しいベースライン
+        text: 比較のためにプロジェクトのコピーを作成します
+      critical:
+        heading: クリティカルパスの説明
+        text: プロジェクトを期日までに完了させるにあたって、所要時間が最長となる経路を指します。<br/>先行するチケットが完了しないと、後続のチケットを開始できません。<br/>つまり、先行するチケットが1日遅れた場合、後続のチケットを一日前倒しで完了させないと、プロジェクト全体が1日遅延します。<br/>クリティカルパスを正しく機能させるためには、プロジェクト内のすべてのチケットが、１つのチケットを開始、終了するよう、関連付ける必要があります。
+    scheme_by:
+      label_by_priority: 優先度別
+      label_by_status: ステータス別
+      label_by_tracker: トラッカー別
+      label_color_by: 色別
+    title:
+      delayed_issue_filter: 本日時点で遅延しているタスクのみを表示
+      show_only_critical: クリティカルパス上のタスクのみ表示
+  easy_pages:
+    modules:
+      easy_global_gantt: Easyガントチャート
+      easy_project_gantt: 簡単なガントチャート
+  easy_proposer:
+    easy_gantt:
+      index:
+        caption: EasyガントチャートPRO
+        description: EasyガントチャートPROに移動
+  heading_easy_gantts_issues: EasyガントチャートPRO
+  label_show_lowest_progress_tasks: 進捗遅れのチケット
+  text_show_lowest_progress_tasks: 最も進捗率の低いチケットを表示する(チケットの進捗に対応する日付)

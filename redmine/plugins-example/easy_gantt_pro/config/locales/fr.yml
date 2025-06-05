@@ -1,0 +1,77 @@
+---
+fr:
+  easy_gantt_pro:
+    add_task_modal:
+      no_parent: ''
+      title: Ajouter tâche
+    baselines:
+      confirm_delete: Souhaitez-vous réellement effacer cette ligne de base
+      create_failed: La nouvelle ligne de base n'a pas pu être créée
+      delete_failed: La ligne de base n'a pas pu être supprimée
+      error_not_saved: Vous devez enregistrer toutes les modifications dans le projet
+        avant de créer sa ligne de base
+      label_baseline: Ligne de base
+      label_same: "-idem-"
+    cashflow:
+      label_cashflow: Flux de Trésorerie
+    critical:
+      hide_button: Masquer chemin critique
+      legend_issues: Tâche sur chemin critique
+      show_button: Afficher chemin critique
+    lowest_progress:
+      label_progress_date: Date progrès
+    project_move:
+      error_opening_unsaved: Vous devez d'abord sauvegarder les modifications avant
+        d'ouvrir le projet
+    resources:
+      label_resources: Ressources
+  easy_gantt:
+    button:
+      bulk_edit: Modifier en bloc
+      delayed_issue_filter: Filtrer les Publications Retardées
+      show_lowest_progress_tasks: Afficher les tâches avec la date de progrès la plus
+        basse
+      show_only_critical: Filtre critique
+    popup:
+      add_task:
+        heading: Ajouter tâche aide
+        text: Une nouvelle tâche ou un jalon peuvent être créés par un clic sur le
+          bouton Tâche (bouton Jalon correspondant) ou en faisant glisser partout
+          dans le graphique
+      baseline:
+        heading: Description ligne de base
+        heading_new_baseline: Nouvelle ligne de base
+        text: Crée une copie du projet pour d'autres comparaisons
+      critical:
+        heading: Description du chemin critique
+        text: La plus longue séquence d'activités dans un plan de projet qui doivent
+          être achevées à temps pour que le projet se termine à la date d'échéance.
+          Une activité sur le chemin critique ne peut pas être démarrée jusqu'à ce
+          que l'activité qui l'a précède soit terminée ; si elle est retardée d'une
+          journée, l'ensemble du projet sera retardé d'une journée, à moins que l'activité
+          faisant suite à l'activité retardée se termine un jour plus tôt. Pour qu'un
+          chemin critique fonctionne correctement, le projet doit avoir seulement
+          1 départ et 1 tâche de fin, et les tâches doivent être connectées avec des
+          relations .
+    scheme_by:
+      label_by_priority: par Priorité
+      label_by_status: par statut
+      label_by_tracker: par tracker
+      label_color_by: Couleur par
+    title:
+      delayed_issue_filter: Affiche uniquement les publications dont la date d'avancement
+        est antérieure à aujourd'hui
+      show_only_critical: Afficher uniquement les tâches sur Chemin critique
+  easy_pages:
+    modules:
+      easy_global_gantt: Easy gantt
+      easy_project_gantt: Easy gantt
+  easy_proposer:
+    easy_gantt:
+      index:
+        caption: Easy Gantt PRO
+        description: Rendez-vous sur Easy Gantt PRO
+  heading_easy_gantts_issues: Easy Gantt PRO
+  label_show_lowest_progress_tasks: Tâches les moins avancées
+  text_show_lowest_progress_tasks: Affiche les tâches avec la pire date d'avancement
+    (= date correspondant à la barre de ratio de la tâche effectuée dans gantt)

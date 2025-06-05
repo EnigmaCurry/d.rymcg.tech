@@ -1,0 +1,159 @@
+---
+nl:
+  button_print: Afdrukken
+  button_project_menu_easy_gantt: Easy Gantt
+  button_top_menu_easy_gantt: Projecten Gantt
+  button_use_actual_delay: Gebruik actuele vertraging
+  easy_gantt:
+    button:
+      close_all: Sluit alle
+      close_all_parent_issues: Sluit alle overkoepelende taken
+      create_baseline: Baselines
+      critical_path: Kritiek pad
+      day_zoom: Dagen
+      delayed_project_filter: Filter Vertraagde  Projecten
+      jump_today: Ga naar vandaag
+      load_sample_data: Laad sample gegevens
+      month_zoom: Maanden
+      print_fit: Aangepast aan pagina
+      problem_finder: Problemen
+      reload: Herladen (opslaan)
+      remove_delay: Verwijder vertraging
+      resource_management: Resource management
+      tool_panel: Tools
+      week_zoom: Weken
+    critical_path:
+      disabled: Uitgeschakeld
+      last: Laatste
+      last_text: Taken die niet vertraagd mogen worden
+      longest: Langste
+      longest_text: Toon langste sequentie taken
+    errors:
+      duplicate_link: Kan link niet dupliceren
+      fresh_milestone: Kan geen taak toevoegen aan niet-opgeslagen mijlpaal. Sla eerst
+        de mijlpaal op.
+      link_target_new: Kan geen link maken naar niet-opgeslagen taak. Sla eerst de
+        wijzigingen op.
+      link_target_readonly: Alleen lezen doeltaak
+      loop_link: Kan geloopte link niet aanmaken
+      no_rest_api: Voor Easy Gantt moet REST API ingeschakeld zijn. Zet het aan bij  Administratie
+        -> Instellingen -> API -> REST web service inschakelen
+      overdue: zou in de toekomst moeten eindigen of al gesloten moeten zijn
+      overmile: moet eindigen op %{effective_date} om mijlpaal te houden
+      short_delay: Moet %{diff} dagen langer zijn
+      too_short: bevat niet genoeg dagen voor %{rest} uren geschatte tijd
+      unsaved_parent: Kan geen taak toevoegen aan niet opgeslagen overkoepeling. Sla
+        de wijzigingen eerst op.
+      unsupported_link_type: Niet ondersteund type link
+    gateway:
+      entity_save_failed: "%{entityType} %{entityName} niet opgeslagen door fout"
+      send_failed: Verzoek mislukt
+    label_pro_upgrade: Upgraden naar PRO versie
+    link_dir:
+      link_end: als voorgaande
+      link_start: als volgt
+    popup:
+      add_task:
+        heading: Voeg eigenschap taak toe
+        text: "Nieuwe taak/mijlpaal eigenschap is alleen beschikbaar in Easy Gantt
+          PRO \r\n<a href=\"https://www.easyredmine.com/easy-gantt-upgrade-to-pro\">Controleer
+          voor een update!</a>"
+      baseline:
+        heading: Baselines functie
+        text: "De Baselines functie is alleen beschikbaar in Easy Gantt PRO \r\n<a
+          href=\"https://www.easyredmine.com/easy-gantt-upgrade-to-pro\">Controleer
+          voor een update!</a>"
+      critical:
+        heading: Kritiek pad functie
+        text: "Kritiek pad functie is alleen beschikbaar in Easy Gantt PRO \r\n<a
+          href=\"https://www.easyredmine.com/easy-gantt-upgrade-to-pro\">Kijk hier
+          voor een update!</a>"
+      resource:
+        heading: Resource manager functie
+        text: Resource management functie is alleen beschikbaar in <a href="https://www.easyredmine.com/">
+          Easy Redmine</a>
+    reload_modal:
+      label_errors: Fouten
+      text_reload_appeal: Wilt u niet opgeslagen items negeren en data opnieuw laden
+        van de server?
+      title: Gantt niet juist opgeslagen
+    sample_global_free:
+      text: Sample data kunnen niet gesloten worden. Gantt over alle projecten is
+        alleen beschikbaar in de PRO versie
+      video:
+        text: Hier zie je de meeste functies van Gantt in alle projecten
+        title: Sample video van Gantt over alle projecten
+        video_id: EiiqBrrY4m4
+    sample:
+      close_label: Sluit dit venster en laad echte projectgegevens
+      header: Sample data zijn geladen!
+      text: We hebben wat sample gegevens voorbereid om <strong>alle Easy Gantt functies
+        stress-vrij te proberen</strong>. We adviseren ook om een video met wat nuttige
+        tips te bekijken. Het sluiten van dit venster laadt echte project gegevens.
+      video_label: Bekijk video tutorial
+      video:
+        text: Hier ziet u de meeste functies van de Gantt module
+        title: Sample video
+        video_id: UHgqfsrD59Q
+    text_blocker_milestone: Mijlpaal blokkeert taak om verplaatst te worden na deze
+      datum
+    text_blocker_move_pre: Taak heeft een relatie die het verschuiven van deze taak
+      na deze datum blokkeert
+    title:
+      button_test: Test button (alleen voor testen)
+      day_zoom: Zoom naar dagweergave
+      jump_today: Geef tijdlijn voor vandaag weer
+      month_zoom: Zoom naar maandelijkse weergave
+      print_fit: Schaal gantt tot een pagina
+      week_zoom: Zoom naar wekelijkse weergave
+  easy_printable_templates_categories:
+    easy_gantt: Easy Gantt
+  easy_query:
+    name:
+      easy_gantt_easy_issue_query: Easy Gantt
+      easy_gantt_easy_project_query: Global Easy Gantt
+  error_easy_gantt_view_permission: U heeft geen toestemming om Easy Gantt te bekijken
+  error_epm_easy_gantt_already_active: Easy gantt is al actief op de pagina
+  field_easy_gantt_default_zoom: Standaard zoom
+  field_easy_gantt_relation_delay_in_workdays: Relatie vertragingen in werkdagen
+  field_easy_gantt_show_holidays: Toon vakanties
+  field_easy_gantt_show_project_progress: Toon projectvoortgang
+  field_easy_gantt_show_task_soonest_start: Toon eerste start
+  field_keep_link_delay_in_drag: Constante link vertraging tijdens slepen
+  field_relation: Relatie
+  heading_delay_popup: Definieer vertraging in dagen
+  heading_demo_feature_popup: Binnenkort
+  heading_easy_gantts_issues: Easy Gantt Gratis
+  label_easy_gantt: Easy Gantt
+  label_easy_gantt_critical_path: Kritiek pad
+  label_easy_gantt_settings: Gantt instellingen
+  label_filter_group_easy_gantt_easy_issue_query: Taken velden
+  label_finish_to_finish: Finish om af te ronden
+  label_parent_issue_plural: Ouder kwesties
+  label_start_to_finish: Start tot finish
+  label_start_to_start: Start om te beginnen
+  link_easy_gantt_plugin: https://www.easyredmine.com/easy-gantt-upgrade-naar-pro
+  permission_edit_easy_gantt: Bewerk Easy Gantt & Resource management op een project
+  permission_edit_global_easy_gantt: Bewerk globaal Easy Gantt & Resource management
+  permission_edit_personal_easy_gantt: Bewerk persoonlijk Easy Gantt & Resource management
+  permission_view_easy_gantt: Bekijk Easy Gantt & Resource management op een project
+  permission_view_global_easy_gantt: Bekijk globaal Easy Gantt & Resource management
+  permission_view_personal_easy_gantt: Bekijk persoonlijk Easy Gantt & Resource management
+  project_default_page:
+    easy_gantt: Easy Gantt
+  project_module_easy_gantt: Easy Gantt
+  text_demo_feature_popup: Deze functie is binnenkort beschikbaar
+  text_easy_gantt_footer: Redmine Gantt mogelijk gemaakt door Easy
+  text_easy_gantt_keep_link_delay_in_drag: Hou relatievertraging constant terwijl
+    taak teruggedraaid wordt
+  text_easy_gantt_print_easy_gantt_current: Toon huidige Easy Gantt (werkt alleen
+    op pagina's waar easy gantt is geladen)
+  text_easy_gantt_relation_delay_in_workdays: Tel niet-werkdagen niet mee in relatie
+    vertraging
+  text_easy_gantt_show_holidays: Toon vakantie van huidige gebruiker op gantt (werkt
+    alleen in Easy Redmine)
+  text_easy_gantt_show_project_progress: Bekijk voortgangspercentage op de balk van
+    het project (laadt wellicht langzaam)
+  text_easy_gantt_show_task_soonest_start: Toon laagst geldige data voor taken gedefinieerd
+    door relaties of ouder
+  title_easy_gantt_settings: Easy Gantt

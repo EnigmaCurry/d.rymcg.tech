@@ -1,0 +1,159 @@
+---
+hu:
+  button_print: Nyomtatás
+  button_project_menu_easy_gantt: Easy Gantt
+  button_top_menu_easy_gantt: Projekt Gantt
+  button_use_actual_delay: Használja a jelenlegi késést
+  easy_gantt:
+    button:
+      close_all: Mind bezárása
+      close_all_parent_issues: Minden feladat bezására
+      create_baseline: Baselines
+      critical_path: Kritikus végrehajtási útvonal
+      day_zoom: Napok
+      delayed_project_filter: Elhalasztott projektek szűrése
+      jump_today: Ugrás a mai napra
+      load_sample_data: Minta adat betöltése
+      month_zoom: Hónapok
+      print_fit: Oldalhoz igazítás
+      problem_finder: Problémák
+      reload: Újratöltés (mentés)
+      remove_delay: Késés megszüntetése
+      resource_management: Erőforrások kezelése
+      tool_panel: Eszközök
+      week_zoom: Hetek
+    critical_path:
+      disabled: Letiltva
+      last: Utolsó
+      last_text: Nem halasztható feladatok
+      longest: Leghosszabb
+      longest_text: Leghosszabb feladatsorozat megjelenítése
+    errors:
+      duplicate_link: Kettős kapcsolat létrehozása nem lehetséges
+      fresh_milestone: A nem mentett mérföldkövekhez nem adható feladat. Először mentse
+        el a mérföldkövet.
+      link_target_new: A nem mentett feladatokhoz nem hozható létre link. Először
+        mentse el a változásokat.
+      link_target_readonly: Csak olvasható célfeladat
+      loop_link: Visszahivatkozó kapcsolat létrehozása nem lehetséges
+      no_rest_api: Az Easy Gantt-nek szüksége van a REST API szolgáltatásra. Engedélyezze
+        az adminisztráció => Beállítások =>  REST webes szolgáltatás bekapcsolásával
+      overdue: Hamarosan be kell fejeződnie, vagy már be kellett volna fejezni.
+      overmile: "%{effective_date} dátummal kell befejeződnie hogy tartsa a mérföldkő
+        határidejét"
+      short_delay: "%{diff} nappal hosszabbnak kell lennie"
+      too_short: Nincs elegendő nap a hátralévő %{rest} becsült óra számára
+      unsaved_parent: Nem adhat feladatot nem mentett szülőfeladathoz. Először mentse
+        a változásokat.
+      unsupported_link_type: Nem támogatott linktípus
+    gateway:
+      entity_save_failed: "%{entityType} %{entityName} hiba miatt nem sikerült menteni"
+      send_failed: Kérés nem sikerült
+    label_pro_upgrade: Frissítsen PRO verzióra
+    link_dir:
+      link_end: megelőzőként
+      link_start: következőként
+    popup:
+      add_task:
+        heading: Feladat jellemző hozzáadása
+        text: Új feladat/ mérföldkő tulajdonság csak az Easy Gantt PRO csomagban érhető
+          el <a href="https://www.easyredmine.com/easy-gantt-upgrade-to-pro">Frissítés
+          keresése!</a>
+      baseline:
+        heading: Baselines jellemzői
+        text: Alapbeállítás jellemzői csak az Easy Gantt PRO <a href="https://www.easyredmine.com/easy-gantt-upgrade-to-pro">
+          csomagban érhető el. </a>
+      critical:
+        heading: Kritikus végrehajtási út funkció
+        text: Kritikus végrehajtási út funkció csak az Easy Gantt PRO csomagban elérhető
+          el.  <a href="https://www.easyredmine.com/easy-gantt-upgrade-to-pro"> Kövesse
+          a frissítéseket! </a>
+      resource:
+        heading: Erőforrástervező funkció
+        text: Az Erőforrástervező funkció csak az Easy Redmine csomagban érhető el.  <a
+          href="https://www.easyredmine.com/"> Easy Redmine</a>
+    reload_modal:
+      label_errors: Hibák
+      text_reload_appeal: Szeretné figyelmen kívül hagyni a nem mentett elemeket és
+        újratölteni az adatokat egy másik szerverről?
+      title: Nem sikerült a Gannt megfelelő mentése
+    sample_global_free:
+      text: A minta adatokat nem lehet bezárni.A Gantt átfogó projektjei csak a PRO
+        verzióban érhetők el
+      video:
+        text: Itt látható Gantt átfogó projektjeinek tulajdonságai
+        title: Gantt átfogó projektjeinek minta videója
+        video_id: EiiqBrrY4m4
+    sample:
+      close_label: Zárja be ezt az ablakot és töltsön fel valós projekt adatokat
+      header: Minta adat betöltődött
+      text: Előkészítettünk néhány mintaadatot Önnek, hogy minden Easy Gantt funkciót
+        kipróbálhasson probléma nélkül. Emellett javasoljuk, tekintse meg a videós
+        bemutatót is. Az ablak bezárása után betöltődnek a valós projektadatok.
+      video_label: Nézze meg az oktatóvideót
+      video:
+        text: Itt látható a Gantt modul legtöbb tulajdonsága
+        title: Bemutató videó
+        video_id: UHgqfsrD59Q
+    text_blocker_milestone: A mérföldkő megakadályozza, hogy a feladatot át lehessen
+      vinni az adott dátumon túl
+    text_blocker_move_pre: A feladatnak olyan kapcsolatai vannak amelyek nem engedik
+      meg hogy az adott dátumon túl átvihető legyen.
+    title:
+      button_test: Teszt gomb (csak teszteléskor)
+      day_zoom: Váltás napi nézetre
+      jump_today: Mai napi idővonal megjelenítése
+      month_zoom: Váltás havi nézetre
+      print_fit: Gantt egész oldalas nagyítása
+      week_zoom: Váltás heti nézetre
+  easy_printable_templates_categories:
+    easy_gantt: Easy Gantt
+  easy_query:
+    name:
+      easy_gantt_easy_issue_query: Easy Gantt
+      easy_gantt_easy_project_query: Global Easy Gantt
+  error_easy_gantt_view_permission: Nincs felhatalazma az  Easy Gantt eléréséhez
+  error_epm_easy_gantt_already_active: Easy Gantt már aktív az oldalon
+  field_easy_gantt_default_zoom: Alapértelmezett nézet
+  field_easy_gantt_relation_delay_in_workdays: Kapcsolódó késések munkanapokban
+  field_easy_gantt_show_holidays: Szabadnapok megjelenítése
+  field_easy_gantt_show_project_progress: Projekt folyamatának mutatása
+  field_easy_gantt_show_task_soonest_start: Legkorábbi kezdés megjelenítése
+  field_keep_link_delay_in_drag: Átmozgatás során a késés és kapcsolat megőrzése
+  field_relation: Kapcsolat
+  heading_delay_popup: Adja meg a késést napokban
+  heading_demo_feature_popup: Hamarosan
+  heading_easy_gantts_issues: Ingyenes Easy Gantt
+  label_easy_gantt: Easy Gantt
+  label_easy_gantt_critical_path: Kritikus végrehajtási útvonal
+  label_easy_gantt_settings: Gantt beállítások
+  label_filter_group_easy_gantt_easy_issue_query: Feladat mezők
+  label_finish_to_finish: Befejezéstől a befejezésig
+  label_parent_issue_plural: Szülőfeladatok
+  label_start_to_finish: Kezdéstől a befejezésig
+  label_start_to_start: Kezdéstől kezdésig
+  link_easy_gantt_plugin: https://www.easyredmine.com/easy-gantt-upgrade-to-pro
+  permission_edit_easy_gantt: Easy Gantt & Erőforrástervezés szerkesztése a projekten
+  permission_edit_global_easy_gantt: Globális Easy Gantt és Erőforrástervezés szerkesztése
+  permission_edit_personal_easy_gantt: Személyes Easy Gantt és Erőforrástervező szerkesztése
+  permission_view_easy_gantt: Easy Gantt & Erőforrástervezés megtekintése a projekten
+  permission_view_global_easy_gantt: Globális Easy Gantt és Erőforrástervezés megtekintése
+  permission_view_personal_easy_gantt: Személyes Easy Gantt és Erőforrástervező megtekintése
+  project_default_page:
+    easy_gantt: Easy Gantt
+  project_module_easy_gantt: Easy Gantt
+  text_demo_feature_popup: Ez a tulajdonság hamarosan elérhető lesz
+  text_easy_gantt_footer: Az Easy működteti a Redmine Gantt
+  text_easy_gantt_keep_link_delay_in_drag: Tartsa meg a késés mértékét a feladat korábbra
+    helyezésekor
+  text_easy_gantt_print_easy_gantt_current: Mutasd az aktív Easy Gantt-et (csak arról
+    az oldalról működik, ahonnan az Easy Gantt-et betöltötték )
+  text_easy_gantt_relation_delay_in_workdays: A kapcsolódó késésben a munkaszüneti
+    napokat ne számolja
+  text_easy_gantt_show_holidays: Mutassa a jelenlegi Gantt felhasználó szabadságát
+    (csak Easy Redmine-ban működik)
+  text_easy_gantt_show_project_progress: Jelenítse meg a százalékos készültségét a
+    projekt lapon (lassan töltődhet be)
+  text_easy_gantt_show_task_soonest_start: Jelenítse meg a legkorábbi érvényes dátumokat
+    a kapcsolatok vagy szülői függőség által meghatározott feladatoknál
+  title_easy_gantt_settings: Easy Gantt

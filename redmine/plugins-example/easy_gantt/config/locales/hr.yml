@@ -1,0 +1,8 @@
+---
+hr:
+  button_print: Ispiši
+  button_use_actual_delay: Koristi stvarno kašnjeje
+  easy_gantt:
+    button:
+      close_all: Zatvori sve
+      tool_panel: Alati

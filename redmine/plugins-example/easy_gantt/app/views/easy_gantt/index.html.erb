@@ -1,0 +1,176 @@
+<%
+  plugin = Redmine::Plugin.find('easy_gantt')
+  query ||= @query
+
+  main_gantt_params = query.to_params.merge(key: User.current.api_key, format: 'json')
+  main_gantt_path = if @project
+      issues_easy_gantt_path(@project, main_gantt_params)
+    else
+      projects_easy_gantt_path(main_gantt_params)
+    end
+
+  unless defined?(show_query)
+    show_query = true
+  end
+
+  if EasyGantt.easy_gantt_pro?
+    sample_path = ''
+  else
+    sample_path = "#{home_path}plugin_assets/easy_gantt/data/sample_{{version}}.json"
+  end
+%>
+
+<div id="easy_gantt" class="redmine gantt clear">
+  <% if show_query %>
+    <% if User.current.admin? && @project.nil? %>
+      <div class="contextual settings">
+        <%= link_to sprite_icon('settings', ''), plugin_settings_path(plugin, back_url: request.fullpath), class: 'icon icon-settings', title: l(:label_easy_gantt_settings)%>
+      </div>
+    <% end %>
+
+    <%= render query, easy_query_name: l(:heading_easy_gantts_issues),
+                      wrapper_class: '',
+                      form_options: { additional_elements_to_serialize: '$("input#easy_gantt_type")' },
+                      options: { show_free_search: false,
+                                 show_custom_formatting: false,
+                                 additional_tagged_url_options: { gantt_type: params[:gantt_type] } } %>
+  <% end %>
+
+  <%= hidden_field_tag 'gantt_type', '', id: 'easy_gantt_type' %>
+
+  <%= render 'easy_gantt/menu_graph' %>
+
+  <div id="easy_gantt_footer" class="gantt-footer">
+    <div id="easy_gantt_footer_legend" class="gantt-footer-legend"></div>
+    <div id="gantt_footer_buttons" class="gantt-footer-menu">
+      <%= easy_gantt_js_button(l(:button_print), icon: 'icon-document', id: 'button_print') %>
+
+      <% unless EasyGantt.easy_gantt_pro? %>
+        <%= easy_gantt_js_button(:load_sample_data, id: 'button_sample') %>
+      <% end %>
+    </div>
+
+    <p><%= link_to l(:text_easy_gantt_footer), l(:link_easy_gantt_plugin), target: '_blank' %></p>
+  </div>
+</div>
+
+<%= render 'easy_gantt/includes' %>
+<%= render 'easy_gantt/js_prepare' %>
+
+<%= content_for :header_tags do %>
+  <script type="text/javascript">
+    window.ysy = window.ysy || {};
+    ysy.settings = ysy.settings || {};
+    ysy.view = ysy.view || {};
+
+    $.extend(true, ysy.settings, <%= {
+      hoursPerDay: 8,
+      parentIssueDates: (Setting.parent_issue_dates == 'derived'),
+      paths: {
+        mainGantt: main_gantt_path.html_safe,
+        issuePOST: issues_path(format: 'json', key: User.current.api_key),
+        issuePUT: issue_path(':issueID', format: 'json', key: User.current.api_key),
+        issueDELETE: issue_path(':issueID', format: 'json', key: User.current.api_key),
+        relationPOST: issue_relations_path(':issueID', format: 'json', key: User.current.api_key),
+        relationPUT: relation_easy_gantt_path(':projectID', ':relaID', format: 'json', key: User.current.api_key),
+        relationDELETE: relation_path(':relaID', format: 'json', key: User.current.api_key),
+        versionPOST: project_versions_path(':projectID', format: 'json', key: User.current.api_key),
+        versionPUT: version_path(':versionID', format: 'json', key: User.current.api_key),
+        sample_data: sample_path
+      },
+      labels: {
+        links: {
+          start_to_start: l(:label_start_to_start),
+          start_to_finish: l(:label_start_to_finish),
+          finish_to_finish: l(:label_finish_to_finish),
+          precedes: l(:label_precedes),
+          relates: l(:label_relates_to),
+          copied_to: l(:label_copied_to),
+          blocks: l(:label_blocks),
+          duplicates: l(:label_duplicates)
+        },
+        errors2:{
+          loop_link: l('easy_gantt.errors.loop_link'),
+          link_target_new: l('easy_gantt.errors.link_target_new'),
+          link_target_readonly:  l('easy_gantt.errors.link_target_readonly'),
+          unsupported_link_type: l('easy_gantt.errors.unsupported_link_type'),
+          duplicate_link: l('easy_gantt.errors.duplicate_link')
+        }
+      }
+    }.to_json.html_safe %>);
+
+    ysy.view.templates = $.extend(ysy.view.templates, <%= {
+      LinkConfigPopup: %{
+        <h3 class='title'>#{l(:heading_delay_popup)}</h3>
+        <label for='link_delay_input'>#{l(:field_delay)}:</label>
+        <span style="width:100px;display:inline-block;"></span>
+        <input id='link_delay_input' type='number' min='{{minimal}}' value='{{delay}}' size='3'>
+        <!--<a id='link_fix_actual' class='button icon icon-link' href='javascript:void(0)'>#{sprite_icon('link', l(:button_use_actual_delay))}</a>-->
+        <!--<a id='link_remove_delay' class='button icon icon-link' href='javascript:void(0)' >#{sprite_icon('link', l('easy_gantt.button.remove_delay'))}</a>-->
+        <div id='link_popup_button_cont' >
+          <hr>
+          <a id='link_delete' class='icon icon-unlink button'  href='javascript:void(0)'>#{sprite_icon('unlink', l(:button_delete))}</a>
+          <a id='link_close' class='icon icon-save button-positive'  href='javascript:void(0)' style='float:right'>#{sprite_icon('save', l(:button_submit))}</a>
+        </div>
+      },
+      SuperPanel: %{
+        {{#sample}}
+        <div id="sample_cont" class="flash notice gantt-sample-flash">
+        <h2 id="sample_label">#{l('easy_gantt.sample.header')}</h2>
+        <p>{{{text}}}</p>
+        <p class="" style="text-align:center">
+          <a id="sample_video_button" class="icon icon-youtube" href="javascript:void(0)">#{sprite_icon('youtube', l('easy_gantt.sample.video_label'))}</a>
+          {{^global_free}}
+          <a id="sample_close_button" class="gantt-sample-close-button button button-important" href="javascript:void(0)" title="#{l('easy_gantt.sample.close_label')}">#{l('easy_gantt.sample.close_label')}</a>
+          {{/global_free}}
+          {{#global_free}}
+          <a id="sample_upgrade_button" class="button button-positive" href="#{l(:link_easy_gantt_plugin)}" target="_blank" title="#{l('easy_gantt.label_pro_upgrade')}">#{l('easy_gantt.label_pro_upgrade')}</a>
+          {{/global_free}}
+        </p>
+        <div class="clear"></div>
+        </div>
+        {{/sample}}
+      },
+      easy_unimplemented: %{
+        <h3 class="title">{{modal.title}}</h3><span>{{{modal.text}}}</span>
+      },
+      video_modal: %{
+        <h3 class="title">#{l('easy_gantt.sample.video.title')}</h3>
+        <iframe class="gantt-modal-video" width="800" height="450" src="//www.youtube.com/embed/#{l('easy_gantt.sample.video.video_id')}?autoplay=1">
+        </iframe>
+        <p>#{l('easy_gantt.sample.video.text')}</p>
+      },
+      video_modal_global: %{
+        <h3 class="title">#{l('easy_gantt.sample_global_free.video.title')}</h3>
+        <iframe class="gantt-modal-video" width="800" height="450" src="//www.youtube.com/embed/#{l('easy_gantt.sample_global_free.video.video_id')}?autoplay=1">
+        </iframe>
+        <p>#{l('easy_gantt.sample_global_free.video.text')}</p>
+      },
+      legend: %{
+        {{text}}
+      },
+      linkDragModal: %{
+        {{#errorReason}}
+          <b>{{errorReason}}</b>
+        {{/errorReason}}
+        {{^errorReason}}
+          #{l(:label_relation_new)}{{#type}} <b>{{type}}</b>{{/type}}<br>
+          <b>{{from}}</b> #{l('easy_gantt.link_dir.link_end')}<br>
+          {{#to}}<b>{{to}}</b> #{l('easy_gantt.link_dir.link_start')}{{/to}}
+        {{/errorReason}}
+      },
+      printIncludes: %{
+        #{easy_gantt_include_css('easy_gantt', media: 'all')}
+      }
+    }.to_json.html_safe %>);
+  </script>
+<% end %>
+
+<%= call_hook(:view_easy_gantt_index_bottom, project: @project, query: query) %>
+
+<% content_for :sidebar do %>
+  <%= call_hook(:view_easy_gantt_index_sidebar, project: @project, query: query, gantt_type: params[:gantt_type]) %>
+
+  <% # DEPRECATED %>
+  <%= call_hook(:view_easy_gantts_issues_sidebar, project: @project, query: query) %>
+<% end %>

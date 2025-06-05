@@ -1,0 +1,44 @@
+<%
+  default_zoom_options = [
+    [l('easy_gantt.button.day_zoom'), 'day'],
+    [l('easy_gantt.button.week_zoom'), 'week'],
+    [l('easy_gantt.button.month_zoom'), 'month'],
+    [l('easy_gantt.button.quarter_zoom'), 'quarter'],
+    [l('easy_gantt.button.year_zoom'), 'year']
+  ]
+%>
+
+<%= title l(:title_easy_gantt_settings) %>
+
+<div class="box tabular">
+  <p>
+    <%= label_tag 'settings_relation_delay_in_workdays', l(:field_easy_gantt_relation_delay_in_workdays) %>
+    <%= check_box_tag 'settings[relation_delay_in_workdays]', '1', @settings['relation_delay_in_workdays'] == '1' %>
+    <em class="info small">
+      <%= l(:text_easy_gantt_relation_delay_in_workdays) %>
+    </em>
+  </p>
+
+  <p>
+    <%= label_tag 'settings_show_project_progress', l(:field_easy_gantt_show_project_progress) %>
+    <%= check_box_tag 'settings[show_project_progress]', '1', @settings['show_project_progress'] == '1' %>
+    <em class="info small">
+      <%= l(:text_easy_gantt_show_project_progress) %>
+    </em>
+  </p>
+
+  <p>
+    <%= label_tag 'settings_show_task_soonest_start', l(:field_easy_gantt_show_task_soonest_start) %>
+    <%= check_box_tag 'settings[show_task_soonest_start]', '1', @settings['show_task_soonest_start'] == '1' %>
+    <em class="info small">
+      <%= l(:text_easy_gantt_show_task_soonest_start) %>
+    </em>
+  </p>
+
+  <p>
+    <%= label_tag 'settings_default_zoom', l(:field_easy_gantt_default_zoom) %>
+    <%= select_tag 'settings[default_zoom]', options_for_select(default_zoom_options, @settings['default_zoom']) %>
+  </p>
+
+  <%= call_hook :view_easy_gantt_settings %>
+</div>

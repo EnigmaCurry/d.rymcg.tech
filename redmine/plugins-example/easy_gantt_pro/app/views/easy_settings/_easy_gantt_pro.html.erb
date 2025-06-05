@@ -1,0 +1,38 @@
+<% # Its a hook only !!! %>
+
+<p>
+  <%= content_tag :label, l(:field_easy_gantt_fixed_delay) %>
+  <span id="recalculate-fixed-delay">
+    <%= link_to l(:label_easy_gantt_recalculate_fixed_delay), easy_gantt_recalculate_fixed_delay_path, data: { confirm: l(:warning_easy_gantt_recalculate_fixed_delay) } %>
+  </span>
+</p>
+
+  <p>
+    <%= content_tag :label, l(:label_easy_gantt_critical_path) %>
+
+    <label class="radio block">
+      <%= radio_button_tag 'settings[critical_path]', 'disabled', @settings['critical_path'] == 'disabled' %>
+      <%= l('easy_gantt.critical_path.disabled') %>
+    </label>
+
+    <label class="radio block">
+      <%= radio_button_tag 'settings[critical_path]', 'last', @settings['critical_path'] == 'last' %>
+      <%= l('easy_gantt.critical_path.last') %>
+      <em>(<%= l('easy_gantt.critical_path.last_text') %>)</em>
+    </label>
+
+    <label class="radio block">
+      <%= radio_button_tag 'settings[critical_path]', 'longest', @settings['critical_path'] == 'longest' %>
+    <%= l('easy_gantt.critical_path.longest') %>
+    <em>(<%= l('easy_gantt.critical_path.longest_text') %>)</em>
+    </label>
+  </p>
+</p>
+
+<p>
+  <%= label_tag 'settings_show_lowest_progress_tasks', l(:label_show_lowest_progress_tasks) %>
+  <%= check_box_tag 'settings[show_lowest_progress_tasks]', '1', @settings['show_lowest_progress_tasks'] == '1' %>
+  <em class="info small">
+    <%= l(:text_show_lowest_progress_tasks) %>
+  </em>
+</p>

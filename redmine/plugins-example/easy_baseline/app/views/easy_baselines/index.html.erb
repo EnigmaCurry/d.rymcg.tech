@@ -1,0 +1,32 @@
+<div class="contextual">
+  <% if User.current.allowed_to?(:edit_baselines, @project) %>
+    <%# todo: show modal to pick baseline's name %>
+    <%#= link_to_function(l(:label_create_easy_baseline), "ysy.pro.baseline.openCreateModal()", :class => 'icon icon-add') %>
+    <%= link_to(l(:label_create_easy_baseline), project_easy_baselines_path(@project), :method => :post, :class => 'icon icon-add') %>
+  <% end %>
+</div>
+
+<h2><%= l(:label_easy_baselines) %></h2>
+
+<table class="list">
+<tr>
+  <th><%= l(:field_name) %></th>
+  <th><%= l(:field_project) %></th>
+  <th></th>
+</tr>
+
+<% @baselines.each do |baseline| %>
+  <tr class="<%= cycle 'odd', 'even' %>">
+    <td><%= baseline.name %></td>
+    <td><%= link_to baseline.easy_baseline_for.name, project_path(baseline.easy_baseline_for_id) %></td>
+    <td class="buttons">
+      <% if User.current.allowed_to?(:edit_baselines, @project) %>
+        <%= link_to l("button_delete"), project_easy_baseline_path(@project, baseline),
+              :method => 'delete', :class => "icon icon-del", :data => { :confirm => l(:text_are_you_sure) } %>
+      <% end %>
+    </td>
+  </tr>
+<% end %>
+
+</table>
+

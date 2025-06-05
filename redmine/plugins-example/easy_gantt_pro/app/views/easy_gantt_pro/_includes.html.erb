@@ -1,0 +1,16 @@
+<% include_calendar_headers_tags %>
+<%= easy_gantt_include_css('easy_gantt_pro', media: 'all', from_plugin: 'easy_gantt_pro') %>
+
+  <%= easy_gantt_include_js(
+          'common', 'sorting', 'email_silencer',
+          (['baseline', 'add_task'] if @project),
+          ('critical'         if @project && Setting.plugin_easy_gantt['critical_path'] != 'disabled'),
+          ('project_move'     if @project.nil?),
+          ('lowest_progress'  if @project.nil? && Setting.plugin_easy_gantt['show_lowest_progress_tasks'] == '1'),
+          ('delayed_projects' if @project.nil? && Setting.plugin_easy_gantt['show_project_progress'] == '1'),
+          ('gg_resource'      if @project.nil? && false),
+          ('fixed_delay'      if EasyGantt.load_fixed_delay?),
+          ('delayed_issues'   if params[:controller] == 'easy_gantt'),
+          from_plugin: 'easy_gantt_pro')
+  %>
+

@@ -1,0 +1,5 @@
+api.easy_gantt_data do
+  api_render_issues(api, @issues)
+  api_render_relations(api, @relations)
+  api_render_versions(api, @versions)
+end

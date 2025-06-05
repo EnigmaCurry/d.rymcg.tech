@@ -1,0 +1,72 @@
+<%
+  unless defined?(form_options)
+    form_options = {}
+  end
+
+  query ||= @query
+  form_path ||= easy_gantt_path(@project)
+  form_options[:additional_elements_to_serialize] ||= 'null'
+%>
+
+<div class="content-title"><%= title(easy_query_name) %></div>
+
+<%= form_tag(form_path, method: :get, id: 'query_form') do %>
+  <div id="query_form_with_buttons" class="hide-when-print">
+    <%= hidden_field_tag 'set_filter', '1' %>
+
+    <div id="query_form_content">
+      <fieldset id="filters" class="collapsible <%= @query.new_record? ? ""  : "collapsed" %>">
+        <legend onclick="toggleFieldset(this);" class="icon icon-<%= @query.new_record? ? "expanded" : "collapsed" %>">
+          <%= sprite_icon(@query.new_record? ? "angle-down" : "angle-right") %>
+          <%= l(:label_filter_plural) %>
+        </legend>
+        <div style="<%= @query.new_record? ? "" : "display: none;" %>">
+          <%= render 'queries/filters', query: query %>
+        </div>
+      </fieldset>
+
+      <fieldset class="collapsible collapsed">
+        <legend onclick="toggleFieldset(this);" class="icon icon-collapsed">
+          <%= sprite_icon("angle-right") %>
+          <%= l(:label_options) %>
+        </legend>
+        <div style="display: none;">
+          <table>
+            <tr>
+              <td><%= l(:field_column_names) %></td>
+              <td><%= render_query_columns_selection(query) %></td>
+            </tr>
+          </table>
+        </div>
+      </fieldset>
+    </div>
+
+    <p class="buttons">
+      <%= link_to_function sprite_icon('checked', l(:button_apply)), 'applyEasyGanttQuery()', class: 'icon icon-checked' %>
+      <%= link_to sprite_icon('reload', l(:button_clear)), { set_filter: 1, project_id: @project }, class: 'icon icon-reload'  %>
+    </p>
+  </div>
+<% end %>
+
+<script>
+  var additionalElementsToSerialize;
+
+  $(document).ready(function(){
+    additionalElementsToSerialize = <%=raw form_options[:additional_elements_to_serialize] %>;
+  });
+
+  function applyEasyGanttQuery(){
+    if (additionalElementsToSerialize) {
+      var data = additionalElementsToSerialize.serializeArray()[0];
+      if (data) {
+        var newInput = $("<input />").attr("type", "hidden")
+                                     .attr("name", data.name)
+                                     .attr("value", data.value);
+
+        newInput.appendTo("#query_form");
+      }
+    }
+
+    $("#query_form").submit();
+  }
+</script>

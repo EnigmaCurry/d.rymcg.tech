@@ -1,0 +1,74 @@
+---
+pl:
+  easy_gantt_pro:
+    add_task_modal:
+      no_parent: ''
+      title: Dodaj zadanie
+    baselines:
+      confirm_delete: Czy na pewno chcesz usunąć tę bazę?
+      create_failed: Nowa baza nie mogła zostać utworzona
+      delete_failed: Baza nie mogła zostać usunięta
+      error_not_saved: Musisz zapisać wszystkie zmiany w projekcie przez utworzeniem
+        jego bazy
+      label_baseline: Baza
+      label_same: "-tak samo-"
+    cashflow:
+      label_cashflow: Przepływy środków pieniężnych
+    critical:
+      hide_button: Ukryj ścieżkę krytyczną
+      legend_issues: Zadanie na ścieżce krytycznej
+      show_button: Pokaż ścieżkę krytyczną
+    lowest_progress:
+      label_progress_date: Data postępu
+    project_move:
+      error_opening_unsaved: Musisz zapisać zmiany przed otworzeniem projektu
+    resources:
+      label_resources: Zasoby
+  easy_gantt:
+    button:
+      bulk_edit: Edycja seryjna
+      delayed_issue_filter: Filtruj opóźnione problemy
+      show_lowest_progress_tasks: Pokaż zadania z najbliższą datą postępu
+      show_only_critical: Filtruj krytyczne
+    popup:
+      add_task:
+        heading: Dodaj zadanie pomocy
+        text: Nowe zadanie lub krok milowy mogą zostać utworzone poprzez kliknięcie
+          przycisku Zadanie (indywidualnego przycisku Krok milowy) lub poprzez przesunięcie
+          ich w dowolne miejsce na grafie
+      baseline:
+        heading: Opis bazy
+        heading_new_baseline: Nowa baza
+        text: Twórzy kopię projektu dla późniejszych porównań
+      critical:
+        heading: Opis ścieżki krytycznej
+        text: Najdłuższa sekwencja działań w planie projektu, które muszą być ukończone
+          na czas, aby zakończyć projekt w terminie. Działanie na ścieżce krytycznej
+          nie może zostać uruchomione, dopóki  poprzedzające ją działanie nie zostało
+          zakończone. Jeśli jest ono opóźnione o jeden dzień, cały projekt będzie
+          opóźniony o jeden dzień, chyba że działanie następujące po opóźnionym działaniu
+          zostanie zakończone dzień wcześniej. Dla prawidłowego funkcjonowania ścieżki
+          krytycznej, projekt powinien mieć tylko 1 zadanie początkowe i 1 zadanie
+          końcowe, które to zadania powinny być połączone relacjami.
+    scheme_by:
+      label_by_priority: wg Ważności
+      label_by_status: wg Statusu
+      label_by_tracker: wg Narzędzia śledzenia
+      label_color_by: Kolor wg
+    title:
+      delayed_issue_filter: Pokaż wyłącznie problemy, których data postępu jest poza
+        dzisiejszą
+      show_only_critical: Pokaż wyłącznie zadania na ścieżce krytycznej
+  easy_pages:
+    modules:
+      easy_global_gantt: Easy gantt
+      easy_project_gantt: Easy gantt
+  easy_proposer:
+    easy_gantt:
+      index:
+        caption: Easy Gantt PRO
+        description: Idź do Easy Gantt PRO
+  heading_easy_gantts_issues: Easy Gantt PRO
+  label_show_lowest_progress_tasks: Najbliższe zadania postępu
+  text_show_lowest_progress_tasks: Wyświetl zadania z najgorszą datą postępu (= datą
+    odpowiadającą wskaźnikowi wykonania zadania w Gantt)

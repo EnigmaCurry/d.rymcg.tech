@@ -1,0 +1,63 @@
+/*
+  a missing css for issue modals
+*/
+
+#form-modal .tabs {height: 2.6em; margin-bottom:1.2em; position:relative; overflow:hidden;}
+#form-modal .tabs ul {margin:0; position:absolute; bottom:0; padding-left:0.5em; min-width: 2000px; width: 100%;  border-bottom: 1px solid #bbbbbb;}
+#form-modal .tabs ul li {
+  float:left;
+  list-style-type:none;
+  white-space:nowrap;
+  margin-right:4px;
+  position:relative;
+  margin-bottom:-1px;
+}
+#form-modal .tabs ul li a{
+  display:block;
+  font-size: 0.9em;
+  text-decoration:none;
+  line-height:1.3em;
+  padding:4px 6px 4px 6px;
+  border: 1px solid #ccc;
+  border-bottom: 1px solid #bbbbbb;
+  color:#999;
+  font-weight:bold;
+  border-top-left-radius:3px;
+  border-top-right-radius:3px;
+}
+
+#form-modal .tabs ul li a:hover {
+  color:#777;
+  text-decoration:none;
+}
+
+#form-modal .tabs ul li a.selected {
+  background-color: #fff;
+  border: 1px solid #bbbbbb;
+  border-bottom: 1px solid #fff;
+  color:#444;
+}
+
+#form-modal .tabs ul li a.selected:hover {background-color: #fff;}
+
+#form-modal div.tabs-buttons { position:absolute; right: 0; width: 54px; height: 24px; background: white; bottom: 0; border-bottom: 1px solid #bbbbbb; }
+
+#form-modal .jstTabs.tabs {
+  margin-bottom: -1px;
+}
+#form-modal .jstTabs.tabs ul {border-bottom:0;}
+#form-modal .jstTabs.tabs li {
+  height: 42px;
+}
+#form-modal .jstTabs.tabs li:before{
+  content: '';
+  display: inline-block;
+  vertical-align: middle;
+  height: 100%;
+}
+#form-modal .jstTabs.tabs li a {
+  display: inline-block;
+  vertical-align: bottom;
+  line-height: 19px;
+border-bottom: 1px solid transparent;
+}

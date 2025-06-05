@@ -1,0 +1,13 @@
+---
+de:
+  easy_baseline_plugin_author: Easy Software
+  easy_baseline_plugin_author_url: http://www.easyproject.cz/de
+  easy_baseline_plugin_description: ''
+  easy_baseline_plugin_name: Easy Basisplan
+  easy_baseline_project_prefix: Basisplan für
+  field_easy_baseline_for: Baseline
+  label_create_easy_baseline: Basisplan erstellen
+  label_easy_baselines: Easy Basispläne
+  label_try_again: Wiederholen
+  notice_easy_baseline_created: Basisplan für den Projekt  %{project_name}  wurde
+    erfolgreich erstellt

@@ -1,0 +1,19 @@
+---
+ro:
+  button_print: Imprimare
+  button_project_menu_easy_gantt: Gantt Simplu
+  button_top_menu_easy_gantt: Proiecte Gantt
+  easy_gantt:
+    button:
+      close_all_parent_issues: Închide toate sarcinile sursă
+      day_zoom: Zile
+      jump_today: Sari la azi
+      month_zoom: Luni
+      reload: Reincarca (salveaza)
+      tool_panel: Instrumente
+      week_zoom: Săptămani
+  field_easy_gantt_default_zoom: Zoom implicit
+  field_easy_gantt_show_holidays: Arată vacanţe
+  field_easy_gantt_show_project_progress: Arată progresul proiectului
+  field_relation: Relaţie
+  label_easy_gantt: Gantt Simplu

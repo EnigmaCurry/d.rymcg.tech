@@ -1,0 +1,8 @@
+<% if easy_page_modules_data[:query].nil? %>
+  <p>
+    <%= l(:label_easy_page_module_settings_missing) %>
+  </p>
+<% else %>
+  <%= render template: 'easy_gantt/index', locals: { show_query: false,
+                                                     query: easy_page_modules_data[:query] } %>
+<% end %>

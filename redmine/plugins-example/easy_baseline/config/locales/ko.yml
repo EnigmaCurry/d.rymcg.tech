@@ -1,0 +1,12 @@
+---
+ko:
+  easy_baseline_plugin_author: 이지 소프트웨어
+  easy_baseline_plugin_author_url: http://www.easyproject.cz/en
+  easy_baseline_plugin_description: ''
+  easy_baseline_plugin_name: 이지 베이스라인
+  easy_baseline_project_prefix: 를 위한 베이스라인
+  field_easy_baseline_for: 기준
+  label_create_easy_baseline: 베이스라인 작성
+  label_easy_baselines: 이지 베이스라인
+  label_try_again: 다시 시도하세요
+  notice_easy_baseline_created: 프로젝트 %{project_name}를 위한 베이스라인이 성공적으로 생성되었습니다

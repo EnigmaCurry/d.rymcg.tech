@@ -1,0 +1,6 @@
+---
+sl:
+  easy_baseline_project_prefix: Referenčni načrt za
+  label_create_easy_baseline: Ustvari referenčni načrt
+  label_try_again: Poskusi znova
+  notice_easy_baseline_created: Uspešno ustvarjen referenčni načrt za projekt %{project_name}

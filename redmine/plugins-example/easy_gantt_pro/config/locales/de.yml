@@ -1,0 +1,78 @@
+---
+de:
+  easy_gantt_pro:
+    add_task_modal:
+      no_parent: ''
+      title: Aufgabe hinzufügen
+    baselines:
+      confirm_delete: Möchten Sie wirklich dieses Basisplan löschen
+      create_failed: Neuer Basisplan konnte nicht erstellt werden
+      delete_failed: Der Basisplan konnte nicht gelöscht werden
+      error_not_saved: Sie müssen erst mal alle Veränderungen im Projekt abspeichern
+        bevor Sie einen Basisplan erstellen können
+      label_baseline: Basisplan
+      label_same: "-gleich-"
+    cashflow:
+      label_cashflow: Cashflow
+    critical:
+      hide_button: Versteckter kritischer Weg
+      legend_issues: Aufgabe auf dem kritischen Weg
+      show_button: Den kritischen Weg anzeigen
+    lowest_progress:
+      label_progress_date: Das Fortschrittsdatum
+    project_move:
+      error_opening_unsaved: Sie müssen erst mal alle Veränderungen abspeichern bevor
+        das Projekt eröffnen
+    resources:
+      label_resources: Die Ressourcen
+  easy_gantt:
+    button:
+      bulk_edit: Menge bearbeiten
+      delayed_issue_filter: Verzögerte Probleme filtern
+      show_lowest_progress_tasks: Die Aufgaben mit der niedrigsten Verhältnis Fortschritt/Datum  anzeigen
+      show_only_critical: Kritisch Filtern
+    popup:
+      add_task:
+        heading: Hilfe für die Aufgabe hinzufügen
+        text: Neue Aufgabe oder Meilenstein können erstellt werden in dem Sie auf
+          die Aufgabe Taste (entsprechen Meilenstein Taste) klicken oder in dem Sie
+          es überall in dem Graph ziehen.
+      baseline:
+        heading: Basisplan Beschreibung
+        heading_new_baseline: Neuer Basisplan
+        text: Kopie des Projekts für den weiteren Vergleich erstellen
+      critical:
+        heading: Kritischer Weg Beschreibung
+        text: Längste Sequenz der Aktivitäten in der Projekt Planung, soll fristgemäß
+          beendet werden um den Projekt am Stichtag fertigzustellen. Eine Aktivität
+          auf dem kritischen Weg kann solang nicht erstell werden solang die vorherigen
+          Aktivitäten nicht abgeschlossen sind; falls es sich doch verspätet um einen
+          Tag, der ganzer Projekt wird sich um einen Tag verspäten, es sei denn die
+          Aktivitäten die verspäteten Aktivitäten folgen ein Tag früher fertig gestellt
+          werden. Um eine ordnungsgemäße Funktionalität des kritischen Weges zu sichern,
+          soll der Projekt  1 Startaufgabe und 1 Endaufgabe beinhalten und die Aufgaben
+          sollen mit Relationen verbunden sein
+    scheme_by:
+      label_by_priority: nach Priorität
+      label_by_status: nach Status
+      label_by_tracker: nach Verflogung
+      label_color_by: Färben nach
+    title:
+      delayed_issue_filter: Nur Probleme anzeigen dessen Fortschrittsdatum liegt  hinter
+        heute
+      show_only_critical: Nur die Aufgaben anzeigen die sich  derzeit auf dem kritischen
+        Weg befinden
+  easy_pages:
+    modules:
+      easy_global_gantt: Easy Gantt
+      easy_project_gantt: Easy Gantt
+  easy_proposer:
+    easy_gantt:
+      index:
+        caption: Easy Gantt PRO
+        description: Gehen Sie zu Easy Gantt PRO
+  heading_easy_gantts_issues: Easy Gantt PRO
+  label_show_lowest_progress_tasks: Aufgaben mit dem kleinstem Fortschritt
+  text_show_lowest_progress_tasks: Die Aufgabe mit der schlechtesten Fortschritt/Datum
+    Relation anzeigen (=das Datum , das korrespondiert mit der Fertigstellung der
+    Aufgabe in dem Verhältnis-Balken in Gantt)

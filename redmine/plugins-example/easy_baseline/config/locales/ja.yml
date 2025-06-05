@@ -1,0 +1,13 @@
+---
+ja:
+  easy_baseline_plugin_author: Easy Software
+  easy_baseline_plugin_author_url: http://www.easyproject.cz/en
+  easy_baseline_plugin_description: ''
+  easy_baseline_plugin_name: Easy Baseline
+  easy_baseline_project_prefix: Baseline for
+  field_easy_baseline_for: ベースライン
+  label_create_easy_baseline: ベースラインの作成
+  label_easy_baselines: ベースライン管理
+  label_try_again: 再度実行してください
+  notice_easy_baseline_created: "%{project_name} のベースラインは正常に作成されました"
+  project_module_easy_baselines: 簡単なベースライン

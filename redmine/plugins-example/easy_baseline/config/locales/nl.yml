@@ -1,0 +1,12 @@
+---
+nl:
+  easy_baseline_plugin_author: Easy Software
+  easy_baseline_plugin_author_url: http://www.easyproject.cz/nl
+  easy_baseline_plugin_description: ''
+  easy_baseline_plugin_name: Easy Baseline
+  easy_baseline_project_prefix: Baseline voor
+  field_easy_baseline_for: Baseline
+  label_create_easy_baseline: Maak baseline
+  label_easy_baselines: Easy Baselines
+  label_try_again: Probeer opnieuw
+  notice_easy_baseline_created: Baseline voor project %{project_name} aangemaakt

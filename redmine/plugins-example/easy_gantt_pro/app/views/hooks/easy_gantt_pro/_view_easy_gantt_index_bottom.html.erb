@@ -1,0 +1,4 @@
+<%= content_for :header_tags do %>
+  <%= render 'easy_gantt_pro/includes', project: @project, query: query %>
+  <%= render 'easy_gantt_pro/js_prepare', project: @project, query: query %>
+<% end %>
