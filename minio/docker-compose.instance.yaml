@@ -22,6 +22,12 @@
 #@ public_middlewares = []
 #@ minio_console_middlewares = []
 
+#! ### Custom project vars
+#@ openmaxio_enabled = data.values.openmaxio_enabled == "true"
+#@ openmaxio_version = data.values.openmaxio_version
+#@ openmaxio_host = data.values.openmaxio_host
+#@ minio_openmaxio_middlewares = []
+
 #@yaml/text-templated-strings
 services:
   minio:
@@ -81,3 +87,52 @@ services:
       #! Apply all middlewares (do this at the end!)
       - "traefik.http.routers.(@= router_public @).middlewares=(@= ','.join(public_middlewares) @)"
       - "traefik.http.routers.(@= router_console @).middlewares=(@= ','.join(minio_console_middlewares) @)"
+
+  #@ if openmaxio_enabled:
+  openmaxio:
+    #@ service = "openmaxio"
+    build:
+     context: ./openmaxio
+     args:
+       OPENMAXIO_VERSION: (@= openmaxio_version @)
+       OPENMAXIO_TRAEFIK_HOST: (@= openmaxio_host @)
+    restart: unless-stopped
+    labels:
+      - "backup-volume.stop-during-backup=true"
+      #! Services must opt-in to be proxied by Traefik:
+      - "traefik.enable=true"
+
+      #@ router_openmaxio = "{}-openmaxio-{}-{}".format(project,instance,service)
+
+      #! The host matching router rules:
+      - "traefik.http.routers.(@= router_openmaxio @).rule=Host(`(@= openmaxio_host @)`)"
+      - "traefik.http.routers.(@= router_openmaxio @).entrypoints=websecure"
+
+      - "traefik.http.routers.(@= router_openmaxio @).service=(@= router_openmaxio @)"
+      - "traefik.http.services.(@= router_openmaxio @).loadbalancer.server.port=9002"
+
+      #@ minio_openmaxio_middlewares.append("{}-ipallowlist".format(router_openmaxio))
+      - "traefik.http.middlewares.(@= router_openmaxio @)-ipallowlist.ipallowlist.sourcerange=(@= minio_console_ip_sourcerange @)"
+      #@ if enable_http_auth:
+      #@ minio_openmaxio_middlewares.append("{}-basicauth".format(router_openmaxio))
+      - "traefik.http.middlewares.(@= router_openmaxio @)-basicauth.basicauth.users=(@= http_auth @)"
+      - "traefik.http.middlewares.(@= router_openmaxio @)-basicauth.basicauth.headerField=X-Forwarded-User"
+      #@ end
+
+      #@ if enable_oauth2:
+      #@ minio_openmaxio_middlewares.append("traefik-forward-auth@docker")
+      #@ minio_openmaxio_middlewares.append("header-authorization-group-{}@file".format(authorized_group))
+      #@ end
+
+      #@ if enable_mtls_auth:
+      - "traefik.http.routers.(@= router_openmaxio @).tls.options=step_ca_mTLS@file"
+        #@ if len(mtls_authorized_certs):
+      - "traefik.http.middlewares.mtlsauth-(@= router_openmaxio @).plugin.certauthz.domains=(@= mtls_authorized_certs @)"
+        #@ minio_openmaxio_middlewares.append("mtlsauth-{}".format(router_openmaxio))
+        #@ end
+        #@ minio_openmaxio_middlewares.append("mtls-header@file")
+      #@ end
+
+      #! Apply all middlewares (do this at the end!)
+      - "traefik.http.routers.(@= router_openmaxio @).middlewares=(@= ','.join(minio_openmaxio_middlewares) @)"
+  #@ end

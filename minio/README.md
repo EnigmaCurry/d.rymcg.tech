@@ -7,9 +7,6 @@ This configuration is for a *single* server backed by a *single* docker volume.
 So, **this is not a production-ready S3 service**, but only intended for
 development or other light/unimportant storage duties.
 
-Consider also installing the [filestash](../filestash) application for a nice
-web based file manager.
-
 ## Config
 
 ```
