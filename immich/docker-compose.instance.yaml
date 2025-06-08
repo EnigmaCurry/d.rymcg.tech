@@ -24,6 +24,7 @@
 #@ transcode_hwaccel_type = data.values.transcode_hwaccel_type
 #@ upload_location = data.values.upload_location
 #@ use_external_volume = data.values.use_external_volume == "true"
+#@ db_storage_type = data.values.db_storage_type
 
 #@yaml/text-templated-strings
 services:
@@ -166,6 +167,12 @@ services:
 
       #! Apply all middlewares (do this at the end!)
       - "traefik.http.routers.(@= router @).middlewares=(@= ','.join(enabled_middlewares) @)"
+
+  #@ if db_storage_type == "HDD":
+  database:
+    environment:
+      - DB_STORAGE_TYPE=HDD
+  #@ end
 
 #@yaml/text-templated-strings
 volumes:
