@@ -13,6 +13,7 @@ config-hook:
 	@${BIN}/reconfigure_auth ${ENV_FILE} REDMINE
 	@${BIN}/reconfigure_password ${ENV_FILE} REDMINE_DB_PASSWORD
 	@${BIN}/reconfigure_password ${ENV_FILE} REDMINE_SECRET_KEY_BASE 45
+	@mkdir -p ./plugins_${CONTEXT_INSTANCE}
 	@echo ""
 
 .PHONY: override-hook
@@ -32,3 +33,24 @@ override-hook:
 .PHONY: shell
 shell:
 	@container=$$(eval "${BIN}/script-wizard choose 'docker exec -it into which container?' 'redmine' 'db' --default 'redmine'") && make --no-print-directory docker-compose-shell SERVICE=$${container}
+
+.PHONY: install-plugins # Install Redmine plugins
+install-plugins:
+	@if [[ "${INSTANCE}" == "default" ]]; then \
+		CONTAINER_NAME="redmine-redmine-1"; \
+	else \
+		CONTAINER_NAME="redmine_${INSTANCE}-redmine-1"; \
+	fi; \
+	docker cp ./plugins_${CONTEXT_INSTANCE}/. $${CONTAINER_NAME}:/usr/src/redmine/plugins/; \
+	echo; \
+	echo "Running plugin migrations in container $$CONTAINER_NAME..."; \
+	docker exec $$CONTAINER_NAME bash -c "cd /usr/src/redmine && bundle exec rake redmine:plugins:migrate RAILS_ENV=production"; \
+	echo; \
+	echo "Clearing cache..."; \
+	docker exec $$CONTAINER_NAME bash -c "cd /usr/src/redmine && bundle exec rake tmp:cache:clear"; \
+	echo; \
+	echo "Precompiling assets..."; \
+	docker exec $$CONTAINER_NAME bash -c "cd /usr/src/redmine && bundle exec rake assets:precompile RAILS_ENV=production"; \
+	echo; \
+	echo "Restarting container $$CONTAINER_NAME..."; \
+	docker restart $$CONTAINER_NAME
