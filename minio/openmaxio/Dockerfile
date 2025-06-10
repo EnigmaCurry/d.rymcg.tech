@@ -1,13 +1,11 @@
 FROM python:3.11-slim
 ARG OPENMAXIO_VERSION=v2.0.1
-ARG OPENMAXIO_TRAEFIK_HOST
 ENV POETRY_VERSION=1.8.2 \
     POETRY_HOME="/opt/poetry" \
     PATH="/opt/poetry/bin:$PATH" \
     PYTHONUNBUFFERED=1 \
     PYTHONDONTWRITEBYTECODE=1 \
-    PATH="/usr/local/go/bin:$PATH" \
-    CONSOLE_MINIO_SERVER=https://${OPENMAXIO_TRAEFIK_HOST}
+    PATH="/usr/local/go/bin:$PATH"
 RUN apt-get update && \
     apt-get install -y curl git build-essential make xz-utils && \
     curl -fsSL https://nodejs.org/dist/v18.20.2/node-v18.20.2-linux-x64.tar.xz | tar -xJf - -C /usr/local --strip-components=1 && \
@@ -31,4 +29,3 @@ WORKDIR /app
 RUN make console
 EXPOSE 9002
 CMD ["./console", "server"]
-# CMD ["tail", "-f", "/dev/null"]

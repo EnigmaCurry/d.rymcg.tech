@@ -16,23 +16,17 @@ config-hook:
 		${BIN}/reconfigure ${ENV_FILE} MINIO_OPENMAXIO_ENABLED="true"; \
 		${BIN}/reconfigure_ask ${ENV_FILE} MINIO_OPENMAXIO_TRAEFIK_HOST "Ener the OpenMaxIO console domain name" s3-openmaxio.${ROOT_DOMAIN}; \
 		openmaxio_version="$$(${BIN}/dotenv -f ${ENV_FILE} get MINIO_OPENMAXIO_VERSION)"; \
-		else \
+		${BIN}/reconfigure_ask ${ENV_FILE} MINIO_OPENMAXIO_ACCESS_KEY "Enter the *access* key on the MinIO server that OpenMaxIO Console should use" openmaxio-console; \
+		${BIN}/reconfigure_ask ${ENV_FILE} MINIO_OPENMAXIO_SECRET_KEY "Enter the *secret* key on the MinIO server for that access key"; \
+		echo; \
+		${BIN}/reconfigure_password ${ENV_FILE} MINIO_OPENMAXIO_PASSPHRASE 45; \
+		${BIN}/reconfigure_password ${ENV_FILE} MINIO_OPENMAXIO_SALT 45; \
+	else \
 		${BIN}/reconfigure ${ENV_FILE} MINIO_OPENMAXIO_ENABLED="false"; \
 	fi
+	@${BIN}/reconfigure_compose_profiles ${ENV_FILE} MINIO_OPENMAXIO_ENABLED=openmaxio
 	@echo
 	@${BIN}/reconfigure_auth ${ENV_FILE} MINIO
-
-.PHONY: bucket # Make a bucket and access credentials
-bucket:
-	@ENV_FILE=${ENV_FILE} MINIO_TRAEFIK_PORT="$$(${BIN}/dotenv -f ${ROOT_DIR}/${ROOT_ENV} get PUBLIC_HTTPS_PORT)" ./create_bucket_and_user.sh
-
-.PHONY: mc # Run mc shell
-mc:
-	./mc_shell.sh
-
-.PHONY: shell
-shell:
-	@container=$$(eval "${BIN}/script-wizard choose 'docker exec -it into which container?' 'minio' 'openmaxio' 'mc' --default 'minio'") && make --no-print-directory docker-compose-shell SERVICE=$${container}
 
 .PHONY: override-hook
 override-hook:
@@ -46,7 +40,11 @@ override-hook:
 ####                         # (this hardcodes the string into docker-compose.override.yaml)
 ####   name=@VARIABLE_NAME   # sets the template 'name' field to the literal string '${VARIABLE_NAME}'
 ####                         # (used for regular docker-compose expansion of env vars by name.)
-	@${BIN}/docker_compose_override ${ENV_FILE} project=:minio instance=@MINIO_INSTANCE traefik_host=@MINIO_TRAEFIK_HOST http_auth=MINIO_HTTP_AUTH http_auth_var=@MINIO_HTTP_AUTH ip_sourcerange=@S3_SOURCERANGE oauth2=MINIO_OAUTH2 authorized_group=MINIO_OAUTH2_AUTHORIZED_GROUP enable_mtls_auth=MINIO_MTLS_AUTH mtls_authorized_certs=MINIO_MTLS_AUTHORIZED_CERTS minio_console_host=@MINIO_CONSOLE_TRAEFIK_HOST minio_console_ip_sourcerange=@CONSOLE_SOURCERANGE openmaxio_enabled=MINIO_OPENMAXIO_ENABLED openmaxio_version=@MINIO_OPENMAXIO_VERSION openmaxio_host=@MINIO_OPENMAXIO_TRAEFIK_HOST
+	@${BIN}/docker_compose_override ${ENV_FILE} project=:minio instance=@MINIO_INSTANCE traefik_host=@MINIO_TRAEFIK_HOST http_auth=MINIO_HTTP_AUTH http_auth_var=@MINIO_HTTP_AUTH ip_sourcerange=@S3_SOURCERANGE oauth2=MINIO_OAUTH2 authorized_group=MINIO_OAUTH2_AUTHORIZED_GROUP enable_mtls_auth=MINIO_MTLS_AUTH mtls_authorized_certs=MINIO_MTLS_AUTHORIZED_CERTS minio_console_host=@MINIO_CONSOLE_TRAEFIK_HOST minio_console_ip_sourcerange=@CONSOLE_SOURCERANGE openmaxio_enabled=MINIO_OPENMAXIO_ENABLED openmaxio_host=@MINIO_OPENMAXIO_TRAEFIK_HOST
+
+.PHONY: shell
+shell:
+	@container=$$(eval "${BIN}/script-wizard choose 'docker exec -it into which container?' 'minio' 'openmaxio' 'mc' --default 'minio'") && make --no-print-directory docker-compose-shell SERVICE=$${container}
 
 .PHONY: open # Open the web-browser to the service URL
 open:
@@ -56,3 +54,15 @@ open:
 	@echo "Password: $$(${BIN}/dotenv -f ${ENV_FILE} get MINIO_ROOT_PASSWORD)"
 	@echo
 
+.PHONY: bucket # Make a bucket and access credentials
+bucket:
+	@ENV_FILE=${ENV_FILE} MINIO_TRAEFIK_PORT="$$(${BIN}/dotenv -f ${ROOT_DIR}/${ROOT_ENV} get PUBLIC_HTTPS_PORT)" ./create_bucket_and_user.sh
+
+.PHONY: mc # Run mc shell
+mc:
+	./mc_shell.sh
+
+.PHONY: config-openmaxio # Configure OpenMaxIO to connect to MinIO
+config-openmaxio:
+	@echo "ROOT_ENV: ${ROOT_ENV}"
+	@ENV_FILE=${ENV_FILE} MINIO_TRAEFIK_PORT="$$(${BIN}/dotenv -f ${ROOT_DIR}/${ROOT_ENV} get PUBLIC_HTTPS_PORT)" MINIO_OPENMAXIO_ACCESS_KEY="$$(${BIN}/dotenv -f ${ENV_FILE} get MINIO_OPENMAXIO_ACCESS_KEY)" MINIO_OPENMAXIO_SECRET_KEY="$$(${BIN}/dotenv -f ${ENV_FILE} get MINIO_OPENMAXIO_SECRET_KEY)" ./config_openmaxio.sh

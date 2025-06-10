@@ -24,7 +24,6 @@
 
 #! ### Custom project vars
 #@ openmaxio_enabled = data.values.openmaxio_enabled == "true"
-#@ openmaxio_version = data.values.openmaxio_version
 #@ openmaxio_host = data.values.openmaxio_host
 #@ minio_openmaxio_middlewares = []
 
@@ -91,12 +90,6 @@ services:
   #@ if openmaxio_enabled:
   openmaxio:
     #@ service = "openmaxio"
-    build:
-     context: ./openmaxio
-     args:
-       OPENMAXIO_VERSION: (@= openmaxio_version @)
-       OPENMAXIO_TRAEFIK_HOST: (@= openmaxio_host @)
-    restart: unless-stopped
     labels:
       - "backup-volume.stop-during-backup=true"
       #! Services must opt-in to be proxied by Traefik:
@@ -109,7 +102,7 @@ services:
       - "traefik.http.routers.(@= router_openmaxio @).entrypoints=websecure"
 
       - "traefik.http.routers.(@= router_openmaxio @).service=(@= router_openmaxio @)"
-      - "traefik.http.services.(@= router_openmaxio @).loadbalancer.server.port=9002"
+      - "traefik.http.services.(@= router_openmaxio @).loadbalancer.server.port=9090"
 
       #@ minio_openmaxio_middlewares.append("{}-ipallowlist".format(router_openmaxio))
       - "traefik.http.middlewares.(@= router_openmaxio @)-ipallowlist.ipallowlist.sourcerange=(@= minio_console_ip_sourcerange @)"
