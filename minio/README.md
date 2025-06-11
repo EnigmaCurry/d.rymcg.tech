@@ -47,16 +47,18 @@ certifcate and function properly. This is required for OpenMaxIO to be
 installed, as it uses the `mc` client to create a user, and for
 `make bucket` to work.
 
-## Limiting traffic
+### Limiting traffic
 
 You can limit traffic based on source IP address for MinIO and/or the
 MinIO and OpenMaxIO consoles, by expressing a [CIDR ip range
 filter](https://doc.traefik.io/traefik/middlewares/tcp/ipallowlist/):
 
- * `S3_SOURCERANGE` - This is the IP address filter for `MINIO_TRAEFIK_HOST`
- * `CONSOLE_SOURCERANGE` - This is the IP address filter for `MINIO_CONSOLE_TRAEFIK_HOST` and `MINIO_OPENMAXIO_TRAEFIK_HOST`
+ * `S3_SOURCERANGE` - This is the IP address filter for
+   `MINIO_TRAEFIK_HOST`
+ * `CONSOLE_SOURCERANGE` - This is the IP address filter for
+   `MINIO_CONSOLE_TRAEFIK_HOST` and `MINIO_OPENMAXIO_TRAEFIK_HOST`
 
-## Start the server
+## Install
 
 Once your `.env_${DOCKER_CONTEXT}_{$INSTANCE}}` file is configured,
 start the service:
@@ -67,17 +69,36 @@ make install
 
 ### OpenMaxIO Console Credentials
 
-OpenMaxIO recommends not using MinIO's root user to connect the
-OpenMaxIO console to the MinIO server. If you elect to install
-OpenMaxIO during `make config`, then running `make install` will ask
-you for a user name and secret key (password) to use.
+The OpenMaxIO team recommends not using MinIO's root user to connect
+the OpenMaxIO console to the MinIO server. If you elect to install
+OpenMaxIO during `make config`, you will be asked for a user name
+(asccess key) and secret key (password) to use: this is for OpenMaxIO
+to use internally. You will be able to create additional access keys
+(users) in the console or via the `mc` client if you want to log into
+the MinIO or OpenMaxIO consoles as different users with possibly
+different priveleges.
 
-After you run `make install` and the MinIO server is running run the
-following command to create the user, secret key, group, and policy on
-the MinIO server that OpenMaxIO will use to connect to MinIO:
+After you run `make install` and the MinIO server is running, run the
+following command to create the access key, secret key, group, and
+policy on the MinIO server that OpenMaxIO will use internally to
+connect to MinIO:
 
 ```
 make config-openmaxio
+```
+
+## Run
+
+To launch the MinIO console in a web browser, run:
+
+```
+make open
+```
+
+To launch the OpenMaxIO console in a web browser, run:
+
+```
+make open-openmaxio
 ```
 
 ## Create a bucket
