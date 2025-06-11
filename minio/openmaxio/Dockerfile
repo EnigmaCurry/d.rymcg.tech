@@ -27,5 +27,4 @@ WORKDIR /app/web-app
 RUN yarn install && yarn build
 WORKDIR /app
 RUN make console
-EXPOSE 9002
 CMD ["./console", "server"]
