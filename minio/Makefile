@@ -65,4 +65,4 @@ mc:
 .PHONY: config-openmaxio # Configure OpenMaxIO to connect to MinIO
 config-openmaxio:
 	@echo "ROOT_ENV: ${ROOT_ENV}"
-	@ENV_FILE=${ENV_FILE} MINIO_TRAEFIK_PORT="$$(${BIN}/dotenv -f ${ROOT_DIR}/${ROOT_ENV} get PUBLIC_HTTPS_PORT)" MINIO_OPENMAXIO_ACCESS_KEY="$$(${BIN}/dotenv -f ${ENV_FILE} get MINIO_OPENMAXIO_ACCESS_KEY)" MINIO_OPENMAXIO_SECRET_KEY="$$(${BIN}/dotenv -f ${ENV_FILE} get MINIO_OPENMAXIO_SECRET_KEY)" ./config_openmaxio.sh
+	@ENV_FILE=${ENV_FILE} MINIO_TRAEFIK_PORT="$$(${BIN}/dotenv -f ${ROOT_DIR}/${ROOT_ENV} get PUBLIC_HTTPS_PORT)" MINIO_OPENMAXIO_ACCESS_KEY="$$(${BIN}/dotenv -f ${ENV_FILE} get MINIO_OPENMAXIO_ACCESS_KEY)" MINIO_OPENMAXIO_SECRET_KEY="$$(${BIN}/dotenv -f ${ENV_FILE} get MINIO_OPENMAXIO_SECRET_KEY)" MINIO_ROOT_USER="$$(${BIN}/dotenv -f ${ENV_FILE} get MINIO_ROOT_USER)" MINIO_ROOT_PASSWORD="$$(${BIN}/dotenv -f ${ENV_FILE} get MINIO_ROOT_PASSWORD)" ./config_openmaxio.sh

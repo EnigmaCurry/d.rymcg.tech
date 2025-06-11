@@ -5,11 +5,16 @@ BIN=$(dirname ${BASH_SOURCE[0]})/../_scripts
 source ${BIN}/funcs.sh
 
 ## Prompt for configuration input:
-echo ""
+echo
 echo "This will configure OpenMaxIO to connect to MinIO."
+echo
 
-check_var MINIO_TRAEFIK_PORT MINIO_OPENMAXIO_ACCESS_KEY MINIO_OPENMAXIO_SECRET_KEY
-vars=(MINIO_TRAEFIK_PORT MINIO_OPENMAXIO_ACCESS_KEY MINIO_OPENMAXIO_SECRET_KEY)
+check_var MINIO_TRAEFIK_PORT MINIO_OPENMAXIO_ACCESS_KEY MINIO_OPENMAXIO_SECRET_KEY MINIO_ROOT_USER MINIO_ROOT_PASSWORD
+vars=(MINIO_TRAEFIK_PORT USERNAME USERPASSWORD GROUPNAME POLICYNAME MINIO_ROOT_USER MINIO_ROOT_PASSWORD)
+USERNAME=${MINIO_OPENMAXIO_ACCESS_KEY}
+USERPASSWORD=${MINIO_OPENMAXIO_SECRET_KEY}
+GROUPNAME=${MINIO_OPENMAXIO_ACCESS_KEY}
+POLICYNAME=${MINIO_OPENMAXIO_ACCESS_KEY}
 
 ## Run the mc container and pipe in the script to do everything:
 DOCKER_ARGS="--env-file ${ENV_FILE:-.env} --rm -i --entrypoint=/bin/bash localhost/mc"
@@ -36,23 +41,22 @@ cat <<FOF > ${TEMP_POLICY}
   ]
 }
 FOF
-
 set -e
 ## Configure OpenMaxIO Console endpoint:
-mc alias set openmaxio https://${MINIO_TRAEFIK_HOST} ${MINIO_OPENMAXIO_ACCESS_KEY} ${MINIO_OPENMAXIO_SECRET_KEY}
+mc alias set openmaxio https://${MINIO_TRAEFIK_HOST} ${MINIO_ROOT_USER} ${MINIO_ROOT_PASSWORD}
 ## Create user:
-mc admin user add openmaxio ${MINIO_OPENMAXIO_ACCESS_KEY} ${MINIO_OPENMAXIO_SECRET_KEY}
+mc admin user add openmaxio ${USERNAME} ${USERPASSWORD}
 ## Create group:
-mc admin group add openmaxio openmaxio-console openmaxio-console
+mc admin group add openmaxio ${GROUPNAME} ${USERNAME}
 ## Create policy:
-mc admin policy create openmaxio openmaxio-console ${TEMP_POLICY}
+mc admin policy create openmaxio ${POLICYNAME} ${TEMP_POLICY}
 ## Assign policy to group:
-mc admin policy attach openmaxio openmaxio-console --group openmaxio-console
+mc admin policy attach openmaxio ${POLICYNAME} --group ${GROUPNAME}
 ###
 set +x
 echo ""
 echo "Endpoint: https://${MINIO_TRAEFIK_HOST}"
-echo "Access Key: ${MINIO_OPENMAXIO_ACCESS_KEY}"
-echo "Secret Key: ${MINIO_OPENMAXIO_SECRET_KEY}"
+echo "Access Key: ${USERNAME}"
+echo "Secret Key: ${USERPASSWORD}"
 echo
 EOF

@@ -7,6 +7,14 @@ This configuration is for a *single* server backed by a *single* docker volume.
 So, **this is not a production-ready S3 service**, but only intended for
 development or other light/unimportant storage duties.
 
+There are 3 ways you can manage your MinIO server:
+ * MinIO has its own web-based console offering limited functionality.
+ * OpenMaxIO is a web-based console that connects to MinIO and offers
+  full adminsitrative functionality (you can choose not to install the
+  OpenMaxIO console).
+ * MinIO's `mc` command line client is a CLI tool offering full
+  administrative functionality.
+
 ## Config
 
 ```
@@ -18,48 +26,13 @@ make config
 See [AUTH.md](../AUTH.md) for information on adding external authentication on
 top of your app.
 
-## Limiting traffic
-
-You can limit traffic based on source IP address for either or both of these
-domain names, by expressing a [CIDR ip range
-filter](https://doc.traefik.io/traefik/middlewares/tcp/ipallowlist/):
-
- * `S3_SOURCERANGE` - This is the IP address filter for `MINIO_TRAEFIK_HOST`
- * `CONSOLE_SOURCERANGE` - This is the IP address filter for `MINIO_CONSOLE_TRAEFIK_HOST`
-
-## Start the server
-
-Once your `.env_${DOCKER_CONTEXT}_default` file is configured, start the
-service:
-
-```
-make install
-```
-
-## Create a bucket
-
-The included `create_bucket_and_user.sh` BASH script will automate the process
-of creating a bucket, creating a policy, adding a group and a user, and
-generating a secure secret key, and printing it all out to the screen. Just
-answer the questions it asks and it will take care of running the `mc` client
-(the Minio command line client) and issuing all the commands. Watch the output
-to learn the exact commands it runs to learn from it.
-
-To invoke the script, run:
-
-```
-make bucket
-```
-
-You don't have to use this script, you can instead create everything
-from the GUI console, following the instructions in the next section.
-
 ### Step-CA certificate
 
 If you have enabled Traefik to use Step-CA as its certificate
 resolver, you will need to configure the `mc` client to trust it.
-Ensure you have the proper config in your minio `.env_{CONTEXT}` file,
-and according to your [step-ca](../step-ca) config:
+Ensure you have the proper config in your minio
+`.env_{DOCKER_CONTEXT}_{INSTANCE}` file, and according to your
+[step-ca](../step-ca) config:
 
 ```
 ## Minio Step-CA config:
@@ -69,24 +42,79 @@ MINIO_STEP_CA_FINGERPRINT=xxxxxxxxxxx
 ```
 
 This will add the Step-CA certificate to the trust store of the
-utility `mc` container, and `make bucket` should work, and it will
-trust the certifcate.
+utility `mc` container, allowing the `mc` client to trust the
+certifcate and function properly. This is required for OpenMaxIO to be
+installed, as it uses the `mc` client to create a user, and for
+`make bucket` to work.
 
-## Using Minio "console" to create bucket and credentials
+## Limiting traffic
 
-The "console" is a web application that lets you graphically interact
-with your minio instance. By default, all access is prevented by the
-following config in your `.env_{CONTEXT}` file:
+You can limit traffic based on source IP address for MinIO and/or the
+MinIO and OpenMaxIO consoles, by expressing a [CIDR ip range
+filter](https://doc.traefik.io/traefik/middlewares/tcp/ipallowlist/):
+
+ * `S3_SOURCERANGE` - This is the IP address filter for `MINIO_TRAEFIK_HOST`
+ * `CONSOLE_SOURCERANGE` - This is the IP address filter for `MINIO_CONSOLE_TRAEFIK_HOST` and `MINIO_OPENMAXIO_TRAEFIK_HOST`
+
+## Start the server
+
+Once your `.env_${DOCKER_CONTEXT}_{$INSTANCE}}` file is configured,
+start the service:
 
 ```
-## Console is disabled if this is set to 0.0.0.0/32
-## Change this to 0.0.0.0/0 to allow all ip addresses:
+make install
+```
+
+### OpenMaxIO Console Credentials
+
+OpenMaxIO recommends not using MinIO's root user to connect the
+OpenMaxIO console to the MinIO server. If you elect to install
+OpenMaxIO during `make config`, then running `make install` will ask
+you for a user name and secret key (password) to use.
+
+After you run `make install` and the MinIO server is running run the
+following command to create the user, secret key, group, and policy on
+the MinIO server that OpenMaxIO will use to connect to MinIO:
+
+```
+make config-openmaxio
+```
+
+## Create a bucket
+
+The included `create_bucket_and_user.sh` BASH script will automate the
+process of creating a bucket, creating a policy, adding a group and a
+user, generating a secure secret key, and printing it all out to the
+screen. Just answer the questions it asks and it will take care of
+running the `mc` client (the Minio command line client) and issuing
+all the commands. Watch the output to learn the exact commands it runs
+to learn from it.
+
+To invoke the script, run:
+
+```
+make bucket
+```
+
+You don't have to use this script, you can instead create everything
+from the MinIO or OpenMaxIO GUI console, following the instructions in
+the next section.
+
+## Using Minio or OpenMaxIO console to create bucket and credentials
+
+The console is a web application that lets you graphically interact
+with your MinIO instance. By default, all access is prevented by the
+following configs in your `.env_{DOCKER_CONTEXT}_{INSTANCE}` file:
+
+```
+## The MinIO and OpenMaxIO consoles are disabled if this is set to 0.0.0.0/32
+## Change this to 0.0.0.0/0 to allow all ip addresses to access the console page:
 CONSOLE_SOURCERANGE="0.0.0.0/32"
 ```
 
-Log into the console (eg. `https:://console.s3.example.com`) using the
-root user and the password you set in
-`.env_${DOCKER_CONTEXT}_default`.
+Log into the console (e.g., `https:://console.s3.example.com` or
+`https://openmaxio.s3.example.com`) using the root user and the
+password you set in `.env_${DOCKER_CONTEXT}_{INSTANCE}`.
 
 Create a bucket:
 
