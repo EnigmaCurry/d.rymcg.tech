@@ -9,8 +9,8 @@ echo
 echo "This will configure OpenMaxIO to connect to MinIO."
 echo
 
-check_var MINIO_TRAEFIK_PORT MINIO_OPENMAXIO_ACCESS_KEY MINIO_OPENMAXIO_SECRET_KEY MINIO_ROOT_USER MINIO_ROOT_PASSWORD
-vars=(MINIO_TRAEFIK_PORT USERNAME USERPASSWORD GROUPNAME POLICYNAME MINIO_ROOT_USER MINIO_ROOT_PASSWORD)
+check_var MINIO_TRAEFIK_PORT MINIO_TRAEFIK_HOST MINIO_OPENMAXIO_TRAEFIK_HOST MINIO_OPENMAXIO_ACCESS_KEY MINIO_OPENMAXIO_SECRET_KEY MINIO_ROOT_USER MINIO_ROOT_PASSWORD
+vars=(MINIO_TRAEFIK_PORT MINIO_TRAEFIK_HOST MINIO_OPENMAXIO_TRAEFIK_HOST USERNAME USERPASSWORD GROUPNAME POLICYNAME MINIO_ROOT_USER MINIO_ROOT_PASSWORD)
 USERNAME=${MINIO_OPENMAXIO_ACCESS_KEY}
 USERPASSWORD=${MINIO_OPENMAXIO_SECRET_KEY}
 GROUPNAME=${MINIO_OPENMAXIO_ACCESS_KEY}
@@ -42,21 +42,19 @@ cat <<FOF > ${TEMP_POLICY}
 }
 FOF
 set -e
-## Configure OpenMaxIO Console endpoint:
-mc alias set openmaxio https://${MINIO_TRAEFIK_HOST} ${MINIO_ROOT_USER} ${MINIO_ROOT_PASSWORD}
+## Create OpenMaxIO console endpoint:
+mc alias set minio https://${MINIO_TRAEFIK_HOST}:${MINIO_TRAEFIK_PORT} ${MINIO_ROOT_USER} ${MINIO_ROOT_PASSWORD}
 ## Create user:
-mc admin user add openmaxio ${USERNAME} ${USERPASSWORD}
+mc admin user add minio ${USERNAME} ${USERPASSWORD}
 ## Create group:
-mc admin group add openmaxio ${GROUPNAME} ${USERNAME}
+mc admin group add minio ${GROUPNAME} ${USERNAME}
 ## Create policy:
-mc admin policy create openmaxio ${POLICYNAME} ${TEMP_POLICY}
+mc admin policy create minio ${POLICYNAME} ${TEMP_POLICY}
 ## Assign policy to group:
-mc admin policy attach openmaxio ${POLICYNAME} --group ${GROUPNAME}
+mc admin policy attach minio ${POLICYNAME} --group ${GROUPNAME}
 ###
 set +x
-echo ""
-echo "Endpoint: https://${MINIO_TRAEFIK_HOST}"
-echo "Access Key: ${USERNAME}"
-echo "Secret Key: ${USERPASSWORD}"
+echo
+echo "OpenMaxIO console access key \"${USERNAME}\" created."
 echo
 EOF
