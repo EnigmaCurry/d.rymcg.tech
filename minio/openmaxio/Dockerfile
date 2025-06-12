@@ -1,9 +1,3 @@
-    # export PATH=$PATH:/usr/local/go/bin && \
-    # ln -sf /usr/local/bin/node /usr/bin/node && \
-    # ln -sf /usr/local/bin/npm /usr/bin/npm && \
-    # ln -sf /usr/local/bin/corepack /usr/bin/corepack && \
-    # ln -sf /usr/local/bin/yarn /usr/bin/yarn && \
-    # corepack enable
 FROM python:3.11-slim
 ARG OPENMAXIO_VERSION=v1.7.6
 ENV POETRY_VERSION=1.8.2 \
