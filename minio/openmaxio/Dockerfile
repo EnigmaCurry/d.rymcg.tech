@@ -6,7 +6,7 @@ ENV POETRY_VERSION=1.8.2 \
     PYTHONUNBUFFERED=1 \
     PYTHONDONTWRITEBYTECODE=1
 RUN apt-get update && \
-    apt-get install -y curl git build-essential make xz-utils && \
+    apt-get install --no-install-recommends -y curl git build-essential make xz-utils && \
     # Install Node.js
     curl -fsSL https://nodejs.org/dist/v18.20.2/node-v18.20.2-linux-x64.tar.xz | \
       tar -xJf - -C /usr/local --strip-components=1 && \
@@ -17,11 +17,12 @@ RUN apt-get update && \
     curl -fsSL https://go.dev/dl/go1.22.3.linux-amd64.tar.gz | \
       tar -C /usr/local -xzf - && \
     # Install Poetry
-    curl -sSL https://install.python-poetry.org | python3 - && \
+    curl -sSL https://install.python-poetry.org | python3 - --yes --preview && \
+    poetry config virtualenvs.create false && \
     # Clean up
     apt-get clean && rm -rf /var/lib/apt/lists/*
 WORKDIR /app
-RUN git clone --branch "${OPENMAXIO_VERSION}" https://github.com/OpenMaxIO/openmaxio-object-browser.git .
+RUN git clone --branch "${OPENMAXIO_VERSION}" --depth 1 https://github.com/OpenMaxIO/openmaxio-object-browser.git .
 # Build the web frontend
 WORKDIR /app/web-app
 RUN yarn install && yarn build

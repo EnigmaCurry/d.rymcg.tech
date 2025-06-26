@@ -10,9 +10,10 @@ services:
     environment:
       - MINIO_ROOT_USER
       - MINIO_ROOT_PASSWORD
+      - MINIO_BROWSER=off
     volumes:
       - data:/data
-    command: server /data --console-address ":9001"
+    command: server /data   
     labels: []
 
   mc:
@@ -28,7 +29,6 @@ services:
       - "backup-volume.stop-during-backup=true"
 
   openmaxio:
-    profiles: ['openmaxio']
     build:
       context: ./openmaxio
       args:

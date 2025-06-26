@@ -6,25 +6,17 @@ include ${ROOT_DIR}/_scripts/Makefile.instance
 config-hook:
 	@${BIN}/reconfigure_ask ${ENV_FILE} MINIO_TRAEFIK_HOST "Enter the minio domain name" s3.${ROOT_DOMAIN}
 	@${BIN}/reconfigure ${ENV_FILE} MINIO_INSTANCE=$${instance:-default}
-	@${BIN}/reconfigure_ask ${ENV_FILE} MINIO_CONSOLE_TRAEFIK_HOST "Enter the minio console domain name" s3-console.${ROOT_DOMAIN}
 	@${BIN}/reconfigure_ask ${ENV_FILE} MINIO_SITE_REGION "Enter the self-described region of the server" default
 	@${BIN}/reconfigure_ask ${ENV_FILE} MINIO_ROOT_USER "Enter the minio root username" root
 	@MINIO_ROOT_PASSWORD=$$(${BIN}/dotenv -f ${ENV_FILE} get MINIO_ROOT_PASSWORD); ${BIN}/reconfigure ${ENV_FILE} MINIO_ROOT_PASSWORD=$${MINIO_ROOT_PASSWORD:-$(shell openssl rand -hex 45)}
 	@echo
-	@default=$$(if [ "$$(${BIN}/dotenv -f ${ENV_FILE} get MINIO_OPENMAXIO_ENABLED)" == "false" ]; then echo "no"; else echo "yes"; fi); \
-	if ${BIN}/confirm "$${default}" "Do you want to enable the OpenMaxIO console" "?"; then \
-		${BIN}/reconfigure ${ENV_FILE} MINIO_OPENMAXIO_ENABLED="true"; \
-		${BIN}/reconfigure_ask ${ENV_FILE} MINIO_OPENMAXIO_TRAEFIK_HOST "Ener the OpenMaxIO console domain name" s3-openmaxio.${ROOT_DOMAIN}; \
-		openmaxio_version="$$(${BIN}/dotenv -f ${ENV_FILE} get MINIO_OPENMAXIO_VERSION)"; \
-		${BIN}/reconfigure_ask ${ENV_FILE} MINIO_OPENMAXIO_ACCESS_KEY "Enter the *access* key on the MinIO server that OpenMaxIO Console should use" openmaxio-console; \
-		${BIN}/reconfigure_ask ${ENV_FILE} MINIO_OPENMAXIO_SECRET_KEY "Enter the *secret* key on the MinIO server for that access key"; \
-		echo; \
-		${BIN}/reconfigure_password ${ENV_FILE} MINIO_OPENMAXIO_PASSPHRASE 45; \
-		${BIN}/reconfigure_password ${ENV_FILE} MINIO_OPENMAXIO_SALT 45; \
-	else \
-		${BIN}/reconfigure ${ENV_FILE} MINIO_OPENMAXIO_ENABLED="false"; \
-	fi
-	@${BIN}/reconfigure_compose_profiles ${ENV_FILE} MINIO_OPENMAXIO_ENABLED=openmaxio
+	@${BIN}/reconfigure_ask ${ENV_FILE} MINIO_OPENMAXIO_TRAEFIK_HOST "Ener the OpenMaxIO console domain name" s3-openmaxio.${ROOT_DOMAIN};
+	@openmaxio_version="$$(${BIN}/dotenv -f ${ENV_FILE} get MINIO_OPENMAXIO_VERSION)";
+	@${BIN}/reconfigure_ask ${ENV_FILE} MINIO_OPENMAXIO_ACCESS_KEY "Enter the *access* key on the MinIO server that OpenMaxIO Console should use" openmaxio-console;
+	@${BIN}/reconfigure_ask ${ENV_FILE} MINIO_OPENMAXIO_SECRET_KEY "Enter the *secret* key on the MinIO server for that access key";
+	@echo;
+	@${BIN}/reconfigure_password ${ENV_FILE} MINIO_OPENMAXIO_PASSPHRASE 45;
+	@${BIN}/reconfigure_password ${ENV_FILE} MINIO_OPENMAXIO_SALT 45;
 	@echo
 	@${BIN}/reconfigure_auth ${ENV_FILE} MINIO
 
@@ -40,7 +32,7 @@ override-hook:
 ####                         # (this hardcodes the string into docker-compose.override.yaml)
 ####   name=@VARIABLE_NAME   # sets the template 'name' field to the literal string '${VARIABLE_NAME}'
 ####                         # (used for regular docker-compose expansion of env vars by name.)
-	@${BIN}/docker_compose_override ${ENV_FILE} project=:minio instance=@MINIO_INSTANCE traefik_host=@MINIO_TRAEFIK_HOST http_auth=MINIO_HTTP_AUTH http_auth_var=@MINIO_HTTP_AUTH ip_sourcerange=@S3_SOURCERANGE oauth2=MINIO_OAUTH2 authorized_group=MINIO_OAUTH2_AUTHORIZED_GROUP enable_mtls_auth=MINIO_MTLS_AUTH mtls_authorized_certs=MINIO_MTLS_AUTHORIZED_CERTS minio_console_host=@MINIO_CONSOLE_TRAEFIK_HOST minio_console_ip_sourcerange=@CONSOLE_SOURCERANGE openmaxio_enabled=MINIO_OPENMAXIO_ENABLED openmaxio_host=@MINIO_OPENMAXIO_TRAEFIK_HOST
+	@${BIN}/docker_compose_override ${ENV_FILE} project=:minio instance=@MINIO_INSTANCE traefik_host=@MINIO_TRAEFIK_HOST http_auth=MINIO_HTTP_AUTH http_auth_var=@MINIO_HTTP_AUTH ip_sourcerange=@S3_SOURCERANGE oauth2=MINIO_OAUTH2 authorized_group=MINIO_OAUTH2_AUTHORIZED_GROUP enable_mtls_auth=MINIO_MTLS_AUTH mtls_authorized_certs=MINIO_MTLS_AUTHORIZED_CERTS openmaxio_host=@MINIO_OPENMAXIO_TRAEFIK_HOST console_ip_sourcerange=@CONSOLE_SOURCERANGE
 
 .PHONY: shell
 shell:
@@ -48,13 +40,6 @@ shell:
 
 .PHONY: open # Open the web-browser to the service URL
 open:
-	@export DOCKER_CONTEXT=${DOCKER_CONTEXT}; export ENV_FILE=${ENV_FILE}; export CONTEXT_INSTANCE=${CONTEXT_INSTANCE}; if grep "^open-hook:" "${PROJECT_MAKEFILE}" >/dev/null 2>&1; then echo ok ; make -e --no-print-directory open-hook; else ${BIN}/open; fi
-	@echo
-	@echo "Login   : $$(${BIN}/dotenv -f ${ENV_FILE} get MINIO_ROOT_USER)"
-	@echo "Password: $$(${BIN}/dotenv -f ${ENV_FILE} get MINIO_ROOT_PASSWORD)"
-	@echo
-
-open-openmaxio:
 	@export DOCKER_CONTEXT=${DOCKER_CONTEXT}; export ENV_FILE=${ENV_FILE}; export CONTEXT_INSTANCE=${CONTEXT_INSTANCE}; if grep "^open-hook:" "${PROJECT_MAKEFILE}" >/dev/null 2>&1; then echo ok ; make -e --no-print-directory open-hook; else ${BIN}/open / "$$(${BIN}/dotenv -f ${ENV_FILE} get MINIO_OPENMAXIO_TRAEFIK_HOST)" https; fi
 	@echo
 	@echo "Login   : $$(${BIN}/dotenv -f ${ENV_FILE} get MINIO_ROOT_USER)"

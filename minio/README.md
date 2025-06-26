@@ -1,19 +1,21 @@
 # Minio
 
-[Minio](https://github.com/minio/minio) is an object storage server, compatible
-with AWS S3 protocol. 
+[Minio](https://github.com/minio/minio) is an object storage server,
+compatible with AWS S3 protocol.
 
-This configuration is for a *single* server backed by a *single* docker volume.
-So, **this is not a production-ready S3 service**, but only intended for
-development or other light/unimportant storage duties.
+This configuration is for a *single* server backed by a *single*
+docker volume. So, **this is not a production-ready S3 service**, but
+only intended for development or other light/unimportant storage
+duties.
 
-There are 3 ways you can manage your MinIO server:
- * MinIO has its own web-based console offering limited functionality.
+There are 2 ways you can manage your MinIO server:
  * OpenMaxIO is a web-based console that connects to MinIO and offers
   full adminsitrative functionality (you can choose not to install the
   OpenMaxIO console).
  * MinIO's `mc` command line client is a CLI tool offering full
   administrative functionality.
+ * (MinIO also has its own web-based console, but it only offers
+  limited functionality so it will not be installed).
 
 ## Config
 
@@ -23,8 +25,8 @@ make config
 
 ### Authentication and Authorization
 
-See [AUTH.md](../AUTH.md) for information on adding external authentication on
-top of your app.
+See [AUTH.md](../AUTH.md) for information on adding external
+authentication on top of your app.
 
 ### Step-CA certificate
 
@@ -44,8 +46,8 @@ MINIO_STEP_CA_FINGERPRINT=xxxxxxxxxxx
 This will add the Step-CA certificate to the trust store of the
 utility `mc` container, allowing the `mc` client to trust the
 certifcate and function properly. This is required for OpenMaxIO to be
-installed, as it uses the `mc` client to create a user, and for
-`make bucket` to work.
+installed, as it uses the `mc` client to create a user, and for `make
+bucket` to work.
 
 ### Limiting traffic
 
@@ -56,7 +58,7 @@ filter](https://doc.traefik.io/traefik/middlewares/tcp/ipallowlist/):
  * `S3_SOURCERANGE` - This is the IP address filter for
    `MINIO_TRAEFIK_HOST`
  * `CONSOLE_SOURCERANGE` - This is the IP address filter for
-   `MINIO_CONSOLE_TRAEFIK_HOST` and `MINIO_OPENMAXIO_TRAEFIK_HOST`
+   `MINIO_OPENMAXIO_TRAEFIK_HOST`
 
 ## Install
 
@@ -70,13 +72,12 @@ make install
 ### OpenMaxIO Console Credentials
 
 The OpenMaxIO team recommends not using MinIO's root user to connect
-the OpenMaxIO console to the MinIO server. If you elect to install
-OpenMaxIO during `make config`, you will be asked for a user name
-(asccess key) and secret key (password) to use: this is for OpenMaxIO
-to use internally. You will be able to create additional access keys
-(users) in the console or via the `mc` client if you want to log into
-the MinIO or OpenMaxIO consoles as different users with possibly
-different priveleges.
+the OpenMaxIO console to the MinIO server. You will be asked during
+`make config` for a user name (asccess key) and secret key (password)
+to use: this is for OpenMaxIO to use internally. You will be able to
+create additional access keys (users) in the console or via the `mc`
+client if you want to log into the OpenMaxIO console as different
+users with possibly different priveleges.
 
 After you run `make install` and the MinIO server is running, run the
 following command to create the access key, secret key, group, and
@@ -89,16 +90,10 @@ make config-openmaxio
 
 ## Run
 
-To launch the MinIO console in a web browser, run:
-
-```
-make open
-```
-
 To launch the OpenMaxIO console in a web browser, run:
 
 ```
-make open-openmaxio
+make open
 ```
 
 ## Create a bucket
@@ -118,8 +113,8 @@ make bucket
 ```
 
 You don't have to use this script, you can instead create everything
-from the MinIO or OpenMaxIO GUI console, following the instructions in
-the next section.
+from the OpenMaxIO GUI console, following the instructions in the next
+section.
 
 ## Using Minio or OpenMaxIO console to create bucket and credentials
 
@@ -128,24 +123,24 @@ with your MinIO instance. By default, all access is prevented by the
 following configs in your `.env_{DOCKER_CONTEXT}_{INSTANCE}` file:
 
 ```
-## The MinIO and OpenMaxIO consoles are disabled if this is set to 0.0.0.0/32
+## The OpenMaxIO console is disabled if this is set to 0.0.0.0/32
 ## Change this to 0.0.0.0/0 to allow all ip addresses to access the console page:
 CONSOLE_SOURCERANGE="0.0.0.0/32"
 ```
 
-Log into the console (e.g., `https:://console.s3.example.com` or
-`https://openmaxio.s3.example.com`) using the root user and the
-password you set in `.env_${DOCKER_CONTEXT}_{INSTANCE}`.
+Log into the console (e.g., `https://openmaxio.s3.example.com`) using
+the root user and the password you set in
+`.env_${DOCKER_CONTEXT}_{INSTANCE}`.
 
 Create a bucket:
 
- * Go to the `Buckets` page, click `Create Bucket`, choose a name for the bucket
-   (eg. `videos`), click `Create Bucket`.
+ * Go to the `Buckets` page, click `Create Bucket`, choose a name for
+   the bucket (eg. `videos`), click `Create Bucket`.
 
 Create an IAM Policy for the group to access the bucket:
 
- * Go to `IAM Policies`, click `Create Policy`, choose a name for the policy
-   (eg. `videos`), enter the following policy:
+ * Go to `IAM Policies`, click `Create Policy`, choose a name for the
+   policy (eg. `videos`), enter the following policy:
 
 
 ```
@@ -170,14 +165,14 @@ Create an IAM Policy for the group to access the bucket:
 }
 ```
 
- * Edit the policy text and find the two references to `videos` and change these
-   to the chosen name of your bucket.
+ * Edit the policy text and find the two references to `videos` and
+   change these to the chosen name of your bucket.
  * Click `Save`
 
 Create a group and assign the policy:
 
- * Go to the `Groups` page, click `Create Group`, choose a name for the group
-   (eg. `videos`), click `Save`.
+ * Go to the `Groups` page, click `Create Group`, choose a name for
+   the group (eg. `videos`), click `Save`.
  * Click on the new group name in the list of groups.
  * Go to the `Policies` tab.
  * Click `Set Policies`.
@@ -187,17 +182,21 @@ Create a group and assign the policy:
 Create a user, credentials, and assign to the group:
 
  * Go to the `Users` page, click `Create User`.
- * Make sure this form is blank before proceeding. (Your web browser may
-   inadvertantly fill this form with the root password if you saved it in your
-   browser password manager.)
- * Enter a unique Access key (ie. username; the easiest is to re-use the group name, eg. `videos`).
- * Enter a secure randomized Secret Key. (eg. use the output of `openssl rand -base64 45`)
+ * Make sure this form is blank before proceeding. (Your web browser
+   may inadvertantly fill this form with the root password if you
+   saved it in your browser password manager.)
+ * Enter a unique Access key (ie. username; the easiest is to re-use
+   the group name, eg. `videos`).
+ * Enter a secure randomized Secret Key. (eg. use the output of
+   `openssl rand -base64 45`)
  * Click on the `Groups` sub-tab, and add the group. (eg. `videos`)
- * *Do not* assign any policy directly to the user (it will inherit from the group instead).
+ * *Do not* assign any policy directly to the user (it will inherit
+   from the group instead).
  * Click `Save`
 
 ## Check out the s3-proxy
 
-[s3-proxy](../s3-proxy) is another service you can deploy that is an HTTP proxy
-for s3, so that regular web clients can access your S3 buckets.
+[s3-proxy](../s3-proxy) is another service you can deploy that is an
+HTTP proxy for s3, so that regular web clients can access your S3
+buckets.
 
