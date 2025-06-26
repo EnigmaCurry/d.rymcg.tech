@@ -22,7 +22,9 @@ config-hook:
 		else \
 			${BIN}/reconfigure ${ENV_FILE} IMMICH_USE_EXTERNAL_VOLUME=false; \
 		fi
-	@echo 
+	@echo
+	@${BIN}/reconfigure_choose ${ENV_FILE} IMMICH_DB_STORAGE_TYPE "Select \"HDD\" or \"SSD\", corresponding to the type of drive your database volume is installed on" "HDD" "SSD" 
+	@echo
 
 .PHONY: override-hook
 override-hook:
@@ -36,7 +38,7 @@ override-hook:
 ####                         # (this hardcodes the string into docker-compose.override.yaml)
 ####   name=@VARIABLE_NAME   # sets the template 'name' field to the literal string '${VARIABLE_NAME}'
 ####                         # (used for regular docker-compose expansion of env vars by name.)
-	@${BIN}/docker_compose_override ${ENV_FILE} project=:immich instance=@IMMICH_INSTANCE traefik_host=@IMMICH_TRAEFIK_HOST http_auth=IMMICH_HTTP_AUTH http_auth_var=@IMMICH_HTTP_AUTH ip_sourcerange=@IMMICH_IP_SOURCERANGE oauth2=IMMICH_OAUTH2 authorized_group=IMMICH_OAUTH2_AUTHORIZED_GROUP enable_mtls_auth=IMMICH_MTLS_AUTH mtls_authorized_certs=IMMICH_MTLS_AUTHORIZED_CERTS ml_hwaccel_type=IMMICH_ML_HWACCEL_TYPE use_external_volume=IMMICH_USE_EXTERNAL_VOLUME upload_location=IMMICH_EXTERNAL_VOLUME transcode_hwaccel_type=IMMICH_TRANSCODE_HWACCEL_TYPE
+	@${BIN}/docker_compose_override ${ENV_FILE} project=:immich instance=@IMMICH_INSTANCE traefik_host=@IMMICH_TRAEFIK_HOST http_auth=IMMICH_HTTP_AUTH http_auth_var=@IMMICH_HTTP_AUTH ip_sourcerange=@IMMICH_IP_SOURCERANGE oauth2=IMMICH_OAUTH2 authorized_group=IMMICH_OAUTH2_AUTHORIZED_GROUP enable_mtls_auth=IMMICH_MTLS_AUTH mtls_authorized_certs=IMMICH_MTLS_AUTHORIZED_CERTS ml_hwaccel_type=IMMICH_ML_HWACCEL_TYPE use_external_volume=IMMICH_USE_EXTERNAL_VOLUME upload_location=IMMICH_EXTERNAL_VOLUME transcode_hwaccel_type=IMMICH_TRANSCODE_HWACCEL_TYPE db_storage_type=IMMICH_DB_STORAGE_TYPE
 
 .PHONY: shell
 shell:
