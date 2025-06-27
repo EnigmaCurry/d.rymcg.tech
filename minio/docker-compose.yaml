@@ -28,17 +28,14 @@ services:
     labels:
       - "backup-volume.stop-during-backup=true"
 
-  openmaxio:
-    build:
-      context: ./openmaxio
-      args:
-        OPENMAXIO_VERSION: ${MINIO_OPENMAXIO_VERSION}
+  console:
+    image: ${MINIO_CONSOLE_IMAGE}
     environment:
-      - CONSOLE_PBKDF_PASSPHRASE=${MINIO_OPENMAXIO_PASSPHRASE}
-      - CONSOLE_PBKDF_SALT=${MINIO_OPENMAXIO_SALT}
+      - CONSOLE_PBKDF_PASSPHRASE=${MINIO_CONSOLE_PASSPHRASE}
+      - CONSOLE_PBKDF_SALT=${MINIO_CONSOLE_SALT}
       - CONSOLE_MINIO_SERVER=https://${MINIO_TRAEFIK_HOST}
-      - CONSOLE_MINIO_ACCESS_KEY=${MINIO_OPENMAXIO_ACCESS_KEY}
-      - CONSOLE_MINIO_SECRET_KEY=${MINIO_OPENMAXIO_SECRET_KEY}
+      - CONSOLE_MINIO_ACCESS_KEY=${MINIO_CONSOLE_ACCESS_KEY}
+      - CONSOLE_MINIO_SECRET_KEY=${MINIO_CONSOLE_SECRET_KEY}
       - CONSOLE_DEBUG_LOGLEVEL=0
     restart: unless-stopped
     labels: []

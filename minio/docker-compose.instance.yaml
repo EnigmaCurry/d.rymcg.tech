@@ -20,8 +20,8 @@
 #@ public_middlewares = []
 
 #! ### Custom project vars
-#@ openmaxio_host = data.values.openmaxio_host
-#@ minio_openmaxio_middlewares = []
+#@ console_host = data.values.console_host
+#@ minio_console_middlewares = []
 #@ console_ip_sourcerange = data.values.console_ip_sourcerange
 
 #@yaml/text-templated-strings
@@ -67,43 +67,43 @@ services:
       #! Apply all middlewares (do this at the end!)
       - "traefik.http.routers.(@= router_public @).middlewares=(@= ','.join(public_middlewares) @)"
 
-  openmaxio:
-    #@ service = "openmaxio"
+  console:
+    #@ service = "console"
     labels:
       - "backup-volume.stop-during-backup=true"
       #! Services must opt-in to be proxied by Traefik:
       - "traefik.enable=true"
 
-      #@ router_openmaxio = "{}-openmaxio-{}-{}".format(project,instance,service)
+      #@ router_console = "{}-console-{}-{}".format(project,instance,service)
 
       #! The host matching router rules:
-      - "traefik.http.routers.(@= router_openmaxio @).rule=Host(`(@= openmaxio_host @)`)"
-      - "traefik.http.routers.(@= router_openmaxio @).entrypoints=websecure"
+      - "traefik.http.routers.(@= router_console @).rule=Host(`(@= console_host @)`)"
+      - "traefik.http.routers.(@= router_console @).entrypoints=websecure"
 
-      - "traefik.http.routers.(@= router_openmaxio @).service=(@= router_openmaxio @)"
-      - "traefik.http.services.(@= router_openmaxio @).loadbalancer.server.port=9090"
+      - "traefik.http.routers.(@= router_console @).service=(@= router_console @)"
+      - "traefik.http.services.(@= router_console @).loadbalancer.server.port=9090"
 
-      #@ minio_openmaxio_middlewares.append("{}-ipallowlist".format(router_openmaxio))
-      - "traefik.http.middlewares.(@= router_openmaxio @)-ipallowlist.ipallowlist.sourcerange=(@= console_ip_sourcerange @)"
+      #@ minio_console_middlewares.append("{}-ipallowlist".format(router_console))
+      - "traefik.http.middlewares.(@= router_console @)-ipallowlist.ipallowlist.sourcerange=(@= console_ip_sourcerange @)"
       #@ if enable_http_auth:
-      #@ minio_openmaxio_middlewares.append("{}-basicauth".format(router_openmaxio))
-      - "traefik.http.middlewares.(@= router_openmaxio @)-basicauth.basicauth.users=(@= http_auth @)"
-      - "traefik.http.middlewares.(@= router_openmaxio @)-basicauth.basicauth.headerField=X-Forwarded-User"
+      #@ minio_console_middlewares.append("{}-basicauth".format(router_console))
+      - "traefik.http.middlewares.(@= router_console @)-basicauth.basicauth.users=(@= http_auth @)"
+      - "traefik.http.middlewares.(@= router_console @)-basicauth.basicauth.headerField=X-Forwarded-User"
       #@ end
 
       #@ if enable_oauth2:
-      #@ minio_openmaxio_middlewares.append("traefik-forward-auth@docker")
-      #@ minio_openmaxio_middlewares.append("header-authorization-group-{}@file".format(authorized_group))
+      #@ minio_console_middlewares.append("traefik-forward-auth@docker")
+      #@ minio_console_middlewares.append("header-authorization-group-{}@file".format(authorized_group))
       #@ end
 
       #@ if enable_mtls_auth:
-      - "traefik.http.routers.(@= router_openmaxio @).tls.options=step_ca_mTLS@file"
+      - "traefik.http.routers.(@= router_console @).tls.options=step_ca_mTLS@file"
         #@ if len(mtls_authorized_certs):
-      - "traefik.http.middlewares.mtlsauth-(@= router_openmaxio @).plugin.certauthz.domains=(@= mtls_authorized_certs @)"
-        #@ minio_openmaxio_middlewares.append("mtlsauth-{}".format(router_openmaxio))
+      - "traefik.http.middlewares.mtlsauth-(@= router_console @).plugin.certauthz.domains=(@= mtls_authorized_certs @)"
+        #@ minio_console_middlewares.append("mtlsauth-{}".format(router_console))
         #@ end
-        #@ minio_openmaxio_middlewares.append("mtls-header@file")
+        #@ minio_console_middlewares.append("mtls-header@file")
       #@ end
 
       #! Apply all middlewares (do this at the end!)
-      - "traefik.http.routers.(@= router_openmaxio @).middlewares=(@= ','.join(minio_openmaxio_middlewares) @)"
+      - "traefik.http.routers.(@= router_console @).middlewares=(@= ','.join(minio_console_middlewares) @)"

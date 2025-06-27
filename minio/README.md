@@ -10,8 +10,7 @@ duties.
 
 There are 2 ways you can manage your MinIO server:
  * OpenMaxIO is a web-based console that connects to MinIO and offers
-  full adminsitrative functionality (you can choose not to install the
-  OpenMaxIO console).
+  full adminsitrative functionality.
  * MinIO's `mc` command line client is a CLI tool offering full
   administrative functionality.
  * (MinIO also has its own web-based console, but it only offers
@@ -45,20 +44,20 @@ MINIO_STEP_CA_FINGERPRINT=xxxxxxxxxxx
 
 This will add the Step-CA certificate to the trust store of the
 utility `mc` container, allowing the `mc` client to trust the
-certifcate and function properly. This is required for OpenMaxIO to be
-installed, as it uses the `mc` client to create a user, and for `make
-bucket` to work.
+certifcate and function properly. This is required for the console to
+be installed, as it uses the `mc` client to create a user, and for
+`make bucket` to work.
 
 ### Limiting traffic
 
 You can limit traffic based on source IP address for MinIO and/or the
-OpenMaxIO console, by expressing a [CIDR ip range
+console, by expressing a [CIDR ip range
 filter](https://doc.traefik.io/traefik/middlewares/tcp/ipallowlist/):
 
  * `S3_SOURCERANGE` - This is the IP address filter for
    `MINIO_TRAEFIK_HOST`
  * `CONSOLE_SOURCERANGE` - This is the IP address filter for
-   `MINIO_OPENMAXIO_TRAEFIK_HOST`
+   `MINIO_CONSOLE_TRAEFIK_HOST`
 
 ## Install
 
@@ -69,28 +68,20 @@ start the service:
 make install
 ```
 
-### OpenMaxIO Console Credentials
-
-The OpenMaxIO team recommends not using MinIO's root user to connect
-the OpenMaxIO console to the MinIO server. You will be asked during
-`make config` for a user name (asccess key) and secret key (password)
-to use: this is for OpenMaxIO to use internally. You will be able to
-create additional access keys (users) in the console or via the `mc`
-client if you want to log into the OpenMaxIO console as different
-users with possibly different priveleges.
+### Console Credentials
 
 After you run `make install` and the MinIO server is running, run the
 following command to create the access key, secret key, group, and
-policy on the MinIO server that OpenMaxIO will use internally to
+policy on the MinIO server that the console will use internally to
 connect to MinIO:
 
 ```
-make config-openmaxio
+make config-console
 ```
 
 ## Run
 
-To launch the OpenMaxIO console in a web browser, run:
+To launch the console in a web browser, run:
 
 ```
 make open
@@ -113,22 +104,21 @@ make bucket
 ```
 
 You don't have to use this script, you can instead create everything
-from the OpenMaxIO GUI console, following the instructions in the next
-section.
+from the GUI console, following the instructions in the next section.
 
-## Using Minio or OpenMaxIO console to create bucket and credentials
+## Using Minio or the console to create bucket and credentials
 
 The console is a web application that lets you graphically interact
 with your MinIO instance. By default, all access is prevented by the
 following configs in your `.env_{DOCKER_CONTEXT}_{INSTANCE}` file:
 
 ```
-## The OpenMaxIO console is disabled if this is set to 0.0.0.0/32
+## The console is disabled if this is set to 0.0.0.0/32
 ## Change this to 0.0.0.0/0 to allow all ip addresses to access the console page:
 CONSOLE_SOURCERANGE="0.0.0.0/32"
 ```
 
-Log into the console (e.g., `https://openmaxio.s3.example.com`) using
+Log into the console (e.g., `https://console.s3.example.com`) using
 the root user and the password you set in
 `.env_${DOCKER_CONTEXT}_{INSTANCE}`.
 
