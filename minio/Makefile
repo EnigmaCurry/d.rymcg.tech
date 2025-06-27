@@ -12,9 +12,8 @@ config-hook:
 	@echo
 	@${BIN}/reconfigure_ask ${ENV_FILE} MINIO_OPENMAXIO_TRAEFIK_HOST "Ener the OpenMaxIO console domain name" s3-openmaxio.${ROOT_DOMAIN};
 	@openmaxio_version="$$(${BIN}/dotenv -f ${ENV_FILE} get MINIO_OPENMAXIO_VERSION)";
-	@${BIN}/reconfigure_ask ${ENV_FILE} MINIO_OPENMAXIO_ACCESS_KEY "Enter the *access* key on the MinIO server that OpenMaxIO Console should use" openmaxio-console;
-	@${BIN}/reconfigure_ask ${ENV_FILE} MINIO_OPENMAXIO_SECRET_KEY "Enter the *secret* key on the MinIO server for that access key";
-	@echo;
+	@${BIN}/reconfigure ${ENV_FILE} MINIO_OPENMAXIO_ACCESS_KEY=openmaxio-console;
+	@${BIN}/reconfigure_password ${ENV_FILE} MINIO_OPENMAXIO_SECRET_KEY 45;
 	@${BIN}/reconfigure_password ${ENV_FILE} MINIO_OPENMAXIO_PASSPHRASE 45;
 	@${BIN}/reconfigure_password ${ENV_FILE} MINIO_OPENMAXIO_SALT 45;
 	@echo
