@@ -52,7 +52,7 @@ bucket` to work.
 ### Limiting traffic
 
 You can limit traffic based on source IP address for MinIO and/or the
-MinIO and OpenMaxIO consoles, by expressing a [CIDR ip range
+OpenMaxIO console, by expressing a [CIDR ip range
 filter](https://doc.traefik.io/traefik/middlewares/tcp/ipallowlist/):
 
  * `S3_SOURCERANGE` - This is the IP address filter for

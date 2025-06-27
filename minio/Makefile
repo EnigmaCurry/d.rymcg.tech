@@ -11,7 +11,15 @@ config-hook:
 	@MINIO_ROOT_PASSWORD=$$(${BIN}/dotenv -f ${ENV_FILE} get MINIO_ROOT_PASSWORD); ${BIN}/reconfigure ${ENV_FILE} MINIO_ROOT_PASSWORD=$${MINIO_ROOT_PASSWORD:-$(shell openssl rand -hex 45)}
 	@echo
 	@${BIN}/reconfigure_ask ${ENV_FILE} MINIO_OPENMAXIO_TRAEFIK_HOST "Ener the OpenMaxIO console domain name" s3-openmaxio.${ROOT_DOMAIN};
-	@openmaxio_version="$$(${BIN}/dotenv -f ${ENV_FILE} get MINIO_OPENMAXIO_VERSION)";
+	@echo
+	@echo "You can limit traffic based on source IP address for MinIO's S3 API and/or the OpenMaxIO admin console, by expressing an IP range filter."
+	@echo "  Example: 0.0.0.0/0 allows all IPs."
+	@echo "  Example: 0.0.0.0/32 disables all access."
+	@echo "  Example: 192.168.1.1/32 limits access to the single IP address 192.168.1.1."
+	@echo "Use CIDR notation. You can specify multiple, separated by commas, enclose entire value in double-quotes."
+	@echo "  Example: CONSOLE_SOURCERANGE=\"192.168.1.0/24,10.15.0.2/32\""
+	@${BIN}/reconfigure_ask ${ENV_FILE} S3_SOURCERANGE "Enter the IP source range for the S3 API"
+	@${BIN}/reconfigure_ask ${ENV_FILE} CONSOLE_SOURCERANGE "Enter the IP source range for the OpenMaxIO admin console"
 	@${BIN}/reconfigure ${ENV_FILE} MINIO_OPENMAXIO_ACCESS_KEY=openmaxio-console;
 	@${BIN}/reconfigure_password ${ENV_FILE} MINIO_OPENMAXIO_SECRET_KEY 45;
 	@${BIN}/reconfigure_password ${ENV_FILE} MINIO_OPENMAXIO_PASSPHRASE 45;
@@ -31,7 +39,7 @@ override-hook:
 ####                         # (this hardcodes the string into docker-compose.override.yaml)
 ####   name=@VARIABLE_NAME   # sets the template 'name' field to the literal string '${VARIABLE_NAME}'
 ####                         # (used for regular docker-compose expansion of env vars by name.)
-	@${BIN}/docker_compose_override ${ENV_FILE} project=:minio instance=@MINIO_INSTANCE traefik_host=@MINIO_TRAEFIK_HOST http_auth=MINIO_HTTP_AUTH http_auth_var=@MINIO_HTTP_AUTH ip_sourcerange=@S3_SOURCERANGE oauth2=MINIO_OAUTH2 authorized_group=MINIO_OAUTH2_AUTHORIZED_GROUP enable_mtls_auth=MINIO_MTLS_AUTH mtls_authorized_certs=MINIO_MTLS_AUTHORIZED_CERTS openmaxio_host=@MINIO_OPENMAXIO_TRAEFIK_HOST console_ip_sourcerange=@CONSOLE_SOURCERANGE
+	@${BIN}/docker_compose_override ${ENV_FILE} project=:minio instance=@MINIO_INSTANCE traefik_host=@MINIO_TRAEFIK_HOST http_auth=MINIO_HTTP_AUTH http_auth_var=@MINIO_HTTP_AUTH ip_sourcerange=@S3_SOURCERANGE oauth2=MINIO_OAUTH2 authorized_group=MINIO_OAUTH2_AUTHORIZED_GROUP enable_mtls_auth=MINIO_MTLS_AUTH mtls_authorized_certs=MINIO_MTLS_AUTHORIZED_CERTS openmaxio_host=@	MINIO_OPENMAXIO_TRAEFIK_HOST console_ip_sourcerange=@CONSOLE_SOURCERANGE
 
 .PHONY: shell
 shell:
