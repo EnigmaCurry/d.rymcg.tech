@@ -10,9 +10,10 @@ services:
     environment:
       - MINIO_ROOT_USER
       - MINIO_ROOT_PASSWORD
+      - MINIO_BROWSER=off
     volumes:
       - data:/data
-    command: server /data --console-address ":9001"
+    command: server /data   
     labels: []
 
   mc:
@@ -26,3 +27,15 @@ services:
         STEP_CA_FINGERPRINT: ${MINIO_STEP_CA_FINGERPRINT}
     labels:
       - "backup-volume.stop-during-backup=true"
+
+  console:
+    image: ${MINIO_CONSOLE_IMAGE}
+    environment:
+      - CONSOLE_PBKDF_PASSPHRASE=${MINIO_CONSOLE_PASSPHRASE}
+      - CONSOLE_PBKDF_SALT=${MINIO_CONSOLE_SALT}
+      - CONSOLE_MINIO_SERVER=https://${MINIO_TRAEFIK_HOST}
+      - CONSOLE_MINIO_ACCESS_KEY=${MINIO_CONSOLE_ACCESS_KEY}
+      - CONSOLE_MINIO_SECRET_KEY=${MINIO_CONSOLE_SECRET_KEY}
+      - CONSOLE_DEBUG_LOGLEVEL=0
+    restart: unless-stopped
+    labels: []
