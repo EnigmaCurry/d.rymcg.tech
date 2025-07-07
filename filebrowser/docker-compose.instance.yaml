@@ -18,42 +18,12 @@
 #@ enable_mtls_auth = data.values.enable_mtls_auth == "true"
 #@ mtls_authorized_certs = data.values.mtls_authorized_certs
 #@ enabled_middlewares = []
-
-#! ### Custom project vars
-#@ object_storage = data.values.primary_storage == "S3 Bucket"
-#@ objectstore_s3_host = data.values.objectstore_s3_host
-#@ objectstore_s3_bucket = data.values.objectstore_s3_bucket
-#@ objectstore_s3_key = data.values.objectstore_s3_key
-#@ objectstore_s3_secret = data.values.objectstore_s3_secret
-#@ additional_volume = data.values.additional_volume
-
-#@yaml/text-templated-strings
-#@ if additional_volume != "":
-volumes:
-  (@= additional_volume @):
-#@ end
+#@ external_volume = data.values.external_volume
 
 #@yaml/text-templated-strings
 services:
-  app:
-    #@ service = "app"
-    environment:
-      #@ if object_storage:
-      - OBJECTSTORE_S3_HOST=(@= objectstore_s3_host @)
-      - OBJECTSTORE_S3_BUCKET=(@= objectstore_s3_bucket @)
-      - OBJECTSTORE_S3_KEY=(@= objectstore_s3_key @)
-      - OBJECTSTORE_S3_SECRET=(@= objectstore_s3_secret @)
-      - OBJECTSTORE_S3_SSL=true
-      - OBJECTSTORE_S3_PORT=443
-      - OBJECTSTORE_S3_USEPATH_STYLE=true
-      - OBJECTSTORE_S3_AUTOCREATE=true
-      #@ end
-      
-    volumes:
-      #@ if additional_volume != "":
-      - (@= additional_volume @):/mnt/(@= additional_volume @)/
-      #@ end
-
+  filebrowser:
+    #@ service = "filebrowser"
     labels:
       - "backup-volume.stop-during-backup=true"
       #! Services must opt-in to be proxied by Traefik:
@@ -87,11 +57,17 @@ services:
         #@ end
         #@ enabled_middlewares.append("mtls-header@file")
       #@ end
-
-      #@ enabled_middlewares.append("{}-hsts-header".format(router))
-      - "traefik.http.middlewares.(@= router @)-hsts-header.headers.stsSeconds=15552000"
-      - "traefik.http.middlewares.(@= router @)-hsts-header.headers.stsIncludeSubdomains=true"
-      - "traefik.http.middlewares.(@= router @)-hsts-header.headers.stsPreload=true"
-
+      
+      #! Override the default port that the app binds to:
+      - "traefik.http.services.(@= router @).loadbalancer.server.port=8000"
+      
       #! Apply all middlewares (do this at the end!)
       - "traefik.http.routers.(@= router @).middlewares=(@= ','.join(enabled_middlewares) @)"
+
+#@yaml/text-templated-strings
+volumes:
+  srv:
+  #@ if len(external_volume):
+    external: true
+    name: (@= external_volume @)
+  #@ end

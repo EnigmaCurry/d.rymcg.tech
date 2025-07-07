@@ -44,6 +44,7 @@ configuration derived from your customized `.env` file.
 - [Creating multiple instances of a service](#creating-multiple-instances-of-a-service)
 - [Backup .env files](#backup-env-files-optional)
 - [Integrating external projects](#integrating-external-projects)
+- [Rclone S3 volumes (cloud storage)](#rclone-s3-volumes-cloud-storage)
 - [Questions and discussion](#questions-and-discussion)
 
 ## All configuration comes from the environment
@@ -548,7 +549,7 @@ Install these other services at your leisure/preference:
 * [DOH-server](doh-server#readme) - a DNS-over-HTTPs proxy resolver
 * [DrawIO](drawio#readme) - a diagram / whiteboard editor tool
 * [Ejabberd](ejabberd#readme) - an XMPP (Jabber) server
-* [Filestash](filestash#readme) - a web based file manager with customizable backend storage providers
+* [Filebrowser](filebrowser#readme) - a web based file manager
 * [FreshRSS](freshrss#readme) - an RSS reader / proxy
 * [Glances](glances#readme) - a cross-platform system monitoring tool
 * [Gradio](gradio#readme) - a configurable web interface for machine learning 
@@ -1148,6 +1149,11 @@ make install
 make open
 # etc
 ```
+
+## Rclone S3 volumes (cloud storage)
+
+See [RCLONE.md](RCLONE.md) to configure remote Docker volumes backed
+by S3 cloud storage.
 
 ## Questions and discussion
 

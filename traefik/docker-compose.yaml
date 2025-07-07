@@ -129,6 +129,7 @@ services:
     build:
       context: .
       args:
+        ENV_FILE: .env_${DOCKER_CONTEXT}_default
         TRAEFIK_IMAGE: ${TRAEFIK_IMAGE}
         BLOCKPATH_MODULE: ${TRAEFIK_BLOCKPATH_MODULE}
         BLOCKPATH_GIT_BRANCH: master
@@ -248,6 +249,7 @@ services:
     profiles:
       - error-pages
     image: ${TRAEFIK_ERROR_PAGES_IMAGE}
+    restart: unless-stopped
     environment:
       TEMPLATE_NAME: ${TRAEFIK_ERROR_PAGES_TEMPLATE}
     labels:
