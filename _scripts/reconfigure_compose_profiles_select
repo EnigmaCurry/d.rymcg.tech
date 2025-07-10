@@ -1,7 +1,8 @@
 #!/bin/bash
 
-## reconfigure_compose_profiles_select ${ENV_FILE} profile="description" ...
-## wizard select some profiles and then call reconfigure_compose_profiles
+## reconfigure_compose_profiles_select ${ENV_FILE} mode profile="description" ...
+## wizard select some profiles (select) or choose a profile (choose)
+## and then call reconfigure_compose_profiles
 
 BIN=$(dirname ${BASH_SOURCE})
 source ${BIN}/funcs.sh
@@ -11,6 +12,9 @@ ENV_FILE=${1}
 shift
 ## Make new .env if it doesn't exist:
 test -f ${ENV_FILE} || cp .env-dist ${ENV_FILE}
+
+MODE=${1:-select}
+shift
 
 readarray -t ALL_PROFILES < <(cat docker-compose.yaml | yaml_to_json | jq -r '.services[].profiles | values[]' | sort -u)
 
@@ -41,6 +45,12 @@ done
 
 SELECTED_DESCRIPTIONS=$(array_to_json "${SELECTED_DESCRIPTIONS[@]}")
 
-SELECTED_PROFILES=$(select_wizard -d "${SELECTED_DESCRIPTIONS}" "Choose the docker-compose profiles to enable:" "${DESCRIPTIONS[@]}" | cut -d ' ' -f 1)
+if [[ ${MODE} == "select" ]]; then
+    SELECTED_PROFILES=$(select_wizard -d "${SELECTED_DESCRIPTIONS}" "Choose the docker-compose profiles to enable:" "${DESCRIPTIONS[@]}" | cut -d ' ' -f 1)
+elif [[ ${MODE} == "choose" ]]; then
+    SELECTED_PROFILES=$(choose -d "${SELECTED_DESCRIPTIONS}" "Select a docker-compose profile to enable:" "${DESCRIPTIONS[@]}" | cut -d ' ' -f 1)
+else
+    fault "Invalid select_wizard mode: ${MODE} - \"choose\" or \"select\" are acceptable values."
+fi
 SELECTED_PROFILES=$(echo $SELECTED_PROFILES | sed 's/ /,/g')
 ${BIN}/reconfigure ${ENV_FILE} DOCKER_COMPOSE_PROFILES="${SELECTED_PROFILES}"
