@@ -48,7 +48,8 @@ SELECTED_DESCRIPTIONS=$(array_to_json "${SELECTED_DESCRIPTIONS[@]}")
 if [[ ${MODE} == "select" ]]; then
     SELECTED_PROFILES=$(select_wizard -d "${SELECTED_DESCRIPTIONS}" "Choose the docker-compose profiles to enable:" "${DESCRIPTIONS[@]}" | cut -d ' ' -f 1)
 elif [[ ${MODE} == "choose" ]]; then
-    SELECTED_PROFILES=$(choose -d "${SELECTED_DESCRIPTIONS}" "Select a docker-compose profile to enable:" "${DESCRIPTIONS[@]}" | cut -d ' ' -f 1)
+    DEFAULT="${CONFIGURED_PROFILES[0]}"
+    SELECTED_PROFILES=$(choose -d "${DESCRIPTIONS[${DEFAULT}]}" "Select a docker-compose profile to enable:" "${DESCRIPTIONS[@]}" | cut -d ' ' -f 1)
 else
     fault "Invalid select_wizard mode: ${MODE} - \"choose\" or \"select\" are acceptable values."
 fi
