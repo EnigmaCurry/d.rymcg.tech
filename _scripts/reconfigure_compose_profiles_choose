@@ -1,0 +1,47 @@
+#!/bin/bash
+
+## reconfigure_compose_profiles_select ${ENV_FILE} profile="description" ...
+## wizard select a profile and then call reconfigure_compose_profiles
+
+BIN=$(dirname ${BASH_SOURCE})
+source ${BIN}/funcs.sh
+set -eo pipefail
+
+ENV_FILE=${1}
+shift
+## Make new .env if it doesn't exist:
+test -f ${ENV_FILE} || cp .env-dist ${ENV_FILE}
+
+readarray -t ALL_PROFILES < <(cat docker-compose.yaml | yaml_to_json | jq -r '.services[].profiles | values[]' | sort -u)
+
+declare -A DESCRIPTIONS
+
+for arg in "$@"; do
+    parts=(${arg//=/ }); profile=${parts[0]}; description=${parts[@]:1};
+    if element_in_array "${profile}" "${ALL_PROFILES[@]}"; then
+        DESCRIPTIONS["${profile}"]="${profile} - ${description}"
+    else
+        fault "$(basename ${BASH_SOURCE}) specified a profile that does not exist: ${profile}"
+    fi
+done
+
+
+for profile in "${ALL_PROFILES[@]}"; do
+    if [[ -z "${DESCRIPTIONS[${profile}]}" ]]; then
+        DESCRIPTIONS["${profile}"]="${profile}"
+    fi
+done
+
+readarray -t CONFIGURED_PROFILES < <(${BIN}/dotenv -f ${ENV_FILE} get DOCKER_COMPOSE_PROFILES | sed 's/,/\n/g')
+
+SELECTED_DESCRIPTIONS=()
+for profile in "${CONFIGURED_PROFILES[@]}"; do
+    SELECTED_DESCRIPTIONS+=("${DESCRIPTIONS[${profile}]}")
+done
+
+SELECTED_DESCRIPTIONS=$(array_to_json "${SELECTED_DESCRIPTIONS[@]}")
+
+DEFAULT="${CONFIGURED_PROFILES[0]}"
+SELECTED_PROFILES=$(choose -d "${DESCRIPTIONS[${DEFAULT}]}" "Select a docker-compose profile to enable:" "${DESCRIPTIONS[@]}" | cut -d ' ' -f 1)
+SELECTED_PROFILES=$(echo $SELECTED_PROFILES | sed 's/ /,/g')
+${BIN}/reconfigure ${ENV_FILE} DOCKER_COMPOSE_PROFILES="${SELECTED_PROFILES}"
