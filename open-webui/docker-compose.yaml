@@ -1,0 +1,60 @@
+x-ollama-common: &ollama-common
+    restart: unless-stopped
+    volumes:
+      - ollama:/root/.ollama
+    labels:
+      - "backup-volume.stop-during-backup=true"
+
+services:
+  openwebui:
+    image: ${OPENWEBUI_IMAGE}
+    # cap_drop:
+    #   - ALL
+    # security_opt:
+    #   - no-new-privileges:true
+    # sysctls:
+    #   - net.ipv4.ip_unprivileged_port_start=1024
+    restart: unless-stopped
+    environment:
+      - OLLAMA_BASE_URL=http://ollama-${DOCKER_COMPOSE_PROFILES}:11434
+    volumes:
+      - openwebui:/app/backend/data
+      - ollama:/root/.ollama
+    labels: []
+
+  ollama-rocm:
+    profiles:
+      - rocm
+    <<: *ollama-common
+    build:
+      context: ollama-rocm
+    devices:
+      - /dev/kfd
+      - /dev/dri
+    security_opt:
+      - seccomp=unconfined
+    group_add:
+      - video
+      - render
+    environment:
+      # HSA_OVERRIDE_GFX_VERSION should probably be variablized
+      - HSA_OVERRIDE_GFX_VERSION=11.0.0
+
+  ollama-cuda:
+    profiles:
+      - cuda
+    <<: *ollama-common
+    image: ollama/ollama
+    restart: unless-stopped
+    gpus: all
+
+  ollama-cpu:
+    profiles:
+      - cpu
+    <<: *ollama-common
+    image: ollama/ollama
+
+volumes:
+  openwebui:
+  ollama:
+  

@@ -571,6 +571,7 @@ Install these other services at your leisure/preference:
 * [Nginx](nginx#readme) - a webserver configured with fast-cgi support for PHP scripts
 * [Node-RED](nodered#readme) - a graphical event pipeline editor
 * [Ntfy-sh](ntfy-sh#readme) - a simple HTTP-based pub-sub notification service
+* [Open WebUI](openwebui#readme) - a self-hosted AI platform designed to operate entirely offline
 * [Pairdrop](pairdrop#readme) - a webapp (PWA) to send files and messages peer to peer
 * [Peertube](peertube#readme) - a decentralized and federated video platform
 * [Photoprism](photoprism#readme) - a photo gallery and manager
