@@ -12,7 +12,7 @@ config-hook:
 	@${BIN}/reconfigure ${ENV_FILE} NGINX_INSTANCE=$${instance:-default}
 	@echo ""
 #### Choose which docker-compose profiles to enable:
-	@${BIN}/reconfigure_compose_profiles_select ${ENV_FILE} select nginx="Base Nginx config (don't unselect this, it is required)" php-fpm="PHP script support + Redis session store" postgres="PostgreSQL database"
+	@${BIN}/reconfigure_compose_profiles_select ${ENV_FILE} nginx="Base Nginx config (don't unselect this, it is required)" php-fpm="PHP script support + Redis session store" postgres="PostgreSQL database"
 	@echo ""
 #### Set the ngninx template depending on if php-fpm was enabled:
 	@${BIN}/dotenv -f ${ENV_FILE} get DOCKER_COMPOSE_PROFILES | sed 's/,/\n/g' | grep php-fpm >/dev/null && ${BIN}/reconfigure ${ENV_FILE} NGINX_TEMPLATE=php-fpm.template.conf || ${BIN}/reconfigure ${ENV_FILE} NGINX_TEMPLATE=default.template.conf

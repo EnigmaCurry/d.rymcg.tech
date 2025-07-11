@@ -1,7 +1,7 @@
 #!/bin/bash
 
 ## reconfigure_compose_profiles_select ${ENV_FILE} profile="description" ...
-## wizard select some profiles and then call reconfigure_compose_profiles
+## wizard select a profile and then call reconfigure_compose_profiles
 
 BIN=$(dirname ${BASH_SOURCE})
 source ${BIN}/funcs.sh
@@ -41,6 +41,7 @@ done
 
 SELECTED_DESCRIPTIONS=$(array_to_json "${SELECTED_DESCRIPTIONS[@]}")
 
-SELECTED_PROFILES=$(select_wizard -d "${SELECTED_DESCRIPTIONS}" "Choose the docker-compose profiles to enable:" "${DESCRIPTIONS[@]}" | cut -d ' ' -f 1)
+DEFAULT="${CONFIGURED_PROFILES[0]}"
+SELECTED_PROFILES=$(choose -d "${DESCRIPTIONS[${DEFAULT}]}" "Select a docker-compose profile to enable:" "${DESCRIPTIONS[@]}" | cut -d ' ' -f 1)
 SELECTED_PROFILES=$(echo $SELECTED_PROFILES | sed 's/ /,/g')
 ${BIN}/reconfigure ${ENV_FILE} DOCKER_COMPOSE_PROFILES="${SELECTED_PROFILES}"

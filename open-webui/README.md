@@ -14,7 +14,7 @@ make config
 
 This will ask you to enter the domain name to use.
 It automatically saves your responses into the configuration file
-`.env_{INSTANCE}`.
+`.env_{DOCKER_CONTEXT}_{INSTANCE}`.
 
 ### Authentication and Authorization
 
@@ -43,5 +43,4 @@ prefill the HTTP Basic Authentication password if you enabled it
 make destroy
 ```
 
-This completely removes the container (and would also delete all its
-volumes; but `whoami` hasn't got any data to store.)
+This completely removes the container and deletes all its volumes.

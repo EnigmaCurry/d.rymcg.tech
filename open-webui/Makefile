@@ -12,7 +12,10 @@ config-hook:
 	@${BIN}/reconfigure ${ENV_FILE} OPENWEBUI_INSTANCE=$${instance:-default}
 	@${BIN}/reconfigure_auth ${ENV_FILE} OPENWEBUI
 	@echo
-	@${BIN}/reconfigure_compose_profiles_select ${ENV_FILE} choose rocm="AMD GPU" cuda="Nvidia GPU" cpu="CPU only"
+	@echo "Enter the processing engine to use: cuda (for nvidia GPUs), rocm (for AMD GPUs), or cpu (to use only the CPU)."
+	@${BIN}/reconfigure_compose_profiles_choose ${ENV_FILE} rocm="AMD GPU" cuda="Nvidia GPU" cpu="CPU only"
+	@echo
+	@ALLOW_BLANK=1 ${BIN}/reconfigure_ask ${ENV_FILE} OPENWEBUI_MODELS_HOST_PATH "If you want to save models in a specific directory on the host, enter the path here, or leave blank to save models to the Ollama container's named Docker volume."
 	@echo
 
 .PHONY: override-hook
@@ -27,8 +30,8 @@ override-hook:
 ####                         # (this hardcodes the string into docker-compose.override.yaml)
 ####   name=@VARIABLE_NAME   # sets the template 'name' field to the literal string '${VARIABLE_NAME}'
 ####                         # (used for regular docker-compose expansion of env vars by name.)
-	@${BIN}/docker_compose_override ${ENV_FILE} project=:openwebui instance=@OPENWEBUI_INSTANCE traefik_host=@OPENWEBUI_TRAEFIK_HOST http_auth=OPENWEBUI_HTTP_AUTH http_auth_var=@OPENWEBUI_HTTP_AUTH ip_sourcerange=@OPENWEBUI_IP_SOURCERANGE oauth2=OPENWEBUI_OAUTH2 authorized_group=OPENWEBUI_OAUTH2_AUTHORIZED_GROUP enable_mtls_auth=OPENWEBUI_MTLS_AUTH mtls_authorized_certs=OPENWEBUI_MTLS_AUTHORIZED_CERTS
+	@${BIN}/docker_compose_override ${ENV_FILE} project=:openwebui instance=@OPENWEBUI_INSTANCE traefik_host=@OPENWEBUI_TRAEFIK_HOST http_auth=OPENWEBUI_HTTP_AUTH http_auth_var=@OPENWEBUI_HTTP_AUTH ip_sourcerange=@OPENWEBUI_IP_SOURCERANGE oauth2=OPENWEBUI_OAUTH2 authorized_group=OPENWEBUI_OAUTH2_AUTHORIZED_GROUP enable_mtls_auth=OPENWEBUI_MTLS_AUTH mtls_authorized_certs=OPENWEBUI_MTLS_AUTHORIZED_CERTS models_host_path=OPENWEBUI_MODELS_HOST_PATH compose_profile=DOCKER_COMPOSE_PROFILES
 
 .PHONY: shell # Enter container shell
 shell:
-	@make --no-print-directory docker-compose-shell SERVICE=openwebui
+	@container=$$(eval "${BIN}/script-wizard choose 'docker exec -it into which container?' 'openwebui' 'ollama-$$(${BIN}/dotenv -f ${ENV_FILE} get DOCKER_COMPOSE_PROFILES)' --default 'openwebui'") && make --no-print-directory docker-compose-shell SERVICE=$${container}
