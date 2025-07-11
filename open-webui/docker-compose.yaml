@@ -39,8 +39,6 @@ services:
     environment:
       # HSA_OVERRIDE_GFX_VERSION should probably be variablized
       - HSA_OVERRIDE_GFX_VERSION=11.0.0
-    volumes:
-      - /opt/rocm:/opt/rocm
 
   ollama-cuda:
     profiles:
