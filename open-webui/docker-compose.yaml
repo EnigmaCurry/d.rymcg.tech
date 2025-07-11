@@ -26,12 +26,21 @@ services:
     profiles:
       - rocm
     <<: *ollama-common
-    image: ollama/ollama:rocm
+    build:
+      context: ollama-rocm
     devices:
       - /dev/kfd
       - /dev/dri
     security_opt:
       - seccomp=unconfined
+    group_add:
+      - video
+      - render
+    environment:
+      # HSA_OVERRIDE_GFX_VERSION should probably be variablized
+      - HSA_OVERRIDE_GFX_VERSION=11.0.0
+    volumes:
+      - /opt/rocm:/opt/rocm
 
   ollama-cuda:
     profiles:
