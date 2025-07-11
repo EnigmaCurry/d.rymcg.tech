@@ -37,7 +37,8 @@ services:
       - video
       - render
     environment:
-      - HSA_OVERRIDE_GFX_VERSION=your_gfx_version
+      # HSA_OVERRIDE_GFX_VERSION should probably be variablized
+      - HSA_OVERRIDE_GFX_VERSION=11.0.0
     volumes:
       - /opt/rocm:/opt/rocm
 
