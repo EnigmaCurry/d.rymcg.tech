@@ -19,8 +19,30 @@
 #@ mtls_authorized_certs = data.values.mtls_authorized_certs
 #@ enabled_middlewares = []
 
+#! ### Project-specific vars:
+#@ models_host_path = data.values.models_host_path
+#@ compose_profile = data.values.compose_profile
+
 #@yaml/text-templated-strings
 services:
+  #@ if models_host_path != "":
+  #@ if compose_profile == "rocm":
+  ollama-rocm:
+    volumes:
+      - (@= models_host_path @):/root/.ollama/models
+  #@ end
+  #@ if compose_profile == "cuda":
+  ollama-cuda:
+    volumes:
+      - (@= models_host_path @):/root/.ollama/models
+  #@ end
+  #@ if compose_profile == "cpu":
+  ollama-cpu:
+    volumes:
+      - (@= models_host_path @):/root/.ollama/models
+  #@ end
+  #@ end
+
   openwebui:
     #@ service = "openwebui"
     labels:

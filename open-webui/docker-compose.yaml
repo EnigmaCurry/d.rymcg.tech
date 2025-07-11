@@ -26,12 +26,20 @@ services:
     profiles:
       - rocm
     <<: *ollama-common
-    image: ollama/ollama:rocm
+    build:
+      context: ollama-rocm
     devices:
       - /dev/kfd
       - /dev/dri
     security_opt:
       - seccomp=unconfined
+    group_add:
+      - video
+      - render
+    environment:
+      - HSA_OVERRIDE_GFX_VERSION=your_gfx_version
+    volumes:
+      - /opt/rocm:/opt/rocm
 
   ollama-cuda:
     profiles:
