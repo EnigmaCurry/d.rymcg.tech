@@ -23,19 +23,20 @@ config-hook:
 	@echo '- E.g., For Intel hwaccel (needs to be updated for your hardware)'
 	@echo '  FRIGATE_VIDEO_HARDWARE_DEVICE=/dev/dri/renderD129'
 	@echo
-	@ALLOW_BLANK=1 ${BIN}/reconfigure_ask ${ENV_FILE} FRIGATE_VIDEO_HARDWARE_DEVICE "Enter the path for hardware acceleration (leave blank to not use hardware acceleration)"
+	@ALLOW_BLANK=1 ${BIN}/reconfigure_ask ${ENV_FILE} FRIGATE_VIDEO_HARDWARE_DEVICE "For hardware acceleration, enter the path to the host hardware's device (\`/dev/XXX\`). Leave blank to not use hardware acceleration (also leave blank to use an AMD GPU, as its devices are mapped for you)."
 	@echo
 	@echo 'Enter the GPU type, or select "None" for no GPU.'
 	@echo 'Frigate supports many different GPUs, each requiring custom configuration in'
 	@echo "\`docker-compose.yaml\`, Frigate's \`config.conf\`, or both. See here for details:"
 	@echo 'https://docs.frigate.video/configuration/hardware_acceleration/'
-	@echo ''
+	@echo
 	@echo 'Currently, the d.rymcg.tech installation process only supports Nvidia. If your'
 	@echo "GPU only requires custom configuration in Frigate's \`config.conf\`, you can enter"
 	@echo '"None" here and then customize `config.conf` from within Frigate''s UI. Or feel'
 	@echo 'free to submit a feature request for us to add support for your GPU:'
 	@echo 'https://github.com/EnigmaCurry/d.rymcg.tech/issues'
-	@echo ''
+	@echo
+	@echo '# Possible values are "Nvidia", "AMD", or "None".'
 	@${BIN}/reconfigure_choose ${ENV_FILE} FRIGATE_GPU "Select the GPU type" "None" "Nvidia" "AMD"
 	@echo
 
