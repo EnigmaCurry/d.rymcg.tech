@@ -3,7 +3,7 @@ include ${ROOT_DIR}/_scripts/Makefile.projects
 include ${ROOT_DIR}/_scripts/Makefile.instance
 
 .PHONY: config-hook
-.ONESHELL:	
+.ONESHELL:
 config-hook:
 	@${BIN}/reconfigure_ask ${ENV_FILE} FRIGATE_TRAEFIK_HOST "Enter the frigate domain name" frigate${INSTANCE_URL_SUFFIX}.${ROOT_DOMAIN}
 	@${BIN}/reconfigure ${ENV_FILE} FRIGATE_INSTANCE=$${instance:-default}
@@ -36,7 +36,7 @@ config-hook:
 	@echo 'free to submit a feature request for us to add support for your GPU:'
 	@echo 'https://github.com/EnigmaCurry/d.rymcg.tech/issues'
 	@echo ''
-	@${BIN}/reconfigure_choose ${ENV_FILE} FRIGATE_GPU "Select the GPU type" "None" "Nvidia"
+	@${BIN}/reconfigure_choose ${ENV_FILE} FRIGATE_GPU "Select the GPU type" "None" "Nvidia" "AMD"
 	@echo
 
 .PHONY: override-hook

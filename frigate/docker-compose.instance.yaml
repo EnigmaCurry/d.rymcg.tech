@@ -42,7 +42,15 @@ services:
               count: 1 
               capabilities: [gpu]
     #@ end
-    
+
+    #@ if gpu.strip() == "AMD":
+    environment:
+      LIBVA_DRIVER_NAME: radeonsi
+    devices:
+      - /dev/kfd
+      - /dev/dri
+    #@ end
+
     labels:
       - "backup-volume.stop-during-backup=true"
       #! Services must opt-in to be proxied by Traefik:
