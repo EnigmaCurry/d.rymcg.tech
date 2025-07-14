@@ -9,7 +9,7 @@ config-hook:
 	@${BIN}/reconfigure_auth ${ENV_FILE} IMMICH
 	@${BIN}/reconfigure_password ${ENV_FILE} IMMICH_DB_PASSWORD 45
 	@echo
-	@${BIN}/reconfigure_choose ${ENV_FILE} IMMICH_ML_HWACCEL_TYPE "Select the hardware acceleration to use for machine learning" "None" "CPU" "ArmNN" "Cuda" "OpenVINO" "OpenVINO-WSL"
+	@${BIN}/reconfigure_choose ${ENV_FILE} IMMICH_ML_HWACCEL_TYPE "Select the hardware acceleration to use for machine learning" "None" "CPU" "ArmNN" "Cuda" "ROCm" "OpenVINO" "OpenVINO-WSL"
 	@echo
 	@${BIN}/reconfigure_choose ${ENV_FILE} IMMICH_TRANSCODE_HWACCEL_TYPE "Select the hardware acceleration to use for transcoding" "None" "CPU" "NVENC" "QSV" "RKMPP" "VAAPI" "VAAPI-WSL"
 	@echo
@@ -23,7 +23,7 @@ config-hook:
 			${BIN}/reconfigure ${ENV_FILE} IMMICH_USE_EXTERNAL_VOLUME=false; \
 		fi
 	@echo
-	@${BIN}/reconfigure_choose ${ENV_FILE} IMMICH_DB_STORAGE_TYPE "Select \"HDD\" or \"SSD\", corresponding to the type of drive your database volume is installed on" "HDD" "SSD" 
+	@${BIN}/reconfigure_choose ${ENV_FILE} IMMICH_DB_STORAGE_TYPE "Select \"HDD\" or \"SSD\", corresponding to the type of drive your database volume is installed on" "HDD" "SSD"
 	@echo
 
 .PHONY: override-hook
