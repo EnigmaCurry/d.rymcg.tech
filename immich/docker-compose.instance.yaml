@@ -51,6 +51,15 @@ services:
               capabilities:
                 - gpu
     #@ end
+    #@ if ml_hwaccel_type == "ROCm":
+    image: ${IMMICH_ML_IMAGE:-ghcr.io/immich-app/immich-machine-learning:release}-rocm
+    group_add:
+      - video
+      - render
+    devices:
+      - /dev/dri:/dev/dri
+      - /dev/kfd:/dev/kfd
+    #@ end
     #@ if ml_hwaccel_type == "OpenVINO":
     image: ${IMMICH_ML_IMAGE:-ghcr.io/immich-app/immich-machine-learning:release}-openvino
     device_cgroup_rules:
@@ -69,7 +78,7 @@ services:
       - /dev/bus/usb:/dev/bus/usb
       - /usr/lib/wsl:/usr/lib/wsl
     #@ end
-    #@ if not (ml_hwaccel_type == "OpenVINO-WSL" or ml_hwaccel_type == "OpenVINO" or ml_hwaccel_type == "Cuda" or ml_hwaccel_type == "ArmNN"):
+    #@ if not (ml_hwaccel_type == "OpenVINO-WSL" or ml_hwaccel_type == "OpenVINO" or ml_hwaccel_type == "Cuda" or ml_hwaccel_type == "ROCm" or  ml_hwaccel_type == "ArmNN"):
     image: ${IMMICH_ML_IMAGE:-ghcr.io/immich-app/immich-machine-learning:release}
     #@ end    
     
