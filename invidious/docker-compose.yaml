@@ -9,7 +9,7 @@ services:
     security_opt:
       - no-new-privileges:true
     volumes:
-      - database:/var/lib/postgresql/data
+      - database:/var/lib/postgresql/data   
       #- ./config/sql:/config/sql
       #- ./docker/init-invidious-db.sh:/docker-entrypoint-initdb.d/init-invidious-db.sh
     environment:
@@ -61,7 +61,6 @@ services:
         max-file: "4"
     depends_on:
       - postgres
-    # labels are defined in docker-compose.instance.yaml:
     labels: []
 
   inv_sig_helper:
