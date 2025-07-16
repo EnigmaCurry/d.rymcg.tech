@@ -1,6 +1,6 @@
 # IT-Tools
 
-[IT-Tools](https://github.com/traefik/it-tools) is a collection of
+[IT-Tools](https://github.com/CorentinTh/it-tools) is a collection of
 useful tools for developers and people working in IT.
 
 ## Config
