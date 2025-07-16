@@ -1,11 +1,14 @@
 services:
   it-tools:
     image: ${IT_TOOLS_IMAGE}
-    # cap_drop:
-    #   - ALL
-    # security_opt:
-    #   - no-new-privileges:true
-    # sysctls:
-    #   - net.ipv4.ip_unprivileged_port_start=1024
+    cap_drop:
+      - ALL
+    cap_add:
+      - CHOWN
+      - NET_BIND_SERVICE
+      - SETGID
+      - SETUID
+    security_opt:
+      - no-new-privileges:true
     restart: unless-stopped
     labels: []
