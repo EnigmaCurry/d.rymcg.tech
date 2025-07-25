@@ -7,9 +7,6 @@ server:
   limiter: false
   image_proxy: true
   enable_jsonp: true
-  csrf_secret: ""
-  default_output_format: html
-  public_instance: false
 ui:
   static_use_hash: true
 redis:
