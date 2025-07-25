@@ -17,7 +17,7 @@ config-hook:
 	@echo
 	@ALLOW_BLANK=1 ${BIN}/reconfigure_ask ${ENV_FILE} OPENWEBUI_MODELS_HOST_PATH "If you want to save models in a specific directory on the host, enter the path here, or leave blank to save models to the Ollama container's named Docker volume."
 	@echo
-	@${BIN}/confirm $$(test "$$(${BIN}/dotenv -f ${ENV_FILE} get OPENWEBUI_EXPOSE_OLLAMA)" == 'false' && echo no || echo yes) "Do you want expose the Ollama service for other, non-OpenWebUI services to use" "?" && ( \
+	@${BIN}/confirm $$(test "$$(${BIN}/dotenv -f ${ENV_FILE} get OPENWEBUI_EXPOSE_OLLAMA)" == 'false' && echo no || echo yes) "Do you want to expose Ollama to Traefik for use by external services" "?" && ( \
 		${BIN}/reconfigure ${ENV_FILE} OPENWEBUI_EXPOSE_OLLAMA=true && \
 		${BIN}/reconfigure_ask ${ENV_FILE} OPENWEBUI_OLLAMA_TRAEFIK_HOST "Enter the Ollama domain name" && \
 		${BIN}/reconfigure_ask ${ENV_FILE} OPENWEBUI_OLLAMA_IP_SOURCERANGE "Enter the allowed client IP source range for the Ollama service (eg. 192.168.1.1/24 or 0.0.0.0/0)" \
