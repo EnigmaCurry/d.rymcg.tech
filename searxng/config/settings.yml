@@ -6,7 +6,7 @@ server:
   # limiter can be enabled for a public instance
   limiter: false
   image_proxy: true
-  enable_jsonp: true
+#  enable_jsonp: true
 ui:
   static_use_hash: true
 redis:
