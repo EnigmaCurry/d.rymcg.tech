@@ -35,7 +35,11 @@ override-hook:
 
 .PHONY: shell
 shell:
-	@make --no-print-directory docker-compose-shell SERVICE=commentario
+	@if [ -z "$(service)" ]; then \
+		container=$$(eval "${BIN}/script-wizard choose 'docker exec -it into which container?' 'commentario' 'postgres' --default 'commentario'") && make --no-print-directory docker-compose-shell SERVICE=$${container}; \
+	else \
+		make --no-print-directory docker-compose-shell SERVICE=$$(service); \
+	fi;
 
 .PHONY: psql
 psql:
