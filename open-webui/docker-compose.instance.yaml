@@ -22,25 +22,89 @@
 #! ### Project-specific vars:
 #@ models_host_path = data.values.models_host_path
 #@ compose_profile = data.values.compose_profile
+#@ expose_ollama = data.values.expose_ollama == "true"
+#@ ollama_traefik_host = data.values.ollama_traefik_host
+#@ ollama_ip_sourcerange = data.values.ollama_ip_sourcerange
 
 #@yaml/text-templated-strings
 services:
-  #@ if models_host_path != "":
   #@ if compose_profile == "rocm":
   ollama-rocm:
+    #@ if models_host_path != "":
     volumes:
       - (@= models_host_path @):/root/.ollama/models
+    #@ end
+    #@ if expose_ollama:
+    labels:
+      #@ service = "ollama-rocm"
+      #! Services must opt-in to be proxied by Traefik:
+      - "traefik.enable=true"
+
+      #! 'router' is the fully qualified key in traefik for this router/service: project + instance + service
+      #@ router = "{}-{}-{}".format(project,instance,service)
+
+      #! The host matching router rule:
+      - "traefik.http.routers.(@= router @).rule=Host(`(@= ollama_traefik_host @)`)"
+      - "traefik.http.routers.(@= router @).entrypoints=websecure"
+
+      #@ enabled_middlewares.append("{}-ipallowlist".format(router))
+      - "traefik.http.middlewares.(@= router @)-ipallowlist.ipallowlist.sourcerange=(@= ollama_ip_sourcerange @)"
+
+      #! Apply all middlewares (do this at the end!)
+      - "traefik.http.routers.(@= router @).middlewares=(@= ','.join(enabled_middlewares) @)"
+    #@ end
   #@ end
   #@ if compose_profile == "cuda":
   ollama-cuda:
+    #@ if models_host_path != "":
     volumes:
       - (@= models_host_path @):/root/.ollama/models
+    #@ end
+    #@ if expose_ollama:
+    labels:
+      #@ service = "ollama-cuda"
+      #! Services must opt-in to be proxied by Traefik:
+      - "traefik.enable=true"
+
+      #! 'router' is the fully qualified key in traefik for this router/service: project + instance + service
+      #@ router = "{}-{}-{}".format(project,instance,service)
+
+      #! The host matching router rule:
+      - "traefik.http.routers.(@= router @).rule=Host(`(@= ollama_traefik_host @)`)"
+      - "traefik.http.routers.(@= router @).entrypoints=websecure"
+
+      #@ enabled_middlewares.append("{}-ipallowlist".format(router))
+      - "traefik.http.middlewares.(@= router @)-ipallowlist.ipallowlist.sourcerange=(@= ollama_ip_sourcerange @)"
+
+      #! Apply all middlewares (do this at the end!)
+      - "traefik.http.routers.(@= router @).middlewares=(@= ','.join(enabled_middlewares) @)"
+    #@ end
   #@ end
   #@ if compose_profile == "cpu":
   ollama-cpu:
+    #@ if models_host_path != "":
     volumes:
       - (@= models_host_path @):/root/.ollama/models
-  #@ end
+    #@ end
+    #@ if expose_ollama:
+    labels:
+      #@ service = "ollama-cpu"
+      #! Services must opt-in to be proxied by Traefik:
+      - "traefik.enable=true"
+
+      #! 'router' is the fully qualified key in traefik for this router/service: project + instance + service
+      #@ router = "{}-{}-{}".format(project,instance,service)
+
+      #! The host matching router rule:
+      - "traefik.http.routers.(@= router @).rule=Host(`(@= ollama_traefik_host @)`)"
+      - "traefik.http.routers.(@= router @).entrypoints=websecure"
+
+      #@ enabled_middlewares.append("{}-ipallowlist".format(router))
+      - "traefik.http.middlewares.(@= router @)-ipallowlist.ipallowlist.sourcerange=(@= ollama_ip_sourcerange @)"
+
+      #! Apply all middlewares (do this at the end!)
+      - "traefik.http.routers.(@= router @).middlewares=(@= ','.join(enabled_middlewares) @)"
+    #@ end
   #@ end
 
   openwebui:
@@ -78,11 +142,6 @@ services:
         #@ end
         #@ enabled_middlewares.append("mtls-header@file")
       #@ end
-      
-      #! Override the default port that the app binds to:
-      #! You don't normally need to do this, as long as your image has
-      #! an EXPOSE directive in it, Traefik will autodetect it, but this is how you can override it:
-      - "traefik.http.services.(@= router @).loadbalancer.server.port=8080"
 
       #! Apply all middlewares (do this at the end!)
       - "traefik.http.routers.(@= router @).middlewares=(@= ','.join(enabled_middlewares) @)"
