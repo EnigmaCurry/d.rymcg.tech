@@ -39,7 +39,7 @@ config-hook:
 	@echo
 	@${BIN}/reconfigure_choose ${ENV_FILE} PEERTUBE_LIVESTREAMING "You can enable livestreaming via RTMP or RTMPS. Choose livestreaming status:" "Disabled" "RTMP" "RTMPS"
 	@echo
-	
+
 .PHONY: override-hook
 override-hook:
 #### This sets the override template variables for docker-compose.instance.yaml:
@@ -56,4 +56,8 @@ override-hook:
 
 .PHONY: shell
 shell:
-	@container=$$(eval "${BIN}/script-wizard choose 'docker exec -it into which container?' 'peertube' 'postgres' 'redis' 'postfix' --default 'peertube'") && make --no-print-directory docker-compose-shell SERVICE=$${container}
+	@if [ -z "$(service)" ]; then \
+		container=$$(eval "${BIN}/script-wizard choose 'docker exec -it into which container?' 'peertube' 'postgres' 'redis' 'postfix' --default 'peertube'") && make --no-print-directory docker-compose-shell SERVICE=$${container}; \
+	else \
+		make --no-print-directory docker-compose-shell SERVICE=$$(service); \
+	fi;
