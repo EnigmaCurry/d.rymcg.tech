@@ -23,15 +23,16 @@ top of your app.
 
 ## Exposing Ollama
 
-Ollama is a local LLM runtime/engine that lets you run and interact
-with language models via simple API endpoints. Open-WebUI is a
-front-end that lets you interact with language models served by Ollama for
-(and others). By default, this installs an Ollama container and an
-Open-WebUI container, and the Ollama container is accessible only by
-the Open-WebUI container. Running `make config` will ask you if you
-want to expose the Ollama container to be able to access it from other
-apps or services, and if so, what domain you want Traefik to forward
-to it and what IP Source range(s) you want to be able to access it.
+Open-WebUI is a front-end that lets you interact with language models
+served by Ollama and/or others LLM runners. Ollama is a local LLM
+runtime/engine that lets you run and interact with language models via
+simple API endpoints. By default, this installs only the Open-WebUI
+container, but you have the option to also install an Ollama
+container. If you do install Ollama, by default it's accessible only
+by the Open-WebUI container, but you will be asked if you want to
+expose the Ollama container to be able to access it from other apps or
+services, and if so, what domain you want Traefik to forward to it and
+what IP Source range(s) you want to be able to access it.
 
 ## Install
 
