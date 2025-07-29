@@ -36,7 +36,7 @@ services:
     environment:
       - DRAWIO_SERVER_URL=${DRAWIO_TRAEFIK_HOST}
   drawio:
-    image: jgraph/drawio
+    image: ${DRAWIO_IMAGE}
     restart: unless-stopped
     security_opt:
       - no-new-privileges:true
