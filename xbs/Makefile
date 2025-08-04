@@ -13,7 +13,11 @@ config-hook:
 
 .PHONY: shell
 shell:
-	@container=$$(eval "${BIN}/script-wizard choose 'docker exec -it into which container?' 'db' 'api' --default 'api'") && make --no-print-directory docker-compose-shell SERVICE=$${container}
+	@if [ -z "$(service)" ]; then \
+		container=$$(eval "${BIN}/script-wizard choose 'docker exec -it into which container?' 'db' 'api' --default 'api'") && make --no-print-directory docker-compose-shell SERVICE=$${container}; \
+	else \
+		make --no-print-directory docker-compose-shell SERVICE=$$(service); \
+	fi;
 
 .PHONY: override-hook
 override-hook:

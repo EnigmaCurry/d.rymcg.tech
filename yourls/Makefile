@@ -31,7 +31,11 @@ override-hook:
 
 .PHONY: shell
 shell:
-	@container=$$(eval "${BIN}/script-wizard choose 'docker exec -it into which container?' 'yourls' 'mysql' --default 'yourls'") && make --no-print-directory docker-compose-shell SERVICE=$${container}
+	@if [ -z "$(service)" ]; then \
+		container=$$(eval "${BIN}/script-wizard choose 'docker exec -it into which container?' 'yourls' 'mysql' --default 'yourls'") && make --no-print-directory docker-compose-shell SERVICE=$${container}; \
+	else \
+		make --no-print-directory docker-compose-shell SERVICE=$$(service); \
+	fi;
 
 open-hook:
 	${BIN}/open /admin
