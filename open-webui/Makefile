@@ -42,4 +42,8 @@ override-hook:
 
 .PHONY: shell
 shell:
-	@container=$$(eval "${BIN}/script-wizard choose 'docker exec -it into which container?' 'openwebui' 'ollama-$$(${BIN}/dotenv -f ${ENV_FILE} get DOCKER_COMPOSE_PROFILES)' --default 'openwebui'") && make --no-print-directory docker-compose-shell SERVICE=$${container}
+	@if [ -z "$(service)" ]; then \
+		container=$$(eval "${BIN}/script-wizard choose 'docker exec -it into which container?' 'openwebui' 'ollama-$$(${BIN}/dotenv -f ${ENV_FILE} get DOCKER_COMPOSE_PROFILES)' --default 'openwebui'") && make --no-print-directory docker-compose-shell SERVICE=$${container}; \
+	else \
+		make --no-print-directory docker-compose-shell SERVICE=$$(service); \
+	fi;

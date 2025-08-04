@@ -30,3 +30,11 @@ override-hook:
 .PHONY: shell # Enter container shell
 shell:
 	@make --no-print-directory docker-compose-shell SERVICE=whoami
+
+.PHONY: shell-menu
+shell-menu:
+	@if [ -z "$(service)" ]; then \
+		container=$$(eval "${BIN}/script-wizard choose 'docker exec -it into which container?' 'whoami' --default 'whoami'") && make --no-print-directory docker-compose-shell SERVICE=$${container}; \
+	else \
+		make --no-print-directory docker-compose-shell SERVICE=$$(service); \
+	fi;

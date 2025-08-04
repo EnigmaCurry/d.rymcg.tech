@@ -30,7 +30,11 @@ override-hook:
 
 .PHONY: shell # Enter container shell
 shell:
-	@make --no-print-directory docker-compose-shell SERVICE=coturn
+	@if [ -z "$(service)" ]; then \
+		container=$$(eval "${BIN}/script-wizard choose 'docker exec -it into which container?' 'caddy' 'coturn' --default 'coturn'") && make --no-print-directory docker-compose-shell SERVICE=$${container}; \
+	else \
+		make --no-print-directory docker-compose-shell SERVICE=$$(service); \
+	fi;
 
 .PHONY: credentials # Get ephemeral TURN credentials
 credentials:

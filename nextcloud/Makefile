@@ -94,4 +94,8 @@ disable_maintenance:
 
 .PHONY: shell
 shell:
-	@container=$$(eval "${BIN}/script-wizard choose 'docker exec -it into which container?' 'postgres' 'postgres_backup' 'redis' 'app' 'data_backup' 'cron' --default 'app'") && make --no-print-directory docker-compose-shell SERVICE=$${container}
+	@if [ -z "$(service)" ]; then \
+		container=$$(eval "${BIN}/script-wizard choose 'docker exec -it into which container?' 'postgres' 'postgres_backup' 'redis' 'app' 'data_backup' 'cron' --default 'app'") && make --no-print-directory docker-compose-shell SERVICE=$${container}; \
+	else \
+		make --no-print-directory docker-compose-shell SERVICE=$$(service); \
+	fi;
