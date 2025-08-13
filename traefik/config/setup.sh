@@ -121,6 +121,7 @@ ytt_template() {
 }
 
 create_config() {
+    set -x
     rm -rf ${CONFIG_DIR}
     mkdir -p ${DYNAMIC_CONFIG_DIR} ${INSTANCE_CONFIG_DIR}
     ## Traefik static config:
