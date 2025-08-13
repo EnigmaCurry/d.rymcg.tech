@@ -1,0 +1,59 @@
+networks:
+  lan:
+    driver: macvlan
+    driver_opts:
+      parent: ${WIREGUARD_GATEWAY_LAN_INTERFACE}
+
+services:
+  config:
+    build:
+      context: config
+    security_opt:
+      - no-new-privileges:true
+    volumes:
+      - wireguard_config:/config
+    environment:
+      - INSTANCE=${WIREGUARD_GATEWAY_INSTANCE}
+      - LAN_INTERFACE=${WIREGUARD_GATEWAY_LAN_INTERFACE}
+      - VPN_INTERFACE=${WIREGUARD_GATEWAY_VPN_INTERFACE}
+      - PRIVATE_KEY=${WIREGUARD_GATEWAY_PRIVATE_KEY}
+      - PEER_ENDPOINT=${WIREGUARD_GATEWAY_PEER_ENDPOINT}
+      - PEER_PUBLIC_KEY=${WIREGUARD_GATEWAY_PEER_PUBLIC_KEY}
+      - ALLOWED_IPS=${WIREGUARD_GATEWAY_PEER_ALLOWED_IPS}
+      - VPN_IPV4=${WIREGUARD_GATEWAY_VPN_IPV4}
+    labels:
+      - "backup-volume.stop-during-backup=true"
+
+  wireguard_gateway:
+    depends_on: ["config"]
+    build:
+      context: wireguard_gateway
+    cap_add:
+      - NET_ADMIN
+      - NET_RAW
+    # security_opt:
+    #   - no-new-privileges:true
+    sysctls:
+      # Enable IPv4 packet forwarding in the container’s network namespace.
+      # Required to route LAN traffic (eth0/macvlan) out through wg0.
+      net.ipv4.ip_forward: "1"    
+      # Enable IPv6 forwarding (only needed if you’ll route IPv6 over WireGuard).
+      # Safe to leave on; it does nothing unless you configure IPv6 addresses/routes.
+      net.ipv6.conf.all.forwarding: "1"
+      # Reverse Path Filter: 0=off, 1=strict, 2=loose.
+      # macvlan + WG often looks “asymmetric” (in via eth0/macvlan, out via wg0),
+      # which strict RPF treats as spoofing and drops. Use loose mode (2) to allow it.
+      net.ipv4.conf.all.rp_filter: "2"
+    networks:
+      lan:
+        mac_address: "${WIREGUARD_GATEWAY_MAC_ADDRESS}"
+    volumes:
+      - wireguard_config:/etc/wireguard:ro
+    restart: unless-stopped
+    # All labels are defined in the template: docker-compose.instance.yaml
+    # The labels will merge together here from the template output:
+    #   docker-compose.override_{DOCKER_CONTEXT}_{INSTANCE}.yaml
+    labels: []
+
+volumes:
+  wireguard_config:
