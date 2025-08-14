@@ -37,14 +37,6 @@ override-hook:
 shell:
 	@make --no-print-directory docker-compose-shell SERVICE=wireguard_gateway
 
-.PHONY: shell-menu
-shell-menu:
-	@if [ -z "$(service)" ]; then \
-		container=$$(eval "${BIN}/script-wizard choose 'docker exec -it into which container?' 'wireguard_gateway' --default 'wireguard_gateway'") && make --no-print-directory docker-compose-shell SERVICE=$${container}; \
-	else \
-		make --no-print-directory docker-compose-shell SERVICE=$$(service); \
-	fi;
-
 .PHONY: wg # Show WireGuard config
 wg:
 	@make --no-print-directory docker-compose-shell SERVICE=wireguard_gateway COMMAND="wg"
