@@ -1,0 +1,14 @@
+services:
+  kokoro:
+    image: ${KOKORO_IMAGE}
+    # cap_drop:
+    #   - ALL
+    # security_opt:
+    #   - no-new-privileges:true
+    # sysctls:
+    #   - net.ipv4.ip_unprivileged_port_start=1024
+    environment:
+      - KW_SECRET_API_KEY=${KOKORO_SECRET_API_KEY}
+      - KW_PUBLIC_NO_TRACK=${KOKORO_PUBLIC_NO_TRACK}
+    restart: unless-stopped
+    labels: []
