@@ -10,14 +10,14 @@ config-hook:
 #### reconfigure_htpasswd will configure the HTTP Basic Authentication setting the var name and with a provided default value.
 	@${BIN}/reconfigure ${ENV_FILE} WIREGUARD_GATEWAY_INSTANCE=$${instance:-default}
 	@${BIN}/reconfigure_ask ${ENV_FILE} WIREGUARD_GATEWAY_LAN_INTERFACE "Enter the host LAN interface name (check \`ip addr\`)"
-	@${BIN}/reconfigure_ask ${ENV_FILE} WIREGUARD_GATEWAY_MAC_ADDRESS "Enter a random MAC address for the virtual NIC"
+	@${BIN}/reconfigure_ask_validate_regex ${ENV_FILE} WIREGUARD_GATEWAY_MAC_ADDRESS "Enter a random MAC address for the virtual NIC" $(shell printf "%02x:%02x:%02x:%02x:%02x:%02x\n" $$((RANDOM%256)) $$((RANDOM%256)) $$((RANDOM%256)) $$((RANDOM%256)) $$((RANDOM%256)) $$((RANDOM%256))) "^([0-9A-Fa-f]{2}([-:])){5}[0-9A-Fa-f]{2}$$"
 	@${BIN}/reconfigure_ask ${ENV_FILE} WIREGUARD_GATEWAY_VPN_INTERFACE "Enter the VPN interface name (make sure it's unique on the host)"
 	@${BIN}/reconfigure_ask ${ENV_FILE} WIREGUARD_GATEWAY_PRIVATE_KEY "Enter the WireGuard client's PRIVATE key"
 	@${BIN}/reconfigure_ask ${ENV_FILE} WIREGUARD_GATEWAY_PEER_ENDPOINT "Enter the provided WireGuard peer endpoint (host:port)"
 	@${BIN}/reconfigure_ask ${ENV_FILE} WIREGUARD_GATEWAY_PEER_PUBLIC_KEY "Enter the peer's PUBLIC WireGuard key"
-	@${BIN}/reconfigure_ask ${ENV_FILE} WIREGUARD_GATEWAY_PEER_ALLOWED_IPS "Enter the allowed IPs to forward to the peer"
-	@${BIN}/reconfigure_ask ${ENV_FILE} WIREGUARD_GATEWAY_VPN_IPV4 "Enter the VPN client's IPv4 address"
-	@echo ""
+	@${BIN}/reconfigure_ask_validate_regex ${ENV_FILE} WIREGUARD_GATEWAY_PEER_ALLOWED_IPS "Enter the allowed IP(s) and/or CIDR(s) to forward to the peer" - "^[[:space:]]*(25[0-5]|2[0-4][0-9]|1[0-9][0-9]|[1-9]?[0-9]|0)(\.(25[0-5]|2[0-4][0-9]|1[0-9][0-9]|[1-9]?[0-9]|0)){3}(\/([0-9]|[1-2][0-9]|3[0-2]))?([[:space:]]*,[[:space:]]*(25[0-5]|2[0-4][0-9]|1[0-9][0-9]|[1-9]?[0-9]|0)(\.(25[0-5]|2[0-4][0-9]|1[0-9][0-9]|[1-9]?[0-9]|0)){3}(\/([0-9]|[1-2][0-9]|3[0-2]))?)*[[:space:]]*$$"
+	@${BIN}/reconfigure_ask_validate_regex ${ENV_FILE} WIREGUARD_GATEWAY_VPN_IPV4 "Enter the VPN client's IPv4 address" - "^((25[0-5]|2[0-4][0-9]|1[0-9][0-9]|[1-9]?[0-9])\.){3}(25[0-5]|2[0-4][0-9]|1[0-9][0-9]|[1-9]?[0-9])$$"
+	@echo
 
 .PHONY: override-hook
 override-hook:
