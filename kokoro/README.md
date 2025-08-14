@@ -1,8 +1,17 @@
-# whoami
+# Kokoro Web
 
-[whoami](https://github.com/traefik/whoami) is a tiny Go webserver
-that prints os information and HTTP request to output. It is useful as
-a basic deployment and connectivity test.
+[Kokoro Web](https://github.com/eduardolat/kokoro-web) is a powerful,
+browser-based AI voice generator that lets you create natural-sounding
+voices.
+
+It includes an OpenAI-compatible API that works as a drop-in
+replacement for applications using OpenAI's text-to-speech API.
+
+To access the API, append "/api/v1" to the URL.
+Example: `KOKORO_TRAEFIK_HOST=kokoro.example.com`
+ * `https://kokoro.example.com/api/v1` to access the Swagger UI
+ *  `https://kokoro.example.com/api/v1/audio/models` to hit that
+particular API endpoint
 
 ## Config
 
@@ -41,5 +50,4 @@ prefill the HTTP Basic Authentication password if you enabled it
 make destroy
 ```
 
-This completely removes the container (and would also delete all its
-volumes; but `whoami` hasn't got any data to store.)
+This completely removes the container.
