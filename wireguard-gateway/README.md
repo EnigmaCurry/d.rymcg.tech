@@ -14,7 +14,7 @@ Answer the questions to fill in the following config:
 
   * `WIREGUARD_GATEWAY_LAN_INTERFACE`: Enter the host LAN interface name (check `ip addr`) (eg. eth0)
   * `WIREGUARD_GATEWAY_MAC_ADDRESS`: Enter a random MAC address for the virtual NIC (eg. 02:42:ac:11:00:02)
-  * `WIREGUARD_GATEWAY_VPN_INTERFACE`: Enter the VPN interface name (make sure it's unique on the host) (eg. wg0)
+  * `WIREGUARD_GATEWAY_VPN_INTERFACE`: Enter the VPN interface name (eg. wg0)
 
 Set all of the variables for the WireGuard config that has been
 provisioned by your peer (server):
