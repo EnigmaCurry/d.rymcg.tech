@@ -572,6 +572,7 @@ Install these other services at your leisure/preference:
 * [Nextcloud](nextcloud#readme) - a collaborative file server
 * [Nginx](nginx#readme) - a webserver configured with fast-cgi support for PHP scripts
 * [Node-RED](nodered#readme) - a graphical event pipeline editor
+* [Nostr-RS-Relay](nostr-rs-relay#readme) - a programmable Nostr relay
 * [Ntfy-sh](ntfy-sh#readme) - a simple HTTP-based pub-sub notification service
 * [Open WebUI](openwebui#readme) - a self-hosted AI platform designed to operate entirely offline
 * [Pairdrop](pairdrop#readme) - a webapp (PWA) to send files and messages peer to peer
