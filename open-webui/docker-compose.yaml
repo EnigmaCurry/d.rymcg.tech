@@ -8,12 +8,12 @@ x-ollama-common: &ollama-common
 services:
   openwebui:
     image: ${OPENWEBUI_IMAGE}
-    # cap_drop:
-    #   - ALL
-    # security_opt:
-    #   - no-new-privileges:true
-    # sysctls:
-    #   - net.ipv4.ip_unprivileged_port_start=1024
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+    sysctls:
+      - net.ipv4.ip_unprivileged_port_start=1024
     restart: unless-stopped
     environment:
       - OLLAMA_BASE_URL=http://ollama-${DOCKER_COMPOSE_PROFILES}:11434
@@ -36,6 +36,12 @@ services:
     group_add:
       - video
       - render
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+    sysctls:
+      - net.ipv4.ip_unprivileged_port_start=1024
     environment:
       # HSA_OVERRIDE_GFX_VERSION should probably be variablized
       - HSA_OVERRIDE_GFX_VERSION=11.0.0
@@ -45,6 +51,12 @@ services:
       - cuda
     <<: *ollama-common
     image: ollama/ollama
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+    sysctls:
+      - net.ipv4.ip_unprivileged_port_start=1024
     restart: unless-stopped
     gpus: all
 
@@ -53,6 +65,12 @@ services:
       - cpu
     <<: *ollama-common
     image: ollama/ollama
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+    sysctls:
+      - net.ipv4.ip_unprivileged_port_start=1024
 
 volumes:
   openwebui:
