@@ -14,6 +14,9 @@ ARG CERT_AUTH_MODULE
 ARG CERT_AUTH_GIT_BRANCH
 ARG MTLS_HEADER_MODULE
 ARG MTLS_HEADER_GIT_BRANCH
+ARG SABLIER_MODULE
+ARG SABLIER_GIT_BRANCH
+
 RUN apk add --update git && \
     git clone https://${BLOCKPATH_MODULE}.git /plugins-local/src/github.com/traefik/plugin-blockpath \
       --depth 1 --single-branch --branch ${BLOCKPATH_GIT_BRANCH}
@@ -28,6 +31,8 @@ RUN git clone https://${CERT_AUTH_MODULE}.git /plugins-local/src/github.com/fame
       --depth 1 --single-branch --branch ${CERT_AUTH_GIT_BRANCH}
 RUN git clone https://${MTLS_HEADER_MODULE}.git /plugins-local/src/github.com/pnxs/traefik-plugin-mtls-header \
       --depth 1 --single-branch --branch ${MTLS_HEADER_GIT_BRANCH}
+RUN git clone https://${SABLIER_MODULE}.git /plugins-local/src/github.com/sablierapp/sablier \
+      --depth 1 --single-branch --branch ${SABLIER_GIT_BRANCH}
 
 FROM ${TRAEFIK_IMAGE}
 ARG TRAEFIK_UID TRAEFIK_GID TRAEFIK_DOCKER_GID
