@@ -14,6 +14,11 @@ instance: check-in-subshell
 	$(eval $(instance_arg_present))
 	@unset INSTANCE; unset instance; MAKE_INSTANCE_SOURCE_RCFILE=${MAKE_INSTANCE_SOURCE_RCFILE} DOCKER_CONTEXT=${DOCKER_CONTEXT} ENV_FILE=${ENV_FILE} showmenu=${showmenu} newinstance=${newinstance} call=instance ${BIN}/instance
 
+.PHONY: instance-new
+instance-new: check-in-subshell
+	@DOCKER_CONTEXT=${DOCKER_CONTEXT} ENV_FILE=${ENV_FILE} ${BIN}/instance-new
+
+
 .PHONY: switch # Switch to the given INSTANCE and enter a new subshell for it
 switch: check-in-subshell
 	$(eval $(instance_arg_present))

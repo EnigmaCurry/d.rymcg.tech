@@ -17,11 +17,11 @@ main_menu() {
     while :
     do
         clear
-        separator '###' 60 "${DOCKER_CONTEXT}"
+        separator '###' 60 "Traefik - ${DOCKER_CONTEXT}"
         wizard menu --cancel-code=2 --once "Traefik:" \
-               "Config = ./setup.sh config" \
-               "Install (make install) = make compose-profiles install" \
-               "Admin = ./setup.sh admin" \
+               "Config = ./setup.sh config || true" \
+               "Install (make install) = make compose-profiles install || true" \
+               "Admin = ./setup.sh admin || true" \
                "Exit (ESC) = exit 2"
         local EXIT_CODE=$?
         if [[ "${EXIT_CODE}" == "2" ]]; then
@@ -47,43 +47,43 @@ config() {
     echo "Traefik must be re-installed to apply any changes."
     separator '~~' 60
     wizard menu "Traefik Configuration:" \
-           "Traefik user = ./setup.sh traefik_user" \
-           "Entrypoints (including dashboard) = ./setup.sh entrypoints" \
-           "TLS certificates and authorities = ./setup.sh config_tls" \
-           "Middleware (including sentry auth) = ./setup.sh middleware" \
-           "Advanced Routing (Layer 7 / Layer 4 / Wireguard) = ./setup.sh routes_menu" \
-           "Error page template = ./setup.sh error_pages" \
-           "Logging level = ./setup.sh configure_log_level" \
-           "Access logs = ./setup.sh configure_access_logs"
+           "Traefik user = ./setup.sh traefik_user || true" \
+           "Entrypoints (including dashboard) = ./setup.sh entrypoints || true" \
+           "TLS certificates and authorities = ./setup.sh config_tls || true" \
+           "Middleware (including sentry auth) = ./setup.sh middleware || true" \
+           "Advanced Routing (Layer 7 / Layer 4 / Wireguard) = ./setup.sh routes_menu || true" \
+           "Error page template = ./setup.sh error_pages || true" \
+           "Logging level = ./setup.sh configure_log_level || true" \
+           "Access logs = ./setup.sh configure_access_logs || true"
 }
 
 admin() {
     wizard menu "Traefik Admin:" \
-           "Review logs = ./setup.sh logs" \
-           "Manage containers = ./setup.sh manage_containers" \
-           "Manage wireguard = ./setup.sh manage_wireguard"
+           "Review logs = ./setup.sh logs || true" \
+           "Manage containers = ./setup.sh manage_containers || true" \
+           "Manage wireguard = ./setup.sh manage_wireguard || true"
 }
 
 shell_menu() {
     wizard menu "Enter shell:" \
-           "Enter traefik shell = make shell service=traefik" \
-           "Enter wireguard server shell = make shell service=wireguard" \
-           "Enter wireguard client shell = make shell service=wireguard-client"
+           "Enter traefik shell = make shell service=traefik || true" \
+           "Enter wireguard server shell = make shell service=wireguard || true" \
+           "Enter wireguard client shell = make shell service=wireguard-client || true"
 }
 
 manage_containers() {
     wizard menu "Traefik Container Management:" \
-           "make status - Container status = make status" \
-           "make shell - Container shell = ./setup.sh shell_menu" \
-           "make uninstall - Uninstall Traefik (keeps data) = make uninstall" \
-           "make reinstall - Reinstall Traefik (forced) = make reinstall" \
-           "make destroy - Destroy Traefik (uninstall and remove all data) = make destroy"
+           "make status - Container status = make status || true" \
+           "make shell - Container shell = ./setup.sh shell_menu || true" \
+           "make uninstall - Uninstall Traefik (keeps data) = make uninstall || true" \
+           "make reinstall - Reinstall Traefik (forced) = make reinstall || true" \
+           "make destroy - Destroy Traefik (uninstall and remove all data) = make destroy  || true"
 }
 
 manage_wireguard() {
     wizard menu "Traefik Wireguard:" \
-           "make show-wireguard-peers - Show wireguard peer config = make show-wireguard-peers" \
-           "make show-wireguard-peers-qr - Show wireguard peer config in QR code format = make show-wireguard-peers-qr"
+           "make show-wireguard-peers - Show wireguard peer config = make show-wireguard-peers || true" \
+           "make show-wireguard-peers-qr - Show wireguard peer config in QR code format = make show-wireguard-peers-qr  || true"
 }
 
 
@@ -92,11 +92,11 @@ logs() {
     echo "## Note: This menu can only show log snapshots, it cannot follow live logs."
     echo "## For live logging, try the commands shown in parentheses instead (by hand)."
     wizard menu "Traefik Logs:" \
-           "make logs service=traefik - Review Traefik logs (Q to quit) = make logs-out service=traefik | less -r +G" \
-           "make logs service=config - Review config logs (Q to quit) = make logs-out service=config | less -r +G" \
-           "make logs service=wireguard - Review wireguard logs (Q to quit) = make logs-out service=wireguard | less -r +G" \
-           "make logs service=wireguard-client - Review wireguard-client logs (Q to quit) = make logs-out service=wireguard-client | less -r +G" \
-           "make logs-access - Review access logs (Q to quit) = make logs-access-out | less -r +G"
+           "make logs service=traefik - Review Traefik logs (Q to quit) = make logs-out service=traefik | less -r +G  || true" \
+           "make logs service=config - Review config logs (Q to quit) = make logs-out service=config | less -r +G || true" \
+           "make logs service=wireguard - Review wireguard logs (Q to quit) = make logs-out service=wireguard | less -r +G || true" \
+           "make logs service=wireguard-client - Review wireguard-client logs (Q to quit) = make logs-out service=wireguard-client | less -r +G || true" \
+           "make logs-access - Review access logs (Q to quit) = make logs-access-out | less -r +G || true"
 }
 
 configure_log_level() {
@@ -222,9 +222,9 @@ list_enabled_entrypoints() {
 entrypoints() {
     list_enabled_entrypoints
     wizard menu "Traefik entrypoint config" \
-           "Show enabled entrypoints = ./setup.sh list_enabled_entrypoints" \
-           "Configure stock entrypoints = ./setup.sh config_list_entrypoints" \
-           "Configure custom entrypoints = ./setup.sh custom_entrypoints"
+           "Show enabled entrypoints = ./setup.sh list_enabled_entrypoints || true" \
+           "Configure stock entrypoints = ./setup.sh config_list_entrypoints || true" \
+           "Configure custom entrypoints = ./setup.sh custom_entrypoints || true"
 }
 
 config_list_entrypoints() {
@@ -252,7 +252,7 @@ config_list_entrypoints() {
         if [[ -z "${description}" ]]; then
             description="Warning: the documentation has not been updated for this entrypoint"
         fi
-        menu_args+=("${entrypoint} : ${description} = ./setup.sh config_entrypoint ${entrypoint}")
+        menu_args+=("${entrypoint} : ${description} = ./setup.sh config_entrypoint ${entrypoint}  || true")
     done
     wizard menu "${menu_args[@]}"
 }
@@ -315,8 +315,8 @@ error_pages() {
 
 middleware() {
     wizard menu "Traefik middleware config:" \
-           "MaxMind geoIP locator = ./setup.sh maxmind_geoip" \
-           "OAuth2 sentry authorization (make sentry) = make sentry"
+           "MaxMind geoIP locator = ./setup.sh maxmind_geoip || true" \
+           "OAuth2 sentry authorization (make sentry) = make sentry  || true"
 }
 
 maxmind_geoip() {
@@ -450,10 +450,10 @@ layer_7_tls_proxy() {
             echo "## Layer 7 TLS Proxy is ENABLED."
             layer_7_tls_proxy_list_routes
             wizard menu --once --cancel-code 2 "Layer 7 TLS Proxy:" \
-                   "List layer 7 ingress routes = ./setup.sh layer_7_tls_proxy_list_routes" \
-                   "Add new layer 7 ingress route = ./setup.sh layer_7_tls_proxy_add_ingress_route" \
-                   "Remove layer 7 ingress routes = ./setup.sh layer_7_tls_proxy_manage_ingress_routes" \
-                   "Disable layer 7 TLS Proxy = ./setup.sh layer_7_tls_proxy_disable"
+                   "List layer 7 ingress routes = ./setup.sh layer_7_tls_proxy_list_routes || true" \
+                   "Add new layer 7 ingress route = ./setup.sh layer_7_tls_proxy_add_ingress_route || true" \
+                   "Remove layer 7 ingress routes = ./setup.sh layer_7_tls_proxy_manage_ingress_routes || true" \
+                   "Disable layer 7 TLS Proxy = ./setup.sh layer_7_tls_proxy_disable || true"
             local EXIT_CODE=$?
             case "$EXIT_CODE" in
                 0) continue;;
@@ -473,9 +473,9 @@ custom_entrypoints() {
     echo "## Custom Entrypoints can add new TCP or UDP port bindings."
     echo
     wizard menu "Custom Entrypoints:" \
-           "List custom entrypoints = ./setup.sh list_custom_entrypoints" \
-           "Add new custom entrypoint = ./setup.sh add_custom_entrypoint" \
-           "Remove custom entrypoints = ./setup.sh manage_custom_entrypoints"
+           "List custom entrypoints = ./setup.sh list_custom_entrypoints || true" \
+           "Add new custom entrypoint = ./setup.sh add_custom_entrypoint || true" \
+           "Remove custom entrypoints = ./setup.sh manage_custom_entrypoints || true"
 }
 
 layer_4_tcp_udp_proxy() {
@@ -489,10 +489,10 @@ layer_4_tcp_udp_proxy() {
             echo "## Layer 4 TCP/UDP Proxy is ENABLED."
             layer_4_tcp_udp_list_routes
             wizard menu --cancel-code 2 "Layer 4 TCP/UDP Proxy:" \
-                   "List layer 4 ingress routes = ./setup.sh layer_4_tcp_udp_list_routes" \
-                   "Add new layer 4 ingress route = ./setup.sh layer_4_tcp_udp_add_ingress_route" \
-                   "Remove layer 4 ingress routes = ./setup.sh layer_4_tcp_udp_proxy_manage_ingress_routes" \
-                   "Disable layer 4 TCP/UDP Proxy = ./setup.sh layer_4_tcp_udp_proxy_disable"
+                   "List layer 4 ingress routes = ./setup.sh layer_4_tcp_udp_list_routes || true" \
+                   "Add new layer 4 ingress route = ./setup.sh layer_4_tcp_udp_add_ingress_route || true" \
+                   "Remove layer 4 ingress routes = ./setup.sh layer_4_tcp_udp_proxy_manage_ingress_routes || true" \
+                   "Disable layer 4 TCP/UDP Proxy = ./setup.sh layer_4_tcp_udp_proxy_disable || true"
             local EXIT_CODE=$?
             case "$EXIT_CODE" in
                 0) continue;;
@@ -818,15 +818,15 @@ routes_menu() {
     wizard menu "Traefik routes" \
            "Configure layer 7 TLS proxy = ./setup.sh layer_7_tls_proxy || true" \
            "Configure layer 4 TCP/UDP proxy = ./setup.sh layer_4_tcp_udp_proxy || true" \
-           "Configure wireguard VPN = ./setup.sh wireguard"
+           "Configure wireguard VPN = ./setup.sh wireguard || true"
 }
 
 
 config_tls() {
     wizard menu "Traefik TLS config:" \
-           "Configure certificate authorities (CA) = make config-ca" \
-           "Configure ACME (Let's Encrypt or Step-CA) = make config-acme" \
-           "Configure TLS certificates (make certs) = make certs"
+           "Configure certificate authorities (CA) = make config-ca || true" \
+           "Configure ACME (Let's Encrypt or Step-CA) = make config-acme || true" \
+           "Configure TLS certificates (make certs) = make certs || true"
 }
 
 wireguard() {
@@ -836,7 +836,7 @@ wireguard() {
         readarray -t entrypoints < <(get_all_entrypoints | grep -v "^dashboard$")
         for var in "${entrypoints[@]}"; do
             ${BIN}/reconfigure ${ENV_FILE} "TRAEFIK_${var^^}_ENTRYPOINT_HOST=${HOST}"
-        done        
+        done
     }
     set_public_no_wireguard() {
         ${BIN}/reconfigure ${ENV_FILE} \
