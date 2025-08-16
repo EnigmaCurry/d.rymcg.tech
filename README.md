@@ -600,6 +600,7 @@ Install these other services at your leisure/preference:
 * [TriliumNext Notes](triliumnext-notes#readme) - a note-taking/knowledge base application
 * [Vaultwarden](vaultwarden#readme) - a bitwarden compatible password manager written in Rust (formerly bitwarden_rs)
 * [Websocketd](websocketd#readme) - a websocket / CGI server
+* [WireGuard-Gateway](wireguard-gateway) - a VPN client config that acts as a gateway node for your LAN.
 * [Wordpress](wordpress#readme) - a ubiquitous blogging / CMS platform, with a plugin to build a static HTML site snapshot
 * [XBrowserSync](xbs#readme) - a bookmark manager
 * [YOURLS](yourls#readme) - a URL shortener
