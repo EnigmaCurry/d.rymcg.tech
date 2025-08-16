@@ -441,7 +441,7 @@ table inet hostguard {
 
   ## OPTIONAL: to enable certain TCP/UDP host ports to be allowed access from containers,
   ##           uncomment the next two lines, and set the port elements:
-  # set allow_from_containers_tcp { type inet_service; elements = { 53 } }
+  # set allow_from_containers_tcp { type inet_service; elements = { 53, 443 } }
   # set allow_from_containers_udp { type inet_service; elements = { 53 } }
 
   # EGRESS: block host -> containers for non-allowed UIDs
