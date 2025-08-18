@@ -12,7 +12,7 @@ PRIVATE_KEY="${PRIVATE_KEY:-}"             # REQUIRED (client private key)
 PEER_PUBLIC_KEY="${PEER_PUBLIC_KEY:-${PUBLIC_KEY:-}}"
 
 PEER_ENDPOINT="${PEER_ENDPOINT:-}"         # REQUIRED (host:port)
-ALLOWED_IPS="${ALLOWED_IPS:-}"             # REQUIRED (e.g. "0.0.0.0/0, ::/0" or "10.10.0.0/16")
+PEER_ALLOWED_IPS="${PEER_ALLOWED_IPS:-}"             # REQUIRED (e.g. "0.0.0.0/0, ::/0" or "10.10.0.0/16")
 VPN_IPV4="${VPN_IPV4:-}"                   # OPTIONAL (e.g. "10.7.0.2/32")
 
 # Optional tuning
@@ -28,7 +28,7 @@ missing=()
 [[ -n "$PRIVATE_KEY"     ]] || missing+=("PRIVATE_KEY")
 [[ -n "$PEER_PUBLIC_KEY" ]] || missing+=("PEER_PUBLIC_KEY (or PUBLIC_KEY)")
 [[ -n "$PEER_ENDPOINT"   ]] || missing+=("PEER_ENDPOINT")
-[[ -n "$ALLOWED_IPS"     ]] || missing+=("ALLOWED_IPS")
+[[ -n "$PEER_ALLOWED_IPS"     ]] || missing+=("PEER_ALLOWED_IPS")
 
 if [[ "${#missing[@]}" -gt 0 ]]; then
   printf 'ERROR: missing required env vars: %s\n' "$(IFS=', '; echo "${missing[*]}")" >&2
@@ -62,7 +62,7 @@ umask 077
   echo "[Peer]"
   echo "PublicKey = ${PEER_PUBLIC_KEY}"
   # Remove whitespace around commas in AllowedIPs
-  echo "AllowedIPs = ${ALLOWED_IPS//, /,}"
+  echo "AllowedIPs = ${PEER_ALLOWED_IPS//, /,}"
   echo "Endpoint = ${PEER_ENDPOINT}"
   echo "PersistentKeepalive = ${PERSISTENT_KEEPALIVE}"
 } >"$CONF_PATH"
