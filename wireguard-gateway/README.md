@@ -1,8 +1,12 @@
 # WireGuard Gateway
 
-This configuration deploys a VPN gateway router and connects the
-entire LAN subnet to the WireGuard VPN - any client on your LAN can
-access the VPN simply by making a route to this gateway.
+This configuration deploys a VPN client gateway to create private
+routes across subnets.
+
+If you have several network devices that all need access to the same
+WireGuard network, you don't need to install WireGuard clients on all
+of them. You can create one gateway, and then give those other devices
+a common route to this gateway.
 
 ## Config
 
@@ -15,6 +19,7 @@ Answer the questions to fill in the following config:
   * `WIREGUARD_GATEWAY_LAN_INTERFACE`: Enter the host LAN interface name (check `ip addr`) (eg. eth0)
   * `WIREGUARD_GATEWAY_MAC_ADDRESS`: Enter a random MAC address for the virtual NIC (eg. 02:42:ac:11:00:02)
   * `WIREGUARD_GATEWAY_VPN_INTERFACE`: Enter the VPN interface name (eg. wg0)
+  * `WIREGUARD_GATEWAY_CLIENT_ALLOWED_IPS`: Enter the list of allowed client networks (0.0.0.0/0 allows all)
 
 Set all of the variables for the WireGuard config that has been
 provisioned by your peer (server):
@@ -27,13 +32,16 @@ provisioned by your peer (server):
 
 ## Provision DHCP lease for virtual MAC address
 
-The container will bridge to your LAN and request a local IP address
-from your native DHCP server.
+This container needs to bridge to your LAN with a dedicated macvlan
+interface (i.e., *not* the interface serving Traefik). macvlan is a
+type of virtual interface that will request a local IP address from
+your native DHCP server, from the same subnet as your native LAN
+interface.
 
-Using the value of `WIREGUARD_GATEWAY_MAC_ADDRESS`, create a static
-DHCP lease on your router for a LAN IP address to assign to the
-virtual network interface. That way the container will always have a
-static LAN IP address.
+Using the MAC address contained in `WIREGUARD_GATEWAY_MAC_ADDRESS`,
+create a static DHCP lease on your router for a LAN IP address to
+assign to the macvlan interface. From then on, the container will
+always have a dedicated static LAN IP address, to use all for itself.
 
 ## Install
 
@@ -67,16 +75,50 @@ If you see the peer listed with a recent handshake, then your
 connection is successful.
 
 ## Add routes
-
-On any LAN client, you can create a local route to the gateway and
-access any VPN route:
+### Add a manual route
+The easiest way to create a route on any Linux device is:
 
 ```
-DEST_NET=10.26.0.0/24
-LAN_IPV4=10.13.14.15
+VPN_NET=10.26.0.0/24
+GATEWAY=192.168.1.17
 LAN_INTERFACE=eth0
-ip route replace ${DEST_NET} via ${LAN_IPV4} dev ${LAN_INTERFACE}
+ip route replace ${VPN_NET} via ${GATEWAY} dev ${LAN_INTERFACE}
 ```
+
+This is a temporary route created manually, it won't survive a reboot.
+
+### Add a static route via DHCP server
+
+The better way to configure a route is via your DHCP server. DHCP
+has numbered "options" that provide this:
+
+ * DHCP option 33: Set a *specific* route for a single IP address.
+ * DHCP option 121: Set a *general* route for given network CIDR.
+ * DHCP option 3: Set the *default* route of your device to use for
+   all networks.
+   
+With any of these options enabled on your DHCP server, when your
+device boots up and receives its IP address from your DHCP server, it
+will also receive the gateway routing config.
+
+For example, if you are using the `dnsmasq` DHCP server, and you want
+to use option 121:
+
+```
+dhcp-host=CA:FE:BA:BE:01:02,myclient,192.168.1.5,set:my-vpn
+dhcp-option=tag:my-vpn,121,192.168.1.17
+```
+
+Or, if you want to set the *default* route:
+
+```
+dhcp-host=CA:FE:BA:BE:01:02,myclient,192.168.1.5,set:my-vpn
+dhcp-option=tag:my-vpn,3,192.168.1.17
+```
+
+Consult your DHCP documentation for more details.
+
+## Tech notes
 
 Note: `macvlan` connections bind directly to your physical LAN, and
 are isolated from the host (they act as distinct network adapters),
