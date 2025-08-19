@@ -30,11 +30,7 @@ pointing to your acme-dns server.
 For example:
 
 ```
-<<<<<<< Updated upstream
-_acme-challenge.mrfusion.rymcg.tech.  CNAME  d420c923-bbd7-4056-ab64-c3ca54c9b3cf.acme-dns.rymcg.tech.
-=======
 _acme-challenge.example.com.  CNAME  d420c923-bbd7-4056-ab64-c3ca54c9b3cf.acme-dns.example.com.
->>>>>>> Stashed changes
 ```
 
 ## Disable registration
@@ -54,4 +50,18 @@ To re-enable registration at a later time:
 ```
 ## ENABLE registration and restart the server:
 make registration-enable
+```
+
+
+## Traefik DNS resolvers
+
+If you have a faulty DNS server that does not return canonical NS
+records (e.g., `systemd-resolved`), you may need to set the root
+resolvers used by Traefik:
+
+```
+make -C ../traefik reconfigure var=TRAEFIK_DNS_SERVERS_STATIC=true
+make -C ../traefik reconfigure var=TRAEFIK_DNS_SERVER_1=1.1.1.1
+make -C ../traefik reconfigure var=TRAEFIK_DNS_SERVER_2=1.0.0.1
+make -C ../traefik reinstall
 ```

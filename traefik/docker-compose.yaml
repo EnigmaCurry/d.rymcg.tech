@@ -130,6 +130,7 @@ services:
     profiles:
       - default
     depends_on: ['config']
+    dns: ["${TRAEFIK_DNS_SERVER_1}", "${TRAEFIK_DNS_SERVER_2}"]
     build:
       context: .
       args:

@@ -33,7 +33,7 @@ FROM ${TRAEFIK_IMAGE}
 ARG TRAEFIK_UID TRAEFIK_GID TRAEFIK_DOCKER_GID
 COPY --from=plugins /plugins-local /plugins-local
 COPY entrypoint.sh  /entrypoint_ensure_config.sh
-RUN apk --no-cache add curl jq libcap step-cli && \
+RUN apk --no-cache add curl jq bind-tools libcap step-cli && \
     chmod a+x /entrypoint_ensure_config.sh && \
     addgroup -g ${TRAEFIK_GID} traefik && \
     getent group ${TRAEFIK_DOCKER_GID} || addgroup -g ${TRAEFIK_DOCKER_GID} docker && \
