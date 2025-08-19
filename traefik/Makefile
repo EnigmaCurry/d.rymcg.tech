@@ -99,3 +99,7 @@ sentry-callback:
 .PHONY: route # Manage routes
 route:
 	@ENV_FILE=${ENV_FILE} ROOT_ENV=${ROOT_ENV} D_RYMCG_TECH_CONTEXT_ALIAS=$${D_RYMCG_TECH_CONTEXT_ALIAS} ARGS=$${ARGS} ${BIN}/route
+
+.PHONY: lego-vars
+lego-vars:
+	./lego-vars/scrape_lego_vars.sh
