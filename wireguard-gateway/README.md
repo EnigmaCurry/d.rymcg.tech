@@ -27,7 +27,7 @@ provisioned by your peer (server):
   * `WIREGUARD_GATEWAY_PRIVATE_KEY`: Enter the WireGuard client's PRIVATE key
   * `WIREGUARD_GATEWAY_PEER_ENDPOINT`: Enter the provided WireGuard peer endpoint (host:port)
   * `WIREGUARD_GATEWAY_PEER_PUBLIC_KEY`: Enter the peer's PUBLIC WireGuard key
-  * `WIREGUARD_GATEWAY_PEER_ALLOWED_IPS`: Enter the allowed IPs to forward to the peer
+  * `WIREGUARD_GATEWAY_PEER_ALLOWED_IPS`: Enter the allowed destination IPs to forward through the peer
   * `WIREGUARD_GATEWAY_VPN_IPV4`: Enter the VPN client's IPv4 address
 
 ## Provision DHCP lease for virtual MAC address
