@@ -30,7 +30,11 @@ pointing to your acme-dns server.
 For example:
 
 ```
+<<<<<<< Updated upstream
 _acme-challenge.mrfusion.rymcg.tech.  CNAME  d420c923-bbd7-4056-ab64-c3ca54c9b3cf.acme-dns.rymcg.tech.
+=======
+_acme-challenge.example.com.  CNAME  d420c923-bbd7-4056-ab64-c3ca54c9b3cf.acme-dns.example.com.
+>>>>>>> Stashed changes
 ```
 
 ## Disable registration
