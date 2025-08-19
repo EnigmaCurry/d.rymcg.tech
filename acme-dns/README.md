@@ -1,7 +1,8 @@
 # acme-dns
 
-acme-dns is a limited DNS server with RESTful HTTP API to handle ACME
-DNS challenges easily and securely.
+[acme-dns](https://github.com/joohoi/acme-dns?tab=readme-ov-file#acme-dns)
+is a limited DNS server with RESTful HTTP API to handle ACME DNS
+challenges easily and securely.
 
 ## config
 
