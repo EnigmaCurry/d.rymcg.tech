@@ -10,7 +10,7 @@ ARG TRAEFIK_UID TRAEFIK_GID
 RUN chmod a+x setup.sh && \
     addgroup --gid ${TRAEFIK_GID} traefik && \
     adduser \
-      --uid 1001 \
+      --uid ${TRAEFIK_UID} \
       --ingroup traefik \
       --disabled-password \
       --gecos "" \
