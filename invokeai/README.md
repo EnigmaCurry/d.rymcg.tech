@@ -1,6 +1,8 @@
 # invokeai
 
-[invokeai](https://github.com/invoke-ai/InvokeAI) is an engine to generate stunning visual media using the latest AI-driven technologies.
+[invokeai](https://github.com/invoke-ai/InvokeAI) is an engine to
+generate stunning visual media using the latest AI-driven
+technologies.
 
 ## Config
 
