@@ -22,8 +22,12 @@ config-hook:
 		) || \
 		true;
 	@echo
-	@echo "Enter a path on the docker host's filesystem where Invoke will store data, including models. It should be an absolute path."
-	@${BIN}/reconfigure_ask ${ENV_FILE} INVOKEAI_HOST_INVOKEAI_ROOT "~/invokeai"
+	@${BIN}/confirm $$(test "$$(${BIN}/dotenv -f ${ENV_FILE} get INVOKEAI_STORE_MODELS_SEPARATELY)" == 'false' && echo no || echo yes) "By default, InvokeAI stores its models in the Docker volume with the rest of its data. Do you want to store models in a separate directory on the host (bind-mounted into the container)" "?" && ( \
+		${BIN}/reconfigure ${ENV_FILE} INVOKEAI_STORE_MODELS_SEPARATELY=true && \
+		${BIN}/reconfigure_ask_validate_regex ${ENV_FILE} INVOKEAI_SEPARATE_MODELS_HOST_PATH "Enter an absolute path on the host that you want InvokeAI to store models in" - "^\/^\/$$|^~$$|^(\/|~\/)(([^\/]+\/)*[^\/]+)?\/?$$" \
+	) || ( \
+		${BIN}/reconfigure ${ENV_FILE} INVOKEAI_STORE_MODELS_SEPARATELY=false \
+	)
 	@echo
 
 .PHONY: override-hook
@@ -38,16 +42,8 @@ override-hook:
 ####                         # (this hardcodes the string into docker-compose.override.yaml)
 ####   name=@VARIABLE_NAME   # sets the template 'name' field to the literal string '${VARIABLE_NAME}'
 ####                         # (used for regular docker-compose expansion of env vars by name.)
-	@${BIN}/docker_compose_override ${ENV_FILE} project=:invokeai instance=@INVOKEAI_INSTANCE traefik_host=@INVOKEAI_TRAEFIK_HOST http_auth=INVOKEAI_HTTP_AUTH http_auth_var=@INVOKEAI_HTTP_AUTH ip_sourcerange=@INVOKEAI_IP_SOURCERANGE oauth2=INVOKEAI_OAUTH2 authorized_group=INVOKEAI_OAUTH2_AUTHORIZED_GROUP enable_mtls_auth=INVOKEAI_MTLS_AUTH mtls_authorized_certs=INVOKEAI_MTLS_AUTHORIZED_CERTS docker_compose_profiles=DOCKER_COMPOSE_PROFILES
+	@${BIN}/docker_compose_override ${ENV_FILE} project=:invokeai instance=@INVOKEAI_INSTANCE traefik_host=@INVOKEAI_TRAEFIK_HOST http_auth=INVOKEAI_HTTP_AUTH http_auth_var=@INVOKEAI_HTTP_AUTH ip_sourcerange=@INVOKEAI_IP_SOURCERANGE oauth2=INVOKEAI_OAUTH2 authorized_group=INVOKEAI_OAUTH2_AUTHORIZED_GROUP enable_mtls_auth=INVOKEAI_MTLS_AUTH mtls_authorized_certs=INVOKEAI_MTLS_AUTHORIZED_CERTS docker_compose_profiles=DOCKER_COMPOSE_PROFILES store_models_separately=INVOKEAI_STORE_MODELS_SEPARATELY host_path=INVOKEAI_SEPARATE_MODELS_HOST_PATH
 
 .PHONY: shell # Enter container shell
 shell:
-	@make --no-print-directory docker-compose-shell SERVICE=invokeai
-
-.PHONY: shell-menu
-shell-menu:
-	@if [ -z "$(service)" ]; then \
-		container=$$(eval "${BIN}/script-wizard choose 'docker exec -it into which container?' 'invokeai' --default 'invokeai'") && make --no-print-directory docker-compose-shell SERVICE=$${container}; \
-	else \
-		make --no-print-directory docker-compose-shell SERVICE=$$(service); \
-	fi;
+	@make --no-print-directory docker-compose-shell SERVICE=invokeai-$$(${BIN}/dotenv -f ${ENV_FILE} get DOCKER_COMPOSE_PROFILES)

@@ -9,16 +9,11 @@ x-invokeai: &invokeai
       args:
         - GPU_DRIVER=${INVOKEAI_GPU_DRIVER}
     environment:
-      # if set, CONTAINER_INVOKEAI_ROOT will override the Invoke runtime directory location *inside* the container
-      - INVOKEAI_ROOT=${INVOKEAI_CONTAINER_INVOKEAI_ROOT:-/invokeai}
-      - HF_HOME
+      - INVOKEAI_ROOT=/invokeai
+      #- HF_HOME
     volumes:
-      - type: bind
-        source: ${INVOKEAI_HOST_INVOKEAI_ROOT:-${INVOKEAI_INVOKEAI_ROOT:-~/invokeai}}
-        target: ${INVOKEAI_CONTAINER_INVOKEAI_ROOT:-/invokeai}
-        bind:
-          create_host_path: true
-      - ${HF_HOME:-~/.cache/huggingface}:${HF_HOME:-/invokeai/.cache/huggingface}
+      - data:/invokeai
+      #- ${HF_HOME:-/.cache/huggingface}:${HF_HOME:-/invokeai/.cache/huggingface}
     tty: true
     stdin_open: true
     labels: []
@@ -58,3 +53,6 @@ services:
       - render
     profiles:
       - rocm
+
+volumes:
+  data:

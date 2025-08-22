@@ -21,6 +21,8 @@
 
 #! ### Project-specific vars:
 #@ docker_compose_profiles = data.values.docker_compose_profiles
+#@ store_models_separately = data.values.store_models_separately == "true"
+#@ host_path = data.values.host_path
 
 #@yaml/text-templated-strings
 services:
@@ -71,6 +73,15 @@ services:
 
   #@ elif docker_compose_profiles == "rocm":
   invokeai-rocm:
+    #@ if store_models_separately:
+    volumes:
+      - type: bind
+        source: (@= host_path @)
+        target: /invokeai/models
+        bind:
+          create_host_path: true
+    #@ end
+
     #@ service = "invokeai-" + docker_compose_profiles
     labels:
       - "backup-volume.stop-during-backup=true"
@@ -158,4 +169,3 @@ services:
       #! Apply all middlewares (do this at the end!)
       - "traefik.http.routers.(@= router @).middlewares=(@= ','.join(enabled_middlewares) @)"
   #@ end
-

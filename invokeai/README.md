@@ -34,6 +34,9 @@ top of your app.
 make install
 ```
 
+The initial installation can take anywhere from a couple minutes up to
+about 30 minutes, depending on your hardware and internet speed.
+
 ## Open
 
 ```
