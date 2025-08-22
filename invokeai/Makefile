@@ -47,3 +47,10 @@ override-hook:
 .PHONY: shell # Enter container shell
 shell:
 	@make --no-print-directory docker-compose-shell SERVICE=invokeai-$$(${BIN}/dotenv -f ${ENV_FILE} get DOCKER_COMPOSE_PROFILES)
+
+.PHONY: get-render-gid # Show the GID of the "render" group on the host
+get-render-gid:
+	@output=$$(ssh ${DOCKER_CONTEXT} "getent group render") && \
+		gid=$$(printf '%s\n' "$$output" | awk -F: '{print $$3}') && \
+		echo "GID for \"render\" group on host: $$gid"
+
