@@ -22,6 +22,9 @@ config-hook:
 		) || \
 		true;
 	@echo
+	@echo "Enter a path on the docker host's filesystem where Invoke will store data, including models. It should be an absolute path."
+	@${BIN}/reconfigure_ask ${ENV_FILE} INVOKEAI_HOST_INVOKEAI_ROOT "~/invokeai"
+	@echo
 
 .PHONY: override-hook
 override-hook:
