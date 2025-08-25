@@ -1,0 +1,58 @@
+# Copyright (c) 2023 Eugene Brodsky https://github.com/ebr
+
+x-invokeai: &invokeai
+    image: "ghcr.io/invoke-ai/invokeai:latest"
+    restart: unless-stopped
+    build:
+      context: .
+      dockerfile: Dockerfile
+      args:
+        - GPU_DRIVER=${INVOKEAI_GPU_DRIVER}
+    environment:
+      - INVOKEAI_ROOT=/invokeai
+      #- HF_HOME
+    volumes:
+      - data:/invokeai
+      #- ${HF_HOME:-/.cache/huggingface}:${HF_HOME:-/invokeai/.cache/huggingface}
+    tty: true
+    stdin_open: true
+    labels: []
+
+
+services:
+  invokeai-cuda:
+    <<: *invokeai
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: 1
+              capabilities: [gpu]
+    profiles:
+      - cuda
+
+  invokeai-cpu:
+    <<: *invokeai
+    profiles:
+      - cpu
+
+  invokeai-rocm:
+    <<: *invokeai
+    environment:
+      - AMD_VISIBLE_DEVICES=all
+      - RENDER_GROUP_ID=${INVOKEAI_RENDER_GROUP_ID}
+    devices:
+      - /dev/kfd
+      - /dev/dri
+    security_opt:
+      - seccomp=unconfined
+      - no-new-privileges:true
+    group_add:
+      - video
+      - render
+    profiles:
+      - rocm
+
+volumes:
+  data:

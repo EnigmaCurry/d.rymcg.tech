@@ -558,6 +558,7 @@ Install these other services at your leisure/preference:
 * [Icecast](icecast#readme) - a SHOUTcast compatible streaming multimedia server
 * [Immich](immich#readme) - a photo gallery
 * [Invidious](invidious#readme) - a Youtube proxy
+* [InvokeAI](invokeai#readme) - an AI image generator
 * [Iperf](iperf#readme) - a bandwidth speed testing service
 * [IT-Tools](it-tools#readme) - a collection of useful tools for developers and people working in IT
 * [Jitsi Meet](jitsi-meet#readme) - a video conferencing and screencasting service
