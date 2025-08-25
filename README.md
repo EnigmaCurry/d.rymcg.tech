@@ -558,11 +558,12 @@ Install these other services at your leisure/preference:
 * [Icecast](icecast#readme) - a SHOUTcast compatible streaming multimedia server
 * [Immich](immich#readme) - a photo gallery
 * [Invidious](invidious#readme) - a Youtube proxy
+* [InvokeAI](invokeai#readme) - an AI image generator
 * [Iperf](iperf#readme) - a bandwidth speed testing service
 * [IT-Tools](it-tools#readme) - a collection of useful tools for developers and people working in IT
 * [Jitsi Meet](jitsi-meet#readme) - a video conferencing and screencasting service
 * [Jupyterlab](jupyterlab#readme) - a web based code editing environment / reproducible research tool
-* [Larynx](larynx#readme) - a speech synthesis engine
+* [Kokoro Web](kokoro#readme) - a browser-based AI voice generator that lets you create natural-sounding voices
 * [Lemmy](lemmy#readme) - a link aggregator and forum for the fediverse
 * [Matterbridge](matterbridge#readme) - a chat room bridge (IRC, Matrix, XMPP, etc)
 * [Maubot](maubot#readme) - a matrix Bot
@@ -600,6 +601,7 @@ Install these other services at your leisure/preference:
 * [TriliumNext Notes](triliumnext-notes#readme) - a note-taking/knowledge base application
 * [Vaultwarden](vaultwarden#readme) - a bitwarden compatible password manager written in Rust (formerly bitwarden_rs)
 * [Websocketd](websocketd#readme) - a websocket / CGI server
+* [WireGuard-Gateway](wireguard-gateway) - a VPN client config that acts as a gateway node for your LAN.
 * [Wordpress](wordpress#readme) - a ubiquitous blogging / CMS platform, with a plugin to build a static HTML site snapshot
 * [XBrowserSync](xbs#readme) - a bookmark manager
 * [YOURLS](yourls#readme) - a URL shortener
