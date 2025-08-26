@@ -105,9 +105,10 @@ enable-acme:
 	@make --no-print-directory docker-compose-shell SERVICE=step-ca COMMAND="/bin/bash /tmp/enable_acme.sh"
 	@make --no-print-directory wait
 
-.PHONY: new-acme-eab # Create a new ACME EAB token
-new-acme-eab:
-	@make --no-print-directory docker-compose-shell SERVICE=step-ca COMMAND="step ca acme eab add acme my-prod-nginx --ca-url "https://$$(${BIN}/dotenv -f ${ENV_FILE} get STEP_CA_TRAEFIK_HOST)" --root /home/step/certs/root_ca.crt"
+## :( EAB is unsupported by open source Step-CA :((
+# .PHONY: new-acme-eab # Create a new ACME EAB token
+# new-acme-eab:
+# 	@make --no-print-directory docker-compose-shell SERVICE=step-ca COMMAND="step ca acme eab add acme my-prod-nginx --ca-url "https://$$(${BIN}/dotenv -f ${ENV_FILE} get STEP_CA_TRAEFIK_HOST)" --root /home/step/certs/root_ca.crt"
 
 .PHONY: init-ca  # Initialize the CA and print the admin password
 init-ca:
