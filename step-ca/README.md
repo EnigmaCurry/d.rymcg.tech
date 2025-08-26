@@ -31,7 +31,8 @@ make init-ca
  * Copy the username and password from the output.
  * Store the credentials someplace safe!
 
-> [!NOTE] If this is *not* a fresh install, it won't print the
+> [!NOTE]
+> If this is *not* a fresh install, it won't print the
 > password. If you don't know your password, you must start over,
 > completely fresh. To do so, run `make destroy` before trying this
 > again.
