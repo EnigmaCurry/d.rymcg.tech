@@ -149,3 +149,8 @@ install-hook-pre: require-volume
 
 .PHONY: install-hook
 install-hook: wait
+
+.PHONY: config-hook-echo-postscript
+config-hook-echo-postscript:
+	@echo
+	@$(MAKE) check-volume && $(MAKE) config-hook-echo-postscript-default || echo -e "\nBefore you can install, you must run \`make init-ca\`"
