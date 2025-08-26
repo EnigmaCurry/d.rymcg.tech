@@ -8,6 +8,3 @@ uninstall: down
 .PHONY: reinstall # Remove service containers, and re-install (volumes left intact).
 reinstall: uninstall install
 
-.PHONY: install-hook-pre
-install-hook-pre:
-	@echo pre-hook
