@@ -30,3 +30,11 @@ override-hook:
 .PHONY: shell # Enter container shell
 shell:
 	@make --no-print-directory docker-compose-shell SERVICE=datetime
+
+.PHONY: install-hook
+install-hook:
+	@echo
+
+.PHONY: install-hook-pre
+install-hook-pre:
+	@echo

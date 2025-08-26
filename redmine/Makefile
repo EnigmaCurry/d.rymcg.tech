@@ -58,3 +58,11 @@ install-plugins:
 	echo; \
 	echo "Restarting container $$CONTAINER_NAME..."; \
 	docker restart $$CONTAINER_NAME
+
+.PHONY: install-hook
+install-hook:
+	@echo
+
+.PHONY: install-hook-pre
+install-hook-pre:
+	@echo

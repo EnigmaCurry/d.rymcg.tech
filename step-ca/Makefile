@@ -10,9 +10,19 @@ config-hook:
 #### reconfigure sets the value of a variable in the .env file without asking.
 #### reconfigure_htpasswd will configure the HTTP Basic Authentication setting the var name and with a provided default value.
 	@${BIN}/reconfigure_ask ${ENV_FILE} STEP_CA_TRAEFIK_HOST "Enter the step-ca domain name" ca${INSTANCE_URL_SUFFIX}.${ROOT_DOMAIN}
+	@echo
 	@${BIN}/reconfigure ${ENV_FILE} STEP_CA_PUBLIC_HTTPS_PORT=$$([[ -z $$(${BIN}/dotenv -f ${ENV_FILE} get STEP_CA_PUBLIC_HTTPS_PORT) ]] && echo $$(${BIN}/dotenv -f ../${ROOT_ENV} get PUBLIC_HTTPS_PORT) || echo $$(${BIN}/dotenv -f ${ENV_FILE} get STEP_CA_PUBLIC_HTTPS_PORT))
+	@echo
 	@${BIN}/reconfigure ${ENV_FILE} STEP_CA_INSTANCE=$${instance:-default}
+	@echo
 	@${BIN}/reconfigure_ask ${ENV_FILE} STEP_CA_AUTHORITY_POLICY_X509_ALLOW_DNS "Enter the list of allowed domain wildcards (comma separated)"
+	@echo
+	@${BIN}/reconfigure_ask ${ENV_FILE} STEP_CA_AUTHORITY_CLAIMS_MIN_TLS_CERT_DURATION "Enter the minimum certificate expiration" "5m"
+	@${BIN}/reconfigure_ask ${ENV_FILE} STEP_CA_AUTHORITY_CLAIMS_MAX_TLS_CERT_DURATION "Enter the maximum certificate expiration" "2160h"
+	@echo
+	@${BIN}/reconfigure_ask ${ENV_FILE} STEP_CA_AUTHORITY_CLAIMS_DEFAULT_TLS_CERT_DURATION "Enter the default certificate duration" "168h"
+	@echo
+	@(${BIN}/confirm $$(test "$$(${BIN}/dotenv -f ${ENV_FILE} get STEP_CA_AUTHORITY_CLAIMS_DISABLE_RENEWAL)" == "true" && echo "no" || echo "yes") "Do you want to allow certificate renewal" "?" && ${BIN}/reconfigure ${ENV_FILE} STEP_CA_AUTHORITY_CLAIMS_DISABLE_RENEWAL=false) || ${BIN}/reconfigure ${ENV_FILE} STEP_CA_AUTHORITY_CLAIMS_DISABLE_RENEWAL=true
 	@echo ""
 
 .PHONY: override-hook
@@ -33,10 +43,13 @@ override-hook:
 shell:
 	@make --no-print-directory docker-compose-shell SERVICE=step-ca
 
-## TODO: Why does this print the wrong password?
-# .PHONY: inspect-password # Retrieve the Step-CA password
-# inspect-password:
-# 	@make --no-print-directory docker-compose-shell SERVICE=step-ca COMMAND="cat /home/step/secrets/password" 2>/dev/null
+.PHONY: inspect-password # Retrieve the Step-CA password from the logs (if possible)
+inspect-password:
+	@echo
+	@sleep 2
+	@make --no-print-directory logs-out SERVICE=step-ca | grep -E "CA administrative password"
+	@echo "Your CA administrative username/subject is 👉: step"
+	@echo
 
 .PHONY: inspect-fingerprint # Retrieve the Step-CA fingerprint
 inspect-fingerprint:
@@ -44,11 +57,15 @@ inspect-fingerprint:
 
 .PHONY: inspect-config # Retrieve the Step-CA ca.json config file
 inspect-config:
-	@make --no-print-directory docker-compose-shell SERVICE=step-ca COMMAND="cat ~/config/ca.json" 2>/dev/null
+	@make --no-print-directory docker-compose-shell SERVICE=step-ca COMMAND="cat ~/config/ca.json"
 
 .PHONY: client-bootstrap # Bootstrap the client's step-cli
 client-bootstrap:
 	@TRAEFIK_HOST=$$(${BIN}/dotenv -f ${ENV_FILE} get STEP_CA_TRAEFIK_HOST); STEP_CA_PUBLIC_HTTPS_PORT=$$(${BIN}/dotenv -f ${ENV_FILE} get STEP_CA_PUBLIC_HTTPS_PORT); FINGERPRINT=$$(make --no-print-directory inspect-fingerprint); echo "# CA Host: https://$${TRAEFIK_HOST}:$${STEP_CA_PUBLIC_HTTPS_PORT}"; echo "# CA Fingerprint: $${FINGERPRINT}"; ${STEP} ca bootstrap --ca-url "$${TRAEFIK_HOST}:$${STEP_CA_PUBLIC_HTTPS_PORT}" --fingerprint $${FINGERPRINT}
+
+.PHONY: get-ca-cert # Download the root CA cert into a temporary local file.
+get-ca-cert:
+	@FILE=$$(mktemp); $(COMPUTE_VOL) make --no-print-directory docker-compose-lifecycle-cmd EXTRA_ARGS="cp step-ca:/home/step/certs/root_ca.crt $${FILE}" && echo $${FILE}
 
 .PHONY: cert # Create certificate
 cert:
@@ -86,3 +103,49 @@ enable-acme:
 	@echo ""
 	@make --no-print-directory docker-compose-lifecycle-cmd EXTRA_ARGS="cp script/enable_acme.sh step-ca:/tmp/enable_acme.sh"
 	@make --no-print-directory docker-compose-shell SERVICE=step-ca COMMAND="/bin/bash /tmp/enable_acme.sh"
+	@make --no-print-directory wait
+
+## :( EAB is unsupported by open source Step-CA :((
+# .PHONY: new-acme-eab # Create a new ACME EAB token
+# new-acme-eab:
+# 	@make --no-print-directory docker-compose-shell SERVICE=step-ca COMMAND="step ca acme eab add acme my-prod-nginx --ca-url "https://$$(${BIN}/dotenv -f ${ENV_FILE} get STEP_CA_TRAEFIK_HOST)" --root /home/step/certs/root_ca.crt"
+
+.PHONY: init-ca  # Initialize the CA and print the admin password
+init-ca:
+	@# If volume exists, fault; otherwise run the init steps
+	@if $(MAKE) -s --no-print-directory check-volume INSTANCE="$(INSTANCE)"; then \
+	  ${BIN}/fault "Step-CA config volume already exists. Cannot re-initialize the CA unless you \`make destroy\` first."; \
+	else \
+	  $(MAKE) -s --no-print-directory start wait inspect-password uninstall INSTANCE="$(INSTANCE)"; \
+	fi
+
+# Reusable shell snippet to compute $vol from $INSTANCE
+define COMPUTE_VOL
+inst="$${INSTANCE:-}"; \
+if [ -z "$$inst" ] || [ "$$inst" = "default" ]; then \
+  vol="step-ca_config"; \
+else \
+  vol="step-ca_config-$$inst"; \
+fi;
+endef
+
+.PHONY: check-volume
+check-volume:
+	@set -e; \
+	$(COMPUTE_VOL) \
+	docker volume inspect "$$vol" >/dev/null 2>&1
+
+.PHONY: require-volume
+require-volume:
+	@$(MAKE) -s --no-print-directory check-volume INSTANCE="$(INSTANCE)" || { \
+	  $(COMPUTE_VOL) \
+	  echo "[install-hook-pre] Docker volume '$$vol' missing!"; \
+	  echo; \
+	  ${BIN}/fault "Before you can install, you must run \`make init-ca\`"; \
+	}
+
+.PHONY: install-hook-pre
+install-hook-pre: require-volume
+
+.PHONY: install-hook
+install-hook: wait
