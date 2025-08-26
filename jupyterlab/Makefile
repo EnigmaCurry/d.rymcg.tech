@@ -30,3 +30,7 @@ override-hook:
 ####   name=@VARIABLE_NAME   # sets the template 'name' field to the literal string '${VARIABLE_NAME}'
 ####                         # (used for regular docker-compose expansion of env vars by name.)
 	@${BIN}/docker_compose_override ${ENV_FILE} project=:jupyterlab instance=@JUPYTERLAB_INSTANCE traefik_host=@JUPYTERLAB_TRAEFIK_HOST http_auth=JUPYTERLAB_HTTP_AUTH http_auth_var=@JUPYTERLAB_HTTP_AUTH ip_sourcerange=@JUPYTERLAB_IP_SOURCERANGE oauth2=JUPYTERLAB_OAUTH2 authorized_group=JUPYTERLAB_OAUTH2_AUTHORIZED_GROUP enable_mtls_auth=JUPYTERLAB_MTLS_AUTH mtls_authorized_certs=JUPYTERLAB_MTLS_AUTHORIZED_CERTS
+
+.PHONY: install-hook
+install-hook:
+	@echo

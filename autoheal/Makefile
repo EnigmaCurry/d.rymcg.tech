@@ -10,3 +10,6 @@ config-hook:
 .PHONY: shell
 shell:
 	@make --no-print-directory docker-compose-shell SERVICE=autoheal
+.PHONY: install-hook
+install-hook:
+	@echo

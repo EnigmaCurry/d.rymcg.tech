@@ -52,3 +52,7 @@ show-password:
 	@echo
 	@echo "You should immediately open the app, click your avatar in the upper right corner, and select "Profile" to change the admin login's password (also, optionally, to change the admin login's name and email address). Once you change the password in the app, this initial password is no longer used."
 	@echo
+
+.PHONY: install-hook
+install-hook:
+	@echo

@@ -33,3 +33,7 @@ build-hook-pre:
 .PHONY: shell
 shell:
 	@make --no-print-directory docker-compose-shell SERVICE=calibre
+
+.PHONY: install-hook
+install-hook:
+	@echo

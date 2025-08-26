@@ -12,3 +12,6 @@ open:
 .PHONY: shell
 shell:
 	@make --no-print-directory docker-compose-shell SERVICE=syncthing
+.PHONY: install-hook
+install-hook:
+	@echo

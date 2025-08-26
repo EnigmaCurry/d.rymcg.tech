@@ -45,3 +45,7 @@ shell:
 psql:
 	@make --no-print-directory docker-compose-shell SERVICE=postgres COMMAND="psql -U postgres commentario"
 
+
+.PHONY: install-hook
+install-hook:
+	@echo

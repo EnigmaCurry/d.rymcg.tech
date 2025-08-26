@@ -68,3 +68,7 @@ mc:
 .PHONY: config-console # Configure console to connect to MinIO
 config-console:
 	@ENV_FILE=${ENV_FILE} MINIO_TRAEFIK_HOST="$$(${BIN}/dotenv -f ${ENV_FILE} get MINIO_TRAEFIK_HOST)" MINIO_TRAEFIK_PORT="$$(${BIN}/dotenv -f ${ROOT_DIR}/${ROOT_ENV} get PUBLIC_HTTPS_PORT)" MINIO_CONSOLE_TRAEFIK_HOST="$$(${BIN}/dotenv -f ${ENV_FILE} get MINIO_CONSOLE_TRAEFIK_HOST)" MINIO_CONSOLE_ACCESS_KEY="$$(${BIN}/dotenv -f ${ENV_FILE} get MINIO_CONSOLE_ACCESS_KEY)" MINIO_CONSOLE_SECRET_KEY="$$(${BIN}/dotenv -f ${ENV_FILE} get MINIO_CONSOLE_SECRET_KEY)" MINIO_ROOT_USER="$$(${BIN}/dotenv -f ${ENV_FILE} get MINIO_ROOT_USER)" MINIO_ROOT_PASSWORD="$$(${BIN}/dotenv -f ${ENV_FILE} get MINIO_ROOT_PASSWORD)" ./config_console.sh
+
+.PHONY: install-hook
+install-hook:
+	@echo

@@ -39,3 +39,7 @@ shell:
 .PHONY: credentials # Get ephemeral TURN credentials
 credentials:
 	@make --no-print-directory docker-compose-shell SERVICE=coturn COMMAND="get-credentials.sh"
+
+.PHONY: install-hook
+install-hook:
+	@echo
