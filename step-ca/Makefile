@@ -108,3 +108,7 @@ init-ca: install inspect-password uninstall
 .PHONY: install-hook
 install-hook: wait
 	@echo
+
+.PHONY: install-hook-pre
+install-hook-pre:
+	@echo

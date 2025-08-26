@@ -107,3 +107,7 @@ lego-vars:
 .PHONY: install-hook
 install-hook:
 	@echo
+
+.PHONY: install-hook-pre
+install-hook-pre:
+	@echo

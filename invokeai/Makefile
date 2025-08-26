@@ -54,3 +54,11 @@ get-render-gid:
 		gid=$$(printf '%s\n' "$$output" | awk -F: '{print $$3}') && \
 		echo "GID for \"render\" group on host: $$gid"
 
+
+.PHONY: install-hook
+install-hook:
+	@echo
+
+.PHONY: install-hook-pre
+install-hook-pre:
+	@echo
