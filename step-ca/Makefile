@@ -46,7 +46,9 @@ shell:
 .PHONY: inspect-password # Retrieve the Step-CA password from the logs (if possible)
 inspect-password:
 	@echo
-	@make --no-print-directory logs-out SERVICE=step-ca | grep -E "CA administrative (username|password)"
+	@sleep 2
+	@make --no-print-directory logs-out SERVICE=step-ca | grep -E "CA administrative password"
+	@echo "Your CA administrative username/subject is 👉: step"
 	@echo
 
 .PHONY: inspect-fingerprint # Retrieve the Step-CA fingerprint
@@ -102,13 +104,42 @@ enable-acme:
 new-acme-eab:
 	@make --no-print-directory docker-compose-shell SERVICE=step-ca COMMAND="step ca acme eab add acme my-prod-nginx --ca-url "https://$$(${BIN}/dotenv -f ${ENV_FILE} get STEP_CA_TRAEFIK_HOST)" --root /home/step/certs/root_ca.crt"
 
-.PHONY: init-ca # Initialize the CA and print the admin password
-init-ca: install inspect-password uninstall
+.PHONY: init-ca  # Initialize the CA and print the admin password
+init-ca:
+	@# If volume exists, fault; otherwise run the init steps
+	@if $(MAKE) -s --no-print-directory check-volume INSTANCE="$(INSTANCE)"; then \
+	  ${BIN}/fault "Step-CA config volume already exists. Cannot re-initialize the CA unless you \`make destroy\` first."; \
+	else \
+	  $(MAKE) -s --no-print-directory start wait inspect-password uninstall INSTANCE="$(INSTANCE)"; \
+	fi
+
+# Reusable shell snippet to compute $vol from $INSTANCE
+define COMPUTE_VOL
+inst="$${INSTANCE:-}"; \
+if [ -z "$$inst" ] || [ "$$inst" = "default" ]; then \
+  vol="step-ca_config"; \
+else \
+  vol="step-ca_config-$$inst"; \
+fi;
+endef
+
+.PHONY: check-volume
+check-volume:
+	@set -e; \
+	$(COMPUTE_VOL) \
+	docker volume inspect "$$vol" >/dev/null 2>&1
+
+.PHONY: require-volume
+require-volume:
+	@$(MAKE) -s --no-print-directory check-volume INSTANCE="$(INSTANCE)" || { \
+	  $(COMPUTE_VOL) \
+	  echo "[install-hook-pre] Docker volume '$$vol' missing!"; \
+	  echo; \
+	  ${BIN}/fault "Before you can install, you must run \`make init-ca\`"; \
+	}
+
+.PHONY: install-hook-pre
+install-hook-pre: require-volume
 
 .PHONY: install-hook
 install-hook: wait
-	@echo
-
-.PHONY: install-hook-pre
-install-hook-pre:
-	@echo
