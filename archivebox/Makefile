@@ -104,3 +104,7 @@ shell:
 	else \
 		make --no-print-directory docker-compose-shell SERVICE=$$(service); \
 	fi;
+
+.PHONY: install-hook
+install-hook:
+	@echo

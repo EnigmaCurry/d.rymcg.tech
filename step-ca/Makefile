@@ -86,3 +86,7 @@ enable-acme:
 	@echo ""
 	@make --no-print-directory docker-compose-lifecycle-cmd EXTRA_ARGS="cp script/enable_acme.sh step-ca:/tmp/enable_acme.sh"
 	@make --no-print-directory docker-compose-shell SERVICE=step-ca COMMAND="/bin/bash /tmp/enable_acme.sh"
+
+.PHONY: install-hook
+install-hook:
+	@echo

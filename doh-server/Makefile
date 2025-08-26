@@ -33,3 +33,7 @@ override-hook:
 .PHONY: shell
 shell:
 	@make --no-print-directory docker-compose-shell SERVICE=doh-server COMMAND=/bin/bash
+
+.PHONY: install-hook
+install-hook:
+	@echo

@@ -29,3 +29,7 @@ override-hook:
 .PHONY: shell
 shell:
 	@make --no-print-directory docker-compose-shell SERVICE=backup
+
+.PHONY: install-hook
+install-hook:
+	@echo
