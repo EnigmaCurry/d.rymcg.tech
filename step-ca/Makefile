@@ -37,7 +37,7 @@ override-hook:
 ####                         # (this hardcodes the string into docker-compose.override.yaml)
 ####   name=@VARIABLE_NAME   # sets the template 'name' field to the literal string '${VARIABLE_NAME}'
 ####                         # (used for regular docker-compose expansion of env vars by name.)
-	@${BIN}/docker_compose_override ${ENV_FILE} project=:step-ca instance=@STEP_CA_INSTANCE traefik_host=@STEP_CA_TRAEFIK_HOST ip_sourcerange=@STEP_CA_IP_SOURCERANGE acme_new_account_ip_sourcerange=@STEP_CA_ACME_NEW_ACCOUNT_IP_SOURCERANGE
+	@${BIN}/docker_compose_override ${ENV_FILE} project=:step-ca instance=@STEP_CA_INSTANCE traefik_host=@STEP_CA_TRAEFIK_HOST ip_sourcerange=@STEP_CA_IP_SOURCERANGE
 
 .PHONY: shell
 shell:
@@ -61,7 +61,11 @@ inspect-config:
 
 .PHONY: client-bootstrap # Bootstrap the client's step-cli
 client-bootstrap:
-	@TRAEFIK_HOST=$$(${BIN}/dotenv -f ${ENV_FILE} get STEP_CA_TRAEFIK_HOST); STEP_CA_PUBLIC_HTTPS_PORT=$$(${BIN}/dotenv -f ${ENV_FILE} get STEP_CA_PUBLIC_HTTPS_PORT); FINGERPRINT=$$(make --no-print-directory inspect-fingerprint); echo "# CA Host: https://$${TRAEFIK_HOST}:$${STEP_CA_PUBLIC_HTTPS_PORT}"; echo "# CA Fingerprint: $${FINGERPRINT}"; ${STEP} ca bootstrap --ca-url "$${TRAEFIK_HOST}:$${STEP_CA_PUBLIC_HTTPS_PORT}" --root /etc/ssl/certs/ca-certificates.crt --fingerprint $${FINGERPRINT}
+	@TRAEFIK_HOST=$$(${BIN}/dotenv -f ${ENV_FILE} get STEP_CA_TRAEFIK_HOST); STEP_CA_PUBLIC_HTTPS_PORT=$$(${BIN}/dotenv -f ${ENV_FILE} get STEP_CA_PUBLIC_HTTPS_PORT); FINGERPRINT=$$(make --no-print-directory inspect-fingerprint); echo "# CA Host: https://$${TRAEFIK_HOST}:$${STEP_CA_PUBLIC_HTTPS_PORT}"; echo "# CA Fingerprint: $${FINGERPRINT}"; ${STEP} ca bootstrap --ca-url "$${TRAEFIK_HOST}:$${STEP_CA_PUBLIC_HTTPS_PORT}" --fingerprint $${FINGERPRINT}
+
+.PHONY: get-ca-cert # Download the root CA cert into a temporary local file.
+get-ca-cert:
+	@FILE=$$(mktemp); $(COMPUTE_VOL) make --no-print-directory docker-compose-lifecycle-cmd EXTRA_ARGS="cp step-ca:/home/step/certs/root_ca.crt $${FILE}" && echo $${FILE}
 
 .PHONY: cert # Create certificate
 cert:

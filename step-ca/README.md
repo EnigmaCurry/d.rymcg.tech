@@ -71,14 +71,14 @@ Once bootstrapped, you can issue `step` commands directly from your
 workstation, e.g.,:
 
 ```
-step ca health --root /etc/ssl/certs/ca-certificates.crt
-step ca roots  --root /etc/ssl/certs/ca-certificates.crt
+step ca health
+step ca roots
 ```
 
 > [!NOTE] 
-> `--root /etc/ssl/certs/ca-certificates.crt` must be given because
-> Traefik is presenting a Let's Encrypt certitficate in front of
-> Step-CA itself, and for that you must use your system trust store.
+> `STEP_ROOT` must provide the .pem formatted proxy cert that Traefik
+> fronts Step-CA with. This is most often a certificate from Let's
+> Encrypt. `make proxy-cert` will download this to a temporary file.
 
 ## Manually create and sign X.509 (TLS) certificates
 
