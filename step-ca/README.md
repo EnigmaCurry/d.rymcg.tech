@@ -209,6 +209,12 @@ install other stuff on the same (virtual) machine, it defeats this
 purpose. Of course, if you intend for this to be a full time service,
 you may not afford this option, so you can do what you wish.
 
+Unfortunately, the open-source Step-CA [does not
+implement](https://smallstep.com/docs/step-ca/#limitations) External
+Account Binding ([EAB -
+RFC8555](https://www.rfc-editor.org/rfc/rfc8555#section-7.3.4)), which
+would help tremendously in this regard.
+
 ## ACME
 
 By default, Step-CA only configures the
