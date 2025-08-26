@@ -3,7 +3,11 @@ config: check-instance-project script-wizard check-dist-vars
 	@echo
 	@echo "Configuring environment file: ${ENV_FILE}"
 	@make -e --no-print-directory config-hook override instance=${INSTANCE}
-	@make -e --no-print-directory list-targets | grep "^config-hook-echo-postscript$$" >/dev/null && make -e --no-print-directory config-hook-echo-postscript instance=${INSTANCE} || make -e --no-print-directory config-hook-echo-postscript-default instance=${INSTANCE}
+	@if make -e --no-print-directory list-targets | grep -q "^config-hook-echo-postscript$$"; then \
+		make -e --no-print-directory config-hook-echo-postscript instance=${INSTANCE}; \
+	else \
+		make -e --no-print-directory config-hook-echo-postscript-default instance=${INSTANCE}; \
+	fi
 
 config-hook-echo-postscript-default: 
 	@echo ""
