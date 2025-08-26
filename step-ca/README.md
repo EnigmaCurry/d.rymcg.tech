@@ -17,19 +17,19 @@ to finish the config.
 
 ## Initialize the CA and retrieve the Step-CA admin password
 
-You must run step-ca interactively for the first time only. This is
-important because you need to make a record of the CA password, which
-is only printed one time in the log. 
+You must initialize the CA before you install. This is important
+because you need to make a record of the CA password, which is only
+printed one time.
 
-Initialize the CA:
+Initialize the CA, and take note of the password:
 
 ```
 ## This will only work during a *fresh* install:
 make init-ca
 ```
 
-After the install healthcheck is awaited, it will print the CA admin
-password. Make sure that you copy it to someplace safe!
+ * Copy the username and password from the output.
+ * Store the credentials someplace safe!
 
 > [!NOTE] If this is *not* a fresh install, it won't print the
 > password. If you don't know your password, you must start completely
@@ -38,15 +38,8 @@ password. Make sure that you copy it to someplace safe!
 ## Install
 
 ```
-make install wait
+make install
 ```
-
-> [!NOTE] The `reinstall` command will remove the existing container,
-> *and the logs*, but *not* the CA database. This is important for
-> proper CA initialization and the erasure of the admin password from
-> the logs. The `wait` command will wait for the Docker healthcheck to
-> complete after install. After this procedure, the `inspect-password`
-> command will no longer work!
 
 ## Setup client
 
