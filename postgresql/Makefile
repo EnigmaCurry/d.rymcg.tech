@@ -76,3 +76,7 @@ drop-chinook:
 .PHONY: psql-alias # Get the psql alias with baked connection string
 psql-alias:
 	@echo "alias psql=\"psql '$$(make --no-print-directory connection-string)'\""
+
+.PHONY: install-hook
+install-hook:
+	@echo

@@ -30,3 +30,7 @@ override-hook:
 .PHONY: shell # Enter container shell
 shell:
 	@make --no-print-directory docker-compose-shell SERVICE=iperf
+
+.PHONY: install-hook
+install-hook:
+	@echo

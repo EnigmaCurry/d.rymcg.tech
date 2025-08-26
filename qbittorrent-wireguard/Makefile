@@ -52,3 +52,7 @@ override-hook:
 ####                         # (used for regular docker-compose expansion of env vars by name.)
 	@${BIN}/docker_compose_override ${ENV_FILE} project=:qbitorrent instance=@QBITTORRENT_INSTANCE traefik_host=@QBITTORRENT_TRAEFIK_HOST http_auth=QBITTORRENT_HTTP_AUTH http_auth_var=@QBITTORRENT_HTTP_AUTH ip_sourcerange=@QBITTORRENT_IP_SOURCERANGE oauth2=QBITTORRENT_OAUTH2 authorized_group=QBITTORRENT_OAUTH2_AUTHORIZED_GROUP enable_mtls_auth=QBITTORRENT_MTLS_AUTH mtls_authorized_certs=QBITTORRENT_MTLS_AUTHORIZED_CERTS
 
+
+.PHONY: install-hook
+install-hook:
+	@echo

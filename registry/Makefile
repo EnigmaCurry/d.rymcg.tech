@@ -31,3 +31,7 @@ override-hook:
 .PHONY: shell
 shell:
 	@make --no-print-directory docker-compose-shell SERVICE=registry
+
+.PHONY: install-hook
+install-hook:
+	@echo

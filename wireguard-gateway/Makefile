@@ -40,3 +40,7 @@ shell:
 .PHONY: wg # Show WireGuard config
 wg:
 	@make --no-print-directory docker-compose-shell SERVICE=wireguard_gateway COMMAND="wg"
+
+.PHONY: install-hook
+install-hook:
+	@echo

@@ -57,3 +57,7 @@ dev:
 		cargo install cargo-watch; \
 	fi
 	cargo watch -s 'sleep 5 && make up'
+
+.PHONY: install-hook
+install-hook:
+	@echo

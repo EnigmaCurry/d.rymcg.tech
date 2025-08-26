@@ -20,3 +20,7 @@ config-hook:
 .PHONY: shell
 shell:
 	@make --no-print-directory docker-compose-shell SERVICE=traefik-forward-auth
+
+.PHONY: install-hook
+install-hook:
+	@echo

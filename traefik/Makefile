@@ -103,3 +103,7 @@ route:
 .PHONY: lego-vars
 lego-vars:
 	./lego-vars/scrape_lego_vars.sh
+
+.PHONY: install-hook
+install-hook:
+	@echo

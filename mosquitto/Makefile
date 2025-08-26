@@ -26,3 +26,7 @@ cert:
 	@${STEP} ca roots > certs/root_ca.crt
 	@CN=$$(${BIN}/ask_echo "Enter the client domain (CN) to be certified" ${HOSTNAME}.clients.$$(${BIN}/dotenv -f ${ENV_FILE} get MOSQUITTO_TRAEFIK_HOST)); ${STEP} ca certificate "$${CN}" "certs/$${CN}.crt" "certs/$${CN}.key" --provisioner admin --not-after "$$(${BIN}/dotenv -f ${ENV_FILE} get MOSQUITTO_CLIENT_CERT_EXPIRATION_HOURS)"h
 
+
+.PHONY: install-hook
+install-hook:
+	@echo

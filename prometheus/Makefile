@@ -58,3 +58,7 @@ test-alert:
 	@docker compose --env-file ${ENV_FILE} run --rm -it alert-test
 	@echo
 	@echo "Sent test alert"
+
+.PHONY: install-hook
+install-hook:
+	@echo
