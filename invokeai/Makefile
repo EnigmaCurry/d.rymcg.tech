@@ -55,6 +55,10 @@ get-render-gid:
 		echo "GID for \"render\" group on host: $$gid"
 
 
+.PHONY: install-hook
+install-hook:
+	@echo
+
 .PHONY: install-hook-pre
 install-hook-pre:
 	@echo
