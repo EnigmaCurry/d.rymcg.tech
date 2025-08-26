@@ -24,7 +24,7 @@ printed one time.
 Initialize the CA, and take note of the password:
 
 ```
-## This will only work during a *fresh* install:
+## This will work only before a fresh install:
 make init-ca
 ```
 
@@ -32,8 +32,9 @@ make init-ca
  * Store the credentials someplace safe!
 
 > [!NOTE] If this is *not* a fresh install, it won't print the
-> password. If you don't know your password, you must start completely
-> fresh. To do so, run `make destroy` before trying this again.
+> password. If you don't know your password, you must start over,
+> completely fresh. To do so, run `make destroy` before trying this
+> again.
 
 ## Install
 
@@ -70,9 +71,14 @@ Once bootstrapped, you can issue `step` commands directly from your
 workstation, e.g.,:
 
 ```
-step ca health
-step ca roots
+step ca health --root /etc/ssl/certs/ca-certificates.crt
+step ca roots  --root /etc/ssl/certs/ca-certificates.crt
 ```
+
+> [!NOTE] 
+> `--root /etc/ssl/certs/ca-certificates.crt` must be given because
+> Traefik is presenting a Let's Encrypt certitficate in front of
+> Step-CA itself, and for that you must use your system trust store.
 
 ## Manually create and sign X.509 (TLS) certificates
 

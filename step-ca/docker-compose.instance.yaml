@@ -11,7 +11,9 @@
 #@ context = data.values.context
 #@ traefik_host = data.values.traefik_host
 #@ ip_sourcerange = data.values.ip_sourcerange
+#@ acme_new_account_ip_sourcerange = data.values.acme_new_account_ip_sourcerange
 #@ enabled_middlewares = []
+#@ acme_new_account_enabled_middlewares = []
 
 #@yaml/text-templated-strings
 services:
@@ -24,16 +26,27 @@ services:
 
       #! 'router' is the fully qualified key in traefik for this router/service: project + instance + service
       #@ router = "{}-{}-{}".format(project,instance,service)
-
+      #@ full_service = "{}-{}-{}".format(project,instance,service)
       #! The host matching router rule:
-      - "traefik.tcp.routers.(@= router @).rule=HostSNI(`(@= traefik_host @)`)"
-      - "traefik.tcp.routers.(@= router @).entrypoints=websecure"
-      - "traefik.tcp.routers.(@= router @).tls.passthrough=true"
+      - "traefik.http.routers.(@= router @).rule=Host(`(@= traefik_host @)`)"
+      - "traefik.http.routers.(@= router @).service=(@= full_service @)"
+      - "traefik.http.routers.(@= router @).entrypoints=websecure"
       #@ enabled_middlewares.append("{}-ipallowlist".format(router))
-      - "traefik.tcp.middlewares.(@= router @)-ipallowlist.ipallowlist.sourcerange=(@= ip_sourcerange @)"
-
-      - "traefik.tcp.services.(@= router @).loadbalancer.server.port=9000"
-
-      
+      - "traefik.http.middlewares.(@= router @)-ipallowlist.ipallowlist.sourcerange=(@= ip_sourcerange @)"
       #! Apply all middlewares (do this at the end!)
-      - "traefik.tcp.routers.(@= router @).middlewares=(@= ','.join(enabled_middlewares) @)"
+      - "traefik.http.routers.(@= router @).middlewares=(@= ','.join(enabled_middlewares) @)"
+
+      #! 'router' is the fully qualified key in traefik for this router/service: project + instance + service
+      #@ router = "{}-{}-{}-acme-new-account".format(project,instance,service)
+      #! The host matching router rule:
+      - "traefik.http.routers.(@= router @).rule=Host(`(@= traefik_host @)`) && Path(`/acme/acme/new-account`)"
+      - "traefik.http.routers.(@= router @).service=(@= full_service @)"
+      - "traefik.http.routers.(@= router @).entrypoints=websecure"
+      #@ acme_new_account_enabled_middlewares.append("{}-ipallowlist".format(router))
+      - "traefik.http.middlewares.(@= router @)-ipallowlist.ipallowlist.sourcerange=(@= acme_new_account_ip_sourcerange @)"
+      #! Apply all middlewares (do this at the end!)
+      - "traefik.http.routers.(@= router @).middlewares=(@= ','.join(acme_new_account_enabled_middlewares) @)"
+
+      - "traefik.http.services.(@= full_service @).loadbalancer.server.port=9000"
+      - "traefik.http.services.(@= full_service @).loadbalancer.server.scheme=https"
+      - "traefik.http.services.(@= full_service @).loadbalancer.serversTransport=insecure-https@file"
