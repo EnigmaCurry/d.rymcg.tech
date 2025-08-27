@@ -19,7 +19,7 @@ Choose a dedicated sub-sub-domain for the DNS server itself, e.g.,
 ## install
 
 ```
-make install wait
+make install
 ```
 
 ## Setup DNS

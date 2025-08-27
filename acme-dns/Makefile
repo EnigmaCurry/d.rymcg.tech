@@ -14,6 +14,13 @@ config-hook:
 	@${BIN}/reconfigure_ask ${ENV_FILE} ACME_DNS_HOSTMASTER "Enter the root domain SOA RNAME address (translated email address; write root@example.com as root.example.com)"
 	@echo ""
 
+.PHONY: install-hook-pre
+install-hook-pre:
+	@echo
+
+.PHONY: install-hook
+install-hook: wait
+
 .PHONY: override-hook
 override-hook:
 #### This sets the override template variables for docker-compose.instance.yaml:

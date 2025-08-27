@@ -1,0 +1,18 @@
+services:
+  cron:
+    build:
+      context: ${ACME_SH_GIT_REPO}.git#${ACME_SH_GIT_TAG}
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+    restart: unless-stopped
+    command: daemon
+    network_mode: host
+    volumes:
+      - "data:/acme.sh"
+    # All labels are defined in the template: docker-compose.instance.yaml
+    labels: []
+
+volumes:
+  data:
