@@ -1,5 +1,6 @@
 volumes:
   traefik:
+  traefik_certs:
   geoip_database:
   wireguard:
   wireguard-client:
@@ -167,6 +168,7 @@ services:
       - "--configFile=/data/config/traefik.yml"
     volumes:
       - "traefik:/data"
+      - "traefik_certs:/certs"
       - "/var/run/docker.sock:/var/run/docker.sock:ro"
       - "geoip_database:/var/lib/traefikgeoip2/"
     labels:

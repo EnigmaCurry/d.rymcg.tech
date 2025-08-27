@@ -1,0 +1,13 @@
+#@ load("@ytt:data", "data")
+#@ load("@ytt:yaml", "yaml")
+
+#@ acme_cert_domains = yaml.decode(data.values.acme_cert_domains) if type(data.values.acme_cert_domains) == "string" else data.values.acme_cert_domains
+
+#@yaml/text-templated-strings
+tls:
+  certificates:
+#@ for item in acme_cert_domains:
+#@   cn = item[0] if type(item) == "list" else item["cn"]
+    - certFile: #@ "/certs/%s/fullchain.cer" % (cn, )
+      keyFile:  #@ "/certs/%s/%s.key"        % (cn, cn)
+#@ end
