@@ -26,6 +26,10 @@ override-hook:
 ####                         # (used for regular docker-compose expansion of env vars by name.)
 	@${BIN}/docker_compose_override ${ENV_FILE} project=:acme_sh instance=@ACME_SH_INSTANCE traefik_host=@ACME_SH_TRAEFIK_HOST http_auth=ACME_SH_HTTP_AUTH http_auth_var=@ACME_SH_HTTP_AUTH ip_sourcerange=@ACME_SH_IP_SOURCERANGE oauth2=ACME_SH_OAUTH2 authorized_group=ACME_SH_OAUTH2_AUTHORIZED_GROUP enable_mtls_auth=ACME_SH_MTLS_AUTH mtls_authorized_certs=ACME_SH_MTLS_AUTHORIZED_CERTS
 
+.PHONY: build-hook-pre
+build-hook-pre:
+	@make --no-print-directory docker-compose-lifecycle-cmd EXTRA_ARGS="build base-image"
+
 .PHONY: shell # Enter container shell
 shell:
 	@make --no-print-directory docker-compose-shell SERVICE=cron
@@ -38,6 +42,10 @@ install-hook:
 install-hook-pre:
 	@echo
 
+.PHONY: update-cron-schedule
+update-cron-schedule:
+	@SCHEDULE="$$(${BIN}/dotenv -f ${ENV_FILE} get ACME_SH_CRON_SCHEDULE)"; make --no-print-directory docker-compose-shell SERVICE=cron COMMAND="crontab -l"
+
 .PHONY: trust-ca-cert
 trust-ca-cert:
 	@make --no-print-directory docker-compose-shell SERVICE=cron COMMAND="test -f /acme.sh/root_ca.pem || curl -ko /acme.sh/root_ca.pem https://$$(${BIN}/dotenv -f ${ENV_FILE} get ACME_SH_ACME_CA)/roots.pem; apk add --no-cache ca-certificates && cp /acme.sh/root_ca.pem /usr/local/share/ca-certificates/root_ca.pem && update-ca-certificates && echo Added Root CA certificate to system trust store: && cat /usr/local/share/ca-certificates/root_ca.pem && echo && echo Fingerprint: && openssl x509 -in /usr/local/share/ca-certificates/root_ca.pem -outform der | openssl dgst -sha256 && echo && echo You should verify that this fingerprint matches your actual CA server."
@@ -48,4 +56,5 @@ register: trust-ca-cert
 
 .PHONY: cert
 cert:
-	@make --no-print-directory docker-compose-shell SERVICE=cron COMMAND="export SSL_CERT_FILE=/acme/root_ca.crt && export CURL_CA_BUNDLE=/acme/root_ca.crt && export ACMEDNS_BASE_URL=$$(${BIN}/dotenv -f ${ENV_FILE} get ACME_SH_ACME_DNS_BASE_URL) && acme.sh --issue -d stuff.z.rymcg.tech --dns dns_acmedns --server https://$$(${BIN}/dotenv -f ${ENV_FILE} get ACME_SH_ACME_CA)$$(${BIN}/dotenv -f ${ENV_FILE} get ACME_SH_ACME_DIRECTORY) --ca-bundle /acme.sh/root_ca.pem"
+	@DOMAIN=$$(${BIN}/wizard ask "Enter the domain name (Subject) of the certificate to create:" example.com); ${BIN}/confirm yes "Do you want to create the certificate for $${DOMAIN}" "?" && make --no-print-directory docker-compose-shell SERVICE=cron COMMAND="export ACMEDNS_BASE_URL=$$(${BIN}/dotenv -f ${ENV_FILE} get ACME_SH_ACME_DNS_BASE_URL) && acme.sh --issue -d $${DOMAIN} --dns dns_acmedns --valid-to "+$$(${BIN}/dotenv -f ${ENV_FILE} get ACME_SH_CERT_PERIOD_HOURS)h" --cert-home /certs --server https://$$(${BIN}/dotenv -f ${ENV_FILE} get ACME_SH_ACME_CA)$$(${BIN}/dotenv -f ${ENV_FILE} get ACME_SH_ACME_DIRECTORY) --ca-bundle /acme.sh/root_ca.pem &&  openssl x509 -in "/certs/$${DOMAIN}_ecc/$${DOMAIN}.cer" -noout -dates"
+

@@ -1,4 +1,4 @@
-# acme-dns
+# acme.sh
 
 ## Config
 
