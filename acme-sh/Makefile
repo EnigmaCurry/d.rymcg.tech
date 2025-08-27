@@ -56,5 +56,4 @@ register: trust-ca-cert
 
 .PHONY: cert
 cert:
-	@DOMAIN=$$(${BIN}/wizard ask "Enter the domain name (Subject) of the certificate to create:" example.com); ${BIN}/confirm yes "Do you want to create the certificate for $${DOMAIN}" "?" && make --no-print-directory docker-compose-shell SERVICE=cron COMMAND="export ACMEDNS_BASE_URL=$$(${BIN}/dotenv -f ${ENV_FILE} get ACME_SH_ACME_DNS_BASE_URL) && acme.sh --issue -d $${DOMAIN} --dns dns_acmedns --valid-to "+$$(${BIN}/dotenv -f ${ENV_FILE} get ACME_SH_CERT_PERIOD_HOURS)h" --cert-home /certs --server https://$$(${BIN}/dotenv -f ${ENV_FILE} get ACME_SH_ACME_CA)$$(${BIN}/dotenv -f ${ENV_FILE} get ACME_SH_ACME_DIRECTORY) --ca-bundle /acme.sh/root_ca.pem &&  openssl x509 -in "/certs/$${DOMAIN}_ecc/$${DOMAIN}.cer" -noout -dates"
-
+	BIN=${BIN} ENV_FILE=${ENV_FILE} ./script/create_cert.sh
