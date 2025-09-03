@@ -1,0 +1,62 @@
+x-comfyui-common: &comfyui-common
+    restart: unless-stopped
+    # cap_drop:
+    #   - ALL
+    # security_opt:
+    #   - no-new-privileges:true
+    # sysctls:
+    #   - net.ipv4.ip_unprivileged_port_start=1024
+    volumes:
+      - comfyui:/ComfyUI
+    labels:
+      - "backup-volume.stop-during-backup=true"
+
+services:
+  comfyui-cuda:
+    profiles:
+      - cuda
+    <<: *comfyui-common
+    build:
+      context: .
+      args:
+        - COMFYUI_VERSION=${COMFYUI_VERSION}
+        - GPU_TYPE=${DOCKER_COMPOSE_PROFILES}
+        - HSA_OVERRIDE_GFX_VERSION=${COMFYUI_HSA_OVERRIDE_GFX_VERSION}
+        - LOG_LEVEL=${COMFYUI_LOG_LEVEL:-WARN}
+    gpus: all
+    labels: []
+
+  comfyui-rocm:
+    profiles:
+      - rocm
+    <<: *comfyui-common
+    build:
+      context: .
+      args:
+        - COMFYUI_VERSION=${COMFYUI_VERSION}
+        - GPU_TYPE=${DOCKER_COMPOSE_PROFILES}
+        - HSA_OVERRIDE_GFX_VERSION=${COMFYUI_HSA_OVERRIDE_GFX_VERSION}
+        - LOG_LEVEL=${COMFYUI_LOG_LEVEL:-WARN}
+    devices:
+      - /dev/kfd:/dev/kfd
+      - /dev/dri:/dev/dri
+    group_add:
+      - video
+      - render
+    labels: []
+
+  comfyui-intel:
+    profiles:
+      - intel
+    <<: *comfyui-common
+    build:
+      context: .
+      args:
+        - COMFYUI_VERSION=${COMFYUI_VERSION}
+        - GPU_TYPE=${DOCKER_COMPOSE_PROFILES}
+        - HSA_OVERRIDE_GFX_VERSION=${COMFYUI_HSA_OVERRIDE_GFX_VERSION}
+        - LOG_LEVEL=${COMFYUI_LOG_LEVEL:-WARN}
+    labels: []
+
+volumes:
+  comfyui:
