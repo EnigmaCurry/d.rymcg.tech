@@ -23,7 +23,13 @@ services:
         - GPU_TYPE=${DOCKER_COMPOSE_PROFILES}
         - HSA_OVERRIDE_GFX_VERSION=${COMFYUI_HSA_OVERRIDE_GFX_VERSION}
         - LOG_LEVEL=${COMFYUI_LOG_LEVEL:-WARNING}
-    gpus: all
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: all
+              capabilities: [gpu]
 
   comfyui-rocm:
     profiles:
