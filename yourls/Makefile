@@ -101,3 +101,11 @@ delete-admin-users:
 # Clean up temporary file
 	@rm config.php.temp
 	@echo
+
+.PHONY: install-hook
+install-hook:
+	@echo
+
+.PHONY: install-hook-pre
+install-hook-pre:
+	@echo

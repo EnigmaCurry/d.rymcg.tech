@@ -52,3 +52,11 @@ git-deploy-key: override
 .PHONY: autoconfig
 autoconfig:
 	@ROOT_DIR=${ROOT_DIR} DOCKER_CONTEXT=${DOCKER_CONTEXT} HOMEPAGE_ENABLE_DOCKER=${HOMEPAGE_ENABLE_DOCKER} ENV_FILE=${ENV_FILE} HOMEPAGE_AUTO_CONFIG="$$(${BIN}/dotenv -f ${ENV_FILE} get HOMEPAGE_AUTO_CONFIG)" ./homepage_autoconfig.sh
+
+.PHONY: install-hook
+install-hook:
+	@echo
+
+.PHONY: install-hook-pre
+install-hook-pre:
+	@echo

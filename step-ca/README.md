@@ -12,72 +12,36 @@ make config
 ```
 
 This creates and configures the `.env_{CONTEXT}_default` file from the
-[.env-dist](.env-dist) template. You may wish to edit this file by
-hand to configure additional settings:
+[.env-dist](.env-dist) template. Answer the questions that it poses,
+to finish the config.
 
- * `STEP_CA_AUTHORITY_CLAIMS_MIN_TLS_CERT_DURATION=5m` this sets the
-   minimum TLS certificate expiration to 5 minutes.
- * `STEP_CA_AUTHORITY_CLAIMS_MAX_TLS_CERT_DURATION=2160h` this sets
-   the maximum TLS certificate expiration to 90 days.
- * `STEP_CA_AUTHORITY_CLAIMS_DEFAULT_TLS_CERT_DURATION=168h` this sets
-   the default TLS certificate expiration to 7 days.
- * `STEP_CA_AUTHORITY_CLAIMS_DISABLE_RENEWAL=false` this allows
-   certificates to be renewed indefinitely by any client holding the
-   certificate key.
+## Initialize the CA and retrieve the Step-CA admin password
 
-## Retrieve the root Step-CA password
+You must initialize the CA before you install. This is important
+because you need to make a record of the CA password, which is only
+printed one time.
 
-You must run step-ca interactively for the first time only. This is
-important because you need to make a record of the CA password, which
-is only printed one time in the log:
+Initialize the CA, and take note of the password:
 
 ```
-# Run the step-ca interactively the first time only:
-make up service=step-ca
+## This will work only before a fresh install:
+make init-ca
 ```
 
-In the log output, you should find your new password:
-
-```
-step-ca-1  | 👉 Your CA administrative password is: xxxxxxxxxxxxxxxxxxxxxxxxx
-step-ca-1  | 🤫 This will only be displayed once.
-```
+ * Copy the username and password from the output.
+ * Store the credentials someplace safe!
 
 > [!NOTE]
-> If this is *not* the very first time you've tried running this, and
-> you can't find the password in the log, and you want to start
-> completely fresh, run `make destroy` before trying this again.
-
-Once you have copied the password, and stored it in a safe place,
-press `Ctrl-C`, and the service will automatically shutdown. You will
-need this password for later when you request new certificates to be
-created.
-
-> [!NOTE] 
-> Starting the container up one time, and then shutting it down, also
-> served another purpose: on the first run, the Step-CA service
-> automatically creates `/home/step/config/ca.json` (in the container
-> volume), this is important to know the order in which it creates it,
-> because our `config` container requires this file to already exist
-> (it wants to modify an existing config file), and since its supposed
-> to run *before* the step-ca container, we must run it manually, one
-> time only. This ensures that `ca.json` now exists in the config
-> volume, and now the `config` container can fully manage this file
-> going forward. In other words: the config values you set in your
-> `.env_{CONTEXT}` file will only take affect after the SECOND time
-> the container boots.
+> If this is *not* a fresh install, it won't print the
+> password. If you don't know your password, you must start over,
+> completely fresh. To do so, run `make destroy` before trying this
+> again.
 
 ## Install
-
-Once configured, you can install the service permanently:
 
 ```
 make install
 ```
-
-Traefik will wait for the service healthcheck to complete, before
-serving it. Check `make status` and wait for it to report as
-`healthy` before proceeding.
 
 ## Setup client
 
@@ -104,9 +68,22 @@ to use your server:
 make client-bootstrap
 ```
 
-## Create and sign X.509 (TLS) certificates
+Once bootstrapped, you can issue `step` commands directly from your
+workstation, e.g.,:
 
-Each time you want to create a new certificate, run:
+```
+step ca health
+step ca roots
+```
+
+> [!NOTE] 
+> `STEP_ROOT` must provide the .pem formatted proxy cert that Traefik
+> fronts Step-CA with. This is most often a certificate from Let's
+> Encrypt. `make proxy-cert` will download this to a temporary file.
+
+## Manually create and sign X.509 (TLS) certificates
+
+If you want to manually create a new certificate, run:
 
 ```
 make cert
@@ -213,16 +190,15 @@ make change-password
 It's a good idea to immediately change the password, so that the
 initial password is no longer sitting in the docker container logs.
 
-## Maximum certification period
-
 ## Security concerns
 
 Obviously, having your root CA available publicly on the internet is a
 lot less safe than running it in a secure private network. And even
 that is less safe than running
 [step-cli](https://smallstep.com/docs/step-cli/installation/) and
-creating a new CA directly, on air-gapped laptop. Use the most locked
-down environment that you can feel slightly inconvenienced to use.
+creating a new CA directly, on an air-gapped laptop. Use the most
+locked down environment that you can feel slightly inconvenienced to
+use.
 
 You have a few ways to mitigate undesired access:
 
@@ -239,6 +215,12 @@ machine entirely, taking it offline, when you don't need it. If you
 install other stuff on the same (virtual) machine, it defeats this
 purpose. Of course, if you intend for this to be a full time service,
 you may not afford this option, so you can do what you wish.
+
+Unfortunately, the open-source Step-CA [does not
+implement](https://smallstep.com/docs/step-ca/#limitations) External
+Account Binding ([EAB -
+RFC8555](https://www.rfc-editor.org/rfc/rfc8555#section-7.3.4)), which
+would help tremendously in this regard.
 
 ## ACME
 

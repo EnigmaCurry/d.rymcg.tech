@@ -27,3 +27,11 @@ shell:
 library:
 	@docker-compose --env-file ${ENV_FILE} exec -it mopidy mopidy local scan
 
+
+.PHONY: install-hook
+install-hook:
+	@echo
+
+.PHONY: install-hook-pre
+install-hook-pre:
+	@echo

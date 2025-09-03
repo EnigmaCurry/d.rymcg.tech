@@ -35,3 +35,11 @@ override-hook:
 shell:
 	@make --no-print-directory docker-compose-shell SERVICE=filebrowser
 
+
+.PHONY: install-hook
+install-hook:
+	@echo
+
+.PHONY: install-hook-pre
+install-hook-pre:
+	@echo
