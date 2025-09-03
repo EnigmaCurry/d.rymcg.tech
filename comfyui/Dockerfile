@@ -3,8 +3,7 @@ FROM ubuntu:24.04
 ARG COMFYUI_VERSION=v0.3.56
 WORKDIR /
 RUN apt-get update && \
-    apt-get install -y --no-install-recommends git python3 python3-pip python3-venv ca-certificates && \
-#        rocm-dev rocm-utils rocminfo rocm-opencl-icd && \
+    apt-get install -y --no-install-recommends wget git python3 python3-pip python3-venv ca-certificates && \
     rm -rf /var/lib/apt/lists/*
 RUN git clone --branch ${COMFYUI_VERSION} https://github.com/comfyanonymous/ComfyUI.git
 
@@ -17,9 +16,7 @@ ARG GPU_TYPE=cuda
 RUN case "${GPU_TYPE}" in \
     rocm)   groupadd -g 105 render && \
         python3 -m pip install --upgrade pip && \
-        #python3 -m pip install --index-url https://d2awnip2yjpvqn.cloudfront.net/v2/gfx110X-dgpu/ torch torchaudio torchvision ;; \
-    #python3 -m pip install torch torchvision torchaudio --index-url https://github.com/scottt/rocm-TheRock/releases/download/v6.5.0rc-pytorch-gfx110x ;; \
-    python3 -m pip install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/rocm6.4 ;; \
+        python3 -m pip install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/rocm6.4 ;; \
     intel)  python3 -m pip install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/xpu ;; \
     cuda)   python3 -m pip install torch torchvision torchaudio --extra-index-url https://download.pytorch.org/whl/cu129 ;; \
     *)      echo "Unknown GPU type: ${GPU_TYPE}" && exit 1 ;; \
@@ -33,7 +30,7 @@ RUN if [ "${GPU_TYPE}" = "rocm" ]; then \
     fi
 
 ARG HSA_OVERRIDE_GFX_VERSION=""
-ARG LOG_LEVEL="WARN"
+ARG LOG_LEVEL=WARNING
 ENV HSA_OVERRIDE_GFX_VERSION=${HSA_OVERRIDE_GFX_VERSION}
 ENV LOG_LEVEL=${LOG_LEVEL}
 ENV LAUNCH_ARGS="--multi-user --listen 0.0.0.0 --verbose ${LOG_LEVEL}"

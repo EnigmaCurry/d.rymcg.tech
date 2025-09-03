@@ -22,9 +22,8 @@ services:
         - COMFYUI_VERSION=${COMFYUI_VERSION}
         - GPU_TYPE=${DOCKER_COMPOSE_PROFILES}
         - HSA_OVERRIDE_GFX_VERSION=${COMFYUI_HSA_OVERRIDE_GFX_VERSION}
-        - LOG_LEVEL=${COMFYUI_LOG_LEVEL:-WARN}
+        - LOG_LEVEL=${COMFYUI_LOG_LEVEL:-WARNING}
     gpus: all
-    labels: []
 
   comfyui-rocm:
     profiles:
@@ -36,14 +35,13 @@ services:
         - COMFYUI_VERSION=${COMFYUI_VERSION}
         - GPU_TYPE=${DOCKER_COMPOSE_PROFILES}
         - HSA_OVERRIDE_GFX_VERSION=${COMFYUI_HSA_OVERRIDE_GFX_VERSION}
-        - LOG_LEVEL=${COMFYUI_LOG_LEVEL:-WARN}
+        - LOG_LEVEL=${COMFYUI_LOG_LEVEL:-WARNING}
     devices:
       - /dev/kfd:/dev/kfd
       - /dev/dri:/dev/dri
     group_add:
       - video
       - render
-    labels: []
 
   comfyui-intel:
     profiles:
@@ -55,8 +53,7 @@ services:
         - COMFYUI_VERSION=${COMFYUI_VERSION}
         - GPU_TYPE=${DOCKER_COMPOSE_PROFILES}
         - HSA_OVERRIDE_GFX_VERSION=${COMFYUI_HSA_OVERRIDE_GFX_VERSION}
-        - LOG_LEVEL=${COMFYUI_LOG_LEVEL:-WARN}
-    labels: []
+        - LOG_LEVEL=${COMFYUI_LOG_LEVEL:-WARNING}
 
 volumes:
   comfyui:

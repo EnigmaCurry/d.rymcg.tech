@@ -22,6 +22,7 @@
 #! ### Project-specific vars:
 #@ compose_profile = data.values.compose_profile
 #@ models_host_path = data.values.models_host_path
+#@ output_host_path = data.values.output_host_path
 
 #@ def comfyui_service(profile):
 #@   service = "comfyui-" + profile
@@ -54,7 +55,10 @@
 #@   labels.append("traefik.http.services.{}.loadbalancer.server.port=8188".format(router)) 
 #@   volumes = []
 #@   if models_host_path != "":
-#@   volumes = ["{}/checkpoints:/ComfyUI/models/checkpoints".format(models_host_path), "{}/vae:/ComfyUI/models/vae".format(models_host_path)]
+#@   volumes = ["{}:/ComfyUI/models".format(models_host_path)]
+#@   end
+#@   if output_host_path != "":
+#@   volumes = ["{}:/ComfyUI/output".format(output_host_path)]
 #@   end
 #@   return {
 #@     service: {
