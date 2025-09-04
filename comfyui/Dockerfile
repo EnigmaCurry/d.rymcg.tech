@@ -1,7 +1,10 @@
 FROM ubuntu:24.04
-
 ARG COMFYUI_VERSION=v0.3.57
+
 WORKDIR /
+COPY entrypoint.sh /entrypoint.sh
+RUN chmod +x /entrypoint.sh
+
 RUN apt-get update && \
     apt-get install -y --no-install-recommends wget git rsync dialog python3 python3-pip python3-venv ca-certificates && \
     rm -rf /var/lib/apt/lists/*
@@ -32,8 +35,8 @@ RUN case "${GPU_TYPE}" in \
 RUN python3 -m pip install -r requirements.txt
 
 ARG HSA_OVERRIDE_GFX_VERSION=""
-ARG LOG_LEVEL=WARNING
 ENV HSA_OVERRIDE_GFX_VERSION=${HSA_OVERRIDE_GFX_VERSION}
+ARG LOG_LEVEL=WARNING
 ENV LOG_LEVEL=${LOG_LEVEL}
-ENV LAUNCH_ARGS="--multi-user --listen 0.0.0.0 --verbose ${LOG_LEVEL}"
-ENTRYPOINT ["/bin/sh", "-c", "if [ -n \"$HSA_OVERRIDE_GFX_VERSION\" ]; then HSA_OVERRIDE_GFX_VERSION=$HSA_OVERRIDE_GFX_VERSION exec python3 main.py ${LAUNCH_ARGS}; else exec python3 main.py ${LAUNCH_ARGS}; fi"]
+ENTRYPOINT ["/entrypoint.sh"]
+CMD ["python3", "main.py", "--multi-user", "--listen 0.0.0.0", "--verbose", "${LOG_LEVEL}"]

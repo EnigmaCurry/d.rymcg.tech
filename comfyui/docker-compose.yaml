@@ -1,13 +1,15 @@
 x-comfyui-common: &comfyui-common
     restart: unless-stopped
-    # cap_drop:
-    #   - ALL
-    # security_opt:
-    #   - no-new-privileges:true
-    # sysctls:
-    #   - net.ipv4.ip_unprivileged_port_start=1024
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+    sysctls:
+      - net.ipv4.ip_unprivileged_port_start=1024
     volumes:
       - comfyui:/ComfyUI
+    environment:
+      - COMFYUI_OUTPUT_HOST_PATH=${COMFYUI_OUTPUT_HOST_PATH}
     labels:
       - "backup-volume.stop-during-backup=true"
 

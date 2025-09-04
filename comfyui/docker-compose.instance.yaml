@@ -55,10 +55,10 @@
 #@   labels.append("traefik.http.services.{}.loadbalancer.server.port=8188".format(router)) 
 #@   volumes = []
 #@   if models_host_path != "":
-#@   volumes = ["{}:/ComfyUI/models".format(models_host_path)]
+#@   volumes = volumes + ["{}:/ComfyUI/models".format(models_host_path)]
 #@   end
 #@   if output_host_path != "":
-#@   volumes = ["{}:/ComfyUI/output".format(output_host_path)]
+#@   volumes = volumes + ["{}:/ComfyUI/output".format(output_host_path)]
 #@   end
 #@   return {
 #@     service: {
