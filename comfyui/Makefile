@@ -12,8 +12,8 @@ config-hook:
 	@${BIN}/reconfigure ${ENV_FILE} COMFYUI_INSTANCE=$${instance:-default}
 	@${BIN}/reconfigure_auth ${ENV_FILE} COMFYUI
 	@echo
-	@echo "Enter the processing engine to use: cuda (for nvidia GPUs), rocm (for AMD GPUs), or intel (for Intel GPUs)."
-	@${BIN}/reconfigure_compose_profiles_choose ${ENV_FILE} rocm="AMD GPU" cuda="Nvidia GPU" intel="Intel GPU"
+	@echo "Enter the processing engine to use: cuda (for nvidia GPUs), rocm (for AMD GPUs), intel (for Intel GPUs), or cpu (for CPU only)."
+	@${BIN}/reconfigure_compose_profiles_choose ${ENV_FILE} rocm="AMD GPU" cuda="Nvidia GPU" intel="Intel GPU" cpu="CPU only"
 	@echo
 	@ALLOW_BLANK=1 ${BIN}/reconfigure_ask ${ENV_FILE} COMFYUI_MODELS_HOST_PATH "If you want to save models in a specific directory on the host, enter the absolute path here, or leave blank to save models to the ComfyUI container's named Docker volume."
 	@echo
@@ -52,7 +52,7 @@ add-model:
 	model_type=$$("${BIN}/script-wizard" choose "What type of model are you installing?" $$choices --default "checkpoints"); \
 	model_url=$$("${BIN}/ask_echo" "What is the download URL of the model?" ""); \
 	basename=$$(basename "$${model_url}"	 | cut -d'?' -f1); \
-	docker exec "comfyui-comfyui-$$(${BIN}/dotenv -f ${ENV_FILE} get DOCKER_COMPOSE_PROFILES)-1" bash -c "cd /ComfyUI/models/$${model_type} && wget $${model_url} -O $${basename}"
+	docker exec -it "comfyui-comfyui-$$(${BIN}/dotenv -f ${ENV_FILE} get DOCKER_COMPOSE_PROFILES)-1" bash -c "cd /ComfyUI/models/$${model_type} && wget $${model_url} -O $${basename}"
 
 .PHONY: remove-model # Permanently delete a model from ComfyUI
 remove-model:
@@ -66,7 +66,7 @@ remove-model:
 	selected_model=$$("${BIN}/script-wizard" choose "Which model do you want to remove?" $$models); \
 	if [ -n "$${selected_model}" ]; then \
 		echo "Removing /ComfyUI/models/$${model_type}/$${selected_model}"; \
-		docker exec "comfyui-comfyui-$$(${BIN}/dotenv -f ${ENV_FILE} get DOCKER_COMPOSE_PROFILES)-1" rm -rf "/ComfyUI/models/$${model_type}/$${selected_model}"; \
+docker exec -it "comfyui-comfyui-$$(${BIN}/dotenv -f ${ENV_FILE} get DOCKER_COMPOSE_PROFILES)-1" rm -rf "/ComfyUI/models/$${model_type}/$${selected_model}"; \
 	else \
 		echo "No model selected, operation cancelled."; \
 	fi

@@ -21,7 +21,6 @@ services:
       args:
         - COMFYUI_VERSION=${COMFYUI_VERSION}
         - GPU_TYPE=${DOCKER_COMPOSE_PROFILES}
-        - HSA_OVERRIDE_GFX_VERSION=${COMFYUI_HSA_OVERRIDE_GFX_VERSION}
         - LOG_LEVEL=${COMFYUI_LOG_LEVEL:-WARNING}
     deploy:
       resources:
@@ -58,7 +57,17 @@ services:
       args:
         - COMFYUI_VERSION=${COMFYUI_VERSION}
         - GPU_TYPE=${DOCKER_COMPOSE_PROFILES}
-        - HSA_OVERRIDE_GFX_VERSION=${COMFYUI_HSA_OVERRIDE_GFX_VERSION}
+        - LOG_LEVEL=${COMFYUI_LOG_LEVEL:-WARNING}
+
+  comfyui-cpu:
+    profiles:
+      - cpu
+    <<: *comfyui-common
+    build:
+      context: .
+      args:
+        - COMFYUI_VERSION=${COMFYUI_VERSION}
+        - GPU_TYPE=${DOCKER_COMPOSE_PROFILES}
         - LOG_LEVEL=${COMFYUI_LOG_LEVEL:-WARNING}
 
 volumes:

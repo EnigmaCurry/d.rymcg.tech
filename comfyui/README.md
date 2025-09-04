@@ -4,7 +4,8 @@
 visual AI engine and application that lets you design and execute
 advanced stable diffusion pipelines using a graph/nodes/flowchart
 based interface. It can create images, videos, audio, and 3D models
-(and can edit images) from text, audio, image prompts.
+(and can edit/inpaint images) starting from text, audio, or image
+prompts.
 
 ## Config
 
@@ -47,8 +48,8 @@ about 10 minutes, depending on your hardware and internet speed.
 ### Models
 
 You can manually download models from sources like Huggingface and
-place them into `/ComfyUI/models/<model_type>/`, or you can use the
-following Make targets:
+place them into `/ComfyUI/models/<model_type>/` in the container, or
+you can use the following Make targets:
 
 ```
 make add-model
@@ -57,19 +58,18 @@ make add-model
 This will ask you for a model type and the URL to download the model,
 and will place it in the appropriate subdirectory in the container.
 
-TIP: when you start from a template in ComfyUI, if it requires models
-that you don't have installed, it will show what type of models they
-are and provide a "Copy URL" button. For each model, copy the URL and
-run `make add-model` (be sure to select the correct model_type for
-each model).
+TIP: when you start creating somethine from a template in ComfyUI, if
+it requires models that you don't have installed, ComfyUI will show
+what type of models they are and provide a "Copy URL" button. For each
+model, copy the URL and run `make add-model` (be sure to select the
+correct model_type for each model).
 
 ```
 make remove-model
 ```
 
-This will ask you for a model type and then to select one of the
-existing models of that type, and will permanently delete it from the
-subdirectory.
+This will ask you for a model type and then you can select one of the
+existing models of that type and it will be permanently deleted.
 
 ## Open
 

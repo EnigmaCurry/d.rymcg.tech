@@ -25,6 +25,7 @@ RUN case "${GPU_TYPE}" in \
         python3 -m pip install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/rocm6.4 ;; \
     intel)  python3 -m pip install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/xpu ;; \
     cuda)   python3 -m pip install torch torchvision torchaudio --extra-index-url https://download.pytorch.org/whl/cu129 ;; \
+    cpu)    python3 -m pip install torch torchvision torchaudio ;; \
     *)      echo "Unknown GPU type: ${GPU_TYPE}\n" && exit 1 ;; \
     esac
 
