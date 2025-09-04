@@ -1,6 +1,6 @@
 FROM ubuntu:24.04
 
-ARG COMFYUI_VERSION=v0.3.56
+ARG COMFYUI_VERSION=v0.3.57
 WORKDIR /
 RUN apt-get update && \
     apt-get install -y --no-install-recommends wget git rsync dialog python3 python3-pip python3-venv ca-certificates && \
@@ -29,11 +29,6 @@ RUN case "${GPU_TYPE}" in \
     esac
 
 RUN python3 -m pip install -r requirements.txt
-
-# Patch model_management.py only for ROCm
-RUN if [ "${GPU_TYPE}" = "rocm" ]; then \
-    sed -i 's|return torch.device(torch.cuda.current_device())|if hasattr(torch, "rocm") and torch.rocm.is_available():\n                return torch.device("rocm")\n            else:\n                return torch.device("cpu")|' comfy/model_management.py; \
-    fi
 
 ARG HSA_OVERRIDE_GFX_VERSION=""
 ARG LOG_LEVEL=WARNING
