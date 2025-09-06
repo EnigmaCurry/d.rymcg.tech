@@ -2,9 +2,7 @@
 #@ load("@ytt:struct", "struct")
 
 #@ tcp_udp_proxy_enabled = data.values.layer_4_tcp_udp_proxy_enabled == "true"
-#@ print("tcp_udp_proxy_enabled:", tcp_udp_proxy_enabled)
 #@ tcp_udp_proxy_routes = data.values.layer_4_tcp_udp_proxy_routes
-#@ print("tcp_udp_proxy_routes:", tcp_udp_proxy_routes)
 #@ config = struct.decode(data.values)
 
 #@ def parse_proxy_routes(proxy_str):
