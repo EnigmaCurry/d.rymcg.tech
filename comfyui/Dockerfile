@@ -10,6 +10,10 @@ RUN apt-get update && \
     rm -rf /var/lib/apt/lists/*
 RUN git clone --depth 1 --single-branch --branch ${COMFYUI_VERSION} https://github.com/comfyanonymous/ComfyUI.git
 
+# Install ComfyUI Manager extension
+WORKDIR /ComfyUI/custom_nodes
+RUN git clone https://github.com/ltdrdata/ComfyUI-Manager comfyui-manager
+
 WORKDIR /ComfyUI
 RUN python3 -m venv .venv
 ENV PATH="/ComfyUI/.venv/bin:$PATH"
