@@ -1,5 +1,5 @@
 FROM ubuntu:24.04
-ARG COMFYUI_VERSION=v0.3.57
+ARG COMFYUI_VERSION
 
 WORKDIR /
 COPY entrypoint.sh /entrypoint.sh
@@ -15,7 +15,7 @@ RUN python3 -m venv .venv
 ENV PATH="/ComfyUI/.venv/bin:$PATH"
 
 # Install PyTorch for the requested GPU type
-ARG GPU_TYPE=cuda
+ARG GPU_TYPE
 RUN case "${GPU_TYPE}" in \
     rocm)   groupadd -g 105 render && \
         wget -q https://repo.radeon.com/amdgpu-install/6.4.3/ubuntu/noble/amdgpu-install_6.4.60403-1_all.deb && \
@@ -34,9 +34,9 @@ RUN case "${GPU_TYPE}" in \
 
 RUN python3 -m pip install -r requirements.txt
 
-ARG HSA_OVERRIDE_GFX_VERSION=""
+ARG HSA_OVERRIDE_GFX_VERSION
 ENV HSA_OVERRIDE_GFX_VERSION=${HSA_OVERRIDE_GFX_VERSION}
-ARG LOG_LEVEL=WARNING
+ARG LOG_LEVEL
 ENV LOG_LEVEL=${LOG_LEVEL}
 ENTRYPOINT ["/entrypoint.sh"]
 CMD ["python3", "main.py", "--multi-user", "--listen 0.0.0.0", "--verbose", "${LOG_LEVEL}"]
