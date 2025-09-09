@@ -1,6 +1,7 @@
 volumes:
   traefik:
   traefik_certs:
+  acme-sh:
   geoip_database:
   wireguard:
   wireguard-client:
@@ -20,6 +21,7 @@ services:
       - traefik:/data
     environment:
       - DOCKER_CONTEXT=${DOCKER_CONTEXT}
+      - DOCKER_COMPOSE_PROFILES=${DOCKER_COMPOSE_PROFILES}
       - TRAEFIK_SEND_ANONYMOUS_USAGE=${TRAEFIK_SEND_ANONYMOUS_USAGE:-false}
       - TRAEFIK_CONFIG_VERBOSE=${TRAEFIK_CONFIG_VERBOSE:-false}
       - TRAEFIK_ACME_CA_EMAIL
@@ -273,3 +275,37 @@ services:
       traefik.http.services.error-pages-service.loadbalancer.server.port: 8080
     depends_on:
       - traefik
+
+  ## Build a base image from upstream git repository:
+  acme-sh-base:
+    image: local/acme-sh-base-image:${TRAEFIK_ACME_SH_GIT_TAG}
+    build:
+      context: ${TRAEFIK_ACME_SH_GIT_REPO}.git#${TRAEFIK_ACME_SH_GIT_TAG}
+      args:
+        AUTO_UPGRADE: 0
+    ## Prevent the base image from running:
+    profiles: ['build-only']
+    entrypoint: ["/bin/false"]
+    command: []
+
+  ## Build cron image from the base, which includes our customizations:
+  acme-sh:
+    profiles: ['acme-sh']
+    build:
+      context: ./acme-sh/cron
+      args:
+        GIT_TAG: ${TRAEFIK_ACME_SH_GIT_TAG}
+        CRON_SCHEDULE: ${TRAEFIK_ACME_SH_CRON_SCHEDULE}
+    # cap_drop:
+    #   - ALL
+    # security_opt:
+    #   - no-new-privileges:true
+    restart: unless-stopped
+    command: daemon
+    network_mode: host
+    volumes:
+      - "acme-sh:/acme.sh"
+      - "traefik_certs:/certs"
+      - "traefik:/traefik"
+    # All labels are defined in the template: docker-compose.instance.yaml
+    labels: []

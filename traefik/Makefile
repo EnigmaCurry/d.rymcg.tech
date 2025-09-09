@@ -111,3 +111,24 @@ install-hook:
 .PHONY: install-hook-pre
 install-hook-pre:
 	@echo
+
+.PHONY: build-hook-pre
+build-hook-pre:
+	@make --no-print-directory docker-compose-lifecycle-cmd EXTRA_ARGS="build acme-sh-base"
+
+.PHONY: acme-sh-cron-schedule
+acme-sh-cron-schedule:
+	@SCHEDULE="$$(${BIN}/dotenv -f ${ENV_FILE} get TRAEFIK_ACME_SH_CRON_SCHEDULE)"; make --no-print-directory docker-compose-shell SERVICE=acme-sh COMMAND="crontab -l"
+
+.PHONY: acme-sh-trust-ca-cert
+acme-sh-trust-ca-cert:
+	@make --no-print-directory docker-compose-shell SERVICE=acme-sh COMMAND="test -f /acme.sh/root_ca.pem || curl -ko /acme.sh/root_ca.pem https://$$(${BIN}/dotenv -f ${ENV_FILE} get TRAEFIK_ACME_SH_ACME_CA)/roots.pem; apk add --no-cache ca-certificates && cp /acme.sh/root_ca.pem /usr/local/share/ca-certificates/root_ca.pem && update-ca-certificates && echo Added Root CA certificate to system trust store: && cat /usr/local/share/ca-certificates/root_ca.pem && echo && echo Fingerprint: && openssl x509 -in /usr/local/share/ca-certificates/root_ca.pem -outform der | openssl dgst -sha256 && echo && echo You should verify that this fingerprint matches your actual CA server."
+
+.PHONY: acme-sh-register
+acme-sh-register: acme-sh-trust-ca-cert
+	@make --no-print-directory docker-compose-shell SERVICE=acme-sh COMMAND="acme.sh --register-account --server https://$$(${BIN}/dotenv -f ${ENV_FILE} get TRAEFIK_ACME_SH_ACME_CA)$$(${BIN}/dotenv -f ${ENV_FILE} get TRAEFIK_ACME_SH_ACME_DIRECTORY) --ca-bundle /acme.sh/root_ca.pem"
+
+.PHONY: acme-sh-cert
+acme-sh-cert:
+	BIN=${BIN} ENV_FILE=${ENV_FILE} ./acme-sh/script/create_cert.sh
+

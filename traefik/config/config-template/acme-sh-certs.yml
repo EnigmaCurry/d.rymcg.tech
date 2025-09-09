@@ -2,12 +2,15 @@
 #@ load("@ytt:yaml", "yaml")
 
 #@ acme_cert_domains = yaml.decode(data.values.acme_cert_domains) if type(data.values.acme_cert_domains) == "string" else data.values.acme_cert_domains
+#@ acme_sh_enabled = "acme-sh" in data.values.docker_compose_profiles.split(",")
 
 #@yaml/text-templated-strings
+#@ if acme_sh_enabled:
 tls:
   certificates:
 #@ for item in acme_cert_domains:
 #@   cn = item[0] if type(item) == "list" else item["cn"]
     - certFile: #@ "/certs/%s/fullchain.cer" % (cn, )
       keyFile:  #@ "/certs/%s/%s.key"        % (cn, cn)
+#@ end
 #@ end

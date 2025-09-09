@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-set -euo pipefail
+set -euox pipefail
 
 echo
 
@@ -21,26 +21,36 @@ if [[ -n "${SANS// }" ]]; then
 fi
 
 # Pull envs up front so we only expand them once here
-ACMEDNS_BASE_URL="$(${BIN}/dotenv -f "${ENV_FILE}" get ACME_SH_ACME_DNS_BASE_URL)"
-CERT_PERIOD_HOURS="$(${BIN}/dotenv -f "${ENV_FILE}" get ACME_SH_CERT_PERIOD_HOURS)"
-ACME_CA="$(${BIN}/dotenv -f "${ENV_FILE}" get ACME_SH_ACME_CA)"
-ACME_DIR="$(${BIN}/dotenv -f "${ENV_FILE}" get ACME_SH_ACME_DIRECTORY)"
+ACMEDNS_BASE_URL="$(${BIN}/dotenv -f "${ENV_FILE}" get TRAEFIK_ACME_SH_ACME_DNS_BASE_URL)"
+CERT_PERIOD_HOURS="$(${BIN}/dotenv -f "${ENV_FILE}" get TRAEFIK_ACME_SH_CERT_PERIOD_HOURS)"
+ACME_CA="$(${BIN}/dotenv -f "${ENV_FILE}" get TRAEFIK_ACME_SH_ACME_CA)"
+ACME_DIR="$(${BIN}/dotenv -f "${ENV_FILE}" get TRAEFIK_ACME_SH_ACME_DIRECTORY)"
 
 # Run acme.sh in the cron container.
 # Use 'set -f' (noglob) to prevent wildcard domains from being expanded by the shell.
 make --no-print-directory docker-compose-shell \
-  SERVICE=cron \
+  SERVICE=acme-sh \
   COMMAND="set -f; export ACMEDNS_BASE_URL=${ACMEDNS_BASE_URL} && \
 acme.sh --issue ${DOMAINS_ARGS} \
   --dns dns_acmedns \
   --valid-to '+${CERT_PERIOD_HOURS}h' \
-  --cert-home /certs \
   --server https://${ACME_CA}${ACME_DIR} \
   --ca-bundle /acme.sh/root_ca.pem && \
 openssl x509 \
-  -in "/certs/${DOMAIN}_ecc/${DOMAIN}.cer" \
+  -in "/acme.sh/${DOMAIN}_ecc/${DOMAIN}.cer" \
   -noout \
   -dates \
   -issuer \
   -subject \
   -ext subjectAltName"
+
+make --no-print-directory docker-compose-shell \
+  SERVICE=acme-sh \
+  COMMAND="set -f; export ACMEDNS_BASE_URL=${ACMEDNS_BASE_URL} && \
+mkdir -p /certs/${DOMAIN}/ && \
+acme.sh --install-cert ${DOMAINS_ARGS} \
+  --key-file       /certs/${DOMAIN}/${DOMAIN}.key \
+  --fullchain-file /certs/${DOMAIN}/fullchain.cer \
+  --cert-file      /certs/${DOMAIN}/cert.cer \
+  --ca-file        /certs/${DOMAIN}/ca.cer \
+  --reloadcmd      'touch /traefik/config/dynamic/acme-sh-certs.yml'"

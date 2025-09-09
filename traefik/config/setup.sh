@@ -9,6 +9,7 @@ ytt_template() {
     src=$1; dst=$2;
     [ -e "${src}" ] || (echo "Template not found: ${src}" && exit 1)
     ytt -f ${src} \
+        -v docker_compose_profiles=${DOCKER_COMPOSE_PROFILES} \
         -v acme_cert_resolver="${TRAEFIK_ACME_CERT_RESOLVER}" \
         -v acme_cert_domains="${TRAEFIK_ACME_CERT_DOMAINS}" \
         -v log_level="${TRAEFIK_LOG_LEVEL}" \
