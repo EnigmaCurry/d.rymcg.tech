@@ -7,7 +7,12 @@
 ## text file to the ComfyUI Docker container; and runs a script in the
 ## container to install them.
 ##
-## BIN should and ENV_FILE must be set prior to calling this script.
+## The following should be set prior to calling this script.
+## BIN
+## ENV_FILE
+## COMFYUI_HUGGING_FACE_TOKEN
+## COMFYUI_CIVITAI_TOKEN
+##
 ## This script must reside in `/path/to/d.rymcg.text/comfyui/`
 
 # Configuration
@@ -49,8 +54,14 @@ while true; do
     model_type=$("${BIN}/script-wizard" choose "What type of model are you installing?" ${choices} --default "checkpoints")
     echo ""
     model_url=$("${BIN}/ask_echo" "What is the download URL of the model?" "")
-    echo ""
-    token=$("${BIN}/ask_echo_blank" "Enter authentication token (or leave blank):" "")
+    if [[ "${model_url}" =~ .*civitai\.com.* ]]; then
+        token= $(${BIN}/dotenv -f ${ENV_FILE} get COMFYUI_CIVITAI_TOKEN)
+    elif [[ "${model_url}" =~ .*huggingface\.co.* ]]; then
+        token= $(${BIN}/dotenv -f ${ENV_FILE} get COMFYUI_HUGGING_FACE_TOKEN)
+    else
+        echo ""
+        token=$("${BIN}/ask_echo_blank" "Enter authentication token (or leave blank):" "")
+    fi
 
     # Write to temp file as comma-separated tuple
     echo "${model_type},${model_url},${token}" >> "${TEMP_FILE}"

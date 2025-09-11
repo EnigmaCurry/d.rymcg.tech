@@ -16,6 +16,17 @@ This will ask you to enter the domain name to use.
 It automatically saves your responses into the configuration file
 `.env_{DOCKER_CONTEXT}_{INSTANCE}`.
 
+### Hugging Face and CivitAI Tokens
+
+If you enter your token in the COMFYUI_HUGGING_FACE_TOKEN or
+COMFYUI_CIVITAI_TOKEN variables, it will automatically be entered for
+you when you download models from those sources. Each time you
+download a model, you will have the opportunity to enter a different
+token if you want.
+
+If your ever want to change these "default" tokens, run `make config`
+and enter the new values, then run `make install` again.
+
 ### Where to Store Models
 
 By default, all models will be stored in the container's named Docker

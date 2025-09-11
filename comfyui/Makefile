@@ -21,6 +21,10 @@ config-hook:
 		${BIN}/reconfigure_ask ${ENV_FILE} COMFYUI_CUDA_WHEEL_VERSION "Enter the version of the CUDA wheel to install (e.g., cu129)" 	; \
 	fi
 	@echo
+	@echo "If you enter your token in the COMFYUI_HUGGING_FACE_TOKEN or COMFYUI_CIVITAI_TOKEN variables, it will automatically be entered for you when you download models from those sources. Each time you download a model, you will have the opportunity to enter a different token if you want."
+	@ALLOW_BLANK=1 ${BIN}/reconfigure_ask ${ENV_FILE} COMFYUI_HUGGING_FACE_TOKEN "Enter your Hugging Face token (or leave blank)"
+	@ALLOW_BLANK=1 ${BIN}/reconfigure_ask ${ENV_FILE} COMFYUI_CIVITAI_TOKEN "Enter your CIVITAI token (or leave blank)"
+	@echo
 	@ALLOW_BLANK=1 ${BIN}/reconfigure_ask ${ENV_FILE} COMFYUI_MODELS_HOST_PATH "If you want to save models in a specific directory on the host, enter the absolute path here, or leave blank to save models to the ComfyUI container's named Docker volume."
 	@echo
 	@ALLOW_BLANK=1 ${BIN}/reconfigure_ask ${ENV_FILE} COMFYUI_OUTPUT_HOST_PATH "If you want to save output files (e.g., images, video, audio) in a specific directory on the host, enter the absolute path here, or leave blank to save them to the ComfyUI container's named Docker volume. NOTE: This path on the host should be different than the path you use for the models."
@@ -54,7 +58,7 @@ install-hook-pre:
 
 .PHONY: add-models # Add model(s) into ComfyUI
 add-models:
-	@BIN="${BIN}" ENV_FILE="${ENV_FILE}" ./model-manager.sh
+	@BIN="${BIN}" ENV_FILE="${ENV_FILE}" COMFYUI_HUGGING_FACE_TOKEN="${COMFYUI_HUGGING_FACE_TOKEN}" COMFYUI_CIVITAI_TOKEN="${COMFYUI_CIVITAI_TOKEN}" ./model-manager.sh
 
 .PHONY: remove-model # Permanently delete a model from ComfyUI
 remove-model:
