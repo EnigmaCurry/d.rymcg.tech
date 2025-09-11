@@ -52,13 +52,9 @@ install-hook:
 install-hook-pre:
 	@echo
 
-.PHONY: add-model # Add a model from a URL into ComfyUI
-add-model:
-	@choices="audio_encoders checkpoints clip clip_vision configs controlnet diffusers diffusion_models embeddings gligen hypernetworks loras model_patches photomaker style_models text_encoders unet upscale_models vae vae_approx"; \
-	model_type=$$("${BIN}/script-wizard" choose "What type of model are you installing?" $$choices --default "checkpoints"); \
-	model_url=$$("${BIN}/ask_echo" "What is the download URL of the model?" ""); \
-	basename=$$(basename "$${model_url}" | cut -d'?' -f1); \
-	docker exec -it "comfyui-comfyui-$$(${BIN}/dotenv -f ${ENV_FILE} get DOCKER_COMPOSE_PROFILES)-1" bash -c "cd /ComfyUI/models/$${model_type} && wget $${model_url} -O $${basename}"
+.PHONY: add-models # Add model(s) into ComfyUI
+add-models:
+	@BIN="${BIN}" ENV_FILE="${ENV_FILE}" ./model-manager.sh
 
 .PHONY: remove-model # Permanently delete a model from ComfyUI
 remove-model:

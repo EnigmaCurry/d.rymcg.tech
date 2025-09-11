@@ -61,24 +61,28 @@ place them into `/ComfyUI/models/<model_type>/` in the container, or
 you can use the following Make targets:
 
 ```
-make add-model
+make add-models
 ```
 
-This will ask you for a model type and the URL to download the model,
-and will place it in the appropriate subdirectory in the container.
+This will ask you for one ore more model types and the URL(s) to
+download the model(s), and will place it in the appropriate
+subdirectory in the container. It will also ask you for your Hugging
+Face token or CivitAI session cookie if you are downloading from those
+sources.
 
-TIP: when you start creating somethine from a template in ComfyUI, if
-it requires models that you don't have installed, ComfyUI will show
-what type of models they are and provide a "Copy URL" button. For each
-model, copy the URL and run `make add-model` (be sure to select the
-correct model_type for each model).
+TIP: when you start creating something from a template in ComfyUI, if
+the tempalte requires models that you don't have installed, ComfyUI
+will show what type of models they are and provide a "Copy URL" button
+for the download URL. Run `make add-models` and, for each model, paste
+the URL you copied from ComfyUI (also be sure to select the correct
+model_type for each model).
 
 ```
 make remove-model
 ```
 
 This will ask you for a model type and then you can select one of the
-existing models of that type and it will be permanently deleted.
+installed models of that type to be permanently deleted.
 
 ## Open
 

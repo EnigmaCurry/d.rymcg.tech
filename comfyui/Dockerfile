@@ -2,8 +2,8 @@ FROM ubuntu:24.04
 ARG COMFYUI_VERSION
 
 WORKDIR /
-COPY entrypoint.sh /entrypoint.sh
-RUN chmod +x /entrypoint.sh
+COPY entrypoint.sh install-models.sh /
+RUN chmod +x /entrypoint.sh /install-models.sh
 
 RUN apt-get update && \
     apt-get install -y --no-install-recommends wget git rsync dialog python3 python3-pip python3-venv ca-certificates curl && \
