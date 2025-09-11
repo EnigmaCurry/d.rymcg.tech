@@ -2,21 +2,57 @@
 set -euo pipefail
 set -f  # avoid globbing of CN like *.example.com
 
+###############################################################################
+# Environment Variables
+#
+# Required:
+#   TRAEFIK_ACME_CERT_DOMAINS          JSON list of certificate requests (each have a CN and zero or more SANs): [[CN, [SAN?, ...]], ...]
+#   TRAEFIK_ACME_SH_ACME_DNS_BASE_URL  Base URL for acme-dns (e.g. https://acme-dns.example.net)
+#   TRAEFIK_ACME_SH_CERT_PERIOD_HOURS  Validity target in hours (e.g. 48)
+#   TRAEFIK_ACME_SH_ACME_CA            Step-CA host (e.g. ca.example.com)
+#   TRAEFIK_ACME_SH_ACME_DIRECTORY     Path to ACME directory (e.g. /acme/acme/directory)
+#   TRAEFIK_ACME_SH_DNS_RESOLVER       Trusted resolver IP (e.g. 1.1.1.1) used inside container
+#   TRAEFIK_UID                        Numeric UID of the Traefik user (for chown)
+#   TRAEFIK_GID                        Numeric GID of the Traefik user (for chown)
+#
+# Optional:
+#   TRAEFIK_ACME_SH_TRUST_SYSTEM_STORE           true to merge container CA store with Step-CA roots
+#   TRAEFIK_ACME_SH_ACMEDNS_ACCOUNT_JSON         Path to saved acme-dns account JSON (default: /acme.sh/acmedns-account.json)
+#   TRAEFIK_ACME_SH_ACMEDNS_USERNAME             acme-dns username (preferred over JSON if set)
+#   TRAEFIK_ACME_SH_ACMEDNS_PASSWORD             acme-dns password (preferred over JSON if set)
+#   TRAEFIK_ACME_SH_ACMEDNS_SUBDOMAIN            acme-dns subdomain (preferred over JSON if set)
+#   TRAEFIK_ACME_SH_ACMEDNS_FULLDOMAIN           (optional) fulldomain for printing/checks when using env creds
+#   TRAEFIK_ACME_SH_ACMEDNS_ALLOW_FROM           JSON array or comma-separated list of CIDRs for allowfrom (optional)
+#   CERTS_DIR                                    Destination for installed certs (default: /certs)
+#   TRAEFIK_TOUCH_FILE                           File to touch on successful renew (default: /traefik/config/dynamic/acme-sh-certs.yml)
+#   ACME_ROOT_CA                                 Path to Step-CA root CA bundle (default: /acme.sh/root_ca.pem)
+###############################################################################
+
 # -------- required config --------
 : "${TRAEFIK_ACME_CERT_DOMAINS:?env required: JSON list of certs, each [CN, [SAN...]]}"
 : "${TRAEFIK_ACME_SH_ACME_DNS_BASE_URL:?env required: base URL for acme-dns (ACMEDNS_BASE_URL)}"
 : "${TRAEFIK_ACME_SH_CERT_PERIOD_HOURS:?env required: e.g. 48}"
-: "${TRAEFIK_ACME_SH_ACME_CA:?env required: e.g. ca.rymcg.tech}"
+: "${TRAEFIK_ACME_SH_ACME_CA:?env required: e.g. ca.example.com}"
 : "${TRAEFIK_ACME_SH_ACME_DIRECTORY:?env required: e.g. /acme/acme/directory}"
 : "${TRAEFIK_ACME_SH_DNS_RESOLVER:?env required: trusted DNS server e.g. 1.1.1.1}"
 : "${TRAEFIK_UID:?env required: Traefik user UID}"
 : "${TRAEFIK_GID:?env required: Traefik user GID}"
 
-# -------- optional paths / toggles --------
+# -------- optional config --------
+TRUST_SYSTEM="${TRAEFIK_ACME_SH_TRUST_SYSTEM_STORE:-}"   # must be exactly "true" to enable
+ACMEDNS_ACCOUNT_JSON="${TRAEFIK_ACME_SH_ACMEDNS_ACCOUNT_JSON:-/acme.sh/acmedns-account.json}"
+
+# DO NOT export these yet; we may hydrate them from JSON if empty:
+ACMEDNS_USERNAME="${TRAEFIK_ACME_SH_ACMEDNS_USERNAME:-}"
+ACMEDNS_PASSWORD="${TRAEFIK_ACME_SH_ACMEDNS_PASSWORD:-}"
+ACMEDNS_SUBDOMAIN="${TRAEFIK_ACME_SH_ACMEDNS_SUBDOMAIN:-}"
+ACMEDNS_FULLDOMAIN="${TRAEFIK_ACME_SH_ACMEDNS_FULLDOMAIN:-}"  # nice-to-have for checks/printing
+
+TRAEFIK_ACME_SH_ACMEDNS_ALLOW_FROM="${TRAEFIK_ACME_SH_ACMEDNS_ALLOW_FROM:-}"
+
 CERTS_DIR="${CERTS_DIR:-/certs}"
 TRAEFIK_TOUCH_FILE="${TRAEFIK_TOUCH_FILE:-/traefik/config/dynamic/acme-sh-certs.yml}"
 ACME_ROOT_CA="${ACME_ROOT_CA:-/acme.sh/root_ca.pem}"
-TRUST_SYSTEM="${TRAEFIK_ACME_SH_TRUST_SYSTEM_STORE:-}"   # must be exactly "true" to enable
 
 # Common system CA locations (first readable wins)
 SYSTEM_CANDIDATES=(/etc/ssl/certs/ca-certificates.crt /etc/pki/tls/certs/ca-bundle.crt /etc/ssl/cert.pem)
@@ -29,106 +65,245 @@ command -v jq >/dev/null 2>&1 || fail "jq not found"
 command -v acme.sh >/dev/null 2>&1 || fail "acme.sh not found"
 command -v openssl >/dev/null 2>&1 || fail "openssl not found"
 command -v curl >/dev/null 2>&1 || fail "curl not found"
+command -v dig >/dev/null 2>&1 || warn "dig not found (dns checks will be limited)"
 
 ACME_SERVER="https://${TRAEFIK_ACME_SH_ACME_CA}${TRAEFIK_ACME_SH_ACME_DIRECTORY}"
 export ACMEDNS_BASE_URL="${TRAEFIK_ACME_SH_ACME_DNS_BASE_URL}"
 
-cat <<EOF > /etc/resolv.conf
-nameserver ${TRAEFIK_ACME_SH_DNS_RESOLVER}
-EOF
+# Force resolver for all lookups inside the container (acme.sh uses /etc/resolv.conf)
+printf 'nameserver %s\n' "${TRAEFIK_ACME_SH_DNS_RESOLVER}" > /etc/resolv.conf
 
-# -------- TOFU for Step-CA roots --------
-CABUNDLE_ARGS=()
-if [[ ! -f "${ACME_ROOT_CA}" ]]; then
-  ROOTS_URL="https://${TRAEFIK_ACME_SH_ACME_CA}/roots.pem"
-  INTS_URL="https://${TRAEFIK_ACME_SH_ACME_CA}/intermediates.pem"
-  log "No ${ACME_ROOT_CA} present; TOFU fetch from ${ROOTS_URL} (+ intermediates)"
-  mkdir -p "$(dirname "${ACME_ROOT_CA}")"
-  tmp_roots="$(mktemp)"; tmp_ints="$(mktemp)"
-  if curl -fsS -k "${ROOTS_URL}" -o "${tmp_roots}" && grep -q "BEGIN CERTIFICATE" "${tmp_roots}"; then
-    if curl -fsS -k "${INTS_URL}" -o "${tmp_ints}" && grep -q "BEGIN CERTIFICATE" "${tmp_ints}"; then
-      cat "${tmp_roots}" "${tmp_ints}" > "${ACME_ROOT_CA}"
-      log "Wrote root+intermediate bundle to ${ACME_ROOT_CA}"
-    else
-      cp "${tmp_roots}" "${ACME_ROOT_CA}"
-      log "Wrote root-only bundle to ${ACME_ROOT_CA}"
-    fi
-    rm -f "${tmp_roots}" "${tmp_ints}"
-    # print fingerprints
-    awk 'BEGIN{c=0}/BEGIN CERTIFICATE/{c++} {print > ("/tmp/step-ca-" c ".pem")}' "${ACME_ROOT_CA}" || true
-    for f in /tmp/step-ca-*.pem; do
-      [[ -f "$f" ]] || continue
-      openssl x509 -in "$f" -noout -fingerprint -sha256 -subject | sed 's/^/  /'
-      rm -f "$f"
-    done
-    CABUNDLE_ARGS=(--ca-bundle "${ACME_ROOT_CA}")
-  else
-    warn "Failed to fetch ${ROOTS_URL}; proceeding with system trust (if enabled) or none."
-    rm -f "${tmp_roots}" "${tmp_ints}" || true
-  fi
-else
-  CABUNDLE_ARGS=(--ca-bundle "${ACME_ROOT_CA}")
-fi
-
-log "ACME server: ${ACME_SERVER}"
-log "Target validity: +${TRAEFIK_ACME_SH_CERT_PERIOD_HOURS}h"
-
-# -------- Conditional system store merge --------
-CURL_TRUST_ARGS=()
-if [[ "${TRUST_SYSTEM}" == "true" ]]; then
-  # find readable system CA file
-  SYS_CA=""
+# ---------- utilities ----------
+SYSTEM_CA=""
+find_system_ca() {
   for cand in "${SYSTEM_CANDIDATES[@]}"; do
-    if [[ -r "$cand" ]]; then SYS_CA="$cand"; break; fi
+    if [[ -r "$cand" ]]; then SYSTEM_CA="$cand"; return 0; fi
   done
+  return 1
+}
 
-  if [[ -n "$SYS_CA" ]]; then
-    if ((${#CABUNDLE_ARGS[@]})); then
-      COMBINED_BUNDLE="/acme.sh/trust-bundle.pem"
-      cat "${ACME_ROOT_CA}" "${SYS_CA}" > "${COMBINED_BUNDLE}"
-      CABUNDLE_ARGS=(--ca-bundle "${COMBINED_BUNDLE}")
-      log "Using combined trust bundle (Step-CA + system): ${COMBINED_BUNDLE}"
-      CURL_TRUST_ARGS=(--cacert "${COMBINED_BUNDLE}")
+# Build curl trust args (array) from CABUNDLE or system store later
+CURL_TRUST_ARGS=()
+CABUNDLE_ARGS=()  # for acme.sh
+
+# ---------- TOFU trust (Step-CA roots, +optionally system store) ----------
+tofu_bootstrap_trust() {
+  if [[ ! -f "${ACME_ROOT_CA}" ]]; then
+    local ROOTS_URL="https://${TRAEFIK_ACME_SH_ACME_CA}/roots.pem"
+    local INTS_URL="https://${TRAEFIK_ACME_SH_ACME_CA}/intermediates.pem"
+    log "No ${ACME_ROOT_CA} present; TOFU fetch from ${ROOTS_URL} (+ intermediates)"
+    mkdir -p "$(dirname "${ACME_ROOT_CA}")"
+    local tmp_roots tmp_ints
+    tmp_roots="$(mktemp)"; tmp_ints="$(mktemp)"
+    if curl -fsS -k "${ROOTS_URL}" -o "${tmp_roots}" && grep -q "BEGIN CERTIFICATE" "${tmp_roots}"; then
+      if curl -fsS -k "${INTS_URL}" -o "${tmp_ints}" && grep -q "BEGIN CERTIFICATE" "${tmp_ints}"; then
+        cat "${tmp_roots}" "${tmp_ints}" > "${ACME_ROOT_CA}"
+        log "Wrote root+intermediate bundle to ${ACME_ROOT_CA}"
+      else
+        cp "${tmp_roots}" "${ACME_ROOT_CA}"
+        log "Wrote root-only bundle to ${ACME_ROOT_CA}"
+      fi
+      rm -f "${tmp_roots}" "${tmp_ints}"
+      # fingerprints (nice to record)
+      awk 'BEGIN{c=0}/BEGIN CERTIFICATE/{c++} {print > ("/tmp/step-ca-" c ".pem")}' "${ACME_ROOT_CA}" || true
+      for f in /tmp/step-ca-*.pem; do
+        [[ -f "$f" ]] || continue
+        openssl x509 -in "$f" -noout -fingerprint -sha256 -subject | sed 's/^/  /'
+        rm -f "$f"
+      done
+      CABUNDLE_ARGS=(--ca-bundle "${ACME_ROOT_CA}")
     else
-      # No Step-CA bundle → rely purely on system trust
-      log "Using system trust store only: ${SYS_CA}"
-      CURL_TRUST_ARGS=(--cacert "${SYS_CA}")
-      CABUNDLE_ARGS=()  # acme.sh without explicit bundle → system trust
+      warn "Failed to fetch ${ROOTS_URL}; proceeding with system trust (if enabled) or none."
+      rm -f "${tmp_roots}" "${tmp_ints}" || true
     fi
   else
-    warn "System CA store not found/readable; continuing without it."
-    # If Step-CA bundle exists, leave CABUNDLE_ARGS as-is; curl will preflight below with none.
+    CABUNDLE_ARGS=(--ca-bundle "${ACME_ROOT_CA}")
   fi
-else
-  log "System trust store merge disabled (TRAEFIK_ACME_SH_TRUST_SYSTEM_STORE != 'true')."
-  if ((${#CABUNDLE_ARGS[@]})); then
-    CURL_TRUST_ARGS=(--cacert "${ACME_ROOT_CA}")
+
+  if [[ "${TRUST_SYSTEM}" == "true" ]]; then
+    if find_system_ca; then
+      if ((${#CABUNDLE_ARGS[@]})); then
+        local COMBINED_BUNDLE="/acme.sh/trust-bundle.pem"
+        cat "${ACME_ROOT_CA}" "${SYSTEM_CA}" > "${COMBINED_BUNDLE}"
+        CABUNDLE_ARGS=(--ca-bundle "${COMBINED_BUNDLE}")
+        CURL_TRUST_ARGS=(--cacert "${COMBINED_BUNDLE}")
+        log "Using combined trust bundle (Step-CA + system): ${COMBINED_BUNDLE}"
+      else
+        CURL_TRUST_ARGS=(--cacert "${SYSTEM_CA}")
+        log "Using system trust store only: ${SYSTEM_CA}"
+      fi
+    else
+      warn "System CA store not found/readable; continuing without it."
+      ((${#CABUNDLE_ARGS[@]})) && CURL_TRUST_ARGS=(--cacert "${ACME_ROOT_CA}") || true
+    fi
   else
-    CURL_TRUST_ARGS=()  # no explicit trust args
+    log "System trust store merge disabled (TRAEFIK_ACME_SH_TRUST_SYSTEM_STORE != 'true')."
+    ((${#CABUNDLE_ARGS[@]})) && CURL_TRUST_ARGS=(--cacert "${ACME_ROOT_CA}") || true
   fi
-fi
 
-# -------- Preflight reachability --------
-if ! curl -fsS "${CURL_TRUST_ARGS[@]}" "${ACME_SERVER}" >/dev/null; then
-  # Helpful fallback: if we were using a bundle, try system trust silently
-  if ((${#CURL_TRUST_ARGS[@]})) && curl -fsS "${ACME_SERVER}" >/dev/null; then
-    warn "Preflight failed with provided bundle, but system trust worked; continuing with system trust for this run."
-    CABUNDLE_ARGS=()
-    CURL_TRUST_ARGS=()
+  # Preflight ACME directory
+  if ! curl -fsS "${CURL_TRUST_ARGS[@]}" "${ACME_SERVER}" >/dev/null; then
+    if ((${#CURL_TRUST_ARGS[@]})) && curl -fsS "${ACME_SERVER}" >/dev/null; then
+      warn "Preflight failed with provided bundle, but system trust worked; continuing with system trust for this run."
+      CABUNDLE_ARGS=()
+      CURL_TRUST_ARGS=()
+    else
+      fail "Cannot reach ACME directory (${ACME_SERVER}). Check DNS/network or CA trust."
+    fi
+  fi
+}
+
+# ---------- Hydrate acme-dns env from JSON if needed ----------
+hydrate_acmedns_env() {
+  # If any of the required envs are empty, and JSON is readable, fill from JSON.
+  if { [[ -z "${ACMEDNS_USERNAME}" ]] || [[ -z "${ACMEDNS_PASSWORD}" ]] || [[ -z "${ACMEDNS_SUBDOMAIN}" ]]; } \
+     && [[ -r "${ACMEDNS_ACCOUNT_JSON}" ]]; then
+    local u p s f
+    u="$(jq -r '.username // empty'  < "${ACMEDNS_ACCOUNT_JSON}")"
+    p="$(jq -r '.password // empty'  < "${ACMEDNS_ACCOUNT_JSON}")"
+    s="$(jq -r '.subdomain // empty' < "${ACMEDNS_ACCOUNT_JSON}")"
+    f="$(jq -r '.fulldomain // empty' < "${ACMEDNS_ACCOUNT_JSON}")"
+
+    # Only populate missing ones; keep any explicit env overrides
+    [[ -z "${ACMEDNS_USERNAME}"  && -n "${u}" ]] && ACMEDNS_USERNAME="${u}"
+    [[ -z "${ACMEDNS_PASSWORD}"  && -n "${p}" ]] && ACMEDNS_PASSWORD="${p}"
+    [[ -z "${ACMEDNS_SUBDOMAIN}" && -n "${s}" ]] && ACMEDNS_SUBDOMAIN="${s}"
+    # fulldomain is optional but useful for checks/printing
+    [[ -z "${ACMEDNS_FULLDOMAIN}" && -n "${f}" ]] && ACMEDNS_FULLDOMAIN="${f}"
+
+    log "dns_acmedns: hydrated missing envs from ${ACMEDNS_ACCOUNT_JSON}"
+  fi
+
+  # Now export the three required envs for the hook.
+  if [[ -n "${ACMEDNS_USERNAME}" && -n "${ACMEDNS_PASSWORD}" && -n "${ACMEDNS_SUBDOMAIN}" ]]; then
+    export ACMEDNS_USERNAME ACMEDNS_PASSWORD ACMEDNS_SUBDOMAIN
+    return 0
+  fi
+
+  fail "ACME-DNS registration not found. Provide env creds (ACMEDNS_USERNAME/PASSWORD/SUBDOMAIN) or mount ${ACMEDNS_ACCOUNT_JSON}."
+}
+
+# ---------- Subcommand: register-acmedns ----------
+register_acmedns() {
+  tofu_bootstrap_trust
+
+  # helper: print exact CNAMEs for all CNs/SANs
+  print_cnames() {
+    local fd="$1"
+    mapfile -t __all_names < <(
+      echo "${TRAEFIK_ACME_CERT_DOMAINS}" \
+        | jq -r '.[] | [.[0]] + (.[1] // []) | .[]'
+    )
+    local __tmpfile; __tmpfile="$(mktemp)"
+    for __n in "${__all_names[@]}"; do
+      local __base
+      if [[ "$__n" == \*.* ]]; then
+        __base="${__n#*.}"   # strip leading "*."
+      else
+        __base="$__n"
+      fi
+      printf "_acme-challenge.%s.\tCNAME\t%s.\n" "$__base" "$fd" >> "$__tmpfile"
+    done
+    echo
+    echo "Create these CNAME records (on your root domain's DNS server) BEFORE traefik install:"
+    echo
+    sort -u "$__tmpfile" | sed 's/^/  /'
+    rm -f "$__tmpfile"
+    echo
+  }
+
+  # If already registered, show exact CNAMEs and exit
+  if [[ -s "${ACMEDNS_ACCOUNT_JSON}" ]] \
+     && jq -e '.fulldomain and .username and .password and .subdomain' >/dev/null 2>&1 < "${ACMEDNS_ACCOUNT_JSON}"
+  then
+    local fd; fd="$(jq -r '.fulldomain' < "${ACMEDNS_ACCOUNT_JSON}")"
+    log "acme-dns account already present at ${ACMEDNS_ACCOUNT_JSON}"
+    print_cnames "${fd}"
+    echo "When CNAMEs are in place, run the container normally (no subcommand) to issue."
+    return 0
+  fi
+
+  mkdir -p "$(dirname "${ACMEDNS_ACCOUNT_JSON}")"
+  local REG_URL="${ACMEDNS_BASE_URL%/}/register"
+  log "Registering acme-dns account: ${REG_URL}"
+
+  # POST {} to /register
+  local resp
+  resp="$(curl -fsS "${CURL_TRUST_ARGS[@]}" -H 'Content-Type: application/json' -X POST -d '{}' "${REG_URL}")" \
+    || fail "acme-dns register failed"
+
+  # Expected keys: username,password,fulldomain,subdomain,allowfrom
+  local username password fulldomain subdomain
+  username="$(jq -r '.username'  <<<"$resp")"
+  password="$(jq -r '.password'  <<<"$resp")"
+  fulldomain="$(jq -r '.fulldomain'<<<"$resp")"
+  subdomain="$(jq -r '.subdomain' <<<"$resp")"
+  [[ -n "$username" && -n "$password" && -n "$fulldomain" && -n "$subdomain" && "$username" != "null" ]] \
+    || fail "acme-dns register returned unexpected JSON: $resp"
+
+  # Optional: set allowfrom on server if provided
+  if [[ -n "${TRAEFIK_ACME_SH_ACMEDNS_ALLOW_FROM}" ]]; then
+    local af_json
+    if jq -e . >/dev/null 2>&1 <<<"${TRAEFIK_ACME_SH_ACMEDNS_ALLOW_FROM}"; then
+      af_json="${TRAEFIK_ACME_SH_ACMEDNS_ALLOW_FROM}"
+    else
+      af_json="$(jq -Rc 'split(",") | map(. | gsub("^\\s+|\\s+$";""))' <<<"${TRAEFIK_ACME_SH_ACMEDNS_ALLOW_FROM}")"
+    fi
+    local UPD_URL="${ACMEDNS_BASE_URL%/}/update"
+    log "Setting acme-dns allowfrom="
+    curl -fsS "${CURL_TRUST_ARGS[@]}" -H 'Content-Type: application/json' -X POST \
+      -d "$(jq -n --arg u "$username" --arg p "$password" --argjson a "${af_json}" '{username:$u,password:$p,allowfrom:$a}')" \
+      "${UPD_URL}" >/dev/null || warn "Failed to update allowfrom (continuing)"
+  fi
+
+  # Write account file for our own reuse/hydration later
+  jq -n --arg u "$username" --arg p "$password" --arg f "$fulldomain" --arg s "$subdomain" \
+        --argjson a "$(jq -n '[]')" \
+        '{username:$u,password:$p,fulldomain:$f,subdomain:$s,allowfrom:$a}' > "${ACMEDNS_ACCOUNT_JSON}"
+  chmod 600 "${ACMEDNS_ACCOUNT_JSON}"
+
+  echo
+  echo "acme-dns account saved to: ${ACMEDNS_ACCOUNT_JSON}"
+  print_cnames "${fulldomain}"
+  echo "When CNAMEs are in place, run the container normally (no subcommand) to issue."
+}
+
+# ---------- Issue certs (default path) ----------
+issue_all() {
+  tofu_bootstrap_trust
+
+  # Prefer env creds; if any missing, hydrate from JSON; then export the triple.
+  hydrate_acmedns_env
+
+  log "ACME server: ${ACME_SERVER}"
+  log "Target validity: +${TRAEFIK_ACME_SH_CERT_PERIOD_HOURS}h"
+
+  # (optional) quick CNAME sanity check if we know the fulldomain
+  local FD="${ACMEDNS_FULLDOMAIN:-}"
+  if [[ -z "$FD" && -r "${ACMEDNS_ACCOUNT_JSON}" ]]; then
+    FD="$(jq -r '.fulldomain // empty' < "${ACMEDNS_ACCOUNT_JSON}" 2>/dev/null || true)"
+  fi
+  if [[ -n "$FD" && -n "$(command -v dig || true)" ]]; then
+    mapfile -t ALL_NAMES < <(echo "${TRAEFIK_ACME_CERT_DOMAINS}" | jq -r '.[] | [.[0]] + (.[1] // []) | .[]')
+    for n in "${ALL_NAMES[@]}"; do
+      local base="$n"
+      [[ "$base" == \*.* ]] && base="${base#*.}"  # normalize wildcard
+      local got
+      got="$(dig +short CNAME "_acme-challenge.${base}" "${TRAEFIK_ACME_SH_DNS_RESOLVER}" +time=2 +tries=1 || true)"
+      if [[ "${got%.}" != "${FD%.}" ]]; then
+          warn "CNAME missing/mismatch for _acme-challenge.${base}; got='${got:-<none>}' want='${FD}'. Issuance may stall."
+      fi
+    done
   else
-    fail "Cannot reach ACME directory (${ACME_SERVER}). Check DNS/network or CA trust."
+    log "Skipping CNAME sanity check (no fulldomain available)."
   fi
-fi
 
-# (Optional) enforce non-interactive acme-dns config:
-# if [[ -z "${ACMEDNS_ACCOUNT_JSON:-}" && ( -z "${ACMEDNS_USERNAME:-}" || -z "${ACMEDNS_PASSWORD:-}" || -z "${ACMEDNS_SUBDOMAIN:-}" ) ]]; then
-#   fail "dns_acmedns not configured for non-interactive use; set ACMEDNS_ACCOUNT_JSON or ACMEDNS_* envs."
-# fi
+  # -------- Issue all certs --------
+  if [[ "$(echo "${TRAEFIK_ACME_CERT_DOMAINS}" | jq 'length')" -eq 0 ]]; then
+    log "TRAEFIK_ACME_CERT_DOMAINS is empty; no certificates to request."
+    return 0
+  fi
 
-# -------- Issue all certs --------
-if [[ "$(echo "${TRAEFIK_ACME_CERT_DOMAINS}" | jq 'length')" -eq 0 ]]; then
-  log "TRAEFIK_ACME_CERT_DOMAINS is empty; no certificates to request."
-else
   while IFS= read -r item; do
     CN="$(jq -r '.[0]' <<<"$item")"
     mapfile -t SANS < <(jq -r '.[1] // [] | .[]' <<<"$item")
@@ -166,12 +341,23 @@ else
     fi
     log "Installed files under: ${CERTS_DIR}/${CN}"
   done < <(echo "${TRAEFIK_ACME_CERT_DOMAINS}" | jq -c '.[]')
-fi
+}
 
-# -------- run daemon or exec --------
-if [[ "${1-}" == "daemon" ]]; then
-  set -x
-  exec crond -n -s -m off
-else
-  exec -- "$@"
-fi
+# ---------- Entrypoint behavior ----------
+echo
+case "${1-}" in
+  register-acmedns)
+    register_acmedns
+    exit 0
+    ;;
+  daemon)
+    issue_all
+    set -x
+    exec crond -n -s -m off
+    ;;
+  *)
+    # run issuance then exec the given command
+    issue_all
+    exec -- "$@"
+    ;;
+esac
