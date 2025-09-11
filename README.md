@@ -544,6 +544,7 @@ Install these other services at your leisure/preference:
 * [Caddy](caddy#readme) - an HTTP server with automatic TLS (passthrough)
 * [CalcPad](calcpad#readme) - a different take on the caculator
 * [Calibre](calibre#readme) - an ebook manager
+* [ComfyUI](comfyui#readme) - an AI image/video/audio generator
 * [Commentario](commentario#readme) - a website comment service
 * [Coturn](coturn#readme) - a TURN relay server for NAT traversal
 * [Datetime](datetime#readme) - a time viewing and conversion tool
