@@ -54,12 +54,12 @@ while true; do
     model_type=$("${BIN}/script-wizard" choose "What type of model are you installing?" ${choices} --default "checkpoints")
     echo ""
     model_url=$("${BIN}/ask_echo" "What is the download URL of the model?" "")
+    echo ""
     if [[ "${model_url}" =~ .*civitai\.com.* ]]; then
-        token= $(${BIN}/dotenv -f ${ENV_FILE} get COMFYUI_CIVITAI_TOKEN)
+        token=$("${BIN}/ask_echo_blank" "Enter authentication token (or leave blank):" "" $(${BIN}/dotenv -f ${ENV_FILE} get COMFYUI_CIVITAI_TOKEN))
     elif [[ "${model_url}" =~ .*huggingface\.co.* ]]; then
-        token= $(${BIN}/dotenv -f ${ENV_FILE} get COMFYUI_HUGGING_FACE_TOKEN)
+        token=$("${BIN}/ask_echo_blank" "Enter authentication token (or leave blank):" "" $(${BIN}/dotenv -f ${ENV_FILE} get COMFYUI_HUGGING_FACE_TOKEN))
     else
-        echo ""
         token=$("${BIN}/ask_echo_blank" "Enter authentication token (or leave blank):" "")
     fi
 
@@ -84,6 +84,7 @@ while IFS=',' read -r type url token; do
 done < "${TEMP_FILE}"
 
 # Confirm installation
+echo ""
 if [ "$("${BIN}/script-wizard" choose "Confirm installation?" "Yes" "No")" = "No" ]; then
     echo -e "\nInstallation cancelled.\n"
     exit 0
