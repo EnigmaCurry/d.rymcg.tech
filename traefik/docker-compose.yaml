@@ -307,5 +307,15 @@ services:
       - "acme-sh:/acme.sh"
       - "traefik_certs:/certs"
       - "traefik:/traefik"
-    # All labels are defined in the template: docker-compose.instance.yaml
+    environment:
+      - TRAEFIK_ACME_CERT_DOMAINS
+      - TRAEFIK_ACME_SH_ACME_CA
+      - TRAEFIK_ACME_SH_ACME_DIRECTORY
+      - TRAEFIK_ACME_SH_ACME_DNS_BASE_URL
+      - TRAEFIK_ACME_SH_CERT_PERIOD_HOURS
+      - TRAEFIK_ACME_SH_TRUST_SYSTEM_STORE
+      - TRAEFIK_ACME_SH_DNS_RESOLVER
+      - TRAEFIK_UID
+      - TRAEFIK_GID
+# All labels are defined in the template: docker-compose.instance.yaml
     labels: []

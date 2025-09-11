@@ -1,6 +1,11 @@
 #!/usr/bin/env bash
 set -euox pipefail
 
+### This script was used in early development to request certificates manually.
+### It may still be invoked via `make acme-sh-cert`.
+### The container entrypoint does not use this script anymore, instead it will
+### request certificates directly from the configured TRAEFIK_ACME_CERT_DOMAINS env var.
+
 echo
 
 DOMAIN="$(${BIN}/wizard ask "Enter the domain name (Subject) of the certificate to create (may be wildcard):" '*.example.com')"
