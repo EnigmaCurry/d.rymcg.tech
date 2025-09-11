@@ -3,9 +3,8 @@
 [ComfyUI](https://github.com/comfyanonymous/ComfyUI) is a modular
 visual AI engine and application that lets you design and execute
 advanced stable diffusion pipelines using a graph/nodes/flowchart
-based interface. It can create images, videos, audio, and 3D models
-(and can edit/inpaint images) starting from text, audio, or image
-prompts.
+based interface. It can create/edit images, videos, audio, and 3D
+models starting from text, audio, or image prompts.
 
 ## Config
 
@@ -57,21 +56,21 @@ about 10 minutes, depending on your hardware and internet speed.
 ### Models
 
 You can manually download models from sources like Huggingface and
-place them into `/ComfyUI/models/<model_type>/` in the container, or
-you can use the following Make targets:
+CivitAI and place them into `/ComfyUI/models/<model_type>/` in the
+container, or you can use the following Make targets:
 
 ```
 make add-models
 ```
 
 This will ask you for one ore more model types and the URL(s) to
-download the model(s), and will place it in the appropriate
-subdirectory in the container. It will also ask you for your Hugging
-Face token or CivitAI session cookie if you are downloading from those
-sources.
+download the model(s), and will download the models into the
+appropriate subdirectory in the container. You'll also have the option
+to enter your Hugging Face or CivitAI token if you are downloading
+from those sources (some models require authentication to download).
 
 TIP: when you start creating something from a template in ComfyUI, if
-the tempalte requires models that you don't have installed, ComfyUI
+the template requires models that aren't installed installed, ComfyUI
 will show what type of models they are and provide a "Copy URL" button
 for the download URL. Run `make add-models` and, for each model, paste
 the URL you copied from ComfyUI (also be sure to select the correct

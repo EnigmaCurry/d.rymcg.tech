@@ -2,9 +2,10 @@
 
 ## This script prompts user for information about models they want to
 ## install into ComfyUI: model type, URL to download model from, token
-## (optional, for Hugging Face models), cookie (optional, for CivitAI
-## models), saves the info to a text file, copies the text file to the
-## ComfyUI Docker container, and runs a script there to install them.
+## (optional, for some models downloaded from services like Hugging
+## Face, CivitAI, etc.); saves the info to a text file; copies the
+## text file to the ComfyUI Docker container; and runs a script in the
+## container to install them.
 ##
 ## BIN should and ENV_FILE must be set prior to calling this script.
 ## This script must reside in `/path/to/d.rymcg.text/comfyui/`
@@ -28,19 +29,14 @@ cat <<'EOF'
 Install Models into ComfyUI
 ===========================
 
-You will be asked for 4 pieces of information for each model you want to install:
+You will be asked for information for each model you want to install:
  - Model Type (e.g., checkpoint, vae, diffusion_model)
  - Model URL (the URL to download the model)
- - Token (your Huggingface token)
- - Cookie (cookie of your CivitAI session)
+ - Token (your token from your Huggingface/CivitAI/etc. account)
 
 Token is optional: it may be required to download certain models from
-Hugging Face, or any other service that uses a token to allow
-downloading models.
-
-Cookie is optional: it may be required to download certain models from
-CivitAI, or any other service that uses session cookies to allow
-downloading models.
+Hugging Face, CivitAI, or other services that use a token to allow
+downloading certain models.
 
 EOF
 
@@ -53,29 +49,14 @@ while true; do
     model_type=$("${BIN}/script-wizard" choose "What type of model are you installing?" ${choices} --default "checkpoints")
     echo ""
     model_url=$("${BIN}/ask_echo" "What is the download URL of the model?" "")
-
-    # Ask for token or cookie (mutually exclusive)
-    token=""
-    cookie=""
     echo ""
-    auth_choice=$("${BIN}/script-wizard" choose "Authentication method (optional)" "None" "Token" "Cookie"          )
-
-    echo ""
-    case "${auth_choice}" in
-        "Token")
-            token=$("${BIN}/ask_echo" "Enter authentication token:" "")
-            ;;
-        "Cookie")
-            # TODO: to make civitai work, i may need to ask for login/password here (to retrieve cookie in install-models.sh)
-            cookie=$("${BIN}/ask_echo" "Enter cookie value:" "")
-            ;;
-    esac
+    token=$("${BIN}/ask_echo_blank" "Enter authentication token (or leave blank):" "")
 
     # Write to temp file as comma-separated tuple
-    echo "${model_type},${model_url},${token},${cookie}" >> "${TEMP_FILE}"
+    echo "${model_type},${model_url},${token}" >> "${TEMP_FILE}"
 
     echo ""
-    if [ "$("${BIN}/script-wizard" choose "Install another model?" "Yes" "No")" = "No" ]; then
+    if [ "$("${BIN}/script-wizard" choose "Add another model?" "Yes" "No")" = "No" ]; then
         break
     fi
 done
@@ -84,11 +65,10 @@ done
 echo ""
 echo "The following models will be installed:"
 echo "======================================="
-while IFS=',' read -r type url token cookie; do
+while IFS=',' read -r type url token; do
     echo -e "Model Type:\t${type}"
     echo -e "Model URL:\t${url}"
     [ -n "${token}" ] && echo -e "Token:\t\t[REDACTED]" || echo -e "Token:\t\tNone"
-    [ -n "${cookie}" ] && echo -e "Cookie:\t\t[REDACTED]" || echo -e "Cookie:\t\tNone"
     echo "---"
 done < "${TEMP_FILE}"
 
