@@ -31,6 +31,15 @@ you choose to save them elsewhere on the host.
 The output and models paths on the host should be different from each
 other.
 
+### GPU hardware
+
+ComfyUI is compatible with AMD, Nvidia, and Intel GPU architectures,
+as well as being able to run on CPU only. This installer hasn't been
+tested with Intel GPUs. If you encounter a problem installing ComfyUI
+for an Intel GPU, please [submit an
+issue](https://github.com/EnigmaCurry/d.rymcg.tech/issues/new/choose):
+https://github.com/EnigmaCurry/d.rymcg.tech/issues/new/choose
+
 ### Authentication and Authorization
 
 See [AUTH.md](../AUTH.md) for information on adding external authentication on

@@ -15,6 +15,12 @@ config-hook:
 	@echo "Enter the processing engine to use: cuda (for nvidia GPUs), rocm (for AMD GPUs), intel (for Intel GPUs), or cpu (for CPU only)."
 	@${BIN}/reconfigure_compose_profiles_choose ${ENV_FILE} rocm="AMD GPU" cuda="Nvidia GPU" intel="Intel GPU" cpu="CPU only"
 	@echo
+	@if [[ $$(${BIN}/dotenv -f ${ENV_FILE} get DOCKER_COMPOSE_PROFILES) == 'rocm' ]]; then \
+		${BIN}/reconfigure_ask ${ENV_FILE} COMFYUI_ROCM_VERSION "Enter the version of ROCm to install (e.g., 6.4 or 6.4.3)" ; \
+	elif [[ $$(${BIN}/dotenv -f ${ENV_FILE} get DOCKER_COMPOSE_PROFILES) == 'cuda' ]]; then \
+		${BIN}/reconfigure_ask ${ENV_FILE} COMFYUI_CUDA_WHEEL_VERSION "Enter the version of the CUDA wheel to install (e.g., cu129)" 	; \
+	fi
+	@echo
 	@ALLOW_BLANK=1 ${BIN}/reconfigure_ask ${ENV_FILE} COMFYUI_MODELS_HOST_PATH "If you want to save models in a specific directory on the host, enter the absolute path here, or leave blank to save models to the ComfyUI container's named Docker volume."
 	@echo
 	@ALLOW_BLANK=1 ${BIN}/reconfigure_ask ${ENV_FILE} COMFYUI_OUTPUT_HOST_PATH "If you want to save output files (e.g., images, video, audio) in a specific directory on the host, enter the absolute path here, or leave blank to save them to the ComfyUI container's named Docker volume. NOTE: This path on the host should be different than the path you use for the models."

@@ -24,6 +24,7 @@ services:
         - COMFYUI_VERSION=${COMFYUI_VERSION}
         - GPU_TYPE=${DOCKER_COMPOSE_PROFILES}
         - LOG_LEVEL=${COMFYUI_LOG_LEVEL:-WARNING}
+        - CUDA_WHEEL_VERSION=${COMFYUI_CUDA_WHEEL_VERSION:-cu129}
     deploy:
       resources:
         reservations:
@@ -43,6 +44,7 @@ services:
         - GPU_TYPE=${DOCKER_COMPOSE_PROFILES}
         - HSA_OVERRIDE_GFX_VERSION=${COMFYUI_HSA_OVERRIDE_GFX_VERSION}
         - LOG_LEVEL=${COMFYUI_LOG_LEVEL:-WARNING}
+        - ROCM_VERSION=${COMFYUI_ROCM_VERSION:-6.4.3}
     devices:
       - /dev/kfd:/dev/kfd
       - /dev/dri:/dev/dri
