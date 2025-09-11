@@ -317,20 +317,30 @@ issue_all() {
     ((${#SANS[@]})) && log "  SANs: ${SANS[*]}" || log "  SANs: (none)"
     mkdir -p "${CERTS_DIR}/${CN}"
 
+    # Issue (treat rc=2 as "not due yet"; proceed)
+    set +e
     acme.sh --issue \
-      "${DOMAINS_ARGS[@]}" \
-      --dns dns_acmedns \
-      --valid-to "+${TRAEFIK_ACME_SH_CERT_PERIOD_HOURS}h" \
-      --server "${ACME_SERVER}" \
-      "${CABUNDLE_ARGS[@]}"
+            "${DOMAINS_ARGS[@]}" \
+            --dns dns_acmedns \
+            --valid-to "+${TRAEFIK_ACME_SH_CERT_PERIOD_HOURS}h" \
+            --server "${ACME_SERVER}" \
+            "${CABUNDLE_ARGS[@]}"
+    rc=$?
+    set -e
+    if [[ $rc -eq 2 ]]; then
+        log "acme.sh reports not due yet (rc=2); continuing to install existing cert paths."
+    elif [[ $rc -ne 0 ]]; then
+        fail "acme.sh --issue failed with rc=$rc"
+    fi
 
+    # Install to deterministic paths (idempotent)
     acme.sh --install-cert \
-      "${DOMAINS_ARGS[@]}" \
-      --key-file       "${CERTS_DIR}/${CN}/${CN}.key" \
-      --fullchain-file "${CERTS_DIR}/${CN}/fullchain.cer" \
-      --cert-file      "${CERTS_DIR}/${CN}/cert.cer" \
-      --ca-file        "${CERTS_DIR}/${CN}/ca.cer" \
-      --reloadcmd      "touch '${TRAEFIK_TOUCH_FILE}'"
+            "${DOMAINS_ARGS[@]}" \
+            --key-file       "${CERTS_DIR}/${CN}/${CN}.key" \
+            --fullchain-file "${CERTS_DIR}/${CN}/fullchain.cer" \
+            --cert-file      "${CERTS_DIR}/${CN}/cert.cer" \
+            --ca-file        "${CERTS_DIR}/${CN}/ca.cer" \
+            --reloadcmd      "touch '${TRAEFIK_TOUCH_FILE}'"
 
     chown -R "${TRAEFIK_UID}:${TRAEFIK_GID}" "${CERTS_DIR}/${CN}"
 
