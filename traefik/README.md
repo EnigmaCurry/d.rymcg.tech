@@ -123,6 +123,107 @@ template](https://github.com/EnigmaCurry/d.rymcg.tech/blob/e6a4d0285f04d6d7f07fb
 
 Make sure you reinstall Traefik after making configuration changes.
 
+## ACME
+
+ACME is a protocol that provides for automatic TLS certificate
+provisioning. In this config, you have four options regarding ACME:
+
+ 1. Acme.sh client + ACME-DNS + (Let's Encrypt or Step-CA)
+ 2. Traefik builtin ACME client + Let's Encrypt
+ 3. Traefik builtin ACME client + Step-CA
+ 4. Disable ACME client.
+
+### Acme.sh + ACME-DNS
+
+If you enable Acme.sh, a sidecar container will start with
+[acme.sh](https://github.com/acmesh-official/acme.sh?tab=readme-ov-file)
+installed which as an external ACME client. This replaces the Traefik
+builtin ACME client. All TLS certificates will be issued/renewed by
+acme.sh and traefik will be automatically restarted as needed.
+
+Benefits and/or drawbacks of this method:
+
+ * By using ACME-DNS you avoid a security problem where you need to
+   store the API credentials for your domain's primary DNS server.
+   With ACME-DNS you delegate the authoritative DNS server to a
+   secondary DNS server. It automatically generates its own
+   credentials that are guaranteed to be scoped only to allow updates
+   to the TXT records of the specific challenge domain.
+ * Only supports DNS-01 challenge type, which is a necessity of
+   ACME-DNS (but you gain wildcard certs as a bonus ability).
+ * Certificates are installed as individual `.cert`, `.key`, `.pem`
+   files, so they may be easily shared with other services, not just
+   Traefik.
+ * Acme.sh is a focussed ACME client and offers more control than the
+   builtin Traefik one.
+ * A builtin restart hook is required to restart Traefik after
+   certificates are issued/renewed. (In theory this should not be
+   necessary, because the Traefik file provider has an optional watch
+   parameter that should reload its configuration when modified,
+   however it seems to ignore the TLS certificate list in doing so, so
+   this seems broken to me.)
+ * You may self-host [acme-dns](../acme-dns) with d.rymcg.tech, but
+   you must do so on a different machine. 
+ * If you don't want to self-host [acme-dns](../acme-dns), you may use
+   the free public ACME-DNS service at
+   [http://auth.acme-dns.io/](http://auth.acme-dns.io/), but this is
+   less trust worthy that using your own instance.
+
+In the `make config` menu, choose:
+
+ * `TLS certificates and authorities`
+   * `Configure ACME`
+     * Choose `Acme.sh + ACME-DNS`
+     * Choose `Let's Encrypt (production)` (or something else if you know what you're doing.)
+     * Enter the base URL of the ACME-DNS server you chose (e.g. `https://auth.acme-dns.io`)
+     * Choose the DNS Resolver, Cert period, etc. (just choose the defaults)
+
+When done configuring, it will automatically register an account with
+the ACME-DNS provider you chose (if you need to run this part again,
+you may run `make acme-sh-register` idempotently). It will print the
+CNAME record that you must set on your root domain's DNS server. This
+is to delegate the ACME authority of the sub-domains to your ACME-DNS
+server.
+
+You must manually setup the CNAME records exactly as printed, *before*
+installing Traefik.
+
+### Traefik builtin ACME client (legacy)
+
+Traefik also has its own ACME client (based on
+[LEGO](https://go-acme.github.io/lego/)). This is easier to configure,
+and it works directly with Let's Encrypt (or Step-CA), along with your
+*root* domain's DNS server instead.
+
+This has a number of benefits and drawbacks:
+
+ * Certificates are stored in a Traefik's certificate store, not as
+   individual .pem files. (Note you could still use
+   [ldez/traefik-certs-dumper/](https://github.com/ldez/traefik-certs-dumper/)
+   if you wanted to)
+ * Supports TLS-ALPN challenge type.
+ * For DNS-01 challenges, it requires that you store API credentials
+   for your *root* domain's DNS server, which may be a security issue
+   if the the credentials are not specifically scoped to the
+   permissions to update a single domain name TXT record (DigitalOcean
+   scoped permissions are not specific enought to address this, but I
+   think you could still achive this with AWS IAM).
+ * Since Traefik is requesting the certificates, Traefik does not need
+   to be restarted.
+ * There is no DNS delegation, so no extra CNAME records need to be
+   created.
+
+In the `make config` menu, choose:
+
+ * `TLS certificates and authorities`
+   * `Configure ACME`
+     * Choose `Let's Encrypt`
+     * Choose `Production`
+     * Choose `TLS-ALPN-01` for most public servers (otherwise choose
+       `DNS-01` for advanced use-cases, but this also requires storing
+       the security sensitive API key of your DNS provider.)
+
+
 ## Traefik config templating
 
 All of the Traefik [static
