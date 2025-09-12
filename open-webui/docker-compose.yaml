@@ -29,6 +29,8 @@ services:
     <<: *ollama-common
     build:
       context: ollama-rocm
+      args:
+        - OLLAMA_IMAGE=${OPENWEBUI_OLLAMA_IMAGE}
     devices:
       - /dev/kfd
       - /dev/dri
@@ -50,7 +52,7 @@ services:
     profiles:
       - cuda
     <<: *ollama-common
-    image: ollama/ollama
+    image: ${OPENWEBUI_OLLAMA_IMAGE}
     cap_drop:
       - ALL
     security_opt:
@@ -64,7 +66,7 @@ services:
     profiles:
       - cpu
     <<: *ollama-common
-    image: ollama/ollama
+    image: ${OPENWEBUI_OLLAMA_IMAGE}
     cap_drop:
       - ALL
     security_opt:
