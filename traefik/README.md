@@ -79,50 +79,6 @@ Now go install the [whoami](../whoami) service, watch the traefik log
 for any errors, test that the service works, and see that it shows up
 in the dashboard.
 
-## Certificate manager
-
-By convention, d.rymcg.tech sub-projects do not provision, nor even
-request, their own TLS certificates. All TLS certificates are to be
-explicitly managed by the Traefik [static configuration
-template](https://github.com/EnigmaCurry/d.rymcg.tech/blob/e6a4d0285f04d6d7f07fb9a5ec403ba421229747/traefik/config/traefik.yml#L80-L87),
-directly on the entrypoint (and not on the route!). Therefore, you
-must configure all of the certificate domain names via `make config`,
-and then *reinstall Traefik*, before any new certificates may be used.
-(ACME may be used to automatically issue and renew these certificates,
-once defined.) Applications provided by d.rymcg.tech will never
-specify their own Traefik cert resolvers, they should rely upon one of
-the staticly defined certificate resolvers instead. Applications that
-provide routes that do not have a matching certificate, will
-automatically use the `TRAEFIK DEFAULT` certificate, which is
-self-signed, and not trusted in browsers.
-
-In the `make config` menu, choose:
-
- * `TLS certificates and authorities`
-   * `Configure ACME`
-     * Choose `Let's Encrypt`
-     * Choose `Production`
-     * Choose `TLS-ALPN-01` for most public servers (otherwise choose
-       `DNS-01` for advanced use-cases, but this also requires storing
-       the security sensitive API key of your DNS provider.)
-   * `Configure TLS certificates`
-     * Choose `Create a new certificate.`
-     * Enter the fully qualified doman name (CN) of your application.
-       (eg. `whoami.example.com`)
-     * Enter alternative domain names (SANS) to also include on the
-       same certificate.
-     * Enter blank to finish entering domain names.
-
-You can create several certificates, and each certificate may list
-several domains (CN+SANS). The final list of all your certificate
-domains+SANS is saved back into your `.env_${DOCKER_CONTEXT}_default`
-file in the `TRAEFIK_ACME_CERT_DOMAINS` variable as a JSON nested
-list. When you run `make install` this is pushed into the [static
-configuration
-template](https://github.com/EnigmaCurry/d.rymcg.tech/blob/e6a4d0285f04d6d7f07fb9a5ec403ba421229747/traefik/config/traefik.yml#L80-L87).
-
-Make sure you reinstall Traefik after making configuration changes.
-
 ## ACME
 
 ACME is a protocol that provides for automatic TLS certificate
@@ -137,7 +93,7 @@ provisioning. In this config, you have four options regarding ACME:
 
 If you enable Acme.sh, a sidecar container will start with
 [acme.sh](https://github.com/acmesh-official/acme.sh?tab=readme-ov-file)
-installed which as an external ACME client. This replaces the Traefik
+installed which is an external ACME client. This replaces the Traefik
 builtin ACME client. All TLS certificates will be issued/renewed by
 acme.sh and traefik will be automatically restarted as needed.
 
@@ -224,6 +180,44 @@ In the `make config` menu, choose:
        the security sensitive API key of your DNS provider.)
 
 
+## Certificate manager
+
+By convention, d.rymcg.tech sub-projects do not provision, nor even
+request, their own TLS certificates. All TLS certificates are to be
+explicitly managed by the Traefik [static configuration
+template](https://github.com/EnigmaCurry/d.rymcg.tech/blob/e6a4d0285f04d6d7f07fb9a5ec403ba421229747/traefik/config/traefik.yml#L80-L87),
+directly on the entrypoint (and not on the route!). Therefore, you
+must configure all of the certificate domain names via `make config`,
+and then *reinstall Traefik*, before any new certificates may be used.
+(ACME may be used to automatically issue and renew these certificates,
+once defined.) Applications provided by d.rymcg.tech will never
+specify their own Traefik cert resolvers, they should rely upon one of
+the staticly defined certificate resolvers instead. Applications that
+provide routes that do not have a matching certificate, will
+automatically use the `TRAEFIK DEFAULT` certificate, which is
+self-signed, and not trusted in browsers.
+
+In the `make config` menu, choose:
+
+ * `TLS certificates and authorities`
+   * `Configure TLS certificates`
+     * Choose `Create a new certificate.`
+     * Enter the fully qualified doman name (CN) of your application.
+       (eg. `whoami.example.com`)
+     * Enter alternative domain names (SANS) to also include on the
+       same certificate.
+     * Enter blank to finish entering domain names.
+
+You can create several certificates, and each certificate may list
+several domains (CN+SANS). The final list of all your certificate
+domains+SANS is saved back into your `.env_${DOCKER_CONTEXT}_default`
+file in the `TRAEFIK_ACME_CERT_DOMAINS` variable as a JSON nested
+list. When you run `make install` this is pushed into the [static
+configuration
+template](https://github.com/EnigmaCurry/d.rymcg.tech/blob/e6a4d0285f04d6d7f07fb9a5ec403ba421229747/traefik/config/traefik.yml#L80-L87).
+
+Make sure you reinstall Traefik after making configuration changes.
+
 ## Traefik config templating
 
 All of the Traefik [static
@@ -263,74 +257,6 @@ applied:
 # Traefik must be running:
 make config-inspect
 ```
-
-## Manual config
-
-If you don't want to run the interactive configuration, you can also
-manually copy `.env-dist` to `.env_${DOCKER_CONTEXT}_default`. Follow
-the comments inside `.env-dist` for all the available options. Here is
-a description of the most relevant options to edit:
-
- * Choose `TRAEFIK_ACME_CERT_RESOLVER=production` or
-   `TRAEFIK_ACME_CERT_RESOLVER=staging` to switch to the appropriate
-   Lets Encrpyt API environment. (production for real TLS certs;
-   staging for development and non-rate limited access.)
- * `TRAEFIK_ACME_CA_EMAIL` this is your personal/work email address,
-   where you will receive notices from Let's Encrypt regarding your
-   domains and related certificates or if theres some other problem
-   with your account. (optional)
- * `TRAEFIK_ACME_CHALLENGE` set to `tls` or `dns` to use the ACME
-   TLS-ALPN-01 or DNS-01 challenge type for requesting new
-   certificates.
- * `TRAEFIK_DASHBOARD` if set to `true`, this will turn on the
-   [Traefik
-   Dashboard](https://doc.traefik.io/traefik/operations/dashboard/).
- * `TRAEFIK_DASHBOARD_HTTP_AUTH` this is the htpasswd encoded username/password to
-   access the Traefik API and dashboard. If you ran `make config` this would be
-   filled in for you, simply by answering the questions.
-
-Each entrypoint can be configured on or off, as well as the explicit
-host IP address and port number:
- * `TRAEFIK_WEB_ENTRYPOINT_ENABLED=true` enables the HTTP entrypoint,
-   which is only used for redirecting to the `websecure` entrypoint.
-   Use `TRAEFIK_WEB_ENTRYPOINT_HOST` and `TRAEFIK_WEB_ENTRYPOINT_PORT`
-   to customize the host (default `0.0.0.0`) and port number (default
-   `80`).
- * `TRAEFIK_WEBSECURE_ENTRYPOINT_ENABLED=true` enables the HTTPS
-   entrypoint. Use `TRAEFIK_WEBSECURE_ENTRYPOINT_HOST` and
-   `TRAEFIK_WEBSECURE_ENTRYPOINT_PORT` to customize the host (default
-   `0.0.0.0`) and port number (default `443`).
- * `TRAEFIK_SSH_ENTRYPOINT_ENABLED=true` enables the SSH
-   entrypoint. Use `TRAEFIK_SSH_ENTRYPOINT_HOST` and
-   `TRAEFIK_SSH_ENTRYPOINT_PORT` to customize the host (default
-   `0.0.0.0`) and port number (default `2222`).
-
-The DNS-01 challenge type requires some additional environment
-variables as specified by the [LEGO
-documentation](https://go-acme.github.io/lego/dns). This config
-utilizes up to five (5) environment variables to store the *names* of
-the appropriate variables for your specific DNS provider:
-`TRAEFIK_ACME_DNS_VARNAME_1`, through `TRAEFIK_ACME_DNS_VARNAME_5`.
-
-For example, if you use DigitalOcean's DNS platform, look at the [LEGO
-docs for
-digitalocean](https://go-acme.github.io/lego/dns/digitalocean/). Here
-you find the following info:
-
- * The provider code is `digitalocean`, so set `TRAEFIK_ACME_DNS_PROVIDER=digitalocean`
- * The required credentials is only one variable, which is specific to
-   DigitalOcean: `DO_AUTH_TOKEN` So you set
-   `TRAEFIK_ACME_DNS_VARNAME_1=DO_AUTH_TOKEN`.
- * You must also provide the value for this variable. So set
-   `DO_AUTH_TOKEN=xxxx-your-actual-digitalocean-token-here-xxxx`.
-
-If your provider requires more than one variable, you set them in the
-other slots (up to 5 total), or leave them blank if not needed.
-
-The `TRAEFIK_ACME_CERT_DOMAINS` configures all of the domains for TLS
-certificates. It is a JSON list of the form: `[[main_domain1,
-[sans_domain1, ...]], ...]`. This list is managed automatically by
-running `make certs`.
 
 ## Dashboard
 
