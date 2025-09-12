@@ -52,6 +52,7 @@ __help() {
         echo -e "install-docker\tInstall Docker Engine on the host"
         echo -e "status\tShow status of all installed services"
         echo -e "audit\tPrint security audit of running containers"
+        echo -e "script\tRun a script provided by the d.rymcg.tech _scripts directory"
         echo -e "sshd-config [Var=value ...]\tReconfigure the host SSH daemon of the remote context"
         echo -e "ssh-expose PORT\tExpose a workstation's port to a public server port"
         echo -e "s3-volume\tCreate an Rclone S3 backed volume"
