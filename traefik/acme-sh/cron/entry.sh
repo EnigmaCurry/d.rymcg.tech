@@ -91,38 +91,53 @@ CABUNDLE_ARGS=()  # for acme.sh
 
 # ---------- TOFU trust (Step-CA roots, +optionally system store) ----------
 tofu_bootstrap_trust() {
-  if [[ ! -f "${ACME_ROOT_CA}" ]]; then
-    local ROOTS_URL="https://${TRAEFIK_ACME_SH_ACME_CA}/roots.pem"
-    local INTS_URL="https://${TRAEFIK_ACME_SH_ACME_CA}/intermediates.pem"
-    log "No ${ACME_ROOT_CA} present; TOFU fetch from ${ROOTS_URL} (+ intermediates)"
-    mkdir -p "$(dirname "${ACME_ROOT_CA}")"
-    local tmp_roots tmp_ints
-    tmp_roots="$(mktemp)"; tmp_ints="$(mktemp)"
-    if curl -fsS -k "${ROOTS_URL}" -o "${tmp_roots}" && grep -q "BEGIN CERTIFICATE" "${tmp_roots}"; then
-      if curl -fsS -k "${INTS_URL}" -o "${tmp_ints}" && grep -q "BEGIN CERTIFICATE" "${tmp_ints}"; then
-        cat "${tmp_roots}" "${tmp_ints}" > "${ACME_ROOT_CA}"
-        log "Wrote root+intermediate bundle to ${ACME_ROOT_CA}"
-      else
-        cp "${tmp_roots}" "${ACME_ROOT_CA}"
-        log "Wrote root-only bundle to ${ACME_ROOT_CA}"
-      fi
-      rm -f "${tmp_roots}" "${tmp_ints}"
-      # fingerprints (nice to record)
-      awk 'BEGIN{c=0}/BEGIN CERTIFICATE/{c++} {print > ("/tmp/step-ca-" c ".pem")}' "${ACME_ROOT_CA}" || true
-      for f in /tmp/step-ca-*.pem; do
-        [[ -f "$f" ]] || continue
-        openssl x509 -in "$f" -noout -fingerprint -sha256 -subject | sed 's/^/  /'
-        rm -f "$f"
-      done
-      CABUNDLE_ARGS=(--ca-bundle "${ACME_ROOT_CA}")
-    else
-      warn "Failed to fetch ${ROOTS_URL}; proceeding with system trust (if enabled) or none."
-      rm -f "${tmp_roots}" "${tmp_ints}" || true
-    fi
-  else
-    CABUNDLE_ARGS=(--ca-bundle "${ACME_ROOT_CA}")
-  fi
+  # Reset per-run trust args
+  CURL_TRUST_ARGS=()
 
+  # Public CAs (e.g., Let's Encrypt): skip TOFU and use system trust
+  case "${TRAEFIK_ACME_SH_ACME_CA}" in
+    *api.letsencrypt.org)
+      log "Public ACME CA detected (${TRAEFIK_ACME_SH_ACME_CA}); skipping TOFU and using system trust."
+      CABUNDLE_ARGS=()   # ensure no leftover custom bundle
+      ;;
+    *)
+      # Attempt TOFU only for non-public (e.g., Step-CA) endpoints
+      if [[ ! -f "${ACME_ROOT_CA}" ]]; then
+        local ROOTS_URL="https://${TRAEFIK_ACME_SH_ACME_CA}/roots.pem"
+        local INTS_URL="https://${TRAEFIK_ACME_SH_ACME_CA}/intermediates.pem"
+        log "No ${ACME_ROOT_CA} present; attempting TOFU fetch from ${ROOTS_URL} (+ intermediates)"
+        mkdir -p "$(dirname "${ACME_ROOT_CA}")"
+        local tmp_roots tmp_ints code_roots code_ints
+        tmp_roots="$(mktemp)"; tmp_ints="$(mktemp)"
+        code_roots="$(curl -k -sS -w '%{http_code}' -o "${tmp_roots}" "${ROOTS_URL}" || true)"
+        if [[ "${code_roots}" == "200" ]] && grep -q "BEGIN CERTIFICATE" "${tmp_roots}"; then
+          code_ints="$(curl -k -sS -w '%{http_code}' -o "${tmp_ints}" "${INTS_URL}" || true)"
+          if [[ "${code_ints}" == "200" ]] && grep -q "BEGIN CERTIFICATE" "${tmp_ints}"; then
+            cat "${tmp_roots}" "${tmp_ints}" > "${ACME_ROOT_CA}"
+            log "Wrote root+intermediate bundle to ${ACME_ROOT_CA}"
+          else
+            cp "${tmp_roots}" "${ACME_ROOT_CA}"
+            log "Wrote root-only bundle to ${ACME_ROOT_CA}"
+          fi
+          awk 'BEGIN{c=0}/BEGIN CERTIFICATE/{c++} {print > ("/tmp/step-ca-" c ".pem")}' "${ACME_ROOT_CA}" || true
+          for f in /tmp/step-ca-*.pem; do
+            [[ -f "$f" ]] || continue
+            openssl x509 -in "$f" -noout -fingerprint -sha256 -subject | sed 's/^/  /'
+            rm -f "$f"
+          done
+          CABUNDLE_ARGS=(--ca-bundle "${ACME_ROOT_CA}")
+        else
+          log "TOFU fetch not available (status ${code_roots:-<none>} or bad content); will use system trust."
+          CABUNDLE_ARGS=()
+        fi
+        rm -f "${tmp_roots}" "${tmp_ints}" || true
+      else
+        CABUNDLE_ARGS=(--ca-bundle "${ACME_ROOT_CA}")
+      fi
+      ;;
+  esac
+
+  # Build curl trust and possibly merge with system store
   if [[ "${TRUST_SYSTEM}" == "true" ]]; then
     if find_system_ca; then
       if ((${#CABUNDLE_ARGS[@]})); then
@@ -130,24 +145,24 @@ tofu_bootstrap_trust() {
         cat "${ACME_ROOT_CA}" "${SYSTEM_CA}" > "${COMBINED_BUNDLE}"
         CABUNDLE_ARGS=(--ca-bundle "${COMBINED_BUNDLE}")
         CURL_TRUST_ARGS=(--cacert "${COMBINED_BUNDLE}")
-        log "Using combined trust bundle (Step-CA + system): ${COMBINED_BUNDLE}"
+        log "Using combined trust bundle (custom + system): ${COMBINED_BUNDLE}"
       else
         CURL_TRUST_ARGS=(--cacert "${SYSTEM_CA}")
         log "Using system trust store only: ${SYSTEM_CA}"
       fi
     else
-      warn "System CA store not found/readable; continuing without it."
+      warn "System CA store not found/readable; proceeding with ${#CABUNDLE_ARGS[@]}-arg custom bundle (if any)."
       ((${#CABUNDLE_ARGS[@]})) && CURL_TRUST_ARGS=(--cacert "${ACME_ROOT_CA}") || true
     fi
   else
-    log "System trust store merge disabled (TRAEFIK_ACME_SH_TRUST_SYSTEM_STORE != 'true')."
+    log "System trust merge disabled (TRAEFIK_ACME_SH_TRUST_SYSTEM_STORE != 'true')."
     ((${#CABUNDLE_ARGS[@]})) && CURL_TRUST_ARGS=(--cacert "${ACME_ROOT_CA}") || true
   fi
 
-  # Preflight ACME directory
+  # Preflight ACME directory reachability
   if ! curl -fsS "${CURL_TRUST_ARGS[@]}" "${ACME_SERVER}" >/dev/null; then
     if ((${#CURL_TRUST_ARGS[@]})) && curl -fsS "${ACME_SERVER}" >/dev/null; then
-      warn "Preflight failed with provided bundle, but system trust worked; continuing with system trust for this run."
+      warn "Preflight failed with provided trust args, but system default worked; continuing with system default for this run."
       CABUNDLE_ARGS=()
       CURL_TRUST_ARGS=()
     else
@@ -281,6 +296,17 @@ issue_all() {
     log "ACME server: ${ACME_SERVER}"
     log "Target validity: +${TRAEFIK_ACME_SH_CERT_PERIOD_HOURS}h"
 
+    # Only non-LE endpoints support --valid-to (Step-CA does; LE does not)
+    VALID_TO_ARGS=()
+    case "${TRAEFIK_ACME_SH_ACME_CA}" in
+        *api.letsencrypt.org)
+            log "Let's Encrypt detected; skipping --valid-to (LE does not support NotBefore/NotAfter)."
+            ;;
+        *)
+            VALID_TO_ARGS=(--valid-to "+${TRAEFIK_ACME_SH_CERT_PERIOD_HOURS}h")
+            ;;
+    esac
+
     # (optional) quick CNAME sanity check if we know the fulldomain
     local FD="${ACMEDNS_FULLDOMAIN:-}"
     if [[ -z "$FD" && -r "${ACMEDNS_ACCOUNT_JSON}" ]]; then
@@ -325,7 +351,7 @@ issue_all() {
         acme.sh --issue \
                 "${DOMAINS_ARGS[@]}" \
                 --dns dns_acmedns \
-                --valid-to "+${TRAEFIK_ACME_SH_CERT_PERIOD_HOURS}h" \
+                "${VALID_TO_ARGS[@]}" \
                 --server "${ACME_SERVER}" \
                 "${CABUNDLE_ARGS[@]}"
         rc=$?
