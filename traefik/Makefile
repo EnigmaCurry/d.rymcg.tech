@@ -130,4 +130,4 @@ acme-sh-cert:
 
 .PHONY: acme-sh-destroy-certs
 acme-sh-destroy-certs:
-	@${BIN}/confirm no "Do you want to destroy all certificates" "?" && make --no-print-directory docker-compose-shell SERVICE=acme-sh COMMAND="find /acme.sh -mindepth 1 -maxdepth 1 -type d ! -name ca -exec rm -rf {} + && rm -rf /certs/*" && echo destroyed all certs
+	@${BIN}/confirm no "Do you want to destroy all certificates" "?" && make --no-print-directory docker-compose-shell SERVICE=acme-sh COMMAND="find /acme.sh -mindepth 1 -maxdepth 1 -type d ! -name ca -exec rm -rf {} + && rm -rf /certs/*" && echo destroyed all certs && make restart service=traefik
