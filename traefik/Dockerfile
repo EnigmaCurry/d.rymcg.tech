@@ -62,3 +62,7 @@ COPY ${ENV_FILE} /dev/null
 USER traefik
 ENTRYPOINT ["/entrypoint_ensure_config.sh"]
 VOLUME /data
+
+HEALTHCHECK --interval=10s --timeout=5s --retries=3 CMD \
+  sh -c 'curl -fsS --max-time 5 http://127.0.0.1:8080/api/version \
+         || [ $? -eq 22 ]'

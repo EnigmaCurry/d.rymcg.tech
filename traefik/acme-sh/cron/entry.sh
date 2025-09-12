@@ -24,7 +24,7 @@ set -f  # avoid globbing of CN like *.example.com
 #   TRAEFIK_ACME_SH_ACMEDNS_FULLDOMAIN           (optional) fulldomain for printing/checks when using env creds
 #   TRAEFIK_ACME_SH_ACMEDNS_ALLOW_FROM           JSON array or comma-separated list of CIDRs for allowfrom (optional)
 #   CERTS_DIR                                    Destination for installed certs (default: /certs)
-#   TRAEFIK_TOUCH_FILE                           File to touch on successful renew (default: /traefik/config/dynamic/acme-sh-certs.yml)
+#   TRAEFIK_TOUCH_FILE                           File to touch on successful renew (default: /traefik/restart_me)
 #   ACME_ROOT_CA                                 Path to Step-CA root CA bundle (default: /acme.sh/root_ca.pem)
 ###############################################################################
 
@@ -51,7 +51,10 @@ ACMEDNS_FULLDOMAIN="${TRAEFIK_ACME_SH_ACMEDNS_FULLDOMAIN:-}"  # nice-to-have for
 TRAEFIK_ACME_SH_ACMEDNS_ALLOW_FROM="${TRAEFIK_ACME_SH_ACMEDNS_ALLOW_FROM:-}"
 
 CERTS_DIR="${CERTS_DIR:-/certs}"
-TRAEFIK_TOUCH_FILE="${TRAEFIK_TOUCH_FILE:-/traefik/config/dynamic/acme-sh-certs.yml}"
+## You are supposed to be able to get the Traefik file provider to reload from /config/dynamic/acme-sh-certs.yml simply by touching it.
+## That mostly works, except that weirdly it does not seem to reload the tls settings without a full traefik restart.
+## So, as a workaround, I have rigged the Traefik entrypoint to be restart automatically if it finds the sentinel file at /data/restart_me (aka. /traefik/restart_me in the acme-sh container)
+TRAEFIK_TOUCH_FILE="${TRAEFIK_TOUCH_FILE:-/traefik/restart_me}"
 ACME_ROOT_CA="${ACME_ROOT_CA:-/acme.sh/root_ca.pem}"
 
 # Common system CA locations (first readable wins)
@@ -270,88 +273,90 @@ register_acmedns() {
 
 # ---------- Issue certs (default path) ----------
 issue_all() {
-  tofu_bootstrap_trust
+    tofu_bootstrap_trust
 
-  # Prefer env creds; if any missing, hydrate from JSON; then export the triple.
-  hydrate_acmedns_env
+    # Prefer env creds; if any missing, hydrate from JSON; then export the triple.
+    hydrate_acmedns_env
 
-  log "ACME server: ${ACME_SERVER}"
-  log "Target validity: +${TRAEFIK_ACME_SH_CERT_PERIOD_HOURS}h"
+    log "ACME server: ${ACME_SERVER}"
+    log "Target validity: +${TRAEFIK_ACME_SH_CERT_PERIOD_HOURS}h"
 
-  # (optional) quick CNAME sanity check if we know the fulldomain
-  local FD="${ACMEDNS_FULLDOMAIN:-}"
-  if [[ -z "$FD" && -r "${ACMEDNS_ACCOUNT_JSON}" ]]; then
-    FD="$(jq -r '.fulldomain // empty' < "${ACMEDNS_ACCOUNT_JSON}" 2>/dev/null || true)"
-  fi
-  if [[ -n "$FD" && -n "$(command -v dig || true)" ]]; then
-    mapfile -t ALL_NAMES < <(echo "${TRAEFIK_ACME_CERT_DOMAINS}" | jq -r '.[] | [.[0]] + (.[1] // []) | .[]')
-    for n in "${ALL_NAMES[@]}"; do
-      local base="$n"
-      [[ "$base" == \*.* ]] && base="${base#*.}"  # normalize wildcard
-      local got
-      got="$(dig +short CNAME "_acme-challenge.${base}" "${TRAEFIK_ACME_SH_DNS_RESOLVER}" +time=2 +tries=1 || true)"
-      if [[ "${got%.}" != "${FD%.}" ]]; then
-          warn "CNAME missing/mismatch for _acme-challenge.${base}; got='${got:-<none>}' want='${FD}'. Issuance may stall."
-      fi
-    done
-  else
-    log "Skipping CNAME sanity check (no fulldomain available)."
-  fi
-
-  # -------- Issue all certs --------
-  if [[ "$(echo "${TRAEFIK_ACME_CERT_DOMAINS}" | jq 'length')" -eq 0 ]]; then
-    log "TRAEFIK_ACME_CERT_DOMAINS is empty; no certificates to request."
-    return 0
-  fi
-
-  while IFS= read -r item; do
-    CN="$(jq -r '.[0]' <<<"$item")"
-    mapfile -t SANS < <(jq -r '.[1] // [] | .[]' <<<"$item")
-    [[ -n "$CN" ]] || fail "Encountered a cert entry with empty CN"
-
-    DOMAINS_ARGS=(-d "$CN")
-    for san in "${SANS[@]}"; do [[ -n "$san" ]] && DOMAINS_ARGS+=(-d "$san"); done
-
-    log "Requesting certificate:"
-    log "  CN:   $CN"
-    ((${#SANS[@]})) && log "  SANs: ${SANS[*]}" || log "  SANs: (none)"
-    mkdir -p "${CERTS_DIR}/${CN}"
-
-    # Issue (treat rc=2 as "not due yet"; proceed)
-    set +e
-    acme.sh --issue \
-            "${DOMAINS_ARGS[@]}" \
-            --dns dns_acmedns \
-            --valid-to "+${TRAEFIK_ACME_SH_CERT_PERIOD_HOURS}h" \
-            --server "${ACME_SERVER}" \
-            "${CABUNDLE_ARGS[@]}"
-    rc=$?
-    set -e
-    if [[ $rc -eq 2 ]]; then
-        log "acme.sh reports not due yet (rc=2); continuing to install existing cert paths."
-    elif [[ $rc -ne 0 ]]; then
-        fail "acme.sh --issue failed with rc=$rc"
+    # (optional) quick CNAME sanity check if we know the fulldomain
+    local FD="${ACMEDNS_FULLDOMAIN:-}"
+    if [[ -z "$FD" && -r "${ACMEDNS_ACCOUNT_JSON}" ]]; then
+        FD="$(jq -r '.fulldomain // empty' < "${ACMEDNS_ACCOUNT_JSON}" 2>/dev/null || true)"
+    fi
+    if [[ -n "$FD" && -n "$(command -v dig || true)" ]]; then
+        mapfile -t ALL_NAMES < <(echo "${TRAEFIK_ACME_CERT_DOMAINS}" | jq -r '.[] | [.[0]] + (.[1] // []) | .[]')
+        for n in "${ALL_NAMES[@]}"; do
+            local base="$n"
+            [[ "$base" == \*.* ]] && base="${base#*.}"  # normalize wildcard
+            local got
+            got="$(dig +short CNAME "_acme-challenge.${base}" "${TRAEFIK_ACME_SH_DNS_RESOLVER}" +time=2 +tries=1 || true)"
+            if [[ "${got%.}" != "${FD%.}" ]]; then
+                warn "CNAME missing/mismatch for _acme-challenge.${base}; got='${got:-<none>}' want='${FD}'. Issuance may stall."
+            fi
+        done
+    else
+        log "Skipping CNAME sanity check (no fulldomain available)."
     fi
 
-    # Install to deterministic paths (idempotent)
-    acme.sh --install-cert \
-            "${DOMAINS_ARGS[@]}" \
-            --key-file       "${CERTS_DIR}/${CN}/${CN}.key" \
-            --fullchain-file "${CERTS_DIR}/${CN}/fullchain.cer" \
-            --cert-file      "${CERTS_DIR}/${CN}/cert.cer" \
-            --ca-file        "${CERTS_DIR}/${CN}/ca.cer" \
-            --reloadcmd      "touch '${TRAEFIK_TOUCH_FILE}'"
-
-    chown -R "${TRAEFIK_UID}:${TRAEFIK_GID}" "${CERTS_DIR}/${CN}"
-
-    if [[ -f "/acme.sh/${CN}_ecc/${CN}.cer" ]]; then
-      log "Certificate details for ${CN}:"
-      openssl x509 -in "/acme.sh/${CN}_ecc/${CN}.cer" \
-        -noout -dates -issuer -subject -ext subjectAltName | sed 's/^/  /'
+    # -------- Issue all certs --------
+    if [[ "$(echo "${TRAEFIK_ACME_CERT_DOMAINS}" | jq 'length')" -eq 0 ]]; then
+        log "TRAEFIK_ACME_CERT_DOMAINS is empty; no certificates to request."
+        return 0
     fi
-    log "Installed files under: ${CERTS_DIR}/${CN}"
-  done < <(echo "${TRAEFIK_ACME_CERT_DOMAINS}" | jq -c '.[]')
+
+    while IFS= read -r item; do
+        CN="$(jq -r '.[0]' <<<"$item")"
+        mapfile -t SANS < <(jq -r '.[1] // [] | .[]' <<<"$item")
+        [[ -n "$CN" ]] || fail "Encountered a cert entry with empty CN"
+
+        DOMAINS_ARGS=(-d "$CN")
+        for san in "${SANS[@]}"; do [[ -n "$san" ]] && DOMAINS_ARGS+=(-d "$san"); done
+
+        log "Requesting certificate:"
+        log "  CN:   $CN"
+        ((${#SANS[@]})) && log "  SANs: ${SANS[*]}" || log "  SANs: (none)"
+        mkdir -p "${CERTS_DIR}/${CN}"
+
+        # Issue (treat rc=2 as "not due yet"; proceed)
+        set +e
+        acme.sh --issue \
+                "${DOMAINS_ARGS[@]}" \
+                --dns dns_acmedns \
+                --valid-to "+${TRAEFIK_ACME_SH_CERT_PERIOD_HOURS}h" \
+                --server "${ACME_SERVER}" \
+                "${CABUNDLE_ARGS[@]}"
+        rc=$?
+        set -e
+        if [[ $rc -eq 2 ]]; then
+            log "acme.sh reports not due yet (rc=2); continuing to install existing cert paths."
+        elif [[ $rc -ne 0 ]]; then
+            fail "acme.sh --issue failed with rc=$rc"
+        fi
+
+        # Install to deterministic paths (idempotent)
+        acme.sh --install-cert \
+                "${DOMAINS_ARGS[@]}" \
+                --key-file       "${CERTS_DIR}/${CN}/${CN}.key" \
+                --fullchain-file "${CERTS_DIR}/${CN}/fullchain.cer" \
+                --cert-file      "${CERTS_DIR}/${CN}/cert.cer" \
+                --ca-file        "${CERTS_DIR}/${CN}/ca.cer" \
+                --reloadcmd      "touch '${TRAEFIK_TOUCH_FILE}'"
+
+        chown -R "${TRAEFIK_UID}:${TRAEFIK_GID}" "${CERTS_DIR}/${CN}"
+
+        if [[ -f "/acme.sh/${CN}_ecc/${CN}.cer" ]]; then
+            log "Certificate details for ${CN}:"
+            openssl x509 -in "/acme.sh/${CN}_ecc/${CN}.cer" \
+                    -noout -dates -issuer -subject -ext subjectAltName | sed 's/^/  /'
+        fi
+        log "Installed files under: ${CERTS_DIR}/${CN}"
+    done < <(echo "${TRAEFIK_ACME_CERT_DOMAINS}" | jq -c '.[]')
 }
+
+echo "Setup Finished" > /setup_finished.txt
 
 # ---------- Entrypoint behavior ----------
 echo
