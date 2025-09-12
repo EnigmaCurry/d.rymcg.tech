@@ -28,11 +28,11 @@
 #@   service = "comfyui-" + profile
 #@   router = "{}-{}-{}".format(project, instance, service)
 #@   labels = []
-#@   middlewares = []
+#@   enabled_middlewares = []
 #@   labels.append("traefik.enable=true")
 #@   labels.append("traefik.http.routers.{}.rule=Host(`{}`)".format(router, traefik_host))
 #@   labels.append("traefik.http.routers.{}.entrypoints=websecure".format(router))
-#@   middlewares.append("{}-ipallowlist".format(router))
+#@   enabled_middlewares.append("{}-ipallowlist".format(router))
 #@   labels.append("traefik.http.middlewares.{}-ipallowlist.ipallowlist.sourcerange={}".format(router, ip_sourcerange))
 #@   if enable_http_auth:
 #@   enabled_middlewares.append("{}-basicauth".format(router))
@@ -51,7 +51,7 @@
 #@   end
 #@   enabled_middlewares.append("mtls-header@file")
 #@   end
-#@   labels.append("traefik.http.routers.{}.middlewares={}".format(router, ",".join(middlewares)))
+#@   labels.append("traefik.http.routers.{}.middlewares={}".format(router, ",".join(enabled_middlewares)))
 #@   labels.append("traefik.http.services.{}.loadbalancer.server.port=8188".format(router)) 
 #@   volumes = []
 #@   if models_host_path != "":
