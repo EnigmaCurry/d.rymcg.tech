@@ -22,14 +22,14 @@ function speakText(text) {
             component.value = text;  // Update the textarea with the spoken text
         } else {
             console.log("Component not found!");
-        }     
+        }
      }
-     
+
     utterance.onstart = () => {
         console.log("Speech synthesis started.");
         updateText();
      }
-    
+
     utterance.onend = () => {
         console.log("Speech synthesis ended.");
         updateText();
@@ -43,10 +43,10 @@ with gr.Blocks() as interface:
     inp = gr.Textbox(placeholder="Enter text to speak", show_label=False)
     out = gr.Textbox(show_label=False)
     btn = gr.Button("Speak")
-    
+
     # Trigger when the button is clicked
     btn.click(fn=start_speech, inputs=inp, js=js)
-    
+
     # Trigger when the Enter key is pressed in the input box
     inp.submit(fn=start_speech, inputs=inp, js=js)
 
