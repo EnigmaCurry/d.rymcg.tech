@@ -187,6 +187,7 @@ __context() {
     if [[ $# == 0 ]]; then
         test -n "${DOCKER_CONTEXT}" && echo -e "DOCKER_CONTEXT=${DOCKER_CONTEXT}\nThe Docker context cannot be switched because the DOCKER_CONTEXT env var is currently set, and this would override your selection.\n\nYou may use \`d tmp-context\` instead, or try exiting the shell you are in, or unset DOCKER_CONTEXT, and try again. " && fault
         ${BIN}/install_script-wizard
+        echo
         readarray -t CONTEXTS < <(docker context list -q | grep -v default)
         local CURRENT_CONTEXT=$(docker context show)
         local CHOSEN_CONTEXT=$(wizard choose "Select the Docker context to use" "${CONTEXTS[@]}" --default "${CURRENT_CONTEXT}")
