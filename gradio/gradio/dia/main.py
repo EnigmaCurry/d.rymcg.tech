@@ -227,7 +227,7 @@ def run_inference(
                 gr.Warning("Generation produced no output.")
 
         except Exception as e:
-            print(f"Error during inference: {e}")
+            print(f"Error during inference: {e}") 
             import traceback
 
             traceback.print_exc()
@@ -359,8 +359,8 @@ with gr.Blocks(css=css, theme="gradio/dark") as demo:
         with gr.Column(scale=1):
             audio_output = gr.Audio(
                 label="Generated Audio",
-                type="numpy",
-                autoplay=False,
+                type="filepath",
+                autoplay=True,
             )
             seed_output = gr.Textbox(label="Generation Seed", interactive=False)
             console_output = gr.Textbox(label="Console Output Log", lines=10, interactive=False)
@@ -441,4 +441,4 @@ if __name__ == "__main__":
 
     # set `GRADIO_SERVER_NAME`, `GRADIO_SERVER_PORT` env vars to override default values
     # use `GRADIO_SERVER_NAME=0.0.0.0` for Docker
-    demo.launch(share=args.share)
+    demo.launch(share=args.share,show_api=True)
