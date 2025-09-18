@@ -11,9 +11,9 @@ default `443`) for TLS (TURNS). Additionally, you may need to open
 some ports in your firewall, depending on which types of connections
 you want to allow:
 
- * Open UDP port 5349.
+ * Open UDP port 3478.
  * Open UDP port range `50000` through `60000` (allocation pool for relay peers).
- * Open TCP port 5349 (plain TCP TURN, no TLS).
+ * Open TCP port 3478 (plain TCP TURN, no TLS).
 
 These ports may be configured in your `.env_{CONTEXT}_{INSTANCE}`
 file. Please note that the coturn container is using the `host`
@@ -24,6 +24,13 @@ network mode, so ports do not need to be "published" by Docker.
 ```
 make config
 ```
+
+## Create Traefik certificate
+
+You need to have a Traefik TLS certificate for the
+`COTURN_TRAEFIK_HOST` you set.
+
+
 
 ## Install
 
