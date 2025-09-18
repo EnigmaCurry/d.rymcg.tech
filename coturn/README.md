@@ -37,7 +37,7 @@ Get temporary test credentials: `make credentials` (expire in 4 hours).
 
 Get arbitary expiration for credentials: `TTL_SECONDS=300 make credentials` (expire in 5 minutes)
 
-Get permanent credentials: `make credentials-long` (expire in 100 years)
+Get permanent credentials: `make credentials-long` (expire in 10 years)
 
 Use the [Trickle
 ICE](https://webrtc.github.io/samples/src/content/peerconnection/trickle-ice/)
@@ -46,9 +46,11 @@ better test positive results in Chromium.
 
  * Remove the default server (`stun.google....`)
  * Enter your TURN server prefixed with `turns:` (e.g.
-   `turns:turn.example.com:443?transport=tcp` or )
- * Enter the `TURN username`
- * Enter the `TURN password`
+     `turns:turn.example.com:443?transport=tcp` or
+     `turn:turn.example.com:3478?transport=udp` or
+     `stun:turn.example.com:3478`)
+ * Enter the `TURN username` (not required for STUN)
+ * Enter the `TURN password` (not required for STUN)
  * Click `Add Server`
  * Click `Gather Candidates`
  

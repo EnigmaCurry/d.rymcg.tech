@@ -47,7 +47,7 @@ credentials:
 	@export USER_ID="$$(${BIN}/script-wizard ask 'Enter the username for new credentials:')"; echo $${USER_ID}; export TTL_SECONDS=${TTL_SECONDS}; export HOST=$$(${BIN}/dotenv -f ${ENV_FILE} get COTURN_TRAEFIK_HOST); make --no-print-directory docker-compose-shell SERVICE=coturn COMMAND="TTL_SECONDS=$${TTL_SECONDS:-300} HOST=$${HOST} USER_ID=$${USER_ID} get-credentials.sh"
 
 credentials-long:
-	@TTL_SECONDS=3153600000 make credentials
+	@TTL_SECONDS=315360000 make credentials
 
 .PHONY: install-hook
 install-hook:
