@@ -33,7 +33,11 @@ make install
 
 ## Test
 
-Get temporary test credentials: `make credentials`.
+Get temporary test credentials: `make credentials` (expire in 4 hours).
+
+Get arbitary expiration for credentials: `TTL_SECONDS=300 make credentials` (expire in 5 minutes)
+
+Get permanent credentials: `make credentials-long` (expire in 100 years)
 
 Use the [Trickle
 ICE](https://webrtc.github.io/samples/src/content/peerconnection/trickle-ice/)
