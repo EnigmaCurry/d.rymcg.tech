@@ -3,6 +3,12 @@
 [Pairdrop](https://github.com/schlagmichdoch/PairDrop) is a webapp
 (PWA) to send files and messages from peer to peer.
 
+## Requirements
+
+For full connectivity between peers on diverse networks (behind
+various NAT), you must deploy a TURN server. You may install the
+d.rymcg.tech [coturn](../coturn) service to fulfill this requirement.
+
 ## Setup
 
 ```
