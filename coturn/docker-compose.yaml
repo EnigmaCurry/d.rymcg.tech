@@ -1,26 +1,8 @@
 volumes:
   turn_data:
-  caddy_data:
-  caddy_config:
-  caddy_html:
-  
+ 
 services:
-  caddy:
-    build:
-      context: caddy
-      args:
-        CADDY_IMAGE: ${COTURN_CADDY_IMAGE}
-    environment:
-      - ACME_AGREE=true
-      - ACME_CA=${COTURN_CADDY_ACME_CA}
-      - DOMAIN=${COTURN_TRAEFIK_HOST}
-    volumes:
-      - caddy_data:/data
-      - caddy_config:/config
-      - caddy_html:/srv
-
   coturn:
-    depends_on: ['caddy']
     build:
       context: coturn
       args:
@@ -28,26 +10,33 @@ services:
     restart: unless-stopped
     network_mode: host
     environment:
-      - REALM=${COTURN_TRAEFIK_HOST}
+      - REALM=${COTURN_REALM}
       - STATIC_AUTH_SECRET=${COTURN_STATIC_AUTH_SECRET}
-      - CERT_PATH=/data/caddy/certificates/${COTURN_CADDY_ACME_CA}-directory/${COTURN_TRAEFIK_HOST}/${COTURN_TRAEFIK_HOST}.crt
-      - KEY_PATH=/data/caddy/certificates/${COTURN_CADDY_ACME_CA}-directory/${COTURN_TRAEFIK_HOST}/${COTURN_TRAEFIK_HOST}.key
     command: >
-      -V
+      -v
+      -L 127.0.0.1
+      -L ${COTURN_EXTERNAL_IP}
+      --log-file=stdout
       --use-auth-secret
       --static-auth-secret=${COTURN_STATIC_AUTH_SECRET}
       --external-ip=${COTURN_EXTERNAL_IP}
-      --realm=${COTURN_TRAEFIK_HOST}
+      --relay-ip=${COTURN_EXTERNAL_IP}
+      --realm=${COTURN_REALM}
       --server-name=${COTURN_TRAEFIK_HOST}
       --rest-api-separator=:
       --no-cli
+      --no-tls
       --no-tcp-relay
       --fingerprint
-      --listening-port=3478
-      --min-port=50000
-      --max-port=60000
-      --cert=/var/lib/coturn/certs/fullchain.pem
-      --pkey=/var/lib/coturn/certs/privkey.pem
+      --listening-port=${COTURN_LISTEN_PORT}
+      --tcp-proxy-port=${COTURN_PROXY_PORT}
+      --min-port=${COTURN_MIN_PORT}
+      --max-port=${COTURN_MAX_PORT}
+      --denied-peer-ip=10.0.0.0-10.255.255.255
+      --denied-peer-ip=172.16.0.0-172.31.255.255
+      --denied-peer-ip=192.168.0.0-192.168.255.255
+      --denied-peer-ip=127.0.0.0-127.255.255.255
+      --denied-peer-ip=169.254.0.0-169.254.255.255
+      --denied-peer-ip=100.64.0.0-100.127.255.255
     volumes:
       - turn_data:/var/lib/coturn
-      - caddy_data:/data:ro

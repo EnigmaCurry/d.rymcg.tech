@@ -2,6 +2,8 @@ ROOT_DIR = ..
 include ${ROOT_DIR}/_scripts/Makefile.projects
 include ${ROOT_DIR}/_scripts/Makefile.instance
 
+TTL_SECONDS ?= 300
+
 .PHONY: config-hook
 config-hook:
 #### This interactive configuration wizard creates the .env_{DOCKER_CONTEXT}_{INSTANCE} config file using .env-dist as the template:
@@ -9,6 +11,7 @@ config-hook:
 #### reconfigure sets the value of a variable in the .env file without asking.
 #### reconfigure_htpasswd will configure the HTTP Basic Authentication setting the var name and with a provided default value.
 	@${BIN}/reconfigure_ask ${ENV_FILE} COTURN_TRAEFIK_HOST "Enter the coturn domain name" turn${INSTANCE_URL_SUFFIX}.${ROOT_DOMAIN}
+	@${BIN}/reconfigure_ask ${ENV_FILE} COTURN_REALM "Enter the coturn realm" $$(${BIN}/dotenv -f ${ENV_FILE} get COTURN_TRAEFIK_HOST)
 	@${BIN}/reconfigure ${ENV_FILE} COTURN_INSTANCE=$${instance:-default}
 	@${BIN}/reconfigure_password ${ENV_FILE} COTURN_STATIC_AUTH_SECRET
 	@TRAEFIK_HOST=$$(${BIN}/dotenv -f ${ENV_FILE} get COTURN_TRAEFIK_HOST); ${BIN}/reconfigure ${ENV_FILE} COTURN_EXTERNAL_IP=$$(curl -H "accept: application/dns-json" "https://cloudflare-dns.com/dns-query?name=$${TRAEFIK_HOST}&type=A" | jq -r ".Answer[0].data")
@@ -38,7 +41,8 @@ shell:
 
 .PHONY: credentials # Get ephemeral TURN credentials
 credentials:
-	@make --no-print-directory docker-compose-shell SERVICE=coturn COMMAND="get-credentials.sh"
+	@echo TTL_SECONDS=${TTL_SECONDS}
+	@export TTL_SECONDS=${TTL_SECONDS}; export HOST=$$(${BIN}/dotenv -f ${ENV_FILE} get COTURN_TRAEFIK_HOST); make --no-print-directory docker-compose-shell SERVICE=coturn COMMAND="TTL_SECONDS=$${TTL_SECONDS:-300} HOST=$${HOST} get-credentials.sh"
 
 .PHONY: install-hook
 install-hook:
