@@ -14,8 +14,7 @@ config-hook:
 	@${BIN}/reconfigure_ask ${ENV_FILE} PAIRDROP_TURN_DOMAIN "Enter the TURN server domain"
 	@${BIN}/reconfigure_ask ${ENV_FILE} PAIRDROP_TURN_LISTEN_PORT "Enter the TURN port number"
 	@${BIN}/reconfigure_ask ${ENV_FILE} PAIRDROP_TURN_TLS_PORT "Enter the TURN TLS port number"
-	@${BIN}/reconfigure_ask ${ENV_FILE} PAIRDROP_TURN_USERNAME "Enter the TURN username"
-	@${BIN}/reconfigure_ask ${ENV_FILE} PAIRDROP_TURN_PASSWORD "Enter the TURN password"
+	@${BIN}/reconfigure_ask ${ENV_FILE} PAIRDROP_COTURN_STATIC_AUTH_SECRET "Enter the static auth secret token from coturn"
 
 .PHONY: override-hook
 override-hook:

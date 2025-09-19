@@ -1,0 +1,21 @@
+#!/usr/bin/with-contenv sh
+set -eu
+: "${RESTART_MINUTES:=30}"
+
+SVC_DIR="/run/service/svc-pairdrop"
+if [ -z "$SVC_DIR" ]; then
+  echo "[rtc-rotate] ERROR: no supervised services under ${SVC_DIR}" >&2
+  exit 1
+fi
+
+interval=$(( RESTART_MINUTES * 60 ))
+echo "[rtc-rotate] I will rotate TURN credentials every ${RESTART_MINUTES} minutes and then restart ${SVC_DIR}"
+
+while :; do
+  sleep "$interval"
+  echo "[rtc-rotate] minting new creds"
+  /usr/local/bin/mint || echo "[rtc-rotate] WARN: mint failed"
+
+  echo "[rtc-rotate] restarting PairDrop"
+  s6-svc -r "$SVC_DIR" || echo "[rtc-rotate] WARN: s6-svc restart failed"
+done
