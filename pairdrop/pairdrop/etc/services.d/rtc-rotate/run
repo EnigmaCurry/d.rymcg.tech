@@ -3,16 +3,7 @@ set -eu
 RESTART_MINUTES="${RESTART_MINUTES:-30}"
 
 SVC_DIR="${SVC_DIR:-/run/service/svc-pairdrop}"
-if [ ! -d "$SVC_DIR" ]; then
-  # try to auto-detect a plausible service
-  for name in pairdrop app web; do
-    [ -d "/run/service/$name" ] && SVC_DIR="/run/service/$name" && break
-  done
-fi
 [ -d "$SVC_DIR" ] || { echo "[rtc-rotate] ERROR: service dir not found"; exit 1; }
-
-# Always ensure a config exists on startup
-/usr/local/bin/mint || { echo "[rtc-rotate] ERROR: initial mint failed"; exit 1; }
 
 if [ -n "${TURN_USERNAME:-}" ] && [ -n "${TURN_PASSWORD:-}" ]; then
   echo "[rtc-rotate] Using provided TURN_USERNAME/TURN_PASSWORD; no rotation or restarts."
