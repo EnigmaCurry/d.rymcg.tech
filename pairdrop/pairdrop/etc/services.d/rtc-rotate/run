@@ -2,26 +2,14 @@
 set -eu
 : "${RESTART_MINUTES:=30}"
 
-# Pick the service dir to restart
-choose_svc() {
-  for name in pairdrop app web; do
-    if [ -d "/run/service/$name" ]; then
-      echo "/run/service/$name"; return
-    fi
-  done
-  # fallback: first service present
-  first="$(ls -d /run/service/* 2>/dev/null | head -n1 || true)"
-  [ -n "$first" ] && echo "$first" || echo ""
-}
-
-SVC_DIR="$(choose_svc)"
+SVC_DIR="/run/service/svc-pairdrop"
 if [ -z "$SVC_DIR" ]; then
-  echo "[rtc-rotate] ERROR: no supervised services under /run/service" >&2
+  echo "[rtc-rotate] ERROR: no supervised services under ${SVC_DIR}" >&2
   exit 1
 fi
 
 interval=$(( RESTART_MINUTES * 60 ))
-echo "[rtc-rotate] rotating every ${RESTART_MINUTES} min; restarting ${SVC_DIR}"
+echo "[rtc-rotate] I will rotate TURN credentials every ${RESTART_MINUTES} minutes and then restart ${SVC_DIR}"
 
 while :; do
   sleep "$interval"
