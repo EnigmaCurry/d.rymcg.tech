@@ -20,8 +20,6 @@ make config
 See [AUTH.md](../AUTH.md) for information on adding external authentication on
 top of your app.
 
-**Security Notice**: It is highly recommended to enable auth for pairdrop, so that [you don't leak the long-term TURN credentials](https://github.com/EnigmaCurry/d.rymcg.tech/issues/495) that pairdrop distributes to all clients.
-
 ## Install
 
 ```
