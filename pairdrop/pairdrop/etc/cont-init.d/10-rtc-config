@@ -1,37 +1,4 @@
 #!/usr/bin/with-contenv sh
 set -eu
-
-: "${TURN_DOMAIN:?TURN_DOMAIN is required}"
-: "${TURN_LISTEN_PORT:?TURN_LISTEN_PORT is required}"
-: "${TURN_TLS_PORT:?TURN_TLS_PORT is required}"
-: "${COTURN_STATIC_AUTH_SECRET:?COTURN_STATIC_AUTH_SECRET is required}"
-: "${RESTART_MINUTES:=30}"
-: "${TTL_FACTOR:=2}"
-
-RTC_TEMPLATE=/etc/pairdrop/rtc_config.template.json
-RTC_OUT=/etc/pairdrop/rtc_config.json
-
-mint() {
-  now=$(date -u +%s)
-  ttl_sec=$(( RESTART_MINUTES * TTL_FACTOR * 60 ))
-  exp=$(( now + ttl_sec ))
-  TURN_USERNAME="${exp}:pairdrop"
-  TURN_PASSWORD=$(printf '%s' "$TURN_USERNAME" \
-    | openssl dgst -sha1 -mac HMAC -macopt "key:${COTURN_STATIC_AUTH_SECRET}" -binary \
-    | openssl base64)
-
-  # Render
-  env TURN_DOMAIN="${TURN_DOMAIN}" \
-      TURN_LISTEN_PORT="${TURN_LISTEN_PORT}" \
-      TURN_TLS_PORT="${TURN_TLS_PORT}" \
-      TURN_USERNAME="${TURN_USERNAME}" \
-      TURN_PASSWORD="${TURN_PASSWORD}" \
-    envsubst '${TURN_DOMAIN} ${TURN_LISTEN_PORT} ${TURN_TLS_PORT} ${TURN_USERNAME} ${TURN_PASSWORD}' \
-      < "${RTC_TEMPLATE}" > "${RTC_OUT}"
-
-  # Log (redact secret)
-  sed 's/"credential": *".*"/"credential": "***"/' "${RTC_OUT}" >&2
-}
-
-echo "[cont-init.d] Generating initial rtc_config.json"
-mint
+echo "[cont-init.d] minting initial TURN config"
+/usr/local/bin/mint
