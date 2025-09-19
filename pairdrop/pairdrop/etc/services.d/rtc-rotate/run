@@ -1,0 +1,37 @@
+#!/usr/bin/with-contenv sh
+set -eu
+RESTART_MINUTES="${RESTART_MINUTES:-30}"
+
+SVC_DIR="${SVC_DIR:-/run/service/svc-pairdrop}"
+if [ ! -d "$SVC_DIR" ]; then
+  # try to auto-detect a plausible service
+  for name in pairdrop app web; do
+    [ -d "/run/service/$name" ] && SVC_DIR="/run/service/$name" && break
+  done
+fi
+[ -d "$SVC_DIR" ] || { echo "[rtc-rotate] ERROR: service dir not found"; exit 1; }
+
+# Always ensure a config exists on startup
+/usr/local/bin/mint || { echo "[rtc-rotate] ERROR: initial mint failed"; exit 1; }
+
+if [ -n "${TURN_USERNAME:-}" ] && [ -n "${TURN_PASSWORD:-}" ]; then
+  echo "[rtc-rotate] Using provided TURN_USERNAME/TURN_PASSWORD; no rotation or restarts."
+  # Keep the service process alive under s6
+  exec sleep infinity
+fi
+
+# No static creds → must have secret to mint ephemerals
+if [ -z "${COTURN_STATIC_AUTH_SECRET:-}" ]; then
+  echo "[rtc-rotate] No TURN creds and no COTURN_STATIC_AUTH_SECRET. Exiting."
+  exit 1
+fi
+
+interval=$(( RESTART_MINUTES * 60 ))
+echo "[rtc-rotate] Rotating creds every ${RESTART_MINUTES} min and restarting $SVC_DIR"
+while :; do
+  sleep "$interval"
+  echo "[rtc-rotate] minting new creds"
+  /usr/local/bin/mint || echo "[rtc-rotate] WARN: mint failed"
+  echo "[rtc-rotate] restarting PairDrop service"
+  s6-svc -r "$SVC_DIR" || echo "[rtc-rotate] WARN: s6-svc restart failed"
+done
