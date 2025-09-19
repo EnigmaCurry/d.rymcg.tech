@@ -534,6 +534,7 @@ Install these recommended backbone applications next:
 Install these other services at your leisure/preference:
 
 * [13ft](thirteenft#readme) - a tool to block ads and bypass paywalls
+* [Acme-DNS](acme-dns#readme) - a limited DNS server for hosting TXT records for ACME challenges 
 * [Actual](actual#readme) - a personal finance tool
 * [ArchiveBox](archivebox#readme) - a website archiving tool
 * [Audiobookshelf](audiobookshelf#readme) - an audiobook and podcast server

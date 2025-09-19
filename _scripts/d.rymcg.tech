@@ -52,6 +52,7 @@ __help() {
         echo -e "install-docker\tInstall Docker Engine on the host"
         echo -e "status\tShow status of all installed services"
         echo -e "audit\tPrint security audit of running containers"
+        echo -e "script\tRun a script provided by the d.rymcg.tech _scripts directory"
         echo -e "sshd-config [Var=value ...]\tReconfigure the host SSH daemon of the remote context"
         echo -e "ssh-expose PORT\tExpose a workstation's port to a public server port"
         echo -e "s3-volume\tCreate an Rclone S3 backed volume"
@@ -281,8 +282,17 @@ EOF
 }
 
 __run_script() {
-    CMD="${1}"; shift
-    ${ROOT_DIR}/_scripts/${CMD} "$@"
+    CMD="${1:-}"
+    shift || true
+    if [[ -z "$CMD" ]]; then
+        find "${ROOT_DIR}/_scripts" -maxdepth 1 -type f -perm -u+x -printf '%f\n'
+        echo
+        echo "## \`d.rymcg.tech script\` runs any script by name (${ROOT_DIR}/_scripts)"
+        echo
+        exit 1
+    else
+        "${ROOT_DIR}/_scripts/${CMD}" "$@"
+    fi
 }
 
 __d.rymcg.tech_cli_alias() {
