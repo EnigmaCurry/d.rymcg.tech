@@ -20,7 +20,9 @@ See [AUTH.md](../AUTH.md) for information on adding external
 authentication on in front of your app.
 
 Copyparty also has its own authorization system, providing
-fine-grained permissioned access to authenticated clients.
+fine-grained permissioned access to authenticated clients. Login is
+performed by password ONLY (no username needs to be entered. Also,
+passwords must be unique).
 
 ### Public and guest access
 
