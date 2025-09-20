@@ -5,8 +5,11 @@ echo "## Entrypoint: /usr/local/bin/docker-entrypoint.sh"
 
 CONFIG_PATH="${COPYPARTY_CONFIG:-/z/copyparty.conf}"
 
-# Tweakables via env (with sane defaults); override in compose if you want
-optflags=()
+# ---- required admin ----
+ADMIN_USER="${COPYPARTY_ADMIN_USER:?set COPYPARTY_ADMIN_USER}"
+ADMIN_PASSWORD="${COPYPARTY_ADMIN_PASSWORD:?set COPYPARTY_ADMIN_PASSWORD}"
+
+# ---- optional globals ----
 PORT="${COPYPARTY_PORT:-3939}"
 ALLOW_NET="${COPYPARTY_ALLOW_NET:-}"       # e.g. "10.89."
 THEME="${COPYPARTY_THEME:-}"               # e.g. "2"
@@ -16,57 +19,102 @@ DISABLE_DUPE="${COPYPARTY_DISABLE_DUPE:-}" # "true" to add `nos-dup`
 ROBOTS_OFF="${COPYPARTY_NO_ROBOTS:-}"      # "true" to add `no-robots`
 FORCE_JS="${COPYPARTY_FORCE_JS:-}"         # "true" to add `force-js`
 
-# --- accounts + volume paths (fixed shared vols) ---
-ADMIN_USER="${COPYPARTY_ADMIN_USER}"
-ADMIN_PASSWORD="${COPYPARTY_ADMIN_PASSWORD}"
-
 DATA_ROOT="${COPYPARTY_DATA_DIR:-/data}"
 PUB_PATH="${COPYPARTY_VOL_PUBLIC_PATH:-${DATA_ROOT}/public}"
 GST_PATH="${COPYPARTY_VOL_GUESTS_PATH:-${DATA_ROOT}/guests}"
 
-mkdir -p "$(dirname "$CONFIG_PATH")" "$PUB_PATH" "$GST_PATH"
+mkdir -p "$(dirname "$CONFIG_PATH")" "$PUB_PATH" "$GST_PATH" /mnt
 
-# Parse COPYPARTY_USERS: "mike:supersecret:/data/mike,bob:secret:/data/bob"
-# For each user, create account and private volume "/<user>" -> path
-USER_LINES=()     # [accounts] lines
-USER_VOLS=()      # volume blocks
+# ---- build optional [global] flags ----
+optflags=()
+[[ -n "$ALLOW_NET" ]] && optflags+=("ipa: ${ALLOW_NET}")
+[[ -n "$THEME"     ]] && optflags+=("theme: ${THEME}")
+[[ -n "$NAME"      ]] && optflags+=("name: ${NAME}")
+[[ "${ENABLE_STATS,,}" == "true" ]] && optflags+=("stats")
+[[ "${DISABLE_DUPE,,}" == "true" ]] && optflags+=("nos-dup")
+[[ "${ROBOTS_OFF,,}"   == "true" ]] && optflags+=("no-robots")
+[[ "${FORCE_JS,,}"     == "true" ]] && optflags+=("force-js")
 
-if [[ -z "$ADMIN_USER" || -z "$ADMIN_PASSWORD" ]]; then
-    echo "[entrypoint] ERROR: ADMIN_USER and ADMIN_PASSWORD were not set." >&2
-    exit 1
-fi
+# ─────────────────────────────────────────────────────────────────────────────
+# INPUT SHAPES
+#   COPYPARTY_USERS           = "user:pass,alice:pw2"
+#   COPYPARTY_VOL_EXTERNAL    = "music:/storage/music,pics:/var/media/pics"
+#   COPYPARTY_VOL_PERMISSIONS = "music:rw:ryan/bob,pics:rwmda:admin,music:r:erin"
+#
+# NOTE: user lists in VOL_PERMISSIONS are slash-delimited to avoid commas.
+# ─────────────────────────────────────────────────────────────────────────────
 
-IFS=',' read -ra __USR_ENTRIES <<< "${COPYPARTY_USERS:-}"
-for ent in "${__USR_ENTRIES[@]}"; do
+# ---- parse users (accounts only) ----
+USER_LINES=() # lines for [accounts]
+IFS=',' read -ra _USR <<< "${COPYPARTY_USERS:-}"
+for ent in "${_USR[@]}"; do
   [[ -z "$ent" ]] && continue
-  u="${ent%%:*}"; rest="${ent#*:}"
-  p="${rest%%:*}"; path="${rest#*:}"
-
-  if [[ -z "$u" || -z "$p" || -z "$path" ]]; then
-    echo "[entrypoint] ERROR: bad COPYPARTY_USERS item '$ent' (want user:pass:/abs/path), skipping" >&2
-    exit 1
+  u="${ent%%:*}"; p="${ent#*:}"
+  if [[ -z "$u" || -z "$p" ]]; then
+    echo "[entrypoint] ERROR: bad COPYPARTY_USERS item '$ent' (want user:pass)" >&2; echo "COPYPARTY_USERS=$COPYPARTY_USERS" exit 1
   fi
-
-  if [[ "$u$p$path" == *[,:\ ]* ]]; then
-      echo "[entrypoint] ERROR: user/pass/path may not contain commas/colons/spaces; failed entry: '$ent'" >&2
-      exit 1
+  if [[ "$u$p" == *[,:\ ]* ]]; then
+    echo "[entrypoint] ERROR: usernames/passwords cannot contain commas/colons/spaces: '$ent'" >&2; exit 1
   fi
-
-  if [[ "${path:0:1}" != "/" ]]; then
-    echo "[entrypoint] ERROR: path '$path' is not absolute for user '$u', skipping" >&2
-    exit 1
-  fi
-
-  mkdir -p "$path"
   USER_LINES+=("  ${u}: ${p}")
-  USER_VOLS+=("
-[/${u}]
-  ${path}
-  accs:
-    rw: ${u}      # only this user can read+write; no 'ro: *' → others can't browse
-")
 done
 
+# ---- parse external volumes (name -> host_path) ----
+declare -A VOL_PATHS=()  # name => /mnt/<name>
+declare -A VOL_HOST=()   # name => original host path (for logging/help)
+IFS=',' read -ra _VEX <<< "${COPYPARTY_VOL_EXTERNAL:-}"
+for ent in "${_VEX[@]}"; do
+  [[ -z "$ent" ]] && continue
+  name="${ent%%:*}"; hpath="${ent#*:}"
+  if [[ -z "$name" || -z "$hpath" ]]; then
+    echo "[entrypoint] ERROR: bad COPYPARTY_VOL_EXTERNAL item '$ent' (want name:/abs/host/path)" >&2; exit 1
+  fi
+  if [[ "$name" == *[,:\ ]* || "$hpath" == *[,:\ ]* ]]; then
+    echo "[entrypoint] ERROR: names/paths cannot contain commas/colons/spaces: '$ent'" >&2; exit 1
+  fi
+  if [[ "${hpath:0:1}" != "/" ]]; then
+    echo "[entrypoint] ERROR: host path must be absolute: '$hpath'" >&2; exit 1
+  fi
+  VOL_HOST["$name"]="$hpath"
+  VOL_PATHS["$name"]="/mnt/${name}"
+  mkdir -p "/mnt/${name}"
+done
+
+# ---- parse per-volume permissions and merge ----
+# map: VOL_PERM["<name>|<perm>"]="user1 user2 ..."
+declare -A VOL_PERM=()
+IFS=',' read -ra _VP <<< "${COPYPARTY_VOL_PERMISSIONS:-}"
+for ent in "${_VP[@]}"; do
+  [[ -z "$ent" ]] && continue
+  # Expect: name:perm:user1/user2/...
+  name="${ent%%:*}"; rest="${ent#*:}"
+  perm="${rest%%:*}"; userspec="${rest#*:}"
+
+  if [[ -z "$name" || -z "$perm" || -z "$userspec" ]]; then
+    echo "[entrypoint] ERROR: bad COPYPARTY_VOL_PERMISSIONS item '$ent' (want name:perm:user1/..)" >&2; exit 1
+  fi
+  # Validate perm only contains allowed letters (subset is fine)
+  if [[ ! "$perm" =~ ^[rwmdgGhaA\.]+$ ]]; then
+    echo "[entrypoint] ERROR: invalid permission letters '$perm' in '$ent'" >&2; exit 1
+  fi
+
+  # split users on '/'
+  IFS='/' read -ra _USERS <<< "$userspec"
+  for user in "${_USERS[@]}"; do
+    [[ -z "$user" ]] && continue
+    if [[ "$user" == *[,:\ ]* ]]; then
+      echo "[entrypoint] ERROR: usernames in permissions cannot contain commas/colons/spaces: '$user' in '$ent'" >&2; exit 1
+    fi
+    key="${name}|${perm}"
+    # append if not already present
+    cur="${VOL_PERM[$key]:-}"
+    if [[ " $cur " != *" $user "* ]]; then
+      VOL_PERM[$key]="${cur:+$cur }$user"
+    fi
+  done
+done
+
+# ---- emit config file ----
 {
   echo "# -*- pretend-yaml -*-"
   echo
@@ -83,6 +131,7 @@ done
     printf "%s\n" "${USER_LINES[@]}"
   fi
   echo
+  # Built-ins: public (read-only everyone), guests (write-only everyone)
   echo "[/public]"
   echo "  ${PUB_PATH}"
   echo "  accs:"
@@ -94,26 +143,34 @@ done
   echo "  accs:"
   echo "    w: *"
   echo "    rwmda: ${ADMIN_USER}"
-  # per-user private volumes
-  if ((${#USER_VOLS[@]})); then
-    # Re-emit each user volume but inject admin rights
-    while IFS= read -r -d '' blk; do
-      # print the block as-is, then add admin
-      printf "%s" "$blk"
-      printf "  rwmda: %s\n" "${ADMIN_USER}"
-      printf "\n"
-    done < <(printf "%s\0" "${USER_VOLS[@]}")
-  fi
+
+  # External volumes
+  for name in "${!VOL_PATHS[@]}"; do
+    vpath="/${name}"
+    rpath="${VOL_PATHS[$name]}"
+    echo
+    echo "[${vpath}]"
+    echo "  ${rpath}"
+    echo "  accs:"
+    # merge all permissions for this volume
+    # ensure admin gets full perms too
+    # first: user-defined perms
+    for key in "${!VOL_PERM[@]}"; do
+      kvol="${key%%|*}"; kperm="${key#*|}"
+      [[ "$kvol" != "$name" ]] && continue
+      users="${VOL_PERM[$key]}"
+      echo "    ${kperm}: ${users// /, }"
+    done
+    # then admin blanket
+    echo "    rwmda: ${ADMIN_USER}"
+  done
 } > "$CONFIG_PATH"
 
 echo "## Config: ${CONFIG_PATH}"
-cat ${CONFIG_PATH} | nl
+nl -ba "$CONFIG_PATH"
 echo "## End config"
 echo
 echo "## Entrypoint handing off to copyparty now ..."
-cat "$CONFIG_PATH"
 sync
 set -x
-
-# Hand off to the real process (PID 1 gets signals properly)
 exec python3 -m copyparty -c "$CONFIG_PATH" "$@"
