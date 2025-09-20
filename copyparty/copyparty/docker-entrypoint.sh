@@ -20,6 +20,7 @@ ROBOTS_OFF="${COPYPARTY_NO_ROBOTS:-}"      # "true" to add `no-robots`
 FORCE_JS="${COPYPARTY_FORCE_JS:-}"         # "true" to add `force-js`
 
 DATA_ROOT="${COPYPARTY_DATA_DIR:-/data}"
+ADMIN_PATH="${DATA_ROOT}/admin}"
 PUB_PATH="${COPYPARTY_VOL_PUBLIC_PATH:-${DATA_ROOT}/public}"
 GST_PATH="${COPYPARTY_VOL_GUESTS_PATH:-${DATA_ROOT}/guests}"
 
@@ -131,19 +132,31 @@ done
     printf "%s\n" "${USER_LINES[@]}"
   fi
   echo
-  # Built-ins: public (read-only everyone), guests (write-only everyone)
-  echo "[/public]"
-  echo "  ${PUB_PATH}"
+  echo
+  # Create an admin volume that only the admin can access,
+  # this is done mostly because copyparty will fail to start if there isn't at least one volume defined.
+  echo "[/admin]"
+  echo "  ${ADMIN_PATH}"
   echo "  accs:"
-  echo "    r: *"
   echo "    rwmda: ${ADMIN_USER}"
   echo
-  echo "[/guests]"
-  echo "  ${GST_PATH}"
-  echo "  accs:"
-  echo "    w: *"
-  echo "    rwmda: ${ADMIN_USER}"
 
+  # Built-ins: public (read-only everyone), guests (write-only everyone)
+  if [[ "${COPYPARTY_ENABLE_PUBLIC_ACCESS}" == "true" ]]; then
+      echo "[/public]"
+      echo "  ${PUB_PATH}"
+      echo "  accs:"
+      echo "    r: *"
+      echo "    rwmda: ${ADMIN_USER}"
+      echo
+  fi
+  if [[ "${COPYPARTY_ENABLE_GUEST_ACCESS}" == "true" ]]; then
+      echo "[/guests]"
+      echo "  ${GST_PATH}"
+      echo "  accs:"
+      echo "    w: *"
+      echo "    rwmda: ${ADMIN_USER}"
+  fi
   # External volumes
   for name in "${!VOL_PATHS[@]}"; do
     vpath="/${name}"
@@ -159,7 +172,7 @@ done
       kvol="${key%%|*}"; kperm="${key#*|}"
       [[ "$kvol" != "$name" ]] && continue
       users="${VOL_PERM[$key]}"
-      echo "    ${kperm}: ${users// /, }"
+      echo "    ${kperm}: ${users// /,}"
     done
     # then admin blanket
     echo "    rwmda: ${ADMIN_USER}"
