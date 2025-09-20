@@ -1,0 +1,33 @@
+volumes:
+  data:
+
+services:
+  copyparty:
+    build:
+      context: copyparty
+      args:
+        COPYPARTY_IMAGE: ${COPYPARTY_IMAGE}
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+    sysctls:
+      - net.ipv4.ip_unprivileged_port_start=1024
+    restart: unless-stopped
+    environment:
+      - COPYPARTY_ADMIN_USER
+      - COPYPARTY_ADMIN_PASSWORD
+      - COPYPARTY_USERS
+      - COPYPARTY_VOL_MOUNT
+      - COPYPARTY_VOL_PATH
+      - COPYPARTY_ENABLE_STATS
+      - COPYPARTY_DISABLE_DUPE
+      - COPYPARTY_NO_ROBOTS
+      - COPYPARTY_FORCE_JS
+      - COPYPARTY_DATA_DIR=/data
+      - COPYPARTY_VOL_PUBLIC_PATH=/data/public
+      - COPYPARTY_VOL_GUESTS_PATH=/data/guests
+    volumes:
+      - data:/data
+    # All labels are defined in the template: docker-compose.instance.yaml
+    labels: []
