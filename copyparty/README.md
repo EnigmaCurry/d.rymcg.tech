@@ -5,6 +5,10 @@ resumable uploads/downloads from the any web browser. This config is
 for multiple users with separate permissions, including a public guest
 account.
 
+At the moment, this config only supports http and webdav access.
+Copyparty itself also supports ftp, tftp, and smb/cifs, but these have
+not been implemented here yet.
+
 ## Config
 
 ```
