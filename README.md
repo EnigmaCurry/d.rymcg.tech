@@ -77,51 +77,44 @@ Follow these topical guides to get started:
 
  * Create a Docker server:
  
-   * [DOCKER.md](DOCKER.md) - Setup Docker on any existing Linux host
-     (bare metal or VM).
-   * [DIGITALOCEAN.md](DIGITALOCEAN.md) - Create a Docker server on
-     DigitalOcean droplet.
-   * [AWS.md](AWS.md) - Create a Docker server on AWS EC2.
-   * [RASPBERRY_PI.md](RASPBERRY_PI.md) - Create a Docker server on a
-     Raspberry Pi.
+   * [DOCKER.md](DOCKER.md) - Install Docker Engine on bare metal, VM,
+     or cloud.
 
+### Extra reading
+
+ * [SECURITY.md](SECURITY.md) - Docker Security.
+ * [MAKEFILE_OPS.md](MAKEFILE_OPS.md) - How to write Makefiles.
+ * [RCLONE.md](RCLONE.md) - Create Docker volumes on top of S3 storage.
+ * [LICENSE.txt](LICENSE.txt) - the (MIT style) license for this project.
+ 
 ## Services
 
-
-Each of the sub-projects have their own `README.md`. You should
-install [Traefik](traefik) first, as almost all of the others depend
-on it. After that, install the [whoami](whoami) service to test that
-things are working correctly.
+Each of the sub-projects have their own `README.md` in their
+respective sub-directory.
 
 Install these first:
 
 * [Traefik](traefik#readme) - HTTP / TLS / TCP / UDP reverse proxy
 * [Whoami](whoami#readme) - HTTP test service
 
-Install these recommended backbone applications next:
+Install these core services as needed:
 
 * [Forgejo](forgejo#readme)
   * A git host (fork of Gitea/Gogs, which is similar to self-hosted
     GitHub) and OAuth2 server.
-  * Like GitHub, it can act as an OAuth2 identity service, which
-    supports 2FA including hardware tokens, even if you have no need
-    for a git forge, install this!
+  * This can act as an OAuth2 identity service, which supports 2FA
+    including hardware tokens, and can provide authentication to all
+    your other services.
 * [Traefik-forward-auth](traefik-forward-auth#readme)
   * Traefik OAuth2 authentication middleware.
   * Required if you want OAuth2 authentication. You'll combine this
     with your forgejo instance (or another external Oauth provider) to
     add authentication to any of your apps.
-* [Homepage](homepage#readme)
-  * Homepage acts as a dashboard or launcher for all your other apps
-    (but this is not required for any other functionality, if you
-    don't need it.)
 * [Postfix-Relay](postfix-relay#readme)
   * A simple email forwarding service (SMTP) which can be used by any
     other container that needs to send email.
-* [Registry](registry#readme) 
-  * An OCI container registry for hosting docker container images.
 
-Install these other services at your leisure/preference:
+Install these applications at your preference:
 
 * [13ft](thirteenft#readme) - a tool to block ads and bypass paywalls
 * [Actual](actual#readme) - a personal finance tool
@@ -147,6 +140,7 @@ Install these other services at your leisure/preference:
 * [Glances](glances#readme) - a cross-platform system monitoring tool
 * [Gradio](gradio#readme) - a configurable web interface for machine learning 
 * [Grocy](grocy#readme) - a grocery & household management/chore solution
+* [Homepage](homepage#readme) - a dashboard for all your apps
 * [Icecast](icecast#readme) - a SHOUTcast compatible streaming multimedia server
 * [Immich](immich#readme) - a photo gallery
 * [Invidious](invidious#readme) - a Youtube proxy
@@ -178,6 +172,7 @@ Install these other services at your leisure/preference:
 * [QBittorrent-Wireguard](qbittorrent-wireguard#readme) - a Bittorrent (libtorrent v2) client with a combined VPN client
 * [Redbean](redbean#readme) - a small website server bundled in a single executable zip file
 * [Redmine](redmine#readme) - a flexible project management web application
+* [Registry](registry#readme) an OCI container registry
 * [S3-proxy](s3-proxy#readme) - an HTTP directory index for S3 backend
 * [SearXNG](searxng#readme) - a privacy-respecting, hackable metasearch engine
 * [SFTP](sftp#readme) - a secure file server
@@ -197,6 +192,3 @@ Install these other services at your leisure/preference:
 * [Wordpress](wordpress#readme) - a ubiquitous blogging / CMS platform, with a plugin to build a static HTML site snapshot
 * [XBrowserSync](xbs#readme) - a bookmark manager
 * [YOURLS](yourls#readme) - a URL shortener
-
-You can create a new application by using any other application as an
-example, ([whoami](whoami) is the most basic one).

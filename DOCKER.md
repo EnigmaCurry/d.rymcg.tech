@@ -1,18 +1,24 @@
 # Docker
 
-This guide will document how to install a Docker server on an existing
+This guide shows you how to install a Docker server on an existing
 Linux host.
+
+You may also install Docker any of these other ways:
+
+ * [DIGITALOCEAN.md](DIGITALOCEAN.md) - Create a Docker server on
+   DigitalOcean droplet.
+ * [AWS.md](AWS.md) - Create a Docker server on AWS EC2.
+ * [RASPBERRY_PI.md](RASPBERRY_PI.md) - Create a Docker server on a
+   Raspberry Pi.
 
 ## Requirements
 
  * You will need an existing Linux server or VM (amd64 or aarch64)
-   running Debian (recommended), Raspbian, Ubuntu, Fedora, or RHEL
-   (supported by
-   [docker-install](https://github.com/docker/docker-install/tree/master)).
-   It should be a fresh install, with no other services running yet
-   (excpet for basic system services like SSH or collectd).
+   running Debian (recommended), Raspbian, Ubuntu, Fedora, or RHEL. It
+   should be a fresh install, with no other services running yet
+   (except for basic system services like SSH or collectd).
 
-* You should also have your workstation already setup:
+* You should already have your workstation setup:
 
    * [WORKSTATION_LINUX.md](WORKSTATION_LINUX.md) - Setup your workstation on Linux.
    * [WORKSTATION_WSL.md](WORKSTATION_WSL.md) - Setup your workstation on Windows (WSL)
@@ -116,3 +122,90 @@ consult your own vendor documentation (e.g., Docker on [Arch
 Linux](https://wiki.archlinux.org/title/Docker)) or the upstream
 [Docker Engine](https://docs.docker.com/engine/install/#server)
 documentation.
+
+## Configure Docker bridge networks (optional)
+
+By default, Docker will only reserve enough IP addresses for a total
+of 30 user-defined networks. This means that, by default, you can only
+deploy up to 30 apps per docker server.
+
+If you would like more than 30, you can increase the range of IP
+addresses that Docker reserves. This procedure require manual
+maintaince on the server as root. You can connect to the root shell
+from your workstation:
+
+```
+d ssh
+```
+
+On the server, edit `/etc/docker/daemon.json` (create this file if it
+does not exist), and merge the following configuration:
+
+```
+{
+  "default-address-pools": [
+    {"base": "172.17.0.0/16", "size": 24}
+  ]
+}
+```
+
+and restart the docker daemon, or reboot the server.
+
+## Firewall
+
+This system does not include a network firewall of its own. You are
+expected to provide a firewall in your host networking environment.
+(Note: `ufw` is NOT recommended for use with Docker, nor is any other
+firewall that is directly located on the same host machine as Docker.
+You should prefer an external dedicated network firewall [ie. your
+cloud provider, or VM host]. If you have no other option but to run
+the firewall on the same machine, check out
+[chaifeng/ufw-docker](https://github.com/chaifeng/ufw-docker#solving-ufw-and-docker-issues)
+for a partial fix.)
+
+With only a few exceptions, all network traffic flows through one of
+several Traefik entrypoints, listed in the [static configuration
+template](traefik/config/traefik.yml) (`traefik.yml`) in the
+`entryPoints` section.
+
+Each entrypoint has an associated environment variable to turn it on
+or off. See the [Traefik](traefik) configuration for more details.
+
+Depending on which services you actually install, and how they are
+configured, you may need to open these ports in your firewall:
+
+| Type       | Protocol | Port Range | Description                                               |
+|------------|----------|------------|-----------------------------------------------------------|
+| SSH        | TCP      | 22         | Host SSH server (direct-map)                              |
+| HTTP       | TCP      | 80         | Traefik HTTP entrypoint (web; redirects to websecure)     |
+| HTTP+TLS   | TCP      | 443        | Traefik HTTPS entrypoint (websecure)                      |
+| TCP socket | TCP      | 1704       | Traefik Snapcast (audio) entrypoint                       |
+| TCP socket | TCP      | 1705       | Traefik Snapcast (control) entrypoint                     |
+| RTMP(s)    | TCP      | 1935       | Traefik RTMP (real time message protocol) entrypoint      |
+| SSH        | TCP      | 2222       | Traefik Forgejo SSH (TCP) entrypoint                      |
+| SSH        | TCP      | 2223       | SFTP container SSH (TCP) (direct-map)                     |
+| TLS        | TCP      | 5432       | PostgreSQL mTLS DBaaS (direct-map)                        |
+| TCP+TLS    | TCP      | 6380       | Traefik Redis in-memory database entrypoint               |
+| TCP socket | TCP      | 6600       | Traefik Mopidy (MPD) entrypoint                           |
+| HTTP       | TCP      | 8000       | Traefik HTTP entrypoint (web_plain; explicitly non-https) |
+| TLS        | TCP      | 8883       | Mosquitto MQTT (direct-map)                               |
+| WebRTC     | UDP      | 10000      | Jitsi Meet video bridge (direct-map)                      |
+| VPN        | UDP      | 51820      | Wireguard (Traefik VPN)  (direct-map)                     |
+
+The ports that are listed as `(direct-map)` are not connected to
+Traefik, but are directly exposed (public) to the docker host network.
+
+For a minimal installation, you only need to open ports 22 and 443.
+This would enable all of the web-based applications to work, except
+for the ones that need an additional port, as listed above.
+
+See [DIGITALOCEAN.md](DIGITALOCEAN.md) for an example of setting the
+DigitalOcean firewall service.
+
+Later, after you've deployed things, you can audit all of the open
+published ports: from the root project directory, run `make
+show-ports` to list all of the services with open ports (or those that
+run in the host network and are therefore completely open. You will
+find traefik and the wireguard server/client in this latter category).
+Each sub-project directory also has a `make status` with useful
+per-project information.
