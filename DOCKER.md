@@ -109,7 +109,6 @@ The authenticity of host '1.2.3.4 (1.2.3.4)' can't be established.
 ED25519 key fingerprint is SHA256:MJXpZH1KbzwJqvoR6gpMCR/p1CKocQwqgd7cDncpxHo.
 This key is not known by any other names.
 Are you sure you want to continue connecting (yes/no/[fingerprint])? yes
-Warning: Permanently added '1.2.3.4' (ED25519) to the list of known hosts.
 ```
 
 Watch the output for messages of success or failure. After successful

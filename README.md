@@ -4,7 +4,7 @@
 [![Chat on Matrix](_meta/img/matrix-badge.svg)](https://matrix.to/#/#d.rymcg.tech:enigmacurry.com)
 
 d.rymcg.tech is a collection of open-source Docker Compose projects
-and command line tools to manage remote Docker servers and
+and command line tools to manage your remote Docker servers and
 applications from your workstation.
 
 ## Features
@@ -74,11 +74,11 @@ Follow these topical guides to get started:
  
    * [WORKSTATION_LINUX.md](WORKSTATION_LINUX.md) - Setup your workstation on Linux.
    * [WORKSTATION_WSL.md](WORKSTATION_WSL.md) - Setup your workstation on Windows (WSL)
-
- * Create a Docker server:
+ 
+* Create a Docker server and configure the firewall:
  
    * [DOCKER.md](DOCKER.md) - Install Docker Engine on bare metal, VM,
-     or cloud.
+     or cloud
 
 ### Extra reading
 
