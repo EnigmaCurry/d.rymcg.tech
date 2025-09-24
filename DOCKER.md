@@ -1,15 +1,6 @@
 # Docker
 
-This guide shows you how to install a Docker server on an existing
-Linux host.
-
-You may also install Docker any of these other ways:
-
- * [DIGITALOCEAN.md](DIGITALOCEAN.md) - Create a Docker server on
-   DigitalOcean droplet.
- * [AWS.md](AWS.md) - Create a Docker server on AWS EC2.
- * [RASPBERRY_PI.md](RASPBERRY_PI.md) - Create a Docker server on a
-   Raspberry Pi.
+This guide shows you how to install a Docker server.
 
 ## Requirements
 
@@ -18,7 +9,18 @@ You may also install Docker any of these other ways:
    should be a fresh install, with no other services running yet
    (except for basic system services like SSH or collectd).
 
-* You should already have your workstation setup:
+   * If you don't already have a Linux server, you can install one any of these ways:
+
+     * [DIGITALOCEAN.md](DIGITALOCEAN.md) - Create a Docker server on
+       DigitalOcean droplet.
+     * [AWS.md](AWS.md) - Create a Docker server on AWS EC2.
+     * [RASPBERRY_PI.md](RASPBERRY_PI.md) - Create a Docker server on a
+       Raspberry Pi.
+     * Follow the [Debian GNU/Linux Installation
+       Guide](https://www.debian.org/releases/stable/amd64/) on any
+       PC.
+
+ * You should already have your workstation setup:
 
    * [WORKSTATION_LINUX.md](WORKSTATION_LINUX.md) - Setup your workstation on Linux.
    * [WORKSTATION_WSL.md](WORKSTATION_WSL.md) - Setup your workstation on Windows (WSL)
