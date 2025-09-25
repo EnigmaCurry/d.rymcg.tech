@@ -1,0 +1,37 @@
+#!/usr/bin/env sh
+set -eu
+
+: "${TURN_DOMAIN:?TURN_DOMAIN is required}"
+: "${TURN_LISTEN_PORT:?TURN_LISTEN_PORT is required}"
+: "${TURN_TLS_PORT:?TURN_TLS_PORT is required}"
+
+TEMPLATE=${TEMPLATE:-/etc/pairdrop/rtc_config.template.json}
+OUT=${OUT:-/etc/pairdrop/rtc_config.json}
+
+# If both are set, use them as-is (no HMAC).
+if [ -n "${TURN_USERNAME:-}" ] && [ -n "${TURN_PASSWORD:-}" ]; then
+  user="$TURN_USERNAME"
+  pass="$TURN_PASSWORD"
+else
+  : "${COTURN_STATIC_AUTH_SECRET:?COTURN_STATIC_AUTH_SECRET is required when TURN_USERNAME/PASSWORD are not set}"
+  ROTATE_MINUTES=${PAIRDROP_ROTATE_MINUTES:-${RESTART_MINUTES:-30}}
+  TTL_FACTOR=${TTL_FACTOR:-2}
+  now=$(date -u +%s)
+  ttl=$(( ROTATE_MINUTES * TTL_FACTOR * 60 ))
+  exp=$(( now + ttl ))
+  user="${exp}:pairdrop"
+  # HMAC-SHA1(secret, username) → base64
+  pass=$(printf %s "$user" \
+    | openssl dgst -sha1 -mac HMAC -macopt "key:${COTURN_STATIC_AUTH_SECRET}" -binary \
+    | openssl base64)
+fi
+
+tmp="${OUT}.tmp"
+env TURN_DOMAIN="$TURN_DOMAIN" TURN_LISTEN_PORT="$TURN_LISTEN_PORT" \
+    TURN_TLS_PORT="$TURN_TLS_PORT" TURN_USERNAME="$user" TURN_PASSWORD="$pass" \
+  envsubst '${TURN_DOMAIN} ${TURN_LISTEN_PORT} ${TURN_TLS_PORT} ${TURN_USERNAME} ${TURN_PASSWORD}' \
+    < "$TEMPLATE" > "$tmp"
+mv -f "$tmp" "$OUT"
+
+# Redact credential in logs
+sed 's/"credential": *".*"/"credential": "***"/' "$OUT" >&2

@@ -1,0 +1,13 @@
+{
+  "sdpSemantics": "unified-plan",
+  "iceServers": [
+    {
+      "urls": "stun:${TURN_DOMAIN}:${TURN_LISTEN_PORT}"
+    },
+    {
+      "urls": "turns:${TURN_DOMAIN}:${TURN_TLS_PORT}",
+      "username": "${TURN_USERNAME}",
+      "credential": "${TURN_PASSWORD}"
+    }
+  ]
+}
