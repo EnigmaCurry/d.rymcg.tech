@@ -111,6 +111,9 @@ Install these core services as needed:
   * Required if you want OAuth2 authentication. You'll combine this
     with your forgejo instance (or another external Oauth provider) to
     add authentication to any of your apps.
+* [Step-CA](step-ca) 
+  * A self-hosted Certificate Authority (CA).
+  * Provides ACME services for automatic TLS certficate creation.
 * [Postfix-Relay](postfix-relay#readme)
   * A simple email forwarding service (SMTP) which can be used by any
     other container that needs to send email.
@@ -180,7 +183,6 @@ Install these applications at your preference:
 * [Shaarli](shaarli#readme) - a bookmark manager
 * [Smokeping](smokeping#readme) - a network latency measurement tool
 * [Speedtest Tracker](speedtest-tracker#readme) - a network privacyerformance monitor
-* [Step-CA](step-ca) - a secure, online, self-hosted Certificate Authority (CA)
 * [Syncthing](syncthing#readme) - a multi-device file synchronization tool
 * [Sysbox-Systemd](sysbox-systemd#readme) - a traditional service manager for Linux running in an unprivileged container via sysbox-runc
 * [Tesseract](tesseract#readme) - a front-end for Lemmy instances
