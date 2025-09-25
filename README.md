@@ -57,7 +57,7 @@ applications from your workstation.
    names, paths, etc.), and other middleware, via container labels.
 
  * Self-host your own Certficate Authority and DNS (delegate) server
-   to automatically create (wildcard) TLS certificates with
+   for the automatic creation of (wildcard) TLS certificates with
    [Step-CA](https://github.com/EnigmaCurry/d.rymcg.tech/tree/readme/step-ca#step-ca)
    and
    [acme-dns](https://github.com/EnigmaCurry/d.rymcg.tech/tree/master/acme-dns#acme-dns).
@@ -66,33 +66,34 @@ applications from your workstation.
 ## Documentation
 
 The documentation for this project is spread amongst several Markdown
-files in this repository.
+files, according to project and/or topic.
 
 Follow these topical guides to get started:
 
  * Create your workstation environment:
  
    * [WORKSTATION_LINUX.md](WORKSTATION_LINUX.md) - Setup your workstation on Linux.
-   * [WORKSTATION_WSL.md](WORKSTATION_WSL.md) - Setup your workstation on Windows (WSL)
+   * [WORKSTATION_WSL.md](WORKSTATION_WSL.md) - Setup your workstation on Windows (WSL).
  
 * Create a Docker server and configure the firewall:
  
    * [DOCKER.md](DOCKER.md) - Install Docker Engine on bare metal, VM,
-     or cloud
+     or cloud server.
 
 ### Extra reading
 
  * [SECURITY.md](SECURITY.md) - Docker Security.
- * [MAKEFILE_OPS.md](MAKEFILE_OPS.md) - How to write Makefiles.
- * [RCLONE.md](RCLONE.md) - Create Docker volumes on top of S3 storage.
- * [LICENSE.txt](LICENSE.txt) - the (MIT style) license for this project.
+ * [MAKEFILE_OPS.md](MAKEFILE_OPS.md) - how to write Makefiles.
+ * [RCLONE.md](RCLONE.md) - create Docker volumes on top of
+   remote/cloud storage (S3, SFTP, Dropbox, etc.)
+ * [LICENSE.txt](LICENSE.txt) - the license for this project.
  
 ## Services
 
-Each of the sub-projects have their own `README.md` in their
-respective sub-directory.
+Each of the sub-projects in this repository have their own `README.md`
+in their respective sub-directory.
 
-Install these first:
+Install these services first:
 
 * [Traefik](traefik#readme) - HTTP / TLS / TCP / UDP reverse proxy
 * [Whoami](whoami#readme) - HTTP test service
