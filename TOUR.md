@@ -37,9 +37,30 @@ d context
 d config
 ```
 
+```
+> This will make a configuration for the current docker context (insulon). Proceed? Yes
+ROOT_DOMAIN: Enter the root domain for this context (eg. d.example.com)
+: insulon.rymcg.tech
+Configured .env_insulon
+ENV_FILE=.env_insulon_default
+
+> Is this server behind another trusted proxy using the proxy protocol? No
+Set DEFAULT_CLI_ROUTE_LAYER_7_PROXY_PROTOCOL=false
+Set DEFAULT_CLI_ROUTE_LAYER_4_PROXY_PROTOCOL=false
+
+> Do you want to save cleartext passwords in passwords.json by default? No
+Set DEFAULT_SAVE_CLEARTEXT_PASSWORDS_JSON=false
+```
+
 ## Traefik
 
+```
+d make traefik config
+```
+
 ## Acme-DNS
+
+## Whoami
 
 ## Forgejo
 
