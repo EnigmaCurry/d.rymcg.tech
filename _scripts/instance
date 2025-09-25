@@ -3,24 +3,27 @@
 set -e
 BIN=$(dirname ${BASH_SOURCE})
 source ${BIN}/funcs.sh
-ROOT_DIR=${ROOT_DIR:..}
+ROOT_DIR=${ROOT_DIR:-..}
 ROOT_ENV_FILE=".env_${DOCKER_CONTEXT}"
 
 valid_regex='^[a-zA-Z][a-zA-Z0-9_-]*$'
 if [[ "${showmenu}" == "true" ]]; then
     readarray -t EXISTING_ENVS < <(ls .env_${DOCKER_CONTEXT}_* 2>/dev/null | sed "s/.env_${DOCKER_CONTEXT}_//" || true)
     if [[ -z "$EXISTING_ENVS" ]]; then
-        echo 
+        echo
         echo "There are no existing instances in the current Docker context (${DOCKER_CONTEXT}) to switch to."
         ${BIN}/confirm "yes" "Do you want to create a new instance" "?" && call="instance" || exit 0
-        echo 
+        echo
     fi
     while [[ -z "${newinstance}" ]]; do
         if [[ "${call}" == "switch" ]]; then
             newinstance=$(eval wizard choose "'Enter an instance to switch to'" ${EXISTING_ENVS[@]@Q})
         else
             suggestions=$(jq -c -n '$ARGS.positional | unique' --args -- ${EXISTING_ENVS[@]})
-            newinstance=$(wizard ask "Enter an instance name to create/edit:" --suggestions "${suggestions}")
+            if [[ "$suggestions" == "[]" ]]; then
+                default="default"
+            fi
+            newinstance=$(wizard ask "Enter an instance name to create/edit:" --suggestions "${suggestions}" "${default}")
         fi
         if ! [[ "${newinstance}" =~ $valid_regex ]]; then
             error "Invalid instance name. Try again."

@@ -593,6 +593,12 @@ random_element() {
     echo "${arr[ $RANDOM % ${#arr[@]} ]}"
 }
 
+acknowledge() {
+  echo "$1"
+  read -n 1 -s -r -p "Press any key to continue..."
+  echo
+}
+
 confirm() {
     ## Confirm with the user.
     ## Check env for the var YES, if it equals "yes" then bypass this confirm.

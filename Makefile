@@ -14,10 +14,14 @@ check-deps:
 
 .PHONY: check-docker # Check if Docker is running
 check-docker:
-	@docker info >/dev/null && echo "Docker is running." || (echo "Could not connect to Docker!" && false)
+	@docker info >/dev/null && echo "Docker is running." || (${BIN}/acknowledge "Could not connect to Docker. You need to setup your Docker context." && false)
 
-.PHONY: config # Configure main variables
-config: script-wizard check-deps check-docker check-dist-vars
+.PHONY: config
+config: script-wizard
+	@export ROOT_ENV=${ROOT_ENV} ROOT_DIR=${ROOT_DIR} ENV_FILE=${ENV_FILE} DOCKER_CONTEXT=${DOCKER_CONTEXT}; ${ROOT_DIR}/_scripts/setup.sh main_menu  || true
+
+.PHONY: root-config
+root-config: script-wizard check-deps check-docker check-dist-vars
 #	@${BIN}/userns-remap check
 	@echo ""
 	@${BIN}/confirm yes "This will make a configuration for the current docker context (${DOCKER_CONTEXT})"
@@ -40,6 +44,10 @@ open: readme
 .PHONY: status # Check the status of all sub-projects
 status:
 	@docker compose ls | sed "s!$${PWD}!.!g"
+
+.PHONY: status-json
+status-json:
+	@docker compose ls --format json | jq
 
 .PHONY: backup-env # Create an encrypted backup of the .env files
 backup-env:

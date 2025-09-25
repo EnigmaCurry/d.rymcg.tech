@@ -2,6 +2,7 @@
 clean:
 	@${BIN}/clean_instance # checks if instance exists and faults here
 	@echo "ENV_FILE=${ENV_FILE}"
+	@${BIN}/confirm no "This will delete the $${ENV_FILE} config (but keep any data volume(s))"
 	@ENV_FILE=${ENV_FILE}; set -x && rm -f $${ENV_FILE} docker-compose.override_${CONTEXT_INSTANCE}.yaml
 	@echo
 	@echo "# Removed current context/instance environment files."

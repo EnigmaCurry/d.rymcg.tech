@@ -232,7 +232,7 @@ addresses that Docker reserves. On your Docker server, edit
 `/etc/docker/daemon.json` (create this file if it does not exist), and
 merge the following configuration:
 
-```
+```json
 {
   "default-address-pools": [
     {"base": "172.17.0.0/16", "size": 24}
@@ -289,7 +289,7 @@ your local workstation. You will use the `docker` client exclusively to
 control a *remote* docker server (or VM). To turn off/disable the
 Docker Engine on your worksation, run the following:
 
-```
+```shell
 ## Disable local Docker Engine:
 sudo systemctl mask --now docker
 ```
@@ -300,7 +300,7 @@ Following the [buildx installation
 guide](https://docs.docker.com/build/buildx/install/), and run the
 installation:
 
-```
+```shell
 docker buildx install
 ```
 
@@ -335,19 +335,19 @@ skipped):
 
 On Arch Linux, run this to install all these dependencies:
 
-```
+```shell
 pacman -S bash base-devel gettext git openssl apache xdg-utils jq sshfs wireguard-tools curl inotify-tools w3m moreutils
 ```
 
 For Debian or Ubuntu, run:
 
-```
+```shell
 apt-get install bash build-essential gettext git openssl apache2-utils xdg-utils jq sshfs wireguard curl inotify-tools w3m moreutils
 ```
 
 For Fedora, run:
 
-```
+```shell
 dnf install bash gettext openssl git xdg-utils jq sshfs curl inotify-tools httpd-tools make wireguard-tools w3m moreutils
 ```
 
@@ -410,7 +410,7 @@ context](https://docs.docker.com/engine/context/working-with-contexts/)
 to use with your remote docker server (eg. named `d.example.com`) over
 SSH:
 
-```
+```shell
 docker context create d.example.com --docker "host=ssh://ssh.d.example.com"
 docker context use d.example.com
 ```
@@ -427,7 +427,7 @@ backends.
 For example, I have three docker contexts, for three different remote
 Docker servers:
 
-```
+```shell
 $ docker context ls
 NAME              DESCRIPTION  DOCKER ENDPOINT
 d.rymcg.tech *                 ssh://ssh.d.rymcg.tech
@@ -439,7 +439,7 @@ pi                             ssh://pi
 
 I can select to use which context I want to use:
 
-```
+```shell
 $ docker context use docker-vm
 Current context is now "docker-vm"
 ```
@@ -449,7 +449,7 @@ Use the same command again to switch to any other context.)
 
 ### Clone this repository to your workstation
 
-```
+```shell
 git clone https://github.com/EnigmaCurry/d.rymcg.tech.git \
     ${HOME}/git/vendor/enigmacurry/d.rymcg.tech
 
@@ -464,7 +464,7 @@ intention of making the same path work on all machines.
 
 Run the configuration wizard, and answer the questions:
 
-```
+```shell
 ## Run this command inside the root source directory of d.rymcg.tech:
 make config
 ```
@@ -492,7 +492,7 @@ You can have multiple `.env_${DOCKER_CONTEXT}` files, one for each
 Docker server, named after the associated Docker context. To switch
 the current .env file being used, change the Docker context:
 
-```
+```shell
 docker context use {CONTEXT}
 ```
 
@@ -727,7 +727,7 @@ To install the script, you need to add it to your `PATH` shell
 variable, and at your option, evaluate the Bash shell tab completion
 script:
 
-```
+```shell
 #### To enable Bash shell completion support for d.rymcg.tech,
 #### add the following lines into your ~/.bashrc ::
 export PATH=${PATH}:${HOME}/git/vendor/enigmacurry/d.rymcg.tech/_scripts/user
@@ -780,7 +780,7 @@ particular project Makefile.
 You can get into the root d.rymcg.tech directory quickly, from
 anywhere:
 
-```
+```shell
 ## This enters a subshell and changes the working directory to the d.rymcg.tech root:
 ## (You can also specify a second argument to specify the sub-directory.)
 d.rymcg.tech cd
@@ -793,7 +793,7 @@ From any working directory, you can create a new, [external
 project](#integrating-external-projects), from an external repository
 URL:
 
-```
+```shell
 # This creates a new project directory in your current working directory:
 # It will ask you to enter the name of the project and choose the template.
 # Optional 2nd and 3rd args will skip the asking: PROJECT_NAME TEMPLATE_REPO
@@ -805,7 +805,7 @@ repository](https://github.com/EnigmaCurry/flask-template/).
 
 Open any project's README file directly in your web browser:
 
-```
+```shell
 ## Open the main README
 d.rymcg.tech readme
 
@@ -819,14 +819,14 @@ You can add additional command aliases to your shell (put these in
 your `~/.bashrc` *after* the `eval` line that loads the main
 `d.rymcg.tech` script):
 
-```
+```shell
 ## Alternative alias to shorten `d.rymcg.tech` to simply `d`:
 __d.rymcg.tech_cli_alias d
 ```
 
 You can make project specific aliases:
 
-```
+```shell
 ## Example project alias: creates a shorter command used just for the Traefik project:\
 ## e.g., `traefik config`, `traefik install`
 __d.rymcg.tech_project_alias traefik
@@ -836,7 +836,7 @@ If you have created an [external
 project](#integrating-external-projects) (eg. named `mikeapp`), you can
 create a command alias for it:
 
-```
+```shell
 ## Example external project alias:
 ## e.g., `mikeapp config`, `mikeapp install`
 __d.rymcg.tech_project_alias mikeapp ~/git/mikeapp
@@ -844,7 +844,7 @@ __d.rymcg.tech_project_alias mikeapp ~/git/mikeapp
 
 You can also do context specific aliases:
 
-```
+```shell
 ## Example context alias: creates a shorter command used just for the given Docker context:
 ## e.g., `sentry make traefik config`, `sentry make traefik install`.
 __d.rymcg.tech_context_alias sentry
@@ -852,7 +852,7 @@ __d.rymcg.tech_context_alias sentry
 
 To get a synopsis of all of these completion commands, run:
 
-```
+```shell
 d.rymcg.tech completion
 ```
 
@@ -934,7 +934,7 @@ ask you to enter an instance name, and then enter a new sub-shell with
 the environment variables set for that instance, making it now the
 default within the sub-shell, so you don't have to type it anymore:
 
-```
+```shell
 # Use this to create a new instance (or to use an existing one):
 # Enter a subshell with the instance temporarily set as the default:
 make instance
@@ -942,7 +942,7 @@ make instance
 
 Example:
 
-```
+```shell
 ## Example terminal session for creating a new instance of whoami named foo:
 
 $ cd ~/git/vendor/enigmacurry/d.rymcg.tech/whoami
@@ -1037,7 +1037,7 @@ clean/delete all of the plain text copies.
 First you will need to setup a GPG key. You can do this from the same
 workstation, or from a different computer entirely:
 
-```
+```shell
 # Create gpg key (note the long ID it generates, second line after 'pub'):
 gpg --gen-key
 
@@ -1047,7 +1047,7 @@ gpg --send-keys [YOUR_KEY_ID]
 
 On the workstation you cloned this repository to, import this key:
 
-```
+```shell
 # Import your key from the public keyserver:
 gpg --receive-keys [YOUR_KEY_ID]
 ```
@@ -1056,7 +1056,7 @@ gpg --receive-keys [YOUR_KEY_ID]
 
 From the root directory of your clone of this repository, run:
 
-```
+```shell
 make backup-env
 ```
 
@@ -1079,7 +1079,7 @@ may restore them from the backup at any time.
 
 To delete all the .env files, you could run:
 
-```
+```shell
 ## Make sure you have a backup of your .env files first:
 make clean
 ```
@@ -1089,7 +1089,7 @@ make clean
 To restore from this backup, you will need your GPG private keys setup
 on your worstation, and then run:
 
-```
+```shell
 make restore-env
 ```
 
@@ -1116,7 +1116,7 @@ Create the `Makefile` in your own separate repository so that it
 includes the main d.rymcg.tech `Makefile.projects` file from
 elsewhere:
 
-```
+```makefile
 ## Example Makefile in your own project repository:
 
 # ROOT_DIR can be a relative or absolute path to the d.rymcg.tech directory:
@@ -1135,7 +1135,7 @@ enigmacurry git vendor path: `ROOT_DIR = ${HOME}/git/vendor/enigmacurry/d.rymcg.
 (but you may want to use your own directory if you have forked this
 project and you have introduced unmerged changes):
 
-```
+```shell
 ## As long as everyone uses this same ROOT_DIR, then we can all share the same configs:
 ## (You might also create this path as a symlink, if you don't like this convention):
 ROOT_DIR = ${HOME}/git/vendor/enigmacurry/d.rymcg.tech
@@ -1150,7 +1150,7 @@ project.
 Now in your own project directory, you can use all the regular `make`
 commands that d.rymcg.tech provides:
 
-```
+```shell
 make config
 make install
 make open
