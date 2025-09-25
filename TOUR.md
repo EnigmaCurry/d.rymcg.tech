@@ -31,6 +31,12 @@ workstation:
 d context
 ```
 
+## Context config
+
+```
+d config
+```
+
 ## Traefik
 
 ## Acme-DNS
