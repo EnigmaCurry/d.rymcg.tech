@@ -33,6 +33,13 @@ services:
       context: gradio
       args:
         APP: (@= app @)
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: all
+              capabilities: [gpu]
     environment:
       - APP_TRAEFIK_HOST=(@= traefik_host @)
       - APP_APP=(@= app @)
@@ -43,6 +50,7 @@ services:
       - DOCKER_INSTANCE=(@= instance @)
       - DOCKER_CONTEXT=(@= context @)
       - GRADIO_ANALYTICS_ENABLED=False
+    restart: unless-stopped
     labels:
       #! Services must opt-in to be proxied by Traefik:
       - "traefik.enable=true"
