@@ -58,7 +58,26 @@ Set DEFAULT_SAVE_CLEARTEXT_PASSWORDS_JSON=false
 d make traefik config
 ```
 
+```
+? Traefik:  
+> Config
+  Install (make install)
+  Admin
+  Exit (ESC)
+```
+
 ### Config
+
+```
+? Traefik Configuration:  
+> Traefik user
+  Entrypoints (including dashboard)
+  TLS certificates and authorities
+  Middleware (including sentry auth)
+  Advanced Routing (Layer 7 / Layer 4 / Wireguard)
+  Error page template
+v Logging level
+```
 
 #### Traefik user
 
