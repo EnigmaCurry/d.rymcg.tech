@@ -80,6 +80,11 @@ Follow these topical guides to get started:
    * [DOCKER.md](DOCKER.md) - Install Docker Engine on bare metal, VM,
      or cloud server.
 
+* Install applications:
+
+   * [TOUR.md](TOUR.md) - follow this tour guide to install your first
+     set of services.
+
 ### Extra reading
 
  * [SECURITY.md](SECURITY.md) - Docker Security.
@@ -96,6 +101,8 @@ in their respective sub-directory.
 Install these services first:
 
 * [Traefik](traefik#readme) - HTTP / TLS / TCP / UDP reverse proxy
+* [Acme-DNS](acme-dns#readme) - a DNS server for ACME challenges (TLS
+  certificate creation)
 * [Whoami](whoami#readme) - HTTP test service
 
 Install these core services as needed:
