@@ -81,13 +81,13 @@ v Logging level
 
 #### Traefik user
 
-Create the traefik user.
+  * Create the traefik user.
 
 #### TLS certificates and authorities
 
-#### Configure TLS certificates (`make certs`)
+  * Configure TLS certificates (`make certs`)
 
-##### Create a new certificate
+  * Create a new certificate
 
 Create a new wildcard certificate for your domain:
 
@@ -108,11 +108,11 @@ Secondary (SANS) domains:
 
 Choose `Done`.
 
-#### Configure ACME (Let's Encrypt or Step-CA)
+ * Configure ACME (Let's Encrypt or Step-CA)
 
-##### Acme.sh + acme-dns
+ * Choose Acme.sh + acme-dns
 
-###### Let's Encrypt (production)
+ * Choose `Let's Encrypt (production)`
 
 ```text
 > Which ACME provider do you want to use? Acme.sh + ACME-DNS (new; recommended!)
@@ -284,7 +284,7 @@ acme-sh-1  | 2025-09-12T18:17:41.736623193Z [entrypoint:acme-sh] Installed files
 acme-sh-1  | 2025-09-12T18:17:41.739492248Z + exec crond -n -s -m off
 ```
 
-## whoami
+## Whoami
 
 Install whoami as a test to use the certificate:
 
@@ -324,8 +324,6 @@ Certificate chain
 
 This shows that Let's Encrypt issued the certificate and the validity period.
 
-
-## Whoami
 
 ## Forgejo
 
