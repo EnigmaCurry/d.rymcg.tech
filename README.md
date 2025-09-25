@@ -32,20 +32,24 @@ applications from your workstation.
    instance).
 
  * Every sub-project has a `Makefile` to wrap all Docker commands and
-   administrative functions, e.g.:
+   administrative functions for that project, e.g.:
    
    * `make config` is a wizard to help you configure the `.env` files.
    * `make install` installs the configured application on the server.
    * `make open` opens the installed application in your workstation's
      web browser.
-     
+   * `make uninstall` tear down and remove a project's service containers, but
+     keep the data volumes.
+   * `make destroy` like uninstall, but will delete the data volumes
+     as well.
+   
  * Provides an alternative global command line tool named
    `d.rymcg.tech` (or `d` alias) that re-wraps all of the sub-project
    `make` commands, but unlike `make`, it works from any directory
-   (e.g., `d make whoami config`, `d make whoami install`).
+   (e.g., `d make whoami config`, `d make whoami install` ...).
    
- * This repository offers applications with open source licenses only.
-   You may create your own projects in external git repositories
+ * This repository offers services that have open source licenses
+   only. You may create your own projects in external git repositories
    (licensed however you wish) and still benefit from the same command
    line tooling.
      
@@ -54,9 +58,10 @@ applications from your workstation.
    Traefik provides TLS termination and common
    authentication/authorization middleware (mTLS, OAuth, HTTP Basic,
    IP source range). Applications define their own routes (domain
-   names, paths, etc.), and other middleware, via container labels.
+   names, paths, etc.), and other middleware config, via container
+   labels.
 
- * Self-host your own Certficate Authority and DNS (delegate) server
+ * Can deploy your own Certficate Authority and DNS (delegate) server
    for the automatic creation of (wildcard) TLS certificates with
    [Step-CA](https://github.com/EnigmaCurry/d.rymcg.tech/tree/readme/step-ca#step-ca)
    and
