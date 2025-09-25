@@ -10,7 +10,7 @@ config-hook:
 #### reconfigure_htpasswd will configure the HTTP Basic Authentication setting the var name and with a provided default value.
 	@${BIN}/reconfigure_ask ${ENV_FILE} ACME_DNS_SUBDOMAIN "Enter the acme-dns managed sub-domain" acme-dns.${ROOT_DOMAIN}
 	@${BIN}/reconfigure_ask ${ENV_FILE} ACME_DNS_TRAEFIK_HOST "Enter the acme-dns domain name" auth.$$(${BIN}/dotenv -f ${ENV_FILE} get ACME_DNS_SUBDOMAIN)
-	@${BIN}/reconfigure_ask ${ENV_FILE} ACME_DNS_PUBLIC_IP_ADDRESS "Enter the PUBLIC IP address of the Docker host" "10.0.0.42"
+	@${BIN}/reconfigure_ask ${ENV_FILE} ACME_DNS_PUBLIC_IP_ADDRESS "Enter the PUBLIC IP address of the Docker host"
 	@${BIN}/reconfigure_ask ${ENV_FILE} ACME_DNS_HOSTMASTER "Enter the root domain SOA RNAME address (translated email address; write root@example.com as root.example.com)"
 	@echo ""
 
