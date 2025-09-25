@@ -42,6 +42,8 @@ applications from your workstation.
      keep the data volumes.
    * `make destroy` like uninstall, but will delete the data volumes
      as well.
+   * `make readme` opens the current project's README.md in your
+     workstation's web browser.
    
  * Provides an alternative global command line tool named
    `d.rymcg.tech` (or `d` alias) that re-wraps all of the sub-project
