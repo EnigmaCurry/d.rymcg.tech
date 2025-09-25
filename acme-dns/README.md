@@ -24,13 +24,20 @@ make install
 
 ## Setup DNS
 
-On your chosen domain's primary DNS server, create a CNAME record
-pointing to your acme-dns server.
+On your chosen domain's primary DNS server, create two records:
 
-For example:
+ * an `A` record for your acme-dns sub-domain pointing to your
+   server's public IP address:
+ 
+```
+acme-dns.example.com.  A  123.123.123.123.
+```
+
+ * an `NS` record for your acme-dns sub-domain pointing to the name
+   above:
 
 ```
-_acme-challenge.example.com.  CNAME  d420c923-bbd7-4056-ab64-c3ca54c9b3cf.acme-dns.example.com.
+acme-dns.example.com.  NS  acme-dns.example.com.
 ```
 
 ## Disable registration
