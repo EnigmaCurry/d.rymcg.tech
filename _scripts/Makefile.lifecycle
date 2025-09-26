@@ -34,6 +34,9 @@ config-edit:
 	@echo ""
 	@echo ""
 
+.PHONY: config-render # Render the config to docker-compose formatted YAML
+config-render:
+	@make --no-print-directory docker-compose-lifecycle-cmd EXTRA_ARGS="config" | less -FSX
 
 .PHONY: start # Start services
 start:
