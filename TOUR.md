@@ -56,6 +56,16 @@ Set DEFAULT_CLI_ROUTE_LAYER_4_PROXY_PROTOCOL=false
 Set DEFAULT_SAVE_CLEARTEXT_PASSWORDS_JSON=false
 ```
 
+## Acme-DNS
+```
+d make acme-dns config
+```
+
+Choose a dedicated sub-domain for acme-dns, e.g., `acme-dns.example.com`.
+
+```
+
+```
 ## Traefik
 
 ```bash
