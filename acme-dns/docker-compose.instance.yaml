@@ -59,6 +59,5 @@ services:
 #@ elif network_mode == "host":
     ports:
       - (@= host_api_port @):8080
-      - 53/tcp:53/tcp
-      - 53/udp:53/udp
+      - 53:53
 #@ end
