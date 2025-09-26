@@ -4,6 +4,7 @@ services:
       context: config
     environment:
       - PUBLIC_IP_ADDRESS=${ACME_DNS_PUBLIC_IP_ADDRESS}
+      - API_PORT=${ACME_DNS_API_PORT}
       - SUBDOMAIN=${ACME_DNS_SUBDOMAIN}
       - NSNAME=auth.${ACME_DNS_SUBDOMAIN}
       - RECORDS=${ACME_DNS_RECORDS}
@@ -14,6 +15,8 @@ services:
   
   acmedns:
     depends_on: ['config']
+    environment:
+      - API_PORT=${ACME_DNS_API_PORT}
     build:
       context: acme-dns
       args:
@@ -24,6 +27,10 @@ services:
     volumes:
       - config:/etc/acme-dns:ro
       - data:/var/lib/acme-dns
+    ports:
+      - ${ACME_DNS_API_PORT}:${ACME_DNS_API_PORT}
+      - 53:53
+      - 53:53/udp
     labels: []
       
 volumes:

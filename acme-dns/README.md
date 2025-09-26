@@ -16,6 +16,36 @@ Choose a dedicated sub-domain for acme-dns, e.g.,
 Choose a dedicated sub-sub-domain for the DNS server itself, e.g.,
 `auth.acme-dns.example.com`.
 
+## Stop other DNS resolvers on port 53
+
+You may need to stop other DNS servers running on your Docker host, if
+they are running on the default port (53).
+
+To disable systemd-resolved, run this on the Docker host as `root`:
+
+```
+### Run this on the Docker host as root:
+systemctl disable systemd-resolved
+```
+
+This will break DNS resolving on the host, so you must fix it by
+hardcoding your preferred external DNS server into `/etc/resolv.conf`:
+
+```
+### Run this on the Docker host as root:
+chattr -i /etc/resolv.conf 
+rm -f /etc/resolv.conf
+
+cat <<EOF > /etc/resolv.conf
+nameserver 1.1.1.1
+nameserver 1.0.0.1
+EOF
+
+chattr +i /etc/resolv.conf 
+```
+
+You should reboot your server after this change.
+
 ## Install
 
 ```
@@ -57,18 +87,4 @@ To re-enable registration at a later time:
 ```
 ## ENABLE registration and restart the server:
 make registration-enable
-```
-
-
-## Traefik DNS resolvers
-
-If you have a faulty DNS server that does not return canonical NS
-records (e.g., `systemd-resolved`), you may need to set the root
-resolvers used by Traefik:
-
-```
-make -C ../traefik reconfigure var=TRAEFIK_DNS_SERVERS_STATIC=true
-make -C ../traefik reconfigure var=TRAEFIK_DNS_SERVER_1=1.1.1.1
-make -C ../traefik reconfigure var=TRAEFIK_DNS_SERVER_2=1.0.0.1
-make -C ../traefik reinstall
 ```

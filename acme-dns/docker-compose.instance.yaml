@@ -9,13 +9,6 @@
 #@ project = data.values.project
 #@ instance = data.values.instance
 #@ context = data.values.context
-#@ traefik_host = data.values.traefik_host
-#@ api_ip_sourcerange = data.values.api_ip_sourcerange
-#@ enable_mtls_auth = data.values.enable_mtls_auth == "true"
-#@ mtls_authorized_certs = data.values.mtls_authorized_certs
-#@ enabled_middlewares = []
-#@ network_mode = data.values.network_mode
-#@ host_api_port = data.values.host_api_port
 
 #@yaml/text-templated-strings
 services:
@@ -23,41 +16,3 @@ services:
     #@ service = "acmedns"
     labels:
       - "backup-volume.stop-during-backup=true"
-#@ if network_mode == "traefik":
-      #! Services must opt-in to be proxied by Traefik:
-      - "traefik.enable=true"
-      
-      #! 'router' is the fully qualified key in traefik for this router/service: project + instance + service
-      #@ router = "{}-{}-{}".format(project,instance,service)
-
-      #! HTTP router for API
-      #! The host matching router rule:
-      - "traefik.http.routers.(@= router @).rule=Host(`(@= traefik_host @)`)"
-      - "traefik.http.routers.(@= router @).entrypoints=websecure"
-      #@ enabled_middlewares.append("{}-ipallowlist".format(router))
-      - "traefik.http.middlewares.(@= router @)-ipallowlist.ipallowlist.sourcerange=(@= api_ip_sourcerange @)"
-      #@ if enable_mtls_auth:
-      - "traefik.http.routers.(@= router @).tls.options=step_ca_mTLS@file"
-        #@ if len(mtls_authorized_certs):
-      - "traefik.http.middlewares.mtlsauth-(@= router @).plugin.certauthz.domains=(@= mtls_authorized_certs @)"
-        #@ enabled_middlewares.append("mtlsauth-{}".format(router))
-        #@ end
-        #@ enabled_middlewares.append("mtls-header@file")
-      #@ end
-      - "traefik.http.services.(@= router @).loadbalancer.server.port=8080"
-      #! Apply all middlewares (do this at the end!)
-      - "traefik.http.routers.(@= router @).middlewares=(@= ','.join(enabled_middlewares) @)"
-
-      #! TCP router for DNS
-      - "traefik.tcp.routers.(@= router @)-tcp.entrypoints=dns_tcp"   
-      - "traefik.tcp.routers.(@= router @)-tcp.rule=HostSNI(`*`)"
-      - "traefik.tcp.services.(@= router @)-tcp.loadbalancer.server.port=53"
-
-      #! UDP router for DNS
-      - "traefik.udp.routers.(@= router @)-udp.entrypoints=dns_udp"
-      - "traefik.udp.services.(@= router @)-udp.loadbalancer.server.port=53"      
-#@ elif network_mode == "host":
-    ports:
-      - (@= host_api_port @):8080
-      - 53:53
-#@ end

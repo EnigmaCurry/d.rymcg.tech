@@ -34,7 +34,6 @@ base_config() {
     ## Make new .env if it doesn't exist:
     test -f ${ENV_FILE} || cp .env-dist ${ENV_FILE}
     ${BIN}/reconfigure ${ENV_FILE} DOCKER_CONTEXT=${DOCKER_CONTEXT}
-    configure_dns_servers
 }
 
 config() {
@@ -128,30 +127,6 @@ configure_access_logs() {
         ${BIN}/reconfigure ${ENV_FILE} "TRAEFIK_ACCESS_LOGS_ENABLED=true"
     else
         ${BIN}/reconfigure ${ENV_FILE} "TRAEFIK_ACCESS_LOGS_ENABLED=false"
-    fi
-}
-
-configure_dns_servers() {
-    local dns_servers_static="$(${BIN}/dotenv -f ${ENV_FILE} get TRAEFIK_DNS_SERVERS_STATIC)"
-    if [[ "${dns_servers_static}" == "false" ]]; then
-        # Grab up to two nameservers from resolv.conf
-        local servers
-        servers=($(awk '/^nameserver/ {print $2}' /etc/resolv.conf | head -n2))
-        # Fallback if none found
-        if [ ${#servers[@]} -eq 0 ]; then
-            echo "No system DNS servers found in /etc/resolv.conf" >&2
-            return 1
-        fi
-        local dns_server_1 dns_server_2
-        dns_server_1="${servers[0]}"
-        if [ ${#servers[@]} -ge 2 ]; then
-            dns_server_2="${servers[1]}"
-        else
-            dns_server_2="${dns_server_1}"
-        fi
-        "${BIN}/reconfigure" "${ENV_FILE}" \
-                             TRAEFIK_DNS_SERVER_1="${dns_server_1}" \
-                             TRAEFIK_DNS_SERVER_2="${dns_server_2}"
     fi
 }
 

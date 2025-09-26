@@ -7,6 +7,7 @@ set -euo pipefail
 : "${PUBLIC_IP_ADDRESS:?PUBLIC_IP_ADDRESS is required (IPv4 or IPv6)}"
 : "${NSADMIN:?NSADMIN is required (SOA RNAME like hostmaster.example.com)}"
 : "${DISABLE_REGISTRATION}:?DISABLE_REGISTRATION is required (true/false)"
+: "${API_PORT}:?API_PORT is required"
 
 # Optional
 RECORDS="${RECORDS:-}"
@@ -78,8 +79,8 @@ connection = "/var/lib/acme-dns/acme-dns.db"
 [api]
 ip = "0.0.0.0"
 disable_registration = ${DISABLE_REGISTRATION}
-port = "8080"
-tls = "none"
+port = "${API_PORT}"
+tls = "letsencryptstaging"
 corsorigins = [
     "*"
 ]
