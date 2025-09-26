@@ -160,14 +160,20 @@ acme_sh() {
     ${BIN}/reconfigure_ask ${ENV_FILE} TRAEFIK_ACME_SH_DNS_RESOLVER "Trusted DNS resolver IP used inside acme-sh container" "1.1.1.1"
 
     echo
-    ${BIN}/reconfigure_ask ${ENV_FILE} TRAEFIK_ACME_SH_CERT_PERIOD_HOURS "Validity target in hours (e.g. 48 for Step-CA, 2160 for LE)" "1440"
+    case "$(${BIN}/dotenv -f ${ENV_FILE} get TRAEFIK_ACME_SH_ACME_CA)" in
+        *api.letsencrypt.org)
+            ;;
+        *)
+            ${BIN}/reconfigure_ask ${ENV_FILE} TRAEFIK_ACME_SH_CERT_PERIOD_HOURS "Validity target in hours (e.g. 48 = 2 days, 2160 = 90 days)" "48"
+            ;;
+    esac
 
     # Where acme.sh persists the acme-dns account JSON inside the container
     ${BIN}/reconfigure ${ENV_FILE} TRAEFIK_ACME_SH_ACMEDNS_ACCOUNT_JSON=/acme.sh/acmedns-account.json
 
     # Optional allow_from for acme-dns server (JSON array or CSV)
     echo
-    ALLOW_BLANK=1 ${BIN}/reconfigure_ask ${ENV_FILE} TRAEFIK_ACME_SH_ACMEDNS_ALLOW_FROM "acme-dns allow_from (JSON array or comma list; blank to skip)" ""
+    ${BIN}/confirm no "Do you want to limit the IP range that this client may call the acme-dns API from" "?" && ${BIN}/reconfigure_ask ${ENV_FILE} TRAEFIK_ACME_SH_ACMEDNS_ALLOW_FROM "JSON array or comma-separated list of CIDRs that are allowed to update TXT records for this client" ""
 
     make -C ${ROOT_DIR}/traefik acme-sh-register
 
