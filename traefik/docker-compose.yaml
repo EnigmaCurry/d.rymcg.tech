@@ -1,5 +1,7 @@
 volumes:
   traefik:
+  traefik_certs:
+  acme-sh:
   geoip_database:
   wireguard:
   wireguard-client:
@@ -19,6 +21,7 @@ services:
       - traefik:/data
     environment:
       - DOCKER_CONTEXT=${DOCKER_CONTEXT}
+      - DOCKER_COMPOSE_PROFILES=${DOCKER_COMPOSE_PROFILES}
       - TRAEFIK_SEND_ANONYMOUS_USAGE=${TRAEFIK_SEND_ANONYMOUS_USAGE:-false}
       - TRAEFIK_CONFIG_VERBOSE=${TRAEFIK_CONFIG_VERBOSE:-false}
       - TRAEFIK_ACME_CA_EMAIL
@@ -96,6 +99,10 @@ services:
       - TRAEFIK_IPERF_UDP_ENTRYPOINT_ENABLED=${TRAEFIK_IPERF_UDP_ENTRYPOINT_ENABLED:-false}
       - TRAEFIK_IPERF_UDP_ENTRYPOINT_HOST=${TRAEFIK_IPERF_UDP_ENTRYPOINT_HOST:-0.0.0.0}
       - TRAEFIK_IPERF_UDP_ENTRYPOINT_PORT=${TRAEFIK_IPERF_UDP_ENTRYPOINT_PORT:-5201}
+      - TRAEFIK_DNS_ENTRYPOINT_ENABLED=${TRAEFIK_DNS_ENTRYPOINT_ENABLED:-false}
+      - TRAEFIK_DNS_ENTRYPOINT_HOST=${TRAEFIK_DNS_ENTRYPOINT_HOST:-0.0.0.0}
+      - TRAEFIK_DNS_ENTRYPOINT_PORT=${TRAEFIK_DNS_ENTRYPOINT_PORT:-80}
+      - TRAEFIK_DNS_ENTRYPOINT_PROXY_PROTOCOL_TRUSTED_IPS=${TRAEFIK_DNS_ENTRYPOINT_PROXY_PROTOCOL_TRUSTED_IPS:-}
       - TRAEFIK_VPN_ADDRESS
       - TRAEFIK_VPN_ENABLED=${TRAEFIK_VPN_ENABLED:-false}
       - TRAEFIK_VPN_CLIENT_ENABLED=${TRAEFIK_VPN_CLIENT_ENABLED:-false}
@@ -162,6 +169,7 @@ services:
       - "--configFile=/data/config/traefik.yml"
     volumes:
       - "traefik:/data"
+      - "traefik_certs:/certs"
       - "/var/run/docker.sock:/var/run/docker.sock:ro"
       - "geoip_database:/var/lib/traefikgeoip2/"
     labels:
@@ -266,3 +274,56 @@ services:
       traefik.http.services.error-pages-service.loadbalancer.server.port: 8080
     depends_on:
       - traefik
+
+  ## Build a base image from upstream git repository:
+  acme-sh-base:
+    image: local/acme-sh-base-image:${TRAEFIK_ACME_SH_GIT_TAG}
+    build:
+      context: ${TRAEFIK_ACME_SH_GIT_REPO}.git#${TRAEFIK_ACME_SH_GIT_TAG}
+      args:
+        AUTO_UPGRADE: 0
+    ## Prevent the base image from running:
+    profiles: ['build-only']
+    entrypoint: ["/bin/false"]
+    command: []
+
+  ## Build cron image from the base, which includes our customizations:
+  acme-sh:
+    profiles: ['acme-sh']
+    build:
+      context: ./acme-sh/cron
+      args:
+        GIT_TAG: ${TRAEFIK_ACME_SH_GIT_TAG}
+        CRON_SCHEDULE: ${TRAEFIK_ACME_SH_CRON_SCHEDULE}
+    # cap_drop:
+    #   - ALL
+    # security_opt:
+    #   - no-new-privileges:true
+    restart: unless-stopped
+    command: daemon
+    network_mode: host
+    volumes:
+      - "acme-sh:/acme.sh"
+      - "traefik_certs:/certs"
+      - "traefik:/traefik"
+    environment:
+      - TRAEFIK_ACME_CERT_DOMAINS
+      - TRAEFIK_ACME_SH_ACME_CA
+      - TRAEFIK_ACME_SH_ACME_DIRECTORY
+      - TRAEFIK_ACME_SH_ACME_DNS_BASE_URL
+      - TRAEFIK_ACME_SH_CERT_PERIOD_HOURS
+      - TRAEFIK_ACME_SH_TRUST_SYSTEM_STORE
+      - TRAEFIK_ACME_SH_DNS_RESOLVER
+      - TRAEFIK_UID
+      - TRAEFIK_GID
+      - TRAEFIK_ACME_SH_ACMEDNS_ALLOW_FROM
+      - TRAEFIK_ACME_SH_ACMEDNS_ACCOUNT_JSON
+      - TRAEFIK_ACME_SH_ACMEDNS_USERNAME
+      - TRAEFIK_ACME_SH_ACMEDNS_PASSWORD
+      - TRAEFIK_ACME_SH_ACMEDNS_SUBDOMAIN
+      - ACMEDNS_ACCOUNT_JSON=${TRAEFIK_ACME_SH_ACMEDNS_ACCOUNT_JSON}
+      - ACMEDNS_USERNAME=${TRAEFIK_ACME_SH_ACMEDNS_USERNAME}
+      - ACMEDNS_PASSWORD=${TRAEFIK_ACME_SH_ACMEDNS_PASSWORD}
+      - ACMEDNS_SUBDOMAIN=${TRAEFIK_ACME_SH_ACMEDNS_SUBDOMAIN}
+# All labels are defined in the template: docker-compose.instance.yaml
+    labels: []
