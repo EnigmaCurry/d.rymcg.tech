@@ -242,7 +242,7 @@ __new_context() {
                 error "There is already an SSH config named ${SSH_HOST}."
                 fault "You must edit ~/.ssh/config by hand and remove the Host entry named ${SSH_HOST}."
             fi
-            SSH_HOSTNAME=$(wizard ask "Enter the fully qualified SSH Host DNS name :")
+            SSH_HOSTNAME=$(wizard ask "Enter the fully qualified SSH Host DNS name or IP address :")
             TMP_CONFIG=$(mktemp)
             check_var SSH_HOST SSH_HOSTNAME
             [[ "$SSH_HOST" == "default" ]] && \
