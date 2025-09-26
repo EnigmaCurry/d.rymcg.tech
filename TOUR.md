@@ -61,11 +61,19 @@ Set DEFAULT_SAVE_CLEARTEXT_PASSWORDS_JSON=false
 d make acme-dns config
 ```
 
-Choose a dedicated sub-domain for acme-dns, e.g., `acme-dns.example.com`.
+Choose a dedicated sub-domain for acme-dns, e.g.,
+`acme-dns.example.com`, along with the IP address and port information
+it asks for.
 
 ```
-
+d make acme-dns install
 ```
+
+Open the following ports in your server's firewall:
+
+ * `53` both UDP and TCP (DNS).
+ * `2890` TCP (API; configurable via `ACME_DNS_API_PORT`).
+
 ## Traefik
 
 ```bash
@@ -144,8 +152,8 @@ Set TRAEFIK_ACME_SH_ACME_CA=acme-v02.api.letsencrypt.org
 Set TRAEFIK_ACME_SH_ACME_DIRECTORY=/directory
 Set TRAEFIK_ACME_SH_TRUST_SYSTEM_STORE=true
 
-TRAEFIK_ACME_SH_ACME_DNS_BASE_URL: ACME-DNS base URL (e.g. https://auth.acme-dns.example.net) (eg. https://auth.acme-dns.io)
-: https://auth.acme-dns.io
+TRAEFIK_ACME_SH_ACME_DNS_BASE_URL: ACME-DNS base URL (e.g. https://acme-dns.example.com:2890) (eg. https://auth.acme-dns.io)
+: https://acme-dns.example.com:2890
 
 TRAEFIK_ACME_SH_DNS_RESOLVER: Trusted DNS resolver IP used inside acme-sh container (eg. 1.1.1.1)
 : 1.1.1.1
