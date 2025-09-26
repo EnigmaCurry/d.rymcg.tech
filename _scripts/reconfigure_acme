@@ -154,7 +154,7 @@ acme_sh() {
     esac
 
     echo
-    ${BIN}/reconfigure_ask ${ENV_FILE} TRAEFIK_ACME_SH_ACME_DNS_BASE_URL "ACME-DNS base URL (e.g. https://acme-dns.example.com)" "https://auth.acme-dns.io"
+    ${BIN}/reconfigure_ask ${ENV_FILE} TRAEFIK_ACME_SH_ACME_DNS_BASE_URL "ACME-DNS base URL with PORT (e.g. https://acme-dns.example.com:2890)" "https://auth.acme-dns.io:443"
 
     echo
     ${BIN}/reconfigure_ask ${ENV_FILE} TRAEFIK_ACME_SH_DNS_RESOLVER "Trusted DNS resolver IP used inside acme-sh container" "1.1.1.1"
