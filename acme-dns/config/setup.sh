@@ -9,6 +9,8 @@ set -euo pipefail
 : "${DISABLE_REGISTRATION}:?DISABLE_REGISTRATION is required (true/false)"
 : "${API_PORT}:?API_PORT is required"
 
+NSADMIN=$(echo $NSADMIN | sed -s 's/@/./')
+
 # Optional
 RECORDS="${RECORDS:-}"
 
@@ -80,7 +82,7 @@ connection = "/var/lib/acme-dns/acme-dns.db"
 ip = "0.0.0.0"
 disable_registration = ${DISABLE_REGISTRATION}
 port = "${API_PORT}"
-tls = "letsencryptstaging"
+tls = "letsencrypt"
 corsorigins = [
     "*"
 ]

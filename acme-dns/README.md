@@ -1,8 +1,8 @@
 # acme-dns
 
 [acme-dns](https://github.com/joohoi/acme-dns?tab=readme-ov-file#acme-dns)
-is a limited DNS server with RESTful HTTP API to handle ACME DNS
-challenges easily and securely.
+is a DNS server limited in scope to handling ACME DNS challenges
+easily and securely.
 
 ## Config
 
@@ -13,15 +13,19 @@ make config
 Choose a dedicated sub-domain for acme-dns, e.g.,
 `acme-dns.example.com`
 
-Choose a dedicated sub-sub-domain for the DNS server itself, e.g.,
-`auth.acme-dns.example.com`.
+## Open ports in your firewall
+
+You need to open the following ports in your firewall:
+
+ * `53` both UDP and TCP (DNS).
+ * `2890` TCP (API; configurable via `ACME_DNS_API_PORT`).
 
 ## Stop other DNS resolvers on port 53
 
-You may need to stop other DNS servers running on your Docker host, if
-they are running on the default port (53).
+You may need to stop other DNS servers that are running on your Docker
+host (but only if they are running on the default port, 53.)
 
-To disable systemd-resolved, run this on the Docker host as `root`:
+To disable `systemd-resolved`, run this on the Docker host as `root`:
 
 ```
 ### Run this on the Docker host as root:
