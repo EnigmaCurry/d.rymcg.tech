@@ -38,6 +38,7 @@ fi
 # 1) nameserver host -> A/AAAA IP
 # 2) delegated zone -> NS nsname
 mapfile -t RECORD_LIST < <(printf "%s\n" \
+  "${SUBDOMAIN} ${ADDR_TYPE} ${PUBLIC_IP_ADDRESS}" \
   "${NSNAME_FQDN} ${ADDR_TYPE} ${PUBLIC_IP_ADDRESS}" \
   "${SUBDOMAIN_FQDN} NS ${NSNAME_FQDN}")
 
