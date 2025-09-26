@@ -4,7 +4,7 @@
 is a limited DNS server with RESTful HTTP API to handle ACME DNS
 challenges easily and securely.
 
-## config
+## Config
 
 ```
 make config
@@ -16,7 +16,7 @@ Choose a dedicated sub-domain for acme-dns, e.g.,
 Choose a dedicated sub-sub-domain for the DNS server itself, e.g.,
 `auth.acme-dns.example.com`.
 
-## install
+## Install
 
 ```
 make install

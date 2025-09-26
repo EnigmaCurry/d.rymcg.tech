@@ -33,7 +33,7 @@ override-hook:
 ####                         # (this hardcodes the string into docker-compose.override.yaml)
 ####   name=@VARIABLE_NAME   # sets the template 'name' field to the literal string '${VARIABLE_NAME}'
 ####                         # (used for regular docker-compose expansion of env vars by name.)
-	@${BIN}/docker_compose_override ${ENV_FILE} project=:acme-dns instance=@ACME_DNS_INSTANCE traefik_host=@ACME_DNS_TRAEFIK_HOST api_ip_sourcerange=@ACME_DNS_API_IP_SOURCERANGE enable_mtls_auth=ACME_DNS_MTLS_AUTH mtls_authorized_certs=ACME_DNS_MTLS_AUTHORIZED_CERTS
+	@${BIN}/docker_compose_override ${ENV_FILE} project=:acme-dns instance=@ACME_DNS_INSTANCE traefik_host=@ACME_DNS_TRAEFIK_HOST api_ip_sourcerange=@ACME_DNS_API_IP_SOURCERANGE enable_mtls_auth=ACME_DNS_MTLS_AUTH mtls_authorized_certs=ACME_DNS_MTLS_AUTHORIZED_CERTS network_mode=ACME_DNS_NETWORK_MODE host_api_port=ACME_DNS_HOST_API_PORT
 
 .PHONY: shell # Enter container shell
 shell:
