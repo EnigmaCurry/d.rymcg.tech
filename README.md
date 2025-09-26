@@ -9,7 +9,7 @@ applications from your workstation.
 
 ## Features
 
- * Docker can be deployed anywhere, e.g.,:
+ * Docker can be deployed anywhere, e.g.:
  
    * A public server in the cloud (DigitalOcean droplet, AWS EC2, etc.)
    * A public server running at home via direct port forwarding from your
@@ -38,8 +38,8 @@ applications from your workstation.
    * `make install` installs the configured application on the server.
    * `make open` opens the installed application in your workstation's
      web browser.
-   * `make uninstall` tear down and remove a project's service containers, but
-     keep the data volumes.
+   * `make uninstall` tears down, and removes, a project's containers,
+     but keep the data volumes.
    * `make destroy` like uninstall, but will delete the data volumes
      as well.
    * `make readme` opens the current project's README.md in your
@@ -48,7 +48,7 @@ applications from your workstation.
  * Provides an alternative global command line tool named
    `d.rymcg.tech` (or `d` alias) that re-wraps all of the sub-project
    `make` commands, but unlike `make`, it works from any directory
-   (e.g., `d make whoami config`, `d make whoami install` ...).
+   (e.g., `d make whoami config`, `d make whoami install` ...)
    
  * This repository offers services that have open source licenses
    only. You may create your own projects in external git repositories
@@ -68,7 +68,7 @@ applications from your workstation.
    [Step-CA](https://github.com/EnigmaCurry/d.rymcg.tech/tree/readme/step-ca#step-ca)
    and
    [acme-dns](https://github.com/EnigmaCurry/d.rymcg.tech/tree/master/acme-dns#acme-dns).
-   (Be your own Let's Encrypt alternative)
+   (Be your own Let's Encrypt alternative.)
 
 ## Documentation
 
