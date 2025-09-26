@@ -107,9 +107,9 @@ in their respective sub-directory.
 
 Install these services first:
 
-* [Traefik](traefik#readme) - HTTP / TLS / TCP / UDP reverse proxy
 * [Acme-DNS](acme-dns#readme) - a DNS server for ACME challenges (TLS
   certificate creation)
+* [Traefik](traefik#readme) - HTTP / TLS / TCP / UDP reverse proxy
 * [Whoami](whoami#readme) - HTTP test service
 
 Install these core services as needed:
