@@ -34,7 +34,7 @@ config-edit:
 	@echo ""
 	@echo ""
 
-.PHONY: config-render # Render the config to docker-compose formatted YAML
+.PHONY: config-render # Render the current running config to docker-compose formatted YAML
 config-render:
 	@make --no-print-directory override-hook 1>&2
 	@make --no-print-directory docker-compose-lifecycle-cmd EXTRA_ARGS="config" | less -FSX
