@@ -50,16 +50,16 @@ entry after pressing the down arrow key):
 ```
 
 Enter the context name. This should be a short recognizable name (no
-spaces). E.g., `widgets-prod`:
+spaces). E.g., `widgets`:
 
 ```
-> Enter the new SSH context name (short host name) : widgets-prod
+> Enter the new SSH context name (short host name) : widgets
 ```
 
 Enter the domain name or IP address of your Docker server:
 
 ```
-> Enter the fully qualified SSH Host DNS name or IP address : widgets-prod.example.com
+> Enter the fully qualified SSH Host DNS name or IP address : widgets.example.com
 ```
 
 Confirm that you want to save the config:
@@ -80,7 +80,7 @@ Choose the context you want to switch to:
 ? Select the Docker context to use  
   d-test
   insulon
-> widgets-prod
+> widgets
 [↑↓ to move, enter to select, type to filter, ESC to cancel]
 ```
 
