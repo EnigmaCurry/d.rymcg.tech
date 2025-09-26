@@ -42,11 +42,11 @@ This will create the root config in
 settings for the root domain name, and other global settings:
 
 ```
-> This will make a configuration for the current docker context (insulon). Proceed? Yes
+> This will make a configuration for the current docker context (widgets-prod). Proceed? Yes
 ROOT_DOMAIN: Enter the root domain for this context (eg. d.example.com)
-: insulon.example.com
-Configured .env_insulon
-ENV_FILE=.env_insulon_default
+: widgets-prod.example.com
+Configured .env_widgets-prod
+ENV_FILE=.env_widgets-prod_default
 
 > Is this server behind another trusted proxy using the proxy protocol? No
 Set DEFAULT_CLI_ROUTE_LAYER_7_PROXY_PROTOCOL=false
@@ -111,7 +111,7 @@ v Logging level
 
 #### TLS certificates and authorities
 
-  * Configure TLS certificates (`make certs`)
+  * Configure TLS certificates
 
   * Create a new certificate
 
@@ -119,17 +119,17 @@ Create a new wildcard certificate for your domain:
 
 ```text
 Enter the main domain (CN) for this certificate (eg. `d.rymcg.tech` or `*.d.rymcg.tech`)
-: insulon.example.com
+: widgets-prod.example.com
 Now enter additional domains (SANS), one per line:
 Enter a secondary domain (enter blank to skip)
-: *.insulon.example.com
+: *.widgets-prod.example.com
 Enter a secondary domain (enter blank to skip)
 :
 
 Main domain:
- insulon.example.com
+ widgets-prod.example.com
 Secondary (SANS) domains:
- *.insulon.example.com
+ *.widgets-prod.example.com
 ```
 
 Choose `Done`.
@@ -167,7 +167,7 @@ Look for the CNAME records output to the screen, e.g.:
 ### EXAMPLE:
 Create these CNAME records (on your root domain's DNS server) BEFORE traefik install:
 
-    _acme-challenge.insulon.example.com.   CNAME   615b56da-6105-4b80-baee-7612decd3b06.auth.acme-dns.io.
+    _acme-challenge.widgets-prod.example.com.   CNAME   615b56da-6105-4b80-baee-7612decd3b06.auth.acme-dns.io.
 ```
 
 You must create the `CNAME` record on your root domain's DNS server.
@@ -177,7 +177,7 @@ the services, pointing to your server's public IP address. e.g.:
 
 ```text
 ### EXAMPLE:
-    *.insulon.example.com.   A   123.123.123.123
+    *.widgets-prod.example.com.   A   123.123.123.123
 ```
 
 ### Install Traefik
@@ -199,8 +199,8 @@ acme-sh-1  | 2025-09-12T18:16:01.970307171Z [entrypoint:acme-sh] Public ACME CA 
 acme-sh-1  | 2025-09-12T18:16:02.292281439Z [entrypoint:acme-sh] ACME server: https://acme-v02.api.letsencrypt.org/directory
 ...
 acme-sh-1  | 2025-09-12T18:16:02.991015073Z [entrypoint:acme-sh] Requesting certificate:
-acme-sh-1  | 2025-09-12T18:16:02.991023715Z [entrypoint:acme-sh]   CN:   insulon.example.com
-acme-sh-1  | 2025-09-12T18:16:02.991026764Z [entrypoint:acme-sh]   SANs: *.insulon.example.com
+acme-sh-1  | 2025-09-12T18:16:02.991023715Z [entrypoint:acme-sh]   CN:   widgets-prod.example.com
+acme-sh-1  | 2025-09-12T18:16:02.991026764Z [entrypoint:acme-sh]   SANs: *.widgets-prod.example.com
 acme-sh-1  | 2025-09-12T18:16:04.468239771Z [Fri Sep 12 18:16:04 UTC 2025] Using CA: https://acme-v02.api.letsencrypt.org/directory
 acme-sh-1  | 2025-09-12T18:16:04.585778816Z [Fri Sep 12 18:16:04 UTC 2025] Account key creation OK.
 acme-sh-1  | 2025-09-12T18:16:04.747781785Z [Fri Sep 12 18:16:04 UTC 2025] Registering account: https://acme-v02.api.letsencrypt.org/directory
@@ -211,14 +211,14 @@ acme-sh-1  | 2025-09-12T18:17:41.318576644Z -----BEGIN CERTIFICATE-----
 .........
 acme-sh-1  | 2025-09-12T18:17:41.318890370Z -----END CERTIFICATE-----
 
-acme-sh-1  | 2025-09-12T18:17:41.677056823Z [entrypoint:acme-sh] Certificate details for insulon.example.com:
+acme-sh-1  | 2025-09-12T18:17:41.677056823Z [entrypoint:acme-sh] Certificate details for widgets-prod.example.com:
 acme-sh-1  | 2025-09-12T18:17:41.727222044Z   notBefore=Sep 12 17:19:10 2025 GMT
 acme-sh-1  | 2025-09-12T18:17:41.735464637Z   notAfter=Dec 11 17:19:09 2025 GMT
 acme-sh-1  | 2025-09-12T18:17:41.735523096Z   issuer=C=US, O=Let's Encrypt, CN=E8
-acme-sh-1  | 2025-09-12T18:17:41.735529514Z   subject=CN=insulon.example.com
+acme-sh-1  | 2025-09-12T18:17:41.735529514Z   subject=CN=widgets-prod.example.com
 acme-sh-1  | 2025-09-12T18:17:41.735534692Z   X509v3 Subject Alternative Name:
-acme-sh-1  | 2025-09-12T18:17:41.735540318Z       DNS:*.insulon.example.com, DNS:insulon.example.com
-acme-sh-1  | 2025-09-12T18:17:41.736623193Z [entrypoint:acme-sh] Installed files under: /certs/insulon.example.com
+acme-sh-1  | 2025-09-12T18:17:41.735540318Z       DNS:*.widgets-prod.example.com, DNS:widgets-prod.example.com
+acme-sh-1  | 2025-09-12T18:17:41.736623193Z [entrypoint:acme-sh] Installed files under: /certs/widgets-prod.example.com
 acme-sh-1  | 2025-09-12T18:17:41.739492248Z + exec crond -n -s -m off
 ```
 
@@ -229,9 +229,9 @@ Install whoami as a test to use the certificate:
 ```bash
 $ d make whoami config
 
-Configuring environment file: .env_insulon_default
+Configuring environment file: .env_widgets-prod_default
 WHOAMI_TRAEFIK_HOST: Enter the whoami domain name (eg. whoami.example.com)
-: whoami.insulon.example.com
+: whoami.widgets-prod.example.com
 
 > Do you want to enable sentry authorization in front of this app (effectively making the entire site private)? No
 
@@ -241,7 +241,7 @@ $ d make whoami install
 ### Check the TLS cert is correctly used
 
 ```bash
-d script tls_debug whoami.insulon.example.com
+d script tls_debug whoami.widgets-prod.example.com
 ```
 
 This will connect to your whoami service and print information about the TLS certificate. The important bit to watch for is this:
@@ -249,7 +249,7 @@ This will connect to your whoami service and print information about the TLS cer
 ```text
 ---
 Certificate chain
- 0 s:CN=insulon.example.com
+ 0 s:CN=widgets-prod.example.com
    i:C=US, O=Let's Encrypt, CN=E8
    a:PKEY: id-ecPublicKey, 256 (bit); sigalg: ecdsa-with-SHA384
    v:NotBefore: Sep 12 17:19:10 2025 GMT; NotAfter: Dec 11 17:19:09 2025 GMT
@@ -363,11 +363,11 @@ d make traefik-forward-auth config
 ```
 TRAEFIK_FORWARD_AUTH_HOST: Enter the traefik-foward-auth host domain name (eg. auth.example.com)
 
-: auth.insulon.example.com
+: auth.widgets-prod.example.com
 
 TRAEFIK_FORWARD_AUTH_COOKIE_DOMAIN: Enter the cookie domain name (ie ROOT domain) (eg. example.com)
 
-: insulon.example.com
+: widgets-prod.example.com
 
 ? Select the OAuth provider to use
 > forgejo
@@ -377,15 +377,15 @@ TRAEFIK_FORWARD_AUTH_COOKIE_DOMAIN: Enter the cookie domain name (ie ROOT domain
 
 TRAEFIK_FORWARD_AUTH_FORGEJO_DOMAIN: Enter your forgejo domain name (eg. git.example.com)
 
-: git.insulon.example.com
+: git.widgets-prod.example.com
 
 ```
 
 At this point it will open your browser to the forgejo instance asking
 you to sign in, and then you need to create a new OAuth2 application.
 
- * Application name: `insulon.example.com`
- * Redirect URIs: `https://auth.insulon.example.com/_oauth`
+ * Application name: `widgets-prod.example.com`
+ * Redirect URIs: `https://auth.widgets-prod.example.com/_oauth`
  * Select `Confidential client`.
  * Click `Create application`.
 
@@ -407,7 +407,7 @@ TRAEFIK_FORWARD_AUTH_PROVIDERS_GENERIC_OAUTH_CLIENT_SECRET: Copy and Paste the O
 
 TRAEFIK_FORWARD_AUTH_LOGOUT_REDIRECT: Enter the logout redirect URL
 
-: https://git.insulon.example.com/logout
+: https://git.widgets-prod.example.com/logout
 ```
 
 Now install traefik-forward-auth:
