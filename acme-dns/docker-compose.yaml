@@ -29,8 +29,8 @@ services:
       - data:/var/lib/acme-dns
     ports:
       - ${ACME_DNS_API_PORT}:${ACME_DNS_API_PORT}
-      - 53:53
-      - 53:53/udp
+      - ${ACME_DNS_LISTEN_IP_ADDRESS}:53:53
+      - ${ACME_DNS_LISTEN_IP_ADDRESS}:53:53/udp
     labels: []
       
 volumes:

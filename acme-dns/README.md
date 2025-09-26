@@ -20,42 +20,6 @@ You need to open the following ports in your firewall:
  * `53` both UDP and TCP (DNS).
  * `2890` TCP (API; configurable via `ACME_DNS_API_PORT`).
 
-## Stop other DNS resolvers on port 53
-
-You may need to stop other DNS servers that are running on your Docker
-host (but only if they are running on the default port, 53.)
-
-To disable `systemd-resolved`, run this on the Docker host as `root`:
-
-```
-### Run this on the Docker host as root:
-systemctl disable systemd-resolved
-```
-
-This will break DNS resolving on the host, so you must fix it by
-hardcoding your preferred external DNS server into `/etc/resolv.conf`:
-
-```
-### Run this on the Docker host as root:
-chattr -i /etc/resolv.conf 
-rm -f /etc/resolv.conf
-
-cat <<EOF > /etc/resolv.conf
-nameserver 1.1.1.1
-nameserver 1.0.0.1
-EOF
-
-chattr +i /etc/resolv.conf 
-```
-
-You should reboot your server after this change.
-
-## Install
-
-```
-make install
-```
-
 ## Setup DNS
 
 On your chosen domain's primary DNS server, create two records:
@@ -72,6 +36,12 @@ acme-dns.example.com.  A  123.123.123.123.
 
 ```
 acme-dns.example.com.  NS  acme-dns.example.com.
+```
+
+## Install
+
+```
+make install
 ```
 
 ## Disable registration

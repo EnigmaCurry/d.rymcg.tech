@@ -9,7 +9,8 @@ config-hook:
 #### reconfigure sets the value of a variable in the .env file without asking.
 #### reconfigure_htpasswd will configure the HTTP Basic Authentication setting the var name and with a provided default value.
 	@${BIN}/reconfigure_ask ${ENV_FILE} ACME_DNS_SUBDOMAIN "Enter the acme-dns managed sub-domain" acme-dns.${ROOT_DOMAIN}
-	@${BIN}/reconfigure_ask ${ENV_FILE} ACME_DNS_PUBLIC_IP_ADDRESS "Enter the PUBLIC IP address of the Docker host"
+	@${BIN}/reconfigure_ask ${ENV_FILE} ACME_DNS_LISTEN_IP_ADDRESS "Enter the HOST IP address of the network interface to bind to"
+	@${BIN}/reconfigure_ask ${ENV_FILE} ACME_DNS_PUBLIC_IP_ADDRESS "Enter the PUBLIC IP address of the Docker host (from perspective of the CA)" "$$(${BIN}/dotenv -f ${ENV_FILE} get ACME_DNS_LISTEN_IP_ADDRESS)"
 	@${BIN}/reconfigure_ask ${ENV_FILE} ACME_DNS_API_PORT "Enter the host API port to acme-dns should bind to"
 	@${BIN}/reconfigure_ask ${ENV_FILE} ACME_DNS_HOSTMASTER "Enter the email address for the administrator (SOA RNAME record)" root@example.com
 	@echo ""
