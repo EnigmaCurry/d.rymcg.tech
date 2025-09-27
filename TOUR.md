@@ -1,10 +1,13 @@
 # Tour of d.rymcg.tech
 
-This guide will show you how to configure d.rymcg.tech on a fresh
-Docker server with a suggested set of initial services. 
+This guide will show you how to configure
+[d.rymcg.tech](https://github.com/enigmacurry/d.rymcg.tech) on a fresh
+Docker server with a suggested set of initial services.
 
-For a comprehensive list of all the serices provided by d.rymcg.tech,
-please consult [README.md](README.md#services)
+This guide is abbreviated and only shows a subset of the available
+services provided by d.rymcg.tech. Please consult the main
+[README.md](README.md#services) for a full list, and follow the links
+to the documentation of each sub-project you intend to install.
 
 ## Requirements
 
