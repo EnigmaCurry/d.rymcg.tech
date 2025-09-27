@@ -82,6 +82,8 @@ convention only.
 
 Configure your `~/.bashrc` for d.rymcg.tech:
 
+Copy and paste this entire block into your terminal to run as one command:
+
 ```
 cat <<'EOF' >> ~/.bashrc
 
