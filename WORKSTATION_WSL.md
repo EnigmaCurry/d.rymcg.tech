@@ -1,8 +1,9 @@
-# d.rymcg.tech workstation on Windows WSL
+# Windows (WSL) workstation with d.rymcg.tech
 
-This article is a step-by-step tutorial for setting up a d.rymcg.tech
-Docker workstation on a Windows (11) host via the Windows Subsystem
-for Linux (WSL).
+This article is a step-by-step tutorial for setting up a
+[d.rymcg.tech](https://github.com/EnigmaCurry/d.rymcg.tech) Docker
+workstation on a Windows (11) host via the Windows Subsystem for Linux
+(WSL).
 
 ## Install WSL
 
