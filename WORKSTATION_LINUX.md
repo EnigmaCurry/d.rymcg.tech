@@ -57,6 +57,11 @@ git clone https://github.com/EnigmaCurry/d.rymcg.tech.git \
 cd ~/git/vendor/enigmacurry/d.rymcg.tech
 ```
 
+Note: You may change the path if you wish, but it is recommended that
+you do not. `~/git/vendor/enigmacurry/d.rymcg.tech` is a vendor
+neutral path that other *external* projects may reference, but by
+convention only.
+
 ## Configure Bash
 
 Configure Bash for d.rymcg.tech (`~/.bashrc`). 
