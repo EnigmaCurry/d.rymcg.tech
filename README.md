@@ -4,8 +4,8 @@
 [![Chat on Matrix](_meta/img/matrix-badge.svg)](https://matrix.to/#/#d.rymcg.tech:enigmacurry.com)
 
 d.rymcg.tech is a collection of open-source Docker Compose projects
-and command line tools to manage your remote Docker servers and
-applications from your workstation.
+and command line tools to manage your remote Docker services from your
+workstation.
 
 ## Features
 
@@ -17,54 +17,64 @@ applications from your workstation.
    * A private server (at home or in the cloud) that requires a VPN to connect
      (WireGuard).
    * A public server (at home and/or roaming), without direct port
-     forwarding, but with the help of a public (cloud) sentry server.
+     forwarding, but accessible with the help of a public (cloud)
+     sentry VPN (WireGuard).
 
- * There is a clean separation for the roles of workstation and
-   server. Your workstation indirectly controls the context of remote
-   Docker servers. All d.rymcg.tech source files are cloned to your
-   workstation. All command line interaction is done on your
-   workstation. You should never need to SSH into the server's shell
-   directly.
+ * d.rymcg.tech has a clean separation for the roles of workstation
+   and server:
+   
+   * All source files and CLI tools live on your workstation. All
+     administration is performed on your workstation. You should never
+     need to directly SSH into the server's shell.
+   * The server's only job is to build and run the Docker containers
+     that your workstation tells it how to.
 
  * All configuration is sourced from environment variables written in
-   `.env` files (applications have separate
-   `.env_{CONTEXT}_{INSTANCE}` files per project, per context, per
-   instance).
+   `.env` files on your workstation. Each service deployment has a
+   separate `.env_{CONTEXT}_{INSTANCE}` file (per project directory,
+   per docker context, per service instance).
 
- * Every sub-project has a `Makefile` to wrap all Docker commands and
-   administrative functions for that project, e.g.:
+ * Every sub-project has a `Makefile`, with common targets, to wrap
+   all Docker commands and administrative functions for that project,
+   e.g.:
    
-   * `make config` is a wizard to help you configure the `.env` files.
+   * `make config` is a wizard to help you configure the `.env` file.
    * `make install` installs the configured application on the server.
    * `make open` opens the installed application in your workstation's
      web browser.
    * `make uninstall` tears down, and removes, a project's containers,
      but keep the data volumes.
-   * `make destroy` like uninstall, but will delete the data volumes
-     as well.
+   * `make destroy` is like uninstall, but will delete the data
+     volumes as well.
    * `make readme` opens the current project's README.md in your
      workstation's web browser.
+   * Note: `make` requires that your current working directory is
+     where the Makefile is, so you must `cd` into the proper
+     sub-directory before running `make`.
    
- * Provides an alternative global command line tool named
-   `d.rymcg.tech` (or `d` alias) that re-wraps all of the sub-project
-   `make` commands, but unlike `make`, it works from any directory
-   (e.g., `d make whoami config`, `d make whoami install` ...)
+ * This project provides a command line alternative to `make` named
+   `d.rymcg.tech` (or `d` alias) that provides a global command
+   structure and re-wraps all of the sub-project `make` commands, but
+   unlike `make`, it works from any directory (e.g., `d make whoami
+   config`, `d make whoami install` ...)
    
- * This repository offers services that have open source licenses
-   only. You may create your own projects in external git repositories
-   (licensed however you wish) and still benefit from the same command
-   line tooling.
-     
+ * This repository only offers services that have open source
+   licenses. You may create your own projects in external git
+   repositories, and license them however you wish, and still benefit
+   from the same command line tooling.
+
  * [Traefik](https://github.com/EnigmaCurry/d.rymcg.tech/tree/readme/traefik#traefik)
-   is deployed as the front door proxy for all of your services.
-   Traefik provides TLS termination and common
+   is deployed as the front door proxy for all of your services (HTTP
+   / TCP / UDP). Traefik provides TLS termination and common
    authentication/authorization middleware (mTLS, OAuth, HTTP Basic,
    IP source range). Applications define their own routes (domain
-   names, paths, etc.), and other middleware config, via container
-   labels.
+   names, paths, etc.), and other Traefik middleware config, via
+   container labels.
 
- * Can deploy your own Certficate Authority and DNS (delegate) server
-   for the automatic creation of (wildcard) TLS certificates with
+ * d.rymcg.tech focuses on the needs of the full-stack self-hoster.
+     You can deploy your own Certficate Authority and DNS (delegate)
+   server for the automatic creation of (wildcard) TLS certificates
+   with
    [Step-CA](https://github.com/EnigmaCurry/d.rymcg.tech/tree/readme/step-ca#step-ca)
    and
    [acme-dns](https://github.com/EnigmaCurry/d.rymcg.tech/tree/master/acme-dns#acme-dns).
