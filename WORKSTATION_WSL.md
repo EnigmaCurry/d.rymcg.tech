@@ -1,4 +1,4 @@
-# Windows (WSL) workstation with d.rymcg.tech
+# Docker workstation on Windows (WSL) with d.rymcg.tech
 
 This article is a step-by-step tutorial for setting up a
 [d.rymcg.tech](https://github.com/EnigmaCurry/d.rymcg.tech) Docker

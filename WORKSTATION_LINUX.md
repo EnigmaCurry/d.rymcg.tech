@@ -1,4 +1,4 @@
-# Linux workstation with d.rymcg.tech
+# Docker workstation on Linux with d.rymcg.tech
 
 This article is a step-by-step tutorial for setting up a
 [d.rymcg.tech](https://github.com/EnigmaCurry/d.rymcg.tech) Docker
@@ -6,7 +6,7 @@ workstation on a Linux host.
 
 ## Install packages
 
-For Debian and Ubuntu workstations, run:
+For Debian (and Ubuntu) workstations, run:
 
 ```bash
 sudo apt update
