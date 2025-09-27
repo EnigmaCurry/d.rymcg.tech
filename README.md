@@ -60,24 +60,23 @@ workstation.
    
  * This repository only offers services that have open source
    licenses. You may create your own projects in external git
-   repositories, and license them however you wish, and still benefit
-   from the same command line tooling.
+   repositories, license them however you wish, and still benefit from
+   the same command line tooling.
 
- * [Traefik](https://github.com/EnigmaCurry/d.rymcg.tech/tree/readme/traefik#traefik)
-   is deployed as the front door proxy for all of your services (HTTP
-   / TCP / UDP). Traefik provides TLS termination and common
-   authentication/authorization middleware (mTLS, OAuth, HTTP Basic,
-   IP source range). Applications define their own routes (domain
-   names, paths, etc.), and other Traefik middleware config, via
-   container labels.
+ * [Traefik](traefik#traefik) is deployed as the front door proxy for
+   all of your services (HTTP / TCP / UDP). Traefik provides TLS
+   termination and sentry authentication/authorization middleware
+   (mTLS, OAuth, HTTP Basic, IP source range). Applications define
+   their own routes (domain names, paths, etc.), and other Traefik
+   middleware config, via container labels.
 
  * d.rymcg.tech focuses on the needs of the full-stack self-hoster.
      You can deploy your own Certficate Authority and DNS (delegate)
    server for the automatic creation of (wildcard) TLS certificates
    with
-   [Step-CA](https://github.com/EnigmaCurry/d.rymcg.tech/tree/readme/step-ca#step-ca)
+   [Step-CA](step-ca#step-ca)
    and
-   [acme-dns](https://github.com/EnigmaCurry/d.rymcg.tech/tree/master/acme-dns#acme-dns).
+   [acme-dns](acme-dns#acme-dns).
    (Be your own Let's Encrypt alternative.)
 
 ## Documentation
