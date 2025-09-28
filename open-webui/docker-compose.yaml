@@ -30,7 +30,7 @@ services:
     build:
       context: ollama-rocm
       args:
-        - OLLAMA_IMAGE=${OPENWEBUI_OLLAMA_IMAGE}
+        - OPENWEBUI_OLLAMA_IMAGE=${OPENWEBUI_OLLAMA_IMAGE}
     devices:
       - /dev/kfd
       - /dev/dri

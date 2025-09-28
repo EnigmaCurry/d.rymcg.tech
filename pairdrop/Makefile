@@ -11,6 +11,12 @@ config-hook:
 	@${BIN}/reconfigure_ask ${ENV_FILE} PAIRDROP_TRAEFIK_HOST "Enter the pairdrop domain name" pairdrop${INSTANCE_URL_SUFFIX}.${ROOT_DOMAIN}
 	@${BIN}/reconfigure ${ENV_FILE} PAIRDROP_INSTANCE=$${instance:-default}
 	@${BIN}/reconfigure_auth ${ENV_FILE} PAIRDROP
+	@${BIN}/reconfigure_ask ${ENV_FILE} PAIRDROP_TURN_DOMAIN "Enter the TURN server domain"
+	@${BIN}/reconfigure_ask ${ENV_FILE} PAIRDROP_TURN_LISTEN_PORT "Enter the TURN port number"
+	@${BIN}/reconfigure_ask ${ENV_FILE} PAIRDROP_TURN_TLS_PORT "Enter the TURN TLS port number"
+	@ALLOW_BLANK=1 ${BIN}/reconfigure_ask ${ENV_FILE} PAIRDROP_TURN_USERNAME "Enter the TURN username (optional)"
+	@ALLOW_BLANK=1 ${BIN}/reconfigure_ask ${ENV_FILE} PAIRDROP_TURN_PASSWORD "Enter the TURN password (optional)"
+	@ALLOW_BLANK=1 ${BIN}/reconfigure_ask ${ENV_FILE} PAIRDROP_COTURN_STATIC_AUTH_SECRET "Enter the static auth secret token from coturn (optional)"
 
 .PHONY: override-hook
 override-hook:

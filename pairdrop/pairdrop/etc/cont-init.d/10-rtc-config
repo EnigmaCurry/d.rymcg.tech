@@ -1,0 +1,4 @@
+#!/usr/bin/with-contenv sh
+set -eu
+echo "[cont-init.d] minting initial TURN config"
+/usr/local/bin/mint

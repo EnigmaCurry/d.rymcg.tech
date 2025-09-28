@@ -16,9 +16,6 @@
 services:
   coturn:
     #@ service = "coturn"
-    labels: []
-  caddy:
-    #@ service = "caddy"
     labels:
       - "backup-volume.stop-during-backup=true"
       #! Services must opt-in to be proxied by Traefik:
@@ -31,10 +28,12 @@ services:
       - "traefik.tcp.routers.(@= router @).rule=HostSNI(`(@= traefik_host @)`)"
       - "traefik.tcp.routers.(@= router @).entrypoints=websecure"
       - "traefik.tcp.routers.(@= router @).tls=true"
-      - "traefik.tcp.routers.(@= router @).tls.passthrough=true"
 
       #! Override the default port that the app binds to:
-      - "traefik.tcp.services.(@= router @).loadbalancer.server.port=443"
+      - "traefik.tcp.services.(@= router @).loadbalancer.server.port=${COTURN_PROXY_PORT}"
 
+      #! Enable proxy protocol
+      - "traefik.tcp.services.(@= router @).loadbalancer.proxyProtocol.version=2"
+      
       #! Apply all middlewares (do this at the end!)
       - "traefik.tcp.routers.(@= router @).middlewares=(@= ','.join(enabled_middlewares) @)"
