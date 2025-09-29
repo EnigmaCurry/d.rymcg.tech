@@ -1,13 +1,14 @@
 # Copyright (c) 2023 Eugene Brodsky https://github.com/ebr
 
 x-invokeai: &invokeai
-    image: "ghcr.io/invoke-ai/invokeai:latest"
+    image: ${INVOKEAI_IMAGE}:${INVOKEAI_IMAGE_TAG}
     restart: unless-stopped
     build:
       context: .
       dockerfile: Dockerfile
       args:
         - GPU_DRIVER=${INVOKEAI_GPU_DRIVER}
+        - VERSION=${INVOKEAI_IMAGE_TAG}
     environment:
       - INVOKEAI_ROOT=/invokeai
       #- HF_HOME

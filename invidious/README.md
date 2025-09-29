@@ -3,10 +3,6 @@
 [Invidious](https://github.com/iv-org/invidious) is an alternative front-end to
 YouTube.
 
-This install assumes you want a private instance, protected by
-username/password. If not, comment out the `Authentication` section in the
-`docker-compose.yaml`.
-
 ```
 make config
 ```
@@ -33,7 +29,7 @@ docker run quay.io/invidious/youtube-trusted-session-generator
 ```
 This must be run on the same public IP address as the one blocked by YouTube.
 When you run `make config`, you will be prompted to enter the `visitor_data`
-and `po_token` values
+and `po_token` values.
 
 NOTE: The `po_token` and `visitor_data` tokens will make your entire Invidious
 session more easily traceable by YouTube because it is tied to a unique
@@ -64,11 +60,14 @@ this is not desired, make sure you set the setting in the client interface
 called `Proxy videos`. Also see [invidious docs on
 this](https://github.com/iv-org/documentation/blob/master/Always-use-%22local%22-to-proxy-video-through-the-server-without-creating-an-account.md).
 
-You should create an invidious account and log into the app, in addition to the
-HTTP basic auth password. If you don't create an account, and you don't login,
-your settings (eg. `Proxy Videos`) are not saved!
+You should create an invidious account and log into the app, in
+addition to the HTTP basic auth password (if you enable HTTP basic
+auth). If you don't create an account, and you don't login, your
+settings (eg. `Proxy Videos`) are not saved!
 
-Invidious suggests "because of various issues Invidious must be restarted
-often, at least once a day, ideally every hour." The instance of Invidious that
-d.rymcg.tech installs does not automatically restart - we leave this to you
-to decide whether to do it and, if so, how to do it.
+Invidious
+[suggests](https://docs.invidious.io/installation/#highly-recommended)
+"because of various issues Invidious must be restarted often, at least
+once a day, ideally every hour." The instance of Invidious that
+d.rymcg.tech installs does not automatically restart - we leave this
+to you to decide whether to do it and, if so, how to do it.

@@ -7,6 +7,7 @@ ENV PNPM_HOME="/pnpm"
 ENV PATH="$PNPM_HOME:$PATH"
 RUN corepack use pnpm@10.x && corepack enable
 
+ARG VERSION
 WORKDIR /repo-tmp
 RUN apt update && \
     apt install -y --no-install-recommends git apt-utils ca-certificates && \
@@ -14,7 +15,8 @@ RUN apt update && \
 RUN git clone --depth 1 --filter=blob:none --no-checkout https://github.com/invoke-ai/InvokeAI.git && \
     cd InvokeAI && \
     git sparse-checkout set 'invokeai/' && \
-    git checkout main
+    git fetch origin tag ${VERSION} && \
+    git checkout ${VERSION}
 
 WORKDIR /build
 RUN cp -r /repo-tmp/InvokeAI/invokeai/frontend/web/* ./

@@ -10,6 +10,7 @@ config-hook:
 	@${BIN}/reconfigure_auth ${ENV_FILE} INVIDIOUS
 	@echo ""
 	@${BIN}/reconfigure_password ${ENV_FILE} INVIDIOUS_HMAC_KEY 32
+	@${BIN}/reconfigure_password ${ENV_FILE} INVIDIOUS_COMPANION_KEY 16
 	@echo
 	@echo "In the ongoing battle to bypass Google's attempt to block non-Google services from scraping public Youtube videos and information, the current method for Invidious to work is to pass a Proof of Origin Token to Google (if your public IP is blocked by Google). To generate po_token and visitor_data identities for passing all verification checks on the YouTube side, run \`docker run quay.io/invidious/youtube-trusted-session-generator\` on the same public IP address as the one blocked by YouTube, and enter the \`visitor_data\` and \`po_token\` values here. The \`po_token\` and \`visitor_data\` tokens will make your entire Invidious session more easily traceable by YouTube because it is tied to a unique identifier - more info here: https://docs.invidious.io/installation/#docker-compose-method-production"
 	@echo
