@@ -58,7 +58,7 @@ show-wireguard-peers-qr:
 
 .PHONY: compose-profiles
 compose-profiles:
-	@${BIN}/reconfigure_compose_profiles ${ENV_FILE} TRAEFIK_PLUGIN_MAXMIND_GEOIP=geoip_update TRAEFIK_VPN_ENABLED=wireguard TRAEFIK_VPN_CLIENT_ENABLED=wireguard-client TRAEFIK_ERROR_PAGES_ENABLED=error-pages
+	@${BIN}/reconfigure_compose_profiles ${ENV_FILE} TRAEFIK_PLUGIN_MAXMIND_GEOIP=geoip_update TRAEFIK_VPN_ENABLED=wireguard TRAEFIK_VPN_CLIENT_ENABLED=wireguard-client TRAEFIK_ERROR_PAGES_ENABLED=error-pages TRAEFIK_ACME_SH_ENABLED=acme-sh
 
 .PHONY: wireguard-reset
 wireguard-reset:
@@ -111,3 +111,26 @@ install-hook:
 .PHONY: install-hook-pre
 install-hook-pre:
 	@echo
+
+.PHONY: build-hook-pre
+build-hook-pre:
+	@make --no-print-directory docker-compose-lifecycle-cmd EXTRA_ARGS="build acme-sh-base"
+
+.PHONY: acme-sh-cron-schedule
+acme-sh-cron-schedule:
+	@SCHEDULE="$$(${BIN}/dotenv -f ${ENV_FILE} get TRAEFIK_ACME_SH_CRON_SCHEDULE)"; make --no-print-directory docker-compose-shell SERVICE=acme-sh COMMAND="crontab -l"
+
+.PHONY: acme-sh-register
+acme-sh-register: build
+	@make --no-print-directory docker-compose-lifecycle-cmd EXTRA_ARGS="run --rm acme-sh register-acmedns"
+
+.PHONY: acme-sh-cert
+acme-sh-cert:
+	BIN=${BIN} ENV_FILE=${ENV_FILE} ./acme-sh/script/create_cert.sh
+
+.PHONY: acme-sh-destroy-certs
+acme-sh-destroy-certs:
+	@${BIN}/confirm no "Do you want to destroy all certificates" "?" && make --no-print-directory docker-compose-shell SERVICE=acme-sh COMMAND="find /acme.sh -mindepth 1 -maxdepth 1 -type d ! -name ca -exec rm -rf {} + && rm -rf /certs/*" && echo destroyed all certs && make restart service=traefik
+
+.PHONY: override-hook
+override-hook:
