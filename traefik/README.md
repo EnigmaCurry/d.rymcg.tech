@@ -139,15 +139,13 @@ the ACME-DNS provider you chose (if you need to run this part again,
 you may run `make acme-sh-register` idempotently). It will print the
 CNAME record that you must set on your root domain's DNS server. This
 is to delegate the ACME authority of the sub-domains to your ACME-DNS
-server.
+server. 
 
 You must manually setup the CNAME records exactly as printed, *before*
-installing Traefik. Each time you create new certificates (see
-[Certificate Manager](README.md#certificate-manager), you must go
-through this configuration again (or `make acme-sh-register`) to
-trigger the printing of the new CNAME records you need to create.
-
-
+installing Traefik. Whenever you create new certificates (see
+[Certificate Manager](#certificate-manager)), you must run the
+`(Re-)Register acme-dns CNAME records for all certs.` option (or `make
+acme-sh-register`).
 
 ### Traefik builtin ACME client (legacy)
 
@@ -184,7 +182,7 @@ In the `make config` menu, choose:
        `DNS-01` for advanced use-cases, but this also requires storing
        the security sensitive API key of your DNS provider.)
 
-## Certificate manager
+## Certificate Manager
 
 By convention, d.rymcg.tech sub-projects do not provision, nor even
 request, their own TLS certificates. All TLS certificates are to be
@@ -219,6 +217,10 @@ file in the `TRAEFIK_ACME_CERT_DOMAINS` variable as a JSON nested
 list. When you run `make install` this is pushed into the [static
 configuration
 template](https://github.com/EnigmaCurry/d.rymcg.tech/blob/e6a4d0285f04d6d7f07fb9a5ec403ba421229747/traefik/config/traefik.yml#L80-L87).
+
+ * If you are using acme-sh (acme-dns) you must run `(Re-)Register
+   acme-dns CNAME records for all certs.` and follow the directions to
+   create CNAME records on your DNS host.
 
 Make sure you reinstall Traefik after making configuration changes.
 
