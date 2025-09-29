@@ -1,5 +1,6 @@
 volumes:
   database:
+  companioncache:
 
 services:
   postgres:
@@ -30,26 +31,35 @@ services:
     security_opt:
       - no-new-privileges:true
     environment:
+      # Please read the following file for a comprehensive list of all available
+      # configuration options and their associated syntax:
+      # https://github.com/iv-org/invidious/blob/master/config/config.example.yml
       INVIDIOUS_CONFIG: |
-        channel_threads: 1
-        check_tables: true
-        feed_threads: 1
         db:
           user: invidious
           password: ${INVIDIOUS_POSTGRES_PASSWORD}
           host: postgres
           port: 5432
           dbname: invidious
+        check_tables: true
+        channel_threads: 1
+        feed_threads: 1
         full_refresh: false
-        https_only: false
         domain: ${INVIDIOUS_TRAEFIK_HOST}
-        statistics_enabled: ${INVIDIOUS_STATISTICS_ENABLED}
-        hmac_key: ${INVIDIOUS_HMAC_KEY}
-        signature_server: inv_sig_helper:12999
         visitor_data: ${INVIDIOUS_VISITOR_DATA}
         po_token: ${INVIDIOUS_PO_TOKEN}
         use_innertube_for_captions: false
         use_pubsub_feeds: false
+        invidious_companion:
+        # private_url is the URL used for the internal communication between invidious and invidious companion.
+        # There is no need to change this unless Invidious companion is not installed from the same docker compose file.
+        - private_url: "http://companion:8282/companion"
+        # IT is NOT recommended to use the same key as HMAC KEY. Generate a new key!
+        invidious_companion_key: ${INVIDIOUS_COMPANION_KEY}
+        https_only: false
+        statistics_enabled: ${INVIDIOUS_STATISTICS_ENABLED}
+        # Use the key generated in the 2nd step
+        hmac_key: ${INVIDIOUS_HMAC_KEY}
     healthcheck:
       test: wget -nv --tries=1 --spider http://127.0.0.1:3000/api/v1/comments/jNQXAC9IVRw || exit 1
       interval: 30s
@@ -63,18 +73,25 @@ services:
       - postgres
     labels: []
 
-  inv_sig_helper:
-    image: quay.io/invidious/inv-sig-helper:latest
-    init: true
-    command: ["--tcp", "0.0.0.0:12999"]
+  companion:
+    image: quay.io/invidious/invidious-companion:latest
     environment:
-      - RUST_LOG=info
+      - SERVER_SECRET_KEY=${INVIDIOUS_COMPANION_KEY} 
     restart: unless-stopped
+    # Uncomment only if you have configured "public_url" for Invidious companion
+    # Or if you want to use Invidious companion as an API in your program.
+    # Remove "127.0.0.1:" if used from an external IP
+    #ports:
+    #  - "127.0.0.1:8282:8282"
+    logging:
+      options:
+        max-size: "1G"
+        max-file: "4"
     cap_drop:
       - ALL
     read_only: true
+    # cache for youtube library
+    volumes:
+      - companioncache:/var/tmp/youtubei.js:rw
     security_opt:
       - no-new-privileges:true
-    labels:
-      - "backup-volume.stop-during-backup=true"
-
