@@ -16,6 +16,7 @@ services:
   acmedns:
     depends_on: ['config']
     environment:
+      - API_HOST=${ACME_DNS_SUBDOMAIN}
       - API_PORT=${ACME_DNS_API_PORT}
     build:
       context: acme-dns
