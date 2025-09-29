@@ -123,7 +123,7 @@ Benefits and/or drawbacks of this method:
  * If you don't want to self-host [acme-dns](../acme-dns), you may use
    the free public ACME-DNS service at
    [http://auth.acme-dns.io/](http://auth.acme-dns.io/), but this is
-   less trust worthy that using your own instance.
+   less reliable/trustworthy than using your own instance.
 
 In the `make config` menu, choose:
 
