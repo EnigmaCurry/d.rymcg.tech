@@ -245,6 +245,7 @@ config_list_entrypoints() {
         [snapcast_control]="Snapcast (snapcast) control entrypoint"
         [iperf_tcp]="Iperf3 TCP entrypoint"
         [iperf_udp]="Iperf3 UDP entrypoint"
+        [dns]="DNS (tcp+udp; acme-dns or other) entrypoint"
     )
     local menu_args=("Select entrypoint to configure:")
     for entrypoint in "${entrypoint_names[@]}"; do

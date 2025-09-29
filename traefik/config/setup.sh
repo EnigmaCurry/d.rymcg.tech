@@ -9,6 +9,7 @@ ytt_template() {
     src=$1; dst=$2;
     [ -e "${src}" ] || (echo "Template not found: ${src}" && exit 1)
     ytt -f ${src} \
+        -v docker_compose_profiles=${DOCKER_COMPOSE_PROFILES} \
         -v acme_cert_resolver="${TRAEFIK_ACME_CERT_RESOLVER}" \
         -v acme_cert_domains="${TRAEFIK_ACME_CERT_DOMAINS}" \
         -v log_level="${TRAEFIK_LOG_LEVEL}" \
@@ -109,6 +110,10 @@ ytt_template() {
         -v iperf_udp_entrypoint_enabled="${TRAEFIK_IPERF_UDP_ENTRYPOINT_ENABLED}" \
         -v iperf_udp_entrypoint_host="${TRAEFIK_IPERF_UDP_ENTRYPOINT_HOST}" \
         -v iperf_udp_entrypoint_port="${TRAEFIK_IPERF_UDP_ENTRYPOINT_PORT}" \
+        -v dns_entrypoint_enabled="${TRAEFIK_DNS_ENTRYPOINT_ENABLED}" \
+        -v dns_entrypoint_host="${TRAEFIK_DNS_ENTRYPOINT_HOST}" \
+        -v dns_entrypoint_port="${TRAEFIK_DNS_ENTRYPOINT_PORT}" \
+        -v dns_entrypoint_proxy_protocol_trusted_ips="${TRAEFIK_DNS_ENTRYPOINT_PROXY_PROTOCOL_TRUSTED_IPS}" \
         --data-value-yaml header_authorization_groups="${TRAEFIK_HEADER_AUTHORIZATION_GROUPS}" \
         > ${dst}
     success=$?

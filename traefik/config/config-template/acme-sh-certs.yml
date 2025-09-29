@@ -1,0 +1,15 @@
+#@ load("@ytt:data", "data")
+#@ load("@ytt:yaml", "yaml")
+
+#@ acme_cert_domains = yaml.decode(data.values.acme_cert_domains) if type(data.values.acme_cert_domains) == "string" else data.values.acme_cert_domains
+#@ acme_sh_enabled = "acme-sh" in data.values.docker_compose_profiles.split(",")
+
+#@ if acme_sh_enabled:
+tls:
+  certificates:
+#@   for item in acme_cert_domains:
+#@     cn = item[0] if type(item) == "list" else item["cn"]
+    - certFile: #@ "/certs/{}/fullchain.cer".format(cn)
+      keyFile:  #@ "/certs/{}/{}.key".format(cn, cn)
+#@   end
+#@ end

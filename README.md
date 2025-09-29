@@ -505,6 +505,8 @@ things are working correctly.
 
 Install these first:
 
+* [Acme-DNS](acme-dns#readme) - a limited DNS server for hosting TXT
+  records for ACME challenges
 * [Traefik](traefik#readme) - HTTP / TLS / TCP / UDP reverse proxy
 * [Whoami](whoami#readme) - HTTP test service
 
