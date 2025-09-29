@@ -142,7 +142,12 @@ is to delegate the ACME authority of the sub-domains to your ACME-DNS
 server.
 
 You must manually setup the CNAME records exactly as printed, *before*
-installing Traefik.
+installing Traefik. Each time you create new certificates (see
+[Certificate Manager](README.md#certificate-manager), you must go
+through this configuration again (or `make acme-sh-register`) to
+trigger the printing of the new CNAME records you need to create.
+
+
 
 ### Traefik builtin ACME client (legacy)
 
@@ -178,7 +183,6 @@ In the `make config` menu, choose:
      * Choose `TLS-ALPN-01` for most public servers (otherwise choose
        `DNS-01` for advanced use-cases, but this also requires storing
        the security sensitive API key of your DNS provider.)
-
 
 ## Certificate manager
 
