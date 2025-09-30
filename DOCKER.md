@@ -148,12 +148,12 @@ restart Docker.
 ## Firewall
 
 This system does not include a network firewall of its own. You are
-expected to provide a firewall in your host networking environment.
-(Note: `ufw` is NOT recommended for use with Docker, nor is any other
-firewall that is directly located on the same host machine as Docker.
-You should prefer an external dedicated network firewall [ie. your
-cloud provider, or VM host]. If you have no other option but to run
-the firewall on the same machine, check out
+expected to provide a firewall in your hosting provider (or VM host)
+networking environment. (Note: `ufw` is NOT recommended for use with
+Docker, nor is any other firewall that is directly located on the same
+host machine as Docker. You should prefer an external dedicated
+network firewall [ie. your cloud provider, or VM host]. If you have no
+other option but to run the firewall on the same machine, check out
 [chaifeng/ufw-docker](https://github.com/chaifeng/ufw-docker#solving-ufw-and-docker-issues)
 for a partial fix.)
 
@@ -196,10 +196,9 @@ for the ones that need an additional port, as listed above.
 See [DIGITALOCEAN.md](DIGITALOCEAN.md) for an example of setting the
 DigitalOcean firewall service.
 
-Later, after you've deployed things, you can audit all of the open
-published ports: from the root project directory, run `make
-show-ports` to list all of the services with open ports (or those that
-run in the host network and are therefore completely open. You will
-find traefik and the wireguard server/client in this latter category).
-Each sub-project directory also has a `make status` with useful
-per-project information.
+Later, you may wish to audit the open published ports of the apps
+you've installed: 
+
+```
+d make - ports
+```
