@@ -222,3 +222,7 @@ you've installed:
 ```
 d show-ports
 ```
+## Install apps
+
+Go forth, and install any apps from [README.md](README.md) and/or
+[TOUR.md](TOUR.md).
