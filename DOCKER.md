@@ -200,5 +200,5 @@ Later, you may wish to audit the open published ports of the apps
 you've installed: 
 
 ```
-d make - ports
+d show-ports
 ```

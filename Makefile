@@ -68,10 +68,10 @@ clean: delete-env delete-passwords
 
 .PHONY: show-ports # Show open ports on the Docker server
 show-ports:
-	@echo "Found these containers with open ports:"
+	@echo "## Found these containers with open ports:"
 	@docker ps --format '{{ .Names }}\t{{ .Ports }}' | grep ":"
 #docker ps --format '{{ .ID }}' | xargs -iXX sh -c "docker inspect XX | jq -c '.[0].NetworkSettings.Ports' | grep '\[' >/dev/null && echo XX" | xargs -iXX sh -c "docker inspect XX | jq -cj '.[0].Name | @sh' && docker inspect XX | jq -c ' .[0].NetworkSettings.Ports[$i]' | jq -cr '.[].HostPort | @sh' | sed -z -e 's/\n//g' 2>&1 && echo" | sed -e "s/'/ /g" -e 's/ *$//g'
-	@echo "Found these containers using the host network (so they could be publishing any port):"
+	@echo "## Found these containers using the host network (so they could be publishing any port):"
 	@docker ps --format '{{ .ID }}' | xargs -iXX sh -c "docker inspect XX | jq -cr '.[0].NetworkSettings.Networks | keys[]' | grep '^host$$'>/dev/null && docker inspect XX | jq -cr '.[0].Name'" | sed 's!/!!g'
 
 .PHONY: audit # Audit container permissions and capabilities

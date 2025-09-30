@@ -58,6 +58,7 @@ __help() {
         echo -e "ssh-expose PORT\tExpose a workstation's port to a public server port"
         echo -e "s3-volume\tCreate an Rclone S3 backed volume"
         echo -e "docker-default-address-pool\tReconfigure the docker daemon network address pool"
+        echo -e "show-ports\tShow the list of open ports and host bound containers"
         echo -e "route\tConfigure and/or print routes"
         echo -e "networks\tPrint the list of Docker networks"
         echo -e "fail2ban\tConfigure fail2ban on the Docker host"
@@ -345,7 +346,7 @@ __d.rymcg.tech_completions() {
     if [[ ${COMP_CWORD} == 1 ]]; then
         ## Complete the main command:
         ## d.rymcg.tech <TAB> ...
-        COMMANDS="help create cd make list readme info context new-context tmp-context completion install install-docker status ssh audit sshd-config ssh-expose s3-volume docker-default-address-pool route routes reconfigure daemon-conf fail2ban networks config"
+        COMMANDS="help create cd make list readme info context new-context tmp-context completion install install-docker status ssh audit sshd-config ssh-expose show-ports s3-volume docker-default-address-pool route routes reconfigure daemon-conf fail2ban networks config"
         COMPREPLY=($(compgen -W "${COMMANDS}" "${COMP_WORDS[1]}"))
     elif [[ ${COMP_CWORD} == 2 ]]; then
         ALL_PROJECTS=$(d.rymcg.tech list --raw)
@@ -490,8 +491,8 @@ main() {
                 __run_script reconfigure_sshd "${DOCKER_CONTEXT}" "$@";;
             ssh-expose)
                 __run_script ssh_expose "${DOCKER_CONTEXT}" $@;;
-            s3-volume)
-                d.rymcg.tech make - s3-volume;;
+            show-ports)
+                d.rymcg.tech make - show-ports;;
             docker-default-address-pool)
                 __run_script docker_default_address_pool "${DOCKER_CONTEXT}" "$@";;
             route)
