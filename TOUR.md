@@ -68,12 +68,21 @@ Wait for the service to start:
 Waiting until all services are started and become healthy ...
 Still waiting for services to finish starting: acme-dns-acmedns-1
 Still waiting for services to finish starting: acme-dns-acmedns-1
+All services healthy.
 ```
 
 If it is taking an exceedingly long time, press Ctrl-C and investigate:
 
 ```
 d make acme-dns logs
+```
+
+Make sure the service is listed as `healthy` before proceeding:
+
+```
+d make acme-dns status
+
+d make acme-dns wait
 ```
 
 ## Traefik
@@ -133,6 +142,11 @@ Main domain:
 Secondary (SANS) domains:
  *.widgets.example.com
 ```
+
+This example chose the base domain `widgets.example.com` and
+`*.widgets.example.com` so that has an entire sub-domain that is
+dedicated to this docker context. If you want to dedicate the entire
+domain, you could use `example.com` and `*.example.com` instead.
 
 Choose `Done`.
 
