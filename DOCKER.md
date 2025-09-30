@@ -124,6 +124,26 @@ Linux](https://wiki.archlinux.org/title/Docker)) or the upstream
 [Docker Engine](https://docs.docker.com/engine/install/#server)
 documentation.
 
+## Configure context 
+
+```
+d config
+```
+
+```
+> This will make a configuration for the current docker context (dtest2). Proceed? Yes
+ROOT_DOMAIN: Enter the root domain for this context (eg. d.example.com)
+: d.example.com
+
+> Is this server behind another trusted proxy using the proxy protocol? No
+
+> Do you want to save cleartext passwords in passwords.json by default? No
+```
+
+This will write the `.env_{CONTEXT}` file in the root of the
+d.rymcg.tech source directory, containing the the global environment
+files per context.
+
 ## Configure Docker bridge networks (optional)
 
 By default, Docker will only reserve enough IP addresses for a total

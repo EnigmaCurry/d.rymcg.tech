@@ -35,8 +35,6 @@ source ${BIN}/funcs.sh
 
 export D_RYMCG_TECH_SCRIPT=true
 
-export DOCKER_CONTEXT=${DOCKER_CONTEXT:-$(${BIN}/docker_context)}
-
 __help() {
     echo "Found ROOT_DIR=${ROOT_DIR}"
     echo ""
@@ -488,13 +486,16 @@ main() {
             audit)
                 __make -- audit | less -FSX;;
             sshd-config)
+                export DOCKER_CONTEXT=${DOCKER_CONTEXT:-$(${BIN}/docker_context)}
                 __run_script reconfigure_sshd "${DOCKER_CONTEXT}" "$@";;
             ssh-expose)
+                export DOCKER_CONTEXT=${DOCKER_CONTEXT:-$(${BIN}/docker_context)}
                 __run_script ssh_expose "${DOCKER_CONTEXT}" $@;;
+            docker-default-address-pool)
+                export DOCKER_CONTEXT=${DOCKER_CONTEXT:-$(${BIN}/docker_context)}
+                __run_script docker_default_address_pool "${DOCKER_CONTEXT}" "$@";;
             show-ports)
                 d.rymcg.tech make - show-ports;;
-            docker-default-address-pool)
-                __run_script docker_default_address_pool "${DOCKER_CONTEXT}" "$@";;
             route)
                 CMD=$(echo d.rymcg.tech make traefik route ARGS=\"$@\")
                 eval ${CMD};;

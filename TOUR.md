@@ -34,31 +34,6 @@ workstation:
 d context
 ```
 
-## Context config
-
-```
-d config
-```
-
-This will create the root config in
-`~/git/vendor/enigmacurry/d.rymcg.tech/.env_{CONTEXT}`, which includes
-settings for the root domain name, and other global settings:
-
-```
-> This will make a configuration for the current docker context (widgets). Proceed? Yes
-ROOT_DOMAIN: Enter the root domain for this context (eg. d.example.com)
-: widgets.example.com
-Configured .env_widgets
-ENV_FILE=.env_widgets_default
-
-> Is this server behind another trusted proxy using the proxy protocol? No
-Set DEFAULT_CLI_ROUTE_LAYER_7_PROXY_PROTOCOL=false
-Set DEFAULT_CLI_ROUTE_LAYER_4_PROXY_PROTOCOL=false
-
-> Do you want to save cleartext passwords in passwords.json by default? No
-Set DEFAULT_SAVE_CLEARTEXT_PASSWORDS_JSON=false
-```
-
 ## Acme-DNS
 
 ```
