@@ -1,8 +1,8 @@
 # Tour of d.rymcg.tech
 
-This guide will show you how to use a fresh Docker server with
-[d.rymcg.tech](https://github.com/enigmacurry/d.rymcg.tech) and to
-install a set of initial services.
+This guide will show you how to self-host web applications on your
+ Docker server with
+ [d.rymcg.tech](https://github.com/enigmacurry/d.rymcg.tech).
 
 This guide is abbreviated and only shows a subset of the available
 services provided by d.rymcg.tech. Please consult the main
@@ -35,7 +35,7 @@ d context
 ```
 
 ## Acme-DNS
-
+ 
 ```
 d make acme-dns config
 ```
