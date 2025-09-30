@@ -143,6 +143,14 @@ ROOT_DOMAIN: Enter the root domain for this context (eg. d.example.com)
 This will write the `.env_{CONTEXT}` file in the root of the
 d.rymcg.tech source directory, containing the the global environment
 files per context.
+## Configure DNS
+
+On your domain's DNS server:
+
+ * Create a type `A` record point `*.widgets.example.com` to the IP
+   address of your server, (where `widgets` is the name of your
+   context, or you can use `*.example.com` if you want to dedicate the
+   entire domain.)
 
 ## Configure Docker bridge networks (optional)
 

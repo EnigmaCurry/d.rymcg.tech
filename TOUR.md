@@ -44,11 +44,11 @@ Choose a dedicated sub-domain for acme-dns, e.g.,
 `acme-dns.example.com`, along with the IP address and port information
 it asks for.
 
-On your main DNS server, create two records:
+On your main DNS server:
 
- * Type `A` record point `acme-dns.example.com` to the IP address of
+ * Create a type `A` record point `acme-dns.example.com` to the IP address of
    your server.
- * Type `NS` record pointing `acme-dns.example.com` to itself
+ * Create a type `NS` record pointing `acme-dns.example.com` to itself
    `acme-dns.example.com`,
 
 Open the following ports in your server's firewall:
@@ -60,6 +60,20 @@ Install acme-dns:
 
 ```
 d make acme-dns install
+```
+
+Wait for the service to start:
+
+```
+Waiting until all services are started and become healthy ...
+Still waiting for services to finish starting: acme-dns-acmedns-1
+Still waiting for services to finish starting: acme-dns-acmedns-1
+```
+
+If it is taking an exceedingly long time, press Ctrl-C and investigate:
+
+```
+d make acme-dns logs
 ```
 
 ## Traefik
