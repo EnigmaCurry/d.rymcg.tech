@@ -7,7 +7,7 @@ install a set of initial services.
 This guide is abbreviated and only shows a subset of the available
 services provided by d.rymcg.tech. Please consult the main
 [README.md](README.md#services) for a full list, and follow the links
-to the documentation of each sub-project you intend to install.
+to the documentation of each service that you intend to install.
 
 ## Requirements
 
@@ -60,6 +60,7 @@ Set DEFAULT_SAVE_CLEARTEXT_PASSWORDS_JSON=false
 ```
 
 ## Acme-DNS
+
 ```
 d make acme-dns config
 ```
@@ -68,14 +69,23 @@ Choose a dedicated sub-domain for acme-dns, e.g.,
 `acme-dns.example.com`, along with the IP address and port information
 it asks for.
 
-```
-d make acme-dns install
-```
+On your main DNS server, create two records:
+
+ * Type `A` record point `acme-dns.example.com` to the IP address of
+   your server.
+ * Type `NS` record pointing `acme-dns.example.com` to itself
+   `acme-dns.example.com`,
 
 Open the following ports in your server's firewall:
 
  * `53` both UDP and TCP (DNS).
  * `2890` TCP (API; configurable via `ACME_DNS_API_PORT`).
+
+Install acme-dns:
+
+```
+d make acme-dns install
+```
 
 ## Traefik
 
@@ -139,7 +149,7 @@ Choose `Done`.
 
  * Configure ACME (Let's Encrypt or Step-CA)
 
- * Choose Acme.sh + acme-dns
+ * Choose `Acme.sh + acme-dns`
 
  * Choose `Let's Encrypt (production)`
 
@@ -247,7 +257,8 @@ $ d make whoami install
 d script tls_debug whoami.widgets.example.com
 ```
 
-This will connect to your whoami service and print information about the TLS certificate. The important bit to watch for is this:
+This will connect to your whoami service and print information about
+the TLS certificate. The important bit to watch for is this:
 
 ```text
 ---
@@ -287,8 +298,8 @@ account settings`. Enter ONLY the following information:
  * Your administrator username, e.g. `root`. (this should be separate
    from your primary user account.)
  * Email address, e.g. `root@example.com`.
- * Password
- * Confirm password
+ * Password.
+ * Confirm password.
  
 Finally, click the `Install Forgejo` button. Once logged in as the
 root user, you can create additional accounts via the `Site
@@ -357,6 +368,8 @@ install:
   Exit (ESC)
 ```
 
+Watch for any errors, and finally, choose `Exit`.
+
 ## Traefik-Forward-Auth
 
 ```
@@ -384,8 +397,9 @@ TRAEFIK_FORWARD_AUTH_FORGEJO_DOMAIN: Enter your forgejo domain name (eg. git.exa
 
 ```
 
-At this point it will open your browser to the forgejo instance asking
-you to sign in, and then you need to create a new OAuth2 application.
+At this point it will open your browser to the forgejo instance,
+possibly asking you to sign in, and then you need to create a new
+OAuth2 application:
 
  * Application name: `widgets.example.com`
  * Redirect URIs: `https://auth.widgets.example.com/_oauth`
@@ -470,9 +484,9 @@ Enter the new user id(s) to add, one per line:
 ? Enter a user ID (Press Esc or enter a blank value to finish)  me@example.com
 ```
 
-Replace me@example.com with the same email address that you used to
+Replace `me@example.com` with the same email address that you used to
 sign up for your personal account in Forgejo. You can add more users
-to the group if you wish, when done enter a blank line.
+to the group if you wish. When done, enter a blank line.
 
 Now reconfigure the whoami app to require authentication:
 
@@ -575,7 +589,7 @@ docker run --rm \
 )
 ```
 
-## Step-CA (and acme-dns)
+## Step-CA
 
 ## Docker Registry
 

@@ -45,8 +45,8 @@ entry after pressing the down arrow key):
 
 ```
 ? You must specify the SSH config entry to use  
-  I already have an SSH host entry in ~/.ssh/config that I want to use
 > I want to make a new SSH host entry in ~/.ssh/config
+  I already have an SSH host entry in ~/.ssh/config that I want to use
 ```
 
 Enter the context name. This should be a short recognizable name (no
@@ -128,29 +128,22 @@ documentation.
 
 By default, Docker will only reserve enough IP addresses for a total
 of 30 user-defined networks. This means that, by default, you can only
-deploy up to 30 apps per docker server.
+deploy up to 30 projects per docker server.
 
-If you would like more than 30, you can increase the range of IP
-addresses that Docker reserves. This procedure require manual
-maintaince on the server as root. You can connect to the root shell
-from your workstation:
-
-```
-d ssh
-```
-
-On the server, edit `/etc/docker/daemon.json` (create this file if it
-does not exist), and merge the following configuration:
+If you plan to install more than that, or you want to explicitly
+change the IP address range, there is a workstation command to do this
+automatically:
 
 ```
-{
-  "default-address-pools": [
-    {"base": "172.17.0.0/16", "size": 24}
-  ]
-}
+## Example: 172.17.0.0/16 24     = 256 /24 subnets
+##                               = 172.17.0.0 - 172.17.255.255
+##                               = 65,536 addresses
+
+d docker-default-address-pool 172.17.0.0/16 24
 ```
 
-and restart the docker daemon, or reboot the server.
+This will reconfigure the server's `/etc/docker/daemon.json` and
+restart Docker.
 
 ## Firewall
 

@@ -35,6 +35,8 @@ source ${BIN}/funcs.sh
 
 export D_RYMCG_TECH_SCRIPT=true
 
+export DOCKER_CONTEXT=${DOCKER_CONTEXT:-$(${BIN}/docker_context)}
+
 __help() {
     echo "Found ROOT_DIR=${ROOT_DIR}"
     echo ""
@@ -55,6 +57,7 @@ __help() {
         echo -e "sshd-config [Var=value ...]\tReconfigure the host SSH daemon of the remote context"
         echo -e "ssh-expose PORT\tExpose a workstation's port to a public server port"
         echo -e "s3-volume\tCreate an Rclone S3 backed volume"
+        echo -e "docker-default-address-pool\tReconfigure the docker daemon network address pool"
         echo -e "route\tConfigure and/or print routes"
         echo -e "networks\tPrint the list of Docker networks"
         echo -e "fail2ban\tConfigure fail2ban on the Docker host"
@@ -210,7 +213,7 @@ __context_tmp() {
     else
         shift;
     fi
-    
+
     test -z "$CHOSEN_CONTEXT" && fault "No context selected."
     if ! element_in_array "$CHOSEN_CONTEXT" "${CONTEXTS[@]}"; then
         fault "Context ${CHOSEN_CONTEXT} does not exist.";
@@ -225,7 +228,7 @@ __context_tmp() {
             DOCKER_CONTEXT="${CHOSEN_CONTEXT}" exe d.rymcg.tech $@
         else
             DOCKER_CONTEXT="${CHOSEN_CONTEXT}" exe $@
-        fi        
+        fi
     fi
 }
 
@@ -233,10 +236,8 @@ __new_context() {
         echo
         confirm yes "This command can help create a new SSH config and Docker context"
         echo
-        CHOICE=$(wizard choose --numeric "You must specify the SSH config entry to use" "I already have an SSH host entry in ~/.ssh/config that I want to use" "I want to make a new SSH host entry in ~/.ssh/config")
+        CHOICE=$(wizard choose --numeric "You must specify the SSH config entry to use" "I want to make a new SSH host entry in ~/.ssh/config" "I want to use an existing SSH host entry in ~/.ssh/config")
         if [[ "${CHOICE}" == 0 ]]; then
-            SSH_HOST=$(choose "Choose an existing SSH Host config" $(cat ~/.ssh/config | grep -Po "^Host \K.*"))
-        elif [[ "${CHOICE}" == 1 ]]; then
             SSH_HOST=$(wizard ask "Enter the new SSH context name (short host name) :")
             if grep "^Host ${SSH_HOST}$" ~/.ssh/config  >/dev/null 2>&1; then
                 error "There is already an SSH config named ${SSH_HOST}."
@@ -261,6 +262,8 @@ EOF
             confirm "no" "Do you want to append this config to ~/.ssh/config" "?"
             (echo; cat ${TMP_CONFIG}; echo) >> ~/.ssh/config
             rm -f ${TMP_CONFIG}
+        elif [[ "${CHOICE}" == 1 ]]; then
+            SSH_HOST=$(choose "Choose an existing SSH Host config" $(cat ~/.ssh/config | grep -Po "^Host \K.*"))
         else
             fault invalid choice
         fi
@@ -342,7 +345,7 @@ __d.rymcg.tech_completions() {
     if [[ ${COMP_CWORD} == 1 ]]; then
         ## Complete the main command:
         ## d.rymcg.tech <TAB> ...
-        COMMANDS="help create cd make list readme info context new-context tmp-context completion install install-docker status ssh audit sshd-config ssh-expose s3-volume route routes reconfigure daemon-conf fail2ban networks config"
+        COMMANDS="help create cd make list readme info context new-context tmp-context completion install install-docker status ssh audit sshd-config ssh-expose s3-volume docker-default-address-pool route routes reconfigure daemon-conf fail2ban networks config"
         COMPREPLY=($(compgen -W "${COMMANDS}" "${COMP_WORDS[1]}"))
     elif [[ ${COMP_CWORD} == 2 ]]; then
         ALL_PROJECTS=$(d.rymcg.tech list --raw)
@@ -489,6 +492,8 @@ main() {
                 __run_script ssh_expose "${DOCKER_CONTEXT}" $@;;
             s3-volume)
                 d.rymcg.tech make - s3-volume;;
+            docker-default-address-pool)
+                __run_script docker_default_address_pool "${DOCKER_CONTEXT}" "$@";;
             route)
                 CMD=$(echo d.rymcg.tech make traefik route ARGS=\"$@\")
                 eval ${CMD};;
