@@ -128,18 +128,27 @@ Install these core services as needed:
     GitHub) and OAuth2 server.
   * This can act as an OAuth2 identity service, which supports 2FA
     including hardware tokens, and can provide authentication to all
-    your other services.
+    of your other services.
+  * This could be shared amongst several servers, so you don't need to
+    install this on every server.
 * [Traefik-forward-auth](traefik-forward-auth#readme)
   * Traefik OAuth2 authentication middleware.
   * Required if you want OAuth2 authentication. You'll combine this
-    with your forgejo instance (or another external Oauth provider) to
+    with your Forgejo instance (or another external Oauth provider) to
     add authentication to any of your apps.
+  * This is a Traefik middleware, and must be installed on every
+    server that you want to enforce OAuth on (but they could all share
+    a single external Forgejo instance).
 * [Step-CA](step-ca) 
   * A self-hosted Certificate Authority (CA).
   * Provides ACME services for automatic TLS certficate creation.
+  * This could be shared amongst several servers, so you don't need to
+    install this on every server.
 * [Postfix-Relay](postfix-relay#readme)
   * A simple email forwarding service (SMTP) which can be used by any
     other container that needs to send email.
+  * This is a private Docker service, so you must install it on each
+    server you want to send mail from.
 
 Install these applications at your preference:
 
