@@ -103,7 +103,7 @@ Follow these topical guides to get started:
 
 ### Extra reading
 
- * [SECURITY.md](SECURITY.md) - Docker Security.
+ * [SECURITY.md](SECURITY.md) - how to secure a Docker server.
  * [MAKEFILE_OPS.md](MAKEFILE_OPS.md) - how to write Makefiles.
  * [RCLONE.md](RCLONE.md) - create Docker volumes on top of
    remote/cloud storage (S3, SFTP, Dropbox, etc.)
