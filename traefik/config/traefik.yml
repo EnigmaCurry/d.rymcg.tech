@@ -340,4 +340,17 @@ entryPoints:
   iperf_udp:
     address: #@ data.values.iperf_udp_entrypoint_host + ":" + data.values.iperf_udp_entrypoint_port + "/udp"
   #@ end
+  #@ if data.values.dns_entrypoint_enabled == "true":
+  dns_tcp:
+    address: #@ data.values.dns_entrypoint_host + ":" + data.values.dns_entrypoint_port + "/tcp"
+    #@ if len(data.values.dns_entrypoint_proxy_protocol_trusted_ips.strip()):
+    proxyProtocol:
+      trustedIPs:
+        #@ for allowed_net in data.values.dns_entrypoint_proxy_protocol_trusted_ips.split(","):
+        - "(@= allowed_net @)"
+        #@ end
+    #@ end
+  dns_udp:
+    address: #@ data.values.dns_entrypoint_host + ":" + data.values.dns_entrypoint_port + "/udp"
+  #@ end
 
