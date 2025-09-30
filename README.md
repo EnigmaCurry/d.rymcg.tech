@@ -125,12 +125,12 @@ Install these core services as needed:
 
 * [Forgejo](forgejo#readme)
   * A git host (fork of Gitea/Gogs, which is similar to self-hosted
-    GitHub) and OAuth2 server.
+    GitHub).
   * This can act as an OAuth2 identity service, which supports 2FA
     including hardware tokens, and can provide authentication to all
     of your other services.
-  * This could be shared amongst several servers, so you don't need to
-    install this on every server.
+  * A single instance should be used for your entire organization, so
+    you don't need to install this on every server.
 * [Traefik-forward-auth](traefik-forward-auth#readme)
   * Traefik OAuth2 authentication middleware.
   * Required if you want OAuth2 authentication. You'll combine this
@@ -142,8 +142,9 @@ Install these core services as needed:
 * [Step-CA](step-ca) 
   * A self-hosted Certificate Authority (CA).
   * Provides ACME services for automatic TLS certficate creation.
-  * This could be shared amongst several servers, so you don't need to
-    install this on every server.
+  * Issue client certificates for Mutual TLS (mTLS).
+  * A single instance should be used for your entire organization, so
+    you don't need to install this on every server.
 * [Postfix-Relay](postfix-relay#readme)
   * A simple email forwarding service (SMTP) which can be used by any
     other container that needs to send email.
