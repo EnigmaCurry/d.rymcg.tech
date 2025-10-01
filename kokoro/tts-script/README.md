@@ -27,20 +27,31 @@ export KOKORO_API_KEY="YOUR_API_KEY"
 ## Script format (input `.txt`)
 
 * **Paragraphs** are blocks of non-empty lines separated by **blank lines**; each becomes one WAV.
+* **Word Interpolation** can redefine words phonetically to be spoken correctly by the TTS engine.
+  ```
+  ## d.rymcg.tech=dee dot rye mcgee dot tech
+  ```
 * **Voice presets**:
 
   ```
   ## narrator: am_adam*0.5 + am_puck*0.3 + am_fenrir*0.1 + am_onyx*0.1
   ## person2:  af_heart*0.5 + af_alloy*0.5
-  ```
+  
 * **Voice switches** (applies to following paragraphs):
 
   ```
   # narrator
-  Hello there.
+  Once upon a time there were two people talking to each other.
 
-  # person2
-  Hi! Nice to meet you.
+  # heart_alloy
+  What is your
+  name?
+
+  # aeode_river
+  My name is aeode river.
+
+  # narrator
+  They became great friends as they struck up a conversation about d.rymcg.tech
   ```
 
 ## Output naming
