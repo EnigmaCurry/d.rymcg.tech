@@ -12,7 +12,7 @@ CLI tools to batch-generate and play TTS audio clips from `.txt` scripts:
 
 * Bash 4+
 * `curl`, `jq`
-* Audio player: one of `mpv`, `ffplay`, `play` (SoX), or `aplay`
+* `sox` (SoX)
 * A TTS endpoint + API key
 
 ## Environment (required)
