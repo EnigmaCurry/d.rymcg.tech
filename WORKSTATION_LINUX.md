@@ -84,6 +84,20 @@ EOF
 
 Close the terminal and re-launch it.
 
+## Configure Bash aliases
+
+You may wish to setup extra Bash aliases (alternatives to `d`) to
+control specific Docker contexts, or external project directories.
+
+```
+## Show example aliases:
+d aliases
+```
+
+This will print an *example* set of aliases you can choose from. You
+should evaluate what aliases make sense to you and copy them into
+`~/.bashrc` yourself.
+
 ## Configure SSH key
 
 Create an SSH key:

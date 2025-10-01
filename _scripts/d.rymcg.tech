@@ -45,6 +45,7 @@ __help() {
         echo -e "context\tView or set the current Docker context"
         echo -e "new-context\tCreate a new Docker context"
         echo -e "tmp-context\tUse a temporary Docker context in a sub-shell"
+        echo -e "aliases\tPrint help to setup Bash aliases"
         echo -e "config\tConfigure the current Docker context"
         echo -e "ssh [COMMAND ...]\tRun command or shell on active docker context SSH host"
         echo -e "completion\tSetup TAB completion in your shell"
@@ -354,7 +355,7 @@ __d.rymcg.tech_completions() {
     if [[ ${COMP_CWORD} == 1 ]]; then
         ## Complete the main command:
         ## d.rymcg.tech <TAB> ...
-        COMMANDS="help create cd make list readme info context new-context tmp-context completion install install-docker status ssh audit sshd-config ssh-expose show-ports s3-volume docker-default-address-pool route routes reconfigure daemon-conf fail2ban networks config"
+        COMMANDS="help create cd make list readme info context new-context tmp-context aliases completion install install-docker status ssh audit sshd-config ssh-expose show-ports s3-volume docker-default-address-pool route routes reconfigure daemon-conf fail2ban networks config"
         COMPREPLY=($(compgen -W "${COMMANDS}" "${COMP_WORDS[1]}"))
     elif [[ ${COMP_CWORD} == 2 ]]; then
         ALL_PROJECTS=$(d.rymcg.tech list --raw)
@@ -487,6 +488,8 @@ main() {
                 __new_context "$@";;
             tmp-context)
                 __context_tmp "$@";;
+            aliases)
+                __run_script aliases;;
             script)
                 __run_script "$@";;
             ssh)
