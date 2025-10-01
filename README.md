@@ -96,12 +96,12 @@ Follow these topical guides to get started:
 
  * Create your workstation environment:
  
-   * [WORKSTATION_LINUX.md](WORKSTATION_LINUX.md) - Setup your workstation on Linux.
-   * [WORKSTATION_WSL.md](WORKSTATION_WSL.md) - Setup your workstation on Windows (WSL).
+   * [WORKSTATION_LINUX.md](WORKSTATION_LINUX.md) - setup your workstation on Linux.
+   * [WORKSTATION_WSL.md](WORKSTATION_WSL.md) - setup your workstation on Windows (WSL).
  
 * Create a Docker server and configure the firewall:
  
-   * [DOCKER.md](DOCKER.md) - Install Docker Engine on bare metal, VM,
+   * [DOCKER.md](DOCKER.md) - install Docker Engine on bare metal, VM,
      or cloud server.
 
 * Install applications:
