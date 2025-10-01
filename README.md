@@ -25,7 +25,8 @@ workstation.
    
    * All source files and CLI tools live on your workstation. All
      administration is performed on your workstation. You should never
-     need to directly SSH into the server's shell.
+     need to directly SSH into the server's shell. A workstation may
+     control several servers.
    * The server's only job is to build and run the Docker containers
      that your workstation tells it how to.
 
@@ -56,8 +57,15 @@ workstation.
    `d.rymcg.tech` (or `d` alias) that provides a global command
    structure and re-wraps all of the sub-project `make` commands, but
    unlike `make`, it works from any directory (e.g., `d make whoami
-   config`, `d make whoami install` ...)
+   config`, `d make whoami install` ...) 
    
+ * The `d.rymcg.tech` command and `d` alias operate on your current
+   Docker context. To switch between contexts you run `d context`
+   (runs `docker context use XXX`). You may also setup additional Bash
+   aliases to control various Docker contexts explicitly (e.g., `prod
+   make whoami config`, `prod make whoami install`.) and which are not
+   dependent on the current context.
+
  * This repository only offers services that have open source
    licenses. You may create your own projects in external git
    repositories, license them however you wish, and still benefit from
