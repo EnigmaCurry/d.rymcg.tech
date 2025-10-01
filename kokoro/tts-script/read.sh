@@ -13,18 +13,22 @@ QUIET=false
 
 usage() {
   cat <<'USAGE'
-read.sh - Generate one WAV per *paragraph* and support voice directives.
+read.sh - Generate one WAV per *paragraph* and support voice + interpolation directives.
 
 Usage:
   ./read.sh [options] FILE.txt
 
 Directives in FILE.txt:
-  ## name: voice expression     # define a preset (e.g., "## narrator: am_adam*0.5 + am_puck*0.5")
-  # name                        # switch current voice to that preset for following paragraphs
+
+  ## name: voice expression     # define a voice preset
+  # name                        # switch current voice to that preset
+
+  ## key=value                  # define a text interpolation: replace every 'key' with 'value'
+                                # e.g. "## d.rymcg.tech=dee dot rye mcgee dot tech"
 
 Paragraphs:
   - One or more blank lines separate paragraphs.
-  - Each paragraph becomes a single audio file.
+  - Each paragraph is flattened (line wraps removed) and becomes a single audio file.
 
 Output names:
   <prefix>-<NNNNNNN>.wav (7-digit zero padding), where <prefix> is FILE's basename.
@@ -85,24 +89,50 @@ $QUIET || echo "Prefix: $prefix"
 $QUIET || echo "Index starts at: $START"
 $QUIET || $DRY_RUN || echo
 
-# ---- Voice preset storage ----
-# Bash 4+ associative array of presets: name -> voice expression
+# ---- Directive storage ----
+# Voice presets: name -> voice expression
 declare -A VOICE_PRESETS=()
 current_voice=""
+
+# Interpolations: key -> value
+declare -A INTERP_MAP=()
+# Keep definition order for deterministic application
+INTERP_KEYS=()
+
+# ---- Helpers ----
+
+# Apply paragraph flattening and interpolations
+flatten_and_interpolate() {
+  local raw="$1"
+  # 1) Flatten: join wrapped lines into one line and normalize spaces
+  local flat
+  flat=$(printf '%s' "$raw" \
+    | tr '\n' ' ' \
+    | sed -E 's/[[:space:]]+/ /g; s/^[[:space:]]+//; s/[[:space:]]+$$//')
+
+  # 2) Interpolate: replace each key with its value
+  #    Apply in definition order (you can adjust if you prefer longest-first).
+  local out="$flat"
+  local key val pat
+  for key in "${INTERP_KEYS[@]}"; do
+    val="${INTERP_MAP[$key]}"
+    # Escape glob chars in key for bash pattern substitution
+    pat="${key//\\/\\\\}"   # backslash -> \\ (safeguard)
+    pat="${pat//\*/\\*}"    # * -> \*
+    pat="${pat//\?/\\?}"    # ? -> \?
+    pat="${pat//[/\\[}"     # [ -> \[
+    out="${out//"$pat"/$val}"
+  done
+  printf '%s' "$out"
+}
 
 emit_paragraph() {
   local text="$1"
   local voice="$2"
   [[ -z "$text" ]] && return 0
 
-  # Flatten paragraph: join wrapped lines into one line.
-  # - Replace all newlines with spaces
-  # - Collapse multiple whitespace to a single space
-  # - Trim leading/trailing spaces
-  local flat
-  flat=$(printf '%s' "$text" \
-    | tr '\n' ' ' \
-    | sed -E 's/[[:space:]]+/ /g; s/^[[:space:]]+//; s/[[:space:]]+$$//')
+  local final
+  final="$(flatten_and_interpolate "$text")"
 
   local num out
   num=$(printf "%07d" "$index")
@@ -112,9 +142,7 @@ emit_paragraph() {
     $QUIET || echo "[$num] exists, skipping: $out"
   else
     if $DRY_RUN; then
-      # Show preview of flattened text
-      local preview="${flat:0:80}"
-      [[ ${#flat} -gt 80 ]] && preview+="…"
+      local preview="${final:0:80}"; [[ ${#final} -gt 80 ]] && preview+="…"
       echo "[$num] would write: $out"
       [[ -n "$voice" ]] && echo "       voice: $voice"
       echo "       text: $preview"
@@ -124,9 +152,9 @@ emit_paragraph() {
         [[ -n "$voice" ]] && echo "       voice: $voice"
       }
       if [[ -n "$voice" ]]; then
-        "$TTS_CMD" -q -f wav -V "$voice" -o "$out" --text "$flat"
+        "$TTS_CMD" -q -f wav -V "$voice" -o "$out" --text "$final"
       else
-        "$TTS_CMD" -q -f wav -o "$out" --text "$flat"
+        "$TTS_CMD" -q -f wav -o "$out" --text "$final"
       fi
     fi
   fi
@@ -141,10 +169,9 @@ para=""
 
 # ---- Read file; handle directives, switches, and paragraphs ----
 while IFS= read -r line || [[ -n "$line" ]]; do
-  # Strip trailing CR (Windows)
-  line=${line%$'\r'}
+  line=${line%$'\r'}  # strip trailing CR (Windows)
 
-  # 1) Voice preset definition: "## name: expr"
+  # Voice preset definition: "## name: expr"
   if [[ "$line" =~ ^[[:space:]]*##[[:space:]]*([A-Za-z0-9_-]+)[[:space:]]*:[[:space:]]*(.+)[[:space:]]*$ ]]; then
     name="${BASH_REMATCH[1]}"
     expr="${BASH_REMATCH[2]}"
@@ -153,9 +180,21 @@ while IFS= read -r line || [[ -n "$line" ]]; do
     continue
   fi
 
-  # 2) Voice switch: "# name"
+  # Interpolation definition: "## key=value"
+  if [[ "$line" =~ ^[[:space:]]*##[[:space:]]*([^=[:space:]][^=]*)[[:space:]]*=[[:space:]]*(.+)[[:space:]]*$ ]]; then
+    key="${BASH_REMATCH[1]}"
+    val="${BASH_REMATCH[2]}"
+    # Trim outer spaces (already mostly done by regex)
+    key="${key#"${key%%[![:space:]]*}"}"; key="${key%"${key##*[![:space:]]}"}"
+    val="${val#"${val%%[![:space:]]*}"}"; val="${val%"${val##*[![:space:]]}"}"
+    INTERP_MAP["$key"]="$val"
+    INTERP_KEYS+=("$key")
+    $QUIET || echo ">> interpolate: '$key' -> '$val'"
+    continue
+  fi
+
+  # Voice switch: "# name"
   if [[ "$line" =~ ^[[:space:]]*#[[:space:]]*([A-Za-z0-9_-]+)[[:space:]]*$ ]]; then
-    # Finish any paragraph in progress before switching
     if [[ -n "$para" ]]; then
       emit_paragraph "$para" "$current_voice"
       para=""
@@ -170,7 +209,7 @@ while IFS= read -r line || [[ -n "$line" ]]; do
     continue
   fi
 
-  # 3) Paragraph separator: blank line => emit accumulated paragraph
+  # Paragraph separator: blank line => emit accumulated paragraph
   if [[ "$line" =~ ^[[:space:]]*$ ]]; then
     if [[ -n "$para" ]]; then
       emit_paragraph "$para" "$current_voice"
@@ -179,7 +218,7 @@ while IFS= read -r line || [[ -n "$line" ]]; do
     continue
   fi
 
-  # 4) Regular content line: accumulate into current paragraph
+  # Regular content line: accumulate into current paragraph
   if [[ -z "$para" ]]; then
     para="$line"
   else
@@ -187,7 +226,7 @@ while IFS= read -r line || [[ -n "$line" ]]; do
   fi
 done < "$FILE"
 
-# Emit trailing paragraph (if file doesn't end with blank line)
+# Emit trailing paragraph if file didn't end with a blank line
 [[ -n "$para" ]] && emit_paragraph "$para" "$current_voice"
 
 if [[ "$count" -eq 0 ]]; then
