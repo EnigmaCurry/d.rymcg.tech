@@ -304,9 +304,16 @@ account settings`. Enter ONLY the following information:
  * Password.
  * Confirm password.
  
-Finally, click the `Install Forgejo` button. Once logged in as the
-root user, you can create additional accounts via the `Site
-administration` menu.
+Finally, click the `Install Forgejo` button. Once you become logged in
+as the root user, you should now re-install the container, to reload
+the config from the .env file:
+
+```
+d make forgejo reinstall
+```
+
+Once its restarted, you can create additional accounts via the `Site
+administration` menu in the upper right corner of the page.
 
 To enable SSH access to git repositories, you must enable the Traefik
 SSH entrypoint:
@@ -404,7 +411,8 @@ At this point it will open your browser to the forgejo instance,
 possibly asking you to sign in, and then you need to create a new
 OAuth2 application:
 
- * Application name: `widgets.example.com`
+ * Look for the box labeled `Manage OAuth2 applications`.
+ * Create a new application name: `widgets.example.com`
  * Redirect URIs: `https://auth.widgets.example.com/_oauth`
  * Select `Confidential client`.
  * Click `Create application`.
@@ -593,6 +601,77 @@ docker run --rm \
 ```
 
 ## Step-CA
+
+So far, you have a few apps deployed with TLS certificates signed by
+Let's Encrypt, which for public websites, is likely what you want.
+
+If you're trying to deploy sites for personal use, or for an
+organization, or for programmatic API use, then deploying your own
+Step-CA instance has a lot of advantages:
+
+ * Replace Let's Encrypt with your self-hosted Step-CA ACME service.
+ * Create client TLS certificates for Mutual TLS (mTLS).
+
+One instance of Step-CA should be enough for your entire organization,
+so you probably will only install this on one server:
+
+```
+d make step-ca config
+```
+
+Set the hostname for Step-CA itself:
+
+```
+STEP_CA_TRAEFIK_HOST: Enter the step-ca domain name (eg. ca.example.com)
+
+: ca.example.com
+```
+
+Set the allowed list of domains to create certificates for:
+
+```
+STEP_CA_AUTHORITY_POLICY_X509_ALLOW_DNS: Enter the list of allowed domain wildcards (comma separated) (eg. *.example.com,*.example.org)
+: *.clients.example.com
+
+STEP_CA_AUTHORITY_CLAIMS_MIN_TLS_CERT_DURATION: Enter the minimum certificate expiration (eg. 5m)
+: 5m
+STEP_CA_AUTHORITY_CLAIMS_MAX_TLS_CERT_DURATION: Enter the maximum certificate expiration (eg. 2160h)
+: 2160h
+
+STEP_CA_AUTHORITY_CLAIMS_DEFAULT_TLS_CERT_DURATION: Enter the default certificate duration (eg. 168h)
+: 168h
+
+> Do you want to allow certificate renewal? Yes
+```
+
+Initialize the CA:
+
+```
+d make step-ca init-ca
+```
+
+Wait for the initialization process, and watch the log output for the
+username and and password 👉 :
+
+```
+step-ca-1  | 2025-10-01T03:21:58.019460055Z 👉 Your CA administrative password is: 9nQLCYW69x9fyhlQWAF5f0eieyuvMuIqGVApd9t0
+Your CA administrative username/subject is 👉: step
+```
+
+You must copy this password and keep it someplace safe, this is the
+only time it will be printed.
+
+Install:
+
+```
+d make step-ca install
+```
+
+Enable ACME:
+
+```
+d make step-ca enable-acme
+```
 
 ## Docker Registry
 
