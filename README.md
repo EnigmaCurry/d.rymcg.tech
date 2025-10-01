@@ -33,7 +33,7 @@ workstation.
  * All configuration is sourced from environment variables written in
    `.env` files on your workstation. Each service deployment has a
    separate `.env_{CONTEXT}_{INSTANCE}` file (per project directory,
-   per docker context, per service instance).
+   per docker context, per instance).
 
  * Every sub-project has a `Makefile`, with common targets, to wrap
    all Docker commands and administrative functions for that project,
