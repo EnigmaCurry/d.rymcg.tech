@@ -1,8 +1,11 @@
 # Tour of d.rymcg.tech
 
-This guide will show you how to self-host web applications on your
- Docker server with
- [d.rymcg.tech](https://github.com/enigmacurry/d.rymcg.tech).
+[d.rymcg.tech](https://github.com/enigmacurry/d.rymcg.tech#readme) is
+a collection of open-source Docker Compose projects and command line
+tools to manage your remote Docker services from your workstation.
+
+This guide will walk through a suggested set of initial services to
+install on your fresh Docker server.
 
 This guide is abbreviated and only shows a subset of the available
 services provided by d.rymcg.tech. Please consult the main
