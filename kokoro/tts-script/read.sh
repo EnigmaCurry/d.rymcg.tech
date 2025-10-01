@@ -95,6 +95,15 @@ emit_paragraph() {
   local voice="$2"
   [[ -z "$text" ]] && return 0
 
+  # Flatten paragraph: join wrapped lines into one line.
+  # - Replace all newlines with spaces
+  # - Collapse multiple whitespace to a single space
+  # - Trim leading/trailing spaces
+  local flat
+  flat=$(printf '%s' "$text" \
+    | tr '\n' ' ' \
+    | sed -E 's/[[:space:]]+/ /g; s/^[[:space:]]+//; s/[[:space:]]+$$//')
+
   local num out
   num=$(printf "%07d" "$index")
   out="$OUTDIR/${prefix}-${num}.wav"
@@ -103,21 +112,21 @@ emit_paragraph() {
     $QUIET || echo "[$num] exists, skipping: $out"
   else
     if $DRY_RUN; then
-      # Show preview (flatten whitespace)
-      local preview
-      preview=$(printf '%s' "$text" | tr '\n' ' ' | sed -E 's/[[:space:]]+/ /g')
+      # Show preview of flattened text
+      local preview="${flat:0:80}"
+      [[ ${#flat} -gt 80 ]] && preview+="…"
       echo "[$num] would write: $out"
       [[ -n "$voice" ]] && echo "       voice: $voice"
-      echo "       text: ${preview:0:80}${preview:80:+…}"
+      echo "       text: $preview"
     else
       $QUIET || {
         echo "[$num] -> $out"
         [[ -n "$voice" ]] && echo "       voice: $voice"
       }
       if [[ -n "$voice" ]]; then
-        "$TTS_CMD" -q -f wav -V "$voice" -o "$out" --text "$text"
+        "$TTS_CMD" -q -f wav -V "$voice" -o "$out" --text "$flat"
       else
-        "$TTS_CMD" -q -f wav -o "$out" --text "$text"
+        "$TTS_CMD" -q -f wav -o "$out" --text "$flat"
       fi
     fi
   fi
