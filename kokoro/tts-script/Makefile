@@ -67,6 +67,7 @@ endef
 
 # Instantiate the trio for test1.txt
 $(eval $(call TTS_TARGETS,test1))
+$(eval $(call TTS_TARGETS,tour))
 
 # Add more projects by instantiating again, e.g.:
 # $(eval $(call TTS_TARGETS,chapter1))
