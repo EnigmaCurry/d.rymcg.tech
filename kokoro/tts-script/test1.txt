@@ -1,0 +1,9 @@
+## narrator: am_adam*0.5 + am_puck*0.3 + am_fenrir*0.1 + am_onyx*0.1
+## person2: af_heart*0.5 + af_alloy*0.5
+
+# narrator
+hello one two three
+
+# person2
+yes hello to you too
+

@@ -51,3 +51,7 @@ make destroy
 ```
 
 This completely removes the container.
+
+## CLI scripts
+
+Check out [tts-script](tts-script)
