@@ -111,10 +111,12 @@ Follow these topical guides to get started:
 
 ### Extra reading
 
+ * [INSTANCES.md](INSTANCES.md) - how to create multiple instances of the same service.
+ * [EXTERNAL_PROJECTS.md](EXTERNAL_PROJECTS.md) - how to integrate external project directories.
+ * [BACKUP_ENV.md](BACKUP_ENV.md) - how to backup your workstation's `.env` files.
  * [SECURITY.md](SECURITY.md) - how to secure a Docker server.
  * [MAKEFILE_OPS.md](MAKEFILE_OPS.md) - how to write Makefiles.
- * [RCLONE.md](RCLONE.md) - create Docker volumes on top of
-   remote/cloud storage (S3, SFTP, Dropbox, etc.)
+ * [RCLONE.md](RCLONE.md) - create Docker volumes on top of remote/cloud storage (S3, SFTP, Dropbox, etc.)
  * [LICENSE.txt](LICENSE.txt) - the license for this project.
  
 ## Services
