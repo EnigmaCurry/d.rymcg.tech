@@ -5,7 +5,6 @@ set -euo pipefail
 : "${SUBDOMAIN:?SUBDOMAIN is required (e.g. acme-dns.example.com)}"
 : "${NSNAME:?NSNAME is required (e.g. auth.acme-dns.example.com)}"
 : "${PUBLIC_IP_ADDRESS:?PUBLIC_IP_ADDRESS is required (IPv4 or IPv6)}"
-: "${NSADMIN:?NSADMIN is required (SOA RNAME like hostmaster.example.com)}"
 : "${DISABLE_REGISTRATION}:?DISABLE_REGISTRATION is required (true/false)"
 : "${API_PORT}:?API_PORT is required"
 

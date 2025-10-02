@@ -9,63 +9,29 @@ Note: this doc leaves out a lot of important bits. Read the main
 
  * Create a DigitalOcean account and login to
    [cloud.digitalocean.com](https://cloud.digitalocean.com)
- * Click `Create`, then `Droplet`
- * Navigate to the `Marketplace` tab, then choose the `Docker XX.X on Ubuntu` image.
- * Choose whatever droplet size you need (at least 2GB ram recommended
-   for most installs, but to economize you can [totally get away with
-   swap and/or Zram](https://blog.rymcg.tech/blog/linux/zram/). I
-   regularly use a 512MB+zram droplet and use it for all development
-   purposes).
- * Optional: Add a block storage device, in order to store your Docker volumes.
-   (This is useful to store data separate from the droplet lifecycle. If your
-   basic droplet size is sufficient, and you perform regular backups, this might
-   not be needed.)
- * Choose datacenter/region. Note: block storage and floating IPs are bound to
-   the datacenter you choose.
- * Add your SSH key.
+ * Click `Create`, then `Droplets`.
+ * Choose a Region to install to.
+ * Choose the `Debian` image.
+ * Choose whatever droplet size you need. I regularly use a 512MB+zram
+   droplet and use it for all development purposes).
+ * Optional: Enable backup (daily or weekly snapshots).
+ * Optional: Add a block storage device if you plan to exceed the disk
+   storage of the droplet. This volume is used to store all of the
+   container volumes (`/var/lib/docker`). Choose `Automatically Format
+   & Mount`. Important: external volumes are *not* included in droplet
+   backups, but you may perform manual volume snapshots yourself.
+ * Add your workstation SSH key.
  * Choose a hostname.
- * Click `Create Droplet`
- * Optional: Create a Floating IP address. This is useful if you need to
-   re-create your droplet, but do not want to update the DNS. Navigate to the
-   droplet page, find `Floating IP` and click `Enable Now`.
- * Add a DNS record for the Floating IP address (or the droplet public IP
-   address if you opted not to use a Floating IP.) Use a wildcard name like
-   `*.d.example.com`, so that any subdomain in place of `*` will resolve to your
-   droplet. You may use your own DNS host or you may use DigitalOcean DNS (go to
-   `Networking` / `Domains`, add or find your domain, create record, enter name
-   as `*.d.example.com`, and direct to your floating or droplet IP.)
+ * Click `Create Droplet`.
+ * Once the droplet is created, find the public IP address (or
+   floating IP). Add a wildcard DNS record like `*.d.example.com` (or
+   `*.example.com` if you want to dedicate your whole domain), so that
+   any subdomain in place of `*` will resolve to your droplet. You may
+   use your own DNS host or you may use DigitalOcean DNS (go to
+   `Networking` / `Domains`, add or find your domain, create an `A`
+   record, enter name as `*.d.example.com`, and direct to your
+   droplet's IP address.)
  
-## Setup your local workstation 
-
-[Install the docker client](https://docs.docker.com/engine/install/) (on Linux this is bundled as "docker engine", which includes both the client and the server, but you do not need to start the server on your workstation, you can run `systemctl mask docker` to prevent the service from starting).
-
-Edit your SSH config file: `~/.ssh/config` (create it if necessary). Add the
-following lines, and change it for your domain name that you already created the
-DNS record for:
-
-```
-Host ssh.d.example.com
-    User root
-    ControlMaster auto
-    ControlPersist yes
-    ControlPath /tmp/ssh-%u-%r@%h:%p
-```
-
-(The name `ssh.d.example.com` should work automatically if you setup the
-wildcard DNS entry (`*.d.example.com`) created previously. The `ControlMaster`,
-`ControlPersist`, `ControlPath` adds SSH connection multi-plexing, and will make
-repeated logins/docker commands faster.)
-
-Now test that you can SSH to your droplet:
-
-```
-ssh ssh.d.example.com
-```
-
-The first time you login to your droplet, you need to confirm the SSH pubkey
-fingerprint; press Enter. Once connected, log out: press `Ctrl-D` or type `exit`
-and press Enter.
-
 ## Setup droplet firewall
 
 Go to the DigitalOcean dashboard, Networking page, click the Firewalls tab.
@@ -166,105 +132,4 @@ mounted on startup (`df -h`)
 
 ## Setup Docker context and test Docker connection
 
-Logout from the droplet SSH connection, you probably won't ever need to login
-again unless there's a problem. You will now use docker exclusively from your
-local workstation (laptop).
-
-Setup the docker context to tunnel through your ssh connection (this lets your
-workstation docker client control the remote docker server):
-
-```
-# From your workstation (replace d.example.com with your own docker server):
-DOMAIN=d.example.com
-docker context create ${DOMAIN} --docker "host=ssh://ssh.${DOMAIN}"
-docker context use ${DOMAIN}
-```
-
-List all of your docker contexts (your current context is denoted with an
-asterisk `*`):
-
-```
-docker context ls
-```
-
-You can switch between different docker contexts to control multiple Docker
-servers (eg. `docker context use my-other-context`).
-
-
-Test that the connection is working from your local workstation:
-
-```
-docker info
-```
-
-You should see a lot of information printed, including the droplet hostname. If
-so, docker is working.
-
-You can list the running containers, which should be none for a fresh install:
-
-```
-docker ps
-```
-
-You are now able to use the `docker` and `docker-compose` clients, from your
-local workstation, controlling the docker daemon located on your droplet.
-
-
-## ACME DNS-01 challenge for TLS certificates
-
-You can use DigitalOcean's DNS platform with the [ACME
-protocol](https://www.rfc-editor.org/rfc/rfc8555.html) for the
-purposes of requesting TLS certificates from Let's Encrypt. [DNS-01
-challenge](https://letsencrypt.org/docs/challenge-types/#dns-01-challenge)
-has many advantages over TLS or HTTP challenges, but also bears the
-responsibility of having to deal with the security and storage of an
-API key for DNS platform.
-
-When using DigitalOcean with any programmatic access, be aware that an
-API key can be used to perform any action within a given DigitalOcean
-Team. You can create several Teams, and limit access to resources
-per-team. Following the principle of Least Privilege, we would ideally
-want to limit the API access to only allowing the update of the `TXT`
-record necessary for ACME to function. However, limiting access to the
-team is the best that you can do on DigitalOcean's platform.
-
-Follow these instructions for adding your subdomain to a brand new
-DigitalOcean Team, with the sole purpose of managing DNS for the
-subdomain, and creating an API key for programmatic access by Traefik:
-
- * Acquire your domain and point the domain to DigitalOcean's DNS servers:
-   * `ns1.digitalocean.com`
-   * `ns2.digitalocean.com`
-   * `ns3.digitalocean.com`
- * Login to your DigitalOcean account and in the upper right menu,
-   click on `Create a Team`.
- * Name it the same as your chosen subdomain (eg. `d_rymcg_tech`, you
-   cannot use `.` in the name).
- * Finish creating the team, and then you can switch to that team
-   through the same upper right menu under `Go to Team`.
- * Once on the new team page, click onto the `Networking` page, under
-   `Domains`, and find `Add a domain`.
- * Add the full **subdomain** (eg. `d.rymcg.tech`), not the root
-   domain (eg. not `rymcg.tech`).
- * Once the subdomain has been added, click on `Create new record` and
-   add a new `A` record for the wildcard of the subdomain (eg
-   `*.d.rymcg.tech`) pointing to the IP address of your Docker
-   droplet.
- * Click onto the `API` page.
- * Click `Generate New Token`.
- * Enter the token name: `traefik`
- * Choose the expiration: `No expiry`
- * Keep the `Write` scope checked.
- * Click Generate Token, then copy the token displayed (it is shown
-   only one time).
- * Set the token into your [traefik env file as documented](traefik)
-   (Running `make config` will walk you through this):
-   * Set `TRAEFIK_ACME_DNS_VARNAME_1=DO_AUTH_TOKEN`
-   * Set `DO_AUTH_TOKEN=xxxx-your-real-digitalocean-access-token-here-xxxx`
-   * Set `TRAEFIK_ACME_DNS_CHALLENGE=true`
-   * Set `TRAEFIK_ACME_TLS_CHALLENGE=false`
-   * Set `TRAEFIK_CERT_ROOT_DOMAIN=d.example.com`
-   * Set `TRAEFIK_CERT_SANS_DOMAIN=*.d.example.com`
-
-Note: Do not create any droplets in the new Team. The whole point of
-creating the team is to limit what the team can access.
+Follow the rest of the steps in [DOCKER.md](DOCKER.md).

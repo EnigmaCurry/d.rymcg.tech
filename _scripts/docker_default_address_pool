@@ -1,0 +1,85 @@
+#!/bin/bash
+# -*- mode: shell-script -*-
+
+# Configures remote Docker daemon /etc/docker/daemon.json config for
+# the default address pool setting. This tool will merge with whatever
+# existing config it finds, or it will create the file if it doesn't
+# exist yet.
+#
+# Usage:
+#   docker_default_address_pool CONTEXT BASE SIZE
+#
+# Example
+#   docker_default_address_pool prod1 172.17.0.0/16 24
+docker_default_address_pool() {
+  set -Eeuo pipefail
+  if ! command -v jq >/dev/null 2>&1; then
+    echo "ERROR: jq is required locally." >&2
+    return 1
+  fi
+  if [[ $# -ne 3 ]]; then
+    echo "Usage: d docker-default-address-pool <context> <base-cidr> <size-prefix>" >&2
+    echo "Example: d docker-default-address-pool prod1 172.17.0.0/16 24" >&2
+    return 1
+  fi
+
+  local DOCKER_CONTEXT="$1"
+  local BASE="$2"
+  local SIZE="$3"
+
+  if [[ ! "$BASE" =~ ^([0-9]{1,3}\.){3}[0-9]{1,3}/[0-9]{1,2}$ ]]; then
+    echo "ERROR: base must be CIDR like 172.17.0.0/16" >&2
+    return 1
+  fi
+  if [[ ! "$SIZE" =~ ^[0-9]{1,2}$ ]]; then
+    echo "ERROR: size must be an integer like 24" >&2
+    return 1
+  fi
+
+  local TMP_EXIST TMP_OVERLAY TMP_MERGED
+  TMP_EXIST="$(mktemp)"
+  TMP_OVERLAY="$(mktemp)"
+  TMP_MERGED="$(mktemp)"
+
+  # Read existing (or {}), without requiring jq remotely
+  if ! ssh "$DOCKER_CONTEXT" 'test -s /etc/docker/daemon.json && sudo cat /etc/docker/daemon.json || echo "{}"' >"$TMP_EXIST"; then
+    echo "ERROR: Failed to read /etc/docker/daemon.json from $DOCKER_CONTEXT" >&2
+    rm -f "$TMP_EXIST" "$TMP_OVERLAY" "$TMP_MERGED"
+    return 1
+  fi
+
+  # Build overlay and merge locally
+  jq -n --arg base "$BASE" --argjson size "$SIZE" \
+     '{ "default-address-pools": [ { "base": $base, "size": $size } ] }' >"$TMP_OVERLAY"
+  jq -s '.[0] + .[1]' "$TMP_EXIST" "$TMP_OVERLAY" >"$TMP_MERGED"
+
+  # Stable remote temp path
+  local REMOTE_TMP="/tmp/daemon.json.$(date +%s).$RANDOM.$RANDOM"
+
+  # Upload as the remote user (no sudo required for /tmp)
+  if ! scp -q "$TMP_MERGED" "$DOCKER_CONTEXT:$REMOTE_TMP"; then
+    echo "ERROR: Failed to upload merged config to $DOCKER_CONTEXT" >&2
+    rm -f "$TMP_EXIST" "$TMP_OVERLAY" "$TMP_MERGED"
+    return 1
+  fi
+
+  # Privileged install + restart in a TTY session (for sudo prompts if needed)
+  if ! ssh -t "$DOCKER_CONTEXT" "sudo install -d -m 0755 /etc/docker \
+      && sudo install -b -m 0644 '$REMOTE_TMP' /etc/docker/daemon.json \
+      && echo Installed new /etc/docker/daemon.json \
+      && rm -f '$REMOTE_TMP' \
+      && echo Restarting Docker ... \
+      && if command -v systemctl >/dev/null 2>&1; then sudo systemctl restart docker; else sudo pkill -HUP dockerd || true; fi"; then
+    echo "ERROR: Failed to update /etc/docker/daemon.json on $DOCKER_CONTEXT" >&2
+    rm -f "$TMP_EXIST" "$TMP_OVERLAY" "$TMP_MERGED"
+    return 1
+  fi
+
+  echo "Updated /etc/docker/daemon.json on $DOCKER_CONTEXT (backup at /etc/docker/daemon.json~)."
+
+  rm -f "$TMP_EXIST" "$TMP_OVERLAY" "$TMP_MERGED"
+}
+
+if [[ "${BASH_SOURCE[0]}" == "$0" ]]; then
+    docker_default_address_pool "$@"
+fi
