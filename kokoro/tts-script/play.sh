@@ -7,10 +7,12 @@ GAP_MS="${GAP_MS:-250}"
 OUTDIR=""
 CONCAT_OUT=""
 QUIET=false
+TARGET_RATE="${TARGET_RATE:-}"
+TARGET_CH="${TARGET_CH:-}"
 
 usage() {
   cat <<'USAGE'
-play.sh - Render (skip existing), normalize, concatenate with gaps, and play a single WAV.
+play.sh - Ensure clips exist, ask read.sh to build one combined WAV, then play it.
 
 Usage:
   ./play.sh [options] FILE.txt
@@ -25,11 +27,8 @@ Options:
 Env:
   READ_CMD               Path to read.sh (default: ./read.sh)
   GAP_MS                 Millisecond gap (default: 250)
-  TARGET_RATE            Force sample rate for output (e.g., 48000). Default: first clip's rate.
-  TARGET_CH              Force channels for output (1=mono, 2=stereo). Default: first clip's channels.
-
-Requires:
-  sox (for normalization/concat), and an audio player (mpv/ffplay/play/aplay) to auto-play.
+  TARGET_RATE            Force sample rate for combined output (e.g., 48000)
+  TARGET_CH              Force channels for combined output (1 or 2)
 USAGE
 }
 
@@ -55,7 +54,6 @@ FILE="$1"
 
 # ---------- validate ----------
 command -v "$READ_CMD" >/dev/null 2>&1 || { echo "ERROR: READ_CMD not found: $READ_CMD" >&2; exit 1; }
-command -v sox >/dev/null 2>&1 || { echo "ERROR: 'sox' is required (concat/normalize)." >&2; exit 1; }
 [[ -r "$FILE" ]] || { echo "ERROR: cannot read file: $FILE" >&2; exit 1; }
 [[ "$GAP_MS" =~ ^[0-9]+$ ]] || { echo "ERROR: --gap-ms must be non-negative integer (ms)"; exit 1; }
 
@@ -65,7 +63,7 @@ basefile=$(basename -- "$FILE")
 prefix="${basefile%.*}"
 [[ -z "$OUTDIR" ]] && OUTDIR="$dir"
 mkdir -p -- "$OUTDIR"
-[[ -z "$CONCAT_OUT" ]] && CONCAT_OUT="$OUTDIR/${prefix}-ALL.wav"
+[[ -z "$CONCAT_OUT" ]] && CONCAT_OUT="$OUTDIR/${prefix}.wav"
 
 $QUIET || {
   echo "Input: $FILE"
@@ -75,62 +73,16 @@ $QUIET || {
   echo "Combined output: $CONCAT_OUT"
 }
 
-# ---------- render (skip existing) ----------
-"$READ_CMD" --skip-existing -o "$OUTDIR" "$FILE"
+# ---------- ask read.sh to render + build combined ----------
+# --skip-existing to avoid re-rendering clips; read.sh will also skip rebuilding combined
+# if it already exists and --skip-existing is set.
+READ_ARGS=( --skip-existing -o "$OUTDIR" --rm-clips -O "$CONCAT_OUT" --gap-ms "$GAP_MS" )
+[[ -n "$TARGET_RATE" ]] && READ_ARGS+=( --target-rate "$TARGET_RATE" )
+[[ -n "$TARGET_CH"   ]] && READ_ARGS+=( --target-ch "$TARGET_CH" )
 
-# ---------- collect ----------
-shopt -s nullglob
-files=( "$OUTDIR/${prefix}-"*.wav )
-shopt -u nullglob
-(( ${#files[@]} > 0 )) || { echo "No rendered files in $OUTDIR matching ${prefix}-*.wav" >&2; exit 1; }
+"$READ_CMD" "${READ_ARGS[@]}" "$FILE"
 
-# ---------- choose target format (rate/ch) ----------
-detect_rate() { sox --i -r "$1"; }
-detect_ch()   { sox --i -c "$1"; }
-
-rate="${TARGET_RATE:-$(detect_rate "${files[0]}")}"
-ch="${TARGET_CH:-$(detect_ch   "${files[0]}")}"
-$QUIET || echo "Target format: ${rate} Hz, ${ch} channel(s)"
-
-# ---------- temp workspace ----------
-tmpdir="$(mktemp -d)"
-cleanup() { rm -rf "$tmpdir"; }
-trap cleanup EXIT
-
-# ---------- normalize each clip to target format ----------
-normalized=()
-for f in "${files[@]}"; do
-  fr=$(detect_rate "$f") || fr=""
-  fc=$(detect_ch "$f")   || fc=""
-  if [[ "$fr" != "$rate" || "$fc" != "$ch" ]]; then
-    out="$tmpdir/$(basename "$f")"
-    $QUIET || echo "Normalize: $(basename "$f") -> ${rate} Hz, ${ch} ch"
-    # Convert sample rate & channels; keep PCM WAV default
-    sox "$f" -r "$rate" -c "$ch" "$out"
-    normalized+=("$out")
-  else
-    normalized+=("$f")
-  fi
-done
-
-# ---------- build silence gap with matching format ----------
-gap_secs=$(awk -v m="$GAP_MS" 'BEGIN{printf "%.6f", m/1000}')
-silence="$tmpdir/gap_${GAP_MS}ms.wav"
-sox -n -r "$rate" -c "$ch" "$silence" trim 0 "$gap_secs"
-
-# ---------- concat sequence: clip1, gap, clip2, gap, ..., last clip ----------
-concat_inputs=()
-for ((i=0; i<${#normalized[@]}; i++)); do
-  concat_inputs+=("${normalized[i]}")
-  (( i < ${#normalized[@]}-1 )) && concat_inputs+=("$silence")
-done
-
-$QUIET || echo "Concatenating ${#files[@]} clip(s)…"
-sox "${concat_inputs[@]}" -r "$rate" -c "$ch" "$CONCAT_OUT"
-
-$QUIET || echo "Wrote: $CONCAT_OUT"
-
-# ---------- play ----------
+# ---------- pick a player ----------
 pick_player() {
   if command -v mpv >/dev/null 2>&1; then PLAYER_ARR=(mpv --really-quiet --no-video); return 0; fi
   if command -v ffplay >/dev/null 2>&1; then PLAYER_ARR=(ffplay -nodisp -autoexit -loglevel error); return 0; fi
@@ -138,6 +90,11 @@ pick_player() {
   if command -v aplay >/dev/null 2>&1; then PLAYER_ARR=(aplay -q); return 0; fi
   return 1
 }
+
+if ! [[ -s "$CONCAT_OUT" ]]; then
+  echo "ERROR: Combined file not found: $CONCAT_OUT" >&2
+  exit 1
+fi
 
 if pick_player; then
   $QUIET || echo "Playing combined file…"

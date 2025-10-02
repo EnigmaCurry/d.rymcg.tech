@@ -51,17 +51,16 @@ define TTS_TARGETS
 .PHONY: $(1) # Render $(1).txt to .wav files (do not skip existing)
 $(1): check-env
 	@mkdir -p "$(OUTDIR)"
-	$(READ) -o "$(OUTDIR)" $(1).txt
+	$(READ) -o "$(OUTDIR)" --rm-clips -O $(1).wav $(1).txt
 
 .PHONY: $(1).play # Render missing clips and play them in order
 $(1).play: check-env
 	@mkdir -p "$(OUTDIR)"
-	$(READ) --skip-existing -o "$(OUTDIR)" $(1).txt
 	GAP_MS=$(GAP_MS) $(PLAY) -o "$(OUTDIR)" $(1).txt
 
 .PHONY: $(1).clean # Remove rendered audio files for $(1).txt
 $(1).clean:
-	rm -f "$(OUTDIR)/$(1)-"*.wav
+	rm -f "$(OUTDIR)/$(1).wav" "$(OUTDIR)/$(1)-"*.wav
 endef
 # --------------------------------------
 
