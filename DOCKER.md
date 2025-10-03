@@ -16,8 +16,8 @@ This guide shows you how to install a Docker server and setup the firewall.
        to run Docker natively on AMD64.
      * [RASPBERRY_PI.md](RASPBERRY_PI.md) - Install Raspberry Pi OS to
        run Docker natively on Aarch64.
-     * [PROXMOX.md](PROXMOX.md) - Install Proxmox (PVE) ony PC to to
-       run Docker in a virtual machine.
+     * [PROXMOX.md](PROXMOX.md) - Install Proxmox (PVE) on a PC to to
+       run Docker in a virtual machine on AMD64.
      * [DIGITALOCEAN.md](DIGITALOCEAN.md) - Create a DigitalOcean
        droplet to run Docker in the cloud.
      * [AWS.md](AWS.md) - Create an AWS EC2 instance to run Docker in
