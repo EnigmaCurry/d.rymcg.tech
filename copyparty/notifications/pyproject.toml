@@ -1,0 +1,20 @@
+[project]
+name = "copyparty-notifications"
+version = "0.1.0"
+description = "Sidecar watcher for Copyparty uploads -> webhook/ntfy notifications"
+readme = "README.md"
+requires-python = ">=3.11"
+authors = [{ name = "You" }]
+
+dependencies = [
+  "watchfiles>=0.22",
+  "httpx>=0.27",
+  "pydantic>=2.8",
+  "python-json-logger>=2.0.7"
+]
+
+[project.scripts]
+copyparty-notifications = "copyparty_notifications.__main__:main"
+
+[tool.uv]
+# If you lock with `uv lock`, keep the lock file and use --frozen in Dockerfile

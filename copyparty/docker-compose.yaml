@@ -33,3 +33,27 @@ services:
       - data:/data
     # All labels are defined in the template: docker-compose.instance.yaml
     labels: []
+
+  notifications:
+    build:
+      context: notifications
+    restart: unless-stopped
+    user: "10001:10001"
+    read_only: true
+    security_opt:
+      - no-new-privileges:true
+    cap_drop: [ "ALL" ]
+    environment:
+      - COPYPARTY_NOTIFICATIONS_METHOD
+      - COPYPARTY_NOTIFICATIONS_WEBHOOK_URL
+      - COPYPARTY_NOTIFICATIONS_WEBHOOK_USERNAME
+      - COPYPARTY_NOTIFICATIONS_WEBHOOK_PASSWORD
+      - COPYPARTY_NOTIFICATIONS_WEBHOOK_TOKEN
+      - COPYPARTY_NOTIFICATIONS_NTFY_URL
+      - COPYPARTY_NOTIFICATIONS_NTFY_USERNAME
+      - COPYPARTY_NOTIFICATIONS_NTFY_PASSWORD
+      - COPYPARTY_NOTIFICATIONS_NTFY_TOKEN
+      - COPYPARTY_NOTIFICATIONS_MONITOR_VOLUMES
+      - COPYPARTY_NOTIFICATIONS_MONITOR_DEBOUNCE_SECONDS
+    volumes:
+      - data:/data
