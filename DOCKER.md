@@ -59,7 +59,7 @@ spaces). E.g., `widgets`:
 Enter the domain name or IP address of your Docker server:
 
 ```
-> Enter the fully qualified SSH Host DNS name or IP address : widgets.example.com
+> Enter the fully qualified SSH Host DNS name or IP address : 123.123.123.123
 ```
 
 Confirm that you want to save the config:
