@@ -3,7 +3,7 @@
 [Proxmox Virtual Environment
 (PVE)](https://www.proxmox.com/en/products/proxmox-virtual-environment/overview)
 is a powerful, open-source, Virtual Machine hypervisor that you can
-self-host on any AMD64 PC. PVE is a derriviative of Debian Linux and
+self-host on any AMD64 PC. PVE is a deriviative of Debian Linux and
 has a nice web interface (and API) for the administration of several
 virtual machines using the Linux Kernel Virtual Machine (KVM).
 
@@ -12,14 +12,15 @@ install several machines on one host PC. Each virtual machine has it's
 own network stack and execution environment. Virtualization lets you
 control the life and death of your Docker servers as if looking into a
 crystal ball. You can start, pause, stop, snapshot, clone, and backup
-all of your machines from the PVE control plane.
+all of your machines from the PVE control plane, like your own personal
+cloud service.
 
 ## Install Proxmox
 
 To install Proxmox, follow the blog series at
 [blog.rymcg.tech](https://blog.rymcg.tech/tags/proxmox/).
 
-For the purpose of setting up for Docker, you only need to follow
+For the purpose of setting this up for Docker, you only need to follow
 parts 1, 2, 3, and 5:
 
  * part 1: [Installation and Setup](https://blog.rymcg.tech/blog/proxmox/01-install/)
