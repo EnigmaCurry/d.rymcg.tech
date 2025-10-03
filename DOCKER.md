@@ -1,6 +1,6 @@
 # Docker
 
-This guide shows you how to install a Docker server.
+This guide shows you how to install a Docker server and setup the firewall.
 
 ## Requirements
 
