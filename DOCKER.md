@@ -44,7 +44,7 @@ This will confirm that you want to create a new context:
 
 It will ask if you want to create the SSH host config, or to use an
 existing one from `~/.ssh/config` (this example shows to create a new
-entry after pressing the down arrow key):
+entry):
 
 ```
 ? You must specify the SSH config entry to use  
