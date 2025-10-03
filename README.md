@@ -101,8 +101,8 @@ Follow these topical guides to get started:
  
 * Create a Docker server and configure the firewall:
  
-   * [DOCKER.md](DOCKER.md) - install Docker Engine on bare metal PC, Raspberry Pi, VM,
-     or cloud server.
+   * [DOCKER.md](DOCKER.md) - install Docker Engine on bare metal PC,
+     virtual machine, Raspberry Pi, or cloud server.
 
 * Install applications:
 

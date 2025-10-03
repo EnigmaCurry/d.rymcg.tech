@@ -11,14 +11,17 @@ This guide shows you how to install a Docker server and setup the firewall.
 
    * If you don't already have a Linux server, you can install one any of these ways:
 
-     * [DIGITALOCEAN.md](DIGITALOCEAN.md) - Create a Docker server on
-       DigitalOcean droplet.
-     * [AWS.md](AWS.md) - Create a Docker server on AWS EC2.
-     * [RASPBERRY_PI.md](RASPBERRY_PI.md) - Create a Docker server on a
-       Raspberry Pi.
      * Follow the [Debian GNU/Linux Installation
-       Guide](https://www.debian.org/releases/stable/amd64/) on any
-       PC.
+       Guide](https://www.debian.org/releases/stable/amd64/) on any PC
+       to run Docker natively on AMD64.
+     * [RASPBERRY_PI.md](RASPBERRY_PI.md) - Install Raspberry Pi OS to
+       run Docker natively on Aarch64.
+     * [PROXMOX.md](PROXMOX.md) - Install Proxmox (PVE) ony PC to to
+       run Docker in a virtual machine.
+     * [DIGITALOCEAN.md](DIGITALOCEAN.md) - Create a DigitalOcean
+       droplet to run Docker in the cloud.
+     * [AWS.md](AWS.md) - Create an AWS EC2 instance to run Docker in
+       the cloud.
 
  * You should already have your workstation setup:
 
