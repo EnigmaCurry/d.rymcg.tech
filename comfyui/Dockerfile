@@ -53,5 +53,6 @@ ARG HSA_OVERRIDE_GFX_VERSION
 ENV HSA_OVERRIDE_GFX_VERSION=${HSA_OVERRIDE_GFX_VERSION}
 ARG LOG_LEVEL
 ENV LOG_LEVEL=${LOG_LEVEL}
+VOLUME /ComfyUI
 ENTRYPOINT ["/entrypoint.sh"]
 CMD ["python3", "main.py", "--multi-user", "--listen 0.0.0.0", "--verbose", "${LOG_LEVEL}"]
