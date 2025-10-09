@@ -12,7 +12,7 @@ config-hook:
 	@${BIN}/reconfigure_ask ${ENV_FILE} ACME_DNS_LISTEN_IP_ADDRESS "Enter the HOST IP address of the network interface to bind to"
 	@${BIN}/reconfigure_ask ${ENV_FILE} ACME_DNS_PUBLIC_IP_ADDRESS "Enter the PUBLIC IP address of the Docker host (from perspective of the CA)" "$$(${BIN}/dotenv -f ${ENV_FILE} get ACME_DNS_LISTEN_IP_ADDRESS)"
 	@${BIN}/reconfigure_ask ${ENV_FILE} ACME_DNS_API_PORT "Enter the host API port to acme-dns should bind to"
-	@${BIN}/reconfigure_ask ${ENV_FILE} ACME_DNS_HOSTMASTER "Enter the email address for the administrator (SOA RNAME record)" root@example.com
+	@ALLOW_BLANK=1 ${BIN}/reconfigure_ask ${ENV_FILE} ACME_DNS_HOSTMASTER "Enter the email address for the administrator (SOA RNAME record or blank for none.)"
 	@echo ""
 
 .PHONY: install-hook-pre

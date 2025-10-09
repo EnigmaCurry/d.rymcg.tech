@@ -8,7 +8,8 @@ RUN chmod +x /entrypoint.sh /install-models.sh
 RUN apt-get update && \
     apt-get install -y --no-install-recommends wget git rsync dialog python3 python3-pip python3-venv ca-certificates curl && \
     rm -rf /var/lib/apt/lists/*
-RUN git clone --depth 1 --single-branch --branch ${COMFYUI_VERSION} https://github.com/comfyanonymous/ComfyUI.git
+RUN git clone --tags https://github.com/comfyanonymous/ComfyUI.git && \
+    git -C ComfyUI checkout ${COMFYUI_VERSION}
 
 # Install ComfyUI Manager extension
 WORKDIR /ComfyUI/custom_nodes
@@ -52,5 +53,6 @@ ARG HSA_OVERRIDE_GFX_VERSION
 ENV HSA_OVERRIDE_GFX_VERSION=${HSA_OVERRIDE_GFX_VERSION}
 ARG LOG_LEVEL
 ENV LOG_LEVEL=${LOG_LEVEL}
+VOLUME /ComfyUI
 ENTRYPOINT ["/entrypoint.sh"]
 CMD ["python3", "main.py", "--multi-user", "--listen 0.0.0.0", "--verbose", "${LOG_LEVEL}"]
