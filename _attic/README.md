@@ -12,4 +12,5 @@ Caveat Emptor!
 * [CryptPad](cryptpad) - a collaborative document and spreadsheet editor stuck on an old unsupported version.
 * [TiddlyWiki (WebDAV version)](tiddlywiki-webdav#readme) - a personal wiki stored in a single static HTML file
 * [TiddlyWiki (NodeJS version)](tiddlywiki-nodejs#readme) - Advanced server edition of TiddlyWiki with image CDN
+* [Tiny Tiny RSS](ttrss#readme) - an RSS reader / proxy
 * [Wireguard layer4 proxy](wireguard#readme) - This old wireguard config has been usurped by the traefik config.
