@@ -1,6 +1,6 @@
 [FreshRSS](https://freshrss.org/) is a self-host RSS aggregator.
 
-Compare with [ttrss](../ttrss)
+Compare with [ttrss](../_attic/ttrss)
 
 ## Config
 
