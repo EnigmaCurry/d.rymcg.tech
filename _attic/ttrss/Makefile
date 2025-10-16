@@ -1,4 +1,4 @@
-ROOT_DIR = ..
+ROOT_DIR = ../..
 include ${ROOT_DIR}/_scripts/Makefile.projects-custom-build
 include ${ROOT_DIR}/_scripts/Makefile.instance
 
