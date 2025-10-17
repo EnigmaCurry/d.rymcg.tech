@@ -14,6 +14,15 @@ not been implemented here yet.
 make config
 ```
 
+You must configure several env vars by hand by editing
+`.env_{CONTEXT}_{INSTANCE}`, or by running:
+
+```
+make config-edit
+```
+
+Read the documentation in the .env file.
+
 ### Authentication and Authorization
 
 See [AUTH.md](../AUTH.md) for information on adding external
@@ -23,6 +32,13 @@ Copyparty also has its own authorization system, providing
 fine-grained permissioned access to authenticated clients. Login is
 performed by password ONLY (no username needs to be entered. Also,
 passwords must be unique).
+
+### Create users
+
+Users and passwords must be defined in the .env file as a list of
+tuples:
+
+ * `COPYPARTY_USERS="mike:supersecret,ryan:hunter2"`
 
 ### Public and guest access
 
@@ -36,6 +52,17 @@ This config offers configurable public (download-only) and guest (upload-only) a
    unauthenticated guest upload permission is denied. To allow public
    uploads to the `/guest` sub-volume, set this variable's value to
    `true`.
+
+### Internal volumes
+
+To create directories under the default `/data` volume, and to create
+sections in the copyparty directory tree, configure
+`COPYPARTY_VOL_INTERNAL`:
+
+ * `COPYPARTY_VOL_INTERNAL=mike,photos/upload`
+  * This is a comma separated list of directories to create under
+    `/data`. Only the leaf directory gets mounted (e.g. `upload` not
+    `photos`.)
 
 ### External volumes
 
@@ -53,25 +80,21 @@ To do so, edit `COPYPARTY_VOL_EXTERNAL`, for example:
      give the directory liberal permissions so that the volume is
      writable by the copyparty user.)
 
-To set the volume permissions, edit `COPYPARTY_VOL_PERMISSIONS`:
+### Permissions
 
- * `COPYPARTY_VOL_PERMISSIONS=ryan-music:rw:ryan/erin,bob-pics:rw:bob,bob-pics:r:ryan`
+You must give each user permissions for each data section (volume/path): 
+
+ * `COPYPARTY_PERMISSIONS=/ryan-music:rw:ryan/erin,/bob-pics:rw:bob,/bob-pics:r:ryan`
    * This is a comma separated list of colon delimeted tuples:
-     `mount_name:permission:user_list`. 
-   * `mount_name` is the directory under `/mnt` where the volume will
-     will be mounted (e.g. `ryan-music` is mounted at
-     `/mnt/ryan-music`).
+     `mount_path:permission:user_list`. 
+   * `mount_path` is the section mount path (i.e. under `/mnt` or
+     `/data`.) This path must begin with `/`.
    * `permission` is the copyparty permission label (e.g., `r` for
      read-only, `w` for write-only, `rw` for read+write, `m` for
      modify, `d` for delete, `a` for admin, `rwmda` for
      read+write+modify+delete+admin)
    * `user_list` is a sub-list of users delimitted by `/` (forward
      slash) that inherit the permission.
-
-To do anything else, guests must authenticate with a password.
-
-To reconfigure these without re-running the entire `config` target,
-you may individually run `make config-users` and/or `make config-volumes`.
 
 ## Install
 

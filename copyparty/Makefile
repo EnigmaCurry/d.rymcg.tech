@@ -49,10 +49,3 @@ install-hook:
 install-hook-pre:
 	@echo
 
-.PHONY: config-users
-config-users:
-	@BIN=${BIN} ENV_FILE=${ENV_FILE} bash create_users.sh
-
-.PHONY: config-volumes
-config-volumes:
-	@BIN=${BIN} ENV_FILE=${ENV_FILE} bash create_volume_permissions.sh
