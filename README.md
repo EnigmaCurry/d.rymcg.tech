@@ -120,7 +120,8 @@ Follow these topical guides to get started:
  * [MAKEFILE_OPS.md](MAKEFILE_OPS.md) - how to write Makefiles.
  * [RCLONE.md](RCLONE.md) - create Docker volumes on top of remote/cloud storage (S3, SFTP, Dropbox, etc.)
  * [LICENSE.txt](LICENSE.txt) - the license for this project.
- 
+ * [Portable Docker: Build and Deploy Anywhere with WireGuard Tunneling](https://book.rymcg.tech/portable-docker/index.html) - a book about running a public Docker server at home, or while roaming, behind restrictive NAT routers, with the help from a public wireguard sentry server running in the cloud.
+
 ## Services
 
 Each of the sub-projects in this repository have their own `README.md`
