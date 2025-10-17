@@ -27,7 +27,7 @@ services:
     volumes:
       #@ if len(vol_external):
       #@ for vol,host_path in [x.split(":") for x in vol_external.split(",")]:
-      - (@= host_path @):/mnt/(@= vol @)
+      - (@= host_path @):/mnt/(@= vol @):z
       #@ end
       #@ end
     labels:

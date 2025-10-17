@@ -123,6 +123,8 @@ done
   echo "  e2dsa"
   echo "  e2ts"
   echo "  ansi"
+  echo "  xff-src: lan"
+  echo "  xff-hdr: X-Forwarded-For"
   echo "  p: ${PORT}"
   for f in "${optflags[@]}"; do echo "  ${f}"; done
   echo
