@@ -1,10 +1,8 @@
-# Open WebUI
+# Ollama
 
-[Open WebUI](https://github.com/open-webui/open-webui?tab=readme-ov-file)
-is an extensible, feature-rich, and user-friendly self-hosted AI
-platform designed to operate entirely offline. It supports various LLM
-runners like Ollama and OpenAI-compatible APIs, with built-in
-inference engine for RAG, making it a powerful AI deployment solution.
+[Ollama](https://github.com/ollama/ollama) is a local LLM
+runtime/engine that lets you run and interact with language models via
+simple API endpoints.
 
 ## Config
 
@@ -21,34 +19,20 @@ It automatically saves your responses into the configuration file
 See [AUTH.md](../AUTH.md) for information on adding external authentication on
 top of your app.
 
-## Exposing Ollama
-
-Open-WebUI is a front-end that lets you interact with language models
-served by Ollama and/or others LLM runners. Ollama is a local LLM
-runtime/engine that lets you run and interact with language models via
-simple API endpoints. By default, this installs only the Open-WebUI
-container, but you have the option to also install an Ollama
-container. If you do install Ollama, by default it's accessible only
-by the Open-WebUI container, but you will be asked if you want to
-expose the Ollama container to be able to access it from other apps or
-services, and if so, what domain you want Traefik to forward to it and
-what IP Source range(s) you want to be able to access it.
-
 ## Install
 
 ```
 make install
 ```
 
-## Open
+## Using Ollama
 
-```
-make open
-```
-
-This will automatically open the page in your web browser, and will
-prefill the HTTP Basic Authentication password if you enabled it
-(and chose to store it in `passwords.json`).
+There is no web frontend to Ollama. You use it via its REST API. You
+can `make shell` to enter a shell in the Ollama container and use it
+via its CLI ([here is a CLI
+reference](https://github.com/ollama/ollama?tab=readme-ov-file#cli-reference)),
+or you can use it via API calls ([here is the API
+documentation](https://github.com/ollama/ollama/blob/main/docs/api.md)).
 
 ## Destroy
 
