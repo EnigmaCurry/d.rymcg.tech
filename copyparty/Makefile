@@ -14,10 +14,6 @@ config-hook:
 	@${BIN}/reconfigure_ask ${ENV_FILE} COPYPARTY_ADMIN_USER "Enter the copyparty admin user name"
 	@${BIN}/reconfigure_ask ${ENV_FILE} COPYPARTY_ADMIN_PASSWORD "Enter a password for the admin user - DO NOT USE commas, colons, or spaces" $(shell openssl rand -base64 13)
 	@echo
-	@${MAKE} --no-print-directory config-users
-	@echo
-	@${MAKE} --no-print-directory config-volumes
-	@echo
 	@${BIN}/confirm $$(test "$$(${BIN}/dotenv -f ${ENV_FILE} get COPYPARTY_ENABLE_PUBLIC_ACCESS)" == "true" && echo "yes" || echo "no") "Do you want to allow unauthenticated public access (read only from /public volume)" "?" && ${BIN}/reconfigure ${ENV_FILE} COPYPARTY_ENABLE_PUBLIC_ACCESS=true || ${BIN}/reconfigure ${ENV_FILE} COPYPARTY_ENABLE_PUBLIC_ACCESS=false
 	@echo
 	@${BIN}/confirm $$(test "$$(${BIN}/dotenv -f ${ENV_FILE} get COPYPARTY_ENABLE_GUEST_ACCESS)" == "true" && echo "yes" || echo "no") "Do you want to allow unauthenticated guest access (upload only to /guest volume)" "?" && ${BIN}/reconfigure ${ENV_FILE} COPYPARTY_ENABLE_GUEST_ACCESS=true || ${BIN}/reconfigure ${ENV_FILE} COPYPARTY_ENABLE_GUEST_ACCESS=false
