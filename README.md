@@ -66,10 +66,10 @@ workstation.
    make whoami config`, `prod make whoami install`.) and which are not
    dependent on the current context.
 
- * This repository only offers services that have open source
-   licenses. You may create your own projects in external git
-   repositories, license them however you wish, and still benefit from
-   the same command line tooling.
+ * This repository is non-proprietary and designed for anyone to use.
+   It only offers services that have open source licenses. You may create
+   your own projects in external git repositories, license them however
+   you wish, and still benefit from the same command line tooling.
 
  * [Traefik](traefik#traefik) is deployed as the front door proxy for
    all of your services (HTTP / TCP / UDP). Traefik provides TLS
