@@ -133,6 +133,10 @@ services:
     profiles:
       - default
     depends_on: ['config']
+    group_add:
+      - "${TRAEFIK_DOCKER_GID}"
+    security_opt:
+      - label=type:container_runtime_t
     build:
       context: .
       args:
@@ -170,7 +174,7 @@ services:
     volumes:
       - "traefik:/data"
       - "traefik_certs:/certs"
-      - "/var/run/docker.sock:/var/run/docker.sock:ro"
+      - "/var/run/docker.sock:/var/run/docker.sock:ro,z"
       - "geoip_database:/var/lib/traefikgeoip2/"
     labels:
       - "TRAEFIK_HEADER_AUTHORIZATION_GROUPS=${TRAEFIK_HEADER_AUTHORIZATION_GROUPS}"
