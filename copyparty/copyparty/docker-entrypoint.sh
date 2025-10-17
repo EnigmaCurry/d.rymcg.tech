@@ -125,6 +125,9 @@ done
   echo "  ansi"
   echo "  xff-src: lan"
   echo "  xff-hdr: X-Forwarded-For"
+  echo "  shr: /share"
+  echo "  shr-who: a"
+  echo "  shr-adm: admin"
   echo "  p: ${PORT}"
   for f in "${optflags[@]}"; do echo "  ${f}"; done
   echo
