@@ -67,9 +67,11 @@ workstation.
    dependent on the current context.
 
  * This repository is non-proprietary and designed for anyone to use.
-   It only offers services that have open source licenses. You may create
-   your own projects in external git repositories, license them however
-   you wish, and still benefit from the same command line tooling.
+   It only offers services that have open source licenses. If you would
+   like to add additional open-source services to this repository, consider
+   opening a Pull Request to add to this collection. You may also create
+   projects in external git repositories, license them however you wish,
+   and still benefit from the same command line tooling.
 
  * [Traefik](traefik#traefik) is deployed as the front door proxy for
    all of your services (HTTP / TCP / UDP). Traefik provides TLS
