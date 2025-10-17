@@ -4,6 +4,8 @@
 log:
   level: #@ data.values.log_level
 
+ping: {}
+
 #@ if data.values.access_logs_enabled == "true":
 accessLog:
   filePath: #@ data.values.access_logs_path
