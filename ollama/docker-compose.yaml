@@ -6,20 +6,6 @@ x-ollama-common: &ollama-common
       - "backup-volume.stop-during-backup=true"
 
 services:
-  openwebui:
-    image: ${OPENWEBUI_IMAGE}
-    cap_drop:
-      - ALL
-    security_opt:
-      - no-new-privileges:true
-    sysctls:
-      - net.ipv4.ip_unprivileged_port_start=1024
-    restart: unless-stopped
-    environment:
-      - OLLAMA_BASE_URL=http://ollama-${DOCKER_COMPOSE_PROFILES}:11434
-      - ENV=${OPENWEBUI_ENV}
-    labels: []
-
   ollama-rocm:
     profiles:
       - rocm
@@ -27,7 +13,7 @@ services:
     build:
       context: ollama-rocm
       args:
-        - OPENWEBUI_OLLAMA_IMAGE=${OPENWEBUI_OLLAMA_IMAGE}
+        - OLLAMA_IMAGE=${OLLAMA_IMAGE}
     devices:
       - /dev/kfd
       - /dev/dri
@@ -49,7 +35,7 @@ services:
     profiles:
       - cuda
     <<: *ollama-common
-    image: ${OPENWEBUI_OLLAMA_IMAGE}
+    image: ${OLLAMA_IMAGE}
     cap_drop:
       - ALL
     security_opt:
@@ -63,11 +49,14 @@ services:
     profiles:
       - cpu
     <<: *ollama-common
-    image: ${OPENWEBUI_OLLAMA_IMAGE}
+    image: ${OLLAMA_IMAGE}
     cap_drop:
       - ALL
     security_opt:
       - no-new-privileges:true
     sysctls:
       - net.ipv4.ip_unprivileged_port_start=1024
+
+volumes:
+  ollama:
   

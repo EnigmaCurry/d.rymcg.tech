@@ -1,0 +1,64 @@
+#! This is a ytt template file for docker-compose.override.yaml
+#! References:
+#!   https://carvel.dev/ytt
+#!   https://docs.docker.com/compose/extends/#adding-and-overriding-configuration
+#!   https://github.com/enigmacurry/d.rymcg.tech#overriding-docker-composeyaml-per-instance
+
+#! ### Standard project vars:
+#@ load("@ytt:data", "data")
+#@ project = data.values.project
+#@ instance = data.values.instance
+#@ context = data.values.context
+#@ traefik_host = data.values.traefik_host
+#@ ip_sourcerange = data.values.ip_sourcerange
+#@ enable_http_auth = len(data.values.http_auth.strip()) > 0
+#@ http_auth = data.values.http_auth_var
+#@ enable_oauth2 = data.values.oauth2 == "true"
+#@ authorized_group = data.values.authorized_group
+#@ enable_mtls_auth = data.values.enable_mtls_auth == "true"
+#@ mtls_authorized_certs = data.values.mtls_authorized_certs
+#@ enabled_middlewares = []
+
+#! ### Project-specific vars:
+#@ models_host_path = data.values.models_host_path
+#@ compose_profile = data.values.compose_profile
+
+#@ def ollama_service(profile):
+#@   service = "ollama-" + profile
+#@   router = "{}-{}-{}".format(project, instance, service)
+#@   labels = []
+#@   middlewares = []
+#@   labels.append("traefik.enable=true")
+#@   labels.append("traefik.http.routers.{}.rule=Host(`{}`)".format(router, traefik_host))
+#@   labels.append("traefik.http.routers.{}.entrypoints=websecure".format(router))
+#@   middlewares.append("{}-ipallowlist".format(router))
+#@   labels.append("traefik.http.middlewares.{}-ipallowlist.ipallowlist.sourcerange={}".format(router, ip_sourcerange))
+#@   labels.append("traefik.http.routers.{}.middlewares={}".format(router, ",".join(middlewares)))
+#@   volumes = []
+#@   if models_host_path != "":
+#@     volumes = ["{}:/root/.ollama/models".format(models_host_path)]
+#@   end
+#@   return {
+#@     service: {
+#@       "volumes": volumes,
+#@       "labels": labels
+#@     }
+#@   }
+#@ end
+
+#@yaml/text-templated-strings
+services:
+  #@ if compose_profile in ["rocm", "cuda", "cpu"]:
+  #@ service_def = ollama_service(compose_profile)
+  #@ for name, config in service_def.items():
+  (@= name @):
+    #@ for key, val in config.items():
+    #@ if val != []:
+    (@= key @):
+      #@ for item in val:
+      - (@= item @)
+      #@ end
+    #@ end
+    #@ end
+  #@ end
+  #@ end
