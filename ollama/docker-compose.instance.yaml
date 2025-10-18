@@ -56,7 +56,6 @@
 
 #@yaml/text-templated-strings
 services:
-  #@ if compose_profile in ["rocm", "cuda", "cpu"]:
   #@ service_def = ollama_service(compose_profile)
   #@ for name, config in service_def.items():
   (@= name @):
@@ -68,5 +67,4 @@ services:
       #@ end
     #@ end
     #@ end
-  #@ end
   #@ end
