@@ -107,3 +107,4 @@ volumes:
   #@ if enable_ollama:
   ollama:
   #@ end
+

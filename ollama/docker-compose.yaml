@@ -1,15 +1,8 @@
-x-ollama-common: &ollama-common
-    restart: unless-stopped
-    volumes:
-      - ollama:/root/.ollama
-    labels:
-      - "backup-volume.stop-during-backup=true"
-
 services:
   ollama-rocm:
     profiles:
       - rocm
-    <<: *ollama-common
+    restart: unless-stopped
     build:
       context: ollama-rocm
       args:
@@ -34,7 +27,6 @@ services:
   ollama-cuda:
     profiles:
       - cuda
-    <<: *ollama-common
     image: ${OLLAMA_IMAGE}
     cap_drop:
       - ALL
@@ -48,7 +40,7 @@ services:
   ollama-cpu:
     profiles:
       - cpu
-    <<: *ollama-common
+    restart: unless-stopped
     image: ${OLLAMA_IMAGE}
     cap_drop:
       - ALL
