@@ -21,8 +21,7 @@ services:
     sysctls:
       - net.ipv4.ip_unprivileged_port_start=1024
     environment:
-      # HSA_OVERRIDE_GFX_VERSION should probably be variablized
-      - HSA_OVERRIDE_GFX_VERSION=11.0.0
+      - HSA_OVERRIDE_GFX_VERSION=${OLLAMA_HSA_OVERRIDE_GFX_VERSION}
 
   ollama-cuda:
     profiles:

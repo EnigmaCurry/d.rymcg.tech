@@ -15,6 +15,13 @@ config-hook:
 	@echo "Enter the processing engine to use: cuda (for nvidia GPUs), rocm (for AMD GPUs), or cpu (to use only the CPU)."
 	@${BIN}/reconfigure_compose_profiles_choose ${ENV_FILE} rocm="AMD GPU" cuda="Nvidia GPU" cpu="CPU only"
 	@echo
+	@if [[ "$$(${BIN}/dotenv -f ${ENV_FILE} get DOCKER_COMPOSE_PROFILES)" == "rocm" ]]; then \
+	    echo "If your GPU isn't officially supported by ROCm, you can set OLLAMA_HSA_OVERRIDE_GFX_VERSION to a value that matches your GPU’s architecture (e.g., \"10.3.0\"). Leave blank if your GPU is supported by ROCm."; \
+		ALLOW_BLANK=1 ${BIN}/reconfigure_ask ${ENV_FILE} OLLAMA_HSA_OVERRIDE_GFX_VERSION "Enter your AMD GPU's architecture version" ; \
+		echo ""; \
+	else \
+		${BIN}/reconfigure ${ENV_FILE} "OLLAMA_HSA_OVERRIDE_GFX_VERSION="; \
+	fi
 	@ALLOW_BLANK=1 ${BIN}/reconfigure_ask ${ENV_FILE} OLLAMA_MODELS_HOST_PATH "If you want to save models in a specific directory on the host, enter the path here, or leave blank to save models to the Ollama container's named Docker volume."
 	@echo
 	@${BIN}/confirm $$(test -n "$$(${BIN}/dotenv -f ${ENV_FILE} get OLLAMA_API_TOKEN)" && echo yes || echo no) "Do you want to require an API token to access this service" "?" && ( \
