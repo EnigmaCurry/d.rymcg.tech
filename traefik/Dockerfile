@@ -33,7 +33,7 @@ FROM ${TRAEFIK_IMAGE} as traefik
 ARG TRAEFIK_UID TRAEFIK_GID TRAEFIK_DOCKER_GID
 COPY --from=plugins /plugins-local /plugins-local
 COPY entrypoint.sh  /entrypoint_ensure_config.sh
-RUN apk --no-cache add curl jq bind-tools libcap step-cli && \
+RUN apk --no-cache add curl jq bind-tools libcap step-cli openssl && \
     chmod a+x /entrypoint_ensure_config.sh && \
     addgroup -g ${TRAEFIK_GID} traefik && \
     getent group ${TRAEFIK_DOCKER_GID} || addgroup -g ${TRAEFIK_DOCKER_GID} docker && \
@@ -43,10 +43,19 @@ RUN apk --no-cache add curl jq bind-tools libcap step-cli && \
     chown traefik:traefik /data && \
     setcap cap_net_bind_service=+ep /usr/local/bin/traefik
 ARG STEP_CA_ENABLED STEP_CA_ENDPOINT STEP_CA_FINGERPRINT
-RUN test "${STEP_CA_ENABLED}" != "true" && exit || \
-    step ca bootstrap --ca-url "${STEP_CA_ENDPOINT}" --install --force --fingerprint "${STEP_CA_FINGERPRINT}" && \
-    step ca roots > /step_ca_root.crt && \
-    chmod 0444 /step_ca_root.crt
+# Get Step CA root + derive intermediate from the CA endpoint's chain
+RUN if [ "${STEP_CA_ENABLED}" != "true" ]; then \
+      exit 0; \
+    else \
+      step ca bootstrap --ca-url "${STEP_CA_ENDPOINT}" --install --force --fingerprint "${STEP_CA_FINGERPRINT}" && \
+      step ca roots > /step_ca_root.crt && chmod 0444 /step_ca_root.crt && \
+      step certificate inspect "${STEP_CA_ENDPOINT}" --roots "/step_ca_root.crt" --format pem --bundle \
+        | awk 'BEGIN{b=0} /-----BEGIN CERTIFICATE-----/{b++} b==2{print} /-----END CERTIFICATE-----/{if(b==2) exit}' \
+        > /step_ca_intermediate.crt && \
+      chmod 0444 /step_ca_intermediate.crt && \
+      # quick sanity: intermediate must be a CA cert
+      openssl x509 -in /step_ca_intermediate.crt -noout -text | grep -q "CA:TRUE"; \
+    fi
 ARG STEP_CA_ZERO_CERTS
 RUN test "${STEP_CA_ZERO_CERTS}" != "true" && exit || \
     rm -f /etc/ssl/certs/* && \
