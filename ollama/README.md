@@ -16,8 +16,11 @@ It automatically saves your responses into the configuration file
 
 ### Authentication and Authorization
 
-See [AUTH.md](../AUTH.md) for information on adding external authentication on
-top of your app.
+You may add an API token to secure your service by setting
+`OLLAMA_API_TOKEN` in the `.env_{CONTEXT}_{INSTANCE}` file.
+
+See [AUTH.md](../AUTH.md) for information on adding external
+authentication on top of your app.
 
 ## Install
 
