@@ -11,13 +11,13 @@ config-hook:
 	@${BIN}/reconfigure_ask ${ENV_FILE} OPENWEBUI_TRAEFIK_HOST "Enter the Open-WebUI domain name" openwebui${INSTANCE_URL_SUFFIX}.${ROOT_DOMAIN}
 	@${BIN}/reconfigure ${ENV_FILE} OPENWEBUI_INSTANCE=$${instance:-default}
 	@${BIN}/reconfigure_auth ${ENV_FILE} OPENWEBUI
-	@echo
+	@echo ""
 	@${BIN}/confirm $$(test "$$(${BIN}/dotenv -f ${ENV_FILE} get OPENWEBUI_OLLAMA_ENABLE)" == 'false' && echo no || echo yes) "Do you want to install Ollama" "?" && ( \
 		${BIN}/reconfigure ${ENV_FILE} OPENWEBUI_OLLAMA_ENABLE=true && \
-		echo && \
+		echo "" && \
 		echo "Enter the processing engine to use: cuda (for nvidia GPUs), rocm (for AMD GPUs), or cpu (to use only the CPU)." && \
 		${BIN}/reconfigure_compose_profiles_choose ${ENV_FILE} rocm="AMD GPU" cuda="Nvidia GPU" cpu="CPU only" && \
-		echo && \
+		echo "" && \
 		if [[ "$$(${BIN}/dotenv -f ${ENV_FILE} get DOCKER_COMPOSE_PROFILES)" == "rocm" ]]; then \
 	    	echo "If your GPU isn't officially supported by ROCm, you can set OPENWEBUI_OLLAMA_HSA_OVERRIDE_GFX_VERSION to a value that matches your GPU’s architecture (e.g., \"10.3.0\"). Leave blank if your GPU is supported by ROCm."; \
 			ALLOW_BLANK=1 ${BIN}/reconfigure_ask ${ENV_FILE} OPENWEBUI_OLLAMA_HSA_OVERRIDE_GFX_VERSION "Enter your AMD GPU's architecture version"; \
@@ -49,7 +49,11 @@ override-hook:
 .PHONY: shell
 shell:
 	@if [ -z "$(service)" ]; then \
-		container=$$(eval "${BIN}/script-wizard choose 'docker exec -it into which container?' 'openwebui' 'ollama-$$(${BIN}/dotenv -f ${ENV_FILE} get DOCKER_COMPOSE_PROFILES)' --default 'openwebui'") && make --no-print-directory docker-compose-shell SERVICE=$${container}; \
+		if [[ "$$(${BIN}/dotenv -f ${ENV_FILE} get OPENWEBUI_OLLAMA_ENABLE)" == "true" ]]; then \
+			container=$$(eval "${BIN}/script-wizard choose 'docker exec -it into which container?' 'openwebui' 'ollama-$$(${BIN}/dotenv -f ${ENV_FILE} get DOCKER_COMPOSE_PROFILES)' --default 'openwebui'") && make --no-print-directory docker-compose-shell SERVICE=$${container}; \
+		else \
+			make --no-print-directory docker-compose-shell SERVICE=openwebui; \
+		fi \
 	else \
 		make --no-print-directory docker-compose-shell SERVICE=$$(service); \
 	fi;
