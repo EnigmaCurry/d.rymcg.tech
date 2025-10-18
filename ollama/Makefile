@@ -11,10 +11,10 @@ config-hook:
 	@${BIN}/reconfigure_ask ${ENV_FILE} OLLAMA_TRAEFIK_HOST "Enter the Ollama domain name" ollama${INSTANCE_URL_SUFFIX}.${ROOT_DOMAIN}
 	@${BIN}/reconfigure ${ENV_FILE} OLLAMA_INSTANCE=$${instance:-default}
 	@${BIN}/reconfigure_auth ${ENV_FILE} OLLAMA
-	@echo
+	@echo ""
 	@echo "Enter the processing engine to use: cuda (for nvidia GPUs), rocm (for AMD GPUs), or cpu (to use only the CPU)."
 	@${BIN}/reconfigure_compose_profiles_choose ${ENV_FILE} rocm="AMD GPU" cuda="Nvidia GPU" cpu="CPU only"
-	@echo
+	@echo ""
 	@if [[ "$$(${BIN}/dotenv -f ${ENV_FILE} get DOCKER_COMPOSE_PROFILES)" == "rocm" ]]; then \
 	    echo "If your GPU isn't officially supported by ROCm, you can set OLLAMA_HSA_OVERRIDE_GFX_VERSION to a value that matches your GPU’s architecture (e.g., \"10.3.0\"). Leave blank if your GPU is supported by ROCm."; \
 		ALLOW_BLANK=1 ${BIN}/reconfigure_ask ${ENV_FILE} OLLAMA_HSA_OVERRIDE_GFX_VERSION "Enter your AMD GPU's architecture version" ; \
