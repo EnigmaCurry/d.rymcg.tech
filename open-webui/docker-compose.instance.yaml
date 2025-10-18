@@ -22,23 +22,13 @@
 #! ### Project-specific vars:
 #@ models_host_path = data.values.models_host_path
 #@ compose_profile = data.values.compose_profile
-#@ expose_ollama = data.values.expose_ollama == "true"
-#@ ollama_traefik_host = data.values.ollama_traefik_host
-#@ ollama_ip_sourcerange = data.values.ollama_ip_sourcerange
+#@ enable_ollama = data.values.enable_ollama == "true"
 
 #@ def ollama_service(profile):
 #@   service = "ollama-" + profile
 #@   router = "{}-{}-{}".format(project, instance, service)
 #@   labels = []
 #@   middlewares = []
-#@   if expose_ollama:
-#@     labels.append("traefik.enable=true")
-#@     labels.append("traefik.http.routers.{}.rule=Host(`{}`)".format(router, ollama_traefik_host))
-#@     labels.append("traefik.http.routers.{}.entrypoints=websecure".format(router))
-#@     middlewares.append("{}-ipallowlist".format(router))
-#@     labels.append("traefik.http.middlewares.{}-ipallowlist.ipallowlist.sourcerange={}".format(router, ollama_ip_sourcerange))
-#@     labels.append("traefik.http.routers.{}.middlewares={}".format(router, ",".join(middlewares)))
-#@   end
 #@   volumes = []
 #@   if models_host_path != "":
 #@     volumes = ["{}:/root/.ollama/models".format(models_host_path)]
@@ -53,7 +43,7 @@
 
 #@yaml/text-templated-strings
 services:
-  #@ if compose_profile in ["rocm", "cuda", "cpu"]:
+  #@ if enable_ollama and compose_profile in ["rocm", "cuda", "cpu"]:
   #@ service_def = ollama_service(compose_profile)
   #@ for name, config in service_def.items():
   (@= name @):
@@ -106,3 +96,15 @@ services:
 
       #! Apply all middlewares (do this at the end!)
       - "traefik.http.routers.(@= router @).middlewares=(@= ','.join(enabled_middlewares) @)"
+    volumes:
+      - openwebui:/app/backend/data
+      #@ if enable_ollama:
+      - ollama:/root/.ollama
+      #@ end
+
+volumes:
+  openwebui:
+  #@ if enable_ollama:
+  ollama:
+  #@ end
+

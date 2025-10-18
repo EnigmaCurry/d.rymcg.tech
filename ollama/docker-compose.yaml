@@ -1,18 +1,4 @@
 services:
-  openwebui:
-    image: ${OPENWEBUI_IMAGE}
-    cap_drop:
-      - ALL
-    security_opt:
-      - no-new-privileges:true
-    sysctls:
-      - net.ipv4.ip_unprivileged_port_start=1024
-    restart: unless-stopped
-    environment:
-      - OLLAMA_BASE_URL=http://ollama-${DOCKER_COMPOSE_PROFILES}:11434
-      - ENV=${OPENWEBUI_ENV}
-    labels: []
-
   ollama-rocm:
     profiles:
       - rocm
@@ -20,9 +6,7 @@ services:
     build:
       context: ollama-rocm
       args:
-        - OPENWEBUI_OLLAMA_IMAGE=${OPENWEBUI_OLLAMA_IMAGE}
-    volumes:
-      - ollama:/root/.ollama
+        - OLLAMA_IMAGE=${OLLAMA_IMAGE}
     devices:
       - /dev/kfd
       - /dev/dri
@@ -37,14 +21,12 @@ services:
     sysctls:
       - net.ipv4.ip_unprivileged_port_start=1024
     environment:
-      - HSA_OVERRIDE_GFX_VERSION=${OPENWEBUI_OLLAMA_HSA_OVERRIDE_GFX_VERSION}
+      - HSA_OVERRIDE_GFX_VERSION=${OLLAMA_HSA_OVERRIDE_GFX_VERSION}
 
   ollama-cuda:
     profiles:
       - cuda
-    image: ${OPENWEBUI_OLLAMA_IMAGE}
-    volumes:
-      - ollama:/root/.ollama
+    image: ${OLLAMA_IMAGE}
     cap_drop:
       - ALL
     security_opt:
@@ -58,13 +40,14 @@ services:
     profiles:
       - cpu
     restart: unless-stopped
-    image: ${OPENWEBUI_OLLAMA_IMAGE}
-    volumes:
-      - ollama:/root/.ollama
+    image: ${OLLAMA_IMAGE}
     cap_drop:
       - ALL
     security_opt:
       - no-new-privileges:true
     sysctls:
       - net.ipv4.ip_unprivileged_port_start=1024
+
+volumes:
+  ollama:
   
