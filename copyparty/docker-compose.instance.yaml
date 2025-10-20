@@ -76,7 +76,7 @@ services:
       #! Homepage (portal):
       #! See https://gethomepage.dev/configs/docker/#automatic-service-discovery
       - homepage.group=Storage
-      - homepage.name=copyparty
+      - homepage.name=Copyparty
       - homepage.icon=copyparty
       - homepage.href=https://(@= traefik_host @)
       - homepage.description=Centralized file sharing platform

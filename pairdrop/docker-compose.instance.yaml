@@ -60,3 +60,11 @@ services:
       
       #! Apply all middlewares (do this at the end!)
       - "traefik.http.routers.(@= router @).middlewares=(@= ','.join(enabled_middlewares) @)"
+
+      #! Homepage (portal):
+      #! See https://gethomepage.dev/configs/docker/#automatic-service-discovery
+      - homepage.group=Network
+      - homepage.name=Pairdrop
+      - homepage.icon=pairdrop
+      - homepage.href=https://(@= traefik_host @)
+      - homepage.description=P2P file and message transfer via webrtc
