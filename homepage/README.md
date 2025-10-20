@@ -102,7 +102,7 @@ restart of the container.
 Second you must configure your Forgejo, Github, or Gitlab repository to
 add the webhook.
 
- * Webhook URL is of the format: `https://homepage.example.com/reloader/restart`
+ * Webhook URL is of the format: `https://homepage-webhook.example.com/reloader/restart`
  * Choose the data type: `application/json`
  * Webhook Secret is found in your `.env_{INSTANCE}` as
    `HOMEPAGE_RELOADER_HMAC_SECRET`. This secret is used to validate

@@ -48,7 +48,7 @@ services:
     volumes:
       - config:/app/config
       #@ if enable_docker:
-      - /var/run/docker.sock:/var/run/docker.sock:ro #! (optional) For docker integrations
+      - /var/run/docker.sock:/var/run/docker.sock:ro,z #! (optional) For docker integrations
       #@ end
       - config:/app/public/images #! (optional) So Homepage can use images from config dir
       #@ for vol in volume_mounts:
