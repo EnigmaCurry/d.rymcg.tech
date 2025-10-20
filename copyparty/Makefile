@@ -35,7 +35,7 @@ override-hook:
 ####                         # (this hardcodes the string into docker-compose.override.yaml)
 ####   name=@VARIABLE_NAME   # sets the template 'name' field to the literal string '${VARIABLE_NAME}'
 ####                         # (used for regular docker-compose expansion of env vars by name.)
-	@${BIN}/docker_compose_override ${ENV_FILE} project=:copyparty instance=@COPYPARTY_INSTANCE traefik_host=@COPYPARTY_TRAEFIK_HOST http_auth=COPYPARTY_HTTP_AUTH http_auth_var=@COPYPARTY_HTTP_AUTH ip_sourcerange=@COPYPARTY_IP_SOURCERANGE oauth2=COPYPARTY_OAUTH2 authorized_group=COPYPARTY_OAUTH2_AUTHORIZED_GROUP enable_mtls_auth=COPYPARTY_MTLS_AUTH mtls_authorized_certs=COPYPARTY_MTLS_AUTHORIZED_CERTS vol_external=COPYPARTY_VOL_EXTERNAL
+	@${BIN}/docker_compose_override ${ENV_FILE} project=:copyparty instance=@COPYPARTY_INSTANCE traefik_host=@COPYPARTY_TRAEFIK_HOST http_auth=COPYPARTY_HTTP_AUTH http_auth_var=@COPYPARTY_HTTP_AUTH ip_sourcerange=@COPYPARTY_IP_SOURCERANGE oauth2=COPYPARTY_OAUTH2 authorized_group=COPYPARTY_OAUTH2_AUTHORIZED_GROUP enable_mtls_auth=COPYPARTY_MTLS_AUTH mtls_authorized_certs=COPYPARTY_MTLS_AUTHORIZED_CERTS vol_external=COPYPARTY_VOL_EXTERNAL homepage_labels_enable=COPYPARTY_HOMEPAGE_LABELS_ENABLE homepage_group_copyparty=COPYPARTY_HOMEPAGE_GROUP_COPYPARTY homepage_name_copyparty=COPYPARTY_HOMEPAGE_NAME_COPYPARTY homepage_icon_copyparty=COPYPARTY_HOMEPAGE_ICON_COPYPARTY homepage_description_copyparty=COPYPARTY_HOMEPAGE_DESCRIPTION_COPYPARTY homepage_show_stats_copyparty=COPYPARTY_HOMEPAGE_SHOW_STATS_COPYPARTY 
 
 .PHONY: shell # Enter container shell
 shell:
