@@ -2,5 +2,5 @@ tls:
   options:
     step_ca_mTLS:
       clientAuth:
-        caFiles: ["/step_ca_root.crt"]
+        caFiles: ["/step_ca_intermediate.crt"]
         clientAuthType: "RequireAndVerifyClientCert"
