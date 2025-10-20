@@ -73,7 +73,6 @@ services:
       #! Homepage (portal):
       #! See https://gethomepage.dev/configs/docker/#automatic-service-discovery
       #@ if homepage_labels_enable:
-      - homepage.test=blah
       - homepage.group=(@= homepage_group_whoami @)
       - homepage.name=(@= homepage_name_whoami @)
       - homepage.icon=(@= homepage_icon_whoami @)
