@@ -18,6 +18,14 @@
 #@ enable_mtls_auth = data.values.enable_mtls_auth == "true"
 #@ mtls_authorized_certs = data.values.mtls_authorized_certs
 #@ enabled_middlewares = []
+#@ homepage_labels_enable = data.values.homepage_labels_enable == "true"
+#@ homepage_group_pairdrop = data.values.homepage_group_pairdrop
+#@ homepage_name_pairdrop = data.values.homepage_name_pairdrop
+#@ homepage_icon_pairdrop = data.values.homepage_icon_pairdrop
+#@ homepage_description_pairdrop = data.values.homepage_description_pairdrop
+#@ homepage_show_stats_pairdrop = data.values.homepage_show_stats_pairdrop
+#@ homepage_widget_enable = data.values.homepage_widget_enable == "true"
+#@ homepage_widget_api_key = data.values.homepage_widget_api_key
 
 #@yaml/text-templated-strings
 services:
@@ -63,8 +71,11 @@ services:
 
       #! Homepage (portal):
       #! See https://gethomepage.dev/configs/docker/#automatic-service-discovery
-      - homepage.group=Network
-      - homepage.name=Pairdrop
-      - homepage.icon=pairdrop
+      #@ if homepage_labels_enable:
+      - homepage.group=(@= homepage_group_pairdrop @)
+      - homepage.name=(@= homepage_name_pairdrop @)
+      - homepage.icon=(@= homepage_icon_pairdrop @)
       - homepage.href=https://(@= traefik_host @)
-      - homepage.description=P2P file and message transfer via webrtc
+      - homepage.description=(@= homepage_description_pairdrop @)
+      - homepage.showStats=(@= homepage_show_stats_pairdrop @)
+      #@ end

@@ -18,6 +18,12 @@
 #@ enable_mtls_auth = data.values.enable_mtls_auth == "true"
 #@ mtls_authorized_certs = data.values.mtls_authorized_certs
 #@ enabled_middlewares = []
+#@ homepage_labels_enable = data.values.homepage_labels_enable == "true"
+#@ homepage_group_openwebui = data.values.homepage_group_openwebui
+#@ homepage_name_openwebui = data.values.homepage_name_openwebui
+#@ homepage_icon_openwebui = data.values.homepage_icon_openwebui
+#@ homepage_description_openwebui = data.values.homepage_description_openwebui
+#@ homepage_show_stats_openwebui = data.values.homepage_show_stats_openwebui
 
 #! ### Project-specific vars:
 #@ models_host_path = data.values.models_host_path
@@ -96,14 +102,16 @@ services:
 
       #! Apply all middlewares (do this at the end!)
       - "traefik.http.routers.(@= router @).middlewares=(@= ','.join(enabled_middlewares) @)"
-
       #! Homepage (portal):
       #! See https://gethomepage.dev/configs/docker/#automatic-service-discovery
-      - homepage.group=AI
-      - homepage.name=Open WebUI
-      - homepage.icon=open-webui
+      #@ if homepage_labels_enable:
+      - homepage.group=(@= homepage_group_openwebui @)
+      - homepage.name=(@= homepage_name_openwebui @)
+      - homepage.icon=(@= homepage_icon_openwebui @)
       - homepage.href=https://(@= traefik_host @)
-      - homepage.description=Chat based LLM and AI platform
+      - homepage.description=(@= homepage_description_openwebui @)
+      - homepage.showStats=(@= homepage_show_stats_openwebui @)
+      #@ end
 
     volumes:
       - openwebui:/app/backend/data
