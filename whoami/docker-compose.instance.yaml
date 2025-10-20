@@ -24,6 +24,8 @@
 #@ homepage_icon_whoami = data.values.homepage_icon_whoami
 #@ homepage_description_whoami = data.values.homepage_description_whoami
 #@ homepage_show_stats_whoami = data.values.homepage_show_stats_whoami
+#@ homepage_widget_enable = data.values.homepage_widget_enable == "true"
+#@ homepage_widget_api_key = data.values.homepage_widget_api_key
 #@yaml/text-templated-strings
 services:
   whoami:
@@ -79,4 +81,9 @@ services:
       - homepage.href=https://(@= traefik_host @)
       - homepage.description=(@= homepage_description_whoami @)
       - homepage.showStats=(@= homepage_show_stats_whoami @)
+      #@ if homepage_widget_enable and len(homepage_widget_api_key):
+      - homepage.widget.type=whoami
+      - homepage.widget.url=https://(@= traefik_host @)
+      - homepage.widget.key=(@= homepage_widget_api_key @)
+      #@ end
       #@ end
