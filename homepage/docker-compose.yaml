@@ -8,6 +8,8 @@ services:
       args:
         HOMEPAGE_VERSION: ${HOMEPAGE_VERSION}
     restart: unless-stopped
+    security_opt:
+      - label=type:container_runtime_t
     environment:
       - RELOAD_WEBHOOK_HMAC_SECRET=${HOMEPAGE_RELOADER_HMAC_SECRET}
       - RELOAD_WEBHOOK_PATH_PREFIX=${HOMEPAGE_RELOADER_PATH_PREFIX}
