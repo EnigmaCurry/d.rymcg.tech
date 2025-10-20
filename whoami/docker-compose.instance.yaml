@@ -64,3 +64,11 @@ services:
 
       #! Apply all middlewares (do this at the end!)
       - "traefik.http.routers.(@= router @).middlewares=(@= ','.join(enabled_middlewares) @)"
+
+      #! Homepage (portal):
+      #! See https://gethomepage.dev/configs/docker/#automatic-service-discovery
+      - homepage.group=Network
+      - homepage.name=whoami
+      - homepage.icon=mdi-cloud-question
+      - homepage.href=https://(@= traefik_host @)
+      - homepage.description=HTTP test service
