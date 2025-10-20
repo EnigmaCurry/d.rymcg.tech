@@ -71,3 +71,12 @@ services:
 
       #! Apply all middlewares (do this at the end!)
       - "traefik.http.routers.(@= router @).middlewares=(@= ','.join(enabled_middlewares) @)"
+
+
+      #! Homepage (portal):
+      #! See https://gethomepage.dev/configs/docker/#automatic-service-discovery
+      - homepage.group=Storage
+      - homepage.name=copyparty
+      - homepage.icon=copyparty
+      - homepage.href=https://(@= traefik_host @)
+      - homepage.description=Centralized file sharing platform
