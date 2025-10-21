@@ -76,6 +76,6 @@ services:
       - homepage.name=(@= homepage_name_pairdrop @)
       - homepage.icon=(@= homepage_icon_pairdrop @)
       - homepage.href=https://(@= traefik_host @)
-      - homepage.description=(@= homepage_description_pairdrop @)
+      - homepage.description=(@= homepage_description_pairdrop or traefik_host @)
       - homepage.showStats=(@= homepage_show_stats_pairdrop @)
       #@ end

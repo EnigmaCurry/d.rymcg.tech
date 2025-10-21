@@ -79,6 +79,6 @@ services:
       - homepage.name=(@= homepage_name_whoami @)
       - homepage.icon=(@= homepage_icon_whoami @)
       - homepage.href=https://(@= traefik_host @)
-      - homepage.description=(@= homepage_description_whoami @)
+      - homepage.description=(@= homepage_description_whoami or traefik_host @)
       - homepage.showStats=(@= homepage_show_stats_whoami @)
       #@ end

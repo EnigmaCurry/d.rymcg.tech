@@ -89,7 +89,7 @@ services:
       - homepage.name=(@= homepage_name_forgejo @)
       - homepage.icon=(@= homepage_icon_forgejo @)
       - homepage.href=https://(@= traefik_host @)
-      - homepage.description=(@= homepage_description_forgejo @)
+      - homepage.description=(@= homepage_description_forgejo or traefik_host @)
       - homepage.showStats=(@= homepage_show_stats_forgejo @)
       #@ if homepage_widget_enable and len(homepage_widget_api_key):
       - homepage.widget.type=gitea

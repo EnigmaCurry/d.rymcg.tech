@@ -86,6 +86,6 @@ services:
       - homepage.name=(@= homepage_name_copyparty @)
       - homepage.icon=(@= homepage_icon_copyparty @)
       - homepage.href=https://(@= traefik_host @)
-      - homepage.description=(@= homepage_description_copyparty @)
+      - homepage.description=(@= homepage_description_copyparty or traefik_host @)
       - homepage.showStats=(@= homepage_show_stats_copyparty @)
       #@ end

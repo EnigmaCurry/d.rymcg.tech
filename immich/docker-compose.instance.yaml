@@ -192,7 +192,7 @@ services:
       - homepage.name=(@= homepage_name_immich @)
       - homepage.icon=(@= homepage_icon_immich @)
       - homepage.href=https://(@= traefik_host @)
-      - homepage.description=(@= homepage_description_immich @)
+      - homepage.description=(@= homepage_description_immich or traefik_host @)
       - homepage.showStats=(@= homepage_show_stats_immich @)
       #@ if homepage_widget_enable and len(homepage_widget_api_key):
       - homepage.widget.type=immich

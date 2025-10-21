@@ -109,7 +109,7 @@ services:
       - homepage.name=(@= homepage_name_openwebui @)
       - homepage.icon=(@= homepage_icon_openwebui @)
       - homepage.href=https://(@= traefik_host @)
-      - homepage.description=(@= homepage_description_openwebui @)
+      - homepage.description=(@= homepage_description_openwebui or traefik_host @)
       - homepage.showStats=(@= homepage_show_stats_openwebui @)
       #@ end
 
