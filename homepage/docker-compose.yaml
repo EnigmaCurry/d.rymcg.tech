@@ -9,13 +9,12 @@ networks:
 services:
   docker-socket-proxy:
     privileged: true
-    image: tecnativa/docker-socket-proxy:latest
+    image: ${HOMEPAGE_DOCKER_SOCKET_PROXY_IMAGE}
     restart: unless-stopped
     networks: [sandbox]
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock:ro,z
     environment:
-      - DOCKER_GID=${HOMEPAGE_DOCKER_GROUP}
       - LOG_LEVEL=info         # debug|info|notice|warning|err|crit|alert|emerg
       # ---- Global HTTP method gate ----
       - POST=0                 # 0 = block all POST/DELETE/PATCH (read-only proxy). 1 = allow writes.
