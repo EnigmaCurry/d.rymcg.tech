@@ -17,6 +17,14 @@
 #@ authorized_group = data.values.authorized_group
 #@ enable_mtls_auth = data.values.enable_mtls_auth == "true"
 #@ mtls_authorized_certs = data.values.mtls_authorized_certs
+#@ homepage_labels_enable = data.values.homepage_labels_enable == "true"
+#@ homepage_group_immich = data.values.homepage_group_immich
+#@ homepage_name_immich = data.values.homepage_name_immich
+#@ homepage_icon_immich = data.values.homepage_icon_immich
+#@ homepage_description_immich = data.values.homepage_description_immich
+#@ homepage_show_stats_immich = data.values.homepage_show_stats_immich
+#@ homepage_widget_enable = data.values.homepage_widget_enable == "true"
+#@ homepage_widget_api_key = data.values.homepage_widget_api_key
 #@ enabled_middlewares = []
 
 #! ### Project-specific vars:
@@ -176,6 +184,24 @@ services:
 
       #! Apply all middlewares (do this at the end!)
       - "traefik.http.routers.(@= router @).middlewares=(@= ','.join(enabled_middlewares) @)"
+
+      #! Homepage (portal):
+      #! See https://gethomepage.dev/configs/docker/#automatic-service-discovery
+      #@ if homepage_labels_enable:
+      - homepage.group=(@= homepage_group_immich @)
+      - homepage.name=(@= homepage_name_immich @)
+      - homepage.icon=(@= homepage_icon_immich @)
+      - homepage.href=https://(@= traefik_host @)
+      - homepage.description=(@= homepage_description_immich or traefik_host @)
+      - homepage.showStats=(@= homepage_show_stats_immich @)
+      #@ if homepage_widget_enable and len(homepage_widget_api_key):
+      - homepage.widget.type=immich
+      - homepage.widget.url=https://(@= traefik_host @)
+      - homepage.widget.key=(@= homepage_widget_api_key @)
+      - homepage.widget.version=2
+      #@ end
+      #@ end
+
 
   #@ if db_storage_type == "HDD":
   database:
