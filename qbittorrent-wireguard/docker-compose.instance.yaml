@@ -63,3 +63,15 @@ services:
 
       #! Apply all middlewares (do this at the end!)
       - "traefik.http.routers.(@= router @).middlewares=(@= ','.join(enabled_middlewares) @)"
+
+
+      #! Homepage (portal):
+      #! See https://gethomepage.dev/configs/docker/#automatic-service-discovery
+      #@ if homepage_labels_enable:
+      - homepage.group=(@= homepage_group_qbittorrent @)
+      - homepage.name=(@= homepage_name_qbittorrent @)
+      - homepage.icon=(@= homepage_icon_qbittorrent @)
+      - homepage.href=https://(@= traefik_host @)
+      - homepage.description=(@= homepage_description_qbittorrent or traefik_host @)
+      - homepage.showStats=(@= homepage_show_stats_qbittorrent @)
+      #@ end
