@@ -7,9 +7,9 @@ Bittorrent client.
 
 ### Consider installing WireGuard first
 
-If you don't want to use bittorrent over your native ISP, you may want
-to consider installing [WireGuard](../wireguard) first. Then you can
-tell qBittorrent to use the VPN for all of its traffic.
+If you don't want to use BitTorrent over your native ISP connection,
+you may want to consider installing a [WireGuard](../wireguard) first.
+Then you can tell qBittorrent to use the VPN for all of its traffic.
 
 ### Config
 
@@ -35,7 +35,12 @@ Enter the following information as prompted:
    prevent access except from a specific range of IP addresses, eg.
    `192.168.1.1/24`.
 
-All these client credentials are stored in your `.env` file.
+When asked to choose the network mode, you have two choices:
+
+ * Use the `default` container network. This will use your native ISP
+   connection.
+ * Use the container network of a WireGuard instance. This will route
+   all traffic through a VPN.
 
 ### Authentication and Authorization
 

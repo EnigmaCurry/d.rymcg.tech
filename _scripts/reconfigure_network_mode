@@ -42,12 +42,9 @@ mapfile -t ROUTER_CONTAINERS < <(
 #---------------------------------------------------#
 # 3️⃣  Build the list of choices for `choose`       #
 #---------------------------------------------------#
-#   First entry = default network
-#   Remaining entries = “Use the wireguard container <NAME>”
-#---------------------------------------------------#
-OPTIONS=("Use the default container network")
+OPTIONS=("default")
 for c in "${ROUTER_CONTAINERS[@]}"; do
-    OPTIONS+=("Use the wireguard container $c")
+    OPTIONS+=("$c")
 done
 
 #---------------------------------------------------#
@@ -59,11 +56,10 @@ CHOSEN=$(choose "$PROMPT" "${OPTIONS[@]}")
 # 5️⃣  Translate the human‑readable choice into a   #
 #    value that will be stored in the env file.    #
 #---------------------------------------------------#
-if [[ $CHOSEN == "Use the default container network"* ]]; then
+if [[ $CHOSEN == "default"* ]]; then
     VALUE="default"
 else
-    # The container name is the last word of the string
-    VALUE="${CHOSEN##* }"
+    VALUE="container:${CHOSEN}"
 fi
 
 #---------------------------------------------------#

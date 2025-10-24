@@ -16,13 +16,10 @@ config-hook:
 	@${BIN}/reconfigure_ask ${ENV_FILE} QBITTORRENT_IP_SOURCERANGE "Enter the allowed client IP source range (eg. 192.168.1.1/24 or 0.0.0.0/0)"
 	@${BIN}/reconfigure_auth ${ENV_FILE} QBITTORRENT
 
-.PHONY: shell
+
+.PHONY: shell # Enter container shell
 shell:
-	@if [ -z "$(service)" ]; then \
-		container=$$(eval "${BIN}/script-wizard choose 'docker exec -it into which container?' 'wireguard' 'qbittorrent' --default 'qbittorrent'") && make --no-print-directory docker-compose-shell SERVICE=$${container}; \
-	else \
-		make --no-print-directory docker-compose-shell SERVICE=$$(service); \
-	fi;
+	@make --no-print-directory docker-compose-shell SERVICE=qbittorrent
 
 .PHONY: override-hook
 override-hook:
