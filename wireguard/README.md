@@ -3,14 +3,7 @@
 This config creates a standalone WireGuard (client) instance. Other
 containers may join the network and use it for routing purposes.
 
-```
-make config
-```
-
-```
-make install
-```
-
+## Config
 ### Gather your VPN client config
 
 Your VPN service provider must support WireGuard.
@@ -34,9 +27,19 @@ AllowedIPs = 0.0.0.0/0,::0/0
 Endpoint = 103.231.88.2:51820
 ```
 
-### Config
 
-Run `make config` 
+### Create instance
+
+It is recommended to use named instances, that way you can keep track
+of the peer name in the instance name itself. Note that when you do
+this you must always specify it for all commands (or use `make
+switch`):
+
+```
+## Create a new instance (e.g., my-vpn-peer-xx-12):
+
+make instance=my-vpn-peer-xx-12 config 
+```
 
 Enter the following information as prompted:
 
@@ -57,25 +60,39 @@ Enter the following information as prompted:
    `=`)
  * `WIREGUARD_VPN_CLIENT_PEER_ENDPOINT` - the peer `Endpoint`
    value, which is the VPN provider's host address and port, eg
-   `94.198.42.114:51820`
+   `123.123.123.123:51820`
 
-All these client credentials are stored in your `.env` file.
+All these client credentials are stored in the local
+`.env_{CONTEXT}_{INSTANCE}` file.
+
+
+## Install
+
+Install the instance by name:
+
+```
+make instance=my-vpn-peer-xx-12 install 
+```
 
 ## Example of a container routing through a WireGuard instance
 
-Docker containers may use other containers as their network router:
+You can create other Docker containers and have them use this
+WireGuard container as its default gateway:
 
 ```
-docker run --network=container:wireguard-wireguard-1 ...
+docker run --network=container:wireguard_my-vpn-peer-xx-12-wireguard-1 ...
 ```
+
+Or in Docker Compose:
 
 ```
 ## e.g., in docker-compose.yaml in a different project directory:
 service:
   foo:
     image: foo
-    network_mode: "container:wireguard-wireguard-1"
+    network_mode: "container:wireguard_my-vpn-peer-xx-12-wireguard-1"
 ```
 
-Substitute `wireguard-wireguard-1` with the container name of your
-instance.
+Substitute `wireguard_my-vpn-peer-xx-12-wireguard-1` with the
+container name of your running instance. See `make status` to get the
+actual name of your container.
