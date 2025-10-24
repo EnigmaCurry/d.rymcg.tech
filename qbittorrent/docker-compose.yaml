@@ -1,46 +1,8 @@
 volumes:
-  wireguard:
   qbittorrent-config:
   aria2_config:
 
 services:
-  wireguard-config:
-    build:
-      context: wireguard-config
-    user: "0:0"
-    environment:
-      - QBITTORRENT_VPN_CLIENT_INTERFACE_PRIVATE_KEY
-      - QBITTORRENT_VPN_CLIENT_INTERFACE_IPV4
-      - QBITTORRENT_VPN_CLIENT_INTERFACE_IPV6
-      - QBITTORRENT_VPN_CLIENT_INTERFACE_LISTEN_PORT
-      - QBITTORRENT_VPN_CLIENT_INTERFACE_PEER_DNS
-      - QBITTORRENT_VPN_CLIENT_PEER_PUBLIC_KEY
-      - QBITTORRENT_VPN_CLIENT_PEER_ALLOWED_IPS
-      - QBITTORRENT_VPN_CLIENT_PEER_ENDPOINT
-    volumes:
-      - wireguard:/config:z
-    labels:
-      - "backup-volume.stop-during-backup=true"
-
-  wireguard:
-    depends_on: ['wireguard-config']
-    image: linuxserver/wireguard
-    cap_add:
-      - NET_ADMIN
-      - SYS_MODULE
-    sysctls:
-      - net.ipv6.conf.all.disable_ipv6=0
-      - net.ipv4.conf.all.src_valid_mark=1
-    environment:
-      - PUID=1000
-      - PGID=1000
-      - TZ=${TIMEZONE}
-    volumes:
-      - wireguard:/config:z
-      - /lib/modules:/lib/modules
-    restart: unless-stopped
-    labels: []
-
   qbittorrent-config:
     profiles: ['qbittorrent']
     build:
@@ -98,9 +60,7 @@ services:
   qbittorrent:
     profiles: ['qbittorrent']
     image: linuxserver/qbittorrent:${QBITTORRENT_VERSION}
-    network_mode: "service:wireguard"
     depends_on:
-      - wireguard
       - qbittorrent-config
     environment:
       - PUID=${QBITTORRENT_UID}
@@ -116,9 +76,6 @@ services:
 
   aria2:
     profiles: ['aria2']
-    network_mode: "service:wireguard"
-    depends_on:
-      - wireguard
     build:
       context: ${QBITTORRENT_WEBUI_ARIA_GIT_REPO}#${QBITTORRENT_WEBUI_ARIA_GIT_BRANCH}
       args:

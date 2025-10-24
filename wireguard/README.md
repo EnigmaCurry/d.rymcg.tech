@@ -53,8 +53,8 @@ Enter the following information as prompted:
    values from your VPN provided config file for both IPv4 and IPv6
    (the wireguard config could list be multiple addresses separated by
    a comma, eg. `10.65.244.198/32,fc00:bbbb:bbbb:bb01::2:f4c5/128`, in
-   this example the first is the IPv4 address, the second is the IPv6.
-   Don't enter the `/32` or `/128` part, just the part before it).
+   this example the first is the IPv4 address, the second is the
+   IPv6.)
  * `WIREGUARD_VPN_CLIENT_INTERFACE_PEER_DNS` the interface `DNS`
    value from your VPN provided config file eg `10.64.0.1`.
  * `WIREGUARD_VPN_CLIENT_PEER_PUBLIC_KEY` - the peer `PublicKey`
@@ -74,6 +74,30 @@ Install the instance by name:
 
 ```
 make instance=my-vpn-peer-xx-12 install 
+```
+
+## Verify the VPN is functional
+
+The [wireguard service does not have an integrated
+killswitch](https://github.com/linuxserver/docker-wireguard/issues/139) -
+if for any reason wireguard fails to start, including for reasons of
+misconfiguration and/or host incompatibilities, then qbittorrent will
+*NOT* be protected, and will be using the local internet connection
+instead of the VPN.
+
+Before using the service, you should verify that your VPN is working:
+
+```
+# Check that both wireguard and qbittorent are running (two containers:)
+make status
+
+# Check the logs, make sure there isn't an error:
+make logs
+
+# Exec into the qbittorrent container and check the ip address being used:
+# (This should report your VPN connection details, not your local connection)
+make shell
+curl ifconfig.co/json
 ```
 
 ## Example of a container routing through a WireGuard instance
@@ -98,3 +122,24 @@ service:
 Substitute `wireguard_my-vpn-peer-xx-12-wireguard-1` with the
 container name of your running instance. See `make status` to get the
 actual name of your container.
+
+## Issues with IPv6
+
+On arm64 I had an issue with ipv6 with this error reported from wireguard:
+
+```
+wireguard-wireguard-1    | [#] ip6tables-restore -n
+wireguard-wireguard-1    | modprobe: can't load module ip6_tables (kernel/net/ipv6/netfilter/ip6_tables.ko.zst): invalid module format
+wireguard-wireguard-1    | ip6tables-restore v1.8.8 (legacy): ip6tables-restore: unable to initialize table 'raw'
+```
+
+This may have been a host issue, but I was able to work around it by simply removing ipv6 support in the configuration.
+
+```
+## To disable ipv6 In your .env file:
+
+# Don't set an ipv6 address:
+WIREGUARD_VPN_CLIENT_INTERFACE_IPV6=
+# Remove the ::0/0 from the WIREGUARD_VPN_CLIENT_PEER_ALLOWED_IPS list:
+WIREGUARD_VPN_CLIENT_PEER_ALLOWED_IPS=0.0.0.0/0
+```

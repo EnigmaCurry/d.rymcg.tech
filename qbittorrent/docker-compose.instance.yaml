@@ -10,9 +10,7 @@
 #@ instance = data.values.instance
 #@ context = data.values.context
 #@ traefik_host = data.values.traefik_host
-#@ aria2_host = data.values.aria2_host
-#@ aria2_web_port = data.values.aria2_web_port
-#@ aria2_rpc_port = data.values.aria2_rpc_port
+#@ network_mode = data.values.network_mode
 
 #@ ip_sourcerange = data.values.ip_sourcerange
 #@ enable_http_auth = len(data.values.http_auth.strip()) > 0
@@ -32,8 +30,11 @@
 
 #@yaml/text-templated-strings
 services:
-  wireguard:
-    #@ service = "wireguard"
+  qbittorrent:
+    #@ service = "qbittorrent"
+    #@ if len(network_mode) and network_mode != "default":
+    network_mode: "(@= network_mode @)"
+    #@ end
     labels:
       - "backup-volume.stop-during-backup=true"
       #! Services must opt-in to be proxied by Traefik:
@@ -68,68 +69,6 @@ services:
       - "traefik.http.services.(@= router @).loadbalancer.server.port=8080"
       #! Apply all middlewares (do this at the end!)
       - "traefik.http.routers.(@= router @).middlewares=(@= ','.join(enabled_middlewares) @)"
-
-      #@ service = "aria2-web"
-      #! 'router' is the fully qualified key in traefik for this router/service: project + instance + service
-      #@ router = "{}-{}-{}".format(project,instance,service)
-      #! The host matching router rule:
-      - "traefik.http.routers.(@= router @).rule=Host(`(@= aria2_host @)`)"
-      - "traefik.http.routers.(@= router @).entrypoints=websecure"
-      - "traefik.http.routers.(@= router @).service=(@= router @)"
-      #@ enabled_middlewares.append("{}-ipallowlist".format(router))
-      - "traefik.http.middlewares.(@= router @)-ipallowlist.ipallowlist.sourcerange=(@= ip_sourcerange @)"
-      #@ if enable_http_auth:
-      #@ enabled_middlewares.append("{}-basicauth".format(router))
-      - "traefik.http.middlewares.(@= router @)-basicauth.basicauth.users=(@= http_auth @)"
-      - "traefik.http.middlewares.(@= router @)-basicauth.basicauth.headerField=X-Forwarded-User"
-      #@ end
-      #@ if enable_oauth2:
-      #@ enabled_middlewares.append("traefik-forward-auth@docker")
-      #@ enabled_middlewares.append("header-authorization-group-{}@file".format(authorized_group))
-      #@ end
-      #@ if enable_mtls_auth:
-      - "traefik.http.routers.(@= router @).tls.options=step_ca_mTLS@file"
-        #@ if len(mtls_authorized_certs):
-      - "traefik.http.middlewares.mtlsauth-(@= router @).plugin.certauthz.domains=(@= mtls_authorized_certs @)"
-        #@ enabled_middlewares.append("mtlsauth-{}".format(router))
-        #@ end
-        #@ enabled_middlewares.append("mtls-header@file")
-      #@ end
-      - "traefik.http.services.(@= router @).loadbalancer.server.port=(@= aria2_web_port @)"
-      #! Apply all middlewares (do this at the end!)
-      - "traefik.http.routers.(@= router @).middlewares=(@= ','.join(enabled_middlewares) @)"
-
-
-      #@ service = "aria2-jsonrpc"
-      #! 'router' is the fully qualified key in traefik for this router/service: project + instance + service
-      #@ router = "{}-{}-{}".format(project,instance,service)
-      #! The host matching router rule:
-      - "traefik.http.routers.(@= router @).rule=Host(`(@= aria2_host @)`) && PathPrefix(`/jsonrpc`)"
-      - "traefik.http.routers.(@= router @).entrypoints=websecure"
-      - "traefik.http.routers.(@= router @).service=(@= router @)"
-      #@ enabled_middlewares.append("{}-ipallowlist".format(router))
-      - "traefik.http.middlewares.(@= router @)-ipallowlist.ipallowlist.sourcerange=(@= ip_sourcerange @)"
-      #@ if enable_http_auth:
-      #@ enabled_middlewares.append("{}-basicauth".format(router))
-      - "traefik.http.middlewares.(@= router @)-basicauth.basicauth.users=(@= http_auth @)"
-      - "traefik.http.middlewares.(@= router @)-basicauth.basicauth.headerField=X-Forwarded-User"
-      #@ end
-      #@ if enable_oauth2:
-      #@ enabled_middlewares.append("traefik-forward-auth@docker")
-      #@ enabled_middlewares.append("header-authorization-group-{}@file".format(authorized_group))
-      #@ end
-      #@ if enable_mtls_auth:
-      - "traefik.http.routers.(@= router @).tls.options=step_ca_mTLS@file"
-        #@ if len(mtls_authorized_certs):
-      - "traefik.http.middlewares.mtlsauth-(@= router @).plugin.certauthz.domains=(@= mtls_authorized_certs @)"
-        #@ enabled_middlewares.append("mtlsauth-{}".format(router))
-        #@ end
-        #@ enabled_middlewares.append("mtls-header@file")
-      #@ end
-      - "traefik.http.services.(@= router @).loadbalancer.server.port=(@= aria2_rpc_port @)"
-      #! Apply all middlewares (do this at the end!)
-      - "traefik.http.routers.(@= router @).middlewares=(@= ','.join(enabled_middlewares) @)"
-
 
       #! Homepage (portal):
       #! See https://gethomepage.dev/configs/docker/#automatic-service-discovery
