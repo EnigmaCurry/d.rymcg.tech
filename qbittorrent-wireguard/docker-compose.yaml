@@ -99,8 +99,8 @@ services:
       - wireguard
       - qbittorrent-config
     environment:
-      - PUID=1000
-      - PGID=1000
+      - PUID=${QBITTORRENT_UID}
+      - PGID=${QBITTORRENT_GID}
       - TZ=${TIMEZONE}
       - WEBUI_PORT=8080
     volumes:

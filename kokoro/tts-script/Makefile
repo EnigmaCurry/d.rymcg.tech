@@ -60,13 +60,14 @@ $(1).play: check-env
 
 .PHONY: $(1).clean # Remove rendered audio files for $(1).txt
 $(1).clean:
-	rm -f "$(OUTDIR)/$(1).wav" "$(OUTDIR)/$(1)-"*.wav
+	rm -f "$(OUTDIR)/$(1).wav" "$(OUTDIR)/$(1).mp3" "$(OUTDIR)/$(1)-"*.wav
 endef
 # --------------------------------------
 
 # Instantiate the trio for test1.txt
 $(eval $(call TTS_TARGETS,test1))
 $(eval $(call TTS_TARGETS,tour))
+$(eval $(call TTS_TARGETS,whoami))
 
 # Add more projects by instantiating again, e.g.:
 # $(eval $(call TTS_TARGETS,chapter1))

@@ -68,3 +68,20 @@ choose `New migration`.
 
 If you have a lot of repositories to migrate, this can be automated by
 the included [github_migrate](github_migrate) script.
+
+## Reset root password
+
+If you've forgotten your administrator password, you can reset it by
+entering the shell of the container:
+
+```
+make shell
+```
+
+```
+## In the forgejo container, reset the admin password:
+gitea admin user change-password --username root --password hunter2222
+```
+
+Login with the new password, and you will be forced to change it one
+more time.

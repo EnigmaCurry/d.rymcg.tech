@@ -66,10 +66,12 @@ workstation.
    make whoami config`, `prod make whoami install`.) and which are not
    dependent on the current context.
 
- * This repository only offers services that have open source
-   licenses. You may create your own projects in external git
-   repositories, license them however you wish, and still benefit from
-   the same command line tooling.
+ * This repository is non-proprietary and designed for anyone to use.
+   It only offers services that have open source licenses. If you would
+   like to add additional open-source services to this repository, consider
+   opening a Pull Request to add to this collection. You may also create
+   projects in external git repositories, license them however you wish,
+   and still benefit from the same command line tooling.
 
  * [Traefik](traefik#traefik) is deployed as the front door proxy for
    all of your services (HTTP / TCP / UDP). Traefik provides TLS
@@ -118,7 +120,8 @@ Follow these topical guides to get started:
  * [MAKEFILE_OPS.md](MAKEFILE_OPS.md) - how to write Makefiles.
  * [RCLONE.md](RCLONE.md) - create Docker volumes on top of remote/cloud storage (S3, SFTP, Dropbox, etc.)
  * [LICENSE.txt](LICENSE.txt) - the license for this project.
- 
+ * [Portable Docker: Build and Deploy Anywhere with WireGuard Tunneling](https://book.rymcg.tech/portable-docker/index.html) - a book about running a public Docker server at home, or while roaming, behind restrictive NAT routers, with the help from a public wireguard sentry server running in the cloud.
+
 ## Services
 
 Each of the sub-projects in this repository have their own `README.md`
@@ -207,7 +210,8 @@ Install these applications at your preference:
 * [Nginx](nginx#readme) - a webserver configured with fast-cgi support for PHP scripts
 * [Node-RED](nodered#readme) - a graphical event pipeline editor
 * [Ntfy-sh](ntfy-sh#readme) - a simple HTTP-based pub-sub notification service
-* [Open WebUI](openwebui#readme) - a self-hosted AI platform designed to operate entirely offline
+* [Ollama](ollama#readme) - a service API for hosting Large Language Models
+* [Open WebUI](open-webui#readme) - a self-hosted AI platform
 * [Pairdrop](pairdrop#readme) - a webapp (PWA) to send files and messages peer to peer
 * [Peertube](peertube#readme) - a decentralized and federated video platform
 * [Photoprism](photoprism#readme) - a photo gallery and manager
@@ -230,7 +234,6 @@ Install these applications at your preference:
 * [Sysbox-Systemd](sysbox-systemd#readme) - a traditional service manager for Linux running in an unprivileged container via sysbox-runc
 * [Tesseract](tesseract#readme) - a front-end for Lemmy instances
 * [Thttpd](thttpd#readme) - a tiny/turbo/throttling HTTP server for serving static files
-* [Tiny Tiny RSS](ttrss#readme) - an RSS reader / proxy
 * [TriliumNext Notes](triliumnext-notes#readme) - a note-taking/knowledge base application
 * [Vaultwarden](vaultwarden#readme) - a bitwarden compatible password manager written in Rust (formerly bitwarden_rs)
 * [Websocketd](websocketd#readme) - a websocket / CGI server

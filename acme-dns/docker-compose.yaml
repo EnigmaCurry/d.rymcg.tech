@@ -15,6 +15,7 @@ services:
   
   acmedns:
     depends_on: ['config']
+    restart: unless-stopped
     environment:
       - API_HOST=${ACME_DNS_SUBDOMAIN}
       - API_PORT=${ACME_DNS_API_PORT}
