@@ -5,11 +5,9 @@ client combined with the [Wireguard](https://www.wireguard.com/) VPN
 service. Connect wireguard to your VPN provider and anonymize your
 peer connections.
 
-(Historical note: there is also an older version of this config based
-upon [Transmission](https://transmissionbt.com/), and this is still
-available in the project's [_attic](../_attic) directory, but it is
-unsupported. You should prefer qbittorrent anyway, to benefit from
-bittorrent v2 spec.)
+This config also has an optional `aria2` profile to install a
+secondary downloader that can handle HTTP and FTP downloads through
+the same VPN.
 
 ## Setup
 
@@ -121,8 +119,11 @@ use the default:
 
 ### Authentication and Authorization
 
-See [AUTH.md](../AUTH.md) for information on adding external authentication on
-top of your app.
+In order to prevent unauthorized access, it is **highly recommended**
+to enable sentry auth. 
+
+See [AUTH.md](../AUTH.md) for information on adding external
+authentication on top of your app.
 
 ## Deploy
 

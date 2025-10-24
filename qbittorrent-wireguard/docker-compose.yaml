@@ -1,11 +1,13 @@
 volumes:
   wireguard:
   qbittorrent-config:
+  aria2_config:
 
 services:
   wireguard-config:
     build:
       context: wireguard-config
+    user: "0:0"
     environment:
       - QBITTORRENT_VPN_CLIENT_INTERFACE_PRIVATE_KEY
       - QBITTORRENT_VPN_CLIENT_INTERFACE_IPV4
@@ -16,7 +18,7 @@ services:
       - QBITTORRENT_VPN_CLIENT_PEER_ALLOWED_IPS
       - QBITTORRENT_VPN_CLIENT_PEER_ENDPOINT
     volumes:
-      - wireguard:/config
+      - wireguard:/config:z
     labels:
       - "backup-volume.stop-during-backup=true"
 
@@ -34,12 +36,13 @@ services:
       - PGID=1000
       - TZ=${TIMEZONE}
     volumes:
-      - wireguard:/config
+      - wireguard:/config:z
       - /lib/modules:/lib/modules
     restart: unless-stopped
     labels: []
 
   qbittorrent-config:
+    profiles: ['qbittorrent']
     build:
       context: qbittorrent-config
     environment:
@@ -88,11 +91,12 @@ services:
       - QBITTORRENT_SessionUseAlternativeGlobalSpeedLimit
       - QBITTORRENT_SessionBandwidthSchedulerEnabled
     volumes:
-      - qbittorrent-config:/config
+      - qbittorrent-config:/config:z
     labels:
       - "backup-volume.stop-during-backup=true"
 
   qbittorrent:
+    profiles: ['qbittorrent']
     image: linuxserver/qbittorrent:${QBITTORRENT_VERSION}
     network_mode: "service:wireguard"
     depends_on:
@@ -104,10 +108,26 @@ services:
       - TZ=${TIMEZONE}
       - WEBUI_PORT=8080
     volumes:
-      - qbittorrent-config:/config
-      - type: bind
-        source: ${QBITTORRENT_DOWNLOAD_VOLUME}
-        target: /downloads
+      - qbittorrent-config:/config:z
+      - ${QBITTORRENT_DOWNLOAD_VOLUME}:/downloads:z
     restart: unless-stopped
     labels:
       - "backup-volume.stop-during-backup=true"      
+
+  aria2:
+    profiles: ['aria2']
+    network_mode: "service:wireguard"
+    depends_on:
+      - wireguard
+    build:
+      context: ${QBITTORRENT_WEBUI_ARIA_GIT_REPO}#${QBITTORRENT_WEBUI_ARIA_GIT_BRANCH}
+      args:
+        UID: ${QBITTORRENT_UID}
+        GID: ${QBITTORRENT_GID}
+    environment:
+      - RPC_SECRET=${QBITTORRENT_ARIA2_RPC_SECRET}
+      - RPC_PORT=${QBITTORRENT_ARIA2_RPC_PORT}
+      - WEB_PORT=${QBITTORRENT_ARIA2_WEB_PORT}
+    volumes:
+      - ${QBITTORRENT_DOWNLOAD_VOLUME}:/downloads:z
+
