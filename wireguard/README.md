@@ -1,7 +1,9 @@
 # WireGuard
 
-This config creates a standalone WireGuard (client) instance. Other
-containers may join the network and use it for routing purposes.
+This config creates standalone WireGuard (client) instances to connect
+to your external WireGuard peer (server). You may create other
+containers on the same host and have them join the same Docker
+network, routing all traffic through this instance.
 
 ## Config
 ### Gather your VPN client config
