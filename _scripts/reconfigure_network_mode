@@ -42,15 +42,21 @@ mapfile -t ROUTER_CONTAINERS < <(
 #---------------------------------------------------#
 # 3️⃣  Build the list of choices for `choose`       #
 #---------------------------------------------------#
+CURRENT_VAL=$(${BIN}/dotenv -f ${ENV_FILE} get ${VAR_NAME})
+DEFAULT="default"
 OPTIONS=("default")
 for c in "${ROUTER_CONTAINERS[@]}"; do
     OPTIONS+=("$c")
+    if [[ "${CURRENT_VAL}" == "container:${c}" ]]; then
+        DEFAULT="${c}"
+    fi
 done
 
 #---------------------------------------------------#
 # 4️⃣  Let the user pick one option                  #
 #---------------------------------------------------#
-CHOSEN=$(choose "$PROMPT" "${OPTIONS[@]}")
+debug_var DEFAULT
+CHOSEN=$(choose "$PROMPT" "${OPTIONS[@]}" "--default" "${DEFAULT}")
 
 #---------------------------------------------------#
 # 5️⃣  Translate the human‑readable choice into a   #
