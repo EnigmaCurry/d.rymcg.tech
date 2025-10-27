@@ -11,6 +11,10 @@ config-hook:
 	@${BIN}/reconfigure_ask ${ENV_FILE} COPYPARTY_TRAEFIK_HOST "Enter the copyparty domain name" copyparty${INSTANCE_URL_SUFFIX}.${ROOT_DOMAIN}
 	@${BIN}/reconfigure ${ENV_FILE} COPYPARTY_INSTANCE=$${instance:-default}
 	@${BIN}/reconfigure_auth ${ENV_FILE} COPYPARTY
+	@echo
+	@${BIN}/reconfigure_ask ${ENV_FILE} COPYPARTY_UID "Enter the copyparty user ID (UID) used for all volume file permissions"
+	@${BIN}/reconfigure_ask ${ENV_FILE} COPYPARTY_GID "Enter the copyparty group ID (UID) user for all volume file permissions"
+	@echo
 	@${BIN}/reconfigure_ask ${ENV_FILE} COPYPARTY_ADMIN_USER "Enter the copyparty admin user name"
 	@${BIN}/reconfigure_ask ${ENV_FILE} COPYPARTY_ADMIN_PASSWORD "Enter a password for the admin user - DO NOT USE commas, colons, or spaces" $(shell openssl rand -base64 13)
 	@echo
