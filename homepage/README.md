@@ -1,9 +1,8 @@
 # Homepage
 
-[Homepage](https://github.com/benphelps/homepage) is a modern (fully static,
-fast), secure (fully proxied), highly customizable application dashboard
-with integrations for more than 25 services and translations for over 15
-languages.
+[Homepage](https://github.com/benphelps/homepage) is a highly
+customizable application dashboard with integrations for more than 25
+services and translations for over 15 languages.
 
 ## Config
 
