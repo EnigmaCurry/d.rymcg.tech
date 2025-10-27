@@ -27,10 +27,9 @@ automatic rebuild/redeploy on git push via webhook. Your fork can be a
 public or private repository. (Tested on forgejo and github).
 
 Homepage has support for loading information from the docker socket,
-but this has been turned off by default for security reasons, if you
-wish to enable this support, answer the question posed by `make config`
-and/or set `HOMEPAGE_ENABLE_DOCKER=true` in your `.env_{INSTANCE}`
-file.
+which has been enabled by default. If you wish to disable this
+support, answer the question posed by `make config` and/or set
+`HOMEPAGE_ENABLE_DOCKER=false` in your `.env_{INSTANCE}` file.
 
 ### Authentication and Authorization
 
