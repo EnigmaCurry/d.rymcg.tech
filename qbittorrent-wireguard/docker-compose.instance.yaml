@@ -18,6 +18,12 @@
 #@ enable_mtls_auth = data.values.enable_mtls_auth == "true"
 #@ mtls_authorized_certs = data.values.mtls_authorized_certs
 #@ enabled_middlewares = []
+#@ homepage_labels_enable = data.values.homepage_labels_enable == "true"
+#@ homepage_group_qbittorrent = data.values.homepage_group_qbittorrent
+#@ homepage_name_qbittorrent = data.values.homepage_name_qbittorrent
+#@ homepage_icon_qbittorrent = data.values.homepage_icon_qbittorrent
+#@ homepage_description_qbittorrent = data.values.homepage_description_qbittorrent
+#@ homepage_show_stats_qbittorrent = data.values.homepage_show_stats_qbittorrent
 
 #@yaml/text-templated-strings
 services:
@@ -63,3 +69,15 @@ services:
 
       #! Apply all middlewares (do this at the end!)
       - "traefik.http.routers.(@= router @).middlewares=(@= ','.join(enabled_middlewares) @)"
+
+
+      #! Homepage (portal):
+      #! See https://gethomepage.dev/configs/docker/#automatic-service-discovery
+      #@ if homepage_labels_enable:
+      - homepage.group=(@= homepage_group_qbittorrent @)
+      - homepage.name=(@= homepage_name_qbittorrent @)
+      - homepage.icon=(@= homepage_icon_qbittorrent @)
+      - homepage.href=https://(@= traefik_host @)
+      - homepage.description=(@= homepage_description_qbittorrent or traefik_host @)
+      - homepage.showStats=(@= homepage_show_stats_qbittorrent @)
+      #@ end
