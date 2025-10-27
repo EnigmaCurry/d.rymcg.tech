@@ -81,6 +81,12 @@ make install
 
 ## Open
 
+Copyparty has a web interface you may want to open in your web browser:
+
 ```
 make open
 ```
+
+## Mount copyparty volumes on your local computer
+
+In addition to its web interface, copyparty exposes its storage via the open WebDAV protocol. Many desktop file explorer programs have native WebDAV support, meaning you can mount your remote copyparty folders on your local computer (e.g., Thunar + GVFS). Unfortunately, many of these same programs do not support client TLS certificates. A more robust method of mounting WebDAV folders is via [Rclone](https://rclone.org/), which will work with any system or file explorer, and has support for mTLS. Follow the blog post [WebDAV with Rclone and mTLS](https://blog.rymcg.tech/blog/linux/rclone_webdav/) to set this up on your computer.
