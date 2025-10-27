@@ -3,14 +3,12 @@ set -Eeuo pipefail
 
 echo "## Entrypoint: /usr/local/bin/docker-entrypoint.sh"
 
-CONFIG_PATH="${COPYPARTY_CONFIG:-/z/copyparty.conf}"
-
 # ---- required admin ----
 ADMIN_USER="${COPYPARTY_ADMIN_USER:?set COPYPARTY_ADMIN_USER}"
 ADMIN_PASSWORD="${COPYPARTY_ADMIN_PASSWORD:?set COPYPARTY_ADMIN_PASSWORD}"
 
 # ---- optional globals ----
-PORT="${COPYPARTY_PORT:-3939}"
+PORT="${COPYPARTY_PORT:-3923}"
 ALLOW_NET="${COPYPARTY_ALLOW_NET:-}"       # e.g. "10.89."
 THEME="${COPYPARTY_THEME:-}"               # e.g. "2"
 NAME="${COPYPARTY_NAME:-}"                 # e.g. "datasaver"
@@ -20,11 +18,17 @@ ROBOTS_OFF="${COPYPARTY_NO_ROBOTS:-}"      # "true" to add `no-robots`
 FORCE_JS="${COPYPARTY_FORCE_JS:-}"         # "true" to add `force-js`
 
 DATA_ROOT="${COPYPARTY_DATA_DIR:-/data}"
+
+CONFIG_PATH="${COPYPARTY_CONFIG:-${DATA_ROOT}/config/copyparty.conf}"
+MNT_ROOT="${COPYPARTY_MNT_ROOT:-${DATA_ROOT}/mnt}"
+
 ADMIN_PATH="${DATA_ROOT}/admin"
 PUB_PATH="${COPYPARTY_VOL_PUBLIC_PATH:-${DATA_ROOT}/public}"
 GST_PATH="${COPYPARTY_VOL_GUESTS_PATH:-${DATA_ROOT}/guests}"
 
-mkdir -p "$(dirname "$CONFIG_PATH")" "$PUB_PATH" "$GST_PATH" /mnt
+# Make sure our user-writable trees exist
+umask 022
+mkdir -p "$(dirname "$CONFIG_PATH")" "$PUB_PATH" "$GST_PATH" "$MNT_ROOT"
 
 # ---- build optional [global] flags ----
 optflags=()
@@ -39,6 +43,7 @@ optflags=()
 # ─────────────────────────────────────────────────────────────────────────────
 # INPUT SHAPES
 #   COPYPARTY_USERS           = "user:pass,alice:pw2"
+
 #   COPYPARTY_VOL_EXTERNAL    = "music:/storage/music,pics:/var/media/pics,photos:/mnt/photos"
 #     - left side ("name") can include slashes; the section will be "[/<name>]"
 #       and source becomes "/mnt/<name>" inside the container.
@@ -55,10 +60,13 @@ for ent in "${_USR[@]}"; do
   [[ -z "$ent" ]] && continue
   u="${ent%%:*}"; p="${ent#*:}"
   if [[ -z "$u" || -z "$p" ]]; then
-    echo "[entrypoint] ERROR: bad COPYPARTY_USERS item '$ent' (want user:pass)" >&2; echo "COPYPARTY_USERS=$COPYPARTY_USERS"; exit 1
+    echo "[entrypoint] ERROR: bad COPYPARTY_USERS item '$ent' (want user:pass)" >&2
+    echo "COPYPARTY_USERS=${COPYPARTY_USERS:-}" >&2
+    exit 1
   fi
   if [[ "$u$p" == *[,:\ ]* ]]; then
-    echo "[entrypoint] ERROR: usernames/passwords cannot contain commas/colons/spaces: '$ent'" >&2; exit 1
+    echo "[entrypoint] ERROR: usernames/passwords cannot contain commas/colons/spaces: '$ent'" >&2
+    exit 1
   fi
   USER_LINES+=("  ${u}: ${p}")
 done
@@ -67,24 +75,30 @@ done
 # name may contain slashes to allow mounting at nested virtual paths
 declare -A VOL_PATHS=()  # virtual name => /mnt/<name> (container FS path)
 declare -A VOL_HOST=()   # virtual name => original host path (for logging/help)
+
 IFS=',' read -ra _VEX <<< "${COPYPARTY_VOL_EXTERNAL:-}"
 for ent in "${_VEX[@]}"; do
   [[ -z "$ent" ]] && continue
   name="${ent%%:*}"; hpath="${ent#*:}"
   if [[ -z "$name" || -z "$hpath" ]]; then
-    echo "[entrypoint] ERROR: bad COPYPARTY_VOL_EXTERNAL item '$ent' (want name:/abs/host/path)" >&2; exit 1
+    echo "[entrypoint] ERROR: bad COPYPARTY_VOL_EXTERNAL item '$ent' (want name:/abs/host/path)" >&2
+    exit 1
   fi
   if [[ "$name" == *[,:\ ]* || "$hpath" == *[,:\ ]* ]]; then
-    echo "[entrypoint] ERROR: names/paths cannot contain commas/colons/spaces: '$ent'" >&2; exit 1
+    echo "[entrypoint] ERROR: names/paths cannot contain commas/colons/spaces: '$ent'" >&2
+    exit 1
   fi
   if [[ "${hpath:0:1}" != "/" ]]; then
-    echo "[entrypoint] ERROR: host path must be absolute: '$hpath'" >&2; exit 1
+    echo "[entrypoint] ERROR: host path must be absolute: '$hpath'" >&2
+    exit 1
   fi
   VOL_HOST["$name"]="$hpath"
+
   # create nested dir structure if name has slashes
   vdir="/mnt/${name}"
   mkdir -p "$vdir"
   VOL_PATHS["$name"]="$vdir"
+
 done
 
 # ---- parse generic permissions (path:perm:users) ----
@@ -106,13 +120,15 @@ for ent in "${_PERM[@]}"; do
   # Validate perm only contains allowed letters (subset is fine)
   if [[ ! "$prm" =~ ^[rwmdgGhaA\.]+$ ]]; then
     echo "[entrypoint] ERROR: invalid permission letters '$prm' in '$ent'" >&2; exit 1
+
   fi
 
   IFS='/' read -ra _USERS <<< "$userspec"
   for user in "${_USERS[@]}"; do
     [[ -z "$user" ]] && continue
     if [[ "$user" == *[,:\ ]* ]]; then
-      echo "[entrypoint] ERROR: usernames in permissions cannot contain commas/colons/spaces: '$user' in '$ent'" >&2; exit 1
+      echo "[entrypoint] ERROR: usernames in permissions cannot contain commas/colons/spaces: '$user' in '$ent'" >&2
+      exit 1
     fi
     key="${pth}|${prm}"
     cur="${PERM_MAP[$key]:-}"
@@ -186,6 +202,13 @@ done
 # sort keys into an array
 mapfile -t SECTION_KEYS < <(printf "%s\n" "${!SECTIONS[@]}" | sort)
 
+# ---- sanity checks for writable config dir ----
+cfgdir="$(dirname "$CONFIG_PATH")"
+if [[ ! -w "$cfgdir" ]]; then
+  echo "[entrypoint] ERROR: config directory not writable by $(whoami): $cfgdir" >&2
+  exit 1
+fi
+
 # ---- emit config file ----
 {
   echo "# -*- pretend-yaml -*-"
@@ -213,10 +236,11 @@ mapfile -t SECTION_KEYS < <(printf "%s\n" "${!SECTIONS[@]}" | sort)
   # Emit sections
   for vpath in "${SECTION_KEYS[@]}"; do
     src="${SECTIONS[$vpath]}"
+
     echo "[${vpath}]"
     echo "  ${src}"
     echo "  accs:"
-
+    
     # default perms for built-ins if desired (can still be overridden/extended)
     case "$vpath" in
       "/public")
@@ -257,6 +281,4 @@ nl -ba "$CONFIG_PATH"
 echo "## End config"
 echo
 echo "## Entrypoint handing off to copyparty now ..."
-sync
-set -x
 exec python3 -m copyparty -c "$CONFIG_PATH" "$@"
