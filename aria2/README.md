@@ -1,0 +1,57 @@
+# qbittorrent
+
+This config is for [aria2 and
+aria2-webui](https://github.com/ziahamza/webui-aria2)
+
+## Setup
+
+### Consider installing WireGuard first
+
+If you don't want to use BitTorrent over your native ISP connection,
+you may want to consider installing a [WireGuard](../wireguard) first.
+Then you can tell qBittorrent to use the VPN for all of its traffic.
+
+### Config
+
+Run `make config` 
+
+When asked to choose the network mode, you have two choices:
+
+ * Use the `default` container network. This will use your native ISP
+   connection.
+ * Use the container network of a WireGuard instance. This will route
+   all traffic through a VPN.
+
+### Authentication and Authorization
+
+In order to prevent unauthorized access, it is **highly recommended**
+to enable sentry auth. 
+
+See [AUTH.md](../AUTH.md) for information on adding external
+authentication on top of your app.
+
+## Deploy
+
+Once configured, deploy it:
+
+```
+make install
+```
+
+```
+make open
+```
+
+Once connected to the WebUI, you must configure it to use your Aria2 JSONRPC service.
+
+ * Click `Settings`
+ * Click `Connection Settings`
+ * Enter the host `aria2.example.com`
+ * Enter the port `443`
+ * Enter the RPC path `/jsonrc`
+ * Enter the secret (`RPC_SECRET` from .env)
+ * Click `Save Connection configuration`
+ 
+It should then be able to connect to your instance. Please note that
+this connection information lives in your browser local storage for
+the domain.

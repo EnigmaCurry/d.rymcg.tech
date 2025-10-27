@@ -169,6 +169,7 @@ Install these applications at your preference:
 * [13ft](thirteenft#readme) - a tool to block ads and bypass paywalls
 * [Actual](actual#readme) - a personal finance tool
 * [ArchiveBox](archivebox#readme) - a website archiving tool
+* [Aria2](aria2#readme) - a multi-protocol downloader tool
 * [Audiobookshelf](audiobookshelf#readme) - an audiobook and podcast server
 * [Autoheal](autoheal#readme) - a Docker container healthcheck monitor with auto-restart service
 * [Backrest](backrest#readme) - a backup tool based on restic
@@ -220,7 +221,7 @@ Install these applications at your preference:
 * [PostgreSQL](postgresql#readme) - a database server configured with mutual TLS authentication for public networks
 * [PrivateBin](privatebin#readme) - a minimal, encrypted, zero-knowledge, pastebin
 * [Prometheus](prometheus#readme) - a systems monitoring and alerting toolkit (+ node-exporter + cAdvisor + Grafana)
-* [QBittorrent-Wireguard](qbittorrent-wireguard#readme) - a Bittorrent (libtorrent v2) client with a combined VPN client
+* [QBittorrent](qbittorrent#readme) - a Bittorrent (libtorrent v2) client
 * [Redbean](redbean#readme) - a small website server bundled in a single executable zip file
 * [Redmine](redmine#readme) - a flexible project management web application
 * [Registry](registry#readme) an OCI container registry
@@ -237,6 +238,7 @@ Install these applications at your preference:
 * [TriliumNext Notes](triliumnext-notes#readme) - a note-taking/knowledge base application
 * [Vaultwarden](vaultwarden#readme) - a bitwarden compatible password manager written in Rust (formerly bitwarden_rs)
 * [Websocketd](websocketd#readme) - a websocket / CGI server
+* [Wireguard](wireguard) - a standalone VPN client that other containers may use as a router
 * [WireGuard-Gateway](wireguard-gateway) - a VPN client config that acts as a gateway node for your LAN.
 * [Wordpress](wordpress#readme) - a ubiquitous blogging / CMS platform, with a plugin to build a static HTML site snapshot
 * [XBrowserSync](xbs#readme) - a bookmark manager
