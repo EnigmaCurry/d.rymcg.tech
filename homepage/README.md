@@ -17,20 +17,15 @@ as well as a secondary domain name to use for webhooks.
 It automatically saves your responses into the configuration file
 `.env_{INSTANCE}`.
 
-By default (when HOMEPAGE_AUTO_CONFIG=true), Homepage will automatically be
-configured for all your d.rymcg.tech apps running on the current Docker
-context. To update the Homepage configuration whenever your running
-d.rymcg.tech apps change, you will need to run `make config` and
-`make install` in the `homepage` directory.
-
-When HOMEPAGE_AUTO_CONFIG=false, Homepage will be configured an external
-template repository configurable by setting `HOMEPAGE_TEMPLATE_REPO` in your
-`.env_{INSTANCE}` file. A template repo can be forked from
+The configuration for your Homepage instance is contained in an
+external repository that you must fork from the provided template
+repository. Set `HOMEPAGE_TEMPLATE_REPO` in your `.env_{INSTANCE}`
+file. The template repo can be forked from
 [github.com/EnigmaCurry/d.rymcg.tech_homepage-template](https://github.com/EnigmaCurry/d.rymcg.tech_homepage-template)
-to create your own custom Homepage configuration, and this container can be
-configured to automatically pull from your fork, and to trigger an automatic
-rebuild/redeploy on git push via webhook. Your fork can be a public or
-private repository. (Tested on forgejo and github).
+to create your own custom Homepage configuration, this container will
+automatically pull from your fork on startup, and to trigger an
+automatic rebuild/redeploy on git push via webhook. Your fork can be a
+public or private repository. (Tested on forgejo and github).
 
 Homepage has support for loading information from the docker socket,
 but this has been turned off by default for security reasons, if you
@@ -44,10 +39,6 @@ See [AUTH.md](../AUTH.md) for information on adding external authentication on
 top of your app.
 
 ## Generate deploy key (if using a private template repository)
-
-Before you install, if `HOMEPAGE_AUTO_CONFIG=false` and you have customized
-`HOMEPAGE_TEMPLATE_REPO` and have set it to a private git repository, you will
-need to create an SSH deploy key in order to be able to clone it automatically:
 
 ```
 make git-deploy-key
