@@ -1,0 +1,17 @@
+volumes:
+  aria2_config:
+
+services:
+  aria2:
+    build:
+      context: ${ARIA2_GIT_REPO}#${ARIA2_GIT_BRANCH}
+      args:
+        UID: ${ARIA2_UID}
+        GID: ${ARIA2_GID}
+    environment:
+      - RPC_SECRET=${ARIA2_RPC_SECRET}
+      - RPC_PORT=${ARIA2_RPC_PORT}
+      - WEB_PORT=${ARIA2_WEB_PORT}
+    volumes:
+      - ${ARIA2_DOWNLOAD_VOLUME}:/downloads:z
+

@@ -7,7 +7,6 @@ config-hook:
 	@${BIN}/reconfigure ${ENV_FILE} QBITTORRENT_INSTANCE=${instance}
 
 	@echo ""
-	@echo "Enter the wireguard config values:"
 	@${BIN}/reconfigure_network_mode ${ENV_FILE} QBITTORRENT_NETWORK_MODE "Choose the network mode for this container"
 	@${BIN}/reconfigure_ask ${ENV_FILE} QBITTORRENT_TRAEFIK_HOST "Enter the qbittorrent domain name" qbittorrent${INSTANCE_URL_SUFFIX}.${ROOT_DOMAIN}
 	@${BIN}/reconfigure_ask ${ENV_FILE} QBITTORRENT_PEER_PORT "Enter the public peer port qbittorrent should bind"

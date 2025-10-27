@@ -4,7 +4,6 @@ volumes:
 
 services:
   qbittorrent-config:
-    profiles: ['qbittorrent']
     build:
       context: qbittorrent-config
     environment:
@@ -58,7 +57,6 @@ services:
       - "backup-volume.stop-during-backup=true"
 
   qbittorrent:
-    profiles: ['qbittorrent']
     image: linuxserver/qbittorrent:${QBITTORRENT_VERSION}
     depends_on:
       - qbittorrent-config
@@ -73,18 +71,4 @@ services:
     restart: unless-stopped
     labels:
       - "backup-volume.stop-during-backup=true"      
-
-  aria2:
-    profiles: ['aria2']
-    build:
-      context: ${QBITTORRENT_WEBUI_ARIA_GIT_REPO}#${QBITTORRENT_WEBUI_ARIA_GIT_BRANCH}
-      args:
-        UID: ${QBITTORRENT_UID}
-        GID: ${QBITTORRENT_GID}
-    environment:
-      - RPC_SECRET=${QBITTORRENT_ARIA2_RPC_SECRET}
-      - RPC_PORT=${QBITTORRENT_ARIA2_RPC_PORT}
-      - WEB_PORT=${QBITTORRENT_ARIA2_WEB_PORT}
-    volumes:
-      - ${QBITTORRENT_DOWNLOAD_VOLUME}:/downloads:z
 
