@@ -238,7 +238,7 @@ Install these applications at your preference:
 * [TriliumNext Notes](triliumnext-notes#readme) - a note-taking/knowledge base application
 * [Vaultwarden](vaultwarden#readme) - a bitwarden compatible password manager written in Rust (formerly bitwarden_rs)
 * [Websocketd](websocketd#readme) - a websocket / CGI server
-* [Wireguard](wireguard) - a standalone VPN client that other containers may use as a router
+* [WireGuard](wireguard) - a standalone VPN client that other containers may use as a router
 * [WireGuard-Gateway](wireguard-gateway) - a VPN client config that acts as a gateway node for your LAN.
 * [Wordpress](wordpress#readme) - a ubiquitous blogging / CMS platform, with a plugin to build a static HTML site snapshot
 * [XBrowserSync](xbs#readme) - a bookmark manager
