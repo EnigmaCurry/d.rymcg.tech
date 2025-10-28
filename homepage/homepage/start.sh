@@ -33,27 +33,22 @@ fi
 
 ## Clone the user supplied template repository if supplied:
 if [[ -n "${HOMEPAGE_TEMPLATE_REPO}" ]]; then
-    if ls /app/config/*.yaml >/dev/null 2>&1 && [[ "${HOMEPAGE_TEMPLATE_REPO_SYNC_ON_START}" != "true" ]]; then
-        echo "Found existing config files in /app/config, so skipping HOMEPAGE_TEMPLATE_REPO sync"
-        echo "(Set HOMEPAGE_TEMPLATE_REPO_SYNC_ON_START=true to force syncing)"
+    echo "Cloning personal template repository: ${HOMEPAGE_TEMPLATE_REPO}"
+    TMP_CLONE=$(mktemp -d)
+    export GIT_SSH_COMMAND="ssh -i '${SSH_KEYFILE}' -o UserKnownHostsFile='${SSH_KNOWNHOSTS_FILE}'"
+    git clone --depth 1 ${HOMEPAGE_TEMPLATE_REPO} ${TMP_CLONE}
+    if [[ $? == 0 ]]; then
+        rm -rf /app/config/*.yaml
+        for file in ${TMP_CLONE}/*.yaml; do
+            out_path="/app/config/$(basename $file)"
+            cat "${file}" | envsubst > $out_path
+            echo "Rendered template file: $out_path"
+        done
+        #rm -f ${TMP_CLONE}/*.yaml
+        rsync -a --exclude='*.yaml' ${TMP_CLONE}/ /app/config/
+        rm -rf ${TMP_CLONE}
     else
-        echo "Cloning personal template repository: ${HOMEPAGE_TEMPLATE_REPO}"
-        TMP_CLONE=$(mktemp -d)
-        export GIT_SSH_COMMAND="ssh -i '${SSH_KEYFILE}' -o UserKnownHostsFile='${SSH_KNOWNHOSTS_FILE}'"
-        git clone --depth 1 ${HOMEPAGE_TEMPLATE_REPO} ${TMP_CLONE}
-        if [[ $? == 0 ]]; then
-            rm -rf /app/config/*.yaml
-            for file in ${TMP_CLONE}/*.yaml; do
-                out_path="/app/config/$(basename $file)"
-                cat "${file}" | envsubst > $out_path
-                echo "Rendered template file: $out_path"
-            done
-            #rm -f ${TMP_CLONE}/*.yaml
-            rsync -a --exclude='*.yaml' ${TMP_CLONE}/ /app/config/
-            rm -rf ${TMP_CLONE}
-        else
-            echo "ERROR: Could not clone from git repository: ${HOMEPAGE_TEMPLATE_REPO}"
-        fi
+        echo "ERROR: Could not clone from git repository: ${HOMEPAGE_TEMPLATE_REPO}"
     fi
 fi
 
