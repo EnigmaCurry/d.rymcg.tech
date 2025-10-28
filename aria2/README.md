@@ -2,11 +2,13 @@
 
 [Aria2](https://aria2.github.io/) is a multi-protocol downloader tool
 for HTTP, FTP, SFTP, BitTorrent, and Metalink URLs.
+
 [WebUI-Aria2](https://github.com/ziahamza/webui-aria2) is a web app
 frontend for the Aria2 JSON RPC interface.
 
-This config is currently configured to use our own fork
-[EnigmaCurry/webui-aria2](https://github.com/EnigmaCurry/webui-aria2)).
+This config is currently configured to deploy both from our own forked
+repository
+[EnigmaCurry/webui-aria2](https://github.com/EnigmaCurry/webui-aria2).
 
 ## Setup
 
