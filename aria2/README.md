@@ -10,8 +10,8 @@ configured to use our own fork
 ### Consider installing WireGuard first
 
 If you don't want to download files over your native ISP connection,
-you may want to consider installing a [WireGuard](../wireguard) first.
-Then you can tell qBittorrent to use the VPN for all of its traffic.
+you may want to consider installing [WireGuard](../wireguard) first.
+Then you can tell aria2 to use the VPN for all of its traffic.
 
 ### Config
 

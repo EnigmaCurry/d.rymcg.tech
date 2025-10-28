@@ -8,7 +8,7 @@ Bittorrent client.
 ### Consider installing WireGuard first
 
 If you don't want to use BitTorrent over your native ISP connection,
-you may want to consider installing a [WireGuard](../wireguard) first.
+you may want to consider installing [WireGuard](../wireguard) first.
 Then you can tell qBittorrent to use the VPN for all of its traffic.
 
 ### Config
