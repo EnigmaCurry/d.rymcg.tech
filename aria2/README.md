@@ -1,7 +1,9 @@
-# qbittorrent
+# aria2
 
 This config is for [aria2 and
-aria2-webui](https://github.com/ziahamza/webui-aria2)
+aria2-webui](https://github.com/ziahamza/webui-aria2) (currently
+configured to use our own fork
+[EnigmaCurry/webui-aria2](https://github.com/EnigmaCurry/webui-aria2)).
 
 ## Setup
 
