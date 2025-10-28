@@ -1,8 +1,11 @@
 # Homepage
 
 [Homepage](https://github.com/gethomepage/homepage) is a highly
-customizable application dashboard with integrations for more than 25
-services and translations for over 15 languages.
+customizable application dashboard with integrations for external
+services.
+
+Review its [documentation](https://gethomepage.dev/) for details about
+configurations and widgets/integrations.
 
 ## Config
 
