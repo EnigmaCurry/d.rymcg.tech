@@ -76,25 +76,23 @@ make destroy
 
 This completely removes the container and all of the data, including the Git deploy key.
 
-## Reloading Webhook (optional)
+## Reloading Webhook
 
-You can optionally enable automatic reloading of your config whenever
-you make pushes to your template git repository. Your git host can
-send a webhook request back to your homepage instance, to tell it to
+Your config will be automatically reloaded whenever you make pushes to
+your template git repository. Your git host must be configured to send
+a webhook request back to your homepage instance, to tell it to
 restart and reload the config.
 
-First you must enable `HOMEPAGE_TEMPLATE_REPO_SYNC_ON_START=true` in
-your `.env_{INSTANCE}` file. Note that this will *delete* your
-existing config, and redownload the template repository on *each*
-restart of the container.
+Note that this will *delete* your existing config and redownload the
+template repository on *each* restart of the container.
 
-Second you must configure your Forgejo, Github, or Gitlab repository to
-add the webhook.
+Configure your Forgejo, Github, or Gitlab repository to add the
+webhook.
 
  * Webhook URL is of the format: `https://homepage-webhook.example.com/reloader/restart`
  * Choose the data type: `application/json`
- * Webhook Secret is found in your `.env_{INSTANCE}` as
-   `HOMEPAGE_RELOADER_HMAC_SECRET`. This secret is used to validate
+ * Webhook Secret is found in your `.env_{DOCKER_CONTEXT}_{INSTANCE}`
+   as `HOMEPAGE_RELOADER_HMAC_SECRET`. This secret is used to validate
    that the request is actually coming from your git host.
  * No extra authorization header is required.
 
