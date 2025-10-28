@@ -53,8 +53,6 @@ services:
       - QBITTORRENT_SessionBandwidthSchedulerEnabled
     volumes:
       - qbittorrent-config:/config:z
-    labels:
-      - "backup-volume.stop-during-backup=true"
 
   qbittorrent:
     image: linuxserver/qbittorrent:${QBITTORRENT_VERSION}

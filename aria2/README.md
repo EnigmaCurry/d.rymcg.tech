@@ -46,12 +46,14 @@ Once connected to the WebUI, you must configure it to use your Aria2 JSONRPC ser
 
  * Click `Settings`
  * Click `Connection Settings`
+ * Enter the secret (`RPC_SECRET` from .env)
+ 
+The rest of these settings should already be set:
+
  * Enter the host `aria2.example.com`
  * Enter the port `443`
  * Enter the RPC path `/jsonrc`
- * Enter the secret (`RPC_SECRET` from .env)
- * Click `Save Connection configuration`
- 
-It should then be able to connect to your instance. Please note that
-this connection information lives in your browser local storage for
-the domain.
+
+Click `Save Connection configuration` to save the credentials in your
+browser's local storage. It should now be successfully connected to
+your aria2 service.

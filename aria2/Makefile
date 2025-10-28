@@ -7,10 +7,13 @@ config-hook:
 	@${BIN}/reconfigure ${ENV_FILE} ARIA2_INSTANCE=${instance}
 
 	@echo ""
-	@${BIN}/reconfigure_network_mode ${ENV_FILE} ARIA2_NETWORK_MODE "Choose the network mode for this container"
+	@${BIN}/reconfigure_network_mode ${ENV_FILE} ARIA2_NETWORK_MODE "Choose the network mode for this container (default or wireguard)"
 	@${BIN}/reconfigure_ask ${ENV_FILE} ARIA2_TRAEFIK_HOST "Enter the aria2 domain name" aria2${INSTANCE_URL_SUFFIX}.${ROOT_DOMAIN}
 	@${BIN}/reconfigure_ask ${ENV_FILE} ARIA2_DOWNLOAD_VOLUME "Enter the absolute host path to store downloads"
-
+	@echo
+	@${BIN}/reconfigure_ask ${ENV_FILE} ARIA2_UID "Enter the aria2 user ID (UID) for all file permissions"
+	@${BIN}/reconfigure_ask ${ENV_FILE} ARIA2_GID "Enter the aria2 group ID (GID) for all file permissions"
+	@echo
 	@${BIN}/reconfigure_password ${ENV_FILE} ARIA2_RPC_SECRET
 	@${BIN}/reconfigure_ask ${ENV_FILE} ARIA2_IP_SOURCERANGE "Enter the allowed client IP source range (eg. 192.168.1.1/24 or 0.0.0.0/0)"
 	@${BIN}/reconfigure_auth ${ENV_FILE} ARIA2

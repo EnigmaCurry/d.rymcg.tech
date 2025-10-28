@@ -1,6 +1,3 @@
-volumes:
-  aria2_config:
-
 services:
   aria2:
     build:
@@ -10,8 +7,8 @@ services:
         GID: ${ARIA2_GID}
     environment:
       - RPC_SECRET=${ARIA2_RPC_SECRET}
-      - RPC_PORT=${ARIA2_RPC_PORT}
-      - WEB_PORT=${ARIA2_WEB_PORT}
+      - WEB_PORT=8089
+      - RPC_PORT=6801
     volumes:
       - ${ARIA2_DOWNLOAD_VOLUME}:/downloads:z
 

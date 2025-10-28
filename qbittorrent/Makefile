@@ -7,9 +7,13 @@ config-hook:
 	@${BIN}/reconfigure ${ENV_FILE} QBITTORRENT_INSTANCE=${instance}
 
 	@echo ""
-	@${BIN}/reconfigure_network_mode ${ENV_FILE} QBITTORRENT_NETWORK_MODE "Choose the network mode for this container"
+	@${BIN}/reconfigure_network_mode ${ENV_FILE} QBITTORRENT_NETWORK_MODE "Choose the network mode for this container (default or wireguard)"
 	@${BIN}/reconfigure_ask ${ENV_FILE} QBITTORRENT_TRAEFIK_HOST "Enter the qbittorrent domain name" qbittorrent${INSTANCE_URL_SUFFIX}.${ROOT_DOMAIN}
 	@${BIN}/reconfigure_ask ${ENV_FILE} QBITTORRENT_PEER_PORT "Enter the public peer port qbittorrent should bind"
+	@echo
+	@${BIN}/reconfigure_ask ${ENV_FILE} QBITTORRENT_UID "Enter the qbittorrent user ID (UID) for all file permissions"
+	@${BIN}/reconfigure_ask ${ENV_FILE} QBITTORRENT_GID "Enter the qbittorrent group ID (GID) for all file permissions"
+	@echo
 	@${BIN}/reconfigure_ask ${ENV_FILE} QBITTORRENT_DOWNLOAD_VOLUME "Enter the absolute host path to store downloads"
 
 	@${BIN}/reconfigure_ask ${ENV_FILE} QBITTORRENT_IP_SOURCERANGE "Enter the allowed client IP source range (eg. 192.168.1.1/24 or 0.0.0.0/0)"
