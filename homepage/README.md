@@ -1,6 +1,6 @@
 # Homepage
 
-[Homepage](https://github.com/benphelps/homepage) is a highly
+[Homepage](https://github.com/gethomepage/homepage) is a highly
 customizable application dashboard with integrations for more than 25
 services and translations for over 15 languages.
 
@@ -14,12 +14,13 @@ This will ask you to enter the main domain name to use for homepage,
 as well as a secondary domain name to use for webhooks.
 
 It automatically saves your responses into the configuration file
-`.env_{INSTANCE}`.
+`.env_{DOCKER_CONTEXT}_{INSTANCE}`.
 
 The configuration for your Homepage instance is contained in an
 external repository that you must fork from the provided template
-repository. Set `HOMEPAGE_TEMPLATE_REPO` in your `.env_{INSTANCE}`
-file. The template repo can be forked from
+repository. Set `HOMEPAGE_TEMPLATE_REPO` in your
+`.env_{DOCKER_CONTEXT}_{INSTANCE}` file. The template repo can be
+forked from
 [github.com/EnigmaCurry/d.rymcg.tech_homepage-template](https://github.com/EnigmaCurry/d.rymcg.tech_homepage-template)
 to create your own custom Homepage configuration, this container will
 automatically pull from your fork on startup, and to trigger an
@@ -29,7 +30,8 @@ public or private repository. (Tested on forgejo and github).
 Homepage has support for loading information from the docker socket,
 which has been enabled by default. If you wish to disable this
 support, answer the question posed by `make config` and/or set
-`HOMEPAGE_ENABLE_DOCKER=false` in your `.env_{INSTANCE}` file.
+`HOMEPAGE_ENABLE_DOCKER=false` in your
+`.env_{DOCKER_CONTEXT}_{INSTANCE}` file.
 
 ### Authentication and Authorization
 
@@ -74,7 +76,8 @@ it with someone else.
 make destroy
 ```
 
-This completely removes the container and all of the data, including the Git deploy key.
+This completely removes the container and all of the data, including
+the Git deploy key.
 
 ## Reloading Webhook
 
