@@ -1,44 +1,8 @@
 volumes:
-  wireguard:
   qbittorrent-config:
+  aria2_config:
 
 services:
-  wireguard-config:
-    build:
-      context: wireguard-config
-    environment:
-      - QBITTORRENT_VPN_CLIENT_INTERFACE_PRIVATE_KEY
-      - QBITTORRENT_VPN_CLIENT_INTERFACE_IPV4
-      - QBITTORRENT_VPN_CLIENT_INTERFACE_IPV6
-      - QBITTORRENT_VPN_CLIENT_INTERFACE_LISTEN_PORT
-      - QBITTORRENT_VPN_CLIENT_INTERFACE_PEER_DNS
-      - QBITTORRENT_VPN_CLIENT_PEER_PUBLIC_KEY
-      - QBITTORRENT_VPN_CLIENT_PEER_ALLOWED_IPS
-      - QBITTORRENT_VPN_CLIENT_PEER_ENDPOINT
-    volumes:
-      - wireguard:/config
-    labels:
-      - "backup-volume.stop-during-backup=true"
-
-  wireguard:
-    depends_on: ['wireguard-config']
-    image: linuxserver/wireguard
-    cap_add:
-      - NET_ADMIN
-      - SYS_MODULE
-    sysctls:
-      - net.ipv6.conf.all.disable_ipv6=0
-      - net.ipv4.conf.all.src_valid_mark=1
-    environment:
-      - PUID=1000
-      - PGID=1000
-      - TZ=${TIMEZONE}
-    volumes:
-      - wireguard:/config
-      - /lib/modules:/lib/modules
-    restart: unless-stopped
-    labels: []
-
   qbittorrent-config:
     build:
       context: qbittorrent-config
@@ -88,15 +52,11 @@ services:
       - QBITTORRENT_SessionUseAlternativeGlobalSpeedLimit
       - QBITTORRENT_SessionBandwidthSchedulerEnabled
     volumes:
-      - qbittorrent-config:/config
-    labels:
-      - "backup-volume.stop-during-backup=true"
+      - qbittorrent-config:/config:z
 
   qbittorrent:
     image: linuxserver/qbittorrent:${QBITTORRENT_VERSION}
-    network_mode: "service:wireguard"
     depends_on:
-      - wireguard
       - qbittorrent-config
     environment:
       - PUID=${QBITTORRENT_UID}
@@ -104,10 +64,9 @@ services:
       - TZ=${TIMEZONE}
       - WEBUI_PORT=8080
     volumes:
-      - qbittorrent-config:/config
-      - type: bind
-        source: ${QBITTORRENT_DOWNLOAD_VOLUME}
-        target: /downloads
+      - qbittorrent-config:/config:z
+      - ${QBITTORRENT_DOWNLOAD_VOLUME}:/downloads:z
     restart: unless-stopped
     labels:
       - "backup-volume.stop-during-backup=true"      
+
