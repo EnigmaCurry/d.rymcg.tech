@@ -6,9 +6,9 @@ for HTTP, FTP, SFTP, BitTorrent, and Metalink URLs.
 [WebUI-Aria2](https://github.com/ziahamza/webui-aria2) is a web app
 frontend for the Aria2 JSON RPC interface.
 
-This config is currently configured to deploy both from our own forked
-repository
-[EnigmaCurry/webui-aria2](https://github.com/EnigmaCurry/webui-aria2).
+This configuration is built from our own forked repository
+[EnigmaCurry/webui-aria2](https://github.com/EnigmaCurry/webui-aria2)
+with improvements.
 
 ## Setup
 
