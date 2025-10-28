@@ -81,20 +81,20 @@ make instance=my-vpn-peer-xx-12 install
 The [wireguard service does not have an integrated
 killswitch](https://github.com/linuxserver/docker-wireguard/issues/139) -
 if for any reason wireguard fails to start, including for reasons of
-misconfiguration and/or host incompatibilities, then qbittorrent will
-*NOT* be protected, and will be using the local internet connection
-instead of the VPN.
+misconfiguration and/or host incompatibilities, then your services
+will *NOT* be protected, and will be using the local internet
+connection instead of the VPN.
 
 Before using the service, you should verify that your VPN is working:
 
 ```
-# Check that both wireguard and qbittorent are running (two containers:)
+# Check that wireguard is running
 make status
 
 # Check the logs, make sure there isn't an error:
 make logs
 
-# Exec into the qbittorrent container and check the ip address being used:
+# Exec into the container and check the ip address being used:
 # (This should report your VPN connection details, not your local connection)
 make shell
 curl ifconfig.co/json
