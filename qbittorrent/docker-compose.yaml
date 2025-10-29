@@ -52,6 +52,7 @@ services:
       - QBITTORRENT_SessionBandwidthSchedulerEnabled
       - QBITTORRENT_SessionInterface
       - QBITTORRENT_SessionInterfaceName
+      - QBITTORRENT_SessionInterfaceAddress
       - QBITTORRENT_MergeTrackersEnabled
       - QBITTORRENT_SessionSubcategoriesEnabled
       - QBITTORRENT_SessionUseCategoryPathsInManualMode
