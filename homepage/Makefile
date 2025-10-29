@@ -43,10 +43,6 @@ shell:
 git-deploy-key: override
 	@docker compose --env-file ${ENV_FILE} --project-name=${PROJECT_NAME} -f docker-compose.yaml -f "docker-compose.override_${DOCKER_CONTEXT}_${INSTANCE}.yaml" run --rm -it homepage /bin/sh -c "mkdir -p /app/config/ssh/ && ssh-keygen -f /app/config/ssh/id_rsa -t rsa -P '' -C 'homepage-deploy-${DOCKER_CONTEXT}_${INSTANCE}'; (test -f /app/config/ssh/id_rsa.pub && echo '' && echo '# Public key fingerprint:' && ssh-keygen -lf /app/config/ssh/id_rsa.pub && echo '' && echo '# Public Deploy Key (Create this as a new deploy key in Forgejo repository settings):' && echo '' && cat /app/config/ssh/id_rsa.pub && echo '' || echo 'No public SSH key found.')"
 
-.PHONY: autoconfig
-autoconfig:
-	@ROOT_DIR=${ROOT_DIR} DOCKER_CONTEXT=${DOCKER_CONTEXT} HOMEPAGE_ENABLE_DOCKER=${HOMEPAGE_ENABLE_DOCKER} ENV_FILE=${ENV_FILE} HOMEPAGE_AUTO_CONFIG="$$(${BIN}/dotenv -f ${ENV_FILE} get HOMEPAGE_AUTO_CONFIG)" ./homepage_autoconfig.sh
-
 .PHONY: install-hook
 install-hook:
 	@echo

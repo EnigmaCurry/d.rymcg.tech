@@ -1,5 +1,5 @@
-ARG HOMEPAGE_VERSION
-FROM ghcr.io/gethomepage/homepage:${HOMEPAGE_VERSION}
+ARG HOMEPAGE_IMAGE
+FROM ${HOMEPAGE_IMAGE}
 RUN apk add --no-cache bash openssh git envsubst grep rsync
 WORKDIR /app
 ADD . /app/reloader
