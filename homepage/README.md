@@ -1,8 +1,11 @@
 # Homepage
 
-[Homepage](https://github.com/benphelps/homepage) is a highly
-customizable application dashboard with integrations for more than 25
-services and translations for over 15 languages.
+[Homepage](https://github.com/gethomepage/homepage) is a highly
+customizable application dashboard with integrations for external
+services.
+
+Review its [documentation](https://gethomepage.dev/) for details about
+configurations and widgets/integrations.
 
 ## Config
 
@@ -14,12 +17,13 @@ This will ask you to enter the main domain name to use for homepage,
 as well as a secondary domain name to use for webhooks.
 
 It automatically saves your responses into the configuration file
-`.env_{INSTANCE}`.
+`.env_{DOCKER_CONTEXT}_{INSTANCE}`.
 
 The configuration for your Homepage instance is contained in an
 external repository that you must fork from the provided template
-repository. Set `HOMEPAGE_TEMPLATE_REPO` in your `.env_{INSTANCE}`
-file. The template repo can be forked from
+repository. Set `HOMEPAGE_TEMPLATE_REPO` in your
+`.env_{DOCKER_CONTEXT}_{INSTANCE}` file. The template repo can be
+forked from
 [github.com/EnigmaCurry/d.rymcg.tech_homepage-template](https://github.com/EnigmaCurry/d.rymcg.tech_homepage-template)
 to create your own custom Homepage configuration, this container will
 automatically pull from your fork on startup, and to trigger an
@@ -29,7 +33,8 @@ public or private repository. (Tested on forgejo and github).
 Homepage has support for loading information from the docker socket,
 which has been enabled by default. If you wish to disable this
 support, answer the question posed by `make config` and/or set
-`HOMEPAGE_ENABLE_DOCKER=false` in your `.env_{INSTANCE}` file.
+`HOMEPAGE_ENABLE_DOCKER=false` in your
+`.env_{DOCKER_CONTEXT}_{INSTANCE}` file.
 
 ### Authentication and Authorization
 
@@ -74,27 +79,26 @@ it with someone else.
 make destroy
 ```
 
-This completely removes the container and all of the data, including the Git deploy key.
+This completely removes the container and all of the data, including
+the Git deploy key.
 
-## Reloading Webhook (optional)
+## Reloading Webhook
 
-You can optionally enable automatic reloading of your config whenever
-you make pushes to your template git repository. Your git host can
-send a webhook request back to your homepage instance, to tell it to
+Your config will be automatically reloaded whenever you make pushes to
+your template git repository. Your git host must be configured to send
+a webhook request back to your homepage instance, to tell it to
 restart and reload the config.
 
-First you must enable `HOMEPAGE_TEMPLATE_REPO_SYNC_ON_START=true` in
-your `.env_{INSTANCE}` file. Note that this will *delete* your
-existing config, and redownload the template repository on *each*
-restart of the container.
+Note that this will *delete* your existing config and redownload the
+template repository on *each* restart of the container.
 
-Second you must configure your Forgejo, Github, or Gitlab repository to
-add the webhook.
+Configure your Forgejo, Github, or Gitlab repository to add the
+webhook.
 
  * Webhook URL is of the format: `https://homepage-webhook.example.com/reloader/restart`
  * Choose the data type: `application/json`
- * Webhook Secret is found in your `.env_{INSTANCE}` as
-   `HOMEPAGE_RELOADER_HMAC_SECRET`. This secret is used to validate
+ * Webhook Secret is found in your `.env_{DOCKER_CONTEXT}_{INSTANCE}`
+   as `HOMEPAGE_RELOADER_HMAC_SECRET`. This secret is used to validate
    that the request is actually coming from your git host.
  * No extra authorization header is required.
 

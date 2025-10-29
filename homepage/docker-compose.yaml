@@ -41,7 +41,7 @@ services:
     build:
       context: homepage
       args:
-        HOMEPAGE_VERSION: ${HOMEPAGE_VERSION}
+        HOMEPAGE_IMAGE: ${HOMEPAGE_IMAGE}
     restart: unless-stopped
     networks: [default, sandbox]
     environment:
