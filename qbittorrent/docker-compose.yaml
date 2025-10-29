@@ -69,7 +69,7 @@ services:
       - qbittorrent-config:/config:z
 
   qbittorrent:
-    image: linuxserver/qbittorrent:${QBITTORRENT_VERSION}
+    image: ${QBITTORRENT_IMAGE}
     depends_on:
       - qbittorrent-config
     environment:
