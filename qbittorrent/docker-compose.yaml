@@ -53,18 +53,18 @@ services:
       - QBITTORRENT_SessionInterface
       - QBITTORRENT_SessionInterfaceName
       - QBITTORRENT_MergeTrackersEnabled
-      - QBITTORRENT_SessionSubCategoriesEnabled
+      - QBITTORRENT_SessionSubcategoriesEnabled
       - QBITTORRENT_SessionUseCategoryPathsInManualMode
       - QBITTORRENT_SessionAnonymousModeEnabled
       - QBITTORRENT_SessionTorrentStopCondition
       - QBITTORRENT_WebUIUsername
-      - QBITTORRENT_WebUIPassword
+      - QBITTORRENT_WebUIPassword_PBKDF2
       - QBITTORRENT_WebUILocalHostAuth
       - QBITTORRENT_WebUIAuthSubnetWhitelistEnabled
       - QBITTORRENT_WebUIAuthSubnetWhitelist
       - QBITTORRENT_WebUIClickjackingProtection
       - QBITTORRENT_WebUICSRFProtection
-      - QBITTORRENT_GeneralStatubarExternalUPDisplayed
+      - QBITTORRENT_GeneralStatusbarExternalIPDisplayed
     volumes:
       - qbittorrent-config:/config:z
 
