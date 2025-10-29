@@ -30,7 +30,7 @@ Enter the following information as prompted:
    sure to create the directory before install)
  * `QBITTORRENT_IP_SOURCE_RANGE` - the IP whitelist of clients
    allowed to connect to the qbittorrent client webapp (Traefik
-   enforced). If you want to only rely upon passwords, but allow every
+   enforced). If you want to only rely upon passwords but allow every
    IP address to connect, enter `0.0.0.0/0`. Otherwise you should
    prevent access except from a specific range of IP addresses, eg.
    `192.168.1.1/24`.
@@ -52,37 +52,48 @@ authentication on top of your app.
 
 ### qBittorrent config options
 Once up and running, you can configure qBittorrent in its web UI, but
-qBittorrent's configs are reset on each startup of the Docker container.
-So we set them in environment variables, so they can be reapplied on each
-startup. 
+qBittorrent's configs are reset on each startup of the Docker
+container. So we set them in environment variables, so they can be
+reapplied on each startup.
 
-The qBittorrent configurations are not included in `make config` - you'll
-need to manually edit your `.env` file to adjust them.
+The qBittorrent configurations are not included in `make config` -
+you'll need to manually edit your `.env_{DOCKER_CONTEXT}_{INSTANCE}`
+file to adjust them.
 
 To know what the settings are, you might want to install qBittorrent
-first, and set the variable via the web UI, and then copy whatever
+first and set the variable via the web UI, and then copy whatever
 values it puts into `/var/lib/docker/volumes/<container's volume
 name>/_data/qBittorrent/qBittorrent.conf` (on the host) and paste it
-your `.env` file to make it permanent.
+your `.env_{DOCKER_CONTEXT}_{INSTANCE}` file to make it permanent.
 
-In your `.env` file, the lines in \[brackets\] are simply qBittorrent
-configuration categories, for your reference.
+In your `.env_{DOCKER_CONTEXT}_{INSTANCE}` file, the lines in
+\[brackets\] are simply qBittorrent configuration categories, for your
+reference.
 
-If you add any additional qBittorrent configs to your `.env` file, you'll also
-need to add them to `docker-compose.yaml` and
-`qbittorrent-config/template/qBittorrent.conf`. You can follow the examples
-already in those files for formatting and naming conventions.
+If you add any additional qBittorrent configs to your
+`.env_{DOCKER_CONTEXT}_{INSTANCE}` file, you'll also need to add them
+to `docker-compose.yaml` and
+`qbittorrent-config/template/qBittorrent.conf`. Follow the
+examples already in those files for formatting and naming conventions.
 
 If you change or add any qBittorrent config values, run `make install`.
 
-## Deploy
-
-Once configured, deploy it:
+## Install
 
 ```
 make install
 ```
 
+## Open
+
 ```
 make open
 ```
+
+## Destroy
+
+```
+make destroy
+```
+
+This completely removes the container and its volume.
