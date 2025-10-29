@@ -1,13 +1,12 @@
-# qbittorrent
+# qBittorrent
 
-This config is for the [qBittorrent](https://www.qbittorrent.org/)
-Bittorrent client.
+[qBittorrent](https://www.qbittorrent.org/) is a Bittorrent client.
 
 ## Setup
 
 ### Consider installing WireGuard first
 
-If you don't want to use BitTorrent over your native ISP connection,
+If you don't want to use qBittorrent over your native ISP connection,
 you may want to consider installing [WireGuard](../wireguard) first.
 Then you can tell qBittorrent to use the VPN for all of its traffic.
 
@@ -42,6 +41,41 @@ When asked to choose the network mode, you have two choices:
  * Use the container network of a WireGuard instance. This will route
    all traffic through a VPN.
 
+### Admin credentials
+
+The default credentials for the web UI are "admin" with the password
+"adminadmin", but default configurations also bypass the login when
+accessing qBittorrent's web UI from the container's localhost and from
+any IP address (there are 2 different configurations that allow
+bypass, and they're both enabled by default). So on initial install,
+you won't be prompted to log in.
+
+You change the admin username in your
+`env_{DOCKER_CONTEXT}_{INSTANCE}` file, but the password is stored
+encoded so you can't just enter it. To change the admin password in
+your `env_{DOCKER_CONTEXT}_{INSTANCE}` file for future installs:
+
+ 1) Install with default configurations.
+ 2) Change the password in the web UI (Options -> WebUI ->
+ Authentication).
+ 3) Examine the contents of `/var/lib/docker/volumes/<container's
+volume name>/_data/qBittorrent/qBittorrent.conf` (on the host) and
+copy the value of the `WebUI\Password_PBKDF2` variable (including the
+quotation marks, e.g.,
+`"@ByteArray(OEeeMtO0Qkfvg1mRHOygfA==:z8blJXS2SjA6jrccbnqF8jqnt4ACGBaQ1chFcvVyIOnP7aK0tk5yN3v/RrQFXf47y9ZqVrOta8fshzr7h65Yow==)"`).
+ 4) Paste that in your `env_{DOCKER_CONTEXT}_{INSTANCE}` file as the
+ value for the `QBITTORRENT_WebUIPassword_PBKDF2` variable.
+ 5) Run `make install`.
+
+In order to be prompted to log in, you'll need to disable the "Bypass
+authentication for clients on localhost" and "Bypass authentication
+for clients in whitelisted IP subnets" configurations. To do so in
+your `env_{DOCKER_CONTEXT}_{INSTANCE}` file for future installs:
+
+ 1) Change `QBITTORRENT_WebUIAuthSubnetWhitelistEnabled` to false.
+ 2) Change `QBITTORRENT_WebUILocalHostAuth` to true.
+ 3) Run `make install`.
+
 ### Authentication and Authorization
 
 In order to prevent unauthorized access, it is **highly recommended**
@@ -51,6 +85,7 @@ See [AUTH.md](../AUTH.md) for information on adding external
 authentication on top of your app.
 
 ### qBittorrent config options
+
 Once up and running, you can configure qBittorrent in its web UI, but
 qBittorrent's configs are reset on each startup of the Docker
 container. So we set them in environment variables, so they can be
