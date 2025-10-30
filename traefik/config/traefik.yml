@@ -4,6 +4,8 @@
 log:
   level: #@ data.values.log_level
 
+ping: {}
+
 #@ if data.values.access_logs_enabled == "true":
 accessLog:
   filePath: #@ data.values.access_logs_path
@@ -197,6 +199,9 @@ entryPoints:
         #@ end
       middlewares:
         - strip-headers@file
+        #@ if data.values.plugin_maxmind_geoip == "true":
+        - geoip@file
+        #@ end
         #@ if len(data.values.error_handler_403_service):
         - traefik-websecure-error-handler-403@file
         #@ end
@@ -225,17 +230,6 @@ entryPoints:
     proxyProtocol:
       trustedIPs:
         #@ for allowed_net in data.values.xmpp_s2s_entrypoint_proxy_protocol_trusted_ips.split(","):
-        - "(@= allowed_net @)"
-        #@ end
-    #@ end
-  #@ end
-  #@ if data.values.mqtt_entrypoint_enabled == "true":
-  mqtt:
-    address: #@ data.values.mqtt_entrypoint_host + ":" + data.values.mqtt_entrypoint_port
-    #@ if len(data.values.mqtt_entrypoint_proxy_protocol_trusted_ips.strip()):
-    proxyProtocol:
-      trustedIPs:
-        #@ for allowed_net in data.values.mqtt_entrypoint_proxy_protocol_trusted_ips.split(","):
         - "(@= allowed_net @)"
         #@ end
     #@ end
@@ -333,3 +327,32 @@ entryPoints:
         - traefik-websecure-error-handler-500@file
         #@ end
   #@ end
+  #@ if data.values.iperf_tcp_entrypoint_enabled == "true":
+  iperf_tcp:
+    address: #@ data.values.iperf_tcp_entrypoint_host + ":" + data.values.iperf_tcp_entrypoint_port + "/tcp"
+    #@ if len(data.values.iperf_tcp_entrypoint_proxy_protocol_trusted_ips.strip()):
+    proxyProtocol:
+      trustedIPs:
+        #@ for allowed_net in data.values.iperf_tcp_entrypoint_proxy_protocol_trusted_ips.split(","):
+        - "(@= allowed_net @)"
+        #@ end
+    #@ end
+  #@ end
+  #@ if data.values.iperf_udp_entrypoint_enabled == "true":
+  iperf_udp:
+    address: #@ data.values.iperf_udp_entrypoint_host + ":" + data.values.iperf_udp_entrypoint_port + "/udp"
+  #@ end
+  #@ if data.values.dns_entrypoint_enabled == "true":
+  dns_tcp:
+    address: #@ data.values.dns_entrypoint_host + ":" + data.values.dns_entrypoint_port + "/tcp"
+    #@ if len(data.values.dns_entrypoint_proxy_protocol_trusted_ips.strip()):
+    proxyProtocol:
+      trustedIPs:
+        #@ for allowed_net in data.values.dns_entrypoint_proxy_protocol_trusted_ips.split(","):
+        - "(@= allowed_net @)"
+        #@ end
+    #@ end
+  dns_udp:
+    address: #@ data.values.dns_entrypoint_host + ":" + data.values.dns_entrypoint_port + "/udp"
+  #@ end
+

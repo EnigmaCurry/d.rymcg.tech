@@ -1,0 +1,16 @@
+#!/bin/bash
+
+## reconfigure_volume ENV_FILE VAR "this is the prompt" "this is the default"
+
+ENV_FILE="$1"; var="$2"; default="$3";
+BIN=$(dirname ${BASH_SOURCE})
+source ${BIN}/funcs.sh
+
+check_var ENV_FILE var
+
+VOLUME=$(${BIN}/script-wizard choose --default "$default" "${var}: Choose an existing volume" $(
+    docker volume ls --format '{{.Name}}' \
+    | grep -vE '^[a-f0-9]{32,}$'
+))
+
+${BIN}/reconfigure ${ENV_FILE} ${var}=${VOLUME}

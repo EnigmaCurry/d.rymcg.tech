@@ -1,0 +1,88 @@
+## host1: pitch=0.95 am_eric*0.6 + am_echo*0.4
+## host2: pitch=0.95 af_kore*0.7 + af_sky*0.3
+
+## d.rymcg.tech=dee-dot-rye-mick-gee-dot-tek
+## Traefik=tray-fik
+## WireGuard=wire-guard
+## live=liv
+## Self-Hoster=self-hoseter
+## self-hosters=self-hoseters
+## .env=dot ENV
+
+# host1
+Welcome back to Self-Host FM, where we talk all about hosting your own
+web server. Today we are introducing d.rymcg.tech. It is a collection
+of open-source Docker-Compose projects and CLI tools that let you
+manage remote Docker services from your workstation.
+
+# host2
+The headline is flexibility. You can deploy Docker on a cloud server
+like a DigitalOcean droplet or AWS EC2. You can run at home with
+simple port forwarding. You can keep a private server behind
+WireGuard. You can even use a roaming machine with no open ports by
+reaching it through a public sentry VPN.
+
+# host1
+There is a clean split between workstation and server. All source
+files and administration live on your workstation. You rarely need to
+SSH into the server. One workstation can command several servers with
+the same tooling.
+
+# host2
+Configuration is just environment variables in .env files. Each
+deployment has its own .env_{CONTEXT}_{INSTANCE} file per project, per
+context, per instance. Production, staging, and home lab stay neatly
+isolated.
+
+# host1
+Every sub-project ships a Makefile with consistent targets. make
+config to run a setup wizard. make install to deploy. make open to
+launch the app in your browser. make uninstall to remove containers
+but keep data. make destroy to wipe the data volumes. make readme to
+open the docs.
+
+# host2
+Remember that make runs in the directory where the Makefile lives.
+Change into the correct sub-directory first. Then run the targets.
+
+# host1
+If you prefer a global command, use the d.rymcg.tech CLI or the d
+alias. It re-wraps those Make targets and works from any directory.
+For example, d make whoami config. Or d make whoami install.
+
+# host2
+These commands operate on your current Docker context. Switch with d
+context. You can also create shell aliases like prod make whoami
+install to pin a specific context without changing the global one.
+
+# host1
+Everything in the repository uses open-source licenses. You can host
+your own projects in external repositories under any license and still
+use the same command line tooling.
+
+# host2
+At the edge, Traefik is the front door proxy for HTTP, TCP, and UDP.
+It terminates TLS and can enforce sentry authentication and
+authorization like mTLS, OAuth, HTTP Basic, or IP source range checks.
+Applications declare routes and middleware via container labels, so
+policy lives next to the service.
+
+# host1
+For full-stack self-hosters you can run your own PKI with Step-CA and
+acme-dns. You can mint wildcard TLS certificates automatically. You
+can be your own Let’s Encrypt alternative.
+
+# host2
+That is the story. Deploy anywhere. Manage from your workstation.
+Configure with .env files per context and instance. Use Make and the
+global CLI for ergonomics.
+
+Deploy Traefik on the edge. Add a self-hosted CA and DNS delegation if
+you want complete control.
+
+# host1
+Next time we'll dive in and start setting up our workstation and
+creating our first Docker server.
+
+# host2
+See you then!

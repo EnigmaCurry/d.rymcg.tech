@@ -1,0 +1,33 @@
+services:
+  speedtest-tracker:
+    image: ${SPEEDTEST_TRACKER_IMAGE}
+    restart: unless-stopped
+    environment:
+      - APP_KEY=${SPEEDTEST_TRACKER_APP_KEY}
+      - DB_CONNECTION=sqlite
+      - DISPLAY_TIMEZONE=${SPEEDTEST_TRACKER_DISPLAY_TIMEZONE}
+      - APP_URL=${SPEEDTEST_TRACKER_TRAEFIK_HOST}
+      # Unused because setting as described in docs results in failed CSS 
+      #- ASSET_URL=${SPEEDTEST_TRACKER_TRAEFIK_HOST}
+      - APP_DEBUG=${SPEEDTEST_TRACKER_APP_DEBUG}
+      - PUBLIC_DASHBOARD=${SPEEDTEST_TRACKER_PUBLIC_DASHBOARD}
+      - SPEEDTEST_SCHEDULE=${SPEEDTEST_TRACKER_SCHEDULE}
+      - APP_NAME=${SPEEDTEST_TRACKER_APP_NAME}
+      - PRUNE_RESULTS_OLDER_THAN=${SPEEDTEST_TRACKER_PRUNE_RESULTS_OLDER_THAN}
+      - ADMIN_PASSWORD=${SPEEDTEST_TRACKER_INITIAL_ADMIN_PASSWORD}
+    volumes:
+      - data:/config
+      - keys:/config/keys
+    sysctls:
+      - net.ipv4.ip_unprivileged_port_start=1024
+    labels: []
+    healthcheck:
+        test: curl -fSs APP_URL/api/healthcheck | jq -r .message || exit 1
+        interval: 10s
+        retries: 3
+        start_period: 30s
+        timeout: 10s
+    
+volumes:
+  data:
+  keys:

@@ -1,0 +1,28 @@
+services:
+  caddy:
+    build:
+      context: caddy
+      args:
+        CADDY_IMAGE: ${CADDY_IMAGE}
+    environment:
+      - ACME_AGREE=true
+      - ACME_CA=${CADDY_ACME_CA}
+      - DOMAIN=${CADDY_TRAEFIK_HOST}
+    volumes:
+      - caddy_data:/data
+      - caddy_config:/config
+      - caddy_html:/srv
+
+  # my-sidecar:
+  #   image: debian
+  #   command: "sleep infinity"
+  #   volumes:
+  #     - caddy_data:/data:ro
+  #   environment:
+  #     - CERT_PATH=/data/caddy/certificates/${CADDY_ACME_CA}-directory/${CADDY_TRAEFIK_HOST}/${CADDY_TRAEFIK_HOST}.crt
+  #     - KEY_PATH=/data/caddy/certificates/${CADDY_ACME_CA}-directory/${CADDY_TRAEFIK_HOST}/${CADDY_TRAEFIK_HOST}.key
+
+volumes:
+  caddy_data:
+  caddy_config:
+  caddy_html:

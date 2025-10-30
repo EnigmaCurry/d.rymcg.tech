@@ -91,6 +91,15 @@ ask_echo() {
     )
 }
 
+ask_echo_blank() {
+    ## Ask the user a question, allowing blank responses, then print the answer to stdout
+    (
+        prompt=$1; shift
+        ask "$prompt" ASK_ECHO_VARNAME $@ >/dev/stderr
+        echo "${ASK_ECHO_VARNAME}"
+    )
+}
+
 
 require_input() {
     ## require_input {PROMPT} {VAR} {DEFAULT}
@@ -453,12 +462,12 @@ text_centered_wrap() {
 }
 
 text_repeat() {
-    local repeat="$1";
+    local repeat="$1"
     check_var repeat
     shift
-    local text="$@"
+    local text="$*"
     check_var text
-    readarray -t repeated < <(yes "${text}" | head -n ${repeat})
+    readarray -t repeated < <(yes "${text}" 2>/dev/null | head -n ${repeat})
     printf "%s" "${repeated[@]}"
     echo
 }

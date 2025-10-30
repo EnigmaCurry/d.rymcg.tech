@@ -26,6 +26,13 @@ services:
       - FORGEJO__service__NO_REPLY_ADDRESS
       - FORGEJO__session__SESSION_LIFE_TIME
       - FORGEJO__security__LOGIN_REMEMBER_DAYS
+      - FORGEJO__mailer__ENABLED
+      - FORGEJO__mailer__FROM
+      - FORGEJO__mailer__PROTOCOL
+      - FORGEJO__mailer__SMTP_ADDR
+      - FORGEJO__mailer__SMTP_PORT
+      - FORGEJO__mailer__USER
+      - FORGEJO__mailer__PASSWD
     security_opt:
       - no-new-privileges:true
     cap_drop:

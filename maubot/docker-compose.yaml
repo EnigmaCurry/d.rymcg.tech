@@ -18,6 +18,8 @@ services:
       - MATRIX_HOMESERVER
     volumes:
       - data:/data
+    labels:
+      - "backup-volume.stop-during-backup=true"
 
   maubot:
     depends_on: ["config"]

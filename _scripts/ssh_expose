@@ -6,7 +6,7 @@ source ${BIN}/funcs.sh
 
 __help() {
     echo "## Exposes a local workstation port to the Docker server on a public port."
-    echo "## ${D_RYMCG_TECH_CLI_ALIAS:-d.rymcg.tech} ssh-expose PUBLIC_PORT LOCAL_PORT [--persistent|--close]"
+    echo "## ${D_RYMCG_TECH_CLI_ALIAS:-d.rymcg.tech} ssh-expose CONTEXT PUBLIC_PORT LOCAL_PORT [--persistent|--close]"
     echo "## ${D_RYMCG_TECH_CLI_ALIAS:-d.rymcg.tech} ssh-expose --close-all"
     echo ""
     # echo "## Example: expose local port 8000 to public port 8888"
@@ -23,7 +23,7 @@ __help() {
 __print_active_tunnels() {
     # Capture the list of reverse-tunnel- units (transient and persistent) that are not failed
     tunnels=($(systemctl --user list-units --all --no-legend --no-pager --plain --state=active | awk '/^reverse-tunnel-.*(\.scope|\.service)/{print $1}'))
-    
+
     # Check if the array is empty
     if [ ${#tunnels[@]} -eq 0 ]; then
         echo "## No active tunnels."

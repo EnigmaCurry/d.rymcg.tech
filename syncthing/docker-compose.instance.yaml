@@ -1,0 +1,79 @@
+#! This is a ytt template file for docker-compose.override.yaml
+#! References:
+#!   https://carvel.dev/ytt
+#!   https://docs.docker.com/compose/extends/#adding-and-overriding-configuration
+#!   https://github.com/enigmacurry/d.rymcg.tech#overriding-docker-composeyaml-per-instance
+
+#! ### Standard project vars:
+#@ load("@ytt:data", "data")
+#@ project = data.values.project
+#@ instance = data.values.instance
+#@ context = data.values.context
+#@ traefik_host = data.values.traefik_host
+#@ admin_enable = data.values.admin_enable == "true"
+#@ ip_sourcerange = data.values.ip_sourcerange
+#@ admin_ip_sourcerange = data.values.admin_ip_sourcerange
+#@ enable_http_auth = len(data.values.http_auth.strip()) > 0
+#@ http_auth = data.values.http_auth_var
+#@ enable_oauth2 = data.values.oauth2 == "true"
+#@ authorized_group = data.values.authorized_group
+#@ enable_mtls_auth = data.values.enable_mtls_auth == "true"
+#@ mtls_authorized_certs = data.values.mtls_authorized_certs
+#@ enabled_middlewares = []
+#@ homepage_labels_enable = data.values.homepage_labels_enable == "true"
+#@ homepage_group_syncthing = data.values.homepage_group_syncthing
+#@ homepage_name_syncthing = data.values.homepage_name_syncthing
+#@ homepage_icon_syncthing = data.values.homepage_icon_syncthing
+#@ homepage_description_syncthing = data.values.homepage_description_syncthing
+#@ homepage_show_stats_syncthing = data.values.homepage_show_stats_syncthing
+#@ homepage_widget_enable = data.values.homepage_widget_enable == "true"
+#@ homepage_widget_api_key = data.values.homepage_widget_api_key
+#@ enabled_tcp_middlewares = []
+#@yaml/text-templated-strings
+services:
+  syncthing:
+    #@ service = "syncthing"
+    labels:
+      - "backup-volume.stop-during-backup=true"
+      - "traefik.enable=true"
+
+      #@ if admin_enable:
+      #! 'router' is the fully qualified key in traefik for this router/service: project + instance + service
+      #@ router = "{}-{}-{}-admin".format(project,instance,service)
+      #! The host matching router rule:
+      - "traefik.http.routers.(@= router @).rule=Host(`(@= traefik_host @)`) && PathPrefix(`/`)"
+      - "traefik.http.routers.(@= router @).entrypoints=websecure"
+      #@ enabled_middlewares.append("{}-ipallowlist".format(router))
+      - "traefik.http.middlewares.(@= router @)-ipallowlist.ipallowlist.sourcerange=(@= admin_ip_sourcerange @)"
+      #@ if enable_http_auth:
+      #@ enabled_middlewares.append("{}-basicauth".format(router))
+      - "traefik.http.middlewares.(@= router @)-basicauth.basicauth.users=(@= http_auth @)"
+      - "traefik.http.middlewares.(@= router @)-basicauth.basicauth.headerField=X-Forwarded-User"
+      #@ end
+      #@ if enable_oauth2:
+      #@ enabled_middlewares.append("traefik-forward-auth@docker")
+      #@ enabled_middlewares.append("header-authorization-group-{}@file".format(authorized_group))
+      #@ end
+      #@ if enable_mtls_auth:
+      - "traefik.http.routers.(@= router @).tls.options=step_ca_mTLS@file"
+        #@ if len(mtls_authorized_certs):
+      - "traefik.http.middlewares.mtlsauth-(@= router @).plugin.certauthz.domains=(@= mtls_authorized_certs @)"
+        #@ enabled_middlewares.append("mtlsauth-{}".format(router))
+        #@ end
+        #@ enabled_middlewares.append("mtls-header@file")
+      #@ end
+      - "traefik.http.services.(@= router @).loadbalancer.server.port=8384"
+      #! Apply all middlewares (do this at the end!)
+      - "traefik.http.routers.(@= router @).middlewares=(@= ','.join(enabled_middlewares) @)"
+      #@ end
+
+      #! Homepage (portal):
+      #! See https://gethomepage.dev/configs/docker/#automatic-service-discovery
+      #@ if homepage_labels_enable:
+      - homepage.group=(@= homepage_group_syncthing @)
+      - homepage.name=(@= homepage_name_syncthing @)
+      - homepage.icon=(@= homepage_icon_syncthing @)
+      - homepage.href=https://(@= traefik_host @)
+      - homepage.description=(@= homepage_description_syncthing or traefik_host @)
+      - homepage.showStats=(@= homepage_show_stats_syncthing @)
+      #@ end

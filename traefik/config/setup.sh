@@ -9,6 +9,7 @@ ytt_template() {
     src=$1; dst=$2;
     [ -e "${src}" ] || (echo "Template not found: ${src}" && exit 1)
     ytt -f ${src} \
+        -v docker_compose_profiles=${DOCKER_COMPOSE_PROFILES} \
         -v acme_cert_resolver="${TRAEFIK_ACME_CERT_RESOLVER}" \
         -v acme_cert_domains="${TRAEFIK_ACME_CERT_DOMAINS}" \
         -v log_level="${TRAEFIK_LOG_LEVEL}" \
@@ -45,10 +46,6 @@ ytt_template() {
         -v web_plain_entrypoint_host="${TRAEFIK_WEB_PLAIN_ENTRYPOINT_HOST}" \
         -v web_plain_entrypoint_port="${TRAEFIK_WEB_PLAIN_ENTRYPOINT_PORT}" \
         -v web_plain_entrypoint_proxy_protocol_trusted_ips="${TRAEFIK_WEB_PLAIN_ENTRYPOINT_PROXY_PROTOCOL_TRUSTED_IPS}" \
-        -v mqtt_entrypoint_enabled="${TRAEFIK_MQTT_ENTRYPOINT_ENABLED}" \
-        -v mqtt_entrypoint_host="${TRAEFIK_MQTT_ENTRYPOINT_HOST}" \
-        -v mqtt_entrypoint_port="${TRAEFIK_MQTT_ENTRYPOINT_PORT}" \
-        -v mqtt_entrypoint_proxy_protocol_trusted_ips="${TRAEFIK_MQTT_ENTRYPOINT_PROXY_PROTOCOL_TRUSTED_IPS}" \
         -v ssh_entrypoint_enabled="${TRAEFIK_SSH_ENTRYPOINT_ENABLED}" \
         -v ssh_entrypoint_host="${TRAEFIK_SSH_ENTRYPOINT_HOST}" \
         -v ssh_entrypoint_port="${TRAEFIK_SSH_ENTRYPOINT_PORT}" \
@@ -106,6 +103,17 @@ ytt_template() {
         -v layer_4_tcp_udp_proxy_enabled="${TRAEFIK_LAYER_4_TCP_UDP_PROXY_ENABLED}" \
         -v layer_4_tcp_udp_proxy_routes="${TRAEFIK_LAYER_4_TCP_UDP_PROXY_ROUTES}" \
         -v custom_entrypoints="${TRAEFIK_CUSTOM_ENTRYPOINTS}" \
+        -v iperf_tcp_entrypoint_enabled="${TRAEFIK_IPERF_TCP_ENTRYPOINT_ENABLED}" \
+        -v iperf_tcp_entrypoint_host="${TRAEFIK_IPERF_TCP_ENTRYPOINT_HOST}" \
+        -v iperf_tcp_entrypoint_port="${TRAEFIK_IPERF_TCP_ENTRYPOINT_PORT}" \
+        -v iperf_tcp_entrypoint_proxy_protocol_trusted_ips="${TRAEFIK_IPERF_TCP_ENTRYPOINT_PROXY_PROTOCOL_TRUSTED_IPS}" \
+        -v iperf_udp_entrypoint_enabled="${TRAEFIK_IPERF_UDP_ENTRYPOINT_ENABLED}" \
+        -v iperf_udp_entrypoint_host="${TRAEFIK_IPERF_UDP_ENTRYPOINT_HOST}" \
+        -v iperf_udp_entrypoint_port="${TRAEFIK_IPERF_UDP_ENTRYPOINT_PORT}" \
+        -v dns_entrypoint_enabled="${TRAEFIK_DNS_ENTRYPOINT_ENABLED}" \
+        -v dns_entrypoint_host="${TRAEFIK_DNS_ENTRYPOINT_HOST}" \
+        -v dns_entrypoint_port="${TRAEFIK_DNS_ENTRYPOINT_PORT}" \
+        -v dns_entrypoint_proxy_protocol_trusted_ips="${TRAEFIK_DNS_ENTRYPOINT_PROXY_PROTOCOL_TRUSTED_IPS}" \
         --data-value-yaml header_authorization_groups="${TRAEFIK_HEADER_AUTHORIZATION_GROUPS}" \
         > ${dst}
     success=$?
@@ -118,6 +126,7 @@ ytt_template() {
 }
 
 create_config() {
+    set -x
     rm -rf ${CONFIG_DIR}
     mkdir -p ${DYNAMIC_CONFIG_DIR} ${INSTANCE_CONFIG_DIR}
     ## Traefik static config:

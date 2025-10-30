@@ -30,6 +30,7 @@ services:
     environment:
       - EJABBERD_HOST
     labels:
+      - "backup-volume.stop-during-backup=true"
       - "traefik.enable=true"
       ## Jabber client to server (C2S)
       - "traefik.tcp.routers.xmpp_c2s.rule=HostSNI(`*`)"

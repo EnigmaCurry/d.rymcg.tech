@@ -1,0 +1,78 @@
+x-comfyui-common: &comfyui-common
+    restart: unless-stopped
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+    sysctls:
+      - net.ipv4.ip_unprivileged_port_start=1024
+    volumes:
+      - comfyui:/ComfyUI
+    environment:
+      - COMFYUI_OUTPUT_HOST_PATH=${COMFYUI_OUTPUT_HOST_PATH}
+    labels:
+      - "backup-volume.stop-during-backup=true"
+
+services:
+  comfyui-cuda:
+    profiles:
+      - cuda
+    <<: *comfyui-common
+    build:
+      context: .
+      args:
+        - COMFYUI_VERSION=${COMFYUI_VERSION}
+        - GPU_TYPE=${DOCKER_COMPOSE_PROFILES}
+        - LOG_LEVEL=${COMFYUI_LOG_LEVEL:-WARNING}
+        - CUDA_WHEEL_VERSION=${COMFYUI_CUDA_WHEEL_VERSION:-cu129}
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: all
+              capabilities: [gpu]
+
+  comfyui-rocm:
+    profiles:
+      - rocm
+    <<: *comfyui-common
+    build:
+      context: .
+      args:
+        - COMFYUI_VERSION=${COMFYUI_VERSION}
+        - GPU_TYPE=${DOCKER_COMPOSE_PROFILES}
+        - HSA_OVERRIDE_GFX_VERSION=${COMFYUI_HSA_OVERRIDE_GFX_VERSION}
+        - LOG_LEVEL=${COMFYUI_LOG_LEVEL:-WARNING}
+        - ROCM_VERSION=${COMFYUI_ROCM_VERSION:-6.4.3}
+    devices:
+      - /dev/kfd:/dev/kfd
+      - /dev/dri:/dev/dri
+    group_add:
+      - video
+      - render
+
+  comfyui-intel:
+    profiles:
+      - intel
+    <<: *comfyui-common
+    build:
+      context: .
+      args:
+        - COMFYUI_VERSION=${COMFYUI_VERSION}
+        - GPU_TYPE=${DOCKER_COMPOSE_PROFILES}
+        - LOG_LEVEL=${COMFYUI_LOG_LEVEL:-WARNING}
+
+  comfyui-cpu:
+    profiles:
+      - cpu
+    <<: *comfyui-common
+    build:
+      context: .
+      args:
+        - COMFYUI_VERSION=${COMFYUI_VERSION}
+        - GPU_TYPE=${DOCKER_COMPOSE_PROFILES}
+        - LOG_LEVEL=${COMFYUI_LOG_LEVEL:-WARNING}
+
+volumes:
+  comfyui:

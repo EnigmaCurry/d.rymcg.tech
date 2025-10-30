@@ -61,6 +61,8 @@ services:
       - POSTGRES_HOST=postgres
       - POSTGRES_PASSWORD=${NEXTCLOUD_DATABASE_PASSWORD}
       - REDIS_HOST=redis
+      - PHP_MEMORY_LIMIT=${NEXTCLOUD_PHP_MEMORY_LIMIT}
+      - PHP_UPLOAD_LIMIT=${NEXTCLOUD_PHP_UPLOAD_LIMIT}
     depends_on:
       - postgres
       - redis

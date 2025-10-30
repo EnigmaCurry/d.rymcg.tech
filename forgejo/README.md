@@ -59,3 +59,29 @@ forwards directly to the builtin Forgejo SSH service, your `.env_` file for
 Traefik must have `TRAEFIK_SSH_ENTRYPOINT_ENABLED=true`. If you need to
 update your Traefik `.env_` file, be sure to run `make install` in the
 `traefik` directory again.
+
+## Migration from GitHub
+
+Forgejo has a builtin feature to migrate individual repositories from
+other forges like GitHub. Click the + icon in the upper right and
+choose `New migration`. 
+
+If you have a lot of repositories to migrate, this can be automated by
+the included [github_migrate](github_migrate) script.
+
+## Reset root password
+
+If you've forgotten your administrator password, you can reset it by
+entering the shell of the container:
+
+```
+make shell
+```
+
+```
+## In the forgejo container, reset the admin password:
+gitea admin user change-password --username root --password hunter2222
+```
+
+Login with the new password, and you will be forced to change it one
+more time.

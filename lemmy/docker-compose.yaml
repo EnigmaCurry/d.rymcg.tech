@@ -10,6 +10,7 @@ volumes:
   lemmy-nginx-config:
   lemmy-ui-themes:
   lemmy-pictrs:
+  lemmy-pictrs-config:
   lemmy-postgres:
 
 services:
@@ -34,8 +35,14 @@ services:
       - POSTGRES_PW=${LEMMY_POSTGRES_PW}
       - TRAEFIK_HOST=${LEMMY_TRAEFIK_HOST}
       - PRINT_CONFIG=${LEMMY_PRINT_CONFIG}
+      - PICTRS_ENABLED=${LEMMY_PICTRS_ENABLED}
+      - PICTRS_INTERVAL=${LEMMY_PICTRS_INTERVAL}
+      - PICTRS_MAX_AGE=${LEMMY_PICTRS_MAX_AGE}
     volumes:
       - lemmy-config:/config
+      - lemmy-pictrs-config:/pictrs-config
+    labels:
+      - "backup-volume.stop-during-backup=true"
 
   lemmy:
     image: dessalines/lemmy:${LEMMY_VERSION}
@@ -51,6 +58,8 @@ services:
     depends_on:
       - postgres
       - pictrs
+    labels:
+      - "backup-volume.stop-during-backup=true"
 
   lemmy-ui:
     image: dessalines/lemmy-ui:${LEMMY_UI_VERSION}
@@ -67,6 +76,8 @@ services:
     restart: unless-stopped
     logging: *default-logging
     user: ${LEMMY_UID}:${LEMMY_GID}
+    labels:
+      - "backup-volume.stop-during-backup=true"
 
   pictrs:
     image: asonix/pictrs:${LEMMY_ASONIX_PICTRS_VERSION}
@@ -88,6 +99,7 @@ services:
     user: 991:991
     volumes:
       - lemmy-pictrs:/mnt:Z
+      - lemmy-pictrs-config:/etc/pictrs
     security_opt:
       - no-new-privileges:true
     restart: unless-stopped
@@ -96,6 +108,8 @@ services:
       resources:
         limits:
           memory: 690m
+    labels:
+      - "backup-volume.stop-during-backup=true"
 
   postgres:
     image: postgres:15-alpine
@@ -113,6 +127,8 @@ services:
       - no-new-privileges:true
     restart: unless-stopped
     logging: *default-logging
+    labels:
+      - "backup-volume.stop-during-backup=true"
 
   postfix:
     image: mwader/postfix-relay
@@ -123,3 +139,5 @@ services:
       - no-new-privileges:true
     restart: unless-stopped
     logging: *default-logging
+    labels:
+      - "backup-volume.stop-during-backup=true"

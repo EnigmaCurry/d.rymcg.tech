@@ -143,17 +143,19 @@ delete_certificate() {
 main() {
     ## Make new .env if it doesn't exist:
     test -f ${ENV_FILE} || cp ../traefik/.env-dist ${ENV_FILE}
-    
+
     while :
 do
     CHOICE=$(wizard choose -c0 --numeric "Configure Traefik TLS certificates" \
                     "Manage all certificates." \
                     "Create a new certificate." \
+                    "(Re-)Register acme-dns CNAME records for all certs." \
                     "Done / Go back")
     case ${CHOICE} in
         0) manage_certificates;;
         1) create_cert;;
-        2) break;;
+        2) make acme-sh-register;;
+        3) break;;
         *) break;;
     esac
 done

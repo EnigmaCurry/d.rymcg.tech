@@ -1,0 +1,42 @@
+volumes:
+  turn_data:
+ 
+services:
+  coturn:
+    build:
+      context: coturn
+      args:
+        COTURN_IMAGE: ${COTURN_IMAGE}
+    restart: unless-stopped
+    network_mode: host
+    environment:
+      - REALM=${COTURN_REALM}
+      - STATIC_AUTH_SECRET=${COTURN_STATIC_AUTH_SECRET}
+    command: >
+      -v
+      -L 127.0.0.1
+      -L ${COTURN_EXTERNAL_IP}
+      --log-file=stdout
+      --use-auth-secret
+      --static-auth-secret=${COTURN_STATIC_AUTH_SECRET}
+      --external-ip=${COTURN_EXTERNAL_IP}
+      --relay-ip=${COTURN_EXTERNAL_IP}
+      --realm=${COTURN_REALM}
+      --server-name=${COTURN_TRAEFIK_HOST}
+      --rest-api-separator=:
+      --no-cli
+      --no-tls
+      --no-tcp-relay
+      --fingerprint
+      --listening-port=${COTURN_LISTEN_PORT}
+      --tcp-proxy-port=${COTURN_PROXY_PORT}
+      --min-port=${COTURN_MIN_PORT}
+      --max-port=${COTURN_MAX_PORT}
+      --denied-peer-ip=10.0.0.0-10.255.255.255
+      --denied-peer-ip=172.16.0.0-172.31.255.255
+      --denied-peer-ip=192.168.0.0-192.168.255.255
+      --denied-peer-ip=127.0.0.0-127.255.255.255
+      --denied-peer-ip=169.254.0.0-169.254.255.255
+      --denied-peer-ip=100.64.0.0-100.127.255.255
+    volumes:
+      - turn_data:/var/lib/coturn

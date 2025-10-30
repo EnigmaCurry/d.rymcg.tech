@@ -1,0 +1,40 @@
+services:
+  config:
+    build:
+      context: config
+    environment:
+      - PUBLIC_IP_ADDRESS=${ACME_DNS_PUBLIC_IP_ADDRESS}
+      - API_PORT=${ACME_DNS_API_PORT}
+      - SUBDOMAIN=${ACME_DNS_SUBDOMAIN}
+      - NSNAME=auth.${ACME_DNS_SUBDOMAIN}
+      - RECORDS=${ACME_DNS_RECORDS}
+      - NSADMIN=${ACME_DNS_HOSTMASTER}
+      - DISABLE_REGISTRATION=${ACME_DNS_DISABLE_REGISTRATION}
+    volumes:
+      - config:/config
+  
+  acmedns:
+    depends_on: ['config']
+    restart: unless-stopped
+    environment:
+      - API_HOST=${ACME_DNS_SUBDOMAIN}
+      - API_PORT=${ACME_DNS_API_PORT}
+    build:
+      context: acme-dns
+      args:
+        IMAGE: ${ACME_DNS_IMAGE}
+    hostname: auth.${ACME_DNS_SUBDOMAIN}
+    cap_add:
+      - NET_BIND_SERVICE
+    volumes:
+      - config:/etc/acme-dns:ro
+      - data:/var/lib/acme-dns
+    ports:
+      - ${ACME_DNS_API_PORT}:${ACME_DNS_API_PORT}
+      - ${ACME_DNS_LISTEN_IP_ADDRESS}:53:53
+      - ${ACME_DNS_LISTEN_IP_ADDRESS}:53:53/udp
+    labels: []
+      
+volumes:
+  config:
+  data:

@@ -1,7 +1,7 @@
 
 services:
   freshrss:
-    image: freshrss/freshrss:${FRESHRSS_VERSION}
+    image: ${FRESHRSS_IMAGE}
     restart: unless-stopped
     volumes:
       - data:/var/www/FreshRSS/data

@@ -36,14 +36,18 @@ override-hook:
 ####   name=@VARIABLE_NAME   # sets the template 'name' field to the literal string '${VARIABLE_NAME}'
 ####                         # (used for regular docker-compose expansion of env vars by name.)
 	@${BIN}/docker_compose_override ${ENV_FILE} project=:prometheus instance=@PROMETHEUS_INSTANCE traefik_host=@PROMETHEUS_METRICS_TRAEFIK_HOST http_auth=PROMETHEUS_HTTP_AUTH http_auth_var=@PROMETHEUS_HTTP_AUTH ip_sourcerange=@PROMETHEUS_METRICS_IP_SOURCERANGE oauth2=PROMETHEUS_OAUTH2 authorized_group=PROMETHEUS_OAUTH2_AUTHORIZED_GROUP enable_mtls_auth=PROMETHEUS_MTLS_AUTH mtls_authorized_certs=PROMETHEUS_MTLS_AUTHORIZED_CERTS
-	
+
 .PHONY: compose-profiles
 compose-profiles:
 	@${BIN}/reconfigure_compose_profiles ${ENV_FILE} PROMETHEUS_NODE_EXPORTER_ENABLED=node-exporter PROMETHEUS_CADVISOR_ENABLED=cadvisor PROMETHEUS_ALERTMANAGER_ENABLED=alertmanager
 
 .PHONY: shell
 shell:
-	@container=$$(eval "${BIN}/script-wizard choose 'docker exec -it into which container?' 'node-exporter' 'prometheus' 'grafana' 'cadvisor' 'alertmanager' 'alert-test' --default 'grafana'") && make --no-print-directory docker-compose-shell SERVICE=$${container}
+	@if [ -z "$(service)" ]; then \
+		container=$$(eval "${BIN}/script-wizard choose 'docker exec -it into which container?' 'node-exporter' 'prometheus' 'grafana' 'cadvisor' 'alertmanager' 'alert-test' --default 'grafana'") && make --no-print-directory docker-compose-shell SERVICE=$${container}; \
+	else \
+		make --no-print-directory docker-compose-shell SERVICE=$$(service); \
+	fi;
 
 .PHONY: local-alertmanager # Forward alerts to local environment
 local-alertmanager:
@@ -52,5 +56,13 @@ local-alertmanager:
 .PHONY: test-alert # Perform a test alert
 test-alert:
 	@docker compose --env-file ${ENV_FILE} run --rm -it alert-test
-	@echo 
+	@echo
 	@echo "Sent test alert"
+
+.PHONY: install-hook
+install-hook:
+	@echo
+
+.PHONY: install-hook-pre
+install-hook-pre:
+	@echo

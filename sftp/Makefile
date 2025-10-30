@@ -79,3 +79,11 @@ open:
 sshfs:
 	@mkdir -p ${HOME}/mnt/sftp.${ROOT_DOMAIN}
 	SSH_USER=$$(${BIN}/dotenv -f ${ENV_FILE} get SFTP_USERS | cut -d ":" -f 1); echo sshfs -p $$(${BIN}/dotenv -f ${ENV_FILE} get SFTP_PORT) $${SSH_USER}@sftp.${ROOT_DOMAIN}: ${HOME}/mnt/sftp.${ROOT_DOMAIN}
+
+.PHONY: install-hook
+install-hook:
+	@echo
+
+.PHONY: install-hook-pre
+install-hook-pre:
+	@echo

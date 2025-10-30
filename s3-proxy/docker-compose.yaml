@@ -16,6 +16,8 @@ services:
       - PRINT_CONFIG=${S3PROXY_PRINT_CONFIG}
     volumes:
       - config:/proxy/conf
+    labels:
+      - "backup-volume.stop-during-backup=true"
 
   s3-proxy:
     depends_on: ['config']

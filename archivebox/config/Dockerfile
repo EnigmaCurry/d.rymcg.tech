@@ -1,0 +1,3 @@
+ARG ARCHIVEBOX_IMAGE
+FROM ${ARCHIVEBOX_IMAGE}
+RUN usermod -aG crontab archivebox
