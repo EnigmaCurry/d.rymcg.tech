@@ -5,6 +5,9 @@ services:
   qbittorrent-config:
     build:
       context: qbittorrent-config
+      args:
+        - DOCKER_CONTEXT=${QBITTORRENT_DOCKER_CONTEXT}
+        - INSTANCE=${QBITTORRENT_INSTANCE}
     environment:
       - QBITTORRENT_TRAEFIK_HOST
       - QBITTORRENT_VPN_CLIENT_INTERFACE_IPV4

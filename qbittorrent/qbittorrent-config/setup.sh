@@ -16,3 +16,5 @@ create_config() {
 }
 
 create_config
+
+cat /tmp/categories.json > ${CONFIG_DIR}/categories.json

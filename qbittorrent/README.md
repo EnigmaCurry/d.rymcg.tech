@@ -44,19 +44,20 @@ When asked to choose the network mode, you have two choices:
 ### Admin credentials
 
 The default credentials for the web UI are "admin" with the password
-"adminadmin", but default configurations also bypass the login when
-accessing qBittorrent's web UI from the container's localhost and from
-any IP address (there are 2 different configurations that allow
+"adminadmin", but the default configurations also bypass the login
+when accessing qBittorrent's web UI from the container's localhost and
+from any IP address (there are 2 different configurations that allow
 bypass, and they're both enabled by default). So on initial install,
 you won't be prompted to log in.
 
 You change the admin username in your
 `env_{DOCKER_CONTEXT}_{INSTANCE}` file, but the password is stored
-encoded so you can't just enter it. To change the admin password in
-your `env_{DOCKER_CONTEXT}_{INSTANCE}` file for future installs:
+encoded so you can't just type it directly into
+`env_{DOCKER_CONTEXT}_{INSTANCE}`. To change the admin password and
+make it persist for future installs:
 
- 1) Install with default configurations.
- 2) Change the password in the web UI (Options -> WebUI ->
+ 1) Install qBittorrent with default configurations.
+ 2) Change the admin password in the web UI (Options -> WebUI ->
  Authentication).
  3) Examine the contents of `/var/lib/docker/volumes/<container's
 volume name>/_data/qBittorrent/qBittorrent.conf` (on the host) and
@@ -69,11 +70,23 @@ quotation marks, e.g.,
 
 In order to be prompted to log in, you'll need to disable the "Bypass
 authentication for clients on localhost" and "Bypass authentication
-for clients in whitelisted IP subnets" configurations. To do so in
-your `env_{DOCKER_CONTEXT}_{INSTANCE}` file for future installs:
+for clients in whitelisted IP subnets" configurations. To disable them
+and make it persist for future installs:
 
- 1) Change `QBITTORRENT_WebUIAuthSubnetWhitelistEnabled` to false.
- 2) Change `QBITTORRENT_WebUILocalHostAuth` to true.
+ 1) Edit your `env_{DOCKER_CONTEXT}_{INSTANCE}` file:
+    - Change `QBITTORRENT_WebUIAuthSubnetWhitelistEnabled` to false.
+    - Change `QBITTORRENT_WebUILocalHostAuth` to true.
+ 2) Run `make install`.
+
+### Categories
+
+qBittorrent allows you to create categories to manage your torrents.
+To make categories that persist:
+
+ 1) Copy `qbittorrent-config/categories-dist.json` into
+`qbittorrent-config/categories_{DOCKER_CONTEXT}_{INSTANCE}.json`
+    - An easy way to do this is to run `make copy-categories`
+ 2) Customize it with your own categories.
  3) Run `make install`.
 
 ### Authentication and Authorization

@@ -1,5 +1,8 @@
 FROM debian:stable-slim
 RUN apt-get -y update && apt-get install -y gettext
+ARG DOCKER_CONTEXT
+ARG INSTANCE
+COPY categories_${DOCKER_CONTEXT}_${INSTANCE}.json /tmp/categories.json
 COPY template/ /template/
 COPY setup.sh /template/setup.sh
 RUN chmod a+x /template/setup.sh
