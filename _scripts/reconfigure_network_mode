@@ -74,8 +74,7 @@ fi
 #   otherwise we simply append a new line.
 #---------------------------------------------------#
 if grep -q "^${VAR_NAME}=" "$ENV_FILE" 2>/dev/null; then
-    # -i.bak creates a backup with .bak suffix (feel free to drop it)
-    sed -i.bak "s/^${VAR_NAME}=.*/${VAR_NAME}=${VALUE}/" "$ENV_FILE"
+    sed "s/^${VAR_NAME}=.*/${VAR_NAME}=${VALUE}/" "$ENV_FILE"
 else
     printf '%s=%s\n' "$VAR_NAME" "$VALUE" >> "$ENV_FILE"
 fi
