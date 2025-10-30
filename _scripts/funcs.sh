@@ -669,19 +669,43 @@ prefix_to_netmask () {
     echo ${1-0}.${2-0}.${3-0}.${4-0}
 }
 
-validate_ip_address () {
-    #thanks https://stackoverflow.com/a/21961938
-    echo "$@" | grep -o -E '^(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)$' >/dev/null
+validate_ip_address() {
+    local addr=$1 cmd
+    if command -v ipcalc >/dev/null 2>&1; then
+        cmd=(ipcalc -c)
+    elif command -v ipcalc-ng >/dev/null 2>&1; then
+        cmd=(ipcalc-ng -c)
+    elif command -v ipv6calc >/dev/null 2>&1; then
+        cmd=(ipv6calc --showinfo -m)
+    else
+        fail "No ipcalc/ipcalc-ng/ipv6calc command found."
+    fi
+    "${cmd[@]}" "$addr" >/dev/null 2>&1
 }
 
 validate_ip_network() {
-    #thanks https://stackoverflow.com/a/21961938
-    PREFIX=$(echo "$@" | grep -o -P "/\K[[:digit:]]+$")
-    if [[ "${PREFIX}" -ge 0 ]] && [[ "${PREFIX}" -le 32 ]]; then
-        echo "$@" | grep -o -E '^(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)/[[:digit:]]+$' >/dev/null
+    local net=$1 prefix max cmd
+    [[ $net == */* ]] || return 1
+    prefix=${net##*/}
+    case $prefix in
+        ''|*[!0-9]*) return 1 ;;
+    esac
+    if [[ ${net%%/*} == *:* ]]; then
+        max=128
     else
-        return 1
+        max=32
     fi
+    (( prefix >= 0 && prefix <= max )) || return 1
+    if command -v ipcalc >/dev/null 2>&1; then
+        cmd=(ipcalc -c)
+    elif command -v ipcalc-ng >/dev/null 2>&1; then
+        cmd=(ipcalc-ng -c)
+    elif command -v ipv6calc >/dev/null 2>&1; then
+        cmd=(ipv6calc --showinfo -m)
+    else
+        fail "No ipcalc/ipcalc-ng/ipv6calc command found."
+    fi
+    "${cmd[@]}" "$net" >/dev/null 2>&1
 }
 
 select_docker_network_cidr() {
