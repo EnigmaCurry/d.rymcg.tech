@@ -37,6 +37,10 @@ sudo pacman -S bash base-devel gettext git openssl apache xdg-utils jq sshfs \
 sudo pacman -S docker
 ```
 
+On Arch Linux, you may also need to install
+[`ipcalc-redhat`](https://aur.archlinux.org/packages/ipcalc-redhat)
+from the AUR.
+
 ## Disable Docker Engine on your workstation
 
 Your workstation will only be used to control other remote Docker
