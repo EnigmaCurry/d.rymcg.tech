@@ -45,7 +45,7 @@ install-hook:
 install-hook-pre:
 	@echo
 
-.PHONY: copy-categories # Copy categories-dist.json for your current Docker context and instance
-copy-categories:
+.PHONY: build-hook-pre
+build-hook-pre:
 	@[[ -f "qbittorrent-config/categories_${DOCKER_CONTEXT}_${INSTANCE}.json" ]] && echo "\`qbittorrent-config/categories_${DOCKER_CONTEXT}_${INSTANCE}.json\` already exists." || \
 		cp qbittorrent-config/categories-dist.json qbittorrent-config/categories_${DOCKER_CONTEXT}_${INSTANCE}.json
