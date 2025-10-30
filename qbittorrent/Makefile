@@ -8,15 +8,6 @@ config-hook:
 	@${BIN}/reconfigure ${ENV_FILE} QBITTORRENT_DOCKER_CONTEXT=${DOCKER_CONTEXT}
 	@echo ""
 	@${BIN}/reconfigure_network_mode ${ENV_FILE} QBITTORRENT_NETWORK_MODE "Choose the network mode for this container (default or wireguard)"
-	@echo ""
-	@[[ "$$(${BIN}/dotenv -f ${ENV_FILE} get QBITTORRENT_NETWORK_MODE)" == "default" ]] && ( \
-		${BIN}/reconfigure ${ENV_FILE} QBITTORRENT_SessionInterface= && \
-		${BIN}/reconfigure ${ENV_FILE} QBITTORRENT_SessionInterfaceName= \
-	) || ( \
-		${BIN}/reconfigure ${ENV_FILE} QBITTORRENT_SessionInterface=wg0 && \
-		${BIN}/reconfigure ${ENV_FILE} QBITTORRENT_SessionInterfaceName=wg0 \
-	)
-	@echo ""
 	@${BIN}/reconfigure_ask ${ENV_FILE} QBITTORRENT_TRAEFIK_HOST "Enter the qbittorrent domain name" qbittorrent${INSTANCE_URL_SUFFIX}.${ROOT_DOMAIN}
 	@${BIN}/reconfigure_ask ${ENV_FILE} QBITTORRENT_PEER_PORT "Enter the public peer port qbittorrent should bind"
 	@echo
