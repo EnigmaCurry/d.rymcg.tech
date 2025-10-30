@@ -1,8 +1,9 @@
 # bitmagnet
 
-[bitmagnet](https://github.com/bitmagnet-io/bitmagnet) is a self-hosted BitTorrent
-indexer, DHT crawler, content classifier and torrent search engine with web
-UI, GraphQL API and Servarr stack integration.
+[bitmagnet](https://github.com/bitmagnet-io/bitmagnet) is a
+self-hosted BitTorrent indexer, DHT crawler, content classifier, and
+torrent search engine with web UI, GraphQL API, and Servarr stack
+integration.
 
 ## Config
 
@@ -12,7 +13,7 @@ make config
 
 This will ask you to enter the domain name to use.
 It automatically saves your responses into the configuration file
-`.env_{INSTANCE}`.
+`.env_{DOCKER_CONTEXT}_{INSTANCE}`.
 
 ### Authentication and Authorization
 
@@ -31,7 +32,7 @@ Traefik config (`TRAEFIK_HEADER_AUTHORIZATION_GROUPS`) and can be
 by running `make groups` in the `traefik` directory.
 
 For HTTP Basic Authentication, you will be prompted to enter username/password
-logins which are stored in that app's `.env_{INSTANCE}` file.
+logins which are stored in that app's `.env_{DOCKER_CONTEXT}_{INSTANCE}` file.
 
 ## Install
 
