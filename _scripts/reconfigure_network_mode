@@ -71,4 +71,5 @@ fi
 # 6️⃣  Write (or replace) VAR_NAME=VALUE in the file #
 #---------------------------------------------------#
 "${BIN}/dotenv" -f "${ENV_FILE}" set "${VAR_NAME}=${VALUE}"
-
+echo "Set ${VAR_NAME}=${VALUE}"
+echo
