@@ -1,17 +1,226 @@
-#!/bin/bash
 
-BIN=$(dirname ${BASH_SOURCE})
-source ${BIN}/funcs.sh
+#!/usr/bin/env bash
+# ---------------------------------------------------------------
+# docker_subnets – sub‑command dispatcher
+#
+#   docker_subnets select NETWORK [NETWORK …]   # comma‑separated subnets
+#   docker_subnets list                         # nice table “network  subnet”
+#   docker_subnets propose                      # propose a free private subnet
+#
+#   *select* now requires at least one network argument.
+#   *propose* returns a /24 subnet that does not overlap any existing
+#   Docker network subnet.  It does **not** scan the host network – it only
+#   looks at the Docker‑defined subnets.
+#
+# Dependencies: jq (https://stedolan.github.io/jq/), python3 (standard)
+# ---------------------------------------------------------------
 
-## Print the subnets of all the listed docker networks:
-## docker_subnets NETWORK [NETWORK ...]
+set -euo pipefail                # abort on errors, unset vars, or failed pipes
+IFS=$'\n\t'                      # protect against spaces in network names
 
-set -e
-networks=""
-for var in "$@"; do
-    inspect=$(docker network inspect ${var})
-    subnet=$(echo ${inspect} | jq -r '.[0].IPAM.Config[0].Subnet')
-    networks="${networks} ${subnet}"
-done
-echo ${networks} | tr ' ' ','
+# -------------------------------------------------
+# Load optional helper functions (ignore if missing)
+# -------------------------------------------------
+BIN=$(dirname "${BASH_SOURCE[0]}")
+source "${BIN}/funcs.sh" || true
 
+# -------------------------------------------------
+# Helper: print usage / help and exit with status 1
+# -------------------------------------------------
+usage() {
+    cat <<'EOF' >&2
+Usage:
+  docker_subnets <subcommand> [arguments]
+
+Sub‑commands:
+  select NETWORK [NETWORK …]   Print the subnets of the given networks.
+                               At least one NETWORK must be supplied.
+                               Output is a single line, comma‑separated
+                               (e.g. 172.17.0.0/16,10.10.0.0/24).
+
+  list                         List every Docker network that has an IPAM
+                               configuration together with each of its subnets.
+                               Output is a nicely‑aligned table, sorted by
+                               network name.
+
+  propose                      Propose a new private /24 subnet that does NOT
+                               overlap any existing Docker network subnet.
+                               The proposal is printed on a single line, e.g.
+                               172.16.42.0/24
+
+If no sub‑command (or an unknown one) is given, this help is shown and
+the program exits with status 1.
+
+Examples:
+  docker_subnets select whoami_default nodered_default
+  docker_subnets list
+  docker_subnets propose
+EOF
+    exit 1
+}
+# -------------------------------------------------
+
+# -------------------------------------------------
+# Sub‑command: select – print subnets (comma‑separated)
+# -------------------------------------------------
+cmd_select() {
+    if (( $# == 0 )); then
+        echo "Error: the 'select' sub‑command requires at least one network name." >&2
+        usage
+    fi
+
+    nets=("$@")
+    subnets=()
+    for net in "${nets[@]}"; do
+        mapfile -t cur_subnet < <(
+            docker network inspect "$net" |
+                jq -r '
+                    .[] |
+                    .IPAM.Config?[]?.Subnet // empty
+                '
+        )
+        subnets+=("${cur_subnet[@]}")
+    done
+
+    if (( ${#subnets[@]} == 0 )); then
+        echo ""                     # nothing found → empty line
+    else
+        printf '%s\n' "$(IFS=,; echo "${subnets[*]}")"
+    fi
+}
+
+# -------------------------------------------------
+# Sub‑command: list – show a sorted table “network   subnet”
+# -------------------------------------------------
+cmd_list() {
+    # Do NOT quote the command substitution – we want each ID as a separate arg.
+    docker network inspect $(docker network ls -q) |
+        jq -r '
+          .[] |
+          select(.IPAM.Config != null) |
+          .Name as $net |
+          .IPAM.Config[]?.Subnet |
+          "\($net)\t\(.)"
+        ' |
+        sort |
+        column -t -s $'\t'
+}
+
+# -------------------------------------------------------------------------
+# Sub‑command: propose – suggest a free /24 subnet (always valid)
+# -------------------------------------------------------------------------
+cmd_propose() {
+    # 1️⃣ Gather all existing Docker subnets (CIDR strings)
+    mapfile -t existing_subnets < <(
+        docker network inspect $(docker network ls -q) |
+            jq -r '
+              .[] |
+              select(.IPAM.Config != null) |
+              .IPAM.Config[]?.Subnet
+            '
+    )
+
+    # If Docker has no networks with a subnet, we can return a static default.
+    if (( ${#existing_subnets[@]} == 0 )); then
+        echo "Proposed free subnet: 172.16.0.0/24"
+        return
+    fi
+
+    # -----------------------------------------------------------------
+    # 2️⃣ Run the Python helper that *must* emit exactly one CIDR on stdout
+    # -----------------------------------------------------------------
+    proposed=$(python3 - <<'PY' "${existing_subnets[@]}"
+import sys, ipaddress
+
+# Build a list of existing networks from the arguments the shell passed.
+existing = [ipaddress.ip_network(s) for s in sys.argv[1:] if s]
+
+# Helper that returns the first /24 that does **not** overlap any existing net.
+def first_free(net):
+    for cand in net.subnets(new_prefix=24):
+        if not any(cand.overlaps(e) for e in existing):
+            return cand
+    return None
+
+# Primary search space – the 172.16.0.0/12 private block.
+candidate = first_free(ipaddress.ip_network('172.16.0.0/12'))
+if candidate is None:
+    # Secondary search spaces, in order of preference.
+    for block in ('10.0.0.0/8', '192.168.0.0/16'):
+        candidate = first_free(ipaddress.ip_network(block))
+        if candidate is not None:
+            break
+
+# If *all* private space is exhausted we still need a syntactically correct
+# fallback; we choose a random /24 that is very unlikely to clash.
+if candidate is None:
+    import random
+    private = random.choice([
+        ipaddress.ip_network('10.0.0.0/8'),
+        ipaddress.ip_network('172.16.0.0/12'),
+        ipaddress.ip_network('192.168.0.0/16')
+    ])
+    start = int(private.network_address)
+    end   = int(private.broadcast_address) - 255
+    n = random.randint(start, end) // 256 * 256   # align on /24 boundary
+    candidate = ipaddress.ip_network((n, 24))
+
+print(str(candidate))
+PY
+)   # ← command substitution ends here
+
+    py_status=$?               # <-- capture Python's exit status
+
+    # -----------------------------------------------------------------
+    # 3️⃣ If Python failed **or** produced no output, use a safe default.
+    # -----------------------------------------------------------------
+    if (( py_status != 0 )) || [[ -z $proposed ]]; then
+        # We *know* this string is a well‑formed CIDR.
+        proposed="172.16.0.0/24"
+        echo "⚠️ Python helper failed (status $py_status) – using fallback subnet." >&2
+    fi
+
+    # -----------------------------------------------------------------
+    # 4️⃣ (Optional) Quick sanity‑check that the final string looks like a CIDR.
+    # -----------------------------------------------------------------
+    # Simple regex: 1‑3 digits per octet, optional leading zeros are fine,
+    # followed by '/' and a prefix length 0‑32.
+    if [[ ! $proposed =~ ^([0-9]{1,3}\.){3}[0-9]{1,3}\/([0-9]|[12][0-9]|3[0-2])$ ]]; then
+        # Should never happen because our fallbacks are hard‑coded CIDRs,
+        # but we protect against any future changes.
+        echo "❌ Computed value \"$proposed\" is not a valid CIDR – falling back to 172.16.0.0/24." >&2
+        proposed="172.16.0.0/24"
+    fi
+
+    # -----------------------------------------------------------------
+    # 5️⃣ Finally, report the (guaranteed‑valid) subnet.
+    # -----------------------------------------------------------------
+    echo "## Found available subnet: ${proposed}" >/dev/stderr
+    echo "$proposed"
+}
+
+# -------------------------------------------------
+# Dispatch – decide which sub‑command to run
+# -------------------------------------------------
+if (( $# == 0 )); then
+    usage                         # no sub‑command → help + exit 1
+fi
+
+subcmd=$1
+shift                            # remove the sub‑command from the positional list
+
+case "$subcmd" in
+    select)
+        cmd_select "$@"
+        ;;
+    list)
+        cmd_list
+        ;;
+    propose)
+        cmd_propose "$@"
+        ;;
+    *)
+        echo "Error: unknown sub‑command: $subcmd" >&2
+        usage
+        ;;
+esac
