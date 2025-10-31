@@ -87,4 +87,10 @@ services:
     restart: unless-stopped
     labels:
       - "backup-volume.stop-during-backup=true"      
-
+    healthcheck:
+      test: |
+        sh -c '/config/healthcheck.sh'
+      interval: 30s
+      timeout: 10s
+      retries: 1
+      start_period: 30s

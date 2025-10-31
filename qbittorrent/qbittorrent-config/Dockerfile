@@ -4,6 +4,6 @@ ARG DOCKER_CONTEXT
 ARG INSTANCE
 COPY categories_${DOCKER_CONTEXT}_${INSTANCE}.json /template/categories.json
 COPY template/ /template/
-COPY setup.sh /template/setup.sh
+COPY setup.sh healthcheck.sh /template/
 RUN chmod a+x /template/setup.sh
 CMD ["/template/setup.sh"]
