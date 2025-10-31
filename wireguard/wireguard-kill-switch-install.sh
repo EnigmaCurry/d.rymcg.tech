@@ -1,6 +1,17 @@
 #!/usr/bin/env bash
 #====================================================================
 # wireguard-kill-switch-install.sh
+#
+# Install OR uninstall a per-container nftables kill-switch on a
+# remote Docker host over SSH.
+#
+# Install:
+#   DOCKER_CONTEXT=<ssh-host> ./wireguard-kill-switch-install.sh <wg-instance>
+#   ./wireguard-kill-switch-install.sh --host docker@10.0.0.5 <wg-instance>
+#
+# Uninstall:
+#   DOCKER_CONTEXT=<ssh-host> ./wireguard-kill-switch-install.sh --uninstall <wg-instance>
+#   ./wireguard-kill-switch-install.sh --host docker@10.0.0.5 --uninstall <wg-instance>
 #====================================================================
 set -euo pipefail
 
@@ -11,43 +22,106 @@ BIN="${SCRIPT_DIR}/../../_scripts"
 usage() {
     cat <<EOF
 Usage:
+  # install
   DOCKER_CONTEXT=<ssh-host> $0 <wireguard-instance>
   $0 --host <ssh-host> <wireguard-instance>
+
+  # uninstall
+  DOCKER_CONTEXT=<ssh-host> $0 --uninstall <wireguard-instance>
+  $0 --host <ssh-host> --uninstall <wireguard-instance>
 
 Examples:
   DOCKER_CONTEXT=docker-vm $0 default
   $0 --host docker@10.0.0.5 mullvad
+  DOCKER_CONTEXT=docker-vm $0 --uninstall mullvad
 EOF
     exit 1
 }
 
-# ------ CLI --------------------------------------------------------
+# ----------------- CLI -----------------
 REMOTE_HOST="${DOCKER_CONTEXT:-}"
-if [[ $# -ge 1 && "$1" == "--host" ]]; then
-    shift
-    REMOTE_HOST="$1"
-    shift
-fi
+UNINSTALL=0
+
+# we’ll collect remaining args here
+ARGS=()
+
+while (( $# )); do
+    case "$1" in
+        --host)
+            shift
+            REMOTE_HOST="$1"
+            ;;
+        --uninstall|-u)
+            UNINSTALL=1
+            ;;
+        -*)
+            echo "Unknown option: $1" >&2
+            usage
+            ;;
+        *)
+            ARGS+=( "$1" )
+            ;;
+    esac
+    shift || true
+done
 
 if [[ -z "${REMOTE_HOST}" ]]; then
     echo "❌ Need remote host. Set DOCKER_CONTEXT=... or use --host <ssh-host>."
     usage
 fi
 
-if (( $# < 1 )); then
+if (( ${#ARGS[@]} < 1 )); then
     usage
 fi
 
-WG_INSTANCE="$1"
+WG_INSTANCE="${ARGS[0]}"
 CONTAINER="wireguard_${WG_INSTANCE}-wireguard-1"
 
-# ------ constants --------------------------------------------------
+# ----------------- shared constants -----------------
 IFACE="wg0"
 CONF_PATH="/config/wg_confs/${IFACE}.conf"
 
+# unique-ish table name so we don't collide with other nft stuff
+TABLE="d_rymcg_tech_wireguard_kill_switch"
+CHAIN="container_${CONTAINER}_egress"
+REMOTE_SCRIPT_PATH="/usr/local/sbin/wg-killswitch-${CONTAINER}.sh"
+REMOTE_UNIT_PATH="/etc/systemd/system/wg-killswitch@.service"
+REMOTE_INSTANCE="wg-killswitch@${CONTAINER}.service"
+
 # ==================================================================
+# 🧹 UNINSTALL PATH
+# ==================================================================
+if (( UNINSTALL == 1 )); then
+    echo "==> Uninstalling kill-switch for ${CONTAINER} on ${REMOTE_HOST} ..."
+
+    # 1. stop + disable systemd instance (ignore if missing)
+    ssh "${REMOTE_HOST}" "sudo systemctl disable --now ${REMOTE_INSTANCE} 2>/dev/null || true"
+
+    # 2. remove the per-container script
+    ssh "${REMOTE_HOST}" "sudo rm -f ${REMOTE_SCRIPT_PATH}"
+
+    # 3. remove the nft chain + maybe the table
+    #    (do it in two steps, ignore errors)
+    ssh "${REMOTE_HOST}" "sudo nft flush chain inet ${TABLE} ${CHAIN} 2>/dev/null || true"
+    ssh "${REMOTE_HOST}" "sudo nft delete chain inet ${TABLE} ${CHAIN} 2>/dev/null || true"
+
+    # 4. try to delete the table if it's now empty
+    #    (this will fail if there are other containers’ chains in the same table)
+    ssh "${REMOTE_HOST}" "sudo nft delete table inet ${TABLE} 2>/dev/null || true"
+
+    # 5. (optional) remove the template unit IF you know you're done
+    #    we’ll leave it in place by default
+    # ssh "${REMOTE_HOST}" "sudo rm -f ${REMOTE_UNIT_PATH}"
+
+    echo "✅ Uninstall done for ${CONTAINER}."
+    exit 0
+fi
+
+# ==================================================================
+# INSTALL PATH
+# ==================================================================
+
 # 0️⃣ Read endpoint from inside the container
-# ==================================================================
 ENDPOINT_LINE=$(
     docker exec "$CONTAINER" cat "$CONF_PATH" 2>/dev/null | \
     grep -i '^Endpoint[[:space:]]*=' || true
@@ -75,9 +149,7 @@ fi
 
 echo "## Retrieving container network information ..."
 
-# ==================================================================
 # 1️⃣ Get all extra IPv4 addresses from the container
-# ==================================================================
 readarray -t ALL_IPV4 < <(
     docker exec "$CONTAINER" ip -4 -o addr show |
     awk '$2 != "lo" && $2 != "'"$IFACE"'" {print $4}'
@@ -95,13 +167,9 @@ for entry in "${ALL_IPV4[@]}"; do
     SRC_IPS+=( "${entry%%/*}" )
 done
 
-# ==================================================================
 # 2️⃣ Build the remote script (this is what systemd will run)
-# ==================================================================
 echo "## Build nft script"
 
-TABLE="d_rymcg_tech_wireguard_kill_switch"
-CHAIN="container_${CONTAINER}_egress"
 ALLOWED_SET="${ENDPOINT_CIDR}"
 
 REMOTE_NFT_SCRIPT="$(cat <<EOF
@@ -120,7 +188,6 @@ nft flush chain inet ${TABLE} ${CHAIN}
 EOF
 )"
 
-# add the rule pairs
 for ip in "${SRC_IPS[@]}"; do
     REMOTE_NFT_SCRIPT+=$'\n'"nft add rule inet ${TABLE} ${CHAIN} ip saddr ${ip} ip daddr { ${ALLOWED_SET} } accept"
     REMOTE_NFT_SCRIPT+=$'\n'"nft add rule inet ${TABLE} ${CHAIN} ip saddr ${ip} drop"
@@ -128,9 +195,7 @@ done
 
 echo "## Script built."
 
-# ==================================================================
 # 3️⃣ systemd unit
-# ==================================================================
 echo "## Preparing systemd unit"
 REMOTE_UNIT_TEMPLATE="$(cat <<'UNIT'
 [Unit]
@@ -148,13 +213,7 @@ WantedBy=multi-user.target
 UNIT
 )"
 
-# ==================================================================
 # 4️⃣ Ship to remote
-# ==================================================================
-REMOTE_SCRIPT_PATH="/usr/local/sbin/wg-killswitch-${CONTAINER}.sh"
-REMOTE_UNIT_PATH="/etc/systemd/system/wg-killswitch@.service"
-REMOTE_INSTANCE="wg-killswitch@${CONTAINER}.service"
-
 echo "==> Installing kill-switch for ${CONTAINER} on ${REMOTE_HOST} ..."
 ssh "${REMOTE_HOST}" sudo mkdir -p /usr/local/sbin
 
@@ -169,9 +228,9 @@ echo "==> Enabling and starting ${REMOTE_INSTANCE} on ${REMOTE_HOST}"
 ssh "${REMOTE_HOST}" "sudo systemctl daemon-reload"
 ssh "${REMOTE_HOST}" "sudo systemctl enable --now ${REMOTE_INSTANCE}"
 echo
-ssh "${REMOTE_HOST}" "sudo systemctl status ${REMOTE_INSTANCE}"
-echo
+
+# show current rules for this container
 echo "## Here is the kill-switch that will be automatically applied for this instance (${WG_INSTANCE}):"
-ssh "${REMOTE_HOST}" "sudo nft list chain inet kill_switch ${CHAIN}"
+ssh "${REMOTE_HOST}" "sudo nft list chain inet ${TABLE} ${CHAIN} 2>/dev/null || echo '(chain not found)'"
 echo
 echo "## ✅ kill-switch installed. The remote service should now re-apply the nft rules automatically on boot."
