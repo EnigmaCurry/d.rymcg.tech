@@ -35,11 +35,10 @@ sudo pacman -S bash base-devel gettext git openssl apache xdg-utils jq sshfs \
                wireguard-tools curl inotify-tools w3m moreutils ipv6calc
 
 sudo pacman -S docker
-```
 
-On Arch Linux, you may also need to install
-[`ipcalc-redhat`](https://aur.archlinux.org/packages/ipcalc-redhat)
-from the AUR.
+## You may also need to install "ipcalc-redhat" from the AUR.
+##   sudo yay -S ipcalc-redhat
+```
 
 ## Disable Docker Engine on your workstation
 

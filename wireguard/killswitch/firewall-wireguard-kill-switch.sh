@@ -14,9 +14,10 @@
 #   /128 (IPv6) CIDR that is used as the only egress destination.
 #
 # Usage:
-#   sudo ./firewall-wireguard-kill-switch.sh <container>
+#   sudo ./firewall-wireguard-kill-switch.sh <wireguard-instance>
 #
-#   <container>   Docker container name or ID
+#   <wireguard-instance>   Name of d.rymcg.tech wireguard instance
+#                           (e.g., default, my-vpn, foo)
 #====================================================================
 set -euo pipefail
 
@@ -30,10 +31,10 @@ source ${BIN}/funcs.sh
 usage() {
     cat <<EOF
 Usage:
-  sudo $0 <container>
-  <container>            Docker container name or ID
+  sudo $0 <wireguard-instance>
+  <wireguard-instance>        Name of wireguard instance (e.g., default, my-vpn)
 Example:
-  sudo $0 wireguard-my-vpn-whoopla-1
+  sudo $0 my-vpn
 EOF
     exit 1
 }
@@ -52,7 +53,7 @@ fail() {
 if (( $# < 1 )); then
     usage
 fi
-CONTAINER=$1
+CONTAINER="wireguard_${1}-wireguard-1"
 shift
 
 # -----------------------------------------------------------------
