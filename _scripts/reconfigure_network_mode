@@ -70,14 +70,6 @@ fi
 #---------------------------------------------------#
 # 6️⃣  Write (or replace) VAR_NAME=VALUE in the file #
 #---------------------------------------------------#
-#   If the variable already exists we replace the line,
-#   otherwise we simply append a new line.
-#---------------------------------------------------#
-if grep -q "^${VAR_NAME}=" "$ENV_FILE" 2>/dev/null; then
-    # -i.bak creates a backup with .bak suffix (feel free to drop it)
-    sed -i.bak "s/^${VAR_NAME}=.*/${VAR_NAME}=${VALUE}/" "$ENV_FILE"
-else
-    printf '%s=%s\n' "$VAR_NAME" "$VALUE" >> "$ENV_FILE"
-fi
-
-printf '✅  %s set to "%s" in %s\n' "$VAR_NAME" "$VALUE" "$ENV_FILE"
+"${BIN}/dotenv" -f "${ENV_FILE}" set "${VAR_NAME}=${VALUE}"
+echo "Set ${VAR_NAME}=${VALUE}"
+echo
