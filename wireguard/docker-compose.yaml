@@ -25,6 +25,8 @@ services:
       - NET_ADMIN
       - SYS_MODULE
     sysctls:
+      - net.ipv4.ip_forward=1
+      - net.ipv6.conf.all.forwarding=1
       - net.ipv6.conf.all.disable_ipv6=0
       - net.ipv4.conf.all.src_valid_mark=1
     environment:
@@ -36,13 +38,3 @@ services:
       - /lib/modules:/lib/modules
     restart: unless-stopped
     labels: []
-
-networks:
-  wgnet:
-    driver: bridge
-    ipam:
-      config:
-        - subnet: 172.20.0.0/24
-          gateway: 172.20.0.1
-        - subnet: fd00:dead:beef::/64
-          gateway: fd00:dead:beef::1
