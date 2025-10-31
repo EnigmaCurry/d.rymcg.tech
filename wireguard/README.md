@@ -76,14 +76,32 @@ Install the instance by name:
 make instance=my-vpn-peer-xx-12 install 
 ```
 
-## Verify the VPN is functional
+### Configure kill-switch service on the Docker host
 
-The [wireguard service does not have an integrated
+The upstream wireguard service [does not have an integrated
 killswitch](https://github.com/linuxserver/docker-wireguard/issues/139) -
 if for any reason wireguard fails to start, including for reasons of
 misconfiguration and/or host incompatibilities, then your services
 will *NOT* be protected, and will be using the local internet
 connection instead of the VPN.
+
+This configuration mitigates this by installing a firewall ruleset
+that denys packets from leaking on the native network (any packet not
+destined for the wireguard peer.)
+
+At the end of the install script it will ask you if you wish to enable
+the kill-switch:
+
+```
+## At the end of 'make install':
+
+? Do you want to INSTALL the kill-switch for this WireGuard instance (mullvad-deer-goose)? (Y/n)  Yes
+```
+
+You can run `make kill-switch-uninstall` if you wish to remove the
+kill-switch.
+
+## Verify the VPN is functional
 
 Before using the service, you should verify that your VPN is working:
 

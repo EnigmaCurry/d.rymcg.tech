@@ -32,7 +32,7 @@ In the Debian terminal, run:
 sudo apt update
 sudo apt install bash build-essential gettext git openssl apache2-utils \
                  xdg-utils jq sshfs wireguard curl inotify-tools w3m \
-                 moreutils keychain
+                 moreutils keychain ipcalc-ng
 ```
 
 Note: `sudo` may ask you to enter your *Linux* user's password.

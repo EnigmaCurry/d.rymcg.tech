@@ -1,0 +1,92 @@
+#!/usr/bin/env bash
+# =============================================================================
+# reconfigure_ip_address  ENV_FILE VAR "Prompt text" "default"
+#
+# Like reconfigure_ask, but the answer must be a *valid* IP address.
+# Uses validate_ip_address() from funcs.sh.
+# =============================================================================
+
+set -euo pipefail
+
+# ------------------------------- Helpers ------------------------------------
+fail() { echo "ERROR: $*" >&2; exit 1; }
+
+# ------------------------------- Argument handling -------------------------
+ENV_FILE="${1:-}"
+var="${2:-}"
+prompt="${3:-}"
+default="${4:-}"
+
+# Sanity‑check that we got everything we need.
+[[ -n "$ENV_FILE" && -n "$var" && -n "$prompt" ]] || \
+    fail "Usage: $0 ENV_FILE VAR \"Prompt\" \"default\""
+
+# -------------------------------------------------------------------------
+# Load shared functions (validate_ip_address, check_var, …)
+BIN=$(dirname "${BASH_SOURCE[0]}")
+source "${BIN}/funcs.sh"
+
+# Validate that the required helper variables exist.
+check_var ENV_FILE var prompt
+
+# -------------------------------------------------------------------------
+# Make a fresh .env file if it does not exist yet.
+[[ -f "$ENV_FILE" ]] || cp .env-dist "$ENV_FILE"
+
+# -------------------------------------------------------------------------
+# If we are allowed to reuse an already‑set environment variable, do it.
+USE_ENV=${USE_ENV:-false}
+if [[ "$USE_ENV" == "true" && -v "${var}" ]]; then
+    "${BIN}/dotenv" -f "$ENV_FILE" set "${var}=${!var}"
+    exit 0
+fi
+
+# -------------------------------------------------------------------------
+# Pull the example value (from .env‑dist) and the existing value (if any).
+example=$(grep -m1 -oP "^$var=\K.*" .env-dist || true)
+existing=$(grep -m1 -oP "^$var=\K.*" "$ENV_FILE" || true)
+
+# Decide what the default shown to the user should be.
+if [[ "$existing" != "$example" ]]; then
+    default=${existing:-${default}}
+else
+    default=${default:-${example}}
+fi
+
+# A dash (“-”) means “show an empty default”.
+[[ "$default" == "-" ]] && default=""
+
+# Show an example hint (if the .env‑dist file contains one).
+[[ -n "$example" ]] && example=" (eg. ${example})"
+
+# -------------------------------------------------------------------------
+# Ask the user – keep looping until we get a *valid* IP address.
+while true; do
+    read -e -p "${var}: ${prompt}${example}"$'\n: ' -i "$default" answer
+
+    # Accept blank answers only when ALLOW_BLANK is set (or default is blank).
+    ALLOW_BLANK=${ALLOW_BLANK:-0}
+    if [[ -z "$answer" && "$ALLOW_BLANK" != "1" && -n "$default" ]]; then
+        # User typed nothing – fall back to the default (which may be blank).
+        answer="$default"
+    fi
+
+    # If still empty and blanks are not allowed, ask again.
+    if [[ -z "$answer" && "$ALLOW_BLANK" != "1" ]]; then
+        echo "A value is required – please type an IP address." >&2
+        continue
+    fi
+
+    # Validate the candidate.
+    if validate_ip_address "$answer"; then
+        break
+    else
+        echo "‘$answer’ is not a valid IP address.  Try again." >&2
+        echo
+    fi
+done
+
+# -------------------------------------------------------------------------
+# Store the result in the .env file.
+"${BIN}/dotenv" -f "$ENV_FILE" set "${var}=${answer}"
+echo "Set ${var}=${answer}"

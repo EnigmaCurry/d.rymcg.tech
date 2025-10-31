@@ -5,7 +5,12 @@ include ${ROOT_DIR}/_scripts/Makefile.instance
 .PHONY: config-hook
 config-hook:
 	@${BIN}/reconfigure ${ENV_FILE} WIREGUARD_INSTANCE=${instance}
-
+	@echo
+	@echo "## It will be useful for the wireguard container to have a static IP address,"
+	@echo "## therefore you should create a unique subnet:"
+	@${BIN}/reconfigure_subnet ${ENV_FILE} WIREGUARD_DOCKER_SUBNET "Enter a unique IPv4 subnet CIDR for the wireguard network" "$$(${BIN}/docker_subnets propose)"
+	@${BIN}/reconfigure ${ENV_FILE} WIREGUARD_DOCKER_GATEWAY_ADDRESS=$$(${BIN}/ip_from_minaddr $$(${BIN}/dotenv -f ${ENV_FILE} get WIREGUARD_DOCKER_SUBNET) 1)
+	@${BIN}/reconfigure ${ENV_FILE} WIREGUARD_DOCKER_WIREGUARD_ADDRESS=$$(${BIN}/ip_from_minaddr $$(${BIN}/dotenv -f ${ENV_FILE} get WIREGUARD_DOCKER_SUBNET) 2)
 	@echo ""
 	@echo "Enter the wireguard config values:"
 	@${BIN}/reconfigure_ask ${ENV_FILE} WIREGUARD_VPN_CLIENT_INTERFACE_PRIVATE_KEY "Enter the wireguard PrivateKey (ends with =)"
@@ -37,13 +42,37 @@ override-hook:
 ####                         # (this hardcodes the string into docker-compose.override.yaml)
 ####   name=@VARIABLE_NAME   # sets the template 'name' field to the literal string '${VARIABLE_NAME}'
 ####                         # (used for regular docker-compose expansion of env vars by name.)
-	@${BIN}/docker_compose_override ${ENV_FILE} project=:qbitorrent instance=@WIREGUARD_INSTANCE
+	@${BIN}/docker_compose_override ${ENV_FILE} project=:qbitorrent instance=@WIREGUARD_INSTANCE docker_subnet=WIREGUARD_DOCKER_SUBNET docker_gateway_address=WIREGUARD_DOCKER_GATEWAY_ADDRESS docker_wireguard_address=WIREGUARD_DOCKER_WIREGUARD_ADDRESS
 
 
 .PHONY: install-hook
-install-hook:
-	@echo
+install-hook: wait kill-switch
+	@echo "## ✅ WireGuard service installed successfully"
 
 .PHONY: install-hook-pre
 install-hook-pre:
 	@echo
+
+.PHONY: kill-switch
+kill-switch:
+	@echo
+	@echo "## This script will install a systemd unit on the remote Docker HOST (${DOCKER_CONTEXT})."
+	@export DOCKER_CONTEXT=${DOCKER_CONTEXT}; \
+	if ${BIN}/confirm yes "Do you want to INSTALL the kill-switch for this WireGuard instance (${INSTANCE})" "?"; then \
+		if ! docker ps --format '{{.Names}}' | grep -qx 'wireguard_${INSTANCE}-wireguard-1'; then \
+			echo; \
+			echo "Error: WireGuard instance (${INSTANCE}) is not running." >/dev/stderr; \
+			echo; \
+			exit 1; \
+		fi; \
+		./wireguard-kill-switch-install.sh "${INSTANCE}"; \
+	else \
+		echo ""; \
+	fi
+
+.PHONY: kill-switch-uninstall
+kill-switch-uninstall:
+	@echo
+	@export DOCKER_CONTEXT=${DOCKER_CONTEXT}; \
+	${BIN}/confirm no "Do you want to REMOVE the kill-switch for this WireGuard instance (${INSTANCE})" "?"; \
+	./wireguard-kill-switch-install.sh --uninstall "${INSTANCE}"
