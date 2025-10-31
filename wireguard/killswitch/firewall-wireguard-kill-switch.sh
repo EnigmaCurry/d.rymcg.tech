@@ -149,37 +149,30 @@ ALLOWED_SET=$(join_by_comma "${ALLOWED_CIDRS[@]}")
 
 cat <<EOS
 # -----------------------------------------------------------------
-# KILL‑SWITCH for Docker container : $CONTAINER
-# Interface that stays open          : $IFACE
-# Source IPs that will be filtered  : ${SRC_IPS[*]}
-# Allowed egress CIDR(s)            : ${ALLOWED_CIDRS[*]}
+# KILL‑SWITCH for WireGuard container  : $CONTAINER
+# All packets not going through the wireguard peer will be dropped!
+# Container interface that stays open  : $IFACE
+# Source IPs that will be filtered     : ${SRC_IPS[*]}
+# Allowed egress CIDR(s)               : ${ALLOWED_CIDRS[*]}
+# Run the following commands on the Docker HOST (pipe this output to bash).
 # -----------------------------------------------------------------
-# 1️⃣  Create (or reuse) table
 sudo nft add table $TABLE 2>/dev/null || true
-
-# 2️⃣  Create a dedicated chain to match forwarded packets
 sudo nft add chain $TABLE $CHAIN { type filter hook forward priority 0 \; } 2>/dev/null || true
-
-# 3️⃣  Flush any old rules that may belong to a previous run for this container
 sudo nft flush chain $TABLE $CHAIN
 EOS
 
 # Emit the rule pair for each source address we want to lock down.
 for ip in "${SRC_IPS[@]}"; do
     cat <<EOS
-# ---- Rules for source $ip ----
-#   Allow traffic to the whitelisted CIDR(s)
 sudo nft add rule $TABLE $CHAIN ip saddr $ip ip daddr { $ALLOWED_SET } accept
-
-#   Drop everything else that originates from $ip
 sudo nft add rule $TABLE $CHAIN ip saddr $ip drop
 EOS
 done
 
-cat <<'EOS'
-# -----------------------------------------------------------------
-# OPTIONAL: If you want the chain to be reachable from the *global* FORWARD chain
-# (instead of being a separate table that Docker never jumps into), uncomment:
-# sudo nft insert rule ip filter FORWARD jump $TABLE $CHAIN
-# -----------------------------------------------------------------
-EOS
+# cat <<'EOS'
+# # -----------------------------------------------------------------
+# # OPTIONAL: If you want the chain to be reachable from the *global* FORWARD chain
+# # (instead of being a separate table that Docker never jumps into), uncomment:
+# # sudo nft insert rule ip filter FORWARD jump $TABLE $CHAIN
+# # -----------------------------------------------------------------
+# EOS
