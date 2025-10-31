@@ -542,43 +542,74 @@ get_all_projects() {
 
 wait_until_healthy() {
     echo "Waiting until all services are started and become healthy ..."
-    local containers=()
-    PROJECT_NAME=$1
+    local PROJECT_NAME=$1
     shift
-
-    while IFS= read -r CONTAINER_ID; do
-        local inspect_json=$(docker inspect ${CONTAINER_ID})
-        local name=$(echo "${inspect_json}" | jq -r ".[0].Name" | sed 's|^/||')
-        if [[ "${name}" != "${PROJECT_NAME}-config-1" ]]; then containers+=("$name"); fi
-    done <<< "$@"
-    local attempts=0
-    while true; do
-        attempts=$((attempts+1))
-        if [[ "${#containers}" == "0" ]]; then
-            break
+    local all_ids=()
+    local arg
+    for arg in "$@"; do
+        while IFS= read -r line; do
+            [[ -z "$line" ]] && continue
+            all_ids+=("$line")
+        done <<< "$arg"
+    done
+    local containers=()
+    local cid
+    for cid in "${all_ids[@]}"; do
+        # must exist
+        if ! docker inspect "$cid" >/dev/null 2>&1; then
+            echo "Error: container '$cid' does not exist (yet)."
+            return 1
         fi
-        local random_container=$(random_element "${containers[@]}")
-        if [[ -z "${random_container}" ]]; then
+        local name
+        name=$(docker inspect "$cid" | jq -r '.[0].Name' | sed 's|^/||')
+        if [[ "$name" == *"-config-1" ]] || [[ "$name" == *"_config-1" ]]; then
             continue
         fi
-        local inspect_json=$(docker inspect ${random_container})
-        local name=$(echo "${inspect_json}" | jq -r ".[0].Name" | sed 's|^/||')
-        local status=$(echo "${inspect_json}" | jq -r ".[0].State.Status")
-        local health=$(echo "${inspect_json}" | jq -r ".[0].State.Health.Status")
-        if [[ "$status" == "running" ]] && ([[ "$health" == "healthy" ]] || [[ "$health" == "null" ]]); then
-            containers=( "${containers[@]/${name}}" )
-            if [[ "${#containers}" == "0" ]]; then
+        containers+=("$name")
+    done
+    if [[ ${#containers[@]} -eq 0 ]]; then
+        echo "No services to wait for."
+        return 0
+    fi
+    local attempts=0
+    while true; do
+        attempts=$((attempts + 1))
+        [[ ${#containers[@]} -eq 0 ]] && break
+        local random_container
+        random_container=$(random_element "${containers[@]}")
+        [[ -z "$random_container" ]] && continue
+        if ! docker inspect "$random_container" >/dev/null 2>&1; then
+            echo "Error: container '$random_container' disappeared while waiting."
+            return 1
+        fi
+        local inspect_json
+        inspect_json=$(docker inspect "$random_container")
+        local name status health
+        name=$(echo "$inspect_json" | jq -r '.[0].Name' | sed 's|^/||')
+        status=$(echo "$inspect_json" | jq -r '.[0].State.Status')
+        health=$(echo "$inspect_json" | jq -r '.[0].State.Health.Status')
+        if [[ "$status" == "running" ]] && { [[ "$health" == "healthy" ]] || [[ "$health" == "null" ]]; }; then
+            # remove from list safely
+            local new=()
+            local c
+            for c in "${containers[@]}"; do
+                [[ "$c" == "$name" ]] && continue
+                new+=("$c")
+            done
+            containers=("${new[@]}")
+            if [[ ${#containers[@]} -eq 0 ]]; then
                 break
-            elif [[ "${attempts}" -gt 15 ]]; then
-                echo "Still waiting for services to finish starting: ${containers[@]}"
+            fi
+            if [[ $attempts -gt 15 ]]; then
+                echo "Still waiting for services to finish starting: ${containers[*]}"
             fi
         fi
-
-        if [[ "${attempts}" -gt 150 ]]; then
-            fault "Gave up waiting for services to start."
+        if [[ $attempts -gt 150 ]]; then
+            echo "Gave up waiting for services to start. Still pending: ${containers[*]}"
+            return 1
         fi
-        if [[ "$((attempts%5))" == 0 ]]; then
-            echo "Still waiting for services to finish starting: ${containers[@]}"
+        if (( attempts % 5 == 0 )); then
+            echo "Still waiting for services to finish starting: ${containers[*]}"
         fi
         sleep 2
     done

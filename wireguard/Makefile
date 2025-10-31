@@ -46,9 +46,22 @@ override-hook:
 
 
 .PHONY: install-hook
-install-hook:
-	@echo
+install-hook: wait kill-switch
+	@echo "## ✅ WireGuard service installed successfully"
 
 .PHONY: install-hook-pre
 install-hook-pre:
 	@echo
+
+.PHONY: kill-switch
+kill-switch:
+	@echo
+	@echo "## This script will install a systemd unit on the remote Docker HOST (${DOCKER_CONTEXT})."
+	@${BIN}/confirm yes "Do you want to install a kill-switch for this WireGuard instance (${INSTANCE})" "?"
+	@if ! docker ps --format '{{.Names}}' | grep -qx 'wireguard_${INSTANCE}-wireguard-1'; then \
+	    echo; \
+        echo "Error: WireGuard instance (${INSTANCE}) is not running." >/dev/stderr; \
+	    echo; \
+	    exit 1; \
+    fi
+	./wireguard-kill-switch-install.sh "${INSTANCE}"
