@@ -36,3 +36,12 @@ services:
     restart: unless-stopped
     labels: []
 
+networks:
+  wgnet:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 172.20.0.0/24
+          gateway: 172.20.0.1
+        - subnet: fd00:dead:beef::/64
+          gateway: fd00:dead:beef::1

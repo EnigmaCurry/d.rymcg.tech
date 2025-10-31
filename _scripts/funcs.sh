@@ -671,12 +671,12 @@ prefix_to_netmask () {
 
 validate_ip_address() {
     local addr=$1 cmd
-    if command -v ipcalc >/dev/null 2>&1; then
-        cmd=(ipcalc -c)
-    elif command -v ipcalc-ng >/dev/null 2>&1; then
+    if command -v ipcalc-ng >/dev/null 2>&1; then
         cmd=(ipcalc-ng -c)
     elif command -v ipv6calc >/dev/null 2>&1; then
         cmd=(ipv6calc --showinfo -m)
+    elif command -v ipcalc >/dev/null 2>&1; then
+        cmd=(ipcalc -c)
     else
         fail "No ipcalc/ipcalc-ng/ipv6calc command found."
     fi
@@ -696,16 +696,55 @@ validate_ip_network() {
         max=32
     fi
     (( prefix >= 0 && prefix <= max )) || return 1
-    if command -v ipcalc >/dev/null 2>&1; then
-        cmd=(ipcalc -c)
-    elif command -v ipcalc-ng >/dev/null 2>&1; then
+    if command -v ipcalc-ng >/dev/null 2>&1; then
         cmd=(ipcalc-ng -c)
     elif command -v ipv6calc >/dev/null 2>&1; then
         cmd=(ipv6calc --showinfo -m)
+    elif command -v ipcalc >/dev/null 2>&1; then
+        cmd=(ipcalc -c)
     else
         fail "No ipcalc/ipcalc-ng/ipv6calc command found."
     fi
     "${cmd[@]}" "$net" >/dev/null 2>&1
+}
+
+ip_from_minaddr() {
+  local cidr="$1"
+  local n="${2:-1}"
+  if [[ -z $cidr ]]; then
+    echo "Usage: ip_from_minaddr <CIDR> [n<=254]" >&2
+    return 2
+  fi
+  if ! [[ $n =~ ^[0-9]+$ ]] || (( n < 1 || n > 254 )); then
+    echo "Error: n must be an integer between 1 and 254" >&2
+    return 2
+  fi
+  local offset=$(( n - 1 ))
+  local out
+  out=$("${BIN}/ipcalc" "$cidr" -j | jq -r --argjson off "$offset" '
+    def ip2int: split(".") | map(tonumber) | reduce .[] as $o (0; . * 256 + $o);
+    def int2ip:
+      [ ((. / 16777216)|floor)%256
+      , ((. / 65536)|floor)%256
+      , ((. / 256)|floor)%256
+      , (. % 256)
+      ] | map(tostring) | join(".");
+
+    (.MINADDR // .minhost) as $min
+    | (.MAXADDR // .maxhost) as $max
+    | if ($min == null or $max == null) then empty
+      else
+        ($min | ip2int) as $mi
+        | ($max | ip2int) as $ma
+        | ($mi + $off) as $cand
+        | if $cand <= $ma then $cand | int2ip else empty end
+      end
+  ')
+  if [[ -z $out ]]; then
+    echo "Error: requested host exceeds usable range (or missing min/max host in JSON)" >&2
+    return 1
+  fi
+  printf '%s\n' "$out"
 }
 
 select_docker_network_cidr() {

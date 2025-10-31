@@ -9,7 +9,22 @@
 #@ project = data.values.project
 #@ instance = data.values.instance
 #@ context = data.values.context
+#@ docker_subnet = data.values.docker_subnet
+#@ docker_gateway_address = data.values.docker_gateway_address
+#@ docker_wireguard_address = data.values.docker_wireguard_address
 
 #@yaml/text-templated-strings
 services:
   wireguard:
+    networks:
+      wgnet:
+        ipv4_address: (@= docker_ip_address @)
+
+#@yaml/text-templated-strings
+networks:
+  wgnet:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: (@= docker_subnet @)
+          gateway: (@= docker_gateway_address @)

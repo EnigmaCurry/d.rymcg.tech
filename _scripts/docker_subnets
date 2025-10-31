@@ -195,7 +195,7 @@ PY
     # -----------------------------------------------------------------
     # 5️⃣ Finally, report the (guaranteed‑valid) subnet.
     # -----------------------------------------------------------------
-    echo "## Found available subnet: ${proposed}" >/dev/stderr
+    echo "## Found available subnet (suggestion): ${proposed}" >/dev/stderr
     echo "$proposed"
 }
 
