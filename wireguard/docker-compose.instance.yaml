@@ -18,7 +18,7 @@ services:
   wireguard:
     networks:
       wgnet:
-        ipv4_address: (@= docker_ip_address @)
+        ipv4_address: (@= docker_wireguard_address @)
 
 #@yaml/text-templated-strings
 networks:

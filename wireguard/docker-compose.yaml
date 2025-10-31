@@ -5,6 +5,7 @@ services:
   wireguard-config:
     build:
       context: wireguard-config
+    network_mode: none
     environment:
       - WIREGUARD_VPN_CLIENT_INTERFACE_PRIVATE_KEY
       - WIREGUARD_VPN_CLIENT_INTERFACE_IPV4

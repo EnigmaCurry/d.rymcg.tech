@@ -9,8 +9,8 @@ config-hook:
 	@echo "## It will be useful for the wireguard container to have a static IP address,"
 	@echo "## therefore you should create a unique subnet:"
 	@${BIN}/reconfigure_subnet ${ENV_FILE} WIREGUARD_DOCKER_SUBNET "Enter a unique IPv4 subnet CIDR for the wireguard network" "$$(${BIN}/docker_subnets propose)"
-	@${BIN}/reconfigure ${ENV_FILE} WIREGUARD_DOCKER_GATEWAY_ADDRESS=$$(${BIN}/ipcalc $$(${BIN}/dotenv -f ${ENV_FILE} get WIREGUARD_DOCKER_SUBNET) -j | jq -r ".MINADDR")
-	@${BIN}/reconfigure ${ENV_FILE} WIREGUARD_DOCKER_WIREGUARD_ADDRESS=$$(${BIN}/ipcalc $$(${BIN}/dotenv -f ${ENV_FILE} get WIREGUARD_DOCKER_SUBNET) -j | jq -r ".MINADDR")
+	@${BIN}/reconfigure ${ENV_FILE} WIREGUARD_DOCKER_GATEWAY_ADDRESS=$$(${BIN}/ip_from_minaddr $$(${BIN}/dotenv -f ${ENV_FILE} get WIREGUARD_DOCKER_SUBNET) 1)
+	@${BIN}/reconfigure ${ENV_FILE} WIREGUARD_DOCKER_WIREGUARD_ADDRESS=$$(${BIN}/ip_from_minaddr $$(${BIN}/dotenv -f ${ENV_FILE} get WIREGUARD_DOCKER_SUBNET) 2)
 	@echo ""
 	@echo "Enter the wireguard config values:"
 	@${BIN}/reconfigure_ask ${ENV_FILE} WIREGUARD_VPN_CLIENT_INTERFACE_PRIVATE_KEY "Enter the wireguard PrivateKey (ends with =)"
