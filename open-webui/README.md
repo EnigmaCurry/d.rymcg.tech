@@ -21,6 +21,14 @@ It automatically saves your responses into the configuration file
 See [AUTH.md](../AUTH.md) for information on adding external authentication on
 top of your app.
 
+If you enable OAuth2 authentication, open-webui accounts will be
+created automatically for any successfully logged in user, based upon
+the email address forwarded from traefik-forward-auth
+`X-Forwarded-User`.
+
+You must immediately log in, the first user to authenticate will
+become the admin automatically.
+
 ## Install
 
 ```
@@ -33,9 +41,7 @@ make install
 make open
 ```
 
-This will automatically open the page in your web browser, and will
-prefill the HTTP Basic Authentication password if you enabled it
-(and chose to store it in `passwords.json`).
+This will automatically open the page in your web browser.
 
 ## Destroy
 
