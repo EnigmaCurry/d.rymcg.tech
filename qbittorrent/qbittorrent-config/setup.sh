@@ -17,4 +17,4 @@ create_config() {
 
 create_config
 
-cat /tmp/categories.json > ${CONFIG_DIR}/categories.json
+    sed '/^\/\//d; /^$/d' "${TEMPLATE_DIR}/categories.json" > "${CONFIG_DIR}/categories.json"

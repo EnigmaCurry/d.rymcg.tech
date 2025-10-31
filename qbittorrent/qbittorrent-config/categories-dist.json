@@ -1,8 +1,11 @@
-{
-    "Movies": {
-        "save_path": "/downloads/movies"
-    },
-    "Only Murders in the Building": {
-        "save_path": "/downloads/shows/only.murders.in.the.building"
-    }
-}
+// Each category needs a name and a save_path, in this format:
+// {
+//     "Movies": {
+//         "save_path": "/downloads/movies"
+//     },
+//     "Only Murders in the Building": {
+//         "save_path": "/downloads/shows/only.murders.in.the.building"
+//     }
+// }
+
+{}
