@@ -16,3 +16,6 @@ create_config() {
 }
 
 create_config
+
+# Categories
+sed '/^\/\//d; /^$/d' "${TEMPLATE_DIR}/categories.json" > "${CONFIG_DIR}/categories.json"
