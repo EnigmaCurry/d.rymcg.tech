@@ -88,6 +88,7 @@ umask 022
   printf '  ansi\n'
   printf '  xff-src: lan\n'
   printf '  xff-hdr: X-Forwarded-For\n'
+  printf '  rproxy: 1\n'
   printf '  shr: /share\n'
   printf '  shr-who: a\n'
   printf '  shr-adm: admin\n'

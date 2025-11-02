@@ -46,6 +46,7 @@ services:
     cap_drop: [ "ALL" ]
     security_opt:
       - no-new-privileges:true
+    restart: "unless-stopped"
     environment:
       - COPYPARTY_DATA_DIR=/data
       - COPYPARTY_CONFIG=/etc/copyparty/copyparty.conf

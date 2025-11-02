@@ -18,12 +18,4 @@ create_config() {
 create_config
 
 # Categories
-process_categories() {
-    touch /config/.config_hash
-    cat /template/healthcheck.sh > /config/healthcheck.sh
-    chmod +x /config/healthcheck.sh
-    # remove comments and blank lines from categories.json
-    sed '/^\/\//d; /^$/d' "${TEMPLATE_DIR}/categories.json" > "${CONFIG_DIR}/categories.json"
-}
-
-process_categories
+sed '/^\/\//d; /^$/d' "${TEMPLATE_DIR}/categories.json" > "${CONFIG_DIR}/categories.json"

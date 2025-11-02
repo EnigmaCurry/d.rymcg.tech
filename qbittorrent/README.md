@@ -83,9 +83,8 @@ and make it persist for future installs:
 qBittorrent allows you to create categories to manage your torrents.
 To make categories that persist, edit
 `qbittorrent-config/categories_{DOCKER_CONTEXT}_{INSTANCE}.json` and
-add your categories, run then `make install`. It might take up to 40
-seconds for your qBittorrent container to restart and recognize the
-new categories
+add your categories, run then `make install`. You might need to reload
+the qBittorrent web page to see the updates categories.
 
 ### Authentication and Authorization
 
