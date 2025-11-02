@@ -143,6 +143,10 @@ networks:
 fail2ban:
 	ENV_FILE=${ENV_FILE} ROOT_ENV=${ROOT_ENV} DOCKER_CONTEXT=${DOCKER_CONTEXT} ROOT_DIR=${ROOT_DIR} CONTEXT_INSTANCE=${CONTEXT_INSTANCE} ${BIN}/fail2ban
 
+.PHONY: s3-volume # Create a Docker volume on S3 Storage.
+s3-volume:
+	ENV_FILE=${ENV_FILE} ROOT_ENV=${ROOT_ENV} DOCKER_CONTEXT=${DOCKER_CONTEXT} ROOT_DIR=${ROOT_DIR} CONTEXT_INSTANCE=${CONTEXT_INSTANCE} ${BIN}/s3_volume_create
+
 .PHONY: reconfigure # reconfigure a single environment variable (reconfigure var=THING=VALUE)
 reconfigure:
 	@[[ -n "$${var}" ]] || (echo -e "Error: Invalid argument, must set var.\n## Use: make reconfigure var=VAR_NAME=VALUE" && false)
