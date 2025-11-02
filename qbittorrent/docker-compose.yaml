@@ -1,11 +1,13 @@
 volumes:
   qbittorrent-config:
-  aria2_config:
 
 services:
   qbittorrent-config:
     build:
       context: qbittorrent-config
+      args:
+        - DOCKER_CONTEXT=${QBITTORRENT_DOCKER_CONTEXT}
+        - INSTANCE=${QBITTORRENT_INSTANCE}
     environment:
       - QBITTORRENT_TRAEFIK_HOST
       - QBITTORRENT_VPN_CLIENT_INTERFACE_IPV4
@@ -51,11 +53,30 @@ services:
       - QBITTORRENT_Schedulerstart_time
       - QBITTORRENT_SessionUseAlternativeGlobalSpeedLimit
       - QBITTORRENT_SessionBandwidthSchedulerEnabled
+      - QBITTORRENT_SessionInterface
+      - QBITTORRENT_SessionInterfaceName
+      - QBITTORRENT_SessionInterfaceAddress
+      - QBITTORRENT_MergeTrackersEnabled
+      - QBITTORRENT_SessionSubcategoriesEnabled
+      - QBITTORRENT_SessionUseCategoryPathsInManualMode
+      - QBITTORRENT_SessionAnonymousModeEnabled
+      - QBITTORRENT_SessionTorrentStopCondition
+      - QBITTORRENT_WebUIUsername
+      - QBITTORRENT_WebUIPassword_PBKDF2
+      - QBITTORRENT_WebUILocalHostAuth
+      - QBITTORRENT_WebUIAuthSubnetWhitelistEnabled
+      - QBITTORRENT_WebUIAuthSubnetWhitelist
+      - QBITTORRENT_WebUIClickjackingProtection
+      - QBITTORRENT_WebUICSRFProtection
+      - QBITTORRENT_GeneralStatusbarExternalIPDisplayed
     volumes:
       - qbittorrent-config:/config:z
 
   qbittorrent:
-    image: linuxserver/qbittorrent:${QBITTORRENT_VERSION}
+    build:
+      context: ./qbittorrent
+      args:
+        QBITTORRENT_IMAGE: ${QBITTORRENT_IMAGE:-linuxserver/qbittorrent:latest}
     depends_on:
       - qbittorrent-config
     environment:
@@ -69,4 +90,9 @@ services:
     restart: unless-stopped
     labels:
       - "backup-volume.stop-during-backup=true"      
-
+    healthcheck:
+      test: ["CMD-SHELL", "curl -fs http://localhost:8080/ || exit 1"]
+      interval: 30s
+      timeout: 5s
+      start_period: 10s
+      retries: 3
