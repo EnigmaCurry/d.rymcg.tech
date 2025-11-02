@@ -19,6 +19,7 @@
 #@ authorized_group = data.values.authorized_group
 #@ enable_mtls_auth = data.values.enable_mtls_auth == "true"
 #@ mtls_authorized_certs = data.values.mtls_authorized_certs
+#@ vol_external = data.values.vol_external
 #@ enabled_middlewares = []
 #@ homepage_labels_enable = data.values.homepage_labels_enable == "true"
 #@ homepage_group_syncthing = data.values.homepage_group_syncthing
@@ -33,6 +34,12 @@
 services:
   syncthing:
     #@ service = "syncthing"
+    volumes:
+      #@ if len(vol_external):
+      #@ for vol,volume_or_dir in [x.split(":") for x in vol_external.split(",")]:
+      - (@= volume_or_dir @):/mnt/(@= vol @):z
+      #@ end
+      #@ end
     labels:
       - "backup-volume.stop-during-backup=true"
       - "traefik.enable=true"
