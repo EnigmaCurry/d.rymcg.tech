@@ -1,11 +1,11 @@
-
 #!/usr/bin/env bash
 # ---------------------------------------------------------------
 # docker_subnets – sub‑command dispatcher
 #
 #   docker_subnets select NETWORK [NETWORK …]   # comma‑separated subnets
 #   docker_subnets list                         # nice table “network  subnet”
-#   docker_subnets propose                      # propose a free private subnet
+#   docker_subnets propose                      # propose a free private ipv4 subnet
+#   docker_subnets propose6                     # propose a free private ipv6 subnet
 #
 #   *select* now requires at least one network argument.
 #   *propose* returns a /24 subnet that does not overlap any existing
@@ -23,6 +23,7 @@ IFS=$'\n\t'                      # protect against spaces in network names
 # -------------------------------------------------
 BIN=$(dirname "${BASH_SOURCE[0]}")
 source "${BIN}/funcs.sh" || true
+#${BIN}/check_deps python3 >/dev/null
 
 # -------------------------------------------------
 # Helper: print usage / help and exit with status 1
@@ -48,6 +49,11 @@ Sub‑commands:
                                The proposal is printed on a single line, e.g.
                                172.16.42.0/24
 
+  propose6                     Propose a new ipv6 /64 subnet that does NOT
+                               overlap any existing Docker network subnet.
+                               The proposal is printed on a single line, e.g.
+                               fd00::/64
+
 If no sub‑command (or an unknown one) is given, this help is shown and
 the program exits with status 1.
 
@@ -55,6 +61,7 @@ Examples:
   docker_subnets select whoami_default nodered_default
   docker_subnets list
   docker_subnets propose
+  docker_subnets propose6
 EOF
     exit 1
 }
@@ -199,6 +206,68 @@ PY
     echo "$proposed"
 }
 
+# -----------------------------------------------------------------
+# Sub‑command: propose6 – suggest a free IPv6 /64 subnet (always valid)
+# -----------------------------------------------------------------
+cmd_propose6() {
+    # 1️⃣ Gather all existing Docker IPv6 subnets (CIDR strings)
+    mapfile -t existing_subnets < <(
+        docker network inspect $(docker network ls -q) |
+            jq -r '
+              .[] |
+              select(.IPAM.Config != null) |
+              .IPAM.Config[]?.Subnet |
+              select(test(":"))   # keep only IPv6 entries
+            '
+    )
+
+    # 2️⃣ Run the Python helper that *must* emit exactly one IPv6 CIDR on stdout
+    proposed=$(python3 - <<'PY' "${existing_subnets[@]}"
+import sys, ipaddress, random
+
+# Build a list of existing IPv6 networks from the arguments the shell passed.
+existing = [ipaddress.ip_network(s) for s in sys.argv[1:] if s]
+
+def first_free(net):
+    """Return the first /64 inside *net* that does not overlap any existing net."""
+    for cand in net.subnets(new_prefix=64):
+        if not any(cand.overlaps(e) for e in existing):
+            return cand
+    return None
+
+# Primary search space – the fd00::/8 ULA block.
+candidate = first_free(ipaddress.ip_network('fd00::/8'))
+
+# If the ULA space is exhausted we fall back to a random /64 inside the
+# documentation prefix (RFC 3849).  It will never clash with real traffic.
+if candidate is None:
+    doc = ipaddress.ip_network('2001:db8::/32')
+    start = int(doc.network_address)
+    end   = int(doc.broadcast_address) - (2**64 - 1)
+    n = random.randint(start, end) // (2**64) * (2**64)
+    candidate = ipaddress.ip_network((n, 64))
+
+print(str(candidate))
+PY
+)   # ← end of command substitution
+    py_status=$?
+
+    if (( py_status != 0 )) || [[ -z $proposed ]]; then
+        proposed="fd00:0:0:0::/64"
+        echo "⚠️ Python helper failed (status $py_status) – using fallback IPv6 subnet." >&2
+    fi
+
+    # 4️⃣ Validate with Python (handles ::, leading zeros, etc.)
+    if ! python3 -c 'import sys, ipaddress; ipaddress.ip_network(sys.argv[1])' "$proposed"; then
+        echo "❌ Computed value \"$proposed\" is not a valid IPv6 CIDR – falling back to fd00:0:0:0::/64." >&2
+        proposed="fd00:0:0:0::/64"
+    fi
+
+    # 5️⃣ Report the (guaranteed‑valid) subnet.
+    echo "## Found available IPv6 subnet (suggestion): ${proposed}"# >/dev/stderr
+    echo "$proposed"
+}
+
 # -------------------------------------------------
 # Dispatch – decide which sub‑command to run
 # -------------------------------------------------
@@ -218,6 +287,9 @@ case "$subcmd" in
         ;;
     propose)
         cmd_propose "$@"
+        ;;
+    propose6)
+        cmd_propose6 "$@"
         ;;
     *)
         echo "Error: unknown sub‑command: $subcmd" >&2

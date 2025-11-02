@@ -778,6 +778,39 @@ ip_from_minaddr() {
   printf '%s\n' "$out"
 }
 
+ip_from_minaddr_6() {
+    local cidr="${1:-}" n="${2:-1}"
+    if [[ -z $cidr ]]; then echo "Usage: ip_from_minaddr_6 <CIDR> [n<=2^64‑1]" >&2; return 2; fi
+    if ! [[ $n =~ ^[0-9]+$ ]] || (( n < 1 )); then echo "Error: n must be a positive integer (>= 1)" >&2; return 2; fi
+    local out
+    out=$(python3 - <<'PY' "$cidr" "$n"
+import sys, ipaddress
+cidr = sys.argv[1]
+n = int(sys.argv[2])
+try:
+    net = ipaddress.ip_network(cidr, strict=False)
+except ValueError as e:
+    sys.stderr.write(f"Error: invalid IPv6 CIDR '{cidr}': {e}\n")
+    sys.exit(1)
+if net.num_addresses == 1:
+    if n != 1:
+        sys.stderr.write(f"Error: requested host (n={n}) exceeds usable range of {cidr}\n")
+        sys.exit(1)
+    addr = net.network_address
+else:
+    usable = net.num_addresses - 1
+    if n > usable:
+        sys.stderr.write(f"Error: requested host (n={n}) exceeds usable range of {cidr}\n")
+        sys.exit(1)
+    addr = net.network_address + n
+print(str(addr))
+PY
+    )
+    local py_status=$?
+    if (( py_status != 0 )) || [[ -z $out ]]; then echo "Error: requested host exceeds usable range (or bad CIDR)" >&2; return 1; fi
+    printf '%s\n' "$out"
+}
+
 select_docker_network_cidr() {
     PROMPT=${1:-Select multiple Docker networks}
     docker_networks=($(docker network ls --format '{{.Name}}' | grep -vE '^(host|none|bridge)$'))

@@ -3,11 +3,12 @@ FROM ${IMAGE}
 
 RUN apt-get update && \
     DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends \
-        iproute2 \
-        iptables \
-        gosu \
-        ca-certificates \
-        libcap2-bin  && \
+    iproute2 \
+    iptables \
+    iputils-ping \
+    gosu \
+    ca-certificates \
+    libcap2-bin  && \
     rm -rf /var/lib/apt/lists/*
 
 COPY app-router-bootstrap.sh /usr/local/bin/app-router-bootstrap.sh
