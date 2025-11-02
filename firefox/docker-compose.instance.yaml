@@ -33,7 +33,8 @@ services:
   firefox:
     #@ service = "firefox"
     #@ if len(network_mode) and network_mode != "default":
-    network_mode: "(@= network_mode @)"
+    networks:
+      wireguard_mullvad-deer-goose_wgnet:
     #@ end
     labels:
       - "backup-volume.stop-during-backup=true"
@@ -87,3 +88,10 @@ services:
       - homepage.description=(@= homepage_description_firefox or traefik_host @)
       - homepage.showStats=(@= homepage_show_stats_firefox @)
       #@ end
+
+
+#@ if len(network_mode) and network_mode != "default":
+networks:
+  wireguard_mullvad-deer-goose_wgnet:
+    external: true
+#@ end

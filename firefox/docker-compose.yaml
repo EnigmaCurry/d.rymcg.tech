@@ -3,13 +3,12 @@ volumes:
 
 services:
   firefox:
-    image: ${FIREFOX_IMAGE}
-    # cap_drop:
-    #   - ALL
-    # cap_add:
-    #   - CAP_CHOWN
-    #   - CAP_SETGID
-    #   - CAP_SETUID
+    build:
+      context: firefox
+      args:
+        IMAGE: ${FIREFOX_IMAGE}
+    cap_add:
+      - NET_ADMIN
     security_opt:
       - no-new-privileges:true
     sysctls:
@@ -18,6 +17,8 @@ services:
     environment:
       - PUID=${FIREFOX_UID}
       - PGID=${FIREFOX_GID}
+      - ROUTER_IPV4=${FIREFOX_ROUTER_IPV4}
+      - ROUTER_IPV6=${FIREFOX_ROUTER_IPV6}
       - DRI_NODE=${FIREFOX_DRI_NODE}
       - DRINODE=${FIREFOX_DRINODE}
       - SUBFOLDER=/${FIREFOX_SUBFOLDER}

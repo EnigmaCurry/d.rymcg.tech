@@ -24,6 +24,7 @@ services:
 networks:
   wgnet:
     driver: bridge
+    enable_ipv6: true
     ipam:
       config:
         - subnet: (@= docker_subnet @)
