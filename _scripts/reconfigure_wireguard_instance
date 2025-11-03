@@ -32,7 +32,7 @@ DEFAULT="none"
 OPTIONS=("none")
 for c in "${ROUTER_CONTAINERS[@]}"; do
     OPTIONS+=("$c")
-    if [[ "${CURRENT_VAL}" == "${c}" ]]; then
+    if [[ "${c}" =~ "${CURRENT_VAL}" ]]; then
         DEFAULT="${c}"
     fi
 done
