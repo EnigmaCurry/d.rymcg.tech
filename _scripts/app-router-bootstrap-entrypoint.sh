@@ -169,7 +169,6 @@ EOF
     # We also escape any single‑quotes that might be inside the arguments.
     escaped_cmd=$(printf "%s" "$*" | sed "s/'/'\\\\''/g")
     # The result is a single‑quoted string that the shell will interpret correctly.
-    # (If you don’t need quoting at all you can simply use: echo "$*" >"$tmpfile")
     sed -i "s|CMD_LINE_PLACEHOLDER|exec $escaped_cmd|g" "$tmpfile"
     chmod +x "$tmpfile"
     ENTRYPOINT="$tmpfile"

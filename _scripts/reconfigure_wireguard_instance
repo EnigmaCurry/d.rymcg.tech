@@ -33,8 +33,6 @@ OPTIONS=("none")
 CHOSEN="${DEFAULT}"
 for c in "${ROUTER_CONTAINERS[@]}"; do
     OPTIONS+=("$c")
-    debug_var c
-    debug_var CURRENT_VAL
     if [[ "${c}" == "wireguard_${CURRENT_VAL}-wireguard-1" ]]; then
         CHOSEN="${c}"
     fi

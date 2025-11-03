@@ -23,7 +23,7 @@ IFS=$'\n\t'                      # protect against spaces in network names
 # -------------------------------------------------
 BIN=$(dirname "${BASH_SOURCE[0]}")
 source "${BIN}/funcs.sh" || true
-#${BIN}/check_deps python3 >/dev/null
+${BIN}/check_deps python3
 
 # -------------------------------------------------
 # Helper: print usage / help and exit with status 1
