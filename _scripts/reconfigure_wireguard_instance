@@ -20,7 +20,7 @@ fi
 ENV_FILE=$1
 VAR_NAME=$2
 PROMPT=$3
-PATTERN='^wireguard_.+-wireguard-1|^wireguard-wireguard-1$'
+PATTERN='^wireguard_.+-wireguard-1$|^wireguard-wireguard-1$'
 
 mapfile -t ROUTER_CONTAINERS < <(
     docker ps -a --format "{{.Names}}" |
