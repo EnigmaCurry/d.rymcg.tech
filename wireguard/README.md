@@ -79,18 +79,45 @@ make instance=my-vpn-peer-xx-12 install
 ### Configure kill-switch service on the Docker host
 
 The upstream wireguard service [does not have an integrated
-killswitch](https://github.com/linuxserver/docker-wireguard/issues/139) -
-if for any reason wireguard fails to start, including for reasons of
-misconfiguration and/or host incompatibilities, then your services
-will *NOT* be protected, and will be using the local internet
-connection instead of the VPN.
+killswitch](https://github.com/linuxserver/docker-wireguard/issues/139).
+This configuration adds its own kill switch mechanisms in two
+non-exclusive ways:
 
-This configuration mitigates this by installing a firewall ruleset
-that denys packets from leaking on the native network (any packet not
-destined for the wireguard peer.)
+ * Kill switch mechanism 1 (Recommended) - Container-level kill
+   switch - WireGuard acts as a normal router
+ 
+   * With the wireguard container acting as a router for a given
+     docker network. Containers retain their own network namespace,
+     and can attach to several docker network at the same time.
+     Containers that are added to this network must redefine their
+     default routes to point to the wireguard instance IP address.
+     These containers must also implement their own firewall rules to
+     block access to the original gateway.
+    
+ * Kill switch mechanism 2 (Inferior fallback) - WireGuard-level kill
+   switch - Containers join wireguard namespace via `network_mode`.
+       
+   * Containers may join the network via the `network_mode` parameter.
+     This joins containers into the same network namespace as
+     wireguard, so they will have the same IP address as wireguard.
+     This mode is not recommended - it is mostly inferior to the
+     router model described in mechanism 1, except that it does not
+     require as much boilerplate. If a container joins the
+     network_mode of wireguard, it will lose connection to its
+     original docker network (and won't be able to connect to sidecar
+     containers, e.g. databases)
 
-At the end of the install script it will ask you if you wish to enable
-the kill-switch:
+   * The wireguard instance adds a firewall ruleset that denys packets
+     from leaking on the native network interfaces (any packet *not*
+     destined for the wireguard peer.)
+
+To configure mechanism 1, you will need to configure this in the
+various containers that support this wireguard config (e.g.
+[firefox](../firefox), [aria2](../aria2), and
+[qbittorrent](../qbittorrent)).
+
+To configure mechanism 2, there is a question at the end of the
+wireguard installation:
 
 ```
 ## At the end of 'make install':
@@ -99,7 +126,7 @@ the kill-switch:
 ```
 
 You can run `make kill-switch-uninstall` if you wish to remove the
-kill-switch.
+kill-switch later on.
 
 ## Verify the VPN is functional
 
