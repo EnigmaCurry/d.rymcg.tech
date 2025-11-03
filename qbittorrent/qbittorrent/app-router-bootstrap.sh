@@ -60,20 +60,23 @@ log "  IPv6: ${CURRENT_GW6:-<none>}"
 #  If you also want to block *forwarded* traffic you can add the same rule
 #  to the FORWARD chain.
 # -------------------------------------------------------------------------
-if [ -n "$CURRENT_GW4" ]; then
-    # Ensure we have the capability to touch iptables – we still have CAP_NET_ADMIN
-    log "Adding IPv4 black‑hole rule for $CURRENT_GW4"
-    iptables_cmd -I OUTPUT -d "$CURRENT_GW4/32" -j DROP || true
-    # (Optional) also drop from FORWARD if the container ever becomes a router
-    iptables_cmd -I FORWARD -d "$CURRENT_GW4/32" -j DROP || true
-fi
+# if [ -n "$CURRENT_GW4" ]; then
+#     # Ensure we have the capability to touch iptables – we still have CAP_NET_ADMIN
+#     log "Adding IPv4 black‑hole rule for $CURRENT_GW4"
+#     iptables_cmd -I OUTPUT -d "$CURRENT_GW4/32" -j DROP || true
+#     # (Optional) also drop from FORWARD if the container ever becomes a router
+#     iptables_cmd -I FORWARD -d "$CURRENT_GW4/32" -j DROP || true
+# fi
 
-if [ -n "$CURRENT_GW6" ]; then
-    log "Adding IPv6 black‑hole rule for $CURRENT_GW6"
-    ip6tables_cmd -I OUTPUT -d "$CURRENT_GW6/128" -j DROP || true
-    ip6tables_cmd -I FORWARD -d "$CURRENT_GW6/128" -j DROP || true
-fi
+# if [ -n "$CURRENT_GW6" ]; then
+#     log "Adding IPv6 black‑hole rule for $CURRENT_GW6"
+#     ip6tables_cmd -I OUTPUT -d "$CURRENT_GW6/128" -j DROP || true
+#     ip6tables_cmd -I FORWARD -d "$CURRENT_GW6/128" -j DROP || true
+# fi
+####        TODO
+####  Have to find a way to block "internet" traffic without blocking Traefik.
 
+# -------------------------------------------------
 # -------------------------------------------------------------------------
 #  3️⃣  Replace the default routes with the WireGuard router ones
 # -------------------------------------------------------------------------
