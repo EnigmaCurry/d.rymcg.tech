@@ -7,7 +7,11 @@ config-hook:
 	@${BIN}/reconfigure ${ENV_FILE} QBITTORRENT_INSTANCE=${instance}
 	@${BIN}/reconfigure ${ENV_FILE} QBITTORRENT_DOCKER_CONTEXT=${DOCKER_CONTEXT}
 	@echo ""
-	@${BIN}/reconfigure_network_mode ${ENV_FILE} QBITTORRENT_NETWORK_MODE "Choose the network mode for this container (default or wireguard)"
+
+	@${BIN}/reconfigure_wireguard_instance ${ENV_FILE} QBITTORRENT_WIREGUARD_INSTANCE "Choose the wireguard instance to use as the default gateway (or choose none to use your normal network)"
+	@WG=$$(${BIN}/dotenv -f ${ENV_FILE} get QBITTORRENT_WIREGUARD_INSTANCE); if [[ -n "$${WG}" ]]; then echo "## Finding the IPv4 address of wireguard instance: $${WG}" && ${BIN}/reconfigure ${ENV_FILE} QBITTORRENT_WIREGUARD_ROUTER_IPV4=$$(docker exec wireguard_$${WG}-wireguard-1 ip -j -4 addr show dev eth0 | jq -r '.[0].addr_info[0].local') && echo; fi
+	@WG=$$(${BIN}/dotenv -f ${ENV_FILE} get QBITTORRENT_WIREGUARD_INSTANCE); if [[ -n "$${WG}" ]]; then echo "## Finding the IPv6 address of wireguard instance: $${WG}" && ${BIN}/reconfigure ${ENV_FILE} QBITTORRENT_WIREGUARD_ROUTER_IPV6=$$(docker exec wireguard_$${WG}-wireguard-1 ip -j -6 addr show dev eth0 | jq -r '.[0].addr_info[0].local') && echo; fi
+
 	@${BIN}/reconfigure_ask ${ENV_FILE} QBITTORRENT_TRAEFIK_HOST "Enter the qbittorrent domain name" qbittorrent${INSTANCE_URL_SUFFIX}.${ROOT_DOMAIN}
 	@${BIN}/reconfigure_ask ${ENV_FILE} QBITTORRENT_PEER_PORT "Enter the public peer port qbittorrent should bind"
 	@echo
@@ -16,7 +20,7 @@ config-hook:
 	@echo
 	@${BIN}/reconfigure_ask ${ENV_FILE} QBITTORRENT_DOWNLOAD_VOLUME "Enter the absolute host path to store downloads"
 	@echo ""
-	@${BIN}/reconfigure_ask ${ENV_FILE} QBITTORRENT_IP_SOURCERANGE "Enter the allowed client IP source range (eg. 192.168.1.1/24 or 0.0.0.0/0)"
+	@${BIN}/reconfigure_ask ${ENV_FILE} QBITTORRENT_IP_SOURCERANGE "Enter the allowed client IP source range (for the admin panel only) (eg. 192.168.1.1/24 or 0.0.0.0/0)"
 	@${BIN}/reconfigure_auth ${ENV_FILE} QBITTORRENT
 
 .PHONY: shell # Enter container shell
@@ -35,7 +39,7 @@ override-hook:
 ####                         # (this hardcodes the string into docker-compose.override.yaml)
 ####   name=@VARIABLE_NAME   # sets the template 'name' field to the literal string '${VARIABLE_NAME}'
 ####                         # (used for regular docker-compose expansion of env vars by name.)
-	@${BIN}/docker_compose_override ${ENV_FILE} project=:qbitorrent instance=@QBITTORRENT_INSTANCE traefik_host=@QBITTORRENT_TRAEFIK_HOST http_auth=QBITTORRENT_HTTP_AUTH http_auth_var=@QBITTORRENT_HTTP_AUTH ip_sourcerange=@QBITTORRENT_IP_SOURCERANGE oauth2=QBITTORRENT_OAUTH2 authorized_group=QBITTORRENT_OAUTH2_AUTHORIZED_GROUP enable_mtls_auth=QBITTORRENT_MTLS_AUTH mtls_authorized_certs=QBITTORRENT_MTLS_AUTHORIZED_CERTS homepage_labels_enable=QBITTORRENT_HOMEPAGE_LABELS_ENABLE homepage_group_qbittorrent=QBITTORRENT_HOMEPAGE_GROUP_QBITTORRENT homepage_name_qbittorrent=QBITTORRENT_HOMEPAGE_NAME_QBITTORRENT homepage_icon_qbittorrent=QBITTORRENT_HOMEPAGE_ICON_QBITTORRENT homepage_description_qbittorrent=QBITTORRENT_HOMEPAGE_DESCRIPTION_QBITTORRENT homepage_show_stats_qbittorrent=QBITTORRENT_HOMEPAGE_SHOW_STATS_QBITTORRENT network_mode=QBITTORRENT_NETWORK_MODE
+	@${BIN}/docker_compose_override ${ENV_FILE} project=:qbitorrent instance=@QBITTORRENT_INSTANCE traefik_host=@QBITTORRENT_TRAEFIK_HOST http_auth=QBITTORRENT_HTTP_AUTH http_auth_var=@QBITTORRENT_HTTP_AUTH ip_sourcerange=@QBITTORRENT_IP_SOURCERANGE oauth2=QBITTORRENT_OAUTH2 authorized_group=QBITTORRENT_OAUTH2_AUTHORIZED_GROUP enable_mtls_auth=QBITTORRENT_MTLS_AUTH mtls_authorized_certs=QBITTORRENT_MTLS_AUTHORIZED_CERTS homepage_labels_enable=QBITTORRENT_HOMEPAGE_LABELS_ENABLE homepage_group_qbittorrent=QBITTORRENT_HOMEPAGE_GROUP_QBITTORRENT homepage_name_qbittorrent=QBITTORRENT_HOMEPAGE_NAME_QBITTORRENT homepage_icon_qbittorrent=QBITTORRENT_HOMEPAGE_ICON_QBITTORRENT homepage_description_qbittorrent=QBITTORRENT_HOMEPAGE_DESCRIPTION_QBITTORRENT homepage_show_stats_qbittorrent=QBITTORRENT_HOMEPAGE_SHOW_STATS_QBITTORRENT wireguard_instance=QBITTORRENT_WIREGUARD_INSTANCE
 
 .PHONY: install-hook
 install-hook:

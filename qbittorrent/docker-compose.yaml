@@ -79,13 +79,17 @@ services:
         QBITTORRENT_IMAGE: ${QBITTORRENT_IMAGE:-linuxserver/qbittorrent:latest}
     depends_on:
       - qbittorrent-config
+    cap_add:
+      - NET_ADMIN ## Dropped ASAP in app-router-bootstrap.sh entrypoint.
     environment:
+      - WIREGUARD_ROUTER_IPV4=${QBITTORRENT_WIREGUARD_ROUTER_IPV4}
+      - WIREGUARD_ROUTER_IPV6=${QBITTORRENT_WIREGUARD_ROUTER_IPV6}
       - PUID=${QBITTORRENT_UID}
       - PGID=${QBITTORRENT_GID}
       - TZ=${TIMEZONE}
       - WEBUI_PORT=8080
     volumes:
-      - qbittorrent-config:/config:z
+      - qbittorrent-config:/config
       - ${QBITTORRENT_DOWNLOAD_VOLUME}:/downloads:z
     restart: unless-stopped
     labels:
