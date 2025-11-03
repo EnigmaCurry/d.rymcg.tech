@@ -15,6 +15,8 @@ config-hook:
 	@WG=$$(${BIN}/dotenv -f ${ENV_FILE} get FIREFOX_WIREGUARD_INSTANCE); if [[ -n "$${WG}" ]]; then echo "## Finding the IPv4 address of wireguard instance: $${WG}" && ${BIN}/reconfigure ${ENV_FILE} FIREFOX_WIREGUARD_ROUTER_IPV4=$$(docker exec wireguard_$${WG}-wireguard-1 ip -j -4 addr show dev eth0 | jq -r '.[0].addr_info[0].local') && echo; fi
 	@WG=$$(${BIN}/dotenv -f ${ENV_FILE} get FIREFOX_WIREGUARD_INSTANCE); if [[ -n "$${WG}" ]]; then echo "## Finding the IPv6 address of wireguard instance: $${WG}" && ${BIN}/reconfigure ${ENV_FILE} FIREFOX_WIREGUARD_ROUTER_IPV6=$$(docker exec wireguard_$${WG}-wireguard-1 ip -j -6 addr show dev eth0 | jq -r '.[0].addr_info[0].local') && echo; fi
 
+	@${BIN}/reconfigure_ask ${ENV_FILE} FIREFOX_DOWNLOAD_VOLUME "Enter the absolute host path to store downloads"
+
 	@${BIN}/reconfigure_ask ${ENV_FILE} FIREFOX_TRAEFIK_HOST "Enter the firefox domain name" firefox${INSTANCE_URL_SUFFIX}.${ROOT_DOMAIN}
 	@${BIN}/reconfigure_auth ${ENV_FILE} FIREFOX
 	@echo ""
