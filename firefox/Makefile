@@ -9,7 +9,10 @@ config-hook:
 #### reconfigure sets the value of a variable in the .env file without asking.
 #### reconfigure_htpasswd will configure the HTTP Basic Authentication setting the var name and with a provided default value.
 	@${BIN}/reconfigure ${ENV_FILE} FIREFOX_INSTANCE=$${instance:-default}
-	@${BIN}/reconfigure_network_mode ${ENV_FILE} FIREFOX_NETWORK_MODE "Choose the network mode for this container (default or wireguard)"
+	@${BIN}/reconfigure_wireguard_instance ${ENV_FILE} FIREFOX_WIREGUARD_INSTANCE "Choose the wireguard instance to use as the default gateway"
+	@echo
+	@WG=$$(${BIN}/dotenv -f ${ENV_FILE} get FIREFOX_WIREGUARD_INSTANCE); if [[ -n "$${WG}" ]]; then echo "## Finding the IPv4 address of wireguard instance: $${WG}" && ${BIN}/reconfigure ${ENV_FILE} FIREFOX_WIREGUARD_ROUTER_IPV4=$$(docker exec wireguard_$${WG}-wireguard-1 ip -j -4 addr show dev eth0 | jq -r '.[0].addr_info[0].local') && echo; fi
+	@WG=$$(${BIN}/dotenv -f ${ENV_FILE} get FIREFOX_WIREGUARD_INSTANCE); if [[ -n "$${WG}" ]]; then echo "## Finding the IPv6 address of wireguard instance: $${WG}" && ${BIN}/reconfigure ${ENV_FILE} FIREFOX_WIREGUARD_ROUTER_IPV6=$$(docker exec wireguard_$${WG}-wireguard-1 ip -j -6 addr show dev eth0 | jq -r '.[0].addr_info[0].local') && echo; fi
 	@${BIN}/reconfigure_ask ${ENV_FILE} FIREFOX_TRAEFIK_HOST "Enter the firefox domain name" firefox${INSTANCE_URL_SUFFIX}.${ROOT_DOMAIN}
 	@${BIN}/reconfigure_auth ${ENV_FILE} FIREFOX
 	@echo ""
@@ -26,7 +29,7 @@ override-hook:
 ####                         # (this hardcodes the string into docker-compose.override.yaml)
 ####   name=@VARIABLE_NAME   # sets the template 'name' field to the literal string '${VARIABLE_NAME}'
 ####                         # (used for regular docker-compose expansion of env vars by name.)
-	@${BIN}/docker_compose_override ${ENV_FILE} project=:firefox instance=@FIREFOX_INSTANCE traefik_host=@FIREFOX_TRAEFIK_HOST http_auth=FIREFOX_HTTP_AUTH http_auth_var=@FIREFOX_HTTP_AUTH ip_sourcerange=@FIREFOX_IP_SOURCERANGE oauth2=FIREFOX_OAUTH2 authorized_group=FIREFOX_OAUTH2_AUTHORIZED_GROUP enable_mtls_auth=FIREFOX_MTLS_AUTH mtls_authorized_certs=FIREFOX_MTLS_AUTHORIZED_CERTS homepage_labels_enable=FIREFOX_HOMEPAGE_LABELS_ENABLE homepage_group_firefox=FIREFOX_HOMEPAGE_GROUP_FIREFOX homepage_name_firefox=FIREFOX_HOMEPAGE_NAME_FIREFOX homepage_icon_firefox=FIREFOX_HOMEPAGE_ICON_FIREFOX homepage_description_firefox=FIREFOX_HOMEPAGE_DESCRIPTION_FIREFOX homepage_show_stats_firefox=FIREFOX_HOMEPAGE_SHOW_STATS_FIREFOX network_mode=FIREFOX_NETWORK_MODE
+	@${BIN}/docker_compose_override ${ENV_FILE} project=:firefox instance=@FIREFOX_INSTANCE traefik_host=@FIREFOX_TRAEFIK_HOST http_auth=FIREFOX_HTTP_AUTH http_auth_var=@FIREFOX_HTTP_AUTH ip_sourcerange=@FIREFOX_IP_SOURCERANGE oauth2=FIREFOX_OAUTH2 authorized_group=FIREFOX_OAUTH2_AUTHORIZED_GROUP enable_mtls_auth=FIREFOX_MTLS_AUTH mtls_authorized_certs=FIREFOX_MTLS_AUTHORIZED_CERTS homepage_labels_enable=FIREFOX_HOMEPAGE_LABELS_ENABLE homepage_group_firefox=FIREFOX_HOMEPAGE_GROUP_FIREFOX homepage_name_firefox=FIREFOX_HOMEPAGE_NAME_FIREFOX homepage_icon_firefox=FIREFOX_HOMEPAGE_ICON_FIREFOX homepage_description_firefox=FIREFOX_HOMEPAGE_DESCRIPTION_FIREFOX homepage_show_stats_firefox=FIREFOX_HOMEPAGE_SHOW_STATS_FIREFOX wireguard_instance=FIREFOX_WIREGUARD_INSTANCE
 
 .PHONY: shell # Enter container shell
 shell:

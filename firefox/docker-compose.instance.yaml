@@ -10,7 +10,7 @@
 #@ instance = data.values.instance
 #@ context = data.values.context
 #@ traefik_host = data.values.traefik_host
-#@ network_mode = data.values.network_mode
+#@ wireguard_instance = data.values.wireguard_instance
 
 #@ ip_sourcerange = data.values.ip_sourcerange
 #@ enable_http_auth = len(data.values.http_auth.strip()) > 0
@@ -32,9 +32,9 @@
 services:
   firefox:
     #@ service = "firefox"
-    #@ if len(network_mode) and network_mode != "default":
+    #@ if len(wireguard_instance):
     networks:
-      wireguard_mullvad-deer-goose_wgnet:
+      wireguard_(@= wireguard_instance @)_wgnet:
     #@ end
     labels:
       - "backup-volume.stop-during-backup=true"
@@ -90,8 +90,9 @@ services:
       #@ end
 
 
-#@ if len(network_mode) and network_mode != "default":
+#@yaml/text-templated-strings
+#@ if len(wireguard_instance):
 networks:
-  wireguard_mullvad-deer-goose_wgnet:
+  wireguard_(@= wireguard_instance @)_wgnet:
     external: true
 #@ end

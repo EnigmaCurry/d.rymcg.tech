@@ -1,4 +1,5 @@
 #!/usr/bin/env bash
+## Choose a WireGuard instance to use the network_mode of this container.
 # reconfigure_network_mode ENV_FILE VAR_NAME PROMPT [PATTERN]
 
 BIN=$(dirname ${BASH_SOURCE})
