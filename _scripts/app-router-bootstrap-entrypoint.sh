@@ -151,11 +151,31 @@ else
     echo "### INFO: using default container gateway routes."
 fi
 
-# -------------------------------------------------------------------------
-#  Drop the privileged capability and exec the original init
-# -------------------------------------------------------------------------
-log "Dropping CAP_NET_ADMIN and handing over to /init"
-# The container originally needed CAP_NET_ADMIN for `ip route …` and `iptables …`.
-# After we are finished we drop it so the rest of the container runs with the
-# least privileges possible.
-exec capsh --drop=cap_net_admin -- -c "/init"
+## ENTRYPOINT may be provided by the environment, if not, construct a
+## shell script containining the original entrypoint and command:
+if [ -z "${ENTRYPOINT:-}" ]; then
+    # -------------------------------------------------
+    # Build a *temporary* shell script that runs $@
+    # -------------------------------------------------
+    tmpfile=$(mktemp /tmp/run-cmd.XXXXXX.sh)
+
+    cat >"$tmpfile" <<'EOF'
+#!/bin/sh
+CMD_LINE_PLACEHOLDER
+EOF
+
+    # Replace the placeholder with the *exact* command line we received.
+    # Using printf %s … ensures that we don’t lose any characters.
+    # We also escape any single‑quotes that might be inside the arguments.
+    escaped_cmd=$(printf "%s" "$*" | sed "s/'/'\\\\''/g")
+    # The result is a single‑quoted string that the shell will interpret correctly.
+    # (If you don’t need quoting at all you can simply use: echo "$*" >"$tmpfile")
+    sed -i "s|CMD_LINE_PLACEHOLDER|exec $escaped_cmd|g" "$tmpfile"
+    chmod +x "$tmpfile"
+    ENTRYPOINT="$tmpfile"
+fi
+
+# -------------------------------------------------
+# Drop capabilities and exec the temporary script
+# -------------------------------------------------
+exec capsh --drop=cap_net_admin -- "${ENTRYPOINT}"
