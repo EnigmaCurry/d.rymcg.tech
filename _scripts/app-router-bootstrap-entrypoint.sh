@@ -37,7 +37,7 @@ ip6tables_cmd() {
     fi
 }
 
-if [[ -n "${WIREGUARD_INSTANCE}" ]]; then
+if [ -n "${WIREGUARD_INSTANCE}" ]; then
     # -------------------------------------------------------------------------
     #  Grab the **current** default gateways (if any)
     # -------------------------------------------------------------------------
@@ -109,6 +109,8 @@ if [[ -n "${WIREGUARD_INSTANCE}" ]]; then
             log "WARN: traffic to old IPv6 gateway $CURRENT_GW6 may still be reachable (no DROP rule applied?)"
         fi
     fi
+else
+    echo "### INFO: using default container gateway routes."
 fi
 
 
