@@ -30,15 +30,20 @@ mapfile -t ROUTER_CONTAINERS < <(
 CURRENT_VAL=$(${BIN}/dotenv -f ${ENV_FILE} get ${VAR_NAME})
 DEFAULT="none"
 OPTIONS=("none")
+CHOSEN="${DEFAULT}"
 for c in "${ROUTER_CONTAINERS[@]}"; do
     OPTIONS+=("$c")
-    if [[ "${c}" =~ "${CURRENT_VAL}" ]]; then
-        DEFAULT="${c}"
+    debug_var c
+    debug_var CURRENT_VAL
+    if [[ "${c}" == "wireguard_${CURRENT_VAL}-wireguard-1" ]]; then
+        CHOSEN="${c}"
     fi
 done
 
-VALUE=$(choose "$PROMPT" "${OPTIONS[@]}" "--default" "${DEFAULT}")
-if [[ "${VALUE}" == "none" ]]; then
+CHOSEN=$(choose "$PROMPT" "${OPTIONS[@]}" "--default" "${CHOSEN}")
+
+VALUE="${CHOSEN}"
+if [[ "${VALUE}" == "${DEFAULT}" ]]; then
     VALUE=""
 else
     VALUE="${VALUE#wireguard_}"
