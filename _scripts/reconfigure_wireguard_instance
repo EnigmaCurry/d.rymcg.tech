@@ -37,11 +37,7 @@ for c in "${ROUTER_CONTAINERS[@]}"; do
     fi
 done
 
-CLI_DEFAULT="${CURRENT_VAL:-${DEFAULT}}"
-if [[ "${CLI_DEFAULT}" != "none" ]]; then
-    CLI_DEFAULT="wireguard_${CLI_DEFAULT}-wireguard-1"
-fi
-VALUE=$(choose "$PROMPT" "${OPTIONS[@]}" "--default" "${CLI_DEFAULT}")
+VALUE=$(choose "$PROMPT" "${OPTIONS[@]}" "--default" "${DEFAULT}")
 if [[ "${VALUE}" == "${DEFAULT}" ]]; then
     VALUE=""
 else
