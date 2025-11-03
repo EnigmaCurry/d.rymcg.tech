@@ -11,6 +11,10 @@ RUN apt-get update && \
     libcap2-bin  && \
     rm -rf /var/lib/apt/lists/*
 
+RUN curl -L https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp \
+    -o /usr/local/bin/yt-dlp && \
+    chmod 0555 /usr/local/bin/yt-dlp
+
 COPY app-router-bootstrap.sh /usr/local/bin/app-router-bootstrap.sh
 RUN chmod 0555 /usr/local/bin/app-router-bootstrap.sh
 
