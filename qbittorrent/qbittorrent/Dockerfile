@@ -1,3 +1,4 @@
+ARG QBITTORRENT_IMAGE
 FROM ${QBITTORRENT_IMAGE:-linuxserver/qbittorrent:latest}
 RUN apk add --no-cache inotify-tools iproute2 iptables libcap
 
