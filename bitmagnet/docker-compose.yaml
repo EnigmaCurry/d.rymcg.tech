@@ -3,9 +3,22 @@ volumes:
 
 services:
   bitmagnet:
-    image: ${BITMAGNET_IMAGE}
+    build:
+      context: bitmagnet
+      args:
+        BITMAGNET_IMAGE: ${BITMAGNET_IMAGE}
+    cap_add:
+      - NET_ADMIN ## Dropped ASAP in app-router-bootstrap.sh entrypoint.
+    security_opt:
+      - no-new-privileges:true
+    sysctls:
+      - net.ipv4.ip_unprivileged_port_start=1024
     restart: unless-stopped
     environment:
+      - ENTRYPOINT=/usr/local/bin/bitmagnet
+      - WIREGUARD_INSTANCE=${BITMAGNET_WIREGUARD_INSTANCE}
+      - WIREGUARD_ROUTER_IPV4=${BITMAGNET_WIREGUARD_ROUTER_IPV4}
+      - WIREGUARD_ROUTER_IPV6=${BITMAGNET_WIREGUARD_ROUTER_IPV6}
       - LOG_FILE_ROTATOR_ENABLED=true
       - LOG_LEVEL=${BITMAGNET_LOG_LEVEL}
       - POSTGRES_HOST=${BITMAGNET_POSTGRES_HOST}
