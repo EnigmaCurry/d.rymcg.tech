@@ -1,6 +1,10 @@
 volumes:
   config:
+  postgres:
 
+networks:
+  default:
+  
 services:
   bitmagnet:
     build:
@@ -21,14 +25,9 @@ services:
       - WIREGUARD_ROUTER_IPV6=${BITMAGNET_WIREGUARD_ROUTER_IPV6}
       - LOG_FILE_ROTATOR_ENABLED=true
       - LOG_LEVEL=${BITMAGNET_LOG_LEVEL}
-      - POSTGRES_HOST=${BITMAGNET_POSTGRES_HOST}
-#      - POSTGRES_PASSWORD=${BITMAGNET_POSTGRES_PASSWORD}
-      - POSTGRES_PORT=${BITMAGNET_POSTGRES_PORT}
-      - POSTGRES_USER=${BITMAGNET_POSTGRES_USER}
-      - POSTGRES_SSL_CERT_PATH=${BITMAGNET_POSTGRES_SSL_CERT_PATH}
-      - POSTGRES_SSL_KEY_PATH=${BITMAGNET_POSTGRES_SSL_KEY_PATH}
-      - POSTGRES_SSL_ROOT_CERT_PATH=${BITMAGNET_POSTGRES_SSL_ROOT_CERT_PATH}
-      - POSTGRES_SSL_MODE=verify-full
+      - POSTGRES_HOST=postgres
+      - POSTGRES_PASSWORD=postgres
+      - TMDB_API_KEY=${BITMAGNET_TMDB_API_KEY}
     command:
       - worker
       - run
@@ -38,6 +37,8 @@ services:
       - --keys=dht_crawler
     volumes:
       - config:/root/.config/bitmagnet
+    networks:
+      - default
     # ports:
     #   # API and WebUI port:
     #   - "3333:3333"
@@ -51,22 +52,24 @@ services:
     #   timeout: 1m
     #   start_period: 300s
 
-  # postgres:
-  #   image: ${BITMAGNET_POSTGRES_IMAGE}
-  #   restart: unless-stopped
-  #   environment:
-  #     - POSTGRES_PASSWORD=${BITMAGNET_POSTGRES_PASSWORD}
-  #     - POSTGRES_DB=bitmagnet
-  #     - PGUSER=postgres
-  #   volumes:
-  #     - postgres:/var/lib/postgresql/data
-  #   shm_size: 1g
-  #   # ports:
-  #   #  - "5432:5432"
-  #   healthcheck:
-  #     test: ["CMD-SHELL", "pg_isready"]
-  #     interval: 10s
-  #     start_period: 20s
+  postgres:
+    image: ${BITMAGNET_POSTGRES_IMAGE}
+    restart: unless-stopped
+    environment:
+      - POSTGRES_PASSWORD=postgres
+      - POSTGRES_DB=bitmagnet
+      - PGUSER=postgres
+    volumes:
+      - postgres:/var/lib/postgresql/data
+    networks:
+      - default
+    shm_size: 1g
+    # ports:
+    #  - "5432:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready"]
+      interval: 10s
+      start_period: 20s
 
   # Optional observability services:
   # (ensure you have the config files in the `observability` directory in your project root)
