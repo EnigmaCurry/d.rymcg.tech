@@ -151,25 +151,27 @@ else
     echo "### INFO: using default container gateway routes."
 fi
 
-# -------------------------------------------------
-# Build a *temporary* shell script that runs $@
-# -------------------------------------------------
-tmpfile=$(mktemp)
+### Write entrypoint shell script to execute the original entrypoint, command, and args :
+#### Use the passed ENTRYPOINT var (if any) as the first exec argument.
+#### Pass the rest of the CMD args after that.
+tmpfile=$(mktemp /tmp/entrypoint.XXXXXXXX)
 cat >"$tmpfile" <<'EOF'
 #!/bin/sh
 CMD_LINE_PLACEHOLDER
 EOF
-
-# Replace the placeholder with the *exact* command line we received.
-# Using printf %s … ensures that we don’t lose any characters.
-# We also escape any single‑quotes that might be inside the arguments.
 escaped_cmd=$(printf "%s" "${ENTRYPOINT:-} $*" | sed "s/'/'\\\\''/g")
-# The result is a single‑quoted string that the shell will interpret correctly.
 sed -i "s|CMD_LINE_PLACEHOLDER|exec $escaped_cmd|g" "$tmpfile"
 chmod +x "$tmpfile"
 TMPSCRIPT="$tmpfile"
 
 # -------------------------------------------------
-# Drop capabilities and exec the temporary script
+# Drop capabilities and exec the temporary entrypoint script
 # -------------------------------------------------
-exec capsh --drop=cap_net_admin -- "${ENTRYPOINT}"
+echo "### INFO: Dropping privileges and executing script ${TMPSCRIPT} ::"
+if [ -z "${ENTRYPOINT:-}" ]; then
+    echo "### INFO: No ENTRYPOINT var was given, so the command only includes the CMD args:"
+fi
+cat ${TMPSCRIPT}
+echo
+set -x
+exec capsh --drop=cap_net_admin -- "${TMPSCRIPT}"

@@ -82,7 +82,6 @@ services:
     cap_add:
       - NET_ADMIN ## Dropped ASAP in app-router-bootstrap.sh entrypoint.
     environment:
-      - ENTRYPOINT=/init
       - WIREGUARD_INSTANCE=${QBITTORRENT_WIREGUARD_INSTANCE}
       - WIREGUARD_ROUTER_IPV4=${QBITTORRENT_WIREGUARD_ROUTER_IPV4}
       - WIREGUARD_ROUTER_IPV6=${QBITTORRENT_WIREGUARD_ROUTER_IPV6}

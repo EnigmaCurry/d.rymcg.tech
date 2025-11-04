@@ -22,4 +22,5 @@ RUN chmod 0555 /usr/local/bin/app-router-bootstrap.sh
 ARG PUID=1000
 ARG PGID=1000
 
+ENV ENTRYPOINT=/init
 ENTRYPOINT ["/usr/local/bin/app-router-bootstrap.sh"]

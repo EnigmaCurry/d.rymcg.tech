@@ -5,5 +5,6 @@ RUN apk add --no-cache inotify-tools iproute2 iptables libcap
 COPY --chmod=0555 entrypoint.sh /usr/local/bin/qbittorrent-wrapper
 COPY --chmod=0555 app-router-bootstrap.sh /usr/local/bin/app-router-bootstrap.sh
 
+ENV ENTRYPOINT=/init
 ENTRYPOINT ["/usr/local/bin/app-router-bootstrap.sh"]
 CMD ["/usr/local/bin/qbittorrent-wrapper"]
