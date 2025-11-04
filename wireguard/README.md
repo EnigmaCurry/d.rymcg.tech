@@ -89,28 +89,31 @@ non-exclusive ways:
  
    * With the wireguard container acting as an IP layer 3 router for a
      given docker network, containers retain their own network
-     namespace, and can attach to several docker network at the same
-     time. Containers that are added to this network must redefine
-     their default routes to point to the wireguard instance IP
-     address. These containers must also implement their own firewall
-     rules to block access to the original gateway.
+     namespace, and can attach to several docker networks at the same
+     time. Containers added to this network must redefine their
+     default routes to point to the wireguard instance IP address.
+     These containers must also implement their own firewall rules to
+     block access to the original gateway. Both of these actions
+     require the `NET_ADMIN` capability, which, unless your container
+     needs that capability, it should be dropped as soon as possible
+     after the routing modification is complete.
     
  * Kill switch mechanism 2 (Inferior fallback) - WireGuard-level kill
    switch - Containers join wireguard namespace via `network_mode`.
        
    * Containers may join the network via the `network_mode` parameter.
-     This joins containers into the same network namespace as
-     wireguard, so they will have the same IP address as wireguard.
-     This mode is not recommended - it is mostly inferior to the
-     router model described in mechanism 1, except that it does not
-     require as much boilerplate. If a container joins the
-     network_mode of wireguard, it will lose connection to its
-     original docker network (and won't be able to connect to sidecar
-     containers, e.g. databases)
+     This option joins containers into the wireguard network namespace
+     , as if they were the same machine, so they will have the same IP
+     address as wireguard etc. This mode is convenient, but *not*
+     recommended - this is mostly inferior to the router model
+     described in mechanism 1, except that it does not require as much
+     boilerplate. If a container joins the network_mode of wireguard,
+     it will lose connection to its original docker network (and won't
+     be able to connect to any sidecar containers, e.g. databases)
 
    * The wireguard instance adds a firewall ruleset that denys packets
      from leaking on the native network interfaces (any packet *not*
-     destined for the wireguard peer.)
+     destined for the remote wireguard peer.)
 
 To configure mechanism 1, you will need to configure this in the
 various containers that support this wireguard config (e.g.
