@@ -1,6 +1,5 @@
 volumes:
   config:
-  postgres:
 
 networks:
   default:
@@ -26,7 +25,7 @@ services:
       - LOG_FILE_ROTATOR_ENABLED=true
       - LOG_LEVEL=${BITMAGNET_LOG_LEVEL}
       - POSTGRES_HOST=postgres
-      - POSTGRES_PASSWORD=postgres
+      - POSTGRES_PASSWORD=${BITMAGNET_POSTGRES_PASSWORD}
       - TMDB_API_KEY=${BITMAGNET_TMDB_API_KEY}
     command:
       - worker
@@ -37,8 +36,6 @@ services:
       - --keys=dht_crawler
     volumes:
       - config:/root/.config/bitmagnet
-    networks:
-      - default
     # ports:
     #   # API and WebUI port:
     #   - "3333:3333"
@@ -56,11 +53,10 @@ services:
     image: ${BITMAGNET_POSTGRES_IMAGE}
     restart: unless-stopped
     environment:
-      - POSTGRES_PASSWORD=postgres
+      - POSTGRES_PASSWORD=${BITMAGNET_POSTGRES_PASSWORD}
       - POSTGRES_DB=bitmagnet
       - PGUSER=postgres
-    volumes:
-      - postgres:/var/lib/postgresql/data
+    user: "${BITMAGNET_UID}:${BITMAGNET_GID}"
     networks:
       - default
     shm_size: 1g

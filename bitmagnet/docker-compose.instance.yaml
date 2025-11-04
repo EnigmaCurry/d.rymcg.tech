@@ -29,15 +29,18 @@
 
 #! ### Custom project vars:
 #@ tmdb_api_key = data.values.tmdb_api_key
+#@ use_external_volume = data.values.use_external_volume == "true"
+#@ external_volume = data.values.external_volume
 
 #@yaml/text-templated-strings
 services:
   bitmagnet:
     #@ service = "bitmagnet"
-    #@ if len(wireguard_instance):
     networks:
+      default:
+      #@ if len(wireguard_instance):
       wireguard_(@= wireguard_instance @)_wgnet:
-    #@ end
+      #@ end
     #@ if len(data.values.tmdb_api_key.strip()) > 0:
     environment:
       - TMDB_API_KEY=(@= tmdb_api_key @) 
@@ -91,9 +94,23 @@ services:
       - homepage.showStats=(@= homepage_show_stats_bitmagnet @)
       #@ end
 
+  postgres:
+    volumes:
+    #@ if use_external_volume:
+      - (@= external_volume @):/var/lib/postgresql/data
+    #@ else:
+      - postgres:/var/lib/postgresql/data
+    #@ end
+
 #@yaml/text-templated-strings
 #@ if len(wireguard_instance):
 networks:
   wireguard_(@= wireguard_instance @)_wgnet:
     external: true
+#@ end
+
+#@yaml/text-templated-strings
+#@ if not use_external_volume:
+volumes:
+  postgres:
 #@ end
