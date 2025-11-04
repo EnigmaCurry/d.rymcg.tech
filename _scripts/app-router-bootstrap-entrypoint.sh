@@ -151,28 +151,23 @@ else
     echo "### INFO: using default container gateway routes."
 fi
 
-## ENTRYPOINT may be provided by the environment, if not, construct a
-## shell script containining the original entrypoint and command:
-if [ -z "${ENTRYPOINT:-}" ]; then
-    # -------------------------------------------------
-    # Build a *temporary* shell script that runs $@
-    # -------------------------------------------------
-    tmpfile=$(mktemp /tmp/run-cmd.XXXXXX.sh)
-
-    cat >"$tmpfile" <<'EOF'
+# -------------------------------------------------
+# Build a *temporary* shell script that runs $@
+# -------------------------------------------------
+tmpfile=$(mktemp)
+cat >"$tmpfile" <<'EOF'
 #!/bin/sh
 CMD_LINE_PLACEHOLDER
 EOF
 
-    # Replace the placeholder with the *exact* command line we received.
-    # Using printf %s … ensures that we don’t lose any characters.
-    # We also escape any single‑quotes that might be inside the arguments.
-    escaped_cmd=$(printf "%s" "$*" | sed "s/'/'\\\\''/g")
-    # The result is a single‑quoted string that the shell will interpret correctly.
-    sed -i "s|CMD_LINE_PLACEHOLDER|exec $escaped_cmd|g" "$tmpfile"
-    chmod +x "$tmpfile"
-    ENTRYPOINT="$tmpfile"
-fi
+# Replace the placeholder with the *exact* command line we received.
+# Using printf %s … ensures that we don’t lose any characters.
+# We also escape any single‑quotes that might be inside the arguments.
+escaped_cmd=$(printf "%s" "${ENTRYPOINT:-} $*" | sed "s/'/'\\\\''/g")
+# The result is a single‑quoted string that the shell will interpret correctly.
+sed -i "s|CMD_LINE_PLACEHOLDER|exec $escaped_cmd|g" "$tmpfile"
+chmod +x "$tmpfile"
+TMPSCRIPT="$tmpfile"
 
 # -------------------------------------------------
 # Drop capabilities and exec the temporary script
