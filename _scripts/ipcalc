@@ -1,0 +1,26 @@
+#!/usr/bin/env bash
+#
+# ipcalc – thin wrapper that forwards to the real ipcalc implementation.
+#
+command_path() {
+    command -v "$1" 2>/dev/null || true
+}
+
+real_ipcalc=$(command_path ipcalc-ng)
+if [[ -z $real_ipcalc ]]; then
+    real_ipcalc=$(command_path ipcalc)
+fi
+
+if [[ -n $real_ipcalc ]]; then
+    exec "$real_ipcalc" "$@"
+else
+    # Nothing found – give the user a helpful message.
+    cat >&2 <<'EOF'
+
+Error: neither `ipcalc` nor `ipcalc-ng` is installed on this system.
+Please install one of them (e.g. `dnf install ipcalc` or `apt install ipcalc-ng`),
+or adjust your PATH so the appropriate binary can be found.
+
+EOF
+    exit 1
+fi

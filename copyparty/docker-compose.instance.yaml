@@ -25,15 +25,15 @@
 #@ homepage_icon_copyparty = data.values.homepage_icon_copyparty
 #@ homepage_description_copyparty = data.values.homepage_description_copyparty
 #@ homepage_show_stats_copyparty = data.values.homepage_show_stats_copyparty
-
+  
 #@yaml/text-templated-strings
 services:
   copyparty:
     #@ service = "copyparty"
     volumes:
       #@ if len(vol_external):
-      #@ for vol,host_path in [x.split(":") for x in vol_external.split(",")]:
-      - (@= host_path @):/mnt/(@= vol @):z
+      #@ for vol,volume_or_dir in [x.split(":") for x in vol_external.split(",")]:
+      - (@= volume_or_dir @):/mnt/(@= vol @):z
       #@ end
       #@ end
     labels:

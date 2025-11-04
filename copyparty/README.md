@@ -44,14 +44,16 @@ By default, copyparty has a single docker named volume mounted at
 To do so, edit `COPYPARTY_VOL_EXTERNAL`, for example:
 
  * `COPYPARTY_VOL_EXTERNAL=ryan-music:/storage/music,bob-pics:/var/media/bob/pics`
-   * This is a comma separated list of colon delimted tuples: `mount_name:host_path`
-   * `mount_name` is the cointainer directory under `/mnt` where the
+   * This is a comma separated list of colon delimted tuples: `mount_name:volume_or_dir`
+   * `mount_name` is the container directory under `/mnt` where the
      volume will will be mounted (e.g. `ryan-music` is mounted at
      `/mnt/ryan-music`)
-   * `host_path` is the Docker host directory that will become mounted
-     into the container path. (e.g., `/storage/music`, make sure to
-     give the directory liberal permissions so that the volume is
-     writable by the copyparty user.)
+   * `volume_or_dir` If the first character is `/`, then this is the
+     Docker host directory that will become mounted into the container
+     path. (e.g., `/storage/music`, make sure to give the directory
+     liberal permissions so that the volume is writable by the
+     copyparty user.) If the first character is *not* `/`, then this
+     should be name of a Docker volume.
 
 To set the volume permissions, edit `COPYPARTY_VOL_PERMISSIONS`:
 
