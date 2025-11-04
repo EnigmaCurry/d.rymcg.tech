@@ -77,7 +77,7 @@ Install the instance by name:
 make instance=my-vpn-peer-xx-12 install 
 ```
 
-### Configure kill-switch service on the Docker host
+### Configure kill switch
 
 The upstream wireguard service [does not have an integrated
 killswitch](https://github.com/linuxserver/docker-wireguard/issues/139).
@@ -87,13 +87,13 @@ non-exclusive ways:
  * Kill switch mechanism 1 (Recommended) - Container-level kill
    switch - WireGuard acts as a normal router
  
-   * With the wireguard container acting as a router for a given
-     docker network. Containers retain their own network namespace,
-     and can attach to several docker network at the same time.
-     Containers that are added to this network must redefine their
-     default routes to point to the wireguard instance IP address.
-     These containers must also implement their own firewall rules to
-     block access to the original gateway.
+   * With the wireguard container acting as an IP layer 3 router for a
+     given docker network, containers retain their own network
+     namespace, and can attach to several docker network at the same
+     time. Containers that are added to this network must redefine
+     their default routes to point to the wireguard instance IP
+     address. These containers must also implement their own firewall
+     rules to block access to the original gateway.
     
  * Kill switch mechanism 2 (Inferior fallback) - WireGuard-level kill
    switch - Containers join wireguard namespace via `network_mode`.
