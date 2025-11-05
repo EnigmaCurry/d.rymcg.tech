@@ -31,7 +31,6 @@ config-hook:
 	@${BIN}/reconfigure_ask ${ENV_FILE} BITMAGNET_IP_SOURCERANGE "Enter the allowed client IP source range (eg. 192.168.1.1/24 or 0.0.0.0/0)"
 	@echo ""
 
-
 .PHONY: override-hook
 override-hook:
 #### This sets the override template variables for docker-compose.instance.yaml:
