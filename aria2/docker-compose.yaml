@@ -1,11 +1,20 @@
 services:
   aria2:
     build:
-      context: ${ARIA2_GIT_REPO}#${ARIA2_GIT_BRANCH}
+      context: aria2
       args:
-        UID: ${ARIA2_UID}
-        GID: ${ARIA2_GID}
+        IMAGE: ${ARIA2_WEBUI_IMAGE}
+    cap_add:
+      - NET_ADMIN ## Dropped ASAP in app-router-bootstrap.sh entrypoint.
+    security_opt:
+      - no-new-privileges:true
+    sysctls:
+      - net.ipv4.ip_unprivileged_port_start=1024
+    restart: unless-stopped
     environment:
+      - WIREGUARD_INSTANCE=${ARIA2_WIREGUARD_INSTANCE}
+      - WIREGUARD_ROUTER_IPV4=${ARIA2_WIREGUARD_ROUTER_IPV4}
+      - WIREGUARD_ROUTER_IPV6=${ARIA2_WIREGUARD_ROUTER_IPV6}
       - RPC_SECRET=${ARIA2_RPC_SECRET}
       - WEB_PORT=8089
       - RPC_PORT=6801

@@ -1,0 +1,6 @@
+http:
+  ## Custom servers transport for containers that only offer self-signed certificates
+  ## Traefik should trust these certs implicitly without TLS verification:
+  serversTransports:
+    ignorecert:
+      insecureSkipVerify: true

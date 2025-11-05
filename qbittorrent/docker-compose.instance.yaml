@@ -10,7 +10,7 @@
 #@ instance = data.values.instance
 #@ context = data.values.context
 #@ traefik_host = data.values.traefik_host
-#@ network_mode = data.values.network_mode
+#@ wireguard_instance = data.values.wireguard_instance
 
 #@ ip_sourcerange = data.values.ip_sourcerange
 #@ enable_http_auth = len(data.values.http_auth.strip()) > 0
@@ -32,8 +32,9 @@
 services:
   qbittorrent:
     #@ service = "qbittorrent"
-    #@ if len(network_mode) and network_mode != "default":
-    network_mode: "(@= network_mode @)"
+    #@ if len(wireguard_instance):
+    networks:
+      wireguard_(@= wireguard_instance @)_wgnet:
     #@ end
     labels:
       - "backup-volume.stop-during-backup=true"
@@ -80,3 +81,10 @@ services:
       - homepage.description=(@= homepage_description_qbittorrent or traefik_host @)
       - homepage.showStats=(@= homepage_show_stats_qbittorrent @)
       #@ end
+
+#@yaml/text-templated-strings
+#@ if len(wireguard_instance):
+networks:
+  wireguard_(@= wireguard_instance @)_wgnet:
+    external: true
+#@ end

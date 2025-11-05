@@ -10,8 +10,6 @@
 #@ instance = data.values.instance
 #@ context = data.values.context
 #@ traefik_host = data.values.traefik_host
-#@ web_port = data.values.web_port
-#@ rpc_port = data.values.rpc_port
 #@ wireguard_instance = data.values.wireguard_instance
 
 #@ ip_sourcerange = data.values.ip_sourcerange
@@ -24,16 +22,16 @@
 #@ enabled_middlewares = []
 
 #@ homepage_labels_enable = data.values.homepage_labels_enable == "true"
-#@ homepage_group_aria2 = data.values.homepage_group_aria2
-#@ homepage_name_aria2 = data.values.homepage_name_aria2
-#@ homepage_icon_aria2 = data.values.homepage_icon_aria2
-#@ homepage_description_aria2 = data.values.homepage_description_aria2
-#@ homepage_show_stats_aria2 = data.values.homepage_show_stats_aria2
+#@ homepage_group_firefox = data.values.homepage_group_firefox
+#@ homepage_name_firefox = data.values.homepage_name_firefox
+#@ homepage_icon_firefox = data.values.homepage_icon_firefox
+#@ homepage_description_firefox = data.values.homepage_description_firefox
+#@ homepage_show_stats_firefox = data.values.homepage_show_stats_firefox
 
 #@yaml/text-templated-strings
 services:
-  aria2:
-    #@ service = "aria2"
+  firefox:
+    #@ service = "firefox"
     #@ if len(wireguard_instance):
     networks:
       wireguard_(@= wireguard_instance @)_wgnet:
@@ -45,10 +43,11 @@ services:
 
       #! 'router' is the fully qualified key in traefik for this router/service: project + instance + service
       #@ router = "{}-{}-{}".format(project,instance,service)
+
       #! The host matching router rule:
       - "traefik.http.routers.(@= router @).rule=Host(`(@= traefik_host @)`)"
       - "traefik.http.routers.(@= router @).entrypoints=websecure"
-      - "traefik.http.routers.(@= router @).service=(@= router @)"
+
       #@ enabled_middlewares.append("{}-ipallowlist".format(router))
       - "traefik.http.middlewares.(@= router @)-ipallowlist.ipallowlist.sourcerange=(@= ip_sourcerange @)"
       #@ if enable_http_auth:
@@ -56,10 +55,12 @@ services:
       - "traefik.http.middlewares.(@= router @)-basicauth.basicauth.users=(@= http_auth @)"
       - "traefik.http.middlewares.(@= router @)-basicauth.basicauth.headerField=X-Forwarded-User"
       #@ end
+
       #@ if enable_oauth2:
       #@ enabled_middlewares.append("traefik-forward-auth@docker")
       #@ enabled_middlewares.append("header-authorization-group-{}@file".format(authorized_group))
       #@ end
+
       #@ if enable_mtls_auth:
       - "traefik.http.routers.(@= router @).tls.options=step_ca_mTLS@file"
         #@ if len(mtls_authorized_certs):
@@ -68,52 +69,26 @@ services:
         #@ end
         #@ enabled_middlewares.append("mtls-header@file")
       #@ end
-      - "traefik.http.services.(@= router @).loadbalancer.server.port=(@= web_port @)"
+
+      #! Traefik should ignore the self-signed cert that the firefox container serves:
+      - "traefik.http.services.(@= router @).loadbalancer.server.scheme=https"
+      - "traefik.http.services.(@= router @).loadbalancer.serverstransport=ignorecert@file"
+      - "traefik.http.services.(@= router @).loadbalancer.server.port=3001"
+
       #! Apply all middlewares (do this at the end!)
       - "traefik.http.routers.(@= router @).middlewares=(@= ','.join(enabled_middlewares) @)"
-
-
-      #@ service = "aria2-jsonrpc"
-      #! 'router' is the fully qualified key in traefik for this router/service: project + instance + service
-      #@ router = "{}-{}-{}".format(project,instance,service)
-      #! The host matching router rule:
-      - "traefik.http.routers.(@= router @).rule=Host(`(@= traefik_host @)`) && PathPrefix(`/jsonrpc`)"
-      - "traefik.http.routers.(@= router @).entrypoints=websecure"
-      - "traefik.http.routers.(@= router @).service=(@= router @)"
-      #@ enabled_middlewares.append("{}-ipallowlist".format(router))
-      - "traefik.http.middlewares.(@= router @)-ipallowlist.ipallowlist.sourcerange=(@= ip_sourcerange @)"
-      #@ if enable_http_auth:
-      #@ enabled_middlewares.append("{}-basicauth".format(router))
-      - "traefik.http.middlewares.(@= router @)-basicauth.basicauth.users=(@= http_auth @)"
-      - "traefik.http.middlewares.(@= router @)-basicauth.basicauth.headerField=X-Forwarded-User"
-      #@ end
-      #@ if enable_oauth2:
-      #@ enabled_middlewares.append("traefik-forward-auth@docker")
-      #@ enabled_middlewares.append("header-authorization-group-{}@file".format(authorized_group))
-      #@ end
-      #@ if enable_mtls_auth:
-      - "traefik.http.routers.(@= router @).tls.options=step_ca_mTLS@file"
-        #@ if len(mtls_authorized_certs):
-      - "traefik.http.middlewares.mtlsauth-(@= router @).plugin.certauthz.domains=(@= mtls_authorized_certs @)"
-        #@ enabled_middlewares.append("mtlsauth-{}".format(router))
-        #@ end
-        #@ enabled_middlewares.append("mtls-header@file")
-      #@ end
-      - "traefik.http.services.(@= router @).loadbalancer.server.port=(@= rpc_port @)"
-      #! Apply all middlewares (do this at the end!)
-      - "traefik.http.routers.(@= router @).middlewares=(@= ','.join(enabled_middlewares) @)"
-
 
       #! Homepage (portal):
       #! See https://gethomepage.dev/configs/docker/#automatic-service-discovery
       #@ if homepage_labels_enable:
-      - homepage.group=(@= homepage_group_aria2 @)
-      - homepage.name=(@= homepage_name_aria2 @)
-      - homepage.icon=(@= homepage_icon_aria2 @)
+      - homepage.group=(@= homepage_group_firefox @)
+      - homepage.name=(@= homepage_name_firefox @)
+      - homepage.icon=(@= homepage_icon_firefox @)
       - homepage.href=https://(@= traefik_host @)
-      - homepage.description=(@= homepage_description_aria2 or traefik_host @)
-      - homepage.showStats=(@= homepage_show_stats_aria2 @)
+      - homepage.description=(@= homepage_description_firefox or traefik_host @)
+      - homepage.showStats=(@= homepage_show_stats_firefox @)
       #@ end
+
 
 #@yaml/text-templated-strings
 #@ if len(wireguard_instance):
