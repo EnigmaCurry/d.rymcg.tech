@@ -5,9 +5,6 @@ include ${ROOT_DIR}/_scripts/Makefile.instance
 .PHONY: config-hook
 config-hook:
 #### This interactive configuration wizard creates the .env_{DOCKER_CONTEXT}_{INSTANCE} config file using .env-dist as the template:
-#### reconfigure_ask asks the user a question to set the variable into the .env file, and with a provided default value.
-#### reconfigure sets the value of a variable in the .env file without asking.
-#### reconfigure_htpasswd will configure the HTTP Basic Authentication setting the var name and with a provided default value.
 	@${BIN}/reconfigure_ask ${ENV_FILE} BITMAGNET_TRAEFIK_HOST "Enter the bitmagnet domain name" bitmagnet${INSTANCE_URL_SUFFIX}.${ROOT_DOMAIN}
 	@${BIN}/reconfigure ${ENV_FILE} BITMAGNET_INSTANCE=$${instance:-default}
 	@echo ""
@@ -28,10 +25,11 @@ config-hook:
 		else \
 			${BIN}/reconfigure ${ENV_FILE} BITMAGNET_USE_EXTERNAL_VOLUME=false; \
 		fi
-	@echo
+	@echo ""
 	@ALLOW_BLANK=1 ${BIN}/reconfigure_ask ${ENV_FILE} BITMAGNET_TMDB_API_KEY "Optional: Enter your TMDB API key"
 	@echo ""
 	@${BIN}/reconfigure_ask ${ENV_FILE} BITMAGNET_IP_SOURCERANGE "Enter the allowed client IP source range (eg. 192.168.1.1/24 or 0.0.0.0/0)"
+	@echo ""
 
 
 .PHONY: override-hook
