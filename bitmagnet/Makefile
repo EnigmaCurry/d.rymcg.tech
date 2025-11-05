@@ -48,12 +48,11 @@ override-hook:
 
 .PHONY: shell # Enter container shell
 shell:
-	@make --no-print-directory docker-compose-shell SERVICE=bitmagnet
-#	@if [ -z "$(service)" ]; then \
-#		container=$$(eval "${BIN}/script-wizard choose 'docker exec -it into which container?' 'bitmagnet' 'postgres' --default 'bitmagnet'") && make --no-print-directory docker-compose-shell SERVICE=$${container}; \
-#	else \
-#		make --no-print-directory docker-compose-shell SERVICE=$$(service); \
-#	fi;
+	@if [ -z "$(service)" ]; then \
+		container=$$(eval "${BIN}/script-wizard choose 'docker exec -it into which container?' 'bitmagnet' 'postgres' --default 'bitmagnet'") && make --no-print-directory docker-compose-shell SERVICE=$${container}; \
+	else \
+		make --no-print-directory docker-compose-shell SERVICE=$$(service); \
+	fi;
 
 .PHONY: build-hook-pre
 build-hook-pre:
@@ -63,15 +62,7 @@ build-hook-pre:
 .PHONY: install-hook
 install-hook:
 	@echo
-	@docker cp ./certs bitmagnet-bitmagnet-1:/
-	@echo
 
 .PHONY: install-hook-pre
 install-hook-pre:
-	@echo
-
-.PHONY: copy-certs # Copy PostgreSQL certs to Bitmagnet container
-copy-certs:
-	@docker cp ./certs bitmagnet-bitmagnet-1:/
-	@make restart
 	@echo
