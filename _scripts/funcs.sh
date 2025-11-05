@@ -542,43 +542,74 @@ get_all_projects() {
 
 wait_until_healthy() {
     echo "Waiting until all services are started and become healthy ..."
-    local containers=()
-    PROJECT_NAME=$1
+    local PROJECT_NAME=$1
     shift
-
-    while IFS= read -r CONTAINER_ID; do
-        local inspect_json=$(docker inspect ${CONTAINER_ID})
-        local name=$(echo "${inspect_json}" | jq -r ".[0].Name" | sed 's|^/||')
-        if [[ "${name}" != "${PROJECT_NAME}-config-1" ]]; then containers+=("$name"); fi
-    done <<< "$@"
-    local attempts=0
-    while true; do
-        attempts=$((attempts+1))
-        if [[ "${#containers}" == "0" ]]; then
-            break
+    local all_ids=()
+    local arg
+    for arg in "$@"; do
+        while IFS= read -r line; do
+            [[ -z "$line" ]] && continue
+            all_ids+=("$line")
+        done <<< "$arg"
+    done
+    local containers=()
+    local cid
+    for cid in "${all_ids[@]}"; do
+        # must exist
+        if ! docker inspect "$cid" >/dev/null 2>&1; then
+            echo "Error: container '$cid' does not exist (yet)."
+            return 1
         fi
-        local random_container=$(random_element "${containers[@]}")
-        if [[ -z "${random_container}" ]]; then
+        local name
+        name=$(docker inspect "$cid" | jq -r '.[0].Name' | sed 's|^/||')
+        if [[ "$name" == *"-config-1" ]] || [[ "$name" == *"_config-1" ]]; then
             continue
         fi
-        local inspect_json=$(docker inspect ${random_container})
-        local name=$(echo "${inspect_json}" | jq -r ".[0].Name" | sed 's|^/||')
-        local status=$(echo "${inspect_json}" | jq -r ".[0].State.Status")
-        local health=$(echo "${inspect_json}" | jq -r ".[0].State.Health.Status")
-        if [[ "$status" == "running" ]] && ([[ "$health" == "healthy" ]] || [[ "$health" == "null" ]]); then
-            containers=( "${containers[@]/${name}}" )
-            if [[ "${#containers}" == "0" ]]; then
+        containers+=("$name")
+    done
+    if [[ ${#containers[@]} -eq 0 ]]; then
+        echo "No services to wait for."
+        return 0
+    fi
+    local attempts=0
+    while true; do
+        attempts=$((attempts + 1))
+        [[ ${#containers[@]} -eq 0 ]] && break
+        local random_container
+        random_container=$(random_element "${containers[@]}")
+        [[ -z "$random_container" ]] && continue
+        if ! docker inspect "$random_container" >/dev/null 2>&1; then
+            echo "Error: container '$random_container' disappeared while waiting."
+            return 1
+        fi
+        local inspect_json
+        inspect_json=$(docker inspect "$random_container")
+        local name status health
+        name=$(echo "$inspect_json" | jq -r '.[0].Name' | sed 's|^/||')
+        status=$(echo "$inspect_json" | jq -r '.[0].State.Status')
+        health=$(echo "$inspect_json" | jq -r '.[0].State.Health.Status')
+        if [[ "$status" == "running" ]] && { [[ "$health" == "healthy" ]] || [[ "$health" == "null" ]]; }; then
+            # remove from list safely
+            local new=()
+            local c
+            for c in "${containers[@]}"; do
+                [[ "$c" == "$name" ]] && continue
+                new+=("$c")
+            done
+            containers=("${new[@]}")
+            if [[ ${#containers[@]} -eq 0 ]]; then
                 break
-            elif [[ "${attempts}" -gt 15 ]]; then
-                echo "Still waiting for services to finish starting: ${containers[@]}"
+            fi
+            if [[ $attempts -gt 15 ]]; then
+                echo "Still waiting for services to finish starting: ${containers[*]}"
             fi
         fi
-
-        if [[ "${attempts}" -gt 150 ]]; then
-            fault "Gave up waiting for services to start."
+        if [[ $attempts -gt 150 ]]; then
+            echo "Gave up waiting for services to start. Still pending: ${containers[*]}"
+            return 1
         fi
-        if [[ "$((attempts%5))" == 0 ]]; then
-            echo "Still waiting for services to finish starting: ${containers[@]}"
+        if (( attempts % 5 == 0 )); then
+            echo "Still waiting for services to finish starting: ${containers[*]}"
         fi
         sleep 2
     done
@@ -669,19 +700,115 @@ prefix_to_netmask () {
     echo ${1-0}.${2-0}.${3-0}.${4-0}
 }
 
-validate_ip_address () {
-    #thanks https://stackoverflow.com/a/21961938
-    echo "$@" | grep -o -E '^(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)$' >/dev/null
+validate_ip_address() {
+    local addr=$1 cmd
+    if command -v ipcalc-ng >/dev/null 2>&1; then
+        cmd=(ipcalc-ng -c)
+    elif command -v ipv6calc >/dev/null 2>&1; then
+        cmd=(ipv6calc --showinfo -m)
+    elif command -v ipcalc >/dev/null 2>&1; then
+        cmd=(ipcalc -c)
+    else
+        fail "No ipcalc/ipcalc-ng/ipv6calc command found."
+    fi
+    "${cmd[@]}" "$addr" >/dev/null 2>&1
 }
 
 validate_ip_network() {
-    #thanks https://stackoverflow.com/a/21961938
-    PREFIX=$(echo "$@" | grep -o -P "/\K[[:digit:]]+$")
-    if [[ "${PREFIX}" -ge 0 ]] && [[ "${PREFIX}" -le 32 ]]; then
-        echo "$@" | grep -o -E '^(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)/[[:digit:]]+$' >/dev/null
+    local net=$1 prefix max cmd
+    [[ $net == */* ]] || return 1
+    prefix=${net##*/}
+    case $prefix in
+        ''|*[!0-9]*) return 1 ;;
+    esac
+    if [[ ${net%%/*} == *:* ]]; then
+        max=128
     else
-        return 1
+        max=32
     fi
+    (( prefix >= 0 && prefix <= max )) || return 1
+    if command -v ipcalc-ng >/dev/null 2>&1; then
+        cmd=(ipcalc-ng -c)
+    elif command -v ipv6calc >/dev/null 2>&1; then
+        cmd=(ipv6calc --showinfo -m)
+    elif command -v ipcalc >/dev/null 2>&1; then
+        cmd=(ipcalc -c)
+    else
+        fail "No ipcalc/ipcalc-ng/ipv6calc command found."
+    fi
+    "${cmd[@]}" "$net" >/dev/null 2>&1
+}
+
+ip_from_minaddr() {
+  local cidr="$1"
+  local n="${2:-1}"
+  if [[ -z $cidr ]]; then
+    echo "Usage: ip_from_minaddr <CIDR> [n<=254]" >&2
+    return 2
+  fi
+  if ! [[ $n =~ ^[0-9]+$ ]] || (( n < 1 || n > 254 )); then
+    echo "Error: n must be an integer between 1 and 254" >&2
+    return 2
+  fi
+  local offset=$(( n - 1 ))
+  local out
+  out=$("${BIN}/ipcalc" "$cidr" -j | jq -r --argjson off "$offset" '
+    def ip2int: split(".") | map(tonumber) | reduce .[] as $o (0; . * 256 + $o);
+    def int2ip:
+      [ ((. / 16777216)|floor)%256
+      , ((. / 65536)|floor)%256
+      , ((. / 256)|floor)%256
+      , (. % 256)
+      ] | map(tostring) | join(".");
+
+    (.MINADDR // .minhost) as $min
+    | (.MAXADDR // .maxhost) as $max
+    | if ($min == null or $max == null) then empty
+      else
+        ($min | ip2int) as $mi
+        | ($max | ip2int) as $ma
+        | ($mi + $off) as $cand
+        | if $cand <= $ma then $cand | int2ip else empty end
+      end
+  ')
+  if [[ -z $out ]]; then
+    echo "Error: requested host exceeds usable range (or missing min/max host in JSON)" >&2
+    return 1
+  fi
+  printf '%s\n' "$out"
+}
+
+ip_from_minaddr_6() {
+    local cidr="${1:-}" n="${2:-1}"
+    if [[ -z $cidr ]]; then echo "Usage: ip_from_minaddr_6 <CIDR> [n<=2^64‑1]" >&2; return 2; fi
+    if ! [[ $n =~ ^[0-9]+$ ]] || (( n < 1 )); then echo "Error: n must be a positive integer (>= 1)" >&2; return 2; fi
+    local out
+    out=$(python3 - <<'PY' "$cidr" "$n"
+import sys, ipaddress
+cidr = sys.argv[1]
+n = int(sys.argv[2])
+try:
+    net = ipaddress.ip_network(cidr, strict=False)
+except ValueError as e:
+    sys.stderr.write(f"Error: invalid IPv6 CIDR '{cidr}': {e}\n")
+    sys.exit(1)
+if net.num_addresses == 1:
+    if n != 1:
+        sys.stderr.write(f"Error: requested host (n={n}) exceeds usable range of {cidr}\n")
+        sys.exit(1)
+    addr = net.network_address
+else:
+    usable = net.num_addresses - 1
+    if n > usable:
+        sys.stderr.write(f"Error: requested host (n={n}) exceeds usable range of {cidr}\n")
+        sys.exit(1)
+    addr = net.network_address + n
+print(str(addr))
+PY
+    )
+    local py_status=$?
+    if (( py_status != 0 )) || [[ -z $out ]]; then echo "Error: requested host exceeds usable range (or bad CIDR)" >&2; return 1; fi
+    printf '%s\n' "$out"
 }
 
 select_docker_network_cidr() {
