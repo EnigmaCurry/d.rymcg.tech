@@ -39,21 +39,22 @@ declare -A DE_MAP=(
 pretty_os()  { local k=$1; echo "${OS_MAP[$k]}"; }
 pretty_de()  { local k=$1; echo "${DE_MAP[$k]}"; }
 
-# -----------------------------------------------------------------
+# -------------------------------------------------
 # 1️⃣  Determine the *current* values from .env (if any)
-# -----------------------------------------------------------------
-# `dotenv_get` returns the raw value without surrounding quotes [1]
+# -------------------------------------------------
 current_image=$(dotenv_get WEBTOP_IMAGE || true)   # e.g. lscr.io/linuxserver/webtop:arch-kde
-# Strip the prefix and split into OS / DE
-if [[ $current_image =~ ^[^:]+:([^_-]+)-([^_-]+) ]]; then
-    cur_os_key="${BASH_REMATCH[1]}"   # e.g. "arch"
-    cur_de_key="${BASH_REMATCH[2]}"   # e.g. "kde"
-    cur_os_pretty=$(pretty_os "$cur_os_key")
-    cur_de_pretty=$(pretty_de "$cur_de_key")
+tag=${current_image##*:}
+repo=${current_image%:*}
+if [[ $tag == *-* ]]; then
+    cur_os_key=${tag%%-*}
+    cur_de_key=${tag#*-}
 else
-    cur_os_pretty=""   # no existing value → no default
-    cur_de_pretty=""
+    # default "latest" tag is alpine on xfce:
+    cur_os_key="alpine"
+    cur_de_key="xfce"
 fi
+cur_os_pretty=$(pretty_os "$cur_os_key")
+cur_de_pretty=$(pretty_de "$cur_de_key")
 
 # -----------------------------------------------------------------
 # 2️⃣  Build sorted “pretty” lists for the chooser
@@ -97,12 +98,17 @@ done
 # -----------------------------------------------------------------
 # 4️⃣  Write the new values back to .env
 # -----------------------------------------------------------------
-WEBTOP_IMAGE="lscr.io/linuxserver/webtop:${OS_CHOICE}-${DE_CHOICE}"
+if [[ "${OS_CHOICE}" == "alpine" && "${DE_CHOICE}" == "xfce" ]]; then
+    WEBTOP_IMAGE="lscr.io/linuxserver/webtop:latest"
+else
+    WEBTOP_IMAGE="lscr.io/linuxserver/webtop:${OS_CHOICE}-${DE_CHOICE}"
+fi
 if [[ "${OS_CHOICE}" == "ubuntu" ]]; then
     WEBTOP_DOCKERFILE="Dockerfile-debian"
 else
     WEBTOP_DOCKERFILE="Dockerfile-${OS_CHOICE}"
 fi
+
 "${BIN}/dotenv" -f "${ENV_FILE}" set WEBTOP_IMAGE="${WEBTOP_IMAGE}"
 "${BIN}/dotenv" -f "${ENV_FILE}" set WEBTOP_DOCKERFILE="${WEBTOP_DOCKERFILE}"
 

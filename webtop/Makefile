@@ -19,9 +19,9 @@ config-hook:
 	@WG=$$(${BIN}/dotenv -f ${ENV_FILE} get WEBTOP_WIREGUARD_INSTANCE); if [[ -n "$${WG}" ]]; then echo "## Finding the IPv4 address of wireguard instance: $${WG}" && ${BIN}/reconfigure ${ENV_FILE} WEBTOP_WIREGUARD_ROUTER_IPV4=$$(docker exec wireguard_$${WG}-wireguard-1 ip -j -4 addr show dev eth0 | jq -r '.[0].addr_info[0].local') && echo; fi
 	@WG=$$(${BIN}/dotenv -f ${ENV_FILE} get WEBTOP_WIREGUARD_INSTANCE); if [[ -n "$${WG}" ]]; then echo "## Finding the IPv6 address of wireguard instance: $${WG}" && ${BIN}/reconfigure ${ENV_FILE} WEBTOP_WIREGUARD_ROUTER_IPV6=$$(docker exec wireguard_$${WG}-wireguard-1 ip -j -6 addr show dev eth0 | jq -r '.[0].addr_info[0].local') && echo; fi
 
+	@/bin/env bash ./reconfigure_webtop_image ${ENV_FILE} WEBTOP_DOWNLOAD_VOLUME "Enter the absolute host path to store downloads"
 	@ALLOW_BLANK=1 ${BIN}/reconfigure_ask ${ENV_FILE} WEBTOP_INSTALL_PACKAGES "Enter a list of extra packages to install, separated by \`|\`, no spaces. (Leave blank to install no extra packages)"
 	@echo
-	@/bin/env bash ./reconfigure_webtop_image ${ENV_FILE} WEBTOP_DOWNLOAD_VOLUME "Enter the absolute host path to store downloads"
 	@${BIN}/reconfigure_ask ${ENV_FILE} WEBTOP_DOWNLOAD_VOLUME "Enter the absolute host path to store downloads"
 
 	@${BIN}/reconfigure_ask ${ENV_FILE} WEBTOP_TRAEFIK_HOST "Enter the webtop domain name" webtop${INSTANCE_URL_SUFFIX}.${ROOT_DOMAIN}
