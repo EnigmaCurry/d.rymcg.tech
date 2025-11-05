@@ -1,4 +1,4 @@
-ARG IMAGE=lscr.io/linuxserver/webtop:latest
+ARG IMAGE=lscr.io/linuxserver/webtop:debian-mate
 FROM ${IMAGE}
 
 RUN apt-get update && \

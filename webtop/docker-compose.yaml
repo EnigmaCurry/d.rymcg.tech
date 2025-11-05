@@ -5,18 +5,23 @@ services:
   webtop:
     build:
       context: webtop
+      dockerfile: ${WEBTOP_DOCKERFILE}
       args:
         IMAGE: ${WEBTOP_IMAGE}
     cap_add:
       - NET_ADMIN ## Dropped ASAP in app-router-bootstrap.sh entrypoint.
-    security_opt:
-      - no-new-privileges:true
+    # security_opt:
+    #   - no-new-privileges:true
     sysctls:
       - net.ipv4.ip_unprivileged_port_start=1024
     restart: unless-stopped
+    shm_size: "1gb"
     environment:
       - PUID=${WEBTOP_UID}
       - PGID=${WEBTOP_GID}
+      - TZ=${WEBTOP_TZ}
+      - DOCKER_MODS=${WEBTOP_DOCKER_MODS}
+      - INSTALL_PACKAGES=${WEBTOP_INSTALL_PACKAGES}
       - WIREGUARD_INSTANCE=${WEBTOP_WIREGUARD_INSTANCE}
       - WIREGUARD_ROUTER_IPV4=${WEBTOP_WIREGUARD_ROUTER_IPV4}
       - WIREGUARD_ROUTER_IPV6=${WEBTOP_WIREGUARD_ROUTER_IPV6}
