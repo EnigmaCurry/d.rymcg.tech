@@ -36,18 +36,19 @@ services:
       - --keys=dht_crawler
     volumes:
       - config:/root/.config/bitmagnet
+    # FYI: the container uses these ports
     # ports:
     #   # API and WebUI port:
     #   - "3333:3333"
     #   # BitTorrent ports:
     #   - "3334:3334/tcp"
     #   - "3334:3334/udp"
-    # healthcheck:
-    #   # bitmagnet's default healthcheck endpoint is port 9999
-    #   test: "nc -z localhost 9999 || kill 1"
-    #   interval: 1m
-    #   timeout: 1m
-    #   start_period: 300s
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3333/status"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
 
   postgres:
     image: ${BITMAGNET_POSTGRES_IMAGE}
