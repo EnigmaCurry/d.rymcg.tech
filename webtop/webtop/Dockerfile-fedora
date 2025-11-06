@@ -1,4 +1,4 @@
-ARG IMAGE=lscr.io/linuxserver/webtop:arch-mate
+ARG IMAGE=lscr.io/linuxserver/webtop:fedora-mate
 FROM ${IMAGE}
 
 RUN dnf -y update && \
