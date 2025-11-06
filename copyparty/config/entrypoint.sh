@@ -43,6 +43,9 @@ PUB_PATH=${COPYPARTY_VOL_PUBLIC_PATH:-$DATA_ROOT/public}
 GST_PATH=${COPYPARTY_VOL_GUESTS_PATH:-$DATA_ROOT/guests}
 ADM_PATH=$DATA_ROOT/admin
 
+mkdir -p "$PUB_PATH" "$GST_PATH"
+chown -R "${COPYPARTY_UID:-1000}:${COPYPARTY_GID:-1000}" "${PUB_PATH}" "${GST_PATH}"
+
 # Helper: emit per-volume permission lines for a given volume name
 emit_perms() {
   volname="$1"
