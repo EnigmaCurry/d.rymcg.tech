@@ -1,0 +1,23 @@
+ARG IMAGE=lscr.io/linuxserver/webtop:fedora-mate
+FROM ${IMAGE}
+
+RUN dnf -y update && \
+    dnf -y install --setopt=install_weak_deps=False \
+        iproute \
+        iptables \
+        iptables-nft \
+        nftables \
+        iputils \
+        ca-certificates \
+        libcap && \
+    dnf clean all && \
+    rm -rf /var/cache/dnf/*
+    
+COPY app-router-bootstrap.sh /usr/local/bin/app-router-bootstrap.sh
+RUN chmod 0555 /usr/local/bin/app-router-bootstrap.sh
+
+ARG PUID=1000
+ARG PGID=1000
+
+ENV ENTRYPOINT=/init
+ENTRYPOINT ["/usr/local/bin/app-router-bootstrap.sh"]
