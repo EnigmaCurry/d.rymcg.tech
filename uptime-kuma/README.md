@@ -2,7 +2,8 @@
 
 [uptime-kuma](https://github.com/louislam/uptime-kuma) is a
 self-hosted monitoring tool that can alert you if a system or service
-becomes inaccessible.
+becomes inaccessible. It has a configurable status page and
+notification system.
 
 ## Config
 
