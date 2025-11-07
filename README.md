@@ -237,6 +237,7 @@ Install these applications at your preference:
 * [Tesseract](tesseract#readme) - a front-end for Lemmy instances
 * [Thttpd](thttpd#readme) - a tiny/turbo/throttling HTTP server for serving static files
 * [TriliumNext Notes](triliumnext-notes#readme) - a note-taking/knowledge base application
+* [Uptime-Kuma](uptime-kuma#readme) - a service uptime monitoring system
 * [Vaultwarden](vaultwarden#readme) - a bitwarden compatible password manager written in Rust (formerly bitwarden_rs)
 * [Websocketd](websocketd#readme) - a websocket / CGI server
 * [Webtop](webtop#readme) - a containerized Linux desktop in your web browser
