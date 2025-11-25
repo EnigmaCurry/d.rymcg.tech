@@ -520,6 +520,8 @@ main() {
                 d.rymcg.tech make - daemon-conf;;
             fail2ban)
                 d.rymcg.tech make - fail2ban;;
+            s3-volume)
+                d.rymcg.tech make - s3-volume;;
             networks)
                 __make -- networks;;
             config)

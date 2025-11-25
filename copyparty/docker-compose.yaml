@@ -14,6 +14,8 @@ services:
       - FORCE_REGENERATE=true
       - COPYPARTY_ADMIN_USER
       - COPYPARTY_ADMIN_PASSWORD
+      - COPYPARTY_UID
+      - COPYPARTY_GID
       - COPYPARTY_USERS
       - COPYPARTY_PORT
       - COPYPARTY_ALLOW_NET
@@ -29,8 +31,11 @@ services:
       - COPYPARTY_VOL_EXTERNAL
       - COPYPARTY_VOL_PERMISSIONS
       - COPYPARTY_MNT_ROOT=/mnt
+      - COPYPARTY_ENABLE_GUEST_ACCESS
+      - COPYPARTY_ENABLE_PUBLIC_ACCESS
     volumes:
       - copyparty_etc:/etc/copyparty
+      - copyparty_data:/data
 
   copyparty:
     build:
@@ -46,6 +51,7 @@ services:
     cap_drop: [ "ALL" ]
     security_opt:
       - no-new-privileges:true
+    restart: "unless-stopped"
     environment:
       - COPYPARTY_DATA_DIR=/data
       - COPYPARTY_CONFIG=/etc/copyparty/copyparty.conf

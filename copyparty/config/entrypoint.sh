@@ -43,6 +43,9 @@ PUB_PATH=${COPYPARTY_VOL_PUBLIC_PATH:-$DATA_ROOT/public}
 GST_PATH=${COPYPARTY_VOL_GUESTS_PATH:-$DATA_ROOT/guests}
 ADM_PATH=$DATA_ROOT/admin
 
+mkdir -p "$PUB_PATH" "$GST_PATH"
+chown -R "${COPYPARTY_UID:-1000}:${COPYPARTY_GID:-1000}" "${PUB_PATH}" "${GST_PATH}"
+
 # Helper: emit per-volume permission lines for a given volume name
 emit_perms() {
   volname="$1"
@@ -88,6 +91,7 @@ umask 022
   printf '  ansi\n'
   printf '  xff-src: lan\n'
   printf '  xff-hdr: X-Forwarded-For\n'
+  printf '  rproxy: 1\n'
   printf '  shr: /share\n'
   printf '  shr-who: a\n'
   printf '  shr-adm: admin\n'

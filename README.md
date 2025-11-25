@@ -187,6 +187,7 @@ Install these applications at your preference:
 * [DrawIO](drawio#readme) - a diagram / whiteboard editor tool
 * [Ejabberd](ejabberd#readme) - an XMPP (Jabber) server
 * [Filebrowser](filebrowser#readme) - a web based file manager
+* [Firefox](firefox#readme) - a web browser embedded in a web page
 * [FreshRSS](freshrss#readme) - an RSS reader / proxy
 * [Glances](glances#readme) - a cross-platform system monitoring tool
 * [Gradio](gradio#readme) - a configurable web interface for machine learning 
@@ -230,7 +231,7 @@ Install these applications at your preference:
 * [SFTP](sftp#readme) - a secure file server
 * [Shaarli](shaarli#readme) - a bookmark manager
 * [Smokeping](smokeping#readme) - a network latency measurement tool
-* [Speedtest Tracker](speedtest-tracker#readme) - a network privacyerformance monitor
+* [Speedtest Tracker](speedtest-tracker#readme) - a network performance monitor
 * [Syncthing](syncthing#readme) - a multi-device file synchronization tool
 * [Sysbox-Systemd](sysbox-systemd#readme) - a traditional service manager for Linux running in an unprivileged container via sysbox-runc
 * [Tesseract](tesseract#readme) - a front-end for Lemmy instances
@@ -238,6 +239,7 @@ Install these applications at your preference:
 * [TriliumNext Notes](triliumnext-notes#readme) - a note-taking/knowledge base application
 * [Vaultwarden](vaultwarden#readme) - a bitwarden compatible password manager written in Rust (formerly bitwarden_rs)
 * [Websocketd](websocketd#readme) - a websocket / CGI server
+* [Webtop](webtop#readme) - a containerized Linux desktop in your web browser
 * [WireGuard](wireguard) - a standalone VPN client that other containers may use as a router
 * [WireGuard-Gateway](wireguard-gateway) - a VPN client config that acts as a gateway node for your LAN.
 * [Wordpress](wordpress#readme) - a ubiquitous blogging / CMS platform, with a plugin to build a static HTML site snapshot

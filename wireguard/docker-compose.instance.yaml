@@ -9,7 +9,29 @@
 #@ project = data.values.project
 #@ instance = data.values.instance
 #@ context = data.values.context
+#@ docker_subnet_ipv4 = data.values.docker_subnet_ipv4
+#@ docker_subnet_ipv6 = data.values.docker_subnet_ipv6
+#@ docker_gateway_address_ipv4 = data.values.docker_gateway_address_ipv4
+#@ docker_gateway_address_ipv6 = data.values.docker_gateway_address_ipv6
+#@ docker_wireguard_address_ipv4 = data.values.docker_wireguard_address_ipv4
+#@ docker_wireguard_address_ipv6 = data.values.docker_wireguard_address_ipv6
 
 #@yaml/text-templated-strings
 services:
   wireguard:
+    networks:
+      wgnet:
+        ipv4_address: (@= docker_wireguard_address_ipv4 @)
+        ipv6_address: (@= docker_wireguard_address_ipv6 @)
+
+#@yaml/text-templated-strings
+networks:
+  wgnet:
+    driver: bridge
+    enable_ipv6: true
+    ipam:
+      config:
+        - subnet: (@= docker_subnet_ipv4 @)
+          gateway: (@= docker_gateway_address_ipv4 @)
+        - subnet: (@= docker_subnet_ipv6 @)
+          gateway: (@= docker_gateway_address_ipv6 @)
