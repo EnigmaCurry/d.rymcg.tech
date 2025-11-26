@@ -17,7 +17,9 @@ log() {
 }
 
 iptables_cmd() {
-    if command -v iptables >/dev/null 2>&1; then
+    if command -v iptables-nft >/dev/null 2>&1; then
+        iptables-nft "$@"
+    elif command -v iptables >/dev/null 2>&1; then
         iptables "$@"
     elif command -v iptables-legacy >/dev/null 2>&1; then
         iptables-legacy "$@"
@@ -26,8 +28,11 @@ iptables_cmd() {
         exit 1
     fi
 }
+
 ip6tables_cmd() {
-    if command -v ip6tables >/dev/null 2>&1; then
+    if command -v ip6tables-nft >/dev/null 2>&1; then
+        ip6tables-nft "$@"
+    elif command -v ip6tables >/dev/null 2>&1; then
         ip6tables "$@"
     elif command -v ip6tables-legacy >/dev/null 2>&1; then
         ip6tables-legacy "$@"
@@ -132,15 +137,19 @@ if [ -n "${WIREGUARD_INSTANCE}" ]; then
 
     if [ -n "$CURRENT_GW6" ]; then
         if command -v ping6 >/dev/null 2>&1; then
+            # use ping6 (already handled)
             if ping6 -c 1 -W 1 "$CURRENT_GW6" >/dev/null 2>&1 \
                     || ping6 -c 1 -w 1 "$CURRENT_GW6" >/dev/null 2>&1; then
                 log "ERROR: old IPv6 gateway $CURRENT_GW6 is still reachable – DROP rule may not be effective"
                 exit 1
             fi
-        elif command -v ping >/dev/null 2>&1 && ping -6 -c 1 -W 1 "$CURRENT_GW6" >/dev/null 2>&1; then
-            # Some images only ship a single `ping` that also supports the -6 flag
-            log "ERROR: old IPv6 gateway $CURRENT_GW6 is still reachable – DROP rule may not be effective"
-            exit 1
+        elif command -v ping >/dev/null 2>&1; then
+            # ping exists – try IPv6 mode
+            if ping -6 -c 1 -W 1 "$CURRENT_GW6" >/dev/null 2>&1; then
+                log "ERROR: old IPv6 gateway $CURRENT_GW6 is still reachable – DROP rule may not be effective"
+                exit 1
+            fi
+            # ping failed → old gateway unreachable → success, continue
         else
             log "ERROR: IPv6 ping command not found – cannot verify reachability of old IPv6 gateway $CURRENT_GW6"
             exit 1

@@ -29,7 +29,7 @@ RUN git clone https://${CERT_AUTH_MODULE}.git /plugins-local/src/github.com/fame
 RUN git clone https://${MTLS_HEADER_MODULE}.git /plugins-local/src/github.com/pnxs/traefik-plugin-mtls-header \
       --depth 1 --single-branch --branch ${MTLS_HEADER_GIT_BRANCH}
 
-FROM ${TRAEFIK_IMAGE} as traefik
+FROM ${TRAEFIK_IMAGE} AS traefik
 ARG TRAEFIK_UID TRAEFIK_GID TRAEFIK_DOCKER_GID
 COPY --from=plugins /plugins-local /plugins-local
 COPY entrypoint.sh  /entrypoint_ensure_config.sh
