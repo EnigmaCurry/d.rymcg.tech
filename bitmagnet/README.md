@@ -3,7 +3,10 @@
 [bitmagnet](https://github.com/bitmagnet-io/bitmagnet) is a
 self-hosted BitTorrent indexer, DHT crawler, content classifier, and
 torrent search engine with web UI, GraphQL API, and Servarr stack
-integration.
+integration. It is not reliant on any external trackers or torrent
+indexers - it's self-contained, connected via
+[DHT](https://bitmagnet.io/#dht-what-now) to a global network of peers
+and constantly discovering new content.
 
 ## Config
 
