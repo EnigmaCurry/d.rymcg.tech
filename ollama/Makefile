@@ -47,7 +47,7 @@ override-hook:
 
 .PHONY: shell
 shell:
-	@make --no-print-directory docker-compose-shell SERVICE=ollama
+	@make --no-print-directory docker-compose-shell SERVICE=ollama-$$(${BIN}/dotenv -f ${ENV_FILE} get DOCKER_COMPOSE_PROFILES)
 
 .PHONY: install-hook
 install-hook:
