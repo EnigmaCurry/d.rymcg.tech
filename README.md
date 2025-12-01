@@ -189,6 +189,7 @@ Install these applications at your preference:
 * [Filebrowser](filebrowser#readme) - a web based file manager
 * [Firefox](firefox#readme) - a web browser embedded in a web page
 * [FreshRSS](freshrss#readme) - an RSS reader / proxy
+* [Frigate](frigate#readme) - an NVR designed for Home Assistant with AI object detection
 * [Glances](glances#readme) - a cross-platform system monitoring tool
 * [Gradio](gradio#readme) - a configurable web interface for machine learning 
 * [Grocy](grocy#readme) - a grocery & household management/chore solution
