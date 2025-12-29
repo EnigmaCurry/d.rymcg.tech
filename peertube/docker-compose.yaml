@@ -49,7 +49,7 @@ services:
       - "backup-volume.stop-during-backup=true"
 
   redis:
-    image: redis:6-alpine
+    image: ${PEERTUBE_REDIS_IMAGE}
     volumes:
       - redis:/data
     restart: "unless-stopped"
