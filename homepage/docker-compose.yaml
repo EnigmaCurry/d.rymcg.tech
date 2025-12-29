@@ -15,7 +15,7 @@ services:
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock:ro,z
     environment:
-      - LOG_LEVEL=info         # debug|info|notice|warning|err|crit|alert|emerg
+      - LOG_LEVEL=${HOMEPAGE_DOCKER_SOCKET_PROXY_LOG_LEVEL}
       # ---- Global HTTP method gate ----
       - POST=0                 # 0 = block all POST/DELETE/PATCH (read-only proxy). 1 = allow writes.
       # ---- Basic health/info ----
