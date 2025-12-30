@@ -1,0 +1,8 @@
+services:
+  uptime_kuma:
+    image: ${UPTIME_KUMA_IMAGE}
+    security_opt:
+      - no-new-privileges:true
+    restart: unless-stopped
+    # All labels are defined in the template: docker-compose.instance.yaml
+    labels: []
