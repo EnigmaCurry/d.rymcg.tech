@@ -4,5 +4,9 @@ services:
     security_opt:
       - no-new-privileges:true
     restart: unless-stopped
-    # All labels are defined in the template: docker-compose.instance.yaml
+    volumes:
+      - data:/app/data
     labels: []
+
+volumes:
+  data:
