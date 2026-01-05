@@ -1,4 +1,42 @@
+volumes:
+  data:
+
+networks:
+  # Internal sandbox network with no outbound NAT
+  sandbox:
+    internal: true
+
 services:
+  docker-socket-proxy:
+    privileged: true
+    image: ${UPTIME_KUMA_DOCKER_SOCKET_PROXY_IMAGE}
+    restart: unless-stopped
+    networks: [sandbox]
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro,z
+    environment:
+      - LOG_LEVEL=${UPTIME_KUMA_DOCKER_SOCKET_PROXY_LOG_LEVEL}
+      # ---- Global HTTP method gate ----
+      - POST=0                 # 0 = block all POST/DELETE/PATCH (read-only proxy). 1 = allow writes.
+      # ---- Basic health/info ----
+      - PING=1                 # GET /_ping health.
+      - VERSION=1              # GET /version.
+      - EVENTS=1               # GET /events stream (optional live updates).
+      # ---- Reads that might be needed ----
+      - INFO=1                 # GET /info (daemon info).
+      - CONTAINERS=1           # GET /containers/json and /containers/{id}/json.
+    read_only: true
+    tmpfs:
+      - /tmp:rw,nosuid,nodev,noexec,size=16m
+      - /run:rw,nosuid,nodev,noexec,size=1m
+      - /var/lib/haproxy:rw,nosuid,nodev,noexec,size=1m
+      - /var/cache/haproxy:rw,nosuid,nodev,noexec,size=1m
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://127.0.0.1:2375/_ping"]
+      interval: 30s
+      timeout: 3s
+      retries: 3
+
   uptime_kuma:
     image: ${UPTIME_KUMA_IMAGE}
     security_opt:
@@ -6,7 +44,9 @@ services:
     restart: unless-stopped
     volumes:
       - data:/app/data
+    networks: [default, sandbox]
+    environment:
+      UPTIME_KUMA_DOCKER_HOST: http://docker-socket-proxy:2375
     labels: []
-
-volumes:
-  data:
+    tmpfs:
+      - /tmp:rw,nosuid,nodev,noexec,size=64m
