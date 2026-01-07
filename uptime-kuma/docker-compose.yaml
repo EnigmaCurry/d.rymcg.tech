@@ -25,6 +25,8 @@ services:
       # ---- Reads that might be needed ----
       - INFO=1                 # GET /info (daemon info).
       - CONTAINERS=1           # GET /containers/json and /containers/{id}/json.
+      - SERVICES=1
+      - TASKS=0
     read_only: true
     tmpfs:
       - /tmp:rw,nosuid,nodev,noexec,size=16m
