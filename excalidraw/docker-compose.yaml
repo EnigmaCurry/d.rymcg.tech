@@ -1,24 +1,23 @@
 services:
   excalidraw:
-    # image: ${EXCALIDRAW_IMAGE}
-    build:
-      context: excalidraw
-      dockerfile: Dockerfile
+    image: ${EXCALIDRAW_IMAGE}
     restart: unless-stopped
     environment:
       - NODE_ENV=production
-    # cap_drop:
-    #   - ALL
-    # cap_add:
-    #   - CAP_CHOWN
+    cap_drop:
+      - ALL
+    cap_add:
+      - CAP_CHOWN
+      - CAP_NET_BIND_SERVICE
+      - CAP_SETGID
+      - CAP_SETUID
     security_opt:
       - no-new-privileges:true
-    # sysctls:
-    #   - net.ipv4.ip_unprivileged_port_start=1024
+    sysctls:
+      - net.ipv4.ip_unprivileged_port_start=1024
     healthcheck:
       test: ["CMD", "wget", "-q", "-O", "/dev/null", "http://localhost"]
       interval: 30s
       timeout: 10s
       retries: 3
-    # TODO: find where excalidraw saves user files and store it on a docker volume (perhaps also app preferences)
     labels: []

@@ -31,7 +31,7 @@ services:
   excalidraw:
     #@ service = "excalidraw"
     labels:
-      - "backup-volume.stop-during-backup=true"
+      #!- "backup-volume.stop-during-backup=true"
       #! Services must opt-in to be proxied by Traefik:
       - "traefik.enable=true"
 
@@ -67,7 +67,7 @@ services:
       #! Override the default port that the app binds to:
       #! You don't normally need to do this, as long as your image has
       #! an EXPOSE directive in it, Traefik will autodetect it, but this is how you can override it:
-      - "traefik.http.services.(@= router @).loadbalancer.server.port=8080"
+      - "traefik.http.services.(@= router @).loadbalancer.server.port=80"
 
       #! Apply all middlewares (do this at the end!)
       - "traefik.http.routers.(@= router @).middlewares=(@= ','.join(enabled_middlewares) @)"

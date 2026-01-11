@@ -8,7 +8,7 @@ config-hook:
 #### reconfigure_ask asks the user a question to set the variable into the .env file, and with a provided default value.
 #### reconfigure sets the value of a variable in the .env file without asking.
 #### reconfigure_htpasswd will configure the HTTP Basic Authentication setting the var name and with a provided default value.
-	@${BIN}/reconfigure_ask ${ENV_FILE} EXCALIDRAW_TRAEFIK_HOST "Enter the excalidraw domain name" excalidraw${INSTANCE_URL_SUFFIX}.${ROOT_DOMAIN}
+	@${BIN}/reconfigure_ask ${ENV_FILE} EXCALIDRAW_TRAEFIK_HOST "Enter the Excalidraw domain name" excalidraw${INSTANCE_URL_SUFFIX}.${ROOT_DOMAIN}
 	@${BIN}/reconfigure ${ENV_FILE} EXCALIDRAW_INSTANCE=$${instance:-default}
 	@${BIN}/reconfigure_auth ${ENV_FILE} EXCALIDRAW
 	@echo ""
