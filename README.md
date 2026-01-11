@@ -185,6 +185,7 @@ Install these applications at your preference:
 * [Datetime](datetime#readme) - a time viewing and conversion tool
 * [DOH-server](doh-server#readme) - a DNS-over-HTTPs proxy resolver
 * [Ejabberd](ejabberd#readme) - an XMPP (Jabber) server
+* [Excalidraw](excalidraw@readme) - a diagrammer/whiteboard
 * [Filebrowser](filebrowser#readme) - a web based file manager
 * [Firefox](firefox#readme) - a web browser embedded in a web page
 * [FreshRSS](freshrss#readme) - an RSS reader / proxy
