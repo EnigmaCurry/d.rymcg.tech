@@ -26,10 +26,32 @@
 #@ homepage_show_stats_uptime_kuma = data.values.homepage_show_stats_uptime_kuma
 #@ homepage_widget_enable = data.values.homepage_widget_enable == "true"
 #@ homepage_widget_api_key = data.values.homepage_widget_api_key
+
+#@ def get_volume_mounts(volumes_str):
+#@   if volumes_str.strip() == "":
+#@     return []
+#@   end
+#@   pairs = volumes_str.split(",")
+#@   volume_mounts = []
+#@   for pair in pairs:
+#@       pair = pair.strip()
+#@       if ":" not in pair:
+#@         fail("extra_volumes must be a comma-separated list of colon-delimited pairs")
+#@       end
+#@       volume_mounts.append(pair)
+#@   end
+#@   return volume_mounts
+#@ end
+#@ volume_mounts = get_volume_mounts(data.values.extra_volumes)
+
 #@yaml/text-templated-strings
 services:
   uptime_kuma:
     #@ service = "uptime_kuma"
+    volumes:
+      #@ for vol in volume_mounts:
+      - (@= vol @)
+      #@ end
     labels:
       - "backup-volume.stop-during-backup=true"
       #! Services must opt-in to be proxied by Traefik:
