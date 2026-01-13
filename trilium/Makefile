@@ -25,7 +25,7 @@ override-hook:
 ####                         # (this hardcodes the string into docker-compose.override.yaml)
 ####   name=@VARIABLE_NAME   # sets the template 'name' field to the literal string '${VARIABLE_NAME}'
 ####                         # (used for regular docker-compose expansion of env vars by name.)
-	@${BIN}/docker_compose_override ${ENV_FILE} project=:triliumnext-notes instance=@TRILIUM_INSTANCE traefik_host=@TRILIUM_TRAEFIK_HOST http_auth=TRILIUM_HTTP_AUTH http_auth_var=@TRILIUM_HTTP_AUTH ip_sourcerange=@TRILIUM_IP_SOURCERANGE oauth2=TRILIUM_OAUTH2 authorized_group=TRILIUM_OAUTH2_AUTHORIZED_GROUP enable_mtls_auth=TRILIUM_MTLS_AUTH mtls_authorized_certs=TRILIUM_MTLS_AUTHORIZED_CERTS
+	@${BIN}/docker_compose_override ${ENV_FILE} project=:trilium instance=@TRILIUM_INSTANCE traefik_host=@TRILIUM_TRAEFIK_HOST http_auth=TRILIUM_HTTP_AUTH http_auth_var=@TRILIUM_HTTP_AUTH ip_sourcerange=@TRILIUM_IP_SOURCERANGE oauth2=TRILIUM_OAUTH2 authorized_group=TRILIUM_OAUTH2_AUTHORIZED_GROUP enable_mtls_auth=TRILIUM_MTLS_AUTH mtls_authorized_certs=TRILIUM_MTLS_AUTHORIZED_CERTS
 
 .PHONY: shell
 shell:
