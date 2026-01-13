@@ -174,9 +174,13 @@ entryPoints:
         entryPoint:
           to: websecure
       encodedCharacters:
-        allowEncodedSlash: true
-        allowEncodedHash: true
-        allowEncodedPercent: true
+        allowEncodedSlash: #@ data.values.allow_encoded_slash == "true"
+        allowEncodedHash: #@ data.values.allow_encoded_hash == "true"
+        allowEncodedPercent: #@ data.values.allow_encoded_percent == "true"
+        allowEncodedBackSlash: #@ data.values.allow_encoded_back_slash == "true"
+        allowEncodedNulLCharacter: #@ data.values.allow_encoded_null_character == "true"
+        allowEncodedSemicolon: #@ data.values.allow_encoded_semicolon == "true"
+        allowEncodedQuestionMark: #@ data.values.allow_encoded_question_mark == "true"
   #@ end
   #@ if data.values.websecure_entrypoint_enabled == "true":
   websecure:
@@ -216,9 +220,13 @@ entryPoints:
         - traefik-websecure-error-handler-500@file
         #@ end
       encodedCharacters:
-        allowEncodedSlash: true
-        allowEncodedHash: true
-        allowEncodedPercent: true
+        allowEncodedSlash: (@= data.values.allow_encoded_slash @)
+        allowEncodedHash: (@= data.values.allow_encoded_hash @)
+        allowEncodedPercent: (@= data.values.allow_encoded_percent @)
+        allowEncodedBackSlash: (@= data.values.allow_encoded_back_slash @)
+        allowEncodedNulLCharacter: (@= data.values.allow_encoded_null_character @)
+        allowEncodedSemicolon: (@= data.values.allow_encoded_semicolon @)
+        allowEncodedQuestionMark: (@= data.values.allow_encoded_question_mark @)
   #@ end
   #@ if data.values.xmpp_c2s_entrypoint_enabled == "true":
   xmpp_c2s:
@@ -335,9 +343,13 @@ entryPoints:
         - traefik-websecure-error-handler-500@file
         #@ end
       encodedCharacters:
-        allowEncodedSlash: true
-        allowEncodedHash: true
-        allowEncodedPercent: true
+        allowEncodedSlash: (@= data.values.allow_encoded_slash @)
+        allowEncodedHash: (@= data.values.allow_encoded_hash @)
+        allowEncodedPercent: (@= data.values.allow_encoded_percent @)
+        allowEncodedBackSlash: (@= data.values.allow_encoded_back_slash @)
+        allowEncodedNulLCharacter: (@= data.values.allow_encoded_null_character @)
+        allowEncodedSemicolon: (@= data.values.allow_encoded_semicolon @)
+        allowEncodedQuestionMark: (@= data.values.allow_encoded_question_mark @)
   #@ end
   #@ if data.values.iperf_tcp_entrypoint_enabled == "true":
   iperf_tcp:
