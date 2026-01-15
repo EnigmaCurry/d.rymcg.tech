@@ -15,7 +15,7 @@ config-hook:
 	@${BIN}/confirm $$(test "$$(${BIN}/dotenv -f ${ENV_FILE} get OPENWEBUI_CUSTOM_CSS)" == 'true' && echo yes || echo no) "Do want to add your own custom.css file" "?" && ( \
 		${BIN}/reconfigure ${ENV_FILE} OPENWEBUI_CUSTOM_CSS=true && \
 		touch custom.css && \
-		echo -e "\nBe sure to move your custom CSS file to this project directory and name it \`custom.css\`." \
+		echo -e "\nName your custom CSS file \`custom.css\` and move it to this project directory before running `make install`." \
 	) || ( \
 		${BIN}/reconfigure ${ENV_FILE} OPENWEBUI_CUSTOM_CSS=false \
 	)
@@ -70,7 +70,12 @@ shell:
 install-hook:
 	@if [[ "$$(${BIN}/dotenv -f ${ENV_FILE} get OPENWEBUI_CUSTOM_CSS)" == "true" ]]; then \
 		if [[ -f custom.css ]]; then \
-			docker cp custom.css open-webui-openwebui-1:/app/build/static/custom.css; \
+		if [[ "${INSTANCE}" == "default" ]]; then \
+				CONTAINER_NAME="open-webui-openwebui-1"; \
+			else \
+				CONTAINER_NAME="open-webui_${INSTANCE}-openwebui-1"; \
+			fi; \
+			docker cp custom.css "$${CONTAINER_NAME}":/app/build/static/custom.css; \
 		else \
 			echo -e "\nNo \`custom.css\` file found in \`$$(pwd)/\`."; \
 		fi \
