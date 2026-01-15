@@ -70,7 +70,7 @@ shell:
 install-hook:
 	@if [[ "$$(${BIN}/dotenv -f ${ENV_FILE} get OPENWEBUI_CUSTOM_CSS)" == "true" ]]; then \
 		if [[ -f custom.css ]]; then \
-		if [[ "${INSTANCE}" == "default" ]]; then \
+			if [[ "${INSTANCE}" == "default" ]]; then \
 				CONTAINER_NAME="open-webui-openwebui-1"; \
 			else \
 				CONTAINER_NAME="open-webui_${INSTANCE}-openwebui-1"; \
