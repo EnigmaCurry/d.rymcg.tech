@@ -114,6 +114,13 @@ ytt_template() {
         -v dns_entrypoint_host="${TRAEFIK_DNS_ENTRYPOINT_HOST}" \
         -v dns_entrypoint_port="${TRAEFIK_DNS_ENTRYPOINT_PORT}" \
         -v dns_entrypoint_proxy_protocol_trusted_ips="${TRAEFIK_DNS_ENTRYPOINT_PROXY_PROTOCOL_TRUSTED_IPS}" \
+        -v allow_encoded_slash=${TRAEFIK_ALLOW_ENCODED_SLASH} \
+        -v allow_encoded_hash=${TRAEFIK_ALLOW_ENCODED_HASH} \
+        -v allow_encoded_percent=${TRAEFIK_ALLOW_ENCODED_PERCENT} \
+        -v allow_encoded_back_slash=${TRAEFIK_ALLOW_ENCODED_BACK_SLASH} \
+        -v allow_encoded_null_character=${TRAEFIK_ALLOW_ENCODED_NULL_CHARACTER} \
+        -v allow_encoded_semicolon=${TRAEFIK_ALLOW_ENCODED_SEMICOLON} \
+        -v allow_encoded_question_mark=${TRAEFIK_ALLOW_ENCODED_QUESTION_MARK} \
         --data-value-yaml header_authorization_groups="${TRAEFIK_HEADER_AUTHORIZATION_GROUPS}" \
         > ${dst}
     success=$?
