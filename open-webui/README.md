@@ -31,12 +31,12 @@ become the admin automatically.
 
 ### Custom CSS
 
-Optionally, you can create your own `custom.css` file to customize
+Optionally, you can create your own CSS stylesheet to customize
 Open-WebUI's appearance (remember to append the `!important`
 declaration to ensure your custom styles take precedence over
-Open-WebUI's own style sheets). When your run `make config`. Be sure
-to save your custom CSS file in this project's directory and name it
-`custom.css`.
+Open-WebUI's internal style sheets). Be sure to save your custom CSS
+file in this project's directory before running `make install`, and
+name the filet `custom.css`.
 
 ## Install
 
