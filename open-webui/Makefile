@@ -12,6 +12,14 @@ config-hook:
 	@${BIN}/reconfigure ${ENV_FILE} OPENWEBUI_INSTANCE=$${instance:-default}
 	@${BIN}/reconfigure_auth ${ENV_FILE} OPENWEBUI
 	@echo ""
+	@${BIN}/confirm $$(test "$$(${BIN}/dotenv -f ${ENV_FILE} get OPENWEBUI_CUSTOM_CSS)" == 'true' && echo yes || echo no) "Do want to add your own custom.css file" "?" && ( \
+		${BIN}/reconfigure ${ENV_FILE} OPENWEBUI_CUSTOM_CSS=true && \
+		touch custom.css && \
+		echo -e "\nBe sure to move your custom CSS file to this project directory and name it \`custom.css\`." \
+	) || ( \
+		${BIN}/reconfigure ${ENV_FILE} OPENWEBUI_CUSTOM_CSS=false \
+	)
+	@echo ""
 	@${BIN}/confirm $$(test "$$(${BIN}/dotenv -f ${ENV_FILE} get OPENWEBUI_OLLAMA_ENABLE)" == 'false' && echo no || echo yes) "Do you want to install Ollama" "?" && ( \
 		${BIN}/reconfigure ${ENV_FILE} OPENWEBUI_OLLAMA_ENABLE=true && \
 		echo "" && \
@@ -60,6 +68,13 @@ shell:
 
 .PHONY: install-hook
 install-hook:
+	@if [[ "$$(${BIN}/dotenv -f ${ENV_FILE} get OPENWEBUI_CUSTOM_CSS)" == "true" ]]; then \
+		if [[ -f custom.css ]]; then \
+			docker cp custom.css open-webui-openwebui-1:/app/build/static/custom.css; \
+		else \
+			echo -e "\nNo \`custom.css\` file found in \`$$(pwd)/\`."; \
+		fi \
+	fi
 	@echo
 
 .PHONY: install-hook-pre
