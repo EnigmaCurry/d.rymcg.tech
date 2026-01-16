@@ -275,7 +275,6 @@ services:
       traefik.enable: true
       # use as "fallback" for any NON-registered services (with priority below normal)
       traefik.http.routers.error-pages-router.rule: HostRegexp(`.+`)
-      traefik.http.routers.error-pages-router.ruleSyntax: v3
       traefik.http.routers.error-pages-router.priority: 10
       traefik.http.routers.error-pages-router.entrypoints: web,websecure
       traefik.http.routers.error-pages-router.middlewares: error-pages-middleware
