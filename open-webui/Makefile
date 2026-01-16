@@ -68,6 +68,15 @@ shell:
 
 .PHONY: install-hook
 install-hook:
+	@make update-css
+	@echo
+
+.PHONY: install-hook-pre
+install-hook-pre:
+	@echo
+
+.PHONY: update-css # Upload custom.css to container and restart Open-WebUI
+update-css:
 	@if [[ "$$(${BIN}/dotenv -f ${ENV_FILE} get OPENWEBUI_CUSTOM_CSS)" == "true" ]]; then \
 		if [[ -f custom.css ]]; then \
 			if [[ "${INSTANCE}" == "default" ]]; then \
@@ -80,8 +89,5 @@ install-hook:
 			echo -e "\nNo \`custom.css\` file found in \`$$(pwd)/\`."; \
 		fi \
 	fi
-	@echo
-
-.PHONY: install-hook-pre
-install-hook-pre:
+	@make restart
 	@echo
