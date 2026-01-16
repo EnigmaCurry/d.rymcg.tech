@@ -29,6 +29,16 @@ the email address forwarded from traefik-forward-auth
 You must immediately log in, the first user to authenticate will
 become the admin automatically.
 
+### Custom CSS
+
+Optionally, you can create your own CSS stylesheet to customize
+Open-WebUI's appearance (remember to append the `!important`
+declaration to ensure your custom styles take precedence over
+Open-WebUI's internal style sheets). Save your custom CSS file in this
+project's directory before running `make install`, and name the file
+`custom.css`. If you make changes to your `custom.css` file, run `make
+install` again.
+
 ## Install
 
 ```

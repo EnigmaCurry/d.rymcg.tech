@@ -1,5 +1,9 @@
 # drawio
 
+> [!NOTE]
+> draw.io has been deprecated as it's not really open-source:
+> "[This is not an open source project](https://github.com/jgraph/drawio?tab=readme-ov-file#license)"
+
 [drawio](https://github.com/jgraph/drawio) is an open source browser
 based diagram tool. This deployment uses the
 [jgraph/docker-drawio](https://github.com/jgraph/docker-drawio) docker
