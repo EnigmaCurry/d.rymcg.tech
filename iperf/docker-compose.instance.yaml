@@ -35,4 +35,4 @@ services:
       - "traefik.tcp.middlewares.(@= router @)-ipallowlist.ipallowlist.sourcerange=(@= ip_sourcerange @)"
       
       #! Apply all middlewares (do this at the end!)
-      - "traefik.tcp.routers.(@= router @).middlewares=(@= ','.join(enabled_middlewares) @)"
+      - "traefik.tcp.routers.(@= router @)-tcp.middlewares=(@= ','.join(enabled_middlewares) @)"
