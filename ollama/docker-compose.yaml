@@ -34,7 +34,8 @@ services:
     sysctls:
       - net.ipv4.ip_unprivileged_port_start=1024
     restart: unless-stopped
-    gpus: all
+    devices:
+      - nvidia.com/gpu=all
 
   ollama-cpu:
     profiles:
