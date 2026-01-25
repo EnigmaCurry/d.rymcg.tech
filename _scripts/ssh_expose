@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
 ## BIN is the _scripts directory inside of d.rymcg.tech
 BIN=$(dirname $(realpath ${BASH_SOURCE}))

@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
 ## reconfigure_ask_multi ENV_FILE VAR1,VAR2,VAR3 "this is the prompt" "this is the default"
 ## Wrapper for reconfigure_ask to set multiple variables all with the same value.

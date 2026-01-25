@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
 # docker_compose_override ENV_FILE ENV_VAR1 ENV_VAR2 VAR_ALIAS1=ENV_VAR3 VAR4=:"some literal value"...
 set -e

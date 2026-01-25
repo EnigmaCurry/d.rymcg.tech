@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
 ## Reconfigure sshd_config on a remote context and restart sshd.
 ## Example: reconfigure_sshd sentry GatewayPorts=yes PermitRootLogin=prohibit-password

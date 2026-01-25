@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
 ## Open an SSH tunnel to a container port and map it to localhost
 ## port_forward ENV_FILE SERVICE REMOTE_PORT [LOCAL_PORT]

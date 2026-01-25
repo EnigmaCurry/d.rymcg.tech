@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
 ## reconfigure_oauth2 VAR_PREFIX
 

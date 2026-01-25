@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
 ## Asks questions to enter values for environment vars, then runs a program
 ## env_ask VAR="this the prompt (eg. this is the default)" program_to_run.sh

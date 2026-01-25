@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 ## Quick bootstrap of a d.rymcg.tech Sworkstation:
 ## (Only requires a freshly installed Debian-like host.)
 ## Configuration is via environment variables:

@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 source $(dirname $(realpath ${BASH_SOURCE}))/funcs.sh
 
 # Configure the Docker host's /etc/docker/daemon.json file.

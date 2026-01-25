@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
 ### Continously watch a local directory for changes, and rsync immediately to a docker volume.
 ## dev-sync VOLUME SRC DEST

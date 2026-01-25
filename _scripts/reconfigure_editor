@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
 ## reconfigure_editor ENV_FILE VAR PROMPT
 ## Allows user to edit a variable in the .env file using a full text editor

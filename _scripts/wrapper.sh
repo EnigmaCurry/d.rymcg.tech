@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
 wrapper() {
     ## Run a native command if it's available, otherwise from a docker image

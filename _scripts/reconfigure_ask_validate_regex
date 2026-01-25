@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
 ## reconfigure_ask_validate_regex ENV_FILE VAR "this is the prompt" "this is the default" "regex-to-validate-against"
 ## if default is not required, use single - to indicate blank

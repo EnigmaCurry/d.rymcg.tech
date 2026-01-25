@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 ## The eponymous CLI script for the project d.rymcg.tech
 
 ## This script should be symlinked to a directory on your PATH. You
@@ -135,7 +135,7 @@ __make() {
 __list_projects() {
     (
         if [[ "$1" == "--raw" ]]; then
-            find -L "${ROOT_DIR}" -maxdepth 1 -type d -printf "%P\n" | grep -v "^_" | grep -v "^\." | sort -u | xargs -iXX /bin/bash -c "test -f ${ROOT_DIR}/XX/Makefile && echo XX"
+            find -L "${ROOT_DIR}" -maxdepth 1 -type d -printf "%P\n" | grep -v "^_" | grep -v "^\." | sort -u | xargs -iXX bash -c "test -f ${ROOT_DIR}/XX/Makefile && echo XX"
         else
             echo "List of available d.rymcg.tech projects (not including external projects):"
             echo ""

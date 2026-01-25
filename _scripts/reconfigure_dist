@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
 ### Reset a single env var back to the dist default.
 ## reconfigure_dist ENV_FILE VAR

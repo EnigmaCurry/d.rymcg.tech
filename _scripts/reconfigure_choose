@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
 ## reconfigure_choose ENV_FILE VAR PROMPT CHOICE...
 ## Shows the user a list of choices and edits the config file variable VAR with the selection

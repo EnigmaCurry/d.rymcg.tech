@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
 BIN=$(dirname ${BASH_SOURCE})
 source ${BIN}/funcs.sh

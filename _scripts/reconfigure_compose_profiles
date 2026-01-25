@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
 ## reconfigure_compose_profiles ${ENV_FILE} VAR1=profile1 VAR2=profile2 ...
 

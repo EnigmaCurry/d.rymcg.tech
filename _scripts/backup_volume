@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
 ## backup_volume VOLUME_NAME DEST_DIR PATH_SENTINEL
 ## Backup the remote docker volume via rsync to the local destination

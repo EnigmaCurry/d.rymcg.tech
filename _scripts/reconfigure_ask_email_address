@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
 ## reconfigure_ask_host_port ENV_FILE VAR "this is the prompt" "this is the default"
 ## Validate input to be a hostname:port tuple

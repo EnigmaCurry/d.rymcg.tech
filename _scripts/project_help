@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
 # Print help messages for d.rymcg.tech project Makefiles
 

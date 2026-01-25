@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
 ## reconfigure_ask ENV_FILE VAR "this is the prompt" "this is the default"
 ## default may be a single - to indicate the default should be blank.

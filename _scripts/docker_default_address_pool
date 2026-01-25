@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 # -*- mode: shell-script -*-
 
 # Configures remote Docker daemon /etc/docker/daemon.json config for

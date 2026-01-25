@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
 BIN=$(dirname ${BASH_SOURCE})
 ROOT_DIR=${ROOT_DIR:-$(dirname ${BIN})}
@@ -537,7 +537,7 @@ parse_vars_from_env_file() {
 
 get_all_projects() {
     ROOT_DIR=$(realpath ${BIN}/..)
-    find "${ROOT_DIR}" -maxdepth 1 -type d -printf "%P\n" | grep -v "^_" | grep -v "^\." | sort -u | xargs -iXX /bin/bash -c "test -f ${ROOT_DIR}/XX/Makefile && echo XX"
+    find "${ROOT_DIR}" -maxdepth 1 -type d -printf "%P\n" | grep -v "^_" | grep -v "^\." | sort -u | xargs -iXX bash -c "test -f ${ROOT_DIR}/XX/Makefile && echo XX"
 }
 
 wait_until_healthy() {

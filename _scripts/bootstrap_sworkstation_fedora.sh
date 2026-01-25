@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 ## Quick bootstrap of a d.rymcg.tech Sworkstation for Fedora-based systems.
 ## Configuration is via environment variables:
 ##

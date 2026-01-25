@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
 ## reconfigure_auth VAR_PREFIX
 ## Subsume all the authentication and authorization configurations in 1 script
