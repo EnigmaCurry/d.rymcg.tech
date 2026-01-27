@@ -271,6 +271,9 @@ services:
     restart: unless-stopped
     environment:
       TEMPLATE_NAME: ${TRAEFIK_ERROR_PAGES_TEMPLATE}
+      RESPONSE_PLAINTEXT_FORMAT: "${DOCKER_CONTEXT} | {{ code }} | {{ message }}"
+      RESPONSE_JSON_FORMAT: "{\"error\":{\"status\":{{ code }},\"detail\":{{ printf \"%q\" description }}, \"context\": \"${DOCKER_CONTEXT}\"}}"
+      RESPONSE_XML_FORMAT: "<error><code>{{ code }}</code><description>{{ description }}</description><context>${DOCKER_CONTEXT}</context></error>"
     labels:
       traefik.enable: true
       # use as "fallback" for any NON-registered services (with priority below normal)
