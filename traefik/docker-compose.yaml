@@ -18,7 +18,7 @@ services:
         TRAEFIK_GID: ${TRAEFIK_GID}
     user: traefik:traefik
     volumes:
-      - traefik:/data
+      - traefik:/data:z
     environment:
       - DOCKER_CONTEXT=${DOCKER_CONTEXT}
       - DOCKER_COMPOSE_PROFILES=${DOCKER_COMPOSE_PROFILES}
@@ -179,10 +179,10 @@ services:
     command:
       - "--configFile=/data/config/traefik.yml"
     volumes:
-      - "traefik:/data"
-      - "traefik_certs:/certs"
+      - "traefik:/data:z"
+      - "traefik_certs:/certs:z"
       - "/var/run/docker.sock:/var/run/docker.sock:ro,z"
-      - "geoip_database:/var/lib/traefikgeoip2/"
+      - "geoip_database:/var/lib/traefikgeoip2/:z"
     labels:
       - "TRAEFIK_HEADER_AUTHORIZATION_GROUPS=${TRAEFIK_HEADER_AUTHORIZATION_GROUPS}"
 
@@ -201,7 +201,7 @@ services:
       - GEOIPUPDATE_EDITION_IDS=${TRAEFIK_GEOIPUPDATE_EDITION_IDS}
       - GEOIPUPDATE_FREQUENCY=72
     volumes:
-      - "geoip_database:/usr/share/GeoIP"
+      - "geoip_database:/usr/share/GeoIP:z"
 
   wireguard:
     profiles:
@@ -275,7 +275,6 @@ services:
       traefik.enable: true
       # use as "fallback" for any NON-registered services (with priority below normal)
       traefik.http.routers.error-pages-router.rule: HostRegexp(`.+`)
-      traefik.http.routers.error-pages-router.ruleSyntax: v3
       traefik.http.routers.error-pages-router.priority: 10
       traefik.http.routers.error-pages-router.entrypoints: web,websecure
       traefik.http.routers.error-pages-router.middlewares: error-pages-middleware
@@ -311,12 +310,12 @@ services:
     # security_opt:
     #   - no-new-privileges:true
     restart: unless-stopped
-    command: daemon
+    command: "daemon"
     network_mode: host
     volumes:
       - "acme-sh:/acme.sh"
-      - "traefik_certs:/certs"
-      - "traefik:/traefik"
+      - "traefik_certs:/certs:z"
+      - "traefik:/traefik:z"
     environment:
       - TRAEFIK_ACME_CERT_DOMAINS
       - TRAEFIK_ACME_SH_ACME_CA

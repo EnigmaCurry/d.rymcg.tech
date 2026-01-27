@@ -26,6 +26,9 @@
 
 #@ def ollama_service(profile):
 #@   service = "ollama-" + profile
+#@   env = [
+#@     "OLLAMA_CONTEXT_LENGTH=${OLLAMA_CONTEXT_LENGTH}",
+#@   ]
 #@   router = "{}-{}-{}".format(project, instance, service)
 #@   labels = []
 #@   middlewares = []
@@ -49,7 +52,8 @@
 #@   return {
 #@     service: {
 #@       "volumes": volumes,
-#@       "labels": labels
+#@       "labels": labels,
+#@       "environment": env
 #@     }
 #@   }
 #@ end
