@@ -14,6 +14,10 @@ This will ask you to enter the domain name to use.
 It automatically saves your responses into the configuration file
 `.env_{DOCKER_CONTEXT}_{INSTANCE}`.
 
+Edit the `OLLAMA_CONTEXT_LENGTH` variable to set the default context
+length for models you load. (The default is `4096` which is set
+conservatively low.)
+
 ### Authentication and Authorization
 
 You may add an API token to secure your service by setting
