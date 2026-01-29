@@ -134,3 +134,25 @@ acme-sh-destroy-certs:
 
 .PHONY: override-hook
 override-hook:
+
+.PHONY: dashboard # Open the Traefik dashboard TUI (tt-tui-for-traefik)
+dashboard:
+	@TRAEFIK_USERNAME=$$(cat ${ROOT_DIR}/traefik/passwords.json | jq -r '."${DOCKER_CONTEXT}_default".[].username'); \
+	TRAEFIK_PASSWORD=$$(cat ${ROOT_DIR}/traefik/passwords.json | jq -r '."${DOCKER_CONTEXT}_default".[].password'); \
+	if command -v tt >/dev/null; then \
+	  TT_CMD="$$(which tt)"; \
+	  echo "Found $${TT_CMD}"; \
+	elif command -v uvx >/dev/null; then \
+	  TT_CMD="uvx --from tt-tui-for-traefik tt"; \
+	  echo "Using $${TT_CMD}"; \
+	else \
+	  echo; \
+	  echo "Error:"; \
+	  echo "  Please install tt-tui-for-traefik"; \
+	  echo "  e.g., \`uv tool install tt-tui-for-traefik\`"; \
+	  echo ""; \
+	  echo "See https://github.com/EnigmaCurry/tt-tui-for-traefik"; \
+	  echo ""; \
+	  exit 1; \
+	fi; \
+	$${TT_CMD} --url "http://$$(${BIN}/dotenv -f ${ENV_FILE} get TRAEFIK_DASHBOARD_ENTRYPOINT_HOST):$$(${BIN}/dotenv -f ${ENV_FILE} get TRAEFIK_DASHBOARD_ENTRYPOINT_PORT)" --ssh-host "${DOCKER_CONTEXT}" --username "$${TRAEFIK_USERNAME}" --password "$${TRAEFIK_PASSWORD}"
