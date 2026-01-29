@@ -142,8 +142,8 @@ dashboard:
 	if command -v tt >/dev/null; then \
 	  TT_CMD="$$(which tt)"; \
 	  echo "Found $${TT_CMD}"; \
-	elif command -v uvx >/dev/null; then \
-	  TT_CMD="uvx --from tt-tui-for-traefik tt"; \
+	elif command -v uv >/dev/null; then \
+	  TT_CMD="uv tool run --from tt-tui-for-traefik tt"; \
 	  echo "Using $${TT_CMD}"; \
 	else \
 	  echo; \
