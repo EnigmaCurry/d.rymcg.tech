@@ -139,12 +139,9 @@ override-hook:
 dashboard:
 	@TRAEFIK_USERNAME=$$(cat ${ROOT_DIR}/traefik/passwords.json | jq -r '."${DOCKER_CONTEXT}_default".[].username'); \
 	TRAEFIK_PASSWORD=$$(cat ${ROOT_DIR}/traefik/passwords.json | jq -r '."${DOCKER_CONTEXT}_default".[].password'); \
-	if command -v tt >/dev/null; then \
-	  TT_CMD="$$(which tt)"; \
-	  echo "Found $${TT_CMD}"; \
-	elif command -v uv >/dev/null; then \
+	if command -v uv >/dev/null; then \
 	  TT_CMD="uv tool run --from tt-tui-for-traefik tt"; \
-	  echo "Using $${TT_CMD}"; \
+	  echo "Starting: $${TT_CMD}"; \
 	else \
 	  echo; \
 	  echo "Error:"; \
