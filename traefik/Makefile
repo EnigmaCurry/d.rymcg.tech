@@ -145,10 +145,8 @@ dashboard:
 	else \
 	  echo; \
 	  echo "Error:"; \
-	  echo "  Please install tt-tui-for-traefik"; \
-	  echo "  e.g., \`uv tool install tt-tui-for-traefik\`"; \
-	  echo ""; \
-	  echo "See https://github.com/EnigmaCurry/tt-tui-for-traefik"; \
+	  echo "  \`uv\` is required to run tt-tui-for-traefik"; \
+	  echo "  Run: \`curl -LsSf https://astral.sh/uv/install.sh | sh\`"; \
 	  echo ""; \
 	  exit 1; \
 	fi; \
