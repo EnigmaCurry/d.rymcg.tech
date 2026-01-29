@@ -81,6 +81,9 @@ install-hook:
 		fi \
 	fi
 	@echo
+	@echo "Restarting container so Open-WebUI recognizes updated \`custom.css\`."
+	@echo
+	@make restart
 
 .PHONY: install-hook-pre
 install-hook-pre:
