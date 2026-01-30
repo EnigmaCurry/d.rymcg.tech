@@ -61,7 +61,8 @@ admin() {
     wizard menu "Traefik Admin:" \
            "Review logs = ./setup.sh logs" \
            "Manage containers = ./setup.sh manage_containers" \
-           "Manage wireguard = ./setup.sh manage_wireguard"
+           "Manage wireguard = ./setup.sh manage_wireguard" \
+           "Open dashboard (tt-tui-for-traefik) = make dashboard"
 }
 
 shell_menu() {

@@ -134,3 +134,20 @@ acme-sh-destroy-certs:
 
 .PHONY: override-hook
 override-hook:
+
+.PHONY: dashboard # Open the Traefik dashboard TUI (tt-tui-for-traefik)
+dashboard:
+	@TRAEFIK_USERNAME=$$(cat ${ROOT_DIR}/traefik/passwords.json | jq -r '."${DOCKER_CONTEXT}_default".[].username'); \
+	TRAEFIK_PASSWORD=$$(cat ${ROOT_DIR}/traefik/passwords.json | jq -r '."${DOCKER_CONTEXT}_default".[].password'); \
+	if command -v uv >/dev/null; then \
+	  TT_CMD="uv tool run --from tt-tui-for-traefik tt"; \
+	  echo "Starting: $${TT_CMD}"; \
+	else \
+	  echo; \
+	  echo "Error:"; \
+	  echo "  \`uv\` is required to run tt-tui-for-traefik"; \
+	  echo "  Run: \`curl -LsSf https://astral.sh/uv/install.sh | sh\`"; \
+	  echo ""; \
+	  exit 1; \
+	fi; \
+	$${TT_CMD} --url "http://$$(${BIN}/dotenv -f ${ENV_FILE} get TRAEFIK_DASHBOARD_ENTRYPOINT_HOST):$$(${BIN}/dotenv -f ${ENV_FILE} get TRAEFIK_DASHBOARD_ENTRYPOINT_PORT)" --ssh-host "${DOCKER_CONTEXT}" --username "$${TRAEFIK_USERNAME}" --password "$${TRAEFIK_PASSWORD}"
