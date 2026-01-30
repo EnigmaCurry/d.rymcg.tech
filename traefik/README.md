@@ -303,6 +303,29 @@ With the tunnel active, you can view
 [https://localhost:8080/dashboard/](https://localhost:8080/dashboard/) in your
 web browser to access it. Enter the username/password you configured.
 
+### TUI Dashboard
+
+There is a TUI dashboard to make it easier to view the dashboard
+direclty in your workstation terminal
+
+ * Install
+   [tt-tui-for-traefik](https://github.com/EnigmaCurry/tt-tui-for-traefik)
+   
+```
+uvx tool install tt-tui-for-traefik
+```
+
+ * Run the dashboard
+ 
+```
+make dashboard
+```
+
+If you chose to save the Traefik dashboard credentials in
+`passwords.json`, they will be automatically used to connect to the
+dashboard, otherwise you will be prompted to enter your credentials
+(not saved).
+
 ## Traefik plugins
 
 The Traefik container image is rebuilt each time you run `make

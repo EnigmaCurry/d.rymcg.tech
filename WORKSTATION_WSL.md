@@ -33,6 +33,8 @@ sudo apt update
 sudo apt install bash build-essential gettext git openssl apache2-utils \
                  xdg-utils jq sshfs wireguard curl inotify-tools w3m \
                  moreutils keychain ipcalc-ng
+                 
+curl -LsSf https://astral.sh/uv/install.sh | sh
 ```
 
 Note: `sudo` may ask you to enter your *Linux* user's password.
