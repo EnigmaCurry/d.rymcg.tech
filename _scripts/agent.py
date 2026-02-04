@@ -326,16 +326,21 @@ def check_remote_context_exists() -> CheckResult:
         )
     create_context_example = """\
 ```bash
-## Set these variables for your Docker server:
-SSH_HOST=docker-server
-SSH_HOSTNAME=192.168.1.100
-SSH_USER=root
+set -euo pipefail
 
-## Append SSH host entry to ~/.ssh/config:
-cat <<EOF >> ~/.ssh/config
+## Set these variables for your Docker server:
+## (Replace these example values with your actual server details)
+SSH_HOST=docker-server      # A short nickname for this server
+SSH_HOSTNAME=192.168.1.100  # The IP address or domain name
+SSH_USER=root               # The SSH username
+SSH_PORT=22                 # The SSH port
+
+## Append SSH host entry to ~/.ssh/config (if it doesn't exist):
+grep -q "^Host ${SSH_HOST}$" ~/.ssh/config 2>/dev/null || cat <<EOF >> ~/.ssh/config
 
 Host ${SSH_HOST}
     Hostname ${SSH_HOSTNAME}
+    Port ${SSH_PORT}
     User ${SSH_USER}
     ControlMaster auto
     ControlPersist yes
