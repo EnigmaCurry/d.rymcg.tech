@@ -98,6 +98,10 @@ userns-remap-check:
 readme:
 	xdg-open "https://github.com/EnigmaCurry/d.rymcg.tech/tree/master#readme"
 
+.PHONY: agent # Run agent readiness tool
+agent:
+	@_scripts/agent.py
+
 .PHONY: install-cli # Install CLI
 install-cli:
 	@echo "## Add this to the bottom of your ~/.bashrc or ~/.profile ::"

@@ -21,6 +21,7 @@ USAGE
 OPTIONS
     --json          Output in JSON format (default: plain text)
     --quiet         Only output failures and next steps
+    --pager         Enable pager for terminal output
     --help          Show this help message
 
 OUTPUT FORMAT
@@ -52,7 +53,6 @@ CHECKLIST CRITERIA
     d.rymcg.tech setup:
       - Repository cloned to expected path
       - d.rymcg.tech in PATH
-      - Bash completion configured
 
     SSH configuration:
       - SSH agent running with key loaded, or detect a passwordless SSH key in ~/.ssh
@@ -270,24 +270,6 @@ def check_d_in_path() -> CheckResult:
     )
 
 
-def check_bash_completion() -> CheckResult:
-    """Check if bash completion is configured in .bashrc."""
-    bashrc = Path.home() / ".bashrc"
-    configured = False
-    if bashrc.is_file():
-        content = bashrc.read_text()
-        configured = "d.rymcg.tech completion" in content
-    return CheckResult(
-        name="Bash completion configured",
-        passed=configured,
-        message="Completion configured in .bashrc" if configured else "Completion not configured",
-        category="d.rymcg.tech setup",
-        next_step=None
-        if configured
-        else 'Add to ~/.bashrc: eval "$(d.rymcg.tech completion bash)"',
-    )
-
-
 def check_ssh_keys() -> CheckResult:
     """Check for SSH agent with loaded keys or passwordless SSH key."""
     ssh_dir = Path.home() / ".ssh"
@@ -304,23 +286,20 @@ def check_ssh_keys() -> CheckResult:
             next_step=None,
         )
 
-    # Check for passwordless SSH keys
+    # Check for passwordless SSH keys using ssh-keygen to test if key requires passphrase
     for key_name in key_files:
         key_path = ssh_dir / key_name
         if key_path.is_file():
-            # Try to determine if key is passwordless by checking if it's encrypted
-            try:
-                content = key_path.read_text()
-                if "ENCRYPTED" not in content:
-                    return CheckResult(
-                        name="SSH key available",
-                        passed=True,
-                        message=f"Passwordless SSH key found: {key_path}",
-                        category="SSH configuration",
-                        next_step=None,
-                    )
-            except PermissionError:
-                pass
+            # Try to read the public key with empty passphrase - succeeds only if unencrypted
+            success, _ = run_command(["ssh-keygen", "-y", "-P", "", "-f", str(key_path)])
+            if success:
+                return CheckResult(
+                    name="SSH key available",
+                    passed=True,
+                    message=f"Passwordless SSH key found: {key_path}",
+                    category="SSH configuration",
+                    next_step=None,
+                )
 
     # Check if any SSH keys exist at all
     existing_keys = [ssh_dir / k for k in key_files if (ssh_dir / k).is_file()]
@@ -365,12 +344,33 @@ def check_remote_context_exists() -> CheckResult:
             category="Docker context",
             next_step=None,
         )
+    create_context_example = """\
+```bash
+## Set these variables for your Docker server:
+SSH_HOST=docker-server
+SSH_HOSTNAME=192.168.1.100
+SSH_USER=root
+
+## Append SSH host entry to ~/.ssh/config:
+cat <<EOF >> ~/.ssh/config
+
+Host ${SSH_HOST}
+    Hostname ${SSH_HOSTNAME}
+    User ${SSH_USER}
+    ControlMaster auto
+    ControlPersist yes
+    ControlPath /tmp/ssh-%u-%r@%h:%p
+EOF
+
+## Create the Docker context:
+docker context create ${SSH_HOST} --docker host=ssh://${SSH_HOST}
+```"""
     return CheckResult(
         name="Remote Docker context exists",
         passed=False,
         message="No remote Docker contexts found",
         category="Docker context",
-        next_step="Create a Docker context: docker context create <name> --docker host=ssh://user@server",
+        next_step=f"Create a remote Docker context:\n\n{create_context_example}",
     )
 
 
@@ -529,21 +529,46 @@ def run_all_checks() -> CheckReport:
     # d.rymcg.tech setup
     report.results.append(check_repo_cloned())
     report.results.append(check_d_in_path())
-    report.results.append(check_bash_completion())
 
     # SSH configuration
     report.results.append(check_ssh_keys())
 
-    # Docker context
-    report.results.append(check_remote_context_exists())
-    report.results.append(check_current_context_remote())
-    report.results.append(check_context_reachable())
+    # Docker context (cascading checks - only show next_step for first failure)
+    remote_exists_result = check_remote_context_exists()
+    report.results.append(remote_exists_result)
+
+    if remote_exists_result.passed:
+        current_remote_result = check_current_context_remote()
+        report.results.append(current_remote_result)
+    else:
+        report.results.append(
+            CheckResult(
+                name="Current context is remote",
+                passed=False,
+                message="Skipped - no remote contexts exist",
+                category="Docker context",
+                next_step=None,  # Avoid redundant step
+            )
+        )
+        current_remote_result = None
+
+    if current_remote_result and current_remote_result.passed:
+        context_reachable_result = check_context_reachable()
+        report.results.append(context_reachable_result)
+    else:
+        report.results.append(
+            CheckResult(
+                name="Docker context reachable",
+                passed=False,
+                message="Skipped - no remote context selected",
+                category="Docker context",
+                next_step=None,  # Avoid redundant step
+            )
+        )
+        context_reachable_result = None
 
     # Server readiness (only if context is reachable)
-    context_reachable = any(
-        r.name == "Docker context reachable" and r.passed for r in report.results
-    )
-    if context_reachable:
+    if context_reachable_result and context_reachable_result.passed:
         report.results.append(check_traefik_healthy())
         report.results.append(check_acme_dns_healthy())
     else:
@@ -553,7 +578,7 @@ def run_all_checks() -> CheckReport:
                 passed=False,
                 message="Skipped - Docker context not reachable",
                 category="Server readiness",
-                next_step="Ensure Docker context is reachable first",
+                next_step=None,  # Avoid redundant step
             )
         )
         report.results.append(
@@ -562,7 +587,7 @@ def run_all_checks() -> CheckReport:
                 passed=False,
                 message="Skipped - Docker context not reachable",
                 category="Server readiness",
-                next_step="Ensure Docker context is reachable first",
+                next_step=None,  # Avoid redundant step
             )
         )
 
@@ -607,16 +632,13 @@ def generate_markdown(report: CheckReport, quiet: bool = False) -> str:
     return "\n".join(lines)
 
 
-def print_report(report: CheckReport, quiet: bool = False, use_pager: bool = True) -> None:
-    """Print report - rich markdown to terminal, plain text if piped."""
+def print_report(report: CheckReport, quiet: bool = False, use_pager: bool = False) -> None:
+    """Print report - rich markdown with pager, plain text otherwise."""
     markdown_text = generate_markdown(report, quiet)
 
-    if sys.stdout.isatty():
+    if use_pager and sys.stdout.isatty():
         console = Console()
-        if use_pager:
-            with console.pager(styles=True):
-                console.print(Markdown(markdown_text))
-        else:
+        with console.pager(styles=True):
             console.print(Markdown(markdown_text))
     else:
         print(markdown_text)
@@ -641,8 +663,8 @@ def main() -> int:
         "--quiet", action="store_true", help="Only output failures and next steps"
     )
     parser.add_argument(
-        "--no-pager", action="store_true", dest="no_pager",
-        help="Disable pager for terminal output"
+        "--pager", action="store_true",
+        help="Enable pager for terminal output"
     )
 
     args = parser.parse_args()
@@ -653,7 +675,7 @@ def main() -> int:
         if args.json:
             print_json(report)
         else:
-            print_report(report, quiet=args.quiet, use_pager=not args.no_pager)
+            print_report(report, quiet=args.quiet, use_pager=args.pager)
 
         return 0 if report.all_passed else 1
 

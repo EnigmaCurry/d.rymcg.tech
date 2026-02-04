@@ -64,6 +64,7 @@ __help() {
         echo -e "fail2ban\tConfigure fail2ban on the Docker host"
         echo -e "reconfigure\tReconfigure a single env var in the root context config"
         echo -e "daemon-conf\tReconfigures the Docker host's daemon config"
+        echo -e "agent\tRun agent readiness tool"
     ) | expand -t 30
     echo ""
     echo "## Documentation sub-commands:"
@@ -355,7 +356,7 @@ __d.rymcg.tech_completions() {
     if [[ ${COMP_CWORD} == 1 ]]; then
         ## Complete the main command:
         ## d.rymcg.tech <TAB> ...
-        COMMANDS="help create cd make list readme info context new-context tmp-context aliases completion install install-docker status ssh audit sshd-config ssh-expose show-ports s3-volume docker-default-address-pool route routes reconfigure daemon-conf fail2ban networks config"
+        COMMANDS="help create cd make list readme info context new-context tmp-context aliases completion install install-docker status ssh audit sshd-config ssh-expose show-ports s3-volume docker-default-address-pool route routes reconfigure daemon-conf fail2ban networks config agent"
         COMPREPLY=($(compgen -W "${COMMANDS}" "${COMP_WORDS[1]}"))
     elif [[ ${COMP_CWORD} == 2 ]]; then
         ALL_PROJECTS=$(d.rymcg.tech list --raw)
@@ -526,6 +527,8 @@ main() {
                 __make -- networks;;
             config)
                 __make -- config;;
+            agent)
+                ${BIN}/agent.py "$@";;
             *)
                 fault "Invalid command"
         esac
