@@ -44,7 +44,11 @@ _scripts/agent.py \
   --ssh-user root \
   --ssh-port 22 \
   --root-domain example.com
+```
 
+More options:
+
+```
 # Subsequent runs - uses saved configuration:
 _scripts/agent.py
 
@@ -86,7 +90,10 @@ The script checks prerequisites in order, with cascading dependencies:
 6. **Docker context reachable** - Can connect to Docker daemon via SSH
 7. **Server readiness** - Traefik and acme-dns installed and healthy
 
-Each step provides actionable next steps if it fails. Follow them in order.
+Each step provides actionable next steps if it fails. Follow them in
+order. Once you have finished a task, re-run the agent script again to
+get the instructions for the next task. Repeat until all checks passed
+and the script completes with return code 0.
 
 ## Exit Codes
 
@@ -96,35 +103,42 @@ Each step provides actionable next steps if it fails. Follow them in order.
 
 ## Example Workflow
 
-1. **Ask the user** for the five required fields (context_name, ssh_hostname, ssh_user, ssh_port, root_domain)
+0. **Get the current config, if any**: Run 
+    ```bash
+    _scripts/agent.py --current-context
+    ```
+1. **Ask the user** for the five required fields if they are missing from the current config: (context_name, ssh_hostname, ssh_user, ssh_port, root_domain)
 
 2. **Run the agent script** with all parameters:
    ```bash
    _scripts/agent.py --context myserver --ssh-hostname 10.0.0.5 --ssh-user admin --ssh-port 22 --root-domain mysite.com
    ```
 
-3. **Follow the next steps** in the output. The script will provide copy-pasteable bash commands.
+3. **Follow the next steps** in the output. The script will provide
+   you with copy-pasteable bash commands.
 
 4. **Re-run the script** after completing each step until all checks pass.
 
 ## Key Commands (After Setup)
 
-### Context management
+TODO: make this machine runnable.
+
+### Context management (interactive)
 ```bash
-d context              # Switch Docker context (which server to control)
-d.rymcg.tech agent     # Run readiness checker with pager
+d.rymcg.tech context              # Switch Docker context (which server to control)
+d.rymcg.tech agent                # Run readiness checker with pager
 ```
 
 ### Per-project commands (run from any directory)
 ```bash
-d make <project> config     # Configure .env file via wizard
-d make <project> install    # Deploy to server
-d make <project> reinstall  # Tear down and reinstall
-d make <project> uninstall  # Remove containers, keep volumes
-d make <project> destroy    # Remove containers AND volumes
-d make <project> open       # Open in browser
-d make <project> logs       # View logs
-d make <project> status     # Check container status
+d.rymcg.tech make <project> config     # Configure .env file via wizard
+d.rymcg.tech make <project> install    # Deploy to server
+d.rymcg.tech make <project> reinstall  # Tear down and reinstall
+d.rymcg.tech make <project> uninstall  # Remove containers, keep volumes
+d.rymcg.tech make <project> destroy    # Remove containers AND volumes
+d.rymcg.tech make <project> open       # Open in browser
+d.rymcg.tech make <project> logs       # View logs
+d.rymcg.tech make <project> status     # Check container status
 ```
 
 ## Initial Service Setup Order
