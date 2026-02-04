@@ -17,10 +17,19 @@ USAGE
     _scripts/agent.py [OPTIONS]
 
 OPTIONS
-    --json          Output in JSON format (default: plain text)
-    --full          Show full checklist (default: only failures and next steps)
-    --pager         Enable pager for terminal output
-    --help          Show this help message
+    --context NAME      Set or switch to context NAME (required on first run)
+    --ssh-hostname HOST SSH hostname or IP address
+    --ssh-user USER     SSH username
+    --ssh-port PORT     SSH port (default: 22)
+    --root-domain DOMAIN Root domain (e.g., example.com)
+    --list-contexts     List all configured contexts (JSON)
+    --current-context   Show current context configuration (JSON)
+    --json              Output in JSON format (default: plain text)
+    --full              Show full checklist (default: only failures and next steps)
+    --pager             Enable pager for terminal output
+    --cached            Skip checks requiring SSH (use cached results if valid)
+    --cache-ttl N       Cache time-to-live in seconds (default: 43200 / 12 hours)
+    --help              Show this help message
 
 OUTPUT FORMAT
     The script outputs two sections:
@@ -81,10 +90,114 @@ import os
 import shutil
 import subprocess
 import sys
+import time
 from dataclasses import dataclass, field
+from datetime import datetime, timezone
 from pathlib import Path
 
 from rich.console import Console
+
+
+CACHE_DIR = Path.home() / ".local" / "d.rymcg.tech"
+CACHE_FILE = CACHE_DIR / "agent.results.json"
+CONTEXTS_FILE = CACHE_DIR / "agent.contexts.json"
+DEFAULT_CACHE_TTL = 43200  # 12 hours
+
+# Required fields for a context configuration
+CONTEXT_FIELDS = ["ssh_hostname", "ssh_user", "ssh_port", "root_domain"]
+
+
+@dataclass
+class ContextConfig:
+    """Configuration for a Docker context."""
+    context_name: str
+    ssh_hostname: str
+    ssh_user: str
+    ssh_port: int
+    root_domain: str
+
+    def to_dict(self) -> dict:
+        return {
+            "ssh_hostname": self.ssh_hostname,
+            "ssh_user": self.ssh_user,
+            "ssh_port": self.ssh_port,
+            "root_domain": self.root_domain,
+        }
+
+    @classmethod
+    def from_dict(cls, context_name: str, data: dict) -> "ContextConfig":
+        return cls(
+            context_name=context_name,
+            ssh_hostname=data["ssh_hostname"],
+            ssh_user=data["ssh_user"],
+            ssh_port=data["ssh_port"],
+            root_domain=data["root_domain"],
+        )
+
+
+def load_contexts_file() -> dict:
+    """Load the contexts JSON file."""
+    if not CONTEXTS_FILE.exists():
+        return {"current": None, "contexts": {}}
+    try:
+        return json.loads(CONTEXTS_FILE.read_text())
+    except (json.JSONDecodeError, OSError):
+        return {"current": None, "contexts": {}}
+
+
+def save_contexts_file(data: dict) -> None:
+    """Save the contexts JSON file."""
+    CACHE_DIR.mkdir(parents=True, exist_ok=True)
+    CONTEXTS_FILE.write_text(json.dumps(data, indent=2))
+
+
+def get_current_context_name() -> str | None:
+    """Get the current context name."""
+    data = load_contexts_file()
+    return data.get("current")
+
+
+def set_current_context(context_name: str) -> None:
+    """Set the current context name."""
+    data = load_contexts_file()
+    data["current"] = context_name
+    save_contexts_file(data)
+
+
+def get_context_config(context_name: str) -> ContextConfig | None:
+    """Get configuration for a specific context."""
+    data = load_contexts_file()
+    contexts = data.get("contexts", {})
+    if context_name not in contexts:
+        return None
+    try:
+        return ContextConfig.from_dict(context_name, contexts[context_name])
+    except (KeyError, TypeError):
+        return None
+
+
+def save_context_config(config: ContextConfig) -> None:
+    """Save configuration for a context."""
+    data = load_contexts_file()
+    if "contexts" not in data:
+        data["contexts"] = {}
+    data["contexts"][config.context_name] = config.to_dict()
+    data["current"] = config.context_name
+    save_contexts_file(data)
+
+
+def get_missing_context_fields(context_name: str) -> list[str]:
+    """Get list of missing fields for a context."""
+    data = load_contexts_file()
+    contexts = data.get("contexts", {})
+    if context_name not in contexts:
+        return CONTEXT_FIELDS.copy()
+    ctx = contexts[context_name]
+    missing = []
+    for field in CONTEXT_FIELDS:
+        if field not in ctx or ctx[field] is None or ctx[field] == "":
+            missing.append(field)
+    return missing
 
 
 @dataclass
@@ -114,12 +227,14 @@ class CheckReport:
 
     def to_dict(self) -> dict:
         return {
+            "timestamp": datetime.now(timezone.utc).isoformat(),
             "checklist": [
                 {
                     "name": r.name,
                     "category": r.category,
                     "passed": r.passed,
                     "message": r.message,
+                    "next_step": r.next_step,
                 }
                 for r in self.results
             ],
@@ -154,6 +269,38 @@ def get_default_repo_path() -> Path:
     if env_path:
         return Path(env_path).expanduser()
     return Path.home() / "git" / "vendor" / "enigmacurry" / "d.rymcg.tech"
+
+
+def save_cache(report: CheckReport) -> None:
+    """Save report to cache file."""
+    CACHE_DIR.mkdir(parents=True, exist_ok=True)
+    CACHE_FILE.write_text(json.dumps(report.to_dict(), indent=2))
+
+
+def load_cache(ttl: int) -> dict | None:
+    """Load cache if it exists and is not expired. Returns None if invalid/expired."""
+    if not CACHE_FILE.exists():
+        return None
+
+    try:
+        data = json.loads(CACHE_FILE.read_text())
+        timestamp_str = data.get("timestamp")
+        if not timestamp_str:
+            CACHE_FILE.unlink()
+            return None
+
+        cache_time = datetime.fromisoformat(timestamp_str)
+        age = (datetime.now(timezone.utc) - cache_time).total_seconds()
+
+        if age > ttl:
+            CACHE_FILE.unlink()
+            return None
+
+        return data
+    except (json.JSONDecodeError, ValueError, OSError):
+        if CACHE_FILE.exists():
+            CACHE_FILE.unlink()
+        return None
 
 
 # =============================================================================
@@ -301,8 +448,70 @@ def check_ssh_keys() -> CheckResult:
     )
 
 
-def check_remote_context_exists() -> CheckResult:
-    """Check if at least one remote Docker context exists."""
+def check_ssh_host_configured(config: ContextConfig) -> CheckResult:
+    """Check if the specified SSH host is configured in ~/.ssh/config."""
+    ssh_config = Path.home() / ".ssh" / "config"
+
+    def get_ssh_setup_example() -> str:
+        return f"""\
+```bash
+(
+set -euo pipefail
+
+## Append SSH host entry to ~/.ssh/config (if it doesn't exist):
+grep -q "^Host {config.context_name}$" ~/.ssh/config 2>/dev/null || cat <<EOF >> ~/.ssh/config
+
+Host {config.context_name}
+    Hostname {config.ssh_hostname}
+    Port {config.ssh_port}
+    User {config.ssh_user}
+    ControlMaster auto
+    ControlPersist yes
+    ControlPath /tmp/ssh-%u-%r@%h:%p
+EOF
+
+## Test SSH connection (auto-trusts host key on first use):
+ssh -o StrictHostKeyChecking=accept-new {config.context_name} echo "SSH connection successful"
+)
+```"""
+
+    if not ssh_config.exists():
+        return CheckResult(
+            name="SSH host configured",
+            passed=False,
+            message=f"No ~/.ssh/config file found (need host: {config.context_name})",
+            category="SSH configuration",
+            next_step=f"Set up SSH connection to Docker server:\n\n{get_ssh_setup_example()}",
+        )
+
+    try:
+        content = ssh_config.read_text()
+        # Look for the specific Host entry
+        import re
+        hosts = re.findall(r'^Host\s+(\S+)', content, re.MULTILINE)
+
+        if config.context_name in hosts:
+            return CheckResult(
+                name="SSH host configured",
+                passed=True,
+                message=f"SSH host '{config.context_name}' is configured",
+                category="SSH configuration",
+                next_step=None,
+            )
+    except OSError:
+        pass
+
+    return CheckResult(
+        name="SSH host configured",
+        passed=False,
+        message=f"SSH host '{config.context_name}' not found in ~/.ssh/config",
+        category="SSH configuration",
+        next_step=f"Set up SSH connection to Docker server:\n\n{get_ssh_setup_example()}",
+    )
+
+
+def check_remote_context_exists(config: ContextConfig) -> CheckResult:
+    """Check if the specified Docker context exists."""
     success, output = run_command(["docker", "context", "ls", "--format", "{{.Name}}"])
     if not success:
         return CheckResult(
@@ -314,48 +523,30 @@ def check_remote_context_exists() -> CheckResult:
         )
 
     contexts = [c.strip() for c in output.split("\n") if c.strip()]
-    remote_contexts = [c for c in contexts if c != "default"]
 
-    if remote_contexts:
+    if config.context_name in contexts:
         return CheckResult(
             name="Remote Docker context exists",
             passed=True,
-            message=f"Remote contexts: {', '.join(remote_contexts)}",
+            message=f"Docker context '{config.context_name}' exists",
             category="Docker context",
             next_step=None,
         )
-    create_context_example = """\
+    docker_context_example = f"""\
 ```bash
+(
 set -euo pipefail
 
-## Set these variables for your Docker server:
-## (Replace these example values with your actual server details)
-SSH_HOST=docker-server      # A short nickname for this server
-SSH_HOSTNAME=192.168.1.100  # The IP address or domain name
-SSH_USER=root               # The SSH username
-SSH_PORT=22                 # The SSH port
-
-## Append SSH host entry to ~/.ssh/config (if it doesn't exist):
-grep -q "^Host ${SSH_HOST}$" ~/.ssh/config 2>/dev/null || cat <<EOF >> ~/.ssh/config
-
-Host ${SSH_HOST}
-    Hostname ${SSH_HOSTNAME}
-    Port ${SSH_PORT}
-    User ${SSH_USER}
-    ControlMaster auto
-    ControlPersist yes
-    ControlPath /tmp/ssh-%u-%r@%h:%p
-EOF
-
 ## Create the Docker context:
-docker context create ${SSH_HOST} --docker host=ssh://${SSH_HOST}
+docker context create {config.context_name} --docker host=ssh://{config.context_name}
+)
 ```"""
     return CheckResult(
         name="Remote Docker context exists",
         passed=False,
-        message="No remote Docker contexts found",
+        message=f"Docker context '{config.context_name}' not found",
         category="Docker context",
-        next_step=f"Create a remote Docker context:\n\n{create_context_example}",
+        next_step=f"Create the Docker context:\n\n{docker_context_example}",
     )
 
 
@@ -504,8 +695,13 @@ def check_acme_dns_healthy() -> CheckResult:
 # =============================================================================
 
 
-def run_all_checks() -> CheckReport:
-    """Run all checks and return a report."""
+def run_all_checks(skip_ssh: bool = False, context_config: ContextConfig | None = None) -> CheckReport:
+    """Run all checks and return a report.
+
+    Args:
+        skip_ssh: If True, skip checks that require SSH authentication.
+        context_config: The context configuration to use.
+    """
     report = CheckReport()
 
     # Workstation packages
@@ -518,8 +714,61 @@ def run_all_checks() -> CheckReport:
     # SSH configuration
     report.results.append(check_ssh_keys())
 
+    # SSH host configuration (cascading - must pass before Docker context checks)
+    ssh_host_result = check_ssh_host_configured(context_config)
+    report.results.append(ssh_host_result)
+
+    if not ssh_host_result.passed:
+        # Skip all Docker context checks if SSH host not configured
+        report.results.append(
+            CheckResult(
+                name="Remote Docker context exists",
+                passed=False,
+                message="Skipped - SSH host not configured",
+                category="Docker context",
+                next_step=None,
+            )
+        )
+        report.results.append(
+            CheckResult(
+                name="Current context is remote",
+                passed=False,
+                message="Skipped - SSH host not configured",
+                category="Docker context",
+                next_step=None,
+            )
+        )
+        report.results.append(
+            CheckResult(
+                name="Docker context reachable",
+                passed=False,
+                message="Skipped - SSH host not configured",
+                category="Docker context",
+                next_step=None,
+            )
+        )
+        report.results.append(
+            CheckResult(
+                name="Traefik installed and healthy",
+                passed=False,
+                message="Skipped - SSH host not configured",
+                category="Server readiness",
+                next_step=None,
+            )
+        )
+        report.results.append(
+            CheckResult(
+                name="acme-dns installed and healthy",
+                passed=False,
+                message="Skipped - SSH host not configured",
+                category="Server readiness",
+                next_step=None,
+            )
+        )
+        return report
+
     # Docker context (cascading checks - only show next_step for first failure)
-    remote_exists_result = check_remote_context_exists()
+    remote_exists_result = check_remote_context_exists(context_config)
     report.results.append(remote_exists_result)
 
     if remote_exists_result.passed:
@@ -536,6 +785,37 @@ def run_all_checks() -> CheckReport:
             )
         )
         current_remote_result = None
+
+    # Skip SSH-requiring checks if requested
+    if skip_ssh:
+        report.results.append(
+            CheckResult(
+                name="Docker context reachable",
+                passed=False,
+                message="Skipped - using cached mode",
+                category="Docker context",
+                next_step=None,
+            )
+        )
+        report.results.append(
+            CheckResult(
+                name="Traefik installed and healthy",
+                passed=False,
+                message="Skipped - using cached mode",
+                category="Server readiness",
+                next_step=None,
+            )
+        )
+        report.results.append(
+            CheckResult(
+                name="acme-dns installed and healthy",
+                passed=False,
+                message="Skipped - using cached mode",
+                category="Server readiness",
+                next_step=None,
+            )
+        )
+        return report
 
     if current_remote_result and current_remote_result.passed:
         context_reachable_result = check_context_reachable()
@@ -665,11 +945,129 @@ def main() -> int:
         "--pager", action="store_true",
         help="Enable pager for terminal output"
     )
+    parser.add_argument(
+        "--cached", action="store_true",
+        help="Skip checks that require SSH authentication"
+    )
+    parser.add_argument(
+        "--cache-ttl", type=int, default=DEFAULT_CACHE_TTL, metavar="SECONDS",
+        help=f"Cache time-to-live in seconds (default: {DEFAULT_CACHE_TTL})"
+    )
+    parser.add_argument(
+        "--context", metavar="NAME",
+        help="Set or switch to context NAME"
+    )
+    parser.add_argument(
+        "--ssh-hostname", metavar="HOST",
+        help="SSH hostname or IP address for the context"
+    )
+    parser.add_argument(
+        "--ssh-user", metavar="USER",
+        help="SSH username for the context"
+    )
+    parser.add_argument(
+        "--ssh-port", type=int, metavar="PORT",
+        help="SSH port for the context (default: 22)"
+    )
+    parser.add_argument(
+        "--root-domain", metavar="DOMAIN",
+        help="Root domain for the context (e.g., example.com)"
+    )
+    parser.add_argument(
+        "--list-contexts", action="store_true",
+        help="List all configured contexts"
+    )
+    parser.add_argument(
+        "--current-context", action="store_true",
+        help="Show configuration for current context"
+    )
 
     args = parser.parse_args()
 
     try:
-        report = run_all_checks()
+        # Handle --list-contexts
+        if args.list_contexts:
+            data = load_contexts_file()
+            print(json.dumps(data, indent=2))
+            return 0
+
+        # Handle --current-context
+        if args.current_context:
+            current = get_current_context_name()
+            if not current:
+                print("Error: No current context set.", file=sys.stderr)
+                print("Run with --context NAME to set a context first.", file=sys.stderr)
+                return 2
+            config = get_context_config(current)
+            if not config:
+                print(f"Error: Context '{current}' has no saved configuration.", file=sys.stderr)
+                return 2
+            output = {
+                "context_name": config.context_name,
+                "ssh_hostname": config.ssh_hostname,
+                "ssh_user": config.ssh_user,
+                "ssh_port": config.ssh_port,
+                "root_domain": config.root_domain,
+            }
+            print(json.dumps(output, indent=2))
+            return 0
+
+        # Determine context name
+        context_name = args.context or get_current_context_name()
+        if not context_name:
+            print("Error: No context specified.", file=sys.stderr)
+            print("Run with --context NAME to set the context.", file=sys.stderr)
+            print(f"Example: {sys.argv[0]} --context docker-server --ssh-hostname 192.168.1.100 --ssh-user root --ssh-port 22 --root-domain example.com", file=sys.stderr)
+            return 2
+
+        # Load existing config or create new one
+        existing_config = get_context_config(context_name)
+
+        # Build config from args and existing values
+        ssh_hostname = args.ssh_hostname or (existing_config.ssh_hostname if existing_config else None)
+        ssh_user = args.ssh_user or (existing_config.ssh_user if existing_config else None)
+        ssh_port = args.ssh_port or (existing_config.ssh_port if existing_config else None)
+        root_domain = args.root_domain or (existing_config.root_domain if existing_config else None)
+
+        # Check for missing fields
+        missing = []
+        if not ssh_hostname:
+            missing.append("--ssh-hostname")
+        if not ssh_user:
+            missing.append("--ssh-user")
+        if not ssh_port:
+            missing.append("--ssh-port")
+        if not root_domain:
+            missing.append("--root-domain")
+
+        if missing:
+            print(f"Error: Missing required configuration for context '{context_name}':", file=sys.stderr)
+            print(f"  {', '.join(missing)}", file=sys.stderr)
+            print(f"\nExample: {sys.argv[0]} --context {context_name} {' '.join(f'{m} VALUE' for m in missing)}", file=sys.stderr)
+            return 2
+
+        # Save the context configuration
+        config = ContextConfig(
+            context_name=context_name,
+            ssh_hostname=ssh_hostname,
+            ssh_user=ssh_user,
+            ssh_port=ssh_port,
+            root_domain=root_domain,
+        )
+        save_context_config(config)
+
+        # If --cached, only skip SSH checks if we have a valid cache (prior successful validation)
+        skip_ssh = False
+        if args.cached:
+            cached_data = load_cache(args.cache_ttl)
+            skip_ssh = cached_data is not None
+
+        # Always run fresh checks
+        report = run_all_checks(skip_ssh=skip_ssh, context_config=config)
+
+        # Only save to cache if all checks passed
+        if report.all_passed:
+            save_cache(report)
 
         if args.json:
             print_json(report)
