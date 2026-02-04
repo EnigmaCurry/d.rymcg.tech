@@ -607,13 +607,17 @@ def generate_markdown(report: CheckReport, quiet: bool = False) -> str:
     return "\n".join(lines)
 
 
-def print_report(report: CheckReport, quiet: bool = False) -> None:
+def print_report(report: CheckReport, quiet: bool = False, use_pager: bool = True) -> None:
     """Print report - rich markdown to terminal, plain text if piped."""
     markdown_text = generate_markdown(report, quiet)
 
     if sys.stdout.isatty():
         console = Console()
-        console.print(Markdown(markdown_text))
+        if use_pager:
+            with console.pager(styles=True):
+                console.print(Markdown(markdown_text))
+        else:
+            console.print(Markdown(markdown_text))
     else:
         print(markdown_text)
 
@@ -636,6 +640,10 @@ def main() -> int:
     parser.add_argument(
         "--quiet", action="store_true", help="Only output failures and next steps"
     )
+    parser.add_argument(
+        "--no-pager", action="store_true", dest="no_pager",
+        help="Disable pager for terminal output"
+    )
 
     args = parser.parse_args()
 
@@ -645,7 +653,7 @@ def main() -> int:
         if args.json:
             print_json(report)
         else:
-            print_report(report, quiet=args.quiet)
+            print_report(report, quiet=args.quiet, use_pager=not args.no_pager)
 
         return 0 if report.all_passed else 1
 
