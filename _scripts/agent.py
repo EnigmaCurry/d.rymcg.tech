@@ -1,7 +1,7 @@
 #!/usr/bin/env -S uv run --quiet --script
 # /// script
 # requires-python = ">=3.10"
-# dependencies = []
+# dependencies = ["rich"]
 # ///
 """
 agent.py - System state checker for d.rymcg.tech agent readiness
@@ -102,6 +102,9 @@ import subprocess
 import sys
 from dataclasses import dataclass, field
 from pathlib import Path
+
+from rich.console import Console
+from rich.markdown import Markdown
 
 
 @dataclass
@@ -566,41 +569,53 @@ def run_all_checks() -> CheckReport:
     return report
 
 
-def print_plain(report: CheckReport, quiet: bool = False) -> None:
-    """Print report in plain text format."""
+def generate_markdown(report: CheckReport, quiet: bool = False) -> str:
+    """Generate markdown report."""
+    lines = []
+
     if not quiet:
-        print("=" * 60)
-        print("d.rymcg.tech System Readiness Check")
-        print("=" * 60)
-        print()
+        lines.append("# d.rymcg.tech System Readiness Check")
+        lines.append("")
 
         current_category = None
         for result in report.results:
             if result.category != current_category:
                 current_category = result.category
-                print(f"## {current_category}")
-                print()
+                lines.append(f"## {current_category}")
+                lines.append("")
 
-            status = "PASS" if result.passed else "FAIL"
             marker = "[x]" if result.passed else "[ ]"
-            print(f"  {marker} {result.name}")
-            print(f"      {result.message}")
-            print()
+            lines.append(f"- {marker} **{result.name}**")
+            lines.append(f"  - {result.message}")
+            lines.append("")
 
     if report.next_steps:
-        print("=" * 60)
-        print("NEXT STEPS")
-        print("=" * 60)
-        print()
+        lines.append("---")
+        lines.append("")
+        lines.append("## Next Steps")
+        lines.append("")
         for i, step in enumerate(report.next_steps, 1):
-            print(f"  {i}. {step}")
-        print()
+            lines.append(f"{i}. {step}")
+            lines.append("")
 
     if report.all_passed:
-        print("Status: READY - All checks passed!")
+        lines.append("**Status: READY** - All checks passed!")
     else:
         failed_count = sum(1 for r in report.results if not r.passed)
-        print(f"Status: NOT READY - {failed_count} check(s) failed")
+        lines.append(f"**Status: NOT READY** - {failed_count} check(s) failed")
+
+    return "\n".join(lines)
+
+
+def print_report(report: CheckReport, quiet: bool = False) -> None:
+    """Print report - rich markdown to terminal, plain text if piped."""
+    markdown_text = generate_markdown(report, quiet)
+
+    if sys.stdout.isatty():
+        console = Console()
+        console.print(Markdown(markdown_text))
+    else:
+        print(markdown_text)
 
 
 def print_json(report: CheckReport) -> None:
@@ -630,7 +645,7 @@ def main() -> int:
         if args.json:
             print_json(report)
         else:
-            print_plain(report, quiet=args.quiet)
+            print_report(report, quiet=args.quiet)
 
         return 0 if report.all_passed else 1
 
