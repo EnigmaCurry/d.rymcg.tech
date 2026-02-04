@@ -528,7 +528,7 @@ main() {
             config)
                 __make -- config;;
             agent)
-                ${BIN}/agent.py "$@";;
+                ${BIN}/agent.py --pager "$@";;
             *)
                 fault "Invalid command"
         esac

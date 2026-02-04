@@ -20,7 +20,7 @@ USAGE
 
 OPTIONS
     --json          Output in JSON format (default: plain text)
-    --quiet         Only output failures and next steps
+    --full          Show full checklist (default: only failures and next steps)
     --pager         Enable pager for terminal output
     --help          Show this help message
 
@@ -594,11 +594,11 @@ def run_all_checks() -> CheckReport:
     return report
 
 
-def generate_markdown(report: CheckReport, quiet: bool = False) -> str:
+def generate_markdown(report: CheckReport, full: bool = False) -> str:
     """Generate markdown report."""
     lines = []
 
-    if not quiet:
+    if full:
         lines.append("# d.rymcg.tech System Readiness Check")
         lines.append("")
 
@@ -632,13 +632,27 @@ def generate_markdown(report: CheckReport, quiet: bool = False) -> str:
     return "\n".join(lines)
 
 
-def print_report(report: CheckReport, quiet: bool = False, use_pager: bool = False) -> None:
+def print_report(report: CheckReport, full: bool = False, use_pager: bool = False) -> None:
     """Print report - rich markdown with pager, plain text otherwise."""
-    markdown_text = generate_markdown(report, quiet)
+    markdown_text = generate_markdown(report, full)
 
     if use_pager and sys.stdout.isatty():
+        # Force pager if --full, otherwise only use if content exceeds terminal height
+        if full:
+            needs_pager = True
+        else:
+            try:
+                terminal_height = os.get_terminal_size().lines
+                content_lines = markdown_text.count("\n") + 1
+                needs_pager = content_lines > terminal_height
+            except OSError:
+                needs_pager = True
+
         console = Console()
-        with console.pager(styles=True):
+        if needs_pager:
+            with console.pager(styles=True):
+                console.print(Markdown(markdown_text))
+        else:
             console.print(Markdown(markdown_text))
     else:
         print(markdown_text)
@@ -660,7 +674,7 @@ def main() -> int:
         "--json", action="store_true", help="Output in JSON format"
     )
     parser.add_argument(
-        "--quiet", action="store_true", help="Only output failures and next steps"
+        "--full", action="store_true", help="Show full checklist (default: only failures and next steps)"
     )
     parser.add_argument(
         "--pager", action="store_true",
@@ -675,7 +689,7 @@ def main() -> int:
         if args.json:
             print_json(report)
         else:
-            print_report(report, quiet=args.quiet, use_pager=args.pager)
+            print_report(report, full=args.full, use_pager=args.pager)
 
         return 0 if report.all_passed else 1
 
