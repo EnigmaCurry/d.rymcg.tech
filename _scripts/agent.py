@@ -14,8 +14,6 @@ DESCRIPTION
       - A list of next steps to achieve readiness
 
 USAGE
-    uv run _scripts/agent.py [OPTIONS]
-    # or if executable:
     _scripts/agent.py [OPTIONS]
 
 OPTIONS
@@ -31,24 +29,7 @@ OUTPUT FORMAT
 
 CHECKLIST CRITERIA
 
-    Workstation packages:
-      - bash (required)
-      - make (build-essential on Debian)
-      - git
-      - openssl
-      - htpasswd (apache2-utils on Debian, httpd-tools on Fedora)
-      - xdg-open (xdg-utils)
-      - jq
-      - sshfs
-      - wg (wireguard-tools)
-      - curl
-      - inotifywait (inotify-tools)
-      - w3m
-      - sponge (moreutils)
-      - keychain
-      - ipcalc
-      - uv (Python package manager)
-      - docker (CLI only)
+    Workstation packages.
 
     d.rymcg.tech setup:
       - Repository cloned to expected path
@@ -74,13 +55,13 @@ EXIT CODES
 
 EXAMPLES
     # Basic check with human-readable output
-    uv run _scripts/agent.py
+    _scripts/agent.py
 
     # JSON output for agent consumption
-    uv run _scripts/agent.py --json
+    _scripts/agent.py --json
 
-    # Quiet mode - only show what needs fixing
-    uv run _scripts/agent.py --quiet
+    # Full mode shows completed items in addition to todo items
+    _scripts/agent.py --full
 
 ENVIRONMENT VARIABLES
     D_RYMCG_TECH_PATH - Override expected repository path
@@ -104,7 +85,6 @@ from dataclasses import dataclass, field
 from pathlib import Path
 
 from rich.console import Console
-from rich.markdown import Markdown
 
 
 @dataclass
@@ -633,7 +613,7 @@ def generate_markdown(report: CheckReport, full: bool = False) -> str:
 
 
 def print_report(report: CheckReport, full: bool = False, use_pager: bool = False) -> None:
-    """Print report - rich markdown with pager, plain text otherwise."""
+    """Print report - uses pager with styles if requested and content is long enough."""
     markdown_text = generate_markdown(report, full)
 
     if use_pager and sys.stdout.isatty():
@@ -650,10 +630,10 @@ def print_report(report: CheckReport, full: bool = False, use_pager: bool = Fals
 
         console = Console()
         if needs_pager:
-            with console.pager(styles=True):
-                console.print(Markdown(markdown_text))
+            with console.pager():
+                console.print(markdown_text)
         else:
-            console.print(Markdown(markdown_text))
+            print(markdown_text)
     else:
         print(markdown_text)
 
