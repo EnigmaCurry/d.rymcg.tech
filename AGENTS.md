@@ -389,6 +389,9 @@ from the Progressive Discovery Workflow:
 # Create env file from template:
 d.rymcg.tech make traefik config-dist
 
+# Create the traefik system user on the Docker host (sets UID/GID/DOCKER_GID):
+traefik/setup.sh traefik_user
+
 # Set the Docker context (must match the context name from Step 1):
 d.rymcg.tech make traefik reconfigure var=DOCKER_CONTEXT={CONTEXT}
 
