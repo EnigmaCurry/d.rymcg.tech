@@ -20,28 +20,87 @@ _scripts/agent.py current
 
 If this returns JSON with all fields populated, you can skip asking the user and proceed directly to running the readiness checker.
 
-If there's no current context or it returns an error, you must collect the following information from the user:
+If there's no current context or it returns an error, follow the **progressive discovery workflow** below.
 
-| Field                      | Description                                                 | Example         | Recommended Default |
-|----------------------------|-------------------------------------------------------------|-----------------|---------------------|
-| `context_name`             | Short nickname for the server (also used as SSH host alias) | `docker-server` | *(user must provide)* |
-| `ssh_hostname`             | IP address or domain name of the Docker server              | `192.168.1.100` | *(user must provide)* |
-| `ssh_user`                 | SSH username with Docker access on the server               | `root`          | `root` |
-| `ssh_port`                 | SSH port on the server                                      | `22`            | `22` |
-| `root_domain`              | Root domain for services on this server                     | `example.com`   | *(user must provide)* |
-| `proxy_protocol`           | Is server behind a proxy using proxy protocol? (true/false) | `false`         | `false` |
-| `save_cleartext_passwords` | Save cleartext passwords in passwords.json? (true/false)    | `false`         | `false` |
+## Progressive Discovery Workflow
 
-**Important:** All seven fields are required on first run. When presenting options to the user, offer the recommended defaults as the primary choice where applicable.
+The agent script can auto-discover some configuration from existing SSH config and Docker contexts. Follow these steps to minimize questions to the user:
+
+### Step 1: Get the context name
+
+If `current` returned no context, ask the user for **only the context name** first:
+
+```bash
+# What short nickname should we use for this server? (e.g., docker-server, prod, staging)
+```
+
+### Step 2: Run check to trigger discovery
+
+Run the check command with just the context name to see what can be auto-discovered:
+
+```bash
+_scripts/agent.py check --context myserver
+```
+
+The script will:
+- Look for an existing Docker context named `myserver`
+- Parse `~/.ssh/config` for a host entry matching `myserver`
+- Auto-discover `ssh_hostname`, `ssh_user`, and `ssh_port` if the SSH host exists
+- Save any discovered values to the configuration
+
+### Step 3: Check what's missing
+
+The output will show which fields are still missing. Typically these cannot be auto-discovered:
+- `root_domain` - user must provide
+- `proxy_protocol` - user must provide (recommend `false`)
+- `save_cleartext_passwords` - user must provide (recommend `false`)
+
+If SSH config doesn't exist for this host, these will also be missing:
+- `ssh_hostname` - user must provide
+- `ssh_user` - recommend `root`
+- `ssh_port` - recommend `22`
+
+### Step 4: Ask only for missing fields
+
+Only ask the user for the fields that couldn't be discovered. When presenting options, use these recommended defaults:
+
+| Field                      | Description                                                 | Recommended Default |
+|----------------------------|-------------------------------------------------------------|---------------------|
+| `ssh_hostname`             | IP address or domain name of the Docker server              | *(user must provide)* |
+| `ssh_user`                 | SSH username with Docker access on the server               | `root` |
+| `ssh_port`                 | SSH port on the server                                      | `22` |
+| `root_domain`              | Root domain for services on this server                     | *(user must provide)* |
+| `proxy_protocol`           | Is server behind a proxy using proxy protocol? (true/false) | `false` |
+| `save_cleartext_passwords` | Save cleartext passwords in passwords.json? (true/false)    | `false` |
+
+### Step 5: Run check with missing values
+
+Run check again, providing only the values that were missing:
+
+```bash
+# Example: if only root_domain, proxy_protocol, and save_cleartext_passwords were missing:
+_scripts/agent.py check --context myserver \
+  --root-domain example.com \
+  --proxy-protocol false \
+  --save-cleartext-passwords false
+```
 
 ## Running the Agent Readiness Checker
 
-Once you have gathered the information, run the readiness checker:
+The readiness checker can be run incrementally - it saves discovered and provided values between runs:
 
 ```bash
-# First run - provide all required configuration:
-_scripts/agent.py check \
-  --context docker-server \
+# Initial run with just context name (triggers discovery):
+_scripts/agent.py check --context docker-server
+
+# Provide missing values (only what couldn't be discovered):
+_scripts/agent.py check --context docker-server \
+  --root-domain example.com \
+  --proxy-protocol false \
+  --save-cleartext-passwords false
+
+# If SSH config didn't exist, also provide:
+_scripts/agent.py check --context docker-server \
   --ssh-hostname 192.168.1.100 \
   --ssh-user root \
   --ssh-port 22 \
@@ -129,35 +188,80 @@ and the script completes with return code 0.
 
 ## Example Workflow
 
-0. **Get the current config, if any**: Run
-    ```bash
-    _scripts/agent.py current
-    ```
-1. **Ask the user** for the seven required fields if they are missing from the current config.
-   When presenting options, use the recommended defaults as the primary choice:
-   - `context_name` - user must provide (short nickname for the server)
-   - `ssh_hostname` - user must provide (IP or domain of Docker server)
-   - `ssh_user` - recommend `root` as default
-   - `ssh_port` - recommend `22` as default
-   - `root_domain` - user must provide (e.g., example.com)
-   - `proxy_protocol` - recommend `false` as default (most servers are not behind a proxy)
-   - `save_cleartext_passwords` - recommend `false` as default (more secure)
+### Scenario A: No existing configuration
 
-2. **Run the agent script** with all parameters:
+1. **Check for current context**:
+   ```bash
+   _scripts/agent.py current
+   ```
+   Result: Returns error or empty - no context configured.
+
+2. **Ask the user for context name only**:
+   > "What short nickname should we use for this server?"
+
+   User provides: `myserver`
+
+3. **Run check to trigger discovery**:
+   ```bash
+   _scripts/agent.py check --context myserver
+   ```
+   Result: Shows missing fields. SSH config doesn't exist, so ssh_hostname, ssh_user, ssh_port are missing along with root_domain, proxy_protocol, save_cleartext_passwords.
+
+4. **Ask user for missing fields** (with recommended defaults):
+   - ssh_hostname: user provides `10.0.0.5`
+   - ssh_user: offer `root` as default, user accepts
+   - ssh_port: offer `22` as default, user accepts
+   - root_domain: user provides `mysite.com`
+   - proxy_protocol: offer `false` as default, user accepts
+   - save_cleartext_passwords: offer `false` as default, user accepts
+
+5. **Run check with all missing values**:
    ```bash
    _scripts/agent.py check --context myserver \
      --ssh-hostname 10.0.0.5 \
-     --ssh-user admin \
+     --ssh-user root \
      --ssh-port 22 \
      --root-domain mysite.com \
      --proxy-protocol false \
      --save-cleartext-passwords false
    ```
 
-3. **Follow the next steps** in the output. The script will automatically
+6. **Follow the next steps** in the output. The script will automatically
    configure SSH and Docker contexts as needed.
 
-4. **Re-run the script** after completing each step until all checks pass.
+7. **Re-run the script** after completing each step until all checks pass.
+
+### Scenario B: SSH config already exists
+
+1. **Check for current context**:
+   ```bash
+   _scripts/agent.py current
+   ```
+   Result: Returns error or empty.
+
+2. **Ask the user for context name**:
+   User provides: `myserver`
+
+3. **Run check to trigger discovery**:
+   ```bash
+   _scripts/agent.py check --context myserver
+   ```
+   Result: Discovers ssh_hostname, ssh_user, ssh_port from `~/.ssh/config`. Only root_domain, proxy_protocol, save_cleartext_passwords are missing.
+
+4. **Ask user for only the missing fields**:
+   - root_domain: user provides `mysite.com`
+   - proxy_protocol: offer `false` as default, user accepts
+   - save_cleartext_passwords: offer `false` as default, user accepts
+
+5. **Run check with only the missing values**:
+   ```bash
+   _scripts/agent.py check --context myserver \
+     --root-domain mysite.com \
+     --proxy-protocol false \
+     --save-cleartext-passwords false
+   ```
+
+6. **Continue** until all checks pass.
 
 ## Key Commands (After Setup)
 
