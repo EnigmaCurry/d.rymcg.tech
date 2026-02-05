@@ -311,7 +311,7 @@ d.rymcg.tech make <project> reinstall  # Tear down and reinstall
 d.rymcg.tech make <project> uninstall  # Remove containers, keep volumes
 d.rymcg.tech make <project> destroy    # Remove containers AND volumes
 d.rymcg.tech make <project> open       # Open in browser
-d.rymcg.tech make <project> logs       # View logs
+d.rymcg.tech make <project> logs-out   # View logs (non-interactive)
 d.rymcg.tech make <project> status     # Check container status
 ```
 
@@ -478,7 +478,7 @@ d.rymcg.tech make traefik restart service=acme-sh
 Check logs to verify certificate issuance:
 
 ```bash
-d.rymcg.tech make traefik logs service=acme-sh
+d.rymcg.tech make traefik logs-out service=acme-sh
 ```
 
 ### Deploying acme-dns on this server
