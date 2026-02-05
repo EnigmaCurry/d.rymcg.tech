@@ -14,26 +14,29 @@ DESCRIPTION
       - A list of next steps to achieve readiness
 
 USAGE
-    _scripts/agent.py [OPTIONS]
+    _scripts/agent.py [COMMAND] [OPTIONS]
 
-OPTIONS
-    --context NAME      Set or switch to context NAME (required on first run)
-    --ssh-hostname HOST SSH hostname or IP address
-    --ssh-user USER     SSH username
-    --ssh-port PORT     SSH port (default: 22)
+COMMANDS
+    check               Run readiness checks (default if no command given)
+    list                List all configured contexts (JSON)
+    current             Show current context configuration (JSON)
+    delete NAME         Delete a context (Docker context, SSH config, saved config)
+    clear               Delete all saved state and start fresh
+
+CHECK OPTIONS
+    --context NAME       Set or switch to context NAME (required on first run)
+    --ssh-hostname HOST  SSH hostname or IP address
+    --ssh-user USER      SSH username
+    --ssh-port PORT      SSH port
     --root-domain DOMAIN Root domain (e.g., example.com)
-    --proxy-protocol BOOL Server is behind a proxy using proxy protocol (true/false)
-    --save-cleartext-passwords BOOL Save cleartext passwords in passwords.json (true/false)
-    --list-contexts     List all configured contexts (JSON)
-    --current-context   Show current context configuration (JSON)
-    --clear             Delete all saved state and start fresh
-    --delete-context NAME  Delete a context (Docker context, SSH config, saved config)
-    --json              Output in JSON format (default: plain text)
-    --full              Show full checklist (default: only failures and next steps)
-    --pager             Enable pager for terminal output
-    --cached            Skip checks requiring SSH (use cached results if valid)
-    --cache-ttl N       Cache time-to-live in seconds (default: 43200 / 12 hours)
-    --help              Show this help message
+    --proxy-protocol BOOL       Server behind proxy using proxy protocol (true/false)
+    --save-cleartext-passwords BOOL  Save cleartext passwords (true/false)
+    --json               Output in JSON format (default: plain text)
+    --full               Show full checklist (default: only failures and next steps)
+    --pager              Enable pager for terminal output
+    --cached             Skip checks requiring SSH (use cached results if valid)
+    --cache-ttl N        Cache time-to-live in seconds (default: 43200 / 12 hours)
+    --help               Show this help message
 
 OUTPUT FORMAT
     The script outputs two sections:
@@ -1130,6 +1133,184 @@ def print_json(report: CheckReport) -> None:
     print(json.dumps(report.to_dict(), indent=2))
 
 
+def cmd_clear(args) -> int:
+    """Handle 'clear' subcommand."""
+    if CACHE_DIR.exists():
+        import shutil as sh
+        sh.rmtree(CACHE_DIR)
+        print(f"Deleted {CACHE_DIR}")
+    else:
+        print(f"Nothing to clear ({CACHE_DIR} does not exist)")
+    return 0
+
+
+def cmd_delete(args) -> int:
+    """Handle 'delete' subcommand."""
+    context_name = args.name
+    deleted_items = []
+
+    # Check if Docker context exists
+    success, output = run_command(["docker", "context", "ls", "--format", "{{.Name}}"])
+    if success and context_name in output.split():
+        # Switch to default if this is the current context
+        current_success, current = run_command(["docker", "context", "show"])
+        if current_success and current.strip() == context_name:
+            run_command(["docker", "context", "use", "default"])
+        # Delete Docker context
+        success, _ = run_command(["docker", "context", "rm", context_name])
+        if success:
+            deleted_items.append(f"Docker context '{context_name}'")
+
+    # Remove SSH config entry
+    ssh_config = Path.home() / ".ssh" / "config"
+    if ssh_config.exists():
+        try:
+            content = ssh_config.read_text()
+            import re
+            # Match the Host block and all indented lines that follow
+            pattern = rf'\n?Host {re.escape(context_name)}\n(?:[ \t]+[^\n]*\n)*'
+            new_content, count = re.subn(pattern, '', content)
+            if count > 0:
+                ssh_config.write_text(new_content)
+                deleted_items.append(f"SSH config entry '{context_name}'")
+        except OSError as e:
+            print(f"Warning: Failed to update SSH config: {e}", file=sys.stderr)
+
+    # Remove from agent.contexts.json
+    data = load_contexts_file()
+    if context_name in data.get("contexts", {}):
+        del data["contexts"][context_name]
+        if data.get("current") == context_name:
+            data["current"] = None
+        save_contexts_file(data)
+        deleted_items.append(f"Saved config for '{context_name}'")
+
+    if deleted_items:
+        print("Deleted:")
+        for item in deleted_items:
+            print(f"  - {item}")
+    else:
+        print(f"Context '{context_name}' not found")
+    return 0
+
+
+def cmd_list(args) -> int:
+    """Handle 'list' subcommand."""
+    data = load_contexts_file()
+    print(json.dumps(data, indent=2))
+    return 0
+
+
+def cmd_current(args) -> int:
+    """Handle 'current' subcommand."""
+    current = get_current_context_name()
+    if not current:
+        print("Error: No current context set.", file=sys.stderr)
+        print("Run 'check --context NAME' to set a context first.", file=sys.stderr)
+        return 2
+    config = get_context_config(current)
+    if not config:
+        print(f"Error: Context '{current}' has no saved configuration.", file=sys.stderr)
+        return 2
+    output = {
+        "context_name": config.context_name,
+        "ssh_hostname": config.ssh_hostname,
+        "ssh_user": config.ssh_user,
+        "ssh_port": config.ssh_port,
+        "root_domain": config.root_domain,
+        "proxy_protocol": config.proxy_protocol,
+        "save_cleartext_passwords": config.save_cleartext_passwords,
+    }
+    print(json.dumps(output, indent=2))
+    return 0
+
+
+def cmd_check(args) -> int:
+    """Handle 'check' subcommand (default)."""
+    # Determine context name
+    context_name = args.context or get_current_context_name()
+    if not context_name:
+        print("Error: No context specified.", file=sys.stderr)
+        print("Run with --context NAME to set the context.", file=sys.stderr)
+        print("Example: agent.py check --context docker-server --ssh-hostname 192.168.1.100 --ssh-user root --ssh-port 22 --root-domain example.com --proxy-protocol false --save-cleartext-passwords false", file=sys.stderr)
+        return 2
+
+    # Load existing config or create new one
+    existing_config = get_context_config(context_name)
+
+    # Build config from args and existing values
+    ssh_hostname = args.ssh_hostname or (existing_config.ssh_hostname if existing_config else None)
+    ssh_user = args.ssh_user or (existing_config.ssh_user if existing_config else None)
+    ssh_port = args.ssh_port or (existing_config.ssh_port if existing_config else None)
+    root_domain = args.root_domain or (existing_config.root_domain if existing_config else None)
+    # For booleans, args.X is None if not provided, so we check explicitly
+    if args.proxy_protocol is not None:
+        proxy_protocol = args.proxy_protocol
+    elif existing_config and existing_config.proxy_protocol is not None:
+        proxy_protocol = existing_config.proxy_protocol
+    else:
+        proxy_protocol = None
+    if args.save_cleartext_passwords is not None:
+        save_cleartext_passwords = args.save_cleartext_passwords
+    elif existing_config and existing_config.save_cleartext_passwords is not None:
+        save_cleartext_passwords = existing_config.save_cleartext_passwords
+    else:
+        save_cleartext_passwords = None
+
+    # Check for missing fields
+    missing = []
+    if not ssh_hostname:
+        missing.append("--ssh-hostname")
+    if not ssh_user:
+        missing.append("--ssh-user")
+    if not ssh_port:
+        missing.append("--ssh-port")
+    if not root_domain:
+        missing.append("--root-domain")
+    if proxy_protocol is None:
+        missing.append("--proxy-protocol")
+    if save_cleartext_passwords is None:
+        missing.append("--save-cleartext-passwords")
+
+    if missing:
+        print(f"Error: Missing required configuration for context '{context_name}':", file=sys.stderr)
+        print(f"  {', '.join(missing)}", file=sys.stderr)
+        print(f"\nExample: agent.py check --context {context_name} {' '.join(f'{m} VALUE' for m in missing)}", file=sys.stderr)
+        return 2
+
+    # Save the context configuration
+    config = ContextConfig(
+        context_name=context_name,
+        ssh_hostname=ssh_hostname,
+        ssh_user=ssh_user,
+        ssh_port=ssh_port,
+        root_domain=root_domain,
+        proxy_protocol=proxy_protocol,
+        save_cleartext_passwords=save_cleartext_passwords,
+    )
+    save_context_config(config)
+
+    # If --cached, only skip SSH checks if we have a valid cache (prior successful validation)
+    skip_ssh = False
+    if args.cached:
+        cached_data = load_cache(args.cache_ttl)
+        skip_ssh = cached_data is not None
+
+    # Always run fresh checks
+    report = run_all_checks(skip_ssh=skip_ssh, context_config=config)
+
+    # Only save to cache if all checks passed
+    if report.all_passed:
+        save_cache(report)
+
+    if args.json:
+        print_json(report)
+    else:
+        print_report(report, full=args.full, use_pager=args.pager)
+
+    return 0 if report.all_passed else 1
+
+
 def main() -> int:
     """Main entry point."""
     parser = argparse.ArgumentParser(
@@ -1137,242 +1318,84 @@ def main() -> int:
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog=__doc__,
     )
-    parser.add_argument(
+    subparsers = parser.add_subparsers(dest="command", metavar="COMMAND")
+
+    # 'check' subcommand (also the default when no command given)
+    check_parser = subparsers.add_parser(
+        "check", help="Run readiness checks (default command)",
+        formatter_class=argparse.RawDescriptionHelpFormatter,
+    )
+    check_parser.add_argument(
         "--json", action="store_true", help="Output in JSON format"
     )
-    parser.add_argument(
+    check_parser.add_argument(
         "--full", action="store_true", help="Show full checklist (default: only failures and next steps)"
     )
-    parser.add_argument(
-        "--pager", action="store_true",
-        help="Enable pager for terminal output"
+    check_parser.add_argument(
+        "--pager", action="store_true", help="Enable pager for terminal output"
     )
-    parser.add_argument(
-        "--cached", action="store_true",
-        help="Skip checks that require SSH authentication"
+    check_parser.add_argument(
+        "--cached", action="store_true", help="Skip checks that require SSH authentication"
     )
-    parser.add_argument(
+    check_parser.add_argument(
         "--cache-ttl", type=int, default=DEFAULT_CACHE_TTL, metavar="SECONDS",
         help=f"Cache time-to-live in seconds (default: {DEFAULT_CACHE_TTL})"
     )
-    parser.add_argument(
-        "--context", metavar="NAME",
-        help="Set or switch to context NAME"
+    check_parser.add_argument(
+        "--context", metavar="NAME", help="Set or switch to context NAME"
     )
-    parser.add_argument(
-        "--ssh-hostname", metavar="HOST",
-        help="SSH hostname or IP address for the context"
+    check_parser.add_argument(
+        "--ssh-hostname", metavar="HOST", help="SSH hostname or IP address for the context"
     )
-    parser.add_argument(
-        "--ssh-user", metavar="USER",
-        help="SSH username for the context"
+    check_parser.add_argument(
+        "--ssh-user", metavar="USER", help="SSH username for the context"
     )
-    parser.add_argument(
-        "--ssh-port", type=int, metavar="PORT",
-        help="SSH port for the context (default: 22)"
+    check_parser.add_argument(
+        "--ssh-port", type=int, metavar="PORT", help="SSH port for the context"
     )
-    parser.add_argument(
-        "--root-domain", metavar="DOMAIN",
-        help="Root domain for the context (e.g., example.com)"
+    check_parser.add_argument(
+        "--root-domain", metavar="DOMAIN", help="Root domain for the context (e.g., example.com)"
     )
-    parser.add_argument(
+    check_parser.add_argument(
         "--proxy-protocol", type=lambda x: x.lower() in ('true', '1', 'yes'),
-        metavar="BOOL", help="Server is behind a proxy using proxy protocol (default: false)"
+        metavar="BOOL", help="Server is behind a proxy using proxy protocol (true/false)"
     )
-    parser.add_argument(
+    check_parser.add_argument(
         "--save-cleartext-passwords", type=lambda x: x.lower() in ('true', '1', 'yes'),
-        metavar="BOOL", help="Save cleartext passwords in passwords.json (default: false)"
+        metavar="BOOL", help="Save cleartext passwords in passwords.json (true/false)"
     )
-    parser.add_argument(
-        "--list-contexts", action="store_true",
-        help="List all configured contexts"
+    check_parser.set_defaults(func=cmd_check)
+
+    # 'list' subcommand
+    list_parser = subparsers.add_parser("list", help="List all configured contexts")
+    list_parser.set_defaults(func=cmd_list)
+
+    # 'current' subcommand
+    current_parser = subparsers.add_parser("current", help="Show current context configuration")
+    current_parser.set_defaults(func=cmd_current)
+
+    # 'delete' subcommand
+    delete_parser = subparsers.add_parser(
+        "delete", help="Delete a context (Docker context, SSH config, saved config)"
     )
-    parser.add_argument(
-        "--current-context", action="store_true",
-        help="Show configuration for current context"
+    delete_parser.add_argument("name", metavar="NAME", help="Name of the context to delete")
+    delete_parser.set_defaults(func=cmd_delete)
+
+    # 'clear' subcommand
+    clear_parser = subparsers.add_parser(
+        "clear", help="Delete all saved state and start fresh"
     )
-    parser.add_argument(
-        "--clear", action="store_true",
-        help="Delete all saved state (~/.local/d.rymcg.tech) and start fresh"
-    )
-    parser.add_argument(
-        "--delete-context", metavar="NAME",
-        help="Delete a context (removes Docker context, SSH config entry, and saved config)"
-    )
+    clear_parser.set_defaults(func=cmd_clear)
 
     args = parser.parse_args()
 
     try:
-        # Handle --clear
-        if args.clear:
-            if CACHE_DIR.exists():
-                import shutil as sh
-                sh.rmtree(CACHE_DIR)
-                print(f"Deleted {CACHE_DIR}")
-            else:
-                print(f"Nothing to clear ({CACHE_DIR} does not exist)")
-            return 0
+        # If no command given, default to 'check'
+        if args.command is None:
+            # Re-parse with 'check' as default
+            args = parser.parse_args(['check'] + sys.argv[1:])
 
-        # Handle --delete-context
-        if args.delete_context:
-            context_name = args.delete_context
-            deleted_items = []
-
-            # Check if Docker context exists
-            success, output = run_command(["docker", "context", "ls", "--format", "{{.Name}}"])
-            if success and context_name in output.split():
-                # Switch to default if this is the current context
-                current_success, current = run_command(["docker", "context", "show"])
-                if current_success and current.strip() == context_name:
-                    run_command(["docker", "context", "use", "default"])
-                # Delete Docker context
-                success, _ = run_command(["docker", "context", "rm", context_name])
-                if success:
-                    deleted_items.append(f"Docker context '{context_name}'")
-
-            # Remove SSH config entry
-            ssh_config = Path.home() / ".ssh" / "config"
-            if ssh_config.exists():
-                try:
-                    content = ssh_config.read_text()
-                    import re
-                    # Match the Host block and all indented lines that follow
-                    pattern = rf'\n?Host {re.escape(context_name)}\n(?:[ \t]+[^\n]*\n)*'
-                    new_content, count = re.subn(pattern, '', content)
-                    if count > 0:
-                        ssh_config.write_text(new_content)
-                        deleted_items.append(f"SSH config entry '{context_name}'")
-                except OSError as e:
-                    print(f"Warning: Failed to update SSH config: {e}", file=sys.stderr)
-
-            # Remove from agent.contexts.json
-            data = load_contexts_file()
-            if context_name in data.get("contexts", {}):
-                del data["contexts"][context_name]
-                if data.get("current") == context_name:
-                    data["current"] = None
-                save_contexts_file(data)
-                deleted_items.append(f"Saved config for '{context_name}'")
-
-            if deleted_items:
-                print("Deleted:")
-                for item in deleted_items:
-                    print(f"  - {item}")
-            else:
-                print(f"Context '{context_name}' not found")
-            return 0
-
-        # Handle --list-contexts
-        if args.list_contexts:
-            data = load_contexts_file()
-            print(json.dumps(data, indent=2))
-            return 0
-
-        # Handle --current-context
-        if args.current_context:
-            current = get_current_context_name()
-            if not current:
-                print("Error: No current context set.", file=sys.stderr)
-                print("Run with --context NAME to set a context first.", file=sys.stderr)
-                return 2
-            config = get_context_config(current)
-            if not config:
-                print(f"Error: Context '{current}' has no saved configuration.", file=sys.stderr)
-                return 2
-            output = {
-                "context_name": config.context_name,
-                "ssh_hostname": config.ssh_hostname,
-                "ssh_user": config.ssh_user,
-                "ssh_port": config.ssh_port,
-                "root_domain": config.root_domain,
-                "proxy_protocol": config.proxy_protocol,
-                "save_cleartext_passwords": config.save_cleartext_passwords,
-            }
-            print(json.dumps(output, indent=2))
-            return 0
-
-        # Determine context name
-        context_name = args.context or get_current_context_name()
-        if not context_name:
-            print("Error: No context specified.", file=sys.stderr)
-            print("Run with --context NAME to set the context.", file=sys.stderr)
-            print(f"Example: {sys.argv[0]} --context docker-server --ssh-hostname 192.168.1.100 --ssh-user root --ssh-port 22 --root-domain example.com --proxy-protocol false --save-cleartext-passwords false", file=sys.stderr)
-            return 2
-
-        # Load existing config or create new one
-        existing_config = get_context_config(context_name)
-
-        # Build config from args and existing values
-        ssh_hostname = args.ssh_hostname or (existing_config.ssh_hostname if existing_config else None)
-        ssh_user = args.ssh_user or (existing_config.ssh_user if existing_config else None)
-        ssh_port = args.ssh_port or (existing_config.ssh_port if existing_config else None)
-        root_domain = args.root_domain or (existing_config.root_domain if existing_config else None)
-        # For booleans, args.X is None if not provided, so we check explicitly
-        if args.proxy_protocol is not None:
-            proxy_protocol = args.proxy_protocol
-        elif existing_config and existing_config.proxy_protocol is not None:
-            proxy_protocol = existing_config.proxy_protocol
-        else:
-            proxy_protocol = None
-        if args.save_cleartext_passwords is not None:
-            save_cleartext_passwords = args.save_cleartext_passwords
-        elif existing_config and existing_config.save_cleartext_passwords is not None:
-            save_cleartext_passwords = existing_config.save_cleartext_passwords
-        else:
-            save_cleartext_passwords = None
-
-        # Check for missing fields
-        missing = []
-        if not ssh_hostname:
-            missing.append("--ssh-hostname")
-        if not ssh_user:
-            missing.append("--ssh-user")
-        if not ssh_port:
-            missing.append("--ssh-port")
-        if not root_domain:
-            missing.append("--root-domain")
-        if proxy_protocol is None:
-            missing.append("--proxy-protocol")
-        if save_cleartext_passwords is None:
-            missing.append("--save-cleartext-passwords")
-
-        if missing:
-            print(f"Error: Missing required configuration for context '{context_name}':", file=sys.stderr)
-            print(f"  {', '.join(missing)}", file=sys.stderr)
-            print(f"\nExample: {sys.argv[0]} --context {context_name} {' '.join(f'{m} VALUE' for m in missing)}", file=sys.stderr)
-            return 2
-
-        # Save the context configuration
-        config = ContextConfig(
-            context_name=context_name,
-            ssh_hostname=ssh_hostname,
-            ssh_user=ssh_user,
-            ssh_port=ssh_port,
-            root_domain=root_domain,
-            proxy_protocol=proxy_protocol,
-            save_cleartext_passwords=save_cleartext_passwords,
-        )
-        save_context_config(config)
-
-        # If --cached, only skip SSH checks if we have a valid cache (prior successful validation)
-        skip_ssh = False
-        if args.cached:
-            cached_data = load_cache(args.cache_ttl)
-            skip_ssh = cached_data is not None
-
-        # Always run fresh checks
-        report = run_all_checks(skip_ssh=skip_ssh, context_config=config)
-
-        # Only save to cache if all checks passed
-        if report.all_passed:
-            save_cache(report)
-
-        if args.json:
-            print_json(report)
-        else:
-            print_report(report, full=args.full, use_pager=args.pager)
-
-        return 0 if report.all_passed else 1
+        return args.func(args)
 
     except KeyboardInterrupt:
         print("\nInterrupted", file=sys.stderr)
