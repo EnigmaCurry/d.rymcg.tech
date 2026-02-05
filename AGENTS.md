@@ -15,7 +15,7 @@ Before asking the user for information, check if a context is already configured
 
 ```bash
 # Check if there's already a current context configured:
-_scripts/agent.py --current-context
+_scripts/agent.py current
 ```
 
 If this returns JSON with all fields populated, you can skip asking the user and proceed directly to running the readiness checker.
@@ -40,7 +40,7 @@ Once you have gathered the information, run the readiness checker:
 
 ```bash
 # First run - provide all required configuration:
-_scripts/agent.py \
+_scripts/agent.py check \
   --context docker-server \
   --ssh-hostname 192.168.1.100 \
   --ssh-user root \
@@ -54,30 +54,40 @@ More options:
 
 ```bash
 # Subsequent runs - uses saved configuration:
+_scripts/agent.py check
+
+# Or simply (check is the default command):
 _scripts/agent.py
 
 # Switch to a different context:
-_scripts/agent.py --context other-server
+_scripts/agent.py check --context other-server
 
 # Show current context configuration:
-_scripts/agent.py --current-context
+_scripts/agent.py current
 
 # List all configured contexts:
-_scripts/agent.py --list-contexts
+_scripts/agent.py list
 
 # Delete a specific context (Docker context, SSH config, saved config):
-_scripts/agent.py --delete-context myserver
+_scripts/agent.py delete myserver
 
 # Reset all saved state (start fresh):
-_scripts/agent.py --clear
+_scripts/agent.py clear
 ```
 
 The configuration is saved to `~/.local/d.rymcg.tech/agent.contexts.json` and persists across runs.
 
-## Agent Script Options
+## Agent Script Commands and Options
 
 ```
-OPTIONS
+COMMANDS
+    check               Run readiness checks (default if no command given)
+    list                List all configured contexts (JSON)
+    current             Show current context configuration (JSON)
+    delete NAME         Delete a context (Docker context, SSH config, saved config)
+    clear               Delete all saved state and start fresh
+
+CHECK OPTIONS
     --context NAME       Set or switch to context NAME (required on first run)
     --ssh-hostname HOST  SSH hostname or IP address
     --ssh-user USER      SSH username
@@ -85,10 +95,6 @@ OPTIONS
     --root-domain DOMAIN Root domain (e.g., example.com)
     --proxy-protocol BOOL       Server behind proxy using proxy protocol (true/false)
     --save-cleartext-passwords BOOL  Save cleartext passwords (true/false)
-    --list-contexts      List all configured contexts (JSON)
-    --current-context    Show current context configuration (JSON)
-    --delete-context NAME  Delete a context (Docker context, SSH config, saved config)
-    --clear              Delete all saved state and start fresh
     --json               Output in JSON format (default: plain text)
     --full               Show full checklist (default: only failures and next steps)
     --pager              Enable pager for terminal output
@@ -127,7 +133,7 @@ and the script completes with return code 0.
 
 0. **Get the current config, if any**: Run
     ```bash
-    _scripts/agent.py --current-context
+    _scripts/agent.py current
     ```
 1. **Ask the user** for the seven required fields if they are missing from the current config.
    When presenting options, use the recommended defaults as the primary choice:
@@ -141,7 +147,7 @@ and the script completes with return code 0.
 
 2. **Run the agent script** with all parameters:
    ```bash
-   _scripts/agent.py --context myserver \
+   _scripts/agent.py check --context myserver \
      --ssh-hostname 10.0.0.5 \
      --ssh-user admin \
      --ssh-port 22 \
@@ -150,8 +156,8 @@ and the script completes with return code 0.
      --save-cleartext-passwords false
    ```
 
-3. **Follow the next steps** in the output. The script will provide
-   you with copy-pasteable bash commands.
+3. **Follow the next steps** in the output. The script will automatically
+   configure SSH and Docker contexts as needed.
 
 4. **Re-run the script** after completing each step until all checks pass.
 
