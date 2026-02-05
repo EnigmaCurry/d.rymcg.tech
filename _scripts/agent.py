@@ -22,6 +22,8 @@ OPTIONS
     --ssh-user USER     SSH username
     --ssh-port PORT     SSH port (default: 22)
     --root-domain DOMAIN Root domain (e.g., example.com)
+    --proxy-protocol BOOL Server is behind a proxy using proxy protocol (true/false)
+    --save-cleartext-passwords BOOL Save cleartext passwords in passwords.json (true/false)
     --list-contexts     List all configured contexts (JSON)
     --current-context   Show current context configuration (JSON)
     --json              Output in JSON format (default: plain text)
@@ -44,6 +46,7 @@ CHECKLIST CRITERIA
       - Repository cloned to expected path
       - d.rymcg.tech in PATH
       - script-wizard installed
+      - Root .env_{CONTEXT} file configured
 
     SSH configuration:
       - SSH agent running with key loaded, or detect a passwordless SSH key in ~/.ssh
@@ -105,7 +108,7 @@ CONTEXTS_FILE = CACHE_DIR / "agent.contexts.json"
 DEFAULT_CACHE_TTL = 43200  # 12 hours
 
 # Required fields for a context configuration
-CONTEXT_FIELDS = ["ssh_hostname", "ssh_user", "ssh_port", "root_domain"]
+CONTEXT_FIELDS = ["ssh_hostname", "ssh_user", "ssh_port", "root_domain", "proxy_protocol", "save_cleartext_passwords"]
 
 
 @dataclass
@@ -116,6 +119,8 @@ class ContextConfig:
     ssh_user: str
     ssh_port: int
     root_domain: str
+    proxy_protocol: bool
+    save_cleartext_passwords: bool
 
     def to_dict(self) -> dict:
         return {
@@ -123,16 +128,20 @@ class ContextConfig:
             "ssh_user": self.ssh_user,
             "ssh_port": self.ssh_port,
             "root_domain": self.root_domain,
+            "proxy_protocol": self.proxy_protocol,
+            "save_cleartext_passwords": self.save_cleartext_passwords,
         }
 
     @classmethod
     def from_dict(cls, context_name: str, data: dict) -> "ContextConfig":
         return cls(
             context_name=context_name,
-            ssh_hostname=data["ssh_hostname"],
-            ssh_user=data["ssh_user"],
-            ssh_port=data["ssh_port"],
-            root_domain=data["root_domain"],
+            ssh_hostname=data.get("ssh_hostname"),
+            ssh_user=data.get("ssh_user"),
+            ssh_port=data.get("ssh_port"),
+            root_domain=data.get("root_domain"),
+            proxy_protocol=data.get("proxy_protocol"),
+            save_cleartext_passwords=data.get("save_cleartext_passwords"),
         )
 
 
@@ -420,6 +429,115 @@ def check_script_wizard_installed() -> CheckResult:
         category="d.rymcg.tech setup",
         next_step="d.rymcg.tech script install_script-wizard --yes",
     )
+
+
+def check_env_file_configured(config: ContextConfig) -> CheckResult:
+    """Check if .env_{CONTEXT} file exists and is properly configured."""
+    repo_path = get_default_repo_path()
+    env_dist = repo_path / ".env-dist"
+    env_file = repo_path / f".env_{config.context_name}"
+
+    if not env_dist.exists():
+        return CheckResult(
+            name="Root .env file configured",
+            passed=False,
+            message=f".env-dist not found at {env_dist}",
+            category="d.rymcg.tech setup",
+            next_step="Ensure d.rymcg.tech repository is properly cloned",
+        )
+
+    # Check if .env_{CONTEXT} exists
+    if not env_file.exists():
+        # Create it from .env-dist
+        try:
+            content = env_dist.read_text()
+            # Replace default values with configured values
+            content = content.replace(
+                "ROOT_DOMAIN=d.example.com",
+                f"ROOT_DOMAIN={config.root_domain}",
+            )
+            content = content.replace(
+                "DEFAULT_SAVE_CLEARTEXT_PASSWORDS_JSON=false",
+                f"DEFAULT_SAVE_CLEARTEXT_PASSWORDS_JSON={'true' if config.save_cleartext_passwords else 'false'}",
+            )
+            content = content.replace(
+                "DEFAULT_CLI_ROUTE_LAYER_7_PROXY_PROTOCOL=0",
+                f"DEFAULT_CLI_ROUTE_LAYER_7_PROXY_PROTOCOL={'true' if config.proxy_protocol else 'false'}",
+            )
+            content = content.replace(
+                "DEFAULT_CLI_ROUTE_LAYER_4_PROXY_PROTOCOL=0",
+                f"DEFAULT_CLI_ROUTE_LAYER_4_PROXY_PROTOCOL={'true' if config.proxy_protocol else 'false'}",
+            )
+            env_file.write_text(content)
+            return CheckResult(
+                name="Root .env file configured",
+                passed=True,
+                message=f"Created {env_file.name} with ROOT_DOMAIN={config.root_domain}",
+                category="d.rymcg.tech setup",
+                next_step=None,
+            )
+        except OSError as e:
+            return CheckResult(
+                name="Root .env file configured",
+                passed=False,
+                message=f"Failed to create {env_file.name}: {e}",
+                category="d.rymcg.tech setup",
+                next_step=f"Manually copy .env-dist to {env_file.name} and configure ROOT_DOMAIN",
+            )
+
+    # File exists, verify ROOT_DOMAIN is set correctly
+    try:
+        content = env_file.read_text()
+        if f"ROOT_DOMAIN={config.root_domain}" in content:
+            return CheckResult(
+                name="Root .env file configured",
+                passed=True,
+                message=f"{env_file.name} configured with ROOT_DOMAIN={config.root_domain}",
+                category="d.rymcg.tech setup",
+                next_step=None,
+            )
+        elif "ROOT_DOMAIN=d.example.com" in content:
+            # Update the placeholder - this is a fresh file from .env-dist
+            content = content.replace(
+                "ROOT_DOMAIN=d.example.com",
+                f"ROOT_DOMAIN={config.root_domain}",
+            )
+            content = content.replace(
+                "DEFAULT_SAVE_CLEARTEXT_PASSWORDS_JSON=false",
+                f"DEFAULT_SAVE_CLEARTEXT_PASSWORDS_JSON={'true' if config.save_cleartext_passwords else 'false'}",
+            )
+            content = content.replace(
+                "DEFAULT_CLI_ROUTE_LAYER_7_PROXY_PROTOCOL=0",
+                f"DEFAULT_CLI_ROUTE_LAYER_7_PROXY_PROTOCOL={'true' if config.proxy_protocol else 'false'}",
+            )
+            content = content.replace(
+                "DEFAULT_CLI_ROUTE_LAYER_4_PROXY_PROTOCOL=0",
+                f"DEFAULT_CLI_ROUTE_LAYER_4_PROXY_PROTOCOL={'true' if config.proxy_protocol else 'false'}",
+            )
+            env_file.write_text(content)
+            return CheckResult(
+                name="Root .env file configured",
+                passed=True,
+                message=f"Updated {env_file.name} with ROOT_DOMAIN={config.root_domain}",
+                category="d.rymcg.tech setup",
+                next_step=None,
+            )
+        else:
+            return CheckResult(
+                name="Root .env file configured",
+                passed=True,
+                message=f"{env_file.name} exists (ROOT_DOMAIN may differ from context config)",
+                category="d.rymcg.tech setup",
+                next_step=None,
+            )
+    except OSError as e:
+        return CheckResult(
+            name="Root .env file configured",
+            passed=False,
+            message=f"Failed to read {env_file.name}: {e}",
+            category="d.rymcg.tech setup",
+            next_step=f"Check permissions on {env_file}",
+        )
 
 
 def check_ssh_keys() -> CheckResult:
@@ -751,6 +869,9 @@ def run_all_checks(skip_ssh: bool = False, context_config: ContextConfig | None 
             )
         )
 
+    # Root .env file configuration
+    report.results.append(check_env_file_configured(context_config))
+
     # SSH configuration
     report.results.append(check_ssh_keys())
 
@@ -1014,6 +1135,14 @@ def main() -> int:
         help="Root domain for the context (e.g., example.com)"
     )
     parser.add_argument(
+        "--proxy-protocol", type=lambda x: x.lower() in ('true', '1', 'yes'),
+        metavar="BOOL", help="Server is behind a proxy using proxy protocol (default: false)"
+    )
+    parser.add_argument(
+        "--save-cleartext-passwords", type=lambda x: x.lower() in ('true', '1', 'yes'),
+        metavar="BOOL", help="Save cleartext passwords in passwords.json (default: false)"
+    )
+    parser.add_argument(
         "--list-contexts", action="store_true",
         help="List all configured contexts"
     )
@@ -1048,6 +1177,8 @@ def main() -> int:
                 "ssh_user": config.ssh_user,
                 "ssh_port": config.ssh_port,
                 "root_domain": config.root_domain,
+                "proxy_protocol": config.proxy_protocol,
+                "save_cleartext_passwords": config.save_cleartext_passwords,
             }
             print(json.dumps(output, indent=2))
             return 0
@@ -1057,7 +1188,7 @@ def main() -> int:
         if not context_name:
             print("Error: No context specified.", file=sys.stderr)
             print("Run with --context NAME to set the context.", file=sys.stderr)
-            print(f"Example: {sys.argv[0]} --context docker-server --ssh-hostname 192.168.1.100 --ssh-user root --ssh-port 22 --root-domain example.com", file=sys.stderr)
+            print(f"Example: {sys.argv[0]} --context docker-server --ssh-hostname 192.168.1.100 --ssh-user root --ssh-port 22 --root-domain example.com --proxy-protocol false --save-cleartext-passwords false", file=sys.stderr)
             return 2
 
         # Load existing config or create new one
@@ -1068,6 +1199,19 @@ def main() -> int:
         ssh_user = args.ssh_user or (existing_config.ssh_user if existing_config else None)
         ssh_port = args.ssh_port or (existing_config.ssh_port if existing_config else None)
         root_domain = args.root_domain or (existing_config.root_domain if existing_config else None)
+        # For booleans, args.X is None if not provided, so we check explicitly
+        if args.proxy_protocol is not None:
+            proxy_protocol = args.proxy_protocol
+        elif existing_config and existing_config.proxy_protocol is not None:
+            proxy_protocol = existing_config.proxy_protocol
+        else:
+            proxy_protocol = None
+        if args.save_cleartext_passwords is not None:
+            save_cleartext_passwords = args.save_cleartext_passwords
+        elif existing_config and existing_config.save_cleartext_passwords is not None:
+            save_cleartext_passwords = existing_config.save_cleartext_passwords
+        else:
+            save_cleartext_passwords = None
 
         # Check for missing fields
         missing = []
@@ -1079,6 +1223,10 @@ def main() -> int:
             missing.append("--ssh-port")
         if not root_domain:
             missing.append("--root-domain")
+        if proxy_protocol is None:
+            missing.append("--proxy-protocol")
+        if save_cleartext_passwords is None:
+            missing.append("--save-cleartext-passwords")
 
         if missing:
             print(f"Error: Missing required configuration for context '{context_name}':", file=sys.stderr)
@@ -1093,6 +1241,8 @@ def main() -> int:
             ssh_user=ssh_user,
             ssh_port=ssh_port,
             root_domain=root_domain,
+            proxy_protocol=proxy_protocol,
+            save_cleartext_passwords=save_cleartext_passwords,
         )
         save_context_config(config)
 
