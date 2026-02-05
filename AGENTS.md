@@ -13,7 +13,7 @@ containers.
 
 ### Clone the repository
 
-The repository must be cloned to a specific path:
+The repository should be cloned to a conventional path:
 
 ```bash
 git clone https://github.com/EnigmaCurry/d.rymcg.tech.git ~/git/vendor/enigmacurry/d.rymcg.tech
@@ -85,14 +85,14 @@ If SSH config doesn't exist for this host, these will also be missing:
 
 Only ask the user for the fields that couldn't be discovered. When presenting options, use these recommended defaults:
 
-| Field                      | Description                                                 | Recommended Default   |
-|----------------------------|-------------------------------------------------------------|-----------------------|
-| `ssh_hostname`             | IP address or domain name of the Docker server              | *(user must provide)* |
-| `ssh_user`                 | SSH username with Docker access on the server               | `root`                |
-| `ssh_port`                 | SSH port on the server                                      | `22`                  |
-| `root_domain`              | Root domain for services on this server                     | *(user must provide)* |
-| `proxy_protocol`           | Is server behind a proxy using proxy protocol? (true/false) | `false`               |
-| `save_cleartext_passwords` | Save cleartext passwords in passwords.json? (true/false)    | `false`               |
+| Field                      | Description                                                           | Recommended Default   |
+|----------------------------|-----------------------------------------------------------------------|-----------------------|
+| `ssh_hostname`             | IP address or domain name of the Docker server                        | *(user must provide)* |
+| `ssh_user`                 | SSH username with Docker access on the server                         | `root`                |
+| `ssh_port`                 | SSH port on the server                                                | `22`                  |
+| `root_domain`              | Root domain for services on this server                               | *(user must provide)* |
+| `proxy_protocol`           | Is server behind a proxy using proxy protocol? (true/false)           | `false`               |
+| `save_cleartext_passwords` | Save cleartext passwords in passwords.json? (true/false)              | `false`               |
 | `role`                     | Server role: `public` (open ports) or `private` (NAT/no public ports) | *(user must provide)* |
 
 ### Step 5: Run check with missing values
@@ -362,19 +362,17 @@ available. Record the answer with the `--role` flag so the readiness
 checker can adapt its behavior:
 
 **`public`** - the server is in a datacenter or has open firewall
-ports (80, 443, 53 reachable from the internet). All TLS methods are
-available, and the user may optionally deploy their own acme-dns
-instance on this server.
+ports (80, 443, 53 reachable from the internet). The user may
+optionally deploy their own acme-dns instance on this server.
 
 ```bash
 _scripts/agent.py check --context myserver --role public
 ```
 
 **`private`** - the server is behind NAT, on a private network, or
-has no publicly open ports. Builtin ACME (TLS-ALPN-01) will not work
-because Let's Encrypt cannot reach port 443. The user must use
-acme-sh with an *external* acme-dns server for DNS-01 challenges. Do
-not offer to deploy acme-dns on this server.
+has no publicly open ports. The user must use acme-sh with an
+*external* acme-dns server for DNS-01 challenges. Do not offer to
+deploy acme-dns on this server.
 
 ```bash
 _scripts/agent.py check --context myserver --role private
@@ -394,57 +392,11 @@ d.rymcg.tech make traefik config-dist
 d.rymcg.tech make traefik reconfigure var=TRAEFIK_ROOT_DOMAIN=example.com
 ```
 
-#### TLS configuration
+#### TLS configuration (acme-sh with acme-dns)
 
-##### Public server TLS options
-
-For a public server, ask the user which TLS method they prefer:
-
-**Option A: Builtin ACME (Let's Encrypt TLS-ALPN-01, simplest)**
-
-Requires port 443 to be publicly reachable. No DNS configuration
-needed beyond A records. Does not support wildcard certificates.
-
-```bash
-d.rymcg.tech make traefik reconfigure var=TRAEFIK_ACME_ENABLED=true
-d.rymcg.tech make traefik reconfigure var=TRAEFIK_ACME_CA_EMAIL=you@example.com
-# Default challenge type is 'tls' (TLS-ALPN-01), which is correct for most setups
-```
-
-After installing Traefik with this option, use `make certs` to add
-certificate domains (this is interactive), or set
-`TRAEFIK_ACME_CERT_DOMAINS` directly:
-
-```bash
-# JSON list of domain objects, each with main and sans:
-d.rymcg.tech make traefik reconfigure 'var=TRAEFIK_ACME_CERT_DOMAINS=[{"main":"example.com","sans":["*.example.com"]}]'
-```
-
-**Option B: acme-sh with acme-dns (wildcard certs via DNS-01)**
-
-See [acme-sh with acme-dns](#acme-sh-with-acme-dns-configuration)
-below. For a public server, all three acme-dns source options are
-available (public instance, external instance, or self-hosted).
-
-##### Private server TLS options
-
-A private server **must** use acme-sh with an external acme-dns
-server. See [acme-sh with acme-dns](#acme-sh-with-acme-dns-configuration)
-below. Only the external acme-dns options are available (public
-instance or user-provided instance). Do not offer to deploy acme-dns
-on this server.
-
-#### Install Traefik
-
-```bash
-d.rymcg.tech make traefik install
-```
-
-### acme-sh with acme-dns configuration
-
-This uses the acme-sh sidecar container with an acme-dns server for
-DNS-01 challenges. This supports wildcard certificates and does not
-require port 443 to be publicly reachable.
+TLS certificates are obtained via the acme-sh sidecar container using
+an acme-dns server for DNS-01 challenges. This supports wildcard
+certificates and does not require port 443 to be publicly reachable.
 
 #### Choosing an acme-dns server
 
@@ -478,6 +430,12 @@ interactive config, but non-interactively you must set it:
 d.rymcg.tech make traefik reconfigure var=DOCKER_COMPOSE_PROFILES=default,error_pages,acme-sh
 ```
 
+#### Install Traefik
+
+```bash
+d.rymcg.tech make traefik install
+```
+
 If Traefik is already installed, use `reinstall` instead of `install`
 to pick up profile changes:
 
@@ -487,7 +445,7 @@ d.rymcg.tech make traefik reinstall
 
 #### Register and create certificates
 
-After Traefik is installed (or reinstalled) with acme-sh enabled:
+After Traefik is installed (or reinstalled):
 
 ```bash
 d.rymcg.tech make traefik acme-sh-register
