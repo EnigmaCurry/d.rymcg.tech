@@ -670,7 +670,7 @@ Host {config.context_name}
 
 
 def check_remote_context_exists(config: ContextConfig) -> CheckResult:
-    """Check if the specified Docker context exists."""
+    """Check if the specified Docker context exists, creating it if needed."""
     success, output = run_command(["docker", "context", "ls", "--format", "{{.Name}}"])
     if not success:
         return CheckResult(
@@ -691,26 +691,31 @@ def check_remote_context_exists(config: ContextConfig) -> CheckResult:
             category="Docker context",
             next_step=None,
         )
-    docker_context_example = f"""\
-```bash
-(
-set -euo pipefail
 
-## Create the Docker context:
-docker context create {config.context_name} --docker host=ssh://{config.context_name}
-)
-```"""
+    # Context doesn't exist, create it
+    success, output = run_command([
+        "docker", "context", "create", config.context_name,
+        "--docker", f"host=ssh://{config.context_name}"
+    ])
+    if success:
+        return CheckResult(
+            name="Remote Docker context exists",
+            passed=True,
+            message=f"Created Docker context '{config.context_name}'",
+            category="Docker context",
+            next_step=None,
+        )
     return CheckResult(
         name="Remote Docker context exists",
         passed=False,
-        message=f"Docker context '{config.context_name}' not found",
+        message=f"Failed to create Docker context: {output}",
         category="Docker context",
-        next_step=f"Create the Docker context:\n\n{docker_context_example}",
+        next_step="Ensure Docker CLI is installed and SSH host is configured",
     )
 
 
-def check_current_context_remote() -> CheckResult:
-    """Check if current context is not the local default."""
+def check_current_context_remote(config: ContextConfig) -> CheckResult:
+    """Check if current context matches the configured context, switching if needed."""
     success, output = run_command(["docker", "context", "show"])
     if not success:
         return CheckResult(
@@ -722,13 +727,33 @@ def check_current_context_remote() -> CheckResult:
         )
 
     current = output.strip()
-    is_remote = current != "default"
+
+    # If already on the correct context, we're good
+    if current == config.context_name:
+        return CheckResult(
+            name="Current context is remote",
+            passed=True,
+            message=f"Current context: {current}",
+            category="Docker context",
+            next_step=None,
+        )
+
+    # Switch to the configured context
+    success, output = run_command(["docker", "context", "use", config.context_name])
+    if success:
+        return CheckResult(
+            name="Current context is remote",
+            passed=True,
+            message=f"Switched to context '{config.context_name}'",
+            category="Docker context",
+            next_step=None,
+        )
     return CheckResult(
         name="Current context is remote",
-        passed=is_remote,
-        message=f"Current context: {current}" if is_remote else "Current context is 'default' (local)",
+        passed=False,
+        message=f"Failed to switch to context '{config.context_name}': {output}",
         category="Docker context",
-        next_step=None if is_remote else "Switch context: d context (or docker context use <name>)",
+        next_step=f"docker context use {config.context_name}",
     )
 
 
@@ -949,7 +974,7 @@ def run_all_checks(skip_ssh: bool = False, context_config: ContextConfig | None 
     report.results.append(remote_exists_result)
 
     if remote_exists_result.passed:
-        current_remote_result = check_current_context_remote()
+        current_remote_result = check_current_context_remote(context_config)
         report.results.append(current_remote_result)
     else:
         report.results.append(
