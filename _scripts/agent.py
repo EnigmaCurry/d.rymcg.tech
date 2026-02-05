@@ -27,6 +27,7 @@ OPTIONS
     --list-contexts     List all configured contexts (JSON)
     --current-context   Show current context configuration (JSON)
     --clear             Delete all saved state and start fresh
+    --delete-context NAME  Delete a context (Docker context, SSH config, saved config)
     --json              Output in JSON format (default: plain text)
     --full              Show full checklist (default: only failures and next steps)
     --pager             Enable pager for terminal output
@@ -1169,6 +1170,10 @@ def main() -> int:
         "--clear", action="store_true",
         help="Delete all saved state (~/.local/d.rymcg.tech) and start fresh"
     )
+    parser.add_argument(
+        "--delete-context", metavar="NAME",
+        help="Delete a context (removes Docker context, SSH config entry, and saved config)"
+    )
 
     args = parser.parse_args()
 
@@ -1181,6 +1186,48 @@ def main() -> int:
                 print(f"Deleted {CACHE_DIR}")
             else:
                 print(f"Nothing to clear ({CACHE_DIR} does not exist)")
+            return 0
+
+        # Handle --delete-context
+        if args.delete_context:
+            context_name = args.delete_context
+            deleted_items = []
+
+            # Delete Docker context
+            success, _ = run_command(["docker", "context", "rm", context_name])
+            if success:
+                deleted_items.append(f"Docker context '{context_name}'")
+
+            # Remove SSH config entry
+            ssh_config = Path.home() / ".ssh" / "config"
+            if ssh_config.exists():
+                try:
+                    content = ssh_config.read_text()
+                    import re
+                    # Match the Host block and all indented lines that follow
+                    pattern = rf'\n?Host {re.escape(context_name)}\n(?:[ \t]+[^\n]*\n)*'
+                    new_content, count = re.subn(pattern, '', content)
+                    if count > 0:
+                        ssh_config.write_text(new_content)
+                        deleted_items.append(f"SSH config entry '{context_name}'")
+                except OSError as e:
+                    print(f"Warning: Failed to update SSH config: {e}", file=sys.stderr)
+
+            # Remove from agent.contexts.json
+            data = load_contexts_file()
+            if context_name in data.get("contexts", {}):
+                del data["contexts"][context_name]
+                if data.get("current") == context_name:
+                    data["current"] = None
+                save_contexts_file(data)
+                deleted_items.append(f"Saved config for '{context_name}'")
+
+            if deleted_items:
+                print("Deleted:")
+                for item in deleted_items:
+                    print(f"  - {item}")
+            else:
+                print(f"Context '{context_name}' not found")
             return 0
 
         # Handle --list-contexts
