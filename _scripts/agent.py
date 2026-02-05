@@ -593,18 +593,12 @@ def check_ssh_keys() -> CheckResult:
 
 
 def check_ssh_host_configured(config: ContextConfig) -> CheckResult:
-    """Check if the specified SSH host is configured in ~/.ssh/config."""
-    ssh_config = Path.home() / ".ssh" / "config"
+    """Check if the specified SSH host is configured in ~/.ssh/config, adding it if needed."""
+    ssh_dir = Path.home() / ".ssh"
+    ssh_config = ssh_dir / "config"
 
-    def get_ssh_setup_example() -> str:
-        return f"""\
-```bash
-(
-set -euo pipefail
-
-## Append SSH host entry to ~/.ssh/config (if it doesn't exist):
-grep -q "^Host {config.context_name}$" ~/.ssh/config 2>/dev/null || cat <<EOF >> ~/.ssh/config
-
+    def get_host_entry() -> str:
+        return f"""
 Host {config.context_name}
     Hostname {config.ssh_hostname}
     Port {config.ssh_port}
@@ -612,45 +606,65 @@ Host {config.context_name}
     ControlMaster auto
     ControlPersist yes
     ControlPath /tmp/ssh-%u-%r@%h:%p
-EOF
+"""
 
-## Test SSH connection (auto-trusts host key on first use):
-ssh -o StrictHostKeyChecking=accept-new {config.context_name} echo "SSH connection successful"
-)
-```"""
+    def add_host_entry() -> tuple[bool, str]:
+        """Add the SSH host entry to config. Returns (success, message)."""
+        try:
+            # Ensure ~/.ssh directory exists with correct permissions
+            ssh_dir.mkdir(mode=0o700, exist_ok=True)
 
-    if not ssh_config.exists():
+            # Read existing content or start fresh
+            if ssh_config.exists():
+                content = ssh_config.read_text()
+            else:
+                content = ""
+
+            # Append the new host entry
+            content += get_host_entry()
+            ssh_config.write_text(content)
+
+            # Ensure config file has correct permissions
+            ssh_config.chmod(0o600)
+
+            return True, f"Added SSH host '{config.context_name}' to ~/.ssh/config"
+        except OSError as e:
+            return False, f"Failed to update ~/.ssh/config: {e}"
+
+    # Check if host is already configured
+    if ssh_config.exists():
+        try:
+            content = ssh_config.read_text()
+            import re
+            hosts = re.findall(r'^Host\s+(\S+)', content, re.MULTILINE)
+
+            if config.context_name in hosts:
+                return CheckResult(
+                    name="SSH host configured",
+                    passed=True,
+                    message=f"SSH host '{config.context_name}' is configured",
+                    category="SSH configuration",
+                    next_step=None,
+                )
+        except OSError:
+            pass
+
+    # Host not configured, add it
+    success, message = add_host_entry()
+    if success:
         return CheckResult(
             name="SSH host configured",
-            passed=False,
-            message=f"No ~/.ssh/config file found (need host: {config.context_name})",
+            passed=True,
+            message=message,
             category="SSH configuration",
-            next_step=f"Set up SSH connection to Docker server:\n\n{get_ssh_setup_example()}",
+            next_step=None,
         )
-
-    try:
-        content = ssh_config.read_text()
-        # Look for the specific Host entry
-        import re
-        hosts = re.findall(r'^Host\s+(\S+)', content, re.MULTILINE)
-
-        if config.context_name in hosts:
-            return CheckResult(
-                name="SSH host configured",
-                passed=True,
-                message=f"SSH host '{config.context_name}' is configured",
-                category="SSH configuration",
-                next_step=None,
-            )
-    except OSError:
-        pass
-
     return CheckResult(
         name="SSH host configured",
         passed=False,
-        message=f"SSH host '{config.context_name}' not found in ~/.ssh/config",
+        message=message,
         category="SSH configuration",
-        next_step=f"Set up SSH connection to Docker server:\n\n{get_ssh_setup_example()}",
+        next_step="Manually add SSH host entry to ~/.ssh/config",
     )
 
 
