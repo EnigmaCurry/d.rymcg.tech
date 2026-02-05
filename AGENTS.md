@@ -56,7 +56,7 @@ More options:
 # Subsequent runs - uses saved configuration:
 _scripts/agent.py check
 
-# Or simply (check is the default command):
+# Show help:
 _scripts/agent.py
 
 # Switch to a different context:
@@ -81,7 +81,7 @@ The configuration is saved to `~/.local/d.rymcg.tech/agent.contexts.json` and pe
 
 ```
 COMMANDS
-    check               Run readiness checks (default if no command given)
+    check               Run readiness checks
     list                List all configured contexts (JSON)
     current             Show current context configuration (JSON)
     delete NAME         Delete a context (Docker context, SSH config, saved config)

@@ -1320,9 +1320,9 @@ def main() -> int:
     )
     subparsers = parser.add_subparsers(dest="command", metavar="COMMAND")
 
-    # 'check' subcommand (also the default when no command given)
+    # 'check' subcommand
     check_parser = subparsers.add_parser(
-        "check", help="Run readiness checks (default command)",
+        "check", help="Run readiness checks",
         formatter_class=argparse.RawDescriptionHelpFormatter,
     )
     check_parser.add_argument(
@@ -1390,10 +1390,10 @@ def main() -> int:
     args = parser.parse_args()
 
     try:
-        # If no command given, default to 'check'
+        # If no command given, print help
         if args.command is None:
-            # Re-parse with 'check' as default
-            args = parser.parse_args(['check'] + sys.argv[1:])
+            parser.print_help()
+            return 0
 
         return args.func(args)
 
