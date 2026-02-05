@@ -528,8 +528,23 @@ main() {
             config)
                 __make -- config;;
             agent)
+                # Auto-detect current Docker context for 'check' command
                 if [[ $# -eq 0 ]]; then
-                    ${BIN}/agent.py check --pager
+                    # No args - run check with current context and pager
+                    local ctx=$(docker context show 2>/dev/null)
+                    if [[ -n "$ctx" && "$ctx" != "default" ]]; then
+                        ${BIN}/agent.py check --context "$ctx" --pager
+                    else
+                        ${BIN}/agent.py check --pager
+                    fi
+                elif [[ "$1" == "check" ]] && ! echo "$@" | grep -q -- "--context"; then
+                    # 'check' without --context - inject current context
+                    local ctx=$(docker context show 2>/dev/null)
+                    if [[ -n "$ctx" && "$ctx" != "default" ]]; then
+                        ${BIN}/agent.py check --context "$ctx" "${@:2}"
+                    else
+                        ${BIN}/agent.py "$@"
+                    fi
                 else
                     ${BIN}/agent.py "$@"
                 fi;;

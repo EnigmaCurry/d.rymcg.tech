@@ -197,6 +197,14 @@ def save_context_config(config: ContextConfig) -> None:
     save_contexts_file(data)
 
 
+def get_docker_contexts() -> list[str]:
+    """Get list of Docker context names (excluding 'default')."""
+    success, output = run_command(["docker", "context", "ls", "--format", "{{.Name}}"])
+    if not success:
+        return []
+    return [c.strip() for c in output.split("\n") if c.strip() and c.strip() != "default"]
+
+
 def discover_ssh_config(context_name: str) -> dict:
     """Discover SSH configuration from ~/.ssh/config for a given host.
 
@@ -1212,14 +1220,21 @@ def cmd_current(args) -> int:
 
 
 def cmd_check(args) -> int:
-    """Handle 'check' subcommand (default)."""
-    # Determine context name
-    context_name = args.context or get_current_context_name()
-    if not context_name:
-        print("Error: No context specified.", file=sys.stderr)
-        print("Run with --context NAME to set the context.", file=sys.stderr)
-        print("Example: agent.py check --context docker-server --ssh-hostname 192.168.1.100 --ssh-user root --ssh-port 22 --root-domain example.com --proxy-protocol false --save-cleartext-passwords false", file=sys.stderr)
+    """Handle 'check' subcommand."""
+    # Require --context to be specified explicitly
+    if not args.context:
+        # Show available Docker contexts
+        docker_contexts = get_docker_contexts()
+        print("Error: No context specified. Use --context NAME.", file=sys.stderr)
+        if docker_contexts:
+            print(f"\nAvailable Docker contexts: {', '.join(docker_contexts)}", file=sys.stderr)
+            print(f"\nExample: agent.py check --context {docker_contexts[0]}", file=sys.stderr)
+        else:
+            print("\nNo Docker contexts found. Create one with:", file=sys.stderr)
+            print("  agent.py check --context NAME --ssh-hostname HOST --ssh-user USER --ssh-port PORT --root-domain DOMAIN --proxy-protocol false --save-cleartext-passwords false", file=sys.stderr)
         return 2
+
+    context_name = args.context
 
     # Load existing config or create new one
     existing_config = get_context_config(context_name)
