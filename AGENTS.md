@@ -633,16 +633,20 @@ instance from Step 3.
 
 #### Determine the OAuth2 provider URLs
 
-For a Forgejo provider, the URLs follow this pattern (substitute your
-Forgejo domain and port):
+The Auth URL is a browser redirect (user-facing) and uses the public
+port. The Token URL and User URL are server-to-server calls made from
+inside the container, which reaches Traefik via `host-gateway` on
+port 443 — so these must **never** include the public port.
 
-| URL | Template |
-|-----|----------|
-| Auth URL | `https://git.{ROOT_DOMAIN}:{PORT}/login/oauth/authorize` |
-| Token URL | `https://git.{ROOT_DOMAIN}:{PORT}/login/oauth/access_token` |
-| User URL | `https://git.{ROOT_DOMAIN}:{PORT}/api/v1/user` |
+| URL | Template | Notes |
+|-----|----------|-------|
+| Auth URL | `https://git.{ROOT_DOMAIN}:{PORT}/login/oauth/authorize` | Browser redirect, uses public port |
+| Token URL | `https://git.{ROOT_DOMAIN}/login/oauth/access_token` | Server-to-server, always port 443 |
+| User URL | `https://git.{ROOT_DOMAIN}/api/v1/user` | Server-to-server, always port 443 |
 
-If `PUBLIC_HTTPS_PORT` is `443`, omit `:{PORT}` from the URLs.
+The `docker-compose.yaml` maps the Forgejo domain to `host-gateway`
+via `extra_hosts`, so the container can reach Traefik on port 443
+even though the public-facing port may differ.
 
 #### Create the OAuth2 application in Forgejo
 
@@ -681,9 +685,11 @@ d.rymcg.tech make traefik-forward-auth reconfigure var=TRAEFIK_FORWARD_AUTH_SECR
 d.rymcg.tech make traefik-forward-auth reconfigure var=TRAEFIK_FORWARD_AUTH_FORGEJO_DOMAIN=git.{ROOT_DOMAIN}
 
 # OAuth provider URLs:
+# Auth URL uses the public port (browser redirect):
 d.rymcg.tech make traefik-forward-auth reconfigure var=TRAEFIK_FORWARD_AUTH_PROVIDERS_GENERIC_OAUTH_AUTH_URL=https://git.{ROOT_DOMAIN}:{PORT}/login/oauth/authorize
-d.rymcg.tech make traefik-forward-auth reconfigure var=TRAEFIK_FORWARD_AUTH_PROVIDERS_GENERIC_OAUTH_TOKEN_URL=https://git.{ROOT_DOMAIN}:{PORT}/login/oauth/access_token
-d.rymcg.tech make traefik-forward-auth reconfigure var=TRAEFIK_FORWARD_AUTH_PROVIDERS_GENERIC_OAUTH_USER_URL=https://git.{ROOT_DOMAIN}:{PORT}/api/v1/user
+# Token and User URLs are server-to-server (always port 443, no public port):
+d.rymcg.tech make traefik-forward-auth reconfigure var=TRAEFIK_FORWARD_AUTH_PROVIDERS_GENERIC_OAUTH_TOKEN_URL=https://git.{ROOT_DOMAIN}/login/oauth/access_token
+d.rymcg.tech make traefik-forward-auth reconfigure var=TRAEFIK_FORWARD_AUTH_PROVIDERS_GENERIC_OAUTH_USER_URL=https://git.{ROOT_DOMAIN}/api/v1/user
 
 # Provider selection (use gitea/generic-oauth for Forgejo):
 d.rymcg.tech make traefik-forward-auth reconfigure var=TRAEFIK_FORWARD_AUTH_SELECTED_PROVIDER=gitea
