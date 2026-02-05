@@ -1193,10 +1193,17 @@ def main() -> int:
             context_name = args.delete_context
             deleted_items = []
 
-            # Delete Docker context
-            success, _ = run_command(["docker", "context", "rm", context_name])
-            if success:
-                deleted_items.append(f"Docker context '{context_name}'")
+            # Check if Docker context exists
+            success, output = run_command(["docker", "context", "ls", "--format", "{{.Name}}"])
+            if success and context_name in output.split():
+                # Switch to default if this is the current context
+                current_success, current = run_command(["docker", "context", "show"])
+                if current_success and current.strip() == context_name:
+                    run_command(["docker", "context", "use", "default"])
+                # Delete Docker context
+                success, _ = run_command(["docker", "context", "rm", context_name])
+                if success:
+                    deleted_items.append(f"Docker context '{context_name}'")
 
             # Remove SSH config entry
             ssh_config = Path.home() / ".ssh" / "config"
