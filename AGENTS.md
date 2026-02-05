@@ -9,6 +9,26 @@ for managing remote Docker services from a local workstation. All
 administration happens on the workstation; the server only runs
 containers.
 
+## Prerequisites
+
+### Clone the repository
+
+The repository must be cloned to a specific path:
+
+```bash
+git clone https://github.com/EnigmaCurry/d.rymcg.tech.git ~/git/vendor/enigmacurry/d.rymcg.tech
+```
+
+### Install uv
+
+The agent script (`_scripts/agent.py`) requires
+[uv](https://docs.astral.sh/uv/) to run. Install it before running
+any `_scripts/agent.py` commands:
+
+```bash
+curl -LsSf https://astral.sh/uv/install.sh | sh
+```
+
 ## First Steps: Check for Existing Configuration
 
 Before asking the user for information, check if a context is already configured:
@@ -54,6 +74,7 @@ The output will show which fields are still missing. Typically these cannot be a
 - `root_domain` - user must provide
 - `proxy_protocol` - user must provide (recommend `false`)
 - `save_cleartext_passwords` - user must provide (recommend `false`)
+- `role` - user must provide (`public` or `private`)
 
 If SSH config doesn't exist for this host, these will also be missing:
 - `ssh_hostname` - user must provide
@@ -72,17 +93,19 @@ Only ask the user for the fields that couldn't be discovered. When presenting op
 | `root_domain`              | Root domain for services on this server                     | *(user must provide)* |
 | `proxy_protocol`           | Is server behind a proxy using proxy protocol? (true/false) | `false`               |
 | `save_cleartext_passwords` | Save cleartext passwords in passwords.json? (true/false)    | `false`               |
+| `role`                     | Server role: `public` (open ports) or `private` (NAT/no public ports) | *(user must provide)* |
 
 ### Step 5: Run check with missing values
 
 Run check again, providing only the values that were missing:
 
 ```bash
-# Example: if only root_domain, proxy_protocol, and save_cleartext_passwords were missing:
+# Example: if only root_domain, proxy_protocol, save_cleartext_passwords, and role were missing:
 _scripts/agent.py check --context myserver \
   --root-domain example.com \
   --proxy-protocol false \
-  --save-cleartext-passwords false
+  --save-cleartext-passwords false \
+  --role public
 ```
 
 ## Running the Agent Readiness Checker
@@ -97,7 +120,8 @@ _scripts/agent.py check --context docker-server
 _scripts/agent.py check --context docker-server \
   --root-domain example.com \
   --proxy-protocol false \
-  --save-cleartext-passwords false
+  --save-cleartext-passwords false \
+  --role public
 
 # If SSH config didn't exist, also provide:
 _scripts/agent.py check --context docker-server \
@@ -106,7 +130,8 @@ _scripts/agent.py check --context docker-server \
   --ssh-port 22 \
   --root-domain example.com \
   --proxy-protocol false \
-  --save-cleartext-passwords false
+  --save-cleartext-passwords false \
+  --role public
 ```
 
 More options:
@@ -154,6 +179,7 @@ CHECK OPTIONS
     --root-domain DOMAIN Root domain (e.g., example.com)
     --proxy-protocol BOOL       Server behind proxy using proxy protocol (true/false)
     --save-cleartext-passwords BOOL  Save cleartext passwords (true/false)
+    --role ROLE          Server role: 'public' or 'private'
     --json               Output in JSON format (default: plain text)
     --full               Show full checklist (default: only failures and next steps)
     --pager              Enable pager for terminal output
@@ -205,7 +231,7 @@ and the script completes with return code 0.
    ```bash
    _scripts/agent.py check --context myserver
    ```
-   Result: Shows missing fields. SSH config doesn't exist, so ssh_hostname, ssh_user, ssh_port are missing along with root_domain, proxy_protocol, save_cleartext_passwords.
+   Result: Shows missing fields. SSH config doesn't exist, so ssh_hostname, ssh_user, ssh_port are missing along with root_domain, proxy_protocol, save_cleartext_passwords, role.
 
 4. **Ask user for missing fields** (with recommended defaults):
    - ssh_hostname: user provides `10.0.0.5`
@@ -214,6 +240,7 @@ and the script completes with return code 0.
    - root_domain: user provides `mysite.com`
    - proxy_protocol: offer `false` as default, user accepts
    - save_cleartext_passwords: offer `false` as default, user accepts
+   - role: ask user if server is `public` or `private`
 
 5. **Run check with all missing values**:
    ```bash
@@ -223,7 +250,8 @@ and the script completes with return code 0.
      --ssh-port 22 \
      --root-domain mysite.com \
      --proxy-protocol false \
-     --save-cleartext-passwords false
+     --save-cleartext-passwords false \
+     --role public
    ```
 
 6. **Follow the next steps** in the output. The script will automatically
@@ -246,19 +274,21 @@ and the script completes with return code 0.
    ```bash
    _scripts/agent.py check --context myserver
    ```
-   Result: Discovers ssh_hostname, ssh_user, ssh_port from `~/.ssh/config`. Only root_domain, proxy_protocol, save_cleartext_passwords are missing.
+   Result: Discovers ssh_hostname, ssh_user, ssh_port from `~/.ssh/config`. Only root_domain, proxy_protocol, save_cleartext_passwords, role are missing.
 
 4. **Ask user for only the missing fields**:
    - root_domain: user provides `mysite.com`
    - proxy_protocol: offer `false` as default, user accepts
    - save_cleartext_passwords: offer `false` as default, user accepts
+   - role: ask user if server is `public` or `private`
 
 5. **Run check with only the missing values**:
    ```bash
    _scripts/agent.py check --context myserver \
      --root-domain mysite.com \
      --proxy-protocol false \
-     --save-cleartext-passwords false
+     --save-cleartext-passwords false \
+     --role public
    ```
 
 6. **Continue** until all checks pass.
@@ -328,18 +358,27 @@ d.rymcg.tech make <project> dotenv_get var=VAR_NAME
 
 Before configuring services, ask the user about their server's
 network exposure. This determines which TLS and acme-dns options are
-available.
+available. Record the answer with the `--role` flag so the readiness
+checker can adapt its behavior:
 
-**Public server** - the server is in a datacenter or has open
-firewall ports (80, 443, 53 reachable from the internet). All TLS
-methods are available, and the user may optionally deploy their own
-acme-dns instance on this server.
+**`public`** - the server is in a datacenter or has open firewall
+ports (80, 443, 53 reachable from the internet). All TLS methods are
+available, and the user may optionally deploy their own acme-dns
+instance on this server.
 
-**Private server** - the server is behind NAT, on a private
-network, or has no publicly open ports. Builtin ACME (TLS-ALPN-01)
-will not work because Let's Encrypt cannot reach port 443. The user
-must use acme-sh with an *external* acme-dns server for DNS-01
-challenges. Do not offer to deploy acme-dns on this server.
+```bash
+_scripts/agent.py check --context myserver --role public
+```
+
+**`private`** - the server is behind NAT, on a private network, or
+has no publicly open ports. Builtin ACME (TLS-ALPN-01) will not work
+because Let's Encrypt cannot reach port 443. The user must use
+acme-sh with an *external* acme-dns server for DNS-01 challenges. Do
+not offer to deploy acme-dns on this server.
+
+```bash
+_scripts/agent.py check --context myserver --role private
+```
 
 ### Step 2: Configure Traefik
 

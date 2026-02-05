@@ -31,6 +31,7 @@ CHECK OPTIONS
     --root-domain DOMAIN Root domain (e.g., example.com)
     --proxy-protocol BOOL       Server behind proxy using proxy protocol (true/false)
     --save-cleartext-passwords BOOL  Save cleartext passwords (true/false)
+    --role ROLE          Server role: 'public' (datacenter/open ports) or 'private' (NAT/no public ports)
     --json               Output in JSON format (default: plain text)
     --full               Show full checklist (default: only failures and next steps)
     --pager              Enable pager for terminal output
@@ -109,7 +110,10 @@ CACHE_DIR = Path.home() / ".local" / "d.rymcg.tech"
 CONTEXTS_FILE = CACHE_DIR / "agent.contexts.json"
 
 # Required fields for a context configuration
-CONTEXT_FIELDS = ["ssh_hostname", "ssh_user", "ssh_port", "root_domain", "proxy_protocol", "save_cleartext_passwords"]
+CONTEXT_FIELDS = ["ssh_hostname", "ssh_user", "ssh_port", "root_domain", "proxy_protocol", "save_cleartext_passwords", "role"]
+
+# Valid server roles
+VALID_ROLES = ["public", "private"]
 
 
 @dataclass
@@ -122,6 +126,7 @@ class ContextConfig:
     root_domain: str
     proxy_protocol: bool
     save_cleartext_passwords: bool
+    role: str
 
     def to_dict(self) -> dict:
         return {
@@ -131,6 +136,7 @@ class ContextConfig:
             "root_domain": self.root_domain,
             "proxy_protocol": self.proxy_protocol,
             "save_cleartext_passwords": self.save_cleartext_passwords,
+            "role": self.role,
         }
 
     @classmethod
@@ -143,6 +149,7 @@ class ContextConfig:
             root_domain=data.get("root_domain"),
             proxy_protocol=data.get("proxy_protocol"),
             save_cleartext_passwords=data.get("save_cleartext_passwords"),
+            role=data.get("role"),
         )
 
 
@@ -834,7 +841,7 @@ def check_traefik_healthy() -> CheckResult:
             passed=False,
             message="Failed to check Traefik status",
             category="Server readiness",
-            next_step="d make traefik config && d make traefik install",
+            next_step="Configure and install Traefik non-interactively (see AGENTS.md 'Configure Traefik' section)",
         )
 
     if not output.strip():
@@ -843,7 +850,7 @@ def check_traefik_healthy() -> CheckResult:
             passed=False,
             message="Traefik container not found",
             category="Server readiness",
-            next_step="d make traefik config && d make traefik install",
+            next_step="Configure and install Traefik non-interactively (see AGENTS.md 'Configure Traefik' section)",
         )
 
     is_healthy = "healthy" in output.lower()
@@ -1034,7 +1041,18 @@ def run_all_checks(context_config: ContextConfig) -> CheckReport:
     # Server readiness (only if context is reachable)
     if context_reachable_result and context_reachable_result.passed:
         report.results.append(check_traefik_healthy())
-        report.results.append(check_acme_dns_healthy())
+        if context_config.role == "private":
+            report.results.append(
+                CheckResult(
+                    name="acme-dns installed and healthy",
+                    passed=True,
+                    message="Skipped - private server uses external acme-dns",
+                    category="Server readiness",
+                    next_step=None,
+                )
+            )
+        else:
+            report.results.append(check_acme_dns_healthy())
     else:
         report.results.append(
             CheckResult(
@@ -1266,6 +1284,7 @@ def cmd_current(args) -> int:
         "root_domain": config.root_domain,
         "proxy_protocol": config.proxy_protocol,
         "save_cleartext_passwords": config.save_cleartext_passwords,
+        "role": config.role,
     }
     print(json.dumps(output, indent=2))
     return 0
@@ -1283,7 +1302,7 @@ def cmd_check(args) -> int:
             print(f"\nExample: agent.py check --context {docker_contexts[0]}", file=sys.stderr)
         else:
             print("\nNo Docker contexts found. Create one with:", file=sys.stderr)
-            print("  agent.py check --context NAME --ssh-hostname HOST --ssh-user USER --ssh-port PORT --root-domain DOMAIN --proxy-protocol false --save-cleartext-passwords false", file=sys.stderr)
+            print("  agent.py check --context NAME --ssh-hostname HOST --ssh-user USER --ssh-port PORT --root-domain DOMAIN --proxy-protocol false --save-cleartext-passwords false --role public", file=sys.stderr)
         return 2
 
     context_name = args.context
@@ -1312,6 +1331,7 @@ def cmd_check(args) -> int:
         save_cleartext_passwords = existing_config.save_cleartext_passwords
     else:
         save_cleartext_passwords = None
+    role = args.role or (existing_config.role if existing_config and existing_config.role else None)
 
     # Save partial config (discovered values) even if some fields are missing
     partial_config = {}
@@ -1327,6 +1347,8 @@ def cmd_check(args) -> int:
         partial_config['proxy_protocol'] = proxy_protocol
     if save_cleartext_passwords is not None:
         partial_config['save_cleartext_passwords'] = save_cleartext_passwords
+    if role:
+        partial_config['role'] = role
 
     if partial_config:
         data = load_contexts_file()
@@ -1353,6 +1375,8 @@ def cmd_check(args) -> int:
         missing.append("--proxy-protocol")
     if save_cleartext_passwords is None:
         missing.append("--save-cleartext-passwords")
+    if not role:
+        missing.append("--role")
 
     if missing:
         print(f"Error: Missing required configuration for context '{context_name}':", file=sys.stderr)
@@ -1369,6 +1393,7 @@ def cmd_check(args) -> int:
         root_domain=root_domain,
         proxy_protocol=proxy_protocol,
         save_cleartext_passwords=save_cleartext_passwords,
+        role=role,
     )
     save_context_config(config)
 
@@ -1428,6 +1453,10 @@ def main() -> int:
     check_parser.add_argument(
         "--save-cleartext-passwords", type=lambda x: x.lower() in ('true', '1', 'yes'),
         metavar="BOOL", help="Save cleartext passwords in passwords.json (true/false)"
+    )
+    check_parser.add_argument(
+        "--role", choices=VALID_ROLES,
+        metavar="ROLE", help="Server role: 'public' (datacenter/open ports) or 'private' (NAT/no public ports)"
     )
     check_parser.set_defaults(func=cmd_check)
 
