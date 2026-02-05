@@ -65,6 +65,9 @@ _scripts/agent.py --current-context
 # List all configured contexts:
 _scripts/agent.py --list-contexts
 
+# Delete a specific context (Docker context, SSH config, saved config):
+_scripts/agent.py --delete-context myserver
+
 # Reset all saved state (start fresh):
 _scripts/agent.py --clear
 ```
@@ -84,6 +87,7 @@ OPTIONS
     --save-cleartext-passwords BOOL  Save cleartext passwords (true/false)
     --list-contexts      List all configured contexts (JSON)
     --current-context    Show current context configuration (JSON)
+    --delete-context NAME  Delete a context (Docker context, SSH config, saved config)
     --clear              Delete all saved state and start fresh
     --json               Output in JSON format (default: plain text)
     --full               Show full checklist (default: only failures and next steps)
