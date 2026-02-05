@@ -26,6 +26,7 @@ OPTIONS
     --save-cleartext-passwords BOOL Save cleartext passwords in passwords.json (true/false)
     --list-contexts     List all configured contexts (JSON)
     --current-context   Show current context configuration (JSON)
+    --clear             Delete all saved state and start fresh
     --json              Output in JSON format (default: plain text)
     --full              Show full checklist (default: only failures and next steps)
     --pager             Enable pager for terminal output
@@ -1150,10 +1151,24 @@ def main() -> int:
         "--current-context", action="store_true",
         help="Show configuration for current context"
     )
+    parser.add_argument(
+        "--clear", action="store_true",
+        help="Delete all saved state (~/.local/d.rymcg.tech) and start fresh"
+    )
 
     args = parser.parse_args()
 
     try:
+        # Handle --clear
+        if args.clear:
+            if CACHE_DIR.exists():
+                import shutil as sh
+                sh.rmtree(CACHE_DIR)
+                print(f"Deleted {CACHE_DIR}")
+            else:
+                print(f"Nothing to clear ({CACHE_DIR} does not exist)")
+            return 0
+
         # Handle --list-contexts
         if args.list_contexts:
             data = load_contexts_file()
