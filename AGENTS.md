@@ -295,24 +295,19 @@ and the script completes with return code 0.
 
 ## Key Commands (After Setup)
 
-TODO: make this machine runnable.
-
-### Context management (interactive)
-```bash
-d.rymcg.tech context              # Switch Docker context (which server to control)
-d.rymcg.tech agent                # Run readiness checker with pager
-```
-
 ### Per-project commands (run from any directory)
 ```bash
-d.rymcg.tech make <project> config     # Configure .env file via wizard
-d.rymcg.tech make <project> install    # Deploy to server
-d.rymcg.tech make <project> reinstall  # Tear down and reinstall
-d.rymcg.tech make <project> uninstall  # Remove containers, keep volumes
-d.rymcg.tech make <project> destroy    # Remove containers AND volumes
-d.rymcg.tech make <project> open       # Open in browser
-d.rymcg.tech make <project> logs-out   # View logs (non-interactive)
-d.rymcg.tech make <project> status     # Check container status
+d.rymcg.tech make <project> config-dist   # Create .env file from template (non-interactive)
+d.rymcg.tech make <project> reconfigure var=KEY=VALUE  # Set a single env variable
+d.rymcg.tech make <project> install       # Deploy to server
+d.rymcg.tech make <project> reinstall     # Tear down and reinstall
+d.rymcg.tech make <project> uninstall     # Remove containers, keep volumes
+d.rymcg.tech make <project> destroy       # Remove containers AND volumes
+d.rymcg.tech make <project> status        # Check container status
+d.rymcg.tech make <project> logs-out      # View all logs (non-interactive)
+d.rymcg.tech make <project> logs-out service=<name>  # View logs for one service
+d.rymcg.tech make <project> restart service=<name>   # Restart one service
+d.rymcg.tech make <project> open          # Open in browser
 ```
 
 ## Initial Service Setup Order
@@ -530,7 +525,7 @@ d.rymcg.tech make acme-dns install
 
 Then set Traefik's `TRAEFIK_ACME_SH_ACME_DNS_BASE_URL` to
 `https://acme-dns.example.com` and proceed with the register and cert
-steps in the [acme-sh section](#register-and-create-certificates)
+steps in the [acme-sh section](#register-acme-dns-and-create-dns-records)
 above.
 
 ## Further Documentation
