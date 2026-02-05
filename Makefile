@@ -152,6 +152,11 @@ reconfigure:
 	@[[ -n "$${var}" ]] || (echo -e "Error: Invalid argument, must set var.\n## Use: make reconfigure var=VAR_NAME=VALUE" && false)
 	@${BIN}/reconfigure ${ROOT_ENV} "$${var%%=*}=$${var#*=}"
 
+.PHONY: dotenv_get # Retrieve a single root environment variable (dotenv_get var=THING)
+dotenv_get:
+	@[[ -n "$${var}" ]] || (echo -e "Error: Invalid argument, must set var.\n## Use: make dotenv_get var=VAR_NAME" && false)
+	@export ENV_FILE=${ROOT_ENV}; ${BIN}/dotenv_get "$${var%%=*}"
+
 daemon-conf:
 	@ENV_FILE=${ENV_FILE} ROOT_ENV=${ROOT_ENV} DOCKER_CONTEXT=${DOCKER_CONTEXT} ROOT_DIR=${ROOT_DIR} CONTEXT_INSTANCE=${CONTEXT_INSTANCE}  ${BIN}/docker_daemon_conf
 

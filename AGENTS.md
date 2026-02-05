@@ -310,6 +310,25 @@ d.rymcg.tech make <project> restart service=<name>   # Restart one service
 d.rymcg.tech make <project> open          # Open in browser
 ```
 
+### Testing URLs with curl or wget
+
+The root `.env_{CONTEXT}` file defines `PUBLIC_HTTPS_PORT` (defaults
+to `443`). When testing service URLs with curl or wget, read this
+port and include it in the URL:
+
+```bash
+# Read the configured HTTPS port:
+PORT=$(d.rymcg.tech dotenv_get var=PUBLIC_HTTPS_PORT)
+
+# Use it in curl/wget:
+curl -sk "https://whoami.example.com:${PORT}"
+wget -qO- --no-check-certificate "https://whoami.example.com:${PORT}"
+```
+
+If `PUBLIC_HTTPS_PORT` is `443`, the port can be omitted, but
+always reading it first ensures correct behavior on non-standard
+ports.
+
 ## Initial Service Setup Order
 
 After the readiness checker passes, install services in this order:
