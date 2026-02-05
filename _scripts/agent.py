@@ -1190,8 +1190,60 @@ def cmd_delete(args) -> int:
 
 def cmd_list(args) -> int:
     """Handle 'list' subcommand."""
-    data = load_contexts_file()
-    print(json.dumps(data, indent=2))
+    # Get saved config
+    saved_data = load_contexts_file()
+    saved_contexts = saved_data.get("contexts", {})
+
+    # Discover all Docker contexts
+    docker_contexts = get_docker_contexts()
+
+    # Build merged context list and save discovered values
+    all_context_names = set(docker_contexts) | set(saved_contexts.keys())
+    merged_contexts = {}
+    contexts_to_save = {}
+
+    for name in sorted(all_context_names):
+        # Start with saved config if exists
+        if name in saved_contexts:
+            ctx = dict(saved_contexts[name])
+        else:
+            ctx = {}
+
+        # Discover SSH config and fill in missing values
+        discovered = discover_ssh_config(name)
+        updated = False
+        if 'ssh_hostname' not in ctx or ctx.get('ssh_hostname') is None:
+            if discovered.get('ssh_hostname'):
+                ctx['ssh_hostname'] = discovered['ssh_hostname']
+                updated = True
+        if 'ssh_user' not in ctx or ctx.get('ssh_user') is None:
+            if discovered.get('ssh_user'):
+                ctx['ssh_user'] = discovered['ssh_user']
+                updated = True
+        if 'ssh_port' not in ctx or ctx.get('ssh_port') is None:
+            if discovered.get('ssh_port'):
+                ctx['ssh_port'] = discovered['ssh_port']
+                updated = True
+
+        # Save context without docker_context_exists (that's computed)
+        save_ctx = {k: v for k, v in ctx.items() if k != 'docker_context_exists' and v is not None}
+        if save_ctx:
+            contexts_to_save[name] = save_ctx
+
+        # Mark if this context exists in Docker (for display only)
+        ctx['docker_context_exists'] = name in docker_contexts
+        merged_contexts[name] = ctx
+
+    # Save discovered values
+    if contexts_to_save:
+        saved_data["contexts"] = contexts_to_save
+        save_contexts_file(saved_data)
+
+    output = {
+        "current": saved_data.get("current"),
+        "contexts": merged_contexts,
+    }
+    print(json.dumps(output, indent=2))
     return 0
 
 
@@ -1260,6 +1312,32 @@ def cmd_check(args) -> int:
         save_cleartext_passwords = existing_config.save_cleartext_passwords
     else:
         save_cleartext_passwords = None
+
+    # Save partial config (discovered values) even if some fields are missing
+    partial_config = {}
+    if ssh_hostname:
+        partial_config['ssh_hostname'] = ssh_hostname
+    if ssh_user:
+        partial_config['ssh_user'] = ssh_user
+    if ssh_port:
+        partial_config['ssh_port'] = ssh_port
+    if root_domain:
+        partial_config['root_domain'] = root_domain
+    if proxy_protocol is not None:
+        partial_config['proxy_protocol'] = proxy_protocol
+    if save_cleartext_passwords is not None:
+        partial_config['save_cleartext_passwords'] = save_cleartext_passwords
+
+    if partial_config:
+        data = load_contexts_file()
+        if "contexts" not in data:
+            data["contexts"] = {}
+        # Merge with existing config
+        if context_name in data["contexts"]:
+            data["contexts"][context_name].update(partial_config)
+        else:
+            data["contexts"][context_name] = partial_config
+        save_contexts_file(data)
 
     # Check for missing fields
     missing = []
