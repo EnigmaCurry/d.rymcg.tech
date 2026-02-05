@@ -64,14 +64,14 @@ If SSH config doesn't exist for this host, these will also be missing:
 
 Only ask the user for the fields that couldn't be discovered. When presenting options, use these recommended defaults:
 
-| Field                      | Description                                                 | Recommended Default |
-|----------------------------|-------------------------------------------------------------|---------------------|
+| Field                      | Description                                                 | Recommended Default   |
+|----------------------------|-------------------------------------------------------------|-----------------------|
 | `ssh_hostname`             | IP address or domain name of the Docker server              | *(user must provide)* |
-| `ssh_user`                 | SSH username with Docker access on the server               | `root` |
-| `ssh_port`                 | SSH port on the server                                      | `22` |
+| `ssh_user`                 | SSH username with Docker access on the server               | `root`                |
+| `ssh_port`                 | SSH port on the server                                      | `22`                  |
 | `root_domain`              | Root domain for services on this server                     | *(user must provide)* |
-| `proxy_protocol`           | Is server behind a proxy using proxy protocol? (true/false) | `false` |
-| `save_cleartext_passwords` | Save cleartext passwords in passwords.json? (true/false)    | `false` |
+| `proxy_protocol`           | Is server behind a proxy using proxy protocol? (true/false) | `false`               |
+| `save_cleartext_passwords` | Save cleartext passwords in passwords.json? (true/false)    | `false`               |
 
 ### Step 5: Run check with missing values
 
@@ -293,6 +293,188 @@ After the readiness checker passes, install services in this order:
 2. **whoami** - Test service to verify TLS is working
 3. **forgejo** - Git host + OAuth2 identity provider (optional)
 4. **traefik-forward-auth** - OAuth2 authentication middleware (optional)
+
+## Non-Interactive Service Configuration
+
+The `make config` targets run interactive wizards that agents cannot
+drive. Instead, agents should configure services non-interactively
+using the `config-dist` and `reconfigure` make targets.
+
+### General Pattern
+
+```bash
+# Step 1: Create .env file from template (copies .env-dist with all defaults)
+d.rymcg.tech make <project> config-dist
+
+# Step 2: Set individual variables
+d.rymcg.tech make <project> reconfigure var=VAR_NAME=VALUE
+
+# Step 3: Install the service
+d.rymcg.tech make <project> install
+```
+
+The `reconfigure` target sets one variable at a time. Call it
+repeatedly for each variable that needs to change from the default.
+The `reconfigure` script will error if the variable name doesn't exist
+in the .env file.
+
+To read the current value of a variable:
+
+```bash
+d.rymcg.tech make <project> dotenv_get var=VAR_NAME
+```
+
+### Configuring Traefik
+
+Traefik is the reverse proxy and must be installed first. The
+`.env-dist` defaults are mostly sensible, but a few variables must be
+set.
+
+#### Required variables
+
+```bash
+# Create env file from template:
+d.rymcg.tech make traefik config-dist
+
+# Set the root domain (must match the context's ROOT_DOMAIN):
+d.rymcg.tech make traefik reconfigure var=TRAEFIK_ROOT_DOMAIN=example.com
+```
+
+#### TLS configuration
+
+Choose ONE of these TLS methods:
+
+**Option A: Builtin ACME (Let's Encrypt TLS-ALPN-01, simplest)**
+
+Requires port 443 to be publicly reachable. No DNS configuration needed beyond A records.
+
+```bash
+d.rymcg.tech make traefik reconfigure var=TRAEFIK_ACME_ENABLED=true
+d.rymcg.tech make traefik reconfigure var=TRAEFIK_ACME_CA_EMAIL=you@example.com
+# Default challenge type is 'tls' (TLS-ALPN-01), which is correct for most setups
+```
+
+After installing Traefik with this option, use `make certs` to add certificate domains (this is interactive), or set `TRAEFIK_ACME_CERT_DOMAINS` directly:
+
+```bash
+# JSON list of domain objects, each with main and sans:
+d.rymcg.tech make traefik reconfigure 'var=TRAEFIK_ACME_CERT_DOMAINS=[{"main":"example.com","sans":["*.example.com"]}]'
+```
+
+**Option B: acme-sh with acme-dns (wildcard certs via DNS-01)**
+
+This uses the acme-sh sidecar container with an acme-dns server for DNS-01 challenges. Requires acme-dns to be installed first (see below).
+
+```bash
+d.rymcg.tech make traefik reconfigure var=TRAEFIK_ACME_SH_ENABLED=true
+# For Let's Encrypt:
+d.rymcg.tech make traefik reconfigure var=TRAEFIK_ACME_SH_ACME_CA=acme-v02.api.letsencrypt.org
+d.rymcg.tech make traefik reconfigure var=TRAEFIK_ACME_SH_ACME_DIRECTORY=/directory
+# Point to your acme-dns server:
+d.rymcg.tech make traefik reconfigure var=TRAEFIK_ACME_SH_ACME_DNS_BASE_URL=https://acme-dns.example.com
+```
+
+After enabling acme-sh, the `DOCKER_COMPOSE_PROFILES` must include
+`acme-sh`. The `compose-profiles` target handles this automatically
+during interactive config, but non-interactively you should set it:
+
+```bash
+d.rymcg.tech make traefik reconfigure var=DOCKER_COMPOSE_PROFILES=default,error_pages,acme-sh
+```
+
+**Option C: No TLS (not recommended for production)**
+
+The defaults have all TLS methods disabled. If you skip TLS
+configuration, Traefik will run without TLS termination.
+
+#### Install Traefik
+
+```bash
+d.rymcg.tech make traefik install
+```
+
+### Configuring acme-dns
+
+acme-dns is a minimal DNS server that handles ACME DNS-01 challenges.
+It requires its own subdomain and DNS delegation.
+
+#### Required variables
+
+```bash
+# Create env file from template:
+d.rymcg.tech make acme-dns config-dist
+
+# Set the subdomain (e.g., acme-dns.example.com):
+d.rymcg.tech make acme-dns reconfigure var=ACME_DNS_SUBDOMAIN=acme-dns.example.com
+
+# Set the listening IP (the server's network interface IP):
+# Ask the user for this value - it's the IP where the server listens.
+d.rymcg.tech make acme-dns reconfigure var=ACME_DNS_LISTEN_IP_ADDRESS=10.0.0.5
+
+# Set the public IP (how the CA server reaches this host):
+# Often the same as listen IP, but may differ behind NAT.
+d.rymcg.tech make acme-dns reconfigure var=ACME_DNS_PUBLIC_IP_ADDRESS=10.0.0.5
+```
+
+#### Optional variables
+
+```bash
+# API port (default 2890 is usually fine):
+d.rymcg.tech make acme-dns reconfigure var=ACME_DNS_API_PORT=2890
+
+# SOA hostmaster email (optional):
+d.rymcg.tech make acme-dns reconfigure var=ACME_DNS_HOSTMASTER=hostmaster@example.com
+```
+
+#### Install acme-dns
+
+```bash
+d.rymcg.tech make acme-dns install
+```
+
+#### DNS delegation required
+
+After installing acme-dns, the user must configure their domain's DNS
+to delegate the `acme-dns` subdomain:
+
+1. Add an **NS record**: `acme-dns.example.com` -> `auth.acme-dns.example.com`
+2. Add an **A record**: `auth.acme-dns.example.com` -> `<public IP of server>`
+
+### Recommended Install Order for TLS with acme-dns
+
+1. Install Traefik first (without TLS, or with builtin ACME):
+   ```bash
+   d.rymcg.tech make traefik config-dist
+   d.rymcg.tech make traefik reconfigure var=TRAEFIK_ROOT_DOMAIN=example.com
+   d.rymcg.tech make traefik install
+   ```
+
+2. Install acme-dns:
+   ```bash
+   d.rymcg.tech make acme-dns config-dist
+   d.rymcg.tech make acme-dns reconfigure var=ACME_DNS_SUBDOMAIN=acme-dns.example.com
+   d.rymcg.tech make acme-dns reconfigure var=ACME_DNS_LISTEN_IP_ADDRESS=10.0.0.5
+   d.rymcg.tech make acme-dns reconfigure var=ACME_DNS_PUBLIC_IP_ADDRESS=10.0.0.5
+   d.rymcg.tech make acme-dns install
+   ```
+
+3. Ask user to set up DNS delegation for acme-dns subdomain.
+
+4. Reconfigure Traefik to use acme-sh with acme-dns:
+   ```bash
+   d.rymcg.tech make traefik reconfigure var=TRAEFIK_ACME_SH_ENABLED=true
+   d.rymcg.tech make traefik reconfigure var=TRAEFIK_ACME_SH_ACME_CA=acme-v02.api.letsencrypt.org
+   d.rymcg.tech make traefik reconfigure var=TRAEFIK_ACME_SH_ACME_DIRECTORY=/directory
+   d.rymcg.tech make traefik reconfigure var=TRAEFIK_ACME_SH_ACME_DNS_BASE_URL=https://acme-dns.example.com
+   d.rymcg.tech make traefik reconfigure var=DOCKER_COMPOSE_PROFILES=default,error_pages,acme-sh
+   d.rymcg.tech make traefik reinstall
+   ```
+
+5. Register acme-dns account and create certificates:
+   ```bash
+   d.rymcg.tech make traefik acme-sh-register
+   d.rymcg.tech make traefik acme-sh-cert
+   ```
 
 ## Further Documentation
 
