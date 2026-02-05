@@ -98,8 +98,6 @@ CHECK OPTIONS
     --json               Output in JSON format (default: plain text)
     --full               Show full checklist (default: only failures and next steps)
     --pager              Enable pager for terminal output
-    --cached             Skip checks requiring SSH (use cached results if valid)
-    --cache-ttl N        Cache time-to-live in seconds (default: 43200 / 12 hours)
 ```
 
 ## What the Readiness Checker Validates

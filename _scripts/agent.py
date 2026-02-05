@@ -34,8 +34,6 @@ CHECK OPTIONS
     --json               Output in JSON format (default: plain text)
     --full               Show full checklist (default: only failures and next steps)
     --pager              Enable pager for terminal output
-    --cached             Skip checks requiring SSH (use cached results if valid)
-    --cache-ttl N        Cache time-to-live in seconds (default: 43200 / 12 hours)
     --help               Show this help message
 
 OUTPUT FORMAT
@@ -108,9 +106,7 @@ from rich.console import Console
 
 
 CACHE_DIR = Path.home() / ".local" / "d.rymcg.tech"
-CACHE_FILE = CACHE_DIR / "agent.results.json"
 CONTEXTS_FILE = CACHE_DIR / "agent.contexts.json"
-DEFAULT_CACHE_TTL = 43200  # 12 hours
 
 # Required fields for a context configuration
 CONTEXT_FIELDS = ["ssh_hostname", "ssh_user", "ssh_port", "root_domain", "proxy_protocol", "save_cleartext_passwords"]
@@ -284,38 +280,6 @@ def get_default_repo_path() -> Path:
     if env_path:
         return Path(env_path).expanduser()
     return Path.home() / "git" / "vendor" / "enigmacurry" / "d.rymcg.tech"
-
-
-def save_cache(report: CheckReport) -> None:
-    """Save report to cache file."""
-    CACHE_DIR.mkdir(parents=True, exist_ok=True)
-    CACHE_FILE.write_text(json.dumps(report.to_dict(), indent=2))
-
-
-def load_cache(ttl: int) -> dict | None:
-    """Load cache if it exists and is not expired. Returns None if invalid/expired."""
-    if not CACHE_FILE.exists():
-        return None
-
-    try:
-        data = json.loads(CACHE_FILE.read_text())
-        timestamp_str = data.get("timestamp")
-        if not timestamp_str:
-            CACHE_FILE.unlink()
-            return None
-
-        cache_time = datetime.fromisoformat(timestamp_str)
-        age = (datetime.now(timezone.utc) - cache_time).total_seconds()
-
-        if age > ttl:
-            CACHE_FILE.unlink()
-            return None
-
-        return data
-    except (json.JSONDecodeError, ValueError, OSError):
-        if CACHE_FILE.exists():
-            CACHE_FILE.unlink()
-        return None
 
 
 # =============================================================================
@@ -882,11 +846,10 @@ def check_acme_dns_healthy() -> CheckResult:
 # =============================================================================
 
 
-def run_all_checks(skip_ssh: bool = False, context_config: ContextConfig | None = None) -> CheckReport:
+def run_all_checks(context_config: ContextConfig) -> CheckReport:
     """Run all checks and return a report.
 
     Args:
-        skip_ssh: If True, skip checks that require SSH authentication.
         context_config: The context configuration to use.
     """
     report = CheckReport()
@@ -990,37 +953,6 @@ def run_all_checks(skip_ssh: bool = False, context_config: ContextConfig | None 
             )
         )
         current_remote_result = None
-
-    # Skip SSH-requiring checks if requested
-    if skip_ssh:
-        report.results.append(
-            CheckResult(
-                name="Docker context reachable",
-                passed=False,
-                message="Skipped - using cached mode",
-                category="Docker context",
-                next_step=None,
-            )
-        )
-        report.results.append(
-            CheckResult(
-                name="Traefik installed and healthy",
-                passed=False,
-                message="Skipped - using cached mode",
-                category="Server readiness",
-                next_step=None,
-            )
-        )
-        report.results.append(
-            CheckResult(
-                name="acme-dns installed and healthy",
-                passed=False,
-                message="Skipped - using cached mode",
-                category="Server readiness",
-                next_step=None,
-            )
-        )
-        return report
 
     if current_remote_result and current_remote_result.passed:
         context_reachable_result = check_context_reachable()
@@ -1290,18 +1222,8 @@ def cmd_check(args) -> int:
     )
     save_context_config(config)
 
-    # If --cached, only skip SSH checks if we have a valid cache (prior successful validation)
-    skip_ssh = False
-    if args.cached:
-        cached_data = load_cache(args.cache_ttl)
-        skip_ssh = cached_data is not None
-
-    # Always run fresh checks
-    report = run_all_checks(skip_ssh=skip_ssh, context_config=config)
-
-    # Only save to cache if all checks passed
-    if report.all_passed:
-        save_cache(report)
+    # Run all checks
+    report = run_all_checks(context_config=config)
 
     if args.json:
         print_json(report)
@@ -1333,13 +1255,6 @@ def main() -> int:
     )
     check_parser.add_argument(
         "--pager", action="store_true", help="Enable pager for terminal output"
-    )
-    check_parser.add_argument(
-        "--cached", action="store_true", help="Skip checks that require SSH authentication"
-    )
-    check_parser.add_argument(
-        "--cache-ttl", type=int, default=DEFAULT_CACHE_TTL, metavar="SECONDS",
-        help=f"Cache time-to-live in seconds (default: {DEFAULT_CACHE_TTL})"
     )
     check_parser.add_argument(
         "--context", metavar="NAME", help="Set or switch to context NAME"
