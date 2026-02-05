@@ -382,14 +382,28 @@ _scripts/agent.py check --context myserver --role private
 
 Traefik is the reverse proxy and must be installed first. The
 `.env-dist` defaults are mostly sensible, but a few variables must be
-set.
+set. Use the context name determined in Step 1 and the root domain
+from the Progressive Discovery Workflow:
 
 ```bash
 # Create env file from template:
 d.rymcg.tech make traefik config-dist
 
-# Set the root domain (must match the context's ROOT_DOMAIN):
-d.rymcg.tech make traefik reconfigure var=TRAEFIK_ROOT_DOMAIN=example.com
+# Set the Docker context (must match the context name from Step 1):
+d.rymcg.tech make traefik reconfigure var=DOCKER_CONTEXT={CONTEXT}
+
+# Set the root domain (must match root_domain from discovery):
+d.rymcg.tech make traefik reconfigure var=TRAEFIK_ROOT_DOMAIN={ROOT_DOMAIN}
+```
+
+Ask the user which domain(s) need TLS certificates. The default is a
+wildcard for the root domain (`*.{ROOT_DOMAIN}`). Set
+`TRAEFIK_ACME_CERT_DOMAINS` as a JSON list where each entry is
+`[CN, [SAN, ...]]`:
+
+```bash
+# Example: wildcard cert for *.example.com
+d.rymcg.tech make traefik reconfigure var='TRAEFIK_ACME_CERT_DOMAINS=[["*.example.com",[]]]'
 ```
 
 #### TLS configuration (acme-sh with acme-dns)
@@ -403,11 +417,11 @@ certificates and does not require port 443 to be publicly reachable.
 Ask the user which acme-dns server to use. The available options
 depend on the server role determined in Step 1:
 
-| Option | Public server | Private server | Description |
-|--------|:---:|:---:|-------------|
-| `https://auth.acme-dns.io` | yes | yes | Free public instance, no setup needed |
-| User-provided URL | yes | yes | User has their own acme-dns deployed elsewhere |
-| Deploy on this server | yes | **no** | Self-host acme-dns here (see [below](#deploying-acme-dns-on-this-server)) |
+| Option                     | Public server | Private server | Description                                                               |
+|----------------------------|:-------------:|:--------------:|---------------------------------------------------------------------------|
+| `https://auth.acme-dns.io` |      yes      |      yes       | Free public instance, no setup needed                                     |
+| User-provided URL          |      yes      |      yes       | User has their own acme-dns deployed elsewhere                            |
+| Deploy on this server      |      yes      |     **no**     | Self-host acme-dns here (see [below](#deploying-acme-dns-on-this-server)) |
 
 For private servers, only offer the first two options.
 
@@ -443,13 +457,28 @@ to pick up profile changes:
 d.rymcg.tech make traefik reinstall
 ```
 
-#### Register and create certificates
+#### Register acme-dns and create DNS records
 
-After Traefik is installed (or reinstalled):
+After Traefik is installed (or reinstalled), register with acme-dns.
+The output will show the CNAME records needed for each certificate
+domain. **Show this output to the user** — they must create these DNS
+records before certificates can be issued.
 
 ```bash
 d.rymcg.tech make traefik acme-sh-register
-d.rymcg.tech make traefik acme-sh-cert
+```
+
+After the user confirms the CNAME records are created, restart the
+acme-sh container to trigger certificate issuance:
+
+```bash
+d.rymcg.tech make traefik restart service=acme-sh
+```
+
+Check logs to verify certificate issuance:
+
+```bash
+d.rymcg.tech make traefik logs service=acme-sh
 ```
 
 ### Deploying acme-dns on this server

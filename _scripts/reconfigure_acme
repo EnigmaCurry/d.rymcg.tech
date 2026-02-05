@@ -177,17 +177,6 @@ acme_sh() {
 
     make -C ${ROOT_DIR}/traefik acme-sh-register
 
-    # Remind the user which DNS servers are authoritative for their root domain
-    TRAEFIK_ROOT_DOMAIN="$(${BIN}/dotenv -f ${ENV_FILE} get TRAEFIK_ROOT_DOMAIN)"
-    if [[ -n "${TRAEFIK_ROOT_DOMAIN}" ]] && command -v dig >/dev/null 2>&1; then
-        NS_RECORDS="$(dig +short NS "${TRAEFIK_ROOT_DOMAIN}" 2>/dev/null)"
-        if [[ -n "${NS_RECORDS}" ]]; then
-            echo "Your authoritative DNS servers for ${TRAEFIK_ROOT_DOMAIN}:"
-            echo "${NS_RECORDS}" | sed 's/^/  /'
-            echo
-        fi
-    fi
-
     echo "acme.sh mode configured."
     echo "Next steps:"
     echo "  1) Create the CNAME records printed above on your root domain DNS server."
