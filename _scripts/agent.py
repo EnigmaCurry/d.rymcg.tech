@@ -43,6 +43,7 @@ CHECKLIST CRITERIA
     d.rymcg.tech setup:
       - Repository cloned to expected path
       - d.rymcg.tech in PATH
+      - script-wizard installed
 
     SSH configuration:
       - SSH agent running with key loaded, or detect a passwordless SSH key in ~/.ssh
@@ -397,6 +398,30 @@ def check_d_in_path() -> CheckResult:
     )
 
 
+def check_script_wizard_installed() -> CheckResult:
+    """Check if script-wizard is installed, installing it if needed."""
+    # Run the install command with --yes to ensure script-wizard is installed
+    success, output = run_command(
+        ["d.rymcg.tech", "script", "install_script-wizard", "--yes"],
+        timeout=60,
+    )
+    if success:
+        return CheckResult(
+            name="script-wizard installed",
+            passed=True,
+            message="script-wizard is installed",
+            category="d.rymcg.tech setup",
+            next_step=None,
+        )
+    return CheckResult(
+        name="script-wizard installed",
+        passed=False,
+        message=f"Failed to install script-wizard: {output}",
+        category="d.rymcg.tech setup",
+        next_step="d.rymcg.tech script install_script-wizard --yes",
+    )
+
+
 def check_ssh_keys() -> CheckResult:
     """Check for SSH agent with loaded keys or passwordless SSH key."""
     ssh_dir = Path.home() / ".ssh"
@@ -709,7 +734,22 @@ def run_all_checks(skip_ssh: bool = False, context_config: ContextConfig | None 
 
     # d.rymcg.tech setup
     report.results.append(check_repo_cloned())
-    report.results.append(check_d_in_path())
+    d_in_path_result = check_d_in_path()
+    report.results.append(d_in_path_result)
+
+    # script-wizard installation (requires d.rymcg.tech in PATH)
+    if d_in_path_result.passed:
+        report.results.append(check_script_wizard_installed())
+    else:
+        report.results.append(
+            CheckResult(
+                name="script-wizard installed",
+                passed=False,
+                message="Skipped - d.rymcg.tech not in PATH",
+                category="d.rymcg.tech setup",
+                next_step=None,
+            )
+        )
 
     # SSH configuration
     report.results.append(check_ssh_keys())
