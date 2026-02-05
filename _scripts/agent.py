@@ -197,6 +197,60 @@ def save_context_config(config: ContextConfig) -> None:
     save_contexts_file(data)
 
 
+def discover_ssh_config(context_name: str) -> dict:
+    """Discover SSH configuration from ~/.ssh/config for a given host.
+
+    Returns a dict with discovered values (ssh_hostname, ssh_user, ssh_port).
+    Missing values are not included in the dict.
+    """
+    ssh_config = Path.home() / ".ssh" / "config"
+    if not ssh_config.exists():
+        return {}
+
+    try:
+        content = ssh_config.read_text()
+    except OSError:
+        return {}
+
+    import re
+
+    # Find the Host block for this context
+    # Match "Host <name>" followed by indented config lines
+    pattern = rf'^Host\s+{re.escape(context_name)}\s*$\n((?:[ \t]+[^\n]*\n)*)'
+    match = re.search(pattern, content, re.MULTILINE)
+    if not match:
+        return {}
+
+    block = match.group(1)
+    result = {}
+
+    # Parse the indented lines for Hostname, User, Port
+    for line in block.split('\n'):
+        line = line.strip()
+        if not line:
+            continue
+
+        # Match key-value pairs
+        kv_match = re.match(r'^(\w+)\s+(.+)$', line)
+        if not kv_match:
+            continue
+
+        key, value = kv_match.groups()
+        key_lower = key.lower()
+
+        if key_lower == 'hostname':
+            result['ssh_hostname'] = value
+        elif key_lower == 'user':
+            result['ssh_user'] = value
+        elif key_lower == 'port':
+            try:
+                result['ssh_port'] = int(value)
+            except ValueError:
+                pass
+
+    return result
+
+
 def get_missing_context_fields(context_name: str) -> list[str]:
     """Get list of missing fields for a context."""
     data = load_contexts_file()
@@ -1170,10 +1224,13 @@ def cmd_check(args) -> int:
     # Load existing config or create new one
     existing_config = get_context_config(context_name)
 
-    # Build config from args and existing values
-    ssh_hostname = args.ssh_hostname or (existing_config.ssh_hostname if existing_config else None)
-    ssh_user = args.ssh_user or (existing_config.ssh_user if existing_config else None)
-    ssh_port = args.ssh_port or (existing_config.ssh_port if existing_config else None)
+    # Try to discover SSH config from ~/.ssh/config
+    discovered_ssh = discover_ssh_config(context_name)
+
+    # Build config from args, existing values, and discovered values (in priority order)
+    ssh_hostname = args.ssh_hostname or (existing_config.ssh_hostname if existing_config else None) or discovered_ssh.get('ssh_hostname')
+    ssh_user = args.ssh_user or (existing_config.ssh_user if existing_config else None) or discovered_ssh.get('ssh_user')
+    ssh_port = args.ssh_port or (existing_config.ssh_port if existing_config else None) or discovered_ssh.get('ssh_port')
     root_domain = args.root_domain or (existing_config.root_domain if existing_config else None)
     # For booleans, args.X is None if not provided, so we check explicitly
     if args.proxy_protocol is not None:
