@@ -324,13 +324,28 @@ To read the current value of a variable:
 d.rymcg.tech make <project> dotenv_get var=VAR_NAME
 ```
 
-### Configuring Traefik
+### Step 1: Determine server role
+
+Before configuring services, ask the user about their server's
+network exposure. This determines which TLS and acme-dns options are
+available.
+
+**Public server** - the server is in a datacenter or has open
+firewall ports (80, 443, 53 reachable from the internet). All TLS
+methods are available, and the user may optionally deploy their own
+acme-dns instance on this server.
+
+**Private server** - the server is behind NAT, on a private
+network, or has no publicly open ports. Builtin ACME (TLS-ALPN-01)
+will not work because Let's Encrypt cannot reach port 443. The user
+must use acme-sh with an *external* acme-dns server for DNS-01
+challenges. Do not offer to deploy acme-dns on this server.
+
+### Step 2: Configure Traefik
 
 Traefik is the reverse proxy and must be installed first. The
 `.env-dist` defaults are mostly sensible, but a few variables must be
 set.
-
-#### Required variables
 
 ```bash
 # Create env file from template:
@@ -342,11 +357,14 @@ d.rymcg.tech make traefik reconfigure var=TRAEFIK_ROOT_DOMAIN=example.com
 
 #### TLS configuration
 
-Choose ONE of these TLS methods:
+##### Public server TLS options
+
+For a public server, ask the user which TLS method they prefer:
 
 **Option A: Builtin ACME (Let's Encrypt TLS-ALPN-01, simplest)**
 
-Requires port 443 to be publicly reachable. No DNS configuration needed beyond A records.
+Requires port 443 to be publicly reachable. No DNS configuration
+needed beyond A records. Does not support wildcard certificates.
 
 ```bash
 d.rymcg.tech make traefik reconfigure var=TRAEFIK_ACME_ENABLED=true
@@ -354,7 +372,9 @@ d.rymcg.tech make traefik reconfigure var=TRAEFIK_ACME_CA_EMAIL=you@example.com
 # Default challenge type is 'tls' (TLS-ALPN-01), which is correct for most setups
 ```
 
-After installing Traefik with this option, use `make certs` to add certificate domains (this is interactive), or set `TRAEFIK_ACME_CERT_DOMAINS` directly:
+After installing Traefik with this option, use `make certs` to add
+certificate domains (this is interactive), or set
+`TRAEFIK_ACME_CERT_DOMAINS` directly:
 
 ```bash
 # JSON list of domain objects, each with main and sans:
@@ -363,43 +383,17 @@ d.rymcg.tech make traefik reconfigure 'var=TRAEFIK_ACME_CERT_DOMAINS=[{"main":"e
 
 **Option B: acme-sh with acme-dns (wildcard certs via DNS-01)**
 
-This uses the acme-sh sidecar container with an acme-dns server for
-DNS-01 challenges. This supports wildcard certificates and doesn't
-require port 443 to be publicly reachable.
+See [acme-sh with acme-dns](#acme-sh-with-acme-dns-configuration)
+below. For a public server, all three acme-dns source options are
+available (public instance, external instance, or self-hosted).
 
-You need an acme-dns server URL. Ask the user which option they prefer:
+##### Private server TLS options
 
-1. **Public instance** (`https://auth.acme-dns.io`) - free, no setup
-   needed, suitable for most cases.
-2. **External instance** - the user has their own acme-dns deployed
-   elsewhere. Ask them for the URL.
-3. **Deploy on this server** - only viable if this Docker server is
-   publicly reachable on port 53. If the server is behind NAT or on a
-   private network, steer the user toward option 1 or 2 instead. See
-   [Deploying acme-dns on this server](#deploying-acme-dns-on-this-server)
-   below.
-
-```bash
-d.rymcg.tech make traefik reconfigure var=TRAEFIK_ACME_SH_ENABLED=true
-# For Let's Encrypt:
-d.rymcg.tech make traefik reconfigure var=TRAEFIK_ACME_SH_ACME_CA=acme-v02.api.letsencrypt.org
-d.rymcg.tech make traefik reconfigure var=TRAEFIK_ACME_SH_ACME_DIRECTORY=/directory
-# Point to the acme-dns server (use whichever URL applies):
-d.rymcg.tech make traefik reconfigure var=TRAEFIK_ACME_SH_ACME_DNS_BASE_URL=https://auth.acme-dns.io
-```
-
-After enabling acme-sh, the `DOCKER_COMPOSE_PROFILES` must include
-`acme-sh`. The `compose-profiles` target handles this automatically
-during interactive config, but non-interactively you should set it:
-
-```bash
-d.rymcg.tech make traefik reconfigure var=DOCKER_COMPOSE_PROFILES=default,error_pages,acme-sh
-```
-
-**Option C: No TLS (not recommended for production)**
-
-The defaults have all TLS methods disabled. If you skip TLS
-configuration, Traefik will run without TLS termination.
+A private server **must** use acme-sh with an external acme-dns
+server. See [acme-sh with acme-dns](#acme-sh-with-acme-dns-configuration)
+below. Only the external acme-dns options are available (public
+instance or user-provided instance). Do not offer to deploy acme-dns
+on this server.
 
 #### Install Traefik
 
@@ -407,9 +401,54 @@ configuration, Traefik will run without TLS termination.
 d.rymcg.tech make traefik install
 ```
 
-#### After installing Traefik with acme-sh (Option B)
+### acme-sh with acme-dns configuration
 
-Register the acme-dns account and create certificates:
+This uses the acme-sh sidecar container with an acme-dns server for
+DNS-01 challenges. This supports wildcard certificates and does not
+require port 443 to be publicly reachable.
+
+#### Choosing an acme-dns server
+
+Ask the user which acme-dns server to use. The available options
+depend on the server role determined in Step 1:
+
+| Option | Public server | Private server | Description |
+|--------|:---:|:---:|-------------|
+| `https://auth.acme-dns.io` | yes | yes | Free public instance, no setup needed |
+| User-provided URL | yes | yes | User has their own acme-dns deployed elsewhere |
+| Deploy on this server | yes | **no** | Self-host acme-dns here (see [below](#deploying-acme-dns-on-this-server)) |
+
+For private servers, only offer the first two options.
+
+#### Configure Traefik for acme-sh
+
+```bash
+d.rymcg.tech make traefik reconfigure var=TRAEFIK_ACME_SH_ENABLED=true
+# For Let's Encrypt:
+d.rymcg.tech make traefik reconfigure var=TRAEFIK_ACME_SH_ACME_CA=acme-v02.api.letsencrypt.org
+d.rymcg.tech make traefik reconfigure var=TRAEFIK_ACME_SH_ACME_DIRECTORY=/directory
+# Point to the chosen acme-dns server:
+d.rymcg.tech make traefik reconfigure var=TRAEFIK_ACME_SH_ACME_DNS_BASE_URL=https://auth.acme-dns.io
+```
+
+The `DOCKER_COMPOSE_PROFILES` must include `acme-sh`. The
+`compose-profiles` target handles this automatically during
+interactive config, but non-interactively you must set it:
+
+```bash
+d.rymcg.tech make traefik reconfigure var=DOCKER_COMPOSE_PROFILES=default,error_pages,acme-sh
+```
+
+If Traefik is already installed, use `reinstall` instead of `install`
+to pick up profile changes:
+
+```bash
+d.rymcg.tech make traefik reinstall
+```
+
+#### Register and create certificates
+
+After Traefik is installed (or reinstalled) with acme-sh enabled:
 
 ```bash
 d.rymcg.tech make traefik acme-sh-register
@@ -418,14 +457,22 @@ d.rymcg.tech make traefik acme-sh-cert
 
 ### Deploying acme-dns on this server
 
-This is **optional** and only needed if the user chose to self-host
-acme-dns on this Docker server (Option B.3 above). This only makes
-sense if the server has a public IP reachable on port 53 by the
-internet. If the server is behind NAT or on a private network, use the
-public instance (`https://auth.acme-dns.io`) or another external
-instance instead.
+This is **optional** and only available for **public servers**. It
+deploys an acme-dns instance on the same Docker server as Traefik. The
+server must have a public IP reachable on port 53 by the internet.
 
-#### Required variables
+If the server is private, skip this section entirely and use
+`https://auth.acme-dns.io` or another external acme-dns instance.
+
+#### DNS delegation (do this first)
+
+The user must configure their domain's DNS to delegate the `acme-dns`
+subdomain before installing:
+
+1. Add an **NS record**: `acme-dns.example.com` -> `auth.acme-dns.example.com`
+2. Add an **A record**: `auth.acme-dns.example.com` -> `<public IP of server>`
+
+#### Configure and install acme-dns
 
 ```bash
 # Create env file from template:
@@ -435,41 +482,27 @@ d.rymcg.tech make acme-dns config-dist
 d.rymcg.tech make acme-dns reconfigure var=ACME_DNS_SUBDOMAIN=acme-dns.example.com
 
 # Set the listening IP (the server's network interface IP):
-# Ask the user for this value - it's the IP where the server listens.
+# Ask the user for this value.
 d.rymcg.tech make acme-dns reconfigure var=ACME_DNS_LISTEN_IP_ADDRESS=10.0.0.5
 
 # Set the public IP (how the CA server reaches this host):
-# Often the same as listen IP, but may differ behind NAT.
+# Often the same as listen IP, but may differ if behind a 1:1 NAT.
 d.rymcg.tech make acme-dns reconfigure var=ACME_DNS_PUBLIC_IP_ADDRESS=10.0.0.5
-```
 
-#### Optional variables
-
-```bash
-# API port (default 2890 is usually fine):
+# Optional: API port (default 2890 is usually fine):
 d.rymcg.tech make acme-dns reconfigure var=ACME_DNS_API_PORT=2890
 
-# SOA hostmaster email (optional):
+# Optional: SOA hostmaster email:
 d.rymcg.tech make acme-dns reconfigure var=ACME_DNS_HOSTMASTER=hostmaster@example.com
-```
 
-#### DNS delegation required
-
-Before installing, the user must configure their domain's DNS to
-delegate the `acme-dns` subdomain:
-
-1. Add an **NS record**: `acme-dns.example.com` -> `auth.acme-dns.example.com`
-2. Add an **A record**: `auth.acme-dns.example.com` -> `<public IP of server>`
-
-#### Install acme-dns
-
-```bash
+# Install:
 d.rymcg.tech make acme-dns install
 ```
 
-Then point Traefik's `TRAEFIK_ACME_SH_ACME_DNS_BASE_URL` to
-`https://acme-dns.example.com` and proceed with the acme-sh-register
-and acme-sh-cert steps described in the Traefik section above.
+Then set Traefik's `TRAEFIK_ACME_SH_ACME_DNS_BASE_URL` to
+`https://acme-dns.example.com` and proceed with the register and cert
+steps in the [acme-sh section](#register-and-create-certificates)
+above.
 
 ## Further Documentation
 
