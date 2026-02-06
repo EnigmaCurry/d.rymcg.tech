@@ -29,9 +29,8 @@ your HuggingFace access token.
 ### Models Host Path
 
 Set `VLLM_MODELS_HOST_PATH` to a directory on the host to persist
-downloaded models there. This can be the same path used by Ollama to
-share storage. If left blank, models are stored in a named Docker
-volume.
+downloaded models there. If left blank, models are stored in a named
+Docker volume.
 
 ## Install
 
