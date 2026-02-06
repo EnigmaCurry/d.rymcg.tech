@@ -21,7 +21,7 @@ set -eo pipefail
 BIN=$(dirname $(realpath ${BASH_SOURCE}))
 
 ## INFO_WORDS are keys to information that the completion script can ask for at runtime:
-INFO_WORDS="INFO_WORDS ROOT_DIR"
+INFO_WORDS="INFO_WORDS ROOT_DIR README_OPENER"
 
 ## ROOT_DIR is the root path of the d.rymcg.tech project
 ## Validate that this script is running from the canonical location
@@ -243,6 +243,8 @@ __info() {
         echo "${ROOT_DIR}"
     elif [[ "$1" == "INFO_WORDS" ]]; then
         echo "${INFO_WORDS}"
+    elif [[ "$1" == "README_OPENER" ]]; then
+        __readme_opener
     fi
 }
 
