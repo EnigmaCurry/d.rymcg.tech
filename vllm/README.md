@@ -26,6 +26,20 @@ authentication on top of your app.
 If you need to serve gated or private models, set `VLLM_HF_TOKEN` to
 your HuggingFace access token.
 
+### Trust Remote Code
+
+Some models require custom Python code from their HuggingFace
+repository to load. If you see an error about `trust_remote_code`,
+set `VLLM_TRUST_REMOTE_CODE=true` in your env file.
+
+Before enabling this, you should review the model's custom code on
+HuggingFace (look for `modeling_*.py`, `configuration_*.py`, and
+`tokenization_*.py` files):
+
+```
+https://huggingface.co/MODEL_ORG/MODEL_NAME/tree/main
+```
+
 ### Models Host Path
 
 Set `VLLM_MODELS_HOST_PATH` to a directory on the host to persist
