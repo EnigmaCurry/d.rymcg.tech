@@ -43,10 +43,10 @@
 #@   if trust_remote_code == "true":
 #@     cmd.append("--trust-remote-code")
 #@   end
-#@   if enable_auto_tool_choice == "true":
-#@     cmd.append("--enable-auto-tool-choice")
-#@   end
 #@   if tool_call_parser.strip():
+#@     if enable_auto_tool_choice == "true":
+#@       cmd.append("--enable-auto-tool-choice")
+#@     end
 #@     cmd.extend(["--tool-call-parser", tool_call_parser])
 #@   end
 #@   router = "{}-{}-{}".format(project, instance, service)
