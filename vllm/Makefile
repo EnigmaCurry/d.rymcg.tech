@@ -15,12 +15,9 @@ config-hook:
 	@echo "Enter the processing engine to use: cuda (for nvidia GPUs) or rocm (for AMD GPUs)."
 	@${BIN}/reconfigure_compose_profiles_choose ${ENV_FILE} cuda="Nvidia GPU" rocm="AMD GPU"
 	@echo ""
-	@PROFILE=$$(${BIN}/dotenv -f ${ENV_FILE} get DOCKER_COMPOSE_PROFILES); \
-	if [ "$$PROFILE" = "rocm" ]; then \
-		${BIN}/reconfigure ${ENV_FILE} VLLM_IMAGE=vllm/vllm-openai-rocm:latest; \
-	else \
-		${BIN}/reconfigure ${ENV_FILE} VLLM_IMAGE=vllm/vllm-openai:latest; \
-	fi
+	@${BIN}/reconfigure_ask ${ENV_FILE} VLLM_GIT_REPO "Enter the vLLM git repository URL" https://github.com/vllm-project/vllm.git
+	@${BIN}/reconfigure_ask ${ENV_FILE} VLLM_GIT_REF "Enter the git branch or tag to build" main
+	@echo ""
 	@${BIN}/reconfigure_ask ${ENV_FILE} VLLM_MODEL "Enter the HuggingFace model to serve" Qwen/Qwen3-0.6B
 	@ALLOW_BLANK=1 ${BIN}/reconfigure_ask ${ENV_FILE} VLLM_MAX_MODEL_LEN "Enter the maximum context length (leave blank for model default)"
 	@echo ""

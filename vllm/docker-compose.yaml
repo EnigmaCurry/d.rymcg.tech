@@ -2,7 +2,9 @@ services:
   vllm-cuda:
     profiles:
       - cuda
-    image: ${VLLM_IMAGE}
+    build:
+      context: ${VLLM_GIT_REPO}#${VLLM_GIT_REF}
+      dockerfile: docker/Dockerfile
     restart: unless-stopped
     ipc: host
     cap_drop:
@@ -17,7 +19,9 @@ services:
   vllm-rocm:
     profiles:
       - rocm
-    image: ${VLLM_IMAGE}
+    build:
+      context: ${VLLM_GIT_REPO}#${VLLM_GIT_REF}
+      dockerfile: docker/Dockerfile.rocm
     restart: unless-stopped
     ipc: host
     devices:

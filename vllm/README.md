@@ -13,6 +13,10 @@ This will ask you to enter the domain name, GPU type, model name, and
 other settings. It automatically saves your responses into the
 configuration file `.env_{DOCKER_CONTEXT}_{INSTANCE}`.
 
+vLLM is built from source using the official git repository. During
+configuration you can set `VLLM_GIT_REPO` and `VLLM_GIT_REF` to
+control which repository and branch/tag to build from.
+
 ### Authentication and Authorization
 
 You may add an API token to secure your service by setting
@@ -47,6 +51,9 @@ downloaded models there. If left blank, models are stored in a named
 Docker volume.
 
 ## Install
+
+The first `make install` will build the vLLM Docker image from source,
+which may take a while.
 
 ```
 make install
