@@ -142,7 +142,13 @@ __list_projects() {
             echo "List of available d.rymcg.tech projects (not including external projects):"
             echo ""
             set +e
-            get_all_projects | column
+            declare -A descriptions
+            while IFS=$'\t' read -r dirname desc; do
+                descriptions["$dirname"]="$desc"
+            done < <(sed -n 's/^\* \[[^]]*\](\([^#)]*\)[^)]*) *-\? *\(.*\)/\1\t\2/p' "${ROOT_DIR}/README.md")
+            while read -r project; do
+                printf '%s\t%s\n' "$project" "${descriptions[$project]:-}"
+            done < <(get_all_projects) | column -t -s $'\t'
             echo ""
         fi
     )
