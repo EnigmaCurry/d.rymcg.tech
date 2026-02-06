@@ -145,7 +145,7 @@ __list_projects() {
             declare -A descriptions
             while IFS=$'\t' read -r dirname desc; do
                 descriptions["$dirname"]="$desc"
-            done < <(sed -n 's/^\* \[[^]]*\](\([^#)]*\)[^)]*) *-\? *\(.*\)/\1\t\2/p' "${ROOT_DIR}/README.md")
+            done < <(sed -e ':a' -e '/^\* \[/{N; s/\n[[:space:]]\+/ /; ta;}' "${ROOT_DIR}/README.md" | sed -n 's/^\* \[[^]]*\](\([^#)]*\)[^)]*) *-\? *\(.*\)/\1\t\2/p')
             while read -r project; do
                 printf '%s\t%s\n' "$project" "${descriptions[$project]:-}"
             done < <(get_all_projects) | column -t -s $'\t'
