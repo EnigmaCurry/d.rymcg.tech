@@ -297,6 +297,7 @@ and the script completes with return code 0.
 
 ### Global commands
 ```bash
+d.rymcg.tech list                        # List all available projects with descriptions
 d.rymcg.tech status                      # List all running projects and container counts
 ```
 
