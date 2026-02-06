@@ -145,7 +145,36 @@ __list_projects() {
             declare -A descriptions
             while IFS=$'\t' read -r dirname desc; do
                 descriptions["$dirname"]="$desc"
-            done < <(sed -e ':a' -e '/^\* \[/{N; s/\n[[:space:]]\+/ /; ta;}' "${ROOT_DIR}/README.md" | sed -n 's/^\* \[[^]]*\](\([^#)]*\)[^)]*) *-\? *\(.*\)/\1\t\2/p')
+            done < <(awk '
+                function output() {
+                    if (dirname != "") {
+                        sub(/\.$/, "", desc)
+                        print dirname "\t" desc
+                    }
+                    dirname = ""; desc = ""; state = 0
+                }
+                /^\* \[/ {
+                    output()
+                    if (match($0, /^\* \[[^\]]*\]\(([^#)]*)[^)]*\)(.*)/, m)) {
+                        dirname = m[1]; rest = m[2]
+                        if (match(rest, /^ *- *(.+)/, d)) {
+                            desc = d[1]; state = 1
+                        } else { state = 2 }
+                    }
+                    next
+                }
+                state == 1 && /^[[:space:]]/ && !/^  \* / {
+                    sub(/^[[:space:]]+/, " "); desc = desc $0; next
+                }
+                state == 2 && /^  \* / {
+                    sub(/^  \* /, ""); desc = $0; state = 3; next
+                }
+                state == 3 && /^[[:space:]]/ && !/^  \* / {
+                    sub(/^[[:space:]]+/, " "); desc = desc $0; next
+                }
+                { state = 0 }
+                END { output() }
+            ' "${ROOT_DIR}/README.md")
             while read -r project; do
                 printf '%s\t%s\n' "$project" "${descriptions[$project]:-}"
             done < <(get_all_projects) | column -t -s $'\t'
