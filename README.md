@@ -225,7 +225,7 @@ Install these applications at your preference:
 * [QBittorrent](qbittorrent#readme) - a Bittorrent (libtorrent v2) client
 * [Redbean](redbean#readme) - a small website server bundled in a single executable zip file
 * [Redmine](redmine#readme) - a flexible project management web application
-* [Registry](registry#readme) an OCI container registry
+* [Registry](registry#readme) - an OCI container registry
 * [S3-proxy](s3-proxy#readme) - an HTTP directory index for S3 backend
 * [SearXNG](searxng#readme) - a privacy-respecting, hackable metasearch engine
 * [SFTP](sftp#readme) - a secure file server
