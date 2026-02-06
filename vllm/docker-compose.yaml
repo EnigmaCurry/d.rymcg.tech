@@ -3,7 +3,7 @@ services:
     profiles:
       - cuda
     build:
-      context: ${VLLM_GIT_REPO}#${VLLM_GIT_REF}
+      context: ./vllm-src
       dockerfile: docker/Dockerfile
     restart: unless-stopped
     ipc: host
@@ -20,7 +20,7 @@ services:
     profiles:
       - rocm
     build:
-      context: ${VLLM_GIT_REPO}#${VLLM_GIT_REF}
+      context: ./vllm-src
       dockerfile: docker/Dockerfile.rocm
     restart: unless-stopped
     ipc: host

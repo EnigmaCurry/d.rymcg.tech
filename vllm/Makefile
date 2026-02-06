@@ -56,4 +56,14 @@ install-hook:
 
 .PHONY: install-hook-pre
 install-hook-pre:
-	@echo
+	@VLLM_GIT_REPO=$$(${BIN}/dotenv -f ${ENV_FILE} get VLLM_GIT_REPO); \
+	VLLM_GIT_REF=$$(${BIN}/dotenv -f ${ENV_FILE} get VLLM_GIT_REF); \
+	if [ -d vllm-src/.git ]; then \
+		echo "Updating vllm-src from $${VLLM_GIT_REPO} ref $${VLLM_GIT_REF} ..."; \
+		git -C vllm-src fetch origin; \
+		git -C vllm-src checkout $${VLLM_GIT_REF}; \
+		git -C vllm-src pull --ff-only origin $${VLLM_GIT_REF} 2>/dev/null || true; \
+	else \
+		echo "Cloning vllm-src from $${VLLM_GIT_REPO} ref $${VLLM_GIT_REF} ..."; \
+		git clone --branch $${VLLM_GIT_REF} $${VLLM_GIT_REPO} vllm-src; \
+	fi
