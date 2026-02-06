@@ -11,8 +11,8 @@ Features:
 - Auto-rewrite GitHub URLs to fetch raw Markdown:
   1) https://github.com/OWNER/REPO/blob/BRANCH/path.md
      -> https://github.com/OWNER/REPO/raw/BRANCH/path.md
-  2) https://github.com/OWNER/REPO/tree/BRANCH#readme
-     -> https://raw.githubusercontent.com/OWNER/REPO/refs/heads/BRANCH/README.md
+  2) https://github.com/OWNER/REPO/tree/BRANCH[/subpath]#readme
+     -> https://raw.githubusercontent.com/OWNER/REPO/refs/heads/BRANCH/[subpath/]README.md
 """
 
 from __future__ import annotations
@@ -59,10 +59,12 @@ def rewrite_github_url(url: str) -> str:
             p2 = p._replace(path=new_path)
             return urlunparse(p2)
 
-        # 2) tree/<branch>#readme -> raw.githubusercontent.com/.../refs/heads/<branch>/README.md
+        # 2) tree/<branch>[/subpath]#readme -> raw.githubusercontent.com/.../refs/heads/<branch>/[subpath/]README.md
         if mode == "tree" and (p.fragment or "").lower() == "readme":
             branch = ref
-            raw = f"https://raw.githubusercontent.com/{owner}/{repo}/refs/heads/{branch}/README.md"
+            subpath = "/".join(parts[4:])
+            prefix = f"{subpath}/" if subpath else ""
+            raw = f"https://raw.githubusercontent.com/{owner}/{repo}/refs/heads/{branch}/{prefix}README.md"
             return raw
 
     return url
