@@ -47,7 +47,7 @@ override-hook:
 ####                         # (this hardcodes the string into docker-compose.override.yaml)
 ####   name=@VARIABLE_NAME   # sets the template 'name' field to the literal string '${VARIABLE_NAME}'
 ####                         # (used for regular docker-compose expansion of env vars by name.)
-	@${BIN}/docker_compose_override ${ENV_FILE} project=:vllm instance=@VLLM_INSTANCE traefik_host=@VLLM_TRAEFIK_HOST http_auth=VLLM_HTTP_AUTH http_auth_var=@VLLM_HTTP_AUTH ip_sourcerange=@VLLM_IP_SOURCERANGE oauth2=VLLM_OAUTH2 authorized_group=VLLM_OAUTH2_AUTHORIZED_GROUP enable_mtls_auth=VLLM_MTLS_AUTH mtls_authorized_certs=VLLM_MTLS_AUTHORIZED_CERTS models_host_path=VLLM_MODELS_HOST_PATH compose_profile=DOCKER_COMPOSE_PROFILES api_token=VLLM_API_TOKEN model=VLLM_MODEL max_model_len=VLLM_MAX_MODEL_LEN hf_token=VLLM_HF_TOKEN
+	@${BIN}/docker_compose_override ${ENV_FILE} project=:vllm instance=@VLLM_INSTANCE traefik_host=@VLLM_TRAEFIK_HOST http_auth=VLLM_HTTP_AUTH http_auth_var=@VLLM_HTTP_AUTH ip_sourcerange=@VLLM_IP_SOURCERANGE oauth2=VLLM_OAUTH2 authorized_group=VLLM_OAUTH2_AUTHORIZED_GROUP enable_mtls_auth=VLLM_MTLS_AUTH mtls_authorized_certs=VLLM_MTLS_AUTHORIZED_CERTS models_host_path=VLLM_MODELS_HOST_PATH compose_profile=DOCKER_COMPOSE_PROFILES api_token=VLLM_API_TOKEN model=VLLM_MODEL max_model_len=VLLM_MAX_MODEL_LEN hf_token=VLLM_HF_TOKEN trust_remote_code=VLLM_TRUST_REMOTE_CODE
 
 .PHONY: shell
 shell:

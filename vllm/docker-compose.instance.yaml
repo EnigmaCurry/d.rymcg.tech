@@ -26,6 +26,7 @@
 #@ model = data.values.model
 #@ max_model_len = data.values.max_model_len
 #@ hf_token = data.values.hf_token
+#@ trust_remote_code = data.values.trust_remote_code
 
 #@ def vllm_service(profile):
 #@   service = "vllm-" + profile
@@ -36,6 +37,9 @@
 #@   cmd = ["--model", model]
 #@   if max_model_len.strip():
 #@     cmd.extend(["--max-model-len", max_model_len])
+#@   end
+#@   if trust_remote_code == "true":
+#@     cmd.append("--trust-remote-code")
 #@   end
 #@   router = "{}-{}-{}".format(project, instance, service)
 #@   labels = []
