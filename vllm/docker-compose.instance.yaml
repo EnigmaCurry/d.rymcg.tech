@@ -27,6 +27,8 @@
 #@ max_model_len = data.values.max_model_len
 #@ hf_token = data.values.hf_token
 #@ trust_remote_code = data.values.trust_remote_code
+#@ enable_auto_tool_choice = data.values.enable_auto_tool_choice
+#@ tool_call_parser = data.values.tool_call_parser
 
 #@ def vllm_service(profile):
 #@   service = "vllm-" + profile
@@ -40,6 +42,12 @@
 #@   end
 #@   if trust_remote_code == "true":
 #@     cmd.append("--trust-remote-code")
+#@   end
+#@   if enable_auto_tool_choice == "true":
+#@     cmd.append("--enable-auto-tool-choice")
+#@   end
+#@   if tool_call_parser.strip():
+#@     cmd.extend(["--tool-call-parser", tool_call_parser])
 #@   end
 #@   router = "{}-{}-{}".format(project, instance, service)
 #@   labels = []
