@@ -297,7 +297,9 @@ and the script completes with return code 0.
 
 ### Per-project commands (run from any directory)
 ```bash
+# WARNING: This will OVERWRITE any existing .env file
 d.rymcg.tech make <project> config-dist   # Create .env file from template (non-interactive)
+# WARNING: This will OVERWRITE any existing .env file
 d.rymcg.tech make <project> reconfigure var=KEY=VALUE  # Set a single env variable
 d.rymcg.tech make <project> install       # Deploy to server
 d.rymcg.tech make <project> reinstall     # Tear down and reinstall
@@ -348,6 +350,8 @@ using the `config-dist` and `reconfigure` make targets.
 
 ```bash
 # Step 1: Create .env file from template (copies .env-dist with all defaults)
+# WARNING: This will OVERWRITE any existing .env file. If you have customizations,
+# back up your .env file first or use `reconfigure` to update only specific variables.
 d.rymcg.tech make <project> config-dist
 
 # Step 2: Set individual variables
@@ -401,6 +405,8 @@ from the Progressive Discovery Workflow:
 
 ```bash
 # Create env file from template:
+# WARNING: This will OVERWRITE any existing .env file. If you have customizations,
+# back up your .env file first or use `reconfigure` to update only specific variables.
 d.rymcg.tech make traefik config-dist
 
 # Create the traefik system user on the Docker host (sets UID/GID/DOCKER_GID):
@@ -519,6 +525,8 @@ subdomain before installing:
 
 ```bash
 # Create env file from template:
+# WARNING: This will OVERWRITE any existing .env file. If you have customizations,
+# back up your .env file first or use `reconfigure` to update only specific variables.
 d.rymcg.tech make acme-dns config-dist
 
 # Set the subdomain (e.g., acme-dns.example.com):
@@ -557,6 +565,8 @@ traefik-forward-auth if you plan to use OAuth2 authentication.
 
 ```bash
 # Create env file from template:
+# WARNING: This will OVERWRITE any existing .env file. If you have customizations,
+# back up your .env file first or use `reconfigure` to update only specific variables.
 d.rymcg.tech make forgejo config-dist
 
 # Set the external domain:
@@ -666,6 +676,8 @@ Ask the user for these two values before proceeding.
 
 ```bash
 # Create env file from template:
+# WARNING: This will OVERWRITE any existing .env file. If you have customizations,
+# back up your .env file first or use `reconfigure` to update only specific variables.
 d.rymcg.tech make traefik-forward-auth config-dist
 
 # Auth host (the dedicated domain for the auth service):
