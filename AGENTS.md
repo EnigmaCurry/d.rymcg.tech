@@ -295,6 +295,11 @@ and the script completes with return code 0.
 
 ## Key Commands (After Setup)
 
+### Global commands
+```bash
+d.rymcg.tech status                      # List all running projects and container counts
+```
+
 ### Per-project commands (run from any directory)
 ```bash
 # WARNING: This will OVERWRITE any existing .env file
@@ -410,7 +415,7 @@ from the Progressive Discovery Workflow:
 d.rymcg.tech make traefik config-dist
 
 # Create the traefik system user on the Docker host (sets UID/GID/DOCKER_GID):
-traefik/setup.sh traefik_user
+d.rymcg.tech make traefik traefik-user
 
 # Set the Docker context (must match the context name from Step 1):
 d.rymcg.tech make traefik reconfigure var=DOCKER_CONTEXT={CONTEXT}
