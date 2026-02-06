@@ -96,7 +96,7 @@ userns-remap-check:
 
 .PHONY: readme # Open the README.md in your web browser
 readme:
-	xdg-open "https://github.com/EnigmaCurry/d.rymcg.tech/tree/master#readme"
+	@${BIN}/d.rymcg.tech readme readme
 
 .PHONY: install-cli # Install CLI
 install-cli:

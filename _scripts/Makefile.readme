@@ -1,4 +1,3 @@
 .PHONY: readme # Open the README.md in your web browser
 readme:
-#	@URL="https://github.com/EnigmaCurry/d.rymcg.tech/tree/master/$$(pwd | grep -Po \"$$(realpath ${ROOT_DIR})\K.*\")"; set -x; xdg-open "$${URL}"
-	@PROJECT_DIR=$$(realpath $$(pwd) | grep -Po "$$(realpath ${ROOT_DIR})\K.*"); URL="https://github.com/EnigmaCurry/d.rymcg.tech/tree/master$${PROJECT_DIR}#readme"; set -x; xdg-open "$${URL}"
+	@PROJECT_DIR=$$(realpath $$(pwd) | grep -Po "$$(realpath ${ROOT_DIR})\K.*"); URL="https://github.com/EnigmaCurry/d.rymcg.tech/tree/master$${PROJECT_DIR}#readme"; OPENER=$$(${BIN}/d.rymcg.tech info README_OPENER); set -x; $${OPENER} "$${URL}"
