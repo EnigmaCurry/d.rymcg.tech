@@ -65,9 +65,10 @@
 #@   middlewares.append("{}-ipallowlist".format(router))
 #@   labels.append("traefik.http.middlewares.{}-ipallowlist.ipallowlist.sourcerange={}".format(router, ip_sourcerange))
 #@   labels.append("traefik.http.routers.{}.middlewares={}".format(router, ",".join(middlewares)))
-#@   volumes = []
 #@   if models_host_path != "":
 #@     volumes = ["{}:/root/.cache/huggingface".format(models_host_path)]
+#@   else:
+#@     volumes = ["vllm:/root/.cache/huggingface"]
 #@   end
 #@   return {
 #@     service: {
