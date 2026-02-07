@@ -297,8 +297,13 @@ and the script completes with return code 0.
 
 ### Global commands
 ```bash
-d.rymcg.tech list                        # List all available projects with descriptions
+d.rymcg.tech list                        # List all available projects / services with descriptions
 d.rymcg.tech status                      # List all running projects and container counts
+```
+
+**To check status of a specific project**, use the per-project command:
+```bash
+d.rymcg.tech make <project> status
 ```
 
 ### Per-project commands (run from any directory)
