@@ -228,6 +228,19 @@ register_acmedns() {
     sort -u "$__tmpfile" | sed 's/^/  /'
     rm -f "$__tmpfile"
     echo
+    if [[ -n "${TRAEFIK_ROOT_DOMAIN:-}" ]] && command -v dig >/dev/null 2>&1; then
+      local __d="${TRAEFIK_ROOT_DOMAIN}" __ns=""
+      while [[ "$__d" == *.* ]]; do
+        __ns="$(dig +short NS "$__d" 2>/dev/null)"
+        [[ -n "$__ns" ]] && break
+        __d="${__d#*.}"
+      done
+      if [[ -n "$__ns" ]]; then
+        echo "Your authoritative DNS servers for ${__d}:"
+        echo "$__ns" | sed 's/^/  /'
+        echo
+      fi
+    fi
   }
 
   # If already registered, show exact CNAMEs and exit

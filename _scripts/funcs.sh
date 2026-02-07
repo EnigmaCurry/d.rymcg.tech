@@ -3,7 +3,7 @@
 BIN=$(dirname ${BASH_SOURCE})
 ROOT_DIR=${ROOT_DIR:-$(dirname ${BIN})}
 
-stderr(){ echo "$@" >/dev/stderr; }
+stderr(){ echo "$@" >/dev/stderr 2>/dev/null || echo "$@"; }
 error(){ stderr "Error: $@"; }
 fault(){ test -n "$1" && error $1; stderr "Exiting."; exit 1; }
 cancel(){ stderr "Canceled."; exit 2; }
@@ -629,6 +629,11 @@ confirm() {
     ## Check env for the var YES, if it equals "yes" then bypass this confirm.
     ## This version depends on `script-wizard` being installed.
     test ${YES:-no} == "yes" && exit 0
+
+    ## If not running in a terminal, skip confirmation (non-interactive/agent mode):
+    if [[ ! -t 0 ]]; then
+        exit 0
+    fi
 
     local default=$1; local prompt=$2; local question=${3:-". Proceed?"}
 

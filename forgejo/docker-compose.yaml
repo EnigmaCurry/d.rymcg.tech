@@ -33,6 +33,7 @@ services:
       - FORGEJO__mailer__SMTP_PORT
       - FORGEJO__mailer__USER
       - FORGEJO__mailer__PASSWD
+      - TZ=${TZ:-UTC}
     security_opt:
       - no-new-privileges:true
     cap_drop:
@@ -40,8 +41,6 @@ services:
     volumes:
       - data:/var/lib/gitea
       #- config:/etc/gitea
-      - /etc/timezone:/etc/timezone:ro
-      - /etc/localtime:/etc/localtime:ro
     networks:
       - forgejo
     labels: []
