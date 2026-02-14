@@ -114,6 +114,10 @@ ytt_template() {
         -v dns_entrypoint_host="${TRAEFIK_DNS_ENTRYPOINT_HOST}" \
         -v dns_entrypoint_port="${TRAEFIK_DNS_ENTRYPOINT_PORT}" \
         -v dns_entrypoint_proxy_protocol_trusted_ips="${TRAEFIK_DNS_ENTRYPOINT_PROXY_PROTOCOL_TRUSTED_IPS}" \
+        -v irc_entrypoint_enabled="${TRAEFIK_IRC_ENTRYPOINT_ENABLED}" \
+        -v irc_entrypoint_host="${TRAEFIK_IRC_ENTRYPOINT_HOST}" \
+        -v irc_entrypoint_port="${TRAEFIK_IRC_ENTRYPOINT_PORT}" \
+        -v irc_entrypoint_proxy_protocol_trusted_ips="${TRAEFIK_IRC_ENTRYPOINT_PROXY_PROTOCOL_TRUSTED_IPS}" \
         -v irc_bouncer_entrypoint_enabled="${TRAEFIK_IRC_BOUNCER_ENTRYPOINT_ENABLED}" \
         -v irc_bouncer_entrypoint_host="${TRAEFIK_IRC_BOUNCER_ENTRYPOINT_HOST}" \
         -v irc_bouncer_entrypoint_port="${TRAEFIK_IRC_BOUNCER_ENTRYPOINT_PORT}" \

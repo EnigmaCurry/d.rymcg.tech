@@ -139,6 +139,8 @@ override-hook:
 dashboard:
 	@TRAEFIK_USERNAME=$$(cat ${ROOT_DIR}/traefik/passwords.json | jq -r '."${DOCKER_CONTEXT}_default".[].username'); \
 	TRAEFIK_PASSWORD=$$(cat ${ROOT_DIR}/traefik/passwords.json | jq -r '."${DOCKER_CONTEXT}_default".[].password'); \
+	SSH_HOST_ARG="$${SSH_HOST_ARG:---ssh-host ${DOCKER_CONTEXT}}"; \
+	if [[ "$${SSH_HOST_ARG}" == "none" ]]; then SSH_HOST_ARG=""; fi; \
 	if command -v uv >/dev/null; then \
 	  TT_CMD="uv tool run --from tt-tui-for-traefik tt"; \
 	  echo "Starting: $${TT_CMD}"; \
@@ -150,4 +152,9 @@ dashboard:
 	  echo ""; \
 	  exit 1; \
 	fi; \
-	$${TT_CMD} --url "http://$$(${BIN}/dotenv -f ${ENV_FILE} get TRAEFIK_DASHBOARD_ENTRYPOINT_HOST):$$(${BIN}/dotenv -f ${ENV_FILE} get TRAEFIK_DASHBOARD_ENTRYPOINT_PORT)" --ssh-host "${DOCKER_CONTEXT}" --username "$${TRAEFIK_USERNAME}" --password "$${TRAEFIK_PASSWORD}"
+	set -x; \
+	$${TT_CMD} --url "http://$$(${BIN}/dotenv -f ${ENV_FILE} get TRAEFIK_DASHBOARD_ENTRYPOINT_HOST):$$(${BIN}/dotenv -f ${ENV_FILE} get TRAEFIK_DASHBOARD_ENTRYPOINT_PORT)" $${SSH_HOST_ARG} --username "$${TRAEFIK_USERNAME}" --password "$${TRAEFIK_PASSWORD}"
+
+.PHONY: dashboard-local # Open the Traefik dashboard TUI (without SSH)
+dashboard-local:
+	make dashboard SSH_HOST_ARG="none"

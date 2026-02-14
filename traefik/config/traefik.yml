@@ -379,6 +379,17 @@ entryPoints:
   dns_udp:
     address: #@ data.values.dns_entrypoint_host + ":" + data.values.dns_entrypoint_port + "/udp"
   #@ end
+  #@ if data.values.irc_entrypoint_enabled == "true":
+  irc:
+    address: #@ data.values.irc_entrypoint_host + ":" + data.values.irc_entrypoint_port
+    #@ if len(data.values.irc_entrypoint_proxy_protocol_trusted_ips.strip()):
+    proxyProtocol:
+      trustedIPs:
+        #@ for allowed_net in data.values.irc_entrypoint_proxy_protocol_trusted_ips.split(","):
+        - "(@= allowed_net @)"
+        #@ end
+    #@ end
+  #@ end
   #@ if data.values.irc_bouncer_entrypoint_enabled == "true":
   irc_bouncer:
     address: #@ data.values.irc_bouncer_entrypoint_host + ":" + data.values.irc_bouncer_entrypoint_port

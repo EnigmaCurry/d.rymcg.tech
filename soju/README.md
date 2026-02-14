@@ -7,7 +7,7 @@ modern [IRCv3](https://ircv3.net/) features.
 
 You must enable the `irc_bouncer` entrypoint in the Traefik config.
 
- * The Traefik entrypoint listens on port 6697 (default; TLS)
+ * The Traefik entrypoint listens on port 6698 (TLS)
  * Soju container listens on port 6667 (plain) and Traefik proxies to
    here.
 
@@ -40,14 +40,22 @@ Once you've created the user, restart the service:
 make restart
 ```
 
-## Connect
+## Connect to Soju
 
 Connect to your server via your IRC client of choice. 
 
 Settings:
  
  * Hostname: equal to SOJU_TRAEFIK_HOST
- * Port: 6697 (Same as Traefik `irc_bouncer` entrypoint)
+ * Port: 6698 (Same as Traefik `irc_bouncer` entrypoint)
  * Use TLS
  * Username: the admin username you created
  * Password: the admin password you created
+
+## Connect Soju to external IRC network
+
+Once connected to the server, issue the command to create a new network:
+
+```
+/bouncer network create -name my_net -addr ircs://irc.example.com:6697 -nick joe -pass my_password
+```

@@ -195,6 +195,7 @@ Install these applications at your preference:
 * [Homepage](homepage#readme) - a dashboard for all your apps
 * [Icecast](icecast#readme) - a SHOUTcast compatible streaming multimedia server
 * [Immich](immich#readme) - a photo gallery
+* [InspIRCd](inspircd#readme) - an IRC service
 * [Invidious](invidious#readme) - a Youtube proxy
 * [InvokeAI](invokeai#readme) - an AI image generator
 * [Iperf](iperf#readme) - a bandwidth speed testing service

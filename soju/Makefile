@@ -8,8 +8,8 @@ config-hook:
 #### reconfigure_ask asks the user a question to set the variable into the .env file, and with a provided default value.
 #### reconfigure sets the value of a variable in the .env file without asking.
 #### reconfigure_htpasswd will configure the HTTP Basic Authentication setting the var name and with a provided default value.
-	@${BIN}/reconfigure_ask ${ENV_FILE} SOJU_TRAEFIK_HOST "Enter the soju domain name" soju${INSTANCE_URL_SUFFIX}.${ROOT_DOMAIN}
-	@${BIN}/reconfigure_ask ${ENV_FILE} SOJU_TITLE "Enter the title for your IRC service"
+	@${BIN}/reconfigure_ask ${ENV_FILE} SOJU_TRAEFIK_HOST "Enter the soju domain name" irc${INSTANCE_URL_SUFFIX}.${ROOT_DOMAIN}
+	@${BIN}/reconfigure_ask ${ENV_FILE} SOJU_TITLE "Enter the title for your Soju instance" $$(${BIN}/dotenv -f ${ENV_FILE} get SOJU_TRAEFIK_HOST)
 	@${BIN}/reconfigure ${ENV_FILE} SOJU_INSTANCE=$${instance:-default}
 	@echo ""
 
@@ -51,3 +51,5 @@ install-hook-pre:
 .PHONY: create-admin
 create-admin:
 	@export USERNAME="$$(${BIN}/script-wizard ask 'Enter the username to create')"; echo $${USERNAME}; make --no-print-directory docker-compose-lifecycle-cmd EXTRA_ARGS="run --rm soju sojudb create-user $${USERNAME} -admin"
+	@echo
+	@echo Remember to restart the service.
