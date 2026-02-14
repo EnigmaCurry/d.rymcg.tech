@@ -231,6 +231,7 @@ Install these applications at your preference:
 * [SFTP](sftp#readme) - a secure file server
 * [Shaarli](shaarli#readme) - a bookmark manager
 * [Smokeping](smokeping#readme) - a network latency measurement tool
+* [Soju](soju#readme) - an IRC bouncer
 * [Speedtest Tracker](speedtest-tracker#readme) - a network performance monitor
 * [Syncthing](syncthing#readme) - a multi-device file synchronization tool
 * [Sysbox-Systemd](sysbox-systemd#readme) - a traditional service manager for Linux running in an unprivileged container via sysbox-runc
