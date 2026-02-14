@@ -198,11 +198,16 @@ configured, you may need to open these ports in your firewall:
 | TCP socket | TCP      | 1704       | Traefik Snapcast (audio) entrypoint                       |
 | TCP socket | TCP      | 1705       | Traefik Snapcast (control) entrypoint                     |
 | RTMP(s)    | TCP      | 1935       | Traefik RTMP (real time message protocol) entrypoint      |
-| SSH        | TCP      | 2222       | Traefik Forgejo SSH (TCP) entrypoint                      |
-| SSH        | TCP      | 2223       | SFTP container SSH (TCP) (direct-map)                     |
+| SSH        | TCP      | 2222       | Traefik Forgejo SSH entrypoint                            |
+| SSH        | TCP      | 2223       | SFTP container SSH (direct-map)                           |
+| TCP/UDP    | TCP/UDP  | 5201       | Traefik Iperf entrypoint                                  |
+| TCP        | TCP      | 5222       | Traefik XMPP client-to-server entrypoint                  |
+| TCP        | TCP      | 5269       | Traefik XMPP server-to-server entrypoint                  |
 | TLS        | TCP      | 5432       | PostgreSQL mTLS DBaaS (direct-map)                        |
 | TCP+TLS    | TCP      | 6380       | Traefik Redis in-memory database entrypoint               |
 | TCP socket | TCP      | 6600       | Traefik Mopidy (MPD) entrypoint                           |
+| TCP+TLS    | TCP      | 6697       | Traefik IRC (InspIRCd) entrypoint                         |
+| TCP+TLS    | TCP      | 6698       | Traefik IRC bouncer (soju) entrypoint                     |
 | HTTP       | TCP      | 8000       | Traefik HTTP entrypoint (web_plain; explicitly non-https) |
 | TLS        | TCP      | 8883       | Mosquitto MQTT (direct-map)                               |
 | WebRTC     | UDP      | 10000      | Jitsi Meet video bridge (direct-map)                      |

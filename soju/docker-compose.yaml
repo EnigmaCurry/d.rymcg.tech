@@ -1,0 +1,32 @@
+services:
+  config:
+    build:
+      context: config
+    environment:
+      - TRAEFIK_HOST=${SOJU_TRAEFIK_HOST}
+      - TITLE=${SOJU_TITLE}
+      - MOTD=${SOJU_MOTD}
+    volumes:
+      - etc:/etc/soju
+  soju:
+    depends_on: ['config']
+    build:
+      context: soju
+      args:
+        GIT_REPO: ${SOJU_GIT_REPO}
+        GIT_REF: ${SOJU_GIT_REF}
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+    sysctls:
+      - net.ipv4.ip_unprivileged_port_start=1024
+    restart: unless-stopped
+    volumes:
+      - data:/var/lib/soju
+      - etc:/etc/soju
+    labels: []
+
+volumes:
+  data:
+  etc:

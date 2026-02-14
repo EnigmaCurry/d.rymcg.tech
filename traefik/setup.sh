@@ -247,6 +247,8 @@ config_list_entrypoints() {
         [iperf_tcp]="Iperf3 TCP entrypoint"
         [iperf_udp]="Iperf3 UDP entrypoint"
         [dns]="DNS (tcp+udp; acme-dns or other) entrypoint"
+        [irc]="IRC (inspircd) entrypoint"
+        [irc_bouncer]="IRC bouncer (soju / znc) entrypoint"
     )
     local menu_args=("Select entrypoint to configure:")
     for entrypoint in "${entrypoint_names[@]}"; do
