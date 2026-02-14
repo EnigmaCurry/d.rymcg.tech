@@ -12,7 +12,7 @@ DATA_ROOT="/var/lib/soju"
 [ -w "$CFG_DIR" ] || die "config dir not writable: $CFG_DIR (is the volume mounted?)"
 
 cat <<EOF > ${CFG_PATH}
-listen irc+insecure://0.0.0.0:6697
+listen irc+insecure://0.0.0.0:6667
 listen unix+admin://
 hostname ${TRAEFIK_HOST}
 title "${TITLE}"

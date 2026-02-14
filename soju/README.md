@@ -7,6 +7,10 @@ modern [IRCv3](https://ircv3.net/) features.
 
 You must enable the `irc_bouncer` entrypoint in the Traefik config.
 
+ * The Traefik entrypoint listens on port 6697 (default; TLS)
+ * Soju container listens on port 6667 (plain) and Traefik proxies to
+   here.
+
 ## Config
 
 ```

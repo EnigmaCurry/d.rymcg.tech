@@ -39,7 +39,7 @@ services:
       - "traefik.tcp.routers.(@= router @).tls.options=irc@file"
       - "traefik.tcp.routers.(@= router @).entrypoints=irc_bouncer"
       - "traefik.tcp.routers.(@= router @).service=(@= router @)"
-      - "traefik.tcp.services.(@= router @).loadbalancer.server.port=6697"
+      - "traefik.tcp.services.(@= router @).loadbalancer.server.port=6667"
 
       #@ enabled_middlewares.append("{}-ipallowlist".format(router))
       - "traefik.tcp.middlewares.(@= router @)-ipallowlist.ipallowlist.sourcerange=(@= ip_sourcerange @)"

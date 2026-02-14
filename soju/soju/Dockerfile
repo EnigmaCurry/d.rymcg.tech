@@ -35,6 +35,6 @@ COPY --from=builder /tmp/soju-bin/bin/sojudb /usr/local/bin/sojudb
 
 RUN mkdir -p /run/soju /var/lib/soju
 
-EXPOSE 6697
+EXPOSE 6667
 
 CMD ["soju"]
