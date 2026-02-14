@@ -2,6 +2,10 @@
 
 [TheLounge](https://thelounge.chat/) is a web client/bouncer for IRC.
 
+See also:
+ - [InspIRCd](../inspircd#readme)
+ - [Soju](../soju#readme)
+ 
 ## Config
 
 ```

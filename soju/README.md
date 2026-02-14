@@ -3,6 +3,11 @@
 [Soju](https://codeberg.org/emersion/soju) is an IRC bouncer with
 modern [IRCv3](https://ircv3.net/) features.
 
+See also:
+ - [InspIRCd](../inspircd#readme)
+ - [TheLounge](../thelounge#readme)
+ 
+
 ## Configure Traefik entrypoint
 
 You must enable the `irc_bouncer` entrypoint in the Traefik config.

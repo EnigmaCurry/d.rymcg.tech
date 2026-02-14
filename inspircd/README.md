@@ -2,6 +2,10 @@
 
 [InspIRCd](https://www.inspircd.org/) is an Internet Relay Chat (IRC) server.
 
+See also:
+ - [Soju](../soju#readme)
+ - [TheLounge](../thelounge#readme)
+
 ## Configure Traefik entrypoint
 
 You must enable the `irc` entrypoint in the Traefik config.
