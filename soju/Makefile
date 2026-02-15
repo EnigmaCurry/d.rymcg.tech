@@ -11,7 +11,9 @@ config-hook:
 	@${BIN}/reconfigure_ask ${ENV_FILE} SOJU_TRAEFIK_HOST "Enter the soju domain name" irc${INSTANCE_URL_SUFFIX}.${ROOT_DOMAIN}
 	@${BIN}/reconfigure_ask ${ENV_FILE} SOJU_TITLE "Enter the title for your Soju instance" $$(${BIN}/dotenv -f ${ENV_FILE} get SOJU_TRAEFIK_HOST)
 	@${BIN}/reconfigure ${ENV_FILE} SOJU_INSTANCE=$${instance:-default}
-	@echo ""
+	@echo
+	@${BIN}/confirm $$(${BIN}/dotenv -f ${ENV_FILE} get SOJU_INSPIRCD_NETWORK_CONNECT) "Do you want Soju to connect to the local InspIRCd network? (This is required if you deploy Soju and InspIRCd on the same Docker host)" && ${BIN}/reconfigure ${ENV_FILE} SOJU_INSPIRCD_NETWORK_CONNECT=true || ${BIN}/reconfigure ${ENV_FILE} SOJU_INSPIRCD_NETWORK_CONNECT=false
+	@echo
 
 .PHONY: override-hook
 override-hook:
@@ -25,7 +27,7 @@ override-hook:
 ####                         # (this hardcodes the string into docker-compose.override.yaml)
 ####   name=@VARIABLE_NAME   # sets the template 'name' field to the literal string '${VARIABLE_NAME}'
 ####                         # (used for regular docker-compose expansion of env vars by name.)
-	@${BIN}/docker_compose_override ${ENV_FILE} project=:soju instance=@SOJU_INSTANCE traefik_host=@SOJU_TRAEFIK_HOST ip_sourcerange=@SOJU_IP_SOURCERANGE enable_mtls_auth=SOJU_MTLS_AUTH mtls_authorized_certs=SOJU_MTLS_AUTHORIZED_CERTS homepage_labels_enable=SOJU_HOMEPAGE_LABELS_ENABLE homepage_group_soju=SOJU_HOMEPAGE_GROUP_SOJU homepage_name_soju=SOJU_HOMEPAGE_NAME_SOJU homepage_icon_soju=SOJU_HOMEPAGE_ICON_SOJU homepage_description_soju=SOJU_HOMEPAGE_DESCRIPTION_SOJU homepage_show_stats_soju=SOJU_HOMEPAGE_SHOW_STATS_SOJU homepage_widget_enable=SOJU_HOMEPAGE_WIDGET_ENABLE
+	@${BIN}/docker_compose_override ${ENV_FILE} project=:soju instance=@SOJU_INSTANCE traefik_host=@SOJU_TRAEFIK_HOST ip_sourcerange=@SOJU_IP_SOURCERANGE enable_mtls_auth=SOJU_MTLS_AUTH mtls_authorized_certs=SOJU_MTLS_AUTHORIZED_CERTS homepage_labels_enable=SOJU_HOMEPAGE_LABELS_ENABLE homepage_group_soju=SOJU_HOMEPAGE_GROUP_SOJU homepage_name_soju=SOJU_HOMEPAGE_NAME_SOJU homepage_icon_soju=SOJU_HOMEPAGE_ICON_SOJU homepage_description_soju=SOJU_HOMEPAGE_DESCRIPTION_SOJU homepage_show_stats_soju=SOJU_HOMEPAGE_SHOW_STATS_SOJU homepage_widget_enable=SOJU_HOMEPAGE_WIDGET_ENABLE inspircd_network_connect=SOJU_INSPIRCD_NETWORK_CONNECT inspircd_network_name=SOJU_INSPIRCD_NETWORK_NAME
 
 .PHONY: shell # Enter container shell
 shell:

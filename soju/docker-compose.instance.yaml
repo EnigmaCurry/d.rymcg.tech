@@ -21,6 +21,9 @@
 #@ homepage_description_soju = data.values.homepage_description_soju
 #@ homepage_show_stats_soju = data.values.homepage_show_stats_soju
 #@ homepage_widget_enable = data.values.homepage_widget_enable == "true"
+#@ inspircd_network_connect = data.values.inspircd_network_connect == "true"
+#@ inspircd_network_name = data.values.inspircd_network_name
+
 #@yaml/text-templated-strings
 services:
   soju:
@@ -66,3 +69,16 @@ services:
       - homepage.description=(@= homepage_description_soju or traefik_host @)
       - homepage.showStats=(@= homepage_show_stats_soju @)
       #@ end
+    #@ if inspircd_network_connect:
+    networks:
+      - inspircd_net
+    #@ end
+    
+
+#@ if inspircd_network_connect:
+#@yaml/text-templated-strings
+networks:
+  inspircd_net:
+    external: true
+    name: (@= inspircd_network_name @)
+#@ end

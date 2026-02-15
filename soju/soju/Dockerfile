@@ -28,6 +28,8 @@ FROM debian:trixie-slim
 RUN apt-get update && apt-get install -y --no-install-recommends \
     libsqlite3-0 \
     ca-certificates \
+    inetutils-ping \
+    dnsutils \
     && rm -rf /var/lib/apt/lists/*
 
 COPY --from=builder /tmp/soju-bin/bin/soju /usr/local/bin/soju

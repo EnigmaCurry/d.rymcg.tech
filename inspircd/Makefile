@@ -17,6 +17,8 @@ config-hook:
 	@${BIN}/reconfigure_ask ${ENV_FILE} INSPIRCD_ADMIN_DESC "Enter the description for the administrator" "Supreme Overlord"
 	@echo
 	@${BIN}/confirm no "Do you want to make this server public? (No connection password required)" && ${BIN}/reconfigure ${ENV_FILE} INSPIRCD_CONNECT_PASSWORD= || ${BIN}/reconfigure_password_bcrypt ${ENV_FILE} INSPIRCD_CONNECT_PASSWORD
+	@${BIN}/confirm $$(${BIN}/dotenv -f ${ENV_FILE} get INSPIRCD_SERVICES_ANOPE_ENABLE) "Do you want to enable (anope) IRC services (NickServ etc.)?" && ${BIN}/reconfigure_password ${ENV_FILE} INSPIRCD_SERVICES_ANOPE_PASSWORD
+
 	@echo
 	@${BIN}/reconfigure ${ENV_FILE} INSPIRCD_INSTANCE=$${instance:-default}
 	@${BIN}/reconfigure_auth ${ENV_FILE} INSPIRCD
@@ -34,7 +36,7 @@ override-hook:
 ####                         # (this hardcodes the string into docker-compose.override.yaml)
 ####   name=@VARIABLE_NAME   # sets the template 'name' field to the literal string '${VARIABLE_NAME}'
 ####                         # (used for regular docker-compose expansion of env vars by name.)
-	@${BIN}/docker_compose_override ${ENV_FILE} project=:inspircd instance=@INSPIRCD_INSTANCE traefik_host=@INSPIRCD_TRAEFIK_HOST ip_sourcerange=@INSPIRCD_IP_SOURCERANGE enable_mtls_auth=INSPIRCD_MTLS_AUTH mtls_authorized_certs=INSPIRCD_MTLS_AUTHORIZED_CERTS homepage_labels_enable=INSPIRCD_HOMEPAGE_LABELS_ENABLE homepage_group_inspircd=INSPIRCD_HOMEPAGE_GROUP_INSPIRCD homepage_name_inspircd=INSPIRCD_HOMEPAGE_NAME_INSPIRCD homepage_icon_inspircd=INSPIRCD_HOMEPAGE_ICON_INSPIRCD homepage_description_inspircd=INSPIRCD_HOMEPAGE_DESCRIPTION_INSPIRCD homepage_show_stats_inspircd=INSPIRCD_HOMEPAGE_SHOW_STATS_INSPIRCD homepage_widget_enable=INSPIRCD_HOMEPAGE_WIDGET_ENABLE
+	@${BIN}/docker_compose_override ${ENV_FILE} project=:inspircd instance=@INSPIRCD_INSTANCE traefik_host=@INSPIRCD_TRAEFIK_HOST ip_sourcerange=@INSPIRCD_IP_SOURCERANGE enable_mtls_auth=INSPIRCD_MTLS_AUTH mtls_authorized_certs=INSPIRCD_MTLS_AUTHORIZED_CERTS homepage_labels_enable=INSPIRCD_HOMEPAGE_LABELS_ENABLE homepage_group_inspircd=INSPIRCD_HOMEPAGE_GROUP_INSPIRCD homepage_name_inspircd=INSPIRCD_HOMEPAGE_NAME_INSPIRCD homepage_icon_inspircd=INSPIRCD_HOMEPAGE_ICON_INSPIRCD homepage_description_inspircd=INSPIRCD_HOMEPAGE_DESCRIPTION_INSPIRCD homepage_show_stats_inspircd=INSPIRCD_HOMEPAGE_SHOW_STATS_INSPIRCD homepage_widget_enable=INSPIRCD_HOMEPAGE_WIDGET_ENABLE services_anope_enable=INSPIRCD_SERVICES_ANOPE_ENABLE services_anope_password=INSPIRCD_SERVICES_ANOPE_PASSWORD net_suffix=INSPIRCD_NET_SUFFIX
 
 .PHONY: shell # Enter container shell
 shell:

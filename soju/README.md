@@ -65,8 +65,9 @@ Suggestions:
    entrypoint)
  * Use TLS
  * Username: the admin username you created
- * Password: the admin password you created
-
+ * Server Password: the admin password you created
+ * No SASL authentication.
+ 
 One of the main benefits of IRCv3 is that you can connect to the
 bouncer and access several networks through the single connection, and
 when you login from a new client, all of your existing networks will
