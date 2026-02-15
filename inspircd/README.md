@@ -11,8 +11,14 @@ See also:
 You must enable the `irc` entrypoint in the Traefik config.
 
  * The Traefik entrypoint listens on port 6697 (default; TLS)
- * InspIRCd container listens on port 6667 (plain) and Traefik proxies
-   to here.
+ * InspIRCd container listens on port 6668 (plain IRC with proxy
+   protocol enabled) and Traefik proxies to here.
+
+## Configure postfix-relay (optional)
+
+If you are planning on enabling services (anope) with NickServ, you
+will need to setup [postfix-relay](../postfix-relay#readme) in order
+to send email.
 
 ## Config
 

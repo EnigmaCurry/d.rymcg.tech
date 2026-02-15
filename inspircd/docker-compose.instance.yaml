@@ -21,10 +21,24 @@
 #@ homepage_description_inspircd = data.values.homepage_description_inspircd
 #@ homepage_show_stats_inspircd = data.values.homepage_show_stats_inspircd
 #@ homepage_widget_enable = data.values.homepage_widget_enable == "true"
+#@ services_anope_enable = data.values.services_anope_enable == "true"
+#@ services_anope_password = data.values.services_anope_password
+#@ net_suffix = data.values.net_suffix
+
 #@yaml/text-templated-strings
 services:
   inspircd:
     #@ service = "inspircd"
+    #@ if services_anope_enable:
+    networks:
+      - default
+      - postfix-relay
+    environment:
+      - INSP_SERVICES_IPADDR=services
+      - INSP_SERVICES_NAME=services(@= net_suffix @)
+      - INSP_SERVICES_PASSWORD=(@= services_anope_password @)
+      - INSP_SERVICES_HIDDEN=yes
+    #@ end
     labels:
       - "backup-volume.stop-during-backup=true"
       #! Services must opt-in to be proxied by Traefik:
@@ -39,7 +53,7 @@ services:
       - "traefik.tcp.routers.(@= router @).tls.options=irc@file"
       - "traefik.tcp.routers.(@= router @).entrypoints=irc"
       - "traefik.tcp.routers.(@= router @).service=(@= router @)"
-      - "traefik.tcp.services.(@= router @).loadbalancer.server.port=6667"
+      - "traefik.tcp.services.(@= router @).loadbalancer.server.port=6668"
 
       #@ enabled_middlewares.append("{}-ipallowlist".format(router))
       - "traefik.tcp.middlewares.(@= router @)-ipallowlist.ipallowlist.sourcerange=(@= ip_sourcerange @)"
@@ -66,3 +80,19 @@ services:
       - homepage.description=(@= homepage_description_inspircd or traefik_host @)
       - homepage.showStats=(@= homepage_show_stats_inspircd @)
       #@ end
+
+  #@ if services_anope_enable:
+  services:
+    #@ service = "services"
+    networks:
+      - default
+      - postfix-relay
+  #@ end
+
+#@ if services_anope_enable:
+#@yaml/text-templated-strings
+networks:
+  postfix-relay:
+    external: true
+    name: postfix-relay_default
+#@ end

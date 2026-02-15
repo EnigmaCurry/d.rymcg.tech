@@ -11,6 +11,7 @@ config-hook:
 	@${BIN}/reconfigure_ask ${ENV_FILE} THELOUNGE_TRAEFIK_HOST "Enter the thelounge domain name" thelounge${INSTANCE_URL_SUFFIX}.${ROOT_DOMAIN}
 	@${BIN}/reconfigure ${ENV_FILE} THELOUNGE_INSTANCE=$${instance:-default}
 	@${BIN}/reconfigure_auth ${ENV_FILE} THELOUNGE
+	@${BIN}/confirm $$(${BIN}/dotenv -f ${ENV_FILE} get THELOUNGE_INSPIRCD_NETWORK_CONNECT) "Do you want Soju to connect to the local InspIRCd network? (This is required if you deploy Soju and InspIRCd on the same Docker host)" && ${BIN}/reconfigure ${ENV_FILE} THELOUNGE_INSPIRCD_NETWORK_CONNECT=true || ${BIN}/reconfigure ${ENV_FILE} THELOUNGE_INSPIRCD_NETWORK_CONNECT=false
 	@echo ""
 
 .PHONY: override-hook
@@ -25,7 +26,7 @@ override-hook:
 ####                         # (this hardcodes the string into docker-compose.override.yaml)
 ####   name=@VARIABLE_NAME   # sets the template 'name' field to the literal string '${VARIABLE_NAME}'
 ####                         # (used for regular docker-compose expansion of env vars by name.)
-	@${BIN}/docker_compose_override ${ENV_FILE} project=:thelounge instance=@THELOUNGE_INSTANCE traefik_host=@THELOUNGE_TRAEFIK_HOST http_auth=THELOUNGE_HTTP_AUTH http_auth_var=@THELOUNGE_HTTP_AUTH ip_sourcerange=@THELOUNGE_IP_SOURCERANGE oauth2=THELOUNGE_OAUTH2 authorized_group=THELOUNGE_OAUTH2_AUTHORIZED_GROUP enable_mtls_auth=THELOUNGE_MTLS_AUTH mtls_authorized_certs=THELOUNGE_MTLS_AUTHORIZED_CERTS homepage_labels_enable=THELOUNGE_HOMEPAGE_LABELS_ENABLE homepage_group_thelounge=THELOUNGE_HOMEPAGE_GROUP_THELOUNGE homepage_name_thelounge=THELOUNGE_HOMEPAGE_NAME_THELOUNGE homepage_icon_thelounge=THELOUNGE_HOMEPAGE_ICON_THELOUNGE homepage_description_thelounge=THELOUNGE_HOMEPAGE_DESCRIPTION_THELOUNGE homepage_show_stats_thelounge=THELOUNGE_HOMEPAGE_SHOW_STATS_THELOUNGE homepage_widget_enable=THELOUNGE_HOMEPAGE_WIDGET_ENABLE 
+	@${BIN}/docker_compose_override ${ENV_FILE} project=:thelounge instance=@THELOUNGE_INSTANCE traefik_host=@THELOUNGE_TRAEFIK_HOST http_auth=THELOUNGE_HTTP_AUTH http_auth_var=@THELOUNGE_HTTP_AUTH ip_sourcerange=@THELOUNGE_IP_SOURCERANGE oauth2=THELOUNGE_OAUTH2 authorized_group=THELOUNGE_OAUTH2_AUTHORIZED_GROUP enable_mtls_auth=THELOUNGE_MTLS_AUTH mtls_authorized_certs=THELOUNGE_MTLS_AUTHORIZED_CERTS homepage_labels_enable=THELOUNGE_HOMEPAGE_LABELS_ENABLE homepage_group_thelounge=THELOUNGE_HOMEPAGE_GROUP_THELOUNGE homepage_name_thelounge=THELOUNGE_HOMEPAGE_NAME_THELOUNGE homepage_icon_thelounge=THELOUNGE_HOMEPAGE_ICON_THELOUNGE homepage_description_thelounge=THELOUNGE_HOMEPAGE_DESCRIPTION_THELOUNGE homepage_show_stats_thelounge=THELOUNGE_HOMEPAGE_SHOW_STATS_THELOUNGE homepage_widget_enable=THELOUNGE_HOMEPAGE_WIDGET_ENABLE inspircd_network_connect=THELOUNGE_INSPIRCD_NETWORK_CONNECT inspircd_network_name=THELOUNGE_INSPIRCD_NETWORK_NAME
 
 .PHONY: shell # Enter container shell
 shell:

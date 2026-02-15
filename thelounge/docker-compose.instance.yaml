@@ -25,6 +25,8 @@
 #@ homepage_description_thelounge = data.values.homepage_description_thelounge
 #@ homepage_show_stats_thelounge = data.values.homepage_show_stats_thelounge
 #@ homepage_widget_enable = data.values.homepage_widget_enable == "true"
+#@ inspircd_network_connect = data.values.inspircd_network_connect == "true"
+#@ inspircd_network_name = data.values.inspircd_network_name
 
 #@yaml/text-templated-strings
 services:
@@ -77,3 +79,16 @@ services:
       - homepage.description=(@= homepage_description_thelounge or traefik_host @)
       - homepage.showStats=(@= homepage_show_stats_thelounge @)
       #@ end
+    #@ if inspircd_network_connect:
+    networks:
+      - inspircd_net
+    #@ end
+    
+
+#@ if inspircd_network_connect:
+#@yaml/text-templated-strings
+networks:
+  inspircd_net:
+    external: true
+    name: (@= inspircd_network_name @)
+#@ end
