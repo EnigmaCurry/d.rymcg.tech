@@ -1,0 +1,41 @@
+#! This is a ytt template file for docker-compose.override.yaml
+#! References:
+#!   https://carvel.dev/ytt
+#!   https://docs.docker.com/compose/extends/#adding-and-overriding-configuration
+#!   https://github.com/enigmacurry/d.rymcg.tech#overriding-docker-composeyaml-per-instance
+
+#@ load("@ytt:data", "data")
+#@ load("@ytt:json", "json")
+
+#@ instance = data.values.instance
+#@ hidden_services = json.decode(data.values.hidden_services)
+#@ onion_hosts = json.decode(data.values.onion_hosts)
+
+#@ configured = []
+#@ for svc in hidden_services:
+#@   name = svc[0]
+#@   docker_service = svc[1]
+#@   onion = onion_hosts.get(name, "")
+#@   if onion:
+#@     configured.append({"name": name, "docker_service": docker_service, "onion": onion})
+#@   end
+#@ end
+
+#@yaml/text-templated-strings
+services:
+  tor:
+    labels:
+      #@ if len(configured) > 0:
+      - "traefik.enable=true"
+      #! Dummy port for the auto-created service — no router points here,
+      #! but Traefik errors if a container has no detectable port.
+      - "traefik.http.services.tor-(@= instance @)-tor.loadbalancer.server.port=0"
+      #@ for svc in configured:
+      #@   router = "tor-{}-{}".format(instance, svc["name"])
+      - "traefik.http.routers.(@= router @).rule=Host(`(@= svc['onion'] @)`)"
+      - "traefik.http.routers.(@= router @).entrypoints=web_plain"
+      - "traefik.http.routers.(@= router @).service=(@= svc['docker_service'] @)@docker"
+      #@ end
+      #@ else:
+      - "traefik.enable=false"
+      #@ end

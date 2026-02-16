@@ -1,0 +1,14 @@
+volumes:
+  tor_data:
+
+services:
+  tor:
+    build:
+      context: tor
+    restart: unless-stopped
+    network_mode: host
+    environment:
+      - TOR_HIDDEN_SERVICES=${TOR_HIDDEN_SERVICES}
+    volumes:
+      - tor_data:/var/lib/tor
+    labels: []
