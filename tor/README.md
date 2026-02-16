@@ -46,10 +46,16 @@ entrypoint because Traefik routes by `Host` header.
 
 ### Configure the hidden services
 
+Initialize the tor config and add an HTTP hidden service:
+
 ```
 d.rymcg.tech make tor config-dist
-d.rymcg.tech make tor reconfigure var='TOR_HIDDEN_SERVICES=[["whoami","whoami-default-whoami"]]'
+d.rymcg.tech make tor add-hidden-service svc='["whoami","whoami-default-whoami"]'
 ```
+
+You can run `add-hidden-service` multiple times to add more services
+without replacing existing ones. If a service with the same name
+already exists, it will be updated in place.
 
 ### Install
 
@@ -114,7 +120,7 @@ name, host, port, proxy_protocol_enabled, proxy_protocol_trusted_ips, forwardedH
 For example, to create an `irc_tor` entrypoint on port 6696:
 
 ```
-d.rymcg.tech make traefik reconfigure var='TRAEFIK_CUSTOM_ENTRYPOINTS=irc_tor,127.0.0.1,6696,false,,`
+d.rymcg.tech make traefik reconfigure var='TRAEFIK_CUSTOM_ENTRYPOINTS=irc_tor,127.0.0.1,6696,false,,'
 d.rymcg.tech make traefik reinstall
 ```
 
@@ -130,7 +136,8 @@ d.rymcg.tech make inspircd reinstall
 
 ### Configure the Tor hidden service
 
-Add a 3-element TCP entry to `TOR_HIDDEN_SERVICES`:
+Add a 3-element TCP entry to `TOR_HIDDEN_SERVICES` using
+`add-hidden-service`:
 
 ```
 ["name", tor_port, traefik_port]
@@ -141,19 +148,14 @@ Add a 3-element TCP entry to `TOR_HIDDEN_SERVICES`:
  * `traefik_port` — the local Traefik entrypoint port (e.g., 6696)
 
 ```
-d.rymcg.tech make tor reconfigure var='TOR_HIDDEN_SERVICES=[["irc", 6667, 6696]]'
+d.rymcg.tech make tor add-hidden-service svc='["irc", 6667, 6696]'
+```
+
+### Install / reinstall
+
+```
 d.rymcg.tech make tor install
-```
-
-### Assign .onion addresses
-
-```
 d.rymcg.tech make tor onion-addresses
-```
-
-### Reinstall
-
-```
 d.rymcg.tech make tor reinstall
 ```
 
@@ -174,10 +176,10 @@ torify irssi -c abc123...xyz.onion -p 6667
 
 ## Mixing HTTP and TCP services
 
-You can combine HTTP and TCP entries in a single `TOR_HIDDEN_SERVICES`
-list. Each entry creates a separate hidden service with its own
-`.onion` address:
+You can add both HTTP and TCP hidden services incrementally. Each
+entry creates a separate hidden service with its own `.onion` address:
 
 ```
-d.rymcg.tech make tor reconfigure var='TOR_HIDDEN_SERVICES=[["whoami","whoami-default-whoami"],["irc",6667,6696]]'
+d.rymcg.tech make tor add-hidden-service svc='["whoami","whoami-default-whoami"]'
+d.rymcg.tech make tor add-hidden-service svc='["irc", 6667, 6696]'
 ```
