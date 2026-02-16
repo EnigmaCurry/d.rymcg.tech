@@ -10,7 +10,7 @@ include _scripts/Makefile.cd
 
 .PHONY: check-deps # Check dependencies
 check-deps:
-	_scripts/check_deps docker sed awk xargs openssl htpasswd jq curl sponge inotifywait git envsubst xdg-open sshfs wg
+	_scripts/check_deps docker sed awk xargs openssl htpasswd jq curl sponge inotifywait git envsubst xdg-open sshfs wg uv ipcalc
 
 .PHONY: check-docker # Check if Docker is running
 check-docker:
@@ -98,6 +98,10 @@ userns-remap-check:
 readme:
 	xdg-open "https://github.com/EnigmaCurry/d.rymcg.tech/tree/master#readme"
 
+.PHONY: agent # Run agent readiness tool
+agent:
+	@_scripts/agent.py
+
 .PHONY: install-cli # Install CLI
 install-cli:
 	@echo "## Add this to the bottom of your ~/.bashrc or ~/.profile ::"
@@ -147,6 +151,11 @@ fail2ban:
 reconfigure:
 	@[[ -n "$${var}" ]] || (echo -e "Error: Invalid argument, must set var.\n## Use: make reconfigure var=VAR_NAME=VALUE" && false)
 	@${BIN}/reconfigure ${ROOT_ENV} "$${var%%=*}=$${var#*=}"
+
+.PHONY: dotenv_get # Retrieve a single root environment variable (dotenv_get var=THING)
+dotenv_get:
+	@[[ -n "$${var}" ]] || (echo -e "Error: Invalid argument, must set var.\n## Use: make dotenv_get var=VAR_NAME" && false)
+	@export ENV_FILE=${ROOT_ENV}; ${BIN}/dotenv_get "$${var%%=*}"
 
 daemon-conf:
 	@ENV_FILE=${ENV_FILE} ROOT_ENV=${ROOT_ENV} DOCKER_CONTEXT=${DOCKER_CONTEXT} ROOT_DIR=${ROOT_DIR} CONTEXT_INSTANCE=${CONTEXT_INSTANCE}  ${BIN}/docker_daemon_conf

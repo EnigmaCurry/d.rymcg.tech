@@ -63,7 +63,9 @@ __help() {
         echo -e "networks\tPrint the list of Docker networks"
         echo -e "fail2ban\tConfigure fail2ban on the Docker host"
         echo -e "reconfigure\tReconfigure a single env var in the root context config"
+        echo -e "dotenv_get\tRetrieve a single env var from the root context config"
         echo -e "daemon-conf\tReconfigures the Docker host's daemon config"
+        echo -e "agent\tRun agent readiness tool"
     ) | expand -t 30
     echo ""
     echo "## Documentation sub-commands:"
@@ -140,7 +142,42 @@ __list_projects() {
             echo "List of available d.rymcg.tech projects (not including external projects):"
             echo ""
             set +e
-            get_all_projects | column
+            declare -A descriptions
+            while IFS=$'\t' read -r dirname desc; do
+                descriptions["$dirname"]="$desc"
+            done < <(awk '
+                function output() {
+                    if (dirname != "") {
+                        sub(/\.$/, "", desc)
+                        print dirname "\t" desc
+                    }
+                    dirname = ""; desc = ""; state = 0
+                }
+                /^\* \[/ {
+                    output()
+                    if (match($0, /^\* \[[^\]]*\]\(([^#)]*)[^)]*\)(.*)/, m)) {
+                        dirname = m[1]; rest = m[2]
+                        if (match(rest, /^ *- *(.+)/, d)) {
+                            desc = d[1]; state = 1
+                        } else { state = 2 }
+                    }
+                    next
+                }
+                state == 1 && /^[[:space:]]/ && !/^  \* / {
+                    sub(/^[[:space:]]+/, " "); desc = desc $0; next
+                }
+                state == 2 && /^  \* / {
+                    sub(/^  \* /, ""); desc = $0; state = 3; next
+                }
+                state == 3 && /^[[:space:]]/ && !/^  \* / {
+                    sub(/^[[:space:]]+/, " "); desc = desc $0; next
+                }
+                { state = 0 }
+                END { output() }
+            ' "${ROOT_DIR}/README.md")
+            while read -r project; do
+                printf '%s\t%s\n' "$project" "${descriptions[$project]:-}"
+            done < <(get_all_projects) | column -t -s $'\t'
             echo ""
         fi
     )
@@ -355,7 +392,7 @@ __d.rymcg.tech_completions() {
     if [[ ${COMP_CWORD} == 1 ]]; then
         ## Complete the main command:
         ## d.rymcg.tech <TAB> ...
-        COMMANDS="help create cd make list readme info context new-context tmp-context aliases completion install install-docker status ssh audit sshd-config ssh-expose show-ports s3-volume docker-default-address-pool route routes reconfigure daemon-conf fail2ban networks config"
+        COMMANDS="help create cd make list readme info context new-context tmp-context aliases completion install install-docker status ssh audit sshd-config ssh-expose show-ports s3-volume docker-default-address-pool route routes reconfigure dotenv_get daemon-conf fail2ban networks config agent"
         COMPREPLY=($(compgen -W "${COMMANDS}" "${COMP_WORDS[1]}"))
     elif [[ ${COMP_CWORD} == 2 ]]; then
         ALL_PROJECTS=$(d.rymcg.tech list --raw)
@@ -516,6 +553,8 @@ main() {
                 d.rymcg.tech make traefik route ARGS="list";;
             reconfigure)
                 d.rymcg.tech make - reconfigure $@;;
+            dotenv_get)
+                d.rymcg.tech make - dotenv_get $@;;
             daemon-conf)
                 d.rymcg.tech make - daemon-conf;;
             fail2ban)
@@ -526,6 +565,22 @@ main() {
                 __make -- networks;;
             config)
                 __make -- config;;
+            agent)
+                # Auto-detect current Docker context for 'check' command
+                if [[ $# -eq 0 ]]; then
+                    # No args - show help
+                    ${BIN}/agent.py
+                elif [[ "$1" == "check" ]] && ! echo "$@" | grep -q -- "--context"; then
+                    # 'check' without --context - inject current context
+                    local ctx=$(docker context show 2>/dev/null)
+                    if [[ -n "$ctx" && "$ctx" != "default" ]]; then
+                        ${BIN}/agent.py check --context "$ctx" "${@:2}"
+                    else
+                        ${BIN}/agent.py "$@"
+                    fi
+                else
+                    ${BIN}/agent.py "$@"
+                fi;;
             *)
                 fault "Invalid command"
         esac

@@ -4,6 +4,7 @@ services:
     environment:
       - TRILIUM_SAFE_MODE=${TRILIUMNEXT_NOTES_SAFE_MODE}
       - TRILIUM_NETWORK_TRUSTEDREVERSEPROXY=${TRILIUMNEXT_NOTES_TRUSTED_REVERSE_PROXY}
+      - TZ=${TZ:-UTC}
     cap_drop:
       - ALL
     cap_add:
@@ -18,8 +19,6 @@ services:
     restart: unless-stopped
     volumes:
       - data:/home/node/trilium-data
-      - /etc/timezone:/etc/timezone:ro
-      - /etc/localtime:/etc/localtime:ro
     labels: []
 
 volumes:
