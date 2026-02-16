@@ -8,7 +8,7 @@ config-hook:
 
 .PHONY: override-hook
 override-hook:
-	@${BIN}/docker_compose_override ${ENV_FILE} project=:tor instance=@TOR_INSTANCE hidden_services=TOR_HIDDEN_SERVICES onion_hosts=TOR_ONION_HOSTS
+	@${BIN}/docker_compose_override ${ENV_FILE} project=:tor instance=@TOR_INSTANCE
 
 .PHONY: shell
 shell:
@@ -25,7 +25,7 @@ install-hook:
 	@echo "  make onion-addresses"
 	@echo
 	@echo "This will update TOR_ONION_HOSTS in the .env file."
-	@echo "Then run 'make reinstall' to enable Traefik routing."
+	@echo "Then configure each service with its .onion address as TRAEFIK_HOST."
 
 .PHONY: list-services # List configured hidden services
 list-services:

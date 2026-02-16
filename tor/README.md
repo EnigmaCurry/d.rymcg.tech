@@ -42,7 +42,9 @@ d.rymcg.tech make traefik reinstall
 
 HTTP hidden services route Tor port 80 through the `web_plain`
 Traefik entrypoint. Multiple HTTP services can share the same
-entrypoint because Traefik routes by `Host` header.
+entrypoint because Traefik routes by `Host` header. Each service
+controls its own Traefik router and middleware (authentication, IP
+filtering, etc.).
 
 ### Configure the hidden services
 
@@ -57,37 +59,27 @@ You can run `add-hidden-service` multiple times to add more services
 without replacing existing ones. If a service with the same name
 already exists, it will be updated in place.
 
-### Install
+### Install and get .onion addresses
 
 ```
 d.rymcg.tech make tor install
-```
-
-### Assign .onion addresses to your services
-
-```
 d.rymcg.tech make tor onion-addresses
-```
-
-### Reinstall
-
-After configuring everything, reinstall tor:
-
-```
-d.rymcg.tech make tor reinstall
 ```
 
 ### Reconfigure each service
 
-For each service (e.g. `whoami`) configure it for the specific
-`.onion` domain for its hidden service, and configure it to use the
-`web_plain` entrypoint:
+For each service (e.g. `whoami`) set the `.onion` address as its
+`TRAEFIK_HOST` and use the `web_plain` entrypoint:
 
 ```
 d.rymcg.tech make whoami reconfigure var=WHOAMI_TRAEFIK_HOST=abcdef34542.......onion
 d.rymcg.tech make whoami reconfigure var=WHOAMI_TRAEFIK_ENTRYPOINT=web_plain
 d.rymcg.tech make whoami reinstall
 ```
+
+The service's own router handles all Traefik middleware (basic auth,
+IP allowlist, mTLS, etc.) — Tor traffic goes through the same
+middleware chain as direct access.
 
 ### Verify
 
@@ -97,8 +89,7 @@ d.rymcg.tech make whoami reinstall
 d.rymcg.tech make tor logs
 ```
 
-2. Check Traefik dashboard for `tor-{SERVICE}` routers on `web_plain` entrypoint.
-3. Test from Tor Browser: http://abc123...xyz.onion should show the service response.
+2. Test from Tor Browser: http://abc123...xyz.onion should show the service response.
 
 ## TCP hidden services
 
@@ -127,10 +118,11 @@ d.rymcg.tech make traefik reinstall
 ### Configure the TCP service
 
 Configure the TCP service (e.g., `inspircd`) to use the new
-entrypoint:
+entrypoint and disable TLS (Tor provides its own encryption):
 
 ```
 d.rymcg.tech make inspircd reconfigure var=INSPIRCD_TRAEFIK_ENTRYPOINT=irc_tor
+d.rymcg.tech make inspircd reconfigure var=INSPIRCD_TRAEFIK_TLS=false
 d.rymcg.tech make inspircd reinstall
 ```
 
@@ -151,12 +143,11 @@ Add a 3-element TCP entry to `TOR_HIDDEN_SERVICES` using
 d.rymcg.tech make tor add-hidden-service svc='["irc", 6667, 6696]'
 ```
 
-### Install / reinstall
+### Install and get .onion addresses
 
 ```
 d.rymcg.tech make tor install
 d.rymcg.tech make tor onion-addresses
-d.rymcg.tech make tor reinstall
 ```
 
 ### Verify
