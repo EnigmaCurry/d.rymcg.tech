@@ -177,7 +177,6 @@ acme_sh() {
 
     make -C ${ROOT_DIR}/traefik acme-sh-register
 
-    echo
     echo "acme.sh mode configured."
     echo "Next steps:"
     echo "  1) Create the CNAME records printed above on your root domain DNS server."

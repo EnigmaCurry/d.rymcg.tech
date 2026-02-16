@@ -131,8 +131,8 @@ Install these services first:
 
 * [Acme-DNS](acme-dns#readme) - a DNS server for ACME challenges (TLS
   certificate creation)
-* [Traefik](traefik#readme) - HTTP / TLS / TCP / UDP reverse proxy
-* [Whoami](whoami#readme) - HTTP test service
+* [Traefik](traefik#readme) - an HTTP / TLS / TCP / UDP reverse proxy
+* [Whoami](whoami#readme) - an HTTP test service
 
 Install these core services as needed:
 
@@ -145,7 +145,7 @@ Install these core services as needed:
   * A single instance should be used for your entire organization, so
     you don't need to install this on every server.
 * [Traefik-forward-auth](traefik-forward-auth#readme)
-  * Traefik OAuth2 authentication middleware.
+  * A Traefik OAuth2 authentication middleware.
   * Required if you want OAuth2 authentication. You'll combine this
     with your Forgejo instance (or another external Oauth provider) to
     add authentication to any of your apps.
@@ -226,7 +226,7 @@ Install these applications at your preference:
 * [QBittorrent](qbittorrent#readme) - a Bittorrent (libtorrent v2) client
 * [Redbean](redbean#readme) - a small website server bundled in a single executable zip file
 * [Redmine](redmine#readme) - a flexible project management web application
-* [Registry](registry#readme) an OCI container registry
+* [Registry](registry#readme) - an OCI container registry
 * [S3-proxy](s3-proxy#readme) - an HTTP directory index for S3 backend
 * [SearXNG](searxng#readme) - a privacy-respecting, hackable metasearch engine
 * [SFTP](sftp#readme) - a secure file server

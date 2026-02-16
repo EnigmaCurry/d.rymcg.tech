@@ -3,8 +3,8 @@ services:
     image: ${IMMICH_IMAGE:-ghcr.io/immich-app/immich-server:release}
     volumes:
       - uploads:/usr/src/app/upload
-      - /etc/localtime:/etc/localtime:ro
     environment:
+      - TZ=${TZ:-UTC}
       - IMMICH_TRUSTED_PROXIES=${IMMICH_TRUSTED_PROXIES}
       - DB_PASSWORD=${IMMICH_DB_PASSWORD}
       - DB_USERNAME=${IMMICH_DB_USER}

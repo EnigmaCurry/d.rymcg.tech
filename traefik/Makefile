@@ -135,6 +135,10 @@ acme-sh-destroy-certs:
 .PHONY: override-hook
 override-hook:
 
+.PHONY: traefik-user
+traefik-user:
+	ROOT_ENV=${ROOT_ENV} ENV_FILE=${ENV_FILE} DOCKER_CONTEXT=${DOCKER_CONTEXT} ./setup.sh traefik_user
+
 .PHONY: dashboard # Open the Traefik dashboard TUI (tt-tui-for-traefik)
 dashboard:
 	@TRAEFIK_USERNAME=$$(cat ${ROOT_DIR}/traefik/passwords.json | jq -r '."${DOCKER_CONTEXT}_default".[].username'); \
