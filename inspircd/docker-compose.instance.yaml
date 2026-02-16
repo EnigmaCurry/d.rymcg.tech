@@ -16,6 +16,7 @@
 #@ enable_mtls_auth = data.values.enable_mtls_auth == "true"
 #@ mtls_authorized_certs = data.values.mtls_authorized_certs
 #@ enabled_middlewares = []
+#@ postfix_relay_enable = data.values.postfix_relay_enable == "true"
 #@ homepage_labels_enable = data.values.homepage_labels_enable == "true"
 #@ homepage_group_inspircd = data.values.homepage_group_inspircd
 #@ homepage_name_inspircd = data.values.homepage_name_inspircd
@@ -31,10 +32,12 @@
 services:
   inspircd:
     #@ service = "inspircd"
-    #@ if services_anope_enable:
+    #@ if postfix_relay_enable:
     networks:
       - default
       - postfix-relay
+    #@ end
+    #@ if services_anope_enable:
     environment:
       - INSP_SERVICES_IPADDR=services
       - INSP_SERVICES_NAME=services(@= net_suffix @)
@@ -88,12 +91,14 @@ services:
   #@ if services_anope_enable:
   services:
     #@ service = "services"
+    #@ if postfix_relay_enable:
     networks:
       - default
       - postfix-relay
+    #@ end
   #@ end
 
-#@ if services_anope_enable:
+#@ if postfix_relay_enable:
 #@yaml/text-templated-strings
 networks:
   postfix-relay:
