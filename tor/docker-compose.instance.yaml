@@ -14,9 +14,9 @@
 #@ configured = []
 #@ for svc in hidden_services:
 #@   name = svc[0]
-#@   docker_service = svc[1]
 #@   onion = onion_hosts.get(name, "")
-#@   if onion:
+#@   if onion and len(svc) == 2:
+#@     docker_service = svc[1]
 #@     configured.append({"name": name, "docker_service": docker_service, "onion": onion})
 #@   end
 #@ end
