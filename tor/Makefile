@@ -27,11 +27,15 @@ install-hook:
 	@echo "This will update TOR_ONION_HOSTS in the .env file."
 	@echo "Then run 'make reinstall' to enable Traefik routing."
 
-.PHONY: add-hidden-service ## Add a hidden service (without replacing existing ones)
+.PHONY: list-services # List configured hidden services
+list-services:
+	@./list_hidden_services.py ${ENV_FILE}
+
+.PHONY: add-hidden-service # Add a hidden service (without replacing existing ones)
 add-hidden-service:
 	@test -n "$(svc)" || (echo "Usage: make add-hidden-service svc='[\"name\",\"docker-service\"]'" && echo "       make add-hidden-service svc='[\"name\",tor_port,traefik_port]'" && false)
 	@./add_hidden_service.py ${ENV_FILE} '$(svc)'
 
-.PHONY: onion-addresses ## Read .onion addresses and update TOR_ONION_HOSTS in .env
+.PHONY: onion-addresses # Read .onion addresses and update TOR_ONION_HOSTS in .env
 onion-addresses:
 	@docker exec ${PROJECT_NAME}-tor-1 sh -c 'for dir in /var/lib/tor/*/; do name=$$(basename "$$dir"); [ -f "$$dir/hostname" ] && echo "$$name $$(cat "$$dir/hostname")"; done' | ./update_onion_hosts.py ${ENV_FILE}
