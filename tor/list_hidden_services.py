@@ -24,8 +24,14 @@ if not services:
 
 for svc in services:
     name = svc[0]
-    onion = onion_hosts.get(name, "(not yet assigned)")
+    onion = onion_hosts.get(name, "")
     if len(svc) == 2:
-        print(f"  {name}  HTTP  {svc[1]}  {onion}")
+        if onion:
+            print(f"  {name}  HTTP  {svc[1]}  http://{onion}")
+        else:
+            print(f"  {name}  HTTP  {svc[1]}  (onion not yet assigned)")
     elif len(svc) == 3:
-        print(f"  {name}  TCP  :{svc[1]}->localhost:{svc[2]}  {onion}")
+        if onion:
+            print(f"  {name}  TCP  {onion}:{svc[1]} -> localhost:{svc[2]}")
+        else:
+            print(f"  {name}  TCP  .onion:{svc[1]} -> localhost:{svc[2]}  (onion not yet assigned)")
