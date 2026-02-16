@@ -10,6 +10,7 @@
 #@ instance = data.values.instance
 #@ context = data.values.context
 #@ traefik_host = data.values.traefik_host
+#@ traefik_entrypoint = data.values.traefik_entrypoint
 #@ enabled_middlewares = []
 
 #@yaml/text-templated-strings
@@ -26,7 +27,7 @@ services:
 
       #! The host matching router rule:
       - "traefik.tcp.routers.(@= router @).rule=HostSNI(`(@= traefik_host @)`)"
-      - "traefik.tcp.routers.(@= router @).entrypoints=websecure"
+      - "traefik.tcp.routers.(@= router @).entrypoints=(@= traefik_entrypoint @)"
       - "traefik.tcp.routers.(@= router @).tls=true"
 
       #! Override the default port that the app binds to:

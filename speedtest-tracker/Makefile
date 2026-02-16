@@ -39,7 +39,7 @@ override-hook:
 ####                         # (this hardcodes the string into docker-compose.override.yaml)
 ####   name=@VARIABLE_NAME   # sets the template 'name' field to the literal string '${VARIABLE_NAME}'
 ####                         # (used for regular docker-compose expansion of env vars by name.)
-	@${BIN}/docker_compose_override ${ENV_FILE} project=:speedtest-tracker instance=@SPEEDTEST_TRACKER_INSTANCE traefik_host=@SPEEDTEST_TRACKER_TRAEFIK_HOST http_auth=SPEEDTEST_TRACKER_HTTP_AUTH http_auth_var=@SPEEDTEST_TRACKER_HTTP_AUTH ip_sourcerange=@SPEEDTEST_TRACKER_IP_SOURCERANGE oauth2=SPEEDTEST_TRACKER_OAUTH2 authorized_group=SPEEDTEST_TRACKER_OAUTH2_AUTHORIZED_GROUP enable_mtls_auth=SPEEDTEST_TRACKER_MTLS_AUTH mtls_authorized_certs=SPEEDTEST_TRACKER_MTLS_AUTHORIZED_CERTS
+	@${BIN}/docker_compose_override ${ENV_FILE} project=:speedtest-tracker instance=@SPEEDTEST_TRACKER_INSTANCE traefik_host=@SPEEDTEST_TRACKER_TRAEFIK_HOST http_auth=SPEEDTEST_TRACKER_HTTP_AUTH http_auth_var=@SPEEDTEST_TRACKER_HTTP_AUTH ip_sourcerange=@SPEEDTEST_TRACKER_IP_SOURCERANGE oauth2=SPEEDTEST_TRACKER_OAUTH2 authorized_group=SPEEDTEST_TRACKER_OAUTH2_AUTHORIZED_GROUP enable_mtls_auth=SPEEDTEST_TRACKER_MTLS_AUTH mtls_authorized_certs=SPEEDTEST_TRACKER_MTLS_AUTHORIZED_CERTS traefik_entrypoint=SPEEDTEST_TRACKER_TRAEFIK_ENTRYPOINT
 
 .PHONY: shell
 shell:

@@ -10,6 +10,7 @@
 #@ instance = data.values.instance
 #@ context = data.values.context
 #@ traefik_host = data.values.traefik_host
+#@ traefik_entrypoint = data.values.traefik_entrypoint
 #@ webhook_host = data.values.webhook_host
 #@ ip_sourcerange = data.values.ip_sourcerange
 #@ enable_http_auth = len(data.values.http_auth.strip()) > 0
@@ -65,7 +66,7 @@ services:
 
       #! The host matching router rule:
       - "traefik.http.routers.(@= router @).rule=Host(`(@= traefik_host @)`)"
-      - "traefik.http.routers.(@= router @).entrypoints=websecure"
+      - "traefik.http.routers.(@= router @).entrypoints=(@= traefik_entrypoint @)"
       - "traefik.http.routers.(@= router @).service=(@= router @)"
       #@ enabled_middlewares.append("{}-ipallowlist".format(router))
       - "traefik.http.middlewares.(@= router @)-ipallowlist.ipallowlist.sourcerange=(@= ip_sourcerange @)"
@@ -97,7 +98,7 @@ services:
       - "traefik.http.routers.(@= router @).middlewares=(@= ','.join(enabled_middlewares) @)"
 
       - "traefik.http.routers.(@= reloader_router @).rule=Host(`(@= webhook_host @)`) && PathPrefix(`(@= reloader_path_prefix @)`)"
-      - "traefik.http.routers.(@= reloader_router @).entrypoints=websecure"
+      - "traefik.http.routers.(@= reloader_router @).entrypoints=(@= traefik_entrypoint @)"
       #! Override the default port that whoami binds to, so that it lives in userspace >1024:
       #! You don't normally need to do this, as long as your image has
       #! an EXPOSE directive in it, Traefik will autodetect it, but this is how you can override it:

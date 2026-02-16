@@ -26,7 +26,7 @@ override-hook:
 ####                         # (this hardcodes the string into docker-compose.override.yaml)
 ####   name=@VARIABLE_NAME   # sets the template 'name' field to the literal string '${VARIABLE_NAME}'
 ####                         # (used for regular docker-compose expansion of env vars by name.)
-	@${BIN}/docker_compose_override ${ENV_FILE} project=:searxng instance=@SEARXNG_INSTANCE traefik_host=@SEARXNG_TRAEFIK_HOST http_auth=SEARXNG_HTTP_AUTH http_auth_var=@SEARXNG_HTTP_AUTH ip_sourcerange=@SEARXNG_IP_SOURCERANGE oauth2=SEARXNG_OAUTH2 authorized_group=SEARXNG_OAUTH2_AUTHORIZED_GROUP enable_mtls_auth=SEARXNG_MTLS_AUTH mtls_authorized_certs=SEARXNG_MTLS_AUTHORIZED_CERTS
+	@${BIN}/docker_compose_override ${ENV_FILE} project=:searxng instance=@SEARXNG_INSTANCE traefik_host=@SEARXNG_TRAEFIK_HOST http_auth=SEARXNG_HTTP_AUTH http_auth_var=@SEARXNG_HTTP_AUTH ip_sourcerange=@SEARXNG_IP_SOURCERANGE oauth2=SEARXNG_OAUTH2 authorized_group=SEARXNG_OAUTH2_AUTHORIZED_GROUP enable_mtls_auth=SEARXNG_MTLS_AUTH mtls_authorized_certs=SEARXNG_MTLS_AUTHORIZED_CERTS traefik_entrypoint=SEARXNG_TRAEFIK_ENTRYPOINT
 
 .PHONY: shell
 shell:
