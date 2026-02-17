@@ -246,9 +246,10 @@ d.rymcg.tech make tor show-credential client=alice
 ```
 
 This displays the private key and, for each authorized service, the
-full credential line. Add this credential to Tor Browser under
-Preferences > Tor > Onion Services, or save it to a `.auth_private`
-file in your `ClientOnionAuthDir`.
+full credential line. Tor Browser will prompt for the private key
+when you visit the `.onion` address. For other Tor clients, save the
+credential line to a `.auth_private` file in your
+`ClientOnionAuthDir`.
 
 ### List clients
 

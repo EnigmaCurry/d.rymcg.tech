@@ -59,8 +59,9 @@ if services:
         print(f"  {svc_name} ({onion}):")
         print(f"    {credential}")
     print()
-    print("Add credentials to Tor Browser: Preferences > Tor > Onion Services > Add")
-    print("Or save to a .auth_private file in your ClientOnionAuthDir.")
+    print("Tor Browser will prompt for the private key when you visit the .onion address.")
+    print("For other Tor clients, save the credential line to a .auth_private file")
+    print("in your ClientOnionAuthDir.")
 else:
     print(f"Client: {client_name}")
     print(f"Private key: {private_key}")
