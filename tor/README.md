@@ -75,12 +75,11 @@ Traefik router and middleware (basic authentication, etc.).
 
 ### Configure the hidden services
 
-Add an HTTP hidden service by its Traefik service name (in
-`project-instance-service` format — consult the Traefik dashboard for
-the current list of services):
+Add an HTTP hidden service (the name is a label used to generate the
+`.onion` address):
 
 ```
-d.rymcg.tech make tor add-service svc=whoami-default-whoami
+d.rymcg.tech make tor add-service svc=whoami
 ```
 
 You can run `add-service` multiple times to add more services
@@ -201,13 +200,13 @@ You can add both HTTP and TCP hidden services incrementally. Each
 entry creates a separate hidden service with its own `.onion` address:
 
 ```
-d.rymcg.tech make tor add-service svc=whoami-default-whoami
+d.rymcg.tech make tor add-service svc=whoami
 d.rymcg.tech make tor add-service svc=irc port=6667:6697
 ```
 
 ## Removing a hidden service
 
 ```
-d.rymcg.tech make tor remove-service name=whoami-default-whoami
+d.rymcg.tech make tor remove-service name=whoami
 d.rymcg.tech make tor reinstall
 ```

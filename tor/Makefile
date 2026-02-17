@@ -32,7 +32,7 @@ list-services:
 
 .PHONY: add-service # Add a hidden service (without replacing existing ones)
 add-service:
-	@test -n "$(svc)" || (echo "Usage: d.rymcg.tech make tor add-service svc=project-instance-service" && echo "  e.g. d.rymcg.tech make tor add-service svc=whoami-default-whoami" && echo "       d.rymcg.tech make tor add-service svc=name port=TOR_PORT:LOCAL_PORT" && echo "  e.g. d.rymcg.tech make tor add-service svc=ssh port=22:22" && false)
+	@test -n "$(svc)" || (echo "Usage: d.rymcg.tech make tor add-service svc=name" && echo "  e.g. d.rymcg.tech make tor add-service svc=whoami" && echo "       d.rymcg.tech make tor add-service svc=name port=TOR_PORT:LOCAL_PORT" && echo "  e.g. d.rymcg.tech make tor add-service svc=ssh port=22:22" && false)
 	@./scripts/add_hidden_service.py ${ENV_FILE} '$(svc)' '$(port)'
 
 .PHONY: remove-service # Remove a hidden service by name
