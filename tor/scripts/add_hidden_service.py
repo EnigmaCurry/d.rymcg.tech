@@ -93,7 +93,7 @@ ENTRYPOINT ["mkp224o"]
             capture_output=True, text=True
         )
         rate = 0
-        for line in bench.stdout.splitlines():
+        for line in (bench.stdout + bench.stderr).splitlines():
             m = re.search(r'calc/sec:([\d.]+)', line)
             if m:
                 rate = float(m.group(1))
