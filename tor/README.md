@@ -25,12 +25,16 @@ CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 Tor hidden services provide their own end-to-end encryption between
 the Tor Browser and your services. This configuration will generate
 random domain names ending in `.onion`. You cannot use your own domain
-names. You cannot use TLS with `.onion` domains.
+names. You generally don't use TLS with `.onion` domains.
+(Technically, you can use TLS on .onion domains, but Let's Encrypt
+does not support it. Because TLS is redundant to the Tor builtin
+encryption, TLS is not supported by this config.)
 
 ### Enable the web_plain entrypoint
 
 The Tor proxy will connect to Traefik through the `web_plain`
-entrypoint, which we bind to `127.0.0.1`:
+entrypoint (port `8000` by default), and we bind it to `127.0.0.1` to
+prevent LAN access:
 
 ```
 d.rymcg.tech make traefik reconfigure var=TRAEFIK_WEB_PLAIN_ENTRYPOINT_ENABLED=true
@@ -61,15 +65,25 @@ already exists, it will be updated in place.
 
 ### Install and get .onion addresses
 
+Install, retrieve .onion address, then reinstall again:
+
 ```
 d.rymcg.tech make tor install
 d.rymcg.tech make tor onion-addresses
+d.rymcg.tech make tor install
 ```
 
 ### Reconfigure each service
 
-For each service (e.g. `whoami`) set the `.onion` address as its
-`TRAEFIK_HOST` and use the `web_plain` entrypoint:
+Get a list of the configured hidden services:
+
+```
+d.rymcg.tech make tor list-services
+```
+
+For each service (e.g. `whoami`) copy the `.onion` address and set the
+as its `{PROJECT}_TRAEFIK_HOST` and set the `web_plain` entrypoint via
+`{PROJECT}_TRAEFIK_ENTRYPOINT`:
 
 ```
 d.rymcg.tech make whoami reconfigure var=WHOAMI_TRAEFIK_HOST=abcdef34542.......onion
