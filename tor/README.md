@@ -217,7 +217,9 @@ d.rymcg.tech make tor reinstall
 
 Your `.onion` addresses are derived from cryptographic keys stored in
 the `tor_data` Docker volume. If you lose these keys, your `.onion`
-addresses are gone forever. Back them up to an encrypted archive:
+addresses are gone forever. The backup includes both the cryptographic
+keys and the `.env` configuration file, so you can restore from
+nothing on a fresh host. Back them up to an encrypted archive:
 
 ```
 d.rymcg.tech make tor backup archive=tor-keys-backup.tar.gz.gpg
