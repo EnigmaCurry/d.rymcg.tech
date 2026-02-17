@@ -49,22 +49,21 @@ for line in result.stdout.strip().splitlines():
         if len(parts) == 2:
             services.append((parts[0], parts[1].strip()))
 
+print(f"Client: {client_name}")
+print(f"Private key: {private_key}")
+print()
+
 if services:
-    print(f"Client: {client_name}")
-    print(f"Private key: {private_key}")
+    print("Authorized services:")
+    for svc_name, onion in services:
+        print(f"  {svc_name}  {onion}")
     print()
+    print("Tor Browser: paste the private key when prompted after visiting the .onion address.")
+    print()
+    print("Other Tor clients: save to a .auth_private file in your ClientOnionAuthDir:")
     for svc_name, onion in services:
         onion_addr = onion.replace(".onion", "")
-        credential = f"{onion_addr}:descriptor:x25519:{private_key}"
-        print(f"  {svc_name} ({onion}):")
-        print(f"    {credential}")
-    print()
-    print("Tor Browser will prompt for the private key when you visit the .onion address.")
-    print("For other Tor clients, save the credential line to a .auth_private file")
-    print("in your ClientOnionAuthDir.")
+        print(f"  {onion_addr}:descriptor:x25519:{private_key}")
 else:
-    print(f"Client: {client_name}")
-    print(f"Private key: {private_key}")
-    print()
     print("Not authorized for any service yet.")
     print(f"Run 'd.rymcg.tech make tor authorize-client svc=SERVICE client={client_name}' to grant access.")
