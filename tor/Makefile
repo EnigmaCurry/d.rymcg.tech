@@ -39,11 +39,16 @@ add-service:
 backup:
 	@test -n "$(archive)" || (echo "Usage: d.rymcg.tech make tor backup archive=FILENAME.tar.gz.gpg" && false)
 	@docker volume inspect ${PROJECT_NAME}_tor_data > /dev/null 2>&1 || (echo "Error: volume ${PROJECT_NAME}_tor_data does not exist" && false)
-	@echo "Backing up volume: ${PROJECT_NAME}_tor_data"
-	@echo "Backing up env file: ${ENV_FILE}"
-	@echo "Contents:"
-	@docker run --rm -v ${PROJECT_NAME}_tor_data:/backup/keys:ro -v $$(realpath ${ENV_FILE}):/backup/env:ro alpine find /backup -type f | sed 's|^/backup/|  |'
-	@docker run --rm -v ${PROJECT_NAME}_tor_data:/backup/keys:ro -v $$(realpath ${ENV_FILE}):/backup/env:ro alpine tar cf - -C /backup . | gzip | gpg --symmetric --cipher-algo AES256 --pinentry-mode loopback -o $(archive)
+	@TMPDIR=$$(mktemp -d) && \
+	  mkdir -p $$TMPDIR/keys && \
+	  echo "Backing up volume: ${PROJECT_NAME}_tor_data" && \
+	  docker run --rm -v ${PROJECT_NAME}_tor_data:/data:ro -v $$TMPDIR/keys:/backup alpine sh -c 'cp -a /data/. /backup/' && \
+	  echo "Backing up env file: ${ENV_FILE}" && \
+	  cp ${ENV_FILE} $$TMPDIR/env && \
+	  echo "Contents:" && \
+	  find $$TMPDIR -type f | sed "s|^$$TMPDIR/||" | sed 's|^|  |' && \
+	  tar cf - -C $$TMPDIR . | gzip | gpg --symmetric --cipher-algo AES256 --pinentry-mode loopback -o $(archive) && \
+	  rm -rf $$TMPDIR
 	@echo "Exported to $(archive)"
 
 .PHONY: restore # Import onion keys and env file from an encrypted archive
@@ -57,7 +62,7 @@ restore:
 	  echo "Restoring env file: ${ENV_FILE}" && \
 	  cp $$TMPDIR/env ${ENV_FILE} && \
 	  echo "Restored contents:" && \
-	  docker run --rm -v ${PROJECT_NAME}_tor_data:/data:ro alpine find /data -type f | sed 's|^/data/|  |' && \
+	  find $$TMPDIR -type f | sed "s|^$$TMPDIR/||" | sed 's|^|  |' && \
 	  rm -rf $$TMPDIR
 	@echo "Run 'd.rymcg.tech make tor reinstall' to apply."
 
