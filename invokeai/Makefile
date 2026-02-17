@@ -42,7 +42,7 @@ override-hook:
 ####                         # (this hardcodes the string into docker-compose.override.yaml)
 ####   name=@VARIABLE_NAME   # sets the template 'name' field to the literal string '${VARIABLE_NAME}'
 ####                         # (used for regular docker-compose expansion of env vars by name.)
-	@${BIN}/docker_compose_override ${ENV_FILE} project=:invokeai instance=@INVOKEAI_INSTANCE traefik_host=@INVOKEAI_TRAEFIK_HOST http_auth=INVOKEAI_HTTP_AUTH http_auth_var=@INVOKEAI_HTTP_AUTH ip_sourcerange=@INVOKEAI_IP_SOURCERANGE oauth2=INVOKEAI_OAUTH2 authorized_group=INVOKEAI_OAUTH2_AUTHORIZED_GROUP enable_mtls_auth=INVOKEAI_MTLS_AUTH mtls_authorized_certs=INVOKEAI_MTLS_AUTHORIZED_CERTS docker_compose_profiles=DOCKER_COMPOSE_PROFILES store_models_separately=INVOKEAI_STORE_MODELS_SEPARATELY host_path=INVOKEAI_SEPARATE_MODELS_HOST_PATH
+	@${BIN}/docker_compose_override ${ENV_FILE} project=:invokeai instance=@INVOKEAI_INSTANCE traefik_host=@INVOKEAI_TRAEFIK_HOST http_auth=INVOKEAI_HTTP_AUTH http_auth_var=@INVOKEAI_HTTP_AUTH ip_sourcerange=@INVOKEAI_IP_SOURCERANGE oauth2=INVOKEAI_OAUTH2 authorized_group=INVOKEAI_OAUTH2_AUTHORIZED_GROUP enable_mtls_auth=INVOKEAI_MTLS_AUTH mtls_authorized_certs=INVOKEAI_MTLS_AUTHORIZED_CERTS docker_compose_profiles=DOCKER_COMPOSE_PROFILES store_models_separately=INVOKEAI_STORE_MODELS_SEPARATELY host_path=INVOKEAI_SEPARATE_MODELS_HOST_PATH traefik_entrypoint=INVOKEAI_TRAEFIK_ENTRYPOINT
 
 .PHONY: shell # Enter container shell
 shell:

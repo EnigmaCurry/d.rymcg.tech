@@ -10,6 +10,7 @@
 #@ instance = data.values.instance
 #@ context = data.values.context
 #@ traefik_host = data.values.traefik_host
+#@ traefik_entrypoint = data.values.traefik_entrypoint
 #@ ip_sourcerange = data.values.ip_sourcerange
 #@ enable_http_auth = len(data.values.http_auth.strip()) > 0
 #@ http_auth = data.values.http_auth_var
@@ -27,7 +28,7 @@ services:
     labels:
       - "traefik.enable=true"
       - "traefik.http.routers.archivebox-${ARCHIVEBOX_INSTANCE:-default}-api-gateway.rule=Host(`${ARCHIVEBOX_TRAEFIK_HOST}`) && PathPrefix(`/api-gateway`)"
-      - "traefik.http.routers.archivebox-${ARCHIVEBOX_INSTANCE:-default}-api-gateway.entrypoints=websecure"
+      - "traefik.http.routers.archivebox-${ARCHIVEBOX_INSTANCE:-default}-api-gateway.entrypoints=(@= traefik_entrypoint @)"
       - "traefik.http.routers.archivebox-${ARCHIVEBOX_INSTANCE:-default}-api-gateway.service=archivebox-${ARCHIVEBOX_INSTANCE:-default}-api-gateway"
       - "traefik.http.services.archivebox-${ARCHIVEBOX_INSTANCE:-default}-api-gateway.loadbalancer.server.port=8000"
       #! Authentication:
@@ -35,7 +36,7 @@ services:
 
       #! Anonymous access for GET /api-gateway/page ONLY:
       - "traefik.http.routers.archivebox-${ARCHIVEBOX_INSTANCE:-default}-public-api.rule=Host(`${ARCHIVEBOX_TRAEFIK_HOST}`) && Path(`/api-gateway/page`) && Method(`GET`)"
-      - "traefik.http.routers.archivebox-${ARCHIVEBOX_INSTANCE:-default}-public-api.entrypoints=websecure"
+      - "traefik.http.routers.archivebox-${ARCHIVEBOX_INSTANCE:-default}-public-api.entrypoints=(@= traefik_entrypoint @)"
       - "traefik.http.routers.archivebox-${ARCHIVEBOX_INSTANCE:-default}-public-api.service=archivebox-${ARCHIVEBOX_INSTANCE:-default}-api-gateway"
       - "traefik.http.routers.archivebox-${ARCHIVEBOX_INSTANCE:-default}-public-api.middlewares=archivebox-${ARCHIVEBOX_INSTANCE:-default}-ipallowlist"
 
@@ -66,7 +67,7 @@ services:
 
       #! The host matching router rule:
       - "traefik.http.routers.(@= router @).rule=Host(`(@= traefik_host @)`)"
-      - "traefik.http.routers.(@= router @).entrypoints=websecure"
+      - "traefik.http.routers.(@= router @).entrypoints=(@= traefik_entrypoint @)"
       #@ enabled_middlewares.append("{}-ipallowlist".format(router))
       - "traefik.http.middlewares.(@= router @)-ipallowlist.ipallowlist.sourcerange=(@= ip_sourcerange @)"
 

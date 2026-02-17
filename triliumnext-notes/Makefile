@@ -25,7 +25,7 @@ override-hook:
 ####                         # (this hardcodes the string into docker-compose.override.yaml)
 ####   name=@VARIABLE_NAME   # sets the template 'name' field to the literal string '${VARIABLE_NAME}'
 ####                         # (used for regular docker-compose expansion of env vars by name.)
-	@${BIN}/docker_compose_override ${ENV_FILE} project=:triliumnext-notes instance=@TRILIUMNEXT_NOTES_INSTANCE traefik_host=@TRILIUMNEXT_NOTES_TRAEFIK_HOST http_auth=TRILIUMNEXT_NOTES_HTTP_AUTH http_auth_var=@TRILIUMNEXT_NOTES_HTTP_AUTH ip_sourcerange=@TRILIUMNEXT_NOTES_IP_SOURCERANGE oauth2=TRILIUMNEXT_NOTES_OAUTH2 authorized_group=TRILIUMNEXT_NOTES_OAUTH2_AUTHORIZED_GROUP enable_mtls_auth=TRILIUMNEXT_NOTES_MTLS_AUTH mtls_authorized_certs=TRILIUMNEXT_NOTES_MTLS_AUTHORIZED_CERTS
+	@${BIN}/docker_compose_override ${ENV_FILE} project=:triliumnext-notes instance=@TRILIUMNEXT_NOTES_INSTANCE traefik_host=@TRILIUMNEXT_NOTES_TRAEFIK_HOST http_auth=TRILIUMNEXT_NOTES_HTTP_AUTH http_auth_var=@TRILIUMNEXT_NOTES_HTTP_AUTH ip_sourcerange=@TRILIUMNEXT_NOTES_IP_SOURCERANGE oauth2=TRILIUMNEXT_NOTES_OAUTH2 authorized_group=TRILIUMNEXT_NOTES_OAUTH2_AUTHORIZED_GROUP enable_mtls_auth=TRILIUMNEXT_NOTES_MTLS_AUTH mtls_authorized_certs=TRILIUMNEXT_NOTES_MTLS_AUTHORIZED_CERTS traefik_entrypoint=TRILIUMNEXT_NOTES_TRAEFIK_ENTRYPOINT
 
 .PHONY: shell
 shell:

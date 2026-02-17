@@ -26,7 +26,7 @@ override-hook:
 ####                         # (this hardcodes the string into docker-compose.override.yaml)
 ####   name=@VARIABLE_NAME   # sets the template 'name' field to the literal string '${VARIABLE_NAME}'
 ####                         # (used for regular docker-compose expansion of env vars by name.)
-	@${BIN}/docker_compose_override ${ENV_FILE} project=:websocketd instance=@WEBSOCKETD_INSTANCE traefik_host=@WEBSOCKETD_TRAEFIK_HOST http_auth=WEBSOCKETD_HTTP_AUTH http_auth_var=@WEBSOCKETD_HTTP_AUTH ip_sourcerange=@WEBSOCKETD_IP_SOURCERANGE  oauth2=WEBSOCKETD_OAUTH2 authorized_group=WEBSOCKETD_OAUTH2_AUTHORIZED_GROUP enable_mtls_auth=WEBSOCKETD_MTLS_AUTH mtls_authorized_certs=WEBSOCKETD_MTLS_AUTHORIZED_CERTS
+	@${BIN}/docker_compose_override ${ENV_FILE} project=:websocketd instance=@WEBSOCKETD_INSTANCE traefik_host=@WEBSOCKETD_TRAEFIK_HOST http_auth=WEBSOCKETD_HTTP_AUTH http_auth_var=@WEBSOCKETD_HTTP_AUTH ip_sourcerange=@WEBSOCKETD_IP_SOURCERANGE  oauth2=WEBSOCKETD_OAUTH2 authorized_group=WEBSOCKETD_OAUTH2_AUTHORIZED_GROUP enable_mtls_auth=WEBSOCKETD_MTLS_AUTH mtls_authorized_certs=WEBSOCKETD_MTLS_AUTHORIZED_CERTS traefik_entrypoint=WEBSOCKETD_TRAEFIK_ENTRYPOINT
 
 .PHONY: shell
 shell:

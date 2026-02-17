@@ -42,7 +42,7 @@ override-hook:
 ####                         # (this hardcodes the string into docker-compose.override.yaml)
 ####   name=@VARIABLE_NAME   # sets the template 'name' field to the literal string '${VARIABLE_NAME}'
 ####                         # (used for regular docker-compose expansion of env vars by name.)
-	@${BIN}/docker_compose_override ${ENV_FILE} project=:comfyui instance=@COMFYUI_INSTANCE traefik_host=@COMFYUI_TRAEFIK_HOST http_auth=COMFYUI_HTTP_AUTH http_auth_var=@COMFYUI_HTTP_AUTH ip_sourcerange=@COMFYUI_IP_SOURCERANGE oauth2=COMFYUI_OAUTH2 authorized_group=COMFYUI_OAUTH2_AUTHORIZED_GROUP enable_mtls_auth=COMFYUI_MTLS_AUTH mtls_authorized_certs=COMFYUI_MTLS_AUTHORIZED_CERTS compose_profile=DOCKER_COMPOSE_PROFILES models_host_path=COMFYUI_MODELS_HOST_PATH output_host_path=COMFYUI_OUTPUT_HOST_PATH
+	@${BIN}/docker_compose_override ${ENV_FILE} project=:comfyui instance=@COMFYUI_INSTANCE traefik_host=@COMFYUI_TRAEFIK_HOST http_auth=COMFYUI_HTTP_AUTH http_auth_var=@COMFYUI_HTTP_AUTH ip_sourcerange=@COMFYUI_IP_SOURCERANGE oauth2=COMFYUI_OAUTH2 authorized_group=COMFYUI_OAUTH2_AUTHORIZED_GROUP enable_mtls_auth=COMFYUI_MTLS_AUTH mtls_authorized_certs=COMFYUI_MTLS_AUTHORIZED_CERTS compose_profile=DOCKER_COMPOSE_PROFILES models_host_path=COMFYUI_MODELS_HOST_PATH output_host_path=COMFYUI_OUTPUT_HOST_PATH traefik_entrypoint=COMFYUI_TRAEFIK_ENTRYPOINT
 
 .PHONY: shell # Enter container shell
 shell:

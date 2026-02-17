@@ -43,7 +43,7 @@ override-hook:
 ####                         # (this hardcodes the string into docker-compose.override.yaml)
 ####   name=@VARIABLE_NAME   # sets the template 'name' field to the literal string '${VARIABLE_NAME}'
 ####                         # (used for regular docker-compose expansion of env vars by name.)
-	@${BIN}/docker_compose_override ${ENV_FILE} project=:ollama instance=@OLLAMA_INSTANCE traefik_host=@OLLAMA_TRAEFIK_HOST http_auth=OLLAMA_HTTP_AUTH http_auth_var=@OLLAMA_HTTP_AUTH ip_sourcerange=@OLLAMA_IP_SOURCERANGE oauth2=OLLAMA_OAUTH2 authorized_group=OLLAMA_OAUTH2_AUTHORIZED_GROUP enable_mtls_auth=OLLAMA_MTLS_AUTH mtls_authorized_certs=OLLAMA_MTLS_AUTHORIZED_CERTS models_host_path=OLLAMA_MODELS_HOST_PATH compose_profile=DOCKER_COMPOSE_PROFILES api_token=OLLAMA_API_TOKEN
+	@${BIN}/docker_compose_override ${ENV_FILE} project=:ollama instance=@OLLAMA_INSTANCE traefik_host=@OLLAMA_TRAEFIK_HOST http_auth=OLLAMA_HTTP_AUTH http_auth_var=@OLLAMA_HTTP_AUTH ip_sourcerange=@OLLAMA_IP_SOURCERANGE oauth2=OLLAMA_OAUTH2 authorized_group=OLLAMA_OAUTH2_AUTHORIZED_GROUP enable_mtls_auth=OLLAMA_MTLS_AUTH mtls_authorized_certs=OLLAMA_MTLS_AUTHORIZED_CERTS models_host_path=OLLAMA_MODELS_HOST_PATH compose_profile=DOCKER_COMPOSE_PROFILES api_token=OLLAMA_API_TOKEN traefik_entrypoint=OLLAMA_TRAEFIK_ENTRYPOINT
 
 .PHONY: shell
 shell:
