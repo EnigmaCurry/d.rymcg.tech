@@ -213,6 +213,69 @@ d.rymcg.tech make tor remove-service name=whoami
 d.rymcg.tech make tor reinstall
 ```
 
+## Client authorization
+
+Tor v3 onion services support client authorization, which restricts
+access so only clients with a specific private key can connect. This
+uses x25519 keypairs — the public key is placed on the server, and
+the private key is given to the client.
+
+### Create a client
+
+```
+d.rymcg.tech make tor add-client client=alice
+```
+
+### Authorize the client for a service
+
+The hidden service must already be installed (so its directory exists
+in the volume):
+
+```
+d.rymcg.tech make tor authorize-client svc=whoami client=alice
+d.rymcg.tech make tor reinstall
+```
+
+You must run `reinstall` after authorizing (or revoking) clients for
+changes to take effect.
+
+### Show client credentials
+
+```
+d.rymcg.tech make tor show-credential client=alice
+```
+
+This displays the private key and, for each authorized service, the
+full credential line. Add this credential to Tor Browser under
+Preferences > Tor > Onion Services, or save it to a `.auth_private`
+file in your `ClientOnionAuthDir`.
+
+### List clients
+
+```
+d.rymcg.tech make tor list-clients
+d.rymcg.tech make tor list-clients svc=whoami
+```
+
+### Revoke access
+
+```
+d.rymcg.tech make tor revoke-client svc=whoami client=alice
+d.rymcg.tech make tor reinstall
+```
+
+### Delete a client entirely
+
+This revokes access from all services and deletes the keypair:
+
+```
+d.rymcg.tech make tor remove-client client=alice
+d.rymcg.tech make tor reinstall
+```
+
+Client keys are stored in the `tor_data` Docker volume and are
+included in backups automatically.
+
 ## Backup and restore
 
 Your `.onion` addresses are derived from cryptographic keys stored in

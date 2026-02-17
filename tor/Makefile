@@ -70,3 +70,34 @@ restore:
 remove-service:
 	@test -n "$(name)" || (echo "Usage: d.rymcg.tech make tor remove-service name=SERVICE_NAME" && false)
 	@./scripts/remove_hidden_service.py ${ENV_FILE} '$(name)'
+
+.PHONY: add-client # Create a client keypair for Tor v3 client authorization
+add-client:
+	@test -n "$(client)" || (echo "Usage: d.rymcg.tech make tor add-client client=NAME" && false)
+	@./scripts/add_client.py ${PROJECT_NAME} '$(client)'
+
+.PHONY: authorize-client # Grant a client access to a hidden service
+authorize-client:
+	@test -n "$(svc)" || (echo "Usage: d.rymcg.tech make tor authorize-client svc=SERVICE client=CLIENT" && false)
+	@test -n "$(client)" || (echo "Usage: d.rymcg.tech make tor authorize-client svc=SERVICE client=CLIENT" && false)
+	@./scripts/authorize_client.py ${PROJECT_NAME} '$(svc)' '$(client)'
+
+.PHONY: show-credential # Display client credentials for Tor Browser
+show-credential:
+	@test -n "$(client)" || (echo "Usage: d.rymcg.tech make tor show-credential client=NAME" && false)
+	@./scripts/show_credential.py ${PROJECT_NAME} '$(client)'
+
+.PHONY: list-clients # List clients and their authorized services
+list-clients:
+	@./scripts/list_clients.py ${PROJECT_NAME} '$(svc)'
+
+.PHONY: revoke-client # Remove a client's access to a hidden service
+revoke-client:
+	@test -n "$(svc)" || (echo "Usage: d.rymcg.tech make tor revoke-client svc=SERVICE client=CLIENT" && false)
+	@test -n "$(client)" || (echo "Usage: d.rymcg.tech make tor revoke-client svc=SERVICE client=CLIENT" && false)
+	@./scripts/revoke_client.py ${PROJECT_NAME} '$(svc)' '$(client)'
+
+.PHONY: remove-client # Delete a client and revoke access to all services
+remove-client:
+	@test -n "$(client)" || (echo "Usage: d.rymcg.tech make tor remove-client client=NAME" && false)
+	@./scripts/remove_client.py ${PROJECT_NAME} '$(client)'
