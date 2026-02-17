@@ -57,15 +57,14 @@ d.rymcg.tech make traefik reinstall
 
 ## HTTP hidden services
 
-HTTP hidden services route Tor port 80 through the `web_plain`
-Traefik entrypoint. Multiple HTTP services can share the same
-entrypoint because Traefik routes by `Host` header. Each service
-controls its own Traefik router and middleware (authentication, IP
-filtering, etc.).
+HTTP hidden services route Tor port 80 through the `web_plain` Traefik
+entrypoint. Multiple HTTP services can share the same entrypoint
+because Traefik routes by `Host` header. Each service controls its own
+Traefik router and middleware (basic authentication, etc.).
 
 ### Configure the hidden services
 
-Initialize the tor config and add an HTTP hidden service:
+Initialize the tor config and add an HTTP hidden service (`["project", "service_instance"]`):
 
 ```
 d.rymcg.tech make tor config-dist
@@ -94,9 +93,9 @@ Get a list of the configured hidden services:
 d.rymcg.tech make tor list-services
 ```
 
-For each service (e.g. `whoami`) copy the `.onion` address and set the
-as its `{PROJECT}_TRAEFIK_HOST` and set the `web_plain` entrypoint via
-`{PROJECT}_TRAEFIK_ENTRYPOINT`:
+For each service (e.g. `whoami`) copy the `.onion` address and set it
+as its `{PROJECT}_TRAEFIK_HOST` var and set the `web_plain` entrypoint
+via the `{PROJECT}_TRAEFIK_ENTRYPOINT` var:
 
 ```
 d.rymcg.tech make whoami reconfigure var=WHOAMI_TRAEFIK_HOST=abcdef34542.......onion
@@ -104,9 +103,9 @@ d.rymcg.tech make whoami reconfigure var=WHOAMI_TRAEFIK_ENTRYPOINT=web_plain
 d.rymcg.tech make whoami reinstall
 ```
 
-The service's own router handles all Traefik middleware (basic auth,
-IP allowlist, mTLS, etc.) — Tor traffic goes through the same
-middleware chain as direct access.
+The service's own router handles all Traefik middleware (basic auth
+etc.) — Tor traffic goes through the same middleware chain as direct
+access.
 
 ### Verify
 
