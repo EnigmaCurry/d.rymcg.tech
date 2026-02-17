@@ -212,3 +212,24 @@ d.rymcg.tech make tor reinstall
 d.rymcg.tech make tor remove-service name=whoami
 d.rymcg.tech make tor reinstall
 ```
+
+## Backup and restore
+
+Your `.onion` addresses are derived from cryptographic keys stored in
+the `tor_data` Docker volume. If you lose these keys, your `.onion`
+addresses are gone forever. Back them up to an encrypted archive:
+
+```
+d.rymcg.tech make tor backup archive=tor-keys-backup.tar.gz.gpg
+```
+
+You will be prompted for a passphrase (AES-256 symmetric encryption).
+Store the archive somewhere safe — you will need the same passphrase
+to restore.
+
+To restore on the same or a different host:
+
+```
+d.rymcg.tech make tor restore archive=tor-keys-backup.tar.gz.gpg
+d.rymcg.tech make tor reinstall
+```
