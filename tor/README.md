@@ -18,6 +18,19 @@ IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN
 CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 ```
 
+## How this works
+
+This config is designed for hosting any of your Traefik services (HTTP
+and TCP) as Tor hidden services. You will configure Tor with the list
+of services that you want to generate unique `.onion` domains for.
+Each of these services will be configured to use the `web_plain`
+entrypoint instead of the default `websecure` entrypoint and to listen
+on their assigned `.onion` domain. Tor itself will run on your Docker
+host network, so it will have access to proxy for the external Traefik
+`web_plain` entrypoint, running on `localhost`. Tor services will be
+created only for those services that you explicitly configure this
+way.
+
 ## Configure Traefik
 
 ### Why not TLS?
