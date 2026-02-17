@@ -286,6 +286,41 @@ d.rymcg.tech make tor remove-client client=alice
 d.rymcg.tech make tor reinstall
 ```
 
+### Client auth with standalone Tor (SSH, ncat, etc.)
+
+Tor Browser handles client auth interactively, but for SSH and other
+command-line tools you need a standalone `tor` client with the
+credential configured on disk.
+
+1. Install `tor` on the client machine (e.g. `apt install tor` or
+   `brew install tor`).
+
+2. Create a directory for client auth keys and add the credential
+   from `show-credential`:
+
+```
+sudo mkdir -p /etc/tor/onion_auth
+echo 'abc123...xyz:descriptor:x25519:PRIVATE_KEY' | sudo tee /etc/tor/onion_auth/myservice.auth_private
+sudo chmod 700 /etc/tor/onion_auth
+sudo chmod 600 /etc/tor/onion_auth/myservice.auth_private
+```
+
+3. Add `ClientOnionAuthDir` to your torrc:
+
+```
+echo 'ClientOnionAuthDir /etc/tor/onion_auth' | sudo tee -a /etc/tor/torrc
+sudo systemctl restart tor
+```
+
+4. Connect through the local Tor SOCKS proxy (port `9050`):
+
+```
+ssh -o ProxyCommand='ncat --proxy 127.0.0.1:9050 --proxy-type socks5 %h %p' user@abc123...xyz.onion
+```
+
+Note: the standalone `tor` daemon listens on port `9050`, while Tor
+Browser uses port `9150`.
+
 Client keys are stored in the `tor_data` Docker volume and are
 included in backups automatically.
 
