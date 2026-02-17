@@ -53,7 +53,7 @@ restore:
 	@TMPDIR=$$(mktemp -d) && \
 	  gpg --decrypt --pinentry-mode loopback $(archive) | tar xzf - -C $$TMPDIR && \
 	  echo "Restoring keys to volume: ${PROJECT_NAME}_tor_data" && \
-	  docker run --rm -v ${PROJECT_NAME}_tor_data:/data -v $$TMPDIR/keys:/restore:ro alpine sh -c 'cp -a /restore/* /data/' && \
+	  docker run --rm -v ${PROJECT_NAME}_tor_data:/data -v $$TMPDIR/keys:/restore:ro alpine sh -c 'cp -a /restore/. /data/' && \
 	  echo "Restoring env file: ${ENV_FILE}" && \
 	  cp $$TMPDIR/env ${ENV_FILE} && \
 	  echo "Restored contents:" && \
