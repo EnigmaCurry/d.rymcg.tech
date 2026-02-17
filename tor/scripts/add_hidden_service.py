@@ -5,8 +5,8 @@
 """Add a hidden service entry to TOR_HIDDEN_SERVICES in the env file.
 
 Usage:
-  ./add_hidden_service.py ENV_FILE '["name", "docker-service"]'        # HTTP
-  ./add_hidden_service.py ENV_FILE '["name", tor_port, local_port]'   # TCP
+  ./add_hidden_service.py ENV_FILE NAME              # HTTP
+  ./add_hidden_service.py ENV_FILE NAME TOR:LOCAL    # TCP
 
 Adds the entry if no service with that name exists.
 Replaces the entry if a service with that name already exists.
@@ -14,8 +14,14 @@ Replaces the entry if a service with that name already exists.
 import sys, json
 
 env_file = sys.argv[1]
-new_entry = json.loads(sys.argv[2])
-name = new_entry[0]
+name = sys.argv[2]
+port = sys.argv[3] if len(sys.argv) > 3 else ""
+
+if port:
+    tor_port, local_port = port.split(":")
+    new_entry = [name, int(tor_port), int(local_port)]
+else:
+    new_entry = [name, name]
 
 with open(env_file) as f:
     lines = f.read().splitlines()
@@ -35,7 +41,7 @@ with open(env_file, "w") as f:
 
 action = "Replaced" if replaced else "Added"
 if len(new_entry) == 2:
-    print(f"{action} HTTP hidden service: {name} -> {new_entry[1]}")
+    print(f"{action} HTTP hidden service: {name}")
 elif len(new_entry) == 3:
     print(f"{action} TCP hidden service: {name} (.onion:{new_entry[1]} -> localhost:{new_entry[2]})")
 

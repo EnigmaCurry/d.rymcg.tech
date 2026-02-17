@@ -36,7 +36,7 @@ way.
 
 ## Configure Traefik
 
-### Why not TLS?
+### Why not use TLS?
 
 Tor hidden services provide their own end-to-end encryption between
 the Tor Browser and your services. This configuration will generate
@@ -67,11 +67,12 @@ Traefik router and middleware (basic authentication, etc.).
 
 ### Configure the hidden services
 
-Initialize the tor config and add an HTTP hidden service (`["project", "service_instance"]`):
+Initialize the tor config and add an HTTP hidden service (the docker
+service name in `project-instance-service` format):
 
 ```
 d.rymcg.tech make tor config-dist
-d.rymcg.tech make tor add-hidden-service svc='["whoami","whoami-default-whoami"]'
+d.rymcg.tech make tor add-hidden-service svc=whoami-default-whoami
 ```
 
 You can run `add-hidden-service` multiple times to add more services
@@ -136,26 +137,22 @@ d.rymcg.tech make inspircd reinstall
 
 ### Configure the Tor hidden service
 
-Add a 3-element TCP entry to `TOR_HIDDEN_SERVICES` using
-`add-hidden-service`:
+Add a TCP hidden service using `add-hidden-service` with the `port`
+parameter (`TOR_PORT:LOCAL_PORT`):
+
+ * `svc` — the hidden service name (used to generate the `.onion` address)
+ * `TOR_PORT` — the port exposed on the `.onion` address (e.g., 6667 for IRC)
+ * `LOCAL_PORT` — the port on localhost to forward to (e.g., a Traefik entrypoint or any local service)
 
 ```
-["name", tor_port, local_port]
-```
-
- * `name` — the hidden service name (used to generate the `.onion` address)
- * `tor_port` — the port exposed on the `.onion` address (e.g., 6667 for IRC)
- * `local_port` — the port on localhost to forward to (e.g., a Traefik entrypoint or any local service)
-
-```
-d.rymcg.tech make tor add-hidden-service svc='["irc", 6667, 6697]'
+d.rymcg.tech make tor add-hidden-service svc=irc port=6667:6697
 ```
 
 TCP hidden services work with any local port, not just Traefik
 entrypoints. For example, to expose the host's SSH daemon:
 
 ```
-d.rymcg.tech make tor add-hidden-service svc='["ssh", 22, 22]'
+d.rymcg.tech make tor add-hidden-service svc=ssh port=22:22
 ```
 
 ### Install
@@ -196,8 +193,8 @@ You can add both HTTP and TCP hidden services incrementally. Each
 entry creates a separate hidden service with its own `.onion` address:
 
 ```
-d.rymcg.tech make tor add-hidden-service svc='["whoami","whoami-default-whoami"]'
-d.rymcg.tech make tor add-hidden-service svc='["irc", 6667, 6697]'
+d.rymcg.tech make tor add-hidden-service svc=whoami-default-whoami
+d.rymcg.tech make tor add-hidden-service svc=irc port=6667:6697
 ```
 
 ## Removing a hidden service

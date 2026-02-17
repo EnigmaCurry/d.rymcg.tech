@@ -32,8 +32,8 @@ list-services:
 
 .PHONY: add-hidden-service # Add a hidden service (without replacing existing ones)
 add-hidden-service:
-	@test -n "$(svc)" || (echo "Usage: make add-hidden-service svc='[\"name\",\"docker-service\"]'" && echo "       make add-hidden-service svc='[\"name\",tor_port,local_port]'" && false)
-	@./scripts/add_hidden_service.py ${ENV_FILE} '$(svc)'
+	@test -n "$(svc)" || (echo "Usage: make add-hidden-service svc=docker-service-name" && echo "       make add-hidden-service svc=name port=TOR_PORT:LOCAL_PORT" && false)
+	@./scripts/add_hidden_service.py ${ENV_FILE} '$(svc)' '$(port)'
 
 .PHONY: remove-hidden-service # Remove a hidden service by name
 remove-hidden-service:
