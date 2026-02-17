@@ -38,14 +38,14 @@ add-service:
 .PHONY: backup # Export onion keys to an encrypted archive
 backup:
 	@test -n "$(archive)" || (echo "Usage: d.rymcg.tech make tor backup archive=FILENAME.tar.gz.gpg" && false)
-	@docker run --rm -v ${PROJECT_NAME}_tor_data:/data:ro alpine tar cf - -C /data . | gzip | gpg --symmetric --cipher-algo AES256 -o $(archive)
+	@docker run --rm -v ${PROJECT_NAME}_tor_data:/data:ro alpine tar cf - -C /data . | gzip | gpg --symmetric --cipher-algo AES256 --pinentry-mode loopback -o $(archive)
 	@echo "Exported onion keys to $(archive)"
 
 .PHONY: restore # Import onion keys from an encrypted archive
 restore:
 	@test -n "$(archive)" || (echo "Usage: d.rymcg.tech make tor restore archive=FILENAME.tar.gz.gpg" && false)
 	@test -f "$(archive)" || (echo "$(archive) not found" && false)
-	@gpg --decrypt $(archive) | docker run --rm -i -v ${PROJECT_NAME}_tor_data:/data alpine sh -c 'cd /data && tar xzf -'
+	@gpg --decrypt --pinentry-mode loopback $(archive) | docker run --rm -i -v ${PROJECT_NAME}_tor_data:/data alpine sh -c 'cd /data && tar xzf -'
 	@echo "Restored onion keys from $(archive)"
 	@echo "Run 'd.rymcg.tech make tor reinstall' to apply."
 
