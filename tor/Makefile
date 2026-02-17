@@ -33,7 +33,7 @@ list-services:
 
 .PHONY: add-hidden-service # Add a hidden service (without replacing existing ones)
 add-hidden-service:
-	@test -n "$(svc)" || (echo "Usage: make add-hidden-service svc='[\"name\",\"docker-service\"]'" && echo "       make add-hidden-service svc='[\"name\",tor_port,traefik_port]'" && false)
+	@test -n "$(svc)" || (echo "Usage: make add-hidden-service svc='[\"name\",\"docker-service\"]'" && echo "       make add-hidden-service svc='[\"name\",tor_port,local_port]'" && false)
 	@./add_hidden_service.py ${ENV_FILE} '$(svc)'
 
 .PHONY: onion-addresses # Read .onion addresses and update TOR_ONION_HOSTS in .env

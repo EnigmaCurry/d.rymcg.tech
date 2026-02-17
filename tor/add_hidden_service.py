@@ -6,7 +6,7 @@
 
 Usage:
   ./add_hidden_service.py ENV_FILE '["name", "docker-service"]'        # HTTP
-  ./add_hidden_service.py ENV_FILE '["name", tor_port, traefik_port]'  # TCP
+  ./add_hidden_service.py ENV_FILE '["name", tor_port, local_port]'   # TCP
 
 Adds the entry if no service with that name exists.
 Replaces the entry if a service with that name already exists.
@@ -37,6 +37,6 @@ action = "Replaced" if replaced else "Added"
 if len(new_entry) == 2:
     print(f"{action} HTTP hidden service: {name} -> {new_entry[1]}")
 elif len(new_entry) == 3:
-    print(f"{action} TCP hidden service: {name} (tor port {new_entry[1]} -> localhost:{new_entry[2]})")
+    print(f"{action} TCP hidden service: {name} (.onion:{new_entry[1]} -> localhost:{new_entry[2]})")
 
 print(f"\nRun 'make reinstall' to apply changes.")

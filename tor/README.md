@@ -140,15 +140,22 @@ Add a 3-element TCP entry to `TOR_HIDDEN_SERVICES` using
 `add-hidden-service`:
 
 ```
-["name", tor_port, traefik_port]
+["name", tor_port, local_port]
 ```
 
  * `name` — the hidden service name (used to generate the `.onion` address)
  * `tor_port` — the port exposed on the `.onion` address (e.g., 6667 for IRC)
- * `traefik_port` — the local Traefik entrypoint port (e.g., 6697)
+ * `local_port` — the port on localhost to forward to (e.g., a Traefik entrypoint or any local service)
 
 ```
 d.rymcg.tech make tor add-hidden-service svc='["irc", 6667, 6697]'
+```
+
+TCP hidden services work with any local port, not just Traefik
+entrypoints. For example, to expose the host's SSH daemon:
+
+```
+d.rymcg.tech make tor add-hidden-service svc='["ssh", 22, 22]'
 ```
 
 ### Install and get .onion addresses
@@ -173,10 +180,16 @@ d.rymcg.tech make tor logs
 tor &
 ```
 
-4. Test the connection with `ncat`:
+4. Test the IRC connection with `ncat`:
 
 ```
 ncat --proxy 127.0.0.1:9050 --proxy-type socks5 abc123...xyz.onion 6667
+```
+
+5. For SSH hidden services, use the `ProxyCommand` option:
+
+```
+ssh -o ProxyCommand='ncat --proxy 127.0.0.1:9050 --proxy-type socks5 %h %p' user@abc123...xyz.onion
 ```
 
 ## Mixing HTTP and TCP services

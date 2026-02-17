@@ -32,6 +32,6 @@ for svc in services:
             print(f"  {name}  HTTP  {svc[1]}  (onion not yet assigned)")
     elif len(svc) == 3:
         if onion:
-            print(f"  {name}  TCP  {onion}:{svc[1]} -> localhost:{svc[2]}")
+            print(f"  {name}  TCP   {onion}:{svc[1]} -> localhost:{svc[2]}")
         else:
-            print(f"  {name}  TCP  .onion:{svc[1]} -> localhost:{svc[2]}  (onion not yet assigned)")
+            print(f"  {name}  TCP   .onion:{svc[1]} -> localhost:{svc[2]}  (onion not yet assigned)")
