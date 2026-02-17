@@ -117,7 +117,7 @@ ENTRYPOINT ["mkp224o"]
     # Generate vanity address (let output show for progress)
     subprocess.run(
         ["docker", "run", "--rm", "-v", f"{volume}:/data", "mkp224o",
-         "-n", "1", "-S", "1", "-d", "/data/.vanity-tmp", prefix],
+         "-n", "1", "-s", "-d", "/data/.vanity-tmp", prefix],
         check=True
     )
 
