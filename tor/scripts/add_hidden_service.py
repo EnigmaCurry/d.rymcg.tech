@@ -21,7 +21,10 @@ if port:
     tor_port, local_port = port.split(":")
     new_entry = [name, int(tor_port), int(local_port)]
 else:
-    new_entry = [name, name]
+    new_entry = name
+
+def svc_name(s):
+    return s if isinstance(s, str) else s[0]
 
 with open(env_file) as f:
     lines = f.read().splitlines()
@@ -29,8 +32,7 @@ with open(env_file) as f:
 for i, line in enumerate(lines):
     if line.startswith("TOR_HIDDEN_SERVICES="):
         current = json.loads(line.split("=", 1)[1])
-        # Remove any existing entry with the same name
-        filtered = [s for s in current if s[0] != name]
+        filtered = [s for s in current if svc_name(s) != name]
         replaced = len(filtered) < len(current)
         filtered.append(new_entry)
         lines[i] = "TOR_HIDDEN_SERVICES=" + json.dumps(filtered)
@@ -40,9 +42,9 @@ with open(env_file, "w") as f:
     f.write("\n".join(lines) + "\n")
 
 action = "Replaced" if replaced else "Added"
-if len(new_entry) == 2:
+if isinstance(new_entry, str):
     print(f"{action} HTTP hidden service: {name}")
-elif len(new_entry) == 3:
+else:
     print(f"{action} TCP hidden service: {name} (.onion:{new_entry[1]} -> localhost:{new_entry[2]})")
 
 print(f"\nRun 'd.rymcg.tech make tor reinstall' to apply changes.")

@@ -10,14 +10,13 @@ with open('/tmp/torrc', 'w') as f:
     f.write('SocksPort 0\n')
     f.write('Log notice stdout\n')
     for svc in services:
-        name = svc[0]
-        service_dir = '/var/lib/tor/' + name
-        f.write('HiddenServiceDir ' + service_dir + '\n')
-        if len(svc) == 2:
+        if isinstance(svc, str):
             # HTTP service: port 80 -> web_plain entrypoint (8000)
+            f.write('HiddenServiceDir /var/lib/tor/' + svc + '\n')
             f.write('HiddenServicePort 80 127.0.0.1:8000\n')
-        elif len(svc) == 3:
+        else:
             # TCP service: tor_port -> local_port on localhost
+            f.write('HiddenServiceDir /var/lib/tor/' + svc[0] + '\n')
             f.write('HiddenServicePort {} 127.0.0.1:{}\n'.format(svc[1], svc[2]))
 PYTHON
 

@@ -19,7 +19,7 @@ removed = False
 for i, line in enumerate(lines):
     if line.startswith("TOR_HIDDEN_SERVICES="):
         current = json.loads(line.split("=", 1)[1])
-        filtered = [s for s in current if s[0] != name]
+        filtered = [s for s in current if (s if isinstance(s, str) else s[0]) != name]
         removed = len(filtered) < len(current)
         lines[i] = "TOR_HIDDEN_SERVICES=" + json.dumps(filtered)
         break

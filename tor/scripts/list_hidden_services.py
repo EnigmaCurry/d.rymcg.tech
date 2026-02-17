@@ -31,14 +31,16 @@ if not services:
     sys.exit(0)
 
 for svc in services:
-    name = svc[0]
-    onion = onion_hosts.get(name, "")
-    if len(svc) == 2:
+    if isinstance(svc, str):
+        name = svc
+        onion = onion_hosts.get(name, "")
         if onion:
-            print(f"  {name}  HTTP  {svc[1]}  http://{onion}")
+            print(f"  {name}  HTTP  http://{onion}")
         else:
-            print(f"  {name}  HTTP  {svc[1]}  (not running)")
-    elif len(svc) == 3:
+            print(f"  {name}  HTTP  (not running)")
+    else:
+        name = svc[0]
+        onion = onion_hosts.get(name, "")
         if onion:
             print(f"  {name}  TCP   {onion}:{svc[1]} -> localhost:{svc[2]}")
         else:
