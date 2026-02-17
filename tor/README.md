@@ -4,8 +4,11 @@
 to improve the privacy and security of the Internet. This particular
 configuration is designed for deploying Tor hidden services.
 
-To access your hidden services, you need to use a Tor client, like the
-[Tor Browser](https://www.torproject.org/download/).
+To access your hidden services, you need a Tor client. The
+[Tor Browser](https://www.torproject.org/download/) can browse hidden
+websites directly, and it also provides a SOCKS proxy on
+`localhost:9150` for proxying other applications (SSH, IRC, etc.)
+through the Tor network.
 
 WARNING: this configuration is experimental and provided as-is.
 
