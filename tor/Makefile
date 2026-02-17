@@ -22,20 +22,15 @@ install-hook-pre:
 install-hook:
 	@echo
 	@echo "Tor hidden services are starting. Wait for bootstrap to complete, then run:"
-	@echo "  make onion-addresses"
+	@echo "  make list-services"
 	@echo
-	@echo "This will update TOR_ONION_HOSTS in the .env file."
 	@echo "Then configure each service with its .onion address as TRAEFIK_HOST."
 
-.PHONY: list-services # List configured hidden services
+.PHONY: list-services # List configured hidden services and .onion addresses
 list-services:
-	@./list_hidden_services.py ${ENV_FILE}
+	@docker exec ${PROJECT_NAME}-tor-1 sh -c 'for dir in /var/lib/tor/*/; do name=$$(basename "$$dir"); [ -f "$$dir/hostname" ] && echo "$$name $$(cat "$$dir/hostname")"; done' 2>/dev/null | ./list_hidden_services.py ${ENV_FILE}
 
 .PHONY: add-hidden-service # Add a hidden service (without replacing existing ones)
 add-hidden-service:
 	@test -n "$(svc)" || (echo "Usage: make add-hidden-service svc='[\"name\",\"docker-service\"]'" && echo "       make add-hidden-service svc='[\"name\",tor_port,local_port]'" && false)
 	@./add_hidden_service.py ${ENV_FILE} '$(svc)'
-
-.PHONY: onion-addresses # Read .onion addresses and update TOR_ONION_HOSTS in .env
-onion-addresses:
-	@docker exec ${PROJECT_NAME}-tor-1 sh -c 'for dir in /var/lib/tor/*/; do name=$$(basename "$$dir"); [ -f "$$dir/hostname" ] && echo "$$name $$(cat "$$dir/hostname")"; done' | ./update_onion_hosts.py ${ENV_FILE}

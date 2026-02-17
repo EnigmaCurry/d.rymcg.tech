@@ -75,19 +75,16 @@ You can run `add-hidden-service` multiple times to add more services
 without replacing existing ones. If a service with the same name
 already exists, it will be updated in place.
 
-### Install and get .onion addresses
-
-Install, retrieve .onion address, then reinstall again:
+### Install
 
 ```
-d.rymcg.tech make tor install
-d.rymcg.tech make tor onion-addresses
 d.rymcg.tech make tor install
 ```
 
 ### Reconfigure each service
 
-Get a list of the configured hidden services:
+Wait for bootstrap to complete (`make tor logs`), then list the
+configured hidden services and their `.onion` addresses:
 
 ```
 d.rymcg.tech make tor list-services
@@ -158,11 +155,11 @@ entrypoints. For example, to expose the host's SSH daemon:
 d.rymcg.tech make tor add-hidden-service svc='["ssh", 22, 22]'
 ```
 
-### Install and get .onion addresses
+### Install
 
 ```
 d.rymcg.tech make tor install
-d.rymcg.tech make tor onion-addresses
+d.rymcg.tech make tor list-services
 ```
 
 ### Verify
