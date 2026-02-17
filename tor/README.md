@@ -58,6 +58,14 @@ d.rymcg.tech make traefik reconfigure var=TRAEFIK_WEB_PLAIN_ENTRYPOINT_HOST=127.
 d.rymcg.tech make traefik reinstall
 ```
 
+## Initial setup
+
+Run `config` once to create the environment file:
+
+```
+d.rymcg.tech make tor config
+```
+
 ## HTTP hidden services
 
 HTTP hidden services route Tor port 80 through the `web_plain` Traefik
@@ -67,11 +75,10 @@ Traefik router and middleware (basic authentication, etc.).
 
 ### Configure the hidden services
 
-Initialize the tor config and add an HTTP hidden service (the docker
-service name in `project-instance-service` format):
+Add an HTTP hidden service (the docker service name in
+`project-instance-service` format):
 
 ```
-d.rymcg.tech make tor config-dist
 d.rymcg.tech make tor add-service svc=whoami-default-whoami
 ```
 
