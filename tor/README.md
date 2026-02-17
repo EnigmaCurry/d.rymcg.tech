@@ -75,8 +75,9 @@ Traefik router and middleware (basic authentication, etc.).
 
 ### Configure the hidden services
 
-Add an HTTP hidden service (the name is a label used to generate the
-`.onion` address):
+Add an HTTP hidden service. The name (`whoami`) is an arbitrary label
+used to generate the `.onion` address — the actual routing happens
+when you set the `.onion` address as the project's `TRAEFIK_HOST`:
 
 ```
 d.rymcg.tech make tor add-service svc=whoami
