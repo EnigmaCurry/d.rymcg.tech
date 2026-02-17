@@ -200,6 +200,6 @@ d.rymcg.tech make tor add-hidden-service svc=irc port=6667:6697
 ## Removing a hidden service
 
 ```
-d.rymcg.tech make tor remove-hidden-service name=whoami
+d.rymcg.tech make tor remove-hidden-service name=whoami-default-whoami
 d.rymcg.tech make tor reinstall
 ```
