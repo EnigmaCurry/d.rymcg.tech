@@ -28,18 +28,21 @@ for line in sys.stdin:
 
 if not services:
     print("No hidden services configured.")
-    sys.exit(0)
+else:
+    for svc in services:
+        name = svc[0]
+        onion = onion_hosts.get(name, "")
+        if len(svc) == 2:
+            if onion:
+                print(f"  {name}  HTTP  {svc[1]}  http://{onion}")
+            else:
+                print(f"  {name}  HTTP  {svc[1]}  (not running)")
+        elif len(svc) == 3:
+            if onion:
+                print(f"  {name}  TCP   {onion}:{svc[1]} -> localhost:{svc[2]}")
+            else:
+                print(f"  {name}  TCP   .onion:{svc[1]} -> localhost:{svc[2]}  (not running)")
 
-for svc in services:
-    name = svc[0]
-    onion = onion_hosts.get(name, "")
-    if len(svc) == 2:
-        if onion:
-            print(f"  {name}  HTTP  {svc[1]}  http://{onion}")
-        else:
-            print(f"  {name}  HTTP  {svc[1]}  (not running)")
-    elif len(svc) == 3:
-        if onion:
-            print(f"  {name}  TCP   {onion}:{svc[1]} -> localhost:{svc[2]}")
-        else:
-            print(f"  {name}  TCP   .onion:{svc[1]} -> localhost:{svc[2]}  (not running)")
+print()
+print("Add an HTTP service:  make add-hidden-service svc=docker-service-name")
+print("Add a TCP service:    make add-hidden-service svc=name port=TOR_PORT:LOCAL_PORT")
