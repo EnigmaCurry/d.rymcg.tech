@@ -28,23 +28,18 @@ for line in sys.stdin:
 
 if not services:
     print("No hidden services configured.")
-else:
-    for svc in services:
-        name = svc[0]
-        onion = onion_hosts.get(name, "")
-        if len(svc) == 2:
-            if onion:
-                print(f"  {name}  HTTP  {svc[1]}  http://{onion}")
-            else:
-                print(f"  {name}  HTTP  {svc[1]}  (not running)")
-        elif len(svc) == 3:
-            if onion:
-                print(f"  {name}  TCP   {onion}:{svc[1]} -> localhost:{svc[2]}")
-            else:
-                print(f"  {name}  TCP   .onion:{svc[1]} -> localhost:{svc[2]}  (not running)")
+    sys.exit(0)
 
-print()
-print("Add an HTTP service:  d.rymcg.tech make tor add-service svc=project-instance-service")
-print("                e.g.  d.rymcg.tech make tor add-service svc=whoami-default-whoami")
-print("Add a TCP service:    d.rymcg.tech make tor add-service svc=name port=TOR_PORT:LOCAL_PORT")
-print("                e.g.  d.rymcg.tech make tor add-service svc=ssh port=22:22")
+for svc in services:
+    name = svc[0]
+    onion = onion_hosts.get(name, "")
+    if len(svc) == 2:
+        if onion:
+            print(f"  {name}  HTTP  {svc[1]}  http://{onion}")
+        else:
+            print(f"  {name}  HTTP  {svc[1]}  (not running)")
+    elif len(svc) == 3:
+        if onion:
+            print(f"  {name}  TCP   {onion}:{svc[1]} -> localhost:{svc[2]}")
+        else:
+            print(f"  {name}  TCP   .onion:{svc[1]} -> localhost:{svc[2]}  (not running)")
