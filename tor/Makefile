@@ -35,24 +35,30 @@ add-service:
 	@test -n "$(svc)" || (echo "Usage: d.rymcg.tech make tor add-service svc=name" && echo "  e.g. d.rymcg.tech make tor add-service svc=whoami" && echo "       d.rymcg.tech make tor add-service svc=name port=TOR_PORT:LOCAL_PORT" && echo "  e.g. d.rymcg.tech make tor add-service svc=ssh port=22:22" && false)
 	@./scripts/add_hidden_service.py ${ENV_FILE} '$(svc)' '$(port)'
 
-.PHONY: backup # Export onion keys to an encrypted archive
+.PHONY: backup # Export onion keys and env file to an encrypted archive
 backup:
 	@test -n "$(archive)" || (echo "Usage: d.rymcg.tech make tor backup archive=FILENAME.tar.gz.gpg" && false)
-	@echo "Backing up volume: ${PROJECT_NAME}_tor_data"
 	@docker volume inspect ${PROJECT_NAME}_tor_data > /dev/null 2>&1 || (echo "Error: volume ${PROJECT_NAME}_tor_data does not exist" && false)
+	@echo "Backing up volume: ${PROJECT_NAME}_tor_data"
+	@echo "Backing up env file: ${ENV_FILE}"
 	@echo "Contents:"
-	@docker run --rm -v ${PROJECT_NAME}_tor_data:/data:ro alpine find /data -type f | sed 's|^/data/|  |'
-	@docker run --rm -v ${PROJECT_NAME}_tor_data:/data:ro alpine tar cf - -C /data . | gzip | gpg --symmetric --cipher-algo AES256 --pinentry-mode loopback -o $(archive)
-	@echo "Exported onion keys to $(archive)"
+	@docker run --rm -v ${PROJECT_NAME}_tor_data:/backup/keys:ro -v $$(realpath ${ENV_FILE}):/backup/env:ro alpine find /backup -type f | sed 's|^/backup/|  |'
+	@docker run --rm -v ${PROJECT_NAME}_tor_data:/backup/keys:ro -v $$(realpath ${ENV_FILE}):/backup/env:ro alpine tar cf - -C /backup . | gzip | gpg --symmetric --cipher-algo AES256 --pinentry-mode loopback -o $(archive)
+	@echo "Exported to $(archive)"
 
-.PHONY: restore # Import onion keys from an encrypted archive
+.PHONY: restore # Import onion keys and env file from an encrypted archive
 restore:
 	@test -n "$(archive)" || (echo "Usage: d.rymcg.tech make tor restore archive=FILENAME.tar.gz.gpg" && false)
 	@test -f "$(archive)" || (echo "$(archive) not found" && false)
-	@echo "Restoring to volume: ${PROJECT_NAME}_tor_data"
-	@gpg --decrypt --pinentry-mode loopback $(archive) | docker run --rm -i -v ${PROJECT_NAME}_tor_data:/data alpine sh -c 'cd /data && tar xzf -'
-	@echo "Restored contents:"
-	@docker run --rm -v ${PROJECT_NAME}_tor_data:/data:ro alpine find /data -type f | sed 's|^/data/|  |'
+	@TMPDIR=$$(mktemp -d) && \
+	  gpg --decrypt --pinentry-mode loopback $(archive) | tar xzf - -C $$TMPDIR && \
+	  echo "Restoring keys to volume: ${PROJECT_NAME}_tor_data" && \
+	  docker run --rm -v ${PROJECT_NAME}_tor_data:/data -v $$TMPDIR/keys:/restore:ro alpine sh -c 'cp -a /restore/* /data/' && \
+	  echo "Restoring env file: ${ENV_FILE}" && \
+	  cp $$TMPDIR/env ${ENV_FILE} && \
+	  echo "Restored contents:" && \
+	  docker run --rm -v ${PROJECT_NAME}_tor_data:/data:ro alpine find /data -type f | sed 's|^/data/|  |' && \
+	  rm -rf $$TMPDIR
 	@echo "Run 'd.rymcg.tech make tor reinstall' to apply."
 
 .PHONY: remove-service # Remove a hidden service by name
