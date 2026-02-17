@@ -72,10 +72,10 @@ service name in `project-instance-service` format):
 
 ```
 d.rymcg.tech make tor config-dist
-d.rymcg.tech make tor add-hidden-service svc=whoami-default-whoami
+d.rymcg.tech make tor add-service svc=whoami-default-whoami
 ```
 
-You can run `add-hidden-service` multiple times to add more services
+You can run `add-service` multiple times to add more services
 without replacing existing ones. If a service with the same name
 already exists, it will be updated in place.
 
@@ -137,7 +137,7 @@ d.rymcg.tech make inspircd reinstall
 
 ### Configure the Tor hidden service
 
-Add a TCP hidden service using `add-hidden-service` with the `port`
+Add a TCP hidden service using `add-service` with the `port`
 parameter (`TOR_PORT:LOCAL_PORT`):
 
  * `svc` — the hidden service name (used to generate the `.onion` address)
@@ -145,14 +145,14 @@ parameter (`TOR_PORT:LOCAL_PORT`):
  * `LOCAL_PORT` — the port on localhost to forward to (e.g., a Traefik entrypoint or any local service)
 
 ```
-d.rymcg.tech make tor add-hidden-service svc=irc port=6667:6697
+d.rymcg.tech make tor add-service svc=irc port=6667:6697
 ```
 
 TCP hidden services work with any local port, not just Traefik
 entrypoints. For example, to expose the host's SSH daemon:
 
 ```
-d.rymcg.tech make tor add-hidden-service svc=ssh port=22:22
+d.rymcg.tech make tor add-service svc=ssh port=22:22
 ```
 
 ### Install
@@ -193,13 +193,13 @@ You can add both HTTP and TCP hidden services incrementally. Each
 entry creates a separate hidden service with its own `.onion` address:
 
 ```
-d.rymcg.tech make tor add-hidden-service svc=whoami-default-whoami
-d.rymcg.tech make tor add-hidden-service svc=irc port=6667:6697
+d.rymcg.tech make tor add-service svc=whoami-default-whoami
+d.rymcg.tech make tor add-service svc=irc port=6667:6697
 ```
 
 ## Removing a hidden service
 
 ```
-d.rymcg.tech make tor remove-hidden-service name=whoami-default-whoami
+d.rymcg.tech make tor remove-service name=whoami-default-whoami
 d.rymcg.tech make tor reinstall
 ```

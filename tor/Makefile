@@ -30,12 +30,12 @@ install-hook:
 list-services:
 	@docker exec ${PROJECT_NAME}-tor-1 sh -c 'for dir in /var/lib/tor/*/; do name=$$(basename "$$dir"); [ -f "$$dir/hostname" ] && echo "$$name $$(cat "$$dir/hostname")"; done' 2>/dev/null | ./scripts/list_hidden_services.py ${ENV_FILE}
 
-.PHONY: add-hidden-service # Add a hidden service (without replacing existing ones)
-add-hidden-service:
-	@test -n "$(svc)" || (echo "Usage: d.rymcg.tech make tor add-hidden-service svc=project-instance-service" && echo "  e.g. d.rymcg.tech make tor add-hidden-service svc=whoami-default-whoami" && echo "       d.rymcg.tech make tor add-hidden-service svc=name port=TOR_PORT:LOCAL_PORT" && echo "  e.g. d.rymcg.tech make tor add-hidden-service svc=ssh port=22:22" && false)
+.PHONY: add-service # Add a hidden service (without replacing existing ones)
+add-service:
+	@test -n "$(svc)" || (echo "Usage: d.rymcg.tech make tor add-service svc=project-instance-service" && echo "  e.g. d.rymcg.tech make tor add-service svc=whoami-default-whoami" && echo "       d.rymcg.tech make tor add-service svc=name port=TOR_PORT:LOCAL_PORT" && echo "  e.g. d.rymcg.tech make tor add-service svc=ssh port=22:22" && false)
 	@./scripts/add_hidden_service.py ${ENV_FILE} '$(svc)' '$(port)'
 
-.PHONY: remove-hidden-service # Remove a hidden service by name
-remove-hidden-service:
-	@test -n "$(name)" || (echo "Usage: d.rymcg.tech make tor remove-hidden-service name=SERVICE_NAME" && false)
+.PHONY: remove-service # Remove a hidden service by name
+remove-service:
+	@test -n "$(name)" || (echo "Usage: d.rymcg.tech make tor remove-service name=SERVICE_NAME" && false)
 	@./scripts/remove_hidden_service.py ${ENV_FILE} '$(name)'

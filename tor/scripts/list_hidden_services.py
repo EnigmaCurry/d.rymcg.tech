@@ -44,7 +44,7 @@ else:
                 print(f"  {name}  TCP   .onion:{svc[1]} -> localhost:{svc[2]}  (not running)")
 
 print()
-print("Add an HTTP service:  d.rymcg.tech make tor add-hidden-service svc=project-instance-service")
-print("                e.g.  d.rymcg.tech make tor add-hidden-service svc=whoami-default-whoami")
-print("Add a TCP service:    d.rymcg.tech make tor add-hidden-service svc=name port=TOR_PORT:LOCAL_PORT")
-print("                e.g.  d.rymcg.tech make tor add-hidden-service svc=ssh port=22:22")
+print("Add an HTTP service:  d.rymcg.tech make tor add-service svc=project-instance-service")
+print("                e.g.  d.rymcg.tech make tor add-service svc=whoami-default-whoami")
+print("Add a TCP service:    d.rymcg.tech make tor add-service svc=name port=TOR_PORT:LOCAL_PORT")
+print("                e.g.  d.rymcg.tech make tor add-service svc=ssh port=22:22")
