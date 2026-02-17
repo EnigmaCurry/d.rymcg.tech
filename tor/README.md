@@ -75,8 +75,9 @@ Traefik router and middleware (basic authentication, etc.).
 
 ### Configure the hidden services
 
-Add an HTTP hidden service (the docker service name in
-`project-instance-service` format):
+Add an HTTP hidden service by its Traefik service name (in
+`project-instance-service` format — consult the Traefik dashboard for
+the current list of services):
 
 ```
 d.rymcg.tech make tor add-service svc=whoami-default-whoami
