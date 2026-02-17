@@ -38,6 +38,10 @@ add-service:
 .PHONY: backup # Export onion keys to an encrypted archive
 backup:
 	@test -n "$(archive)" || (echo "Usage: d.rymcg.tech make tor backup archive=FILENAME.tar.gz.gpg" && false)
+	@echo "Backing up volume: ${PROJECT_NAME}_tor_data"
+	@docker volume inspect ${PROJECT_NAME}_tor_data > /dev/null 2>&1 || (echo "Error: volume ${PROJECT_NAME}_tor_data does not exist" && false)
+	@echo "Contents:"
+	@docker run --rm -v ${PROJECT_NAME}_tor_data:/data:ro alpine find /data -type f | sed 's|^/data/|  |'
 	@docker run --rm -v ${PROJECT_NAME}_tor_data:/data:ro alpine tar cf - -C /data . | gzip | gpg --symmetric --cipher-algo AES256 --pinentry-mode loopback -o $(archive)
 	@echo "Exported onion keys to $(archive)"
 
@@ -45,8 +49,10 @@ backup:
 restore:
 	@test -n "$(archive)" || (echo "Usage: d.rymcg.tech make tor restore archive=FILENAME.tar.gz.gpg" && false)
 	@test -f "$(archive)" || (echo "$(archive) not found" && false)
+	@echo "Restoring to volume: ${PROJECT_NAME}_tor_data"
 	@gpg --decrypt --pinentry-mode loopback $(archive) | docker run --rm -i -v ${PROJECT_NAME}_tor_data:/data alpine sh -c 'cd /data && tar xzf -'
-	@echo "Restored onion keys from $(archive)"
+	@echo "Restored contents:"
+	@docker run --rm -v ${PROJECT_NAME}_tor_data:/data:ro alpine find /data -type f | sed 's|^/data/|  |'
 	@echo "Run 'd.rymcg.tech make tor reinstall' to apply."
 
 .PHONY: remove-service # Remove a hidden service by name
