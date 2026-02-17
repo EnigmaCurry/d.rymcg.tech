@@ -5,9 +5,10 @@
 """Add a hidden service entry to TOR_HIDDEN_SERVICES in the env file.
 
 Usage:
-  ./add_hidden_service.py ENV_FILE NAME [TOR:LOCAL] [PREFIX] [PROJECT_NAME]
+  ./add_hidden_service.py ENV_FILE NAME [TOR:LOCAL] [PREFIX] [PROJECT_NAME] [HOST]
 
 If PREFIX is provided, generates a vanity .onion address using mkp224o.
+If HOST is provided, creates a 2-element [name, host] entry for nginx proxy.
 """
 import sys, json, subprocess, re
 
@@ -16,8 +17,15 @@ name = sys.argv[2]
 port = sys.argv[3] if len(sys.argv) > 3 else ""
 prefix = sys.argv[4] if len(sys.argv) > 4 else ""
 project_name = sys.argv[5] if len(sys.argv) > 5 else ""
+host = sys.argv[6] if len(sys.argv) > 6 else ""
 
-if port:
+if port and host:
+    print("Error: 'port' and 'host' are mutually exclusive.")
+    sys.exit(1)
+
+if host:
+    new_entry = [name, host]
+elif port:
     tor_port, local_port = port.split(":")
     new_entry = [name, int(tor_port), int(local_port)]
 else:
@@ -160,7 +168,9 @@ with open(env_file, "w") as f:
 
 action = "Replaced" if replaced else "Added"
 if isinstance(new_entry, str):
-    print(f"{action} HTTP hidden service: {name}")
+    print(f"{action} HTTP hidden service: {name} (web_plain)")
+elif len(new_entry) == 2:
+    print(f"{action} HTTP hidden service: {name} (nginx -> {new_entry[1]})")
 else:
     print(f"{action} TCP hidden service: {name} (.onion:{new_entry[1]} -> localhost:{new_entry[2]})")
 

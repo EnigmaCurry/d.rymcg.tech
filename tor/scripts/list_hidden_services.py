@@ -35,13 +35,21 @@ for svc in services:
         name = svc
         onion = onion_hosts.get(name, "")
         if onion:
-            print(f"  {name}  HTTP  http://{onion}")
+            print(f"  {name}  HTTP(web_plain)  http://{onion}")
         else:
-            print(f"  {name}  HTTP  (not running)")
+            print(f"  {name}  HTTP(web_plain)  (not running)")
+    elif len(svc) == 2:
+        name = svc[0]
+        hostname = svc[1]
+        onion = onion_hosts.get(name, "")
+        if onion:
+            print(f"  {name}  HTTP(nginx->{hostname})  http://{onion}")
+        else:
+            print(f"  {name}  HTTP(nginx->{hostname})  (not running)")
     else:
         name = svc[0]
         onion = onion_hosts.get(name, "")
         if onion:
-            print(f"  {name}  TCP   {onion}:{svc[1]} -> localhost:{svc[2]}")
+            print(f"  {name}  TCP  {onion}:{svc[1]} -> localhost:{svc[2]}")
         else:
-            print(f"  {name}  TCP   .onion:{svc[1]} -> localhost:{svc[2]}  (not running)")
+            print(f"  {name}  TCP  .onion:{svc[1]} -> localhost:{svc[2]}  (not running)")

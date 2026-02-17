@@ -24,38 +24,27 @@ CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 ## How this works
 
 This config is designed for hosting any of your Traefik services (HTTP
-and TCP) as Tor hidden services. You will configure Tor with the list
-of services that you want to generate unique `.onion` domains for.
-Each of these services will be configured to use the `web_plain`
-entrypoint instead of the default `websecure` entrypoint and to listen
-on their assigned `.onion` domain. Tor itself will run on your Docker
-host network, so it will have access to proxy for the external Traefik
-`web_plain` entrypoint, running on `localhost`. Tor services will be
-created only for those services that you explicitly configure this
-way.
+and TCP) as Tor hidden services. There are two approaches for HTTP
+services:
 
-## Configure Traefik
+ * **nginx proxy (recommended):** A built-in nginx container proxies
+   Tor traffic to Traefik's existing `websecure` entrypoint (port 443)
+   with the correct `Host` header and TLS SNI. Your services need zero
+   reconfiguration — they keep their existing domain, TLS certificate,
+   and middleware.
 
-### Why not use TLS?
+ * **web_plain (alternative):** Routes directly to Traefik's
+   `web_plain` entrypoint (port 8000). Requires reconfiguring each
+   service with `TRAEFIK_HOST=<onion>` and
+   `TRAEFIK_ENTRYPOINT=web_plain`.
 
-Tor hidden services provide their own end-to-end encryption between
-the Tor Browser and your services. This configuration will generate
-random domain names ending in `.onion`. You cannot use your own domain
-names. You generally don't use TLS with `.onion` domains.
-(Technically, you can use TLS on .onion domains, but Let's Encrypt
-does not support it. Because TLS is redundant to the Tor builtin
-encryption, TLS is not supported by this config.)
-
-### Enable the web_plain entrypoint
-
-The Tor proxy will connect to Traefik through the `web_plain`
-entrypoint (port `8000` by default), and we bind it to `127.0.0.1` to
-prevent LAN access:
+Both the Tor and nginx containers use `network_mode: host`, so they
+have direct access to Traefik's ports on localhost.
 
 ```
-d.rymcg.tech make traefik reconfigure var=TRAEFIK_WEB_PLAIN_ENTRYPOINT_ENABLED=true
-d.rymcg.tech make traefik reconfigure var=TRAEFIK_WEB_PLAIN_ENTRYPOINT_HOST=127.0.0.1
-d.rymcg.tech make traefik reinstall
+Tor Browser → Tor container (port 80 → 127.0.0.1:<nginx_port>)
+                               → nginx container → https://127.0.0.1:443
+                                                      → Traefik websecure (routes by Host header)
 ```
 
 ## Initial setup
@@ -66,29 +55,28 @@ Run `config` once to create the environment file:
 d.rymcg.tech make tor config
 ```
 
-## HTTP hidden services
+## HTTP hidden services (nginx proxy — recommended)
 
-HTTP hidden services route Tor port 80 through the `web_plain` Traefik
-entrypoint. Multiple HTTP services can share the same entrypoint
-because Traefik routes by `Host` header. Each service controls its own
-Traefik router and middleware (basic authentication, etc.).
+This approach proxies Tor traffic through a built-in nginx reverse
+proxy to Traefik's `websecure` entrypoint. Your services keep their
+existing configuration (domain, TLS, middleware) — no changes needed.
 
-### Configure the hidden services
+### Add a service
 
-Add an HTTP hidden service:
+Specify the `host` parameter with the service's existing domain name:
 
 ```
-d.rymcg.tech make tor add-service svc=whoami
+d.rymcg.tech make tor add-service svc=whoami host=whoami.example.com
 ```
 
 The name (`whoami`) is an arbitrary label used to generate the `.onion`
-address — the actual routing happens when you set the `.onion` address
-as the project's `TRAEFIK_HOST`.
+address. The `host` is the real domain name that Traefik uses to route
+the request.
 
 Optionally, generate a vanity `.onion` address with a custom prefix:
 
 ```
-d.rymcg.tech make tor add-service svc=whoami prefix=who
+d.rymcg.tech make tor add-service svc=whoami host=whoami.example.com prefix=who
 ```
 
 Prefixes use base32 characters only (a-z, 2-7). Each additional
@@ -105,7 +93,7 @@ You can run `add-service` multiple times to add more services.
 d.rymcg.tech make tor install
 ```
 
-### Reconfigure each service
+### List services
 
 Wait for bootstrap to complete (`make tor logs`), then list the
 configured hidden services and their `.onion` addresses:
@@ -113,20 +101,6 @@ configured hidden services and their `.onion` addresses:
 ```
 d.rymcg.tech make tor list-services
 ```
-
-For each service (e.g. `whoami`) copy the `.onion` address and set it
-as its `{PROJECT}_TRAEFIK_HOST` var and set the `web_plain` entrypoint
-via the `{PROJECT}_TRAEFIK_ENTRYPOINT` var:
-
-```
-d.rymcg.tech make whoami reconfigure var=WHOAMI_TRAEFIK_HOST=abcdef34542.......onion
-d.rymcg.tech make whoami reconfigure var=WHOAMI_TRAEFIK_ENTRYPOINT=web_plain
-d.rymcg.tech make whoami reinstall
-```
-
-The service's own router handles all Traefik middleware (basic auth
-etc.) — Tor traffic goes through the same middleware chain as direct
-access.
 
 ### Verify
 
@@ -136,7 +110,49 @@ access.
 d.rymcg.tech make tor logs
 ```
 
-2. Test from Tor Browser: http://abc123...xyz.onion should show the service response.
+2. Test from Tor Browser: `http://abc123...xyz.onion` should show the
+   service response.
+
+## HTTP hidden services (web_plain — alternative)
+
+This approach routes Tor port 80 through the `web_plain` Traefik
+entrypoint. Each service must be reconfigured with its `.onion`
+address and the `web_plain` entrypoint. Use this if you have a
+specific reason to avoid the nginx proxy.
+
+### Configure Traefik
+
+Enable the `web_plain` entrypoint and bind it to localhost:
+
+```
+d.rymcg.tech make traefik reconfigure var=TRAEFIK_WEB_PLAIN_ENTRYPOINT_ENABLED=true
+d.rymcg.tech make traefik reconfigure var=TRAEFIK_WEB_PLAIN_ENTRYPOINT_HOST=127.0.0.1
+d.rymcg.tech make traefik reinstall
+```
+
+### Add a service
+
+Add an HTTP hidden service (no `host` parameter):
+
+```
+d.rymcg.tech make tor add-service svc=whoami
+```
+
+### Install and reconfigure
+
+```
+d.rymcg.tech make tor install
+d.rymcg.tech make tor list-services
+```
+
+For each service, copy the `.onion` address and set it as the
+project's `TRAEFIK_HOST` and set the `web_plain` entrypoint:
+
+```
+d.rymcg.tech make whoami reconfigure var=WHOAMI_TRAEFIK_HOST=abcdef34542.......onion
+d.rymcg.tech make whoami reconfigure var=WHOAMI_TRAEFIK_ENTRYPOINT=web_plain
+d.rymcg.tech make whoami reinstall
+```
 
 ## TCP hidden services
 
@@ -207,13 +223,14 @@ ncat --proxy 127.0.0.1:9150 --proxy-type socks5 abc123...xyz.onion 6667
 ssh -o ProxyCommand='ncat --proxy 127.0.0.1:9150 --proxy-type socks5 %h %p' user@abc123...xyz.onion
 ```
 
-## Mixing HTTP and TCP services
+## Mixing service types
 
-You can add both HTTP and TCP hidden services incrementally. Each
-entry creates a separate hidden service with its own `.onion` address:
+You can add HTTP (nginx), HTTP (web_plain), and TCP hidden services
+together. Each entry creates a separate hidden service with its own
+`.onion` address:
 
 ```
-d.rymcg.tech make tor add-service svc=whoami
+d.rymcg.tech make tor add-service svc=whoami host=whoami.example.com
 d.rymcg.tech make tor add-service svc=irc port=6667:6697
 d.rymcg.tech make tor reinstall
 ```

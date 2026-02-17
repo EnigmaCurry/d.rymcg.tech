@@ -9,6 +9,17 @@ services:
     network_mode: host
     environment:
       - TOR_HIDDEN_SERVICES=${TOR_HIDDEN_SERVICES}
+      - TOR_NGINX_PORT_BASE=${TOR_NGINX_PORT_BASE:-10080}
     volumes:
       - tor_data:/var/lib/tor
+    labels: []
+
+  nginx:
+    build:
+      context: nginx
+    restart: unless-stopped
+    network_mode: host
+    environment:
+      - TOR_HIDDEN_SERVICES=${TOR_HIDDEN_SERVICES}
+      - TOR_NGINX_PORT_BASE=${TOR_NGINX_PORT_BASE:-10080}
     labels: []
