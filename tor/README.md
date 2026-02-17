@@ -203,6 +203,7 @@ entry creates a separate hidden service with its own `.onion` address:
 ```
 d.rymcg.tech make tor add-service svc=whoami
 d.rymcg.tech make tor add-service svc=irc port=6667:6697
+d.rymcg.tech make tor reinstall
 ```
 
 ## Removing a hidden service
