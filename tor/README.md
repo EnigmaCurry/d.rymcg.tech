@@ -170,17 +170,18 @@ d.rymcg.tech make tor list-services
 d.rymcg.tech make tor logs
 ```
 
-2. Open [Tor Browser](https://www.torproject.org/download/) and
+2. Check Traefik dashboard for the TCP service router on the custom entrypoint.
+3. Open [Tor Browser](https://www.torproject.org/download/) and
    connect to the Tor network. Tor Browser provides a SOCKS proxy on
    `127.0.0.1:9150` that other applications can use.
 
-3. Test the IRC connection with `ncat`:
+4. Test the IRC connection with `ncat`:
 
 ```
 ncat --proxy 127.0.0.1:9150 --proxy-type socks5 abc123...xyz.onion 6667
 ```
 
-4. For SSH hidden services, use the `ProxyCommand` option:
+5. For SSH hidden services, use the `ProxyCommand` option:
 
 ```
 ssh -o ProxyCommand='ncat --proxy 127.0.0.1:9150 --proxy-type socks5 %h %p' user@abc123...xyz.onion
