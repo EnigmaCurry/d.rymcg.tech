@@ -40,18 +40,22 @@ if prefix:
 
     volume = f"{project_name}_tor_data"
 
-    if len(prefix) > 4:
-        estimates = {
-            5: "~16 minutes",
-            6: "~8.5 hours",
-            7: "~11 days",
-            8: "~1 year",
-        }
-        est = estimates.get(len(prefix), "a very long time")
-        print(f"Generating {len(prefix)}-character vanity prefix '{prefix}' (estimated: {est})")
-        print("Please wait...")
-    else:
-        print(f"Generating vanity prefix '{prefix}'...")
+    def estimate_time(prefix_len, rate):
+        """Estimate average time for a prefix length at a given keys/sec rate."""
+        expected = 32 ** prefix_len
+        seconds = expected / rate
+        if seconds < 1:
+            return "instant"
+        elif seconds < 60:
+            return f"~{int(seconds)} seconds"
+        elif seconds < 3600:
+            return f"~{int(seconds / 60)} minutes"
+        elif seconds < 86400:
+            return f"~{seconds / 3600:.1f} hours"
+        elif seconds < 86400 * 365:
+            return f"~{seconds / 86400:.0f} days"
+        else:
+            return f"~{seconds / (86400 * 365):.0f} years"
 
     # Build mkp224o image if not present
     result = subprocess.run(
@@ -80,6 +84,28 @@ ENTRYPOINT ["mkp224o"]
             print(result.stderr)
             print("Error: failed to build mkp224o image.")
             sys.exit(1)
+
+    # Quick benchmark to estimate time
+    if len(prefix) > 4:
+        bench = subprocess.run(
+            ["timeout", "3", "docker", "run", "--rm", "mkp224o",
+             "-s", "zzzzzzzzzzzzzzzz"],
+            capture_output=True, text=True
+        )
+        rate = 0
+        for line in bench.stdout.splitlines():
+            m = re.search(r'calc/sec:([\d.]+)', line)
+            if m:
+                rate = float(m.group(1))
+        if rate > 0:
+            est = estimate_time(len(prefix), rate)
+            print(f"Generating {len(prefix)}-character vanity prefix '{prefix}' "
+                  f"at {rate/1e6:.0f}M keys/sec (estimated: {est})")
+        else:
+            print(f"Generating {len(prefix)}-character vanity prefix '{prefix}'...")
+        print("Please wait...")
+    else:
+        print(f"Generating vanity prefix '{prefix}'...")
 
     # Clean up any previous vanity-tmp
     subprocess.run(

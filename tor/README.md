@@ -92,10 +92,10 @@ d.rymcg.tech make tor add-service svc=whoami prefix=who
 ```
 
 Prefixes use base32 characters only (a-z, 2-7). Each additional
-character takes ~32x longer: 4 characters takes seconds, 5 takes
-~16 minutes, 6 takes ~8 hours. The first run builds the
-[mkp224o](https://github.com/cathugger/mkp224o) Docker image
-automatically.
+character takes ~32x longer. For longer prefixes (5+), a quick
+benchmark runs first to estimate the wait time. The first run
+builds the [mkp224o](https://github.com/cathugger/mkp224o) Docker
+image automatically.
 
 You can run `add-service` multiple times to add more services.
 
