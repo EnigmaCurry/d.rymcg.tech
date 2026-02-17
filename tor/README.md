@@ -75,6 +75,13 @@ You can run `add-hidden-service` multiple times to add more services
 without replacing existing ones. If a service with the same name
 already exists, it will be updated in place.
 
+To remove a hidden service:
+
+```
+d.rymcg.tech make tor remove-hidden-service name=whoami
+d.rymcg.tech make tor reinstall
+```
+
 ### Install
 
 ```
