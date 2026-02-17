@@ -35,6 +35,18 @@ add-service:
 	@test -n "$(svc)" || (echo "Usage: d.rymcg.tech make tor add-service svc=name" && echo "  e.g. d.rymcg.tech make tor add-service svc=whoami" && echo "       d.rymcg.tech make tor add-service svc=name port=TOR_PORT:LOCAL_PORT" && echo "  e.g. d.rymcg.tech make tor add-service svc=ssh port=22:22" && false)
 	@./scripts/add_hidden_service.py ${ENV_FILE} '$(svc)' '$(port)'
 
+.PHONY: backup # Export onion keys to an encrypted archive
+backup:
+	@docker run --rm -v ${PROJECT_NAME}_tor_data:/data:ro alpine tar cf - -C /data . | gzip | gpg --symmetric --cipher-algo AES256 -o tor-keys-backup.tar.gz.gpg
+	@echo "Exported onion keys to tor-keys-backup.tar.gz.gpg"
+
+.PHONY: restore # Import onion keys from an encrypted archive
+restore:
+	@test -f "tor-keys-backup.tar.gz.gpg" || (echo "tor-keys-backup.tar.gz.gpg not found" && false)
+	@gpg --decrypt tor-keys-backup.tar.gz.gpg | docker run --rm -i -v ${PROJECT_NAME}_tor_data:/data alpine sh -c 'cd /data && tar xzf -'
+	@echo "Restored onion keys from tor-keys-backup.tar.gz.gpg"
+	@echo "Run 'd.rymcg.tech make tor reinstall' to apply."
+
 .PHONY: remove-service # Remove a hidden service by name
 remove-service:
 	@test -n "$(name)" || (echo "Usage: d.rymcg.tech make tor remove-service name=SERVICE_NAME" && false)
