@@ -32,8 +32,8 @@ list-services:
 
 .PHONY: add-service # Add a hidden service (without replacing existing ones)
 add-service:
-	@test -n "$(svc)" || (echo "Usage: d.rymcg.tech make tor add-service svc=name [host=HOSTNAME] [prefix=VANITY] [port=TOR:LOCAL]" && echo "  e.g. d.rymcg.tech make tor add-service svc=whoami host=whoami.example.com" && echo "       d.rymcg.tech make tor add-service svc=whoami host=whoami.example.com prefix=who" && echo "       d.rymcg.tech make tor add-service svc=whoami" && echo "       d.rymcg.tech make tor add-service svc=ssh port=22:22" && false)
-	@./scripts/add_hidden_service.py ${ENV_FILE} '$(svc)' '$(port)' '$(prefix)' ${PROJECT_NAME} '$(host)'
+	@test -n "$(name)" || (echo "Usage: d.rymcg.tech make tor add-service name=NAME [host=HOSTNAME] [prefix=VANITY] [port=TOR:LOCAL]" && echo "  e.g. d.rymcg.tech make tor add-service name=whoami host=whoami.example.com" && echo "       d.rymcg.tech make tor add-service name=whoami host=whoami.example.com prefix=who" && echo "       d.rymcg.tech make tor add-service name=whoami" && echo "       d.rymcg.tech make tor add-service name=ssh port=22:22" && false)
+	@./scripts/add_hidden_service.py ${ENV_FILE} '$(name)' '$(port)' '$(prefix)' ${PROJECT_NAME} '$(host)'
 
 .PHONY: backup # Export onion keys and env file to an encrypted archive
 backup:
@@ -78,9 +78,9 @@ add-client:
 
 .PHONY: authorize-client # Grant a client access to a hidden service
 authorize-client:
-	@test -n "$(svc)" || (echo "Usage: d.rymcg.tech make tor authorize-client svc=SERVICE client=CLIENT" && false)
-	@test -n "$(client)" || (echo "Usage: d.rymcg.tech make tor authorize-client svc=SERVICE client=CLIENT" && false)
-	@./scripts/authorize_client.py ${PROJECT_NAME} '$(svc)' '$(client)'
+	@test -n "$(name)" || (echo "Usage: d.rymcg.tech make tor authorize-client name=SERVICE client=CLIENT" && false)
+	@test -n "$(client)" || (echo "Usage: d.rymcg.tech make tor authorize-client name=SERVICE client=CLIENT" && false)
+	@./scripts/authorize_client.py ${PROJECT_NAME} '$(name)' '$(client)'
 
 .PHONY: show-credential # Display client credentials for Tor Browser
 show-credential:
@@ -89,13 +89,13 @@ show-credential:
 
 .PHONY: list-clients # List clients and their authorized services
 list-clients:
-	@./scripts/list_clients.py ${PROJECT_NAME} '$(svc)'
+	@./scripts/list_clients.py ${PROJECT_NAME} '$(name)'
 
 .PHONY: revoke-client # Remove a client's access to a hidden service
 revoke-client:
-	@test -n "$(svc)" || (echo "Usage: d.rymcg.tech make tor revoke-client svc=SERVICE client=CLIENT" && false)
-	@test -n "$(client)" || (echo "Usage: d.rymcg.tech make tor revoke-client svc=SERVICE client=CLIENT" && false)
-	@./scripts/revoke_client.py ${PROJECT_NAME} '$(svc)' '$(client)'
+	@test -n "$(name)" || (echo "Usage: d.rymcg.tech make tor revoke-client name=SERVICE client=CLIENT" && false)
+	@test -n "$(client)" || (echo "Usage: d.rymcg.tech make tor revoke-client name=SERVICE client=CLIENT" && false)
+	@./scripts/revoke_client.py ${PROJECT_NAME} '$(name)' '$(client)'
 
 .PHONY: remove-client # Delete a client and revoke access to all services
 remove-client:

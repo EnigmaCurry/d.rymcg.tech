@@ -66,7 +66,7 @@ existing configuration (domain, TLS, middleware) — no changes needed.
 Specify the `host` parameter with the service's existing domain name:
 
 ```
-d.rymcg.tech make tor add-service svc=whoami host=whoami.example.com
+d.rymcg.tech make tor add-service name=whoami host=whoami.example.com
 ```
 
 The name (`whoami`) is an arbitrary label used to generate the `.onion`
@@ -76,7 +76,7 @@ the request.
 Optionally, generate a vanity `.onion` address with a custom prefix:
 
 ```
-d.rymcg.tech make tor add-service svc=whoami host=whoami.example.com prefix=who
+d.rymcg.tech make tor add-service name=whoami host=whoami.example.com prefix=who
 ```
 
 Prefixes use base32 characters only (a-z, 2-7). Each additional
@@ -135,7 +135,7 @@ d.rymcg.tech make traefik reinstall
 Add an HTTP hidden service (no `host` parameter):
 
 ```
-d.rymcg.tech make tor add-service svc=whoami
+d.rymcg.tech make tor add-service name=whoami
 ```
 
 ### Install and reconfigure
@@ -181,14 +181,14 @@ parameter (`TOR_PORT:LOCAL_PORT`):
  * `LOCAL_PORT` — the port on localhost to forward to (e.g., a Traefik entrypoint or any local service)
 
 ```
-d.rymcg.tech make tor add-service svc=irc port=6667:6697
+d.rymcg.tech make tor add-service name=irc port=6667:6697
 ```
 
 TCP hidden services work with any local port, not just Traefik
 entrypoints. For example, to expose the host's SSH daemon:
 
 ```
-d.rymcg.tech make tor add-service svc=ssh port=22:22
+d.rymcg.tech make tor add-service name=ssh port=22:22
 ```
 
 ### Install
@@ -230,8 +230,8 @@ together. Each entry creates a separate hidden service with its own
 `.onion` address:
 
 ```
-d.rymcg.tech make tor add-service svc=whoami host=whoami.example.com
-d.rymcg.tech make tor add-service svc=irc port=6667:6697
+d.rymcg.tech make tor add-service name=whoami host=whoami.example.com
+d.rymcg.tech make tor add-service name=irc port=6667:6697
 d.rymcg.tech make tor reinstall
 ```
 
@@ -261,7 +261,7 @@ The hidden service must already be installed (so its directory exists
 in the volume):
 
 ```
-d.rymcg.tech make tor authorize-client svc=whoami client=alice
+d.rymcg.tech make tor authorize-client name=whoami client=alice
 d.rymcg.tech make tor reinstall
 ```
 
@@ -284,13 +284,13 @@ credential line to a `.auth_private` file in your
 
 ```
 d.rymcg.tech make tor list-clients
-d.rymcg.tech make tor list-clients svc=whoami
+d.rymcg.tech make tor list-clients name=whoami
 ```
 
 ### Revoke access
 
 ```
-d.rymcg.tech make tor revoke-client svc=whoami client=alice
+d.rymcg.tech make tor revoke-client name=whoami client=alice
 d.rymcg.tech make tor reinstall
 ```
 

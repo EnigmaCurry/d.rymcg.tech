@@ -66,4 +66,4 @@ if services:
         print(f"  {onion_addr}:descriptor:x25519:{private_key}")
 else:
     print("Not authorized for any service yet.")
-    print(f"Run 'd.rymcg.tech make tor authorize-client svc=SERVICE client={client_name}' to grant access.")
+    print(f"Run 'd.rymcg.tech make tor authorize-client name=SERVICE client={client_name}' to grant access.")
