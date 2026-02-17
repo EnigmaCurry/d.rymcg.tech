@@ -85,9 +85,7 @@ The name (`whoami`) is an arbitrary label used to generate the `.onion`
 address — the actual routing happens when you set the `.onion` address
 as the project's `TRAEFIK_HOST`.
 
-You can run `add-service` multiple times to add more services
-without replacing existing ones. If a service with the same name
-already exists, it will be updated in place.
+You can run `add-service` multiple times to add more services.
 
 ### Install
 
