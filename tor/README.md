@@ -89,8 +89,10 @@ You can run `add-service` multiple times to add more services.
 
 ### Install
 
+After every change to the config, you must reinstall:
+
 ```
-d.rymcg.tech make tor install
+d.rymcg.tech make tor reinstall
 ```
 
 ### List services
