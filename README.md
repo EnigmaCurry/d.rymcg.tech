@@ -19,6 +19,8 @@ workstation.
    * A public server (at home and/or roaming), without direct port
      forwarding, but accessible with the help of a public (cloud)
      sentry VPN (WireGuard).
+   * A [Tor hidden service](tor#readme) — expose any Traefik service
+     as a `.onion` address with zero reconfiguration.
 
  * d.rymcg.tech has a clean separation for the roles of workstation
    and server:
