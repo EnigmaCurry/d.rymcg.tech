@@ -42,7 +42,7 @@ backup:
 	@TMPDIR=$$(mktemp -d) && \
 	  mkdir -p $$TMPDIR/keys && \
 	  echo "Backing up volume: ${PROJECT_NAME}_tor_data" && \
-	  docker run --rm -v ${PROJECT_NAME}_tor_data:/data:ro -v $$TMPDIR/keys:/backup alpine sh -c 'cp -a /data/. /backup/' && \
+	  docker run --rm -v ${PROJECT_NAME}_tor_data:/data:ro alpine tar cf - -C /data . | tar xf - -C $$TMPDIR/keys && \
 	  echo "Backing up env file: ${ENV_FILE}" && \
 	  cp ${ENV_FILE} $$TMPDIR/env && \
 	  echo "Contents:" && \
