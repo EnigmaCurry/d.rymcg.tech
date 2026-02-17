@@ -44,5 +44,7 @@ else:
                 print(f"  {name}  TCP   .onion:{svc[1]} -> localhost:{svc[2]}  (not running)")
 
 print()
-print("Add an HTTP service:  make add-hidden-service svc=docker-service-name")
+print("Add an HTTP service:  make add-hidden-service svc=project-instance-service")
+print("                e.g.  make add-hidden-service svc=whoami-default-whoami")
 print("Add a TCP service:    make add-hidden-service svc=name port=TOR_PORT:LOCAL_PORT")
+print("                e.g.  make add-hidden-service svc=ssh port=22:22")
