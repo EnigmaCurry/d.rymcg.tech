@@ -178,7 +178,7 @@ d.rymcg.tech make inspircd reinstall
 Add a TCP hidden service using `add-service` with the `port`
 parameter (`TOR_PORT:LOCAL_PORT`):
 
- * `svc` — the hidden service name (used to generate the `.onion` address)
+ * `name` — the hidden service name (used to generate the `.onion` address)
  * `TOR_PORT` — the port exposed on the `.onion` address (e.g., 6667 for IRC)
  * `LOCAL_PORT` — the port on localhost to forward to (e.g., a Traefik entrypoint or any local service)
 
