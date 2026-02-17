@@ -29,6 +29,6 @@ with open(env_file, "w") as f:
 
 if removed:
     print(f"Removed hidden service: {name}")
-    print(f"\nRun 'make reinstall' to apply changes.")
+    print(f"\nRun 'd.rymcg.tech make tor reinstall' to apply changes.")
 else:
     print(f"No hidden service named '{name}' found.")

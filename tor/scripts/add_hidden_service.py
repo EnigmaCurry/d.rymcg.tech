@@ -45,4 +45,4 @@ if len(new_entry) == 2:
 elif len(new_entry) == 3:
     print(f"{action} TCP hidden service: {name} (.onion:{new_entry[1]} -> localhost:{new_entry[2]})")
 
-print(f"\nRun 'make reinstall' to apply changes.")
+print(f"\nRun 'd.rymcg.tech make tor reinstall' to apply changes.")

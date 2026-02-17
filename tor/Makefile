@@ -22,7 +22,7 @@ install-hook-pre:
 install-hook:
 	@echo
 	@echo "Tor hidden services are starting. Wait for bootstrap to complete, then run:"
-	@echo "  make list-services"
+	@echo "  d.rymcg.tech make tor list-services"
 	@echo
 	@echo "Then configure each service with its .onion address as TRAEFIK_HOST."
 
@@ -32,10 +32,10 @@ list-services:
 
 .PHONY: add-hidden-service # Add a hidden service (without replacing existing ones)
 add-hidden-service:
-	@test -n "$(svc)" || (echo "Usage: make add-hidden-service svc=project-instance-service" && echo "  e.g. make add-hidden-service svc=whoami-default-whoami" && echo "       make add-hidden-service svc=name port=TOR_PORT:LOCAL_PORT" && echo "  e.g. make add-hidden-service svc=ssh port=22:22" && false)
+	@test -n "$(svc)" || (echo "Usage: d.rymcg.tech make tor add-hidden-service svc=project-instance-service" && echo "  e.g. d.rymcg.tech make tor add-hidden-service svc=whoami-default-whoami" && echo "       d.rymcg.tech make tor add-hidden-service svc=name port=TOR_PORT:LOCAL_PORT" && echo "  e.g. d.rymcg.tech make tor add-hidden-service svc=ssh port=22:22" && false)
 	@./scripts/add_hidden_service.py ${ENV_FILE} '$(svc)' '$(port)'
 
 .PHONY: remove-hidden-service # Remove a hidden service by name
 remove-hidden-service:
-	@test -n "$(name)" || (echo "Usage: make remove-hidden-service name=SERVICE_NAME" && false)
+	@test -n "$(name)" || (echo "Usage: d.rymcg.tech make tor remove-hidden-service name=SERVICE_NAME" && false)
 	@./scripts/remove_hidden_service.py ${ENV_FILE} '$(name)'
