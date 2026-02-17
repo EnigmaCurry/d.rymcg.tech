@@ -7,4 +7,5 @@
 #@yaml/text-templated-strings
 services:
   tor:
-    labels: []
+    labels:
+      - "backup-volume.stop-during-backup=true"

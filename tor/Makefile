@@ -34,3 +34,8 @@ list-services:
 add-hidden-service:
 	@test -n "$(svc)" || (echo "Usage: make add-hidden-service svc='[\"name\",\"docker-service\"]'" && echo "       make add-hidden-service svc='[\"name\",tor_port,local_port]'" && false)
 	@./add_hidden_service.py ${ENV_FILE} '$(svc)'
+
+.PHONY: remove-hidden-service # Remove a hidden service by name
+remove-hidden-service:
+	@test -n "$(name)" || (echo "Usage: make remove-hidden-service name=SERVICE_NAME" && false)
+	@./remove_hidden_service.py ${ENV_FILE} '$(name)'
