@@ -346,3 +346,6 @@ To restore on the same or a different host:
 d.rymcg.tech make tor restore archive=tor-keys-backup.tar.gz.gpg
 d.rymcg.tech make tor reinstall
 ```
+
+For automated scheduled backups to S3, see
+[backup-volume](../backup-volume#readme).
