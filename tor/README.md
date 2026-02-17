@@ -75,13 +75,6 @@ You can run `add-hidden-service` multiple times to add more services
 without replacing existing ones. If a service with the same name
 already exists, it will be updated in place.
 
-To remove a hidden service:
-
-```
-d.rymcg.tech make tor remove-hidden-service name=whoami
-d.rymcg.tech make tor reinstall
-```
-
 ### Install
 
 ```
@@ -204,4 +197,11 @@ entry creates a separate hidden service with its own `.onion` address:
 ```
 d.rymcg.tech make tor add-hidden-service svc='["whoami","whoami-default-whoami"]'
 d.rymcg.tech make tor add-hidden-service svc='["irc", 6667, 6697]'
+```
+
+## Removing a hidden service
+
+```
+d.rymcg.tech make tor remove-hidden-service name=whoami
+d.rymcg.tech make tor reinstall
 ```
