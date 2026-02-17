@@ -98,30 +98,12 @@ TCP has no `Host` header for routing. Each TCP service needs its own
 dedicated Traefik entrypoint, configured as plain TCP (no TLS, since
 the Tor circuit provides encryption).
 
-### Create a custom Traefik entrypoint
-
-Create a plain TCP entrypoint bound to `127.0.0.1` for each TCP
-service. Use `TRAEFIK_CUSTOM_ENTRYPOINTS` to define it as a
-comma-separated 6-tuple:
-
-```
-name, host, port, proxy_protocol_enabled, proxy_protocol_trusted_ips, forwardedHeaders_trustedIPs
-```
-
-For example, to create an `irc_tor` entrypoint on port 6696:
-
-```
-d.rymcg.tech make traefik reconfigure var='TRAEFIK_CUSTOM_ENTRYPOINTS=irc_tor,127.0.0.1,6696,false,,'
-d.rymcg.tech make traefik reinstall
-```
-
 ### Configure the TCP service
 
-Configure the TCP service (e.g., `inspircd`) to use the new
-entrypoint and disable TLS (Tor provides its own encryption):
+Configure the TCP service (e.g., `inspircd`) to disable TLS (Tor
+provides its own encryption):
 
 ```
-d.rymcg.tech make inspircd reconfigure var=INSPIRCD_TRAEFIK_ENTRYPOINT=irc_tor
 d.rymcg.tech make inspircd reconfigure var=INSPIRCD_TRAEFIK_TLS=false
 d.rymcg.tech make inspircd reinstall
 ```
@@ -137,10 +119,10 @@ Add a 3-element TCP entry to `TOR_HIDDEN_SERVICES` using
 
  * `name` — the hidden service name (used to generate the `.onion` address)
  * `tor_port` — the port exposed on the `.onion` address (e.g., 6667 for IRC)
- * `traefik_port` — the local Traefik entrypoint port (e.g., 6696)
+ * `traefik_port` — the local Traefik entrypoint port (e.g., 6697)
 
 ```
-d.rymcg.tech make tor add-hidden-service svc='["irc", 6667, 6696]'
+d.rymcg.tech make tor add-hidden-service svc='["irc", 6667, 6697]'
 ```
 
 ### Install and get .onion addresses
@@ -159,10 +141,16 @@ d.rymcg.tech make tor logs
 ```
 
 2. Check Traefik dashboard for the TCP service router on the custom entrypoint.
-3. Connect via a Tor SOCKS proxy (e.g., with `torify` or proxy-aware IRC client):
+3. Start a local Tor client to get a SOCKS proxy on `127.0.0.1:9050`:
 
 ```
-torify irssi -c abc123...xyz.onion -p 6667
+tor &
+```
+
+4. Test the connection with `ncat`:
+
+```
+ncat --proxy 127.0.0.1:9050 --proxy-type socks5 abc123...xyz.onion 6667
 ```
 
 ## Mixing HTTP and TCP services
@@ -172,5 +160,5 @@ entry creates a separate hidden service with its own `.onion` address:
 
 ```
 d.rymcg.tech make tor add-hidden-service svc='["whoami","whoami-default-whoami"]'
-d.rymcg.tech make tor add-hidden-service svc='["irc", 6667, 6696]'
+d.rymcg.tech make tor add-hidden-service svc='["irc", 6667, 6697]'
 ```

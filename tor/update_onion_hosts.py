@@ -30,4 +30,4 @@ for name, addr in pairs.items():
     print(f"{name}: {addr}")
 print(f"\nUpdated {env_file}:")
 print(f"TOR_ONION_HOSTS={onion_json}")
-print(f"\nRun 'make reinstall' to apply Traefik routing for these .onion addresses.")
+print(f"\nConfigure each service with its .onion address as TRAEFIK_HOST.")
