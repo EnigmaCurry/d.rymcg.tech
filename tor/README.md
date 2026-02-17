@@ -85,6 +85,18 @@ The name (`whoami`) is an arbitrary label used to generate the `.onion`
 address — the actual routing happens when you set the `.onion` address
 as the project's `TRAEFIK_HOST`.
 
+Optionally, generate a vanity `.onion` address with a custom prefix:
+
+```
+d.rymcg.tech make tor add-service svc=whoami prefix=who
+```
+
+Prefixes use base32 characters only (a-z, 2-7). Each additional
+character takes ~32x longer: 4 characters takes seconds, 5 takes
+~16 minutes, 6 takes ~8 hours. The first run builds the
+[mkp224o](https://github.com/cathugger/mkp224o) Docker image
+automatically.
+
 You can run `add-service` multiple times to add more services.
 
 ### Install
