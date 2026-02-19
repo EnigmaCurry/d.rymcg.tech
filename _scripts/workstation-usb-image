@@ -7,9 +7,11 @@ BIN=$(dirname $(realpath ${BASH_SOURCE}))
 ROOT_DIR=$(dirname ${BIN})
 source ${BIN}/funcs.sh
 
-IMAGE_SIZE="16G"
 IMAGE_DIR="${ROOT_DIR}/_archive"
 IMAGE_FILE="${IMAGE_DIR}/workstation-usb.img"
+IMAGE_SIZE=""
+BASE_ONLY=""
+DRY_RUN=""
 
 usage() {
     echo "Usage: d.rymcg.tech workstation-usb-image [OPTIONS]"
@@ -18,19 +20,22 @@ usage() {
     echo "The image can be written to a USB drive with dd."
     echo "Requires sudo for loop device and mount operations."
     echo ""
+    echo "By default, the image includes all archive data (Docker images,"
+    echo "ISOs, Docker CE packages) found in _archive/. The image size is"
+    echo "auto-calculated to fit everything plus headroom."
+    echo ""
     echo "Options:"
-    echo "  --size SIZE  Image size (default: ${IMAGE_SIZE})"
+    echo "  --size SIZE    Override auto-calculated image size (e.g. 128G)"
     echo "  --output FILE  Output path (default: ${IMAGE_FILE})"
-    echo "  --dry-run    Build the system closure only, don't create image"
-    echo "  -h, --help   Show this help"
+    echo "  --base-only    Build OS only, without archive data (smaller image)"
+    echo "  --dry-run      Build the system closure only, don't create image"
+    echo "  -h, --help     Show this help"
     echo ""
     echo "After building:"
     echo "  sudo dd if=${IMAGE_FILE} of=/dev/sdX bs=4M status=progress conv=fsync"
     echo ""
     echo "The root partition auto-expands to fill the USB on first boot."
 }
-
-DRY_RUN=""
 
 while [[ $# -gt 0 ]]; do
     case "$1" in
@@ -41,6 +46,10 @@ while [[ $# -gt 0 ]]; do
         --output)
             IMAGE_FILE="$2"
             shift 2
+            ;;
+        --base-only)
+            BASE_ONLY=1
+            shift
             ;;
         --dry-run)
             DRY_RUN=1
@@ -70,6 +79,60 @@ if [[ ! -x "$NIXOS_INSTALL" ]]; then
 fi
 echo "nixos-install: $NIXOS_INSTALL"
 
+# Calculate sizes
+echo ""
+echo "=== Calculating image size ==="
+
+# Get closure size in bytes
+CLOSURE_BYTES=$(nix path-info -S "$SYSTEM_PATH" | awk '{print $2}')
+CLOSURE_GB=$(awk "BEGIN {printf \"%.1f\", $CLOSURE_BYTES / 1073741824}")
+echo "NixOS closure: ${CLOSURE_GB} GB"
+
+ARCHIVE_BYTES=0
+ARCHIVE_DIRS=""
+
+if [[ -z "$BASE_ONLY" ]]; then
+    # Measure archive directories
+    for dir_info in \
+        "Docker images:${ROOT_DIR}/_archive/images/x86_64" \
+        "ISOs:${ROOT_DIR}/_archive/isos" \
+        "Docker CE packages:${ROOT_DIR}/_archive/docker-packages"; do
+        label="${dir_info%%:*}"
+        dir="${dir_info#*:}"
+        if [[ -d "$dir" ]] && [[ -n "$(ls -A "$dir" 2>/dev/null)" ]]; then
+            dir_bytes=$(du -sb "$dir" | cut -f1)
+            dir_gb=$(awk "BEGIN {printf \"%.1f\", $dir_bytes / 1073741824}")
+            echo "$label: ${dir_gb} GB ($dir)"
+            ARCHIVE_BYTES=$((ARCHIVE_BYTES + dir_bytes))
+            ARCHIVE_DIRS="$ARCHIVE_DIRS $dir"
+        else
+            echo "$label: (not found, skipping)"
+        fi
+    done
+fi
+
+# Auto-calculate image size if not specified
+if [[ -z "$IMAGE_SIZE" ]]; then
+    # Total = closure + archive + 1GB ESP + 5GB headroom
+    # nix store add roughly doubles storage temporarily, but we account for
+    # the final on-disk size plus generous headroom
+    TOTAL_BYTES=$((CLOSURE_BYTES + ARCHIVE_BYTES))
+    # Add 1GB for ESP + 5GB headroom (or 15% of total, whichever is larger)
+    HEADROOM_BYTES=$((5 * 1073741824))
+    FIFTEEN_PCT=$((TOTAL_BYTES * 15 / 100))
+    if [[ $FIFTEEN_PCT -gt $HEADROOM_BYTES ]]; then
+        HEADROOM_BYTES=$FIFTEEN_PCT
+    fi
+    ESP_BYTES=$((1 * 1073741824))
+    IMAGE_BYTES=$((TOTAL_BYTES + HEADROOM_BYTES + ESP_BYTES))
+    # Round up to nearest GB
+    IMAGE_GB=$(( (IMAGE_BYTES + 1073741823) / 1073741824 ))
+    IMAGE_SIZE="${IMAGE_GB}G"
+fi
+
+echo ""
+echo "Image size: $IMAGE_SIZE"
+
 if [[ -n "$DRY_RUN" ]]; then
     echo ""
     echo "(dry run — system closure built, image not created)"
@@ -79,10 +142,17 @@ fi
 echo ""
 echo "=== Creating disk image ==="
 echo "Image: ${IMAGE_FILE} (${IMAGE_SIZE})"
+if [[ -z "$BASE_ONLY" ]]; then
+    echo "Mode: full (includes archive data)"
+else
+    echo "Mode: base only (OS without archive data)"
+fi
 echo "This requires sudo for loop devices and mounting."
 echo ""
 
 mkdir -p "$(dirname "$IMAGE_FILE")"
+
+POST_INSTALL_SCRIPT="${ROOT_DIR}/nix/workstation/installer/post-install.sh"
 
 # The rest runs as root (pass PATH so nix tools work inside sudo)
 exec sudo bash -c '
@@ -93,6 +163,8 @@ IMAGE_FILE="$1"
 IMAGE_SIZE="$2"
 SYSTEM_PATH="$3"
 NIXOS_INSTALL="$4"
+BASE_ONLY="$6"
+POST_INSTALL_SCRIPT="$7"
 
 MOUNT=$(mktemp -d)
 LOOP=""
@@ -116,7 +188,7 @@ truncate -s "$IMAGE_SIZE" "$IMAGE_FILE"
 LOOP=$(losetup --find --show --partscan "$IMAGE_FILE")
 echo "Loop device: $LOOP"
 
-# Partition: 512MB ESP + rest ext4
+# Partition: 1GB ESP + rest ext4
 sgdisk --zap-all "$LOOP"
 sgdisk -n 1:0:+1G -t 1:ef00 -c 1:ESP "$LOOP"
 sgdisk -n 2:0:0 -t 2:8300 -c 2:nixos "$LOOP"
@@ -136,6 +208,13 @@ mount -o umask=0077 "${LOOP}p1" "$MOUNT/boot"
 echo "=== Installing NixOS into image ==="
 "$NIXOS_INSTALL" --system "$SYSTEM_PATH" --root "$MOUNT" --no-root-password --no-channel-copy
 
+# Run post-install to copy archive data into the image
+if [[ -z "$BASE_ONLY" ]] && [[ -x "$POST_INSTALL_SCRIPT" ]]; then
+    echo ""
+    echo "=== Copying archive data into image ==="
+    "$POST_INSTALL_SCRIPT" "$MOUNT"
+fi
+
 # Unmount
 umount -R "$MOUNT"
 rmdir "$MOUNT"
@@ -152,10 +231,5 @@ echo ""
 echo "Write to USB with:"
 echo "  sudo dd if=$IMAGE_FILE of=/dev/sdX bs=4M status=progress conv=fsync"
 echo ""
-echo "Then copy archive data:"
-echo "  sudo mount /dev/sdX2 /mnt && sudo mount /dev/sdX1 /mnt/boot"
-echo "  d.rymcg.tech workstation-usb-post-install /mnt"
-echo "  sudo umount -R /mnt"
-echo ""
 echo "The root partition auto-expands to fill the USB on first boot."
-' _ "$IMAGE_FILE" "$IMAGE_SIZE" "$SYSTEM_PATH" "$NIXOS_INSTALL" "$PATH"
+' _ "$IMAGE_FILE" "$IMAGE_SIZE" "$SYSTEM_PATH" "$NIXOS_INSTALL" "$PATH" "$BASE_ONLY" "$POST_INSTALL_SCRIPT"

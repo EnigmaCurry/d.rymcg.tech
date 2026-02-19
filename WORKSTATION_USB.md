@@ -71,14 +71,28 @@ Default passwords match the username (`admin`/`admin`,
 Build a raw `.img` file that can be written to any USB drive with `dd`.
 Uses loop devices (requires sudo) instead of a QEMU VM.
 
+By default, the image includes all archive data (Docker images, ISOs,
+Docker CE packages) found in `_archive/`. The image size is
+auto-calculated to fit everything plus headroom.
+
 ```bash
-# Build the image (builds closure as user, uses sudo for loop/mount)
+# Build the full image (includes archive data, auto-sized)
 d.rymcg.tech workstation-usb-image
 
 # Write to USB
 sudo dd if=_archive/workstation-usb.img of=/dev/sdX bs=4M status=progress conv=fsync
+```
 
-# Copy archive data
+To build a smaller base image without archive data:
+
+```bash
+# Build base OS only (~10 GB)
+d.rymcg.tech workstation-usb-image --base-only
+
+# Write to USB
+sudo dd if=_archive/workstation-usb.img of=/dev/sdX bs=4M status=progress conv=fsync
+
+# Copy archive data separately
 sudo mount /dev/sdX2 /mnt && sudo mount /dev/sdX1 /mnt/boot
 d.rymcg.tech workstation-usb-post-install /mnt
 sudo umount -R /mnt
@@ -86,8 +100,9 @@ sudo umount -R /mnt
 
 | Option | Description |
 |--------|-------------|
-| `--size SIZE` | Image size (default: 16G) |
+| `--size SIZE` | Override auto-calculated image size (e.g. `128G`) |
 | `--output FILE` | Output path (default: `_archive/workstation-usb.img`) |
+| `--base-only` | Build OS only, without archive data (smaller image) |
 | `--dry-run` | Build system closure only, skip image creation |
 
 On first boot, the root partition automatically expands to fill the
