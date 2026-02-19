@@ -59,7 +59,7 @@ d.rymcg.tech workstation-usb-install /dev/sdX
 
 This will:
 1. Build the NixOS system closure
-2. Partition the USB (512 MB ESP + rest ext4)
+2. Partition the USB (1 GB ESP + rest ext4)
 3. Install NixOS via `nixos-install`
 4. Copy archive data into the USB's nix store
 

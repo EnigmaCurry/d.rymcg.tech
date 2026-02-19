@@ -48,7 +48,7 @@ echo "=== Partitioning $DEVICE ==="
 # Wipe existing partition table
 sgdisk --zap-all "$DEVICE"
 # Create ESP (512MB) and root partition (rest)
-sgdisk -n 1:0:+512M -t 1:ef00 -c 1:ESP "$DEVICE"
+sgdisk -n 1:0:+1G -t 1:ef00 -c 1:ESP "$DEVICE"
 sgdisk -n 2:0:0 -t 2:8300 -c 2:nixos "$DEVICE"
 partprobe "$DEVICE" || true
 sleep 2

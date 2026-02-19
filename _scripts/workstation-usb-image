@@ -118,7 +118,7 @@ echo "Loop device: $LOOP"
 
 # Partition: 512MB ESP + rest ext4
 sgdisk --zap-all "$LOOP"
-sgdisk -n 1:0:+512M -t 1:ef00 -c 1:ESP "$LOOP"
+sgdisk -n 1:0:+1G -t 1:ef00 -c 1:ESP "$LOOP"
 sgdisk -n 2:0:0 -t 2:8300 -c 2:nixos "$LOOP"
 partprobe "$LOOP" || true
 sleep 1
