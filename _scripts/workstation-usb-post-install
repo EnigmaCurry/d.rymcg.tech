@@ -47,7 +47,7 @@ if [[ -z "$MOUNT" ]]; then
 fi
 
 if [[ $EUID -ne 0 ]]; then
-    exec sudo "${ROOT_DIR}/nix/workstation/installer/post-install.sh" "$MOUNT"
+    exec sudo env PATH="$PATH" "${ROOT_DIR}/nix/workstation/installer/post-install.sh" "$MOUNT"
 fi
 
 exec "${ROOT_DIR}/nix/workstation/installer/post-install.sh" "$MOUNT"

@@ -76,8 +76,8 @@ echo ""
 
 mkdir -p "$(dirname "$IMAGE_FILE")"
 
-# The rest runs as root
-exec sudo bash -c '
+# The rest runs as root (preserve PATH so nix tools are available)
+exec sudo env PATH="$PATH" bash -c '
 set -euo pipefail
 
 IMAGE_FILE="$1"
