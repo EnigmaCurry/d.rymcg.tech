@@ -104,9 +104,11 @@ route:
 lego-vars:
 	./lego-vars/scrape_lego_vars.sh
 
+## Restart traefik so it picks up any config changes from the config service.
 .PHONY: install-hook
 install-hook:
-	@echo
+	@make --no-print-directory restart service=traefik
+	@echo "Traefik installed."
 
 .PHONY: install-hook-pre
 install-hook-pre:

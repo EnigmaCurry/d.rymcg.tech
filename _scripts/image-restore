@@ -1,0 +1,119 @@
+#!/usr/bin/env -S uv run --script
+# /// script
+# requires-python = ">=3.11"
+# dependencies = []
+# ///
+
+"""Load archived Docker images from tar.gz files into the Docker host.
+
+Reads the manifest.json produced by image-archive and loads each image
+via docker load.
+
+Usage:
+    d.rymcg.tech image-restore                    # restore everything
+    d.rymcg.tech image-restore --project=traefik  # single project
+    d.rymcg.tech image-restore --dry-run          # show what would be restored
+    d.rymcg.tech image-restore --archive-dir=PATH # override archive dir
+"""
+
+import argparse
+import json
+import platform
+import subprocess
+import sys
+from pathlib import Path
+
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+from image_lib import ROOT_DIR, sha256sum
+
+
+def main():
+    parser = argparse.ArgumentParser(
+        description="Restore archived Docker images into the Docker host.",
+    )
+    parser.add_argument("--project", type=str, default=None,
+                        help="Restore only this project's images")
+    parser.add_argument("--dry-run", action="store_true",
+                        help="Show what would be restored without executing")
+    parser.add_argument("--archive-dir", type=str, default=None,
+                        help="Override archive directory (default: _archive/images)")
+    args = parser.parse_args()
+
+    if args.archive_dir:
+        archive_dir = Path(args.archive_dir)
+    else:
+        arch = platform.machine()
+        archive_dir = ROOT_DIR / "_archive" / "images" / arch
+    manifest_path = archive_dir / "manifest.json"
+
+    if not manifest_path.exists():
+        print(f"ERROR: Manifest not found: {manifest_path}", file=sys.stderr)
+        print("Run _scripts/image-archive first.", file=sys.stderr)
+        sys.exit(1)
+
+    with open(manifest_path) as f:
+        manifest = json.load(f)
+
+    entries = manifest.get("images", [])
+    if args.project:
+        entries = [e for e in entries if e["project"] == args.project]
+
+    if not entries:
+        print("No images to restore.", file=sys.stderr)
+        sys.exit(1)
+
+    restored = 0
+    failures = []
+
+    for entry in entries:
+        image = entry["image"]
+        archive_file = archive_dir / entry["file"]
+        size_mb = entry.get("size", 0) / (1024 * 1024)
+
+        if not archive_file.exists():
+            print(f"  MISSING: {archive_file}")
+            failures.append(f"{image}: archive file not found")
+            continue
+
+        # Verify SHA256 hash if available
+        expected_hash = entry.get("sha256")
+        if expected_hash:
+            actual_hash = sha256sum(archive_file)
+            if actual_hash != expected_hash:
+                print(f"  HASH MISMATCH: {image}")
+                print(f"    expected: {expected_hash}")
+                print(f"    actual:   {actual_hash}")
+                failures.append(f"{image}: SHA256 mismatch")
+                continue
+
+        if args.dry_run:
+            hash_status = "verified" if expected_hash else "no hash"
+            print(f"  [restore] {image} ({size_mb:.1f} MB, {hash_status}) <- {entry['file']}")
+            restored += 1
+            continue
+
+        print(f"  [restore] {image} ({size_mb:.1f} MB)...")
+        with open(archive_file, "rb") as f:
+            result = subprocess.run(
+                ["docker", "load"],
+                stdin=f, capture_output=True, text=True,
+            )
+        if result.returncode == 0:
+            print(f"    OK: {result.stdout.strip()}")
+            restored += 1
+        else:
+            print(f"    FAILED: {result.stderr.strip()}")
+            failures.append(f"{image}: {result.stderr.strip()}")
+
+    print()
+    print(f"=== SUMMARY ===")
+    print(f"  Restored: {restored} images")
+    if failures:
+        print(f"  Failures: {len(failures)}")
+        for f in failures:
+            print(f"    - {f}")
+        sys.exit(1)
+
+
+if __name__ == "__main__":
+    main()

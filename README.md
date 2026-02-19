@@ -80,6 +80,13 @@ workstation.
    their own routes (domain names, paths, etc.), and other Traefik
    middleware config, via container labels.
 
+ * All Docker images can be [archived and restored](ARCHIVE.md) for
+   deployment on air-gapped machines without internet access. Images
+   are saved as compressed archives with integrity hashes on your
+   workstation, and can be transferred to any Docker host. Set
+   `BUILD=false` to skip image builds and deploy entirely from the
+   restored images.
+
  * d.rymcg.tech focuses on the needs of the full-stack self-hoster.
      You can deploy your own Certficate Authority and DNS (delegate)
    server for the automatic creation of (wildcard) TLS certificates

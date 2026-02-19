@@ -65,6 +65,10 @@ __help() {
         echo -e "reconfigure\tReconfigure a single env var in the root context config"
         echo -e "dotenv_get\tRetrieve a single env var from the root context config"
         echo -e "daemon-conf\tReconfigures the Docker host's daemon config"
+        echo -e "image-catalog [ARGS ...]\tCatalog all Docker images across projects"
+        echo -e "image-build [ARGS ...]\tBuild/pull all Docker images"
+        echo -e "image-archive [ARGS ...]\tArchive Docker images to local .tar.gz files"
+        echo -e "image-restore [ARGS ...]\tRestore archived Docker images to the server"
         echo -e "agent\tRun agent readiness tool"
     ) | expand -t 30
     echo ""
@@ -392,7 +396,7 @@ __d.rymcg.tech_completions() {
     if [[ ${COMP_CWORD} == 1 ]]; then
         ## Complete the main command:
         ## d.rymcg.tech <TAB> ...
-        COMMANDS="help create cd make list readme info context new-context tmp-context aliases completion install install-docker status ssh audit sshd-config ssh-expose show-ports s3-volume docker-default-address-pool route routes reconfigure dotenv_get daemon-conf fail2ban networks config agent"
+        COMMANDS="help create cd make list readme info context new-context tmp-context aliases completion install install-docker status ssh audit sshd-config ssh-expose show-ports s3-volume docker-default-address-pool route routes reconfigure dotenv_get daemon-conf fail2ban networks config image-catalog image-build image-archive image-restore agent"
         COMPREPLY=($(compgen -W "${COMMANDS}" "${COMP_WORDS[1]}"))
     elif [[ ${COMP_CWORD} == 2 ]]; then
         ALL_PROJECTS=$(d.rymcg.tech list --raw)
@@ -565,6 +569,14 @@ main() {
                 __make -- networks;;
             config)
                 __make -- config;;
+            image-catalog)
+                ${BIN}/image-catalog "$@";;
+            image-build)
+                ${BIN}/image-build "$@";;
+            image-archive)
+                ${BIN}/image-archive "$@";;
+            image-restore)
+                ${BIN}/image-restore "$@";;
             agent)
                 # Auto-detect current Docker context for 'check' command
                 if [[ $# -eq 0 ]]; then

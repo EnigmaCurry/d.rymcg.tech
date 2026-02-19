@@ -1,0 +1,381 @@
+#!/usr/bin/env -S uv run --script
+# /// script
+# requires-python = ">=3.11"
+# dependencies = ["pyyaml"]
+# ///
+
+"""Catalog all Docker images used across d.rymcg.tech projects.
+
+Scans every project's docker-compose.yaml, .env-dist, and Dockerfiles to
+produce a manifest of all images: what they are, where they come from,
+whether they need building or pulling, and which env vars control them.
+
+Usage:
+    d.rymcg.tech image-catalog [--json] [--summary]
+"""
+
+import os
+import re
+import sys
+import json
+import yaml
+from pathlib import Path
+from dataclasses import dataclass, field, asdict
+from typing import Optional
+
+
+ROOT_DIR = Path(__file__).resolve().parent.parent
+
+
+@dataclass
+class ImageEntry:
+    project: str
+    service: str
+    image_ref: Optional[str]          # raw image: value (may contain ${VARS})
+    image_resolved: Optional[str]     # image with env vars resolved
+    source: str                       # "pull", "build-local", "build-remote", "build-only"
+    build_context: Optional[str]      # build context path or URL
+    dockerfile_from: list[str] = field(default_factory=list)  # FROM lines in Dockerfile
+    env_var: Optional[str] = None     # env var name controlling the image (e.g. WHOAMI_IMAGE)
+    env_default: Optional[str] = None # default value from .env-dist
+    profiles: list[str] = field(default_factory=list)
+    version_pinned: bool = False      # True if image has a specific tag/digest
+
+
+def parse_env_dist(env_dist_path: Path) -> dict[str, str]:
+    """Parse a .env-dist file into a dict of var=value."""
+    env = {}
+    if not env_dist_path.exists():
+        return env
+    for line in env_dist_path.read_text().splitlines():
+        line = line.strip()
+        if not line or line.startswith('#'):
+            continue
+        if '=' in line:
+            key, _, value = line.partition('=')
+            env[key.strip()] = value.strip()
+    return env
+
+
+def resolve_vars(template: str, env: dict[str, str]) -> str:
+    """Resolve ${VAR} and ${VAR:-default} references in a string."""
+    def replacer(m):
+        var = m.group(1)
+        # Handle ${VAR:-default} syntax
+        if ':-' in var:
+            varname, _, default = var.partition(':-')
+            return env.get(varname, default)
+        return env.get(var, m.group(0))  # keep original if not found
+    return re.sub(r'\$\{([^}]+)\}', replacer, template)
+
+
+def extract_env_var_name(image_ref: str) -> Optional[str]:
+    """Extract the env var name from an image reference like ${WHOAMI_IMAGE} or ${VAR:-default}."""
+    # Match ${VAR} or ${VAR:-default} patterns, capturing just the var name
+    m = re.search(r'\$\{([A-Z_]+IMAGE[A-Z_]*)(?::-.*)?\}', image_ref)
+    if m:
+        return m.group(1)
+    m = re.search(r'\$\{([A-Z_]+VERSION[A-Z_]*)(?::-.*)?\}', image_ref)
+    if m:
+        return m.group(1)
+    m = re.search(r'\$\{([A-Z_]+)(?::-.*)?\}', image_ref)
+    if m:
+        return m.group(1)
+    return None
+
+
+def is_version_pinned(image: str) -> bool:
+    """Check if an image reference has a specific version tag (not latest/empty)."""
+    if not image:
+        return False
+    if '@sha256:' in image:
+        return True
+    if ':' in image:
+        tag = image.rsplit(':', 1)[-1]
+        return tag not in ('latest', '')
+    return False  # bare image name = latest
+
+
+def find_dockerfile_froms(project_dir: Path, build_context: str) -> list[str]:
+    """Find FROM lines in a Dockerfile for a build context."""
+    froms = []
+    if not build_context or build_context.startswith('http'):
+        return froms
+
+    # Resolve context relative to project dir
+    context_path = project_dir / build_context
+    if not context_path.is_dir():
+        # Maybe context is "." (the project dir itself)
+        if build_context == '.':
+            context_path = project_dir
+        else:
+            return froms
+
+    dockerfile = context_path / 'Dockerfile'
+    if not dockerfile.exists():
+        return froms
+
+    for line in dockerfile.read_text().splitlines():
+        line = line.strip()
+        if line.upper().startswith('FROM '):
+            froms.append(line)
+
+    return froms
+
+
+def classify_build_context(context: str) -> str:
+    """Classify a build context as local or remote."""
+    if not context:
+        return "pull"
+    if context.startswith('http') or context.startswith('git://'):
+        return "build-remote"
+    if '${' in context and ('GIT' in context.upper() or 'REPO' in context.upper()):
+        return "build-remote"
+    return "build-local"
+
+
+def process_compose_file(compose_path: Path) -> list[ImageEntry]:
+    """Process a single docker-compose.yaml and return image entries."""
+    entries = []
+    project_dir = compose_path.parent
+    project_name = project_dir.name
+
+    # Parse env-dist
+    env_dist_path = project_dir / '.env-dist'
+    env = parse_env_dist(env_dist_path)
+
+    # Parse compose file
+    try:
+        with open(compose_path) as f:
+            compose = yaml.safe_load(f)
+    except Exception as e:
+        print(f"WARNING: Failed to parse {compose_path}: {e}", file=sys.stderr)
+        return entries
+
+    if not compose or 'services' not in compose:
+        return entries
+
+    services = compose['services']
+    for svc_name, svc_config in services.items():
+        if svc_config is None:
+            continue
+
+        image_ref = svc_config.get('image')
+        build_config = svc_config.get('build')
+        profiles = svc_config.get('profiles', [])
+
+        # Determine build context
+        build_context = None
+        build_args = {}
+        if build_config:
+            if isinstance(build_config, str):
+                build_context = build_config
+            elif isinstance(build_config, dict):
+                build_context = build_config.get('context')
+                args = build_config.get('args', {})
+                if isinstance(args, dict):
+                    build_args = args
+                elif isinstance(args, list):
+                    for arg in args:
+                        if isinstance(arg, str) and '=' in arg:
+                            k, _, v = arg.partition('=')
+                            build_args[k] = v
+
+        # Resolve build context variables
+        build_context_resolved = None
+        if build_context:
+            build_context_resolved = resolve_vars(str(build_context), env)
+
+        # Classify source
+        if build_config and not image_ref:
+            source = classify_build_context(build_context_resolved or str(build_context or ''))
+        elif build_config and image_ref:
+            # Has both image and build - check profiles
+            if 'build-only' in profiles:
+                source = "build-only"
+            else:
+                source = classify_build_context(build_context_resolved or str(build_context or ''))
+        else:
+            source = "pull"
+
+        # Resolve image reference
+        image_resolved = None
+        env_var = None
+        env_default = None
+
+        if image_ref:
+            image_ref_str = str(image_ref)
+            env_var = extract_env_var_name(image_ref_str)
+            if env_var and env_var in env:
+                env_default = env[env_var]
+            image_resolved = resolve_vars(image_ref_str, env)
+        elif build_config:
+            # No image line - check build args for upstream image
+            for arg_name, arg_val in build_args.items():
+                arg_val_str = str(arg_val)
+                if 'IMAGE' in arg_name.upper():
+                    var = extract_env_var_name(arg_val_str)
+                    if var and var in env:
+                        env_var = var
+                        env_default = env[var]
+                        image_resolved = f"(build-arg {arg_name}) {env[var]}"
+                    elif not arg_val_str.startswith('$'):
+                        image_resolved = f"(build-arg {arg_name}) {arg_val_str}"
+                    break
+
+        # Find Dockerfile FROM lines
+        dockerfile_froms = find_dockerfile_froms(
+            project_dir, str(build_context) if build_context else None
+        )
+
+        # Check version pinning against the fully resolved image string
+        pinned = False
+        check_image = image_resolved or ''
+        if check_image.startswith('(build-arg'):
+            check_image = check_image.split(') ', 1)[-1] if ') ' in check_image else ''
+        pinned = is_version_pinned(check_image)
+
+        entry = ImageEntry(
+            project=project_name,
+            service=svc_name,
+            image_ref=str(image_ref) if image_ref else None,
+            image_resolved=image_resolved,
+            source=source,
+            build_context=build_context_resolved or (str(build_context) if build_context else None),
+            dockerfile_from=dockerfile_froms,
+            env_var=env_var,
+            env_default=env_default,
+            profiles=profiles,
+            version_pinned=pinned,
+        )
+        entries.append(entry)
+
+    return entries
+
+
+def find_all_compose_files(root: Path) -> list[Path]:
+    """Find all docker-compose.yaml files, excluding _attic."""
+    compose_files = []
+    for d in sorted(root.iterdir()):
+        if not d.is_dir():
+            continue
+        if d.name.startswith('.') or d.name.startswith('_'):
+            continue
+        compose = d / 'docker-compose.yaml'
+        if compose.exists():
+            compose_files.append(compose)
+    return compose_files
+
+
+def print_table(entries: list[ImageEntry]):
+    """Print a formatted table of all image entries."""
+    # Header
+    print(f"{'PROJECT':<24} {'SERVICE':<24} {'SOURCE':<14} {'IMAGE':<55} {'ENV VAR':<35} {'PINNED'}")
+    print("-" * 160)
+
+    for e in entries:
+        # Prefer image_resolved (full image string) over env_default (may be just a version)
+        image_display = e.image_resolved or "(Dockerfile only)"
+        if len(image_display) > 54:
+            image_display = image_display[:51] + "..."
+        env_display = e.env_var or "(hardcoded)"
+        if e.source in ("build-local", "build-remote") and not e.image_ref and not e.env_var:
+            env_display = "(build-only)"
+
+        pinned = "yes" if e.version_pinned else "NO"
+
+        profile_tag = ""
+        if e.profiles:
+            profile_tag = f" [{','.join(e.profiles)}]"
+
+        print(f"{e.project:<24} {e.service + profile_tag:<24} {e.source:<14} {image_display:<55} {env_display:<35} {pinned}")
+
+
+def classify_registry(image: str) -> str:
+    """Determine which registry an image comes from."""
+    image = image.strip('"\'')
+    # Strip digest
+    image = image.split('@')[0]
+    # Known third-party registries have dots in the hostname
+    if '/' in image:
+        first_part = image.split('/')[0]
+        if '.' in first_part:
+            return first_part  # ghcr.io, quay.io, lscr.io, docker.io, etc.
+    # Everything else is Docker Hub (docker.io)
+    return "docker.io"
+
+
+def print_summary(entries: list[ImageEntry]):
+    """Print summary statistics."""
+    projects = set(e.project for e in entries)
+    pull_only = [e for e in entries if e.source == "pull"]
+    build_local = [e for e in entries if e.source == "build-local"]
+    build_remote = [e for e in entries if e.source == "build-remote"]
+    unpinned = [e for e in entries if not e.version_pinned and e.source == "pull"]
+    hardcoded = [e for e in entries if e.source == "pull" and not e.env_var]
+
+    # Collect unique resolved images
+    unique_images = set()
+    for e in entries:
+        img = e.image_resolved
+        if img and not img.startswith('('):
+            img_base = img.split('@')[0]
+            unique_images.add(img_base)
+
+    # Collect unique registries
+    registries: dict[str, int] = {}
+    for img in unique_images:
+        reg = classify_registry(img)
+        registries[reg] = registries.get(reg, 0) + 1
+
+    print("\n=== IMAGE CATALOG SUMMARY ===\n")
+    print(f"  Projects scanned:       {len(projects)}")
+    print(f"  Total service entries:   {len(entries)}")
+    print(f"  Unique images:           {len(unique_images)}")
+    print(f"  Pull-only services:      {len(pull_only)}")
+    print(f"  Build (local) services:  {len(build_local)}")
+    print(f"  Build (remote) services: {len(build_remote)}")
+    print()
+    print(f"  Unpinned pull images:    {len(unpinned)}  (need version pinning)")
+    print(f"  Hardcoded images:        {len(hardcoded)}  (no env var, in compose directly)")
+    print()
+    print(f"  Registries ({len(registries)}):")
+    for reg, count in sorted(registries.items()):
+        print(f"    - {reg} ({count} images)")
+
+    if unpinned:
+        print(f"\n=== UNPINNED IMAGES (no specific version tag) ===\n")
+        for e in unpinned:
+            img = e.image_resolved or "?"
+            print(f"  {e.project}/{e.service}: {img}")
+
+    if hardcoded:
+        print(f"\n=== HARDCODED IMAGES (no env var) ===\n")
+        for e in hardcoded:
+            img = e.image_resolved or "?"
+            print(f"  {e.project}/{e.service}: {img}")
+
+
+def main():
+    args = sys.argv[1:]
+    output_json = '--json' in args
+    show_summary = '--summary' in args or not output_json
+
+    compose_files = find_all_compose_files(ROOT_DIR)
+    all_entries = []
+
+    for cf in compose_files:
+        entries = process_compose_file(cf)
+        all_entries.extend(entries)
+
+    if output_json:
+        print(json.dumps([asdict(e) for e in all_entries], indent=2))
+    else:
+        print_table(all_entries)
+
+    if show_summary and not output_json:
+        print_summary(all_entries)
+
+
+if __name__ == '__main__':
+    main()
