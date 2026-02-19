@@ -27,19 +27,10 @@
     "iwlwifi"  # Intel WiFi
   ];
 
-  # Root filesystem on USB (by label)
-  # mkForce needed: disk-image.nix sets its own fileSystems that we override
-  fileSystems."/" = lib.mkForce {
-    device = "/dev/disk/by-label/nixos-workstation";
-    fsType = "ext4";
-  };
-
-  # EFI System Partition
-  fileSystems."/boot" = lib.mkForce {
-    device = "/dev/disk/by-label/ESP";
-    fsType = "vfat";
-    options = [ "umask=0077" ];
-  };
+  # Filesystems are defined by disk-image.nix:
+  #   / = /dev/disk/by-label/nixos (ext4, autoResize)
+  #   /boot = /dev/disk/by-label/ESP (vfat)
+  # The direct installer (install-to-device.sh) uses the same labels.
 
   # zram swap (compressed in-memory swap)
   zramSwap = {

@@ -46,7 +46,7 @@ echo "=== Partitioning $DEVICE ==="
 sgdisk --zap-all "$DEVICE"
 # Create ESP (512MB) and root partition (rest)
 sgdisk -n 1:0:+512M -t 1:ef00 -c 1:ESP "$DEVICE"
-sgdisk -n 2:0:0 -t 2:8300 -c 2:nixos-workstation "$DEVICE"
+sgdisk -n 2:0:0 -t 2:8300 -c 2:nixos "$DEVICE"
 partprobe "$DEVICE" || true
 sleep 2
 
@@ -61,7 +61,7 @@ fi
 
 echo "=== Formatting ==="
 mkfs.fat -F32 -n ESP "$ESP"
-mkfs.ext4 -L nixos-workstation -F "$ROOT"
+mkfs.ext4 -L nixos -F "$ROOT"
 
 echo "=== Mounting ==="
 mount "$ROOT" "$MOUNT"
