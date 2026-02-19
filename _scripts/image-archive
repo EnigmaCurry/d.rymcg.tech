@@ -258,17 +258,30 @@ def main():
 
         print()
 
-    if results and not args.dry_run:
+    if not args.dry_run:
+        manifest_path = output_dir / "manifest.json"
+        manifest_path.parent.mkdir(parents=True, exist_ok=True)
+        # Merge with existing manifest to preserve previous entries
+        existing_images: dict[str, dict] = {}
+        if manifest_path.exists():
+            try:
+                with open(manifest_path) as f:
+                    old_manifest = json.load(f)
+                for img in old_manifest.get("images", []):
+                    existing_images[img["image"]] = img
+            except (json.JSONDecodeError, KeyError):
+                pass
+        # Update with new results (overwrites entries for re-archived images)
+        for img in results:
+            existing_images[img["image"]] = img
         manifest = {
             "archived_at": datetime.now(timezone.utc).isoformat(),
             "arch": arch,
             "docker_context": context,
             "ssh_host": ssh_host,
             "output_dir": str(output_dir),
-            "images": results,
+            "images": list(existing_images.values()),
         }
-        manifest_path = output_dir / "manifest.json"
-        manifest_path.parent.mkdir(parents=True, exist_ok=True)
         with open(manifest_path, "w") as f:
             json.dump(manifest, f, indent=2)
         print(f"Manifest written to {manifest_path}")
