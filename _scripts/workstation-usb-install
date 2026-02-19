@@ -46,8 +46,7 @@ if [[ -z "$DEVICE" ]]; then
 fi
 
 if [[ $EUID -ne 0 ]]; then
-    echo "Error: This script must be run as root (or with sudo)." >&2
-    exit 1
+    exec sudo "${ROOT_DIR}/nix/workstation/installer/install-to-device.sh" "$DEVICE"
 fi
 
 exec "${ROOT_DIR}/nix/workstation/installer/install-to-device.sh" "$DEVICE"

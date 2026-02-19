@@ -55,10 +55,10 @@ else
     echo "Image: $(ls -lh result/*.img 2>/dev/null || ls -lh result/* 2>/dev/null)"
     echo ""
     echo "Write to USB with:"
-    echo "  dd if=result/*.img of=/dev/sdX bs=4M status=progress conv=fsync"
+    echo "  sudo dd if=result/*.img of=/dev/sdX bs=4M status=progress conv=fsync"
     echo ""
     echo "Then mount the USB and copy archive data:"
-    echo "  mount /dev/sdX2 /mnt && mount /dev/sdX1 /mnt/boot"
+    echo "  sudo mount /dev/sdX2 /mnt && sudo mount /dev/sdX1 /mnt/boot"
     echo "  d.rymcg.tech workstation-usb-post-install /mnt"
-    echo "  umount -R /mnt"
+    echo "  sudo umount -R /mnt"
 fi

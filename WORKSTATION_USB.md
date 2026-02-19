@@ -54,8 +54,7 @@ The simplest approach. Partitions, formats, installs NixOS, sets
 passwords, and copies archive data in one step.
 
 ```bash
-# Must be run as root
-sudo d.rymcg.tech workstation-usb-install /dev/sdX
+d.rymcg.tech workstation-usb-install /dev/sdX
 ```
 
 This will:
@@ -79,7 +78,7 @@ sudo dd if=result/*.img of=/dev/sdX bs=4M status=progress conv=fsync
 # Copy archive data
 sudo mount /dev/sdX2 /mnt
 sudo mount /dev/sdX1 /mnt/boot
-sudo d.rymcg.tech workstation-usb-post-install /mnt
+d.rymcg.tech workstation-usb-post-install /mnt
 sudo umount -R /mnt
 ```
 
