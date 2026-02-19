@@ -23,6 +23,17 @@
   image.format = "raw";
   image.efiSupport = true;
 
+  # Override the default image build to give the build VM more memory.
+  # disk-image.nix hardcodes memSize=1024 which is too small for our
+  # ~1400 package closure during nixos-enter + switch-to-configuration.
+  system.build.image = lib.mkForce (import "${pkgs.path}/nixos/lib/make-disk-image.nix" {
+    inherit lib config pkgs;
+    inherit (config.virtualisation) diskSize;
+    inherit (config.image) baseName format;
+    partitionTableType = "efi";
+    memSize = 4096;
+  });
+
   # Enable flakes
   nix.settings.experimental-features = [ "nix-command" "flakes" ];
 
