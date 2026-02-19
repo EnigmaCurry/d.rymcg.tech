@@ -19,7 +19,8 @@ image needed to bring up all ~90 projects from scratch.
 
 ## Commands
 
-All image commands are available through the `d.rymcg.tech` CLI:
+All image commands are available through the `d.rymcg.tech` CLI.
+Every command accepts `--help` for full usage details.
 
 ```bash
 d.rymcg.tech image-catalog              # list all images across projects
@@ -28,64 +29,79 @@ d.rymcg.tech image-archive              # archive all images to local files
 d.rymcg.tech image-restore              # restore archived images to the server
 ```
 
-Every command accepts `--help` for full usage details.
-
 ### Cataloging
-
-```bash
-d.rymcg.tech image-catalog              # table view with summary
-d.rymcg.tech image-catalog --json       # JSON output for tooling
-d.rymcg.tech image-catalog --summary    # summary statistics only
-```
 
 Scans every project's `docker-compose.yaml`, `.env-dist`, and
 Dockerfiles to produce a manifest of all images: what they are, where
 they come from, whether they need building or pulling, and which env
 vars control them.
 
+```bash
+d.rymcg.tech image-catalog [OPTIONS]
+```
+
+| Option | Description |
+|--------|-------------|
+| `--json` | JSON output for tooling |
+| `--summary` | Summary statistics only |
+
 ### Building
 
+Builds and/or pulls all images on the remote Docker host without
+archiving them.
+
 ```bash
-d.rymcg.tech image-build                       # build/pull everything
-d.rymcg.tech image-build --project=traefik     # single project
-d.rymcg.tech image-build --pull                # pull fresh base images
-d.rymcg.tech image-build --pull-only           # skip builds, only pull
-d.rymcg.tech image-build --dry-run             # show what would be built
-d.rymcg.tech image-build --verbose             # show docker command output
+d.rymcg.tech image-build [OPTIONS]
 ```
+
+| Option | Description |
+|--------|-------------|
+| `--project=NAME` | Single project only |
+| `--pull` | Pull fresh base images before building |
+| `--pull-only` | Skip builds, only pull images |
+| `--dry-run` | Show what would be built |
+| `--verbose` | Show docker command output |
 
 ### Archiving
 
+Builds/pulls all images on the remote Docker host, then streams each
+one back as a compressed `.tar.gz` archive via SSH. By default, images
+that have already been archived are skipped.
+
 ```bash
-d.rymcg.tech image-archive                     # archive everything
-d.rymcg.tech image-archive --project=whoami    # single project
-d.rymcg.tech image-archive --delete            # remove images from server after archiving
-d.rymcg.tech image-archive --no-cache          # build without Docker layer cache
-d.rymcg.tech image-archive --force             # re-archive even if file exists
-d.rymcg.tech image-archive --fail-fast         # stop on first error
-d.rymcg.tech image-archive --pull              # pull fresh base images before building
-d.rymcg.tech image-archive --pull-only         # skip builds, only pull
-d.rymcg.tech image-archive --dry-run           # show what would be done
-d.rymcg.tech image-archive --output-dir=PATH   # override output dir
-d.rymcg.tech image-archive --verbose           # show docker command output
+d.rymcg.tech image-archive [OPTIONS]
 ```
 
-By default, images that have already been archived are skipped. Use
-`--force` to re-archive them. Use `--delete` to free disk space on
-the server after each image is saved locally — useful when the remote
-host is tight on storage.
+| Option | Description |
+|--------|-------------|
+| `--project=NAME` | Single project only |
+| `--delete` | Remove images from server after archiving |
+| `--no-cache` | Build without Docker layer cache |
+| `--force` | Re-archive even if file already exists |
+| `--fail-fast` | Stop on first error |
+| `--pull` | Pull fresh base images before building |
+| `--pull-only` | Skip builds, only pull images |
+| `--dry-run` | Show what would be done |
+| `--output-dir=PATH` | Override output directory |
+| `--verbose` | Show docker command output |
+
+Use `--delete` to free disk space on the server after each image is
+saved locally — useful when the remote host is tight on storage.
 
 ### Restoring
 
+Loads archived images back onto a Docker host. Verifies SHA256 hashes
+from the manifest before loading each image.
+
 ```bash
-d.rymcg.tech image-restore                     # restore all images
-d.rymcg.tech image-restore --project=traefik   # restore a single project
-d.rymcg.tech image-restore --dry-run           # show what would be restored
-d.rymcg.tech image-restore --archive-dir=PATH  # load from alternate location
+d.rymcg.tech image-restore [OPTIONS]
 ```
 
-The restore script verifies SHA256 hashes from the manifest before
-loading each image.
+| Option | Description |
+|--------|-------------|
+| `--project=NAME` | Restore a single project |
+| `--dry-run` | Show what would be restored |
+| `--archive-dir=PATH` | Load from alternate location |
 
 ### Installing without internet
 
