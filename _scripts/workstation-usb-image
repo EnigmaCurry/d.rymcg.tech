@@ -84,9 +84,10 @@ echo ""
 
 mkdir -p "$(dirname "$IMAGE_FILE")"
 
-# The rest runs as root
+# The rest runs as root (pass PATH so nix tools work inside sudo)
 exec sudo bash -c '
 set -euo pipefail
+export PATH="$5:$PATH"
 
 IMAGE_FILE="$1"
 IMAGE_SIZE="$2"
@@ -157,4 +158,4 @@ echo "  d.rymcg.tech workstation-usb-post-install /mnt"
 echo "  sudo umount -R /mnt"
 echo ""
 echo "The root partition auto-expands to fill the USB on first boot."
-' _ "$IMAGE_FILE" "$IMAGE_SIZE" "$SYSTEM_PATH" "$NIXOS_INSTALL"
+' _ "$IMAGE_FILE" "$IMAGE_SIZE" "$SYSTEM_PATH" "$NIXOS_INSTALL" "$PATH"

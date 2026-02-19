@@ -46,7 +46,7 @@ if [[ -z "$DEVICE" ]]; then
 fi
 
 if [[ $EUID -ne 0 ]]; then
-    exec sudo env PATH="$PATH" "${ROOT_DIR}/nix/workstation/installer/install-to-device.sh" "$DEVICE"
+    exec sudo bash -c "export PATH=\"$PATH:\$PATH\"; exec \"$ROOT_DIR/nix/workstation/installer/install-to-device.sh\" \"$DEVICE\""
 fi
 
 exec "${ROOT_DIR}/nix/workstation/installer/install-to-device.sh" "$DEVICE"
