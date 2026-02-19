@@ -69,20 +69,26 @@ Default passwords match the username (`admin`/`admin`,
 ### Method 2: Build a disk image
 
 Build a raw `.img` file that can be written to any USB drive with `dd`.
+Uses loop devices (requires sudo) instead of a QEMU VM.
 
 ```bash
-# Build the image (runs as your user)
+# Build the image (builds closure as user, uses sudo for loop/mount)
 d.rymcg.tech workstation-usb-image
 
 # Write to USB
-sudo dd if=result/*.img of=/dev/sdX bs=4M status=progress conv=fsync
+sudo dd if=_archive/workstation-usb.img of=/dev/sdX bs=4M status=progress conv=fsync
 
 # Copy archive data
-sudo mount /dev/sdX2 /mnt
-sudo mount /dev/sdX1 /mnt/boot
+sudo mount /dev/sdX2 /mnt && sudo mount /dev/sdX1 /mnt/boot
 d.rymcg.tech workstation-usb-post-install /mnt
 sudo umount -R /mnt
 ```
+
+| Option | Description |
+|--------|-------------|
+| `--size SIZE` | Image size (default: 16G) |
+| `--output FILE` | Output path (default: `_archive/workstation-usb.img`) |
+| `--dry-run` | Build system closure only, skip image creation |
 
 On first boot, the root partition automatically expands to fill the
 USB drive.

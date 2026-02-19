@@ -18,21 +18,17 @@
   system.stateVersion = "25.11";
   nixpkgs.hostPlatform = "x86_64-linux";
 
-  # Disk image configuration
-  image.baseName = "workstation-usb";
-  image.format = "raw";
-  image.efiSupport = true;
-
-  # Override the default image build to give the build VM more memory.
-  # disk-image.nix hardcodes memSize=1024 which is too small for our
-  # ~1400 package closure during nixos-enter + switch-to-configuration.
-  system.build.image = lib.mkForce (import "${pkgs.path}/nixos/lib/make-disk-image.nix" {
-    inherit lib config pkgs;
-    inherit (config.virtualisation) diskSize;
-    inherit (config.image) baseName format;
-    partitionTableType = "efi";
-    memSize = 4096;
-  });
+  # Filesystem labels (must match what install-to-device.sh and
+  # workstation-usb-image create: ESP label "ESP", root label "nixos")
+  fileSystems."/" = {
+    device = "/dev/disk/by-label/nixos";
+    fsType = "ext4";
+  };
+  fileSystems."/boot" = {
+    device = "/dev/disk/by-label/ESP";
+    fsType = "vfat";
+    options = [ "umask=0077" ];
+  };
 
   # Enable flakes
   nix.settings.experimental-features = [ "nix-command" "flakes" ];

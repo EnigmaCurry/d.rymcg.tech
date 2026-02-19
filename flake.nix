@@ -42,13 +42,9 @@
           inherit sway-home-src org-src;
         };
         modules = [
-          "${nixpkgs}/nixos/modules/virtualisation/disk-image.nix"
           home-manager.nixosModules.home-manager
           ./nix/workstation/configuration.nix
         ];
       };
-
-      packages.${system}.workstation-usb-image =
-        self.nixosConfigurations.workstation.config.system.build.image;
     };
 }

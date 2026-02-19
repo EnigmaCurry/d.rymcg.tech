@@ -1,32 +1,49 @@
 #!/bin/bash
 ## Build a raw disk image for the NixOS workstation USB
+## Uses loop devices instead of QEMU to avoid build VM issues.
 set -eo pipefail
 
 BIN=$(dirname $(realpath ${BASH_SOURCE}))
 ROOT_DIR=$(dirname ${BIN})
 source ${BIN}/funcs.sh
 
+IMAGE_SIZE="16G"
+IMAGE_DIR="${ROOT_DIR}/_archive"
+IMAGE_FILE="${IMAGE_DIR}/workstation-usb.img"
+
 usage() {
     echo "Usage: d.rymcg.tech workstation-usb-image [OPTIONS]"
     echo ""
     echo "Build a raw NixOS disk image for the workstation USB."
     echo "The image can be written to a USB drive with dd."
+    echo "Requires sudo for loop device and mount operations."
     echo ""
     echo "Options:"
-    echo "  --dry-run    Show what would be built without building"
+    echo "  --size SIZE  Image size (default: ${IMAGE_SIZE})"
+    echo "  --output FILE  Output path (default: ${IMAGE_FILE})"
+    echo "  --dry-run    Build the system closure only, don't create image"
     echo "  -h, --help   Show this help"
     echo ""
     echo "After building:"
-    echo "  dd if=result/*.img of=/dev/sdX bs=4M status=progress conv=fsync"
-    echo "  # Then mount and run: d.rymcg.tech workstation-usb-post-install /mnt"
+    echo "  sudo dd if=${IMAGE_FILE} of=/dev/sdX bs=4M status=progress conv=fsync"
+    echo ""
+    echo "The root partition auto-expands to fill the USB on first boot."
 }
 
 DRY_RUN=""
 
 while [[ $# -gt 0 ]]; do
     case "$1" in
+        --size)
+            IMAGE_SIZE="$2"
+            shift 2
+            ;;
+        --output)
+            IMAGE_FILE="$2"
+            shift 2
+            ;;
         --dry-run)
-            DRY_RUN="--dry-run"
+            DRY_RUN=1
             shift
             ;;
         -h|--help)
@@ -41,24 +58,94 @@ while [[ $# -gt 0 ]]; do
     esac
 done
 
-echo "=== Building workstation USB image ==="
-echo "Flake: ${ROOT_DIR}"
-echo ""
+echo "=== Building NixOS system closure ==="
+SYSTEM_PATH=$(nix build "${ROOT_DIR}#nixosConfigurations.workstation.config.system.build.toplevel" --no-link --print-out-paths)
+echo "System closure: $SYSTEM_PATH"
 
 if [[ -n "$DRY_RUN" ]]; then
-    echo "(dry run)"
-    nix build "${ROOT_DIR}#workstation-usb-image" --dry-run
-else
-    nix build "${ROOT_DIR}#workstation-usb-image"
     echo ""
-    echo "=== Build complete ==="
-    echo "Image: $(ls -lh result/*.img 2>/dev/null || ls -lh result/* 2>/dev/null)"
-    echo ""
-    echo "Write to USB with:"
-    echo "  sudo dd if=result/*.img of=/dev/sdX bs=4M status=progress conv=fsync"
-    echo ""
-    echo "Then mount the USB and copy archive data:"
-    echo "  sudo mount /dev/sdX2 /mnt && sudo mount /dev/sdX1 /mnt/boot"
-    echo "  d.rymcg.tech workstation-usb-post-install /mnt"
-    echo "  sudo umount -R /mnt"
+    echo "(dry run — system closure built, image not created)"
+    exit 0
 fi
+
+echo ""
+echo "=== Creating disk image ==="
+echo "Image: ${IMAGE_FILE} (${IMAGE_SIZE})"
+echo "This requires sudo for loop devices and mounting."
+echo ""
+
+mkdir -p "$(dirname "$IMAGE_FILE")"
+
+# The rest runs as root
+exec sudo bash -c '
+set -euo pipefail
+
+IMAGE_FILE="$1"
+IMAGE_SIZE="$2"
+SYSTEM_PATH="$3"
+
+MOUNT=$(mktemp -d)
+LOOP=""
+
+cleanup() {
+    set +e
+    if [[ -n "$MOUNT" ]]; then
+        umount -R "$MOUNT" 2>/dev/null
+        rmdir "$MOUNT" 2>/dev/null
+    fi
+    if [[ -n "$LOOP" ]]; then
+        losetup -d "$LOOP" 2>/dev/null
+    fi
+}
+trap cleanup EXIT
+
+# Create sparse image file
+truncate -s "$IMAGE_SIZE" "$IMAGE_FILE"
+
+# Set up loop device
+LOOP=$(losetup --find --show --partscan "$IMAGE_FILE")
+echo "Loop device: $LOOP"
+
+# Partition: 512MB ESP + rest ext4
+sgdisk --zap-all "$LOOP"
+sgdisk -n 1:0:+512M -t 1:ef00 -c 1:ESP "$LOOP"
+sgdisk -n 2:0:0 -t 2:8300 -c 2:nixos "$LOOP"
+partprobe "$LOOP" || true
+sleep 1
+
+# Format
+mkfs.fat -F32 -n ESP "${LOOP}p1"
+mkfs.ext4 -L nixos -F "${LOOP}p2"
+
+# Mount
+mount "${LOOP}p2" "$MOUNT"
+mkdir -p "$MOUNT/boot"
+mount "${LOOP}p1" "$MOUNT/boot"
+
+# Install NixOS
+echo "=== Installing NixOS into image ==="
+nixos-install --system "$SYSTEM_PATH" --root "$MOUNT" --no-root-password --no-channel-copy
+
+# Unmount
+umount -R "$MOUNT"
+rmdir "$MOUNT"
+MOUNT=""
+
+# Detach loop
+losetup -d "$LOOP"
+LOOP=""
+
+echo ""
+echo "=== Image built successfully ==="
+echo "Image: $IMAGE_FILE ($(du -h "$IMAGE_FILE" | cut -f1))"
+echo ""
+echo "Write to USB with:"
+echo "  sudo dd if=$IMAGE_FILE of=/dev/sdX bs=4M status=progress conv=fsync"
+echo ""
+echo "Then copy archive data:"
+echo "  sudo mount /dev/sdX2 /mnt && sudo mount /dev/sdX1 /mnt/boot"
+echo "  d.rymcg.tech workstation-usb-post-install /mnt"
+echo "  sudo umount -R /mnt"
+echo ""
+echo "The root partition auto-expands to fill the USB on first boot."
+' _ "$IMAGE_FILE" "$IMAGE_SIZE" "$SYSTEM_PATH"

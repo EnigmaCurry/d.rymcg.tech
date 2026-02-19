@@ -27,11 +27,6 @@
     "iwlwifi"  # Intel WiFi
   ];
 
-  # Filesystems are defined by disk-image.nix:
-  #   / = /dev/disk/by-label/nixos (ext4, autoResize)
-  #   /boot = /dev/disk/by-label/ESP (vfat)
-  # The direct installer (install-to-device.sh) uses the same labels.
-
   # zram swap (compressed in-memory swap)
   zramSwap = {
     enable = true;
