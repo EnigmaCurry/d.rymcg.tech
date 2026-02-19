@@ -154,6 +154,11 @@ acme_sh() {
          echo
          echo "Enter your Step-CA host (no scheme, no path), e.g.: ca.example.com"
          ${BIN}/reconfigure_ask ${ENV_FILE} TRAEFIK_ACME_SH_ACME_CA "ACME CA host"
+         # Reset LE directory path so the prompt defaults to the Step-CA path
+         CURRENT_DIR="$(${BIN}/dotenv -f ${ENV_FILE} get TRAEFIK_ACME_SH_ACME_DIRECTORY)"
+         if [[ "${CURRENT_DIR}" == "/directory" ]]; then
+             ${BIN}/reconfigure ${ENV_FILE} TRAEFIK_ACME_SH_ACME_DIRECTORY=/acme/acme/directory
+         fi
          echo "Enter the ACME directory path, e.g.: /acme/acme/directory"
          ${BIN}/reconfigure_ask ${ENV_FILE} TRAEFIK_ACME_SH_ACME_DIRECTORY "ACME directory path" "/acme/acme/directory"
          # With private CA we usually TOFU then optionally merge system trust
