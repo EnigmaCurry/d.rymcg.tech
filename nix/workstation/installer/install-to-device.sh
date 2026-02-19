@@ -71,12 +71,6 @@ mount "$ESP" "$MOUNT/boot"
 echo "=== Installing NixOS ==="
 nixos-install --system "$SYSTEM_PATH" --root "$MOUNT" --no-root-password --no-channel-copy
 
-echo "=== Setting passwords ==="
-echo "Set password for 'admin' user (has sudo):"
-nixos-enter --root "$MOUNT" -- passwd admin
-echo "Set password for 'user' user:"
-nixos-enter --root "$MOUNT" -- passwd user
-
 echo "=== Running post-install ==="
 if [[ -x "$SCRIPT_DIR/post-install.sh" ]]; then
     "$SCRIPT_DIR/post-install.sh" "$MOUNT"
@@ -87,4 +81,5 @@ fi
 echo ""
 echo "=== Installation complete ==="
 echo "You can now boot from $DEVICE."
+echo "Default passwords: admin/admin, user/user (change on first boot)."
 echo "The root partition will auto-expand on first boot."

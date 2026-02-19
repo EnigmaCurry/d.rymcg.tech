@@ -61,8 +61,10 @@ This will:
 1. Build the NixOS system closure
 2. Partition the USB (512 MB ESP + rest ext4)
 3. Install NixOS via `nixos-install`
-4. Prompt you to set admin and user passwords
-5. Copy archive data into the USB's nix store
+4. Copy archive data into the USB's nix store
+
+Default passwords match the username (`admin`/`admin`,
+`user`/`user`). Change them on first boot with `passwd`.
 
 ### Method 2: Build a disk image
 
