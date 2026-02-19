@@ -177,6 +177,23 @@ acme_sh() {
     ${BIN}/reconfigure_ask ${ENV_FILE} TRAEFIK_ACME_SH_DNS_RESOLVER "Trusted DNS resolver IP used inside acme-sh container" "1.1.1.1"
 
     echo
+    CURRENT_DNS_SLEEP="$(${BIN}/dotenv -f ${ENV_FILE} get TRAEFIK_ACME_SH_DNS_SLEEP)"
+    DNS_CHECK_DEFAULT=0
+    [[ -n "${CURRENT_DNS_SLEEP}" ]] && DNS_CHECK_DEFAULT=1
+    DNS_CHECK=$(wizard choose -d $DNS_CHECK_DEFAULT --numeric \
+        "How should acme.sh verify DNS record propagation?" \
+        "DOH (requires internet access)" \
+        "Timeout (for air-gapped servers)")
+    case "${DNS_CHECK}" in
+        1)
+            ${BIN}/reconfigure_ask ${ENV_FILE} TRAEFIK_ACME_SH_DNS_SLEEP "Seconds to wait for DNS propagation" "30"
+            ;;
+        *)
+            ${BIN}/reconfigure ${ENV_FILE} TRAEFIK_ACME_SH_DNS_SLEEP=
+            ;;
+    esac
+
+    echo
     case "$(${BIN}/dotenv -f ${ENV_FILE} get TRAEFIK_ACME_SH_ACME_CA)" in
         *api.letsencrypt.org)
             ;;
