@@ -68,6 +68,15 @@ Builds/pulls all images on the remote Docker host, then streams each
 one back as a compressed `.tar.gz` archive via SSH. By default, images
 that have already been archived are skipped.
 
+> **Note:** Building all ~90 projects' images on the server requires
+> 200+ GB of disk space. Use `--delete` to remove each image from the
+> server immediately after it is archived, keeping disk usage minimal.
+> The recommended invocation for a full archive is:
+>
+> ```bash
+> d.rymcg.tech image-archive --fail-fast --delete --verbose
+> ```
+
 ```bash
 d.rymcg.tech image-archive [OPTIONS]
 ```
@@ -84,9 +93,6 @@ d.rymcg.tech image-archive [OPTIONS]
 | `--dry-run` | Show what would be done |
 | `--output-dir=PATH` | Override output directory |
 | `--verbose` | Show docker command output |
-
-Use `--delete` to free disk space on the server after each image is
-saved locally — useful when the remote host is tight on storage.
 
 ### Restoring
 
