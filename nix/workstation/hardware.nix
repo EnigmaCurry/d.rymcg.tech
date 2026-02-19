@@ -5,7 +5,8 @@
   # Redistributable firmware (WiFi, GPU, etc.)
   hardware.enableRedistributableFirmware = true;
 
-  # initrd modules for broad hardware support
+  # initrd modules — only what's needed to find and mount root filesystem
+  # (GPU drivers load after boot from rootfs, keeping initrd small)
   boot.initrd.availableKernelModules = [
     # USB storage
     "usb_storage" "uas"
@@ -15,16 +16,15 @@
     "xhci_pci" "ehci_pci"
     # Filesystems needed at boot
     "ext4" "vfat"
-    # GPU (for early display)
-    "i915" "amdgpu" "nouveau"
     # Virtio (for VM testing)
     "virtio_pci" "virtio_blk" "virtio_scsi" "virtio_net"
   ];
 
-  # Kernel modules loaded after boot
+  # Kernel modules loaded after boot (GPU, KVM, WiFi)
   boot.kernelModules = [
     "kvm-intel" "kvm-amd"
-    "iwlwifi"  # Intel WiFi
+    "iwlwifi"
+    "i915" "amdgpu" "nouveau"
   ];
 
   # zram swap (compressed in-memory swap)
