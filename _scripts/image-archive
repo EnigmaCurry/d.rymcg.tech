@@ -89,9 +89,13 @@ def extract_image_info(archive_path: Path) -> tuple[str | None, str | None]:
                     tags = entry.get("RepoTags", [])
                     if tags:
                         name = tags[0]
-                    # Config field is "{id}.json" — the sha256 image ID
+                    # Config field contains the image ID:
+                    #   OCI format: "blobs/sha256/{hash}"
+                    #   Legacy format: "{hash}.json"
                     config = entry.get("Config", "")
-                    if config.endswith(".json"):
+                    if config.startswith("blobs/sha256/"):
+                        docker_id = "sha256:" + config.removeprefix("blobs/sha256/")
+                    elif config.endswith(".json"):
                         docker_id = "sha256:" + config.removesuffix(".json")
                     if name:
                         return name, docker_id
