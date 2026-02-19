@@ -62,6 +62,14 @@ echo "=== Building NixOS system closure ==="
 SYSTEM_PATH=$(nix build "${ROOT_DIR}#nixosConfigurations.workstation.config.system.build.toplevel" --no-link --print-out-paths)
 echo "System closure: $SYSTEM_PATH"
 
+# Resolve nixos-install path from the system closure's dependencies
+NIXOS_INSTALL=$(nix build "${ROOT_DIR}#nixosConfigurations.workstation.config.system.build.nixos-install" --no-link --print-out-paths)/bin/nixos-install
+if [[ ! -x "$NIXOS_INSTALL" ]]; then
+    echo "Error: nixos-install not found at $NIXOS_INSTALL" >&2
+    exit 1
+fi
+echo "nixos-install: $NIXOS_INSTALL"
+
 if [[ -n "$DRY_RUN" ]]; then
     echo ""
     echo "(dry run — system closure built, image not created)"
@@ -76,13 +84,14 @@ echo ""
 
 mkdir -p "$(dirname "$IMAGE_FILE")"
 
-# The rest runs as root (preserve PATH so nix tools are available)
-exec sudo env PATH="$PATH" bash -c '
+# The rest runs as root
+exec sudo bash -c '
 set -euo pipefail
 
 IMAGE_FILE="$1"
 IMAGE_SIZE="$2"
 SYSTEM_PATH="$3"
+NIXOS_INSTALL="$4"
 
 MOUNT=$(mktemp -d)
 LOOP=""
@@ -124,7 +133,7 @@ mount "${LOOP}p1" "$MOUNT/boot"
 
 # Install NixOS
 echo "=== Installing NixOS into image ==="
-nixos-install --system "$SYSTEM_PATH" --root "$MOUNT" --no-root-password --no-channel-copy
+"$NIXOS_INSTALL" --system "$SYSTEM_PATH" --root "$MOUNT" --no-root-password --no-channel-copy
 
 # Unmount
 umount -R "$MOUNT"
@@ -148,4 +157,4 @@ echo "  d.rymcg.tech workstation-usb-post-install /mnt"
 echo "  sudo umount -R /mnt"
 echo ""
 echo "The root partition auto-expands to fill the USB on first boot."
-' _ "$IMAGE_FILE" "$IMAGE_SIZE" "$SYSTEM_PATH"
+' _ "$IMAGE_FILE" "$IMAGE_SIZE" "$SYSTEM_PATH" "$NIXOS_INSTALL"

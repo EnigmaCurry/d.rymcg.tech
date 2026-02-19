@@ -41,6 +41,9 @@ echo "=== Building NixOS system closure ==="
 SYSTEM_PATH=$(nix build "${FLAKE_DIR}#nixosConfigurations.workstation.config.system.build.toplevel" --no-link --print-out-paths)
 echo "System closure: $SYSTEM_PATH"
 
+NIXOS_INSTALL=$(nix build "${FLAKE_DIR}#nixosConfigurations.workstation.config.system.build.nixos-install" --no-link --print-out-paths)/bin/nixos-install
+echo "nixos-install: $NIXOS_INSTALL"
+
 echo "=== Partitioning $DEVICE ==="
 # Wipe existing partition table
 sgdisk --zap-all "$DEVICE"
@@ -69,7 +72,7 @@ mkdir -p "$MOUNT/boot"
 mount "$ESP" "$MOUNT/boot"
 
 echo "=== Installing NixOS ==="
-nixos-install --system "$SYSTEM_PATH" --root "$MOUNT" --no-root-password --no-channel-copy
+"$NIXOS_INSTALL" --system "$SYSTEM_PATH" --root "$MOUNT" --no-root-password --no-channel-copy
 
 echo "=== Running post-install ==="
 if [[ -x "$SCRIPT_DIR/post-install.sh" ]]; then
