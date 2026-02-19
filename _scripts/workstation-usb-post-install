@@ -1,0 +1,54 @@
+#!/bin/bash
+## Copy archive data to a mounted NixOS workstation USB
+set -eo pipefail
+
+BIN=$(dirname $(realpath ${BASH_SOURCE}))
+ROOT_DIR=$(dirname ${BIN})
+source ${BIN}/funcs.sh
+
+usage() {
+    echo "Usage: d.rymcg.tech workstation-usb-post-install /mnt"
+    echo ""
+    echo "Copy Docker image archive, ISOs, and Docker CE packages"
+    echo "into a mounted NixOS workstation USB's nix store."
+    echo ""
+    echo "The USB's root filesystem must be mounted at the given path."
+    echo "Archive data is read from: ${ROOT_DIR}/_archive/"
+    echo ""
+    echo "Options:"
+    echo "  -h, --help   Show this help"
+}
+
+MOUNT=""
+
+while [[ $# -gt 0 ]]; do
+    case "$1" in
+        -h|--help)
+            usage
+            exit 0
+            ;;
+        *)
+            if [[ -z "$MOUNT" ]]; then
+                MOUNT="$1"
+            else
+                echo "Error: unexpected argument: $1" >&2
+                usage >&2
+                exit 1
+            fi
+            shift
+            ;;
+    esac
+done
+
+if [[ -z "$MOUNT" ]]; then
+    echo "Error: No mount path specified." >&2
+    usage >&2
+    exit 1
+fi
+
+if [[ $EUID -ne 0 ]]; then
+    echo "Error: This script must be run as root (or with sudo)." >&2
+    exit 1
+fi
+
+exec "${ROOT_DIR}/nix/workstation/installer/post-install.sh" "$MOUNT"

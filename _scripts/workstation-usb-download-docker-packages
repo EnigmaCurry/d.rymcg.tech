@@ -1,0 +1,150 @@
+#!/bin/bash
+## Download Docker CE offline installer packages (.deb and .rpm)
+set -eo pipefail
+
+BIN=$(dirname $(realpath ${BASH_SOURCE}))
+ROOT_DIR=$(dirname ${BIN})
+source ${BIN}/funcs.sh
+
+PKG_DIR="${ROOT_DIR}/_archive/docker-packages"
+
+usage() {
+    echo "Usage: d.rymcg.tech workstation-usb-download-docker-packages [OPTIONS]"
+    echo ""
+    echo "Download Docker CE packages for offline installation on Debian and Fedora."
+    echo "Packages are saved to: ${PKG_DIR}"
+    echo ""
+    echo "Options:"
+    echo "  --debian-only    Download only Debian packages"
+    echo "  --fedora-only    Download only Fedora packages"
+    echo "  --check          Show what would be downloaded"
+    echo "  -h, --help       Show this help"
+}
+
+DOWNLOAD_DEBIAN=true
+DOWNLOAD_FEDORA=true
+CHECK_ONLY=false
+
+while [[ $# -gt 0 ]]; do
+    case "$1" in
+        --debian-only)
+            DOWNLOAD_FEDORA=false
+            shift
+            ;;
+        --fedora-only)
+            DOWNLOAD_DEBIAN=false
+            shift
+            ;;
+        --check)
+            CHECK_ONLY=true
+            shift
+            ;;
+        -h|--help)
+            usage
+            exit 0
+            ;;
+        *)
+            echo "Unknown option: $1" >&2
+            usage >&2
+            exit 1
+            ;;
+    esac
+done
+
+# Docker CE package base URLs
+DOCKER_DEB_BASE="https://download.docker.com/linux/debian/dists/trixie/pool/stable/amd64"
+DOCKER_RPM_BASE="https://download.docker.com/linux/fedora/43/x86_64/stable/Packages"
+
+download_pkg() {
+    local url="$1"
+    local dest_dir="$2"
+    local filename
+    filename=$(basename "$url")
+    local dest="$dest_dir/$filename"
+
+    if [[ "$CHECK_ONLY" == "true" ]]; then
+        if [[ -f "$dest" ]]; then
+            echo "  EXISTS: $filename ($(du -h "$dest" | cut -f1))"
+        else
+            echo "  DOWNLOAD: $url"
+        fi
+        return
+    fi
+
+    if [[ -f "$dest" ]]; then
+        echo "  Already downloaded: $filename"
+        return
+    fi
+
+    echo "  Downloading: $filename"
+    curl -fL -o "$dest.partial" --progress-bar "$url" || {
+        echo "  Warning: Failed to download $filename (may not exist yet)" >&2
+        rm -f "$dest.partial"
+        return 1
+    }
+    mv "$dest.partial" "$dest"
+}
+
+fetch_package_list() {
+    local base_url="$1"
+    local ext="$2"
+
+    # Fetch the directory listing and extract package filenames
+    curl -fsSL "$base_url/" 2>/dev/null | \
+        grep -oP "href=\"[^\"]+\.${ext}\"" | \
+        sed 's/href="//;s/"//' | \
+        sort -V
+}
+
+download_latest_packages() {
+    local base_url="$1"
+    local dest_dir="$2"
+    local ext="$3"
+    local packages=("docker-ce" "docker-ce-cli" "containerd.io" "docker-compose-plugin" "docker-buildx-plugin" "docker-ce-rootless-extras")
+
+    mkdir -p "$dest_dir"
+
+    # Get the full package list
+    local all_packages
+    all_packages=$(fetch_package_list "$base_url" "$ext")
+
+    if [[ -z "$all_packages" ]]; then
+        echo "  Warning: Could not fetch package list from $base_url" >&2
+        return 1
+    fi
+
+    # For each required package, download the latest version
+    for pkg in "${packages[@]}"; do
+        local latest
+        latest=$(echo "$all_packages" | grep "^${pkg}_\|^${pkg}-[0-9]" | tail -1)
+        if [[ -n "$latest" ]]; then
+            download_pkg "${base_url}/${latest}" "$dest_dir" || true
+        else
+            echo "  Note: $pkg not found in repository listing"
+        fi
+    done
+}
+
+echo "=== Docker CE Package Downloads ==="
+echo "Directory: $PKG_DIR"
+echo ""
+
+if [[ "$DOWNLOAD_DEBIAN" == "true" ]]; then
+    echo "Debian (trixie/amd64) packages:"
+    DEB_DIR="$PKG_DIR/debian"
+    download_latest_packages "$DOCKER_DEB_BASE" "$DEB_DIR" "deb"
+    echo ""
+fi
+
+if [[ "$DOWNLOAD_FEDORA" == "true" ]]; then
+    echo "Fedora 43 (x86_64) packages:"
+    RPM_DIR="$PKG_DIR/fedora"
+    download_latest_packages "$DOCKER_RPM_BASE" "$RPM_DIR" "rpm"
+    echo ""
+fi
+
+if [[ "$CHECK_ONLY" != "true" ]]; then
+    echo "=== Done ==="
+    echo "Packages saved to: $PKG_DIR"
+    find "$PKG_DIR" -type f \( -name '*.deb' -o -name '*.rpm' \) -exec ls -lh {} \; 2>/dev/null || true
+fi

@@ -1,0 +1,64 @@
+#!/bin/bash
+## Build a raw disk image for the NixOS workstation USB
+set -eo pipefail
+
+BIN=$(dirname $(realpath ${BASH_SOURCE}))
+ROOT_DIR=$(dirname ${BIN})
+source ${BIN}/funcs.sh
+
+usage() {
+    echo "Usage: d.rymcg.tech workstation-usb-image [OPTIONS]"
+    echo ""
+    echo "Build a raw NixOS disk image for the workstation USB."
+    echo "The image can be written to a USB drive with dd."
+    echo ""
+    echo "Options:"
+    echo "  --dry-run    Show what would be built without building"
+    echo "  -h, --help   Show this help"
+    echo ""
+    echo "After building:"
+    echo "  dd if=result/*.img of=/dev/sdX bs=4M status=progress conv=fsync"
+    echo "  # Then mount and run: d.rymcg.tech workstation-usb-post-install /mnt"
+}
+
+DRY_RUN=""
+
+while [[ $# -gt 0 ]]; do
+    case "$1" in
+        --dry-run)
+            DRY_RUN="--dry-run"
+            shift
+            ;;
+        -h|--help)
+            usage
+            exit 0
+            ;;
+        *)
+            echo "Unknown option: $1" >&2
+            usage >&2
+            exit 1
+            ;;
+    esac
+done
+
+echo "=== Building workstation USB image ==="
+echo "Flake: ${ROOT_DIR}"
+echo ""
+
+if [[ -n "$DRY_RUN" ]]; then
+    echo "(dry run)"
+    nix build "${ROOT_DIR}#workstation-usb-image" --dry-run
+else
+    nix build "${ROOT_DIR}#workstation-usb-image"
+    echo ""
+    echo "=== Build complete ==="
+    echo "Image: $(ls -lh result/*.img 2>/dev/null || ls -lh result/* 2>/dev/null)"
+    echo ""
+    echo "Write to USB with:"
+    echo "  dd if=result/*.img of=/dev/sdX bs=4M status=progress conv=fsync"
+    echo ""
+    echo "Then mount the USB and copy archive data:"
+    echo "  mount /dev/sdX2 /mnt && mount /dev/sdX1 /mnt/boot"
+    echo "  d.rymcg.tech workstation-usb-post-install /mnt"
+    echo "  umount -R /mnt"
+fi

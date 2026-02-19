@@ -1,0 +1,53 @@
+#!/bin/bash
+## Direct install NixOS workstation to a USB device
+set -eo pipefail
+
+BIN=$(dirname $(realpath ${BASH_SOURCE}))
+ROOT_DIR=$(dirname ${BIN})
+source ${BIN}/funcs.sh
+
+usage() {
+    echo "Usage: d.rymcg.tech workstation-usb-install /dev/sdX"
+    echo ""
+    echo "Install the NixOS workstation directly to a USB device."
+    echo "This will partition, format, and install NixOS, then copy archive data."
+    echo ""
+    echo "WARNING: This will ERASE ALL DATA on the target device."
+    echo ""
+    echo "Options:"
+    echo "  -h, --help   Show this help"
+}
+
+DEVICE=""
+
+while [[ $# -gt 0 ]]; do
+    case "$1" in
+        -h|--help)
+            usage
+            exit 0
+            ;;
+        *)
+            if [[ -z "$DEVICE" ]]; then
+                DEVICE="$1"
+            else
+                echo "Error: unexpected argument: $1" >&2
+                usage >&2
+                exit 1
+            fi
+            shift
+            ;;
+    esac
+done
+
+if [[ -z "$DEVICE" ]]; then
+    echo "Error: No device specified." >&2
+    usage >&2
+    exit 1
+fi
+
+if [[ $EUID -ne 0 ]]; then
+    echo "Error: This script must be run as root (or with sudo)." >&2
+    exit 1
+fi
+
+exec "${ROOT_DIR}/nix/workstation/installer/install-to-device.sh" "$DEVICE"

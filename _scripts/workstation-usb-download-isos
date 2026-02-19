@@ -1,0 +1,107 @@
+#!/bin/bash
+## Download Debian and Fedora ISOs for offline workstation use
+set -eo pipefail
+
+BIN=$(dirname $(realpath ${BASH_SOURCE}))
+ROOT_DIR=$(dirname ${BIN})
+source ${BIN}/funcs.sh
+
+ISOS_DIR="${ROOT_DIR}/_archive/isos"
+
+# ISO URLs — update these when new releases come out
+DEBIAN_ISO_URL="https://cdimage.debian.org/debian-cd/current/amd64/iso-dvd/debian-13.0.0-amd64-DVD-1.iso"
+FEDORA_ISO_URL="https://download.fedoraproject.org/pub/fedora/linux/releases/43/Server/x86_64/iso/Fedora-Server-dvd-x86_64-43-1.1.iso"
+
+usage() {
+    echo "Usage: d.rymcg.tech workstation-usb-download-isos [OPTIONS]"
+    echo ""
+    echo "Download Debian and Fedora ISOs for offline use."
+    echo "ISOs are saved to: ${ISOS_DIR}"
+    echo ""
+    echo "Options:"
+    echo "  --debian-only    Download only Debian ISO"
+    echo "  --fedora-only    Download only Fedora ISO"
+    echo "  --check          Show what would be downloaded"
+    echo "  -h, --help       Show this help"
+}
+
+DOWNLOAD_DEBIAN=true
+DOWNLOAD_FEDORA=true
+CHECK_ONLY=false
+
+while [[ $# -gt 0 ]]; do
+    case "$1" in
+        --debian-only)
+            DOWNLOAD_FEDORA=false
+            shift
+            ;;
+        --fedora-only)
+            DOWNLOAD_DEBIAN=false
+            shift
+            ;;
+        --check)
+            CHECK_ONLY=true
+            shift
+            ;;
+        -h|--help)
+            usage
+            exit 0
+            ;;
+        *)
+            echo "Unknown option: $1" >&2
+            usage >&2
+            exit 1
+            ;;
+    esac
+done
+
+mkdir -p "$ISOS_DIR"
+
+download_iso() {
+    local url="$1"
+    local filename
+    filename=$(basename "$url")
+    local dest="$ISOS_DIR/$filename"
+
+    if [[ "$CHECK_ONLY" == "true" ]]; then
+        if [[ -f "$dest" ]]; then
+            echo "  EXISTS: $filename ($(du -h "$dest" | cut -f1))"
+        else
+            echo "  DOWNLOAD: $url"
+        fi
+        return
+    fi
+
+    if [[ -f "$dest" ]]; then
+        echo "Already downloaded: $filename"
+        return
+    fi
+
+    echo "Downloading: $url"
+    echo "Destination: $dest"
+    curl -L -o "$dest.partial" --progress-bar "$url"
+    mv "$dest.partial" "$dest"
+    echo "Downloaded: $filename ($(du -h "$dest" | cut -f1))"
+}
+
+echo "=== ISO Downloads ==="
+echo "Directory: $ISOS_DIR"
+echo ""
+
+if [[ "$DOWNLOAD_DEBIAN" == "true" ]]; then
+    echo "Debian 13:"
+    download_iso "$DEBIAN_ISO_URL"
+    echo ""
+fi
+
+if [[ "$DOWNLOAD_FEDORA" == "true" ]]; then
+    echo "Fedora 43 Server:"
+    download_iso "$FEDORA_ISO_URL"
+    echo ""
+fi
+
+if [[ "$CHECK_ONLY" != "true" ]]; then
+    echo "=== Done ==="
+    echo "ISOs saved to: $ISOS_DIR"
+    ls -lh "$ISOS_DIR"/*.iso 2>/dev/null || true
+fi
