@@ -192,7 +192,7 @@ acme_sh() {
     echo
     ${BIN}/confirm no "Do you want to limit the IP range that this client may call the acme-dns API from" "?" && ${BIN}/reconfigure_ask ${ENV_FILE} TRAEFIK_ACME_SH_ACMEDNS_ALLOW_FROM "JSON array or comma-separated list of CIDRs that are allowed to update TXT records for this client" ""
 
-    make -C ${ROOT_DIR}/traefik acme-sh-register
+    make -C ${ROOT_DIR}/traefik BUILD=${BUILD} acme-sh-register
 
     echo "acme.sh mode configured."
     echo "Next steps:"
