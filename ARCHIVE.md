@@ -99,7 +99,8 @@ d.rymcg.tech image-archive [OPTIONS]
 ### Restoring
 
 Loads archived images back onto a Docker host. Verifies SHA256 hashes
-from the manifest before loading each image.
+from the manifest before loading each image. Images that already exist
+on the server with the same image ID are skipped.
 
 ```bash
 d.rymcg.tech image-restore [OPTIONS]
@@ -108,6 +109,7 @@ d.rymcg.tech image-restore [OPTIONS]
 | Option | Description |
 |--------|-------------|
 | `--project=NAME` | Restore a single project |
+| `--force` | Restore even if image already exists on server |
 | `--dry-run` | Show what would be restored |
 | `--archive-dir=PATH` | Load from alternate location |
 

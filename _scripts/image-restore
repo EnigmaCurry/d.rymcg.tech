@@ -7,12 +7,14 @@
 """Load archived Docker images from tar.gz files into the Docker host.
 
 Reads the manifest.json produced by image-archive and loads each image
-via docker load.
+via docker load. Skips images that already exist on the server with the
+same image ID.
 
 Usage:
     d.rymcg.tech image-restore                    # restore everything
     d.rymcg.tech image-restore --project=traefik  # single project
     d.rymcg.tech image-restore --dry-run          # show what would be restored
+    d.rymcg.tech image-restore --force            # restore even if image exists
     d.rymcg.tech image-restore --archive-dir=PATH # override archive dir
 """
 
@@ -24,7 +26,7 @@ import sys
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
-from image_lib import ROOT_DIR, sha256sum
+from image_lib import ROOT_DIR, sha256sum, get_docker_image_id
 
 
 def main():
@@ -35,6 +37,8 @@ def main():
                         help="Restore only this project's images")
     parser.add_argument("--dry-run", action="store_true",
                         help="Show what would be restored without executing")
+    parser.add_argument("--force", action="store_true",
+                        help="Restore even if image already exists on server")
     parser.add_argument("--archive-dir", type=str, default=None,
                         help="Override archive directory (default: _archive/images)")
     args = parser.parse_args()
@@ -63,6 +67,7 @@ def main():
         sys.exit(1)
 
     restored = 0
+    skipped = 0
     failures = []
 
     for entry in entries:
@@ -74,6 +79,16 @@ def main():
             print(f"  MISSING: {archive_file}")
             failures.append(f"{image}: archive file not found")
             continue
+
+        # Check if image already exists on server with same ID
+        if not args.force:
+            archived_id = entry.get("docker_id")
+            if archived_id:
+                current_id = get_docker_image_id(image)
+                if current_id and current_id == archived_id:
+                    print(f"  [skip] {image} (already exists, {size_mb:.1f} MB)")
+                    skipped += 1
+                    continue
 
         # Verify SHA256 hash if available
         expected_hash = entry.get("sha256")
@@ -108,6 +123,8 @@ def main():
     print()
     print(f"=== SUMMARY ===")
     print(f"  Restored: {restored} images")
+    if skipped:
+        print(f"  Skipped: {skipped} (already exist)")
     if failures:
         print(f"  Failures: {len(failures)}")
         for f in failures:
