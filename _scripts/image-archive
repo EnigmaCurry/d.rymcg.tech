@@ -21,13 +21,17 @@ Usage:
     d.rymcg.tech image-archive --no-cache         # build without Docker layer cache
     d.rymcg.tech image-archive --force            # re-archive even if file exists
     d.rymcg.tech image-archive --fail-fast        # stop on first error
+    d.rymcg.tech image-archive --rebuild-manifest # rebuild manifest from archive files
 """
 
 import argparse
+import gzip
 import json
 import subprocess
 import sys
+import tarfile
 from datetime import datetime, timezone
+from io import BytesIO
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
@@ -63,6 +67,84 @@ def save_image(ssh_host: str, image: str, output_path: Path, verbose: bool = Fal
         return False
 
 
+def extract_image_name(archive_path: Path) -> str | None:
+    """Extract the image repo:tag from inside a docker save .tar.gz archive."""
+    try:
+        with gzip.open(archive_path, "rb") as gz:
+            with tarfile.open(fileobj=gz, mode="r:") as tar:
+                try:
+                    member = tar.getmember("manifest.json")
+                except KeyError:
+                    return None
+                f = tar.extractfile(member)
+                if f is None:
+                    return None
+                data = json.loads(f.read())
+                # manifest.json is a list of entries, each with RepoTags
+                for entry in data:
+                    tags = entry.get("RepoTags", [])
+                    if tags:
+                        return tags[0]
+    except Exception:
+        return None
+    return None
+
+
+def rebuild_manifest(base_dir: Path, arch: str) -> None:
+    """Rebuild manifest.json by scanning all .tar.gz archive files."""
+    output_dir = base_dir / arch
+    if not output_dir.exists():
+        print(f"ERROR: Archive directory not found: {output_dir}", file=sys.stderr)
+        sys.exit(1)
+
+    print(f"Scanning {output_dir} for archived images...")
+    archives = sorted(output_dir.rglob("*.tar.gz"))
+    if not archives:
+        print("No .tar.gz files found.", file=sys.stderr)
+        sys.exit(1)
+
+    images: list[dict] = []
+    for archive_path in archives:
+        rel = archive_path.relative_to(output_dir)
+        project = rel.parts[0] if len(rel.parts) > 1 else "unknown"
+        size = archive_path.stat().st_size
+        size_mb = size / (1024 * 1024)
+
+        print(f"  {rel} ({size_mb:.1f} MB)...", end="", flush=True)
+        image_name = extract_image_name(archive_path)
+        if not image_name:
+            print(f" WARNING: could not extract image name, skipping")
+            continue
+
+        file_hash = sha256sum(archive_path)
+        print(f" {image_name}")
+
+        images.append({
+            "project": project,
+            "image": image_name,
+            "file": str(rel),
+            "size": size,
+            "sha256": file_hash,
+            "archived_at": datetime.fromtimestamp(
+                archive_path.stat().st_mtime, tz=timezone.utc
+            ).isoformat(),
+        })
+
+    manifest_path = output_dir / "manifest.json"
+    manifest = {
+        "archived_at": datetime.now(timezone.utc).isoformat(),
+        "arch": arch,
+        "output_dir": str(output_dir),
+        "images": images,
+    }
+    with open(manifest_path, "w") as f:
+        json.dump(manifest, f, indent=2)
+
+    total_mb = sum(i["size"] for i in images) / (1024 * 1024)
+    print(f"\nRebuilt manifest with {len(images)} images ({total_mb:.1f} MB)")
+    print(f"Written to {manifest_path}")
+
+
 def main():
     parser = argparse.ArgumentParser(
         description="Pull, build, and archive all Docker images from d.rymcg.tech projects.",
@@ -87,7 +169,20 @@ def main():
                         help="Re-archive even if archive file already exists")
     parser.add_argument("--fail-fast", action="store_true",
                         help="Stop on the first build/pull/save error")
+    parser.add_argument("--rebuild-manifest", action="store_true",
+                        help="Rebuild manifest.json from existing archive files")
     args = parser.parse_args()
+
+    if args.rebuild_manifest:
+        base_dir = Path(args.output_dir) if args.output_dir else ROOT_DIR / "_archive" / "images"
+        # Detect arch from existing subdirectories
+        arch_dirs = [d for d in base_dir.iterdir() if d.is_dir()] if base_dir.exists() else []
+        if not arch_dirs:
+            print(f"ERROR: No architecture directories found in {base_dir}", file=sys.stderr)
+            sys.exit(1)
+        for arch_dir in sorted(arch_dirs):
+            rebuild_manifest(base_dir, arch_dir.name)
+        return
 
     # Get Docker context and SSH host
     if not args.dry_run:
