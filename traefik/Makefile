@@ -123,7 +123,7 @@ acme-sh-cron-schedule:
 	@SCHEDULE="$$(${BIN}/dotenv -f ${ENV_FILE} get TRAEFIK_ACME_SH_CRON_SCHEDULE)"; make --no-print-directory docker-compose-shell SERVICE=acme-sh COMMAND="crontab -l"
 
 .PHONY: acme-sh-register
-acme-sh-register: build
+acme-sh-register: $(if $(BUILD),build)
 	@make --no-print-directory docker-compose-lifecycle-cmd EXTRA_ARGS="run --rm acme-sh register-acmedns"
 
 .PHONY: acme-sh-cert
