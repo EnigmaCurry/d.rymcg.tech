@@ -26,7 +26,22 @@ import sys
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
-from image_lib import ROOT_DIR, sha256sum, get_docker_image_id
+from image_lib import ROOT_DIR, sha256sum
+
+
+def get_server_image_ids() -> dict[str, str]:
+    """Get all image repo:tag -> ID mappings from the Docker host in one call."""
+    result = subprocess.run(
+        ["docker", "images", "--no-trunc", "--format", "{{.Repository}}:{{.Tag}} {{.ID}}"],
+        capture_output=True, text=True,
+    )
+    ids: dict[str, str] = {}
+    if result.returncode == 0:
+        for line in result.stdout.strip().splitlines():
+            parts = line.rsplit(" ", 1)
+            if len(parts) == 2 and parts[0] != "<none>:<none>":
+                ids[parts[0]] = parts[1]
+    return ids
 
 
 def main():
@@ -66,6 +81,13 @@ def main():
         print("No images to restore.", file=sys.stderr)
         sys.exit(1)
 
+    # Fetch all image IDs from the server in one call
+    if not args.force:
+        print("Checking server for existing images...", flush=True)
+        server_ids = get_server_image_ids()
+    else:
+        server_ids = {}
+
     restored = 0
     skipped = 0
     failures = []
@@ -83,12 +105,11 @@ def main():
         # Check if image already exists on server with same ID
         if not args.force:
             archived_id = entry.get("docker_id")
-            if archived_id:
-                current_id = get_docker_image_id(image)
-                if current_id and current_id == archived_id:
-                    print(f"  [skip] {image} (already exists, {size_mb:.1f} MB)")
-                    skipped += 1
-                    continue
+            server_id = server_ids.get(image)
+            if archived_id and server_id and server_id == archived_id:
+                print(f"  [skip] {image} (already exists, {size_mb:.1f} MB)")
+                skipped += 1
+                continue
 
         # Verify SHA256 hash if available
         expected_hash = entry.get("sha256")
