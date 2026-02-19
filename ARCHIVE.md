@@ -93,6 +93,7 @@ d.rymcg.tech image-archive [OPTIONS]
 | `--dry-run` | Show what would be done |
 | `--output-dir=PATH` | Override output directory |
 | `--verbose` | Show docker command output |
+| `--exclude=NAME` | Exclude a project (can be repeated) |
 | `--rebuild-manifest` | Rebuild manifest.json from existing archive files |
 
 ### Restoring
