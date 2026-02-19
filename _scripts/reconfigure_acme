@@ -123,8 +123,16 @@ acme_sh() {
     ${BIN}/reconfigure ${ENV_FILE} TRAEFIK_ACME_CHALLENGE=dns
 
     echo
+    CURRENT_CA="$(${BIN}/dotenv -f ${ENV_FILE} get TRAEFIK_ACME_SH_ACME_CA)"
+    ACME_SH_DEFAULT=0
+    case "${CURRENT_CA}" in
+        acme-v02.api.letsencrypt.org)       ACME_SH_DEFAULT=0 ;;
+        acme-staging-v02.api.letsencrypt.org) ACME_SH_DEFAULT=1 ;;
+        "") ACME_SH_DEFAULT=0 ;;
+        *)  ACME_SH_DEFAULT=2 ;;
+    esac
     ACME_BACKEND=$(
-      wizard choose --numeric "Which ACME server should acme.sh use?" \
+      wizard choose -d $ACME_SH_DEFAULT --numeric "Which ACME server should acme.sh use?" \
         "Let's Encrypt (production)" \
         "Let's Encrypt (staging / testing)" \
         "Custom (Step-CA / other ACME)"
