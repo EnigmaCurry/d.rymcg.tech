@@ -152,13 +152,17 @@ acme_sh() {
          ;;
       *) # Custom / Step-CA
          echo
-         echo "Enter your Step-CA host (no scheme, no path), e.g.: ca.example.com"
-         ${BIN}/reconfigure_ask ${ENV_FILE} TRAEFIK_ACME_SH_ACME_CA "ACME CA host"
-         # Reset LE directory path so the prompt defaults to the Step-CA path
+         # Reset LE defaults so the prompts show Step-CA values
+         CURRENT_CA="$(${BIN}/dotenv -f ${ENV_FILE} get TRAEFIK_ACME_SH_ACME_CA)"
+         if [[ "${CURRENT_CA}" == *"api.letsencrypt.org" ]]; then
+             ${BIN}/reconfigure ${ENV_FILE} TRAEFIK_ACME_SH_ACME_CA=ca.example.com
+         fi
          CURRENT_DIR="$(${BIN}/dotenv -f ${ENV_FILE} get TRAEFIK_ACME_SH_ACME_DIRECTORY)"
          if [[ "${CURRENT_DIR}" == "/directory" ]]; then
              ${BIN}/reconfigure ${ENV_FILE} TRAEFIK_ACME_SH_ACME_DIRECTORY=/acme/acme/directory
          fi
+         echo "Enter your Step-CA host (no scheme, no path), e.g.: ca.example.com"
+         ${BIN}/reconfigure_ask ${ENV_FILE} TRAEFIK_ACME_SH_ACME_CA "ACME CA host"
          echo "Enter the ACME directory path, e.g.: /acme/acme/directory"
          ${BIN}/reconfigure_ask ${ENV_FILE} TRAEFIK_ACME_SH_ACME_DIRECTORY "ACME directory path" "/acme/acme/directory"
          # With private CA we usually TOFU then optionally merge system trust
