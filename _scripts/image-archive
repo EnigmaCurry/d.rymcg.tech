@@ -67,27 +67,37 @@ def save_image(ssh_host: str, image: str, output_path: Path, verbose: bool = Fal
         return False
 
 
-def extract_image_name(archive_path: Path) -> str | None:
-    """Extract the image repo:tag from inside a docker save .tar.gz archive."""
+def extract_image_info(archive_path: Path) -> tuple[str | None, str | None]:
+    """Extract the image repo:tag and docker ID from a docker save .tar.gz archive.
+
+    Returns (image_name, docker_id) tuple.
+    """
     try:
         with gzip.open(archive_path, "rb") as gz:
             with tarfile.open(fileobj=gz, mode="r:") as tar:
                 try:
                     member = tar.getmember("manifest.json")
                 except KeyError:
-                    return None
+                    return None, None
                 f = tar.extractfile(member)
                 if f is None:
-                    return None
+                    return None, None
                 data = json.loads(f.read())
-                # manifest.json is a list of entries, each with RepoTags
                 for entry in data:
+                    name = None
+                    docker_id = None
                     tags = entry.get("RepoTags", [])
                     if tags:
-                        return tags[0]
+                        name = tags[0]
+                    # Config field is "{id}.json" — the sha256 image ID
+                    config = entry.get("Config", "")
+                    if config.endswith(".json"):
+                        docker_id = "sha256:" + config.removesuffix(".json")
+                    if name:
+                        return name, docker_id
     except Exception:
-        return None
-    return None
+        return None, None
+    return None, None
 
 
 def rebuild_manifest(base_dir: Path, arch: str) -> None:
@@ -111,7 +121,7 @@ def rebuild_manifest(base_dir: Path, arch: str) -> None:
         size_mb = size / (1024 * 1024)
 
         print(f"  {rel} ({size_mb:.1f} MB)...", end="", flush=True)
-        image_name = extract_image_name(archive_path)
+        image_name, docker_id = extract_image_info(archive_path)
         if not image_name:
             print(f" WARNING: could not extract image name, skipping")
             continue
@@ -119,7 +129,7 @@ def rebuild_manifest(base_dir: Path, arch: str) -> None:
         file_hash = sha256sum(archive_path)
         print(f" {image_name}")
 
-        images.append({
+        entry = {
             "project": project,
             "image": image_name,
             "file": str(rel),
@@ -128,7 +138,10 @@ def rebuild_manifest(base_dir: Path, arch: str) -> None:
             "archived_at": datetime.fromtimestamp(
                 archive_path.stat().st_mtime, tz=timezone.utc
             ).isoformat(),
-        })
+        }
+        if docker_id:
+            entry["docker_id"] = docker_id
+        images.append(entry)
 
     manifest_path = output_dir / "manifest.json"
     manifest = {
