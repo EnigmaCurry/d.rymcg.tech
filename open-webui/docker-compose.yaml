@@ -1,3 +1,6 @@
+volumes:
+  ollama:
+
 services:
   openwebui:
     image: ${OPENWEBUI_IMAGE}

@@ -74,7 +74,7 @@ services:
     labels: []
 
   companion:
-    image: quay.io/invidious/invidious-companion:latest
+    image: ${INVIDIOUS_COMPANION_IMAGE}
     environment:
       - SERVER_SECRET_KEY=${INVIDIOUS_COMPANION_KEY} 
     restart: unless-stopped

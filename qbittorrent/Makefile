@@ -55,3 +55,5 @@ build-hook-pre:
 	cat ${BIN}/app-router-bootstrap-entrypoint.sh >> qbittorrent/app-router-bootstrap.sh
 	@[[ -f "qbittorrent-config/categories_${DOCKER_CONTEXT}_${INSTANCE}.json" ]] && echo "\`qbittorrent-config/categories_${DOCKER_CONTEXT}_${INSTANCE}.json\` already exists." || \
 		cp qbittorrent-config/categories-dist.json qbittorrent-config/categories_${DOCKER_CONTEXT}_${INSTANCE}.json
+	@[[ -f "qbittorrent-config/categories_dist_default.json" ]] || \
+		cp qbittorrent-config/categories-dist.json qbittorrent-config/categories_dist_default.json

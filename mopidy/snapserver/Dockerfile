@@ -14,7 +14,7 @@ RUN apk add --no-cache gdb librespot snapcast-server dbus avahi avahi-compat-lib
 
 COPY --from=builder /snapweb-0.2.0/dist /usr/share/snapserver/snapweb
 COPY startup.sh startup.sh
-RUN ln -s /etc/snapserver/snapserver.conf /etc/snapserver.conf && \
+RUN ln -sf /etc/snapserver/snapserver.conf /etc/snapserver.conf && \
     chmod +x ./startup.sh
 
 EXPOSE 1704 1705 1780

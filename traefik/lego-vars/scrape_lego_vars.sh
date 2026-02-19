@@ -9,7 +9,7 @@ export SCRIPT_DIR="$(realpath "$(dirname "${BASH_SOURCE[0]}")")"
 rm -rf "$WORKDIR"
 git clone --depth=1 "$REPO_URL" "$WORKDIR"
 
-python3 - <<'PY'
+uv run python3 - <<'PY'
 import os, sys, re, pathlib, glob
 
 # --- setup paths from env ---

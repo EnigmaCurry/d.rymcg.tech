@@ -1,11 +1,11 @@
-FROM debian:buster-slim
+FROM debian:bookworm-slim
 ENV DEBIAN_FRONTEND=noninteractive
 
 RUN apt-get update && \
     apt-get install -y --no-install-recommends wget ca-certificates gnupg && \
-    mkdir -p /usr/local/share/keyrings && \
-    wget -q -O /usr/local/share/keyrings/mopidy-archive-keyring.gpg https://apt.mopidy.com/mopidy.gpg && \
-    wget -q -O /etc/apt/sources.list.d/mopidy.list https://apt.mopidy.com/buster.list
+    mkdir -p /etc/apt/keyrings && \
+    wget -q -O /etc/apt/keyrings/mopidy-archive-keyring.gpg https://apt.mopidy.com/mopidy.gpg && \
+    wget -q -O /etc/apt/sources.list.d/mopidy.list https://apt.mopidy.com/bookworm.list
 
 RUN apt-get update && \
     apt-get install -y --no-install-recommends \
@@ -28,30 +28,25 @@ RUN apt-get update && \
       libxslt1-dev \
       libffi-dev \
       libz-dev \
-      # libspotify12 \
-      # libspotify-dev \
-      # python3-spotify \
       python3-setuptools \
       git && \
     rm -rf /var/lib/apt/lists/* && \
-    pip3 install \
+    pip3 install --break-system-packages \
       Mopidy \
       Mopidy-MPD \
       Mopidy-Local \
-      #Mopidy-SoundCloud \
       Mopidy-SomaFM \
-      # Mopidy-YTMusic \
-      # Mopidy-Spotify \
       Mopidy-TuneIn \
       Mopidy-Iris && \
-    python3 -m pip install "git+https://github.com/mopidy/mopidy-soundcloud@fc766b0bf17feb4fc989029b92a315a10ff453ee"
+    python3 -m pip install --break-system-packages \
+      "git+https://github.com/mopidy/mopidy-soundcloud@fc766b0bf17feb4fc989029b92a315a10ff453ee"
 
-RUN touch /IS_CONTAINER && \
+RUN PYTHON_SITE=$(python3 -c "import site; print(site.getsitepackages()[0])") && \
+    touch /IS_CONTAINER && \
     useradd -ms /bin/bash mopidy && \
-    sh -c 'echo "mopidy ALL=NOPASSWD: /usr/local/lib/python3.7/dist-packages/mopidy_iris/system.sh, /usr/bin/apt*" >> /etc/sudoers' && \
-    sed -i 's+--config .*mopidy.conf+--config /home/mopidy/.config/mopidy/mopidy.conf+g' \
-      # Fixes the silly iris script with built-in paths
-      /usr/local/lib/python3.7/dist-packages/mopidy_iris/system.sh && \
+    sh -c "echo \"mopidy ALL=NOPASSWD: ${PYTHON_SITE}/mopidy_iris/system.sh, /usr/bin/apt*\" >> /etc/sudoers" && \
+    sed -i "s+--config .*mopidy.conf+--config /home/mopidy/.config/mopidy/mopidy.conf+g" \
+      "${PYTHON_SITE}/mopidy_iris/system.sh" && \
     mkdir -p /media/music && \
     chown mopidy:mopidy /media/music
 VOLUME /media/music

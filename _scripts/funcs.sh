@@ -788,7 +788,7 @@ ip_from_minaddr_6() {
     if [[ -z $cidr ]]; then echo "Usage: ip_from_minaddr_6 <CIDR> [n<=2^64‑1]" >&2; return 2; fi
     if ! [[ $n =~ ^[0-9]+$ ]] || (( n < 1 )); then echo "Error: n must be a positive integer (>= 1)" >&2; return 2; fi
     local out
-    out=$(python3 - <<'PY' "$cidr" "$n"
+    out=$(uv run python3 - <<'PY' "$cidr" "$n"
 import sys, ipaddress
 cidr = sys.argv[1]
 n = int(sys.argv[2])
