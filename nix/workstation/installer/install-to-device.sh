@@ -69,7 +69,7 @@ mkfs.ext4 -L nixos -F "$ROOT"
 echo "=== Mounting ==="
 mount "$ROOT" "$MOUNT"
 mkdir -p "$MOUNT/boot"
-mount "$ESP" "$MOUNT/boot"
+mount -o umask=0077 "$ESP" "$MOUNT/boot"
 
 echo "=== Installing NixOS ==="
 "$NIXOS_INSTALL" --system "$SYSTEM_PATH" --root "$MOUNT" --no-root-password --no-channel-copy

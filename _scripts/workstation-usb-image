@@ -130,7 +130,7 @@ mkfs.ext4 -L nixos -F "${LOOP}p2"
 # Mount
 mount "${LOOP}p2" "$MOUNT"
 mkdir -p "$MOUNT/boot"
-mount "${LOOP}p1" "$MOUNT/boot"
+mount -o umask=0077 "${LOOP}p1" "$MOUNT/boot"
 
 # Install NixOS
 echo "=== Installing NixOS into image ==="
