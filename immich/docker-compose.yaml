@@ -23,6 +23,7 @@ services:
       - NET_RAW
   
   machine-learning:
+    image: ${IMMICH_ML_IMAGE:-ghcr.io/immich-app/immich-machine-learning:release}
     volumes:
       - model-cache:/cache
     restart: unless-stopped
