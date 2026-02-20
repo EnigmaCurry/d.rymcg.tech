@@ -30,10 +30,10 @@
 
       programs.home-manager.enable = true;
 
-      # Firefox: dark theme, DuckDuckGo only, no telemetry, blank new tab
-      # Policies are set at NixOS system level in desktop.nix
+      # Firefox profile config (package installed + policies set in desktop.nix)
       programs.firefox = {
         enable = true;
+        package = null;  # don't install a second copy; system Firefox from desktop.nix
 
         profiles.default = {
           isDefault = true;
