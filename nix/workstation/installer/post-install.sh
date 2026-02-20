@@ -137,6 +137,14 @@ if [[ -n "$HM_GEN" ]] && [[ -L "$HM_GEN/home-files" ]]; then
         # Nix store sources are read-only; make .emacs.d writable so emacs
         # can create subdirectories (auto-save/, straight/, custom.el, etc.)
         chmod u+w "$USER_HOME/.emacs.d"
+        # If custom.el is a symlink to the nix store (read-only), replace it
+        # with a writable copy so customize-save-customized can write to it
+        if [[ -L "$USER_HOME/.emacs.d/custom.el" ]]; then
+            _custom_target=$(readlink -f "$USER_HOME/.emacs.d/custom.el")
+            rm "$USER_HOME/.emacs.d/custom.el"
+            cp "$_custom_target" "$USER_HOME/.emacs.d/custom.el"
+            chown "$_uid:$_gid" "$USER_HOME/.emacs.d/custom.el"
+        fi
         echo "Created ~/.emacs.d from home-manager generation"
     else
         echo "Warning: home-manager generation found but no .emacs.d directory"
@@ -160,6 +168,7 @@ chroot "$MOUNT" /run/current-system/sw/bin/su - user -c '
     emacs --batch \
         -l ~/.emacs.d/init.el \
         --eval "(progn
+            (setq custom-file (expand-file-name \"custom.el\" user-emacs-directory))
             (my/load-modules (my/machine-labels-available))
             (customize-set-variable (quote my/machine-labels) (my/machine-labels-available))
             (customize-save-customized)
