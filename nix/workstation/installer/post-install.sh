@@ -51,15 +51,11 @@ copy_to_store() {
     size=$(du -sh "$source_dir" | cut -f1)
     echo "Size: $size"
 
-    # Add to the host nix store first
-    echo "Adding to nix store (this may take a while for large archives)..."
+    # Add directly to the USB's nix store (avoids doubling storage on host)
+    echo "Adding to USB nix store (this may take a while for large archives)..."
     local store_path
-    store_path=$(nix store add --name "$gcroot_name" "$source_dir")
+    store_path=$(nix store add --store "local?root=$MOUNT" --name "$gcroot_name" "$source_dir")
     echo "Store path: $store_path"
-
-    # Copy from host store to USB store
-    echo "Copying to USB nix store..."
-    nix copy --to "local?root=$MOUNT" "$store_path"
 
     # Create GC root on the USB
     ln -sfn "$store_path" "$GCROOT_DIR/$gcroot_name"
