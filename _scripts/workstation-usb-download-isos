@@ -1,5 +1,5 @@
 #!/bin/bash
-## Download Debian and Fedora ISOs for offline workstation use
+## Download OS images (Debian, Fedora, Raspberry Pi OS) for offline workstation use
 set -eo pipefail
 
 BIN=$(dirname $(realpath ${BASH_SOURCE}))
@@ -16,35 +16,48 @@ FEDORA_RELEASE=43
 FEDORA_DIR_URL="https://download.fedoraproject.org/pub/fedora/linux/releases/${FEDORA_RELEASE}/Server/x86_64/iso/"
 FEDORA_ISO_PATTERN='Fedora-Server-dvd-x86_64-[0-9][0-9.-]*\.iso'
 
-# Minimum expected ISO size (100 MB)
-MIN_ISO_BYTES=$((100 * 1024 * 1024))
+RASPI_IMAGES_URL="https://downloads.raspberrypi.com/raspios_lite_arm64/images/"
+RASPI_SUBDIR_PATTERN='raspios_lite_arm64-[0-9]{4}-[0-9]{2}-[0-9]{2}'
+RASPI_IMAGE_PATTERN='[0-9]{4}-[0-9]{2}-[0-9]{2}-raspios-[a-z]+-arm64-lite\.img\.xz'
+
+# Minimum expected image size (100 MB)
+MIN_IMAGE_BYTES=$((100 * 1024 * 1024))
 
 usage() {
     echo "Usage: d.rymcg.tech workstation-usb-download-isos [OPTIONS]"
     echo ""
-    echo "Download Debian and Fedora ISOs for offline use."
-    echo "ISO filenames are auto-discovered from the upstream directories."
-    echo "ISOs are saved to: ${ISOS_DIR}"
+    echo "Download OS images for offline use."
+    echo "Filenames are auto-discovered from upstream directories."
+    echo "Images are saved to: ${ISOS_DIR}"
     echo ""
     echo "Options:"
     echo "  --debian-only    Download only Debian ISO"
     echo "  --fedora-only    Download only Fedora ISO"
+    echo "  --raspi-only     Download only Raspberry Pi OS Lite image"
     echo "  --check          Show what would be downloaded"
     echo "  -h, --help       Show this help"
 }
 
 DOWNLOAD_DEBIAN=true
 DOWNLOAD_FEDORA=true
+DOWNLOAD_RASPI=true
 CHECK_ONLY=false
 
 while [[ $# -gt 0 ]]; do
     case "$1" in
         --debian-only)
             DOWNLOAD_FEDORA=false
+            DOWNLOAD_RASPI=false
             shift
             ;;
         --fedora-only)
             DOWNLOAD_DEBIAN=false
+            DOWNLOAD_RASPI=false
+            shift
+            ;;
+        --raspi-only)
+            DOWNLOAD_DEBIAN=false
+            DOWNLOAD_FEDORA=false
             shift
             ;;
         --check)
@@ -65,19 +78,19 @@ done
 
 mkdir -p "$ISOS_DIR"
 
-discover_iso() {
+discover_filename() {
     local dir_url="$1"
     local pattern="$2"
     local filename
     filename=$(curl -sfL "$dir_url" | grep -oP "$pattern" | sort -V | tail -1)
     if [[ -z "$filename" ]]; then
-        echo "Error: Could not find ISO matching '$pattern' at $dir_url" >&2
+        echo "Error: Could not find file matching '$pattern' at $dir_url" >&2
         return 1
     fi
     echo "$filename"
 }
 
-download_iso() {
+download_image() {
     local dir_url="$1"
     local filename="$2"
     local url="${dir_url}${filename}"
@@ -95,7 +108,7 @@ download_iso() {
     if [[ -f "$dest" ]]; then
         local size
         size=$(stat --format=%s "$dest" 2>/dev/null || stat -f%z "$dest" 2>/dev/null)
-        if [[ "$size" -ge "$MIN_ISO_BYTES" ]]; then
+        if [[ "$size" -ge "$MIN_IMAGE_BYTES" ]]; then
             echo "Already downloaded: $filename ($(du -h "$dest" | cut -f1))"
             return
         fi
@@ -107,11 +120,11 @@ download_iso() {
     echo "Destination: $dest"
     curl -L --fail -o "$dest.partial" --progress-bar "$url"
 
-    # Verify the download is a real ISO, not an HTML error page
+    # Verify the download is a real image, not an HTML error page
     local size
     size=$(stat --format=%s "$dest.partial" 2>/dev/null || stat -f%z "$dest.partial" 2>/dev/null)
-    if [[ "$size" -lt "$MIN_ISO_BYTES" ]]; then
-        echo "Error: Downloaded file is only $(du -h "$dest.partial" | cut -f1) — expected an ISO." >&2
+    if [[ "$size" -lt "$MIN_IMAGE_BYTES" ]]; then
+        echo "Error: Downloaded file is only $(du -h "$dest.partial" | cut -f1) — expected an image." >&2
         echo "The URL may be incorrect or the mirror returned an error page." >&2
         rm -f "$dest.partial"
         return 1
@@ -121,28 +134,38 @@ download_iso() {
     echo "Downloaded: $filename ($(du -h "$dest" | cut -f1))"
 }
 
-echo "=== ISO Downloads ==="
+echo "=== Image Downloads ==="
 echo "Directory: $ISOS_DIR"
 echo ""
 
 if [[ "$DOWNLOAD_DEBIAN" == "true" ]]; then
     echo "Debian (stable):"
-    debian_iso=$(discover_iso "$DEBIAN_DIR_URL" "$DEBIAN_ISO_PATTERN")
+    debian_iso=$(discover_filename "$DEBIAN_DIR_URL" "$DEBIAN_ISO_PATTERN")
     echo "  Found: $debian_iso"
-    download_iso "$DEBIAN_DIR_URL" "$debian_iso"
+    download_image "$DEBIAN_DIR_URL" "$debian_iso"
     echo ""
 fi
 
 if [[ "$DOWNLOAD_FEDORA" == "true" ]]; then
     echo "Fedora ${FEDORA_RELEASE} Server:"
-    fedora_iso=$(discover_iso "$FEDORA_DIR_URL" "$FEDORA_ISO_PATTERN")
+    fedora_iso=$(discover_filename "$FEDORA_DIR_URL" "$FEDORA_ISO_PATTERN")
     echo "  Found: $fedora_iso"
-    download_iso "$FEDORA_DIR_URL" "$fedora_iso"
+    download_image "$FEDORA_DIR_URL" "$fedora_iso"
+    echo ""
+fi
+
+if [[ "$DOWNLOAD_RASPI" == "true" ]]; then
+    echo "Raspberry Pi OS Lite (arm64):"
+    raspi_subdir=$(discover_filename "$RASPI_IMAGES_URL" "$RASPI_SUBDIR_PATTERN")
+    raspi_dir_url="${RASPI_IMAGES_URL}${raspi_subdir}/"
+    raspi_image=$(discover_filename "$raspi_dir_url" "$RASPI_IMAGE_PATTERN")
+    echo "  Found: $raspi_image"
+    download_image "$raspi_dir_url" "$raspi_image"
     echo ""
 fi
 
 if [[ "$CHECK_ONLY" != "true" ]]; then
     echo "=== Done ==="
-    echo "ISOs saved to: $ISOS_DIR"
-    ls -lh "$ISOS_DIR"/*.iso 2>/dev/null || true
+    echo "Images saved to: $ISOS_DIR"
+    ls -lh "$ISOS_DIR"/ 2>/dev/null || true
 fi
