@@ -14,7 +14,19 @@
     };
 
     # Configure home-manager for the regular user
-    users.user = { pkgs, ... }: {
+    users.user = { pkgs, ... }:
+    let
+      # Pre-compiled vterm native module — NixOS can't build it via straight.el
+      # because cmake can't find standard library paths in the nix store.
+      # Installs vterm-module.so into the user profile's share/emacs/site-lisp/
+      # which is on emacs's default load-path.
+      emacs-vterm-module = pkgs.runCommand "emacs-vterm-module" {} ''
+        mkdir -p $out/share/emacs/site-lisp
+        find ${pkgs.emacsPackages.vterm} -name 'vterm-module.so' \
+          -exec cp {} $out/share/emacs/site-lisp/ \;
+      '';
+    in
+    {
       imports = [
         nix-flatpak.homeManagerModules.nix-flatpak
         sway-home.homeModules.home
@@ -26,7 +38,8 @@
       # Install packages from sway-home + home-manager CLI (mutable system)
       home.packages = import "${sway-home}/modules/packages.nix" { inherit pkgs; }
         ++ [ swayHomeInputs.script-wizard.packages.${pkgs.stdenv.hostPlatform.system}.default ]
-        ++ [ pkgs.home-manager ];
+        ++ [ pkgs.home-manager ]
+        ++ [ emacs-vterm-module ];
 
       programs.home-manager.enable = true;
 
