@@ -13,6 +13,7 @@ MEMORY="${MEMORY:-4096}"
 CPUS="${CPUS:-$(nproc)}"
 SSH_PORT="${SSH_PORT:-10022}"
 DISPLAY_TYPE=""
+NO_NETWORK=""
 
 usage() {
     echo "Usage: d.rymcg.tech workstation-usb-test-vm [OPTIONS]"
@@ -27,6 +28,7 @@ usage() {
     echo "  --memory MB     RAM in MB (default: $MEMORY, or set MEMORY env var)"
     echo "  --cpus N        Number of CPUs (default: all cores)"
     echo "  --ssh-port PORT Host SSH port forwarding (default: $SSH_PORT)"
+    echo "  --no-network    Disable networking (simulate air-gapped environment)"
     echo "  --display TYPE  QEMU display: gtk, sdl, none (default: gtk)"
     echo "  -h, --help      Show this help"
     echo ""
@@ -60,6 +62,10 @@ while [[ $# -gt 0 ]]; do
         --ssh-port)
             SSH_PORT="$2"
             shift 2
+            ;;
+        --no-network)
+            NO_NETWORK=1
+            shift
             ;;
         --display)
             DISPLAY_TYPE="$2"
@@ -155,7 +161,11 @@ echo "  Overlay: $OVERLAY (temporary)"
 echo "  Memory:  ${MEMORY} MB"
 echo "  CPUs:    $CPUS"
 echo "  Display: $DISPLAY_TYPE"
-echo "  SSH:     ssh -o StrictHostKeyChecking=no -p $SSH_PORT user@localhost"
+if [[ -n "$NO_NETWORK" ]]; then
+    echo "  Network: disabled (air-gapped)"
+else
+    echo "  SSH:     ssh -o StrictHostKeyChecking=no -p $SSH_PORT user@localhost"
+fi
 echo ""
 if [[ "$DISPLAY_TYPE" == "none" ]]; then
     echo "  (headless mode — serial console below, Ctrl-A X to quit)"
@@ -178,6 +188,14 @@ case "$DISPLAY_TYPE" in
         ;;
 esac
 
+NET_ARGS=()
+if [[ -n "$NO_NETWORK" ]]; then
+    NET_ARGS=(-nic none)
+else
+    NET_ARGS=(-netdev "user,id=net0,hostfwd=tcp:127.0.0.1:${SSH_PORT}-:22"
+              -device virtio-net-pci,netdev=net0)
+fi
+
 qemu-system-x86_64 \
     -cpu host \
     $KVM_FLAG \
@@ -187,8 +205,7 @@ qemu-system-x86_64 \
     -drive if=pflash,format=raw,readonly=on,file="$OVMF_CODE" \
     -drive if=pflash,format=raw,file="$NVRAM" \
     -device virtio-vga \
-    -netdev user,id=net0,hostfwd=tcp:127.0.0.1:${SSH_PORT}-:22 \
-    -device virtio-net-pci,netdev=net0 \
+    "${NET_ARGS[@]}" \
     "${DISPLAY_ARGS[@]}"
 
 echo ""
