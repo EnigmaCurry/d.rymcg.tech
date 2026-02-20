@@ -40,11 +40,11 @@
       },
       "locked": {
         "dir": "pkgs/firefox-addons",
-        "lastModified": 1771560167,
-        "narHash": "sha256-BOM3uEUVgwzOrAz8D5oGQqrHchYvo82MAi8bG5st17E=",
+        "lastModified": 1771591358,
+        "narHash": "sha256-17QxUvLnI/dVy6Qi3EmJfJdmyRLtNCbnxtms4wAAjkU=",
         "owner": "rycee",
         "repo": "nur-expressions",
-        "rev": "de4e2afff64c80c5fb58f0f1a8c2983ef2dd3257",
+        "rev": "66abfa0001c1983e08589b1c89dae346f8f80ccc",
         "type": "gitlab"
       },
       "original": {
@@ -283,11 +283,11 @@
       },
       "locked": {
         "dir": "home-manager",
-        "lastModified": 1771547648,
-        "narHash": "sha256-Xxjm3oKr+DACiFKhvaycUoM0A6mOxE0CEeLaFhnbtXg=",
+        "lastModified": 1771612495,
+        "narHash": "sha256-RID/ZxEs95KuZvsiL4GPex5VfBlau4s89oVr2/knnxA=",
         "owner": "EnigmaCurry",
         "repo": "sway-home",
-        "rev": "88de5a02397faad8f1c0460904123fafea10d949",
+        "rev": "59da056173ec24d690c800aa4444094d0b87c0cd",
         "type": "github"
       },
       "original": {
@@ -300,11 +300,11 @@
     "sway-home-src": {
       "flake": false,
       "locked": {
-        "lastModified": 1771547648,
-        "narHash": "sha256-Xxjm3oKr+DACiFKhvaycUoM0A6mOxE0CEeLaFhnbtXg=",
+        "lastModified": 1771612495,
+        "narHash": "sha256-RID/ZxEs95KuZvsiL4GPex5VfBlau4s89oVr2/knnxA=",
         "owner": "EnigmaCurry",
         "repo": "sway-home",
-        "rev": "88de5a02397faad8f1c0460904123fafea10d949",
+        "rev": "59da056173ec24d690c800aa4444094d0b87c0cd",
         "type": "github"
       },
       "original": {
