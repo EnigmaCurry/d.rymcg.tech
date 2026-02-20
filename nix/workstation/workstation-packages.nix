@@ -53,6 +53,9 @@
     cloud-utils  # growpart
     e2fsprogs    # resize2fs
 
+    # === Browser ===
+    firefox
+
     # === Nix tools ===
     nix-output-monitor
     nixos-rebuild
