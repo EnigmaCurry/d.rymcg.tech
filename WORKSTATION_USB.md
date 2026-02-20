@@ -40,6 +40,7 @@ CLI. Every command accepts `--help` for full usage details.
 
 ```bash
 d.rymcg.tech workstation-usb-image                    # build raw disk image
+d.rymcg.tech workstation-usb-test-vm                  # test image in a QEMU VM
 d.rymcg.tech workstation-usb-install /dev/sdX          # direct install to USB
 d.rymcg.tech workstation-usb-post-install /mnt         # copy archive data to USB
 d.rymcg.tech workstation-usb-download-isos             # download OS ISOs
@@ -72,8 +73,11 @@ Build a raw `.img` file that can be written to any USB drive with `dd`.
 Uses loop devices (requires sudo) instead of a QEMU VM.
 
 By default, the image includes all archive data (Docker images, ISOs,
-Docker CE packages) found in `_archive/`. The image size is
-auto-calculated to fit everything plus headroom.
+Docker CE packages) found in `_archive/`. An interactive category
+selector lets you choose which archive categories to include, so you
+can skip large items like AI/ML images (~43 GB) to build a smaller
+image. The image size is auto-calculated to fit the selected data
+plus headroom.
 
 ```bash
 # Build the full image (includes archive data, auto-sized)
@@ -83,14 +87,26 @@ d.rymcg.tech workstation-usb-image
 sudo dd if=_archive/workstation-usb.img of=/dev/sdX bs=4M status=progress conv=fsync
 ```
 
+The category selector presents four groups, all selected by default:
+
+ * **Docker images: AI/ML** (~43 GB) — comfyui, open-webui, invokeai,
+   ollama, kokoro
+ * **Docker images: Services** (~21 GB) — everything else
+ * **OS images / ISOs** (~7 GB)
+ * **Docker CE packages** (~200 MB)
+
+If AI/ML images are selected and ComfyUI is present, a follow-up
+prompt lets you choose which GPU variants to include (ROCm, CUDA,
+Intel, CPU).
+
 To build a smaller base image without archive data:
 
 ```bash
-# Build base OS only (~10 GB)
+# Build base OS only (~10 GB, skips category selection)
 d.rymcg.tech workstation-usb-image --base-only
 
 # Write to USB
-sudo dd if=_archive/workstation-usb.img of=/dev/sdX bs=4M status=progress conv=fsync
+sudo dd if=_archive/workstation-usb-base.img of=/dev/sdX bs=4M status=progress conv=fsync
 
 # Copy archive data separately
 sudo mount /dev/sdX2 /mnt && sudo mount /dev/sdX1 /mnt/boot
@@ -107,6 +123,35 @@ sudo umount -R /mnt
 
 On first boot, the root partition automatically expands to fill the
 USB drive.
+
+### Testing with a VM
+
+After building an image, you can boot it in a QEMU virtual machine to
+verify everything works before writing to a USB drive. The VM uses a
+CoW (copy-on-write) overlay, so the original image is never modified.
+
+```bash
+# Test the full image
+d.rymcg.tech workstation-usb-test-vm
+
+# Test the base-only image
+d.rymcg.tech workstation-usb-test-vm --base
+
+# SSH into the running VM
+ssh -o StrictHostKeyChecking=no -p 10022 user@localhost
+```
+
+| Option | Description |
+|--------|-------------|
+| `--image FILE` | Disk image path (default: auto-detected) |
+| `--base` | Use the base-only image |
+| `--memory MB` | RAM in MB (default: 4096) |
+| `--cpus N` | Number of CPUs (default: all cores) |
+| `--ssh-port PORT` | Host SSH port forwarding (default: 10022) |
+| `--display TYPE` | QEMU display: `gtk`, `sdl`, `none` (default: `gtk`) |
+
+Requires OVMF firmware for UEFI boot and KVM for hardware
+acceleration.
 
 ## Preparing archive data
 
@@ -169,7 +214,8 @@ d.rymcg.tech workstation-usb-download-docker-packages
  * Read-only copies of all git repos:
    d.rymcg.tech, sway-home, emacs, blog.rymcg.tech, org,
    nixos-vm-template
- * Docker image archive (~64 GB, ~170 images)
+ * Docker image archive (~64 GB, ~170 images):
+   AI/ML (~43 GB), Services (~21 GB)
  * Debian and Fedora ISOs (~8 GB)
  * Docker CE .deb/.rpm packages (~0.5 GB)
 
@@ -244,11 +290,13 @@ cd ~/my-d.rymcg.tech && git init
 | NixOS system + all packages | ~5 GB |
 | sway-home packages (emacs, dev tools) | ~3 GB |
 | Git repos in nix store | ~50 MB |
-| Docker image archive | ~64 GB |
+| Docker images: AI/ML | ~43 GB |
+| Docker images: Services | ~21 GB |
 | ISOs (Debian + Fedora) | ~8 GB |
 | Docker CE packages (.deb + .rpm) | ~0.5 GB |
 | Operating headroom | ~5 GB |
-| **Total** | **~86 GB** |
+| **Total (all categories)** | **~86 GB** |
+| **Total (services only, no AI/ML)** | **~43 GB** |
 
 A 128 GB USB drive is recommended. A 256 GB drive provides ample room
 for additional data.
