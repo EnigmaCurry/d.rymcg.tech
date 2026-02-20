@@ -134,6 +134,9 @@ if [[ -n "$HM_GEN" ]] && [[ -L "$HM_GEN/home-files" ]]; then
         _uid=$(grep '^user:' "$MOUNT/etc/passwd" | cut -d: -f3)
         _gid=$(grep '^user:' "$MOUNT/etc/passwd" | cut -d: -f4)
         chown -R "$_uid:$_gid" "$USER_HOME/.emacs.d"
+        # Nix store sources are read-only; make .emacs.d writable so emacs
+        # can create subdirectories (auto-save/, straight/, custom.el, etc.)
+        chmod u+w "$USER_HOME/.emacs.d"
         echo "Created ~/.emacs.d from home-manager generation"
     else
         echo "Warning: home-manager generation found but no .emacs.d directory"
