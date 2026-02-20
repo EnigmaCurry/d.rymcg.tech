@@ -129,7 +129,8 @@ in
       # Symlink _archive in the d.rymcg.tech repo to /var/workstation
       archive_link="/home/user/git/vendor/enigmacurry/d.rymcg.tech/_archive"
       if [[ ! -e "$archive_link" ]]; then
-        install -d -o user -g user /home/user/git /home/user/git/vendor \
+        mkdir -p /home/user/git/vendor/enigmacurry/d.rymcg.tech
+        chown user: /home/user/git /home/user/git/vendor \
           /home/user/git/vendor/enigmacurry /home/user/git/vendor/enigmacurry/d.rymcg.tech
         ln -sfn /var/workstation "$archive_link"
         chown -h user:user "$archive_link"
