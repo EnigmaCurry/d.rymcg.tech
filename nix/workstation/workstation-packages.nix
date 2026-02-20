@@ -1,6 +1,20 @@
 # All packages required for d.rymcg.tech operation + development tools
-{ config, lib, pkgs, ... }:
+{ config, lib, pkgs, self, ... }:
 
+let
+  # Build script-wizard binary matching .tools.lock.json for air-gapped use.
+  # install_script-wizard checks the nix store before downloading.
+  toolsLock = builtins.fromJSON (builtins.readFile "${self}/.tools.lock.json");
+  scriptWizardVersion = toolsLock.dependencies.script-wizard;
+  script-wizard-locked = pkgs.fetchurl {
+    url = "https://github.com/EnigmaCurry/script-wizard/releases/download/v${scriptWizardVersion}/script-wizard-Linux-x86_64.tar.gz";
+    sha256 = "sha256-oohqGSerUCYSp1AwLJmZE3oHL1RjBMozSoJ7VSc9TiY=";
+  };
+  script-wizard-bin = pkgs.runCommand "script-wizard-${scriptWizardVersion}" {} ''
+    mkdir -p $out/bin
+    tar xzf ${script-wizard-locked} -C $out/bin
+  '';
+in
 {
   environment.systemPackages = with pkgs; [
     # === d.rymcg.tech REQUIRED_COMMANDS (agent.py:359-362) ===
@@ -125,5 +139,8 @@
     # === Nix tools ===
     nix-output-monitor
     nixos-rebuild
+
+    # === d.rymcg.tech locked tools ===
+    script-wizard-bin  # exact version from .tools.lock.json for air-gapped install
   ];
 }
