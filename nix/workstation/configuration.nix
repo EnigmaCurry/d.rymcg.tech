@@ -36,6 +36,11 @@
   # Allow unfree packages (firmware, fonts, etc.)
   nixpkgs.config.allowUnfree = true;
 
+  # /bin/bash symlink for scripts with #!/bin/bash shebangs
+  systemd.tmpfiles.rules = [
+    "L+ /bin/bash - - - - ${pkgs.bash}/bin/bash"
+  ];
+
   # Timezone and locale
   time.timeZone = "UTC";
   i18n.defaultLocale = "en_US.UTF-8";
