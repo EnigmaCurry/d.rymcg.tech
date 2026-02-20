@@ -118,7 +118,7 @@ in
   systemd.services.workstation-usb-archive-links = {
     description = "Create symlinks to workstation archive data";
     wantedBy = [ "multi-user.target" ];
-    after = [ "local-fs.target" ];
+    after = [ "local-fs.target" "workstation-clone-repos.service" ];
     serviceConfig = {
       Type = "oneshot";
       RemainAfterExit = true;
@@ -126,12 +126,10 @@ in
     script = ''
       gcroot_dir="/nix/var/nix/gcroots"
 
-      # Symlink _archive in the d.rymcg.tech repo to /var/workstation
-      archive_link="/home/user/git/vendor/enigmacurry/d.rymcg.tech/_archive"
-      if [[ ! -e "$archive_link" ]]; then
-        mkdir -p /home/user/git/vendor/enigmacurry/d.rymcg.tech
-        chown user: /home/user/git /home/user/git/vendor \
-          /home/user/git/vendor/enigmacurry /home/user/git/vendor/enigmacurry/d.rymcg.tech
+      # Symlink _archive in the writable d.rymcg.tech clone to /var/workstation
+      clone_dir="/home/user/git/vendor/enigmacurry/d.rymcg.tech"
+      archive_link="$clone_dir/_archive"
+      if [[ -d "$clone_dir" ]] && [[ ! -e "$archive_link" ]]; then
         ln -sfn /var/workstation "$archive_link"
         chown -h user: "$archive_link"
         echo "_archive: linked -> /var/workstation"

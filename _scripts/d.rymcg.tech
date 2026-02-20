@@ -24,14 +24,11 @@ BIN=$(dirname $(realpath ${BASH_SOURCE}))
 INFO_WORDS="INFO_WORDS ROOT_DIR"
 
 ## ROOT_DIR is the root path of the d.rymcg.tech project
-## Override with D_RYMCG_TECH_ROOT env var (e.g. when scripts are in the nix store)
-ROOT_DIR="${D_RYMCG_TECH_ROOT:-$(dirname ${BIN})}"
-if [[ -z "${D_RYMCG_TECH_ROOT:-}" ]]; then
-    (test -f ${BIN}/funcs.sh && test -f ${ROOT_DIR}/Makefile && test -d ${ROOT_DIR}/traefik) || \
-        (echo "Error: Invalid or corrupted d.rymcg.tech ROOT_DIR: ${ROOT_DIR}" >/dev/stderr
-         echo "This script will not function properly if it has been moved." >/dev/stderr
-         exit 1)
-fi
+ROOT_DIR=$(dirname ${BIN})
+(test -f ${BIN}/funcs.sh && test -f ${ROOT_DIR}/Makefile && test -d ${ROOT_DIR}/traefik) || \
+    (echo "Error: Invalid or corrupted d.rymcg.tech ROOT_DIR: ${ROOT_DIR}" >/dev/stderr
+     echo "This script will not function properly if it has been moved." >/dev/stderr
+     exit 1)
 
 source ${BIN}/funcs.sh
 

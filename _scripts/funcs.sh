@@ -2,10 +2,6 @@
 
 BIN=$(dirname ${BASH_SOURCE})
 ROOT_DIR=${ROOT_DIR:-$(dirname ${BIN})}
-# Override ROOT_DIR when scripts resolve into the nix store via realpath
-if [[ -n "${D_RYMCG_TECH_ROOT:-}" ]] && [[ "$ROOT_DIR" == /nix/store/* ]]; then
-    ROOT_DIR="$D_RYMCG_TECH_ROOT"
-fi
 
 stderr(){ echo "$@" >/dev/stderr 2>/dev/null || echo "$@"; }
 error(){ stderr "Error: $@"; }
