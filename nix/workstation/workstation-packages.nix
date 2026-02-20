@@ -5,10 +5,11 @@ let
   # Build script-wizard binary matching .tools.lock.json for air-gapped use.
   # install_script-wizard checks the nix store before downloading.
   toolsLock = builtins.fromJSON (builtins.readFile "${self}/.tools.lock.json");
-  scriptWizardVersion = toolsLock.dependencies.script-wizard;
+  scriptWizardLock = toolsLock.dependencies.script-wizard;
+  scriptWizardVersion = scriptWizardLock.version;
   script-wizard-locked = pkgs.fetchurl {
     url = "https://github.com/EnigmaCurry/script-wizard/releases/download/v${scriptWizardVersion}/script-wizard-Linux-x86_64.tar.gz";
-    sha256 = "sha256-oohqGSerUCYSp1AwLJmZE3oHL1RjBMozSoJ7VSc9TiY=";
+    sha256 = scriptWizardLock.sha256;
   };
   script-wizard-bin = pkgs.runCommand "script-wizard-${scriptWizardVersion}" {} ''
     mkdir -p $out/bin

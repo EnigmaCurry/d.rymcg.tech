@@ -1,6 +1,9 @@
 {
     "Description": "This file is used to configure the required versions of external application dependencies. End users should not need to edit these, but they may be updated from time to time by the d.rymcg.tech authors.",
     "dependencies": {
-        "script-wizard": "0.1.34"
+        "script-wizard": {
+            "version": "0.1.34",
+            "sha256": "sha256-oohqGSerUCYSp1AwLJmZE3oHL1RjBMozSoJ7VSc9TiY="
+        }
     }
 }

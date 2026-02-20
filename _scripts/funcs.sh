@@ -410,8 +410,15 @@ version_spec() {
         fault "The version lock spec file is missing: ${VERSION_LOCK}"
     fi
     # Grab the locked version of APP from the lock file:
-    local LOCKED_VERSION=$(jq -r ".dependencies.\"${APP}\"" ${ROOT_DIR}/.tools.lock.json)
-    (test -z "${LOCKED_VERSION}" || test "${LOCKED_VERSION}" == "null") && fault "The app '${APP}' is not listed in ${VERSION_LOCK}"
+    # Supports both bare string ("0.1.34") and object ({"version": "0.1.34", ...}) formats
+    local RAW_VALUE=$(jq -r ".dependencies.\"${APP}\"" ${ROOT_DIR}/.tools.lock.json)
+    (test -z "${RAW_VALUE}" || test "${RAW_VALUE}" == "null") && fault "The app '${APP}' is not listed in ${VERSION_LOCK}"
+    local LOCKED_VERSION
+    if jq -e ".dependencies.\"${APP}\" | type == \"object\"" ${ROOT_DIR}/.tools.lock.json >/dev/null 2>&1; then
+        LOCKED_VERSION=$(jq -r ".dependencies.\"${APP}\".version" ${ROOT_DIR}/.tools.lock.json)
+    else
+        LOCKED_VERSION="${RAW_VALUE}"
+    fi
 
     # Return the locked version string:
     echo ${LOCKED_VERSION}
