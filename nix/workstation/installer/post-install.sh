@@ -73,18 +73,9 @@ if [[ -z "$CHROOT_ONLY" ]]; then
         size=$(du -shL "$source_dir" | cut -f1)
         echo "Size: $size"
 
-        # Dereference all symlinks so the store path contains real data.
-        # nix store add preserves symlinks as-is, which would point to
-        # the build host paths and be broken on the target.
-        local deref_dir
-        deref_dir=$(mktemp -d)
-        echo "Dereferencing symlinks..."
-        cp -rL "$source_dir"/. "$deref_dir"/
-
         echo "Adding to USB nix store (this may take a while for large archives)..."
         local store_path
-        store_path=$(nix store add --store "local?root=$MOUNT" --name "$gcroot_name" "$deref_dir")
-        rm -rf "$deref_dir"
+        store_path=$(nix store add --store "local?root=$MOUNT" --name "$gcroot_name" "$source_dir")
         echo "Store path: $store_path"
 
         # Create GC root on the USB
