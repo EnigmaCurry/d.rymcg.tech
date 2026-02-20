@@ -342,9 +342,9 @@ else
             ESTIMATE_BYTES=$((ESTIMATE_BYTES + $(du -sbL "$DOCKER_PKG_DIR" | cut -f1)))
         fi
     fi
-    # Add 1GB ESP + 15% headroom (or 5GB min)
-    HEADROOM=$((ESTIMATE_BYTES * 15 / 100))
-    [[ $HEADROOM -lt $((5 * 1073741824)) ]] && HEADROOM=$((5 * 1073741824))
+    # Add 1GB ESP + 20% headroom (or 8GB min)
+    HEADROOM=$((ESTIMATE_BYTES * 20 / 100))
+    [[ $HEADROOM -lt $((8 * 1073741824)) ]] && HEADROOM=$((8 * 1073741824))
     ESTIMATE_BYTES=$((ESTIMATE_BYTES + HEADROOM + 1073741824))
     ESTIMATE_GB=$(( (ESTIMATE_BYTES + 1073741823) / 1073741824 ))
     echo "Size: ~${ESTIMATE_GB} GB (estimated, exact size calculated after build)"
@@ -410,13 +410,13 @@ fi
 
 # Auto-calculate image size if not specified
 if [[ -z "$IMAGE_SIZE" ]]; then
-    # Total = closure + archive + 1GB ESP + 5GB headroom
-    # nix store add roughly doubles storage temporarily, but we account for
-    # the final on-disk size plus generous headroom
+    # Total = closure + archive + 1GB ESP + headroom
+    # Headroom covers: ext4/nix overhead, chroot tasks (emacs packages,
+    # Rust toolchain), and general breathing room.
     TOTAL_BYTES=$((CLOSURE_BYTES + ARCHIVE_BYTES))
-    # Add 1GB for ESP + 5GB headroom (or 15% of total, whichever is larger)
-    HEADROOM_BYTES=$((5 * 1073741824))
-    FIFTEEN_PCT=$((TOTAL_BYTES * 15 / 100))
+    # Add 1GB for ESP + 8GB headroom (or 20% of total, whichever is larger)
+    HEADROOM_BYTES=$((8 * 1073741824))
+    FIFTEEN_PCT=$((TOTAL_BYTES * 20 / 100))
     if [[ $FIFTEEN_PCT -gt $HEADROOM_BYTES ]]; then
         HEADROOM_BYTES=$FIFTEEN_PCT
     fi
