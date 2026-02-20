@@ -65,6 +65,7 @@ in
     description = "Clone writable git repos from nix store to ~/git/vendor/";
     wantedBy = [ "multi-user.target" ];
     after = [ "local-fs.target" ];
+    path = [ pkgs.git ];
     serviceConfig = {
       Type = "oneshot";
       RemainAfterExit = true;
