@@ -454,17 +454,18 @@ mkdir -p "$(dirname "$IMAGE_FILE")"
 POST_INSTALL_SCRIPT="${ROOT_DIR}/nix/workstation/installer/post-install.sh"
 
 # The rest runs as root (pass PATH so nix tools work inside sudo)
-exec sudo bash -c '
+exec sudo \
+    IMAGE_FILE="$IMAGE_FILE" \
+    IMAGE_SIZE="$IMAGE_SIZE" \
+    SYSTEM_PATH="$SYSTEM_PATH" \
+    NIXOS_INSTALL="$NIXOS_INSTALL" \
+    EXTRA_PATH="$PATH" \
+    BASE_ONLY="${BASE_ONLY:-}" \
+    POST_INSTALL_SCRIPT="$POST_INSTALL_SCRIPT" \
+    ARCHIVE_SOURCE="${ARCHIVE_SOURCE:-}" \
+    bash -c '
 set -euo pipefail
-export PATH="$5:$PATH"
-
-IMAGE_FILE="$1"
-IMAGE_SIZE="$2"
-SYSTEM_PATH="$3"
-NIXOS_INSTALL="$4"
-BASE_ONLY="$6"
-POST_INSTALL_SCRIPT="$7"
-ARCHIVE_SOURCE="$8"
+export PATH="$EXTRA_PATH:$PATH"
 
 MOUNT=$(mktemp -d)
 LOOP=""
@@ -541,4 +542,4 @@ echo "Write to USB with:"
 echo "  sudo dd if=$IMAGE_FILE of=/dev/sdX bs=4M status=progress conv=fsync"
 echo ""
 echo "The root partition auto-expands to fill the USB on first boot."
-' _ "$IMAGE_FILE" "$IMAGE_SIZE" "$SYSTEM_PATH" "$NIXOS_INSTALL" "$PATH" "$BASE_ONLY" "$POST_INSTALL_SCRIPT" "$ARCHIVE_SOURCE"
+'
