@@ -179,6 +179,7 @@ chroot "$MOUNT" /run/current-system/sw/bin/su - user -c '
 ' || echo "Warning: emacs package pre-download failed (non-fatal)"
 
 # Clean up chroot mounts
+echo "(Any 'target is busy' warnings below are harmless)"
 umount "$MOUNT/sys" 2>/dev/null || true
 umount "$MOUNT/proc" 2>/dev/null || true
 umount "$MOUNT/dev" 2>/dev/null || true
