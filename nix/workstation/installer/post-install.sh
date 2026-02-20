@@ -75,6 +75,38 @@ copy_to_store "ISOs" "$ISOS_DIR" "workstation-usb-isos"
 DOCKER_PKG_DIR="$FLAKE_DIR/_archive/docker-packages"
 copy_to_store "Docker CE packages" "$DOCKER_PKG_DIR" "workstation-usb-docker-packages"
 
+## Pre-download emacs packages for air-gapped use
+echo "=== Pre-downloading emacs packages ==="
+# Set up DNS in the chroot so straight.el can fetch packages
+mkdir -p "$MOUNT/etc"
+cp -L /etc/resolv.conf "$MOUNT/etc/resolv.conf" 2>/dev/null || true
+
+# Bind-mount /dev, /proc, /sys for nixos-enter
+mount --bind /dev "$MOUNT/dev" 2>/dev/null || true
+mount --bind /proc "$MOUNT/proc" 2>/dev/null || true
+mount --bind /sys "$MOUNT/sys" 2>/dev/null || true
+
+# Run emacs in batch mode as user to download all straight.el packages.
+# init.el loads with my/machine-labels='() (no optional modules).
+# We then call my/load-modules with all available labels to trigger downloads,
+# and save the labels to custom.el so they persist on first boot.
+echo "Running emacs in batch mode to download packages (this may take a while)..."
+chroot "$MOUNT" /run/current-system/sw/bin/su - user -c '
+    emacs --batch \
+        -l ~/.emacs.d/init.el \
+        --eval "(progn
+            (my/load-modules (my/machine-labels-available))
+            (customize-set-variable (quote my/machine-labels) (my/machine-labels-available))
+            (customize-save-customized)
+            (message \"Emacs packages downloaded and all machine labels enabled.\"))" \
+        2>&1
+' || echo "Warning: emacs package pre-download failed (non-fatal)"
+
+# Clean up chroot mounts
+umount "$MOUNT/sys" 2>/dev/null || true
+umount "$MOUNT/proc" 2>/dev/null || true
+umount "$MOUNT/dev" 2>/dev/null || true
+
 echo "=== Post-install complete ==="
 echo "Archive data has been copied to the USB's nix store."
 echo "GC roots protect the data from garbage collection."
