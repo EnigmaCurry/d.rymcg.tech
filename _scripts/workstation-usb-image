@@ -416,9 +416,9 @@ if [[ -z "$IMAGE_SIZE" ]]; then
     TOTAL_BYTES=$((CLOSURE_BYTES + ARCHIVE_BYTES))
     # Add 1GB for ESP + 8GB headroom (or 20% of total, whichever is larger)
     HEADROOM_BYTES=$((8 * 1073741824))
-    FIFTEEN_PCT=$((TOTAL_BYTES * 25 / 100))
-    if [[ $FIFTEEN_PCT -gt $HEADROOM_BYTES ]]; then
-        HEADROOM_BYTES=$FIFTEEN_PCT
+    PCT_HEADROOM=$((TOTAL_BYTES * 25 / 100))
+    if [[ $PCT_HEADROOM -gt $HEADROOM_BYTES ]]; then
+        HEADROOM_BYTES=$PCT_HEADROOM
     fi
     ESP_BYTES=$((1 * 1073741824))
     IMAGE_BYTES=$((TOTAL_BYTES + HEADROOM_BYTES + ESP_BYTES))
