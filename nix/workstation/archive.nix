@@ -112,8 +112,6 @@ in
     "d /var/workstation/images/x86_64 0755 root root -"
     "d /var/workstation/isos 0755 root root -"
     "d /var/workstation/docker-packages 0755 root root -"
-    # Symlink _archive in the bundled d.rymcg.tech repo to /var/workstation
-    "L+ /home/user/git/vendor/enigmacurry/d.rymcg.tech/_archive - user user - /var/workstation"
   ];
 
   # On boot, create convenience symlinks from /var/workstation/* to GC-rooted store paths
@@ -127,6 +125,15 @@ in
     };
     script = ''
       gcroot_dir="/nix/var/nix/gcroots"
+
+      # Symlink _archive in the d.rymcg.tech repo to /var/workstation
+      archive_link="/home/user/git/vendor/enigmacurry/d.rymcg.tech/_archive"
+      if [[ ! -e "$archive_link" ]]; then
+        mkdir -p "$(dirname "$archive_link")"
+        ln -sfn /var/workstation "$archive_link"
+        chown -h user:user "$archive_link"
+        echo "_archive: linked -> /var/workstation"
+      fi
 
       # Per-project Docker image directories
       for root in "$gcroot_dir"/workstation-usb-image-*; do
