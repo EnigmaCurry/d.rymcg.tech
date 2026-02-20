@@ -133,7 +133,7 @@ in
         chown user: /home/user/git /home/user/git/vendor \
           /home/user/git/vendor/enigmacurry /home/user/git/vendor/enigmacurry/d.rymcg.tech
         ln -sfn /var/workstation "$archive_link"
-        chown -h user:user "$archive_link"
+        chown -h user: "$archive_link"
         echo "_archive: linked -> /var/workstation"
       fi
 
