@@ -103,6 +103,18 @@ mount --bind /dev "$MOUNT/dev" 2>/dev/null || true
 mount --bind /proc "$MOUNT/proc" 2>/dev/null || true
 mount --bind /sys "$MOUNT/sys" 2>/dev/null || true
 
+# /run/current-system doesn't persist after nixos-install (/run is tmpfs at boot).
+# Find the system closure and create the symlink so chroot commands work.
+SYSTEM_STORE=$(find "$MOUNT/nix/store" -maxdepth 1 -name '*-nixos-system-*' -type d 2>/dev/null | head -1)
+if [[ -n "$SYSTEM_STORE" ]]; then
+    SYSTEM_PATH="${SYSTEM_STORE#$MOUNT}"  # chroot-relative path
+    mkdir -p "$MOUNT/run"
+    ln -sfn "$SYSTEM_PATH" "$MOUNT/run/current-system"
+    echo "Set up /run/current-system -> $SYSTEM_PATH"
+else
+    echo "Warning: NixOS system closure not found, chroot tasks may fail"
+fi
+
 # Home-manager activation only runs on first boot (as a systemd service),
 # so ~/.emacs.d/ doesn't exist yet in the chroot after nixos-install.
 # Create it from the home-manager generation so emacs pre-download works.
