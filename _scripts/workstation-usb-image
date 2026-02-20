@@ -148,6 +148,22 @@ if [[ -z "$BASE_ONLY" ]]; then
     fi
 fi
 
+echo "=== Build summary ==="
+echo "Output: $IMAGE_FILE"
+if [[ -n "$BASE_ONLY" ]]; then
+    echo "Mode: base only (OS without archive data)"
+else
+    echo "Mode: full (OS + archive data)"
+fi
+if [[ -n "$IMAGE_SIZE" ]]; then
+    echo "Size: $IMAGE_SIZE (manual)"
+else
+    echo "Size: auto-calculated"
+fi
+echo ""
+confirm yes "Build the image" "?" || exit 0
+
+echo ""
 echo "=== Building NixOS system closure ==="
 SYSTEM_PATH=$(nix build "${ROOT_DIR}#nixosConfigurations.workstation.config.system.build.toplevel" --no-link --print-out-paths)
 echo "System closure: $SYSTEM_PATH"
