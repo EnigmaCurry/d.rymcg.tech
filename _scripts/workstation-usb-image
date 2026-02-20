@@ -524,8 +524,9 @@ if [[ -x "$POST_INSTALL_SCRIPT" ]]; then
 fi
 
 # Unmount
-umount -R "$MOUNT"
-rmdir "$MOUNT"
+umount -R "$MOUNT" 2>/dev/null || umount -lR "$MOUNT" 2>/dev/null || true
+echo "(Any 'target is busy' warnings above are harmless)"
+rmdir "$MOUNT" 2>/dev/null || true
 MOUNT=""
 
 # Detach loop
