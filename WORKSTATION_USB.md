@@ -203,11 +203,16 @@ directory pointed at the nix store.
 
 ### Access bundled data
 
-Archive data is symlinked at boot:
+Archive data is stored under `/var/workstation/` and symlinked into
+the bundled d.rymcg.tech repo so tools work seamlessly:
+
+```
+~/git/vendor/enigmacurry/d.rymcg.tech/_archive → /var/workstation
+```
 
 | Path | Contents |
 |------|----------|
-| `/var/workstation/archive/` | Docker image `.tar.gz` files |
+| `/var/workstation/images/x86_64/` | Docker image `.tar.gz` files |
 | `/var/workstation/isos/` | Debian and Fedora ISOs |
 | `/var/workstation/docker-packages/` | Docker CE `.deb`/`.rpm` files |
 

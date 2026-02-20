@@ -82,11 +82,15 @@ in
   ];
 
   # Create data directories for symlinks to GC-rooted store paths
+  # Layout matches _archive/ so d.rymcg.tech tools work with the symlink
   systemd.tmpfiles.rules = [
     "d /var/workstation 0755 root root -"
-    "d /var/workstation/archive 0755 root root -"
+    "d /var/workstation/images 0755 root root -"
+    "d /var/workstation/images/x86_64 0755 root root -"
     "d /var/workstation/isos 0755 root root -"
     "d /var/workstation/docker-packages 0755 root root -"
+    # Symlink _archive in the bundled d.rymcg.tech repo to /var/workstation
+    "L+ /home/user/git/vendor/enigmacurry/d.rymcg.tech/_archive - user user - /var/workstation"
   ];
 
   # On boot, create convenience symlinks from /var/workstation/* to GC-rooted store paths
@@ -103,7 +107,7 @@ in
       for name in workstation-usb-archive workstation-usb-isos workstation-usb-docker-packages; do
         root="$gcroot_dir/$name"
         case "$name" in
-          workstation-usb-archive)       target_dir="/var/workstation/archive" ;;
+          workstation-usb-archive)       target_dir="/var/workstation/images/x86_64" ;;
           workstation-usb-isos)          target_dir="/var/workstation/isos" ;;
           workstation-usb-docker-packages) target_dir="/var/workstation/docker-packages" ;;
         esac
