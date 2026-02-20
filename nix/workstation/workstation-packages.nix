@@ -35,6 +35,7 @@
     pkg-config
     cmake
     gnupatch
+    libvterm-neovim   # C library for emacs-vterm native module
 
     # === Additional development tools ===
     just
