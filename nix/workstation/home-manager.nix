@@ -124,6 +124,19 @@
             "browser.urlbar.suggest.quicksuggest.sponsored" = false;
             "browser.urlbar.suggest.quicksuggest.nonsponsored" = false;
 
+            # === Search suggestions ===
+            "browser.search.suggest.enabled" = false;
+            "browser.urlbar.suggest.searches" = false;
+            "browser.urlbar.suggest.engines" = false;
+
+            # === History: clear on restart, keep bookmarks ===
+            "privacy.sanitize.sanitizeOnShutdown" = true;
+            "privacy.clearOnShutdown_v2.historyFormDataAndDownloads" = true;
+            "privacy.clearOnShutdown_v2.cookiesAndStorage" = true;
+            "privacy.clearOnShutdown_v2.cache" = true;
+            "privacy.clearOnShutdown_v2.siteSettings" = false;
+            "places.history.enabled" = false;
+
             # === Privacy ===
             "browser.contentblocking.category" = "strict";
             "privacy.trackingprotection.enabled" = true;
