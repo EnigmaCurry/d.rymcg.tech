@@ -97,12 +97,84 @@ __help() {
 }
 
 __install_docker() {
-    if [[ "$1" == "--local" ]]; then
-        confirm yes "This will install Docker the local machine"
-        curl -fsSL https://get.docker.com | sh
+    local target method
+    target=$(wizard choose "Where do you want to install Docker?" "Remote (Docker context host)" "Local (this machine)")
+    if [[ "$target" == "Local"* ]]; then
+        method=$(wizard choose "How do you want to install?" "Download from the internet (get.docker.com)" "Install from offline package archive")
+        if [[ "$method" == "Download"* ]]; then
+            confirm yes "This will install Docker on the local machine"
+            if ! curl -fsSL https://get.docker.com | sh; then
+                echo ""
+                echo "Download failed. Try again with the offline package archive option."
+                return 1
+            fi
+        else
+            __install_docker_offline local
+        fi
     else
-        confirm yes "This will install Docker on the host of your remote Docker context."
-        d.rymcg.tech ssh 'curl -fsSL https://get.docker.com | sh'
+        method=$(wizard choose "How do you want to install?" "Download from the internet (get.docker.com)" "Install from offline package archive")
+        if [[ "$method" == "Download"* ]]; then
+            confirm yes "This will install Docker on the host of your remote Docker context."
+            if ! d.rymcg.tech ssh 'curl -fsSL https://get.docker.com | sh'; then
+                echo ""
+                echo "Download failed. Try again with the offline package archive option."
+                return 1
+            fi
+            d.rymcg.tech ssh 'systemctl enable --now docker'
+            d.rymcg.tech ssh 'systemctl status docker'
+        else
+            __install_docker_offline remote
+        fi
+    fi
+}
+
+__install_docker_offline() {
+    local target="$1"
+    local pkg_dir="${ROOT_DIR}/_archive/docker-packages"
+    local distro id
+
+    if [[ "$target" == "local" ]]; then
+        id=$(. /etc/os-release 2>/dev/null && echo "$ID")
+    else
+        id=$(d.rymcg.tech ssh 'source /etc/os-release 2>/dev/null && echo "$ID"')
+    fi
+    case "$id" in
+        debian|ubuntu|raspbian) distro="debian" ;;
+        fedora|centos|rhel|rocky|alma) distro="fedora" ;;
+        *) fault "Unsupported distro for offline Docker install: $id" ;;
+    esac
+
+    local src_dir="$pkg_dir/$distro"
+    if [[ ! -d "$src_dir" ]] || [[ -z "$(ls -A "$src_dir" 2>/dev/null)" ]]; then
+        fault "No $distro packages found in $src_dir — run: d.rymcg.tech workstation-usb-download-docker-packages"
+    fi
+
+    if [[ "$target" == "local" ]]; then
+        confirm yes "This will install Docker offline on the local machine from $src_dir"
+        echo "Installing Docker from offline $distro packages..."
+        if [[ "$distro" == "debian" ]]; then
+            sudo dpkg -i "$src_dir"/*.deb
+        else
+            sudo dnf install -y "$src_dir"/*.rpm
+        fi
+        sudo systemctl enable --now docker
+        sudo systemctl status docker
+    else
+        confirm yes "This will install Docker offline on the host of your remote Docker context."
+        echo "Copying $distro packages to remote host..."
+        local remote_dir="/tmp/docker-packages"
+        d.rymcg.tech ssh "mkdir -p $remote_dir"
+        local docker_host
+        docker_host=$(docker context inspect --format '{{.Endpoints.docker.Host}}')
+        local ssh_dest="${docker_host#ssh://}"
+        scp "$src_dir"/* "$ssh_dest:$remote_dir/"
+        echo "Installing Docker from offline packages..."
+        if [[ "$distro" == "debian" ]]; then
+            d.rymcg.tech ssh "dpkg -i $remote_dir/*.deb"
+        else
+            d.rymcg.tech ssh "dnf install -y $remote_dir/*.rpm"
+        fi
+        d.rymcg.tech ssh "rm -rf $remote_dir"
         d.rymcg.tech ssh 'systemctl enable --now docker'
         d.rymcg.tech ssh 'systemctl status docker'
     fi
