@@ -104,6 +104,8 @@ in
     };
     script = ''
       gcroot_dir="/nix/var/nix/gcroots"
+      echo "Checking GC roots in $gcroot_dir..."
+      ls -la "$gcroot_dir"/workstation-usb-* 2>/dev/null || echo "No workstation GC roots found"
       for name in workstation-usb-archive workstation-usb-isos workstation-usb-docker-packages; do
         root="$gcroot_dir/$name"
         case "$name" in
@@ -113,13 +115,20 @@ in
         esac
         if [[ -L "$root" ]]; then
           store_path=$(readlink "$root")
-          # Symlink contents into the target directory
+          if [[ ! -d "$store_path" ]]; then
+            echo "$name: WARNING store path $store_path does not exist!"
+            continue
+          fi
+          count=0
           for item in "$store_path"/*; do
             [[ -e "$item" ]] || continue
             base=$(basename "$item")
             ln -sfn "$item" "$target_dir/$base"
+            count=$((count + 1))
           done
-          echo "$name: linked $store_path -> $target_dir"
+          echo "$name: linked $count items from $store_path -> $target_dir"
+        else
+          echo "$name: no GC root at $root"
         fi
       done
     '';
