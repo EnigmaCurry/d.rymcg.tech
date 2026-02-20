@@ -196,13 +196,11 @@ if [[ -d "$USER_HOME/.emacs.d" ]] && [[ -n "${HM_HOME_FILES:-}" ]] && [[ -d "$MO
     echo "Removed home-manager-managed files, kept runtime downloads"
 fi
 
-# Remove native .so modules and byte-compiled .elc files from the chroot
-# pre-download. The .so files may be corrupt (chroot build env differs from
-# runtime), and .elc files may have been compiled while native modules were
-# broken (e.g. vterm-toggle compiled without vterm-module.so).
-# straight.el will recompile everything on first boot.
-find "$USER_HOME/.emacs.d/straight" -name '*.so' -delete 2>/dev/null || true
-find "$USER_HOME/.emacs.d/straight/build" -name '*.elc' -delete 2>/dev/null || true
+# Delete the entire straight/build/ directory. The chroot pre-download
+# produces broken builds (corrupt .so, .elc compiled without native modules,
+# broken autoloads). Source is fully cached in straight/repos/ so straight.el
+# will rebuild everything from local source on first boot — no internet needed.
+rm -rf "$USER_HOME/.emacs.d/straight/build" 2>/dev/null || true
 
 # Clean up chroot mounts
 echo "(Any 'target is busy' warnings below are harmless)"
