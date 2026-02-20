@@ -67,6 +67,77 @@ while [[ $# -gt 0 ]]; do
     esac
 done
 
+## Pre-flight check: show what will be included and offer to fetch missing data
+if [[ -z "$BASE_ONLY" ]]; then
+    echo "=== Pre-flight check ==="
+    echo ""
+    MISSING=()
+
+    # Check Docker image archive
+    ARCHIVE_IMG_DIR="${ROOT_DIR}/_archive/images/x86_64"
+    if [[ -d "$ARCHIVE_IMG_DIR" ]] && [[ -n "$(ls -A "$ARCHIVE_IMG_DIR" 2>/dev/null)" ]]; then
+        count=$(find "$ARCHIVE_IMG_DIR" -name '*.tar.gz' 2>/dev/null | wc -l)
+        size=$(du -sh "$ARCHIVE_IMG_DIR" | cut -f1)
+        echo "  [x] Docker image archive: $count images ($size)"
+    else
+        echo "  [ ] Docker image archive: not found"
+        MISSING+=("images")
+    fi
+
+    # Check ISOs
+    ISOS_DIR="${ROOT_DIR}/_archive/isos"
+    if [[ -d "$ISOS_DIR" ]] && [[ -n "$(ls -A "$ISOS_DIR" 2>/dev/null)" ]]; then
+        count=$(ls "$ISOS_DIR" | wc -l)
+        size=$(du -sh "$ISOS_DIR" | cut -f1)
+        echo "  [x] OS images (ISOs): $count files ($size)"
+    else
+        echo "  [ ] OS images (ISOs): not found"
+        MISSING+=("isos")
+    fi
+
+    # Check Docker CE packages
+    DOCKER_PKG_DIR="${ROOT_DIR}/_archive/docker-packages"
+    if [[ -d "$DOCKER_PKG_DIR" ]] && [[ -n "$(ls -A "$DOCKER_PKG_DIR" 2>/dev/null)" ]]; then
+        count=$(find "$DOCKER_PKG_DIR" -name '*.deb' -o -name '*.rpm' 2>/dev/null | wc -l)
+        size=$(du -sh "$DOCKER_PKG_DIR" | cut -f1)
+        echo "  [x] Docker CE packages: $count packages ($size)"
+    else
+        echo "  [ ] Docker CE packages: not found"
+        MISSING+=("docker-packages")
+    fi
+
+    echo ""
+
+    if [[ ${#MISSING[@]} -gt 0 ]]; then
+        echo "Some archive data is missing. The image will be built without it"
+        echo "unless you download it now."
+        echo ""
+        for item in "${MISSING[@]}"; do
+            case "$item" in
+                images)
+                    if confirm no "Download Docker image archive? (requires d.rymcg.tech image-archive)"; then
+                        d.rymcg.tech image-archive --fail-fast --delete --verbose
+                    fi
+                    ;;
+                isos)
+                    if confirm yes "Download OS images (ISOs)?"; then
+                        d.rymcg.tech workstation-usb-download-isos
+                    fi
+                    ;;
+                docker-packages)
+                    if confirm yes "Download Docker CE packages?"; then
+                        d.rymcg.tech workstation-usb-download-docker-packages
+                    fi
+                    ;;
+            esac
+        done
+        echo ""
+    else
+        echo "All archive data present."
+        echo ""
+    fi
+fi
+
 echo "=== Building NixOS system closure ==="
 SYSTEM_PATH=$(nix build "${ROOT_DIR}#nixosConfigurations.workstation.config.system.build.toplevel" --no-link --print-out-paths)
 echo "System closure: $SYSTEM_PATH"
