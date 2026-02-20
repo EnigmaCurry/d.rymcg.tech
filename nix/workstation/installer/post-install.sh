@@ -136,7 +136,7 @@ if [[ -n "$HM_GEN" ]] && [[ -L "$HM_GEN/home-files" ]]; then
         chown -R "$_uid:$_gid" "$USER_HOME/.emacs.d"
         # Nix store sources are read-only; make .emacs.d writable so emacs
         # can create subdirectories (auto-save/, straight/, custom.el, etc.)
-        chmod u+w "$USER_HOME/.emacs.d"
+        chmod -R u+w "$USER_HOME/.emacs.d"
         # If custom.el is a symlink to the nix store (read-only), replace it
         # with a writable copy so customize-save-customized can write to it
         if [[ -L "$USER_HOME/.emacs.d/custom.el" ]]; then
@@ -177,6 +177,24 @@ chroot "$MOUNT" /run/current-system/sw/bin/su - user -c '
             (message \"Emacs packages downloaded and all machine labels enabled.\"))" \
         2>&1
 ' || echo "Warning: emacs package pre-download failed (non-fatal)"
+
+# Clean up: remove home-manager-managed files from .emacs.d so that
+# home-manager activation on first boot can create its symlinks cleanly.
+# Keep only runtime-generated dirs (elpaca, straight, elpa, auto-save, etc.)
+if [[ -d "$USER_HOME/.emacs.d" ]] && [[ -n "${HM_HOME_FILES:-}" ]] && [[ -d "$MOUNT$HM_HOME_FILES/.emacs.d" ]]; then
+    echo "=== Cleaning up .emacs.d for home-manager activation ==="
+    # Remove each file/dir that home-manager would manage (exists in the generation)
+    while IFS= read -r -d '' entry; do
+        rel="${entry#$MOUNT$HM_HOME_FILES/.emacs.d/}"
+        target="$USER_HOME/.emacs.d/$rel"
+        if [[ -e "$target" ]] && [[ ! -d "$target" ]]; then
+            rm -f "$target"
+        fi
+    done < <(find "$MOUNT$HM_HOME_FILES/.emacs.d" -not -type d -print0)
+    # Remove empty directories left behind (but not dirs with runtime content)
+    find "$USER_HOME/.emacs.d" -type d -empty -delete 2>/dev/null || true
+    echo "Removed home-manager-managed files, kept runtime downloads"
+fi
 
 # Clean up chroot mounts
 echo "(Any 'target is busy' warnings below are harmless)"
