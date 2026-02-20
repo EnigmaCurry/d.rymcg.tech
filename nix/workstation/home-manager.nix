@@ -80,16 +80,16 @@
           # Search: DuckDuckGo only, hide all corporate engines
           search = {
             force = true;
-            default = "DuckDuckGo";
-            privateDefault = "DuckDuckGo";
-            order = [ "DuckDuckGo" ];
+            default = "ddg";
+            privateDefault = "ddg";
+            order = [ "ddg" ];
             engines = {
-              "Google".metaData.hidden = true;
-              "Bing".metaData.hidden = true;
-              "Amazon.com".metaData.hidden = true;
-              "eBay".metaData.hidden = true;
-              "Wikipedia (en)".metaData.hidden = true;
-              "DuckDuckGo".metaData.alias = "@ddg";
+              "google".metaData.hidden = true;
+              "bing".metaData.hidden = true;
+              "amazondotcom-us".metaData.hidden = true;
+              "ebay".metaData.hidden = true;
+              "wikipedia".metaData.hidden = true;
+              "ddg".metaData.alias = "@ddg";
             };
           };
 
