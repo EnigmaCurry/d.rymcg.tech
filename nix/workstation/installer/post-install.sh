@@ -204,10 +204,10 @@ fi
 find "$USER_HOME/.emacs.d/straight" -name '*.so' -delete 2>/dev/null || true
 
 # Clean up chroot mounts
-echo "(Any 'target is busy' warnings below are harmless)"
 umount "$MOUNT/sys" 2>/dev/null || true
 umount "$MOUNT/proc" 2>/dev/null || true
 umount "$MOUNT/dev" 2>/dev/null || true
+echo "(Any 'target is busy' warnings above are harmless)"
 
 echo "=== Post-install complete ==="
 if [[ -z "$CHROOT_ONLY" ]]; then
