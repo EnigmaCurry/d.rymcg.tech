@@ -77,16 +77,39 @@ copy_to_store "ISOs" "$ISOS_DIR" "workstation-usb-isos"
 DOCKER_PKG_DIR="$ARCHIVE_ROOT/docker-packages"
 copy_to_store "Docker CE packages" "$DOCKER_PKG_DIR" "workstation-usb-docker-packages"
 
-## Pre-download emacs packages for air-gapped use
-echo "=== Pre-downloading emacs packages ==="
-# Set up DNS in the chroot so straight.el can fetch packages
+## Set up chroot environment for pre-download tasks
+# Set up DNS so straight.el can fetch packages
 mkdir -p "$MOUNT/etc"
 cp -L /etc/resolv.conf "$MOUNT/etc/resolv.conf" 2>/dev/null || true
 
-# Bind-mount /dev, /proc, /sys for nixos-enter
+# Bind-mount /dev, /proc, /sys for chroot
 mount --bind /dev "$MOUNT/dev" 2>/dev/null || true
 mount --bind /proc "$MOUNT/proc" 2>/dev/null || true
 mount --bind /sys "$MOUNT/sys" 2>/dev/null || true
+
+# Home-manager activation only runs on first boot (as a systemd service),
+# so ~/.emacs.d/ doesn't exist yet in the chroot after nixos-install.
+# Create it from the home-manager generation so emacs pre-download works.
+echo "=== Setting up home-manager symlinks ==="
+USER_HOME="$MOUNT/home/user"
+HM_GEN=$(find "$MOUNT/nix/store" -maxdepth 1 -name '*-home-manager-generation' -type d 2>/dev/null | head -1)
+if [[ -n "$HM_GEN" ]] && [[ -L "$HM_GEN/home-files" ]]; then
+    HM_HOME_FILES=$(readlink "$HM_GEN/home-files")
+    # HM_HOME_FILES is a chroot-relative absolute path (e.g. /nix/store/xxx-home-files)
+    # Prepend $MOUNT to access it from the host
+    if [[ -d "$MOUNT$HM_HOME_FILES/.emacs.d" ]]; then
+        mkdir -p "$USER_HOME/.emacs.d"
+        # Copy symlink structure (each file is a symlink to the nix store)
+        # into a writable directory so straight.el can create straight/ and custom.el
+        cp -a "$MOUNT$HM_HOME_FILES/.emacs.d/." "$USER_HOME/.emacs.d/"
+        chown user:users "$USER_HOME/.emacs.d"
+        echo "Created ~/.emacs.d from home-manager generation"
+    else
+        echo "Warning: home-manager generation found but no .emacs.d directory"
+    fi
+else
+    echo "Warning: no home-manager generation found, emacs pre-download will be skipped"
+fi
 
 # Pre-install Rust stable toolchain for air-gapped use
 echo "=== Installing Rust stable toolchain ==="
@@ -95,11 +118,10 @@ chroot "$MOUNT" /run/current-system/sw/bin/su - user -c '
     rustup component add rust-src rust-analyzer clippy rustfmt
 ' || echo "Warning: Rust toolchain install failed (non-fatal)"
 
-# Run emacs in batch mode as user to download all straight.el packages.
-# init.el loads with my/machine-labels='() (no optional modules).
-# We then call my/load-modules with all available labels to trigger downloads,
-# and save the labels to custom.el so they persist on first boot.
-echo "Running emacs in batch mode to download packages (this may take a while)..."
+# Pre-download emacs packages for air-gapped use
+# Load init.el with all machine labels enabled, triggering straight.el
+# to download every package. Save the labels to custom.el for first boot.
+echo "=== Pre-downloading emacs packages ==="
 chroot "$MOUNT" /run/current-system/sw/bin/su - user -c '
     emacs --batch \
         -l ~/.emacs.d/init.el \
