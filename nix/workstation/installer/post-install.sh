@@ -118,7 +118,7 @@ if [[ -n "$HM_GEN" ]] && [[ -L "$HM_GEN/home-files" ]]; then
         # Copy symlink structure (each file is a symlink to the nix store)
         # into a writable directory so straight.el can create straight/ and custom.el
         cp -a "$MOUNT$HM_HOME_FILES/.emacs.d/." "$USER_HOME/.emacs.d/"
-        chroot "$MOUNT" chown -R user:users /home/user/.emacs.d
+        chroot "$MOUNT" /run/current-system/sw/bin/chown -R user:users /home/user/.emacs.d
         echo "Created ~/.emacs.d from home-manager generation"
     else
         echo "Warning: home-manager generation found but no .emacs.d directory"
