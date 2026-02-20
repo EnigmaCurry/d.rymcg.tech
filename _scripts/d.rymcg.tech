@@ -516,13 +516,23 @@ __d.rymcg.tech_completions() {
 
 __d.rymcg.tech_documentation_words() {
     ROOT_DIR=$(d.rymcg.tech info ROOT_DIR)
-    ## Find list of available documentation files in the git repo:
+    ## Find list of available documentation files
     declare -A DOCS_INDEX
+    local doc_files=""
+    if git -C "${ROOT_DIR}" rev-parse --git-dir &>/dev/null; then
+        doc_files=$(git -C "${ROOT_DIR}" ls-tree --name-only origin/master 2>/dev/null | \
+                       grep -E "(\.txt$|\.md$)" | \
+                       sed -e 's/\.txt$//' -e 's/\.md$//')
+    else
+        # Not a git repo (e.g. read-only nix store copy): find files directly
+        doc_files=$(find "${ROOT_DIR}" -maxdepth 1 -name '*.md' -o -name '*.txt' 2>/dev/null | \
+                       xargs -I{} basename {} | \
+                       sed -e 's/\.txt$//' -e 's/\.md$//')
+    fi
     while IFS= read -r line; do
+        [[ -z "$line" ]] && continue
         DOCS_INDEX["$line"]="$line"
-    done <<< $(git -C "${ROOT_DIR}" ls-tree --name-only origin/master | \
-                   grep -E "(\.txt$|\.md$)" | \
-                   sed -e 's/\.txt$//' -e 's/\.md$//')
+    done <<< "$doc_files"
     if [[ "$1" == "--lowercase" ]]; then
         echo "$(echo ${DOCS_INDEX[@]} | tr '[:upper:]' '[:lower:]')"
     elif [[ "$1" == "--uppercase" ]]; then
