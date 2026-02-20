@@ -89,7 +89,7 @@
   # Thunar file manager with volume management
   programs.thunar = {
     enable = true;
-    plugins = with pkgs.xfce; [ thunar-volman thunar-archive-plugin ];
+    plugins = with pkgs; [ thunar-volman thunar-archive-plugin ];
   };
   services.gvfs.enable = true;  # trash, network mounts, etc.
 
