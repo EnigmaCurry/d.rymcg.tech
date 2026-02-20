@@ -17,6 +17,9 @@ let
   '';
 in
 {
+  # Point d.rymcg.tech CLI to the writable workspace (not the nix store)
+  environment.variables.D_RYMCG_TECH_ROOT = "/home/user/git/vendor/enigmacurry/d.rymcg.tech";
+
   environment.systemPackages = with pkgs; [
     # === d.rymcg.tech REQUIRED_COMMANDS (agent.py:359-362) ===
     bashInteractive   # bash
