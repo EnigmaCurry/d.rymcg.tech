@@ -534,7 +534,7 @@ LOOP=""
 
 echo ""
 echo "=== Image built successfully ==="
-echo "Image: $IMAGE_FILE ($(du -h "$IMAGE_FILE" | cut -f1))"
+echo "Image: $IMAGE_FILE ($(du -h --apparent-size "$IMAGE_FILE" | cut -f1))"
 echo ""
 echo "Write to USB with:"
 echo "  sudo dd if=$IMAGE_FILE of=/dev/sdX bs=4M status=progress conv=fsync"
