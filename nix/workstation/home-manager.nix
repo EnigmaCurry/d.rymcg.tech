@@ -30,11 +30,45 @@
 
       programs.home-manager.enable = true;
 
-      # Firefox with extensions pre-installed
+      # Firefox: dark theme, DuckDuckGo only, no telemetry, blank new tab
       programs.firefox = {
         enable = true;
+
+        # Application-level policies (locked, cannot be changed in GUI)
+        policies = {
+          DisableTelemetry = true;
+          DisablePocket = true;
+          DisableFirefoxStudies = true;
+          DisableFirefoxScreenshots = true;
+          DontCheckDefaultBrowser = true;
+          NoDefaultBookmarks = true;
+          OfferToSaveLogins = false;
+          PasswordManagerEnabled = false;
+          NewTabPage = false;
+          FirefoxHome = {
+            Search = false;
+            TopSites = false;
+            SponsoredTopSites = false;
+            Highlights = false;
+            Pocket = false;
+            SponsoredPocket = false;
+            Snippets = false;
+            Locked = true;
+          };
+          UserMessaging = {
+            WhatsNew = false;
+            ExtensionRecommendations = false;
+            FeatureRecommendations = false;
+            UrlbarInterventions = false;
+            SkipOnboarding = true;
+            MoreFromMozilla = false;
+            Locked = true;
+          };
+        };
+
         profiles.default = {
           isDefault = true;
+
           extensions.packages = with firefox-addons.packages.${pkgs.stdenv.hostPlatform.system}; [
             ublock-origin
             darkreader
@@ -42,6 +76,87 @@
             multi-account-containers
             temporary-containers
           ];
+
+          # Search: DuckDuckGo only, hide all corporate engines
+          search = {
+            force = true;
+            default = "DuckDuckGo";
+            privateDefault = "DuckDuckGo";
+            order = [ "DuckDuckGo" ];
+            engines = {
+              "Google".metaData.hidden = true;
+              "Bing".metaData.hidden = true;
+              "Amazon.com".metaData.hidden = true;
+              "eBay".metaData.hidden = true;
+              "Wikipedia (en)".metaData.hidden = true;
+              "DuckDuckGo".metaData.alias = "@ddg";
+            };
+          };
+
+          settings = {
+            # === Dark mode ===
+            "layout.css.prefers-color-scheme.content-override" = 0;
+            "browser.theme.content-theme" = 0;
+            "browser.theme.toolbar-theme" = 0;
+            "ui.systemUsesDarkTheme" = 1;
+            "extensions.activeThemeID" = "firefox-compact-dark@mozilla.org";
+
+            # === Blank homepage and new tab ===
+            "browser.startup.homepage" = "about:blank";
+            "browser.startup.page" = 0;
+            "browser.newtabpage.enabled" = false;
+            "browser.newtabpage.activity-stream.showSponsored" = false;
+            "browser.newtabpage.activity-stream.showSponsoredTopSites" = false;
+            "browser.newtabpage.activity-stream.feeds.topsites" = false;
+            "browser.newtabpage.activity-stream.feeds.section.topstories" = false;
+            "browser.newtabpage.activity-stream.feeds.section.highlights" = false;
+            "browser.newtabpage.activity-stream.feeds.snippets" = false;
+            "browser.newtabpage.activity-stream.default.sites" = "";
+
+            # === Disable telemetry ===
+            "toolkit.telemetry.enabled" = false;
+            "toolkit.telemetry.unified" = false;
+            "toolkit.telemetry.server" = "";
+            "toolkit.telemetry.archive.enabled" = false;
+            "toolkit.telemetry.newProfilePing.enabled" = false;
+            "toolkit.telemetry.shutdownPingSender.enabled" = false;
+            "toolkit.telemetry.updatePing.enabled" = false;
+            "toolkit.telemetry.bhrPing.enabled" = false;
+            "toolkit.telemetry.firstShutdownPing.enabled" = false;
+            "toolkit.telemetry.coverage.opt-out" = true;
+            "toolkit.coverage.opt-out" = true;
+            "toolkit.coverage.endpoint.base" = "";
+            "datareporting.healthreport.uploadEnabled" = false;
+            "datareporting.policy.dataSubmissionEnabled" = false;
+            "app.shield.optoutstudies.enabled" = false;
+            "app.normandy.enabled" = false;
+            "app.normandy.api_url" = "";
+            "browser.ping-centre.telemetry" = false;
+            "breakpad.reportURL" = "";
+            "browser.tabs.crashReporting.sendReport" = false;
+            "browser.crashReports.unsubmittedCheck.autoSubmit2" = false;
+
+            # === Disable Pocket and sponsored content ===
+            "extensions.pocket.enabled" = false;
+            "browser.urlbar.suggest.quicksuggest.sponsored" = false;
+            "browser.urlbar.suggest.quicksuggest.nonsponsored" = false;
+
+            # === Privacy ===
+            "browser.contentblocking.category" = "strict";
+            "privacy.trackingprotection.enabled" = true;
+            "privacy.trackingprotection.socialtracking.enabled" = true;
+            "privacy.trackingprotection.cryptomining.enabled" = true;
+            "privacy.trackingprotection.fingerprinting.enabled" = true;
+            "extensions.formautofill.addresses.enabled" = false;
+            "extensions.formautofill.creditCards.enabled" = false;
+            "signon.rememberSignons" = false;
+
+            # === UI cleanup ===
+            "browser.shell.checkDefaultBrowser" = false;
+            "browser.aboutConfig.showWarning" = false;
+            "browser.startup.homepage_override.mstone" = "ignore";
+            "media.autoplay.default" = 5;
+          };
         };
       };
     };
