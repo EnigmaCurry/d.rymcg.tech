@@ -166,9 +166,11 @@ chroot "$MOUNT" /run/current-system/sw/bin/su - user -c '
 echo "=== Pre-downloading emacs packages ==="
 chroot "$MOUNT" /run/current-system/sw/bin/su - user -c '
     emacs --batch \
+        --eval "(progn
+            (setq user-init-file (expand-file-name \"init.el\" user-emacs-directory))
+            (setq custom-file (expand-file-name \"custom.el\" user-emacs-directory)))" \
         -l ~/.emacs.d/init.el \
         --eval "(progn
-            (setq custom-file (expand-file-name \"custom.el\" user-emacs-directory))
             (my/load-modules (my/machine-labels-available))
             (customize-set-variable (quote my/machine-labels) (my/machine-labels-available))
             (customize-save-customized)
