@@ -73,9 +73,19 @@ if [[ -z "$CHROOT_ONLY" ]]; then
         size=$(du -shL "$source_dir" | cut -f1)
         echo "Size: $size"
 
+        # If the directory contains symlinks (e.g. staging dir from filtered
+        # archive selection), dereference them so nix store add copies real data.
+        local add_dir="$source_dir"
+        if find "$source_dir" -maxdepth 1 -type l -print -quit | grep -q .; then
+            add_dir=$(mktemp -d)
+            echo "Dereferencing symlinks in staging directory..."
+            cp -rL "$source_dir"/. "$add_dir"/
+        fi
+
         echo "Adding to USB nix store (this may take a while for large archives)..."
         local store_path
-        store_path=$(nix store add --store "local?root=$MOUNT" --name "$gcroot_name" "$source_dir")
+        store_path=$(nix store add --store "local?root=$MOUNT" --name "$gcroot_name" "$add_dir")
+        [[ "$add_dir" != "$source_dir" ]] && rm -rf "$add_dir"
         echo "Store path: $store_path"
 
         # Create GC root on the USB
