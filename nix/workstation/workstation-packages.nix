@@ -84,7 +84,7 @@
     ipmitool          # server BMC management
 
     # === Desktop (sway ecosystem) ===
-    firefox
+    # Firefox is configured via home-manager in home-manager.nix (with extensions)
     networkmanagerapplet  # nm-applet tray icon for sway
     kanshi                # auto display management
     mako                  # desktop notifications

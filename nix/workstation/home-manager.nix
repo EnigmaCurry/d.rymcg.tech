@@ -1,6 +1,6 @@
 # Home-manager integration using sway-home modules
 # Follows the pattern from nixos-vm-template/profiles/home-manager.nix
-{ config, lib, pkgs, sway-home, swayHomeInputs, nix-flatpak, ... }:
+{ config, lib, pkgs, sway-home, swayHomeInputs, nix-flatpak, firefox-addons, ... }:
 
 {
   home-manager = {
@@ -29,6 +29,21 @@
         ++ [ pkgs.home-manager ];
 
       programs.home-manager.enable = true;
+
+      # Firefox with extensions pre-installed
+      programs.firefox = {
+        enable = true;
+        profiles.default = {
+          isDefault = true;
+          extensions.packages = with firefox-addons.packages.${pkgs.stdenv.hostPlatform.system}; [
+            ublock-origin
+            darkreader
+            vimium
+            multi-account-containers
+            temporary-containers
+          ];
+        };
+      };
     };
   };
 }

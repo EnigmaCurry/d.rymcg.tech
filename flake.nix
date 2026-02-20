@@ -23,10 +23,16 @@
       url = "github:EnigmaCurry/org";
       flake = false;
     };
+
+    # Firefox extensions
+    firefox-addons = {
+      url = "gitlab:rycee/nur-expressions?dir=pkgs/firefox-addons";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
   };
 
   outputs = { self, nixpkgs, home-manager, sway-home, nix-flatpak
-    , sway-home-src, org-src, ... }@inputs:
+    , sway-home-src, org-src, firefox-addons, ... }@inputs:
     let
       system = "x86_64-linux";
       pkgs = nixpkgs.legacyPackages.${system};
@@ -39,7 +45,7 @@
         inherit system;
         specialArgs = {
           inherit self sway-home swayHomeInputs nix-flatpak;
-          inherit sway-home-src org-src;
+          inherit sway-home-src org-src firefox-addons;
         };
         modules = [
           home-manager.nixosModules.home-manager
