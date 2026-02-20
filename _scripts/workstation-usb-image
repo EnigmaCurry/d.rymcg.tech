@@ -13,7 +13,7 @@ IMAGE_SIZE=""
 BASE_ONLY=""
 DRY_RUN=""
 ARCHIVE_SOURCE="${ROOT_DIR}/_archive"
-FILTERED_ARCHIVE=""
+MANIFEST_FILE=""
 AI_ML_PROJECTS=(comfyui open-webui invokeai ollama kokoro)
 
 usage() {
@@ -284,51 +284,33 @@ if [[ -z "$BASE_ONLY" ]]; then
             fi
         fi
 
-        ## Build filtered archive directory with symlinks
-        FILTERED_ARCHIVE=$(mktemp -d)
-        trap 'rm -rf "${FILTERED_ARCHIVE:-}"' EXIT
-
-        if $INCLUDE_AI_ML || $INCLUDE_SERVICES; then
-            mkdir -p "$FILTERED_ARCHIVE/images/x86_64"
-        fi
-
+        ## Build archive selection manifest
+        SELECTED_IMAGE_PROJECTS=()
         if $INCLUDE_AI_ML; then
             for proj in "${AI_ML_PROJECTS[@]}"; do
+                [[ "$proj" == "comfyui" ]] && continue
                 proj_dir="$ARCHIVE_IMG_DIR/$proj"
-                [[ -d "$proj_dir" ]] || continue
-                [[ -n "$(ls -A "$proj_dir" 2>/dev/null)" ]] || continue
-
-                if [[ "$proj" == "comfyui" ]] && [[ ${#COMFYUI_SELECTED_FILES[@]} -gt 0 ]]; then
-                    # Create dir with only selected GPU variants
-                    mkdir -p "$FILTERED_ARCHIVE/images/x86_64/comfyui"
-                    for variant_file in "${COMFYUI_SELECTED_FILES[@]}"; do
-                        ln -s "$COMFYUI_DIR/$variant_file" "$FILTERED_ARCHIVE/images/x86_64/comfyui/"
-                    done
-                elif [[ "$proj" != "comfyui" ]]; then
-                    ln -s "$proj_dir" "$FILTERED_ARCHIVE/images/x86_64/$proj"
-                fi
+                [[ -d "$proj_dir" ]] && [[ -n "$(ls -A "$proj_dir" 2>/dev/null)" ]] && SELECTED_IMAGE_PROJECTS+=("$proj")
             done
         fi
-
         if $INCLUDE_SERVICES; then
             for proj_dir in "$ARCHIVE_IMG_DIR"/*/; do
                 [[ -d "$proj_dir" ]] || continue
                 proj_name=$(basename "$proj_dir")
                 if ! element_in_array "$proj_name" "${AI_ML_PROJECTS[@]}"; then
-                    ln -s "$proj_dir" "$FILTERED_ARCHIVE/images/x86_64/$proj_name"
+                    [[ -n "$(ls -A "$proj_dir" 2>/dev/null)" ]] && SELECTED_IMAGE_PROJECTS+=("$proj_name")
                 fi
             done
         fi
 
-        if $INCLUDE_ISOS; then
-            ln -s "$ISOS_DIR" "$FILTERED_ARCHIVE/isos"
-        fi
-
-        if $INCLUDE_DOCKER_PACKAGES; then
-            ln -s "$DOCKER_PKG_DIR" "$FILTERED_ARCHIVE/docker-packages"
-        fi
-
-        ARCHIVE_SOURCE="$FILTERED_ARCHIVE"
+        MANIFEST_FILE=$(mktemp)
+        {
+            echo "ARCHIVE_ROOT=\"$ARCHIVE_SOURCE\""
+            echo "IMAGE_PROJECTS=\"${SELECTED_IMAGE_PROJECTS[*]}\""
+            echo "COMFYUI_FILES=\"${COMFYUI_SELECTED_FILES[*]}\""
+            echo "INCLUDE_ISOS=$INCLUDE_ISOS"
+            echo "INCLUDE_DOCKER_PACKAGES=$INCLUDE_DOCKER_PACKAGES"
+        } > "$MANIFEST_FILE"
         echo ""
     fi
 fi
@@ -346,14 +328,19 @@ else
     # Estimate image size before building (closure ~10GB + archive data + headroom)
     ESTIMATE_BYTES=$((10 * 1073741824))  # ~10 GB base closure estimate
     if [[ -z "$BASE_ONLY" ]]; then
-        for dir in \
-            "${ARCHIVE_SOURCE}/images/x86_64" \
-            "${ARCHIVE_SOURCE}/isos" \
-            "${ARCHIVE_SOURCE}/docker-packages"; do
-            if [[ -d "$dir" ]] && [[ -n "$(ls -A "$dir" 2>/dev/null)" ]]; then
-                ESTIMATE_BYTES=$((ESTIMATE_BYTES + $(du -sbL "$dir" | cut -f1)))
-            fi
+        for proj in "${SELECTED_IMAGE_PROJECTS[@]}"; do
+            proj_dir="$ARCHIVE_IMG_DIR/$proj"
+            [[ -d "$proj_dir" ]] && ESTIMATE_BYTES=$((ESTIMATE_BYTES + $(du -sbL "$proj_dir" | cut -f1)))
         done
+        for f in "${COMFYUI_SELECTED_FILES[@]}"; do
+            [[ -f "$ARCHIVE_IMG_DIR/comfyui/$f" ]] && ESTIMATE_BYTES=$((ESTIMATE_BYTES + $(stat -c%s "$ARCHIVE_IMG_DIR/comfyui/$f")))
+        done
+        if ${INCLUDE_ISOS:-false} && [[ -d "${ISOS_DIR:-}" ]]; then
+            ESTIMATE_BYTES=$((ESTIMATE_BYTES + $(du -sbL "$ISOS_DIR" | cut -f1)))
+        fi
+        if ${INCLUDE_DOCKER_PACKAGES:-false} && [[ -d "${DOCKER_PKG_DIR:-}" ]]; then
+            ESTIMATE_BYTES=$((ESTIMATE_BYTES + $(du -sbL "$DOCKER_PKG_DIR" | cut -f1)))
+        fi
     fi
     # Add 1GB ESP + 15% headroom (or 5GB min)
     HEADROOM=$((ESTIMATE_BYTES * 15 / 100))
@@ -388,26 +375,37 @@ CLOSURE_GB=$(awk "BEGIN {printf \"%.1f\", $CLOSURE_BYTES / 1073741824}")
 echo "NixOS closure: ${CLOSURE_GB} GB"
 
 ARCHIVE_BYTES=0
-ARCHIVE_DIRS=""
 
 if [[ -z "$BASE_ONLY" ]]; then
-    # Measure archive directories
-    for dir_info in \
-        "Docker images:${ARCHIVE_SOURCE}/images/x86_64" \
-        "ISOs:${ARCHIVE_SOURCE}/isos" \
-        "Docker CE packages:${ARCHIVE_SOURCE}/docker-packages"; do
-        label="${dir_info%%:*}"
-        dir="${dir_info#*:}"
-        if [[ -d "$dir" ]] && [[ -n "$(ls -A "$dir" 2>/dev/null)" ]]; then
-            dir_bytes=$(du -sbL "$dir" | cut -f1)
-            dir_gb=$(awk "BEGIN {printf \"%.1f\", $dir_bytes / 1073741824}")
-            echo "$label: ${dir_gb} GB ($dir)"
-            ARCHIVE_BYTES=$((ARCHIVE_BYTES + dir_bytes))
-            ARCHIVE_DIRS="$ARCHIVE_DIRS $dir"
-        else
-            echo "$label: (not found, skipping)"
-        fi
+    _img_bytes=0
+    for proj in "${SELECTED_IMAGE_PROJECTS[@]}"; do
+        proj_dir="$ARCHIVE_IMG_DIR/$proj"
+        [[ -d "$proj_dir" ]] && _img_bytes=$((_img_bytes + $(du -sbL "$proj_dir" | cut -f1)))
     done
+    for f in "${COMFYUI_SELECTED_FILES[@]}"; do
+        [[ -f "$ARCHIVE_IMG_DIR/comfyui/$f" ]] && _img_bytes=$((_img_bytes + $(stat -c%s "$ARCHIVE_IMG_DIR/comfyui/$f")))
+    done
+    if [[ $_img_bytes -gt 0 ]]; then
+        _img_gb=$(awk "BEGIN {printf \"%.1f\", $_img_bytes / 1073741824}")
+        echo "Docker images: ${_img_gb} GB"
+        ARCHIVE_BYTES=$((ARCHIVE_BYTES + _img_bytes))
+    else
+        echo "Docker images: (none selected)"
+    fi
+
+    if ${INCLUDE_ISOS:-false} && [[ -d "${ISOS_DIR:-}" ]] && [[ -n "$(ls -A "$ISOS_DIR" 2>/dev/null)" ]]; then
+        dir_bytes=$(du -sbL "$ISOS_DIR" | cut -f1)
+        dir_gb=$(awk "BEGIN {printf \"%.1f\", $dir_bytes / 1073741824}")
+        echo "ISOs: ${dir_gb} GB"
+        ARCHIVE_BYTES=$((ARCHIVE_BYTES + dir_bytes))
+    fi
+
+    if ${INCLUDE_DOCKER_PACKAGES:-false} && [[ -d "${DOCKER_PKG_DIR:-}" ]] && [[ -n "$(ls -A "$DOCKER_PKG_DIR" 2>/dev/null)" ]]; then
+        dir_bytes=$(du -sbL "$DOCKER_PKG_DIR" | cut -f1)
+        dir_gb=$(awk "BEGIN {printf \"%.1f\", $dir_bytes / 1073741824}")
+        echo "Docker CE packages: ${dir_gb} GB"
+        ARCHIVE_BYTES=$((ARCHIVE_BYTES + dir_bytes))
+    fi
 fi
 
 # Auto-calculate image size if not specified
@@ -463,7 +461,7 @@ NIXOS_INSTALL="$4"
 export PATH="$5:$PATH"
 BASE_ONLY="${6:-}"
 POST_INSTALL_SCRIPT="$7"
-ARCHIVE_SOURCE="${8:-}"
+MANIFEST_FILE="${8:-}"
 
 MOUNT=$(mktemp -d)
 LOOP=""
@@ -477,8 +475,8 @@ cleanup() {
     if [[ -n "$LOOP" ]]; then
         losetup -d "$LOOP" 2>/dev/null
     fi
-    if [[ -n "${ARCHIVE_SOURCE:-}" ]] && [[ "$ARCHIVE_SOURCE" == /tmp/* ]]; then
-        rm -rf "$ARCHIVE_SOURCE" 2>/dev/null
+    if [[ -n "${MANIFEST_FILE:-}" ]] && [[ "$MANIFEST_FILE" == /tmp/* ]]; then
+        rm -f "$MANIFEST_FILE" 2>/dev/null
     fi
 }
 trap cleanup EXIT
@@ -515,7 +513,7 @@ if [[ -x "$POST_INSTALL_SCRIPT" ]]; then
     echo ""
     if [[ -z "$BASE_ONLY" ]]; then
         echo "=== Running post-install (archive data + chroot tasks) ==="
-        "$POST_INSTALL_SCRIPT" "$MOUNT" "$ARCHIVE_SOURCE"
+        "$POST_INSTALL_SCRIPT" "$MOUNT" "$MANIFEST_FILE"
     else
         echo "=== Running post-install (chroot tasks only) ==="
         "$POST_INSTALL_SCRIPT" "$MOUNT" --chroot-only
@@ -552,4 +550,4 @@ echo "Write to USB with:"
 echo "  sudo dd if=$IMAGE_FILE of=/dev/sdX bs=4M status=progress conv=fsync"
 echo ""
 echo "The root partition auto-expands to fill the USB on first boot."
-' _ "$IMAGE_FILE" "$IMAGE_SIZE" "$SYSTEM_PATH" "$NIXOS_INSTALL" "$PATH" "${BASE_ONLY:-}" "$POST_INSTALL_SCRIPT" "${ARCHIVE_SOURCE:-}"
+' _ "$IMAGE_FILE" "$IMAGE_SIZE" "$SYSTEM_PATH" "$NIXOS_INSTALL" "$PATH" "${BASE_ONLY:-}" "$POST_INSTALL_SCRIPT" "${MANIFEST_FILE:-}"

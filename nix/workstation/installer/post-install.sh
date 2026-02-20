@@ -1,33 +1,42 @@
 #!/usr/bin/env bash
 ## Post-install: copy archive data and pre-download packages for air-gapped use
-## Usage: post-install.sh /mnt [ARCHIVE_ROOT] [--chroot-only]
+## Usage: post-install.sh /mnt [MANIFEST|ARCHIVE_ROOT|--chroot-only]
 ## Must be run after nixos-install, while the USB is still mounted.
 set -euo pipefail
 
 MOUNT="${1:-}"
-ARCHIVE_ROOT="${2:-}"
 CHROOT_ONLY=""
-if [[ "${3:-}" == "--chroot-only" ]] || [[ "${2:-}" == "--chroot-only" ]]; then
+ARCHIVE_ROOT=""
+IMAGE_PROJECTS=""
+COMFYUI_FILES=""
+INCLUDE_ISOS=true
+INCLUDE_DOCKER_PACKAGES=true
+
+if [[ "${2:-}" == "--chroot-only" ]] || [[ "${3:-}" == "--chroot-only" ]]; then
     CHROOT_ONLY=1
-    # If --chroot-only was the second arg, clear ARCHIVE_ROOT
-    if [[ "${2:-}" == "--chroot-only" ]]; then
-        ARCHIVE_ROOT=""
-    fi
+elif [[ -f "${2:-}" ]]; then
+    # Manifest file with archive selection
+    source "${2}"
+elif [[ -n "${2:-}" ]]; then
+    # Legacy: archive root directory
+    ARCHIVE_ROOT="${2:-}"
 fi
+
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 FLAKE_DIR="$(cd "$SCRIPT_DIR/../../.." && pwd)"
 ARCHIVE_ROOT="${ARCHIVE_ROOT:-$FLAKE_DIR/_archive}"
 
 if [[ -z "$MOUNT" ]]; then
-    echo "Usage: $0 /mnt [ARCHIVE_ROOT] [--chroot-only]"
+    echo "Usage: $0 /mnt [MANIFEST|ARCHIVE_ROOT|--chroot-only]"
     echo "Copy archive data to a mounted NixOS workstation USB and"
     echo "pre-download packages (emacs, Rust) for air-gapped use."
     echo ""
     echo "The USB root filesystem must be mounted at the given path."
     echo ""
-    echo "Options:"
+    echo "Args:"
+    echo "  MANIFEST       Path to selection manifest (from workstation-usb-image)"
+    echo "  ARCHIVE_ROOT   Path to archive directory (default: _archive/)"
     echo "  --chroot-only  Skip archive copying, only run chroot tasks"
-    echo "                 (emacs packages, Rust toolchain)"
     exit 1
 fi
 
@@ -46,65 +55,70 @@ if [[ -z "$CHROOT_ONLY" ]]; then
     GCROOT_DIR="$MOUNT/nix/var/nix/gcroots"
     mkdir -p "$GCROOT_DIR"
 
-    copy_to_store() {
-        local name="$1"
-        local source_dir="$2"
+    add_to_store() {
+        local source_path="$1"
+        local store_name="$2"
         local gcroot_name="$3"
 
-        # Resolve symlinks so nix store add copies actual data, not symlinks
-        if [[ -L "$source_dir" ]]; then
-            source_dir=$(realpath "$source_dir")
+        if [[ -L "$source_path" ]]; then
+            source_path=$(realpath "$source_path")
         fi
 
-        if [[ ! -d "$source_dir" ]]; then
-            echo "Skipping $name: $source_dir not found"
+        if [[ ! -e "$source_path" ]]; then
+            echo "  Skipping $store_name: not found"
             return
         fi
 
-        # Check if directory has any content
-        if [[ -z "$(ls -A "$source_dir" 2>/dev/null)" ]]; then
-            echo "Skipping $name: $source_dir is empty"
+        if [[ -d "$source_path" ]] && [[ -z "$(ls -A "$source_path" 2>/dev/null)" ]]; then
+            echo "  Skipping $store_name: empty"
             return
         fi
 
-        echo "=== Adding $name to nix store ==="
-        echo "Source: $source_dir"
         local size
-        size=$(du -shL "$source_dir" | cut -f1)
-        echo "Size: $size"
-
-        # If the directory contains symlinks (e.g. staging dir from filtered
-        # archive selection), dereference them so nix store add copies real data.
-        local add_dir="$source_dir"
-        if find "$source_dir" -maxdepth 1 -type l -print -quit | grep -q .; then
-            add_dir=$(mktemp -d)
-            echo "Dereferencing symlinks in staging directory..."
-            cp -rL "$source_dir"/. "$add_dir"/
-        fi
-
-        echo "Adding to USB nix store (this may take a while for large archives)..."
+        size=$(du -shL "$source_path" | cut -f1)
+        echo "  Adding $store_name ($size)..."
         local store_path
-        store_path=$(nix store add --store "local?root=$MOUNT" --name "$gcroot_name" "$add_dir")
-        [[ "$add_dir" != "$source_dir" ]] && rm -rf "$add_dir"
-        echo "Store path: $store_path"
-
-        # Create GC root on the USB
+        store_path=$(nix store add --store "local?root=$MOUNT" --name "$gcroot_name" "$source_path")
         ln -sfn "$store_path" "$GCROOT_DIR/$gcroot_name"
-        echo "GC root: $GCROOT_DIR/$gcroot_name -> $store_path"
-        echo ""
+        echo "    -> $store_path"
     }
 
-    # Docker image archive
-    ARCHIVE_DIR="$ARCHIVE_ROOT/images/x86_64"
-    copy_to_store "Docker image archive" "$ARCHIVE_DIR" "workstation-usb-archive"
+    ARCHIVE_IMG_DIR="$ARCHIVE_ROOT/images/x86_64"
 
-    # ISOs
-    ISOS_DIR="$ARCHIVE_ROOT/isos"
-    copy_to_store "ISOs" "$ISOS_DIR" "workstation-usb-isos"
+    if [[ -n "$IMAGE_PROJECTS" ]] || [[ -n "$COMFYUI_FILES" ]]; then
+        # Manifest mode: add each project individually
+        echo "=== Adding Docker images to nix store ==="
+        for proj in $IMAGE_PROJECTS; do
+            add_to_store "$ARCHIVE_IMG_DIR/$proj" "$proj" "workstation-usb-image-$proj"
+        done
+        for f in $COMFYUI_FILES; do
+            add_to_store "$ARCHIVE_IMG_DIR/comfyui/$f" "comfyui/$f" "workstation-usb-comfyui-$f"
+        done
+        echo ""
 
-    # Docker CE packages
-    DOCKER_PKG_DIR="$ARCHIVE_ROOT/docker-packages"
-    copy_to_store "Docker CE packages" "$DOCKER_PKG_DIR" "workstation-usb-docker-packages"
+        if $INCLUDE_ISOS; then
+            echo "=== Adding ISOs to nix store ==="
+            add_to_store "$ARCHIVE_ROOT/isos" "ISOs" "workstation-usb-isos"
+            echo ""
+        fi
+
+        if $INCLUDE_DOCKER_PACKAGES; then
+            echo "=== Adding Docker CE packages to nix store ==="
+            add_to_store "$ARCHIVE_ROOT/docker-packages" "Docker CE packages" "workstation-usb-docker-packages"
+            echo ""
+        fi
+    else
+        # Legacy mode: add entire archive directories
+        echo "=== Adding Docker image archive to nix store ==="
+        add_to_store "$ARCHIVE_IMG_DIR" "Docker image archive" "workstation-usb-archive"
+        echo ""
+        echo "=== Adding ISOs to nix store ==="
+        add_to_store "$ARCHIVE_ROOT/isos" "ISOs" "workstation-usb-isos"
+        echo ""
+        echo "=== Adding Docker CE packages to nix store ==="
+        add_to_store "$ARCHIVE_ROOT/docker-packages" "Docker CE packages" "workstation-usb-docker-packages"
+        echo ""
+    fi
 fi
 
 ## Set up chroot environment for pre-download tasks

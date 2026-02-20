@@ -11,26 +11,44 @@ let
 
     gcroot_dir="/nix/var/nix/gcroots"
 
-    for name in workstation-usb-archive workstation-usb-isos workstation-usb-docker-packages; do
-      root="$gcroot_dir/$name"
-      if [[ -L "$root" ]]; then
-        target=$(readlink "$root")
-        size=$(du -sh "$target" 2>/dev/null | cut -f1)
-        echo "$name: $target ($size)"
-      else
-        echo "$name: not installed"
-      fi
+    # Per-project Docker image GC roots
+    echo "Docker images:"
+    img_count=0
+    for root in "$gcroot_dir"/workstation-usb-image-*; do
+      [[ -L "$root" ]] || continue
+      name=$(basename "$root")
+      proj="''${name#workstation-usb-image-}"
+      target=$(readlink "$root")
+      size=$(du -sh "$target" 2>/dev/null | cut -f1)
+      echo "  $proj: $target ($size)"
+      img_count=$((img_count + 1))
     done
 
-    echo ""
+    # ComfyUI variant files
+    for root in "$gcroot_dir"/workstation-usb-comfyui-*; do
+      [[ -L "$root" ]] || continue
+      name=$(basename "$root")
+      filename="''${name#workstation-usb-comfyui-}"
+      target=$(readlink "$root")
+      size=$(du -sh "$target" 2>/dev/null | cut -f1)
+      echo "  comfyui/$filename ($size)"
+      img_count=$((img_count + 1))
+    done
 
-    # Show archive details if present
-    archive_root="$gcroot_dir/workstation-usb-archive"
-    if [[ -L "$archive_root" ]]; then
-      target=$(readlink "$archive_root")
-      count=$(find "$target" -name '*.tar.gz' 2>/dev/null | wc -l)
-      echo "Docker image archive: $count images"
+    # Legacy monolithic archive
+    legacy_root="$gcroot_dir/workstation-usb-archive"
+    if [[ -L "$legacy_root" ]]; then
+      target=$(readlink "$legacy_root")
+      size=$(du -sh "$target" 2>/dev/null | cut -f1)
+      echo "  (legacy archive): $target ($size)"
+      img_count=$((img_count + 1))
     fi
+
+    if [[ $img_count -eq 0 ]]; then
+      echo "  (none)"
+    fi
+
+    echo ""
 
     # Show ISOs if present
     isos_root="$gcroot_dir/workstation-usb-isos"
@@ -38,7 +56,11 @@ let
       target=$(readlink "$isos_root")
       echo "ISOs:"
       ls -lh "$target"/*.iso 2>/dev/null | awk '{print "  " $NF " (" $5 ")"}'
+    else
+      echo "ISOs: not installed"
     fi
+
+    echo ""
 
     # Show Docker CE packages if present
     docker_root="$gcroot_dir/workstation-usb-docker-packages"
@@ -48,19 +70,20 @@ let
       find "$target" -name '*.deb' -o -name '*.rpm' 2>/dev/null | while read f; do
         echo "  $(basename "$f") ($(du -h "$f" | cut -f1))"
       done
+    else
+      echo "Docker CE packages: not installed"
     fi
   '';
 
   # Helper script: restore archived Docker images
   workstation-usb-restore-images = pkgs.writeShellScriptBin "workstation-usb-restore-images" ''
     set -euo pipefail
-    gcroot="/nix/var/nix/gcroots/workstation-usb-archive"
-    if [[ ! -L "$gcroot" ]]; then
+    archive_dir="/var/workstation/images/x86_64"
+    if [[ ! -d "$archive_dir" ]] || [[ -z "$(ls -A "$archive_dir" 2>/dev/null)" ]]; then
       echo "Error: No Docker image archive found on this workstation." >&2
       echo "Run workstation-usb-post-install to copy archive data." >&2
       exit 1
     fi
-    archive_dir=$(readlink "$gcroot")
 
     # Check for d.rymcg.tech CLI
     drymcg=$(command -v d.rymcg.tech 2>/dev/null || true)
@@ -104,33 +127,82 @@ in
     };
     script = ''
       gcroot_dir="/nix/var/nix/gcroots"
-      echo "Checking GC roots in $gcroot_dir..."
-      ls -la "$gcroot_dir"/workstation-usb-* 2>/dev/null || echo "No workstation GC roots found"
-      for name in workstation-usb-archive workstation-usb-isos workstation-usb-docker-packages; do
-        root="$gcroot_dir/$name"
-        case "$name" in
-          workstation-usb-archive)       target_dir="/var/workstation/images/x86_64" ;;
-          workstation-usb-isos)          target_dir="/var/workstation/isos" ;;
-          workstation-usb-docker-packages) target_dir="/var/workstation/docker-packages" ;;
-        esac
-        if [[ -L "$root" ]]; then
-          store_path=$(readlink "$root")
-          if [[ ! -d "$store_path" ]]; then
-            echo "$name: WARNING store path $store_path does not exist!"
-            continue
-          fi
+
+      # Per-project Docker image directories
+      for root in "$gcroot_dir"/workstation-usb-image-*; do
+        [[ -L "$root" ]] || continue
+        name=$(basename "$root")
+        proj="''${name#workstation-usb-image-}"
+        store_path=$(readlink "$root")
+        if [[ ! -d "$store_path" ]]; then
+          echo "$proj: WARNING store path $store_path does not exist!"
+          continue
+        fi
+        ln -sfn "$store_path" "/var/workstation/images/x86_64/$proj"
+        echo "$proj: linked -> $store_path"
+      done
+
+      # ComfyUI variant files (individual .tar.gz files in the store)
+      comfyui_count=0
+      for root in "$gcroot_dir"/workstation-usb-comfyui-*; do
+        [[ -L "$root" ]] || continue
+        name=$(basename "$root")
+        filename="''${name#workstation-usb-comfyui-}"
+        store_path=$(readlink "$root")
+        if [[ ! -e "$store_path" ]]; then
+          echo "comfyui/$filename: WARNING store path does not exist!"
+          continue
+        fi
+        mkdir -p "/var/workstation/images/x86_64/comfyui"
+        ln -sfn "$store_path" "/var/workstation/images/x86_64/comfyui/$filename"
+        comfyui_count=$((comfyui_count + 1))
+      done
+      [[ $comfyui_count -gt 0 ]] && echo "comfyui: linked $comfyui_count variant files"
+
+      # Legacy: monolithic archive GC root (backward compat)
+      legacy_root="$gcroot_dir/workstation-usb-archive"
+      if [[ -L "$legacy_root" ]]; then
+        store_path=$(readlink "$legacy_root")
+        if [[ -d "$store_path" ]]; then
           count=0
           for item in "$store_path"/*; do
             [[ -e "$item" ]] || continue
-            base=$(basename "$item")
-            ln -sfn "$item" "$target_dir/$base"
+            ln -sfn "$item" "/var/workstation/images/x86_64/$(basename "$item")"
             count=$((count + 1))
           done
-          echo "$name: linked $count items from $store_path -> $target_dir"
-        else
-          echo "$name: no GC root at $root"
+          echo "legacy archive: linked $count items"
         fi
-      done
+      fi
+
+      # ISOs
+      isos_root="$gcroot_dir/workstation-usb-isos"
+      if [[ -L "$isos_root" ]]; then
+        store_path=$(readlink "$isos_root")
+        if [[ -d "$store_path" ]]; then
+          count=0
+          for item in "$store_path"/*; do
+            [[ -e "$item" ]] || continue
+            ln -sfn "$item" "/var/workstation/isos/$(basename "$item")"
+            count=$((count + 1))
+          done
+          echo "ISOs: linked $count items"
+        fi
+      fi
+
+      # Docker CE packages
+      docker_root="$gcroot_dir/workstation-usb-docker-packages"
+      if [[ -L "$docker_root" ]]; then
+        store_path=$(readlink "$docker_root")
+        if [[ -d "$store_path" ]]; then
+          count=0
+          for item in "$store_path"/*; do
+            [[ -e "$item" ]] || continue
+            ln -sfn "$item" "/var/workstation/docker-packages/$(basename "$item")"
+            count=$((count + 1))
+          done
+          echo "Docker packages: linked $count items"
+        fi
+      fi
     '';
   };
 }
