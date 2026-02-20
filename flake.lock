@@ -283,11 +283,11 @@
       },
       "locked": {
         "dir": "home-manager",
-        "lastModified": 1771615391,
-        "narHash": "sha256-a081qwVgrOXvy8Q30QOlZ2ykz1Mmo+u+r2tdyjeKtVQ=",
+        "lastModified": 1771617036,
+        "narHash": "sha256-jRzKDdtpN4u2coBhRb2r3yE8pKiT89rnZj/DZV2ucsI=",
         "owner": "EnigmaCurry",
         "repo": "sway-home",
-        "rev": "a30980ddc3b24e8436e7342ccfffa885f2077fb9",
+        "rev": "d902f1bad86ce84c2cb462638d5b5cd516d93f7b",
         "type": "github"
       },
       "original": {
@@ -300,11 +300,11 @@
     "sway-home-src": {
       "flake": false,
       "locked": {
-        "lastModified": 1771615391,
-        "narHash": "sha256-a081qwVgrOXvy8Q30QOlZ2ykz1Mmo+u+r2tdyjeKtVQ=",
+        "lastModified": 1771617036,
+        "narHash": "sha256-jRzKDdtpN4u2coBhRb2r3yE8pKiT89rnZj/DZV2ucsI=",
         "owner": "EnigmaCurry",
         "repo": "sway-home",
-        "rev": "a30980ddc3b24e8436e7342ccfffa885f2077fb9",
+        "rev": "d902f1bad86ce84c2cb462638d5b5cd516d93f7b",
         "type": "github"
       },
       "original": {
