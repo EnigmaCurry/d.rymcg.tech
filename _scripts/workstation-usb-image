@@ -156,9 +156,26 @@ else
     echo "Mode: full (OS + archive data)"
 fi
 if [[ -n "$IMAGE_SIZE" ]]; then
-    echo "Size: $IMAGE_SIZE (manual)"
+    echo "Size: $IMAGE_SIZE (manual override)"
 else
-    echo "Size: auto-calculated"
+    # Estimate image size before building (closure ~10GB + archive data + headroom)
+    ESTIMATE_BYTES=$((10 * 1073741824))  # ~10 GB base closure estimate
+    if [[ -z "$BASE_ONLY" ]]; then
+        for dir in \
+            "${ROOT_DIR}/_archive/images/x86_64" \
+            "${ROOT_DIR}/_archive/isos" \
+            "${ROOT_DIR}/_archive/docker-packages"; do
+            if [[ -d "$dir" ]] && [[ -n "$(ls -A "$dir" 2>/dev/null)" ]]; then
+                ESTIMATE_BYTES=$((ESTIMATE_BYTES + $(du -sb "$dir" | cut -f1)))
+            fi
+        done
+    fi
+    # Add 1GB ESP + 15% headroom (or 5GB min)
+    HEADROOM=$((ESTIMATE_BYTES * 15 / 100))
+    [[ $HEADROOM -lt $((5 * 1073741824)) ]] && HEADROOM=$((5 * 1073741824))
+    ESTIMATE_BYTES=$((ESTIMATE_BYTES + HEADROOM + 1073741824))
+    ESTIMATE_GB=$(( (ESTIMATE_BYTES + 1073741823) / 1073741824 ))
+    echo "Size: ~${ESTIMATE_GB} GB (estimated, exact size calculated after build)"
 fi
 echo ""
 confirm yes "Build the image" "?" || exit 0
