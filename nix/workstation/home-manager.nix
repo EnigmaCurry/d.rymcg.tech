@@ -33,6 +33,7 @@
         sway-home.homeModules.emacs
         sway-home.homeModules.rust
         sway-home.homeModules.nixos-vm-template
+        sway-home.homeModules.flatpak
       ];
 
       # Install packages from sway-home + home-manager CLI (mutable system)

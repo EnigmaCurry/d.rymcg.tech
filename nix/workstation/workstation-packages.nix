@@ -114,7 +114,7 @@ in
     brightnessctl         # laptop backlight control
     dex                   # autostart .desktop files
     blueman               # Bluetooth tray manager
-    pcmanfm               # GUI file manager
+    # Thunar file manager is configured in desktop.nix
     imv                   # Wayland image viewer
     zathura               # PDF viewer
     mpv                   # media player

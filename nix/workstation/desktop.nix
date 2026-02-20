@@ -83,6 +83,16 @@
     };
   };
 
+  # Flatpak (flathub remote + packages configured via home-manager)
+  services.flatpak.enable = true;
+
+  # Thunar file manager with volume management
+  programs.thunar = {
+    enable = true;
+    plugins = with pkgs.xfce; [ thunar-volman thunar-archive-plugin ];
+  };
+  services.gvfs.enable = true;  # trash, network mounts, etc.
+
   # Allow user graphical sessions
   hardware.graphics.enable = true;
 }
