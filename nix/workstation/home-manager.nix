@@ -33,8 +33,20 @@
         sway-home.homeModules.emacs
         sway-home.homeModules.rust
         sway-home.homeModules.nixos-vm-template
-        sway-home.homeModules.flatpak
       ];
+
+      # Flatpak: configure unconditionally (sway-home's module uses
+      # builtins.pathExists which checks the build host, not the target)
+      services.flatpak = {
+        enable = true;
+        remotes = [
+          { name = "flathub"; location = "https://dl.flathub.org/repo/flathub.flatpakrepo"; }
+        ];
+        packages = [
+          "io.github.kolunmi.Bazaar"
+        ];
+        update.onActivation = true;
+      };
 
       # Install packages from sway-home + home-manager CLI (mutable system)
       home.packages = import "${sway-home}/modules/packages.nix" { inherit pkgs; }
