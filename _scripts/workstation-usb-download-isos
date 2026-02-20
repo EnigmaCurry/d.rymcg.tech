@@ -8,14 +8,22 @@ source ${BIN}/funcs.sh
 
 ISOS_DIR="${ROOT_DIR}/_archive/isos"
 
-# ISO URLs — update these when new releases come out
-DEBIAN_ISO_URL="https://cdimage.debian.org/debian-cd/current/amd64/iso-dvd/debian-13.0.0-amd64-DVD-1.iso"
-FEDORA_ISO_URL="https://download.fedoraproject.org/pub/fedora/linux/releases/43/Server/x86_64/iso/Fedora-Server-dvd-x86_64-43-1.1.iso"
+# Directory listings — filenames are auto-discovered from these
+DEBIAN_DIR_URL="https://cdimage.debian.org/debian-cd/current/amd64/iso-dvd/"
+DEBIAN_ISO_PATTERN='debian-[0-9][0-9.]*-amd64-DVD-1\.iso'
+
+FEDORA_RELEASE=43
+FEDORA_DIR_URL="https://download.fedoraproject.org/pub/fedora/linux/releases/${FEDORA_RELEASE}/Server/x86_64/iso/"
+FEDORA_ISO_PATTERN='Fedora-Server-dvd-x86_64-[0-9][0-9.-]*\.iso'
+
+# Minimum expected ISO size (100 MB)
+MIN_ISO_BYTES=$((100 * 1024 * 1024))
 
 usage() {
     echo "Usage: d.rymcg.tech workstation-usb-download-isos [OPTIONS]"
     echo ""
     echo "Download Debian and Fedora ISOs for offline use."
+    echo "ISO filenames are auto-discovered from the upstream directories."
     echo "ISOs are saved to: ${ISOS_DIR}"
     echo ""
     echo "Options:"
@@ -57,10 +65,22 @@ done
 
 mkdir -p "$ISOS_DIR"
 
-download_iso() {
-    local url="$1"
+discover_iso() {
+    local dir_url="$1"
+    local pattern="$2"
     local filename
-    filename=$(basename "$url")
+    filename=$(curl -sfL "$dir_url" | grep -oP "$pattern" | sort -V | tail -1)
+    if [[ -z "$filename" ]]; then
+        echo "Error: Could not find ISO matching '$pattern' at $dir_url" >&2
+        return 1
+    fi
+    echo "$filename"
+}
+
+download_iso() {
+    local dir_url="$1"
+    local filename="$2"
+    local url="${dir_url}${filename}"
     local dest="$ISOS_DIR/$filename"
 
     if [[ "$CHECK_ONLY" == "true" ]]; then
@@ -73,13 +93,30 @@ download_iso() {
     fi
 
     if [[ -f "$dest" ]]; then
-        echo "Already downloaded: $filename"
-        return
+        local size
+        size=$(stat --format=%s "$dest" 2>/dev/null || stat -f%z "$dest" 2>/dev/null)
+        if [[ "$size" -ge "$MIN_ISO_BYTES" ]]; then
+            echo "Already downloaded: $filename ($(du -h "$dest" | cut -f1))"
+            return
+        fi
+        echo "Existing file too small ($(du -h "$dest" | cut -f1)), re-downloading..."
+        rm -f "$dest"
     fi
 
     echo "Downloading: $url"
     echo "Destination: $dest"
-    curl -L -o "$dest.partial" --progress-bar "$url"
+    curl -L --fail -o "$dest.partial" --progress-bar "$url"
+
+    # Verify the download is a real ISO, not an HTML error page
+    local size
+    size=$(stat --format=%s "$dest.partial" 2>/dev/null || stat -f%z "$dest.partial" 2>/dev/null)
+    if [[ "$size" -lt "$MIN_ISO_BYTES" ]]; then
+        echo "Error: Downloaded file is only $(du -h "$dest.partial" | cut -f1) — expected an ISO." >&2
+        echo "The URL may be incorrect or the mirror returned an error page." >&2
+        rm -f "$dest.partial"
+        return 1
+    fi
+
     mv "$dest.partial" "$dest"
     echo "Downloaded: $filename ($(du -h "$dest" | cut -f1))"
 }
@@ -89,14 +126,18 @@ echo "Directory: $ISOS_DIR"
 echo ""
 
 if [[ "$DOWNLOAD_DEBIAN" == "true" ]]; then
-    echo "Debian 13:"
-    download_iso "$DEBIAN_ISO_URL"
+    echo "Debian (stable):"
+    debian_iso=$(discover_iso "$DEBIAN_DIR_URL" "$DEBIAN_ISO_PATTERN")
+    echo "  Found: $debian_iso"
+    download_iso "$DEBIAN_DIR_URL" "$debian_iso"
     echo ""
 fi
 
 if [[ "$DOWNLOAD_FEDORA" == "true" ]]; then
-    echo "Fedora 43 Server:"
-    download_iso "$FEDORA_ISO_URL"
+    echo "Fedora ${FEDORA_RELEASE} Server:"
+    fedora_iso=$(discover_iso "$FEDORA_DIR_URL" "$FEDORA_ISO_PATTERN")
+    echo "  Found: $fedora_iso"
+    download_iso "$FEDORA_DIR_URL" "$fedora_iso"
     echo ""
 fi
 
