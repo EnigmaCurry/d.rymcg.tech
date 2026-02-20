@@ -1,10 +1,12 @@
-# Docker daemon configuration for the workstation
-# Simplified from nixos-vm-template/profiles/docker.nix
+# Docker and libvirt configuration for the workstation
 { config, lib, pkgs, ... }:
 
 {
   # Enable Docker daemon
   virtualisation.docker.enable = true;
+
+  # Enable libvirtd for virt-manager / QEMU / KVM
+  virtualisation.libvirtd.enable = true;
 
   # Trust the Docker bridge so container traffic passes the firewall
   networking.firewall.trustedInterfaces = [ "docker0" ];
@@ -15,9 +17,9 @@
     linkConfig.Unmanaged = "yes";
   };
 
-  # Add both users to docker group
-  users.users.admin.extraGroups = [ "docker" ];
-  users.users.user.extraGroups = [ "docker" ];
+  # Only admin gets local docker and libvirtd access
+  # (user can use remote Docker contexts and user-level QEMU sessions)
+  users.users.admin.extraGroups = [ "docker" "libvirtd" ];
 
   # Traefik UID reservation for Docker containers
   users.users.traefik = {

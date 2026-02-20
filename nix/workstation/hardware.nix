@@ -27,6 +27,10 @@
     "i915" "amdgpu" "nouveau"
   ];
 
+  # Bluetooth
+  hardware.bluetooth.enable = true;
+  services.blueman.enable = true;
+
   # zram swap (compressed in-memory swap)
   zramSwap = {
     enable = true;
