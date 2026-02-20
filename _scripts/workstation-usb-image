@@ -511,11 +511,16 @@ mount -o umask=0077 "${LOOP}p1" "$MOUNT/boot"
 echo "=== Installing NixOS into image ==="
 "$NIXOS_INSTALL" --system "$SYSTEM_PATH" --root "$MOUNT" --no-root-password --no-channel-copy
 
-# Run post-install to copy archive data into the image
-if [[ -z "$BASE_ONLY" ]] && [[ -x "$POST_INSTALL_SCRIPT" ]]; then
+# Run post-install tasks
+if [[ -x "$POST_INSTALL_SCRIPT" ]]; then
     echo ""
-    echo "=== Copying archive data into image ==="
-    "$POST_INSTALL_SCRIPT" "$MOUNT" "$ARCHIVE_SOURCE"
+    if [[ -z "$BASE_ONLY" ]]; then
+        echo "=== Running post-install (archive data + chroot tasks) ==="
+        "$POST_INSTALL_SCRIPT" "$MOUNT" "$ARCHIVE_SOURCE"
+    else
+        echo "=== Running post-install (chroot tasks only) ==="
+        "$POST_INSTALL_SCRIPT" "$MOUNT" --chroot-only
+    fi
 fi
 
 # Unmount

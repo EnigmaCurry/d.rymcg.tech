@@ -1,20 +1,33 @@
 #!/usr/bin/env bash
-## Post-install: copy archive data into the USB's nix store and create GC roots
-## Usage: post-install.sh /mnt
+## Post-install: copy archive data and pre-download packages for air-gapped use
+## Usage: post-install.sh /mnt [ARCHIVE_ROOT] [--chroot-only]
 ## Must be run after nixos-install, while the USB is still mounted.
 set -euo pipefail
 
 MOUNT="${1:-}"
 ARCHIVE_ROOT="${2:-}"
+CHROOT_ONLY=""
+if [[ "${3:-}" == "--chroot-only" ]] || [[ "${2:-}" == "--chroot-only" ]]; then
+    CHROOT_ONLY=1
+    # If --chroot-only was the second arg, clear ARCHIVE_ROOT
+    if [[ "${2:-}" == "--chroot-only" ]]; then
+        ARCHIVE_ROOT=""
+    fi
+fi
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 FLAKE_DIR="$(cd "$SCRIPT_DIR/../../.." && pwd)"
 ARCHIVE_ROOT="${ARCHIVE_ROOT:-$FLAKE_DIR/_archive}"
 
 if [[ -z "$MOUNT" ]]; then
-    echo "Usage: $0 /mnt"
-    echo "Copy archive data to a mounted NixOS workstation USB."
+    echo "Usage: $0 /mnt [ARCHIVE_ROOT] [--chroot-only]"
+    echo "Copy archive data to a mounted NixOS workstation USB and"
+    echo "pre-download packages (emacs, Rust) for air-gapped use."
     echo ""
     echo "The USB root filesystem must be mounted at the given path."
+    echo ""
+    echo "Options:"
+    echo "  --chroot-only  Skip archive copying, only run chroot tasks"
+    echo "                 (emacs packages, Rust toolchain)"
     exit 1
 fi
 
@@ -28,54 +41,57 @@ if [[ $EUID -ne 0 ]]; then
     exit 1
 fi
 
-GCROOT_DIR="$MOUNT/nix/var/nix/gcroots"
-mkdir -p "$GCROOT_DIR"
+## Copy archive data to the USB's nix store (skipped with --chroot-only)
+if [[ -z "$CHROOT_ONLY" ]]; then
+    GCROOT_DIR="$MOUNT/nix/var/nix/gcroots"
+    mkdir -p "$GCROOT_DIR"
 
-copy_to_store() {
-    local name="$1"
-    local source_dir="$2"
-    local gcroot_name="$3"
+    copy_to_store() {
+        local name="$1"
+        local source_dir="$2"
+        local gcroot_name="$3"
 
-    if [[ ! -d "$source_dir" ]]; then
-        echo "Skipping $name: $source_dir not found"
-        return
-    fi
+        if [[ ! -d "$source_dir" ]]; then
+            echo "Skipping $name: $source_dir not found"
+            return
+        fi
 
-    # Check if directory has any content
-    if [[ -z "$(ls -A "$source_dir" 2>/dev/null)" ]]; then
-        echo "Skipping $name: $source_dir is empty"
-        return
-    fi
+        # Check if directory has any content
+        if [[ -z "$(ls -A "$source_dir" 2>/dev/null)" ]]; then
+            echo "Skipping $name: $source_dir is empty"
+            return
+        fi
 
-    echo "=== Adding $name to nix store ==="
-    echo "Source: $source_dir"
-    local size
-    size=$(du -shL "$source_dir" | cut -f1)
-    echo "Size: $size"
+        echo "=== Adding $name to nix store ==="
+        echo "Source: $source_dir"
+        local size
+        size=$(du -shL "$source_dir" | cut -f1)
+        echo "Size: $size"
 
-    # Add directly to the USB's nix store (avoids doubling storage on host)
-    echo "Adding to USB nix store (this may take a while for large archives)..."
-    local store_path
-    store_path=$(nix store add --store "local?root=$MOUNT" --name "$gcroot_name" "$source_dir")
-    echo "Store path: $store_path"
+        # Add directly to the USB's nix store (avoids doubling storage on host)
+        echo "Adding to USB nix store (this may take a while for large archives)..."
+        local store_path
+        store_path=$(nix store add --store "local?root=$MOUNT" --name "$gcroot_name" "$source_dir")
+        echo "Store path: $store_path"
 
-    # Create GC root on the USB
-    ln -sfn "$store_path" "$GCROOT_DIR/$gcroot_name"
-    echo "GC root: $GCROOT_DIR/$gcroot_name -> $store_path"
-    echo ""
-}
+        # Create GC root on the USB
+        ln -sfn "$store_path" "$GCROOT_DIR/$gcroot_name"
+        echo "GC root: $GCROOT_DIR/$gcroot_name -> $store_path"
+        echo ""
+    }
 
-# Docker image archive
-ARCHIVE_DIR="$ARCHIVE_ROOT/images/x86_64"
-copy_to_store "Docker image archive" "$ARCHIVE_DIR" "workstation-usb-archive"
+    # Docker image archive
+    ARCHIVE_DIR="$ARCHIVE_ROOT/images/x86_64"
+    copy_to_store "Docker image archive" "$ARCHIVE_DIR" "workstation-usb-archive"
 
-# ISOs
-ISOS_DIR="$ARCHIVE_ROOT/isos"
-copy_to_store "ISOs" "$ISOS_DIR" "workstation-usb-isos"
+    # ISOs
+    ISOS_DIR="$ARCHIVE_ROOT/isos"
+    copy_to_store "ISOs" "$ISOS_DIR" "workstation-usb-isos"
 
-# Docker CE packages
-DOCKER_PKG_DIR="$ARCHIVE_ROOT/docker-packages"
-copy_to_store "Docker CE packages" "$DOCKER_PKG_DIR" "workstation-usb-docker-packages"
+    # Docker CE packages
+    DOCKER_PKG_DIR="$ARCHIVE_ROOT/docker-packages"
+    copy_to_store "Docker CE packages" "$DOCKER_PKG_DIR" "workstation-usb-docker-packages"
+fi
 
 ## Set up chroot environment for pre-download tasks
 # Set up DNS so straight.el can fetch packages
@@ -139,5 +155,8 @@ umount "$MOUNT/proc" 2>/dev/null || true
 umount "$MOUNT/dev" 2>/dev/null || true
 
 echo "=== Post-install complete ==="
-echo "Archive data has been copied to the USB's nix store."
-echo "GC roots protect the data from garbage collection."
+if [[ -z "$CHROOT_ONLY" ]]; then
+    echo "Archive data has been copied to the USB's nix store."
+    echo "GC roots protect the data from garbage collection."
+fi
+echo "Chroot tasks (emacs packages, Rust toolchain) completed."
