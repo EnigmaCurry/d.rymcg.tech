@@ -48,6 +48,41 @@
     dejavu_fonts
   ];
 
+  # Firefox system-level policies (locked, cannot be changed in GUI)
+  programs.firefox = {
+    enable = true;
+    policies = {
+      DisableTelemetry = true;
+      DisablePocket = true;
+      DisableFirefoxStudies = true;
+      DisableFirefoxScreenshots = true;
+      DontCheckDefaultBrowser = true;
+      NoDefaultBookmarks = true;
+      OfferToSaveLogins = false;
+      PasswordManagerEnabled = false;
+      NewTabPage = false;
+      FirefoxHome = {
+        Search = false;
+        TopSites = false;
+        SponsoredTopSites = false;
+        Highlights = false;
+        Pocket = false;
+        SponsoredPocket = false;
+        Snippets = false;
+        Locked = true;
+      };
+      UserMessaging = {
+        WhatsNew = false;
+        ExtensionRecommendations = false;
+        FeatureRecommendations = false;
+        UrlbarInterventions = false;
+        SkipOnboarding = true;
+        MoreFromMozilla = false;
+        Locked = true;
+      };
+    };
+  };
+
   # Allow user graphical sessions
   hardware.graphics.enable = true;
 }

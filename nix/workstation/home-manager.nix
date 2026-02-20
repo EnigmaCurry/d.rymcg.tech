@@ -31,40 +31,9 @@
       programs.home-manager.enable = true;
 
       # Firefox: dark theme, DuckDuckGo only, no telemetry, blank new tab
+      # Policies are set at NixOS system level in desktop.nix
       programs.firefox = {
         enable = true;
-
-        # Application-level policies (locked, cannot be changed in GUI)
-        policies = {
-          DisableTelemetry = true;
-          DisablePocket = true;
-          DisableFirefoxStudies = true;
-          DisableFirefoxScreenshots = true;
-          DontCheckDefaultBrowser = true;
-          NoDefaultBookmarks = true;
-          OfferToSaveLogins = false;
-          PasswordManagerEnabled = false;
-          NewTabPage = false;
-          FirefoxHome = {
-            Search = false;
-            TopSites = false;
-            SponsoredTopSites = false;
-            Highlights = false;
-            Pocket = false;
-            SponsoredPocket = false;
-            Snippets = false;
-            Locked = true;
-          };
-          UserMessaging = {
-            WhatsNew = false;
-            ExtensionRecommendations = false;
-            FeatureRecommendations = false;
-            UrlbarInterventions = false;
-            SkipOnboarding = true;
-            MoreFromMozilla = false;
-            Locked = true;
-          };
-        };
 
         profiles.default = {
           isDefault = true;
