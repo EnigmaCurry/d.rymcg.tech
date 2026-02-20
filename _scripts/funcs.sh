@@ -12,7 +12,7 @@ print_array(){ printf '%s\n' "$@"; }
 trim_trailing_whitespace() { sed -e 's/[[:space:]]*$//'; }
 trim_leading_whitespace() { sed -e 's/^[[:space:]]*//'; }
 trim_whitespace() { trim_leading_whitespace | trim_trailing_whitespace; }
-wizard() { ${BIN}/script-wizard "$@"; }
+wizard() { if [[ -x "${BIN}/script-wizard" ]]; then ${BIN}/script-wizard "$@"; else script-wizard "$@"; fi; }
 check_var(){
     local __missing=false
     local __vars="$@"
