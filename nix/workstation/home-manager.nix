@@ -125,6 +125,9 @@
             "dom.security.https_only_mode" = true;
             "dom.security.https_only_mode_ever_enabled" = true;
 
+            # === Extensions: auto-enable without user approval ===
+            "extensions.autoDisableScopes" = 0;
+
             # === UI cleanup ===
             "browser.shell.checkDefaultBrowser" = false;
             "browser.aboutConfig.showWarning" = false;
