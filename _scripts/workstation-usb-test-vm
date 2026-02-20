@@ -178,7 +178,7 @@ case "$DISPLAY_TYPE" in
         DISPLAY_ARGS=(-display none -serial stdio)
         ;;
     gtk)
-        DISPLAY_ARGS=(-display gtk)
+        DISPLAY_ARGS=(-display gtk,grab-on-hover=on)
         ;;
     sdl)
         DISPLAY_ARGS=(-display sdl)
