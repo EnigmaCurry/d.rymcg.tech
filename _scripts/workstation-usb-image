@@ -526,7 +526,7 @@ fi
 
 # Unmount
 umount -R "$MOUNT" 2>/dev/null || umount -lR "$MOUNT" 2>/dev/null || true
-echo "(Any 'target is busy' warnings above are harmless)"
+echo "(Any target-is-busy warnings above are harmless)"
 rmdir "$MOUNT" 2>/dev/null || true
 MOUNT=""
 
