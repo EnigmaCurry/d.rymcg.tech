@@ -8,7 +8,7 @@ ROOT_DIR=$(dirname ${BIN})
 source ${BIN}/funcs.sh
 
 IMAGE_DIR="${ROOT_DIR}/_archive"
-IMAGE_FILE="${IMAGE_DIR}/workstation-usb.img"
+IMAGE_FILE=""
 IMAGE_SIZE=""
 BASE_ONLY=""
 DRY_RUN=""
@@ -26,7 +26,8 @@ usage() {
     echo ""
     echo "Options:"
     echo "  --size SIZE    Override auto-calculated image size (e.g. 128G)"
-    echo "  --output FILE  Output path (default: ${IMAGE_FILE})"
+    echo "  --output FILE  Output path (default: _archive/workstation-usb.img,"
+    echo "                 or _archive/workstation-usb-base.img with --base-only)"
     echo "  --base-only    Build OS only, without archive data (smaller image)"
     echo "  --dry-run      Build the system closure only, don't create image"
     echo "  -h, --help     Show this help"
@@ -66,6 +67,15 @@ while [[ $# -gt 0 ]]; do
             ;;
     esac
 done
+
+# Apply default output path based on mode
+if [[ -z "$IMAGE_FILE" ]]; then
+    if [[ -n "$BASE_ONLY" ]]; then
+        IMAGE_FILE="${IMAGE_DIR}/workstation-usb-base.img"
+    else
+        IMAGE_FILE="${IMAGE_DIR}/workstation-usb.img"
+    fi
+fi
 
 ## Pre-flight check: show what will be included and offer to fetch missing data
 if [[ -z "$BASE_ONLY" ]]; then
