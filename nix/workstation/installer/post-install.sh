@@ -203,10 +203,13 @@ fi
 # for its build state and dependency resolution.
 find "$USER_HOME/.emacs.d/straight" -name '*.so' -delete 2>/dev/null || true
 
-# Clean up chroot mounts
+# Clean up chroot mounts (kill lingering processes first so /dev unmounts cleanly)
+fuser -km "$MOUNT" 2>/dev/null || true
+sleep 1
 umount "$MOUNT/sys" 2>/dev/null || true
 umount "$MOUNT/proc" 2>/dev/null || true
-umount "$MOUNT/dev" 2>/dev/null || true
+umount "$MOUNT/dev" 2>/dev/null || umount -l "$MOUNT/dev" 2>/dev/null || true
+sync
 
 echo "=== Post-install complete ==="
 if [[ -z "$CHROOT_ONLY" ]]; then

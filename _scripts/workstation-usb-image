@@ -522,13 +522,25 @@ if [[ -x "$POST_INSTALL_SCRIPT" ]]; then
     fi
 fi
 
+# Sync all pending writes before unmounting
+sync
+
 # Unmount
-umount -R "$MOUNT" 2>/dev/null || umount -lR "$MOUNT" 2>/dev/null || true
-echo "(Any target-is-busy warnings above are harmless)"
+umount "$MOUNT/boot" 2>/dev/null || true
+umount "$MOUNT" 2>/dev/null || true
+if mountpoint -q "$MOUNT" 2>/dev/null; then
+    echo "Warning: mount point still busy, waiting..."
+    sleep 3
+    sync
+    umount -R "$MOUNT" 2>/dev/null || umount -lR "$MOUNT" 2>/dev/null || true
+    sleep 2
+    sync
+fi
 rmdir "$MOUNT" 2>/dev/null || true
 MOUNT=""
 
 # Detach loop
+sync
 losetup -d "$LOOP"
 LOOP=""
 
