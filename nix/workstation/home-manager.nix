@@ -58,6 +58,7 @@
               "amazondotcom-us".metaData.hidden = true;
               "ebay".metaData.hidden = true;
               "wikipedia".metaData.hidden = true;
+              "perplexity".metaData.hidden = true;
               "ddg".metaData.alias = "@ddg";
             };
           };
@@ -70,9 +71,9 @@
             "ui.systemUsesDarkTheme" = 1;
             "extensions.activeThemeID" = "firefox-compact-dark@mozilla.org";
 
-            # === Blank homepage and new tab ===
+            # === Startup: restore previous session, blank new tab ===
             "browser.startup.homepage" = "about:blank";
-            "browser.startup.page" = 0;
+            "browser.startup.page" = 3;
             "browser.newtabpage.enabled" = false;
             "browser.newtabpage.activity-stream.showSponsored" = false;
             "browser.newtabpage.activity-stream.showSponsoredTopSites" = false;
@@ -119,6 +120,10 @@
             "extensions.formautofill.addresses.enabled" = false;
             "extensions.formautofill.creditCards.enabled" = false;
             "signon.rememberSignons" = false;
+
+            # === HTTPS-only mode ===
+            "dom.security.https_only_mode" = true;
+            "dom.security.https_only_mode_ever_enabled" = true;
 
             # === UI cleanup ===
             "browser.shell.checkDefaultBrowser" = false;
