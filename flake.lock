@@ -19,11 +19,11 @@
     "emacs_enigmacurry": {
       "flake": false,
       "locked": {
-        "lastModified": 1769584273,
-        "narHash": "sha256-nQXzdylvqN9uTvb2S2Cg81zn9tIAUhC94fMAK5TpEfw=",
+        "lastModified": 1771577167,
+        "narHash": "sha256-5jQ4gOuSkYnPAGaweMqSNBVnr7iRprx7YYKUfjxt6Kw=",
         "owner": "EnigmaCurry",
         "repo": "emacs",
-        "rev": "b7d98ee0824c3847071ef518bd8595e146af3a59",
+        "rev": "12969bdd6580a23dcd82a3e3b4eb428f886e0c01",
         "type": "github"
       },
       "original": {
@@ -283,11 +283,11 @@
       },
       "locked": {
         "dir": "home-manager",
-        "lastModified": 1771612495,
-        "narHash": "sha256-RID/ZxEs95KuZvsiL4GPex5VfBlau4s89oVr2/knnxA=",
+        "lastModified": 1771615391,
+        "narHash": "sha256-a081qwVgrOXvy8Q30QOlZ2ykz1Mmo+u+r2tdyjeKtVQ=",
         "owner": "EnigmaCurry",
         "repo": "sway-home",
-        "rev": "59da056173ec24d690c800aa4444094d0b87c0cd",
+        "rev": "a30980ddc3b24e8436e7342ccfffa885f2077fb9",
         "type": "github"
       },
       "original": {
@@ -300,11 +300,11 @@
     "sway-home-src": {
       "flake": false,
       "locked": {
-        "lastModified": 1771612495,
-        "narHash": "sha256-RID/ZxEs95KuZvsiL4GPex5VfBlau4s89oVr2/knnxA=",
+        "lastModified": 1771615391,
+        "narHash": "sha256-a081qwVgrOXvy8Q30QOlZ2ykz1Mmo+u+r2tdyjeKtVQ=",
         "owner": "EnigmaCurry",
         "repo": "sway-home",
-        "rev": "59da056173ec24d690c800aa4444094d0b87c0cd",
+        "rev": "a30980ddc3b24e8436e7342ccfffa885f2077fb9",
         "type": "github"
       },
       "original": {
