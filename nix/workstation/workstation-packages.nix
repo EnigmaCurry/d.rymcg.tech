@@ -88,7 +88,7 @@
     networkmanagerapplet  # nm-applet tray icon for sway
     kanshi                # auto display management
     mako                  # desktop notifications
-    lxde.lxsession        # polkit agent (auth prompts for virt-manager, etc.)
+    lxsession             # polkit agent (auth prompts for virt-manager, etc.)
     grim                  # screenshot tool
     slurp                 # screen region selector (pairs with grim)
     wl-clipboard          # wl-copy/wl-paste
