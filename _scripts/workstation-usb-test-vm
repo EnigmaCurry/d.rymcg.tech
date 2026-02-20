@@ -1,0 +1,195 @@
+#!/bin/bash
+## Launch a QEMU test VM from a workstation USB disk image.
+## Creates a CoW (copy-on-write) overlay so the original image is never modified.
+set -eo pipefail
+
+BIN=$(dirname $(realpath ${BASH_SOURCE}))
+ROOT_DIR=$(dirname ${BIN})
+source ${BIN}/funcs.sh
+
+IMAGE_FILE=""
+BASE_MODE=""
+MEMORY="${MEMORY:-4096}"
+CPUS="${CPUS:-$(nproc)}"
+SSH_PORT="${SSH_PORT:-10022}"
+DISPLAY_TYPE=""
+
+usage() {
+    echo "Usage: d.rymcg.tech workstation-usb-test-vm [OPTIONS]"
+    echo ""
+    echo "Launch a QEMU test VM from a workstation USB disk image."
+    echo "Creates a temporary CoW (copy-on-write) overlay so the original"
+    echo "image is never modified. Changes are discarded when the VM exits."
+    echo ""
+    echo "Options:"
+    echo "  --image FILE    Disk image path (default: auto-detected)"
+    echo "  --base          Use the base-only image (workstation-usb-base.img)"
+    echo "  --memory MB     RAM in MB (default: $MEMORY, or set MEMORY env var)"
+    echo "  --cpus N        Number of CPUs (default: all cores)"
+    echo "  --ssh-port PORT Host SSH port forwarding (default: $SSH_PORT)"
+    echo "  --display TYPE  QEMU display: gtk, sdl, none (default: gtk)"
+    echo "  -h, --help      Show this help"
+    echo ""
+    echo "Environment variables:"
+    echo "  MEMORY       RAM in MB (default: 4096)"
+    echo "  CPUS         Number of CPUs (default: all cores)"
+    echo "  SSH_PORT     Host SSH port (default: 10022)"
+    echo ""
+    echo "Connect via SSH while the VM is running:"
+    echo "  ssh -o StrictHostKeyChecking=no -p $SSH_PORT user@localhost"
+}
+
+while [[ $# -gt 0 ]]; do
+    case "$1" in
+        --image)
+            IMAGE_FILE="$2"
+            shift 2
+            ;;
+        --base)
+            BASE_MODE=1
+            shift
+            ;;
+        --memory)
+            MEMORY="$2"
+            shift 2
+            ;;
+        --cpus)
+            CPUS="$2"
+            shift 2
+            ;;
+        --ssh-port)
+            SSH_PORT="$2"
+            shift 2
+            ;;
+        --display)
+            DISPLAY_TYPE="$2"
+            shift 2
+            ;;
+        -h|--help)
+            usage
+            exit 0
+            ;;
+        *)
+            echo "Unknown option: $1" >&2
+            usage >&2
+            exit 1
+            ;;
+    esac
+done
+
+# Default image path
+if [[ -z "$IMAGE_FILE" ]]; then
+    if [[ -n "$BASE_MODE" ]]; then
+        IMAGE_FILE="${ROOT_DIR}/_archive/workstation-usb-base.img"
+    else
+        IMAGE_FILE="${ROOT_DIR}/_archive/workstation-usb.img"
+    fi
+fi
+
+# Default display
+if [[ -z "$DISPLAY_TYPE" ]]; then
+    if [[ -n "${DISPLAY:-}" ]]; then
+        DISPLAY_TYPE="gtk"
+    else
+        DISPLAY_TYPE="none"
+    fi
+fi
+
+if [[ ! -f "$IMAGE_FILE" ]]; then
+    echo "Error: Image not found: $IMAGE_FILE" >&2
+    if [[ -n "$BASE_MODE" ]]; then
+        echo "Build it first with: d.rymcg.tech workstation-usb-image --base-only" >&2
+    else
+        echo "Build it first with: d.rymcg.tech workstation-usb-image" >&2
+    fi
+    exit 1
+fi
+
+# Find OVMF firmware (needed for UEFI boot)
+OVMF_CODE=""
+OVMF_VARS=""
+for prefix in \
+    /run/current-system/sw/share/OVMF \
+    /usr/share/OVMF \
+    /usr/share/edk2/x64 \
+    /usr/share/edk2-ovmf/x64 \
+    /usr/share/qemu; do
+    if [[ -f "$prefix/OVMF_CODE.fd" ]] && [[ -f "$prefix/OVMF_VARS.fd" ]]; then
+        OVMF_CODE="$prefix/OVMF_CODE.fd"
+        OVMF_VARS="$prefix/OVMF_VARS.fd"
+        break
+    fi
+done
+
+if [[ -z "$OVMF_CODE" ]]; then
+    echo "Error: OVMF firmware not found (OVMF_CODE.fd / OVMF_VARS.fd)." >&2
+    echo "Install OVMF/edk2 for UEFI boot support." >&2
+    exit 1
+fi
+
+# Check for KVM support
+KVM_FLAG=""
+if [[ -w /dev/kvm ]]; then
+    KVM_FLAG="-enable-kvm"
+else
+    echo "Warning: /dev/kvm not accessible, running without hardware acceleration (slow)." >&2
+fi
+
+# Create temporary CoW overlay and NVRAM copy
+OVERLAY=$(mktemp --suffix=.qcow2)
+NVRAM=$(mktemp --suffix=_OVMF_VARS.fd)
+cp "$OVMF_VARS" "$NVRAM"
+
+cleanup() {
+    rm -f "$OVERLAY" "$NVRAM"
+}
+trap cleanup EXIT
+
+echo "Creating CoW overlay on $(basename "$IMAGE_FILE")..."
+qemu-img create -f qcow2 -b "$(realpath "$IMAGE_FILE")" -F raw "$OVERLAY" >/dev/null
+
+echo ""
+echo "=== Launching test VM ==="
+echo "  Image:   $IMAGE_FILE"
+echo "  Overlay: $OVERLAY (temporary)"
+echo "  Memory:  ${MEMORY} MB"
+echo "  CPUs:    $CPUS"
+echo "  Display: $DISPLAY_TYPE"
+echo "  SSH:     ssh -o StrictHostKeyChecking=no -p $SSH_PORT user@localhost"
+echo ""
+if [[ "$DISPLAY_TYPE" == "none" ]]; then
+    echo "  (headless mode — serial console below, Ctrl-A X to quit)"
+    echo ""
+fi
+
+DISPLAY_ARGS=()
+case "$DISPLAY_TYPE" in
+    none)
+        DISPLAY_ARGS=(-display none -serial stdio)
+        ;;
+    gtk)
+        DISPLAY_ARGS=(-display gtk)
+        ;;
+    sdl)
+        DISPLAY_ARGS=(-display sdl)
+        ;;
+    *)
+        DISPLAY_ARGS=(-display "$DISPLAY_TYPE")
+        ;;
+esac
+
+qemu-system-x86_64 \
+    -cpu host \
+    $KVM_FLAG \
+    -m "$MEMORY" \
+    -smp "$CPUS" \
+    -drive if=virtio,file="$OVERLAY",format=qcow2 \
+    -drive if=pflash,format=raw,readonly=on,file="$OVMF_CODE" \
+    -drive if=pflash,format=raw,file="$NVRAM" \
+    -device virtio-vga \
+    -netdev user,id=net0,hostfwd=tcp:127.0.0.1:${SSH_PORT}-:22 \
+    -device virtio-net-pci,netdev=net0 \
+    "${DISPLAY_ARGS[@]}"
+
+echo ""
+echo "VM exited. Overlay discarded."

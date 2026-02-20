@@ -5,8 +5,10 @@
 set -euo pipefail
 
 MOUNT="${1:-}"
+ARCHIVE_ROOT="${2:-}"
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 FLAKE_DIR="$(cd "$SCRIPT_DIR/../../.." && pwd)"
+ARCHIVE_ROOT="${ARCHIVE_ROOT:-$FLAKE_DIR/_archive}"
 
 if [[ -z "$MOUNT" ]]; then
     echo "Usage: $0 /mnt"
@@ -48,7 +50,7 @@ copy_to_store() {
     echo "=== Adding $name to nix store ==="
     echo "Source: $source_dir"
     local size
-    size=$(du -sh "$source_dir" | cut -f1)
+    size=$(du -shL "$source_dir" | cut -f1)
     echo "Size: $size"
 
     # Add directly to the USB's nix store (avoids doubling storage on host)
@@ -64,15 +66,15 @@ copy_to_store() {
 }
 
 # Docker image archive
-ARCHIVE_DIR="$FLAKE_DIR/_archive/images/x86_64"
+ARCHIVE_DIR="$ARCHIVE_ROOT/images/x86_64"
 copy_to_store "Docker image archive" "$ARCHIVE_DIR" "workstation-usb-archive"
 
 # ISOs
-ISOS_DIR="$FLAKE_DIR/_archive/isos"
+ISOS_DIR="$ARCHIVE_ROOT/isos"
 copy_to_store "ISOs" "$ISOS_DIR" "workstation-usb-isos"
 
 # Docker CE packages
-DOCKER_PKG_DIR="$FLAKE_DIR/_archive/docker-packages"
+DOCKER_PKG_DIR="$ARCHIVE_ROOT/docker-packages"
 copy_to_store "Docker CE packages" "$DOCKER_PKG_DIR" "workstation-usb-docker-packages"
 
 ## Pre-download emacs packages for air-gapped use
@@ -85,6 +87,13 @@ cp -L /etc/resolv.conf "$MOUNT/etc/resolv.conf" 2>/dev/null || true
 mount --bind /dev "$MOUNT/dev" 2>/dev/null || true
 mount --bind /proc "$MOUNT/proc" 2>/dev/null || true
 mount --bind /sys "$MOUNT/sys" 2>/dev/null || true
+
+# Pre-install Rust stable toolchain for air-gapped use
+echo "=== Installing Rust stable toolchain ==="
+chroot "$MOUNT" /run/current-system/sw/bin/su - user -c '
+    rustup default stable
+    rustup component add rust-src rust-analyzer clippy rustfmt
+' || echo "Warning: Rust toolchain install failed (non-fatal)"
 
 # Run emacs in batch mode as user to download all straight.el packages.
 # init.el loads with my/machine-labels='() (no optional modules).
