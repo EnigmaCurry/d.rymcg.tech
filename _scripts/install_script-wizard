@@ -93,6 +93,29 @@ if test -f ${BIN}/script-wizard; then
     fi
 fi
 
+## Check if the system (nix store) has the correct version already
+install_from_system() {
+    local sys_bin
+    for sys_bin in /etc/profiles/per-user/*/bin/script-wizard /run/current-system/sw/bin/script-wizard; do
+        if [[ -x "$sys_bin" ]]; then
+            local sys_version
+            sys_version=$("$sys_bin" --version | cut -d ' ' -f 2)
+            if [[ "$sys_version" == "$LOCKED_VERSION" ]]; then
+                echo "Found matching script-wizard $sys_version at $sys_bin"
+                # Try to copy into _scripts/; if read-only (nix store), just use PATH
+                cp "$sys_bin" "${BIN}/script-wizard" 2>/dev/null || true
+                return 0
+            fi
+        fi
+    done
+    return 1
+}
+
+if install_from_system; then
+    echo "script-wizard $LOCKED_VERSION is available."
+    exit 0
+fi
+
 echo
 echo "This utility can automatically install a required helper tool called script-wizard."
 echo "See https://github.com/enigmacurry/script-wizard"
