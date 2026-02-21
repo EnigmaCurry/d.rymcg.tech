@@ -24,6 +24,12 @@
       flake = false;
     };
 
+    # Bare git repos for offline workstation (overridden at build time)
+    vendor-git-repos = {
+      url = "github:EnigmaCurry/d.rymcg.tech";  # placeholder, overridden at build time
+      flake = false;
+    };
+
     # Firefox extensions
     firefox-addons = {
       url = "gitlab:rycee/nur-expressions?dir=pkgs/firefox-addons";
@@ -32,7 +38,7 @@
   };
 
   outputs = { self, nixpkgs, home-manager, sway-home, nix-flatpak
-    , sway-home-src, org-src, firefox-addons, ... }@inputs:
+    , sway-home-src, org-src, vendor-git-repos, firefox-addons, ... }@inputs:
     let
       system = "x86_64-linux";
       pkgs = nixpkgs.legacyPackages.${system};
@@ -45,7 +51,7 @@
         inherit system;
         specialArgs = {
           inherit self sway-home swayHomeInputs nix-flatpak;
-          inherit sway-home-src org-src firefox-addons;
+          inherit sway-home-src org-src vendor-git-repos firefox-addons;
         };
         modules = [
           home-manager.nixosModules.home-manager

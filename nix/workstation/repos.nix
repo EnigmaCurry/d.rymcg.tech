@@ -1,54 +1,71 @@
 # Git repo symlinks via home-manager home.file
 # Creates read-only nix store symlinks so all repos are available offline.
-# Each source is wrapped in a git repo so git commands work on the bundled copies.
-{ config, lib, pkgs, self, sway-home-src, swayHomeInputs, org-src, ... }:
+# When vendor-git-repos is overridden at build time with bare clones (full history),
+# those are used directly. Otherwise, synthetic single-commit bare repos are created as fallback.
+{ config, lib, pkgs, self, sway-home-src, swayHomeInputs, org-src, vendor-git-repos, ... }:
 
 let
-  # Wrap a source tree in a git repo so commands like git log/status/ls-tree work
-  mkGitRepo = name: src: pkgs.runCommand "${name}-git-repo" {
+  # Create a single-commit bare repo from a source tree (fallback when vendor-git-repos isn't overridden)
+  mkBareRepo = name: src: pkgs.runCommand "${name}-bare-repo" {
     nativeBuildInputs = [ pkgs.git ];
   } ''
-    cp -r ${src} $out
-    chmod -R u+w $out
-    cd $out
     export HOME=$TMPDIR
+    WORK=$(mktemp -d)
+    cp -r ${src}/. "$WORK/"
+    cd "$WORK"
     git init -b master --quiet
     git add .
     git -c user.email="nix@localhost" -c user.name="Nix" commit -m "Bundled source" --quiet
-    git remote add origin .
-    git fetch origin --quiet
+    git clone --bare "$WORK" "$out"
   '';
+
+  # Detect whether vendor-git-repos contains real bare repos (overridden at build time)
+  hasBareRepos = builtins.pathExists "${vendor-git-repos}/d.rymcg.tech/HEAD";
+
+  # Get bare repo for a given name, falling back to synthetic bare repo from source
+  getBareRepo = name: src:
+    if hasBareRepos
+    then "${vendor-git-repos}/${name}"
+    else mkBareRepo name src;
+
+  bareRepos = {
+    "d.rymcg.tech" = getBareRepo "d.rymcg.tech" self;
+    "sway-home" = getBareRepo "sway-home" sway-home-src;
+    "emacs" = getBareRepo "emacs" swayHomeInputs.emacs_enigmacurry;
+    "blog.rymcg.tech" = getBareRepo "blog.rymcg.tech" swayHomeInputs.blog-rymcg-tech;
+    "org" = getBareRepo "org" org-src;
+  };
 in
 {
   home-manager.users.user = { ... }: {
     home.file = {
-      # d.rymcg.tech (self = flake source, excludes _archive/)
+      # d.rymcg.tech
       "git/vendor-nix/enigmacurry/d.rymcg.tech" = {
-        source = mkGitRepo "d.rymcg.tech" self;
+        source = bareRepos."d.rymcg.tech";
         recursive = true;
       };
 
-      # sway-home (full repo, not the home-manager subdir)
+      # sway-home
       "git/vendor-nix/enigmacurry/sway-home" = {
-        source = mkGitRepo "sway-home" sway-home-src;
+        source = bareRepos."sway-home";
         recursive = true;
       };
 
-      # emacs (from sway-home's inputs)
+      # emacs
       "git/vendor-nix/enigmacurry/emacs" = {
-        source = mkGitRepo "emacs" swayHomeInputs.emacs_enigmacurry;
+        source = bareRepos."emacs";
         recursive = true;
       };
 
-      # blog.rymcg.tech (from sway-home's inputs)
+      # blog.rymcg.tech
       "git/vendor-nix/enigmacurry/blog.rymcg.tech" = {
-        source = mkGitRepo "blog.rymcg.tech" swayHomeInputs.blog-rymcg-tech;
+        source = bareRepos."blog.rymcg.tech";
         recursive = true;
       };
 
-      # org (personal org-mode files)
+      # org
       "git/vendor-nix/enigmacurry/org" = {
-        source = mkGitRepo "org" org-src;
+        source = bareRepos."org";
         recursive = true;
       };
 
@@ -72,15 +89,12 @@ in
       User = "user";
       Group = "users";
     };
-    script = let
-      src = mkGitRepo "d.rymcg.tech" self;
-    in ''
+    script = ''
       dest="/home/user/git/vendor/enigmacurry/d.rymcg.tech"
       if [ ! -d "$dest/.git" ]; then
         echo "Cloning d.rymcg.tech from nix store..."
         mkdir -p /home/user/git/vendor/enigmacurry
-        cp -a ${src} "$dest"
-        chmod -R u+w "$dest"
+        git clone ${bareRepos."d.rymcg.tech"} "$dest"
         git -C "$dest" remote set-url origin https://github.com/EnigmaCurry/d.rymcg.tech.git
         echo "d.rymcg.tech: cloned and remote set"
       else
