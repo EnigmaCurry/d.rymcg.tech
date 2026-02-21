@@ -23,12 +23,19 @@
   fileSystems."/" = {
     device = "/dev/disk/by-label/nixos";
     fsType = "ext4";
+    options = [ "noatime" ];  # prevent write-on-read (critical for USB longevity)
   };
   fileSystems."/boot" = {
     device = "/dev/disk/by-label/ESP";
     fsType = "vfat";
-    options = [ "umask=0077" ];
+    options = [ "umask=0077" "noatime" ];
   };
+
+  # Reduce journal writes to disk (volatile = in-memory only)
+  services.journald.extraConfig = ''
+    Storage=volatile
+    RuntimeMaxUse=64M
+  '';
 
   # Enable flakes
   nix.settings.experimental-features = [ "nix-command" "flakes" ];
