@@ -149,6 +149,16 @@ in
         echo "$proj: linked -> $store_path"
       done
 
+      # Docker image manifest
+      manifest_root="$gcroot_dir/workstation-usb-image-manifest"
+      if [[ -L "$manifest_root" ]]; then
+        store_path=$(readlink "$manifest_root")
+        if [[ -e "$store_path" ]]; then
+          ln -sfn "$store_path" "/var/workstation/images/x86_64/manifest.json"
+          echo "manifest.json: linked"
+        fi
+      fi
+
       # ComfyUI variant files (individual .tar.gz files in the store)
       comfyui_count=0
       for root in "$gcroot_dir"/workstation-usb-comfyui-*; do

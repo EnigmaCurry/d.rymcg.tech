@@ -94,6 +94,9 @@ if [[ -z "$CHROOT_ONLY" ]]; then
         for f in $COMFYUI_FILES; do
             add_to_store "$ARCHIVE_IMG_DIR/comfyui/$f" "comfyui/$f" "workstation-usb-comfyui-$f"
         done
+        if [[ -f "$ARCHIVE_IMG_DIR/manifest.json" ]]; then
+            add_to_store "$ARCHIVE_IMG_DIR/manifest.json" "manifest.json" "workstation-usb-image-manifest"
+        fi
         echo ""
 
         if $INCLUDE_ISOS; then
