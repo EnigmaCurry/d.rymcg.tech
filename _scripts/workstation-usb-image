@@ -352,6 +352,9 @@ fi
 echo ""
 confirm yes "Build the image" "?" || exit 0
 
+# Acquire sudo early so the credential is cached for the disk image step later
+sudo true
+
 echo ""
 echo "=== Creating bare git repo clones ==="
 BARE_DIR=$(mktemp -d)/vendor-git-repos
