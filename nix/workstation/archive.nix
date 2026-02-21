@@ -76,18 +76,19 @@ let
   '';
 
   # Helper script: clone this workstation USB to another device
+  # Note: cannot reference config.system.build.toplevel here — that would
+  # create an infinite recursion (toplevel depends on systemPackages which
+  # includes this script). Use /run/current-system at runtime instead.
   workstation-usb-clone = pkgs.writeShellScriptBin "workstation-usb-clone" ''
     set -eo pipefail
-    SCRIPT_DIR="${config.system.build.toplevel}/../../nix/workstation/installer"
     # Prefer the writable repo clone if available
     REPO_SCRIPT="/home/user/git/vendor/enigmacurry/d.rymcg.tech/nix/workstation/installer/clone-to-device.sh"
+    # Fall back to the nix store copy bundled alongside this module
+    NIX_SCRIPT="${./installer/clone-to-device.sh}"
     if [[ -x "$REPO_SCRIPT" ]]; then
       CLONE_SCRIPT="$REPO_SCRIPT"
-    elif [[ -x "$SCRIPT_DIR/clone-to-device.sh" ]]; then
-      CLONE_SCRIPT="$SCRIPT_DIR/clone-to-device.sh"
     else
-      # Fall back to the nix store copy alongside this script
-      CLONE_SCRIPT="${./installer/clone-to-device.sh}"
+      CLONE_SCRIPT="$NIX_SCRIPT"
     fi
     if [[ $EUID -ne 0 ]]; then
       exec sudo "$CLONE_SCRIPT" "$@"
