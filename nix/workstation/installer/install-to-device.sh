@@ -1,15 +1,58 @@
 #!/usr/bin/env bash
 ## Install NixOS workstation directly to a USB device
-## Usage: install-to-device.sh /dev/sdX
+## Usage: install-to-device.sh [OPTIONS] /dev/sdX
 set -euo pipefail
 
-DEVICE="${1:-}"
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 FLAKE_DIR="$(cd "$SCRIPT_DIR/../../.." && pwd)"
+BIN="${FLAKE_DIR}/_scripts"
+ROOT_DIR="$FLAKE_DIR"
+source "${BIN}/funcs.sh"
+source "${BIN}/workstation-build-lib.sh"
+
+DEVICE=""
+BASE_ONLY=""
+ARCHIVE_SOURCE="${FLAKE_DIR}/_archive"
+MANIFEST_FILE=""
+
+usage() {
+    echo "Usage: $0 [OPTIONS] /dev/sdX"
+    echo ""
+    echo "Install NixOS workstation directly to a USB device."
+    echo "Must be run as root."
+    echo ""
+    echo "Options:"
+    echo "  --base-only    Install OS only, without archive data"
+    echo "  -h, --help     Show this help"
+    echo ""
+    echo "Default passwords: admin/admin, user/user (change on first boot)."
+    echo "The root partition auto-expands to fill the USB on first boot."
+}
+
+while [[ $# -gt 0 ]]; do
+    case "$1" in
+        --base-only)
+            BASE_ONLY=1
+            shift
+            ;;
+        -h|--help)
+            usage
+            exit 0
+            ;;
+        -*)
+            echo "Unknown option: $1" >&2
+            usage >&2
+            exit 1
+            ;;
+        *)
+            DEVICE="$1"
+            shift
+            ;;
+    esac
+done
 
 if [[ -z "$DEVICE" ]]; then
-    echo "Usage: $0 /dev/sdX"
-    echo "Install NixOS workstation to a USB device."
+    usage
     exit 1
 fi
 
@@ -21,6 +64,12 @@ fi
 if [[ $EUID -ne 0 ]]; then
     echo "Error: This script must be run as root." >&2
     exit 1
+fi
+
+# Archive selection (before device confirmation so user can cancel early)
+if [[ -z "$BASE_ONLY" ]]; then
+    workstation_archive_preflight
+    workstation_archive_select
 fi
 
 # Safety check
@@ -35,19 +84,35 @@ if [[ "$confirm" != "YES" ]]; then
 fi
 
 MOUNT=$(mktemp -d)
-trap 'umount -R "$MOUNT" 2>/dev/null || true; rmdir "$MOUNT" 2>/dev/null || true' EXIT
+cleanup() {
+    set +e
+    umount -R "$MOUNT" 2>/dev/null || true
+    rmdir "$MOUNT" 2>/dev/null || true
+    if [[ -n "${MANIFEST_FILE:-}" ]] && [[ "$MANIFEST_FILE" == /tmp/* ]]; then
+        rm -f "$MANIFEST_FILE" 2>/dev/null
+    fi
+}
+trap cleanup EXIT
 
+echo ""
+workstation_create_bare_repos
+
+echo ""
 echo "=== Building NixOS system closure ==="
-SYSTEM_PATH=$(nix build "${FLAKE_DIR}#nixosConfigurations.workstation.config.system.build.toplevel" --no-link --print-out-paths)
+SYSTEM_PATH=$(workstation_nix_build "nixosConfigurations.workstation.config.system.build.toplevel")
 echo "System closure: $SYSTEM_PATH"
 
-NIXOS_INSTALL=$(nix build "${FLAKE_DIR}#nixosConfigurations.workstation.config.system.build.nixos-install" --no-link --print-out-paths)/bin/nixos-install
+NIXOS_INSTALL=$(workstation_nix_build "nixosConfigurations.workstation.config.system.build.nixos-install")/bin/nixos-install
+if [[ ! -x "$NIXOS_INSTALL" ]]; then
+    echo "Error: nixos-install not found at $NIXOS_INSTALL" >&2
+    exit 1
+fi
 echo "nixos-install: $NIXOS_INSTALL"
 
 echo "=== Partitioning $DEVICE ==="
 # Wipe existing partition table
 sgdisk --zap-all "$DEVICE"
-# Create ESP (512MB) and root partition (rest)
+# Create ESP (1GB) and root partition (rest)
 sgdisk -n 1:0:+1G -t 1:ef00 -c 1:ESP "$DEVICE"
 sgdisk -n 2:0:0 -t 2:8300 -c 2:nixos "$DEVICE"
 partprobe "$DEVICE" || true
@@ -76,7 +141,11 @@ echo "=== Installing NixOS ==="
 
 echo "=== Running post-install ==="
 if [[ -x "$SCRIPT_DIR/post-install.sh" ]]; then
-    "$SCRIPT_DIR/post-install.sh" "$MOUNT"
+    if [[ -z "$BASE_ONLY" ]]; then
+        "$SCRIPT_DIR/post-install.sh" "$MOUNT" "${MANIFEST_FILE:-}"
+    else
+        "$SCRIPT_DIR/post-install.sh" "$MOUNT" --chroot-only
+    fi
 else
     echo "Note: Run workstation-usb-post-install $MOUNT to copy archive data."
 fi

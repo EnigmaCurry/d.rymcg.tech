@@ -7,7 +7,7 @@ ROOT_DIR=$(dirname ${BIN})
 source ${BIN}/funcs.sh
 
 usage() {
-    echo "Usage: d.rymcg.tech workstation-usb-install /dev/sdX"
+    echo "Usage: d.rymcg.tech workstation-usb-install [OPTIONS] /dev/sdX"
     echo ""
     echo "Install the NixOS workstation directly to a USB device."
     echo "This will partition, format, and install NixOS, then copy archive data."
@@ -15,16 +15,27 @@ usage() {
     echo "WARNING: This will ERASE ALL DATA on the target device."
     echo ""
     echo "Options:"
+    echo "  --base-only  Install OS only, without archive data"
     echo "  -h, --help   Show this help"
 }
 
 DEVICE=""
+EXTRA_ARGS=()
 
 while [[ $# -gt 0 ]]; do
     case "$1" in
         -h|--help)
             usage
             exit 0
+            ;;
+        --base-only)
+            EXTRA_ARGS+=("--base-only")
+            shift
+            ;;
+        -*)
+            echo "Error: unknown option: $1" >&2
+            usage >&2
+            exit 1
             ;;
         *)
             if [[ -z "$DEVICE" ]]; then
@@ -46,7 +57,7 @@ if [[ -z "$DEVICE" ]]; then
 fi
 
 if [[ $EUID -ne 0 ]]; then
-    exec sudo bash -c "export PATH=\"$PATH:\$PATH\"; exec \"$ROOT_DIR/nix/workstation/installer/install-to-device.sh\" \"$DEVICE\""
+    exec sudo bash -c "export PATH=\"$PATH:\$PATH\"; exec \"$ROOT_DIR/nix/workstation/installer/install-to-device.sh\" ${EXTRA_ARGS[*]:+${EXTRA_ARGS[*]}} \"$DEVICE\""
 fi
 
-exec "${ROOT_DIR}/nix/workstation/installer/install-to-device.sh" "$DEVICE"
+exec "${ROOT_DIR}/nix/workstation/installer/install-to-device.sh" "${EXTRA_ARGS[@]}" "$DEVICE"
