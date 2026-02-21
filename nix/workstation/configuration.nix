@@ -32,8 +32,8 @@
   };
 
   # Reduce journal writes to disk (volatile = in-memory only)
+  services.journald.storage = "volatile";
   services.journald.extraConfig = ''
-    Storage=volatile
     RuntimeMaxUse=64M
   '';
 
