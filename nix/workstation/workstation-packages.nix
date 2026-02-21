@@ -140,6 +140,7 @@ in
     # === Nix tools ===
     nix-output-monitor
     nixos-rebuild
+    nixos-install-tools   # nixos-install for workstation-usb-clone
 
     # === d.rymcg.tech locked tools ===
     script-wizard-bin  # exact version from .tools.lock.json for air-gapped install

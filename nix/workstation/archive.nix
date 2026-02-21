@@ -75,6 +75,26 @@ let
     fi
   '';
 
+  # Helper script: clone this workstation USB to another device
+  workstation-usb-clone = pkgs.writeShellScriptBin "workstation-usb-clone" ''
+    set -eo pipefail
+    SCRIPT_DIR="${config.system.build.toplevel}/../../nix/workstation/installer"
+    # Prefer the writable repo clone if available
+    REPO_SCRIPT="/home/user/git/vendor/enigmacurry/d.rymcg.tech/nix/workstation/installer/clone-to-device.sh"
+    if [[ -x "$REPO_SCRIPT" ]]; then
+      CLONE_SCRIPT="$REPO_SCRIPT"
+    elif [[ -x "$SCRIPT_DIR/clone-to-device.sh" ]]; then
+      CLONE_SCRIPT="$SCRIPT_DIR/clone-to-device.sh"
+    else
+      # Fall back to the nix store copy alongside this script
+      CLONE_SCRIPT="${./installer/clone-to-device.sh}"
+    fi
+    if [[ $EUID -ne 0 ]]; then
+      exec sudo "$CLONE_SCRIPT" "$@"
+    fi
+    exec "$CLONE_SCRIPT" "$@"
+  '';
+
   # Helper script: restore archived Docker images
   workstation-usb-restore-images = pkgs.writeShellScriptBin "workstation-usb-restore-images" ''
     set -euo pipefail
@@ -101,6 +121,7 @@ in
 {
   environment.systemPackages = [
     workstation-usb-info
+    workstation-usb-clone
     workstation-usb-restore-images
   ];
 

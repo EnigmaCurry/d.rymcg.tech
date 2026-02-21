@@ -71,6 +71,7 @@ __help() {
         echo -e "agent\tRun agent readiness tool"
         echo -e "workstation-usb-image\tBuild NixOS disk image for USB"
         echo -e "workstation-usb-install DEV\tInstall NixOS workstation to USB"
+        echo -e "workstation-usb-clone DEV\tClone booted workstation USB to another device"
         echo -e "workstation-usb-post-install DIR\tCopy archive data to USB"
         echo -e "workstation-usb-download-isos\tDownload Debian + Fedora ISOs"
         echo -e "workstation-usb-download-docker-packages\tDownload Docker CE packages"
@@ -472,7 +473,7 @@ __d.rymcg.tech_completions() {
     if [[ ${COMP_CWORD} == 1 ]]; then
         ## Complete the main command:
         ## d.rymcg.tech <TAB> ...
-        COMMANDS="help create cd make list readme info context new-context tmp-context aliases completion install install-docker status ssh audit sshd-config ssh-expose show-ports s3-volume docker-default-address-pool route routes reconfigure dotenv_get daemon-conf fail2ban networks config image-catalog image-build image-archive image-restore agent workstation-usb-image workstation-usb-install workstation-usb-post-install workstation-usb-download-isos workstation-usb-download-docker-packages workstation-usb-test-vm"
+        COMMANDS="help create cd make list readme info context new-context tmp-context aliases completion install install-docker status ssh audit sshd-config ssh-expose show-ports s3-volume docker-default-address-pool route routes reconfigure dotenv_get daemon-conf fail2ban networks config image-catalog image-build image-archive image-restore agent workstation-usb-image workstation-usb-install workstation-usb-clone workstation-usb-post-install workstation-usb-download-isos workstation-usb-download-docker-packages workstation-usb-test-vm"
         COMPREPLY=($(compgen -W "${COMMANDS}" "${COMP_WORDS[1]}"))
     elif [[ ${COMP_CWORD} == 2 ]]; then
         ALL_PROJECTS=$(d.rymcg.tech list --raw)
@@ -667,6 +668,8 @@ main() {
                 ${BIN}/workstation-usb-image "$@";;
             workstation-usb-install)
                 ${BIN}/workstation-usb-install "$@";;
+            workstation-usb-clone)
+                ${BIN}/workstation-usb-clone "$@";;
             workstation-usb-post-install)
                 ${BIN}/workstation-usb-post-install "$@";;
             workstation-usb-download-isos)
