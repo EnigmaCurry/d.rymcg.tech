@@ -94,7 +94,7 @@ in
       if [ ! -d "$dest/.git" ]; then
         echo "Cloning d.rymcg.tech from nix store..."
         mkdir -p /home/user/git/vendor/enigmacurry
-        git clone ${bareRepos."d.rymcg.tech"} "$dest"
+        git -c safe.directory='*' clone ${bareRepos."d.rymcg.tech"} "$dest"
         git -C "$dest" remote set-url origin https://github.com/EnigmaCurry/d.rymcg.tech.git
         echo "d.rymcg.tech: cloned and remote set"
       else
