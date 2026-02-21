@@ -487,7 +487,9 @@ LOOP=""
 cleanup() {
     set +e
     if [[ -n "$MOUNT" ]]; then
-        umount -R "$MOUNT" 2>/dev/null
+        fuser -km "$MOUNT" 2>/dev/null || true
+        sleep 1
+        umount -lR "$MOUNT" 2>/dev/null || true
         rmdir "$MOUNT" 2>/dev/null
     fi
     if [[ -n "$LOOP" ]]; then
@@ -498,6 +500,23 @@ cleanup() {
     fi
 }
 trap cleanup EXIT
+
+# Clean up stale loop devices from previous interrupted builds
+STALE_LOOPS=$(losetup -l -n -O NAME,BACK-FILE 2>/dev/null | grep "workstation-usb" | awk "{print \$1}" || true)
+if [[ -n "$STALE_LOOPS" ]]; then
+    echo "Cleaning up stale loop devices from previous builds..."
+    for stale in $STALE_LOOPS; do
+        fuser -km "${stale}p2" 2>/dev/null || true
+        fuser -km "${stale}p1" 2>/dev/null || true
+    done
+    sleep 1
+    for stale in $STALE_LOOPS; do
+        umount -l "${stale}p1" 2>/dev/null || true
+        umount -l "${stale}p2" 2>/dev/null || true
+        losetup -d "$stale" 2>/dev/null || true
+    done
+    echo "Cleaned up $(echo "$STALE_LOOPS" | wc -w) stale loop device(s)"
+fi
 
 # Create sparse image file
 truncate -s "$IMAGE_SIZE" "$IMAGE_FILE"
