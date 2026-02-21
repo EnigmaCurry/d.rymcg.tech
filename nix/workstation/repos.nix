@@ -40,34 +40,19 @@ in
   home-manager.users.user = { ... }: {
     home.file = {
       # d.rymcg.tech
-      "git/vendor-nix/enigmacurry/d.rymcg.tech" = {
-        source = bareRepos."d.rymcg.tech";
-        recursive = true;
-      };
+      "git/vendor-nix/enigmacurry/d.rymcg.tech".source = bareRepos."d.rymcg.tech";
 
       # sway-home
-      "git/vendor-nix/enigmacurry/sway-home" = {
-        source = bareRepos."sway-home";
-        recursive = true;
-      };
+      "git/vendor-nix/enigmacurry/sway-home".source = bareRepos."sway-home";
 
       # emacs
-      "git/vendor-nix/enigmacurry/emacs" = {
-        source = bareRepos."emacs";
-        recursive = true;
-      };
+      "git/vendor-nix/enigmacurry/emacs".source = bareRepos."emacs";
 
       # blog.rymcg.tech
-      "git/vendor-nix/enigmacurry/blog.rymcg.tech" = {
-        source = bareRepos."blog.rymcg.tech";
-        recursive = true;
-      };
+      "git/vendor-nix/enigmacurry/blog.rymcg.tech".source = bareRepos."blog.rymcg.tech";
 
       # org
-      "git/vendor-nix/enigmacurry/org" = {
-        source = bareRepos."org";
-        recursive = true;
-      };
+      "git/vendor-nix/enigmacurry/org".source = bareRepos."org";
 
       # nixos-vm-template is already handled by sway-home.homeModules.nixos-vm-template
     };
