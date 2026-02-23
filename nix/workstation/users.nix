@@ -1,20 +1,11 @@
-# User accounts for the workstation
-{ config, lib, pkgs, ... }:
+# User account for the workstation
+{ config, lib, pkgs, userName, ... }:
 
 {
-  # admin user with sudo access
-  users.users.admin = {
+  users.users.${userName} = {
     isNormalUser = true;
     extraGroups = [ "wheel" "video" "audio" "input" "networkmanager" ];
-    # Password set during install; default for image builds (change on first boot)
-    initialPassword = "admin";
-  };
-
-  # Regular unprivileged user
-  users.users.user = {
-    isNormalUser = true;
-    extraGroups = [ "video" "audio" "input" "networkmanager" ];
-    initialPassword = "user";
+    initialPassword = userName;
   };
 
   # Allow wheel group to sudo

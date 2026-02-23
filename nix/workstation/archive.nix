@@ -1,7 +1,7 @@
 # Archive data management for the workstation USB
 # Handles GC root symlinks and helper scripts for the Docker image archive,
 # ISOs, and Docker CE packages that are copied in post-install.
-{ config, lib, pkgs, ... }:
+{ config, lib, pkgs, userName, ... }:
 
 let
   # Helper script: show what data is bundled on this workstation
@@ -82,7 +82,7 @@ let
   workstation-usb-clone = pkgs.writeShellScriptBin "workstation-usb-clone" ''
     set -eo pipefail
     # Prefer the writable repo clone if available
-    REPO_SCRIPT="/home/user/git/vendor/enigmacurry/d.rymcg.tech/nix/workstation/installer/clone-to-device.sh"
+    REPO_SCRIPT="/home/${userName}/git/vendor/enigmacurry/d.rymcg.tech/nix/workstation/installer/clone-to-device.sh"
     # Fall back to the nix store copy bundled alongside this module
     NIX_SCRIPT="${./installer/clone-to-device.sh}"
     if [[ -x "$REPO_SCRIPT" ]]; then
@@ -149,11 +149,11 @@ in
       gcroot_dir="/nix/var/nix/gcroots"
 
       # Symlink _archive in the writable d.rymcg.tech clone to /var/workstation
-      clone_dir="/home/user/git/vendor/enigmacurry/d.rymcg.tech"
+      clone_dir="/home/${userName}/git/vendor/enigmacurry/d.rymcg.tech"
       archive_link="$clone_dir/_archive"
       if [[ -d "$clone_dir" ]] && [[ ! -e "$archive_link" ]]; then
         ln -sfn /var/workstation "$archive_link"
-        chown -h user: "$archive_link"
+        chown -h ${userName}: "$archive_link"
         echo "_archive: linked -> /var/workstation"
       fi
 

@@ -45,6 +45,8 @@
 
       # Access sway-home's own inputs (emacs, blog, nixos-vm-template, etc.)
       swayHomeInputs = sway-home.inputs;
+
+      workstationSettings = import ./nix/workstation/settings.nix;
     in
     {
       nixosConfigurations.workstation = nixpkgs.lib.nixosSystem {
@@ -52,6 +54,7 @@
         specialArgs = {
           inherit self sway-home swayHomeInputs nix-flatpak;
           inherit sway-home-src org-src vendor-git-repos firefox-addons;
+          inherit (workstationSettings) userName;
         };
         modules = [
           home-manager.nixosModules.home-manager

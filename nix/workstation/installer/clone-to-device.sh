@@ -21,7 +21,7 @@ usage() {
     echo "  --base-only    Install OS only, without archive data"
     echo "  -h, --help     Show this help"
     echo ""
-    echo "Default passwords: admin/admin, user/user (change on first boot)."
+    echo "Default password matches the username (change on first boot)."
     echo "The root partition auto-expands to fill the device on first boot."
 }
 
@@ -162,6 +162,12 @@ if [[ -z "$BASE_ONLY" ]]; then
     fi
 fi
 
+# Discover usernames from source (booted USB) and target
+SRC_USER=$(awk -F: '$3 >= 1000 && $3 < 65534 {print $1; exit}' /etc/passwd)
+TGT_USER=$(awk -F: '$3 >= 1000 && $3 < 65534 {print $1; exit}' "$MOUNT/etc/passwd")
+echo "Source user: $SRC_USER"
+echo "Target user: $TGT_USER"
+
 echo ""
 echo "=== Running post-install chroot tasks ==="
 if [[ -x "$SCRIPT_DIR/post-install.sh" ]]; then
@@ -175,10 +181,10 @@ fi
 # Copying from the running system makes the clone fully air-gapped.
 echo ""
 echo "=== Copying home directory resources from booted USB ==="
-_src_home="/home/user"
-_dst_home="$MOUNT/home/user"
-_uid=$(grep '^user:' "$MOUNT/etc/passwd" | cut -d: -f3)
-_gid=$(grep '^user:' "$MOUNT/etc/passwd" | cut -d: -f4)
+_src_home="/home/$SRC_USER"
+_dst_home="$MOUNT/home/$TGT_USER"
+_uid=$(grep "^${TGT_USER}:" "$MOUNT/etc/passwd" | cut -d: -f3)
+_gid=$(grep "^${TGT_USER}:" "$MOUNT/etc/passwd" | cut -d: -f4)
 
 _copy_home_resource() {
     local rel_path="$1"
@@ -216,5 +222,5 @@ find "$_dst_home/.emacs.d/straight" -name '*.so' -delete 2>/dev/null || true
 echo ""
 echo "=== Clone complete ==="
 echo "You can now boot from $DEVICE."
-echo "Default passwords: admin/admin, user/user (change on first boot)."
+echo "Default password matches the username (change on first boot)."
 echo "The root partition will auto-expand on first boot."

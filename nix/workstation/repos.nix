@@ -2,7 +2,7 @@
 # Creates read-only nix store symlinks so all repos are available offline.
 # When vendor-git-repos is overridden at build time with bare clones (full history),
 # those are used directly. Otherwise, synthetic single-commit bare repos are created as fallback.
-{ config, lib, pkgs, self, sway-home-src, swayHomeInputs, org-src, vendor-git-repos, ... }:
+{ config, lib, pkgs, self, sway-home-src, swayHomeInputs, org-src, vendor-git-repos, userName, ... }:
 
 let
   # Create a single-commit bare repo from a source tree (fallback when vendor-git-repos isn't overridden)
@@ -37,7 +37,7 @@ let
   };
 in
 {
-  home-manager.users.user = { ... }: {
+  home-manager.users.${userName} = { ... }: {
     home.file = {
       # d.rymcg.tech
       "git/vendor-nix/enigmacurry/d.rymcg.tech".source = bareRepos."d.rymcg.tech";
@@ -58,7 +58,7 @@ in
     };
 
     home.sessionPath = [
-      "/home/user/git/vendor/enigmacurry/d.rymcg.tech/_scripts/user"
+      "/home/${userName}/git/vendor/enigmacurry/d.rymcg.tech/_scripts/user"
     ];
   };
 
@@ -71,14 +71,14 @@ in
     serviceConfig = {
       Type = "oneshot";
       RemainAfterExit = true;
-      User = "user";
+      User = userName;
       Group = "users";
     };
     script = ''
-      dest="/home/user/git/vendor/enigmacurry/d.rymcg.tech"
+      dest="/home/${userName}/git/vendor/enigmacurry/d.rymcg.tech"
       if [ ! -d "$dest/.git" ]; then
         echo "Cloning d.rymcg.tech from nix store..."
-        mkdir -p /home/user/git/vendor/enigmacurry
+        mkdir -p /home/${userName}/git/vendor/enigmacurry
         git -c safe.directory='*' clone ${bareRepos."d.rymcg.tech"} "$dest"
         git -C "$dest" remote set-url origin https://github.com/EnigmaCurry/d.rymcg.tech.git
         echo "d.rymcg.tech: cloned and remote set"

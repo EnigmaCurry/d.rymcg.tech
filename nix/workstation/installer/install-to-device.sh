@@ -25,7 +25,7 @@ usage() {
     echo "  --base-only    Install OS only, without archive data"
     echo "  -h, --help     Show this help"
     echo ""
-    echo "Default passwords: admin/admin, user/user (change on first boot)."
+    echo "Default password matches the username (change on first boot)."
     echo "The root partition auto-expands to fill the USB on first boot."
 }
 
@@ -153,5 +153,5 @@ fi
 echo ""
 echo "=== Installation complete ==="
 echo "You can now boot from $DEVICE."
-echo "Default passwords: admin/admin, user/user (change on first boot)."
+echo "Default password matches the username (change on first boot)."
 echo "The root partition will auto-expand on first boot."

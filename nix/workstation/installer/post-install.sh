@@ -47,6 +47,14 @@ if [[ ! -d "$MOUNT/nix/store" ]]; then
     exit 1
 fi
 
+# Discover the normal user account (first UID >= 1000, < 65534)
+TARGET_USER=$(awk -F: '$3 >= 1000 && $3 < 65534 {print $1; exit}' "$MOUNT/etc/passwd")
+if [[ -z "$TARGET_USER" ]]; then
+    echo "Error: no normal user found in $MOUNT/etc/passwd" >&2
+    exit 1
+fi
+echo "Target user: $TARGET_USER"
+
 if [[ $EUID -ne 0 ]]; then
     echo "Error: This script must be run as root." >&2
     exit 1
@@ -144,10 +152,10 @@ mount --bind /sys "$MOUNT/sys" 2>/dev/null || true
 # Create per-user profile directory so home-manager's installPackages step
 # can create the nix profile on first boot. Without this, home.packages
 # (including fonts) silently fail to install.
-_uid=$(grep '^user:' "$MOUNT/etc/passwd" | cut -d: -f3)
-_gid=$(grep '^user:' "$MOUNT/etc/passwd" | cut -d: -f4)
-mkdir -p "$MOUNT/nix/var/nix/profiles/per-user/user"
-chown "$_uid:$_gid" "$MOUNT/nix/var/nix/profiles/per-user/user"
+_uid=$(grep "^${TARGET_USER}:" "$MOUNT/etc/passwd" | cut -d: -f3)
+_gid=$(grep "^${TARGET_USER}:" "$MOUNT/etc/passwd" | cut -d: -f4)
+mkdir -p "$MOUNT/nix/var/nix/profiles/per-user/$TARGET_USER"
+chown "$_uid:$_gid" "$MOUNT/nix/var/nix/profiles/per-user/$TARGET_USER"
 
 # /run/current-system doesn't persist after nixos-install (/run is tmpfs at boot).
 # Find the system closure and create the symlink so chroot commands work.
@@ -165,7 +173,7 @@ fi
 # so ~/.emacs.d/ doesn't exist yet in the chroot after nixos-install.
 # Create it from the home-manager generation so emacs pre-download works.
 echo "=== Setting up home-manager symlinks ==="
-USER_HOME="$MOUNT/home/user"
+USER_HOME="$MOUNT/home/$TARGET_USER"
 HM_GEN=$(find "$MOUNT/nix/store" -maxdepth 1 -name '*-home-manager-generation' -type d 2>/dev/null | head -1)
 if [[ -n "$HM_GEN" ]] && [[ -L "$HM_GEN/home-files" ]]; then
     HM_HOME_FILES=$(readlink "$HM_GEN/home-files")
@@ -177,8 +185,8 @@ if [[ -n "$HM_GEN" ]] && [[ -L "$HM_GEN/home-files" ]]; then
         # into a writable directory so straight.el can create straight/ and custom.el
         cp -a "$MOUNT$HM_HOME_FILES/.emacs.d/." "$USER_HOME/.emacs.d/"
         # Resolve UID/GID from the target's passwd (chroot may not have /run set up)
-        _uid=$(grep '^user:' "$MOUNT/etc/passwd" | cut -d: -f3)
-        _gid=$(grep '^user:' "$MOUNT/etc/passwd" | cut -d: -f4)
+        _uid=$(grep "^${TARGET_USER}:" "$MOUNT/etc/passwd" | cut -d: -f3)
+        _gid=$(grep "^${TARGET_USER}:" "$MOUNT/etc/passwd" | cut -d: -f4)
         chown -R "$_uid:$_gid" "$USER_HOME/.emacs.d"
         # Nix store sources are read-only; make .emacs.d writable so emacs
         # can create subdirectories (auto-save/, straight/, custom.el, etc.)
@@ -204,7 +212,7 @@ fi
 # and --base-only installs are intentionally minimal.
 if [[ -z "$CHROOT_ONLY" ]]; then
     echo "=== Installing Rust stable toolchain ==="
-    chroot "$MOUNT" /run/current-system/sw/bin/su - user -c '
+    chroot "$MOUNT" /run/current-system/sw/bin/su - "$TARGET_USER" -c '
         rustup default stable
         rustup component add rust-src rust-analyzer clippy rustfmt
     ' || echo "Warning: Rust toolchain install failed (non-fatal)"
@@ -213,7 +221,7 @@ if [[ -z "$CHROOT_ONLY" ]]; then
     # Load init.el with all machine labels enabled, triggering straight.el
     # to download every package. Save the labels to custom.el for first boot.
     echo "=== Pre-downloading emacs packages ==="
-    chroot "$MOUNT" /run/current-system/sw/bin/su - user -c '
+    chroot "$MOUNT" /run/current-system/sw/bin/su - "$TARGET_USER" -c '
         emacs --batch \
             --eval "(progn
                 (setq user-init-file (expand-file-name \"init.el\" user-emacs-directory))

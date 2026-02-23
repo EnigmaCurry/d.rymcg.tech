@@ -1,6 +1,6 @@
 # Home-manager integration using sway-home modules
 # Follows the pattern from nixos-vm-template/profiles/home-manager.nix
-{ config, lib, pkgs, sway-home, swayHomeInputs, nix-flatpak, firefox-addons, ... }:
+{ config, lib, pkgs, sway-home, swayHomeInputs, nix-flatpak, firefox-addons, userName, ... }:
 
 {
   home-manager = {
@@ -10,11 +10,11 @@
     # Pass inputs that sway-home modules expect
     extraSpecialArgs = {
       inputs = swayHomeInputs;
-      userName = "user";
+      inherit userName;
     };
 
     # Configure home-manager for the regular user
-    users.user = { pkgs, ... }:
+    users.${userName} = { pkgs, ... }:
     let
       # Pre-compiled vterm native module — NixOS can't build it via straight.el
       # because cmake can't find standard library paths in the nix store.
