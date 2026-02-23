@@ -84,6 +84,20 @@ fi
 if [[ -z "$BASE_ONLY" ]]; then
     workstation_archive_preflight
     workstation_archive_select
+else
+    # --base-only: empty manifest (no archive data, but still run chroot tasks)
+    SELECTED_IMAGE_PROJECTS=()
+    COMFYUI_SELECTED_FILES=()
+    INCLUDE_ISOS=false
+    INCLUDE_DOCKER_PACKAGES=false
+    MANIFEST_FILE=$(mktemp)
+    {
+        echo "ARCHIVE_ROOT=\"${ARCHIVE_SOURCE}\""
+        echo "IMAGE_PROJECTS=\"\""
+        echo "COMFYUI_FILES=\"\""
+        echo "INCLUDE_ISOS=false"
+        echo "INCLUDE_DOCKER_PACKAGES=false"
+    } > "$MANIFEST_FILE"
 fi
 
 echo "=== Build summary ==="
@@ -309,11 +323,10 @@ if [[ -x "$POST_INSTALL_SCRIPT" ]]; then
     echo ""
     if [[ -z "$BASE_ONLY" ]]; then
         echo "=== Running post-install (archive data + chroot tasks) ==="
-        "$POST_INSTALL_SCRIPT" "$MOUNT" "$MANIFEST_FILE"
     else
-        echo "=== Running post-install (chroot tasks only) ==="
-        "$POST_INSTALL_SCRIPT" "$MOUNT" --chroot-only
+        echo "=== Running post-install (chroot tasks, no archive data) ==="
     fi
+    "$POST_INSTALL_SCRIPT" "$MOUNT" "$MANIFEST_FILE"
 fi
 
 # Sync all pending writes before unmounting
