@@ -177,6 +177,8 @@ mount -o umask=0077 "$ESP" "$MOUNT/boot"
 echo "=== Installing NixOS ==="
 "$NIXOS_INSTALL" --system "$SYSTEM_PATH" --root "$MOUNT" --no-root-password --no-channel-copy
 
+sed -i 's/^title .*/title NixOS Workstation/' "$MOUNT/boot/loader/entries/"*.conf
+
 # Copy archive GC roots from the booted USB to the target
 if [[ -z "$BASE_ONLY" ]]; then
     GCROOT_DIR="/nix/var/nix/gcroots"

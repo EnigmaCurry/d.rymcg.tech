@@ -139,6 +139,8 @@ mount -o umask=0077 "$ESP" "$MOUNT/boot"
 echo "=== Installing NixOS ==="
 "$NIXOS_INSTALL" --system "$SYSTEM_PATH" --root "$MOUNT" --no-root-password --no-channel-copy
 
+sed -i 's/^title .*/title d.rymcg.tech NixOS Installer/' "$MOUNT/boot/loader/entries/"*.conf
+
 echo "=== Running post-install ==="
 if [[ -x "$SCRIPT_DIR/post-install.sh" ]]; then
     if [[ -z "$BASE_ONLY" ]]; then
