@@ -217,9 +217,13 @@ echo "Target user: $TGT_USER"
 # Rename user account if a different name was requested
 if [[ "$NEW_USER" != "$TGT_USER" ]]; then
     echo "Renaming user '$TGT_USER' -> '$NEW_USER'"
-    chroot "$MOUNT" /run/current-system/sw/bin/usermod -l "$NEW_USER" "$TGT_USER"
-    chroot "$MOUNT" /run/current-system/sw/bin/usermod -d "/home/$NEW_USER" -m "$NEW_USER"
-    chroot "$MOUNT" /run/current-system/sw/bin/groupmod -n "$NEW_USER" "$TGT_USER" 2>/dev/null || true
+    # Edit passwd/shadow/group directly (usermod isn't in NixOS default PATH)
+    sed -i "s/^${TGT_USER}:/${NEW_USER}:/" "$MOUNT/etc/passwd"
+    sed -i "s|:/home/${TGT_USER}:|:/home/${NEW_USER}:|" "$MOUNT/etc/passwd"
+    sed -i "s/^${TGT_USER}:/${NEW_USER}:/" "$MOUNT/etc/shadow"
+    sed -i "s/^${TGT_USER}:/${NEW_USER}:/" "$MOUNT/etc/group"
+    sed -i -E "s/([:,])${TGT_USER}(,|$)/\1${NEW_USER}\2/g" "$MOUNT/etc/group"
+    mv "$MOUNT/home/$TGT_USER" "$MOUNT/home/$NEW_USER"
     TGT_USER="$NEW_USER"
     echo "Target user: $TGT_USER"
 fi
