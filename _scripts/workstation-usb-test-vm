@@ -14,6 +14,8 @@ CPUS="${CPUS:-$(nproc)}"
 SSH_PORT="${SSH_PORT:-10022}"
 DISPLAY_TYPE=""
 NO_NETWORK=""
+DISK_SIZE=""
+CLEAN=""
 
 usage() {
     echo "Usage: d.rymcg.tech workstation-usb-test-vm [OPTIONS]"
@@ -28,6 +30,8 @@ usage() {
     echo "  --memory MB     RAM in MB (default: $MEMORY, or set MEMORY env var)"
     echo "  --cpus N        Number of CPUs (default: all cores)"
     echo "  --ssh-port PORT Host SSH port forwarding (default: $SSH_PORT)"
+    echo "  --disk GB       Attach a persistent virtual disk as /dev/vda (created if needed)"
+    echo "  --clean         Delete the persistent virtual disk and exit"
     echo "  --no-network    Disable networking (simulate air-gapped environment)"
     echo "  --display TYPE  QEMU display: gtk, sdl, none (default: gtk)"
     echo "  -h, --help      Show this help"
@@ -62,6 +66,14 @@ while [[ $# -gt 0 ]]; do
         --ssh-port)
             SSH_PORT="$2"
             shift 2
+            ;;
+        --disk)
+            DISK_SIZE="$2"
+            shift 2
+            ;;
+        --clean)
+            CLEAN=1
+            shift
             ;;
         --no-network)
             NO_NETWORK=1
@@ -146,6 +158,28 @@ OVERLAY=$(mktemp --suffix=.qcow2)
 NVRAM=$(mktemp --suffix=_OVMF_VARS.fd)
 cp "$OVMF_VARS" "$NVRAM"
 
+DISK_FILE="${ROOT_DIR}/_archive/workstation-usb-test-disk.qcow2"
+
+# Handle --clean: delete persistent disk and exit
+if [[ -n "$CLEAN" ]]; then
+    if [[ -f "$DISK_FILE" ]]; then
+        rm -f "$DISK_FILE"
+        echo "Deleted persistent disk: $DISK_FILE"
+    else
+        echo "No persistent disk found."
+    fi
+    exit 0
+fi
+
+if [[ -n "$DISK_SIZE" ]]; then
+    if [[ -f "$DISK_FILE" ]]; then
+        echo "Using existing persistent disk: $DISK_FILE"
+    else
+        echo "Creating ${DISK_SIZE}G persistent disk: $DISK_FILE"
+        qemu-img create -f qcow2 "$DISK_FILE" "${DISK_SIZE}G" >/dev/null
+    fi
+fi
+
 cleanup() {
     rm -f "$OVERLAY" "$NVRAM"
 }
@@ -161,6 +195,9 @@ echo "  Overlay: $OVERLAY (temporary)"
 echo "  Memory:  ${MEMORY} MB"
 echo "  CPUs:    $CPUS"
 echo "  Display: $DISPLAY_TYPE"
+if [[ -n "$DISK_SIZE" ]]; then
+    echo "  Disk:    $DISK_FILE (/dev/vda, USB image is /dev/vdb)"
+fi
 if [[ -n "$NO_NETWORK" ]]; then
     echo "  Network: disabled (air-gapped)"
 else
@@ -188,6 +225,11 @@ case "$DISPLAY_TYPE" in
         ;;
 esac
 
+DISK_ARGS=()
+if [[ -n "$DISK_SIZE" ]]; then
+    DISK_ARGS=(-drive if=virtio,file="$DISK_FILE",format=qcow2)
+fi
+
 NET_ARGS=()
 if [[ -n "$NO_NETWORK" ]]; then
     NET_ARGS=(-nic none)
@@ -201,6 +243,7 @@ qemu-system-x86_64 \
     $KVM_FLAG \
     -m "$MEMORY" \
     -smp "$CPUS" \
+    "${DISK_ARGS[@]}" \
     -drive if=virtio,file="$OVERLAY",format=qcow2 \
     -drive if=pflash,format=raw,readonly=on,file="$OVMF_CODE" \
     -drive if=pflash,format=raw,file="$NVRAM" \
