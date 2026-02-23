@@ -52,7 +52,7 @@
       nixosConfigurations.workstation = nixpkgs.lib.nixosSystem {
         inherit system;
         specialArgs = {
-          inherit self sway-home swayHomeInputs nix-flatpak;
+          inherit self nixpkgs home-manager sway-home swayHomeInputs nix-flatpak;
           inherit sway-home-src org-src vendor-git-repos firefox-addons;
           inherit (workstationSettings) userName;
         };

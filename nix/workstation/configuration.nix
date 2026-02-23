@@ -13,6 +13,7 @@
     ./workstation-packages.nix
     ./repos.nix
     ./archive.nix
+    ./first-boot.nix
   ];
 
   system.stateVersion = "25.11";

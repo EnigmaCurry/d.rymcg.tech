@@ -244,7 +244,8 @@
         "nixpkgs": "nixpkgs",
         "org-src": "org-src",
         "sway-home": "sway-home",
-        "sway-home-src": "sway-home-src"
+        "sway-home-src": "sway-home-src",
+        "vendor-git-repos": "vendor-git-repos"
       }
     },
     "script-wizard": {
@@ -339,6 +340,22 @@
       "original": {
         "owner": "nix-systems",
         "repo": "default",
+        "type": "github"
+      }
+    },
+    "vendor-git-repos": {
+      "flake": false,
+      "locked": {
+        "lastModified": 1771269639,
+        "narHash": "sha256-FkTe9MHIw5ZGrhfRW4HCyEvo7RDU0Z9mM32lBYBrc/E=",
+        "owner": "EnigmaCurry",
+        "repo": "d.rymcg.tech",
+        "rev": "b48a441eb38bdbd275f77ae7c35d57b8762d179e",
+        "type": "github"
+      },
+      "original": {
+        "owner": "EnigmaCurry",
+        "repo": "d.rymcg.tech",
         "type": "github"
       }
     }

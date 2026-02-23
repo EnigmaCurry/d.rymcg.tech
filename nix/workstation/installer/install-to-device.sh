@@ -141,6 +141,13 @@ echo "=== Installing NixOS ==="
 
 sed -i 's/^title .*/title d.rymcg.tech NixOS Installer/' "$MOUNT/boot/loader/entries/"*.conf
 
+echo ""
+echo "=== Archiving flake inputs for offline nixos-rebuild ==="
+nix flake archive --to "local?root=$MOUNT" "$ROOT_DIR"
+mkdir -p "$MOUNT/root/.cache/nix"
+cp -a /root/.cache/nix/fetcher-cache-v*.sqlite* "$MOUNT/root/.cache/nix/" 2>/dev/null || true
+echo "Flake inputs archived"
+
 echo "=== Running post-install ==="
 if [[ -x "$SCRIPT_DIR/post-install.sh" ]]; then
     if [[ -z "$BASE_ONLY" ]]; then

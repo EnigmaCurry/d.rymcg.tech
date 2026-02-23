@@ -179,6 +179,13 @@ echo "=== Installing NixOS ==="
 
 sed -i 's/^title .*/title NixOS Workstation/' "$MOUNT/boot/loader/entries/"*.conf
 
+echo ""
+echo "=== Archiving flake inputs for offline nixos-rebuild ==="
+nix flake archive --to "local?root=$MOUNT" "/home/$SRC_USER/git/vendor/enigmacurry/d.rymcg.tech"
+mkdir -p "$MOUNT/root/.cache/nix"
+cp -a /root/.cache/nix/fetcher-cache-v*.sqlite* "$MOUNT/root/.cache/nix/" 2>/dev/null || true
+echo "Flake inputs archived"
+
 # Copy archive GC roots from the booted USB to the target
 if [[ -z "$BASE_ONLY" ]]; then
     GCROOT_DIR="/nix/var/nix/gcroots"
@@ -216,18 +223,10 @@ fi
 TGT_USER=$(awk -F: '$3 >= 1000 && $3 < 65534 {print $1; exit}' "$MOUNT/etc/passwd")
 echo "Target user: $TGT_USER"
 
-# Rename user account if a different name was requested
+# Write trigger file for first-boot rename (if username differs)
 if [[ "$NEW_USER" != "$TGT_USER" ]]; then
-    echo "Renaming user '$TGT_USER' -> '$NEW_USER'"
-    # Edit passwd/shadow/group directly (usermod isn't in NixOS default PATH)
-    sed -i "s/^${TGT_USER}:/${NEW_USER}:/" "$MOUNT/etc/passwd"
-    sed -i "s|:/home/${TGT_USER}:|:/home/${NEW_USER}:|" "$MOUNT/etc/passwd"
-    sed -i "s/^${TGT_USER}:/${NEW_USER}:/" "$MOUNT/etc/shadow"
-    sed -i "s/^${TGT_USER}:/${NEW_USER}:/" "$MOUNT/etc/group"
-    sed -i -E "s/([:,])${TGT_USER}(,|$)/\1${NEW_USER}\2/g" "$MOUNT/etc/group"
-    mv "$MOUNT/home/$TGT_USER" "$MOUNT/home/$NEW_USER"
-    TGT_USER="$NEW_USER"
-    echo "Target user: $TGT_USER"
+    echo "Will rename '$TGT_USER' -> '$NEW_USER' on first boot via nixos-rebuild"
+    echo "$NEW_USER" > "$MOUNT/etc/workstation-clone-username"
 fi
 
 echo ""
@@ -298,8 +297,11 @@ echo ""
 echo "=== Clone complete ==="
 echo "You can now boot from $DEVICE."
 if [[ -n "$ADMIN_USER" ]]; then
-    echo "Accounts: $ADMIN_USER (admin/sudo), $TGT_USER (unprivileged)"
+    echo "Accounts: $ADMIN_USER (admin/sudo), $NEW_USER (unprivileged)"
 else
-    echo "Account: $TGT_USER (with sudo)"
+    echo "Account: $NEW_USER (with sudo)"
+fi
+if [[ -f "$MOUNT/etc/workstation-clone-username" ]]; then
+    echo "First boot will rename '$TGT_USER' -> '$NEW_USER' via nixos-rebuild (auto-reboots once)."
 fi
 echo "The root partition will auto-expand on first boot."
