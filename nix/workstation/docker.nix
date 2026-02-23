@@ -1,5 +1,5 @@
 # Docker and libvirt configuration for the workstation
-{ config, lib, pkgs, ... }:
+{ config, lib, pkgs, userName, ... }:
 
 {
   # Install Docker CLI without enabling the daemon service
@@ -10,9 +10,8 @@
   # Enable libvirtd for virt-manager / QEMU / KVM
   virtualisation.libvirtd.enable = true;
 
-  # Only admin gets local docker and libvirtd access
-  # (user can use remote Docker contexts and user-level QEMU sessions)
-  users.users.admin.extraGroups = [ "docker" "libvirtd" ];
+  # Grant the primary user local docker and libvirtd access
+  users.users.${userName}.extraGroups = [ "docker" "libvirtd" ];
 
   # Traefik UID reservation for Docker containers
   users.users.traefik = {
