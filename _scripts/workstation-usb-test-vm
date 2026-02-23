@@ -157,22 +157,13 @@ fi
 OVERLAY=$(mktemp --suffix=.qcow2)
 
 DISK_FILE="${ROOT_DIR}/_archive/workstation-usb-test-disk.qcow2"
-NVRAM_FILE="${ROOT_DIR}/_archive/workstation-usb-test-nvram.fd"
 
-# Handle --clean: delete persistent disk/NVRAM and exit
+# Handle --clean: delete persistent disk and exit
 if [[ -n "$CLEAN" ]]; then
-    found=""
     if [[ -f "$DISK_FILE" ]]; then
         rm -f "$DISK_FILE"
         echo "Deleted persistent disk: $DISK_FILE"
-        found=1
-    fi
-    if [[ -f "$NVRAM_FILE" ]]; then
-        rm -f "$NVRAM_FILE"
-        echo "Deleted persistent NVRAM: $NVRAM_FILE"
-        found=1
-    fi
-    if [[ -z "$found" ]]; then
+    else
         echo "No persistent disk found."
     fi
     exit 0
@@ -185,23 +176,15 @@ if [[ -n "$DISK_SIZE" ]]; then
         echo "Creating ${DISK_SIZE}G persistent disk: $DISK_FILE"
         qemu-img create -f qcow2 "$DISK_FILE" "${DISK_SIZE}G" >/dev/null
     fi
-    # Persistent NVRAM so UEFI boot order survives VM restarts
-    if [[ ! -f "$NVRAM_FILE" ]]; then
-        cp "$OVMF_VARS" "$NVRAM_FILE"
-    fi
-    NVRAM="$NVRAM_FILE"
-else
-    # Temporary NVRAM when no persistent disk
-    NVRAM=$(mktemp --suffix=_OVMF_VARS.fd)
-    cp "$OVMF_VARS" "$NVRAM"
 fi
 
+# Always use fresh NVRAM so UEFI rescans boot entries each start.
+# QEMU bootindex hints determine priority (persistent disk before USB).
+NVRAM=$(mktemp --suffix=_OVMF_VARS.fd)
+cp "$OVMF_VARS" "$NVRAM"
+
 cleanup() {
-    rm -f "$OVERLAY"
-    # Only delete NVRAM if temporary (no --disk)
-    if [[ -z "$DISK_SIZE" ]]; then
-        rm -f "$NVRAM"
-    fi
+    rm -f "$OVERLAY" "$NVRAM"
 }
 trap cleanup EXIT
 
