@@ -7,6 +7,20 @@ set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
+prompt_password() {
+    local label="$1"
+    local varname="$2"
+    while true; do
+        read -s -p "Password for $label: " _pw1; echo
+        read -s -p "Confirm password for $label: " _pw2; echo
+        if [[ "$_pw1" == "$_pw2" ]]; then
+            eval "$varname=\$_pw1"
+            return
+        fi
+        echo "Passwords do not match. Try again."
+    done
+}
+
 DEVICE=""
 BASE_ONLY=""
 
@@ -21,7 +35,6 @@ usage() {
     echo "  --base-only    Install OS only, without archive data"
     echo "  -h, --help     Show this help"
     echo ""
-    echo "Default password matches the username (change on first boot)."
     echo "The root partition auto-expands to fill the device on first boot."
 }
 
@@ -80,11 +93,41 @@ if [[ -z "$NIXOS_INSTALL" ]]; then
 fi
 echo "nixos-install: $NIXOS_INSTALL"
 
+# Discover the primary user from the booted USB
+SRC_USER=$(awk -F: '$3 >= 1000 && $3 < 65534 {print $1; exit}' /etc/passwd)
+echo "Source user: $SRC_USER"
+
+# Account setup prompts
+echo ""
+echo "=== Account Setup ==="
+ACCOUNT_MODE=$(script-wizard choose "Account mode" \
+    "Single account (${SRC_USER}) with sudo" \
+    "Two accounts (admin + unprivileged)")
+
+ADMIN_USER=""
+ADMIN_PASS=""
+USER_PASS=""
+
+if [[ "$ACCOUNT_MODE" == "Single"* ]]; then
+    prompt_password "$SRC_USER" USER_PASS
+else
+    prompt_password "$SRC_USER" USER_PASS
+    read -e -p "Admin username [admin]: " ADMIN_USER
+    ADMIN_USER="${ADMIN_USER:-admin}"
+    prompt_password "$ADMIN_USER" ADMIN_PASS
+fi
+
 # Safety check
 echo ""
 echo "WARNING: This will ERASE ALL DATA on $DEVICE"
 echo ""
 lsblk "$DEVICE"
+echo ""
+if [[ -n "$ADMIN_USER" ]]; then
+    echo "Accounts: $ADMIN_USER (admin/sudo), $SRC_USER (unprivileged)"
+else
+    echo "Account: $SRC_USER (with sudo)"
+fi
 echo ""
 read -p "Type YES to continue: " confirm
 if [[ "$confirm" != "YES" ]]; then
@@ -162,10 +205,8 @@ if [[ -z "$BASE_ONLY" ]]; then
     fi
 fi
 
-# Discover usernames from source (booted USB) and target
-SRC_USER=$(awk -F: '$3 >= 1000 && $3 < 65534 {print $1; exit}' /etc/passwd)
+# Discover target username from the installed system
 TGT_USER=$(awk -F: '$3 >= 1000 && $3 < 65534 {print $1; exit}' "$MOUNT/etc/passwd")
-echo "Source user: $SRC_USER"
 echo "Target user: $TGT_USER"
 
 echo ""
@@ -220,7 +261,24 @@ fi
 find "$_dst_home/.emacs.d/straight" -name '*.so' -delete 2>/dev/null || true
 
 echo ""
+echo "=== Configuring accounts ==="
+echo "${TGT_USER}:${USER_PASS}" | chroot "$MOUNT" /run/current-system/sw/bin/chpasswd
+
+if [[ -n "$ADMIN_USER" ]]; then
+    chroot "$MOUNT" /run/current-system/sw/bin/useradd \
+        -m -G wheel "$ADMIN_USER"
+    echo "${ADMIN_USER}:${ADMIN_PASS}" | chroot "$MOUNT" /run/current-system/sw/bin/chpasswd
+    chroot "$MOUNT" /run/current-system/sw/bin/gpasswd -d "$TGT_USER" wheel
+    echo "Created admin account '$ADMIN_USER' with sudo"
+    echo "Removed sudo from '$TGT_USER'"
+fi
+
+echo ""
 echo "=== Clone complete ==="
 echo "You can now boot from $DEVICE."
-echo "Default password matches the username (change on first boot)."
+if [[ -n "$ADMIN_USER" ]]; then
+    echo "Accounts: $ADMIN_USER (admin/sudo), $TGT_USER (unprivileged)"
+else
+    echo "Account: $TGT_USER (with sudo)"
+fi
 echo "The root partition will auto-expand on first boot."
