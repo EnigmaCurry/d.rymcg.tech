@@ -153,19 +153,26 @@ else
     echo "Warning: /dev/kvm not accessible, running without hardware acceleration (slow)." >&2
 fi
 
-# Create temporary CoW overlay and NVRAM copy
+# Create temporary CoW overlay
 OVERLAY=$(mktemp --suffix=.qcow2)
-NVRAM=$(mktemp --suffix=_OVMF_VARS.fd)
-cp "$OVMF_VARS" "$NVRAM"
 
 DISK_FILE="${ROOT_DIR}/_archive/workstation-usb-test-disk.qcow2"
+NVRAM_FILE="${ROOT_DIR}/_archive/workstation-usb-test-nvram.fd"
 
-# Handle --clean: delete persistent disk and exit
+# Handle --clean: delete persistent disk/NVRAM and exit
 if [[ -n "$CLEAN" ]]; then
+    found=""
     if [[ -f "$DISK_FILE" ]]; then
         rm -f "$DISK_FILE"
         echo "Deleted persistent disk: $DISK_FILE"
-    else
+        found=1
+    fi
+    if [[ -f "$NVRAM_FILE" ]]; then
+        rm -f "$NVRAM_FILE"
+        echo "Deleted persistent NVRAM: $NVRAM_FILE"
+        found=1
+    fi
+    if [[ -z "$found" ]]; then
         echo "No persistent disk found."
     fi
     exit 0
@@ -178,10 +185,23 @@ if [[ -n "$DISK_SIZE" ]]; then
         echo "Creating ${DISK_SIZE}G persistent disk: $DISK_FILE"
         qemu-img create -f qcow2 "$DISK_FILE" "${DISK_SIZE}G" >/dev/null
     fi
+    # Persistent NVRAM so UEFI boot order survives VM restarts
+    if [[ ! -f "$NVRAM_FILE" ]]; then
+        cp "$OVMF_VARS" "$NVRAM_FILE"
+    fi
+    NVRAM="$NVRAM_FILE"
+else
+    # Temporary NVRAM when no persistent disk
+    NVRAM=$(mktemp --suffix=_OVMF_VARS.fd)
+    cp "$OVMF_VARS" "$NVRAM"
 fi
 
 cleanup() {
-    rm -f "$OVERLAY" "$NVRAM"
+    rm -f "$OVERLAY"
+    # Only delete NVRAM if temporary (no --disk)
+    if [[ -z "$DISK_SIZE" ]]; then
+        rm -f "$NVRAM"
+    fi
 }
 trap cleanup EXIT
 
@@ -226,8 +246,15 @@ case "$DISPLAY_TYPE" in
 esac
 
 DISK_ARGS=()
+USB_ARGS=()
 if [[ -n "$DISK_SIZE" ]]; then
-    DISK_ARGS=(-drive if=virtio,file="$DISK_FILE",format=qcow2)
+    # Use bootindex to prioritize persistent disk over USB image
+    DISK_ARGS=(-drive id=disk0,if=none,file="$DISK_FILE",format=qcow2
+               -device virtio-blk-pci,drive=disk0,bootindex=0)
+    USB_ARGS=(-drive id=usb0,if=none,file="$OVERLAY",format=qcow2
+              -device virtio-blk-pci,drive=usb0,bootindex=1)
+else
+    USB_ARGS=(-drive if=virtio,file="$OVERLAY",format=qcow2)
 fi
 
 NET_ARGS=()
@@ -244,7 +271,7 @@ qemu-system-x86_64 \
     -m "$MEMORY" \
     -smp "$CPUS" \
     "${DISK_ARGS[@]}" \
-    -drive if=virtio,file="$OVERLAY",format=qcow2 \
+    "${USB_ARGS[@]}" \
     -drive if=pflash,format=raw,readonly=on,file="$OVMF_CODE" \
     -drive if=pflash,format=raw,file="$NVRAM" \
     -device virtio-vga \
