@@ -101,17 +101,22 @@ echo "Source user: $SRC_USER"
 echo ""
 echo "=== Account Setup ==="
 ACCOUNT_MODE=$(script-wizard choose "Account mode" \
-    "Single account (${SRC_USER}) with sudo" \
+    "Single account with sudo" \
     "Two accounts (admin + unprivileged)")
 
 ADMIN_USER=""
 ADMIN_PASS=""
 USER_PASS=""
+NEW_USER=""
 
 if [[ "$ACCOUNT_MODE" == "Single"* ]]; then
-    prompt_password "$SRC_USER" USER_PASS
+    read -e -p "Username [$SRC_USER]: " NEW_USER
+    NEW_USER="${NEW_USER:-$SRC_USER}"
+    prompt_password "$NEW_USER" USER_PASS
 else
-    prompt_password "$SRC_USER" USER_PASS
+    read -e -p "Username [$SRC_USER]: " NEW_USER
+    NEW_USER="${NEW_USER:-$SRC_USER}"
+    prompt_password "$NEW_USER" USER_PASS
     read -e -p "Admin username [admin]: " ADMIN_USER
     ADMIN_USER="${ADMIN_USER:-admin}"
     prompt_password "$ADMIN_USER" ADMIN_PASS
@@ -124,9 +129,9 @@ echo ""
 lsblk "$DEVICE"
 echo ""
 if [[ -n "$ADMIN_USER" ]]; then
-    echo "Accounts: $ADMIN_USER (admin/sudo), $SRC_USER (unprivileged)"
+    echo "Accounts: $ADMIN_USER (admin/sudo), $NEW_USER (unprivileged)"
 else
-    echo "Account: $SRC_USER (with sudo)"
+    echo "Account: $NEW_USER (with sudo)"
 fi
 echo ""
 read -p "Type YES to continue: " confirm
@@ -208,6 +213,16 @@ fi
 # Discover target username from the installed system
 TGT_USER=$(awk -F: '$3 >= 1000 && $3 < 65534 {print $1; exit}' "$MOUNT/etc/passwd")
 echo "Target user: $TGT_USER"
+
+# Rename user account if a different name was requested
+if [[ "$NEW_USER" != "$TGT_USER" ]]; then
+    echo "Renaming user '$TGT_USER' -> '$NEW_USER'"
+    chroot "$MOUNT" /run/current-system/sw/bin/usermod -l "$NEW_USER" "$TGT_USER"
+    chroot "$MOUNT" /run/current-system/sw/bin/usermod -d "/home/$NEW_USER" -m "$NEW_USER"
+    chroot "$MOUNT" /run/current-system/sw/bin/groupmod -n "$NEW_USER" "$TGT_USER" 2>/dev/null || true
+    TGT_USER="$NEW_USER"
+    echo "Target user: $TGT_USER"
+fi
 
 echo ""
 echo "=== Running post-install chroot tasks ==="
