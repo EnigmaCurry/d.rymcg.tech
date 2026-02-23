@@ -192,30 +192,34 @@ else
     echo "Warning: no home-manager generation found, emacs pre-download will be skipped"
 fi
 
-# Pre-install Rust stable toolchain for air-gapped use
-echo "=== Installing Rust stable toolchain ==="
-chroot "$MOUNT" /run/current-system/sw/bin/su - user -c '
-    rustup default stable
-    rustup component add rust-src rust-analyzer clippy rustfmt
-' || echo "Warning: Rust toolchain install failed (non-fatal)"
+# Pre-install Rust stable toolchain and emacs packages (requires network).
+# Skip in --chroot-only mode: clone copies these from the booted USB instead,
+# and --base-only installs are intentionally minimal.
+if [[ -z "$CHROOT_ONLY" ]]; then
+    echo "=== Installing Rust stable toolchain ==="
+    chroot "$MOUNT" /run/current-system/sw/bin/su - user -c '
+        rustup default stable
+        rustup component add rust-src rust-analyzer clippy rustfmt
+    ' || echo "Warning: Rust toolchain install failed (non-fatal)"
 
-# Pre-download emacs packages for air-gapped use
-# Load init.el with all machine labels enabled, triggering straight.el
-# to download every package. Save the labels to custom.el for first boot.
-echo "=== Pre-downloading emacs packages ==="
-chroot "$MOUNT" /run/current-system/sw/bin/su - user -c '
-    emacs --batch \
-        --eval "(progn
-            (setq user-init-file (expand-file-name \"init.el\" user-emacs-directory))
-            (setq custom-file (expand-file-name \"custom.el\" user-emacs-directory)))" \
-        -l ~/.emacs.d/init.el \
-        --eval "(progn
-            (my/load-modules (my/machine-labels-available))
-            (customize-set-variable (quote my/machine-labels) (my/machine-labels-available))
-            (customize-save-customized)
-            (message \"Emacs packages downloaded and all machine labels enabled.\"))" \
-        2>&1
-' || echo "Warning: emacs package pre-download failed (non-fatal)"
+    # Pre-download emacs packages for air-gapped use
+    # Load init.el with all machine labels enabled, triggering straight.el
+    # to download every package. Save the labels to custom.el for first boot.
+    echo "=== Pre-downloading emacs packages ==="
+    chroot "$MOUNT" /run/current-system/sw/bin/su - user -c '
+        emacs --batch \
+            --eval "(progn
+                (setq user-init-file (expand-file-name \"init.el\" user-emacs-directory))
+                (setq custom-file (expand-file-name \"custom.el\" user-emacs-directory)))" \
+            -l ~/.emacs.d/init.el \
+            --eval "(progn
+                (my/load-modules (my/machine-labels-available))
+                (customize-set-variable (quote my/machine-labels) (my/machine-labels-available))
+                (customize-save-customized)
+                (message \"Emacs packages downloaded and all machine labels enabled.\"))" \
+            2>&1
+    ' || echo "Warning: emacs package pre-download failed (non-fatal)"
+fi
 
 # Clean up: remove home-manager-managed files from .emacs.d so that
 # home-manager activation on first boot can create its symlinks cleanly.
@@ -255,4 +259,8 @@ if [[ -z "$CHROOT_ONLY" ]]; then
     echo "Archive data has been copied to the USB's nix store."
     echo "GC roots protect the data from garbage collection."
 fi
-echo "Chroot tasks (emacs packages, Rust toolchain) completed."
+if [[ -z "$CHROOT_ONLY" ]]; then
+    echo "Chroot tasks (emacs packages, Rust toolchain) completed."
+else
+    echo "Chroot tasks completed (downloads skipped in chroot-only mode)."
+fi

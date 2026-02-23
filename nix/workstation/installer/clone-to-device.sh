@@ -170,6 +170,49 @@ else
     echo "Warning: post-install.sh not found, skipping chroot tasks."
 fi
 
+# Copy pre-built home directory resources from the booted USB to the clone.
+# These are normally downloaded by post-install.sh but that requires network.
+# Copying from the running system makes the clone fully air-gapped.
+echo ""
+echo "=== Copying home directory resources from booted USB ==="
+_src_home="/home/user"
+_dst_home="$MOUNT/home/user"
+_uid=$(grep '^user:' "$MOUNT/etc/passwd" | cut -d: -f3)
+_gid=$(grep '^user:' "$MOUNT/etc/passwd" | cut -d: -f4)
+
+_copy_home_resource() {
+    local rel_path="$1"
+    local description="$2"
+    local src="$_src_home/$rel_path"
+    local dst="$_dst_home/$rel_path"
+    if [[ -e "$src" ]]; then
+        local size
+        size=$(du -sh "$src" | cut -f1)
+        echo "  Copying $description ($size)..."
+        mkdir -p "$(dirname "$dst")"
+        cp -a "$src" "$dst"
+        chown -R "$_uid:$_gid" "$dst"
+    else
+        echo "  Skipping $description: not found on source"
+    fi
+}
+
+_copy_home_resource ".rustup" "Rust toolchain"
+_copy_home_resource ".cargo" "Cargo config and cache"
+_copy_home_resource ".emacs.d/straight" "emacs packages (straight.el)"
+_copy_home_resource ".local/share/fonts" "nerd fonts"
+
+# Copy custom.el if it's a regular file (not a home-manager symlink)
+if [[ -f "$_src_home/.emacs.d/custom.el" ]] && [[ ! -L "$_src_home/.emacs.d/custom.el" ]]; then
+    echo "  Copying emacs custom.el..."
+    mkdir -p "$_dst_home/.emacs.d"
+    cp -a "$_src_home/.emacs.d/custom.el" "$_dst_home/.emacs.d/custom.el"
+    chown "$_uid:$_gid" "$_dst_home/.emacs.d/custom.el"
+fi
+
+# Remove hardware-specific native modules from copied emacs packages
+find "$_dst_home/.emacs.d/straight" -name '*.so' -delete 2>/dev/null || true
+
 echo ""
 echo "=== Clone complete ==="
 echo "You can now boot from $DEVICE."
