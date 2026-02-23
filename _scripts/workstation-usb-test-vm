@@ -16,6 +16,7 @@ DISPLAY_TYPE=""
 NO_NETWORK=""
 DISK_SIZE=""
 CLEAN=""
+EJECT=""
 
 usage() {
     echo "Usage: d.rymcg.tech workstation-usb-test-vm [OPTIONS]"
@@ -31,6 +32,7 @@ usage() {
     echo "  --cpus N        Number of CPUs (default: all cores)"
     echo "  --ssh-port PORT Host SSH port forwarding (default: $SSH_PORT)"
     echo "  --disk GB       Attach a persistent virtual disk as /dev/vda (created if needed)"
+    echo "  --eject         Boot only from the persistent disk (no USB image attached)"
     echo "  --clean         Delete the persistent virtual disk and exit"
     echo "  --no-network    Disable networking (simulate air-gapped environment)"
     echo "  --display TYPE  QEMU display: gtk, sdl, none (default: gtk)"
@@ -70,6 +72,10 @@ while [[ $# -gt 0 ]]; do
         --disk)
             DISK_SIZE="$2"
             shift 2
+            ;;
+        --eject)
+            EJECT=1
+            shift
             ;;
         --clean)
             CLEAN=1
@@ -169,6 +175,13 @@ if [[ -n "$CLEAN" ]]; then
     exit 0
 fi
 
+if [[ -n "$EJECT" ]] && [[ -z "$DISK_SIZE" ]]; then
+    if [[ ! -f "$DISK_FILE" ]]; then
+        echo "Error: --eject requires a persistent disk. Use --disk GB first." >&2
+        exit 1
+    fi
+fi
+
 if [[ -n "$DISK_SIZE" ]]; then
     if [[ -f "$DISK_FILE" ]]; then
         echo "Using existing persistent disk: $DISK_FILE"
@@ -188,19 +201,25 @@ cleanup() {
 }
 trap cleanup EXIT
 
-echo "Creating CoW overlay on $(basename "$IMAGE_FILE")..."
-qemu-img create -f qcow2 -b "$(realpath "$IMAGE_FILE")" -F raw "$OVERLAY" >/dev/null
+if [[ -z "$EJECT" ]]; then
+    echo "Creating CoW overlay on $(basename "$IMAGE_FILE")..."
+    qemu-img create -f qcow2 -b "$(realpath "$IMAGE_FILE")" -F raw "$OVERLAY" >/dev/null
+fi
 
 echo ""
 echo "=== Launching test VM ==="
-echo "  Image:   $IMAGE_FILE"
-echo "  Overlay: $OVERLAY (temporary)"
+if [[ -n "$EJECT" ]]; then
+    echo "  Disk:    $DISK_FILE (/dev/vda, USB ejected)"
+else
+    echo "  Image:   $IMAGE_FILE"
+    echo "  Overlay: $OVERLAY (temporary)"
+    if [[ -n "$DISK_SIZE" ]]; then
+        echo "  Disk:    $DISK_FILE (/dev/vda, USB image is /dev/vdb)"
+    fi
+fi
 echo "  Memory:  ${MEMORY} MB"
 echo "  CPUs:    $CPUS"
 echo "  Display: $DISPLAY_TYPE"
-if [[ -n "$DISK_SIZE" ]]; then
-    echo "  Disk:    $DISK_FILE (/dev/vda, USB image is /dev/vdb)"
-fi
 if [[ -n "$NO_NETWORK" ]]; then
     echo "  Network: disabled (air-gapped)"
 else
@@ -230,7 +249,10 @@ esac
 
 DISK_ARGS=()
 USB_ARGS=()
-if [[ -n "$DISK_SIZE" ]]; then
+if [[ -n "$EJECT" ]]; then
+    # Eject mode: only the persistent disk, no USB image
+    DISK_ARGS=(-drive if=virtio,file="$DISK_FILE",format=qcow2)
+elif [[ -n "$DISK_SIZE" ]]; then
     # Use bootindex to prioritize persistent disk over USB image
     DISK_ARGS=(-drive id=disk0,if=none,file="$DISK_FILE",format=qcow2
                -device virtio-blk-pci,drive=disk0,bootindex=0)
