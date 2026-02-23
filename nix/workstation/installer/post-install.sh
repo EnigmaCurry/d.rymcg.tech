@@ -134,6 +134,14 @@ mount --bind /dev "$MOUNT/dev" 2>/dev/null || true
 mount --bind /proc "$MOUNT/proc" 2>/dev/null || true
 mount --bind /sys "$MOUNT/sys" 2>/dev/null || true
 
+# Create per-user profile directory so home-manager's installPackages step
+# can create the nix profile on first boot. Without this, home.packages
+# (including fonts) silently fail to install.
+_uid=$(grep '^user:' "$MOUNT/etc/passwd" | cut -d: -f3)
+_gid=$(grep '^user:' "$MOUNT/etc/passwd" | cut -d: -f4)
+mkdir -p "$MOUNT/nix/var/nix/profiles/per-user/user"
+chown "$_uid:$_gid" "$MOUNT/nix/var/nix/profiles/per-user/user"
+
 # /run/current-system doesn't persist after nixos-install (/run is tmpfs at boot).
 # Find the system closure and create the symlink so chroot commands work.
 SYSTEM_STORE=$(find "$MOUNT/nix/store" -maxdepth 1 -name '*-nixos-system-*' -type d 2>/dev/null | head -1)
