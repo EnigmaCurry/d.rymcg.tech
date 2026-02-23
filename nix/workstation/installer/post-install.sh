@@ -7,6 +7,7 @@ set -euo pipefail
 MOUNT="${1:-}"
 CHROOT_ONLY=""
 ARCHIVE_ROOT=""
+MANIFEST_MODE=""
 IMAGE_PROJECTS=""
 COMFYUI_FILES=""
 INCLUDE_ISOS=true
@@ -16,6 +17,7 @@ if [[ "${2:-}" == "--chroot-only" ]] || [[ "${3:-}" == "--chroot-only" ]]; then
     CHROOT_ONLY=1
 elif [[ -f "${2:-}" ]]; then
     # Manifest file with archive selection
+    MANIFEST_MODE=1
     source "${2}"
 elif [[ -n "${2:-}" ]]; then
     # Legacy: archive root directory
@@ -85,19 +87,24 @@ if [[ -z "$CHROOT_ONLY" ]]; then
 
     ARCHIVE_IMG_DIR="$ARCHIVE_ROOT/images/x86_64"
 
-    if [[ -n "$IMAGE_PROJECTS" ]] || [[ -n "$COMFYUI_FILES" ]]; then
-        # Manifest mode: add each project individually
-        echo "=== Adding Docker images to nix store ==="
-        for proj in $IMAGE_PROJECTS; do
-            add_to_store "$ARCHIVE_IMG_DIR/$proj" "$proj" "workstation-usb-image-$proj"
-        done
-        for f in $COMFYUI_FILES; do
-            add_to_store "$ARCHIVE_IMG_DIR/comfyui/$f" "comfyui/$f" "workstation-usb-comfyui-$f"
-        done
-        if [[ -f "$ARCHIVE_IMG_DIR/manifest.json" ]]; then
-            add_to_store "$ARCHIVE_IMG_DIR/manifest.json" "manifest.json" "workstation-usb-image-manifest"
+    if [[ -n "$MANIFEST_MODE" ]]; then
+        # Manifest mode: add only selected categories
+        if [[ -n "$IMAGE_PROJECTS" ]] || [[ -n "$COMFYUI_FILES" ]]; then
+            echo "=== Adding Docker images to nix store ==="
+            for proj in $IMAGE_PROJECTS; do
+                add_to_store "$ARCHIVE_IMG_DIR/$proj" "$proj" "workstation-usb-image-$proj"
+            done
+            for f in $COMFYUI_FILES; do
+                add_to_store "$ARCHIVE_IMG_DIR/comfyui/$f" "comfyui/$f" "workstation-usb-comfyui-$f"
+            done
+            if [[ -f "$ARCHIVE_IMG_DIR/manifest.json" ]]; then
+                add_to_store "$ARCHIVE_IMG_DIR/manifest.json" "manifest.json" "workstation-usb-image-manifest"
+            fi
+            echo ""
+        else
+            echo "=== Docker images: none selected, skipping ==="
+            echo ""
         fi
-        echo ""
 
         if $INCLUDE_ISOS; then
             echo "=== Adding ISOs to nix store ==="
