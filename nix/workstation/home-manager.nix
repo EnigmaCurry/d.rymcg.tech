@@ -3,6 +3,11 @@
 { config, lib, pkgs, sway-home, swayHomeInputs, nix-flatpak, firefox-addons, userName, ... }:
 
 {
+  # Enable verbose logging so home-manager activation failures are visible in journalctl
+  systemd.services."home-manager-${userName}" = {
+    serviceConfig.Environment = lib.mkAfter [ "VERBOSE=1" ];
+  };
+
   home-manager = {
     useGlobalPkgs = true;
     useUserPackages = true;

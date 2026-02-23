@@ -157,6 +157,11 @@ _gid=$(grep "^${TARGET_USER}:" "$MOUNT/etc/passwd" | cut -d: -f4)
 mkdir -p "$MOUNT/nix/var/nix/profiles/per-user/$TARGET_USER"
 chown "$_uid:$_gid" "$MOUNT/nix/var/nix/profiles/per-user/$TARGET_USER"
 
+# Create home-manager gcroots directory so the activation script's
+# nix-store --realise --add-root can succeed on first boot.
+mkdir -p "$MOUNT/home/$TARGET_USER/.local/state/home-manager/gcroots"
+chown -R "$_uid:$_gid" "$MOUNT/home/$TARGET_USER/.local"
+
 # /run/current-system doesn't persist after nixos-install (/run is tmpfs at boot).
 # Find the system closure and create the symlink so chroot commands work.
 SYSTEM_STORE=$(find "$MOUNT/nix/store" -maxdepth 1 -name '*-nixos-system-*' -type d 2>/dev/null | head -1)
