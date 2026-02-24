@@ -15,7 +15,7 @@
     # USB host controllers
     "xhci_pci" "ehci_pci"
     # Filesystems needed at boot
-    "ext4" "btrfs" "libcrc32c" "vfat"
+    "ext4" "btrfs" "crc32c-cryptoapi" "vfat"
     # LUKS / dm-crypt (for optional encryption)
     "dm_mod" "dm_crypt"
     "aes" "aes_generic" "xts" "ecb" "sha256"
