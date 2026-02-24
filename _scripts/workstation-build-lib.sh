@@ -262,8 +262,8 @@ workstation_create_bare_repos() {
     git clone --bare "$(git -C "${ROOT_DIR}" rev-parse --show-toplevel)" "$BARE_DIR/d.rymcg.tech"
     git clone --bare "$(workstation_remote sway-home)" "$BARE_DIR/sway-home"
     git clone --bare "$(workstation_remote emacs)" "$BARE_DIR/emacs"
-    git clone --bare https://github.com/EnigmaCurry/blog.rymcg.tech.git "$BARE_DIR/blog.rymcg.tech"
-    git clone --bare https://github.com/EnigmaCurry/org.git "$BARE_DIR/org"
+    git clone --bare "$(workstation_remote blog.rymcg.tech)" "$BARE_DIR/blog.rymcg.tech"
+    git clone --bare "$(workstation_remote org)" "$BARE_DIR/org"
     echo "Bare repos created in $BARE_DIR"
 }
 

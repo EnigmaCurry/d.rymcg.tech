@@ -28,34 +28,49 @@ let
     then "${vendor-git-repos}/${name}"
     else mkBareRepo name src;
 
-  bareRepos = {
-    "d.rymcg.tech" = getBareRepo "d.rymcg.tech" self;
-    "sway-home" = getBareRepo "sway-home" sway-home-src;
-    "emacs" = getBareRepo "emacs" swayHomeInputs.emacs_enigmacurry;
-    "blog.rymcg.tech" = getBareRepo "blog.rymcg.tech" swayHomeInputs.blog-rymcg-tech;
-    "org" = getBareRepo "org" org-src;
+  # Map repo names to their flake input sources
+  repoSources = {
+    "d.rymcg.tech" = self;
+    "sway-home" = sway-home-src;
+    "emacs" = swayHomeInputs.emacs_enigmacurry;
+    "blog.rymcg.tech" = swayHomeInputs.blog-rymcg-tech;
+    "org" = org-src;
   };
+
+  bareRepos = lib.mapAttrs (name: src: getBareRepo name src) repoSources;
+
+  repoNames = lib.attrNames remotes;
+
+  # Generate home.file entries for vendor-nix symlinks
+  vendorNixFiles = lib.listToAttrs (map (name: {
+    name = "git/vendor-nix/enigmacurry/${name}";
+    value = { source = bareRepos.${name}; };
+  }) repoNames);
+
+  # Generate the clone script from remotes
+  cloneSnippet = name: url: ''
+    dest="$base/${name}"
+    if [ ! -d "$dest/.git" ]; then
+      echo "Cloning ${name} from nix store..."
+      git -c safe.directory='*' clone ${bareRepos.${name}} "$dest"
+      git -C "$dest" remote set-url origin ${url}
+  '' + lib.optionalString (name == "d.rymcg.tech") ''
+      # Ensure settings.nix reflects the baked-in username
+      sed -i 's/userName = ".*"/userName = "${userName}"/' "$dest/nix/workstation/settings.nix"
+      git -C "$dest" update-index --skip-worktree nix/workstation/settings.nix
+  '' + ''
+      echo "${name}: cloned and remote set"
+    else
+      echo "${name}: already exists, skipping"
+    fi
+  '';
+
+  cloneScript = lib.concatStringsSep "\n" (lib.mapAttrsToList cloneSnippet remotes);
+
 in
 {
   home-manager.users.${userName} = { ... }: {
-    home.file = {
-      # d.rymcg.tech
-      "git/vendor-nix/enigmacurry/d.rymcg.tech".source = bareRepos."d.rymcg.tech";
-
-      # sway-home
-      "git/vendor-nix/enigmacurry/sway-home".source = bareRepos."sway-home";
-
-      # emacs
-      "git/vendor-nix/enigmacurry/emacs".source = bareRepos."emacs";
-
-      # blog.rymcg.tech
-      "git/vendor-nix/enigmacurry/blog.rymcg.tech".source = bareRepos."blog.rymcg.tech";
-
-      # org
-      "git/vendor-nix/enigmacurry/org".source = bareRepos."org";
-
-      # nixos-vm-template is already handled by sway-home.homeModules.nixos-vm-template
-    };
+    home.file = vendorNixFiles;
 
     home.sessionPath = [
       "/home/${userName}/git/vendor/enigmacurry/d.rymcg.tech/_scripts/user"
@@ -78,28 +93,8 @@ in
       base="/home/${userName}/git/vendor/enigmacurry"
       mkdir -p "$base"
 
-      dest="$base/d.rymcg.tech"
-      if [ ! -d "$dest/.git" ]; then
-        echo "Cloning d.rymcg.tech from nix store..."
-        git -c safe.directory='*' clone ${bareRepos."d.rymcg.tech"} "$dest"
-        git -C "$dest" remote set-url origin ${remotes."d.rymcg.tech"}
-        # Ensure settings.nix reflects the baked-in username
-        sed -i 's/userName = ".*"/userName = "${userName}"/' "$dest/nix/workstation/settings.nix"
-        git -C "$dest" update-index --skip-worktree nix/workstation/settings.nix
-        echo "d.rymcg.tech: cloned and remote set"
-      else
-        echo "d.rymcg.tech: already exists, skipping"
-      fi
-
-      dest="$base/sway-home"
-      if [ ! -d "$dest/.git" ]; then
-        echo "Cloning sway-home from nix store..."
-        git -c safe.directory='*' clone ${bareRepos."sway-home"} "$dest"
-        git -C "$dest" remote set-url origin ${remotes."sway-home"}
-        echo "sway-home: cloned and remote set"
-      else
-        echo "sway-home: already exists, skipping"
-      fi
-    '';
+    '' + cloneScript;
   };
+
+  # nixos-vm-template is already handled by sway-home.homeModules.nixos-vm-template
 }
