@@ -91,6 +91,7 @@ in
     ddrescue
     cloud-utils       # growpart
     e2fsprogs         # resize2fs
+    btrfs-progs       # mkfs.btrfs, btrfs filesystem resize
     usbutils          # lsusb
     pciutils          # lspci
     smartmontools     # smartctl (disk health)
