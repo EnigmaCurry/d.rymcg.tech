@@ -39,9 +39,15 @@ let
     fi
     export HOME="''${HOME:-/root}"
     ${pkgs.git}/bin/git config --global --add safe.directory "$FLAKE_DIR"
-    exec ${realNixosRebuild} "$@" \
+    # Temporarily clear skip-worktree so nix sees local settings.nix edits
+    ${pkgs.git}/bin/git -C "$FLAKE_DIR" update-index --no-skip-worktree nix/workstation/settings.nix 2>/dev/null || true
+    ${realNixosRebuild} "$@" \
       --flake "$FLAKE_DIR#workstation" \
       --override-input vendor-git-repos "${vendor-git-repos}"
+    _rc=$?
+    # Restore skip-worktree to keep git status clean
+    ${pkgs.git}/bin/git -C "$FLAKE_DIR" update-index --skip-worktree nix/workstation/settings.nix 2>/dev/null || true
+    exit $_rc
   '';
 
 in
