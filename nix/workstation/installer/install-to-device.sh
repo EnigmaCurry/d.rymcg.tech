@@ -73,8 +73,11 @@ if [[ -z "$BASE_ONLY" ]]; then
 fi
 
 # Username configuration
+echo ""
+echo "=== Admin user account ==="
+echo "This account has sudo (wheel group). Password = username."
 CURRENT_USER=$(grep 'userName' "$FLAKE_DIR/nix/workstation/settings.nix" | sed 's/.*"\(.*\)".*/\1/')
-read -e -p "Username [$CURRENT_USER]: " WS_USER
+read -e -p "Admin username [$CURRENT_USER]: " WS_USER
 WS_USER="${WS_USER:-$CURRENT_USER}"
 if [[ "$WS_USER" != "$CURRENT_USER" ]]; then
     sed -i "s/userName = \"$CURRENT_USER\"/userName = \"$WS_USER\"/" "$FLAKE_DIR/nix/workstation/settings.nix"
