@@ -245,6 +245,13 @@ workstation_archive_select() {
     fi
 }
 
+## Read a remote URL from settings.nix.
+## Expects ROOT_DIR to be set.
+## Usage: workstation_remote "repo-name"
+workstation_remote() {
+    nix eval --raw --file "$ROOT_DIR/nix/workstation/settings.nix" "remotes.\"$1\""
+}
+
 ## Create bare git repo clones in a temp directory.
 ## Expects ROOT_DIR to be set.
 ## Sets BARE_DIR.
@@ -253,8 +260,8 @@ workstation_create_bare_repos() {
     BARE_DIR=$(mktemp -d)/vendor-git-repos
     mkdir -p "$BARE_DIR"
     git clone --bare "$(git -C "${ROOT_DIR}" rev-parse --show-toplevel)" "$BARE_DIR/d.rymcg.tech"
-    git clone --bare https://github.com/EnigmaCurry/sway-home.git "$BARE_DIR/sway-home"
-    git clone --bare https://github.com/EnigmaCurry/emacs.git "$BARE_DIR/emacs"
+    git clone --bare "$(workstation_remote sway-home)" "$BARE_DIR/sway-home"
+    git clone --bare "$(workstation_remote emacs)" "$BARE_DIR/emacs"
     git clone --bare https://github.com/EnigmaCurry/blog.rymcg.tech.git "$BARE_DIR/blog.rymcg.tech"
     git clone --bare https://github.com/EnigmaCurry/org.git "$BARE_DIR/org"
     echo "Bare repos created in $BARE_DIR"

@@ -2,7 +2,7 @@
 # Creates read-only nix store symlinks so all repos are available offline.
 # When vendor-git-repos is overridden at build time with bare clones (full history),
 # those are used directly. Otherwise, synthetic single-commit bare repos are created as fallback.
-{ config, lib, pkgs, self, sway-home-src, swayHomeInputs, org-src, vendor-git-repos, userName, ... }:
+{ config, lib, pkgs, self, sway-home-src, swayHomeInputs, org-src, vendor-git-repos, userName, remotes, ... }:
 
 let
   # Create a single-commit bare repo from a source tree (fallback when vendor-git-repos isn't overridden)
@@ -82,7 +82,7 @@ in
       if [ ! -d "$dest/.git" ]; then
         echo "Cloning d.rymcg.tech from nix store..."
         git -c safe.directory='*' clone ${bareRepos."d.rymcg.tech"} "$dest"
-        git -C "$dest" remote set-url origin https://github.com/EnigmaCurry/d.rymcg.tech.git
+        git -C "$dest" remote set-url origin ${remotes."d.rymcg.tech"}
         # Ensure settings.nix reflects the baked-in username
         sed -i 's/userName = ".*"/userName = "${userName}"/' "$dest/nix/workstation/settings.nix"
         git -C "$dest" update-index --skip-worktree nix/workstation/settings.nix
@@ -95,7 +95,7 @@ in
       if [ ! -d "$dest/.git" ]; then
         echo "Cloning sway-home from nix store..."
         git -c safe.directory='*' clone ${bareRepos."sway-home"} "$dest"
-        git -C "$dest" remote set-url origin https://github.com/EnigmaCurry/sway-home.git
+        git -C "$dest" remote set-url origin ${remotes."sway-home"}
         echo "sway-home: cloned and remote set"
       else
         echo "sway-home: already exists, skipping"
