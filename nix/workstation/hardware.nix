@@ -15,10 +15,29 @@
     # USB host controllers
     "xhci_pci" "ehci_pci"
     # Filesystems needed at boot
-    "ext4" "vfat"
+    "ext4" "btrfs" "vfat"
+    # LUKS / dm-crypt (for optional encryption)
+    "dm_mod" "dm_crypt"
+    "aes" "aes_generic" "xts" "ecb" "sha256"
     # Virtio (for VM testing)
     "virtio_pci" "virtio_blk" "virtio_scsi" "virtio_net"
   ];
+
+  # Include cryptsetup in initrd for optional LUKS support
+  boot.initrd.extraUtilsCommands = ''
+    copy_bin_and_libs ${pkgs.cryptsetup}/bin/cryptsetup
+  '';
+
+  # Conditionally open LUKS if the root partition is encrypted.
+  # Runs after device discovery, before root filesystem mount.
+  # For unencrypted systems, cryptsetup isLuks returns false and this is a no-op.
+  boot.initrd.postDeviceCommands = lib.mkAfter ''
+    if cryptsetup isLuks /dev/disk/by-partlabel/nixos 2>/dev/null; then
+      echo "Opening encrypted root partition..."
+      cryptsetup luksOpen /dev/disk/by-partlabel/nixos cryptroot
+      udevadm settle
+    fi
+  '';
 
   # Kernel modules loaded after boot (GPU, KVM, WiFi)
   boot.kernelModules = [

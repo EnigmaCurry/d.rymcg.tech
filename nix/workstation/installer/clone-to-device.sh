@@ -83,12 +83,29 @@ echo "nixos-install: $NIXOS_INSTALL"
 SRC_USER=$(awk -F: '$3 >= 1000 && $3 < 65534 {print $1; exit}' /etc/passwd)
 echo "Source user: $SRC_USER"
 
+# Filesystem and encryption options
+ROOT_FSTYPE=$(script-wizard choose "Root filesystem" \
+    "ext4 — reliable default" \
+    "btrfs — compression (saves space), checksumming" \
+    --default "ext4 — reliable default")
+ROOT_FSTYPE="${ROOT_FSTYPE%% —*}"
+
+ENCRYPT_CHOICE=$(script-wizard choose "Encrypt root partition?" \
+    "No" \
+    "Yes (LUKS full disk encryption)" \
+    --default "No")
+ENCRYPT=""
+if [[ "$ENCRYPT_CHOICE" == "Yes"* ]]; then
+    ENCRYPT=1
+fi
+
 # Safety check
 echo ""
 echo "WARNING: This will ERASE ALL DATA on $DEVICE"
 echo ""
 lsblk "$DEVICE"
 echo ""
+echo "Filesystem: $ROOT_FSTYPE${ENCRYPT:+ (LUKS encrypted)}"
 echo "Account: $SRC_USER (password = username)"
 echo ""
 read -p "Type YES to continue: " confirm
@@ -101,6 +118,7 @@ MOUNT=$(mktemp -d)
 cleanup() {
     set +e
     umount -R "$MOUNT" 2>/dev/null || true
+    [[ -n "${ENCRYPT:-}" ]] && cryptsetup close cryptroot 2>/dev/null || true
     rmdir "$MOUNT" 2>/dev/null || true
 }
 trap cleanup EXIT
@@ -124,10 +142,27 @@ fi
 
 echo "=== Formatting ==="
 mkfs.fat -F32 -n ESP "$ESP"
-mkfs.ext4 -L nixos -F "$ROOT"
+
+if [[ -n "$ENCRYPT" ]]; then
+    echo "=== Setting up LUKS encryption ==="
+    echo "You will be prompted to create a passphrase."
+    cryptsetup luksFormat "$ROOT"
+    cryptsetup luksOpen "$ROOT" cryptroot
+    INNER_DEV="/dev/mapper/cryptroot"
+else
+    INNER_DEV="$ROOT"
+fi
+
+case "$ROOT_FSTYPE" in
+    btrfs) mkfs.btrfs -L nixos -f "$INNER_DEV" ;;
+    *)     mkfs.ext4 -L nixos -F "$INNER_DEV" ;;
+esac
 
 echo "=== Mounting ==="
-mount "$ROOT" "$MOUNT"
+case "$ROOT_FSTYPE" in
+    btrfs) mount -o compress=zstd,noatime "$INNER_DEV" "$MOUNT" ;;
+    *)     mount "$INNER_DEV" "$MOUNT" ;;
+esac
 mkdir -p "$MOUNT/boot"
 mount -o umask=0077 "$ESP" "$MOUNT/boot"
 

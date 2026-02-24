@@ -23,7 +23,7 @@
   # workstation-usb-image create: ESP label "ESP", root label "nixos")
   fileSystems."/" = {
     device = "/dev/disk/by-label/nixos";
-    fsType = "ext4";
+    fsType = "auto";
     options = [ "noatime" ];  # prevent write-on-read (critical for USB longevity)
   };
   fileSystems."/boot" = {
