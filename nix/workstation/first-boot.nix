@@ -39,6 +39,8 @@ let
       echo "Error: $FLAKE_DIR not found (workstation-clone-repos must run first)" >&2
       exit 1
     fi
+    # Allow git to read the repo when running as root (e.g. from first-boot service)
+    ${pkgs.git}/bin/git config --global --add safe.directory "$FLAKE_DIR"
     exec nixos-rebuild "$@" \
       --flake "$FLAKE_DIR#workstation" \
       --override-input vendor-git-repos "${vendor-git-repos}" \
