@@ -122,6 +122,34 @@ else
     prompt_password "$ADMIN_USER" ADMIN_PASS
 fi
 
+# Determine which system closure to install
+INSTALL_SYSTEM="$SYSTEM_PATH"
+if [[ -n "$ADMIN_USER" ]]; then
+    NOSUDO_FILE="/etc/workstation/system-no-sudo"
+    if [[ -f "$NOSUDO_FILE" ]]; then
+        NOSUDO_PATH=$(head -1 "$NOSUDO_FILE" | tr -d '[:space:]')
+        if [[ -d "$NOSUDO_PATH" ]]; then
+            INSTALL_SYSTEM="$NOSUDO_PATH"
+            echo "Using pre-built no-sudo variant: $INSTALL_SYSTEM"
+        else
+            echo "Warning: No-sudo variant path not found in nix store." >&2
+            echo "The user account will retain sudo; rebuild with internet to fix." >&2
+        fi
+    else
+        echo "Warning: No-sudo variant not available on this USB." >&2
+        echo "The user account will retain sudo; rebuild with internet to fix." >&2
+    fi
+fi
+
+# Warn about deferred username change
+if [[ "$NEW_USER" != "$SRC_USER" ]]; then
+    echo ""
+    echo "NOTE: Username change ('$SRC_USER' -> '$NEW_USER') requires a rebuild."
+    echo "You will log in as '$SRC_USER' until you run:"
+    echo "  sudo bash /etc/workstation/rebuild switch"
+    echo "(requires internet for binary substitutes from cache.nixos.org)"
+fi
+
 # Safety check
 echo ""
 echo "WARNING: This will ERASE ALL DATA on $DEVICE"
@@ -129,9 +157,9 @@ echo ""
 lsblk "$DEVICE"
 echo ""
 if [[ -n "$ADMIN_USER" ]]; then
-    echo "Accounts: $ADMIN_USER (admin/sudo), $NEW_USER (unprivileged)"
+    echo "Accounts: $ADMIN_USER (admin/sudo), $SRC_USER (unprivileged)"
 else
-    echo "Account: $NEW_USER (with sudo)"
+    echo "Account: $SRC_USER (with sudo)"
 fi
 echo ""
 read -p "Type YES to continue: " confirm
@@ -175,7 +203,7 @@ mkdir -p "$MOUNT/boot"
 mount -o umask=0077 "$ESP" "$MOUNT/boot"
 
 echo "=== Installing NixOS ==="
-"$NIXOS_INSTALL" --system "$SYSTEM_PATH" --root "$MOUNT" --no-root-password --no-channel-copy
+"$NIXOS_INSTALL" --system "$INSTALL_SYSTEM" --root "$MOUNT" --no-root-password --no-channel-copy
 
 sed -i 's/^title .*/title NixOS Workstation/' "$MOUNT/boot/loader/entries/"*.conf
 
@@ -225,17 +253,18 @@ fi
 TGT_USER=$(awk -F: '$3 >= 1000 && $3 < 65534 {print $1; exit}' "$MOUNT/etc/passwd")
 echo "Target user: $TGT_USER"
 
-# Write first-boot settings if a rebuild is needed (username change or admin mode)
+# Write first-boot settings so the first-boot service can sync settings.nix
+# in the writable repo to match the installed configuration variant
 NEEDS_FIRST_BOOT=""
 CLONE_SETTINGS="$MOUNT/etc/workstation-clone-settings"
 
 if [[ "$NEW_USER" != "$TGT_USER" ]]; then
-    echo "Will rename '$TGT_USER' -> '$NEW_USER' on first boot via nixos-rebuild"
+    echo "First boot will update settings.nix: userName = \"$NEW_USER\""
     NEEDS_FIRST_BOOT=1
 fi
 
 if [[ -n "$ADMIN_USER" ]]; then
-    echo "Will remove sudo from '$TGT_USER' on first boot via nixos-rebuild"
+    echo "First boot will update settings.nix: sudoUser = false"
     NEEDS_FIRST_BOOT=1
 fi
 
@@ -316,20 +345,22 @@ if [[ -n "$ADMIN_USER" ]]; then
     chroot "$MOUNT" /run/current-system/sw/bin/useradd \
         -m -G wheel "$ADMIN_USER"
     echo "${ADMIN_USER}:${ADMIN_PASS}" | chroot "$MOUNT" /run/current-system/sw/bin/chpasswd
-    chroot "$MOUNT" /run/current-system/sw/bin/gpasswd -d "$TGT_USER" wheel
+    # Remove wheel from user if present (no-op with no-sudo variant, needed as fallback)
+    chroot "$MOUNT" /run/current-system/sw/bin/gpasswd -d "$TGT_USER" wheel 2>/dev/null || true
     echo "Created admin account '$ADMIN_USER' with sudo"
-    echo "Removed sudo from '$TGT_USER'"
+    echo "User '$TGT_USER' is unprivileged"
 fi
 
 echo ""
 echo "=== Clone complete ==="
 echo "You can now boot from $DEVICE."
 if [[ -n "$ADMIN_USER" ]]; then
-    echo "Accounts: $ADMIN_USER (admin/sudo), $NEW_USER (unprivileged)"
+    echo "Accounts: $ADMIN_USER (admin/sudo), $TGT_USER (unprivileged)"
 else
-    echo "Account: $NEW_USER (with sudo)"
+    echo "Account: $TGT_USER (with sudo)"
 fi
-if [[ -f "$MOUNT/etc/workstation-clone-settings" ]]; then
-    echo "First boot will apply settings via nixos-rebuild (auto-reboots once)."
+if [[ "$NEW_USER" != "$TGT_USER" ]]; then
+    echo "Username change to '$NEW_USER' pending rebuild (requires internet)."
+    echo "Log in as '$TGT_USER' and run: sudo bash /etc/workstation/rebuild switch"
 fi
 echo "The root partition will auto-expand on first boot."

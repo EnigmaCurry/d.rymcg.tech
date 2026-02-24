@@ -1,14 +1,15 @@
-# First-boot configuration via nixos-rebuild
-# When a cloned workstation has different settings (username, sudo, etc.),
-# this service:
-# 1. Reads desired settings from /etc/workstation-clone-settings
-# 2. Edits settings.nix to match
-# 3. Runs nixos-rebuild boot --offline to build a consistent closure
-# 4. Renames the user if needed, moves the home directory
-# 5. Reboots into the new closure
+# First-boot configuration and offline rebuild support
+#
+# Pins flake inputs and the no-sudo variant closure so nixos-install
+# copies them to targets (enabling offline nixos-rebuild and offline
+# admin/no-sudo cloning).
+#
+# On first boot of a cloned workstation, syncs settings.nix in the
+# writable repo to match the installed configuration variant.
 { config, lib, pkgs, nixpkgs, home-manager, self
 , sway-home, swayHomeInputs, nix-flatpak, sway-home-src, org-src
-, vendor-git-repos, firefox-addons, userName, ... }:
+, vendor-git-repos, firefox-addons, userName
+, noSudoSystemPath ? null, ... }:
 
 let
   # List all flake inputs so they become runtime dependencies of the system
@@ -31,7 +32,8 @@ let
   ];
 
   # Helper script that wraps nixos-rebuild with the correct flake path
-  # and --override-input for vendor-git-repos
+  # and --override-input for vendor-git-repos (requires internet for
+  # binary substitutes unless the target has a full build closure)
   rebuildScript = pkgs.writeShellScript "workstation-rebuild" ''
     set -euo pipefail
     FLAKE_DIR="/home/${userName}/git/vendor/enigmacurry/d.rymcg.tech"
@@ -39,13 +41,11 @@ let
       echo "Error: $FLAKE_DIR not found (workstation-clone-repos must run first)" >&2
       exit 1
     fi
-    # Allow git to read the repo when running as root (e.g. from first-boot service)
     export HOME="''${HOME:-/root}"
     ${pkgs.git}/bin/git config --global --add safe.directory "$FLAKE_DIR"
     exec nixos-rebuild "$@" \
       --flake "$FLAKE_DIR#workstation" \
-      --override-input vendor-git-repos "${vendor-git-repos}" \
-      --offline
+      --override-input vendor-git-repos "${vendor-git-repos}"
   '';
 
 in
@@ -57,19 +57,28 @@ in
   # Expose the rebuild helper
   environment.etc."workstation/rebuild".source = rebuildScript;
 
-  # First-boot configuration service
+  # Pin the no-sudo variant closure so nixos-install copies it to the target.
+  # The clone script reads this path to install the no-sudo variant when
+  # creating a two-account (admin + unprivileged) system.
+  environment.etc."workstation/system-no-sudo" = lib.mkIf (noSudoSystemPath != null) {
+    text = "${noSudoSystemPath}\n";
+  };
+
+  # First-boot settings sync service
+  # After cloning, syncs settings.nix in the writable repo to match
+  # the installed configuration. This ensures future nixos-rebuild
+  # commands use the correct settings.
   systemd.services.workstation-first-boot = {
-    description = "First-boot configuration via nixos-rebuild";
+    description = "Sync workstation settings after clone";
     wantedBy = [ "multi-user.target" ];
     after = [ "local-fs.target" "workstation-clone-repos.service" ];
-    before = [ "greetd.service" "display-manager.service" ];
     requires = [ "workstation-clone-repos.service" ];
 
     unitConfig = {
       ConditionPathExists = "/etc/workstation-clone-settings";
     };
 
-    path = with pkgs; [ bash coreutils gnused gawk nixos-rebuild nix util-linux systemd ];
+    path = with pkgs; [ coreutils gnused ];
 
     serviceConfig = {
       Type = "oneshot";
@@ -94,80 +103,31 @@ in
         exit 1
       fi
 
-      NEEDS_REBUILD=""
+      CHANGED=""
 
-      # Update userName if different
+      # Update userName in settings.nix (takes effect on next rebuild)
       if [[ "$NEW_USER" != "$OLD_USER" ]]; then
         echo "Updating settings.nix: userName = \"$NEW_USER\""
         sed -i "s/userName = \"$OLD_USER\"/userName = \"$NEW_USER\"/" "$SETTINGS"
-        NEEDS_REBUILD=1
+        CHANGED=1
       fi
 
-      # Update sudoUser if different
+      # Update sudoUser in settings.nix (takes effect on next rebuild)
       if [[ "$SUDO_USER" != "true" ]]; then
         echo "Updating settings.nix: sudoUser = false"
         sed -i "s/sudoUser = true/sudoUser = false/" "$SETTINGS"
-        NEEDS_REBUILD=1
+        CHANGED=1
       fi
 
-      if [[ -z "$NEEDS_REBUILD" ]]; then
-        echo "No settings changes needed, cleaning up"
-        rm -f /etc/workstation-clone-settings
-        exit 0
+      if [[ -n "$CHANGED" ]]; then
+        echo "settings.nix updated for future nixos-rebuild"
+      else
+        echo "No settings changes needed"
       fi
 
-      # Run nixos-rebuild boot --offline
-      echo "Running nixos-rebuild boot --offline..."
-      bash /etc/workstation/rebuild boot 2>&1 || {
-        echo "nixos-rebuild failed, reverting settings.nix" >&2
-        if [[ "$NEW_USER" != "$OLD_USER" ]]; then
-          sed -i "s/userName = \"$NEW_USER\"/userName = \"$OLD_USER\"/" "$SETTINGS"
-        fi
-        if [[ "$SUDO_USER" != "true" ]]; then
-          sed -i "s/sudoUser = false/sudoUser = true/" "$SETTINGS"
-        fi
-        exit 1
-      }
-      echo "nixos-rebuild boot succeeded"
-
-      # Rename user if needed
-      if [[ "$NEW_USER" != "$OLD_USER" ]]; then
-        echo "=== Renaming user: $OLD_USER -> $NEW_USER ==="
-
-        # Rename in /etc/passwd, /etc/shadow, /etc/group
-        sed -i "s/^$OLD_USER:/$NEW_USER:/" /etc/passwd
-        sed -i "s|:/home/$OLD_USER:|:/home/$NEW_USER:|" /etc/passwd
-        sed -i "s/^$OLD_USER:/$NEW_USER:/" /etc/shadow
-        sed -i "s/^$OLD_USER:/$NEW_USER:/" /etc/group
-        sed -i -E "s/([:,])$OLD_USER(,|$)/\1$NEW_USER\2/g" /etc/group
-
-        # Move home directory
-        if [[ -d "/home/$OLD_USER" ]] && [[ ! -d "/home/$NEW_USER" ]]; then
-          echo "Moving /home/$OLD_USER -> /home/$NEW_USER"
-          mv "/home/$OLD_USER" "/home/$NEW_USER"
-        fi
-
-        # Move per-user nix profiles
-        OLD_PROFILE="/nix/var/nix/profiles/per-user/$OLD_USER"
-        NEW_PROFILE="/nix/var/nix/profiles/per-user/$NEW_USER"
-        if [[ -d "$OLD_PROFILE" ]] && [[ ! -d "$NEW_PROFILE" ]]; then
-          echo "Moving nix profiles: $OLD_USER -> $NEW_USER"
-          mv "$OLD_PROFILE" "$NEW_PROFILE"
-        fi
-
-        # Fix ownership of .local (home-manager gcroots)
-        if [[ -d "/home/$NEW_USER/.local" ]]; then
-          NEW_UID=$(awk -F: "/^$NEW_USER:/{print \$3}" /etc/passwd)
-          NEW_GID=$(awk -F: "/^$NEW_USER:/{print \$4}" /etc/passwd)
-          chown -R "$NEW_UID:$NEW_GID" "/home/$NEW_USER/.local"
-        fi
-      fi
-
-      # Clean up trigger and reboot
+      # Clean up trigger file
       rm -f /etc/workstation-clone-settings
-
-      echo "=== First-boot configuration complete, rebooting ==="
-      systemctl reboot
+      echo "First-boot settings sync complete"
     '';
   };
 }

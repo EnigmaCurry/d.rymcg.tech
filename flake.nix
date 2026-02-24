@@ -47,19 +47,41 @@
       swayHomeInputs = sway-home.inputs;
 
       workstationSettings = import ./nix/workstation/settings.nix;
+
+      commonSpecialArgs = {
+        inherit self nixpkgs home-manager sway-home swayHomeInputs nix-flatpak;
+        inherit sway-home-src org-src vendor-git-repos firefox-addons;
+        inherit (workstationSettings) userName;
+      };
+
+      commonModules = [
+        home-manager.nixosModules.home-manager
+        ./nix/workstation/configuration.nix
+      ];
+
+      # Build the no-sudo variant independently (sudoUser=false).
+      # This closure is pinned by the default workstation config so
+      # nixos-install copies it for offline use by the clone script.
+      workstation-no-sudo = nixpkgs.lib.nixosSystem {
+        inherit system;
+        specialArgs = commonSpecialArgs // {
+          sudoUser = false;
+          noSudoSystemPath = null;  # variant doesn't reference itself
+        };
+        modules = commonModules;
+      };
     in
     {
       nixosConfigurations.workstation = nixpkgs.lib.nixosSystem {
         inherit system;
-        specialArgs = {
-          inherit self nixpkgs home-manager sway-home swayHomeInputs nix-flatpak;
-          inherit sway-home-src org-src vendor-git-repos firefox-addons;
-          inherit (workstationSettings) userName sudoUser;
+        specialArgs = commonSpecialArgs // {
+          inherit (workstationSettings) sudoUser;
+          # Pin the no-sudo variant so nixos-install copies it for offline use
+          noSudoSystemPath = workstation-no-sudo.config.system.build.toplevel;
         };
-        modules = [
-          home-manager.nixosModules.home-manager
-          ./nix/workstation/configuration.nix
-        ];
+        modules = commonModules;
       };
+
+      nixosConfigurations.workstation-no-sudo = workstation-no-sudo;
     };
 }
