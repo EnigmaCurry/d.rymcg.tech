@@ -286,6 +286,11 @@ _copy_home_resource ".cargo" "Cargo config and cache"
 _copy_home_resource ".emacs.d/straight" "emacs packages (straight.el)"
 _copy_home_resource ".local/share/fonts" "nerd fonts"
 
+# Remove sensitive files that should not be cloned
+echo "  Scrubbing sensitive files from copy..."
+rm -f "$_dst_home/.cargo/credentials" "$_dst_home/.cargo/credentials.toml"
+rm -rf "$_dst_home/.rustup/tmp"
+
 # Copy custom.el if it's a regular file (not a home-manager symlink)
 if [[ -f "$_src_home/.emacs.d/custom.el" ]] && [[ ! -L "$_src_home/.emacs.d/custom.el" ]]; then
     echo "  Copying emacs custom.el..."
