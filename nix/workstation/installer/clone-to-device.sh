@@ -146,7 +146,7 @@ mkfs.fat -F32 -n ESP "$ESP"
 if [[ -n "$ENCRYPT" ]]; then
     echo "=== Setting up LUKS encryption ==="
     echo "You will be prompted to create a passphrase."
-    cryptsetup luksFormat "$ROOT"
+    cryptsetup -q luksFormat "$ROOT"
     cryptsetup luksOpen "$ROOT" cryptroot
     INNER_DEV="/dev/mapper/cryptroot"
 else
