@@ -1,11 +1,5 @@
 # Workstation settings — edit this file to customize your system.
 # After editing, rebuild with: sudo nixos-rebuild switch
-#
-# To hide local changes from git status:
-#   git update-index --skip-worktree nix/workstation/settings.nix
-#
-# To undo:
-#   git update-index --no-skip-worktree nix/workstation/settings.nix
 {
   hostName = "workstation";
   userName = "user";
