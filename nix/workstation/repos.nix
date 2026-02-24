@@ -83,6 +83,8 @@ in
         echo "Cloning d.rymcg.tech from nix store..."
         git -c safe.directory='*' clone ${bareRepos."d.rymcg.tech"} "$dest"
         git -C "$dest" remote set-url origin https://github.com/EnigmaCurry/d.rymcg.tech.git
+        # Ensure settings.nix reflects the baked-in username
+        sed -i 's/userName = ".*"/userName = "${userName}"/' "$dest/nix/workstation/settings.nix"
         echo "d.rymcg.tech: cloned and remote set"
       else
         echo "d.rymcg.tech: already exists, skipping"
