@@ -20,13 +20,7 @@ The system is a **mutable NixOS** installation on a USB drive. You can
 `nixos-rebuild switch`, install packages, and make changes like any
 normal NixOS system. Bundled reference data (git repos, Docker image
 archive, ISOs, Docker CE packages) is stored in the nix store and
-protected by GC roots, so `nix-collect-garbage` won't remove it. To
-free the space, delete the GC root symlinks and then collect garbage:
-
-```bash
-sudo rm /nix/var/nix/gcroots/workstation-usb-*
-sudo nix-collect-garbage
-```
+protected by GC roots so routine garbage collection won't remove it.
 
 The build uses a **two-phase approach**: Nix builds the OS closure
 (fast, ~10 GB), then a post-install step copies the large archive data
@@ -415,6 +409,17 @@ the bundled d.rymcg.tech repo so tools work seamlessly:
 | `/var/workstation/images/x86_64/` | Docker image `.tar.gz` files |
 | `/var/workstation/isos/` | Debian, Fedora, and Raspberry Pi OS images |
 | `/var/workstation/docker-packages/` | Docker CE `.deb`/`.rpm` files |
+
+### Remove bundled archive data
+
+If you no longer need the bundled archive data (Docker images, ISOs,
+Docker CE packages), you can free the space by removing the GC root
+symlinks and running garbage collection:
+
+```bash
+sudo rm /nix/var/nix/gcroots/workstation-usb-*
+sudo nix-collect-garbage
+```
 
 ### Access git repos
 
