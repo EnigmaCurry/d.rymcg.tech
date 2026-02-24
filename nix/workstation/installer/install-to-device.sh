@@ -72,6 +72,15 @@ if [[ -z "$BASE_ONLY" ]]; then
     workstation_archive_select
 fi
 
+# Username configuration
+CURRENT_USER=$(grep 'userName' "$FLAKE_DIR/nix/workstation/settings.nix" | sed 's/.*"\(.*\)".*/\1/')
+read -e -p "Username [$CURRENT_USER]: " WS_USER
+WS_USER="${WS_USER:-$CURRENT_USER}"
+if [[ "$WS_USER" != "$CURRENT_USER" ]]; then
+    sed -i "s/userName = \"$CURRENT_USER\"/userName = \"$WS_USER\"/" "$FLAKE_DIR/nix/workstation/settings.nix"
+    echo "Updated settings.nix: userName = \"$WS_USER\""
+fi
+
 # Safety check
 echo "WARNING: This will ERASE ALL DATA on $DEVICE"
 echo ""
