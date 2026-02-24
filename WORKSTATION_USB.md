@@ -102,9 +102,6 @@ d.rymcg.tech workstation-usb-image                    # build raw disk image
 d.rymcg.tech workstation-usb-test-vm                  # test image in a QEMU VM
 d.rymcg.tech workstation-usb-install /dev/sdX          # direct install to USB
 d.rymcg.tech workstation-usb-clone /dev/sdX            # clone booted USB to another device
-d.rymcg.tech workstation-usb-post-install /mnt         # copy archive data to USB
-d.rymcg.tech workstation-usb-download-isos             # download OS ISOs
-d.rymcg.tech workstation-usb-download-docker-packages  # download Docker CE packages
 ```
 
 ## Install methods
@@ -251,53 +248,6 @@ ssh -o StrictHostKeyChecking=no -p 10022 user@localhost
 
 Requires OVMF firmware for UEFI boot and KVM for hardware
 acceleration.
-
-## Preparing archive data
-
-Before building the USB, you should prepare the archive data that will
-be bundled. The NixOS system itself builds without any of this — the
-archive data is added in the post-install step.
-
-### Docker image archive
-
-Follow the [ARCHIVE.md](ARCHIVE.md) instructions to build the
-complete image archive:
-
-```bash
-d.rymcg.tech image-archive --fail-fast --delete --verbose
-```
-
-### OS installation ISOs
-
-Download Debian, Fedora, and Raspberry Pi OS images for offline server
-provisioning:
-
-```bash
-d.rymcg.tech workstation-usb-download-isos
-```
-
-| Option | Description |
-|--------|-------------|
-| `--debian-only` | Download only Debian ISO |
-| `--fedora-only` | Download only Fedora ISO |
-| `--raspi-only` | Download only Raspberry Pi OS Lite image |
-| `--check` | Show what would be downloaded |
-
-### Docker CE offline packages
-
-Download Docker CE `.deb` and `.rpm` packages for offline Docker
-installation on Debian, Raspberry Pi OS, and Fedora servers:
-
-```bash
-d.rymcg.tech workstation-usb-download-docker-packages
-```
-
-| Option | Description |
-|--------|-------------|
-| `--debian-only` | Download only Debian (amd64) packages |
-| `--raspios-only` | Download only Raspberry Pi OS (arm64) packages |
-| `--fedora-only` | Download only Fedora packages |
-| `--check` | Show what would be downloaded |
 
 ## What's on the USB
 
