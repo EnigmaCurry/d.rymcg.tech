@@ -66,7 +66,7 @@ in
       ConditionPathExists = "/etc/workstation-clone-settings";
     };
 
-    path = with pkgs; [ coreutils gnused gawk nixos-rebuild nix util-linux systemd ];
+    path = with pkgs; [ bash coreutils gnused gawk nixos-rebuild nix util-linux systemd ];
 
     serviceConfig = {
       Type = "oneshot";
