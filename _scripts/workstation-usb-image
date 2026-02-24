@@ -119,6 +119,7 @@ fi
 echo ""
 echo "=== Admin user account ==="
 echo "This account has sudo (wheel group). Password = username."
+echo "(This is fine for a USB stick — change it after installing to a real system.)"
 CURRENT_USER=$(grep 'userName' "$SETTINGS_FILE" | sed 's/.*"\(.*\)".*/\1/')
 read -e -p "Admin username [$CURRENT_USER]: " WS_USER
 WS_USER="${WS_USER:-$CURRENT_USER}"
