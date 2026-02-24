@@ -85,6 +85,7 @@ in
         git -C "$dest" remote set-url origin https://github.com/EnigmaCurry/d.rymcg.tech.git
         # Ensure settings.nix reflects the baked-in username
         sed -i 's/userName = ".*"/userName = "${userName}"/' "$dest/nix/workstation/settings.nix"
+        git -C "$dest" update-index --skip-worktree nix/workstation/settings.nix
         echo "d.rymcg.tech: cloned and remote set"
       else
         echo "d.rymcg.tech: already exists, skipping"

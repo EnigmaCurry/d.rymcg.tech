@@ -78,6 +78,7 @@ read -e -p "Username [$CURRENT_USER]: " WS_USER
 WS_USER="${WS_USER:-$CURRENT_USER}"
 if [[ "$WS_USER" != "$CURRENT_USER" ]]; then
     sed -i "s/userName = \"$CURRENT_USER\"/userName = \"$WS_USER\"/" "$FLAKE_DIR/nix/workstation/settings.nix"
+    git -C "$FLAKE_DIR" update-index --skip-worktree nix/workstation/settings.nix
     echo "Updated settings.nix: userName = \"$WS_USER\""
 fi
 
