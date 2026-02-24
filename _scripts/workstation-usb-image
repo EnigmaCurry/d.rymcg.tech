@@ -100,17 +100,36 @@ else
     } > "$MANIFEST_FILE"
 fi
 
-# Username configuration
+# System configuration
+SETTINGS_FILE="$ROOT_DIR/nix/workstation/settings.nix"
+SETTINGS_CHANGED=""
+
+echo ""
+echo "=== System configuration ==="
+
+CURRENT_HOST=$(grep 'hostName' "$SETTINGS_FILE" | sed 's/.*"\(.*\)".*/\1/')
+read -e -p "Hostname [$CURRENT_HOST]: " WS_HOST
+WS_HOST="${WS_HOST:-$CURRENT_HOST}"
+if [[ "$WS_HOST" != "$CURRENT_HOST" ]]; then
+    sed -i "s/hostName = \"$CURRENT_HOST\"/hostName = \"$WS_HOST\"/" "$SETTINGS_FILE"
+    SETTINGS_CHANGED=1
+    echo "Updated settings.nix: hostName = \"$WS_HOST\""
+fi
+
 echo ""
 echo "=== Admin user account ==="
 echo "This account has sudo (wheel group). Password = username."
-CURRENT_USER=$(grep 'userName' "$ROOT_DIR/nix/workstation/settings.nix" | sed 's/.*"\(.*\)".*/\1/')
+CURRENT_USER=$(grep 'userName' "$SETTINGS_FILE" | sed 's/.*"\(.*\)".*/\1/')
 read -e -p "Admin username [$CURRENT_USER]: " WS_USER
 WS_USER="${WS_USER:-$CURRENT_USER}"
 if [[ "$WS_USER" != "$CURRENT_USER" ]]; then
-    sed -i "s/userName = \"$CURRENT_USER\"/userName = \"$WS_USER\"/" "$ROOT_DIR/nix/workstation/settings.nix"
-    git -C "$ROOT_DIR" update-index --skip-worktree nix/workstation/settings.nix
+    sed -i "s/userName = \"$CURRENT_USER\"/userName = \"$WS_USER\"/" "$SETTINGS_FILE"
+    SETTINGS_CHANGED=1
     echo "Updated settings.nix: userName = \"$WS_USER\""
+fi
+
+if [[ -n "$SETTINGS_CHANGED" ]]; then
+    git -C "$ROOT_DIR" update-index --skip-worktree nix/workstation/settings.nix
 fi
 
 echo "=== Build summary ==="

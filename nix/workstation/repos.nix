@@ -2,7 +2,7 @@
 # Creates read-only nix store symlinks so all repos are available offline.
 # When vendor-git-repos is overridden at build time with bare clones (full history),
 # those are used directly. Otherwise, synthetic single-commit bare repos are created as fallback.
-{ config, lib, pkgs, self, sway-home-src, swayHomeInputs, org-src, vendor-git-repos, userName, remotes, ... }:
+{ config, lib, pkgs, self, sway-home-src, swayHomeInputs, org-src, vendor-git-repos, hostName, userName, remotes, ... }:
 
 let
   # Create a single-commit bare repo from a source tree (fallback when vendor-git-repos isn't overridden)
@@ -55,7 +55,8 @@ let
       git -c safe.directory='*' clone ${bareRepos.${name}} "$dest"
       git -C "$dest" remote set-url origin ${url}
   '' + lib.optionalString (name == "d.rymcg.tech") ''
-      # Ensure settings.nix reflects the baked-in username
+      # Ensure settings.nix reflects the baked-in configuration
+      sed -i 's/hostName = ".*"/hostName = "${hostName}"/' "$dest/nix/workstation/settings.nix"
       sed -i 's/userName = ".*"/userName = "${userName}"/' "$dest/nix/workstation/settings.nix"
       git -C "$dest" update-index --skip-worktree nix/workstation/settings.nix
   '' + ''

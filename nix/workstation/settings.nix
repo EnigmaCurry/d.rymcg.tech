@@ -7,6 +7,7 @@
 # To undo:
 #   git update-index --no-skip-worktree nix/workstation/settings.nix
 {
+  hostName = "workstation";
   userName = "user";
   sudoUser = true;
   remotes = {

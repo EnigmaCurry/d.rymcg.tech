@@ -1,8 +1,8 @@
 # Networking configuration for the workstation
-{ config, lib, pkgs, ... }:
+{ config, lib, pkgs, hostName, ... }:
 
 {
-  networking.hostName = "workstation";
+  networking.hostName = hostName;
 
   # NetworkManager for easy WiFi/Ethernet management
   networking.networkmanager.enable = true;

@@ -51,7 +51,7 @@
       commonSpecialArgs = {
         inherit self nixpkgs home-manager sway-home swayHomeInputs nix-flatpak;
         inherit sway-home-src org-src vendor-git-repos firefox-addons;
-        inherit (workstationSettings) userName remotes;
+        inherit (workstationSettings) hostName userName remotes;
       };
 
       commonModules = [
