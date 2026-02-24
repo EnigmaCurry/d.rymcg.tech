@@ -245,6 +245,44 @@ workstation_archive_select() {
     fi
 }
 
+## Prompt for hostname and username, updating settings.nix if changed.
+## Expects ROOT_DIR to be set.
+workstation_configure_settings() {
+    local settings_file="$ROOT_DIR/nix/workstation/settings.nix"
+    local settings_changed=""
+
+    echo ""
+    echo "=== System configuration ==="
+
+    local current_host
+    current_host=$(grep 'hostName' "$settings_file" | sed 's/.*"\(.*\)".*/\1/')
+    read -e -p "Hostname [$current_host]: " ws_host
+    ws_host="${ws_host:-$current_host}"
+    if [[ "$ws_host" != "$current_host" ]]; then
+        sed -i "s/hostName = \"$current_host\"/hostName = \"$ws_host\"/" "$settings_file"
+        settings_changed=1
+        echo "Updated settings.nix: hostName = \"$ws_host\""
+    fi
+
+    echo ""
+    echo "=== Admin user account ==="
+    echo "This account has sudo (wheel group). Password = username."
+    echo "(This is fine for a USB stick — change it after installing to a real system.)"
+    local current_user
+    current_user=$(grep 'userName' "$settings_file" | sed 's/.*"\(.*\)".*/\1/')
+    read -e -p "Admin username [$current_user]: " ws_user
+    ws_user="${ws_user:-$current_user}"
+    if [[ "$ws_user" != "$current_user" ]]; then
+        sed -i "s/userName = \"$current_user\"/userName = \"$ws_user\"/" "$settings_file"
+        settings_changed=1
+        echo "Updated settings.nix: userName = \"$ws_user\""
+    fi
+
+    if [[ -n "$settings_changed" ]]; then
+        git -C "$ROOT_DIR" update-index --skip-worktree nix/workstation/settings.nix
+    fi
+}
+
 ## Read a remote URL from settings.nix.
 ## Expects ROOT_DIR to be set.
 ## Usage: workstation_remote "repo-name"

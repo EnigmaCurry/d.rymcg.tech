@@ -72,38 +72,7 @@ if [[ -z "$BASE_ONLY" ]]; then
     workstation_archive_select
 fi
 
-# System configuration
-SETTINGS_FILE="$FLAKE_DIR/nix/workstation/settings.nix"
-SETTINGS_CHANGED=""
-
-echo ""
-echo "=== System configuration ==="
-
-CURRENT_HOST=$(grep 'hostName' "$SETTINGS_FILE" | sed 's/.*"\(.*\)".*/\1/')
-read -e -p "Hostname [$CURRENT_HOST]: " WS_HOST
-WS_HOST="${WS_HOST:-$CURRENT_HOST}"
-if [[ "$WS_HOST" != "$CURRENT_HOST" ]]; then
-    sed -i "s/hostName = \"$CURRENT_HOST\"/hostName = \"$WS_HOST\"/" "$SETTINGS_FILE"
-    SETTINGS_CHANGED=1
-    echo "Updated settings.nix: hostName = \"$WS_HOST\""
-fi
-
-echo ""
-echo "=== Admin user account ==="
-echo "This account has sudo (wheel group). Password = username."
-echo "(This is fine for a USB stick — change it after installing to a real system.)"
-CURRENT_USER=$(grep 'userName' "$SETTINGS_FILE" | sed 's/.*"\(.*\)".*/\1/')
-read -e -p "Admin username [$CURRENT_USER]: " WS_USER
-WS_USER="${WS_USER:-$CURRENT_USER}"
-if [[ "$WS_USER" != "$CURRENT_USER" ]]; then
-    sed -i "s/userName = \"$CURRENT_USER\"/userName = \"$WS_USER\"/" "$SETTINGS_FILE"
-    SETTINGS_CHANGED=1
-    echo "Updated settings.nix: userName = \"$WS_USER\""
-fi
-
-if [[ -n "$SETTINGS_CHANGED" ]]; then
-    git -C "$FLAKE_DIR" update-index --skip-worktree nix/workstation/settings.nix
-fi
+workstation_configure_settings
 
 # Safety check
 echo "WARNING: This will ERASE ALL DATA on $DEVICE"
