@@ -1,10 +1,11 @@
 # User account for the workstation
-{ config, lib, pkgs, userName, ... }:
+{ config, lib, pkgs, userName, sudoUser, ... }:
 
 {
   users.users.${userName} = {
     isNormalUser = true;
-    extraGroups = [ "wheel" "video" "audio" "input" "networkmanager" ];
+    extraGroups = lib.optionals sudoUser [ "wheel" ]
+      ++ [ "video" "audio" "input" "networkmanager" ];
     initialPassword = userName;
   };
 

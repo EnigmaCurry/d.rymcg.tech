@@ -1,3 +1,4 @@
 {
   userName = "user";
+  sudoUser = true;
 }

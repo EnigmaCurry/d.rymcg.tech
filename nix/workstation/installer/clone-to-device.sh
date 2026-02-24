@@ -223,10 +223,25 @@ fi
 TGT_USER=$(awk -F: '$3 >= 1000 && $3 < 65534 {print $1; exit}' "$MOUNT/etc/passwd")
 echo "Target user: $TGT_USER"
 
-# Write trigger file for first-boot rename (if username differs)
+# Write first-boot settings if a rebuild is needed (username change or admin mode)
+NEEDS_FIRST_BOOT=""
+CLONE_SETTINGS="$MOUNT/etc/workstation-clone-settings"
+
 if [[ "$NEW_USER" != "$TGT_USER" ]]; then
     echo "Will rename '$TGT_USER' -> '$NEW_USER' on first boot via nixos-rebuild"
-    echo "$NEW_USER" > "$MOUNT/etc/workstation-clone-username"
+    NEEDS_FIRST_BOOT=1
+fi
+
+if [[ -n "$ADMIN_USER" ]]; then
+    echo "Will remove sudo from '$TGT_USER' on first boot via nixos-rebuild"
+    NEEDS_FIRST_BOOT=1
+fi
+
+if [[ -n "$NEEDS_FIRST_BOOT" ]]; then
+    cat > "$CLONE_SETTINGS" <<SETTINGS
+CLONE_USERNAME=$NEW_USER
+CLONE_SUDO_USER=$( [[ -n "$ADMIN_USER" ]] && echo false || echo true )
+SETTINGS
 fi
 
 echo ""
@@ -307,7 +322,7 @@ if [[ -n "$ADMIN_USER" ]]; then
 else
     echo "Account: $NEW_USER (with sudo)"
 fi
-if [[ -f "$MOUNT/etc/workstation-clone-username" ]]; then
-    echo "First boot will rename '$TGT_USER' -> '$NEW_USER' via nixos-rebuild (auto-reboots once)."
+if [[ -f "$MOUNT/etc/workstation-clone-settings" ]]; then
+    echo "First boot will apply settings via nixos-rebuild (auto-reboots once)."
 fi
 echo "The root partition will auto-expand on first boot."
