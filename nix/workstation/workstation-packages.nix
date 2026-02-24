@@ -76,6 +76,7 @@ in
     rclone            # cloud/remote file sync
 
     # === Crypto / security ===
+    cryptsetup
     gnupg
     age
     pass
