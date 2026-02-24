@@ -75,15 +75,27 @@ in
       Group = "users";
     };
     script = ''
-      dest="/home/${userName}/git/vendor/enigmacurry/d.rymcg.tech"
+      base="/home/${userName}/git/vendor/enigmacurry"
+      mkdir -p "$base"
+
+      dest="$base/d.rymcg.tech"
       if [ ! -d "$dest/.git" ]; then
         echo "Cloning d.rymcg.tech from nix store..."
-        mkdir -p /home/${userName}/git/vendor/enigmacurry
         git -c safe.directory='*' clone ${bareRepos."d.rymcg.tech"} "$dest"
         git -C "$dest" remote set-url origin https://github.com/EnigmaCurry/d.rymcg.tech.git
         echo "d.rymcg.tech: cloned and remote set"
       else
         echo "d.rymcg.tech: already exists, skipping"
+      fi
+
+      dest="$base/sway-home"
+      if [ ! -d "$dest/.git" ]; then
+        echo "Cloning sway-home from nix store..."
+        git -c safe.directory='*' clone ${bareRepos."sway-home"} "$dest"
+        git -C "$dest" remote set-url origin https://github.com/EnigmaCurry/sway-home.git
+        echo "sway-home: cloned and remote set"
+      else
+        echo "sway-home: already exists, skipping"
       fi
     '';
   };
