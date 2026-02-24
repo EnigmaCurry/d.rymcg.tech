@@ -26,10 +26,11 @@ let
     "${swayHomeInputs.script-wizard}"
   ];
 
-  # Helper script that wraps nixos-rebuild with the correct flake path
-  # and --override-input for vendor-git-repos (requires internet for
-  # binary substitutes unless the target has a full build closure)
-  rebuildScript = pkgs.writeShellScript "workstation-rebuild" ''
+  # Wrapper that makes `nixos-rebuild switch` (etc.) just work by
+  # injecting --flake and --override-input automatically.
+  # References the real nixos-rebuild by store path to avoid recursion.
+  realNixosRebuild = "${pkgs.nixos-rebuild}/bin/nixos-rebuild";
+  nixos-rebuild-wrapper = pkgs.writeShellScriptBin "nixos-rebuild" ''
     set -euo pipefail
     FLAKE_DIR="/home/${userName}/git/vendor/enigmacurry/d.rymcg.tech"
     if [[ ! -d "$FLAKE_DIR/.git" ]]; then
@@ -38,7 +39,7 @@ let
     fi
     export HOME="''${HOME:-/root}"
     ${pkgs.git}/bin/git config --global --add safe.directory "$FLAKE_DIR"
-    exec nixos-rebuild "$@" \
+    exec ${realNixosRebuild} "$@" \
       --flake "$FLAKE_DIR#workstation" \
       --override-input vendor-git-repos "${vendor-git-repos}"
   '';
@@ -49,6 +50,6 @@ in
   # and are available for offline nixos-rebuild on the target
   environment.etc."workstation/flake-inputs".text = flakeInputPaths;
 
-  # Expose the rebuild helper
-  environment.etc."workstation/rebuild".source = rebuildScript;
+  # Replace bare nixos-rebuild with our flake-aware wrapper
+  environment.systemPackages = [ nixos-rebuild-wrapper ];
 }

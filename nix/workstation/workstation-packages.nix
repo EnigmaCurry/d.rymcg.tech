@@ -139,7 +139,7 @@ in
 
     # === Nix tools ===
     nix-output-monitor
-    nixos-rebuild
+    # nixos-rebuild is replaced by the flake-aware wrapper in first-boot.nix
     nixos-install-tools   # nixos-install for workstation-usb-clone
 
     # === d.rymcg.tech locked tools ===
