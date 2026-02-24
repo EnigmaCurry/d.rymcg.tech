@@ -39,15 +39,23 @@
         parent="''${parent%p}"
       fi
 
-      # Grow the physical partition (exit 1 = already full size)
-      ${pkgs.cloud-utils.guest}/bin/growpart "$parent" "$partNum" || [ $? -eq 1 ]
+      # Grow the physical partition
+      # Exit 0 = grew, exit 1 = already full size (NOCHANGE)
+      rc=0
+      ${pkgs.cloud-utils.guest}/bin/growpart "$parent" "$partNum" || rc=$?
+      if [ "$rc" -eq 1 ]; then
+        echo "Partition already full size, nothing to do."
+        exit 0
+      elif [ "$rc" -ne 0 ]; then
+        exit "$rc"
+      fi
 
-      # If LUKS, resize the container so inner device sees new space
+      # Partition grew — resize LUKS container if present
       if ${pkgs.cryptsetup}/bin/cryptsetup status cryptroot >/dev/null 2>&1; then
         ${pkgs.cryptsetup}/bin/cryptsetup resize cryptroot
       fi
 
-      # Resize the filesystem
+      # Resize the filesystem to fill the new space
       ROOT_DEV=$(${pkgs.util-linux}/bin/findmnt -nro SOURCE /)
       FSTYPE=$(${pkgs.util-linux}/bin/findmnt -nro FSTYPE /)
       case "$FSTYPE" in
