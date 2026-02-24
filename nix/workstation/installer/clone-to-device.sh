@@ -280,6 +280,12 @@ fi
 # Remove hardware-specific native modules from copied emacs packages
 find "$_dst_home/.emacs.d/straight" -name '*.so' -delete 2>/dev/null || true
 
+# Ensure .emacs.d directory itself is owned by the user (mkdir -p creates it as root)
+# so home-manager activation can create symlinks (emacs.org, init.el, etc.)
+if [[ -d "$_dst_home/.emacs.d" ]]; then
+    chown "$_uid:$_gid" "$_dst_home/.emacs.d"
+fi
+
 echo ""
 echo "=== Configuring accounts ==="
 echo "${TGT_USER}:${USER_PASS}" | chroot "$MOUNT" /run/current-system/sw/bin/chpasswd
