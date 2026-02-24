@@ -4,6 +4,7 @@
 {
   users.users.${userName} = {
     isNormalUser = true;
+    description = userName;
     extraGroups = lib.optionals sudoUser [ "wheel" ]
       ++ [ "video" "audio" "input" "networkmanager" ];
     initialPassword = userName;
