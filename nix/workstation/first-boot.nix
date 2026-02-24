@@ -40,6 +40,7 @@ let
       exit 1
     fi
     # Allow git to read the repo when running as root (e.g. from first-boot service)
+    export HOME="''${HOME:-/root}"
     ${pkgs.git}/bin/git config --global --add safe.directory "$FLAKE_DIR"
     exec nixos-rebuild "$@" \
       --flake "$FLAKE_DIR#workstation" \
