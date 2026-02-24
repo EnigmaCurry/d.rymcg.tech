@@ -48,8 +48,8 @@
       fi
 
       # Resize the filesystem
-      ROOT_DEV=$(findmnt -nro SOURCE /)
-      FSTYPE=$(findmnt -nro FSTYPE /)
+      ROOT_DEV=$(${pkgs.util-linux}/bin/findmnt -nro SOURCE /)
+      FSTYPE=$(${pkgs.util-linux}/bin/findmnt -nro FSTYPE /)
       case "$FSTYPE" in
         btrfs) ${pkgs.btrfs-progs}/bin/btrfs filesystem resize max / ;;
         ext*)  ${pkgs.e2fsprogs}/bin/resize2fs "$ROOT_DEV" ;;
