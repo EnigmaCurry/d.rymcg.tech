@@ -247,9 +247,14 @@ workstation_archive_select() {
 
 ## Prompt for hostname and username, updating settings.nix if changed.
 ## Expects ROOT_DIR to be set.
+## IMPORTANT: --skip-worktree must NOT be set until after `nix build`,
+## because nix flakes treat a skip-worktree file as unchanged (uses the
+## committed content). Call workstation_hide_settings after the build.
 workstation_configure_settings() {
     local settings_file="$ROOT_DIR/nix/workstation/settings.nix"
-    local settings_changed=""
+
+    # Temporarily clear skip-worktree so nix sees the working tree content
+    git -C "$ROOT_DIR" update-index --no-skip-worktree nix/workstation/settings.nix 2>/dev/null || true
 
     echo ""
     echo "=== System configuration ==="
@@ -260,7 +265,6 @@ workstation_configure_settings() {
     ws_host="${ws_host:-$current_host}"
     if [[ "$ws_host" != "$current_host" ]]; then
         sed -i "s/hostName = \"$current_host\"/hostName = \"$ws_host\"/" "$settings_file"
-        settings_changed=1
         echo "Updated settings.nix: hostName = \"$ws_host\""
     fi
 
@@ -274,13 +278,14 @@ workstation_configure_settings() {
     ws_user="${ws_user:-$current_user}"
     if [[ "$ws_user" != "$current_user" ]]; then
         sed -i "s/userName = \"$current_user\"/userName = \"$ws_user\"/" "$settings_file"
-        settings_changed=1
         echo "Updated settings.nix: userName = \"$ws_user\""
     fi
+}
 
-    if [[ -n "$settings_changed" ]]; then
-        git -C "$ROOT_DIR" update-index --skip-worktree nix/workstation/settings.nix
-    fi
+## Hide settings.nix from git status. Call AFTER nix build completes.
+## Expects ROOT_DIR to be set.
+workstation_hide_settings() {
+    git -C "$ROOT_DIR" update-index --skip-worktree nix/workstation/settings.nix
 }
 
 ## Read a remote URL from settings.nix.

@@ -158,6 +158,9 @@ if [[ ! -x "$NIXOS_INSTALL" ]]; then
 fi
 echo "nixos-install: $NIXOS_INSTALL"
 
+# Now that nix has read settings.nix, hide it from git status
+workstation_hide_settings
+
 # Calculate sizes
 echo ""
 echo "=== Calculating image size ==="

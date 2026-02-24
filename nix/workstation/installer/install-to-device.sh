@@ -111,6 +111,9 @@ if [[ ! -x "$NIXOS_INSTALL" ]]; then
 fi
 echo "nixos-install: $NIXOS_INSTALL"
 
+# Now that nix has read settings.nix, hide it from git status
+workstation_hide_settings
+
 echo "=== Partitioning $DEVICE ==="
 # Wipe existing partition table
 sgdisk --zap-all "$DEVICE"
