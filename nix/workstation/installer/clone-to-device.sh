@@ -182,9 +182,7 @@ sed -i 's/^title .*/title NixOS Workstation/' "$MOUNT/boot/loader/entries/"*.con
 echo ""
 echo "=== Archiving flake inputs for offline nixos-rebuild ==="
 # Allow nix/git to read the repo owned by $SRC_USER while running as root
-export GIT_CONFIG_COUNT=1
-export GIT_CONFIG_KEY_0=safe.directory
-export GIT_CONFIG_VALUE_0="/home/$SRC_USER/git/vendor/enigmacurry/d.rymcg.tech"
+git config --global --add safe.directory "/home/$SRC_USER/git/vendor/enigmacurry/d.rymcg.tech"
 nix flake archive --to "local?root=$MOUNT" "/home/$SRC_USER/git/vendor/enigmacurry/d.rymcg.tech"
 mkdir -p "$MOUNT/root/.cache/nix"
 cp -a /root/.cache/nix/fetcher-cache-v*.sqlite* "$MOUNT/root/.cache/nix/" 2>/dev/null || true
