@@ -206,10 +206,16 @@ _copy_home_resource() {
     local src="$_src_home/$rel_path"
     local dst="$_dst_home/$rel_path"
     if [[ -e "$src" ]]; then
-        local size
+        local size dir
         size=$(du -sh "$src" | cut -f1)
         echo "  Copying $description ($size)..."
         mkdir -p "$(dirname "$dst")"
+        # Fix ownership of intermediate dirs created by mkdir -p
+        dir="$(dirname "$dst")"
+        while [[ "$dir" != "$_dst_home" && "$dir" != "/" ]]; do
+            chown "$_uid:$_gid" "$dir"
+            dir="$(dirname "$dir")"
+        done
         cp -a "$src" "$dst"
         chown -R "$_uid:$_gid" "$dst"
     else
