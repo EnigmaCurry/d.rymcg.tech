@@ -18,9 +18,11 @@ any x86_64 machine, log in, and start deploying.
 
 The system is a **mutable NixOS** installation on a USB drive. You can
 `nixos-rebuild switch`, install packages, and make changes like any
-normal NixOS system. However, all bundled reference data (git repos,
-Docker image archive, ISOs, Docker CE packages) is stored in the nix
-store and protected by GC roots — it cannot be accidentally deleted.
+normal NixOS system. Bundled reference data (git repos, Docker image
+archive, ISOs, Docker CE packages) is stored in the nix store and
+protected by GC roots, so `nix-collect-garbage` won't remove it. You
+can free the space by removing the GC roots and then collecting
+garbage.
 
 The build uses a **two-phase approach**: Nix builds the OS closure
 (fast, ~10 GB), then a post-install step copies the large archive data
