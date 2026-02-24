@@ -50,9 +50,14 @@
         exit "$rc"
       fi
 
-      # Partition grew — resize LUKS container if present
+      # Partition grew — resize LUKS container if present.
+      # cryptsetup resize on LUKS2 requires re-authentication, so extract
+      # the active volume key from device-mapper and pass it directly.
       if ${pkgs.cryptsetup}/bin/cryptsetup status cryptroot >/dev/null 2>&1; then
-        ${pkgs.cryptsetup}/bin/cryptsetup resize cryptroot
+        ${pkgs.lvm2}/bin/dmsetup table --showkeys cryptroot \
+          | ${pkgs.gawk}/bin/awk '{print $5}' \
+          | ${pkgs.python3}/bin/python3 -c "import sys; sys.stdout.buffer.write(bytes.fromhex(sys.stdin.read().strip()))" \
+          | ${pkgs.cryptsetup}/bin/cryptsetup resize cryptroot --volume-key-file /dev/stdin
       fi
 
       # Resize the filesystem to fill the new space
