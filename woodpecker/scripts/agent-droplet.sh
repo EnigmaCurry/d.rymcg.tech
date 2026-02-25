@@ -92,10 +92,11 @@ create_droplet() {
     readarray -t SIZE_SLUGS < <(doctl compute size list --format Slug --no-header)
     readarray -t SIZE_PRICES < <(doctl compute size list --format PriceHourly --no-header)
     readarray -t SIZE_DISKS < <(doctl compute size list --format Disk --no-header)
+    readarray -t SIZE_VCPUS < <(doctl compute size list --format VCPUs --no-header)
     SIZE_OPTIONS=()
     SIZE_DEFAULT=""
     for i in "${!SIZE_SLUGS[@]}"; do
-        local opt=$(printf "%-25s  \$%-10s  %sGB disk" "${SIZE_SLUGS[$i]}" "${SIZE_PRICES[$i]}/hr" "${SIZE_DISKS[$i]}")
+        local opt=$(printf "%-25s  %-3s vCPUs  \$%-10s  %sGB disk" "${SIZE_SLUGS[$i]}" "${SIZE_VCPUS[$i]}" "${SIZE_PRICES[$i]}/hr" "${SIZE_DISKS[$i]}")
         SIZE_OPTIONS+=("${opt}")
         [[ "${SIZE_SLUGS[$i]}" == "s-2vcpu-4gb" ]] && SIZE_DEFAULT="${opt}"
     done
