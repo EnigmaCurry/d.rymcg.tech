@@ -34,7 +34,8 @@ ssh_droplet() {
         echo "No agent droplets found."
         return
     fi
-    local name=$(wizard choose "SSH into which droplet?" "${NAMES[@]}" --default "${NAMES[0]}") || return
+    local name
+    if ! name=$(wizard choose "SSH into which droplet?" "${NAMES[@]}" --default "${NAMES[0]}"); then return; fi
     doctl compute ssh "${name}"
 }
 
@@ -44,7 +45,8 @@ destroy_droplet() {
         echo "No agent droplets found."
         return
     fi
-    local name=$(wizard choose "Destroy which droplet?" "${NAMES[@]}" --default "${NAMES[0]}") || return
+    local name
+    if ! name=$(wizard choose "Destroy which droplet?" "${NAMES[@]}" --default "${NAMES[0]}"); then return; fi
     confirm no "Are you sure you want to destroy '${name}'" "?" || return
     doctl compute droplet delete "${name}" --force
     echo "Droplet '${name}' destroyed."
