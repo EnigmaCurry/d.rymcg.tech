@@ -158,7 +158,7 @@ main() {
             "Create new agent droplet = $0 create_droplet" \
             "SSH into agent droplet = $0 ssh_droplet" \
             "Destroy agent droplet = $0 destroy_droplet" \
-            "Exit = exit 0"
+            "Exit = exit 2"
         local EXIT_CODE=$?
         if [[ "${EXIT_CODE}" == "2" ]]; then
             exit 0
