@@ -2112,9 +2112,16 @@ _gumdrop_enable_backups() {
     fi
 
     echo "Enabling backups..."
+    local output
     set +e
-    doctl compute droplet-action enable-backups "${droplet_id}" "${policy_args[@]}" --wait
+    output=$(doctl compute droplet-action enable-backups "${droplet_id}" "${policy_args[@]}" --wait 2>&1)
+    local rc=$?
     set -e
+    echo "${output}"
+    if [[ ${rc} -ne 0 ]] || echo "${output}" | grep -qi "errored"; then
+        error "Failed to enable backups."
+        return
+    fi
     echo "Backups enabled."
     sleep 3
 }
@@ -2123,9 +2130,16 @@ _gumdrop_disable_backups() {
     local droplet_id="$1"
     confirm no "Are you sure you want to disable backups? Existing backup files will not be deleted" "." || return
     echo "Disabling backups..."
+    local output
     set +e
-    doctl compute droplet-action disable-backups "${droplet_id}" --wait
+    output=$(doctl compute droplet-action disable-backups "${droplet_id}" --wait 2>&1)
+    local rc=$?
     set -e
+    echo "${output}"
+    if [[ ${rc} -ne 0 ]] || echo "${output}" | grep -qi "errored"; then
+        error "Failed to disable backups."
+        return
+    fi
     echo "Backups disabled."
     sleep 3
 }
