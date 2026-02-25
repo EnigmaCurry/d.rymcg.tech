@@ -253,6 +253,57 @@ gumdrop_create() {
     if ! SSH_KEY_CHOICE=$(wizard choose "Which SSH key?" "${SSH_KEY_OPTIONS[@]}" --default "${SSH_KEY_OPTIONS[0]}"); then return; fi
     SSH_KEY=$(echo "${SSH_KEY_CHOICE}" | grep -oP '\(\K[0-9]+(?=\))')
 
+    ## Select tags:
+    local DROPLET_TAGS=()
+    if [[ -n "${GUMDROP_TAG}" ]]; then
+        DROPLET_TAGS+=("${GUMDROP_TAG}")
+    else
+        if confirm no "Add tags to this ${GUMDROP_LABEL,,}" "?"; then
+            while :; do
+                echo ""
+                if [[ ${#DROPLET_TAGS[@]} -gt 0 ]]; then
+                    echo "  Tags: ${DROPLET_TAGS[*]}"
+                else
+                    echo "  Tags: (none)"
+                fi
+                local tag_action
+                set +e
+                tag_action=$(wizard choose "Manage tags" \
+                    "Choose existing tags" \
+                    "Add new tag" \
+                    "Done" \
+                    --default "Done")
+                local tag_exit=$?
+                set -e
+                if [[ ${tag_exit} -ne 0 ]] || [[ "${tag_action}" == "Done" ]]; then
+                    break
+                elif [[ "${tag_action}" == "Choose existing tags" ]]; then
+                    readarray -t EXISTING_TAGS < <(doctl compute droplet list --format Tags --no-header 2>/dev/null | tr ',' '\n' | sed 's/^[[:space:]]*//;s/[[:space:]]*$//' | grep -v '^$' | sort -u)
+                    if [[ ${#EXISTING_TAGS[@]} -eq 0 ]]; then
+                        echo "No existing tags found on any droplets."
+                    else
+                        readarray -t SELECTED < <(wizard select "Select tags to add" "${EXISTING_TAGS[@]}")
+                        for tag in "${SELECTED[@]}"; do
+                            local already=false
+                            for existing in "${DROPLET_TAGS[@]}"; do
+                                [[ "${existing}" == "${tag}" ]] && already=true
+                            done
+                            [[ "${already}" == false ]] && DROPLET_TAGS+=("${tag}")
+                        done
+                    fi
+                elif [[ "${tag_action}" == "Add new tag" ]]; then
+                    local new_tag
+                    ask_no_blank "Enter new tag" new_tag
+                    local already=false
+                    for existing in "${DROPLET_TAGS[@]}"; do
+                        [[ "${existing}" == "${new_tag}" ]] && already=true
+                    done
+                    [[ "${already}" == false ]] && DROPLET_TAGS+=("${new_tag}")
+                fi
+            done
+        fi
+    fi
+
     ## Generate user-data via hook if defined:
     local user_data_args=()
     if type -t gumdrop_user_data_hook &>/dev/null; then
@@ -262,7 +313,10 @@ gumdrop_create() {
 
     ## Build tag args:
     local tag_args=()
-    [[ -n "${GUMDROP_TAG}" ]] && tag_args=(--tag-names "${GUMDROP_TAG}")
+    if [[ ${#DROPLET_TAGS[@]} -gt 0 ]]; then
+        local IFS=','
+        tag_args=(--tag-names "${DROPLET_TAGS[*]}")
+    fi
 
     echo ""
     echo "## Summary:"
@@ -271,6 +325,9 @@ gumdrop_create() {
     echo "  Size:          ${SIZE}"
     echo "  Image:         ${IMAGE}"
     echo "  SSH key:       ${SSH_KEY}"
+    if [[ ${#DROPLET_TAGS[@]} -gt 0 ]]; then
+        echo "  Tags:          ${DROPLET_TAGS[*]}"
+    fi
 
     ## Call summary hook if defined:
     if type -t gumdrop_summary_hook &>/dev/null; then
