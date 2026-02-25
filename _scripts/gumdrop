@@ -258,7 +258,7 @@ EOF
 gumdrop_log_cloud_init() {
     local name
     if ! name=$(gumdrop_choose_droplet "View cloud-init log for which ${GUMDROP_LABEL,,}?"); then return; fi
-    gumdrop_ssh_cmd "${name}" tail -n 500 /var/log/cloud-init-output.log | less
+    gumdrop_ssh_cmd "${name}" cat /var/log/cloud-init-output.log | less
 }
 
 gumdrop_log_docker() {
