@@ -164,7 +164,7 @@ gumdrop_delete_ssh_key() {
 
 gumdrop_list_ssh_keys() {
     echo ""
-    echo "## SSH keys on DigitalOcean:"
+    echo "## SSH keys:"
     doctl compute ssh-key list --format ID,Name,FingerPrint
     echo ""
 }
@@ -174,7 +174,7 @@ gumdrop_manage_ssh_keys() {
     do
         gumdrop_list_ssh_keys
         set +e
-        wizard menu --once --cancel-code=2 "DigitalOcean SSH Keys:" \
+        wizard menu --once --cancel-code=2 "SSH Keys:" \
             "Upload SSH key = $0 gumdrop_upload_ssh_key" \
             "Delete SSH key = $0 gumdrop_delete_ssh_key" \
             "Back = exit 2"
@@ -507,7 +507,7 @@ gumdrop_create() {
 
 gumdrop_list_firewalls() {
     echo ""
-    echo "## Firewalls on DigitalOcean:"
+    echo "## Firewalls:"
     doctl compute firewall list --format ID,Name,Status,InboundRules,DropletIDs
     echo ""
 }
@@ -536,7 +536,7 @@ gumdrop_manage_firewalls() {
     do
         gumdrop_list_firewalls
         set +e
-        wizard menu --once --cancel-code=2 "DigitalOcean Firewalls:" \
+        wizard menu --once --cancel-code=2 "Firewalls:" \
             "Create new firewall = $0 gumdrop_create_firewall_standalone" \
             "Delete firewall = $0 gumdrop_delete_firewall" \
             "Back = exit 2"
@@ -580,8 +580,8 @@ gumdrop_main() {
             "Create new ${GUMDROP_LABEL,,} = $0 gumdrop_create" \
             "SSH into ${GUMDROP_LABEL,,} = $0 gumdrop_ssh" \
             "Destroy ${GUMDROP_LABEL,,} = $0 gumdrop_destroy" \
-            "Manage SSH keys on DigitalOcean = $0 gumdrop_manage_ssh_keys" \
-            "Manage firewalls on DigitalOcean = $0 gumdrop_manage_firewalls" \
+            "Manage SSH keys = $0 gumdrop_manage_ssh_keys" \
+            "Manage firewalls = $0 gumdrop_manage_firewalls" \
             "Switch DigitalOcean account = $0 gumdrop_switch_account" \
             "Exit = exit 2"
         local EXIT_CODE=$?
