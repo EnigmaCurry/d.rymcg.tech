@@ -303,7 +303,7 @@ truncate -s "$IMAGE_SIZE" "$IMAGE_FILE"
 LOOP=$(losetup --find --show --partscan "$IMAGE_FILE")
 echo "Loop device: $LOOP"
 
-# Partition: 1GB ESP + rest ext4
+# Partition: 1GB ESP + rest btrfs
 sgdisk --zap-all "$LOOP"
 sgdisk -n 1:0:+1G -t 1:ef00 -c 1:ESP "$LOOP"
 sgdisk -n 2:0:0 -t 2:8300 -c 2:nixos "$LOOP"
@@ -312,10 +312,10 @@ sleep 1
 
 # Format
 mkfs.fat -F32 -n ESP "${LOOP}p1"
-mkfs.ext4 -L nixos -F "${LOOP}p2"
+mkfs.btrfs -L nixos -f "${LOOP}p2"
 
 # Mount
-mount "${LOOP}p2" "$MOUNT"
+mount -o compress=zstd,noatime "${LOOP}p2" "$MOUNT"
 mkdir -p "$MOUNT/boot"
 mount -o umask=0077 "${LOOP}p1" "$MOUNT/boot"
 
