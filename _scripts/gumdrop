@@ -613,7 +613,7 @@ gumdrop_create() {
         local droplet_id=${droplet_id:-$(doctl compute droplet list --format ID,Name --no-header | awk -v name="${DROPLET_NAME}" '$2 == name {print $1}')}
         if [[ -n "${droplet_id}" ]]; then
             echo "Assigning reserved IP ${RESERVED_IP}..."
-            doctl compute reserved-ip-action assign "${RESERVED_IP}" "${droplet_id}"
+            doctl compute reserved-ip-action assign "${RESERVED_IP}" "${droplet_id}" --no-header >/dev/null
         fi
     fi
 
@@ -880,8 +880,9 @@ gumdrop_assign_reserved_ip() {
     local droplet_id=$(echo "${droplet_choice}" | grep -oP '\(\K[0-9]+(?=\))')
 
     echo "Assigning ${ip_choice} to ${droplet_choice}..."
-    doctl compute reserved-ip-action assign "${ip_choice}" "${droplet_id}"
+    doctl compute reserved-ip-action assign "${ip_choice}" "${droplet_id}" --no-header >/dev/null
     echo "Reserved IP assigned."
+    echo "Note: changes may take a moment to propagate."
 }
 
 gumdrop_release_reserved_ip() {
@@ -905,8 +906,9 @@ gumdrop_release_reserved_ip() {
     if ! choice=$(wizard choose "Release which reserved IP?" "${ASSIGNED_OPTIONS[@]}" --default "${ASSIGNED_OPTIONS[0]}"); then return; fi
     local ip=$(echo "${choice}" | awk '{print $1}')
     confirm no "Are you sure you want to release '${choice}'" "?" || return
-    doctl compute reserved-ip-action unassign "${ip}"
+    doctl compute reserved-ip-action unassign "${ip}" --no-header >/dev/null
     echo "Reserved IP '${ip}' released."
+    echo "Note: changes may take a moment to propagate."
 }
 
 gumdrop_manage_reserved_ips() {
