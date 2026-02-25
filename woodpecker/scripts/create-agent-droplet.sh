@@ -66,7 +66,8 @@ echo "deb [arch=\$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker
 apt-get update
 apt-get install -y docker-ce docker-ce-cli containerd.io
 
-## Add woodpecker user to docker group:
+## Create woodpecker user and add to docker group:
+id woodpecker &>/dev/null || useradd --system --shell /usr/sbin/nologin woodpecker
 usermod -aG docker woodpecker
 
 ## Install Nix:
