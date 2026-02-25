@@ -47,19 +47,16 @@ gumdrop_list() {
     if [[ ${count} -gt 0 ]]; then
         ## Build reserved IP lookup (droplet_id -> IP):
         declare -A _RIP_MAP
-        while IFS=$'\t' read -r rip rid; do
-            rip=$(echo "${rip}" | xargs)
-            rid=$(echo "${rid}" | xargs)
+        while read -r rip rid; do
             [[ -n "${rid}" && "${rid}" != "0" ]] && _RIP_MAP["${rid}"]="${rip}"
         done < <(doctl compute reserved-ip list --format IP,DropletID --no-header 2>/dev/null)
         ## Print droplet table with ReservedIP column:
         {
-            echo -e "ID\tName\tPublicIPv4\tReservedIPv4\tRegion\tSizeSlug\tStatus"
-            while IFS=$'\t' read -r id name pub region size status; do
-                id=$(echo "${id}" | xargs)
-                echo -e "${id}\t${name}\t${pub}\t${_RIP_MAP[${id}]:-}\t${region}\t${size}\t${status}"
+            echo "ID Name PublicIPv4 ReservedIPv4 Region SizeSlug Status"
+            while read -r id name pub region size status; do
+                echo "${id} ${name} ${pub} ${_RIP_MAP[${id}]:--} ${region} ${size} ${status}"
             done < <(doctl compute droplet list "${tag_args[@]}" --format ID,Name,PublicIPv4,Region,SizeSlug,Status --no-header)
-        } | column -t -s $'\t'
+        } | column -t
     else
         echo "No ${GUMDROP_LABEL,,}s found${GUMDROP_TAG:+ (tag: ${GUMDROP_TAG})}."
     fi
