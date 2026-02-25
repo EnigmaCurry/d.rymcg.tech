@@ -824,6 +824,45 @@ gumdrop_delete_reserved_ip() {
     echo "Reserved IP '${ip}' deleted."
 }
 
+gumdrop_assign_reserved_ip() {
+    ## List only unassigned IPs:
+    readarray -t IPS < <(doctl compute reserved-ip list --format IP --no-header)
+    readarray -t IP_DROPLET_IDS < <(doctl compute reserved-ip list --format DropletID --no-header)
+    local UNASSIGNED_IPS=()
+    for i in "${!IPS[@]}"; do
+        if [[ -z "${IP_DROPLET_IDS[$i]}" || "${IP_DROPLET_IDS[$i]}" == "0" ]]; then
+            UNASSIGNED_IPS+=("${IPS[$i]}")
+        fi
+    done
+    if [[ ${#UNASSIGNED_IPS[@]} -eq 0 ]]; then
+        echo "No unassigned reserved IPs available."
+        return
+    fi
+    local ip_choice
+    if ! ip_choice=$(wizard choose "Select reserved IP to assign" "${UNASSIGNED_IPS[@]}" --default "${UNASSIGNED_IPS[0]}"); then return; fi
+
+    ## List droplets to assign to:
+    local tag_args=()
+    [[ -n "${GUMDROP_TAG}" ]] && tag_args=(--tag-name "${GUMDROP_TAG}")
+    readarray -t DROPLET_IDS < <(doctl compute droplet list "${tag_args[@]}" --format ID --no-header)
+    readarray -t DROPLET_NAMES < <(doctl compute droplet list "${tag_args[@]}" --format Name --no-header)
+    if [[ ${#DROPLET_IDS[@]} -eq 0 ]]; then
+        echo "No ${GUMDROP_LABEL,,}s found to assign to."
+        return
+    fi
+    local DROPLET_OPTIONS=()
+    for i in "${!DROPLET_IDS[@]}"; do
+        DROPLET_OPTIONS+=("${DROPLET_NAMES[$i]} (${DROPLET_IDS[$i]})")
+    done
+    local droplet_choice
+    if ! droplet_choice=$(wizard choose "Assign to which ${GUMDROP_LABEL,,}?" "${DROPLET_OPTIONS[@]}" --default "${DROPLET_OPTIONS[0]}"); then return; fi
+    local droplet_id=$(echo "${droplet_choice}" | grep -oP '\(\K[0-9]+(?=\))')
+
+    echo "Assigning ${ip_choice} to ${droplet_choice}..."
+    doctl compute reserved-ip-action assign "${ip_choice}" "${droplet_id}"
+    echo "Reserved IP assigned."
+}
+
 gumdrop_manage_reserved_ips() {
     while :
     do
@@ -834,6 +873,7 @@ gumdrop_manage_reserved_ips() {
         )
         if [[ ${ip_count} -gt 0 ]]; then
             menu_items+=(
+                "Assign reserved IP = $0 gumdrop_assign_reserved_ip"
                 "Delete reserved IP = $0 gumdrop_delete_reserved_ip"
             )
         fi
