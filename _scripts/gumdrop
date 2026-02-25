@@ -505,6 +505,57 @@ gumdrop_create() {
     gumdrop_list
 }
 
+gumdrop_list_firewalls() {
+    echo ""
+    echo "## Firewalls on DigitalOcean:"
+    doctl compute firewall list --format ID,Name,Status,InboundRules,DropletIDs
+    echo ""
+}
+
+gumdrop_delete_firewall() {
+    readarray -t FW_IDS < <(doctl compute firewall list --format ID --no-header)
+    readarray -t FW_NAMES < <(doctl compute firewall list --format Name --no-header)
+    if [[ ${#FW_IDS[@]} -eq 0 ]]; then
+        echo "No firewalls found."
+        return
+    fi
+    local FW_OPTIONS=()
+    for i in "${!FW_IDS[@]}"; do
+        FW_OPTIONS+=("${FW_NAMES[$i]} (${FW_IDS[$i]})")
+    done
+    local choice
+    if ! choice=$(wizard choose "Delete which firewall?" "${FW_OPTIONS[@]}" --default "${FW_OPTIONS[0]}"); then return; fi
+    local fw_id=$(echo "${choice}" | grep -oP '\(\K[0-9a-f-]+(?=\))')
+    confirm no "Are you sure you want to delete '${choice}'" "?" || return
+    doctl compute firewall delete "${fw_id}" --force
+    echo "Firewall deleted."
+}
+
+gumdrop_manage_firewalls() {
+    while :
+    do
+        gumdrop_list_firewalls
+        set +e
+        wizard menu --once --cancel-code=2 "DigitalOcean Firewalls:" \
+            "Create new firewall = $0 gumdrop_create_firewall_standalone" \
+            "Delete firewall = $0 gumdrop_delete_firewall" \
+            "Back = exit 2"
+        local EXIT_CODE=$?
+        set -e
+        if [[ "${EXIT_CODE}" == "2" ]]; then
+            exit 0
+        fi
+    done
+}
+
+gumdrop_create_firewall_standalone() {
+    _gumdrop_create_custom_firewall
+    if [[ ${#FIREWALL_IDS[@]} -gt 0 ]]; then
+        echo ""
+        echo "Firewall created. Assign it to droplets from the create menu or via doctl."
+    fi
+}
+
 gumdrop_switch_account() {
     readarray -t CONTEXTS < <(doctl auth list 2>/dev/null | sed 's/ (current)$//')
     if [[ ${#CONTEXTS[@]} -le 1 ]]; then
@@ -530,6 +581,7 @@ gumdrop_main() {
             "SSH into ${GUMDROP_LABEL,,} = $0 gumdrop_ssh" \
             "Destroy ${GUMDROP_LABEL,,} = $0 gumdrop_destroy" \
             "Manage SSH keys on DigitalOcean = $0 gumdrop_manage_ssh_keys" \
+            "Manage firewalls on DigitalOcean = $0 gumdrop_manage_firewalls" \
             "Switch DigitalOcean account = $0 gumdrop_switch_account" \
             "Exit = exit 2"
         local EXIT_CODE=$?
