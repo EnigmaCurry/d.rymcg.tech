@@ -276,11 +276,13 @@ manage_ssh_keys() {
     while :
     do
         list_ssh_keys
+        set +e
         wizard menu --once --cancel-code=2 "DigitalOcean SSH Keys:" \
             "Upload SSH key = $0 upload_ssh_key" \
             "Delete SSH key = $0 delete_ssh_key" \
             "Back = exit 2"
         local EXIT_CODE=$?
+        set -e
         if [[ "${EXIT_CODE}" == "2" ]]; then
             exit 0
         fi
@@ -291,6 +293,7 @@ main() {
     while :
     do
         list_droplets
+        set +e
         wizard menu --once --cancel-code=2 "Woodpecker Agent Droplets:" \
             "Create new agent droplet = $0 create_droplet" \
             "SSH into agent droplet = $0 ssh_droplet" \
@@ -298,6 +301,7 @@ main() {
             "Manage SSH keys on DigitalOcean = $0 manage_ssh_keys" \
             "Exit = exit 2"
         local EXIT_CODE=$?
+        set -e
         if [[ "${EXIT_CODE}" == "2" ]]; then
             exit 0
         fi
