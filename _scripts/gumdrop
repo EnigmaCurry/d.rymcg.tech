@@ -2433,24 +2433,64 @@ gumdrop_list_dns_records() {
 gumdrop_create_dns_record() {
     local domain=$1
     local record_type
-    if ! record_type=$(wizard choose "Record type" "A" "CNAME"); then return; fi
-    local record_name
-    if [[ "${record_type}" == "A" ]]; then
-        ask_no_blank "Enter record name (subdomain, or @ for root)" record_name
-        local record_data
-        ask_no_blank "Enter IP address" record_data
-    else
-        ask_no_blank "Enter record name (subdomain)" record_name
-        local record_data
-        ask_no_blank "Enter target hostname (e.g. example.com.)" record_data
-    fi
+    if ! record_type=$(wizard choose "Record type" "A" "AAAA" "CNAME" "MX" "TXT" "NS" "SRV" "CAA"); then return; fi
+    local record_name record_data
+    local extra_args=()
+    case "${record_type}" in
+        A)
+            ask_no_blank "Enter record name (subdomain, or @ for root)" record_name
+            ask_no_blank "Enter IPv4 address" record_data
+            ;;
+        AAAA)
+            ask_no_blank "Enter record name (subdomain, or @ for root)" record_name
+            ask_no_blank "Enter IPv6 address" record_data
+            ;;
+        CNAME)
+            ask_no_blank "Enter record name (subdomain)" record_name
+            ask_no_blank "Enter target hostname (e.g. example.com.)" record_data
+            ;;
+        MX)
+            ask_no_blank "Enter record name (subdomain, or @ for root)" record_name
+            ask_no_blank "Enter mail server hostname (e.g. mail.example.com.)" record_data
+            local priority
+            ask "Enter priority" priority "10"
+            extra_args+=(--record-priority "${priority}")
+            ;;
+        TXT)
+            ask_no_blank "Enter record name (subdomain, or @ for root)" record_name
+            ask_no_blank "Enter text value" record_data
+            ;;
+        NS)
+            ask_no_blank "Enter record name (subdomain, or @ for root)" record_name
+            ask_no_blank "Enter nameserver hostname (e.g. ns1.example.com.)" record_data
+            ;;
+        SRV)
+            ask_no_blank "Enter service name (e.g. _sip._tcp)" record_name
+            ask_no_blank "Enter target hostname" record_data
+            local priority port weight
+            ask "Enter priority" priority "10"
+            ask "Enter port" port "443"
+            ask "Enter weight" weight "100"
+            extra_args+=(--record-priority "${priority}" --record-port "${port}" --record-weight "${weight}")
+            ;;
+        CAA)
+            ask_no_blank "Enter record name (subdomain, or @ for root)" record_name
+            local caa_tag
+            if ! caa_tag=$(wizard choose "CAA tag" "issue" "issuewild" "iodef"); then return; fi
+            ask_no_blank "Enter value (e.g. letsencrypt.org)" record_data
+            local caa_flags
+            ask "Enter flags (0 = non-critical, 128 = critical)" caa_flags "0"
+            extra_args+=(--record-flags "${caa_flags}" --record-tag "${caa_tag}")
+            ;;
+    esac
     local record_ttl
     ask "Enter TTL in seconds" record_ttl "1800"
     doctl compute domain records create "${domain}" \
         --record-type "${record_type}" \
         --record-name "${record_name}" \
         --record-data "${record_data}" \
-        --record-ttl "${record_ttl}"
+        --record-ttl "${record_ttl}" \
+        "${extra_args[@]}"
     echo "DNS ${record_type} record created."
 }
 
