@@ -2737,7 +2737,7 @@ gumdrop_choose_droplet() {
     [[ -n "${GUMDROP_TAG}" ]] && tag_args=(--tag-name "${GUMDROP_TAG}")
     readarray -t NAMES < <(doctl compute droplet list "${tag_args[@]}" --format Name --no-header)
     if [[ ${#NAMES[@]} -eq 0 ]]; then
-        echo "No ${GUMDROP_LABEL,,}s found."
+        echo "No ${GUMDROP_LABEL,,}s found." >&2
         return 1
     fi
     wizard choose "${prompt}" "${NAMES[@]}" --default "${NAMES[0]}"
