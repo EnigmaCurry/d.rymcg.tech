@@ -134,10 +134,10 @@ fi
 
 echo "=== Formatting ==="
 mkfs.fat -F32 -n ESP "$ESP"
-mkfs.ext4 -L nixos -F "$ROOT"
+mkfs.btrfs -L nixos -f "$ROOT"
 
 echo "=== Mounting ==="
-mount "$ROOT" "$MOUNT"
+mount -o compress=zstd,noatime "$ROOT" "$MOUNT"
 mkdir -p "$MOUNT/boot"
 mount -o umask=0077 "$ESP" "$MOUNT/boot"
 
