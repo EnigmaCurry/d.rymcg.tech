@@ -2494,6 +2494,102 @@ gumdrop_create_dns_record() {
     echo "DNS ${record_type} record created."
 }
 
+gumdrop_edit_dns_record() {
+    local domain=$1
+    readarray -t REC_IDS < <(doctl compute domain records list "${domain}" --format ID --no-header)
+    readarray -t REC_TYPES < <(doctl compute domain records list "${domain}" --format Type --no-header)
+    readarray -t REC_NAMES < <(doctl compute domain records list "${domain}" --format Name --no-header)
+    readarray -t REC_DATA < <(doctl compute domain records list "${domain}" --format Data --no-header)
+    readarray -t REC_TTLS < <(doctl compute domain records list "${domain}" --format TTL --no-header)
+    readarray -t REC_PRIORITIES < <(doctl compute domain records list "${domain}" --format Priority --no-header)
+    readarray -t REC_PORTS < <(doctl compute domain records list "${domain}" --format Port --no-header)
+    readarray -t REC_WEIGHTS < <(doctl compute domain records list "${domain}" --format Weight --no-header)
+    readarray -t REC_FLAGS < <(doctl compute domain records list "${domain}" --format Flags --no-header)
+    readarray -t REC_TAGS < <(doctl compute domain records list "${domain}" --format Tag --no-header)
+    if [[ ${#REC_IDS[@]} -eq 0 ]]; then
+        echo "No DNS records found."
+        return
+    fi
+    local REC_OPTIONS=()
+    for i in "${!REC_IDS[@]}"; do
+        REC_OPTIONS+=("${REC_NAMES[$i]} ${REC_TYPES[$i]} → ${REC_DATA[$i]} (${REC_IDS[$i]})")
+    done
+    local choice
+    if ! choice=$(wizard choose "Edit which record?" "${REC_OPTIONS[@]}" --default "${REC_OPTIONS[0]}"); then return; fi
+    local rec_id=$(echo "${choice}" | grep -oP '\(\K[0-9]+(?=\))')
+    ## Find the index for the selected record
+    local idx
+    for i in "${!REC_IDS[@]}"; do
+        if [[ "${REC_IDS[$i]}" == "${rec_id}" ]]; then
+            idx=$i
+            break
+        fi
+    done
+    local rec_type="${REC_TYPES[$idx]}"
+    local record_name record_data record_ttl
+    local extra_args=()
+    case "${rec_type}" in
+        A)
+            ask "Record name" record_name "${REC_NAMES[$idx]}"
+            ask "IPv4 address" record_data "${REC_DATA[$idx]}"
+            ;;
+        AAAA)
+            ask "Record name" record_name "${REC_NAMES[$idx]}"
+            ask "IPv6 address" record_data "${REC_DATA[$idx]}"
+            ;;
+        CNAME)
+            ask "Record name" record_name "${REC_NAMES[$idx]}"
+            ask "Target hostname" record_data "${REC_DATA[$idx]}"
+            ;;
+        MX)
+            ask "Record name" record_name "${REC_NAMES[$idx]}"
+            ask "Mail server hostname" record_data "${REC_DATA[$idx]}"
+            local priority
+            ask "Priority" priority "${REC_PRIORITIES[$idx]}"
+            extra_args+=(--record-priority "${priority}")
+            ;;
+        TXT)
+            ask "Record name" record_name "${REC_NAMES[$idx]}"
+            ask "Text value" record_data "${REC_DATA[$idx]}"
+            ;;
+        NS)
+            ask "Record name" record_name "${REC_NAMES[$idx]}"
+            ask "Nameserver hostname" record_data "${REC_DATA[$idx]}"
+            ;;
+        SRV)
+            ask "Service name" record_name "${REC_NAMES[$idx]}"
+            ask "Target hostname" record_data "${REC_DATA[$idx]}"
+            local priority port weight
+            ask "Priority" priority "${REC_PRIORITIES[$idx]}"
+            ask "Port" port "${REC_PORTS[$idx]}"
+            ask "Weight" weight "${REC_WEIGHTS[$idx]}"
+            extra_args+=(--record-priority "${priority}" --record-port "${port}" --record-weight "${weight}")
+            ;;
+        CAA)
+            ask "Record name" record_name "${REC_NAMES[$idx]}"
+            local caa_tag
+            if ! caa_tag=$(wizard choose "CAA tag" "issue" "issuewild" "iodef" --default "${REC_TAGS[$idx]}"); then return; fi
+            ask "Value" record_data "${REC_DATA[$idx]}"
+            local caa_flags
+            ask "Flags (0 = non-critical, 128 = critical)" caa_flags "${REC_FLAGS[$idx]}"
+            extra_args+=(--record-flags "${caa_flags}" --record-tag "${caa_tag}")
+            ;;
+        *)
+            ask "Record name" record_name "${REC_NAMES[$idx]}"
+            ask "Record data" record_data "${REC_DATA[$idx]}"
+            ;;
+    esac
+    ask "TTL in seconds" record_ttl "${REC_TTLS[$idx]}"
+    doctl compute domain records update "${domain}" \
+        --record-id "${rec_id}" \
+        --record-type "${rec_type}" \
+        --record-name "${record_name}" \
+        --record-data "${record_data}" \
+        --record-ttl "${record_ttl}" \
+        "${extra_args[@]}"
+    echo "DNS ${rec_type} record updated."
+}
+
 gumdrop_delete_dns_record() {
     local domain=$1
     readarray -t REC_IDS < <(doctl compute domain records list "${domain}" --format ID --no-header)
@@ -2527,6 +2623,7 @@ gumdrop_manage_dns_domain() {
         )
         if [[ ${rec_count} -gt 0 ]]; then
             menu_items+=(
+                "Edit record = $0 gumdrop_edit_dns_record ${domain}"
                 "Delete record = $0 gumdrop_delete_dns_record ${domain}"
             )
         fi
