@@ -36,7 +36,12 @@ gumdrop_list() {
     local account_team=$(doctl account get --format Team --no-header 2>/dev/null)
     echo ""
     echo "## ${GUMDROP_LABEL}s:  ${account_team:+[${account_team}] }${account_email}"
-    doctl compute droplet list "${tag_args[@]}" --format ID,Name,PublicIPv4,Region,SizeSlug,Status
+    local count=$(doctl compute droplet list "${tag_args[@]}" --format ID --no-header 2>/dev/null | wc -l)
+    if [[ ${count} -gt 0 ]]; then
+        doctl compute droplet list "${tag_args[@]}" --format ID,Name,PublicIPv4,Region,SizeSlug,Status
+    else
+        echo "No ${GUMDROP_LABEL,,}s found${GUMDROP_TAG:+ (tag: ${GUMDROP_TAG})}."
+    fi
     echo ""
 }
 
