@@ -14,7 +14,7 @@ DROPLET_TAG="woodpecker-agent"
 ## Check prerequisites:
 command -v doctl >/dev/null || fault "doctl is not installed. See https://docs.digitalocean.com/reference/doctl/how-to/install/"
 if ! doctl account get >/dev/null 2>&1; then
-    confirm yes "doctl is not authenticated. Run 'doctl auth init' now?" || fault "doctl is not authenticated."
+    confirm yes "doctl is not authenticated. Run 'doctl auth init' now" "?" || fault "doctl is not authenticated."
     doctl auth init
 fi
 
@@ -45,7 +45,7 @@ destroy_droplet() {
         return
     fi
     local name=$(wizard choose "Destroy which droplet?" "${NAMES[@]}" --default "${NAMES[0]}")
-    confirm no "Are you sure you want to destroy '${name}'?" || return
+    confirm no "Are you sure you want to destroy '${name}'" "?" || return
     doctl compute droplet delete "${name}" --force
     echo "Droplet '${name}' destroyed."
 }
@@ -155,7 +155,7 @@ USERDATA
     echo "  SSH key:       ${SSH_KEY}"
     echo "  gRPC address:  ${WOODPECKER_SERVER}"
     echo ""
-    confirm yes "Create this droplet?" || return
+    confirm yes "Create this droplet" "?" || return
 
     doctl compute droplet create "${DROPLET_NAME}" \
         --region "${REGION}" \
