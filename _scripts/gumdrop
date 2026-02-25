@@ -203,7 +203,7 @@ gumdrop_manage_ssh_keys() {
 }
 
 _gumdrop_create_web_firewall() {
-    local fw_name="${DROPLET_NAME}-web"
+    local fw_name="${DROPLET_NAME}-web-$(head -c4 /dev/urandom | od -An -tx1 | tr -d ' ')"
     echo "Creating firewall '${fw_name}' (TCP 22, 80, 443 inbound, all outbound)..."
     local output
     output=$(doctl compute firewall create \
