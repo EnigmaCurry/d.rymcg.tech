@@ -270,7 +270,9 @@ _gumdrop_create_custom_firewall() {
             --default "Done")
         local rule_exit=$?
         set -e
-        if [[ ${rule_exit} -ne 0 ]] || [[ "${rule_action}" == "Done" ]]; then
+        if [[ ${rule_exit} -ne 0 ]]; then
+            return
+        elif [[ "${rule_action}" == "Done" ]]; then
             break
         elif [[ "${rule_action}" == "Delete rule(s)" ]]; then
             if [[ ${#INBOUND_RULES[@]} -eq 0 ]]; then
