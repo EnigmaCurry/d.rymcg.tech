@@ -157,6 +157,7 @@ USERDATA
     echo ""
     confirm yes "Create this droplet" "?" || return
 
+    echo "Creating droplet '${DROPLET_NAME}', please wait..."
     doctl compute droplet create "${DROPLET_NAME}" \
         --region "${REGION}" \
         --size "${SIZE}" \
