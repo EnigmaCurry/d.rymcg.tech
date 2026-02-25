@@ -69,6 +69,32 @@
         profiles.default = {
           isDefault = true;
 
+          bookmarks = {
+            force = true;
+            settings = [
+              {
+                name = "d.rymcg.tech";
+                url = "https://github.com/EnigmaCurry/d.rymcg.tech/";
+              }
+              {
+                name = "blog.rymcg.tech";
+                url = "https://blog.rymcg.tech/";
+              }
+              {
+                name = "book.rymcg.tech";
+                url = "https://book.rymcg.tech/";
+              }
+              {
+                name = "nixos-vm-template";
+                url = "https://github.com/EnigmaCurry/nixos-vm-template";
+              }
+              {
+                name = "sway-home";
+                url = "https://github.com/EnigmaCurry/sway-home/";
+              }
+            ];
+          };
+
           extensions.packages = with firefox-addons.packages.${pkgs.stdenv.hostPlatform.system}; [
             ublock-origin
             darkreader
