@@ -556,35 +556,64 @@ gumdrop_create_firewall_standalone() {
     fi
 }
 
+gumdrop_list_accounts() {
+    echo ""
+    echo "## Accounts:"
+    doctl auth list 2>/dev/null
+    echo ""
+}
+
 gumdrop_switch_account() {
     readarray -t CONTEXTS < <(doctl auth list 2>/dev/null | sed 's/ (current)$//')
     if [[ ${#CONTEXTS[@]} -le 1 ]]; then
         echo "Only one account configured."
-        if confirm yes "Login to a new DigitalOcean account" "?"; then
-            local context_name
-            ask_no_blank "Enter a name for this account" context_name
-            doctl auth init --context "${context_name}"
-            echo "Account '${context_name}' added."
-            doctl auth switch --context "${context_name}"
-            echo "Switched to account: ${context_name}"
-        fi
         return
     fi
     local current=$(doctl auth list 2>/dev/null | grep -oP '^.+(?= \(current\))')
-    local ACCOUNT_OPTIONS=("${CONTEXTS[@]}" "Add new account")
     local choice
-    if ! choice=$(wizard choose "Switch to which account?" "${ACCOUNT_OPTIONS[@]}" --default "${current}"); then return; fi
-    if [[ "${choice}" == "Add new account" ]]; then
-        local context_name
-        ask_no_blank "Enter a name for this account" context_name
-        doctl auth init --context "${context_name}"
-        echo "Account '${context_name}' added."
-        doctl auth switch --context "${context_name}"
-        echo "Switched to account: ${context_name}"
-    else
-        doctl auth switch --context "${choice}"
-        echo "Switched to account: ${choice}"
+    if ! choice=$(wizard choose "Switch to which account?" "${CONTEXTS[@]}" --default "${current}"); then return; fi
+    doctl auth switch --context "${choice}"
+    echo "Switched to account: ${choice}"
+}
+
+gumdrop_add_account() {
+    local context_name
+    ask_no_blank "Enter a name for this account" context_name
+    doctl auth init --context "${context_name}"
+    echo "Account '${context_name}' added."
+    doctl auth switch --context "${context_name}"
+    echo "Switched to account: ${context_name}"
+}
+
+gumdrop_remove_account() {
+    readarray -t CONTEXTS < <(doctl auth list 2>/dev/null | sed 's/ (current)$//')
+    if [[ ${#CONTEXTS[@]} -eq 0 ]]; then
+        echo "No accounts configured."
+        return
     fi
+    local choice
+    if ! choice=$(wizard choose "Remove which account?" "${CONTEXTS[@]}" --default "${CONTEXTS[0]}"); then return; fi
+    confirm no "Are you sure you want to remove account '${choice}'" "?" || return
+    doctl auth remove --context "${choice}"
+    echo "Account '${choice}' removed."
+}
+
+gumdrop_manage_accounts() {
+    while :
+    do
+        gumdrop_list_accounts
+        set +e
+        wizard menu --once --cancel-code=2 "Accounts:" \
+            "Switch account = $0 gumdrop_switch_account" \
+            "Add account = $0 gumdrop_add_account" \
+            "Remove account = $0 gumdrop_remove_account" \
+            "Back = exit 2"
+        local EXIT_CODE=$?
+        set -e
+        if [[ "${EXIT_CODE}" == "2" ]]; then
+            exit 0
+        fi
+    done
 }
 
 gumdrop_main() {
@@ -599,7 +628,7 @@ gumdrop_main() {
             "Destroy ${GUMDROP_LABEL,,} = $0 gumdrop_destroy" \
             "Manage SSH keys = $0 gumdrop_manage_ssh_keys" \
             "Manage firewalls = $0 gumdrop_manage_firewalls" \
-            "Switch DigitalOcean account = $0 gumdrop_switch_account" \
+            "Manage accounts = $0 gumdrop_manage_accounts" \
             "Exit = exit 2"
         local EXIT_CODE=$?
         set -e
