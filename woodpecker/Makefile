@@ -11,8 +11,27 @@ config-hook:
 	@${BIN}/reconfigure_ask ${ENV_FILE} WOODPECKER_TRAEFIK_HOST "Enter the woodpecker server domain name" woodpecker${INSTANCE_URL_SUFFIX}.${ROOT_DOMAIN}
 	@${BIN}/reconfigure_ask ${ENV_FILE} WOODPECKER_GRPC_HOST "Enter the woodpecker GRPC domain name" woodpecker-grpc${INSTANCE_URL_SUFFIX}.${ROOT_DOMAIN}
 	@${BIN}/reconfigure_password ${ENV_FILE} WOODPECKER_AGENT_SECRET
-	@${BIN}/reconfigure ${ENV_FILE} WOODPECKER_INSTANCE=$${instance:-default}
 	@echo ""
+	@forge=$$(eval "${BIN}/script-wizard choose 'Which forge do you want to use?' 'Forgejo' --default 'Forgejo'") && \
+	if [ "$${forge}" = "Forgejo" ]; then \
+		${BIN}/reconfigure ${ENV_FILE} WOODPECKER_FORGEJO=true; \
+		${BIN}/reconfigure_ask ${ENV_FILE} WOODPECKER_FORGEJO_URL "Enter the Forgejo server URL" https://git.${ROOT_DOMAIN}; \
+		FORGEJO_URL=$$(${BIN}/dotenv -f ${ENV_FILE} get WOODPECKER_FORGEJO_URL); \
+		TRAEFIK_HOST=$$(${BIN}/dotenv -f ${ENV_FILE} get WOODPECKER_TRAEFIK_HOST); \
+		echo ""; \
+		echo "## Create an OAuth2 application in Forgejo:"; \
+		echo "  1. Open $${FORGEJO_URL}/-/admin/applications"; \
+		echo "  2. Enter Application Name: Woodpecker"; \
+		echo "  3. Enter Redirect URI: https://$${TRAEFIK_HOST}/authorize"; \
+		echo "  4. Copy the Client ID and Client Secret."; \
+		echo ""; \
+		${BIN}/reconfigure_ask ${ENV_FILE} WOODPECKER_FORGEJO_CLIENT "Enter the Forgejo OAuth2 Client ID"; \
+		${BIN}/reconfigure_ask ${ENV_FILE} WOODPECKER_FORGEJO_SECRET "Enter the Forgejo OAuth2 Client Secret"; \
+		${BIN}/reconfigure_ask ${ENV_FILE} WOODPECKER_ADMIN "Enter the Forgejo admin username(s) (comma separated)"; \
+		${BIN}/reconfigure_ask ${ENV_FILE} WOODPECKER_OPEN "Allow any Forgejo user to login?" false; \
+	fi
+	@echo ""
+	@${BIN}/reconfigure ${ENV_FILE} WOODPECKER_INSTANCE=$${instance:-default}
 	@${BIN}/reconfigure_compose_profiles_select ${ENV_FILE} server="Woodpecker Server" agent="Woodpecker Agent"
 
 .PHONY: override-hook
