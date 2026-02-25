@@ -2871,6 +2871,7 @@ gumdrop_manage_droplets() {
             "SSH into ${GUMDROP_LABEL,,} = $0 gumdrop_ssh" \
             "Destroy ${GUMDROP_LABEL,,} = $0 gumdrop_destroy" \
             "Add to local SSH config = $0 gumdrop_add_ssh_config" \
+            "Tasks = $0 gumdrop_manage_tasks" \
             "Back = exit 2"
         local EXIT_CODE=$?
         set -e
@@ -2898,7 +2899,6 @@ gumdrop_main() {
             "Snapshots = $0 gumdrop_manage_snapshots" \
             "Backups = $0 gumdrop_manage_backups" \
             "Accounts = $0 gumdrop_manage_accounts" \
-            "Tasks = $0 gumdrop_manage_tasks" \
             "Exit = exit 2"
         local EXIT_CODE=$?
         set -e

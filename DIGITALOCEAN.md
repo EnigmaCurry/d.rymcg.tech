@@ -60,7 +60,7 @@ Add whatever other ports you need, then assign the firewall to your
 droplet.
 
 Then disable the host firewall (the DigitalOcean firewall operates
-at the network level). From the main menu choose **Tasks → Disable
+at the network level). From the main menu choose **Droplets → Tasks → Disable
 ufw**, select your droplet, and confirm.
 
 ## Setup DNS
@@ -81,7 +81,7 @@ server.
 If you attached a block storage volume during droplet creation, it is
 formatted and mounted automatically under `/mnt/`. To remount it as
 `/var/lib/docker` so Docker uses the external storage, choose
-**Tasks → Mount volume as /var/lib/docker** from the main menu,
+**Droplets → Tasks → Mount volume as /var/lib/docker** from the main menu,
 select your droplet, and confirm. The task will automatically find the
 volume, stop Docker, move the data, update the systemd mount unit,
 and restart Docker.
@@ -102,7 +102,7 @@ The `d droplet` main menu also provides management for:
  * **Snapshots** — create and restore droplet snapshots.
  * **Backups** — manage and convert droplet backups.
  * **Accounts** — switch between multiple DigitalOcean accounts.
- * **Tasks** — run common setup tasks on droplets (disable ufw,
+ * **Tasks** (under Droplets) — run common setup tasks (disable ufw,
    mount volume as /var/lib/docker).
 
 ## Removing an account
