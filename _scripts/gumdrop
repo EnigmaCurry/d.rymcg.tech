@@ -63,12 +63,29 @@ gumdrop_list() {
                 fi
             fi
         done < <(doctl compute volume list --format Name,DropletIDs --no-header 2>/dev/null)
-        ## Print droplet table with ReservedIP and Volumes columns:
+        ## Build NFS lookup (vpc_id -> comma-separated NFS share names):
+        declare -A _NFS_VPC_MAP
+        _gumdrop_collect_nfs_shares
+        for i in "${!_NFS_IDS[@]}"; do
+            local nfs_vpc_raw="${_NFS_VPCS[$i]}"
+            nfs_vpc_raw=$(echo "${nfs_vpc_raw}" | tr -d '[]')
+            IFS=',' read -ra nfs_vpc_ids <<< "${nfs_vpc_raw}"
+            for vid in "${nfs_vpc_ids[@]}"; do
+                vid=$(echo "${vid}" | xargs)
+                [[ -z "${vid}" ]] && continue
+                if [[ -n "${_NFS_VPC_MAP[${vid}]}" ]]; then
+                    _NFS_VPC_MAP["${vid}"]="${_NFS_VPC_MAP[${vid}]},${_NFS_NAMES[$i]}"
+                else
+                    _NFS_VPC_MAP["${vid}"]="${_NFS_NAMES[$i]}"
+                fi
+            done
+        done
+        ## Print droplet table with ReservedIP, Volumes, and NFS columns:
         {
-            echo "ID Name PublicIPv4 ReservedIPv4 Volumes Region Size Status"
-            while read -r id name pub region size status; do
-                echo "${id} ${name} ${pub} ${_RIP_MAP[${id}]:--} ${_VOL_MAP[${id}]:--} ${region} ${size} ${status}"
-            done < <(doctl compute droplet list "${tag_args[@]}" --format ID,Name,PublicIPv4,Region,SizeSlug,Status --no-header)
+            echo "ID Name PublicIPv4 ReservedIPv4 Volumes NFS Region Size Status"
+            while read -r id name pub vpcuuid region size status; do
+                echo "${id} ${name} ${pub} ${_RIP_MAP[${id}]:--} ${_VOL_MAP[${id}]:--} ${_NFS_VPC_MAP[${vpcuuid}]:--} ${region} ${size} ${status}"
+            done < <(doctl compute droplet list "${tag_args[@]}" --format ID,Name,PublicIPv4,VPCUUID,Region,SizeSlug,Status --no-header)
         } | column -t
     else
         echo "No ${GUMDROP_LABEL,,}s found${GUMDROP_TAG:+ (tag: ${GUMDROP_TAG})}."
