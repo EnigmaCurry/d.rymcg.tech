@@ -1334,10 +1334,13 @@ _gumdrop_collect_nfs_shares() {
     _NFS_SIZES=()
     _NFS_REGIONS=()
     _NFS_VPCS=()
-    ## Collect regions to query: regions with existing droplets + default region
+    ## Collect regions to query: regions with droplets + VPCs + default region
     local regions=()
     readarray -t regions < <(
-        { doctl compute droplet list --format Region --no-header 2>/dev/null; echo "${GUMDROP_DEFAULT_REGION}"; } | sort -u
+        { doctl compute droplet list --format Region --no-header 2>/dev/null
+          doctl vpcs list --format Region --no-header 2>/dev/null
+          echo "${GUMDROP_DEFAULT_REGION}"
+        } | sort -u
     )
     for region in "${regions[@]}"; do
         [[ -z "${region}" ]] && continue
