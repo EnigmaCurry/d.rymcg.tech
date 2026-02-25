@@ -242,7 +242,10 @@ upload_ssh_key() {
 
     if [[ "${source}" == agent:* ]]; then
         local pubkey_data="${source#agent:}"
-        echo "${pubkey_data}" | doctl compute ssh-key import "${keyname}" --public-key-file -
+        local tmpfile=$(mktemp)
+        echo "${pubkey_data}" > "${tmpfile}"
+        doctl compute ssh-key import "${keyname}" --public-key-file "${tmpfile}"
+        rm -f "${tmpfile}"
     else
         local pubfile="${source#file:}"
         doctl compute ssh-key import "${keyname}" --public-key-file "${pubfile}"
