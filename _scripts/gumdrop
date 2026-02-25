@@ -230,16 +230,9 @@ gumdrop_create() {
     if [[ -n "${GUMDROP_IMAGES}" ]]; then
         read -ra IMAGE_OPTIONS <<< "${GUMDROP_IMAGES}"
     else
-        readarray -t IMAGE_SLUGS < <(doctl compute image list --public --format Slug --no-header | grep -v '^$' | sort)
-        readarray -t IMAGE_DISTROS < <(doctl compute image list --public --format Distribution --no-header)
-        ## Build slug-to-distro map for display:
-        declare -A SLUG_DISTRO
-        for i in "${!IMAGE_SLUGS[@]}"; do
-            [[ -n "${IMAGE_SLUGS[$i]}" ]] && SLUG_DISTRO["${IMAGE_SLUGS[$i]}"]="${IMAGE_DISTROS[$i]}"
-        done
-        for slug in "${IMAGE_SLUGS[@]}"; do
-            [[ -n "${slug}" ]] && IMAGE_OPTIONS+=("$(printf "%-30s  %s" "${slug}" "${SLUG_DISTRO[${slug}]}")")
-        done
+        while IFS=$'\t' read -r slug distro; do
+            [[ -n "${slug}" ]] && IMAGE_OPTIONS+=("$(printf "%-30s  %s" "${slug}" "${distro}")")
+        done < <(doctl compute image list --public --format Slug,Distribution --no-header | grep -v '^\s*$' | sort)
     fi
     for opt in "${IMAGE_OPTIONS[@]}"; do
         [[ "$(echo "${opt}" | awk '{print $1}')" == "${GUMDROP_DEFAULT_IMAGE}" ]] && IMAGE_DEFAULT="${opt}"
