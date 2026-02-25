@@ -30,6 +30,7 @@ gumdrop_check_doctl() {
         local context_name
         ask "Enter a name for this account" context_name "default"
         doctl auth init --context "${context_name}"
+        doctl auth switch --context "${context_name}"
     fi
 }
 
