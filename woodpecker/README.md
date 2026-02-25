@@ -80,19 +80,30 @@ DigitalOcean:
 make agent-droplet
 ```
 
-This opens an interactive menu with options to:
+This opens the gumdrop interactive manager scoped to
+Woodpecker agent droplets. The Droplets menu provides:
 
  * **Create** a new agent droplet (prompts for name, region, size, SSH
-   key; gRPC address and agent secret are pre-filled from your server's
-   env file)
+   key, firewall; gRPC address and agent secret are pre-filled from
+   your server's env file)
  * **SSH** into an existing agent droplet
  * **Destroy** an agent droplet
+ * **Add to local SSH config** for easier access
+ * **View logs** — cloud-init, Docker, and SSH logs from the droplet
+
+The full gumdrop menu is also available for managing SSH keys,
+firewalls, volumes, domains, DNS records, snapshots, backups, and
+accounts.
 
 New droplets are provisioned with cloud-init which installs:
 
  * Woodpecker agent (native deb package with systemd service)
  * Docker (pipeline backend)
  * Nix (Determinate installer)
+
+The default firewall blocks all incoming traffic. You can change
+this during creation or edit the firewall afterwards from the
+Firewalls menu.
 
 Requires [doctl](https://docs.digitalocean.com/reference/doctl/how-to/install/)
 to be installed and authenticated (`doctl auth init`).
