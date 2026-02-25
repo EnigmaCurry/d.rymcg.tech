@@ -56,7 +56,7 @@ services:
         #@ end
         #@ enabled_middlewares.append("mtls-header@file")
       #@ end
-      
+
       #! Override the default port that the app binds to:
       #! You don't normally need to do this, as long as your image has
       #! an EXPOSE directive in it, Traefik will autodetect it, but this is how you can override it:

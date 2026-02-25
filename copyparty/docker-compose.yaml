@@ -1,0 +1,69 @@
+volumes:
+  copyparty_etc:
+  copyparty_config:
+  copyparty_data:
+
+services:
+  # One-shot init that writes config as root, then exits
+  config:
+    build:
+      context: config
+    user: "0:0"
+    restart: "no"
+    environment:
+      - FORCE_REGENERATE=true
+      - COPYPARTY_ADMIN_USER
+      - COPYPARTY_ADMIN_PASSWORD
+      - COPYPARTY_UID
+      - COPYPARTY_GID
+      - COPYPARTY_USERS
+      - COPYPARTY_PORT
+      - COPYPARTY_ALLOW_NET
+      - COPYPARTY_THEME
+      - COPYPARTY_NAME
+      - COPYPARTY_ENABLE_STATS
+      - COPYPARTY_DISABLE_DUPE
+      - COPYPARTY_NO_ROBOTS
+      - COPYPARTY_FORCE_JS
+      - COPYPARTY_DATA_DIR=/data
+      - COPYPARTY_VOL_PUBLIC_PATH
+      - COPYPARTY_VOL_GUESTS_PATH
+      - COPYPARTY_VOL_EXTERNAL
+      - COPYPARTY_VOL_PERMISSIONS
+      - COPYPARTY_MNT_ROOT=/mnt
+      - COPYPARTY_ENABLE_GUEST_ACCESS
+      - COPYPARTY_ENABLE_PUBLIC_ACCESS
+    volumes:
+      - copyparty_etc:/etc/copyparty
+      - copyparty_data:/data
+
+  copyparty:
+    build:
+      context: copyparty
+      args:
+        COPYPARTY_IMAGE: ${COPYPARTY_IMAGE}
+        COPYPARTY_UID: ${COPYPARTY_UID}
+        COPYPARTY_GID: ${COPYPARTY_GID}
+    user: "${COPYPARTY_UID}:${COPYPARTY_GID}"
+    depends_on:
+      config:
+        condition: service_completed_successfully
+    cap_drop: [ "ALL" ]
+    security_opt:
+      - no-new-privileges:true
+    restart: "unless-stopped"
+    environment:
+      - COPYPARTY_DATA_DIR=/data
+      - COPYPARTY_CONFIG=/etc/copyparty/copyparty.conf
+      - COPYPARTY_MNT_ROOT=/data/mnt
+    volumes:
+      - copyparty_config:/cfg
+      - copyparty_data:/data
+      - copyparty_etc:/etc/copyparty:ro
+    healthcheck:
+      test: ["CMD", "python3", "-c", "import socket;s=socket.socket();s.connect(('127.0.0.1',${COPYPARTY_PORT:-3923}))"]
+      interval: 15s
+      timeout: 2s
+      retries: 10
+      start_period: 10s
+    labels: []

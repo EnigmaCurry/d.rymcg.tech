@@ -31,7 +31,11 @@ override-hook:
 
 .PHONY: shell
 shell:
-	@container=$$(eval "${BIN}/script-wizard choose 'docker exec -it into which container?' 'yourls' 'mysql' --default 'yourls'") && make --no-print-directory docker-compose-shell SERVICE=$${container}
+	@if [ -z "$(service)" ]; then \
+		container=$$(eval "${BIN}/script-wizard choose 'docker exec -it into which container?' 'yourls' 'mysql' --default 'yourls'") && make --no-print-directory docker-compose-shell SERVICE=$${container}; \
+	else \
+		make --no-print-directory docker-compose-shell SERVICE=$$(service); \
+	fi;
 
 open-hook:
 	${BIN}/open /admin
@@ -96,4 +100,12 @@ delete-admin-users:
 	@docker cp -a config.php.temp yourls-yourls-1:/var/www/html/user/config.php > /dev/null 2>&1
 # Clean up temporary file
 	@rm config.php.temp
+	@echo
+
+.PHONY: install-hook
+install-hook:
+	@echo
+
+.PHONY: install-hook-pre
+install-hook-pre:
 	@echo

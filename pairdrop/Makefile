@@ -11,6 +11,12 @@ config-hook:
 	@${BIN}/reconfigure_ask ${ENV_FILE} PAIRDROP_TRAEFIK_HOST "Enter the pairdrop domain name" pairdrop${INSTANCE_URL_SUFFIX}.${ROOT_DOMAIN}
 	@${BIN}/reconfigure ${ENV_FILE} PAIRDROP_INSTANCE=$${instance:-default}
 	@${BIN}/reconfigure_auth ${ENV_FILE} PAIRDROP
+	@${BIN}/reconfigure_ask ${ENV_FILE} PAIRDROP_TURN_DOMAIN "Enter the TURN server domain"
+	@${BIN}/reconfigure_ask ${ENV_FILE} PAIRDROP_TURN_LISTEN_PORT "Enter the TURN port number"
+	@${BIN}/reconfigure_ask ${ENV_FILE} PAIRDROP_TURN_TLS_PORT "Enter the TURN TLS port number"
+	@ALLOW_BLANK=1 ${BIN}/reconfigure_ask ${ENV_FILE} PAIRDROP_TURN_USERNAME "Enter the TURN username (optional)"
+	@ALLOW_BLANK=1 ${BIN}/reconfigure_ask ${ENV_FILE} PAIRDROP_TURN_PASSWORD "Enter the TURN password (optional)"
+	@ALLOW_BLANK=1 ${BIN}/reconfigure_ask ${ENV_FILE} PAIRDROP_COTURN_STATIC_AUTH_SECRET "Enter the static auth secret token from coturn (optional)"
 
 .PHONY: override-hook
 override-hook:
@@ -24,8 +30,16 @@ override-hook:
 ####                         # (this hardcodes the string into docker-compose.override.yaml)
 ####   name=@VARIABLE_NAME   # sets the template 'name' field to the literal string '${VARIABLE_NAME}'
 ####                         # (used for regular docker-compose expansion of env vars by name.)
-	@${BIN}/docker_compose_override ${ENV_FILE} project=:pairdrop instance=@PAIRDROP_INSTANCE traefik_host=@PAIRDROP_TRAEFIK_HOST http_auth=PAIRDROP_HTTP_AUTH http_auth_var=@PAIRDROP_HTTP_AUTH ip_sourcerange=@PAIRDROP_IP_SOURCERANGE oauth2=PAIRDROP_OAUTH2 authorized_group=PAIRDROP_OAUTH2_AUTHORIZED_GROUP  enable_mtls_auth=PAIRDROP_MTLS_AUTH mtls_authorized_certs=PAIRDROP_MTLS_AUTHORIZED_CERTS
+	@${BIN}/docker_compose_override ${ENV_FILE} project=:pairdrop instance=@PAIRDROP_INSTANCE traefik_host=@PAIRDROP_TRAEFIK_HOST http_auth=PAIRDROP_HTTP_AUTH http_auth_var=@PAIRDROP_HTTP_AUTH ip_sourcerange=@PAIRDROP_IP_SOURCERANGE oauth2=PAIRDROP_OAUTH2 authorized_group=PAIRDROP_OAUTH2_AUTHORIZED_GROUP  enable_mtls_auth=PAIRDROP_MTLS_AUTH mtls_authorized_certs=PAIRDROP_MTLS_AUTHORIZED_CERTS homepage_labels_enable=PAIRDROP_HOMEPAGE_LABELS_ENABLE homepage_group_pairdrop=PAIRDROP_HOMEPAGE_GROUP_PAIRDROP homepage_name_pairdrop=PAIRDROP_HOMEPAGE_NAME_PAIRDROP homepage_icon_pairdrop=PAIRDROP_HOMEPAGE_ICON_PAIRDROP homepage_description_pairdrop=PAIRDROP_HOMEPAGE_DESCRIPTION_PAIRDROP homepage_show_stats_pairdrop=PAIRDROP_HOMEPAGE_SHOW_STATS_PAIRDROP homepage_widget_enable=PAIRDROP_HOMEPAGE_WIDGET_ENABLE homepage_widget_api_key=PAIRDROP_HOMEPAGE_WIDGET_API_KEY
 
 .PHONY: shell
 shell:
 	@make --no-print-directory docker-compose-shell SERVICE=pairdrop
+
+.PHONY: install-hook
+install-hook:
+	@echo
+
+.PHONY: install-hook-pre
+install-hook-pre:
+	@echo

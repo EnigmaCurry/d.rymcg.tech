@@ -10,7 +10,7 @@ include _scripts/Makefile.cd
 
 .PHONY: check-deps # Check dependencies
 check-deps:
-	_scripts/check_deps docker sed awk xargs openssl htpasswd jq curl sponge inotifywait git envsubst xdg-open sshfs wg
+	_scripts/check_deps docker sed awk xargs openssl htpasswd jq curl sponge inotifywait git envsubst xdg-open sshfs wg uv ipcalc
 
 .PHONY: check-docker # Check if Docker is running
 check-docker:
@@ -51,7 +51,9 @@ restore-env:
 
 .PHONY: delete-env # Delete all .env files
 delete-env:
-	@${BIN}/confirm no "This will find and delete ALL of the .env files recursively"
+	@find ${ROOT_DIR} | grep -E '\.env$$|\.env_.*'
+	@${BIN}/confirm no "This will delete ALL of these .env files recursively"
+	@${BIN}/confirm no "ARE YOU REALLY SURE you want to delete ALL of the .env files recursively"
 	@find ${ROOT_DIR} | grep -E '\.env$$|\.env_.*' && find ${ROOT_DIR} | grep -E '\.env$$|\.env_.*' | xargs shred -u || true
 	@echo "Done."
 
@@ -66,10 +68,10 @@ clean: delete-env delete-passwords
 
 .PHONY: show-ports # Show open ports on the Docker server
 show-ports:
-	@echo "Found these containers with open ports:"
+	@echo "## Found these containers with open ports:"
 	@docker ps --format '{{ .Names }}\t{{ .Ports }}' | grep ":"
 #docker ps --format '{{ .ID }}' | xargs -iXX sh -c "docker inspect XX | jq -c '.[0].NetworkSettings.Ports' | grep '\[' >/dev/null && echo XX" | xargs -iXX sh -c "docker inspect XX | jq -cj '.[0].Name | @sh' && docker inspect XX | jq -c ' .[0].NetworkSettings.Ports[$i]' | jq -cr '.[].HostPort | @sh' | sed -z -e 's/\n//g' 2>&1 && echo" | sed -e "s/'/ /g" -e 's/ *$//g'
-	@echo "Found these containers using the host network (so they could be publishing any port):"
+	@echo "## Found these containers using the host network (so they could be publishing any port):"
 	@docker ps --format '{{ .ID }}' | xargs -iXX sh -c "docker inspect XX | jq -cr '.[0].NetworkSettings.Networks | keys[]' | grep '^host$$'>/dev/null && docker inspect XX | jq -cr '.[0].Name'" | sed 's!/!!g'
 
 .PHONY: audit # Audit container permissions and capabilities
@@ -95,6 +97,10 @@ userns-remap-check:
 .PHONY: readme # Open the README.md in your web browser
 readme:
 	xdg-open "https://github.com/EnigmaCurry/d.rymcg.tech/tree/master#readme"
+
+.PHONY: agent # Run agent readiness tool
+agent:
+	@_scripts/agent.py
 
 .PHONY: install-cli # Install CLI
 install-cli:
@@ -146,5 +152,14 @@ reconfigure:
 	@[[ -n "$${var}" ]] || (echo -e "Error: Invalid argument, must set var.\n## Use: make reconfigure var=VAR_NAME=VALUE" && false)
 	@${BIN}/reconfigure ${ROOT_ENV} "$${var%%=*}=$${var#*=}"
 
+.PHONY: dotenv_get # Retrieve a single root environment variable (dotenv_get var=THING)
+dotenv_get:
+	@[[ -n "$${var}" ]] || (echo -e "Error: Invalid argument, must set var.\n## Use: make dotenv_get var=VAR_NAME" && false)
+	@export ENV_FILE=${ROOT_ENV}; ${BIN}/dotenv_get "$${var%%=*}"
+
 daemon-conf:
 	@ENV_FILE=${ENV_FILE} ROOT_ENV=${ROOT_ENV} DOCKER_CONTEXT=${DOCKER_CONTEXT} ROOT_DIR=${ROOT_DIR} CONTEXT_INSTANCE=${CONTEXT_INSTANCE}  ${BIN}/docker_daemon_conf
+
+.PHONY: s3-volume
+s3-volume:
+	@ROOT_ENV=${ROOT_ENV} ${BIN}/s3_volume_create

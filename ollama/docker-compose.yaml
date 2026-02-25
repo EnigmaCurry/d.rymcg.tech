@@ -1,0 +1,54 @@
+services:
+  ollama-rocm:
+    profiles:
+      - rocm
+    restart: unless-stopped
+    build:
+      context: ollama-rocm
+      args:
+        - OLLAMA_IMAGE=${OLLAMA_IMAGE}
+    devices:
+      - /dev/kfd
+      - /dev/dri
+    security_opt:
+      - seccomp=unconfined
+      - no-new-privileges:true
+    group_add:
+      - video
+      - render
+    cap_drop:
+      - ALL
+    sysctls:
+      - net.ipv4.ip_unprivileged_port_start=1024
+    environment:
+      - HSA_OVERRIDE_GFX_VERSION=${OLLAMA_HSA_OVERRIDE_GFX_VERSION}
+
+  ollama-cuda:
+    profiles:
+      - cuda
+    image: ${OLLAMA_IMAGE}
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+    sysctls:
+      - net.ipv4.ip_unprivileged_port_start=1024
+    restart: unless-stopped
+    devices:
+      - nvidia.com/gpu=all
+
+  ollama-cpu:
+    profiles:
+      - cpu
+    restart: unless-stopped
+    image: ${OLLAMA_IMAGE}
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+    sysctls:
+      - net.ipv4.ip_unprivileged_port_start=1024
+
+volumes:
+  ollama:
+  

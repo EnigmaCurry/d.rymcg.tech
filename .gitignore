@@ -12,3 +12,4 @@ tasks.org
 node_modules
 _scripts/script-wizard
 /gradio/gradio/chatbot/__pycache__/
+app-router-bootstrap.sh

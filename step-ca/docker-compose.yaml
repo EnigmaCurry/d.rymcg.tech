@@ -34,6 +34,7 @@ services:
     environment:
       - DOCKER_STEPCA_INIT_NAME=${STEP_CA_TRAEFIK_HOST}
       - DOCKER_STEPCA_INIT_DNS_NAMES=localhost,${STEP_CA_TRAEFIK_HOST}
+      - DOCKER_STEPCA_INIT_REMOTE_MANAGEMENT=${STEP_CA_INIT_REMOTE_MANAGEMENT:-false}
     volumes:
       - config:/home/step
 

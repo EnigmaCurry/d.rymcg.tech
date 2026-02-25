@@ -1,0 +1,76 @@
+#!/usr/bin/env bash
+# Print alias config for all d.rymcg.tech Docker contexts, omitting "default".
+
+set -euo pipefail
+
+# Collect non-default context names
+mapfile -t contexts < <(docker context ls --format '{{.Name}}' | grep -v '^default$' || true)
+echo
+
+if ((${#contexts[@]} == 0)); then
+  echo "No compatible Docker contexts found."
+  exit 0
+fi
+
+echo "## START EXAMPLE ~/.bashrc snippet"
+echo "## Edit ~/.bashrc (or ~/.bash_profile) and add any of the following aliases."
+echo
+echo "## Bash aliases for your favorite projects and contexts:"
+echo "## All aliases support Tab completion."
+echo "## This setup is OPTIONAL."
+
+echo
+# Print aliases
+echo "## Create a regular alias (\`d\`) for control of whatever the current context is:"
+echo "## e.g., \`d context\`, \`d help\`, \`d status\`"
+echo "__d.rymcg.tech_cli_alias d"
+echo
+echo "## Potential Docker context specific aliases for d.rymcg.tech:"
+echo "## These aliases always operate on their specific context."
+echo "## When using them, you do not need to switch your context (No \`d context\` needed)."
+echo "## Use these aliases in place of the \`d\` alias to explicitly control your contexts."
+echo "## e.g., \`prod status\`, \`staging config\`"
+for ctx in "${contexts[@]}"; do
+  printf "__d.rymcg.tech_context_alias %s\n" "$ctx"
+done
+
+# Extra block for contexts that contain a dot — propose shorter aliases.
+dotted=()
+for ctx in "${contexts[@]}"; do
+  [[ "$ctx" == *.* ]] && dotted+=("$ctx")
+done
+
+if ((${#dotted[@]} > 0)); then
+  echo
+  echo "## You can shorten these names if you don't like to type the full context name:"
+  # Ensure we don't emit duplicate short names (e.g., a.example.com and a.other.com)
+  declare -A used_shortnames=()
+  for ctx in "${dotted[@]}"; do
+    short="${ctx%%.*}"
+    if [[ -z "${used_shortnames[$short]+x}" ]]; then
+      used_shortnames["$short"]=1
+      printf "__d.rymcg.tech_context_alias %s %s\n" "$ctx" "$short"
+    else
+      # De-duplicate by appending a number if needed: short, short2, short3, ...
+      i=2
+      alt="${short}${i}"
+      while [[ -n "${used_shortnames[$alt]+x}" ]]; do
+        ((i++))
+        alt="${short}${i}"
+      done
+      used_shortnames["$alt"]=1
+      printf "__d.rymcg.tech_context_alias %s %s\n" "$ctx" "$alt"
+    fi
+  done
+fi
+
+echo
+echo "## Create aliases for your external project directories:"
+echo "## Note: These do not specify the context. You need to run \`d context\` before using them."
+echo "## e.g., \`mikeapp config\`, \`mikeapp install\`"
+echo "# __d.rymcg.tech_project_alias mikeapp ~/git/mikeapp"
+echo
+echo
+echo "## Add any aliases you want to your ~/.bashrc (or ~/.bash_profile)."
+echo "## END EXAMPLE ~/.bashrc snippet"
+echo

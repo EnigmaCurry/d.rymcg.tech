@@ -9,6 +9,7 @@ ytt_template() {
     src=$1; dst=$2;
     [ -e "${src}" ] || (echo "Template not found: ${src}" && exit 1)
     ytt -f ${src} \
+        -v docker_compose_profiles=${DOCKER_COMPOSE_PROFILES} \
         -v acme_cert_resolver="${TRAEFIK_ACME_CERT_RESOLVER}" \
         -v acme_cert_domains="${TRAEFIK_ACME_CERT_DOMAINS}" \
         -v log_level="${TRAEFIK_LOG_LEVEL}" \
@@ -109,6 +110,25 @@ ytt_template() {
         -v iperf_udp_entrypoint_enabled="${TRAEFIK_IPERF_UDP_ENTRYPOINT_ENABLED}" \
         -v iperf_udp_entrypoint_host="${TRAEFIK_IPERF_UDP_ENTRYPOINT_HOST}" \
         -v iperf_udp_entrypoint_port="${TRAEFIK_IPERF_UDP_ENTRYPOINT_PORT}" \
+        -v dns_entrypoint_enabled="${TRAEFIK_DNS_ENTRYPOINT_ENABLED}" \
+        -v dns_entrypoint_host="${TRAEFIK_DNS_ENTRYPOINT_HOST}" \
+        -v dns_entrypoint_port="${TRAEFIK_DNS_ENTRYPOINT_PORT}" \
+        -v dns_entrypoint_proxy_protocol_trusted_ips="${TRAEFIK_DNS_ENTRYPOINT_PROXY_PROTOCOL_TRUSTED_IPS}" \
+        -v irc_entrypoint_enabled="${TRAEFIK_IRC_ENTRYPOINT_ENABLED}" \
+        -v irc_entrypoint_host="${TRAEFIK_IRC_ENTRYPOINT_HOST}" \
+        -v irc_entrypoint_port="${TRAEFIK_IRC_ENTRYPOINT_PORT}" \
+        -v irc_entrypoint_proxy_protocol_trusted_ips="${TRAEFIK_IRC_ENTRYPOINT_PROXY_PROTOCOL_TRUSTED_IPS}" \
+        -v irc_bouncer_entrypoint_enabled="${TRAEFIK_IRC_BOUNCER_ENTRYPOINT_ENABLED}" \
+        -v irc_bouncer_entrypoint_host="${TRAEFIK_IRC_BOUNCER_ENTRYPOINT_HOST}" \
+        -v irc_bouncer_entrypoint_port="${TRAEFIK_IRC_BOUNCER_ENTRYPOINT_PORT}" \
+        -v irc_bouncer_entrypoint_proxy_protocol_trusted_ips="${TRAEFIK_IRC_BOUNCER_ENTRYPOINT_PROXY_PROTOCOL_TRUSTED_IPS}" \
+        -v allow_encoded_slash=${TRAEFIK_ALLOW_ENCODED_SLASH} \
+        -v allow_encoded_hash=${TRAEFIK_ALLOW_ENCODED_HASH} \
+        -v allow_encoded_percent=${TRAEFIK_ALLOW_ENCODED_PERCENT} \
+        -v allow_encoded_back_slash=${TRAEFIK_ALLOW_ENCODED_BACK_SLASH} \
+        -v allow_encoded_null_character=${TRAEFIK_ALLOW_ENCODED_NULL_CHARACTER} \
+        -v allow_encoded_semicolon=${TRAEFIK_ALLOW_ENCODED_SEMICOLON} \
+        -v allow_encoded_question_mark=${TRAEFIK_ALLOW_ENCODED_QUESTION_MARK} \
         --data-value-yaml header_authorization_groups="${TRAEFIK_HEADER_AUTHORIZATION_GROUPS}" \
         > ${dst}
     success=$?
@@ -121,6 +141,7 @@ ytt_template() {
 }
 
 create_config() {
+    set -x
     rm -rf ${CONFIG_DIR}
     mkdir -p ${DYNAMIC_CONFIG_DIR} ${INSTANCE_CONFIG_DIR}
     ## Traefik static config:

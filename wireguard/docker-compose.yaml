@@ -1,0 +1,40 @@
+volumes:
+  wireguard:
+
+services:
+  wireguard-config:
+    build:
+      context: wireguard-config
+    network_mode: none
+    environment:
+      - WIREGUARD_VPN_CLIENT_INTERFACE_PRIVATE_KEY
+      - WIREGUARD_VPN_CLIENT_INTERFACE_IPV4
+      - WIREGUARD_VPN_CLIENT_INTERFACE_IPV6
+      - WIREGUARD_VPN_CLIENT_INTERFACE_LISTEN_PORT
+      - WIREGUARD_VPN_CLIENT_INTERFACE_PEER_DNS
+      - WIREGUARD_VPN_CLIENT_PEER_PUBLIC_KEY
+      - WIREGUARD_VPN_CLIENT_PEER_ALLOWED_IPS
+      - WIREGUARD_VPN_CLIENT_PEER_ENDPOINT
+    volumes:
+      - wireguard:/config:z
+
+  wireguard:
+    depends_on: ['wireguard-config']
+    image: ${WIREGUARD_IMAGE}
+    cap_add:
+      - NET_ADMIN
+      - SYS_MODULE
+    sysctls:
+      - net.ipv4.ip_forward=1
+      - net.ipv6.conf.all.forwarding=1
+      - net.ipv6.conf.all.disable_ipv6=0
+      - net.ipv4.conf.all.src_valid_mark=1
+    environment:
+      - PUID=1000
+      - PGID=1000
+      - TZ=${TIMEZONE}
+    volumes:
+      - wireguard:/config:z
+      - /lib/modules:/lib/modules
+    restart: unless-stopped
+    labels: []

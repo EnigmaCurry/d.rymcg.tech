@@ -1,0 +1,72 @@
+services:
+  openwebui:
+    image: ${OPENWEBUI_IMAGE}
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+    sysctls:
+      - net.ipv4.ip_unprivileged_port_start=1024
+    restart: unless-stopped
+    environment:
+      - OLLAMA_BASE_URL=http://ollama-${DOCKER_COMPOSE_PROFILES}:11434
+      - ENV=${OPENWEBUI_ENV}
+      - CACHE_CONTROL=${OPENWEBUI_CACHE_CONTROL}
+      - GLOBAL_LOG_LEVEL=${OPENWEBUI_GLOBAL_LOG_LEVEL}
+    labels: []
+
+  ollama-rocm:
+    profiles:
+      - rocm
+    restart: unless-stopped
+    build:
+      context: ollama-rocm
+      args:
+        - OPENWEBUI_OLLAMA_IMAGE=${OPENWEBUI_OLLAMA_IMAGE}
+    volumes:
+      - ollama:/root/.ollama
+    devices:
+      - /dev/kfd
+      - /dev/dri
+    security_opt:
+      - seccomp=unconfined
+      - no-new-privileges:true
+    group_add:
+      - video
+      - render
+    cap_drop:
+      - ALL
+    sysctls:
+      - net.ipv4.ip_unprivileged_port_start=1024
+    environment:
+      - HSA_OVERRIDE_GFX_VERSION=${OPENWEBUI_OLLAMA_HSA_OVERRIDE_GFX_VERSION}
+
+  ollama-cuda:
+    profiles:
+      - cuda
+    image: ${OPENWEBUI_OLLAMA_IMAGE}
+    volumes:
+      - ollama:/root/.ollama
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+    sysctls:
+      - net.ipv4.ip_unprivileged_port_start=1024
+    restart: unless-stopped
+    gpus: all
+
+  ollama-cpu:
+    profiles:
+      - cpu
+    restart: unless-stopped
+    image: ${OPENWEBUI_OLLAMA_IMAGE}
+    volumes:
+      - ollama:/root/.ollama
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+    sysctls:
+      - net.ipv4.ip_unprivileged_port_start=1024
+  

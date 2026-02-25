@@ -12,7 +12,7 @@ make config
 
 This will ask you to enter the domain name to use.
 It automatically saves your responses into the configuration file
-`.env_{INSTANCE}`.
+`.env_{DOCKER_CONTEXT}_{INSTANCE}`.
 
 ### Authentication and Authorization
 

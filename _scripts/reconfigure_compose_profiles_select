@@ -37,7 +37,9 @@ readarray -t CONFIGURED_PROFILES < <(${BIN}/dotenv -f "${ENV_FILE}" get DOCKER_C
 
 SELECTED_DESCRIPTIONS=()
 for profile in "${CONFIGURED_PROFILES[@]}"; do
-    [[ -n "${profile}" ]] && SELECTED_DESCRIPTIONS+=("${DESCRIPTIONS[${profile}]}")
+    if [[ -n "${profile}" ]]; then
+        SELECTED_DESCRIPTIONS+=("${DESCRIPTIONS[${profile}]}")
+    fi
 done
 
 SELECTED_DESCRIPTIONS=$(array_to_json "${SELECTED_DESCRIPTIONS[@]}")

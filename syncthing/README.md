@@ -1,13 +1,30 @@
 # Syncthing
 
-[Syncthing](https://hub.docker.com/r/syncthing/syncthing) is a continuous file
-synchronization program.
+[Syncthing](https://hub.docker.com/r/syncthing/syncthing) is a peer to
+peer file synchronization program.
 
-Run `make config` to create the `.env_${DOCKER_CONTEXT}_default` file.
+## Config
 
-Run `make install` to install syncthing.
+```
+make config
+```
 
-Run `make open` to create a temporary SSH tunnel, and open the admin
-page in your browser.
+## Install
+
+```
+make install
+```
+
+## Open
+
+```
+make open
+```
+
+## Destroy
+
+```
+make destroy
+```
 
 

@@ -3,11 +3,29 @@
 [Pairdrop](https://github.com/schlagmichdoch/PairDrop) is a webapp
 (PWA) to send files and messages from peer to peer.
 
+## Requirements
+
+For full connectivity between peers on diverse networks (behind
+various NAT), you must deploy a TURN server. You may install the
+d.rymcg.tech [coturn](../coturn) service to fulfill this requirement.
+
 ## Setup
 
 ```
 make config
 ```
+
+You must provide pairdrop with the credentials for your TURN server.
+You can do that one of two ways:
+
+ * Set static long term credentials via `PAIRDROP_TURN_USERNAME` and
+   `PAIRDROP_TURN_PASSWORD`.
+ * Mint (generate) short term credentials periodically via
+   `PAIRDROP_COTURN_STATIC_AUTH_SECRET`.
+
+Note: Pairdrop gives these credentials directly to your web browser
+clients via the websocket `ws-config` event. Short term credentials
+are preferred to mitigate TURN server abuse!
 
 ### Authentication and Authorization
 

@@ -9,7 +9,7 @@ config-hook:
 	@${BIN}/reconfigure_auth ${ENV_FILE} IMMICH
 	@${BIN}/reconfigure_password ${ENV_FILE} IMMICH_DB_PASSWORD 45
 	@echo
-	@${BIN}/reconfigure_choose ${ENV_FILE} IMMICH_ML_HWACCEL_TYPE "Select the hardware acceleration to use for machine learning" "None" "CPU" "ArmNN" "Cuda" "OpenVINO" "OpenVINO-WSL"
+	@${BIN}/reconfigure_choose ${ENV_FILE} IMMICH_ML_HWACCEL_TYPE "Select the hardware acceleration to use for machine learning" "None" "CPU" "ArmNN" "Cuda" "ROCm" "OpenVINO" "OpenVINO-WSL"
 	@echo
 	@${BIN}/reconfigure_choose ${ENV_FILE} IMMICH_TRANSCODE_HWACCEL_TYPE "Select the hardware acceleration to use for transcoding" "None" "CPU" "NVENC" "QSV" "RKMPP" "VAAPI" "VAAPI-WSL"
 	@echo
@@ -22,7 +22,9 @@ config-hook:
 		else \
 			${BIN}/reconfigure ${ENV_FILE} IMMICH_USE_EXTERNAL_VOLUME=false; \
 		fi
-	@echo 
+	@echo
+	@${BIN}/reconfigure_choose ${ENV_FILE} IMMICH_DB_STORAGE_TYPE "Select \"HDD\" or \"SSD\", corresponding to the type of drive your database volume is installed on" "HDD" "SSD"
+	@echo
 
 .PHONY: override-hook
 override-hook:
@@ -36,8 +38,20 @@ override-hook:
 ####                         # (this hardcodes the string into docker-compose.override.yaml)
 ####   name=@VARIABLE_NAME   # sets the template 'name' field to the literal string '${VARIABLE_NAME}'
 ####                         # (used for regular docker-compose expansion of env vars by name.)
-	@${BIN}/docker_compose_override ${ENV_FILE} project=:immich instance=@IMMICH_INSTANCE traefik_host=@IMMICH_TRAEFIK_HOST http_auth=IMMICH_HTTP_AUTH http_auth_var=@IMMICH_HTTP_AUTH ip_sourcerange=@IMMICH_IP_SOURCERANGE oauth2=IMMICH_OAUTH2 authorized_group=IMMICH_OAUTH2_AUTHORIZED_GROUP enable_mtls_auth=IMMICH_MTLS_AUTH mtls_authorized_certs=IMMICH_MTLS_AUTHORIZED_CERTS ml_hwaccel_type=IMMICH_ML_HWACCEL_TYPE use_external_volume=IMMICH_USE_EXTERNAL_VOLUME upload_location=IMMICH_EXTERNAL_VOLUME transcode_hwaccel_type=IMMICH_TRANSCODE_HWACCEL_TYPE
+	@${BIN}/docker_compose_override ${ENV_FILE} project=:immich instance=@IMMICH_INSTANCE traefik_host=@IMMICH_TRAEFIK_HOST http_auth=IMMICH_HTTP_AUTH http_auth_var=@IMMICH_HTTP_AUTH ip_sourcerange=@IMMICH_IP_SOURCERANGE oauth2=IMMICH_OAUTH2 authorized_group=IMMICH_OAUTH2_AUTHORIZED_GROUP enable_mtls_auth=IMMICH_MTLS_AUTH mtls_authorized_certs=IMMICH_MTLS_AUTHORIZED_CERTS ml_hwaccel_type=IMMICH_ML_HWACCEL_TYPE use_external_volume=IMMICH_USE_EXTERNAL_VOLUME upload_location=IMMICH_EXTERNAL_VOLUME transcode_hwaccel_type=IMMICH_TRANSCODE_HWACCEL_TYPE db_storage_type=IMMICH_DB_STORAGE_TYPE homepage_labels_enable=IMMICH_HOMEPAGE_LABELS_ENABLE homepage_group_immich=IMMICH_HOMEPAGE_GROUP_IMMICH homepage_name_immich=IMMICH_HOMEPAGE_NAME_IMMICH homepage_icon_immich=IMMICH_HOMEPAGE_ICON_IMMICH homepage_description_immich=IMMICH_HOMEPAGE_DESCRIPTION_IMMICH homepage_show_stats_immich=IMMICH_HOMEPAGE_SHOW_STATS_IMMICH homepage_widget_enable=IMMICH_HOMEPAGE_WIDGET_ENABLE homepage_widget_api_key=IMMICH_HOMEPAGE_WIDGET_API_KEY
 
 .PHONY: shell
 shell:
-	@container=$$(eval "${BIN}/script-wizard choose 'docker exec -it into which container?' 'immich' 'machine-learning' 'redis' 'database' --default 'immich'") && make --no-print-directory docker-compose-shell SERVICE=$${container}
+	@if [ -z "$(service)" ]; then \
+		container=$$(eval "${BIN}/script-wizard choose 'docker exec -it into which container?' 'immich' 'machine-learning' 'redis' 'database' --default 'immich'") && make --no-print-directory docker-compose-shell SERVICE=$${container}; \
+	else \
+		make --no-print-directory docker-compose-shell SERVICE=$$(service); \
+	fi;
+
+.PHONY: install-hook
+install-hook:
+	@echo
+
+.PHONY: install-hook-pre
+install-hook-pre:
+	@echo

@@ -1,8 +1,10 @@
 .PHONY: install # (re)builds images and (re)starts services (only if changed)
-install: build start
+install: build install-hook-pre start
+	@make -e --no-print-directory install-hook instance=${INSTANCE}
 
 .PHONY: uninstall # Remove service containers, leaving the volumes intact
 uninstall: down
 
 .PHONY: reinstall # Remove service containers, and re-install (volumes left intact).
 reinstall: uninstall install
+

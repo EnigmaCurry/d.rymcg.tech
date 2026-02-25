@@ -1,0 +1,134 @@
+#! This is a ytt template file for docker-compose.override.yaml
+#! References:
+#!   https://carvel.dev/ytt
+#!   https://docs.docker.com/compose/extends/#adding-and-overriding-configuration
+#!   https://github.com/enigmacurry/d.rymcg.tech#overriding-docker-composeyaml-per-instance
+
+#! ### Standard project vars:
+#@ load("@ytt:data", "data")
+#@ project = data.values.project
+#@ instance = data.values.instance
+#@ context = data.values.context
+#@ traefik_host = data.values.traefik_host
+#@ ip_sourcerange = data.values.ip_sourcerange
+#@ enable_http_auth = len(data.values.http_auth.strip()) > 0
+#@ http_auth = data.values.http_auth_var
+#@ enable_oauth2 = data.values.oauth2 == "true"
+#@ authorized_group = data.values.authorized_group
+#@ enable_mtls_auth = data.values.enable_mtls_auth == "true"
+#@ mtls_authorized_certs = data.values.mtls_authorized_certs
+#@ enabled_middlewares = []
+#@ homepage_labels_enable = data.values.homepage_labels_enable == "true"
+#@ homepage_group_openwebui = data.values.homepage_group_openwebui
+#@ homepage_name_openwebui = data.values.homepage_name_openwebui
+#@ homepage_icon_openwebui = data.values.homepage_icon_openwebui
+#@ homepage_description_openwebui = data.values.homepage_description_openwebui
+#@ homepage_show_stats_openwebui = data.values.homepage_show_stats_openwebui
+
+#! ### Project-specific vars:
+#@ models_host_path = data.values.models_host_path
+#@ compose_profile = data.values.compose_profile
+#@ enable_ollama = data.values.enable_ollama == "true"
+
+#@ def ollama_service(profile):
+#@   service = "ollama-" + profile
+#@   router = "{}-{}-{}".format(project, instance, service)
+#@   labels = []
+#@   middlewares = []
+#@   volumes = []
+#@   if models_host_path != "":
+#@     volumes = ["{}:/root/.ollama/models".format(models_host_path)]
+#@   end
+#@   return {
+#@     service: {
+#@       "volumes": volumes,
+#@       "labels": labels
+#@     }
+#@   }
+#@ end
+
+#@yaml/text-templated-strings
+services:
+  #@ if enable_ollama and compose_profile in ["rocm", "cuda", "cpu"]:
+  #@ service_def = ollama_service(compose_profile)
+  #@ for name, config in service_def.items():
+  (@= name @):
+    #@ for key, val in config.items():
+    #@ if val != []:
+    (@= key @):
+      #@ for item in val:
+      - (@= item @)
+      #@ end
+    #@ end
+    #@ end
+  #@ end
+  #@ end
+  
+  openwebui:
+    environment:
+      #@ if enable_oauth2:
+      - WEBUI_AUTH_TRUSTED_EMAIL_HEADER=X-Forwarded-User
+      - WEBUI_AUTH_SIGNOUT_REDIRECT_URL=https://(@= traefik_host @)/_oauth/logout
+      #@ end
+    #@ service = "openwebui"
+    labels:
+      - "backup-volume.stop-during-backup=true"
+      #! Services must opt-in to be proxied by Traefik:
+      - "traefik.enable=true"
+
+      #! 'router' is the fully qualified key in traefik for this router/service: project + instance + service
+      #@ router = "{}-{}-{}".format(project,instance,service)
+
+      #! The default host matching router rule:
+      - "traefik.http.routers.(@= router @).rule=Host(`(@= traefik_host @)`)"
+      - "traefik.http.routers.(@= router @).entrypoints=websecure"
+
+      #@ enabled_middlewares.append("{}-ipallowlist".format(router))
+      - "traefik.http.middlewares.(@= router @)-ipallowlist.ipallowlist.sourcerange=(@= ip_sourcerange @)"
+
+      #@ if enable_http_auth:
+      #@ enabled_middlewares.append("{}-basicauth".format(router))
+      - "traefik.http.middlewares.(@= router @)-basicauth.basicauth.users=(@= http_auth @)"
+      - "traefik.http.middlewares.(@= router @)-basicauth.basicauth.headerField=X-Forwarded-User"
+      #@ end
+
+      #@ if enable_oauth2:
+      #@ enabled_middlewares.append("traefik-forward-auth@docker")
+      #@ enabled_middlewares.append("header-authorization-group-{}@file".format(authorized_group))
+      #@ end
+
+      #@ if enable_mtls_auth:
+      - "traefik.http.routers.(@= router @).tls.options=step_ca_mTLS@file"
+        #@ if len(mtls_authorized_certs):
+      - "traefik.http.middlewares.mtlsauth-(@= router @).plugin.certauthz.domains=(@= mtls_authorized_certs @)"
+        #@ enabled_middlewares.append("mtlsauth-{}".format(router))
+        #@ end
+        #@ enabled_middlewares.append("mtls-header@file")
+      #@ end
+
+      #! Apply all middlewares (do this at the end!)
+      - "traefik.http.routers.(@= router @).middlewares=(@= ','.join(enabled_middlewares) @)"
+
+      #! Homepage (portal):
+      #! See https://gethomepage.dev/configs/docker/#automatic-service-discovery
+      #@ if homepage_labels_enable:
+      - homepage.group=(@= homepage_group_openwebui @)
+      - homepage.name=(@= homepage_name_openwebui @)
+      - homepage.icon=(@= homepage_icon_openwebui @)
+      - homepage.href=https://(@= traefik_host @)
+      - homepage.description=(@= homepage_description_openwebui or traefik_host @)
+      - homepage.showStats=(@= homepage_show_stats_openwebui @)
+      #@ end
+
+    volumes:
+      - openwebui:/app/backend/data
+      #@ if enable_ollama:
+      - ollama:/root/.ollama
+ #@ end
+
+volumes:
+  openwebui:
+  #@ if enable_ollama:
+  ollama:
+  #@ end
+

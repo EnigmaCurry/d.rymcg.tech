@@ -7,9 +7,10 @@ services:
     environment:
       - REDMINE_DB_POSTGRES=db
       - REDMINE_DB_PASSWORD=${REDMINE_DB_PASSWORD}
-      - REDMINE_SECRET_KEY_BASE=${REDMINE_SECRET_KEY_BASE}
+      - SECRET_KEY_BASE=${REDMINE_SECRET_KEY_BASE}
     volumes:
       - data:/usr/src/redmine/files
+    user: 999:999
     labels: []
 
   db:

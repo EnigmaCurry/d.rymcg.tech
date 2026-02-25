@@ -1,21 +1,17 @@
-
 volumes:
   syncthing:
 
 services:
   syncthing:
-    image: syncthing/syncthing
+    image: ${SYNCTHING_IMAGE}
     restart: unless-stopped
     security_opt:
       - no-new-privileges:true
     volumes:
       - syncthing:/var/syncthing
-    ports:
-      - 127.0.0.1:${SYNCTHING_WEB_PORT}:8384
-      - ${SYNCTHING_LISTEN_PORT}:22000
-      - ${SYNCTHING_DISCOVERY_PORT}:21027/udp
     environment: 
       PUID: ${SYNCTHING_UID}
       PGID: ${SYNCTHING_GID}
-    labels:
-      - "backup-volume.stop-during-backup=true"
+    ports:
+      - ${SYNCTHING_LISTEN_PORT}:22000
+    labels: []

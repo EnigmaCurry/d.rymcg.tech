@@ -93,3 +93,11 @@ reset-all-users:
 .PHONY: delete-all-users # Delete all users and permissions and reboot container
 delete-all-users:
 	@docker compose --env-file=${ENV_FILE} exec ntfy rm -f /etc/ntfy/user.db && make --no-print-directory reinstall && sleep 5 && make --no-print-directory access
+
+.PHONY: install-hook
+install-hook:
+	@echo
+
+.PHONY: install-hook-pre
+install-hook-pre:
+	@echo

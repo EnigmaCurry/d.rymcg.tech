@@ -1,0 +1,37 @@
+#! This is a ytt template file for docker-compose.override.yaml
+#! References:
+#!   https://carvel.dev/ytt
+#!   https://docs.docker.com/compose/extends/#adding-and-overriding-configuration
+#!   https://github.com/enigmacurry/d.rymcg.tech#overriding-docker-composeyaml-per-instance
+
+#! ### Standard project vars:
+#@ load("@ytt:data", "data")
+#@ project = data.values.project
+#@ instance = data.values.instance
+#@ context = data.values.context
+#@ docker_subnet_ipv4 = data.values.docker_subnet_ipv4
+#@ docker_subnet_ipv6 = data.values.docker_subnet_ipv6
+#@ docker_gateway_address_ipv4 = data.values.docker_gateway_address_ipv4
+#@ docker_gateway_address_ipv6 = data.values.docker_gateway_address_ipv6
+#@ docker_wireguard_address_ipv4 = data.values.docker_wireguard_address_ipv4
+#@ docker_wireguard_address_ipv6 = data.values.docker_wireguard_address_ipv6
+
+#@yaml/text-templated-strings
+services:
+  wireguard:
+    networks:
+      wgnet:
+        ipv4_address: (@= docker_wireguard_address_ipv4 @)
+        ipv6_address: (@= docker_wireguard_address_ipv6 @)
+
+#@yaml/text-templated-strings
+networks:
+  wgnet:
+    driver: bridge
+    enable_ipv6: true
+    ipam:
+      config:
+        - subnet: (@= docker_subnet_ipv4 @)
+          gateway: (@= docker_gateway_address_ipv4 @)
+        - subnet: (@= docker_subnet_ipv6 @)
+          gateway: (@= docker_gateway_address_ipv6 @)

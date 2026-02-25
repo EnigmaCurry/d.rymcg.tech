@@ -18,6 +18,7 @@ choose_challenge() {
 
 lets_encrypt() {
     ${BIN}/reconfigure ${ENV_FILE} TRAEFIK_ACME_ENABLED=true
+    ${BIN}/reconfigure ${ENV_FILE} TRAEFIK_ACME_SH_ENABLED=false
     ${BIN}/reconfigure ${ENV_FILE} TRAEFIK_ACME_CERTIFICATES_DURATION=2160
     ${BIN}/reconfigure ${ENV_FILE} TRAEFIK_ACME_CERT_RESOLVER_PRODUCTION=https://acme-v02.api.letsencrypt.org/directory
     ${BIN}/reconfigure ${ENV_FILE} TRAEFIK_ACME_CERT_RESOLVER_STAGING=https://acme-staging-v02.api.letsencrypt.org/directory
@@ -31,12 +32,45 @@ lets_encrypt() {
      esac
 
     choose_challenge
-    
+
     echo ""
     echo "If you give Let's Encrypt your email address, they will send you alerts when your certificates are about to expire, or about other misconfigurations."
     ALLOW_BLANK=1 ${BIN}/reconfigure_ask ${ENV_FILE} TRAEFIK_ACME_CA_EMAIL "Enter your email address (not required; blank to skip)"
-    
-    if [[ "$(${BIN}/dotenv -f ${ENV_FILE} get TRAEFIK_ACME_CHALLENGE)" == "dns" ]]; then
+
+    handle_dns_challenge
+}
+
+step_ca_acme() {
+    ${BIN}/reconfigure ${ENV_FILE} TRAEFIK_ACME_ENABLED=true
+    ${BIN}/reconfigure ${ENV_FILE} TRAEFIK_ACME_SH_ENABLED=false
+    ${BIN}/reconfigure ${ENV_FILE} TRAEFIK_ACME_CERTIFICATES_DURATION=24
+    ${BIN}/reconfigure ${ENV_FILE} TRAEFIK_ACME_CERT_RESOLVER=production
+    echo ""
+
+    choose_challenge
+
+    TRAEFIK_ACME_CERT_RESOLVER_PRODUCTION="$(${BIN}/dotenv -f ${ENV_FILE} get TRAEFIK_ACME_CERT_RESOLVER_PRODUCTION)"
+    TRAEFIK_ACME_CERT_RESOLVER_STAGING="$(${BIN}/dotenv -f ${ENV_FILE} get TRAEFIK_ACME_CERT_RESOLVER_STAGING)"
+    if [[ "${TRAEFIK_ACME_CERT_RESOLVER_PRODUCTION}" == *"api.letsencrypt.org"* ]]; then
+        ${BIN}/reconfigure ${ENV_FILE} TRAEFIK_ACME_CERT_RESOLVER_PRODUCTION=https://ca.example.com/acme/acme/directory
+    fi
+    if [[ "${TRAEFIK_ACME_CERT_RESOLVER_STAGING}" == *"api.letsencrypt.org"* ]]; then
+        ${BIN}/reconfigure ${ENV_FILE} TRAEFIK_ACME_CERT_RESOLVER_STAGING=https://ca.example.com/acme/acme/directory
+    fi
+    ${BIN}/reconfigure_ask ${ENV_FILE} TRAEFIK_ACME_CERT_RESOLVER_PRODUCTION "Enter the Step-CA ACME service endpoint URL"
+    TRAEFIK_ACME_CERT_RESOLVER_PRODUCTION="$(${BIN}/dotenv -f ${ENV_FILE} get TRAEFIK_ACME_CERT_RESOLVER_PRODUCTION)"
+    TRAEFIK_ACME_CERT_RESOLVER_STAGING="$(${BIN}/dotenv -f ${ENV_FILE} get TRAEFIK_ACME_CERT_RESOLVER_STAGING)"
+    TRAEFIK_STEP_CA_ENABLED="$(${BIN}/dotenv -f ${ENV_FILE} get TRAEFIK_STEP_CA_ENABLED)"
+    TRAEFIK_STEP_CA_ENDPOINT="$(${BIN}/dotenv -f ${ENV_FILE} get TRAEFIK_STEP_CA_ENDPOINT)"
+    if [[ "${TRAEFIK_ACME_CERT_RESOLVER_STAGING}" == *"ca.example.com"* ]]; then
+        ${BIN}/reconfigure ${ENV_FILE} TRAEFIK_ACME_CERT_RESOLVER_STAGING=${TRAEFIK_ACME_CERT_RESOLVER_PRODUCTION}
+    fi
+
+    handle_dns_challenge
+}
+
+handle_dns_challenge() {
+        if [[ "$(${BIN}/dotenv -f ${ENV_FILE} get TRAEFIK_ACME_CHALLENGE)" == "dns" ]]; then
         echo ""
         echo "Find the provider code of your supported DNS provider here:"
         echo "https://go-acme.github.io/lego/dns/#dns-providers"
@@ -76,38 +110,84 @@ lets_encrypt() {
         test -n "${TRAEFIK_ACME_DNS_VARNAME_3}" && ${BIN}/reconfigure_ask ${ENV_FILE} ${TRAEFIK_ACME_DNS_VARNAME_3} "Enter the value for ${TRAEFIK_ACME_DNS_VARNAME_3}" - || true
         test -n "${TRAEFIK_ACME_DNS_VARNAME_4}" && ${BIN}/reconfigure_ask ${ENV_FILE} ${TRAEFIK_ACME_DNS_VARNAME_4} "Enter the value for ${TRAEFIK_ACME_DNS_VARNAME_4}" - || true
         test -n "${TRAEFIK_ACME_DNS_VARNAME_5}" && ${BIN}/reconfigure_ask ${ENV_FILE} ${TRAEFIK_ACME_DNS_VARNAME_5} "Enter the value for ${TRAEFIK_ACME_DNS_VARNAME_5}" - || true
-    fi    
-}
-
-step_ca_acme() {
-    ${BIN}/reconfigure ${ENV_FILE} TRAEFIK_ACME_ENABLED=true
-    ${BIN}/reconfigure ${ENV_FILE} TRAEFIK_ACME_CERTIFICATES_DURATION=24
-    ${BIN}/reconfigure ${ENV_FILE} TRAEFIK_ACME_CERT_RESOLVER=production
-    echo ""
-
-    choose_challenge
-
-    TRAEFIK_ACME_CERT_RESOLVER_PRODUCTION="$(${BIN}/dotenv -f ${ENV_FILE} get TRAEFIK_ACME_CERT_RESOLVER_PRODUCTION)"
-    TRAEFIK_ACME_CERT_RESOLVER_STAGING="$(${BIN}/dotenv -f ${ENV_FILE} get TRAEFIK_ACME_CERT_RESOLVER_STAGING)"
-    if [[ "${TRAEFIK_ACME_CERT_RESOLVER_PRODUCTION}" == *"api.letsencrypt.org"* ]]; then
-        ${BIN}/reconfigure ${ENV_FILE} TRAEFIK_ACME_CERT_RESOLVER_PRODUCTION=https://ca.example.com/acme/acme/directory
-    fi
-    if [[ "${TRAEFIK_ACME_CERT_RESOLVER_STAGING}" == *"api.letsencrypt.org"* ]]; then
-        ${BIN}/reconfigure ${ENV_FILE} TRAEFIK_ACME_CERT_RESOLVER_STAGING=https://ca.example.com/acme/acme/directory
-    fi
-    ${BIN}/reconfigure_ask ${ENV_FILE} TRAEFIK_ACME_CERT_RESOLVER_PRODUCTION "Enter the Step-CA ACME service endpoint URL"
-    TRAEFIK_ACME_CERT_RESOLVER_PRODUCTION="$(${BIN}/dotenv -f ${ENV_FILE} get TRAEFIK_ACME_CERT_RESOLVER_PRODUCTION)"
-    TRAEFIK_ACME_CERT_RESOLVER_STAGING="$(${BIN}/dotenv -f ${ENV_FILE} get TRAEFIK_ACME_CERT_RESOLVER_STAGING)"
-    TRAEFIK_STEP_CA_ENABLED="$(${BIN}/dotenv -f ${ENV_FILE} get TRAEFIK_STEP_CA_ENABLED)"
-    TRAEFIK_STEP_CA_ENDPOINT="$(${BIN}/dotenv -f ${ENV_FILE} get TRAEFIK_STEP_CA_ENDPOINT)"
-    if [[ "${TRAEFIK_ACME_CERT_RESOLVER_STAGING}" == *"ca.example.com"* ]]; then
-        ${BIN}/reconfigure ${ENV_FILE} TRAEFIK_ACME_CERT_RESOLVER_STAGING=${TRAEFIK_ACME_CERT_RESOLVER_PRODUCTION}
     fi
 }
+
+acme_sh() {
+    # Turn off Traefik builtin ACME clients; turn on external acme.sh flow
+    ${BIN}/reconfigure ${ENV_FILE} TRAEFIK_ACME_ENABLED=false
+    ${BIN}/reconfigure ${ENV_FILE} TRAEFIK_STEP_CA_ENABLED=false
+    ${BIN}/reconfigure ${ENV_FILE} TRAEFIK_ACME_SH_ENABLED=true
+
+    # acme.sh uses DNS-01 via acme-dns exclusively
+    ${BIN}/reconfigure ${ENV_FILE} TRAEFIK_ACME_CHALLENGE=dns
+
+    echo
+    ACME_BACKEND=$(
+      wizard choose --numeric "Which ACME server should acme.sh use?" \
+        "Let's Encrypt (production)" \
+        "Let's Encrypt (staging / testing)" \
+        "Custom (Step-CA / other ACME)"
+    )
+
+    case "${ACME_BACKEND}" in
+      0) # LE Production
+         ${BIN}/reconfigure ${ENV_FILE} TRAEFIK_ACME_SH_ACME_CA=acme-v02.api.letsencrypt.org
+         ${BIN}/reconfigure ${ENV_FILE} TRAEFIK_ACME_SH_ACME_DIRECTORY=/directory
+         # For public CA, rely on system trust
+         ${BIN}/reconfigure ${ENV_FILE} TRAEFIK_ACME_SH_TRUST_SYSTEM_STORE=true
+         ;;
+      1) # LE Staging
+         ${BIN}/reconfigure ${ENV_FILE} TRAEFIK_ACME_SH_ACME_CA=acme-staging-v02.api.letsencrypt.org
+         ${BIN}/reconfigure ${ENV_FILE} TRAEFIK_ACME_SH_ACME_DIRECTORY=/directory
+         ${BIN}/reconfigure ${ENV_FILE} TRAEFIK_ACME_SH_TRUST_SYSTEM_STORE=true
+         ;;
+      *) # Custom / Step-CA
+         echo
+         echo "Enter your Step-CA host (no scheme, no path), e.g.: ca.example.com"
+         ${BIN}/reconfigure_ask ${ENV_FILE} TRAEFIK_ACME_SH_ACME_CA "ACME CA host"
+         echo "Enter the ACME directory path, e.g.: /acme/acme/directory"
+         ${BIN}/reconfigure_ask ${ENV_FILE} TRAEFIK_ACME_SH_ACME_DIRECTORY "ACME directory path" "/acme/acme/directory"
+         # With private CA we usually TOFU then optionally merge system trust
+         ${BIN}/reconfigure ${ENV_FILE} TRAEFIK_ACME_SH_TRUST_SYSTEM_STORE=true
+         ;;
+    esac
+
+    echo
+    ${BIN}/reconfigure_ask ${ENV_FILE} TRAEFIK_ACME_SH_ACME_DNS_BASE_URL "ACME-DNS base URL with PORT (e.g. https://acme-dns.example.com:2890)" "https://auth.acme-dns.io:443"
+
+    echo
+    ${BIN}/reconfigure_ask ${ENV_FILE} TRAEFIK_ACME_SH_DNS_RESOLVER "Trusted DNS resolver IP used inside acme-sh container" "1.1.1.1"
+
+    echo
+    case "$(${BIN}/dotenv -f ${ENV_FILE} get TRAEFIK_ACME_SH_ACME_CA)" in
+        *api.letsencrypt.org)
+            ;;
+        *)
+            ${BIN}/reconfigure_ask ${ENV_FILE} TRAEFIK_ACME_SH_CERT_PERIOD_HOURS "Validity target in hours (e.g. 48 = 2 days, 2160 = 90 days)" "48"
+            ;;
+    esac
+
+    # Where acme.sh persists the acme-dns account JSON inside the container
+    ${BIN}/reconfigure ${ENV_FILE} TRAEFIK_ACME_SH_ACMEDNS_ACCOUNT_JSON=/acme.sh/acmedns-account.json
+
+    # Optional allow_from for acme-dns server (JSON array or CSV)
+    echo
+    ${BIN}/confirm no "Do you want to limit the IP range that this client may call the acme-dns API from" "?" && ${BIN}/reconfigure_ask ${ENV_FILE} TRAEFIK_ACME_SH_ACMEDNS_ALLOW_FROM "JSON array or comma-separated list of CIDRs that are allowed to update TXT records for this client" ""
+
+    make -C ${ROOT_DIR}/traefik acme-sh-register
+
+    echo "acme.sh mode configured."
+    echo "Next steps:"
+    echo "  1) Create the CNAME records printed above on your root domain DNS server."
+    echo "  2) (re-)install Traefik."
+}
+
 
 disable() {
     ${BIN}/reconfigure ${ENV_FILE} TRAEFIK_ACME_ENABLED=false
     ${BIN}/reconfigure ${ENV_FILE} TRAEFIK_STEP_CA_ENABLED=false
+    ${BIN}/reconfigure ${ENV_FILE} TRAEFIK_ACME_SH_ENABLED=false
 }
 
 main() {
@@ -119,25 +199,33 @@ main() {
     echo "This config supports both Let's Encrypt and Step-CA."
     echo
     DEFAULT_CHOICE=0
-    TRAEFIK_ACME_ENABLED="$(${BIN}/dotenv -f ${ENV_FILE} get TRAEFIK_ACME_ENABLED)"
-    TRAEFIK_ACME_CERT_RESOLVER_PRODUCTION="$(${BIN}/dotenv -f ${ENV_FILE} get TRAEFIK_ACME_CERT_RESOLVER_PRODUCTION)"
-    if [[ "${TRAEFIK_ACME_ENABLED}" != "true" ]]; then
-        DEFAULT_CHOICE=2 # Disabled
-    elif [[ "${TRAEFIK_ACME_CERT_RESOLVER_PRODUCTION}" == *"api.letsencrypt.org"* ]]; then
-        DEFAULT_CHOICE=0 # Lets encrypt
+    ACME_SH_ENABLED="$(${BIN}/dotenv -f ${ENV_FILE} get TRAEFIK_ACME_SH_ENABLED)"
+    ACME_ENABLED="$(${BIN}/dotenv -f ${ENV_FILE} get TRAEFIK_ACME_ENABLED)"
+    RESOLVER_PROD="$(${BIN}/dotenv -f ${ENV_FILE} get TRAEFIK_ACME_CERT_RESOLVER_PRODUCTION)"
+    if [[ "${ACME_SH_ENABLED}" == "true" ]]; then
+        DEFAULT_CHOICE=0   # Acme.sh + ACME-DNS
+    elif [[ "${ACME_ENABLED}" == "true" ]]; then
+        # Any Let's Encrypt endpoint (prod or staging) contains "api.letsencrypt.org"
+        if [[ "${RESOLVER_PROD}" == *"api.letsencrypt.org"* ]]; then
+            DEFAULT_CHOICE=1   # Let's Encrypt (Traefik builtin)
+        else
+            DEFAULT_CHOICE=2   # Step-CA (Traefik builtin)
+        fi
     else
-        DEFAULT_CHOICE=1 # Step-CA
+        DEFAULT_CHOICE=3       # Disable ACME
     fi
-    
+
     PROVIDER=$(wizard choose -d $DEFAULT_CHOICE --numeric "Which ACME provider do you want to use?" \
-                    "Let's Encrypt (ACME)" \
-                    "Step-CA (ACME)" \
+                    "Acme.sh + ACME-DNS (new; recommended!)" \
+                    "Let's Encrypt (Traefik builtin ACME client)" \
+                    "Step-CA (Traefik builtin ACME client)" \
                     "Disable ACME" \
                     "Cancel / Go back")
     case ${PROVIDER} in
-        0) lets_encrypt;;
-        1) step_ca_acme;;
-        2) disable;;
+        0) acme_sh;;
+        1) lets_encrypt;;
+        2) step_ca_acme;;
+        3) disable;;
         *) return;;
     esac
 }

@@ -383,3 +383,98 @@ All well behaved process should:
  * Drop `ALL` other capabilites.
  * Set "no-new-privileges:true" Security Option. (Assuming it does not
    need to assume new privileges via `setcap` or `setuid` binary).
+
+## Isolate Docker networks on Sworkstation hosts
+
+You should only run Docker on a dedicated server machine (or VM).
+If you ignore this advice, and run Docker natively on a
+server/workstation hybrid (Sworkstation), then you must take special
+care to avoid the following scenario:
+
+ * By default, the host network has access to every private docker
+   network on the system. This means that every single user on the
+   system can bypass traefik and access any private Docker container
+   port. On a sworkstation with various userspace programs running,
+   this presents a security problem.
+   
+To mitigate this issue, you can create firewall rules to prevent
+unauthorized users from accessing these private ports:
+
+ * Identify the Traefik user id: `id -u traefik` (example: `1001`)
+ * Identify the IP address of a docker container to test with (whoami):
+ 
+``` 
+docker inspect whoami-whoami-1 | jq -r .[0].NetworkSettings.Networks.whoami_default.IPAddress
+```
+
+ * As a normal user, test ping to that private container address (it should work by default)
+ 
+ * Create `/etc/nftables/isolate-docker-containers.nft` with the
+   following config, ensuring that you update all of the `set`
+   configs, according to your environment:
+   
+   * `allowed_uids`
+   * `container_ifaces`
+   * `allow_from_containers_tcp`
+   * `allow_from_containers_udp`
+   
+```
+# /etc/nftables/isolate-docker-containers.nft
+
+table inet hostguard {
+  # Set of users that should have unfiltered access to all docker containers:
+  # This SHOULD include the root user   (e.g., 0)
+  # This MUST include the traefik user  (e.g., 1001) !
+  set allowed_uids { type uid; elements = { 0, 1001 } }   ## <----- set your actual traefik UID here
+  
+  # All interfaces that carry container traffic to/from the host
+  set container_ifaces {
+    type ifname;
+    flags interval;
+    elements = { "docker0", "br-*", "macvlan*", "ipvlan*" };
+  }  
+
+  # Set of allowed TCP/UDP host ports that the containers may access:
+  # Start with an empty list, so all ports are blocked:
+  set allow_from_containers_tcp { type inet_service; }
+  set allow_from_containers_udp { type inet_service; }
+
+  ## OPTIONAL: to enable certain TCP/UDP host ports to be allowed access from containers,
+  ##           uncomment the next two lines, and set the port elements:
+  # set allow_from_containers_tcp { type inet_service; elements = { 53, 443 } }
+  # set allow_from_containers_udp { type inet_service; elements = { 53 } }
+
+  # EGRESS: block host -> containers for non-allowed UIDs
+  chain egress {
+    type filter hook output priority 0; policy accept;
+    meta oifname @container_ifaces meta skuid != @allowed_uids drop;
+  }
+
+  # INGRESS: block containers -> host (any local IP: VPN/LAN/WAN/lo)
+  chain ingress_local {
+    type filter hook input priority 0; policy accept;
+    ct state established,related accept;
+    iifname @container_ifaces fib daddr type local tcp dport @allow_from_containers_tcp accept;
+    iifname @container_ifaces fib daddr type local udp dport @allow_from_containers_udp accept;
+    iifname @container_ifaces fib daddr type local drop;
+  }
+}
+```
+
+ * Add this table to the main nftables config (check your OS for the proper file path):
+ 
+```
+# /etc/sysconfig/nftables.conf
+include "/etc/nftables/isolate-docker-containers.nft"
+```
+
+ * Restart nftables
+
+```
+sudo systemctl restart nftables
+```
+
+ * As a normal user, test pinging the IP address of the private docker container again (this should be blocked now).
+
+ * As the `root` (or `traefik`) user, test pinging the same address (this should *not* be blocked).
+

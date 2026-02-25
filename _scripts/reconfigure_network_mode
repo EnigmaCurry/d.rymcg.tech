@@ -1,0 +1,76 @@
+#!/usr/bin/env bash
+## Choose a WireGuard instance to use the network_mode of this container.
+# reconfigure_network_mode ENV_FILE VAR_NAME PROMPT [PATTERN]
+
+BIN=$(dirname ${BASH_SOURCE})
+source ${BIN}/funcs.sh
+set -euo pipefail
+
+#--------------------------#
+# 1️⃣  Argument handling    #
+#--------------------------#
+if (( $# < 3 )); then
+cat <<EOF >&2
+    Usage: $0 ENV_FILE VAR_NAME PROMPT [PATTERN]
+
+      ENV_FILE   – file to write the result into
+      VAR_NAME   – variable name that will be created/updated
+      PROMPT     – text displayed by \`choose\`
+      PATTERN    – optional regex for locating router containers
+EOF
+    exit 1
+fi
+
+ENV_FILE=$1
+VAR_NAME=$2
+PROMPT=$3
+PATTERN=${4:-'^wireguard_.+-wireguard-1|^wireguard-wireguard-1$'}
+
+#---------------------------------------------------#
+# 2️⃣  Find matching WireGuard containers (if any)   #
+#---------------------------------------------------#
+#   - `docker ps -a`   → all containers (running + stopped)
+#   - `--format "{{.Names}}"` → only the name column
+#   - `grep -E "$PATTERN"` → keep only the ones we care about
+#   - The `|| true` prevents the pipeline from exiting with a non‑zero
+#     status when grep finds nothing (because of `set -e`).
+#---------------------------------------------------#
+mapfile -t ROUTER_CONTAINERS < <(
+    docker ps -a --format "{{.Names}}" |
+    grep -E "$PATTERN" || true
+)
+
+#---------------------------------------------------#
+# 3️⃣  Build the list of choices for `choose`       #
+#---------------------------------------------------#
+CURRENT_VAL=$(${BIN}/dotenv -f ${ENV_FILE} get ${VAR_NAME})
+DEFAULT="default"
+OPTIONS=("default")
+for c in "${ROUTER_CONTAINERS[@]}"; do
+    OPTIONS+=("$c")
+    if [[ "${CURRENT_VAL}" == "container:${c}" ]]; then
+        DEFAULT="${c}"
+    fi
+done
+
+#---------------------------------------------------#
+# 4️⃣  Let the user pick one option                  #
+#---------------------------------------------------#
+CHOSEN=$(choose "$PROMPT" "${OPTIONS[@]}" "--default" "${DEFAULT}")
+
+#---------------------------------------------------#
+# 5️⃣  Translate the human‑readable choice into a   #
+#    value that will be stored in the env file.    #
+#---------------------------------------------------#
+if [[ $CHOSEN == "default"* ]]; then
+    VALUE="default"
+else
+    VALUE="container:${CHOSEN}"
+fi
+
+#---------------------------------------------------#
+# 6️⃣  Write (or replace) VAR_NAME=VALUE in the file #
+#---------------------------------------------------#
+"${BIN}/dotenv" -f "${ENV_FILE}" set "${VAR_NAME}=${VALUE}"
+echo "Set ${VAR_NAME}=${VALUE}"
+echo

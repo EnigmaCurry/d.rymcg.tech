@@ -46,12 +46,16 @@ override-hook:
 
 .PHONY: shell
 shell:
-	@make --no-print-directory docker-compose-shell SERVICE=nginx
+	@if [ -z "$(service)" ]; then \
+		container=$$(eval "${BIN}/script-wizard choose 'docker exec -it into which container?' 'nginx' 'php-fpm' 'redis' --default 'nginx'") && make --no-print-directory docker-compose-shell SERVICE=$${container}; \
+	else \
+		make --no-print-directory docker-compose-shell SERVICE=$$(service); \
+	fi;
 
-.PHONY: shell-php
-shell-php:
-	@make --no-print-directory docker-compose-shell SERVICE=php-fpm
+.PHONY: install-hook
+install-hook:
+	@echo
 
-.PHONY: shell-redis
-shell-redis:
-	@make --no-print-directory docker-compose-shell SERVICE=redis
+.PHONY: install-hook-pre
+install-hook-pre:
+	@echo

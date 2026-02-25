@@ -1,0 +1,21 @@
+ARG IMAGE=lscr.io/linuxserver/webtop:arch-mate
+FROM ${IMAGE}
+
+RUN pacman -Syu --noconfirm
+RUN pacman -Sy --noconfirm \
+        iproute2 \
+        iptables \
+        nftables \
+        iputils \
+        ca-certificates \
+        libcap \
+    && pacman -Scc --noconfirm
+    
+COPY app-router-bootstrap.sh /usr/local/bin/app-router-bootstrap.sh
+RUN chmod 0555 /usr/local/bin/app-router-bootstrap.sh
+
+ARG PUID=1000
+ARG PGID=1000
+
+ENV ENTRYPOINT=/init
+ENTRYPOINT ["/usr/local/bin/app-router-bootstrap.sh"]
