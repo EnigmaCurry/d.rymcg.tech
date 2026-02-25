@@ -70,8 +70,10 @@ gumdrop_list() {
         done < <(doctl compute droplet list "${tag_args[@]}" --output json 2>/dev/null | python3 -c "
 import json,sys
 for d in json.load(sys.stdin):
-    p=d.get('backup_policy',{})
+    p=d.get('backup_policy') or {}
     plan=p.get('plan','') if isinstance(p,dict) else ''
+    if not plan and 'backups' in d.get('features',[]):
+        plan='daily'
     if plan: print(d['id'],plan)
 " 2>/dev/null)
         ## Build NFS lookup (vpc_id -> comma-separated NFS share names):
