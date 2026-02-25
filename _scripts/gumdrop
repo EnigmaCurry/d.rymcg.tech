@@ -1598,16 +1598,30 @@ gumdrop_create_nfs() {
         nfs_size=50
     fi
 
-    ## Select region:
-    readarray -t REGION_SLUGS < <(doctl compute region list --format Slug --no-header)
-    readarray -t REGION_NAMES < <(doctl compute region list --format Name --no-header)
+    ## Select region: prefer regions with existing droplets
+    readarray -t DROPLET_REGIONS < <(doctl compute droplet list --format Region --no-header 2>/dev/null | sort -u)
+    readarray -t ALL_REGION_SLUGS < <(doctl compute region list --format Slug --no-header)
+    readarray -t ALL_REGION_NAMES < <(doctl compute region list --format Name --no-header)
+    declare -A _REGION_NAME_MAP
+    for i in "${!ALL_REGION_SLUGS[@]}"; do
+        _REGION_NAME_MAP["${ALL_REGION_SLUGS[$i]}"]="${ALL_REGION_NAMES[$i]}"
+    done
     local REGION_OPTIONS=()
     local REGION_DEFAULT=""
-    for i in "${!REGION_SLUGS[@]}"; do
-        local opt=$(printf "%-8s  %s" "${REGION_SLUGS[$i]}" "${REGION_NAMES[$i]}")
-        REGION_OPTIONS+=("${opt}")
-        [[ "${REGION_SLUGS[$i]}" == "${GUMDROP_DEFAULT_REGION}" ]] && REGION_DEFAULT="${opt}"
-    done
+    if [[ ${#DROPLET_REGIONS[@]} -gt 0 && -n "${DROPLET_REGIONS[0]}" ]]; then
+        for slug in "${DROPLET_REGIONS[@]}"; do
+            local name="${_REGION_NAME_MAP[${slug}]:-${slug}}"
+            local opt=$(printf "%-8s  %s" "${slug}" "${name}")
+            REGION_OPTIONS+=("${opt}")
+            [[ "${slug}" == "${GUMDROP_DEFAULT_REGION}" ]] && REGION_DEFAULT="${opt}"
+        done
+    else
+        for i in "${!ALL_REGION_SLUGS[@]}"; do
+            local opt=$(printf "%-8s  %s" "${ALL_REGION_SLUGS[$i]}" "${ALL_REGION_NAMES[$i]}")
+            REGION_OPTIONS+=("${opt}")
+            [[ "${ALL_REGION_SLUGS[$i]}" == "${GUMDROP_DEFAULT_REGION}" ]] && REGION_DEFAULT="${opt}"
+        done
+    fi
     local region_choice
     if ! region_choice=$(wizard choose "Select region" "${REGION_OPTIONS[@]}" --default "${REGION_DEFAULT}"); then return; fi
     local region=$(echo "${region_choice}" | awk '{print $1}')
