@@ -469,12 +469,8 @@ gumdrop_create() {
     echo "  Size:          ${SIZE}"
     echo "  Image:         ${IMAGE}"
     echo "  SSH key:       ${SSH_KEY}"
-    if [[ ${#DROPLET_TAGS[@]} -gt 0 ]]; then
-        echo "  Tags:          ${DROPLET_TAGS[*]}"
-    fi
-    if [[ ${#FIREWALL_NAMES[@]} -gt 0 ]]; then
-        echo "  Firewalls:     ${FIREWALL_NAMES[*]}"
-    fi
+    echo "  Tags:          ${DROPLET_TAGS[*]:-(none)}"
+    echo "  Firewall:      ${FIREWALL_NAMES[*]:-(none)}"
 
     ## Call summary hook if defined:
     if type -t gumdrop_summary_hook &>/dev/null; then
