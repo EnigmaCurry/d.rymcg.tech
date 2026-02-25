@@ -620,6 +620,7 @@ gumdrop_main() {
     gumdrop_check_doctl
     while :
     do
+        gumdrop_check_doctl
         gumdrop_list
         set +e
         wizard menu --once --cancel-code=2 "${GUMDROP_LABEL}s:" \
