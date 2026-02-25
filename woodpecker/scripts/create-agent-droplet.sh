@@ -90,7 +90,15 @@ USERDATA
 )
 
 echo ""
-echo "Creating droplet '${DROPLET_NAME}' in ${REGION} (${SIZE}, ${IMAGE})..."
+echo "## Summary:"
+echo "  Droplet name:  ${DROPLET_NAME}"
+echo "  Region:        ${REGION}"
+echo "  Size:          ${SIZE}"
+echo "  Image:         ${IMAGE}"
+echo "  SSH key:       ${SSH_KEY}"
+echo "  gRPC address:  ${WOODPECKER_SERVER}"
+echo ""
+confirm yes "Create this droplet?" || cancel
 doctl compute droplet create "${DROPLET_NAME}" \
     --region "${REGION}" \
     --size "${SIZE}" \
