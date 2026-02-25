@@ -314,8 +314,9 @@ gumdrop_create() {
     ## Build tag args:
     local tag_args=()
     if [[ ${#DROPLET_TAGS[@]} -gt 0 ]]; then
-        local IFS=','
-        tag_args=(--tag-names "${DROPLET_TAGS[*]}")
+        local tag_csv
+        tag_csv=$(IFS=','; echo "${DROPLET_TAGS[*]}")
+        tag_args=(--tag-names "${tag_csv}")
     fi
 
     echo ""
