@@ -538,7 +538,9 @@ gumdrop_create() {
             set -e
 
             if [[ "${rip_action}" == "Create new reserved IP" ]]; then
-                gumdrop_create_reserved_ip
+                echo "Creating reserved IP in ${REGION}..."
+                doctl compute reserved-ip create --region "${REGION}"
+                echo "Reserved IP created."
                 continue
             elif [[ "${rip_action}" == "Choose existing reserved IP" ]]; then
                 local ip_choice
