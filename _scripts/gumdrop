@@ -1354,7 +1354,7 @@ _gumdrop_collect_nfs_shares() {
             [[ -z "${ids[$i]}" ]] && continue
             _NFS_IDS+=("${ids[$i]}")
             _NFS_NAMES+=("${names[$i]}")
-            _NFS_SIZES+=("${sizes[$i]}")
+            _NFS_SIZES+=("${sizes[$i]// /}")
             _NFS_REGIONS+=("${region}")
             _NFS_VPCS+=("${vpcs[$i]}")
         done
