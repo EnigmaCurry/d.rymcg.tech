@@ -32,8 +32,10 @@ gumdrop_check_doctl() {
 gumdrop_list() {
     local tag_args=()
     [[ -n "${GUMDROP_TAG}" ]] && tag_args=(--tag-name "${GUMDROP_TAG}")
+    local account_email=$(doctl account get --format Email --no-header 2>/dev/null)
+    local account_team=$(doctl account get --format Team --no-header 2>/dev/null)
     echo ""
-    echo "## ${GUMDROP_LABEL}s:"
+    echo "## ${GUMDROP_LABEL}s:  ${account_team:+[${account_team}] }${account_email}"
     doctl compute droplet list "${tag_args[@]}" --format ID,Name,PublicIPv4,Region,SizeSlug,Status
     echo ""
 }
