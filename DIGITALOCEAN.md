@@ -34,9 +34,12 @@ wizard. You will be asked to choose:
  * Optional tags.
  * Optional block storage volume (useful if you plan to exceed the
    droplet's root disk; the volume stores `/var/lib/docker`).
- * Optional firewall to apply.
+ * Optional firewall to apply (defaults to blocking all incoming).
  * Optional backups (daily or weekly snapshots).
- * A user-data script (the default installs Docker on Debian).
+ * A user-data (cloud-init) script — **select the Docker option for
+   your image** (e.g. "Docker (debian based)"). This installs Docker
+   and automatically mounts any attached block storage volume as
+   `/var/lib/docker`. The default is "No", so be sure to change it.
 
 Once the droplet is created, you can SSH into it directly from the
 menu (**Droplets → SSH into droplet**), or add it to your local SSH
