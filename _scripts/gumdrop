@@ -2743,9 +2743,19 @@ gumdrop_choose_droplet() {
     wizard choose "${prompt}" "${NAMES[@]}" --default "${NAMES[0]}"
 }
 
+gumdrop_check_debian() {
+    local name=$1
+    echo "Checking if '${name}' is Debian-based..."
+    if ! doctl compute ssh "${name}" -- bash -c "test -f /etc/debian_version" 2>/dev/null; then
+        echo "ERROR: '${name}' does not appear to be Debian-based. This task only supports Debian/Ubuntu."
+        return 1
+    fi
+}
+
 gumdrop_task_disable_ufw() {
     local name
     if ! name=$(gumdrop_choose_droplet "Disable ufw on which ${GUMDROP_LABEL,,}?"); then return; fi
+    gumdrop_check_debian "${name}" || return
     echo ""
     echo "This will disable and mask ufw on '${name}'."
     echo "Use this when the droplet is behind a DigitalOcean firewall."
@@ -2759,6 +2769,7 @@ gumdrop_task_disable_ufw() {
 gumdrop_task_fix_volume_mount() {
     local name
     if ! name=$(gumdrop_choose_droplet "Fix volume mount on which ${GUMDROP_LABEL,,}?"); then return; fi
+    gumdrop_check_debian "${name}" || return
     echo ""
     echo "This will find the block storage volume mounted under /mnt/ on '${name}'"
     echo "and remount it to /var/lib/docker so Docker uses the external storage."
@@ -2839,8 +2850,8 @@ gumdrop_manage_tasks() {
     do
         set +e
         wizard menu --once --cancel-code=2 "Tasks:" \
-            "Disable ufw = $0 gumdrop_task_disable_ufw" \
-            "Mount volume as /var/lib/docker = $0 gumdrop_task_fix_volume_mount" \
+            "Disable ufw (Debian) = $0 gumdrop_task_disable_ufw" \
+            "Mount volume as /var/lib/docker (Debian) = $0 gumdrop_task_fix_volume_mount" \
             "Back = exit 2"
         local EXIT_CODE=$?
         set -e
