@@ -2673,6 +2673,63 @@ gumdrop_manage_dns() {
     done
 }
 
+gumdrop_list_domains() {
+    echo ""
+    echo "## Domains:"
+    doctl compute domain list --format Domain,TTL
+    echo ""
+}
+
+gumdrop_add_domain() {
+    local domain_name
+    ask_no_blank "Enter domain name (e.g. example.com)" domain_name
+    local ip_address
+    ask "Enter IP address for initial A record (leave blank to skip)" ip_address ""
+    if [[ -n "${ip_address}" ]]; then
+        doctl compute domain create "${domain_name}" --ip-address "${ip_address}"
+    else
+        doctl compute domain create "${domain_name}"
+    fi
+    echo "Domain '${domain_name}' added."
+}
+
+gumdrop_delete_domain() {
+    readarray -t DOMAINS < <(doctl compute domain list --format Domain --no-header)
+    if [[ ${#DOMAINS[@]} -eq 0 ]]; then
+        echo "No domains found."
+        return
+    fi
+    local choice
+    if ! choice=$(wizard choose "Delete which domain?" "${DOMAINS[@]}" --default "${DOMAINS[0]}"); then return; fi
+    confirm no "Are you sure you want to delete '${choice}' and ALL of its DNS records" "?" || return
+    doctl compute domain delete "${choice}" --force
+    echo "Domain '${choice}' deleted."
+}
+
+gumdrop_manage_domains() {
+    while :
+    do
+        gumdrop_list_domains
+        local domain_count=$(doctl compute domain list --format Domain --no-header 2>/dev/null | wc -l)
+        local menu_items=(
+            "Add domain = $0 gumdrop_add_domain"
+        )
+        if [[ ${domain_count} -gt 0 ]]; then
+            menu_items+=(
+                "Delete domain = $0 gumdrop_delete_domain"
+            )
+        fi
+        menu_items+=("Back = exit 2")
+        set +e
+        wizard menu --once --cancel-code=2 "Domains:" "${menu_items[@]}"
+        local EXIT_CODE=$?
+        set -e
+        if [[ "${EXIT_CODE}" == "2" ]]; then
+            exit 0
+        fi
+    done
+}
+
 gumdrop_manage_droplets() {
     while :
     do
@@ -2706,6 +2763,7 @@ gumdrop_main() {
             "Volumes = $0 gumdrop_manage_volumes" \
             "NFS = $0 gumdrop_manage_nfs" \
             "Reserved IPs = $0 gumdrop_manage_reserved_ips" \
+            "Domains = $0 gumdrop_manage_domains" \
             "DNS = $0 gumdrop_manage_dns" \
             "Snapshots = $0 gumdrop_manage_snapshots" \
             "Backups = $0 gumdrop_manage_backups" \
