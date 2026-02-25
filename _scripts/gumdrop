@@ -196,7 +196,13 @@ gumdrop_ssh() {
     fi
     local name
     if ! name=$(wizard choose "SSH into which ${GUMDROP_LABEL,,}?" "${NAMES[@]}" --default "${NAMES[0]}"); then return; fi
-    doctl compute ssh "${name}"
+    local ip
+    ip=$(doctl compute droplet list "${tag_args[@]}" --format Name,PublicIPv4 --no-header | awk -v n="${name}" '$1==n {print $2}')
+    if [[ -z "${ip}" ]]; then
+        echo "Could not find public IP for '${name}'."
+        return 1
+    fi
+    ssh -o StrictHostKeyChecking=accept-new "root@${ip}"
 }
 
 gumdrop_add_ssh_config() {
