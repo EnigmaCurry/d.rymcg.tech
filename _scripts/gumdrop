@@ -165,6 +165,15 @@ for d in data:
         summaries+=("Unassigned reserved IPs: ${ip_list}")
     fi
 
+    ## Snapshots:
+    local snap_names=()
+    readarray -t snap_names < <(doctl compute snapshot list --resource droplet --format Name --no-header 2>/dev/null)
+    if [[ ${#snap_names[@]} -gt 0 && -n "${snap_names[0]}" ]]; then
+        local snap_list
+        snap_list=$(IFS=', '; echo "${snap_names[*]}")
+        summaries+=("Snapshots: ${snap_list}")
+    fi
+
     if [[ ${#summaries[@]} -gt 0 ]]; then
         for s in "${summaries[@]}"; do
             echo "  ${s}"
