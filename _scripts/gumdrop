@@ -822,14 +822,16 @@ gumdrop_create() {
         local ud_builtin_dir="${SCRIPT_DIR}/gumdrop_user_data"
         local ud_custom_dir="${HOME}/.config/d.rymcg.tech/gumdrop/user-data"
         local ud_files=() ud_labels=()
-        local ud_file ud_basename ud_name ud_images_line ud_match ud_pattern
+        local ud_file ud_basename ud_title ud_images_line ud_match ud_pattern
         for ud_file in "${ud_builtin_dir}"/*.yaml "${ud_custom_dir}"/*.yaml; do
             [[ -f "${ud_file}" ]] || continue
             ud_images_line=""
+            ud_title=""
             while IFS= read -r line; do
                 if [[ "${line}" =~ ^##\ images:\ (.+) ]]; then
                     ud_images_line="${BASH_REMATCH[1]}"
-                    break
+                elif [[ "${line}" =~ ^##\ title:\ (.+) ]]; then
+                    ud_title="${BASH_REMATCH[1]}"
                 fi
             done < <(head -n 5 "${ud_file}")
             if [[ -n "${ud_images_line}" ]]; then
@@ -844,10 +846,11 @@ gumdrop_create() {
                 ${ud_match} || continue
             fi
             ud_basename="$(basename "${ud_file}" .yaml)"
+            local ud_display="${ud_title:-${ud_basename}}"
             if [[ "${ud_file}" == "${ud_builtin_dir}"/* ]]; then
-                ud_labels+=("${ud_basename} (built-in)")
+                ud_labels+=("${ud_display} (built-in)")
             else
-                ud_labels+=("${ud_basename} (custom)")
+                ud_labels+=("${ud_display} (custom)")
             fi
             ud_files+=("${ud_file}")
         done

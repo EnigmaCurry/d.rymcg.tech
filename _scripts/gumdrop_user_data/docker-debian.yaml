@@ -1,4 +1,5 @@
 #cloud-config
+## title: Docker (debian based)
 ## images: debian-* ubuntu-*
 package_update: true
 packages:
