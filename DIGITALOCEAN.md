@@ -118,11 +118,18 @@ The `d droplet` main menu also provides management for:
  * **Volumes** — create, attach, detach, resize, and snapshot volumes.
  * **NFS** — create and manage NFS shares backed by block storage.
  * **Reserved IPs** — allocate and assign static IP addresses.
- * **DNS** — browse domains, create/edit/delete A, AAAA, CNAME, MX,
-   TXT, NS, SRV, and CAA records.
+ * **Domains** — add and delete domains, and manage DNS records
+   (A, AAAA, CNAME, MX, TXT, NS, SRV, CAA).
  * **Snapshots** — create and restore droplet snapshots.
  * **Backups** — manage and convert droplet backups.
  * **Accounts** — switch between multiple DigitalOcean accounts.
+
+## Removing an account
+
+When you no longer need a DigitalOcean account configured in
+gumdrop, go to **Accounts → Remove account** to delete its stored
+credentials. This only removes the local configuration — it does not
+affect your DigitalOcean account itself.
 
 ## Setup Docker context and test Docker connection
 
