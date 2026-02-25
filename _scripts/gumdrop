@@ -258,19 +258,19 @@ EOF
 gumdrop_log_cloud_init() {
     local name
     if ! name=$(gumdrop_choose_droplet "View cloud-init log for which ${GUMDROP_LABEL,,}?"); then return; fi
-    gumdrop_ssh_cmd "${name}" cat /var/log/cloud-init-output.log | less
+    gumdrop_ssh_cmd "${name}" tail -n 500 /var/log/cloud-init-output.log | less
 }
 
 gumdrop_log_docker() {
     local name
     if ! name=$(gumdrop_choose_droplet "View Docker log for which ${GUMDROP_LABEL,,}?"); then return; fi
-    gumdrop_ssh_cmd "${name}" journalctl -u docker --since '24 hours ago' --no-pager | less
+    gumdrop_ssh_cmd "${name}" journalctl -u docker -n 500 --no-pager | less
 }
 
 gumdrop_log_ssh() {
     local name
     if ! name=$(gumdrop_choose_droplet "View SSH log for which ${GUMDROP_LABEL,,}?"); then return; fi
-    gumdrop_ssh_cmd "${name}" journalctl -u ssh -u sshd --since '24 hours ago' --no-pager | less
+    gumdrop_ssh_cmd "${name}" journalctl -u ssh -u sshd -n 500 --no-pager | less
 }
 
 gumdrop_manage_logs() {
