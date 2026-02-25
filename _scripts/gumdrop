@@ -2743,10 +2743,30 @@ gumdrop_choose_droplet() {
     wizard choose "${prompt}" "${NAMES[@]}" --default "${NAMES[0]}"
 }
 
+gumdrop_droplet_ip() {
+    local name=$1
+    local tag_args=()
+    [[ -n "${GUMDROP_TAG}" ]] && tag_args=(--tag-name "${GUMDROP_TAG}")
+    local ip
+    ip=$(doctl compute droplet list "${tag_args[@]}" --format Name,PublicIPv4 --no-header | awk -v n="${name}" '$1==n {print $2}')
+    if [[ -z "${ip}" ]]; then
+        echo "Could not find public IP for '${name}'." >&2
+        return 1
+    fi
+    echo "${ip}"
+}
+
+gumdrop_ssh_cmd() {
+    local name=$1; shift
+    local ip
+    ip=$(gumdrop_droplet_ip "${name}") || return 1
+    ssh -o StrictHostKeyChecking=accept-new -o BatchMode=yes "root@${ip}" "$@"
+}
+
 gumdrop_check_debian() {
     local name=$1
     echo "Checking if '${name}' is Debian-based..."
-    if ! doctl compute ssh "${name}" -- bash -c "test -f /etc/debian_version" 2>/dev/null; then
+    if ! gumdrop_ssh_cmd "${name}" test -f /etc/debian_version 2>/dev/null; then
         echo "ERROR: '${name}' does not appear to be Debian-based. This task only supports Debian/Ubuntu."
         return 1
     fi
@@ -2762,7 +2782,7 @@ gumdrop_task_disable_ufw() {
     confirm no "Proceed" "?" || return
     echo ""
     echo "Disabling ufw on '${name}'..."
-    doctl compute ssh "${name}" -- bash -c "ufw disable && systemctl mask ufw"
+    gumdrop_ssh_cmd "${name}" bash -c "ufw disable && systemctl mask ufw"
     echo "ufw disabled and masked on '${name}'."
 }
 
@@ -2783,7 +2803,7 @@ gumdrop_task_fix_volume_mount() {
     echo ""
     confirm no "Proceed" "?" || return
     echo ""
-    doctl compute ssh "${name}" -- bash -s <<'REMOTE_SCRIPT'
+    gumdrop_ssh_cmd "${name}" bash -s <<'REMOTE_SCRIPT'
 set -euo pipefail
 
 ## Find the block storage mount under /mnt/
