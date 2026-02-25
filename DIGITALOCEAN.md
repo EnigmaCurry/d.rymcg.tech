@@ -2,7 +2,7 @@
 
 You can use [DigitalOcean](https://www.digitalocean.com/) to host a Docker
 server online. The `d.rymcg.tech` tool includes an interactive manager for
-DigitalOcean resources called **gumdrop**, accessed via the `d droplet`
+DigitalOcean resources called **gumdrop**, accessed via the `d droplet` (or `d gumdrop`)
 command.
 
 Note: this doc leaves out a lot of important bits. Read the main
