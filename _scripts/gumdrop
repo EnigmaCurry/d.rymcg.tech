@@ -39,7 +39,9 @@ gumdrop_list() {
     [[ -n "${GUMDROP_TAG}" ]] && tag_args=(--tag-name "${GUMDROP_TAG}")
     local account_email=$(doctl account get --format Email --no-header 2>/dev/null)
     local account_team=$(doctl account get --format Team --no-header 2>/dev/null)
+    local account_context=$(doctl auth list 2>/dev/null | grep -oP '^.+(?= \(current\))' || echo "default")
     echo ""
+    echo "## Account: ${account_context}"
     echo "## ${GUMDROP_LABEL}s:  ${account_team:+[${account_team}] }${account_email}"
     local count=$(doctl compute droplet list "${tag_args[@]}" --format ID --no-header 2>/dev/null | wc -l)
     if [[ ${count} -gt 0 ]]; then
