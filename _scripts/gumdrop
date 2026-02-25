@@ -559,15 +559,32 @@ gumdrop_create_firewall_standalone() {
 gumdrop_switch_account() {
     readarray -t CONTEXTS < <(doctl auth list 2>/dev/null | sed 's/ (current)$//')
     if [[ ${#CONTEXTS[@]} -le 1 ]]; then
-        echo "Only one DigitalOcean account configured."
-        echo "Use 'doctl auth init --context <name>' to add another."
+        echo "Only one account configured."
+        if confirm yes "Login to a new DigitalOcean account" "?"; then
+            local context_name
+            ask_no_blank "Enter a name for this account" context_name
+            doctl auth init --context "${context_name}"
+            echo "Account '${context_name}' added."
+            doctl auth switch --context "${context_name}"
+            echo "Switched to account: ${context_name}"
+        fi
         return
     fi
     local current=$(doctl auth list 2>/dev/null | grep -oP '^.+(?= \(current\))')
+    local ACCOUNT_OPTIONS=("${CONTEXTS[@]}" "Add new account")
     local choice
-    if ! choice=$(wizard choose "Switch to which DigitalOcean account?" "${CONTEXTS[@]}" --default "${current}"); then return; fi
-    doctl auth switch --context "${choice}"
-    echo "Switched to account: ${choice}"
+    if ! choice=$(wizard choose "Switch to which account?" "${ACCOUNT_OPTIONS[@]}" --default "${current}"); then return; fi
+    if [[ "${choice}" == "Add new account" ]]; then
+        local context_name
+        ask_no_blank "Enter a name for this account" context_name
+        doctl auth init --context "${context_name}"
+        echo "Account '${context_name}' added."
+        doctl auth switch --context "${context_name}"
+        echo "Switched to account: ${context_name}"
+    else
+        doctl auth switch --context "${choice}"
+        echo "Switched to account: ${choice}"
+    fi
 }
 
 gumdrop_main() {
