@@ -2116,6 +2116,7 @@ _gumdrop_enable_backups() {
     doctl compute droplet-action enable-backups "${droplet_id}" "${policy_args[@]}" --wait
     set -e
     echo "Backups enabled."
+    sleep 3
 }
 
 _gumdrop_disable_backups() {
@@ -2126,6 +2127,7 @@ _gumdrop_disable_backups() {
     doctl compute droplet-action disable-backups "${droplet_id}" --wait
     set -e
     echo "Backups disabled."
+    sleep 3
 }
 
 _gumdrop_restore_backup() {
