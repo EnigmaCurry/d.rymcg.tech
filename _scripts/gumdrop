@@ -913,6 +913,61 @@ gumdrop_edit_firewall() {
     echo "Firewall '${fw_name}' updated."
 }
 
+gumdrop_assign_firewall_droplets() {
+    readarray -t FW_IDS < <(doctl compute firewall list --format ID --no-header)
+    readarray -t FW_NAMES < <(doctl compute firewall list --format Name --no-header)
+    if [[ ${#FW_IDS[@]} -eq 0 ]]; then
+        echo "No firewalls found."
+        return
+    fi
+    local FW_OPTIONS=()
+    for i in "${!FW_IDS[@]}"; do
+        FW_OPTIONS+=("${FW_NAMES[$i]} (${FW_IDS[$i]})")
+    done
+    local choice
+    if ! choice=$(wizard choose "Assign droplets to which firewall?" "${FW_OPTIONS[@]}" --default "${FW_OPTIONS[0]}"); then return; fi
+    local fw_id=$(echo "${choice}" | grep -oP '\(\K[0-9a-f-]+(?=\))')
+
+    ## Get droplets already on this firewall:
+    local fw_droplets=$(doctl compute firewall get "${fw_id}" --format DropletIDs --no-header 2>/dev/null)
+    declare -A _ASSIGNED
+    for did in $(echo "${fw_droplets}" | tr -d '[]' | tr ',' ' '); do
+        [[ -n "${did}" && "${did}" != "0" ]] && _ASSIGNED["${did}"]=1
+    done
+
+    ## List droplets not already assigned to this firewall:
+    local tag_args=()
+    [[ -n "${GUMDROP_TAG}" ]] && tag_args=(--tag-name "${GUMDROP_TAG}")
+    readarray -t DROPLET_IDS < <(doctl compute droplet list "${tag_args[@]}" --format ID --no-header)
+    readarray -t DROPLET_NAMES < <(doctl compute droplet list "${tag_args[@]}" --format Name --no-header)
+    readarray -t DROPLET_REGIONS < <(doctl compute droplet list "${tag_args[@]}" --format Region --no-header)
+    local DROPLET_OPTIONS=()
+    local DROPLET_OPTION_IDS=()
+    for i in "${!DROPLET_IDS[@]}"; do
+        if [[ -z "${_ASSIGNED[${DROPLET_IDS[$i]}]}" ]]; then
+            DROPLET_OPTIONS+=("${DROPLET_NAMES[$i]} [${DROPLET_REGIONS[$i]}] (${DROPLET_IDS[$i]})")
+            DROPLET_OPTION_IDS+=("${DROPLET_IDS[$i]}")
+        fi
+    done
+    if [[ ${#DROPLET_OPTIONS[@]} -eq 0 ]]; then
+        echo "All droplets are already assigned to this firewall."
+        return
+    fi
+    readarray -t SELECTED < <(wizard select "Select droplets to assign" "${DROPLET_OPTIONS[@]}")
+    if [[ ${#SELECTED[@]} -eq 0 ]]; then
+        echo "No droplets selected."
+        return
+    fi
+    local selected_ids=()
+    for sel in "${SELECTED[@]}"; do
+        local sel_id=$(echo "${sel}" | grep -oP '\(\K[0-9]+(?=\))')
+        [[ -n "${sel_id}" ]] && selected_ids+=("${sel_id}")
+    done
+    local id_csv=$(IFS=','; echo "${selected_ids[*]}")
+    doctl compute firewall add-droplets "${fw_id}" --droplet-ids "${id_csv}"
+    echo "Droplets assigned to firewall."
+}
+
 gumdrop_manage_firewalls() {
     while :
     do
@@ -923,6 +978,7 @@ gumdrop_manage_firewalls() {
         )
         if [[ ${fw_count} -gt 0 ]]; then
             menu_items+=(
+                "Assign droplets to firewall = $0 gumdrop_assign_firewall_droplets"
                 "Edit firewall = $0 gumdrop_edit_firewall"
                 "Delete firewall = $0 gumdrop_delete_firewall"
             )
