@@ -17,7 +17,7 @@ set -eo pipefail
 GUMDROP_TAG="${GUMDROP_TAG:-}"
 GUMDROP_LABEL="${GUMDROP_LABEL:-Droplet}"
 GUMDROP_DEFAULT_IMAGE="${GUMDROP_DEFAULT_IMAGE:-debian-13-x64}"
-GUMDROP_DEFAULT_REGION="${GUMDROP_DEFAULT_REGION:-nyc3}"
+GUMDROP_DEFAULT_REGION="${GUMDROP_DEFAULT_REGION:-nyc2}"
 GUMDROP_DEFAULT_SIZE="${GUMDROP_DEFAULT_SIZE:-s-2vcpu-4gb}"
 GUMDROP_SSH_KEY_NAME="${GUMDROP_SSH_KEY_NAME:-gumdrop}"
 ## Space-separated list of image slugs to offer. Empty = fetch all public images from doctl.
