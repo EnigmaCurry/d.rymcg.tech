@@ -1832,6 +1832,7 @@ gumdrop_manage_snapshots() {
         )
         if [[ ${#SNAP_IDS[@]} -gt 0 && -n "${SNAP_IDS[0]}" ]]; then
             menu_items+=(
+                "Create ${GUMDROP_LABEL,,} from snapshot = $0 _gumdrop_create_from_snapshot ${droplet_id}"
                 "Restore snapshot = $0 _gumdrop_restore_snapshot ${droplet_id} ${droplet_name}"
                 "Delete snapshot = $0 _gumdrop_delete_snapshot ${droplet_id}"
             )
@@ -1857,6 +1858,96 @@ _gumdrop_create_snapshot() {
     doctl compute droplet-action snapshot "${droplet_id}" --snapshot-name "${snap_name}" --wait
     set -e
     echo "Snapshot '${snap_name}' created."
+}
+
+_gumdrop_create_from_snapshot() {
+    local droplet_id="$1"
+    readarray -t SNAP_IDS < <(doctl compute droplet snapshots "${droplet_id}" --format ID --no-header 2>/dev/null)
+    readarray -t SNAP_NAMES < <(doctl compute droplet snapshots "${droplet_id}" --format Name --no-header 2>/dev/null)
+    if [[ ${#SNAP_IDS[@]} -eq 0 || -z "${SNAP_IDS[0]}" ]]; then
+        echo "No snapshots found."
+        return
+    fi
+    local SNAP_OPTIONS=()
+    for i in "${!SNAP_IDS[@]}"; do
+        [[ -z "${SNAP_IDS[$i]}" ]] && continue
+        SNAP_OPTIONS+=("${SNAP_NAMES[$i]} (${SNAP_IDS[$i]})")
+    done
+    local snap_choice
+    if ! snap_choice=$(wizard choose "Create from which snapshot?" "${SNAP_OPTIONS[@]}" --default "${SNAP_OPTIONS[0]}"); then return; fi
+    local snap_id=$(echo "${snap_choice}" | grep -oP '\(\K[0-9]+(?=\))')
+
+    local new_name
+    while :; do
+        ask_no_blank "Enter new ${GUMDROP_LABEL,,} name" new_name
+        if doctl compute droplet list --format Name --no-header 2>/dev/null | grep -qx "${new_name}"; then
+            error "A droplet named '${new_name}' already exists."
+        else
+            break
+        fi
+    done
+
+    ## Select region:
+    readarray -t REGION_SLUGS < <(doctl compute region list --format Slug --no-header)
+    readarray -t REGION_NAMES < <(doctl compute region list --format Name --no-header)
+    local REGION_OPTIONS=()
+    local REGION_DEFAULT=""
+    for i in "${!REGION_SLUGS[@]}"; do
+        local opt=$(printf "%-8s  %s" "${REGION_SLUGS[$i]}" "${REGION_NAMES[$i]}")
+        REGION_OPTIONS+=("${opt}")
+        [[ "${REGION_SLUGS[$i]}" == "${GUMDROP_DEFAULT_REGION}" ]] && REGION_DEFAULT="${opt}"
+    done
+    local region_choice
+    if ! region_choice=$(wizard choose "Select region" "${REGION_OPTIONS[@]}" --default "${REGION_DEFAULT}"); then return; fi
+    local region=$(echo "${region_choice}" | awk '{print $1}')
+
+    ## Select size:
+    readarray -t SIZE_SLUGS < <(doctl compute size list --format Slug --no-header)
+    readarray -t SIZE_PRICES < <(doctl compute size list --format PriceHourly --no-header)
+    readarray -t SIZE_DISKS < <(doctl compute size list --format Disk --no-header)
+    readarray -t SIZE_VCPUS < <(doctl compute size list --format VCPUs --no-header)
+    local SIZE_OPTIONS=()
+    local SIZE_DEFAULT=""
+    for i in "${!SIZE_SLUGS[@]}"; do
+        local opt=$(printf "%-25s  %-3s vCPUs  \$%-10s  %sGB disk" "${SIZE_SLUGS[$i]}" "${SIZE_VCPUS[$i]}" "${SIZE_PRICES[$i]}/hr" "${SIZE_DISKS[$i]}")
+        SIZE_OPTIONS+=("${opt}")
+        [[ "${SIZE_SLUGS[$i]}" == "${GUMDROP_DEFAULT_SIZE}" ]] && SIZE_DEFAULT="${opt}"
+    done
+    local size_choice
+    if ! size_choice=$(wizard choose "Select size" "${SIZE_OPTIONS[@]}" --default "${SIZE_DEFAULT}"); then return; fi
+    local size=$(echo "${size_choice}" | awk '{print $1}')
+
+    ## Select SSH key:
+    readarray -t SSH_KEY_IDS < <(doctl compute ssh-key list --format ID --no-header)
+    readarray -t SSH_KEY_NAMES < <(doctl compute ssh-key list --format Name --no-header)
+    local SSH_KEY_OPTIONS=()
+    for i in "${!SSH_KEY_IDS[@]}"; do
+        SSH_KEY_OPTIONS+=("${SSH_KEY_NAMES[$i]} (${SSH_KEY_IDS[$i]})")
+    done
+    local ssh_key_choice
+    if ! ssh_key_choice=$(wizard choose "Which SSH key?" "${SSH_KEY_OPTIONS[@]}" --default "${SSH_KEY_OPTIONS[0]}"); then return; fi
+    local ssh_key=$(echo "${ssh_key_choice}" | grep -oP '\(\K[0-9]+(?=\))')
+
+    echo ""
+    echo "## Summary:"
+    echo "  Name:      ${new_name}"
+    echo "  Snapshot:  ${snap_choice}"
+    echo "  Region:    ${region}"
+    echo "  Size:      ${size}"
+    echo "  SSH key:   ${ssh_key_choice}"
+    echo ""
+    confirm yes "Create this ${GUMDROP_LABEL,,}" "?" || return
+
+    echo "Creating ${GUMDROP_LABEL,,} '${new_name}' from snapshot, please wait..."
+    set +e
+    doctl compute droplet create "${new_name}" \
+        --region "${region}" \
+        --size "${size}" \
+        --image "${snap_id}" \
+        --ssh-keys "${ssh_key}" \
+        --wait
+    set -e
+    echo "${GUMDROP_LABEL} '${new_name}' created."
 }
 
 _gumdrop_restore_snapshot() {
