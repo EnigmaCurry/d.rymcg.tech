@@ -2422,6 +2422,109 @@ gumdrop_manage_accounts() {
     done
 }
 
+gumdrop_list_dns_records() {
+    local domain=$1
+    echo ""
+    echo "## DNS records for ${domain}:"
+    doctl compute domain records list "${domain}" --format ID,Type,Name,Data,TTL
+    echo ""
+}
+
+gumdrop_create_dns_record() {
+    local domain=$1
+    local record_type
+    if ! record_type=$(wizard choose "Record type" "A" "CNAME"); then return; fi
+    local record_name
+    if [[ "${record_type}" == "A" ]]; then
+        ask_no_blank "Enter record name (subdomain, or @ for root)" record_name
+        local record_data
+        ask_no_blank "Enter IP address" record_data
+    else
+        ask_no_blank "Enter record name (subdomain)" record_name
+        local record_data
+        ask_no_blank "Enter target hostname (e.g. example.com.)" record_data
+    fi
+    local record_ttl
+    ask "Enter TTL in seconds" record_ttl "1800"
+    doctl compute domain records create "${domain}" \
+        --record-type "${record_type}" \
+        --record-name "${record_name}" \
+        --record-data "${record_data}" \
+        --record-ttl "${record_ttl}"
+    echo "DNS ${record_type} record created."
+}
+
+gumdrop_delete_dns_record() {
+    local domain=$1
+    readarray -t REC_IDS < <(doctl compute domain records list "${domain}" --format ID --no-header)
+    readarray -t REC_TYPES < <(doctl compute domain records list "${domain}" --format Type --no-header)
+    readarray -t REC_NAMES < <(doctl compute domain records list "${domain}" --format Name --no-header)
+    readarray -t REC_DATA < <(doctl compute domain records list "${domain}" --format Data --no-header)
+    if [[ ${#REC_IDS[@]} -eq 0 ]]; then
+        echo "No DNS records found."
+        return
+    fi
+    local REC_OPTIONS=()
+    for i in "${!REC_IDS[@]}"; do
+        REC_OPTIONS+=("${REC_NAMES[$i]} ${REC_TYPES[$i]} → ${REC_DATA[$i]} (${REC_IDS[$i]})")
+    done
+    local choice
+    if ! choice=$(wizard choose "Delete which record?" "${REC_OPTIONS[@]}" --default "${REC_OPTIONS[0]}"); then return; fi
+    local rec_id=$(echo "${choice}" | grep -oP '\(\K[0-9]+(?=\))')
+    confirm no "Are you sure you want to delete '${choice}'" "?" || return
+    doctl compute domain records delete "${domain}" "${rec_id}" --force
+    echo "DNS record deleted."
+}
+
+gumdrop_manage_dns_domain() {
+    local domain=$1
+    while :
+    do
+        gumdrop_list_dns_records "${domain}"
+        local rec_count=$(doctl compute domain records list "${domain}" --format ID --no-header 2>/dev/null | wc -l)
+        local menu_items=(
+            "Create record = $0 gumdrop_create_dns_record ${domain}"
+        )
+        if [[ ${rec_count} -gt 0 ]]; then
+            menu_items+=(
+                "Delete record = $0 gumdrop_delete_dns_record ${domain}"
+            )
+        fi
+        menu_items+=("Back = exit 2")
+        set +e
+        wizard menu --once --cancel-code=2 "DNS: ${domain}" "${menu_items[@]}"
+        local EXIT_CODE=$?
+        set -e
+        if [[ "${EXIT_CODE}" == "2" ]]; then
+            exit 0
+        fi
+    done
+}
+
+gumdrop_manage_dns() {
+    while :
+    do
+        echo ""
+        echo "## DNS domains:"
+        doctl compute domain list --format Domain
+        echo ""
+        readarray -t DOMAINS < <(doctl compute domain list --format Domain --no-header)
+        if [[ ${#DOMAINS[@]} -eq 0 ]]; then
+            echo "No domains found."
+            return
+        fi
+        local choice
+        set +e
+        choice=$(wizard choose "Select domain (or Ctrl-C to go back)" "${DOMAINS[@]}" --default "${DOMAINS[0]}")
+        local EXIT_CODE=$?
+        set -e
+        if [[ ${EXIT_CODE} -ne 0 ]]; then
+            return
+        fi
+        gumdrop_manage_dns_domain "${choice}"
+    done
+}
+
 gumdrop_manage_droplets() {
     while :
     do
@@ -2455,6 +2558,7 @@ gumdrop_main() {
             "Volumes = $0 gumdrop_manage_volumes" \
             "NFS = $0 gumdrop_manage_nfs" \
             "Reserved IPs = $0 gumdrop_manage_reserved_ips" \
+            "DNS = $0 gumdrop_manage_dns" \
             "Snapshots = $0 gumdrop_manage_snapshots" \
             "Backups = $0 gumdrop_manage_backups" \
             "Accounts = $0 gumdrop_manage_accounts" \
