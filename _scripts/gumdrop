@@ -2716,6 +2716,7 @@ gumdrop_manage_domains() {
         )
         if [[ ${domain_count} -gt 0 ]]; then
             menu_items+=(
+                "DNS records = $0 gumdrop_manage_dns"
                 "Delete domain = $0 gumdrop_delete_domain"
             )
         fi
@@ -2764,7 +2765,6 @@ gumdrop_main() {
             "NFS = $0 gumdrop_manage_nfs" \
             "Reserved IPs = $0 gumdrop_manage_reserved_ips" \
             "Domains = $0 gumdrop_manage_domains" \
-            "DNS = $0 gumdrop_manage_dns" \
             "Snapshots = $0 gumdrop_manage_snapshots" \
             "Backups = $0 gumdrop_manage_backups" \
             "Accounts = $0 gumdrop_manage_accounts" \
