@@ -506,30 +506,42 @@ gumdrop_create() {
     local RESERVED_IP=""
     if confirm no "Assign a reserved IP address" "?"; then
         while :; do
-            readarray -t AVAILABLE_IPS < <(doctl compute reserved-ip list --format IP --no-header 2>/dev/null)
-            readarray -t IP_DROPLETS < <(doctl compute reserved-ip list --format DropletName --no-header 2>/dev/null)
-            local IP_OPTIONS=()
-            for i in "${!AVAILABLE_IPS[@]}"; do
-                if [[ -n "${IP_DROPLETS[$i]}" && "${IP_DROPLETS[$i]}" != "<nil>" ]]; then
-                    IP_OPTIONS+=("${AVAILABLE_IPS[$i]} (assigned: ${IP_DROPLETS[$i]})")
-                else
-                    IP_OPTIONS+=("${AVAILABLE_IPS[$i]} (unassigned)")
+            ## Collect unassigned IPs:
+            readarray -t ALL_IPS < <(doctl compute reserved-ip list --format IP --no-header 2>/dev/null)
+            readarray -t ALL_DROPLET_IDS < <(doctl compute reserved-ip list --format DropletID --no-header 2>/dev/null)
+            local UNASSIGNED_IPS=()
+            for i in "${!ALL_IPS[@]}"; do
+                if [[ -z "${ALL_DROPLET_IDS[$i]}" || "${ALL_DROPLET_IDS[$i]}" == "0" ]]; then
+                    UNASSIGNED_IPS+=("${ALL_IPS[$i]}")
                 fi
             done
-            if [[ ${#IP_OPTIONS[@]} -eq 0 ]]; then
-                echo "No reserved IPs available."
-                if confirm yes "Go to manage reserved IPs" "?"; then
-                    gumdrop_manage_reserved_ips
-                    continue
-                else
-                    break
+
+            ## Build menu options:
+            local rip_options=("Create new reserved IP")
+            if [[ ${#UNASSIGNED_IPS[@]} -gt 0 ]]; then
+                rip_options+=("Choose existing reserved IP")
+            else
+                echo "No unassigned reserved IPs available."
+            fi
+            rip_options+=("Skip")
+
+            local rip_action
+            set +e
+            rip_action=$(wizard choose "Reserved IP" "${rip_options[@]}" --default "${rip_options[0]}")
+            set -e
+
+            if [[ "${rip_action}" == "Create new reserved IP" ]]; then
+                gumdrop_create_reserved_ip
+                continue
+            elif [[ "${rip_action}" == "Choose existing reserved IP" ]]; then
+                local ip_choice
+                if ip_choice=$(wizard choose "Select reserved IP" "${UNASSIGNED_IPS[@]}" --default "${UNASSIGNED_IPS[0]}"); then
+                    RESERVED_IP="${ip_choice}"
                 fi
+                break
+            else
+                break
             fi
-            local ip_choice
-            if ip_choice=$(wizard choose "Select reserved IP" "${IP_OPTIONS[@]}" --default "${IP_OPTIONS[0]}"); then
-                RESERVED_IP=$(echo "${ip_choice}" | awk '{print $1}')
-            fi
-            break
         done
     fi
 
