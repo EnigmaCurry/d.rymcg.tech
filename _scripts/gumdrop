@@ -2397,16 +2397,16 @@ gumdrop_main() {
         gumdrop_check_doctl
         gumdrop_show_account
         set +e
-        wizard menu --once --cancel-code=2 "${GUMDROP_LABEL}s:" \
-            "Manage ${GUMDROP_LABEL,,}s = $0 gumdrop_manage_droplets" \
-            "Manage SSH keys = $0 gumdrop_manage_ssh_keys" \
-            "Manage firewalls = $0 gumdrop_manage_firewalls" \
-            "Manage volumes = $0 gumdrop_manage_volumes" \
-            "Manage NFS = $0 gumdrop_manage_nfs" \
-            "Manage reserved IPs = $0 gumdrop_manage_reserved_ips" \
-            "Manage snapshots = $0 gumdrop_manage_snapshots" \
-            "Manage backups = $0 gumdrop_manage_backups" \
-            "Manage accounts = $0 gumdrop_manage_accounts" \
+        wizard menu --once --cancel-code=2 "Manage:" \
+            "${GUMDROP_LABEL,,}s = $0 gumdrop_manage_droplets" \
+            "SSH keys = $0 gumdrop_manage_ssh_keys" \
+            "Firewalls = $0 gumdrop_manage_firewalls" \
+            "Volumes = $0 gumdrop_manage_volumes" \
+            "NFS = $0 gumdrop_manage_nfs" \
+            "Reserved IPs = $0 gumdrop_manage_reserved_ips" \
+            "Snapshots = $0 gumdrop_manage_snapshots" \
+            "Backups = $0 gumdrop_manage_backups" \
+            "Accounts = $0 gumdrop_manage_accounts" \
             "Exit = exit 2"
         local EXIT_CODE=$?
         set -e
