@@ -731,10 +731,19 @@ gumdrop_create() {
                 local selected_vpc=""
                 if [[ ${#vpc_ids[@]} -eq 0 ]]; then
                     echo "No VPCs found in region '${REGION}'. Creating one..."
+                    local vpc_create_output
+                    set +e
+                    vpc_create_output=$(doctl vpcs create --name "default-${REGION}" --region "${REGION}" 2>&1)
+                    local vpc_create_rc=$?
+                    set -e
+                    if [[ ${vpc_create_rc} -ne 0 ]]; then
+                        error "Failed to create VPC: ${vpc_create_output}"
+                        continue
+                    fi
                     local new_vpc_id
-                    new_vpc_id=$(doctl vpcs create --name "default-${REGION}" --region "${REGION}" --format ID --no-header 2>/dev/null)
+                    new_vpc_id=$(echo "${vpc_create_output}" | awk 'NR==2{print $1}')
                     if [[ -z "${new_vpc_id}" ]]; then
-                        error "Failed to create VPC in region '${REGION}'."
+                        error "Failed to parse VPC ID from output: ${vpc_create_output}"
                         continue
                     fi
                     echo "VPC 'default-${REGION}' created."
@@ -1614,10 +1623,19 @@ gumdrop_create_nfs() {
 
     if [[ ${#vpc_options[@]} -eq 0 ]]; then
         echo "No VPCs found in region '${region}'. Creating one..."
+        local vpc_create_output
+        set +e
+        vpc_create_output=$(doctl vpcs create --name "default-${region}" --region "${region}" 2>&1)
+        local vpc_create_rc=$?
+        set -e
+        if [[ ${vpc_create_rc} -ne 0 ]]; then
+            error "Failed to create VPC: ${vpc_create_output}"
+            return
+        fi
         local new_vpc_id
-        new_vpc_id=$(doctl vpcs create --name "default-${region}" --region "${region}" --format ID --no-header 2>/dev/null)
+        new_vpc_id=$(echo "${vpc_create_output}" | awk 'NR==2{print $1}')
         if [[ -z "${new_vpc_id}" ]]; then
-            error "Failed to create VPC in region '${region}'."
+            error "Failed to parse VPC ID from output: ${vpc_create_output}"
             return
         fi
         echo "VPC 'default-${region}' created."
