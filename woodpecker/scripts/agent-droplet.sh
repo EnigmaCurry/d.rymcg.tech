@@ -57,8 +57,7 @@ create_droplet() {
     ask "Enter Woodpecker agent secret" WOODPECKER_AGENT_SECRET "${WOODPECKER_AGENT_SECRET}"
     check_var WOODPECKER_AGENT_SECRET
 
-    ask "Enter droplet name" DROPLET_NAME
-    check_var DROPLET_NAME
+    ask_no_blank "Enter droplet name" DROPLET_NAME
 
     ## Select region:
     readarray -t REGION_SLUGS < <(doctl compute region list --format Slug --no-header)
