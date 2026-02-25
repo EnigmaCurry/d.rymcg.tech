@@ -95,7 +95,8 @@ create_droplet() {
     readarray -t SSH_KEY_IDS < <(doctl compute ssh-key list --format ID --no-header)
     readarray -t SSH_KEY_NAMES < <(doctl compute ssh-key list --format Name --no-header)
     if [[ ${#SSH_KEY_IDS[@]} -eq 0 ]]; then
-        fault "No SSH keys found in your DigitalOcean account. Add one first."
+        error "No SSH keys found in your DigitalOcean account. Add one first."
+        return
     fi
     SSH_KEY_OPTIONS=()
     for i in "${!SSH_KEY_IDS[@]}"; do
