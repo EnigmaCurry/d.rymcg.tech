@@ -70,3 +70,24 @@ make open
 
 Log in with your Forgejo account. Repositories from Forgejo will be
 available for activation in the Woodpecker dashboard.
+
+## Provisioning a DigitalOcean agent droplet
+
+You can create a remote Woodpecker agent on a DigitalOcean droplet:
+
+```
+make create-agent-droplet
+```
+
+This will prompt for a droplet name, region, size, and SSH key. The
+gRPC address and agent secret are pre-filled from your server's env
+file.
+
+The droplet is provisioned with cloud-init which installs:
+
+ * Woodpecker agent (native deb package with systemd service)
+ * Docker (pipeline backend)
+ * Nix (Determinate installer)
+
+Requires [doctl](https://docs.digitalocean.com/reference/doctl/how-to/install/)
+to be installed and authenticated (`doctl auth init`).
