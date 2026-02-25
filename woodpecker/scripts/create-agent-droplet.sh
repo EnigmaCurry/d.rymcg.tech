@@ -33,11 +33,17 @@ ask "Enter image" IMAGE "${DEFAULT_IMAGE}"
 
 ## Select SSH key:
 echo ""
-echo "Available SSH keys:"
-doctl compute ssh-key list --format ID,Name,FingerPrint
-echo ""
-ask "Enter SSH key ID or fingerprint" SSH_KEY
-check_var SSH_KEY
+readarray -t SSH_KEY_IDS < <(doctl compute ssh-key list --format ID --no-header)
+readarray -t SSH_KEY_NAMES < <(doctl compute ssh-key list --format Name --no-header)
+if [[ ${#SSH_KEY_IDS[@]} -eq 0 ]]; then
+    fault "No SSH keys found in your DigitalOcean account. Add one first."
+fi
+SSH_KEY_OPTIONS=()
+for i in "${!SSH_KEY_IDS[@]}"; do
+    SSH_KEY_OPTIONS+=("${SSH_KEY_NAMES[$i]} (${SSH_KEY_IDS[$i]})")
+done
+SSH_KEY_CHOICE=$(wizard choose "Which SSH key?" "${SSH_KEY_OPTIONS[@]}" --default "${SSH_KEY_OPTIONS[0]}")
+SSH_KEY=$(echo "${SSH_KEY_CHOICE}" | grep -oP '\(\K[0-9]+(?=\))')
 
 ## Build cloud-init user data:
 USER_DATA=$(cat <<USERDATA
