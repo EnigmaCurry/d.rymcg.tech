@@ -1,7 +1,11 @@
 # Sway desktop environment with greetd login
-{ config, lib, pkgs, ... }:
+{ config, lib, pkgs, nix-flatpak, ... }:
 
 {
+  imports = [
+    nix-flatpak.nixosModules.nix-flatpak
+  ];
+
   # Sway window manager
   programs.sway = {
     enable = true;
@@ -83,8 +87,14 @@
     };
   };
 
-  # Flatpak (flathub remote + packages configured via home-manager)
-  services.flatpak.enable = true;
+  # Flatpak: system-level flathub remote (Bazaar needs this)
+  # Packages are installed via home-manager in home-manager.nix
+  services.flatpak = {
+    enable = true;
+    remotes = [
+      { name = "flathub"; location = "https://dl.flathub.org/repo/flathub.flatpakrepo"; }
+    ];
+  };
 
   # Thunar file manager with volume management
   programs.thunar = {
