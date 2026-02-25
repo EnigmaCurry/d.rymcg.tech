@@ -884,6 +884,31 @@ gumdrop_assign_reserved_ip() {
     echo "Reserved IP assigned."
 }
 
+gumdrop_release_reserved_ip() {
+    ## List only assigned IPs:
+    readarray -t IPS < <(doctl compute reserved-ip list --format IP --no-header)
+    readarray -t IP_DROPLET_IDS < <(doctl compute reserved-ip list --format DropletID --no-header)
+    readarray -t IP_DROPLET_NAMES < <(doctl compute reserved-ip list --format DropletName --no-header)
+    local ASSIGNED_OPTIONS=()
+    local ASSIGNED_IPS=()
+    for i in "${!IPS[@]}"; do
+        if [[ -n "${IP_DROPLET_IDS[$i]}" && "${IP_DROPLET_IDS[$i]}" != "0" ]]; then
+            ASSIGNED_OPTIONS+=("${IPS[$i]} (${IP_DROPLET_NAMES[$i]})")
+            ASSIGNED_IPS+=("${IPS[$i]}")
+        fi
+    done
+    if [[ ${#ASSIGNED_IPS[@]} -eq 0 ]]; then
+        echo "No assigned reserved IPs to release."
+        return
+    fi
+    local choice
+    if ! choice=$(wizard choose "Release which reserved IP?" "${ASSIGNED_OPTIONS[@]}" --default "${ASSIGNED_OPTIONS[0]}"); then return; fi
+    local ip=$(echo "${choice}" | awk '{print $1}')
+    confirm no "Are you sure you want to release '${choice}'" "?" || return
+    doctl compute reserved-ip-action unassign "${ip}"
+    echo "Reserved IP '${ip}' released."
+}
+
 gumdrop_manage_reserved_ips() {
     while :
     do
@@ -895,6 +920,7 @@ gumdrop_manage_reserved_ips() {
         if [[ ${ip_count} -gt 0 ]]; then
             menu_items+=(
                 "Assign reserved IP = $0 gumdrop_assign_reserved_ip"
+                "Release reserved IP = $0 gumdrop_release_reserved_ip"
                 "Delete reserved IP = $0 gumdrop_delete_reserved_ip"
             )
         fi
