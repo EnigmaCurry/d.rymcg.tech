@@ -680,6 +680,87 @@ gumdrop_create() {
         done
     fi
 
+    ## Select NFS shares:
+    local NFS_NAMES=()
+    if confirm no "Create NFS share" "?"; then
+        while :; do
+            local nfs_options=("Create new NFS share")
+            ## Check for existing NFS shares in the same region:
+            local _REGION_NFS_IDS=()
+            local _REGION_NFS_NAMES=()
+            readarray -t _REGION_NFS_IDS < <(doctl nfs list --region "${REGION}" --format ID --no-header 2>/dev/null)
+            readarray -t _REGION_NFS_NAMES < <(doctl nfs list --region "${REGION}" --format Name --no-header 2>/dev/null)
+            local HAS_EXISTING=false
+            if [[ ${#_REGION_NFS_IDS[@]} -gt 0 && -n "${_REGION_NFS_IDS[0]}" ]]; then
+                HAS_EXISTING=true
+            fi
+            if [[ "${HAS_EXISTING}" == true ]]; then
+                nfs_options+=("Choose existing NFS share")
+            fi
+            nfs_options+=("Done")
+
+            if [[ ${#NFS_NAMES[@]} -gt 0 ]]; then
+                echo "  Selected NFS shares: ${NFS_NAMES[*]}"
+            fi
+
+            local nfs_action
+            set +e
+            nfs_action=$(wizard choose "NFS shares" "${nfs_options[@]}" --default "Done")
+            set -e
+
+            if [[ "${nfs_action}" == "Create new NFS share" ]]; then
+                local new_nfs_name
+                ask_no_blank "Enter NFS share name" new_nfs_name
+                local new_nfs_size
+                ask "Enter size in GiB (minimum 50)" new_nfs_size "100"
+                if [[ "${new_nfs_size}" -lt 50 ]] 2>/dev/null; then
+                    echo "Minimum size is 50 GiB. Setting to 50."
+                    new_nfs_size=50
+                fi
+                ## Auto-detect VPC in region:
+                local vpc_ids=()
+                local vpc_names_list=()
+                local vpc_options=()
+                while read -r vid vname vregion; do
+                    if [[ "${vregion}" == "${REGION}" ]]; then
+                        vpc_ids+=("${vid}")
+                        vpc_names_list+=("${vname}")
+                        vpc_options+=("${vname} (${vid})")
+                    fi
+                done < <(doctl vpcs list --format ID,Name,Region --no-header 2>/dev/null)
+                local selected_vpc=""
+                if [[ ${#vpc_ids[@]} -eq 0 ]]; then
+                    echo "No VPCs found in region '${REGION}'. Skipping NFS creation."
+                    continue
+                elif [[ ${#vpc_ids[@]} -eq 1 ]]; then
+                    selected_vpc="${vpc_ids[0]}"
+                    echo "Using VPC: ${vpc_names_list[0]}"
+                else
+                    local vpc_choice
+                    if ! vpc_choice=$(wizard choose "Select VPC" "${vpc_options[@]}" --default "${vpc_options[0]}"); then continue; fi
+                    selected_vpc=$(echo "${vpc_choice}" | grep -oP '\(\K[0-9a-f-]+(?=\))')
+                fi
+                echo "Creating NFS share '${new_nfs_name}' (${new_nfs_size}GiB in ${REGION})..."
+                doctl nfs create --name "${new_nfs_name}" --region "${REGION}" --size "${new_nfs_size}" --vpc-ids "${selected_vpc}"
+                NFS_NAMES+=("${new_nfs_name}")
+                echo "NFS share '${new_nfs_name}' created."
+            elif [[ "${nfs_action}" == "Choose existing NFS share" ]]; then
+                local NFS_OPTIONS=()
+                for i in "${!_REGION_NFS_IDS[@]}"; do
+                    [[ -z "${_REGION_NFS_IDS[$i]}" ]] && continue
+                    NFS_OPTIONS+=("${_REGION_NFS_NAMES[$i]} (${_REGION_NFS_IDS[$i]})")
+                done
+                readarray -t SELECTED < <(wizard select "Select NFS shares" "${NFS_OPTIONS[@]}")
+                for sel in "${SELECTED[@]}"; do
+                    local sel_name=$(echo "${sel}" | sed 's/ ([^)]*)//')
+                    [[ -n "${sel_name}" ]] && NFS_NAMES+=("${sel_name}")
+                done
+            else
+                break
+            fi
+        done
+    fi
+
     ## Generate user-data via hook if defined:
     local user_data_args=()
     if type -t gumdrop_user_data_hook &>/dev/null; then
@@ -706,6 +787,7 @@ gumdrop_create() {
     echo "  Firewall:      ${FIREWALL_NAMES[*]:-(none)}"
     echo "  Reserved IP:   ${RESERVED_IP:-(none)}"
     echo "  Volumes:       ${VOLUME_NAMES[*]:-(none)}"
+    echo "  NFS shares:    ${NFS_NAMES[*]:-(none)}"
 
     ## Call summary hook if defined:
     if type -t gumdrop_summary_hook &>/dev/null; then
@@ -1219,6 +1301,36 @@ gumdrop_release_reserved_ip() {
     echo "Note: changes may take a moment to propagate."
 }
 
+_gumdrop_collect_nfs_shares() {
+    _NFS_IDS=()
+    _NFS_NAMES=()
+    _NFS_SIZES=()
+    _NFS_REGIONS=()
+    _NFS_VPCS=()
+    ## Collect regions to query: regions with existing droplets + default region
+    local regions=()
+    readarray -t regions < <(
+        { doctl compute droplet list --format Region --no-header 2>/dev/null; echo "${GUMDROP_DEFAULT_REGION}"; } | sort -u
+    )
+    for region in "${regions[@]}"; do
+        [[ -z "${region}" ]] && continue
+        local ids names sizes vpcs
+        readarray -t ids < <(doctl nfs list --region "${region}" --format ID --no-header 2>/dev/null)
+        if [[ ${#ids[@]} -eq 0 || -z "${ids[0]}" ]]; then continue; fi
+        readarray -t names < <(doctl nfs list --region "${region}" --format Name --no-header 2>/dev/null)
+        readarray -t sizes < <(doctl nfs list --region "${region}" --format Size --no-header 2>/dev/null)
+        readarray -t vpcs < <(doctl nfs list --region "${region}" --format VpcIDs --no-header 2>/dev/null)
+        for i in "${!ids[@]}"; do
+            [[ -z "${ids[$i]}" ]] && continue
+            _NFS_IDS+=("${ids[$i]}")
+            _NFS_NAMES+=("${names[$i]}")
+            _NFS_SIZES+=("${sizes[$i]}")
+            _NFS_REGIONS+=("${region}")
+            _NFS_VPCS+=("${vpcs[$i]}")
+        done
+    done
+}
+
 gumdrop_list_volumes() {
     echo ""
     echo "## Volumes:"
@@ -1405,6 +1517,178 @@ gumdrop_manage_volumes() {
     done
 }
 
+gumdrop_list_nfs() {
+    echo ""
+    echo "## NFS Shares:"
+    _gumdrop_collect_nfs_shares
+    if [[ ${#_NFS_IDS[@]} -eq 0 ]]; then
+        echo "No NFS shares found."
+        echo ""
+        return
+    fi
+    ## Build VPC ID→Name lookup:
+    declare -A _VPC_NAME_MAP
+    while read -r vpc_id vpc_name; do
+        [[ -n "${vpc_id}" ]] && _VPC_NAME_MAP["${vpc_id}"]="${vpc_name}"
+    done < <(doctl vpcs list --format ID,Name --no-header 2>/dev/null)
+    ## Display table:
+    {
+        echo "NAME SIZE REGION VPCS"
+        for i in "${!_NFS_IDS[@]}"; do
+            local vpc_display=""
+            local vpc_raw="${_NFS_VPCS[$i]}"
+            ## vpc_raw may be comma-separated IDs or bracketed
+            vpc_raw=$(echo "${vpc_raw}" | tr -d '[]')
+            IFS=',' read -ra vpc_ids <<< "${vpc_raw}"
+            local vpc_names=()
+            for vid in "${vpc_ids[@]}"; do
+                vid=$(echo "${vid}" | xargs)
+                [[ -z "${vid}" ]] && continue
+                if [[ -n "${_VPC_NAME_MAP[${vid}]+x}" ]]; then
+                    vpc_names+=("${_VPC_NAME_MAP[${vid}]}")
+                else
+                    vpc_names+=("${vid}")
+                fi
+            done
+            vpc_display=$(IFS=','; echo "${vpc_names[*]}")
+            echo "${_NFS_NAMES[$i]} ${_NFS_SIZES[$i]}GiB ${_NFS_REGIONS[$i]} ${vpc_display:--}"
+        done
+    } | column -t
+    echo ""
+}
+
+gumdrop_create_nfs() {
+    local nfs_name
+    ask_no_blank "Enter NFS share name" nfs_name
+
+    local nfs_size
+    ask "Enter size in GiB (minimum 50)" nfs_size "100"
+    if [[ "${nfs_size}" -lt 50 ]] 2>/dev/null; then
+        echo "Minimum size is 50 GiB. Setting to 50."
+        nfs_size=50
+    fi
+
+    ## Select region:
+    readarray -t REGION_SLUGS < <(doctl compute region list --format Slug --no-header)
+    readarray -t REGION_NAMES < <(doctl compute region list --format Name --no-header)
+    local REGION_OPTIONS=()
+    local REGION_DEFAULT=""
+    for i in "${!REGION_SLUGS[@]}"; do
+        local opt=$(printf "%-8s  %s" "${REGION_SLUGS[$i]}" "${REGION_NAMES[$i]}")
+        REGION_OPTIONS+=("${opt}")
+        [[ "${REGION_SLUGS[$i]}" == "${GUMDROP_DEFAULT_REGION}" ]] && REGION_DEFAULT="${opt}"
+    done
+    local region_choice
+    if ! region_choice=$(wizard choose "Select region" "${REGION_OPTIONS[@]}" --default "${REGION_DEFAULT}"); then return; fi
+    local region=$(echo "${region_choice}" | awk '{print $1}')
+
+    ## Select VPCs in the chosen region:
+    local vpc_ids=()
+    local vpc_names=()
+    local vpc_options=()
+    while read -r vid vname vregion; do
+        if [[ "${vregion}" == "${region}" ]]; then
+            vpc_ids+=("${vid}")
+            vpc_names+=("${vname}")
+            vpc_options+=("${vname} (${vid})")
+        fi
+    done < <(doctl vpcs list --format ID,Name,Region --no-header 2>/dev/null)
+
+    if [[ ${#vpc_options[@]} -eq 0 ]]; then
+        echo "No VPCs found in region '${region}'."
+        return
+    fi
+
+    local selected_vpc_ids=()
+    readarray -t SELECTED < <(wizard select "Select VPCs for this NFS share" "${vpc_options[@]}")
+    for sel in "${SELECTED[@]}"; do
+        local sel_id=$(echo "${sel}" | grep -oP '\(\K[0-9a-f-]+(?=\))')
+        [[ -n "${sel_id}" ]] && selected_vpc_ids+=("${sel_id}")
+    done
+    if [[ ${#selected_vpc_ids[@]} -eq 0 ]]; then
+        echo "No VPCs selected. Aborting."
+        return
+    fi
+    local vpc_csv
+    vpc_csv=$(IFS=','; echo "${selected_vpc_ids[*]}")
+
+    echo "Creating NFS share '${nfs_name}' (${nfs_size}GiB in ${region})..."
+    doctl nfs create --name "${nfs_name}" --region "${region}" --size "${nfs_size}" --vpc-ids "${vpc_csv}"
+    echo "NFS share '${nfs_name}' created."
+}
+
+gumdrop_delete_nfs() {
+    _gumdrop_collect_nfs_shares
+    if [[ ${#_NFS_IDS[@]} -eq 0 ]]; then
+        echo "No NFS shares found."
+        return
+    fi
+    local NFS_OPTIONS=()
+    for i in "${!_NFS_IDS[@]}"; do
+        NFS_OPTIONS+=("${_NFS_NAMES[$i]} [${_NFS_REGIONS[$i]}] (${_NFS_IDS[$i]})")
+    done
+    local choice
+    if ! choice=$(wizard choose "Delete which NFS share?" "${NFS_OPTIONS[@]}" --default "${NFS_OPTIONS[0]}"); then return; fi
+    local nfs_id=$(echo "${choice}" | grep -oP '\(\K[0-9a-f-]+(?=\))')
+    local nfs_region=$(echo "${choice}" | grep -oP '\[\K[^\]]+')
+    confirm no "Are you sure you want to delete '${choice}'" "?" || return
+    doctl nfs delete --id "${nfs_id}" --region "${nfs_region}"
+    echo "NFS share deleted."
+}
+
+gumdrop_resize_nfs() {
+    _gumdrop_collect_nfs_shares
+    if [[ ${#_NFS_IDS[@]} -eq 0 ]]; then
+        echo "No NFS shares found."
+        return
+    fi
+    local NFS_OPTIONS=()
+    for i in "${!_NFS_IDS[@]}"; do
+        NFS_OPTIONS+=("${_NFS_NAMES[$i]} ${_NFS_SIZES[$i]}GiB [${_NFS_REGIONS[$i]}] (${_NFS_IDS[$i]})")
+    done
+    local choice
+    if ! choice=$(wizard choose "Resize which NFS share?" "${NFS_OPTIONS[@]}" --default "${NFS_OPTIONS[0]}"); then return; fi
+    local nfs_id=$(echo "${choice}" | grep -oP '\(\K[0-9a-f-]+(?=\))')
+    local nfs_region=$(echo "${choice}" | grep -oP '\[\K[^\]]+')
+
+    local new_size
+    ask "Enter new size in GiB (minimum 50)" new_size ""
+    if [[ -z "${new_size}" ]]; then return; fi
+    if [[ "${new_size}" -lt 50 ]] 2>/dev/null; then
+        echo "Minimum size is 50 GiB. Setting to 50."
+        new_size=50
+    fi
+
+    echo "Resizing NFS share to ${new_size}GiB..."
+    doctl nfs resize --id "${nfs_id}" --region "${nfs_region}" --size "${new_size}" --wait
+    echo "NFS share resized."
+}
+
+gumdrop_manage_nfs() {
+    while :
+    do
+        gumdrop_list_nfs
+        local nfs_count=${#_NFS_IDS[@]}
+        local menu_items=(
+            "Create NFS share = $0 gumdrop_create_nfs"
+        )
+        if [[ ${nfs_count} -gt 0 ]]; then
+            menu_items+=(
+                "Resize NFS share = $0 gumdrop_resize_nfs"
+                "Delete NFS share = $0 gumdrop_delete_nfs"
+            )
+        fi
+        menu_items+=("Back = exit 2")
+        set +e
+        wizard menu --once --cancel-code=2 "NFS Shares:" "${menu_items[@]}"
+        local EXIT_CODE=$?
+        set -e
+        if [[ "${EXIT_CODE}" == "2" ]]; then
+            exit 0
+        fi
+    done
+}
+
 gumdrop_manage_reserved_ips() {
     while :
     do
@@ -1513,6 +1797,7 @@ gumdrop_main() {
             "Manage SSH keys = $0 gumdrop_manage_ssh_keys" \
             "Manage firewalls = $0 gumdrop_manage_firewalls" \
             "Manage volumes = $0 gumdrop_manage_volumes" \
+            "Manage NFS = $0 gumdrop_manage_nfs" \
             "Manage reserved IPs = $0 gumdrop_manage_reserved_ips" \
             "Manage accounts = $0 gumdrop_manage_accounts" \
             "Exit = exit 2"
