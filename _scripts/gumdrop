@@ -63,6 +63,14 @@ gumdrop_list() {
                 fi
             fi
         done < <(doctl compute volume list --format Name,DropletIDs --no-header 2>/dev/null)
+        ## Build backup lookup (droplet_id -> yes/-):
+        declare -A _BACKUP_MAP
+        while read -r did features; do
+            [[ -z "${did}" ]] && continue
+            if [[ "${features}" == *backups* ]]; then
+                _BACKUP_MAP["${did}"]="yes"
+            fi
+        done < <(doctl compute droplet list "${tag_args[@]}" --format ID,Features --no-header 2>/dev/null)
         ## Build NFS lookup (vpc_id -> comma-separated NFS share names):
         declare -A _NFS_VPC_MAP
         _gumdrop_collect_nfs_shares
@@ -82,9 +90,9 @@ gumdrop_list() {
         done
         ## Print droplet table with ReservedIP, Volumes, and NFS columns:
         {
-            echo "ID Name PublicIPv4 ReservedIPv4 Volumes NFS Region Size Status"
+            echo "ID Name PublicIPv4 ReservedIPv4 Volumes NFS Backups Region Size Status"
             while read -r id name pub vpcuuid region size status; do
-                echo "${id} ${name} ${pub} ${_RIP_MAP[${id}]:--} ${_VOL_MAP[${id}]:--} ${_NFS_VPC_MAP[${vpcuuid}]:--} ${region} ${size} ${status}"
+                echo "${id} ${name} ${pub} ${_RIP_MAP[${id}]:--} ${_VOL_MAP[${id}]:--} ${_NFS_VPC_MAP[${vpcuuid}]:--} ${_BACKUP_MAP[${id}]:--} ${region} ${size} ${status}"
             done < <(doctl compute droplet list "${tag_args[@]}" --format ID,Name,PublicIPv4,VPCUUID,Region,SizeSlug,Status --no-header)
         } | column -t
     else
