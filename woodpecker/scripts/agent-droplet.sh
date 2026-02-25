@@ -21,7 +21,7 @@ WOODPECKER_AGENT_SECRET="${DEFAULT_WOODPECKER_AGENT_SECRET}"
 list_droplets() {
     echo ""
     echo "## Woodpecker agent droplets:"
-    doctl compute droplet list --tag-name "${DROPLET_TAG}" --format ID,Name,PublicIPv4,Region,Size,Status
+    doctl compute droplet list --tag-name "${DROPLET_TAG}" --format ID,Name,PublicIPv4,Region,SizeSlug,Status
     echo ""
 }
 
