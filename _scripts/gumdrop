@@ -270,7 +270,7 @@ gumdrop_create() {
                 set +e
                 tag_action=$(wizard choose "Manage tags" \
                     "Choose existing tags" \
-                    "Add new tag" \
+                    "Add new tags" \
                     "Done" \
                     --default "Done")
                 local tag_exit=$?
@@ -291,14 +291,19 @@ gumdrop_create() {
                             [[ "${already}" == false ]] && DROPLET_TAGS+=("${tag}")
                         done
                     fi
-                elif [[ "${tag_action}" == "Add new tag" ]]; then
-                    local new_tag
-                    ask_no_blank "Enter new tag" new_tag
-                    local already=false
-                    for existing in "${DROPLET_TAGS[@]}"; do
-                        [[ "${existing}" == "${new_tag}" ]] && already=true
+                elif [[ "${tag_action}" == "Add new tags" ]]; then
+                    local new_tags_input
+                    ask_no_blank "Enter tags (comma separated)" new_tags_input
+                    IFS=',' read -ra NEW_TAGS <<< "${new_tags_input}"
+                    for raw_tag in "${NEW_TAGS[@]}"; do
+                        local tag=$(echo "${raw_tag}" | sed 's/^[[:space:]]*//;s/[[:space:]]*$//')
+                        [[ -z "${tag}" ]] && continue
+                        local already=false
+                        for existing in "${DROPLET_TAGS[@]}"; do
+                            [[ "${existing}" == "${tag}" ]] && already=true
+                        done
+                        [[ "${already}" == false ]] && DROPLET_TAGS+=("${tag}")
                     done
-                    [[ "${already}" == false ]] && DROPLET_TAGS+=("${new_tag}")
                 fi
             done
         fi
