@@ -10,9 +10,10 @@ config-hook:
 #### reconfigure_htpasswd will configure the HTTP Basic Authentication setting the var name and with a provided default value.
 	@${BIN}/reconfigure_ask ${ENV_FILE} WOODPECKER_TRAEFIK_HOST "Enter the woodpecker server domain name" woodpecker${INSTANCE_URL_SUFFIX}.${ROOT_DOMAIN}
 	@${BIN}/reconfigure_ask ${ENV_FILE} WOODPECKER_GRPC_HOST "Enter the woodpecker GRPC domain name" woodpecker-grpc${INSTANCE_URL_SUFFIX}.${ROOT_DOMAIN}
+	@${BIN}/reconfigure_password ${ENV_FILE} WOODPECKER_AGENT_SECRET
 	@${BIN}/reconfigure ${ENV_FILE} WOODPECKER_INSTANCE=$${instance:-default}
 	@echo ""
-	@${BIN}/reconfigure_compose_profiles_select ${ENV_FILE} server="Woodpeker Server" agent="Woodpecker Agent"
+	@${BIN}/reconfigure_compose_profiles_select ${ENV_FILE} server="Woodpecker Server" agent="Woodpecker Agent"
 
 .PHONY: override-hook
 override-hook:
