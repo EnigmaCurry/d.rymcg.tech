@@ -697,6 +697,31 @@ gumdrop_create() {
         done
     fi
 
+    ## Configure backups:
+    local backup_args=()
+    local BACKUP_SUMMARY="none"
+    local backup_plan
+    set +e
+    backup_plan=$(wizard choose "Enable backups?" "No" "Daily" "Weekly" --default "No")
+    set -e
+    if [[ "${backup_plan}" == "Daily" || "${backup_plan}" == "Weekly" ]]; then
+        backup_args=(--enable-backups --backup-policy-plan "${backup_plan,,}")
+        local backup_hour
+        set +e
+        backup_hour=$(wizard choose "Backup hour (UTC)" "0" "4" "8" "12" "16" "20" --default "0")
+        set -e
+        backup_args+=(--backup-policy-hour "${backup_hour:-0}")
+        BACKUP_SUMMARY="${backup_plan,,} at ${backup_hour:-0}:00 UTC"
+        if [[ "${backup_plan}" == "Weekly" ]]; then
+            local backup_weekday
+            set +e
+            backup_weekday=$(wizard choose "Backup weekday" "SUN" "MON" "TUE" "WED" "THU" "FRI" "SAT" --default "SUN")
+            set -e
+            backup_args+=(--backup-policy-weekday "${backup_weekday:-SUN}")
+            BACKUP_SUMMARY="${backup_plan,,} on ${backup_weekday:-SUN} at ${backup_hour:-0}:00 UTC"
+        fi
+    fi
+
     ## Generate user-data via hook if defined:
     local user_data_args=()
     if type -t gumdrop_user_data_hook &>/dev/null; then
@@ -723,6 +748,7 @@ gumdrop_create() {
     echo "  Firewall:      ${FIREWALL_NAMES[*]:-(none)}"
     echo "  Reserved IP:   ${RESERVED_IP:-(none)}"
     echo "  Volumes:       ${VOLUME_NAMES[*]:-(none)}"
+    echo "  Backups:       ${BACKUP_SUMMARY}"
 
     ## Call summary hook if defined:
     if type -t gumdrop_summary_hook &>/dev/null; then
@@ -740,6 +766,7 @@ gumdrop_create() {
         --ssh-keys "${SSH_KEY}" \
         "${user_data_args[@]}" \
         "${tag_args[@]}" \
+        "${backup_args[@]}" \
         --wait
 
     ## Assign firewalls to the new droplet:
