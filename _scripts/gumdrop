@@ -248,7 +248,13 @@ _gumdrop_create_custom_firewall() {
         echo "## Inbound rules for '${fw_name}':"
         if [[ ${#INBOUND_RULES[@]} -gt 0 ]]; then
             for rule in "${INBOUND_RULES[@]}"; do
-                echo "  ${rule}"
+                local proto=$(echo "${rule}" | grep -oP 'protocol:\K[^,]+')
+                local port=$(echo "${rule}" | grep -oP 'ports:\K[^,]+')
+                if [[ "${proto}" == "icmp" ]]; then
+                    echo "  ${proto}"
+                else
+                    echo "  ${proto}/${port}"
+                fi
             done
         else
             echo "  (none)"
@@ -266,13 +272,21 @@ _gumdrop_create_custom_firewall() {
         if [[ ${rule_exit} -ne 0 ]] || [[ "${rule_action}" == "Done" ]]; then
             break
         elif [[ "${rule_action}" == "Add TCP port(s)" ]]; then
-            local ports
-            ask_no_blank "Enter TCP port(s) (e.g. 22 or 80,443 or 8000-9000)" ports
-            INBOUND_RULES+=("protocol:tcp,ports:${ports},address:0.0.0.0/0,address:::/0")
+            local ports_input
+            ask_no_blank "Enter TCP port(s) (e.g. 22 or 80,443 or 8000-9000)" ports_input
+            IFS=',' read -ra PORT_LIST <<< "${ports_input}"
+            for port in "${PORT_LIST[@]}"; do
+                port=$(echo "${port}" | sed 's/^[[:space:]]*//;s/[[:space:]]*$//')
+                [[ -n "${port}" ]] && INBOUND_RULES+=("protocol:tcp,ports:${port},address:0.0.0.0/0,address:::/0")
+            done
         elif [[ "${rule_action}" == "Add UDP port(s)" ]]; then
-            local ports
-            ask_no_blank "Enter UDP port(s) (e.g. 53 or 1194)" ports
-            INBOUND_RULES+=("protocol:udp,ports:${ports},address:0.0.0.0/0,address:::/0")
+            local ports_input
+            ask_no_blank "Enter UDP port(s) (e.g. 53 or 1194,5353)" ports_input
+            IFS=',' read -ra PORT_LIST <<< "${ports_input}"
+            for port in "${PORT_LIST[@]}"; do
+                port=$(echo "${port}" | sed 's/^[[:space:]]*//;s/[[:space:]]*$//')
+                [[ -n "${port}" ]] && INBOUND_RULES+=("protocol:udp,ports:${port},address:0.0.0.0/0,address:::/0")
+            done
         elif [[ "${rule_action}" == "Allow ICMP (ping)" ]]; then
             INBOUND_RULES+=("protocol:icmp,address:0.0.0.0/0,address:::/0")
             echo "ICMP added."
