@@ -34,16 +34,20 @@ gumdrop_check_doctl() {
     fi
 }
 
-gumdrop_list() {
-    local tag_args=()
-    [[ -n "${GUMDROP_TAG}" ]] && tag_args=(--tag-name "${GUMDROP_TAG}")
+gumdrop_show_account() {
     echo ""
-    echo "## Loading account data ..."
     local account_email=$(doctl account get --format Email --no-header 2>/dev/null)
     local account_team=$(doctl account get --format Team --no-header 2>/dev/null)
     local account_context=$(doctl auth list 2>/dev/null | grep -oP '^.+(?= \(current\))' || echo "default")
     printf "## %-9s %s\n" "Account:" "${account_context}"
     printf "## %-9s %s\n" "Team:" "${account_team:+[${account_team}] }${account_email}"
+}
+
+gumdrop_list() {
+    local tag_args=()
+    [[ -n "${GUMDROP_TAG}" ]] && tag_args=(--tag-name "${GUMDROP_TAG}")
+    echo ""
+    echo "## Loading droplet data ..."
     local count=$(doctl compute droplet list "${tag_args[@]}" --format ID --no-header 2>/dev/null | wc -l)
     if [[ ${count} -gt 0 ]]; then
         ## Build reserved IP lookup (droplet_id -> IP):
@@ -2368,17 +2372,33 @@ gumdrop_manage_accounts() {
     done
 }
 
-gumdrop_main() {
-    gumdrop_check_doctl
+gumdrop_manage_droplets() {
     while :
     do
-        gumdrop_check_doctl
         gumdrop_list
         set +e
         wizard menu --once --cancel-code=2 "${GUMDROP_LABEL}s:" \
             "Create new ${GUMDROP_LABEL,,} = $0 gumdrop_create" \
             "SSH into ${GUMDROP_LABEL,,} = $0 gumdrop_ssh" \
             "Destroy ${GUMDROP_LABEL,,} = $0 gumdrop_destroy" \
+            "Back = exit 2"
+        local EXIT_CODE=$?
+        set -e
+        if [[ "${EXIT_CODE}" == "2" ]]; then
+            exit 0
+        fi
+    done
+}
+
+gumdrop_main() {
+    gumdrop_check_doctl
+    while :
+    do
+        gumdrop_check_doctl
+        gumdrop_show_account
+        set +e
+        wizard menu --once --cancel-code=2 "${GUMDROP_LABEL}s:" \
+            "Manage ${GUMDROP_LABEL,,}s = $0 gumdrop_manage_droplets" \
             "Manage SSH keys = $0 gumdrop_manage_ssh_keys" \
             "Manage firewalls = $0 gumdrop_manage_firewalls" \
             "Manage volumes = $0 gumdrop_manage_volumes" \
