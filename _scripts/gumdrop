@@ -199,6 +199,56 @@ gumdrop_ssh() {
     doctl compute ssh "${name}"
 }
 
+gumdrop_add_ssh_config() {
+    local tag_args=()
+    [[ -n "${GUMDROP_TAG}" ]] && tag_args=(--tag-name "${GUMDROP_TAG}")
+    readarray -t NAMES < <(doctl compute droplet list "${tag_args[@]}" --format Name --no-header)
+    if [[ ${#NAMES[@]} -eq 0 ]]; then
+        echo "No ${GUMDROP_LABEL,,}s found."
+        return
+    fi
+    local name
+    if ! name=$(wizard choose "Add SSH config for which ${GUMDROP_LABEL,,}?" "${NAMES[@]}" --default "${NAMES[0]}"); then return; fi
+    local ip
+    ip=$(doctl compute droplet list "${tag_args[@]}" --format Name,PublicIPv4 --no-header | awk -v n="${name}" '$1==n {print $2}')
+    if [[ -z "${ip}" ]]; then
+        echo "Could not find public IP for ${name}."
+        return 1
+    fi
+    local ssh_config="${HOME}/.ssh/config"
+    mkdir -p "${HOME}/.ssh"
+    touch "${ssh_config}"
+    chmod 600 "${ssh_config}"
+    ## Remove existing Host block if present (idempotent):
+    if grep -qP "^Host ${name}$" "${ssh_config}" 2>/dev/null; then
+        local tmp
+        tmp=$(mktemp)
+        sed < "${ssh_config}" "/^$/d;s/Host /$NL&/" | sed '/^Host '"${name}"'$/,/^$/d;' > "${tmp}"
+        cat "${tmp}" > "${ssh_config}"
+        rm -f "${tmp}"
+    fi
+    cat <<EOF >> "${ssh_config}"
+
+Host ${name}
+     Hostname ${ip}
+     User root
+     ControlMaster auto
+     ControlPersist yes
+     ControlPath /tmp/ssh-%u-%r@%h:%p
+EOF
+    echo "Updated SSH config for ${name} (${ip})."
+    ## Optionally create Docker context:
+    if command -v docker >/dev/null 2>&1; then
+        if confirm no "Create Docker context for ${name}" "?"; then
+            if docker context inspect "${name}" >/dev/null 2>&1; then
+                docker context rm -f "${name}"
+            fi
+            docker context create "${name}" --docker "host=ssh://${name}"
+            echo "Docker context '${name}' created."
+        fi
+    fi
+}
+
 gumdrop_destroy() {
     local tag_args=()
     [[ -n "${GUMDROP_TAG}" ]] && tag_args=(--tag-name "${GUMDROP_TAG}")
@@ -2381,6 +2431,7 @@ gumdrop_manage_droplets() {
             "Create new ${GUMDROP_LABEL,,} = $0 gumdrop_create" \
             "SSH into ${GUMDROP_LABEL,,} = $0 gumdrop_ssh" \
             "Destroy ${GUMDROP_LABEL,,} = $0 gumdrop_destroy" \
+            "Add to local SSH config = $0 gumdrop_add_ssh_config" \
             "Back = exit 2"
         local EXIT_CODE=$?
         set -e
