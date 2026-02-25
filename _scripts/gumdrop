@@ -52,7 +52,7 @@ gumdrop_list() {
         done < <(doctl compute reserved-ip list --format IP,DropletID --no-header 2>/dev/null)
         ## Print droplet table with ReservedIP column:
         {
-            echo "ID Name PublicIPv4 ReservedIPv4 Region SizeSlug Status"
+            echo "ID Name PublicIPv4 ReservedIPv4 Region Size Status"
             while read -r id name pub region size status; do
                 echo "${id} ${name} ${pub} ${_RIP_MAP[${id}]:--} ${region} ${size} ${status}"
             done < <(doctl compute droplet list "${tag_args[@]}" --format ID,Name,PublicIPv4,Region,SizeSlug,Status --no-header)
