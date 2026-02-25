@@ -15,8 +15,8 @@ DROPLET_TAG="woodpecker-agent"
 command -v doctl >/dev/null || fault "doctl is not installed. See https://docs.digitalocean.com/reference/doctl/how-to/install/"
 doctl account get >/dev/null 2>&1 || fault "doctl is not authenticated. Run: doctl auth init"
 
-WOODPECKER_SERVER="${DEFAULT_WOODPECKER_SERVER}"
-WOODPECKER_AGENT_SECRET="${DEFAULT_WOODPECKER_AGENT_SECRET}"
+export WOODPECKER_SERVER="${DEFAULT_WOODPECKER_SERVER}"
+export WOODPECKER_AGENT_SECRET="${DEFAULT_WOODPECKER_AGENT_SECRET}"
 
 list_droplets() {
     echo ""
@@ -155,9 +155,9 @@ main() {
     do
         list_droplets
         wizard menu --once --cancel-code=2 "Woodpecker Agent Droplets:" \
-            "Create new agent droplet = create_droplet" \
-            "SSH into agent droplet = ssh_droplet" \
-            "Destroy agent droplet = destroy_droplet" \
+            "Create new agent droplet = $0 create_droplet" \
+            "SSH into agent droplet = $0 ssh_droplet" \
+            "Destroy agent droplet = $0 destroy_droplet" \
             "Exit = exit 0"
         local EXIT_CODE=$?
         if [[ "${EXIT_CODE}" == "2" ]]; then
