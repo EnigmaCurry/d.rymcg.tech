@@ -50,14 +50,18 @@
         exit "$rc"
       fi
 
-      # Partition grew — resize LUKS container if present.
-      # cryptsetup resize on LUKS2 requires re-authentication, so extract
-      # the active volume key from device-mapper and pass it directly.
+      # Partition grew — resize LUKS dm-crypt mapping if present.
+      # Reloads the dm table with updated sector count. The key (stored in
+      # the kernel keyring) is referenced by the table and stays untouched.
       if ${pkgs.cryptsetup}/bin/cryptsetup status cryptroot >/dev/null 2>&1; then
-        ${pkgs.lvm2}/bin/dmsetup table --showkeys cryptroot \
-          | ${pkgs.gawk}/bin/awk '{print $5}' \
-          | ${pkgs.python3}/bin/python3 -c "import sys; sys.stdout.buffer.write(bytes.fromhex(sys.stdin.read().strip()))" \
-          | ${pkgs.cryptsetup}/bin/cryptsetup resize cryptroot --volume-key-file /dev/stdin
+        old_table=$(${pkgs.lvm2}/bin/dmsetup table cryptroot)
+        luks_offset=$(echo "$old_table" | ${pkgs.gawk}/bin/awk '{print $8}')
+        new_part_sectors=$(${pkgs.util-linux}/bin/blockdev --getsz /dev/disk/by-partlabel/nixos)
+        new_data_sectors=$((new_part_sectors - luks_offset))
+        new_table=$(echo "$old_table" | ${pkgs.gawk}/bin/awk -v ns="$new_data_sectors" '{$2=ns; print}')
+        ${pkgs.lvm2}/bin/dmsetup suspend cryptroot
+        ${pkgs.lvm2}/bin/dmsetup load cryptroot --table "$new_table"
+        ${pkgs.lvm2}/bin/dmsetup resume cryptroot
       fi
 
       # Resize the filesystem to fill the new space

@@ -34,7 +34,7 @@
   boot.initrd.postDeviceCommands = lib.mkAfter ''
     if cryptsetup isLuks /dev/disk/by-partlabel/nixos 2>/dev/null; then
       echo "Opening encrypted root partition..."
-      cryptsetup luksOpen --disable-keyring /dev/disk/by-partlabel/nixos cryptroot
+      cryptsetup luksOpen /dev/disk/by-partlabel/nixos cryptroot
       udevadm settle
     fi
   '';
