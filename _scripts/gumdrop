@@ -730,9 +730,18 @@ gumdrop_create() {
                 done < <(doctl vpcs list --format ID,Name,Region --no-header 2>/dev/null)
                 local selected_vpc=""
                 if [[ ${#vpc_ids[@]} -eq 0 ]]; then
-                    echo "No VPCs found in region '${REGION}'. Skipping NFS creation."
-                    continue
-                elif [[ ${#vpc_ids[@]} -eq 1 ]]; then
+                    echo "No VPCs found in region '${REGION}'. Creating one..."
+                    local new_vpc_id
+                    new_vpc_id=$(doctl vpcs create --name "default-${REGION}" --region "${REGION}" --format ID --no-header 2>/dev/null)
+                    if [[ -z "${new_vpc_id}" ]]; then
+                        error "Failed to create VPC in region '${REGION}'."
+                        continue
+                    fi
+                    echo "VPC 'default-${REGION}' created."
+                    vpc_ids=("${new_vpc_id}")
+                    vpc_names_list=("default-${REGION}")
+                fi
+                if [[ ${#vpc_ids[@]} -eq 1 ]]; then
                     selected_vpc="${vpc_ids[0]}"
                     echo "Using VPC: ${vpc_names_list[0]}"
                 else
@@ -1604,16 +1613,30 @@ gumdrop_create_nfs() {
     done < <(doctl vpcs list --format ID,Name,Region --no-header 2>/dev/null)
 
     if [[ ${#vpc_options[@]} -eq 0 ]]; then
-        echo "No VPCs found in region '${region}'."
-        return
+        echo "No VPCs found in region '${region}'. Creating one..."
+        local new_vpc_id
+        new_vpc_id=$(doctl vpcs create --name "default-${region}" --region "${region}" --format ID --no-header 2>/dev/null)
+        if [[ -z "${new_vpc_id}" ]]; then
+            error "Failed to create VPC in region '${region}'."
+            return
+        fi
+        echo "VPC 'default-${region}' created."
+        vpc_ids=("${new_vpc_id}")
+        vpc_names=("default-${region}")
+        vpc_options=("default-${region} (${new_vpc_id})")
     fi
 
     local selected_vpc_ids=()
-    readarray -t SELECTED < <(wizard select "Select VPCs for this NFS share" "${vpc_options[@]}")
-    for sel in "${SELECTED[@]}"; do
-        local sel_id=$(echo "${sel}" | grep -oP '\(\K[0-9a-f-]+(?=\))')
-        [[ -n "${sel_id}" ]] && selected_vpc_ids+=("${sel_id}")
-    done
+    if [[ ${#vpc_options[@]} -eq 1 ]]; then
+        selected_vpc_ids=("${vpc_ids[0]}")
+        echo "Using VPC: ${vpc_names[0]}"
+    else
+        readarray -t SELECTED < <(wizard select "Select VPCs for this NFS share" "${vpc_options[@]}")
+        for sel in "${SELECTED[@]}"; do
+            local sel_id=$(echo "${sel}" | grep -oP '\(\K[0-9a-f-]+(?=\))')
+            [[ -n "${sel_id}" ]] && selected_vpc_ids+=("${sel_id}")
+        done
+    fi
     if [[ ${#selected_vpc_ids[@]} -eq 0 ]]; then
         echo "No VPCs selected. Aborting."
         return
