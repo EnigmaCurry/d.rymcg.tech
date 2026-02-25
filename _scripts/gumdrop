@@ -106,6 +106,70 @@ for d in data:
     else
         echo "No ${GUMDROP_LABEL,,}s found${GUMDROP_TAG:+ (tag: ${GUMDROP_TAG})}."
     fi
+
+    ## Resource summaries:
+    local summaries=()
+
+    ## NFS shares:
+    if [[ -z "${_NFS_IDS+x}" ]]; then _gumdrop_collect_nfs_shares; fi
+    if [[ ${#_NFS_IDS[@]} -gt 0 ]]; then
+        local nfs_list=""
+        for i in "${!_NFS_IDS[@]}"; do
+            nfs_list+="${nfs_list:+, }${_NFS_NAMES[$i]} (${_NFS_REGIONS[$i]})"
+        done
+        summaries+=("NFS shares: ${nfs_list}")
+    fi
+
+    ## Unused firewalls (no droplets assigned):
+    local unused_fw=()
+    readarray -t _FW_NAMES < <(doctl compute firewall list --format Name --no-header 2>/dev/null)
+    readarray -t _FW_DROPLETS < <(doctl compute firewall list --format DropletIDs --no-header 2>/dev/null)
+    for i in "${!_FW_NAMES[@]}"; do
+        if [[ -z "${_FW_DROPLETS[$i]}" || "${_FW_DROPLETS[$i]}" == "[]" ]]; then
+            unused_fw+=("${_FW_NAMES[$i]}")
+        fi
+    done
+    if [[ ${#unused_fw[@]} -gt 0 ]]; then
+        local fw_list
+        fw_list=$(IFS=', '; echo "${unused_fw[*]}")
+        summaries+=("Unused firewalls: ${fw_list}")
+    fi
+
+    ## Unattached volumes:
+    local unattached_vol=()
+    readarray -t _VOL_NAMES_ALL < <(doctl compute volume list --format Name --no-header 2>/dev/null)
+    readarray -t _VOL_DROPLETS_ALL < <(doctl compute volume list --format DropletIDs --no-header 2>/dev/null)
+    for i in "${!_VOL_NAMES_ALL[@]}"; do
+        if [[ -z "${_VOL_DROPLETS_ALL[$i]}" || "${_VOL_DROPLETS_ALL[$i]}" == "[]" ]]; then
+            unattached_vol+=("${_VOL_NAMES_ALL[$i]}")
+        fi
+    done
+    if [[ ${#unattached_vol[@]} -gt 0 ]]; then
+        local vol_list
+        vol_list=$(IFS=', '; echo "${unattached_vol[*]}")
+        summaries+=("Unattached volumes: ${vol_list}")
+    fi
+
+    ## Unassigned reserved IPs:
+    local unassigned_ips=()
+    readarray -t _RIP_ALL < <(doctl compute reserved-ip list --format IP --no-header 2>/dev/null)
+    readarray -t _RIP_DROPLET_ALL < <(doctl compute reserved-ip list --format DropletID --no-header 2>/dev/null)
+    for i in "${!_RIP_ALL[@]}"; do
+        if [[ -z "${_RIP_DROPLET_ALL[$i]}" || "${_RIP_DROPLET_ALL[$i]}" == "0" ]]; then
+            unassigned_ips+=("${_RIP_ALL[$i]}")
+        fi
+    done
+    if [[ ${#unassigned_ips[@]} -gt 0 ]]; then
+        local ip_list
+        ip_list=$(IFS=', '; echo "${unassigned_ips[*]}")
+        summaries+=("Unassigned reserved IPs: ${ip_list}")
+    fi
+
+    if [[ ${#summaries[@]} -gt 0 ]]; then
+        for s in "${summaries[@]}"; do
+            echo "  ${s}"
+        done
+    fi
     echo ""
 }
 
