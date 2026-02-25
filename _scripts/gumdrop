@@ -367,7 +367,14 @@ gumdrop_create() {
         gumdrop_pre_create_hook
     fi
 
-    ask_no_blank "Enter ${GUMDROP_LABEL,,} name" DROPLET_NAME
+    while :; do
+        ask_no_blank "Enter ${GUMDROP_LABEL,,} name" DROPLET_NAME
+        if doctl compute droplet list --format Name --no-header 2>/dev/null | grep -qx "${DROPLET_NAME}"; then
+            error "A droplet named '${DROPLET_NAME}' already exists."
+        else
+            break
+        fi
+    done
 
     ## Select region:
     readarray -t REGION_SLUGS < <(doctl compute region list --format Slug --no-header)
