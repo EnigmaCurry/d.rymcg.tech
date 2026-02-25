@@ -26,8 +26,10 @@ GUMDROP_IMAGES="${GUMDROP_IMAGES:-}"
 gumdrop_check_doctl() {
     command -v doctl >/dev/null || fault "doctl is not installed. See https://docs.digitalocean.com/reference/doctl/how-to/install/"
     if ! doctl account get >/dev/null 2>&1; then
-        confirm yes "doctl is not authenticated. Run 'doctl auth init' now" "?" || fault "doctl is not authenticated."
-        doctl auth init
+        confirm yes "doctl is not authenticated. Login now" "?" || fault "doctl is not authenticated."
+        local context_name
+        ask "Enter a name for this account" context_name "default"
+        doctl auth init --context "${context_name}"
     fi
 }
 
