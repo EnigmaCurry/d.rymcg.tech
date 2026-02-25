@@ -205,8 +205,8 @@ upload_ssh_key() {
             local fingerprint=$(echo "${line}" | ssh-keygen -lf - 2>/dev/null | awk '{print $2}')
             if [[ -n "${fingerprint}" && -z "${SEEN_KEYS[${fingerprint}]}" ]]; then
                 SEEN_KEYS[${fingerprint}]=1
-                local comment=${line##* }
-                KEY_OPTIONS+=("agent: ${comment}")
+                local keytype=$(echo "${line}" | awk '{print $1}')
+                KEY_OPTIONS+=("agent: ${keytype} ${fingerprint}")
                 KEY_SOURCES+=("agent:${line}")
             fi
         done < <(ssh-add -L)
