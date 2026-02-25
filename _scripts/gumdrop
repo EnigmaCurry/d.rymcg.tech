@@ -790,7 +790,7 @@ _gumdrop_summarize_rules() {
     if [[ ${#parts[@]} -eq 0 ]]; then
         echo "-"
     else
-        echo "${parts[*]}"
+        local IFS='+'; echo "${parts[*]}"
     fi
 }
 
@@ -824,7 +824,13 @@ gumdrop_list_firewalls() {
                     droplet_names+=("${_DID_NAME[${did}]:-${did}}")
                 done
             fi
-            echo "${FW_NAMES[$i]} ${summary} ${droplet_names[*]:--}"
+            local droplet_csv
+            if [[ ${#droplet_names[@]} -gt 0 ]]; then
+                droplet_csv=$(IFS=','; echo "${droplet_names[*]}")
+            else
+                droplet_csv="-"
+            fi
+            echo "${FW_NAMES[$i]} ${summary} ${droplet_csv}"
         done
     } | column -t
     echo ""
