@@ -761,10 +761,72 @@ gumdrop_create() {
     gumdrop_list
 }
 
+_gumdrop_summarize_rules() {
+    ## Summarize inbound rules like "tcp/22,80,443 icmp" from raw doctl format
+    local raw="$1"
+    [[ -z "${raw}" ]] && echo "-" && return
+    local tcp_ports=() udp_ports=() has_icmp=false
+    for rule in ${raw}; do
+        local proto=$(echo "${rule}" | grep -oP 'protocol:\K[^,]+')
+        local port=$(echo "${rule}" | grep -oP 'ports:\K[^,]+')
+        if [[ "${proto}" == "icmp" ]]; then
+            has_icmp=true
+        elif [[ "${proto}" == "tcp" && -n "${port}" ]]; then
+            tcp_ports+=("${port}")
+        elif [[ "${proto}" == "udp" && -n "${port}" ]]; then
+            udp_ports+=("${port}")
+        fi
+    done
+    local parts=()
+    if [[ ${#tcp_ports[@]} -gt 0 ]]; then
+        local tcp_csv=$(IFS=','; echo "${tcp_ports[*]}")
+        parts+=("tcp/${tcp_csv}")
+    fi
+    if [[ ${#udp_ports[@]} -gt 0 ]]; then
+        local udp_csv=$(IFS=','; echo "${udp_ports[*]}")
+        parts+=("udp/${udp_csv}")
+    fi
+    [[ "${has_icmp}" == true ]] && parts+=("icmp")
+    if [[ ${#parts[@]} -eq 0 ]]; then
+        echo "-"
+    else
+        echo "${parts[*]}"
+    fi
+}
+
 gumdrop_list_firewalls() {
     echo ""
     echo "## Firewalls:"
-    doctl compute firewall list --format ID,Name,Status,InboundRules,DropletIDs
+    readarray -t FW_IDS < <(doctl compute firewall list --format ID --no-header 2>/dev/null)
+    if [[ ${#FW_IDS[@]} -eq 0 ]]; then
+        echo "No firewalls found."
+        echo ""
+        return
+    fi
+    readarray -t FW_NAMES < <(doctl compute firewall list --format Name --no-header)
+    readarray -t FW_RULES < <(doctl compute firewall list --format InboundRules --no-header)
+    readarray -t FW_DROPLET_IDS < <(doctl compute firewall list --format DropletIDs --no-header)
+
+    ## Build droplet ID -> name lookup:
+    declare -A _DID_NAME
+    while read -r did dname; do
+        [[ -n "${did}" ]] && _DID_NAME["${did}"]="${dname}"
+    done < <(doctl compute droplet list --format ID,Name --no-header 2>/dev/null)
+
+    {
+        echo "Name Inbound Droplets"
+        for i in "${!FW_IDS[@]}"; do
+            local summary=$(_gumdrop_summarize_rules "${FW_RULES[$i]}")
+            local droplet_list=$(echo "${FW_DROPLET_IDS[$i]}" | tr -d '[]')
+            local droplet_names=()
+            if [[ -n "${droplet_list}" && "${droplet_list}" != "0" ]]; then
+                for did in $(echo "${droplet_list}" | tr ',' ' '); do
+                    droplet_names+=("${_DID_NAME[${did}]:-${did}}")
+                done
+            fi
+            echo "${FW_NAMES[$i]} ${summary} ${droplet_names[*]:--}"
+        done
+    } | column -t
     echo ""
 }
 
