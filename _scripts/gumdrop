@@ -20,6 +20,8 @@ GUMDROP_DEFAULT_IMAGE="${GUMDROP_DEFAULT_IMAGE:-debian-13-x64}"
 GUMDROP_DEFAULT_REGION="${GUMDROP_DEFAULT_REGION:-nyc3}"
 GUMDROP_DEFAULT_SIZE="${GUMDROP_DEFAULT_SIZE:-s-2vcpu-4gb}"
 GUMDROP_SSH_KEY_NAME="${GUMDROP_SSH_KEY_NAME:-gumdrop}"
+## Space-separated list of image slugs to offer. Empty = fetch all public images from doctl.
+GUMDROP_IMAGES="${GUMDROP_IMAGES:-}"
 
 gumdrop_check_doctl() {
     command -v doctl >/dev/null || fault "doctl is not installed. See https://docs.digitalocean.com/reference/doctl/how-to/install/"
@@ -223,7 +225,28 @@ gumdrop_create() {
     SIZE=$(echo "${SIZE_CHOICE}" | awk '{print $1}')
 
     ## Select image:
-    IMAGE=$(wizard choose "Select image" "${GUMDROP_DEFAULT_IMAGE}" --default "${GUMDROP_DEFAULT_IMAGE}")
+    local IMAGE_OPTIONS=()
+    local IMAGE_DEFAULT=""
+    if [[ -n "${GUMDROP_IMAGES}" ]]; then
+        read -ra IMAGE_OPTIONS <<< "${GUMDROP_IMAGES}"
+    else
+        readarray -t IMAGE_SLUGS < <(doctl compute image list --public --format Slug --no-header | grep -v '^$' | sort)
+        readarray -t IMAGE_DISTROS < <(doctl compute image list --public --format Distribution --no-header)
+        ## Build slug-to-distro map for display:
+        declare -A SLUG_DISTRO
+        for i in "${!IMAGE_SLUGS[@]}"; do
+            [[ -n "${IMAGE_SLUGS[$i]}" ]] && SLUG_DISTRO["${IMAGE_SLUGS[$i]}"]="${IMAGE_DISTROS[$i]}"
+        done
+        for slug in "${IMAGE_SLUGS[@]}"; do
+            [[ -n "${slug}" ]] && IMAGE_OPTIONS+=("$(printf "%-30s  %s" "${slug}" "${SLUG_DISTRO[${slug}]}")")
+        done
+    fi
+    for opt in "${IMAGE_OPTIONS[@]}"; do
+        [[ "$(echo "${opt}" | awk '{print $1}')" == "${GUMDROP_DEFAULT_IMAGE}" ]] && IMAGE_DEFAULT="${opt}"
+    done
+    local IMAGE_CHOICE
+    IMAGE_CHOICE=$(wizard choose "Select image" "${IMAGE_OPTIONS[@]}" --default "${IMAGE_DEFAULT}")
+    IMAGE=$(echo "${IMAGE_CHOICE}" | awk '{print $1}')
 
     ## Select SSH key:
     echo ""

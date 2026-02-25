@@ -10,6 +10,7 @@ BIN=${ROOT_DIR}/_scripts
 export GUMDROP_TAG="woodpecker-agent"
 export GUMDROP_LABEL="Woodpecker Agent"
 export GUMDROP_SSH_KEY_NAME="woodpecker-agent"
+export GUMDROP_IMAGES="debian-13-x64"
 
 export WOODPECKER_SERVER="${DEFAULT_WOODPECKER_SERVER}"
 export WOODPECKER_AGENT_SECRET="${DEFAULT_WOODPECKER_AGENT_SECRET}"
