@@ -37,10 +37,11 @@ gumdrop_check_doctl() {
 gumdrop_list() {
     local tag_args=()
     [[ -n "${GUMDROP_TAG}" ]] && tag_args=(--tag-name "${GUMDROP_TAG}")
+    echo ""
+    echo "## Loading account data ..."
     local account_email=$(doctl account get --format Email --no-header 2>/dev/null)
     local account_team=$(doctl account get --format Team --no-header 2>/dev/null)
     local account_context=$(doctl auth list 2>/dev/null | grep -oP '^.+(?= \(current\))' || echo "default")
-    echo ""
     printf "## %-9s %s\n" "Account:" "${account_context}"
     printf "## %-9s %s\n" "Team:" "${account_team:+[${account_team}] }${account_email}"
     local count=$(doctl compute droplet list "${tag_args[@]}" --format ID --no-header 2>/dev/null | wc -l)
@@ -2001,6 +2002,229 @@ _gumdrop_delete_snapshot() {
     echo "Snapshot deleted."
 }
 
+gumdrop_manage_backups() {
+    local tag_args=()
+    [[ -n "${GUMDROP_TAG}" ]] && tag_args=(--tag-name "${GUMDROP_TAG}")
+    readarray -t DROPLET_IDS < <(doctl compute droplet list "${tag_args[@]}" --format ID --no-header)
+    readarray -t DROPLET_NAMES < <(doctl compute droplet list "${tag_args[@]}" --format Name --no-header)
+    if [[ ${#DROPLET_IDS[@]} -eq 0 ]]; then
+        echo "No ${GUMDROP_LABEL,,}s found."
+        return
+    fi
+    local DROPLET_OPTIONS=()
+    for i in "${!DROPLET_IDS[@]}"; do
+        DROPLET_OPTIONS+=("${DROPLET_NAMES[$i]} (${DROPLET_IDS[$i]})")
+    done
+    local droplet_choice
+    if ! droplet_choice=$(wizard choose "Manage backups for which ${GUMDROP_LABEL,,}?" "${DROPLET_OPTIONS[@]}" --default "${DROPLET_OPTIONS[0]}"); then return; fi
+    local droplet_id=$(echo "${droplet_choice}" | grep -oP '\(\K[0-9]+(?=\))')
+    local droplet_name=$(echo "${droplet_choice}" | sed 's/ ([^)]*)//')
+
+    while :
+    do
+        echo ""
+        echo "## Backups for ${droplet_name}:"
+        ## Check backup status:
+        local backup_enabled=false
+        local backup_plan=""
+        local droplet_json
+        droplet_json=$(doctl compute droplet get "${droplet_id}" --output json 2>/dev/null)
+        backup_plan=$(echo "${droplet_json}" | python3 -c "
+import json,sys
+d=json.load(sys.stdin)[0]
+p=d.get('backup_policy') or {}
+plan=p.get('plan','') if isinstance(p,dict) else ''
+if not plan and 'backups' in d.get('features',[]):
+    plan='daily'
+print(plan)
+" 2>/dev/null)
+        if [[ -n "${backup_plan}" ]]; then
+            backup_enabled=true
+            echo "Backups: enabled (${backup_plan})"
+        else
+            echo "Backups: disabled"
+        fi
+
+        readarray -t BACKUP_IDS < <(doctl compute droplet backups "${droplet_id}" --format ID --no-header 2>/dev/null)
+        readarray -t BACKUP_NAMES < <(doctl compute droplet backups "${droplet_id}" --format Name --no-header 2>/dev/null)
+        readarray -t BACKUP_CREATED < <(doctl compute droplet backups "${droplet_id}" --format Created --no-header 2>/dev/null)
+        readarray -t BACKUP_MINDISK < <(doctl compute droplet backups "${droplet_id}" --format MinDisk --no-header 2>/dev/null)
+        local has_backups=false
+        if [[ ${#BACKUP_IDS[@]} -gt 0 && -n "${BACKUP_IDS[0]}" ]]; then
+            has_backups=true
+            {
+                echo "ID Name MinDisk Created"
+                for i in "${!BACKUP_IDS[@]}"; do
+                    [[ -z "${BACKUP_IDS[$i]}" ]] && continue
+                    echo "${BACKUP_IDS[$i]} ${BACKUP_NAMES[$i]} ${BACKUP_MINDISK[$i]}GiB ${BACKUP_CREATED[$i]}"
+                done
+            } | column -t
+        else
+            echo "No backup files found."
+        fi
+        echo ""
+
+        local menu_items=()
+        if [[ "${backup_enabled}" == true ]]; then
+            menu_items+=("Disable backups = $0 _gumdrop_disable_backups ${droplet_id}")
+        else
+            menu_items+=("Enable backups = $0 _gumdrop_enable_backups ${droplet_id}")
+        fi
+        if [[ "${has_backups}" == true ]]; then
+            menu_items+=(
+                "Restore from backup = $0 _gumdrop_restore_backup ${droplet_id} ${droplet_name}"
+                "Convert backup to snapshot = $0 _gumdrop_convert_backup ${droplet_id}"
+                "Delete backups = $0 _gumdrop_delete_backups ${droplet_id}"
+            )
+        fi
+        menu_items+=("Back = exit 2")
+        set +e
+        wizard menu --once --cancel-code=2 "Backups:" "${menu_items[@]}"
+        local EXIT_CODE=$?
+        set -e
+        if [[ "${EXIT_CODE}" == "2" ]]; then
+            exit 0
+        fi
+    done
+}
+
+_gumdrop_enable_backups() {
+    local droplet_id="$1"
+    local backup_plan
+    set +e
+    backup_plan=$(wizard choose "Backup frequency" "Daily" "Weekly" --default "Daily")
+    set -e
+    [[ -z "${backup_plan}" ]] && return
+    local policy_args=(--backup-policy-plan "${backup_plan,,}")
+
+    local backup_hour
+    set +e
+    backup_hour=$(wizard choose "Backup hour (UTC)" "0" "4" "8" "12" "16" "20" --default "0")
+    set -e
+    policy_args+=(--backup-policy-hour "${backup_hour:-0}")
+
+    if [[ "${backup_plan}" == "Weekly" ]]; then
+        local backup_weekday
+        set +e
+        backup_weekday=$(wizard choose "Backup weekday" "SUN" "MON" "TUE" "WED" "THU" "FRI" "SAT" --default "SUN")
+        set -e
+        policy_args+=(--backup-policy-weekday "${backup_weekday:-SUN}")
+    fi
+
+    echo "Enabling backups..."
+    set +e
+    doctl compute droplet-action enable-backups "${droplet_id}" "${policy_args[@]}" --wait
+    set -e
+    echo "Backups enabled."
+}
+
+_gumdrop_disable_backups() {
+    local droplet_id="$1"
+    confirm no "Are you sure you want to disable backups? Existing backup files will not be deleted" "." || return
+    echo "Disabling backups..."
+    set +e
+    doctl compute droplet-action disable-backups "${droplet_id}" --wait
+    set -e
+    echo "Backups disabled."
+}
+
+_gumdrop_restore_backup() {
+    local droplet_id="$1"
+    local droplet_name="$2"
+    readarray -t BACKUP_IDS < <(doctl compute droplet backups "${droplet_id}" --format ID --no-header 2>/dev/null)
+    readarray -t BACKUP_NAMES < <(doctl compute droplet backups "${droplet_id}" --format Name --no-header 2>/dev/null)
+    if [[ ${#BACKUP_IDS[@]} -eq 0 || -z "${BACKUP_IDS[0]}" ]]; then
+        echo "No backups found."
+        return
+    fi
+    local BACKUP_OPTIONS=()
+    for i in "${!BACKUP_IDS[@]}"; do
+        [[ -z "${BACKUP_IDS[$i]}" ]] && continue
+        BACKUP_OPTIONS+=("${BACKUP_NAMES[$i]} (${BACKUP_IDS[$i]})")
+    done
+    local choice
+    if ! choice=$(wizard choose "Restore from which backup?" "${BACKUP_OPTIONS[@]}" --default "${BACKUP_OPTIONS[0]}"); then return; fi
+    local backup_id=$(echo "${choice}" | grep -oP '\(\K[0-9]+(?=\))')
+    confirm no "This will restore '${droplet_name}' from backup '${choice}'. All current data will be replaced" "." || return
+    echo "Restoring from backup (this may take a while)..."
+    set +e
+    doctl compute droplet-action restore "${droplet_id}" --image-id "${backup_id}" --wait
+    set -e
+    echo "Backup restored."
+}
+
+_gumdrop_convert_backup() {
+    local droplet_id="$1"
+    readarray -t BACKUP_IDS < <(doctl compute droplet backups "${droplet_id}" --format ID --no-header 2>/dev/null)
+    readarray -t BACKUP_NAMES < <(doctl compute droplet backups "${droplet_id}" --format Name --no-header 2>/dev/null)
+    if [[ ${#BACKUP_IDS[@]} -eq 0 || -z "${BACKUP_IDS[0]}" ]]; then
+        echo "No backups found."
+        return
+    fi
+    local BACKUP_OPTIONS=()
+    for i in "${!BACKUP_IDS[@]}"; do
+        [[ -z "${BACKUP_IDS[$i]}" ]] && continue
+        BACKUP_OPTIONS+=("${BACKUP_NAMES[$i]} (${BACKUP_IDS[$i]})")
+    done
+    readarray -t SELECTED < <(wizard select "Select backups to convert to snapshots" "${BACKUP_OPTIONS[@]}")
+    if [[ ${#SELECTED[@]} -eq 0 ]]; then
+        echo "No backups selected."
+        return
+    fi
+    local token
+    token=$(doctl auth token 2>/dev/null)
+    if [[ -z "${token}" ]]; then
+        error "Could not retrieve API token."
+        return
+    fi
+    for sel in "${SELECTED[@]}"; do
+        local backup_id=$(echo "${sel}" | grep -oP '\(\K[0-9]+(?=\))')
+        [[ -z "${backup_id}" ]] && continue
+        echo "Converting '${sel}' to snapshot..."
+        set +e
+        local resp
+        resp=$(curl -s -X POST \
+            -H "Content-Type: application/json" \
+            -H "Authorization: Bearer ${token}" \
+            -d '{"type":"convert"}' \
+            "https://api.digitalocean.com/v2/images/${backup_id}/actions")
+        set -e
+        if echo "${resp}" | python3 -c "import json,sys; d=json.load(sys.stdin); print(d.get('action',{}).get('status',''))" 2>/dev/null | grep -q "in-progress"; then
+            echo "Conversion started for '${sel}'."
+        else
+            error "Failed to convert '${sel}': ${resp}"
+        fi
+    done
+}
+
+_gumdrop_delete_backups() {
+    local droplet_id="$1"
+    readarray -t BACKUP_IDS < <(doctl compute droplet backups "${droplet_id}" --format ID --no-header 2>/dev/null)
+    readarray -t BACKUP_NAMES < <(doctl compute droplet backups "${droplet_id}" --format Name --no-header 2>/dev/null)
+    if [[ ${#BACKUP_IDS[@]} -eq 0 || -z "${BACKUP_IDS[0]}" ]]; then
+        echo "No backups found."
+        return
+    fi
+    local BACKUP_OPTIONS=()
+    for i in "${!BACKUP_IDS[@]}"; do
+        [[ -z "${BACKUP_IDS[$i]}" ]] && continue
+        BACKUP_OPTIONS+=("${BACKUP_NAMES[$i]} (${BACKUP_IDS[$i]})")
+    done
+    readarray -t SELECTED < <(wizard select "Select backups to delete" "${BACKUP_OPTIONS[@]}")
+    if [[ ${#SELECTED[@]} -eq 0 ]]; then
+        echo "No backups selected."
+        return
+    fi
+    confirm no "Are you sure you want to delete ${#SELECTED[@]} backup(s)" "?" || return
+    for sel in "${SELECTED[@]}"; do
+        local backup_id=$(echo "${sel}" | grep -oP '\(\K[0-9]+(?=\))')
+        [[ -z "${backup_id}" ]] && continue
+        echo "Deleting '${sel}'..."
+        doctl compute image delete "${backup_id}" --force
+        echo "Deleted."
+    done
+}
+
 gumdrop_manage_accounts() {
     while :
     do
@@ -2036,6 +2260,7 @@ gumdrop_main() {
             "Manage NFS = $0 gumdrop_manage_nfs" \
             "Manage reserved IPs = $0 gumdrop_manage_reserved_ips" \
             "Manage snapshots = $0 gumdrop_manage_snapshots" \
+            "Manage backups = $0 gumdrop_manage_backups" \
             "Manage accounts = $0 gumdrop_manage_accounts" \
             "Exit = exit 2"
         local EXIT_CODE=$?
