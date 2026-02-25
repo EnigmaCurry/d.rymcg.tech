@@ -186,6 +186,119 @@ gumdrop_manage_ssh_keys() {
     done
 }
 
+_gumdrop_create_web_firewall() {
+    local fw_name="${DROPLET_NAME}-web"
+    echo "Creating firewall '${fw_name}' (TCP 22, 80, 443 inbound, all outbound)..."
+    local output
+    output=$(doctl compute firewall create \
+        --name "${fw_name}" \
+        --inbound-rules "protocol:tcp,ports:22,address:0.0.0.0/0,address:::/0 protocol:tcp,ports:80,address:0.0.0.0/0,address:::/0 protocol:tcp,ports:443,address:0.0.0.0/0,address:::/0 protocol:icmp,address:0.0.0.0/0,address:::/0" \
+        --outbound-rules "protocol:tcp,ports:all,address:0.0.0.0/0,address:::/0 protocol:udp,ports:all,address:0.0.0.0/0,address:::/0 protocol:icmp,address:0.0.0.0/0,address:::/0" \
+        --format ID,Name --no-header)
+    local fw_id=$(echo "${output}" | awk '{print $1}')
+    if [[ -n "${fw_id}" ]]; then
+        FIREWALL_IDS+=("${fw_id}")
+        FIREWALL_NAMES+=("${fw_name}")
+        echo "Firewall '${fw_name}' created."
+    else
+        error "Failed to create firewall."
+    fi
+}
+
+_gumdrop_choose_existing_firewalls() {
+    readarray -t FW_IDS < <(doctl compute firewall list --format ID --no-header)
+    readarray -t FW_NAMES < <(doctl compute firewall list --format Name --no-header)
+    if [[ ${#FW_IDS[@]} -eq 0 ]]; then
+        echo "No existing firewalls found."
+        return
+    fi
+    local FW_OPTIONS=()
+    for i in "${!FW_IDS[@]}"; do
+        FW_OPTIONS+=("${FW_NAMES[$i]} (${FW_IDS[$i]})")
+    done
+    readarray -t SELECTED < <(wizard select "Select firewalls to apply" "${FW_OPTIONS[@]}")
+    for choice in "${SELECTED[@]}"; do
+        local fw_id=$(echo "${choice}" | grep -oP '\(\K[0-9a-f-]+(?=\))')
+        local fw_name=$(echo "${choice}" | sed 's/ ([^)]*)//')
+        if [[ -n "${fw_id}" ]]; then
+            FIREWALL_IDS+=("${fw_id}")
+            FIREWALL_NAMES+=("${fw_name}")
+        fi
+    done
+}
+
+_gumdrop_create_custom_firewall() {
+    local fw_name
+    ask_no_blank "Enter firewall name" fw_name
+    local INBOUND_RULES=()
+    local OUTBOUND_RULES=()
+
+    ## Always allow all outbound by default:
+    OUTBOUND_RULES+=("protocol:tcp,ports:all,address:0.0.0.0/0,address:::/0")
+    OUTBOUND_RULES+=("protocol:udp,ports:all,address:0.0.0.0/0,address:::/0")
+    OUTBOUND_RULES+=("protocol:icmp,address:0.0.0.0/0,address:::/0")
+
+    while :; do
+        echo ""
+        echo "## Inbound rules for '${fw_name}':"
+        if [[ ${#INBOUND_RULES[@]} -gt 0 ]]; then
+            for rule in "${INBOUND_RULES[@]}"; do
+                echo "  ${rule}"
+            done
+        else
+            echo "  (none)"
+        fi
+        local rule_action
+        set +e
+        rule_action=$(wizard choose "Manage inbound rules" \
+            "Add TCP port(s)" \
+            "Add UDP port(s)" \
+            "Allow ICMP (ping)" \
+            "Done" \
+            --default "Done")
+        local rule_exit=$?
+        set -e
+        if [[ ${rule_exit} -ne 0 ]] || [[ "${rule_action}" == "Done" ]]; then
+            break
+        elif [[ "${rule_action}" == "Add TCP port(s)" ]]; then
+            local ports
+            ask_no_blank "Enter TCP port(s) (e.g. 22 or 80,443 or 8000-9000)" ports
+            INBOUND_RULES+=("protocol:tcp,ports:${ports},address:0.0.0.0/0,address:::/0")
+        elif [[ "${rule_action}" == "Add UDP port(s)" ]]; then
+            local ports
+            ask_no_blank "Enter UDP port(s) (e.g. 53 or 1194)" ports
+            INBOUND_RULES+=("protocol:udp,ports:${ports},address:0.0.0.0/0,address:::/0")
+        elif [[ "${rule_action}" == "Allow ICMP (ping)" ]]; then
+            INBOUND_RULES+=("protocol:icmp,address:0.0.0.0/0,address:::/0")
+            echo "ICMP added."
+        fi
+    done
+
+    if [[ ${#INBOUND_RULES[@]} -eq 0 ]]; then
+        echo "No inbound rules added. Skipping firewall creation."
+        return
+    fi
+
+    local inbound_str="${INBOUND_RULES[*]}"
+    local outbound_str="${OUTBOUND_RULES[*]}"
+
+    echo "Creating firewall '${fw_name}'..."
+    local output
+    output=$(doctl compute firewall create \
+        --name "${fw_name}" \
+        --inbound-rules "${inbound_str}" \
+        --outbound-rules "${outbound_str}" \
+        --format ID,Name --no-header)
+    local fw_id=$(echo "${output}" | awk '{print $1}')
+    if [[ -n "${fw_id}" ]]; then
+        FIREWALL_IDS+=("${fw_id}")
+        FIREWALL_NAMES+=("${fw_name}")
+        echo "Firewall '${fw_name}' created."
+    else
+        error "Failed to create firewall."
+    fi
+}
+
 gumdrop_create() {
     if ! gumdrop_ensure_ssh_key; then return; fi
 
@@ -309,6 +422,26 @@ gumdrop_create() {
         fi
     fi
 
+    ## Select firewall:
+    local FIREWALL_IDS=()
+    local FIREWALL_NAMES=()
+    local fw_action
+    set +e
+    fw_action=$(wizard choose "Firewall" \
+        "No firewall" \
+        "Web (SSH + HTTP + HTTPS)" \
+        "Choose existing firewall" \
+        "Create new firewall" \
+        --default "No firewall")
+    set -e
+    if [[ "${fw_action}" == "Web (SSH + HTTP + HTTPS)" ]]; then
+        _gumdrop_create_web_firewall
+    elif [[ "${fw_action}" == "Choose existing firewall" ]]; then
+        _gumdrop_choose_existing_firewalls
+    elif [[ "${fw_action}" == "Create new firewall" ]]; then
+        _gumdrop_create_custom_firewall
+    fi
+
     ## Generate user-data via hook if defined:
     local user_data_args=()
     if type -t gumdrop_user_data_hook &>/dev/null; then
@@ -334,6 +467,9 @@ gumdrop_create() {
     if [[ ${#DROPLET_TAGS[@]} -gt 0 ]]; then
         echo "  Tags:          ${DROPLET_TAGS[*]}"
     fi
+    if [[ ${#FIREWALL_NAMES[@]} -gt 0 ]]; then
+        echo "  Firewalls:     ${FIREWALL_NAMES[*]}"
+    fi
 
     ## Call summary hook if defined:
     if type -t gumdrop_summary_hook &>/dev/null; then
@@ -352,6 +488,16 @@ gumdrop_create() {
         "${user_data_args[@]}" \
         "${tag_args[@]}" \
         --wait
+
+    ## Assign firewalls to the new droplet:
+    if [[ ${#FIREWALL_IDS[@]} -gt 0 ]]; then
+        local droplet_id=$(doctl compute droplet list --format ID,Name --no-header | awk -v name="${DROPLET_NAME}" '$2 == name {print $1}')
+        if [[ -n "${droplet_id}" ]]; then
+            for fw_id in "${FIREWALL_IDS[@]}"; do
+                doctl compute firewall add-droplets "${fw_id}" --droplet-ids "${droplet_id}"
+            done
+        fi
+    fi
 
     echo ""
     echo "${GUMDROP_LABEL} created."
