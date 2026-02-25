@@ -275,6 +275,20 @@ gumdrop_create() {
     gumdrop_list
 }
 
+gumdrop_switch_account() {
+    readarray -t CONTEXTS < <(doctl auth list 2>/dev/null | sed 's/ (current)$//')
+    if [[ ${#CONTEXTS[@]} -le 1 ]]; then
+        echo "Only one DigitalOcean account configured."
+        echo "Use 'doctl auth init --context <name>' to add another."
+        return
+    fi
+    local current=$(doctl auth list 2>/dev/null | grep -oP '^.+(?= \(current\))')
+    local choice
+    if ! choice=$(wizard choose "Switch to which DigitalOcean account?" "${CONTEXTS[@]}" --default "${current}"); then return; fi
+    doctl auth switch --context "${choice}"
+    echo "Switched to account: ${choice}"
+}
+
 gumdrop_main() {
     gumdrop_check_doctl
     while :
@@ -286,6 +300,7 @@ gumdrop_main() {
             "SSH into ${GUMDROP_LABEL,,} = $0 gumdrop_ssh" \
             "Destroy ${GUMDROP_LABEL,,} = $0 gumdrop_destroy" \
             "Manage SSH keys on DigitalOcean = $0 gumdrop_manage_ssh_keys" \
+            "Switch DigitalOcean account = $0 gumdrop_switch_account" \
             "Exit = exit 2"
         local EXIT_CODE=$?
         set -e
