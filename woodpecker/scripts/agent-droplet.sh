@@ -61,12 +61,30 @@ create_droplet() {
     check_var DROPLET_NAME
 
     ## Select region:
-    readarray -t REGIONS < <(doctl compute region list --format Slug --no-header)
-    REGION=$(wizard choose "Select region" "${REGIONS[@]}" --default "nyc3")
+    readarray -t REGION_SLUGS < <(doctl compute region list --format Slug --no-header)
+    readarray -t REGION_NAMES < <(doctl compute region list --format Name --no-header)
+    REGION_OPTIONS=()
+    REGION_DEFAULT=""
+    for i in "${!REGION_SLUGS[@]}"; do
+        local opt="${REGION_SLUGS[$i]} - ${REGION_NAMES[$i]}"
+        REGION_OPTIONS+=("${opt}")
+        [[ "${REGION_SLUGS[$i]}" == "nyc3" ]] && REGION_DEFAULT="${opt}"
+    done
+    REGION_CHOICE=$(wizard choose "Select region" "${REGION_OPTIONS[@]}" --default "${REGION_DEFAULT}")
+    REGION=${REGION_CHOICE%% - *}
 
     ## Select size:
-    readarray -t SIZES < <(doctl compute size list --format Slug --no-header)
-    SIZE=$(wizard choose "Select size" "${SIZES[@]}" --default "s-2vcpu-4gb")
+    readarray -t SIZE_SLUGS < <(doctl compute size list --format Slug --no-header)
+    readarray -t SIZE_PRICES < <(doctl compute size list --format PriceHourly --no-header)
+    SIZE_OPTIONS=()
+    SIZE_DEFAULT=""
+    for i in "${!SIZE_SLUGS[@]}"; do
+        local opt="${SIZE_SLUGS[$i]} - \$${SIZE_PRICES[$i]}/hr"
+        SIZE_OPTIONS+=("${opt}")
+        [[ "${SIZE_SLUGS[$i]}" == "s-2vcpu-4gb" ]] && SIZE_DEFAULT="${opt}"
+    done
+    SIZE_CHOICE=$(wizard choose "Select size" "${SIZE_OPTIONS[@]}" --default "${SIZE_DEFAULT}")
+    SIZE=${SIZE_CHOICE%% - *}
 
     ## Select image:
     IMAGE=$(wizard choose "Select image" "debian-13-x64" --default "debian-13-x64")
