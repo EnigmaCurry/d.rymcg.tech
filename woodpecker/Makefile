@@ -54,6 +54,12 @@ install-hook-pre:
 .PHONY: install-hook
 install-hook:
 
+.PHONY: create-agent-droplet # Create a DigitalOcean droplet running the Woodpecker agent
+create-agent-droplet:
+	@DEFAULT_WOODPECKER_SERVER="$$(${BIN}/dotenv -f ${ENV_FILE} get WOODPECKER_GRPC_HOST):443" \
+	DEFAULT_WOODPECKER_AGENT_SECRET="$$(${BIN}/dotenv -f ${ENV_FILE} get WOODPECKER_AGENT_SECRET)" \
+	bash scripts/create-agent-droplet.sh
+
 .PHONY: shell # Enter one of the container shells
 shell:
 	@container=$$(eval "${BIN}/script-wizard choose 'docker exec -it into which container?' 'server' 'agent' --default 'server'") && make --no-print-directory docker-compose-shell SERVICE=$${container}

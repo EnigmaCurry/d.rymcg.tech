@@ -21,10 +21,10 @@ DEFAULT_IMAGE="debian-13-x64"
 ask "Enter droplet name" DROPLET_NAME
 check_var DROPLET_NAME
 
-ask "Enter Woodpecker gRPC address (e.g. woodpecker-grpc.example.com:443)" WOODPECKER_SERVER
+ask "Enter Woodpecker gRPC address (e.g. woodpecker-grpc.example.com:443)" WOODPECKER_SERVER "${DEFAULT_WOODPECKER_SERVER}"
 check_var WOODPECKER_SERVER
 
-ask "Enter Woodpecker agent secret" WOODPECKER_AGENT_SECRET
+ask "Enter Woodpecker agent secret" WOODPECKER_AGENT_SECRET "${DEFAULT_WOODPECKER_AGENT_SECRET}"
 check_var WOODPECKER_AGENT_SECRET
 
 ask "Enter region" REGION "${DEFAULT_REGION}"
