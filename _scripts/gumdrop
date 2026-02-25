@@ -1070,16 +1070,27 @@ gumdrop_create_volume() {
 }
 
 gumdrop_delete_volume() {
+    ## Only show unattached volumes for deletion:
     readarray -t VOL_IDS < <(doctl compute volume list --format ID --no-header)
     readarray -t VOL_NAMES < <(doctl compute volume list --format Name --no-header)
+    readarray -t VOL_DROPLETS < <(doctl compute volume list --format DropletIDs --no-header)
     if [[ ${#VOL_IDS[@]} -eq 0 ]]; then
         echo "No volumes found."
         return
     fi
     local VOL_OPTIONS=()
+    local VOL_OPTION_IDS=()
     for i in "${!VOL_IDS[@]}"; do
+        if [[ -n "${VOL_DROPLETS[$i]}" && "${VOL_DROPLETS[$i]}" != "[]" ]]; then
+            continue
+        fi
         VOL_OPTIONS+=("${VOL_NAMES[$i]} (${VOL_IDS[$i]})")
+        VOL_OPTION_IDS+=("${VOL_IDS[$i]}")
     done
+    if [[ ${#VOL_OPTIONS[@]} -eq 0 ]]; then
+        echo "All volumes are currently attached. Detach a volume before deleting it."
+        return
+    fi
     local choice
     if ! choice=$(wizard choose "Delete which volume?" "${VOL_OPTIONS[@]}" --default "${VOL_OPTIONS[0]}"); then return; fi
     local vol_id=$(echo "${choice}" | grep -oP '\(\K[0-9a-f-]+(?=\))')
