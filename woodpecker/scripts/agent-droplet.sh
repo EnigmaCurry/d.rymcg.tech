@@ -282,7 +282,7 @@ manage_ssh_keys() {
             "Back = exit 2"
         local EXIT_CODE=$?
         if [[ "${EXIT_CODE}" == "2" ]]; then
-            return
+            exit 0
         fi
     done
 }
