@@ -55,72 +55,11 @@ destroy_droplet() {
 ensure_ssh_key() {
     ## Check for SSH keys, offer to upload if none found:
     readarray -t SSH_KEY_IDS < <(doctl compute ssh-key list --format ID --no-header)
-    readarray -t SSH_KEY_NAMES < <(doctl compute ssh-key list --format Name --no-header)
     if [[ ${#SSH_KEY_IDS[@]} -eq 0 ]]; then
         echo ""
         echo "No SSH keys found in your DigitalOcean account."
         confirm yes "Upload a local SSH public key now" "?" || return 1
-
-        ## Collect keys from agent and from pubkey files, deduplicating by key data:
-        local KEY_OPTIONS=()
-        local KEY_SOURCES=()
-        declare -A SEEN_KEYS
-
-        ## Keys from ssh-agent:
-        if ssh-add -L &>/dev/null; then
-            while IFS= read -r line; do
-                local fingerprint=$(echo "${line}" | ssh-keygen -lf - 2>/dev/null | awk '{print $2}')
-                if [[ -n "${fingerprint}" && -z "${SEEN_KEYS[${fingerprint}]}" ]]; then
-                    SEEN_KEYS[${fingerprint}]=1
-                    local comment=${line##* }
-                    KEY_OPTIONS+=("agent: ${comment}")
-                    KEY_SOURCES+=("agent:${line}")
-                fi
-            done < <(ssh-add -L)
-        fi
-
-        ## Keys from ~/.ssh/*.pub files:
-        while IFS= read -r pubfile; do
-            local fingerprint=$(ssh-keygen -lf "${pubfile}" 2>/dev/null | awk '{print $2}')
-            if [[ -n "${fingerprint}" && -z "${SEEN_KEYS[${fingerprint}]}" ]]; then
-                SEEN_KEYS[${fingerprint}]=1
-                KEY_OPTIONS+=("file: ${pubfile}")
-                KEY_SOURCES+=("file:${pubfile}")
-            fi
-        done < <(find ~/.ssh -name '*.pub' -type f 2>/dev/null)
-
-        if [[ ${#KEY_OPTIONS[@]} -eq 0 ]]; then
-            error "No public keys found in ssh-agent or ~/.ssh/"
-            return 1
-        fi
-
-        local choice
-        if ! choice=$(wizard choose "Select public key to upload" "${KEY_OPTIONS[@]}" --default "${KEY_OPTIONS[0]}"); then return 1; fi
-
-        ## Find the matching source:
-        local source=""
-        for i in "${!KEY_OPTIONS[@]}"; do
-            if [[ "${KEY_OPTIONS[$i]}" == "${choice}" ]]; then
-                source="${KEY_SOURCES[$i]}"
-                break
-            fi
-        done
-
-        local keyname
-        ask "Enter a name for this key" keyname "woodpecker-agent"
-
-        if [[ "${source}" == agent:* ]]; then
-            local pubkey_data="${source#agent:}"
-            echo "${pubkey_data}" | doctl compute ssh-key import "${keyname}" --public-key-file -
-        else
-            local pubfile="${source#file:}"
-            doctl compute ssh-key import "${keyname}" --public-key-file "${pubfile}"
-        fi
-
-        echo "SSH key '${keyname}' uploaded."
-        ## Refresh the key lists:
-        readarray -t SSH_KEY_IDS < <(doctl compute ssh-key list --format ID --no-header)
-        readarray -t SSH_KEY_NAMES < <(doctl compute ssh-key list --format Name --no-header)
+        upload_ssh_key
     fi
 }
 
@@ -248,6 +187,103 @@ USERDATA
     list_droplets
 }
 
+list_ssh_keys() {
+    echo ""
+    echo "## SSH keys on DigitalOcean:"
+    doctl compute ssh-key list --format ID,Name,FingerPrint
+    echo ""
+}
+
+upload_ssh_key() {
+    ## Collect keys from agent and from pubkey files, deduplicating by fingerprint:
+    local KEY_OPTIONS=()
+    local KEY_SOURCES=()
+    declare -A SEEN_KEYS
+
+    if ssh-add -L &>/dev/null; then
+        while IFS= read -r line; do
+            local fingerprint=$(echo "${line}" | ssh-keygen -lf - 2>/dev/null | awk '{print $2}')
+            if [[ -n "${fingerprint}" && -z "${SEEN_KEYS[${fingerprint}]}" ]]; then
+                SEEN_KEYS[${fingerprint}]=1
+                local comment=${line##* }
+                KEY_OPTIONS+=("agent: ${comment}")
+                KEY_SOURCES+=("agent:${line}")
+            fi
+        done < <(ssh-add -L)
+    fi
+
+    while IFS= read -r pubfile; do
+        local fingerprint=$(ssh-keygen -lf "${pubfile}" 2>/dev/null | awk '{print $2}')
+        if [[ -n "${fingerprint}" && -z "${SEEN_KEYS[${fingerprint}]}" ]]; then
+            SEEN_KEYS[${fingerprint}]=1
+            KEY_OPTIONS+=("file: ${pubfile}")
+            KEY_SOURCES+=("file:${pubfile}")
+        fi
+    done < <(find ~/.ssh -name '*.pub' -type f 2>/dev/null)
+
+    if [[ ${#KEY_OPTIONS[@]} -eq 0 ]]; then
+        error "No public keys found in ssh-agent or ~/.ssh/"
+        return
+    fi
+
+    local choice
+    if ! choice=$(wizard choose "Select public key to upload" "${KEY_OPTIONS[@]}" --default "${KEY_OPTIONS[0]}"); then return; fi
+
+    local source=""
+    for i in "${!KEY_OPTIONS[@]}"; do
+        if [[ "${KEY_OPTIONS[$i]}" == "${choice}" ]]; then
+            source="${KEY_SOURCES[$i]}"
+            break
+        fi
+    done
+
+    local keyname
+    ask "Enter a name for this key" keyname "woodpecker-agent"
+
+    if [[ "${source}" == agent:* ]]; then
+        local pubkey_data="${source#agent:}"
+        echo "${pubkey_data}" | doctl compute ssh-key import "${keyname}" --public-key-file -
+    else
+        local pubfile="${source#file:}"
+        doctl compute ssh-key import "${keyname}" --public-key-file "${pubfile}"
+    fi
+    echo "SSH key '${keyname}' uploaded."
+}
+
+delete_ssh_key() {
+    readarray -t SSH_KEY_IDS < <(doctl compute ssh-key list --format ID --no-header)
+    readarray -t SSH_KEY_NAMES < <(doctl compute ssh-key list --format Name --no-header)
+    if [[ ${#SSH_KEY_IDS[@]} -eq 0 ]]; then
+        echo "No SSH keys found."
+        return
+    fi
+    local KEY_OPTIONS=()
+    for i in "${!SSH_KEY_IDS[@]}"; do
+        KEY_OPTIONS+=("${SSH_KEY_NAMES[$i]} (${SSH_KEY_IDS[$i]})")
+    done
+    local choice
+    if ! choice=$(wizard choose "Delete which SSH key?" "${KEY_OPTIONS[@]}" --default "${KEY_OPTIONS[0]}"); then return; fi
+    local key_id=$(echo "${choice}" | grep -oP '\(\K[0-9]+(?=\))')
+    confirm no "Are you sure you want to delete '${choice}'" "?" || return
+    doctl compute ssh-key delete "${key_id}" --force
+    echo "SSH key deleted."
+}
+
+manage_ssh_keys() {
+    while :
+    do
+        list_ssh_keys
+        wizard menu --once --cancel-code=2 "DigitalOcean SSH Keys:" \
+            "Upload SSH key = $0 upload_ssh_key" \
+            "Delete SSH key = $0 delete_ssh_key" \
+            "Back = exit 2"
+        local EXIT_CODE=$?
+        if [[ "${EXIT_CODE}" == "2" ]]; then
+            return
+        fi
+    done
+}
+
 main() {
     while :
     do
@@ -256,6 +292,7 @@ main() {
             "Create new agent droplet = $0 create_droplet" \
             "SSH into agent droplet = $0 ssh_droplet" \
             "Destroy agent droplet = $0 destroy_droplet" \
+            "Manage SSH keys on DigitalOcean = $0 manage_ssh_keys" \
             "Exit = exit 2"
         local EXIT_CODE=$?
         if [[ "${EXIT_CODE}" == "2" ]]; then
