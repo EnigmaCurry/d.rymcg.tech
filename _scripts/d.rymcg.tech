@@ -66,6 +66,7 @@ __help() {
         echo -e "dotenv_get\tRetrieve a single env var from the root context config"
         echo -e "daemon-conf\tReconfigures the Docker host's daemon config"
         echo -e "agent\tRun agent readiness tool"
+        echo -e "gumdrop [--tag TAG]\tManage DigitalOcean droplets"
     ) | expand -t 30
     echo ""
     echo "## Documentation sub-commands:"
@@ -392,7 +393,7 @@ __d.rymcg.tech_completions() {
     if [[ ${COMP_CWORD} == 1 ]]; then
         ## Complete the main command:
         ## d.rymcg.tech <TAB> ...
-        COMMANDS="help create cd make list readme info context new-context tmp-context aliases completion install install-docker status ssh audit sshd-config ssh-expose show-ports s3-volume docker-default-address-pool route routes reconfigure dotenv_get daemon-conf fail2ban networks config agent"
+        COMMANDS="help create cd make list readme info context new-context tmp-context aliases completion install install-docker status ssh audit sshd-config ssh-expose show-ports s3-volume docker-default-address-pool route routes reconfigure dotenv_get daemon-conf fail2ban networks config agent gumdrop"
         COMPREPLY=($(compgen -W "${COMMANDS}" "${COMP_WORDS[1]}"))
     elif [[ ${COMP_CWORD} == 2 ]]; then
         ALL_PROJECTS=$(d.rymcg.tech list --raw)
@@ -581,6 +582,8 @@ main() {
                 else
                     ${BIN}/agent.py "$@"
                 fi;;
+            gumdrop)
+                ${BIN}/gumdrop "$@";;
             *)
                 fault "Invalid command"
         esac

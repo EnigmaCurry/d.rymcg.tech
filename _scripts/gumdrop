@@ -1,0 +1,320 @@
+#!/bin/bash
+## gumdrop - Generic DigitalOcean droplet manager
+## Usage: gumdrop [--tag TAG]
+## Can be sourced as a library or run directly.
+
+if [[ -n "${_GUMDROP_SOURCED}" ]]; then return 0 2>/dev/null || true; fi
+_GUMDROP_SOURCED=1
+
+SCRIPT_DIR=$(dirname "$(readlink -f "${BASH_SOURCE[0]}")")
+ROOT_DIR=$(readlink -f "${SCRIPT_DIR}/..")
+BIN=${ROOT_DIR}/_scripts
+source ${BIN}/funcs.sh
+
+set -eo pipefail
+
+## Configuration (override via env vars before sourcing):
+GUMDROP_TAG="${GUMDROP_TAG:-}"
+GUMDROP_LABEL="${GUMDROP_LABEL:-Droplet}"
+GUMDROP_DEFAULT_IMAGE="${GUMDROP_DEFAULT_IMAGE:-debian-13-x64}"
+GUMDROP_DEFAULT_REGION="${GUMDROP_DEFAULT_REGION:-nyc3}"
+GUMDROP_DEFAULT_SIZE="${GUMDROP_DEFAULT_SIZE:-s-2vcpu-4gb}"
+GUMDROP_SSH_KEY_NAME="${GUMDROP_SSH_KEY_NAME:-gumdrop}"
+
+gumdrop_check_doctl() {
+    command -v doctl >/dev/null || fault "doctl is not installed. See https://docs.digitalocean.com/reference/doctl/how-to/install/"
+    if ! doctl account get >/dev/null 2>&1; then
+        confirm yes "doctl is not authenticated. Run 'doctl auth init' now" "?" || fault "doctl is not authenticated."
+        doctl auth init
+    fi
+}
+
+gumdrop_list() {
+    local tag_args=()
+    [[ -n "${GUMDROP_TAG}" ]] && tag_args=(--tag-name "${GUMDROP_TAG}")
+    echo ""
+    echo "## ${GUMDROP_LABEL}s:"
+    doctl compute droplet list "${tag_args[@]}" --format ID,Name,PublicIPv4,Region,SizeSlug,Status
+    echo ""
+}
+
+gumdrop_ssh() {
+    local tag_args=()
+    [[ -n "${GUMDROP_TAG}" ]] && tag_args=(--tag-name "${GUMDROP_TAG}")
+    readarray -t NAMES < <(doctl compute droplet list "${tag_args[@]}" --format Name --no-header)
+    if [[ ${#NAMES[@]} -eq 0 ]]; then
+        echo "No ${GUMDROP_LABEL,,}s found."
+        return
+    fi
+    local name
+    if ! name=$(wizard choose "SSH into which ${GUMDROP_LABEL,,}?" "${NAMES[@]}" --default "${NAMES[0]}"); then return; fi
+    doctl compute ssh "${name}"
+}
+
+gumdrop_destroy() {
+    local tag_args=()
+    [[ -n "${GUMDROP_TAG}" ]] && tag_args=(--tag-name "${GUMDROP_TAG}")
+    readarray -t NAMES < <(doctl compute droplet list "${tag_args[@]}" --format Name --no-header)
+    if [[ ${#NAMES[@]} -eq 0 ]]; then
+        echo "No ${GUMDROP_LABEL,,}s found."
+        return
+    fi
+    local name
+    if ! name=$(wizard choose "Destroy which ${GUMDROP_LABEL,,}?" "${NAMES[@]}" --default "${NAMES[0]}"); then return; fi
+    confirm no "Are you sure you want to destroy '${name}'" "?" || return
+    doctl compute droplet delete "${name}" --force
+    echo "${GUMDROP_LABEL} '${name}' destroyed."
+}
+
+gumdrop_ensure_ssh_key() {
+    readarray -t SSH_KEY_IDS < <(doctl compute ssh-key list --format ID --no-header)
+    if [[ ${#SSH_KEY_IDS[@]} -eq 0 ]]; then
+        echo ""
+        echo "No SSH keys found in your DigitalOcean account."
+        confirm yes "Upload a local SSH public key now" "?" || return 1
+        gumdrop_upload_ssh_key
+    fi
+}
+
+gumdrop_upload_ssh_key() {
+    local KEY_OPTIONS=()
+    local KEY_SOURCES=()
+    declare -A SEEN_KEYS
+
+    if ssh-add -L &>/dev/null; then
+        while IFS= read -r line; do
+            local fingerprint=$(echo "${line}" | ssh-keygen -lf - 2>/dev/null | awk '{print $2}')
+            if [[ -n "${fingerprint}" && -z "${SEEN_KEYS[${fingerprint}]}" ]]; then
+                SEEN_KEYS[${fingerprint}]=1
+                local keytype=$(echo "${line}" | awk '{print $1}')
+                KEY_OPTIONS+=("agent: ${keytype} ${fingerprint}")
+                KEY_SOURCES+=("agent:${line}")
+            fi
+        done < <(ssh-add -L)
+    fi
+
+    while IFS= read -r pubfile; do
+        local fingerprint=$(ssh-keygen -lf "${pubfile}" 2>/dev/null | awk '{print $2}')
+        if [[ -n "${fingerprint}" && -z "${SEEN_KEYS[${fingerprint}]}" ]]; then
+            SEEN_KEYS[${fingerprint}]=1
+            KEY_OPTIONS+=("file: ${pubfile}")
+            KEY_SOURCES+=("file:${pubfile}")
+        fi
+    done < <(find ~/.ssh -name '*.pub' -type f 2>/dev/null)
+
+    if [[ ${#KEY_OPTIONS[@]} -eq 0 ]]; then
+        error "No public keys found in ssh-agent or ~/.ssh/"
+        return
+    fi
+
+    local choice
+    if ! choice=$(wizard choose "Select public key to upload" "${KEY_OPTIONS[@]}" --default "${KEY_OPTIONS[0]}"); then return; fi
+
+    local source=""
+    for i in "${!KEY_OPTIONS[@]}"; do
+        if [[ "${KEY_OPTIONS[$i]}" == "${choice}" ]]; then
+            source="${KEY_SOURCES[$i]}"
+            break
+        fi
+    done
+
+    local keyname
+    ask "Enter a name for this key" keyname "${GUMDROP_SSH_KEY_NAME}"
+
+    if [[ "${source}" == agent:* ]]; then
+        local pubkey_data="${source#agent:}"
+        local tmpfile=$(mktemp)
+        echo "${pubkey_data}" > "${tmpfile}"
+        doctl compute ssh-key import "${keyname}" --public-key-file "${tmpfile}"
+        rm -f "${tmpfile}"
+    else
+        local pubfile="${source#file:}"
+        doctl compute ssh-key import "${keyname}" --public-key-file "${pubfile}"
+    fi
+    echo "SSH key '${keyname}' uploaded."
+}
+
+gumdrop_delete_ssh_key() {
+    readarray -t SSH_KEY_IDS < <(doctl compute ssh-key list --format ID --no-header)
+    readarray -t SSH_KEY_NAMES < <(doctl compute ssh-key list --format Name --no-header)
+    if [[ ${#SSH_KEY_IDS[@]} -eq 0 ]]; then
+        echo "No SSH keys found."
+        return
+    fi
+    local KEY_OPTIONS=()
+    for i in "${!SSH_KEY_IDS[@]}"; do
+        KEY_OPTIONS+=("${SSH_KEY_NAMES[$i]} (${SSH_KEY_IDS[$i]})")
+    done
+    local choice
+    if ! choice=$(wizard choose "Delete which SSH key?" "${KEY_OPTIONS[@]}" --default "${KEY_OPTIONS[0]}"); then return; fi
+    local key_id=$(echo "${choice}" | grep -oP '\(\K[0-9]+(?=\))')
+    confirm no "Are you sure you want to delete '${choice}'" "?" || return
+    doctl compute ssh-key delete "${key_id}" --force
+    echo "SSH key deleted."
+}
+
+gumdrop_list_ssh_keys() {
+    echo ""
+    echo "## SSH keys on DigitalOcean:"
+    doctl compute ssh-key list --format ID,Name,FingerPrint
+    echo ""
+}
+
+gumdrop_manage_ssh_keys() {
+    while :
+    do
+        gumdrop_list_ssh_keys
+        set +e
+        wizard menu --once --cancel-code=2 "DigitalOcean SSH Keys:" \
+            "Upload SSH key = $0 gumdrop_upload_ssh_key" \
+            "Delete SSH key = $0 gumdrop_delete_ssh_key" \
+            "Back = exit 2"
+        local EXIT_CODE=$?
+        set -e
+        if [[ "${EXIT_CODE}" == "2" ]]; then
+            exit 0
+        fi
+    done
+}
+
+gumdrop_create() {
+    if ! gumdrop_ensure_ssh_key; then return; fi
+
+    ## Call pre-create hook if defined:
+    if type -t gumdrop_pre_create_hook &>/dev/null; then
+        gumdrop_pre_create_hook
+    fi
+
+    ask_no_blank "Enter ${GUMDROP_LABEL,,} name" DROPLET_NAME
+
+    ## Select region:
+    readarray -t REGION_SLUGS < <(doctl compute region list --format Slug --no-header)
+    readarray -t REGION_NAMES < <(doctl compute region list --format Name --no-header)
+    REGION_OPTIONS=()
+    REGION_DEFAULT=""
+    for i in "${!REGION_SLUGS[@]}"; do
+        local opt=$(printf "%-8s  %s" "${REGION_SLUGS[$i]}" "${REGION_NAMES[$i]}")
+        REGION_OPTIONS+=("${opt}")
+        [[ "${REGION_SLUGS[$i]}" == "${GUMDROP_DEFAULT_REGION}" ]] && REGION_DEFAULT="${opt}"
+    done
+    REGION_CHOICE=$(wizard choose "Select region" "${REGION_OPTIONS[@]}" --default "${REGION_DEFAULT}")
+    REGION=$(echo "${REGION_CHOICE}" | awk '{print $1}')
+
+    ## Select size:
+    readarray -t SIZE_SLUGS < <(doctl compute size list --format Slug --no-header)
+    readarray -t SIZE_PRICES < <(doctl compute size list --format PriceHourly --no-header)
+    readarray -t SIZE_DISKS < <(doctl compute size list --format Disk --no-header)
+    readarray -t SIZE_VCPUS < <(doctl compute size list --format VCPUs --no-header)
+    SIZE_OPTIONS=()
+    SIZE_DEFAULT=""
+    for i in "${!SIZE_SLUGS[@]}"; do
+        local opt=$(printf "%-25s  %-3s vCPUs  \$%-10s  %sGB disk" "${SIZE_SLUGS[$i]}" "${SIZE_VCPUS[$i]}" "${SIZE_PRICES[$i]}/hr" "${SIZE_DISKS[$i]}")
+        SIZE_OPTIONS+=("${opt}")
+        [[ "${SIZE_SLUGS[$i]}" == "${GUMDROP_DEFAULT_SIZE}" ]] && SIZE_DEFAULT="${opt}"
+    done
+    SIZE_CHOICE=$(wizard choose "Select size" "${SIZE_OPTIONS[@]}" --default "${SIZE_DEFAULT}")
+    SIZE=$(echo "${SIZE_CHOICE}" | awk '{print $1}')
+
+    ## Select image:
+    IMAGE=$(wizard choose "Select image" "${GUMDROP_DEFAULT_IMAGE}" --default "${GUMDROP_DEFAULT_IMAGE}")
+
+    ## Select SSH key:
+    echo ""
+    readarray -t SSH_KEY_IDS < <(doctl compute ssh-key list --format ID --no-header)
+    readarray -t SSH_KEY_NAMES < <(doctl compute ssh-key list --format Name --no-header)
+    SSH_KEY_OPTIONS=()
+    for i in "${!SSH_KEY_IDS[@]}"; do
+        SSH_KEY_OPTIONS+=("${SSH_KEY_NAMES[$i]} (${SSH_KEY_IDS[$i]})")
+    done
+    local SSH_KEY_CHOICE
+    if ! SSH_KEY_CHOICE=$(wizard choose "Which SSH key?" "${SSH_KEY_OPTIONS[@]}" --default "${SSH_KEY_OPTIONS[0]}"); then return; fi
+    SSH_KEY=$(echo "${SSH_KEY_CHOICE}" | grep -oP '\(\K[0-9]+(?=\))')
+
+    ## Generate user-data via hook if defined:
+    local user_data_args=()
+    if type -t gumdrop_user_data_hook &>/dev/null; then
+        USER_DATA=$(gumdrop_user_data_hook)
+        user_data_args=(--user-data "${USER_DATA}")
+    fi
+
+    ## Build tag args:
+    local tag_args=()
+    [[ -n "${GUMDROP_TAG}" ]] && tag_args=(--tag-names "${GUMDROP_TAG}")
+
+    echo ""
+    echo "## Summary:"
+    echo "  ${GUMDROP_LABEL} name:  ${DROPLET_NAME}"
+    echo "  Region:        ${REGION}"
+    echo "  Size:          ${SIZE}"
+    echo "  Image:         ${IMAGE}"
+    echo "  SSH key:       ${SSH_KEY}"
+
+    ## Call summary hook if defined:
+    if type -t gumdrop_summary_hook &>/dev/null; then
+        gumdrop_summary_hook
+    fi
+
+    echo ""
+    confirm yes "Create this ${GUMDROP_LABEL,,}" "?" || return
+
+    echo "Creating ${GUMDROP_LABEL,,} '${DROPLET_NAME}', please wait..."
+    doctl compute droplet create "${DROPLET_NAME}" \
+        --region "${REGION}" \
+        --size "${SIZE}" \
+        --image "${IMAGE}" \
+        --ssh-keys "${SSH_KEY}" \
+        "${user_data_args[@]}" \
+        "${tag_args[@]}" \
+        --wait
+
+    echo ""
+    echo "${GUMDROP_LABEL} created."
+    echo "Check cloud-init status with: doctl compute ssh ${DROPLET_NAME} -- tail -f /var/log/cloud-init-output.log"
+    gumdrop_list
+}
+
+gumdrop_main() {
+    gumdrop_check_doctl
+    while :
+    do
+        gumdrop_list
+        set +e
+        wizard menu --once --cancel-code=2 "${GUMDROP_LABEL}s:" \
+            "Create new ${GUMDROP_LABEL,,} = $0 gumdrop_create" \
+            "SSH into ${GUMDROP_LABEL,,} = $0 gumdrop_ssh" \
+            "Destroy ${GUMDROP_LABEL,,} = $0 gumdrop_destroy" \
+            "Manage SSH keys on DigitalOcean = $0 gumdrop_manage_ssh_keys" \
+            "Exit = exit 2"
+        local EXIT_CODE=$?
+        set -e
+        if [[ "${EXIT_CODE}" == "2" ]]; then
+            exit 0
+        fi
+    done
+}
+
+## Parse CLI args when run directly:
+_gumdrop_parse_args() {
+    while [[ $# -gt 0 ]]; do
+        case "$1" in
+            --tag)
+                export GUMDROP_TAG="$2"
+                shift 2
+                ;;
+            *)
+                break
+                ;;
+        esac
+    done
+    GUMDROP_REMAINING_ARGS=("$@")
+}
+
+## Direct execution dispatch:
+if [[ "${BASH_SOURCE[0]}" == "$0" ]]; then
+    _gumdrop_parse_args "$@"
+    if [[ ${#GUMDROP_REMAINING_ARGS[@]} -gt 0 ]]; then
+        "${GUMDROP_REMAINING_ARGS[@]}"
+    else
+        gumdrop_main
+    fi
+fi
