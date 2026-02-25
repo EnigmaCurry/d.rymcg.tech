@@ -741,16 +741,25 @@ gumdrop_list_firewalls() {
 }
 
 gumdrop_delete_firewall() {
+    ## Only show firewalls not attached to any droplets:
     readarray -t FW_IDS < <(doctl compute firewall list --format ID --no-header)
     readarray -t FW_NAMES < <(doctl compute firewall list --format Name --no-header)
+    readarray -t FW_DROPLETS < <(doctl compute firewall list --format DropletIDs --no-header)
     if [[ ${#FW_IDS[@]} -eq 0 ]]; then
         echo "No firewalls found."
         return
     fi
     local FW_OPTIONS=()
     for i in "${!FW_IDS[@]}"; do
+        if [[ -n "${FW_DROPLETS[$i]}" && "${FW_DROPLETS[$i]}" != "[]" ]]; then
+            continue
+        fi
         FW_OPTIONS+=("${FW_NAMES[$i]} (${FW_IDS[$i]})")
     done
+    if [[ ${#FW_OPTIONS[@]} -eq 0 ]]; then
+        echo "All firewalls are currently attached to droplets. Remove a firewall from its droplets before deleting it."
+        return
+    fi
     local choice
     if ! choice=$(wizard choose "Delete which firewall?" "${FW_OPTIONS[@]}" --default "${FW_OPTIONS[0]}"); then return; fi
     local fw_id=$(echo "${choice}" | grep -oP '\(\K[0-9a-f-]+(?=\))')
