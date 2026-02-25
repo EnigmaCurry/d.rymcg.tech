@@ -25,10 +25,10 @@ GUMDROP_IMAGES="${GUMDROP_IMAGES:-}"
 
 gumdrop_check_doctl() {
     command -v doctl >/dev/null || fault "doctl is not installed. See https://docs.digitalocean.com/reference/doctl/how-to/install/"
-}
-
-_gumdrop_is_authenticated() {
-    doctl account get >/dev/null 2>&1
+    if ! doctl account get >/dev/null 2>&1; then
+        confirm yes "doctl is not authenticated. Run 'doctl auth init' now" "?" || fault "doctl is not authenticated."
+        doctl auth init
+    fi
 }
 
 gumdrop_list() {
@@ -620,34 +620,20 @@ gumdrop_main() {
     gumdrop_check_doctl
     while :
     do
-        if ! _gumdrop_is_authenticated; then
-            echo ""
-            echo "## Not authenticated with DigitalOcean."
-            set +e
-            wizard menu --once --cancel-code=2 "${GUMDROP_LABEL}s:" \
-                "Manage accounts = $0 gumdrop_manage_accounts" \
-                "Exit = exit 2"
-            local EXIT_CODE=$?
-            set -e
-            if [[ "${EXIT_CODE}" == "2" ]]; then
-                exit 0
-            fi
-        else
-            gumdrop_list
-            set +e
-            wizard menu --once --cancel-code=2 "${GUMDROP_LABEL}s:" \
-                "Create new ${GUMDROP_LABEL,,} = $0 gumdrop_create" \
-                "SSH into ${GUMDROP_LABEL,,} = $0 gumdrop_ssh" \
-                "Destroy ${GUMDROP_LABEL,,} = $0 gumdrop_destroy" \
-                "Manage SSH keys = $0 gumdrop_manage_ssh_keys" \
-                "Manage firewalls = $0 gumdrop_manage_firewalls" \
-                "Manage accounts = $0 gumdrop_manage_accounts" \
-                "Exit = exit 2"
-            local EXIT_CODE=$?
-            set -e
-            if [[ "${EXIT_CODE}" == "2" ]]; then
-                exit 0
-            fi
+        gumdrop_list
+        set +e
+        wizard menu --once --cancel-code=2 "${GUMDROP_LABEL}s:" \
+            "Create new ${GUMDROP_LABEL,,} = $0 gumdrop_create" \
+            "SSH into ${GUMDROP_LABEL,,} = $0 gumdrop_ssh" \
+            "Destroy ${GUMDROP_LABEL,,} = $0 gumdrop_destroy" \
+            "Manage SSH keys = $0 gumdrop_manage_ssh_keys" \
+            "Manage firewalls = $0 gumdrop_manage_firewalls" \
+            "Manage accounts = $0 gumdrop_manage_accounts" \
+            "Exit = exit 2"
+        local EXIT_CODE=$?
+        set -e
+        if [[ "${EXIT_CODE}" == "2" ]]; then
+            exit 0
         fi
     done
 }
