@@ -59,18 +59,14 @@ typical web-hosting firewall needs these inbound rules:
 Add whatever other ports you need, then assign the firewall to your
 droplet.
 
-Login to the droplet and disable the host firewall (the DigitalOcean
-firewall operates at the network level):
-
-```
-ufw disable
-systemctl mask ufw
-```
+Then disable the host firewall (the DigitalOcean firewall operates
+at the network level). From the main menu choose **Tasks → Disable
+ufw**, select your droplet, and confirm.
 
 ## Setup DNS
 
-From the main menu choose **DNS**, select your domain, then **Create
-record**. You will typically want a wildcard A record pointing to
+From the main menu choose **Domains → DNS records**, select your
+domain, then **Create record**. You will typically want a wildcard A record pointing to
 your droplet's IP address:
 
  * Type: `A`
@@ -83,29 +79,12 @@ server.
 ## Setup block storage for Docker volumes
 
 If you attached a block storage volume during droplet creation, it is
-formatted and mounted automatically (e.g. `/mnt/volume_nyc1_01`). To
-use it for Docker data, move the existing data and remount it:
-
-```
-systemctl stop docker
-mv /var/lib/docker/* /mnt/volume_nyc1_01/
-umount /mnt/volume_nyc1_01
-```
-
-Edit the systemd mount unit
-`/etc/systemd/system/mnt-volume_nyc1_01.mount` — change
-`Where=/mnt/volume_nyc1_01` to `Where=/var/lib/docker`, then rename
-the file:
-
-```
-mv /etc/systemd/system/mnt-volume_nyc1_01.mount /etc/systemd/system/var-lib-docker.mount
-systemctl daemon-reload
-systemctl enable --now var-lib-docker.mount
-systemctl start docker
-```
-
-Verify with `df -h` and `ls /var/lib/docker`. Reboot and confirm the
-volume mounts automatically.
+formatted and mounted automatically under `/mnt/`. To remount it as
+`/var/lib/docker` so Docker uses the external storage, choose
+**Tasks → Mount volume as /var/lib/docker** from the main menu,
+select your droplet, and confirm. The task will automatically find the
+volume, stop Docker, move the data, update the systemd mount unit,
+and restart Docker.
 
 Block storage volumes can also be managed from the **Volumes** menu
 in `d droplet`.
@@ -123,6 +102,8 @@ The `d droplet` main menu also provides management for:
  * **Snapshots** — create and restore droplet snapshots.
  * **Backups** — manage and convert droplet backups.
  * **Accounts** — switch between multiple DigitalOcean accounts.
+ * **Tasks** — run common setup tasks on droplets (disable ufw,
+   mount volume as /var/lib/docker).
 
 ## Removing an account
 

@@ -2731,6 +2731,125 @@ gumdrop_manage_domains() {
     done
 }
 
+gumdrop_choose_droplet() {
+    local prompt="${1:-Select droplet}"
+    local tag_args=()
+    [[ -n "${GUMDROP_TAG}" ]] && tag_args=(--tag-name "${GUMDROP_TAG}")
+    readarray -t NAMES < <(doctl compute droplet list "${tag_args[@]}" --format Name --no-header)
+    if [[ ${#NAMES[@]} -eq 0 ]]; then
+        echo "No ${GUMDROP_LABEL,,}s found."
+        return 1
+    fi
+    wizard choose "${prompt}" "${NAMES[@]}" --default "${NAMES[0]}"
+}
+
+gumdrop_task_disable_ufw() {
+    local name
+    if ! name=$(gumdrop_choose_droplet "Disable ufw on which ${GUMDROP_LABEL,,}?"); then return; fi
+    echo ""
+    echo "This will disable and mask ufw on '${name}'."
+    echo "Use this when the droplet is behind a DigitalOcean firewall."
+    confirm no "Proceed" "?" || return
+    echo ""
+    echo "Disabling ufw on '${name}'..."
+    doctl compute ssh "${name}" -- bash -c "ufw disable && systemctl mask ufw"
+    echo "ufw disabled and masked on '${name}'."
+}
+
+gumdrop_task_fix_volume_mount() {
+    local name
+    if ! name=$(gumdrop_choose_droplet "Fix volume mount on which ${GUMDROP_LABEL,,}?"); then return; fi
+    echo ""
+    echo "This will find the block storage volume mounted under /mnt/ on '${name}'"
+    echo "and remount it to /var/lib/docker so Docker uses the external storage."
+    echo ""
+    echo "The following steps will be performed:"
+    echo "  1. Find the block storage mount under /mnt/"
+    echo "  2. Stop Docker"
+    echo "  3. Move /var/lib/docker contents to the volume"
+    echo "  4. Update the systemd mount unit to target /var/lib/docker"
+    echo "  5. Restart Docker"
+    echo ""
+    confirm no "Proceed" "?" || return
+    echo ""
+    doctl compute ssh "${name}" -- bash -s <<'REMOTE_SCRIPT'
+set -euo pipefail
+
+## Find the block storage mount under /mnt/
+MOUNT_POINT=$(df --output=target | grep '^/mnt/' | head -1)
+if [[ -z "${MOUNT_POINT}" ]]; then
+    echo "ERROR: No block storage volume found mounted under /mnt/."
+    exit 1
+fi
+echo "Found volume at: ${MOUNT_POINT}"
+
+## Derive the systemd mount unit name
+UNIT_NAME=$(systemd-escape -p "${MOUNT_POINT}").mount
+UNIT_FILE="/etc/systemd/system/${UNIT_NAME}"
+if [[ ! -f "${UNIT_FILE}" ]]; then
+    echo "ERROR: Mount unit not found: ${UNIT_FILE}"
+    exit 1
+fi
+echo "Found mount unit: ${UNIT_FILE}"
+
+## Check if already mounted at /var/lib/docker
+if mountpoint -q /var/lib/docker 2>/dev/null; then
+    CURRENT=$(df --output=source /var/lib/docker | tail -1)
+    VOLUME=$(df --output=source "${MOUNT_POINT}" 2>/dev/null | tail -1)
+    if [[ "${CURRENT}" == "${VOLUME}" ]]; then
+        echo "Volume is already mounted at /var/lib/docker. Nothing to do."
+        exit 0
+    fi
+fi
+
+echo "Stopping Docker..."
+systemctl stop docker docker.socket containerd 2>/dev/null || true
+
+echo "Moving /var/lib/docker contents to ${MOUNT_POINT}..."
+if [[ -d /var/lib/docker ]]; then
+    cp -a /var/lib/docker/. "${MOUNT_POINT}/" 2>/dev/null || true
+    rm -rf /var/lib/docker/*
+fi
+
+echo "Unmounting ${MOUNT_POINT}..."
+umount "${MOUNT_POINT}"
+
+echo "Updating mount unit to target /var/lib/docker..."
+sed -i "s|Where=${MOUNT_POINT}|Where=/var/lib/docker|" "${UNIT_FILE}"
+mv "${UNIT_FILE}" /etc/systemd/system/var-lib-docker.mount
+
+echo "Reloading systemd and starting mount..."
+systemctl daemon-reload
+mkdir -p /var/lib/docker
+systemctl enable --now var-lib-docker.mount
+
+echo "Starting Docker..."
+systemctl start docker
+
+echo ""
+echo "Verifying mount..."
+df -h /var/lib/docker
+echo ""
+echo "Done. Volume is now mounted at /var/lib/docker."
+REMOTE_SCRIPT
+}
+
+gumdrop_manage_tasks() {
+    while :
+    do
+        set +e
+        wizard menu --once --cancel-code=2 "Tasks:" \
+            "Disable ufw = $0 gumdrop_task_disable_ufw" \
+            "Mount volume as /var/lib/docker = $0 gumdrop_task_fix_volume_mount" \
+            "Back = exit 2"
+        local EXIT_CODE=$?
+        set -e
+        if [[ "${EXIT_CODE}" == "2" ]]; then
+            exit 0
+        fi
+    done
+}
+
 gumdrop_manage_droplets() {
     while :
     do
@@ -2768,6 +2887,7 @@ gumdrop_main() {
             "Snapshots = $0 gumdrop_manage_snapshots" \
             "Backups = $0 gumdrop_manage_backups" \
             "Accounts = $0 gumdrop_manage_accounts" \
+            "Tasks = $0 gumdrop_manage_tasks" \
             "Exit = exit 2"
         local EXIT_CODE=$?
         set -e
