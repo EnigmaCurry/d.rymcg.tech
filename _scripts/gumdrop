@@ -1331,7 +1331,10 @@ gumdrop_manage_firewalls() {
                 "Delete firewall = $0 gumdrop_delete_firewall"
             )
         fi
-        menu_items+=("Back = exit 2")
+        menu_items+=(
+            "Disable ufw on droplet (Debian) = $0 gumdrop_task_disable_ufw"
+            "Back = exit 2"
+        )
         set +e
         wizard menu --once --cancel-code=2 "Firewalls:" "${menu_items[@]}"
         local EXIT_CODE=$?
@@ -1670,7 +1673,10 @@ gumdrop_manage_volumes() {
                 "Delete volume = $0 gumdrop_delete_volume"
             )
         fi
-        menu_items+=("Back = exit 2")
+        menu_items+=(
+            "Mount volume as /var/lib/docker = $0 gumdrop_task_fix_volume_mount"
+            "Back = exit 2"
+        )
         set +e
         wizard menu --once --cancel-code=2 "Volumes:" "${menu_items[@]}"
         local EXIT_CODE=$?
@@ -2864,22 +2870,6 @@ echo "Done. Volume is now mounted at /var/lib/docker."
 REMOTE_SCRIPT
 }
 
-gumdrop_manage_tasks() {
-    while :
-    do
-        set +e
-        wizard menu --once --cancel-code=2 "Tasks:" \
-            "Disable ufw (Debian) = $0 gumdrop_task_disable_ufw" \
-            "Mount volume as /var/lib/docker = $0 gumdrop_task_fix_volume_mount" \
-            "Back = exit 2"
-        local EXIT_CODE=$?
-        set -e
-        if [[ "${EXIT_CODE}" == "2" ]]; then
-            exit 0
-        fi
-    done
-}
-
 gumdrop_manage_droplets() {
     while :
     do
@@ -2890,7 +2880,6 @@ gumdrop_manage_droplets() {
             "SSH into ${GUMDROP_LABEL,,} = $0 gumdrop_ssh" \
             "Destroy ${GUMDROP_LABEL,,} = $0 gumdrop_destroy" \
             "Add to local SSH config = $0 gumdrop_add_ssh_config" \
-            "Tasks = $0 gumdrop_manage_tasks" \
             "Back = exit 2"
         local EXIT_CODE=$?
         set -e
