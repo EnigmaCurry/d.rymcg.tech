@@ -491,6 +491,37 @@ gumdrop_create() {
         _gumdrop_create_custom_firewall
     fi
 
+    ## Select reserved IP:
+    local RESERVED_IP=""
+    if confirm no "Assign a reserved IP address" "?"; then
+        while :; do
+            readarray -t AVAILABLE_IPS < <(doctl compute reserved-ip list --format IP --no-header 2>/dev/null)
+            readarray -t IP_DROPLETS < <(doctl compute reserved-ip list --format DropletName --no-header 2>/dev/null)
+            local IP_OPTIONS=()
+            for i in "${!AVAILABLE_IPS[@]}"; do
+                if [[ -n "${IP_DROPLETS[$i]}" && "${IP_DROPLETS[$i]}" != "<nil>" ]]; then
+                    IP_OPTIONS+=("${AVAILABLE_IPS[$i]} (assigned: ${IP_DROPLETS[$i]})")
+                else
+                    IP_OPTIONS+=("${AVAILABLE_IPS[$i]} (unassigned)")
+                fi
+            done
+            if [[ ${#IP_OPTIONS[@]} -eq 0 ]]; then
+                echo "No reserved IPs available."
+                if confirm yes "Go to manage reserved IPs" "?"; then
+                    gumdrop_manage_reserved_ips
+                    continue
+                else
+                    break
+                fi
+            fi
+            local ip_choice
+            if ip_choice=$(wizard choose "Select reserved IP" "${IP_OPTIONS[@]}" --default "${IP_OPTIONS[0]}"); then
+                RESERVED_IP=$(echo "${ip_choice}" | awk '{print $1}')
+            fi
+            break
+        done
+    fi
+
     ## Generate user-data via hook if defined:
     local user_data_args=()
     if type -t gumdrop_user_data_hook &>/dev/null; then
@@ -515,6 +546,7 @@ gumdrop_create() {
     echo "  SSH key:       ${SSH_KEY}"
     echo "  Tags:          ${DROPLET_TAGS[*]:-(none)}"
     echo "  Firewall:      ${FIREWALL_NAMES[*]:-(none)}"
+    echo "  Reserved IP:   ${RESERVED_IP:-(none)}"
 
     ## Call summary hook if defined:
     if type -t gumdrop_summary_hook &>/dev/null; then
@@ -541,6 +573,15 @@ gumdrop_create() {
             for fw_id in "${FIREWALL_IDS[@]}"; do
                 doctl compute firewall add-droplets "${fw_id}" --droplet-ids "${droplet_id}"
             done
+        fi
+    fi
+
+    ## Assign reserved IP to the new droplet:
+    if [[ -n "${RESERVED_IP}" ]]; then
+        local droplet_id=${droplet_id:-$(doctl compute droplet list --format ID,Name --no-header | awk -v name="${DROPLET_NAME}" '$2 == name {print $1}')}
+        if [[ -n "${droplet_id}" ]]; then
+            echo "Assigning reserved IP ${RESERVED_IP}..."
+            doctl compute reserved-ip-action assign "${RESERVED_IP}" "${droplet_id}"
         fi
     fi
 
@@ -718,6 +759,84 @@ gumdrop_manage_firewalls() {
     done
 }
 
+gumdrop_list_reserved_ips() {
+    echo ""
+    echo "## Reserved IPs:"
+    local count=$(doctl compute reserved-ip list --format IP --no-header 2>/dev/null | wc -l)
+    if [[ ${count} -gt 0 ]]; then
+        doctl compute reserved-ip list --format IP,Region,DropletID,DropletName
+    else
+        echo "No reserved IPs found."
+    fi
+    echo ""
+}
+
+gumdrop_create_reserved_ip() {
+    ## Select region:
+    readarray -t REGION_SLUGS < <(doctl compute region list --format Slug --no-header)
+    readarray -t REGION_NAMES < <(doctl compute region list --format Name --no-header)
+    local REGION_OPTIONS=()
+    local REGION_DEFAULT=""
+    for i in "${!REGION_SLUGS[@]}"; do
+        local opt=$(printf "%-8s  %s" "${REGION_SLUGS[$i]}" "${REGION_NAMES[$i]}")
+        REGION_OPTIONS+=("${opt}")
+        [[ "${REGION_SLUGS[$i]}" == "${GUMDROP_DEFAULT_REGION}" ]] && REGION_DEFAULT="${opt}"
+    done
+    local choice
+    if ! choice=$(wizard choose "Select region for reserved IP" "${REGION_OPTIONS[@]}" --default "${REGION_DEFAULT}"); then return; fi
+    local region=$(echo "${choice}" | awk '{print $1}')
+    echo "Creating reserved IP in ${region}..."
+    doctl compute reserved-ip create --region "${region}"
+    echo "Reserved IP created."
+}
+
+gumdrop_delete_reserved_ip() {
+    readarray -t IPS < <(doctl compute reserved-ip list --format IP --no-header)
+    if [[ ${#IPS[@]} -eq 0 ]]; then
+        echo "No reserved IPs found."
+        return
+    fi
+    readarray -t IP_DROPLETS < <(doctl compute reserved-ip list --format DropletName --no-header)
+    local IP_OPTIONS=()
+    for i in "${!IPS[@]}"; do
+        if [[ -n "${IP_DROPLETS[$i]}" && "${IP_DROPLETS[$i]}" != "<nil>" ]]; then
+            IP_OPTIONS+=("${IPS[$i]} (${IP_DROPLETS[$i]})")
+        else
+            IP_OPTIONS+=("${IPS[$i]} (unassigned)")
+        fi
+    done
+    local choice
+    if ! choice=$(wizard choose "Delete which reserved IP?" "${IP_OPTIONS[@]}" --default "${IP_OPTIONS[0]}"); then return; fi
+    local ip=$(echo "${choice}" | awk '{print $1}')
+    confirm no "Are you sure you want to delete reserved IP '${ip}'" "?" || return
+    doctl compute reserved-ip delete "${ip}" --force
+    echo "Reserved IP '${ip}' deleted."
+}
+
+gumdrop_manage_reserved_ips() {
+    while :
+    do
+        gumdrop_list_reserved_ips
+        local ip_count=$(doctl compute reserved-ip list --format IP --no-header 2>/dev/null | wc -l)
+        local menu_items=(
+            "Create reserved IP = $0 gumdrop_create_reserved_ip"
+        )
+        if [[ ${ip_count} -gt 0 ]]; then
+            menu_items+=(
+                "Delete reserved IP = $0 gumdrop_delete_reserved_ip"
+            )
+        fi
+        menu_items+=("Back = exit 2")
+        set +e
+        wizard menu --once --cancel-code=2 "Reserved IPs:" "${menu_items[@]}"
+        local EXIT_CODE=$?
+        set -e
+        if [[ "${EXIT_CODE}" == "2" ]]; then
+            exit 0
+        fi
+    done
+}
+
 gumdrop_create_firewall_standalone() {
     _gumdrop_create_custom_firewall
     if [[ ${#FIREWALL_IDS[@]} -gt 0 ]]; then
@@ -799,6 +918,7 @@ gumdrop_main() {
             "Destroy ${GUMDROP_LABEL,,} = $0 gumdrop_destroy" \
             "Manage SSH keys = $0 gumdrop_manage_ssh_keys" \
             "Manage firewalls = $0 gumdrop_manage_firewalls" \
+            "Manage reserved IPs = $0 gumdrop_manage_reserved_ips" \
             "Manage accounts = $0 gumdrop_manage_accounts" \
             "Exit = exit 2"
         local EXIT_CODE=$?
