@@ -2449,7 +2449,7 @@ gumdrop_main() {
         gumdrop_show_account
         set +e
         wizard menu --once --cancel-code=2 "Manage:" \
-            "${GUMDROP_LABEL,,}s = $0 gumdrop_manage_droplets" \
+            "${GUMDROP_LABEL}s = $0 gumdrop_manage_droplets" \
             "SSH keys = $0 gumdrop_manage_ssh_keys" \
             "Firewalls = $0 gumdrop_manage_firewalls" \
             "Volumes = $0 gumdrop_manage_volumes" \
