@@ -13,7 +13,10 @@ DROPLET_TAG="woodpecker-agent"
 
 ## Check prerequisites:
 command -v doctl >/dev/null || fault "doctl is not installed. See https://docs.digitalocean.com/reference/doctl/how-to/install/"
-doctl account get >/dev/null 2>&1 || fault "doctl is not authenticated. Run: doctl auth init"
+if ! doctl account get >/dev/null 2>&1; then
+    confirm yes "doctl is not authenticated. Run 'doctl auth init' now?" || fault "doctl is not authenticated."
+    doctl auth init
+fi
 
 export WOODPECKER_SERVER="${DEFAULT_WOODPECKER_SERVER}"
 export WOODPECKER_AGENT_SECRET="${DEFAULT_WOODPECKER_AGENT_SECRET}"
