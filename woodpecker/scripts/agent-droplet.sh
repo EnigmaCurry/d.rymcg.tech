@@ -169,15 +169,12 @@ create_droplet() {
     echo ""
     readarray -t SSH_KEY_IDS < <(doctl compute ssh-key list --format ID --no-header)
     readarray -t SSH_KEY_NAMES < <(doctl compute ssh-key list --format Name --no-header)
-    if [[ ${#SSH_KEY_IDS[@]} -eq 0 ]]; then
-        error "No SSH keys found in your DigitalOcean account. Add one first."
-        return
-    fi
     SSH_KEY_OPTIONS=()
     for i in "${!SSH_KEY_IDS[@]}"; do
         SSH_KEY_OPTIONS+=("${SSH_KEY_NAMES[$i]} (${SSH_KEY_IDS[$i]})")
     done
-    SSH_KEY_CHOICE=$(wizard choose "Which SSH key?" "${SSH_KEY_OPTIONS[@]}" --default "${SSH_KEY_OPTIONS[0]}")
+    local SSH_KEY_CHOICE
+    if ! SSH_KEY_CHOICE=$(wizard choose "Which SSH key?" "${SSH_KEY_OPTIONS[@]}" --default "${SSH_KEY_OPTIONS[0]}"); then return; fi
     SSH_KEY=$(echo "${SSH_KEY_CHOICE}" | grep -oP '\(\K[0-9]+(?=\))')
 
     ## Build cloud-init user data:
