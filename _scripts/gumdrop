@@ -741,7 +741,16 @@ gumdrop_create() {
                     selected_vpc=$(echo "${vpc_choice}" | grep -oP '\(\K[0-9a-f-]+(?=\))')
                 fi
                 echo "Creating NFS share '${new_nfs_name}' (${new_nfs_size}GiB in ${REGION})..."
-                doctl nfs create --name "${new_nfs_name}" --region "${REGION}" --size "${new_nfs_size}" --vpc-ids "${selected_vpc}"
+                local nfs_err
+                set +e
+                nfs_err=$(doctl nfs create --name "${new_nfs_name}" --region "${REGION}" --size "${new_nfs_size}" --vpc-ids "${selected_vpc}" 2>&1)
+                local nfs_rc=$?
+                set -e
+                if [[ ${nfs_rc} -ne 0 ]]; then
+                    error "Failed to create NFS share: ${nfs_err}"
+                    continue
+                fi
+                echo "${nfs_err}"
                 NFS_NAMES+=("${new_nfs_name}")
                 echo "NFS share '${new_nfs_name}' created."
             elif [[ "${nfs_action}" == "Choose existing NFS share" ]]; then
@@ -1613,7 +1622,16 @@ gumdrop_create_nfs() {
     vpc_csv=$(IFS=','; echo "${selected_vpc_ids[*]}")
 
     echo "Creating NFS share '${nfs_name}' (${nfs_size}GiB in ${region})..."
-    doctl nfs create --name "${nfs_name}" --region "${region}" --size "${nfs_size}" --vpc-ids "${vpc_csv}"
+    local nfs_err
+    set +e
+    nfs_err=$(doctl nfs create --name "${nfs_name}" --region "${region}" --size "${nfs_size}" --vpc-ids "${vpc_csv}" 2>&1)
+    local nfs_rc=$?
+    set -e
+    if [[ ${nfs_rc} -ne 0 ]]; then
+        error "Failed to create NFS share: ${nfs_err}"
+        return
+    fi
+    echo "${nfs_err}"
     echo "NFS share '${nfs_name}' created."
 }
 
@@ -1632,7 +1650,9 @@ gumdrop_delete_nfs() {
     local nfs_id=$(echo "${choice}" | grep -oP '\(\K[0-9a-f-]+(?=\))')
     local nfs_region=$(echo "${choice}" | grep -oP '\[\K[^\]]+')
     confirm no "Are you sure you want to delete '${choice}'" "?" || return
+    set +e
     doctl nfs delete --id "${nfs_id}" --region "${nfs_region}"
+    set -e
     echo "NFS share deleted."
 }
 
@@ -1660,7 +1680,9 @@ gumdrop_resize_nfs() {
     fi
 
     echo "Resizing NFS share to ${new_size}GiB..."
+    set +e
     doctl nfs resize --id "${nfs_id}" --region "${nfs_region}" --size "${new_size}" --wait
+    set -e
     echo "NFS share resized."
 }
 
