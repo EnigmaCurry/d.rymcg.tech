@@ -1869,53 +1869,42 @@ gumdrop_remove_account() {
     echo "Account '${choice}' removed."
 }
 
-gumdrop_manage_snapshots() {
-    local tag_args=()
-    [[ -n "${GUMDROP_TAG}" ]] && tag_args=(--tag-name "${GUMDROP_TAG}")
-    readarray -t DROPLET_IDS < <(doctl compute droplet list "${tag_args[@]}" --format ID --no-header)
-    readarray -t DROPLET_NAMES < <(doctl compute droplet list "${tag_args[@]}" --format Name --no-header)
-    if [[ ${#DROPLET_IDS[@]} -eq 0 ]]; then
-        echo "No ${GUMDROP_LABEL,,}s found."
-        return
+gumdrop_list_snapshots() {
+    echo ""
+    echo "## Snapshots:"
+    readarray -t _SNAP_IDS < <(doctl compute snapshot list --resource droplet --format ID --no-header 2>/dev/null)
+    readarray -t _SNAP_NAMES < <(doctl compute snapshot list --resource droplet --format Name --no-header 2>/dev/null)
+    readarray -t _SNAP_CREATED < <(doctl compute snapshot list --resource droplet --format CreatedAt --no-header 2>/dev/null)
+    readarray -t _SNAP_SIZE < <(doctl compute snapshot list --resource droplet --format MinDiskSize --no-header 2>/dev/null)
+    readarray -t _SNAP_REGIONS < <(doctl compute snapshot list --resource droplet --format Regions --no-header 2>/dev/null)
+    if [[ ${#_SNAP_IDS[@]} -gt 0 && -n "${_SNAP_IDS[0]}" ]]; then
+        {
+            echo "ID Name MinDisk Regions Created"
+            for i in "${!_SNAP_IDS[@]}"; do
+                [[ -z "${_SNAP_IDS[$i]}" ]] && continue
+                echo "${_SNAP_IDS[$i]} ${_SNAP_NAMES[$i]} ${_SNAP_SIZE[$i]}GiB ${_SNAP_REGIONS[$i]} ${_SNAP_CREATED[$i]}"
+            done
+        } | column -t
+    else
+        echo "No snapshots found."
     fi
-    local DROPLET_OPTIONS=()
-    for i in "${!DROPLET_IDS[@]}"; do
-        DROPLET_OPTIONS+=("${DROPLET_NAMES[$i]} (${DROPLET_IDS[$i]})")
-    done
-    local droplet_choice
-    if ! droplet_choice=$(wizard choose "Manage snapshots for which ${GUMDROP_LABEL,,}?" "${DROPLET_OPTIONS[@]}" --default "${DROPLET_OPTIONS[0]}"); then return; fi
-    local droplet_id=$(echo "${droplet_choice}" | grep -oP '\(\K[0-9]+(?=\))')
-    local droplet_name=$(echo "${droplet_choice}" | sed 's/ ([^)]*)//')
+    echo ""
+}
 
+gumdrop_manage_snapshots() {
     while :
     do
-        echo ""
-        echo "## Snapshots for ${droplet_name}:"
-        readarray -t SNAP_IDS < <(doctl compute droplet snapshots "${droplet_id}" --format ID --no-header 2>/dev/null)
-        readarray -t SNAP_NAMES < <(doctl compute droplet snapshots "${droplet_id}" --format Name --no-header 2>/dev/null)
-        readarray -t SNAP_CREATED < <(doctl compute droplet snapshots "${droplet_id}" --format Created --no-header 2>/dev/null)
-        readarray -t SNAP_MINDISK < <(doctl compute droplet snapshots "${droplet_id}" --format MinDisk --no-header 2>/dev/null)
-        if [[ ${#SNAP_IDS[@]} -gt 0 && -n "${SNAP_IDS[0]}" ]]; then
-            {
-                echo "ID Name MinDisk Created"
-                for i in "${!SNAP_IDS[@]}"; do
-                    [[ -z "${SNAP_IDS[$i]}" ]] && continue
-                    echo "${SNAP_IDS[$i]} ${SNAP_NAMES[$i]} ${SNAP_MINDISK[$i]}GiB ${SNAP_CREATED[$i]}"
-                done
-            } | column -t
-        else
-            echo "No snapshots found."
-        fi
-        echo ""
-
+        gumdrop_list_snapshots
+        local snap_count=${#_SNAP_IDS[@]}
+        local has_snapshots=false
+        [[ ${snap_count} -gt 0 && -n "${_SNAP_IDS[0]}" ]] && has_snapshots=true
         local menu_items=(
-            "Create snapshot = $0 _gumdrop_create_snapshot ${droplet_id} ${droplet_name}"
+            "Create snapshot = $0 _gumdrop_create_snapshot"
         )
-        if [[ ${#SNAP_IDS[@]} -gt 0 && -n "${SNAP_IDS[0]}" ]]; then
+        if [[ "${has_snapshots}" == true ]]; then
             menu_items+=(
-                "Create ${GUMDROP_LABEL,,} from snapshot = $0 _gumdrop_create_from_snapshot ${droplet_id}"
-                "Restore snapshot = $0 _gumdrop_restore_snapshot ${droplet_id} ${droplet_name}"
-                "Delete snapshot = $0 _gumdrop_delete_snapshot ${droplet_id}"
+                "Create ${GUMDROP_LABEL,,} from snapshot = $0 _gumdrop_create_from_snapshot"
+                "Delete snapshot = $0 _gumdrop_delete_snapshot"
             )
         fi
         menu_items+=("Back = exit 2")
@@ -1930,8 +1919,23 @@ gumdrop_manage_snapshots() {
 }
 
 _gumdrop_create_snapshot() {
-    local droplet_id="$1"
-    local droplet_name="$2"
+    local tag_args=()
+    [[ -n "${GUMDROP_TAG}" ]] && tag_args=(--tag-name "${GUMDROP_TAG}")
+    readarray -t DROPLET_IDS < <(doctl compute droplet list "${tag_args[@]}" --format ID --no-header)
+    readarray -t DROPLET_NAMES < <(doctl compute droplet list "${tag_args[@]}" --format Name --no-header)
+    if [[ ${#DROPLET_IDS[@]} -eq 0 ]]; then
+        echo "No ${GUMDROP_LABEL,,}s found to snapshot."
+        return
+    fi
+    local DROPLET_OPTIONS=()
+    for i in "${!DROPLET_IDS[@]}"; do
+        DROPLET_OPTIONS+=("${DROPLET_NAMES[$i]} (${DROPLET_IDS[$i]})")
+    done
+    local droplet_choice
+    if ! droplet_choice=$(wizard choose "Snapshot which ${GUMDROP_LABEL,,}?" "${DROPLET_OPTIONS[@]}" --default "${DROPLET_OPTIONS[0]}"); then return; fi
+    local droplet_id=$(echo "${droplet_choice}" | grep -oP '\(\K[0-9]+(?=\))')
+    local droplet_name=$(echo "${droplet_choice}" | sed 's/ ([^)]*)//')
+
     local snap_name
     ask "Enter snapshot name" snap_name "${droplet_name}-$(date +%Y%m%d)"
     echo "Creating snapshot '${snap_name}' (this may take a while)..."
@@ -1942,9 +1946,8 @@ _gumdrop_create_snapshot() {
 }
 
 _gumdrop_create_from_snapshot() {
-    local droplet_id="$1"
-    readarray -t SNAP_IDS < <(doctl compute droplet snapshots "${droplet_id}" --format ID --no-header 2>/dev/null)
-    readarray -t SNAP_NAMES < <(doctl compute droplet snapshots "${droplet_id}" --format Name --no-header 2>/dev/null)
+    readarray -t SNAP_IDS < <(doctl compute snapshot list --resource droplet --format ID --no-header 2>/dev/null)
+    readarray -t SNAP_NAMES < <(doctl compute snapshot list --resource droplet --format Name --no-header 2>/dev/null)
     if [[ ${#SNAP_IDS[@]} -eq 0 || -z "${SNAP_IDS[0]}" ]]; then
         echo "No snapshots found."
         return
@@ -2031,35 +2034,9 @@ _gumdrop_create_from_snapshot() {
     echo "${GUMDROP_LABEL} '${new_name}' created."
 }
 
-_gumdrop_restore_snapshot() {
-    local droplet_id="$1"
-    local droplet_name="$2"
-    readarray -t SNAP_IDS < <(doctl compute droplet snapshots "${droplet_id}" --format ID --no-header 2>/dev/null)
-    readarray -t SNAP_NAMES < <(doctl compute droplet snapshots "${droplet_id}" --format Name --no-header 2>/dev/null)
-    if [[ ${#SNAP_IDS[@]} -eq 0 || -z "${SNAP_IDS[0]}" ]]; then
-        echo "No snapshots found."
-        return
-    fi
-    local SNAP_OPTIONS=()
-    for i in "${!SNAP_IDS[@]}"; do
-        [[ -z "${SNAP_IDS[$i]}" ]] && continue
-        SNAP_OPTIONS+=("${SNAP_NAMES[$i]} (${SNAP_IDS[$i]})")
-    done
-    local choice
-    if ! choice=$(wizard choose "Restore which snapshot?" "${SNAP_OPTIONS[@]}" --default "${SNAP_OPTIONS[0]}"); then return; fi
-    local snap_id=$(echo "${choice}" | grep -oP '\(\K[0-9]+(?=\))')
-    confirm no "This will restore '${droplet_name}' from snapshot '${choice}'. All current data will be replaced" "." || return
-    echo "Restoring snapshot (this may take a while)..."
-    set +e
-    doctl compute droplet-action restore "${droplet_id}" --image-id "${snap_id}" --wait
-    set -e
-    echo "Snapshot restored."
-}
-
 _gumdrop_delete_snapshot() {
-    local droplet_id="$1"
-    readarray -t SNAP_IDS < <(doctl compute droplet snapshots "${droplet_id}" --format ID --no-header 2>/dev/null)
-    readarray -t SNAP_NAMES < <(doctl compute droplet snapshots "${droplet_id}" --format Name --no-header 2>/dev/null)
+    readarray -t SNAP_IDS < <(doctl compute snapshot list --resource droplet --format ID --no-header 2>/dev/null)
+    readarray -t SNAP_NAMES < <(doctl compute snapshot list --resource droplet --format Name --no-header 2>/dev/null)
     if [[ ${#SNAP_IDS[@]} -eq 0 || -z "${SNAP_IDS[0]}" ]]; then
         echo "No snapshots found."
         return
