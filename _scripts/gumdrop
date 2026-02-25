@@ -811,11 +811,63 @@ gumdrop_create() {
         fi
     fi
 
-    ## Generate user-data via hook if defined:
+    ## Generate user-data via hook or interactive selection:
     local user_data_args=()
+    local USER_DATA_LABEL=""
     if type -t gumdrop_user_data_hook &>/dev/null; then
         USER_DATA=$(gumdrop_user_data_hook)
         user_data_args=(--user-data "${USER_DATA}")
+        USER_DATA_LABEL="(hook)"
+    else
+        local ud_builtin_dir="${SCRIPT_DIR}/gumdrop_user_data"
+        local ud_custom_dir="${HOME}/.config/d.rymcg.tech/gumdrop/user-data"
+        local ud_files=() ud_labels=()
+        local ud_file ud_basename ud_name ud_images_line ud_match ud_pattern
+        for ud_file in "${ud_builtin_dir}"/*.yaml "${ud_custom_dir}"/*.yaml; do
+            [[ -f "${ud_file}" ]] || continue
+            ud_images_line=""
+            while IFS= read -r line; do
+                if [[ "${line}" =~ ^##\ images:\ (.+) ]]; then
+                    ud_images_line="${BASH_REMATCH[1]}"
+                    break
+                fi
+            done < <(head -n 5 "${ud_file}")
+            if [[ -n "${ud_images_line}" ]]; then
+                ud_match=false
+                for ud_pattern in ${ud_images_line}; do
+                    # shellcheck disable=SC2053
+                    if [[ ${IMAGE} == ${ud_pattern} ]]; then
+                        ud_match=true
+                        break
+                    fi
+                done
+                ${ud_match} || continue
+            fi
+            ud_basename="$(basename "${ud_file}" .yaml)"
+            if [[ "${ud_file}" == "${ud_builtin_dir}"/* ]]; then
+                ud_labels+=("${ud_basename} (built-in)")
+            else
+                ud_labels+=("${ud_basename} (custom)")
+            fi
+            ud_files+=("${ud_file}")
+        done
+        if [[ ${#ud_files[@]} -gt 0 ]]; then
+            echo ""
+            local ud_choice
+            set +e
+            ud_choice=$(wizard choose "Apply user-data (cloud-init)?" "No" "${ud_labels[@]}")
+            set -e
+            if [[ -n "${ud_choice}" && "${ud_choice}" != "No" ]]; then
+                local ud_idx
+                for ud_idx in "${!ud_labels[@]}"; do
+                    if [[ "${ud_labels[$ud_idx]}" == "${ud_choice}" ]]; then
+                        user_data_args=(--user-data "$(cat "${ud_files[$ud_idx]}")")
+                        USER_DATA_LABEL="${ud_choice}"
+                        break
+                    fi
+                done
+            fi
+        fi
     fi
 
     ## Build tag args:
@@ -838,6 +890,7 @@ gumdrop_create() {
     echo "  Reserved IP:   ${RESERVED_IP:-(none)}"
     echo "  Volumes:       ${VOLUME_NAMES[*]:-(none)}"
     echo "  Backups:       ${BACKUP_SUMMARY}"
+    echo "  User-data:     ${USER_DATA_LABEL:-(none)}"
 
     ## Call summary hook if defined:
     if type -t gumdrop_summary_hook &>/dev/null; then
