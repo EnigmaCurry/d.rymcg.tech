@@ -20,7 +20,7 @@ config-hook:
 		TRAEFIK_HOST=$$(${BIN}/dotenv -f ${ENV_FILE} get WOODPECKER_TRAEFIK_HOST); \
 		echo ""; \
 		echo "## Create an OAuth2 application in Forgejo:"; \
-		echo "  1. Open $${FORGEJO_URL}/-/admin/applications"; \
+		echo "  1. Open $${FORGEJO_URL}/user/settings/applications"; \
 		echo "  2. Enter Application Name: Woodpecker"; \
 		echo "  3. Enter Redirect URI: https://$${TRAEFIK_HOST}/authorize"; \
 		echo "  4. Copy the Client ID and Client Secret."; \

@@ -26,8 +26,8 @@ During configuration you will select which profile(s) to enable (`server`,
 
 Before configuring Woodpecker, create an OAuth2 application in Forgejo:
 
- 1. In Forgejo, go to **Site Administration > Applications** (or your user
-    settings **Applications** page).
+ 1. In Forgejo, go to **User Settings > Applications**
+    (`https://git.example.com/user/settings/applications`).
  2. Create a new OAuth2 application:
     * **Application Name:** `Woodpecker`
     * **Redirect URI:** `https://woodpecker.example.com/authorize`
