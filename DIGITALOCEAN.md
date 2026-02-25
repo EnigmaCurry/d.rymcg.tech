@@ -76,15 +76,15 @@ your droplet's IP address:
 This lets any subdomain (e.g. `app.d.example.com`) resolve to your
 server.
 
-## Setup block storage for Docker volumes
+## Block storage for Docker volumes
 
-If you attached a block storage volume during droplet creation, it is
-formatted and mounted automatically under `/mnt/`. To remount it as
-`/var/lib/docker` so Docker uses the external storage, choose
-**Volumes → Mount volume as /var/lib/docker** from the main menu,
-select your droplet, and confirm. The task will automatically find the
-volume, stop Docker, move the data, update the systemd mount unit,
-and restart Docker.
+If you attach a block storage volume during droplet creation, the
+built-in Docker user-data scripts will automatically detect it and
+remount the largest volume as `/var/lib/docker` during first boot.
+No manual steps are needed.
+
+If you add a volume to an existing droplet, you can remount it from
+the main menu: **Volumes → Mount volume as /var/lib/docker**.
 
 Block storage volumes can also be managed from the **Volumes** menu
 in `d droplet`.

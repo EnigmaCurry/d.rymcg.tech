@@ -13,4 +13,23 @@ runcmd:
   - apt-get update
   - apt-get install -y docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin
   - systemctl enable docker
+  - |
+    ## Mount the largest block storage volume as /var/lib/docker
+    MOUNT_POINT=$(df --output=target,size | awk '/^\/mnt\// {print $2, $1}' | sort -rn | head -1 | awk '{print $2}')
+    if [ -n "${MOUNT_POINT}" ]; then
+      UNIT_NAME=$(systemd-escape -p "${MOUNT_POINT}").mount
+      UNIT_FILE="/etc/systemd/system/${UNIT_NAME}"
+      if [ -f "${UNIT_FILE}" ]; then
+        echo "Remounting ${MOUNT_POINT} as /var/lib/docker..."
+        systemctl stop docker docker.socket containerd 2>/dev/null || true
+        cp -a /var/lib/docker/. "${MOUNT_POINT}/" 2>/dev/null || true
+        rm -rf /var/lib/docker/* 2>/dev/null || true
+        umount "${MOUNT_POINT}"
+        sed -i "s|Where=${MOUNT_POINT}|Where=/var/lib/docker|" "${UNIT_FILE}"
+        mv "${UNIT_FILE}" /etc/systemd/system/var-lib-docker.mount
+        systemctl daemon-reload
+        mkdir -p /var/lib/docker
+        systemctl enable --now var-lib-docker.mount
+      fi
+    fi
   - systemctl start docker
