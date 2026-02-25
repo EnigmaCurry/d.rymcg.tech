@@ -50,11 +50,24 @@ gumdrop_list() {
         while read -r rip rid; do
             [[ -n "${rid}" && "${rid}" != "0" ]] && _RIP_MAP["${rid}"]="${rip}"
         done < <(doctl compute reserved-ip list --format IP,DropletID --no-header 2>/dev/null)
-        ## Print droplet table with ReservedIP column:
+        ## Build volume lookup (droplet_id -> comma-separated volume names):
+        declare -A _VOL_MAP
+        while read -r vol_name vol_droplets; do
+            [[ -z "${vol_name}" ]] && continue
+            local did=$(echo "${vol_droplets}" | tr -d '[]')
+            if [[ -n "${did}" && "${did}" != "0" ]]; then
+                if [[ -n "${_VOL_MAP[${did}]}" ]]; then
+                    _VOL_MAP["${did}"]="${_VOL_MAP[${did}]},${vol_name}"
+                else
+                    _VOL_MAP["${did}"]="${vol_name}"
+                fi
+            fi
+        done < <(doctl compute volume list --format Name,DropletIDs --no-header 2>/dev/null)
+        ## Print droplet table with ReservedIP and Volumes columns:
         {
-            echo "ID Name PublicIPv4 ReservedIPv4 Region Size Status"
+            echo "ID Name PublicIPv4 ReservedIPv4 Volumes Region Size Status"
             while read -r id name pub region size status; do
-                echo "${id} ${name} ${pub} ${_RIP_MAP[${id}]:--} ${region} ${size} ${status}"
+                echo "${id} ${name} ${pub} ${_RIP_MAP[${id}]:--} ${_VOL_MAP[${id}]:--} ${region} ${size} ${status}"
             done < <(doctl compute droplet list "${tag_args[@]}" --format ID,Name,PublicIPv4,Region,SizeSlug,Status --no-header)
         } | column -t
     else
@@ -554,6 +567,91 @@ gumdrop_create() {
         done
     fi
 
+    ## Select block storage volumes:
+    local VOLUME_IDS=()
+    local VOLUME_NAMES=()
+    if confirm no "Attach block storage volumes" "?"; then
+        while :; do
+            ## Build menu options:
+            local vol_options=("Create new volume")
+            ## Check for unattached volumes in the same region:
+            readarray -t _AVAIL_VOL_IDS < <(doctl compute volume list --format ID --no-header 2>/dev/null)
+            readarray -t _AVAIL_VOL_NAMES < <(doctl compute volume list --format Name --no-header 2>/dev/null)
+            readarray -t _AVAIL_VOL_REGIONS < <(doctl compute volume list --format Region --no-header 2>/dev/null)
+            readarray -t _AVAIL_VOL_DROPLETS < <(doctl compute volume list --format DropletIDs --no-header 2>/dev/null)
+            local HAS_AVAILABLE=false
+            for i in "${!_AVAIL_VOL_IDS[@]}"; do
+                if [[ "${_AVAIL_VOL_REGIONS[$i]}" == "${REGION}" ]] && \
+                   [[ -z "${_AVAIL_VOL_DROPLETS[$i]}" || "${_AVAIL_VOL_DROPLETS[$i]}" == "[]" ]]; then
+                    HAS_AVAILABLE=true
+                    break
+                fi
+            done
+            if [[ "${HAS_AVAILABLE}" == true ]]; then
+                vol_options+=("Choose existing volume")
+            fi
+            vol_options+=("Done")
+
+            if [[ ${#VOLUME_IDS[@]} -gt 0 ]]; then
+                echo "  Selected volumes: ${VOLUME_NAMES[*]}"
+            fi
+
+            local vol_action
+            set +e
+            vol_action=$(wizard choose "Block storage volumes" "${vol_options[@]}" --default "Done")
+            set -e
+
+            if [[ "${vol_action}" == "Create new volume" ]]; then
+                local new_vol_name
+                ask_no_blank "Enter volume name" new_vol_name
+                local new_vol_size
+                ask "Enter size in GiB" new_vol_size "20"
+                local new_fs_type
+                set +e
+                new_fs_type=$(wizard choose "Select filesystem type" "ext4" "xfs" "none" --default "ext4")
+                set -e
+                local fs_args=()
+                if [[ -n "${new_fs_type}" && "${new_fs_type}" != "none" ]]; then
+                    fs_args=(--fs-type "${new_fs_type}")
+                fi
+                echo "Creating volume '${new_vol_name}' (${new_vol_size}GiB in ${REGION})..."
+                local vol_output
+                vol_output=$(doctl compute volume create "${new_vol_name}" --region "${REGION}" --size "${new_vol_size}GiB" "${fs_args[@]}" --format ID --no-header)
+                local new_vol_id=$(echo "${vol_output}" | awk '{print $1}')
+                if [[ -n "${new_vol_id}" ]]; then
+                    VOLUME_IDS+=("${new_vol_id}")
+                    VOLUME_NAMES+=("${new_vol_name}")
+                    echo "Volume '${new_vol_name}' created."
+                else
+                    error "Failed to create volume."
+                fi
+            elif [[ "${vol_action}" == "Choose existing volume" ]]; then
+                local AVAIL_OPTIONS=()
+                local AVAIL_MAP_IDS=()
+                local AVAIL_MAP_NAMES=()
+                for i in "${!_AVAIL_VOL_IDS[@]}"; do
+                    if [[ "${_AVAIL_VOL_REGIONS[$i]}" == "${REGION}" ]] && \
+                       [[ -z "${_AVAIL_VOL_DROPLETS[$i]}" || "${_AVAIL_VOL_DROPLETS[$i]}" == "[]" ]]; then
+                        AVAIL_OPTIONS+=("${_AVAIL_VOL_NAMES[$i]} (${_AVAIL_VOL_IDS[$i]})")
+                        AVAIL_MAP_IDS+=("${_AVAIL_VOL_IDS[$i]}")
+                        AVAIL_MAP_NAMES+=("${_AVAIL_VOL_NAMES[$i]}")
+                    fi
+                done
+                readarray -t SELECTED < <(wizard select "Select volumes to attach" "${AVAIL_OPTIONS[@]}")
+                for sel in "${SELECTED[@]}"; do
+                    local sel_id=$(echo "${sel}" | grep -oP '\(\K[0-9a-f-]+(?=\))')
+                    local sel_name=$(echo "${sel}" | sed 's/ ([^)]*)//')
+                    if [[ -n "${sel_id}" ]]; then
+                        VOLUME_IDS+=("${sel_id}")
+                        VOLUME_NAMES+=("${sel_name}")
+                    fi
+                done
+            else
+                break
+            fi
+        done
+    fi
+
     ## Generate user-data via hook if defined:
     local user_data_args=()
     if type -t gumdrop_user_data_hook &>/dev/null; then
@@ -579,6 +677,7 @@ gumdrop_create() {
     echo "  Tags:          ${DROPLET_TAGS[*]:-(none)}"
     echo "  Firewall:      ${FIREWALL_NAMES[*]:-(none)}"
     echo "  Reserved IP:   ${RESERVED_IP:-(none)}"
+    echo "  Volumes:       ${VOLUME_NAMES[*]:-(none)}"
 
     ## Call summary hook if defined:
     if type -t gumdrop_summary_hook &>/dev/null; then
@@ -614,6 +713,17 @@ gumdrop_create() {
         if [[ -n "${droplet_id}" ]]; then
             echo "Assigning reserved IP ${RESERVED_IP}..."
             doctl compute reserved-ip-action assign "${RESERVED_IP}" "${droplet_id}" --no-header >/dev/null
+        fi
+    fi
+
+    ## Attach volumes to the new droplet:
+    if [[ ${#VOLUME_IDS[@]} -gt 0 ]]; then
+        local droplet_id=${droplet_id:-$(doctl compute droplet list --format ID,Name --no-header | awk -v name="${DROPLET_NAME}" '$2 == name {print $1}')}
+        if [[ -n "${droplet_id}" ]]; then
+            for vol_id in "${VOLUME_IDS[@]}"; do
+                echo "Attaching volume ${vol_id}..."
+                doctl compute volume-action attach "${vol_id}" "${droplet_id}" --wait
+            done
         fi
     fi
 
@@ -911,6 +1021,181 @@ gumdrop_release_reserved_ip() {
     echo "Note: changes may take a moment to propagate."
 }
 
+gumdrop_list_volumes() {
+    echo ""
+    echo "## Volumes:"
+    local count=$(doctl compute volume list --format ID --no-header 2>/dev/null | wc -l)
+    if [[ ${count} -gt 0 ]]; then
+        doctl compute volume list --format ID,Name,Size,Region,DropletIDs
+    else
+        echo "No volumes found."
+    fi
+    echo ""
+}
+
+gumdrop_create_volume() {
+    local vol_name
+    ask_no_blank "Enter volume name" vol_name
+
+    local vol_size
+    ask "Enter size in GiB" vol_size "20"
+
+    ## Select region:
+    readarray -t REGION_SLUGS < <(doctl compute region list --format Slug --no-header)
+    readarray -t REGION_NAMES < <(doctl compute region list --format Name --no-header)
+    local REGION_OPTIONS=()
+    local REGION_DEFAULT=""
+    for i in "${!REGION_SLUGS[@]}"; do
+        local opt=$(printf "%-8s  %s" "${REGION_SLUGS[$i]}" "${REGION_NAMES[$i]}")
+        REGION_OPTIONS+=("${opt}")
+        [[ "${REGION_SLUGS[$i]}" == "${GUMDROP_DEFAULT_REGION}" ]] && REGION_DEFAULT="${opt}"
+    done
+    local region_choice
+    if ! region_choice=$(wizard choose "Select region" "${REGION_OPTIONS[@]}" --default "${REGION_DEFAULT}"); then return; fi
+    local region=$(echo "${region_choice}" | awk '{print $1}')
+
+    ## Select filesystem type:
+    local fs_type
+    set +e
+    fs_type=$(wizard choose "Select filesystem type" "ext4" "xfs" "none" --default "ext4")
+    set -e
+    local fs_args=()
+    if [[ -n "${fs_type}" && "${fs_type}" != "none" ]]; then
+        fs_args=(--fs-type "${fs_type}")
+    fi
+
+    echo "Creating volume '${vol_name}' (${vol_size}GiB in ${region})..."
+    doctl compute volume create "${vol_name}" --region "${region}" --size "${vol_size}GiB" "${fs_args[@]}"
+    echo "Volume '${vol_name}' created."
+}
+
+gumdrop_delete_volume() {
+    readarray -t VOL_IDS < <(doctl compute volume list --format ID --no-header)
+    readarray -t VOL_NAMES < <(doctl compute volume list --format Name --no-header)
+    if [[ ${#VOL_IDS[@]} -eq 0 ]]; then
+        echo "No volumes found."
+        return
+    fi
+    local VOL_OPTIONS=()
+    for i in "${!VOL_IDS[@]}"; do
+        VOL_OPTIONS+=("${VOL_NAMES[$i]} (${VOL_IDS[$i]})")
+    done
+    local choice
+    if ! choice=$(wizard choose "Delete which volume?" "${VOL_OPTIONS[@]}" --default "${VOL_OPTIONS[0]}"); then return; fi
+    local vol_id=$(echo "${choice}" | grep -oP '\(\K[0-9a-f-]+(?=\))')
+    confirm no "Are you sure you want to delete '${choice}'" "?" || return
+    doctl compute volume delete "${vol_id}" --force
+    echo "Volume deleted."
+}
+
+gumdrop_attach_volume() {
+    ## List only unattached volumes:
+    readarray -t VOL_IDS < <(doctl compute volume list --format ID --no-header)
+    readarray -t VOL_NAMES < <(doctl compute volume list --format Name --no-header)
+    readarray -t VOL_DROPLETS < <(doctl compute volume list --format DropletIDs --no-header)
+    local UNATTACHED_IDS=()
+    local UNATTACHED_OPTIONS=()
+    for i in "${!VOL_IDS[@]}"; do
+        if [[ -z "${VOL_DROPLETS[$i]}" || "${VOL_DROPLETS[$i]}" == "[]" ]]; then
+            UNATTACHED_IDS+=("${VOL_IDS[$i]}")
+            UNATTACHED_OPTIONS+=("${VOL_NAMES[$i]} (${VOL_IDS[$i]})")
+        fi
+    done
+    if [[ ${#UNATTACHED_IDS[@]} -eq 0 ]]; then
+        echo "No unattached volumes available."
+        return
+    fi
+    local vol_choice
+    if ! vol_choice=$(wizard choose "Select volume to attach" "${UNATTACHED_OPTIONS[@]}" --default "${UNATTACHED_OPTIONS[0]}"); then return; fi
+    local vol_id=$(echo "${vol_choice}" | grep -oP '\(\K[0-9a-f-]+(?=\))')
+
+    ## List droplets to attach to:
+    local tag_args=()
+    [[ -n "${GUMDROP_TAG}" ]] && tag_args=(--tag-name "${GUMDROP_TAG}")
+    readarray -t DROPLET_IDS < <(doctl compute droplet list "${tag_args[@]}" --format ID --no-header)
+    readarray -t DROPLET_NAMES < <(doctl compute droplet list "${tag_args[@]}" --format Name --no-header)
+    if [[ ${#DROPLET_IDS[@]} -eq 0 ]]; then
+        echo "No ${GUMDROP_LABEL,,}s found to attach to."
+        return
+    fi
+    local DROPLET_OPTIONS=()
+    for i in "${!DROPLET_IDS[@]}"; do
+        DROPLET_OPTIONS+=("${DROPLET_NAMES[$i]} (${DROPLET_IDS[$i]})")
+    done
+    local droplet_choice
+    if ! droplet_choice=$(wizard choose "Attach to which ${GUMDROP_LABEL,,}?" "${DROPLET_OPTIONS[@]}" --default "${DROPLET_OPTIONS[0]}"); then return; fi
+    local droplet_id=$(echo "${droplet_choice}" | grep -oP '\(\K[0-9]+(?=\))')
+
+    echo "Attaching volume to ${droplet_choice}..."
+    doctl compute volume-action attach "${vol_id}" "${droplet_id}" --wait
+    echo "Volume attached."
+}
+
+gumdrop_detach_volume() {
+    ## List only attached volumes:
+    readarray -t VOL_IDS < <(doctl compute volume list --format ID --no-header)
+    readarray -t VOL_NAMES < <(doctl compute volume list --format Name --no-header)
+    readarray -t VOL_DROPLETS < <(doctl compute volume list --format DropletIDs --no-header)
+    local ATTACHED_IDS=()
+    local ATTACHED_DROPLET_IDS=()
+    local ATTACHED_OPTIONS=()
+    for i in "${!VOL_IDS[@]}"; do
+        if [[ -n "${VOL_DROPLETS[$i]}" && "${VOL_DROPLETS[$i]}" != "[]" ]]; then
+            local droplet_id=$(echo "${VOL_DROPLETS[$i]}" | tr -d '[]')
+            local droplet_name=$(doctl compute droplet get "${droplet_id}" --format Name --no-header 2>/dev/null)
+            ATTACHED_IDS+=("${VOL_IDS[$i]}")
+            ATTACHED_DROPLET_IDS+=("${droplet_id}")
+            ATTACHED_OPTIONS+=("${VOL_NAMES[$i]} → ${droplet_name:-${droplet_id}} (${VOL_IDS[$i]})")
+        fi
+    done
+    if [[ ${#ATTACHED_IDS[@]} -eq 0 ]]; then
+        echo "No attached volumes to detach."
+        return
+    fi
+    local choice
+    if ! choice=$(wizard choose "Detach which volume?" "${ATTACHED_OPTIONS[@]}" --default "${ATTACHED_OPTIONS[0]}"); then return; fi
+    local vol_id=$(echo "${choice}" | grep -oP '\(\K[0-9a-f-]+(?=\))')
+
+    ## Find matching droplet ID:
+    local droplet_id=""
+    for i in "${!ATTACHED_IDS[@]}"; do
+        if [[ "${ATTACHED_IDS[$i]}" == "${vol_id}" ]]; then
+            droplet_id="${ATTACHED_DROPLET_IDS[$i]}"
+            break
+        fi
+    done
+
+    echo "Detaching volume..."
+    doctl compute volume-action detach "${vol_id}" "${droplet_id}" --wait
+    echo "Volume detached."
+}
+
+gumdrop_manage_volumes() {
+    while :
+    do
+        gumdrop_list_volumes
+        local vol_count=$(doctl compute volume list --format ID --no-header 2>/dev/null | wc -l)
+        local menu_items=(
+            "Create volume = $0 gumdrop_create_volume"
+        )
+        if [[ ${vol_count} -gt 0 ]]; then
+            menu_items+=(
+                "Attach volume = $0 gumdrop_attach_volume"
+                "Detach volume = $0 gumdrop_detach_volume"
+                "Delete volume = $0 gumdrop_delete_volume"
+            )
+        fi
+        menu_items+=("Back = exit 2")
+        set +e
+        wizard menu --once --cancel-code=2 "Volumes:" "${menu_items[@]}"
+        local EXIT_CODE=$?
+        set -e
+        if [[ "${EXIT_CODE}" == "2" ]]; then
+            exit 0
+        fi
+    done
+}
+
 gumdrop_manage_reserved_ips() {
     while :
     do
@@ -1018,6 +1303,7 @@ gumdrop_main() {
             "Destroy ${GUMDROP_LABEL,,} = $0 gumdrop_destroy" \
             "Manage SSH keys = $0 gumdrop_manage_ssh_keys" \
             "Manage firewalls = $0 gumdrop_manage_firewalls" \
+            "Manage volumes = $0 gumdrop_manage_volumes" \
             "Manage reserved IPs = $0 gumdrop_manage_reserved_ips" \
             "Manage accounts = $0 gumdrop_manage_accounts" \
             "Exit = exit 2"
