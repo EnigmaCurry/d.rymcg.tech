@@ -756,14 +756,14 @@ gumdrop_create() {
     local fw_action
     set +e
     fw_action=$(wizard choose "Firewall" \
-        "Block everything" \
+        "Block all incoming" \
         "Web (SSH + HTTP + HTTPS)" \
         "Choose existing firewall" \
         "Create new firewall" \
         "No firewall" \
-        --default "Block everything")
+        --default "Block all incoming")
     set -e
-    if [[ "${fw_action}" == "Block everything" ]]; then
+    if [[ "${fw_action}" == "Block all incoming" ]]; then
         _gumdrop_create_block_all_firewall
     elif [[ "${fw_action}" == "Web (SSH + HTTP + HTTPS)" ]]; then
         _gumdrop_create_web_firewall
