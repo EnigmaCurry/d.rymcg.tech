@@ -576,15 +576,140 @@ gumdrop_delete_firewall() {
     echo "Firewall deleted."
 }
 
+gumdrop_edit_firewall() {
+    readarray -t FW_IDS < <(doctl compute firewall list --format ID --no-header)
+    readarray -t FW_NAMES < <(doctl compute firewall list --format Name --no-header)
+    if [[ ${#FW_IDS[@]} -eq 0 ]]; then
+        echo "No firewalls found."
+        return
+    fi
+    local FW_OPTIONS=()
+    for i in "${!FW_IDS[@]}"; do
+        FW_OPTIONS+=("${FW_NAMES[$i]} (${FW_IDS[$i]})")
+    done
+    local choice
+    if ! choice=$(wizard choose "Edit which firewall?" "${FW_OPTIONS[@]}" --default "${FW_OPTIONS[0]}"); then return; fi
+    local fw_id=$(echo "${choice}" | grep -oP '\(\K[0-9a-f-]+(?=\))')
+    local fw_name=$(echo "${choice}" | sed 's/ ([^)]*)//')
+
+    ## Fetch current inbound rules:
+    local current_rules=$(doctl compute firewall get "${fw_id}" --format InboundRules --no-header)
+    local INBOUND_RULES=()
+    if [[ -n "${current_rules}" ]]; then
+        while IFS= read -r rule; do
+            rule=$(echo "${rule}" | sed 's/^[[:space:]]*//;s/[[:space:]]*$//')
+            [[ -n "${rule}" ]] && INBOUND_RULES+=("${rule}")
+        done < <(echo "${current_rules}" | tr ' ' '\n')
+    fi
+
+    while :; do
+        echo ""
+        echo "## Inbound rules for '${fw_name}':"
+        if [[ ${#INBOUND_RULES[@]} -gt 0 ]]; then
+            for rule in "${INBOUND_RULES[@]}"; do
+                local proto=$(echo "${rule}" | grep -oP 'protocol:\K[^,]+')
+                local port=$(echo "${rule}" | grep -oP 'ports:\K[^,]+')
+                if [[ "${proto}" == "icmp" ]]; then
+                    echo "  ${proto}"
+                else
+                    echo "  ${proto}/${port}"
+                fi
+            done
+        else
+            echo "  (none)"
+        fi
+        local rule_action
+        set +e
+        rule_action=$(wizard choose "Manage inbound rules" \
+            "Add TCP port(s)" \
+            "Add UDP port(s)" \
+            "Allow ICMP (ping)" \
+            "Delete rule(s)" \
+            "Save" \
+            --default "Save")
+        local rule_exit=$?
+        set -e
+        if [[ ${rule_exit} -ne 0 ]]; then
+            return
+        elif [[ "${rule_action}" == "Save" ]]; then
+            break
+        elif [[ "${rule_action}" == "Delete rule(s)" ]]; then
+            if [[ ${#INBOUND_RULES[@]} -eq 0 ]]; then
+                echo "No rules to delete."
+            else
+                local DELETE_OPTIONS=()
+                for rule in "${INBOUND_RULES[@]}"; do
+                    local proto=$(echo "${rule}" | grep -oP 'protocol:\K[^,]+')
+                    local port=$(echo "${rule}" | grep -oP 'ports:\K[^,]+')
+                    if [[ "${proto}" == "icmp" ]]; then
+                        DELETE_OPTIONS+=("${proto}")
+                    else
+                        DELETE_OPTIONS+=("${proto}/${port}")
+                    fi
+                done
+                readarray -t TO_DELETE < <(wizard select "Select rules to delete" "${DELETE_OPTIONS[@]}")
+                if [[ ${#TO_DELETE[@]} -gt 0 ]]; then
+                    local NEW_RULES=()
+                    for i in "${!INBOUND_RULES[@]}"; do
+                        local keep=true
+                        for del in "${TO_DELETE[@]}"; do
+                            [[ "${DELETE_OPTIONS[$i]}" == "${del}" ]] && keep=false
+                        done
+                        [[ "${keep}" == true ]] && NEW_RULES+=("${INBOUND_RULES[$i]}")
+                    done
+                    INBOUND_RULES=("${NEW_RULES[@]}")
+                fi
+            fi
+        elif [[ "${rule_action}" == "Add TCP port(s)" ]]; then
+            local ports_input
+            ask_no_blank "Enter TCP port(s) (e.g. 22 or 80,443 or 8000-9000)" ports_input
+            IFS=',' read -ra PORT_LIST <<< "${ports_input}"
+            for port in "${PORT_LIST[@]}"; do
+                port=$(echo "${port}" | sed 's/^[[:space:]]*//;s/[[:space:]]*$//')
+                [[ -n "${port}" ]] && INBOUND_RULES+=("protocol:tcp,ports:${port},address:0.0.0.0/0,address:::/0")
+            done
+        elif [[ "${rule_action}" == "Add UDP port(s)" ]]; then
+            local ports_input
+            ask_no_blank "Enter UDP port(s) (e.g. 53 or 1194,5353)" ports_input
+            IFS=',' read -ra PORT_LIST <<< "${ports_input}"
+            for port in "${PORT_LIST[@]}"; do
+                port=$(echo "${port}" | sed 's/^[[:space:]]*//;s/[[:space:]]*$//')
+                [[ -n "${port}" ]] && INBOUND_RULES+=("protocol:udp,ports:${port},address:0.0.0.0/0,address:::/0")
+            done
+        elif [[ "${rule_action}" == "Allow ICMP (ping)" ]]; then
+            INBOUND_RULES+=("protocol:icmp,address:0.0.0.0/0,address:::/0")
+            echo "ICMP added."
+        fi
+    done
+
+    local inbound_str="${INBOUND_RULES[*]}"
+    local outbound_str="protocol:tcp,ports:all,address:0.0.0.0/0,address:::/0 protocol:udp,ports:all,address:0.0.0.0/0,address:::/0 protocol:icmp,address:0.0.0.0/0,address:::/0"
+
+    echo "Updating firewall '${fw_name}'..."
+    doctl compute firewall update "${fw_id}" \
+        --name "${fw_name}" \
+        --inbound-rules "${inbound_str}" \
+        --outbound-rules "${outbound_str}"
+    echo "Firewall '${fw_name}' updated."
+}
+
 gumdrop_manage_firewalls() {
     while :
     do
         gumdrop_list_firewalls
+        local fw_count=$(doctl compute firewall list --format ID --no-header 2>/dev/null | wc -l)
+        local menu_items=(
+            "Create new firewall = $0 gumdrop_create_firewall_standalone"
+        )
+        if [[ ${fw_count} -gt 0 ]]; then
+            menu_items+=(
+                "Edit firewall = $0 gumdrop_edit_firewall"
+                "Delete firewall = $0 gumdrop_delete_firewall"
+            )
+        fi
+        menu_items+=("Back = exit 2")
         set +e
-        wizard menu --once --cancel-code=2 "Firewalls:" \
-            "Create new firewall = $0 gumdrop_create_firewall_standalone" \
-            "Delete firewall = $0 gumdrop_delete_firewall" \
-            "Back = exit 2"
+        wizard menu --once --cancel-code=2 "Firewalls:" "${menu_items[@]}"
         local EXIT_CODE=$?
         set -e
         if [[ "${EXIT_CODE}" == "2" ]]; then
