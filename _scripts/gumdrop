@@ -100,8 +100,36 @@ gumdrop_destroy() {
     local name
     if ! name=$(wizard choose "Destroy which ${GUMDROP_LABEL,,}?" "${NAMES[@]}" --default "${NAMES[0]}"); then return; fi
     confirm no "Are you sure you want to destroy '${name}'" "?" || return
+
+    ## Find auto-created web firewalls matching {name}-web-* that only protect this droplet:
+    local droplet_id=$(doctl compute droplet list --format ID,Name --no-header | awk -v n="${name}" '$2 == n {print $1}')
+    local FW_TO_DELETE=()
+    if [[ -n "${droplet_id}" ]]; then
+        readarray -t FW_IDS < <(doctl compute firewall list --format ID --no-header 2>/dev/null)
+        readarray -t FW_NAMES < <(doctl compute firewall list --format Name --no-header 2>/dev/null)
+        readarray -t FW_DROPLETS < <(doctl compute firewall list --format DropletIDs --no-header 2>/dev/null)
+        for i in "${!FW_IDS[@]}"; do
+            if [[ "${FW_NAMES[$i]}" =~ ^${name}-web-[0-9a-f]+$ ]]; then
+                ## Check if this droplet is the only one using this firewall:
+                local droplet_list=$(echo "${FW_DROPLETS[$i]}" | tr -d '[]')
+                if [[ "${droplet_list}" == "${droplet_id}" ]]; then
+                    FW_TO_DELETE+=("${FW_IDS[$i]}:${FW_NAMES[$i]}")
+                fi
+            fi
+        done
+    fi
+
     doctl compute droplet delete "${name}" --force
     echo "${GUMDROP_LABEL} '${name}' destroyed."
+
+    ## Clean up auto-created web firewalls:
+    for fw_entry in "${FW_TO_DELETE[@]}"; do
+        local fw_id="${fw_entry%%:*}"
+        local fw_name="${fw_entry#*:}"
+        echo "Deleting auto-created firewall '${fw_name}'..."
+        doctl compute firewall delete "${fw_id}" --force
+        echo "Firewall '${fw_name}' deleted."
+    done
 }
 
 gumdrop_ensure_ssh_key() {
