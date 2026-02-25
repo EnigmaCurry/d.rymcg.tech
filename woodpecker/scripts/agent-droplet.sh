@@ -51,23 +51,25 @@ destroy_droplet() {
 }
 
 create_droplet() {
-    ## Defaults:
-    local DEFAULT_REGION="nyc3"
-    local DEFAULT_SIZE="s-2vcpu-4gb"
-    local DEFAULT_IMAGE="debian-13-x64"
-
-    ask "Enter droplet name" DROPLET_NAME
-    check_var DROPLET_NAME
-
     ask "Enter Woodpecker gRPC address (e.g. woodpecker-grpc.example.com:443)" WOODPECKER_SERVER "${WOODPECKER_SERVER}"
     check_var WOODPECKER_SERVER
 
     ask "Enter Woodpecker agent secret" WOODPECKER_AGENT_SECRET "${WOODPECKER_AGENT_SECRET}"
     check_var WOODPECKER_AGENT_SECRET
 
-    ask "Enter region" REGION "${DEFAULT_REGION}"
-    ask "Enter size" SIZE "${DEFAULT_SIZE}"
-    ask "Enter image" IMAGE "${DEFAULT_IMAGE}"
+    ask "Enter droplet name" DROPLET_NAME
+    check_var DROPLET_NAME
+
+    ## Select region:
+    readarray -t REGIONS < <(doctl compute region list --format Slug --no-header)
+    REGION=$(wizard choose "Select region" "${REGIONS[@]}" --default "nyc3")
+
+    ## Select size:
+    readarray -t SIZES < <(doctl compute size list --format Slug --no-header)
+    SIZE=$(wizard choose "Select size" "${SIZES[@]}" --default "s-2vcpu-4gb")
+
+    ## Select image:
+    IMAGE=$(wizard choose "Select image" "debian-13-x64" --default "debian-13-x64")
 
     ## Select SSH key:
     echo ""
