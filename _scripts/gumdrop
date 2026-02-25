@@ -1581,7 +1581,7 @@ gumdrop_list_nfs() {
                 fi
             done
             vpc_display=$(IFS=','; echo "${vpc_names[*]}")
-            echo "${_NFS_NAMES[$i]} ${_NFS_SIZES[$i]}GiB ${_NFS_REGIONS[$i]} ${vpc_display:--}"
+            echo "${_NFS_NAMES[$i]} ${_NFS_SIZES[$i]} ${_NFS_REGIONS[$i]} ${vpc_display:--}"
         done
     } | column -t
     echo ""
@@ -1708,7 +1708,7 @@ gumdrop_resize_nfs() {
     fi
     local NFS_OPTIONS=()
     for i in "${!_NFS_IDS[@]}"; do
-        NFS_OPTIONS+=("${_NFS_NAMES[$i]} ${_NFS_SIZES[$i]}GiB [${_NFS_REGIONS[$i]}] (${_NFS_IDS[$i]})")
+        NFS_OPTIONS+=("${_NFS_NAMES[$i]} ${_NFS_SIZES[$i]} [${_NFS_REGIONS[$i]}] (${_NFS_IDS[$i]})")
     done
     local choice
     if ! choice=$(wizard choose "Resize which NFS share?" "${NFS_OPTIONS[@]}" --default "${NFS_OPTIONS[0]}"); then return; fi
