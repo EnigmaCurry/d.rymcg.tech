@@ -2035,9 +2035,6 @@ gumdrop_manage_backups() {
 import json,sys
 data=json.load(sys.stdin)
 d=data[0] if isinstance(data,list) else data
-sys.stderr.write('DEBUG features=' + str(d.get('features',[])) + '\n')
-sys.stderr.write('DEBUG backup_policy=' + str(d.get('backup_policy')) + '\n')
-sys.stderr.write('DEBUG keys=' + str([k for k in d.keys() if 'back' in k.lower()]) + '\n')
 p=d.get('backup_policy') or {}
 plan=p.get('plan','') if isinstance(p,dict) else ''
 if not plan and 'backups' in d.get('features',[]):
@@ -2128,7 +2125,7 @@ _gumdrop_enable_backups() {
         error "Failed to enable backups."
         return
     fi
-    echo "Backups enabled."
+    echo "Backups enabled. Note: it may take a few minutes for the status to update."
     sleep 3
 }
 
