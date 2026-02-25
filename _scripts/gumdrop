@@ -2604,12 +2604,23 @@ gumdrop_delete_dns_record() {
     for i in "${!REC_IDS[@]}"; do
         REC_OPTIONS+=("${REC_NAMES[$i]} ${REC_TYPES[$i]} → ${REC_DATA[$i]} (${REC_IDS[$i]})")
     done
-    local choice
-    if ! choice=$(wizard choose "Delete which record?" "${REC_OPTIONS[@]}" --default "${REC_OPTIONS[0]}"); then return; fi
-    local rec_id=$(echo "${choice}" | grep -oP '\(\K[0-9]+(?=\))')
-    confirm no "Are you sure you want to delete '${choice}'" "?" || return
-    doctl compute domain records delete "${domain}" "${rec_id}" --force
-    echo "DNS record deleted."
+    readarray -t SELECTED < <(wizard select "Select records to delete" "${REC_OPTIONS[@]}")
+    if [[ ${#SELECTED[@]} -eq 0 ]]; then
+        echo "No records selected."
+        return
+    fi
+    echo ""
+    echo "The following ${#SELECTED[@]} record(s) will be deleted:"
+    for sel in "${SELECTED[@]}"; do
+        echo "  - ${sel}"
+    done
+    echo ""
+    confirm no "Are you sure you want to delete these ${#SELECTED[@]} record(s)" "?" || return
+    for sel in "${SELECTED[@]}"; do
+        local rec_id=$(echo "${sel}" | grep -oP '\(\K[0-9]+(?=\))')
+        doctl compute domain records delete "${domain}" "${rec_id}" --force
+        echo "Deleted: ${sel}"
+    done
 }
 
 gumdrop_manage_dns_domain() {
