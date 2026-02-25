@@ -68,7 +68,7 @@ gumdrop_list() {
         declare -A _BACKUP_MAP
         while read -r did plan; do
             [[ -n "${did}" && -n "${plan}" ]] && _BACKUP_MAP["${did}"]="${plan}"
-        done < <(doctl compute droplet list "${tag_args[@]}" --output json 2>/dev/null | python3 -c "
+        done < <(doctl compute droplet list "${tag_args[@]}" --output json 2>/dev/null | uv run python3 -c "
 import json,sys
 data=json.load(sys.stdin)
 if not isinstance(data,list): data=[data]
@@ -2031,7 +2031,7 @@ gumdrop_manage_backups() {
         local backup_plan=""
         local droplet_json
         droplet_json=$(doctl compute droplet get "${droplet_id}" --output json 2>/dev/null)
-        backup_plan=$(echo "${droplet_json}" | python3 -c "
+        backup_plan=$(echo "${droplet_json}" | uv run python3 -c "
 import json,sys
 data=json.load(sys.stdin)
 d=data[0] if isinstance(data,list) else data
@@ -2208,7 +2208,7 @@ _gumdrop_convert_backup() {
             -d '{"type":"convert"}' \
             "https://api.digitalocean.com/v2/images/${backup_id}/actions")
         set -e
-        if echo "${resp}" | python3 -c "import json,sys; d=json.load(sys.stdin); print(d.get('action',{}).get('status',''))" 2>/dev/null | grep -q "in-progress"; then
+        if echo "${resp}" | uv run python3 -c "import json,sys; d=json.load(sys.stdin); print(d.get('action',{}).get('status',''))" 2>/dev/null | grep -q "in-progress"; then
             echo "Conversion started for '${sel}'."
         else
             error "Failed to convert '${sel}': ${resp}"
