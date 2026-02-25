@@ -70,7 +70,9 @@ gumdrop_list() {
             [[ -n "${did}" && -n "${plan}" ]] && _BACKUP_MAP["${did}"]="${plan}"
         done < <(doctl compute droplet list "${tag_args[@]}" --output json 2>/dev/null | python3 -c "
 import json,sys
-for d in json.load(sys.stdin):
+data=json.load(sys.stdin)
+if not isinstance(data,list): data=[data]
+for d in data:
     p=d.get('backup_policy') or {}
     plan=p.get('plan','') if isinstance(p,dict) else ''
     if not plan and 'backups' in d.get('features',[]):
@@ -2031,13 +2033,14 @@ gumdrop_manage_backups() {
         droplet_json=$(doctl compute droplet get "${droplet_id}" --output json 2>/dev/null)
         backup_plan=$(echo "${droplet_json}" | python3 -c "
 import json,sys
-d=json.load(sys.stdin)[0]
+data=json.load(sys.stdin)
+d=data[0] if isinstance(data,list) else data
 p=d.get('backup_policy') or {}
 plan=p.get('plan','') if isinstance(p,dict) else ''
 if not plan and 'backups' in d.get('features',[]):
     plan='daily'
 print(plan)
-" 2>/dev/null)
+")
         if [[ -n "${backup_plan}" ]]; then
             backup_enabled=true
             echo "Backups: enabled (${backup_plan})"
