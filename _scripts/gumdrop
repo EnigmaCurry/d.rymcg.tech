@@ -255,10 +255,39 @@ EOF
     fi
 }
 
-gumdrop_cloud_init_log() {
+gumdrop_log_cloud_init() {
     local name
     if ! name=$(gumdrop_choose_droplet "View cloud-init log for which ${GUMDROP_LABEL,,}?"); then return; fi
     gumdrop_ssh_cmd "${name}" cat /var/log/cloud-init-output.log | less
+}
+
+gumdrop_log_docker() {
+    local name
+    if ! name=$(gumdrop_choose_droplet "View Docker log for which ${GUMDROP_LABEL,,}?"); then return; fi
+    gumdrop_ssh_cmd "${name}" journalctl -u docker --no-pager | less
+}
+
+gumdrop_log_ssh() {
+    local name
+    if ! name=$(gumdrop_choose_droplet "View SSH log for which ${GUMDROP_LABEL,,}?"); then return; fi
+    gumdrop_ssh_cmd "${name}" journalctl -u ssh -u sshd --no-pager | less
+}
+
+gumdrop_manage_logs() {
+    while :
+    do
+        set +e
+        wizard menu --once --cancel-code=2 "View logs:" \
+            "cloud-init = $0 gumdrop_log_cloud_init" \
+            "Docker = $0 gumdrop_log_docker" \
+            "SSH = $0 gumdrop_log_ssh" \
+            "Back = exit 2"
+        local EXIT_CODE=$?
+        set -e
+        if [[ "${EXIT_CODE}" == "2" ]]; then
+            exit 0
+        fi
+    done
 }
 
 gumdrop_destroy() {
@@ -2892,7 +2921,7 @@ gumdrop_manage_droplets() {
             "SSH into ${GUMDROP_LABEL,,} = $0 gumdrop_ssh" \
             "Destroy ${GUMDROP_LABEL,,} = $0 gumdrop_destroy" \
             "Add to local SSH config = $0 gumdrop_add_ssh_config" \
-            "View cloud-init log = $0 gumdrop_cloud_init_log" \
+            "View logs = $0 gumdrop_manage_logs" \
             "Back = exit 2"
         local EXIT_CODE=$?
         set -e
