@@ -40,7 +40,7 @@ services:
       #@ grpc_router = "{}-{}-{}".format(project,instance,"grpc")
       - "traefik.http.routers.(@= grpc_router @).rule=Host(`(@= grpc_host @)`)"
       - "traefik.http.routers.(@= grpc_router @).entrypoints=websecure"
-      #@ grpc_enabled_middlewares.append("{}-ipallowlist".format(router))
+      #@ grpc_enabled_middlewares.append("{}-ipallowlist".format(grpc_router))
       - "traefik.http.middlewares.(@= grpc_router @)-ipallowlist.ipallowlist.sourcerange=(@= ip_sourcerange @)"
       - "traefik.http.services.(@= grpc_router @).loadbalancer.server.port=9000"
       - "traefik.http.services.(@= grpc_router @).loadbalancer.server.scheme=h2c"
