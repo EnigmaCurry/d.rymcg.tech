@@ -22,6 +22,7 @@ GUMDROP_DEFAULT_SIZE="${GUMDROP_DEFAULT_SIZE:-s-2vcpu-4gb}"
 GUMDROP_SSH_KEY_NAME="${GUMDROP_SSH_KEY_NAME:-gumdrop}"
 ## Space-separated list of image slugs to offer. Empty = fetch all public images from doctl.
 GUMDROP_IMAGES="${GUMDROP_IMAGES:-}"
+GUMDROP_PRESET_DIR="${HOME}/.config/d.rymcg.tech/gumdrop-presets"
 
 gumdrop_check_doctl() {
     command -v doctl >/dev/null || fault "doctl is not installed. See https://docs.digitalocean.com/reference/doctl/how-to/install/"
@@ -1087,6 +1088,586 @@ gumdrop_create() {
     echo "${GUMDROP_LABEL} created."
     echo "Check cloud-init status with: doctl compute ssh ${DROPLET_NAME} -- tail -f /var/log/cloud-init-output.log"
     gumdrop_list
+}
+
+gumdrop_create_preset() {
+    mkdir -p "${GUMDROP_PRESET_DIR}"
+
+    ## Ask for preset name:
+    local PRESET_NAME="${GUMDROP_PRESET_NAME:-}"
+    if [[ -z "${PRESET_NAME}" ]]; then
+        while :; do
+            ask_no_blank "Enter preset name" PRESET_NAME
+            if [[ -f "${GUMDROP_PRESET_DIR}/${PRESET_NAME}.yaml" ]]; then
+                error "A preset named '${PRESET_NAME}' already exists."
+            else
+                break
+            fi
+        done
+    else
+        if [[ -f "${GUMDROP_PRESET_DIR}/${PRESET_NAME}.yaml" ]]; then
+            fault "A preset named '${PRESET_NAME}' already exists."
+        fi
+    fi
+
+    ## Select region:
+    readarray -t REGION_SLUGS < <(doctl compute region list --format Slug --no-header)
+    readarray -t REGION_NAMES < <(doctl compute region list --format Name --no-header)
+    REGION_OPTIONS=()
+    REGION_DEFAULT=""
+    for i in "${!REGION_SLUGS[@]}"; do
+        local opt=$(printf "%-8s  %s" "${REGION_SLUGS[$i]}" "${REGION_NAMES[$i]}")
+        REGION_OPTIONS+=("${opt}")
+        [[ "${REGION_SLUGS[$i]}" == "${GUMDROP_DEFAULT_REGION}" ]] && REGION_DEFAULT="${opt}"
+    done
+    REGION_CHOICE=$(wizard choose "Select region" "${REGION_OPTIONS[@]}" --default "${REGION_DEFAULT}")
+    local REGION=$(echo "${REGION_CHOICE}" | awk '{print $1}')
+
+    ## Select size:
+    readarray -t SIZE_SLUGS < <(doctl compute size list --format Slug --no-header)
+    readarray -t SIZE_PRICES < <(doctl compute size list --format PriceHourly --no-header)
+    readarray -t SIZE_DISKS < <(doctl compute size list --format Disk --no-header)
+    readarray -t SIZE_VCPUS < <(doctl compute size list --format VCPUs --no-header)
+    SIZE_OPTIONS=()
+    SIZE_DEFAULT=""
+    for i in "${!SIZE_SLUGS[@]}"; do
+        local opt=$(printf "%-25s  %-3s vCPUs  \$%-10s  %sGB disk" "${SIZE_SLUGS[$i]}" "${SIZE_VCPUS[$i]}" "${SIZE_PRICES[$i]}/hr" "${SIZE_DISKS[$i]}")
+        SIZE_OPTIONS+=("${opt}")
+        [[ "${SIZE_SLUGS[$i]}" == "${GUMDROP_DEFAULT_SIZE}" ]] && SIZE_DEFAULT="${opt}"
+    done
+    SIZE_CHOICE=$(wizard choose "Select size" "${SIZE_OPTIONS[@]}" --default "${SIZE_DEFAULT}")
+    local SIZE=$(echo "${SIZE_CHOICE}" | awk '{print $1}')
+
+    ## Select image:
+    local IMAGE_OPTIONS=()
+    local IMAGE_DEFAULT=""
+    if [[ -n "${GUMDROP_IMAGES}" ]]; then
+        read -ra IMAGE_OPTIONS <<< "${GUMDROP_IMAGES}"
+    else
+        while IFS=$'\t' read -r slug distro; do
+            [[ -n "${slug}" ]] && IMAGE_OPTIONS+=("$(printf "%-30s  %s" "${slug}" "${distro}")")
+        done < <(doctl compute image list --public --format Slug,Distribution --no-header | grep -v '^\s*$' | sort)
+    fi
+    for opt in "${IMAGE_OPTIONS[@]}"; do
+        [[ "$(echo "${opt}" | awk '{print $1}')" == "${GUMDROP_DEFAULT_IMAGE}" ]] && IMAGE_DEFAULT="${opt}"
+    done
+    local IMAGE_CHOICE
+    IMAGE_CHOICE=$(wizard choose "Select image" "${IMAGE_OPTIONS[@]}" --default "${IMAGE_DEFAULT}")
+    local IMAGE=$(echo "${IMAGE_CHOICE}" | awk '{print $1}')
+
+    ## Select SSH key name:
+    echo ""
+    readarray -t SSH_KEY_NAMES < <(doctl compute ssh-key list --format Name --no-header)
+    local SSH_KEY_OPTIONS=("${SSH_KEY_NAMES[@]}")
+    local SSH_KEY_DEFAULT="${GUMDROP_SSH_KEY_NAME}"
+    local SSH_KEY_CHOICE
+    if ! SSH_KEY_CHOICE=$(wizard choose "Which SSH key?" "${SSH_KEY_OPTIONS[@]}" --default "${SSH_KEY_DEFAULT}"); then return; fi
+    local SSH_KEY_NAME="${SSH_KEY_CHOICE}"
+
+    ## Select tags:
+    local PRESET_TAGS=()
+    if [[ -n "${GUMDROP_TAG}" ]]; then
+        PRESET_TAGS+=("${GUMDROP_TAG}")
+    else
+        if confirm no "Add tags" "?"; then
+            while :; do
+                echo ""
+                if [[ ${#PRESET_TAGS[@]} -gt 0 ]]; then
+                    echo "  Tags: ${PRESET_TAGS[*]}"
+                else
+                    echo "  Tags: (none)"
+                fi
+                local tag_action
+                set +e
+                tag_action=$(wizard choose "Manage tags" \
+                    "Add new tags" \
+                    "Done" \
+                    --default "Done")
+                local tag_exit=$?
+                set -e
+                if [[ ${tag_exit} -ne 0 ]] || [[ "${tag_action}" == "Done" ]]; then
+                    break
+                elif [[ "${tag_action}" == "Add new tags" ]]; then
+                    local new_tags_input
+                    ask_no_blank "Enter tags (comma separated)" new_tags_input
+                    IFS=',' read -ra NEW_TAGS <<< "${new_tags_input}"
+                    for raw_tag in "${NEW_TAGS[@]}"; do
+                        local tag=$(echo "${raw_tag}" | sed 's/^[[:space:]]*//;s/[[:space:]]*$//')
+                        [[ -z "${tag}" ]] && continue
+                        local already=false
+                        for existing in "${PRESET_TAGS[@]}"; do
+                            [[ "${existing}" == "${tag}" ]] && already=true
+                        done
+                        [[ "${already}" == false ]] && PRESET_TAGS+=("${tag}")
+                    done
+                fi
+            done
+        fi
+    fi
+
+    ## Select firewall type:
+    local FIREWALL_TYPE
+    set +e
+    FIREWALL_TYPE=$(wizard choose "Firewall" \
+        "Only SSH" \
+        "Block all incoming" \
+        "Web (SSH + HTTP + HTTPS)" \
+        "No firewall" \
+        --default "Only SSH")
+    set -e
+    local fw_type_key="none"
+    case "${FIREWALL_TYPE}" in
+        "Only SSH") fw_type_key="ssh-only" ;;
+        "Block all incoming") fw_type_key="block-all" ;;
+        "Web (SSH + HTTP + HTTPS)") fw_type_key="web" ;;
+        *) fw_type_key="none" ;;
+    esac
+
+    ## Reserved IP:
+    local CREATE_RESERVED_IP=false
+    if confirm no "Create a reserved IP when spawning" "?"; then
+        CREATE_RESERVED_IP=true
+    fi
+
+    ## Volumes:
+    local VOLUME_SPECS=()
+    if confirm no "Configure block storage volumes" "?"; then
+        while :; do
+            if [[ ${#VOLUME_SPECS[@]} -gt 0 ]]; then
+                echo "  Volumes configured: ${#VOLUME_SPECS[@]}"
+            fi
+            local vol_action
+            set +e
+            vol_action=$(wizard choose "Volumes" "Add volume" "Done" --default "Done")
+            set -e
+            if [[ "${vol_action}" == "Add volume" ]]; then
+                local new_vol_size
+                ask "Enter size in GiB" new_vol_size "20"
+                local new_fs_type
+                set +e
+                new_fs_type=$(wizard choose "Select filesystem type" "ext4" "xfs" "none" --default "ext4")
+                set -e
+                VOLUME_SPECS+=("${new_vol_size}:${new_fs_type}")
+            else
+                break
+            fi
+        done
+    fi
+
+    ## Configure backups:
+    local backup_plan="none"
+    local backup_hour="0"
+    local backup_weekday="SUN"
+    local bp_choice
+    set +e
+    bp_choice=$(wizard choose "Enable backups?" "No" "Daily" "Weekly" --default "No")
+    set -e
+    if [[ "${bp_choice}" == "Daily" || "${bp_choice}" == "Weekly" ]]; then
+        backup_plan="${bp_choice,,}"
+        set +e
+        backup_hour=$(wizard choose "Backup hour (UTC)" "0" "4" "8" "12" "16" "20" --default "0")
+        set -e
+        backup_hour="${backup_hour:-0}"
+        if [[ "${bp_choice}" == "Weekly" ]]; then
+            set +e
+            backup_weekday=$(wizard choose "Backup weekday" "SUN" "MON" "TUE" "WED" "THU" "FRI" "SAT" --default "SUN")
+            set -e
+            backup_weekday="${backup_weekday:-SUN}"
+        fi
+    fi
+
+    ## Select user-data template:
+    local user_data_basename=""
+    local ud_builtin_dir="${SCRIPT_DIR}/gumdrop_user_data"
+    local ud_custom_dir="${HOME}/.config/d.rymcg.tech/gumdrop/user-data"
+    local ud_files=() ud_labels=() ud_basenames=()
+    for ud_file in "${ud_builtin_dir}"/*.yaml "${ud_custom_dir}"/*.yaml; do
+        [[ -f "${ud_file}" ]] || continue
+        local ud_images_line="" ud_title=""
+        while IFS= read -r line; do
+            if [[ "${line}" =~ ^##\ images:\ (.+) ]]; then
+                ud_images_line="${BASH_REMATCH[1]}"
+            elif [[ "${line}" =~ ^##\ title:\ (.+) ]]; then
+                ud_title="${BASH_REMATCH[1]}"
+            fi
+        done < <(head -n 5 "${ud_file}")
+        if [[ -n "${ud_images_line}" ]]; then
+            local ud_match=false
+            for ud_pattern in ${ud_images_line}; do
+                # shellcheck disable=SC2053
+                if [[ ${IMAGE} == ${ud_pattern} ]]; then
+                    ud_match=true
+                    break
+                fi
+            done
+            ${ud_match} || continue
+        fi
+        local ud_bn="$(basename "${ud_file}" .yaml)"
+        local ud_display="${ud_title:-${ud_bn}}"
+        if [[ "${ud_file}" == "${ud_builtin_dir}"/* ]]; then
+            ud_labels+=("${ud_display} (built-in)")
+        else
+            ud_labels+=("${ud_display} (custom)")
+        fi
+        ud_files+=("${ud_file}")
+        ud_basenames+=("${ud_bn}")
+    done
+    if [[ ${#ud_files[@]} -gt 0 ]]; then
+        echo ""
+        local ud_choice
+        set +e
+        ud_choice=$(wizard choose "Apply user-data (cloud-init)?" "No" "${ud_labels[@]}")
+        set -e
+        if [[ -n "${ud_choice}" && "${ud_choice}" != "No" ]]; then
+            for ud_idx in "${!ud_labels[@]}"; do
+                if [[ "${ud_labels[$ud_idx]}" == "${ud_choice}" ]]; then
+                    user_data_basename="${ud_basenames[$ud_idx]}"
+                    break
+                fi
+            done
+        fi
+    fi
+
+    ## Build tags YAML:
+    local tags_yaml=""
+    if [[ ${#PRESET_TAGS[@]} -gt 0 ]]; then
+        tags_yaml="tags:"
+        for tag in "${PRESET_TAGS[@]}"; do
+            tags_yaml="${tags_yaml}
+  - ${tag}"
+        done
+    else
+        tags_yaml="tags: []"
+    fi
+
+    ## Build volumes YAML:
+    local volumes_yaml=""
+    if [[ ${#VOLUME_SPECS[@]} -gt 0 ]]; then
+        volumes_yaml="volumes:"
+        for spec in "${VOLUME_SPECS[@]}"; do
+            local vol_size="${spec%%:*}"
+            local vol_fs="${spec##*:}"
+            volumes_yaml="${volumes_yaml}
+  - size: ${vol_size}
+    fs_type: ${vol_fs}"
+        done
+    else
+        volumes_yaml="volumes: []"
+    fi
+
+    ## Summary:
+    echo ""
+    echo "## Preset Summary:"
+    echo "  Preset name:   ${PRESET_NAME}"
+    echo "  Region:        ${REGION}"
+    echo "  Size:          ${SIZE}"
+    echo "  Image:         ${IMAGE}"
+    echo "  SSH key:       ${SSH_KEY_NAME}"
+    echo "  Tags:          ${PRESET_TAGS[*]:-(none)}"
+    echo "  Firewall:      ${fw_type_key}"
+    echo "  Reserved IP:   ${CREATE_RESERVED_IP}"
+    echo "  Volumes:       ${#VOLUME_SPECS[@]} configured"
+    echo "  Backups:       ${backup_plan}"
+    echo "  User-data:     ${user_data_basename:-(none)}"
+
+    echo ""
+    confirm yes "Save this preset" "?" || return
+
+    ## Write YAML:
+    cat > "${GUMDROP_PRESET_DIR}/${PRESET_NAME}.yaml" <<EOF
+region: ${REGION}
+size: ${SIZE}
+image: ${IMAGE}
+ssh_key_name: ${SSH_KEY_NAME}
+${tags_yaml}
+firewall: ${fw_type_key}
+create_reserved_ip: ${CREATE_RESERVED_IP}
+${volumes_yaml}
+backups:
+  plan: ${backup_plan}
+  hour: ${backup_hour}
+  weekday: ${backup_weekday}
+user_data: ${user_data_basename}
+EOF
+
+    echo "Preset '${PRESET_NAME}' saved to ${GUMDROP_PRESET_DIR}/${PRESET_NAME}.yaml"
+}
+
+gumdrop_spawn_preset() {
+    mkdir -p "${GUMDROP_PRESET_DIR}"
+
+    ## Select preset:
+    local PRESET_NAME="${GUMDROP_PRESET_NAME:-}"
+    if [[ -z "${PRESET_NAME}" ]]; then
+        local preset_files=()
+        for f in "${GUMDROP_PRESET_DIR}"/*.yaml; do
+            [[ -f "${f}" ]] || continue
+            preset_files+=("$(basename "${f}" .yaml)")
+        done
+        if [[ ${#preset_files[@]} -eq 0 ]]; then
+            echo "No presets found. Create one first."
+            return
+        fi
+        if ! PRESET_NAME=$(wizard choose "Select preset" "${preset_files[@]}" --default "${preset_files[0]}"); then return; fi
+    fi
+    local preset_file="${GUMDROP_PRESET_DIR}/${PRESET_NAME}.yaml"
+    if [[ ! -f "${preset_file}" ]]; then
+        fault "Preset '${PRESET_NAME}' not found at ${preset_file}"
+    fi
+
+    ## Ask for droplet name:
+    local DROPLET_NAME="${GUMDROP_DROPLET_NAME:-}"
+    if [[ -z "${DROPLET_NAME}" ]]; then
+        while :; do
+            ask_no_blank "Enter ${GUMDROP_LABEL,,} name" DROPLET_NAME
+            if doctl compute droplet list --format Name --no-header 2>/dev/null | grep -qx "${DROPLET_NAME}"; then
+                error "A droplet named '${DROPLET_NAME}' already exists."
+            else
+                break
+            fi
+        done
+    fi
+
+    ## Read preset YAML:
+    local preset_json
+    preset_json=$(yaml_to_json < "${preset_file}")
+    local REGION=$(echo "${preset_json}" | jq -r '.region')
+    local SIZE=$(echo "${preset_json}" | jq -r '.size')
+    local IMAGE=$(echo "${preset_json}" | jq -r '.image')
+    local SSH_KEY_NAME=$(echo "${preset_json}" | jq -r '.ssh_key_name')
+    local fw_type=$(echo "${preset_json}" | jq -r '.firewall')
+    local create_rip=$(echo "${preset_json}" | jq -r '.create_reserved_ip')
+    local user_data_basename=$(echo "${preset_json}" | jq -r '.user_data // empty')
+    local backup_plan=$(echo "${preset_json}" | jq -r '.backups.plan')
+    local backup_hour=$(echo "${preset_json}" | jq -r '.backups.hour')
+    local backup_weekday=$(echo "${preset_json}" | jq -r '.backups.weekday')
+    readarray -t PRESET_TAGS < <(echo "${preset_json}" | jq -r '.tags[]? // empty')
+
+    ## Resolve SSH key name to ID:
+    local SSH_KEY=""
+    while IFS=$'\t' read -r kid kname; do
+        if [[ "${kname}" == "${SSH_KEY_NAME}" ]]; then
+            SSH_KEY="${kid}"
+            break
+        fi
+    done < <(doctl compute ssh-key list --format ID,Name --no-header)
+    if [[ -z "${SSH_KEY}" ]]; then
+        fault "SSH key '${SSH_KEY_NAME}' not found in your DigitalOcean account."
+    fi
+
+    ## Create firewall:
+    local FIREWALL_IDS=()
+    local FIREWALL_NAMES=()
+    case "${fw_type}" in
+        ssh-only)   _gumdrop_create_ssh_only_firewall ;;
+        block-all)  _gumdrop_create_block_all_firewall ;;
+        web)        _gumdrop_create_web_firewall ;;
+    esac
+
+    ## Create volumes from specs:
+    local VOLUME_IDS=()
+    local VOLUME_NAMES=()
+    local vol_idx=0
+    while read -r vol_spec; do
+        [[ -z "${vol_spec}" || "${vol_spec}" == "null" ]] && continue
+        local vol_size=$(echo "${vol_spec}" | jq -r '.size')
+        local vol_fs=$(echo "${vol_spec}" | jq -r '.fs_type')
+        local vol_name="${DROPLET_NAME}-vol-${vol_idx}"
+        local fs_args=()
+        if [[ -n "${vol_fs}" && "${vol_fs}" != "none" && "${vol_fs}" != "null" ]]; then
+            fs_args=(--fs-type "${vol_fs}")
+        fi
+        echo "Creating volume '${vol_name}' (${vol_size}GiB in ${REGION})..."
+        local vol_output
+        vol_output=$(doctl compute volume create "${vol_name}" --region "${REGION}" --size "${vol_size}GiB" "${fs_args[@]}" --format ID --no-header)
+        local vol_id=$(echo "${vol_output}" | awk '{print $1}')
+        if [[ -n "${vol_id}" ]]; then
+            VOLUME_IDS+=("${vol_id}")
+            VOLUME_NAMES+=("${vol_name}")
+            echo "Volume '${vol_name}' created."
+        else
+            error "Failed to create volume '${vol_name}'."
+        fi
+        vol_idx=$((vol_idx + 1))
+    done < <(echo "${preset_json}" | jq -c '.volumes[]?' 2>/dev/null)
+
+    ## Build backup args:
+    local backup_args=()
+    local BACKUP_SUMMARY="none"
+    if [[ "${backup_plan}" == "daily" || "${backup_plan}" == "weekly" ]]; then
+        backup_args=(--enable-backups --backup-policy-plan "${backup_plan}")
+        backup_args+=(--backup-policy-hour "${backup_hour:-0}")
+        BACKUP_SUMMARY="${backup_plan} at ${backup_hour:-0}:00 UTC"
+        if [[ "${backup_plan}" == "weekly" ]]; then
+            backup_args+=(--backup-policy-weekday "${backup_weekday:-SUN}")
+            BACKUP_SUMMARY="${backup_plan} on ${backup_weekday:-SUN} at ${backup_hour:-0}:00 UTC"
+        fi
+    fi
+
+    ## Resolve user-data:
+    local user_data_args=()
+    local USER_DATA_LABEL=""
+    if [[ -n "${user_data_basename}" ]]; then
+        local ud_builtin_dir="${SCRIPT_DIR}/gumdrop_user_data"
+        local ud_custom_dir="${HOME}/.config/d.rymcg.tech/gumdrop/user-data"
+        local ud_path=""
+        if [[ -f "${ud_custom_dir}/${user_data_basename}.yaml" ]]; then
+            ud_path="${ud_custom_dir}/${user_data_basename}.yaml"
+        elif [[ -f "${ud_builtin_dir}/${user_data_basename}.yaml" ]]; then
+            ud_path="${ud_builtin_dir}/${user_data_basename}.yaml"
+        fi
+        if [[ -n "${ud_path}" ]]; then
+            user_data_args=(--user-data "$(cat "${ud_path}")")
+            USER_DATA_LABEL="${user_data_basename}"
+        else
+            error "User-data template '${user_data_basename}' not found, skipping."
+        fi
+    fi
+
+    ## Build tag args:
+    local tag_args=()
+    if [[ ${#PRESET_TAGS[@]} -gt 0 ]]; then
+        local tag_csv
+        tag_csv=$(IFS=','; echo "${PRESET_TAGS[*]}")
+        tag_args=(--tag-names "${tag_csv}")
+    fi
+
+    ## Summary:
+    echo ""
+    echo "## Summary:"
+    echo "  Preset:        ${PRESET_NAME}"
+    echo "  ${GUMDROP_LABEL} name:  ${DROPLET_NAME}"
+    echo "  Region:        ${REGION}"
+    echo "  Size:          ${SIZE}"
+    echo "  Image:         ${IMAGE}"
+    echo "  SSH key:       ${SSH_KEY_NAME} (${SSH_KEY})"
+    echo "  Tags:          ${PRESET_TAGS[*]:-(none)}"
+    echo "  Firewall:      ${FIREWALL_NAMES[*]:-(none)}"
+    echo "  Reserved IP:   ${create_rip}"
+    echo "  Volumes:       ${VOLUME_NAMES[*]:-(none)}"
+    echo "  Backups:       ${BACKUP_SUMMARY}"
+    echo "  User-data:     ${USER_DATA_LABEL:-(none)}"
+
+    echo ""
+    confirm yes "Create this ${GUMDROP_LABEL,,}" "?" || return
+
+    echo "Creating ${GUMDROP_LABEL,,} '${DROPLET_NAME}', please wait..."
+    doctl compute droplet create "${DROPLET_NAME}" \
+        --region "${REGION}" \
+        --size "${SIZE}" \
+        --image "${IMAGE}" \
+        --ssh-keys "${SSH_KEY}" \
+        "${user_data_args[@]}" \
+        "${tag_args[@]}" \
+        "${backup_args[@]}" \
+        --wait
+
+    ## Assign firewalls to the new droplet:
+    if [[ ${#FIREWALL_IDS[@]} -gt 0 ]]; then
+        local droplet_id=$(doctl compute droplet list --format ID,Name --no-header | awk -v name="${DROPLET_NAME}" '$2 == name {print $1}')
+        if [[ -n "${droplet_id}" ]]; then
+            for fw_id in "${FIREWALL_IDS[@]}"; do
+                doctl compute firewall add-droplets "${fw_id}" --droplet-ids "${droplet_id}"
+            done
+        fi
+    fi
+
+    ## Create and assign reserved IP:
+    if [[ "${create_rip}" == "true" ]]; then
+        local droplet_id=${droplet_id:-$(doctl compute droplet list --format ID,Name --no-header | awk -v name="${DROPLET_NAME}" '$2 == name {print $1}')}
+        if [[ -n "${droplet_id}" ]]; then
+            echo "Creating reserved IP in ${REGION}..."
+            local rip_output
+            rip_output=$(doctl compute reserved-ip create --region "${REGION}" --format IP --no-header)
+            local rip=$(echo "${rip_output}" | awk '{print $1}')
+            if [[ -n "${rip}" ]]; then
+                echo "Assigning reserved IP ${rip}..."
+                doctl compute reserved-ip-action assign "${rip}" "${droplet_id}" --no-header >/dev/null
+            fi
+        fi
+    fi
+
+    ## Attach volumes to the new droplet:
+    if [[ ${#VOLUME_IDS[@]} -gt 0 ]]; then
+        local droplet_id=${droplet_id:-$(doctl compute droplet list --format ID,Name --no-header | awk -v name="${DROPLET_NAME}" '$2 == name {print $1}')}
+        if [[ -n "${droplet_id}" ]]; then
+            for vol_id in "${VOLUME_IDS[@]}"; do
+                echo "Attaching volume ${vol_id}..."
+                doctl compute volume-action attach "${vol_id}" "${droplet_id}" --wait
+            done
+        fi
+    fi
+
+    echo ""
+    echo "${GUMDROP_LABEL} created from preset '${PRESET_NAME}'."
+    echo "Check cloud-init status with: doctl compute ssh ${DROPLET_NAME} -- tail -f /var/log/cloud-init-output.log"
+    gumdrop_list
+}
+
+gumdrop_delete_preset() {
+    local preset_files=()
+    local preset_options=()
+    for f in "${GUMDROP_PRESET_DIR}"/*.yaml; do
+        [[ -f "${f}" ]] || continue
+        local name="$(basename "${f}" .yaml)"
+        preset_files+=("${f}")
+        preset_options+=("${name}")
+    done
+    if [[ ${#preset_options[@]} -eq 0 ]]; then
+        echo "No presets found."
+        return
+    fi
+    readarray -t SELECTED < <(wizard select "Select presets to delete" "${preset_options[@]}")
+    if [[ ${#SELECTED[@]} -eq 0 ]]; then return; fi
+    echo ""
+    echo "The following presets will be deleted:"
+    for choice in "${SELECTED[@]}"; do
+        echo "  - ${choice}"
+    done
+    echo ""
+    confirm no "Are you sure you want to delete ${#SELECTED[@]} preset(s)" "?" || return
+    for choice in "${SELECTED[@]}"; do
+        rm -f "${GUMDROP_PRESET_DIR}/${choice}.yaml"
+        echo "Preset '${choice}' deleted."
+    done
+}
+
+gumdrop_manage_presets() {
+    while :
+    do
+        mkdir -p "${GUMDROP_PRESET_DIR}"
+        echo ""
+        echo "## Presets:"
+        local preset_count=0
+        for f in "${GUMDROP_PRESET_DIR}"/*.yaml; do
+            [[ -f "${f}" ]] || continue
+            echo "  $(basename "${f}" .yaml)"
+            preset_count=$((preset_count + 1))
+        done
+        if [[ ${preset_count} -eq 0 ]]; then
+            echo "  (none)"
+        fi
+        echo ""
+        local menu_items=(
+            "Create new preset = $0 gumdrop_create_preset"
+        )
+        if [[ ${preset_count} -gt 0 ]]; then
+            menu_items+=(
+                "Spawn preset = $0 gumdrop_spawn_preset"
+                "Delete preset = $0 gumdrop_delete_preset"
+            )
+        fi
+        menu_items+=(
+            "Back = exit 2"
+        )
+        set +e
+        wizard menu --once --cancel-code=2 "Presets:" "${menu_items[@]}"
+        local EXIT_CODE=$?
+        set -e
+        if [[ "${EXIT_CODE}" == "2" ]]; then
+            exit 0
+        fi
+    done
 }
 
 _gumdrop_summarize_rules() {
@@ -2982,6 +3563,7 @@ gumdrop_manage_droplets() {
         set +e
         wizard menu --once --cancel-code=2 "${GUMDROP_LABEL}s:" \
             "Create new ${GUMDROP_LABEL,,} = $0 gumdrop_create" \
+            "Manage presets = $0 gumdrop_manage_presets" \
             "SSH into ${GUMDROP_LABEL,,} = $0 gumdrop_ssh" \
             "Destroy ${GUMDROP_LABEL,,} = $0 gumdrop_destroy" \
             "Add to local SSH config = $0 gumdrop_add_ssh_config" \
@@ -3030,6 +3612,19 @@ _gumdrop_parse_args() {
                 export GUMDROP_TAG="$2"
                 shift 2
                 ;;
+            --preset)
+                export GUMDROP_PRESET_NAME="$2"
+                shift 2
+                ;;
+            --name)
+                export GUMDROP_DROPLET_NAME="$2"
+                shift 2
+                ;;
+            --create-preset)
+                export GUMDROP_PRESET_NAME="$2"
+                export GUMDROP_CREATE_PRESET=true
+                shift 2
+                ;;
             *)
                 break
                 ;;
@@ -3041,7 +3636,15 @@ _gumdrop_parse_args() {
 ## Direct execution dispatch:
 if [[ "${BASH_SOURCE[0]}" == "$0" ]]; then
     _gumdrop_parse_args "$@"
-    if [[ ${#GUMDROP_REMAINING_ARGS[@]} -gt 0 ]]; then
+    if [[ "${GUMDROP_CREATE_PRESET:-}" == "true" ]]; then
+        gumdrop_check_doctl
+        gumdrop_create_preset
+    elif [[ -n "${GUMDROP_PRESET_NAME:-}" && -n "${GUMDROP_DROPLET_NAME:-}" ]]; then
+        gumdrop_check_doctl
+        gumdrop_spawn_preset
+    elif [[ -n "${GUMDROP_PRESET_NAME:-}" ]]; then
+        fault "--preset requires --name"
+    elif [[ ${#GUMDROP_REMAINING_ARGS[@]} -gt 0 ]]; then
         "${GUMDROP_REMAINING_ARGS[@]}"
     else
         gumdrop_main

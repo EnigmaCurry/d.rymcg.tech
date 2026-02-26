@@ -66,7 +66,7 @@ __help() {
         echo -e "dotenv_get\tRetrieve a single env var from the root context config"
         echo -e "daemon-conf\tReconfigures the Docker host's daemon config"
         echo -e "agent\tRun agent readiness tool"
-        echo -e "droplet [--tag TAG]\tManage DigitalOcean droplets (alias: gumdrop)"
+        echo -e "droplet [--tag TAG] [--preset PRESET --name NAME] [--create-preset PRESET]\tManage DigitalOcean droplets (alias: gumdrop)"
     ) | expand -t 30
     echo ""
     echo "## Documentation sub-commands:"
