@@ -32,6 +32,7 @@ services:
     command: agent
     restart: always
     user: root
+    entrypoint: ["sleep", "infinity"]
     sysctls:
       - net.ipv4.ip_unprivileged_port_start=1024
     volumes:
