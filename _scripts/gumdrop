@@ -444,6 +444,25 @@ gumdrop_manage_ssh_keys() {
     done
 }
 
+_gumdrop_create_ssh_only_firewall() {
+    local fw_name="${DROPLET_NAME}-ssh-only-$(head -c4 /dev/urandom | od -An -tx1 | tr -d ' ')"
+    echo "Creating firewall '${fw_name}' (SSH only inbound, allow all outbound)..."
+    local output
+    output=$(doctl compute firewall create \
+        --name "${fw_name}" \
+        --inbound-rules "protocol:tcp,ports:22,address:0.0.0.0/0,address:::/0 protocol:icmp,address:0.0.0.0/0,address:::/0" \
+        --outbound-rules "protocol:tcp,ports:all,address:0.0.0.0/0,address:::/0 protocol:udp,ports:all,address:0.0.0.0/0,address:::/0 protocol:icmp,address:0.0.0.0/0,address:::/0" \
+        --format ID,Name --no-header)
+    local fw_id=$(echo "${output}" | awk '{print $1}')
+    if [[ -n "${fw_id}" ]]; then
+        FIREWALL_IDS+=("${fw_id}")
+        FIREWALL_NAMES+=("${fw_name}")
+        echo "Firewall '${fw_name}' created."
+    else
+        error "Failed to create firewall."
+    fi
+}
+
 _gumdrop_create_block_all_firewall() {
     local fw_name="${DROPLET_NAME}-block-all-$(head -c4 /dev/urandom | od -An -tx1 | tr -d ' ')"
     echo "Creating firewall '${fw_name}' (block all inbound, allow all outbound)..."
@@ -756,14 +775,17 @@ gumdrop_create() {
     local fw_action
     set +e
     fw_action=$(wizard choose "Firewall" \
+        "Only SSH" \
         "Block all incoming" \
         "Web (SSH + HTTP + HTTPS)" \
         "Choose existing firewall" \
         "Create new firewall" \
         "No firewall" \
-        --default "Block all incoming")
+        --default "Only SSH")
     set -e
-    if [[ "${fw_action}" == "Block all incoming" ]]; then
+    if [[ "${fw_action}" == "Only SSH" ]]; then
+        _gumdrop_create_ssh_only_firewall
+    elif [[ "${fw_action}" == "Block all incoming" ]]; then
         _gumdrop_create_block_all_firewall
     elif [[ "${fw_action}" == "Web (SSH + HTTP + HTTPS)" ]]; then
         _gumdrop_create_web_firewall
