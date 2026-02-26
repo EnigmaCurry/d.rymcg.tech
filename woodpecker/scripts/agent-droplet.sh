@@ -69,6 +69,23 @@ USERDATA
 
 ## Install Nix:
 curl --proto '=https' --tlsv1.2 -sSf -L https://install.determinate.systems/nix | sh -s -- install --no-confirm
+. /nix/var/nix/profiles/default/etc/profile.d/nix-daemon.sh
+
+## Install common dev tools via Nix:
+nix profile install \\
+  nixpkgs#git \\
+  nixpkgs#gnumake \\
+  nixpkgs#curl \\
+  nixpkgs#wget \\
+  nixpkgs#jq \\
+  nixpkgs#bash \\
+  nixpkgs#coreutils \\
+  nixpkgs#findutils \\
+  nixpkgs#gnugrep \\
+  nixpkgs#gnused \\
+  nixpkgs#gawk \\
+  nixpkgs#gnutar \\
+  nixpkgs#gzip
 
 ## Configure agent:
 cat > /etc/woodpecker/woodpecker-agent.env <<EOF
@@ -77,6 +94,7 @@ WOODPECKER_AGENT_SECRET=${WOODPECKER_AGENT_SECRET}
 WOODPECKER_GRPC_SECURE=true
 WOODPECKER_LOG_LEVEL=info
 WOODPECKER_BACKEND=${WOODPECKER_BACKEND}
+PATH=/nix/var/nix/profiles/default/bin:/root/.nix-profile/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
 EOF
 chmod 600 /etc/woodpecker/woodpecker-agent.env
 
