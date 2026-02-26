@@ -5,6 +5,13 @@ set -eo pipefail
 
 BIN=$(dirname $(realpath ${BASH_SOURCE}))
 ROOT_DIR=$(dirname ${BIN})
+
+## Use /scratch/tmp if available (default /tmp may be a small tmpfs):
+if [[ -d /scratch ]]; then
+    export TMPDIR=/scratch/tmp
+    mkdir -p "$TMPDIR"
+fi
+
 source ${BIN}/funcs.sh
 source ${BIN}/workstation-build-lib.sh
 
