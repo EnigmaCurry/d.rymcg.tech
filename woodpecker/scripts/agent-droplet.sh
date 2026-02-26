@@ -148,6 +148,7 @@ WOODPECKER_AGENT_SECRET=${WOODPECKER_AGENT_SECRET}
 WOODPECKER_GRPC_SECURE=true
 WOODPECKER_LOG_LEVEL=info
 WOODPECKER_BACKEND=${WOODPECKER_BACKEND}
+WOODPECKER_FILTER_LABELS=role=builder
 PATH=/nix/var/nix/profiles/default/bin:/root/.nix-profile/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
 EOF
 chmod 600 /etc/woodpecker/woodpecker-agent.env
