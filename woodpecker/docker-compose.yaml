@@ -31,8 +31,7 @@ services:
     image: ${WOODPECKER_AGENT_IMAGE}
     command: agent
     restart: always
-    security_opt:
-      - no-new-privileges:true
+    user: root
     sysctls:
       - net.ipv4.ip_unprivileged_port_start=1024
     volumes:
