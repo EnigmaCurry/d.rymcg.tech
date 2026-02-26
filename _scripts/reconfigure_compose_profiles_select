@@ -60,6 +60,6 @@ select_profiles() {
 
 select_profiles
 
-SELECTED_PROFILES=$(echo "${SELECTED_PROFILES}" | sed 's/ /,/g')
+SELECTED_PROFILES=$(echo "${SELECTED_PROFILES}" | paste -sd,)
 
 ${BIN}/reconfigure "${ENV_FILE}" DOCKER_COMPOSE_PROFILES="${SELECTED_PROFILES}"
