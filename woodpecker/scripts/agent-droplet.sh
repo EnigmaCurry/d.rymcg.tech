@@ -88,6 +88,11 @@ nix profile add \\
   nixpkgs#gnutar \\
   nixpkgs#gzip
 
+## Grant woodpecker user passwordless sudo (needed for image builds):
+apt-get install -y sudo
+echo "woodpecker ALL=(ALL) NOPASSWD: ALL" > /etc/sudoers.d/woodpecker
+chmod 440 /etc/sudoers.d/woodpecker
+
 ## Configure agent:
 cat > /etc/woodpecker/woodpecker-agent.env <<EOF
 WOODPECKER_SERVER=${WOODPECKER_SERVER}
