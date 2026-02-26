@@ -1278,53 +1278,60 @@ gumdrop_create_preset() {
 
     ## Select user-data template:
     local user_data_basename=""
-    local ud_builtin_dir="${SCRIPT_DIR}/gumdrop_user_data"
-    local ud_custom_dir="${HOME}/.config/d.rymcg.tech/gumdrop/user-data"
-    local ud_files=() ud_labels=() ud_basenames=()
-    for ud_file in "${ud_builtin_dir}"/*.yaml "${ud_custom_dir}"/*.yaml; do
-        [[ -f "${ud_file}" ]] || continue
-        local ud_images_line="" ud_title=""
-        while IFS= read -r line; do
-            if [[ "${line}" =~ ^##\ images:\ (.+) ]]; then
-                ud_images_line="${BASH_REMATCH[1]}"
-            elif [[ "${line}" =~ ^##\ title:\ (.+) ]]; then
-                ud_title="${BASH_REMATCH[1]}"
+    local _preset_hook_user_data=""
+    if type -t gumdrop_user_data_hook &>/dev/null; then
+        ## Use the hook-generated user-data and save it as a companion file:
+        _preset_hook_user_data=$(gumdrop_user_data_hook)
+        user_data_basename="_hook_"
+    else
+        local ud_builtin_dir="${SCRIPT_DIR}/gumdrop_user_data"
+        local ud_custom_dir="${HOME}/.config/d.rymcg.tech/gumdrop/user-data"
+        local ud_files=() ud_labels=() ud_basenames=()
+        for ud_file in "${ud_builtin_dir}"/*.yaml "${ud_custom_dir}"/*.yaml; do
+            [[ -f "${ud_file}" ]] || continue
+            local ud_images_line="" ud_title=""
+            while IFS= read -r line; do
+                if [[ "${line}" =~ ^##\ images:\ (.+) ]]; then
+                    ud_images_line="${BASH_REMATCH[1]}"
+                elif [[ "${line}" =~ ^##\ title:\ (.+) ]]; then
+                    ud_title="${BASH_REMATCH[1]}"
+                fi
+            done < <(head -n 5 "${ud_file}")
+            if [[ -n "${ud_images_line}" ]]; then
+                local ud_match=false
+                for ud_pattern in ${ud_images_line}; do
+                    # shellcheck disable=SC2053
+                    if [[ ${IMAGE} == ${ud_pattern} ]]; then
+                        ud_match=true
+                        break
+                    fi
+                done
+                ${ud_match} || continue
             fi
-        done < <(head -n 5 "${ud_file}")
-        if [[ -n "${ud_images_line}" ]]; then
-            local ud_match=false
-            for ud_pattern in ${ud_images_line}; do
-                # shellcheck disable=SC2053
-                if [[ ${IMAGE} == ${ud_pattern} ]]; then
-                    ud_match=true
-                    break
-                fi
-            done
-            ${ud_match} || continue
-        fi
-        local ud_bn="$(basename "${ud_file}" .yaml)"
-        local ud_display="${ud_title:-${ud_bn}}"
-        if [[ "${ud_file}" == "${ud_builtin_dir}"/* ]]; then
-            ud_labels+=("${ud_display} (built-in)")
-        else
-            ud_labels+=("${ud_display} (custom)")
-        fi
-        ud_files+=("${ud_file}")
-        ud_basenames+=("${ud_bn}")
-    done
-    if [[ ${#ud_files[@]} -gt 0 ]]; then
-        echo ""
-        local ud_choice
-        set +e
-        ud_choice=$(wizard choose "Apply user-data (cloud-init)?" "No" "${ud_labels[@]}")
-        set -e
-        if [[ -n "${ud_choice}" && "${ud_choice}" != "No" ]]; then
-            for ud_idx in "${!ud_labels[@]}"; do
-                if [[ "${ud_labels[$ud_idx]}" == "${ud_choice}" ]]; then
-                    user_data_basename="${ud_basenames[$ud_idx]}"
-                    break
-                fi
-            done
+            local ud_bn="$(basename "${ud_file}" .yaml)"
+            local ud_display="${ud_title:-${ud_bn}}"
+            if [[ "${ud_file}" == "${ud_builtin_dir}"/* ]]; then
+                ud_labels+=("${ud_display} (built-in)")
+            else
+                ud_labels+=("${ud_display} (custom)")
+            fi
+            ud_files+=("${ud_file}")
+            ud_basenames+=("${ud_bn}")
+        done
+        if [[ ${#ud_files[@]} -gt 0 ]]; then
+            echo ""
+            local ud_choice
+            set +e
+            ud_choice=$(wizard choose "Apply user-data (cloud-init)?" "No" "${ud_labels[@]}")
+            set -e
+            if [[ -n "${ud_choice}" && "${ud_choice}" != "No" ]]; then
+                for ud_idx in "${!ud_labels[@]}"; do
+                    if [[ "${ud_labels[$ud_idx]}" == "${ud_choice}" ]]; then
+                        user_data_basename="${ud_basenames[$ud_idx]}"
+                        break
+                    fi
+                done
+            fi
         fi
     fi
 
@@ -1368,7 +1375,9 @@ gumdrop_create_preset() {
     echo "  Reserved IP:   ${CREATE_RESERVED_IP}"
     echo "  Volumes:       ${#VOLUME_SPECS[@]} configured"
     echo "  Backups:       ${backup_plan}"
-    echo "  User-data:     ${user_data_basename:-(none)}"
+    local user_data_display="${user_data_basename:-(none)}"
+    [[ "${user_data_basename}" == "_hook_" ]] && user_data_display="(hook)"
+    echo "  User-data:     ${user_data_display}"
 
     echo ""
     confirm yes "Save this preset" "?" || return
@@ -1389,6 +1398,11 @@ backups:
   weekday: ${backup_weekday}
 user_data: ${user_data_basename}
 EOF
+
+    ## Save hook-generated user-data as companion file:
+    if [[ "${user_data_basename}" == "_hook_" && -n "${_preset_hook_user_data}" ]]; then
+        echo "${_preset_hook_user_data}" > "${GUMDROP_PRESET_DIR}/${PRESET_NAME}.user-data"
+    fi
 
     echo "Preset '${PRESET_NAME}' saved to ${GUMDROP_PRESET_DIR}/${PRESET_NAME}.yaml"
 }
@@ -1507,7 +1521,16 @@ gumdrop_spawn_preset() {
     ## Resolve user-data:
     local user_data_args=()
     local USER_DATA_LABEL=""
-    if [[ -n "${user_data_basename}" ]]; then
+    if [[ "${user_data_basename}" == "_hook_" ]]; then
+        ## Use companion file saved during preset creation:
+        local ud_companion="${GUMDROP_PRESET_DIR}/${PRESET_NAME}.user-data"
+        if [[ -f "${ud_companion}" ]]; then
+            user_data_args=(--user-data "$(cat "${ud_companion}")")
+            USER_DATA_LABEL="(hook)"
+        else
+            error "Hook user-data companion file not found for preset '${PRESET_NAME}', skipping."
+        fi
+    elif [[ -n "${user_data_basename}" ]]; then
         local ud_builtin_dir="${SCRIPT_DIR}/gumdrop_user_data"
         local ud_custom_dir="${HOME}/.config/d.rymcg.tech/gumdrop/user-data"
         local ud_path=""
@@ -1628,6 +1651,7 @@ gumdrop_delete_preset() {
     confirm no "Are you sure you want to delete ${#SELECTED[@]} preset(s)" "?" || return
     for choice in "${SELECTED[@]}"; do
         rm -f "${GUMDROP_PRESET_DIR}/${choice}.yaml"
+        rm -f "${GUMDROP_PRESET_DIR}/${choice}.user-data"
         echo "Preset '${choice}' deleted."
     done
 }
