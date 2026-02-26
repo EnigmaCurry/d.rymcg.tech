@@ -88,9 +88,6 @@ nix profile add \\
   nixpkgs#gnutar \\
   nixpkgs#gzip
 
-## Alias "dummy" to bash so pipelines with image:dummy work on local backend:
-ln -sf /nix/var/nix/profiles/default/bin/bash /usr/local/bin/dummy
-
 ## Configure agent:
 cat > /etc/woodpecker/woodpecker-agent.env <<EOF
 WOODPECKER_SERVER=${WOODPECKER_SERVER}
