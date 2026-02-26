@@ -36,7 +36,7 @@ services:
       - net.ipv4.ip_unprivileged_port_start=1024
     volumes:
       - agent_config:/etc/woodpecker
-      - /var/run/docker.sock:/var/run/docker.sock
+      - /var/run/docker.sock:/var/run/docker.sock:ro,z
     environment:
       - WOODPECKER_SERVER=${WOODPECKER_GRPC_HOST}:443
       - WOODPECKER_AGENT_SECRET=${WOODPECKER_AGENT_SECRET}
