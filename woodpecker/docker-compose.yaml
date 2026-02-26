@@ -32,7 +32,6 @@ services:
     command: agent
     restart: always
     user: root
-    entrypoint: ["/bin/sh", "-c", "while :; do :; done"]
     sysctls:
       - net.ipv4.ip_unprivileged_port_start=1024
     volumes:
