@@ -101,6 +101,46 @@ apt-get install -y sudo
 echo "woodpecker ALL=(ALL) NOPASSWD: ALL" > /etc/sudoers.d/woodpecker
 chmod 440 /etc/sudoers.d/woodpecker
 
+## Create notify script for webhook notifications:
+cat > /usr/local/bin/notify <<'NOTIFY_SCRIPT'
+#!/bin/bash
+## Send an HTML notification to a webhook.
+## Usage: notify "<html>" or echo "<html>" | notify
+set -eo pipefail
+
+if [[ -n "\$1" ]]; then
+    HTML="\$1"
+else
+    HTML="\$(cat)"
+fi
+
+if [[ -z "\${NOTIFICATION_WEBHOOK_URL}" ]]; then
+    if [[ "\${NOTIFICATION_WEBHOOK_ENFORCE}" == "true" ]]; then
+        echo "ERROR: NOTIFICATION_WEBHOOK_URL is not set and NOTIFICATION_WEBHOOK_ENFORCE=true" >&2
+        exit 1
+    else
+        echo "WARNING: NOTIFICATION_WEBHOOK_URL is not set, skipping notification" >&1
+        exit 0
+    fi
+fi
+
+JSON=\$(jq -n --arg html "\${HTML}" '{html: \$html}')
+HTTP_CODE=\$(curl -s -o /dev/null -w '%{http_code}' -X POST \\
+    -H 'Content-Type: application/json' \\
+    -d "\${JSON}" \\
+    "\${NOTIFICATION_WEBHOOK_URL}")
+
+if [[ "\${HTTP_CODE}" != "200" ]]; then
+    if [[ "\${NOTIFICATION_WEBHOOK_ENFORCE}" == "true" ]]; then
+        echo "ERROR: Webhook returned HTTP \${HTTP_CODE} (expected 200)" >&2
+        exit 1
+    else
+        echo "WARNING: Webhook returned HTTP \${HTTP_CODE} (expected 200)" >&1
+    fi
+fi
+NOTIFY_SCRIPT
+chmod +x /usr/local/bin/notify
+
 ## Configure agent:
 cat > /etc/woodpecker/woodpecker-agent.env <<EOF
 WOODPECKER_SERVER=${WOODPECKER_SERVER}
