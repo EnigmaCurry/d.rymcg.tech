@@ -1104,13 +1104,13 @@ gumdrop_create_preset() {
         while :; do
             ask_no_blank "Enter preset name" PRESET_NAME
             if [[ -f "${GUMDROP_PRESET_DIR}/${PRESET_NAME}.yaml" ]]; then
-                confirm yes "A preset named '${PRESET_NAME}' already exists. Overwrite it" "?" || continue
+                confirm no "A preset named '${PRESET_NAME}' already exists. Overwrite it" "?" || continue
             fi
             break
         done
     else
         if [[ -f "${GUMDROP_PRESET_DIR}/${PRESET_NAME}.yaml" ]]; then
-            confirm yes "A preset named '${PRESET_NAME}' already exists. Overwrite it" "?" || return
+            confirm no "A preset named '${PRESET_NAME}' already exists. Overwrite it" "?" || return
         fi
     fi
 
