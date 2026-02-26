@@ -91,7 +91,8 @@ nix profile add \\
   nixpkgs#gptfdisk \\
   nixpkgs#btrfs-progs \\
   nixpkgs#dosfstools \\
-  nixpkgs#psmisc
+  nixpkgs#psmisc \\
+  nixpkgs#rclone
 
 ## Install sudo (needed for image builds):
 apt-get install -y sudo
