@@ -72,7 +72,7 @@ curl --proto '=https' --tlsv1.2 -sSf -L https://install.determinate.systems/nix 
 . /nix/var/nix/profiles/default/etc/profile.d/nix-daemon.sh
 
 ## Install common dev tools via Nix:
-nix profile install \\
+nix profile add \\
   nixpkgs#git \\
   nixpkgs#gnumake \\
   nixpkgs#curl \\
