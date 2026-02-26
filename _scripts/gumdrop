@@ -1580,7 +1580,10 @@ gumdrop_spawn_preset() {
     echo "  User-data:     ${USER_DATA_LABEL:-(none)}"
 
     echo ""
-    confirm yes "Create this ${GUMDROP_LABEL,,}" "?" || return
+    ## Skip confirmation when both --preset and --name were given on CLI:
+    if [[ -z "${GUMDROP_DROPLET_NAME:-}" ]]; then
+        confirm yes "Create this ${GUMDROP_LABEL,,}" "?" || return
+    fi
 
     echo "Creating ${GUMDROP_LABEL,,} '${DROPLET_NAME}', please wait..."
     doctl compute droplet create "${DROPLET_NAME}" \
