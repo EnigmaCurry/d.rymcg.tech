@@ -1160,14 +1160,21 @@ gumdrop_create_preset() {
     IMAGE_CHOICE=$(wizard choose "Select image" "${IMAGE_OPTIONS[@]}" --default "${IMAGE_DEFAULT}")
     local IMAGE=$(echo "${IMAGE_CHOICE}" | awk '{print $1}')
 
-    ## Select SSH key name:
+    ## Select SSH key:
     echo ""
+    readarray -t SSH_KEY_IDS < <(doctl compute ssh-key list --format ID --no-header)
     readarray -t SSH_KEY_NAMES < <(doctl compute ssh-key list --format Name --no-header)
-    local SSH_KEY_OPTIONS=("${SSH_KEY_NAMES[@]}")
-    local SSH_KEY_DEFAULT="${GUMDROP_SSH_KEY_NAME}"
+    SSH_KEY_OPTIONS=()
+    local SSH_KEY_DEFAULT=""
+    for i in "${!SSH_KEY_IDS[@]}"; do
+        local opt="${SSH_KEY_NAMES[$i]} (${SSH_KEY_IDS[$i]})"
+        SSH_KEY_OPTIONS+=("${opt}")
+        [[ "${SSH_KEY_NAMES[$i]}" == "${GUMDROP_SSH_KEY_NAME}" ]] && SSH_KEY_DEFAULT="${opt}"
+    done
     local SSH_KEY_CHOICE
-    if ! SSH_KEY_CHOICE=$(wizard choose "Which SSH key?" "${SSH_KEY_OPTIONS[@]}" --default "${SSH_KEY_DEFAULT}"); then return; fi
-    local SSH_KEY_NAME="${SSH_KEY_CHOICE}"
+    if ! SSH_KEY_CHOICE=$(wizard choose "Which SSH key?" "${SSH_KEY_OPTIONS[@]}" --default "${SSH_KEY_DEFAULT:-${SSH_KEY_OPTIONS[0]}}"); then return; fi
+    local PRESET_SSH_KEY_ID=$(echo "${SSH_KEY_CHOICE}" | grep -oP '\(\K[0-9]+(?=\))')
+    local PRESET_SSH_KEY_NAME=$(echo "${SSH_KEY_CHOICE}" | sed 's/ ([^)]*)//')
 
     ## Select tags:
     local PRESET_TAGS=()
@@ -1374,7 +1381,7 @@ gumdrop_create_preset() {
     echo "  Region:        ${REGION}"
     echo "  Size:          ${SIZE}"
     echo "  Image:         ${IMAGE}"
-    echo "  SSH key:       ${SSH_KEY_NAME}"
+    echo "  SSH key:       ${PRESET_SSH_KEY_NAME} (${PRESET_SSH_KEY_ID})"
     echo "  Tags:          ${PRESET_TAGS[*]:-(none)}"
     echo "  Firewall:      ${fw_type_key}"
     echo "  Reserved IP:   ${CREATE_RESERVED_IP}"
@@ -1397,7 +1404,7 @@ gumdrop_create_preset() {
 region: ${REGION}
 size: ${SIZE}
 image: ${IMAGE}
-ssh_key_name: ${SSH_KEY_NAME}
+ssh_key: ${PRESET_SSH_KEY_ID}
 ${tags_yaml}
 firewall: ${fw_type_key}
 create_reserved_ip: ${CREATE_RESERVED_IP}
@@ -1458,7 +1465,7 @@ gumdrop_spawn_preset() {
     local REGION=$(echo "${preset_json}" | jq -r '.region')
     local SIZE=$(echo "${preset_json}" | jq -r '.size')
     local IMAGE=$(echo "${preset_json}" | jq -r '.image')
-    local SSH_KEY_NAME=$(echo "${preset_json}" | jq -r '.ssh_key_name')
+    local SSH_KEY=$(echo "${preset_json}" | jq -r '.ssh_key')
     local fw_type=$(echo "${preset_json}" | jq -r '.firewall')
     local create_rip=$(echo "${preset_json}" | jq -r '.create_reserved_ip')
     local user_data_basename=$(echo "${preset_json}" | jq -r '.user_data // empty')
@@ -1467,16 +1474,8 @@ gumdrop_spawn_preset() {
     local backup_weekday=$(echo "${preset_json}" | jq -r '.backups.weekday')
     readarray -t PRESET_TAGS < <(echo "${preset_json}" | jq -r '.tags[]? // empty')
 
-    ## Resolve SSH key name to ID:
-    local SSH_KEY=""
-    while IFS=$'\t' read -r kid kname; do
-        if [[ "${kname}" == "${SSH_KEY_NAME}" ]]; then
-            SSH_KEY="${kid}"
-            break
-        fi
-    done < <(doctl compute ssh-key list --format ID,Name --no-header)
-    if [[ -z "${SSH_KEY}" ]]; then
-        fault "SSH key '${SSH_KEY_NAME}' not found in your DigitalOcean account."
+    if [[ -z "${SSH_KEY}" || "${SSH_KEY}" == "null" ]]; then
+        fault "Preset '${PRESET_NAME}' has no ssh_key. Please recreate the preset."
     fi
 
     ## Create firewall:
@@ -1573,7 +1572,7 @@ gumdrop_spawn_preset() {
     echo "  Region:        ${REGION}"
     echo "  Size:          ${SIZE}"
     echo "  Image:         ${IMAGE}"
-    echo "  SSH key:       ${SSH_KEY_NAME} (${SSH_KEY})"
+    echo "  SSH key:       ${SSH_KEY}"
     echo "  Tags:          ${PRESET_TAGS[*]:-(none)}"
     echo "  Firewall:      ${FIREWALL_NAMES[*]:-(none)}"
     echo "  Reserved IP:   ${create_rip}"
