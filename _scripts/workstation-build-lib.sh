@@ -256,11 +256,23 @@ workstation_configure_settings() {
     # Temporarily clear skip-worktree so nix sees the working tree content
     git -C "$ROOT_DIR" update-index --no-skip-worktree nix/workstation/settings.nix 2>/dev/null || true
 
+    local current_host
+    current_host=$(grep 'hostName' "$settings_file" | sed 's/.*"\(.*\)".*/\1/')
+    local current_user
+    current_user=$(grep 'userName' "$settings_file" | sed 's/.*"\(.*\)".*/\1/')
+
+    if [[ ! -t 0 ]]; then
+        # Non-interactive: use current settings.nix values as-is
+        echo ""
+        echo "=== System configuration (non-interactive, using defaults) ==="
+        echo "Hostname: $current_host"
+        echo "Admin username: $current_user"
+        return
+    fi
+
     echo ""
     echo "=== System configuration ==="
 
-    local current_host
-    current_host=$(grep 'hostName' "$settings_file" | sed 's/.*"\(.*\)".*/\1/')
     read -e -p "Hostname [$current_host]: " ws_host
     ws_host="${ws_host:-$current_host}"
     if [[ "$ws_host" != "$current_host" ]]; then
@@ -272,8 +284,6 @@ workstation_configure_settings() {
     echo "=== Admin user account ==="
     echo "This account has sudo (wheel group). Password = username."
     echo "(This is fine for a USB stick — change it after installing to a real system.)"
-    local current_user
-    current_user=$(grep 'userName' "$settings_file" | sed 's/.*"\(.*\)".*/\1/')
     read -e -p "Admin username [$current_user]: " ws_user
     ws_user="${ws_user:-$current_user}"
     if [[ "$ws_user" != "$current_user" ]]; then

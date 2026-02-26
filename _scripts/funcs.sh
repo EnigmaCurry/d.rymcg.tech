@@ -635,11 +635,11 @@ confirm() {
     ## Confirm with the user.
     ## Check env for the var YES, if it equals "yes" then bypass this confirm.
     ## This version depends on `script-wizard` being installed.
-    test ${YES:-no} == "yes" && exit 0
+    test ${YES:-no} == "yes" && return 0
 
     ## If not running in a terminal, skip confirmation (non-interactive/agent mode):
     if [[ ! -t 0 ]]; then
-        exit 0
+        return 0
     fi
 
     local default=$1; local prompt=$2; local question=${3:-". Proceed?"}
