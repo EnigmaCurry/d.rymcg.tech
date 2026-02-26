@@ -20,6 +20,7 @@ IMAGE_DIR="${ROOT_DIR}/_archive"
 IMAGE_FILE=""
 IMAGE_SIZE=""
 BASE_ONLY=""
+FROM_BASE=""
 DRY_RUN=""
 ARCHIVE_SOURCE="${ROOT_DIR}/_archive"
 MANIFEST_FILE=""
@@ -36,12 +37,15 @@ usage() {
     echo "auto-calculated to fit everything plus headroom."
     echo ""
     echo "Options:"
-    echo "  --size SIZE    Override auto-calculated image size (e.g. 128G)"
-    echo "  --output FILE  Output path (default: _archive/workstation-usb.img,"
-    echo "                 or _archive/workstation-usb-base.img with --base-only)"
-    echo "  --base-only    Build OS only, without archive data (smaller image)"
-    echo "  --dry-run      Build the system closure only, don't create image"
-    echo "  -h, --help     Show this help"
+    echo "  --size SIZE        Override auto-calculated image size (e.g. 128G)"
+    echo "  --output FILE      Output path (default: _archive/workstation-usb.img,"
+    echo "                     or _archive/workstation-usb-base.img with --base-only)"
+    echo "  --base-only        Build OS only, without archive data (smaller image)"
+    echo "  --from-base [PATH] Reuse a base image instead of rebuilding from scratch."
+    echo "                     Copies the base, expands it, and adds archive data."
+    echo "                     Default path: _archive/workstation-usb-base.img"
+    echo "  --dry-run          Build the system closure only, don't create image"
+    echo "  -h, --help         Show this help"
     echo ""
     echo "After building, test in a VM or write to USB:"
     echo "  d.rymcg.tech workstation-usb-test-vm"
@@ -63,6 +67,15 @@ while [[ $# -gt 0 ]]; do
         --base-only)
             BASE_ONLY=1
             shift
+            ;;
+        --from-base)
+            if [[ -n "${2:-}" ]] && [[ "${2}" != --* ]]; then
+                FROM_BASE="$2"
+                shift 2
+            else
+                FROM_BASE="${IMAGE_DIR}/workstation-usb-base.img"
+                shift
+            fi
             ;;
         --dry-run)
             DRY_RUN=1
@@ -89,6 +102,29 @@ if [[ -z "$IMAGE_FILE" ]]; then
     fi
 fi
 
+# Validate --from-base path
+if [[ -n "$FROM_BASE" ]]; then
+    if [[ ! -f "$FROM_BASE" ]]; then
+        echo "Error: base image not found: $FROM_BASE" >&2
+        exit 1
+    fi
+    if [[ -n "$BASE_ONLY" ]]; then
+        echo "Error: --from-base and --base-only cannot be used together" >&2
+        exit 1
+    fi
+fi
+
+# Auto-detect base image for full builds (no --base-only, no --from-base)
+DEFAULT_BASE="${IMAGE_DIR}/workstation-usb-base.img"
+if [[ -z "$BASE_ONLY" ]] && [[ -z "$FROM_BASE" ]] && [[ -f "$DEFAULT_BASE" ]]; then
+    BASE_SIZE_HUMAN=$(du -h --apparent-size "$DEFAULT_BASE" | cut -f1)
+    echo "Base image found: $DEFAULT_BASE ($BASE_SIZE_HUMAN)"
+    if confirm yes "Use it to skip the nix build" "?"; then
+        FROM_BASE="$DEFAULT_BASE"
+    fi
+    echo ""
+fi
+
 if [[ -z "$BASE_ONLY" ]]; then
     workstation_archive_preflight
     workstation_archive_select
@@ -108,17 +144,49 @@ else
     } > "$MANIFEST_FILE"
 fi
 
-workstation_configure_settings
+if [[ -z "$FROM_BASE" ]]; then
+    workstation_configure_settings
+fi
 
 echo "=== Build summary ==="
 echo "Output: $IMAGE_FILE"
-if [[ -n "$BASE_ONLY" ]]; then
+if [[ -n "$FROM_BASE" ]]; then
+    echo "Mode: from-base (reusing $FROM_BASE + archive data)"
+elif [[ -n "$BASE_ONLY" ]]; then
     echo "Mode: base only (OS without archive data)"
 else
     echo "Mode: full (OS + archive data)"
 fi
 if [[ -n "$IMAGE_SIZE" ]]; then
     echo "Size: $IMAGE_SIZE (manual override)"
+elif [[ -n "$FROM_BASE" ]]; then
+    # from-base: estimate = base logical size + archive + headroom
+    _base_bytes=$(stat -c%s "$FROM_BASE")
+    _base_gb=$(awk "BEGIN {printf \"%.1f\", $_base_bytes / 1073741824}")
+    echo "Base image: ${_base_gb} GB"
+    ESTIMATE_BYTES=$_base_bytes
+    if [[ -z "$BASE_ONLY" ]]; then
+        for proj in "${SELECTED_IMAGE_PROJECTS[@]}"; do
+            proj_dir="$ARCHIVE_IMG_DIR/$proj"
+            [[ -d "$proj_dir" ]] && ESTIMATE_BYTES=$((ESTIMATE_BYTES + $(du -sbL "$proj_dir" | cut -f1)))
+        done
+        for f in "${COMFYUI_SELECTED_FILES[@]}"; do
+            [[ -f "$ARCHIVE_IMG_DIR/comfyui/$f" ]] && ESTIMATE_BYTES=$((ESTIMATE_BYTES + $(stat -c%s "$ARCHIVE_IMG_DIR/comfyui/$f")))
+        done
+        if ${INCLUDE_ISOS:-false} && [[ -d "${ISOS_DIR:-}" ]]; then
+            ESTIMATE_BYTES=$((ESTIMATE_BYTES + $(du -sbL "$ISOS_DIR" | cut -f1)))
+        fi
+        if ${INCLUDE_DOCKER_PACKAGES:-false} && [[ -d "${DOCKER_PKG_DIR:-}" ]]; then
+            ESTIMATE_BYTES=$((ESTIMATE_BYTES + $(du -sbL "$DOCKER_PKG_DIR" | cut -f1)))
+        fi
+    fi
+    # Headroom: 25% of archive data or 2GB minimum (base already has OS headroom)
+    _archive_est=$((ESTIMATE_BYTES - _base_bytes))
+    HEADROOM=$((_archive_est * 25 / 100))
+    [[ $HEADROOM -lt $((2 * 1073741824)) ]] && HEADROOM=$((2 * 1073741824))
+    ESTIMATE_BYTES=$((ESTIMATE_BYTES + HEADROOM))
+    ESTIMATE_GB=$(( (ESTIMATE_BYTES + 1073741823) / 1073741824 ))
+    echo "Size: ~${ESTIMATE_GB} GB (estimated)"
 else
     # Estimate image size before building (closure ~10GB + archive data + headroom)
     ESTIMATE_BYTES=$((10 * 1073741824))  # ~10 GB base closure estimate
@@ -150,35 +218,44 @@ confirm yes "Build the image" "?" || exit 0
 # Acquire sudo early so the credential is cached for the disk image step later
 sudo true
 
-echo ""
-workstation_create_bare_repos
+if [[ -z "$FROM_BASE" ]]; then
+    echo ""
+    workstation_create_bare_repos
 
-echo ""
-echo "=== Building NixOS system closure ==="
-SYSTEM_PATH=$(workstation_nix_build "nixosConfigurations.workstation.config.system.build.toplevel")
-echo "System closure: $SYSTEM_PATH"
+    echo ""
+    echo "=== Building NixOS system closure ==="
+    SYSTEM_PATH=$(workstation_nix_build "nixosConfigurations.workstation.config.system.build.toplevel")
+    echo "System closure: $SYSTEM_PATH"
 
-# Resolve nixos-install path from the system closure's dependencies
-NIXOS_INSTALL=$(workstation_nix_build "nixosConfigurations.workstation.config.system.build.nixos-install")/bin/nixos-install
-if [[ ! -x "$NIXOS_INSTALL" ]]; then
-    echo "Error: nixos-install not found at $NIXOS_INSTALL" >&2
-    exit 1
+    # Resolve nixos-install path from the system closure's dependencies
+    NIXOS_INSTALL=$(workstation_nix_build "nixosConfigurations.workstation.config.system.build.nixos-install")/bin/nixos-install
+    if [[ ! -x "$NIXOS_INSTALL" ]]; then
+        echo "Error: nixos-install not found at $NIXOS_INSTALL" >&2
+        exit 1
+    fi
+    echo "nixos-install: $NIXOS_INSTALL"
+
+    # Now that nix has read settings.nix, hide it from git status
+    workstation_hide_settings
 fi
-echo "nixos-install: $NIXOS_INSTALL"
-
-# Now that nix has read settings.nix, hide it from git status
-workstation_hide_settings
 
 # Calculate sizes
 echo ""
 echo "=== Calculating image size ==="
 
-# Get closure size in bytes
-CLOSURE_BYTES=$(nix path-info -S "$SYSTEM_PATH" | awk '{print $2}')
-CLOSURE_GB=$(awk "BEGIN {printf \"%.1f\", $CLOSURE_BYTES / 1073741824}")
-echo "NixOS closure: ${CLOSURE_GB} GB"
-
 ARCHIVE_BYTES=0
+
+if [[ -n "$FROM_BASE" ]]; then
+    # from-base: use base image logical size instead of closure
+    BASE_SIZE=$(stat -c%s "$FROM_BASE")
+    BASE_GB=$(awk "BEGIN {printf \"%.1f\", $BASE_SIZE / 1073741824}")
+    echo "Base image: ${BASE_GB} GB"
+else
+    # Get closure size in bytes
+    CLOSURE_BYTES=$(nix path-info -S "$SYSTEM_PATH" | awk '{print $2}')
+    CLOSURE_GB=$(awk "BEGIN {printf \"%.1f\", $CLOSURE_BYTES / 1073741824}")
+    echo "NixOS closure: ${CLOSURE_GB} GB"
+fi
 
 if [[ -z "$BASE_ONLY" ]]; then
     _img_bytes=0
@@ -214,18 +291,26 @@ fi
 
 # Auto-calculate image size if not specified
 if [[ -z "$IMAGE_SIZE" ]]; then
-    # Total = closure + archive + 1GB ESP + headroom
-    # Headroom covers: ext4/nix overhead, chroot tasks (emacs packages,
-    # Rust toolchain), and general breathing room.
-    TOTAL_BYTES=$((CLOSURE_BYTES + ARCHIVE_BYTES))
-    # Add 1GB for ESP + 8GB headroom (or 20% of total, whichever is larger)
-    HEADROOM_BYTES=$((8 * 1073741824))
-    PCT_HEADROOM=$((TOTAL_BYTES * 25 / 100))
-    if [[ $PCT_HEADROOM -gt $HEADROOM_BYTES ]]; then
-        HEADROOM_BYTES=$PCT_HEADROOM
+    if [[ -n "$FROM_BASE" ]]; then
+        # from-base: image = base + archive + headroom
+        # Headroom: 25% of archive data or 2GB minimum (base already has OS headroom)
+        HEADROOM_BYTES=$((ARCHIVE_BYTES * 25 / 100))
+        [[ $HEADROOM_BYTES -lt $((2 * 1073741824)) ]] && HEADROOM_BYTES=$((2 * 1073741824))
+        IMAGE_BYTES=$((BASE_SIZE + ARCHIVE_BYTES + HEADROOM_BYTES))
+    else
+        # Total = closure + archive + 1GB ESP + headroom
+        # Headroom covers: ext4/nix overhead, chroot tasks (emacs packages,
+        # Rust toolchain), and general breathing room.
+        TOTAL_BYTES=$((CLOSURE_BYTES + ARCHIVE_BYTES))
+        # Add 1GB for ESP + 8GB headroom (or 20% of total, whichever is larger)
+        HEADROOM_BYTES=$((8 * 1073741824))
+        PCT_HEADROOM=$((TOTAL_BYTES * 25 / 100))
+        if [[ $PCT_HEADROOM -gt $HEADROOM_BYTES ]]; then
+            HEADROOM_BYTES=$PCT_HEADROOM
+        fi
+        ESP_BYTES=$((1 * 1073741824))
+        IMAGE_BYTES=$((TOTAL_BYTES + HEADROOM_BYTES + ESP_BYTES))
     fi
-    ESP_BYTES=$((1 * 1073741824))
-    IMAGE_BYTES=$((TOTAL_BYTES + HEADROOM_BYTES + ESP_BYTES))
     # Round up to nearest GB
     IMAGE_GB=$(( (IMAGE_BYTES + 1073741823) / 1073741824 ))
     IMAGE_SIZE="${IMAGE_GB}G"
@@ -243,7 +328,9 @@ fi
 echo ""
 echo "=== Creating disk image ==="
 echo "Image: ${IMAGE_FILE} (${IMAGE_SIZE})"
-if [[ -z "$BASE_ONLY" ]]; then
+if [[ -n "$FROM_BASE" ]]; then
+    echo "Mode: from-base (reusing $FROM_BASE + archive data)"
+elif [[ -z "$BASE_ONLY" ]]; then
     echo "Mode: full (includes archive data)"
 else
     echo "Mode: base only (OS without archive data)"
@@ -266,6 +353,7 @@ export PATH="$5:$PATH"
 BASE_ONLY="${6:-}"
 POST_INSTALL_SCRIPT="$7"
 MANIFEST_FILE="${8:-}"
+FROM_BASE="${9:-}"
 
 MOUNT=$(mktemp -d)
 LOOP=""
@@ -304,42 +392,82 @@ if [[ -n "$STALE_LOOPS" ]]; then
     echo "Cleaned up $(echo "$STALE_LOOPS" | wc -w) stale loop device(s)"
 fi
 
-# Create sparse image file
-truncate -s "$IMAGE_SIZE" "$IMAGE_FILE"
+if [[ -n "$FROM_BASE" ]]; then
+    # === From-base flow: copy base image, expand, add archive data ===
+    echo "=== Copying base image ==="
+    cp --sparse=always "$FROM_BASE" "$IMAGE_FILE"
 
-# Set up loop device
-LOOP=$(losetup --find --show --partscan "$IMAGE_FILE")
-echo "Loop device: $LOOP"
+    # Extend sparse file to the target size
+    truncate -s "$IMAGE_SIZE" "$IMAGE_FILE"
 
-# Partition: 1GB ESP + rest btrfs
-sgdisk --zap-all "$LOOP"
-sgdisk -n 1:0:+1G -t 1:ef00 -c 1:ESP "$LOOP"
-sgdisk -n 2:0:0 -t 2:8300 -c 2:nixos "$LOOP"
-partprobe "$LOOP" || true
-sleep 1
+    # Set up loop device
+    LOOP=$(losetup --find --show --partscan "$IMAGE_FILE")
+    echo "Loop device: $LOOP"
 
-# Format
-mkfs.fat -F32 -n ESP "${LOOP}p1"
-mkfs.btrfs -L nixos -f "${LOOP}p2"
+    # Relocate backup GPT header to end of expanded image
+    sgdisk -e "$LOOP"
 
-# Mount
-mount -o compress=zstd,noatime "${LOOP}p2" "$MOUNT"
-mkdir -p "$MOUNT/boot"
-mount -o umask=0077 "${LOOP}p1" "$MOUNT/boot"
+    # Expand partition 2 to fill remaining space
+    sgdisk -d 2 -n 2:0:0 -t 2:8300 -c 2:nixos "$LOOP"
+    partprobe "$LOOP" || true
+    sleep 1
 
-# Install NixOS
-echo "=== Installing NixOS into image ==="
-"$NIXOS_INSTALL" --system "$SYSTEM_PATH" --root "$MOUNT" --no-root-password --no-channel-copy
+    # Mount btrfs root
+    mount -o compress=zstd,noatime "${LOOP}p2" "$MOUNT"
 
-# Run post-install tasks
-if [[ -x "$POST_INSTALL_SCRIPT" ]]; then
-    echo ""
-    if [[ -z "$BASE_ONLY" ]]; then
-        echo "=== Running post-install (archive data + chroot tasks) ==="
-    else
-        echo "=== Running post-install (chroot tasks, no archive data) ==="
+    # Grow the btrfs filesystem to fill the expanded partition
+    btrfs filesystem resize max "$MOUNT"
+
+    # Mount ESP
+    mkdir -p "$MOUNT/boot"
+    mount -o umask=0077 "${LOOP}p1" "$MOUNT/boot"
+
+    # Run post-install in archive-only mode (no chroot tasks)
+    if [[ -x "$POST_INSTALL_SCRIPT" ]]; then
+        echo ""
+        echo "=== Running post-install (archive data only, skipping chroot tasks) ==="
+        "$POST_INSTALL_SCRIPT" "$MOUNT" "$MANIFEST_FILE" --archive-only
     fi
-    "$POST_INSTALL_SCRIPT" "$MOUNT" "$MANIFEST_FILE"
+else
+    # === Normal flow: create image from scratch ===
+
+    # Create sparse image file
+    truncate -s "$IMAGE_SIZE" "$IMAGE_FILE"
+
+    # Set up loop device
+    LOOP=$(losetup --find --show --partscan "$IMAGE_FILE")
+    echo "Loop device: $LOOP"
+
+    # Partition: 1GB ESP + rest btrfs
+    sgdisk --zap-all "$LOOP"
+    sgdisk -n 1:0:+1G -t 1:ef00 -c 1:ESP "$LOOP"
+    sgdisk -n 2:0:0 -t 2:8300 -c 2:nixos "$LOOP"
+    partprobe "$LOOP" || true
+    sleep 1
+
+    # Format
+    mkfs.fat -F32 -n ESP "${LOOP}p1"
+    mkfs.btrfs -L nixos -f "${LOOP}p2"
+
+    # Mount
+    mount -o compress=zstd,noatime "${LOOP}p2" "$MOUNT"
+    mkdir -p "$MOUNT/boot"
+    mount -o umask=0077 "${LOOP}p1" "$MOUNT/boot"
+
+    # Install NixOS
+    echo "=== Installing NixOS into image ==="
+    "$NIXOS_INSTALL" --system "$SYSTEM_PATH" --root "$MOUNT" --no-root-password --no-channel-copy
+
+    # Run post-install tasks
+    if [[ -x "$POST_INSTALL_SCRIPT" ]]; then
+        echo ""
+        if [[ -z "$BASE_ONLY" ]]; then
+            echo "=== Running post-install (archive data + chroot tasks) ==="
+        else
+            echo "=== Running post-install (chroot tasks, no archive data) ==="
+        fi
+        "$POST_INSTALL_SCRIPT" "$MOUNT" "$MANIFEST_FILE"
+    fi
 fi
 
 # Sync all pending writes before unmounting
@@ -378,4 +506,4 @@ echo "Write to USB with:"
 echo "  sudo dd if=$IMAGE_FILE of=/dev/sdX bs=4M status=progress conv=fsync"
 echo ""
 echo "The root partition auto-expands to fill the USB on first boot."
-' _ "$IMAGE_FILE" "$IMAGE_SIZE" "$SYSTEM_PATH" "$NIXOS_INSTALL" "$PATH" "${BASE_ONLY:-}" "$POST_INSTALL_SCRIPT" "${MANIFEST_FILE:-}"
+' _ "$IMAGE_FILE" "$IMAGE_SIZE" "${SYSTEM_PATH:-}" "${NIXOS_INSTALL:-}" "$PATH" "${BASE_ONLY:-}" "$POST_INSTALL_SCRIPT" "${MANIFEST_FILE:-}" "${FROM_BASE:-}"
