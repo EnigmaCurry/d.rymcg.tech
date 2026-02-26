@@ -3678,7 +3678,8 @@ if [[ "${BASH_SOURCE[0]}" == "$0" ]]; then
         gumdrop_check_doctl
         gumdrop_spawn_preset
     elif [[ -n "${GUMDROP_PRESET_NAME:-}" ]]; then
-        fault "--preset requires --name"
+        gumdrop_check_doctl
+        gumdrop_spawn_preset
     elif [[ ${#GUMDROP_REMAINING_ARGS[@]} -gt 0 ]]; then
         "${GUMDROP_REMAINING_ARGS[@]}"
     else
