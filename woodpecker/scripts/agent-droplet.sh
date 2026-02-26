@@ -74,6 +74,7 @@ curl --proto '=https' --tlsv1.2 -sSf -L https://install.determinate.systems/nix 
 ## Install common dev tools via Nix:
 nix profile add \\
   nixpkgs#git \\
+  nixpkgs#git-lfs \\
   nixpkgs#gnumake \\
   nixpkgs#curl \\
   nixpkgs#wget \\
