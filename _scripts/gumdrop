@@ -1093,11 +1093,6 @@ gumdrop_create() {
 gumdrop_create_preset() {
     mkdir -p "${GUMDROP_PRESET_DIR}"
 
-    ## Call pre-create hook if defined:
-    if type -t gumdrop_pre_create_hook &>/dev/null; then
-        gumdrop_pre_create_hook
-    fi
-
     ## Ask for preset name:
     local PRESET_NAME="${GUMDROP_PRESET_NAME:-}"
     if [[ -z "${PRESET_NAME}" ]]; then
@@ -1112,6 +1107,11 @@ gumdrop_create_preset() {
         if [[ -f "${GUMDROP_PRESET_DIR}/${PRESET_NAME}.yaml" ]]; then
             confirm no "A preset named '${PRESET_NAME}' already exists. Overwrite it" "?" || return
         fi
+    fi
+
+    ## Call pre-create hook if defined:
+    if type -t gumdrop_pre_create_hook &>/dev/null; then
+        gumdrop_pre_create_hook
     fi
 
     ## Select region:
