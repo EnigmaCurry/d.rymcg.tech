@@ -1631,12 +1631,23 @@ gumdrop_delete_volume() {
         echo "All volumes are currently attached. Detach a volume before deleting it."
         return
     fi
-    local choice
-    if ! choice=$(wizard choose "Delete which volume?" "${VOL_OPTIONS[@]}" --default "${VOL_OPTIONS[0]}"); then return; fi
-    local vol_id=$(echo "${choice}" | grep -oP '\(\K[0-9a-f-]+(?=\))')
-    confirm no "Are you sure you want to delete '${choice}'" "?" || return
-    doctl compute volume delete "${vol_id}" --force
-    echo "Volume deleted."
+    readarray -t SELECTED < <(wizard select "Select volumes to delete" "${VOL_OPTIONS[@]}")
+    if [[ ${#SELECTED[@]} -eq 0 ]]; then
+        echo "No volumes selected."
+        return
+    fi
+    echo ""
+    echo "The following ${#SELECTED[@]} volume(s) will be deleted:"
+    for sel in "${SELECTED[@]}"; do
+        echo "  - ${sel}"
+    done
+    echo ""
+    confirm no "Are you sure you want to delete these ${#SELECTED[@]} volume(s)" "?" || return
+    for sel in "${SELECTED[@]}"; do
+        local vol_id=$(echo "${sel}" | grep -oP '\(\K[0-9a-f-]+(?=\))')
+        doctl compute volume delete "${vol_id}" --force
+        echo "Deleted: ${sel}"
+    done
 }
 
 gumdrop_attach_volume() {
