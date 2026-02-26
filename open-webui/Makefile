@@ -89,5 +89,11 @@ update-css:
 			echo -e "\nNo \`custom.css\` file found in \`$$(pwd)/\`."; \
 		fi \
 	fi
+	@echo
+	@echo "Restarting container so Open-WebUI recognizes updated \`custom.css\`."
+	@echo
 	@make restart
+
+.PHONY: install-hook-pre
+install-hook-pre:
 	@echo

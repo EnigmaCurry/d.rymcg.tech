@@ -131,8 +131,8 @@ Install these services first:
 
 * [Acme-DNS](acme-dns#readme) - a DNS server for ACME challenges (TLS
   certificate creation)
-* [Traefik](traefik#readme) - HTTP / TLS / TCP / UDP reverse proxy
-* [Whoami](whoami#readme) - HTTP test service
+* [Traefik](traefik#readme) - an HTTP / TLS / TCP / UDP reverse proxy
+* [Whoami](whoami#readme) - an HTTP test service
 
 Install these core services as needed:
 
@@ -145,7 +145,7 @@ Install these core services as needed:
   * A single instance should be used for your entire organization, so
     you don't need to install this on every server.
 * [Traefik-forward-auth](traefik-forward-auth#readme)
-  * Traefik OAuth2 authentication middleware.
+  * A Traefik OAuth2 authentication middleware.
   * Required if you want OAuth2 authentication. You'll combine this
     with your Forgejo instance (or another external Oauth provider) to
     add authentication to any of your apps.
@@ -195,6 +195,7 @@ Install these applications at your preference:
 * [Homepage](homepage#readme) - a dashboard for all your apps
 * [Icecast](icecast#readme) - a SHOUTcast compatible streaming multimedia server
 * [Immich](immich#readme) - a photo gallery
+* [InspIRCd](inspircd#readme) - an IRC service
 * [Invidious](invidious#readme) - a Youtube proxy
 * [InvokeAI](invokeai#readme) - an AI image generator
 * [Iperf](iperf#readme) - a bandwidth speed testing service
@@ -225,16 +226,18 @@ Install these applications at your preference:
 * [QBittorrent](qbittorrent#readme) - a Bittorrent (libtorrent v2) client
 * [Redbean](redbean#readme) - a small website server bundled in a single executable zip file
 * [Redmine](redmine#readme) - a flexible project management web application
-* [Registry](registry#readme) an OCI container registry
+* [Registry](registry#readme) - an OCI container registry
 * [S3-proxy](s3-proxy#readme) - an HTTP directory index for S3 backend
 * [SearXNG](searxng#readme) - a privacy-respecting, hackable metasearch engine
 * [SFTP](sftp#readme) - a secure file server
 * [Shaarli](shaarli#readme) - a bookmark manager
 * [Smokeping](smokeping#readme) - a network latency measurement tool
+* [Soju](soju#readme) - an IRC bouncer
 * [Speedtest Tracker](speedtest-tracker#readme) - a network performance monitor
 * [Syncthing](syncthing#readme) - a multi-device file synchronization tool
 * [Sysbox-Systemd](sysbox-systemd#readme) - a traditional service manager for Linux running in an unprivileged container via sysbox-runc
 * [Tesseract](tesseract#readme) - a front-end for Lemmy instances
+* [TheLounge](thelounge#readme) - a web client/bouncer for IRC
 * [Thttpd](thttpd#readme) - a tiny/turbo/throttling HTTP server for serving static files
 * [TriliumNext Notes](triliumnext-notes#readme) - a note-taking/knowledge base application
 * [Uptime-Kuma](uptime-kuma#readme) - a system uptime monitoring service and status page
