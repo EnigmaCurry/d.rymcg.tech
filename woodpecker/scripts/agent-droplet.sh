@@ -88,8 +88,10 @@ nix profile add \\
   nixpkgs#gnutar \\
   nixpkgs#gzip
 
+## Install build tools for workstation USB image builds:
+apt-get install -y sudo parted gdisk btrfs-progs dosfstools psmisc
+
 ## Grant woodpecker user passwordless sudo (needed for image builds):
-apt-get install -y sudo
 echo "woodpecker ALL=(ALL) NOPASSWD: ALL" > /etc/sudoers.d/woodpecker
 chmod 440 /etc/sudoers.d/woodpecker
 
