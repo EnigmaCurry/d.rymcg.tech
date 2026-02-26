@@ -22,6 +22,9 @@ gumdrop_pre_create_hook() {
 
     ask "Enter Woodpecker agent secret" WOODPECKER_AGENT_SECRET "${WOODPECKER_AGENT_SECRET}"
     check_var WOODPECKER_AGENT_SECRET
+
+    WOODPECKER_BACKEND=$(wizard choose "Choose the agent backend" "docker" "local" --default "docker")
+    export WOODPECKER_BACKEND
 }
 
 ## Hook: generate Woodpecker cloud-init user-data:
@@ -36,6 +39,10 @@ curl -fLO "https://github.com/woodpecker-ci/woodpecker/releases/download/v\${REL
 apt-get update
 apt-get install -y ./woodpecker-agent_\${RELEASE_VERSION}_amd64.deb
 rm -f woodpecker-agent_\${RELEASE_VERSION}_amd64.deb
+USERDATA
+
+    if [[ "${WOODPECKER_BACKEND}" == "docker" ]]; then
+        cat <<USERDATA
 
 ## Install Docker (needed as the pipeline backend):
 apt-get install -y ca-certificates curl
@@ -49,6 +56,16 @@ apt-get install -y docker-ce docker-ce-cli containerd.io
 ## Create woodpecker user and add to docker group:
 id woodpecker &>/dev/null || useradd --system --shell /usr/sbin/nologin woodpecker
 usermod -aG docker woodpecker
+USERDATA
+    else
+        cat <<USERDATA
+
+## Create woodpecker user:
+id woodpecker &>/dev/null || useradd --system --shell /usr/sbin/nologin woodpecker
+USERDATA
+    fi
+
+    cat <<USERDATA
 
 ## Install Nix:
 curl --proto '=https' --tlsv1.2 -sSf -L https://install.determinate.systems/nix | sh -s -- install --no-confirm
@@ -59,7 +76,7 @@ WOODPECKER_SERVER=${WOODPECKER_SERVER}
 WOODPECKER_AGENT_SECRET=${WOODPECKER_AGENT_SECRET}
 WOODPECKER_GRPC_SECURE=true
 WOODPECKER_LOG_LEVEL=info
-WOODPECKER_BACKEND=docker
+WOODPECKER_BACKEND=${WOODPECKER_BACKEND}
 EOF
 chmod 600 /etc/woodpecker/woodpecker-agent.env
 
@@ -72,6 +89,7 @@ USERDATA
 ## Hook: print gRPC address in create summary:
 gumdrop_summary_hook() {
     echo "  gRPC address:  ${WOODPECKER_SERVER}"
+    echo "  Agent backend: ${WOODPECKER_BACKEND}"
 }
 
 source ${BIN}/gumdrop
