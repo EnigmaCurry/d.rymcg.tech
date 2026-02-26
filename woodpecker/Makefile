@@ -34,6 +34,12 @@ config-hook:
 	@${BIN}/reconfigure ${ENV_FILE} WOODPECKER_INSTANCE=$${instance:-default}
 	@${BIN}/reconfigure_compose_profiles_select ${ENV_FILE} server="Woodpecker Server" agent="Woodpecker Agent"
 	@${BIN}/reconfigure_choose ${ENV_FILE} WOODPECKER_BACKEND "Choose the agent backend" "docker" "local"
+	@role=$$(eval "${BIN}/script-wizard choose 'Configure this agent with role=controller filter label?' 'no' 'yes' --default 'no'") && \
+	if [ "$${role}" = "yes" ]; then \
+		${BIN}/reconfigure ${ENV_FILE} WOODPECKER_FILTER_LABELS=role=controller; \
+	else \
+		${BIN}/reconfigure ${ENV_FILE} WOODPECKER_FILTER_LABELS=; \
+	fi
 
 .PHONY: override-hook
 override-hook:
