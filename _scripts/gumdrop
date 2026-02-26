@@ -1093,6 +1093,11 @@ gumdrop_create() {
 gumdrop_create_preset() {
     mkdir -p "${GUMDROP_PRESET_DIR}"
 
+    ## Call pre-create hook if defined:
+    if type -t gumdrop_pre_create_hook &>/dev/null; then
+        gumdrop_pre_create_hook
+    fi
+
     ## Ask for preset name:
     local PRESET_NAME="${GUMDROP_PRESET_NAME:-}"
     if [[ -z "${PRESET_NAME}" ]]; then
@@ -1378,6 +1383,11 @@ gumdrop_create_preset() {
     local user_data_display="${user_data_basename:-(none)}"
     [[ "${user_data_basename}" == "_hook_" ]] && user_data_display="(hook)"
     echo "  User-data:     ${user_data_display}"
+
+    ## Call summary hook if defined:
+    if type -t gumdrop_summary_hook &>/dev/null; then
+        gumdrop_summary_hook
+    fi
 
     echo ""
     confirm yes "Save this preset" "?" || return
