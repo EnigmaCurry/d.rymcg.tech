@@ -33,6 +33,7 @@ config-hook:
 	@echo ""
 	@${BIN}/reconfigure ${ENV_FILE} WOODPECKER_INSTANCE=$${instance:-default}
 	@${BIN}/reconfigure_compose_profiles_select ${ENV_FILE} server="Woodpecker Server" agent="Woodpecker Agent"
+	@${BIN}/reconfigure_choose ${ENV_FILE} WOODPECKER_BACKEND "Choose the agent backend" "docker" "local"
 
 .PHONY: override-hook
 override-hook:
