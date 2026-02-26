@@ -55,11 +55,17 @@ install-hook-pre:
 .PHONY: install-hook
 install-hook:
 
-.PHONY: agent-droplet # Manage Woodpecker agent droplets on DigitalOcean
-agent-droplet:
+.PHONY: droplet # Manage Woodpecker agent droplets on DigitalOcean
+droplet:
 	@DEFAULT_WOODPECKER_SERVER="$$(${BIN}/dotenv -f ${ENV_FILE} get WOODPECKER_GRPC_HOST):443" \
 	DEFAULT_WOODPECKER_AGENT_SECRET="$$(${BIN}/dotenv -f ${ENV_FILE} get WOODPECKER_AGENT_SECRET)" \
 	bash scripts/agent-droplet.sh
+
+.PHONY: droplet-preset # Create a Woodpecker agent droplet preset
+droplet-preset:
+	@DEFAULT_WOODPECKER_SERVER="$$(${BIN}/dotenv -f ${ENV_FILE} get WOODPECKER_GRPC_HOST):443" \
+	DEFAULT_WOODPECKER_AGENT_SECRET="$$(${BIN}/dotenv -f ${ENV_FILE} get WOODPECKER_AGENT_SECRET)" \
+	bash scripts/agent-droplet.sh gumdrop_create_preset
 
 .PHONY: shell # Enter one of the container shells
 shell:
