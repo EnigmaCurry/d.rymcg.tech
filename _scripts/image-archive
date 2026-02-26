@@ -163,6 +163,11 @@ def rebuild_manifest(base_dir: Path, arch: str) -> None:
 
 
 def main():
+    # Force line-buffered stdout so log messages appear immediately in
+    # non-interactive terminals (CI pipelines, piped output, etc.).
+    sys.stdout.reconfigure(line_buffering=True)
+    sys.stderr.reconfigure(line_buffering=True)
+
     parser = argparse.ArgumentParser(
         description="Pull, build, and archive all Docker images from d.rymcg.tech projects.",
     )
