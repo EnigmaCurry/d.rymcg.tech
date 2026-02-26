@@ -1477,42 +1477,6 @@ gumdrop_spawn_preset() {
         fault "Preset '${PRESET_NAME}' has no ssh_key. Please recreate the preset."
     fi
 
-    ## Create firewall:
-    local FIREWALL_IDS=()
-    local FIREWALL_NAMES=()
-    case "${fw_type}" in
-        ssh-only)   _gumdrop_create_ssh_only_firewall ;;
-        block-all)  _gumdrop_create_block_all_firewall ;;
-        web)        _gumdrop_create_web_firewall ;;
-    esac
-
-    ## Create volumes from specs:
-    local VOLUME_IDS=()
-    local VOLUME_NAMES=()
-    local vol_idx=0
-    while read -r vol_spec; do
-        [[ -z "${vol_spec}" || "${vol_spec}" == "null" ]] && continue
-        local vol_size=$(echo "${vol_spec}" | jq -r '.size')
-        local vol_fs=$(echo "${vol_spec}" | jq -r '.fs_type')
-        local vol_name="${DROPLET_NAME}-vol-${vol_idx}"
-        local fs_args=()
-        if [[ -n "${vol_fs}" && "${vol_fs}" != "none" && "${vol_fs}" != "null" ]]; then
-            fs_args=(--fs-type "${vol_fs}")
-        fi
-        echo "Creating volume '${vol_name}' (${vol_size}GiB in ${REGION})..."
-        local vol_output
-        vol_output=$(doctl compute volume create "${vol_name}" --region "${REGION}" --size "${vol_size}GiB" "${fs_args[@]}" --format ID --no-header)
-        local vol_id=$(echo "${vol_output}" | awk '{print $1}')
-        if [[ -n "${vol_id}" ]]; then
-            VOLUME_IDS+=("${vol_id}")
-            VOLUME_NAMES+=("${vol_name}")
-            echo "Volume '${vol_name}' created."
-        else
-            error "Failed to create volume '${vol_name}'."
-        fi
-        vol_idx=$((vol_idx + 1))
-    done < <(echo "${preset_json}" | jq -c '.volumes[]?' 2>/dev/null)
-
     ## Build backup args:
     local backup_args=()
     local BACKUP_SUMMARY="none"
@@ -1563,6 +1527,19 @@ gumdrop_spawn_preset() {
         tag_args=(--tag-names "${tag_csv}")
     fi
 
+    ## Build volume summary for display:
+    local vol_count=0
+    local vol_summary=""
+    while read -r vol_spec; do
+        [[ -z "${vol_spec}" || "${vol_spec}" == "null" ]] && continue
+        local vol_size=$(echo "${vol_spec}" | jq -r '.size')
+        local vol_fs=$(echo "${vol_spec}" | jq -r '.fs_type')
+        local vol_name="${DROPLET_NAME}-vol-${vol_count}"
+        if [[ -n "${vol_summary}" ]]; then vol_summary="${vol_summary}, "; fi
+        vol_summary="${vol_summary}${vol_name} (${vol_size}GiB ${vol_fs})"
+        vol_count=$((vol_count + 1))
+    done < <(echo "${preset_json}" | jq -c '.volumes[]?' 2>/dev/null)
+
     ## Summary:
     echo ""
     echo "## Summary:"
@@ -1573,9 +1550,9 @@ gumdrop_spawn_preset() {
     echo "  Image:         ${IMAGE}"
     echo "  SSH key:       ${SSH_KEY}"
     echo "  Tags:          ${PRESET_TAGS[*]:-(none)}"
-    echo "  Firewall:      ${FIREWALL_NAMES[*]:-(none)}"
+    echo "  Firewall:      ${fw_type}"
     echo "  Reserved IP:   ${create_rip}"
-    echo "  Volumes:       ${VOLUME_NAMES[*]:-(none)}"
+    echo "  Volumes:       ${vol_summary:-(none)}"
     echo "  Backups:       ${BACKUP_SUMMARY}"
     echo "  User-data:     ${USER_DATA_LABEL:-(none)}"
 
@@ -1584,6 +1561,42 @@ gumdrop_spawn_preset() {
     if [[ -z "${GUMDROP_DROPLET_NAME:-}" ]]; then
         confirm yes "Create this ${GUMDROP_LABEL,,}" "?" || return
     fi
+
+    ## Create firewall:
+    local FIREWALL_IDS=()
+    local FIREWALL_NAMES=()
+    case "${fw_type}" in
+        ssh-only)   _gumdrop_create_ssh_only_firewall ;;
+        block-all)  _gumdrop_create_block_all_firewall ;;
+        web)        _gumdrop_create_web_firewall ;;
+    esac
+
+    ## Create volumes from specs:
+    local VOLUME_IDS=()
+    local VOLUME_NAMES=()
+    local vol_idx=0
+    while read -r vol_spec; do
+        [[ -z "${vol_spec}" || "${vol_spec}" == "null" ]] && continue
+        local vol_size=$(echo "${vol_spec}" | jq -r '.size')
+        local vol_fs=$(echo "${vol_spec}" | jq -r '.fs_type')
+        local vol_name="${DROPLET_NAME}-vol-${vol_idx}"
+        local fs_args=()
+        if [[ -n "${vol_fs}" && "${vol_fs}" != "none" && "${vol_fs}" != "null" ]]; then
+            fs_args=(--fs-type "${vol_fs}")
+        fi
+        echo "Creating volume '${vol_name}' (${vol_size}GiB in ${REGION})..."
+        local vol_output
+        vol_output=$(doctl compute volume create "${vol_name}" --region "${REGION}" --size "${vol_size}GiB" "${fs_args[@]}" --format ID --no-header)
+        local vol_id=$(echo "${vol_output}" | awk '{print $1}')
+        if [[ -n "${vol_id}" ]]; then
+            VOLUME_IDS+=("${vol_id}")
+            VOLUME_NAMES+=("${vol_name}")
+            echo "Volume '${vol_name}' created."
+        else
+            error "Failed to create volume '${vol_name}'."
+        fi
+        vol_idx=$((vol_idx + 1))
+    done < <(echo "${preset_json}" | jq -c '.volumes[]?' 2>/dev/null)
 
     echo "Creating ${GUMDROP_LABEL,,} '${DROPLET_NAME}', please wait..."
     doctl compute droplet create "${DROPLET_NAME}" \
