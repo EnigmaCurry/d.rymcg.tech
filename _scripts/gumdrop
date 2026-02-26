@@ -1184,12 +1184,21 @@ gumdrop_delete_firewall() {
         echo "All firewalls are currently attached to droplets. Remove a firewall from its droplets before deleting it."
         return
     fi
-    local choice
-    if ! choice=$(wizard choose "Delete which firewall?" "${FW_OPTIONS[@]}" --default "${FW_OPTIONS[0]}"); then return; fi
-    local fw_id=$(echo "${choice}" | grep -oP '\(\K[0-9a-f-]+(?=\))')
-    confirm no "Are you sure you want to delete '${choice}'" "?" || return
-    doctl compute firewall delete "${fw_id}" --force
-    echo "Firewall deleted."
+    readarray -t SELECTED < <(wizard select "Select firewalls to delete" "${FW_OPTIONS[@]}")
+    if [[ ${#SELECTED[@]} -eq 0 ]]; then return; fi
+    echo ""
+    echo "The following firewalls will be deleted:"
+    for choice in "${SELECTED[@]}"; do
+        echo "  - ${choice}"
+    done
+    echo ""
+    confirm no "Are you sure you want to delete ${#SELECTED[@]} firewall(s)" "?" || return
+    for choice in "${SELECTED[@]}"; do
+        local fw_id=$(echo "${choice}" | grep -oP '\(\K[0-9a-f-]+(?=\))')
+        local fw_name=$(echo "${choice}" | sed 's/ ([^)]*)//')
+        doctl compute firewall delete "${fw_id}" --force
+        echo "Firewall '${fw_name}' deleted."
+    done
 }
 
 gumdrop_edit_firewall() {
