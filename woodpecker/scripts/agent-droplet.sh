@@ -130,12 +130,12 @@ HTTP_CODE=\$(curl -s -o /dev/null -w '%{http_code}' -X POST \\
     -d "\${JSON}" \\
     "\${NOTIFICATION_WEBHOOK_URL}")
 
-if [[ "\${HTTP_CODE}" != "200" ]]; then
+if [[ "\${HTTP_CODE}" -lt 200 || "\${HTTP_CODE}" -ge 300 ]]; then
     if [[ "\${NOTIFICATION_WEBHOOK_ENFORCE}" == "true" ]]; then
-        echo "ERROR: Webhook returned HTTP \${HTTP_CODE} (expected 200)" >&2
+        echo "ERROR: Webhook returned HTTP \${HTTP_CODE} (expected 2xx)" >&2
         exit 1
     else
-        echo "WARNING: Webhook returned HTTP \${HTTP_CODE} (expected 200)" >&1
+        echo "WARNING: Webhook returned HTTP \${HTTP_CODE} (expected 2xx)" >&1
     fi
 fi
 NOTIFY_SCRIPT
