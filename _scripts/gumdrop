@@ -1648,7 +1648,10 @@ gumdrop_spawn_preset() {
     echo ""
     echo "${GUMDROP_LABEL} created from preset '${PRESET_NAME}'."
     echo "Check cloud-init status with: doctl compute ssh ${DROPLET_NAME} -- tail -f /var/log/cloud-init-output.log"
-    gumdrop_list
+    ## Only show full droplet list when running interactively (no --name flag):
+    if [[ -z "${GUMDROP_DROPLET_NAME:-}" ]]; then
+        gumdrop_list
+    fi
 }
 
 gumdrop_delete_preset() {
