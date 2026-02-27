@@ -28,7 +28,7 @@
 #@ api_host = data.values.api_host
 
 #! Helper to generate labels for a cache service:
-#@ def cache_labels(service, traefik_host):
+#@ def cache_labels(service, traefik_host, port=5000):
 #@   router = "{}-{}-{}".format(project, instance, service)
 #@   middlewares = []
 #@   middlewares.append("{}-ipallowlist".format(router))
@@ -36,6 +36,7 @@
 #@   labels.append("traefik.enable=true")
 #@   labels.append("traefik.http.routers.{}.rule=Host(`{}`)".format(router, traefik_host))
 #@   labels.append("traefik.http.routers.{}.entrypoints=websecure".format(router))
+#@   labels.append("traefik.http.services.{}.loadbalancer.server.port={}".format(router, port))
 #@   labels.append("traefik.http.middlewares.{}-ipallowlist.ipallowlist.sourcerange={}".format(router, ip_sourcerange))
 #@   if enable_http_auth:
 #@     middlewares.append("{}-basicauth".format(router))
@@ -116,6 +117,6 @@ services:
 
   api:
     labels:
-      #@ for label in cache_labels("api", api_host):
+      #@ for label in cache_labels("api", api_host, port=3000):
       - "(@= label @)"
       #@ end

@@ -263,6 +263,40 @@ configure_dockerhub() {
 
     echo "  Installed /etc/docker/daemon.json"
 
+    # Also configure containerd hosts.toml for docker.io — needed when
+    # Docker uses the containerd image store (default in Docker 29+).
+    local remote_dir="/etc/containerd/certs.d/docker.io"
+    local TMP_TOML
+    TMP_TOML="$(mktemp)"
+
+    cat >"${TMP_TOML}" <<EOF
+server = "https://registry-1.docker.io"
+
+[host."${mirror_url}"]
+  capabilities = ["pull", "resolve"]
+EOF
+
+    if ${HAS_AUTH}; then
+        local b64
+        b64="$(printf '%s:%s' "${AUTH_USERNAME}" "${AUTH_PASSWORD}" | base64 -w0)"
+        cat >>"${TMP_TOML}" <<EOF
+  [host."${mirror_url}".header]
+    Authorization = ["Basic ${b64}"]
+EOF
+    fi
+
+    local REMOTE_TOML="/tmp/hosts.toml.${RANDOM}.${RANDOM}"
+    if ! scp -q "${TMP_TOML}" "${SSH_HOST}:${REMOTE_TOML}"; then
+        fault "Failed to upload hosts.toml for docker.io to ${SSH_HOST}."
+    fi
+
+    ssh "${SSH_HOST}" "sudo install -d -m 0755 '${remote_dir}' \
+        && sudo install -b -m 0644 '${REMOTE_TOML}' '${remote_dir}/hosts.toml' \
+        && rm -f '${REMOTE_TOML}'"
+    rm -f "${TMP_TOML}"
+
+    echo "  Installed ${remote_dir}/hosts.toml"
+
     if ${HAS_AUTH}; then
         echo "  Logging in to ${cache_host} ..."
         ssh "${SSH_HOST}" "docker login '${cache_host}' -u '${AUTH_USERNAME}' --password-stdin" \
@@ -316,6 +350,7 @@ do_configure() {
     echo "The following will be configured on ${SSH_HOST}:"
     if ${HAS_DOCKERHUB}; then
         echo "  - /etc/docker/daemon.json (registry-mirrors -> ${CACHE_HOSTS[dockerhub]})"
+        echo "  - /etc/containerd/certs.d/docker.io/hosts.toml (-> ${CACHE_HOSTS[dockerhub]})"
         if ${HAS_AUTH}; then
             echo "  - docker login ${CACHE_HOSTS[dockerhub]}"
         fi
@@ -384,6 +419,10 @@ unconfigure_dockerhub() {
 
     echo "  Removed registry-mirrors from /etc/docker/daemon.json"
 
+    # Remove containerd hosts.toml for docker.io
+    ssh "${SSH_HOST}" "sudo rm -rf /etc/containerd/certs.d/docker.io"
+    echo "  Removed /etc/containerd/certs.d/docker.io"
+
     # Logout from the cache host
     ssh "${SSH_HOST}" "docker logout '${cache_host}'" 2>/dev/null || true
     echo "  docker logout ${cache_host}: OK"
@@ -404,6 +443,7 @@ do_unconfigure() {
     echo "The following will be removed from ${SSH_HOST}:"
     if ${HAS_DOCKERHUB}; then
         echo "  - registry-mirrors from /etc/docker/daemon.json"
+        echo "  - /etc/containerd/certs.d/docker.io/"
         echo "  - docker logout ${CACHE_HOSTS[dockerhub]}"
     fi
     for profile in "${!CACHE_HOSTS[@]}"; do
