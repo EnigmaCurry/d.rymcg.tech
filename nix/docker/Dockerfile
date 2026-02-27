@@ -6,6 +6,7 @@ FROM nixos/nix:latest AS builder
 COPY nix/docker/packages.nix /tmp/packages.nix
 
 RUN NIX_BUILD=$(readlink $(which nix-build)) NIX_ENV=$(readlink $(which nix-env)) \
+ && export NIX_SSL_CERT_FILE=$(readlink -f /root/.nix-profile/etc/ssl/certs/ca-bundle.crt) \
  && $NIX_ENV -e '.*' \
  && RESULT=$($NIX_BUILD --no-out-link -E 'let pkgs = import <nixpkgs> {}; in pkgs.buildEnv { name = "ci-packages"; paths = import /tmp/packages.nix { inherit pkgs; }; }') \
  && $NIX_ENV -i "$RESULT"
