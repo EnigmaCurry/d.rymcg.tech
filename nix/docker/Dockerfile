@@ -17,7 +17,7 @@ ENV NIX_SSL_CERT_FILE="/root/.nix-profile/etc/ssl/certs/ca-bundle.crt"
 
 # Install script-wizard from .tools.lock.json
 COPY .tools.lock.json /tmp/.tools.lock.json
-RUN set -e; \
+RUN export PATH="/root/.nix-profile/bin:${PATH}"; set -e; \
     VERSION=$(jq -r '.dependencies["script-wizard"].version' /tmp/.tools.lock.json); \
     curl -fsSL "https://github.com/EnigmaCurry/script-wizard/releases/download/v${VERSION}/script-wizard-Linux-x86_64.tar.gz" \
       | tar xz -C /usr/local/bin; \
