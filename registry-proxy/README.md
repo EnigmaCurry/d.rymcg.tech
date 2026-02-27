@@ -14,13 +14,7 @@ each client.
 ## Configure Traefik entrypoint
 
 You must enable the `registry_proxy` entrypoint in the Traefik
-config:
-
-```
-cd ~/git/vendor/enigmacurry/d.rymcg.tech/traefik
-./setup.sh config_entrypoint registry_proxy
-make install
-```
+config.
 
  * The Traefik entrypoint listens on port 3128 (default).
  * The proxy container listens on port 3128 and Traefik proxies to
