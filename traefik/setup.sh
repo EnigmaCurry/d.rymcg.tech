@@ -249,6 +249,7 @@ config_list_entrypoints() {
         [dns]="DNS (tcp+udp; acme-dns or other) entrypoint"
         [irc]="IRC (inspircd) entrypoint"
         [irc_bouncer]="IRC bouncer (soju / znc) entrypoint"
+        [registry_proxy]="Docker registry caching proxy (docker-registry-proxy) entrypoint"
     )
     local menu_args=("Select entrypoint to configure:")
     for entrypoint in "${entrypoint_names[@]}"; do

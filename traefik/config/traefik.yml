@@ -401,4 +401,15 @@ entryPoints:
         #@ end
     #@ end
   #@ end
+  #@ if data.values.registry_proxy_entrypoint_enabled == "true":
+  registry_proxy:
+    address: #@ data.values.registry_proxy_entrypoint_host + ":" + data.values.registry_proxy_entrypoint_port
+    #@ if len(data.values.registry_proxy_entrypoint_proxy_protocol_trusted_ips.strip()):
+    proxyProtocol:
+      trustedIPs:
+        #@ for allowed_net in data.values.registry_proxy_entrypoint_proxy_protocol_trusted_ips.split(","):
+        - "(@= allowed_net @)"
+        #@ end
+    #@ end
+  #@ end
 
