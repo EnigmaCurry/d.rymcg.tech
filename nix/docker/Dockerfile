@@ -5,7 +5,7 @@ FROM nixos/nix:latest AS builder
 
 COPY nix/docker/packages.nix /tmp/packages.nix
 
-RUN NIX_BUILD=$(which nix-build) NIX_ENV=$(which nix-env) \
+RUN NIX_BUILD=$(readlink -f $(which nix-build)) NIX_ENV=$(readlink -f $(which nix-env)) \
  && $NIX_ENV -e '.*' \
  && RESULT=$($NIX_BUILD --no-out-link -E 'let pkgs = import <nixpkgs> {}; in pkgs.buildEnv { name = "ci-packages"; paths = import /tmp/packages.nix { inherit pkgs; }; }') \
  && $NIX_ENV -i "$RESULT"
