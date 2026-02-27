@@ -1,9 +1,19 @@
 #!/usr/bin/env bash
-## Configure a remote Docker host as a client of registry-cache.
+## Configure (or unconfigure) a remote Docker host as a client of registry-cache.
 ## Supports no-auth and HTTP Basic Auth (when passwords.json exists).
 ##
+## Usage:
+##   ENV_FILE=.env_foo bash configure-docker.sh [configure|unconfigure]
+##
 ## Requires ENV_FILE in the environment (set by the Makefile target).
+## Default mode is "configure".
 set -euo pipefail
+
+MODE="${1:-configure}"
+if [[ "${MODE}" != "configure" && "${MODE}" != "unconfigure" ]]; then
+    echo "Usage: $0 [configure|unconfigure]" >&2
+    exit 1
+fi
 
 BIN=$(dirname "${BASH_SOURCE[0]}")/../_scripts
 source "${BIN}/funcs.sh"
@@ -111,10 +121,10 @@ choose_target_context() {
 
     echo ""
     echo "Current Docker context (registry-cache server): ${current_context}"
-    echo "Choose the Docker client host to configure:"
+    echo "Choose the Docker client host to ${MODE}:"
     echo ""
 
-    TARGET_CONTEXT="$(wizard choose "Select the Docker context to configure as a cache client" "${contexts[@]}")"
+    TARGET_CONTEXT="$(wizard choose "Select the Docker context to ${MODE}" "${contexts[@]}")"
     if [[ -z "${TARGET_CONTEXT}" ]]; then
         fault "No context selected."
     fi
@@ -147,11 +157,6 @@ preflight_remote() {
     fi
     echo "  sudo: OK"
 
-    if ! ssh "${SSH_HOST}" command -v install >/dev/null 2>&1; then
-        fault "'install' command not found on ${SSH_HOST}."
-    fi
-    echo "  install: OK"
-
     # Check for read-only /etc (e.g. NixOS)
     if ! ssh "${SSH_HOST}" 'sudo test -w /etc' 2>/dev/null; then
         echo ""
@@ -160,17 +165,19 @@ preflight_remote() {
         echo "  Docker and containerd must be configured through your OS"
         echo "  configuration system (e.g. configuration.nix) instead."
         echo ""
-        echo "  For NixOS, add to your configuration.nix:"
-        echo ""
-        if ${HAS_DOCKERHUB}; then
-            echo "    virtualisation.docker.daemon.settings.registry-mirrors ="
-            echo "      [ \"https://${CACHE_HOSTS[dockerhub]}\" ];"
+        if [[ "${MODE}" == "configure" ]]; then
+            echo "  For NixOS, add to your configuration.nix:"
             echo ""
-        fi
-        if ${HAS_CONTAINERD}; then
-            echo "  For containerd registries, see:"
-            echo "    https://docs.docker.com/engine/containerd/#hosts-directory"
-            echo ""
+            if ${HAS_DOCKERHUB}; then
+                echo "    virtualisation.docker.daemon.settings.registry-mirrors ="
+                echo "      [ \"https://${CACHE_HOSTS[dockerhub]}\" ];"
+                echo ""
+            fi
+            if ${HAS_CONTAINERD}; then
+                echo "  For containerd registries, see:"
+                echo "    https://docs.docker.com/engine/containerd/#hosts-directory"
+                echo ""
+            fi
         fi
         fault "/etc is not writable on ${SSH_HOST}."
     fi
@@ -194,14 +201,30 @@ preflight_remote() {
             echo "  containerd: OK (active)"
         else
             echo "  containerd: WARNING — not running as a systemd service."
-            echo "    hosts.toml files will still be written, but containerd"
-            echo "    must be configured to use /etc/containerd/certs.d/ for"
-            echo "    them to take effect."
         fi
     fi
 
     echo ""
 }
+
+restart_services() {
+    echo ""
+    echo "=== Restarting services ==="
+
+    if ${HAS_DOCKERHUB}; then
+        echo "  Restarting Docker ..."
+        ssh "${SSH_HOST}" "sudo systemctl restart docker"
+        echo "  Docker restarted."
+    fi
+
+    if ${HAS_CONTAINERD} && ${CONTAINERD_OK}; then
+        echo "  Restarting containerd ..."
+        ssh "${SSH_HOST}" "sudo systemctl restart containerd"
+        echo "  containerd restarted."
+    fi
+}
+
+## ── configure ────────────────────────────────────────────────────
 
 configure_dockerhub() {
     local cache_host="${CACHE_HOSTS[dockerhub]}"
@@ -289,30 +312,7 @@ EOF
     echo "  Installed ${remote_dir}/hosts.toml"
 }
 
-restart_services() {
-    echo ""
-    echo "=== Restarting services ==="
-
-    if ${HAS_DOCKERHUB}; then
-        echo "  Restarting Docker ..."
-        ssh "${SSH_HOST}" "sudo systemctl restart docker"
-        echo "  Docker restarted."
-    fi
-
-    if ${HAS_CONTAINERD} && ${CONTAINERD_OK}; then
-        echo "  Restarting containerd ..."
-        ssh "${SSH_HOST}" "sudo systemctl restart containerd"
-        echo "  containerd restarted."
-    fi
-}
-
-main() {
-    read_config
-    choose_target_context
-
-    preflight_local
-    preflight_remote
-
+do_configure() {
     echo "The following will be configured on ${SSH_HOST}:"
     if ${HAS_DOCKERHUB}; then
         echo "  - /etc/docker/daemon.json (registry-mirrors -> ${CACHE_HOSTS[dockerhub]})"
@@ -352,6 +352,108 @@ main() {
 
     echo ""
     echo "Done. ${SSH_HOST} is now configured to use registry caches."
+}
+
+## ── unconfigure ──────────────────────────────────────────────────
+
+unconfigure_dockerhub() {
+    local cache_host="${CACHE_HOSTS[dockerhub]}"
+
+    echo "--- Docker Hub (${cache_host}) ---"
+
+    # Remove registry-mirrors from daemon.json
+    local TMP_EXIST TMP_CLEANED
+    TMP_EXIST="$(mktemp)"
+    TMP_CLEANED="$(mktemp)"
+    trap "rm -f '${TMP_EXIST}' '${TMP_CLEANED}'" RETURN
+
+    if ! ssh "${SSH_HOST}" 'test -s /etc/docker/daemon.json && sudo cat /etc/docker/daemon.json || echo "{}"' >"${TMP_EXIST}"; then
+        fault "Failed to read /etc/docker/daemon.json from ${SSH_HOST}."
+    fi
+
+    # Remove the registry-mirrors key, keep everything else
+    jq 'del(."registry-mirrors")' "${TMP_EXIST}" >"${TMP_CLEANED}"
+
+    local REMOTE_TMP="/tmp/daemon.json.${RANDOM}.${RANDOM}"
+    if ! scp -q "${TMP_CLEANED}" "${SSH_HOST}:${REMOTE_TMP}"; then
+        fault "Failed to upload daemon.json to ${SSH_HOST}."
+    fi
+
+    ssh "${SSH_HOST}" "sudo install -b -m 0644 '${REMOTE_TMP}' /etc/docker/daemon.json \
+        && rm -f '${REMOTE_TMP}'"
+
+    echo "  Removed registry-mirrors from /etc/docker/daemon.json"
+
+    # Logout from the cache host
+    ssh "${SSH_HOST}" "docker logout '${cache_host}'" 2>/dev/null || true
+    echo "  docker logout ${cache_host}: OK"
+}
+
+unconfigure_containerd_host() {
+    local profile="$1"
+    local upstream="${PROFILE_UPSTREAM[$profile]}"
+    local remote_dir="/etc/containerd/certs.d/${upstream}"
+
+    echo "--- ${upstream} ---"
+
+    ssh "${SSH_HOST}" "sudo rm -rf '${remote_dir}'"
+    echo "  Removed ${remote_dir}"
+}
+
+do_unconfigure() {
+    echo "The following will be removed from ${SSH_HOST}:"
+    if ${HAS_DOCKERHUB}; then
+        echo "  - registry-mirrors from /etc/docker/daemon.json"
+        echo "  - docker logout ${CACHE_HOSTS[dockerhub]}"
+    fi
+    for profile in "${!CACHE_HOSTS[@]}"; do
+        if [[ "${profile}" != "dockerhub" ]]; then
+            echo "  - /etc/containerd/certs.d/${PROFILE_UPSTREAM[$profile]}/"
+        fi
+    done
+    if ${HAS_DOCKERHUB}; then
+        echo "  - restart docker"
+    fi
+    if ${HAS_CONTAINERD} && ${CONTAINERD_OK}; then
+        echo "  - restart containerd"
+    fi
+    echo ""
+    confirm yes "Remove registry cache client configuration from ${SSH_HOST}" "?" || exit 0
+
+    echo ""
+    echo "=== Unconfiguring ${SSH_HOST} ==="
+    echo ""
+
+    if ${HAS_DOCKERHUB}; then
+        unconfigure_dockerhub
+    fi
+
+    for profile in "${!CACHE_HOSTS[@]}"; do
+        if [[ "${profile}" != "dockerhub" ]]; then
+            unconfigure_containerd_host "${profile}"
+        fi
+    done
+
+    restart_services
+
+    echo ""
+    echo "Done. Registry cache client configuration removed from ${SSH_HOST}."
+}
+
+## ── main ─────────────────────────────────────────────────────────
+
+main() {
+    read_config
+    choose_target_context
+
+    preflight_local
+    preflight_remote
+
+    if [[ "${MODE}" == "configure" ]]; then
+        do_configure
+    else
+        do_unconfigure
+    fi
 }
 
 main

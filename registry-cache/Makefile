@@ -34,7 +34,11 @@ seed:
 
 .PHONY: configure-docker
 configure-docker:
-	@ENV_FILE=$(ENV_FILE) bash configure-docker.sh
+	@ENV_FILE=$(ENV_FILE) bash configure-docker.sh configure
+
+.PHONY: unconfigure-docker
+unconfigure-docker:
+	@ENV_FILE=$(ENV_FILE) bash configure-docker.sh unconfigure
 
 .PHONY: shell
 shell:

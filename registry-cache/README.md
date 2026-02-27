@@ -108,6 +108,16 @@ If HTTP Basic Auth is enabled, the script reads credentials from
 `docker login` for Docker Hub and `Authorization` headers in each
 `hosts.toml`. mTLS requires manual client-side certificate setup.
 
+To undo the client configuration and restore defaults:
+
+```
+make unconfigure-docker
+```
+
+This removes `registry-mirrors` from `daemon.json`, deletes the
+`hosts.toml` files, logs out of the cache host, and restarts
+services.
+
 ## Authentication
 
 `make config` will prompt you to choose an authentication method.
