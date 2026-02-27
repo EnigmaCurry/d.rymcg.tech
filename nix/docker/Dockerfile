@@ -29,7 +29,8 @@ RUN export PATH="/root/.nix-profile/bin:${PATH}" \
  && echo "user:x:1000:" >> /etc/group \
  && mkdir -p /home/user \
  && ln -s /root/.nix-profile /home/user/.nix-profile \
- && chown -R 1000:1000 /home/user
+ && mkdir -p /run/secrets/ssh \
+ && chown -R 1000:1000 /home/user /run/secrets/ssh
 
 ENV PATH="/home/user/.nix-profile/bin:${PATH}"
 ENV SSL_CERT_FILE="/home/user/.nix-profile/etc/ssl/certs/ca-bundle.crt"
