@@ -12,6 +12,8 @@ config-hook:
 	@echo "## Example: auth.docker.io:myuser:mypass ghcr.io:myuser:mytoken"
 	@ALLOW_BLANK=1 ${BIN}/reconfigure_ask ${ENV_FILE} REGISTRY_PROXY_AUTH_REGISTRIES "Enter upstream registry auth (hostname:user:pass, space-separated, blank for none)"
 	@echo ""
+	@${BIN}/reconfigure_ask ${ENV_FILE} REGISTRY_PROXY_IP_SOURCERANGE "Enter the IP source range allowed to access the proxy (CIDR patterns, comma-separated, 0.0.0.0/0 for all)" 0.0.0.0/0
+	@echo ""
 
 .PHONY: override-hook
 override-hook:
