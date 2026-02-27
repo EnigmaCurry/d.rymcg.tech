@@ -1,22 +1,18 @@
 volumes:
   registry-cache:
+  registry-cache-ca:
 
 services:
-  registry:
+  proxy:
     image: ${REGISTRY_CACHE_IMAGE}
-    cap_drop:
-      - ALL
-    security_opt:
-      - no-new-privileges:true
-    sysctls:
-      - net.ipv4.ip_unprivileged_port_start=1024
     restart: unless-stopped
+    ports:
+      - "${REGISTRY_CACHE_PORT}:3128"
     environment:
-      - REGISTRY_HTTP_SECRET=${REGISTRY_CACHE_HTTP_SECRET}
-      - REGISTRY_PROXY_REMOTEURL=${REGISTRY_CACHE_PROXY_REMOTEURL}
-      - REGISTRY_PROXY_USERNAME=${REGISTRY_CACHE_PROXY_USERNAME}
-      - REGISTRY_PROXY_PASSWORD=${REGISTRY_CACHE_PROXY_PASSWORD}
-      - REGISTRY_STORAGE_DELETE_ENABLED=true
-    labels: []
+      - REGISTRIES=${REGISTRY_CACHE_REGISTRIES}
+      - AUTH_REGISTRIES=${REGISTRY_CACHE_AUTH_REGISTRIES}
+      - ENABLE_MANIFEST_CACHE=${REGISTRY_CACHE_ENABLE_MANIFEST_CACHE}
+      - CACHE_MAX_SIZE=${REGISTRY_CACHE_CACHE_MAX_SIZE}
     volumes:
-      - registry-cache:/var/lib/registry
+      - registry-cache:/docker_mirror_cache
+      - registry-cache-ca:/ca

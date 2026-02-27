@@ -1,78 +1,79 @@
 # Registry Cache
 
-A Docker Registry v2
-[pull-through cache](https://docs.docker.com/docker-hub/mirror/) for
-Docker Hub (or any upstream registry). The first pull fetches from
-upstream and caches locally; subsequent pulls are served directly from
-the cache, avoiding rate limits and reducing bandwidth.
+A caching proxy for Docker registries, using
+[rpardini/docker-registry-proxy](https://github.com/rpardini/docker-registry-proxy).
+Unlike Docker's built-in `registry-mirrors` (which only works for
+Docker Hub), this proxy transparently caches pulls from **any**
+registry: Docker Hub, ghcr.io, quay.io, gcr.io, etc.
 
-This is separate from the [registry](../registry) project, which is a
-full read/write container registry. A pull-through cache is read-only
-— push is not supported.
+It works as an HTTPS man-in-the-middle proxy. Docker clients connect
+to it via `HTTP_PROXY`/`HTTPS_PROXY`, and it intercepts, caches, and
+serves registry traffic. A generated CA certificate must be trusted by
+each client.
 
 ## Setup
 
 ```
 make config
-```
-
-You will be prompted for:
-
- * **Registry cache domain name** — the Traefik hostname for the
-   cache (e.g. `registry-cache.example.com`)
- * **Upstream registry URL** — defaults to
-   `https://registry-1.docker.io` (Docker Hub)
- * **Upstream credentials** — optional Docker Hub username/password
-   for higher rate limits (or access to private images)
- * **Authentication** — HTTP Basic Auth, OAuth2, or mTLS for
-   controlling who can pull through this cache
-
-```
 make install
 ```
 
 ## Configure Docker clients
 
-On each Docker host that should use the cache, add the cache as a
-registry mirror in `/etc/docker/daemon.json`:
+On each Docker host that should use the cache:
 
-```json
-{
-  "registry-mirrors": ["https://registry-cache.example.com"]
-}
+### 1. Install the CA certificate
+
+The proxy generates a CA certificate on first start. Retrieve it from
+the proxy and install it on the client:
+
+```bash
+# Download the CA cert from the proxy:
+curl http://<proxy-host>:3128/ca.crt > /usr/share/ca-certificates/docker_registry_proxy.crt
+echo "docker_registry_proxy.crt" >> /etc/ca-certificates.conf
+update-ca-certificates --fresh
 ```
 
-Then restart the Docker daemon:
+### 2. Configure Docker to use the proxy
+
+```bash
+mkdir -p /etc/systemd/system/docker.service.d
+cat > /etc/systemd/system/docker.service.d/http-proxy.conf << EOF
+[Service]
+Environment="HTTP_PROXY=http://<proxy-host>:3128/"
+Environment="HTTPS_PROXY=http://<proxy-host>:3128/"
+EOF
+```
+
+### 3. Restart Docker
+
+```bash
+systemctl daemon-reload
+systemctl restart docker.service
+```
+
+All image pulls will now go through the cache automatically,
+regardless of which registry they come from.
+
+## Upstream authentication
+
+To authenticate to upstream registries (for higher rate limits or
+private images), set `REGISTRY_CACHE_AUTH_REGISTRIES` during `make
+config`. The format is `hostname:username:password`, space-separated
+for multiple registries:
 
 ```
-sudo systemctl restart docker
+auth.docker.io:myuser:mypass ghcr.io:myuser:mytoken
 ```
 
-Now `docker pull` commands for Docker Hub images will go through the
-cache automatically.
-
-**Note:** Docker's `registry-mirrors` setting only applies to Docker
-Hub (`docker.io`). Pulls from other registries (e.g. `ghcr.io`,
-`quay.io`) are not affected.
-
-## Docker Hub credentials
-
-If you configure upstream credentials (Docker Hub username and
-password or access token), the cache will authenticate to Docker Hub
-on your behalf. This is useful for:
-
- * Avoiding anonymous pull rate limits (100 pulls/6hr anonymous vs
-   200 pulls/6hr authenticated)
- * Accessing private Docker Hub repositories
+Note: Docker Hub authentication uses `auth.docker.io` as the
+hostname, not `docker.io` or `registry-1.docker.io`.
 
 ## Limitations
 
- * **Push is not supported** — a pull-through cache is read-only
- * **Only mirrors one upstream** — each instance can only cache from a
-   single upstream registry URL
- * **`registry-mirrors` only applies to Docker Hub** — to cache
-   images from other registries (e.g. `ghcr.io`, `quay.io`), you
-   would need a separate cache instance pointed at that upstream, and
-   you would need to rewrite your image references to pull through it
-   (e.g. `registry-cache.example.com/org/image` instead of
-   `ghcr.io/org/image`)
+ * **Push is not supported** — the proxy is read-only by default
+ * **Clients must trust the proxy CA** — each Docker host needs the
+   CA certificate installed and the HTTP_PROXY/HTTPS_PROXY configured
+ * **Private images become accessible** — any client that can reach
+   the proxy can pull cached private images, so restrict network
+   access to the proxy accordingly
