@@ -97,8 +97,29 @@ read_config() {
     fi
 }
 
-get_ssh_host() {
-    SSH_HOST=$(docker context inspect --format '{{.Endpoints.docker.Host}}' | sed 's|ssh://||')
+choose_target_context() {
+    local current_context
+    current_context="$(docker context show)"
+
+    # Build list of contexts excluding 'default' (local socket, not SSH)
+    local -a contexts
+    readarray -t contexts < <(docker context list -q | grep -v '^default$')
+
+    if [[ ${#contexts[@]} -eq 0 ]]; then
+        fault "No remote Docker contexts found. Create one with 'docker context create'."
+    fi
+
+    echo ""
+    echo "Current Docker context (registry-cache server): ${current_context}"
+    echo "Choose the Docker client host to configure:"
+    echo ""
+
+    TARGET_CONTEXT="$(wizard choose "Select the Docker context to configure as a cache client" "${contexts[@]}")"
+    if [[ -z "${TARGET_CONTEXT}" ]]; then
+        fault "No context selected."
+    fi
+
+    SSH_HOST=$(docker context inspect "${TARGET_CONTEXT}" --format '{{.Endpoints.docker.Host}}' | sed 's|ssh://||')
     check_var SSH_HOST
 }
 
@@ -287,7 +308,7 @@ restart_services() {
 
 main() {
     read_config
-    get_ssh_host
+    choose_target_context
 
     preflight_local
     preflight_remote
