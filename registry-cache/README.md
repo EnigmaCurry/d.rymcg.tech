@@ -20,6 +20,8 @@ full read/write container registry. A pull-through cache is read-only
  * **Kubernetes registry** (`registry.k8s.io`)
  * **GitLab Container Registry** (`registry.gitlab.com`)
  * **Amazon ECR Public** (`public.ecr.aws`)
+ * **LinuxServer Container Registry** (`lscr.io`)
+ * **Codeberg Container Registry** (`codeberg.org`)
 
 ## Setup
 

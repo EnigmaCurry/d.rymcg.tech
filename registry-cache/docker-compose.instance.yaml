@@ -23,6 +23,8 @@
 #@ k8s_host = data.values.k8s_host
 #@ gitlab_host = data.values.gitlab_host
 #@ ecr_host = data.values.ecr_host
+#@ lscr_host = data.values.lscr_host
+#@ codeberg_host = data.values.codeberg_host
 
 #! Helper to generate labels for a cache service:
 #@ def cache_labels(service, traefik_host):
@@ -96,5 +98,17 @@ services:
   ecr:
     labels:
       #@ for label in cache_labels("ecr", ecr_host):
+      - "(@= label @)"
+      #@ end
+
+  lscr:
+    labels:
+      #@ for label in cache_labels("lscr", lscr_host):
+      - "(@= label @)"
+      #@ end
+
+  codeberg:
+    labels:
+      #@ for label in cache_labels("codeberg", codeberg_host):
       - "(@= label @)"
       #@ end

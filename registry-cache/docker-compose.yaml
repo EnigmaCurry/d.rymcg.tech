@@ -6,6 +6,8 @@ volumes:
   cache-k8s:
   cache-gitlab:
   cache-ecr:
+  cache-lscr:
+  cache-codeberg:
 
 services:
   dockerhub:
@@ -154,3 +156,45 @@ services:
     labels: []
     volumes:
       - cache-ecr:/var/lib/registry
+
+  lscr:
+    profiles:
+      - lscr
+    image: ${REGISTRY_CACHE_IMAGE}
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+    sysctls:
+      - net.ipv4.ip_unprivileged_port_start=1024
+    restart: unless-stopped
+    environment:
+      - REGISTRY_HTTP_SECRET=${REGISTRY_CACHE_HTTP_SECRET}
+      - REGISTRY_PROXY_REMOTEURL=https://lscr.io
+      - REGISTRY_PROXY_USERNAME=${REGISTRY_CACHE_LSCR_USERNAME}
+      - REGISTRY_PROXY_PASSWORD=${REGISTRY_CACHE_LSCR_PASSWORD}
+      - REGISTRY_STORAGE_DELETE_ENABLED=true
+    labels: []
+    volumes:
+      - cache-lscr:/var/lib/registry
+
+  codeberg:
+    profiles:
+      - codeberg
+    image: ${REGISTRY_CACHE_IMAGE}
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+    sysctls:
+      - net.ipv4.ip_unprivileged_port_start=1024
+    restart: unless-stopped
+    environment:
+      - REGISTRY_HTTP_SECRET=${REGISTRY_CACHE_HTTP_SECRET}
+      - REGISTRY_PROXY_REMOTEURL=https://codeberg.org
+      - REGISTRY_PROXY_USERNAME=${REGISTRY_CACHE_CODEBERG_USERNAME}
+      - REGISTRY_PROXY_PASSWORD=${REGISTRY_CACHE_CODEBERG_PASSWORD}
+      - REGISTRY_STORAGE_DELETE_ENABLED=true
+    labels: []
+    volumes:
+      - cache-codeberg:/var/lib/registry
