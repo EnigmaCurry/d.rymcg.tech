@@ -90,8 +90,7 @@ sudo systemctl restart containerd
 To configure credentials for higher rate limits or private image
 access, edit the `.env` file and set the `_USERNAME` and `_PASSWORD`
 variables for each registry. For Docker Hub, this avoids the anonymous
-pull rate limit (100 pulls/6hr anonymous vs 200 pulls/6hr
-authenticated).
+pull rate limit.
 
 ## Limitations
 
