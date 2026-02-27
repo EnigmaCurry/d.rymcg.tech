@@ -12,4 +12,4 @@ test:
 	  -e ROOT_DOMAIN=bananas.example.com \
 	  -e WHOAMI_TRAEFIK_HOST=whoami.bananas.example.com \
 	  d-rymcg-tech \
-	  bash -c "cat whoami/.env_test_default && echo '---' && cat .env_test"
+	  bash -c "cat ~/.ssh/config && echo '---' && cat whoami/.env_test_default && echo '---' && cat .env_test"
