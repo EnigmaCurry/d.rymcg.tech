@@ -20,7 +20,7 @@ COPY .tools.lock.json /tmp/.tools.lock.json
 RUN export PATH="/root/.nix-profile/bin:${PATH}"; set -e; \
     VERSION=$(jq -r '.dependencies["script-wizard"].version' /tmp/.tools.lock.json); \
     curl -fsSL "https://github.com/EnigmaCurry/script-wizard/releases/download/v${VERSION}/script-wizard-Linux-x86_64.tar.gz" \
-      | tar xz -C /usr/local/bin; \
+      | tar xz -C /root/.nix-profile/bin; \
     rm /tmp/.tools.lock.json
 
 # Copy the d.rymcg.tech repo
