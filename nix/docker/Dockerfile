@@ -1,7 +1,7 @@
 # Build context must be the d.rymcg.tech root directory.
 # Build with: docker build -f nix/docker/Dockerfile -t d-rymcg-tech-ci .
 
-FROM nixos/nix:latest AS builder
+FROM nixos/nix:latest
 
 COPY nix/docker/packages.nix /tmp/packages.nix
 
@@ -11,11 +11,6 @@ RUN NIX_BUILD=$(readlink $(which nix-build)) NIX_ENV=$(readlink $(which nix-env)
  && RESULT=$($NIX_BUILD --no-out-link -E 'let pkgs = import <nixpkgs> {}; in pkgs.buildEnv { name = "ci-packages"; paths = import /tmp/packages.nix { inherit pkgs; }; }') \
  && $NIX_ENV -i "$RESULT"
 
-FROM nixos/nix:latest
-
-COPY --from=builder /nix/store /nix/store
-COPY --from=builder /root/.nix-profile /root/.nix-profile
-ENV PATH="/root/.nix-profile/bin:${PATH}"
 ENV SSL_CERT_FILE="/root/.nix-profile/etc/ssl/certs/ca-bundle.crt"
 ENV NIX_SSL_CERT_FILE="/root/.nix-profile/etc/ssl/certs/ca-bundle.crt"
 
