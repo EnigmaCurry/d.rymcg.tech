@@ -6,7 +6,8 @@ FROM nixos/nix:latest AS builder
 COPY nix/docker/packages.nix /tmp/packages.nix
 
 RUN nix-env -iA nixpkgs.cacert \
- && nix-env -i --expr 'let pkgs = import <nixpkgs> {}; in pkgs.buildEnv { name = "ci-packages"; paths = import /tmp/packages.nix { inherit pkgs; }; }'
+ && nix-build --no-out-link -E 'let pkgs = import <nixpkgs> {}; in pkgs.buildEnv { name = "ci-packages"; paths = import /tmp/packages.nix { inherit pkgs; }; }' \
+    | xargs nix-env -i
 
 FROM nixos/nix:latest
 
