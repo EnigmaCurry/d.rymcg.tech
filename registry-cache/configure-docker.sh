@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 ## Configure a remote Docker host as a client of registry-cache.
-## Handles the no-auth case only (no HTTP Basic Auth or mTLS).
+## Supports no-auth and HTTP Basic Auth (when passwords.json exists).
 ##
 ## Requires ENV_FILE in the environment (set by the Makefile target).
 set -euo pipefail
@@ -39,6 +39,9 @@ declare -A CACHE_HOSTS
 HAS_DOCKERHUB=false
 HAS_CONTAINERD=false
 CONTAINERD_OK=false
+HAS_AUTH=false
+AUTH_USERNAME=""
+AUTH_PASSWORD=""
 
 read_config() {
     check_var ENV_FILE
@@ -70,6 +73,27 @@ read_config() {
 
     if [[ ${#CACHE_HOSTS[@]} -eq 0 ]]; then
         fault "No registry cache profiles found in ${ENV_FILE}."
+    fi
+
+    # Check if HTTP Basic Auth is enabled
+    local http_auth
+    http_auth="$(${BIN}/dotenv -f "${ENV_FILE}" get REGISTRY_CACHE_HTTP_AUTH 2>/dev/null || true)"
+    if [[ -n "${http_auth}" ]]; then
+        # Auth is enabled — look for credentials in passwords.json
+        local context_instance
+        context_instance="$(basename "${ENV_FILE}" | sed 's/^\.env_//')"
+        if [[ -f passwords.json ]]; then
+            AUTH_USERNAME="$(jq -r --arg key "${context_instance}" '.[$key][0].username // empty' passwords.json)"
+            AUTH_PASSWORD="$(jq -r --arg key "${context_instance}" '.[$key][0].password // empty' passwords.json)"
+            if [[ -n "${AUTH_USERNAME}" && -n "${AUTH_PASSWORD}" ]]; then
+                HAS_AUTH=true
+                echo "HTTP Basic Auth: credentials found in passwords.json (user: ${AUTH_USERNAME})"
+            else
+                fault "HTTP Basic Auth is enabled but no credentials found for \"${context_instance}\" in passwords.json."
+            fi
+        else
+            fault "HTTP Basic Auth is enabled but passwords.json not found. Run 'make config' and export passwords."
+        fi
     fi
 }
 
@@ -170,6 +194,13 @@ configure_dockerhub() {
         && rm -f '${REMOTE_TMP}'"
 
     echo "  Installed /etc/docker/daemon.json"
+
+    if ${HAS_AUTH}; then
+        echo "  Logging in to ${cache_host} ..."
+        ssh "${SSH_HOST}" "docker login '${cache_host}' -u '${AUTH_USERNAME}' --password-stdin" \
+            <<< "${AUTH_PASSWORD}"
+        echo "  docker login: OK"
+    fi
 }
 
 configure_containerd_host() {
@@ -191,6 +222,15 @@ server = "https://${upstream}"
 [host."${cache_url}"]
   capabilities = ["pull", "resolve"]
 EOF
+
+    if ${HAS_AUTH}; then
+        local b64
+        b64="$(printf '%s:%s' "${AUTH_USERNAME}" "${AUTH_PASSWORD}" | base64 -w0)"
+        cat >>"${TMP_TOML}" <<EOF
+  [host."${cache_url}".header]
+    Authorization = ["Basic ${b64}"]
+EOF
+    fi
 
     local REMOTE_TMP="/tmp/hosts.toml.${RANDOM}.${RANDOM}"
     if ! scp -q "${TMP_TOML}" "${SSH_HOST}:${REMOTE_TMP}"; then

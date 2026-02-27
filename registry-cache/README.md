@@ -87,11 +87,11 @@ sudo systemctl restart containerd
 
 ### Automated configuration
 
-For the no-auth case, `make configure-docker` automates the client
-setup above. It reads the enabled profiles and cache hostnames from
-your `.env` file, connects to the remote Docker host via SSH (using
-your current Docker context), and writes the appropriate
-`daemon.json` and `hosts.toml` files:
+`make configure-docker` automates the client setup above. It reads
+the enabled profiles and cache hostnames from your `.env` file,
+connects to the remote Docker host via SSH (using your current Docker
+context), and writes the appropriate `daemon.json` and `hosts.toml`
+files:
 
 ```
 make configure-docker
@@ -103,9 +103,10 @@ This handles:
    other registries
  * Restarting Docker and containerd services
 
-If you use HTTP Basic Auth or mTLS, follow the manual steps above
-instead — those require client-side credentials that cannot be fully
-automated.
+If HTTP Basic Auth is enabled, the script reads credentials from
+`passwords.json` (created during `make config`) and configures
+`docker login` for Docker Hub and `Authorization` headers in each
+`hosts.toml`. mTLS requires manual client-side certificate setup.
 
 ## Authentication
 
