@@ -39,28 +39,59 @@ make install
 
 ## Configure Docker clients
 
-### Docker Hub
+All registries (including Docker Hub) are configured via containerd
+`hosts.toml` files. The containerd image store is enabled in
+`daemon.json` so Docker uses containerd for image pulls, which reads
+the `hosts.toml` configuration and supports authentication headers.
 
-Add the Docker Hub cache as a registry mirror in
+### Automated configuration
+
+```
+make configure-docker
+```
+
+This prompts you to choose a Docker context (the client host to
+configure), then:
+
+ * Enables the containerd image store in `/etc/docker/daemon.json`
+ * Creates `/etc/containerd/certs.d/<upstream>/hosts.toml` for each
+   enabled registry (including Docker Hub at `docker.io`)
+ * If HTTP Basic Auth is enabled, reads credentials from
+   `passwords.json` and adds `Authorization` headers to each
+   `hosts.toml`
+ * Restarts Docker
+
+To undo the client configuration and restore defaults:
+
+```
+make unconfigure-docker
+```
+
+This removes the containerd image store setting from `daemon.json`,
+deletes the `hosts.toml` files, and restarts Docker.
+
+### Manual configuration
+
+To configure a client manually, enable the containerd image store in
 `/etc/docker/daemon.json`:
 
 ```json
 {
-  "registry-mirrors": ["https://dockerhub.registry.example.com"]
+  "features": {
+    "containerd-snapshotter": true
+  }
 }
 ```
 
-Then restart Docker:
+Then create a `hosts.toml` file for each registry:
 
 ```
-sudo systemctl restart docker
+# /etc/containerd/certs.d/docker.io/hosts.toml
+server = "https://registry-1.docker.io"
+
+[host."https://dockerhub.registry.example.com"]
+  capabilities = ["pull", "resolve"]
 ```
-
-### Other registries (ghcr.io, quay.io, etc.)
-
-Docker's `registry-mirrors` only applies to Docker Hub. For other
-registries, configure containerd mirrors. Create a `hosts.toml` file
-for each registry:
 
 ```
 # /etc/containerd/certs.d/ghcr.io/hosts.toml
@@ -70,53 +101,14 @@ server = "https://ghcr.io"
   capabilities = ["pull", "resolve"]
 ```
 
-```
-# /etc/containerd/certs.d/quay.io/hosts.toml
-server = "https://quay.io"
-
-[host."https://quay.registry.example.com"]
-  capabilities = ["pull", "resolve"]
-```
-
-Repeat for each registry you enabled. Restart containerd after
+Repeat for each registry you enabled. Restart Docker after
 configuration:
 
 ```
-sudo systemctl restart containerd
+sudo systemctl restart docker
 ```
 
-### Automated configuration
-
-`make configure-docker` automates the client setup above. It reads
-the enabled profiles and cache hostnames from your `.env` file,
-connects to the remote Docker host via SSH (using your current Docker
-context), and writes the appropriate `daemon.json` and `hosts.toml`
-files:
-
-```
-make configure-docker
-```
-
-This handles:
- * Merging `registry-mirrors` into `/etc/docker/daemon.json` (Docker Hub)
- * Creating `/etc/containerd/certs.d/<upstream>/hosts.toml` for all
-   other registries
- * Restarting Docker and containerd services
-
-If HTTP Basic Auth is enabled, the script reads credentials from
-`passwords.json` (created during `make config`) and configures
-`docker login` for Docker Hub and `Authorization` headers in each
-`hosts.toml`. mTLS requires manual client-side certificate setup.
-
-To undo the client configuration and restore defaults:
-
-```
-make unconfigure-docker
-```
-
-This removes `registry-mirrors` from `daemon.json`, deletes the
-`hosts.toml` files, logs out of the cache host, and restarts
-services.
+mTLS requires additional manual client-side certificate setup.
 
 ## Authentication
 
