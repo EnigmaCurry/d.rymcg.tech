@@ -8,8 +8,8 @@ build:
 test:
 	docker run --rm \
 	  -e DOCKER_CONTEXT=test \
-	  -e SSH_HOST=example.com \
-	  -e ROOT_DOMAIN=d.example.com \
-	  -e WHOAMI_TRAEFIK_HOST=whoami.d.example.com \
+	  -e SSH_HOST=docker.bananas.example.com \
+	  -e ROOT_DOMAIN=bananas.example.com \
+	  -e WHOAMI_TRAEFIK_HOST=whoami.bananas.example.com \
 	  d-rymcg-tech \
 	  bash -c "cat whoami/.env_test_default && echo '---' && cat .env_test"
