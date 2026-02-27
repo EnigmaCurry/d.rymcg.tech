@@ -16,4 +16,11 @@ with pkgs; [
   docker-client
   python3
   cacert
+  gnutar
+  gzip
+  coreutils
+  findutils
+  gnugrep
+  gnused
+  gawk
 ]
