@@ -23,6 +23,9 @@ RUN export PATH="/root/.nix-profile/bin:${PATH}"; set -e; \
       | tar xz -C /root/.nix-profile/bin; \
     rm /tmp/.tools.lock.json
 
+# Symlink /bin/bash for scripts with #!/bin/bash shebangs
+RUN ln -sf $(which bash) /bin/bash
+
 # Copy the d.rymcg.tech repo
 COPY . /home/user/git/vendor/enigmacurry/d.rymcg.tech
 WORKDIR /home/user/git/vendor/enigmacurry/d.rymcg.tech
