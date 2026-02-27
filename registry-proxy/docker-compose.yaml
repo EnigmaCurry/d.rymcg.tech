@@ -1,17 +1,112 @@
 volumes:
-  registry-proxy:
-  registry-proxy-ca:
+  cache-dockerhub:
+  cache-ghcr:
+  cache-quay:
+  cache-gcr:
+  cache-k8s:
 
 services:
-  proxy:
+  dockerhub:
+    profiles:
+      - dockerhub
     image: ${REGISTRY_PROXY_IMAGE}
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+    sysctls:
+      - net.ipv4.ip_unprivileged_port_start=1024
     restart: unless-stopped
-    labels: []
     environment:
-      - REGISTRIES=${REGISTRY_PROXY_REGISTRIES}
-      - AUTH_REGISTRIES=${REGISTRY_PROXY_AUTH_REGISTRIES}
-      - ENABLE_MANIFEST_CACHE=${REGISTRY_PROXY_ENABLE_MANIFEST_CACHE}
-      - CACHE_MAX_SIZE=${REGISTRY_PROXY_CACHE_MAX_SIZE}
+      - REGISTRY_HTTP_SECRET=${REGISTRY_PROXY_HTTP_SECRET}
+      - REGISTRY_PROXY_REMOTEURL=https://registry-1.docker.io
+      - REGISTRY_PROXY_USERNAME=${REGISTRY_PROXY_DOCKERHUB_USERNAME}
+      - REGISTRY_PROXY_PASSWORD=${REGISTRY_PROXY_DOCKERHUB_PASSWORD}
+      - REGISTRY_STORAGE_DELETE_ENABLED=true
+    labels: []
     volumes:
-      - registry-proxy:/docker_mirror_cache
-      - registry-proxy-ca:/ca
+      - cache-dockerhub:/var/lib/registry
+
+  ghcr:
+    profiles:
+      - ghcr
+    image: ${REGISTRY_PROXY_IMAGE}
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+    sysctls:
+      - net.ipv4.ip_unprivileged_port_start=1024
+    restart: unless-stopped
+    environment:
+      - REGISTRY_HTTP_SECRET=${REGISTRY_PROXY_HTTP_SECRET}
+      - REGISTRY_PROXY_REMOTEURL=https://ghcr.io
+      - REGISTRY_PROXY_USERNAME=${REGISTRY_PROXY_GHCR_USERNAME}
+      - REGISTRY_PROXY_PASSWORD=${REGISTRY_PROXY_GHCR_PASSWORD}
+      - REGISTRY_STORAGE_DELETE_ENABLED=true
+    labels: []
+    volumes:
+      - cache-ghcr:/var/lib/registry
+
+  quay:
+    profiles:
+      - quay
+    image: ${REGISTRY_PROXY_IMAGE}
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+    sysctls:
+      - net.ipv4.ip_unprivileged_port_start=1024
+    restart: unless-stopped
+    environment:
+      - REGISTRY_HTTP_SECRET=${REGISTRY_PROXY_HTTP_SECRET}
+      - REGISTRY_PROXY_REMOTEURL=https://quay.io
+      - REGISTRY_PROXY_USERNAME=${REGISTRY_PROXY_QUAY_USERNAME}
+      - REGISTRY_PROXY_PASSWORD=${REGISTRY_PROXY_QUAY_PASSWORD}
+      - REGISTRY_STORAGE_DELETE_ENABLED=true
+    labels: []
+    volumes:
+      - cache-quay:/var/lib/registry
+
+  gcr:
+    profiles:
+      - gcr
+    image: ${REGISTRY_PROXY_IMAGE}
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+    sysctls:
+      - net.ipv4.ip_unprivileged_port_start=1024
+    restart: unless-stopped
+    environment:
+      - REGISTRY_HTTP_SECRET=${REGISTRY_PROXY_HTTP_SECRET}
+      - REGISTRY_PROXY_REMOTEURL=https://gcr.io
+      - REGISTRY_PROXY_USERNAME=${REGISTRY_PROXY_GCR_USERNAME}
+      - REGISTRY_PROXY_PASSWORD=${REGISTRY_PROXY_GCR_PASSWORD}
+      - REGISTRY_STORAGE_DELETE_ENABLED=true
+    labels: []
+    volumes:
+      - cache-gcr:/var/lib/registry
+
+  k8s:
+    profiles:
+      - k8s
+    image: ${REGISTRY_PROXY_IMAGE}
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+    sysctls:
+      - net.ipv4.ip_unprivileged_port_start=1024
+    restart: unless-stopped
+    environment:
+      - REGISTRY_HTTP_SECRET=${REGISTRY_PROXY_HTTP_SECRET}
+      - REGISTRY_PROXY_REMOTEURL=https://registry.k8s.io
+      - REGISTRY_PROXY_USERNAME=${REGISTRY_PROXY_K8S_USERNAME}
+      - REGISTRY_PROXY_PASSWORD=${REGISTRY_PROXY_K8S_PASSWORD}
+      - REGISTRY_STORAGE_DELETE_ENABLED=true
+    labels: []
+    volumes:
+      - cache-k8s:/var/lib/registry

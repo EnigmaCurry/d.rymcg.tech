@@ -1,102 +1,98 @@
 # Registry Proxy
 
-> **WARNING: This proxy requires installing a custom CA certificate
-> into the system-wide trust store on every Docker client host.** The
-> proxy works by performing TLS man-in-the-middle (MITM) interception
-> of all Docker registry traffic. If the CA private key is compromised
-> (leaked from the `/ca` volume), an attacker could use it to
-> impersonate **any** HTTPS website to machines that trust it — not
-> just Docker registries. Treat the CA volume as a critical secret.
-> Restrict network access to the proxy using the IP source range
-> allowlist.
+A collection of Docker Registry v2
+[pull-through caches](https://docs.docker.com/docker-hub/mirror/),
+one per upstream registry. Each cache is a standard `registry:2`
+container behind Traefik with real TLS certificates (Let's Encrypt or
+Step-CA). No custom CA, no MITM, no special client trust
+configuration beyond what Traefik already provides.
 
-A caching proxy for Docker registries, using
-[rpardini/docker-registry-proxy](https://github.com/rpardini/docker-registry-proxy).
-Unlike Docker's built-in `registry-mirrors` (which only works for
-Docker Hub), this proxy transparently caches pulls from **any**
-registry: Docker Hub, ghcr.io, quay.io, gcr.io, etc.
+This is separate from the [registry](../registry) project, which is a
+full read/write container registry. A pull-through cache is read-only
+— push is not supported.
 
-It works as an HTTPS man-in-the-middle proxy. Docker clients connect
-to it via `HTTP_PROXY`/`HTTPS_PROXY`, and it intercepts, caches, and
-serves registry traffic. A generated CA certificate must be trusted by
-each client.
+## Supported registries
 
-## Configure Traefik entrypoint
-
-You must enable the `registry_proxy` entrypoint in the Traefik
-config:
-
-```
-d.rymcg.tech entrypoint registry_proxy
-```
-
- * The Traefik entrypoint listens on port 3128 (default).
- * The proxy container listens on port 3128 and Traefik proxies to
-   here.
+ * **Docker Hub** (`docker.io`)
+ * **GitHub Container Registry** (`ghcr.io`)
+ * **Quay.io** (`quay.io`)
+ * **Google Container Registry** (`gcr.io`)
+ * **Kubernetes registry** (`registry.k8s.io`)
 
 ## Setup
 
 ```
 make config
+```
+
+You will be prompted to select which registries to cache (using
+docker-compose profiles), a hostname for each selected cache, and
+authentication settings.
+
+```
 make install
 ```
 
 ## Configure Docker clients
 
-On each Docker host that should use the cache:
+### Docker Hub
 
-### 1. Install the CA certificate
+Add the Docker Hub cache as a registry mirror in
+`/etc/docker/daemon.json`:
 
-The proxy generates a CA certificate on first start. Retrieve it from
-the proxy and install it on the client:
-
-```bash
-# Download the CA cert from the proxy:
-curl http://<proxy-host>:3128/ca.crt > /usr/share/ca-certificates/docker_registry_proxy.crt
-echo "docker_registry_proxy.crt" >> /etc/ca-certificates.conf
-update-ca-certificates --fresh
+```json
+{
+  "registry-mirrors": ["https://dockerhub.registry.example.com"]
+}
 ```
 
-### 2. Configure Docker to use the proxy
-
-```bash
-mkdir -p /etc/systemd/system/docker.service.d
-cat > /etc/systemd/system/docker.service.d/http-proxy.conf << EOF
-[Service]
-Environment="HTTP_PROXY=http://<proxy-host>:3128/"
-Environment="HTTPS_PROXY=http://<proxy-host>:3128/"
-EOF
-```
-
-### 3. Restart Docker
-
-```bash
-systemctl daemon-reload
-systemctl restart docker.service
-```
-
-All image pulls will now go through the cache automatically,
-regardless of which registry they come from.
-
-## Upstream authentication
-
-To authenticate to upstream registries (for higher rate limits or
-private images), set `REGISTRY_PROXY_AUTH_REGISTRIES` during `make
-config`. The format is `hostname:username:password`, space-separated
-for multiple registries:
+Then restart Docker:
 
 ```
-auth.docker.io:myuser:mypass ghcr.io:myuser:mytoken
+sudo systemctl restart docker
 ```
 
-Note: Docker Hub authentication uses `auth.docker.io` as the
-hostname, not `docker.io` or `registry-1.docker.io`.
+### Other registries (ghcr.io, quay.io, etc.)
+
+Docker's `registry-mirrors` only applies to Docker Hub. For other
+registries, configure containerd mirrors. Create a `hosts.toml` file
+for each registry:
+
+```
+# /etc/containerd/certs.d/ghcr.io/hosts.toml
+server = "https://ghcr.io"
+
+[host."https://ghcr.registry.example.com"]
+  capabilities = ["pull", "resolve"]
+```
+
+```
+# /etc/containerd/certs.d/quay.io/hosts.toml
+server = "https://quay.io"
+
+[host."https://quay.registry.example.com"]
+  capabilities = ["pull", "resolve"]
+```
+
+Repeat for each registry you enabled. Restart containerd after
+configuration:
+
+```
+sudo systemctl restart containerd
+```
+
+## Upstream credentials
+
+To configure credentials for higher rate limits or private image
+access, edit the `.env` file and set the `_USERNAME` and `_PASSWORD`
+variables for each registry. For Docker Hub, this avoids the anonymous
+pull rate limit (100 pulls/6hr anonymous vs 200 pulls/6hr
+authenticated).
 
 ## Limitations
 
- * **Push is not supported** — the proxy is read-only by default
- * **Clients must trust the proxy CA** — each Docker host needs the
-   CA certificate installed and the HTTP_PROXY/HTTPS_PROXY configured
- * **Private images become accessible** — any client that can reach
-   the proxy can pull cached private images, so restrict network
-   access to the proxy accordingly
+ * **Push is not supported** — pull-through caches are read-only
+ * **One cache per upstream** — each `registry:2` container can only
+   mirror a single upstream registry URL
+ * **Docker `registry-mirrors` only applies to Docker Hub** — other
+   registries require containerd mirror configuration on each client
