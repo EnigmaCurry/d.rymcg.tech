@@ -227,6 +227,7 @@ Install these applications at your preference:
 * [Redbean](redbean#readme) - a small website server bundled in a single executable zip file
 * [Redmine](redmine#readme) - a flexible project management web application
 * [Registry](registry#readme) - an OCI container registry
+* [Registry Cache](registry-cache#readme) - a collection of pull-through caches for public container registries
 * [S3-proxy](s3-proxy#readme) - an HTTP directory index for S3 backend
 * [SearXNG](searxng#readme) - a privacy-respecting, hackable metasearch engine
 * [SFTP](sftp#readme) - a secure file server
