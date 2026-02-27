@@ -280,6 +280,23 @@ make destroy
 make install
 ```
 
+### Seeding the cache
+
+After clearing a volume (or a fresh install), you can seed the caches
+from images already present on the Docker server to avoid re-pulling
+from upstream:
+
+```
+make seed
+```
+
+This inspects every image on the Docker server, groups them by
+upstream registry, and pushes them into the corresponding cache
+volume. For each registry it temporarily stops the cache service, runs
+a writable `registry:2` on the same volume, pushes the matching
+images, then restarts the pull-through cache. Only registries with an
+existing volume are seeded — run `make install` first.
+
 ## Limitations
 
  * **Push is not supported** — pull-through caches are read-only
