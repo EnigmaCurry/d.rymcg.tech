@@ -21,6 +21,8 @@
 #@ quay_host = data.values.quay_host
 #@ gcr_host = data.values.gcr_host
 #@ k8s_host = data.values.k8s_host
+#@ gitlab_host = data.values.gitlab_host
+#@ ecr_host = data.values.ecr_host
 
 #! Helper to generate labels for a cache service:
 #@ def cache_labels(service, traefik_host):
@@ -82,5 +84,17 @@ services:
   k8s:
     labels:
       #@ for label in cache_labels("k8s", k8s_host):
+      - "(@= label @)"
+      #@ end
+
+  gitlab:
+    labels:
+      #@ for label in cache_labels("gitlab", gitlab_host):
+      - "(@= label @)"
+      #@ end
+
+  ecr:
+    labels:
+      #@ for label in cache_labels("ecr", ecr_host):
       - "(@= label @)"
       #@ end

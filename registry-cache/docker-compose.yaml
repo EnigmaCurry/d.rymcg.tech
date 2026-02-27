@@ -4,6 +4,8 @@ volumes:
   cache-quay:
   cache-gcr:
   cache-k8s:
+  cache-gitlab:
+  cache-ecr:
 
 services:
   dockerhub:
@@ -110,3 +112,45 @@ services:
     labels: []
     volumes:
       - cache-k8s:/var/lib/registry
+
+  gitlab:
+    profiles:
+      - gitlab
+    image: ${REGISTRY_CACHE_IMAGE}
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+    sysctls:
+      - net.ipv4.ip_unprivileged_port_start=1024
+    restart: unless-stopped
+    environment:
+      - REGISTRY_HTTP_SECRET=${REGISTRY_CACHE_HTTP_SECRET}
+      - REGISTRY_PROXY_REMOTEURL=https://registry.gitlab.com
+      - REGISTRY_PROXY_USERNAME=${REGISTRY_CACHE_GITLAB_USERNAME}
+      - REGISTRY_PROXY_PASSWORD=${REGISTRY_CACHE_GITLAB_PASSWORD}
+      - REGISTRY_STORAGE_DELETE_ENABLED=true
+    labels: []
+    volumes:
+      - cache-gitlab:/var/lib/registry
+
+  ecr:
+    profiles:
+      - ecr
+    image: ${REGISTRY_CACHE_IMAGE}
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+    sysctls:
+      - net.ipv4.ip_unprivileged_port_start=1024
+    restart: unless-stopped
+    environment:
+      - REGISTRY_HTTP_SECRET=${REGISTRY_CACHE_HTTP_SECRET}
+      - REGISTRY_PROXY_REMOTEURL=https://public.ecr.aws
+      - REGISTRY_PROXY_USERNAME=${REGISTRY_CACHE_ECR_USERNAME}
+      - REGISTRY_PROXY_PASSWORD=${REGISTRY_CACHE_ECR_PASSWORD}
+      - REGISTRY_STORAGE_DELETE_ENABLED=true
+    labels: []
+    volumes:
+      - cache-ecr:/var/lib/registry

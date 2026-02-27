@@ -18,6 +18,8 @@ full read/write container registry. A pull-through cache is read-only
  * **Quay.io** (`quay.io`)
  * **Google Container Registry** (`gcr.io`)
  * **Kubernetes registry** (`registry.k8s.io`)
+ * **GitLab Container Registry** (`registry.gitlab.com`)
+ * **Amazon ECR Public** (`public.ecr.aws`)
 
 ## Setup
 
