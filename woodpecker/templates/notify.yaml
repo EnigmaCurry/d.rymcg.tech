@@ -1,0 +1,90 @@
+# notify.yaml — Send notifications via ntfy.sh on pipeline success or failure
+#
+# ntfy (https://ntfy.sh) is commonly deployed as a d.rymcg.tech service.
+# This template uses raw curl for full control over message formatting.
+#
+# Required secrets (set in Woodpecker UI or CLI):
+#   ntfy_url    — ntfy topic URL (e.g., https://ntfy.example.com/ci)
+#
+# Optional secrets:
+#   ntfy_token  — ntfy access token (if the topic requires authentication)
+#
+# To use as a notification step in another pipeline, copy the relevant
+# step block and add depends_on / when clauses as needed.
+
+when:
+  - event: [push, tag]
+
+steps:
+  - name: notify-success
+    image: alpine:3
+    when:
+      - status: success
+    commands:
+      - apk add --no-cache curl
+      - |
+        AUTH_HEADER=""
+        if [ -n "$NTFY_TOKEN" ]; then
+          AUTH_HEADER="-H \"Authorization: Bearer $NTFY_TOKEN\""
+        fi
+        eval curl -sk $AUTH_HEADER \
+          -H "Title: Build passed: ${CI_REPO_NAME}" \
+          -H "Priority: default" \
+          -H "Tags: white_check_mark" \
+          -d "Commit ${CI_COMMIT_SHA:0:8} by ${CI_COMMIT_AUTHOR} on branch ${CI_COMMIT_BRANCH}
+        Pipeline #${CI_PIPELINE_NUMBER}: ${CI_PIPELINE_FORGE_URL}" \
+          "$NTFY_URL"
+    secrets:
+      - source: ntfy_url
+        target: NTFY_URL
+      - source: ntfy_token
+        target: NTFY_TOKEN
+
+  - name: notify-failure
+    image: alpine:3
+    when:
+      - status: failure
+    commands:
+      - apk add --no-cache curl
+      - |
+        AUTH_HEADER=""
+        if [ -n "$NTFY_TOKEN" ]; then
+          AUTH_HEADER="-H \"Authorization: Bearer $NTFY_TOKEN\""
+        fi
+        eval curl -sk $AUTH_HEADER \
+          -H "Title: Build FAILED: ${CI_REPO_NAME}" \
+          -H "Priority: high" \
+          -H "Tags: rotating_light" \
+          -d "Commit ${CI_COMMIT_SHA:0:8} by ${CI_COMMIT_AUTHOR} on branch ${CI_COMMIT_BRANCH}
+        Pipeline #${CI_PIPELINE_NUMBER}: ${CI_PIPELINE_FORGE_URL}" \
+          "$NTFY_URL"
+    secrets:
+      - source: ntfy_url
+        target: NTFY_URL
+      - source: ntfy_token
+        target: NTFY_TOKEN
+
+# --- Alternative: generic webhook (uncomment to use instead of ntfy) ---
+#
+#  - name: webhook-notify
+#    image: alpine:3
+#    when:
+#      - status: [success, failure]
+#    commands:
+#      - apk add --no-cache curl
+#      - |
+#        curl -sk -X POST \
+#          -H "Content-Type: application/json" \
+#          -d "{
+#            \"repo\": \"${CI_REPO_NAME}\",
+#            \"branch\": \"${CI_COMMIT_BRANCH}\",
+#            \"commit\": \"${CI_COMMIT_SHA:0:8}\",
+#            \"author\": \"${CI_COMMIT_AUTHOR}\",
+#            \"status\": \"${CI_PIPELINE_STATUS}\",
+#            \"pipeline\": ${CI_PIPELINE_NUMBER},
+#            \"url\": \"${CI_PIPELINE_FORGE_URL}\"
+#          }" \
+#          "$WEBHOOK_URL"
+#    secrets:
+#      - source: webhook_url
+#        target: WEBHOOK_URL
