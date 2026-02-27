@@ -252,6 +252,34 @@ Returns just the image count per registry (no repository details):
 Registries that are not running (not enabled via profiles) are omitted
 from the response.
 
+## Storage
+
+Each cache service is stateless aside from its Docker volume
+(`cache-dockerhub`, `cache-ghcr`, etc.) which holds the cached image
+blobs. There is no database or other persistent state. You can
+destroy and recreate any volume at any time — the only cost is
+re-pulling images that were previously cached.
+
+The caches store every image they have ever pulled and never
+automatically evict old data. The `registry:2` garbage collector only
+removes orphaned blobs (unreferenced layers left behind when a tag is
+re-pulled and now points to newer content), which is a narrow case for
+a pull-through cache. There is no built-in size-based or age-based
+eviction. Volumes will grow indefinitely.
+
+To reclaim space, delete the volume for a specific cache:
+
+```
+docker volume rm registry-cache_cache-dockerhub
+```
+
+Or destroy and reinstall the entire project:
+
+```
+make destroy
+make install
+```
+
 ## Limitations
 
  * **Push is not supported** — pull-through caches are read-only
