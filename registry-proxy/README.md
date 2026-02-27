@@ -1,4 +1,4 @@
-# Registry Cache
+# Registry Proxy
 
 A caching proxy for Docker registries, using
 [rpardini/docker-registry-proxy](https://github.com/rpardini/docker-registry-proxy).
@@ -58,7 +58,7 @@ regardless of which registry they come from.
 ## Upstream authentication
 
 To authenticate to upstream registries (for higher rate limits or
-private images), set `REGISTRY_CACHE_AUTH_REGISTRIES` during `make
+private images), set `REGISTRY_PROXY_AUTH_REGISTRIES` during `make
 config`. The format is `hostname:username:password`, space-separated
 for multiple registries:
 

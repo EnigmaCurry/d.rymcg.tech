@@ -1,0 +1,18 @@
+volumes:
+  registry-proxy:
+  registry-proxy-ca:
+
+services:
+  proxy:
+    image: ${REGISTRY_PROXY_IMAGE}
+    restart: unless-stopped
+    ports:
+      - "${REGISTRY_PROXY_PORT}:3128"
+    environment:
+      - REGISTRIES=${REGISTRY_PROXY_REGISTRIES}
+      - AUTH_REGISTRIES=${REGISTRY_PROXY_AUTH_REGISTRIES}
+      - ENABLE_MANIFEST_CACHE=${REGISTRY_PROXY_ENABLE_MANIFEST_CACHE}
+      - CACHE_MAX_SIZE=${REGISTRY_PROXY_CACHE_MAX_SIZE}
+    volumes:
+      - registry-proxy:/docker_mirror_cache
+      - registry-proxy-ca:/ca
