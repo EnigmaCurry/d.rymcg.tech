@@ -70,5 +70,9 @@ on your behalf. This is useful for:
  * **Push is not supported** — a pull-through cache is read-only
  * **Only mirrors one upstream** — each instance can only cache from a
    single upstream registry URL
- * **Docker `registry-mirrors` only works for Docker Hub** — other
-   registries require explicit image path rewrites
+ * **`registry-mirrors` only applies to Docker Hub** — to cache
+   images from other registries (e.g. `ghcr.io`, `quay.io`), you
+   would need a separate cache instance pointed at that upstream, and
+   you would need to rewrite your image references to pull through it
+   (e.g. `registry-cache.example.com/org/image` instead of
+   `ghcr.io/org/image`)
