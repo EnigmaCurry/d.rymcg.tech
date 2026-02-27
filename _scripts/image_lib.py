@@ -5,10 +5,16 @@ import json
 import re
 import subprocess
 import sys
+from datetime import date
 from pathlib import Path
 
 
 ROOT_DIR = Path(__file__).resolve().parent.parent
+
+
+def build_tag() -> str:
+    """Generate a date-stamped tag for locally built images."""
+    return f"d-rymcg-tech-{date.today().strftime('%Y%m%d')}"
 
 
 def get_docker_context() -> str:
@@ -106,7 +112,7 @@ def resolve_compose_images(project_dir: Path, env_file: Path) -> dict[str, str]:
     for svc_name, svc_config in config.get("services", {}).items():
         image = svc_config.get("image")
         if not image and svc_config.get("build"):
-            image = f"{project_name}-{svc_name}:latest" if project_name else None
+            image = f"{project_name}-{svc_name}:{build_tag()}" if project_name else None
         if image:
             images[svc_name] = image
     return images
@@ -205,6 +211,12 @@ def build_service(project_dir: Path, env_file: Path, service: str, verbose: bool
     return result.returncode == 0
 
 
+def retag_image(old_name: str, new_name: str, verbose: bool = False) -> bool:
+    """Create a new tag for an existing image."""
+    result = run_cmd(["docker", "tag", old_name, new_name], verbose=verbose)
+    return result.returncode == 0
+
+
 def collect_images(
     catalog: list[dict],
     compose_images: dict[str, str],
@@ -233,7 +245,7 @@ def collect_images(
             image = image.split(") ", 1)[-1] if ") " in image else None
 
         if not image and source in BUILD_SOURCES:
-            image = f"{project_name}-{service}:latest"
+            image = f"{project_name}-{service}:{build_tag()}"
 
         if not image:
             skipped.append(f"{project_name}/{service} (no resolved image)")

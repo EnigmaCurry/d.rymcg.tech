@@ -174,10 +174,10 @@ workstation_archive_select() {
         if $INCLUDE_AI_ML && [[ -d "$COMFYUI_DIR" ]] && [[ -n "$(ls -A "$COMFYUI_DIR" 2>/dev/null)" ]]; then
             VARIANT_LABELS=()
             VARIANT_FILES=()
-            for f in "$COMFYUI_DIR"/comfyui-comfyui-*_latest.tar.gz; do
+            for f in "$COMFYUI_DIR"/comfyui-comfyui-*_d-rymcg-tech-*.tar.gz; do
                 [[ -f "$f" ]] || continue
                 fname=$(basename "$f")
-                variant=$(echo "$fname" | sed 's/comfyui-comfyui-\(.*\)_latest\.tar\.gz/\1/')
+                variant=$(echo "$fname" | sed 's/comfyui-comfyui-\(.*\)_d-rymcg-tech-[0-9]*\.tar\.gz/\1/')
                 case "$variant" in
                     rocm) variant_label="ROCm" ;;
                     cuda) variant_label="CUDA" ;;
