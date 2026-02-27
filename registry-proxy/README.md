@@ -11,6 +11,15 @@ to it via `HTTP_PROXY`/`HTTPS_PROXY`, and it intercepts, caches, and
 serves registry traffic. A generated CA certificate must be trusted by
 each client.
 
+## Configure Traefik entrypoint
+
+You must enable the `registry_proxy` entrypoint in the Traefik
+config.
+
+ * The Traefik entrypoint listens on port 3128 (default).
+ * The proxy container listens on port 3128 and Traefik proxies to
+   here.
+
 ## Setup
 
 ```
