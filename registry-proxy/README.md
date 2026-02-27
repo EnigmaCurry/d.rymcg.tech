@@ -1,5 +1,15 @@
 # Registry Proxy
 
+> **WARNING: This proxy requires installing a custom CA certificate
+> into the system-wide trust store on every Docker client host.** The
+> proxy works by performing TLS man-in-the-middle (MITM) interception
+> of all Docker registry traffic. If the CA private key is compromised
+> (leaked from the `/ca` volume), an attacker could use it to
+> impersonate **any** HTTPS website to machines that trust it — not
+> just Docker registries. Treat the CA volume as a critical secret.
+> Restrict network access to the proxy using the IP source range
+> allowlist.
+
 A caching proxy for Docker registries, using
 [rpardini/docker-registry-proxy](https://github.com/rpardini/docker-registry-proxy).
 Unlike Docker's built-in `registry-mirrors` (which only works for
