@@ -32,6 +32,10 @@ override-hook:
 seed:
 	@bash seed.sh
 
+.PHONY: configure-docker
+configure-docker:
+	@ENV_FILE=$(ENV_FILE) bash configure-docker.sh
+
 .PHONY: shell
 shell:
 	@make --no-print-directory docker-compose-shell SERVICE=dockerhub
