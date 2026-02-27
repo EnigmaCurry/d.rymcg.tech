@@ -131,6 +131,30 @@ preflight_remote() {
     fi
     echo "  install: OK"
 
+    # Check for read-only /etc (e.g. NixOS)
+    if ! ssh "${SSH_HOST}" 'sudo test -w /etc' 2>/dev/null; then
+        echo ""
+        echo "  ERROR: /etc on ${SSH_HOST} is read-only."
+        echo "  This host appears to use an immutable filesystem (e.g. NixOS)."
+        echo "  Docker and containerd must be configured through your OS"
+        echo "  configuration system (e.g. configuration.nix) instead."
+        echo ""
+        echo "  For NixOS, add to your configuration.nix:"
+        echo ""
+        if ${HAS_DOCKERHUB}; then
+            echo "    virtualisation.docker.daemon.settings.registry-mirrors ="
+            echo "      [ \"https://${CACHE_HOSTS[dockerhub]}\" ];"
+            echo ""
+        fi
+        if ${HAS_CONTAINERD}; then
+            echo "  For containerd registries, see:"
+            echo "    https://docs.docker.com/engine/containerd/#hosts-directory"
+            echo ""
+        fi
+        fault "/etc is not writable on ${SSH_HOST}."
+    fi
+    echo "  /etc writable: OK"
+
     if ${HAS_DOCKERHUB}; then
         if ! ssh "${SSH_HOST}" command -v docker >/dev/null 2>&1; then
             fault "Docker not found on ${SSH_HOST} (needed for dockerhub mirror)."
@@ -268,6 +292,28 @@ main() {
     preflight_local
     preflight_remote
 
+    echo "The following will be configured on ${SSH_HOST}:"
+    if ${HAS_DOCKERHUB}; then
+        echo "  - /etc/docker/daemon.json (registry-mirrors -> ${CACHE_HOSTS[dockerhub]})"
+        if ${HAS_AUTH}; then
+            echo "  - docker login ${CACHE_HOSTS[dockerhub]}"
+        fi
+    fi
+    for profile in "${!CACHE_HOSTS[@]}"; do
+        if [[ "${profile}" != "dockerhub" ]]; then
+            echo "  - /etc/containerd/certs.d/${PROFILE_UPSTREAM[$profile]}/hosts.toml (-> ${CACHE_HOSTS[$profile]})"
+        fi
+    done
+    if ${HAS_DOCKERHUB}; then
+        echo "  - restart docker"
+    fi
+    if ${HAS_CONTAINERD} && ${CONTAINERD_OK}; then
+        echo "  - restart containerd"
+    fi
+    echo ""
+    confirm yes "Configure ${SSH_HOST} as a registry cache client" "?" || exit 0
+
+    echo ""
     echo "=== Configuring ${SSH_HOST} ==="
     echo ""
 
