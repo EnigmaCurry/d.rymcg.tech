@@ -198,3 +198,15 @@ services:
     labels: []
     volumes:
       - cache-codeberg:/var/lib/registry
+
+  api:
+    build:
+      context: api
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+    restart: unless-stopped
+    environment:
+      - REGISTRIES=dockerhub=https://registry-1.docker.io,ghcr=https://ghcr.io,quay=https://quay.io,gcr=https://gcr.io,k8s=https://registry.k8s.io,gitlab=https://registry.gitlab.com,ecr=https://public.ecr.aws,lscr=https://lscr.io,codeberg=https://codeberg.org
+    labels: []

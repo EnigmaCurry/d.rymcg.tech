@@ -92,6 +92,63 @@ access, edit the `.env` file and set the `_USERNAME` and `_PASSWORD`
 variables for each registry. For Docker Hub, this avoids the anonymous
 pull rate limit.
 
+## Cache API
+
+An optional read-only API server reports which images have been cached
+in each registry. It runs as an additional service (`api`) and is
+always deployed when installed.
+
+### Endpoints
+
+#### `GET /`
+
+Returns full stats including repository and tag details for every
+running registry cache:
+
+```json
+{
+  "registries": {
+    "dockerhub": {
+      "url": "https://registry-1.docker.io",
+      "images": 3,
+      "repositories": [
+        {"name": "library/nginx", "tags": ["latest", "1.27"]},
+        {"name": "library/redis", "tags": ["7-alpine"]}
+      ]
+    },
+    "ghcr": {
+      "url": "https://ghcr.io",
+      "images": 1,
+      "repositories": [
+        {"name": "actions/runner", "tags": ["latest"]}
+      ]
+    }
+  },
+  "summary": {
+    "dockerhub": 3,
+    "ghcr": 1,
+    "total": 4
+  }
+}
+```
+
+#### `GET /summary`
+
+Returns just the image count per registry (no repository details):
+
+```json
+{
+  "summary": {
+    "dockerhub": 3,
+    "ghcr": 1,
+    "total": 4
+  }
+}
+```
+
+Registries that are not running (not enabled via profiles) are omitted
+from the response.
+
 ## Limitations
 
  * **Push is not supported** — pull-through caches are read-only
