@@ -9,7 +9,7 @@ services:
   dockerhub:
     profiles:
       - dockerhub
-    image: ${REGISTRY_PROXY_IMAGE}
+    image: ${REGISTRY_CACHE_IMAGE}
     cap_drop:
       - ALL
     security_opt:
@@ -18,10 +18,10 @@ services:
       - net.ipv4.ip_unprivileged_port_start=1024
     restart: unless-stopped
     environment:
-      - REGISTRY_HTTP_SECRET=${REGISTRY_PROXY_HTTP_SECRET}
+      - REGISTRY_HTTP_SECRET=${REGISTRY_CACHE_HTTP_SECRET}
       - REGISTRY_PROXY_REMOTEURL=https://registry-1.docker.io
-      - REGISTRY_PROXY_USERNAME=${REGISTRY_PROXY_DOCKERHUB_USERNAME}
-      - REGISTRY_PROXY_PASSWORD=${REGISTRY_PROXY_DOCKERHUB_PASSWORD}
+      - REGISTRY_PROXY_USERNAME=${REGISTRY_CACHE_DOCKERHUB_USERNAME}
+      - REGISTRY_PROXY_PASSWORD=${REGISTRY_CACHE_DOCKERHUB_PASSWORD}
       - REGISTRY_STORAGE_DELETE_ENABLED=true
     labels: []
     volumes:
@@ -30,7 +30,7 @@ services:
   ghcr:
     profiles:
       - ghcr
-    image: ${REGISTRY_PROXY_IMAGE}
+    image: ${REGISTRY_CACHE_IMAGE}
     cap_drop:
       - ALL
     security_opt:
@@ -39,10 +39,10 @@ services:
       - net.ipv4.ip_unprivileged_port_start=1024
     restart: unless-stopped
     environment:
-      - REGISTRY_HTTP_SECRET=${REGISTRY_PROXY_HTTP_SECRET}
+      - REGISTRY_HTTP_SECRET=${REGISTRY_CACHE_HTTP_SECRET}
       - REGISTRY_PROXY_REMOTEURL=https://ghcr.io
-      - REGISTRY_PROXY_USERNAME=${REGISTRY_PROXY_GHCR_USERNAME}
-      - REGISTRY_PROXY_PASSWORD=${REGISTRY_PROXY_GHCR_PASSWORD}
+      - REGISTRY_PROXY_USERNAME=${REGISTRY_CACHE_GHCR_USERNAME}
+      - REGISTRY_PROXY_PASSWORD=${REGISTRY_CACHE_GHCR_PASSWORD}
       - REGISTRY_STORAGE_DELETE_ENABLED=true
     labels: []
     volumes:
@@ -51,7 +51,7 @@ services:
   quay:
     profiles:
       - quay
-    image: ${REGISTRY_PROXY_IMAGE}
+    image: ${REGISTRY_CACHE_IMAGE}
     cap_drop:
       - ALL
     security_opt:
@@ -60,10 +60,10 @@ services:
       - net.ipv4.ip_unprivileged_port_start=1024
     restart: unless-stopped
     environment:
-      - REGISTRY_HTTP_SECRET=${REGISTRY_PROXY_HTTP_SECRET}
+      - REGISTRY_HTTP_SECRET=${REGISTRY_CACHE_HTTP_SECRET}
       - REGISTRY_PROXY_REMOTEURL=https://quay.io
-      - REGISTRY_PROXY_USERNAME=${REGISTRY_PROXY_QUAY_USERNAME}
-      - REGISTRY_PROXY_PASSWORD=${REGISTRY_PROXY_QUAY_PASSWORD}
+      - REGISTRY_PROXY_USERNAME=${REGISTRY_CACHE_QUAY_USERNAME}
+      - REGISTRY_PROXY_PASSWORD=${REGISTRY_CACHE_QUAY_PASSWORD}
       - REGISTRY_STORAGE_DELETE_ENABLED=true
     labels: []
     volumes:
@@ -72,7 +72,7 @@ services:
   gcr:
     profiles:
       - gcr
-    image: ${REGISTRY_PROXY_IMAGE}
+    image: ${REGISTRY_CACHE_IMAGE}
     cap_drop:
       - ALL
     security_opt:
@@ -81,10 +81,10 @@ services:
       - net.ipv4.ip_unprivileged_port_start=1024
     restart: unless-stopped
     environment:
-      - REGISTRY_HTTP_SECRET=${REGISTRY_PROXY_HTTP_SECRET}
+      - REGISTRY_HTTP_SECRET=${REGISTRY_CACHE_HTTP_SECRET}
       - REGISTRY_PROXY_REMOTEURL=https://gcr.io
-      - REGISTRY_PROXY_USERNAME=${REGISTRY_PROXY_GCR_USERNAME}
-      - REGISTRY_PROXY_PASSWORD=${REGISTRY_PROXY_GCR_PASSWORD}
+      - REGISTRY_PROXY_USERNAME=${REGISTRY_CACHE_GCR_USERNAME}
+      - REGISTRY_PROXY_PASSWORD=${REGISTRY_CACHE_GCR_PASSWORD}
       - REGISTRY_STORAGE_DELETE_ENABLED=true
     labels: []
     volumes:
@@ -93,7 +93,7 @@ services:
   k8s:
     profiles:
       - k8s
-    image: ${REGISTRY_PROXY_IMAGE}
+    image: ${REGISTRY_CACHE_IMAGE}
     cap_drop:
       - ALL
     security_opt:
@@ -102,10 +102,10 @@ services:
       - net.ipv4.ip_unprivileged_port_start=1024
     restart: unless-stopped
     environment:
-      - REGISTRY_HTTP_SECRET=${REGISTRY_PROXY_HTTP_SECRET}
+      - REGISTRY_HTTP_SECRET=${REGISTRY_CACHE_HTTP_SECRET}
       - REGISTRY_PROXY_REMOTEURL=https://registry.k8s.io
-      - REGISTRY_PROXY_USERNAME=${REGISTRY_PROXY_K8S_USERNAME}
-      - REGISTRY_PROXY_PASSWORD=${REGISTRY_PROXY_K8S_PASSWORD}
+      - REGISTRY_PROXY_USERNAME=${REGISTRY_CACHE_K8S_USERNAME}
+      - REGISTRY_PROXY_PASSWORD=${REGISTRY_CACHE_K8S_PASSWORD}
       - REGISTRY_STORAGE_DELETE_ENABLED=true
     labels: []
     volumes:

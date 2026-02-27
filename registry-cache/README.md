@@ -1,4 +1,4 @@
-# Registry Proxy
+# Registry Cache
 
 A collection of Docker Registry v2
 [pull-through caches](https://docs.docker.com/docker-hub/mirror/),
