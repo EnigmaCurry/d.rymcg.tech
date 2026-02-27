@@ -257,6 +257,7 @@ Install these applications at your preference:
 * [Webtop](webtop#readme) - a containerized Linux desktop in your web browser
 * [WireGuard](wireguard) - a standalone VPN client that other containers may use as a router
 * [WireGuard-Gateway](wireguard-gateway) - a VPN client config that acts as a gateway node for your LAN.
+* [Woodpecker](woodpecker#readme) - a CI/CD engine
 * [Wordpress](wordpress#readme) - a ubiquitous blogging / CMS platform, with a plugin to build a static HTML site snapshot
 * [XBrowserSync](xbs#readme) - a bookmark manager
 * [YOURLS](yourls#readme) - a URL shortener

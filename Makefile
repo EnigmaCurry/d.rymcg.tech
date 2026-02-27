@@ -38,6 +38,10 @@ config-dist:
 	@echo ""
 	@echo "Copied the default .env-dist file. Edit ${ROOT_ENV} by hand."
 
+.PHONY: build # Build all container images
+build:
+	find ./ | grep docker-compose.yaml$ | xargs dirname | xargs -iXX docker-compose --env-file=XX/${ENV_FILE} -f XX/docker-compose.yaml build
+
 .PHONY: open # Open the repository website README
 open: readme
 
