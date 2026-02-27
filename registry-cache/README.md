@@ -85,6 +85,109 @@ configuration:
 sudo systemctl restart containerd
 ```
 
+## Authentication
+
+`make config` will prompt you to choose an authentication method.
+Only **HTTP Basic Auth** and **Mutual TLS (mTLS)** are compatible with
+Docker and containerd clients. Do **not** enable OAuth2 for the
+registry cache services — Docker cannot follow browser-based OAuth2
+redirects and pulls will fail.
+
+### HTTP Basic Auth
+
+When HTTP Basic Auth is enabled during `make config`, Traefik requires
+a username and password for every request to the cache.
+
+#### Docker Hub mirror
+
+Add credentials to `/etc/docker/daemon.json`:
+
+```json
+{
+  "registry-mirrors": ["https://dockerhub.registry.example.com"]
+}
+```
+
+Then log in to the cache:
+
+```
+docker login dockerhub.registry.example.com
+```
+
+Docker will send the stored credentials automatically when pulling
+through the mirror.
+
+#### Other registries (containerd)
+
+Add credentials to each `hosts.toml`:
+
+```toml
+# /etc/containerd/certs.d/ghcr.io/hosts.toml
+server = "https://ghcr.io"
+
+[host."https://ghcr.registry.example.com"]
+  capabilities = ["pull", "resolve"]
+  [host."https://ghcr.registry.example.com".header]
+    # base64 of "user:password"
+    Authorization = ["Basic dXNlcjpwYXNzd29yZA=="]
+```
+
+Repeat for each registry. Restart containerd after changes:
+
+```
+sudo systemctl restart containerd
+```
+
+### Mutual TLS (mTLS)
+
+When mTLS is enabled during `make config`, Traefik requires clients to
+present a certificate signed by your Step-CA instance.
+
+#### Docker Hub mirror
+
+Place the client certificate and key in the Docker certs directory:
+
+```
+sudo mkdir -p /etc/docker/certs.d/dockerhub.registry.example.com
+sudo cp client.cert /etc/docker/certs.d/dockerhub.registry.example.com/
+sudo cp client.key  /etc/docker/certs.d/dockerhub.registry.example.com/
+sudo cp ca.cert     /etc/docker/certs.d/dockerhub.registry.example.com/
+```
+
+Then configure the mirror in `/etc/docker/daemon.json`:
+
+```json
+{
+  "registry-mirrors": ["https://dockerhub.registry.example.com"]
+}
+```
+
+Restart Docker:
+
+```
+sudo systemctl restart docker
+```
+
+#### Other registries (containerd)
+
+Add the client certificate to each `hosts.toml`:
+
+```toml
+# /etc/containerd/certs.d/ghcr.io/hosts.toml
+server = "https://ghcr.io"
+
+[host."https://ghcr.registry.example.com"]
+  capabilities = ["pull", "resolve"]
+  ca = "/etc/containerd/certs.d/ghcr.io/ca.cert"
+  client = [["/etc/containerd/certs.d/ghcr.io/client.cert", "/etc/containerd/certs.d/ghcr.io/client.key"]]
+```
+
+Repeat for each registry. Restart containerd after changes:
+
+```
+sudo systemctl restart containerd
+```
+
 ## Upstream credentials
 
 To configure credentials for higher rate limits or private image
