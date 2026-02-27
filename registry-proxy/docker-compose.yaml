@@ -6,8 +6,7 @@ services:
   proxy:
     image: ${REGISTRY_PROXY_IMAGE}
     restart: unless-stopped
-    ports:
-      - "${REGISTRY_PROXY_PORT}:3128"
+    labels: []
     environment:
       - REGISTRIES=${REGISTRY_PROXY_REGISTRIES}
       - AUTH_REGISTRIES=${REGISTRY_PROXY_AUTH_REGISTRIES}

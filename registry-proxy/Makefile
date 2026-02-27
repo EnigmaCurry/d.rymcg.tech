@@ -5,14 +5,13 @@ include ${ROOT_DIR}/_scripts/Makefile.instance
 .PHONY: config-hook
 config-hook:
 	@${BIN}/reconfigure ${ENV_FILE} REGISTRY_PROXY_INSTANCE=$${instance:-default}
-	@${BIN}/reconfigure_ask ${ENV_FILE} REGISTRY_PROXY_PORT "Enter the host port for the proxy" 3128
 	@${BIN}/reconfigure_ask ${ENV_FILE} REGISTRY_PROXY_REGISTRIES "Enter additional registries to cache (space-separated)" "k8s.gcr.io gcr.io quay.io ghcr.io"
 	@ALLOW_BLANK=1 ${BIN}/reconfigure_ask ${ENV_FILE} REGISTRY_PROXY_AUTH_REGISTRIES "Enter upstream registry auth (hostname:user:pass, space-separated, blank for none)"
 	@echo ""
 
 .PHONY: override-hook
 override-hook:
-	@echo
+	@${BIN}/docker_compose_override ${ENV_FILE} project=:registry-proxy instance=@REGISTRY_PROXY_INSTANCE ip_sourcerange=@REGISTRY_PROXY_IP_SOURCERANGE
 
 .PHONY: shell
 shell:
