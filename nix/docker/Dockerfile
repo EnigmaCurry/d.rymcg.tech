@@ -11,6 +11,7 @@ RUN NIX_BUILD=$(readlink $(which nix-build)) NIX_ENV=$(readlink $(which nix-env)
  && RESULT=$($NIX_BUILD --no-out-link -E 'let pkgs = import <nixpkgs> {}; in pkgs.buildEnv { name = "ci-packages"; paths = import /tmp/packages.nix { inherit pkgs; }; }') \
  && $NIX_ENV -i "$RESULT"
 
+ENV PATH="/root/.nix-profile/bin:${PATH}"
 ENV SSL_CERT_FILE="/root/.nix-profile/etc/ssl/certs/ca-bundle.crt"
 ENV NIX_SSL_CERT_FILE="/root/.nix-profile/etc/ssl/certs/ca-bundle.crt"
 
