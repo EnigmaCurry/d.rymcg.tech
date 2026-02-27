@@ -1,5 +1,5 @@
 # Build context must be the d.rymcg.tech root directory.
-# Build with: docker build -f nix/docker/Dockerfile -t d-rymcg-tech-ci .
+# Build with: docker build -f nix/docker/Dockerfile -t d-rymcg-tech .
 
 FROM nixos/nix:latest
 
