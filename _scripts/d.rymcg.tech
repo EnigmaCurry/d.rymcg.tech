@@ -836,7 +836,7 @@ __export_env() {
     fi
 
     if [[ "${base64_encode}" == true ]]; then
-        echo -n "${output}" | base64 -w 0
+        echo -n "${output}" | gzip | base64 -w 0
         echo
     else
         echo -n "${output}"
@@ -893,7 +893,7 @@ __restore_env() {
 
     # Auto-detect base64-encoded input (single line, valid base64 chars)
     if [[ $(echo "${input}" | wc -l) -eq 1 ]] && echo "${input}" | grep -qE '^[A-Za-z0-9+/=]+$'; then
-        input=$(echo "${input}" | base64 -d)
+        input=$(echo "${input}" | base64 -d | gunzip)
     fi
 
     # Auto-detect and decrypt SOPS-encrypted input
