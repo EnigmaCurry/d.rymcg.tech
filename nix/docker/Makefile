@@ -19,6 +19,7 @@ test:
 	  -e SSH_HOST=$(SSH_HOST) \
 	  -e SSH_USER=$(SSH_USER) \
 	  -e SSH_PORT=$(SSH_PORT) \
+	  -e SSH_KEY_SCAN=false \
 	  d-rymcg-tech \
 	  bash -c 'BIN=_scripts; \
 	    for f in .env_* */.env_*; do \

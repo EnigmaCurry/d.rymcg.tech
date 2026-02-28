@@ -26,7 +26,10 @@ if [[ ! -f "${KEY_DIR}/id_ed25519" ]]; then
     ssh-keygen -t ed25519 -N "" -f "${KEY_DIR}/id_ed25519" -q
 fi
 if [[ "${SSH_KEY_SCAN}" != "false" ]]; then
-    ssh-keyscan -p "${SSH_PORT}" "${SSH_HOST}" >> "${KEY_DIR}/known_hosts" 2>/dev/null
+    if ! ssh-keyscan -p "${SSH_PORT}" "${SSH_HOST}" >> "${KEY_DIR}/known_hosts" 2>/dev/null; then
+        echo "ERROR: ssh-keyscan failed for ${SSH_HOST}:${SSH_PORT} (set SSH_KEY_SCAN=false to skip)" >&2
+        exit 1
+    fi
 fi
 cat > ~/.ssh/config <<EOF
 Host ${DOCKER_CONTEXT}
