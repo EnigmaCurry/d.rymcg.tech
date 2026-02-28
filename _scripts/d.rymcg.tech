@@ -883,7 +883,7 @@ __restore_env() {
     done
     echo "" >&2
 
-    if ! wizard confirm --default=no "Restore these env files?"; then
+    if ! wizard confirm "Restore these env files?" no; then
         echo "Cancelled." >&2
         exit 1
     fi
