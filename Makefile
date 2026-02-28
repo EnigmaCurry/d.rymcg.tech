@@ -49,14 +49,6 @@ open: readme
 status:
 	@docker compose ls | sed "s!$${PWD}!.!g"
 
-.PHONY: backup-env # Create an encrypted backup of the .env files
-backup-env:
-	@ROOT_DIR=${ROOT_DIR} ${BIN}/backup_env
-
-.PHONY: restore-env # Restore .env files from the encrypted backup
-restore-env:
-	@ROOT_DIR=${ROOT_DIR} ${BIN}/restore_env
-
 .PHONY: delete-env # Delete all .env files
 delete-env:
 	@find ${ROOT_DIR} | grep -E '\.env$$|\.env_.*'
