@@ -1,0 +1,31 @@
+## Example Woodpecker CI pipeline for deploying whoami
+## using the d-rymcg-tech workstation Docker image.
+##
+## Required secrets:
+##   SOPS_AGE_KEY - age private key for decrypting env files
+##
+## Required files in repo (example):
+##   my-server.sops.env - SOPS-encrypted env export
+##     (created with: d export-env --encrypt > my-server.sops.env)
+
+steps:
+  - name: restore-env
+    image: d-rymcg-tech
+    secrets: [sops_age_key]
+    commands:
+      - d.rymcg.tech restore-env ${CI_WORKSPACE}/my-server.sops.env
+
+  - name: deploy-whoami
+    image: d-rymcg-tech
+    commands:
+      - d.rymcg.tech make whoami install
+
+  - name: wait-whoami
+    image: d-rymcg-tech
+    commands:
+      - d.rymcg.tech make whoami wait
+
+  - name: print-url
+    image: d-rymcg-tech
+    commands:
+      - echo https://$(d make whoami dotenv_get var=WHOAMI_TRAEFIK_HOST)
