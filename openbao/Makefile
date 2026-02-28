@@ -67,7 +67,7 @@ get-ssh-ca-public-key:
 create-ssh-role:
 	@echo "Enter the root token:"; \
 	read -rs BAO_TOKEN; \
-	make --no-print-directory docker-compose-shell SERVICE=openbao COMMAND="BAO_TOKEN=$${BAO_TOKEN} bao write ssh-client-signer/roles/woodpecker-short-lived allow_user_certificates=true allowed_users=* default_extensions=permit-pty key_type=ca default_user=root ttl=15m max_ttl=30m algorithm_signer=default"
+	make --no-print-directory docker-compose-shell SERVICE=openbao COMMAND="BAO_TOKEN=$${BAO_TOKEN} bao write ssh-client-signer/roles/woodpecker-short-lived allow_user_certificates=true allowed_users=* default_extensions='{\"permit-pty\":\"\"}' key_type=ca default_user=root ttl=15m max_ttl=30m algorithm_signer=default"
 
 .PHONY: enable-approle # Enable AppRole auth method
 enable-approle:
