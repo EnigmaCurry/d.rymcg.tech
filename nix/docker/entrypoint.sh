@@ -23,7 +23,7 @@ SSH_PORT="${SSH_PORT:-22}"
 KEY_DIR=/run/secrets/ssh
 mkdir -p "${KEY_DIR}" ~/.ssh && chmod 700 "${KEY_DIR}" ~/.ssh
 if [[ ! -f "${KEY_DIR}/id_ed25519" ]]; then
-    ssh-keygen -t ed25519 -N "" -f "${KEY_DIR}/id_ed25519"
+    ssh-keygen -t ed25519 -N "" -f "${KEY_DIR}/id_ed25519" -q
 fi
 cat > ~/.ssh/config <<EOF
 Host ${DOCKER_CONTEXT}
@@ -37,16 +37,16 @@ chmod 600 ~/.ssh/config
 
 ## Step 3: Create and activate Docker context
 docker context create "${DOCKER_CONTEXT}" \
-    --docker "host=ssh://${SSH_USER}@${SSH_HOST}:${SSH_PORT}" 2>/dev/null || true
-docker context use "${DOCKER_CONTEXT}"
+    --docker "host=ssh://${SSH_USER}@${SSH_HOST}:${SSH_PORT}" &>/dev/null || true
+docker context use "${DOCKER_CONTEXT}" &>/dev/null
 
 ## Step 4: Create root .env_{DOCKER_CONTEXT} via config-dist, then overlay env vars
 cd "${ROOT_DIR}"
-d.rymcg.tech make - config-dist
+d.rymcg.tech make - config-dist &>/dev/null
 
 while IFS= read -r key; do
     if [[ -n "${!key+set}" ]]; then
-        d.rymcg.tech make - reconfigure "var=${key}=${!key}"
+        d.rymcg.tech make - reconfigure "var=${key}=${!key}" &>/dev/null
     fi
 done < <(d.rymcg.tech script dotenv -f .env-dist parse | cut -d= -f1)
 
@@ -75,10 +75,10 @@ done
 # For each matched project, run config-dist then reconfigure matching vars
 for prefix in "${!projects_to_configure[@]}"; do
     project_name="${prefix_to_dir[${prefix}]}"
-    d.rymcg.tech make "${project_name}" config-dist
+    d.rymcg.tech make "${project_name}" config-dist &>/dev/null
     for var in $(compgen -v); do
         if [[ "${var}" == "${prefix}_"* ]]; then
-            d.rymcg.tech make "${project_name}" reconfigure "var=${var}=${!var}"
+            d.rymcg.tech make "${project_name}" reconfigure "var=${var}=${!var}" &>/dev/null
         fi
     done
 done
