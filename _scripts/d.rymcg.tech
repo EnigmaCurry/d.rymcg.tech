@@ -21,7 +21,7 @@ set -eo pipefail
 BIN=$(dirname $(realpath ${BASH_SOURCE}))
 
 ## INFO_WORDS are keys to information that the completion script can ask for at runtime:
-INFO_WORDS="INFO_WORDS ROOT_DIR"
+INFO_WORDS="INFO_WORDS ROOT_DIR README_OPENER"
 
 ## ROOT_DIR is the root path of the d.rymcg.tech project
 ## Validate that this script is running from the canonical location
@@ -183,7 +183,65 @@ __list_projects() {
     )
 }
 
+__xdg_https_exec() {
+    # Prints the executable xdg-open would use for https:// (best-effort)
+    local desktop exec line
+
+    desktop="$(xdg-mime query default x-scheme-handler/https 2>/dev/null || true)"
+    [[ -z "$desktop" ]] && return 1
+
+    # Find the desktop file
+    local -a candidates=(
+        "$XDG_DATA_HOME/applications/$desktop"
+        "$HOME/.local/share/applications/$desktop"
+        "/usr/local/share/applications/$desktop"
+        "/usr/share/applications/$desktop"
+    )
+
+    for f in "${candidates[@]}"; do
+        if [[ -r "$f" ]]; then
+            line="$(grep -m1 '^Exec=' "$f" || true)"
+            break
+        fi
+    done
+
+    [[ -z "$line" ]] && return 1
+
+    exec="${line#Exec=}"
+    # Strip field codes and args; keep the program token
+    exec="${exec%% *}"
+    exec="${exec//%u/}"
+    exec="${exec//%U/}"
+    exec="${exec//%f/}"
+    exec="${exec//%F/}"
+    exec="${exec//%i/}"
+    exec="${exec//%c/}"
+    exec="${exec//%k/}"
+    exec="${exec//\"/}"
+
+    [[ -z "$exec" ]] && return 1
+    printf '%s\n' "$exec"
+}
+
+__readme_opener() {
+    # Decide whether to use xdg-open or mdview.py
+    local https_exec base
+    https_exec="$(__xdg_https_exec)" || https_exec=""
+
+    base="$(basename -- "${https_exec:-}" 2>/dev/null || true)"
+
+    # If we can't detect, or it looks like w3m, use mdview.py
+    if [[ -z "$https_exec" || "$base" == "w3m" ]]; then
+        printf '%s\n' "${BIN}/mdview.py"
+    else
+        printf '%s\n' "xdg-open"
+    fi
+}
+
 __readme() {
+    local opener
+    opener="$(__readme_opener)"
+
     if [[ $# -gt 0 ]]; then
         NAME="${1}"; shift
         NAME_UPPERCASE="$(echo "${NAME}" | tr '[:lower:]' '[:upper:]')"
@@ -192,12 +250,13 @@ __readme() {
         for doc in "${DOCS_ARRAY[@]}"; do
             DOCS_INDEX["${doc}"]="${doc}"
         done
+
         if [[ "${NAME_UPPERCASE}" == "LICENSE" ]]; then
-            exe xdg-open "https://github.com/EnigmaCurry/d.rymcg.tech/blob/master/LICENSE.txt"
+            exe "$opener" "https://github.com/EnigmaCurry/d.rymcg.tech/blob/master/LICENSE.txt"
         elif [[ -v DOCS_INDEX["${NAME_UPPERCASE}"] ]]; then
-            exe xdg-open "https://github.com/EnigmaCurry/d.rymcg.tech/blob/master/${NAME_UPPERCASE}.md#readme"
+            exe "$opener" "https://github.com/EnigmaCurry/d.rymcg.tech/blob/master/${NAME_UPPERCASE}.md#readme"
         else
-            echo ${DOCS_INDEX["${NAME_UPPERCASE}"]}
+            echo "${DOCS_INDEX["${NAME_UPPERCASE}"]}"
             __make "${NAME}" readme "$@"
         fi
     else
@@ -221,6 +280,8 @@ __info() {
         echo "${ROOT_DIR}"
     elif [[ "$1" == "INFO_WORDS" ]]; then
         echo "${INFO_WORDS}"
+    elif [[ "$1" == "README_OPENER" ]]; then
+        __readme_opener
     fi
 }
 
