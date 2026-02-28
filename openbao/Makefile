@@ -33,7 +33,9 @@ shell:
 
 .PHONY: init # Initialize OpenBao (shows unseal keys and root token)
 init:
-	@make --no-print-directory docker-compose-shell SERVICE=openbao COMMAND="bao operator init -key-shares=1 -key-threshold=1"
+	@KEY_SHARES=$$(${BIN}/dotenv -f ${ENV_FILE} get OPENBAO_KEY_SHARES); \
+	KEY_THRESHOLD=$$(${BIN}/dotenv -f ${ENV_FILE} get OPENBAO_KEY_THRESHOLD); \
+	make --no-print-directory docker-compose-shell SERVICE=openbao COMMAND="bao operator init -key-shares=$${KEY_SHARES:-1} -key-threshold=$${KEY_THRESHOLD:-1}"
 
 .PHONY: unseal # Unseal OpenBao (interactive - enter unseal keys)
 unseal:
