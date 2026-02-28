@@ -29,13 +29,14 @@ Starter `.woodpecker.yaml` templates for common CI/CD workflows with
 
 ## Templates
 
-| Template | Description | Required secrets |
-|----------|-------------|------------------|
-| [`docker-build.yaml`](docker-build.yaml) | Build a Docker image and push to Forgejo's container registry | `registry_username`, `registry_password` |
-| [`docker-compose-deploy.yaml`](docker-compose-deploy.yaml) | Deploy a docker-compose project to a remote host via SSH | `ssh_key`, `deploy_host`, `deploy_user` |
-| [`test-service.yaml`](test-service.yaml) | Run HTTP health checks against a deployed service | _(none)_ |
-| [`build-and-deploy.yaml`](build-and-deploy.yaml) | Full CI/CD: build, push, deploy, notify on failure | `registry_username`, `registry_password`, `ssh_key`, `deploy_host`, `deploy_user`, `ntfy_url` |
-| [`notify.yaml`](notify.yaml) | Send notifications via ntfy.sh on success/failure | `ntfy_url`, optionally `ntfy_token` |
+| Template                                                   | Description                                                   | Required secrets                                                                              |
+|------------------------------------------------------------|---------------------------------------------------------------|-----------------------------------------------------------------------------------------------|
+| [`docker-build.yaml`](docker-build.yaml)                   | Build a Docker image and push to Forgejo's container registry | `registry_username`, `registry_password`                                                      |
+| [`docker-compose-deploy.yaml`](docker-compose-deploy.yaml) | Deploy a docker-compose project to a remote host via SSH      | `ssh_key`, `deploy_host`, `deploy_user`                                                       |
+| [`test-service.yaml`](test-service.yaml)                   | Run HTTP health checks against a deployed service             | _(none)_                                                                                      |
+| [`build-and-deploy.yaml`](build-and-deploy.yaml)           | Full CI/CD: build, push, deploy, notify on failure            | `registry_username`, `registry_password`, `ssh_key`, `deploy_host`, `deploy_user`, `ntfy_url` |
+| [`notify.yaml`](notify.yaml)                               | Send notifications via ntfy.sh on success/failure             | `ntfy_url`, optionally `ntfy_token`                                                           |
+| [`whoami.yaml`](whoami.yaml)                               | Deploy whoami with d.rymcg.tech from SOPS-encrypted env       | `sops_age_key`                                                                                |
 
 ## Setting up secrets
 
@@ -93,17 +94,17 @@ d.rymcg.tech make woodpecker reinstall
 These variables are automatically set by Woodpecker and available in all
 pipeline steps:
 
-| Variable | Description |
-|----------|-------------|
-| `CI_REPO_NAME` | Repository name (e.g., `myapp`) |
-| `CI_REPO_OWNER` | Repository owner (e.g., `myorg`) |
-| `CI_REPO_DEFAULT_BRANCH` | Default branch name (e.g., `main`) |
-| `CI_COMMIT_SHA` | Full commit SHA |
-| `CI_COMMIT_BRANCH` | Branch that triggered the build |
-| `CI_COMMIT_AUTHOR` | Commit author username |
-| `CI_PIPELINE_NUMBER` | Pipeline number |
-| `CI_PIPELINE_STATUS` | Pipeline status (`success` or `failure`) |
-| `CI_PIPELINE_FORGE_URL` | URL to the commit on the forge |
+| Variable                 | Description                              |
+|--------------------------|------------------------------------------|
+| `CI_REPO_NAME`           | Repository name (e.g., `myapp`)          |
+| `CI_REPO_OWNER`          | Repository owner (e.g., `myorg`)         |
+| `CI_REPO_DEFAULT_BRANCH` | Default branch name (e.g., `main`)       |
+| `CI_COMMIT_SHA`          | Full commit SHA                          |
+| `CI_COMMIT_BRANCH`       | Branch that triggered the build          |
+| `CI_COMMIT_AUTHOR`       | Commit author username                   |
+| `CI_PIPELINE_NUMBER`     | Pipeline number                          |
+| `CI_PIPELINE_STATUS`     | Pipeline status (`success` or `failure`) |
+| `CI_PIPELINE_FORGE_URL`  | URL to the commit on the forge           |
 
 Full reference:
 [Woodpecker CI environment variables](https://woodpecker-ci.org/docs/usage/environment)
