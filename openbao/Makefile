@@ -81,19 +81,28 @@ enable-kv:
 	read -rs BAO_TOKEN; \
 	make --no-print-directory docker-compose-shell SERVICE=openbao COMMAND="BAO_TOKEN=$${BAO_TOKEN} bao secrets enable -version=2 -path=secret kv"
 
-.PHONY: put-age-key # Store an AGE secret key in the KV secrets engine
+.PHONY: put-age-key # Store an AGE secret key (usage: make put-age-key path=sops/age-key)
 put-age-key:
-	@echo "Enter the root token:"; \
+	@KV_PATH=$${path:-sops/age-key}; \
+	echo "Storing AGE key at: secret/$${KV_PATH}"; \
+	echo "Enter the root token:"; \
 	read -rs BAO_TOKEN; \
 	echo "Enter the AGE secret key (AGE-SECRET-KEY-...):"; \
 	read -rs AGE_KEY; \
-	make --no-print-directory docker-compose-shell SERVICE=openbao COMMAND="BAO_TOKEN=$${BAO_TOKEN} bao kv put secret/sops/age-key key=$${AGE_KEY}"
+	make --no-print-directory docker-compose-shell SERVICE=openbao COMMAND="BAO_TOKEN=$${BAO_TOKEN} bao kv put secret/$${KV_PATH} key=$${AGE_KEY}"
 
-.PHONY: get-age-key # Verify the stored AGE key (shows metadata only)
+.PHONY: get-age-key # Read a stored AGE key (usage: make get-age-key path=sops/age-key)
 get-age-key:
+	@KV_PATH=$${path:-sops/age-key}; \
+	echo "Enter the root token:"; \
+	read -rs BAO_TOKEN; \
+	make --no-print-directory docker-compose-shell SERVICE=openbao COMMAND="BAO_TOKEN=$${BAO_TOKEN} bao kv get secret/$${KV_PATH}"
+
+.PHONY: list-age-keys # List all stored AGE keys under sops/
+list-age-keys:
 	@echo "Enter the root token:"; \
 	read -rs BAO_TOKEN; \
-	make --no-print-directory docker-compose-shell SERVICE=openbao COMMAND="BAO_TOKEN=$${BAO_TOKEN} bao kv get secret/sops/age-key"
+	make --no-print-directory docker-compose-shell SERVICE=openbao COMMAND="BAO_TOKEN=$${BAO_TOKEN} bao kv list secret/sops"
 
 .PHONY: enable-approle # Enable AppRole auth method
 enable-approle:
