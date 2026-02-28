@@ -33,9 +33,9 @@ template-env:
 	  -e SSH_PORT=$(SSH_PORT) \
 	  -e _PROJECTS=$(PROJECTS) \
 	  d-rymcg-tech \
-	  bash -c 'IFS=, read -ra projs <<< "$$_PROJECTS"; \
-	    echo "## .env_$${DOCKER_CONTEXT}"; cat ".env_$${DOCKER_CONTEXT}"; \
+	  bash -c 'BIN=_scripts; IFS=, read -ra projs <<< "$$_PROJECTS"; \
+	    echo "## .env_$${DOCKER_CONTEXT}"; $$BIN/dotenv -f ".env_$${DOCKER_CONTEXT}" parse; \
 	    for p in "$${projs[@]}"; do \
 	      echo; echo "## $$p/.env_$${DOCKER_CONTEXT}_default"; \
-	      cat "$$p/.env_$${DOCKER_CONTEXT}_default"; \
+	      $$BIN/dotenv -f "$$p/.env_$${DOCKER_CONTEXT}_default" parse; \
 	    done'
