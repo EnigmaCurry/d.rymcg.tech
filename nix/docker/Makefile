@@ -2,7 +2,7 @@ ROOT_DIR := $(realpath $(dir $(lastword $(MAKEFILE_LIST)))/../..)
 
 .PHONY: build
 build:
-	docker build -f $(dir $(lastword $(MAKEFILE_LIST)))/Dockerfile -t d-rymcg-tech $(ROOT_DIR)
+	cd $(ROOT_DIR) && git archive HEAD | docker build -f nix/docker/Dockerfile -t d-rymcg-tech -
 
 PROJECTS ?=
 DOCKER_CONTEXT ?= template
