@@ -794,8 +794,16 @@ __restore_env() {
     local input
     if [[ $# -gt 0 && -f "$1" ]]; then
         input=$(cat "$1")
-    else
+    elif [[ ! -t 0 ]]; then
         input=$(cat)
+    else
+        echo "Usage: d.rymcg.tech restore-env <FILE>" >&2
+        echo "       d.rymcg.tech export-env | d.rymcg.tech restore-env" >&2
+        echo "" >&2
+        echo "Examples:" >&2
+        echo "  d.rymcg.tech restore-env env_backup.txt" >&2
+        echo "  d.rymcg.tech export-env --context old | d.rymcg.tech restore-env" >&2
+        exit 1
     fi
 
     # Build prefix→project mapping
