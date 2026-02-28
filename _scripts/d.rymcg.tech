@@ -721,6 +721,22 @@ __export_env() {
         case "$1" in
             --context) ctx="$2"; shift 2;;
             --choose) choose=true; shift;;
+            --help|-h)
+                echo "Usage: d.rymcg.tech export-env [OPTIONS]" >&2
+                echo "" >&2
+                echo "Export all env files for the current context as flat env vars." >&2
+                echo "" >&2
+                echo "Options:" >&2
+                echo "  --context <NAME>  Override the Docker context" >&2
+                echo "  --choose          Interactively select which env files to export" >&2
+                echo "  --help, -h        Show this help message" >&2
+                echo "" >&2
+                echo "Examples:" >&2
+                echo "  d.rymcg.tech export-env" >&2
+                echo "  d.rymcg.tech export-env --context myserver" >&2
+                echo "  d.rymcg.tech export-env --choose" >&2
+                echo "  d.rymcg.tech export-env --context myserver > backup.env" >&2
+                exit 0;;
             *) shift;;
         esac
     done
@@ -795,6 +811,21 @@ __restore_env() {
     while [[ $# -gt 0 ]]; do
         case "$1" in
             --choose) choose=true; shift;;
+            --help|-h)
+                echo "Usage: d.rymcg.tech restore-env [OPTIONS] [FILE]" >&2
+                echo "       d.rymcg.tech export-env | d.rymcg.tech restore-env [OPTIONS]" >&2
+                echo "" >&2
+                echo "Restore env files from flat env var input (file or stdin)." >&2
+                echo "" >&2
+                echo "Options:" >&2
+                echo "  --choose      Interactively select which env files to restore" >&2
+                echo "  --help, -h    Show this help message" >&2
+                echo "" >&2
+                echo "Examples:" >&2
+                echo "  d.rymcg.tech restore-env backup.env" >&2
+                echo "  d.rymcg.tech restore-env --choose backup.env" >&2
+                echo "  d.rymcg.tech export-env --context old | d.rymcg.tech restore-env" >&2
+                exit 0;;
             *) file_arg="$1"; shift;;
         esac
     done
