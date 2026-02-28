@@ -9,8 +9,7 @@ DOCKER_CONTEXT ?= template
 SSH_HOST ?= localhost
 SSH_USER ?= root
 SSH_PORT ?= 22
-VARS ?=
-DOCKER_EXTRA_ENV = $(foreach v,$(VARS),-e $(v))
+DOCKER_EXTRA_ENV = $(foreach v,$(MAKEOVERRIDES),-e $(v))
 
 .PHONY: test
 test:
