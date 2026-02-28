@@ -4,23 +4,27 @@ ROOT_DIR := $(realpath $(dir $(lastword $(MAKEFILE_LIST)))/../..)
 build:
 	docker build -f $(dir $(lastword $(MAKEFILE_LIST)))/Dockerfile -t d-rymcg-tech $(ROOT_DIR)
 
-.PHONY: test
-test:
-	docker run --rm \
-	  -e DOCKER_CONTEXT=test \
-	  -e SSH_HOST=docker.bananas.example.com \
-	  -e SSH_USER=admin \
-	  -e SSH_PORT=3214 \
-	  -e ROOT_DOMAIN=bananas.example.com \
-	  -e WHOAMI_TRAEFIK_HOST=whoami.bananas.example.com \
-	  d-rymcg-tech \
-	  bash -c "cat ~/.ssh/config && echo '---' && cat whoami/.env_test_default && echo '---' && cat .env_test"
-
 PROJECTS ?=
 DOCKER_CONTEXT ?= template
 SSH_HOST ?= localhost
 SSH_USER ?= root
 SSH_PORT ?= 22
+
+.PHONY: test
+test:
+	@if [ -z "$(ENV_FILE)" ]; then echo "ERROR: ENV_FILE is required" >&2; exit 1; fi
+	@docker run --rm \
+	  --env-file $(ENV_FILE) \
+	  -e DOCKER_CONTEXT=$(DOCKER_CONTEXT) \
+	  -e SSH_HOST=$(SSH_HOST) \
+	  -e SSH_USER=$(SSH_USER) \
+	  -e SSH_PORT=$(SSH_PORT) \
+	  d-rymcg-tech \
+	  bash -c 'BIN=_scripts; \
+	    for f in .env_* */.env_*; do \
+	      [ -f "$$f" ] || continue; \
+	      echo "## $$f"; $$BIN/dotenv -f "$$f" parse; echo; \
+	    done'
 
 .PHONY: template-env
 template-env:
