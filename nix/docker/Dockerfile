@@ -36,7 +36,7 @@ ENV PATH="/home/user/.nix-profile/bin:${PATH}"
 ENV SSL_CERT_FILE="/home/user/.nix-profile/etc/ssl/certs/ca-bundle.crt"
 ENV NIX_SSL_CERT_FILE="/home/user/.nix-profile/etc/ssl/certs/ca-bundle.crt"
 ENV HOME="/home/user"
-RUN echo 'PS1="[d.rymcg.tech|$DOCKER_CONTEXT] \w\n\$ "' > /home/user/.bashrc \
+RUN echo 'PS1="\n[d.rymcg.tech|$DOCKER_CONTEXT] \w\n\$ "' > /home/user/.bashrc \
  && chown 1000:1000 /home/user/.bashrc
 
 # Copy the d.rymcg.tech repo
