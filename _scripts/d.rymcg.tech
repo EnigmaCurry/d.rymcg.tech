@@ -837,6 +837,7 @@ __export_env() {
 
     if [[ "${base64_encode}" == true ]]; then
         echo -n "${output}" | base64 -w 0
+        echo
     else
         echo -n "${output}"
     fi
