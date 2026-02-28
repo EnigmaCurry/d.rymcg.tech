@@ -752,6 +752,10 @@ __export_env() {
             [[ ${rc} -eq 2 ]] && exit 1
             exit ${rc}
         }
+        if [[ -z "${selection}" ]]; then
+            echo "No files selected." >&2
+            exit 0
+        fi
         readarray -t selected_files <<< "${selection}"
     else
         selected_files=("${all_files[@]}")
@@ -906,6 +910,10 @@ __restore_env() {
             [[ ${rc} -eq 2 ]] && echo "Cancelled." >&2
             exit 1
         }
+        if [[ -z "${selection}" ]]; then
+            echo "No files selected." >&2
+            exit 0
+        fi
         readarray -t file_order <<< "${selection}"
         echo "" >&2
     fi
