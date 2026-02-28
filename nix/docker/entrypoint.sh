@@ -83,7 +83,29 @@ for prefix in "${!projects_to_configure[@]}"; do
     done
 done
 
-## Step 6: Ensure explicitly requested projects have env files
+## Step 6: Distribute instance-prefixed env vars (__<instance>__<PREFIX>_*)
+declare -A instance_configured
+for var in $(compgen -v); do
+    [[ "${var}" == __*__* ]] || continue
+    stripped="${var#__}"
+    instance="${stripped%%__*}"
+    remainder="${stripped#*__}"
+    [[ -n "${instance}" && -n "${remainder}" ]] || continue
+    for prefix in "${!prefix_to_dir[@]}"; do
+        if [[ "${remainder}" == "${prefix}_"* ]]; then
+            project_name="${prefix_to_dir[${prefix}]}"
+            instance_key="${instance}:${prefix}"
+            if [[ -z "${instance_configured[${instance_key}]+set}" ]]; then
+                instance_configured["${instance_key}"]=1
+                INSTANCE="${instance}" d.rymcg.tech make "${project_name}" config-dist &>/dev/null
+            fi
+            INSTANCE="${instance}" d.rymcg.tech make "${project_name}" reconfigure "var=${remainder}=${!var}" &>/dev/null
+            break
+        fi
+    done
+done
+
+## Step 7: Ensure explicitly requested projects have env files
 if [[ -n "${_PROJECTS:-}" ]]; then
     IFS=, read -ra _requested_projects <<< "${_PROJECTS}"
     for project_name in "${_requested_projects[@]}"; do
