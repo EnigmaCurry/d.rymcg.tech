@@ -109,7 +109,7 @@ To use the key, it must get the public key signed from OpenBao, so it
 can present the certificate to the server. The container needs these
 env vars to configure OpenBao:
 
- * `BAO_URL` - the URL to OpenBao (e.g. https://bao.example.com:8200)
+ * `BAO_ADDR` - the URL to OpenBao (e.g. https://bao.example.com:8200)
  * `BAO_CACERT` - the CA cert to validate the TLS connection
  * `BAO_CLIENT_CERT` - the PEM cert for mTLS client
  * `BAO_CLIENT_KEY` - the PEM private key for the mTLS client

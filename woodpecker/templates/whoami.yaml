@@ -5,7 +5,7 @@
 ## setup automatically when the BAO_* env vars are provided.
 ##
 ## Required Woodpecker secrets:
-##   BAO_URL        - OpenBao server URL
+##   BAO_ADDR        - OpenBao server URL
 ##   BAO_ROLE_ID    - AppRole role ID
 ##   BAO_SECRET_ID  - AppRole secret ID
 ##   BAO_CACERT     - CA cert for OpenBao TLS (if using private CA)
@@ -17,7 +17,7 @@
 steps:
   - name: deploy-whoami
     image: d-rymcg-tech
-    secrets: [bao_url, bao_role_id, bao_secret_id, bao_cacert]
+    secrets: [bao_addr, bao_role_id, bao_secret_id, bao_cacert]
     environment:
       SOPS_CONFIG_FILE: ${CI_WORKSPACE}/config/my-server.sops.env
     commands:
@@ -25,7 +25,7 @@ steps:
 
   - name: wait-whoami
     image: d-rymcg-tech
-    secrets: [bao_url, bao_role_id, bao_secret_id, bao_cacert]
+    secrets: [bao_addr, bao_role_id, bao_secret_id, bao_cacert]
     environment:
       SOPS_CONFIG_FILE: ${CI_WORKSPACE}/config/my-server.sops.env
     commands:
@@ -33,7 +33,7 @@ steps:
 
   - name: print-url
     image: d-rymcg-tech
-    secrets: [bao_url, bao_role_id, bao_secret_id, bao_cacert]
+    secrets: [bao_addr, bao_role_id, bao_secret_id, bao_cacert]
     environment:
       SOPS_CONFIG_FILE: ${CI_WORKSPACE}/config/my-server.sops.env
     commands:

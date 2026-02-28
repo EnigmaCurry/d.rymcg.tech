@@ -98,7 +98,7 @@ bao kv put secret/sops/age-key key="AGE-SECRET-KEY-..."
 ```
 
 The d.rymcg.tech container entrypoint will retrieve this key
-automatically when `BAO_URL` is set.
+automatically when `BAO_ADDR` is set.
 
 ## AppRole Authentication
 
@@ -141,7 +141,7 @@ Add these secrets to your Woodpecker CI repository:
 
 | Secret | Description |
 |--------|-------------|
-| `bao_url` | OpenBao server URL (e.g., `https://bao.example.com`) |
+| `bao_addr` | OpenBao server URL (e.g., `https://bao.example.com`) |
 | `bao_role_id` | AppRole role ID |
 | `bao_secret_id` | AppRole secret ID |
 | `bao_cacert` | CA cert for TLS (if using private CA) |

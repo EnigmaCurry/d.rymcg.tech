@@ -20,9 +20,9 @@ if [[ ! -f "${KEY_DIR}/id_ed25519" ]]; then
     ssh-keygen -t ed25519 -N "" -f "${KEY_DIR}/id_ed25519" -q
 fi
 
-## Step 3: OpenBao integration (only runs if BAO_URL is set)
-if [[ -n "${BAO_URL:-}" ]]; then
-    echo "## OpenBao: authenticating with ${BAO_URL}" >&2
+## Step 3: OpenBao integration (only runs if BAO_ADDR is set)
+if [[ -n "${BAO_ADDR:-}" ]]; then
+    echo "## OpenBao: authenticating with ${BAO_ADDR}" >&2
 
     ## Step 3a: Resolve BAO TLS vars (auto-detect base64/PEM/file paths → temp files)
     resolve_tls_var() {
@@ -71,11 +71,11 @@ if [[ -n "${BAO_URL:-}" ]]; then
 
     # Validate required vars
     if [[ -z "${BAO_ROLE_ID:-}" ]]; then
-        echo "ERROR: BAO_ROLE_ID is required when BAO_URL is set" >&2
+        echo "ERROR: BAO_ROLE_ID is required when BAO_ADDR is set" >&2
         exit 1
     fi
     if [[ -z "${BAO_SECRET_ID:-}" ]]; then
-        echo "ERROR: BAO_SECRET_ID is required when BAO_URL is set" >&2
+        echo "ERROR: BAO_SECRET_ID is required when BAO_ADDR is set" >&2
         exit 1
     fi
 
@@ -86,7 +86,7 @@ if [[ -n "${BAO_URL:-}" ]]; then
     LOGIN_RESPONSE=$(curl -sf "${BAO_CURL_FLAGS[@]}" "${BAO_NAMESPACE_HEADER[@]}" \
         --request POST \
         --data "{\"role_id\":\"${BAO_ROLE_ID}\",\"secret_id\":\"${BAO_SECRET_ID}\"}" \
-        "${BAO_URL}/v1/${BAO_AUTH_PATH}/login")
+        "${BAO_ADDR}/v1/${BAO_AUTH_PATH}/login")
     BAO_TOKEN=$(echo "${LOGIN_RESPONSE}" | jq -r '.auth.client_token')
     if [[ -z "${BAO_TOKEN}" || "${BAO_TOKEN}" == "null" ]]; then
         echo "ERROR: OpenBao AppRole login failed" >&2
@@ -99,7 +99,7 @@ if [[ -n "${BAO_URL:-}" ]]; then
     echo "## OpenBao: retrieving AGE key from ${BAO_KV_MOUNT}/data/${BAO_AGE_KEY_PATH}" >&2
     AGE_RESPONSE=$(curl -sf "${BAO_CURL_FLAGS[@]}" "${BAO_NAMESPACE_HEADER[@]}" \
         -H "X-Vault-Token: ${BAO_TOKEN}" \
-        "${BAO_URL}/v1/${BAO_KV_MOUNT}/data/${BAO_AGE_KEY_PATH}")
+        "${BAO_ADDR}/v1/${BAO_KV_MOUNT}/data/${BAO_AGE_KEY_PATH}")
     AGE_KEY=$(echo "${AGE_RESPONSE}" | jq -r '.data.data.key')
     if [[ -z "${AGE_KEY}" || "${AGE_KEY}" == "null" ]]; then
         echo "ERROR: Failed to retrieve AGE key from OpenBao" >&2
@@ -119,7 +119,7 @@ if [[ -n "${BAO_URL:-}" ]]; then
         -H "X-Vault-Token: ${BAO_TOKEN}" \
         --request POST \
         --data "{\"public_key\":\"${SSH_PUBLIC_KEY}\"}" \
-        "${BAO_URL}/v1/${BAO_SSH_MOUNT}/sign/${BAO_SSH_ROLE}")
+        "${BAO_ADDR}/v1/${BAO_SSH_MOUNT}/sign/${BAO_SSH_ROLE}")
     SIGNED_KEY=$(echo "${SIGN_RESPONSE}" | jq -r '.data.signed_key')
     if [[ -z "${SIGNED_KEY}" || "${SIGNED_KEY}" == "null" ]]; then
         echo "ERROR: SSH certificate signing failed" >&2
