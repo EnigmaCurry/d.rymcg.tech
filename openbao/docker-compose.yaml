@@ -10,6 +10,7 @@ services:
       - IPC_LOCK
     restart: unless-stopped
     environment:
+      - BAO_ADDR=http://127.0.0.1:8200
       - BAO_LOCAL_CONFIG={"storage":{"${OPENBAO_STORAGE_BACKEND}":{"path":"/openbao/data"}},"listener":{"tcp":{"address":"0.0.0.0:8200","tls_disable":"${OPENBAO_TLS_DISABLE}"}},"disable_mlock":${OPENBAO_DISABLE_MLOCK},"log_level":"${OPENBAO_LOG_LEVEL}","api_addr":"https://${OPENBAO_TRAEFIK_HOST}"}
     volumes:
       - data:/openbao/data
