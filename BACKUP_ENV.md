@@ -29,6 +29,8 @@ Encrypt the export with [SOPS](https://github.com/getsops/sops) and
 mkdir -p ~/.config/sops/age
 age-keygen -o ~/.config/sops/age/keys.txt
 
+## Copy the public key age-keygen outputs
+
 ## Export encrypted (will prompt for the age public key if not already set):
 d export-env --encrypt > backup.sops.env
 ```
