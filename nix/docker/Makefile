@@ -30,6 +30,13 @@ test:
 .PHONY: template-env
 template-env:
 	@if [ -z "$(PROJECTS)" ]; then echo "ERROR: PROJECTS is required (comma-separated list)" >&2; exit 1; fi
+	@cd $(ROOT_DIR) && DOCKER_CONTEXT=$(DOCKER_CONTEXT) _PROJECTS=$(PROJECTS) \
+	  $(foreach v,$(filter-out PROJECTS=% DOCKER_CONTEXT=%,$(MAKEOVERRIDES)),$(v)) \
+	  _scripts/user/d.rymcg.tech template-env
+
+.PHONY: template-env-docker
+template-env-docker:
+	@if [ -z "$(PROJECTS)" ]; then echo "ERROR: PROJECTS is required (comma-separated list)" >&2; exit 1; fi
 	@docker run --rm \
 	  --entrypoint "" \
 	  -e DOCKER_CONTEXT=$(DOCKER_CONTEXT) \
