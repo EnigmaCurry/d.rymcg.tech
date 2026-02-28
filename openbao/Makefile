@@ -81,22 +81,22 @@ enable-kv:
 	read -rs BAO_TOKEN; \
 	make --no-print-directory docker-compose-shell SERVICE=openbao COMMAND="BAO_TOKEN=$${BAO_TOKEN} bao secrets enable -version=2 -path=secret kv"
 
-.PHONY: put-age-key # Store an AGE secret key (usage: make put-age-key path=sops/age-key)
+.PHONY: put-age-key # Store an AGE secret key (usage: make put-age-key path=sops/mykey)
 put-age-key:
-	@KV_PATH=$${path:-sops/age-key}; \
-	echo "Storing AGE key at: secret/$${KV_PATH}"; \
+	@if [ -z "$${path}" ]; then echo "ERROR: path is required (e.g., make put-age-key path=sops/production)" >&2; exit 1; fi; \
+	echo "Storing AGE key at: secret/$${path}"; \
 	echo "Enter the root token:"; \
 	read -rs BAO_TOKEN; \
 	echo "Enter the AGE secret key (AGE-SECRET-KEY-...):"; \
 	read -rs AGE_KEY; \
-	make --no-print-directory docker-compose-shell SERVICE=openbao COMMAND="BAO_TOKEN=$${BAO_TOKEN} bao kv put secret/$${KV_PATH} key=$${AGE_KEY}"
+	make --no-print-directory docker-compose-shell SERVICE=openbao COMMAND="BAO_TOKEN=$${BAO_TOKEN} bao kv put secret/$${path} key=$${AGE_KEY}"
 
-.PHONY: get-age-key # Read a stored AGE key (usage: make get-age-key path=sops/age-key)
+.PHONY: get-age-key # Read a stored AGE key (usage: make get-age-key path=sops/mykey)
 get-age-key:
-	@KV_PATH=$${path:-sops/age-key}; \
+	@if [ -z "$${path}" ]; then echo "ERROR: path is required (e.g., make get-age-key path=sops/production)" >&2; exit 1; fi; \
 	echo "Enter the root token:"; \
 	read -rs BAO_TOKEN; \
-	make --no-print-directory docker-compose-shell SERVICE=openbao COMMAND="BAO_TOKEN=$${BAO_TOKEN} bao kv get secret/$${KV_PATH}"
+	make --no-print-directory docker-compose-shell SERVICE=openbao COMMAND="BAO_TOKEN=$${BAO_TOKEN} bao kv get secret/$${path}"
 
 .PHONY: list-age-keys # List all stored AGE keys under sops/
 list-age-keys:

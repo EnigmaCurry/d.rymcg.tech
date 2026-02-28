@@ -117,10 +117,7 @@ engine and store the secret key in OpenBao:
 ## Enable the KV secrets engine (if not already enabled):
 d.rymcg.tech make openbao enable-kv
 
-## Store the AGE secret key (default path: sops/age-key):
-d.rymcg.tech make openbao put-age-key
-
-## Store keys for different roles/environments:
+## Store AGE secret keys (path is required):
 d.rymcg.tech make openbao put-age-key path=sops/production
 d.rymcg.tech make openbao put-age-key path=sops/staging
 
@@ -131,8 +128,8 @@ d.rymcg.tech make openbao list-age-keys
 d.rymcg.tech make openbao get-age-key path=sops/production
 ```
 
-In your Woodpecker pipeline, set `BAO_AGE_KEY_PATH` to match the
-path used above (default: `sops/age-key`).
+In your Woodpecker pipeline, set `BAO_AGE_KEY_PATH` to the path
+used above (e.g., `sops/production`).
 
 The d.rymcg.tech container entrypoint will retrieve this key
 automatically when `BAO_ADDR` is set.

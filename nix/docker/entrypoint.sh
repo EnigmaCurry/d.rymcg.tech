@@ -67,7 +67,6 @@ if [[ -n "${BAO_ADDR:-}" ]]; then
     BAO_SSH_MOUNT="${BAO_SSH_MOUNT:-ssh-client-signer}"
     BAO_SSH_ROLE="${BAO_SSH_ROLE:-woodpecker-short-lived}"
     BAO_KV_MOUNT="${BAO_KV_MOUNT:-secret}"
-    BAO_AGE_KEY_PATH="${BAO_AGE_KEY_PATH:-sops/age-key}"
 
     # Validate required vars
     if [[ -z "${BAO_ROLE_ID:-}" ]]; then
@@ -76,6 +75,10 @@ if [[ -n "${BAO_ADDR:-}" ]]; then
     fi
     if [[ -z "${BAO_SECRET_ID:-}" ]]; then
         echo "ERROR: BAO_SECRET_ID is required when BAO_ADDR is set" >&2
+        exit 1
+    fi
+    if [[ -z "${BAO_AGE_KEY_PATH:-}" ]]; then
+        echo "ERROR: BAO_AGE_KEY_PATH is required when BAO_ADDR is set (e.g., sops/production)" >&2
         exit 1
     fi
 
