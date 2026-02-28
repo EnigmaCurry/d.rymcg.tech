@@ -754,7 +754,7 @@ __export_env() {
         }
         if [[ -z "${selection}" ]]; then
             echo "No files selected." >&2
-            exit 0
+            exit 1
         fi
         readarray -t selected_files <<< "${selection}"
     else
@@ -912,7 +912,7 @@ __restore_env() {
         }
         if [[ -z "${selection}" ]]; then
             echo "No files selected." >&2
-            exit 0
+            exit 1
         fi
         readarray -t file_order <<< "${selection}"
         echo "" >&2
