@@ -75,6 +75,26 @@ read-ssh-role:
 	read -rs BAO_TOKEN; \
 	make --no-print-directory docker-compose-shell SERVICE=openbao COMMAND="BAO_TOKEN=$${BAO_TOKEN} bao read ssh-client-signer/roles/woodpecker-short-lived"
 
+.PHONY: enable-kv # Enable KV v2 secrets engine
+enable-kv:
+	@echo "Enter the root token:"; \
+	read -rs BAO_TOKEN; \
+	make --no-print-directory docker-compose-shell SERVICE=openbao COMMAND="BAO_TOKEN=$${BAO_TOKEN} bao secrets enable -version=2 -path=secret kv"
+
+.PHONY: put-age-key # Store an AGE secret key in the KV secrets engine
+put-age-key:
+	@echo "Enter the root token:"; \
+	read -rs BAO_TOKEN; \
+	echo "Enter the AGE secret key (AGE-SECRET-KEY-...):"; \
+	read -rs AGE_KEY; \
+	make --no-print-directory docker-compose-shell SERVICE=openbao COMMAND="BAO_TOKEN=$${BAO_TOKEN} bao kv put secret/sops/age-key key=$${AGE_KEY}"
+
+.PHONY: get-age-key # Verify the stored AGE key (shows metadata only)
+get-age-key:
+	@echo "Enter the root token:"; \
+	read -rs BAO_TOKEN; \
+	make --no-print-directory docker-compose-shell SERVICE=openbao COMMAND="BAO_TOKEN=$${BAO_TOKEN} bao kv get secret/sops/age-key"
+
 .PHONY: enable-approle # Enable AppRole auth method
 enable-approle:
 	@echo "Enter the root token:"; \

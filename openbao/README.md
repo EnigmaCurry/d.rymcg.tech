@@ -98,12 +98,27 @@ systemctl restart sshd
 
 ## AGE Key for SOPS
 
-Store the AGE private key in OpenBao's KV secrets engine:
+An AGE key is used to encrypt and decrypt SOPS configuration files.
+If you don't already have one, generate it:
 
 ```bash
-## Using the bao CLI or curl:
-## (Replace AGE-SECRET-KEY-... with your actual key)
-bao kv put secret/sops/age-key key="AGE-SECRET-KEY-..."
+age-keygen
+```
+
+This outputs two lines:
+- A comment with the **public key** (`age1...`) — used in your
+  `.sops.yaml` to specify who can encrypt.
+- The **secret key** (`AGE-SECRET-KEY-...`) — needed for decryption.
+
+Save both in your offline password manager. Then enable the KV secrets
+engine and store the secret key in OpenBao:
+
+```bash
+## Enable the KV secrets engine (if not already enabled):
+d.rymcg.tech make openbao enable-kv
+
+## Store the AGE secret key:
+d.rymcg.tech make openbao put-age-key
 ```
 
 The d.rymcg.tech container entrypoint will retrieve this key
