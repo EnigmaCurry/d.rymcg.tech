@@ -15,6 +15,8 @@ with pkgs; [
   openssh
   docker-client
   python3
+  sops
+  age
   cacert
   gnutar
   gzip

@@ -716,11 +716,13 @@ __template_env() {
 
 __export_env() {
     local choose=false
+    local encrypt=false
     local ctx=""
     while [[ $# -gt 0 ]]; do
         case "$1" in
             --context) ctx="$2"; shift 2;;
             --choose) choose=true; shift;;
+            --encrypt) encrypt=true; shift;;
             --help|-h)
                 echo "Usage: d.rymcg.tech export-env [OPTIONS]" >&2
                 echo "" >&2
@@ -729,6 +731,7 @@ __export_env() {
                 echo "Options:" >&2
                 echo "  --context <NAME>  Override the Docker context" >&2
                 echo "  --choose          Interactively select which env files to export" >&2
+                echo "  --encrypt         Encrypt output with SOPS/AGE" >&2
                 echo "  --help, -h        Show this help message" >&2
                 echo "" >&2
                 echo "Examples:" >&2
@@ -736,6 +739,7 @@ __export_env() {
                 echo "  d.rymcg.tech export-env --context myserver" >&2
                 echo "  d.rymcg.tech export-env --choose" >&2
                 echo "  d.rymcg.tech export-env --context myserver > backup.env" >&2
+                echo "  d.rymcg.tech export-env --encrypt > backup.sops.env" >&2
                 exit 0;;
             *) shift;;
         esac
@@ -777,40 +781,64 @@ __export_env() {
         selected_files=("${all_files[@]}")
     fi
 
+    # Resolve encryption recipient if --encrypt
+    local recipients=""
+    if [[ "${encrypt}" == true ]]; then
+        local env_ctx="${ctx}"
+        recipients=$(${BIN}/dotenv -f ".env_${env_ctx}" get SOPS_AGE_RECIPIENTS 2>/dev/null || true)
+        if [[ -z "${recipients}" ]]; then
+            if wizard confirm "SOPS_AGE_RECIPIENTS is not set. Configure it now?" no >&2; then
+                recipients=$(wizard ask "Enter AGE recipient public key (age1...)") || exit 1
+                ${BIN}/reconfigure ".env_${env_ctx}" "SOPS_AGE_RECIPIENTS=${recipients}" >&2
+            else
+                exit 1
+            fi
+        fi
+    fi
+
     # Output selected files
+    local plaintext=""
     local first=true
     for env_file in "${selected_files[@]}"; do
         [[ -f "${env_file}" ]] || continue
         if [[ "${first}" == true ]]; then
             first=false
         else
-            echo
+            plaintext+=$'\n'
         fi
-        echo "## ${env_file}"
+        plaintext+="## ${env_file}"$'\n'
         if [[ "${env_file}" == */* ]]; then
             local basename="${env_file#*/}"
             local instance="${basename#.env_${ctx}_}"
             if [[ "${instance}" == "default" ]]; then
-                ${BIN}/dotenv -f "${env_file}" parse
+                plaintext+=$(${BIN}/dotenv -f "${env_file}" parse)$'\n'
             else
                 while IFS= read -r line; do
                     local key="${line%%=*}"
                     local val="${line#*=}"
-                    echo "__${instance}__${key}=${val}"
+                    plaintext+="__${instance}__${key}=${val}"$'\n'
                 done < <(${BIN}/dotenv -f "${env_file}" parse)
             fi
         else
-            ${BIN}/dotenv -f "${env_file}" parse
+            plaintext+=$(${BIN}/dotenv -f "${env_file}" parse)$'\n'
         fi
     done
+
+    if [[ "${encrypt}" == true ]]; then
+        echo "${plaintext}" | sops encrypt --input-type dotenv --output-type dotenv --filename-override export.env --age "${recipients}" /dev/stdin
+    else
+        echo -n "${plaintext}"
+    fi
 }
 
 __restore_env() {
     local choose=false
+    local decrypt=false
     local file_arg=""
     while [[ $# -gt 0 ]]; do
         case "$1" in
             --choose) choose=true; shift;;
+            --decrypt) decrypt=true; shift;;
             --help|-h)
                 echo "Usage: d.rymcg.tech restore-env [OPTIONS] [FILE]" >&2
                 echo "       d.rymcg.tech export-env | d.rymcg.tech restore-env [OPTIONS]" >&2
@@ -819,12 +847,15 @@ __restore_env() {
                 echo "" >&2
                 echo "Options:" >&2
                 echo "  --choose      Interactively select which env files to restore" >&2
+                echo "  --decrypt     Decrypt SOPS-encrypted input before restoring" >&2
                 echo "  --help, -h    Show this help message" >&2
                 echo "" >&2
                 echo "Examples:" >&2
                 echo "  d.rymcg.tech restore-env backup.env" >&2
                 echo "  d.rymcg.tech restore-env --choose backup.env" >&2
                 echo "  d.rymcg.tech export-env --context old | d.rymcg.tech restore-env" >&2
+                echo "  d.rymcg.tech restore-env --decrypt backup.sops.env" >&2
+                echo "  d.rymcg.tech export-env --encrypt | d.rymcg.tech restore-env --decrypt" >&2
                 exit 0;;
             *) file_arg="$1"; shift;;
         esac
@@ -841,14 +872,20 @@ __restore_env() {
     elif [[ ! -t 0 ]]; then
         input=$(cat)
     else
-        echo "Usage: d.rymcg.tech restore-env [--choose] <FILE>" >&2
+        echo "Usage: d.rymcg.tech restore-env [--choose] [--decrypt] <FILE>" >&2
         echo "       d.rymcg.tech export-env | d.rymcg.tech restore-env [--choose]" >&2
         echo "" >&2
         echo "Examples:" >&2
         echo "  d.rymcg.tech restore-env env_backup.txt" >&2
         echo "  d.rymcg.tech restore-env --choose env_backup.txt" >&2
         echo "  d.rymcg.tech export-env --context old | d.rymcg.tech restore-env" >&2
+        echo "  d.rymcg.tech restore-env --decrypt backup.sops.env" >&2
         exit 1
+    fi
+
+    # Decrypt SOPS-encrypted input if --decrypt
+    if [[ "${decrypt}" == true ]]; then
+        input=$(echo "${input}" | sops decrypt --input-type dotenv --output-type dotenv --filename-override export.env /dev/stdin)
     fi
 
     # Build prefix→project mapping
