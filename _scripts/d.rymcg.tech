@@ -69,6 +69,7 @@ __help() {
         echo -e "image-archive [ARGS ...]\tArchive Docker images to local .tar.gz files"
         echo -e "image-restore [ARGS ...]\tRestore archived Docker images to the server"
         echo -e "export-env\tExport all .env files for current context as flat env vars"
+        echo -e "restore-env [FILE]\tRestore .env files from flat env var input (file or stdin)"
         echo -e "agent\tRun agent readiness tool"
         echo -e "workstation-usb-image\tBuild NixOS disk image for USB"
         echo -e "workstation-usb-install DEV\tInstall NixOS workstation to USB"
@@ -624,6 +625,88 @@ __export_env() {
     done
 }
 
+__restore_env() {
+    local DOCKER_CONTEXT=${DOCKER_CONTEXT:-$(${BIN}/docker_context)}
+    local ctx="${DOCKER_CONTEXT}"
+    cd "${ROOT_DIR}"
+
+    # Read input from file arg or stdin
+    local input
+    if [[ $# -gt 0 && -f "$1" ]]; then
+        input=$(cat "$1")
+    else
+        input=$(cat)
+    fi
+
+    # Build prefix→project mapping
+    declare -A prefix_to_dir
+    for project_dir in */; do
+        local project_name="${project_dir%/}"
+        local env_dist_file="${project_dir}.env-dist"
+        [[ -f "${env_dist_file}" ]] || continue
+        local prefix
+        prefix=$("${BIN}/parse-env-meta.sh" "${env_dist_file}" PREFIX 2>/dev/null) || continue
+        [[ -n "${prefix}" ]] || continue
+        prefix_to_dir["${prefix}"]="${project_name}"
+    done
+
+    # Get known root var names
+    declare -A root_vars
+    while IFS= read -r line; do
+        root_vars["${line%%=*}"]=1
+    done < <(${BIN}/dotenv -f .env-dist parse)
+
+    # Track which files have been initialized with config-dist
+    declare -A initialized
+
+    # Parse input and distribute
+    while IFS= read -r line; do
+        [[ -z "${line}" || "${line}" == "#"* ]] && continue
+        local key="${line%%=*}"
+        local val="${line#*=}"
+
+        # Instance-prefixed var: __<instance>__<PREFIX>_<VAR>
+        if [[ "${key}" == __*__* ]]; then
+            local stripped="${key#__}"
+            local instance="${stripped%%__*}"
+            local original_key="${stripped#*__}"
+            for prefix in "${!prefix_to_dir[@]}"; do
+                if [[ "${original_key}" == "${prefix}_"* ]]; then
+                    local project_name="${prefix_to_dir[${prefix}]}"
+                    local init_key="${project_name}:${instance}"
+                    if [[ -z "${initialized[${init_key}]+set}" ]]; then
+                        initialized["${init_key}"]=1
+                        cp "${project_name}/.env-dist" "${project_name}/.env_${ctx}_${instance}"
+                    fi
+                    ${BIN}/dotenv -f "${project_name}/.env_${ctx}_${instance}" set "${original_key}=${val}"
+                    break
+                fi
+            done
+        # Root var
+        elif [[ -n "${root_vars[${key}]+set}" ]]; then
+            if [[ -z "${initialized[root]+set}" ]]; then
+                initialized["root"]=1
+                cp .env-dist ".env_${ctx}"
+            fi
+            ${BIN}/dotenv -f ".env_${ctx}" set "${key}=${val}"
+        # Default-instance project var
+        else
+            for prefix in "${!prefix_to_dir[@]}"; do
+                if [[ "${key}" == "${prefix}_"* ]]; then
+                    local project_name="${prefix_to_dir[${prefix}]}"
+                    local init_key="${project_name}:default"
+                    if [[ -z "${initialized[${init_key}]+set}" ]]; then
+                        initialized["${init_key}"]=1
+                        cp "${project_name}/.env-dist" "${project_name}/.env_${ctx}_default"
+                    fi
+                    ${BIN}/dotenv -f "${project_name}/.env_${ctx}_default" set "${key}=${val}"
+                    break
+                fi
+            done
+        fi
+    done <<< "${input}"
+}
+
 main() {
     if [[ $# -gt 0 ]]; then
         COMMAND=$1; shift
@@ -732,6 +815,8 @@ main() {
                 fi;;
             export-env)
                 __export_env "$@";;
+            restore-env)
+                __restore_env "$@";;
             droplet|gumdrop)
                 ${BIN}/gumdrop "$@";;
             *)

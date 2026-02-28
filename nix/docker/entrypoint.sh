@@ -40,72 +40,11 @@ docker context create "${DOCKER_CONTEXT}" \
     --docker "host=ssh://${SSH_USER}@${SSH_HOST}:${SSH_PORT}" &>/dev/null || true
 docker context use "${DOCKER_CONTEXT}" &>/dev/null
 
-## Step 4: Create root .env_{DOCKER_CONTEXT} via config-dist, then overlay env vars
+## Step 4: Distribute env vars into .env files via restore-env
 cd "${ROOT_DIR}"
-d.rymcg.tech make - config-dist &>/dev/null
+env | d.rymcg.tech restore-env
 
-while IFS= read -r key; do
-    if [[ -n "${!key+set}" ]]; then
-        d.rymcg.tech make - reconfigure "var=${key}=${!key}" &>/dev/null
-    fi
-done < <(d.rymcg.tech script dotenv -f .env-dist parse | cut -d= -f1)
-
-## Step 5: Distribute prefixed env vars to project .env files
-declare -A prefix_to_dir
-for project_dir in */; do
-    project_name="${project_dir%/}"
-    env_dist_file="${project_dir}.env-dist"
-    [[ -f "${env_dist_file}" ]] || continue
-    prefix=$("${BIN}/parse-env-meta.sh" "${env_dist_file}" PREFIX 2>/dev/null) || continue
-    [[ -n "${prefix}" ]] || continue
-    prefix_to_dir["${prefix}"]="${project_name}"
-done
-
-# Collect which projects need config-dist based on matching env vars
-declare -A projects_to_configure
-for var in $(compgen -v); do
-    for prefix in "${!prefix_to_dir[@]}"; do
-        if [[ "${var}" == "${prefix}_"* ]]; then
-            projects_to_configure["${prefix}"]=1
-            break
-        fi
-    done
-done
-
-# For each matched project, run config-dist then reconfigure matching vars
-for prefix in "${!projects_to_configure[@]}"; do
-    project_name="${prefix_to_dir[${prefix}]}"
-    d.rymcg.tech make "${project_name}" config-dist &>/dev/null
-    for var in $(compgen -v); do
-        if [[ "${var}" == "${prefix}_"* ]]; then
-            d.rymcg.tech make "${project_name}" reconfigure "var=${var}=${!var}" &>/dev/null
-        fi
-    done
-done
-
-## Step 6: Distribute instance-prefixed env vars (__<instance>__<PREFIX>_*)
-declare -A instance_configured
-for var in $(compgen -v); do
-    [[ "${var}" == __*__* ]] || continue
-    stripped="${var#__}"
-    instance="${stripped%%__*}"
-    remainder="${stripped#*__}"
-    [[ -n "${instance}" && -n "${remainder}" ]] || continue
-    for prefix in "${!prefix_to_dir[@]}"; do
-        if [[ "${remainder}" == "${prefix}_"* ]]; then
-            project_name="${prefix_to_dir[${prefix}]}"
-            instance_key="${instance}:${prefix}"
-            if [[ -z "${instance_configured[${instance_key}]+set}" ]]; then
-                instance_configured["${instance_key}"]=1
-                INSTANCE="${instance}" d.rymcg.tech make "${project_name}" config-dist &>/dev/null
-            fi
-            INSTANCE="${instance}" d.rymcg.tech make "${project_name}" reconfigure "var=${remainder}=${!var}" &>/dev/null
-            break
-        fi
-    done
-done
-
-## Step 7: Ensure explicitly requested projects have env files
+## Step 5: Ensure explicitly requested projects have env files
 if [[ -n "${_PROJECTS:-}" ]]; then
     IFS=, read -ra _requested_projects <<< "${_PROJECTS}"
     for project_name in "${_requested_projects[@]}"; do
@@ -116,5 +55,5 @@ if [[ -n "${_PROJECTS:-}" ]]; then
     done
 fi
 
-## Step 7: Exec the command
+## Step 6: Exec the command
 exec "$@"
