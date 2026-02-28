@@ -56,7 +56,7 @@ if [[ -n "${_PROJECTS:-}" ]]; then
     for project_name in "${_requested_projects[@]}"; do
         env_file="${project_name}/.env_${DOCKER_CONTEXT}_default"
         if [[ ! -f "${env_file}" ]]; then
-            d.rymcg.tech make "${project_name}" config-dist &>/dev/null
+            cp "${project_name}/.env-dist" "${env_file}"
         fi
     done
 fi
