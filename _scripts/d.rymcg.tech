@@ -717,12 +717,14 @@ __template_env() {
 __export_env() {
     local choose=false
     local encrypt=false
+    local base64_encode=false
     local ctx=""
     while [[ $# -gt 0 ]]; do
         case "$1" in
             --context) ctx="$2"; shift 2;;
             --choose) choose=true; shift;;
             --encrypt) encrypt=true; shift;;
+            --base64) base64_encode=true; shift;;
             --help|-h)
                 echo "Usage: d.rymcg.tech export-env [OPTIONS]" >&2
                 echo "" >&2
@@ -732,6 +734,7 @@ __export_env() {
                 echo "  --context <NAME>  Override the Docker context" >&2
                 echo "  --choose          Interactively select which env files to export" >&2
                 echo "  --encrypt         Encrypt output with SOPS/AGE" >&2
+                echo "  --base64          Base64-encode the output as a single line" >&2
                 echo "  --help, -h        Show this help message" >&2
                 echo "" >&2
                 echo "Examples:" >&2
@@ -740,6 +743,7 @@ __export_env() {
                 echo "  d.rymcg.tech export-env --choose" >&2
                 echo "  d.rymcg.tech export-env --context myserver > backup.env" >&2
                 echo "  d.rymcg.tech export-env --encrypt > backup.sops.env" >&2
+                echo "  d.rymcg.tech export-env --encrypt --base64" >&2
                 exit 0;;
             *) shift;;
         esac
@@ -824,10 +828,17 @@ __export_env() {
         fi
     done
 
+    local output
     if [[ "${encrypt}" == true ]]; then
-        echo "${plaintext}" | sops encrypt --input-type dotenv --output-type dotenv --filename-override export.env --age "${recipients}" /dev/stdin
+        output=$(echo "${plaintext}" | sops encrypt --input-type dotenv --output-type dotenv --filename-override export.env --age "${recipients}" /dev/stdin)
     else
-        echo -n "${plaintext}"
+        output="${plaintext}"
+    fi
+
+    if [[ "${base64_encode}" == true ]]; then
+        echo -n "${output}" | base64 -w 0
+    else
+        echo -n "${output}"
     fi
 }
 
@@ -877,6 +888,11 @@ __restore_env() {
         echo "  d.rymcg.tech restore-env --choose env_backup.txt" >&2
         echo "  d.rymcg.tech export-env --context old | d.rymcg.tech restore-env" >&2
         exit 1
+    fi
+
+    # Auto-detect base64-encoded input (single line, valid base64 chars)
+    if [[ $(echo "${input}" | wc -l) -eq 1 ]] && echo "${input}" | grep -qE '^[A-Za-z0-9+/=]+$'; then
+        input=$(echo "${input}" | base64 -d)
     fi
 
     # Auto-detect and decrypt SOPS-encrypted input
