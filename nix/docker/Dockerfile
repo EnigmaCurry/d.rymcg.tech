@@ -36,8 +36,11 @@ ENV PATH="/home/user/.nix-profile/bin:${PATH}"
 ENV SSL_CERT_FILE="/home/user/.nix-profile/etc/ssl/certs/ca-bundle.crt"
 ENV NIX_SSL_CERT_FILE="/home/user/.nix-profile/etc/ssl/certs/ca-bundle.crt"
 ENV HOME="/home/user"
-RUN echo 'PS1="\n[d.rymcg.tech|$DOCKER_CONTEXT] \w\n\$ "' > /home/user/.bashrc \
- && ln -s d.rymcg.tech /home/user/git/vendor/enigmacurry/d.rymcg.tech/_scripts/user/d \
+RUN printf '%s\n' \
+  'PS1="\n[d.rymcg.tech|$DOCKER_CONTEXT] \w\n\$ "' \
+  'eval "$(d.rymcg.tech completion bash)"' \
+  '__d.rymcg.tech_cli_alias d' \
+  > /home/user/.bashrc \
  && chown 1000:1000 /home/user/.bashrc
 
 # Copy the d.rymcg.tech repo
