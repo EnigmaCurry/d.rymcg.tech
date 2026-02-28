@@ -1,0 +1,22 @@
+volumes:
+  data:
+  config:
+  logs:
+
+services:
+  openbao:
+    image: ${OPENBAO_IMAGE}
+    cap_add:
+      - IPC_LOCK
+    restart: unless-stopped
+    environment:
+      - BAO_LOCAL_CONFIG={"storage":{"${OPENBAO_STORAGE_BACKEND}":{"path":"/openbao/data"}},"listener":{"tcp":{"address":"0.0.0.0:8200","tls_disable":"${OPENBAO_TLS_DISABLE}"}},"disable_mlock":${OPENBAO_DISABLE_MLOCK},"log_level":"${OPENBAO_LOG_LEVEL}","ui":true,"api_addr":"https://${OPENBAO_TRAEFIK_HOST}"}
+    volumes:
+      - data:/openbao/data
+      - config:/openbao/config
+      - logs:/openbao/logs
+    command: server
+    # All labels are defined in the template: docker-compose.instance.yaml
+    # The labels will merge together here from the template output:
+    #   docker-compose.override_{DOCKER_CONTEXT}_{INSTANCE}.yaml
+    labels: []

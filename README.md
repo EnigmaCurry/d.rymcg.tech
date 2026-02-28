@@ -225,6 +225,7 @@ Install these applications at your preference:
 * [Node-RED](nodered#readme) - a graphical event pipeline editor
 * [Ntfy-sh](ntfy-sh#readme) - a simple HTTP-based pub-sub notification service
 * [Ollama](ollama#readme) - a service API for hosting Large Language Models
+* [OpenBao](openbao#readme) - a secrets management platform (SSH CA, AGE key store, AppRole auth)
 * [Open WebUI](open-webui#readme) - a self-hosted AI platform
 * [Pairdrop](pairdrop#readme) - a webapp (PWA) to send files and messages peer to peer
 * [Peertube](peertube#readme) - a decentralized and federated video platform

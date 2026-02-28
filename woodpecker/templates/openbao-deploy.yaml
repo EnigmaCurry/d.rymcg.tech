@@ -1,4 +1,4 @@
-## Example Woodpecker CI pipeline for deploying whoami
+## Example Woodpecker CI pipeline for multi-service deployment
 ## using the d-rymcg-tech workstation Docker image with OpenBao.
 ##
 ## The d-rymcg-tech entrypoint handles all auth, decryption, and SSH
@@ -10,11 +10,24 @@
 ##   BAO_SECRET_ID  - AppRole secret ID
 ##   BAO_CACERT     - CA cert for OpenBao TLS (if using private CA)
 ##
+## Optional Woodpecker secrets:
+##   BAO_CLIENT_CERT - mTLS client cert (if OpenBao uses mTLS)
+##   BAO_CLIENT_KEY  - mTLS client key  (if OpenBao uses mTLS)
+##   BAO_NAMESPACE   - OpenBao namespace (if using namespaces)
+##
 ## Required files in repo:
 ##   config/my-server.sops.env - SOPS-encrypted env export
 ##     (created with: d export-env --encrypt > config/my-server.sops.env)
 
 steps:
+  - name: deploy-traefik
+    image: d-rymcg-tech
+    secrets: [bao_url, bao_role_id, bao_secret_id, bao_cacert]
+    environment:
+      SOPS_CONFIG_FILE: ${CI_WORKSPACE}/config/my-server.sops.env
+    commands:
+      - d.rymcg.tech make traefik install
+
   - name: deploy-whoami
     image: d-rymcg-tech
     secrets: [bao_url, bao_role_id, bao_secret_id, bao_cacert]
@@ -23,18 +36,11 @@ steps:
     commands:
       - d.rymcg.tech make whoami install
 
-  - name: wait-whoami
+  - name: verify
     image: d-rymcg-tech
     secrets: [bao_url, bao_role_id, bao_secret_id, bao_cacert]
     environment:
       SOPS_CONFIG_FILE: ${CI_WORKSPACE}/config/my-server.sops.env
     commands:
       - d.rymcg.tech make whoami wait
-
-  - name: print-url
-    image: d-rymcg-tech
-    secrets: [bao_url, bao_role_id, bao_secret_id, bao_cacert]
-    environment:
-      SOPS_CONFIG_FILE: ${CI_WORKSPACE}/config/my-server.sops.env
-    commands:
-      - echo https://$(d make whoami dotenv_get var=WHOAMI_TRAEFIK_HOST)
+      - echo "Deployed to https://$(d make whoami dotenv_get var=WHOAMI_TRAEFIK_HOST)"

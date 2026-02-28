@@ -845,10 +845,14 @@ __export_env() {
 
 __restore_env() {
     local choose=false
+    local yes=false
+    local force_decrypt=false
     local file_arg=""
     while [[ $# -gt 0 ]]; do
         case "$1" in
             --choose) choose=true; shift;;
+            --yes) yes=true; shift;;
+            --decrypt) force_decrypt=true; shift;;
             --help|-h)
                 echo "Usage: d.rymcg.tech restore-env [OPTIONS] [FILE]" >&2
                 echo "       d.rymcg.tech export-env | d.rymcg.tech restore-env [OPTIONS]" >&2
@@ -858,11 +862,15 @@ __restore_env() {
                 echo "" >&2
                 echo "Options:" >&2
                 echo "  --choose      Interactively select which env files to restore" >&2
+                echo "  --yes         Skip confirmation prompt" >&2
+                echo "  --decrypt     Explicitly force SOPS decryption" >&2
                 echo "  --help, -h    Show this help message" >&2
                 echo "" >&2
                 echo "Examples:" >&2
                 echo "  d.rymcg.tech restore-env backup.env" >&2
                 echo "  d.rymcg.tech restore-env --choose backup.env" >&2
+                echo "  d.rymcg.tech restore-env --yes backup.env" >&2
+                echo "  d.rymcg.tech restore-env --decrypt backup.sops.env" >&2
                 echo "  d.rymcg.tech export-env --context old | d.rymcg.tech restore-env" >&2
                 echo "  d.rymcg.tech export-env --encrypt | d.rymcg.tech restore-env" >&2
                 exit 0;;
@@ -897,7 +905,7 @@ __restore_env() {
     fi
 
     # Auto-detect and decrypt SOPS-encrypted input
-    if echo "${input}" | grep -q '^sops_version='; then
+    if [[ "${force_decrypt}" == true ]] || echo "${input}" | grep -q '^sops_version='; then
         input=$(echo "${input}" | sops decrypt --input-type dotenv --output-type dotenv --filename-override export.env /dev/stdin)
     fi
 
@@ -1005,9 +1013,11 @@ __restore_env() {
     done
     echo "" >&2
 
-    if ! wizard confirm "Restore these env files?" no; then
-        echo "Cancelled." >&2
-        exit 1
+    if [[ "${yes}" != true ]]; then
+        if ! wizard confirm "Restore these env files?" no; then
+            echo "Cancelled." >&2
+            exit 1
+        fi
     fi
     echo "" >&2
 

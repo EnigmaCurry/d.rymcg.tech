@@ -36,7 +36,8 @@ Starter `.woodpecker.yaml` templates for common CI/CD workflows with
 | [`test-service.yaml`](test-service.yaml)                   | Run HTTP health checks against a deployed service             | _(none)_                                                                                      |
 | [`build-and-deploy.yaml`](build-and-deploy.yaml)           | Full CI/CD: build, push, deploy, notify on failure            | `registry_username`, `registry_password`, `ssh_key`, `deploy_host`, `deploy_user`, `ntfy_url` |
 | [`notify.yaml`](notify.yaml)                               | Send notifications via ntfy.sh on success/failure             | `ntfy_url`, optionally `ntfy_token`                                                           |
-| [`whoami.yaml`](whoami.yaml)                               | Deploy whoami with d.rymcg.tech from SOPS-encrypted env       | `sops_age_key`                                                                                |
+| [`whoami.yaml`](whoami.yaml)                               | Deploy whoami with d.rymcg.tech via OpenBao                   | `bao_url`, `bao_role_id`, `bao_secret_id`, `bao_cacert`                                      |
+| [`openbao-deploy.yaml`](openbao-deploy.yaml)               | Multi-service deployment via OpenBao                          | `bao_url`, `bao_role_id`, `bao_secret_id`, `bao_cacert`                                      |
 
 ## Setting up secrets
 

@@ -1,0 +1,143 @@
+# OpenBao
+
+[OpenBao](https://openbao.org/) is an open-source secrets management
+platform (a fork of HashiCorp Vault, API-compatible with the v1 API).
+It provides centralized secrets storage, dynamic credentials, and
+identity-based access.
+
+In this d.rymcg.tech deployment, OpenBao serves as:
+
+- **SSH Certificate Authority** — issues short-lived SSH certificates
+  for CI/CD pipelines (no static SSH keys).
+- **AGE key store** — holds the AGE private key used to decrypt
+  SOPS-encrypted configuration files.
+- **AppRole auth** — machine-friendly authentication for Woodpecker CI
+  agents.
+
+## Setup
+
+```bash
+## Configure the OpenBao env:
+d.rymcg.tech make openbao config
+
+## Install OpenBao:
+d.rymcg.tech make openbao install
+```
+
+## Initialization
+
+After first install, OpenBao must be initialized and unsealed:
+
+```bash
+## Initialize (save the unseal keys and root token securely!):
+d.rymcg.tech make openbao init
+
+## Unseal (must provide threshold number of unseal keys):
+d.rymcg.tech make openbao unseal
+
+## Check seal status:
+d.rymcg.tech make openbao seal-status
+```
+
+**Important:** Store the unseal keys and root token in a secure
+offline password manager (e.g., KeePassXC). You will need the unseal
+keys every time OpenBao restarts.
+
+## SSH Certificate Authority
+
+Set up OpenBao as an SSH CA so CI/CD pipelines can obtain short-lived
+SSH certificates:
+
+```bash
+## Enable the SSH secrets engine:
+d.rymcg.tech make openbao enable-ssh-engine
+
+## Generate the CA signing key:
+d.rymcg.tech make openbao configure-ssh-ca
+
+## Get the CA public key (add this to your servers):
+d.rymcg.tech make openbao get-ssh-ca-public-key
+
+## Create a signing role for CI/CD (15-minute TTL):
+d.rymcg.tech make openbao create-ssh-role
+```
+
+### Server sshd configuration
+
+On each target server, add the CA public key to
+`/etc/ssh/trusted_user_ca_keys`:
+
+```bash
+## On the target server:
+echo "<CA_PUBLIC_KEY>" > /etc/ssh/trusted_user_ca_keys
+
+## Add to /etc/ssh/sshd_config:
+echo "TrustedUserCAKeys /etc/ssh/trusted_user_ca_keys" >> /etc/ssh/sshd_config
+
+## Restart sshd:
+systemctl restart sshd
+```
+
+## AGE Key for SOPS
+
+Store the AGE private key in OpenBao's KV secrets engine:
+
+```bash
+## Using the bao CLI or curl:
+## (Replace AGE-SECRET-KEY-... with your actual key)
+bao kv put secret/sops/age-key key="AGE-SECRET-KEY-..."
+```
+
+The d.rymcg.tech container entrypoint will retrieve this key
+automatically when `BAO_URL` is set.
+
+## AppRole Authentication
+
+Enable AppRole auth so Woodpecker CI can authenticate:
+
+```bash
+## Enable AppRole:
+d.rymcg.tech make openbao enable-approle
+
+## Create a policy (via bao CLI):
+bao policy write woodpecker-ci - <<EOF
+# Read AGE key for SOPS decryption
+path "secret/data/sops/age-key" {
+  capabilities = ["read"]
+}
+
+# Sign SSH public keys
+path "ssh-client-signer/sign/woodpecker-short-lived" {
+  capabilities = ["create", "update"]
+}
+EOF
+
+## Create the AppRole role:
+bao write auth/approle/role/woodpecker-ci \
+    token_policies="woodpecker-ci" \
+    token_ttl=20m \
+    token_max_ttl=30m \
+    secret_id_ttl=0
+
+## Get the role ID (store in Woodpecker secrets as BAO_ROLE_ID):
+bao read auth/approle/role/woodpecker-ci/role-id
+
+## Generate a secret ID (store in Woodpecker secrets as BAO_SECRET_ID):
+bao write -f auth/approle/role/woodpecker-ci/secret-id
+```
+
+## Woodpecker CI Integration
+
+Add these secrets to your Woodpecker CI repository:
+
+| Secret | Description |
+|--------|-------------|
+| `bao_url` | OpenBao server URL (e.g., `https://bao.example.com`) |
+| `bao_role_id` | AppRole role ID |
+| `bao_secret_id` | AppRole secret ID |
+| `bao_cacert` | CA cert for TLS (if using private CA) |
+| `bao_client_cert` | mTLS client cert (if using mTLS) |
+| `bao_client_key` | mTLS client key (if using mTLS) |
+
+See the [Woodpecker templates](../woodpecker/templates/) for example
+pipeline configurations.
