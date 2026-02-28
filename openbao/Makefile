@@ -49,33 +49,31 @@ seal-status:
 enable-ssh-engine:
 	@echo "Enter the root token:"; \
 	read -rs BAO_TOKEN; \
-	make --no-print-directory docker-compose-shell SERVICE=openbao COMMAND="sh -c 'export BAO_TOKEN=$${BAO_TOKEN} && bao secrets enable -path=ssh-client-signer ssh'"
+	make --no-print-directory docker-compose-shell SERVICE=openbao COMMAND="BAO_TOKEN=$${BAO_TOKEN} bao secrets enable -path=ssh-client-signer ssh"
 
 .PHONY: configure-ssh-ca # Generate SSH CA signing key
 configure-ssh-ca:
 	@echo "Enter the root token:"; \
 	read -rs BAO_TOKEN; \
-	make --no-print-directory docker-compose-shell SERVICE=openbao COMMAND="sh -c 'export BAO_TOKEN=$${BAO_TOKEN} && bao write ssh-client-signer/config/ca generate_signing_key=true'"
+	make --no-print-directory docker-compose-shell SERVICE=openbao COMMAND="BAO_TOKEN=$${BAO_TOKEN} bao write ssh-client-signer/config/ca generate_signing_key=true"
 
 .PHONY: get-ssh-ca-public-key # Output the SSH CA public key (for server TrustedUserCAKeys)
 get-ssh-ca-public-key:
-	@make --no-print-directory docker-compose-shell SERVICE=openbao COMMAND="cat /openbao/data/ssh-client-signer-ca-public-key" 2>/dev/null || \
-	echo "Run 'make configure-ssh-ca' first to generate the CA key." >&2; \
-	echo "Enter the root token:"; \
+	@echo "Enter the root token:"; \
 	read -rs BAO_TOKEN; \
-	make --no-print-directory docker-compose-shell SERVICE=openbao COMMAND="sh -c 'export BAO_TOKEN=$${BAO_TOKEN} && curl -s http://127.0.0.1:8200/v1/ssh-client-signer/public_key'"
+	make --no-print-directory docker-compose-shell SERVICE=openbao COMMAND="BAO_TOKEN=$${BAO_TOKEN} curl -s http://127.0.0.1:8200/v1/ssh-client-signer/public_key"
 
 .PHONY: create-ssh-role # Create SSH signing role (woodpecker-short-lived, 15m TTL, ed25519)
 create-ssh-role:
 	@echo "Enter the root token:"; \
 	read -rs BAO_TOKEN; \
-	make --no-print-directory docker-compose-shell SERVICE=openbao COMMAND="sh -c 'export BAO_TOKEN=$${BAO_TOKEN} && bao write ssh-client-signer/roles/woodpecker-short-lived - <<ROLE_EOF\n{\"allow_user_certificates\": true, \"allowed_users\": \"*\", \"default_extensions\": {\"permit-pty\": \"\"}, \"key_type\": \"ca\", \"default_user\": \"root\", \"ttl\": \"15m\", \"max_ttl\": \"30m\", \"algorithm_signer\": \"default\"}\nROLE_EOF'"
+	make --no-print-directory docker-compose-shell SERVICE=openbao COMMAND="BAO_TOKEN=$${BAO_TOKEN} bao write ssh-client-signer/roles/woodpecker-short-lived allow_user_certificates=true allowed_users=* default_extensions=permit-pty key_type=ca default_user=root ttl=15m max_ttl=30m algorithm_signer=default"
 
 .PHONY: enable-approle # Enable AppRole auth method
 enable-approle:
 	@echo "Enter the root token:"; \
 	read -rs BAO_TOKEN; \
-	make --no-print-directory docker-compose-shell SERVICE=openbao COMMAND="sh -c 'export BAO_TOKEN=$${BAO_TOKEN} && bao auth enable approle'"
+	make --no-print-directory docker-compose-shell SERVICE=openbao COMMAND="BAO_TOKEN=$${BAO_TOKEN} bao auth enable approle"
 
 .PHONY: install-hook
 install-hook:
