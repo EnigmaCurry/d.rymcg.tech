@@ -61,7 +61,7 @@ configure-ssh-ca:
 get-ssh-ca-public-key:
 	@echo "Enter the root token:"; \
 	read -rs BAO_TOKEN; \
-	make --no-print-directory docker-compose-shell SERVICE=openbao COMMAND="BAO_TOKEN=$${BAO_TOKEN} curl -s http://127.0.0.1:8200/v1/ssh-client-signer/public_key"
+	make --no-print-directory docker-compose-shell SERVICE=openbao COMMAND="BAO_TOKEN=$${BAO_TOKEN} bao read -field=public_key ssh-client-signer/config/ca"
 
 .PHONY: create-ssh-role # Create SSH signing role (woodpecker-short-lived, 15m TTL, ed25519)
 create-ssh-role:
