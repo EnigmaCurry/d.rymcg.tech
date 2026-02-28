@@ -593,6 +593,13 @@ __completion() {
 }
 
 __template_env() {
+    if [[ $# -eq 0 ]]; then
+        echo "Usage: d.rymcg.tech template-env KEY=VALUE [KEY=VALUE ...]" >&2
+        echo "" >&2
+        echo "Example:" >&2
+        echo "  d.rymcg.tech template-env ROOT_DOMAIN=d.example.com WHOAMI_TRAEFIK_HOST=whoami.d.example.com" >&2
+        exit 1
+    fi
     # Export any KEY=VALUE arguments as env vars
     for arg in "$@"; do
         if [[ "${arg}" == *=* ]]; then
