@@ -26,6 +26,7 @@ Encrypt the export with [SOPS](https://github.com/getsops/sops) and
 
 ```bash
 ## Generate an age key on a separate secure machine (not your everyday workstation):
+mkdir -p ~/.config/sops/age
 age-keygen -o ~/.config/sops/age/keys.txt
 
 ## Export encrypted (will prompt for the age public key if not already set):
