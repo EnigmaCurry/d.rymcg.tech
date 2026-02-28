@@ -786,22 +786,32 @@ __export_env() {
 }
 
 __restore_env() {
+    local choose=false
+    local file_arg=""
+    while [[ $# -gt 0 ]]; do
+        case "$1" in
+            --choose) choose=true; shift;;
+            *) file_arg="$1"; shift;;
+        esac
+    done
+
     local DOCKER_CONTEXT=${DOCKER_CONTEXT:-$(${BIN}/docker_context)}
     local ctx="${DOCKER_CONTEXT}"
     cd "${ROOT_DIR}"
 
     # Read input from file arg or stdin
     local input
-    if [[ $# -gt 0 && -f "$1" ]]; then
-        input=$(cat "$1")
+    if [[ -n "${file_arg}" && -f "${file_arg}" ]]; then
+        input=$(cat "${file_arg}")
     elif [[ ! -t 0 ]]; then
         input=$(cat)
     else
-        echo "Usage: d.rymcg.tech restore-env <FILE>" >&2
-        echo "       d.rymcg.tech export-env | d.rymcg.tech restore-env" >&2
+        echo "Usage: d.rymcg.tech restore-env [--choose] <FILE>" >&2
+        echo "       d.rymcg.tech export-env | d.rymcg.tech restore-env [--choose]" >&2
         echo "" >&2
         echo "Examples:" >&2
         echo "  d.rymcg.tech restore-env env_backup.txt" >&2
+        echo "  d.rymcg.tech restore-env --choose env_backup.txt" >&2
         echo "  d.rymcg.tech export-env --context old | d.rymcg.tech restore-env" >&2
         exit 1
     fi
@@ -883,6 +893,21 @@ __restore_env() {
     if [[ ${#file_order[@]} -eq 0 ]]; then
         echo "No matching env vars found." >&2
         return 0
+    fi
+
+    # Let user choose which files to restore
+    if [[ "${choose}" == true ]]; then
+        local default_json
+        default_json=$(printf '%s\n' "${file_order[@]}" | jq -R . | jq -s -c .)
+        local selection
+        selection=$(wizard select --cancel-code=2 --default "${default_json}" \
+            "Select env files to restore:" "${file_order[@]}") || {
+            local rc=$?
+            [[ ${rc} -eq 2 ]] && echo "Cancelled." >&2
+            exit 1
+        }
+        readarray -t file_order <<< "${selection}"
+        echo "" >&2
     fi
 
     echo "## Files to restore:" >&2
