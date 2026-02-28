@@ -816,10 +816,11 @@ __restore_env() {
         root_vars["${line%%=*}"]=1
     done < <(${BIN}/dotenv -f .env-dist parse)
 
-    # Track which files have been initialized with config-dist
-    declare -A initialized
+    # First pass: collect which files will be written and their vars
+    declare -A file_vars  # "file" → "key=val\nkey=val\n..."
+    declare -a file_order=()
+    declare -A file_seen
 
-    # Parse input and distribute
     while IFS= read -r line; do
         [[ -z "${line}" || "${line}" == "#"* ]] && continue
         local key="${line%%=*}"
@@ -833,39 +834,90 @@ __restore_env() {
             for prefix in "${!prefix_to_dir[@]}"; do
                 if [[ "${original_key}" == "${prefix}_"* ]]; then
                     local project_name="${prefix_to_dir[${prefix}]}"
-                    local init_key="${project_name}:${instance}"
-                    if [[ -z "${initialized[${init_key}]+set}" ]]; then
-                        initialized["${init_key}"]=1
-                        cp "${project_name}/.env-dist" "${project_name}/.env_${ctx}_${instance}"
-                        ${BIN}/dotenv -f "${project_name}/.env_${ctx}_${instance}" set "${prefix}_INSTANCE=${instance}"
+                    local target_file="${project_name}/.env_${ctx}_${instance}"
+                    if [[ -z "${file_seen[${target_file}]+set}" ]]; then
+                        file_seen["${target_file}"]=1
+                        file_order+=("${target_file}")
+                        file_vars["${target_file}"]="__instance__=${instance}|__prefix__=${prefix}"
                     fi
-                    ${BIN}/reconfigure "${project_name}/.env_${ctx}_${instance}" "${original_key}=${val}" >&2
+                    file_vars["${target_file}"]+=$'\n'"${original_key}=${val}"
                     break
                 fi
             done
         # Root var
         elif [[ -n "${root_vars[${key}]+set}" ]]; then
-            if [[ -z "${initialized[root]+set}" ]]; then
-                initialized["root"]=1
-                cp .env-dist ".env_${ctx}"
+            local target_file=".env_${ctx}"
+            if [[ -z "${file_seen[${target_file}]+set}" ]]; then
+                file_seen["${target_file}"]=1
+                file_order+=("${target_file}")
+                file_vars["${target_file}"]="__type__=root"
             fi
-            ${BIN}/reconfigure ".env_${ctx}" "${key}=${val}" >&2
+            file_vars["${target_file}"]+=$'\n'"${key}=${val}"
         # Default-instance project var
         else
             for prefix in "${!prefix_to_dir[@]}"; do
                 if [[ "${key}" == "${prefix}_"* ]]; then
                     local project_name="${prefix_to_dir[${prefix}]}"
-                    local init_key="${project_name}:default"
-                    if [[ -z "${initialized[${init_key}]+set}" ]]; then
-                        initialized["${init_key}"]=1
-                        cp "${project_name}/.env-dist" "${project_name}/.env_${ctx}_default"
+                    local target_file="${project_name}/.env_${ctx}_default"
+                    if [[ -z "${file_seen[${target_file}]+set}" ]]; then
+                        file_seen["${target_file}"]=1
+                        file_order+=("${target_file}")
+                        file_vars["${target_file}"]="__type__=default"
                     fi
-                    ${BIN}/reconfigure "${project_name}/.env_${ctx}_default" "${key}=${val}" >&2
+                    file_vars["${target_file}"]+=$'\n'"${key}=${val}"
                     break
                 fi
             done
         fi
     done <<< "${input}"
+
+    # Show summary and confirm
+    if [[ ${#file_order[@]} -eq 0 ]]; then
+        echo "No matching env vars found." >&2
+        return 0
+    fi
+
+    echo "## Files to restore:" >&2
+    for f in "${file_order[@]}"; do
+        echo "  ${f}" >&2
+    done
+    echo "" >&2
+
+    if ! wizard confirm --default=no "Restore these env files?"; then
+        echo "Cancelled." >&2
+        exit 1
+    fi
+    echo "" >&2
+
+    # Second pass: write files
+    for target_file in "${file_order[@]}"; do
+        local data="${file_vars[${target_file}]}"
+        local first_line="${data%%$'\n'*}"
+        local rest="${data#*$'\n'}"
+
+        echo "## Restoring ${target_file}" >&2
+
+        if [[ "${first_line}" == "__type__=root" ]]; then
+            cp .env-dist "${target_file}"
+        elif [[ "${first_line}" == "__type__=default" ]]; then
+            local project_name="${target_file%%/*}"
+            cp "${project_name}/.env-dist" "${target_file}"
+        elif [[ "${first_line}" == __instance__=* ]]; then
+            local instance="${first_line#__instance__=}"
+            instance="${instance%%|*}"
+            local prefix="${first_line#*__prefix__=}"
+            local project_name="${target_file%%/*}"
+            cp "${project_name}/.env-dist" "${target_file}"
+            ${BIN}/dotenv -f "${target_file}" set "${prefix}_INSTANCE=${instance}"
+        fi
+
+        while IFS= read -r varline; do
+            [[ -z "${varline}" ]] && continue
+            ${BIN}/reconfigure "${target_file}" "${varline}" >&2
+        done <<< "${rest}"
+
+        echo "" >&2
+    done
 }
 
 main() {
