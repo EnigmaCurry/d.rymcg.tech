@@ -715,35 +715,72 @@ __template_env() {
 }
 
 __export_env() {
-    local DOCKER_CONTEXT=${DOCKER_CONTEXT:-$(${BIN}/docker_context)}
-    local ctx="${DOCKER_CONTEXT}"
+    local choose=false
+    local ctx=""
+    while [[ $# -gt 0 ]]; do
+        case "$1" in
+            --context) ctx="$2"; shift 2;;
+            --choose) choose=true; shift;;
+            *) shift;;
+        esac
+    done
+    if [[ -z "${ctx}" ]]; then
+        ctx="${DOCKER_CONTEXT:-$(${BIN}/docker_context)}"
+    fi
     cd "${ROOT_DIR}"
 
-    # Root env file
+    # Collect all env files for this context
+    local -a all_files=()
     local root_env=".env_${ctx}"
     if [[ -f "${root_env}" ]]; then
-        echo "## ${root_env}"
-        ${BIN}/dotenv -f "${root_env}" parse
+        all_files+=("${root_env}")
     fi
-
-    # Project env files
     for env_file in */.env_${ctx}_*; do
         [[ -f "${env_file}" ]] || continue
-        local project_dir="${env_file%%/*}"
-        local basename="${env_file#*/}"
-        # Strip .env_${ctx}_ prefix to get instance name
-        local instance="${basename#.env_${ctx}_}"
+        all_files+=("${env_file}")
+    done
 
-        echo
-        echo "## ${env_file}"
-        if [[ "${instance}" == "default" ]]; then
-            ${BIN}/dotenv -f "${env_file}" parse
+    # Let user choose which files to export
+    local -a selected_files=()
+    if [[ "${choose}" == true && ${#all_files[@]} -gt 0 ]]; then
+        local default_json
+        default_json=$(printf '%s\n' "${all_files[@]}" | jq -R . | jq -s -c .)
+        local selection
+        selection=$(wizard select --cancel-code=2 --default "${default_json}" \
+            "Select env files to export:" "${all_files[@]}") || {
+            local rc=$?
+            [[ ${rc} -eq 2 ]] && exit 1
+            exit ${rc}
+        }
+        readarray -t selected_files <<< "${selection}"
+    else
+        selected_files=("${all_files[@]}")
+    fi
+
+    # Output selected files
+    local first=true
+    for env_file in "${selected_files[@]}"; do
+        [[ -f "${env_file}" ]] || continue
+        if [[ "${first}" == true ]]; then
+            first=false
         else
-            while IFS= read -r line; do
-                local key="${line%%=*}"
-                local val="${line#*=}"
-                echo "__${instance}__${key}=${val}"
-            done < <(${BIN}/dotenv -f "${env_file}" parse)
+            echo
+        fi
+        echo "## ${env_file}"
+        if [[ "${env_file}" == */* ]]; then
+            local basename="${env_file#*/}"
+            local instance="${basename#.env_${ctx}_}"
+            if [[ "${instance}" == "default" ]]; then
+                ${BIN}/dotenv -f "${env_file}" parse
+            else
+                while IFS= read -r line; do
+                    local key="${line%%=*}"
+                    local val="${line#*=}"
+                    echo "__${instance}__${key}=${val}"
+                done < <(${BIN}/dotenv -f "${env_file}" parse)
+            fi
+        else
+            ${BIN}/dotenv -f "${env_file}" parse
         fi
     done
 }
