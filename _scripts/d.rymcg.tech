@@ -702,11 +702,11 @@ __template_env() {
                 while IFS= read -r line; do
                     local key="${line%%=*}"
                     if [[ "${key}" == "${prefix}_INSTANCE" ]]; then
-                        echo "${key}=${instance}"
+                        echo "__${instance}__${key}=${instance}"
                     elif [[ -n "${instance_vars[${instance}:${key}]+set}" ]]; then
-                        echo "${key}=${instance_vars[${instance}:${key}]}"
+                        echo "__${instance}__${key}=${instance_vars[${instance}:${key}]}"
                     else
-                        echo "${line}"
+                        echo "__${instance}__${line}"
                     fi
                 done < <(${BIN}/dotenv -f "${env_dist}" parse)
             done
