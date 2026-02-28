@@ -593,6 +593,12 @@ __completion() {
 }
 
 __template_env() {
+    # Export any KEY=VALUE arguments as env vars
+    for arg in "$@"; do
+        if [[ "${arg}" == *=* ]]; then
+            export "${arg}"
+        fi
+    done
     cd "${ROOT_DIR}"
     local ctx="${DOCKER_CONTEXT:-template}"
     local projects_csv="${_PROJECTS:-}"
