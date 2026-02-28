@@ -48,9 +48,15 @@ d.rymcg.tech make openbao unseal
 d.rymcg.tech make openbao seal-status
 ```
 
-**Important:** Store the unseal keys and root token in a secure
-offline password manager (e.g., KeePassXC). You will need the unseal
-keys every time OpenBao restarts.
+**Important:** Save both values in a secure offline password manager
+(e.g., KeePassXC):
+
+- **Unseal key** — required every time OpenBao restarts (it always
+  starts sealed). Without it, all stored secrets are permanently
+  inaccessible.
+- **Root token** — the initial admin credential for configuring
+  OpenBao (enabling engines, creating policies, AppRoles). Can be
+  revoked after setup, but is needed for all initial configuration.
 
 ## SSH Certificate Authority
 
