@@ -83,5 +83,16 @@ for prefix in "${!projects_to_configure[@]}"; do
     done
 done
 
-## Step 6: Exec the command
+## Step 6: Ensure explicitly requested projects have env files
+if [[ -n "${_PROJECTS:-}" ]]; then
+    IFS=, read -ra _requested_projects <<< "${_PROJECTS}"
+    for project_name in "${_requested_projects[@]}"; do
+        env_file="${project_name}/.env_${DOCKER_CONTEXT}_default"
+        if [[ ! -f "${env_file}" ]]; then
+            d.rymcg.tech make "${project_name}" config-dist &>/dev/null
+        fi
+    done
+fi
+
+## Step 7: Exec the command
 exec "$@"
