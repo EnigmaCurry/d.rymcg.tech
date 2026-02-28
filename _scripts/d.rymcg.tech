@@ -677,6 +677,7 @@ __restore_env() {
                     if [[ -z "${initialized[${init_key}]+set}" ]]; then
                         initialized["${init_key}"]=1
                         cp "${project_name}/.env-dist" "${project_name}/.env_${ctx}_${instance}"
+                        ${BIN}/dotenv -f "${project_name}/.env_${ctx}_${instance}" set "${prefix}_INSTANCE=${instance}"
                     fi
                     ${BIN}/dotenv -f "${project_name}/.env_${ctx}_${instance}" set "${original_key}=${val}"
                     break
