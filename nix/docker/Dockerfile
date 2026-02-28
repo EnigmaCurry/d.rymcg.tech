@@ -36,6 +36,7 @@ ENV PATH="/home/user/.nix-profile/bin:${PATH}"
 ENV SSL_CERT_FILE="/home/user/.nix-profile/etc/ssl/certs/ca-bundle.crt"
 ENV NIX_SSL_CERT_FILE="/home/user/.nix-profile/etc/ssl/certs/ca-bundle.crt"
 ENV HOME="/home/user"
+ENV PS1="[d.rymcg.tech|\$DOCKER_CONTEXT] \w\n\$ "
 
 # Copy the d.rymcg.tech repo
 COPY --chown=1000:1000 . /home/user/git/vendor/enigmacurry/d.rymcg.tech
