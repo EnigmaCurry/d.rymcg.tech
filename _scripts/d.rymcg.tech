@@ -679,7 +679,7 @@ __restore_env() {
                         cp "${project_name}/.env-dist" "${project_name}/.env_${ctx}_${instance}"
                         ${BIN}/dotenv -f "${project_name}/.env_${ctx}_${instance}" set "${prefix}_INSTANCE=${instance}"
                     fi
-                    ${BIN}/dotenv -f "${project_name}/.env_${ctx}_${instance}" set "${original_key}=${val}"
+                    ${BIN}/reconfigure "${project_name}/.env_${ctx}_${instance}" "${original_key}=${val}"
                     break
                 fi
             done
@@ -689,7 +689,7 @@ __restore_env() {
                 initialized["root"]=1
                 cp .env-dist ".env_${ctx}"
             fi
-            ${BIN}/dotenv -f ".env_${ctx}" set "${key}=${val}"
+            ${BIN}/reconfigure ".env_${ctx}" "${key}=${val}"
         # Default-instance project var
         else
             for prefix in "${!prefix_to_dir[@]}"; do
@@ -700,7 +700,7 @@ __restore_env() {
                         initialized["${init_key}"]=1
                         cp "${project_name}/.env-dist" "${project_name}/.env_${ctx}_default"
                     fi
-                    ${BIN}/dotenv -f "${project_name}/.env_${ctx}_default" set "${key}=${val}"
+                    ${BIN}/reconfigure "${project_name}/.env_${ctx}_default" "${key}=${val}"
                     break
                 fi
             done
