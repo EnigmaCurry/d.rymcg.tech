@@ -25,13 +25,16 @@ mkdir -p "${KEY_DIR}" ~/.ssh && chmod 700 "${KEY_DIR}" ~/.ssh
 if [[ ! -f "${KEY_DIR}/id_ed25519" ]]; then
     ssh-keygen -t ed25519 -N "" -f "${KEY_DIR}/id_ed25519" -q
 fi
+if [[ "${SSH_KEY_SCAN}" != "false" ]]; then
+    ssh-keyscan -p "${SSH_PORT}" "${SSH_HOST}" >> "${KEY_DIR}/known_hosts" 2>/dev/null
+fi
 cat > ~/.ssh/config <<EOF
 Host ${DOCKER_CONTEXT}
     HostName ${SSH_HOST}
     User ${SSH_USER}
     Port ${SSH_PORT}
-    StrictHostKeyChecking no
     IdentityFile ${KEY_DIR}/id_ed25519
+    UserKnownHostsFile ${KEY_DIR}/known_hosts
 EOF
 chmod 600 ~/.ssh/config
 
