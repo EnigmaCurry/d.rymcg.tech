@@ -70,6 +70,7 @@ __help() {
         echo -e "image-restore [ARGS ...]\tRestore archived Docker images to the server"
         echo -e "export-env\tExport all .env files for current context as flat env vars"
         echo -e "restore-env [FILE]\tRestore .env files from flat env var input (file or stdin)"
+        echo -e "template-env\tStateless preview of env files from env var overrides (no file writes)"
         echo -e "agent\tRun agent readiness tool"
         echo -e "workstation-usb-image\tBuild NixOS disk image for USB"
         echo -e "workstation-usb-install DEV\tInstall NixOS workstation to USB"
@@ -591,6 +592,98 @@ __completion() {
     fi
 }
 
+__template_env() {
+    cd "${ROOT_DIR}"
+    local ctx="${DOCKER_CONTEXT:-template}"
+    local projects_csv="${_PROJECTS:-}"
+
+    # Build prefix→project and reverse mappings
+    declare -A prefix_to_dir
+    declare -A dir_to_prefix
+    for project_dir in */; do
+        local project_name="${project_dir%/}"
+        local env_dist="${project_dir}.env-dist"
+        [[ -f "${env_dist}" ]] || continue
+        local prefix
+        prefix=$("${BIN}/parse-env-meta.sh" "${env_dist}" PREFIX 2>/dev/null) || continue
+        [[ -n "${prefix}" ]] || continue
+        prefix_to_dir["${prefix}"]="${project_name}"
+        dir_to_prefix["${project_name}"]="${prefix}"
+    done
+
+    # Collect instance overrides: __<instance>__<KEY>=val
+    declare -A instance_vars
+    declare -A project_instances
+    while IFS='=' read -r key val; do
+        if [[ "${key}" == __*__* ]]; then
+            local stripped="${key#__}"
+            local instance="${stripped%%__*}"
+            local original_key="${stripped#*__}"
+            instance_vars["${instance}:${original_key}"]="${val}"
+            for prefix in "${!prefix_to_dir[@]}"; do
+                if [[ "${original_key}" == "${prefix}_"* ]]; then
+                    local pname="${prefix_to_dir[${prefix}]}"
+                    if [[ " ${project_instances[${pname}]:-} " != *" ${instance} "* ]]; then
+                        project_instances["${pname}"]="${project_instances[${pname}]:-} ${instance}"
+                    fi
+                    break
+                fi
+            done
+        fi
+    done < <(env)
+
+    # Output root .env (overlay env vars onto .env-dist template)
+    echo "## .env_${ctx}"
+    while IFS= read -r line; do
+        local key="${line%%=*}"
+        if [[ -n "${!key+set}" ]]; then
+            echo "${key}=${!key}"
+        else
+            echo "${line}"
+        fi
+    done < <(${BIN}/dotenv -f .env-dist parse)
+
+    # Output per-project .env files
+    if [[ -n "${projects_csv}" ]]; then
+        IFS=, read -ra proj_list <<< "${projects_csv}"
+        for project_name in "${proj_list[@]}"; do
+            local env_dist="${project_name}/.env-dist"
+            [[ -f "${env_dist}" ]] || continue
+            local prefix="${dir_to_prefix[${project_name}]:-}"
+
+            # Default instance
+            echo
+            echo "## ${project_name}/.env_${ctx}_default"
+            while IFS= read -r line; do
+                local key="${line%%=*}"
+                if [[ -n "${!key+set}" ]]; then
+                    echo "${key}=${!key}"
+                else
+                    echo "${line}"
+                fi
+            done < <(${BIN}/dotenv -f "${env_dist}" parse)
+
+            # Non-default instances
+            if [[ -n "${prefix}" && -n "${project_instances[${project_name}]:-}" ]]; then
+                for instance in ${project_instances[${project_name}]}; do
+                    echo
+                    echo "## ${project_name}/.env_${ctx}_${instance}"
+                    while IFS= read -r line; do
+                        local key="${line%%=*}"
+                        if [[ "${key}" == "${prefix}_INSTANCE" ]]; then
+                            echo "${key}=${instance}"
+                        elif [[ -n "${instance_vars[${instance}:${key}]+set}" ]]; then
+                            echo "${key}=${instance_vars[${instance}:${key}]}"
+                        else
+                            echo "${line}"
+                        fi
+                    done < <(${BIN}/dotenv -f "${env_dist}" parse)
+                done
+            fi
+        done
+    fi
+}
+
 __export_env() {
     local DOCKER_CONTEXT=${DOCKER_CONTEXT:-$(${BIN}/docker_context)}
     local ctx="${DOCKER_CONTEXT}"
@@ -818,6 +911,8 @@ main() {
                 __export_env "$@";;
             restore-env)
                 __restore_env "$@";;
+            template-env)
+                __template_env "$@";;
             droplet|gumdrop)
                 ${BIN}/gumdrop "$@";;
             *)
