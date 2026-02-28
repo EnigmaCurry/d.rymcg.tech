@@ -46,8 +46,9 @@ docker context create "${DOCKER_CONTEXT}" \
     --docker "host=ssh://${SSH_USER}@${SSH_HOST}:${SSH_PORT}" &>/dev/null || true
 docker context use "${DOCKER_CONTEXT}" &>/dev/null
 
-## Step 4: Distribute env vars into .env files via restore-env
+## Step 4: Create root .env and distribute env vars via restore-env
 cd "${ROOT_DIR}"
+cp -n .env-dist ".env_${DOCKER_CONTEXT}"
 env | d.rymcg.tech restore-env
 
 ## Step 5: Ensure explicitly requested projects have env files
