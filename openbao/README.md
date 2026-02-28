@@ -75,6 +75,9 @@ d.rymcg.tech make openbao get-ssh-ca-public-key
 
 ## Create a signing role for CI/CD (15-minute TTL):
 d.rymcg.tech make openbao create-ssh-role
+
+## Verify the role configuration:
+d.rymcg.tech make openbao read-ssh-role
 ```
 
 ### Server sshd configuration
