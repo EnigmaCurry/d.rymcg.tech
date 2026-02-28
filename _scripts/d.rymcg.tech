@@ -68,6 +68,7 @@ __help() {
         echo -e "image-build [ARGS ...]\tBuild/pull all Docker images"
         echo -e "image-archive [ARGS ...]\tArchive Docker images to local .tar.gz files"
         echo -e "image-restore [ARGS ...]\tRestore archived Docker images to the server"
+        echo -e "export-env\tExport all .env files for current context as flat env vars"
         echo -e "agent\tRun agent readiness tool"
         echo -e "workstation-usb-image\tBuild NixOS disk image for USB"
         echo -e "workstation-usb-install DEV\tInstall NixOS workstation to USB"
@@ -589,6 +590,40 @@ __completion() {
     fi
 }
 
+__export_env() {
+    local DOCKER_CONTEXT=${DOCKER_CONTEXT:-$(${BIN}/docker_context)}
+    local ctx="${DOCKER_CONTEXT}"
+    cd "${ROOT_DIR}"
+
+    # Root env file
+    local root_env=".env_${ctx}"
+    if [[ -f "${root_env}" ]]; then
+        echo "## ${root_env}"
+        ${BIN}/dotenv -f "${root_env}" parse
+    fi
+
+    # Project env files
+    for env_file in */.env_${ctx}_*; do
+        [[ -f "${env_file}" ]] || continue
+        local project_dir="${env_file%%/*}"
+        local basename="${env_file#*/}"
+        # Strip .env_${ctx}_ prefix to get instance name
+        local instance="${basename#.env_${ctx}_}"
+
+        echo
+        echo "## ${env_file}"
+        if [[ "${instance}" == "default" ]]; then
+            ${BIN}/dotenv -f "${env_file}" parse
+        else
+            while IFS= read -r line; do
+                local key="${line%%=*}"
+                local val="${line#*=}"
+                echo "__${instance}__${key}=${val}"
+            done < <(${BIN}/dotenv -f "${env_file}" parse)
+        fi
+    done
+}
+
 main() {
     if [[ $# -gt 0 ]]; then
         COMMAND=$1; shift
@@ -695,6 +730,8 @@ main() {
                 else
                     ${BIN}/agent.py "$@"
                 fi;;
+            export-env)
+                __export_env "$@";;
             droplet|gumdrop)
                 ${BIN}/gumdrop "$@";;
             *)
