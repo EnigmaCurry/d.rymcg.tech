@@ -25,13 +25,10 @@ Encrypt the export with [SOPS](https://github.com/getsops/sops) and
 [age](https://github.com/FiloSottile/age):
 
 ```bash
-## Generate an age key (one time):
+## Generate an age key on a secure workstation (one time):
 age-keygen -o ~/.config/sops/age/keys.txt
 
-## Store the public key in your context config:
-d reconfigure SOPS_AGE_RECIPIENTS=age1...
-
-## Export encrypted:
+## Export encrypted (will prompt for the age public key if not already set):
 d export-env --encrypt > backup.sops.env
 ```
 
