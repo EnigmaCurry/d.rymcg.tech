@@ -14,6 +14,15 @@ In this d.rymcg.tech deployment, OpenBao serves as:
 - **AppRole auth** — machine-friendly authentication for Woodpecker CI
   agents.
 
+## Security
+
+Enabling mTLS (`OPENBAO_MTLS_AUTH=true`) is **HIGHLY RECOMMENDED**.
+Without mTLS, the OpenBao API is exposed to unauthenticated network
+access. With mTLS enabled, all clients must present a valid
+certificate signed by your Step-CA before Traefik will proxy the
+request to OpenBao. See [Step-CA](../step-ca#readme) for setting up
+your certificate authority.
+
 ## Setup
 
 ```bash
