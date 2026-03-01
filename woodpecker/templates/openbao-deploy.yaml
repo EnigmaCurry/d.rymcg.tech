@@ -5,16 +5,16 @@
 ## setup automatically when the BAO_* env vars are provided.
 ##
 ## Required Woodpecker secrets:
-##   BAO_ADDR          - OpenBao server URL
-##   BAO_ROLE_ID       - AppRole role ID
-##   BAO_SECRET_ID     - AppRole secret ID
-##   BAO_AGE_KEY_PATH  - KV path to AGE key (e.g., sops/d2-admin/myserver-production)
-##   BAO_CACERT        - CA cert for OpenBao TLS (if using private CA)
+##   bao_addr          - OpenBao server URL
+##   bao_role_id       - AppRole role ID
+##   bao_secret_id     - AppRole secret ID
+##   bao_age_key_path  - KV path to AGE key (e.g., sops/d2-admin/myserver-production)
+##   bao_cacert        - CA cert for OpenBao TLS (if using private CA)
 ##
 ## Optional Woodpecker secrets:
-##   BAO_CLIENT_CERT - mTLS client cert (if OpenBao uses mTLS)
-##   BAO_CLIENT_KEY  - mTLS client key  (if OpenBao uses mTLS)
-##   BAO_NAMESPACE   - OpenBao namespace (if using namespaces)
+##   bao_client_cert - mTLS client cert (if OpenBao uses mTLS)
+##   bao_client_key  - mTLS client key  (if OpenBao uses mTLS)
+##   bao_namespace   - OpenBao namespace (if using namespaces)
 ##
 ## Required files in repo:
 ##   config/my-server.sops.env - SOPS-encrypted env export
