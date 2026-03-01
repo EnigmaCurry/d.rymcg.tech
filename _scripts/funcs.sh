@@ -229,13 +229,7 @@ EOF
 }
 
 yq() {
-    set -e
-    local IMAGE=localhost/yq
-    docker image inspect ${IMAGE} >/dev/null || docker build -t ${IMAGE} -f- . >/dev/null <<'EOF'
-FROM debian:stable-slim AS yq
-RUN apt-get update && apt-get install -y yq
-EOF
-    docker run --rm -i "${IMAGE}" yq "${@}"
+    uv run --from yq yq "$@"
 }
 
 read_stdin_or_args() {
