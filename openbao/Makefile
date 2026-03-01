@@ -83,7 +83,7 @@ enable-kv:
 
 .PHONY: put-age-key # Store an AGE secret key (usage: make put-age-key path=sops/mykey)
 put-age-key:
-	@if [ -z "$${path}" ]; then echo "ERROR: path is required (e.g., make put-age-key path=sops/myserver-production)" >&2; exit 1; fi; \
+	@if [ -z "$${path}" ]; then echo "ERROR: path is required (e.g., make put-age-key path=sops/d2-admin/myserver-production)" >&2; exit 1; fi; \
 	echo "Storing AGE key at: secret/$${path}"; \
 	echo "Enter the root token:"; \
 	read -rs BAO_TOKEN; \
@@ -93,7 +93,7 @@ put-age-key:
 
 .PHONY: get-age-key # Read a stored AGE key (usage: make get-age-key path=sops/mykey)
 get-age-key:
-	@if [ -z "$${path}" ]; then echo "ERROR: path is required (e.g., make get-age-key path=sops/myserver-production)" >&2; exit 1; fi; \
+	@if [ -z "$${path}" ]; then echo "ERROR: path is required (e.g., make get-age-key path=sops/d2-admin/myserver-production)" >&2; exit 1; fi; \
 	echo "Enter the root token:"; \
 	read -rs BAO_TOKEN; \
 	make --no-print-directory docker-compose-shell SERVICE=openbao COMMAND="BAO_TOKEN=$${BAO_TOKEN} bao kv get secret/$${path}"
@@ -106,7 +106,7 @@ list-age-keys:
 
 .PHONY: delete-age-key # Delete a stored AGE key (usage: make delete-age-key path=sops/mykey)
 delete-age-key:
-	@if [ -z "$${path}" ]; then echo "ERROR: path is required (e.g., make delete-age-key path=sops/myserver-production)" >&2; exit 1; fi; \
+	@if [ -z "$${path}" ]; then echo "ERROR: path is required (e.g., make delete-age-key path=sops/d2-admin/myserver-production)" >&2; exit 1; fi; \
 	echo "Enter the root token:"; \
 	read -rs BAO_TOKEN; \
 	make --no-print-directory docker-compose-shell SERVICE=openbao COMMAND="BAO_TOKEN=$${BAO_TOKEN} bao kv metadata delete secret/$${path}"
@@ -117,29 +117,37 @@ enable-approle:
 	read -rs BAO_TOKEN; \
 	make --no-print-directory docker-compose-shell SERVICE=openbao COMMAND="BAO_TOKEN=$${BAO_TOKEN} bao auth enable approle"
 
-.PHONY: create-policy # Create the woodpecker-ci policy (read AGE keys + sign SSH)
+.PHONY: create-policy # Create a deploy repo policy (usage: make create-policy repo=d2-admin)
 create-policy:
-	@echo "Enter the root token:"; \
+	@if [ -z "$${repo}" ]; then echo "ERROR: repo is required (e.g., make create-policy repo=d2-admin)" >&2; exit 1; fi; \
+	echo "Creating policy: $${repo}-deploy (read sops/$${repo}/*, sign SSH keys)"; \
+	echo "Enter the root token:"; \
 	read -rs BAO_TOKEN; \
-	make --no-print-directory docker-compose-shell SERVICE=openbao COMMAND="echo cGF0aCAic2VjcmV0L2RhdGEvc29wcy8qIiB7CiAgY2FwYWJpbGl0aWVzID0gWyJyZWFkIl0KfQoKcGF0aCAic3NoLWNsaWVudC1zaWduZXIvc2lnbi93b29kcGVja2VyLXNob3J0LWxpdmVkIiB7CiAgY2FwYWJpbGl0aWVzID0gWyJjcmVhdGUiLCAidXBkYXRlIl0KfQ== | base64 -d | BAO_TOKEN=$${BAO_TOKEN} bao policy write woodpecker-ci -"
+	POLICY=$$(printf 'path "secret/data/sops/%s/*" {\n  capabilities = ["read"]\n}\n\npath "ssh-client-signer/sign/woodpecker-short-lived" {\n  capabilities = ["create", "update"]\n}' "$${repo}" | base64 -w0); \
+	make --no-print-directory docker-compose-shell SERVICE=openbao COMMAND="echo $${POLICY} | base64 -d | BAO_TOKEN=$${BAO_TOKEN} bao policy write $${repo}-deploy -"
 
-.PHONY: create-approle # Create the woodpecker-ci AppRole (20m TTL)
+.PHONY: create-approle # Create an AppRole for a deploy repo (usage: make create-approle repo=d2-admin)
 create-approle:
-	@echo "Enter the root token:"; \
+	@if [ -z "$${repo}" ]; then echo "ERROR: repo is required (e.g., make create-approle repo=d2-admin)" >&2; exit 1; fi; \
+	echo "Creating AppRole: $${repo}-deploy (policy: $${repo}-deploy, 20m TTL)"; \
+	echo "Enter the root token:"; \
 	read -rs BAO_TOKEN; \
-	make --no-print-directory docker-compose-shell SERVICE=openbao COMMAND="echo eyJ0b2tlbl9wb2xpY2llcyI6Indvb2RwZWNrZXItY2kiLCJ0b2tlbl90dGwiOiIyMG0iLCJ0b2tlbl9tYXhfdHRsIjoiMzBtIiwic2VjcmV0X2lkX3R0bCI6IjAifQ== | base64 -d | BAO_TOKEN=$${BAO_TOKEN} bao write auth/approle/role/woodpecker-ci -"
+	ROLE=$$(printf '{"token_policies":"%s-deploy","token_ttl":"20m","token_max_ttl":"30m","secret_id_ttl":"0"}' "$${repo}" | base64 -w0); \
+	make --no-print-directory docker-compose-shell SERVICE=openbao COMMAND="echo $${ROLE} | base64 -d | BAO_TOKEN=$${BAO_TOKEN} bao write auth/approle/role/$${repo}-deploy -"
 
-.PHONY: get-role-id # Get the AppRole role ID (store as BAO_ROLE_ID in Woodpecker)
+.PHONY: get-role-id # Get an AppRole role ID (usage: make get-role-id repo=d2-admin)
 get-role-id:
-	@echo "Enter the root token:"; \
+	@if [ -z "$${repo}" ]; then echo "ERROR: repo is required (e.g., make get-role-id repo=d2-admin)" >&2; exit 1; fi; \
+	echo "Enter the root token:"; \
 	read -rs BAO_TOKEN; \
-	make --no-print-directory docker-compose-shell SERVICE=openbao COMMAND="BAO_TOKEN=$${BAO_TOKEN} bao read -field=role_id auth/approle/role/woodpecker-ci/role-id"
+	make --no-print-directory docker-compose-shell SERVICE=openbao COMMAND="BAO_TOKEN=$${BAO_TOKEN} bao read -field=role_id auth/approle/role/$${repo}-deploy/role-id"
 
-.PHONY: generate-secret-id # Generate an AppRole secret ID (store as BAO_SECRET_ID in Woodpecker)
+.PHONY: generate-secret-id # Generate an AppRole secret ID (usage: make generate-secret-id repo=d2-admin)
 generate-secret-id:
-	@echo "Enter the root token:"; \
+	@if [ -z "$${repo}" ]; then echo "ERROR: repo is required (e.g., make generate-secret-id repo=d2-admin)" >&2; exit 1; fi; \
+	echo "Enter the root token:"; \
 	read -rs BAO_TOKEN; \
-	make --no-print-directory docker-compose-shell SERVICE=openbao COMMAND="BAO_TOKEN=$${BAO_TOKEN} bao write -field=secret_id -f auth/approle/role/woodpecker-ci/secret-id"
+	make --no-print-directory docker-compose-shell SERVICE=openbao COMMAND="BAO_TOKEN=$${BAO_TOKEN} bao write -field=secret_id -f auth/approle/role/$${repo}-deploy/secret-id"
 
 .PHONY: install-hook
 install-hook:

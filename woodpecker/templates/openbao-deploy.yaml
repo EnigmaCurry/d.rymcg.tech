@@ -5,10 +5,11 @@
 ## setup automatically when the BAO_* env vars are provided.
 ##
 ## Required Woodpecker secrets:
-##   BAO_ADDR        - OpenBao server URL
-##   BAO_ROLE_ID    - AppRole role ID
-##   BAO_SECRET_ID  - AppRole secret ID
-##   BAO_CACERT     - CA cert for OpenBao TLS (if using private CA)
+##   BAO_ADDR          - OpenBao server URL
+##   BAO_ROLE_ID       - AppRole role ID
+##   BAO_SECRET_ID     - AppRole secret ID
+##   BAO_AGE_KEY_PATH  - KV path to AGE key (e.g., sops/d2-admin/myserver-production)
+##   BAO_CACERT        - CA cert for OpenBao TLS (if using private CA)
 ##
 ## Optional Woodpecker secrets:
 ##   BAO_CLIENT_CERT - mTLS client cert (if OpenBao uses mTLS)
@@ -22,7 +23,7 @@
 steps:
   - name: deploy-traefik
     image: d-rymcg-tech
-    secrets: [bao_addr, bao_role_id, bao_secret_id, bao_cacert]
+    secrets: [bao_addr, bao_role_id, bao_secret_id, bao_age_key_path, bao_cacert]
     environment:
       SOPS_CONFIG_FILE: ${CI_WORKSPACE}/config/my-server.sops.env
     commands:
@@ -30,7 +31,7 @@ steps:
 
   - name: deploy-whoami
     image: d-rymcg-tech
-    secrets: [bao_addr, bao_role_id, bao_secret_id, bao_cacert]
+    secrets: [bao_addr, bao_role_id, bao_secret_id, bao_age_key_path, bao_cacert]
     environment:
       SOPS_CONFIG_FILE: ${CI_WORKSPACE}/config/my-server.sops.env
     commands:
@@ -38,7 +39,7 @@ steps:
 
   - name: verify
     image: d-rymcg-tech
-    secrets: [bao_addr, bao_role_id, bao_secret_id, bao_cacert]
+    secrets: [bao_addr, bao_role_id, bao_secret_id, bao_age_key_path, bao_cacert]
     environment:
       SOPS_CONFIG_FILE: ${CI_WORKSPACE}/config/my-server.sops.env
     commands:

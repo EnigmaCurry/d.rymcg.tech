@@ -118,46 +118,53 @@ engine and store the secret key in OpenBao:
 d.rymcg.tech make openbao enable-kv
 
 ## Store AGE secret keys (path is required):
-d.rymcg.tech make openbao put-age-key path=sops/myserver-production
-d.rymcg.tech make openbao put-age-key path=sops/myserver-staging
+d.rymcg.tech make openbao put-age-key path=sops/d2-admin/myserver-production
+d.rymcg.tech make openbao put-age-key path=sops/d2-admin/myserver-staging
 
 ## List all stored keys:
 d.rymcg.tech make openbao list-age-keys
 
 ## Verify a specific key:
-d.rymcg.tech make openbao get-age-key path=sops/myserver-production
+d.rymcg.tech make openbao get-age-key path=sops/d2-admin/myserver-production
 
 ## Delete a key:
-d.rymcg.tech make openbao delete-age-key path=sops/myserver-staging
+d.rymcg.tech make openbao delete-age-key path=sops/d2-admin/myserver-staging
 ```
 
+The path structure is `sops/<deployment-repo>/<context>`, where
+`<deployment-repo>` is the name of your d.rymcg.tech deployment repo
+(e.g., `d2-admin`) and `<context>` identifies the Docker context
+(e.g., `myserver-production`). This allows each deployment repo's
+AppRole policy to grant access only to its own keys
+(`sops/d2-admin/*`).
+
 In your Woodpecker pipeline, set `BAO_AGE_KEY_PATH` to the path
-used above (e.g., `sops/myserver-production`).
+used above (e.g., `sops/d2-admin/myserver-production`).
 
 The d.rymcg.tech container entrypoint will retrieve this key
 automatically when `BAO_ADDR` is set.
 
 ## AppRole Authentication
 
-Enable AppRole auth so Woodpecker CI can authenticate without
-human interaction. The policy grants read access to all AGE keys
-under `secret/data/sops/*` and permission to sign SSH public keys.
+Each deployment repo gets its own policy, AppRole, and credentials.
+The policy grants read access to AGE keys under
+`secret/data/sops/<repo>/*` and permission to sign SSH public keys.
 
 ```bash
-## Enable AppRole auth method:
+## Enable AppRole auth method (once):
 d.rymcg.tech make openbao enable-approle
 
-## Create the woodpecker-ci policy:
-d.rymcg.tech make openbao create-policy
+## Create a policy for a deployment repo (e.g., d2-admin):
+d.rymcg.tech make openbao create-policy repo=d2-admin
 
-## Create the woodpecker-ci AppRole (20m token TTL):
-d.rymcg.tech make openbao create-approle
+## Create the AppRole (20m token TTL):
+d.rymcg.tech make openbao create-approle repo=d2-admin
 
-## Get the role ID (save this as BAO_ROLE_ID in Woodpecker secrets):
-d.rymcg.tech make openbao get-role-id
+## Get the role ID (save as BAO_ROLE_ID in Woodpecker secrets):
+d.rymcg.tech make openbao get-role-id repo=d2-admin
 
-## Generate a secret ID (save this as BAO_SECRET_ID in Woodpecker secrets):
-d.rymcg.tech make openbao generate-secret-id
+## Generate a secret ID (save as BAO_SECRET_ID in Woodpecker secrets):
+d.rymcg.tech make openbao generate-secret-id repo=d2-admin
 ```
 
 ## Woodpecker CI Integration
@@ -169,6 +176,7 @@ Add these secrets to your Woodpecker CI repository:
 | `bao_addr` | OpenBao server URL (e.g., `https://bao.example.com`) |
 | `bao_role_id` | AppRole role ID |
 | `bao_secret_id` | AppRole secret ID |
+| `bao_age_key_path` | KV path to AGE key (e.g., `sops/d2-admin/myserver-production`) |
 | `bao_cacert` | CA cert for TLS (if using private CA) |
 | `bao_client_cert` | mTLS client cert (if using mTLS) |
 | `bao_client_key` | mTLS client key (if using mTLS) |
