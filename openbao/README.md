@@ -167,9 +167,9 @@ need to add to your Woodpecker CI repository:
 | `bao_role_id` | AppRole role ID |
 | `bao_secret_id` | AppRole secret ID |
 | `bao_age_key_path` | KV path to AGE key (e.g., `sops/d2-admin/myserver-production`) |
-| `bao_cacert` | CA root certificate PEM (only if using a private CA like Step-CA) |
-| `bao_client_cert` | mTLS client certificate PEM (only if mTLS is enabled) |
-| `bao_client_key` | mTLS client key PEM (only if mTLS is enabled) |
+| `bao_cacert` | CA root certificate, PEM or base64 (only if using a private CA like Step-CA) |
+| `bao_client_cert` | mTLS client certificate, PEM or base64 (only if mTLS is enabled) |
+| `bao_client_key` | mTLS client key, PEM or base64 (only if mTLS is enabled) |
 
 The individual steps are also available as separate commands:
 

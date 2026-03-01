@@ -210,11 +210,11 @@ setup-deploy-repo:
 	echo "bao_age_key_path  = sops/$${repo}/<context>"; \
 	echo; \
 	echo "## Optional (if using a private CA like Step-CA):"; \
-	echo "bao_cacert        = <CA root certificate PEM>"; \
+	echo "bao_cacert        = <CA root certificate PEM or base64>"; \
 	echo; \
 	echo "## Optional (if mTLS is enabled on OpenBao):"; \
-	echo "bao_client_cert   = <mTLS client certificate PEM>"; \
-	echo "bao_client_key    = <mTLS client key PEM>"; \
+	echo "bao_client_cert   = <mTLS client certificate PEM or base64>"; \
+	echo "bao_client_key    = <mTLS client key PEM or base64>"; \
 	echo; echo
 
 .PHONY: create-policy # Create a deploy repo policy (usage: make create-policy repo=d2-admin)
