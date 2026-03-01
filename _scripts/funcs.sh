@@ -212,11 +212,17 @@ docker_ssh() {
 ytt() {
     set -e
     local IMAGE=localhost/ytt
-    docker image inspect ${IMAGE} >/dev/null || docker build -t ${IMAGE} -f- . >/dev/null <<'EOF'
+    if ! docker image inspect ${IMAGE} >/dev/null 2>&1; then
+        local _BUILD=$(${BIN}/dotenv -f "${ROOT_DIR}/.env_$(${BIN}/docker_context)" get BUILD 2>/dev/null || true)
+        if [[ "${_BUILD}" == "false" || "${_BUILD}" == "0" ]]; then
+            fault "ytt image (${IMAGE}) not found and BUILD=${_BUILD} prevents building it. Build it first or set BUILD=true."
+        fi
+        docker build -t ${IMAGE} -f- . >/dev/null <<'EOF'
 FROM debian:stable-slim AS ytt
 ARG YTT_VERSION=v0.44.3
 RUN apt-get update && apt-get install -y wget && wget "https://github.com/vmware-tanzu/carvel-ytt/releases/download/${YTT_VERSION}/ytt-linux-$(dpkg --print-architecture)" -O ytt && install ytt /usr/local/bin/ytt
 EOF
+    fi
     non_template_commands_pattern="(help|completion|fmt|version)"
     if [[ "$@" == "" ]]; then
         CMD="docker run --rm -i ${IMAGE} ytt help"
@@ -231,10 +237,16 @@ EOF
 yq() {
     set -e
     local IMAGE=localhost/yq
-    docker image inspect ${IMAGE} >/dev/null || docker build -t ${IMAGE} -f- . >/dev/null <<'EOF'
+    if ! docker image inspect ${IMAGE} >/dev/null 2>&1; then
+        local _BUILD=$(${BIN}/dotenv -f "${ROOT_DIR}/.env_$(${BIN}/docker_context)" get BUILD 2>/dev/null || true)
+        if [[ "${_BUILD}" == "false" || "${_BUILD}" == "0" ]]; then
+            fault "yq image (${IMAGE}) not found and BUILD=${_BUILD} prevents building it. Build it first or set BUILD=true."
+        fi
+        docker build -t ${IMAGE} -f- . >/dev/null <<'EOF'
 FROM debian:stable-slim AS yq
 RUN apt-get update && apt-get install -y yq
 EOF
+    fi
     docker run --rm -i "${IMAGE}" yq "${@}"
 }
 
@@ -281,7 +293,13 @@ volume_rsync() {
         check_var VOLUME
     fi
     # Check that the localhost/rsync image exists, if not build it:
-    docker image inspect localhost/rsync >/dev/null || docker build -t localhost/rsync ${ROOT_DIR}/_terminal/rsync
+    if ! docker image inspect localhost/rsync >/dev/null 2>&1; then
+        local _BUILD=$(${BIN}/dotenv -f "${ROOT_DIR}/.env_$(${BIN}/docker_context)" get BUILD 2>/dev/null || true)
+        if [[ "${_BUILD}" == "false" || "${_BUILD}" == "0" ]]; then
+            fault "rsync image (localhost/rsync) not found and BUILD=${_BUILD} prevents building it. Build it first or set BUILD=true."
+        fi
+        docker build -t localhost/rsync ${ROOT_DIR}/_terminal/rsync
+    fi
     if [[ "${DISABLE_VOLUME_RSYNC_CHECKS}" != "true" ]]; then
         echo "Doing initial rsync checks for volume: ${VOLUME} ..."
         # Check that the volume we will sync to already exists:
