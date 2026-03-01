@@ -229,7 +229,7 @@ EOF
 }
 
 yq() {
-    uv run --from yq yq "$@"
+    uvx yq "$@"
 }
 
 read_stdin_or_args() {
