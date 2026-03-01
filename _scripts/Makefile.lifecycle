@@ -41,11 +41,11 @@ config-render:
 
 .PHONY: start # Start services
 start:
-	@make --no-print-directory docker-compose-lifecycle-cmd EXTRA_ARGS="up -d ${service}"
+	@make --no-print-directory docker-compose-lifecycle-cmd EXTRA_ARGS="up -d $(if $(BUILD),,--no-build) ${service}"
 
 .PHONY: up # Start services in the foreground and print logs to stdout. Ctrl-C to quit.
 up: $(if $(BUILD),build)
-	@make --no-print-directory docker-compose-lifecycle-cmd EXTRA_ARGS="up ${service}"
+	@make --no-print-directory docker-compose-lifecycle-cmd EXTRA_ARGS="up $(if $(BUILD),,--no-build) ${service}"
 
 .PHONY: stop # Stops services
 stop:
