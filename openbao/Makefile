@@ -208,7 +208,9 @@ setup-deploy-repo:
 	echo "bao_role_id       = $${ROLE_ID}"; \
 	echo "bao_secret_id     = $${SECRET_ID}"; \
 	echo "bao_age_key_path  = sops/$${repo}/<context>"; \
-	echo "bao_cacert        = <Step-CA root certificate PEM>"; \
+	echo; \
+	echo "## Optional (if using a private CA like Step-CA):"; \
+	echo "bao_cacert        = <CA root certificate PEM>"; \
 	echo; \
 	echo "## Optional (if mTLS is enabled on OpenBao):"; \
 	echo "bao_client_cert   = <mTLS client certificate PEM>"; \
