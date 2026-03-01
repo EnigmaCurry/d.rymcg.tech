@@ -21,7 +21,7 @@
 ##     (created with: d export-env --encrypt > config/my-server.sops.env)
 
 variables:
-  - &step-base
+  - &d-rymcg-tech
     image: d-rymcg-tech
     secrets: [bao_addr, bao_role_id, bao_secret_id, bao_age_key_path, bao_cacert]
     environment:
@@ -29,17 +29,17 @@ variables:
 
 steps:
   - name: deploy-traefik
-    <<: *step-base
+    <<: *d-rymcg-tech
     commands:
       - d.rymcg.tech make traefik install
 
   - name: deploy-whoami
-    <<: *step-base
+    <<: *d-rymcg-tech
     commands:
       - d.rymcg.tech make whoami install
 
   - name: verify
-    <<: *step-base
+    <<: *d-rymcg-tech
     commands:
       - d.rymcg.tech make whoami wait
       - echo "Deployed to https://$(d make whoami dotenv_get var=WHOAMI_TRAEFIK_HOST)"
