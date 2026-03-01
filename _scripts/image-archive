@@ -39,7 +39,7 @@ from image_lib import (
     ROOT_DIR, BUILD_SOURCES, get_docker_context, get_ssh_host, get_catalog,
     find_env_file, resolve_compose_images, sanitize_filename, sha256sum,
     get_docker_image_id, get_remote_arch, pull_image, build_service,
-    collect_images,
+    collect_images, build_tag, retag_image,
 )
 
 
@@ -163,6 +163,11 @@ def rebuild_manifest(base_dir: Path, arch: str) -> None:
 
 
 def main():
+    # Force line-buffered stdout so log messages appear immediately in
+    # non-interactive terminals (CI pipelines, piped output, etc.).
+    sys.stdout.reconfigure(line_buffering=True)
+    sys.stderr.reconfigure(line_buffering=True)
+
     parser = argparse.ArgumentParser(
         description="Pull, build, and archive all Docker images from d.rymcg.tech projects.",
     )
@@ -336,6 +341,12 @@ def main():
                     if args.fail_fast:
                         break
                     continue
+                # Retag from :latest to date-stamped tag
+                tag = build_tag()
+                if f":{tag}" in image:
+                    latest_name = image.replace(f":{tag}", ":latest")
+                    if not retag_image(latest_name, image, verbose=args.verbose):
+                        print(f"    WARNING: failed to retag {latest_name} -> {image}", file=sys.stderr)
             else:
                 print(f"    Pulling...")
                 success = pull_image(image, verbose=args.verbose)

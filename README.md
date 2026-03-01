@@ -85,7 +85,9 @@ workstation.
    are saved as compressed archives with integrity hashes on your
    workstation, and can be transferred to any Docker host. Set
    `BUILD=false` to skip image builds and deploy entirely from the
-   restored images.
+   restored images. You can also build a [bootable NixOS USB
+   workstation](WORKSTATION_USB.md) that bundles the entire archive,
+   OS ISOs, and all tools for fully offline deployment.
 
  * d.rymcg.tech focuses on the needs of the full-stack self-hoster.
      You can deploy your own Certficate Authority and DNS (delegate)
@@ -127,6 +129,7 @@ Follow these topical guides to get started:
  * [MAKEFILE_OPS.md](MAKEFILE_OPS.md) - how to write Makefiles.
  * [RCLONE.md](RCLONE.md) - create Docker volumes on top of remote/cloud storage (S3, SFTP, Dropbox, etc.)
  * [ARCHIVE.md](ARCHIVE.md) - how to archive and restore all Docker images offline.
+ * [WORKSTATION_USB.md](WORKSTATION_USB.md) - how to build a bootable NixOS USB disk bundled with all the tools and images necessary for offline deployment.
  * [LICENSE.txt](LICENSE.txt) - the license for this project.
  * [Portable Docker: Build and Deploy Anywhere with WireGuard Tunneling](https://book.rymcg.tech/portable-docker/index.html) - a book about running a public Docker server at home, or while roaming, behind restrictive NAT routers, with the help from a public wireguard sentry server running in the cloud.
 

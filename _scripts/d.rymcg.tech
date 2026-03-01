@@ -24,7 +24,6 @@ BIN=$(dirname $(realpath ${BASH_SOURCE}))
 INFO_WORDS="INFO_WORDS ROOT_DIR"
 
 ## ROOT_DIR is the root path of the d.rymcg.tech project
-## Validate that this script is running from the canonical location
 ROOT_DIR=$(dirname ${BIN})
 (test -f ${BIN}/funcs.sh && test -f ${ROOT_DIR}/Makefile && test -d ${ROOT_DIR}/traefik) || \
     (echo "Error: Invalid or corrupted d.rymcg.tech ROOT_DIR: ${ROOT_DIR}" >/dev/stderr
@@ -70,6 +69,12 @@ __help() {
         echo -e "image-archive [ARGS ...]\tArchive Docker images to local .tar.gz files"
         echo -e "image-restore [ARGS ...]\tRestore archived Docker images to the server"
         echo -e "agent\tRun agent readiness tool"
+        echo -e "workstation-usb-image\tBuild NixOS disk image for USB"
+        echo -e "workstation-usb-install DEV\tInstall NixOS workstation to USB"
+        echo -e "workstation-usb-clone DEV\tClone booted workstation USB to another device"
+        echo -e "workstation-usb-post-install DIR\tCopy archive data to USB"
+        echo -e "workstation-usb-download-isos\tDownload Debian + Fedora ISOs"
+        echo -e "workstation-usb-download-docker-packages\tDownload Docker CE packages"
     ) | expand -t 30
     echo ""
     echo "## Documentation sub-commands:"
@@ -92,12 +97,84 @@ __help() {
 }
 
 __install_docker() {
-    if [[ "$1" == "--local" ]]; then
-        confirm yes "This will install Docker the local machine"
-        curl -fsSL https://get.docker.com | sh
+    local target method
+    target=$(wizard choose "Where do you want to install Docker?" "Remote (Docker context host)" "Local (this machine)")
+    if [[ "$target" == "Local"* ]]; then
+        method=$(wizard choose "How do you want to install?" "Download from the internet (get.docker.com)" "Install from offline package archive")
+        if [[ "$method" == "Download"* ]]; then
+            confirm yes "This will install Docker on the local machine"
+            if ! curl -fsSL https://get.docker.com | sh; then
+                echo ""
+                echo "Download failed. Try again with the offline package archive option."
+                return 1
+            fi
+        else
+            __install_docker_offline local
+        fi
     else
-        confirm yes "This will install Docker on the host of your remote Docker context."
-        d.rymcg.tech ssh 'curl -fsSL https://get.docker.com | sh'
+        method=$(wizard choose "How do you want to install?" "Download from the internet (get.docker.com)" "Install from offline package archive")
+        if [[ "$method" == "Download"* ]]; then
+            confirm yes "This will install Docker on the host of your remote Docker context."
+            if ! d.rymcg.tech ssh 'curl -fsSL https://get.docker.com | sh'; then
+                echo ""
+                echo "Download failed. Try again with the offline package archive option."
+                return 1
+            fi
+            d.rymcg.tech ssh 'systemctl enable --now docker'
+            d.rymcg.tech ssh 'systemctl status docker'
+        else
+            __install_docker_offline remote
+        fi
+    fi
+}
+
+__install_docker_offline() {
+    local target="$1"
+    local pkg_dir="${ROOT_DIR}/_archive/docker-packages"
+    local distro id
+
+    if [[ "$target" == "local" ]]; then
+        id=$(. /etc/os-release 2>/dev/null && echo "$ID")
+    else
+        id=$(d.rymcg.tech ssh 'source /etc/os-release 2>/dev/null && echo "$ID"')
+    fi
+    case "$id" in
+        debian|ubuntu|raspbian) distro="debian" ;;
+        fedora|centos|rhel|rocky|alma) distro="fedora" ;;
+        *) fault "Unsupported distro for offline Docker install: $id" ;;
+    esac
+
+    local src_dir="$pkg_dir/$distro"
+    if [[ ! -d "$src_dir" ]] || [[ -z "$(ls -A "$src_dir" 2>/dev/null)" ]]; then
+        fault "No $distro packages found in $src_dir — run: d.rymcg.tech workstation-usb-download-docker-packages"
+    fi
+
+    if [[ "$target" == "local" ]]; then
+        confirm yes "This will install Docker offline on the local machine from $src_dir"
+        echo "Installing Docker from offline $distro packages..."
+        if [[ "$distro" == "debian" ]]; then
+            sudo dpkg -i "$src_dir"/*.deb
+        else
+            sudo dnf install -y "$src_dir"/*.rpm
+        fi
+        sudo systemctl enable --now docker
+        sudo systemctl status docker
+    else
+        confirm yes "This will install Docker offline on the host of your remote Docker context."
+        echo "Copying $distro packages to remote host..."
+        local remote_dir="/tmp/docker-packages"
+        d.rymcg.tech ssh "mkdir -p $remote_dir"
+        local docker_host
+        docker_host=$(docker context inspect --format '{{.Endpoints.docker.Host}}')
+        local ssh_dest="${docker_host#ssh://}"
+        scp "$src_dir"/* "$ssh_dest:$remote_dir/"
+        echo "Installing Docker from offline packages..."
+        if [[ "$distro" == "debian" ]]; then
+            d.rymcg.tech ssh "dpkg -i $remote_dir/*.deb"
+        else
+            d.rymcg.tech ssh "dnf install -y $remote_dir/*.rpm"
+        fi
+        d.rymcg.tech ssh "rm -rf $remote_dir"
         d.rymcg.tech ssh 'systemctl enable --now docker'
         d.rymcg.tech ssh 'systemctl status docker'
     fi
@@ -396,7 +473,7 @@ __d.rymcg.tech_completions() {
     if [[ ${COMP_CWORD} == 1 ]]; then
         ## Complete the main command:
         ## d.rymcg.tech <TAB> ...
-        COMMANDS="help create cd make list readme info context new-context tmp-context aliases completion install install-docker status ssh audit sshd-config ssh-expose show-ports s3-volume docker-default-address-pool route routes reconfigure dotenv_get daemon-conf fail2ban networks config image-catalog image-build image-archive image-restore agent"
+        COMMANDS="help create cd make list readme info context new-context tmp-context aliases completion install install-docker status ssh audit sshd-config ssh-expose show-ports s3-volume docker-default-address-pool route routes reconfigure dotenv_get daemon-conf fail2ban networks config image-catalog image-build image-archive image-restore agent workstation-usb-image workstation-usb-install workstation-usb-clone workstation-usb-post-install workstation-usb-download-isos workstation-usb-download-docker-packages workstation-usb-test-vm"
         COMPREPLY=($(compgen -W "${COMMANDS}" "${COMP_WORDS[1]}"))
     elif [[ ${COMP_CWORD} == 2 ]]; then
         ALL_PROJECTS=$(d.rymcg.tech list --raw)
@@ -439,13 +516,23 @@ __d.rymcg.tech_completions() {
 
 __d.rymcg.tech_documentation_words() {
     ROOT_DIR=$(d.rymcg.tech info ROOT_DIR)
-    ## Find list of available documentation files in the git repo:
+    ## Find list of available documentation files
     declare -A DOCS_INDEX
+    local doc_files=""
+    if git -C "${ROOT_DIR}" rev-parse --git-dir &>/dev/null; then
+        doc_files=$(git -C "${ROOT_DIR}" ls-tree --name-only origin/master 2>/dev/null | \
+                       grep -E "(\.txt$|\.md$)" | \
+                       sed -e 's/\.txt$//' -e 's/\.md$//')
+    else
+        # Not a git repo (e.g. read-only nix store copy): find files directly
+        doc_files=$(find "${ROOT_DIR}" -maxdepth 1 -name '*.md' -o -name '*.txt' 2>/dev/null | \
+                       xargs -I{} basename {} | \
+                       sed -e 's/\.txt$//' -e 's/\.md$//')
+    fi
     while IFS= read -r line; do
+        [[ -z "$line" ]] && continue
         DOCS_INDEX["$line"]="$line"
-    done <<< $(git -C "${ROOT_DIR}" ls-tree --name-only origin/master | \
-                   grep -E "(\.txt$|\.md$)" | \
-                   sed -e 's/\.txt$//' -e 's/\.md$//')
+    done <<< "$doc_files"
     if [[ "$1" == "--lowercase" ]]; then
         echo "$(echo ${DOCS_INDEX[@]} | tr '[:upper:]' '[:lower:]')"
     elif [[ "$1" == "--uppercase" ]]; then
@@ -577,6 +664,20 @@ main() {
                 ${BIN}/image-archive "$@";;
             image-restore)
                 ${BIN}/image-restore "$@";;
+            workstation-usb-image)
+                ${BIN}/workstation-usb-image "$@";;
+            workstation-usb-install)
+                ${BIN}/workstation-usb-install "$@";;
+            workstation-usb-clone)
+                ${BIN}/workstation-usb-clone "$@";;
+            workstation-usb-post-install)
+                ${BIN}/workstation-usb-post-install "$@";;
+            workstation-usb-download-isos)
+                ${BIN}/workstation-usb-download-isos "$@";;
+            workstation-usb-download-docker-packages)
+                ${BIN}/workstation-usb-download-docker-packages "$@";;
+            workstation-usb-test-vm)
+                ${BIN}/workstation-usb-test-vm "$@";;
             agent)
                 # Auto-detect current Docker context for 'check' command
                 if [[ $# -eq 0 ]]; then

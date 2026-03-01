@@ -24,6 +24,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 from image_lib import (
     ROOT_DIR, BUILD_SOURCES, get_docker_context, get_catalog, find_env_file,
     resolve_compose_images, build_service, pull_image, collect_images,
+    build_tag, retag_image,
 )
 
 
@@ -107,6 +108,12 @@ def main():
                 print(f"    Building service '{build_svc}' (env: {env_label})...")
                 success = build_service(project_dir, env_file, build_svc, verbose=args.verbose, pull=args.pull)
                 if success:
+                    # Retag from :latest to date-stamped tag
+                    tag = build_tag()
+                    if f":{tag}" in image:
+                        latest_name = image.replace(f":{tag}", ":latest")
+                        if not retag_image(latest_name, image, verbose=args.verbose):
+                            print(f"    WARNING: failed to retag {latest_name} -> {image}", file=sys.stderr)
                     print(f"    OK")
                     built += 1
                 else:

@@ -12,7 +12,7 @@ print_array(){ printf '%s\n' "$@"; }
 trim_trailing_whitespace() { sed -e 's/[[:space:]]*$//'; }
 trim_leading_whitespace() { sed -e 's/^[[:space:]]*//'; }
 trim_whitespace() { trim_leading_whitespace | trim_trailing_whitespace; }
-wizard() { ${BIN}/script-wizard "$@"; }
+wizard() { if [[ -x "${BIN}/script-wizard" ]]; then ${BIN}/script-wizard "$@"; else script-wizard "$@"; fi; }
 check_var(){
     local __missing=false
     local __vars="$@"
@@ -428,8 +428,15 @@ version_spec() {
         fault "The version lock spec file is missing: ${VERSION_LOCK}"
     fi
     # Grab the locked version of APP from the lock file:
-    local LOCKED_VERSION=$(jq -r ".dependencies.\"${APP}\"" ${ROOT_DIR}/.tools.lock.json)
-    (test -z "${LOCKED_VERSION}" || test "${LOCKED_VERSION}" == "null") && fault "The app '${APP}' is not listed in ${VERSION_LOCK}"
+    # Supports both bare string ("0.1.34") and object ({"version": "0.1.34", ...}) formats
+    local RAW_VALUE=$(jq -r ".dependencies.\"${APP}\"" ${ROOT_DIR}/.tools.lock.json)
+    (test -z "${RAW_VALUE}" || test "${RAW_VALUE}" == "null") && fault "The app '${APP}' is not listed in ${VERSION_LOCK}"
+    local LOCKED_VERSION
+    if jq -e ".dependencies.\"${APP}\" | type == \"object\"" ${ROOT_DIR}/.tools.lock.json >/dev/null 2>&1; then
+        LOCKED_VERSION=$(jq -r ".dependencies.\"${APP}\".version" ${ROOT_DIR}/.tools.lock.json)
+    else
+        LOCKED_VERSION="${RAW_VALUE}"
+    fi
 
     # Return the locked version string:
     echo ${LOCKED_VERSION}
@@ -646,11 +653,11 @@ confirm() {
     ## Confirm with the user.
     ## Check env for the var YES, if it equals "yes" then bypass this confirm.
     ## This version depends on `script-wizard` being installed.
-    test ${YES:-no} == "yes" && exit 0
+    test ${YES:-no} == "yes" && return 0
 
     ## If not running in a terminal, skip confirmation (non-interactive/agent mode):
     if [[ ! -t 0 ]]; then
-        exit 0
+        return 0
     fi
 
     local default=$1; local prompt=$2; local question=${3:-". Proceed?"}
