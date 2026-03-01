@@ -78,7 +78,7 @@ if [[ -n "${BAO_ADDR:-}" ]]; then
         exit 1
     fi
     if [[ -z "${BAO_AGE_KEY_PATH:-}" ]]; then
-        echo "ERROR: BAO_AGE_KEY_PATH is required when BAO_ADDR is set (e.g., sops/production)" >&2
+        echo "ERROR: BAO_AGE_KEY_PATH is required when BAO_ADDR is set (e.g., sops/myserver-production)" >&2
         exit 1
     fi
 

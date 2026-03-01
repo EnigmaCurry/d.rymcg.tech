@@ -120,7 +120,7 @@ env vars to configure OpenBao:
  * `BAO_SSH_MOUNT` - SSH secrets engine mount path in OpenBao where the SSH backend is enabled (default: `ssh-client-signer`)
  * `BAO_SSH_ROLE` - SSH backend role name under that mount that defines what kind of SSH credential to issue (default: `woodpecker-short-lived`)
  * `BAO_KV_MOUNT` - KV secrets engine mount path (default: `secret`)
- * `BAO_AGE_KEY_PATH` - path within KV to the AGE key (required, e.g. `sops/production`)
+ * `BAO_AGE_KEY_PATH` - path within KV to the AGE key (required, e.g. `sops/myserver-production`)
  
 The `BAO_` prefixed vars are *not* allowed to be loaded by the SOPS
 config, they *must* be provided to the container as env vars

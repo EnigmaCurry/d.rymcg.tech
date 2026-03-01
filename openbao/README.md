@@ -118,18 +118,18 @@ engine and store the secret key in OpenBao:
 d.rymcg.tech make openbao enable-kv
 
 ## Store AGE secret keys (path is required):
-d.rymcg.tech make openbao put-age-key path=sops/production
-d.rymcg.tech make openbao put-age-key path=sops/staging
+d.rymcg.tech make openbao put-age-key path=sops/myserver-production
+d.rymcg.tech make openbao put-age-key path=sops/myserver-staging
 
 ## List all stored keys:
 d.rymcg.tech make openbao list-age-keys
 
 ## Verify a specific key:
-d.rymcg.tech make openbao get-age-key path=sops/production
+d.rymcg.tech make openbao get-age-key path=sops/myserver-production
 ```
 
 In your Woodpecker pipeline, set `BAO_AGE_KEY_PATH` to the path
-used above (e.g., `sops/production`).
+used above (e.g., `sops/myserver-production`).
 
 The d.rymcg.tech container entrypoint will retrieve this key
 automatically when `BAO_ADDR` is set.

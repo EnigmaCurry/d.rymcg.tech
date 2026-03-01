@@ -83,7 +83,7 @@ enable-kv:
 
 .PHONY: put-age-key # Store an AGE secret key (usage: make put-age-key path=sops/mykey)
 put-age-key:
-	@if [ -z "$${path}" ]; then echo "ERROR: path is required (e.g., make put-age-key path=sops/production)" >&2; exit 1; fi; \
+	@if [ -z "$${path}" ]; then echo "ERROR: path is required (e.g., make put-age-key path=sops/myserver-production)" >&2; exit 1; fi; \
 	echo "Storing AGE key at: secret/$${path}"; \
 	echo "Enter the root token:"; \
 	read -rs BAO_TOKEN; \
@@ -93,7 +93,7 @@ put-age-key:
 
 .PHONY: get-age-key # Read a stored AGE key (usage: make get-age-key path=sops/mykey)
 get-age-key:
-	@if [ -z "$${path}" ]; then echo "ERROR: path is required (e.g., make get-age-key path=sops/production)" >&2; exit 1; fi; \
+	@if [ -z "$${path}" ]; then echo "ERROR: path is required (e.g., make get-age-key path=sops/myserver-production)" >&2; exit 1; fi; \
 	echo "Enter the root token:"; \
 	read -rs BAO_TOKEN; \
 	make --no-print-directory docker-compose-shell SERVICE=openbao COMMAND="BAO_TOKEN=$${BAO_TOKEN} bao kv get secret/$${path}"
