@@ -1,0 +1,433 @@
+#!/usr/bin/env -S uv run --script
+# /// script
+# requires-python = ">=3.11"
+# dependencies = ["pyyaml"]
+# ///
+
+"""Pull, build, and archive all Docker images from d.rymcg.tech projects.
+
+Uses the image-catalog script as its data source, resolves image names via
+docker compose config, pulls/builds on the remote Docker host, and streams
+back compressed archives via SSH.
+
+Usage:
+    d.rymcg.tech image-archive                    # archive everything
+    d.rymcg.tech image-archive --pull-only        # skip builds, only pull images
+    d.rymcg.tech image-archive --project=whoami   # single project
+    d.rymcg.tech image-archive --dry-run          # show what would be done
+    d.rymcg.tech image-archive --output-dir=PATH  # override output dir
+    d.rymcg.tech image-archive --verbose          # show docker command output
+    d.rymcg.tech image-archive --delete           # remove images from server after archiving
+    d.rymcg.tech image-archive --no-cache         # build without Docker layer cache
+    d.rymcg.tech image-archive --force            # re-archive even if file exists
+    d.rymcg.tech image-archive --fail-fast        # stop on first error
+    d.rymcg.tech image-archive --rebuild-manifest # rebuild manifest from archive files
+"""
+
+import argparse
+import gzip
+import json
+import subprocess
+import sys
+import tarfile
+from datetime import datetime, timezone
+from io import BytesIO
+from pathlib import Path
+
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+from image_lib import (
+    ROOT_DIR, BUILD_SOURCES, get_docker_context, get_ssh_host, get_catalog,
+    find_env_file, resolve_compose_images, sanitize_filename, sha256sum,
+    get_docker_image_id, get_remote_arch, pull_image, build_service,
+    collect_images,
+)
+
+
+def save_image(ssh_host: str, image: str, output_path: Path, verbose: bool = False) -> bool:
+    """Stream docker save | gzip from the remote host to a local file."""
+    output_path.parent.mkdir(parents=True, exist_ok=True)
+    remote_cmd = f"docker save {image} | gzip"
+    cmd = ["ssh", ssh_host, remote_cmd]
+    if verbose:
+        print(f"  Running: ssh {ssh_host} '{remote_cmd}' > {output_path}", file=sys.stderr)
+    try:
+        with open(output_path, "wb") as f:
+            result = subprocess.run(cmd, stdout=f, stderr=subprocess.PIPE, timeout=600)
+        if result.returncode != 0:
+            stderr = result.stderr.decode() if result.stderr else ""
+            print(f"  ERROR saving {image}: {stderr.strip()}", file=sys.stderr)
+            if output_path.exists():
+                output_path.unlink()
+            return False
+        return True
+    except subprocess.TimeoutExpired:
+        print(f"  ERROR: Timeout saving {image}", file=sys.stderr)
+        if output_path.exists():
+            output_path.unlink()
+        return False
+
+
+def extract_image_info(archive_path: Path) -> tuple[str | None, str | None]:
+    """Extract the image repo:tag and docker ID from a docker save .tar.gz archive.
+
+    Returns (image_name, docker_id) tuple.
+    """
+    try:
+        with gzip.open(archive_path, "rb") as gz:
+            with tarfile.open(fileobj=gz, mode="r:") as tar:
+                try:
+                    member = tar.getmember("manifest.json")
+                except KeyError:
+                    return None, None
+                f = tar.extractfile(member)
+                if f is None:
+                    return None, None
+                data = json.loads(f.read())
+                for entry in data:
+                    name = None
+                    docker_id = None
+                    tags = entry.get("RepoTags", [])
+                    if tags:
+                        name = tags[0]
+                    # Config field contains the image ID:
+                    #   OCI format: "blobs/sha256/{hash}"
+                    #   Legacy format: "{hash}.json"
+                    config = entry.get("Config", "")
+                    if config.startswith("blobs/sha256/"):
+                        docker_id = "sha256:" + config.removeprefix("blobs/sha256/")
+                    elif config.endswith(".json"):
+                        docker_id = "sha256:" + config.removesuffix(".json")
+                    if name:
+                        return name, docker_id
+    except Exception:
+        return None, None
+    return None, None
+
+
+def rebuild_manifest(base_dir: Path, arch: str) -> None:
+    """Rebuild manifest.json by scanning all .tar.gz archive files."""
+    output_dir = base_dir / arch
+    if not output_dir.exists():
+        print(f"ERROR: Archive directory not found: {output_dir}", file=sys.stderr)
+        sys.exit(1)
+
+    print(f"Scanning {output_dir} for archived images...")
+    archives = sorted(output_dir.rglob("*.tar.gz"))
+    if not archives:
+        print("No .tar.gz files found.", file=sys.stderr)
+        sys.exit(1)
+
+    images: list[dict] = []
+    for archive_path in archives:
+        rel = archive_path.relative_to(output_dir)
+        project = rel.parts[0] if len(rel.parts) > 1 else "unknown"
+        size = archive_path.stat().st_size
+        size_mb = size / (1024 * 1024)
+
+        print(f"  {rel} ({size_mb:.1f} MB)...", end="", flush=True)
+        image_name, docker_id = extract_image_info(archive_path)
+        if not image_name:
+            print(f" WARNING: could not extract image name, skipping")
+            continue
+
+        file_hash = sha256sum(archive_path)
+        print(f" {image_name}")
+
+        entry = {
+            "project": project,
+            "image": image_name,
+            "file": str(rel),
+            "size": size,
+            "sha256": file_hash,
+            "archived_at": datetime.fromtimestamp(
+                archive_path.stat().st_mtime, tz=timezone.utc
+            ).isoformat(),
+        }
+        if docker_id:
+            entry["docker_id"] = docker_id
+        images.append(entry)
+
+    manifest_path = output_dir / "manifest.json"
+    manifest = {
+        "archived_at": datetime.now(timezone.utc).isoformat(),
+        "arch": arch,
+        "output_dir": str(output_dir),
+        "images": images,
+    }
+    with open(manifest_path, "w") as f:
+        json.dump(manifest, f, indent=2)
+
+    total_mb = sum(i["size"] for i in images) / (1024 * 1024)
+    print(f"\nRebuilt manifest with {len(images)} images ({total_mb:.1f} MB)")
+    print(f"Written to {manifest_path}")
+
+
+def main():
+    parser = argparse.ArgumentParser(
+        description="Pull, build, and archive all Docker images from d.rymcg.tech projects.",
+    )
+    parser.add_argument("--pull-only", action="store_true",
+                        help="Skip builds, only pull images")
+    parser.add_argument("--project", type=str, default=None,
+                        help="Archive only this project")
+    parser.add_argument("--pull", action="store_true",
+                        help="Pull fresh base images before building")
+    parser.add_argument("--dry-run", action="store_true",
+                        help="Show what would be done without executing")
+    parser.add_argument("--output-dir", type=str, default=None,
+                        help="Override output directory (default: _archive/images)")
+    parser.add_argument("--verbose", action="store_true",
+                        help="Show docker command output")
+    parser.add_argument("--delete", action="store_true",
+                        help="Delete image from server after archiving")
+    parser.add_argument("--no-cache", action="store_true",
+                        help="Build without Docker layer cache")
+    parser.add_argument("--force", action="store_true",
+                        help="Re-archive even if archive file already exists")
+    parser.add_argument("--fail-fast", action="store_true",
+                        help="Stop on the first build/pull/save error")
+    parser.add_argument("--rebuild-manifest", action="store_true",
+                        help="Rebuild manifest.json from existing archive files")
+    parser.add_argument("--exclude", type=str, action="append", default=[],
+                        help="Exclude a project (can be repeated)")
+    args = parser.parse_args()
+
+    if args.rebuild_manifest:
+        base_dir = Path(args.output_dir) if args.output_dir else ROOT_DIR / "_archive" / "images"
+        # Detect arch from existing subdirectories
+        arch_dirs = [d for d in base_dir.iterdir() if d.is_dir()] if base_dir.exists() else []
+        if not arch_dirs:
+            print(f"ERROR: No architecture directories found in {base_dir}", file=sys.stderr)
+            sys.exit(1)
+        for arch_dir in sorted(arch_dirs):
+            rebuild_manifest(base_dir, arch_dir.name)
+        return
+
+    # Get Docker context and SSH host
+    if not args.dry_run:
+        context = get_docker_context()
+        ssh_host = get_ssh_host()
+        arch = get_remote_arch(ssh_host)
+        print(f"Docker context: {context}")
+        print(f"SSH host: {ssh_host}")
+        print(f"Architecture: {arch}")
+    else:
+        try:
+            context = get_docker_context()
+            ssh_host = get_ssh_host()
+            arch = get_remote_arch(ssh_host)
+            print(f"Docker context: {context}")
+            print(f"SSH host: {ssh_host}")
+            print(f"Architecture: {arch}")
+        except SystemExit:
+            context = "unknown"
+            ssh_host = "unknown"
+            arch = "x86_64"
+            print("Docker context: (not available)")
+
+    base_dir = Path(args.output_dir) if args.output_dir else ROOT_DIR / "_archive" / "images"
+    output_dir = base_dir / arch
+    print(f"Output directory: {output_dir}")
+    print()
+
+    catalog = get_catalog(args.project)
+    if args.exclude:
+        catalog = [e for e in catalog if e["project"] not in args.exclude]
+    if not catalog:
+        print("No images found in catalog.", file=sys.stderr)
+        sys.exit(1)
+
+    projects: dict[str, list[dict]] = {}
+    for entry in catalog:
+        projects.setdefault(entry["project"], []).append(entry)
+
+    # Load existing manifest to validate previously archived images
+    manifest_path = output_dir / "manifest.json"
+    manifest_images: dict[str, dict] = {}
+    if manifest_path.exists():
+        try:
+            with open(manifest_path) as f:
+                old_manifest = json.load(f)
+            for img in old_manifest.get("images", []):
+                if img.get("sha256"):
+                    manifest_images[img["image"]] = img
+        except (json.JSONDecodeError, KeyError):
+            pass
+
+    results: list[dict] = []
+    failures: list[str] = []
+    skipped: list[str] = []
+
+    for project_name in sorted(projects):
+        entries = projects[project_name]
+        project_dir = ROOT_DIR / project_name
+
+        if not project_dir.exists():
+            print(f"SKIP {project_name}: project directory not found", file=sys.stderr)
+            continue
+
+        print(f"=== {project_name} ===")
+
+        # Always use .env-dist so builds are generic and reproducible,
+        # independent of any user/context-specific configuration.
+        env_file = project_dir / ".env-dist"
+        env_label = env_file.name if env_file.exists() else f"{env_file.name} (missing)"
+
+        if not args.dry_run:
+            compose_images = resolve_compose_images(project_dir, env_file)
+        else:
+            compose_images = {}
+
+        images_to_archive, entry_skipped = collect_images(
+            entries, compose_images, project_name, args.pull_only,
+        )
+        skipped.extend(entry_skipped)
+
+        if not images_to_archive:
+            print(f"  No images to archive")
+            continue
+
+        for image, info in sorted(images_to_archive.items()):
+            source = info["source"]
+            action = "build+save" if source in BUILD_SOURCES else "pull+save"
+            filename = sanitize_filename(image)
+            dest = output_dir / project_name / filename
+
+            if args.dry_run:
+                print(f"  [{action}] {image}")
+                print(f"    -> {dest}")
+                results.append({
+                    "project": project_name,
+                    "image": image,
+                    "action": action,
+                    "file": str(dest),
+                    "services": info["services"],
+                })
+                continue
+
+            # Skip if archive exists and manifest has its sha256 (unless --force)
+            if dest.exists() and image in manifest_images and not args.force:
+                size_mb = dest.stat().st_size / (1024 * 1024)
+                print(f"  [skip] {image} (already archived, {size_mb:.1f} MB)")
+                skipped.append(f"{project_name}/{image} (already archived)")
+                if args.delete:
+                    del_result = subprocess.run(
+                        ["docker", "rmi", image],
+                        capture_output=True, text=True,
+                    )
+                    if del_result.returncode != 0:
+                        stderr = del_result.stderr.strip() if del_result.stderr else ""
+                        if "No such image" not in stderr:
+                            print(f"    WARNING: failed to delete {image}: {stderr}", file=sys.stderr)
+                    elif args.verbose:
+                        print(f"    Deleted {image} from server")
+                continue
+
+            print(f"  [{action}] {image}")
+
+            success = False
+            if source in BUILD_SOURCES:
+                build_svc = info["build_service"]
+                print(f"    Building service '{build_svc}' (env: {env_label})...")
+                success = build_service(project_dir, env_file, build_svc, verbose=args.verbose, pull=args.pull, no_cache=args.no_cache)
+                if not success:
+                    print(f"    FAILED to build {project_name}/{build_svc}", file=sys.stderr)
+                    failures.append(f"{project_name}: build {build_svc} ({image})")
+                    if args.fail_fast:
+                        break
+                    continue
+            else:
+                print(f"    Pulling...")
+                success = pull_image(image, verbose=args.verbose)
+                if not success:
+                    print(f"    FAILED to pull {image}", file=sys.stderr)
+                    failures.append(f"{project_name}: pull {image}")
+                    if args.fail_fast:
+                        break
+                    continue
+
+            print(f"    Saving to {dest}...")
+            success = save_image(ssh_host, image, dest, verbose=args.verbose)
+            if success:
+                size = dest.stat().st_size
+                size_mb = size / (1024 * 1024)
+                file_hash = sha256sum(dest)
+                image_id = get_docker_image_id(image)
+                print(f"    OK ({size_mb:.1f} MB)")
+                results.append({
+                    "project": project_name,
+                    "image": image,
+                    "action": action,
+                    "file": str(dest.relative_to(output_dir)),
+                    "size": size,
+                    "sha256": file_hash,
+                    "docker_id": image_id,
+                    "services": info["services"],
+                    "archived_at": datetime.now(timezone.utc).isoformat(),
+                })
+                # Delete image from server after successful archive
+                if args.delete:
+                    del_result = subprocess.run(
+                        ["docker", "rmi", image],
+                        capture_output=True, text=True,
+                    )
+                    if del_result.returncode != 0:
+                        stderr = del_result.stderr.strip() if del_result.stderr else ""
+                        if "No such image" not in stderr:
+                            print(f"    WARNING: failed to delete {image}: {stderr}", file=sys.stderr)
+                    elif args.verbose:
+                        print(f"    Deleted {image} from server")
+            else:
+                failures.append(f"{project_name}: save {image}")
+                if args.fail_fast:
+                    break
+
+        if args.fail_fast and failures:
+            break
+
+        print()
+
+    if not args.dry_run:
+        manifest_path.parent.mkdir(parents=True, exist_ok=True)
+        # Update manifest_images with new results (overwrites re-archived entries)
+        existing_images = dict(manifest_images)
+        for img in results:
+            existing_images[img["image"]] = img
+        manifest = {
+            "archived_at": datetime.now(timezone.utc).isoformat(),
+            "arch": arch,
+            "docker_context": context,
+            "ssh_host": ssh_host,
+            "output_dir": str(output_dir),
+            "images": list(existing_images.values()),
+        }
+        with open(manifest_path, "w") as f:
+            json.dump(manifest, f, indent=2)
+        print(f"Manifest written to {manifest_path}")
+
+    print()
+    print("=== SUMMARY ===")
+    new_size = sum(r.get("size", 0) for r in results)
+    new_mb = new_size / (1024 * 1024)
+    if not args.dry_run:
+        all_files = list(base_dir.rglob("*.tar.gz"))
+        total_count = len(all_files)
+        total_size = sum(f.stat().st_size for f in all_files)
+        total_mb = total_size / (1024 * 1024)
+    print(f"  New: {len(results)} images, {new_mb:.1f} MB")
+    if not args.dry_run:
+        print(f"  Total: {total_count} images, {total_mb:.1f} MB")
+    if skipped:
+        print(f"  Skipped: {len(skipped)}")
+        if args.verbose:
+            for s in skipped:
+                print(f"    - {s}")
+    if failures:
+        print(f"  Failures: {len(failures)}")
+        for f in failures:
+            print(f"    - {f}")
+        sys.exit(1)
+
+
+if __name__ == "__main__":
+    main()

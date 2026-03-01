@@ -109,7 +109,7 @@ services:
     labels: []
 
   mariadb:
-    image: mariadb:10.11
+    image: ${PHOTOPRISM_MARIADB_IMAGE}
     ## If MariaDB gets stuck in a restart loop, this points to a memory or filesystem issue:
     ## https://docs.photoprism.app/getting-started/troubleshooting/#fatal-server-errors
     restart: unless-stopped
