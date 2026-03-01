@@ -123,11 +123,45 @@ disable-approle:
 	read -rs BAO_TOKEN; \
 	make --no-print-directory docker-compose-shell SERVICE=openbao COMMAND="BAO_TOKEN=$${BAO_TOKEN} bao auth disable approle"
 
+.PHONY: list-approles # List all AppRoles
+list-approles:
+	@echo "Enter the root token:"; \
+	read -rs BAO_TOKEN; \
+	make --no-print-directory docker-compose-shell SERVICE=openbao COMMAND="BAO_TOKEN=$${BAO_TOKEN} bao list auth/approle/role"
+
+.PHONY: delete-approles # Delete AppRoles (interactive selection)
+delete-approles:
+	@echo "Enter the root token:"; \
+	read -rs BAO_TOKEN; \
+	ROLES=$$(make --no-print-directory docker-compose-lifecycle-cmd EXTRA_ARGS="exec -T openbao /bin/sh -c 'BAO_TOKEN=$${BAO_TOKEN} bao list -format=json auth/approle/role'" 2>/dev/null | jq -r '.[]'); \
+	if [ -z "$${ROLES}" ]; then echo "No AppRoles found."; exit 0; fi; \
+	readarray -t ROLE_ARRAY <<< "$${ROLES}"; \
+	readarray -t SELECTED < <(${BIN}/script-wizard select "Select AppRoles to delete" "$${ROLE_ARRAY[@]}"); \
+	if [ $${#SELECTED[@]} -eq 0 ]; then echo "No AppRoles selected."; exit 0; fi; \
+	for role in "$${SELECTED[@]}"; do \
+		echo "Deleting AppRole: $${role}"; \
+		make --no-print-directory docker-compose-lifecycle-cmd EXTRA_ARGS="exec -T openbao /bin/sh -c 'BAO_TOKEN=$${BAO_TOKEN} bao delete auth/approle/role/$${role}'" 2>/dev/null; \
+	done
+
 .PHONY: list-policies # List all policies
 list-policies:
 	@echo "Enter the root token:"; \
 	read -rs BAO_TOKEN; \
 	make --no-print-directory docker-compose-shell SERVICE=openbao COMMAND="BAO_TOKEN=$${BAO_TOKEN} bao policy list"
+
+.PHONY: delete-policies # Delete policies (interactive selection)
+delete-policies:
+	@echo "Enter the root token:"; \
+	read -rs BAO_TOKEN; \
+	POLICIES=$$(make --no-print-directory docker-compose-lifecycle-cmd EXTRA_ARGS="exec -T openbao /bin/sh -c 'BAO_TOKEN=$${BAO_TOKEN} bao policy list -format=json'" 2>/dev/null | jq -r '.[]' | grep -vxE 'default|root'); \
+	if [ -z "$${POLICIES}" ]; then echo "No deletable policies found."; exit 0; fi; \
+	readarray -t POLICY_ARRAY <<< "$${POLICIES}"; \
+	readarray -t SELECTED < <(${BIN}/script-wizard select "Select policies to delete" "$${POLICY_ARRAY[@]}"); \
+	if [ $${#SELECTED[@]} -eq 0 ]; then echo "No policies selected."; exit 0; fi; \
+	for policy in "$${SELECTED[@]}"; do \
+		echo "Deleting policy: $${policy}"; \
+		make --no-print-directory docker-compose-lifecycle-cmd EXTRA_ARGS="exec -T openbao /bin/sh -c 'BAO_TOKEN=$${BAO_TOKEN} bao policy delete $${policy}'" 2>/dev/null; \
+	done
 
 .PHONY: create-policy # Create a deploy repo policy (usage: make create-policy repo=d2-admin)
 create-policy:
