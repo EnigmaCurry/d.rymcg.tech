@@ -1,0 +1,3704 @@
+#!/bin/bash
+## gumdrop - Generic DigitalOcean droplet manager
+## Usage: gumdrop [--tag TAG]
+## Can be sourced as a library or run directly.
+
+if [[ -n "${_GUMDROP_SOURCED}" ]]; then return 0 2>/dev/null || true; fi
+_GUMDROP_SOURCED=1
+
+SCRIPT_DIR=$(dirname "$(readlink -f "${BASH_SOURCE[0]}")")
+ROOT_DIR=$(readlink -f "${SCRIPT_DIR}/..")
+BIN=${ROOT_DIR}/_scripts
+source ${BIN}/funcs.sh
+
+set -eo pipefail
+
+## Configuration (override via env vars before sourcing):
+GUMDROP_TAG="${GUMDROP_TAG:-}"
+GUMDROP_LABEL="${GUMDROP_LABEL:-Droplet}"
+GUMDROP_DEFAULT_IMAGE="${GUMDROP_DEFAULT_IMAGE:-debian-13-x64}"
+GUMDROP_DEFAULT_REGION="${GUMDROP_DEFAULT_REGION:-nyc2}"
+GUMDROP_DEFAULT_SIZE="${GUMDROP_DEFAULT_SIZE:-s-2vcpu-4gb}"
+GUMDROP_SSH_KEY_NAME="${GUMDROP_SSH_KEY_NAME:-gumdrop}"
+## Space-separated list of image slugs to offer. Empty = fetch all public images from doctl.
+GUMDROP_IMAGES="${GUMDROP_IMAGES:-}"
+GUMDROP_PRESET_DIR="${HOME}/.config/d.rymcg.tech/gumdrop-presets"
+
+gumdrop_check_doctl() {
+    command -v doctl >/dev/null || fault "doctl is not installed. See https://docs.digitalocean.com/reference/doctl/how-to/install/"
+    if ! doctl account get >/dev/null 2>&1; then
+        confirm yes "doctl is not authenticated. Login now" "?" || fault "doctl is not authenticated."
+        local context_name
+        ask "Enter a name for this account" context_name "default"
+        doctl auth init --context "${context_name}"
+        doctl auth switch --context "${context_name}"
+    fi
+}
+
+gumdrop_show_account() {
+    echo ""
+    local account_email=$(doctl account get --format Email --no-header 2>/dev/null)
+    local account_team=$(doctl account get --format Team --no-header 2>/dev/null)
+    local account_context=$(doctl auth list 2>/dev/null | grep -oP '^.+(?= \(current\))' || echo "default")
+    printf "## %-9s %s\n" "Account:" "${account_context}"
+    printf "## %-9s %s\n" "Team:" "${account_team:+[${account_team}] }${account_email}"
+}
+
+gumdrop_list() {
+    local tag_args=()
+    [[ -n "${GUMDROP_TAG}" ]] && tag_args=(--tag-name "${GUMDROP_TAG}")
+    echo ""
+    echo "## Loading droplet data ..."
+    local count=$(doctl compute droplet list "${tag_args[@]}" --format ID --no-header 2>/dev/null | wc -l)
+    if [[ ${count} -gt 0 ]]; then
+        ## Build reserved IP lookup (droplet_id -> IP):
+        declare -A _RIP_MAP
+        while read -r rip rid; do
+            [[ -n "${rid}" && "${rid}" != "0" ]] && _RIP_MAP["${rid}"]="${rip}"
+        done < <(doctl compute reserved-ip list --format IP,DropletID --no-header 2>/dev/null)
+        ## Build volume lookup (droplet_id -> comma-separated volume names):
+        declare -A _VOL_MAP
+        while read -r vol_name vol_droplets; do
+            [[ -z "${vol_name}" ]] && continue
+            local did=$(echo "${vol_droplets}" | tr -d '[]')
+            if [[ -n "${did}" && "${did}" != "0" ]]; then
+                if [[ -n "${_VOL_MAP[${did}]}" ]]; then
+                    _VOL_MAP["${did}"]="${_VOL_MAP[${did}]},${vol_name}"
+                else
+                    _VOL_MAP["${did}"]="${vol_name}"
+                fi
+            fi
+        done < <(doctl compute volume list --format Name,DropletIDs --no-header 2>/dev/null)
+        ## Build backup lookup (droplet_id -> daily/weekly/-):
+        declare -A _BACKUP_MAP
+        while read -r did plan; do
+            [[ -n "${did}" && -n "${plan}" ]] && _BACKUP_MAP["${did}"]="${plan}"
+        done < <(doctl compute droplet list "${tag_args[@]}" --output json 2>/dev/null | uv run python3 -c "
+import json,sys
+data=json.load(sys.stdin)
+if not isinstance(data,list): data=[data]
+for d in data:
+    p=d.get('backup_policy') or {}
+    plan=p.get('plan','') if isinstance(p,dict) else ''
+    if not plan and 'backups' in d.get('features',[]):
+        plan='daily'
+    if plan: print(d['id'],plan)
+" 2>/dev/null)
+        ## Build NFS lookup (vpc_id -> comma-separated NFS share names):
+        declare -A _NFS_VPC_MAP
+        _gumdrop_collect_nfs_shares
+        for i in "${!_NFS_IDS[@]}"; do
+            local nfs_vpc_raw="${_NFS_VPCS[$i]}"
+            nfs_vpc_raw=$(echo "${nfs_vpc_raw}" | tr -d '[]')
+            IFS=',' read -ra nfs_vpc_ids <<< "${nfs_vpc_raw}"
+            for vid in "${nfs_vpc_ids[@]}"; do
+                vid=$(echo "${vid}" | xargs)
+                [[ -z "${vid}" ]] && continue
+                if [[ -n "${_NFS_VPC_MAP[${vid}]}" ]]; then
+                    _NFS_VPC_MAP["${vid}"]="${_NFS_VPC_MAP[${vid}]},${_NFS_NAMES[$i]}"
+                else
+                    _NFS_VPC_MAP["${vid}"]="${_NFS_NAMES[$i]}"
+                fi
+            done
+        done
+        ## Print droplet table with ReservedIP, Volumes, and NFS columns:
+        {
+            echo "ID Name PublicIPv4 ReservedIPv4 Volumes NFS Backups Region Size Status"
+            while read -r id name pub vpcuuid region size status; do
+                echo "${id} ${name} ${pub} ${_RIP_MAP[${id}]:--} ${_VOL_MAP[${id}]:--} ${_NFS_VPC_MAP[${vpcuuid}]:--} ${_BACKUP_MAP[${id}]:--} ${region} ${size} ${status}"
+            done < <(doctl compute droplet list "${tag_args[@]}" --format ID,Name,PublicIPv4,VPCUUID,Region,SizeSlug,Status --no-header)
+        } | column -t
+    else
+        echo "No ${GUMDROP_LABEL,,}s found${GUMDROP_TAG:+ (tag: ${GUMDROP_TAG})}."
+    fi
+
+    ## Resource summaries:
+    local summaries=()
+
+    ## NFS shares:
+    if [[ -z "${_NFS_IDS+x}" ]]; then _gumdrop_collect_nfs_shares; fi
+    if [[ ${#_NFS_IDS[@]} -gt 0 ]]; then
+        local nfs_list=""
+        for i in "${!_NFS_IDS[@]}"; do
+            nfs_list+="${nfs_list:+, }${_NFS_NAMES[$i]} (${_NFS_REGIONS[$i]})"
+        done
+        summaries+=("NFS shares: ${nfs_list}")
+    fi
+
+    ## Unused firewalls (no droplets assigned):
+    local unused_fw=()
+    readarray -t _FW_NAMES < <(doctl compute firewall list --format Name --no-header 2>/dev/null)
+    readarray -t _FW_DROPLETS < <(doctl compute firewall list --format DropletIDs --no-header 2>/dev/null)
+    for i in "${!_FW_NAMES[@]}"; do
+        if [[ -z "${_FW_DROPLETS[$i]}" || "${_FW_DROPLETS[$i]}" == "[]" ]]; then
+            unused_fw+=("${_FW_NAMES[$i]}")
+        fi
+    done
+    if [[ ${#unused_fw[@]} -gt 0 ]]; then
+        local fw_list
+        fw_list=$(IFS=', '; echo "${unused_fw[*]}")
+        summaries+=("Unused firewalls: ${fw_list}")
+    fi
+
+    ## Unattached volumes:
+    local unattached_vol=()
+    readarray -t _VOL_NAMES_ALL < <(doctl compute volume list --format Name --no-header 2>/dev/null)
+    readarray -t _VOL_DROPLETS_ALL < <(doctl compute volume list --format DropletIDs --no-header 2>/dev/null)
+    for i in "${!_VOL_NAMES_ALL[@]}"; do
+        if [[ -z "${_VOL_DROPLETS_ALL[$i]}" || "${_VOL_DROPLETS_ALL[$i]}" == "[]" ]]; then
+            unattached_vol+=("${_VOL_NAMES_ALL[$i]}")
+        fi
+    done
+    if [[ ${#unattached_vol[@]} -gt 0 ]]; then
+        local vol_list
+        vol_list=$(IFS=', '; echo "${unattached_vol[*]}")
+        summaries+=("Unattached volumes: ${vol_list}")
+    fi
+
+    ## Unassigned reserved IPs:
+    local unassigned_ips=()
+    readarray -t _RIP_ALL < <(doctl compute reserved-ip list --format IP --no-header 2>/dev/null)
+    readarray -t _RIP_DROPLET_ALL < <(doctl compute reserved-ip list --format DropletID --no-header 2>/dev/null)
+    for i in "${!_RIP_ALL[@]}"; do
+        if [[ -z "${_RIP_DROPLET_ALL[$i]}" || "${_RIP_DROPLET_ALL[$i]}" == "0" ]]; then
+            unassigned_ips+=("${_RIP_ALL[$i]}")
+        fi
+    done
+    if [[ ${#unassigned_ips[@]} -gt 0 ]]; then
+        local ip_list
+        ip_list=$(IFS=', '; echo "${unassigned_ips[*]}")
+        summaries+=("Unassigned reserved IPs: ${ip_list}")
+    fi
+
+    ## Snapshots:
+    local snap_names=()
+    readarray -t snap_names < <(doctl compute snapshot list --resource droplet --format Name --no-header 2>/dev/null)
+    if [[ ${#snap_names[@]} -gt 0 && -n "${snap_names[0]}" ]]; then
+        local snap_list
+        snap_list=$(IFS=', '; echo "${snap_names[*]}")
+        summaries+=("Snapshots: ${snap_list}")
+    fi
+
+    if [[ ${#summaries[@]} -gt 0 ]]; then
+        for s in "${summaries[@]}"; do
+            echo "  ${s}"
+        done
+    fi
+    echo ""
+}
+
+gumdrop_ssh() {
+    local tag_args=()
+    [[ -n "${GUMDROP_TAG}" ]] && tag_args=(--tag-name "${GUMDROP_TAG}")
+    readarray -t NAMES < <(doctl compute droplet list "${tag_args[@]}" --format Name --no-header)
+    if [[ ${#NAMES[@]} -eq 0 ]]; then
+        echo "No ${GUMDROP_LABEL,,}s found."
+        return
+    fi
+    local name
+    if ! name=$(wizard choose "SSH into which ${GUMDROP_LABEL,,}?" "${NAMES[@]}" --default "${NAMES[0]}"); then return; fi
+    local ip
+    ip=$(doctl compute droplet list "${tag_args[@]}" --format Name,PublicIPv4 --no-header | awk -v n="${name}" '$1==n {print $2}')
+    if [[ -z "${ip}" ]]; then
+        echo "Could not find public IP for '${name}'."
+        return 1
+    fi
+    ssh -o StrictHostKeyChecking=accept-new "root@${ip}"
+}
+
+gumdrop_add_ssh_config() {
+    local tag_args=()
+    [[ -n "${GUMDROP_TAG}" ]] && tag_args=(--tag-name "${GUMDROP_TAG}")
+    readarray -t NAMES < <(doctl compute droplet list "${tag_args[@]}" --format Name --no-header)
+    if [[ ${#NAMES[@]} -eq 0 ]]; then
+        echo "No ${GUMDROP_LABEL,,}s found."
+        return
+    fi
+    local name
+    if ! name=$(wizard choose "Add SSH config for which ${GUMDROP_LABEL,,}?" "${NAMES[@]}" --default "${NAMES[0]}"); then return; fi
+    local ip
+    ip=$(doctl compute droplet list "${tag_args[@]}" --format Name,PublicIPv4 --no-header | awk -v n="${name}" '$1==n {print $2}')
+    if [[ -z "${ip}" ]]; then
+        echo "Could not find public IP for ${name}."
+        return 1
+    fi
+    local ssh_config="${HOME}/.ssh/config"
+    mkdir -p "${HOME}/.ssh"
+    touch "${ssh_config}"
+    chmod 600 "${ssh_config}"
+    ## Remove existing Host block if present (idempotent):
+    if grep -qP "^Host ${name}$" "${ssh_config}" 2>/dev/null; then
+        local tmp
+        tmp=$(mktemp)
+        sed < "${ssh_config}" "/^$/d;s/Host /$NL&/" | sed '/^Host '"${name}"'$/,/^$/d;' > "${tmp}"
+        cat "${tmp}" > "${ssh_config}"
+        rm -f "${tmp}"
+    fi
+    cat <<EOF >> "${ssh_config}"
+
+Host ${name}
+     Hostname ${ip}
+     User root
+     ControlMaster auto
+     ControlPersist yes
+     ControlPath /tmp/ssh-%u-%r@%h:%p
+EOF
+    echo "Updated SSH config for ${name} (${ip})."
+    ## Optionally create Docker context:
+    if command -v docker >/dev/null 2>&1; then
+        if confirm no "Create Docker context for ${name}" "?"; then
+            if docker context inspect "${name}" >/dev/null 2>&1; then
+                docker context rm -f "${name}"
+            fi
+            docker context create "${name}" --docker "host=ssh://${name}"
+            echo "Docker context '${name}' created."
+        fi
+    fi
+}
+
+gumdrop_log_cloud_init() {
+    local name
+    if ! name=$(gumdrop_choose_droplet "View cloud-init log for which ${GUMDROP_LABEL,,}?"); then return; fi
+    gumdrop_ssh_cmd "${name}" cat /var/log/cloud-init-output.log | less
+}
+
+gumdrop_log_docker() {
+    local name
+    if ! name=$(gumdrop_choose_droplet "View Docker log for which ${GUMDROP_LABEL,,}?"); then return; fi
+    gumdrop_ssh_cmd "${name}" journalctl -u docker -n 500 --no-pager | less
+}
+
+gumdrop_log_ssh() {
+    local name
+    if ! name=$(gumdrop_choose_droplet "View SSH log for which ${GUMDROP_LABEL,,}?"); then return; fi
+    gumdrop_ssh_cmd "${name}" journalctl -u ssh -u sshd -n 500 --no-pager | less
+}
+
+gumdrop_manage_logs() {
+    while :
+    do
+        set +e
+        wizard menu --once --cancel-code=2 "View logs:" \
+            "cloud-init = $0 gumdrop_log_cloud_init" \
+            "Docker = $0 gumdrop_log_docker" \
+            "SSH = $0 gumdrop_log_ssh" \
+            "Back = exit 2"
+        local EXIT_CODE=$?
+        set -e
+        if [[ "${EXIT_CODE}" == "2" ]]; then
+            exit 0
+        fi
+    done
+}
+
+gumdrop_destroy() {
+    local tag_args=()
+    [[ -n "${GUMDROP_TAG}" ]] && tag_args=(--tag-name "${GUMDROP_TAG}")
+    readarray -t NAMES < <(doctl compute droplet list "${tag_args[@]}" --format Name --no-header)
+    if [[ ${#NAMES[@]} -eq 0 ]]; then
+        echo "No ${GUMDROP_LABEL,,}s found."
+        return
+    fi
+    local name
+    if ! name=$(wizard choose "Destroy which ${GUMDROP_LABEL,,}?" "${NAMES[@]}" --default "${NAMES[0]}"); then return; fi
+    confirm no "Are you sure you want to destroy '${name}'" "?" || return
+
+    ## Find auto-created firewalls matching {name}-*-{hex} that only protect this droplet:
+    local droplet_id=$(doctl compute droplet list --format ID,Name --no-header | awk -v n="${name}" '$2 == n {print $1}')
+    local FW_TO_DELETE=()
+    if [[ -n "${droplet_id}" ]]; then
+        readarray -t FW_IDS < <(doctl compute firewall list --format ID --no-header 2>/dev/null)
+        readarray -t FW_NAMES < <(doctl compute firewall list --format Name --no-header 2>/dev/null)
+        readarray -t FW_DROPLETS < <(doctl compute firewall list --format DropletIDs --no-header 2>/dev/null)
+        for i in "${!FW_IDS[@]}"; do
+            if [[ "${FW_NAMES[$i]}" =~ ^${name}-[a-zA-Z]([a-zA-Z0-9-]*[a-zA-Z0-9])?-[0-9a-f]+$ ]]; then
+                ## Check if this droplet is the only one using this firewall:
+                local droplet_list=$(echo "${FW_DROPLETS[$i]}" | tr -d '[]')
+                if [[ "${droplet_list}" == "${droplet_id}" ]]; then
+                    FW_TO_DELETE+=("${FW_IDS[$i]}:${FW_NAMES[$i]}")
+                fi
+            fi
+        done
+    fi
+
+    doctl compute droplet delete "${name}" --force
+    echo "${GUMDROP_LABEL} '${name}' destroyed."
+
+    ## Clean up auto-created firewalls:
+    for fw_entry in "${FW_TO_DELETE[@]}"; do
+        local fw_id="${fw_entry%%:*}"
+        local fw_name="${fw_entry#*:}"
+        echo "Deleting auto-created firewall '${fw_name}'..."
+        doctl compute firewall delete "${fw_id}" --force
+        echo "Firewall '${fw_name}' deleted."
+    done
+}
+
+gumdrop_ensure_ssh_key() {
+    readarray -t SSH_KEY_IDS < <(doctl compute ssh-key list --format ID --no-header)
+    if [[ ${#SSH_KEY_IDS[@]} -eq 0 ]]; then
+        echo ""
+        echo "No SSH keys found in your DigitalOcean account."
+        confirm yes "Upload a local SSH public key now" "?" || return 1
+        gumdrop_upload_ssh_key
+    fi
+}
+
+gumdrop_upload_ssh_key() {
+    local KEY_OPTIONS=()
+    local KEY_SOURCES=()
+    declare -A SEEN_KEYS
+
+    if ssh-add -L &>/dev/null; then
+        while IFS= read -r line; do
+            local fingerprint=$(echo "${line}" | ssh-keygen -lf - 2>/dev/null | awk '{print $2}')
+            if [[ -n "${fingerprint}" && -z "${SEEN_KEYS[${fingerprint}]}" ]]; then
+                SEEN_KEYS[${fingerprint}]=1
+                local keytype=$(echo "${line}" | awk '{print $1}')
+                KEY_OPTIONS+=("agent: ${keytype} ${fingerprint}")
+                KEY_SOURCES+=("agent:${line}")
+            fi
+        done < <(ssh-add -L)
+    fi
+
+    while IFS= read -r pubfile; do
+        local fingerprint=$(ssh-keygen -lf "${pubfile}" 2>/dev/null | awk '{print $2}')
+        if [[ -n "${fingerprint}" && -z "${SEEN_KEYS[${fingerprint}]}" ]]; then
+            SEEN_KEYS[${fingerprint}]=1
+            KEY_OPTIONS+=("file: ${pubfile}")
+            KEY_SOURCES+=("file:${pubfile}")
+        fi
+    done < <(find ~/.ssh -name '*.pub' -type f 2>/dev/null)
+
+    if [[ ${#KEY_OPTIONS[@]} -eq 0 ]]; then
+        error "No public keys found in ssh-agent or ~/.ssh/"
+        return
+    fi
+
+    local choice
+    if ! choice=$(wizard choose "Select public key to upload" "${KEY_OPTIONS[@]}" --default "${KEY_OPTIONS[0]}"); then return; fi
+
+    local source=""
+    for i in "${!KEY_OPTIONS[@]}"; do
+        if [[ "${KEY_OPTIONS[$i]}" == "${choice}" ]]; then
+            source="${KEY_SOURCES[$i]}"
+            break
+        fi
+    done
+
+    local keyname
+    ask "Enter a name for this key" keyname "${GUMDROP_SSH_KEY_NAME}"
+
+    if [[ "${source}" == agent:* ]]; then
+        local pubkey_data="${source#agent:}"
+        local tmpfile=$(mktemp)
+        echo "${pubkey_data}" > "${tmpfile}"
+        doctl compute ssh-key import "${keyname}" --public-key-file "${tmpfile}"
+        rm -f "${tmpfile}"
+    else
+        local pubfile="${source#file:}"
+        doctl compute ssh-key import "${keyname}" --public-key-file "${pubfile}"
+    fi
+    echo "SSH key '${keyname}' uploaded."
+}
+
+gumdrop_delete_ssh_key() {
+    readarray -t SSH_KEY_IDS < <(doctl compute ssh-key list --format ID --no-header)
+    readarray -t SSH_KEY_NAMES < <(doctl compute ssh-key list --format Name --no-header)
+    if [[ ${#SSH_KEY_IDS[@]} -eq 0 ]]; then
+        echo "No SSH keys found."
+        return
+    fi
+    local KEY_OPTIONS=()
+    for i in "${!SSH_KEY_IDS[@]}"; do
+        KEY_OPTIONS+=("${SSH_KEY_NAMES[$i]} (${SSH_KEY_IDS[$i]})")
+    done
+    local choice
+    if ! choice=$(wizard choose "Delete which SSH key?" "${KEY_OPTIONS[@]}" --default "${KEY_OPTIONS[0]}"); then return; fi
+    local key_id=$(echo "${choice}" | grep -oP '\(\K[0-9]+(?=\))')
+    confirm no "Are you sure you want to delete '${choice}'" "?" || return
+    doctl compute ssh-key delete "${key_id}" --force
+    echo "SSH key deleted."
+}
+
+gumdrop_list_ssh_keys() {
+    echo ""
+    echo "## SSH keys:"
+    doctl compute ssh-key list --format ID,Name,FingerPrint
+    echo ""
+}
+
+gumdrop_manage_ssh_keys() {
+    while :
+    do
+        gumdrop_list_ssh_keys
+        set +e
+        wizard menu --once --cancel-code=2 "SSH Keys:" \
+            "Upload SSH key = $0 gumdrop_upload_ssh_key" \
+            "Delete SSH key = $0 gumdrop_delete_ssh_key" \
+            "Back = exit 2"
+        local EXIT_CODE=$?
+        set -e
+        if [[ "${EXIT_CODE}" == "2" ]]; then
+            exit 0
+        fi
+    done
+}
+
+_gumdrop_create_ssh_only_firewall() {
+    local fw_name="${DROPLET_NAME}-ssh-only-$(head -c4 /dev/urandom | od -An -tx1 | tr -d ' ')"
+    echo "Creating firewall '${fw_name}' (SSH only inbound, allow all outbound)..."
+    local output
+    output=$(doctl compute firewall create \
+        --name "${fw_name}" \
+        --inbound-rules "protocol:tcp,ports:22,address:0.0.0.0/0,address:::/0 protocol:icmp,address:0.0.0.0/0,address:::/0" \
+        --outbound-rules "protocol:tcp,ports:all,address:0.0.0.0/0,address:::/0 protocol:udp,ports:all,address:0.0.0.0/0,address:::/0 protocol:icmp,address:0.0.0.0/0,address:::/0" \
+        --format ID,Name --no-header)
+    local fw_id=$(echo "${output}" | awk '{print $1}')
+    if [[ -n "${fw_id}" ]]; then
+        FIREWALL_IDS+=("${fw_id}")
+        FIREWALL_NAMES+=("${fw_name}")
+        echo "Firewall '${fw_name}' created."
+    else
+        error "Failed to create firewall."
+    fi
+}
+
+_gumdrop_create_block_all_firewall() {
+    local fw_name="${DROPLET_NAME}-block-all-$(head -c4 /dev/urandom | od -An -tx1 | tr -d ' ')"
+    echo "Creating firewall '${fw_name}' (block all inbound, allow all outbound)..."
+    local output
+    output=$(doctl compute firewall create \
+        --name "${fw_name}" \
+        --inbound-rules "" \
+        --outbound-rules "protocol:tcp,ports:all,address:0.0.0.0/0,address:::/0 protocol:udp,ports:all,address:0.0.0.0/0,address:::/0 protocol:icmp,address:0.0.0.0/0,address:::/0" \
+        --format ID,Name --no-header)
+    local fw_id=$(echo "${output}" | awk '{print $1}')
+    if [[ -n "${fw_id}" ]]; then
+        FIREWALL_IDS+=("${fw_id}")
+        FIREWALL_NAMES+=("${fw_name}")
+        echo "Firewall '${fw_name}' created."
+    else
+        error "Failed to create firewall."
+    fi
+}
+
+_gumdrop_create_web_firewall() {
+    local fw_name="${DROPLET_NAME}-web-$(head -c4 /dev/urandom | od -An -tx1 | tr -d ' ')"
+    echo "Creating firewall '${fw_name}' (TCP 22, 80, 443 inbound, all outbound)..."
+    local output
+    output=$(doctl compute firewall create \
+        --name "${fw_name}" \
+        --inbound-rules "protocol:tcp,ports:22,address:0.0.0.0/0,address:::/0 protocol:tcp,ports:80,address:0.0.0.0/0,address:::/0 protocol:tcp,ports:443,address:0.0.0.0/0,address:::/0 protocol:icmp,address:0.0.0.0/0,address:::/0" \
+        --outbound-rules "protocol:tcp,ports:all,address:0.0.0.0/0,address:::/0 protocol:udp,ports:all,address:0.0.0.0/0,address:::/0 protocol:icmp,address:0.0.0.0/0,address:::/0" \
+        --format ID,Name --no-header)
+    local fw_id=$(echo "${output}" | awk '{print $1}')
+    if [[ -n "${fw_id}" ]]; then
+        FIREWALL_IDS+=("${fw_id}")
+        FIREWALL_NAMES+=("${fw_name}")
+        echo "Firewall '${fw_name}' created."
+    else
+        error "Failed to create firewall."
+    fi
+}
+
+_gumdrop_choose_existing_firewalls() {
+    readarray -t FW_IDS < <(doctl compute firewall list --format ID --no-header)
+    readarray -t FW_NAMES < <(doctl compute firewall list --format Name --no-header)
+    if [[ ${#FW_IDS[@]} -eq 0 ]]; then
+        echo "No existing firewalls found."
+        return
+    fi
+    local FW_OPTIONS=()
+    for i in "${!FW_IDS[@]}"; do
+        FW_OPTIONS+=("${FW_NAMES[$i]} (${FW_IDS[$i]})")
+    done
+    readarray -t SELECTED < <(wizard select "Select firewalls to apply" "${FW_OPTIONS[@]}")
+    for choice in "${SELECTED[@]}"; do
+        local fw_id=$(echo "${choice}" | grep -oP '\(\K[0-9a-f-]+(?=\))')
+        local fw_name=$(echo "${choice}" | sed 's/ ([^)]*)//')
+        if [[ -n "${fw_id}" ]]; then
+            FIREWALL_IDS+=("${fw_id}")
+            FIREWALL_NAMES+=("${fw_name}")
+        fi
+    done
+}
+
+_gumdrop_create_custom_firewall() {
+    local fw_name
+    ask_no_blank "Enter firewall name" fw_name
+    local INBOUND_RULES=()
+    local OUTBOUND_RULES=()
+
+    ## Always allow all outbound by default:
+    OUTBOUND_RULES+=("protocol:tcp,ports:all,address:0.0.0.0/0,address:::/0")
+    OUTBOUND_RULES+=("protocol:udp,ports:all,address:0.0.0.0/0,address:::/0")
+    OUTBOUND_RULES+=("protocol:icmp,address:0.0.0.0/0,address:::/0")
+
+    while :; do
+        echo ""
+        echo "## Inbound rules for '${fw_name}':"
+        if [[ ${#INBOUND_RULES[@]} -gt 0 ]]; then
+            for rule in "${INBOUND_RULES[@]}"; do
+                local proto=$(echo "${rule}" | grep -oP 'protocol:\K[^,]+')
+                local port=$(echo "${rule}" | grep -oP 'ports:\K[^,]+')
+                if [[ "${proto}" == "icmp" ]]; then
+                    echo "  ${proto}"
+                else
+                    echo "  ${proto}/${port}"
+                fi
+            done
+        else
+            echo "  (none)"
+        fi
+        local rule_action
+        set +e
+        rule_action=$(wizard choose "Manage inbound rules" \
+            "Add TCP port(s)" \
+            "Add UDP port(s)" \
+            "Allow ICMP (ping)" \
+            "Delete rule(s)" \
+            "Done" \
+            --default "Done")
+        local rule_exit=$?
+        set -e
+        if [[ ${rule_exit} -ne 0 ]]; then
+            return
+        elif [[ "${rule_action}" == "Done" ]]; then
+            break
+        elif [[ "${rule_action}" == "Delete rule(s)" ]]; then
+            if [[ ${#INBOUND_RULES[@]} -eq 0 ]]; then
+                echo "No rules to delete."
+            else
+                local DELETE_OPTIONS=()
+                for rule in "${INBOUND_RULES[@]}"; do
+                    local proto=$(echo "${rule}" | grep -oP 'protocol:\K[^,]+')
+                    local port=$(echo "${rule}" | grep -oP 'ports:\K[^,]+')
+                    if [[ "${proto}" == "icmp" ]]; then
+                        DELETE_OPTIONS+=("${proto}")
+                    else
+                        DELETE_OPTIONS+=("${proto}/${port}")
+                    fi
+                done
+                readarray -t TO_DELETE < <(wizard select "Select rules to delete" "${DELETE_OPTIONS[@]}")
+                if [[ ${#TO_DELETE[@]} -gt 0 ]]; then
+                    local NEW_RULES=()
+                    for i in "${!INBOUND_RULES[@]}"; do
+                        local keep=true
+                        for del in "${TO_DELETE[@]}"; do
+                            [[ "${DELETE_OPTIONS[$i]}" == "${del}" ]] && keep=false
+                        done
+                        [[ "${keep}" == true ]] && NEW_RULES+=("${INBOUND_RULES[$i]}")
+                    done
+                    INBOUND_RULES=("${NEW_RULES[@]}")
+                fi
+            fi
+        elif [[ "${rule_action}" == "Add TCP port(s)" ]]; then
+            local ports_input
+            ask_no_blank "Enter TCP port(s) (e.g. 22 or 80,443 or 8000-9000)" ports_input
+            IFS=',' read -ra PORT_LIST <<< "${ports_input}"
+            for port in "${PORT_LIST[@]}"; do
+                port=$(echo "${port}" | sed 's/^[[:space:]]*//;s/[[:space:]]*$//')
+                [[ -n "${port}" ]] && INBOUND_RULES+=("protocol:tcp,ports:${port},address:0.0.0.0/0,address:::/0")
+            done
+        elif [[ "${rule_action}" == "Add UDP port(s)" ]]; then
+            local ports_input
+            ask_no_blank "Enter UDP port(s) (e.g. 53 or 1194,5353)" ports_input
+            IFS=',' read -ra PORT_LIST <<< "${ports_input}"
+            for port in "${PORT_LIST[@]}"; do
+                port=$(echo "${port}" | sed 's/^[[:space:]]*//;s/[[:space:]]*$//')
+                [[ -n "${port}" ]] && INBOUND_RULES+=("protocol:udp,ports:${port},address:0.0.0.0/0,address:::/0")
+            done
+        elif [[ "${rule_action}" == "Allow ICMP (ping)" ]]; then
+            INBOUND_RULES+=("protocol:icmp,address:0.0.0.0/0,address:::/0")
+            echo "ICMP added."
+        fi
+    done
+
+    if [[ ${#INBOUND_RULES[@]} -eq 0 ]]; then
+        echo "No inbound rules added. Skipping firewall creation."
+        return
+    fi
+
+    local inbound_str="${INBOUND_RULES[*]}"
+    local outbound_str="${OUTBOUND_RULES[*]}"
+
+    echo "Creating firewall '${fw_name}'..."
+    local output
+    output=$(doctl compute firewall create \
+        --name "${fw_name}" \
+        --inbound-rules "${inbound_str}" \
+        --outbound-rules "${outbound_str}" \
+        --format ID,Name --no-header)
+    local fw_id=$(echo "${output}" | awk '{print $1}')
+    if [[ -n "${fw_id}" ]]; then
+        FIREWALL_IDS+=("${fw_id}")
+        FIREWALL_NAMES+=("${fw_name}")
+        echo "Firewall '${fw_name}' created."
+    else
+        error "Failed to create firewall."
+    fi
+}
+
+gumdrop_create() {
+    if ! gumdrop_ensure_ssh_key; then return; fi
+
+    ## Call pre-create hook if defined:
+    if type -t gumdrop_pre_create_hook &>/dev/null; then
+        gumdrop_pre_create_hook
+    fi
+
+    while :; do
+        ask_no_blank "Enter ${GUMDROP_LABEL,,} name" DROPLET_NAME
+        if doctl compute droplet list --format Name --no-header 2>/dev/null | grep -qx "${DROPLET_NAME}"; then
+            error "A droplet named '${DROPLET_NAME}' already exists."
+        else
+            break
+        fi
+    done
+
+    ## Select region:
+    readarray -t REGION_SLUGS < <(doctl compute region list --format Slug --no-header)
+    readarray -t REGION_NAMES < <(doctl compute region list --format Name --no-header)
+    REGION_OPTIONS=()
+    REGION_DEFAULT=""
+    for i in "${!REGION_SLUGS[@]}"; do
+        local opt=$(printf "%-8s  %s" "${REGION_SLUGS[$i]}" "${REGION_NAMES[$i]}")
+        REGION_OPTIONS+=("${opt}")
+        [[ "${REGION_SLUGS[$i]}" == "${GUMDROP_DEFAULT_REGION}" ]] && REGION_DEFAULT="${opt}"
+    done
+    REGION_CHOICE=$(wizard choose "Select region" "${REGION_OPTIONS[@]}" --default "${REGION_DEFAULT}")
+    REGION=$(echo "${REGION_CHOICE}" | awk '{print $1}')
+
+    ## Select size:
+    readarray -t SIZE_SLUGS < <(doctl compute size list --format Slug --no-header)
+    readarray -t SIZE_PRICES < <(doctl compute size list --format PriceHourly --no-header)
+    readarray -t SIZE_DISKS < <(doctl compute size list --format Disk --no-header)
+    readarray -t SIZE_VCPUS < <(doctl compute size list --format VCPUs --no-header)
+    SIZE_OPTIONS=()
+    SIZE_DEFAULT=""
+    for i in "${!SIZE_SLUGS[@]}"; do
+        local opt=$(printf "%-25s  %-3s vCPUs  \$%-10s  %sGB disk" "${SIZE_SLUGS[$i]}" "${SIZE_VCPUS[$i]}" "${SIZE_PRICES[$i]}/hr" "${SIZE_DISKS[$i]}")
+        SIZE_OPTIONS+=("${opt}")
+        [[ "${SIZE_SLUGS[$i]}" == "${GUMDROP_DEFAULT_SIZE}" ]] && SIZE_DEFAULT="${opt}"
+    done
+    SIZE_CHOICE=$(wizard choose "Select size" "${SIZE_OPTIONS[@]}" --default "${SIZE_DEFAULT}")
+    SIZE=$(echo "${SIZE_CHOICE}" | awk '{print $1}')
+
+    ## Select image:
+    local IMAGE_OPTIONS=()
+    local IMAGE_DEFAULT=""
+    if [[ -n "${GUMDROP_IMAGES}" ]]; then
+        read -ra IMAGE_OPTIONS <<< "${GUMDROP_IMAGES}"
+    else
+        while IFS=$'\t' read -r slug distro; do
+            [[ -n "${slug}" ]] && IMAGE_OPTIONS+=("$(printf "%-30s  %s" "${slug}" "${distro}")")
+        done < <(doctl compute image list --public --format Slug,Distribution --no-header | grep -v '^\s*$' | sort)
+    fi
+    for opt in "${IMAGE_OPTIONS[@]}"; do
+        [[ "$(echo "${opt}" | awk '{print $1}')" == "${GUMDROP_DEFAULT_IMAGE}" ]] && IMAGE_DEFAULT="${opt}"
+    done
+    local IMAGE_CHOICE
+    IMAGE_CHOICE=$(wizard choose "Select image" "${IMAGE_OPTIONS[@]}" --default "${IMAGE_DEFAULT}")
+    IMAGE=$(echo "${IMAGE_CHOICE}" | awk '{print $1}')
+
+    ## Select SSH key:
+    echo ""
+    readarray -t SSH_KEY_IDS < <(doctl compute ssh-key list --format ID --no-header)
+    readarray -t SSH_KEY_NAMES < <(doctl compute ssh-key list --format Name --no-header)
+    SSH_KEY_OPTIONS=()
+    for i in "${!SSH_KEY_IDS[@]}"; do
+        SSH_KEY_OPTIONS+=("${SSH_KEY_NAMES[$i]} (${SSH_KEY_IDS[$i]})")
+    done
+    local SSH_KEY_CHOICE
+    if ! SSH_KEY_CHOICE=$(wizard choose "Which SSH key?" "${SSH_KEY_OPTIONS[@]}" --default "${SSH_KEY_OPTIONS[0]}"); then return; fi
+    SSH_KEY=$(echo "${SSH_KEY_CHOICE}" | grep -oP '\(\K[0-9]+(?=\))')
+
+    ## Select tags:
+    local DROPLET_TAGS=()
+    if [[ -n "${GUMDROP_TAG}" ]]; then
+        DROPLET_TAGS+=("${GUMDROP_TAG}")
+    else
+        if confirm no "Add tags to this ${GUMDROP_LABEL,,}" "?"; then
+            while :; do
+                echo ""
+                if [[ ${#DROPLET_TAGS[@]} -gt 0 ]]; then
+                    echo "  Tags: ${DROPLET_TAGS[*]}"
+                else
+                    echo "  Tags: (none)"
+                fi
+                local tag_action
+                set +e
+                tag_action=$(wizard choose "Manage tags" \
+                    "Choose existing tags" \
+                    "Add new tags" \
+                    "Done" \
+                    --default "Done")
+                local tag_exit=$?
+                set -e
+                if [[ ${tag_exit} -ne 0 ]] || [[ "${tag_action}" == "Done" ]]; then
+                    break
+                elif [[ "${tag_action}" == "Choose existing tags" ]]; then
+                    readarray -t EXISTING_TAGS < <(doctl compute droplet list --format Tags --no-header 2>/dev/null | tr ',' '\n' | sed 's/^[[:space:]]*//;s/[[:space:]]*$//' | grep -v '^$' | sort -u)
+                    if [[ ${#EXISTING_TAGS[@]} -eq 0 ]]; then
+                        echo "No existing tags found on any droplets."
+                    else
+                        readarray -t SELECTED < <(wizard select "Select tags to add" "${EXISTING_TAGS[@]}")
+                        for tag in "${SELECTED[@]}"; do
+                            local already=false
+                            for existing in "${DROPLET_TAGS[@]}"; do
+                                [[ "${existing}" == "${tag}" ]] && already=true
+                            done
+                            [[ "${already}" == false ]] && DROPLET_TAGS+=("${tag}")
+                        done
+                    fi
+                elif [[ "${tag_action}" == "Add new tags" ]]; then
+                    local new_tags_input
+                    ask_no_blank "Enter tags (comma separated)" new_tags_input
+                    IFS=',' read -ra NEW_TAGS <<< "${new_tags_input}"
+                    for raw_tag in "${NEW_TAGS[@]}"; do
+                        local tag=$(echo "${raw_tag}" | sed 's/^[[:space:]]*//;s/[[:space:]]*$//')
+                        [[ -z "${tag}" ]] && continue
+                        local already=false
+                        for existing in "${DROPLET_TAGS[@]}"; do
+                            [[ "${existing}" == "${tag}" ]] && already=true
+                        done
+                        [[ "${already}" == false ]] && DROPLET_TAGS+=("${tag}")
+                    done
+                fi
+            done
+        fi
+    fi
+
+    ## Select firewall:
+    local FIREWALL_IDS=()
+    local FIREWALL_NAMES=()
+    local fw_action
+    set +e
+    fw_action=$(wizard choose "Firewall" \
+        "Only SSH" \
+        "Block all incoming" \
+        "Web (SSH + HTTP + HTTPS)" \
+        "Choose existing firewall" \
+        "Create new firewall" \
+        "No firewall" \
+        --default "Only SSH")
+    set -e
+    if [[ "${fw_action}" == "Only SSH" ]]; then
+        _gumdrop_create_ssh_only_firewall
+    elif [[ "${fw_action}" == "Block all incoming" ]]; then
+        _gumdrop_create_block_all_firewall
+    elif [[ "${fw_action}" == "Web (SSH + HTTP + HTTPS)" ]]; then
+        _gumdrop_create_web_firewall
+    elif [[ "${fw_action}" == "Choose existing firewall" ]]; then
+        _gumdrop_choose_existing_firewalls
+    elif [[ "${fw_action}" == "Create new firewall" ]]; then
+        _gumdrop_create_custom_firewall
+    fi
+
+    ## Select reserved IP:
+    local RESERVED_IP=""
+    if confirm no "Assign a reserved IP address" "?"; then
+        while :; do
+            ## Collect unassigned IPs:
+            readarray -t ALL_IPS < <(doctl compute reserved-ip list --format IP --no-header 2>/dev/null)
+            readarray -t ALL_DROPLET_IDS < <(doctl compute reserved-ip list --format DropletID --no-header 2>/dev/null)
+            local UNASSIGNED_IPS=()
+            for i in "${!ALL_IPS[@]}"; do
+                if [[ -z "${ALL_DROPLET_IDS[$i]}" || "${ALL_DROPLET_IDS[$i]}" == "0" ]]; then
+                    UNASSIGNED_IPS+=("${ALL_IPS[$i]}")
+                fi
+            done
+
+            ## Build menu options:
+            local rip_options=("Create new reserved IP")
+            if [[ ${#UNASSIGNED_IPS[@]} -gt 0 ]]; then
+                rip_options+=("Choose existing reserved IP")
+            else
+                echo "No unassigned reserved IPs available."
+            fi
+            rip_options+=("Skip")
+
+            local rip_action
+            set +e
+            rip_action=$(wizard choose "Reserved IP" "${rip_options[@]}" --default "${rip_options[0]}")
+            set -e
+
+            if [[ "${rip_action}" == "Create new reserved IP" ]]; then
+                echo "Creating reserved IP in ${REGION}..."
+                doctl compute reserved-ip create --region "${REGION}"
+                echo "Reserved IP created."
+                continue
+            elif [[ "${rip_action}" == "Choose existing reserved IP" ]]; then
+                local ip_choice
+                if ip_choice=$(wizard choose "Select reserved IP" "${UNASSIGNED_IPS[@]}" --default "${UNASSIGNED_IPS[0]}"); then
+                    RESERVED_IP="${ip_choice}"
+                fi
+                break
+            else
+                break
+            fi
+        done
+    fi
+
+    ## Select block storage volumes:
+    local VOLUME_IDS=()
+    local VOLUME_NAMES=()
+    if confirm no "Attach block storage volumes" "?"; then
+        while :; do
+            ## Build menu options:
+            local vol_options=("Create new volume")
+            ## Check for unattached volumes in the same region:
+            readarray -t _AVAIL_VOL_IDS < <(doctl compute volume list --format ID --no-header 2>/dev/null)
+            readarray -t _AVAIL_VOL_NAMES < <(doctl compute volume list --format Name --no-header 2>/dev/null)
+            readarray -t _AVAIL_VOL_REGIONS < <(doctl compute volume list --format Region --no-header 2>/dev/null)
+            readarray -t _AVAIL_VOL_DROPLETS < <(doctl compute volume list --format DropletIDs --no-header 2>/dev/null)
+            local HAS_AVAILABLE=false
+            for i in "${!_AVAIL_VOL_IDS[@]}"; do
+                if [[ "${_AVAIL_VOL_REGIONS[$i]}" == "${REGION}" ]] && \
+                   [[ -z "${_AVAIL_VOL_DROPLETS[$i]}" || "${_AVAIL_VOL_DROPLETS[$i]}" == "[]" ]]; then
+                    HAS_AVAILABLE=true
+                    break
+                fi
+            done
+            if [[ "${HAS_AVAILABLE}" == true ]]; then
+                vol_options+=("Choose existing volume")
+            fi
+            vol_options+=("Done")
+
+            if [[ ${#VOLUME_IDS[@]} -gt 0 ]]; then
+                echo "  Selected volumes: ${VOLUME_NAMES[*]}"
+            fi
+
+            local vol_action
+            set +e
+            vol_action=$(wizard choose "Block storage volumes" "${vol_options[@]}" --default "Done")
+            set -e
+
+            if [[ "${vol_action}" == "Create new volume" ]]; then
+                local new_vol_name
+                ask_no_blank "Enter volume name" new_vol_name
+                local new_vol_size
+                ask "Enter size in GiB" new_vol_size "20"
+                local new_fs_type
+                set +e
+                new_fs_type=$(wizard choose "Select filesystem type" "ext4" "xfs" "none" --default "ext4")
+                set -e
+                local fs_args=()
+                if [[ -n "${new_fs_type}" && "${new_fs_type}" != "none" ]]; then
+                    fs_args=(--fs-type "${new_fs_type}")
+                fi
+                echo "Creating volume '${new_vol_name}' (${new_vol_size}GiB in ${REGION})..."
+                local vol_output
+                vol_output=$(doctl compute volume create "${new_vol_name}" --region "${REGION}" --size "${new_vol_size}GiB" "${fs_args[@]}" --format ID --no-header)
+                local new_vol_id=$(echo "${vol_output}" | awk '{print $1}')
+                if [[ -n "${new_vol_id}" ]]; then
+                    VOLUME_IDS+=("${new_vol_id}")
+                    VOLUME_NAMES+=("${new_vol_name}")
+                    echo "Volume '${new_vol_name}' created."
+                else
+                    error "Failed to create volume."
+                fi
+            elif [[ "${vol_action}" == "Choose existing volume" ]]; then
+                local AVAIL_OPTIONS=()
+                local AVAIL_MAP_IDS=()
+                local AVAIL_MAP_NAMES=()
+                for i in "${!_AVAIL_VOL_IDS[@]}"; do
+                    if [[ "${_AVAIL_VOL_REGIONS[$i]}" == "${REGION}" ]] && \
+                       [[ -z "${_AVAIL_VOL_DROPLETS[$i]}" || "${_AVAIL_VOL_DROPLETS[$i]}" == "[]" ]]; then
+                        AVAIL_OPTIONS+=("${_AVAIL_VOL_NAMES[$i]} (${_AVAIL_VOL_IDS[$i]})")
+                        AVAIL_MAP_IDS+=("${_AVAIL_VOL_IDS[$i]}")
+                        AVAIL_MAP_NAMES+=("${_AVAIL_VOL_NAMES[$i]}")
+                    fi
+                done
+                readarray -t SELECTED < <(wizard select "Select volumes to attach" "${AVAIL_OPTIONS[@]}")
+                for sel in "${SELECTED[@]}"; do
+                    local sel_id=$(echo "${sel}" | grep -oP '\(\K[0-9a-f-]+(?=\))')
+                    local sel_name=$(echo "${sel}" | sed 's/ ([^)]*)//')
+                    if [[ -n "${sel_id}" ]]; then
+                        VOLUME_IDS+=("${sel_id}")
+                        VOLUME_NAMES+=("${sel_name}")
+                    fi
+                done
+            else
+                break
+            fi
+        done
+    fi
+
+    ## Configure backups:
+    local backup_args=()
+    local BACKUP_SUMMARY="none"
+    local backup_plan
+    set +e
+    backup_plan=$(wizard choose "Enable backups?" "No" "Daily" "Weekly" --default "No")
+    set -e
+    if [[ "${backup_plan}" == "Daily" || "${backup_plan}" == "Weekly" ]]; then
+        backup_args=(--enable-backups --backup-policy-plan "${backup_plan,,}")
+        local backup_hour
+        set +e
+        backup_hour=$(wizard choose "Backup hour (UTC)" "0" "4" "8" "12" "16" "20" --default "0")
+        set -e
+        backup_args+=(--backup-policy-hour "${backup_hour:-0}")
+        BACKUP_SUMMARY="${backup_plan,,} at ${backup_hour:-0}:00 UTC"
+        if [[ "${backup_plan}" == "Weekly" ]]; then
+            local backup_weekday
+            set +e
+            backup_weekday=$(wizard choose "Backup weekday" "SUN" "MON" "TUE" "WED" "THU" "FRI" "SAT" --default "SUN")
+            set -e
+            backup_args+=(--backup-policy-weekday "${backup_weekday:-SUN}")
+            BACKUP_SUMMARY="${backup_plan,,} on ${backup_weekday:-SUN} at ${backup_hour:-0}:00 UTC"
+        fi
+    fi
+
+    ## Generate user-data via hook or interactive selection:
+    local user_data_args=()
+    local USER_DATA_LABEL=""
+    if type -t gumdrop_user_data_hook &>/dev/null; then
+        USER_DATA=$(gumdrop_user_data_hook)
+        user_data_args=(--user-data "${USER_DATA}")
+        USER_DATA_LABEL="(hook)"
+    else
+        local ud_builtin_dir="${SCRIPT_DIR}/gumdrop_user_data"
+        local ud_custom_dir="${HOME}/.config/d.rymcg.tech/gumdrop/user-data"
+        local ud_files=() ud_labels=()
+        local ud_file ud_basename ud_title ud_images_line ud_match ud_pattern
+        for ud_file in "${ud_builtin_dir}"/*.yaml "${ud_custom_dir}"/*.yaml; do
+            [[ -f "${ud_file}" ]] || continue
+            ud_images_line=""
+            ud_title=""
+            while IFS= read -r line; do
+                if [[ "${line}" =~ ^##\ images:\ (.+) ]]; then
+                    ud_images_line="${BASH_REMATCH[1]}"
+                elif [[ "${line}" =~ ^##\ title:\ (.+) ]]; then
+                    ud_title="${BASH_REMATCH[1]}"
+                fi
+            done < <(head -n 5 "${ud_file}")
+            if [[ -n "${ud_images_line}" ]]; then
+                ud_match=false
+                for ud_pattern in ${ud_images_line}; do
+                    # shellcheck disable=SC2053
+                    if [[ ${IMAGE} == ${ud_pattern} ]]; then
+                        ud_match=true
+                        break
+                    fi
+                done
+                ${ud_match} || continue
+            fi
+            ud_basename="$(basename "${ud_file}" .yaml)"
+            local ud_display="${ud_title:-${ud_basename}}"
+            if [[ "${ud_file}" == "${ud_builtin_dir}"/* ]]; then
+                ud_labels+=("${ud_display} (built-in)")
+            else
+                ud_labels+=("${ud_display} (custom)")
+            fi
+            ud_files+=("${ud_file}")
+        done
+        if [[ ${#ud_files[@]} -gt 0 ]]; then
+            echo ""
+            local ud_choice
+            set +e
+            ud_choice=$(wizard choose "Apply user-data (cloud-init)?" "No" "${ud_labels[@]}")
+            set -e
+            if [[ -n "${ud_choice}" && "${ud_choice}" != "No" ]]; then
+                local ud_idx
+                for ud_idx in "${!ud_labels[@]}"; do
+                    if [[ "${ud_labels[$ud_idx]}" == "${ud_choice}" ]]; then
+                        user_data_args=(--user-data "$(cat "${ud_files[$ud_idx]}")")
+                        USER_DATA_LABEL="${ud_choice}"
+                        break
+                    fi
+                done
+            fi
+        fi
+    fi
+
+    ## Build tag args:
+    local tag_args=()
+    if [[ ${#DROPLET_TAGS[@]} -gt 0 ]]; then
+        local tag_csv
+        tag_csv=$(IFS=','; echo "${DROPLET_TAGS[*]}")
+        tag_args=(--tag-names "${tag_csv}")
+    fi
+
+    echo ""
+    echo "## Summary:"
+    echo "  ${GUMDROP_LABEL} name:  ${DROPLET_NAME}"
+    echo "  Region:        ${REGION}"
+    echo "  Size:          ${SIZE}"
+    echo "  Image:         ${IMAGE}"
+    echo "  SSH key:       ${SSH_KEY}"
+    echo "  Tags:          ${DROPLET_TAGS[*]:-(none)}"
+    echo "  Firewall:      ${FIREWALL_NAMES[*]:-(none)}"
+    echo "  Reserved IP:   ${RESERVED_IP:-(none)}"
+    echo "  Volumes:       ${VOLUME_NAMES[*]:-(none)}"
+    echo "  Backups:       ${BACKUP_SUMMARY}"
+    echo "  User-data:     ${USER_DATA_LABEL:-(none)}"
+
+    ## Call summary hook if defined:
+    if type -t gumdrop_summary_hook &>/dev/null; then
+        gumdrop_summary_hook
+    fi
+
+    echo ""
+    confirm yes "Create this ${GUMDROP_LABEL,,}" "?" || return
+
+    echo "Creating ${GUMDROP_LABEL,,} '${DROPLET_NAME}', please wait..."
+    doctl compute droplet create "${DROPLET_NAME}" \
+        --region "${REGION}" \
+        --size "${SIZE}" \
+        --image "${IMAGE}" \
+        --ssh-keys "${SSH_KEY}" \
+        "${user_data_args[@]}" \
+        "${tag_args[@]}" \
+        "${backup_args[@]}" \
+        --wait
+
+    ## Assign firewalls to the new droplet:
+    if [[ ${#FIREWALL_IDS[@]} -gt 0 ]]; then
+        local droplet_id=$(doctl compute droplet list --format ID,Name --no-header | awk -v name="${DROPLET_NAME}" '$2 == name {print $1}')
+        if [[ -n "${droplet_id}" ]]; then
+            for fw_id in "${FIREWALL_IDS[@]}"; do
+                doctl compute firewall add-droplets "${fw_id}" --droplet-ids "${droplet_id}"
+            done
+        fi
+    fi
+
+    ## Assign reserved IP to the new droplet:
+    if [[ -n "${RESERVED_IP}" ]]; then
+        local droplet_id=${droplet_id:-$(doctl compute droplet list --format ID,Name --no-header | awk -v name="${DROPLET_NAME}" '$2 == name {print $1}')}
+        if [[ -n "${droplet_id}" ]]; then
+            echo "Assigning reserved IP ${RESERVED_IP}..."
+            doctl compute reserved-ip-action assign "${RESERVED_IP}" "${droplet_id}" --no-header >/dev/null
+        fi
+    fi
+
+    ## Attach volumes to the new droplet:
+    if [[ ${#VOLUME_IDS[@]} -gt 0 ]]; then
+        local droplet_id=${droplet_id:-$(doctl compute droplet list --format ID,Name --no-header | awk -v name="${DROPLET_NAME}" '$2 == name {print $1}')}
+        if [[ -n "${droplet_id}" ]]; then
+            for vol_id in "${VOLUME_IDS[@]}"; do
+                echo "Attaching volume ${vol_id}..."
+                doctl compute volume-action attach "${vol_id}" "${droplet_id}" --wait
+            done
+        fi
+    fi
+
+    echo ""
+    echo "${GUMDROP_LABEL} created."
+    echo "Check cloud-init status with: doctl compute ssh ${DROPLET_NAME} -- tail -f /var/log/cloud-init-output.log"
+    gumdrop_list
+}
+
+gumdrop_create_preset() {
+    mkdir -p "${GUMDROP_PRESET_DIR}"
+
+    ## Ask for preset name:
+    local PRESET_NAME="${GUMDROP_PRESET_NAME:-}"
+    if [[ -z "${PRESET_NAME}" ]]; then
+        while :; do
+            ask_no_blank "Enter preset name" PRESET_NAME
+            if [[ -f "${GUMDROP_PRESET_DIR}/${PRESET_NAME}.yaml" ]]; then
+                confirm no "A preset named '${PRESET_NAME}' already exists. Overwrite it" "?" || continue
+            fi
+            break
+        done
+    else
+        if [[ -f "${GUMDROP_PRESET_DIR}/${PRESET_NAME}.yaml" ]]; then
+            confirm no "A preset named '${PRESET_NAME}' already exists. Overwrite it" "?" || return
+        fi
+    fi
+
+    ## Call pre-create hook if defined:
+    if type -t gumdrop_pre_create_hook &>/dev/null; then
+        gumdrop_pre_create_hook
+    fi
+
+    ## Select region:
+    readarray -t REGION_SLUGS < <(doctl compute region list --format Slug --no-header)
+    readarray -t REGION_NAMES < <(doctl compute region list --format Name --no-header)
+    REGION_OPTIONS=()
+    REGION_DEFAULT=""
+    for i in "${!REGION_SLUGS[@]}"; do
+        local opt=$(printf "%-8s  %s" "${REGION_SLUGS[$i]}" "${REGION_NAMES[$i]}")
+        REGION_OPTIONS+=("${opt}")
+        [[ "${REGION_SLUGS[$i]}" == "${GUMDROP_DEFAULT_REGION}" ]] && REGION_DEFAULT="${opt}"
+    done
+    REGION_CHOICE=$(wizard choose "Select region" "${REGION_OPTIONS[@]}" --default "${REGION_DEFAULT}")
+    local REGION=$(echo "${REGION_CHOICE}" | awk '{print $1}')
+
+    ## Select size:
+    readarray -t SIZE_SLUGS < <(doctl compute size list --format Slug --no-header)
+    readarray -t SIZE_PRICES < <(doctl compute size list --format PriceHourly --no-header)
+    readarray -t SIZE_DISKS < <(doctl compute size list --format Disk --no-header)
+    readarray -t SIZE_VCPUS < <(doctl compute size list --format VCPUs --no-header)
+    SIZE_OPTIONS=()
+    SIZE_DEFAULT=""
+    for i in "${!SIZE_SLUGS[@]}"; do
+        local opt=$(printf "%-25s  %-3s vCPUs  \$%-10s  %sGB disk" "${SIZE_SLUGS[$i]}" "${SIZE_VCPUS[$i]}" "${SIZE_PRICES[$i]}/hr" "${SIZE_DISKS[$i]}")
+        SIZE_OPTIONS+=("${opt}")
+        [[ "${SIZE_SLUGS[$i]}" == "${GUMDROP_DEFAULT_SIZE}" ]] && SIZE_DEFAULT="${opt}"
+    done
+    SIZE_CHOICE=$(wizard choose "Select size" "${SIZE_OPTIONS[@]}" --default "${SIZE_DEFAULT}")
+    local SIZE=$(echo "${SIZE_CHOICE}" | awk '{print $1}')
+
+    ## Select image:
+    local IMAGE_OPTIONS=()
+    local IMAGE_DEFAULT=""
+    if [[ -n "${GUMDROP_IMAGES}" ]]; then
+        read -ra IMAGE_OPTIONS <<< "${GUMDROP_IMAGES}"
+    else
+        while IFS=$'\t' read -r slug distro; do
+            [[ -n "${slug}" ]] && IMAGE_OPTIONS+=("$(printf "%-30s  %s" "${slug}" "${distro}")")
+        done < <(doctl compute image list --public --format Slug,Distribution --no-header | grep -v '^\s*$' | sort)
+    fi
+    for opt in "${IMAGE_OPTIONS[@]}"; do
+        [[ "$(echo "${opt}" | awk '{print $1}')" == "${GUMDROP_DEFAULT_IMAGE}" ]] && IMAGE_DEFAULT="${opt}"
+    done
+    local IMAGE_CHOICE
+    IMAGE_CHOICE=$(wizard choose "Select image" "${IMAGE_OPTIONS[@]}" --default "${IMAGE_DEFAULT}")
+    local IMAGE=$(echo "${IMAGE_CHOICE}" | awk '{print $1}')
+
+    ## Select SSH key:
+    echo ""
+    readarray -t SSH_KEY_IDS < <(doctl compute ssh-key list --format ID --no-header)
+    readarray -t SSH_KEY_NAMES < <(doctl compute ssh-key list --format Name --no-header)
+    SSH_KEY_OPTIONS=()
+    local SSH_KEY_DEFAULT=""
+    for i in "${!SSH_KEY_IDS[@]}"; do
+        local opt="${SSH_KEY_NAMES[$i]} (${SSH_KEY_IDS[$i]})"
+        SSH_KEY_OPTIONS+=("${opt}")
+        [[ "${SSH_KEY_NAMES[$i]}" == "${GUMDROP_SSH_KEY_NAME}" ]] && SSH_KEY_DEFAULT="${opt}"
+    done
+    local SSH_KEY_CHOICE
+    if ! SSH_KEY_CHOICE=$(wizard choose "Which SSH key?" "${SSH_KEY_OPTIONS[@]}" --default "${SSH_KEY_DEFAULT:-${SSH_KEY_OPTIONS[0]}}"); then return; fi
+    local PRESET_SSH_KEY_ID=$(echo "${SSH_KEY_CHOICE}" | grep -oP '\(\K[0-9]+(?=\))')
+    local PRESET_SSH_KEY_NAME=$(echo "${SSH_KEY_CHOICE}" | sed 's/ ([^)]*)//')
+
+    ## Select tags:
+    local PRESET_TAGS=()
+    if [[ -n "${GUMDROP_TAG}" ]]; then
+        PRESET_TAGS+=("${GUMDROP_TAG}")
+    else
+        if confirm no "Add tags" "?"; then
+            while :; do
+                echo ""
+                if [[ ${#PRESET_TAGS[@]} -gt 0 ]]; then
+                    echo "  Tags: ${PRESET_TAGS[*]}"
+                else
+                    echo "  Tags: (none)"
+                fi
+                local tag_action
+                set +e
+                tag_action=$(wizard choose "Manage tags" \
+                    "Add new tags" \
+                    "Done" \
+                    --default "Done")
+                local tag_exit=$?
+                set -e
+                if [[ ${tag_exit} -ne 0 ]] || [[ "${tag_action}" == "Done" ]]; then
+                    break
+                elif [[ "${tag_action}" == "Add new tags" ]]; then
+                    local new_tags_input
+                    ask_no_blank "Enter tags (comma separated)" new_tags_input
+                    IFS=',' read -ra NEW_TAGS <<< "${new_tags_input}"
+                    for raw_tag in "${NEW_TAGS[@]}"; do
+                        local tag=$(echo "${raw_tag}" | sed 's/^[[:space:]]*//;s/[[:space:]]*$//')
+                        [[ -z "${tag}" ]] && continue
+                        local already=false
+                        for existing in "${PRESET_TAGS[@]}"; do
+                            [[ "${existing}" == "${tag}" ]] && already=true
+                        done
+                        [[ "${already}" == false ]] && PRESET_TAGS+=("${tag}")
+                    done
+                fi
+            done
+        fi
+    fi
+
+    ## Select firewall type:
+    local FIREWALL_TYPE
+    set +e
+    FIREWALL_TYPE=$(wizard choose "Firewall" \
+        "Only SSH" \
+        "Block all incoming" \
+        "Web (SSH + HTTP + HTTPS)" \
+        "No firewall" \
+        --default "Only SSH")
+    set -e
+    local fw_type_key="none"
+    case "${FIREWALL_TYPE}" in
+        "Only SSH") fw_type_key="ssh-only" ;;
+        "Block all incoming") fw_type_key="block-all" ;;
+        "Web (SSH + HTTP + HTTPS)") fw_type_key="web" ;;
+        *) fw_type_key="none" ;;
+    esac
+
+    ## Reserved IP:
+    local CREATE_RESERVED_IP=false
+    if confirm no "Create a reserved IP when spawning" "?"; then
+        CREATE_RESERVED_IP=true
+    fi
+
+    ## Volumes:
+    local VOLUME_SPECS=()
+    if confirm no "Configure block storage volumes" "?"; then
+        while :; do
+            if [[ ${#VOLUME_SPECS[@]} -gt 0 ]]; then
+                echo "  Volumes configured: ${#VOLUME_SPECS[@]}"
+            fi
+            local vol_action
+            set +e
+            vol_action=$(wizard choose "Volumes" "Add volume" "Done" --default "Done")
+            set -e
+            if [[ "${vol_action}" == "Add volume" ]]; then
+                local new_vol_size
+                ask "Enter size in GiB" new_vol_size "20"
+                local new_fs_type
+                set +e
+                new_fs_type=$(wizard choose "Select filesystem type" "ext4" "xfs" "none" --default "ext4")
+                set -e
+                VOLUME_SPECS+=("${new_vol_size}:${new_fs_type}")
+            else
+                break
+            fi
+        done
+    fi
+
+    ## Configure backups:
+    local backup_plan="none"
+    local backup_hour="0"
+    local backup_weekday="SUN"
+    local bp_choice
+    set +e
+    bp_choice=$(wizard choose "Enable backups?" "No" "Daily" "Weekly" --default "No")
+    set -e
+    if [[ "${bp_choice}" == "Daily" || "${bp_choice}" == "Weekly" ]]; then
+        backup_plan="${bp_choice,,}"
+        set +e
+        backup_hour=$(wizard choose "Backup hour (UTC)" "0" "4" "8" "12" "16" "20" --default "0")
+        set -e
+        backup_hour="${backup_hour:-0}"
+        if [[ "${bp_choice}" == "Weekly" ]]; then
+            set +e
+            backup_weekday=$(wizard choose "Backup weekday" "SUN" "MON" "TUE" "WED" "THU" "FRI" "SAT" --default "SUN")
+            set -e
+            backup_weekday="${backup_weekday:-SUN}"
+        fi
+    fi
+
+    ## Select user-data template:
+    local user_data_basename=""
+    local _preset_hook_user_data=""
+    if type -t gumdrop_user_data_hook &>/dev/null; then
+        ## Use the hook-generated user-data and save it as a companion file:
+        _preset_hook_user_data=$(gumdrop_user_data_hook)
+        user_data_basename="_hook_"
+    else
+        local ud_builtin_dir="${SCRIPT_DIR}/gumdrop_user_data"
+        local ud_custom_dir="${HOME}/.config/d.rymcg.tech/gumdrop/user-data"
+        local ud_files=() ud_labels=() ud_basenames=()
+        for ud_file in "${ud_builtin_dir}"/*.yaml "${ud_custom_dir}"/*.yaml; do
+            [[ -f "${ud_file}" ]] || continue
+            local ud_images_line="" ud_title=""
+            while IFS= read -r line; do
+                if [[ "${line}" =~ ^##\ images:\ (.+) ]]; then
+                    ud_images_line="${BASH_REMATCH[1]}"
+                elif [[ "${line}" =~ ^##\ title:\ (.+) ]]; then
+                    ud_title="${BASH_REMATCH[1]}"
+                fi
+            done < <(head -n 5 "${ud_file}")
+            if [[ -n "${ud_images_line}" ]]; then
+                local ud_match=false
+                for ud_pattern in ${ud_images_line}; do
+                    # shellcheck disable=SC2053
+                    if [[ ${IMAGE} == ${ud_pattern} ]]; then
+                        ud_match=true
+                        break
+                    fi
+                done
+                ${ud_match} || continue
+            fi
+            local ud_bn="$(basename "${ud_file}" .yaml)"
+            local ud_display="${ud_title:-${ud_bn}}"
+            if [[ "${ud_file}" == "${ud_builtin_dir}"/* ]]; then
+                ud_labels+=("${ud_display} (built-in)")
+            else
+                ud_labels+=("${ud_display} (custom)")
+            fi
+            ud_files+=("${ud_file}")
+            ud_basenames+=("${ud_bn}")
+        done
+        if [[ ${#ud_files[@]} -gt 0 ]]; then
+            echo ""
+            local ud_choice
+            set +e
+            ud_choice=$(wizard choose "Apply user-data (cloud-init)?" "No" "${ud_labels[@]}")
+            set -e
+            if [[ -n "${ud_choice}" && "${ud_choice}" != "No" ]]; then
+                for ud_idx in "${!ud_labels[@]}"; do
+                    if [[ "${ud_labels[$ud_idx]}" == "${ud_choice}" ]]; then
+                        user_data_basename="${ud_basenames[$ud_idx]}"
+                        break
+                    fi
+                done
+            fi
+        fi
+    fi
+
+    ## Build tags YAML:
+    local tags_yaml=""
+    if [[ ${#PRESET_TAGS[@]} -gt 0 ]]; then
+        tags_yaml="tags:"
+        for tag in "${PRESET_TAGS[@]}"; do
+            tags_yaml="${tags_yaml}
+  - ${tag}"
+        done
+    else
+        tags_yaml="tags: []"
+    fi
+
+    ## Build volumes YAML:
+    local volumes_yaml=""
+    if [[ ${#VOLUME_SPECS[@]} -gt 0 ]]; then
+        volumes_yaml="volumes:"
+        for spec in "${VOLUME_SPECS[@]}"; do
+            local vol_size="${spec%%:*}"
+            local vol_fs="${spec##*:}"
+            volumes_yaml="${volumes_yaml}
+  - size: ${vol_size}
+    fs_type: ${vol_fs}"
+        done
+    else
+        volumes_yaml="volumes: []"
+    fi
+
+    ## Summary:
+    echo ""
+    echo "## Preset Summary:"
+    echo "  Preset name:   ${PRESET_NAME}"
+    echo "  Region:        ${REGION}"
+    echo "  Size:          ${SIZE}"
+    echo "  Image:         ${IMAGE}"
+    echo "  SSH key:       ${PRESET_SSH_KEY_NAME} (${PRESET_SSH_KEY_ID})"
+    echo "  Tags:          ${PRESET_TAGS[*]:-(none)}"
+    echo "  Firewall:      ${fw_type_key}"
+    echo "  Reserved IP:   ${CREATE_RESERVED_IP}"
+    echo "  Volumes:       ${#VOLUME_SPECS[@]} configured"
+    echo "  Backups:       ${backup_plan}"
+    local user_data_display="${user_data_basename:-(none)}"
+    [[ "${user_data_basename}" == "_hook_" ]] && user_data_display="(hook)"
+    echo "  User-data:     ${user_data_display}"
+
+    ## Call summary hook if defined:
+    if type -t gumdrop_summary_hook &>/dev/null; then
+        gumdrop_summary_hook
+    fi
+
+    echo ""
+    confirm yes "Save this preset" "?" || return
+
+    ## Write YAML:
+    cat > "${GUMDROP_PRESET_DIR}/${PRESET_NAME}.yaml" <<EOF
+region: ${REGION}
+size: ${SIZE}
+image: ${IMAGE}
+ssh_key: ${PRESET_SSH_KEY_ID}
+${tags_yaml}
+firewall: ${fw_type_key}
+create_reserved_ip: ${CREATE_RESERVED_IP}
+${volumes_yaml}
+backups:
+  plan: ${backup_plan}
+  hour: ${backup_hour}
+  weekday: ${backup_weekday}
+user_data: ${user_data_basename}
+EOF
+
+    ## Save hook-generated user-data as companion file:
+    if [[ "${user_data_basename}" == "_hook_" && -n "${_preset_hook_user_data}" ]]; then
+        echo "${_preset_hook_user_data}" > "${GUMDROP_PRESET_DIR}/${PRESET_NAME}.user-data"
+    fi
+
+    echo "Preset '${PRESET_NAME}' saved to ${GUMDROP_PRESET_DIR}/${PRESET_NAME}.yaml"
+}
+
+gumdrop_spawn_preset() {
+    mkdir -p "${GUMDROP_PRESET_DIR}"
+
+    ## Select preset:
+    local PRESET_NAME="${GUMDROP_PRESET_NAME:-}"
+    if [[ -z "${PRESET_NAME}" ]]; then
+        local preset_files=()
+        for f in "${GUMDROP_PRESET_DIR}"/*.yaml; do
+            [[ -f "${f}" ]] || continue
+            preset_files+=("$(basename "${f}" .yaml)")
+        done
+        if [[ ${#preset_files[@]} -eq 0 ]]; then
+            echo "No presets found. Create one first."
+            return
+        fi
+        if ! PRESET_NAME=$(wizard choose "Select preset" "${preset_files[@]}" --default "${preset_files[0]}"); then return; fi
+    fi
+    local preset_file="${GUMDROP_PRESET_DIR}/${PRESET_NAME}.yaml"
+    if [[ ! -f "${preset_file}" ]]; then
+        fault "Preset '${PRESET_NAME}' not found at ${preset_file}"
+    fi
+
+    ## Ask for droplet name:
+    local DROPLET_NAME="${GUMDROP_DROPLET_NAME:-}"
+    if [[ -z "${DROPLET_NAME}" ]]; then
+        while :; do
+            ask_no_blank "Enter ${GUMDROP_LABEL,,} name" DROPLET_NAME
+            if doctl compute droplet list --format Name --no-header 2>/dev/null | grep -qx "${DROPLET_NAME}"; then
+                error "A droplet named '${DROPLET_NAME}' already exists."
+            else
+                break
+            fi
+        done
+    fi
+
+    ## Read preset YAML:
+    local preset_json
+    preset_json=$(yaml_to_json < "${preset_file}")
+    local REGION=$(echo "${preset_json}" | jq -r '.region')
+    local SIZE=$(echo "${preset_json}" | jq -r '.size')
+    local IMAGE=$(echo "${preset_json}" | jq -r '.image')
+    local SSH_KEY=$(echo "${preset_json}" | jq -r '.ssh_key')
+    local fw_type=$(echo "${preset_json}" | jq -r '.firewall')
+    local create_rip=$(echo "${preset_json}" | jq -r '.create_reserved_ip')
+    local user_data_basename=$(echo "${preset_json}" | jq -r '.user_data // empty')
+    local backup_plan=$(echo "${preset_json}" | jq -r '.backups.plan')
+    local backup_hour=$(echo "${preset_json}" | jq -r '.backups.hour')
+    local backup_weekday=$(echo "${preset_json}" | jq -r '.backups.weekday')
+    readarray -t PRESET_TAGS < <(echo "${preset_json}" | jq -r '.tags[]? // empty')
+
+    if [[ -z "${SSH_KEY}" || "${SSH_KEY}" == "null" ]]; then
+        fault "Preset '${PRESET_NAME}' has no ssh_key. Please recreate the preset."
+    fi
+
+    ## Build backup args:
+    local backup_args=()
+    local BACKUP_SUMMARY="none"
+    if [[ "${backup_plan}" == "daily" || "${backup_plan}" == "weekly" ]]; then
+        backup_args=(--enable-backups --backup-policy-plan "${backup_plan}")
+        backup_args+=(--backup-policy-hour "${backup_hour:-0}")
+        BACKUP_SUMMARY="${backup_plan} at ${backup_hour:-0}:00 UTC"
+        if [[ "${backup_plan}" == "weekly" ]]; then
+            backup_args+=(--backup-policy-weekday "${backup_weekday:-SUN}")
+            BACKUP_SUMMARY="${backup_plan} on ${backup_weekday:-SUN} at ${backup_hour:-0}:00 UTC"
+        fi
+    fi
+
+    ## Resolve user-data:
+    local user_data_args=()
+    local USER_DATA_LABEL=""
+    if [[ "${user_data_basename}" == "_hook_" ]]; then
+        ## Use companion file saved during preset creation:
+        local ud_companion="${GUMDROP_PRESET_DIR}/${PRESET_NAME}.user-data"
+        if [[ -f "${ud_companion}" ]]; then
+            user_data_args=(--user-data "$(cat "${ud_companion}")")
+            USER_DATA_LABEL="(hook)"
+        else
+            error "Hook user-data companion file not found for preset '${PRESET_NAME}', skipping."
+        fi
+    elif [[ -n "${user_data_basename}" ]]; then
+        local ud_builtin_dir="${SCRIPT_DIR}/gumdrop_user_data"
+        local ud_custom_dir="${HOME}/.config/d.rymcg.tech/gumdrop/user-data"
+        local ud_path=""
+        if [[ -f "${ud_custom_dir}/${user_data_basename}.yaml" ]]; then
+            ud_path="${ud_custom_dir}/${user_data_basename}.yaml"
+        elif [[ -f "${ud_builtin_dir}/${user_data_basename}.yaml" ]]; then
+            ud_path="${ud_builtin_dir}/${user_data_basename}.yaml"
+        fi
+        if [[ -n "${ud_path}" ]]; then
+            user_data_args=(--user-data "$(cat "${ud_path}")")
+            USER_DATA_LABEL="${user_data_basename}"
+        else
+            error "User-data template '${user_data_basename}' not found, skipping."
+        fi
+    fi
+
+    ## Build tag args:
+    local tag_args=()
+    if [[ ${#PRESET_TAGS[@]} -gt 0 ]]; then
+        local tag_csv
+        tag_csv=$(IFS=','; echo "${PRESET_TAGS[*]}")
+        tag_args=(--tag-names "${tag_csv}")
+    fi
+
+    ## Build volume summary for display:
+    local vol_count=0
+    local vol_summary=""
+    while read -r vol_spec; do
+        [[ -z "${vol_spec}" || "${vol_spec}" == "null" ]] && continue
+        local vol_size=$(echo "${vol_spec}" | jq -r '.size')
+        local vol_fs=$(echo "${vol_spec}" | jq -r '.fs_type')
+        local vol_name="${DROPLET_NAME}-vol-${vol_count}"
+        if [[ -n "${vol_summary}" ]]; then vol_summary="${vol_summary}, "; fi
+        vol_summary="${vol_summary}${vol_name} (${vol_size}GiB ${vol_fs})"
+        vol_count=$((vol_count + 1))
+    done < <(echo "${preset_json}" | jq -c '.volumes[]?' 2>/dev/null)
+
+    ## Summary:
+    echo ""
+    echo "## Summary:"
+    echo "  Preset:        ${PRESET_NAME}"
+    echo "  ${GUMDROP_LABEL} name:  ${DROPLET_NAME}"
+    echo "  Region:        ${REGION}"
+    echo "  Size:          ${SIZE}"
+    echo "  Image:         ${IMAGE}"
+    echo "  SSH key:       ${SSH_KEY}"
+    echo "  Tags:          ${PRESET_TAGS[*]:-(none)}"
+    echo "  Firewall:      ${fw_type}"
+    echo "  Reserved IP:   ${create_rip}"
+    echo "  Volumes:       ${vol_summary:-(none)}"
+    echo "  Backups:       ${BACKUP_SUMMARY}"
+    echo "  User-data:     ${USER_DATA_LABEL:-(none)}"
+
+    echo ""
+    ## Skip confirmation when both --preset and --name were given on CLI:
+    if [[ -z "${GUMDROP_DROPLET_NAME:-}" ]]; then
+        confirm yes "Create this ${GUMDROP_LABEL,,}" "?" || return
+    fi
+
+    ## Create firewall:
+    local FIREWALL_IDS=()
+    local FIREWALL_NAMES=()
+    case "${fw_type}" in
+        ssh-only)   _gumdrop_create_ssh_only_firewall ;;
+        block-all)  _gumdrop_create_block_all_firewall ;;
+        web)        _gumdrop_create_web_firewall ;;
+    esac
+
+    ## Create volumes from specs:
+    local VOLUME_IDS=()
+    local VOLUME_NAMES=()
+    local vol_idx=0
+    while read -r vol_spec; do
+        [[ -z "${vol_spec}" || "${vol_spec}" == "null" ]] && continue
+        local vol_size=$(echo "${vol_spec}" | jq -r '.size')
+        local vol_fs=$(echo "${vol_spec}" | jq -r '.fs_type')
+        local vol_name="${DROPLET_NAME}-vol-${vol_idx}"
+        local fs_args=()
+        if [[ -n "${vol_fs}" && "${vol_fs}" != "none" && "${vol_fs}" != "null" ]]; then
+            fs_args=(--fs-type "${vol_fs}")
+        fi
+        echo "Creating volume '${vol_name}' (${vol_size}GiB in ${REGION})..."
+        local vol_output
+        vol_output=$(doctl compute volume create "${vol_name}" --region "${REGION}" --size "${vol_size}GiB" "${fs_args[@]}" --format ID --no-header)
+        local vol_id=$(echo "${vol_output}" | awk '{print $1}')
+        if [[ -n "${vol_id}" ]]; then
+            VOLUME_IDS+=("${vol_id}")
+            VOLUME_NAMES+=("${vol_name}")
+            echo "Volume '${vol_name}' created."
+        else
+            error "Failed to create volume '${vol_name}'."
+        fi
+        vol_idx=$((vol_idx + 1))
+    done < <(echo "${preset_json}" | jq -c '.volumes[]?' 2>/dev/null)
+
+    echo "Creating ${GUMDROP_LABEL,,} '${DROPLET_NAME}', please wait..."
+    doctl compute droplet create "${DROPLET_NAME}" \
+        --region "${REGION}" \
+        --size "${SIZE}" \
+        --image "${IMAGE}" \
+        --ssh-keys "${SSH_KEY}" \
+        "${user_data_args[@]}" \
+        "${tag_args[@]}" \
+        "${backup_args[@]}" \
+        --wait
+
+    ## Assign firewalls to the new droplet:
+    if [[ ${#FIREWALL_IDS[@]} -gt 0 ]]; then
+        local droplet_id=$(doctl compute droplet list --format ID,Name --no-header | awk -v name="${DROPLET_NAME}" '$2 == name {print $1}')
+        if [[ -n "${droplet_id}" ]]; then
+            for fw_id in "${FIREWALL_IDS[@]}"; do
+                doctl compute firewall add-droplets "${fw_id}" --droplet-ids "${droplet_id}"
+            done
+        fi
+    fi
+
+    ## Create and assign reserved IP:
+    if [[ "${create_rip}" == "true" ]]; then
+        local droplet_id=${droplet_id:-$(doctl compute droplet list --format ID,Name --no-header | awk -v name="${DROPLET_NAME}" '$2 == name {print $1}')}
+        if [[ -n "${droplet_id}" ]]; then
+            echo "Creating reserved IP in ${REGION}..."
+            local rip_output
+            rip_output=$(doctl compute reserved-ip create --region "${REGION}" --format IP --no-header)
+            local rip=$(echo "${rip_output}" | awk '{print $1}')
+            if [[ -n "${rip}" ]]; then
+                echo "Assigning reserved IP ${rip}..."
+                doctl compute reserved-ip-action assign "${rip}" "${droplet_id}" --no-header >/dev/null
+            fi
+        fi
+    fi
+
+    ## Attach volumes to the new droplet:
+    if [[ ${#VOLUME_IDS[@]} -gt 0 ]]; then
+        local droplet_id=${droplet_id:-$(doctl compute droplet list --format ID,Name --no-header | awk -v name="${DROPLET_NAME}" '$2 == name {print $1}')}
+        if [[ -n "${droplet_id}" ]]; then
+            for vol_id in "${VOLUME_IDS[@]}"; do
+                echo "Attaching volume ${vol_id}..."
+                doctl compute volume-action attach "${vol_id}" "${droplet_id}" --wait
+            done
+        fi
+    fi
+
+    echo ""
+    echo "${GUMDROP_LABEL} created from preset '${PRESET_NAME}'."
+    echo "Check cloud-init status with: doctl compute ssh ${DROPLET_NAME} -- tail -f /var/log/cloud-init-output.log"
+    ## Only show full droplet list when running from the menu (no --preset flag):
+    if [[ -z "${GUMDROP_PRESET_NAME:-}" ]]; then
+        gumdrop_list
+    fi
+}
+
+gumdrop_delete_preset() {
+    local preset_files=()
+    local preset_options=()
+    for f in "${GUMDROP_PRESET_DIR}"/*.yaml; do
+        [[ -f "${f}" ]] || continue
+        local name="$(basename "${f}" .yaml)"
+        preset_files+=("${f}")
+        preset_options+=("${name}")
+    done
+    if [[ ${#preset_options[@]} -eq 0 ]]; then
+        echo "No presets found."
+        return
+    fi
+    readarray -t SELECTED < <(wizard select "Select presets to delete" "${preset_options[@]}")
+    if [[ ${#SELECTED[@]} -eq 0 ]]; then return; fi
+    echo ""
+    echo "The following presets will be deleted:"
+    for choice in "${SELECTED[@]}"; do
+        echo "  - ${choice}"
+    done
+    echo ""
+    confirm no "Are you sure you want to delete ${#SELECTED[@]} preset(s)" "?" || return
+    for choice in "${SELECTED[@]}"; do
+        rm -f "${GUMDROP_PRESET_DIR}/${choice}.yaml"
+        rm -f "${GUMDROP_PRESET_DIR}/${choice}.user-data"
+        echo "Preset '${choice}' deleted."
+    done
+}
+
+gumdrop_manage_presets() {
+    while :
+    do
+        mkdir -p "${GUMDROP_PRESET_DIR}"
+        echo ""
+        echo "## Presets:"
+        local preset_count=0
+        for f in "${GUMDROP_PRESET_DIR}"/*.yaml; do
+            [[ -f "${f}" ]] || continue
+            echo "  $(basename "${f}" .yaml)"
+            preset_count=$((preset_count + 1))
+        done
+        if [[ ${preset_count} -eq 0 ]]; then
+            echo "  (none)"
+        fi
+        echo ""
+        local menu_items=(
+            "Create new preset = $0 gumdrop_create_preset"
+        )
+        if [[ ${preset_count} -gt 0 ]]; then
+            menu_items+=(
+                "Spawn preset = $0 gumdrop_spawn_preset"
+                "Delete preset = $0 gumdrop_delete_preset"
+            )
+        fi
+        menu_items+=(
+            "Back = exit 2"
+        )
+        set +e
+        wizard menu --once --cancel-code=2 "Presets:" "${menu_items[@]}"
+        local EXIT_CODE=$?
+        set -e
+        if [[ "${EXIT_CODE}" == "2" ]]; then
+            exit 0
+        fi
+    done
+}
+
+_gumdrop_summarize_rules() {
+    ## Summarize inbound rules like "tcp/22,80,443 icmp" from raw doctl format
+    local raw="$1"
+    [[ -z "${raw}" ]] && echo "-" && return
+    local tcp_ports=() udp_ports=() has_icmp=false
+    for rule in ${raw}; do
+        local proto=$(echo "${rule}" | grep -oP 'protocol:\K[^,]+')
+        local port=$(echo "${rule}" | grep -oP 'ports:\K[^,]+')
+        if [[ "${proto}" == "icmp" ]]; then
+            has_icmp=true
+        elif [[ "${proto}" == "tcp" && -n "${port}" ]]; then
+            tcp_ports+=("${port}")
+        elif [[ "${proto}" == "udp" && -n "${port}" ]]; then
+            udp_ports+=("${port}")
+        fi
+    done
+    local parts=()
+    if [[ ${#tcp_ports[@]} -gt 0 ]]; then
+        local tcp_csv=$(IFS=','; echo "${tcp_ports[*]}")
+        parts+=("tcp/${tcp_csv}")
+    fi
+    if [[ ${#udp_ports[@]} -gt 0 ]]; then
+        local udp_csv=$(IFS=','; echo "${udp_ports[*]}")
+        parts+=("udp/${udp_csv}")
+    fi
+    [[ "${has_icmp}" == true ]] && parts+=("icmp")
+    if [[ ${#parts[@]} -eq 0 ]]; then
+        echo "-"
+    else
+        local IFS='+'; echo "${parts[*]}"
+    fi
+}
+
+gumdrop_list_firewalls() {
+    echo ""
+    echo "## Firewalls:"
+    readarray -t FW_IDS < <(doctl compute firewall list --format ID --no-header 2>/dev/null)
+    if [[ ${#FW_IDS[@]} -eq 0 ]]; then
+        echo "No firewalls found."
+        echo ""
+        return
+    fi
+    readarray -t FW_NAMES < <(doctl compute firewall list --format Name --no-header)
+    readarray -t FW_RULES < <(doctl compute firewall list --format InboundRules --no-header)
+    readarray -t FW_DROPLET_IDS < <(doctl compute firewall list --format DropletIDs --no-header)
+
+    ## Build droplet ID -> name lookup:
+    declare -A _DID_NAME
+    while read -r did dname; do
+        [[ -n "${did}" ]] && _DID_NAME["${did}"]="${dname}"
+    done < <(doctl compute droplet list --format ID,Name --no-header 2>/dev/null)
+
+    {
+        echo "Name Inbound Droplets"
+        for i in "${!FW_IDS[@]}"; do
+            local summary=$(_gumdrop_summarize_rules "${FW_RULES[$i]}")
+            local droplet_list=$(echo "${FW_DROPLET_IDS[$i]}" | tr -d '[]')
+            local droplet_names=()
+            if [[ -n "${droplet_list}" && "${droplet_list}" != "0" ]]; then
+                for did in $(echo "${droplet_list}" | tr ',' ' '); do
+                    droplet_names+=("${_DID_NAME[${did}]:-${did}}")
+                done
+            fi
+            local droplet_csv
+            if [[ ${#droplet_names[@]} -gt 0 ]]; then
+                droplet_csv=$(IFS=','; echo "${droplet_names[*]}")
+            else
+                droplet_csv="-"
+            fi
+            echo "${FW_NAMES[$i]} ${summary} ${droplet_csv}"
+        done
+    } | column -t
+    echo ""
+}
+
+gumdrop_delete_firewall() {
+    ## Only show firewalls not attached to any droplets:
+    readarray -t FW_IDS < <(doctl compute firewall list --format ID --no-header)
+    readarray -t FW_NAMES < <(doctl compute firewall list --format Name --no-header)
+    readarray -t FW_DROPLETS < <(doctl compute firewall list --format DropletIDs --no-header)
+    if [[ ${#FW_IDS[@]} -eq 0 ]]; then
+        echo "No firewalls found."
+        return
+    fi
+    local FW_OPTIONS=()
+    for i in "${!FW_IDS[@]}"; do
+        if [[ -n "${FW_DROPLETS[$i]}" && "${FW_DROPLETS[$i]}" != "[]" ]]; then
+            continue
+        fi
+        FW_OPTIONS+=("${FW_NAMES[$i]} (${FW_IDS[$i]})")
+    done
+    if [[ ${#FW_OPTIONS[@]} -eq 0 ]]; then
+        echo "All firewalls are currently attached to droplets. Remove a firewall from its droplets before deleting it."
+        return
+    fi
+    readarray -t SELECTED < <(wizard select "Select firewalls to delete" "${FW_OPTIONS[@]}")
+    if [[ ${#SELECTED[@]} -eq 0 ]]; then return; fi
+    echo ""
+    echo "The following firewalls will be deleted:"
+    for choice in "${SELECTED[@]}"; do
+        echo "  - ${choice}"
+    done
+    echo ""
+    confirm no "Are you sure you want to delete ${#SELECTED[@]} firewall(s)" "?" || return
+    for choice in "${SELECTED[@]}"; do
+        local fw_id=$(echo "${choice}" | grep -oP '\(\K[0-9a-f-]+(?=\))')
+        local fw_name=$(echo "${choice}" | sed 's/ ([^)]*)//')
+        doctl compute firewall delete "${fw_id}" --force
+        echo "Firewall '${fw_name}' deleted."
+    done
+}
+
+gumdrop_edit_firewall() {
+    readarray -t FW_IDS < <(doctl compute firewall list --format ID --no-header)
+    readarray -t FW_NAMES < <(doctl compute firewall list --format Name --no-header)
+    if [[ ${#FW_IDS[@]} -eq 0 ]]; then
+        echo "No firewalls found."
+        return
+    fi
+    local FW_OPTIONS=()
+    for i in "${!FW_IDS[@]}"; do
+        FW_OPTIONS+=("${FW_NAMES[$i]} (${FW_IDS[$i]})")
+    done
+    local choice
+    if ! choice=$(wizard choose "Edit which firewall?" "${FW_OPTIONS[@]}" --default "${FW_OPTIONS[0]}"); then return; fi
+    local fw_id=$(echo "${choice}" | grep -oP '\(\K[0-9a-f-]+(?=\))')
+    local fw_name=$(echo "${choice}" | sed 's/ ([^)]*)//')
+
+    ## Fetch current inbound rules:
+    local current_rules=$(doctl compute firewall get "${fw_id}" --format InboundRules --no-header)
+    local INBOUND_RULES=()
+    if [[ -n "${current_rules}" ]]; then
+        while IFS= read -r rule; do
+            rule=$(echo "${rule}" | sed 's/^[[:space:]]*//;s/[[:space:]]*$//')
+            [[ -n "${rule}" ]] && INBOUND_RULES+=("${rule}")
+        done < <(echo "${current_rules}" | tr ' ' '\n')
+    fi
+
+    while :; do
+        echo ""
+        echo "## Inbound rules for '${fw_name}':"
+        if [[ ${#INBOUND_RULES[@]} -gt 0 ]]; then
+            for rule in "${INBOUND_RULES[@]}"; do
+                local proto=$(echo "${rule}" | grep -oP 'protocol:\K[^,]+')
+                local port=$(echo "${rule}" | grep -oP 'ports:\K[^,]+')
+                if [[ "${proto}" == "icmp" ]]; then
+                    echo "  ${proto}"
+                else
+                    echo "  ${proto}/${port}"
+                fi
+            done
+        else
+            echo "  (none)"
+        fi
+        local rule_action
+        set +e
+        rule_action=$(wizard choose "Manage inbound rules" \
+            "Add TCP port(s)" \
+            "Add UDP port(s)" \
+            "Allow ICMP (ping)" \
+            "Delete rule(s)" \
+            "Save" \
+            --default "Save")
+        local rule_exit=$?
+        set -e
+        if [[ ${rule_exit} -ne 0 ]]; then
+            return
+        elif [[ "${rule_action}" == "Save" ]]; then
+            break
+        elif [[ "${rule_action}" == "Delete rule(s)" ]]; then
+            if [[ ${#INBOUND_RULES[@]} -eq 0 ]]; then
+                echo "No rules to delete."
+            else
+                local DELETE_OPTIONS=()
+                for rule in "${INBOUND_RULES[@]}"; do
+                    local proto=$(echo "${rule}" | grep -oP 'protocol:\K[^,]+')
+                    local port=$(echo "${rule}" | grep -oP 'ports:\K[^,]+')
+                    if [[ "${proto}" == "icmp" ]]; then
+                        DELETE_OPTIONS+=("${proto}")
+                    else
+                        DELETE_OPTIONS+=("${proto}/${port}")
+                    fi
+                done
+                readarray -t TO_DELETE < <(wizard select "Select rules to delete" "${DELETE_OPTIONS[@]}")
+                if [[ ${#TO_DELETE[@]} -gt 0 ]]; then
+                    local NEW_RULES=()
+                    for i in "${!INBOUND_RULES[@]}"; do
+                        local keep=true
+                        for del in "${TO_DELETE[@]}"; do
+                            [[ "${DELETE_OPTIONS[$i]}" == "${del}" ]] && keep=false
+                        done
+                        [[ "${keep}" == true ]] && NEW_RULES+=("${INBOUND_RULES[$i]}")
+                    done
+                    INBOUND_RULES=("${NEW_RULES[@]}")
+                fi
+            fi
+        elif [[ "${rule_action}" == "Add TCP port(s)" ]]; then
+            local ports_input
+            ask_no_blank "Enter TCP port(s) (e.g. 22 or 80,443 or 8000-9000)" ports_input
+            IFS=',' read -ra PORT_LIST <<< "${ports_input}"
+            for port in "${PORT_LIST[@]}"; do
+                port=$(echo "${port}" | sed 's/^[[:space:]]*//;s/[[:space:]]*$//')
+                [[ -n "${port}" ]] && INBOUND_RULES+=("protocol:tcp,ports:${port},address:0.0.0.0/0,address:::/0")
+            done
+        elif [[ "${rule_action}" == "Add UDP port(s)" ]]; then
+            local ports_input
+            ask_no_blank "Enter UDP port(s) (e.g. 53 or 1194,5353)" ports_input
+            IFS=',' read -ra PORT_LIST <<< "${ports_input}"
+            for port in "${PORT_LIST[@]}"; do
+                port=$(echo "${port}" | sed 's/^[[:space:]]*//;s/[[:space:]]*$//')
+                [[ -n "${port}" ]] && INBOUND_RULES+=("protocol:udp,ports:${port},address:0.0.0.0/0,address:::/0")
+            done
+        elif [[ "${rule_action}" == "Allow ICMP (ping)" ]]; then
+            INBOUND_RULES+=("protocol:icmp,address:0.0.0.0/0,address:::/0")
+            echo "ICMP added."
+        fi
+    done
+
+    local inbound_str="${INBOUND_RULES[*]}"
+    local outbound_str="protocol:tcp,ports:all,address:0.0.0.0/0,address:::/0 protocol:udp,ports:all,address:0.0.0.0/0,address:::/0 protocol:icmp,address:0.0.0.0/0,address:::/0"
+
+    echo "Updating firewall '${fw_name}'..."
+    doctl compute firewall update "${fw_id}" \
+        --name "${fw_name}" \
+        --inbound-rules "${inbound_str}" \
+        --outbound-rules "${outbound_str}"
+    echo "Firewall '${fw_name}' updated."
+}
+
+gumdrop_assign_firewall_droplets() {
+    readarray -t FW_IDS < <(doctl compute firewall list --format ID --no-header)
+    readarray -t FW_NAMES < <(doctl compute firewall list --format Name --no-header)
+    if [[ ${#FW_IDS[@]} -eq 0 ]]; then
+        echo "No firewalls found."
+        return
+    fi
+    local FW_OPTIONS=()
+    for i in "${!FW_IDS[@]}"; do
+        FW_OPTIONS+=("${FW_NAMES[$i]} (${FW_IDS[$i]})")
+    done
+    local choice
+    if ! choice=$(wizard choose "Assign droplets to which firewall?" "${FW_OPTIONS[@]}" --default "${FW_OPTIONS[0]}"); then return; fi
+    local fw_id=$(echo "${choice}" | grep -oP '\(\K[0-9a-f-]+(?=\))')
+
+    ## Get droplets currently assigned to this firewall:
+    local fw_droplet_ids=$(doctl compute firewall get "${fw_id}" --format DropletIDs --no-header 2>/dev/null | tr -d '[]')
+    declare -A _FW_ASSIGNED
+    for did in $(echo "${fw_droplet_ids}" | tr ',' ' '); do
+        [[ -n "${did}" && "${did}" != "0" ]] && _FW_ASSIGNED["${did}"]=1
+    done
+
+    ## List all managed droplets (tag-filtered):
+    local tag_args=()
+    [[ -n "${GUMDROP_TAG}" ]] && tag_args=(--tag-name "${GUMDROP_TAG}")
+    readarray -t DROPLET_IDS < <(doctl compute droplet list "${tag_args[@]}" --format ID --no-header)
+    readarray -t DROPLET_NAMES < <(doctl compute droplet list "${tag_args[@]}" --format Name --no-header)
+    readarray -t DROPLET_REGIONS < <(doctl compute droplet list "${tag_args[@]}" --format Region --no-header)
+    if [[ ${#DROPLET_IDS[@]} -eq 0 ]]; then
+        echo "No ${GUMDROP_LABEL,,}s found."
+        return
+    fi
+    local DROPLET_OPTIONS=()
+    local DROPLET_OPTION_IDS=()
+    local DEFAULTS=()
+    for i in "${!DROPLET_IDS[@]}"; do
+        local opt="${DROPLET_NAMES[$i]} [${DROPLET_REGIONS[$i]}] (${DROPLET_IDS[$i]})"
+        DROPLET_OPTIONS+=("${opt}")
+        DROPLET_OPTION_IDS+=("${DROPLET_IDS[$i]}")
+        if [[ -n "${_FW_ASSIGNED[${DROPLET_IDS[$i]}]}" ]]; then
+            DEFAULTS+=("${opt}")
+        fi
+    done
+
+    ## Build JSON array of pre-selected defaults:
+    local defaults_json="["
+    for i in "${!DEFAULTS[@]}"; do
+        [[ $i -gt 0 ]] && defaults_json+=","
+        defaults_json+="\"${DEFAULTS[$i]}\""
+    done
+    defaults_json+="]"
+
+    readarray -t SELECTED < <(wizard select "Select droplets for this firewall" "${DROPLET_OPTIONS[@]}" --default "${defaults_json}")
+
+    ## Build set of newly selected managed droplet IDs:
+    declare -A _SELECTED_MAP
+    for sel in "${SELECTED[@]}"; do
+        local sel_id=$(echo "${sel}" | grep -oP '\(\K[0-9]+(?=\))')
+        [[ -n "${sel_id}" ]] && _SELECTED_MAP["${sel_id}"]=1
+    done
+
+    ## Add newly selected droplets (managed droplets now selected but not previously assigned):
+    local to_add=()
+    for did in "${DROPLET_OPTION_IDS[@]}"; do
+        if [[ -n "${_SELECTED_MAP[${did}]}" && -z "${_FW_ASSIGNED[${did}]}" ]]; then
+            to_add+=("${did}")
+        fi
+    done
+    if [[ ${#to_add[@]} -gt 0 ]]; then
+        local add_csv=$(IFS=','; echo "${to_add[*]}")
+        doctl compute firewall add-droplets "${fw_id}" --droplet-ids "${add_csv}"
+        echo "Added ${#to_add[@]} droplet(s) to firewall."
+    fi
+
+    ## Remove deselected droplets (managed droplets previously assigned but now unselected):
+    local to_remove=()
+    for did in "${DROPLET_OPTION_IDS[@]}"; do
+        if [[ -z "${_SELECTED_MAP[${did}]}" && -n "${_FW_ASSIGNED[${did}]}" ]]; then
+            to_remove+=("${did}")
+        fi
+    done
+    if [[ ${#to_remove[@]} -gt 0 ]]; then
+        local remove_csv=$(IFS=','; echo "${to_remove[*]}")
+        doctl compute firewall remove-droplets "${fw_id}" --droplet-ids "${remove_csv}"
+        echo "Removed ${#to_remove[@]} droplet(s) from firewall."
+    fi
+
+    if [[ ${#to_add[@]} -eq 0 && ${#to_remove[@]} -eq 0 ]]; then
+        echo "No changes."
+    fi
+}
+
+gumdrop_manage_firewalls() {
+    while :
+    do
+        gumdrop_list_firewalls
+        local fw_count=$(doctl compute firewall list --format ID --no-header 2>/dev/null | wc -l)
+        local menu_items=(
+            "Create new firewall = $0 gumdrop_create_firewall_standalone"
+        )
+        if [[ ${fw_count} -gt 0 ]]; then
+            menu_items+=(
+                "Assign droplets to firewall = $0 gumdrop_assign_firewall_droplets"
+                "Edit firewall = $0 gumdrop_edit_firewall"
+                "Delete firewall = $0 gumdrop_delete_firewall"
+            )
+        fi
+        menu_items+=(
+            "Disable ufw on droplet (Debian) = $0 gumdrop_task_disable_ufw"
+            "Back = exit 2"
+        )
+        set +e
+        wizard menu --once --cancel-code=2 "Firewalls:" "${menu_items[@]}"
+        local EXIT_CODE=$?
+        set -e
+        if [[ "${EXIT_CODE}" == "2" ]]; then
+            exit 0
+        fi
+    done
+}
+
+gumdrop_list_reserved_ips() {
+    echo ""
+    echo "## Reserved IPs:"
+    local count=$(doctl compute reserved-ip list --format IP --no-header 2>/dev/null | wc -l)
+    if [[ ${count} -gt 0 ]]; then
+        doctl compute reserved-ip list --format IP,Region,DropletID,DropletName
+    else
+        echo "No reserved IPs found."
+    fi
+    echo ""
+}
+
+gumdrop_create_reserved_ip() {
+    ## Select region:
+    readarray -t REGION_SLUGS < <(doctl compute region list --format Slug --no-header)
+    readarray -t REGION_NAMES < <(doctl compute region list --format Name --no-header)
+    local REGION_OPTIONS=()
+    local REGION_DEFAULT=""
+    for i in "${!REGION_SLUGS[@]}"; do
+        local opt=$(printf "%-8s  %s" "${REGION_SLUGS[$i]}" "${REGION_NAMES[$i]}")
+        REGION_OPTIONS+=("${opt}")
+        [[ "${REGION_SLUGS[$i]}" == "${GUMDROP_DEFAULT_REGION}" ]] && REGION_DEFAULT="${opt}"
+    done
+    local choice
+    if ! choice=$(wizard choose "Select region for reserved IP" "${REGION_OPTIONS[@]}" --default "${REGION_DEFAULT}"); then return; fi
+    local region=$(echo "${choice}" | awk '{print $1}')
+    echo "Creating reserved IP in ${region}..."
+    doctl compute reserved-ip create --region "${region}"
+    echo "Reserved IP created."
+}
+
+gumdrop_delete_reserved_ip() {
+    readarray -t IPS < <(doctl compute reserved-ip list --format IP --no-header)
+    if [[ ${#IPS[@]} -eq 0 ]]; then
+        echo "No reserved IPs found."
+        return
+    fi
+    readarray -t IP_DROPLETS < <(doctl compute reserved-ip list --format DropletName --no-header)
+    local IP_OPTIONS=()
+    for i in "${!IPS[@]}"; do
+        if [[ -n "${IP_DROPLETS[$i]}" && "${IP_DROPLETS[$i]}" != "<nil>" ]]; then
+            IP_OPTIONS+=("${IPS[$i]} (${IP_DROPLETS[$i]})")
+        else
+            IP_OPTIONS+=("${IPS[$i]} (unassigned)")
+        fi
+    done
+    local choice
+    if ! choice=$(wizard choose "Delete which reserved IP?" "${IP_OPTIONS[@]}" --default "${IP_OPTIONS[0]}"); then return; fi
+    local ip=$(echo "${choice}" | awk '{print $1}')
+    confirm no "Are you sure you want to delete reserved IP '${ip}'" "?" || return
+    doctl compute reserved-ip delete "${ip}" --force
+    echo "Reserved IP '${ip}' deleted."
+}
+
+gumdrop_assign_reserved_ip() {
+    ## List only unassigned IPs:
+    readarray -t IPS < <(doctl compute reserved-ip list --format IP --no-header)
+    readarray -t IP_DROPLET_IDS < <(doctl compute reserved-ip list --format DropletID --no-header)
+    local UNASSIGNED_IPS=()
+    for i in "${!IPS[@]}"; do
+        if [[ -z "${IP_DROPLET_IDS[$i]}" || "${IP_DROPLET_IDS[$i]}" == "0" ]]; then
+            UNASSIGNED_IPS+=("${IPS[$i]}")
+        fi
+    done
+    if [[ ${#UNASSIGNED_IPS[@]} -eq 0 ]]; then
+        echo "No unassigned reserved IPs available."
+        return
+    fi
+    local ip_choice
+    if ! ip_choice=$(wizard choose "Select reserved IP to assign" "${UNASSIGNED_IPS[@]}" --default "${UNASSIGNED_IPS[0]}"); then return; fi
+
+    ## List droplets to assign to:
+    local tag_args=()
+    [[ -n "${GUMDROP_TAG}" ]] && tag_args=(--tag-name "${GUMDROP_TAG}")
+    readarray -t DROPLET_IDS < <(doctl compute droplet list "${tag_args[@]}" --format ID --no-header)
+    readarray -t DROPLET_NAMES < <(doctl compute droplet list "${tag_args[@]}" --format Name --no-header)
+    if [[ ${#DROPLET_IDS[@]} -eq 0 ]]; then
+        echo "No ${GUMDROP_LABEL,,}s found to assign to."
+        return
+    fi
+    local DROPLET_OPTIONS=()
+    for i in "${!DROPLET_IDS[@]}"; do
+        DROPLET_OPTIONS+=("${DROPLET_NAMES[$i]} (${DROPLET_IDS[$i]})")
+    done
+    local droplet_choice
+    if ! droplet_choice=$(wizard choose "Assign to which ${GUMDROP_LABEL,,}?" "${DROPLET_OPTIONS[@]}" --default "${DROPLET_OPTIONS[0]}"); then return; fi
+    local droplet_id=$(echo "${droplet_choice}" | grep -oP '\(\K[0-9]+(?=\))')
+
+    echo "Assigning ${ip_choice} to ${droplet_choice}..."
+    doctl compute reserved-ip-action assign "${ip_choice}" "${droplet_id}" --no-header >/dev/null
+    echo "Reserved IP assigned."
+    echo "Note: changes may take a moment to propagate."
+}
+
+gumdrop_release_reserved_ip() {
+    ## List only assigned IPs:
+    readarray -t IPS < <(doctl compute reserved-ip list --format IP --no-header)
+    readarray -t IP_DROPLET_IDS < <(doctl compute reserved-ip list --format DropletID --no-header)
+    readarray -t IP_DROPLET_NAMES < <(doctl compute reserved-ip list --format DropletName --no-header)
+    local ASSIGNED_OPTIONS=()
+    local ASSIGNED_IPS=()
+    for i in "${!IPS[@]}"; do
+        if [[ -n "${IP_DROPLET_IDS[$i]}" && "${IP_DROPLET_IDS[$i]}" != "0" ]]; then
+            ASSIGNED_OPTIONS+=("${IPS[$i]} (${IP_DROPLET_NAMES[$i]})")
+            ASSIGNED_IPS+=("${IPS[$i]}")
+        fi
+    done
+    if [[ ${#ASSIGNED_IPS[@]} -eq 0 ]]; then
+        echo "No assigned reserved IPs to release."
+        return
+    fi
+    local choice
+    if ! choice=$(wizard choose "Release which reserved IP?" "${ASSIGNED_OPTIONS[@]}" --default "${ASSIGNED_OPTIONS[0]}"); then return; fi
+    local ip=$(echo "${choice}" | awk '{print $1}')
+    confirm no "Are you sure you want to release '${choice}'" "?" || return
+    doctl compute reserved-ip-action unassign "${ip}" --no-header >/dev/null
+    echo "Reserved IP '${ip}' released."
+    echo "Note: changes may take a moment to propagate."
+}
+
+_gumdrop_collect_nfs_shares() {
+    _NFS_IDS=()
+    _NFS_NAMES=()
+    _NFS_SIZES=()
+    _NFS_REGIONS=()
+    _NFS_VPCS=()
+    ## Collect regions to query: regions with droplets + VPCs + default region
+    local regions=()
+    readarray -t regions < <(
+        { doctl compute droplet list --format Region --no-header 2>/dev/null
+          doctl vpcs list --format Region --no-header 2>/dev/null
+          echo "${GUMDROP_DEFAULT_REGION}"
+        } | sort -u
+    )
+    for region in "${regions[@]}"; do
+        [[ -z "${region}" ]] && continue
+        local ids names sizes vpcs
+        readarray -t ids < <(doctl nfs list --region "${region}" --format ID --no-header 2>/dev/null)
+        if [[ ${#ids[@]} -eq 0 || -z "${ids[0]}" ]]; then continue; fi
+        readarray -t names < <(doctl nfs list --region "${region}" --format Name --no-header 2>/dev/null)
+        readarray -t sizes < <(doctl nfs list --region "${region}" --format Size --no-header 2>/dev/null)
+        readarray -t vpcs < <(doctl nfs list --region "${region}" --format VpcIDs --no-header 2>/dev/null)
+        for i in "${!ids[@]}"; do
+            [[ -z "${ids[$i]}" ]] && continue
+            _NFS_IDS+=("${ids[$i]}")
+            _NFS_NAMES+=("${names[$i]}")
+            _NFS_SIZES+=("${sizes[$i]// /}")
+            _NFS_REGIONS+=("${region}")
+            _NFS_VPCS+=("${vpcs[$i]}")
+        done
+    done
+}
+
+gumdrop_list_volumes() {
+    echo ""
+    echo "## Volumes:"
+    local count=$(doctl compute volume list --format ID --no-header 2>/dev/null | wc -l)
+    if [[ ${count} -gt 0 ]]; then
+        doctl compute volume list --format ID,Name,Size,Region,DropletIDs
+    else
+        echo "No volumes found."
+    fi
+    echo ""
+}
+
+gumdrop_create_volume() {
+    local vol_name
+    ask_no_blank "Enter volume name" vol_name
+
+    local vol_size
+    ask "Enter size in GiB" vol_size "20"
+
+    ## Select region:
+    readarray -t REGION_SLUGS < <(doctl compute region list --format Slug --no-header)
+    readarray -t REGION_NAMES < <(doctl compute region list --format Name --no-header)
+    local REGION_OPTIONS=()
+    local REGION_DEFAULT=""
+    for i in "${!REGION_SLUGS[@]}"; do
+        local opt=$(printf "%-8s  %s" "${REGION_SLUGS[$i]}" "${REGION_NAMES[$i]}")
+        REGION_OPTIONS+=("${opt}")
+        [[ "${REGION_SLUGS[$i]}" == "${GUMDROP_DEFAULT_REGION}" ]] && REGION_DEFAULT="${opt}"
+    done
+    local region_choice
+    if ! region_choice=$(wizard choose "Select region" "${REGION_OPTIONS[@]}" --default "${REGION_DEFAULT}"); then return; fi
+    local region=$(echo "${region_choice}" | awk '{print $1}')
+
+    ## Select filesystem type:
+    local fs_type
+    set +e
+    fs_type=$(wizard choose "Select filesystem type" "ext4" "xfs" "none" --default "ext4")
+    set -e
+    local fs_args=()
+    if [[ -n "${fs_type}" && "${fs_type}" != "none" ]]; then
+        fs_args=(--fs-type "${fs_type}")
+    fi
+
+    echo "Creating volume '${vol_name}' (${vol_size}GiB in ${region})..."
+    doctl compute volume create "${vol_name}" --region "${region}" --size "${vol_size}GiB" "${fs_args[@]}"
+    echo "Volume '${vol_name}' created."
+}
+
+gumdrop_delete_volume() {
+    ## Only show unattached volumes for deletion:
+    readarray -t VOL_IDS < <(doctl compute volume list --format ID --no-header)
+    readarray -t VOL_NAMES < <(doctl compute volume list --format Name --no-header)
+    readarray -t VOL_DROPLETS < <(doctl compute volume list --format DropletIDs --no-header)
+    if [[ ${#VOL_IDS[@]} -eq 0 ]]; then
+        echo "No volumes found."
+        return
+    fi
+    local VOL_OPTIONS=()
+    local VOL_OPTION_IDS=()
+    for i in "${!VOL_IDS[@]}"; do
+        if [[ -n "${VOL_DROPLETS[$i]}" && "${VOL_DROPLETS[$i]}" != "[]" ]]; then
+            continue
+        fi
+        VOL_OPTIONS+=("${VOL_NAMES[$i]} (${VOL_IDS[$i]})")
+        VOL_OPTION_IDS+=("${VOL_IDS[$i]}")
+    done
+    if [[ ${#VOL_OPTIONS[@]} -eq 0 ]]; then
+        echo "All volumes are currently attached. Detach a volume before deleting it."
+        return
+    fi
+    readarray -t SELECTED < <(wizard select "Select volumes to delete" "${VOL_OPTIONS[@]}")
+    if [[ ${#SELECTED[@]} -eq 0 ]]; then
+        echo "No volumes selected."
+        return
+    fi
+    echo ""
+    echo "The following ${#SELECTED[@]} volume(s) will be deleted:"
+    for sel in "${SELECTED[@]}"; do
+        echo "  - ${sel}"
+    done
+    echo ""
+    confirm no "Are you sure you want to delete these ${#SELECTED[@]} volume(s)" "?" || return
+    for sel in "${SELECTED[@]}"; do
+        local vol_id=$(echo "${sel}" | grep -oP '\(\K[0-9a-f-]+(?=\))')
+        doctl compute volume delete "${vol_id}" --force
+        echo "Deleted: ${sel}"
+    done
+}
+
+gumdrop_attach_volume() {
+    ## List only unattached volumes:
+    readarray -t VOL_IDS < <(doctl compute volume list --format ID --no-header)
+    readarray -t VOL_NAMES < <(doctl compute volume list --format Name --no-header)
+    readarray -t VOL_DROPLETS < <(doctl compute volume list --format DropletIDs --no-header)
+    local UNATTACHED_IDS=()
+    local UNATTACHED_OPTIONS=()
+    for i in "${!VOL_IDS[@]}"; do
+        if [[ -z "${VOL_DROPLETS[$i]}" || "${VOL_DROPLETS[$i]}" == "[]" ]]; then
+            UNATTACHED_IDS+=("${VOL_IDS[$i]}")
+            UNATTACHED_OPTIONS+=("${VOL_NAMES[$i]} (${VOL_IDS[$i]})")
+        fi
+    done
+    if [[ ${#UNATTACHED_IDS[@]} -eq 0 ]]; then
+        echo "No unattached volumes available."
+        return
+    fi
+    local vol_choice
+    if ! vol_choice=$(wizard choose "Select volume to attach" "${UNATTACHED_OPTIONS[@]}" --default "${UNATTACHED_OPTIONS[0]}"); then return; fi
+    local vol_id=$(echo "${vol_choice}" | grep -oP '\(\K[0-9a-f-]+(?=\))')
+
+    ## List droplets to attach to:
+    local tag_args=()
+    [[ -n "${GUMDROP_TAG}" ]] && tag_args=(--tag-name "${GUMDROP_TAG}")
+    readarray -t DROPLET_IDS < <(doctl compute droplet list "${tag_args[@]}" --format ID --no-header)
+    readarray -t DROPLET_NAMES < <(doctl compute droplet list "${tag_args[@]}" --format Name --no-header)
+    if [[ ${#DROPLET_IDS[@]} -eq 0 ]]; then
+        echo "No ${GUMDROP_LABEL,,}s found to attach to."
+        return
+    fi
+    local DROPLET_OPTIONS=()
+    for i in "${!DROPLET_IDS[@]}"; do
+        DROPLET_OPTIONS+=("${DROPLET_NAMES[$i]} (${DROPLET_IDS[$i]})")
+    done
+    local droplet_choice
+    if ! droplet_choice=$(wizard choose "Attach to which ${GUMDROP_LABEL,,}?" "${DROPLET_OPTIONS[@]}" --default "${DROPLET_OPTIONS[0]}"); then return; fi
+    local droplet_id=$(echo "${droplet_choice}" | grep -oP '\(\K[0-9]+(?=\))')
+
+    echo "Attaching volume to ${droplet_choice}..."
+    doctl compute volume-action attach "${vol_id}" "${droplet_id}" --wait
+    echo "Volume attached."
+}
+
+gumdrop_detach_volume() {
+    ## List only attached volumes:
+    readarray -t VOL_IDS < <(doctl compute volume list --format ID --no-header)
+    readarray -t VOL_NAMES < <(doctl compute volume list --format Name --no-header)
+    readarray -t VOL_DROPLETS < <(doctl compute volume list --format DropletIDs --no-header)
+    local ATTACHED_IDS=()
+    local ATTACHED_DROPLET_IDS=()
+    local ATTACHED_OPTIONS=()
+    for i in "${!VOL_IDS[@]}"; do
+        if [[ -n "${VOL_DROPLETS[$i]}" && "${VOL_DROPLETS[$i]}" != "[]" ]]; then
+            local droplet_id=$(echo "${VOL_DROPLETS[$i]}" | tr -d '[]')
+            local droplet_name=$(doctl compute droplet get "${droplet_id}" --format Name --no-header 2>/dev/null)
+            ATTACHED_IDS+=("${VOL_IDS[$i]}")
+            ATTACHED_DROPLET_IDS+=("${droplet_id}")
+            ATTACHED_OPTIONS+=("${VOL_NAMES[$i]} → ${droplet_name:-${droplet_id}} (${VOL_IDS[$i]})")
+        fi
+    done
+    if [[ ${#ATTACHED_IDS[@]} -eq 0 ]]; then
+        echo "No attached volumes to detach."
+        return
+    fi
+    local choice
+    if ! choice=$(wizard choose "Detach which volume?" "${ATTACHED_OPTIONS[@]}" --default "${ATTACHED_OPTIONS[0]}"); then return; fi
+    local vol_id=$(echo "${choice}" | grep -oP '\(\K[0-9a-f-]+(?=\))')
+
+    ## Find matching droplet ID:
+    local droplet_id=""
+    for i in "${!ATTACHED_IDS[@]}"; do
+        if [[ "${ATTACHED_IDS[$i]}" == "${vol_id}" ]]; then
+            droplet_id="${ATTACHED_DROPLET_IDS[$i]}"
+            break
+        fi
+    done
+
+    echo "Detaching volume..."
+    doctl compute volume-action detach "${vol_id}" "${droplet_id}" --wait
+    echo "Volume detached."
+}
+
+gumdrop_manage_volumes() {
+    while :
+    do
+        gumdrop_list_volumes
+        local vol_count=$(doctl compute volume list --format ID --no-header 2>/dev/null | wc -l)
+        local menu_items=(
+            "Create volume = $0 gumdrop_create_volume"
+        )
+        if [[ ${vol_count} -gt 0 ]]; then
+            menu_items+=(
+                "Attach volume = $0 gumdrop_attach_volume"
+                "Detach volume = $0 gumdrop_detach_volume"
+                "Delete volume = $0 gumdrop_delete_volume"
+            )
+        fi
+        menu_items+=(
+            "Mount volume as /var/lib/docker = $0 gumdrop_task_fix_volume_mount"
+            "Back = exit 2"
+        )
+        set +e
+        wizard menu --once --cancel-code=2 "Volumes:" "${menu_items[@]}"
+        local EXIT_CODE=$?
+        set -e
+        if [[ "${EXIT_CODE}" == "2" ]]; then
+            exit 0
+        fi
+    done
+}
+
+gumdrop_list_nfs() {
+    echo ""
+    echo "## NFS Shares:"
+    _gumdrop_collect_nfs_shares
+    if [[ ${#_NFS_IDS[@]} -eq 0 ]]; then
+        echo "No NFS shares found."
+        echo ""
+        return
+    fi
+    ## Build VPC ID→Name lookup:
+    declare -A _VPC_NAME_MAP
+    while read -r vpc_id vpc_name; do
+        [[ -n "${vpc_id}" ]] && _VPC_NAME_MAP["${vpc_id}"]="${vpc_name}"
+    done < <(doctl vpcs list --format ID,Name --no-header 2>/dev/null)
+    ## Display table:
+    {
+        echo "NAME SIZE REGION VPCS"
+        for i in "${!_NFS_IDS[@]}"; do
+            local vpc_display=""
+            local vpc_raw="${_NFS_VPCS[$i]}"
+            ## vpc_raw may be comma-separated IDs or bracketed
+            vpc_raw=$(echo "${vpc_raw}" | tr -d '[]')
+            IFS=',' read -ra vpc_ids <<< "${vpc_raw}"
+            local vpc_names=()
+            for vid in "${vpc_ids[@]}"; do
+                vid=$(echo "${vid}" | xargs)
+                [[ -z "${vid}" ]] && continue
+                if [[ -n "${_VPC_NAME_MAP[${vid}]+x}" ]]; then
+                    vpc_names+=("${_VPC_NAME_MAP[${vid}]}")
+                else
+                    vpc_names+=("${vid}")
+                fi
+            done
+            vpc_display=$(IFS=','; echo "${vpc_names[*]}")
+            echo "${_NFS_NAMES[$i]} ${_NFS_SIZES[$i]} ${_NFS_REGIONS[$i]} ${vpc_display:--}"
+        done
+    } | column -t
+    echo ""
+}
+
+gumdrop_create_nfs() {
+    local nfs_name
+    ask_no_blank "Enter NFS share name" nfs_name
+
+    local nfs_size
+    ask "Enter size in GiB (minimum 50)" nfs_size "100"
+    if [[ "${nfs_size}" -lt 50 ]] 2>/dev/null; then
+        echo "Minimum size is 50 GiB. Setting to 50."
+        nfs_size=50
+    fi
+
+    ## Select region: prefer regions with existing droplets
+    readarray -t DROPLET_REGIONS < <(doctl compute droplet list --format Region --no-header 2>/dev/null | sort -u)
+    readarray -t ALL_REGION_SLUGS < <(doctl compute region list --format Slug --no-header)
+    readarray -t ALL_REGION_NAMES < <(doctl compute region list --format Name --no-header)
+    declare -A _REGION_NAME_MAP
+    for i in "${!ALL_REGION_SLUGS[@]}"; do
+        _REGION_NAME_MAP["${ALL_REGION_SLUGS[$i]}"]="${ALL_REGION_NAMES[$i]}"
+    done
+    local REGION_OPTIONS=()
+    local REGION_DEFAULT=""
+    if [[ ${#DROPLET_REGIONS[@]} -gt 0 && -n "${DROPLET_REGIONS[0]}" ]]; then
+        for slug in "${DROPLET_REGIONS[@]}"; do
+            local name="${_REGION_NAME_MAP[${slug}]:-${slug}}"
+            local opt=$(printf "%-8s  %s" "${slug}" "${name}")
+            REGION_OPTIONS+=("${opt}")
+            [[ "${slug}" == "${GUMDROP_DEFAULT_REGION}" ]] && REGION_DEFAULT="${opt}"
+        done
+    else
+        for i in "${!ALL_REGION_SLUGS[@]}"; do
+            local opt=$(printf "%-8s  %s" "${ALL_REGION_SLUGS[$i]}" "${ALL_REGION_NAMES[$i]}")
+            REGION_OPTIONS+=("${opt}")
+            [[ "${ALL_REGION_SLUGS[$i]}" == "${GUMDROP_DEFAULT_REGION}" ]] && REGION_DEFAULT="${opt}"
+        done
+    fi
+    local region_choice
+    if ! region_choice=$(wizard choose "Select region" "${REGION_OPTIONS[@]}" --default "${REGION_DEFAULT}"); then return; fi
+    local region=$(echo "${region_choice}" | awk '{print $1}')
+
+    ## Select VPCs in the chosen region:
+    local vpc_ids=()
+    local vpc_names=()
+    local vpc_options=()
+    while read -r vid vname vregion; do
+        if [[ "${vregion}" == "${region}" ]]; then
+            vpc_ids+=("${vid}")
+            vpc_names+=("${vname}")
+            vpc_options+=("${vname} (${vid})")
+        fi
+    done < <(doctl vpcs list --format ID,Name,Region --no-header 2>/dev/null)
+
+    if [[ ${#vpc_options[@]} -eq 0 ]]; then
+        echo "No VPCs found in region '${region}'. Creating one..."
+        local vpc_create_output
+        set +e
+        vpc_create_output=$(doctl vpcs create --name "default-${region}" --region "${region}" 2>&1)
+        local vpc_create_rc=$?
+        set -e
+        if [[ ${vpc_create_rc} -ne 0 ]]; then
+            error "Failed to create VPC: ${vpc_create_output}"
+            return
+        fi
+        local new_vpc_id
+        new_vpc_id=$(echo "${vpc_create_output}" | awk 'NR==2{print $1}')
+        if [[ -z "${new_vpc_id}" ]]; then
+            error "Failed to parse VPC ID from output: ${vpc_create_output}"
+            return
+        fi
+        echo "VPC 'default-${region}' created."
+        vpc_ids=("${new_vpc_id}")
+        vpc_names=("default-${region}")
+        vpc_options=("default-${region} (${new_vpc_id})")
+    fi
+
+    local selected_vpc_ids=()
+    if [[ ${#vpc_options[@]} -eq 1 ]]; then
+        selected_vpc_ids=("${vpc_ids[0]}")
+        echo "Using VPC: ${vpc_names[0]}"
+    else
+        readarray -t SELECTED < <(wizard select "Select VPCs for this NFS share" "${vpc_options[@]}")
+        for sel in "${SELECTED[@]}"; do
+            local sel_id=$(echo "${sel}" | grep -oP '\(\K[0-9a-f-]+(?=\))')
+            [[ -n "${sel_id}" ]] && selected_vpc_ids+=("${sel_id}")
+        done
+    fi
+    if [[ ${#selected_vpc_ids[@]} -eq 0 ]]; then
+        echo "No VPCs selected. Aborting."
+        return
+    fi
+    local vpc_csv
+    vpc_csv=$(IFS=','; echo "${selected_vpc_ids[*]}")
+
+    echo "Creating NFS share '${nfs_name}' (${nfs_size}GiB in ${region})..."
+    local nfs_err
+    set +e
+    nfs_err=$(doctl nfs create --name "${nfs_name}" --region "${region}" --size "${nfs_size}" --vpc-ids "${vpc_csv}" 2>&1)
+    local nfs_rc=$?
+    set -e
+    if [[ ${nfs_rc} -ne 0 ]]; then
+        error "Failed to create NFS share: ${nfs_err}"
+        return
+    fi
+    echo "${nfs_err}"
+    echo "NFS share '${nfs_name}' created."
+}
+
+gumdrop_delete_nfs() {
+    _gumdrop_collect_nfs_shares
+    if [[ ${#_NFS_IDS[@]} -eq 0 ]]; then
+        echo "No NFS shares found."
+        return
+    fi
+    local NFS_OPTIONS=()
+    for i in "${!_NFS_IDS[@]}"; do
+        NFS_OPTIONS+=("${_NFS_NAMES[$i]} [${_NFS_REGIONS[$i]}] (${_NFS_IDS[$i]})")
+    done
+    local choice
+    if ! choice=$(wizard choose "Delete which NFS share?" "${NFS_OPTIONS[@]}" --default "${NFS_OPTIONS[0]}"); then return; fi
+    local nfs_id=$(echo "${choice}" | grep -oP '\(\K[0-9a-f-]+(?=\))')
+    local nfs_region=$(echo "${choice}" | grep -oP '\[\K[^\]]+')
+    confirm no "Are you sure you want to delete '${choice}'" "?" || return
+    set +e
+    doctl nfs delete --id "${nfs_id}" --region "${nfs_region}"
+    set -e
+    echo "NFS share deleted."
+}
+
+gumdrop_resize_nfs() {
+    _gumdrop_collect_nfs_shares
+    if [[ ${#_NFS_IDS[@]} -eq 0 ]]; then
+        echo "No NFS shares found."
+        return
+    fi
+    local NFS_OPTIONS=()
+    for i in "${!_NFS_IDS[@]}"; do
+        NFS_OPTIONS+=("${_NFS_NAMES[$i]} ${_NFS_SIZES[$i]} [${_NFS_REGIONS[$i]}] (${_NFS_IDS[$i]})")
+    done
+    local choice
+    if ! choice=$(wizard choose "Resize which NFS share?" "${NFS_OPTIONS[@]}" --default "${NFS_OPTIONS[0]}"); then return; fi
+    local nfs_id=$(echo "${choice}" | grep -oP '\(\K[0-9a-f-]+(?=\))')
+    local nfs_region=$(echo "${choice}" | grep -oP '\[\K[^\]]+')
+
+    local new_size
+    ask "Enter new size in GiB (minimum 50)" new_size ""
+    if [[ -z "${new_size}" ]]; then return; fi
+    if [[ "${new_size}" -lt 50 ]] 2>/dev/null; then
+        echo "Minimum size is 50 GiB. Setting to 50."
+        new_size=50
+    fi
+
+    echo "Resizing NFS share to ${new_size}GiB..."
+    set +e
+    doctl nfs resize --id "${nfs_id}" --region "${nfs_region}" --size "${new_size}" --wait
+    set -e
+    echo "NFS share resized."
+}
+
+gumdrop_manage_nfs() {
+    while :
+    do
+        gumdrop_list_nfs
+        local nfs_count=${#_NFS_IDS[@]}
+        local menu_items=(
+            "Create NFS share = $0 gumdrop_create_nfs"
+        )
+        if [[ ${nfs_count} -gt 0 ]]; then
+            menu_items+=(
+                "Resize NFS share = $0 gumdrop_resize_nfs"
+                "Delete NFS share = $0 gumdrop_delete_nfs"
+            )
+        fi
+        menu_items+=("Back = exit 2")
+        set +e
+        wizard menu --once --cancel-code=2 "NFS Shares:" "${menu_items[@]}"
+        local EXIT_CODE=$?
+        set -e
+        if [[ "${EXIT_CODE}" == "2" ]]; then
+            exit 0
+        fi
+    done
+}
+
+gumdrop_manage_reserved_ips() {
+    while :
+    do
+        gumdrop_list_reserved_ips
+        local ip_count=$(doctl compute reserved-ip list --format IP --no-header 2>/dev/null | wc -l)
+        local menu_items=(
+            "Create reserved IP = $0 gumdrop_create_reserved_ip"
+        )
+        if [[ ${ip_count} -gt 0 ]]; then
+            menu_items+=(
+                "Assign reserved IP = $0 gumdrop_assign_reserved_ip"
+                "Release reserved IP = $0 gumdrop_release_reserved_ip"
+                "Delete reserved IP = $0 gumdrop_delete_reserved_ip"
+            )
+        fi
+        menu_items+=("Back = exit 2")
+        set +e
+        wizard menu --once --cancel-code=2 "Reserved IPs:" "${menu_items[@]}"
+        local EXIT_CODE=$?
+        set -e
+        if [[ "${EXIT_CODE}" == "2" ]]; then
+            exit 0
+        fi
+    done
+}
+
+gumdrop_create_firewall_standalone() {
+    _gumdrop_create_custom_firewall
+    if [[ ${#FIREWALL_IDS[@]} -gt 0 ]]; then
+        echo ""
+        echo "Firewall created. Assign it to droplets from the create menu or via doctl."
+    fi
+}
+
+gumdrop_list_accounts() {
+    echo ""
+    echo "## Accounts:"
+    doctl auth list 2>/dev/null
+    echo ""
+}
+
+gumdrop_switch_account() {
+    readarray -t CONTEXTS < <(doctl auth list 2>/dev/null | sed 's/ (current)$//')
+    if [[ ${#CONTEXTS[@]} -le 1 ]]; then
+        echo "Only one account configured."
+        return
+    fi
+    local current=$(doctl auth list 2>/dev/null | grep -oP '^.+(?= \(current\))')
+    local choice
+    if ! choice=$(wizard choose "Switch to which account?" "${CONTEXTS[@]}" --default "${current}"); then return; fi
+    doctl auth switch --context "${choice}"
+    echo "Switched to account: ${choice}"
+}
+
+gumdrop_add_account() {
+    local context_name
+    ask_no_blank "Enter a name for this account" context_name
+    doctl auth init --context "${context_name}"
+    echo "Account '${context_name}' added."
+    doctl auth switch --context "${context_name}"
+    echo "Switched to account: ${context_name}"
+}
+
+gumdrop_remove_account() {
+    readarray -t CONTEXTS < <(doctl auth list 2>/dev/null | sed 's/ (current)$//')
+    if [[ ${#CONTEXTS[@]} -eq 0 ]]; then
+        echo "No accounts configured."
+        return
+    fi
+    local choice
+    if ! choice=$(wizard choose "Remove which account?" "${CONTEXTS[@]}" --default "${CONTEXTS[0]}"); then return; fi
+    confirm no "Are you sure you want to remove account '${choice}'" "?" || return
+    doctl auth remove --context "${choice}"
+    echo "Account '${choice}' removed."
+}
+
+gumdrop_list_snapshots() {
+    echo ""
+    echo "## Snapshots:"
+    readarray -t _SNAP_IDS < <(doctl compute snapshot list --resource droplet --format ID --no-header 2>/dev/null)
+    readarray -t _SNAP_NAMES < <(doctl compute snapshot list --resource droplet --format Name --no-header 2>/dev/null)
+    readarray -t _SNAP_CREATED < <(doctl compute snapshot list --resource droplet --format CreatedAt --no-header 2>/dev/null)
+    readarray -t _SNAP_SIZE < <(doctl compute snapshot list --resource droplet --format MinDiskSize --no-header 2>/dev/null)
+    readarray -t _SNAP_REGIONS < <(doctl compute snapshot list --resource droplet --format Regions --no-header 2>/dev/null)
+    if [[ ${#_SNAP_IDS[@]} -gt 0 && -n "${_SNAP_IDS[0]}" ]]; then
+        {
+            echo "ID Name MinDisk Regions Created"
+            for i in "${!_SNAP_IDS[@]}"; do
+                [[ -z "${_SNAP_IDS[$i]}" ]] && continue
+                echo "${_SNAP_IDS[$i]} ${_SNAP_NAMES[$i]} ${_SNAP_SIZE[$i]}GiB ${_SNAP_REGIONS[$i]} ${_SNAP_CREATED[$i]}"
+            done
+        } | column -t
+    else
+        echo "No snapshots found."
+    fi
+    echo ""
+}
+
+gumdrop_manage_snapshots() {
+    while :
+    do
+        gumdrop_list_snapshots
+        local snap_count=${#_SNAP_IDS[@]}
+        local has_snapshots=false
+        [[ ${snap_count} -gt 0 && -n "${_SNAP_IDS[0]}" ]] && has_snapshots=true
+        local menu_items=(
+            "Create snapshot = $0 _gumdrop_create_snapshot"
+        )
+        if [[ "${has_snapshots}" == true ]]; then
+            menu_items+=(
+                "Create ${GUMDROP_LABEL,,} from snapshot = $0 _gumdrop_create_from_snapshot"
+                "Delete snapshot = $0 _gumdrop_delete_snapshot"
+            )
+        fi
+        menu_items+=("Back = exit 2")
+        set +e
+        wizard menu --once --cancel-code=2 "Snapshots:" "${menu_items[@]}"
+        local EXIT_CODE=$?
+        set -e
+        if [[ "${EXIT_CODE}" == "2" ]]; then
+            exit 0
+        fi
+    done
+}
+
+_gumdrop_create_snapshot() {
+    local tag_args=()
+    [[ -n "${GUMDROP_TAG}" ]] && tag_args=(--tag-name "${GUMDROP_TAG}")
+    readarray -t DROPLET_IDS < <(doctl compute droplet list "${tag_args[@]}" --format ID --no-header)
+    readarray -t DROPLET_NAMES < <(doctl compute droplet list "${tag_args[@]}" --format Name --no-header)
+    if [[ ${#DROPLET_IDS[@]} -eq 0 ]]; then
+        echo "No ${GUMDROP_LABEL,,}s found to snapshot."
+        return
+    fi
+    local DROPLET_OPTIONS=()
+    for i in "${!DROPLET_IDS[@]}"; do
+        DROPLET_OPTIONS+=("${DROPLET_NAMES[$i]} (${DROPLET_IDS[$i]})")
+    done
+    local droplet_choice
+    if ! droplet_choice=$(wizard choose "Snapshot which ${GUMDROP_LABEL,,}?" "${DROPLET_OPTIONS[@]}" --default "${DROPLET_OPTIONS[0]}"); then return; fi
+    local droplet_id=$(echo "${droplet_choice}" | grep -oP '\(\K[0-9]+(?=\))')
+    local droplet_name=$(echo "${droplet_choice}" | sed 's/ ([^)]*)//')
+
+    local snap_name
+    ask "Enter snapshot name" snap_name "${droplet_name}-$(date +%Y%m%d)"
+    echo "Creating snapshot '${snap_name}' (this may take a while)..."
+    set +e
+    doctl compute droplet-action snapshot "${droplet_id}" --snapshot-name "${snap_name}" --wait
+    set -e
+    echo "Snapshot '${snap_name}' created."
+}
+
+_gumdrop_create_from_snapshot() {
+    readarray -t SNAP_IDS < <(doctl compute snapshot list --resource droplet --format ID --no-header 2>/dev/null)
+    readarray -t SNAP_NAMES < <(doctl compute snapshot list --resource droplet --format Name --no-header 2>/dev/null)
+    if [[ ${#SNAP_IDS[@]} -eq 0 || -z "${SNAP_IDS[0]}" ]]; then
+        echo "No snapshots found."
+        return
+    fi
+    local SNAP_OPTIONS=()
+    for i in "${!SNAP_IDS[@]}"; do
+        [[ -z "${SNAP_IDS[$i]}" ]] && continue
+        SNAP_OPTIONS+=("${SNAP_NAMES[$i]} (${SNAP_IDS[$i]})")
+    done
+    local snap_choice
+    if ! snap_choice=$(wizard choose "Create from which snapshot?" "${SNAP_OPTIONS[@]}" --default "${SNAP_OPTIONS[0]}"); then return; fi
+    local snap_id=$(echo "${snap_choice}" | grep -oP '\(\K[0-9]+(?=\))')
+
+    local new_name
+    while :; do
+        ask_no_blank "Enter new ${GUMDROP_LABEL,,} name" new_name
+        if doctl compute droplet list --format Name --no-header 2>/dev/null | grep -qx "${new_name}"; then
+            error "A droplet named '${new_name}' already exists."
+        else
+            break
+        fi
+    done
+
+    ## Select region:
+    readarray -t REGION_SLUGS < <(doctl compute region list --format Slug --no-header)
+    readarray -t REGION_NAMES < <(doctl compute region list --format Name --no-header)
+    local REGION_OPTIONS=()
+    local REGION_DEFAULT=""
+    for i in "${!REGION_SLUGS[@]}"; do
+        local opt=$(printf "%-8s  %s" "${REGION_SLUGS[$i]}" "${REGION_NAMES[$i]}")
+        REGION_OPTIONS+=("${opt}")
+        [[ "${REGION_SLUGS[$i]}" == "${GUMDROP_DEFAULT_REGION}" ]] && REGION_DEFAULT="${opt}"
+    done
+    local region_choice
+    if ! region_choice=$(wizard choose "Select region" "${REGION_OPTIONS[@]}" --default "${REGION_DEFAULT}"); then return; fi
+    local region=$(echo "${region_choice}" | awk '{print $1}')
+
+    ## Select size:
+    readarray -t SIZE_SLUGS < <(doctl compute size list --format Slug --no-header)
+    readarray -t SIZE_PRICES < <(doctl compute size list --format PriceHourly --no-header)
+    readarray -t SIZE_DISKS < <(doctl compute size list --format Disk --no-header)
+    readarray -t SIZE_VCPUS < <(doctl compute size list --format VCPUs --no-header)
+    local SIZE_OPTIONS=()
+    local SIZE_DEFAULT=""
+    for i in "${!SIZE_SLUGS[@]}"; do
+        local opt=$(printf "%-25s  %-3s vCPUs  \$%-10s  %sGB disk" "${SIZE_SLUGS[$i]}" "${SIZE_VCPUS[$i]}" "${SIZE_PRICES[$i]}/hr" "${SIZE_DISKS[$i]}")
+        SIZE_OPTIONS+=("${opt}")
+        [[ "${SIZE_SLUGS[$i]}" == "${GUMDROP_DEFAULT_SIZE}" ]] && SIZE_DEFAULT="${opt}"
+    done
+    local size_choice
+    if ! size_choice=$(wizard choose "Select size" "${SIZE_OPTIONS[@]}" --default "${SIZE_DEFAULT}"); then return; fi
+    local size=$(echo "${size_choice}" | awk '{print $1}')
+
+    ## Select SSH key:
+    readarray -t SSH_KEY_IDS < <(doctl compute ssh-key list --format ID --no-header)
+    readarray -t SSH_KEY_NAMES < <(doctl compute ssh-key list --format Name --no-header)
+    local SSH_KEY_OPTIONS=()
+    for i in "${!SSH_KEY_IDS[@]}"; do
+        SSH_KEY_OPTIONS+=("${SSH_KEY_NAMES[$i]} (${SSH_KEY_IDS[$i]})")
+    done
+    local ssh_key_choice
+    if ! ssh_key_choice=$(wizard choose "Which SSH key?" "${SSH_KEY_OPTIONS[@]}" --default "${SSH_KEY_OPTIONS[0]}"); then return; fi
+    local ssh_key=$(echo "${ssh_key_choice}" | grep -oP '\(\K[0-9]+(?=\))')
+
+    echo ""
+    echo "## Summary:"
+    echo "  Name:      ${new_name}"
+    echo "  Snapshot:  ${snap_choice}"
+    echo "  Region:    ${region}"
+    echo "  Size:      ${size}"
+    echo "  SSH key:   ${ssh_key_choice}"
+    echo ""
+    confirm yes "Create this ${GUMDROP_LABEL,,}" "?" || return
+
+    echo "Creating ${GUMDROP_LABEL,,} '${new_name}' from snapshot, please wait..."
+    set +e
+    doctl compute droplet create "${new_name}" \
+        --region "${region}" \
+        --size "${size}" \
+        --image "${snap_id}" \
+        --ssh-keys "${ssh_key}" \
+        --wait
+    set -e
+    echo "${GUMDROP_LABEL} '${new_name}' created."
+}
+
+_gumdrop_delete_snapshot() {
+    readarray -t SNAP_IDS < <(doctl compute snapshot list --resource droplet --format ID --no-header 2>/dev/null)
+    readarray -t SNAP_NAMES < <(doctl compute snapshot list --resource droplet --format Name --no-header 2>/dev/null)
+    if [[ ${#SNAP_IDS[@]} -eq 0 || -z "${SNAP_IDS[0]}" ]]; then
+        echo "No snapshots found."
+        return
+    fi
+    local SNAP_OPTIONS=()
+    for i in "${!SNAP_IDS[@]}"; do
+        [[ -z "${SNAP_IDS[$i]}" ]] && continue
+        SNAP_OPTIONS+=("${SNAP_NAMES[$i]} (${SNAP_IDS[$i]})")
+    done
+    local choice
+    if ! choice=$(wizard choose "Delete which snapshot?" "${SNAP_OPTIONS[@]}" --default "${SNAP_OPTIONS[0]}"); then return; fi
+    local snap_id=$(echo "${choice}" | grep -oP '\(\K[0-9]+(?=\))')
+    confirm no "Are you sure you want to delete '${choice}'" "?" || return
+    doctl compute snapshot delete "${snap_id}" --force
+    echo "Snapshot deleted."
+}
+
+gumdrop_manage_backups() {
+    local tag_args=()
+    [[ -n "${GUMDROP_TAG}" ]] && tag_args=(--tag-name "${GUMDROP_TAG}")
+    readarray -t DROPLET_IDS < <(doctl compute droplet list "${tag_args[@]}" --format ID --no-header)
+    readarray -t DROPLET_NAMES < <(doctl compute droplet list "${tag_args[@]}" --format Name --no-header)
+    if [[ ${#DROPLET_IDS[@]} -eq 0 ]]; then
+        echo "No ${GUMDROP_LABEL,,}s found."
+        return
+    fi
+    local DROPLET_OPTIONS=()
+    for i in "${!DROPLET_IDS[@]}"; do
+        DROPLET_OPTIONS+=("${DROPLET_NAMES[$i]} (${DROPLET_IDS[$i]})")
+    done
+    local droplet_choice
+    if ! droplet_choice=$(wizard choose "Manage backups for which ${GUMDROP_LABEL,,}?" "${DROPLET_OPTIONS[@]}" --default "${DROPLET_OPTIONS[0]}"); then return; fi
+    local droplet_id=$(echo "${droplet_choice}" | grep -oP '\(\K[0-9]+(?=\))')
+    local droplet_name=$(echo "${droplet_choice}" | sed 's/ ([^)]*)//')
+
+    while :
+    do
+        echo ""
+        echo "## Backups for ${droplet_name}:"
+        ## Check backup status:
+        local backup_enabled=false
+        local backup_plan=""
+        local droplet_json
+        droplet_json=$(doctl compute droplet get "${droplet_id}" --output json 2>/dev/null)
+        backup_plan=$(echo "${droplet_json}" | uv run python3 -c "
+import json,sys
+data=json.load(sys.stdin)
+d=data[0] if isinstance(data,list) else data
+p=d.get('backup_policy') or {}
+plan=p.get('plan','') if isinstance(p,dict) else ''
+if not plan and 'backups' in d.get('features',[]):
+    plan='daily'
+print(plan)
+")
+        if [[ -n "${backup_plan}" ]]; then
+            backup_enabled=true
+            echo "Backups: enabled (${backup_plan})"
+        else
+            echo "Backups: disabled"
+        fi
+
+        readarray -t BACKUP_IDS < <(doctl compute droplet backups "${droplet_id}" --format ID --no-header 2>/dev/null)
+        readarray -t BACKUP_NAMES < <(doctl compute droplet backups "${droplet_id}" --format Name --no-header 2>/dev/null)
+        readarray -t BACKUP_CREATED < <(doctl compute droplet backups "${droplet_id}" --format Created --no-header 2>/dev/null)
+        readarray -t BACKUP_MINDISK < <(doctl compute droplet backups "${droplet_id}" --format MinDisk --no-header 2>/dev/null)
+        local has_backups=false
+        if [[ ${#BACKUP_IDS[@]} -gt 0 && -n "${BACKUP_IDS[0]}" ]]; then
+            has_backups=true
+            {
+                echo "ID Name MinDisk Created"
+                for i in "${!BACKUP_IDS[@]}"; do
+                    [[ -z "${BACKUP_IDS[$i]}" ]] && continue
+                    echo "${BACKUP_IDS[$i]} ${BACKUP_NAMES[$i]} ${BACKUP_MINDISK[$i]}GiB ${BACKUP_CREATED[$i]}"
+                done
+            } | column -t
+        else
+            echo "No backup files found."
+        fi
+        echo ""
+
+        local menu_items=()
+        if [[ "${backup_enabled}" == true ]]; then
+            menu_items+=("Disable backups = $0 _gumdrop_disable_backups ${droplet_id}")
+        else
+            menu_items+=("Enable backups = $0 _gumdrop_enable_backups ${droplet_id}")
+        fi
+        if [[ "${has_backups}" == true ]]; then
+            menu_items+=(
+                "Restore from backup = $0 _gumdrop_restore_backup ${droplet_id} ${droplet_name}"
+                "Convert backup to snapshot = $0 _gumdrop_convert_backup ${droplet_id}"
+                "Delete backups = $0 _gumdrop_delete_backups ${droplet_id}"
+            )
+        fi
+        menu_items+=("Back = exit 2")
+        set +e
+        wizard menu --once --cancel-code=2 "Backups:" "${menu_items[@]}"
+        local EXIT_CODE=$?
+        set -e
+        if [[ "${EXIT_CODE}" == "2" ]]; then
+            exit 0
+        fi
+    done
+}
+
+_gumdrop_enable_backups() {
+    local droplet_id="$1"
+    local backup_plan
+    set +e
+    backup_plan=$(wizard choose "Backup frequency" "Daily" "Weekly" --default "Daily")
+    set -e
+    [[ -z "${backup_plan}" ]] && return
+    local policy_args=(--backup-policy-plan "${backup_plan,,}")
+
+    local backup_hour
+    set +e
+    backup_hour=$(wizard choose "Backup hour (UTC)" "0" "4" "8" "12" "16" "20" --default "0")
+    set -e
+    policy_args+=(--backup-policy-hour "${backup_hour:-0}")
+
+    if [[ "${backup_plan}" == "Weekly" ]]; then
+        local backup_weekday
+        set +e
+        backup_weekday=$(wizard choose "Backup weekday" "SUN" "MON" "TUE" "WED" "THU" "FRI" "SAT" --default "SUN")
+        set -e
+        policy_args+=(--backup-policy-weekday "${backup_weekday:-SUN}")
+    fi
+
+    echo "Enabling backups..."
+    local output
+    set +e
+    output=$(doctl compute droplet-action enable-backups "${droplet_id}" "${policy_args[@]}" --wait 2>&1)
+    local rc=$?
+    set -e
+    echo "${output}"
+    if [[ ${rc} -ne 0 ]] || echo "${output}" | grep -qi "errored"; then
+        error "Failed to enable backups."
+        return
+    fi
+    echo "Backups enabled. Note: it may take a few minutes for the status to update."
+    sleep 3
+}
+
+_gumdrop_disable_backups() {
+    local droplet_id="$1"
+    confirm no "Are you sure you want to disable backups? Existing backup files will not be deleted" "." || return
+    echo "Disabling backups..."
+    local output
+    set +e
+    output=$(doctl compute droplet-action disable-backups "${droplet_id}" --wait 2>&1)
+    local rc=$?
+    set -e
+    echo "${output}"
+    if [[ ${rc} -ne 0 ]] || echo "${output}" | grep -qi "errored"; then
+        error "Failed to disable backups."
+        return
+    fi
+    echo "Backups disabled."
+    sleep 3
+}
+
+_gumdrop_restore_backup() {
+    local droplet_id="$1"
+    local droplet_name="$2"
+    readarray -t BACKUP_IDS < <(doctl compute droplet backups "${droplet_id}" --format ID --no-header 2>/dev/null)
+    readarray -t BACKUP_NAMES < <(doctl compute droplet backups "${droplet_id}" --format Name --no-header 2>/dev/null)
+    if [[ ${#BACKUP_IDS[@]} -eq 0 || -z "${BACKUP_IDS[0]}" ]]; then
+        echo "No backups found."
+        return
+    fi
+    local BACKUP_OPTIONS=()
+    for i in "${!BACKUP_IDS[@]}"; do
+        [[ -z "${BACKUP_IDS[$i]}" ]] && continue
+        BACKUP_OPTIONS+=("${BACKUP_NAMES[$i]} (${BACKUP_IDS[$i]})")
+    done
+    local choice
+    if ! choice=$(wizard choose "Restore from which backup?" "${BACKUP_OPTIONS[@]}" --default "${BACKUP_OPTIONS[0]}"); then return; fi
+    local backup_id=$(echo "${choice}" | grep -oP '\(\K[0-9]+(?=\))')
+    confirm no "This will restore '${droplet_name}' from backup '${choice}'. All current data will be replaced" "." || return
+    echo "Restoring from backup (this may take a while)..."
+    set +e
+    doctl compute droplet-action restore "${droplet_id}" --image-id "${backup_id}" --wait
+    set -e
+    echo "Backup restored."
+}
+
+_gumdrop_convert_backup() {
+    local droplet_id="$1"
+    readarray -t BACKUP_IDS < <(doctl compute droplet backups "${droplet_id}" --format ID --no-header 2>/dev/null)
+    readarray -t BACKUP_NAMES < <(doctl compute droplet backups "${droplet_id}" --format Name --no-header 2>/dev/null)
+    if [[ ${#BACKUP_IDS[@]} -eq 0 || -z "${BACKUP_IDS[0]}" ]]; then
+        echo "No backups found."
+        return
+    fi
+    local BACKUP_OPTIONS=()
+    for i in "${!BACKUP_IDS[@]}"; do
+        [[ -z "${BACKUP_IDS[$i]}" ]] && continue
+        BACKUP_OPTIONS+=("${BACKUP_NAMES[$i]} (${BACKUP_IDS[$i]})")
+    done
+    readarray -t SELECTED < <(wizard select "Select backups to convert to snapshots" "${BACKUP_OPTIONS[@]}")
+    if [[ ${#SELECTED[@]} -eq 0 ]]; then
+        echo "No backups selected."
+        return
+    fi
+    local token
+    token=$(doctl auth token 2>/dev/null)
+    if [[ -z "${token}" ]]; then
+        error "Could not retrieve API token."
+        return
+    fi
+    for sel in "${SELECTED[@]}"; do
+        local backup_id=$(echo "${sel}" | grep -oP '\(\K[0-9]+(?=\))')
+        [[ -z "${backup_id}" ]] && continue
+        echo "Converting '${sel}' to snapshot..."
+        set +e
+        local resp
+        resp=$(curl -s -X POST \
+            -H "Content-Type: application/json" \
+            -H "Authorization: Bearer ${token}" \
+            -d '{"type":"convert"}' \
+            "https://api.digitalocean.com/v2/images/${backup_id}/actions")
+        set -e
+        if echo "${resp}" | uv run python3 -c "import json,sys; d=json.load(sys.stdin); print(d.get('action',{}).get('status',''))" 2>/dev/null | grep -q "in-progress"; then
+            echo "Conversion started for '${sel}'."
+        else
+            error "Failed to convert '${sel}': ${resp}"
+        fi
+    done
+}
+
+_gumdrop_delete_backups() {
+    local droplet_id="$1"
+    readarray -t BACKUP_IDS < <(doctl compute droplet backups "${droplet_id}" --format ID --no-header 2>/dev/null)
+    readarray -t BACKUP_NAMES < <(doctl compute droplet backups "${droplet_id}" --format Name --no-header 2>/dev/null)
+    if [[ ${#BACKUP_IDS[@]} -eq 0 || -z "${BACKUP_IDS[0]}" ]]; then
+        echo "No backups found."
+        return
+    fi
+    local BACKUP_OPTIONS=()
+    for i in "${!BACKUP_IDS[@]}"; do
+        [[ -z "${BACKUP_IDS[$i]}" ]] && continue
+        BACKUP_OPTIONS+=("${BACKUP_NAMES[$i]} (${BACKUP_IDS[$i]})")
+    done
+    readarray -t SELECTED < <(wizard select "Select backups to delete" "${BACKUP_OPTIONS[@]}")
+    if [[ ${#SELECTED[@]} -eq 0 ]]; then
+        echo "No backups selected."
+        return
+    fi
+    confirm no "Are you sure you want to delete ${#SELECTED[@]} backup(s)" "?" || return
+    for sel in "${SELECTED[@]}"; do
+        local backup_id=$(echo "${sel}" | grep -oP '\(\K[0-9]+(?=\))')
+        [[ -z "${backup_id}" ]] && continue
+        echo "Deleting '${sel}'..."
+        doctl compute image delete "${backup_id}" --force
+        echo "Deleted."
+    done
+}
+
+gumdrop_manage_accounts() {
+    while :
+    do
+        gumdrop_list_accounts
+        set +e
+        wizard menu --once --cancel-code=2 "Accounts:" \
+            "Switch account = $0 gumdrop_switch_account" \
+            "Add account = $0 gumdrop_add_account" \
+            "Remove account = $0 gumdrop_remove_account" \
+            "Back = exit 2"
+        local EXIT_CODE=$?
+        set -e
+        if [[ "${EXIT_CODE}" == "2" ]]; then
+            exit 0
+        fi
+    done
+}
+
+gumdrop_list_dns_records() {
+    local domain=$1
+    echo ""
+    echo "## DNS records for ${domain}:"
+    doctl compute domain records list "${domain}" --format ID,Type,Name,Data,TTL
+    echo ""
+}
+
+gumdrop_create_dns_record() {
+    local domain=$1
+    local record_type
+    if ! record_type=$(wizard choose "Record type" "A" "AAAA" "CNAME" "MX" "TXT" "NS" "SRV" "CAA"); then return; fi
+    local record_name record_data
+    local extra_args=()
+    case "${record_type}" in
+        A)
+            ask_no_blank "Enter record name (subdomain, or @ for root)" record_name
+            ask_no_blank "Enter IPv4 address" record_data
+            ;;
+        AAAA)
+            ask_no_blank "Enter record name (subdomain, or @ for root)" record_name
+            ask_no_blank "Enter IPv6 address" record_data
+            ;;
+        CNAME)
+            ask_no_blank "Enter record name (subdomain)" record_name
+            ask_no_blank "Enter target hostname (e.g. example.com.)" record_data
+            ;;
+        MX)
+            ask_no_blank "Enter record name (subdomain, or @ for root)" record_name
+            ask_no_blank "Enter mail server hostname (e.g. mail.example.com.)" record_data
+            local priority
+            ask "Enter priority" priority "10"
+            extra_args+=(--record-priority "${priority}")
+            ;;
+        TXT)
+            ask_no_blank "Enter record name (subdomain, or @ for root)" record_name
+            ask_no_blank "Enter text value" record_data
+            ;;
+        NS)
+            ask_no_blank "Enter record name (subdomain, or @ for root)" record_name
+            ask_no_blank "Enter nameserver hostname (e.g. ns1.example.com.)" record_data
+            ;;
+        SRV)
+            ask_no_blank "Enter service name (e.g. _sip._tcp)" record_name
+            ask_no_blank "Enter target hostname" record_data
+            local priority port weight
+            ask "Enter priority" priority "10"
+            ask "Enter port" port "443"
+            ask "Enter weight" weight "100"
+            extra_args+=(--record-priority "${priority}" --record-port "${port}" --record-weight "${weight}")
+            ;;
+        CAA)
+            ask_no_blank "Enter record name (subdomain, or @ for root)" record_name
+            local caa_tag
+            if ! caa_tag=$(wizard choose "CAA tag" "issue" "issuewild" "iodef"); then return; fi
+            ask_no_blank "Enter value (e.g. letsencrypt.org)" record_data
+            local caa_flags
+            ask "Enter flags (0 = non-critical, 128 = critical)" caa_flags "0"
+            extra_args+=(--record-flags "${caa_flags}" --record-tag "${caa_tag}")
+            ;;
+    esac
+    local record_ttl
+    ask "Enter TTL in seconds" record_ttl "1800"
+    doctl compute domain records create "${domain}" \
+        --record-type "${record_type}" \
+        --record-name "${record_name}" \
+        --record-data "${record_data}" \
+        --record-ttl "${record_ttl}" \
+        "${extra_args[@]}"
+    echo "DNS ${record_type} record created."
+}
+
+gumdrop_edit_dns_record() {
+    local domain=$1
+    readarray -t REC_IDS < <(doctl compute domain records list "${domain}" --format ID --no-header)
+    readarray -t REC_TYPES < <(doctl compute domain records list "${domain}" --format Type --no-header)
+    readarray -t REC_NAMES < <(doctl compute domain records list "${domain}" --format Name --no-header)
+    readarray -t REC_DATA < <(doctl compute domain records list "${domain}" --format Data --no-header)
+    readarray -t REC_TTLS < <(doctl compute domain records list "${domain}" --format TTL --no-header)
+    readarray -t REC_PRIORITIES < <(doctl compute domain records list "${domain}" --format Priority --no-header)
+    readarray -t REC_PORTS < <(doctl compute domain records list "${domain}" --format Port --no-header)
+    readarray -t REC_WEIGHTS < <(doctl compute domain records list "${domain}" --format Weight --no-header)
+    readarray -t REC_FLAGS < <(doctl compute domain records list "${domain}" --format Flags --no-header)
+    readarray -t REC_TAGS < <(doctl compute domain records list "${domain}" --format Tag --no-header)
+    if [[ ${#REC_IDS[@]} -eq 0 ]]; then
+        echo "No DNS records found."
+        return
+    fi
+    local REC_OPTIONS=()
+    for i in "${!REC_IDS[@]}"; do
+        REC_OPTIONS+=("${REC_NAMES[$i]} ${REC_TYPES[$i]} → ${REC_DATA[$i]} (${REC_IDS[$i]})")
+    done
+    local choice
+    if ! choice=$(wizard choose "Edit which record?" "${REC_OPTIONS[@]}" --default "${REC_OPTIONS[0]}"); then return; fi
+    local rec_id=$(echo "${choice}" | grep -oP '\(\K[0-9]+(?=\))')
+    ## Find the index for the selected record
+    local idx
+    for i in "${!REC_IDS[@]}"; do
+        if [[ "${REC_IDS[$i]}" == "${rec_id}" ]]; then
+            idx=$i
+            break
+        fi
+    done
+    local rec_type="${REC_TYPES[$idx]}"
+    local record_name record_data record_ttl
+    local extra_args=()
+    case "${rec_type}" in
+        A)
+            ask "Record name" record_name "${REC_NAMES[$idx]}"
+            ask "IPv4 address" record_data "${REC_DATA[$idx]}"
+            ;;
+        AAAA)
+            ask "Record name" record_name "${REC_NAMES[$idx]}"
+            ask "IPv6 address" record_data "${REC_DATA[$idx]}"
+            ;;
+        CNAME)
+            ask "Record name" record_name "${REC_NAMES[$idx]}"
+            ask "Target hostname" record_data "${REC_DATA[$idx]}"
+            ;;
+        MX)
+            ask "Record name" record_name "${REC_NAMES[$idx]}"
+            ask "Mail server hostname" record_data "${REC_DATA[$idx]}"
+            local priority
+            ask "Priority" priority "${REC_PRIORITIES[$idx]}"
+            extra_args+=(--record-priority "${priority}")
+            ;;
+        TXT)
+            ask "Record name" record_name "${REC_NAMES[$idx]}"
+            ask "Text value" record_data "${REC_DATA[$idx]}"
+            ;;
+        NS)
+            ask "Record name" record_name "${REC_NAMES[$idx]}"
+            ask "Nameserver hostname" record_data "${REC_DATA[$idx]}"
+            ;;
+        SRV)
+            ask "Service name" record_name "${REC_NAMES[$idx]}"
+            ask "Target hostname" record_data "${REC_DATA[$idx]}"
+            local priority port weight
+            ask "Priority" priority "${REC_PRIORITIES[$idx]}"
+            ask "Port" port "${REC_PORTS[$idx]}"
+            ask "Weight" weight "${REC_WEIGHTS[$idx]}"
+            extra_args+=(--record-priority "${priority}" --record-port "${port}" --record-weight "${weight}")
+            ;;
+        CAA)
+            ask "Record name" record_name "${REC_NAMES[$idx]}"
+            local caa_tag
+            if ! caa_tag=$(wizard choose "CAA tag" "issue" "issuewild" "iodef" --default "${REC_TAGS[$idx]}"); then return; fi
+            ask "Value" record_data "${REC_DATA[$idx]}"
+            local caa_flags
+            ask "Flags (0 = non-critical, 128 = critical)" caa_flags "${REC_FLAGS[$idx]}"
+            extra_args+=(--record-flags "${caa_flags}" --record-tag "${caa_tag}")
+            ;;
+        *)
+            ask "Record name" record_name "${REC_NAMES[$idx]}"
+            ask "Record data" record_data "${REC_DATA[$idx]}"
+            ;;
+    esac
+    ask "TTL in seconds" record_ttl "${REC_TTLS[$idx]}"
+    doctl compute domain records update "${domain}" \
+        --record-id "${rec_id}" \
+        --record-type "${rec_type}" \
+        --record-name "${record_name}" \
+        --record-data "${record_data}" \
+        --record-ttl "${record_ttl}" \
+        "${extra_args[@]}"
+    echo "DNS ${rec_type} record updated."
+}
+
+gumdrop_delete_dns_record() {
+    local domain=$1
+    readarray -t REC_IDS < <(doctl compute domain records list "${domain}" --format ID --no-header)
+    readarray -t REC_TYPES < <(doctl compute domain records list "${domain}" --format Type --no-header)
+    readarray -t REC_NAMES < <(doctl compute domain records list "${domain}" --format Name --no-header)
+    readarray -t REC_DATA < <(doctl compute domain records list "${domain}" --format Data --no-header)
+    if [[ ${#REC_IDS[@]} -eq 0 ]]; then
+        echo "No DNS records found."
+        return
+    fi
+    local REC_OPTIONS=()
+    for i in "${!REC_IDS[@]}"; do
+        REC_OPTIONS+=("${REC_NAMES[$i]} ${REC_TYPES[$i]} → ${REC_DATA[$i]} (${REC_IDS[$i]})")
+    done
+    readarray -t SELECTED < <(wizard select "Select records to delete" "${REC_OPTIONS[@]}")
+    if [[ ${#SELECTED[@]} -eq 0 ]]; then
+        echo "No records selected."
+        return
+    fi
+    echo ""
+    echo "The following ${#SELECTED[@]} record(s) will be deleted:"
+    for sel in "${SELECTED[@]}"; do
+        echo "  - ${sel}"
+    done
+    echo ""
+    confirm no "Are you sure you want to delete these ${#SELECTED[@]} record(s)" "?" || return
+    for sel in "${SELECTED[@]}"; do
+        local rec_id=$(echo "${sel}" | grep -oP '\(\K[0-9]+(?=\))')
+        doctl compute domain records delete "${domain}" "${rec_id}" --force
+        echo "Deleted: ${sel}"
+    done
+}
+
+gumdrop_manage_dns_domain() {
+    local domain=$1
+    while :
+    do
+        gumdrop_list_dns_records "${domain}"
+        local rec_count=$(doctl compute domain records list "${domain}" --format ID --no-header 2>/dev/null | wc -l)
+        local menu_items=(
+            "Create record = $0 gumdrop_create_dns_record ${domain}"
+        )
+        if [[ ${rec_count} -gt 0 ]]; then
+            menu_items+=(
+                "Edit record = $0 gumdrop_edit_dns_record ${domain}"
+                "Delete record = $0 gumdrop_delete_dns_record ${domain}"
+            )
+        fi
+        menu_items+=("Back = exit 2")
+        set +e
+        wizard menu --once --cancel-code=2 "DNS: ${domain}" "${menu_items[@]}"
+        local EXIT_CODE=$?
+        set -e
+        if [[ "${EXIT_CODE}" == "2" ]]; then
+            exit 0
+        fi
+    done
+}
+
+gumdrop_manage_dns() {
+    while :
+    do
+        echo ""
+        echo "## DNS domains:"
+        doctl compute domain list --format Domain
+        echo ""
+        readarray -t DOMAINS < <(doctl compute domain list --format Domain --no-header)
+        if [[ ${#DOMAINS[@]} -eq 0 ]]; then
+            echo "No domains found."
+            return
+        fi
+        local choice
+        set +e
+        choice=$(wizard choose "Select domain (or Ctrl-C to go back)" "${DOMAINS[@]}" --default "${DOMAINS[0]}")
+        local EXIT_CODE=$?
+        set -e
+        if [[ ${EXIT_CODE} -ne 0 ]]; then
+            return
+        fi
+        gumdrop_manage_dns_domain "${choice}"
+    done
+}
+
+gumdrop_list_domains() {
+    echo ""
+    echo "## Domains:"
+    doctl compute domain list --format Domain,TTL
+    echo ""
+}
+
+gumdrop_add_domain() {
+    local domain_name
+    ask_no_blank "Enter domain name (e.g. example.com)" domain_name
+    local ip_address
+    ask "Enter IP address for initial A record (leave blank to skip)" ip_address ""
+    if [[ -n "${ip_address}" ]]; then
+        doctl compute domain create "${domain_name}" --ip-address "${ip_address}"
+    else
+        doctl compute domain create "${domain_name}"
+    fi
+    echo "Domain '${domain_name}' added."
+}
+
+gumdrop_delete_domain() {
+    readarray -t DOMAINS < <(doctl compute domain list --format Domain --no-header)
+    if [[ ${#DOMAINS[@]} -eq 0 ]]; then
+        echo "No domains found."
+        return
+    fi
+    local choice
+    if ! choice=$(wizard choose "Delete which domain?" "${DOMAINS[@]}" --default "${DOMAINS[0]}"); then return; fi
+    confirm no "Are you sure you want to delete '${choice}' and ALL of its DNS records" "?" || return
+    doctl compute domain delete "${choice}" --force
+    echo "Domain '${choice}' deleted."
+}
+
+gumdrop_manage_domains() {
+    while :
+    do
+        gumdrop_list_domains
+        local domain_count=$(doctl compute domain list --format Domain --no-header 2>/dev/null | wc -l)
+        local menu_items=(
+            "Add domain = $0 gumdrop_add_domain"
+        )
+        if [[ ${domain_count} -gt 0 ]]; then
+            menu_items+=(
+                "DNS records = $0 gumdrop_manage_dns"
+                "Delete domain = $0 gumdrop_delete_domain"
+            )
+        fi
+        menu_items+=("Back = exit 2")
+        set +e
+        wizard menu --once --cancel-code=2 "Domains:" "${menu_items[@]}"
+        local EXIT_CODE=$?
+        set -e
+        if [[ "${EXIT_CODE}" == "2" ]]; then
+            exit 0
+        fi
+    done
+}
+
+gumdrop_choose_droplet() {
+    local prompt="${1:-Select droplet}"
+    local tag_args=()
+    [[ -n "${GUMDROP_TAG}" ]] && tag_args=(--tag-name "${GUMDROP_TAG}")
+    readarray -t NAMES < <(doctl compute droplet list "${tag_args[@]}" --format Name --no-header)
+    if [[ ${#NAMES[@]} -eq 0 ]]; then
+        echo "No ${GUMDROP_LABEL,,}s found." >&2
+        return 1
+    fi
+    wizard choose "${prompt}" "${NAMES[@]}" --default "${NAMES[0]}"
+}
+
+gumdrop_droplet_ip() {
+    local name=$1
+    local tag_args=()
+    [[ -n "${GUMDROP_TAG}" ]] && tag_args=(--tag-name "${GUMDROP_TAG}")
+    local ip
+    ip=$(doctl compute droplet list "${tag_args[@]}" --format Name,PublicIPv4 --no-header | awk -v n="${name}" '$1==n {print $2}')
+    if [[ -z "${ip}" ]]; then
+        echo "Could not find public IP for '${name}'." >&2
+        return 1
+    fi
+    echo "${ip}"
+}
+
+gumdrop_ssh_cmd() {
+    local name=$1; shift
+    local ip
+    ip=$(gumdrop_droplet_ip "${name}") || return 1
+    ssh -o StrictHostKeyChecking=accept-new -o BatchMode=yes "root@${ip}" "$@"
+}
+
+gumdrop_check_debian() {
+    local name=$1
+    echo "Checking if '${name}' is Debian-based..."
+    if ! gumdrop_ssh_cmd "${name}" test -f /etc/debian_version 2>/dev/null; then
+        echo "ERROR: '${name}' does not appear to be Debian-based. This task only supports Debian/Ubuntu."
+        return 1
+    fi
+}
+
+gumdrop_task_disable_ufw() {
+    local name
+    if ! name=$(gumdrop_choose_droplet "Disable ufw on which ${GUMDROP_LABEL,,}?"); then return; fi
+    gumdrop_check_debian "${name}" || return
+    echo ""
+    echo "This will disable and mask ufw on '${name}'."
+    echo "Use this when the droplet is behind a DigitalOcean firewall."
+    confirm no "Proceed" "?" || return
+    echo ""
+    echo "Disabling ufw on '${name}'..."
+    gumdrop_ssh_cmd "${name}" bash -c "ufw disable && systemctl mask ufw"
+    echo "ufw disabled and masked on '${name}'."
+}
+
+gumdrop_task_fix_volume_mount() {
+    local name
+    if ! name=$(gumdrop_choose_droplet "Fix volume mount on which ${GUMDROP_LABEL,,}?"); then return; fi
+    echo ""
+    echo "This will find the block storage volume mounted under /mnt/ on '${name}'"
+    echo "and remount it to /var/lib/docker so Docker uses the external storage."
+    echo ""
+    echo "The following steps will be performed:"
+    echo "  1. Find the block storage mount under /mnt/"
+    echo "  2. Stop Docker"
+    echo "  3. Move /var/lib/docker contents to the volume"
+    echo "  4. Update the systemd mount unit to target /var/lib/docker"
+    echo "  5. Restart Docker"
+    echo ""
+    confirm no "Proceed" "?" || return
+    echo ""
+    gumdrop_ssh_cmd "${name}" bash -s <<'REMOTE_SCRIPT'
+set -euo pipefail
+
+## Find the block storage mount under /mnt/
+MOUNT_POINT=$(df --output=target | grep '^/mnt/' | head -1)
+if [[ -z "${MOUNT_POINT}" ]]; then
+    echo "ERROR: No block storage volume found mounted under /mnt/."
+    exit 1
+fi
+echo "Found volume at: ${MOUNT_POINT}"
+
+## Derive the systemd mount unit name
+UNIT_NAME=$(systemd-escape -p "${MOUNT_POINT}").mount
+UNIT_FILE="/etc/systemd/system/${UNIT_NAME}"
+if [[ ! -f "${UNIT_FILE}" ]]; then
+    echo "ERROR: Mount unit not found: ${UNIT_FILE}"
+    exit 1
+fi
+echo "Found mount unit: ${UNIT_FILE}"
+
+## Check if already mounted at /var/lib/docker
+if mountpoint -q /var/lib/docker 2>/dev/null; then
+    CURRENT=$(df --output=source /var/lib/docker | tail -1)
+    VOLUME=$(df --output=source "${MOUNT_POINT}" 2>/dev/null | tail -1)
+    if [[ "${CURRENT}" == "${VOLUME}" ]]; then
+        echo "Volume is already mounted at /var/lib/docker. Nothing to do."
+        exit 0
+    fi
+fi
+
+echo "Stopping Docker..."
+systemctl stop docker docker.socket containerd 2>/dev/null || true
+
+echo "Moving /var/lib/docker contents to ${MOUNT_POINT}..."
+if [[ -d /var/lib/docker ]]; then
+    cp -a /var/lib/docker/. "${MOUNT_POINT}/" 2>/dev/null || true
+    rm -rf /var/lib/docker/*
+fi
+
+echo "Unmounting ${MOUNT_POINT}..."
+umount "${MOUNT_POINT}"
+
+echo "Updating mount unit to target /var/lib/docker..."
+sed -i "s|Where=${MOUNT_POINT}|Where=/var/lib/docker|" "${UNIT_FILE}"
+mv "${UNIT_FILE}" /etc/systemd/system/var-lib-docker.mount
+
+echo "Reloading systemd and starting mount..."
+systemctl daemon-reload
+mkdir -p /var/lib/docker
+systemctl enable --now var-lib-docker.mount
+
+echo "Starting Docker..."
+systemctl start docker
+
+echo ""
+echo "Verifying mount..."
+df -h /var/lib/docker
+echo ""
+echo "Done. Volume is now mounted at /var/lib/docker."
+REMOTE_SCRIPT
+}
+
+gumdrop_manage_droplets() {
+    while :
+    do
+        gumdrop_list
+        set +e
+        wizard menu --once --cancel-code=2 "${GUMDROP_LABEL}s:" \
+            "Create new ${GUMDROP_LABEL,,} = $0 gumdrop_create" \
+            "Manage presets = $0 gumdrop_manage_presets" \
+            "SSH into ${GUMDROP_LABEL,,} = $0 gumdrop_ssh" \
+            "Destroy ${GUMDROP_LABEL,,} = $0 gumdrop_destroy" \
+            "Add to local SSH config = $0 gumdrop_add_ssh_config" \
+            "View logs = $0 gumdrop_manage_logs" \
+            "Back = exit 2"
+        local EXIT_CODE=$?
+        set -e
+        if [[ "${EXIT_CODE}" == "2" ]]; then
+            exit 0
+        fi
+    done
+}
+
+gumdrop_main() {
+    gumdrop_check_doctl
+    while :
+    do
+        gumdrop_check_doctl
+        gumdrop_show_account
+        set +e
+        wizard menu --once --cancel-code=2 "Manage:" \
+            "${GUMDROP_LABEL}s = $0 gumdrop_manage_droplets" \
+            "SSH keys = $0 gumdrop_manage_ssh_keys" \
+            "Firewalls = $0 gumdrop_manage_firewalls" \
+            "Volumes = $0 gumdrop_manage_volumes" \
+            "NFS = $0 gumdrop_manage_nfs" \
+            "Reserved IPs = $0 gumdrop_manage_reserved_ips" \
+            "Domains = $0 gumdrop_manage_domains" \
+            "Snapshots = $0 gumdrop_manage_snapshots" \
+            "Backups = $0 gumdrop_manage_backups" \
+            "Accounts = $0 gumdrop_manage_accounts" \
+            "Exit = exit 2"
+        local EXIT_CODE=$?
+        set -e
+        if [[ "${EXIT_CODE}" == "2" ]]; then
+            exit 0
+        fi
+    done
+}
+
+## Parse CLI args when run directly:
+_gumdrop_parse_args() {
+    while [[ $# -gt 0 ]]; do
+        case "$1" in
+            --tag)
+                export GUMDROP_TAG="$2"
+                shift 2
+                ;;
+            --preset)
+                export GUMDROP_PRESET_NAME="$2"
+                shift 2
+                ;;
+            --name)
+                export GUMDROP_DROPLET_NAME="$2"
+                shift 2
+                ;;
+            --create-preset)
+                export GUMDROP_PRESET_NAME="$2"
+                export GUMDROP_CREATE_PRESET=true
+                shift 2
+                ;;
+            *)
+                break
+                ;;
+        esac
+    done
+    GUMDROP_REMAINING_ARGS=("$@")
+}
+
+## Direct execution dispatch:
+if [[ "${BASH_SOURCE[0]}" == "$0" ]]; then
+    _gumdrop_parse_args "$@"
+    if [[ "${GUMDROP_CREATE_PRESET:-}" == "true" ]]; then
+        gumdrop_check_doctl
+        gumdrop_create_preset
+    elif [[ -n "${GUMDROP_PRESET_NAME:-}" && -n "${GUMDROP_DROPLET_NAME:-}" ]]; then
+        gumdrop_check_doctl
+        gumdrop_spawn_preset
+    elif [[ -n "${GUMDROP_PRESET_NAME:-}" ]]; then
+        gumdrop_check_doctl
+        gumdrop_spawn_preset
+    elif [[ ${#GUMDROP_REMAINING_ARGS[@]} -gt 0 ]]; then
+        "${GUMDROP_REMAINING_ARGS[@]}"
+    else
+        gumdrop_main
+    fi
+fi

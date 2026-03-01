@@ -1,0 +1,109 @@
+# Woodpecker
+
+[Woodpecker CI](https://woodpecker-ci.org/) is a community fork of Drone, a
+container-native continuous integration engine. Woodpecker uses
+[Forgejo](../forgejo) as its forge backend for OAuth authentication and
+repository integration.
+
+This project deploys two components via Docker Compose profiles:
+
+ * **server** - the web UI and API, exposed via Traefik
+ * **agent** - connects to the server over gRPC and runs CI pipelines using
+   Docker
+
+The server and agent can run on the same host or on separate Docker contexts.
+
+## Configuration
+
+```
+make config
+```
+
+During configuration you will select which profile(s) to enable (`server`,
+`agent`, or both).
+
+### Forgejo OAuth setup
+
+Before configuring Woodpecker, create an OAuth2 application in Forgejo:
+
+ 1. In Forgejo, go to **User Settings > Applications**
+    (`https://git.example.com/user/settings/applications`).
+ 2. Create a new OAuth2 application:
+    * **Application Name:** `Woodpecker`
+    * **Redirect URI:** `https://woodpecker.example.com/authorize`
+      (substitute your actual `WOODPECKER_TRAEFIK_HOST` domain)
+ 3. Copy the **Client ID** and **Client Secret**.
+
+Set the following variables in your `.env_${DOCKER_CONTEXT}_default` file:
+
+ * `WOODPECKER_FORGEJO=true`
+ * `WOODPECKER_FORGEJO_URL` - the URL of your Forgejo instance, eg.
+   `https://git.example.com`
+ * `WOODPECKER_FORGEJO_CLIENT` - the OAuth2 Client ID from Forgejo
+ * `WOODPECKER_FORGEJO_SECRET` - the OAuth2 Client Secret from Forgejo
+ * `WOODPECKER_ADMIN` - comma-separated list of Forgejo usernames that
+   should have admin access in Woodpecker
+
+### Agent configuration
+
+The agent authenticates to the server using a shared secret
+(`WOODPECKER_AGENT_SECRET`) which is auto-generated during `make config`.
+The agent connects to the server's gRPC endpoint
+(`WOODPECKER_GRPC_HOST`) over TLS.
+
+If you run the agent on a separate host from the server, copy the
+`WOODPECKER_AGENT_SECRET` value from the server's env file to the agent's
+env file, and ensure `WOODPECKER_GRPC_HOST` and `WOODPECKER_GRPC_SECURE`
+are set correctly.
+
+## Install
+
+```
+make install
+```
+
+Open the web UI:
+
+```
+make open
+```
+
+Log in with your Forgejo account. Repositories from Forgejo will be
+available for activation in the Woodpecker dashboard.
+
+## Managing DigitalOcean agent droplets
+
+You can create and manage remote Woodpecker agent droplets on
+DigitalOcean:
+
+```
+make agent-droplet
+```
+
+This opens the gumdrop interactive manager scoped to
+Woodpecker agent droplets. The Droplets menu provides:
+
+ * **Create** a new agent droplet (prompts for name, region, size, SSH
+   key, firewall; gRPC address and agent secret are pre-filled from
+   your server's env file)
+ * **SSH** into an existing agent droplet
+ * **Destroy** an agent droplet
+ * **Add to local SSH config** for easier access
+ * **View logs** — cloud-init, Docker, and SSH logs from the droplet
+
+The full gumdrop menu is also available for managing SSH keys,
+firewalls, volumes, domains, DNS records, snapshots, backups, and
+accounts.
+
+New droplets are provisioned with cloud-init which installs:
+
+ * Woodpecker agent (native deb package with systemd service)
+ * Docker (pipeline backend)
+ * Nix (Determinate installer)
+
+The default firewall blocks all incoming traffic. You can change
+this during creation or edit the firewall afterwards from the
+Firewalls menu.
+
+Requires [doctl](https://docs.digitalocean.com/reference/doctl/how-to/install/)
+to be installed and authenticated (`doctl auth init`).

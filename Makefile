@@ -30,6 +30,14 @@ config: script-wizard check-deps check-docker check-dist-vars
 	@${BIN}/confirm $$([[ "$$(${BIN}/dotenv -f ${ROOT_ENV} get DEFAULT_SAVE_CLEARTEXT_PASSWORDS_JSON)"  == "true" ]] && echo yes || echo no) "Do you want to save cleartext passwords in passwords.json by default" "?" && ${BIN}/reconfigure ${ROOT_ENV} DEFAULT_SAVE_CLEARTEXT_PASSWORDS_JSON=true || ${BIN}/reconfigure ${ROOT_ENV} DEFAULT_SAVE_CLEARTEXT_PASSWORDS_JSON=false
 	@[[ -n "${USERNAME}" ]] && echo && echo "WARNING: the USERNAME variable is already set in your environment. This configuration is non-standard (Bash should use the USER variable instead). Having USERNAME set by default will interfere with the 'make shell' command. Some distros (eg. Fedora) set USERNAME by default. You must unset this variable before using the 'make shell' target. You can unset this variable in your ~/.bashrc file by adding the line: 'unset USERNAME'" | fold -s && echo || true
 
+.PHONY: config-dist # Copy the .env-dist to the .env_{DOCKER_CONTEXT} file
+config-dist:
+	@echo
+	@echo "Configuring environment file: ${ROOT_ENV}"
+	@cp .env-dist ${ROOT_ENV}
+	@echo ""
+	@echo "Copied the default .env-dist file. Edit ${ROOT_ENV} by hand."
+
 .PHONY: build # Build all container images
 build:
 	find ./ | grep docker-compose.yaml$ | xargs dirname | xargs -iXX docker-compose --env-file=XX/${ENV_FILE} -f XX/docker-compose.yaml build
