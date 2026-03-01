@@ -241,6 +241,19 @@ def main():
     for entry in catalog:
         projects.setdefault(entry["project"], []).append(entry)
 
+    # Load existing manifest to validate previously archived images
+    manifest_path = output_dir / "manifest.json"
+    manifest_images: dict[str, dict] = {}
+    if manifest_path.exists():
+        try:
+            with open(manifest_path) as f:
+                old_manifest = json.load(f)
+            for img in old_manifest.get("images", []):
+                if img.get("sha256"):
+                    manifest_images[img["image"]] = img
+        except (json.JSONDecodeError, KeyError):
+            pass
+
     results: list[dict] = []
     failures: list[str] = []
     skipped: list[str] = []
@@ -292,8 +305,8 @@ def main():
                 })
                 continue
 
-            # Skip if archive already exists (unless --force)
-            if dest.exists() and not args.force:
+            # Skip if archive exists and manifest has its sha256 (unless --force)
+            if dest.exists() and image in manifest_images and not args.force:
                 size_mb = dest.stat().st_size / (1024 * 1024)
                 print(f"  [skip] {image} (already archived, {size_mb:.1f} MB)")
                 skipped.append(f"{project_name}/{image} (already archived)")
@@ -375,19 +388,9 @@ def main():
         print()
 
     if not args.dry_run:
-        manifest_path = output_dir / "manifest.json"
         manifest_path.parent.mkdir(parents=True, exist_ok=True)
-        # Merge with existing manifest to preserve previous entries
-        existing_images: dict[str, dict] = {}
-        if manifest_path.exists():
-            try:
-                with open(manifest_path) as f:
-                    old_manifest = json.load(f)
-                for img in old_manifest.get("images", []):
-                    existing_images[img["image"]] = img
-            except (json.JSONDecodeError, KeyError):
-                pass
-        # Update with new results (overwrites entries for re-archived images)
+        # Update manifest_images with new results (overwrites re-archived entries)
+        existing_images = dict(manifest_images)
         for img in results:
             existing_images[img["image"]] = img
         manifest = {
