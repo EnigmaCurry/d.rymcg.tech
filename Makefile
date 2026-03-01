@@ -18,9 +18,12 @@ check-docker:
 
 .PHONY: config # Configure main variables
 config: script-wizard check-deps check-docker check-dist-vars
-#	@${BIN}/userns-remap check
 	@echo ""
 	@${BIN}/confirm yes "This will make a configuration for the current docker context (${DOCKER_CONTEXT})"
+	@make --no-print-directory config-hook
+
+.PHONY: config-hook
+config-hook:
 	@${BIN}/reconfigure_ask ${ROOT_ENV} ROOT_DOMAIN "Enter the root domain for this context"
 	@echo "Configured ${ROOT_ENV}"
 	@echo "ENV_FILE=${ENV_FILE}"
