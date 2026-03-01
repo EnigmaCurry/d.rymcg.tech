@@ -15,27 +15,25 @@
 ##   config/my-server.sops.env - SOPS-encrypted env export
 ##     (created with: d export-env --encrypt > config/my-server.sops.env)
 
-steps:
-  - name: deploy-whoami
+variables:
+  - &step-base
     image: d-rymcg-tech
     secrets: [bao_addr, bao_role_id, bao_secret_id, bao_age_key_path, bao_cacert]
     environment:
       SOPS_CONFIG_FILE: ${CI_WORKSPACE}/config/my-server.sops.env
+
+steps:
+  - name: deploy-whoami
+    <<: *step-base
     commands:
       - d.rymcg.tech make whoami install
 
   - name: wait-whoami
-    image: d-rymcg-tech
-    secrets: [bao_addr, bao_role_id, bao_secret_id, bao_age_key_path, bao_cacert]
-    environment:
-      SOPS_CONFIG_FILE: ${CI_WORKSPACE}/config/my-server.sops.env
+    <<: *step-base
     commands:
       - d.rymcg.tech make whoami wait
 
   - name: print-url
-    image: d-rymcg-tech
-    secrets: [bao_addr, bao_role_id, bao_secret_id, bao_age_key_path, bao_cacert]
-    environment:
-      SOPS_CONFIG_FILE: ${CI_WORKSPACE}/config/my-server.sops.env
+    <<: *step-base
     commands:
       - echo https://$(d make whoami dotenv_get var=WHOAMI_TRAEFIK_HOST)
