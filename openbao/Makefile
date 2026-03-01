@@ -109,7 +109,7 @@ delete-age-key:
 	@if [ -z "$${path}" ]; then echo "ERROR: path is required (e.g., make delete-age-key path=sops/myserver-production)" >&2; exit 1; fi; \
 	echo "Enter the root token:"; \
 	read -rs BAO_TOKEN; \
-	make --no-print-directory docker-compose-shell SERVICE=openbao COMMAND="BAO_TOKEN=$${BAO_TOKEN} bao kv delete secret/$${path}"
+	make --no-print-directory docker-compose-shell SERVICE=openbao COMMAND="BAO_TOKEN=$${BAO_TOKEN} bao kv metadata delete secret/$${path}"
 
 .PHONY: enable-approle # Enable AppRole auth method
 enable-approle:
