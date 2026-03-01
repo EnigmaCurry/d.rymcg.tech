@@ -800,9 +800,24 @@ __export_env() {
         fi
     fi
 
+    # Resolve SSH connection details from the Docker context
+    local ssh_config
+    ssh_config=$(ssh -G "${ctx}" 2>/dev/null || true)
+    local ssh_host ssh_user ssh_port
+    ssh_host=$(echo "${ssh_config}" | awk '/^hostname / {print $2}')
+    ssh_user=$(echo "${ssh_config}" | awk '/^user / {print $2}')
+    ssh_port=$(echo "${ssh_config}" | awk '/^port / {print $2}')
+
     # Output selected files
     local plaintext=""
     local first=true
+    if [[ -n "${ssh_host}" ]]; then
+        plaintext+="## SSH"$'\n'
+        plaintext+="SSH_HOST=${ssh_host}"$'\n'
+        plaintext+="SSH_USER=${ssh_user:-root}"$'\n'
+        plaintext+="SSH_PORT=${ssh_port:-22}"$'\n'
+        first=false
+    fi
     for env_file in "${selected_files[@]}"; do
         [[ -f "${env_file}" ]] || continue
         if [[ "${first}" == true ]]; then
