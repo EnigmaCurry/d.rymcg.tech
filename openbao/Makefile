@@ -117,6 +117,30 @@ enable-approle:
 	read -rs BAO_TOKEN; \
 	make --no-print-directory docker-compose-shell SERVICE=openbao COMMAND="BAO_TOKEN=$${BAO_TOKEN} bao auth enable approle"
 
+.PHONY: create-policy # Create the woodpecker-ci policy (read AGE keys + sign SSH)
+create-policy:
+	@echo "Enter the root token:"; \
+	read -rs BAO_TOKEN; \
+	make --no-print-directory docker-compose-shell SERVICE=openbao COMMAND="echo cGF0aCAic2VjcmV0L2RhdGEvc29wcy8qIiB7CiAgY2FwYWJpbGl0aWVzID0gWyJyZWFkIl0KfQoKcGF0aCAic3NoLWNsaWVudC1zaWduZXIvc2lnbi93b29kcGVja2VyLXNob3J0LWxpdmVkIiB7CiAgY2FwYWJpbGl0aWVzID0gWyJjcmVhdGUiLCAidXBkYXRlIl0KfQ== | base64 -d | BAO_TOKEN=$${BAO_TOKEN} bao policy write woodpecker-ci -"
+
+.PHONY: create-approle # Create the woodpecker-ci AppRole (20m TTL)
+create-approle:
+	@echo "Enter the root token:"; \
+	read -rs BAO_TOKEN; \
+	make --no-print-directory docker-compose-shell SERVICE=openbao COMMAND="echo eyJ0b2tlbl9wb2xpY2llcyI6Indvb2RwZWNrZXItY2kiLCJ0b2tlbl90dGwiOiIyMG0iLCJ0b2tlbl9tYXhfdHRsIjoiMzBtIiwic2VjcmV0X2lkX3R0bCI6IjAifQ== | base64 -d | BAO_TOKEN=$${BAO_TOKEN} bao write auth/approle/role/woodpecker-ci -"
+
+.PHONY: get-role-id # Get the AppRole role ID (store as BAO_ROLE_ID in Woodpecker)
+get-role-id:
+	@echo "Enter the root token:"; \
+	read -rs BAO_TOKEN; \
+	make --no-print-directory docker-compose-shell SERVICE=openbao COMMAND="BAO_TOKEN=$${BAO_TOKEN} bao read -field=role_id auth/approle/role/woodpecker-ci/role-id"
+
+.PHONY: generate-secret-id # Generate an AppRole secret ID (store as BAO_SECRET_ID in Woodpecker)
+generate-secret-id:
+	@echo "Enter the root token:"; \
+	read -rs BAO_TOKEN; \
+	make --no-print-directory docker-compose-shell SERVICE=openbao COMMAND="BAO_TOKEN=$${BAO_TOKEN} bao write -field=secret_id -f auth/approle/role/woodpecker-ci/secret-id"
+
 .PHONY: install-hook
 install-hook:
 	@echo

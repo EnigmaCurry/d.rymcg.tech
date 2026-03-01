@@ -139,37 +139,25 @@ automatically when `BAO_ADDR` is set.
 
 ## AppRole Authentication
 
-Enable AppRole auth so Woodpecker CI can authenticate:
+Enable AppRole auth so Woodpecker CI can authenticate without
+human interaction. The policy grants read access to all AGE keys
+under `secret/data/sops/*` and permission to sign SSH public keys.
 
 ```bash
-## Enable AppRole:
+## Enable AppRole auth method:
 d.rymcg.tech make openbao enable-approle
 
-## Create a policy (via bao CLI):
-bao policy write woodpecker-ci - <<EOF
-# Read AGE key for SOPS decryption
-path "secret/data/sops/age-key" {
-  capabilities = ["read"]
-}
+## Create the woodpecker-ci policy:
+d.rymcg.tech make openbao create-policy
 
-# Sign SSH public keys
-path "ssh-client-signer/sign/woodpecker-short-lived" {
-  capabilities = ["create", "update"]
-}
-EOF
+## Create the woodpecker-ci AppRole (20m token TTL):
+d.rymcg.tech make openbao create-approle
 
-## Create the AppRole role:
-bao write auth/approle/role/woodpecker-ci \
-    token_policies="woodpecker-ci" \
-    token_ttl=20m \
-    token_max_ttl=30m \
-    secret_id_ttl=0
+## Get the role ID (save this as BAO_ROLE_ID in Woodpecker secrets):
+d.rymcg.tech make openbao get-role-id
 
-## Get the role ID (store in Woodpecker secrets as BAO_ROLE_ID):
-bao read auth/approle/role/woodpecker-ci/role-id
-
-## Generate a secret ID (store in Woodpecker secrets as BAO_SECRET_ID):
-bao write -f auth/approle/role/woodpecker-ci/secret-id
+## Generate a secret ID (save this as BAO_SECRET_ID in Woodpecker secrets):
+d.rymcg.tech make openbao generate-secret-id
 ```
 
 ## Woodpecker CI Integration
