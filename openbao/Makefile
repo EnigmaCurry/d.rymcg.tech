@@ -2,6 +2,9 @@ ROOT_DIR = ..
 include ${ROOT_DIR}/_scripts/Makefile.projects
 include ${ROOT_DIR}/_scripts/Makefile.instance
 
+## NOTE: All docker-compose-shell calls that pass BAO_TOKEN must use QUIET=true
+## to prevent the token from being echoed in the command log on stderr.
+
 .PHONY: config-hook
 config-hook:
 #### This interactive configuration wizard creates the .env_{DOCKER_CONTEXT}_{INSTANCE} config file using .env-dist as the template:
