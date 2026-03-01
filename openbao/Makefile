@@ -67,7 +67,8 @@ get-ssh-ca-public-key:
 	@TRAEFIK_HOST=$$(${BIN}/dotenv -f ${ENV_FILE} get OPENBAO_TRAEFIK_HOST); \
 	echo "Enter the root token:"; \
 	read -rs BAO_TOKEN; export BAO_TOKEN; \
-	make --no-print-directory docker-compose-lifecycle-cmd EXTRA_ARGS="exec -e BAO_TOKEN -T openbao /bin/sh -c 'echo; echo \"## $${TRAEFIK_HOST} SSH CA Public Key\"; bao read -field=public_key ssh-client-signer/config/ca; echo; echo'"
+	export BAO_LABEL="## $${TRAEFIK_HOST} SSH CA Public Key"; \
+	make --no-print-directory docker-compose-lifecycle-cmd EXTRA_ARGS="exec -e BAO_TOKEN -e BAO_LABEL -T openbao /bin/sh -c 'echo; echo \$$BAO_LABEL; bao read -field=public_key ssh-client-signer/config/ca; echo; echo'"
 
 .PHONY: create-ssh-role # Create SSH signing role (woodpecker-short-lived, 15m TTL, ed25519)
 create-ssh-role:
@@ -80,7 +81,8 @@ read-ssh-role:
 	@TRAEFIK_HOST=$$(${BIN}/dotenv -f ${ENV_FILE} get OPENBAO_TRAEFIK_HOST); \
 	echo "Enter the root token:"; \
 	read -rs BAO_TOKEN; export BAO_TOKEN; \
-	make --no-print-directory docker-compose-lifecycle-cmd EXTRA_ARGS="exec -e BAO_TOKEN -T openbao /bin/sh -c 'echo; echo \"## $${TRAEFIK_HOST} SSH Role: woodpecker-short-lived\"; bao read ssh-client-signer/roles/woodpecker-short-lived; echo; echo'"
+	export BAO_LABEL="## $${TRAEFIK_HOST} SSH Role: woodpecker-short-lived"; \
+	make --no-print-directory docker-compose-lifecycle-cmd EXTRA_ARGS="exec -e BAO_TOKEN -e BAO_LABEL -T openbao /bin/sh -c 'echo; echo \$$BAO_LABEL; bao read ssh-client-signer/roles/woodpecker-short-lived; echo; echo'"
 
 .PHONY: enable-kv # Enable KV v2 secrets engine
 enable-kv:
@@ -104,14 +106,16 @@ get-age-key:
 	TRAEFIK_HOST=$$(${BIN}/dotenv -f ${ENV_FILE} get OPENBAO_TRAEFIK_HOST); \
 	echo "Enter the root token:"; \
 	read -rs BAO_TOKEN; export BAO_TOKEN; \
-	make --no-print-directory docker-compose-lifecycle-cmd EXTRA_ARGS="exec -e BAO_TOKEN -T openbao /bin/sh -c 'echo; echo \"## $${TRAEFIK_HOST} AGE Key: $${path}\"; bao kv get secret/$${path}; echo; echo'"
+	export BAO_LABEL="## $${TRAEFIK_HOST} AGE Key: $${path}"; \
+	make --no-print-directory docker-compose-lifecycle-cmd EXTRA_ARGS="exec -e BAO_TOKEN -e BAO_LABEL -T openbao /bin/sh -c 'echo; echo \$$BAO_LABEL; bao kv get secret/$${path}; echo; echo'"
 
 .PHONY: list-age-keys # List all stored AGE keys under sops/
 list-age-keys:
 	@TRAEFIK_HOST=$$(${BIN}/dotenv -f ${ENV_FILE} get OPENBAO_TRAEFIK_HOST); \
 	echo "Enter the root token:"; \
 	read -rs BAO_TOKEN; export BAO_TOKEN; \
-	make --no-print-directory docker-compose-lifecycle-cmd EXTRA_ARGS="exec -e BAO_TOKEN -T openbao /bin/sh -c 'echo; echo \"## $${TRAEFIK_HOST} AGE Keys\"; bao kv list secret/sops; echo; echo'"
+	export BAO_LABEL="## $${TRAEFIK_HOST} AGE Keys"; \
+	make --no-print-directory docker-compose-lifecycle-cmd EXTRA_ARGS="exec -e BAO_TOKEN -e BAO_LABEL -T openbao /bin/sh -c 'echo; echo \$$BAO_LABEL; bao kv list secret/sops; echo; echo'"
 
 .PHONY: delete-age-key # Delete a stored AGE key (usage: make delete-age-key path=sops/mykey)
 delete-age-key:
@@ -137,7 +141,8 @@ list-approles:
 	@TRAEFIK_HOST=$$(${BIN}/dotenv -f ${ENV_FILE} get OPENBAO_TRAEFIK_HOST); \
 	echo "Enter the root token:"; \
 	read -rs BAO_TOKEN; export BAO_TOKEN; \
-	make --no-print-directory docker-compose-lifecycle-cmd EXTRA_ARGS="exec -e BAO_TOKEN -T openbao /bin/sh -c 'echo; echo \"## $${TRAEFIK_HOST} AppRoles\"; bao list auth/approle/role; echo; echo'"
+	export BAO_LABEL="## $${TRAEFIK_HOST} AppRoles"; \
+	make --no-print-directory docker-compose-lifecycle-cmd EXTRA_ARGS="exec -e BAO_TOKEN -e BAO_LABEL -T openbao /bin/sh -c 'echo; echo \$$BAO_LABEL; bao list auth/approle/role; echo; echo'"
 
 .PHONY: delete-approles # Delete AppRoles (interactive selection)
 delete-approles:
@@ -160,7 +165,8 @@ list-policies:
 	@TRAEFIK_HOST=$$(${BIN}/dotenv -f ${ENV_FILE} get OPENBAO_TRAEFIK_HOST); \
 	echo "Enter the root token:"; \
 	read -rs BAO_TOKEN; export BAO_TOKEN; \
-	make --no-print-directory docker-compose-lifecycle-cmd EXTRA_ARGS="exec -e BAO_TOKEN -T openbao /bin/sh -c 'echo; echo \"## $${TRAEFIK_HOST} Policies\"; bao policy list; echo; echo'"
+	export BAO_LABEL="## $${TRAEFIK_HOST} Policies"; \
+	make --no-print-directory docker-compose-lifecycle-cmd EXTRA_ARGS="exec -e BAO_TOKEN -e BAO_LABEL -T openbao /bin/sh -c 'echo; echo \$$BAO_LABEL; bao policy list; echo; echo'"
 
 .PHONY: delete-policies # Delete policies (interactive selection)
 delete-policies:
@@ -202,7 +208,8 @@ get-role-id:
 	TRAEFIK_HOST=$$(${BIN}/dotenv -f ${ENV_FILE} get OPENBAO_TRAEFIK_HOST); \
 	echo "Enter the root token:"; \
 	read -rs BAO_TOKEN; export BAO_TOKEN; \
-	make --no-print-directory docker-compose-lifecycle-cmd EXTRA_ARGS="exec -e BAO_TOKEN -T openbao /bin/sh -c 'echo; echo \"## $${TRAEFIK_HOST} Role ID: $${repo}\"; bao read -field=role_id auth/approle/role/$${repo}-deploy/role-id; echo; echo'"
+	export BAO_LABEL="## $${TRAEFIK_HOST} Role ID: $${repo}"; \
+	make --no-print-directory docker-compose-lifecycle-cmd EXTRA_ARGS="exec -e BAO_TOKEN -e BAO_LABEL -T openbao /bin/sh -c 'echo; echo \$$BAO_LABEL; bao read -field=role_id auth/approle/role/$${repo}-deploy/role-id; echo; echo'"
 
 .PHONY: generate-secret-id # Generate an AppRole secret ID (usage: make generate-secret-id repo=d2-admin)
 generate-secret-id:
@@ -210,7 +217,8 @@ generate-secret-id:
 	TRAEFIK_HOST=$$(${BIN}/dotenv -f ${ENV_FILE} get OPENBAO_TRAEFIK_HOST); \
 	echo "Enter the root token:"; \
 	read -rs BAO_TOKEN; export BAO_TOKEN; \
-	make --no-print-directory docker-compose-lifecycle-cmd EXTRA_ARGS="exec -e BAO_TOKEN -T openbao /bin/sh -c 'echo; echo \"## $${TRAEFIK_HOST} Secret Key: $${repo}\"; bao write -field=secret_id -f auth/approle/role/$${repo}-deploy/secret-id; echo; echo'"
+	export BAO_LABEL="## $${TRAEFIK_HOST} Secret Key: $${repo}"; \
+	make --no-print-directory docker-compose-lifecycle-cmd EXTRA_ARGS="exec -e BAO_TOKEN -e BAO_LABEL -T openbao /bin/sh -c 'echo; echo \$$BAO_LABEL; bao write -field=secret_id -f auth/approle/role/$${repo}-deploy/secret-id; echo; echo'"
 
 .PHONY: install-hook
 install-hook:
