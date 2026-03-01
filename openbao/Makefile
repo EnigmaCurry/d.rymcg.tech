@@ -193,16 +193,18 @@ create-approle:
 .PHONY: get-role-id # Get an AppRole role ID (usage: make get-role-id repo=d2-admin)
 get-role-id:
 	@if [ -z "$${repo}" ]; then echo "ERROR: repo is required (e.g., make get-role-id repo=d2-admin)" >&2; exit 1; fi; \
+	TRAEFIK_HOST=$$(${BIN}/dotenv -f ${ENV_FILE} get OPENBAO_TRAEFIK_HOST); \
 	echo "Enter the root token:"; \
 	read -rs BAO_TOKEN; export BAO_TOKEN; \
-	make --no-print-directory docker-compose-lifecycle-cmd EXTRA_ARGS="exec -e BAO_TOKEN -T openbao /bin/sh -c 'echo; bao read -field=role_id auth/approle/role/$${repo}-deploy/role-id; echo; echo'"
+	make --no-print-directory docker-compose-lifecycle-cmd EXTRA_ARGS="exec -e BAO_TOKEN -T openbao /bin/sh -c 'echo; echo \"## $${TRAEFIK_HOST} Role ID: $${repo}\"; bao read -field=role_id auth/approle/role/$${repo}-deploy/role-id; echo; echo'"
 
 .PHONY: generate-secret-id # Generate an AppRole secret ID (usage: make generate-secret-id repo=d2-admin)
 generate-secret-id:
 	@if [ -z "$${repo}" ]; then echo "ERROR: repo is required (e.g., make generate-secret-id repo=d2-admin)" >&2; exit 1; fi; \
+	TRAEFIK_HOST=$$(${BIN}/dotenv -f ${ENV_FILE} get OPENBAO_TRAEFIK_HOST); \
 	echo "Enter the root token:"; \
 	read -rs BAO_TOKEN; export BAO_TOKEN; \
-	make --no-print-directory docker-compose-lifecycle-cmd EXTRA_ARGS="exec -e BAO_TOKEN -T openbao /bin/sh -c 'echo; bao write -field=secret_id -f auth/approle/role/$${repo}-deploy/secret-id; echo; echo'"
+	make --no-print-directory docker-compose-lifecycle-cmd EXTRA_ARGS="exec -e BAO_TOKEN -T openbao /bin/sh -c 'echo; echo \"## $${TRAEFIK_HOST} Secret Key: $${repo}\"; bao write -field=secret_id -f auth/approle/role/$${repo}-deploy/secret-id; echo; echo'"
 
 .PHONY: install-hook
 install-hook:
