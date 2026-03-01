@@ -126,6 +126,9 @@ d.rymcg.tech make openbao list-age-keys
 
 ## Verify a specific key:
 d.rymcg.tech make openbao get-age-key path=sops/myserver-production
+
+## Delete a key:
+d.rymcg.tech make openbao delete-age-key path=sops/myserver-staging
 ```
 
 In your Woodpecker pipeline, set `BAO_AGE_KEY_PATH` to the path
