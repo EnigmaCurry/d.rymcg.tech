@@ -60,6 +60,7 @@ __help() {
         echo -e "docker-default-address-pool\tReconfigure the docker daemon network address pool"
         echo -e "show-ports\tShow the list of open ports and host bound containers"
         echo -e "route\tConfigure and/or print routes"
+        echo -e "entrypoint [NAME]\tConfigure a Traefik entrypoint"
         echo -e "networks\tPrint the list of Docker networks"
         echo -e "fail2ban\tConfigure fail2ban on the Docker host"
         echo -e "reconfigure\tReconfigure a single env var in the root context config"
@@ -392,7 +393,7 @@ __d.rymcg.tech_completions() {
     if [[ ${COMP_CWORD} == 1 ]]; then
         ## Complete the main command:
         ## d.rymcg.tech <TAB> ...
-        COMMANDS="help create cd make list readme info context new-context tmp-context aliases completion install install-docker status ssh audit sshd-config ssh-expose show-ports s3-volume docker-default-address-pool route routes reconfigure dotenv_get daemon-conf fail2ban networks config agent"
+        COMMANDS="help create cd make list readme info context new-context tmp-context aliases completion install install-docker status ssh audit sshd-config ssh-expose show-ports s3-volume docker-default-address-pool route routes entrypoint reconfigure dotenv_get daemon-conf fail2ban networks config agent"
         COMPREPLY=($(compgen -W "${COMMANDS}" "${COMP_WORDS[1]}"))
     elif [[ ${COMP_CWORD} == 2 ]]; then
         ALL_PROJECTS=$(d.rymcg.tech list --raw)
@@ -551,6 +552,8 @@ main() {
                 eval ${CMD};;
             routes)
                 d.rymcg.tech make traefik route ARGS="list";;
+            entrypoint)
+                d.rymcg.tech make traefik entrypoint ARGS="$@";;
             reconfigure)
                 d.rymcg.tech make - reconfigure $@;;
             dotenv_get)

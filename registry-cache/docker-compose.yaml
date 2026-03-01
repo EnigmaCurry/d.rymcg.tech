@@ -1,0 +1,212 @@
+volumes:
+  cache-dockerhub:
+  cache-ghcr:
+  cache-quay:
+  cache-gcr:
+  cache-k8s:
+  cache-gitlab:
+  cache-ecr:
+  cache-lscr:
+  cache-codeberg:
+
+services:
+  dockerhub:
+    profiles:
+      - dockerhub
+    image: ${REGISTRY_CACHE_IMAGE}
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+    sysctls:
+      - net.ipv4.ip_unprivileged_port_start=1024
+    restart: unless-stopped
+    environment:
+      - REGISTRY_HTTP_SECRET=${REGISTRY_CACHE_HTTP_SECRET}
+      - REGISTRY_PROXY_REMOTEURL=https://registry-1.docker.io
+      - REGISTRY_PROXY_USERNAME=${REGISTRY_CACHE_DOCKERHUB_USERNAME}
+      - REGISTRY_PROXY_PASSWORD=${REGISTRY_CACHE_DOCKERHUB_PASSWORD}
+      - REGISTRY_STORAGE_DELETE_ENABLED=true
+    labels: []
+    volumes:
+      - cache-dockerhub:/var/lib/registry
+
+  ghcr:
+    profiles:
+      - ghcr
+    image: ${REGISTRY_CACHE_IMAGE}
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+    sysctls:
+      - net.ipv4.ip_unprivileged_port_start=1024
+    restart: unless-stopped
+    environment:
+      - REGISTRY_HTTP_SECRET=${REGISTRY_CACHE_HTTP_SECRET}
+      - REGISTRY_PROXY_REMOTEURL=https://ghcr.io
+      - REGISTRY_PROXY_USERNAME=${REGISTRY_CACHE_GHCR_USERNAME}
+      - REGISTRY_PROXY_PASSWORD=${REGISTRY_CACHE_GHCR_PASSWORD}
+      - REGISTRY_STORAGE_DELETE_ENABLED=true
+    labels: []
+    volumes:
+      - cache-ghcr:/var/lib/registry
+
+  quay:
+    profiles:
+      - quay
+    image: ${REGISTRY_CACHE_IMAGE}
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+    sysctls:
+      - net.ipv4.ip_unprivileged_port_start=1024
+    restart: unless-stopped
+    environment:
+      - REGISTRY_HTTP_SECRET=${REGISTRY_CACHE_HTTP_SECRET}
+      - REGISTRY_PROXY_REMOTEURL=https://quay.io
+      - REGISTRY_PROXY_USERNAME=${REGISTRY_CACHE_QUAY_USERNAME}
+      - REGISTRY_PROXY_PASSWORD=${REGISTRY_CACHE_QUAY_PASSWORD}
+      - REGISTRY_STORAGE_DELETE_ENABLED=true
+    labels: []
+    volumes:
+      - cache-quay:/var/lib/registry
+
+  gcr:
+    profiles:
+      - gcr
+    image: ${REGISTRY_CACHE_IMAGE}
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+    sysctls:
+      - net.ipv4.ip_unprivileged_port_start=1024
+    restart: unless-stopped
+    environment:
+      - REGISTRY_HTTP_SECRET=${REGISTRY_CACHE_HTTP_SECRET}
+      - REGISTRY_PROXY_REMOTEURL=https://gcr.io
+      - REGISTRY_PROXY_USERNAME=${REGISTRY_CACHE_GCR_USERNAME}
+      - REGISTRY_PROXY_PASSWORD=${REGISTRY_CACHE_GCR_PASSWORD}
+      - REGISTRY_STORAGE_DELETE_ENABLED=true
+    labels: []
+    volumes:
+      - cache-gcr:/var/lib/registry
+
+  k8s:
+    profiles:
+      - k8s
+    image: ${REGISTRY_CACHE_IMAGE}
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+    sysctls:
+      - net.ipv4.ip_unprivileged_port_start=1024
+    restart: unless-stopped
+    environment:
+      - REGISTRY_HTTP_SECRET=${REGISTRY_CACHE_HTTP_SECRET}
+      - REGISTRY_PROXY_REMOTEURL=https://registry.k8s.io
+      - REGISTRY_PROXY_USERNAME=${REGISTRY_CACHE_K8S_USERNAME}
+      - REGISTRY_PROXY_PASSWORD=${REGISTRY_CACHE_K8S_PASSWORD}
+      - REGISTRY_STORAGE_DELETE_ENABLED=true
+    labels: []
+    volumes:
+      - cache-k8s:/var/lib/registry
+
+  gitlab:
+    profiles:
+      - gitlab
+    image: ${REGISTRY_CACHE_IMAGE}
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+    sysctls:
+      - net.ipv4.ip_unprivileged_port_start=1024
+    restart: unless-stopped
+    environment:
+      - REGISTRY_HTTP_SECRET=${REGISTRY_CACHE_HTTP_SECRET}
+      - REGISTRY_PROXY_REMOTEURL=https://registry.gitlab.com
+      - REGISTRY_PROXY_USERNAME=${REGISTRY_CACHE_GITLAB_USERNAME}
+      - REGISTRY_PROXY_PASSWORD=${REGISTRY_CACHE_GITLAB_PASSWORD}
+      - REGISTRY_STORAGE_DELETE_ENABLED=true
+    labels: []
+    volumes:
+      - cache-gitlab:/var/lib/registry
+
+  ecr:
+    profiles:
+      - ecr
+    image: ${REGISTRY_CACHE_IMAGE}
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+    sysctls:
+      - net.ipv4.ip_unprivileged_port_start=1024
+    restart: unless-stopped
+    environment:
+      - REGISTRY_HTTP_SECRET=${REGISTRY_CACHE_HTTP_SECRET}
+      - REGISTRY_PROXY_REMOTEURL=https://public.ecr.aws
+      - REGISTRY_PROXY_USERNAME=${REGISTRY_CACHE_ECR_USERNAME}
+      - REGISTRY_PROXY_PASSWORD=${REGISTRY_CACHE_ECR_PASSWORD}
+      - REGISTRY_STORAGE_DELETE_ENABLED=true
+    labels: []
+    volumes:
+      - cache-ecr:/var/lib/registry
+
+  lscr:
+    profiles:
+      - lscr
+    image: ${REGISTRY_CACHE_IMAGE}
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+    sysctls:
+      - net.ipv4.ip_unprivileged_port_start=1024
+    restart: unless-stopped
+    environment:
+      - REGISTRY_HTTP_SECRET=${REGISTRY_CACHE_HTTP_SECRET}
+      - REGISTRY_PROXY_REMOTEURL=https://lscr.io
+      - REGISTRY_PROXY_USERNAME=${REGISTRY_CACHE_LSCR_USERNAME}
+      - REGISTRY_PROXY_PASSWORD=${REGISTRY_CACHE_LSCR_PASSWORD}
+      - REGISTRY_STORAGE_DELETE_ENABLED=true
+    labels: []
+    volumes:
+      - cache-lscr:/var/lib/registry
+
+  codeberg:
+    profiles:
+      - codeberg
+    image: ${REGISTRY_CACHE_IMAGE}
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+    sysctls:
+      - net.ipv4.ip_unprivileged_port_start=1024
+    restart: unless-stopped
+    environment:
+      - REGISTRY_HTTP_SECRET=${REGISTRY_CACHE_HTTP_SECRET}
+      - REGISTRY_PROXY_REMOTEURL=https://codeberg.org
+      - REGISTRY_PROXY_USERNAME=${REGISTRY_CACHE_CODEBERG_USERNAME}
+      - REGISTRY_PROXY_PASSWORD=${REGISTRY_CACHE_CODEBERG_PASSWORD}
+      - REGISTRY_STORAGE_DELETE_ENABLED=true
+    labels: []
+    volumes:
+      - cache-codeberg:/var/lib/registry
+
+  api:
+    build:
+      context: api
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+    restart: unless-stopped
+    environment:
+      - REGISTRIES=dockerhub=https://registry-1.docker.io,ghcr=https://ghcr.io,quay=https://quay.io,gcr=https://gcr.io,k8s=https://registry.k8s.io,gitlab=https://registry.gitlab.com,ecr=https://public.ecr.aws,lscr=https://lscr.io,codeberg=https://codeberg.org
+    labels: []

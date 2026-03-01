@@ -1,0 +1,122 @@
+#! This is a ytt template file for docker-compose.override.yaml
+#! References:
+#!   https://carvel.dev/ytt
+#!   https://docs.docker.com/compose/extends/#adding-and-overriding-configuration
+#!   https://github.com/enigmacurry/d.rymcg.tech#overriding-docker-composeyaml-per-instance
+
+#! ### Standard project vars:
+#@ load("@ytt:data", "data")
+#@ project = data.values.project
+#@ instance = data.values.instance
+#@ context = data.values.context
+#@ ip_sourcerange = data.values.ip_sourcerange
+#@ enable_http_auth = len(data.values.http_auth.strip()) > 0
+#@ http_auth = data.values.http_auth_var
+#@ enable_oauth2 = data.values.oauth2 == "true"
+#@ authorized_group = data.values.authorized_group
+#@ enable_mtls_auth = data.values.enable_mtls_auth == "true"
+#@ mtls_authorized_certs = data.values.mtls_authorized_certs
+#@ dockerhub_host = data.values.dockerhub_host
+#@ ghcr_host = data.values.ghcr_host
+#@ quay_host = data.values.quay_host
+#@ gcr_host = data.values.gcr_host
+#@ k8s_host = data.values.k8s_host
+#@ gitlab_host = data.values.gitlab_host
+#@ ecr_host = data.values.ecr_host
+#@ lscr_host = data.values.lscr_host
+#@ codeberg_host = data.values.codeberg_host
+#@ api_host = data.values.api_host
+
+#! Helper to generate labels for a cache service:
+#@ def cache_labels(service, traefik_host, port=5000):
+#@   router = "{}-{}-{}".format(project, instance, service)
+#@   middlewares = []
+#@   middlewares.append("{}-ipallowlist".format(router))
+#@   labels = []
+#@   labels.append("traefik.enable=true")
+#@   labels.append("traefik.http.routers.{}.rule=Host(`{}`)".format(router, traefik_host))
+#@   labels.append("traefik.http.routers.{}.entrypoints=websecure".format(router))
+#@   labels.append("traefik.http.services.{}.loadbalancer.server.port={}".format(router, port))
+#@   labels.append("traefik.http.middlewares.{}-ipallowlist.ipallowlist.sourcerange={}".format(router, ip_sourcerange))
+#@   if enable_http_auth:
+#@     middlewares.append("{}-basicauth".format(router))
+#@     labels.append("traefik.http.middlewares.{}-basicauth.basicauth.users={}".format(router, http_auth))
+#@     labels.append("traefik.http.middlewares.{}-basicauth.basicauth.headerField=X-Forwarded-User".format(router))
+#@   end
+#@   if enable_oauth2:
+#@     middlewares.append("traefik-forward-auth@docker")
+#@     middlewares.append("header-authorization-group-{}@file".format(authorized_group))
+#@   end
+#@   if enable_mtls_auth:
+#@     labels.append("traefik.http.routers.{}.tls.options=step_ca_mTLS@file".format(router))
+#@     if len(mtls_authorized_certs):
+#@       labels.append("traefik.http.middlewares.mtlsauth-{}.plugin.certauthz.domains={}".format(router, mtls_authorized_certs))
+#@       middlewares.append("mtlsauth-{}".format(router))
+#@     end
+#@     middlewares.append("mtls-header@file")
+#@   end
+#@   labels.append("traefik.http.routers.{}.middlewares={}".format(router, ','.join(middlewares)))
+#@   return labels
+#@ end
+
+#@yaml/text-templated-strings
+services:
+  dockerhub:
+    labels:
+      #@ for label in cache_labels("dockerhub", dockerhub_host):
+      - "(@= label @)"
+      #@ end
+
+  ghcr:
+    labels:
+      #@ for label in cache_labels("ghcr", ghcr_host):
+      - "(@= label @)"
+      #@ end
+
+  quay:
+    labels:
+      #@ for label in cache_labels("quay", quay_host):
+      - "(@= label @)"
+      #@ end
+
+  gcr:
+    labels:
+      #@ for label in cache_labels("gcr", gcr_host):
+      - "(@= label @)"
+      #@ end
+
+  k8s:
+    labels:
+      #@ for label in cache_labels("k8s", k8s_host):
+      - "(@= label @)"
+      #@ end
+
+  gitlab:
+    labels:
+      #@ for label in cache_labels("gitlab", gitlab_host):
+      - "(@= label @)"
+      #@ end
+
+  ecr:
+    labels:
+      #@ for label in cache_labels("ecr", ecr_host):
+      - "(@= label @)"
+      #@ end
+
+  lscr:
+    labels:
+      #@ for label in cache_labels("lscr", lscr_host):
+      - "(@= label @)"
+      #@ end
+
+  codeberg:
+    labels:
+      #@ for label in cache_labels("codeberg", codeberg_host):
+      - "(@= label @)"
+      #@ end
+
+  api:
+    labels:
+      #@ for label in cache_labels("api", api_host, port=3000):
+      - "(@= label @)"
+      #@ end

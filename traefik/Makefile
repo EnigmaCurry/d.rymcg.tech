@@ -100,6 +100,10 @@ sentry-callback:
 route:
 	@ENV_FILE=${ENV_FILE} ROOT_ENV=${ROOT_ENV} D_RYMCG_TECH_CONTEXT_ALIAS=$${D_RYMCG_TECH_CONTEXT_ALIAS} ARGS=$${ARGS} ${BIN}/route
 
+.PHONY: entrypoint # Configure Traefik entrypoints
+entrypoint:
+	@if [ -z "$${ARGS}" ]; then ENV_FILE=${ENV_FILE} DOCKER_CONTEXT=${DOCKER_CONTEXT} ./setup.sh config_list_entrypoints; else ENV_FILE=${ENV_FILE} DOCKER_CONTEXT=${DOCKER_CONTEXT} ./setup.sh config_entrypoint $${ARGS}; fi
+
 .PHONY: lego-vars
 lego-vars:
 	./lego-vars/scrape_lego_vars.sh
