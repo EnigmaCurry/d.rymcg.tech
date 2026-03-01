@@ -49,37 +49,37 @@ seal-status:
 enable-ssh-engine:
 	@echo "Enter the root token:"; \
 	read -rs BAO_TOKEN; \
-	make --no-print-directory docker-compose-shell SERVICE=openbao COMMAND="BAO_TOKEN=$${BAO_TOKEN} bao secrets enable -path=ssh-client-signer ssh"
+	make --no-print-directory docker-compose-shell QUIET=true SERVICE=openbao COMMAND="BAO_TOKEN=$${BAO_TOKEN} bao secrets enable -path=ssh-client-signer ssh"
 
 .PHONY: configure-ssh-ca # Generate SSH CA signing key
 configure-ssh-ca:
 	@echo "Enter the root token:"; \
 	read -rs BAO_TOKEN; \
-	make --no-print-directory docker-compose-shell SERVICE=openbao COMMAND="BAO_TOKEN=$${BAO_TOKEN} bao write ssh-client-signer/config/ca generate_signing_key=true"
+	make --no-print-directory docker-compose-shell QUIET=true SERVICE=openbao COMMAND="BAO_TOKEN=$${BAO_TOKEN} bao write ssh-client-signer/config/ca generate_signing_key=true"
 
 .PHONY: get-ssh-ca-public-key # Output the SSH CA public key (for server TrustedUserCAKeys)
 get-ssh-ca-public-key:
 	@echo "Enter the root token:"; \
 	read -rs BAO_TOKEN; \
-	make --no-print-directory docker-compose-shell SERVICE=openbao COMMAND="BAO_TOKEN=$${BAO_TOKEN} bao read -field=public_key ssh-client-signer/config/ca"
+	make --no-print-directory docker-compose-shell QUIET=true SERVICE=openbao COMMAND="BAO_TOKEN=$${BAO_TOKEN} bao read -field=public_key ssh-client-signer/config/ca"
 
 .PHONY: create-ssh-role # Create SSH signing role (woodpecker-short-lived, 15m TTL, ed25519)
 create-ssh-role:
 	@echo "Enter the root token:"; \
 	read -rs BAO_TOKEN; \
-	make --no-print-directory docker-compose-shell SERVICE=openbao COMMAND="echo eyJhbGxvd191c2VyX2NlcnRpZmljYXRlcyI6dHJ1ZSwiYWxsb3dlZF91c2VycyI6IioiLCJkZWZhdWx0X2V4dGVuc2lvbnMiOnsicGVybWl0LXB0eSI6IiJ9LCJrZXlfdHlwZSI6ImNhIiwiZGVmYXVsdF91c2VyIjoicm9vdCIsInR0bCI6IjE1bSIsIm1heF90dGwiOiIzMG0iLCJhbGdvcml0aG1fc2lnbmVyIjoiZGVmYXVsdCJ9 | base64 -d | BAO_TOKEN=$${BAO_TOKEN} bao write ssh-client-signer/roles/woodpecker-short-lived -"
+	make --no-print-directory docker-compose-shell QUIET=true SERVICE=openbao COMMAND="echo eyJhbGxvd191c2VyX2NlcnRpZmljYXRlcyI6dHJ1ZSwiYWxsb3dlZF91c2VycyI6IioiLCJkZWZhdWx0X2V4dGVuc2lvbnMiOnsicGVybWl0LXB0eSI6IiJ9LCJrZXlfdHlwZSI6ImNhIiwiZGVmYXVsdF91c2VyIjoicm9vdCIsInR0bCI6IjE1bSIsIm1heF90dGwiOiIzMG0iLCJhbGdvcml0aG1fc2lnbmVyIjoiZGVmYXVsdCJ9 | base64 -d | BAO_TOKEN=$${BAO_TOKEN} bao write ssh-client-signer/roles/woodpecker-short-lived -"
 
 .PHONY: read-ssh-role # Read the SSH signing role configuration
 read-ssh-role:
 	@echo "Enter the root token:"; \
 	read -rs BAO_TOKEN; \
-	make --no-print-directory docker-compose-shell SERVICE=openbao COMMAND="BAO_TOKEN=$${BAO_TOKEN} bao read ssh-client-signer/roles/woodpecker-short-lived"
+	make --no-print-directory docker-compose-shell QUIET=true SERVICE=openbao COMMAND="BAO_TOKEN=$${BAO_TOKEN} bao read ssh-client-signer/roles/woodpecker-short-lived"
 
 .PHONY: enable-kv # Enable KV v2 secrets engine
 enable-kv:
 	@echo "Enter the root token:"; \
 	read -rs BAO_TOKEN; \
-	make --no-print-directory docker-compose-shell SERVICE=openbao COMMAND="BAO_TOKEN=$${BAO_TOKEN} bao secrets enable -version=2 -path=secret kv"
+	make --no-print-directory docker-compose-shell QUIET=true SERVICE=openbao COMMAND="BAO_TOKEN=$${BAO_TOKEN} bao secrets enable -version=2 -path=secret kv"
 
 .PHONY: put-age-key # Store an AGE secret key (usage: make put-age-key path=sops/mykey)
 put-age-key:
@@ -89,45 +89,45 @@ put-age-key:
 	read -rs BAO_TOKEN; \
 	echo "Enter the AGE secret key (AGE-SECRET-KEY-...):"; \
 	read -rs AGE_KEY; \
-	make --no-print-directory docker-compose-shell SERVICE=openbao COMMAND="BAO_TOKEN=$${BAO_TOKEN} bao kv put secret/$${path} key=$${AGE_KEY}"
+	make --no-print-directory docker-compose-shell QUIET=true SERVICE=openbao COMMAND="BAO_TOKEN=$${BAO_TOKEN} bao kv put secret/$${path} key=$${AGE_KEY}"
 
 .PHONY: get-age-key # Read a stored AGE key (usage: make get-age-key path=sops/mykey)
 get-age-key:
 	@if [ -z "$${path}" ]; then echo "ERROR: path is required (e.g., make get-age-key path=sops/d2-admin/myserver-production)" >&2; exit 1; fi; \
 	echo "Enter the root token:"; \
 	read -rs BAO_TOKEN; \
-	make --no-print-directory docker-compose-shell SERVICE=openbao COMMAND="BAO_TOKEN=$${BAO_TOKEN} bao kv get secret/$${path}"
+	make --no-print-directory docker-compose-shell QUIET=true SERVICE=openbao COMMAND="BAO_TOKEN=$${BAO_TOKEN} bao kv get secret/$${path}"
 
 .PHONY: list-age-keys # List all stored AGE keys under sops/
 list-age-keys:
 	@echo "Enter the root token:"; \
 	read -rs BAO_TOKEN; \
-	make --no-print-directory docker-compose-shell SERVICE=openbao COMMAND="BAO_TOKEN=$${BAO_TOKEN} bao kv list secret/sops"
+	make --no-print-directory docker-compose-shell QUIET=true SERVICE=openbao COMMAND="BAO_TOKEN=$${BAO_TOKEN} bao kv list secret/sops"
 
 .PHONY: delete-age-key # Delete a stored AGE key (usage: make delete-age-key path=sops/mykey)
 delete-age-key:
 	@if [ -z "$${path}" ]; then echo "ERROR: path is required (e.g., make delete-age-key path=sops/d2-admin/myserver-production)" >&2; exit 1; fi; \
 	echo "Enter the root token:"; \
 	read -rs BAO_TOKEN; \
-	make --no-print-directory docker-compose-shell SERVICE=openbao COMMAND="BAO_TOKEN=$${BAO_TOKEN} bao kv metadata delete secret/$${path}"
+	make --no-print-directory docker-compose-shell QUIET=true SERVICE=openbao COMMAND="BAO_TOKEN=$${BAO_TOKEN} bao kv metadata delete secret/$${path}"
 
 .PHONY: enable-approle # Enable AppRole auth method
 enable-approle:
 	@echo "Enter the root token:"; \
 	read -rs BAO_TOKEN; \
-	make --no-print-directory docker-compose-shell SERVICE=openbao COMMAND="BAO_TOKEN=$${BAO_TOKEN} bao auth enable approle"
+	make --no-print-directory docker-compose-shell QUIET=true SERVICE=openbao COMMAND="BAO_TOKEN=$${BAO_TOKEN} bao auth enable approle"
 
 .PHONY: disable-approle # Disable AppRole auth method
 disable-approle:
 	@echo "Enter the root token:"; \
 	read -rs BAO_TOKEN; \
-	make --no-print-directory docker-compose-shell SERVICE=openbao COMMAND="BAO_TOKEN=$${BAO_TOKEN} bao auth disable approle"
+	make --no-print-directory docker-compose-shell QUIET=true SERVICE=openbao COMMAND="BAO_TOKEN=$${BAO_TOKEN} bao auth disable approle"
 
 .PHONY: list-approles # List all AppRoles
 list-approles:
 	@echo "Enter the root token:"; \
 	read -rs BAO_TOKEN; \
-	make --no-print-directory docker-compose-shell SERVICE=openbao COMMAND="BAO_TOKEN=$${BAO_TOKEN} bao list auth/approle/role"
+	make --no-print-directory docker-compose-shell QUIET=true SERVICE=openbao COMMAND="BAO_TOKEN=$${BAO_TOKEN} bao list auth/approle/role"
 
 .PHONY: delete-approles # Delete AppRoles (interactive selection)
 delete-approles:
@@ -147,7 +147,7 @@ delete-approles:
 list-policies:
 	@echo "Enter the root token:"; \
 	read -rs BAO_TOKEN; \
-	make --no-print-directory docker-compose-shell SERVICE=openbao COMMAND="BAO_TOKEN=$${BAO_TOKEN} bao policy list"
+	make --no-print-directory docker-compose-shell QUIET=true SERVICE=openbao COMMAND="BAO_TOKEN=$${BAO_TOKEN} bao policy list"
 
 .PHONY: delete-policies # Delete policies (interactive selection)
 delete-policies:
@@ -170,7 +170,7 @@ create-policy:
 	echo "Enter the root token:"; \
 	read -rs BAO_TOKEN; \
 	POLICY=$$(printf 'path "secret/data/sops/%s/*" {\n  capabilities = ["read"]\n}\n\npath "ssh-client-signer/sign/woodpecker-short-lived" {\n  capabilities = ["create", "update"]\n}' "$${repo}" | base64 -w0); \
-	make --no-print-directory docker-compose-shell SERVICE=openbao COMMAND="echo $${POLICY} | base64 -d | BAO_TOKEN=$${BAO_TOKEN} bao policy write $${repo}-deploy -"
+	make --no-print-directory docker-compose-shell QUIET=true SERVICE=openbao COMMAND="echo $${POLICY} | base64 -d | BAO_TOKEN=$${BAO_TOKEN} bao policy write $${repo}-deploy -"
 
 .PHONY: create-approle # Create an AppRole for a deploy repo (usage: make create-approle repo=d2-admin)
 create-approle:
@@ -179,21 +179,21 @@ create-approle:
 	echo "Enter the root token:"; \
 	read -rs BAO_TOKEN; \
 	ROLE=$$(printf '{"token_policies":"%s-deploy","token_ttl":"20m","token_max_ttl":"30m","secret_id_ttl":"0"}' "$${repo}" | base64 -w0); \
-	make --no-print-directory docker-compose-shell SERVICE=openbao COMMAND="echo $${ROLE} | base64 -d | BAO_TOKEN=$${BAO_TOKEN} bao write auth/approle/role/$${repo}-deploy -"
+	make --no-print-directory docker-compose-shell QUIET=true SERVICE=openbao COMMAND="echo $${ROLE} | base64 -d | BAO_TOKEN=$${BAO_TOKEN} bao write auth/approle/role/$${repo}-deploy -"
 
 .PHONY: get-role-id # Get an AppRole role ID (usage: make get-role-id repo=d2-admin)
 get-role-id:
 	@if [ -z "$${repo}" ]; then echo "ERROR: repo is required (e.g., make get-role-id repo=d2-admin)" >&2; exit 1; fi; \
 	echo "Enter the root token:"; \
 	read -rs BAO_TOKEN; \
-	make --no-print-directory docker-compose-shell SERVICE=openbao COMMAND="BAO_TOKEN=$${BAO_TOKEN} bao read -field=role_id auth/approle/role/$${repo}-deploy/role-id"
+	make --no-print-directory docker-compose-shell QUIET=true SERVICE=openbao COMMAND="BAO_TOKEN=$${BAO_TOKEN} bao read -field=role_id auth/approle/role/$${repo}-deploy/role-id"
 
 .PHONY: generate-secret-id # Generate an AppRole secret ID (usage: make generate-secret-id repo=d2-admin)
 generate-secret-id:
 	@if [ -z "$${repo}" ]; then echo "ERROR: repo is required (e.g., make generate-secret-id repo=d2-admin)" >&2; exit 1; fi; \
 	echo "Enter the root token:"; \
 	read -rs BAO_TOKEN; \
-	make --no-print-directory docker-compose-shell SERVICE=openbao COMMAND="BAO_TOKEN=$${BAO_TOKEN} bao write -field=secret_id -f auth/approle/role/$${repo}-deploy/secret-id"
+	make --no-print-directory docker-compose-shell QUIET=true SERVICE=openbao COMMAND="BAO_TOKEN=$${BAO_TOKEN} bao write -field=secret_id -f auth/approle/role/$${repo}-deploy/secret-id"
 
 .PHONY: install-hook
 install-hook:
