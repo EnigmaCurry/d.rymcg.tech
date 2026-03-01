@@ -123,6 +123,12 @@ disable-approle:
 	read -rs BAO_TOKEN; \
 	make --no-print-directory docker-compose-shell SERVICE=openbao COMMAND="BAO_TOKEN=$${BAO_TOKEN} bao auth disable approle"
 
+.PHONY: list-policies # List all policies
+list-policies:
+	@echo "Enter the root token:"; \
+	read -rs BAO_TOKEN; \
+	make --no-print-directory docker-compose-shell SERVICE=openbao COMMAND="BAO_TOKEN=$${BAO_TOKEN} bao policy list"
+
 .PHONY: create-policy # Create a deploy repo policy (usage: make create-policy repo=d2-admin)
 create-policy:
 	@if [ -z "$${repo}" ]; then echo "ERROR: repo is required (e.g., make create-policy repo=d2-admin)" >&2; exit 1; fi; \
