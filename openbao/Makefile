@@ -184,6 +184,37 @@ delete-policies:
 	done; \
 	echo; echo
 
+.PHONY: setup-deploy-repo # Create policy + AppRole and show Woodpecker secrets (usage: make setup-deploy-repo repo=d2-admin)
+setup-deploy-repo:
+	@if [ -z "$${repo}" ]; then echo "ERROR: repo is required (e.g., make setup-deploy-repo repo=d2-admin)" >&2; exit 1; fi; \
+	TRAEFIK_HOST=$$(${BIN}/dotenv -f ${ENV_FILE} get OPENBAO_TRAEFIK_HOST); \
+	echo "Enter the root token:"; \
+	read -rs BAO_TOKEN; export BAO_TOKEN; \
+	echo; \
+	echo "Creating policy: $${repo}-deploy ..."; \
+	POLICY=$$(printf 'path "secret/data/sops/%s/*" {\n  capabilities = ["read"]\n}\n\npath "ssh-client-signer/sign/woodpecker-short-lived" {\n  capabilities = ["create", "update"]\n}' "$${repo}" | base64 -w0); \
+	make --no-print-directory docker-compose-lifecycle-cmd QUIET=true EXTRA_ARGS="exec -e BAO_TOKEN -T openbao /bin/sh -c 'echo $${POLICY} | base64 -d | bao policy write $${repo}-deploy -'"; \
+	echo "Creating AppRole: $${repo}-deploy ..."; \
+	ROLE=$$(printf '{"token_policies":"%s-deploy","token_ttl":"20m","token_max_ttl":"30m","secret_id_ttl":"0"}' "$${repo}" | base64 -w0); \
+	make --no-print-directory docker-compose-lifecycle-cmd QUIET=true EXTRA_ARGS="exec -e BAO_TOKEN -T openbao /bin/sh -c 'echo $${ROLE} | base64 -d | bao write auth/approle/role/$${repo}-deploy -'"; \
+	echo "Retrieving credentials ..."; \
+	ROLE_ID=$$(make --no-print-directory docker-compose-lifecycle-cmd QUIET=true EXTRA_ARGS="exec -e BAO_TOKEN -T openbao bao read -field=role_id auth/approle/role/$${repo}-deploy/role-id"); \
+	SECRET_ID=$$(make --no-print-directory docker-compose-lifecycle-cmd QUIET=true EXTRA_ARGS="exec -e BAO_TOKEN -T openbao bao write -field=secret_id -f auth/approle/role/$${repo}-deploy/secret-id"); \
+	echo; \
+	echo "## $${TRAEFIK_HOST} Woodpecker Secrets: $${repo}"; \
+	echo "## Add these as secrets in your Woodpecker CI repository:"; \
+	echo; \
+	echo "bao_addr          = https://$${TRAEFIK_HOST}"; \
+	echo "bao_role_id       = $${ROLE_ID}"; \
+	echo "bao_secret_id     = $${SECRET_ID}"; \
+	echo "bao_age_key_path  = sops/$${repo}/<context>"; \
+	echo "bao_cacert        = <Step-CA root certificate PEM>"; \
+	echo; \
+	echo "## Optional (if mTLS is enabled on OpenBao):"; \
+	echo "bao_client_cert   = <mTLS client certificate PEM>"; \
+	echo "bao_client_key    = <mTLS client key PEM>"; \
+	echo; echo
+
 .PHONY: create-policy # Create a deploy repo policy (usage: make create-policy repo=d2-admin)
 create-policy:
 	@if [ -z "$${repo}" ]; then echo "ERROR: repo is required (e.g., make create-policy repo=d2-admin)" >&2; exit 1; fi; \

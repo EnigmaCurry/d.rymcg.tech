@@ -144,7 +144,7 @@ used above (e.g., `sops/d2-admin/myserver-production`).
 The d.rymcg.tech container entrypoint will retrieve this key
 automatically when `BAO_ADDR` is set.
 
-## AppRole Authentication
+## AppRole Authentication and Woodpecker CI Secrets
 
 Each deployment repo gets its own policy, AppRole, and credentials.
 The policy grants read access to AGE keys under
@@ -154,22 +154,12 @@ The policy grants read access to AGE keys under
 ## Enable AppRole auth method (once):
 d.rymcg.tech make openbao enable-approle
 
-## Create a policy for a deployment repo (e.g., d2-admin):
-d.rymcg.tech make openbao create-policy repo=d2-admin
-
-## Create the AppRole (20m token TTL):
-d.rymcg.tech make openbao create-approle repo=d2-admin
-
-## Get the role ID (save as BAO_ROLE_ID in Woodpecker secrets):
-d.rymcg.tech make openbao get-role-id repo=d2-admin
-
-## Generate a secret ID (save as BAO_SECRET_ID in Woodpecker secrets):
-d.rymcg.tech make openbao generate-secret-id repo=d2-admin
+## Set up a deployment repo (creates policy + AppRole, shows Woodpecker secrets):
+d.rymcg.tech make openbao setup-deploy-repo repo=d2-admin
 ```
 
-## Woodpecker CI Integration
-
-Add these secrets to your Woodpecker CI repository:
+This creates the policy and AppRole, then outputs all the secrets you
+need to add to your Woodpecker CI repository:
 
 | Secret | Description |
 |--------|-------------|
@@ -180,6 +170,15 @@ Add these secrets to your Woodpecker CI repository:
 | `bao_cacert` | CA cert for TLS (if using private CA) |
 | `bao_client_cert` | mTLS client cert (if using mTLS) |
 | `bao_client_key` | mTLS client key (if using mTLS) |
+
+The individual steps are also available as separate commands:
+
+```bash
+d.rymcg.tech make openbao create-policy repo=d2-admin
+d.rymcg.tech make openbao create-approle repo=d2-admin
+d.rymcg.tech make openbao get-role-id repo=d2-admin
+d.rymcg.tech make openbao generate-secret-id repo=d2-admin
+```
 
 See the [Woodpecker templates](../woodpecker/templates/) for example
 pipeline configurations.
