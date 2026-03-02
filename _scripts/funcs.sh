@@ -213,7 +213,7 @@ ytt() {
     set -e
     local IMAGE=localhost/ytt
     if ! docker image inspect ${IMAGE} >/dev/null 2>&1; then
-        local _BUILD=$(${BIN}/dotenv -f "${ROOT_DIR}/.env_$(${BIN}/docker_context)" get BUILD 2>/dev/null || true)
+        local _BUILD=${BUILD_RAW:-$(${BIN}/dotenv -f "${ROOT_DIR}/.env_$(${BIN}/docker_context)" get BUILD 2>/dev/null || true)}
         if [[ "${_BUILD}" == "false" || "${_BUILD}" == "0" ]]; then
             fault "ytt image (${IMAGE}) not found and BUILD=${_BUILD} prevents building it. Build it first or set BUILD=true."
         fi
@@ -282,7 +282,7 @@ volume_rsync() {
     fi
     # Check that the localhost/rsync image exists, if not build it:
     if ! docker image inspect localhost/rsync >/dev/null 2>&1; then
-        local _BUILD=$(${BIN}/dotenv -f "${ROOT_DIR}/.env_$(${BIN}/docker_context)" get BUILD 2>/dev/null || true)
+        local _BUILD=${BUILD_RAW:-$(${BIN}/dotenv -f "${ROOT_DIR}/.env_$(${BIN}/docker_context)" get BUILD 2>/dev/null || true)}
         if [[ "${_BUILD}" == "false" || "${_BUILD}" == "0" ]]; then
             fault "rsync image (localhost/rsync) not found and BUILD=${_BUILD} prevents building it. Build it first or set BUILD=true."
         fi
