@@ -15,7 +15,9 @@ fi
 
 ## Step 2: Generate SSH key
 KEY_DIR=/run/secrets/ssh
-mkdir -p "${KEY_DIR}" ~/.ssh && chmod 700 "${KEY_DIR}" ~/.ssh
+mkdir -p "${KEY_DIR}" 2>/dev/null || KEY_DIR=$(mktemp -d)
+mkdir -p ~/.ssh
+chmod 700 "${KEY_DIR}" ~/.ssh
 if [[ ! -f "${KEY_DIR}/id_ed25519" ]]; then
     ssh-keygen -t ed25519 -N "" -f "${KEY_DIR}/id_ed25519" -q
 fi
