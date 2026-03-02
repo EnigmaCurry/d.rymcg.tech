@@ -48,6 +48,8 @@ RUN printf '%s\n' \
 COPY --chown=1000:1000 . /home/user/git/vendor/enigmacurry/d.rymcg.tech
 WORKDIR /home/user/git/vendor/enigmacurry/d.rymcg.tech
 
+RUN ln -sf /home/user/git/vendor/enigmacurry/d.rymcg.tech/_scripts/d.rymcg.tech /root/.nix-profile/bin/d
+
 COPY --chown=1000:1000 nix/docker/entrypoint.sh /entrypoint.sh
 RUN chmod +x /entrypoint.sh
 
