@@ -10,3 +10,5 @@ include ${ROOT_DIR}/_scripts/Makefile.cd
 include ${ROOT_DIR}/_scripts/Makefile.reconfigure
 include ${ROOT_DIR}/_scripts/Makefile.readme
 include ${ROOT_DIR}/.env_$(shell ${BIN}/docker_context)
+# Re-process BUILD after .env include (which overrides the Makefile.globals transformation)
+BUILD := $(if $(filter false 0,$(BUILD)),,1)

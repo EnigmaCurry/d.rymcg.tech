@@ -32,12 +32,15 @@ In the Debian terminal, run:
 sudo apt update
 sudo apt install bash build-essential gettext git openssl apache2-utils \
                  xdg-utils jq sshfs wireguard curl inotify-tools w3m \
-                 moreutils keychain ipcalc-ng
-                 
+                 moreutils keychain ipcalc-ng age
+
 curl -LsSf https://astral.sh/uv/install.sh | sh
 ```
 
 Note: `sudo` may ask you to enter your *Linux* user's password.
+
+Optionally install [sops](https://github.com/getsops/sops/releases)
+for encrypted env file exports.
 
 ## Install Docker client tools
 

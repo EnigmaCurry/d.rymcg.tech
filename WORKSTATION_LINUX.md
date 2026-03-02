@@ -12,7 +12,7 @@ For Debian (and Ubuntu) workstations, run:
 sudo apt update
 sudo apt install bash build-essential gettext git openssl apache2-utils \
                  xdg-utils jq sshfs wireguard curl inotify-tools w3m \
-                 moreutils keychain ipcalc-ng
+                 moreutils keychain ipcalc-ng age
                  
 curl -LsSf https://astral.sh/uv/install.sh | sh
 curl -fsSL https://get.docker.com | sudo bash
@@ -23,7 +23,7 @@ For Fedora workstations, run:
 ```
 sudo dnf update
 sudo dnf install bash gettext openssl git xdg-utils jq sshfs curl inotify-tools \
-                 httpd-tools make wireguard-tools w3m moreutils ipcalc uv
+                 httpd-tools make wireguard-tools w3m moreutils ipcalc uv age
 
 curl -fsSL https://get.docker.com | sudo bash
 ```
@@ -33,13 +33,16 @@ For Arch Linux workstations, run:
 ```
 sudo pacman -Syu
 sudo pacman -S bash base-devel gettext git openssl apache xdg-utils jq sshfs \
-               wireguard-tools curl inotify-tools w3m moreutils ipv6calc uv
+               wireguard-tools curl inotify-tools w3m moreutils ipv6calc uv age sops
 
 sudo pacman -S docker
 
 ## You may also need to install "ipcalc-redhat" from the AUR.
 ##   sudo yay -S ipcalc-redhat
 ```
+
+Optionally install [sops](https://github.com/getsops/sops/releases)
+for encrypted env file exports.
 
 ## Disable Docker Engine on your workstation
 

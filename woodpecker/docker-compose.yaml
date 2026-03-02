@@ -1,0 +1,65 @@
+services:
+  server:
+    profiles:
+      - server
+    image: ${WOODPECKER_SERVER_IMAGE}
+    security_opt:
+      - no-new-privileges:true
+    sysctls:
+      - net.ipv4.ip_unprivileged_port_start=1024
+    restart: unless-stopped
+    volumes:
+      - server_data:/var/lib/woodpecker/
+    environment:
+      - WOODPECKER_HOST=https://${WOODPECKER_TRAEFIK_HOST}
+      - WOODPECKER_FORGEJO
+      - WOODPECKER_FORGEJO_URL
+      - WOODPECKER_FORGEJO_CLIENT
+      - WOODPECKER_FORGEJO_SECRET
+      - WOODPECKER_OPEN
+      - WOODPECKER_ADMIN
+      - WOODPECKER_AGENT_SECRET
+      - WOODPECKER_LOG_LEVEL
+      - WOODPECKER_DEBUG_PRETTY
+      - WOODPECKER_DEBUG_NOCOLOR
+    # All labels are defined in the template: docker-compose.instance.yaml
+    labels: []
+
+  agent:
+    profiles:
+      - agent
+    image: ${WOODPECKER_AGENT_IMAGE}
+    command: agent
+    restart: always
+    user: root
+    security_opt:
+      - label:disable
+    sysctls:
+      - net.ipv4.ip_unprivileged_port_start=1024
+    volumes:
+      - agent_config:/etc/woodpecker
+      - /var/run/docker.sock:/var/run/docker.sock:ro,z
+    environment:
+      - WOODPECKER_SERVER=${WOODPECKER_GRPC_HOST}:443
+      - WOODPECKER_AGENT_SECRET=${WOODPECKER_AGENT_SECRET}
+      - WOODPECKER_LOG_LEVEL
+      - WOODPECKER_DEBUG_PRETTY
+      - WOODPECKER_DEBUG_NOCOLOR
+      - WOODPECKER_HOSTNAME=${WOODPECKER_INSTANCE}
+      - WOODPECKER_MAX_WORKFLOWS
+      - WOODPECKER_FILTER_LABELS
+      - WOODPECKER_KEEPALIVE_TIME
+      - WOODPECKER_KEEPALIVE_TIMEOUT
+      - WOODPECKER_GRPC_SECURE
+      - WOODPECKER_BACKEND
+      - WOODPECKER_BACKEND_DOCKER_VOLUMES
+      - WOODPECKER_BACKEND_DOCKER_LIMIT_MEM
+      - WOODPECKER_BACKEND_DOCKER_LIMIT_MEM_SWAP
+      - WOODPECKER_BACKEND_DOCKER_LIMIT_SHM_SIZE
+      - WOODPECKER_BACKEND_DOCKER_LIMIT_CPU_QUOTA
+      - WOODPECKER_BACKEND_DOCKER_LIMIT_CPU_SHARES
+      - WOODPECKER_BACKEND_DOCKER_LIMIT_CPU_SET
+
+volumes:
+  server_data:
+  agent_config:

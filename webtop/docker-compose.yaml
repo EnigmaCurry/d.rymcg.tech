@@ -1,5 +1,6 @@
 volumes:
   config:
+  webtop_downloads:
 
 services:
   webtop:
@@ -113,5 +114,5 @@ services:
       - SELKIES_ENABLE_PLAYER4=${WEBTOP_SELKIES_ENABLE_PLAYER4}
     volumes:
       - config:/config
-      - ${WEBTOP_DOWNLOAD_VOLUME}:/config/Downloads:z
+      - ${WEBTOP_DOWNLOAD_VOLUME:-webtop_downloads}:/config/Downloads:z
     labels: []

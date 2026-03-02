@@ -1,0 +1,46 @@
+ROOT_DIR := $(realpath $(dir $(lastword $(MAKEFILE_LIST)))/../..)
+
+.PHONY: build
+build:
+	cd $(ROOT_DIR) && git archive HEAD | docker build -f nix/docker/Dockerfile -t d-rymcg-tech -
+
+PROJECTS ?=
+DOCKER_CONTEXT ?= template
+SSH_HOST ?= localhost
+SSH_USER ?= root
+SSH_PORT ?= 22
+DOCKER_EXTRA_ENV = $(foreach v,$(MAKEOVERRIDES),-e $(v))
+
+.PHONY: test
+test:
+	@docker run --rm \
+	  -e DOCKER_CONTEXT=$(DOCKER_CONTEXT) \
+	  -e SSH_HOST=$(SSH_HOST) \
+	  -e SSH_USER=$(SSH_USER) \
+	  -e SSH_PORT=$(SSH_PORT) \
+	  -e SSH_KEY_SCAN=false \
+	  $(DOCKER_EXTRA_ENV) \
+	  d-rymcg-tech \
+	  bash -c 'BIN=_scripts; \
+	    for f in .env_* */.env_*; do \
+	      [ -f "$$f" ] || continue; \
+	      echo "## $$f"; $$BIN/dotenv -f "$$f" parse; echo; \
+	    done'
+
+.PHONY: template-env
+template-env:
+	@if [ -z "$(PROJECTS)" ]; then echo "ERROR: PROJECTS is required (comma-separated list)" >&2; exit 1; fi
+	@cd $(ROOT_DIR) && DOCKER_CONTEXT=$(DOCKER_CONTEXT) _PROJECTS=$(PROJECTS) \
+	  $(foreach v,$(filter-out PROJECTS=% DOCKER_CONTEXT=%,$(MAKEOVERRIDES)),$(v)) \
+	  _scripts/user/d.rymcg.tech template-env
+
+.PHONY: template-env-docker
+template-env-docker:
+	@if [ -z "$(PROJECTS)" ]; then echo "ERROR: PROJECTS is required (comma-separated list)" >&2; exit 1; fi
+	@docker run --rm \
+	  --entrypoint "" \
+	  -e DOCKER_CONTEXT=$(DOCKER_CONTEXT) \
+	  -e _PROJECTS=$(PROJECTS) \
+	  $(DOCKER_EXTRA_ENV) \
+	  d-rymcg-tech \
+	  bash -c 'export PATH="$$HOME/git/vendor/enigmacurry/d.rymcg.tech/_scripts/user:$$PATH"; d.rymcg.tech template-env'

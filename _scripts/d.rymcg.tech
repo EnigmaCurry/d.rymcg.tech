@@ -24,7 +24,6 @@ BIN=$(dirname $(realpath ${BASH_SOURCE}))
 INFO_WORDS="INFO_WORDS ROOT_DIR"
 
 ## ROOT_DIR is the root path of the d.rymcg.tech project
-## Validate that this script is running from the canonical location
 ROOT_DIR=$(dirname ${BIN})
 (test -f ${BIN}/funcs.sh && test -f ${ROOT_DIR}/Makefile && test -d ${ROOT_DIR}/traefik) || \
     (echo "Error: Invalid or corrupted d.rymcg.tech ROOT_DIR: ${ROOT_DIR}" >/dev/stderr
@@ -65,7 +64,21 @@ __help() {
         echo -e "reconfigure\tReconfigure a single env var in the root context config"
         echo -e "dotenv_get\tRetrieve a single env var from the root context config"
         echo -e "daemon-conf\tReconfigures the Docker host's daemon config"
+        echo -e "image-catalog [ARGS ...]\tCatalog all Docker images across projects"
+        echo -e "image-build [ARGS ...]\tBuild/pull all Docker images"
+        echo -e "image-archive [ARGS ...]\tArchive Docker images to local .tar.gz files"
+        echo -e "image-restore [ARGS ...]\tRestore archived Docker images to the server"
+        echo -e "export-env\tExport all .env files for current context as flat env vars"
+        echo -e "restore-env [FILE]\tRestore .env files from flat env var input (file or stdin)"
+        echo -e "template-env\tStateless preview of env files from env var overrides (no file writes)"
         echo -e "agent\tRun agent readiness tool"
+        echo -e "workstation-usb-image\tBuild NixOS disk image for USB"
+        echo -e "workstation-usb-install DEV\tInstall NixOS workstation to USB"
+        echo -e "workstation-usb-clone DEV\tClone booted workstation USB to another device"
+        echo -e "workstation-usb-post-install DIR\tCopy archive data to USB"
+        echo -e "workstation-usb-download-isos\tDownload Debian + Fedora ISOs"
+        echo -e "workstation-usb-download-docker-packages\tDownload Docker CE packages"
+        echo -e "droplet [--tag TAG] [--preset PRESET --name NAME] [--create-preset PRESET]\tManage DigitalOcean droplets (alias: gumdrop)"
     ) | expand -t 30
     echo ""
     echo "## Documentation sub-commands:"
@@ -88,12 +101,84 @@ __help() {
 }
 
 __install_docker() {
-    if [[ "$1" == "--local" ]]; then
-        confirm yes "This will install Docker the local machine"
-        curl -fsSL https://get.docker.com | sh
+    local target method
+    target=$(wizard choose "Where do you want to install Docker?" "Remote (Docker context host)" "Local (this machine)")
+    if [[ "$target" == "Local"* ]]; then
+        method=$(wizard choose "How do you want to install?" "Download from the internet (get.docker.com)" "Install from offline package archive")
+        if [[ "$method" == "Download"* ]]; then
+            confirm yes "This will install Docker on the local machine"
+            if ! curl -fsSL https://get.docker.com | sh; then
+                echo ""
+                echo "Download failed. Try again with the offline package archive option."
+                return 1
+            fi
+        else
+            __install_docker_offline local
+        fi
     else
-        confirm yes "This will install Docker on the host of your remote Docker context."
-        d.rymcg.tech ssh 'curl -fsSL https://get.docker.com | sh'
+        method=$(wizard choose "How do you want to install?" "Download from the internet (get.docker.com)" "Install from offline package archive")
+        if [[ "$method" == "Download"* ]]; then
+            confirm yes "This will install Docker on the host of your remote Docker context."
+            if ! d.rymcg.tech ssh 'curl -fsSL https://get.docker.com | sh'; then
+                echo ""
+                echo "Download failed. Try again with the offline package archive option."
+                return 1
+            fi
+            d.rymcg.tech ssh 'systemctl enable --now docker'
+            d.rymcg.tech ssh 'systemctl status docker'
+        else
+            __install_docker_offline remote
+        fi
+    fi
+}
+
+__install_docker_offline() {
+    local target="$1"
+    local pkg_dir="${ROOT_DIR}/_archive/docker-packages"
+    local distro id
+
+    if [[ "$target" == "local" ]]; then
+        id=$(. /etc/os-release 2>/dev/null && echo "$ID")
+    else
+        id=$(d.rymcg.tech ssh 'source /etc/os-release 2>/dev/null && echo "$ID"')
+    fi
+    case "$id" in
+        debian|ubuntu|raspbian) distro="debian" ;;
+        fedora|centos|rhel|rocky|alma) distro="fedora" ;;
+        *) fault "Unsupported distro for offline Docker install: $id" ;;
+    esac
+
+    local src_dir="$pkg_dir/$distro"
+    if [[ ! -d "$src_dir" ]] || [[ -z "$(ls -A "$src_dir" 2>/dev/null)" ]]; then
+        fault "No $distro packages found in $src_dir — run: d.rymcg.tech workstation-usb-download-docker-packages"
+    fi
+
+    if [[ "$target" == "local" ]]; then
+        confirm yes "This will install Docker offline on the local machine from $src_dir"
+        echo "Installing Docker from offline $distro packages..."
+        if [[ "$distro" == "debian" ]]; then
+            sudo dpkg -i "$src_dir"/*.deb
+        else
+            sudo dnf install -y "$src_dir"/*.rpm
+        fi
+        sudo systemctl enable --now docker
+        sudo systemctl status docker
+    else
+        confirm yes "This will install Docker offline on the host of your remote Docker context."
+        echo "Copying $distro packages to remote host..."
+        local remote_dir="/tmp/docker-packages"
+        d.rymcg.tech ssh "mkdir -p $remote_dir"
+        local docker_host
+        docker_host=$(docker context inspect --format '{{.Endpoints.docker.Host}}')
+        local ssh_dest="${docker_host#ssh://}"
+        scp "$src_dir"/* "$ssh_dest:$remote_dir/"
+        echo "Installing Docker from offline packages..."
+        if [[ "$distro" == "debian" ]]; then
+            d.rymcg.tech ssh "dpkg -i $remote_dir/*.deb"
+        else
+            d.rymcg.tech ssh "dnf install -y $remote_dir/*.rpm"
+        fi
+        d.rymcg.tech ssh "rm -rf $remote_dir"
         d.rymcg.tech ssh 'systemctl enable --now docker'
         d.rymcg.tech ssh 'systemctl status docker'
     fi
@@ -392,7 +477,7 @@ __d.rymcg.tech_completions() {
     if [[ ${COMP_CWORD} == 1 ]]; then
         ## Complete the main command:
         ## d.rymcg.tech <TAB> ...
-        COMMANDS="help create cd make list readme info context new-context tmp-context aliases completion install install-docker status ssh audit sshd-config ssh-expose show-ports s3-volume docker-default-address-pool route routes reconfigure dotenv_get daemon-conf fail2ban networks config agent"
+        COMMANDS="help create cd make list readme info context new-context tmp-context aliases completion install install-docker status ssh audit sshd-config ssh-expose show-ports s3-volume docker-default-address-pool route routes reconfigure dotenv_get daemon-conf fail2ban networks config image-catalog image-build image-archive image-restore export-env restore-env template-env agent workstation-usb-image workstation-usb-install workstation-usb-clone workstation-usb-post-install workstation-usb-download-isos workstation-usb-download-docker-packages workstation-usb-test-vm droplet gumdrop"
         COMPREPLY=($(compgen -W "${COMMANDS}" "${COMP_WORDS[1]}"))
     elif [[ ${COMP_CWORD} == 2 ]]; then
         ALL_PROJECTS=$(d.rymcg.tech list --raw)
@@ -435,13 +520,23 @@ __d.rymcg.tech_completions() {
 
 __d.rymcg.tech_documentation_words() {
     ROOT_DIR=$(d.rymcg.tech info ROOT_DIR)
-    ## Find list of available documentation files in the git repo:
+    ## Find list of available documentation files
     declare -A DOCS_INDEX
+    local doc_files=""
+    if git -C "${ROOT_DIR}" rev-parse --git-dir &>/dev/null; then
+        doc_files=$(git -C "${ROOT_DIR}" ls-tree --name-only origin/master 2>/dev/null | \
+                       grep -E "(\.txt$|\.md$)" | \
+                       sed -e 's/\.txt$//' -e 's/\.md$//')
+    else
+        # Not a git repo (e.g. read-only nix store copy): find files directly
+        doc_files=$(find "${ROOT_DIR}" -maxdepth 1 -name '*.md' -o -name '*.txt' 2>/dev/null | \
+                       xargs -I{} basename {} | \
+                       sed -e 's/\.txt$//' -e 's/\.md$//')
+    fi
     while IFS= read -r line; do
+        [[ -z "$line" ]] && continue
         DOCS_INDEX["$line"]="$line"
-    done <<< $(git -C "${ROOT_DIR}" ls-tree --name-only origin/master | \
-                   grep -E "(\.txt$|\.md$)" | \
-                   sed -e 's/\.txt$//' -e 's/\.md$//')
+    done <<< "$doc_files"
     if [[ "$1" == "--lowercase" ]]; then
         echo "$(echo ${DOCS_INDEX[@]} | tr '[:upper:]' '[:lower:]')"
     elif [[ "$1" == "--uppercase" ]]; then
@@ -495,6 +590,481 @@ __completion() {
             fault "Sorry, this script only support BASH shell completion"
         fi
     fi
+}
+
+__template_env() {
+    if [[ $# -eq 0 ]]; then
+        echo "Usage: d.rymcg.tech template-env KEY=VALUE [KEY=VALUE ...]" >&2
+        echo "" >&2
+        echo "Example:" >&2
+        echo "  d.rymcg.tech template-env ROOT_DOMAIN=d.example.com WHOAMI_TRAEFIK_HOST=whoami.d.example.com" >&2
+        exit 1
+    fi
+    # Export any KEY=VALUE arguments as env vars
+    for arg in "$@"; do
+        if [[ "${arg}" == *=* ]]; then
+            export "${arg}"
+        fi
+    done
+    cd "${ROOT_DIR}"
+    local ctx="${DOCKER_CONTEXT:-template}"
+    local projects_csv="${_PROJECTS:-}"
+
+    # Build prefix→project and reverse mappings
+    declare -A prefix_to_dir
+    declare -A dir_to_prefix
+    for project_dir in */; do
+        local project_name="${project_dir%/}"
+        local env_dist="${project_dir}.env-dist"
+        [[ -f "${env_dist}" ]] || continue
+        local prefix
+        prefix=$("${BIN}/parse-env-meta.sh" "${env_dist}" PREFIX 2>/dev/null) || continue
+        [[ -n "${prefix}" ]] || continue
+        prefix_to_dir["${prefix}"]="${project_name}"
+        dir_to_prefix["${project_name}"]="${prefix}"
+    done
+
+    # Auto-discover projects from args and collect instance overrides
+    declare -A instance_vars
+    declare -A project_instances
+    declare -A discovered_projects
+    for arg in "$@"; do
+        [[ "${arg}" == *=* ]] || continue
+        local key="${arg%%=*}"
+        if [[ "${key}" == __*__* ]]; then
+            local stripped="${key#__}"
+            local instance="${stripped%%__*}"
+            local original_key="${stripped#*__}"
+            local val="${arg#*=}"
+            instance_vars["${instance}:${original_key}"]="${val}"
+            for prefix in "${!prefix_to_dir[@]}"; do
+                if [[ "${original_key}" == "${prefix}_"* ]]; then
+                    local pname="${prefix_to_dir[${prefix}]}"
+                    discovered_projects["${pname}"]=1
+                    if [[ " ${project_instances[${pname}]:-} " != *" ${instance} "* ]]; then
+                        project_instances["${pname}"]="${project_instances[${pname}]:-} ${instance}"
+                    fi
+                    break
+                fi
+            done
+        else
+            for prefix in "${!prefix_to_dir[@]}"; do
+                if [[ "${key}" == "${prefix}_"* ]]; then
+                    discovered_projects["${prefix_to_dir[${prefix}]}"]=1
+                    break
+                fi
+            done
+        fi
+    done
+
+    # Merge explicit _PROJECTS with auto-discovered projects
+    if [[ -n "${projects_csv}" ]]; then
+        IFS=, read -ra _explicit <<< "${projects_csv}"
+        for p in "${_explicit[@]}"; do
+            discovered_projects["${p}"]=1
+        done
+    fi
+
+    # Output root .env (overlay env vars onto .env-dist template)
+    echo "## .env_${ctx}"
+    while IFS= read -r line; do
+        local key="${line%%=*}"
+        if [[ -n "${!key+set}" ]]; then
+            echo "${key}=${!key}"
+        else
+            echo "${line}"
+        fi
+    done < <(${BIN}/dotenv -f .env-dist parse)
+
+    # Output per-project .env files
+    for project_name in $(printf '%s\n' "${!discovered_projects[@]}" | sort); do
+        local env_dist="${project_name}/.env-dist"
+        [[ -f "${env_dist}" ]] || continue
+        local prefix="${dir_to_prefix[${project_name}]:-}"
+
+        # Default instance
+        echo
+        echo "## ${project_name}/.env_${ctx}_default"
+        while IFS= read -r line; do
+            local key="${line%%=*}"
+            if [[ -n "${!key+set}" ]]; then
+                echo "${key}=${!key}"
+            else
+                echo "${line}"
+            fi
+        done < <(${BIN}/dotenv -f "${env_dist}" parse)
+
+        # Non-default instances
+        if [[ -n "${prefix}" && -n "${project_instances[${project_name}]:-}" ]]; then
+            for instance in ${project_instances[${project_name}]}; do
+                echo
+                echo "## ${project_name}/.env_${ctx}_${instance}"
+                while IFS= read -r line; do
+                    local key="${line%%=*}"
+                    if [[ "${key}" == "${prefix}_INSTANCE" ]]; then
+                        echo "__${instance}__${key}=${instance}"
+                    elif [[ -n "${instance_vars[${instance}:${key}]+set}" ]]; then
+                        echo "__${instance}__${key}=${instance_vars[${instance}:${key}]}"
+                    else
+                        echo "__${instance}__${line}"
+                    fi
+                done < <(${BIN}/dotenv -f "${env_dist}" parse)
+            done
+        fi
+    done
+}
+
+__export_env() {
+    local choose=false
+    local encrypt=false
+    local base64_encode=false
+    local ctx=""
+    while [[ $# -gt 0 ]]; do
+        case "$1" in
+            --context) ctx="$2"; shift 2;;
+            --choose) choose=true; shift;;
+            --encrypt) encrypt=true; shift;;
+            --base64) base64_encode=true; shift;;
+            --help|-h)
+                echo "Usage: d.rymcg.tech export-env [OPTIONS]" >&2
+                echo "" >&2
+                echo "Export all env files for the current context as flat env vars." >&2
+                echo "" >&2
+                echo "Options:" >&2
+                echo "  --context <NAME>  Override the Docker context" >&2
+                echo "  --choose          Interactively select which env files to export" >&2
+                echo "  --encrypt         Encrypt output with SOPS/AGE" >&2
+                echo "  --base64          Base64-encode the output as a single line" >&2
+                echo "  --help, -h        Show this help message" >&2
+                echo "" >&2
+                echo "Examples:" >&2
+                echo "  d.rymcg.tech export-env" >&2
+                echo "  d.rymcg.tech export-env --context myserver" >&2
+                echo "  d.rymcg.tech export-env --choose" >&2
+                echo "  d.rymcg.tech export-env --context myserver > backup.env" >&2
+                echo "  d.rymcg.tech export-env --encrypt > backup.sops.env" >&2
+                echo "  d.rymcg.tech export-env --encrypt --base64" >&2
+                exit 0;;
+            *) shift;;
+        esac
+    done
+    if [[ -z "${ctx}" ]]; then
+        ctx="${DOCKER_CONTEXT:-$(${BIN}/docker_context)}"
+    fi
+    cd "${ROOT_DIR}"
+
+    # Collect all env files for this context
+    local -a all_files=()
+    local root_env=".env_${ctx}"
+    if [[ -f "${root_env}" ]]; then
+        all_files+=("${root_env}")
+    fi
+    for env_file in */.env_${ctx}_*; do
+        [[ -f "${env_file}" ]] || continue
+        all_files+=("${env_file}")
+    done
+
+    # Let user choose which files to export
+    local -a selected_files=()
+    if [[ "${choose}" == true && ${#all_files[@]} -gt 0 ]]; then
+        local default_json
+        default_json=$(printf '%s\n' "${all_files[@]}" | jq -R . | jq -s -c .)
+        local selection
+        selection=$(wizard select --cancel-code=2 --default "${default_json}" \
+            "Select env files to export:" "${all_files[@]}") || {
+            local rc=$?
+            [[ ${rc} -eq 2 ]] && exit 1
+            exit ${rc}
+        }
+        if [[ -z "${selection}" ]]; then
+            echo "No files selected." >&2
+            exit 1
+        fi
+        readarray -t selected_files <<< "${selection}"
+    else
+        selected_files=("${all_files[@]}")
+    fi
+
+    # Resolve encryption recipient if --encrypt
+    local recipients=""
+    if [[ "${encrypt}" == true ]]; then
+        local env_ctx="${ctx}"
+        recipients=$(${BIN}/dotenv -f ".env_${env_ctx}" get SOPS_AGE_RECIPIENTS 2>/dev/null || true)
+        if [[ -z "${recipients}" ]]; then
+            if wizard confirm "SOPS_AGE_RECIPIENTS is not set. Configure it now?" no >&2; then
+                recipients=$(wizard ask "Enter AGE recipient public key (age1...)") || exit 1
+                ${BIN}/reconfigure ".env_${env_ctx}" "SOPS_AGE_RECIPIENTS=${recipients}" >&2
+            else
+                exit 1
+            fi
+        fi
+    fi
+
+    # Resolve SSH connection details from the Docker context
+    local ssh_config
+    ssh_config=$(ssh -G "${ctx}" 2>/dev/null || true)
+    local ssh_host ssh_user ssh_port
+    ssh_host=$(echo "${ssh_config}" | awk '/^hostname / {print $2}')
+    ssh_user=$(echo "${ssh_config}" | awk '/^user / {print $2}')
+    ssh_port=$(echo "${ssh_config}" | awk '/^port / {print $2}')
+
+    # Output selected files
+    local plaintext=""
+    local first=true
+    if [[ -n "${ssh_host}" ]]; then
+        plaintext+="## SSH"$'\n'
+        plaintext+="SSH_HOST=${ssh_host}"$'\n'
+        plaintext+="SSH_USER=${ssh_user:-root}"$'\n'
+        plaintext+="SSH_PORT=${ssh_port:-22}"$'\n'
+        first=false
+    fi
+    for env_file in "${selected_files[@]}"; do
+        [[ -f "${env_file}" ]] || continue
+        if [[ "${first}" == true ]]; then
+            first=false
+        else
+            plaintext+=$'\n'
+        fi
+        plaintext+="## ${env_file}"$'\n'
+        if [[ "${env_file}" == */* ]]; then
+            local basename="${env_file#*/}"
+            local instance="${basename#.env_${ctx}_}"
+            if [[ "${instance}" == "default" ]]; then
+                plaintext+=$(${BIN}/dotenv -f "${env_file}" parse)$'\n'
+            else
+                while IFS= read -r line; do
+                    local key="${line%%=*}"
+                    local val="${line#*=}"
+                    plaintext+="__${instance}__${key}=${val}"$'\n'
+                done < <(${BIN}/dotenv -f "${env_file}" parse)
+            fi
+        else
+            plaintext+=$(${BIN}/dotenv -f "${env_file}" parse)$'\n'
+        fi
+    done
+
+    local output
+    if [[ "${encrypt}" == true ]]; then
+        output=$(echo "${plaintext}" | sops encrypt --input-type dotenv --output-type dotenv --filename-override export.env --age "${recipients}" /dev/stdin)
+    else
+        output="${plaintext}"
+    fi
+
+    if [[ "${base64_encode}" == true ]]; then
+        echo -n "${output}" | gzip | base64 -w 0
+        echo
+    else
+        echo -n "${output}"
+    fi
+}
+
+__restore_env() {
+    local choose=false
+    local yes=false
+    local force_decrypt=false
+    local file_arg=""
+    while [[ $# -gt 0 ]]; do
+        case "$1" in
+            --choose) choose=true; shift;;
+            --yes) yes=true; shift;;
+            --decrypt) force_decrypt=true; shift;;
+            --help|-h)
+                echo "Usage: d.rymcg.tech restore-env [OPTIONS] [FILE]" >&2
+                echo "       d.rymcg.tech export-env | d.rymcg.tech restore-env [OPTIONS]" >&2
+                echo "" >&2
+                echo "Restore env files from flat env var input (file or stdin)." >&2
+                echo "SOPS-encrypted input is automatically detected and decrypted." >&2
+                echo "" >&2
+                echo "Options:" >&2
+                echo "  --choose      Interactively select which env files to restore" >&2
+                echo "  --yes         Skip confirmation prompt" >&2
+                echo "  --decrypt     Explicitly force SOPS decryption" >&2
+                echo "  --help, -h    Show this help message" >&2
+                echo "" >&2
+                echo "Examples:" >&2
+                echo "  d.rymcg.tech restore-env backup.env" >&2
+                echo "  d.rymcg.tech restore-env --choose backup.env" >&2
+                echo "  d.rymcg.tech restore-env --yes backup.env" >&2
+                echo "  d.rymcg.tech restore-env --decrypt backup.sops.env" >&2
+                echo "  d.rymcg.tech export-env --context old | d.rymcg.tech restore-env" >&2
+                echo "  d.rymcg.tech export-env --encrypt | d.rymcg.tech restore-env" >&2
+                exit 0;;
+            *) file_arg="$1"; shift;;
+        esac
+    done
+
+    local DOCKER_CONTEXT=${DOCKER_CONTEXT:-$(${BIN}/docker_context)}
+    local ctx="${DOCKER_CONTEXT}"
+    cd "${ROOT_DIR}"
+
+    # Read input from file arg or stdin
+    local input
+    if [[ -n "${file_arg}" && -f "${file_arg}" ]]; then
+        input=$(cat "${file_arg}")
+    elif [[ ! -t 0 ]]; then
+        input=$(cat)
+    else
+        echo "Usage: d.rymcg.tech restore-env [--choose] <FILE>" >&2
+        echo "       d.rymcg.tech export-env | d.rymcg.tech restore-env [--choose]" >&2
+        echo "" >&2
+        echo "Examples:" >&2
+        echo "  d.rymcg.tech restore-env env_backup.txt" >&2
+        echo "  d.rymcg.tech restore-env --choose env_backup.txt" >&2
+        echo "  d.rymcg.tech export-env --context old | d.rymcg.tech restore-env" >&2
+        exit 1
+    fi
+
+    # Auto-detect base64-encoded input (single line, valid base64 chars)
+    if [[ $(echo "${input}" | wc -l) -eq 1 ]] && echo "${input}" | grep -qE '^[A-Za-z0-9+/=]+$'; then
+        input=$(echo "${input}" | base64 -d | gunzip)
+    fi
+
+    # Auto-detect and decrypt SOPS-encrypted input
+    if [[ "${force_decrypt}" == true ]] || echo "${input}" | grep -q '^sops_version='; then
+        input=$(echo "${input}" | sops decrypt --input-type dotenv --output-type dotenv --filename-override export.env /dev/stdin)
+    fi
+
+    # Build prefix→project mapping
+    declare -A prefix_to_dir
+    for project_dir in */; do
+        local project_name="${project_dir%/}"
+        local env_dist_file="${project_dir}.env-dist"
+        [[ -f "${env_dist_file}" ]] || continue
+        local prefix
+        prefix=$("${BIN}/parse-env-meta.sh" "${env_dist_file}" PREFIX 2>/dev/null) || continue
+        [[ -n "${prefix}" ]] || continue
+        prefix_to_dir["${prefix}"]="${project_name}"
+    done
+
+    # Get known root var names
+    declare -A root_vars
+    while IFS= read -r line; do
+        root_vars["${line%%=*}"]=1
+    done < <(${BIN}/dotenv -f .env-dist parse)
+
+    # First pass: collect which files will be written and their vars
+    declare -A file_vars  # "file" → "key=val\nkey=val\n..."
+    declare -a file_order=()
+    declare -A file_seen
+
+    while IFS= read -r line; do
+        [[ -z "${line}" || "${line}" == "#"* ]] && continue
+        local key="${line%%=*}"
+        local val="${line#*=}"
+
+        # Instance-prefixed var: __<instance>__<PREFIX>_<VAR>
+        if [[ "${key}" == __*__* ]]; then
+            local stripped="${key#__}"
+            local instance="${stripped%%__*}"
+            local original_key="${stripped#*__}"
+            for prefix in "${!prefix_to_dir[@]}"; do
+                if [[ "${original_key}" == "${prefix}_"* ]]; then
+                    local project_name="${prefix_to_dir[${prefix}]}"
+                    local target_file="${project_name}/.env_${ctx}_${instance}"
+                    if [[ -z "${file_seen[${target_file}]+set}" ]]; then
+                        file_seen["${target_file}"]=1
+                        file_order+=("${target_file}")
+                        file_vars["${target_file}"]="__instance__=${instance}|__prefix__=${prefix}"
+                    fi
+                    file_vars["${target_file}"]+=$'\n'"${original_key}=${val}"
+                    break
+                fi
+            done
+        # Root var
+        elif [[ -n "${root_vars[${key}]+set}" ]]; then
+            local target_file=".env_${ctx}"
+            if [[ -z "${file_seen[${target_file}]+set}" ]]; then
+                file_seen["${target_file}"]=1
+                file_order+=("${target_file}")
+                file_vars["${target_file}"]="__type__=root"
+            fi
+            file_vars["${target_file}"]+=$'\n'"${key}=${val}"
+        # Default-instance project var
+        else
+            for prefix in "${!prefix_to_dir[@]}"; do
+                if [[ "${key}" == "${prefix}_"* ]]; then
+                    local project_name="${prefix_to_dir[${prefix}]}"
+                    local target_file="${project_name}/.env_${ctx}_default"
+                    if [[ -z "${file_seen[${target_file}]+set}" ]]; then
+                        file_seen["${target_file}"]=1
+                        file_order+=("${target_file}")
+                        file_vars["${target_file}"]="__type__=default"
+                    fi
+                    file_vars["${target_file}"]+=$'\n'"${key}=${val}"
+                    break
+                fi
+            done
+        fi
+    done <<< "${input}"
+
+    # Show summary and confirm
+    if [[ ${#file_order[@]} -eq 0 ]]; then
+        echo "No matching env vars found." >&2
+        return 0
+    fi
+
+    # Let user choose which files to restore
+    if [[ "${choose}" == true ]]; then
+        local default_json
+        default_json=$(printf '%s\n' "${file_order[@]}" | jq -R . | jq -s -c .)
+        local selection
+        selection=$(wizard select --cancel-code=2 --default "${default_json}" \
+            "Select env files to restore:" "${file_order[@]}") || {
+            local rc=$?
+            [[ ${rc} -eq 2 ]] && echo "Cancelled." >&2
+            exit 1
+        }
+        if [[ -z "${selection}" ]]; then
+            echo "No files selected." >&2
+            exit 1
+        fi
+        readarray -t file_order <<< "${selection}"
+        echo "" >&2
+    fi
+
+    echo "## Files to restore:" >&2
+    for f in "${file_order[@]}"; do
+        echo "  ${f}" >&2
+    done
+    echo "" >&2
+
+    if [[ "${yes}" != true ]]; then
+        if ! wizard confirm "Restore these env files?" no; then
+            echo "Cancelled." >&2
+            exit 1
+        fi
+    fi
+    echo "" >&2
+
+    # Second pass: write files
+    for target_file in "${file_order[@]}"; do
+        local data="${file_vars[${target_file}]}"
+        local first_line="${data%%$'\n'*}"
+        local rest="${data#*$'\n'}"
+
+        echo "## Restoring ${target_file}" >&2
+
+        if [[ "${first_line}" == "__type__=root" ]]; then
+            cp .env-dist "${target_file}"
+        elif [[ "${first_line}" == "__type__=default" ]]; then
+            local project_name="${target_file%%/*}"
+            cp "${project_name}/.env-dist" "${target_file}"
+        elif [[ "${first_line}" == __instance__=* ]]; then
+            local instance="${first_line#__instance__=}"
+            instance="${instance%%|*}"
+            local prefix="${first_line#*__prefix__=}"
+            local project_name="${target_file%%/*}"
+            cp "${project_name}/.env-dist" "${target_file}"
+            ${BIN}/dotenv -f "${target_file}" set "${prefix}_INSTANCE=${instance}"
+        fi
+
+        while IFS= read -r varline; do
+            [[ -z "${varline}" ]] && continue
+            ${BIN}/reconfigure "${target_file}" "${varline}" >&2
+        done <<< "${rest}"
+
+        echo "" >&2
+    done
 }
 
 main() {
@@ -565,6 +1135,28 @@ main() {
                 __make -- networks;;
             config)
                 __make -- config;;
+            image-catalog)
+                ${BIN}/image-catalog "$@";;
+            image-build)
+                ${BIN}/image-build "$@";;
+            image-archive)
+                ${BIN}/image-archive "$@";;
+            image-restore)
+                ${BIN}/image-restore "$@";;
+            workstation-usb-image)
+                ${BIN}/workstation-usb-image "$@";;
+            workstation-usb-install)
+                ${BIN}/workstation-usb-install "$@";;
+            workstation-usb-clone)
+                ${BIN}/workstation-usb-clone "$@";;
+            workstation-usb-post-install)
+                ${BIN}/workstation-usb-post-install "$@";;
+            workstation-usb-download-isos)
+                ${BIN}/workstation-usb-download-isos "$@";;
+            workstation-usb-download-docker-packages)
+                ${BIN}/workstation-usb-download-docker-packages "$@";;
+            workstation-usb-test-vm)
+                ${BIN}/workstation-usb-test-vm "$@";;
             agent)
                 # Auto-detect current Docker context for 'check' command
                 if [[ $# -eq 0 ]]; then
@@ -581,6 +1173,14 @@ main() {
                 else
                     ${BIN}/agent.py "$@"
                 fi;;
+            export-env)
+                __export_env "$@";;
+            restore-env)
+                __restore_env "$@";;
+            template-env)
+                __template_env "$@";;
+            droplet|gumdrop)
+                ${BIN}/gumdrop "$@";;
             *)
                 fault "Invalid command"
         esac

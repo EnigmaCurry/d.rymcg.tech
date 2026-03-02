@@ -1,0 +1,4 @@
+.git
+_archive
+**/.env_*
+**/passwords.json
