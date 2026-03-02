@@ -59,9 +59,11 @@ override-hook:
 
 .PHONY: install-hook-pre
 install-hook-pre:
+	@echo
 
 .PHONY: install-hook
 install-hook:
+	@echo
 
 .PHONY: droplet # Manage Woodpecker agent droplets on DigitalOcean
 droplet:
