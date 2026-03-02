@@ -29,7 +29,7 @@ DOCKER_COMPOSE_FILE_ARGS ?= $(shell (set +x; [[ -f docker-compose.override_${CON
 export DEFAULT_SAVE_CLEARTEXT_PASSWORDS_JSON ?= $(shell ${BIN}/dotenv -f ".env_$(shell docker context ls --format "{{.Current}} {{.Name}}" | grep -oP "^true \K.*")" get DEFAULT_SAVE_CLEARTEXT_PASSWORDS_JSON)
 BUILD ?= $(shell ${BIN}/dotenv -f "${ROOT_DIR}/.env_$(shell docker context ls --format "{{.Current}} {{.Name}}" | grep -oP "^true \K.*")" get BUILD 2>/dev/null)
 export BUILD_RAW := $(BUILD)
-BUILD := $(if $(filter false 0,$(BUILD)),,1)
+override BUILD := $(if $(filter false 0,$(BUILD)),,1)
 PROJECT_MAKEFILE=$(realpath $(firstword $(MAKEFILE_LIST)))
 
 .PHONY: all
