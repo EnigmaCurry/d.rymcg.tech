@@ -39,7 +39,7 @@ from image_lib import (
     ROOT_DIR, BUILD_SOURCES, get_docker_context, get_ssh_host, get_catalog,
     find_env_file, resolve_compose_images, sanitize_filename, sha256sum,
     get_docker_image_id, get_remote_arch, pull_image, build_service,
-    collect_images,
+    collect_images, get_image_archive_base,
 )
 
 
@@ -193,7 +193,7 @@ def main():
     args = parser.parse_args()
 
     if args.rebuild_manifest:
-        base_dir = Path(args.output_dir) if args.output_dir else ROOT_DIR / "_archive" / "images"
+        base_dir = Path(args.output_dir) if args.output_dir else get_image_archive_base()
         # Detect arch from existing subdirectories
         arch_dirs = [d for d in base_dir.iterdir() if d.is_dir()] if base_dir.exists() else []
         if not arch_dirs:
@@ -225,7 +225,7 @@ def main():
             arch = "x86_64"
             print("Docker context: (not available)")
 
-    base_dir = Path(args.output_dir) if args.output_dir else ROOT_DIR / "_archive" / "images"
+    base_dir = Path(args.output_dir) if args.output_dir else get_image_archive_base()
     output_dir = base_dir / arch
     print(f"Output directory: {output_dir}")
     print()

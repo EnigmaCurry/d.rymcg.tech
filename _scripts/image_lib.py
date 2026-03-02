@@ -2,6 +2,7 @@
 
 import hashlib
 import json
+import os
 import re
 import subprocess
 import sys
@@ -9,6 +10,44 @@ from pathlib import Path
 
 
 ROOT_DIR = Path(__file__).resolve().parent.parent
+
+
+def _parse_env_value(env_path: Path, key: str) -> str | None:
+    """Parse a KEY=VALUE from a .env file, stripping quotes."""
+    prefix = key + "="
+    with open(env_path) as f:
+        for line in f:
+            line = line.strip()
+            if line.startswith("#") or not line:
+                continue
+            if line.startswith(prefix):
+                val = line[len(prefix):]
+                if len(val) >= 2 and val[0] == val[-1] and val[0] in ('"', "'"):
+                    val = val[1:-1]
+                return val if val else None
+    return None
+
+
+def get_image_archive_base() -> Path:
+    """Return the base image archive directory.
+
+    Priority: shell environment > root .env_{context} file > default.
+    """
+    env_val = os.environ.get("IMAGE_ARCHIVE_DIR")
+    if env_val:
+        return Path(env_val)
+    try:
+        context = get_docker_context()
+    except SystemExit:
+        return ROOT_DIR / "_archive" / "images"
+    env_path = ROOT_DIR / f".env_{context}"
+    if not env_path.exists():
+        print(f"ERROR: Root env file not found: {env_path}", file=sys.stderr)
+        sys.exit(2)
+    val = _parse_env_value(env_path, "IMAGE_ARCHIVE_DIR")
+    if val:
+        return Path(val)
+    return ROOT_DIR / "_archive" / "images"
 
 
 def get_docker_context() -> str:
