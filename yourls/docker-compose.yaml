@@ -27,7 +27,7 @@ services:
       - yourls:/var/www/html
 
   mysql:
-    image: mysql
+    image: ${YOURLS_MYSQL_IMAGE}
     restart: unless-stopped
     environment:
       MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}

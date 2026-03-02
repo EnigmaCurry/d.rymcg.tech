@@ -12,7 +12,7 @@ if [ ${APT_PACKAGES:+x} ]; then
 fi
 if  [ ${PIP_PACKAGES:+x} ]; then
     echo "-- INSTALLING PIP PACKAGES $PIP_PACKAGES --"
-    pip3 install $PIP_PACKAGES
+    pip3 install --break-system-packages $PIP_PACKAGES
 fi
 if [ ${UPDATE:+x} ]; then
     echo "-- UPDATING ALL PACKAGES --"

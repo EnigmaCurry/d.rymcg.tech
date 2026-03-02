@@ -288,7 +288,7 @@ config_entrypoint() {
             default_choice=1
         fi
         echo
-        if [[ "${entrypoint}" != *_udp ]]; then
+        if [[ "${entrypoint}" != *_udp ]] && [[ "${entrypoint}" != "dashboard" ]]; then
             case $(wizard choose --default ${default_choice} --numeric \
                           "Is this entrypoint downstream from another trusted proxy?" \
                           "No, clients dial directly to this server. (Turn off Proxy Protocol)" \

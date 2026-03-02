@@ -12,7 +12,7 @@
 #   Docker network subnet.  It does **not** scan the host network – it only
 #   looks at the Docker‑defined subnets.
 #
-# Dependencies: jq (https://stedolan.github.io/jq/), python3 (standard)
+# Dependencies: jq (https://stedolan.github.io/jq/), uv (https://docs.astral.sh/uv/)
 # ---------------------------------------------------------------
 
 set -euo pipefail                # abort on errors, unset vars, or failed pipes
@@ -23,7 +23,7 @@ IFS=$'\n\t'                      # protect against spaces in network names
 # -------------------------------------------------
 BIN=$(dirname "${BASH_SOURCE[0]}")
 source "${BIN}/funcs.sh" || true
-${BIN}/check_deps python3
+${BIN}/check_deps uv
 
 # -------------------------------------------------
 # Helper: print usage / help and exit with status 1
@@ -136,7 +136,7 @@ cmd_propose() {
     # -----------------------------------------------------------------
     # 2️⃣ Run the Python helper that *must* emit exactly one CIDR on stdout
     # -----------------------------------------------------------------
-    proposed=$(python3 - <<'PY' "${existing_subnets[@]}"
+    proposed=$(uv run python3 - <<'PY' "${existing_subnets[@]}"
 import sys, ipaddress
 
 # Build a list of existing networks from the arguments the shell passed.
@@ -222,7 +222,7 @@ cmd_propose6() {
     )
 
     # 2️⃣ Run the Python helper that *must* emit exactly one IPv6 CIDR on stdout
-    proposed=$(python3 - <<'PY' "${existing_subnets[@]}"
+    proposed=$(uv run python3 - <<'PY' "${existing_subnets[@]}"
 import sys, ipaddress, random
 
 # Build a list of existing IPv6 networks from the arguments the shell passed.
@@ -258,7 +258,7 @@ PY
     fi
 
     # 4️⃣ Validate with Python (handles ::, leading zeros, etc.)
-    if ! python3 -c 'import sys, ipaddress; ipaddress.ip_network(sys.argv[1])' "$proposed"; then
+    if ! uv run python3 -c 'import sys, ipaddress; ipaddress.ip_network(sys.argv[1])' "$proposed"; then
         echo "❌ Computed value \"$proposed\" is not a valid IPv6 CIDR – falling back to fd00:0:0:0::/64." >&2
         proposed="fd00:0:0:0::/64"
     fi

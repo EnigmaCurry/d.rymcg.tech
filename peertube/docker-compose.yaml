@@ -57,7 +57,7 @@ services:
       - "backup-volume.stop-during-backup=true"
 
   postfix:
-    image: mwader/postfix-relay
+    image: ${PEERTUBE_POSTFIX_IMAGE}
     environment:
       - PEERTUBE_ADMIN_EMAIL=${PEERTUBE_ADMIN_EMAIL}
       - PEERTUBE_SMTP_FROM=${PEERTUBE_SMTP_FROM}

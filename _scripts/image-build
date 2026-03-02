@@ -1,0 +1,143 @@
+#!/usr/bin/env -S uv run --script
+# /// script
+# requires-python = ">=3.11"
+# dependencies = ["pyyaml"]
+# ///
+
+"""Build all Docker images for d.rymcg.tech projects.
+
+Uses the image-catalog script as its data source, resolves image names via
+docker compose config, and builds all services on the remote Docker host.
+
+Usage:
+    d.rymcg.tech image-build                    # build everything
+    d.rymcg.tech image-build --project=traefik  # single project
+    d.rymcg.tech image-build --dry-run          # show what would be built
+    d.rymcg.tech image-build --verbose          # show docker command output
+"""
+
+import argparse
+import sys
+from pathlib import Path
+
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+from image_lib import (
+    ROOT_DIR, BUILD_SOURCES, get_docker_context, get_catalog, find_env_file,
+    resolve_compose_images, build_service, pull_image, collect_images,
+)
+
+
+def main():
+    parser = argparse.ArgumentParser(
+        description="Build all Docker images for d.rymcg.tech projects.",
+    )
+    parser.add_argument("--project", type=str, default=None,
+                        help="Build only this project")
+    parser.add_argument("--pull-only", action="store_true",
+                        help="Skip builds, only pull images")
+    parser.add_argument("--pull", action="store_true",
+                        help="Pull fresh base images before building")
+    parser.add_argument("--dry-run", action="store_true",
+                        help="Show what would be done without executing")
+    parser.add_argument("--verbose", action="store_true",
+                        help="Show docker command output")
+    args = parser.parse_args()
+
+    context = get_docker_context()
+    print(f"Docker context: {context}")
+    print()
+
+    catalog = get_catalog(args.project)
+    if not catalog:
+        print("No images found in catalog.", file=sys.stderr)
+        sys.exit(1)
+
+    projects: dict[str, list[dict]] = {}
+    for entry in catalog:
+        projects.setdefault(entry["project"], []).append(entry)
+
+    built = 0
+    pulled = 0
+    failures = []
+    skipped_total = []
+
+    for project_name in sorted(projects):
+        entries = projects[project_name]
+        project_dir = ROOT_DIR / project_name
+
+        if not project_dir.exists():
+            print(f"SKIP {project_name}: project directory not found", file=sys.stderr)
+            continue
+
+        print(f"=== {project_name} ===")
+
+        # Always use .env-dist so builds are generic and reproducible,
+        # independent of any user/context-specific configuration.
+        env_file = project_dir / ".env-dist"
+        env_label = env_file.name if env_file.exists() else f"{env_file.name} (missing)"
+
+        if not args.dry_run:
+            compose_images = resolve_compose_images(project_dir, env_file)
+        else:
+            compose_images = {}
+
+        images, skipped = collect_images(entries, compose_images, project_name, args.pull_only)
+        skipped_total.extend(skipped)
+
+        if not images:
+            print(f"  No images to build")
+            continue
+
+        for image, info in sorted(images.items()):
+            source = info["source"]
+            action = "build" if source in BUILD_SOURCES else "pull"
+
+            if args.dry_run:
+                print(f"  [{action}] {image}")
+                if action == "build":
+                    built += 1
+                else:
+                    pulled += 1
+                continue
+
+            print(f"  [{action}] {image}")
+
+            if source in BUILD_SOURCES:
+                build_svc = info["build_service"]
+                print(f"    Building service '{build_svc}' (env: {env_label})...")
+                success = build_service(project_dir, env_file, build_svc, verbose=args.verbose, pull=args.pull)
+                if success:
+                    print(f"    OK")
+                    built += 1
+                else:
+                    print(f"    FAILED", file=sys.stderr)
+                    failures.append(f"{project_name}: build {build_svc} ({image})")
+            else:
+                print(f"    Pulling...")
+                success = pull_image(image, verbose=args.verbose)
+                if success:
+                    print(f"    OK")
+                    pulled += 1
+                else:
+                    print(f"    FAILED", file=sys.stderr)
+                    failures.append(f"{project_name}: pull {image}")
+
+        print()
+
+    print("=== SUMMARY ===")
+    print(f"  Built: {built} images")
+    print(f"  Pulled: {pulled} images")
+    if skipped_total:
+        print(f"  Skipped: {len(skipped_total)}")
+        if args.verbose:
+            for s in skipped_total:
+                print(f"    - {s}")
+    if failures:
+        print(f"  Failures: {len(failures)}")
+        for f in failures:
+            print(f"    - {f}")
+        sys.exit(1)
+
+
+if __name__ == "__main__":
+    main()
