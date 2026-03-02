@@ -32,7 +32,7 @@ RUN export PATH="/root/.nix-profile/bin:${PATH}" \
  && mkdir -p /run/secrets/ssh \
  && chown -R 1000:1000 /home/user /run/secrets/ssh
 
-ENV PATH="/home/user/.nix-profile/bin:${PATH}"
+ENV PATH="/home/user/git/vendor/enigmacurry/d.rymcg.tech/_scripts/user:/home/user/.nix-profile/bin:${PATH}"
 ENV SSL_CERT_FILE="/home/user/.nix-profile/etc/ssl/certs/ca-bundle.crt"
 ENV NIX_SSL_CERT_FILE="/home/user/.nix-profile/etc/ssl/certs/ca-bundle.crt"
 ENV HOME="/home/user"
