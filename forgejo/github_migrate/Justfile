@@ -25,8 +25,8 @@ check-env:
 
 # Dry-run: show what would happen
 mirror-dry-run: check-env
-    python github_migrate_to_forgejo.py
+    uv run python github_migrate_to_forgejo.py
 
 # Actually mirror (requires --yes flag)
 mirror-repos: check-env
-    python github_migrate_to_forgejo.py --yes
+    uv run python github_migrate_to_forgejo.py --yes

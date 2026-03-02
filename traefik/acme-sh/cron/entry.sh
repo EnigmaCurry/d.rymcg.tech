@@ -23,6 +23,7 @@ set -f  # avoid globbing of CN like *.example.com
 #   TRAEFIK_ACME_SH_ACMEDNS_SUBDOMAIN            acme-dns subdomain (preferred over JSON if set)
 #   TRAEFIK_ACME_SH_ACMEDNS_FULLDOMAIN           (optional) fulldomain for printing/checks when using env creds
 #   TRAEFIK_ACME_SH_ACMEDNS_ALLOW_FROM           JSON array or comma-separated list of CIDRs for allowfrom (optional)
+#   TRAEFIK_ACME_SH_DNS_SLEEP                   Seconds to wait instead of DOH verification (for air-gapped setups; empty = use DOH)
 #   CERTS_DIR                                    Destination for installed certs (default: /certs)
 #   TRAEFIK_TOUCH_FILE                           File to touch on successful renew (default: /traefik/restart_me)
 #   ACME_ROOT_CA                                 Path to Step-CA root CA bundle (default: /acme.sh/root_ca.pem)
@@ -49,6 +50,7 @@ ACMEDNS_SUBDOMAIN="${TRAEFIK_ACME_SH_ACMEDNS_SUBDOMAIN:-}"
 ACMEDNS_FULLDOMAIN="${TRAEFIK_ACME_SH_ACMEDNS_FULLDOMAIN:-}"  # nice-to-have for checks/printing
 
 TRAEFIK_ACME_SH_ACMEDNS_ALLOW_FROM="${TRAEFIK_ACME_SH_ACMEDNS_ALLOW_FROM:-}"
+DNS_SLEEP="${TRAEFIK_ACME_SH_DNS_SLEEP:-}"
 
 CERTS_DIR="${CERTS_DIR:-/certs}"
 ## You are supposed to be able to get the Traefik file provider to reload from /config/dynamic/acme-sh-certs.yml simply by touching it.
@@ -320,6 +322,13 @@ issue_all() {
             ;;
     esac
 
+    # Skip public DOH verification and sleep instead (for air-gapped setups)
+    DNS_SLEEP_ARGS=()
+    if [[ -n "${DNS_SLEEP}" ]]; then
+        DNS_SLEEP_ARGS=(--dnssleep "${DNS_SLEEP}")
+        log "DNS check: sleeping ${DNS_SLEEP}s instead of DOH verification"
+    fi
+
     # (optional) quick CNAME sanity check if we know the fulldomain
     local FD="${ACMEDNS_FULLDOMAIN:-}"
     if [[ -z "$FD" && -r "${ACMEDNS_ACCOUNT_JSON}" ]]; then
@@ -365,6 +374,7 @@ issue_all() {
                 "${DOMAINS_ARGS[@]}" \
                 --dns dns_acmedns \
                 "${VALID_TO_ARGS[@]}" \
+                "${DNS_SLEEP_ARGS[@]}" \
                 --server "${ACME_SERVER}" \
                 "${CABUNDLE_ARGS[@]}"
         rc=$?

@@ -104,9 +104,11 @@ route:
 lego-vars:
 	./lego-vars/scrape_lego_vars.sh
 
+## Restart traefik so it picks up any config changes from the config service.
 .PHONY: install-hook
 install-hook:
-	@echo
+	@make --no-print-directory restart service=traefik
+	@echo "Traefik installed."
 
 .PHONY: install-hook-pre
 install-hook-pre:
@@ -121,7 +123,7 @@ acme-sh-cron-schedule:
 	@SCHEDULE="$$(${BIN}/dotenv -f ${ENV_FILE} get TRAEFIK_ACME_SH_CRON_SCHEDULE)"; make --no-print-directory docker-compose-shell SERVICE=acme-sh COMMAND="crontab -l"
 
 .PHONY: acme-sh-register
-acme-sh-register: build
+acme-sh-register: $(if $(BUILD),build)
 	@make --no-print-directory docker-compose-lifecycle-cmd EXTRA_ARGS="run --rm acme-sh register-acmedns"
 
 .PHONY: acme-sh-cert
