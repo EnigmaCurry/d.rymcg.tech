@@ -1,0 +1,16 @@
+services:
+  snort:
+    build:
+      context: snort
+      args:
+        GIT_REPO: ${SNORT_NOSTR_GIT_REPO}
+        GIT_BRANCH: ${SNORT_NOSTR_GIT_BRANCH}
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+    sysctls:
+      - net.ipv4.ip_unprivileged_port_start=1024
+    restart: unless-stopped
+    # All labels are defined in the template: docker-compose.instance.yaml
+    labels: []

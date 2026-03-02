@@ -212,6 +212,7 @@ Install these applications at your preference:
 * [Nextcloud](nextcloud#readme) - a collaborative file server
 * [Nginx](nginx#readme) - a webserver configured with fast-cgi support for PHP scripts
 * [Node-RED](nodered#readme) - a graphical event pipeline editor
+* [Nostr-RS-Relay](nostr-rs-relay#readme) - a programmable Nostr relay
 * [Ntfy-sh](ntfy-sh#readme) - a simple HTTP-based pub-sub notification service
 * [Ollama](ollama#readme) - a service API for hosting Large Language Models
 * [Open WebUI](open-webui#readme) - a self-hosted AI platform
