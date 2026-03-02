@@ -18,6 +18,8 @@ This guide shows you how to install a Docker server and setup the firewall.
        run Docker natively on Aarch64.
      * [PROXMOX.md](PROXMOX.md) - Install Proxmox (PVE) on a PC to to
        run Docker in a virtual machine on AMD64.
+     * [nixos-vm-template](https://github.com/EnigmaCurry/nixos-vm-template) -
+       Create a NixOS VM with Docker on libvirt/KVM or Proxmox VE.
      * [DIGITALOCEAN.md](DIGITALOCEAN.md) - Create a DigitalOcean
        droplet to run Docker in the cloud.
      * [AWS.md](AWS.md) - Create an AWS EC2 instance to run Docker in

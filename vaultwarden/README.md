@@ -65,7 +65,7 @@ few mitigations you can apply to make this a bit more secure:
    consider running this on a private docker server, that is behind a
    firewall, or you may setup the [Traefik wireguard
    VPN](../traefik/README.md#wireguard-vpn), or you might use the
-   [_docker_vm](../_docker_vm) to run it locally. In any case, you
+   [nixos-vm-template](https://github.com/EnigmaCurry/nixos-vm-template) to run it locally. In any case, you
    will want to configure Traefik for the ACME DNS Challenge, so that
    you can still use Lets Encrypt TLS certificates, from behind these
    firewalls.

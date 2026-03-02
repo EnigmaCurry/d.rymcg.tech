@@ -48,7 +48,7 @@ etc, you should consider if your host has the following features:
      * Deny all other ports, unless you choose to open something else.
    * If you're stuck with a host without an external firewall,
      consider using
-     [_docker_vm](https://github.com/EnigmaCurry/d.rymcg.tech/tree/unprivileged/_docker_vm#readme)
+     [nixos-vm-template](https://github.com/EnigmaCurry/nixos-vm-template)
      or if you want to stick with native docker, use
      [chaifeng/ufw-docker](https://github.com/chaifeng/ufw-docker).
 
@@ -68,7 +68,7 @@ cat /sys/module/kvm_amd/parameters/nested
 ```
 
   * Nested virtualization can be useful for creating [multiple Docker
-    VMs](https://github.com/EnigmaCurry/d.rymcg.tech/tree/unprivileged/_docker_vm#readme) inside of one VPS.
+    VMs](https://github.com/EnigmaCurry/nixos-vm-template) inside of one VPS.
     * This could be useful on VPS that don't have an external
       firewall, you can run `ufw` on the host VPS, and then run Docker
       inside of a nested KVM virtual machine.
