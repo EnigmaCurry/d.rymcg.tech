@@ -608,7 +608,7 @@ __template_env() {
     done
     cd "${ROOT_DIR}"
     local ctx="${DOCKER_CONTEXT:-template}"
-    local projects_csv="${_PROJECTS:-}"
+    local projects_csv="${PROJECTS:-}"
 
     # Build prefix→project and reverse mappings
     declare -A prefix_to_dir
@@ -657,7 +657,7 @@ __template_env() {
         fi
     done
 
-    # Merge explicit _PROJECTS with auto-discovered projects
+    # Merge explicit PROJECTS with auto-discovered projects
     if [[ -n "${projects_csv}" ]]; then
         IFS=, read -ra _explicit <<< "${projects_csv}"
         for p in "${_explicit[@]}"; do

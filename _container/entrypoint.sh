@@ -274,8 +274,8 @@ fi
 
 ## Step 8: Ensure explicitly requested projects have env files
 echo "## Step 8: Checking requested project env files" >&2
-if [[ -n "${_PROJECTS:-}" ]]; then
-    IFS=, read -ra _requested_projects <<< "${_PROJECTS}"
+if [[ -n "${PROJECTS:-}" ]]; then
+    IFS=, read -ra _requested_projects <<< "${PROJECTS}"
     for project_name in "${_requested_projects[@]}"; do
         env_file="${project_name}/.env_${DOCKER_CONTEXT}_default"
         if [[ ! -f "${env_file}" ]]; then

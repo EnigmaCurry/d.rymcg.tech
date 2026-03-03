@@ -90,7 +90,7 @@ the provided command. It runs through these steps:
 | `BAO_SSH_MOUNT` | `ssh-client-signer` | SSH secrets engine mount |
 | `BAO_SSH_ROLE` | `woodpecker-short-lived` | SSH signing role |
 | `BAO_KV_MOUNT` | `secret` | KV secrets engine mount |
-| `_PROJECTS` | | Comma-separated project list to ensure env files exist |
+| `PROJECTS` | | Comma-separated project list to ensure env files exist |
 
 ## Usage examples
 

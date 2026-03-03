@@ -30,7 +30,7 @@ test:
 .PHONY: template-env
 template-env:
 	@if [ -z "$(PROJECTS)" ]; then echo "ERROR: PROJECTS is required (comma-separated list)" >&2; exit 1; fi
-	@cd $(ROOT_DIR) && DOCKER_CONTEXT=$(DOCKER_CONTEXT) _PROJECTS=$(PROJECTS) \
+	@cd $(ROOT_DIR) && DOCKER_CONTEXT=$(DOCKER_CONTEXT) PROJECTS=$(PROJECTS) \
 	  $(foreach v,$(filter-out PROJECTS=% DOCKER_CONTEXT=%,$(MAKEOVERRIDES)),$(v)) \
 	  _scripts/user/d.rymcg.tech template-env
 
@@ -40,7 +40,7 @@ template-env-docker:
 	@docker run --rm \
 	  --entrypoint "" \
 	  -e DOCKER_CONTEXT=$(DOCKER_CONTEXT) \
-	  -e _PROJECTS=$(PROJECTS) \
+	  -e PROJECTS=$(PROJECTS) \
 	  $(DOCKER_EXTRA_ENV) \
 	  d-rymcg-tech \
 	  bash -c 'export PATH="$$HOME/git/vendor/enigmacurry/d.rymcg.tech/_scripts/user:$$PATH"; d.rymcg.tech template-env'
