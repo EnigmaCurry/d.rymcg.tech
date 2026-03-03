@@ -271,7 +271,7 @@ for i in "${!_cmd_args[@]}"; do
             if [[ ! -f "${_target_env}" ]]; then
                 echo "ERROR: ${_target_env} not found." >&2
                 echo "  The project '${_target_project}' was not included in the SOPS config (${SOPS_CONFIG_FILE:-unset})." >&2
-                echo "  Add it via: admin.sh config → Add project → ${_target_project}" >&2
+                echo "  Add it via: make config → Add project → ${_target_project}" >&2
                 exit 1
             fi
         fi
