@@ -248,9 +248,16 @@ echo "## SSH config written" >&2
 
 ## Step 6: Create and activate Docker context
 echo "## Step 6: Creating Docker context '${DOCKER_CONTEXT}'" >&2
-docker context create "${DOCKER_CONTEXT}" \
-    --docker "host=ssh://${SSH_USER}@${SSH_HOST}:${SSH_PORT}" &>/dev/null || true
-docker context use "${DOCKER_CONTEXT}" &>/dev/null
+if ! docker context create "${DOCKER_CONTEXT}" \
+    --docker "host=ssh://${SSH_USER}@${SSH_HOST}:${SSH_PORT}" 2>&1; then
+    echo "## Docker context '${DOCKER_CONTEXT}' already exists (ok)" >&2
+fi
+if ! docker context use "${DOCKER_CONTEXT}" 2>&1; then
+    echo "ERROR: Failed to activate Docker context '${DOCKER_CONTEXT}'" >&2
+    echo "## Available Docker contexts:" >&2
+    docker context ls >&2
+    exit 1
+fi
 echo "## Docker context activated" >&2
 
 ## Step 7: Create root .env and distribute env vars via restore-env
