@@ -287,6 +287,12 @@ def main():
         print("Error: Forgejo hostname is required.", file=sys.stderr)
         sys.exit(1)
 
+    print()
+    print("  Choose a name for the dedicated Forgejo CI account you will create.")
+    print("  This account should be dedicated to syncing from GitHub, so a name")
+    print("  like 'enigmacurry-github' is appropriate. The account will be created")
+    print("  in a later step.")
+    print()
     owner = prompt("Repository owner / CI account name")
     if not owner:
         print("Error: Repository owner is required.", file=sys.stderr)
