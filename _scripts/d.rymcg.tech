@@ -1058,10 +1058,7 @@ __restore_env() {
             ${BIN}/dotenv -f "${target_file}" set "${prefix}_INSTANCE=${instance}"
         fi
 
-        while IFS= read -r varline; do
-            [[ -z "${varline}" ]] && continue
-            ${BIN}/reconfigure "${target_file}" "${varline}" >&2
-        done <<< "${rest}"
+        ${BIN}/batch-reconfigure "${target_file}" <<< "${rest}" 2>&1 >&2
 
         echo "" >&2
     done
