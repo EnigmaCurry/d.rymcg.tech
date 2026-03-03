@@ -95,8 +95,10 @@ trusted:
 	@echo "Fetching repository list ..."
 	@readarray -t REPOS < <(curl -s -H "Authorization: Bearer $${WOODPECKER_TOKEN}" "$${WOODPECKER_SERVER}/api/repos" | jq -r '.[].full_name' | sort); \
 	REPO=$$(eval "${BIN}/script-wizard choose 'Select repository' $${REPOS[@]@Q}") && \
-	REPO_ID=$$(curl -s -H "Authorization: Bearer $${WOODPECKER_TOKEN}" "$${WOODPECKER_SERVER}/api/repos/lookup/$${REPO}" | jq -r '.id') && \
-	readarray -t TRUST < <(${BIN}/script-wizard select "Select trust levels for $${REPO}" "network" "security" "volumes" --default '["security"]') && \
+	REPO_JSON=$$(curl -s -H "Authorization: Bearer $${WOODPECKER_TOKEN}" "$${WOODPECKER_SERVER}/api/repos/lookup/$${REPO}") && \
+	REPO_ID=$$(echo "$${REPO_JSON}" | jq -r '.id') && \
+	CURRENT_DEFAULT=$$(echo "$${REPO_JSON}" | jq -c '[if .trusted.network then "network" else empty end, if .trusted.security then "security" else empty end, if .trusted.volumes then "volumes" else empty end]') && \
+	readarray -t TRUST < <(${BIN}/script-wizard select "Select trust levels for $${REPO}" "network" "security" "volumes" --default "$${CURRENT_DEFAULT}") && \
 	NETWORK=false; SECURITY=false; VOLUMES=false; \
 	for level in "$${TRUST[@]}"; do \
 		case "$${level}" in \
