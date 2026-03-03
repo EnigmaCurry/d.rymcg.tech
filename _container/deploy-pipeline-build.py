@@ -232,8 +232,9 @@ def build_steps(forgejo, woodpecker, owner, github_url):
   Privileged Docker builds require the repo to be marked as trusted.
   Only Woodpecker admins can change trust levels.
 
-  First, log in to Woodpecker as an admin and copy the two export
-  statements from the CLI and API page:
+  IMPORTANT: You must log in to Woodpecker AS AN ADMIN (not the CI
+  account) to change trust levels. Copy the two export statements
+  from the CLI and API page:
 
     https://{woodpecker}/user/cli-and-api
 
