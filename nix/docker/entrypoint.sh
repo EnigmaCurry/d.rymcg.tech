@@ -162,8 +162,9 @@ if [[ -n "${SOPS_CONFIG_FILE:-}" ]]; then
 fi
 
 ## Step 4: Validate DOCKER_CONTEXT (may come from SOPS config or container env)
+DOCKER_CONTEXT="${DOCKER_CONTEXT:-${SSH_HOST}}"
 if [[ -z "${DOCKER_CONTEXT}" ]]; then
-    echo "ERROR: DOCKER_CONTEXT is required" >&2
+    echo "ERROR: DOCKER_CONTEXT is required (set DOCKER_CONTEXT or SSH_HOST)" >&2
     exit 1
 fi
 
