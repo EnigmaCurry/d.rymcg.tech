@@ -106,7 +106,9 @@ def build_steps(forgejo, woodpecker, owner, github_url):
   If Woodpecker CI is not already deployed, deploy it now:
 
     d make woodpecker config
-    d make woodpecker install""",
+    d make woodpecker install
+
+  When prompted, select both the 'server' and 'agent' profiles.""",
         ),
         (
             "Create dedicated CI Forgejo account",
