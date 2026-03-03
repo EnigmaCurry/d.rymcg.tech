@@ -7,7 +7,7 @@ commands to deploy services.
 
 ## What's in the image
 
-- **Base:** Alpine 3.21 (~5MB)
+- **Base:** Alpine 3.21
 - **System packages:** bash, make, git, openssl, jq, curl, sops, age,
   docker-cli, docker-cli-compose, openssh-client, and other shell
   utilities
