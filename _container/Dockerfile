@@ -63,6 +63,7 @@ RUN printf '%s\n' \
 
 # Copy the d.rymcg.tech repo, optionally switch branch, then strip history
 ARG BRANCH=
+ARG IMAGE_SOURCE=
 COPY --chown=1000:1000 . /home/user/git/vendor/enigmacurry/d.rymcg.tech
 WORKDIR /home/user/git/vendor/enigmacurry/d.rymcg.tech
 RUN if [ -n "${BRANCH}" ] && [ -d .git ]; then git checkout "${BRANCH}"; fi && rm -rf .git
@@ -73,6 +74,8 @@ RUN chmod +x /entrypoint.sh
 USER user
 # Seed uv-managed Python into user's home
 RUN uv python install --no-cache
+
+LABEL org.opencontainers.image.source=${IMAGE_SOURCE}
 
 ENTRYPOINT ["/entrypoint.sh"]
 CMD ["bash"]
