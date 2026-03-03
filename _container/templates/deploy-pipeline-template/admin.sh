@@ -256,7 +256,17 @@ cmd_ci() {
     fi
 
     if [[ -z "${REPO_ID:-}" ]]; then
-        echo "Repository not found on Woodpecker."
+        echo "Repository not found on Woodpecker. Syncing repo list..."
+        wp_api POST "/user/repos" > /dev/null 2>&1 || true
+        # Retry lookup after sync
+        LOOKUP=$(wp_api GET "/repos/lookup/${REPO_FULL_NAME}" 2>/dev/null) || true
+        if [[ -n "${LOOKUP}" ]]; then
+            REPO_ID=$(echo "${LOOKUP}" | jq -r '.id // empty' 2>/dev/null)
+            ACTIVE=$(echo "${LOOKUP}" | jq -r '.active // false' 2>/dev/null)
+        fi
+    fi
+
+    if [[ -z "${REPO_ID:-}" ]]; then
         echo "Searching forge for repository..."
         REPO_NAME="${REPO_FULL_NAME##*/}"
         FORGE_REPOS=$(wp_api GET "/user/repos?all=true&name=${REPO_NAME}" 2>/dev/null) || true
