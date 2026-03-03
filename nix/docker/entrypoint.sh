@@ -1,4 +1,6 @@
 #!/usr/bin/env bash
+## d.rymcg.tech workstation Docker entrypoint
+## Handles SSH keys, OpenBao auth, SOPS decryption, and Docker context setup.
 set -eo pipefail
 
 ROOT_DIR=/home/user/git/vendor/enigmacurry/d.rymcg.tech
