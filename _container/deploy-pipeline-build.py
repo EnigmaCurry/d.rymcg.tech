@@ -124,12 +124,14 @@ def build_steps(forgejo, owner, github_url):
             "Add CI account to 'woodpecker' org",
             f"""\
   The CI account must be a member of the 'woodpecker' org to log in to Woodpecker.
+  Forgejo requires adding members through a Team.
 
   Log in as 'root' (or your admin account) and go to:
 
-    https://{forgejo}/org/woodpecker/members
+    https://{forgejo}/org/woodpecker/teams
 
-  Add '{owner}' as a member.""",
+  1. Create a new team (e.g. "CI")
+  2. Add '{owner}' as a member of that team""",
         ),
         (
             "Add SSH public key to CI account",
