@@ -172,7 +172,7 @@ def build_steps(forgejo, owner, github_url):
 
   - Select GitHub as the source
   - Repo URL: {github_url}
-  - Enter your GitHub username and the Personal Access Token from the previous step
+  - Paste the Personal Access Token from the previous step
   - Check "This repository will be a mirror"
   - Click "Migrate Repository"
 
