@@ -70,7 +70,7 @@ RUN chmod +x /entrypoint.sh
 
 USER user
 # Seed uv-managed Python into user's home
-RUN uv python install
+RUN uv python install --no-cache
 
 ENTRYPOINT ["/entrypoint.sh"]
 CMD ["bash"]
