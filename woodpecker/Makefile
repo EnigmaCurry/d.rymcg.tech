@@ -93,9 +93,14 @@ trusted:
 		exit 1; \
 	fi
 	@echo "Fetching repository list ..."
-	@readarray -t REPOS < <(curl -s -H "Authorization: Bearer $${WOODPECKER_TOKEN}" "$${WOODPECKER_SERVER}/api/repos" | jq -r '.[].full_name' | sort); \
+	@REPOS_RESPONSE=$$(curl -s -f -H "Authorization: Bearer $${WOODPECKER_TOKEN}" "$${WOODPECKER_SERVER}/api/repos" 2>&1) || \
+		{ echo "Error fetching repos from $${WOODPECKER_SERVER}/api/repos:"; echo "$${REPOS_RESPONSE}"; exit 1; }; \
+	readarray -t REPOS < <(echo "$${REPOS_RESPONSE}" | jq -r '.[].full_name' | sort) || \
+		{ echo "Error parsing API response:"; echo "$${REPOS_RESPONSE}"; exit 1; }; \
+	if [ $${#REPOS[@]} -eq 0 ]; then echo "No repositories found."; exit 1; fi; \
 	REPO=$$(eval "${BIN}/script-wizard choose 'Select repository' $${REPOS[@]@Q}") && \
-	REPO_JSON=$$(curl -s -H "Authorization: Bearer $${WOODPECKER_TOKEN}" "$${WOODPECKER_SERVER}/api/repos/lookup/$${REPO}") && \
+	REPO_JSON=$$(curl -s -f -H "Authorization: Bearer $${WOODPECKER_TOKEN}" "$${WOODPECKER_SERVER}/api/repos/lookup/$${REPO}" 2>&1) || \
+		{ echo "Error looking up repo $${REPO}:"; echo "$${REPO_JSON}"; exit 1; }; \
 	REPO_ID=$$(echo "$${REPO_JSON}" | jq -r '.id') && \
 	CURRENT_DEFAULT=$$(echo "$${REPO_JSON}" | jq -c '[if .trusted.network then "network" else empty end, if .trusted.security then "security" else empty end, if .trusted.volumes then "volumes" else empty end]') && \
 	readarray -t TRUST < <(${BIN}/script-wizard select "Select trust levels for $${REPO}" "network" "security" "volumes" --default "$${CURRENT_DEFAULT}") && \
@@ -108,11 +113,13 @@ trusted:
 		esac; \
 	done; \
 	echo "Setting trust for $${REPO}: network=$${NETWORK} security=$${SECURITY} volumes=$${VOLUMES}"; \
-	curl -s -X PATCH \
+	PATCH_RESPONSE=$$(curl -s -f -X PATCH \
 		-H "Authorization: Bearer $${WOODPECKER_TOKEN}" \
 		-H "Content-Type: application/json" \
 		-d "{\"trusted\":{\"network\":$${NETWORK},\"security\":$${SECURITY},\"volumes\":$${VOLUMES}}}" \
-		"$${WOODPECKER_SERVER}/api/repos/$${REPO_ID}" | jq '{full_name: .full_name, trusted: .trusted}'
+		"$${WOODPECKER_SERVER}/api/repos/$${REPO_ID}" 2>&1) || \
+		{ echo "Error updating trust settings:"; echo "$${PATCH_RESPONSE}"; exit 1; }; \
+	echo "$${PATCH_RESPONSE}" | jq '{full_name: .full_name, trusted: .trusted}'
 
 .PHONY: shell # Enter one of the container shells
 shell:
