@@ -202,6 +202,7 @@ if [[ -n "${SOPS_CONFIG_FILE:-}" ]]; then
 fi
 
 ## Step 4: Validate DOCKER_CONTEXT (may come from SOPS config, container env, or SOPS filename)
+echo "## Step 4: Validating DOCKER_CONTEXT" >&2
 if [[ -z "${DOCKER_CONTEXT:-}" && -n "${SOPS_CONFIG_FILE:-}" ]]; then
     # Derive context name from SOPS config filename (e.g. config/d2.sops.env → d2)
     DOCKER_CONTEXT="$(basename "${SOPS_CONFIG_FILE}" .sops.env)"
@@ -211,16 +212,20 @@ if [[ -z "${DOCKER_CONTEXT}" ]]; then
     echo "ERROR: DOCKER_CONTEXT is required (set DOCKER_CONTEXT or SSH_HOST)" >&2
     exit 1
 fi
+echo "## DOCKER_CONTEXT=${DOCKER_CONTEXT}" >&2
 
 ## Step 5: Validate SSH vars + write SSH config (SSH_HOST may now come from SOPS)
+echo "## Step 5: Setting up SSH config" >&2
 if [[ -z "${SSH_HOST:-}" ]]; then
     echo "ERROR: SSH_HOST is required (set via container env or SOPS config)" >&2
     exit 1
 fi
 SSH_USER="${SSH_USER:-root}"
 SSH_PORT="${SSH_PORT:-22}"
+echo "## SSH target: ${SSH_USER}@${SSH_HOST}:${SSH_PORT}" >&2
 
 if [[ "${SSH_KEY_SCAN:-}" != "false" ]]; then
+    echo "## Running ssh-keyscan for ${SSH_HOST}:${SSH_PORT}" >&2
     if ! ssh-keyscan -p "${SSH_PORT}" "${SSH_HOST}" >> "${KEY_DIR}/known_hosts" 2>/dev/null; then
         echo "ERROR: ssh-keyscan failed for ${SSH_HOST}:${SSH_PORT} (set SSH_KEY_SCAN=false to skip)" >&2
         exit 1
@@ -239,29 +244,38 @@ fi
     fi
 } > ~/.ssh/config
 chmod 600 ~/.ssh/config
+echo "## SSH config written" >&2
 
 ## Step 6: Create and activate Docker context
+echo "## Step 6: Creating Docker context '${DOCKER_CONTEXT}'" >&2
 docker context create "${DOCKER_CONTEXT}" \
     --docker "host=ssh://${SSH_USER}@${SSH_HOST}:${SSH_PORT}" &>/dev/null || true
 docker context use "${DOCKER_CONTEXT}" &>/dev/null
+echo "## Docker context activated" >&2
 
 ## Step 7: Create root .env and distribute env vars via restore-env
+echo "## Step 7: Running restore-env" >&2
 cd "${ROOT_DIR}"
 cp -n .env-dist ".env_${DOCKER_CONTEXT}"
-env | d.rymcg.tech restore-env --yes
+if ! env | d.rymcg.tech restore-env --yes; then
+    echo "WARNING: restore-env had errors (some vars may need reconfiguration)" >&2
+fi
 
 ## Step 8: Ensure explicitly requested projects have env files
+echo "## Step 8: Checking requested project env files" >&2
 if [[ -n "${_PROJECTS:-}" ]]; then
     IFS=, read -ra _requested_projects <<< "${_PROJECTS}"
     for project_name in "${_requested_projects[@]}"; do
         env_file="${project_name}/.env_${DOCKER_CONTEXT}_default"
         if [[ ! -f "${env_file}" ]]; then
+            echo "## Creating ${env_file} from .env-dist" >&2
             cp "${project_name}/.env-dist" "${env_file}"
         fi
     done
 fi
 
 ## Step 9: Check that the target project has an env file before exec
+echo "## Step 9: Validating target project" >&2
 _cmd_args=("$@")
 for i in "${!_cmd_args[@]}"; do
     if [[ "${_cmd_args[$i]}" == "make" && $((i+1)) -lt ${#_cmd_args[@]} ]]; then
@@ -280,4 +294,5 @@ for i in "${!_cmd_args[@]}"; do
 done
 
 ## Step 10: Exec the command
+echo "## Step 10: Executing: $*" >&2
 exec "$@"
