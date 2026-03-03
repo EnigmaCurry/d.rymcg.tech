@@ -61,10 +61,11 @@ RUN printf '%s\n' \
   > /home/user/.bashrc \
  && chown 1000:1000 /home/user/.bashrc
 
-# Copy the d.rymcg.tech repo (strip git history to save space)
+# Copy the d.rymcg.tech repo, optionally switch branch, then strip history
+ARG BRANCH=
 COPY --chown=1000:1000 . /home/user/git/vendor/enigmacurry/d.rymcg.tech
 WORKDIR /home/user/git/vendor/enigmacurry/d.rymcg.tech
-RUN rm -rf .git
+RUN if [ -n "${BRANCH}" ] && [ -d .git ]; then git checkout "${BRANCH}"; fi && rm -rf .git
 
 COPY --chown=1000:1000 _container/entrypoint.sh /entrypoint.sh
 RUN chmod +x /entrypoint.sh
