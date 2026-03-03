@@ -51,7 +51,7 @@ RUN adduser -D -u 1000 -h /home/user -s /bin/bash user \
  && mkdir -p /run/secrets/ssh \
  && chown -R 1000:1000 /home/user /run/secrets/ssh
 
-ENV PATH="/home/user/git/vendor/enigmacurry/d.rymcg.tech/_scripts/user:/usr/local/bin:${PATH}"
+ENV PATH="/home/user/git/vendor/enigmacurry/d.rymcg.tech/_scripts/user:/home/user/.local/bin:/usr/local/bin:${PATH}"
 ENV HOME="/home/user"
 RUN printf '%s\n' \
   'PS1="\n[d.rymcg.tech|$DOCKER_CONTEXT] \w\n\$ "' \
