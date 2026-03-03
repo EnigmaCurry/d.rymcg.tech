@@ -35,7 +35,7 @@ _GIT_USER=$(git config --global user.name 2>/dev/null || true)
 if [[ -n "${_GIT_USER}" && "${_GIT_USER}" != *" "* ]]; then
     _DEFAULT_OUTPUT="${HOME}/git/vendor/${_GIT_USER,,}"
 else
-    _DEFAULT_OUTPUT="${HOME}/git/vendor"
+    _DEFAULT_OUTPUT="${HOME}/git"
 fi
 OUTPUT_DIR=$(wizard ask "Output directory" "${_DEFAULT_OUTPUT}")
 REGISTRY=$(wizard ask "Registry hostname (e.g. git.example.com)")
