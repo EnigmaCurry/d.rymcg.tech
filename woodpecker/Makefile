@@ -28,7 +28,8 @@ config-hook:
 		${BIN}/reconfigure_ask ${ENV_FILE} WOODPECKER_FORGEJO_CLIENT "Enter the Forgejo OAuth2 Client ID"; \
 		${BIN}/reconfigure_ask ${ENV_FILE} WOODPECKER_FORGEJO_SECRET "Enter the Forgejo OAuth2 Client Secret"; \
 		${BIN}/reconfigure_ask ${ENV_FILE} WOODPECKER_ADMIN "Enter the Forgejo admin username(s), not email (comma separated)"; \
-		${BIN}/reconfigure_ask ${ENV_FILE} WOODPECKER_OPEN "Allow any Forgejo user to login?" false; \
+		${BIN}/reconfigure_ask ${ENV_FILE} WOODPECKER_OPEN "Allow any Forgejo user to login?" true; \
+		${BIN}/reconfigure_ask ${ENV_FILE} WOODPECKER_ORGS "Restrict login to these Forgejo orgs (comma separated, blank for all)" woodpecker; \
 	fi
 	@echo ""
 	@${BIN}/reconfigure ${ENV_FILE} WOODPECKER_INSTANCE=$${instance:-default}

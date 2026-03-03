@@ -43,6 +43,12 @@ Set the following variables in your `.env_${DOCKER_CONTEXT}_default` file:
  * `WOODPECKER_FORGEJO_SECRET` - the OAuth2 Client Secret from Forgejo
  * `WOODPECKER_ADMIN` - comma-separated list of Forgejo usernames that
    should have admin access in Woodpecker
+ * `WOODPECKER_OPEN` - allow OAuth2 login without manual user creation
+   (default: `true`)
+ * `WOODPECKER_ORGS` - restrict login to members of these Forgejo
+   organizations (comma-separated). When set, only users belonging to
+   one of the listed orgs can log in — even with `WOODPECKER_OPEN=true`.
+   Default: `woodpecker`
 
 ### Agent configuration
 
