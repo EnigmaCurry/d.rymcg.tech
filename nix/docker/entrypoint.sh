@@ -251,8 +251,9 @@ echo "## SSH config written" >&2
 
 ## Step 6: Create and activate Docker context
 echo "## Step 6: Creating Docker context '${DOCKER_CONTEXT}'" >&2
+## Use SSH config alias so Docker inherits UserKnownHostsFile, CertificateFile, etc.
 if ! docker context create "${DOCKER_CONTEXT}" \
-    --docker "host=ssh://${SSH_USER}@${SSH_HOST}:${SSH_PORT}" 2>&1; then
+    --docker "host=ssh://${DOCKER_CONTEXT}" 2>&1; then
     echo "## Docker context '${DOCKER_CONTEXT}' already exists (ok)" >&2
 fi
 if ! docker context use "${DOCKER_CONTEXT}" 2>&1; then
