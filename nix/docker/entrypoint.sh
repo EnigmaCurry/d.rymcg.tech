@@ -244,7 +244,7 @@ docker context use "${DOCKER_CONTEXT}" &>/dev/null
 ## Step 7: Create root .env and distribute env vars via restore-env
 cd "${ROOT_DIR}"
 cp -n .env-dist ".env_${DOCKER_CONTEXT}"
-env | d.rymcg.tech restore-env
+env | d.rymcg.tech restore-env --yes
 
 ## Step 8: Ensure explicitly requested projects have env files
 if [[ -n "${_PROJECTS:-}" ]]; then

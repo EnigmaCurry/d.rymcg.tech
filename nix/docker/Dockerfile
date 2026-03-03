@@ -16,7 +16,12 @@ RUN NIX_BUILD=$(readlink $(which nix-build)) NIX_ENV=$(readlink $(which nix-env)
 COPY .tools.lock.json /tmp/.tools.lock.json
 RUN export PATH="/root/.nix-profile/bin:${PATH}"; set -e; \
     VERSION=$(jq -r '.dependencies["script-wizard"].version' /tmp/.tools.lock.json); \
-    curl -fsSL "https://github.com/EnigmaCurry/script-wizard/releases/download/v${VERSION}/script-wizard-Linux-x86_64.tar.gz" \
+    case "$(uname -m)" in \
+      x86_64)  ARCH=x86_64 ;; \
+      aarch64) ARCH=aarch64 ;; \
+      *)       echo "Unsupported arch: $(uname -m)" >&2; exit 1 ;; \
+    esac; \
+    curl -fsSL "https://github.com/EnigmaCurry/script-wizard/releases/download/v${VERSION}/script-wizard-Linux-${ARCH}.tar.gz" \
       | tar xz -C /root/.nix-profile/bin; \
     rm /tmp/.tools.lock.json
 
