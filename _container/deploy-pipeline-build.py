@@ -255,6 +255,14 @@ def main():
     print("  Build pipeline setup for d-rymcg-tech Docker image")
     print("=" * 60)
     print()
+    print("  This script walks you through setting up the build pipeline")
+    print("  for the d-rymcg-tech Docker image. It mirrors the d.rymcg.tech")
+    print("  GitHub repo to your Forgejo instance and configures Woodpecker")
+    print("  CI to automatically build and push the image to your registry.")
+    print()
+    print("  This is a guidance-only tool — it shows you what to do at each")
+    print("  step with personalized URLs, but does not automate any actions.")
+    print()
 
     forgejo = prompt("Forgejo hostname (e.g. git.example.com)")
     if not forgejo:
