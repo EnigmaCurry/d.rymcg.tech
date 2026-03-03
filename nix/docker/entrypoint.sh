@@ -80,17 +80,30 @@ if [[ -n "${BAO_ADDR:-}" ]]; then
         exit 1
     fi
 
-    ## Debug: show client certificate details if present
+    ## Debug: show all certificates in the client cert chain if present
     if [[ -n "${BAO_CLIENT_CERT:-}" && -f "${BAO_CLIENT_CERT}" ]]; then
-        echo "## OpenBao: client certificate details:" >&2
-        openssl x509 -in "${BAO_CLIENT_CERT}" -noout -subject -issuer -dates -ext subjectAltName 2>&1 | sed 's/^/##   /' >&2
+        echo "## OpenBao: client certificate chain (${BAO_CLIENT_CERT}):" >&2
+        CERT_NUM=0
+        while read -r line; do
+            if [[ "${line}" == "-----BEGIN CERTIFICATE-----" ]]; then
+                CERT_NUM=$((CERT_NUM + 1))
+                CERT_TMP=$(mktemp)
+            fi
+            [[ -n "${CERT_TMP:-}" ]] && echo "${line}" >> "${CERT_TMP}"
+            if [[ "${line}" == "-----END CERTIFICATE-----" ]]; then
+                echo "##   Certificate #${CERT_NUM}:" >&2
+                openssl x509 -in "${CERT_TMP}" -noout -subject -issuer -dates -ext subjectAltName 2>&1 | sed 's/^/##     /' >&2
+                rm -f "${CERT_TMP}"
+                unset CERT_TMP
+            fi
+        done < "${BAO_CLIENT_CERT}"
     fi
 
     ## Step 2b: AppRole authentication via curl → get BAO_TOKEN
     echo "## OpenBao: logging in via AppRole" >&2
     BAO_NAMESPACE_HEADER=()
     [[ -n "${BAO_NAMESPACE:-}" ]] && BAO_NAMESPACE_HEADER=(-H "X-Vault-Namespace: ${BAO_NAMESPACE}")
-    echo "## OpenBao: connecting to ${BAO_ADDR}/v1/${BAO_AUTH_PATH}/login" >&2
+    echo "## OpenBao: curl ${BAO_CURL_FLAGS[*]} ${BAO_NAMESPACE_HEADER[*]:-} --request POST --data '{\"role_id\":\"***\",\"secret_id\":\"***\"}' ${BAO_ADDR}/v1/${BAO_AUTH_PATH}/login" >&2
     LOGIN_HTTP_CODE=0
     LOGIN_RESPONSE=$(curl -v -w '\n%{http_code}' "${BAO_CURL_FLAGS[@]}" "${BAO_NAMESPACE_HEADER[@]}" \
         --request POST \
