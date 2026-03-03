@@ -215,7 +215,12 @@ cmd_ci() {
     if ! git ls-remote origin &>/dev/null; then
         echo "Remote repository not found. Creating on Forgejo..."
         if [[ -z "${FORGEJO_TOKEN:-}" ]]; then
-            FORGEJO_TOKEN=$(wizard ask "Forgejo API token (needs repo creation scope)")
+            echo ""
+            echo "A Forgejo API token is required to create the repository."
+            echo "Create one at: https://${FORGE_HOST}/user/settings/applications"
+            echo "Required scopes: write:repository, write:user (or write:organization)"
+            echo ""
+            FORGEJO_TOKEN=$(wizard ask "Forgejo API token")
         fi
         FORGE_API="https://${FORGE_HOST}/api/v1"
         CREATE_BODY=$(jq -n --arg name "${REPO_NAME}" '{name: $name, private: true}')
