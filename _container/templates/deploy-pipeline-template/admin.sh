@@ -204,8 +204,50 @@ cmd_ci() {
 
     REPO_FULL_NAME=$(git remote get-url origin \
         | sed -E 's|(\.git)$||; s|.*[:/]([^/]+/[^/]+)$|\1|')
+    FORGE_HOST=$(git remote get-url origin \
+        | sed -E 's|^[a-z+]+://||; s|^[^@]*@||; s|[:/].*||')
+    REPO_OWNER="${REPO_FULL_NAME%%/*}"
+    REPO_NAME="${REPO_FULL_NAME##*/}"
     echo "Repository: ${REPO_FULL_NAME}"
     echo ""
+
+    # Check if the remote repo exists; if not, create it on Forgejo and push
+    if ! git ls-remote origin &>/dev/null; then
+        echo "Remote repository not found. Creating on Forgejo..."
+        if [[ -z "${FORGEJO_TOKEN:-}" ]]; then
+            FORGEJO_TOKEN=$(wizard ask "Forgejo API token (needs repo creation scope)")
+        fi
+        FORGE_API="https://${FORGE_HOST}/api/v1"
+        CREATE_BODY=$(jq -n --arg name "${REPO_NAME}" '{name: $name, private: true}')
+        CREATE_RESULT=$(curl -sS -w '\n%{http_code}' -X POST \
+            -H "Authorization: token ${FORGEJO_TOKEN}" \
+            -H "Content-Type: application/json" \
+            "${FORGE_API}/user/repos" \
+            -d "${CREATE_BODY}")
+        CREATE_HTTP=$(echo "${CREATE_RESULT}" | tail -1)
+        if [[ "${CREATE_HTTP}" -ge 400 ]]; then
+            # Try creating under the org instead
+            CREATE_RESULT=$(curl -sS -w '\n%{http_code}' -X POST \
+                -H "Authorization: token ${FORGEJO_TOKEN}" \
+                -H "Content-Type: application/json" \
+                "${FORGE_API}/orgs/${REPO_OWNER}/repos" \
+                -d "${CREATE_BODY}")
+            CREATE_HTTP=$(echo "${CREATE_RESULT}" | tail -1)
+            if [[ "${CREATE_HTTP}" -ge 400 ]]; then
+                echo "Error: Could not create repository on Forgejo." >&2
+                echo "${CREATE_RESULT}" | sed '$d' >&2
+                exit 1
+            fi
+        fi
+        echo "Created ${REPO_FULL_NAME} on Forgejo"
+        echo "Pushing..."
+        git push -u origin master
+        echo ""
+    elif [[ -z "$(git ls-remote origin 2>/dev/null)" ]]; then
+        echo "Remote is empty. Pushing..."
+        git push -u origin master
+        echo ""
+    fi
 
     LOOKUP=$(wp_api GET "/repos/lookup/${REPO_FULL_NAME}" 2>/dev/null) || true
     if [[ -n "${LOOKUP}" ]]; then
@@ -258,8 +300,6 @@ cmd_ci() {
     fi
     echo ""
 
-    FORGE_HOST=$(git remote get-url origin \
-        | sed -E 's|^[a-z+]+://||; s|^[^@]*@||; s|[:/].*||')
     echo "Registry: ${FORGE_HOST}"
 
     readarray -t SOPS_FILES < <(ls config/*.sops.env 2>/dev/null)
