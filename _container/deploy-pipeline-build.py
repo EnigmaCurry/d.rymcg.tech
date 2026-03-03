@@ -293,7 +293,7 @@ def main():
     print("  like 'enigmacurry-github' is appropriate. The account will be created")
     print("  in a later step.")
     print()
-    owner = prompt("Repository owner / CI account name")
+    owner = prompt("Repository owner / CI account name", "enigmacurry-github")
     if not owner:
         print("Error: Repository owner is required.", file=sys.stderr)
         sys.exit(1)
