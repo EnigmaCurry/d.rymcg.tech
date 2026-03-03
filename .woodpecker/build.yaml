@@ -1,0 +1,69 @@
+## d-rymcg-tech image builder
+## Builds the Docker image from the workstation-ci branch.
+##
+## Required Woodpecker secrets:
+##   registry          - Forgejo registry hostname
+##   registry_username - Forgejo username (for pushing image)
+##   registry_password - Forgejo token with write:package scope
+
+when:
+  - event: [push, cron, manual]
+    branch: workstation-ci
+
+steps:
+  - name: build-image
+    image: woodpeckerci/plugin-docker-buildx
+    privileged: true
+    environment:
+      REGISTRY:
+        from_secret: registry
+      REGISTRY_USERNAME:
+        from_secret: registry_username
+      REGISTRY_PASSWORD:
+        from_secret: registry_password
+    commands:
+      - apk add --no-cache curl jq
+      - |
+        set -e
+        IMAGE="$${REGISTRY}/${CI_REPO_OWNER}/d-rymcg-tech"
+        SHA=$$(echo "${CI_COMMIT_SHA}" | head -c 12)
+        echo "## d.rymcg.tech workstation-ci SHA:$${SHA}"
+        dockerd &
+        sleep 3
+        echo "$${REGISTRY_PASSWORD}" | docker login -u "$${REGISTRY_USERNAME}" --password-stdin "$${REGISTRY}"
+        if docker buildx imagetools inspect "$${IMAGE}:$${SHA}" >/dev/null 2>&1; then
+          echo "## Image $${IMAGE}:$${SHA} already exists, skipping build"
+        else
+          echo "## Building $${IMAGE}:$${SHA}"
+          docker buildx create --name builder --use
+          docker buildx build --push \
+            --platform linux/arm64 \
+            --pull \
+            -f _container/Dockerfile \
+            --build-arg BRANCH=workstation-ci \
+            --build-arg IMAGE_SOURCE=https://github.com/EnigmaCurry/d.rymcg.tech \
+            --cache-from "$${IMAGE}:latest" \
+            --cache-to type=inline \
+            -t "$${IMAGE}:$${SHA}" \
+            -t "$${IMAGE}:latest" \
+            .
+          # Clean up old SHA tags (keep only latest, current SHA, and sha256 digests)
+          echo "## Cleaning up old image tags"
+          PKG_NAME="d-rymcg-tech"
+          VERSIONS=$$(curl -sf -u "$${REGISTRY_USERNAME}:$${REGISTRY_PASSWORD}" \
+            "https://$${REGISTRY}/api/v1/packages/${CI_REPO_OWNER}?type=container&q=$${PKG_NAME}" \
+            | jq -r '.[].version')
+          for TAG in $${VERSIONS}; do
+            case "$${TAG}" in
+              latest|sha256:*) continue ;;
+              "$${SHA}") continue ;;
+            esac
+            echo "  Deleting old tag: $${TAG}"
+            curl -sf -X DELETE -u "$${REGISTRY_USERNAME}:$${REGISTRY_PASSWORD}" \
+              "https://$${REGISTRY}/api/v1/packages/${CI_REPO_OWNER}/container/$${PKG_NAME}/$${TAG}" || true
+          done
+          # Link package to this repository
+          echo "## Linking package to ${CI_REPO_OWNER}/${CI_REPO_NAME}"
+          curl -sf -X POST -u "$${REGISTRY_USERNAME}:$${REGISTRY_PASSWORD}" \
+            "https://$${REGISTRY}/api/v1/packages/${CI_REPO_OWNER}/container/$${PKG_NAME}/-/link/${CI_REPO_NAME}" || true
+        fi
