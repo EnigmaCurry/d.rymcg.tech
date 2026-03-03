@@ -126,12 +126,22 @@ if [[ -n "${BAO_ADDR:-}" ]]; then
 
     ## Step 2c: Retrieve AGE key from KV store → write to temp file, set SOPS_AGE_KEY_FILE
     echo "## OpenBao: retrieving AGE key from ${BAO_KV_MOUNT}/data/${BAO_AGE_KEY_PATH}" >&2
-    AGE_RESPONSE=$(curl -sf "${BAO_CURL_FLAGS[@]}" "${BAO_NAMESPACE_HEADER[@]}" \
+    AGE_HTTP_CODE=0
+    AGE_RESPONSE=$(curl -s -w '\n%{http_code}' "${BAO_CURL_FLAGS[@]}" "${BAO_NAMESPACE_HEADER[@]}" \
         -H "X-Vault-Token: ${BAO_TOKEN}" \
-        "${BAO_ADDR}/v1/${BAO_KV_MOUNT}/data/${BAO_AGE_KEY_PATH}")
+        "${BAO_ADDR}/v1/${BAO_KV_MOUNT}/data/${BAO_AGE_KEY_PATH}") || true
+    AGE_HTTP_CODE=$(echo "${AGE_RESPONSE}" | tail -1)
+    AGE_RESPONSE=$(echo "${AGE_RESPONSE}" | sed '$d')
+    if [[ "${AGE_HTTP_CODE}" -ge 400 ]] 2>/dev/null; then
+        echo "ERROR: Failed to retrieve AGE key (HTTP ${AGE_HTTP_CODE})" >&2
+        echo "  URL: ${BAO_ADDR}/v1/${BAO_KV_MOUNT}/data/${BAO_AGE_KEY_PATH}" >&2
+        echo "${AGE_RESPONSE}" >&2
+        exit 1
+    fi
     AGE_KEY=$(echo "${AGE_RESPONSE}" | jq -r '.data.data.key')
     if [[ -z "${AGE_KEY}" || "${AGE_KEY}" == "null" ]]; then
-        echo "ERROR: Failed to retrieve AGE key from OpenBao" >&2
+        echo "ERROR: AGE key not found in OpenBao response (missing .data.data.key)" >&2
+        echo "  URL: ${BAO_ADDR}/v1/${BAO_KV_MOUNT}/data/${BAO_AGE_KEY_PATH}" >&2
         echo "${AGE_RESPONSE}" >&2
         exit 1
     fi
