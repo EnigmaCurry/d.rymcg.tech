@@ -75,10 +75,10 @@ outpath = script_dir / "lego-vars.txt"
 sorted_vars = sorted(envvars)
 with open(outpath, "w") as f:
     for v in sorted_vars:
-        f.write(v + "\n")
+        f.write("TRAEFIK_LEGO_" + v + "\n")
 
 for v in sorted_vars:
-    print(v, flush=False)
+    print("TRAEFIK_LEGO_" + v, flush=False)
 
 print(f"Wrote {outpath} ({len(sorted_vars)} vars)", file=sys.stderr)
 PY
