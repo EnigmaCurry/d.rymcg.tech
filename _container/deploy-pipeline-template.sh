@@ -38,7 +38,8 @@ else
     _DEFAULT_OUTPUT="${HOME}/git"
 fi
 OUTPUT_DIR=$(wizard ask "Output directory" "${_DEFAULT_OUTPUT}")
-REGISTRY=$(wizard ask "Registry hostname (e.g. git.example.com)")
+REGISTRY=$(wizard ask "Forgejo hostname (e.g. git.example.com)")
+REPO_OWNER=$(wizard ask "Repository owner" "${_GIT_USER,,}")
 CONTEXT_NAME=$(wizard ask "Context name (SSH host alias)")
 SOPS_CONFIG="config/${CONTEXT_NAME}.sops.env"
 
@@ -122,21 +123,23 @@ find "${DEST}" -type f \( -name '*.md' -o -name '*.sh' -o -name '*.yaml' -o -nam
 # Make admin.sh executable
 chmod +x "${DEST}/admin.sh"
 
-# Initialize git repo
+# Initialize git repo with remote
 git -C "${DEST}" init
 git -C "${DEST}" add -A
 git -C "${DEST}" commit -m "Initial commit"
+git -C "${DEST}" remote add origin "git@${REGISTRY}:${REPO_OWNER}/${NAME}.git"
 
 echo ""
 echo "=== Done! ==="
 echo ""
 echo "Your new deployment repo is ready at: ${DEST}"
 echo ""
+echo "Remote: git@${REGISTRY}:${REPO_OWNER}/${NAME}.git"
+echo ""
 echo "Next steps:"
 echo "  1. cd ${DEST}"
 echo "  2. Edit .woodpecker/deploy.yaml to customize the deploy steps"
 echo "  3. Run 'make config' to create an encrypted config for your target server"
-echo "  4. Create a Forgejo repo and push:"
-echo "       git remote add origin <your-forgejo-url>"
+echo "  4. Create the repo on Forgejo, then push:"
 echo "       git push -u origin master"
 echo "  5. Run 'make ci' to activate Woodpecker CI and set secrets"
