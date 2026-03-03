@@ -7,13 +7,7 @@ BIN="${ROOT_DIR}/_scripts"
 ## Step 0: Set up PATH so the d.rymcg.tech CLI works
 export PATH="${ROOT_DIR}/_scripts/user:${PATH}"
 
-## Step 1: Validate DOCKER_CONTEXT (SSH_HOST validation deferred to Step 5)
-if [[ -z "${DOCKER_CONTEXT}" ]]; then
-    echo "ERROR: DOCKER_CONTEXT is required" >&2
-    exit 1
-fi
-
-## Step 2: Generate SSH key
+## Step 1: Generate SSH key
 KEY_DIR=/run/secrets/ssh
 mkdir -p "${KEY_DIR}" 2>/dev/null || KEY_DIR=$(mktemp -d)
 mkdir -p ~/.ssh
@@ -22,11 +16,11 @@ if [[ ! -f "${KEY_DIR}/id_ed25519" ]]; then
     ssh-keygen -t ed25519 -N "" -f "${KEY_DIR}/id_ed25519" -q
 fi
 
-## Step 3: OpenBao integration (only runs if BAO_ADDR is set)
+## Step 2: OpenBao integration (only runs if BAO_ADDR is set)
 if [[ -n "${BAO_ADDR:-}" ]]; then
     echo "## OpenBao: authenticating with ${BAO_ADDR}" >&2
 
-    ## Step 3a: Resolve BAO TLS vars (auto-detect base64/PEM/file paths → temp files)
+    ## Step 2a: Resolve BAO TLS vars (auto-detect base64/PEM/file paths → temp files)
     resolve_tls_var() {
         local var_name="$1"
         local var_value="${!var_name:-}"
@@ -84,7 +78,7 @@ if [[ -n "${BAO_ADDR:-}" ]]; then
         exit 1
     fi
 
-    ## Step 3b: AppRole authentication via curl → get BAO_TOKEN
+    ## Step 2b: AppRole authentication via curl → get BAO_TOKEN
     echo "## OpenBao: logging in via AppRole" >&2
     BAO_NAMESPACE_HEADER=()
     [[ -n "${BAO_NAMESPACE:-}" ]] && BAO_NAMESPACE_HEADER=(-H "X-Vault-Namespace: ${BAO_NAMESPACE}")
@@ -100,7 +94,7 @@ if [[ -n "${BAO_ADDR:-}" ]]; then
     fi
     echo "## OpenBao: authenticated successfully" >&2
 
-    ## Step 3c: Retrieve AGE key from KV store → write to temp file, set SOPS_AGE_KEY_FILE
+    ## Step 2c: Retrieve AGE key from KV store → write to temp file, set SOPS_AGE_KEY_FILE
     echo "## OpenBao: retrieving AGE key from ${BAO_KV_MOUNT}/data/${BAO_AGE_KEY_PATH}" >&2
     AGE_RESPONSE=$(curl -sf "${BAO_CURL_FLAGS[@]}" "${BAO_NAMESPACE_HEADER[@]}" \
         -H "X-Vault-Token: ${BAO_TOKEN}" \
@@ -117,7 +111,7 @@ if [[ -n "${BAO_ADDR:-}" ]]; then
     export SOPS_AGE_KEY_FILE="${AGE_KEY_FILE}"
     echo "## OpenBao: AGE key retrieved" >&2
 
-    ## Step 3d: Sign SSH public key via SSH secrets engine → write certificate
+    ## Step 2d: Sign SSH public key via SSH secrets engine → write certificate
     echo "## OpenBao: signing SSH public key via ${BAO_SSH_MOUNT}/sign/${BAO_SSH_ROLE}" >&2
     SSH_PUBLIC_KEY=$(cat "${KEY_DIR}/id_ed25519.pub")
     SIGN_RESPONSE=$(curl -sf "${BAO_CURL_FLAGS[@]}" "${BAO_NAMESPACE_HEADER[@]}" \
@@ -136,7 +130,7 @@ if [[ -n "${BAO_ADDR:-}" ]]; then
     echo "## OpenBao: SSH certificate obtained" >&2
 fi
 
-## Step 4: SOPS config file loading (only runs if SOPS_CONFIG_FILE is set)
+## Step 3: SOPS config file loading (only runs if SOPS_CONFIG_FILE is set)
 if [[ -n "${SOPS_CONFIG_FILE:-}" ]]; then
     echo "## Loading SOPS config from ${SOPS_CONFIG_FILE}" >&2
     if [[ ! -f "${SOPS_CONFIG_FILE}" ]]; then
@@ -165,6 +159,12 @@ if [[ -n "${SOPS_CONFIG_FILE:-}" ]]; then
         fi
     done <<< "${SOPS_DECRYPTED}"
     echo "## SOPS config loaded" >&2
+fi
+
+## Step 4: Validate DOCKER_CONTEXT (may come from SOPS config or container env)
+if [[ -z "${DOCKER_CONTEXT}" ]]; then
+    echo "ERROR: DOCKER_CONTEXT is required" >&2
+    exit 1
 fi
 
 ## Step 5: Validate SSH vars + write SSH config (SSH_HOST may now come from SOPS)
