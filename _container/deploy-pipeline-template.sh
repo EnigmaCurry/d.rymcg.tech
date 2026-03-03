@@ -39,7 +39,8 @@ else
 fi
 OUTPUT_DIR=$(wizard ask "Output directory" "${_DEFAULT_OUTPUT}")
 REGISTRY=$(wizard ask "Registry hostname (e.g. git.example.com)")
-SOPS_CONFIG=$(wizard ask "SOPS config path" "config/myserver.sops.env")
+CONTEXT_NAME=$(wizard ask "Context name (SSH host alias)")
+SOPS_CONFIG="config/${CONTEXT_NAME}.sops.env"
 
 BAO_CACERT=false
 BAO_CLIENT_CERT=false
