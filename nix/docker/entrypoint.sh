@@ -203,15 +203,18 @@ fi
 
 ## Step 4: Validate DOCKER_CONTEXT (may come from SOPS config, container env, or SOPS filename)
 echo "## Step 4: Validating DOCKER_CONTEXT" >&2
-if [[ -z "${DOCKER_CONTEXT:-}" && -n "${SOPS_CONFIG_FILE:-}" ]]; then
-    # Derive context name from SOPS config filename (e.g. config/d2.sops.env → d2)
+if [[ -n "${SOPS_CONFIG_FILE:-}" ]]; then
+    # Always prefer SOPS-derived context name (container env may have stale/invalid names)
     DOCKER_CONTEXT="$(basename "${SOPS_CONFIG_FILE}" .sops.env)"
+elif [[ -z "${DOCKER_CONTEXT:-}" ]]; then
+    DOCKER_CONTEXT="${SSH_HOST:-}"
 fi
-DOCKER_CONTEXT="${DOCKER_CONTEXT:-${SSH_HOST}}"
 if [[ -z "${DOCKER_CONTEXT}" ]]; then
-    echo "ERROR: DOCKER_CONTEXT is required (set DOCKER_CONTEXT or SSH_HOST)" >&2
+    echo "ERROR: DOCKER_CONTEXT is required (set DOCKER_CONTEXT, SSH_HOST, or SOPS_CONFIG_FILE)" >&2
     exit 1
 fi
+# Sanitize: Docker context names must match ^[a-zA-Z0-9][a-zA-Z0-9_.+-]+$
+DOCKER_CONTEXT="${DOCKER_CONTEXT#"${DOCKER_CONTEXT%%[a-zA-Z0-9]*}"}"
 echo "## DOCKER_CONTEXT=${DOCKER_CONTEXT}" >&2
 
 ## Step 5: Validate SSH vars + write SSH config (SSH_HOST may now come from SOPS)
