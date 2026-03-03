@@ -287,21 +287,32 @@ def main():
         print("Error: Forgejo hostname is required.", file=sys.stderr)
         sys.exit(1)
 
-    print()
-    print("  Choose a name for the dedicated Forgejo CI account you will create.")
-    print("  This account should be dedicated to syncing from GitHub, so a name")
-    print("  like 'enigmacurry-github' is appropriate. The account will be created")
-    print("  in a later step.")
-    print()
-    owner = prompt("Repository owner / CI account name", "enigmacurry-github")
-    if not owner:
-        print("Error: Repository owner is required.", file=sys.stderr)
-        sys.exit(1)
-
     github_url = prompt(
         "GitHub repo URL",
         "https://github.com/EnigmaCurry/d.rymcg.tech",
     )
+
+    # Derive default owner from GitHub URL: e.g. "EnigmaCurry" + "github" -> "enigmacurry-github"
+    default_owner = "enigmacurry-github"
+    try:
+        from urllib.parse import urlparse
+        parsed = urlparse(github_url)
+        parts = parsed.path.strip("/").split("/")
+        if len(parts) >= 1 and parts[0]:
+            default_owner = f"{parts[0].lower()}-{parsed.hostname.split('.')[0]}"
+    except Exception:
+        pass
+
+    print()
+    print("  Choose a name for the dedicated Forgejo CI account you will create.")
+    print("  This account should be dedicated to syncing from GitHub, so a name")
+    print(f"  like '{default_owner}' is appropriate. The account will be created")
+    print("  in a later step.")
+    print()
+    owner = prompt("Repository owner / CI account name", default_owner)
+    if not owner:
+        print("Error: Repository owner is required.", file=sys.stderr)
+        sys.exit(1)
 
     steps = build_steps(forgejo, owner, github_url)
     total = len(steps)
