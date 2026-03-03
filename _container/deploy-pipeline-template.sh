@@ -28,7 +28,16 @@ echo "=== Scaffold a new deployment pipeline repo ==="
 echo ""
 
 NAME=$(wizard ask "Repo name" "my-deploy")
-OUTPUT_DIR=$(wizard ask "Output directory" "$(pwd)")
+
+# Default output directory: ~/git/vendor/<username> if git user.name is a
+# single word, otherwise ~/git/vendor
+_GIT_USER=$(git config --global user.name 2>/dev/null || true)
+if [[ -n "${_GIT_USER}" && "${_GIT_USER}" != *" "* ]]; then
+    _DEFAULT_OUTPUT="${HOME}/git/vendor/${_GIT_USER,,}"
+else
+    _DEFAULT_OUTPUT="${HOME}/git/vendor"
+fi
+OUTPUT_DIR=$(wizard ask "Output directory" "${_DEFAULT_OUTPUT}")
 REGISTRY=$(wizard ask "Registry hostname (e.g. git.example.com)")
 SOPS_CONFIG=$(wizard ask "SOPS config path" "config/myserver.sops.env")
 
