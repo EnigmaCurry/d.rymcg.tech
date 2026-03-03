@@ -261,8 +261,7 @@ if [[ -n "${_PROJECTS:-}" ]]; then
     done
 fi
 
-## Step 9: Auto-create env file for the target project if running "d make <project> ..."
-## This handles projects not included in the SOPS config (e.g. traefik).
+## Step 9: Check that the target project has an env file before exec
 _cmd_args=("$@")
 for i in "${!_cmd_args[@]}"; do
     if [[ "${_cmd_args[$i]}" == "make" && $((i+1)) -lt ${#_cmd_args[@]} ]]; then
@@ -270,8 +269,10 @@ for i in "${!_cmd_args[@]}"; do
         if [[ -d "${ROOT_DIR}/${_target_project}" && -f "${ROOT_DIR}/${_target_project}/.env-dist" ]]; then
             _target_env="${ROOT_DIR}/${_target_project}/.env_${DOCKER_CONTEXT}_default"
             if [[ ! -f "${_target_env}" ]]; then
-                cp "${ROOT_DIR}/${_target_project}/.env-dist" "${_target_env}"
-                echo "## Created ${_target_env} from .env-dist" >&2
+                echo "ERROR: ${_target_env} not found." >&2
+                echo "  The project '${_target_project}' was not included in the SOPS config (${SOPS_CONFIG_FILE:-unset})." >&2
+                echo "  Add it via: admin.sh config → Add project → ${_target_project}" >&2
+                exit 1
             fi
         fi
         break
