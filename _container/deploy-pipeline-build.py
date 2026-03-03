@@ -147,6 +147,20 @@ def build_steps(forgejo, owner, github_url):
 {key_section}""",
         ),
         (
+            "Create GitHub fine-grained Personal Access Token",
+            f"""\
+  Forgejo needs a GitHub token to authenticate when pulling the mirror.
+  Create a fine-grained Personal Access Token on GitHub:
+
+    https://github.com/settings/personal-access-tokens
+
+  - Click "Generate new token"
+  - Token name: e.g. "forgejo-mirror"
+  - Repository access: select "Public Repositories (read-only)"
+  - No additional permissions are needed
+  - Click "Generate token" and copy it for the next step""",
+        ),
+        (
             "Create GitHub pull mirror",
             f"""\
   Create a mirror of the d.rymcg.tech repo so Forgejo tracks upstream changes.
@@ -157,10 +171,11 @@ def build_steps(forgejo, owner, github_url):
 
   - Select GitHub as the source
   - Repo URL: {github_url}
+  - Enter your GitHub username and the Personal Access Token from the previous step
   - Check "This repository will be a mirror"
   - Click "Migrate Repository"
 
-  The mirror polls GitHub on an interval (default 8h). The next step
+  The mirror polls GitHub on an interval (default 8h). A later step
   sets up a webhook for instant sync.""",
         ),
         (
