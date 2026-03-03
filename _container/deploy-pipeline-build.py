@@ -64,7 +64,7 @@ def get_ssh_keys():
     return []
 
 
-def build_steps(forgejo, owner, github_url):
+def build_steps(forgejo, woodpecker, owner, github_url):
     """Return the list of (title, body) step tuples."""
     keys = get_ssh_keys()
     if keys:
@@ -218,7 +218,7 @@ def build_steps(forgejo, owner, github_url):
             f"""\
   Log in to Woodpecker as '{owner}':
 
-    (Open your Woodpecker instance URL)
+    https://{woodpecker}
 
   - Click "Add repository"
   - Find the d.rymcg.tech mirror repo in the list
@@ -233,11 +233,11 @@ def build_steps(forgejo, owner, github_url):
   First, log in to Woodpecker as an admin and copy the two export
   statements from the CLI and API page:
 
-    https://woodpecker.YOUR_DOMAIN/user/cli-and-api
+    https://{woodpecker}/user/cli-and-api
 
   Paste them into your terminal:
 
-    export WOODPECKER_SERVER=https://woodpecker.YOUR_DOMAIN
+    export WOODPECKER_SERVER=https://{woodpecker}
     export WOODPECKER_TOKEN=<your-token>
 
   Then run:
@@ -297,6 +297,11 @@ def main():
         print("Error: Forgejo hostname is required.", file=sys.stderr)
         sys.exit(1)
 
+    woodpecker = prompt("Woodpecker hostname (e.g. woodpecker.example.com)")
+    if not woodpecker:
+        print("Error: Woodpecker hostname is required.", file=sys.stderr)
+        sys.exit(1)
+
     github_url = prompt(
         "GitHub repo URL",
         "https://github.com/EnigmaCurry/d.rymcg.tech",
@@ -324,7 +329,7 @@ def main():
         print("Error: Repository owner is required.", file=sys.stderr)
         sys.exit(1)
 
-    steps = build_steps(forgejo, owner, github_url)
+    steps = build_steps(forgejo, woodpecker, owner, github_url)
     total = len(steps)
     index = 0
 
