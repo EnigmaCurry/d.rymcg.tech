@@ -1,5 +1,5 @@
 # Build context must be the d.rymcg.tech root directory.
-# Build with: docker build -f nix/docker/Dockerfile -t d-rymcg-tech .
+# Build with: docker build -f _container/Dockerfile -t d-rymcg-tech .
 
 FROM alpine:3.21
 
@@ -65,7 +65,7 @@ RUN printf '%s\n' \
 COPY --chown=1000:1000 . /home/user/git/vendor/enigmacurry/d.rymcg.tech
 WORKDIR /home/user/git/vendor/enigmacurry/d.rymcg.tech
 
-COPY --chown=1000:1000 nix/docker/entrypoint.sh /entrypoint.sh
+COPY --chown=1000:1000 _container/entrypoint.sh /entrypoint.sh
 RUN chmod +x /entrypoint.sh
 
 USER user
