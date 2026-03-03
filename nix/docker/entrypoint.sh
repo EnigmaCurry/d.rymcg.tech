@@ -84,10 +84,11 @@ if [[ -n "${BAO_ADDR:-}" ]]; then
     echo "## OpenBao: logging in via AppRole" >&2
     BAO_NAMESPACE_HEADER=()
     [[ -n "${BAO_NAMESPACE:-}" ]] && BAO_NAMESPACE_HEADER=(-H "X-Vault-Namespace: ${BAO_NAMESPACE}")
-    LOGIN_RESPONSE=$(curl -sf "${BAO_CURL_FLAGS[@]}" "${BAO_NAMESPACE_HEADER[@]}" \
+    echo "## OpenBao: connecting to ${BAO_ADDR}/v1/${BAO_AUTH_PATH}/login" >&2
+    LOGIN_RESPONSE=$(curl -v "${BAO_CURL_FLAGS[@]}" "${BAO_NAMESPACE_HEADER[@]}" \
         --request POST \
         --data "{\"role_id\":\"${BAO_ROLE_ID}\",\"secret_id\":\"${BAO_SECRET_ID}\"}" \
-        "${BAO_ADDR}/v1/${BAO_AUTH_PATH}/login")
+        "${BAO_ADDR}/v1/${BAO_AUTH_PATH}/login") || echo "## OpenBao: curl exit code $?" >&2
     BAO_TOKEN=$(echo "${LOGIN_RESPONSE}" | jq -r '.auth.client_token')
     if [[ -z "${BAO_TOKEN}" || "${BAO_TOKEN}" == "null" ]]; then
         echo "ERROR: OpenBao AppRole login failed" >&2
