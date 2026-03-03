@@ -219,25 +219,25 @@ cmd_ci() {
         fi
         FORGE_API="https://${FORGE_HOST}/api/v1"
         CREATE_BODY=$(jq -n --arg name "${REPO_NAME}" '{name: $name, private: true}')
+        # Check if the owner is a Forgejo org or user
+        ORG_CHECK=$(curl -sS -o /dev/null -w '%{http_code}' \
+            -H "Authorization: token ${FORGEJO_TOKEN}" \
+            "${FORGE_API}/orgs/${REPO_OWNER}")
+        if [[ "${ORG_CHECK}" == "200" ]]; then
+            CREATE_URL="${FORGE_API}/orgs/${REPO_OWNER}/repos"
+        else
+            CREATE_URL="${FORGE_API}/user/repos"
+        fi
         CREATE_RESULT=$(curl -sS -w '\n%{http_code}' -X POST \
             -H "Authorization: token ${FORGEJO_TOKEN}" \
             -H "Content-Type: application/json" \
-            "${FORGE_API}/user/repos" \
+            "${CREATE_URL}" \
             -d "${CREATE_BODY}")
         CREATE_HTTP=$(echo "${CREATE_RESULT}" | tail -1)
         if [[ "${CREATE_HTTP}" -ge 400 ]]; then
-            # Try creating under the org instead
-            CREATE_RESULT=$(curl -sS -w '\n%{http_code}' -X POST \
-                -H "Authorization: token ${FORGEJO_TOKEN}" \
-                -H "Content-Type: application/json" \
-                "${FORGE_API}/orgs/${REPO_OWNER}/repos" \
-                -d "${CREATE_BODY}")
-            CREATE_HTTP=$(echo "${CREATE_RESULT}" | tail -1)
-            if [[ "${CREATE_HTTP}" -ge 400 ]]; then
-                echo "Error: Could not create repository on Forgejo." >&2
-                echo "${CREATE_RESULT}" | sed '$d' >&2
-                exit 1
-            fi
+            echo "Error: Could not create repository on Forgejo." >&2
+            echo "${CREATE_RESULT}" | sed '$d' >&2
+            exit 1
         fi
         echo "Created ${REPO_FULL_NAME} on Forgejo"
         echo "Pushing..."
