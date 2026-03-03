@@ -1,20 +1,41 @@
 # Build context must be the d.rymcg.tech root directory.
 # Build with: docker build -f nix/docker/Dockerfile -t d-rymcg-tech .
 
-FROM nixos/nix:latest
+FROM alpine:3.21
 
-COPY nix/docker/packages.nix /tmp/packages.nix
+# Install all runtime packages from Alpine repos
+RUN apk add --no-cache \
+    bash \
+    make \
+    git \
+    openssl \
+    apache2-utils \
+    jq \
+    curl \
+    moreutils \
+    inotify-tools \
+    gettext \
+    ipcalc \
+    openssh-client \
+    docker-cli \
+    python3 \
+    sops \
+    age \
+    ca-certificates \
+    tar \
+    gzip \
+    coreutils \
+    findutils \
+    grep \
+    sed \
+    gawk
 
-# Install packages as root (nix is only available as root in this image)
-RUN NIX_BUILD=$(readlink $(which nix-build)) NIX_ENV=$(readlink $(which nix-env)) \
- && export NIX_SSL_CERT_FILE=$(readlink -f /root/.nix-profile/etc/ssl/certs/ca-bundle.crt) \
- && $NIX_ENV -e '.*' \
- && RESULT=$($NIX_BUILD --no-out-link -E 'let pkgs = import <nixpkgs> {}; in pkgs.buildEnv { name = "ci-packages"; paths = import /tmp/packages.nix { inherit pkgs; }; }') \
- && $NIX_ENV -i "$RESULT"
+# Install uv (Python package manager)
+COPY --from=ghcr.io/astral-sh/uv:latest /uv /usr/local/bin/uv
 
 # Install script-wizard from .tools.lock.json
 COPY .tools.lock.json /tmp/.tools.lock.json
-RUN export PATH="/root/.nix-profile/bin:${PATH}"; set -e; \
+RUN set -e; \
     VERSION=$(jq -r '.dependencies["script-wizard"].version' /tmp/.tools.lock.json); \
     case "$(uname -m)" in \
       x86_64)  ARCH=x86_64 ;; \
@@ -22,24 +43,15 @@ RUN export PATH="/root/.nix-profile/bin:${PATH}"; set -e; \
       *)       echo "Unsupported arch: $(uname -m)" >&2; exit 1 ;; \
     esac; \
     curl -fsSL "https://github.com/EnigmaCurry/script-wizard/releases/download/v${VERSION}/script-wizard-Linux-${ARCH}.tar.gz" \
-      | tar xz -C /root/.nix-profile/bin; \
+      | tar xz -C /usr/local/bin; \
     rm /tmp/.tools.lock.json
 
-# Symlink /bin/bash for scripts with #!/bin/bash shebangs
-RUN ln -sf /root/.nix-profile/bin/bash /bin/bash
-
-# Create non-root user and link nix profile
-RUN export PATH="/root/.nix-profile/bin:${PATH}" \
- && echo "user:x:1000:1000::/home/user:/bin/bash" >> /etc/passwd \
- && echo "user:x:1000:" >> /etc/group \
- && mkdir -p /home/user \
- && ln -s /root/.nix-profile /home/user/.nix-profile \
+# Create non-root user
+RUN adduser -D -u 1000 -h /home/user -s /bin/bash user \
  && mkdir -p /run/secrets/ssh \
  && chown -R 1000:1000 /home/user /run/secrets/ssh
 
-ENV PATH="/home/user/git/vendor/enigmacurry/d.rymcg.tech/_scripts/user:/home/user/.nix-profile/bin:${PATH}"
-ENV SSL_CERT_FILE="/home/user/.nix-profile/etc/ssl/certs/ca-bundle.crt"
-ENV NIX_SSL_CERT_FILE="/home/user/.nix-profile/etc/ssl/certs/ca-bundle.crt"
+ENV PATH="/home/user/git/vendor/enigmacurry/d.rymcg.tech/_scripts/user:/usr/local/bin:${PATH}"
 ENV HOME="/home/user"
 RUN printf '%s\n' \
   'PS1="\n[d.rymcg.tech|$DOCKER_CONTEXT] \w\n\$ "' \
