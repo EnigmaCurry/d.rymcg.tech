@@ -156,6 +156,7 @@ def build_steps(forgejo, owner, github_url):
 
   - Click "Generate new token"
   - Token name: e.g. "forgejo-mirror"
+  - Expiration: No expiration
   - Repository access: select "Public Repositories (read-only)"
   - No additional permissions are needed
   - Click "Generate token" and copy it for the next step""",
