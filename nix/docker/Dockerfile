@@ -18,7 +18,6 @@ RUN apk add --no-cache \
     ipcalc \
     openssh-client \
     docker-cli \
-    python3 \
     sops \
     age \
     ca-certificates \
