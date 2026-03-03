@@ -201,7 +201,11 @@ if [[ -n "${SOPS_CONFIG_FILE:-}" ]]; then
     echo "## SOPS config loaded" >&2
 fi
 
-## Step 4: Validate DOCKER_CONTEXT (may come from SOPS config or container env)
+## Step 4: Validate DOCKER_CONTEXT (may come from SOPS config, container env, or SOPS filename)
+if [[ -z "${DOCKER_CONTEXT:-}" && -n "${SOPS_CONFIG_FILE:-}" ]]; then
+    # Derive context name from SOPS config filename (e.g. config/d2.sops.env → d2)
+    DOCKER_CONTEXT="$(basename "${SOPS_CONFIG_FILE}" .sops.env)"
+fi
 DOCKER_CONTEXT="${DOCKER_CONTEXT:-${SSH_HOST}}"
 if [[ -z "${DOCKER_CONTEXT}" ]]; then
     echo "ERROR: DOCKER_CONTEXT is required (set DOCKER_CONTEXT or SSH_HOST)" >&2
