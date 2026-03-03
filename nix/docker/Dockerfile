@@ -29,8 +29,9 @@ RUN apk add --no-cache \
     sed \
     gawk
 
-# Install uv (Python package manager)
+# Install uv (Python package manager) and seed its managed Python
 COPY --from=ghcr.io/astral-sh/uv:latest /uv /usr/local/bin/uv
+RUN uv python install
 
 # Install script-wizard from .tools.lock.json
 COPY .tools.lock.json /tmp/.tools.lock.json
