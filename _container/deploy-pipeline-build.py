@@ -292,15 +292,13 @@ def main():
     print("  step with personalized URLs, but does not automate any actions.")
     print()
 
-    forgejo = prompt("Forgejo hostname (e.g. git.example.com)")
-    if not forgejo:
-        print("Error: Forgejo hostname is required.", file=sys.stderr)
-        sys.exit(1)
+    forgejo = ""
+    while not forgejo:
+        forgejo = prompt("Forgejo hostname (e.g. git.example.com)")
 
-    woodpecker = prompt("Woodpecker hostname (e.g. woodpecker.example.com)")
-    if not woodpecker:
-        print("Error: Woodpecker hostname is required.", file=sys.stderr)
-        sys.exit(1)
+    woodpecker = ""
+    while not woodpecker:
+        woodpecker = prompt("Woodpecker hostname (e.g. woodpecker.example.com)")
 
     github_url = prompt(
         "GitHub repo URL",
@@ -324,10 +322,9 @@ def main():
     print(f"  like '{default_owner}' is appropriate. The account will be created")
     print("  in a later step.")
     print()
-    owner = prompt("Repository owner / CI account name", default_owner)
-    if not owner:
-        print("Error: Repository owner is required.", file=sys.stderr)
-        sys.exit(1)
+    owner = ""
+    while not owner:
+        owner = prompt("Repository owner / CI account name", default_owner)
 
     steps = build_steps(forgejo, woodpecker, owner, github_url)
     total = len(steps)
