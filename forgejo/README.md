@@ -98,9 +98,13 @@ To use this with GitHub mirror-sync webhooks:
  2. Run `make install` to apply.
  3. Create a DNS record pointing the webhook domain to your Traefik
     server.
- 4. In GitHub, add a webhook with the URL:
-    `https://git-webhook.example.com/api/v1/repos/{owner}/{repo}/mirror-sync`
-    using `POST` method and a Forgejo API token for authentication.
+ 4. Create a Forgejo API token with the `write:repository` scope.
+    Note: Forgejo tokens are account-scoped, not repo-scoped, so the
+    token grants write access to all repos the account can reach.
+    Consider creating a dedicated service account that only has access
+    to the repos being mirrored.
+ 5. In GitHub, add a webhook with the URL:
+    `https://git-webhook.example.com/api/v1/repos/{owner}/{repo}/mirror-sync?token=YOUR_TOKEN`
 
 ## Reset root password
 
