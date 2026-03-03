@@ -38,6 +38,13 @@ else
     _DEFAULT_OUTPUT="${HOME}/git"
 fi
 OUTPUT_DIR=$(wizard ask "Output directory" "${_DEFAULT_OUTPUT}")
+
+DEST="${OUTPUT_DIR}/${NAME}"
+if [[ -e "${DEST}" ]]; then
+    echo "Error: ${DEST} already exists."
+    exit 1
+fi
+
 REGISTRY=$(wizard ask "Forgejo hostname (e.g. git.example.com)")
 REPO_OWNER=$(wizard ask "Repository owner (Forgejo user must be a member of Woodpecker CI Org)")
 CONTEXT_NAME=$(wizard ask "Context name (SSH host alias)")
@@ -48,13 +55,6 @@ BAO_CLIENT_CERT=false
 BAO_CLIENT_KEY=false
 wizard confirm "Does your OpenBao server use a private CA certificate?" no && BAO_CACERT=true
 wizard confirm "Does your OpenBao server require mTLS client authentication?" no && { BAO_CLIENT_CERT=true; BAO_CLIENT_KEY=true; }
-
-DEST="${OUTPUT_DIR}/${NAME}"
-
-if [[ -e "${DEST}" ]]; then
-    echo "Error: ${DEST} already exists."
-    exit 1
-fi
 
 echo ""
 echo "Creating ${DEST} ..."
