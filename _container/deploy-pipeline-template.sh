@@ -45,9 +45,8 @@ SOPS_CONFIG="config/${CONTEXT_NAME}.sops.env"
 BAO_CACERT=false
 BAO_CLIENT_CERT=false
 BAO_CLIENT_KEY=false
-wizard confirm "Include OpenBao CA cert (bao_cacert) in pipeline?" no && BAO_CACERT=true
-wizard confirm "Include OpenBao mTLS client cert (bao_client_cert) in pipeline?" no && BAO_CLIENT_CERT=true
-wizard confirm "Include OpenBao mTLS client key (bao_client_key) in pipeline?" no && BAO_CLIENT_KEY=true
+wizard confirm "Does your OpenBao server use a private CA certificate?" no && BAO_CACERT=true
+wizard confirm "Does your OpenBao server require mTLS client authentication?" no && { BAO_CLIENT_CERT=true; BAO_CLIENT_KEY=true; }
 
 DEST="${OUTPUT_DIR}/${NAME}"
 
