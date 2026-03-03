@@ -78,6 +78,34 @@ droplet-preset:
 	DEFAULT_WOODPECKER_AGENT_SECRET="$$(${BIN}/dotenv -f ${ENV_FILE} get WOODPECKER_AGENT_SECRET)" \
 	bash scripts/agent-droplet.sh gumdrop_create_preset
 
+.PHONY: trusted # Set trust levels on a Woodpecker repository
+trusted:
+	@if [ -z "$${WOODPECKER_SERVER:-}" ] || [ -z "$${WOODPECKER_TOKEN:-}" ]; then \
+		echo "WOODPECKER_SERVER and WOODPECKER_TOKEN must be set."; \
+		echo ""; \
+		TRAEFIK_HOST=$$(${BIN}/dotenv -f ${ENV_FILE} get WOODPECKER_TRAEFIK_HOST); \
+		echo "Get your Personal Access Token from:"; \
+		echo "  https://$${TRAEFIK_HOST}/user/cli-and-api"; \
+		echo ""; \
+		echo "  export WOODPECKER_SERVER=https://$${TRAEFIK_HOST}"; \
+		echo "  export WOODPECKER_TOKEN=<your-token>"; \
+		exit 1; \
+	fi
+	@echo "Fetching repository list ..."
+	@readarray -t REPOS < <(woodpecker-cli repo ls --format '{{ .FullName }}'); \
+	REPO=$$(eval "${BIN}/script-wizard choose 'Select repository' $${REPOS[@]@Q}") && \
+	readarray -t TRUST < <(${BIN}/script-wizard select "Select trust levels for $${REPO}" "network" "security" "volumes" --default '["security"]') && \
+	CMD="woodpecker-cli repo update $${REPO}"; \
+	for level in network security volumes; do \
+		if printf '%s\n' "$${TRUST[@]}" | grep -qx "$${level}"; then \
+			CMD="$${CMD} --trusted-$${level}"; \
+		else \
+			CMD="$${CMD} --trusted-$${level}=false"; \
+		fi; \
+	done; \
+	echo "$${CMD}"; \
+	eval "$${CMD}"
+
 .PHONY: shell # Enter one of the container shells
 shell:
 	@container=$$(eval "${BIN}/script-wizard choose 'docker exec -it into which container?' 'server' 'agent' --default 'server'") && make --no-print-directory docker-compose-shell SERVICE=$${container}
