@@ -232,8 +232,7 @@ def build_steps(forgejo, owner, github_url):
 
   Run:
 
-    cd d.rymcg.tech/woodpecker
-    make trusted
+    d.rymcg.tech make woodpecker trusted
 
   This will prompt for a Woodpecker admin API token, let you select the
   repository, and choose which trust levels to enable. For Docker image
