@@ -1,0 +1,133 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+SCRIPT_DIR="$(dirname "$(readlink -f "$0")")"
+TEMPLATE_DIR="${SCRIPT_DIR}/templates/deploy-pipeline-template"
+
+BIN=$(dirname "${SCRIPT_DIR}")
+source "${BIN}/_scripts/funcs.sh"
+
+wizard() {
+    local subcmd="$1"; shift
+    local rc=0
+    case "${subcmd}" in
+        confirm|choose)
+            d.rymcg.tech script wizard "${subcmd}" --cancel-code=2 "$@" || rc=$?
+            ;;
+        *)
+            d.rymcg.tech script wizard "${subcmd}" "$@" || rc=$?
+            ;;
+    esac
+    if [[ $rc -eq 2 || $rc -ge 128 ]]; then
+        exit 130
+    fi
+    return $rc
+}
+
+echo "=== Scaffold a new deployment pipeline repo ==="
+echo ""
+
+NAME=$(wizard ask "Repo name" "my-deploy")
+OUTPUT_DIR=$(wizard ask "Output directory" "$(pwd)")
+REGISTRY=$(wizard ask "Registry hostname (e.g. git.example.com)")
+SOPS_CONFIG=$(wizard ask "SOPS config path" "config/myserver.sops.env")
+
+BAO_CACERT=false
+BAO_CLIENT_CERT=false
+BAO_CLIENT_KEY=false
+wizard confirm "Include OpenBao CA cert (bao_cacert) in pipeline?" no && BAO_CACERT=true
+wizard confirm "Include OpenBao mTLS client cert (bao_client_cert) in pipeline?" no && BAO_CLIENT_CERT=true
+wizard confirm "Include OpenBao mTLS client key (bao_client_key) in pipeline?" no && BAO_CLIENT_KEY=true
+
+DEST="${OUTPUT_DIR}/${NAME}"
+
+if [[ -e "${DEST}" ]]; then
+    echo "Error: ${DEST} already exists."
+    exit 1
+fi
+
+echo ""
+echo "Creating ${DEST} ..."
+
+# Copy template files (excluding the .j2 template)
+mkdir -p "${DEST}/.woodpecker" "${DEST}/config"
+cp "${TEMPLATE_DIR}/Makefile" "${DEST}/Makefile"
+cp "${TEMPLATE_DIR}/admin.sh" "${DEST}/admin.sh"
+cp "${TEMPLATE_DIR}/README.md" "${DEST}/README.md"
+cp "${TEMPLATE_DIR}/CLAUDE.md" "${DEST}/CLAUDE.md"
+cp "${TEMPLATE_DIR}/.gitignore" "${DEST}/.gitignore"
+cp "${TEMPLATE_DIR}/config/.gitignore" "${DEST}/config/.gitignore"
+
+# Render deploy.yaml from the .j2 template
+RENDER_SCRIPT=$(mktemp --suffix=.py)
+trap 'rm -f "${RENDER_SCRIPT}"' EXIT
+cat > "${RENDER_SCRIPT}" << 'PYEOF'
+# /// script
+# requires-python = ">=3.11"
+# dependencies = ["jinja2"]
+# ///
+import argparse
+from pathlib import Path
+from jinja2 import Environment, FileSystemLoader
+
+parser = argparse.ArgumentParser()
+parser.add_argument("--template-dir", required=True)
+parser.add_argument("--output", required=True)
+parser.add_argument("--registry", required=True)
+parser.add_argument("--sops-config", required=True)
+parser.add_argument("--bao-cacert", action="store_true")
+parser.add_argument("--bao-client-cert", action="store_true")
+parser.add_argument("--bao-client-key", action="store_true")
+args = parser.parse_args()
+
+env = Environment(
+    loader=FileSystemLoader(args.template_dir),
+    keep_trailing_newline=True,
+    trim_blocks=True,
+    lstrip_blocks=True,
+)
+template = env.get_template("deploy.yaml.j2")
+output = Path(args.output)
+output.write_text(template.render(
+    registry=args.registry,
+    sops_config=args.sops_config,
+    bao_cacert=args.bao_cacert,
+    bao_client_cert=args.bao_client_cert,
+    bao_client_key=args.bao_client_key,
+))
+print(f"Rendered {output}")
+PYEOF
+
+RENDER_ARGS=("--template-dir" "${TEMPLATE_DIR}/.woodpecker"
+             "--output" "${DEST}/.woodpecker/deploy.yaml"
+             "--registry" "${REGISTRY}" "--sops-config" "${SOPS_CONFIG}")
+[[ "${BAO_CACERT}" == true ]] && RENDER_ARGS+=("--bao-cacert")
+[[ "${BAO_CLIENT_CERT}" == true ]] && RENDER_ARGS+=("--bao-client-cert")
+[[ "${BAO_CLIENT_KEY}" == true ]] && RENDER_ARGS+=("--bao-client-key")
+uv run "${RENDER_SCRIPT}" "${RENDER_ARGS[@]}"
+
+# Replace __NAME__ with the repo name in all text files
+find "${DEST}" -type f \( -name '*.md' -o -name '*.sh' -o -name '*.yaml' -o -name 'Makefile' \) \
+    -exec sed -i "s/__NAME__/${NAME}/g" {} +
+
+# Make admin.sh executable
+chmod +x "${DEST}/admin.sh"
+
+# Initialize git repo
+git -C "${DEST}" init
+git -C "${DEST}" add -A
+git -C "${DEST}" commit -m "Initial commit"
+
+echo ""
+echo "=== Done! ==="
+echo ""
+echo "Your new deployment repo is ready at: ${DEST}"
+echo ""
+echo "Next steps:"
+echo "  1. cd ${DEST}"
+echo "  2. Edit .woodpecker/deploy.yaml to customize the deploy steps"
+echo "  3. Run 'make config' to create an encrypted config for your target server"
+echo "  4. Create a Forgejo repo and push:"
+echo "       git remote add origin <your-forgejo-url>"
+echo "       git push -u origin master"
+echo "  5. Run 'make ci' to activate Woodpecker CI and set secrets"

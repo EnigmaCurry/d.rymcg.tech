@@ -1,0 +1,2 @@
+# Keep this directory in git (config files are added explicitly)
+!.gitignore
