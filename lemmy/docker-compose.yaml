@@ -112,7 +112,7 @@ services:
       - "backup-volume.stop-during-backup=true"
 
   postgres:
-    image: postgres:15-alpine
+    image: ${LEMMY_POSTGRES_IMAGE}
     hostname: postgres
     environment:
       - POSTGRES_USER=lemmy
