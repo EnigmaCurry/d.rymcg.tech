@@ -39,7 +39,7 @@ else
 fi
 OUTPUT_DIR=$(wizard ask "Output directory" "${_DEFAULT_OUTPUT}")
 REGISTRY=$(wizard ask "Forgejo hostname (e.g. git.example.com)")
-REPO_OWNER=$(wizard ask "Repository owner (Woodpecker Org CI Runner)")
+REPO_OWNER=$(wizard ask "Repository owner (Forgejo user must be a member of Woodpecker CI Org)")
 CONTEXT_NAME=$(wizard ask "Context name (SSH host alias)")
 SOPS_CONFIG="config/${CONTEXT_NAME}.sops.env"
 
