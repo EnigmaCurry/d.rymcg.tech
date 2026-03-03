@@ -61,9 +61,10 @@ RUN printf '%s\n' \
   > /home/user/.bashrc \
  && chown 1000:1000 /home/user/.bashrc
 
-# Copy the d.rymcg.tech repo
+# Copy the d.rymcg.tech repo (strip git history to save space)
 COPY --chown=1000:1000 . /home/user/git/vendor/enigmacurry/d.rymcg.tech
 WORKDIR /home/user/git/vendor/enigmacurry/d.rymcg.tech
+RUN rm -rf .git
 
 COPY --chown=1000:1000 _container/entrypoint.sh /entrypoint.sh
 RUN chmod +x /entrypoint.sh
