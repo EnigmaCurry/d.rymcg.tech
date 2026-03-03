@@ -93,19 +93,24 @@ trusted:
 		exit 1; \
 	fi
 	@echo "Fetching repository list ..."
-	@readarray -t REPOS < <(woodpecker-cli repo ls --format '{{ .FullName }}'); \
+	@readarray -t REPOS < <(curl -s -H "Authorization: Bearer $${WOODPECKER_TOKEN}" "$${WOODPECKER_SERVER}/api/repos" | jq -r '.[].full_name' | sort); \
 	REPO=$$(eval "${BIN}/script-wizard choose 'Select repository' $${REPOS[@]@Q}") && \
+	REPO_ID=$$(curl -s -H "Authorization: Bearer $${WOODPECKER_TOKEN}" "$${WOODPECKER_SERVER}/api/repos/lookup/$${REPO}" | jq -r '.id') && \
 	readarray -t TRUST < <(${BIN}/script-wizard select "Select trust levels for $${REPO}" "network" "security" "volumes" --default '["security"]') && \
-	CMD="woodpecker-cli repo update $${REPO}"; \
-	for level in network security volumes; do \
-		if printf '%s\n' "$${TRUST[@]}" | grep -qx "$${level}"; then \
-			CMD="$${CMD} --trusted-$${level}"; \
-		else \
-			CMD="$${CMD} --trusted-$${level}=false"; \
-		fi; \
+	NETWORK=false; SECURITY=false; VOLUMES=false; \
+	for level in "$${TRUST[@]}"; do \
+		case "$${level}" in \
+			network) NETWORK=true;; \
+			security) SECURITY=true;; \
+			volumes) VOLUMES=true;; \
+		esac; \
 	done; \
-	echo "$${CMD}"; \
-	eval "$${CMD}"
+	echo "Setting trust for $${REPO}: network=$${NETWORK} security=$${SECURITY} volumes=$${VOLUMES}"; \
+	curl -s -X PATCH \
+		-H "Authorization: Bearer $${WOODPECKER_TOKEN}" \
+		-H "Content-Type: application/json" \
+		-d "{\"trusted\":{\"network\":$${NETWORK},\"security\":$${SECURITY},\"volumes\":$${VOLUMES}}}" \
+		"$${WOODPECKER_SERVER}/api/repos/$${REPO_ID}" | jq '{full_name: .full_name, trusted: .trusted}'
 
 .PHONY: shell # Enter one of the container shells
 shell:
