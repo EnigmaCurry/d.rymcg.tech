@@ -80,6 +80,12 @@ if [[ -n "${BAO_ADDR:-}" ]]; then
         exit 1
     fi
 
+    ## Debug: show client certificate details if present
+    if [[ -n "${BAO_CLIENT_CERT:-}" && -f "${BAO_CLIENT_CERT}" ]]; then
+        echo "## OpenBao: client certificate details:" >&2
+        openssl x509 -in "${BAO_CLIENT_CERT}" -noout -subject -issuer -dates -ext subjectAltName 2>&1 | sed 's/^/##   /' >&2
+    fi
+
     ## Step 2b: AppRole authentication via curl → get BAO_TOKEN
     echo "## OpenBao: logging in via AppRole" >&2
     BAO_NAMESPACE_HEADER=()
