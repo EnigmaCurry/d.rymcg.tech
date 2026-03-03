@@ -47,7 +47,7 @@ fi
 
 REGISTRY=$(wizard ask "Forgejo hostname (e.g. git.example.com)")
 REPO_OWNER=$(wizard ask "Repository owner (Forgejo user must be a member of Woodpecker CI Org)")
-CONTEXT_NAME=$(wizard ask "Context name for initial config (SSH host alias)")
+CONTEXT_NAME=$(wizard ask "Context name for initial config (SSH/Docker host alias)")
 SOPS_CONFIG="config/${CONTEXT_NAME}.sops.env"
 
 BAO_CACERT=false
