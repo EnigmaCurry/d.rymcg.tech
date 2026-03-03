@@ -84,8 +84,9 @@ trusted:
 		echo "WOODPECKER_SERVER and WOODPECKER_TOKEN must be set."; \
 		echo ""; \
 		TRAEFIK_HOST=$$(${BIN}/dotenv -f ${ENV_FILE} get WOODPECKER_TRAEFIK_HOST); \
-		echo "Get your Personal Access Token from:"; \
+		echo "Create a temporary admin API token at:"; \
 		echo "  https://$${TRAEFIK_HOST}/user/cli-and-api"; \
+		echo "(you can delete the token after you are done)"; \
 		echo ""; \
 		echo "  export WOODPECKER_SERVER=https://$${TRAEFIK_HOST}"; \
 		echo "  export WOODPECKER_TOKEN=<your-token>"; \
