@@ -29,9 +29,8 @@ RUN apk add --no-cache \
     sed \
     gawk
 
-# Install uv (Python package manager) and seed its managed Python
-COPY --from=ghcr.io/astral-sh/uv:latest /uv /usr/local/bin/uv
-RUN uv python install
+# Install uv (Python package manager)
+RUN curl -fsSL https://astral.sh/uv/install.sh | UV_INSTALL_DIR=/usr/local/bin sh
 
 # Install script-wizard from .tools.lock.json
 COPY .tools.lock.json /tmp/.tools.lock.json
@@ -69,5 +68,8 @@ COPY --chown=1000:1000 nix/docker/entrypoint.sh /entrypoint.sh
 RUN chmod +x /entrypoint.sh
 
 USER user
+# Seed uv-managed Python into user's home
+RUN uv python install
+
 ENTRYPOINT ["/entrypoint.sh"]
 CMD ["bash"]
