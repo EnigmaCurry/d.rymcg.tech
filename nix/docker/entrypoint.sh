@@ -85,13 +85,21 @@ if [[ -n "${BAO_ADDR:-}" ]]; then
     BAO_NAMESPACE_HEADER=()
     [[ -n "${BAO_NAMESPACE:-}" ]] && BAO_NAMESPACE_HEADER=(-H "X-Vault-Namespace: ${BAO_NAMESPACE}")
     echo "## OpenBao: connecting to ${BAO_ADDR}/v1/${BAO_AUTH_PATH}/login" >&2
-    LOGIN_RESPONSE=$(curl -v "${BAO_CURL_FLAGS[@]}" "${BAO_NAMESPACE_HEADER[@]}" \
+    LOGIN_HTTP_CODE=0
+    LOGIN_RESPONSE=$(curl -v -w '\n%{http_code}' "${BAO_CURL_FLAGS[@]}" "${BAO_NAMESPACE_HEADER[@]}" \
         --request POST \
         --data "{\"role_id\":\"${BAO_ROLE_ID}\",\"secret_id\":\"${BAO_SECRET_ID}\"}" \
         "${BAO_ADDR}/v1/${BAO_AUTH_PATH}/login") || echo "## OpenBao: curl exit code $?" >&2
+    LOGIN_HTTP_CODE=$(echo "${LOGIN_RESPONSE}" | tail -1)
+    LOGIN_RESPONSE=$(echo "${LOGIN_RESPONSE}" | sed '$d')
+    if [[ "${LOGIN_HTTP_CODE}" -ge 400 ]] 2>/dev/null; then
+        echo "ERROR: OpenBao AppRole login failed (HTTP ${LOGIN_HTTP_CODE})" >&2
+        echo "${LOGIN_RESPONSE}" >&2
+        exit 1
+    fi
     BAO_TOKEN=$(echo "${LOGIN_RESPONSE}" | jq -r '.auth.client_token')
     if [[ -z "${BAO_TOKEN}" || "${BAO_TOKEN}" == "null" ]]; then
-        echo "ERROR: OpenBao AppRole login failed" >&2
+        echo "ERROR: OpenBao AppRole login returned unexpected response" >&2
         echo "${LOGIN_RESPONSE}" >&2
         exit 1
     fi
