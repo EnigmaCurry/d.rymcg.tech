@@ -113,7 +113,7 @@ if [[ ! -f "${AGE_KEY_FILE}" ]]; then
     PUBKEY=$(grep -o 'age1[a-z0-9]*' "${AGE_KEY_FILE}" | head -1)
 
     ## Optional passphrase protection
-    if wizard confirm "Password-protect the AGE key?" no; then
+    if [[ "$(wizard confirm "Password-protect the AGE key?" no)" == "true" ]]; then
         PLAIN_KEY="${AGE_KEY_FILE}.plain"
         mv "${AGE_KEY_FILE}" "${PLAIN_KEY}"
         container_run -it "${IMAGE}" age -p < "${PLAIN_KEY}" > "${AGE_KEY_FILE}"
@@ -180,6 +180,8 @@ echo "${PLAINTEXT}" | container_run -i \
 
 echo ""
 echo "Config saved to ${CONFIG_DIR}/${CONTEXT}.sops.env"
+echo ""
+echo "Init complete for context '${CONTEXT}'."
 echo ""
 echo "Next steps:"
 echo "  d container ${CONTEXT}"
