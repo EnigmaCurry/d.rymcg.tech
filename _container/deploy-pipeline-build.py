@@ -258,7 +258,7 @@ def build_steps(forgejo, woodpecker, owner, github_url):
         (
             "Add Woodpecker secrets",
             f"""\
-  In Woodpecker (logged in as '{owner}'):
+  Log in to Woodpecker as '{owner}':
 
     https://{woodpecker}
 
