@@ -26,8 +26,11 @@ when:
   - event: [push, manual]
 
 variables:
-  - &registry {{ registry }}
+{% if image_source == 'ghcr' %}
+  - &image ghcr.io/enigmacurry/d-rymcg-tech
+{% else %}
   - &image {{ registry }}/${CI_REPO_OWNER}/d-rymcg-tech
+{% endif %}
   - &config
     image: *image
     pull: true

@@ -47,6 +47,12 @@ fi
 
 REGISTRY=$(wizard ask "Forgejo hostname (e.g. git.example.com)")
 REPO_OWNER=$(wizard ask "Repository owner (Forgejo user must be a member of Woodpecker CI Org)")
+IMAGE_SOURCE=$(wizard choose "Where is the d-rymcg-tech Docker image hosted?" "ghcr.io (GitHub Container Registry)" "Forgejo registry (${REGISTRY})")
+if [[ "${IMAGE_SOURCE}" == "ghcr.io"* ]]; then
+    IMAGE_SOURCE=ghcr
+else
+    IMAGE_SOURCE=forgejo
+fi
 CONTEXT_NAME=$(wizard ask "Context name for initial config (SSH/Docker host alias)")
 SOPS_CONFIG="config/${CONTEXT_NAME}.sops.env"
 
@@ -88,6 +94,7 @@ parser.add_argument("--sops-config", required=True)
 parser.add_argument("--bao-cacert", action="store_true")
 parser.add_argument("--bao-client-cert", action="store_true")
 parser.add_argument("--bao-client-key", action="store_true")
+parser.add_argument("--image-source", default="forgejo", choices=["ghcr", "forgejo"])
 args = parser.parse_args()
 
 env = Environment(
@@ -101,6 +108,7 @@ output = Path(args.output)
 output.write_text(template.render(
     registry=args.registry,
     sops_config=args.sops_config,
+    image_source=args.image_source,
     bao_cacert=args.bao_cacert,
     bao_client_cert=args.bao_client_cert,
     bao_client_key=args.bao_client_key,
@@ -110,7 +118,8 @@ PYEOF
 
 RENDER_ARGS=("--template-dir" "${TEMPLATE_DIR}/.woodpecker"
              "--output" "${DEST}/.woodpecker/deploy.yaml"
-             "--registry" "${REGISTRY}" "--sops-config" "${SOPS_CONFIG}")
+             "--registry" "${REGISTRY}" "--sops-config" "${SOPS_CONFIG}"
+             "--image-source" "${IMAGE_SOURCE}")
 [[ "${BAO_CACERT}" == true ]] && RENDER_ARGS+=("--bao-cacert")
 [[ "${BAO_CLIENT_CERT}" == true ]] && RENDER_ARGS+=("--bao-client-cert")
 [[ "${BAO_CLIENT_KEY}" == true ]] && RENDER_ARGS+=("--bao-client-key")
