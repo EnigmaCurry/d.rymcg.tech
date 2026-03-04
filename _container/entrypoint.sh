@@ -18,6 +18,21 @@ if [[ "${1:-}" == "drt" ]]; then
     exec "$@"
 fi
 
+## Preflight: detect unconfigured container
+if [[ -z "${SSH_HOST:-}" && -z "${SOPS_CONFIG_FILE:-}" && -z "${BAO_ADDR:-}" && -z "${DOCKER_CONTEXT:-}" ]]; then
+    echo "d-rymcg-tech container is not configured." >&2
+    echo "" >&2
+    echo "== Interactive usage (drt) ==" >&2
+    # Print the setup instructions from the drt script's trailing comment block
+    awk '/^###/ { if (in_block) { in_block=0 } else { in_block=1; buf="" }; next } in_block { sub(/^# ?/, ""); buf = buf $0 "\n" } END { printf "%s", buf }' /usr/local/bin/drt >&2
+    echo "" >&2
+    echo "== CI / headless usage ==" >&2
+    echo "Set environment variables: SSH_HOST, SSH_USER, SSH_PORT" >&2
+    echo "Or for OpenBao: BAO_ADDR, BAO_ROLE_ID, BAO_SECRET_ID, BAO_AGE_KEY_PATH" >&2
+    echo "See WORKSTATION_CONTAINER.md for full documentation." >&2
+    exit 1
+fi
+
 ## Helper: resolve a secret value (file path, PEM, or base64) → write to target file
 resolve_secret_to_file() {
     local value="$1" target="$2"
