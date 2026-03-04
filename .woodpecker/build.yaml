@@ -9,6 +9,8 @@
 when:
   - event: [push, cron, manual]
     branch: master
+  - event: manual
+    branch: workstation-ci
 
 skip_clone: true
 
