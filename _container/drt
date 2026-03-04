@@ -425,4 +425,6 @@ esac
 #
 # The script itself never touches the container — it runs entirely on the
 # host, orchestrating podman/docker to launch containers as needed.
+#
+# Host dependencies: bash, podman (or docker), openssh, coreutils, grep, gawk
 ###############################################################################
