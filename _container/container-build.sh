@@ -46,14 +46,19 @@ fi
 
 cd "${ROOT_DIR}"
 
-# Warn if there are uncommitted changes (git archive only includes committed files)
-if [[ -n "$(git status --porcelain 2>/dev/null)" ]]; then
+# Warn if tracked files have uncommitted changes (git archive only includes committed files)
+if [[ -n "$(git diff --name-only HEAD 2>/dev/null)" ]]; then
     echo "WARNING: There are uncommitted changes that will NOT be included in the build" >&2
     echo "         (git archive HEAD only packages committed files)" >&2
-    git status --short >&2
-    read -rp "Continue anyway? [y/N] " answer
-    if [[ "${answer}" != [yY]* ]]; then
-        echo "Aborted." >&2
+    git diff --stat HEAD >&2
+    if [[ -t 0 ]]; then
+        read -rp "Continue anyway? [y/N] " answer
+        if [[ "${answer}" != [yY]* ]]; then
+            echo "Aborted." >&2
+            exit 1
+        fi
+    else
+        echo "Aborted (run interactively to confirm, or commit changes first)." >&2
         exit 1
     fi
 fi
