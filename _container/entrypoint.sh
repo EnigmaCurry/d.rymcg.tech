@@ -32,6 +32,7 @@ resolve_secret_to_file() {
 }
 
 ## Step 1: Set up SSH key directory and credentials
+echo "## Step 1: Setting up SSH credentials" >&2
 KEY_DIR=/run/secrets/ssh
 mkdir -p "${KEY_DIR}" 2>/dev/null || KEY_DIR=$(mktemp -d)
 mkdir -p ~/.ssh
@@ -49,6 +50,7 @@ if [[ ! -f "${KEY_DIR}/id_ed25519" ]]; then
 fi
 
 ## Step 2: OpenBao integration (only runs if BAO_ADDR is set)
+echo "## Step 2: OpenBao integration" >&2
 if [[ -n "${BAO_ADDR:-}" ]]; then
     echo "## OpenBao: authenticating with ${BAO_ADDR}" >&2
 
@@ -188,6 +190,7 @@ if [[ -n "${BAO_ADDR:-}" ]]; then
 fi
 
 ## Step 3: SOPS config file loading (only runs if SOPS_CONFIG_FILE is set)
+echo "## Step 3: SOPS config loading" >&2
 if [[ -n "${SOPS_CONFIG_FILE:-}" ]]; then
     echo "## Loading SOPS config from ${SOPS_CONFIG_FILE}" >&2
     if [[ ! -f "${SOPS_CONFIG_FILE}" ]]; then
