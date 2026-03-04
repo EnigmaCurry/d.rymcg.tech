@@ -1034,15 +1034,14 @@ __restore_env() {
     for f in "${file_order[@]}"; do
         echo "  ${f}" >&2
     done
-    echo "" >&2
 
     if [[ "${yes}" != true ]]; then
+        echo "" >&2
         if ! wizard confirm "Restore these env files?" no; then
             echo "Cancelled." >&2
             exit 1
         fi
     fi
-    echo "" >&2
 
     # Second pass: write files
     for target_file in "${file_order[@]}"; do
@@ -1067,8 +1066,6 @@ __restore_env() {
         fi
 
         ${BIN}/batch-reconfigure "${target_file}" <<< "${rest}" 2>&1 >&2
-
-        echo "" >&2
     done
 }
 
