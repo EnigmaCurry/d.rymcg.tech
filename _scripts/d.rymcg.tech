@@ -932,17 +932,14 @@ __restore_env() {
         input=$(echo "${input}" | sops decrypt --input-type dotenv --output-type dotenv --filename-override export.env /dev/stdin)
     fi
 
-    # Build prefix→project mapping
+    # Build prefix→project mapping (single grep instead of per-project subprocess)
     declare -A prefix_to_dir
-    for project_dir in */; do
-        local project_name="${project_dir%/}"
-        local env_dist_file="${project_dir}.env-dist"
-        [[ -f "${env_dist_file}" ]] || continue
-        local prefix
-        prefix=$("${BIN}/parse-env-meta.sh" "${env_dist_file}" PREFIX 2>/dev/null) || continue
-        [[ -n "${prefix}" ]] || continue
-        prefix_to_dir["${prefix}"]="${project_name}"
-    done
+    while IFS=: read -r file prefix_line; do
+        local project_name="${file%%/*}"
+        local prefix="${prefix_line#*PREFIX=}"
+        prefix="${prefix%%[[:space:]]*}"
+        [[ -n "${prefix}" ]] && prefix_to_dir["${prefix}"]="${project_name}"
+    done < <(grep -m1 '# PREFIX=' */.env-dist 2>/dev/null)
 
     # Get known root var names
     declare -A root_vars
