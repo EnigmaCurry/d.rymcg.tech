@@ -154,10 +154,10 @@ fi
 mkdir -p "${CONFIG_DIR}"
 echo "${PLAINTEXT}" | container_run -i \
     "${IMAGE}" \
-    sops encrypt \
+    sh -c "cat > /tmp/plain.env && sops encrypt \
         --input-type dotenv --output-type dotenv \
         --filename-override export.env \
-        --age "${PUBKEY}" /dev/stdin \
+        --age '${PUBKEY}' /tmp/plain.env" \
     > "${CONFIG_DIR}/${CONTEXT}.sops.env"
 
 echo ""
