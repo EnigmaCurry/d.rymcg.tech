@@ -75,13 +75,14 @@ wizard() {
     local cname="wizard-$$-${RANDOM}"
     # Run interactively; redirect PTY output to stderr so the TUI
     # is visible even when this function is called inside $()
+    local answer="/tmp/wizard-answer-${cname}"
     "${ENGINE}" run -it --name "${cname}" --entrypoint "" \
-        -e "TERM=${TERM:-xterm}" \
+        -e "TERM=${TERM:-xterm}" -e "WIZARD_ANSWER=${answer}" \
         "${IMAGE}" \
-        sh -c 'script-wizard "$@" > /tmp/wizard-answer' -- "$@" >&2
+        sh -c 'script-wizard "$@" > "${WIZARD_ANSWER}"' -- "$@" >&2
     local rc=$?
     # Extract the answer to stdout (captured by $())
-    "${ENGINE}" cp "${cname}:/tmp/wizard-answer" - | tar -xO
+    "${ENGINE}" cp "${cname}:${answer}" - | tar -xO
     "${ENGINE}" rm "${cname}" >/dev/null
     return $rc
 }
