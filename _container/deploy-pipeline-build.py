@@ -273,7 +273,7 @@ def build_steps(forgejo, woodpecker, owner, github_url):
   push, manual, and cron.
 
   The build pipeline (.woodpecker/build.yaml) triggers on push to the
-  workstation-ci branch, building the image only if one doesn't exist
+  master branch, building the image only if one doesn't exist
   for the current commit SHA.""",
         ),
         (
@@ -376,7 +376,7 @@ def main():
     print(f"{'=' * 60}")
     print()
     print("  Your build pipeline should now be configured. Push to the")
-    print("  workstation-ci branch to trigger the first build.")
+    print("  master branch to trigger the first build.")
     print()
 
 

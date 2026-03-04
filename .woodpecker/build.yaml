@@ -1,5 +1,5 @@
 ## d-rymcg-tech image builder
-## Builds the Docker image from the workstation-ci branch.
+## Builds the Docker image from the master branch.
 ##
 ## Required Woodpecker secrets:
 ##   registry          - Forgejo registry hostname
@@ -8,7 +8,7 @@
 
 when:
   - event: [push, cron, manual]
-    branch: workstation-ci
+    branch: master
 
 skip_clone: true
 
@@ -43,7 +43,7 @@ steps:
         set -e
         IMAGE="$${REGISTRY}/${CI_REPO_OWNER}/d-rymcg-tech"
         SHA=$$(echo "${CI_COMMIT_SHA}" | head -c 12)
-        echo "## d.rymcg.tech workstation-ci SHA:$${SHA}"
+        echo "## d.rymcg.tech master SHA:$${SHA}"
         dockerd &
         sleep 3
         echo "$${REGISTRY_PASSWORD}" | docker login -u "$${REGISTRY_USERNAME}" --password-stdin "$${REGISTRY}"
@@ -56,7 +56,7 @@ steps:
             --platform linux/arm64 \
             --pull \
             -f _container/Dockerfile \
-            --build-arg BRANCH=workstation-ci \
+            --build-arg BRANCH=master \
             --build-arg IMAGE_SOURCE=https://$${REGISTRY}/${CI_REPO_OWNER}/${CI_REPO_NAME} \
             --cache-from "$${IMAGE}:latest" \
             --cache-to type=inline \
