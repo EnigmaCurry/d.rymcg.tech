@@ -69,9 +69,18 @@ container_run() {
     "${ENGINE}" run --rm --entrypoint "" "$@"
 }
 
-## Run script-wizard inside the container (interactive, stdin/stdout on TTY)
+## Run script-wizard inside the container
+## Writes the answer to a temp file so the TTY stays interactive
 wizard() {
-    container_run -it "${IMAGE}" script-wizard "$@"
+    local tmpfile
+    tmpfile=$(mktemp)
+    trap "rm -f '${tmpfile}'" RETURN
+    "${ENGINE}" run --rm -it --entrypoint "" \
+        -v "${tmpfile}:/tmp/wizard-answer" \
+        -e "TERM=${TERM:-xterm}" \
+        "${IMAGE}" \
+        sh -c 'script-wizard "$@" > /tmp/wizard-answer' -- "$@"
+    cat "${tmpfile}"
 }
 
 ## Context name
