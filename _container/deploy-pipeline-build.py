@@ -252,12 +252,15 @@ def build_steps(forgejo, woodpecker, owner, github_url):
 
   Create a token with scope: write:package
 
-  Save this token — you will need it in the next step as the 'registry_password' secret.""",
+  Save this token — you will need it in the next step as the 'registry_password' secret.
+
+  When done, log out of Forgejo and Woodpecker, then log back in to
+  Woodpecker as '{owner}'.""",
         ),
         (
             "Add Woodpecker secrets",
             f"""\
-  Log out of Forgejo and Woodpecker, then log back in to Woodpecker as '{owner}':
+  In Woodpecker (logged in as '{owner}'):
 
     https://{woodpecker}
 
