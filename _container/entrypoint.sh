@@ -414,12 +414,15 @@ fi
 
 # Write SSH config — use Match exec for on-demand cert signing when BAO is configured
 if [[ "${BAO_USED}" == true ]]; then
+    # OpenBao signs certs for the container-generated key; disable SSH agent
+    unset SSH_AUTH_SOCK
     {
         echo "Match host ${DOCKER_CONTEXT} exec \"sign-ssh-cert\""
         echo "    HostName ${SSH_HOST}"
         echo "    User ${SSH_USER}"
         echo "    Port ${SSH_PORT}"
         echo "    IdentityFile ${KEY_DIR}/id_ed25519"
+        echo "    IdentitiesOnly yes"
         echo "    UserKnownHostsFile ${KEY_DIR}/known_hosts"
         echo "    CertificateFile ${KEY_DIR}/id_ed25519-cert.pub"
     } > ~/.ssh/config
