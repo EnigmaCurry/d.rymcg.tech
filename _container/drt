@@ -55,6 +55,7 @@ Usage:
 
 Options:
   --init [CONTEXT]   Bootstrap AGE key + SOPS config for a context
+  --clean [CONTEXT]  Remove SOPS config and/or AGE key for a context
   --extract          Print this script to stdout (self-extraction)
   --image TAG        Container image (default: localhost/d-rymcg-tech:latest)
   --docker           Use Docker instead of Podman
@@ -362,6 +363,94 @@ cmd_run() {
 }
 
 ###############################################################################
+# clean subcommand
+###############################################################################
+
+clean_usage() {
+    cat <<'EOF'
+Usage: drt --clean [OPTIONS] [CONTEXT_NAME]
+
+Remove SOPS config and/or AGE key for a context.
+
+Options:
+  --image TAG    Container image (default: localhost/d-rymcg-tech:latest)
+  --docker       Use Docker instead of Podman
+  --help         Show this help
+EOF
+}
+
+cmd_clean() {
+    local CONTEXT=""
+
+    while [[ $# -gt 0 ]]; do
+        case "$1" in
+            --image) IMAGE="$2"; shift 2 ;;
+            --docker) ENGINE=docker; shift ;;
+            --help) clean_usage; exit 0 ;;
+            -*)
+                echo "Unknown option: $1" >&2
+                clean_usage >&2
+                exit 1
+                ;;
+            *)
+                if [[ -z "${CONTEXT}" ]]; then
+                    CONTEXT="$1"
+                else
+                    echo "Error: unexpected argument: $1" >&2
+                    clean_usage >&2
+                    exit 1
+                fi
+                shift
+                ;;
+        esac
+    done
+
+    check_engine
+
+    if [[ -z "${CONTEXT}" ]]; then
+        CONTEXT=$(wizard ask "Enter the context name to clean")
+    fi
+
+    local CONFIG_FILE="${HOME}/.config/d.rymcg.tech/config/${CONTEXT}.sops.env"
+    local AGE_KEY_FILE="${HOME}/.config/d.rymcg.tech/keys/sops/${CONTEXT}.key"
+    local DELETED=false
+
+    ## Delete SOPS config
+    if [[ -f "${CONFIG_FILE}" ]]; then
+        if [[ "$(wizard confirm "Delete SOPS config ${CONFIG_FILE}?" no)" == "true" ]]; then
+            rm -f "${CONFIG_FILE}"
+            echo "Deleted: ${CONFIG_FILE}"
+            DELETED=true
+        else
+            echo "Kept: ${CONFIG_FILE}"
+        fi
+    else
+        echo "No SOPS config found: ${CONFIG_FILE}"
+    fi
+
+    ## Delete AGE key
+    if [[ -f "${AGE_KEY_FILE}" ]]; then
+        if [[ "$(wizard confirm "Delete AGE key ${AGE_KEY_FILE}?" no)" == "true" ]]; then
+            rm -f "${AGE_KEY_FILE}"
+            echo "Deleted: ${AGE_KEY_FILE}"
+            DELETED=true
+        else
+            echo "Kept: ${AGE_KEY_FILE}"
+        fi
+    else
+        echo "No AGE key found: ${AGE_KEY_FILE}"
+    fi
+
+    if [[ "${DELETED}" == true ]]; then
+        echo ""
+        echo "Clean complete for context '${CONTEXT}'."
+    else
+        echo ""
+        echo "Nothing was deleted."
+    fi
+}
+
+###############################################################################
 # extract subcommand
 ###############################################################################
 
@@ -385,7 +474,12 @@ while [[ $# -gt 0 ]]; do
         --init)
             ACTION=init
             shift
-            # Everything after --init is forwarded to cmd_init
+            ARGS+=("$@")
+            break
+            ;;
+        --clean)
+            ACTION=clean
+            shift
             ARGS+=("$@")
             break
             ;;
@@ -429,6 +523,9 @@ done
 case "${ACTION}" in
     init)
         cmd_init "${ARGS[@]+"${ARGS[@]}"}"
+        ;;
+    clean)
+        cmd_clean "${ARGS[@]+"${ARGS[@]}"}"
         ;;
     extract)
         cmd_extract
