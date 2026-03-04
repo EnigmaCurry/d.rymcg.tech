@@ -6,9 +6,7 @@
 ## Exits 1 on failure (hard fail, blocks SSH connection).
 set -eo pipefail
 
-BAO_STATE_DIR="/run/secrets/bao"
-KEY_DIR="/run/secrets/ssh"
-CERT_FILE="${KEY_DIR}/id_ed25519-cert.pub"
+BAO_STATE_DIR="${HOME}/.ssh/bao"
 LOCK_FILE="${BAO_STATE_DIR}/sign.lock"
 
 ## If no BAO state directory, this is a non-OpenBao path — exit silently
@@ -23,6 +21,8 @@ read_state() {
 }
 
 BAO_ADDR="$(read_state addr)"
+KEY_DIR="$(read_state key_dir)"
+CERT_FILE="${KEY_DIR}/id_ed25519-cert.pub"
 BAO_TOKEN="$(read_state token)"
 BAO_SSH_MOUNT="$(read_state ssh_mount)"
 BAO_SSH_ROLE="$(read_state ssh_role)"

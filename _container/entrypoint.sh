@@ -214,8 +214,8 @@ openbao_sign_ssh() {
 
 ## Persist BAO connection state for on-demand re-signing by sign-ssh-cert
 persist_bao_state() {
-    local BAO_STATE_DIR="/run/secrets/bao"
-    mkdir -p "${BAO_STATE_DIR}" 2>/dev/null || BAO_STATE_DIR=$(mktemp -d)
+    local BAO_STATE_DIR="${HOME}/.ssh/bao"
+    mkdir -p "${BAO_STATE_DIR}"
     chmod 700 "${BAO_STATE_DIR}"
 
     write_state() {
@@ -225,6 +225,7 @@ persist_bao_state() {
         fi
     }
 
+    write_state key_dir "${KEY_DIR}"
     write_state addr "${BAO_ADDR:-}"
     write_state token "${BAO_TOKEN:-}"
     write_state ssh_mount "${BAO_SSH_MOUNT:-}"
