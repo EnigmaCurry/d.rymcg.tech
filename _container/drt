@@ -26,8 +26,13 @@ check_engine() {
 }
 
 ## Run a command inside the container, bypassing the entrypoint
+## Always runs locally (--context default for docker) to avoid executing on a remote SSH context
 container_run() {
-    "${ENGINE}" run --rm --entrypoint "" "$@"
+    if [[ "${ENGINE}" == "docker" ]]; then
+        "${ENGINE}" --context default run --rm --entrypoint "" "$@"
+    else
+        "${ENGINE}" run --rm --entrypoint "" "$@"
+    fi
 }
 
 ## Run script-wizard inside the container interactively
@@ -35,15 +40,17 @@ container_run() {
 wizard() {
     local cname="wizard-$$-${RANDOM}"
     local answer="/tmp/wizard-answer-${cname}"
-    trap '"${ENGINE}" rm "${cname}" >/dev/null 2>&1' EXIT
-    "${ENGINE}" run -it --name "${cname}" --entrypoint "" \
+    local _ctx=()
+    [[ "${ENGINE}" == "docker" ]] && _ctx=(--context default)
+    trap '"${ENGINE}" "${_ctx[@]}" rm "${cname}" >/dev/null 2>&1' EXIT
+    "${ENGINE}" "${_ctx[@]}" run -it --name "${cname}" --entrypoint "" \
         -e "TERM=${TERM:-xterm}" -e "WIZARD_ANSWER=${answer}" \
         "${IMAGE}" \
         sh -c 'script-wizard "$@" > "${WIZARD_ANSWER}"' -- "$@" >&2
     local rc=$?
-    "${ENGINE}" cp "${cname}:${answer}" - | tar -xO
+    "${ENGINE}" "${_ctx[@]}" cp "${cname}:${answer}" - | tar -xO
     trap - EXIT
-    "${ENGINE}" rm "${cname}" >/dev/null
+    "${ENGINE}" "${_ctx[@]}" rm "${cname}" >/dev/null
     return $rc
 }
 
@@ -383,7 +390,11 @@ cmd_run() {
     echo "## Starting d-rymcg-tech container (${ENGINE})" >&2
     echo "## Config: ${SOPS_CONFIG}" >&2
     echo "## Image:  ${IMAGE}" >&2
-    exec "${ENGINE}" "${RUN_ARGS[@]}"
+    if [[ "${ENGINE}" == "docker" ]]; then
+        exec "${ENGINE}" --context default "${RUN_ARGS[@]}"
+    else
+        exec "${ENGINE}" "${RUN_ARGS[@]}"
+    fi
 }
 
 ###############################################################################
