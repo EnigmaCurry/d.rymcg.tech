@@ -6,34 +6,46 @@ for headless deployments to remote Docker hosts over SSH.
 
 ## Quick start (no repo needed)
 
-Extract the standalone `drt` bootstrap tool from the container image
-and use it to configure and launch a container — no git clone required:
+Run `drt` directly from the container image — no git clone or file
+extraction needed. Just define a shell alias:
 
 ```bash
-## Extract the drt script from the container image:
-podman run --rm ghcr.io/enigmacurry/d-rymcg-tech drt --extract > drt && chmod +x drt
+## Add to your ~/.bashrc or ~/.zshrc:
+alias drt='bash <(podman run --rm ghcr.io/enigmacurry/d-rymcg-tech drt --extract)'
+```
 
+Then bootstrap and launch:
+
+```bash
 ## Bootstrap a new deployment context (generates AGE key + SOPS config):
-./drt --init myserver
+drt --init myserver
 
 ## Launch the interactive container:
-./drt myserver
+drt myserver
 ```
 
 Use `--docker` instead of the default Podman engine:
 
 ```bash
-./drt --docker --init myserver
-./drt --docker myserver
+alias drt='bash <(docker run --rm ghcr.io/enigmacurry/d-rymcg-tech drt --extract)'
+drt --docker --init myserver
+drt --docker myserver
 ```
 
 Use `--image` to specify a custom image tag:
 
 ```bash
-./drt --image ghcr.io/enigmacurry/d-rymcg-tech:latest --init myserver
+drt --image ghcr.io/enigmacurry/d-rymcg-tech:latest --init myserver
 ```
 
-Run `./drt --help` for all options.
+Alternatively, extract `drt` to a local file:
+
+```bash
+podman run --rm ghcr.io/enigmacurry/d-rymcg-tech drt --extract > drt && chmod +x drt
+./drt --help
+```
+
+Run `drt --help` for all options.
 
 ## Pulling the image
 
