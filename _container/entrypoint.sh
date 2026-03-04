@@ -337,13 +337,15 @@ if [[ -n "${SOPS_AGE_KEY_FILE:-}" && -f "${SOPS_AGE_KEY_FILE}" ]]; then
     echo "## Path: local AGE key → SOPS first" >&2
     decrypt_sops
     ## After SOPS, BAO_* vars may now be set → auth + sign SSH cert if so
-    if [[ -n "${BAO_ADDR:-}" ]]; then
+    if [[ -n "${BAO_ADDR:-}" && "${BAO_SKIP:-}" != "true" ]]; then
         echo "## OpenBao vars found (from SOPS or env), authenticating..." >&2
         openbao_auth
         openbao_sign_ssh
         BAO_USED=true
+    elif [[ "${BAO_SKIP:-}" == "true" ]]; then
+        echo "## OpenBao skipped (BAO_SKIP=true), using SSH agent" >&2
     fi
-elif [[ -n "${BAO_ADDR:-}" ]]; then
+elif [[ -n "${BAO_ADDR:-}" && "${BAO_SKIP:-}" != "true" ]]; then
     ## CI path: BAO_* from container env → OpenBao first
     echo "## Path: container env BAO_* → OpenBao first" >&2
     openbao_auth

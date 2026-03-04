@@ -419,7 +419,7 @@ cmd_run() {
     local passthrough_vars=(SSH_KEY_SCAN SSH_HOST SSH_USER SSH_PORT DOCKER_CONTEXT PROJECTS
         BAO_ADDR BAO_ROLE_ID BAO_SECRET_ID BAO_AGE_KEY_PATH BAO_SSH_MOUNT
         BAO_SSH_ROLE BAO_AUTH_PATH BAO_KV_MOUNT BAO_NAMESPACE
-        BAO_CACERT BAO_CLIENT_CERT BAO_CLIENT_KEY)
+        BAO_CACERT BAO_CLIENT_CERT BAO_CLIENT_KEY BAO_SKIP)
     for var in "${passthrough_vars[@]}"; do
         if [[ -n "${!var:-}" ]]; then
             RUN_ARGS+=(-e "${var}=${!var}")
