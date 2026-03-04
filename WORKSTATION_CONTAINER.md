@@ -7,7 +7,15 @@ for headless and interactive deployments to remote Docker hosts over SSH.
 ## Quick start (no repo needed)
 
 Run `drt` directly from the container image — no git clone or file
-extraction needed. Just define a shell alias:
+extraction needed. First, pull the image:
+
+```bash
+podman pull ghcr.io/enigmacurry/d-rymcg-tech:latest
+```
+
+Then define a shell alias (the `--pull=never` flag ensures the alias
+only uses your locally pulled image, never fetching from a registry
+automatically):
 
 ```bash
 ## Add to your ~/.bashrc or ~/.zshrc:
@@ -27,6 +35,7 @@ drt myserver
 Use `--docker` instead of the default Podman engine:
 
 ```bash
+docker pull ghcr.io/enigmacurry/d-rymcg-tech:latest
 alias drt='bash <(docker run --rm --pull=never ghcr.io/enigmacurry/d-rymcg-tech drt)'
 drt --docker --init myserver
 drt --docker myserver
