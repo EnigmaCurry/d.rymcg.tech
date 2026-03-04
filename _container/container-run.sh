@@ -17,7 +17,7 @@ usage() {
     echo "Options:"
     echo "  --image TAG      Container image (default: ghcr.io/enigmacurry/d-rymcg-tech:latest)"
     echo "  --docker         Use Docker instead of Podman"
-    echo "  --age-key FILE   AGE key file (default: ~/.config/sops/age/keys.txt)"
+    echo "  --age-key FILE   AGE key file (default: ~/.config/d.rymcg.tech/keys/sops/<context>.key)"
     echo "  --ssh-key FILE   SSH key file (disables agent forwarding)"
     echo "  --no-save        Disable save-on-exit"
     echo "  --help           Show this help"
@@ -25,7 +25,7 @@ usage() {
 
 ENGINE=podman
 IMAGE=ghcr.io/enigmacurry/d-rymcg-tech:latest
-AGE_KEY_FILE="${HOME}/.config/sops/age/keys.txt"
+AGE_KEY_FILE=""
 SSH_KEY_FILE=""
 SAVE_ON_EXIT=true
 SOPS_CONFIG=""
@@ -70,8 +70,18 @@ fi
 
 # If argument is a bare context name (no slashes, no .sops.env suffix),
 # resolve to ~/.config/d.rymcg.tech/config/<context>.sops.env
+# and default the AGE key to the per-context key
 if [[ "${SOPS_CONFIG}" != */* && "${SOPS_CONFIG}" != *.sops.env ]]; then
-    SOPS_CONFIG="${HOME}/.config/d.rymcg.tech/config/${SOPS_CONFIG}.sops.env"
+    CONTEXT_NAME="${SOPS_CONFIG}"
+    SOPS_CONFIG="${HOME}/.config/d.rymcg.tech/config/${CONTEXT_NAME}.sops.env"
+    if [[ -z "${AGE_KEY_FILE}" ]]; then
+        AGE_KEY_FILE="${HOME}/.config/d.rymcg.tech/keys/sops/${CONTEXT_NAME}.key"
+    fi
+fi
+
+# Fall back to legacy default if no key resolved yet
+if [[ -z "${AGE_KEY_FILE}" ]]; then
+    AGE_KEY_FILE="${HOME}/.config/sops/age/keys.txt"
 fi
 
 # Resolve to absolute path

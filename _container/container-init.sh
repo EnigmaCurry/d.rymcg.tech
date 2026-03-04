@@ -72,17 +72,17 @@ if [[ -f "${CONFIG_DIR}/${CONTEXT}.sops.env" ]]; then
     exit 0
 fi
 
-## Ensure AGE key
-AGE_KEY_DIR="${HOME}/.config/sops/age"
-AGE_KEY_FILE="${AGE_KEY_DIR}/keys.txt"
+## Ensure AGE key (one per context)
+AGE_KEY_DIR="${HOME}/.config/d.rymcg.tech/keys/sops"
+AGE_KEY_FILE="${AGE_KEY_DIR}/${CONTEXT}.key"
 if [[ ! -f "${AGE_KEY_FILE}" ]]; then
-    echo "No AGE key found at ${AGE_KEY_FILE}"
+    echo "No AGE key found for context '${CONTEXT}'"
     echo "Generating a new AGE keypair..."
     mkdir -p "${AGE_KEY_DIR}"
     "${ENGINE}" run --rm \
         -v "${AGE_KEY_DIR}:/keys" \
         "${IMAGE}" \
-        age-keygen -o /keys/keys.txt
+        age-keygen -o "/keys/${CONTEXT}.key"
     echo "AGE key created: ${AGE_KEY_FILE}"
 else
     echo "Using existing AGE key: ${AGE_KEY_FILE}"
@@ -92,7 +92,7 @@ fi
 PUBKEY=$("${ENGINE}" run --rm \
     -v "${AGE_KEY_DIR}:/keys:ro" \
     "${IMAGE}" \
-    age-keygen -y /keys/keys.txt)
+    age-keygen -y "/keys/${CONTEXT}.key")
 echo "AGE public key: ${PUBKEY}"
 echo ""
 
