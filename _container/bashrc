@@ -18,7 +18,7 @@ if [[ "${SOPS_SAVE_ON_EXIT:-}" == "true" && -n "${SOPS_CONFIG_FILE:-}" ]]; then
         if ! diff -q "${_sops_initial_state}" "${current_state}" &>/dev/null; then
             echo "" >&2
             echo "## Configuration changes detected:" >&2
-            diff --color=auto -u "${_sops_initial_state}" "${current_state}" >&2 || true
+            diff -u "${_sops_initial_state}" "${current_state}" >&2 || true
             echo "" >&2
             read -rp "Save changes to ${SOPS_CONFIG_FILE}? [y/N] " answer
             if [[ "${answer}" =~ ^[Yy]$ ]]; then
