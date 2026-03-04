@@ -420,7 +420,34 @@ cmd_clean() {
     check_engine
 
     if [[ -z "${CONTEXT}" ]]; then
-        CONTEXT=$(wizard ask "Enter the context name to clean")
+        local KEY_DIR="${HOME}/.config/d.rymcg.tech/keys/sops"
+        local CONFIG_DIR="${HOME}/.config/d.rymcg.tech/config"
+        local CONTEXTS=()
+        if [[ -d "${KEY_DIR}" ]]; then
+            for f in "${KEY_DIR}"/*.key; do
+                [[ -f "$f" ]] || continue
+                CONTEXTS+=("$(basename "$f" .key)")
+            done
+        fi
+        if [[ -d "${CONFIG_DIR}" ]]; then
+            for f in "${CONFIG_DIR}"/*.sops.env; do
+                [[ -f "$f" ]] || continue
+                local name
+                name="$(basename "$f" .sops.env)"
+                local found=false
+                for c in ${CONTEXTS[@]+"${CONTEXTS[@]}"}; do
+                    if [[ "$c" == "$name" ]]; then found=true; break; fi
+                done
+                if [[ "$found" == false ]]; then
+                    CONTEXTS+=("$name")
+                fi
+            done
+        fi
+        if [[ ${#CONTEXTS[@]} -eq 0 ]]; then
+            echo "Nothing to clean — no contexts found."
+            return
+        fi
+        CONTEXT=$(wizard choose "Select context to clean" "${CONTEXTS[@]}")
     fi
 
     local CONFIG_FILE="${HOME}/.config/d.rymcg.tech/config/${CONTEXT}.sops.env"
