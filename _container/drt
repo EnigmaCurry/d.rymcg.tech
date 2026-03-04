@@ -342,8 +342,8 @@ cmd_run() {
         --userns=keep-id
         -e "SOPS_CONFIG_FILE=${CONTAINER_CONFIG_DIR}/${SOPS_BASENAME}"
         -v "${SOPS_CONFIG}:${CONTAINER_CONFIG_DIR}/${SOPS_BASENAME}"
-        -v "${AGE_KEY_FILE}:/home/user/.config/sops/age/keys.txt:ro"
-        -e "SOPS_AGE_KEY_FILE=/home/user/.config/sops/age/keys.txt"
+        -v "${AGE_KEY_FILE}:/run/secrets/age-key:ro"
+        -e "SOPS_AGE_KEY_FILE=/run/secrets/age-key"
     )
 
     if [[ "${SAVE_ON_EXIT}" == true ]]; then
