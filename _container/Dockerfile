@@ -28,8 +28,13 @@ RUN apk add --no-cache \
     grep \
     sed \
     gawk \
+    nano \
     gcompat \
     libgcc
+
+# Install optional extra packages requested at build time
+ARG EXTRA_PACKAGES=
+RUN if [ -n "${EXTRA_PACKAGES}" ]; then apk add --no-cache ${EXTRA_PACKAGES}; fi
 
 # Install uv (Python package manager)
 RUN curl -fsSL https://astral.sh/uv/install.sh | UV_INSTALL_DIR=/usr/local/bin sh
@@ -79,6 +84,8 @@ RUN chmod +x /entrypoint.sh
 
 USER user
 
+ARG EDITOR=nano
+ENV EDITOR=${EDITOR}
 ENV DRT_IMAGE=${IMAGE_REF}
 LABEL org.opencontainers.image.source=${IMAGE_SOURCE}
 
