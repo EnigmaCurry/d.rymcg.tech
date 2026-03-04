@@ -92,6 +92,7 @@ derived automatically.
 docker run --rm -it \
   -e SSH_HOST=192.168.1.100 \
   -e SSH_USER=root \
+  -e SSH_KEY_SCAN=false \
   -v ~/.ssh/id_ed25519:/run/secrets/ssh/id_ed25519:ro \
   -v ~/.ssh/known_hosts:/run/secrets/ssh/known_hosts:ro \
   ghcr.io/enigmacurry/d-rymcg-tech
@@ -103,6 +104,7 @@ docker run --rm -it \
 docker run --rm -it \
   -e SSH_HOST=192.168.1.100 \
   -e SSH_USER=root \
+  -e SSH_KEY_SCAN=false \
   -e SSH_KEY="$(base64 -w0 ~/.ssh/id_ed25519)" \
   -e SSH_KNOWN_HOSTS="$(base64 -w0 ~/.ssh/known_hosts)" \
   ghcr.io/enigmacurry/d-rymcg-tech
