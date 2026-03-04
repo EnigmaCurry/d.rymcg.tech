@@ -54,6 +54,7 @@ if [[ -f "${CERT_FILE}" ]]; then
         NOW_EPOCH=$(date +%s)
         REMAINING=$((EXPIRY_EPOCH - NOW_EPOCH))
         if [[ ${REMAINING} -gt 60 ]]; then
+            echo "sign-ssh-cert: cached cert valid (${REMAINING}s remaining)" >&2
             exit 0
         fi
     fi
@@ -74,6 +75,7 @@ if [[ -f "${CERT_FILE}" ]]; then
         NOW_EPOCH=$(date +%s)
         REMAINING=$((EXPIRY_EPOCH - NOW_EPOCH))
         if [[ ${REMAINING} -gt 60 ]]; then
+            echo "sign-ssh-cert: cached cert valid (${REMAINING}s remaining)" >&2
             exit 0
         fi
     fi
