@@ -51,19 +51,16 @@ steps:
           echo "## Image $${IMAGE}:$${SHA} already exists, skipping build"
         else
           echo "## Building $${IMAGE}:$${SHA}"
-          docker buildx create --name builder --use
-          docker buildx build --push \
-            --platform linux/arm64 \
+          docker buildx build --load \
             --pull \
             -f _container/Dockerfile \
             --build-arg BRANCH=workstation-ci \
             --build-arg IMAGE_SOURCE=https://$${REGISTRY}/${CI_REPO_OWNER}/${CI_REPO_NAME} \
             --cache-from "$${IMAGE}:latest" \
-            --cache-to type=inline \
             -t "$${IMAGE}:$${SHA}" \
             -t "$${IMAGE}:latest" \
             .
-          # Delete all package versions then re-push to trigger Forgejo auto-link
+          # Delete all existing package versions so Forgejo re-creates the package
           # (auto-linking via OCI label only works on first package creation)
           echo "## Deleting all package versions to trigger re-link"
           ALL_VERSIONS=$$(curl -sf -u "$${REGISTRY_USERNAME}:$${REGISTRY_PASSWORD}" \
@@ -74,8 +71,8 @@ steps:
             curl -sf -X DELETE -u "$${REGISTRY_USERNAME}:$${REGISTRY_PASSWORD}" \
               "https://$${REGISTRY}/api/v1/packages/${CI_REPO_OWNER}/container/$${PKG_NAME}/$${TAG}" || true
           done
-          # Re-push from local cache to re-create the package with the OCI source label
-          echo "## Re-pushing image to trigger auto-link"
+          # Push image (triggers auto-link via OCI source label)
+          echo "## Pushing image"
           docker push "$${IMAGE}:$${SHA}"
           docker push "$${IMAGE}:latest"
         fi
