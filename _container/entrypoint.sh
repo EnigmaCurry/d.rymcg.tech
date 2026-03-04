@@ -26,12 +26,10 @@ if [[ -z "${SSH_HOST:-}" && -z "${SOPS_CONFIG_FILE:-}" && -z "${BAO_ADDR:-}" && 
     echo "##    == CI / headless usage ==" >&2
     echo "##    Set environment variables: SSH_HOST, SSH_USER, SSH_PORT" >&2
     echo "##    Or for OpenBao: BAO_ADDR, BAO_ROLE_ID, BAO_SECRET_ID, BAO_AGE_KEY_PATH" >&2
-    echo "##    See WORKSTATION_CONTAINER.md for full documentation." >&2
     echo "##" >&2
     echo "##    == Interactive usage (drt) ==" >&2
     # Print the setup instructions from the drt script's trailing comment block
     awk -v img="${DRT_IMAGE:-localhost/d-rymcg-tech}" '/^###/ { if (in_block) { in_block=0 } else { in_block=1; buf="" }; next } in_block { sub(/^# ?/, ""); gsub(/@@DRT_IMAGE@@/, img); buf = buf "##    " $0 "\n" } END { printf "%s", buf }' /usr/local/bin/drt >&2
-    echo "##    See WORKSTATION_CONTAINER.md for full documentation." >&2
     echo "##" >&2
     echo "##    == Container shell (debug; unconfirmed SSH host foo) ==" >&2
     echo "##    podman run --rm -it -e SSH_HOST=foo -e SSH_KEY_SCAN=false ${DRT_IMAGE:-localhost/d-rymcg-tech}" >&2
