@@ -118,7 +118,7 @@ if [[ ! -f "${AGE_KEY_FILE}" ]]; then
     PUBKEY=$(grep -o 'age1[a-z0-9]*' "${AGE_KEY_FILE}" | head -1)
 
     ## Optional passphrase protection
-    if wizard confirm "Password-protect the AGE key?" no; then
+    if wizard confirm "Password-protect the AGE key?" yes; then
         ENC_DIR=$(mktemp -d)
         chmod 777 "${ENC_DIR}"
         cp "${AGE_KEY_FILE}" "${ENC_DIR}/age-key-in"
