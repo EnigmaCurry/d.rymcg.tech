@@ -38,8 +38,10 @@ wizard() {
         -e "TERM=${TERM:-xterm}" \
         "${IMAGE}" \
         sh -c 'script-wizard "$@" > /tmp/wizard-answer' -- "$@" >&2
+    local rc=$?
     "${ENGINE}" cp "${cname}:/tmp/wizard-answer" - | tar -xO
     "${ENGINE}" rm "${cname}" >/dev/null
+    return $rc
 }
 
 ###############################################################################
@@ -152,7 +154,7 @@ cmd_init() {
         PUBKEY=$(grep -o 'age1[a-z0-9]*' "${AGE_KEY_FILE}" | head -1)
 
         ## Optional passphrase protection
-        if [[ "$(wizard confirm "Password-protect the AGE key?" no)" == "true" ]]; then
+        if wizard confirm "Password-protect the AGE key?" no; then
             local PLAIN_KEY="${AGE_KEY_FILE}.plain"
             mv "${AGE_KEY_FILE}" "${PLAIN_KEY}"
             container_run -it "${IMAGE}" age -p < "${PLAIN_KEY}" > "${AGE_KEY_FILE}"
@@ -424,7 +426,7 @@ cmd_clean() {
 
     ## Delete SOPS config
     if [[ -f "${CONFIG_FILE}" ]]; then
-        if [[ "$(wizard confirm "Delete SOPS config ${CONFIG_FILE}?" no)" == "true" ]]; then
+        if wizard confirm "Delete SOPS config ${CONFIG_FILE}?" no; then
             rm -f "${CONFIG_FILE}"
             echo "Deleted: ${CONFIG_FILE}"
             DELETED=true
@@ -437,7 +439,7 @@ cmd_clean() {
 
     ## Delete AGE key
     if [[ -f "${AGE_KEY_FILE}" ]]; then
-        if [[ "$(wizard confirm "Delete AGE key ${AGE_KEY_FILE}?" no)" == "true" ]]; then
+        if wizard confirm "Delete AGE key ${AGE_KEY_FILE}?" no; then
             rm -f "${AGE_KEY_FILE}"
             echo "Deleted: ${AGE_KEY_FILE}"
             DELETED=true

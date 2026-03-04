@@ -79,9 +79,11 @@ wizard() {
         -e "TERM=${TERM:-xterm}" \
         "${IMAGE}" \
         sh -c 'script-wizard "$@" > /tmp/wizard-answer' -- "$@" >&2
+    local rc=$?
     # Extract the answer to stdout (captured by $())
     "${ENGINE}" cp "${cname}:/tmp/wizard-answer" - | tar -xO
     "${ENGINE}" rm "${cname}" >/dev/null
+    return $rc
 }
 
 ## Context name
@@ -113,7 +115,7 @@ if [[ ! -f "${AGE_KEY_FILE}" ]]; then
     PUBKEY=$(grep -o 'age1[a-z0-9]*' "${AGE_KEY_FILE}" | head -1)
 
     ## Optional passphrase protection
-    if [[ "$(wizard confirm "Password-protect the AGE key?" no)" == "true" ]]; then
+    if wizard confirm "Password-protect the AGE key?" no; then
         PLAIN_KEY="${AGE_KEY_FILE}.plain"
         mv "${AGE_KEY_FILE}" "${PLAIN_KEY}"
         container_run -it "${IMAGE}" age -p < "${PLAIN_KEY}" > "${AGE_KEY_FILE}"
