@@ -350,6 +350,14 @@ cmd_run() {
         RUN_ARGS+=(-e "SOPS_SAVE_ON_EXIT=true")
     fi
 
+    # Forward host environment overrides into the container
+    local passthrough_vars=(SSH_KEY_SCAN SSH_HOST SSH_USER SSH_PORT DOCKER_CONTEXT PROJECTS)
+    for var in "${passthrough_vars[@]}"; do
+        if [[ -n "${!var:-}" ]]; then
+            RUN_ARGS+=(-e "${var}=${!var}")
+        fi
+    done
+
     # SSH: forward agent or mount key file
     if [[ -n "${SSH_KEY_FILE}" ]]; then
         SSH_KEY_FILE="$(realpath "${SSH_KEY_FILE}")"
