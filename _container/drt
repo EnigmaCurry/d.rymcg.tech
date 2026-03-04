@@ -3,7 +3,7 @@
 ## Combines init + run into a single script with no repo dependency.
 ## Host dependencies: bash, podman (or docker), openssh, coreutils, grep, gawk
 ## Setup alias:
-##   alias drt='bash <(podman run --rm @@DRT_IMAGE@@ drt)'
+##   alias drt='bash <(podman run --rm --pull=never @@DRT_IMAGE@@ drt)'
 set -euo pipefail
 
 VERSION="1.0.0"
@@ -617,11 +617,11 @@ esac
 #
 # Define a shell alias (add to ~/.bashrc or ~/.zshrc):
 #
-#   alias drt='bash <(podman run --rm @@DRT_IMAGE@@ drt)'
+#   alias drt='bash <(podman run --rm --pull=never @@DRT_IMAGE@@ drt)'
 #
 # When you run e.g. "drt --init myserver", bash expands this to:
 #
-#   bash <(podman run --rm @@DRT_IMAGE@@ drt) --init myserver
+#   bash <(podman run --rm --pull=never @@DRT_IMAGE@@ drt) --init myserver
 #
 # The container entrypoint detects "drt" with no args and runs "drt --extract",
 # which prints this script to stdout. The process substitution feeds it to
