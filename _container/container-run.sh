@@ -5,11 +5,12 @@ SCRIPT_DIR="$(dirname "$(readlink -f "$0")")"
 ROOT_DIR="$(dirname "${SCRIPT_DIR}")"
 
 usage() {
-    echo "Usage: d.rymcg.tech container [OPTIONS] SOPS_CONFIG_FILE"
+    echo "Usage: d.rymcg.tech container [OPTIONS] CONTEXT_OR_FILE"
     echo ""
     echo "Run an interactive d-rymcg-tech container with SOPS config support."
     echo ""
-    echo "The SOPS_CONFIG_FILE is mounted read-write into the container."
+    echo "CONTEXT_OR_FILE can be a context name (e.g. 'myserver') which resolves"
+    echo "to ~/.config/d.rymcg.tech/config/myserver.sops.env, or a direct file path."
     echo "On exit, you can review and save any configuration changes back"
     echo "to the encrypted file."
     echo ""
@@ -56,7 +57,7 @@ while [[ $# -gt 0 ]]; do
 done
 
 if [[ -z "${SOPS_CONFIG}" ]]; then
-    echo "Error: SOPS_CONFIG_FILE is required" >&2
+    echo "Error: CONTEXT_OR_FILE is required" >&2
     echo "" >&2
     usage >&2
     exit 1
@@ -67,12 +68,19 @@ if ! command -v "${ENGINE}" &>/dev/null; then
     exit 1
 fi
 
+# If argument is a bare context name (no slashes, no .sops.env suffix),
+# resolve to ~/.config/d.rymcg.tech/config/<context>.sops.env
+if [[ "${SOPS_CONFIG}" != */* && "${SOPS_CONFIG}" != *.sops.env ]]; then
+    SOPS_CONFIG="${HOME}/.config/d.rymcg.tech/config/${SOPS_CONFIG}.sops.env"
+fi
+
 # Resolve to absolute path
-SOPS_CONFIG="$(realpath "${SOPS_CONFIG}")"
 if [[ ! -f "${SOPS_CONFIG}" ]]; then
     echo "Error: SOPS config file not found: ${SOPS_CONFIG}" >&2
+    echo "  Run 'd container-init' to create one." >&2
     exit 1
 fi
+SOPS_CONFIG="$(realpath "${SOPS_CONFIG}")"
 
 if [[ ! -f "${AGE_KEY_FILE}" ]]; then
     echo "Error: AGE key file not found: ${AGE_KEY_FILE}" >&2

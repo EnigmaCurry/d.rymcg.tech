@@ -155,6 +155,20 @@ d container-build --arch linux/amd64 --arch linux/arm64        # Multi-arch (use
 d container-build --tag ghcr.io/you/d-rymcg-tech:v1 --push     # Build and push
 ```
 
+## Getting started
+
+Bootstrap a new deployment config with a single command — this
+generates an AGE encryption key (if you don't have one) and creates a
+SOPS-encrypted config file:
+
+```bash
+d container-init myserver      # generates AGE key + creates ~/.config/d.rymcg.tech/config/myserver.sops.env
+d container myserver           # launches interactive container
+```
+
+The only host dependency is Podman (or Docker with `--docker`). All
+crypto tools (age, sops) run inside the container image.
+
 ## Interactive local usage
 
 For local interactive workflows, use `d container` to launch the
