@@ -160,6 +160,7 @@ cmd_init() {
             PUBKEY=$(container_run -it "${IMAGE}" age -d < "${AGE_KEY_FILE}" | grep -o 'age1[a-z0-9]*' | head -1)
         else
             PUBKEY=$(grep -o 'age1[a-z0-9]*' "${AGE_KEY_FILE}" | head -1)
+            echo "WARNING: AGE key is NOT password-protected."
         fi
     fi
     echo "AGE public key: ${PUBKEY}"
