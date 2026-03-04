@@ -73,10 +73,13 @@ container_run() {
 ## Uses a named container so we can copy the answer out after it exits
 wizard() {
     local cname="wizard-$$-${RANDOM}"
+    # Run interactively; redirect PTY output to stderr so the TUI
+    # is visible even when this function is called inside $()
     "${ENGINE}" run -it --name "${cname}" --entrypoint "" \
         -e "TERM=${TERM:-xterm}" \
         "${IMAGE}" \
-        sh -c 'script-wizard "$@" > /tmp/wizard-answer' -- "$@"
+        sh -c 'script-wizard "$@" > /tmp/wizard-answer' -- "$@" >&2
+    # Extract the answer to stdout (captured by $())
     "${ENGINE}" cp "${cname}:/tmp/wizard-answer" - | tar -xO
     "${ENGINE}" rm "${cname}" >/dev/null
 }
