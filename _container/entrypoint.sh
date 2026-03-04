@@ -384,5 +384,6 @@ done
 
 ## Step 11: Exec the command
 echo "## Step 11: Executing: $*" >&2
+export DRT_CONTEXT="${DOCKER_CONTEXT}"
 unset DOCKER_CONTEXT
 exec "$@"
