@@ -218,8 +218,7 @@ def build_steps(forgejo, woodpecker, owner, github_url):
         (
             "Activate mirror repo in Woodpecker",
             f"""\
-  Log out of Forgejo first (since Woodpecker uses Forgejo for
-  authentication), then log in to Woodpecker as '{owner}':
+  Log in to Woodpecker as '{owner}':
 
     https://{woodpecker}
 
@@ -234,8 +233,8 @@ def build_steps(forgejo, woodpecker, owner, github_url):
   Only Woodpecker admins can change trust levels.
 
   IMPORTANT: You must log in to Woodpecker AS AN ADMIN — as 'root',
-  not as '{owner}'. Log out of Forgejo and Woodpecker first, then log
-  back in as 'root'.
+  not as '{owner}' — to change trust levels. Log out of Forgejo first,
+  since Woodpecker uses Forgejo for authentication.
 
   Copy the two export statements from the CLI and API page:
 
