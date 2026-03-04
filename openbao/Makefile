@@ -46,6 +46,12 @@ init:
 unseal:
 	@make --no-print-directory docker-compose-shell SERVICE=openbao COMMAND="bao operator unseal"
 
+.PHONY: seal # Seal OpenBao
+seal:
+	@echo "Enter the root token:"; \
+	read -rs BAO_TOKEN; export BAO_TOKEN; \
+	make --no-print-directory docker-compose-lifecycle-cmd EXTRA_ARGS="exec -e BAO_TOKEN -T openbao /bin/sh -c 'echo; bao operator seal; echo; echo'"
+
 .PHONY: seal-status # Show OpenBao seal status
 seal-status:
 	@make --no-print-directory docker-compose-shell SERVICE=openbao COMMAND="bao status"
