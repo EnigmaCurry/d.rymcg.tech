@@ -408,6 +408,7 @@ esac
 
 ###############################################################################
 # How to setup the 'drt' alias for d.rymcg.tech:
+# (Do this on your host workstation)
 #
 # Define a shell alias (add to ~/.bashrc or ~/.zshrc):
 #
