@@ -2,7 +2,7 @@
 
 A pre-built Docker image that packages the entire
 [d.rymcg.tech](https://github.com/EnigmaCurry/d.rymcg.tech) framework
-for headless deployments to remote Docker hosts over SSH.
+for headless and interactive deployments to remote Docker hosts over SSH.
 
 ## Quick start (no repo needed)
 
