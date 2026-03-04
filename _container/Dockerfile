@@ -56,7 +56,8 @@ RUN adduser -D -u 1000 -h /home/user -s /bin/bash user \
 ENV PATH="/home/user/git/vendor/enigmacurry/d.rymcg.tech/_scripts/user:/home/user/.local/bin:/usr/local/bin:${PATH}"
 ENV HOME="/home/user"
 RUN printf '%s\n' \
-  'PS1="\n[d.rymcg.tech|$DOCKER_CONTEXT] \w\n\$ "' \
+  'export TERM=${TERM:-xterm-256color}' \
+  'PS1="\n\[\033[1;34m\][d.rymcg.tech|\[\033[1;32m\]$DOCKER_CONTEXT\[\033[1;34m\]]\[\033[0m\] \[\033[1;33m\]\w\[\033[0m\]\n\$ "' \
   'eval "$(d.rymcg.tech completion bash)"' \
   '__d.rymcg.tech_cli_alias d' \
   '[ -n "$DOCKER_CONTEXT" ] && __d.rymcg.tech_context_alias $DOCKER_CONTEXT' \
