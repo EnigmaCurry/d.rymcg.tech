@@ -504,12 +504,12 @@ cmd_list() {
             if head -1 "${KEY_DIR}/${ctx}.key" | grep -q '^age-encryption.org'; then
                 key_status="encrypted"
             else
-                key_status="plaintext"
+                key_status="plaintext!!"
             fi
         fi
         local config_status="missing"
         if [[ -f "${CONFIG_DIR}/${ctx}.sops.env" ]]; then
-            config_status="present"
+            config_status="${CONFIG_DIR}/${ctx}.sops.env"
         fi
         printf "%-20s %-12s %s\n" "$ctx" "$key_status" "$config_status"
     done
