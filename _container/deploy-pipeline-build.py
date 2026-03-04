@@ -268,6 +268,9 @@ def build_steps(forgejo, woodpecker, owner, github_url):
     registry_username — {owner}
     registry_password — the Forgejo token with write:package scope (from step 9)
 
+  When creating each secret, enable all the events you need:
+  push, manual, and cron.
+
   The build pipeline (.woodpecker/build.yaml) triggers on push to the
   workstation-ci branch, building the image only if one doesn't exist
   for the current commit SHA.""",
