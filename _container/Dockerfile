@@ -43,6 +43,11 @@ ENV PATH="/home/user/git/vendor/enigmacurry/d.rymcg.tech/_scripts/user:/home/use
 ENV HOME="/home/user"
 COPY --chown=1000:1000 _container/bashrc /home/user/.bashrc
 
+# Seed uv-managed Python (cached early, only depends on uv + user home)
+USER user
+RUN uv python install --no-cache
+USER root
+
 # Copy the d.rymcg.tech repo, optionally switch branch, then strip history
 ARG BRANCH=
 ARG IMAGE_SOURCE=
@@ -73,8 +78,6 @@ COPY --chown=1000:1000 _container/entrypoint.sh /entrypoint.sh
 RUN chmod +x /entrypoint.sh
 
 USER user
-# Seed uv-managed Python into user's home
-RUN uv python install --no-cache
 
 ENV DRT_IMAGE=${IMAGE_REF}
 LABEL org.opencontainers.image.source=${IMAGE_SOURCE}
