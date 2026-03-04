@@ -1,0 +1,27 @@
+#!/usr/bin/env -S uv run --script --quiet
+# /// script
+# requires-python = ">=3.12"
+# ///
+"""sponge - soak up stdin and write to a file (or stdout).
+
+Drop-in replacement for moreutils sponge. Reads all of stdin into
+memory before writing, so the output file can be the same as the
+input file in a pipeline without data loss.
+
+Usage:
+  command | sponge [file]
+
+If no file is given, writes to stdout.
+"""
+import sys
+
+def main():
+    data = sys.stdin.buffer.read()
+    if len(sys.argv) > 1:
+        with open(sys.argv[1], "wb") as f:
+            f.write(data)
+    else:
+        sys.stdout.buffer.write(data)
+
+if __name__ == "__main__":
+    main()
