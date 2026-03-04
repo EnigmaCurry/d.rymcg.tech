@@ -151,7 +151,7 @@ You can build the image from your local checkout:
 d build-container                                    # Docker, tagged localhost/d-rymcg-tech:latest
 d build-container --podman                           # Podman
 d build-container --tag ghcr.io/you/d-rymcg-tech:v1  # Custom tag
-d build-container --push                             # Build and push
+d build-container --tag ghcr.io/you/d-rymcg-tech:v1 --push  # Build and push
 ```
 
 ## What's in the image
