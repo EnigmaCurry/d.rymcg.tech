@@ -2,7 +2,7 @@
 ## drt — standalone d-rymcg-tech bootstrap tool
 ## Combines init + run into a single script with no repo dependency.
 ## Embed this in the container image and extract it with:
-##   podman run --rm ghcr.io/enigmacurry/d-rymcg-tech drt extract > drt && chmod +x drt
+##   podman run --rm ghcr.io/enigmacurry/d-rymcg-tech drt --extract > drt && chmod +x drt
 set -euo pipefail
 
 VERSION="1.0.0"
@@ -50,20 +50,18 @@ usage() {
 drt — standalone d-rymcg-tech bootstrap tool
 
 Usage:
-  drt [OPTIONS] CONTEXT        Launch interactive container with SOPS config
-  drt init [OPTIONS] [CONTEXT] Bootstrap AGE key + SOPS config for a context
-  drt extract                  Print this script to stdout (self-extraction)
-  drt version                  Print version
-  drt help                     Show this help
+  drt [OPTIONS] CONTEXT       Launch interactive container with SOPS config
 
 Options:
-  --image TAG      Container image (default: localhost/d-rymcg-tech:latest)
-  --docker         Use Docker instead of Podman
-  --age-key FILE   AGE key file (default: ~/.config/d.rymcg.tech/keys/sops/<context>.key)
-  --ssh-key FILE   SSH key file (disables agent forwarding)
-  --no-save        Disable save-on-exit
-
-Run 'drt init --help' for init-specific options.
+  --init [CONTEXT]   Bootstrap AGE key + SOPS config for a context
+  --extract          Print this script to stdout (self-extraction)
+  --image TAG        Container image (default: localhost/d-rymcg-tech:latest)
+  --docker           Use Docker instead of Podman
+  --age-key FILE     AGE key file (default: ~/.config/d.rymcg.tech/keys/sops/<context>.key)
+  --ssh-key FILE     SSH key file (disables agent forwarding)
+  --no-save          Disable save-on-exit
+  --version          Print version
+  --help             Show this help
 EOF
 }
 
@@ -73,7 +71,7 @@ EOF
 
 init_usage() {
     cat <<'EOF'
-Usage: drt init [OPTIONS] [CONTEXT_NAME]
+Usage: drt --init [OPTIONS] [CONTEXT_NAME]
 
 Bootstrap a new d-rymcg-tech deployment config.
 
@@ -270,7 +268,7 @@ cmd_run() {
     # Resolve to absolute path
     if [[ ! -f "${SOPS_CONFIG}" ]]; then
         echo "Error: SOPS config file not found: ${SOPS_CONFIG}" >&2
-        echo "  Run 'drt init' to create one." >&2
+        echo "  Run 'drt --init' to create one." >&2
         exit 1
     fi
     SOPS_CONFIG="$(realpath "${SOPS_CONFIG}")"
@@ -334,13 +332,22 @@ cmd_extract() {
 # Main dispatch
 ###############################################################################
 
-# Parse global flags before the subcommand; once a subcommand word
-# is found, collect all remaining arguments for it.
-SUBCMD=""
+ACTION=run
 ARGS=()
 
 while [[ $# -gt 0 ]]; do
     case "$1" in
+        --init)
+            ACTION=init
+            shift
+            # Everything after --init is forwarded to cmd_init
+            ARGS+=("$@")
+            break
+            ;;
+        --extract)
+            ACTION=extract
+            shift
+            ;;
         --image)
             IMAGE="$2"
             ARGS+=(--image "$2")
@@ -360,35 +367,32 @@ while [[ $# -gt 0 ]]; do
             exit 0
             ;;
         -*)
-            # Unknown global flag — pass through to subcommand
+            # Pass through to cmd_run
             ARGS+=("$1")
             shift
             ;;
         *)
-            SUBCMD="$1"
+            # Positional arg = CONTEXT for run; collect rest too
+            ARGS+=("$1")
             shift
-            # Everything after the subcommand is forwarded to it
             ARGS+=("$@")
             break
             ;;
     esac
 done
 
-case "${SUBCMD}" in
+case "${ACTION}" in
     init)
         cmd_init "${ARGS[@]+"${ARGS[@]}"}"
         ;;
     extract)
         cmd_extract
         ;;
-    version)
-        echo "drt ${VERSION}"
-        ;;
-    help|"")
-        usage
-        ;;
-    *)
-        # Default: treat the subcommand word as CONTEXT for run
-        cmd_run "${SUBCMD}" "${ARGS[@]+"${ARGS[@]}"}"
+    run)
+        if [[ ${#ARGS[@]} -eq 0 ]]; then
+            usage
+            exit 0
+        fi
+        cmd_run "${ARGS[@]}"
         ;;
 esac

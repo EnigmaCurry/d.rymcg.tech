@@ -11,10 +11,10 @@ and use it to configure and launch a container — no git clone required:
 
 ```bash
 ## Extract the drt script from the container image:
-podman run --rm ghcr.io/enigmacurry/d-rymcg-tech drt extract > drt && chmod +x drt
+podman run --rm ghcr.io/enigmacurry/d-rymcg-tech drt --extract > drt && chmod +x drt
 
 ## Bootstrap a new deployment context (generates AGE key + SOPS config):
-./drt init myserver
+./drt --init myserver
 
 ## Launch the interactive container:
 ./drt myserver
@@ -23,14 +23,14 @@ podman run --rm ghcr.io/enigmacurry/d-rymcg-tech drt extract > drt && chmod +x d
 Use `--docker` instead of the default Podman engine:
 
 ```bash
-./drt --docker init myserver
+./drt --docker --init myserver
 ./drt --docker myserver
 ```
 
 Use `--image` to specify a custom image tag:
 
 ```bash
-./drt --image ghcr.io/enigmacurry/d-rymcg-tech:latest init myserver
+./drt --image ghcr.io/enigmacurry/d-rymcg-tech:latest --init myserver
 ```
 
 Run `./drt --help` for all options.

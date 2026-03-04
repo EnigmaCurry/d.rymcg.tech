@@ -81,7 +81,7 @@ __help() {
         echo -e "container-init [OPTIONS] [CONTEXT]\tBootstrap AGE key and create initial SOPS config"
         echo -e "container [OPTIONS] CONTEXT_OR_FILE\tRun an interactive d-rymcg-tech container"
         echo -e "container-build [--docker] [--image TAG] [--push]\tBuild the d-rymcg-tech container image"
-        echo -e "drt <command> [OPTIONS]\tStandalone bootstrap tool (init/run/extract)"
+        echo -e "drt [OPTIONS] CONTEXT\tStandalone bootstrap tool (--init/--extract)"
         echo -e "deploy-pipeline-template\tScaffold a new deployment pipeline repo with Woodpecker CI"
         echo -e "deploy-pipeline-build\tGuided setup for the d-rymcg-tech Docker image build pipeline"
         echo -e "droplet [--tag TAG] [--preset PRESET --name NAME] [--create-preset PRESET]\tManage DigitalOcean droplets (alias: gumdrop)"
