@@ -44,8 +44,21 @@ if [[ ${#ARCHS[@]} -gt 0 ]]; then
     PLATFORM_FLAGS=(--platform "${PLATFORM}")
 fi
 
-echo "## Building ${TAG} with ${ENGINE}${PLATFORM:+ (${PLATFORM})}" >&2
 cd "${ROOT_DIR}"
+
+# Warn if there are uncommitted changes (git archive only includes committed files)
+if [[ -n "$(git status --porcelain 2>/dev/null)" ]]; then
+    echo "WARNING: There are uncommitted changes that will NOT be included in the build" >&2
+    echo "         (git archive HEAD only packages committed files)" >&2
+    git status --short >&2
+    read -rp "Continue anyway? [y/N] " answer
+    if [[ "${answer}" != [yY]* ]]; then
+        echo "Aborted." >&2
+        exit 1
+    fi
+fi
+
+echo "## Building ${TAG} with ${ENGINE}${PLATFORM:+ (${PLATFORM})}" >&2
 
 if [[ ${#ARCHS[@]} -gt 1 || "${PUSH}" == true && ${#ARCHS[@]} -gt 0 ]]; then
     # Multi-arch or push with platform requires buildx
