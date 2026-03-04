@@ -67,6 +67,7 @@ Usage:
 
 Options:
   --init [CONTEXT]   Bootstrap AGE key + SOPS config for a context
+  --view [CONTEXT]   Decrypt and display SOPS config
   --clean [CONTEXT]  Remove SOPS config and/or AGE key for a context
   --list             List all contexts (AGE keys and SOPS configs)
   --extract          Print this script to stdout (self-extraction)
@@ -638,6 +639,100 @@ cmd_list() {
 }
 
 ###############################################################################
+# view subcommand
+###############################################################################
+
+view_usage() {
+    cat <<'EOF'
+Usage: drt --view [OPTIONS] [CONTEXT_NAME]
+
+Decrypt and display a SOPS config file.
+
+Options:
+  --image TAG    Container image (default: localhost/d-rymcg-tech:latest)
+  --docker       Use Docker instead of Podman
+  --age-key FILE AGE key file (default: ~/.config/d.rymcg.tech/keys/sops/<context>.key)
+  --help         Show this help
+EOF
+}
+
+cmd_view() {
+    local CONTEXT="" AGE_KEY_FILE=""
+
+    while [[ $# -gt 0 ]]; do
+        case "$1" in
+            --image) IMAGE="$2"; shift 2 ;;
+            --docker) ENGINE=docker; shift ;;
+            --age-key) AGE_KEY_FILE="$2"; shift 2 ;;
+            --help) view_usage; exit 0 ;;
+            -*)
+                echo "Unknown option: $1" >&2
+                view_usage >&2
+                exit 1
+                ;;
+            *)
+                if [[ -z "${CONTEXT}" ]]; then
+                    CONTEXT="$1"
+                else
+                    echo "Error: unexpected argument: $1" >&2
+                    view_usage >&2
+                    exit 1
+                fi
+                shift
+                ;;
+        esac
+    done
+
+    check_engine
+
+    ## Pick context interactively if not provided
+    if [[ -z "${CONTEXT}" ]]; then
+        local CONFIG_DIR="${HOME}/.config/d.rymcg.tech/config"
+        local CONTEXTS=()
+        if [[ -d "${CONFIG_DIR}" ]]; then
+            for f in "${CONFIG_DIR}"/*.sops.env; do
+                [[ -f "$f" ]] || continue
+                CONTEXTS+=("$(basename "$f" .sops.env)")
+            done
+        fi
+        if [[ ${#CONTEXTS[@]} -eq 0 ]]; then
+            echo "No configs found. Run 'drt --init' first." >&2
+            exit 1
+        fi
+        CONTEXT=$(wizard choose "Select context to view" "${CONTEXTS[@]}")
+    fi
+
+    local SOPS_CONFIG="${HOME}/.config/d.rymcg.tech/config/${CONTEXT}.sops.env"
+    if [[ ! -f "${SOPS_CONFIG}" ]]; then
+        echo "Error: config not found: ${SOPS_CONFIG}" >&2
+        exit 1
+    fi
+
+    if [[ -z "${AGE_KEY_FILE}" ]]; then
+        AGE_KEY_FILE="${HOME}/.config/d.rymcg.tech/keys/sops/${CONTEXT}.key"
+    fi
+    if [[ ! -f "${AGE_KEY_FILE}" ]]; then
+        echo "Error: AGE key not found: ${AGE_KEY_FILE}" >&2
+        exit 1
+    fi
+
+    local PLAINTEXT
+    PLAINTEXT=$(container_run -i \
+        -v "${SOPS_CONFIG}:/tmp/config.sops.env:ro" \
+        -v "${AGE_KEY_FILE}:/run/secrets/age-key:ro" \
+        -e "SOPS_AGE_KEY_FILE=/run/secrets/age-key" \
+        "${IMAGE}" \
+        sops decrypt --input-type dotenv --output-type dotenv \
+            --filename-override export.env /tmp/config.sops.env)
+
+    if [[ -t 1 ]]; then
+        echo "${PLAINTEXT}" | less
+    else
+        echo "${PLAINTEXT}"
+    fi
+}
+
+###############################################################################
 # extract subcommand
 ###############################################################################
 
@@ -660,6 +755,12 @@ while [[ $# -gt 0 ]]; do
     case "$1" in
         --init)
             ACTION=init
+            shift
+            ARGS+=("$@")
+            break
+            ;;
+        --view)
+            ACTION=view
             shift
             ARGS+=("$@")
             break
@@ -714,6 +815,9 @@ done
 case "${ACTION}" in
     init)
         cmd_init "${ARGS[@]+"${ARGS[@]}"}"
+        ;;
+    view)
+        cmd_view "${ARGS[@]+"${ARGS[@]}"}"
         ;;
     clean)
         cmd_clean "${ARGS[@]+"${ARGS[@]}"}"
