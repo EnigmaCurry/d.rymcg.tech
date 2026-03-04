@@ -57,6 +57,7 @@ ENV PATH="/home/user/git/vendor/enigmacurry/d.rymcg.tech/_scripts/user:/home/use
 ENV HOME="/home/user"
 RUN printf '%s\n' \
   'export TERM=${TERM:-xterm-256color}' \
+  'alias ls="ls --color=auto"' \
   'PS1="\n\[\033[1;34m\][d.rymcg.tech|\[\033[1;32m\]$DOCKER_CONTEXT\[\033[1;34m\]]\[\033[0m\] \[\033[1;33m\]\w\[\033[0m\]\n\$ "' \
   'eval "$(d.rymcg.tech completion bash)"' \
   '__d.rymcg.tech_cli_alias d' \
