@@ -105,10 +105,7 @@ else
 fi
 
 ## Extract public key
-PUBKEY=$(container_run \
-    -v "${AGE_KEY_FILE}:/tmp/age.key:ro" \
-    "${IMAGE}" \
-    age-keygen -y /tmp/age.key)
+PUBKEY=$(container_run -i "${IMAGE}" age-keygen -y - < "${AGE_KEY_FILE}")
 echo "AGE public key: ${PUBKEY}"
 echo ""
 
