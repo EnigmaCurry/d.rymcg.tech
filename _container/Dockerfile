@@ -29,6 +29,7 @@ RUN apk add --no-cache \
     sed \
     gawk \
     nano \
+    mg \
     gcompat \
     libgcc
 
@@ -84,7 +85,7 @@ RUN chmod +x /entrypoint.sh
 
 USER user
 
-ARG EDITOR=nano
+ARG EDITOR=mg
 ENV EDITOR=${EDITOR}
 ENV DRT_IMAGE=${IMAGE_REF}
 LABEL org.opencontainers.image.source=${IMAGE_SOURCE}
