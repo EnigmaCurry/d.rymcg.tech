@@ -177,8 +177,8 @@ BAO_AUTH_PATH="" BAO_AGE_KEY_PATH="" BAO_KV_MOUNT="" BAO_NAMESPACE=""
 BAO_CACERT="" BAO_CLIENT_CERT="" BAO_CLIENT_KEY=""
 if wizard confirm "Configure OpenBao SSH certificate signing?" no; then
     BAO_ADDR=$(wizard ask "Enter OpenBao server URL (e.g., https://bao.example.com:8200)")
-    BAO_ROLE_ID=$(wizard ask "Enter AppRole role ID")
-    BAO_SECRET_ID=$(wizard ask "Enter AppRole secret ID")
+    BAO_ROLE_ID=$(wizard ask "Enter OpenBao BAO_ROLE_ID")
+    BAO_SECRET_ID=$(wizard ask "Enter OpenBao BAO_SECRET_ID")
     BAO_SSH_MOUNT=$(wizard ask "Enter SSH engine mount" "ssh-client-signer")
     BAO_SSH_ROLE=$(wizard ask "Enter SSH signing role" "woodpecker-short-lived")
     BAO_AUTH_PATH=$(wizard ask "Enter auth path" "auth/approle")
