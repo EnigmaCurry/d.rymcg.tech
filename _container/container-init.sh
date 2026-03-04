@@ -119,12 +119,16 @@ if [[ ! -f "${AGE_KEY_FILE}" ]]; then
 
     ## Optional passphrase protection
     if wizard confirm "Password-protect the AGE key?" no; then
-        PLAIN_KEY="${AGE_KEY_FILE}.plain"
-        mv "${AGE_KEY_FILE}" "${PLAIN_KEY}"
-        container_run -it "${IMAGE}" age -p < "${PLAIN_KEY}" > "${AGE_KEY_FILE}"
-        rm -f "${PLAIN_KEY}"
-        chmod 600 "${AGE_KEY_FILE}"
-        echo "AGE key created (passphrase-protected): ${AGE_KEY_FILE}"
+        ENCRYPTED="${AGE_KEY_FILE}.enc"
+        if container_run -it "${IMAGE}" age -p < "${AGE_KEY_FILE}" > "${ENCRYPTED}" && [[ -s "${ENCRYPTED}" ]]; then
+            mv "${ENCRYPTED}" "${AGE_KEY_FILE}"
+            chmod 600 "${AGE_KEY_FILE}"
+            echo "AGE key created (passphrase-protected): ${AGE_KEY_FILE}"
+        else
+            rm -f "${ENCRYPTED}"
+            echo "Error: passphrase encryption failed — key saved unencrypted." >&2
+            echo "AGE key created (unencrypted): ${AGE_KEY_FILE}"
+        fi
     else
         echo "AGE key created: ${AGE_KEY_FILE}"
     fi
