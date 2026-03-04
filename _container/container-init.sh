@@ -85,10 +85,8 @@ if [[ ! -f "${AGE_KEY_FILE}" ]]; then
     echo "No AGE key found for context '${CONTEXT}'"
     echo "Generating a new AGE keypair..."
     mkdir -p "${AGE_KEY_DIR}"
-    container_run \
-        -v "${AGE_KEY_DIR}:/keys" \
-        "${IMAGE}" \
-        age-keygen -o "/keys/${CONTEXT}.key"
+    container_run "${IMAGE}" age-keygen 2>/dev/null > "${AGE_KEY_FILE}"
+    chmod 600 "${AGE_KEY_FILE}"
     echo "AGE key created: ${AGE_KEY_FILE}"
 else
     echo "Using existing AGE key: ${AGE_KEY_FILE}"
@@ -96,9 +94,9 @@ fi
 
 ## Extract public key
 PUBKEY=$(container_run \
-    -v "${AGE_KEY_DIR}:/keys:ro" \
+    -v "${AGE_KEY_FILE}:/tmp/age.key:ro" \
     "${IMAGE}" \
-    age-keygen -y "/keys/${CONTEXT}.key")
+    age-keygen -y /tmp/age.key)
 echo "AGE public key: ${PUBKEY}"
 echo ""
 
