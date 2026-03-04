@@ -62,10 +62,15 @@ fi
 
 ## Use flock to prevent concurrent signing (Docker opens multiple SSH connections)
 exec 9>"${LOCK_FILE}"
-if ! flock -w 30 9; then
-    echo "sign-ssh-cert: failed to acquire lock after 30s" >&2
-    exit 1
-fi
+LOCK_TRIES=0
+while ! flock -n 9 2>/dev/null; do
+    LOCK_TRIES=$((LOCK_TRIES + 1))
+    if [[ ${LOCK_TRIES} -ge 30 ]]; then
+        echo "sign-ssh-cert: failed to acquire lock after 30s" >&2
+        exit 1
+    fi
+    sleep 1
+done
 
 ## Re-check cert after acquiring lock (another process may have signed)
 if [[ -f "${CERT_FILE}" ]]; then
