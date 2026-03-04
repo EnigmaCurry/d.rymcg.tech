@@ -717,8 +717,10 @@ cmd_view() {
     fi
 
     local PLAINTEXT
+    local _tty_flag="-i"
+    [[ -t 0 ]] && _tty_flag="-it"
     PLAINTEXT=$(container_run \
-        --security-opt label=disable --userns=keep-id -i \
+        --security-opt label=disable --userns=keep-id ${_tty_flag} \
         -v "${SOPS_CONFIG}:/tmp/config.sops.env:ro" \
         -v "${AGE_KEY_FILE}:/run/secrets/age-key:ro" \
         -e "SOPS_AGE_KEY_FILE=/run/secrets/age-key" \
