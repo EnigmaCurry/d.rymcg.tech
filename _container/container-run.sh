@@ -104,8 +104,8 @@ SOPS_BASENAME="$(basename "${SOPS_CONFIG}")"
 RUN_ARGS=(
     run --rm -it
     -e "SOPS_CONFIG_FILE=${CONTAINER_CONFIG_DIR}/${SOPS_BASENAME}"
-    -v "${SOPS_CONFIG}:${CONTAINER_CONFIG_DIR}/${SOPS_BASENAME}"
-    -v "${AGE_KEY_FILE}:/home/user/.config/sops/age/keys.txt:ro"
+    -v "${SOPS_CONFIG}:${CONTAINER_CONFIG_DIR}/${SOPS_BASENAME}:z"
+    -v "${AGE_KEY_FILE}:/home/user/.config/sops/age/keys.txt:ro,z"
     -e "SOPS_AGE_KEY_FILE=/home/user/.config/sops/age/keys.txt"
 )
 
@@ -120,10 +120,10 @@ if [[ -n "${SSH_KEY_FILE}" ]]; then
         echo "Error: SSH key file not found: ${SSH_KEY_FILE}" >&2
         exit 1
     fi
-    RUN_ARGS+=(-v "${SSH_KEY_FILE}:/run/secrets/ssh/id_ed25519:ro")
+    RUN_ARGS+=(-v "${SSH_KEY_FILE}:/run/secrets/ssh/id_ed25519:ro,z")
 elif [[ -n "${SSH_AUTH_SOCK:-}" ]]; then
     RUN_ARGS+=(
-        -v "${SSH_AUTH_SOCK}:/run/ssh-agent.sock:ro"
+        -v "${SSH_AUTH_SOCK}:/run/ssh-agent.sock:ro,z"
         -e "SSH_AUTH_SOCK=/run/ssh-agent.sock"
     )
 fi
