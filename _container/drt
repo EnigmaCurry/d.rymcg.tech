@@ -489,7 +489,12 @@ cmd_list() {
     fi
 
     ## Sort contexts
-    readarray -t CONTEXTS < <(printf '%s\n' "${CONTEXTS[@]}" | sort)
+    local SORTED
+    SORTED=$(printf '%s\n' "${CONTEXTS[@]}" | sort)
+    CONTEXTS=()
+    while IFS= read -r ctx; do
+        [[ -n "$ctx" ]] && CONTEXTS+=("$ctx")
+    done <<< "$SORTED"
 
     printf "%-20s %-12s %s\n" "CONTEXT" "KEY" "CONFIG"
     printf "%-20s %-12s %s\n" "-------" "---" "------"
