@@ -489,7 +489,7 @@ cmd_list() {
     fi
 
     ## Sort contexts
-    IFS=$'\n' CONTEXTS=($(printf '%s\n' "${CONTEXTS[@]}" | sort)); unset IFS
+    readarray -t CONTEXTS < <(printf '%s\n' "${CONTEXTS[@]}" | sort)
 
     printf "%-20s %-12s %s\n" "CONTEXT" "KEY" "CONFIG"
     printf "%-20s %-12s %s\n" "-------" "---" "------"
