@@ -74,9 +74,9 @@ EOF
     echo ""
     echo "One time setup:"
     if [[ "${IMAGE}" != localhost/* ]]; then
-        echo "  podman pull ${IMAGE}"
+        echo "  ${ENGINE} pull ${IMAGE}"
     fi
-    echo "  alias drt='bash <(podman run --rm --pull=never ${IMAGE} drt)'"
+    echo "  alias drt='bash <(${ENGINE} run --rm --pull=never ${IMAGE} drt)'"
 }
 
 ###############################################################################
