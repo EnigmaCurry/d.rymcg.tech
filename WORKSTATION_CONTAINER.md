@@ -17,14 +17,14 @@ podman run --rm ghcr.io/enigmacurry/d-rymcg-tech drt extract > drt && chmod +x d
 ./drt init myserver
 
 ## Launch the interactive container:
-./drt run myserver
+./drt myserver
 ```
 
 Use `--docker` instead of the default Podman engine:
 
 ```bash
 ./drt --docker init myserver
-./drt --docker run myserver
+./drt --docker myserver
 ```
 
 Use `--image` to specify a custom image tag:

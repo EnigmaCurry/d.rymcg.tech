@@ -50,20 +50,20 @@ usage() {
 drt — standalone d-rymcg-tech bootstrap tool
 
 Usage:
-  drt <command> [options]
+  drt [OPTIONS] CONTEXT        Launch interactive container with SOPS config
+  drt init [OPTIONS] [CONTEXT] Bootstrap AGE key + SOPS config for a context
+  drt extract                  Print this script to stdout (self-extraction)
+  drt version                  Print version
+  drt help                     Show this help
 
-Commands:
-  init [OPTIONS] [CONTEXT]    Bootstrap AGE key + SOPS config for a context
-  run  [OPTIONS] CONTEXT      Launch interactive container with SOPS config
-  extract                     Print this script to stdout (self-extraction)
-  version                     Print version
-  help                        Show this help
+Options:
+  --image TAG      Container image (default: localhost/d-rymcg-tech:latest)
+  --docker         Use Docker instead of Podman
+  --age-key FILE   AGE key file (default: ~/.config/d.rymcg.tech/keys/sops/<context>.key)
+  --ssh-key FILE   SSH key file (disables agent forwarding)
+  --no-save        Disable save-on-exit
 
-Global options (apply to init and run):
-  --image TAG    Container image (default: localhost/d-rymcg-tech:latest)
-  --docker       Use Docker instead of Podman
-
-Run 'drt <command> --help' for command-specific options.
+Run 'drt init --help' for init-specific options.
 EOF
 }
 
@@ -126,7 +126,7 @@ cmd_init() {
         echo "Config already exists: ${CONFIG_DIR}/${CONTEXT}.sops.env"
         echo ""
         echo "To modify it interactively, run:"
-        echo "  drt run ${CONTEXT}"
+        echo "  drt ${CONTEXT}"
         exit 0
     fi
 
@@ -199,7 +199,7 @@ SSH_KNOWN_HOSTS=${SSH_KNOWN_HOSTS}"
     echo "Config saved to ${CONFIG_DIR}/${CONTEXT}.sops.env"
     echo ""
     echo "Next steps:"
-    echo "  drt run ${CONTEXT}"
+    echo "  drt ${CONTEXT}"
 }
 
 ###############################################################################
@@ -207,24 +207,7 @@ SSH_KNOWN_HOSTS=${SSH_KNOWN_HOSTS}"
 ###############################################################################
 
 run_usage() {
-    cat <<'EOF'
-Usage: drt run [OPTIONS] CONTEXT_OR_FILE
-
-Run an interactive d-rymcg-tech container with SOPS config support.
-
-CONTEXT_OR_FILE can be a context name (e.g. 'myserver') which resolves
-to ~/.config/d.rymcg.tech/config/myserver.sops.env, or a direct file path.
-On exit, you can review and save any configuration changes back
-to the encrypted file.
-
-Options:
-  --image TAG      Container image (default: localhost/d-rymcg-tech:latest)
-  --docker         Use Docker instead of Podman
-  --age-key FILE   AGE key file (default: ~/.config/d.rymcg.tech/keys/sops/<context>.key)
-  --ssh-key FILE   SSH key file (disables agent forwarding)
-  --no-save        Disable save-on-exit
-  --help           Show this help
-EOF
+    usage
 }
 
 cmd_run() {
@@ -395,9 +378,6 @@ case "${SUBCMD}" in
     init)
         cmd_init "${ARGS[@]+"${ARGS[@]}"}"
         ;;
-    run)
-        cmd_run "${ARGS[@]+"${ARGS[@]}"}"
-        ;;
     extract)
         cmd_extract
         ;;
@@ -408,9 +388,7 @@ case "${SUBCMD}" in
         usage
         ;;
     *)
-        echo "Unknown command: ${SUBCMD}" >&2
-        echo "" >&2
-        usage >&2
-        exit 1
+        # Default: treat the subcommand word as CONTEXT for run
+        cmd_run "${SUBCMD}" "${ARGS[@]+"${ARGS[@]}"}"
         ;;
 esac
