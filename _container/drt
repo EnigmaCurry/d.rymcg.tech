@@ -65,11 +65,13 @@ Options:
   --no-save          Disable save-on-exit
   --version          Print version
   --help             Show this help
-
-One time setup:
-  podman pull @@DRT_IMAGE@@
-  alias drt='bash <(podman run --rm --pull=never @@DRT_IMAGE@@ drt)'
 EOF
+    echo ""
+    echo "One time setup:"
+    if [[ "${IMAGE}" != localhost/* ]]; then
+        echo "  podman pull ${IMAGE}"
+    fi
+    echo "  alias drt='bash <(podman run --rm --pull=never ${IMAGE} drt)'"
 }
 
 ###############################################################################
