@@ -19,7 +19,7 @@ check-docker:
 .PHONY: config # Configure main variables
 config: script-wizard check-deps check-docker check-dist-vars
 	@echo ""
-	@${BIN}/confirm yes "This will make a configuration for the current docker context (${DOCKER_CONTEXT})"
+	@if [ ! -f "${ROOT_ENV}" ]; then ${BIN}/confirm yes "This will make a new configuration for the docker context (${DOCKER_CONTEXT})"; fi
 	@make --no-print-directory config-hook
 
 .PHONY: config-hook
