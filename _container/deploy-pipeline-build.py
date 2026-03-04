@@ -276,6 +276,19 @@ def build_steps(forgejo, woodpecker, owner, github_url):
   workstation-ci branch, building the image only if one doesn't exist
   for the current commit SHA.""",
         ),
+        (
+            "Link container package to repository",
+            f"""\
+  After the first build completes, the container image will appear under
+  '{owner}' but won't be linked to the mirror repo.
+
+  Log in to Forgejo as '{owner}' and go to the package settings:
+
+    https://{forgejo}/-/packages/{owner}/container/d-rymcg-tech/settings
+
+  Under "Link This Package To A Repository", select the d.rymcg.tech
+  mirror repo and save.""",
+        ),
     ]
 
 
