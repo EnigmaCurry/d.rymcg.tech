@@ -189,9 +189,27 @@ if wizard confirm "Configure OpenBao SSH certificate signing?" no; then
     fi
 
     if wizard confirm "Configure OpenBao TLS client certificates?" no; then
-        BAO_CACERT=$(wizard ask "Enter CA certificate (path, PEM, or base64)")
-        BAO_CLIENT_CERT=$(wizard ask "Enter client certificate (path, PEM, or base64)")
-        BAO_CLIENT_KEY=$(wizard ask "Enter client key (path, PEM, or base64)")
+        _bao_cacert_path=$(wizard ask "Enter path to CA certificate file")
+        if [[ -f "${_bao_cacert_path}" ]]; then
+            BAO_CACERT=$(base64 -w0 < "${_bao_cacert_path}")
+        else
+            echo "WARNING: file not found, storing value as-is: ${_bao_cacert_path}"
+            BAO_CACERT="${_bao_cacert_path}"
+        fi
+        _bao_client_cert_path=$(wizard ask "Enter path to client certificate file (may include chain)")
+        if [[ -f "${_bao_client_cert_path}" ]]; then
+            BAO_CLIENT_CERT=$(base64 -w0 < "${_bao_client_cert_path}")
+        else
+            echo "WARNING: file not found, storing value as-is: ${_bao_client_cert_path}"
+            BAO_CLIENT_CERT="${_bao_client_cert_path}"
+        fi
+        _bao_client_key_path=$(wizard ask "Enter path to client private key file")
+        if [[ -f "${_bao_client_key_path}" ]]; then
+            BAO_CLIENT_KEY=$(base64 -w0 < "${_bao_client_key_path}")
+        else
+            echo "WARNING: file not found, storing value as-is: ${_bao_client_key_path}"
+            BAO_CLIENT_KEY="${_bao_client_key_path}"
+        fi
     fi
 
     if wizard confirm "Configure OpenBao namespace?" no; then
