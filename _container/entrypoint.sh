@@ -219,6 +219,22 @@ if [[ -n "${BAO_ADDR:-}" ]]; then
     echo "## OpenBao: SSH certificate obtained" >&2
 fi
 
+## Step 2.5: Decrypt passphrase-protected AGE key (if needed)
+if [[ -n "${SOPS_AGE_KEY_FILE:-}" && -f "${SOPS_AGE_KEY_FILE}" ]]; then
+    if head -1 "${SOPS_AGE_KEY_FILE}" | grep -q '^age-encryption.org'; then
+        echo "## AGE key is passphrase-protected, decrypting..." >&2
+        DECRYPTED_AGE_KEY=$(mktemp)
+        if ! age -d "${SOPS_AGE_KEY_FILE}" > "${DECRYPTED_AGE_KEY}"; then
+            rm -f "${DECRYPTED_AGE_KEY}"
+            echo "ERROR: failed to decrypt AGE key" >&2
+            exit 1
+        fi
+        chmod 600 "${DECRYPTED_AGE_KEY}"
+        export SOPS_AGE_KEY_FILE="${DECRYPTED_AGE_KEY}"
+        echo "## AGE key decrypted" >&2
+    fi
+fi
+
 ## Step 3: SOPS config file loading (only runs if SOPS_CONFIG_FILE is set)
 echo "## Step 3: SOPS config loading" >&2
 if [[ -n "${SOPS_CONFIG_FILE:-}" ]]; then
