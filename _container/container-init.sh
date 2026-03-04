@@ -128,11 +128,28 @@ SSH_HOST=$(wizard ask "Enter SSH host" "${_SSH_HOST}")
 SSH_PORT=$(wizard ask "Enter SSH port" "${_SSH_PORT:-22}")
 SSH_USER=$(wizard ask "Enter SSH user" "${_SSH_USER:-root}")
 
+## SSH key scan
+echo ""
+echo "Running ssh-keyscan for ${SSH_HOST}:${SSH_PORT}..."
+KNOWN_HOSTS=$(ssh-keyscan -p "${SSH_PORT}" "${SSH_HOST}" 2>/dev/null || true)
+if [[ -z "${KNOWN_HOSTS}" ]]; then
+    echo "WARNING: ssh-keyscan failed for ${SSH_HOST}:${SSH_PORT}"
+    echo "  You can set SSH_KNOWN_HOSTS later, or set SSH_KEY_SCAN=false to skip verification."
+else
+    echo "SSH host keys collected."
+fi
+
 ## Create SOPS config
 PLAINTEXT="## SSH
 SSH_HOST=${SSH_HOST}
 SSH_USER=${SSH_USER}
 SSH_PORT=${SSH_PORT}"
+if [[ -n "${KNOWN_HOSTS}" ]]; then
+    # Base64-encode known_hosts for safe storage in dotenv
+    SSH_KNOWN_HOSTS=$(echo "${KNOWN_HOSTS}" | base64 -w0)
+    PLAINTEXT="${PLAINTEXT}
+SSH_KNOWN_HOSTS=${SSH_KNOWN_HOSTS}"
+fi
 
 mkdir -p "${CONFIG_DIR}"
 echo "${PLAINTEXT}" | container_run -i \
