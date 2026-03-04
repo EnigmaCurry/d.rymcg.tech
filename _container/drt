@@ -56,6 +56,7 @@ Usage:
 Options:
   --init [CONTEXT]   Bootstrap AGE key + SOPS config for a context
   --clean [CONTEXT]  Remove SOPS config and/or AGE key for a context
+  --list             List all contexts (AGE keys and SOPS configs)
   --extract          Print this script to stdout (self-extraction)
   --image TAG        Container image (default: localhost/d-rymcg-tech:latest)
   --docker           Use Docker instead of Podman
@@ -451,6 +452,65 @@ cmd_clean() {
 }
 
 ###############################################################################
+# list subcommand
+###############################################################################
+
+cmd_list() {
+    local KEY_DIR="${HOME}/.config/d.rymcg.tech/keys/sops"
+    local CONFIG_DIR="${HOME}/.config/d.rymcg.tech/config"
+    local CONTEXTS=()
+
+    ## Collect unique context names from keys and configs
+    if [[ -d "${KEY_DIR}" ]]; then
+        for f in "${KEY_DIR}"/*.key; do
+            [[ -f "$f" ]] || continue
+            CONTEXTS+=("$(basename "$f" .key)")
+        done
+    fi
+    if [[ -d "${CONFIG_DIR}" ]]; then
+        for f in "${CONFIG_DIR}"/*.sops.env; do
+            [[ -f "$f" ]] || continue
+            local name
+            name="$(basename "$f" .sops.env)"
+            ## Avoid duplicates
+            local found=false
+            for c in "${CONTEXTS[@]+"${CONTEXTS[@]}"}; do
+                if [[ "$c" == "$name" ]]; then found=true; break; fi
+            done
+            if [[ "$found" == false ]]; then
+                CONTEXTS+=("$name")
+            fi
+        done
+    fi
+
+    if [[ ${#CONTEXTS[@]} -eq 0 ]]; then
+        echo "No contexts found."
+        return
+    fi
+
+    ## Sort contexts
+    IFS=$'\n' CONTEXTS=($(printf '%s\n' "${CONTEXTS[@]}" | sort)); unset IFS
+
+    printf "%-20s %-12s %s\n" "CONTEXT" "KEY" "CONFIG"
+    printf "%-20s %-12s %s\n" "-------" "---" "------"
+    for ctx in "${CONTEXTS[@]}"; do
+        local key_status="missing"
+        if [[ -f "${KEY_DIR}/${ctx}.key" ]]; then
+            if head -1 "${KEY_DIR}/${ctx}.key" | grep -q '^age-encryption.org'; then
+                key_status="encrypted"
+            else
+                key_status="plaintext"
+            fi
+        fi
+        local config_status="missing"
+        if [[ -f "${CONFIG_DIR}/${ctx}.sops.env" ]]; then
+            config_status="present"
+        fi
+        printf "%-20s %-12s %s\n" "$ctx" "$key_status" "$config_status"
+    done
+}
+
+###############################################################################
 # extract subcommand
 ###############################################################################
 
@@ -482,6 +542,10 @@ while [[ $# -gt 0 ]]; do
             shift
             ARGS+=("$@")
             break
+            ;;
+        --list)
+            ACTION=list
+            shift
             ;;
         --extract)
             ACTION=extract
@@ -526,6 +590,9 @@ case "${ACTION}" in
         ;;
     clean)
         cmd_clean "${ARGS[@]+"${ARGS[@]}"}"
+        ;;
+    list)
+        cmd_list
         ;;
     extract)
         cmd_extract
