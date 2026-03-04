@@ -1,7 +1,8 @@
 #!/usr/bin/env bash
 ## drt — standalone d-rymcg-tech bootstrap tool
 ## Combines init + run into a single script with no repo dependency.
-## Embed this in the container image and extract it with:
+## Host dependencies: bash, podman (or docker), openssh, coreutils, grep, gawk
+## Setup alias:
 ##   alias drt='bash <(podman run --rm @@DRT_IMAGE@@ drt)'
 set -euo pipefail
 
