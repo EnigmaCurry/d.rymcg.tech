@@ -292,16 +292,11 @@ if ! docker context use "${DOCKER_CONTEXT}" 2>&1; then
     exit 1
 fi
 echo "## Docker context activated" >&2
-# Save context name for env file naming, then unset the env var
-# so `docker context use` selection takes effect and `d context`
-# can switch contexts freely inside the container
-_CONTEXT="${DOCKER_CONTEXT}"
-unset DOCKER_CONTEXT
 
 ## Step 7: Create root .env and distribute env vars via restore-env
 echo "## Step 7: Running restore-env" >&2
 cd "${ROOT_DIR}"
-cp -n .env-dist ".env_${_CONTEXT}"
+cp -n .env-dist ".env_${DOCKER_CONTEXT}"
 if ! env | d.rymcg.tech restore-env --yes; then
     echo "WARNING: restore-env had errors (some vars may need reconfiguration)" >&2
 fi
@@ -311,7 +306,7 @@ echo "## Step 8: Checking requested project env files" >&2
 if [[ -n "${PROJECTS:-}" ]]; then
     IFS=, read -ra _requested_projects <<< "${PROJECTS}"
     for project_name in "${_requested_projects[@]}"; do
-        env_file="${project_name}/.env_${_CONTEXT}_default"
+        env_file="${project_name}/.env_${DOCKER_CONTEXT}_default"
         if [[ ! -f "${env_file}" ]]; then
             echo "## Creating ${env_file} from .env-dist" >&2
             cp "${project_name}/.env-dist" "${env_file}"
@@ -326,7 +321,7 @@ for i in "${!_cmd_args[@]}"; do
     if [[ "${_cmd_args[$i]}" == "make" && $((i+1)) -lt ${#_cmd_args[@]} ]]; then
         _target_project="${_cmd_args[$((i+1))]}"
         if [[ -d "${ROOT_DIR}/${_target_project}" && -f "${ROOT_DIR}/${_target_project}/.env-dist" ]]; then
-            _target_env="${ROOT_DIR}/${_target_project}/.env_${_CONTEXT}_default"
+            _target_env="${ROOT_DIR}/${_target_project}/.env_${DOCKER_CONTEXT}_default"
             if [[ ! -f "${_target_env}" ]]; then
                 echo "ERROR: ${_target_env} not found." >&2
                 echo "  The project '${_target_project}' was not included in the SOPS config (${SOPS_CONFIG_FILE:-unset})." >&2
@@ -340,4 +335,5 @@ done
 
 ## Step 10: Exec the command
 echo "## Step 10: Executing: $*" >&2
+unset DOCKER_CONTEXT
 exec "$@"
