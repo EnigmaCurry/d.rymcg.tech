@@ -120,7 +120,7 @@ if [[ ! -f "${AGE_KEY_FILE}" ]]; then
     ## Optional passphrase protection
     if wizard confirm "Password-protect the AGE key?" no; then
         ENCRYPTED="${AGE_KEY_FILE}.enc"
-        if container_run -it "${IMAGE}" age -p < "${AGE_KEY_FILE}" > "${ENCRYPTED}" && [[ -s "${ENCRYPTED}" ]]; then
+        if container_run -it -v "${AGE_KEY_FILE}:/tmp/age-key:ro" "${IMAGE}" age -p /tmp/age-key > "${ENCRYPTED}" && [[ -s "${ENCRYPTED}" ]]; then
             mv "${ENCRYPTED}" "${AGE_KEY_FILE}"
             chmod 600 "${AGE_KEY_FILE}"
             echo "AGE key created (passphrase-protected): ${AGE_KEY_FILE}"
