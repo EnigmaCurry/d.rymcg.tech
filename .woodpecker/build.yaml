@@ -59,6 +59,7 @@ steps:
             -f _container/Dockerfile \
             --build-arg BRANCH=master \
             --build-arg IMAGE_SOURCE=https://$${REGISTRY}/${CI_REPO_OWNER}/${CI_REPO_NAME} \
+            --build-arg IMAGE_REF=$${IMAGE}:latest \
             --cache-from "$${IMAGE}:latest" \
             --cache-to type=inline \
             -t "$${IMAGE}:$${SHA}" \

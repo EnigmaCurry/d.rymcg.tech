@@ -2,7 +2,7 @@
 ## drt — standalone d-rymcg-tech bootstrap tool
 ## Combines init + run into a single script with no repo dependency.
 ## Embed this in the container image and extract it with:
-##   alias drt='bash <(podman run --rm ghcr.io/enigmacurry/d-rymcg-tech drt)'
+##   alias drt='bash <(podman run --rm @@DRT_IMAGE@@ drt)'
 set -euo pipefail
 
 VERSION="1.0.0"
@@ -330,7 +330,11 @@ cmd_run() {
 ###############################################################################
 
 cmd_extract() {
-    cat "$(readlink -f "$0")"
+    if [[ -n "${DRT_IMAGE:-}" ]]; then
+        sed "s|@@DRT_IMAGE@@|${DRT_IMAGE}|g" "$(readlink -f "$0")"
+    else
+        cat "$(readlink -f "$0")"
+    fi
 }
 
 ###############################################################################
@@ -405,18 +409,13 @@ esac
 ###############################################################################
 # How the alias works:
 #
-# The container image embeds this script at /usr/local/bin/drt. To find your
-# image's source registry, inspect the label:
-#
-#   podman inspect --format '{{index .Config.Labels "org.opencontainers.image.source"}}' ghcr.io/enigmacurry/d-rymcg-tech
-#
 # Define a shell alias (add to ~/.bashrc or ~/.zshrc):
 #
-#   alias drt='bash <(podman run --rm ghcr.io/enigmacurry/d-rymcg-tech drt)'
+#   alias drt='bash <(podman run --rm @@DRT_IMAGE@@ drt)'
 #
 # When you run e.g. "drt --init myserver", bash expands this to:
 #
-#   bash <(podman run --rm ghcr.io/enigmacurry/d-rymcg-tech drt) --init myserver
+#   bash <(podman run --rm @@DRT_IMAGE@@ drt) --init myserver
 #
 # The container entrypoint detects "drt" with no args and runs "drt --extract",
 # which prints this script to stdout. The process substitution feeds it to
