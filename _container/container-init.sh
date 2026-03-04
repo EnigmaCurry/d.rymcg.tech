@@ -122,7 +122,7 @@ if [[ ! -f "${AGE_KEY_FILE}" ]]; then
         ENC_DIR=$(mktemp -d)
         cp "${AGE_KEY_FILE}" "${ENC_DIR}/age-key-in"
         ENCRYPTED="${ENC_DIR}/age-key-enc"
-        if container_run -it --user "$(id -u):$(id -g)" \
+        if container_run -it --user 0:0 \
             -v "${ENC_DIR}:/tmp/age-work:Z" \
             "${IMAGE}" sh -c 'age -p /tmp/age-work/age-key-in > /tmp/age-work/age-key-enc' \
             && [[ -s "${ENCRYPTED}" ]]; then

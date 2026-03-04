@@ -162,7 +162,7 @@ cmd_init() {
             ENC_DIR=$(mktemp -d)
             cp "${AGE_KEY_FILE}" "${ENC_DIR}/age-key-in"
             local ENCRYPTED="${ENC_DIR}/age-key-enc"
-            if container_run -it --user "$(id -u):$(id -g)" \
+            if container_run -it --user 0:0 \
                 -v "${ENC_DIR}:/tmp/age-work:Z" \
                 "${IMAGE}" sh -c 'age -p /tmp/age-work/age-key-in > /tmp/age-work/age-key-enc' \
                 && [[ -s "${ENCRYPTED}" ]]; then
@@ -184,7 +184,7 @@ cmd_init() {
             local DEC_DIR
             DEC_DIR=$(mktemp -d)
             cp "${AGE_KEY_FILE}" "${DEC_DIR}/age-key-in"
-            container_run -it --user "$(id -u):$(id -g)" \
+            container_run -it --user 0:0 \
                 -v "${DEC_DIR}:/tmp/age-work:Z" \
                 "${IMAGE}" sh -c 'age -d /tmp/age-work/age-key-in > /tmp/age-work/age-key-dec'
             PUBKEY=$(grep -o 'age1[a-z0-9]*' "${DEC_DIR}/age-key-dec" | head -1)
