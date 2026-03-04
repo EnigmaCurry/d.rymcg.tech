@@ -63,19 +63,23 @@ steps:
             -t "$${IMAGE}:$${SHA}" \
             -t "$${IMAGE}:latest" \
             .
-          # Clean up old SHA tags (keep only latest, current SHA, and sha256 digests)
-          echo "## Cleaning up old image tags"
-          VERSIONS=$$(curl -sf -u "$${REGISTRY_USERNAME}:$${REGISTRY_PASSWORD}" \
-            "https://$${REGISTRY}/api/v1/packages/${CI_REPO_OWNER}?type=container&q=$${PKG_NAME}" \
-            | jq -r '.[].version')
-          for TAG in $${VERSIONS}; do
-            case "$${TAG}" in
-              latest|sha256:*) continue ;;
-              "$${SHA}") continue ;;
-            esac
-            echo "  Deleting old tag: $${TAG}"
-            curl -sf -X DELETE -u "$${REGISTRY_USERNAME}:$${REGISTRY_PASSWORD}" \
-              "https://$${REGISTRY}/api/v1/packages/${CI_REPO_OWNER}/container/$${PKG_NAME}/$${TAG}" || true
+          # Clean up old versions (loop until only current SHA + latest remain)
+          echo "## Cleaning up old image versions"
+          for i in $$(seq 1 20); do
+            DELETED=0
+            VERSIONS=$$(curl -sf -u "$${REGISTRY_USERNAME}:$${REGISTRY_PASSWORD}" \
+              "https://$${REGISTRY}/api/v1/packages/${CI_REPO_OWNER}?type=container&q=$${PKG_NAME}" \
+              | jq -r '.[].version') || break
+            for TAG in $${VERSIONS}; do
+              case "$${TAG}" in
+                latest|"$${SHA}") continue ;;
+              esac
+              echo "  Deleting: $${TAG}"
+              curl -sf -X DELETE -u "$${REGISTRY_USERNAME}:$${REGISTRY_PASSWORD}" \
+                "https://$${REGISTRY}/api/v1/packages/${CI_REPO_OWNER}/container/$${PKG_NAME}/$${TAG}" || true
+              DELETED=1
+            done
+            [ "$${DELETED}" -eq 0 ] && break
           done
         fi
         sync
