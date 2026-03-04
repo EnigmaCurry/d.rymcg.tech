@@ -363,6 +363,15 @@ else
     decrypt_sops
 fi
 
+## Derive SOPS_AGE_RECIPIENTS (public key) from the private key for export-env --encrypt
+if [[ -n "${SOPS_AGE_KEY_FILE:-}" && -f "${SOPS_AGE_KEY_FILE}" && -z "${SOPS_AGE_RECIPIENTS:-}" ]]; then
+    SOPS_AGE_RECIPIENTS=$(age-keygen -y "${SOPS_AGE_KEY_FILE}" 2>/dev/null || true)
+    if [[ -n "${SOPS_AGE_RECIPIENTS}" ]]; then
+        export SOPS_AGE_RECIPIENTS
+        echo "## SOPS_AGE_RECIPIENTS=${SOPS_AGE_RECIPIENTS}" >&2
+    fi
+fi
+
 ## Step 4: Persist BAO state for on-demand re-signing (only if OpenBao was used)
 if [[ "${BAO_USED}" == true ]]; then
     echo "## Step 4: Persisting OpenBao state" >&2
