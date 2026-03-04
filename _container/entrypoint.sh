@@ -21,6 +21,7 @@ fi
 ## Preflight: detect unconfigured container
 if [[ -z "${SSH_HOST:-}" && -z "${SOPS_CONFIG_FILE:-}" && -z "${BAO_ADDR:-}" && -z "${DOCKER_CONTEXT:-}" ]]; then
     echo "##    d-rymcg-tech container is not configured." >&2
+    echo "##    https://github.com/EnigmaCurry/d.rymcg.tech/blob/master/WORKSTATION_CONTAINER.md" >&2
     echo "##" >&2
     echo "##    == CI / headless usage ==" >&2
     echo "##    Set environment variables: SSH_HOST, SSH_USER, SSH_PORT" >&2
