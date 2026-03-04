@@ -5,7 +5,7 @@ SCRIPT_DIR="$(dirname "$(readlink -f "$0")")"
 ROOT_DIR="$(dirname "${SCRIPT_DIR}")"
 
 usage() {
-    echo "Usage: d.rymcg.tech build-container [OPTIONS]"
+    echo "Usage: d.rymcg.tech container-build [OPTIONS]"
     echo ""
     echo "Build the d-rymcg-tech container image from the current repo."
     echo ""

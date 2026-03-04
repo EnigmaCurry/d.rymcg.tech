@@ -203,10 +203,12 @@ if [[ -n "${SOPS_CONFIG_FILE:-}" ]]; then
     SOPS_DECRYPTED=$(sops decrypt --input-type dotenv --output-type dotenv \
         --filename-override export.env "${SOPS_CONFIG_FILE}")
 
-    # Delete AGE key temp file after decryption (no longer needed)
-    if [[ -n "${AGE_KEY_FILE:-}" && -f "${AGE_KEY_FILE}" ]]; then
-        rm -f "${AGE_KEY_FILE}"
-        unset SOPS_AGE_KEY_FILE
+    # Delete AGE key temp file after decryption (unless save-on-exit needs it)
+    if [[ "${SOPS_SAVE_ON_EXIT:-}" != "true" ]]; then
+        if [[ -n "${AGE_KEY_FILE:-}" && -f "${AGE_KEY_FILE}" ]]; then
+            rm -f "${AGE_KEY_FILE}"
+            unset SOPS_AGE_KEY_FILE
+        fi
     fi
 
     # Parse each KEY=VALUE; skip BAO_* vars; export only if not already set
