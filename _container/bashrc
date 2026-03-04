@@ -3,7 +3,7 @@ alias ls="ls --color=auto"
 PS1="\n\[\033[1;34m\][d.rymcg.tech|\[\033[1;32m\]$DOCKER_CONTEXT\[\033[1;34m\]]\[\033[0m\] \[\033[1;33m\]\w\[\033[0m\]\n\$ "
 eval "$(d.rymcg.tech completion bash)"
 __d.rymcg.tech_cli_alias d
-[ -n "$DOCKER_CONTEXT" ] && __d.rymcg.tech_context_alias $DOCKER_CONTEXT
+[ -n "$DOCKER_CONTEXT" ] && type __d.rymcg.tech_context_alias &>/dev/null && __d.rymcg.tech_context_alias $DOCKER_CONTEXT 2>/dev/null || true
 
 ## Save-on-exit: capture initial config state and diff on shell exit
 if [[ "${SOPS_SAVE_ON_EXIT:-}" == "true" && -n "${SOPS_CONFIG_FILE:-}" ]]; then
