@@ -104,6 +104,7 @@ SOPS_BASENAME="$(basename "${SOPS_CONFIG}")"
 RUN_ARGS=(
     run --rm -it
     --security-opt label=disable
+    --userns=keep-id
     -e "SOPS_CONFIG_FILE=${CONTAINER_CONFIG_DIR}/${SOPS_BASENAME}"
     -v "${SOPS_CONFIG}:${CONTAINER_CONFIG_DIR}/${SOPS_BASENAME}"
     -v "${AGE_KEY_FILE}:/home/user/.config/sops/age/keys.txt:ro"
