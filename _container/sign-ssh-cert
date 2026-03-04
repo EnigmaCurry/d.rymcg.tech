@@ -140,3 +140,4 @@ if [[ -z "${SIGNED_KEY}" || "${SIGNED_KEY}" == "null" ]]; then
 fi
 echo "${SIGNED_KEY}" > "${CERT_FILE}"
 chmod 600 "${CERT_FILE}"
+echo "sign-ssh-cert: certificate signed via ${BAO_ADDR} (${BAO_SSH_MOUNT}/sign/${BAO_SSH_ROLE})" >&2
