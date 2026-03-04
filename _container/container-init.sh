@@ -119,21 +119,14 @@ echo "AGE public key: ${PUBKEY}"
 echo ""
 
 ## SSH details — pre-fill from ssh config if available
-echo "[debug] Running ssh -G ${CONTEXT} ..." >&2
 SSH_CONFIG=$(ssh -G "${CONTEXT}" 2>/dev/null || true)
-echo "[debug] ssh -G done" >&2
 _SSH_HOST=$(echo "${SSH_CONFIG}" | awk '/^hostname / {print $2}')
 _SSH_PORT=$(echo "${SSH_CONFIG}" | awk '/^port / {print $2; exit}')
 _SSH_USER=$(echo "${SSH_CONFIG}" | awk '/^user / {print $2}')
-echo "[debug] Defaults: host=${_SSH_HOST} port=${_SSH_PORT} user=${_SSH_USER}" >&2
 
-echo "[debug] About to run wizard ask for SSH_HOST ..." >&2
 SSH_HOST=$(wizard ask "Enter SSH host" "${_SSH_HOST}")
-echo "[debug] SSH_HOST=${SSH_HOST}" >&2
 SSH_PORT=$(wizard ask "Enter SSH port" "${_SSH_PORT:-22}")
-echo "[debug] SSH_PORT=${SSH_PORT}" >&2
 SSH_USER=$(wizard ask "Enter SSH user" "${_SSH_USER:-root}")
-echo "[debug] SSH_USER=${SSH_USER}" >&2
 
 ## Create SOPS config
 PLAINTEXT="## SSH
