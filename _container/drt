@@ -407,7 +407,7 @@ case "${ACTION}" in
 esac
 
 ###############################################################################
-# How the alias works:
+# How to setup the 'drt' alias for d.rymcg.tech:
 #
 # Define a shell alias (add to ~/.bashrc or ~/.zshrc):
 #
