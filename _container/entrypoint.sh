@@ -28,6 +28,7 @@ if [[ -z "${SSH_HOST:-}" && -z "${SOPS_CONFIG_FILE:-}" && -z "${BAO_ADDR:-}" && 
     echo "##    == CI / headless usage ==" >&2
     echo "##    Set environment variables: SSH_HOST, SSH_USER, SSH_PORT" >&2
     echo "##    Or for OpenBao: BAO_ADDR, BAO_ROLE_ID, BAO_SECRET_ID, BAO_AGE_KEY_PATH" >&2
+    echo "##    Use plain env vars, SOPS_CONFIG_FILE, or both (env vars override SOPS)." >&2
     echo "##" >&2
     echo "##    == Interactive usage (drt) ==" >&2
     # Print the setup instructions from the drt script's trailing comment block
