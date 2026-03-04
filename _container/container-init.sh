@@ -70,14 +70,15 @@ container_run() {
 }
 
 ## Run script-wizard inside the container interactively
-## Mount /dev/tty so the TUI renders on the host terminal,
-## while stdout (the answer) is captured normally by $()
+## Uses a named container so we can copy the answer out after it exits
 wizard() {
-    container_run -i \
+    local cname="wizard-$$-${RANDOM}"
+    "${ENGINE}" run -it --name "${cname}" --entrypoint "" \
         -e "TERM=${TERM:-xterm}" \
-        -v /dev/tty:/dev/tty \
         "${IMAGE}" \
-        sh -c 'script-wizard "$@" </dev/tty 2>/dev/tty' -- "$@"
+        sh -c 'script-wizard "$@" > /tmp/wizard-answer' -- "$@"
+    "${ENGINE}" cp "${cname}:/tmp/wizard-answer" - | tar -xO
+    "${ENGINE}" rm "${cname}" >/dev/null
 }
 
 ## Context name
