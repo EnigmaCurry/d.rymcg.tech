@@ -164,9 +164,9 @@ cmd_init() {
                 chmod 600 "${AGE_KEY_FILE}"
                 echo "AGE key created (passphrase-protected): ${AGE_KEY_FILE}"
             else
-                rm -f "${ENCRYPTED}"
-                echo "Error: passphrase encryption failed — key saved unencrypted." >&2
-                echo "AGE key created (unencrypted): ${AGE_KEY_FILE}"
+                rm -f "${ENCRYPTED}" "${AGE_KEY_FILE}"
+                echo "Error: passphrase encryption failed — no key was saved." >&2
+                exit 1
             fi
         else
             echo "AGE key created: ${AGE_KEY_FILE}"
