@@ -9,8 +9,12 @@ BIN="${ROOT_DIR}/_scripts"
 ## Step 0: Set up PATH so the d.rymcg.tech CLI works
 export PATH="${ROOT_DIR}/_scripts/user:${PATH}"
 
-## Short-circuit: if the command is "drt", exec it directly (no setup needed)
+## Short-circuit: "drt" with no args outputs itself (for alias extraction);
+## "drt <args>" execs directly (no entrypoint setup needed)
 if [[ "${1:-}" == "drt" ]]; then
+    if [[ $# -eq 1 ]]; then
+        exec drt --extract
+    fi
     exec "$@"
 fi
 

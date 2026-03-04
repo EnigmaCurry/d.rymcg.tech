@@ -2,7 +2,7 @@
 ## drt — standalone d-rymcg-tech bootstrap tool
 ## Combines init + run into a single script with no repo dependency.
 ## Embed this in the container image and extract it with:
-##   podman run --rm ghcr.io/enigmacurry/d-rymcg-tech drt --extract > drt && chmod +x drt
+##   alias drt='bash <(podman run --rm ghcr.io/enigmacurry/d-rymcg-tech drt)'
 set -euo pipefail
 
 VERSION="1.0.0"
