@@ -358,7 +358,7 @@ def get_default_repo_path() -> Path:
 # Required commands to check
 REQUIRED_COMMANDS = [
     "bash", "make", "git", "openssl", "htpasswd", "xdg-open", "jq", "sshfs",
-    "wg", "curl", "inotifywait", "w3m", "sponge", "keychain", "ipcalc", "uv", "docker",
+    "wg", "curl", "inotifywait", "w3m", "keychain", "ipcalc", "uv", "docker",
 ]
 
 

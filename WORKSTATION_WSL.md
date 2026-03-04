@@ -32,7 +32,7 @@ In the Debian terminal, run:
 sudo apt update
 sudo apt install bash build-essential gettext git openssl apache2-utils \
                  xdg-utils jq sshfs wireguard curl inotify-tools w3m \
-                 moreutils keychain ipcalc-ng age
+                 keychain ipcalc-ng age
 
 curl -LsSf https://astral.sh/uv/install.sh | sh
 ```
