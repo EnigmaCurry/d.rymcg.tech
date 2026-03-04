@@ -32,10 +32,6 @@ RUN apk add --no-cache \
     gcompat \
     libgcc
 
-# Install optional extra packages requested at build time
-ARG EXTRA_PACKAGES=
-RUN if [ -n "${EXTRA_PACKAGES}" ]; then apk add --no-cache ${EXTRA_PACKAGES}; fi
-
 # Install uv (Python package manager)
 RUN curl -fsSL https://astral.sh/uv/install.sh | UV_INSTALL_DIR=/usr/local/bin sh
 
@@ -52,6 +48,10 @@ COPY --chown=1000:1000 _container/bashrc /home/user/.bashrc
 USER user
 RUN uv python install --no-cache
 USER root
+
+# Install optional extra packages requested at build time
+ARG EXTRA_PACKAGES=
+RUN if [ -n "${EXTRA_PACKAGES}" ]; then apk add --no-cache ${EXTRA_PACKAGES}; fi
 
 # Copy the d.rymcg.tech repo, optionally switch branch, then strip history
 ARG BRANCH=
