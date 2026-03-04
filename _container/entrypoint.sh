@@ -48,12 +48,6 @@ if [[ ! -f "${KEY_DIR}/id_ed25519" ]]; then
     ssh-keygen -t ed25519 -N "" -f "${KEY_DIR}/id_ed25519" -q
 fi
 
-# Hydrate SSH_KNOWN_HOSTS from env (file path, plain text, or base64)
-if [[ -n "${SSH_KNOWN_HOSTS:-}" ]]; then
-    echo "## SSH: loading known_hosts from SSH_KNOWN_HOSTS env var" >&2
-    resolve_secret_to_file "${SSH_KNOWN_HOSTS}" "${KEY_DIR}/known_hosts"
-fi
-
 ## Step 2: OpenBao integration (only runs if BAO_ADDR is set)
 if [[ -n "${BAO_ADDR:-}" ]]; then
     echo "## OpenBao: authenticating with ${BAO_ADDR}" >&2
@@ -242,6 +236,13 @@ fi
 DOCKER_CONTEXT="${DOCKER_CONTEXT#"${DOCKER_CONTEXT%%[a-zA-Z0-9]*}"}"
 export DOCKER_CONTEXT
 echo "## DOCKER_CONTEXT=${DOCKER_CONTEXT}" >&2
+
+# Hydrate SSH_KNOWN_HOSTS from env (file path, plain text, or base64)
+# Done here (after SOPS decryption) so vars from encrypted config are available
+if [[ -n "${SSH_KNOWN_HOSTS:-}" && ! -s "${KEY_DIR}/known_hosts" ]]; then
+    echo "## SSH: loading known_hosts from SSH_KNOWN_HOSTS env var" >&2
+    resolve_secret_to_file "${SSH_KNOWN_HOSTS}" "${KEY_DIR}/known_hosts"
+fi
 
 ## Step 5: Validate SSH vars + write SSH config (SSH_HOST may now come from SOPS)
 echo "## Step 5: Setting up SSH config" >&2
