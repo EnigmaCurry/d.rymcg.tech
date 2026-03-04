@@ -45,11 +45,14 @@ The entrypoint handles all setup before executing your command:
 | `SSH_HOST` | Hostname or IP of the remote Docker host |
 | `SSH_USER` | SSH username (default: `root`) |
 | `SSH_PORT` | SSH port (default: `22`) |
+| `SSH_KEY` | SSH private key (file path, PEM, or base64). If unset, a key is generated |
+| `SSH_KNOWN_HOSTS` | Known hosts content (file path, plain text, or base64) |
 | `DOCKER_CONTEXT` | Docker context name (default: derived from `SSH_HOST` or `SOPS_CONFIG_FILE`) |
 
-With this mode you must mount your own SSH key and known_hosts into
-the container or set `SSH_KEY_SCAN=false` to skip host key
-verification.
+SSH credentials can be provided three ways: mount files as volumes,
+set `SSH_KEY` and `SSH_KNOWN_HOSTS` env vars (supports file paths,
+inline PEM/text, or base64-encoded values), or let OpenBao handle
+everything.
 
 ### With OpenBao (recommended for CI)
 
@@ -83,20 +86,27 @@ derived automatically.
 
 ## Usage examples
 
-### Interactive shell
+### Interactive shell (volume mounts)
 
 ```bash
 docker run --rm -it \
   -e SSH_HOST=192.168.1.100 \
   -e SSH_USER=root \
-  -e SSH_KEY_SCAN=false \
   -v ~/.ssh/id_ed25519:/run/secrets/ssh/id_ed25519:ro \
   -v ~/.ssh/known_hosts:/run/secrets/ssh/known_hosts:ro \
   ghcr.io/enigmacurry/d-rymcg-tech
 ```
 
-This drops you into a bash shell with the `d` CLI available and a
-Docker context configured for your remote host.
+### Interactive shell (env vars)
+
+```bash
+docker run --rm -it \
+  -e SSH_HOST=192.168.1.100 \
+  -e SSH_USER=root \
+  -e SSH_KEY="$(base64 -w0 ~/.ssh/id_ed25519)" \
+  -e SSH_KNOWN_HOSTS="$(base64 -w0 ~/.ssh/known_hosts)" \
+  ghcr.io/enigmacurry/d-rymcg-tech
+```
 
 ### Deploy a service
 
@@ -104,9 +114,8 @@ Docker context configured for your remote host.
 docker run --rm \
   -e SSH_HOST=192.168.1.100 \
   -e SSH_USER=root \
-  -e SSH_KEY_SCAN=false \
-  -v ~/.ssh/id_ed25519:/run/secrets/ssh/id_ed25519:ro \
-  -v ~/.ssh/known_hosts:/run/secrets/ssh/known_hosts:ro \
+  -e SSH_KEY="$(base64 -w0 ~/.ssh/id_ed25519)" \
+  -e SSH_KNOWN_HOSTS="$(base64 -w0 ~/.ssh/known_hosts)" \
   ghcr.io/enigmacurry/d-rymcg-tech \
   bash -c 'd make whoami config && d make whoami install'
 ```

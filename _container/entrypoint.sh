@@ -9,13 +9,49 @@ BIN="${ROOT_DIR}/_scripts"
 ## Step 0: Set up PATH so the d.rymcg.tech CLI works
 export PATH="${ROOT_DIR}/_scripts/user:${PATH}"
 
-## Step 1: Generate SSH key
+## Helper: resolve a secret value (file path, PEM, or base64) → write to target file
+resolve_secret_to_file() {
+    local value="$1" target="$2"
+    [[ -z "${value}" ]] && return 1
+    # File path — copy it
+    if [[ -f "${value}" ]]; then
+        cp "${value}" "${target}"
+    # Inline PEM content
+    elif [[ "${value}" == *"-----BEGIN"* ]]; then
+        echo "${value}" > "${target}"
+    # Base64-encoded content (single line, >60 chars, valid base64 chars)
+    elif [[ $(echo "${value}" | wc -l) -eq 1 ]] && \
+         [[ ${#value} -gt 60 ]] && \
+         echo "${value}" | grep -qE '^[A-Za-z0-9+/=]+$'; then
+        echo "${value}" | base64 -d > "${target}"
+    # Plain text (e.g. known_hosts content)
+    else
+        echo "${value}" > "${target}"
+    fi
+    chmod 600 "${target}"
+}
+
+## Step 1: Set up SSH key directory and credentials
 KEY_DIR=/run/secrets/ssh
 mkdir -p "${KEY_DIR}" 2>/dev/null || KEY_DIR=$(mktemp -d)
 mkdir -p ~/.ssh
 chmod 700 "${KEY_DIR}" ~/.ssh
+
+# Hydrate SSH_KEY from env (file path, PEM, or base64)
+if [[ -n "${SSH_KEY:-}" && ! -f "${KEY_DIR}/id_ed25519" ]]; then
+    echo "## SSH: loading key from SSH_KEY env var" >&2
+    resolve_secret_to_file "${SSH_KEY}" "${KEY_DIR}/id_ed25519"
+fi
+
+# Generate a key if none was provided or mounted
 if [[ ! -f "${KEY_DIR}/id_ed25519" ]]; then
     ssh-keygen -t ed25519 -N "" -f "${KEY_DIR}/id_ed25519" -q
+fi
+
+# Hydrate SSH_KNOWN_HOSTS from env (file path, plain text, or base64)
+if [[ -n "${SSH_KNOWN_HOSTS:-}" ]]; then
+    echo "## SSH: loading known_hosts from SSH_KNOWN_HOSTS env var" >&2
+    resolve_secret_to_file "${SSH_KNOWN_HOSTS}" "${KEY_DIR}/known_hosts"
 fi
 
 ## Step 2: OpenBao integration (only runs if BAO_ADDR is set)
@@ -28,27 +64,14 @@ if [[ -n "${BAO_ADDR:-}" ]]; then
         local var_value="${!var_name:-}"
         [[ -z "${var_value}" ]] && return 0
         # File path — use as-is
-        if [[ -f "${var_value}" ]]; then
-            return 0
-        fi
+        [[ -f "${var_value}" ]] && return 0
         local tmp_file
         tmp_file=$(mktemp "${KEY_DIR}/${var_name}.XXXXXX")
-        # Inline PEM content
-        if [[ "${var_value}" == *"-----BEGIN"* ]]; then
-            echo "${var_value}" > "${tmp_file}"
+        if resolve_secret_to_file "${var_value}" "${tmp_file}"; then
             export "${var_name}=${tmp_file}"
-            return 0
+        else
+            rm -f "${tmp_file}"
         fi
-        # Base64-encoded content (single line, >60 chars, valid base64 chars)
-        if [[ $(echo "${var_value}" | wc -l) -eq 1 ]] && \
-           [[ ${#var_value} -gt 60 ]] && \
-           echo "${var_value}" | grep -qE '^[A-Za-z0-9+/=]+$'; then
-            echo "${var_value}" | base64 -d > "${tmp_file}"
-            export "${var_name}=${tmp_file}"
-            return 0
-        fi
-        # Not a recognized format — leave as-is (may be a URL or other ref)
-        rm -f "${tmp_file}"
     }
 
     resolve_tls_var BAO_CACERT
