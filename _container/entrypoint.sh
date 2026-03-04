@@ -446,6 +446,17 @@ else
         fi
     } > ~/.ssh/config
 fi
+
+# Add ControlMaster for interactive sessions (reuse SSH connections)
+if [[ -t 0 ]]; then
+    {
+        echo ""
+        echo "Host *"
+        echo "    ControlMaster auto"
+        echo "    ControlPersist yes"
+        echo "    ControlPath /tmp/ssh-%u-%r@%h:%p"
+    } >> ~/.ssh/config
+fi
 chmod 600 ~/.ssh/config
 echo "## SSH config written" >&2
 
