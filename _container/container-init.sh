@@ -120,6 +120,7 @@ if [[ ! -f "${AGE_KEY_FILE}" ]]; then
     ## Optional passphrase protection
     if wizard confirm "Password-protect the AGE key?" no; then
         ENC_DIR=$(mktemp -d)
+        chmod 777 "${ENC_DIR}"
         ENCRYPTED="${ENC_DIR}/age-key-enc"
         if container_run -it \
             -v "${AGE_KEY_FILE}:/tmp/age-key:ro,Z" \

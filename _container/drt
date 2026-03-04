@@ -160,6 +160,7 @@ cmd_init() {
         if wizard confirm "Password-protect the AGE key?" no; then
             local ENC_DIR
             ENC_DIR=$(mktemp -d)
+            chmod 777 "${ENC_DIR}"
             local ENCRYPTED="${ENC_DIR}/age-key-enc"
             if container_run -it \
                 -v "${AGE_KEY_FILE}:/tmp/age-key:ro,Z" \
@@ -181,14 +182,15 @@ cmd_init() {
         echo "Using existing AGE key: ${AGE_KEY_FILE}"
         ## Extract public key — if encrypted, need to decrypt first
         if head -1 "${AGE_KEY_FILE}" | grep -q '^age-encryption.org'; then
-            local DECRYPTED
-            DECRYPTED=$(mktemp)
+            local DEC_DIR
+            DEC_DIR=$(mktemp -d)
+            chmod 777 "${DEC_DIR}"
             container_run -it \
                 -v "${AGE_KEY_FILE}:/tmp/age-key:ro,Z" \
-                -v "${DECRYPTED}:/tmp/age-key-dec:Z" \
-                "${IMAGE}" sh -c 'age -d /tmp/age-key > /tmp/age-key-dec'
-            PUBKEY=$(grep -o 'age1[a-z0-9]*' "${DECRYPTED}" | head -1)
-            rm -f "${DECRYPTED}"
+                -v "${DEC_DIR}:/tmp/age-out:Z" \
+                "${IMAGE}" sh -c 'age -d /tmp/age-key > /tmp/age-out/age-key-dec'
+            PUBKEY=$(grep -o 'age1[a-z0-9]*' "${DEC_DIR}/age-key-dec" | head -1)
+            rm -rf "${DEC_DIR}"
         else
             PUBKEY=$(grep -o 'age1[a-z0-9]*' "${AGE_KEY_FILE}" | head -1)
             echo "WARNING: AGE key is NOT password-protected."
