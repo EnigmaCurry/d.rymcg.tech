@@ -26,14 +26,18 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Check if image already exists
-        id: check
+      - name: Prepare image metadata
+        id: meta
         run: |
           SHA=$(echo "${{ github.sha }}" | head -c 12)
           OWNER=$(echo "${{ github.repository_owner }}" | tr '[:upper:]' '[:lower:]')
           echo "sha=$SHA" >> "$GITHUB_OUTPUT"
           echo "owner=$OWNER" >> "$GITHUB_OUTPUT"
-          if docker buildx imagetools inspect "ghcr.io/${{ steps.check.outputs.owner }}/d-rymcg-tech:$SHA" 2>/dev/null; then
+
+      - name: Check if image already exists
+        id: check
+        run: |
+          if docker buildx imagetools inspect "ghcr.io/${{ steps.meta.outputs.owner }}/d-rymcg-tech:${{ steps.meta.outputs.sha }}" 2>/dev/null; then
             echo "exists=true" >> "$GITHUB_OUTPUT"
           fi
 
@@ -54,15 +58,7 @@ jobs:
             BRANCH=master
             IMAGE_SOURCE=https://github.com/${{ github.repository }}
           tags: |
-            ghcr.io/${{ steps.check.outputs.owner }}/d-rymcg-tech:${{ steps.check.outputs.sha }}
-            ghcr.io/${{ steps.check.outputs.owner }}/d-rymcg-tech:latest
-          cache-from: type=registry,ref=ghcr.io/${{ steps.check.outputs.owner }}/d-rymcg-tech:latest
+            ghcr.io/${{ steps.meta.outputs.owner }}/d-rymcg-tech:${{ steps.meta.outputs.sha }}
+            ghcr.io/${{ steps.meta.outputs.owner }}/d-rymcg-tech:latest
+          cache-from: type=registry,ref=ghcr.io/${{ steps.meta.outputs.owner }}/d-rymcg-tech:latest
           cache-to: type=inline
-
-      - name: Clean up old image versions
-        if: steps.check.outputs.exists != 'true'
-        uses: actions/delete-package-versions@v5
-        with:
-          package-name: d-rymcg-tech
-          package-type: container
-          min-versions-to-keep: 2
