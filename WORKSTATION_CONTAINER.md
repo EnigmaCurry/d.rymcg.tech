@@ -150,9 +150,9 @@ You can build the image from your local checkout:
 ```bash
 d container-build                                              # Docker, tagged localhost/d-rymcg-tech:latest
 d container-build --podman                                     # Podman
-d container-build --tag ghcr.io/you/d-rymcg-tech:v1            # Custom tag
+d container-build --image ghcr.io/you/d-rymcg-tech:v1           # Custom tag
 d container-build --arch linux/amd64 --arch linux/arm64        # Multi-arch (uses buildx)
-d container-build --tag ghcr.io/you/d-rymcg-tech:v1 --push     # Build and push
+d container-build --image ghcr.io/you/d-rymcg-tech:v1 --push    # Build and push
 ```
 
 ## Getting started
@@ -187,7 +187,7 @@ file.
 
 | Option | Description |
 |---|---|
-| `--image TAG` | Container image (default: `ghcr.io/enigmacurry/d-rymcg-tech:latest`) |
+| `--image TAG` | Container image (default: `localhost/d-rymcg-tech:latest`) |
 | `--docker` | Use Docker instead of Podman |
 | `--age-key FILE` | AGE key file (default: `~/.config/sops/age/keys.txt`) |
 | `--ssh-key FILE` | SSH key file (disables agent forwarding) |

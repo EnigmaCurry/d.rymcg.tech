@@ -13,14 +13,14 @@ usage() {
     echo "config file for the given context. Only requires Podman (or Docker)."
     echo ""
     echo "Options:"
-    echo "  --image TAG    Container image (default: ghcr.io/enigmacurry/d-rymcg-tech:latest)"
+    echo "  --image TAG    Container image (default: localhost/d-rymcg-tech:latest)"
     echo "  --build        Build the container image first (using container-build)"
     echo "  --docker       Use Docker instead of Podman"
     echo "  --help         Show this help"
 }
 
 ENGINE=podman
-IMAGE=ghcr.io/enigmacurry/d-rymcg-tech:latest
+IMAGE=localhost/d-rymcg-tech:latest
 BUILD=false
 CONTEXT=""
 
@@ -57,7 +57,7 @@ fi
 
 ## Build the image if requested
 if [[ "${BUILD}" == true ]]; then
-    BUILD_ARGS=(--tag "${IMAGE}")
+    BUILD_ARGS=(--image "${IMAGE}")
     if [[ "${ENGINE}" == podman ]]; then
         BUILD_ARGS+=(--podman)
     fi

@@ -15,7 +15,7 @@ usage() {
     echo "to the encrypted file."
     echo ""
     echo "Options:"
-    echo "  --image TAG      Container image (default: ghcr.io/enigmacurry/d-rymcg-tech:latest)"
+    echo "  --image TAG      Container image (default: localhost/d-rymcg-tech:latest)"
     echo "  --docker         Use Docker instead of Podman"
     echo "  --age-key FILE   AGE key file (default: ~/.config/d.rymcg.tech/keys/sops/<context>.key)"
     echo "  --ssh-key FILE   SSH key file (disables agent forwarding)"
@@ -24,7 +24,7 @@ usage() {
 }
 
 ENGINE=podman
-IMAGE=ghcr.io/enigmacurry/d-rymcg-tech:latest
+IMAGE=localhost/d-rymcg-tech:latest
 AGE_KEY_FILE=""
 SSH_KEY_FILE=""
 SAVE_ON_EXIT=true

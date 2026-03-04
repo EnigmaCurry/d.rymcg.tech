@@ -11,7 +11,7 @@ usage() {
     echo ""
     echo "Options:"
     echo "  --podman       Use Podman instead of Docker"
-    echo "  --tag TAG      Image tag (default: localhost/d-rymcg-tech:latest)"
+    echo "  --image TAG    Image tag (default: localhost/d-rymcg-tech:latest)"
     echo "  --arch ARCH    Target platform (e.g. linux/amd64). Can be specified multiple times"
     echo "  --push         Push image after building"
     echo "  --help         Show this help"
@@ -25,7 +25,7 @@ ARCHS=()
 while [[ $# -gt 0 ]]; do
     case "$1" in
         --podman) ENGINE=podman; shift ;;
-        --tag) TAG="$2"; shift 2 ;;
+        --image|--tag) TAG="$2"; shift 2 ;;
         --arch) ARCHS+=("$2"); shift 2 ;;
         --push) PUSH=true; shift ;;
         --help) usage; exit 0 ;;

@@ -80,7 +80,7 @@ __help() {
         echo -e "workstation-usb-download-docker-packages\tDownload Docker CE packages"
         echo -e "container-init [OPTIONS] [CONTEXT]\tBootstrap AGE key and create initial SOPS config"
         echo -e "container [OPTIONS] CONTEXT_OR_FILE\tRun an interactive d-rymcg-tech container"
-        echo -e "container-build [--podman] [--tag TAG] [--push]\tBuild the d-rymcg-tech container image"
+        echo -e "container-build [--podman] [--image TAG] [--push]\tBuild the d-rymcg-tech container image"
         echo -e "deploy-pipeline-template\tScaffold a new deployment pipeline repo with Woodpecker CI"
         echo -e "deploy-pipeline-build\tGuided setup for the d-rymcg-tech Docker image build pipeline"
         echo -e "droplet [--tag TAG] [--preset PRESET --name NAME] [--create-preset PRESET]\tManage DigitalOcean droplets (alias: gumdrop)"
