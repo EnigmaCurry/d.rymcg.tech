@@ -57,7 +57,7 @@ RUN printf '%s\n' \
   'PS1="\n[d.rymcg.tech|$DOCKER_CONTEXT] \w\n\$ "' \
   'eval "$(d.rymcg.tech completion bash)"' \
   '__d.rymcg.tech_cli_alias d' \
-  '__d.rymcg.tech_context_alias $DOCKER_CONTEXT' \
+  '[ -n "$DOCKER_CONTEXT" ] && __d.rymcg.tech_context_alias $DOCKER_CONTEXT' \
   > /home/user/.bashrc \
  && chown 1000:1000 /home/user/.bashrc
 

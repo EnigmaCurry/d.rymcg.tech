@@ -238,6 +238,7 @@ if [[ -z "${DOCKER_CONTEXT}" ]]; then
 fi
 # Sanitize: Docker context names must match ^[a-zA-Z0-9][a-zA-Z0-9_.+-]+$
 DOCKER_CONTEXT="${DOCKER_CONTEXT#"${DOCKER_CONTEXT%%[a-zA-Z0-9]*}"}"
+export DOCKER_CONTEXT
 echo "## DOCKER_CONTEXT=${DOCKER_CONTEXT}" >&2
 
 ## Step 5: Validate SSH vars + write SSH config (SSH_HOST may now come from SOPS)
