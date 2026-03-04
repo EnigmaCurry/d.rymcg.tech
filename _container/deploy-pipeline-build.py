@@ -246,7 +246,7 @@ def build_steps(forgejo, woodpecker, owner, github_url):
             f"""\
   The build pipeline needs to push Docker images to the Forgejo container registry.
 
-  Log out of Forgejo (you were logged in as 'root'), then log in as '{owner}'
+  Log out of Forgejo and Woodpecker, then log in to Forgejo as '{owner}'
   and go to:
 
     https://{forgejo}/user/settings/applications
