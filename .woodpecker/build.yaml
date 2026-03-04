@@ -10,18 +10,23 @@ when:
   - event: [push, cron, manual]
     branch: workstation-ci
 
-clone:
-  - name: clone
-    image: woodpeckerci/plugin-git
-    settings:
-      netrc.machine:
-        from_secret: registry
-      netrc.username:
-        from_secret: registry_username
-      netrc.password:
-        from_secret: registry_password
+skip_clone: true
 
 steps:
+  - name: clone
+    image: alpine/git
+    environment:
+      REGISTRY:
+        from_secret: registry
+      REGISTRY_USERNAME:
+        from_secret: registry_username
+      REGISTRY_PASSWORD:
+        from_secret: registry_password
+    commands:
+      - printf 'machine %s\nlogin %s\npassword %s\n' "$${REGISTRY}" "$${REGISTRY_USERNAME}" "$${REGISTRY_PASSWORD}" > ~/.netrc
+      - chmod 600 ~/.netrc
+      - git clone --depth=1 --branch=${CI_COMMIT_BRANCH} https://$${REGISTRY}/${CI_REPO_OWNER}/${CI_REPO_NAME}.git .
+
   - name: build-image
     image: woodpeckerci/plugin-docker-buildx
     privileged: true
