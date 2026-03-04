@@ -160,11 +160,9 @@ cmd_init() {
         if wizard confirm "Password-protect the AGE key?" yes; then
             local ENC_DIR
             ENC_DIR=$(mktemp -d)
-            chmod 777 "${ENC_DIR}"
             cp "${AGE_KEY_FILE}" "${ENC_DIR}/age-key-in"
-            chmod 644 "${ENC_DIR}/age-key-in"
             local ENCRYPTED="${ENC_DIR}/age-key-enc"
-            if container_run -it \
+            if container_run -it --user "$(id -u):$(id -g)" \
                 -v "${ENC_DIR}:/tmp/age-work:Z" \
                 "${IMAGE}" sh -c 'age -p /tmp/age-work/age-key-in > /tmp/age-work/age-key-enc' \
                 && [[ -s "${ENCRYPTED}" ]]; then
@@ -185,10 +183,8 @@ cmd_init() {
         if head -1 "${AGE_KEY_FILE}" | grep -q '^age-encryption.org'; then
             local DEC_DIR
             DEC_DIR=$(mktemp -d)
-            chmod 777 "${DEC_DIR}"
             cp "${AGE_KEY_FILE}" "${DEC_DIR}/age-key-in"
-            chmod 644 "${DEC_DIR}/age-key-in"
-            container_run -it \
+            container_run -it --user "$(id -u):$(id -g)" \
                 -v "${DEC_DIR}:/tmp/age-work:Z" \
                 "${IMAGE}" sh -c 'age -d /tmp/age-work/age-key-in > /tmp/age-work/age-key-dec'
             PUBKEY=$(grep -o 'age1[a-z0-9]*' "${DEC_DIR}/age-key-dec" | head -1)
