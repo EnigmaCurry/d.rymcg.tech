@@ -50,7 +50,7 @@ usage() {
 drt — standalone d-rymcg-tech bootstrap tool
 
 Usage:
-  drt [OPTIONS] CONTEXT       Launch interactive container with SOPS config
+  drt [OPTIONS] CONTEXT [CMD]  Launch container (interactive shell or run CMD)
 
 Options:
   --init [CONTEXT]   Bootstrap AGE key + SOPS config for a context
@@ -213,6 +213,7 @@ cmd_run() {
     local SSH_KEY_FILE=""
     local SAVE_ON_EXIT=true
     local SOPS_CONFIG=""
+    local CMD_ARGS=()
 
     while [[ $# -gt 0 ]]; do
         case "$1" in
@@ -230,12 +231,11 @@ cmd_run() {
             *)
                 if [[ -z "${SOPS_CONFIG}" ]]; then
                     SOPS_CONFIG="$1"
-                else
-                    echo "Error: unexpected argument: $1" >&2
-                    run_usage >&2
-                    exit 1
+                    shift
+                    # Everything after context is the command to run
+                    CMD_ARGS=("$@")
+                    break
                 fi
-                shift
                 ;;
         esac
     done
@@ -293,6 +293,11 @@ cmd_run() {
         -e "SOPS_AGE_KEY_FILE=/home/user/.config/sops/age/keys.txt"
     )
 
+    # Disable save-on-exit for non-interactive commands
+    if [[ ${#CMD_ARGS[@]} -gt 0 ]]; then
+        SAVE_ON_EXIT=false
+    fi
+
     if [[ "${SAVE_ON_EXIT}" == true ]]; then
         RUN_ARGS+=(-e "SOPS_SAVE_ON_EXIT=true")
     fi
@@ -313,6 +318,11 @@ cmd_run() {
     fi
 
     RUN_ARGS+=("${IMAGE}")
+
+    # Append command args (e.g. "drt d2 status" → "d.rymcg.tech status")
+    if [[ ${#CMD_ARGS[@]} -gt 0 ]]; then
+        RUN_ARGS+=("d.rymcg.tech" "${CMD_ARGS[@]}")
+    fi
 
     echo "## Starting d-rymcg-tech container (${ENGINE})" >&2
     echo "## Config: ${SOPS_CONFIG}" >&2
