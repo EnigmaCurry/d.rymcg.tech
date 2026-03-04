@@ -76,6 +76,7 @@ wizard() {
     # Run interactively; redirect PTY output to stderr so the TUI
     # is visible even when this function is called inside $()
     local answer="/tmp/wizard-answer-${cname}"
+    trap '"${ENGINE}" rm "${cname}" >/dev/null 2>&1' EXIT
     "${ENGINE}" run -it --name "${cname}" --entrypoint "" \
         -e "TERM=${TERM:-xterm}" -e "WIZARD_ANSWER=${answer}" \
         "${IMAGE}" \
@@ -83,6 +84,7 @@ wizard() {
     local rc=$?
     # Extract the answer to stdout (captured by $())
     "${ENGINE}" cp "${cname}:${answer}" - | tar -xO
+    trap - EXIT
     "${ENGINE}" rm "${cname}" >/dev/null
     return $rc
 }

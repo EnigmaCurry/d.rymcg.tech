@@ -35,12 +35,14 @@ container_run() {
 wizard() {
     local cname="wizard-$$-${RANDOM}"
     local answer="/tmp/wizard-answer-${cname}"
+    trap '"${ENGINE}" rm "${cname}" >/dev/null 2>&1' EXIT
     "${ENGINE}" run -it --name "${cname}" --entrypoint "" \
         -e "TERM=${TERM:-xterm}" -e "WIZARD_ANSWER=${answer}" \
         "${IMAGE}" \
         sh -c 'script-wizard "$@" > "${WIZARD_ANSWER}"' -- "$@" >&2
     local rc=$?
     "${ENGINE}" cp "${cname}:${answer}" - | tar -xO
+    trap - EXIT
     "${ENGINE}" rm "${cname}" >/dev/null
     return $rc
 }
