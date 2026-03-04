@@ -65,6 +65,10 @@ Options:
   --no-save          Disable save-on-exit
   --version          Print version
   --help             Show this help
+
+Setup:
+  podman pull @@DRT_IMAGE@@
+  alias drt='bash <(podman run --rm --pull=never @@DRT_IMAGE@@ drt)'
 EOF
 }
 
