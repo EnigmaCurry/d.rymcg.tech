@@ -69,10 +69,15 @@ container_run() {
     "${ENGINE}" run --rm --entrypoint "" "$@"
 }
 
-## Run script-wizard from the host (static binary, no container needed)
-WIZARD="${ROOT_DIR}/_scripts/script-wizard"
+## Run script-wizard inside the container interactively
+## Mount /dev/tty so the TUI renders on the host terminal,
+## while stdout (the answer) is captured normally by $()
 wizard() {
-    "${WIZARD}" "$@"
+    container_run -i \
+        -e "TERM=${TERM:-xterm}" \
+        -v /dev/tty:/dev/tty \
+        "${IMAGE}" \
+        sh -c 'script-wizard "$@" </dev/tty 2>/dev/tty' -- "$@"
 }
 
 ## Context name
