@@ -9,6 +9,11 @@ BIN="${ROOT_DIR}/_scripts"
 ## Step 0: Set up PATH so the d.rymcg.tech CLI works
 export PATH="${ROOT_DIR}/_scripts/user:${PATH}"
 
+## Short-circuit: if the command is "drt", exec it directly (no setup needed)
+if [[ "${1:-}" == "drt" ]]; then
+    exec "$@"
+fi
+
 ## Helper: resolve a secret value (file path, PEM, or base64) → write to target file
 resolve_secret_to_file() {
     local value="$1" target="$2"

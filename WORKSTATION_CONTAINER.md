@@ -4,6 +4,37 @@ A pre-built Docker image that packages the entire
 [d.rymcg.tech](https://github.com/EnigmaCurry/d.rymcg.tech) framework
 for headless deployments to remote Docker hosts over SSH.
 
+## Quick start (no repo needed)
+
+Extract the standalone `drt` bootstrap tool from the container image
+and use it to configure and launch a container — no git clone required:
+
+```bash
+## Extract the drt script from the container image:
+podman run --rm ghcr.io/enigmacurry/d-rymcg-tech drt extract > drt && chmod +x drt
+
+## Bootstrap a new deployment context (generates AGE key + SOPS config):
+./drt init myserver
+
+## Launch the interactive container:
+./drt run myserver
+```
+
+Use `--docker` instead of the default Podman engine:
+
+```bash
+./drt --docker init myserver
+./drt --docker run myserver
+```
+
+Use `--image` to specify a custom image tag:
+
+```bash
+./drt --image ghcr.io/enigmacurry/d-rymcg-tech:latest init myserver
+```
+
+Run `./drt --help` for all options.
+
 ## Pulling the image
 
 The image is published to GitHub Container Registry:

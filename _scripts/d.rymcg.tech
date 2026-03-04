@@ -81,6 +81,7 @@ __help() {
         echo -e "container-init [OPTIONS] [CONTEXT]\tBootstrap AGE key and create initial SOPS config"
         echo -e "container [OPTIONS] CONTEXT_OR_FILE\tRun an interactive d-rymcg-tech container"
         echo -e "container-build [--docker] [--image TAG] [--push]\tBuild the d-rymcg-tech container image"
+        echo -e "drt <command> [OPTIONS]\tStandalone bootstrap tool (init/run/extract)"
         echo -e "deploy-pipeline-template\tScaffold a new deployment pipeline repo with Woodpecker CI"
         echo -e "deploy-pipeline-build\tGuided setup for the d-rymcg-tech Docker image build pipeline"
         echo -e "droplet [--tag TAG] [--preset PRESET --name NAME] [--create-preset PRESET]\tManage DigitalOcean droplets (alias: gumdrop)"
@@ -482,7 +483,7 @@ __d.rymcg.tech_completions() {
     if [[ ${COMP_CWORD} == 1 ]]; then
         ## Complete the main command:
         ## d.rymcg.tech <TAB> ...
-        COMMANDS="help create cd make list readme info context new-context tmp-context aliases completion install install-docker status ssh audit sshd-config ssh-expose show-ports s3-volume docker-default-address-pool route routes reconfigure dotenv_get daemon-conf fail2ban networks config image-catalog image-build image-archive image-restore export-env restore-env template-env agent workstation-usb-image workstation-usb-install workstation-usb-clone workstation-usb-post-install workstation-usb-download-isos workstation-usb-download-docker-packages workstation-usb-test-vm container container-init container-build deploy-pipeline-template deploy-pipeline-build droplet gumdrop"
+        COMMANDS="help create cd make list readme info context new-context tmp-context aliases completion install install-docker status ssh audit sshd-config ssh-expose show-ports s3-volume docker-default-address-pool route routes reconfigure dotenv_get daemon-conf fail2ban networks config image-catalog image-build image-archive image-restore export-env restore-env template-env agent workstation-usb-image workstation-usb-install workstation-usb-clone workstation-usb-post-install workstation-usb-download-isos workstation-usb-download-docker-packages workstation-usb-test-vm container container-init container-build drt deploy-pipeline-template deploy-pipeline-build droplet gumdrop"
         COMPREPLY=($(compgen -W "${COMMANDS}" "${COMP_WORDS[1]}"))
     elif [[ ${COMP_CWORD} == 2 ]]; then
         ALL_PROJECTS=$(d.rymcg.tech list --raw)
@@ -1186,6 +1187,8 @@ main() {
                 ${ROOT_DIR}/_container/container-init.sh "$@";;
             container-build)
                 ${ROOT_DIR}/_container/container-build.sh "$@";;
+            drt)
+                ${ROOT_DIR}/_container/drt "$@";;
             deploy-pipeline-template)
                 ${ROOT_DIR}/_container/deploy-pipeline-template.sh "$@";;
             deploy-pipeline-build)

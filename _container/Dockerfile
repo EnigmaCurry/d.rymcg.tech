@@ -63,6 +63,9 @@ RUN set -e; \
       | tar xz -C _scripts; \
     ln -s ../script-wizard _scripts/user/script-wizard
 
+COPY --chown=1000:1000 _container/drt /usr/local/bin/drt
+RUN chmod +x /usr/local/bin/drt
+
 COPY --chown=1000:1000 _container/entrypoint.sh /entrypoint.sh
 RUN chmod +x /entrypoint.sh
 

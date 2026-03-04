@@ -1,0 +1,416 @@
+#!/usr/bin/env bash
+## drt — standalone d-rymcg-tech bootstrap tool
+## Combines init + run into a single script with no repo dependency.
+## Embed this in the container image and extract it with:
+##   podman run --rm ghcr.io/enigmacurry/d-rymcg-tech drt extract > drt && chmod +x drt
+set -euo pipefail
+
+VERSION="1.0.0"
+DEFAULT_IMAGE="localhost/d-rymcg-tech:latest"
+
+###############################################################################
+# Shared helpers
+###############################################################################
+
+ENGINE=podman
+IMAGE="${DEFAULT_IMAGE}"
+BUILD=false
+
+check_engine() {
+    if ! command -v "${ENGINE}" &>/dev/null; then
+        echo "Error: ${ENGINE} not found in PATH" >&2
+        echo "Install ${ENGINE} first, or use --docker to use Docker instead." >&2
+        exit 1
+    fi
+}
+
+## Run a command inside the container, bypassing the entrypoint
+container_run() {
+    "${ENGINE}" run --rm --entrypoint "" "$@"
+}
+
+## Run script-wizard inside the container interactively
+## Uses a named container so we can copy the answer out after it exits
+wizard() {
+    local cname="wizard-$$-${RANDOM}"
+    "${ENGINE}" run -it --name "${cname}" --entrypoint "" \
+        -e "TERM=${TERM:-xterm}" \
+        "${IMAGE}" \
+        sh -c 'script-wizard "$@" > /tmp/wizard-answer' -- "$@" >&2
+    "${ENGINE}" cp "${cname}:/tmp/wizard-answer" - | tar -xO
+    "${ENGINE}" rm "${cname}" >/dev/null
+}
+
+###############################################################################
+# Top-level usage
+###############################################################################
+
+usage() {
+    cat <<'EOF'
+drt — standalone d-rymcg-tech bootstrap tool
+
+Usage:
+  drt <command> [options]
+
+Commands:
+  init [OPTIONS] [CONTEXT]    Bootstrap AGE key + SOPS config for a context
+  run  [OPTIONS] CONTEXT      Launch interactive container with SOPS config
+  extract                     Print this script to stdout (self-extraction)
+  version                     Print version
+  help                        Show this help
+
+Global options (apply to init and run):
+  --image TAG    Container image (default: localhost/d-rymcg-tech:latest)
+  --docker       Use Docker instead of Podman
+
+Run 'drt <command> --help' for command-specific options.
+EOF
+}
+
+###############################################################################
+# init subcommand
+###############################################################################
+
+init_usage() {
+    cat <<'EOF'
+Usage: drt init [OPTIONS] [CONTEXT_NAME]
+
+Bootstrap a new d-rymcg-tech deployment config.
+
+Generates an AGE encryption key (if needed) and creates a SOPS-encrypted
+config file for the given context. Only requires Podman (or Docker).
+
+Options:
+  --image TAG    Container image (default: localhost/d-rymcg-tech:latest)
+  --docker       Use Docker instead of Podman
+  --help         Show this help
+EOF
+}
+
+cmd_init() {
+    local CONTEXT=""
+
+    while [[ $# -gt 0 ]]; do
+        case "$1" in
+            --image) IMAGE="$2"; shift 2 ;;
+            --docker) ENGINE=docker; shift ;;
+            --help) init_usage; exit 0 ;;
+            -*)
+                echo "Unknown option: $1" >&2
+                init_usage >&2
+                exit 1
+                ;;
+            *)
+                if [[ -z "${CONTEXT}" ]]; then
+                    CONTEXT="$1"
+                else
+                    echo "Error: unexpected argument: $1" >&2
+                    init_usage >&2
+                    exit 1
+                fi
+                shift
+                ;;
+        esac
+    done
+
+    check_engine
+
+    ## Context name
+    if [[ -z "${CONTEXT}" ]]; then
+        CONTEXT=$(wizard ask "Enter the context name (SSH host alias)")
+    fi
+
+    ## Check for existing config
+    local CONFIG_DIR="${HOME}/.config/d.rymcg.tech/config"
+    if [[ -f "${CONFIG_DIR}/${CONTEXT}.sops.env" ]]; then
+        echo "Config already exists: ${CONFIG_DIR}/${CONTEXT}.sops.env"
+        echo ""
+        echo "To modify it interactively, run:"
+        echo "  drt run ${CONTEXT}"
+        exit 0
+    fi
+
+    ## Ensure AGE key (one per context)
+    local AGE_KEY_DIR="${HOME}/.config/d.rymcg.tech/keys/sops"
+    local AGE_KEY_FILE="${AGE_KEY_DIR}/${CONTEXT}.key"
+    if [[ ! -f "${AGE_KEY_FILE}" ]]; then
+        echo "No AGE key found for context '${CONTEXT}'"
+        echo "Generating a new AGE keypair..."
+        mkdir -p "${AGE_KEY_DIR}"
+        container_run "${IMAGE}" age-keygen > "${AGE_KEY_FILE}"
+        chmod 600 "${AGE_KEY_FILE}"
+        echo "AGE key created: ${AGE_KEY_FILE}"
+    else
+        echo "Using existing AGE key: ${AGE_KEY_FILE}"
+    fi
+
+    ## Extract public key from the comment in the key file
+    local PUBKEY
+    PUBKEY=$(grep -o 'age1[a-z0-9]*' "${AGE_KEY_FILE}" | head -1)
+    echo "AGE public key: ${PUBKEY}"
+    echo ""
+
+    ## SSH details — pre-fill from ssh config if available
+    local SSH_CONFIG SSH_HOST SSH_PORT SSH_USER
+    SSH_CONFIG=$(ssh -G "${CONTEXT}" 2>/dev/null || true)
+    local _SSH_HOST _SSH_PORT _SSH_USER
+    _SSH_HOST=$(echo "${SSH_CONFIG}" | awk '/^hostname / {print $2}')
+    _SSH_PORT=$(echo "${SSH_CONFIG}" | awk '/^port / {print $2; exit}')
+    _SSH_USER=$(echo "${SSH_CONFIG}" | awk '/^user / {print $2}')
+
+    SSH_HOST=$(wizard ask "Enter SSH host" "${_SSH_HOST}")
+    SSH_PORT=$(wizard ask "Enter SSH port" "${_SSH_PORT:-22}")
+    SSH_USER=$(wizard ask "Enter SSH user" "${_SSH_USER:-root}")
+
+    ## SSH key scan
+    echo ""
+    echo "Running ssh-keyscan for ${SSH_HOST}:${SSH_PORT}..."
+    local KNOWN_HOSTS
+    KNOWN_HOSTS=$(ssh-keyscan -p "${SSH_PORT}" "${SSH_HOST}" 2>/dev/null || true)
+    if [[ -z "${KNOWN_HOSTS}" ]]; then
+        echo "WARNING: ssh-keyscan failed for ${SSH_HOST}:${SSH_PORT}"
+        echo "  You can set SSH_KNOWN_HOSTS later, or set SSH_KEY_SCAN=false to skip verification."
+    else
+        echo "SSH host keys collected."
+    fi
+
+    ## Create SOPS config
+    local PLAINTEXT="## SSH
+SSH_HOST=${SSH_HOST}
+SSH_USER=${SSH_USER}
+SSH_PORT=${SSH_PORT}"
+    if [[ -n "${KNOWN_HOSTS}" ]]; then
+        local SSH_KNOWN_HOSTS
+        SSH_KNOWN_HOSTS=$(echo "${KNOWN_HOSTS}" | base64 -w0)
+        PLAINTEXT="${PLAINTEXT}
+SSH_KNOWN_HOSTS=${SSH_KNOWN_HOSTS}"
+    fi
+
+    mkdir -p "${CONFIG_DIR}"
+    echo "${PLAINTEXT}" | container_run -i \
+        "${IMAGE}" \
+        sh -c "cat > /tmp/plain.env && sops encrypt \
+            --input-type dotenv --output-type dotenv \
+            --filename-override export.env \
+            --age '${PUBKEY}' /tmp/plain.env" \
+        > "${CONFIG_DIR}/${CONTEXT}.sops.env"
+
+    echo ""
+    echo "Config saved to ${CONFIG_DIR}/${CONTEXT}.sops.env"
+    echo ""
+    echo "Next steps:"
+    echo "  drt run ${CONTEXT}"
+}
+
+###############################################################################
+# run subcommand
+###############################################################################
+
+run_usage() {
+    cat <<'EOF'
+Usage: drt run [OPTIONS] CONTEXT_OR_FILE
+
+Run an interactive d-rymcg-tech container with SOPS config support.
+
+CONTEXT_OR_FILE can be a context name (e.g. 'myserver') which resolves
+to ~/.config/d.rymcg.tech/config/myserver.sops.env, or a direct file path.
+On exit, you can review and save any configuration changes back
+to the encrypted file.
+
+Options:
+  --image TAG      Container image (default: localhost/d-rymcg-tech:latest)
+  --docker         Use Docker instead of Podman
+  --age-key FILE   AGE key file (default: ~/.config/d.rymcg.tech/keys/sops/<context>.key)
+  --ssh-key FILE   SSH key file (disables agent forwarding)
+  --no-save        Disable save-on-exit
+  --help           Show this help
+EOF
+}
+
+cmd_run() {
+    local AGE_KEY_FILE=""
+    local SSH_KEY_FILE=""
+    local SAVE_ON_EXIT=true
+    local SOPS_CONFIG=""
+
+    while [[ $# -gt 0 ]]; do
+        case "$1" in
+            --image) IMAGE="$2"; shift 2 ;;
+            --docker) ENGINE=docker; shift ;;
+            --age-key) AGE_KEY_FILE="$2"; shift 2 ;;
+            --ssh-key) SSH_KEY_FILE="$2"; shift 2 ;;
+            --no-save) SAVE_ON_EXIT=false; shift ;;
+            --help) run_usage; exit 0 ;;
+            -*)
+                echo "Unknown option: $1" >&2
+                run_usage >&2
+                exit 1
+                ;;
+            *)
+                if [[ -z "${SOPS_CONFIG}" ]]; then
+                    SOPS_CONFIG="$1"
+                else
+                    echo "Error: unexpected argument: $1" >&2
+                    run_usage >&2
+                    exit 1
+                fi
+                shift
+                ;;
+        esac
+    done
+
+    if [[ -z "${SOPS_CONFIG}" ]]; then
+        echo "Error: CONTEXT_OR_FILE is required" >&2
+        echo "" >&2
+        run_usage >&2
+        exit 1
+    fi
+
+    check_engine
+
+    # If argument is a bare context name (no slashes, no .sops.env suffix),
+    # resolve to ~/.config/d.rymcg.tech/config/<context>.sops.env
+    # and default the AGE key to the per-context key
+    if [[ "${SOPS_CONFIG}" != */* && "${SOPS_CONFIG}" != *.sops.env ]]; then
+        local CONTEXT_NAME="${SOPS_CONFIG}"
+        SOPS_CONFIG="${HOME}/.config/d.rymcg.tech/config/${CONTEXT_NAME}.sops.env"
+        if [[ -z "${AGE_KEY_FILE}" ]]; then
+            AGE_KEY_FILE="${HOME}/.config/d.rymcg.tech/keys/sops/${CONTEXT_NAME}.key"
+        fi
+    fi
+
+    # Fall back to legacy default if no key resolved yet
+    if [[ -z "${AGE_KEY_FILE}" ]]; then
+        AGE_KEY_FILE="${HOME}/.config/sops/age/keys.txt"
+    fi
+
+    # Resolve to absolute path
+    if [[ ! -f "${SOPS_CONFIG}" ]]; then
+        echo "Error: SOPS config file not found: ${SOPS_CONFIG}" >&2
+        echo "  Run 'drt init' to create one." >&2
+        exit 1
+    fi
+    SOPS_CONFIG="$(realpath "${SOPS_CONFIG}")"
+
+    if [[ ! -f "${AGE_KEY_FILE}" ]]; then
+        echo "Error: AGE key file not found: ${AGE_KEY_FILE}" >&2
+        echo "  Use --age-key to specify a different path" >&2
+        exit 1
+    fi
+
+    local CONTAINER_CONFIG_DIR=/home/user/git/vendor/enigmacurry/d.rymcg.tech/config
+    local SOPS_BASENAME
+    SOPS_BASENAME="$(basename "${SOPS_CONFIG}")"
+
+    local RUN_ARGS=(
+        run --rm -it
+        --security-opt label=disable
+        --userns=keep-id
+        -e "SOPS_CONFIG_FILE=${CONTAINER_CONFIG_DIR}/${SOPS_BASENAME}"
+        -v "${SOPS_CONFIG}:${CONTAINER_CONFIG_DIR}/${SOPS_BASENAME}"
+        -v "${AGE_KEY_FILE}:/home/user/.config/sops/age/keys.txt:ro"
+        -e "SOPS_AGE_KEY_FILE=/home/user/.config/sops/age/keys.txt"
+    )
+
+    if [[ "${SAVE_ON_EXIT}" == true ]]; then
+        RUN_ARGS+=(-e "SOPS_SAVE_ON_EXIT=true")
+    fi
+
+    # SSH: forward agent or mount key file
+    if [[ -n "${SSH_KEY_FILE}" ]]; then
+        SSH_KEY_FILE="$(realpath "${SSH_KEY_FILE}")"
+        if [[ ! -f "${SSH_KEY_FILE}" ]]; then
+            echo "Error: SSH key file not found: ${SSH_KEY_FILE}" >&2
+            exit 1
+        fi
+        RUN_ARGS+=(-v "${SSH_KEY_FILE}:/run/secrets/ssh/id_ed25519:ro")
+    elif [[ -n "${SSH_AUTH_SOCK:-}" ]]; then
+        RUN_ARGS+=(
+            -v "${SSH_AUTH_SOCK}:/run/ssh-agent.sock:ro"
+            -e "SSH_AUTH_SOCK=/run/ssh-agent.sock"
+        )
+    fi
+
+    RUN_ARGS+=("${IMAGE}")
+
+    echo "## Starting d-rymcg-tech container (${ENGINE})" >&2
+    echo "## Config: ${SOPS_CONFIG}" >&2
+    echo "## Image:  ${IMAGE}" >&2
+    exec "${ENGINE}" "${RUN_ARGS[@]}"
+}
+
+###############################################################################
+# extract subcommand
+###############################################################################
+
+cmd_extract() {
+    cat "$(readlink -f "$0")"
+}
+
+###############################################################################
+# Main dispatch
+###############################################################################
+
+# Parse global flags before the subcommand; once a subcommand word
+# is found, collect all remaining arguments for it.
+SUBCMD=""
+ARGS=()
+
+while [[ $# -gt 0 ]]; do
+    case "$1" in
+        --image)
+            IMAGE="$2"
+            ARGS+=(--image "$2")
+            shift 2
+            ;;
+        --docker)
+            ENGINE=docker
+            ARGS+=(--docker)
+            shift
+            ;;
+        --help|-h)
+            usage
+            exit 0
+            ;;
+        --version)
+            echo "drt ${VERSION}"
+            exit 0
+            ;;
+        -*)
+            # Unknown global flag — pass through to subcommand
+            ARGS+=("$1")
+            shift
+            ;;
+        *)
+            SUBCMD="$1"
+            shift
+            # Everything after the subcommand is forwarded to it
+            ARGS+=("$@")
+            break
+            ;;
+    esac
+done
+
+case "${SUBCMD}" in
+    init)
+        cmd_init "${ARGS[@]+"${ARGS[@]}"}"
+        ;;
+    run)
+        cmd_run "${ARGS[@]+"${ARGS[@]}"}"
+        ;;
+    extract)
+        cmd_extract
+        ;;
+    version)
+        echo "drt ${VERSION}"
+        ;;
+    help|"")
+        usage
+        ;;
+    *)
+        echo "Unknown command: ${SUBCMD}" >&2
+        echo "" >&2
+        usage >&2
+        exit 1
+        ;;
+esac
