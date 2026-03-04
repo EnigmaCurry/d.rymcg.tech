@@ -246,16 +246,14 @@ def build_steps(forgejo, woodpecker, owner, github_url):
             f"""\
   The build pipeline needs to push Docker images to the Forgejo container registry.
 
-  Log in as '{owner}' and go to:
+  Log out of Forgejo (you were logged in as 'root'), then log in as '{owner}'
+  and go to:
 
     https://{forgejo}/user/settings/applications
 
   Create a token with scope: write:package
 
-  Save this token — you will need it in the next step as the 'registry_password' secret.
-
-  When done, log out of Forgejo and Woodpecker, then log back in to
-  Woodpecker as '{owner}'.""",
+  Save this token — you will need it in the next step as the 'registry_password' secret.""",
         ),
         (
             "Add Woodpecker secrets",
