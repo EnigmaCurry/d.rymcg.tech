@@ -31,7 +31,6 @@ in
     curl              # curl
     inotify-tools     # inotifywait
     w3m               # w3m
-    moreutils         # sponge
     keychain          # keychain
     ipcalc            # ipcalc
     uv                # uv (Python package manager)
