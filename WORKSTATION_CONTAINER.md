@@ -11,7 +11,7 @@ extraction needed. Just define a shell alias:
 
 ```bash
 ## Add to your ~/.bashrc or ~/.zshrc:
-alias drt='bash <(podman run --rm ghcr.io/enigmacurry/d-rymcg-tech drt)'
+alias drt='bash <(podman run --rm --pull=never ghcr.io/enigmacurry/d-rymcg-tech drt)'
 ```
 
 Then bootstrap and launch:
@@ -27,7 +27,7 @@ drt myserver
 Use `--docker` instead of the default Podman engine:
 
 ```bash
-alias drt='bash <(docker run --rm ghcr.io/enigmacurry/d-rymcg-tech drt)'
+alias drt='bash <(docker run --rm --pull=never ghcr.io/enigmacurry/d-rymcg-tech drt)'
 drt --docker --init myserver
 drt --docker myserver
 ```
@@ -41,7 +41,7 @@ drt --image ghcr.io/enigmacurry/d-rymcg-tech:latest --init myserver
 Alternatively, extract `drt` to a local file:
 
 ```bash
-podman run --rm ghcr.io/enigmacurry/d-rymcg-tech drt --extract > drt && chmod +x drt
+podman run --rm --pull=never ghcr.io/enigmacurry/d-rymcg-tech drt --extract > drt && chmod +x drt
 ./drt --help
 ```
 
