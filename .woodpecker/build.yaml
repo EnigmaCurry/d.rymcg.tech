@@ -80,8 +80,9 @@ steps:
           done
           # Link package to this repository
           echo "## Linking package to ${CI_REPO_OWNER}/${CI_REPO_NAME}"
-          curl -sf -X POST -u "$${REGISTRY_USERNAME}:$${REGISTRY_PASSWORD}" \
-            "https://$${REGISTRY}/api/v1/packages/${CI_REPO_OWNER}/container/$${PKG_NAME}/-/link/${CI_REPO_NAME}" || true
+          LINK_URL="https://$${REGISTRY}/api/v1/packages/${CI_REPO_OWNER}/container/$${PKG_NAME}/-/link/${CI_REPO_NAME}"
+          echo "  POST $${LINK_URL}"
+          curl -s -X POST -u "$${REGISTRY_USERNAME}:$${REGISTRY_PASSWORD}" "$${LINK_URL}" -w "\n  HTTP %{http_code}\n" || true
         fi
         sync
         sleep 2
