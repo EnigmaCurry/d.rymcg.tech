@@ -293,11 +293,6 @@ cmd_run() {
         -e "SOPS_AGE_KEY_FILE=/home/user/.config/sops/age/keys.txt"
     )
 
-    # Disable save-on-exit for non-interactive commands
-    if [[ ${#CMD_ARGS[@]} -gt 0 ]]; then
-        SAVE_ON_EXIT=false
-    fi
-
     if [[ "${SAVE_ON_EXIT}" == true ]]; then
         RUN_ARGS+=(-e "SOPS_SAVE_ON_EXIT=true")
     fi
