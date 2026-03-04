@@ -12,9 +12,8 @@ RUN apk add --no-cache \
     apache2-utils \
     jq \
     curl \
-    moreutils \
     inotify-tools \
-    gettext \
+    gettext-envsubst \
     ipcalc \
     openssh-client \
     docker-cli \
