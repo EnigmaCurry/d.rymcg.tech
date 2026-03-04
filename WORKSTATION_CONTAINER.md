@@ -148,8 +148,8 @@ SSH certificate and the entrypoint runs ssh-keyscan automatically.
 You can build the image from your local checkout:
 
 ```bash
-d container-build                                              # Docker, tagged localhost/d-rymcg-tech:latest
-d container-build --podman                                     # Podman
+d container-build                                              # Podman, tagged localhost/d-rymcg-tech:latest
+d container-build --docker                                     # Docker
 d container-build --image ghcr.io/you/d-rymcg-tech:v1           # Custom tag
 d container-build --arch linux/amd64 --arch linux/arm64        # Multi-arch (uses buildx)
 d container-build --image ghcr.io/you/d-rymcg-tech:v1 --push    # Build and push

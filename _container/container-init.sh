@@ -58,8 +58,8 @@ fi
 ## Build the image if requested
 if [[ "${BUILD}" == true ]]; then
     BUILD_ARGS=(--image "${IMAGE}")
-    if [[ "${ENGINE}" == podman ]]; then
-        BUILD_ARGS+=(--podman)
+    if [[ "${ENGINE}" == docker ]]; then
+        BUILD_ARGS+=(--docker)
     fi
     "${ROOT_DIR}/_container/container-build.sh" "${BUILD_ARGS[@]}"
 fi

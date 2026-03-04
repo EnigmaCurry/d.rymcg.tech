@@ -10,21 +10,21 @@ usage() {
     echo "Build the d-rymcg-tech container image from the current repo."
     echo ""
     echo "Options:"
-    echo "  --podman       Use Podman instead of Docker"
+    echo "  --docker       Use Docker instead of Podman"
     echo "  --image TAG    Image tag (default: localhost/d-rymcg-tech:latest)"
     echo "  --arch ARCH    Target platform (e.g. linux/amd64). Can be specified multiple times"
     echo "  --push         Push image after building"
     echo "  --help         Show this help"
 }
 
-ENGINE=docker
+ENGINE=podman
 TAG=localhost/d-rymcg-tech:latest
 PUSH=false
 ARCHS=()
 
 while [[ $# -gt 0 ]]; do
     case "$1" in
-        --podman) ENGINE=podman; shift ;;
+        --docker) ENGINE=docker; shift ;;
         --image|--tag) TAG="$2"; shift 2 ;;
         --arch) ARCHS+=("$2"); shift 2 ;;
         --push) PUSH=true; shift ;;
