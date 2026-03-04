@@ -219,7 +219,7 @@ if [[ -n "${BAO_ADDR:-}" ]]; then
     echo "## OpenBao: SSH certificate obtained" >&2
 fi
 
-## Step 2.5: Decrypt passphrase-protected AGE key (if needed)
+## Step 3: Decrypt passphrase-protected AGE key (if needed)
 if [[ -n "${SOPS_AGE_KEY_FILE:-}" && -f "${SOPS_AGE_KEY_FILE}" ]]; then
     if head -1 "${SOPS_AGE_KEY_FILE}" | grep -q '^age-encryption.org'; then
         echo "## AGE key is passphrase-protected, decrypting..." >&2
@@ -235,8 +235,8 @@ if [[ -n "${SOPS_AGE_KEY_FILE:-}" && -f "${SOPS_AGE_KEY_FILE}" ]]; then
     fi
 fi
 
-## Step 3: SOPS config file loading (only runs if SOPS_CONFIG_FILE is set)
-echo "## Step 3: SOPS config loading" >&2
+## Step 4: SOPS config file loading (only runs if SOPS_CONFIG_FILE is set)
+echo "## Step 4: SOPS config loading" >&2
 if [[ -n "${SOPS_CONFIG_FILE:-}" ]]; then
     echo "## Loading SOPS config from ${SOPS_CONFIG_FILE}" >&2
     if [[ ! -f "${SOPS_CONFIG_FILE}" ]]; then
@@ -269,8 +269,8 @@ if [[ -n "${SOPS_CONFIG_FILE:-}" ]]; then
     echo "## SOPS config loaded" >&2
 fi
 
-## Step 4: Validate DOCKER_CONTEXT (may come from SOPS config, container env, or SOPS filename)
-echo "## Step 4: Validating DOCKER_CONTEXT" >&2
+## Step 5: Validate DOCKER_CONTEXT (may come from SOPS config, container env, or SOPS filename)
+echo "## Step 5: Validating DOCKER_CONTEXT" >&2
 if [[ -n "${SOPS_CONFIG_FILE:-}" ]]; then
     # Always prefer SOPS-derived context name (container env may have stale/invalid names)
     DOCKER_CONTEXT="$(basename "${SOPS_CONFIG_FILE}" .sops.env)"
@@ -293,8 +293,8 @@ if [[ -n "${SSH_KNOWN_HOSTS:-}" && ! -s "${KEY_DIR}/known_hosts" ]]; then
     resolve_secret_to_file "${SSH_KNOWN_HOSTS}" "${KEY_DIR}/known_hosts"
 fi
 
-## Step 5: Validate SSH vars + write SSH config (SSH_HOST may now come from SOPS)
-echo "## Step 5: Setting up SSH config" >&2
+## Step 6: Validate SSH vars + write SSH config (SSH_HOST may now come from SOPS)
+echo "## Step 6: Setting up SSH config" >&2
 if [[ -z "${SSH_HOST:-}" ]]; then
     echo "ERROR: SSH_HOST is required (set via container env or SOPS config)" >&2
     exit 1
@@ -327,8 +327,8 @@ fi
 chmod 600 ~/.ssh/config
 echo "## SSH config written" >&2
 
-## Step 6: Create and activate Docker context
-echo "## Step 6: Creating Docker context '${DOCKER_CONTEXT}'" >&2
+## Step 7: Create and activate Docker context
+echo "## Step 7: Creating Docker context '${DOCKER_CONTEXT}'" >&2
 ## Use SSH config alias so Docker inherits UserKnownHostsFile, CertificateFile, etc.
 if ! docker context create "${DOCKER_CONTEXT}" \
     --docker "host=ssh://${DOCKER_CONTEXT}" >/dev/null 2>&1; then
@@ -342,16 +342,16 @@ if ! docker context use "${DOCKER_CONTEXT}" >/dev/null 2>&1; then
 fi
 echo "## Docker context activated" >&2
 
-## Step 7: Create root .env and distribute env vars via restore-env
-echo "## Step 7: Running restore-env" >&2
+## Step 8: Create root .env and distribute env vars via restore-env
+echo "## Step 8: Running restore-env" >&2
 cd "${ROOT_DIR}"
 cp -n .env-dist ".env_${DOCKER_CONTEXT}"
 if ! env | d.rymcg.tech restore-env --yes; then
     echo "WARNING: restore-env had errors (some vars may need reconfiguration)" >&2
 fi
 
-## Step 8: Ensure explicitly requested projects have env files
-echo "## Step 8: Checking requested project env files" >&2
+## Step 9: Ensure explicitly requested projects have env files
+echo "## Step 9: Checking requested project env files" >&2
 if [[ -n "${PROJECTS:-}" ]]; then
     IFS=, read -ra _requested_projects <<< "${PROJECTS}"
     for project_name in "${_requested_projects[@]}"; do
@@ -363,8 +363,8 @@ if [[ -n "${PROJECTS:-}" ]]; then
     done
 fi
 
-## Step 9: Check that the target project has an env file before exec
-echo "## Step 9: Validating target project" >&2
+## Step 10: Check that the target project has an env file before exec
+echo "## Step 10: Validating target project" >&2
 _cmd_args=("$@")
 for i in "${!_cmd_args[@]}"; do
     if [[ "${_cmd_args[$i]}" == "make" && $((i+1)) -lt ${#_cmd_args[@]} ]]; then
@@ -382,7 +382,7 @@ for i in "${!_cmd_args[@]}"; do
     fi
 done
 
-## Step 10: Exec the command
-echo "## Step 10: Executing: $*" >&2
+## Step 11: Exec the command
+echo "## Step 11: Executing: $*" >&2
 unset DOCKER_CONTEXT
 exec "$@"
