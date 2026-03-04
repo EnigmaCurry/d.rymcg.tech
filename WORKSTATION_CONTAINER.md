@@ -143,6 +143,17 @@ docker run --rm \
 No SSH keys or known_hosts are needed — OpenBao issues a short-lived
 SSH certificate and the entrypoint runs ssh-keyscan automatically.
 
+## Building locally
+
+You can build the image from your local checkout:
+
+```bash
+d build-container                                    # Docker, tagged localhost/d-rymcg-tech:latest
+d build-container --podman                           # Podman
+d build-container --tag ghcr.io/you/d-rymcg-tech:v1  # Custom tag
+d build-container --push                             # Build and push
+```
+
 ## What's in the image
 
 - **Base:** Alpine Linux
