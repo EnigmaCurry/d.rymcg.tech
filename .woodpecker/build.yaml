@@ -51,30 +51,32 @@ steps:
           echo "## Image $${IMAGE}:$${SHA} already exists, skipping build"
         else
           echo "## Building $${IMAGE}:$${SHA}"
-          docker buildx build --load \
+          docker buildx create --name builder --use
+          docker buildx build --push \
+            --platform linux/arm64 \
             --pull \
             -f _container/Dockerfile \
             --build-arg BRANCH=workstation-ci \
             --build-arg IMAGE_SOURCE=https://$${REGISTRY}/${CI_REPO_OWNER}/${CI_REPO_NAME} \
             --cache-from "$${IMAGE}:latest" \
+            --cache-to type=inline \
             -t "$${IMAGE}:$${SHA}" \
             -t "$${IMAGE}:latest" \
             .
-          # Delete all existing package versions so Forgejo re-creates the package
-          # (auto-linking via OCI label only works on first package creation)
-          echo "## Deleting all package versions to trigger re-link"
-          ALL_VERSIONS=$$(curl -sf -u "$${REGISTRY_USERNAME}:$${REGISTRY_PASSWORD}" \
+          # Clean up old SHA tags (keep only latest, current SHA, and sha256 digests)
+          echo "## Cleaning up old image tags"
+          VERSIONS=$$(curl -sf -u "$${REGISTRY_USERNAME}:$${REGISTRY_PASSWORD}" \
             "https://$${REGISTRY}/api/v1/packages/${CI_REPO_OWNER}?type=container&q=$${PKG_NAME}" \
-            | jq -r '.[].version' 2>/dev/null) || true
-          for TAG in $${ALL_VERSIONS}; do
-            echo "  Deleting: $${TAG}"
+            | jq -r '.[].version')
+          for TAG in $${VERSIONS}; do
+            case "$${TAG}" in
+              latest|sha256:*) continue ;;
+              "$${SHA}") continue ;;
+            esac
+            echo "  Deleting old tag: $${TAG}"
             curl -sf -X DELETE -u "$${REGISTRY_USERNAME}:$${REGISTRY_PASSWORD}" \
               "https://$${REGISTRY}/api/v1/packages/${CI_REPO_OWNER}/container/$${PKG_NAME}/$${TAG}" || true
           done
-          # Push image (triggers auto-link via OCI source label)
-          echo "## Pushing image"
-          docker push "$${IMAGE}:$${SHA}"
-          docker push "$${IMAGE}:latest"
         fi
         sync
         sleep 2
