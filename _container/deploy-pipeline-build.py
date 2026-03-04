@@ -261,7 +261,8 @@ def build_steps(forgejo, woodpecker, owner, github_url):
 
     https://{woodpecker}
 
-  In the Woodpecker project settings for the mirror repo, add these secrets:
+  In the Woodpecker project settings for the mirror repo
+  (https://{woodpecker}/repos/X/settings/secrets), add these secrets:
 
     registry          — {forgejo}
     registry_username — {owner}
