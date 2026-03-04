@@ -132,6 +132,7 @@ cmd_init() {
     ## Ensure AGE key (one per context)
     local AGE_KEY_DIR="${HOME}/.config/d.rymcg.tech/keys/sops"
     local AGE_KEY_FILE="${AGE_KEY_DIR}/${CONTEXT}.key"
+    local PUBKEY
     if [[ ! -f "${AGE_KEY_FILE}" ]]; then
         echo "No AGE key found for context '${CONTEXT}'"
         echo "Generating a new AGE keypair..."
@@ -139,13 +140,28 @@ cmd_init() {
         container_run "${IMAGE}" age-keygen > "${AGE_KEY_FILE}"
         chmod 600 "${AGE_KEY_FILE}"
         echo "AGE key created: ${AGE_KEY_FILE}"
+
+        ## Extract public key while file is still plaintext
+        PUBKEY=$(grep -o 'age1[a-z0-9]*' "${AGE_KEY_FILE}" | head -1)
+
+        ## Optional passphrase protection
+        if wizard confirm "Password-protect the AGE key?" no; then
+            local PLAIN_KEY="${AGE_KEY_FILE}.plain"
+            mv "${AGE_KEY_FILE}" "${PLAIN_KEY}"
+            container_run -it "${IMAGE}" age -p < "${PLAIN_KEY}" > "${AGE_KEY_FILE}"
+            rm -f "${PLAIN_KEY}"
+            chmod 600 "${AGE_KEY_FILE}"
+            echo "AGE key encrypted with passphrase."
+        fi
     else
         echo "Using existing AGE key: ${AGE_KEY_FILE}"
+        ## Extract public key — if encrypted, need to decrypt first
+        if head -1 "${AGE_KEY_FILE}" | grep -q '^age-encryption.org'; then
+            PUBKEY=$(container_run -it "${IMAGE}" age -d < "${AGE_KEY_FILE}" | grep -o 'age1[a-z0-9]*' | head -1)
+        else
+            PUBKEY=$(grep -o 'age1[a-z0-9]*' "${AGE_KEY_FILE}" | head -1)
+        fi
     fi
-
-    ## Extract public key from the comment in the key file
-    local PUBKEY
-    PUBKEY=$(grep -o 'age1[a-z0-9]*' "${AGE_KEY_FILE}" | head -1)
     echo "AGE public key: ${PUBKEY}"
     echo ""
 
@@ -278,6 +294,21 @@ cmd_run() {
         echo "Error: AGE key file not found: ${AGE_KEY_FILE}" >&2
         echo "  Use --age-key to specify a different path" >&2
         exit 1
+    fi
+
+    ## Decrypt passphrase-protected AGE key to a temp file
+    if head -1 "${AGE_KEY_FILE}" | grep -q '^age-encryption.org'; then
+        echo "## AGE key is passphrase-protected, decrypting..." >&2
+        local DECRYPTED_KEY
+        DECRYPTED_KEY=$(mktemp)
+        if ! container_run -it "${IMAGE}" age -d < "${AGE_KEY_FILE}" > "${DECRYPTED_KEY}"; then
+            rm -f "${DECRYPTED_KEY}"
+            echo "Error: failed to decrypt AGE key" >&2
+            exit 1
+        fi
+        chmod 600 "${DECRYPTED_KEY}"
+        AGE_KEY_FILE="${DECRYPTED_KEY}"
+        trap "rm -f '${DECRYPTED_KEY}'" EXIT
     fi
 
     local CONTAINER_CONFIG_DIR=/home/user/git/vendor/enigmacurry/d.rymcg.tech/config

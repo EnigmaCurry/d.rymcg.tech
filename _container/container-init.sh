@@ -109,12 +109,28 @@ if [[ ! -f "${AGE_KEY_FILE}" ]]; then
     container_run "${IMAGE}" age-keygen > "${AGE_KEY_FILE}"
     chmod 600 "${AGE_KEY_FILE}"
     echo "AGE key created: ${AGE_KEY_FILE}"
+
+    ## Extract public key while file is still plaintext
+    PUBKEY=$(grep -o 'age1[a-z0-9]*' "${AGE_KEY_FILE}" | head -1)
+
+    ## Optional passphrase protection
+    if wizard confirm "Password-protect the AGE key?" no; then
+        PLAIN_KEY="${AGE_KEY_FILE}.plain"
+        mv "${AGE_KEY_FILE}" "${PLAIN_KEY}"
+        container_run -it "${IMAGE}" age -p < "${PLAIN_KEY}" > "${AGE_KEY_FILE}"
+        rm -f "${PLAIN_KEY}"
+        chmod 600 "${AGE_KEY_FILE}"
+        echo "AGE key encrypted with passphrase."
+    fi
 else
     echo "Using existing AGE key: ${AGE_KEY_FILE}"
+    ## Extract public key — if encrypted, need to decrypt first
+    if head -1 "${AGE_KEY_FILE}" | grep -q '^age-encryption.org'; then
+        PUBKEY=$(container_run -it "${IMAGE}" age -d < "${AGE_KEY_FILE}" | grep -o 'age1[a-z0-9]*' | head -1)
+    else
+        PUBKEY=$(grep -o 'age1[a-z0-9]*' "${AGE_KEY_FILE}" | head -1)
+    fi
 fi
-
-## Extract public key from the comment in the key file
-PUBKEY=$(grep -o 'age1[a-z0-9]*' "${AGE_KEY_FILE}" | head -1)
 echo "AGE public key: ${PUBKEY}"
 echo ""
 

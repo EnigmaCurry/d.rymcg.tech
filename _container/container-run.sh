@@ -110,6 +110,20 @@ if [[ ! -f "${AGE_KEY_FILE}" ]]; then
     exit 1
 fi
 
+## Decrypt passphrase-protected AGE key to a temp file
+if head -1 "${AGE_KEY_FILE}" | grep -q '^age-encryption.org'; then
+    echo "## AGE key is passphrase-protected, decrypting..." >&2
+    DECRYPTED_KEY=$(mktemp)
+    if ! "${ENGINE}" run --rm -it --entrypoint "" "${IMAGE}" age -d < "${AGE_KEY_FILE}" > "${DECRYPTED_KEY}"; then
+        rm -f "${DECRYPTED_KEY}"
+        echo "Error: failed to decrypt AGE key" >&2
+        exit 1
+    fi
+    chmod 600 "${DECRYPTED_KEY}"
+    AGE_KEY_FILE="${DECRYPTED_KEY}"
+    trap "rm -f '${DECRYPTED_KEY}'" EXIT
+fi
+
 CONTAINER_CONFIG_DIR=/home/user/git/vendor/enigmacurry/d.rymcg.tech/config
 SOPS_BASENAME="$(basename "${SOPS_CONFIG}")"
 
