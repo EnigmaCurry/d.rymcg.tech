@@ -716,17 +716,28 @@ cmd_view() {
         exit 1
     fi
 
+    # Decrypt passphrase-protected AGE key in a separate interactive step
+    local DEC_DIR=""
+    if head -1 "${AGE_KEY_FILE}" | grep -q '^age-encryption.org'; then
+        DEC_DIR=$(mktemp -d)
+        cp "${AGE_KEY_FILE}" "${DEC_DIR}/age-key-in"
+        container_run -it --security-opt label=disable --userns=keep-id \
+            -v "${DEC_DIR}:/tmp/age-work:Z" \
+            "${IMAGE}" sh -c 'age -d /tmp/age-work/age-key-in > /tmp/age-work/age-key-dec'
+        AGE_KEY_FILE="${DEC_DIR}/age-key-dec"
+    fi
+
     local PLAINTEXT
-    local _tty_flag="-i"
-    [[ -t 0 ]] && _tty_flag="-it"
     PLAINTEXT=$(container_run \
-        --security-opt label=disable --userns=keep-id ${_tty_flag} \
+        --security-opt label=disable --userns=keep-id -i \
         -v "${SOPS_CONFIG}:/tmp/config.sops.env:ro" \
         -v "${AGE_KEY_FILE}:/run/secrets/age-key:ro" \
         -e "SOPS_AGE_KEY_FILE=/run/secrets/age-key" \
         "${IMAGE}" \
         sops decrypt --input-type dotenv --output-type dotenv \
             --filename-override export.env /tmp/config.sops.env)
+
+    [[ -n "${DEC_DIR}" ]] && rm -rf "${DEC_DIR}"
 
     if [[ -t 1 ]]; then
         echo "${PLAINTEXT}" | less
