@@ -335,16 +335,19 @@ cmd_run() {
     ## Decrypt passphrase-protected AGE key to a temp file
     if head -1 "${AGE_KEY_FILE}" | grep -q '^age-encryption.org'; then
         echo "## AGE key is passphrase-protected, decrypting..." >&2
-        local DECRYPTED_KEY
-        DECRYPTED_KEY=$(mktemp)
-        if ! container_run -it "${IMAGE}" age -d < "${AGE_KEY_FILE}" > "${DECRYPTED_KEY}"; then
-            rm -f "${DECRYPTED_KEY}"
+        local DEC_DIR
+        DEC_DIR=$(mktemp -d)
+        cp "${AGE_KEY_FILE}" "${DEC_DIR}/age-key-in"
+        if ! container_run -it --user 0:0 \
+            -v "${DEC_DIR}:/tmp/age-work:Z" \
+            "${IMAGE}" sh -c 'age -d /tmp/age-work/age-key-in > /tmp/age-work/age-key-dec'; then
+            rm -rf "${DEC_DIR}"
             echo "Error: failed to decrypt AGE key" >&2
             exit 1
         fi
-        chmod 600 "${DECRYPTED_KEY}"
-        AGE_KEY_FILE="${DECRYPTED_KEY}"
-        trap "rm -f '${DECRYPTED_KEY}'" EXIT
+        AGE_KEY_FILE="${DEC_DIR}/age-key-dec"
+        chmod 600 "${AGE_KEY_FILE}"
+        trap "rm -rf '${DEC_DIR}'" EXIT
     fi
 
     local CONTAINER_CONFIG_DIR=/home/user/git/vendor/enigmacurry/d.rymcg.tech/config
