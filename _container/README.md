@@ -122,6 +122,32 @@ docker run --rm \
   bash -c 'd make traefik install && d make whoami install'
 ```
 
+## Setup scripts
+
+### deploy-pipeline-build
+
+Guided interactive walkthrough for setting up the build pipeline that
+produces the `d-rymcg-tech` Docker image. Mirrors the d.rymcg.tech
+GitHub repo to your Forgejo instance and configures Woodpecker CI to
+automatically build and push the image to your registry.
+
+```bash
+d.rymcg.tech deploy-pipeline-build
+```
+
+This is a guidance-only tool — it prints step-by-step instructions
+with personalized URLs but does not automate any actions. Use Enter
+to advance, Backspace to go back.
+
+### deploy-pipeline-template
+
+Scaffolds a new deployment pipeline repo with Woodpecker CI
+configuration, SOPS-encrypted config, and Jinja2 pipeline templates.
+
+```bash
+d.rymcg.tech deploy-pipeline-template
+```
+
 ## Files
 
 | File | Description |
@@ -129,3 +155,5 @@ docker run --rm \
 | `Dockerfile` | Image definition (Alpine + system packages + uv + repo) |
 | `entrypoint.sh` | Multi-step setup script (SSH, OpenBao, SOPS, Docker context) |
 | `Makefile` | Convenience targets for building and testing locally |
+| `deploy-pipeline-build.py` | Guided build pipeline setup (PEP 723, run via `uv`) |
+| `deploy-pipeline-template.sh` | Deployment repo scaffolding script |
