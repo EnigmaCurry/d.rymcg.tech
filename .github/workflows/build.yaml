@@ -30,8 +30,10 @@ jobs:
         id: check
         run: |
           SHA=$(echo "${{ github.sha }}" | head -c 12)
+          OWNER=$(echo "${{ github.repository_owner }}" | tr '[:upper:]' '[:lower:]')
           echo "sha=$SHA" >> "$GITHUB_OUTPUT"
-          if docker buildx imagetools inspect "ghcr.io/${{ github.repository_owner }}/d-rymcg-tech:$SHA" 2>/dev/null; then
+          echo "owner=$OWNER" >> "$GITHUB_OUTPUT"
+          if docker buildx imagetools inspect "ghcr.io/${{ steps.check.outputs.owner }}/d-rymcg-tech:$SHA" 2>/dev/null; then
             echo "exists=true" >> "$GITHUB_OUTPUT"
           fi
 
@@ -52,9 +54,9 @@ jobs:
             BRANCH=master
             IMAGE_SOURCE=https://github.com/${{ github.repository }}
           tags: |
-            ghcr.io/${{ github.repository_owner }}/d-rymcg-tech:${{ steps.check.outputs.sha }}
-            ghcr.io/${{ github.repository_owner }}/d-rymcg-tech:latest
-          cache-from: type=registry,ref=ghcr.io/${{ github.repository_owner }}/d-rymcg-tech:latest
+            ghcr.io/${{ steps.check.outputs.owner }}/d-rymcg-tech:${{ steps.check.outputs.sha }}
+            ghcr.io/${{ steps.check.outputs.owner }}/d-rymcg-tech:latest
+          cache-from: type=registry,ref=ghcr.io/${{ steps.check.outputs.owner }}/d-rymcg-tech:latest
           cache-to: type=inline
 
       - name: Clean up old image versions
