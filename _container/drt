@@ -405,6 +405,13 @@ esac
 ###############################################################################
 # How the alias works:
 #
+# The container image embeds this script at /usr/local/bin/drt. To find your
+# image's source registry, inspect the label:
+#
+#   podman inspect --format '{{index .Config.Labels "org.opencontainers.image.source"}}' ghcr.io/enigmacurry/d-rymcg-tech
+#
+# Define a shell alias (add to ~/.bashrc or ~/.zshrc):
+#
 #   alias drt='bash <(podman run --rm ghcr.io/enigmacurry/d-rymcg-tech drt)'
 #
 # When you run e.g. "drt --init myserver", bash expands this to:
