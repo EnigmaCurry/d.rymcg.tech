@@ -14,11 +14,11 @@ clone:
   - name: clone
     image: woodpeckerci/plugin-git
     settings:
-      netrc_machine:
+      netrc.machine:
         from_secret: registry
-      netrc_username:
+      netrc.username:
         from_secret: registry_username
-      netrc_password:
+      netrc.password:
         from_secret: registry_password
 
 steps:
