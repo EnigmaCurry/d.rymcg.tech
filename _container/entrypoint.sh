@@ -253,7 +253,9 @@ SSH_USER="${SSH_USER:-root}"
 SSH_PORT="${SSH_PORT:-22}"
 echo "## SSH target: ${SSH_USER}@${SSH_HOST}:${SSH_PORT}" >&2
 
-if [[ "${SSH_KEY_SCAN:-}" != "false" ]]; then
+if [[ -s "${KEY_DIR}/known_hosts" ]]; then
+    echo "## SSH known_hosts already provided, skipping ssh-keyscan" >&2
+elif [[ "${SSH_KEY_SCAN:-}" != "false" ]]; then
     echo "## Running ssh-keyscan for ${SSH_HOST}:${SSH_PORT}" >&2
     if ! ssh-keyscan -p "${SSH_PORT}" "${SSH_HOST}" >> "${KEY_DIR}/known_hosts" 2>/dev/null; then
         echo "ERROR: ssh-keyscan failed for ${SSH_HOST}:${SSH_PORT} (set SSH_KEY_SCAN=false to skip)" >&2
