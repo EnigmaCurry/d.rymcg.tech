@@ -65,9 +65,8 @@ if [[ "${BUILD}" == true ]]; then
 fi
 
 ## Run a command inside the container, bypassing the entrypoint
-## Uses host UID/GID so mounted volumes are writable
 container_run() {
-    "${ENGINE}" run --rm --entrypoint "" --user "$(id -u):$(id -g)" "$@"
+    "${ENGINE}" run --rm --entrypoint "" "$@"
 }
 
 ## Run script-wizard inside the container (interactive, stdin/stdout on TTY)
