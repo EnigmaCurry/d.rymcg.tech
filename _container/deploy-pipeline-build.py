@@ -203,19 +203,6 @@ def build_steps(forgejo, woodpecker, owner, github_url):
     Events: Just the push event""",
         ),
         (
-            "Create Forgejo API token for registry access",
-            f"""\
-  The build pipeline needs to push Docker images to the Forgejo container registry.
-
-  Log in as '{owner}' and go to:
-
-    https://{forgejo}/user/settings/applications
-
-  Create a token with scope: write:package
-
-  Save this token — you will need it in a later step as the 'registry_password' secret.""",
-        ),
-        (
             "Activate mirror repo in Woodpecker",
             f"""\
   Log in to Woodpecker as '{owner}':
@@ -255,6 +242,19 @@ def build_steps(forgejo, woodpecker, owner, github_url):
   When done, reset your API token on the same page for security.""",
         ),
         (
+            "Create Forgejo API token for registry access",
+            f"""\
+  The build pipeline needs to push Docker images to the Forgejo container registry.
+
+  Log in as '{owner}' and go to:
+
+    https://{forgejo}/user/settings/applications
+
+  Create a token with scope: write:package
+
+  Save this token — you will need it in the next step as the 'registry_password' secret.""",
+        ),
+        (
             "Add Woodpecker secrets",
             f"""\
   Log out of Forgejo and Woodpecker, then log back in to Woodpecker as '{owner}':
@@ -266,7 +266,7 @@ def build_steps(forgejo, woodpecker, owner, github_url):
 
     registry          — {forgejo}
     registry_username — {owner}
-    registry_password — the Forgejo token with write:package scope (from step 9)
+    registry_password — the Forgejo token with write:package scope (from the previous step)
 
   When creating each secret, enable all the events you need:
   push, manual, and cron.
