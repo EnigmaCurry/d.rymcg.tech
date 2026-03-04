@@ -70,11 +70,11 @@ get-ssh-ca-public-key:
 	export BAO_LABEL="## $${TRAEFIK_HOST} SSH CA Public Key"; \
 	make --no-print-directory docker-compose-lifecycle-cmd EXTRA_ARGS="exec -e BAO_TOKEN -e BAO_LABEL -T openbao /bin/sh -c 'echo; printenv BAO_LABEL; bao read -field=public_key ssh-client-signer/config/ca; echo; echo'"
 
-.PHONY: create-ssh-role # Create SSH signing role (woodpecker-short-lived, 15m TTL, ed25519)
+.PHONY: create-ssh-role # Create SSH signing role (woodpecker-short-lived, 2m TTL, ed25519)
 create-ssh-role:
 	@echo "Enter the root token:"; \
 	read -rs BAO_TOKEN; export BAO_TOKEN; \
-	make --no-print-directory docker-compose-lifecycle-cmd EXTRA_ARGS="exec -e BAO_TOKEN -T openbao /bin/sh -c 'echo; echo eyJhbGxvd191c2VyX2NlcnRpZmljYXRlcyI6dHJ1ZSwiYWxsb3dlZF91c2VycyI6IioiLCJkZWZhdWx0X2V4dGVuc2lvbnMiOnsicGVybWl0LXB0eSI6IiJ9LCJrZXlfdHlwZSI6ImNhIiwiZGVmYXVsdF91c2VyIjoicm9vdCIsInR0bCI6IjE1bSIsIm1heF90dGwiOiIzMG0iLCJhbGdvcml0aG1fc2lnbmVyIjoiZGVmYXVsdCJ9 | base64 -d | bao write ssh-client-signer/roles/woodpecker-short-lived -; echo; echo'"
+	make --no-print-directory docker-compose-lifecycle-cmd EXTRA_ARGS="exec -e BAO_TOKEN -T openbao /bin/sh -c 'echo; echo eyJhbGxvd191c2VyX2NlcnRpZmljYXRlcyI6dHJ1ZSwiYWxsb3dlZF91c2VycyI6IioiLCJkZWZhdWx0X2V4dGVuc2lvbnMiOnsicGVybWl0LXB0eSI6IiJ9LCJrZXlfdHlwZSI6ImNhIiwiZGVmYXVsdF91c2VyIjoicm9vdCIsInR0bCI6IjJtIiwibWF4X3R0bCI6IjVtIiwiYWxnb3JpdGhtX3NpZ25lciI6ImRlZmF1bHQifQo= | base64 -d | bao write ssh-client-signer/roles/woodpecker-short-lived -; echo; echo'"
 
 .PHONY: read-ssh-role # Read the SSH signing role configuration
 read-ssh-role:
