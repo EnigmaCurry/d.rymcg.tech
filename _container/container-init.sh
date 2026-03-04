@@ -52,9 +52,14 @@ if ! command -v "${ENGINE}" &>/dev/null; then
     exit 1
 fi
 
+## Run a command inside the container, bypassing the entrypoint
+container_run() {
+    "${ENGINE}" run --rm --entrypoint "" "$@"
+}
+
 ## Run script-wizard inside the container (interactive, stdin/stdout on TTY)
 wizard() {
-    "${ENGINE}" run --rm -it "${IMAGE}" script-wizard "$@"
+    container_run -it "${IMAGE}" script-wizard "$@"
 }
 
 ## Context name
@@ -79,7 +84,7 @@ if [[ ! -f "${AGE_KEY_FILE}" ]]; then
     echo "No AGE key found for context '${CONTEXT}'"
     echo "Generating a new AGE keypair..."
     mkdir -p "${AGE_KEY_DIR}"
-    "${ENGINE}" run --rm \
+    container_run \
         -v "${AGE_KEY_DIR}:/keys" \
         "${IMAGE}" \
         age-keygen -o "/keys/${CONTEXT}.key"
@@ -89,7 +94,7 @@ else
 fi
 
 ## Extract public key
-PUBKEY=$("${ENGINE}" run --rm \
+PUBKEY=$(container_run \
     -v "${AGE_KEY_DIR}:/keys:ro" \
     "${IMAGE}" \
     age-keygen -y "/keys/${CONTEXT}.key")
@@ -113,7 +118,7 @@ SSH_USER=${SSH_USER}
 SSH_PORT=${SSH_PORT}"
 
 mkdir -p "${CONFIG_DIR}"
-echo "${PLAINTEXT}" | "${ENGINE}" run --rm -i \
+echo "${PLAINTEXT}" | container_run -i \
     "${IMAGE}" \
     sops encrypt \
         --input-type dotenv --output-type dotenv \
