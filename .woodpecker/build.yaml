@@ -83,3 +83,5 @@ steps:
           curl -sf -X POST -u "$${REGISTRY_USERNAME}:$${REGISTRY_PASSWORD}" \
             "https://$${REGISTRY}/api/v1/packages/${CI_REPO_OWNER}/container/$${PKG_NAME}/-/link/${CI_REPO_NAME}" || true
         fi
+        sync
+        sleep 2
