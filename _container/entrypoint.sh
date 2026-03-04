@@ -220,7 +220,9 @@ persist_bao_state() {
 
     write_state() {
         local name="$1" value="$2"
-        [[ -n "${value}" ]] && echo "${value}" > "${BAO_STATE_DIR}/${name}"
+        if [[ -n "${value}" ]]; then
+            echo "${value}" > "${BAO_STATE_DIR}/${name}"
+        fi
     }
 
     write_state addr "${BAO_ADDR:-}"
