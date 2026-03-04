@@ -16,6 +16,7 @@ usage() {
     echo ""
     echo "Options:"
     echo "  --image TAG      Container image (default: localhost/d-rymcg-tech:latest)"
+    echo "  --build          Build the container image first (using container-build)"
     echo "  --docker         Use Docker instead of Podman"
     echo "  --age-key FILE   AGE key file (default: ~/.config/d.rymcg.tech/keys/sops/<context>.key)"
     echo "  --ssh-key FILE   SSH key file (disables agent forwarding)"
@@ -25,6 +26,7 @@ usage() {
 
 ENGINE=podman
 IMAGE=localhost/d-rymcg-tech:latest
+BUILD=false
 AGE_KEY_FILE=""
 SSH_KEY_FILE=""
 SAVE_ON_EXIT=true
@@ -33,6 +35,7 @@ SOPS_CONFIG=""
 while [[ $# -gt 0 ]]; do
     case "$1" in
         --image) IMAGE="$2"; shift 2 ;;
+        --build) BUILD=true; shift ;;
         --docker) ENGINE=docker; shift ;;
         --age-key) AGE_KEY_FILE="$2"; shift 2 ;;
         --ssh-key) SSH_KEY_FILE="$2"; shift 2 ;;
@@ -66,6 +69,15 @@ fi
 if ! command -v "${ENGINE}" &>/dev/null; then
     echo "Error: ${ENGINE} not found in PATH" >&2
     exit 1
+fi
+
+## Build the image if requested
+if [[ "${BUILD}" == true ]]; then
+    BUILD_ARGS=(--image "${IMAGE}")
+    if [[ "${ENGINE}" == docker ]]; then
+        BUILD_ARGS+=(--docker)
+    fi
+    "${ROOT_DIR}/_container/container-build.sh" "${BUILD_ARGS[@]}"
 fi
 
 # If argument is a bare context name (no slashes, no .sops.env suffix),
