@@ -230,6 +230,34 @@ cmd_init() {
         echo "SSH host keys collected."
     fi
 
+    ## Optional OpenBao SSH certificate signing
+    local BAO_ADDR="" BAO_ROLE_ID="" BAO_SECRET_ID="" BAO_SSH_MOUNT="" BAO_SSH_ROLE=""
+    local BAO_AUTH_PATH="" BAO_AGE_KEY_PATH="" BAO_KV_MOUNT="" BAO_NAMESPACE=""
+    local BAO_CACERT="" BAO_CLIENT_CERT="" BAO_CLIENT_KEY=""
+    if wizard confirm "Configure OpenBao SSH certificate signing?" no; then
+        BAO_ADDR=$(wizard ask "Enter OpenBao server URL (e.g., https://bao.example.com:8200)")
+        BAO_ROLE_ID=$(wizard ask "Enter AppRole role ID")
+        BAO_SECRET_ID=$(wizard ask "Enter AppRole secret ID")
+        BAO_SSH_MOUNT=$(wizard ask "Enter SSH engine mount" "ssh-client-signer")
+        BAO_SSH_ROLE=$(wizard ask "Enter SSH signing role" "woodpecker-short-lived")
+        BAO_AUTH_PATH=$(wizard ask "Enter auth path" "auth/approle")
+
+        if wizard confirm "Retrieve AGE key from OpenBao KV?" no; then
+            BAO_AGE_KEY_PATH=$(wizard ask "Enter KV path for AGE key (e.g., sops/d2-admin/myserver)")
+            BAO_KV_MOUNT=$(wizard ask "Enter KV engine mount" "secret")
+        fi
+
+        if wizard confirm "Configure OpenBao TLS client certificates?" no; then
+            BAO_CACERT=$(wizard ask "Enter CA certificate (path, PEM, or base64)")
+            BAO_CLIENT_CERT=$(wizard ask "Enter client certificate (path, PEM, or base64)")
+            BAO_CLIENT_KEY=$(wizard ask "Enter client key (path, PEM, or base64)")
+        fi
+
+        if wizard confirm "Configure OpenBao namespace?" no; then
+            BAO_NAMESPACE=$(wizard ask "Enter OpenBao namespace")
+        fi
+    fi
+
     ## Create SOPS config
     local PLAINTEXT="## SSH
 SSH_HOST=${SSH_HOST}
@@ -240,6 +268,30 @@ SSH_PORT=${SSH_PORT}"
         SSH_KNOWN_HOSTS=$(echo "${KNOWN_HOSTS}" | base64 -w0)
         PLAINTEXT="${PLAINTEXT}
 SSH_KNOWN_HOSTS=${SSH_KNOWN_HOSTS}"
+    fi
+
+    ## Append OpenBao vars if configured
+    if [[ -n "${BAO_ADDR}" ]]; then
+        PLAINTEXT="${PLAINTEXT}
+## OpenBao
+BAO_ADDR=${BAO_ADDR}
+BAO_ROLE_ID=${BAO_ROLE_ID}
+BAO_SECRET_ID=${BAO_SECRET_ID}
+BAO_SSH_MOUNT=${BAO_SSH_MOUNT}
+BAO_SSH_ROLE=${BAO_SSH_ROLE}
+BAO_AUTH_PATH=${BAO_AUTH_PATH}"
+        [[ -n "${BAO_AGE_KEY_PATH}" ]] && PLAINTEXT="${PLAINTEXT}
+BAO_AGE_KEY_PATH=${BAO_AGE_KEY_PATH}"
+        [[ -n "${BAO_KV_MOUNT}" ]] && PLAINTEXT="${PLAINTEXT}
+BAO_KV_MOUNT=${BAO_KV_MOUNT}"
+        [[ -n "${BAO_NAMESPACE}" ]] && PLAINTEXT="${PLAINTEXT}
+BAO_NAMESPACE=${BAO_NAMESPACE}"
+        [[ -n "${BAO_CACERT}" ]] && PLAINTEXT="${PLAINTEXT}
+BAO_CACERT=${BAO_CACERT}"
+        [[ -n "${BAO_CLIENT_CERT}" ]] && PLAINTEXT="${PLAINTEXT}
+BAO_CLIENT_CERT=${BAO_CLIENT_CERT}"
+        [[ -n "${BAO_CLIENT_KEY}" ]] && PLAINTEXT="${PLAINTEXT}
+BAO_CLIENT_KEY=${BAO_CLIENT_KEY}"
     fi
 
     mkdir -p "${CONFIG_DIR}"
@@ -358,7 +410,10 @@ cmd_run() {
     fi
 
     # Forward host environment overrides into the container
-    local passthrough_vars=(SSH_KEY_SCAN SSH_HOST SSH_USER SSH_PORT DOCKER_CONTEXT PROJECTS)
+    local passthrough_vars=(SSH_KEY_SCAN SSH_HOST SSH_USER SSH_PORT DOCKER_CONTEXT PROJECTS
+        BAO_ADDR BAO_ROLE_ID BAO_SECRET_ID BAO_AGE_KEY_PATH BAO_SSH_MOUNT
+        BAO_SSH_ROLE BAO_AUTH_PATH BAO_KV_MOUNT BAO_NAMESPACE
+        BAO_CACERT BAO_CLIENT_CERT BAO_CLIENT_KEY)
     for var in "${passthrough_vars[@]}"; do
         if [[ -n "${!var:-}" ]]; then
             RUN_ARGS+=(-e "${var}=${!var}")

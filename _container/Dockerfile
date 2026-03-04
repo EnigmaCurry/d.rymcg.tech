@@ -66,6 +66,9 @@ RUN set -e; \
 COPY --chown=1000:1000 _container/drt /usr/local/bin/drt
 RUN chmod +x /usr/local/bin/drt
 
+COPY --chown=1000:1000 _container/sign-ssh-cert /usr/local/bin/sign-ssh-cert
+RUN chmod +x /usr/local/bin/sign-ssh-cert
+
 COPY --chown=1000:1000 _container/entrypoint.sh /entrypoint.sh
 RUN chmod +x /entrypoint.sh
 

@@ -61,30 +61,12 @@ resolve_secret_to_file() {
     chmod 600 "${target}"
 }
 
-## Step 1: Set up SSH key directory and credentials
-echo "## Step 1: Setting up SSH credentials" >&2
-KEY_DIR=/run/secrets/ssh
-mkdir -p "${KEY_DIR}" 2>/dev/null || KEY_DIR=$(mktemp -d)
-mkdir -p ~/.ssh
-chmod 700 "${KEY_DIR}" ~/.ssh
+###############################################################################
+# OpenBao functions (extracted for conditional ordering)
+###############################################################################
 
-# Hydrate SSH_KEY from env (file path, PEM, or base64)
-if [[ -n "${SSH_KEY:-}" && ! -f "${KEY_DIR}/id_ed25519" ]]; then
-    echo "## SSH: loading key from SSH_KEY env var" >&2
-    resolve_secret_to_file "${SSH_KEY}" "${KEY_DIR}/id_ed25519"
-fi
-
-# Generate a key if none was provided or mounted
-if [[ ! -f "${KEY_DIR}/id_ed25519" ]]; then
-    ssh-keygen -t ed25519 -N "" -f "${KEY_DIR}/id_ed25519" -q
-fi
-
-## Step 2: OpenBao integration (only runs if BAO_ADDR is set)
-echo "## Step 2: OpenBao integration" >&2
-if [[ -n "${BAO_ADDR:-}" ]]; then
-    echo "## OpenBao: authenticating with ${BAO_ADDR}" >&2
-
-    ## Step 2a: Resolve BAO TLS vars (auto-detect base64/PEM/file paths → temp files)
+## Resolve BAO TLS vars (auto-detect base64/PEM/file paths → temp files)
+resolve_bao_tls() {
     resolve_tls_var() {
         local var_name="$1"
         local var_value="${!var_name:-}"
@@ -115,19 +97,8 @@ if [[ -n "${BAO_ADDR:-}" ]]; then
     BAO_SSH_ROLE="${BAO_SSH_ROLE:-woodpecker-short-lived}"
     BAO_KV_MOUNT="${BAO_KV_MOUNT:-secret}"
 
-    # Validate required vars
-    if [[ -z "${BAO_ROLE_ID:-}" ]]; then
-        echo "ERROR: BAO_ROLE_ID is required when BAO_ADDR is set" >&2
-        exit 1
-    fi
-    if [[ -z "${BAO_SECRET_ID:-}" ]]; then
-        echo "ERROR: BAO_SECRET_ID is required when BAO_ADDR is set" >&2
-        exit 1
-    fi
-    if [[ -z "${BAO_AGE_KEY_PATH:-}" ]]; then
-        echo "ERROR: BAO_AGE_KEY_PATH is required when BAO_ADDR is set (e.g., sops/d2-admin/myserver-production)" >&2
-        exit 1
-    fi
+    BAO_NAMESPACE_HEADER=()
+    [[ -n "${BAO_NAMESPACE:-}" ]] && BAO_NAMESPACE_HEADER=(-H "X-Vault-Namespace: ${BAO_NAMESPACE}")
 
     ## Debug: show all certificates in the client cert chain if present
     if [[ -n "${BAO_CLIENT_CERT:-}" && -f "${BAO_CLIENT_CERT}" ]]; then
@@ -147,11 +118,25 @@ if [[ -n "${BAO_ADDR:-}" ]]; then
             fi
         done < "${BAO_CLIENT_CERT}"
     fi
+}
 
-    ## Step 2b: AppRole authentication via curl → get BAO_TOKEN
+## AppRole authentication via curl → set BAO_TOKEN
+openbao_auth() {
+    echo "## OpenBao: authenticating with ${BAO_ADDR}" >&2
+
+    # Validate required vars
+    if [[ -z "${BAO_ROLE_ID:-}" ]]; then
+        echo "ERROR: BAO_ROLE_ID is required when BAO_ADDR is set" >&2
+        exit 1
+    fi
+    if [[ -z "${BAO_SECRET_ID:-}" ]]; then
+        echo "ERROR: BAO_SECRET_ID is required when BAO_ADDR is set" >&2
+        exit 1
+    fi
+
+    resolve_bao_tls
+
     echo "## OpenBao: logging in via AppRole" >&2
-    BAO_NAMESPACE_HEADER=()
-    [[ -n "${BAO_NAMESPACE:-}" ]] && BAO_NAMESPACE_HEADER=(-H "X-Vault-Namespace: ${BAO_NAMESPACE}")
     echo "## OpenBao: curl ${BAO_CURL_FLAGS[*]} ${BAO_NAMESPACE_HEADER[*]:-} --request POST --data '{\"role_id\":\"***\",\"secret_id\":\"***\"}' ${BAO_ADDR}/v1/${BAO_AUTH_PATH}/login" >&2
     LOGIN_HTTP_CODE=0
     LOGIN_RESPONSE=$(curl -v -w '\n%{http_code}' "${BAO_CURL_FLAGS[@]}" "${BAO_NAMESPACE_HEADER[@]}" \
@@ -172,8 +157,14 @@ if [[ -n "${BAO_ADDR:-}" ]]; then
         exit 1
     fi
     echo "## OpenBao: authenticated successfully" >&2
+}
 
-    ## Step 2c: Retrieve AGE key from KV store → write to temp file, set SOPS_AGE_KEY_FILE
+## Retrieve AGE key from KV store → write to temp file, set SOPS_AGE_KEY_FILE
+openbao_get_age_key() {
+    if [[ -z "${BAO_AGE_KEY_PATH:-}" ]]; then
+        echo "ERROR: BAO_AGE_KEY_PATH is required (e.g., sops/d2-admin/myserver-production)" >&2
+        exit 1
+    fi
     echo "## OpenBao: retrieving AGE key from ${BAO_KV_MOUNT}/data/${BAO_AGE_KEY_PATH}" >&2
     AGE_HTTP_CODE=0
     AGE_RESPONSE=$(curl -s -w '\n%{http_code}' "${BAO_CURL_FLAGS[@]}" "${BAO_NAMESPACE_HEADER[@]}" \
@@ -199,8 +190,10 @@ if [[ -n "${BAO_ADDR:-}" ]]; then
     chmod 600 "${AGE_KEY_FILE}"
     export SOPS_AGE_KEY_FILE="${AGE_KEY_FILE}"
     echo "## OpenBao: AGE key retrieved" >&2
+}
 
-    ## Step 2d: Sign SSH public key via SSH secrets engine → write certificate
+## Sign SSH public key via SSH secrets engine → write certificate
+openbao_sign_ssh() {
     echo "## OpenBao: signing SSH public key via ${BAO_SSH_MOUNT}/sign/${BAO_SSH_ROLE}" >&2
     SSH_PUBLIC_KEY=$(cat "${KEY_DIR}/id_ed25519.pub")
     SIGN_RESPONSE=$(curl -sf "${BAO_CURL_FLAGS[@]}" "${BAO_NAMESPACE_HEADER[@]}" \
@@ -217,27 +210,45 @@ if [[ -n "${BAO_ADDR:-}" ]]; then
     echo "${SIGNED_KEY}" > "${KEY_DIR}/id_ed25519-cert.pub"
     chmod 600 "${KEY_DIR}/id_ed25519-cert.pub"
     echo "## OpenBao: SSH certificate obtained" >&2
-fi
+}
 
-## Step 3: Decrypt passphrase-protected AGE key (if needed)
-if [[ -n "${SOPS_AGE_KEY_FILE:-}" && -f "${SOPS_AGE_KEY_FILE}" ]]; then
-    if head -1 "${SOPS_AGE_KEY_FILE}" | grep -q '^age-encryption.org'; then
-        echo "## AGE key is passphrase-protected, decrypting..." >&2
-        DECRYPTED_AGE_KEY=$(mktemp)
-        if ! age -d "${SOPS_AGE_KEY_FILE}" > "${DECRYPTED_AGE_KEY}"; then
-            rm -f "${DECRYPTED_AGE_KEY}"
-            echo "ERROR: failed to decrypt AGE key" >&2
-            exit 1
-        fi
-        chmod 600 "${DECRYPTED_AGE_KEY}"
-        export SOPS_AGE_KEY_FILE="${DECRYPTED_AGE_KEY}"
-        echo "## AGE key decrypted" >&2
+## Persist BAO connection state for on-demand re-signing by sign-ssh-cert
+persist_bao_state() {
+    local BAO_STATE_DIR="/run/secrets/bao"
+    mkdir -p "${BAO_STATE_DIR}" 2>/dev/null || BAO_STATE_DIR=$(mktemp -d)
+    chmod 700 "${BAO_STATE_DIR}"
+
+    write_state() {
+        local name="$1" value="$2"
+        [[ -n "${value}" ]] && echo "${value}" > "${BAO_STATE_DIR}/${name}"
+    }
+
+    write_state addr "${BAO_ADDR:-}"
+    write_state token "${BAO_TOKEN:-}"
+    write_state ssh_mount "${BAO_SSH_MOUNT:-}"
+    write_state ssh_role "${BAO_SSH_ROLE:-}"
+    write_state auth_path "${BAO_AUTH_PATH:-}"
+    write_state role_id "${BAO_ROLE_ID:-}"
+    write_state secret_id "${BAO_SECRET_ID:-}"
+    write_state namespace "${BAO_NAMESPACE:-}"
+
+    # Copy TLS files if they exist
+    [[ -n "${BAO_CACERT:-}" && -f "${BAO_CACERT}" ]]           && cp "${BAO_CACERT}" "${BAO_STATE_DIR}/cacert"
+    [[ -n "${BAO_CLIENT_CERT:-}" && -f "${BAO_CLIENT_CERT}" ]] && cp "${BAO_CLIENT_CERT}" "${BAO_STATE_DIR}/client_cert"
+    [[ -n "${BAO_CLIENT_KEY:-}" && -f "${BAO_CLIENT_KEY}" ]]   && cp "${BAO_CLIENT_KEY}" "${BAO_STATE_DIR}/client_key"
+
+    chmod 600 "${BAO_STATE_DIR}"/* 2>/dev/null || true
+    echo "## OpenBao: connection state persisted to ${BAO_STATE_DIR}" >&2
+}
+
+###############################################################################
+# SOPS decryption function
+###############################################################################
+
+decrypt_sops() {
+    if [[ -z "${SOPS_CONFIG_FILE:-}" ]]; then
+        return 0
     fi
-fi
-
-## Step 4: SOPS config file loading (only runs if SOPS_CONFIG_FILE is set)
-echo "## Step 4: SOPS config loading" >&2
-if [[ -n "${SOPS_CONFIG_FILE:-}" ]]; then
     echo "## Loading SOPS config from ${SOPS_CONFIG_FILE}" >&2
     if [[ ! -f "${SOPS_CONFIG_FILE}" ]]; then
         echo "ERROR: SOPS_CONFIG_FILE not found: ${SOPS_CONFIG_FILE}" >&2
@@ -254,19 +265,105 @@ if [[ -n "${SOPS_CONFIG_FILE:-}" ]]; then
         fi
     fi
 
-    # Parse each KEY=VALUE; skip BAO_* vars; export only if not already set
+    # Parse each KEY=VALUE; export only if not already set (container env wins)
     while IFS= read -r line; do
         [[ -z "${line}" || "${line}" == "#"* ]] && continue
         key="${line%%=*}"
         val="${line#*=}"
-        # Never load BAO_* vars from SOPS (must come from container env)
-        [[ "${key}" == BAO_* ]] && continue
         # Only set if not already defined in container env (container env wins)
         if [[ -z "${!key+set}" ]]; then
             export "${key}=${val}"
         fi
     done <<< "${SOPS_DECRYPTED}"
     echo "## SOPS config loaded" >&2
+}
+
+###############################################################################
+# AGE key passphrase decryption
+###############################################################################
+
+decrypt_age_key() {
+    if [[ -n "${SOPS_AGE_KEY_FILE:-}" && -f "${SOPS_AGE_KEY_FILE}" ]]; then
+        if head -1 "${SOPS_AGE_KEY_FILE}" | grep -q '^age-encryption.org'; then
+            echo "## AGE key is passphrase-protected, decrypting..." >&2
+            DECRYPTED_AGE_KEY=$(mktemp)
+            if ! age -d "${SOPS_AGE_KEY_FILE}" > "${DECRYPTED_AGE_KEY}"; then
+                rm -f "${DECRYPTED_AGE_KEY}"
+                echo "ERROR: failed to decrypt AGE key" >&2
+                exit 1
+            fi
+            chmod 600 "${DECRYPTED_AGE_KEY}"
+            export SOPS_AGE_KEY_FILE="${DECRYPTED_AGE_KEY}"
+            echo "## AGE key decrypted" >&2
+        fi
+    fi
+}
+
+###############################################################################
+# Main entrypoint flow
+###############################################################################
+
+## Step 1: Set up SSH key directory and credentials
+echo "## Step 1: Setting up SSH credentials" >&2
+KEY_DIR=/run/secrets/ssh
+mkdir -p "${KEY_DIR}" 2>/dev/null || KEY_DIR=$(mktemp -d)
+mkdir -p ~/.ssh
+chmod 700 "${KEY_DIR}" ~/.ssh
+
+# Hydrate SSH_KEY from env (file path, PEM, or base64)
+if [[ -n "${SSH_KEY:-}" && ! -f "${KEY_DIR}/id_ed25519" ]]; then
+    echo "## SSH: loading key from SSH_KEY env var" >&2
+    resolve_secret_to_file "${SSH_KEY}" "${KEY_DIR}/id_ed25519"
+fi
+
+# Generate a key if none was provided or mounted
+if [[ ! -f "${KEY_DIR}/id_ed25519" ]]; then
+    ssh-keygen -t ed25519 -N "" -f "${KEY_DIR}/id_ed25519" -q
+fi
+
+## Step 2: Decrypt passphrase-protected AGE key (if needed)
+echo "## Step 2: AGE key decryption" >&2
+decrypt_age_key
+
+## Step 3: Conditional SOPS/OpenBao resolution
+echo "## Step 3: SOPS/OpenBao resolution" >&2
+BAO_USED=false
+
+if [[ -n "${SOPS_AGE_KEY_FILE:-}" && -f "${SOPS_AGE_KEY_FILE}" ]]; then
+    ## Interactive path: local AGE key available → SOPS first (may populate BAO_*)
+    echo "## Path: local AGE key → SOPS first" >&2
+    decrypt_sops
+    ## After SOPS, BAO_* vars may now be set → auth + sign SSH cert if so
+    if [[ -n "${BAO_ADDR:-}" ]]; then
+        echo "## OpenBao vars found (from SOPS or env), authenticating..." >&2
+        openbao_auth
+        openbao_sign_ssh
+        BAO_USED=true
+    fi
+elif [[ -n "${BAO_ADDR:-}" ]]; then
+    ## CI path: BAO_* from container env → OpenBao first
+    echo "## Path: container env BAO_* → OpenBao first" >&2
+    openbao_auth
+    ## Get AGE key from KV if BAO_AGE_KEY_PATH is set
+    if [[ -n "${BAO_AGE_KEY_PATH:-}" ]]; then
+        openbao_get_age_key
+        decrypt_age_key
+    fi
+    decrypt_sops
+    openbao_sign_ssh
+    BAO_USED=true
+else
+    ## No OpenBao, just try SOPS if SOPS_CONFIG_FILE exists
+    echo "## Path: SOPS only (no OpenBao)" >&2
+    decrypt_sops
+fi
+
+## Step 4: Persist BAO state for on-demand re-signing (only if OpenBao was used)
+if [[ "${BAO_USED}" == true ]]; then
+    echo "## Step 4: Persisting OpenBao state" >&2
+    persist_bao_state
+else
+    echo "## Step 4: No OpenBao state to persist" >&2
 fi
 
 ## Step 5: Validate DOCKER_CONTEXT (may come from SOPS config, container env, or SOPS filename)
@@ -312,18 +409,32 @@ elif [[ "${SSH_KEY_SCAN:-}" != "false" ]]; then
         exit 1
     fi
 fi
-{
-    echo "Host ${DOCKER_CONTEXT}"
-    echo "    HostName ${SSH_HOST}"
-    echo "    User ${SSH_USER}"
-    echo "    Port ${SSH_PORT}"
-    echo "    IdentityFile ${KEY_DIR}/id_ed25519"
-    echo "    UserKnownHostsFile ${KEY_DIR}/known_hosts"
-    # Include CertificateFile only if an SSH certificate was obtained
-    if [[ -f "${KEY_DIR}/id_ed25519-cert.pub" ]]; then
+
+# Write SSH config — use Match exec for on-demand cert signing when BAO is configured
+if [[ "${BAO_USED}" == true ]]; then
+    {
+        echo "Match host ${DOCKER_CONTEXT} exec \"sign-ssh-cert\""
+        echo "    HostName ${SSH_HOST}"
+        echo "    User ${SSH_USER}"
+        echo "    Port ${SSH_PORT}"
+        echo "    IdentityFile ${KEY_DIR}/id_ed25519"
+        echo "    UserKnownHostsFile ${KEY_DIR}/known_hosts"
         echo "    CertificateFile ${KEY_DIR}/id_ed25519-cert.pub"
-    fi
-} > ~/.ssh/config
+    } > ~/.ssh/config
+else
+    {
+        echo "Host ${DOCKER_CONTEXT}"
+        echo "    HostName ${SSH_HOST}"
+        echo "    User ${SSH_USER}"
+        echo "    Port ${SSH_PORT}"
+        echo "    IdentityFile ${KEY_DIR}/id_ed25519"
+        echo "    UserKnownHostsFile ${KEY_DIR}/known_hosts"
+        # Include CertificateFile only if an SSH certificate was obtained
+        if [[ -f "${KEY_DIR}/id_ed25519-cert.pub" ]]; then
+            echo "    CertificateFile ${KEY_DIR}/id_ed25519-cert.pub"
+        fi
+    } > ~/.ssh/config
+fi
 chmod 600 ~/.ssh/config
 echo "## SSH config written" >&2
 
