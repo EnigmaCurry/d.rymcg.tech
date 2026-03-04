@@ -401,3 +401,20 @@ case "${ACTION}" in
         cmd_run "${ARGS[@]}"
         ;;
 esac
+
+###############################################################################
+# How the alias works:
+#
+#   alias drt='bash <(podman run --rm ghcr.io/enigmacurry/d-rymcg-tech drt)'
+#
+# When you run e.g. "drt --init myserver", bash expands this to:
+#
+#   bash <(podman run --rm ghcr.io/enigmacurry/d-rymcg-tech drt) --init myserver
+#
+# The container entrypoint detects "drt" with no args and runs "drt --extract",
+# which prints this script to stdout. The process substitution feeds it to
+# bash, which executes it with the remaining arguments (--init myserver).
+#
+# The script itself never touches the container — it runs entirely on the
+# host, orchestrating podman/docker to launch containers as needed.
+###############################################################################
