@@ -474,7 +474,7 @@ cmd_list() {
             name="$(basename "$f" .sops.env)"
             ## Avoid duplicates
             local found=false
-            for c in "${CONTEXTS[@]+"${CONTEXTS[@]}"}; do
+            for c in ${CONTEXTS[@]+"${CONTEXTS[@]}"}; do
                 if [[ "$c" == "$name" ]]; then found=true; break; fi
             done
             if [[ "$found" == false ]]; then
