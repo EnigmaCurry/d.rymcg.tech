@@ -139,7 +139,6 @@ cmd_init() {
         mkdir -p "${AGE_KEY_DIR}"
         container_run "${IMAGE}" age-keygen > "${AGE_KEY_FILE}"
         chmod 600 "${AGE_KEY_FILE}"
-        echo "AGE key created: ${AGE_KEY_FILE}"
 
         ## Extract public key while file is still plaintext
         PUBKEY=$(grep -o 'age1[a-z0-9]*' "${AGE_KEY_FILE}" | head -1)
@@ -151,7 +150,9 @@ cmd_init() {
             container_run -it "${IMAGE}" age -p < "${PLAIN_KEY}" > "${AGE_KEY_FILE}"
             rm -f "${PLAIN_KEY}"
             chmod 600 "${AGE_KEY_FILE}"
-            echo "AGE key encrypted with passphrase."
+            echo "AGE key created (passphrase-protected): ${AGE_KEY_FILE}"
+        else
+            echo "AGE key created: ${AGE_KEY_FILE}"
         fi
     else
         echo "Using existing AGE key: ${AGE_KEY_FILE}"
