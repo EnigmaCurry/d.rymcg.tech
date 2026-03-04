@@ -57,32 +57,27 @@ steps:
             --pull \
             -f _container/Dockerfile \
             --build-arg BRANCH=workstation-ci \
-            --build-arg IMAGE_SOURCE=https://github.com/EnigmaCurry/d.rymcg.tech \
+            --build-arg IMAGE_SOURCE=https://$${REGISTRY}/${CI_REPO_OWNER}/${CI_REPO_NAME} \
             --cache-from "$${IMAGE}:latest" \
             --cache-to type=inline \
             -t "$${IMAGE}:$${SHA}" \
             -t "$${IMAGE}:latest" \
             .
-          # Clean up old SHA tags (keep only latest, current SHA, and sha256 digests)
-          echo "## Cleaning up old image tags"
-          PKG_NAME="d-rymcg-tech"
-          VERSIONS=$$(curl -sf -u "$${REGISTRY_USERNAME}:$${REGISTRY_PASSWORD}" \
+          # Delete all package versions then re-push to trigger Forgejo auto-link
+          # (auto-linking via OCI label only works on first package creation)
+          echo "## Deleting all package versions to trigger re-link"
+          ALL_VERSIONS=$$(curl -sf -u "$${REGISTRY_USERNAME}:$${REGISTRY_PASSWORD}" \
             "https://$${REGISTRY}/api/v1/packages/${CI_REPO_OWNER}?type=container&q=$${PKG_NAME}" \
-            | jq -r '.[].version')
-          for TAG in $${VERSIONS}; do
-            case "$${TAG}" in
-              latest|sha256:*) continue ;;
-              "$${SHA}") continue ;;
-            esac
-            echo "  Deleting old tag: $${TAG}"
+            | jq -r '.[].version' 2>/dev/null) || true
+          for TAG in $${ALL_VERSIONS}; do
+            echo "  Deleting: $${TAG}"
             curl -sf -X DELETE -u "$${REGISTRY_USERNAME}:$${REGISTRY_PASSWORD}" \
               "https://$${REGISTRY}/api/v1/packages/${CI_REPO_OWNER}/container/$${PKG_NAME}/$${TAG}" || true
           done
-          # Link package to this repository
-          echo "## Linking package to ${CI_REPO_OWNER}/${CI_REPO_NAME}"
-          LINK_URL="https://$${REGISTRY}/api/v1/packages/${CI_REPO_OWNER}/container/$${PKG_NAME}/-/link/${CI_REPO_NAME}"
-          echo "  POST $${LINK_URL}"
-          curl -s -X POST -u "$${REGISTRY_USERNAME}:$${REGISTRY_PASSWORD}" "$${LINK_URL}" -w "\n  HTTP %{http_code}\n" || true
+          # Re-push from local cache to re-create the package with the OCI source label
+          echo "## Re-pushing image to trigger auto-link"
+          docker push "$${IMAGE}:$${SHA}"
+          docker push "$${IMAGE}:latest"
         fi
         sync
         sleep 2
