@@ -35,19 +35,6 @@ RUN apk add --no-cache \
 # Install uv (Python package manager)
 RUN curl -fsSL https://astral.sh/uv/install.sh | UV_INSTALL_DIR=/usr/local/bin sh
 
-# Install script-wizard from .tools.lock.json
-COPY .tools.lock.json /tmp/.tools.lock.json
-RUN set -e; \
-    VERSION=$(jq -r '.dependencies["script-wizard"].version' /tmp/.tools.lock.json); \
-    case "$(uname -m)" in \
-      x86_64)  ARCH=x86_64 ;; \
-      aarch64) ARCH=aarch64 ;; \
-      *)       echo "Unsupported arch: $(uname -m)" >&2; exit 1 ;; \
-    esac; \
-    curl -fsSL "https://github.com/EnigmaCurry/script-wizard/releases/download/v${VERSION}/script-wizard-Linux-${ARCH}.tar.gz" \
-      | tar xz -C /usr/local/bin; \
-    rm /tmp/.tools.lock.json
-
 # Create non-root user
 RUN adduser -D -u 1000 -h /home/user -s /bin/bash user \
  && mkdir -p /run/secrets/ssh \
@@ -71,6 +58,18 @@ ARG IMAGE_SOURCE=
 COPY --chown=1000:1000 . /home/user/git/vendor/enigmacurry/d.rymcg.tech
 WORKDIR /home/user/git/vendor/enigmacurry/d.rymcg.tech
 RUN if [ -n "${BRANCH}" ] && [ -d .git ]; then git checkout "${BRANCH}"; fi && rm -rf .git
+
+# Install script-wizard from .tools.lock.json
+RUN set -e; \
+    VERSION=$(jq -r '.dependencies["script-wizard"].version' .tools.lock.json); \
+    case "$(uname -m)" in \
+      x86_64)  ARCH=x86_64 ;; \
+      aarch64) ARCH=aarch64 ;; \
+      *)       echo "Unsupported arch: $(uname -m)" >&2; exit 1 ;; \
+    esac; \
+    curl -fsSL "https://github.com/EnigmaCurry/script-wizard/releases/download/v${VERSION}/script-wizard-Linux-${ARCH}.tar.gz" \
+      | tar xz -C _scripts; \
+    ln -s ../script-wizard _scripts/user/script-wizard
 
 COPY --chown=1000:1000 _container/entrypoint.sh /entrypoint.sh
 RUN chmod +x /entrypoint.sh
