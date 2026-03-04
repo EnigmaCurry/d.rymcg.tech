@@ -14,17 +14,20 @@ usage() {
     echo ""
     echo "Options:"
     echo "  --image TAG    Container image (default: ghcr.io/enigmacurry/d-rymcg-tech:latest)"
+    echo "  --build        Build the container image first (using container-build)"
     echo "  --docker       Use Docker instead of Podman"
     echo "  --help         Show this help"
 }
 
 ENGINE=podman
 IMAGE=ghcr.io/enigmacurry/d-rymcg-tech:latest
+BUILD=false
 CONTEXT=""
 
 while [[ $# -gt 0 ]]; do
     case "$1" in
         --image) IMAGE="$2"; shift 2 ;;
+        --build) BUILD=true; shift ;;
         --docker) ENGINE=docker; shift ;;
         --help) usage; exit 0 ;;
         -*)
@@ -50,6 +53,15 @@ if ! command -v "${ENGINE}" &>/dev/null; then
     echo "Error: ${ENGINE} not found in PATH" >&2
     echo "Install ${ENGINE} first, or use --docker to use Docker instead." >&2
     exit 1
+fi
+
+## Build the image if requested
+if [[ "${BUILD}" == true ]]; then
+    BUILD_ARGS=(--tag "${IMAGE}")
+    if [[ "${ENGINE}" == podman ]]; then
+        BUILD_ARGS+=(--podman)
+    fi
+    "${ROOT_DIR}/_container/container-build.sh" "${BUILD_ARGS[@]}"
 fi
 
 ## Run a command inside the container, bypassing the entrypoint
