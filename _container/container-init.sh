@@ -190,7 +190,7 @@ if wizard confirm "Configure OpenBao SSH certificate signing?" no; then
 
     if wizard confirm "Configure OpenBao TLS client certificates?" no; then
         echo ""
-        echo "Paste CA certificate PEM, then press Ctrl+D:"
+        echo "Paste CA certificate PEM, then press Ctrl+D (leave blank if using a trusted CA like Let's Encrypt):"
         BAO_CACERT=$(cat | base64 -w0)
         echo ""
         echo "Paste client certificate PEM (may include chain), then press Ctrl+D:"
