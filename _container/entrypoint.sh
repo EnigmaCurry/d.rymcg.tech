@@ -430,6 +430,9 @@ if [[ "${BAO_USED}" == true ]]; then
         echo "    CertificateFile ${KEY_DIR}/id_ed25519-cert.pub"
     } > ~/.ssh/config
 else
+    if [[ -n "${SSH_AUTH_SOCK:-}" ]]; then
+        echo "## SSH auth: using forwarded SSH agent" >&2
+    fi
     {
         echo "Host ${DOCKER_CONTEXT}"
         echo "    HostName ${SSH_HOST}"
