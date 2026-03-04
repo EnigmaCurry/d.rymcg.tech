@@ -94,7 +94,7 @@ parser.add_argument("--sops-config", required=True)
 parser.add_argument("--bao-cacert", action="store_true")
 parser.add_argument("--bao-client-cert", action="store_true")
 parser.add_argument("--bao-client-key", action="store_true")
-parser.add_argument("--image-source", default="forgejo", choices=["ghcr", "forgejo"])
+parser.add_argument("--image-source", default="ghcr", choices=["ghcr", "forgejo"])
 args = parser.parse_args()
 
 env = Environment(
