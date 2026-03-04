@@ -4,11 +4,22 @@
 ## Required Woodpecker secrets:
 ##   registry          - Forgejo registry hostname
 ##   registry_username - Forgejo username (for pushing image)
-##   registry_password - Forgejo token with write:package scope
+##   registry_password - Forgejo token with read:repository and write:package scopes
 
 when:
   - event: [push, cron, manual]
     branch: workstation-ci
+
+clone:
+  - name: clone
+    image: woodpeckerci/plugin-git
+    settings:
+      netrc_machine:
+        from_secret: registry
+      netrc_username:
+        from_secret: registry_username
+      netrc_password:
+        from_secret: registry_password
 
 steps:
   - name: build-image

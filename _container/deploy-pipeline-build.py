@@ -242,16 +242,16 @@ def build_steps(forgejo, woodpecker, owner, github_url):
   When done, reset your API token on the same page for security.""",
         ),
         (
-            "Create Forgejo API token for registry access",
+            "Create Forgejo API token for registry and repo access",
             f"""\
-  The build pipeline needs to push Docker images to the Forgejo container registry.
+  The build pipeline needs to clone the repo and push Docker images.
 
   Log out of Forgejo and Woodpecker, then log in to Forgejo as '{owner}'
   and go to:
 
     https://{forgejo}/user/settings/applications
 
-  Create a token with scope: write:package
+  Create a token with scopes: read:repository and write:package
 
   Save this token — you will need it in the next step as the 'registry_password' secret.""",
         ),
