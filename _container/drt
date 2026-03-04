@@ -158,12 +158,13 @@ cmd_init() {
 
         ## Optional passphrase protection
         if wizard confirm "Password-protect the AGE key?" no; then
-            local ENCRYPTED="${AGE_KEY_FILE}.enc"
-            touch "${ENCRYPTED}"
+            local ENC_DIR
+            ENC_DIR=$(mktemp -d)
+            local ENCRYPTED="${ENC_DIR}/age-key-enc"
             if container_run -it \
-                -v "${AGE_KEY_FILE}:/tmp/age-key:ro" \
-                -v "${ENCRYPTED}:/tmp/age-key-enc" \
-                "${IMAGE}" sh -c 'age -p /tmp/age-key > /tmp/age-key-enc' \
+                -v "${AGE_KEY_FILE}:/tmp/age-key:ro,Z" \
+                -v "${ENC_DIR}:/tmp/age-out:Z" \
+                "${IMAGE}" sh -c 'age -p /tmp/age-key > /tmp/age-out/age-key-enc' \
                 && [[ -s "${ENCRYPTED}" ]]; then
                 mv "${ENCRYPTED}" "${AGE_KEY_FILE}"
                 chmod 600 "${AGE_KEY_FILE}"
@@ -183,8 +184,8 @@ cmd_init() {
             local DECRYPTED
             DECRYPTED=$(mktemp)
             container_run -it \
-                -v "${AGE_KEY_FILE}:/tmp/age-key:ro" \
-                -v "${DECRYPTED}:/tmp/age-key-dec" \
+                -v "${AGE_KEY_FILE}:/tmp/age-key:ro,Z" \
+                -v "${DECRYPTED}:/tmp/age-key-dec:Z" \
                 "${IMAGE}" sh -c 'age -d /tmp/age-key > /tmp/age-key-dec'
             PUBKEY=$(grep -o 'age1[a-z0-9]*' "${DECRYPTED}" | head -1)
             rm -f "${DECRYPTED}"

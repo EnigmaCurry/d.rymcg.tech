@@ -119,12 +119,12 @@ if [[ ! -f "${AGE_KEY_FILE}" ]]; then
 
     ## Optional passphrase protection
     if wizard confirm "Password-protect the AGE key?" no; then
-        ENCRYPTED="${AGE_KEY_FILE}.enc"
-        touch "${ENCRYPTED}"
+        ENC_DIR=$(mktemp -d)
+        ENCRYPTED="${ENC_DIR}/age-key-enc"
         if container_run -it \
-            -v "${AGE_KEY_FILE}:/tmp/age-key:ro" \
-            -v "${ENCRYPTED}:/tmp/age-key-enc" \
-            "${IMAGE}" sh -c 'age -p /tmp/age-key > /tmp/age-key-enc' \
+            -v "${AGE_KEY_FILE}:/tmp/age-key:ro,Z" \
+            -v "${ENC_DIR}:/tmp/age-out:Z" \
+            "${IMAGE}" sh -c 'age -p /tmp/age-key > /tmp/age-out/age-key-enc' \
             && [[ -s "${ENCRYPTED}" ]]; then
             mv "${ENCRYPTED}" "${AGE_KEY_FILE}"
             chmod 600 "${AGE_KEY_FILE}"
