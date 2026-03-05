@@ -549,6 +549,12 @@ def main():
             print("Error: --subject is required with --generate-token", file=sys.stderr)
             sys.exit(1)
         token = generate_token(master_key, args.subject, args.expires_days)
+        # Decode and print claims to stderr
+        claims = jwt.decode(token, master_key, algorithms=[JWT_ALGORITHM])
+        for key, value in claims.items():
+            if key in ("iat", "exp"):
+                value = datetime.fromtimestamp(value, tz=timezone.utc).isoformat()
+            print(f"##  {key}: {value}", file=sys.stderr)
         print(token)
         return
 
