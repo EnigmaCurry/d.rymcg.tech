@@ -29,6 +29,9 @@
 #@ trust_remote_code = data.values.trust_remote_code
 #@ enable_auto_tool_choice = data.values.enable_auto_tool_choice
 #@ tool_call_parser = data.values.tool_call_parser
+#@ reasoning_parser = data.values.reasoning_parser
+#@ enable_prefix_caching = data.values.enable_prefix_caching
+#@ tensor_parallel_size = data.values.tensor_parallel_size
 
 #@ def vllm_service(profile):
 #@   service = "vllm-" + profile
@@ -36,7 +39,7 @@
 #@   if hf_token.strip():
 #@     env.append("HF_TOKEN=${VLLM_HF_TOKEN}")
 #@   end
-#@   cmd = ["--model", model]
+#@   cmd = [model]
 #@   if max_model_len.strip():
 #@     cmd.extend(["--max-model-len", max_model_len])
 #@   end
@@ -48,6 +51,15 @@
 #@       cmd.append("--enable-auto-tool-choice")
 #@     end
 #@     cmd.extend(["--tool-call-parser", tool_call_parser])
+#@   end
+#@   if reasoning_parser.strip():
+#@     cmd.extend(["--reasoning-parser", reasoning_parser])
+#@   end
+#@   if enable_prefix_caching == "true":
+#@     cmd.append("--enable-prefix-caching")
+#@   end
+#@   if tensor_parallel_size.strip() and tensor_parallel_size.strip() != "1":
+#@     cmd.extend(["--tensor-parallel-size", tensor_parallel_size])
 #@   end
 #@   router = "{}-{}-{}".format(project, instance, service)
 #@   labels = []
