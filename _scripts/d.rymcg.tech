@@ -74,19 +74,19 @@ __help() {
         echo -e "agent\tRun agent readiness tool"
         echo -e "request\tExecute deployment requests from JSON input on stdin"
         echo -e "request-controller CONTEXT\tStart HTTP job queue controller for a context"
-        echo -e "request-controller-token --subject NAME\tGenerate a JWT auth token for the controller"
+        echo -e "request-controller-token\tGenerate a JWT auth token (--subject NAME)"
         echo -e "workstation-usb-image\tBuild NixOS disk image for USB"
         echo -e "workstation-usb-install DEV\tInstall NixOS workstation to USB"
         echo -e "workstation-usb-clone DEV\tClone booted workstation USB to another device"
-        echo -e "workstation-usb-post-install DIR\tCopy archive data to USB"
+        echo -e "workstation-usb-post-install\tCopy archive data to USB (DIR)"
         echo -e "workstation-usb-download-isos\tDownload Debian + Fedora ISOs"
-        echo -e "workstation-usb-download-docker-packages\tDownload Docker CE packages"
-        echo -e "container-build [--docker] [--image TAG] [--push]\tBuild the d-rymcg-tech container image"
+        echo -e "workstation-usb-download-docker-packages\tDownload Docker CE pkgs"
+        echo -e "container-build\tBuild the d-rymcg-tech container image [--docker] [--image TAG] [--push]"
         echo -e "drt [OPTIONS] CONTEXT\tStandalone bootstrap tool (--init/--extract)"
         echo -e "deploy-pipeline-template\tScaffold a new deployment pipeline repo with Woodpecker CI"
         echo -e "deploy-pipeline-build\tGuided setup for the d-rymcg-tech Docker image build pipeline"
-        echo -e "droplet [--tag TAG] [--preset PRESET --name NAME] [--create-preset PRESET]\tManage DigitalOcean droplets (alias: gumdrop)"
-    ) | expand -t 30
+        echo -e "droplet\tManage DigitalOcean droplets (alias: gumdrop)"
+    ) | expand -t 42
     echo ""
     echo "## Documentation sub-commands:"
     (
@@ -103,7 +103,7 @@ __help() {
             done
         done <<< "$(__d.rymcg.tech_documentation_words --lowercase | sed 's/readme//')"
         #echo -e "info\tInternal read-only information for shell completion support"
-    ) | expand -t 30
+    ) | expand -t 42
     echo ""
 }
 
