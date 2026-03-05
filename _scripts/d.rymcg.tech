@@ -765,6 +765,7 @@ __export_env() {
     fi
     for env_file in */.env_${ctx}_*; do
         [[ -f "${env_file}" ]] || continue
+        [[ "${env_file}" == *~ ]] && continue
         all_files+=("${env_file}")
     done
 
