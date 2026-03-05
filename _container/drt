@@ -78,7 +78,10 @@ Options:
   --docker           Use Docker instead of Podman
   --age-key FILE     AGE key file (default: ~/.config/d.rymcg.tech/keys/sops/<context>.key)
   --ssh-key FILE     SSH key file (disables agent forwarding)
+  --ssh-timeout SEC  SSH ConnectTimeout in seconds (default: 30)
+  --timeout SEC      Command timeout in seconds (default: 300)
   --no-save          Disable save-on-exit
+  --controller-port PORT  Host port for request-controller (default: 8080)
   --version          Print version
   --help             Show this help
 EOF
@@ -337,6 +340,7 @@ cmd_run() {
     local VERBOSE=false
     local SOPS_CONFIG=""
     local CMD_ARGS=()
+    local CONTROLLER_PORT="${DRT_CONTROLLER_PORT:-8080}"
 
     while [[ $# -gt 0 ]]; do
         case "$1" in
@@ -345,7 +349,10 @@ cmd_run() {
             --age-key) AGE_KEY_FILE="$2"; shift 2 ;;
             --ssh-key) SSH_KEY_FILE="$2"; shift 2 ;;
             --no-save) SAVE_ON_EXIT=false; shift ;;
+            --ssh-timeout) SSH_CONNECT_TIMEOUT="$2"; export SSH_CONNECT_TIMEOUT; shift 2 ;;
+            --timeout) TIMEOUT="$2"; export TIMEOUT; shift 2 ;;
             --verbose|-v) VERBOSE=true; shift ;;
+            --controller-port) CONTROLLER_PORT="$2"; shift 2 ;;
             --help) run_usage; exit 0 ;;
             -*)
                 echo "Unknown option: $1" >&2
@@ -426,7 +433,8 @@ cmd_run() {
     fi
 
     # Forward host environment overrides into the container
-    local passthrough_vars=(SSH_KEY_SCAN SSH_HOST SSH_USER SSH_PORT DOCKER_CONTEXT PROJECTS
+    TIMEOUT="${TIMEOUT:-300}"; export TIMEOUT
+    local passthrough_vars=(SSH_KEY_SCAN SSH_CONNECT_TIMEOUT TIMEOUT SSH_HOST SSH_USER SSH_PORT DOCKER_CONTEXT PROJECTS
         BAO_ADDR BAO_ROLE_ID BAO_SECRET_ID BAO_AGE_KEY_PATH BAO_SSH_MOUNT
         BAO_SSH_ROLE BAO_AUTH_PATH BAO_KV_MOUNT BAO_NAMESPACE
         BAO_CACERT BAO_CLIENT_CERT BAO_CLIENT_KEY BAO_SKIP)
@@ -449,6 +457,25 @@ cmd_run() {
             -v "${SSH_AUTH_SOCK}:/run/ssh-agent.sock:ro"
             -e "SSH_AUTH_SOCK=/run/ssh-agent.sock"
         )
+    fi
+
+    # Persistent data volume (stores JWT master key, TLS certs)
+    local CONTEXT_NAME="${SOPS_CONFIG}"
+    if [[ "${CONTEXT_NAME}" == */* || "${CONTEXT_NAME}" == *.sops.env ]]; then
+        CONTEXT_NAME="$(basename "${CONTEXT_NAME}" .sops.env)"
+    fi
+    RUN_ARGS+=(-v "drt-data-${CONTEXT_NAME}:/data")
+
+    # Port mapping for request-controller
+    local _is_controller=false
+    for _arg in "${CMD_ARGS[@]+"${CMD_ARGS[@]}"}"; do
+        if [[ "${_arg}" == "request-controller" ]]; then
+            _is_controller=true
+            break
+        fi
+    done
+    if [[ "${_is_controller}" == true ]]; then
+        RUN_ARGS+=(-p "${CONTROLLER_PORT}:8080")
     fi
 
     RUN_ARGS+=("${IMAGE}")
