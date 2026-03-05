@@ -147,6 +147,8 @@ def build_commands(
         cmd = [cli_path, "make", req.project, target]
         if req.instance != "default":
             cmd.append(f"instance={req.instance}")
+        if req.action == RequestAction.status:
+            cmd.append("FORMAT=json")
         env = {}
         if req.action in DESTRUCTIVE_ACTIONS:
             env["YES"] = "yes"
