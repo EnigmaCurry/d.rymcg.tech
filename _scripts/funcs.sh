@@ -584,6 +584,10 @@ wait_until_healthy() {
         echo "No services to wait for."
         return 0
     fi
+    local timeout_seconds=${TIMEOUT:-300}
+    local sleep_interval=2
+    local max_attempts=$(( timeout_seconds / sleep_interval ))
+    [[ $max_attempts -lt 1 ]] && max_attempts=1
     local attempts=0
     while true; do
         attempts=$((attempts + 1))
@@ -617,14 +621,14 @@ wait_until_healthy() {
                 echo "Still waiting for services to finish starting: ${containers[*]}"
             fi
         fi
-        if [[ $attempts -gt 150 ]]; then
-            echo "Gave up waiting for services to start. Still pending: ${containers[*]}"
+        if [[ $attempts -ge $max_attempts ]]; then
+            echo "Gave up waiting after ${timeout_seconds}s. Still pending: ${containers[*]}"
             return 1
         fi
         if (( attempts % 5 == 0 )); then
             echo "Still waiting for services to finish starting: ${containers[*]}"
         fi
-        sleep 2
+        sleep $sleep_interval
     done
     echo "All services healthy."
 }
