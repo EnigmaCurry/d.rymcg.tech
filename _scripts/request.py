@@ -303,6 +303,7 @@ def execute_request(
                     CommandResult(
                         project=req.project,
                         action=req.action.value,
+                        context=req.context,
                         instance=req.instance,
                         success=proc.returncode == 0,
                         exit_code=proc.returncode,
@@ -319,6 +320,7 @@ def execute_request(
                     CommandResult(
                         project=req.project,
                         action=req.action.value,
+                        context=req.context,
                         instance=req.instance,
                         success=False,
                         exit_code=1,
