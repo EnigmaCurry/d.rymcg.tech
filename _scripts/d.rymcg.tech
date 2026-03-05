@@ -426,7 +426,7 @@ __run_script() {
 
 __d.rymcg.tech_cli_alias() {
     local ALIAS="$1"
-    alias $1="D_RYMCG_TECH_CLI_ALIAS=${ALIAS} d.rymcg.tech "
+    alias $1="D_RYMCG_TECH_CLI_ALIAS=${ALIAS} d.rymcg.tech"
     complete -F __d.rymcg.tech_completions $1
 
 }
@@ -1068,7 +1068,6 @@ __restore_env() {
 main() {
     if [[ $# -gt 0 ]]; then
         COMMAND=$1; shift
-        echo "[DEBUG] COMMAND='${COMMAND}' args='$*' BASH_SOURCE='${BASH_SOURCE[0]}' realpath='$(realpath "${BASH_SOURCE[0]}")'" >&2
         case ${COMMAND} in
             help)
                 __help "$@";;
