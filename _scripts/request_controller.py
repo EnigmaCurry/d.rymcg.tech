@@ -526,11 +526,6 @@ def main():
         help="Token expiration in days (default: 30)",
     )
     parser.add_argument(
-        "context",
-        nargs="?",
-        help="Docker context name (required for server mode)",
-    )
-    parser.add_argument(
         "--host",
         default="0.0.0.0",
         help="Bind address (default: 0.0.0.0)",
@@ -557,24 +552,27 @@ def main():
         print(token)
         return
 
-    if not args.context:
-        print("Error: context argument is required", file=sys.stderr)
+    context = os.environ.get("DOCKER_CONTEXT", "")
+    if not context:
+        print("Error: DOCKER_CONTEXT environment variable not set.", file=sys.stderr)
+        print("  This command must run inside the drt container.", file=sys.stderr)
+        print("  Usage: drt CONTEXT request-controller", file=sys.stderr)
         sys.exit(1)
 
     if not DATA_DIR.exists():
         print(f"Error: {DATA_DIR} does not exist. This command must run inside the drt container.", file=sys.stderr)
-        print(f"  Usage: drt {args.context} request-controller {args.context}", file=sys.stderr)
+        print(f"  Usage: drt {context} request-controller", file=sys.stderr)
         sys.exit(1)
 
     global app_state
     master_key = load_or_create_master_key()
-    app_state = AppState(args.context, master_key)
+    app_state = AppState(context, master_key)
 
     # Set up TLS
     cert_path, key_tmpfile = setup_tls()
     app._tls_key_tmpfile = str(key_tmpfile)
 
-    print(f"Starting request controller for context '{args.context}'", file=sys.stderr)
+    print(f"Starting request controller for context '{context}'", file=sys.stderr)
     print(f"Listening on https://{args.host}:{args.port}", file=sys.stderr)
 
     uvicorn.run(

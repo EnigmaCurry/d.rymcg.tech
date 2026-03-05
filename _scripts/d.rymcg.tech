@@ -67,7 +67,7 @@ __help() {
         echo -e "new-context\tCreate a new Docker context"
         echo -e "reconfigure\tReconfigure a single env var in the root context config"
         echo -e "request\tExecute deployment requests from JSON input on stdin"
-        echo -e "request-controller CONTEXT\tStart HTTP job queue controller for a context"
+        echo -e "request-controller\tStart HTTP job queue controller for the current context"
         echo -e "request-controller-token\tGenerate a JWT auth token (--subject NAME)"
         echo -e "restore-env [FILE]\tRestore .env files from flat env var input (file or stdin)"
         echo -e "route\tConfigure and/or print routes"
