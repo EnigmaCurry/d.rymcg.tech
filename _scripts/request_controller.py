@@ -555,6 +555,13 @@ def main():
             if key in ("iat", "exp"):
                 value = datetime.fromtimestamp(value, tz=timezone.utc).isoformat()
             print(f"##  {key}: {value}", file=sys.stderr)
+        print("##", file=sys.stderr)
+        print("##  Example:", file=sys.stderr)
+        print(f"##  curl -sk https://localhost:8084/health", file=sys.stderr)
+        print(f"##  curl -sk https://localhost:8084/jobs \\", file=sys.stderr)
+        # Wrap long token across lines
+        print(f"##    -H 'Authorization: Bearer \\", file=sys.stderr)
+        print(f"##    {token}'", file=sys.stderr)
         print(token)
         return
 
