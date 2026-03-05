@@ -176,11 +176,13 @@ def build_commands(
     context_env = {"DOCKER_CONTEXT": req.context}
 
     if req.action == RequestAction.reconfigure and req.config_vars:
+        root = get_root_dir()
+        env_file = root / req.project / f".env_{req.context}_{req.instance}"
+        batch_script = str(Path(__file__).parent / "batch-reconfigure")
+        cmd = [batch_script, str(env_file)]
         for key, value in req.config_vars.items():
-            cmd = [cli_path, "make", req.project, "reconfigure", f"var={key}={value}"]
-            if req.instance != "default":
-                cmd.append(f"instance={req.instance}")
-            commands.append((cmd, {**context_env}))
+            cmd.append(f"{key}={value}")
+        commands.append((cmd, {**context_env}))
     else:
         target = req.action.value
         cmd = [cli_path, "make", req.project, target]
