@@ -44,6 +44,7 @@ RUN adduser -D -u 1000 -h /home/user -s /bin/bash user \
 ENV PATH="/home/user/git/vendor/enigmacurry/d.rymcg.tech/_scripts/user:/home/user/.local/bin:/usr/local/bin:${PATH}"
 ENV HOME="/home/user"
 COPY --chown=1000:1000 _container/bashrc /home/user/.bashrc
+COPY --chown=1000:1000 _container/mg /home/user/.mg
 
 # Seed uv-managed Python (cached early, only depends on uv + user home)
 USER user
