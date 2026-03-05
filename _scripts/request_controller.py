@@ -527,8 +527,8 @@ def main():
     )
     parser.add_argument(
         "--host",
-        default="0.0.0.0",
-        help="Bind address (default: 0.0.0.0)",
+        default="::",
+        help="Bind address (default: :: dual-stack)",
     )
     parser.add_argument(
         "--port",
