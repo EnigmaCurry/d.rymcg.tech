@@ -446,6 +446,7 @@ if [[ "${BAO_USED}" == true ]]; then
         echo "    IdentitiesOnly yes"
         echo "    UserKnownHostsFile ${KEY_DIR}/known_hosts"
         echo "    CertificateFile ${KEY_DIR}/id_ed25519-cert.pub"
+        echo "    ConnectTimeout ${SSH_CONNECT_TIMEOUT:-30}"
     } > ~/.ssh/config
 else
     if [[ -n "${SSH_AUTH_SOCK:-}" ]]; then
@@ -462,6 +463,7 @@ else
         if [[ -f "${KEY_DIR}/id_ed25519-cert.pub" ]]; then
             echo "    CertificateFile ${KEY_DIR}/id_ed25519-cert.pub"
         fi
+        echo "    ConnectTimeout ${SSH_CONNECT_TIMEOUT:-30}"
     } > ~/.ssh/config
 fi
 
