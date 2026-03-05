@@ -3,7 +3,7 @@
 BIN=$(dirname ${BASH_SOURCE})
 ROOT_DIR=${ROOT_DIR:-$(dirname ${BIN})}
 
-stderr(){ echo "$@" >/dev/stderr; }
+stderr(){ echo "$@" >/dev/stderr 2>/dev/null || echo "$@"; }
 error(){ stderr "Error: $@"; }
 fault(){ test -n "$1" && error $1; stderr "Exiting."; exit 1; }
 cancel(){ stderr "Canceled."; exit 2; }
@@ -212,11 +212,17 @@ docker_ssh() {
 ytt() {
     set -e
     local IMAGE=localhost/ytt
-    docker image inspect ${IMAGE} >/dev/null || docker build -t ${IMAGE} -f- . >/dev/null <<'EOF'
+    if ! docker image inspect ${IMAGE} >/dev/null 2>&1; then
+        local _BUILD=${BUILD_RAW:-$(${BIN}/dotenv -f "${ROOT_DIR}/.env_$(${BIN}/docker_context)" get BUILD 2>/dev/null || true)}
+        if [[ "${_BUILD}" == "false" || "${_BUILD}" == "0" ]]; then
+            fault "ytt image (${IMAGE}) not found and BUILD=${_BUILD} prevents building it. Build it first or set BUILD=true."
+        fi
+        docker build -t ${IMAGE} -f- . >/dev/null <<'EOF'
 FROM debian:stable-slim AS ytt
 ARG YTT_VERSION=v0.44.3
 RUN apt-get update && apt-get install -y wget && wget "https://github.com/vmware-tanzu/carvel-ytt/releases/download/${YTT_VERSION}/ytt-linux-$(dpkg --print-architecture)" -O ytt && install ytt /usr/local/bin/ytt
 EOF
+    fi
     non_template_commands_pattern="(help|completion|fmt|version)"
     if [[ "$@" == "" ]]; then
         CMD="docker run --rm -i ${IMAGE} ytt help"
@@ -231,10 +237,16 @@ EOF
 yq() {
     set -e
     local IMAGE=localhost/yq
-    docker image inspect ${IMAGE} >/dev/null || docker build -t ${IMAGE} -f- . >/dev/null <<'EOF'
+    if ! docker image inspect ${IMAGE} >/dev/null 2>&1; then
+        local _BUILD=${BUILD_RAW:-$(${BIN}/dotenv -f "${ROOT_DIR}/.env_$(${BIN}/docker_context)" get BUILD 2>/dev/null || true)}
+        if [[ "${_BUILD}" == "false" || "${_BUILD}" == "0" ]]; then
+            fault "yq image (${IMAGE}) not found and BUILD=${_BUILD} prevents building it. Build it first or set BUILD=true."
+        fi
+        docker build -t ${IMAGE} -f- . >/dev/null <<'EOF'
 FROM debian:stable-slim AS yq
 RUN apt-get update && apt-get install -y yq
 EOF
+    fi
     docker run --rm -i "${IMAGE}" yq "${@}"
 }
 
@@ -281,7 +293,13 @@ volume_rsync() {
         check_var VOLUME
     fi
     # Check that the localhost/rsync image exists, if not build it:
-    docker image inspect localhost/rsync >/dev/null || docker build -t localhost/rsync ${ROOT_DIR}/_terminal/rsync
+    if ! docker image inspect localhost/rsync >/dev/null 2>&1; then
+        local _BUILD=${BUILD_RAW:-$(${BIN}/dotenv -f "${ROOT_DIR}/.env_$(${BIN}/docker_context)" get BUILD 2>/dev/null || true)}
+        if [[ "${_BUILD}" == "false" || "${_BUILD}" == "0" ]]; then
+            fault "rsync image (localhost/rsync) not found and BUILD=${_BUILD} prevents building it. Build it first or set BUILD=true."
+        fi
+        docker build -t localhost/rsync ${ROOT_DIR}/_terminal/rsync
+    fi
     if [[ "${DISABLE_VOLUME_RSYNC_CHECKS}" != "true" ]]; then
         echo "Doing initial rsync checks for volume: ${VOLUME} ..."
         # Check that the volume we will sync to already exists:
@@ -630,6 +648,11 @@ confirm() {
     ## This version depends on `script-wizard` being installed.
     test ${YES:-no} == "yes" && exit 0
 
+    ## If not running in a terminal, skip confirmation (non-interactive/agent mode):
+    if [[ ! -t 0 ]]; then
+        exit 0
+    fi
+
     local default=$1; local prompt=$2; local question=${3:-". Proceed?"}
 
     check_var default prompt question
@@ -783,7 +806,7 @@ ip_from_minaddr_6() {
     if [[ -z $cidr ]]; then echo "Usage: ip_from_minaddr_6 <CIDR> [n<=2^64‑1]" >&2; return 2; fi
     if ! [[ $n =~ ^[0-9]+$ ]] || (( n < 1 )); then echo "Error: n must be a positive integer (>= 1)" >&2; return 2; fi
     local out
-    out=$(python3 - <<'PY' "$cidr" "$n"
+    out=$(uv run python3 - <<'PY' "$cidr" "$n"
 import sys, ipaddress
 cidr = sys.argv[1]
 n = int(sys.argv[2])

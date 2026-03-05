@@ -50,9 +50,8 @@ services:
       RELOAD_WEBHOOK_PATH_PREFIX: ${HOMEPAGE_RELOADER_PATH_PREFIX}
       HOMEPAGE_TEMPLATE_REPO: ${HOMEPAGE_TEMPLATE_REPO}
       HOMEPAGE_ALLOWED_HOSTS: ${HOMEPAGE_ALLOWED_HOSTS}
-    volumes: [] # volumes are defined in docker-compose.instance.yaml
+    volumes: []
     labels: []
-    read_only: true
     cap_drop: ["ALL"]
     security_opt:
       - no-new-privileges:true

@@ -1,6 +1,6 @@
-# TriliumNext Notes
+# Trilium
 
-[TriliumNext Trilium](https://github.com/triliumnext/trilium) is an open-source,
+[Trilium](https://github.com/triliumnext/trilium) is an open-source,
 cross-platform hierarchical note taking application with focus on building large
 personal knowledge bases.
 

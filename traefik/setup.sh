@@ -152,7 +152,7 @@ traefik_user() {
                 fault "The Docker host does not have the 'adduser' command installed. You may install it, and retry this command, or simply create the ${TRAEFIK_USER} user manually. (Consult your OS documentation. Note: The user must not be a login account, and you should disable the password and/or account; the purpose of creating the user is only to reserve a unique UID and GID for secure file permissions.)"
             fi
 
-            if ${BIN}/confirm yes "There is no ${TRAEFIK_USER} user created on the Docker host yet. Would you like to create this user automatically? (Note: this can fail if your system does not have the 'adduser' command, so read the directions that it will print out if this fails!)"; then
+            if [[ ! -t 0 ]] || ${BIN}/confirm yes "There is no ${TRAEFIK_USER} user created on the Docker host yet. Would you like to create this user automatically? (Note: this can fail if your system does not have the 'adduser' command, so read the directions that it will print out if this fails!)"; then
                 local detected_OS=$(ssh ${SSH_HOST} cat /etc/os-release | grep -Po '^ID=\K.*')
                 local user_group_arg
                 case "$detected_OS" in
@@ -247,6 +247,8 @@ config_list_entrypoints() {
         [iperf_tcp]="Iperf3 TCP entrypoint"
         [iperf_udp]="Iperf3 UDP entrypoint"
         [dns]="DNS (tcp+udp; acme-dns or other) entrypoint"
+        [irc]="IRC (inspircd) entrypoint"
+        [irc_bouncer]="IRC bouncer (soju / znc) entrypoint"
     )
     local menu_args=("Select entrypoint to configure:")
     for entrypoint in "${entrypoint_names[@]}"; do
@@ -286,7 +288,7 @@ config_entrypoint() {
             default_choice=1
         fi
         echo
-        if [[ "${entrypoint}" != *_udp ]]; then
+        if [[ "${entrypoint}" != *_udp ]] && [[ "${entrypoint}" != "dashboard" ]]; then
             case $(wizard choose --default ${default_choice} --numeric \
                           "Is this entrypoint downstream from another trusted proxy?" \
                           "No, clients dial directly to this server. (Turn off Proxy Protocol)" \

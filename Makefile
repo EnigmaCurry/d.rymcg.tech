@@ -10,7 +10,7 @@ include _scripts/Makefile.cd
 
 .PHONY: check-deps # Check dependencies
 check-deps:
-	_scripts/check_deps docker sed awk xargs openssl htpasswd jq curl sponge inotifywait git envsubst xdg-open sshfs wg
+	_scripts/check_deps docker sed awk xargs openssl htpasswd jq curl sponge inotifywait git envsubst xdg-open sshfs wg uv ipcalc
 
 .PHONY: check-docker # Check if Docker is running
 check-docker:
@@ -30,9 +30,6 @@ config: script-wizard check-deps check-docker check-dist-vars
 	@${BIN}/confirm $$([[ "$$(${BIN}/dotenv -f ${ROOT_ENV} get DEFAULT_SAVE_CLEARTEXT_PASSWORDS_JSON)"  == "true" ]] && echo yes || echo no) "Do you want to save cleartext passwords in passwords.json by default" "?" && ${BIN}/reconfigure ${ROOT_ENV} DEFAULT_SAVE_CLEARTEXT_PASSWORDS_JSON=true || ${BIN}/reconfigure ${ROOT_ENV} DEFAULT_SAVE_CLEARTEXT_PASSWORDS_JSON=false
 	@[[ -n "${USERNAME}" ]] && echo && echo "WARNING: the USERNAME variable is already set in your environment. This configuration is non-standard (Bash should use the USER variable instead). Having USERNAME set by default will interfere with the 'make shell' command. Some distros (eg. Fedora) set USERNAME by default. You must unset this variable before using the 'make shell' target. You can unset this variable in your ~/.bashrc file by adding the line: 'unset USERNAME'" | fold -s && echo || true
 
-.PHONY: build # Build all container images
-build:
-	find ./ | grep docker-compose.yaml$ | xargs dirname | xargs -iXX docker-compose --env-file=XX/${ENV_FILE} -f XX/docker-compose.yaml build
 
 .PHONY: open # Open the repository website README
 open: readme
@@ -98,6 +95,10 @@ userns-remap-check:
 readme:
 	xdg-open "https://github.com/EnigmaCurry/d.rymcg.tech/tree/master#readme"
 
+.PHONY: agent # Run agent readiness tool
+agent:
+	@_scripts/agent.py
+
 .PHONY: install-cli # Install CLI
 install-cli:
 	@echo "## Add this to the bottom of your ~/.bashrc or ~/.profile ::"
@@ -147,6 +148,11 @@ fail2ban:
 reconfigure:
 	@[[ -n "$${var}" ]] || (echo -e "Error: Invalid argument, must set var.\n## Use: make reconfigure var=VAR_NAME=VALUE" && false)
 	@${BIN}/reconfigure ${ROOT_ENV} "$${var%%=*}=$${var#*=}"
+
+.PHONY: dotenv_get # Retrieve a single root environment variable (dotenv_get var=THING)
+dotenv_get:
+	@[[ -n "$${var}" ]] || (echo -e "Error: Invalid argument, must set var.\n## Use: make dotenv_get var=VAR_NAME" && false)
+	@export ENV_FILE=${ROOT_ENV}; ${BIN}/dotenv_get "$${var%%=*}"
 
 daemon-conf:
 	@ENV_FILE=${ENV_FILE} ROOT_ENV=${ROOT_ENV} DOCKER_CONTEXT=${DOCKER_CONTEXT} ROOT_DIR=${ROOT_DIR} CONTEXT_INSTANCE=${CONTEXT_INSTANCE}  ${BIN}/docker_daemon_conf

@@ -1,0 +1,6 @@
+tls:
+  options:
+    irc:
+      alpnProtocols:
+        - irc
+      minVersion: VersionTLS12

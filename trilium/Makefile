@@ -8,9 +8,9 @@ config-hook:
 #### reconfigure_ask asks the user a question to set the variable into the .env file, and with a provided default value.
 #### reconfigure sets the value of a variable in the .env file without asking.
 #### reconfigure_htpasswd will configure the HTTP Basic Authentication setting the var name and with a provided default value.
-	@${BIN}/reconfigure_ask ${ENV_FILE} TRILIUMNEXT_NOTES_TRAEFIK_HOST "Enter the TriliumNext Notes domain name" triliumnext-notes${INSTANCE_URL_SUFFIX}.${ROOT_DOMAIN}
-	@${BIN}/reconfigure ${ENV_FILE} TRILIUMNEXT_NOTES_INSTANCE=$${instance:-default}
-	@${BIN}/reconfigure_auth ${ENV_FILE} TRILIUMNEXT_NOTES
+	@${BIN}/reconfigure_ask ${ENV_FILE} TRILIUM_TRAEFIK_HOST "Enter the Trilium domain name" trilium${INSTANCE_URL_SUFFIX}.${ROOT_DOMAIN}
+	@${BIN}/reconfigure ${ENV_FILE} TRILIUM_INSTANCE=$${instance:-default}
+	@${BIN}/reconfigure_auth ${ENV_FILE} TRILIUM
 	@echo
 
 .PHONY: override-hook
@@ -25,11 +25,11 @@ override-hook:
 ####                         # (this hardcodes the string into docker-compose.override.yaml)
 ####   name=@VARIABLE_NAME   # sets the template 'name' field to the literal string '${VARIABLE_NAME}'
 ####                         # (used for regular docker-compose expansion of env vars by name.)
-	@${BIN}/docker_compose_override ${ENV_FILE} project=:triliumnext-notes instance=@TRILIUMNEXT_NOTES_INSTANCE traefik_host=@TRILIUMNEXT_NOTES_TRAEFIK_HOST http_auth=TRILIUMNEXT_NOTES_HTTP_AUTH http_auth_var=@TRILIUMNEXT_NOTES_HTTP_AUTH ip_sourcerange=@TRILIUMNEXT_NOTES_IP_SOURCERANGE oauth2=TRILIUMNEXT_NOTES_OAUTH2 authorized_group=TRILIUMNEXT_NOTES_OAUTH2_AUTHORIZED_GROUP enable_mtls_auth=TRILIUMNEXT_NOTES_MTLS_AUTH mtls_authorized_certs=TRILIUMNEXT_NOTES_MTLS_AUTHORIZED_CERTS
+	@${BIN}/docker_compose_override ${ENV_FILE} project=:trilium instance=@TRILIUM_INSTANCE traefik_host=@TRILIUM_TRAEFIK_HOST http_auth=TRILIUM_HTTP_AUTH http_auth_var=@TRILIUM_HTTP_AUTH ip_sourcerange=@TRILIUM_IP_SOURCERANGE oauth2=TRILIUM_OAUTH2 authorized_group=TRILIUM_OAUTH2_AUTHORIZED_GROUP enable_mtls_auth=TRILIUM_MTLS_AUTH mtls_authorized_certs=TRILIUM_MTLS_AUTHORIZED_CERTS
 
 .PHONY: shell
 shell:
-	@make --no-print-directory docker-compose-shell SERVICE=triliumnext-notes
+	@make --no-print-directory docker-compose-shell SERVICE=trilium
 
 .PHONY: install-hook
 install-hook:
