@@ -15,8 +15,7 @@ config-hook:
 	@echo "Enter the processing engine to use: cuda (for nvidia GPUs) or rocm (for AMD GPUs)."
 	@${BIN}/reconfigure_compose_profiles_choose ${ENV_FILE} cuda="Nvidia GPU" rocm="AMD GPU"
 	@echo ""
-	@${BIN}/reconfigure_ask ${ENV_FILE} VLLM_GIT_REPO "Enter the vLLM git repository URL" https://github.com/vllm-project/vllm.git
-	@${BIN}/reconfigure_ask ${ENV_FILE} VLLM_GIT_REF "Enter the git branch or tag to build" main
+	@${BIN}/reconfigure_ask ${ENV_FILE} VLLM_IMAGE "Enter the vLLM container image" vllm/vllm-openai:latest
 	@echo ""
 	@${BIN}/reconfigure_ask ${ENV_FILE} VLLM_MODEL "Enter the HuggingFace model to serve" Qwen/Qwen3-0.6B
 	@ALLOW_BLANK=1 ${BIN}/reconfigure_ask ${ENV_FILE} VLLM_MAX_MODEL_LEN "Enter the maximum context length (leave blank for model default)"
@@ -56,14 +55,4 @@ install-hook:
 
 .PHONY: install-hook-pre
 install-hook-pre:
-	@VLLM_GIT_REPO=$$(${BIN}/dotenv -f ${ENV_FILE} get VLLM_GIT_REPO); \
-	VLLM_GIT_REF=$$(${BIN}/dotenv -f ${ENV_FILE} get VLLM_GIT_REF); \
-	if [ -d vllm-src/.git ]; then \
-		echo "Updating vllm-src from $${VLLM_GIT_REPO} ref $${VLLM_GIT_REF} ..."; \
-		git -C vllm-src fetch origin; \
-		git -C vllm-src checkout $${VLLM_GIT_REF}; \
-		git -C vllm-src pull --ff-only origin $${VLLM_GIT_REF} 2>/dev/null || true; \
-	else \
-		echo "Cloning vllm-src from $${VLLM_GIT_REPO} ref $${VLLM_GIT_REF} ..."; \
-		git clone --branch $${VLLM_GIT_REF} $${VLLM_GIT_REPO} vllm-src; \
-	fi
+	@echo
