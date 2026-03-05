@@ -552,9 +552,9 @@ def main():
         print(token)
         return
 
-    context = os.environ.get("DOCKER_CONTEXT", "")
+    context = os.environ.get("DRT_CONTEXT", "")
     if not context:
-        print("Error: DOCKER_CONTEXT environment variable not set.", file=sys.stderr)
+        print("Error: DRT_CONTEXT environment variable not set.", file=sys.stderr)
         print("  This command must run inside the drt container.", file=sys.stderr)
         print("  Usage: drt CONTEXT request-controller", file=sys.stderr)
         sys.exit(1)
