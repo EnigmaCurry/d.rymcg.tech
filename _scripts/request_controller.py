@@ -545,6 +545,10 @@ def main():
     args = parser.parse_args()
 
     if args.generate_token:
+        if not DATA_DIR.exists():
+            print(f"Error: {DATA_DIR} does not exist. This command must run inside the drt container.", file=sys.stderr)
+            print(f"  Usage: drt CONTEXT request-controller-token --subject NAME", file=sys.stderr)
+            sys.exit(1)
         master_key = load_or_create_master_key()
         if not args.subject:
             print("Error: --subject is required with --generate-token", file=sys.stderr)
@@ -555,6 +559,11 @@ def main():
 
     if not args.context:
         print("Error: context argument is required", file=sys.stderr)
+        sys.exit(1)
+
+    if not DATA_DIR.exists():
+        print(f"Error: {DATA_DIR} does not exist. This command must run inside the drt container.", file=sys.stderr)
+        print(f"  Usage: drt {args.context} request-controller {args.context}", file=sys.stderr)
         sys.exit(1)
 
     global app_state
