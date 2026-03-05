@@ -51,6 +51,10 @@ DESTRUCTIVE_ACTIONS = {
     RequestAction.reinstall,
 }
 
+JSON_OUTPUT_ACTIONS = {
+    RequestAction.status,
+}
+
 
 class RequestItem(BaseModel):
     project: str
@@ -83,10 +87,11 @@ class CommandResult(BaseModel):
     success: bool
     exit_code: int
     command: list[str]
-    stdout: str
+    stdout: str | None = None
     stderr: str
     skipped: bool
     error: str | None
+    data: Any = None
 
 
 def parse_requests(raw_json: str) -> list[RequestItem]:
@@ -212,6 +217,14 @@ def execute_request(
                     timeout=300,
                     env=run_env,
                 )
+                data = None
+                stdout = proc.stdout
+                if req.action in JSON_OUTPUT_ACTIONS and proc.returncode == 0 and proc.stdout.strip():
+                    try:
+                        data = json.loads(proc.stdout)
+                        stdout = None
+                    except json.JSONDecodeError:
+                        pass
                 results.append(
                     CommandResult(
                         project=req.project,
@@ -220,8 +233,9 @@ def execute_request(
                         success=proc.returncode == 0,
                         exit_code=proc.returncode,
                         command=cmd,
-                        stdout=proc.stdout,
+                        stdout=stdout,
                         stderr=proc.stderr,
+                        data=data,
                         skipped=False,
                         error=None,
                     )
