@@ -34,6 +34,8 @@ from pydantic import BaseModel, Field, field_validator, model_validator
 
 
 class RequestAction(str, Enum):
+    """Action to perform on a d.rymcg.tech project."""
+
     install = "install"
     uninstall = "uninstall"
     destroy = "destroy"
@@ -72,12 +74,41 @@ QUIET_ACTIONS = {
 
 
 class RequestItem(BaseModel):
-    project: str
-    action: RequestAction
-    context: str
-    instance: str = "default"
-    config_vars: dict[str, str] | None = None
-    timeout: int | None = Field(default=None, le=600)
+    """A request to perform an action on a d.rymcg.tech project."""
+
+    project: str = Field(
+        description="Name of the d.rymcg.tech project directory (e.g. 'whoami', 'traefik', 'forgejo')"
+    )
+    action: RequestAction = Field(
+        description=(
+            "Action to perform: install (deploy to server), uninstall (remove containers, keep volumes), "
+            "destroy (remove containers AND volumes), reinstall (uninstall then install), "
+            "config-dist (create .env from template, OVERWRITES existing), "
+            "reconfigure (set config_vars in .env, requires config_vars field), "
+            "start/stop/restart (container lifecycle), status (check container status), "
+            "wait (wait for containers to be healthy)"
+        )
+    )
+    context: str = Field(
+        description="Docker context name identifying the target server (e.g. 'docker-server', 'prod')"
+    )
+    instance: str = Field(
+        default="default",
+        description="Instance name for multi-instance deployments (default: 'default')",
+    )
+    config_vars: dict[str, str] | None = Field(
+        default=None,
+        description=(
+            "Environment variables to set when action is 'reconfigure'. "
+            "Keys are variable names, values are their settings. "
+            "Required when action is 'reconfigure', ignored otherwise."
+        ),
+    )
+    timeout: int | None = Field(
+        default=None,
+        le=600,
+        description="Timeout in seconds for the command (max 600). Applies to install, uninstall, destroy, reinstall, start, stop, restart, and wait actions.",
+    )
 
     @field_validator("project")
     @classmethod
@@ -112,18 +143,20 @@ class RequestItem(BaseModel):
 
 
 class CommandResult(BaseModel):
-    project: str
-    action: str
-    context: str
-    instance: str
-    success: bool
-    exit_code: int
-    command: list[str]
-    stdout: str | None = None
-    stderr: str | None = None
-    skipped: bool
-    error: str | None
-    data: Any = None
+    """Result of executing a single request command."""
+
+    project: str = Field(description="Project name from the request")
+    action: str = Field(description="Action that was performed")
+    context: str = Field(description="Docker context used")
+    instance: str = Field(description="Instance name used")
+    success: bool = Field(description="Whether the command succeeded (exit code 0)")
+    exit_code: int = Field(description="Process exit code (0 = success)")
+    command: list[str] = Field(description="The command that was executed")
+    stdout: str | None = Field(default=None, description="Standard output (omitted for successful quiet actions)")
+    stderr: str | None = Field(default=None, description="Standard error output (omitted for successful quiet actions)")
+    skipped: bool = Field(description="True if this was a dry-run (command was not actually executed)")
+    error: str | None = Field(description="Error message if the command failed, null on success")
+    data: Any = Field(default=None, description="Parsed JSON data from status actions")
 
 
 def parse_requests(raw_json: str) -> list[RequestItem]:
