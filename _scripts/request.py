@@ -30,7 +30,7 @@ from enum import Enum
 from pathlib import Path
 from typing import Any
 
-from pydantic import BaseModel, field_validator, model_validator
+from pydantic import BaseModel, Field, field_validator, model_validator
 
 
 class RequestAction(str, Enum):
@@ -76,7 +76,7 @@ class RequestItem(BaseModel):
     action: RequestAction
     instance: str = "default"
     config_vars: dict[str, str] | None = None
-    wait_timeout: int | None = None
+    wait_timeout: int | None = Field(default=None, le=600)
 
     @field_validator("project")
     @classmethod
