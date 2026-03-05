@@ -1175,6 +1175,9 @@ main() {
             request)
                 if [[ $# -eq 0 ]] && [[ -t 0 ]]; then
                     ${BIN}/request.py --help
+                elif [[ "$1" == "-" ]]; then
+                    shift
+                    ${BIN}/request.py "$@"
                 else
                     ${BIN}/request.py "$@"
                 fi;;
