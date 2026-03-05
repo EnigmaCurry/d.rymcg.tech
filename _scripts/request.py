@@ -106,15 +106,12 @@ def get_root_dir() -> Path:
 
 
 def get_cli_path() -> str:
-    env_alias = os.environ.get("D_RYMCG_TECH_CLI_ALIAS")
-    if env_alias:
-        return env_alias
+    sibling = Path(__file__).parent / "d.rymcg.tech"
+    if sibling.exists():
+        return str(sibling)
     found = shutil.which("d.rymcg.tech")
     if found:
         return found
-    fallback = Path(__file__).parent / "d.rymcg.tech"
-    if fallback.exists():
-        return str(fallback)
     return "d.rymcg.tech"
 
 
