@@ -334,6 +334,7 @@ cmd_run() {
     local AGE_KEY_FILE=""
     local SSH_KEY_FILE=""
     local SAVE_ON_EXIT=true
+    local VERBOSE=false
     local SOPS_CONFIG=""
     local CMD_ARGS=()
 
@@ -344,6 +345,7 @@ cmd_run() {
             --age-key) AGE_KEY_FILE="$2"; shift 2 ;;
             --ssh-key) SSH_KEY_FILE="$2"; shift 2 ;;
             --no-save) SAVE_ON_EXIT=false; shift ;;
+            --verbose|-v) VERBOSE=true; shift ;;
             --help) run_usage; exit 0 ;;
             -*)
                 echo "Unknown option: $1" >&2
@@ -419,6 +421,10 @@ cmd_run() {
         RUN_ARGS+=(-e "SOPS_SAVE_ON_EXIT=true")
     fi
 
+    if [[ "${VERBOSE}" == true ]]; then
+        RUN_ARGS+=(-e "DRT_VERBOSE=true")
+    fi
+
     # Forward host environment overrides into the container
     local passthrough_vars=(SSH_KEY_SCAN SSH_HOST SSH_USER SSH_PORT DOCKER_CONTEXT PROJECTS
         BAO_ADDR BAO_ROLE_ID BAO_SECRET_ID BAO_AGE_KEY_PATH BAO_SSH_MOUNT
@@ -452,9 +458,11 @@ cmd_run() {
         RUN_ARGS+=("d.rymcg.tech" "${CMD_ARGS[@]}")
     fi
 
-    echo "## Starting d-rymcg-tech container (${ENGINE})" >&2
-    echo "## Config: ${SOPS_CONFIG}" >&2
-    echo "## Image:  ${IMAGE}" >&2
+    if [[ "${VERBOSE}" == true ]]; then
+        echo "## Starting d-rymcg-tech container (${ENGINE})" >&2
+        echo "## Config: ${SOPS_CONFIG}" >&2
+        echo "## Image:  ${IMAGE}" >&2
+    fi
     if [[ "${ENGINE}" == "docker" ]]; then
         exec "${ENGINE}" --context default "${RUN_ARGS[@]}"
     else
