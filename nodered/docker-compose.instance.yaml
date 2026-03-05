@@ -70,7 +70,7 @@ services:
 
       #! Webhook router (no auth, separate IP sourcerange):
       #@ webhook_router = "{}-webhooks".format(router)
-      - "traefik.http.routers.(@= webhook_router @).rule=Host(`(@= traefik_host @)`) && PathPrefix(`/webhooks`)"
+      - "traefik.http.routers.(@= webhook_router @).rule=Host(`(@= traefik_host @)`) && PathPrefix(`/webhooks/`)"
       - "traefik.http.routers.(@= webhook_router @).entrypoints=websecure"
       - "traefik.http.middlewares.(@= webhook_router @)-ipallowlist.ipallowlist.sourcerange=(@= webhook_ip_sourcerange @)"
       - "traefik.http.routers.(@= webhook_router @).middlewares=(@= webhook_router @)-ipallowlist"
