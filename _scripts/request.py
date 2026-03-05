@@ -55,6 +55,19 @@ JSON_OUTPUT_ACTIONS = {
     RequestAction.status,
 }
 
+QUIET_ACTIONS = {
+    RequestAction.install,
+    RequestAction.uninstall,
+    RequestAction.destroy,
+    RequestAction.reinstall,
+    RequestAction.config_dist,
+    RequestAction.reconfigure,
+    RequestAction.start,
+    RequestAction.stop,
+    RequestAction.restart,
+    RequestAction.wait,
+}
+
 
 class RequestItem(BaseModel):
     project: str
@@ -88,7 +101,7 @@ class CommandResult(BaseModel):
     exit_code: int
     command: list[str]
     stdout: str | None = None
-    stderr: str
+    stderr: str | None = None
     skipped: bool
     error: str | None
     data: Any = None
@@ -219,12 +232,16 @@ def execute_request(
                 )
                 data = None
                 stdout = proc.stdout
+                stderr = proc.stderr
                 if req.action in JSON_OUTPUT_ACTIONS and proc.returncode == 0 and proc.stdout.strip():
                     try:
                         data = json.loads(proc.stdout)
                         stdout = None
                     except json.JSONDecodeError:
                         pass
+                elif req.action in QUIET_ACTIONS and proc.returncode == 0:
+                    stdout = None
+                    stderr = None
                 results.append(
                     CommandResult(
                         project=req.project,
@@ -234,7 +251,7 @@ def execute_request(
                         exit_code=proc.returncode,
                         command=cmd,
                         stdout=stdout,
-                        stderr=proc.stderr,
+                        stderr=stderr,
                         data=data,
                         skipped=False,
                         error=None,
