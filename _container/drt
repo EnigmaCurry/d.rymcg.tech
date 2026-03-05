@@ -848,19 +848,29 @@ case "${ACTION}" in
             echo "Run with --help to see full usage." >&2
             echo "" >&2
             _CONFIG_DIR="${HOME}/.config/d.rymcg.tech/config"
-            _CONTEXTS=()
+            _KEY_DIR="${HOME}/.config/d.rymcg.tech/keys/sops"
+            _CHOICES=()
             if [[ -d "${_CONFIG_DIR}" ]]; then
                 for f in "${_CONFIG_DIR}"/*.sops.env; do
                     [[ -f "$f" ]] || continue
-                    _CONTEXTS+=("$(basename "$f" .sops.env)")
+                    _name="$(basename "$f" .sops.env)"
+                    _key_status="(no key)"
+                    if [[ -f "${_KEY_DIR}/${_name}.key" ]]; then
+                        if head -1 "${_KEY_DIR}/${_name}.key" | grep -q '^age-encryption.org'; then
+                            _key_status="(encrypted)"
+                        else
+                            _key_status="(plain-text!!)"
+                        fi
+                    fi
+                    _CHOICES+=("${_name} ${_key_status}")
                 done
             fi
-            if [[ ${#_CONTEXTS[@]} -eq 0 ]]; then
+            if [[ ${#_CHOICES[@]} -eq 0 ]]; then
                 echo "No configs found. Run 'drt --init' first." >&2
                 exit 1
             fi
-            _CONTEXT=$(wizard choose "Select context" "${_CONTEXTS[@]}")
-            ARGS+=("${_CONTEXT}")
+            _CHOICE=$(wizard choose "Select context" "${_CHOICES[@]}")
+            ARGS+=("${_CHOICE%% *}")
         fi
         cmd_run "${ARGS[@]}"
         ;;
