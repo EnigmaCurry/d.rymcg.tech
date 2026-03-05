@@ -869,7 +869,7 @@ case "${ACTION}" in
                 echo "No configs found. Run 'drt --init' first." >&2
                 exit 1
             fi
-            _CHOICE=$(wizard choose "Select context" "${_CHOICES[@]}")
+            _CHOICE=$(wizard choose "Select context to load" "${_CHOICES[@]}")
             ARGS+=("${_CHOICE%% *}")
         fi
         cmd_run "${ARGS[@]}"
