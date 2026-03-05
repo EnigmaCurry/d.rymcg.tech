@@ -76,6 +76,7 @@ class RequestItem(BaseModel):
     action: RequestAction
     instance: str = "default"
     config_vars: dict[str, str] | None = None
+    wait_timeout: int | None = None
 
     @field_validator("project")
     @classmethod
@@ -169,6 +170,8 @@ def build_commands(
             cmd.append(f"instance={req.instance}")
         if req.action == RequestAction.status:
             cmd.append("FORMAT=json")
+        if req.action == RequestAction.wait and req.wait_timeout is not None:
+            cmd.append(f"TIMEOUT={req.wait_timeout}")
         env = {}
         if req.action in DESTRUCTIVE_ACTIONS:
             env["YES"] = "yes"
