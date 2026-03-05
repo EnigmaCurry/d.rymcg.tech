@@ -533,8 +533,8 @@ def main():
     parser.add_argument(
         "--port",
         type=int,
-        default=8080,
-        help="Listen port (default: 8080)",
+        default=8084,
+        help="Listen port (default: 8084)",
     )
 
     args = parser.parse_args()

@@ -81,7 +81,7 @@ Options:
   --ssh-timeout SEC  SSH ConnectTimeout in seconds (default: 30)
   --timeout SEC      Command timeout in seconds (default: 300)
   --no-save          Disable save-on-exit
-  --controller-port PORT  Host port for request-controller (default: 8080)
+  --controller-port PORT  Host port for request-controller (default: 8084)
   --version          Print version
   --help             Show this help
 EOF
@@ -340,7 +340,7 @@ cmd_run() {
     local VERBOSE=false
     local SOPS_CONFIG=""
     local CMD_ARGS=()
-    local CONTROLLER_PORT="${DRT_CONTROLLER_PORT:-8080}"
+    local CONTROLLER_PORT="${DRT_CONTROLLER_PORT:-8084}"
 
     while [[ $# -gt 0 ]]; do
         case "$1" in
@@ -475,7 +475,7 @@ cmd_run() {
         fi
     done
     if [[ "${_is_controller}" == true ]]; then
-        RUN_ARGS+=(-p "${CONTROLLER_PORT}:8080")
+        RUN_ARGS+=(-p "${CONTROLLER_PORT}:8084")
     fi
 
     RUN_ARGS+=("${IMAGE}")
