@@ -8,7 +8,35 @@ __d.rymcg.tech_cli_alias d
 ## Save-on-exit: capture initial config state and diff on shell exit
 if [[ "${SOPS_SAVE_ON_EXIT:-}" == "true" && -n "${SOPS_CONFIG_FILE:-}" ]]; then
     _sops_initial_state=$(mktemp)
+    _sops_preserved_sections=$(mktemp)
     d export-env > "${_sops_initial_state}" 2>/dev/null || true
+
+    ## Extract sections from the decrypted sops config that export-env doesn't produce
+    ## (e.g. ## OpenBao, ## SSH_KNOWN_HOSTS, and their vars)
+    _sops_extract_preserved() {
+        local decrypted
+        decrypted=$(sops decrypt --input-type dotenv --output-type dotenv \
+            --filename-override export.env "${SOPS_CONFIG_FILE}" 2>/dev/null) || return 0
+        local in_preserved=false
+        local result=""
+        while IFS= read -r line; do
+            if [[ "${line}" == "## "* ]]; then
+                local header="${line#\#\# }"
+                # Sections produced by export-env: SSH, .env_*, project/.env_*
+                if [[ "${header}" == "SSH" || "${header}" == .env_* || "${header}" == */.env_* ]]; then
+                    in_preserved=false
+                else
+                    in_preserved=true
+                    [[ -n "${result}" ]] && result+=$'\n'
+                    result+="${line}"
+                fi
+            elif [[ "${in_preserved}" == true ]]; then
+                result+=$'\n'"${line}"
+            fi
+        done <<< "${decrypted}"
+        echo -n "${result}"
+    }
+    _sops_extract_preserved > "${_sops_preserved_sections}"
 
     _sops_save_on_exit() {
         local current_state
@@ -22,17 +50,30 @@ if [[ "${SOPS_SAVE_ON_EXIT:-}" == "true" && -n "${SOPS_CONFIG_FILE:-}" ]]; then
             echo "" >&2
             read -rp "Save changes to ${SOPS_CONFIG_FILE}? [y/N] " answer
             if [[ "${answer}" =~ ^[Yy]$ ]]; then
-                if d export-env --encrypt > "${SOPS_CONFIG_FILE}"; then
+                local merged
+                merged=$(mktemp)
+                # Merge: preserved sections + export-env output
+                if [[ -s "${_sops_preserved_sections}" ]]; then
+                    cat "${_sops_preserved_sections}" > "${merged}"
+                    echo "" >> "${merged}"
+                    d export-env >> "${merged}" 2>/dev/null
+                else
+                    d export-env > "${merged}" 2>/dev/null
+                fi
+                if sops encrypt --input-type dotenv --output-type dotenv \
+                       --filename-override export.env \
+                       --age "${SOPS_AGE_RECIPIENTS}" "${merged}" > "${SOPS_CONFIG_FILE}"; then
                     echo "## Changes saved to ${SOPS_CONFIG_FILE}" >&2
                 else
                     echo "ERROR: Failed to save changes" >&2
                 fi
+                rm -f "${merged}"
             else
                 echo "## Changes discarded" >&2
             fi
         fi
 
-        rm -f "${_sops_initial_state}" "${current_state}"
+        rm -f "${_sops_initial_state}" "${current_state}" "${_sops_preserved_sections}"
     }
 
     trap _sops_save_on_exit EXIT
