@@ -114,6 +114,7 @@ class RequestItem(BaseModel):
 class CommandResult(BaseModel):
     project: str
     action: str
+    context: str
     instance: str
     success: bool
     exit_code: int
@@ -212,6 +213,7 @@ def execute_request(
             CommandResult(
                 project=req.project,
                 action=req.action.value,
+                context=req.context,
                 instance=req.instance,
                 success=False,
                 exit_code=1,
@@ -232,6 +234,7 @@ def execute_request(
                 CommandResult(
                     project=req.project,
                     action=req.action.value,
+                    context=req.context,
                     instance=req.instance,
                     success=True,
                     exit_code=0,
@@ -272,6 +275,7 @@ def execute_request(
                         CommandResult(
                             project=req.project,
                             action=req.action.value,
+                            context=req.context,
                             instance=req.instance,
                             success=False,
                             exit_code=1,
