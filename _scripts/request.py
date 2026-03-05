@@ -56,7 +56,6 @@ class RequestItem(BaseModel):
     project: str
     action: RequestAction
     instance: str = "default"
-    context: str | None = None
     config_vars: dict[str, str] | None = None
 
     @field_validator("project")
@@ -135,10 +134,9 @@ def validate_project_dir(root: Path, project: str) -> str | None:
 
 
 def build_commands(
-    req: RequestItem, cli_path: str, context_override: str | None = None
+    req: RequestItem, cli_path: str
 ) -> list[tuple[list[str], dict[str, str]]]:
     """Returns list of (command_args, extra_env) tuples."""
-    context = context_override or req.context
     commands: list[tuple[list[str], dict[str, str]]] = []
 
     if req.action == RequestAction.reconfigure and req.config_vars:
@@ -146,10 +144,7 @@ def build_commands(
             cmd = [cli_path, "make", req.project, "reconfigure", f"var={key}={value}"]
             if req.instance != "default":
                 cmd.append(f"instance={req.instance}")
-            env: dict[str, str] = {}
-            if context:
-                env["DOCKER_CONTEXT"] = context
-            commands.append((cmd, env))
+            commands.append((cmd, {}))
     else:
         target = req.action.value
         cmd = [cli_path, "make", req.project, target]
@@ -158,8 +153,6 @@ def build_commands(
         env = {}
         if req.action in DESTRUCTIVE_ACTIONS:
             env["YES"] = "yes"
-        if context:
-            env["DOCKER_CONTEXT"] = context
         commands.append((cmd, env))
 
     return commands
@@ -170,7 +163,6 @@ def execute_request(
     cli_path: str,
     root: Path,
     dry_run: bool = False,
-    context_override: str | None = None,
 ) -> list[CommandResult]:
     results: list[CommandResult] = []
 
@@ -192,7 +184,7 @@ def execute_request(
         )
         return results
 
-    commands = build_commands(req, cli_path, context_override)
+    commands = build_commands(req, cli_path)
 
     for cmd, extra_env in commands:
         if dry_run:
@@ -283,12 +275,6 @@ def main() -> None:
         action="store_true",
         help="Validate JSON input and print parsed requests, no execution",
     )
-    parser.add_argument(
-        "--context",
-        type=str,
-        default=None,
-        help="Override Docker context for all requests",
-    )
     args = parser.parse_args()
 
     raw = sys.stdin.read()
@@ -321,7 +307,7 @@ def main() -> None:
 
     all_results: list[CommandResult] = []
     for req in requests:
-        results = execute_request(req, cli_path, root, args.dry_run, args.context)
+        results = execute_request(req, cli_path, root, args.dry_run)
         all_results.extend(results)
 
     all_success = all(r.success for r in all_results)
