@@ -1182,7 +1182,7 @@ main() {
             container-build)
                 ${ROOT_DIR}/_container/container-build.sh "$@";;
             drt)
-                ${ROOT_DIR}/_container/drt "$@";;
+                ${ROOT_DIR}/_container/drt --extract;;
             deploy-pipeline-template)
                 ${ROOT_DIR}/_container/deploy-pipeline-template.sh "$@";;
             deploy-pipeline-build)
