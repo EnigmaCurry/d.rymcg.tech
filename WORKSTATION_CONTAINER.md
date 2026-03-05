@@ -209,13 +209,16 @@ d container-build --image ghcr.io/you/d-rymcg-tech:v1 --push    # Build and push
 
 ## Getting started
 
-Bootstrap a new deployment config with a single command — this
-generates an AGE encryption key (if you don't have one) and creates a
+First set up the `drt` alias as described in [Quick start](#quick-start-no-repo-needed).
+
+Bootstrap a new deployment config with `drt --init` — this generates
+an AGE encryption key (if you don't have one) and creates a
 SOPS-encrypted config file:
 
 ```bash
-d container-init myserver      # generates AGE key + creates ~/.config/d.rymcg.tech/config/myserver.sops.env
-d container myserver           # launches interactive container
+drt --init myserver      # generates AGE key + creates ~/.config/d.rymcg.tech/config/myserver.sops.env
+drt myserver             # launches interactive container
+drt                      # interactive context chooser
 ```
 
 The only host dependency is Podman (or Docker with `--docker`). All
@@ -223,11 +226,11 @@ crypto tools (age, sops) run inside the container image.
 
 ## Interactive local usage
 
-For local interactive workflows, use `d container` to launch the
-container with a SOPS-encrypted config file:
+For local interactive workflows, use `drt` to launch the container
+with a SOPS-encrypted config file:
 
 ```bash
-d container config/myserver.sops.env
+drt myserver
 ```
 
 This mounts your SOPS config read-write, forwards your SSH agent, and
@@ -235,34 +238,7 @@ provides your AGE key for decryption. On shell exit, you'll see a diff
 of any configuration changes and can save them back to the encrypted
 file.
 
-### Options
-
-| Option | Description |
-|---|---|
-| `--image TAG` | Container image (default: `localhost/d-rymcg-tech:latest`) |
-| `--docker` | Use Docker instead of Podman |
-| `--age-key FILE` | AGE key file (default: `~/.config/sops/age/keys.txt`) |
-| `--ssh-key FILE` | SSH key file (disables agent forwarding) |
-| `--no-save` | Disable save-on-exit prompt |
-
-### Examples
-
-```bash
-# Basic usage with default settings (Podman, SSH agent forwarding)
-d container config/myserver.sops.env
-
-# Use Docker instead of Podman
-d container --docker config/myserver.sops.env
-
-# Use a custom image
-d container --image localhost/d-rymcg-tech:latest config/myserver.sops.env
-
-# Mount an SSH key instead of forwarding the agent
-d container --ssh-key ~/.ssh/id_ed25519 config/myserver.sops.env
-
-# Skip the save-on-exit prompt
-d container --no-save config/myserver.sops.env
-```
+Run `drt --help` for all options.
 
 ## What's in the image
 
