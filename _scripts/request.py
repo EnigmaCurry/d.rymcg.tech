@@ -21,9 +21,11 @@ import argparse
 import json
 import os
 import re
+import signal
 import shutil
 import subprocess
 import sys
+import time
 from enum import Enum
 from pathlib import Path
 from typing import Any
@@ -180,6 +182,7 @@ def execute_request(
     cli_path: str,
     root: Path,
     dry_run: bool = False,
+    timeout: int = 300,
 ) -> list[CommandResult]:
     results: list[CommandResult] = []
 
@@ -223,19 +226,47 @@ def execute_request(
             run_env = os.environ.copy()
             run_env.update(extra_env)
             try:
-                proc = subprocess.run(
+                proc = subprocess.Popen(
                     cmd,
-                    capture_output=True,
+                    stdout=subprocess.PIPE,
+                    stderr=subprocess.PIPE,
                     text=True,
-                    timeout=300,
                     env=run_env,
+                    start_new_session=True,
                 )
-                data = None
-                stdout = proc.stdout
-                stderr = proc.stderr
-                if req.action in JSON_OUTPUT_ACTIONS and proc.returncode == 0 and proc.stdout.strip():
+                try:
+                    out, err = proc.communicate(timeout=timeout)
+                except subprocess.TimeoutExpired:
+                    pgid = os.getpgid(proc.pid)
+                    os.killpg(pgid, signal.SIGINT)
                     try:
-                        data = json.loads(proc.stdout)
+                        proc.communicate(timeout=5)
+                    except subprocess.TimeoutExpired:
+                        os.killpg(pgid, signal.SIGTERM)
+                        try:
+                            proc.communicate(timeout=5)
+                        except subprocess.TimeoutExpired:
+                            os.killpg(pgid, signal.SIGKILL)
+                            proc.communicate()
+                    results.append(
+                        CommandResult(
+                            project=req.project,
+                            action=req.action.value,
+                            instance=req.instance,
+                            success=False,
+                            exit_code=1,
+                            command=cmd,
+                            skipped=False,
+                            error=f"Command timed out after {timeout} seconds",
+                        )
+                    )
+                    continue
+                data = None
+                stdout = out
+                stderr = err
+                if req.action in JSON_OUTPUT_ACTIONS and proc.returncode == 0 and out.strip():
+                    try:
+                        data = json.loads(out)
                         stdout = None
                     except json.JSONDecodeError:
                         pass
@@ -257,21 +288,6 @@ def execute_request(
                         error=None,
                     )
                 )
-            except subprocess.TimeoutExpired:
-                results.append(
-                    CommandResult(
-                        project=req.project,
-                        action=req.action.value,
-                        instance=req.instance,
-                        success=False,
-                        exit_code=1,
-                        command=cmd,
-                        stdout="",
-                        stderr="",
-                        skipped=False,
-                        error="Command timed out after 300 seconds",
-                    )
-                )
             except Exception as e:
                 results.append(
                     CommandResult(
@@ -281,8 +297,6 @@ def execute_request(
                         success=False,
                         exit_code=1,
                         command=cmd,
-                        stdout="",
-                        stderr="",
                         skipped=False,
                         error=str(e),
                     )
@@ -304,6 +318,12 @@ def main() -> None:
         "--validate-only",
         action="store_true",
         help="Validate JSON input and print parsed requests, no execution",
+    )
+    parser.add_argument(
+        "--timeout",
+        type=int,
+        default=300,
+        help="Timeout in seconds per command (default: 300)",
     )
     args = parser.parse_args()
 
@@ -337,7 +357,7 @@ def main() -> None:
 
     all_results: list[CommandResult] = []
     for req in requests:
-        results = execute_request(req, cli_path, root, args.dry_run)
+        results = execute_request(req, cli_path, root, args.dry_run, args.timeout)
         all_results.extend(results)
         if any(not r.success for r in results):
             break
