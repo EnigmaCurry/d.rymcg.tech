@@ -339,6 +339,8 @@ def main() -> None:
     for req in requests:
         results = execute_request(req, cli_path, root, args.dry_run)
         all_results.extend(results)
+        if any(not r.success for r in results):
+            break
 
     all_success = all(r.success for r in all_results)
     json.dump(
