@@ -475,7 +475,7 @@ cmd_run() {
         fi
     done
     if [[ "${_is_controller}" == true ]]; then
-        RUN_ARGS+=(-p "0.0.0.0:${CONTROLLER_PORT}:8084")
+        RUN_ARGS+=(-p "0.0.0.0:${CONTROLLER_PORT}:8084" -p "[::1]:${CONTROLLER_PORT}:8084")
     fi
 
     RUN_ARGS+=("${IMAGE}")
