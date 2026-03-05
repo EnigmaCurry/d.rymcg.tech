@@ -369,9 +369,43 @@ def main() -> None:
     root = get_root_dir()
     cli_path = get_cli_path()
 
+    # Always run dry-run first to validate all requests
+    dry_results: list[CommandResult] = []
+    for req in requests:
+        results = execute_request(req, cli_path, root, dry_run=True, timeout=args.timeout)
+        dry_results.extend(results)
+        if any(not r.success for r in results):
+            break
+
+    if not all(r.success for r in dry_results):
+        json.dump(
+            {
+                "success": False,
+                "dry_run": True,
+                "results": [r.model_dump(mode="json") for r in dry_results],
+            },
+            sys.stdout,
+            indent=2,
+        )
+        print()
+        sys.exit(1)
+
+    if args.dry_run:
+        json.dump(
+            {
+                "success": True,
+                "dry_run": True,
+                "results": [r.model_dump(mode="json") for r in dry_results],
+            },
+            sys.stdout,
+            indent=2,
+        )
+        print()
+        sys.exit(0)
+
     all_results: list[CommandResult] = []
     for req in requests:
-        results = execute_request(req, cli_path, root, args.dry_run, args.timeout)
+        results = execute_request(req, cli_path, root, dry_run=False, timeout=args.timeout)
         all_results.extend(results)
         if any(not r.success for r in results):
             break
@@ -380,7 +414,7 @@ def main() -> None:
     json.dump(
         {
             "success": all_success,
-            "dry_run": args.dry_run,
+            "dry_run": False,
             "results": [r.model_dump(mode="json") for r in all_results],
         },
         sys.stdout,
