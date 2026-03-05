@@ -74,6 +74,7 @@ QUIET_ACTIONS = {
 class RequestItem(BaseModel):
     project: str
     action: RequestAction
+    context: str
     instance: str = "default"
     config_vars: dict[str, str] | None = None
     wait_timeout: int | None = Field(default=None, le=600)
@@ -87,6 +88,20 @@ class RequestItem(BaseModel):
             raise ValueError("project name must not start with '.' or '_'")
         if not v:
             raise ValueError("project name must not be empty")
+        return v
+
+    @field_validator("context")
+    @classmethod
+    def validate_context(cls, v: str) -> str:
+        if not v:
+            raise ValueError("context must not be empty")
+        result = subprocess.run(
+            ["docker", "context", "inspect", v],
+            capture_output=True,
+            text=True,
+        )
+        if result.returncode != 0:
+            raise ValueError(f"Docker context '{v}' does not exist")
         return v
 
     @model_validator(mode="after")
@@ -157,12 +172,14 @@ def build_commands(
     """Returns list of (command_args, extra_env) tuples."""
     commands: list[tuple[list[str], dict[str, str]]] = []
 
+    context_env = {"DOCKER_CONTEXT": req.context}
+
     if req.action == RequestAction.reconfigure and req.config_vars:
         for key, value in req.config_vars.items():
             cmd = [cli_path, "make", req.project, "reconfigure", f"var={key}={value}"]
             if req.instance != "default":
                 cmd.append(f"instance={req.instance}")
-            commands.append((cmd, {}))
+            commands.append((cmd, {**context_env}))
     else:
         target = req.action.value
         cmd = [cli_path, "make", req.project, target]
@@ -172,7 +189,7 @@ def build_commands(
             cmd.append("FORMAT=json")
         if req.action == RequestAction.wait and req.wait_timeout is not None:
             cmd.append(f"TIMEOUT={req.wait_timeout}")
-        env = {}
+        env = {**context_env}
         if req.action in DESTRUCTIVE_ACTIONS:
             env["YES"] = "yes"
         commands.append((cmd, env))
