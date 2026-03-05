@@ -847,21 +847,20 @@ case "${ACTION}" in
             check_engine
             echo "Run with --help to see full usage." >&2
             echo "" >&2
-            local CONFIG_DIR="${HOME}/.config/d.rymcg.tech/config"
-            local CONTEXTS=()
-            if [[ -d "${CONFIG_DIR}" ]]; then
-                for f in "${CONFIG_DIR}"/*.sops.env; do
+            _CONFIG_DIR="${HOME}/.config/d.rymcg.tech/config"
+            _CONTEXTS=()
+            if [[ -d "${_CONFIG_DIR}" ]]; then
+                for f in "${_CONFIG_DIR}"/*.sops.env; do
                     [[ -f "$f" ]] || continue
-                    CONTEXTS+=("$(basename "$f" .sops.env)")
+                    _CONTEXTS+=("$(basename "$f" .sops.env)")
                 done
             fi
-            if [[ ${#CONTEXTS[@]} -eq 0 ]]; then
+            if [[ ${#_CONTEXTS[@]} -eq 0 ]]; then
                 echo "No configs found. Run 'drt --init' first." >&2
                 exit 1
             fi
-            local CONTEXT
-            CONTEXT=$(wizard choose "Select context" "${CONTEXTS[@]}")
-            ARGS+=("${CONTEXT}")
+            _CONTEXT=$(wizard choose "Select context" "${_CONTEXTS[@]}")
+            ARGS+=("${_CONTEXT}")
         fi
         cmd_run "${ARGS[@]}"
         ;;
