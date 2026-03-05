@@ -562,6 +562,7 @@ def main():
         # Wrap long token across lines
         print(f"##    -H 'Authorization: Bearer \\", file=sys.stderr)
         print(f"##    {token}'", file=sys.stderr)
+        print("##", file=sys.stderr)
         print(token)
         return
 
