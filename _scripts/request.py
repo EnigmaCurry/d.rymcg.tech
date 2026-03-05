@@ -325,7 +325,21 @@ def main() -> None:
         default=300,
         help="Timeout in seconds per command (default: 300)",
     )
+    parser.add_argument(
+        "--get-json-schema",
+        action="store_true",
+        help="Output JSON Schema for the request model and exit",
+    )
     args = parser.parse_args()
+
+    if args.get_json_schema:
+        schema = {
+            "request": RequestItem.model_json_schema(),
+            "response": CommandResult.model_json_schema(),
+        }
+        json.dump(schema, sys.stdout, indent=2)
+        print()
+        sys.exit(0)
 
     raw = sys.stdin.read()
     if not raw.strip():
