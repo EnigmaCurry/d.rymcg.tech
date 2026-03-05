@@ -6,6 +6,7 @@ include ${ROOT_DIR}/_scripts/Makefile.instance
 config-hook:
 	@${BIN}/reconfigure_ask ${ENV_FILE} NODERED_TRAEFIK_HOST "Enter the nodered domain name" nodered${INSTANCE_URL_SUFFIX}.${ROOT_DOMAIN}
 	@${BIN}/reconfigure ${ENV_FILE} NODERED_INSTANCE=$${instance:-default}
+	@${BIN}/reconfigure_ask ${ENV_FILE} NODERED_IP_SOURCERANGE "Enter the IP source range filter (0.0.0.0/0 to allow all)" "$${NODERED_IP_SOURCERANGE:-0.0.0.0/0}"
 	@${BIN}/reconfigure_ask ${ENV_FILE} NODERED_WEBHOOK_IP_SOURCERANGE "Enter the webhook IP source range (use 0.0.0.0/32 to block all)" "$${NODERED_WEBHOOK_IP_SOURCERANGE:-0.0.0.0/32}"
 	@${BIN}/reconfigure_auth ${ENV_FILE} NODERED
 
