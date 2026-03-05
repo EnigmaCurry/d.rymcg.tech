@@ -857,9 +857,9 @@ case "${ACTION}" in
                     _key_status="no key"
                     if [[ -f "${_KEY_DIR}/${_name}.key" ]]; then
                         if head -1 "${_KEY_DIR}/${_name}.key" | grep -q '^age-encryption.org'; then
-                            _key_status="encrypted"
+                            _key_status="encrypted key"
                         else
-                            _key_status="plain-text!!"
+                            _key_status="plain-text key!!"
                         fi
                     fi
                     _CHOICES+=("${_name} (${_key_status}; ${f})")
