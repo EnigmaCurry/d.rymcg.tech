@@ -556,7 +556,7 @@ def main():
                 value = datetime.fromtimestamp(value, tz=timezone.utc).isoformat()
             print(f"##  {key}: {value}", file=sys.stderr)
         print("##", file=sys.stderr)
-        print("##  Example:", file=sys.stderr)
+        print("##  Usage:", file=sys.stderr)
         print(f"##  curl -sk https://localhost:8084/health", file=sys.stderr)
         print(f"##  curl -sk https://localhost:8084/jobs -H 'Authorization: Bearer {token}'", file=sys.stderr)
         print("##", file=sys.stderr)
