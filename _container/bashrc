@@ -11,27 +11,30 @@ if [[ "${SOPS_SAVE_ON_EXIT:-}" == "true" && -n "${SOPS_CONFIG_FILE:-}" ]]; then
     _sops_preserved_sections=$(mktemp)
     d export-env > "${_sops_initial_state}" 2>/dev/null || true
 
-    ## Extract sections from the decrypted sops config that export-env doesn't produce
-    ## (e.g. ## OpenBao, ## SSH_KNOWN_HOSTS, and their vars)
+    ## Extract vars/comments from decrypted sops config that export-env doesn't produce
+    ## (e.g. SSH_KNOWN_HOSTS, BAO_*, ## OpenBao header)
     _sops_extract_preserved() {
-        local decrypted
+        local decrypted export_keys
         decrypted=$(sops decrypt --input-type dotenv --output-type dotenv \
             --filename-override export.env "${SOPS_CONFIG_FILE}" 2>/dev/null) || return 0
-        local in_preserved=false
+        # Get all keys that export-env produces
+        export_keys=$(d export-env 2>/dev/null | grep -oP '^[A-Za-z_][A-Za-z_0-9]*(?==)' || true)
         local result=""
         while IFS= read -r line; do
             if [[ "${line}" == "## "* ]]; then
+                # Preserve comment headers that export-env doesn't produce
                 local header="${line#\#\# }"
-                # Sections produced by export-env: SSH, .env_*, project/.env_*
-                if [[ "${header}" == "SSH" || "${header}" == .env_* || "${header}" == */.env_* ]]; then
-                    in_preserved=false
-                else
-                    in_preserved=true
+                if [[ "${header}" != "SSH" && "${header}" != .env_* && "${header}" != */.env_* ]]; then
                     [[ -n "${result}" ]] && result+=$'\n'
                     result+="${line}"
                 fi
-            elif [[ "${in_preserved}" == true ]]; then
-                result+=$'\n'"${line}"
+            elif [[ "${line}" == *=* && "${line}" != "#"* ]]; then
+                local key="${line%%=*}"
+                # Preserve vars not in export-env output
+                if ! echo "${export_keys}" | grep -qx "${key}"; then
+                    [[ -n "${result}" ]] && result+=$'\n'
+                    result+="${line}"
+                fi
             fi
         done <<< "${decrypted}"
         echo -n "${result}"
