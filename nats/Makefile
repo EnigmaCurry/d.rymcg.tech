@@ -14,12 +14,12 @@ config-hook:
 	@echo
 	@echo "Retrieving Step-CA fingerprint from $$(${BIN}/dotenv -f ${ENV_FILE} get NATS_STEP_CA_URL)/roots.pem ..."
 	@${BIN}/reconfigure_ask ${ENV_FILE} NATS_STEP_CA_FINGERPRINT "VERIFY the Step-CA fingerprint" $$(${STEP} ca root | ${STEP} certificate fingerprint)
+	@make --no-print-directory auth-users
 	@${BIN}/reconfigure ${ENV_FILE} NATS_STEP_CA_TOKEN="" &>/dev/null
 	@echo "Retrieving one-time-use token from Step-CA server."
 	@echo "Get ready to enter your root Step-CA credentials!"
 	@echo
 	@${BIN}/reconfigure ${ENV_FILE} NATS_STEP_CA_TOKEN="$$(step-cli ca token $$(${BIN}/dotenv -f ${ENV_FILE} get NATS_TRAEFIK_HOST) --provisioner admin)"
-	@make --no-print-directory auth-users
 
 .PHONY: auth-users
 auth-users:
