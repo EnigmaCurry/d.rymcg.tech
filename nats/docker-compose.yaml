@@ -13,6 +13,8 @@ services:
     environment:
       - NATS_CLUSTER_NAME
       - NATS_TRAEFIK_HOST
+      - NATS_DOCKER_CONTEXT
+      - NATS_AUTHORIZATION_ENABLE
     volumes:
       - nats_config:/etc/nats
     labels:

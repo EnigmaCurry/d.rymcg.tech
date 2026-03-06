@@ -6,6 +6,7 @@ STEP=step-cli
 
 .PHONY: config-hook
 config-hook:
+	@${BIN}/reconfigure ${ENV_FILE} NATS_DOCKER_CONTEXT=${DOCKER_CONTEXT}
 	@${BIN}/reconfigure_ask ${ENV_FILE} NATS_TRAEFIK_HOST "Enter the NATS domain name" nats${INSTANCE_URL_SUFFIX}.${ROOT_DOMAIN}
 	@${BIN}/reconfigure ${ENV_FILE} NATS_INSTANCE=$${instance:-default}
 	@echo
