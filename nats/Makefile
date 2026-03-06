@@ -25,24 +25,23 @@ config-hook:
 auth-users:
 	@NATS_TRAEFIK_HOST=$$(${BIN}/dotenv -f ${ENV_FILE} get NATS_TRAEFIK_HOST); \
 	CURRENT=$$(${BIN}/dotenv -f ${ENV_FILE} get NATS_AUTH_USERS); \
-	echo; \
-	echo "## NATS Authorization Users"; \
-	echo "## Format: CN:publish_subjects:subscribe_subjects"; \
-	echo "## Use > for all subjects. Leave publish or subscribe empty to deny."; \
-	echo; \
 	if [[ -n "$${CURRENT}" ]]; then \
 		IFS=';' read -ra ENTRIES <<< "$${CURRENT}"; \
-		echo "Current users:"; \
-		for i in "$${!ENTRIES[@]}"; do \
-			IFS=':' read -r cn pub sub <<< "$${ENTRIES[$$i]}"; \
-			echo "  $$((i+1)). $${cn}  publish=[$${pub:-DENY}] subscribe=[$${sub:-DENY}]"; \
-		done; \
 	else \
-		echo "No users configured (all access denied)."; \
 		ENTRIES=(); \
 	fi; \
-	echo; \
 	while true; do \
+		echo; \
+		echo "## NATS Authorization Users"; \
+		if [[ $${#ENTRIES[@]} -gt 0 ]]; then \
+			for i in "$${!ENTRIES[@]}"; do \
+				IFS=':' read -r cn pub sub <<< "$${ENTRIES[$$i]}"; \
+				echo "  $$((i+1)). $${cn}  publish=[$${pub:-DENY}] subscribe=[$${sub:-DENY}]"; \
+			done; \
+		else \
+			echo "  No users configured (all access denied)."; \
+		fi; \
+		echo; \
 		ACTION=$$(eval "${BIN}/script-wizard choose 'Manage auth users' 'done' 'add' 'edit' 'remove' --default 'done'") || break; \
 		if [[ -z "$${ACTION}" || "$${ACTION}" == "done" ]]; then \
 			break; \
