@@ -43,8 +43,8 @@ auth-users:
 	fi; \
 	echo; \
 	while true; do \
-		ACTION=$$(eval "${BIN}/script-wizard choose 'Manage auth users' 'done' 'add' 'edit' 'remove' --default 'done'"); \
-		if [[ "$${ACTION}" == "done" ]]; then \
+		ACTION=$$(eval "${BIN}/script-wizard choose 'Manage auth users' 'done' 'add' 'edit' 'remove' --default 'done'") || break; \
+		if [[ -z "$${ACTION}" || "$${ACTION}" == "done" ]]; then \
 			break; \
 		elif [[ "$${ACTION}" == "add" ]]; then \
 			CN=$$(${BIN}/ask_echo "Enter client CN (domain)" "$${HOSTNAME}.clients.$${NATS_TRAEFIK_HOST}"); \
