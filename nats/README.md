@@ -189,10 +189,13 @@ nats pub test "Hello, World." \
 The NATS server certificate is renewed automatically by the
 [step-cli](step-cli) sidecar container.
 
-Client certificates can be renewed before they expire:
+Client certificates can be renewed on any machine that has
+[step-cli](https://smallstep.com/docs/step-cli/installation/)
+installed and bootstrapped to the same Step-CA server. Run this on the
+client before the certificate expires:
 
 ```
-## Put this into a cronjob to auto-renew:
+## Put this into a cronjob on the client to auto-renew:
 step-cli ca renew --force CRT_FILE KEY_FILE
 ```
 
