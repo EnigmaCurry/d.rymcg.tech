@@ -70,8 +70,7 @@ make config
 Set:
 
  * `NATS_TRAEFIK_HOST` the external domain name (e.g.,
-   `nats.example.com`). This is used for the TLS certificate and for
-   the HTTP monitoring endpoint routed through Traefik.
+   `nats.example.com`). This is used as the TLS certificate CN.
  * `NATS_CLUSTER_NAME` the NATS server/cluster name (default: `nats`).
  * `NATS_CLIENT_PORT` the host port for NATS client connections
    (default: `4222`).
@@ -176,19 +175,6 @@ And the `nats` container should show:
 ```
 nats-1       | ## Found full TLS certificate chain.
 ```
-
-## HTTP Monitoring
-
-The NATS HTTP monitoring endpoint is available through Traefik at
-`https://nats.example.com`. You can check server status at:
-
- * `https://nats.example.com/varz` - general server information
- * `https://nats.example.com/connz` - connection information
- * `https://nats.example.com/subsz` - subscription information
-
-Access to the monitoring UI can be protected with HTTP Basic Auth,
-OAuth2, or mTLS via the Traefik middleware settings in the `.env`
-file.
 
 ## Create client certificates
 
