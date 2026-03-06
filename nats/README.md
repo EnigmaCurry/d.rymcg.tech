@@ -180,18 +180,13 @@ Subscribe to a subject in one terminal:
 
 ```
 (
-HOST=nats.example.com
 CN=foo.clients.nats.example.com
-CA_CERT=certs/root_ca.crt
-CERT=certs/${CN}.crt
-KEY=certs/${CN}.key
-PORT=4222
+export NATS_URL="tls://nats.example.com:4222"
+export NATS_CA=certs/root_ca.crt
+export NATS_CERT=certs/${CN}.crt
+export NATS_KEY=certs/${CN}.key
 
-nats sub test \
-  -s "tls://${HOST}:${PORT}" \
-  --tlscert ${CERT} \
-  --tlskey ${KEY} \
-  --tlsca ${CA_CERT}
+nats sub test
 )
 ```
 
@@ -199,18 +194,13 @@ In a second terminal, publish a message:
 
 ```
 (
-HOST=nats.example.com
 CN=foo.clients.nats.example.com
-CA_CERT=certs/root_ca.crt
-CERT=certs/${CN}.crt
-KEY=certs/${CN}.key
-PORT=4222
+export NATS_URL="tls://nats.example.com:4222"
+export NATS_CA=certs/root_ca.crt
+export NATS_CERT=certs/${CN}.crt
+export NATS_KEY=certs/${CN}.key
 
-nats pub test "Hello, World." \
-  -s "tls://${HOST}:${PORT}" \
-  --tlscert ${CERT} \
-  --tlskey ${KEY} \
-  --tlsca ${CA_CERT}
+nats pub test "Hello, World."
 )
 ```
 
