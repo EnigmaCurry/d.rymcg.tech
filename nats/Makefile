@@ -1,5 +1,6 @@
 ROOT_DIR = ..
 include ${ROOT_DIR}/_scripts/Makefile.projects
+include ${ROOT_DIR}/_scripts/Makefile.instance
 
 STEP=step-cli
 
