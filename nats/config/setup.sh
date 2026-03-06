@@ -17,6 +17,3 @@ echo "Creating new NATS config from template ..."
 mkdir -p ${CONFIG_DIR}
 cat /template/nats.conf | envsubst '${NATS_CLUSTER_NAME},${NATS_AUTHORIZATION_PASSWORD}' > ${CONFIG}
 echo "[ ! ] GENERATED NEW CONFIG FILE ::: ${CONFIG}"
-echo "=== DEBUG: Generated config ==="
-cat ${CONFIG}
-echo "=== END DEBUG ==="
