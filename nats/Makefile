@@ -8,7 +8,7 @@ STEP=step-cli
 config-hook:
 	@${BIN}/reconfigure_ask ${ENV_FILE} NATS_TRAEFIK_HOST "Enter the NATS domain name" nats${INSTANCE_URL_SUFFIX}.${ROOT_DOMAIN}
 	@${BIN}/reconfigure ${ENV_FILE} NATS_INSTANCE=$${instance:-default}
-	@${BIN}/reconfigure_ask ${ENV_FILE} NATS_CLUSTER_NAME "Enter the NATS cluster name" nats
+	@${BIN}/reconfigure ${ENV_FILE} NATS_CLUSTER_NAME=$${instance:-default}
 	@${BIN}/reconfigure_ask ${ENV_FILE} NATS_CLIENT_PORT "Enter the NATS client port to expose" 4222
 	@${BIN}/reconfigure_ask ${ENV_FILE} NATS_STEP_CA_URL "Enter the Step-CA URL" $$(cat $$(${STEP} path)/config/defaults.json | jq -r '."ca-url"')
 	@echo
