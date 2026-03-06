@@ -1,5 +1,6 @@
 volumes:
   nats_config:
+  certs:
 
 services:
   config:
@@ -10,7 +11,7 @@ services:
       - no-new-privileges:true
     environment:
       - NATS_CLUSTER_NAME
-      - NATS_AUTHORIZATION_PASSWORD
+      - NATS_TRAEFIK_HOST
     volumes:
       - nats_config:/etc/nats
     labels:
@@ -20,13 +21,32 @@ services:
     depends_on:
       config:
         condition: service_completed_successfully
-    image: ${NATS_IMAGE}
+    build:
+      context: nats
+      args:
+        NATS_IMAGE: ${NATS_IMAGE}
     restart: unless-stopped
     security_opt:
       - no-new-privileges:true
-    command: "--config /etc/nats/nats.conf"
+    entrypoint: ["/nats-entrypoint.sh"]
+    environment:
+      - NATS_TRAEFIK_HOST
     ports:
       - "${NATS_CLIENT_PORT}:4222"
     volumes:
       - nats_config:/etc/nats:ro
+      - certs:/certs
     labels: []
+
+  step-cli:
+    build:
+      context: step-cli
+      args:
+        STEP_CLI_IMAGE: ${NATS_STEP_CLI_IMAGE}
+    environment:
+      - NATS_TRAEFIK_HOST
+      - NATS_STEP_CA_URL
+      - NATS_STEP_CA_FINGERPRINT
+      - NATS_STEP_CA_TOKEN
+    volumes:
+      - certs:/home/step/certs
