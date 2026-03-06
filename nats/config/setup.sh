@@ -19,25 +19,70 @@ mkdir -p ${CONFIG_DIR}
 cat /template/nats.conf | envsubst '${NATS_CLUSTER_NAME},${NATS_TRAEFIK_HOST}' > ${CONFIG}
 echo "[ ! ] GENERATED NEW CONFIG FILE ::: ${CONFIG}"
 
-if [[ "${NATS_AUTHORIZATION_ENABLE}" == "true" ]]; then
-    AUTHZ_TEMPLATE=/template/context/${NATS_DOCKER_CONTEXT}/authorization.conf
-    if [[ -f ${AUTHZ_TEMPLATE} ]]; then
-        cat ${AUTHZ_TEMPLATE} | envsubst > ${AUTHZ}
-        echo "[ ! ] GENERATED AUTHORIZATION FILE from context template ::: ${AUTHZ}"
-    else
-        echo "[ ! ] WARNING: No context authorization file exists at ${AUTHZ_TEMPLATE}."
-        echo "[ ! ] Denying all access. Create config/template/context/${NATS_DOCKER_CONTEXT}/authorization.conf"
-        echo "[ ! ] See authorization.example.conf for the format."
-        cat > ${AUTHZ} <<'EOF'
+generate_authorization() {
+    cat > ${AUTHZ} <<'HEADER'
 authorization {
   default_permissions = {
     publish: { deny: ">" }
     subscribe: { deny: ">" }
   }
-}
-EOF
+HEADER
+
+    if [[ -n "${NATS_AUTH_USERS}" ]]; then
+        echo "  users = [" >> ${AUTHZ}
+        IFS=';' read -ra ENTRIES <<< "${NATS_AUTH_USERS}"
+        for entry in "${ENTRIES[@]}"; do
+            IFS=':' read -r cn pub sub <<< "${entry}"
+            if [[ -z "${cn}" ]]; then
+                continue
+            fi
+            echo "    {" >> ${AUTHZ}
+            echo "      user: \"${cn}\"" >> ${AUTHZ}
+            echo "      permissions: {" >> ${AUTHZ}
+
+            # Publish permissions
+            if [[ -z "${pub}" ]]; then
+                echo "        publish: { deny: \">\" }" >> ${AUTHZ}
+            else
+                IFS=',' read -ra PUB_SUBJECTS <<< "${pub}"
+                if [[ ${#PUB_SUBJECTS[@]} -eq 1 ]]; then
+                    echo "        publish: \"${PUB_SUBJECTS[0]}\"" >> ${AUTHZ}
+                else
+                    printf -v pub_list '"%s", ' "${PUB_SUBJECTS[@]}"
+                    echo "        publish: [${pub_list%, }]" >> ${AUTHZ}
+                fi
+            fi
+
+            # Subscribe permissions
+            if [[ -z "${sub}" ]]; then
+                echo "        subscribe: { deny: \">\" }" >> ${AUTHZ}
+            else
+                IFS=',' read -ra SUB_SUBJECTS <<< "${sub}"
+                if [[ ${#SUB_SUBJECTS[@]} -eq 1 ]]; then
+                    echo "        subscribe: \"${SUB_SUBJECTS[0]}\"" >> ${AUTHZ}
+                else
+                    printf -v sub_list '"%s", ' "${SUB_SUBJECTS[@]}"
+                    echo "        subscribe: [${sub_list%, }]" >> ${AUTHZ}
+                fi
+            fi
+
+            echo "      }" >> ${AUTHZ}
+            echo "    }" >> ${AUTHZ}
+        done
+        echo "  ]" >> ${AUTHZ}
     fi
+
+    echo "}" >> ${AUTHZ}
+}
+
+generate_authorization
+echo "[ ! ] GENERATED AUTHORIZATION FILE ::: ${AUTHZ}"
+if [[ -n "${NATS_AUTH_USERS}" ]]; then
+    IFS=';' read -ra ENTRIES <<< "${NATS_AUTH_USERS}"
+    for entry in "${ENTRIES[@]}"; do
+        IFS=':' read -r cn pub sub <<< "${entry}"
+        echo "[ ! ]   User: ${cn} publish=[${pub:-DENY}] subscribe=[${sub:-DENY}]"
+    done
 else
-    cat /dev/null > ${AUTHZ}
-    echo "[ ! ] Authorization disabled. All authenticated users have full access."
+    echo "[ ! ]   No users configured. All access denied."
 fi

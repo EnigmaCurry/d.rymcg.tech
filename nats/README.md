@@ -86,65 +86,47 @@ Set:
 
 ## Configure authorization
 
-By default, per-user subject authorization is enabled
-(`NATS_AUTHORIZATION_ENABLE=true`). With `verify_and_map`, NATS maps
-the client certificate's SAN DNS name (e.g.,
-`foo.clients.nats.example.com`) to a user entry in the authorization
-config.
+Per-user subject authorization is configured via the `NATS_AUTH_USERS`
+env var. With `verify_and_map`, NATS maps the client certificate's SAN
+DNS name (e.g., `foo.clients.nats.example.com`) to a user entry.
 
-Authorization rules are defined in a per-context file at
-`config/template/context/{DOCKER_CONTEXT}/authorization.conf`. Use
-[authorization.example.conf](config/template/authorization.example.conf)
-as a starting point. The template is re-rendered each time you `make
-install`.
+Run `make auth-users` to interactively manage authorized users (this
+is also called during `make config`). You can add, edit, and remove
+users with an interactive menu.
+
+The `NATS_AUTH_USERS` format is:
 
 ```
-## Example: copy the example to your context directory
-mkdir -p config/template/context/myserver
-cp config/template/authorization.example.conf \
-   config/template/context/myserver/authorization.conf
+NATS_AUTH_USERS=CN:publish_subjects:subscribe_subjects;CN2:pub:sub
 ```
 
-Edit the authorization file to define per-user permissions:
+ * Entries separated by semicolons
+ * Each entry: `CN:publish:subscribe`
+ * Subjects within each field are comma-separated
+ * Use `>` for all subjects
+ * Leave publish or subscribe empty to deny that action
+ * Empty `NATS_AUTH_USERS` = deny all (no users configured)
+
+Examples:
 
 ```
-authorization {
-  # Default permissions for any authenticated user not explicitly listed.
-  # Remove this to deny access to unlisted users.
-  default_permissions = {
-    publish: "SANDBOX.>"
-    subscribe: "SANDBOX.>"
-  }
+## Full access for one user:
+NATS_AUTH_USERS=foo.clients.nats.example.com:>:>
 
-  users = [
-    # Full access to sensors subjects
-    {
-      user: "foo.clients.nats.example.com"
-      permissions: {
-        publish: ["sensors.>", "devices.>"]
-        subscribe: ["sensors.>", "devices.>"]
-      }
-    }
+## Multiple users with different permissions:
+NATS_AUTH_USERS=foo.clients.nats.example.com:>:>;bar.clients.nats.example.com::sensors.>
 
-    # Read-only access
-    {
-      user: "bar.clients.nats.example.com"
-      permissions: {
-        publish: { deny: ">" }
-        subscribe: ["sensors.>", "devices.>"]
-      }
-    }
-  ]
-}
+## Publish only (no subscribe):
+NATS_AUTH_USERS=baz.clients.nats.example.com:events.>:
 ```
+
+Unlisted users (those with a valid certificate but no entry in
+`NATS_AUTH_USERS`) are denied all access by default.
 
 Be aware that NATS clients receive no error when publishing to a
 denied subject — the message is silently dropped. Similarly,
 subscribing to a denied subject will succeed but no messages will be
 received.
-
-To disable authorization entirely (all authenticated users get full
-access), set `NATS_AUTHORIZATION_ENABLE=false` in your `.env` file.
 
 ## Install
 
