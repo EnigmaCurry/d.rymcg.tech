@@ -75,6 +75,18 @@ HEADER
     echo "}" >> ${AUTHZ}
 }
 
+if [[ "${NATS_JETSTREAM_ENABLE}" == "true" ]]; then
+    cat >> ${CONFIG} <<'EOF'
+
+jetstream {
+  store_dir: /data/jetstream
+}
+EOF
+    echo "[ ! ] JetStream ENABLED"
+else
+    echo "[ ! ] JetStream DISABLED"
+fi
+
 generate_authorization
 echo "[ ! ] GENERATED AUTHORIZATION FILE ::: ${AUTHZ}"
 if [[ -n "${NATS_AUTH_USERS}" ]]; then

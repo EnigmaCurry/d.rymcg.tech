@@ -1,5 +1,6 @@
 volumes:
   nats_config:
+  nats_data:
   certs:
 
 services:
@@ -14,6 +15,7 @@ services:
       - NATS_CLUSTER_NAME
       - NATS_TRAEFIK_HOST
       - NATS_AUTH_USERS
+      - NATS_JETSTREAM_ENABLE
     volumes:
       - nats_config:/etc/nats
     labels:
@@ -37,6 +39,7 @@ services:
       - "${NATS_CLIENT_PORT}:4222"
     volumes:
       - nats_config:/etc/nats:ro
+      - nats_data:/data
       - certs:/certs
     labels: []
 
