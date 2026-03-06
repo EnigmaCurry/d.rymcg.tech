@@ -10,7 +10,7 @@ config-hook:
 	@${BIN}/reconfigure ${ENV_FILE} NATS_INSTANCE=$${instance:-default}
 	@${BIN}/reconfigure ${ENV_FILE} NATS_CLUSTER_NAME=$${instance:-default}
 	@${BIN}/reconfigure_ask ${ENV_FILE} NATS_CLIENT_PORT "Enter the NATS client port to expose" 4222
-	@${BIN}/reconfigure_ask ${ENV_FILE} NATS_JETSTREAM_ENABLE "Enable JetStream (persistence, KV store, streams)? (true/false)" "$${NATS_JETSTREAM_ENABLE:-false}"
+	@${BIN}/confirm $$(test "$$(${BIN}/dotenv -f ${ENV_FILE} get NATS_JETSTREAM_ENABLE)" == "true" && echo "yes" || echo "no") "Do you want to enable JetStream (persistence, KV store, streams)" "?" && ${BIN}/reconfigure ${ENV_FILE} NATS_JETSTREAM_ENABLE=true || ${BIN}/reconfigure ${ENV_FILE} NATS_JETSTREAM_ENABLE=false
 	@${BIN}/reconfigure_ask ${ENV_FILE} NATS_STEP_CA_URL "Enter the Step-CA URL" $$(cat $$(${STEP} path)/config/defaults.json | jq -r '."ca-url"')
 	@echo
 	@echo "Retrieving Step-CA fingerprint from $$(${BIN}/dotenv -f ${ENV_FILE} get NATS_STEP_CA_URL)/roots.pem ..."
