@@ -199,6 +199,12 @@ client before the certificate expires:
 step-cli ca renew --force CRT_FILE KEY_FILE
 ```
 
+**Important:** Renewal exchanges the current valid certificate for a
+new one. If the certificate expires before you renew it, Step-CA will
+reject the renewal and you will need to issue a fresh certificate with
+a new one-time token (via `make cert`). Set up a cronjob to renew well
+before expiration.
+
 The default client certificate expiration is 90 days
 (`NATS_CLIENT_CERT_EXPIRATION_HOURS=2160`).
 
