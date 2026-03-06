@@ -8,6 +8,10 @@ STEP=step-cli
 config-hook:
 	@${BIN}/reconfigure_ask ${ENV_FILE} NATS_TRAEFIK_HOST "Enter the NATS domain name" nats${INSTANCE_URL_SUFFIX}.${ROOT_DOMAIN}
 	@${BIN}/reconfigure ${ENV_FILE} NATS_INSTANCE=$${instance:-default}
+	@echo
+	@echo "## The NATS client TCP port (4222) is always protected by mTLS."
+	@echo "## This next question is about the HTTP monitoring web UI only."
+	@echo
 	@${BIN}/reconfigure_auth ${ENV_FILE} NATS
 	@${BIN}/reconfigure_ask ${ENV_FILE} NATS_CLUSTER_NAME "Enter the NATS cluster name" nats
 	@${BIN}/reconfigure_ask ${ENV_FILE} NATS_CLIENT_PORT "Enter the NATS client port to expose" 4222
