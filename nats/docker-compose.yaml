@@ -6,6 +6,7 @@ services:
   config:
     build:
       context: config
+    user: "0:0"
     restart: "no"
     security_opt:
       - no-new-privileges:true
