@@ -64,10 +64,10 @@ auth-users:
 			done; \
 			EDIT_CN=$$(eval "${BIN}/script-wizard choose 'Select user to edit' $${CHOICES[@]@Q}"); \
 			for i in "$${!ENTRIES[@]}"; do \
-				IFS=':' read -r cn _ _ <<< "$${ENTRIES[$$i]}"; \
+				IFS=':' read -r cn old_pub old_sub <<< "$${ENTRIES[$$i]}"; \
 				if [[ "$${cn}" == "$${EDIT_CN}" ]]; then \
-					PUB=$$(${BIN}/ask_echo_blank "Enter publish subjects (comma-separated, > for all, empty to deny)"); \
-					SUB=$$(${BIN}/ask_echo_blank "Enter subscribe subjects (comma-separated, > for all, empty to deny)"); \
+					PUB=$$(${BIN}/ask_echo_blank "Enter publish subjects (comma-separated, > for all, empty to deny)" "$${old_pub}"); \
+					SUB=$$(${BIN}/ask_echo_blank "Enter subscribe subjects (comma-separated, > for all, empty to deny)" "$${old_sub}"); \
 					ENTRIES[$$i]="$${cn}:$${PUB}:$${SUB}"; \
 					echo "Updated: $${cn}"; \
 					break; \
