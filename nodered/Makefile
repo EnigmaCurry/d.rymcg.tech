@@ -7,6 +7,7 @@ config-hook:
 	@${BIN}/reconfigure_ask ${ENV_FILE} NODERED_TRAEFIK_HOST "Enter the nodered domain name" nodered${INSTANCE_URL_SUFFIX}.${ROOT_DOMAIN}
 	@${BIN}/reconfigure ${ENV_FILE} NODERED_INSTANCE=$${instance:-default}
 	@${BIN}/reconfigure_ask ${ENV_FILE} NODERED_IP_SOURCERANGE "Enter the IP source range filter (0.0.0.0/0 to allow all)" "$${NODERED_IP_SOURCERANGE:-0.0.0.0/0}"
+	@${BIN}/reconfigure_ask ${ENV_FILE} NODERED_WEBHOOK_TRAEFIK_HOST "Enter the webhook domain name (separate host, no mTLS)" nodered-webhooks${INSTANCE_URL_SUFFIX}.${ROOT_DOMAIN}
 	@${BIN}/reconfigure_ask ${ENV_FILE} NODERED_WEBHOOK_IP_SOURCERANGE "Enter the webhook IP source range (use 0.0.0.0/32 to block all)" "$${NODERED_WEBHOOK_IP_SOURCERANGE:-0.0.0.0/32}"
 	@${BIN}/reconfigure_auth ${ENV_FILE} NODERED
 
@@ -23,7 +24,7 @@ override-hook:
 ####                         # (this hardcodes the string into docker-compose.override.yaml)
 ####   name=@VARIABLE_NAME   # sets the template 'name' field to the literal string '${VARIABLE_NAME}'
 ####                         # (used for regular docker-compose expansion of env vars by name.)
-	@${BIN}/docker_compose_override ${ENV_FILE} project=:nodered instance=@NODERED_INSTANCE traefik_host=@NODERED_TRAEFIK_HOST http_auth=NODERED_HTTP_AUTH http_auth_var=@NODERED_HTTP_AUTH ip_sourcerange=@NODERED_IP_SOURCERANGE webhook_ip_sourcerange=@NODERED_WEBHOOK_IP_SOURCERANGE oauth2=NODERED_OAUTH2 authorized_group=NODERED_OAUTH2_AUTHORIZED_GROUP enable_mtls_auth=NODERED_MTLS_AUTH mtls_authorized_certs=NODERED_MTLS_AUTHORIZED_CERTS homepage_labels_enable=NODERED_HOMEPAGE_LABELS_ENABLE homepage_group_nodered=NODERED_HOMEPAGE_GROUP_NODERED homepage_name_nodered=NODERED_HOMEPAGE_NAME_NODERED homepage_icon_nodered=NODERED_HOMEPAGE_ICON_NODERED homepage_description_nodered=NODERED_HOMEPAGE_DESCRIPTION_NODERED homepage_show_stats_nodered=NODERED_HOMEPAGE_SHOW_STATS_NODERED
+	@${BIN}/docker_compose_override ${ENV_FILE} project=:nodered instance=@NODERED_INSTANCE traefik_host=@NODERED_TRAEFIK_HOST http_auth=NODERED_HTTP_AUTH http_auth_var=@NODERED_HTTP_AUTH ip_sourcerange=@NODERED_IP_SOURCERANGE webhook_traefik_host=@NODERED_WEBHOOK_TRAEFIK_HOST webhook_ip_sourcerange=@NODERED_WEBHOOK_IP_SOURCERANGE oauth2=NODERED_OAUTH2 authorized_group=NODERED_OAUTH2_AUTHORIZED_GROUP enable_mtls_auth=NODERED_MTLS_AUTH mtls_authorized_certs=NODERED_MTLS_AUTHORIZED_CERTS homepage_labels_enable=NODERED_HOMEPAGE_LABELS_ENABLE homepage_group_nodered=NODERED_HOMEPAGE_GROUP_NODERED homepage_name_nodered=NODERED_HOMEPAGE_NAME_NODERED homepage_icon_nodered=NODERED_HOMEPAGE_ICON_NODERED homepage_description_nodered=NODERED_HOMEPAGE_DESCRIPTION_NODERED homepage_show_stats_nodered=NODERED_HOMEPAGE_SHOW_STATS_NODERED
 
 .PHONY: shell
 shell:
