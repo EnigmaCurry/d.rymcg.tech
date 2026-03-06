@@ -25,11 +25,17 @@ if [[ "${NATS_AUTHORIZATION_ENABLE}" == "true" ]]; then
         cat ${AUTHZ_TEMPLATE} | envsubst > ${AUTHZ}
         echo "[ ! ] GENERATED AUTHORIZATION FILE from context template ::: ${AUTHZ}"
     else
-        cat /dev/null > ${AUTHZ}
         echo "[ ! ] WARNING: No context authorization file exists at ${AUTHZ_TEMPLATE}."
-        echo "[ ! ] Wrote blank authorization file (all authenticated users have full access)."
-        echo "[ ! ] Create config/template/context/${NATS_DOCKER_CONTEXT}/authorization.conf"
+        echo "[ ! ] Denying all access. Create config/template/context/${NATS_DOCKER_CONTEXT}/authorization.conf"
         echo "[ ! ] See authorization.example.conf for the format."
+        cat > ${AUTHZ} <<'EOF'
+authorization {
+  default_permissions = {
+    publish: { deny: ">" }
+    subscribe: { deny: ">" }
+  }
+}
+EOF
     fi
 else
     cat /dev/null > ${AUTHZ}
