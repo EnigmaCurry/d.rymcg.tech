@@ -56,8 +56,19 @@ auth-users:
 			break; \
 		elif [[ "$${ACTION}" == "add" ]]; then \
 			CN=$$(${BIN}/ask_echo "Enter client CN (domain)" "$${HOSTNAME}.clients.$${NATS_TRAEFIK_HOST}"); \
-			PUB=$$(${BIN}/ask_echo_blank "Enter publish subjects (comma-separated, > for all, empty to deny)"); \
-			SUB=$$(${BIN}/ask_echo_blank "Enter subscribe subjects (comma-separated, > for all, empty to deny)"); \
+			MODE=$$(eval "${BIN}/script-wizard choose 'Permission mode' 'prefix' 'full' 'custom' --default 'prefix'"); \
+			if [[ "$${MODE}" == "full" ]]; then \
+				PUB=">"; \
+				SUB=">"; \
+			elif [[ "$${MODE}" == "prefix" ]]; then \
+				PREFIX=$$(${BIN}/ask_echo "Enter subject prefix (e.g. hookshot.d2-admin)"); \
+				KV_BUCKET=$$(echo "$${PREFIX}" | tr '.' '_')_history; \
+				PUB="$${PREFIX}.>,\$$KV.$${KV_BUCKET}.>,\$$JS.API.*.KV_$${KV_BUCKET},\$$JS.API.*.*.KV_$${KV_BUCKET}"; \
+				SUB="$${PREFIX}.>"; \
+			elif [[ "$${MODE}" == "custom" ]]; then \
+				PUB=$$(${BIN}/ask_echo_blank "Enter publish subjects (comma-separated, > for all, empty to deny)"); \
+				SUB=$$(${BIN}/ask_echo_blank "Enter subscribe subjects (comma-separated, > for all, empty to deny)"); \
+			fi; \
 			ENTRIES+=("$${CN}:$${PUB}:$${SUB}"); \
 			echo "Added: $${CN}"; \
 		elif [[ "$${ACTION}" == "edit" ]]; then \
@@ -74,8 +85,19 @@ auth-users:
 			for i in "$${!ENTRIES[@]}"; do \
 				IFS=':' read -r cn old_pub old_sub <<< "$${ENTRIES[$$i]}"; \
 				if [[ "$${cn}" == "$${EDIT_CN}" ]]; then \
-					PUB=$$(${BIN}/ask_echo_blank "Enter publish subjects (comma-separated, > for all, empty to deny)" "$${old_pub}"); \
-					SUB=$$(${BIN}/ask_echo_blank "Enter subscribe subjects (comma-separated, > for all, empty to deny)" "$${old_sub}"); \
+					MODE=$$(eval "${BIN}/script-wizard choose 'Permission mode' 'prefix' 'full' 'custom' --default 'prefix'"); \
+					if [[ "$${MODE}" == "full" ]]; then \
+						PUB=">"; \
+						SUB=">"; \
+					elif [[ "$${MODE}" == "prefix" ]]; then \
+						PREFIX=$$(${BIN}/ask_echo "Enter subject prefix (e.g. hookshot.d2-admin)"); \
+						KV_BUCKET=$$(echo "$${PREFIX}" | tr '.' '_')_history; \
+						PUB="$${PREFIX}.>,\$$KV.$${KV_BUCKET}.>,\$$JS.API.*.KV_$${KV_BUCKET},\$$JS.API.*.*.KV_$${KV_BUCKET}"; \
+						SUB="$${PREFIX}.>"; \
+					elif [[ "$${MODE}" == "custom" ]]; then \
+						PUB=$$(${BIN}/ask_echo_blank "Enter publish subjects (comma-separated, > for all, empty to deny)" "$${old_pub}"); \
+						SUB=$$(${BIN}/ask_echo_blank "Enter subscribe subjects (comma-separated, > for all, empty to deny)" "$${old_sub}"); \
+					fi; \
 					ENTRIES[$$i]="$${cn}:$${PUB}:$${SUB}"; \
 					echo "Updated: $${cn}"; \
 					break; \
