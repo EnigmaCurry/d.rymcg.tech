@@ -226,6 +226,8 @@ async def run(args):
 
         log.info("Message from %s in %s: %s", user_id, room_id, body[:100])
 
+        await nc.publish(args.nats_publish_subject, b"/me is thinking ...")
+
         key = sanitize_kv_key(user_id, room_id)
         history = await load_history(kv, key)
 
