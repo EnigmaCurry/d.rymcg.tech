@@ -228,8 +228,7 @@ async def run(args):
             reply = await nc.request(args.nats_publish_subject, payload, timeout=10)
             return reply.data.decode().strip()
         except nats.errors.TimeoutError:
-            log.warning("Request-reply timeout for send_message, falling back to publish")
-            await nc.publish(args.nats_publish_subject, payload)
+            log.warning("Request-reply timeout for send_message (message was sent, but no event ID received)")
             return None
 
     async def send_reaction(topic, event_id, key):
@@ -244,8 +243,7 @@ async def run(args):
             reply = await nc.request(args.nats_reactions_subject, payload, timeout=10)
             return reply.data.decode().strip()
         except nats.errors.TimeoutError:
-            log.warning("Request-reply timeout for send_reaction, falling back to publish")
-            await nc.publish(args.nats_reactions_subject, payload)
+            log.warning("Request-reply timeout for send_reaction (reaction was sent, but no event ID received)")
             return None
 
     async def redact(topic, event_id):
