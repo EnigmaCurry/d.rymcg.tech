@@ -66,13 +66,13 @@ auth-users:
 				ACCESS=$$(eval "${BIN}/script-wizard choose 'Access level' 'read-write' 'read-only' 'write-only' --default 'read-write'"); \
 				if [[ "$${ACCESS}" == "read-write" ]]; then \
 					PUB="$${PREFIX}.>,\$$\$$KV.$${KV_BUCKET}.>,\$$\$$JS.API.*.KV_$${KV_BUCKET},\$$\$$JS.API.*.*.KV_$${KV_BUCKET}"; \
-					SUB="$${PREFIX}.>"; \
+					SUB="$${PREFIX}.>,_INBOX.>"; \
 				elif [[ "$${ACCESS}" == "read-only" ]]; then \
 					PUB="\$$\$$JS.API.*.KV_$${KV_BUCKET},\$$\$$JS.API.*.*.KV_$${KV_BUCKET}"; \
-					SUB="$${PREFIX}.>"; \
+					SUB="$${PREFIX}.>,_INBOX.>"; \
 				elif [[ "$${ACCESS}" == "write-only" ]]; then \
 					PUB="$${PREFIX}.>,\$$\$$KV.$${KV_BUCKET}.>"; \
-					SUB=""; \
+					SUB="_INBOX.>"; \
 				fi; \
 			elif [[ "$${MODE}" == "custom" ]]; then \
 				PUB=$$(${BIN}/ask_echo_blank "Enter publish subjects (comma-separated, > for all, empty to deny)"); \
@@ -104,13 +104,13 @@ auth-users:
 						ACCESS=$$(eval "${BIN}/script-wizard choose 'Access level' 'read-write' 'read-only' 'write-only' --default 'read-write'"); \
 						if [[ "$${ACCESS}" == "read-write" ]]; then \
 							PUB="$${PREFIX}.>,\$$\$$KV.$${KV_BUCKET}.>,\$$\$$JS.API.*.KV_$${KV_BUCKET},\$$\$$JS.API.*.*.KV_$${KV_BUCKET}"; \
-							SUB="$${PREFIX}.>"; \
+							SUB="$${PREFIX}.>,_INBOX.>"; \
 						elif [[ "$${ACCESS}" == "read-only" ]]; then \
 							PUB="\$$\$$JS.API.*.KV_$${KV_BUCKET},\$$\$$JS.API.*.*.KV_$${KV_BUCKET}"; \
-							SUB="$${PREFIX}.>"; \
+							SUB="$${PREFIX}.>,_INBOX.>"; \
 						elif [[ "$${ACCESS}" == "write-only" ]]; then \
 							PUB="$${PREFIX}.>,\$$\$$KV.$${KV_BUCKET}.>"; \
-							SUB=""; \
+							SUB="_INBOX.>"; \
 						fi; \
 					elif [[ "$${MODE}" == "custom" ]]; then \
 						PUB=$$(${BIN}/ask_echo_blank "Enter publish subjects (comma-separated, > for all, empty to deny)" "$${old_pub}"); \
