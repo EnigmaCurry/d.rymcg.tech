@@ -112,7 +112,7 @@ def parse_args():
     ns = args.nats_subject_prefix
     args.nats_subscribe_subject = f"{ns}.messages"
     args.nats_publish_subject = f"{ns}.responses"
-    args.nats_kv_bucket = f"{ns}_history"
+    args.nats_kv_bucket = f"{ns.replace('.', '_')}_history"
     return args
 
 
