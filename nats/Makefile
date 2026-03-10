@@ -157,7 +157,8 @@ cert:
 
 .PHONY: install-hook
 install-hook:
-	@echo
+	@echo "Restarting NATS to pick up config changes ..."
+	@make --no-print-directory docker-compose-lifecycle-cmd EXTRA_ARGS="restart nats"
 
 .PHONY: install-hook-pre
 install-hook-pre:
