@@ -109,6 +109,12 @@ def parse_args():
         help="System prompt for the LLM",
     )
     p.add_argument(
+        "--debug",
+        action="store_true",
+        default=os.environ.get("DRT_REQUEST_BOT_DEBUG", "").lower() in ("1", "true", "yes"),
+        help="Enable debug logging",
+    )
+    p.add_argument(
         "--allowed-users",
         default=os.environ.get("DRT_REQUEST_BOT_ALLOWED_USERS"),
         required=not os.environ.get("DRT_REQUEST_BOT_ALLOWED_USERS"),
@@ -237,6 +243,7 @@ async def run(args):
         await nc.publish(args.nats_publish_subject, payload)
 
     async def handle_message(msg):
+        log.debug("Raw message on %s: %s", msg.subject, msg.data[:500])
         try:
             data = json.loads(msg.data.decode())
         except (json.JSONDecodeError, UnicodeDecodeError) as e:
@@ -321,6 +328,8 @@ async def run(args):
 
 def main():
     args = parse_args()
+    if args.debug:
+        logging.getLogger().setLevel(logging.DEBUG)
     asyncio.run(run(args))
 
 
