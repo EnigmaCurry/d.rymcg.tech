@@ -43,10 +43,11 @@ def parse_args():
         help="NATS server URL (required)",
     )
     p.add_argument(
-        "--nats-namespace",
-        default=os.environ.get("DRT_REQUEST_BOT_NATS_NAMESPACE", "matrix"),
-        help="NATS namespace prefix for subjects and KV bucket "
-             "(default: matrix → subjects: matrix.messages / matrix.responses, "
+        "--nats-subject-prefix",
+        default=os.environ.get("DRT_REQUEST_BOT_NATS_SUBJECT_PREFIX"),
+        required=not os.environ.get("DRT_REQUEST_BOT_NATS_SUBJECT_PREFIX"),
+        help="NATS subject prefix for subjects and KV bucket "
+             "(e.g. matrix → subjects: matrix.messages / matrix.responses, "
              "KV bucket: matrix_history)",
     )
     p.add_argument(
@@ -106,7 +107,7 @@ def parse_args():
         help="System prompt for the LLM",
     )
     args = p.parse_args()
-    ns = args.nats_namespace
+    ns = args.nats_subject_prefix
     args.nats_subscribe_subject = f"{ns}.messages"
     args.nats_publish_subject = f"{ns}.responses"
     args.nats_kv_bucket = f"{ns}_history"
