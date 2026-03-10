@@ -255,10 +255,7 @@ async def run(args):
         if not mention.startswith("@"):
             mention = f"@{mention}"
 
-        response_payload = json.dumps({
-            "room_id": room_id,
-            "body": f"{mention}: {reply}",
-        }).encode()
+        response_payload = f"{mention}: {reply}".encode()
         await nc.publish(args.nats_publish_subject, response_payload)
         log.info("Response sent to %s in %s", user_id, room_id)
 
