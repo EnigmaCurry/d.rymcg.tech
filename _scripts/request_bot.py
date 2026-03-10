@@ -112,6 +112,7 @@ def parse_args():
     ns = args.nats_subject_prefix
     args.nats_subscribe_subject = f"{ns}.messages"
     args.nats_publish_subject = f"{ns}.responses"
+    args.nats_reactions_subject = f"{ns}.reactions"
     args.nats_kv_bucket = f"{ns.replace('.', '_')}_history"
     return args
 
@@ -195,13 +196,38 @@ async def run(args):
         )
 
     log.info(
-        "Connected to NATS %s | subscribe=%s publish=%s kv=%s model=%s",
+        "Connected to NATS %s | subscribe=%s publish=%s reactions=%s kv=%s model=%s",
         args.nats_url,
         args.nats_subscribe_subject,
         args.nats_publish_subject,
+        args.nats_reactions_subject,
         args.nats_kv_bucket,
         args.openai_model,
     )
+
+    async def publish_reaction(room_id, event_id, key):
+        payload = json.dumps({
+            "action": "react",
+            "room_id": room_id,
+            "event_id": event_id,
+            "key": key,
+        }).encode()
+        await nc.publish(args.nats_reactions_subject, payload)
+
+    async def publish_redact(room_id, event_id):
+        payload = json.dumps({
+            "action": "redact",
+            "room_id": room_id,
+            "event_id": event_id,
+        }).encode()
+        await nc.publish(args.nats_reactions_subject, payload)
+
+    async def publish_response(room_id, body):
+        payload = json.dumps({
+            "room_id": room_id,
+            "body": body,
+        }).encode()
+        await nc.publish(args.nats_publish_subject, payload)
 
     async def handle_message(msg):
         try:
@@ -219,6 +245,7 @@ async def run(args):
 
         user_id = data.get("user_id", "")
         room_id = data.get("room_id", "")
+        event_id = data.get("event_id", "")
         body = content.get("body", "").strip()
         if not user_id or not room_id or not body:
             log.warning("Missing user_id, room_id, or body in message")
@@ -226,35 +253,47 @@ async def run(args):
 
         log.info("Message from %s in %s: %s", user_id, room_id, body[:100])
 
-        await nc.publish(args.nats_publish_subject, b"*thinking...*")
-
-        key = sanitize_kv_key(user_id, room_id)
-        history = await load_history(kv, key)
-
-        # Append user message
-        history.append({"role": "user", "content": body})
-
-        # Build OpenAI messages
-        messages = [{"role": "system", "content": args.system_prompt}]
-        messages.extend({"role": h["role"], "content": h["content"]} for h in history)
+        # Add eyes reaction to show we're processing
+        if event_id:
+            try:
+                await publish_reaction(room_id, event_id, "\U0001f440")
+            except Exception as e:
+                log.debug("Failed to add reaction: %s", e)
 
         try:
-            response = await openai_client.chat.completions.create(
-                model=args.openai_model,
-                messages=messages,
-            )
-            reply = response.choices[0].message.content
-        except Exception as e:
-            log.error("LLM error: %s", e)
-            reply = "Sorry, I encountered an error processing your request."
+            key = sanitize_kv_key(user_id, room_id)
+            history = await load_history(kv, key)
 
-        # Store updated history with assistant reply
-        history.append({"role": "assistant", "content": reply})
-        await store_history(kv, key, history)
+            # Append user message
+            history.append({"role": "user", "content": body})
 
-        response_payload = reply.encode()
-        await nc.publish(args.nats_publish_subject, response_payload)
-        log.info("Response sent to %s in %s", user_id, room_id)
+            # Build OpenAI messages
+            messages = [{"role": "system", "content": args.system_prompt}]
+            messages.extend({"role": h["role"], "content": h["content"]} for h in history)
+
+            try:
+                response = await openai_client.chat.completions.create(
+                    model=args.openai_model,
+                    messages=messages,
+                )
+                reply = response.choices[0].message.content
+            except Exception as e:
+                log.error("LLM error: %s", e)
+                reply = "Sorry, I encountered an error processing your request."
+
+            # Store updated history with assistant reply
+            history.append({"role": "assistant", "content": reply})
+            await store_history(kv, key, history)
+
+            await publish_response(room_id, reply)
+            log.info("Response sent to %s in %s", user_id, room_id)
+        finally:
+            # Remove eyes reaction when done
+            if event_id:
+                try:
+                    await publish_redact(room_id, event_id)
+                except Exception as e:
+                    log.debug("Failed to redact reaction: %s", e)
 
     sub = await nc.subscribe(args.nats_subscribe_subject, cb=handle_message)
     log.info("Subscribed, waiting for messages...")
