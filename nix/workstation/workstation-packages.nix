@@ -18,7 +18,7 @@ let
 in
 {
   environment.systemPackages = with pkgs; [
-    # === d.rymcg.tech REQUIRED_COMMANDS (agent.py:359-362) ===
+    # === d.rymcg.tech REQUIRED_COMMANDS (agent_readiness.py:359-362) ===
     bashInteractive   # bash
     gnumake           # make
     git               # git

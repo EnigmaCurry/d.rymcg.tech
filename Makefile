@@ -101,9 +101,9 @@ userns-remap-check:
 readme:
 	xdg-open "https://github.com/EnigmaCurry/d.rymcg.tech/tree/master#readme"
 
-.PHONY: agent # Run agent readiness tool
-agent:
-	@_scripts/agent.py
+.PHONY: agent-readiness # Run agent readiness tool
+agent-readiness:
+	@_scripts/agent_readiness.py
 
 .PHONY: install-cli # Install CLI
 install-cli:
