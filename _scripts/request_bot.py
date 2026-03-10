@@ -236,16 +236,14 @@ async def run(args):
             log.debug("Ignoring non-JSON message: %s", e)
             return
 
-        # Validate Matrix message structure
-        if data.get("type") != "m.room.message":
-            return
+        # Validate Matrix message structure (node-red-contrib-matrix-chat format)
         content = data.get("content", {})
         if content.get("msgtype") != "m.text":
             return
 
-        user_id = data.get("user_id", "")
-        room_id = data.get("room_id", "")
-        event_id = data.get("event_id", "")
+        user_id = data.get("userId", "")
+        room_id = data.get("topic", "")
+        event_id = data.get("eventId", "")
         body = content.get("body", "").strip()
         if not user_id or not room_id or not body:
             log.warning("Missing user_id, room_id, or body in message")
