@@ -316,16 +316,11 @@ async def run(args):
             await publish_response(room_id, reply)
             log.info("Response sent to %s in %s", user_id, room_id)
         finally:
-            # Stop typing and remove eyes reaction when done
+            # Stop typing when done
             try:
                 await publish_typing(room_id, False)
             except Exception as e:
                 log.debug("Failed to stop typing indicator: %s", e)
-            if event_id:
-                try:
-                    await publish_redact(room_id, event_id)
-                except Exception as e:
-                    log.debug("Failed to redact reaction: %s", e)
 
     sub = await nc.subscribe(args.nats_subscribe_subject, cb=handle_message)
     log.info("Subscribed, waiting for messages...")
