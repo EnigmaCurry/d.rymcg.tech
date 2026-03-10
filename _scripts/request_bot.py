@@ -218,27 +218,27 @@ async def run(args):
         args.openai_model,
     )
 
-    async def publish_reaction(room_id, event_id, key):
+    async def publish_reaction(topic, event_id, key):
         payload = json.dumps({
             "action": "react",
-            "room_id": room_id,
-            "event_id": event_id,
+            "topic": topic,
+            "eventId": event_id,
             "key": key,
         }).encode()
         await nc.publish(args.nats_reactions_subject, payload)
 
-    async def publish_redact(room_id, event_id):
+    async def publish_redact(topic, event_id):
         payload = json.dumps({
             "action": "redact",
-            "room_id": room_id,
-            "event_id": event_id,
+            "topic": topic,
+            "eventId": event_id,
         }).encode()
         await nc.publish(args.nats_reactions_subject, payload)
 
-    async def publish_response(room_id, body):
+    async def publish_response(topic, body):
         payload = json.dumps({
-            "room_id": room_id,
-            "body": body,
+            "topic": topic,
+            "payload": body,
         }).encode()
         await nc.publish(args.nats_publish_subject, payload)
 
