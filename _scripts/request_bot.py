@@ -235,6 +235,14 @@ async def run(args):
         }).encode()
         await nc.publish(args.nats_reactions_subject, payload)
 
+    async def publish_typing(topic, typing=True):
+        payload = json.dumps({
+            "action": "typing",
+            "topic": topic,
+            "typing": typing,
+        }).encode()
+        await nc.publish(args.nats_reactions_subject, payload)
+
     async def publish_response(topic, body):
         payload = json.dumps({
             "topic": topic,
@@ -269,12 +277,16 @@ async def run(args):
 
         log.info("Message from %s in %s: %s", user_id, room_id, body[:100])
 
-        # Add eyes reaction to show we're processing
+        # Add eyes reaction and typing indicator
         if event_id:
             try:
                 await publish_reaction(room_id, event_id, "\U0001f440")
             except Exception as e:
                 log.debug("Failed to add reaction: %s", e)
+        try:
+            await publish_typing(room_id, True)
+        except Exception as e:
+            log.debug("Failed to send typing indicator: %s", e)
 
         try:
             key = sanitize_kv_key(user_id, room_id)
@@ -304,7 +316,11 @@ async def run(args):
             await publish_response(room_id, reply)
             log.info("Response sent to %s in %s", user_id, room_id)
         finally:
-            # Remove eyes reaction when done
+            # Stop typing and remove eyes reaction when done
+            try:
+                await publish_typing(room_id, False)
+            except Exception as e:
+                log.debug("Failed to stop typing indicator: %s", e)
             if event_id:
                 try:
                     await publish_redact(room_id, event_id)
