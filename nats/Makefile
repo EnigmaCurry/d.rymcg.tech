@@ -65,13 +65,13 @@ auth-users:
 				KV_BUCKET=$$(echo "$${PREFIX}" | tr '.' '_')_history; \
 				ACCESS=$$(eval "${BIN}/script-wizard choose 'Access level' 'read-write' 'read-only' 'write-only' --default 'read-write'"); \
 				if [[ "$${ACCESS}" == "read-write" ]]; then \
-					PUB="$${PREFIX}.>,\$$KV.$${KV_BUCKET}.>,\$$JS.API.*.KV_$${KV_BUCKET},\$$JS.API.*.*.KV_$${KV_BUCKET}"; \
+					PUB="$${PREFIX}.>,\$$$$KV.$${KV_BUCKET}.>,\$$$$JS.API.*.KV_$${KV_BUCKET},\$$$$JS.API.*.*.KV_$${KV_BUCKET}"; \
 					SUB="$${PREFIX}.>"; \
 				elif [[ "$${ACCESS}" == "read-only" ]]; then \
-					PUB="\$$JS.API.*.KV_$${KV_BUCKET},\$$JS.API.*.*.KV_$${KV_BUCKET}"; \
+					PUB="\$$$$JS.API.*.KV_$${KV_BUCKET},\$$$$JS.API.*.*.KV_$${KV_BUCKET}"; \
 					SUB="$${PREFIX}.>"; \
 				elif [[ "$${ACCESS}" == "write-only" ]]; then \
-					PUB="$${PREFIX}.>,\$$KV.$${KV_BUCKET}.>"; \
+					PUB="$${PREFIX}.>,\$$$$KV.$${KV_BUCKET}.>"; \
 					SUB=""; \
 				fi; \
 			elif [[ "$${MODE}" == "custom" ]]; then \
@@ -103,13 +103,13 @@ auth-users:
 						KV_BUCKET=$$(echo "$${PREFIX}" | tr '.' '_')_history; \
 						ACCESS=$$(eval "${BIN}/script-wizard choose 'Access level' 'read-write' 'read-only' 'write-only' --default 'read-write'"); \
 						if [[ "$${ACCESS}" == "read-write" ]]; then \
-							PUB="$${PREFIX}.>,\$$KV.$${KV_BUCKET}.>,\$$JS.API.*.KV_$${KV_BUCKET},\$$JS.API.*.*.KV_$${KV_BUCKET}"; \
+							PUB="$${PREFIX}.>,\$$$$KV.$${KV_BUCKET}.>,\$$$$JS.API.*.KV_$${KV_BUCKET},\$$$$JS.API.*.*.KV_$${KV_BUCKET}"; \
 							SUB="$${PREFIX}.>"; \
 						elif [[ "$${ACCESS}" == "read-only" ]]; then \
-							PUB="\$$JS.API.*.KV_$${KV_BUCKET},\$$JS.API.*.*.KV_$${KV_BUCKET}"; \
+							PUB="\$$$$JS.API.*.KV_$${KV_BUCKET},\$$$$JS.API.*.*.KV_$${KV_BUCKET}"; \
 							SUB="$${PREFIX}.>"; \
 						elif [[ "$${ACCESS}" == "write-only" ]]; then \
-							PUB="$${PREFIX}.>,\$$KV.$${KV_BUCKET}.>"; \
+							PUB="$${PREFIX}.>,\$$$$KV.$${KV_BUCKET}.>"; \
 							SUB=""; \
 						fi; \
 					elif [[ "$${MODE}" == "custom" ]]; then \
