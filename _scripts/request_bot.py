@@ -108,7 +108,14 @@ def parse_args():
         default=os.environ.get("DRT_REQUEST_BOT_SYSTEM_PROMPT", DEFAULT_SYSTEM_PROMPT),
         help="System prompt for the LLM",
     )
+    p.add_argument(
+        "--allowed-users",
+        default=os.environ.get("DRT_REQUEST_BOT_ALLOWED_USERS"),
+        required=not os.environ.get("DRT_REQUEST_BOT_ALLOWED_USERS"),
+        help="Comma-separated list of allowed Matrix user IDs (e.g. @alice:example.com,@bob:example.com)",
+    )
     args = p.parse_args()
+    args.allowed_users_set = set(u.strip() for u in args.allowed_users.split(",") if u.strip())
     ns = args.nats_subject_prefix
     args.nats_subscribe_subject = f"{ns}.messages"
     args.nats_publish_subject = f"{ns}.responses"
@@ -247,6 +254,10 @@ async def run(args):
         body = content.get("body", "").strip()
         if not user_id or not room_id or not body:
             log.warning("Missing user_id, room_id, or body in message")
+            return
+
+        if user_id not in args.allowed_users_set:
+            log.debug("Ignoring message from unauthorized user: %s", user_id)
             return
 
         log.info("Message from %s in %s: %s", user_id, room_id, body[:100])
