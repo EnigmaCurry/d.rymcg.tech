@@ -250,12 +250,7 @@ async def run(args):
         history.append({"role": "assistant", "content": reply})
         await store_history(kv, key, history)
 
-        # Extract username for mention (e.g. @alice:example.com -> @alice)
-        mention = user_id.split(":")[0] if ":" in user_id else user_id
-        if not mention.startswith("@"):
-            mention = f"@{mention}"
-
-        response_payload = f"{mention}: {reply}".encode()
+        response_payload = reply.encode()
         await nc.publish(args.nats_publish_subject, response_payload)
         log.info("Response sent to %s in %s", user_id, room_id)
 
