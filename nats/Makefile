@@ -63,8 +63,17 @@ auth-users:
 			elif [[ "$${MODE}" == "prefix" ]]; then \
 				PREFIX=$$(${BIN}/ask_echo "Enter subject prefix (e.g. hookshot.d2-admin)"); \
 				KV_BUCKET=$$(echo "$${PREFIX}" | tr '.' '_')_history; \
-				PUB="$${PREFIX}.>,\$$KV.$${KV_BUCKET}.>,\$$JS.API.*.KV_$${KV_BUCKET},\$$JS.API.*.*.KV_$${KV_BUCKET}"; \
-				SUB="$${PREFIX}.>"; \
+				ACCESS=$$(eval "${BIN}/script-wizard choose 'Access level' 'read-write' 'read-only' 'write-only' --default 'read-write'"); \
+				if [[ "$${ACCESS}" == "read-write" ]]; then \
+					PUB="$${PREFIX}.>,\$$KV.$${KV_BUCKET}.>,\$$JS.API.*.KV_$${KV_BUCKET},\$$JS.API.*.*.KV_$${KV_BUCKET}"; \
+					SUB="$${PREFIX}.>"; \
+				elif [[ "$${ACCESS}" == "read-only" ]]; then \
+					PUB="\$$JS.API.*.KV_$${KV_BUCKET},\$$JS.API.*.*.KV_$${KV_BUCKET}"; \
+					SUB="$${PREFIX}.>"; \
+				elif [[ "$${ACCESS}" == "write-only" ]]; then \
+					PUB="$${PREFIX}.>,\$$KV.$${KV_BUCKET}.>"; \
+					SUB=""; \
+				fi; \
 			elif [[ "$${MODE}" == "custom" ]]; then \
 				PUB=$$(${BIN}/ask_echo_blank "Enter publish subjects (comma-separated, > for all, empty to deny)"); \
 				SUB=$$(${BIN}/ask_echo_blank "Enter subscribe subjects (comma-separated, > for all, empty to deny)"); \
@@ -92,8 +101,17 @@ auth-users:
 					elif [[ "$${MODE}" == "prefix" ]]; then \
 						PREFIX=$$(${BIN}/ask_echo "Enter subject prefix (e.g. hookshot.d2-admin)"); \
 						KV_BUCKET=$$(echo "$${PREFIX}" | tr '.' '_')_history; \
-						PUB="$${PREFIX}.>,\$$KV.$${KV_BUCKET}.>,\$$JS.API.*.KV_$${KV_BUCKET},\$$JS.API.*.*.KV_$${KV_BUCKET}"; \
-						SUB="$${PREFIX}.>"; \
+						ACCESS=$$(eval "${BIN}/script-wizard choose 'Access level' 'read-write' 'read-only' 'write-only' --default 'read-write'"); \
+						if [[ "$${ACCESS}" == "read-write" ]]; then \
+							PUB="$${PREFIX}.>,\$$KV.$${KV_BUCKET}.>,\$$JS.API.*.KV_$${KV_BUCKET},\$$JS.API.*.*.KV_$${KV_BUCKET}"; \
+							SUB="$${PREFIX}.>"; \
+						elif [[ "$${ACCESS}" == "read-only" ]]; then \
+							PUB="\$$JS.API.*.KV_$${KV_BUCKET},\$$JS.API.*.*.KV_$${KV_BUCKET}"; \
+							SUB="$${PREFIX}.>"; \
+						elif [[ "$${ACCESS}" == "write-only" ]]; then \
+							PUB="$${PREFIX}.>,\$$KV.$${KV_BUCKET}.>"; \
+							SUB=""; \
+						fi; \
 					elif [[ "$${MODE}" == "custom" ]]; then \
 						PUB=$$(${BIN}/ask_echo_blank "Enter publish subjects (comma-separated, > for all, empty to deny)" "$${old_pub}"); \
 						SUB=$$(${BIN}/ask_echo_blank "Enter subscribe subjects (comma-separated, > for all, empty to deny)" "$${old_sub}"); \
