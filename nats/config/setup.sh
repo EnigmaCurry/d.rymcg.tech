@@ -66,6 +66,7 @@ HEADER
                 fi
             fi
 
+            echo "        allow_responses: true" >> ${AUTHZ}
             echo "      }" >> ${AUTHZ}
             echo "    }" >> ${AUTHZ}
         done
