@@ -218,37 +218,34 @@ async def run(args):
         args.openai_model,
     )
 
-    async def publish_reaction(topic, event_id, key):
+    async def send_message(topic, body):
+        """Send a message and return the Matrix event ID."""
+        payload = json.dumps({
+            "topic": topic,
+            "payload": body,
+        }).encode()
+        reply = await nc.request(args.nats_publish_subject, payload, timeout=30)
+        return reply.data.decode().strip()
+
+    async def send_reaction(topic, event_id, key):
+        """Send a reaction and return the Matrix event ID."""
         payload = json.dumps({
             "action": "react",
             "topic": topic,
             "eventId": event_id,
             "key": key,
         }).encode()
-        await nc.publish(args.nats_reactions_subject, payload)
+        reply = await nc.request(args.nats_reactions_subject, payload, timeout=30)
+        return reply.data.decode().strip()
 
-    async def publish_redact(topic, event_id):
+    async def redact(topic, event_id):
+        """Redact a Matrix event."""
         payload = json.dumps({
             "action": "redact",
             "topic": topic,
             "eventId": event_id,
         }).encode()
         await nc.publish(args.nats_reactions_subject, payload)
-
-    async def publish_typing(topic, typing=True):
-        payload = json.dumps({
-            "action": "typing",
-            "topic": topic,
-            "typing": typing,
-        }).encode()
-        await nc.publish(args.nats_reactions_subject, payload)
-
-    async def publish_response(topic, body):
-        payload = json.dumps({
-            "topic": topic,
-            "payload": body,
-        }).encode()
-        await nc.publish(args.nats_publish_subject, payload)
 
     async def handle_message(msg):
         log.debug("Raw message on %s: %s", msg.subject, msg.data[:500])
@@ -277,18 +274,24 @@ async def run(args):
 
         log.info("Message from %s in %s: %s", user_id, room_id, body[:100])
 
-        # Add eyes reaction and typing indicator
-        if event_id:
-            try:
-                await publish_reaction(room_id, event_id, "\U0001f440")
-            except Exception as e:
-                log.debug("Failed to add reaction: %s", e)
-        try:
-            await publish_typing(room_id, True)
-        except Exception as e:
-            log.debug("Failed to send typing indicator: %s", e)
+        # Track event IDs for cleanup
+        thinking_event_id = None
+        reaction_event_id = None
 
         try:
+            # Add eyes reaction
+            if event_id:
+                try:
+                    reaction_event_id = await send_reaction(room_id, event_id, "\U0001f440")
+                except Exception as e:
+                    log.debug("Failed to add reaction: %s", e)
+
+            # Send thinking indicator
+            try:
+                thinking_event_id = await send_message(room_id, "*thinking...*")
+            except Exception as e:
+                log.debug("Failed to send thinking message: %s", e)
+
             key = sanitize_kv_key(user_id, room_id)
             history = await load_history(kv, key)
 
@@ -313,14 +316,20 @@ async def run(args):
             history.append({"role": "assistant", "content": reply})
             await store_history(kv, key, history)
 
-            await publish_response(room_id, reply)
+            await send_message(room_id, reply)
             log.info("Response sent to %s in %s", user_id, room_id)
         finally:
-            # Stop typing when done
-            try:
-                await publish_typing(room_id, False)
-            except Exception as e:
-                log.debug("Failed to stop typing indicator: %s", e)
+            # Redact thinking message and eyes reaction
+            if thinking_event_id:
+                try:
+                    await redact(room_id, thinking_event_id)
+                except Exception as e:
+                    log.debug("Failed to redact thinking message: %s", e)
+            if reaction_event_id:
+                try:
+                    await redact(room_id, reaction_event_id)
+                except Exception as e:
+                    log.debug("Failed to redact reaction: %s", e)
 
     sub = await nc.subscribe(args.nats_subscribe_subject, cb=handle_message)
     log.info("Subscribed, waiting for messages...")
