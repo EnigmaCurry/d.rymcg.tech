@@ -207,7 +207,7 @@ async def run(args):
         try:
             data = json.loads(msg.data.decode())
         except (json.JSONDecodeError, UnicodeDecodeError) as e:
-            log.warning("Invalid JSON message: %s", e)
+            log.debug("Ignoring non-JSON message: %s", e)
             return
 
         # Validate Matrix message structure
