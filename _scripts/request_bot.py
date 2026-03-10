@@ -219,24 +219,34 @@ async def run(args):
     )
 
     async def send_message(topic, body):
-        """Send a message and return the Matrix event ID."""
+        """Send a message and return the Matrix event ID (or None on timeout)."""
         payload = json.dumps({
             "topic": topic,
             "payload": body,
         }).encode()
-        reply = await nc.request(args.nats_publish_subject, payload, timeout=30)
-        return reply.data.decode().strip()
+        try:
+            reply = await nc.request(args.nats_publish_subject, payload, timeout=10)
+            return reply.data.decode().strip()
+        except nats.errors.TimeoutError:
+            log.warning("Request-reply timeout for send_message, falling back to publish")
+            await nc.publish(args.nats_publish_subject, payload)
+            return None
 
     async def send_reaction(topic, event_id, key):
-        """Send a reaction and return the Matrix event ID."""
+        """Send a reaction and return the Matrix event ID (or None on timeout)."""
         payload = json.dumps({
             "action": "react",
             "topic": topic,
             "eventId": event_id,
             "key": key,
         }).encode()
-        reply = await nc.request(args.nats_reactions_subject, payload, timeout=30)
-        return reply.data.decode().strip()
+        try:
+            reply = await nc.request(args.nats_reactions_subject, payload, timeout=10)
+            return reply.data.decode().strip()
+        except nats.errors.TimeoutError:
+            log.warning("Request-reply timeout for send_reaction, falling back to publish")
+            await nc.publish(args.nats_reactions_subject, payload)
+            return None
 
     async def redact(topic, event_id):
         """Redact a Matrix event."""
