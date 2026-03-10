@@ -53,11 +53,13 @@ def parse_args():
     p.add_argument(
         "--nats-cert",
         default=os.environ.get("DRT_REQUEST_BOT_NATS_CERT"),
+        required=not os.environ.get("DRT_REQUEST_BOT_NATS_CERT"),
         help="Path to mTLS client certificate (required)",
     )
     p.add_argument(
         "--nats-key",
         default=os.environ.get("DRT_REQUEST_BOT_NATS_KEY"),
+        required=not os.environ.get("DRT_REQUEST_BOT_NATS_KEY"),
         help="Path to mTLS client private key (required)",
     )
     p.add_argument(
@@ -170,11 +172,6 @@ async def store_history(kv, key, history):
 
 
 async def run(args):
-    # Validate required NATS TLS args
-    if not args.nats_cert or not args.nats_key:
-        log.error("--nats-cert and --nats-key are required")
-        sys.exit(1)
-
     tls_ctx = build_nats_tls(args.nats_cert, args.nats_key, args.nats_ca)
     openai_client = build_openai_client(args)
 
