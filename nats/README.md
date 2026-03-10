@@ -94,6 +94,17 @@ Run `make auth-users` to interactively manage authorized users (this
 is also called during `make config`). You can add, edit, and remove
 users with an interactive menu.
 
+When adding or editing a user, you choose a permission mode:
+
+ * **prefix** (default) — Enter a NATS subject prefix (e.g.
+   `hookshot.d2-admin`). The tool auto-generates publish and subscribe
+   permissions for all subjects under that prefix, plus JetStream KV
+   permissions for the corresponding history bucket.
+ * **full** — Grants `>` (all subjects) for both publish and
+   subscribe. Use for admin clients.
+ * **custom** — Manually enter comma-separated publish and subscribe
+   subjects (the original behavior).
+
 The `NATS_AUTH_USERS` format is:
 
 ```
@@ -123,6 +134,10 @@ NATS_AUTH_USERS=baz.clients.nats.example.com:events.>:
 Unlisted users (those with a valid certificate but no entry in
 `NATS_AUTH_USERS`) are denied all access by default.
 
+All users are configured with `allow_responses: true`, which permits
+NATS to deliver request-reply responses without needing explicit
+subscribe permissions on inbox subjects.
+
 Be aware that NATS clients receive no error when publishing to a
 denied subject — the message is silently dropped. Similarly,
 subscribing to a denied subject will succeed but no messages will be
@@ -133,15 +148,29 @@ received.
 When JetStream is enabled (`NATS_JETSTREAM_ENABLE=true`), the
 publish/subscribe permissions also control access to JetStream
 streams, KV buckets, and object stores. NATS implements these features
-on top of regular subjects, so the same authorization model applies:
+on top of regular subjects, so the same authorization model applies.
 
- * **KV get** requires **subscribe** permission on `$KV.BUCKET_NAME.>`
- * **KV put/delete** requires **publish** permission on `$KV.BUCKET_NAME.>`
- * **JetStream API** access requires both publish and subscribe on `$JS.API.>`
+All JetStream and KV operations are **publish** requests with
+responses delivered via `allow_responses`:
 
-For full JetStream and KV access, grant `>` for both publish and
-subscribe. For more granular control, grant permissions on specific
-`$KV.` and `$JS.API.` subjects.
+ * **KV put/delete** requires **publish** on `$KV.BUCKET_NAME.>`
+ * **KV get** requires **publish** on `$JS.API.DIRECT.GET.KV_BUCKET_NAME`
+   (or broader `$JS.API.*.KV_BUCKET_NAME`)
+ * **Bucket create/update/info** requires **publish** on
+   `$JS.API.STREAM.*.KV_BUCKET_NAME` (or broader `$JS.API.*.*.KV_BUCKET_NAME`)
+
+The **prefix** permission mode in `make auth-users` generates all of
+these automatically. For example, with prefix `hookshot.d2-admin`:
+
+```
+publish:   hookshot.d2-admin.>, $KV.hookshot_d2-admin_history.>,
+           $JS.API.*.KV_hookshot_d2-admin_history,
+           $JS.API.*.*.KV_hookshot_d2-admin_history
+subscribe: hookshot.d2-admin.>
+```
+
+For full JetStream and KV access, use the **full** permission mode
+(`>` for both publish and subscribe).
 
 ## Install
 
