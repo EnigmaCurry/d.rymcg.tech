@@ -38,18 +38,16 @@ def parse_args():
     )
     p.add_argument(
         "--nats-url",
-        default=os.environ.get("DRT_REQUEST_BOT_NATS_URL", "nats://localhost:4222"),
-        help="NATS server URL (default: nats://localhost:4222)",
+        default=os.environ.get("DRT_REQUEST_BOT_NATS_URL"),
+        required=not os.environ.get("DRT_REQUEST_BOT_NATS_URL"),
+        help="NATS server URL (required)",
     )
     p.add_argument(
-        "--nats-subscribe-subject",
-        default=os.environ.get("DRT_REQUEST_BOT_NATS_SUBSCRIBE_SUBJECT", "matrix.messages"),
-        help="NATS subject to subscribe to (default: matrix.messages)",
-    )
-    p.add_argument(
-        "--nats-publish-subject",
-        default=os.environ.get("DRT_REQUEST_BOT_NATS_PUBLISH_SUBJECT", "matrix.responses"),
-        help="NATS subject to publish responses to (default: matrix.responses)",
+        "--nats-namespace",
+        default=os.environ.get("DRT_REQUEST_BOT_NATS_NAMESPACE", "matrix"),
+        help="NATS namespace prefix for subjects and KV bucket "
+             "(default: matrix → subjects: matrix.messages / matrix.responses, "
+             "KV bucket: matrix_history)",
     )
     p.add_argument(
         "--nats-cert",
@@ -65,11 +63,6 @@ def parse_args():
         "--nats-ca",
         default=os.environ.get("DRT_REQUEST_BOT_NATS_CA"),
         help="Path to CA certificate (optional)",
-    )
-    p.add_argument(
-        "--nats-kv-bucket",
-        default=os.environ.get("DRT_REQUEST_BOT_NATS_KV_BUCKET", "request_bot_history"),
-        help="JetStream KV bucket name (default: request_bot_history)",
     )
     p.add_argument(
         "--history-ttl",
@@ -112,7 +105,12 @@ def parse_args():
         default=os.environ.get("DRT_REQUEST_BOT_SYSTEM_PROMPT", DEFAULT_SYSTEM_PROMPT),
         help="System prompt for the LLM",
     )
-    return p.parse_args()
+    args = p.parse_args()
+    ns = args.nats_namespace
+    args.nats_subscribe_subject = f"{ns}.messages"
+    args.nats_publish_subject = f"{ns}.responses"
+    args.nats_kv_bucket = f"{ns}_history"
+    return args
 
 
 def build_nats_tls(cert_path, key_path, ca_path=None):
