@@ -15,7 +15,7 @@ Example use cases:
 
 ## Deploy Step-CA
 
-NATS is configured to require Mutual TLS:
+This configuration of NATS requires Mutual TLS:
 
  * Follow the [Step-CA README](../step-ca) to `config` and `install`
    your CA server (it does not need to be on the same machine, but it
@@ -47,7 +47,7 @@ to connect to your Step-CA server instance:
 ## Use either method:
 
 ## Method 1: use the step-ca Makefile target:
-## (you may have already done this if you installed Step-CA on the same machine)
+## (you may have already done this if you installed Step-CA from the same workstation)
 d.rymcg.tech make step-ca client-bootstrap
 
 ## Method 2: if you want to do it manually from a new machine:
@@ -88,7 +88,7 @@ Set:
 
 Per-user subject authorization is configured via the `NATS_AUTH_USERS`
 env var. With `verify_and_map`, NATS maps the client certificate's SAN
-DNS name (e.g., `foo.clients.nats.example.com`) to a user entry.
+DNS name (e.g., `foo.clients.nats.example.com`) to a NATS user entry.
 
 Run `make auth-users` to interactively manage authorized users (this
 is also called during `make config`). You can add, edit, and remove
