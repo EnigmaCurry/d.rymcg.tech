@@ -16,11 +16,19 @@ config-hook:
 	@echo "Retrieving Step-CA fingerprint from $$(${BIN}/dotenv -f ${ENV_FILE} get NATS_STEP_CA_URL)/roots.pem ..."
 	@${BIN}/reconfigure_ask ${ENV_FILE} NATS_STEP_CA_FINGERPRINT "VERIFY the Step-CA fingerprint" $$(${STEP} ca root | ${STEP} certificate fingerprint)
 	@make --no-print-directory auth-users
-	@${BIN}/reconfigure ${ENV_FILE} NATS_STEP_CA_TOKEN="" &>/dev/null
-	@echo "Retrieving one-time-use token from Step-CA server."
-	@echo "Get ready to enter your root Step-CA credentials!"
-	@echo
-	@${BIN}/reconfigure ${ENV_FILE} NATS_STEP_CA_TOKEN="$$(step-cli ca token $$(${BIN}/dotenv -f ${ENV_FILE} get NATS_TRAEFIK_HOST) --provisioner admin)"
+	@EXISTING_TOKEN=$$(${BIN}/dotenv -f ${ENV_FILE} get NATS_STEP_CA_TOKEN); \
+	if [[ -n "$${EXISTING_TOKEN}" ]]; then \
+		echo "Existing NATS_STEP_CA_TOKEN found."; \
+		if ! ${BIN}/confirm no "Do you want to request a new Step-CA token (requires Step-CA credentials)" "?"; then \
+			echo "Keeping existing Step-CA token."; \
+			exit 0; \
+		fi; \
+	fi; \
+	${BIN}/reconfigure ${ENV_FILE} NATS_STEP_CA_TOKEN="" &>/dev/null; \
+	echo "Retrieving one-time-use token from Step-CA server."; \
+	echo "Get ready to enter your root Step-CA credentials!"; \
+	echo; \
+	${BIN}/reconfigure ${ENV_FILE} NATS_STEP_CA_TOKEN="$$(step-cli ca token $$(${BIN}/dotenv -f ${ENV_FILE} get NATS_TRAEFIK_HOST) --provisioner admin)"
 
 .PHONY: auth-users
 auth-users:
