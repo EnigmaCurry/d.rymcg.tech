@@ -128,6 +128,21 @@ denied subject — the message is silently dropped. Similarly,
 subscribing to a denied subject will succeed but no messages will be
 received.
 
+### JetStream and KV store permissions
+
+When JetStream is enabled (`NATS_JETSTREAM_ENABLE=true`), the
+publish/subscribe permissions also control access to JetStream
+streams, KV buckets, and object stores. NATS implements these features
+on top of regular subjects, so the same authorization model applies:
+
+ * **KV get** requires **subscribe** permission on `$KV.BUCKET_NAME.>`
+ * **KV put/delete** requires **publish** permission on `$KV.BUCKET_NAME.>`
+ * **JetStream API** access requires both publish and subscribe on `$JS.API.>`
+
+For full JetStream and KV access, grant `>` for both publish and
+subscribe. For more granular control, grant permissions on specific
+`$KV.` and `$JS.API.` subjects.
+
 ## Install
 
 Run:
