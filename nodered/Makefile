@@ -37,3 +37,20 @@ install-hook:
 .PHONY: install-hook-pre
 install-hook-pre:
 	@echo
+
+.PHONY: request-bot-flow # Generate a Node-RED flow JSON for the request-bot
+request-bot-flow:
+	@export SUBJECT_PREFIX=$$(${BIN}/ask_echo "Enter the NATS subject prefix (e.g. hookshot.d2-admin)"); \
+	export PREFIX_ID=$$(echo "$${SUBJECT_PREFIX}" | tr '.' '_' | tr '-' '_'); \
+	export NATS_URL=$$(${BIN}/ask_echo "Enter the NATS server URL" "https://nats.example.com:4222"); \
+	export NATS_CA_FILE=$$(${BIN}/ask_echo "Enter the path to the NATS CA certificate" "/data/certs/root_ca.crt"); \
+	export NATS_CERT_FILE=$$(${BIN}/ask_echo "Enter the path to the NATS client certificate" "/data/certs/client.crt"); \
+	export NATS_KEY_FILE=$$(${BIN}/ask_echo "Enter the path to the NATS client key" "/data/certs/client.key"); \
+	export MATRIX_SERVER=$$(${BIN}/ask_echo "Enter the Matrix homeserver name" "matrix.example.com"); \
+	export MATRIX_ROOM_ID=$$(${BIN}/ask_echo "Enter the Matrix room ID (e.g. !abc123:example.com)"); \
+	OUTPUT="request_bot_flow_$${SUBJECT_PREFIX//\./_}.json"; \
+	envsubst '$$PREFIX_ID,$$SUBJECT_PREFIX,$$NATS_URL,$$NATS_CA_FILE,$$NATS_CERT_FILE,$$NATS_KEY_FILE,$$MATRIX_SERVER,$$MATRIX_ROOM_ID' \
+		< templates/request_bot_flow.json > "$${OUTPUT}"; \
+	echo; \
+	echo "Generated: $${OUTPUT}"; \
+	echo "Import this file into Node-RED via Menu > Import > select file."

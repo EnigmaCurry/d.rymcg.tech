@@ -1,35 +1,35 @@
 [
     {
-        "id": "REQUEST_BOT_TAB_MESSAGES",
+        "id": "${PREFIX_ID}_TAB_MESSAGES",
         "type": "tab",
-        "label": "REQUEST_BOT messages",
+        "label": "${SUBJECT_PREFIX} messages",
         "disabled": false,
-        "info": "Receives Matrix messages and publishes to NATS for the request-bot.\nReplace REQUEST_BOT with your NATS subject prefix (e.g. hookshot.d2-admin).\nReplace MATRIX_ROOM_ID with your Matrix room ID.\nConfigure NATS and Matrix server nodes with your credentials."
+        "info": ""
     },
     {
-        "id": "REQUEST_BOT_TAB_RESPONSES",
+        "id": "${PREFIX_ID}_TAB_RESPONSES",
         "type": "tab",
-        "label": "REQUEST_BOT responses",
+        "label": "${SUBJECT_PREFIX} responses",
         "disabled": false,
-        "info": "Receives bot responses from NATS and sends them to Matrix."
+        "info": ""
     },
     {
-        "id": "REQUEST_BOT_TAB_REACTIONS",
+        "id": "${PREFIX_ID}_TAB_REACTIONS",
         "type": "tab",
-        "label": "REQUEST_BOT reactions",
+        "label": "${SUBJECT_PREFIX} reactions",
         "disabled": false,
-        "info": "Handles bot reactions (add/redact) from NATS and applies them in Matrix."
+        "info": ""
     },
     {
-        "id": "REQUEST_BOT_NATS_SERVER",
+        "id": "${PREFIX_ID}_NATS_SERVER",
         "type": "nats-suite-server",
-        "server": "NATS_URL",
+        "server": "${NATS_URL}",
         "authMethod": "none",
         "enableTLS": true,
         "tlsRejectUnauthorized": true,
-        "tlsCaFile": "/data/certs/root_ca.crt",
-        "tlsCertFile": "/data/certs/CLIENT.crt",
-        "tlsKeyFile": "/data/certs/CLIENT.key",
+        "tlsCaFile": "${NATS_CA_FILE}",
+        "tlsCertFile": "${NATS_CERT_FILE}",
+        "tlsKeyFile": "${NATS_KEY_FILE}",
         "maxReconnectAttempts": 10,
         "reconnectTimeWait": 1000,
         "timeout": 10000,
@@ -38,21 +38,21 @@
         "debug": false
     },
     {
-        "id": "REQUEST_BOT_MATRIX_SERVER",
+        "id": "${PREFIX_ID}_MATRIX_SERVER",
         "type": "matrix-server-config",
-        "name": "MATRIX_SERVER",
+        "name": "${MATRIX_SERVER}",
         "autoAcceptRoomInvites": false,
         "enableE2ee": true,
         "global": true,
         "allowUnknownDevices": false
     },
     {
-        "id": "REQUEST_BOT_MATRIX_RECEIVE",
+        "id": "${PREFIX_ID}_MATRIX_RECEIVE",
         "type": "matrix-receive",
-        "z": "REQUEST_BOT_TAB_MESSAGES",
+        "z": "${PREFIX_ID}_TAB_MESSAGES",
         "name": "",
-        "server": "REQUEST_BOT_MATRIX_SERVER",
-        "roomId": "MATRIX_ROOM_ID",
+        "server": "${PREFIX_ID}_MATRIX_SERVER",
+        "roomId": "${MATRIX_ROOM_ID}",
         "acceptOwnEvents": false,
         "acceptText": true,
         "acceptEmotes": true,
@@ -68,14 +68,14 @@
         "y": 200,
         "wires": [
             [
-                "REQUEST_BOT_FN_FORMAT_MESSAGE"
+                "${PREFIX_ID}_FN_FORMAT_MESSAGE"
             ]
         ]
     },
     {
-        "id": "REQUEST_BOT_FN_FORMAT_MESSAGE",
+        "id": "${PREFIX_ID}_FN_FORMAT_MESSAGE",
         "type": "function",
-        "z": "REQUEST_BOT_TAB_MESSAGES",
+        "z": "${PREFIX_ID}_TAB_MESSAGES",
         "name": "Format for NATS",
         "func": "msg.payload = JSON.stringify({\n    userId: msg.userId,\n    topic: msg.topic,\n    eventId: msg.eventId,\n    content: msg.content\n});\nreturn msg;",
         "outputs": 1,
@@ -88,16 +88,16 @@
         "y": 200,
         "wires": [
             [
-                "REQUEST_BOT_NATS_PUB_MESSAGES"
+                "${PREFIX_ID}_NATS_PUB_MESSAGES"
             ]
         ]
     },
     {
-        "id": "REQUEST_BOT_NATS_PUB_MESSAGES",
+        "id": "${PREFIX_ID}_NATS_PUB_MESSAGES",
         "type": "nats-suite-publish",
-        "z": "REQUEST_BOT_TAB_MESSAGES",
-        "name": "REQUEST_BOT.messages",
-        "server": "REQUEST_BOT_NATS_SERVER",
+        "z": "${PREFIX_ID}_TAB_MESSAGES",
+        "name": "${SUBJECT_PREFIX}.messages",
+        "server": "${PREFIX_ID}_NATS_SERVER",
         "debug": false,
         "enableBuffer": false,
         "mode": "publish",
@@ -109,7 +109,7 @@
         "bufferAutoSaveInterval": 30,
         "message": "",
         "dataformat": "json",
-        "datapointid": "REQUEST_BOT.messages",
+        "datapointid": "${SUBJECT_PREFIX}.messages",
         "enableTopicOverride": false,
         "enableBatch": false,
         "batchSize": 100,
@@ -134,28 +134,28 @@
         "wires": []
     },
     {
-        "id": "REQUEST_BOT_NATS_SUB_RESPONSES",
+        "id": "${PREFIX_ID}_NATS_SUB_RESPONSES",
         "type": "nats-suite-subscribe",
-        "z": "REQUEST_BOT_TAB_RESPONSES",
+        "z": "${PREFIX_ID}_TAB_RESPONSES",
         "name": "",
-        "server": "REQUEST_BOT_NATS_SERVER",
+        "server": "${PREFIX_ID}_NATS_SERVER",
         "debug": false,
         "dataformat": "auto",
-        "datapointid": "REQUEST_BOT.responses",
+        "datapointid": "${SUBJECT_PREFIX}.responses",
         "subscriptionMode": "static",
         "queueGroup": "",
         "x": 150,
         "y": 200,
         "wires": [
             [
-                "REQUEST_BOT_FN_BEFORE_SEND"
+                "${PREFIX_ID}_FN_BEFORE_SEND"
             ]
         ]
     },
     {
-        "id": "REQUEST_BOT_FN_BEFORE_SEND",
+        "id": "${PREFIX_ID}_FN_BEFORE_SEND",
         "type": "function",
-        "z": "REQUEST_BOT_TAB_RESPONSES",
+        "z": "${PREFIX_ID}_TAB_RESPONSES",
         "name": "Parse response",
         "func": "// Store NATS reply subject in global context (Matrix Send strips it)\n// Keyed by room ID since messages are processed sequentially\nglobal.set('nats_reply_' + msg.payload.topic, msg._reply);\nmsg.topic = msg.payload.topic;\nmsg.payload = msg.payload.payload;\nreturn msg;",
         "outputs": 1,
@@ -168,16 +168,16 @@
         "y": 200,
         "wires": [
             [
-                "REQUEST_BOT_MATRIX_SEND"
+                "${PREFIX_ID}_MATRIX_SEND"
             ]
         ]
     },
     {
-        "id": "REQUEST_BOT_MATRIX_SEND",
+        "id": "${PREFIX_ID}_MATRIX_SEND",
         "type": "matrix-send-message",
-        "z": "REQUEST_BOT_TAB_RESPONSES",
+        "z": "${PREFIX_ID}_TAB_RESPONSES",
         "name": "",
-        "server": "REQUEST_BOT_MATRIX_SERVER",
+        "server": "${PREFIX_ID}_MATRIX_SERVER",
         "roomId": "",
         "message": "",
         "messageType": "m.text",
@@ -189,15 +189,15 @@
         "y": 200,
         "wires": [
             [
-                "REQUEST_BOT_FN_AFTER_SEND"
+                "${PREFIX_ID}_FN_AFTER_SEND"
             ],
             []
         ]
     },
     {
-        "id": "REQUEST_BOT_FN_AFTER_SEND",
+        "id": "${PREFIX_ID}_FN_AFTER_SEND",
         "type": "function",
-        "z": "REQUEST_BOT_TAB_RESPONSES",
+        "z": "${PREFIX_ID}_TAB_RESPONSES",
         "name": "Reply to NATS",
         "func": "// Retrieve NATS reply subject from global context\nvar replyTo = global.get('nats_reply_' + msg.topic);\nglobal.set('nats_reply_' + msg.topic, null);\nif (!replyTo) { return null; }\nmsg.topic = replyTo;\nmsg.payload = msg.eventId;\nreturn msg;",
         "outputs": 1,
@@ -210,16 +210,16 @@
         "y": 200,
         "wires": [
             [
-                "REQUEST_BOT_NATS_PUB_RESPONSE_REPLY"
+                "${PREFIX_ID}_NATS_PUB_RESPONSE_REPLY"
             ]
         ]
     },
     {
-        "id": "REQUEST_BOT_NATS_PUB_RESPONSE_REPLY",
+        "id": "${PREFIX_ID}_NATS_PUB_RESPONSE_REPLY",
         "type": "nats-suite-publish",
-        "z": "REQUEST_BOT_TAB_RESPONSES",
+        "z": "${PREFIX_ID}_TAB_RESPONSES",
         "name": "Reply (event ID)",
-        "server": "REQUEST_BOT_NATS_SERVER",
+        "server": "${PREFIX_ID}_NATS_SERVER",
         "debug": false,
         "enableBuffer": false,
         "mode": "publish",
@@ -256,28 +256,28 @@
         "wires": []
     },
     {
-        "id": "REQUEST_BOT_NATS_SUB_REACTIONS",
+        "id": "${PREFIX_ID}_NATS_SUB_REACTIONS",
         "type": "nats-suite-subscribe",
-        "z": "REQUEST_BOT_TAB_REACTIONS",
+        "z": "${PREFIX_ID}_TAB_REACTIONS",
         "name": "",
-        "server": "REQUEST_BOT_NATS_SERVER",
+        "server": "${PREFIX_ID}_NATS_SERVER",
         "debug": false,
         "dataformat": "auto",
-        "datapointid": "REQUEST_BOT.reactions",
+        "datapointid": "${SUBJECT_PREFIX}.reactions",
         "subscriptionMode": "static",
         "queueGroup": "",
         "x": 130,
         "y": 180,
         "wires": [
             [
-                "REQUEST_BOT_FN_ROUTE_REACTION"
+                "${PREFIX_ID}_FN_ROUTE_REACTION"
             ]
         ]
     },
     {
-        "id": "REQUEST_BOT_FN_ROUTE_REACTION",
+        "id": "${PREFIX_ID}_FN_ROUTE_REACTION",
         "type": "function",
-        "z": "REQUEST_BOT_TAB_REACTIONS",
+        "z": "${PREFIX_ID}_TAB_REACTIONS",
         "name": "Route react/redact",
         "func": "var data = (typeof msg.payload === 'string') ? JSON.parse(msg.payload) : msg.payload;\n\nif (data.action === 'react') {\n    msg.topic = data.topic;\n    msg.eventId = data.eventId;\n    msg.payload = data.key;\n    msg.msgType = 'm.reaction';\n    return [msg, null];\n} else if (data.action === 'redact') {\n    msg.topic = data.topic;\n    msg.eventId = data.eventId;\n    return [null, msg];\n}\nreturn null;",
         "outputs": 2,
@@ -290,51 +290,51 @@
         "y": 180,
         "wires": [
             [
-                "REQUEST_BOT_MATRIX_REACT"
+                "${PREFIX_ID}_MATRIX_REACT"
             ],
             [
-                "REQUEST_BOT_MATRIX_DELETE"
+                "${PREFIX_ID}_MATRIX_DELETE"
             ]
         ]
     },
     {
-        "id": "REQUEST_BOT_MATRIX_REACT",
+        "id": "${PREFIX_ID}_MATRIX_REACT",
         "type": "matrix-react",
-        "z": "REQUEST_BOT_TAB_REACTIONS",
+        "z": "${PREFIX_ID}_TAB_REACTIONS",
         "name": "",
-        "server": "REQUEST_BOT_MATRIX_SERVER",
+        "server": "${PREFIX_ID}_MATRIX_SERVER",
         "roomId": "",
         "reaction": "",
         "x": 530,
         "y": 140,
         "wires": [
             [
-                "REQUEST_BOT_FN_REACTION_REPLY"
+                "${PREFIX_ID}_FN_REACTION_REPLY"
             ],
             []
         ]
     },
     {
-        "id": "REQUEST_BOT_MATRIX_DELETE",
+        "id": "${PREFIX_ID}_MATRIX_DELETE",
         "type": "matrix-delete-event",
-        "z": "REQUEST_BOT_TAB_REACTIONS",
+        "z": "${PREFIX_ID}_TAB_REACTIONS",
         "name": "",
-        "server": "REQUEST_BOT_MATRIX_SERVER",
+        "server": "${PREFIX_ID}_MATRIX_SERVER",
         "roomId": "",
         "reason": "",
         "x": 550,
         "y": 220,
         "wires": [
             [
-                "REQUEST_BOT_FN_REACTION_REPLY"
+                "${PREFIX_ID}_FN_REACTION_REPLY"
             ],
             []
         ]
     },
     {
-        "id": "REQUEST_BOT_FN_REACTION_REPLY",
+        "id": "${PREFIX_ID}_FN_REACTION_REPLY",
         "type": "function",
-        "z": "REQUEST_BOT_TAB_REACTIONS",
+        "z": "${PREFIX_ID}_TAB_REACTIONS",
         "name": "Reply to NATS",
         "func": "// Matrix React preserves msg._reply; Matrix Delete does not\nvar replyTo = msg._reply;\nif (!replyTo) { return null; }\nmsg.topic = replyTo;\nmsg.payload = msg.eventId || '';\nreturn msg;",
         "outputs": 1,
@@ -347,16 +347,16 @@
         "y": 180,
         "wires": [
             [
-                "REQUEST_BOT_NATS_PUB_REACTION_REPLY"
+                "${PREFIX_ID}_NATS_PUB_REACTION_REPLY"
             ]
         ]
     },
     {
-        "id": "REQUEST_BOT_NATS_PUB_REACTION_REPLY",
+        "id": "${PREFIX_ID}_NATS_PUB_REACTION_REPLY",
         "type": "nats-suite-publish",
-        "z": "REQUEST_BOT_TAB_REACTIONS",
+        "z": "${PREFIX_ID}_TAB_REACTIONS",
         "name": "Reply (event ID)",
-        "server": "REQUEST_BOT_NATS_SERVER",
+        "server": "${PREFIX_ID}_NATS_SERVER",
         "debug": false,
         "enableBuffer": false,
         "mode": "publish",
