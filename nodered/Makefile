@@ -42,7 +42,7 @@ install-hook-pre:
 request-bot-flow:
 	@export SUBJECT_PREFIX=$$(${BIN}/ask_echo "Enter the NATS subject prefix (e.g. hookshot.d2-admin)"); \
 	export PREFIX_ID=$$(echo "$${SUBJECT_PREFIX}" | tr '.' '_' | tr '-' '_'); \
-	export NATS_URL=$$(${BIN}/ask_echo "Enter the NATS server URL" "https://nats.example.com:4222"); \
+	export NATS_URL=$$(${BIN}/ask_echo "Enter the NATS server URL" "nats://nats.example.com:4222"); \
 	export NATS_CA_FILE=$$(${BIN}/ask_echo "Enter the path to the NATS CA certificate" "/data/certs/root_ca.crt"); \
 	export NATS_CERT_FILE=$$(${BIN}/ask_echo "Enter the path to the NATS client certificate" "/data/certs/client.crt"); \
 	export NATS_KEY_FILE=$$(${BIN}/ask_echo "Enter the path to the NATS client key" "/data/certs/client.key"); \
