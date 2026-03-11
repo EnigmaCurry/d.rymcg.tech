@@ -88,6 +88,7 @@ services:
       #! Public read-only router (GET/HEAD only, no auth required):
       #@ router_public = "{}-public".format(router)
       - "traefik.http.routers.(@= router_public @).rule=Host(`(@= traefik_host @)`) && Method(`GET`, `HEAD`)"
+      - "traefik.http.routers.(@= router_public @).priority=100"
       - "traefik.http.routers.(@= router_public @).entrypoints=websecure"
       - "traefik.http.routers.(@= router_public @).service=(@= router @)"
       - "traefik.http.routers.(@= router_public @).middlewares=(@= router @)-ipallowlist"
