@@ -43,6 +43,37 @@ override-hook:
 shell:
 	@make --no-print-directory docker-compose-shell SERVICE=registry
 
+.PHONY: list-tags # List all repository tags on the registry
+list-tags:
+	@REGISTRY_HOST=$$(${BIN}/dotenv -f ${ENV_FILE} get REGISTRY_TRAEFIK_HOST); \
+	PUBLIC=$$(${BIN}/dotenv -f ${ENV_FILE} get REGISTRY_PUBLIC); \
+	HTTP_AUTH=$$(${BIN}/dotenv -f ${ENV_FILE} get REGISTRY_HTTP_AUTH); \
+	MTLS_AUTH=$$(${BIN}/dotenv -f ${ENV_FILE} get REGISTRY_MTLS_AUTH); \
+	CURL_OPTS=""; \
+	if [[ "$${PUBLIC}" != "true" ]]; then \
+		if [[ -n "$${HTTP_AUTH}" ]]; then \
+			if [[ -f passwords.json ]]; then \
+				USER=$$(jq -r '."${CONTEXT_INSTANCE}"[0].username' passwords.json); \
+				PASS=$$(jq -r '."${CONTEXT_INSTANCE}"[0].password' passwords.json); \
+			fi; \
+			if [[ -z "$${USER}" || "$${USER}" == "null" ]]; then \
+				USER=$$(echo "$${HTTP_AUTH}" | cut -d: -f1); \
+				echo "Enter password for $${USER}@$${REGISTRY_HOST}:"; \
+				read -rs PASS; \
+			fi; \
+			CURL_OPTS="--user $${USER}:$${PASS}"; \
+		elif [[ "$${MTLS_AUTH}" == "true" ]]; then \
+			echo "Error: list-tags with mTLS auth is not implemented." >&2; exit 1; \
+		fi; \
+	fi; \
+	repos=$$(curl -sf $${CURL_OPTS} https://$${REGISTRY_HOST}/v2/_catalog | jq -r '.repositories[]' 2>/dev/null); \
+	for repo in $${repos}; do \
+		tags=$$(curl -sf $${CURL_OPTS} https://$${REGISTRY_HOST}/v2/$${repo}/tags/list | jq -r '.tags[]' 2>/dev/null); \
+		for tag in $${tags}; do \
+			echo "$${REGISTRY_HOST}/$${repo}:$${tag}"; \
+		done; \
+	done
+
 .PHONY: install-hook
 install-hook:
 	@echo
