@@ -51,8 +51,8 @@ login:
 		USER=$$(jq -r '."${CONTEXT_INSTANCE}"[0].username // empty' passwords.json 2>/dev/null); \
 		PASS=$$(jq -r '."${CONTEXT_INSTANCE}"[0].password // empty' passwords.json 2>/dev/null); \
 	fi; \
-	CONTEXTS=$$(docker context ls --format '{{.Name}}'); \
-	CONTEXT=$$(eval "${BIN}/script-wizard choose 'Which Docker context do you want to login from?' $${CONTEXTS} --default ${DOCKER_CONTEXT}"); \
+	readarray -t CONTEXTS < <(docker context ls --format '{{.Name}}'); \
+	CONTEXT=$$(eval "${BIN}/script-wizard choose 'Which Docker context do you want to login from?' $${CONTEXTS[@]@Q} --default ${DOCKER_CONTEXT}"); \
 	if [[ -n "$${USER}" && -n "$${PASS}" ]]; then \
 		echo "$${PASS}" | docker --context "$${CONTEXT}" login "$${REGISTRY_HOST}" -u "$${USER}" --password-stdin; \
 	else \
