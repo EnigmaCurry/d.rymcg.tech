@@ -10,7 +10,7 @@ config-hook:
 #### reconfigure_htpasswd will configure the HTTP Basic Authentication setting the var name and with a provided default value.
 	@${BIN}/reconfigure_ask ${ENV_FILE} REGISTRY_TRAEFIK_HOST "Enter the registry domain name" registry${INSTANCE_URL_SUFFIX}.${ROOT_DOMAIN}
 	@${BIN}/reconfigure ${ENV_FILE} REGISTRY_INSTANCE=$${instance:-default}
-	@${BIN}/reconfigure_auth ${ENV_FILE} REGISTRY
+	@${BIN}/reconfigure_auth ${ENV_FILE} REGISTRY "Do you want to enable sentry authorization for admin push access? (No means complete free-for-all!)" "http,mtls"
 	@${BIN}/reconfigure_password ${ENV_FILE} REGISTRY_HTTP_SECRET
 	@echo
 	@echo "By default, Registry storage uses a Docker volume. Optionally, you can use an S3 bucket."
@@ -37,7 +37,7 @@ override-hook:
 ####                         # (this hardcodes the string into docker-compose.override.yaml)
 ####   name=@VARIABLE_NAME   # sets the template 'name' field to the literal string '${VARIABLE_NAME}'
 ####                         # (used for regular docker-compose expansion of env vars by name.)
-	@${BIN}/docker_compose_override ${ENV_FILE} project=:registry instance=@REGISTRY_INSTANCE traefik_host=@REGISTRY_TRAEFIK_HOST http_auth=REGISTRY_HTTP_AUTH http_auth_var=@REGISTRY_HTTP_AUTH ip_sourcerange=@REGISTRY_IP_SOURCERANGE oauth2=REGISTRY_OAUTH2 authorized_group=REGISTRY_OAUTH2_AUTHORIZED_GROUP enable_mtls_auth=REGISTRY_MTLS_AUTH mtls_authorized_certs=REGISTRY_MTLS_AUTHORIZED_CERTS storage_backend=REGISTRY_STORAGE_BACKEND s3_endpoint=@REGISTRY_STORAGE_S3_ENDPOINT s3_region=@REGISTRY_STORAGE_S3_REGION s3_bucket=@REGISTRY_STORAGE_S3_BUCKET s3_access_key=@REGISTRY_STORAGE_S3_ACCESS_KEY s3_secret_key=@REGISTRY_STORAGE_S3_SECRET_KEY public=REGISTRY_PUBLIC
+	@${BIN}/docker_compose_override ${ENV_FILE} project=:registry instance=@REGISTRY_INSTANCE traefik_host=@REGISTRY_TRAEFIK_HOST http_auth=REGISTRY_HTTP_AUTH http_auth_var=@REGISTRY_HTTP_AUTH ip_sourcerange=@REGISTRY_IP_SOURCERANGE enable_mtls_auth=REGISTRY_MTLS_AUTH mtls_authorized_certs=REGISTRY_MTLS_AUTHORIZED_CERTS storage_backend=REGISTRY_STORAGE_BACKEND s3_endpoint=@REGISTRY_STORAGE_S3_ENDPOINT s3_region=@REGISTRY_STORAGE_S3_REGION s3_bucket=@REGISTRY_STORAGE_S3_BUCKET s3_access_key=@REGISTRY_STORAGE_S3_ACCESS_KEY s3_secret_key=@REGISTRY_STORAGE_S3_SECRET_KEY public=REGISTRY_PUBLIC
 
 .PHONY: shell
 shell:
