@@ -98,6 +98,60 @@ list-tags:
 	done; \
 	echo >&2
 
+.PHONY: delete-tags # Delete image tags from the registry
+delete-tags:
+	@if [[ ! -f ${ENV_FILE} ]]; then echo "Error: config file not found: ${ENV_FILE}" >&2; echo "Run 'make config' first." >&2; exit 1; fi; \
+	REGISTRY_HOST=$$(${BIN}/dotenv -f ${ENV_FILE} get REGISTRY_TRAEFIK_HOST); \
+	CI=${CONTEXT_INSTANCE}; \
+	CURL_OPTS=""; \
+	if [[ -f passwords.json ]]; then \
+		USER=$$(jq -r --arg key "$${CI}" '.[$$key][0].username // empty' passwords.json 2>/dev/null); \
+		PASS=$$(jq -r --arg key "$${CI}" '.[$$key][0].password // empty' passwords.json 2>/dev/null); \
+	fi; \
+	if [[ -z "$${USER}" || -z "$${PASS}" ]]; then \
+		HTTP_AUTH=$$(${BIN}/dotenv -f ${ENV_FILE} get REGISTRY_HTTP_AUTH); \
+		if [[ -n "$${HTTP_AUTH}" ]]; then \
+			USER=$$(echo "$${HTTP_AUTH}" | cut -d: -f1); \
+			echo "Enter password for $${USER}@$${REGISTRY_HOST}:" >&2; \
+			read -rs PASS; \
+		fi; \
+	fi; \
+	if [[ -n "$${USER}" && -n "$${PASS}" ]]; then \
+		CURL_OPTS="--user $${USER}:$${PASS}"; \
+	fi; \
+	IMAGES=(); \
+	repos=$$(curl -sf $${CURL_OPTS} https://$${REGISTRY_HOST}/v2/_catalog | jq -r '.repositories[]' 2>/dev/null); \
+	if [[ -z "$${repos}" ]]; then echo "## No images found." >&2; exit 0; fi; \
+	for repo in $${repos}; do \
+		tags=$$(curl -sf $${CURL_OPTS} https://$${REGISTRY_HOST}/v2/$${repo}/tags/list | jq -r '.tags[]' 2>/dev/null); \
+		for tag in $${tags}; do \
+			IMAGES+=("$${repo}:$${tag}"); \
+		done; \
+	done; \
+	if [[ $${#IMAGES[@]} -eq 0 ]]; then echo "## No images found." >&2; exit 0; fi; \
+	SELECTED=$$(eval "${BIN}/script-wizard select 'Select images to delete:' $${IMAGES[@]@Q}"); \
+	if [[ -z "$${SELECTED}" ]]; then echo "## No images selected." >&2; exit 0; fi; \
+	echo >&2; \
+	for image in $${SELECTED}; do \
+		repo=$${image%%:*}; \
+		tag=$${image##*:}; \
+		digest=$$(curl -sf $${CURL_OPTS} \
+			-H "Accept: application/vnd.docker.distribution.manifest.v2+json" \
+			-H "Accept: application/vnd.oci.image.manifest.v1+json" \
+			--head https://$${REGISTRY_HOST}/v2/$${repo}/manifests/$${tag} \
+			| grep -i docker-content-digest | awk '{print $$2}' | tr -d '\\r'); \
+		if [[ -z "$${digest}" ]]; then \
+			echo "## Error: could not get digest for $${image}" >&2; continue; \
+		fi; \
+		status=$$(curl -sf -o /dev/null -w '%{http_code}' $${CURL_OPTS} \
+			-X DELETE https://$${REGISTRY_HOST}/v2/$${repo}/manifests/$${digest}); \
+		if [[ "$${status}" == "202" ]]; then \
+			echo "## Deleted $${image}" >&2; \
+		else \
+			echo "## Error deleting $${image} (HTTP $${status})" >&2; \
+		fi; \
+	done
+
 .PHONY: install-hook
 install-hook:
 	@echo
