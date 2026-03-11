@@ -286,7 +286,6 @@ async def run(args):
         log.info("Message from %s in %s: %s", user_id, room_id, body[:100])
 
         # Track event IDs for cleanup
-        thinking_event_id = None
         reaction_event_id = None
 
         try:
@@ -296,12 +295,6 @@ async def run(args):
                     reaction_event_id = await send_reaction(room_id, event_id, "\U0001f440")
                 except Exception as e:
                     log.debug("Failed to add reaction: %s", e)
-
-            # Send thinking indicator
-            try:
-                thinking_event_id = await send_message(room_id, "*thinking...*")
-            except Exception as e:
-                log.debug("Failed to send thinking message: %s", e)
 
             key = sanitize_kv_key(user_id, room_id)
             history = await load_history(kv, key)
@@ -330,12 +323,7 @@ async def run(args):
             await send_message(room_id, reply)
             log.info("Response sent to %s in %s", user_id, room_id)
         finally:
-            # Redact thinking message and eyes reaction
-            if thinking_event_id:
-                try:
-                    await redact(room_id, thinking_event_id)
-                except Exception as e:
-                    log.debug("Failed to redact thinking message: %s", e)
+            # Redact eyes reaction
             if reaction_event_id:
                 try:
                     await redact(room_id, reaction_event_id)
