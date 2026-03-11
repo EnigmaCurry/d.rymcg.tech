@@ -80,6 +80,7 @@ list-tags:
 	echo "## Catalog response: $${CATALOG}" >&2; \
 	repos=$$(echo "$${CATALOG}" | jq -r '.repositories[]' 2>/dev/null); \
 	echo "## Repositories found: $${repos:-none}" >&2; \
+	echo >&2; \
 	for repo in $${repos}; do \
 		echo "## Fetching tags for $${repo}" >&2; \
 		TAGS_RESPONSE=$$(curl -sf $${CURL_OPTS} https://$${REGISTRY_HOST}/v2/$${repo}/tags/list); \
@@ -88,7 +89,8 @@ list-tags:
 		for tag in $${tags}; do \
 			echo "$${REGISTRY_HOST}/$${repo}:$${tag}"; \
 		done; \
-	done
+	done; \
+	echo >&2
 
 .PHONY: install-hook
 install-hook:
