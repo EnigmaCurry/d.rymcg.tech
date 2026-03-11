@@ -51,41 +51,28 @@ list-tags:
 	HTTP_AUTH=$$(${BIN}/dotenv -f ${ENV_FILE} get REGISTRY_HTTP_AUTH); \
 	MTLS_AUTH=$$(${BIN}/dotenv -f ${ENV_FILE} get REGISTRY_MTLS_AUTH); \
 	CURL_OPTS=""; \
-	echo "## Registry host: $${REGISTRY_HOST}" >&2; \
-	echo "## Public: $${PUBLIC}" >&2; \
-	echo "## HTTP_AUTH set: $$([ -n \"$${HTTP_AUTH}\" ] && echo yes || echo no)" >&2; \
+	echo "## Registry: $${REGISTRY_HOST}" >&2; \
 	if [[ "$${PUBLIC}" != "true" ]]; then \
 		if [[ -n "$${HTTP_AUTH}" ]]; then \
 			if [[ -f passwords.json ]]; then \
-				echo "## Found passwords.json, reading credentials for ${CONTEXT_INSTANCE}" >&2; \
 				USER=$$(jq -r '."${CONTEXT_INSTANCE}"[0].username' passwords.json); \
 				PASS=$$(jq -r '."${CONTEXT_INSTANCE}"[0].password' passwords.json); \
-				echo "## Username from passwords.json: $${USER}" >&2; \
 			fi; \
 			if [[ -z "$${USER}" || "$${USER}" == "null" ]]; then \
 				USER=$$(echo "$${HTTP_AUTH}" | cut -d: -f1); \
-				echo "## Prompting for password (user: $${USER})" >&2; \
-				echo "Enter password for $${USER}@$${REGISTRY_HOST}:"; \
+				echo "Enter password for $${USER}@$${REGISTRY_HOST}:" >&2; \
 				read -rs PASS; \
 			fi; \
 			CURL_OPTS="--user $${USER}:$${PASS}"; \
 		elif [[ "$${MTLS_AUTH}" == "true" ]]; then \
 			echo "Error: list-tags with mTLS auth is not implemented." >&2; exit 1; \
 		fi; \
-	else \
-		echo "## Public access enabled, no auth needed" >&2; \
 	fi; \
-	echo "## Fetching catalog from https://$${REGISTRY_HOST}/v2/_catalog" >&2; \
-	CATALOG=$$(curl -sf $${CURL_OPTS} https://$${REGISTRY_HOST}/v2/_catalog); \
-	echo "## Catalog response: $${CATALOG}" >&2; \
-	repos=$$(echo "$${CATALOG}" | jq -r '.repositories[]' 2>/dev/null); \
-	echo "## Repositories found: $${repos:-none}" >&2; \
+	repos=$$(curl -sf $${CURL_OPTS} https://$${REGISTRY_HOST}/v2/_catalog | jq -r '.repositories[]' 2>/dev/null); \
+	if [[ -z "$${repos}" ]]; then echo "## No repositories found." >&2; exit 0; fi; \
 	echo >&2; \
 	for repo in $${repos}; do \
-		echo "## Fetching tags for $${repo}" >&2; \
-		TAGS_RESPONSE=$$(curl -sf $${CURL_OPTS} https://$${REGISTRY_HOST}/v2/$${repo}/tags/list); \
-		echo "## Tags response: $${TAGS_RESPONSE}" >&2; \
-		tags=$$(echo "$${TAGS_RESPONSE}" | jq -r '.tags[]' 2>/dev/null); \
+		tags=$$(curl -sf $${CURL_OPTS} https://$${REGISTRY_HOST}/v2/$${repo}/tags/list | jq -r '.tags[]' 2>/dev/null); \
 		for tag in $${tags}; do \
 			echo "$${REGISTRY_HOST}/$${repo}:$${tag}"; \
 		done; \
