@@ -132,6 +132,11 @@ delete-tags:
 	SELECTED=$$(eval "${BIN}/script-wizard select 'Select images to delete:' $${IMAGES[@]@Q}"); \
 	if [[ -z "$${SELECTED}" ]]; then echo "## No images selected." >&2; exit 0; fi; \
 	echo >&2; \
+	echo "## The following images will be deleted:" >&2; \
+	for image in $${SELECTED}; do echo "##   $${image}" >&2; done; \
+	echo >&2; \
+	${BIN}/confirm no "Proceed with deletion" "?" || exit 0; \
+	DELETED=0; \
 	for image in $${SELECTED}; do \
 		repo=$${image%%:*}; \
 		tag=$${image##*:}; \
@@ -147,10 +152,18 @@ delete-tags:
 			-X DELETE https://$${REGISTRY_HOST}/v2/$${repo}/manifests/$${digest}); \
 		if [[ "$${status}" == "202" ]]; then \
 			echo "## Deleted $${image}" >&2; \
+			DELETED=$$((DELETED + 1)); \
 		else \
 			echo "## Error deleting $${image} (HTTP $${status})" >&2; \
 		fi; \
-	done
+	done; \
+	if [[ $${DELETED} -gt 0 ]]; then \
+		echo >&2; \
+		${BIN}/confirm yes "Run garbage collection (requires temporary registry restart)" "?" || exit 0; \
+		make --no-print-directory docker-compose-lifecycle-cmd EXTRA_ARGS="stop registry"; \
+		make --no-print-directory docker-compose-lifecycle-cmd EXTRA_ARGS="run --rm --entrypoint '' registry registry garbage-collect /etc/docker/registry/config.yml"; \
+		make --no-print-directory docker-compose-lifecycle-cmd EXTRA_ARGS="start registry"; \
+	fi
 
 .PHONY: install-hook
 install-hook:
