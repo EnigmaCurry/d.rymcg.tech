@@ -19,10 +19,36 @@
 #@ mtls_authorized_certs = data.values.mtls_authorized_certs
 #@ enabled_middlewares = []
 
+#! ### Custom project vars
+#@ s3_storage = data.values.storage_backend == "s3"
+#@ s3_endpoint = data.values.s3_endpoint
+#@ s3_region = data.values.s3_region
+#@ s3_bucket = data.values.s3_bucket
+#@ s3_access_key = data.values.s3_access_key
+#@ s3_secret_key = data.values.s3_secret_key
+#@ enable_public = data.values.public == "true"
+
 #@yaml/text-templated-strings
 services:
   registry:
     #@ service = "registry"
+    environment:
+      - REGISTRY_HTTP_SECRET=${REGISTRY_HTTP_SECRET}
+      #@ if s3_storage:
+      - REGISTRY_STORAGE=s3
+      - REGISTRY_STORAGE_S3_REGIONENDPOINT=(@= s3_endpoint @)
+      - REGISTRY_STORAGE_S3_REGION=(@= s3_region @)
+      - REGISTRY_STORAGE_S3_BUCKET=(@= s3_bucket @)
+      - REGISTRY_STORAGE_S3_ACCESSKEY=(@= s3_access_key @)
+      - REGISTRY_STORAGE_S3_SECRETKEY=(@= s3_secret_key @)
+      - REGISTRY_STORAGE_S3_SECURE=true
+      - REGISTRY_STORAGE_S3_V4AUTH=true
+      - REGISTRY_STORAGE_DELETE_ENABLED=true
+      #@ end
+    #@ if not s3_storage:
+    volumes:
+      - registry:/var/lib/registry
+    #@ end
     labels:
       - "backup-volume.stop-during-backup=true"
       #! Services must opt-in to be proxied by Traefik:
@@ -64,3 +90,12 @@ services:
 
       #! Apply all middlewares (do this at the end!)
       - "traefik.http.routers.(@= router @).middlewares=(@= ','.join(enabled_middlewares) @)"
+
+      #@ if enable_public:
+      #! Public read-only router (GET/HEAD only, no auth required):
+      #@ router_public = "{}-public".format(router)
+      - "traefik.http.routers.(@= router_public @).rule=Host(`(@= traefik_host @)`) && Method(`GET`, `HEAD`)"
+      - "traefik.http.routers.(@= router_public @).entrypoints=websecure"
+      - "traefik.http.routers.(@= router_public @).service=(@= router @)"
+      - "traefik.http.routers.(@= router_public @).middlewares=(@= router @)-ipallowlist"
+      #@ end
