@@ -47,9 +47,10 @@ shell:
 login:
 	@if [[ ! -f ${ENV_FILE} ]]; then echo "Error: config file not found: ${ENV_FILE}" >&2; echo "Run 'make config' first." >&2; exit 1; fi; \
 	REGISTRY_HOST=$$(${BIN}/dotenv -f ${ENV_FILE} get REGISTRY_TRAEFIK_HOST); \
+	CI=${CONTEXT_INSTANCE}; \
 	if [[ -f passwords.json ]]; then \
-		USER=$$(jq -r '.["'${CONTEXT_INSTANCE}'"][0].username // empty' passwords.json 2>/dev/null); \
-		PASS=$$(jq -r '.["'${CONTEXT_INSTANCE}'"][0].password // empty' passwords.json 2>/dev/null); \
+		USER=$$(jq -r --arg key "$${CI}" '.[$$key][0].username // empty' passwords.json 2>/dev/null); \
+		PASS=$$(jq -r --arg key "$${CI}" '.[$$key][0].password // empty' passwords.json 2>/dev/null); \
 	fi; \
 	readarray -t CONTEXTS < <(docker context ls --format '{{.Name}}'); \
 	CONTEXT=$$(eval "${BIN}/script-wizard choose 'Which Docker context do you want to login from?' $${CONTEXTS[@]@Q} --default ${DOCKER_CONTEXT}"); \
@@ -68,12 +69,13 @@ list-tags:
 	HTTP_AUTH=$$(${BIN}/dotenv -f ${ENV_FILE} get REGISTRY_HTTP_AUTH); \
 	MTLS_AUTH=$$(${BIN}/dotenv -f ${ENV_FILE} get REGISTRY_MTLS_AUTH); \
 	CURL_OPTS=""; \
+	CI=${CONTEXT_INSTANCE}; \
 	echo "## Registry: $${REGISTRY_HOST}" >&2; \
 	if [[ "$${PUBLIC}" != "true" ]]; then \
 		if [[ -n "$${HTTP_AUTH}" ]]; then \
 			if [[ -f passwords.json ]]; then \
-				USER=$$(jq -r '.["'${CONTEXT_INSTANCE}'"][0].username' passwords.json); \
-				PASS=$$(jq -r '.["'${CONTEXT_INSTANCE}'"][0].password' passwords.json); \
+				USER=$$(jq -r --arg key "$${CI}" '.[$$key][0].username' passwords.json); \
+				PASS=$$(jq -r --arg key "$${CI}" '.[$$key][0].password' passwords.json); \
 			fi; \
 			if [[ -z "$${USER}" || "$${USER}" == "null" ]]; then \
 				USER=$$(echo "$${HTTP_AUTH}" | cut -d: -f1); \
