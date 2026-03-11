@@ -1,7 +1,7 @@
 #!/usr/bin/env -S uv run --quiet --script
 # /// script
 # requires-python = ">=3.10"
-# dependencies = ["nats-py>=2.9", "openai>=1.0"]
+# dependencies = ["nats-py>=2.9", "openai>=1.0", "markdown>=3.5"]
 # ///
 """NATS LLM Chatbot - bridges Matrix messages to an OpenAI-compatible LLM."""
 
@@ -15,6 +15,7 @@ import signal
 import ssl
 import sys
 
+import markdown
 import nats
 from nats.js.api import KeyValueConfig
 from openai import AsyncOpenAI
@@ -220,9 +221,11 @@ async def run(args):
 
     async def send_message(topic, body):
         """Send a message and return the Matrix event ID (or None on timeout)."""
+        html = markdown.markdown(body, extensions=["fenced_code", "tables"])
         payload = json.dumps({
             "topic": topic,
             "payload": body,
+            "html": html,
         }).encode()
         try:
             reply = await nc.request(args.nats_publish_subject, payload, timeout=10)
