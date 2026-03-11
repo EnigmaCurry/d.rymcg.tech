@@ -90,6 +90,7 @@ services:
       - "traefik.http.routers.(@= router_public @).rule=Host(`(@= traefik_host @)`) && Method(`GET`, `HEAD`)"
       - "traefik.http.routers.(@= router_public @).priority=100"
       - "traefik.http.routers.(@= router_public @).entrypoints=websecure"
+      - "traefik.http.services.(@= router @).loadbalancer.server.port=5000"
       - "traefik.http.routers.(@= router_public @).service=(@= router @)"
       - "traefik.http.routers.(@= router_public @).middlewares=(@= router @)-ipallowlist"
       #@ end
