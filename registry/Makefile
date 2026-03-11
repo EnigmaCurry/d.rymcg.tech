@@ -17,7 +17,7 @@ config-hook:
 	@${BIN}/reconfigure_choose ${ENV_FILE} REGISTRY_STORAGE_BACKEND "Choose the storage backend:" "docker" "s3"
 	@[[ $$(${BIN}/dotenv -f ${ENV_FILE} get REGISTRY_STORAGE_BACKEND) == "s3" ]] && \
 		${BIN}/reconfigure_ask ${ENV_FILE} REGISTRY_STORAGE_S3_ENDPOINT "Enter the S3 endpoint URL" && \
-		${BIN}/reconfigure_ask ${ENV_FILE} REGISTRY_STORAGE_S3_REGION "Enter the S3 region" && \
+		${BIN}/reconfigure_ask ${ENV_FILE} REGISTRY_STORAGE_S3_REGION "Enter the S3 region (use 'auto' for Cloudflare R2)" && \
 		${BIN}/reconfigure_ask ${ENV_FILE} REGISTRY_STORAGE_S3_BUCKET "Enter the S3 bucket name" && \
 		${BIN}/reconfigure_ask ${ENV_FILE} REGISTRY_STORAGE_S3_ACCESS_KEY "Enter the S3 access key" && \
 		${BIN}/reconfigure_ask ${ENV_FILE} REGISTRY_STORAGE_S3_SECRET_KEY "Enter the S3 secret key" || true
