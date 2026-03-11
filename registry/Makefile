@@ -43,6 +43,20 @@ override-hook:
 shell:
 	@make --no-print-directory docker-compose-shell SERVICE=registry
 
+.PHONY: login # Docker login to the registry
+login:
+	@if [[ ! -f ${ENV_FILE} ]]; then echo "Error: config file not found: ${ENV_FILE}" >&2; echo "Run 'make config' first." >&2; exit 1; fi; \
+	REGISTRY_HOST=$$(${BIN}/dotenv -f ${ENV_FILE} get REGISTRY_TRAEFIK_HOST); \
+	if [[ -f passwords.json ]]; then \
+		USER=$$(jq -r '."${CONTEXT_INSTANCE}"[0].username // empty' passwords.json 2>/dev/null); \
+		PASS=$$(jq -r '."${CONTEXT_INSTANCE}"[0].password // empty' passwords.json 2>/dev/null); \
+	fi; \
+	if [[ -n "$${USER}" && -n "$${PASS}" ]]; then \
+		echo "$${PASS}" | docker login "$${REGISTRY_HOST}" -u "$${USER}" --password-stdin; \
+	else \
+		docker login "$${REGISTRY_HOST}"; \
+	fi
+
 .PHONY: list-tags # List all repository tags on the registry
 list-tags:
 	@if [[ ! -f ${ENV_FILE} ]]; then echo "Error: config file not found: ${ENV_FILE}" >&2; echo "Run 'make config' first." >&2; exit 1; fi; \
