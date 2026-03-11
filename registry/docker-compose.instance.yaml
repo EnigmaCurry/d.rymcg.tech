@@ -76,10 +76,8 @@ services:
         #@ enabled_middlewares.append("mtls-header@file")
       #@ end
       
-      #! Override the default port that the app binds to:
-      #! You don't normally need to do this, as long as your image has
-      #! an EXPOSE directive in it, Traefik will autodetect it, but this is how you can override it:
-      #! - "traefik.http.services.(@= router @).loadbalancer.server.port=8000"
+      - "traefik.http.services.(@= router @).loadbalancer.server.port=5000"
+      - "traefik.http.routers.(@= router @).service=(@= router @)"
 
       #! Apply all middlewares (do this at the end!)
       - "traefik.http.routers.(@= router @).middlewares=(@= ','.join(enabled_middlewares) @)"
@@ -90,7 +88,6 @@ services:
       - "traefik.http.routers.(@= router_public @).rule=Host(`(@= traefik_host @)`) && Method(`GET`, `HEAD`)"
       - "traefik.http.routers.(@= router_public @).priority=100"
       - "traefik.http.routers.(@= router_public @).entrypoints=websecure"
-      - "traefik.http.services.(@= router @).loadbalancer.server.port=5000"
       - "traefik.http.routers.(@= router_public @).service=(@= router @)"
       - "traefik.http.routers.(@= router_public @).middlewares=(@= router @)-ipallowlist"
       #@ end
