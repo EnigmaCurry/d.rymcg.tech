@@ -27,10 +27,43 @@ logging.basicConfig(
 )
 log = logging.getLogger("request-bot")
 
-DEFAULT_SYSTEM_PROMPT = (
-    "You are a helpful assistant for d.rymcg.tech, a Docker-based self-hosting platform. "
-    "Answer questions clearly and concisely. If you don't know something, say so."
-)
+DEFAULT_SYSTEM_PROMPT = """\
+You are an agent for d.rymcg.tech, a Docker-based self-hosting platform.
+
+For each user message, determine the intent:
+
+1. **General chat** — questions, help, explanations. Respond naturally in markdown.
+
+2. **Action request** — the user wants to perform an operation on a d.rymcg.tech project \
+(e.g. "install whoami", "restart forgejo", "check status of traefik"). \
+Respond with a brief explanation of what you would do, then include the request as a \
+JSON code block. Do NOT execute anything — only show the JSON request object.
+
+## Request JSON Schema
+
+```json
+{schema}
+```
+
+## Docker context
+
+The target server Docker context is: `{context}`
+
+## Available projects
+
+{projects}
+
+## Rules
+
+- For action requests, always include a fenced JSON code block with the request object.
+- The `project` field must exactly match a project name from the list above.
+- The `context` field must be `{context}`.
+- The `instance` field defaults to `default` — only set it if the user specifies an instance.
+- For `reconfigure`, `config_vars` is required — ask the user what variables to set if unclear.
+- If the user's intent is ambiguous, ask for clarification rather than guessing.
+- Never fabricate project names. If the user asks about a project not in the list, say so.
+- Keep responses concise.
+"""
 
 
 def parse_args():
@@ -105,9 +138,15 @@ def parse_args():
         help="Path to CA certificate for OpenAI backend (optional)",
     )
     p.add_argument(
+        "--context",
+        default=os.environ.get("DRT_REQUEST_BOT_CONTEXT"),
+        required=not os.environ.get("DRT_REQUEST_BOT_CONTEXT"),
+        help="Docker context name for the target server (required)",
+    )
+    p.add_argument(
         "--system-prompt",
-        default=os.environ.get("DRT_REQUEST_BOT_SYSTEM_PROMPT", DEFAULT_SYSTEM_PROMPT),
-        help="System prompt for the LLM",
+        default=os.environ.get("DRT_REQUEST_BOT_SYSTEM_PROMPT"),
+        help="Override the default system prompt",
     )
     p.add_argument(
         "--debug",
@@ -128,7 +167,42 @@ def parse_args():
     args.nats_publish_subject = f"{ns}.responses"
     args.nats_reactions_subject = f"{ns}.reactions"
     args.nats_kv_bucket = f"{ns.replace('.', '_')}_history"
+
+    # Build system prompt with schema and project list
+    if not args.system_prompt:
+        schema, projects = _load_schema_and_projects()
+        args.system_prompt = DEFAULT_SYSTEM_PROMPT.format(
+            schema=schema,
+            context=args.context,
+            projects=projects,
+        )
     return args
+
+
+def _load_schema_and_projects():
+    """Load the request JSON schema and project list."""
+    import subprocess
+    script_dir = os.path.dirname(os.path.abspath(__file__))
+
+    # Get JSON schema
+    try:
+        result = subprocess.run(
+            [os.path.join(script_dir, "d.rymcg.tech"), "request", "--get-json-schema"],
+            capture_output=True, text=True, timeout=10,
+        )
+        schema = result.stdout.strip()
+    except Exception as e:
+        log.warning("Failed to load JSON schema: %s", e)
+        schema = "{}"
+
+    # Get project list from directories with Makefiles
+    root_dir = os.path.dirname(script_dir)
+    projects = sorted(
+        d for d in os.listdir(root_dir)
+        if not d.startswith("_")
+        and os.path.isfile(os.path.join(root_dir, d, "Makefile"))
+    )
+    return schema, ", ".join(projects)
 
 
 def build_nats_tls(cert_path, key_path, ca_path=None):
