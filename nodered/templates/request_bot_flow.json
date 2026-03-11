@@ -157,7 +157,7 @@
         "type": "function",
         "z": "${PREFIX_ID}_TAB_RESPONSES",
         "name": "Parse response",
-        "func": "// Store NATS reply subject in global context (Matrix Send strips it)\n// Keyed by room ID since messages are processed sequentially\nglobal.set('nats_reply_' + msg.payload.topic, msg._reply);\nmsg.topic = msg.payload.topic;\nif (msg.payload.html) {\n    msg.format = 'org.matrix.custom.html';\n    msg.formattedBody = msg.payload.html;\n}\nmsg.payload = msg.payload.payload;\nreturn msg;",
+        "func": "// Store NATS reply subject in global context (Matrix Send strips it)\n// Keyed by room ID since messages are processed sequentially\nglobal.set('nats_reply_' + msg.payload.topic, msg._reply);\nmsg.topic = msg.payload.topic;\nif (msg.payload.html) {\n    msg.content = {\n        msgtype: 'm.text',\n        body: msg.payload.payload,\n        format: 'org.matrix.custom.html',\n        formatted_body: msg.payload.html\n    };\n}\nmsg.payload = msg.payload.payload;\nreturn msg;",
         "outputs": 1,
         "timeout": 0,
         "noerr": 0,
