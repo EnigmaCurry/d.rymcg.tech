@@ -694,7 +694,7 @@ BAO_CLIENT_KEY=${BAO_CLIENT_KEY}"
     echo ""
     echo "Init complete for context '${CONTEXT}'."
     echo ""
-    echo "IMPORTANT: Back up these files:"
+    echo "IMPORTANT: Back up these things:"
     echo "  1) AGE key:     ${AGE_KEY_FILE}"
     if [[ -f "${AGE_KEY_DIR}/${CONTEXT}.fido2" ]]; then
         echo "  2) FIDO2 device: your hardware key is required for decryption"
