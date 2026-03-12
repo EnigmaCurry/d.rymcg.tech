@@ -4,25 +4,30 @@ A pre-built Docker image that packages the entire
 [d.rymcg.tech](https://github.com/EnigmaCurry/d.rymcg.tech) framework
 for headless and interactive deployments to remote Docker hosts over SSH.
 
-## Quick start (no repo needed)
+## Quick start
 
-Run `drt` directly from the container image — no git clone or file
-extraction needed. First, pull the image:
-
-```bash
-podman pull ghcr.io/enigmacurry/d-rymcg-tech:latest
-```
-
-Then define a shell alias (the `--pull=never` flag ensures the alias
-only uses your locally pulled image, never fetching from a registry
-automatically):
+Add the following shell function to your `~/.bashrc` or `~/.zshrc`:
 
 ```bash
-## Add to your ~/.bashrc or ~/.zshrc:
-alias drt='bash <(podman run --rm --pull=never --net=none ghcr.io/enigmacurry/d-rymcg-tech drt)'
+drt() {
+  local img=localhost/d-rymcg-tech:latest
+  if ! podman image exists "$img" 2>/dev/null; then
+    local repo=https://github.com/EnigmaCurry/d.rymcg.tech.git
+    local branch=master
+    echo "## First run: building ${img} from ${repo}#${branch} ..." >&2
+    podman build \
+      --build-arg BRANCH=${branch} \
+      --build-arg GIT_REPO=${repo} \
+      -t "${img}" \
+      -f _container/Dockerfile \
+      "${repo}#${branch}"
+  fi
+  bash <(podman run --rm --pull=never --net=none "${img}" drt) "$@"
+}
 ```
 
-Then bootstrap and launch:
+The first time you run any `drt` command, it automatically builds the
+image from source. After that it runs instantly.
 
 ```bash
 ## Bootstrap a new deployment context (generates AGE key + SOPS config):
@@ -32,7 +37,17 @@ drt --init myserver
 drt myserver
 ```
 
-Use `--docker` instead of the default Podman engine:
+### Using a pre-built image
+
+If you prefer to pull a pre-built image from the registry instead of
+building from source:
+
+```bash
+podman pull ghcr.io/enigmacurry/d-rymcg-tech:latest
+alias drt='bash <(podman run --rm --pull=never --net=none ghcr.io/enigmacurry/d-rymcg-tech drt)'
+```
+
+### Using Docker instead of Podman
 
 ```bash
 docker pull ghcr.io/enigmacurry/d-rymcg-tech:latest
@@ -41,16 +56,18 @@ drt --docker --init myserver
 drt --docker myserver
 ```
 
+### Other options
+
 Use `--image` to specify a custom image tag:
 
 ```bash
 drt --image ghcr.io/enigmacurry/d-rymcg-tech:latest --init myserver
 ```
 
-Alternatively, extract `drt` to a local file:
+Extract `drt` to a local file:
 
 ```bash
-podman run --rm --pull=never --net=none ghcr.io/enigmacurry/d-rymcg-tech drt --extract > drt && chmod +x drt
+podman run --rm --pull=never --net=none localhost/d-rymcg-tech:latest drt --extract > drt && chmod +x drt
 ./drt --help
 ```
 
@@ -197,47 +214,20 @@ SSH certificate and the entrypoint runs ssh-keyscan automatically.
 
 ## Building from source
 
-You can build the image directly from the git repository, without
-cloning it first. This is the recommended approach for workstations
-that don't need a local checkout.
-
-### Initial build
-
-Build the image from the `master` branch:
-
-```bash
-REPO=https://github.com/EnigmaCurry/d.rymcg.tech.git
-BRANCH=master
-podman build \
-  --build-arg BRANCH=${BRANCH} \
-  --build-arg GIT_REPO=${REPO} \
-  -t localhost/d-rymcg-tech:latest \
-  -f _container/Dockerfile \
-  ${REPO}#${BRANCH}
-```
-
-The `--build-arg` values are baked into the image as labels, so that
-`drt --build` remembers which repo and branch to use for future
-rebuilds.
-
-Then set up the alias:
-
-```bash
-## Add to your ~/.bashrc or ~/.zshrc:
-alias drt='bash <(podman run --rm --pull=never --net=none localhost/d-rymcg-tech:latest drt)'
-```
+The `drt` shell function in [Quick start](#quick-start) automatically
+builds the image on first run. No manual build step is needed.
 
 ### Upgrading
 
-Once the alias is set up and the image has the branch label, rebuild
-with:
+Rebuild the image with the latest changes:
 
 ```bash
 drt --build
 ```
 
-This clones the branch recorded in the image label, rebuilds, and
-re-tags the image in place. To switch branches:
+This clones the branch recorded in the image label (default:
+`master`), rebuilds, and re-tags the image in place. To switch
+branches:
 
 ```bash
 drt --build some-other-branch
