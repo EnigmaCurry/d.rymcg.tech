@@ -444,17 +444,18 @@ cmd_run() {
     # Read age key content; decrypt if passphrase-protected
     local AGE_KEY_CONTENT
     if head -1 "${AGE_KEY_FILE}" | grep -q '^age-encryption.org'; then
-        echo "## AGE key is passphrase-protected, decrypting ..." >&2
-        local _tmp_in _tmp_out
-        _tmp_in=$(mktemp) _tmp_out=$(mktemp)
+        local _tmp_in _passphrase
+        _tmp_in=$(mktemp)
         cp "${AGE_KEY_FILE}" "${_tmp_in}"
-        chmod 600 "${_tmp_in}" "${_tmp_out}"
-        container_run -it --user 0:0 \
-            -v "${_tmp_in}:/tmp/age-key-in:ro" \
-            -v "${_tmp_out}:/tmp/age-key-out" \
-            "${IMAGE}" sh -c 'age -d /tmp/age-key-in > /tmp/age-key-out'
-        AGE_KEY_CONTENT=$(cat "${_tmp_out}")
-        rm -f "${_tmp_in}" "${_tmp_out}"
+        chmod 600 "${_tmp_in}"
+        read -rsp "Enter passphrase for AGE key: " _passphrase
+        echo >&2
+        AGE_KEY_CONTENT=$(container_run --user 0:0 \
+            -v "${_tmp_in}:/tmp/age-key:ro" \
+            -e "_AGE_PASS=${_passphrase}" \
+            "${IMAGE}" sh -c 'echo "${_AGE_PASS}" | age -d /tmp/age-key')
+        unset _passphrase
+        rm -f "${_tmp_in}"
         if [[ -z "${AGE_KEY_CONTENT}" ]]; then
             echo "Error: failed to decrypt AGE key" >&2
             exit 1
