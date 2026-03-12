@@ -8,7 +8,7 @@ RUN apk add --no-cache git jq gcc musl-dev libfido2-dev && \
     VERSION=$(jq -r '.dependencies["age-plugin-fido2-hmac"].version' /tmp/.tools.lock.json) && \
     git clone https://github.com/olastor/age-plugin-fido2-hmac.git /src && \
     cd /src && git -c advice.detachedHead=false checkout "v${VERSION}" && \
-    CGO_ENABLED=1 go build -ldflags '-linkmode external -extldflags "-static"' -o /age-plugin-fido2-hmac ./cmd/age-plugin-fido2-hmac
+    CGO_ENABLED=1 go build -o /age-plugin-fido2-hmac ./cmd/age-plugin-fido2-hmac
 
 FROM docker.io/library/alpine:3.23
 
