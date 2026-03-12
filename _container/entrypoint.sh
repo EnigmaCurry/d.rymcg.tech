@@ -521,15 +521,7 @@ if [[ -t 0 ]]; then
     } >> ~/.ssh/config-drt
 fi
 chmod 600 ~/.ssh/config-drt
-
-# Ensure ~/.ssh/config includes config-drt
-if [[ ! -f ~/.ssh/config ]]; then
-    echo "Include config-drt" > ~/.ssh/config
-elif ! grep -q 'Include config-drt' ~/.ssh/config; then
-    sed -i '1i Include config-drt' ~/.ssh/config
-fi
-chmod 600 ~/.ssh/config
-log "## SSH config written"
+log "## SSH config-drt written"
 
 ## Step 7: Create and activate Docker context
 log "## Step 7: Creating Docker context '${DOCKER_CONTEXT}'"
@@ -553,6 +545,14 @@ cp -n .env-dist ".env_${DOCKER_CONTEXT}"
 if ! env | d.rymcg.tech restore-env --yes 2>/dev/null; then
     echo "WARNING: restore-env had errors (some vars may need reconfiguration)" >&2
 fi
+
+# Ensure ~/.ssh/config includes config-drt (after restore-env, which may restore ~/.ssh/config)
+if [[ ! -f ~/.ssh/config ]]; then
+    echo "Include config-drt" > ~/.ssh/config
+elif ! grep -q 'Include config-drt' ~/.ssh/config; then
+    sed -i '1i Include config-drt' ~/.ssh/config
+fi
+chmod 600 ~/.ssh/config
 
 ## Step 9: Ensure explicitly requested projects have env files
 log "## Step 9: Checking requested project env files"
