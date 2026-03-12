@@ -388,8 +388,11 @@ cmd_run() {
                 if [[ -z "${SOPS_CONFIG}" ]]; then
                     SOPS_CONFIG="$1"
                     shift
-                    # Everything after context is the command to run
-                    CMD_ARGS=("$@")
+                else
+                    # Second positional arg = start of command to run
+                    CMD_ARGS=("$1")
+                    shift
+                    CMD_ARGS+=("$@")
                     break
                 fi
                 ;;
