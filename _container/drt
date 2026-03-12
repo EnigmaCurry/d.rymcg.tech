@@ -155,6 +155,7 @@ Options:
   --seal [CONTEXT]   Seal the OpenBao server used by a context
   --unseal [CONTEXT] Unseal the OpenBao server used by a context
   --list             List all contexts (AGE keys and SOPS configs)
+  --git-init         Initialize ~/.config/d.rymcg.tech as a git repo
   --git [ARGS]       Run git commands in ~/.config/d.rymcg.tech
   --pull             Pull latest image
   --build            Build image from git (branch from DRT_BUILD_BRANCH or image label)
@@ -758,6 +759,42 @@ cmd_clean() {
 cmd_git() {
     local CONFIG_BASE="${HOME}/.config/d.rymcg.tech"
     git -C "${CONFIG_BASE}" "$@"
+}
+
+cmd_git_init() {
+    local CONFIG_BASE="${HOME}/.config/d.rymcg.tech"
+
+    if [[ -d "${CONFIG_BASE}/.git" ]]; then
+        echo "Config repo already initialized at ${CONFIG_BASE}" >&2
+        exit 1
+    fi
+
+    check_engine
+
+    local BRANCH USER_EMAIL USER_NAME REMOTE
+    BRANCH=$(wizard ask "Branch name" "master")
+    USER_EMAIL=$(wizard ask "Git email")
+    USER_NAME=$(wizard ask "Git name")
+    REMOTE=$(wizard ask "Git remote URL (e.g. git@github.com:you/drt-config.git)")
+
+    git -C "${CONFIG_BASE}" init -b "${BRANCH}"
+    git -C "${CONFIG_BASE}" config user.email "${USER_EMAIL}"
+    git -C "${CONFIG_BASE}" config user.name "${USER_NAME}"
+
+    if [[ -n "${REMOTE}" ]]; then
+        git -C "${CONFIG_BASE}" remote add origin "${REMOTE}"
+    fi
+
+    git -C "${CONFIG_BASE}" add -A
+    git -C "${CONFIG_BASE}" commit -m "init" >/dev/null
+    echo "## Config repo initialized at ${CONFIG_BASE}" >&2
+
+    if [[ -n "${REMOTE}" ]]; then
+        echo "## Pushing to ${REMOTE} ..." >&2
+        git -C "${CONFIG_BASE}" push -u origin "${BRANCH}" 2>/dev/null && \
+            echo "## Pushed" >&2 || \
+            echo "## Push failed — check your remote URL and SSH keys" >&2
+    fi
 }
 
 ###############################################################################
@@ -1511,6 +1548,10 @@ while [[ $# -gt 0 ]]; do
             ACTION=list
             shift
             ;;
+        --git-init)
+            ACTION=git_init
+            shift
+            ;;
         --git)
             ACTION=git
             shift
@@ -1605,6 +1646,9 @@ case "${ACTION}" in
         ;;
     list)
         cmd_list
+        ;;
+    git_init)
+        cmd_git_init
         ;;
     git)
         cmd_git "${ARGS[@]+"${ARGS[@]}"}"
