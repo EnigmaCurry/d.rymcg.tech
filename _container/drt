@@ -786,8 +786,11 @@ cmd_git_init() {
 
     local BRANCH USER_EMAIL USER_NAME REMOTE
     BRANCH=$(wizard ask "Branch name" "master")
-    USER_EMAIL=$(wizard ask "Git email")
-    USER_NAME=$(wizard ask "Git name")
+    local _default_email _default_name
+    _default_email=$(git config --global user.email 2>/dev/null || true)
+    _default_name=$(git config --global user.name 2>/dev/null || true)
+    USER_EMAIL=$(wizard ask "Git email" "${_default_email}")
+    USER_NAME=$(wizard ask "Git name" "${_default_name}")
     REMOTE=$(wizard ask "Git remote URL (e.g. ssh://git@github.com:22/you/drt-config.git)")
 
     git -C "${CONFIG_BASE}" init -b "${BRANCH}"
