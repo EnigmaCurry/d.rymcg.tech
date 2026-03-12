@@ -203,14 +203,14 @@ that don't need a local checkout.
 
 ### Initial build
 
-Build the image and specify the branch to track:
+Build the image from the `master` branch:
 
 ```bash
 podman build \
-  --build-arg BRANCH=workstation-ci-request \
+  --build-arg BRANCH=master \
   -t localhost/d-rymcg-tech:latest \
   -f _container/Dockerfile \
-  https://github.com/EnigmaCurry/d.rymcg.tech.git#workstation-ci-request
+  https://github.com/EnigmaCurry/d.rymcg.tech.git#master
 ```
 
 The `--build-arg BRANCH=...` bakes the branch name into the image as
