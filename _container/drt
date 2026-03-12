@@ -947,18 +947,28 @@ cmd_edit() {
         exit 1
     fi
 
-    # Checksum before editing
-    local BEFORE_HASH
-    BEFORE_HASH=$(sha256sum "${EDIT_FILE}" | awk '{print $1}')
+    # Save original for diffing
+    local ORIG_FILE="${EDIT_DIR}/${CONTEXT}.env.orig"
+    cp "${EDIT_FILE}" "${ORIG_FILE}"
 
     # Open editor
     "${EDITOR:-nano}" "${EDIT_FILE}"
 
     # Check if file was modified
-    local AFTER_HASH
-    AFTER_HASH=$(sha256sum "${EDIT_FILE}" | awk '{print $1}')
-    if [[ "${BEFORE_HASH}" == "${AFTER_HASH}" ]]; then
+    if diff -q "${ORIG_FILE}" "${EDIT_FILE}" &>/dev/null; then
         echo "## No changes made, config unchanged." >&2
+        rm -rf "${EDIT_DIR}" "${DEC_DIR}"
+        exit 0
+    fi
+
+    # Show diff and confirm
+    echo "" >&2
+    echo "## Changes:" >&2
+    diff -u "${ORIG_FILE}" "${EDIT_FILE}" >&2 || true
+    echo "" >&2
+    read -rp "Save changes to ${SOPS_CONFIG}? [y/N] " answer
+    if [[ ! "${answer}" =~ ^[Yy]$ ]]; then
+        echo "## Changes discarded." >&2
         rm -rf "${EDIT_DIR}" "${DEC_DIR}"
         exit 0
     fi
