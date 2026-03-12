@@ -795,6 +795,25 @@ cmd_git_init() {
     USER_NAME=$(wizard ask "Git name" "${_default_name}")
     REMOTE=$(wizard ask "Git remote URL (e.g. ssh://git@github.com:22/you/drt-config.git)")
 
+    ## Check if remote already has history — offer to clone instead
+    if [[ -n "${REMOTE}" ]] && git ls-remote --heads "${REMOTE}" 2>/dev/null | grep -q .; then
+        echo "" >&2
+        echo "Remote ${REMOTE} already has commits." >&2
+        echo "" >&2
+        if wizard confirm "Clone from remote?" yes; then
+            local tmpdir
+            tmpdir=$(mktemp -d)
+            git clone -b "${BRANCH}" "${REMOTE}" "${tmpdir}/repo"
+            mv "${tmpdir}/repo/.git" "${CONFIG_BASE}/.git"
+            rm -rf "${tmpdir}"
+            git -C "${CONFIG_BASE}" config user.email "${USER_EMAIL}"
+            git -C "${CONFIG_BASE}" config user.name "${USER_NAME}"
+            git -C "${CONFIG_BASE}" checkout -- . 2>/dev/null || true
+            echo "## Cloned config repo from ${REMOTE}" >&2
+            return 0
+        fi
+    fi
+
     git -C "${CONFIG_BASE}" init -b "${BRANCH}"
     git -C "${CONFIG_BASE}" config user.email "${USER_EMAIL}"
     git -C "${CONFIG_BASE}" config user.name "${USER_NAME}"
