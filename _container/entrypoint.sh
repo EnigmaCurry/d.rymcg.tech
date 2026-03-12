@@ -559,12 +559,15 @@ fi
 log "## Docker context activated"
 
 ## Step 8: Create root .env and distribute env vars via restore-env
-echo "## Restoring environment ..." >&2
+echo -n "## Restoring environment ... " >&2
 log "## Step 8: Running restore-env"
 cd "${ROOT_DIR}"
 cp -n .env-dist ".env_${DOCKER_CONTEXT}"
 if ! env | d.rymcg.tech restore-env --yes 2>/dev/null; then
+    echo "" >&2
     echo "WARNING: restore-env had errors (some vars may need reconfiguration)" >&2
+else
+    echo "done!" >&2
 fi
 
 # Ensure ~/.ssh/config includes config-drt (after restore-env, which may restore ~/.ssh/config)
