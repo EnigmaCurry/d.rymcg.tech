@@ -482,6 +482,8 @@ if [[ "${BAO_USED}" == true ]]; then
     # OpenBao signs certs for the container-generated key; disable SSH agent
     unset SSH_AUTH_SOCK
     {
+        echo "Host ${DOCKER_CONTEXT}"
+        echo ""
         echo "Match host ${DOCKER_CONTEXT} exec \"sign-ssh-cert\""
         echo "    HostName ${SSH_HOST}"
         echo "    User ${SSH_USER}"
