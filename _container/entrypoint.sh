@@ -49,9 +49,10 @@ fi
 ## "drt <args>" execs directly (no entrypoint setup needed)
 if [[ "${1:-}" == "drt" ]]; then
     if [[ $# -eq 1 ]]; then
-        exec su-exec "${RUNTIME_USER}" drt --extract
+        exec su-exec "${RUNTIME_USER}" /opt/drt --extract
     fi
-    exec su-exec "${RUNTIME_USER}" "$@"
+    shift
+    exec su-exec "${RUNTIME_USER}" /opt/drt "$@"
 fi
 
 ## Preflight: detect unconfigured container
@@ -68,7 +69,7 @@ if [[ -z "${SSH_HOST:-}" && -z "${SOPS_CONFIG_FILE:-}" && -z "${BAO_ADDR:-}" && 
     echo "##" >&2
     echo "##    == Interactive usage (drt) ==" >&2
     # Print the setup instructions from the drt script's trailing comment block
-    awk -v img="${DRT_IMAGE:-localhost/d-rymcg-tech}" '/^###/ { if (in_block) { in_block=0 } else { in_block=1; buf="" }; next } in_block { sub(/^# ?/, ""); gsub(/@@DRT_IMAGE@@/, img); buf = buf "##    " $0 "\n" } END { printf "%s", buf }' /usr/local/bin/drt >&2
+    awk -v img="${DRT_IMAGE:-localhost/d-rymcg-tech}" '/^###/ { if (in_block) { in_block=0 } else { in_block=1; buf="" }; next } in_block { sub(/^# ?/, ""); gsub(/@@DRT_IMAGE@@/, img); buf = buf "##    " $0 "\n" } END { printf "%s", buf }' /opt/drt >&2
     echo "##" >&2
     echo "##    == Debug usage (unconfirmed SSH host foo) ==" >&2
     echo "##    podman run --rm -it -e SSH_HOST=foo -e SSH_KEY_SCAN=false ${DRT_IMAGE:-localhost/d-rymcg-tech}" >&2

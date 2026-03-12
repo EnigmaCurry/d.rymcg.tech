@@ -85,8 +85,8 @@ RUN for f in $(grep -rl '# /// script' _scripts/ _container/ 2>/dev/null); do \
     done
 USER root
 
-COPY --chown=1000:1000 _container/drt /usr/local/bin/drt
-RUN chmod +x /usr/local/bin/drt
+COPY --chown=1000:1000 _container/drt /opt/drt
+RUN chmod +x /opt/drt
 
 COPY --chown=1000:1000 _container/sign-ssh-cert /usr/local/bin/sign-ssh-cert
 RUN chmod +x /usr/local/bin/sign-ssh-cert
