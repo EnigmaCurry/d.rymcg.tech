@@ -10,17 +10,17 @@ Add the following shell function to your `~/.bashrc` or `~/.zshrc`:
 
 ```bash
 drt() {
+  export DRT_GIT_REPO=https://github.com/EnigmaCurry/d.rymcg.tech.git
+  export DRT_BUILD_BRANCH=master
   local img=localhost/d-rymcg-tech:latest
   if ! podman image exists "$img" 2>/dev/null; then
-    local repo=https://github.com/EnigmaCurry/d.rymcg.tech.git
-    local branch=master
-    echo "## First run: building ${img} from ${repo}#${branch} ..." >&2
+    echo "## First run: building ${img} from ${DRT_GIT_REPO}#${DRT_BUILD_BRANCH} ..." >&2
     podman build \
-      --build-arg BRANCH=${branch} \
-      --build-arg GIT_REPO=${repo} \
+      --build-arg BRANCH=${DRT_BUILD_BRANCH} \
+      --build-arg GIT_REPO=${DRT_GIT_REPO} \
       -t "${img}" \
       -f _container/Dockerfile \
-      "${repo}#${branch}"
+      "${DRT_GIT_REPO}#${DRT_BUILD_BRANCH}"
   fi
   bash <(podman run --rm --pull=never --net=none "${img}" drt) "$@"
 }

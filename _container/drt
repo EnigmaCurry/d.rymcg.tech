@@ -846,12 +846,15 @@ cmd_build() {
         REPO="${REPO:-${DRT_GIT_REPO_DEFAULT}}"
     fi
 
+    # Priority: CLI arg > DRT_BUILD_BRANCH env > image label > master
     local BRANCH=""
-    if [[ -z "${1:-}" ]]; then
+    if [[ -n "${1:-}" ]]; then
+        BRANCH="$1"
+    elif [[ -n "${DRT_BUILD_BRANCH:-}" ]]; then
+        BRANCH="${DRT_BUILD_BRANCH}"
+    else
         BRANCH=$("${ENGINE}" image inspect "${IMAGE}" --format '{{index .Labels "drt.branch"}}' 2>/dev/null || true)
         BRANCH="${BRANCH:-master}"
-    else
-        BRANCH="$1"
     fi
 
     echo "## Building from ${REPO}#${BRANCH} ..." >&2
