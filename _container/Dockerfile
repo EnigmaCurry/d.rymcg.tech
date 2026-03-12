@@ -1,7 +1,7 @@
 # Build context must be the d.rymcg.tech root directory.
 # Build with: docker build -f _container/Dockerfile -t d-rymcg-tech .
 
-FROM alpine:3.23
+FROM docker.io/library/alpine:3.23
 
 # Install all runtime packages from Alpine repos
 RUN apk add --no-cache \
