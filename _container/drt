@@ -236,6 +236,7 @@ cmd_init() {
             container_run -it --user 0:0 \
                 -v "${DEC_DIR}:/tmp/age-work:Z" \
                 "${IMAGE}" sh -c 'age -d /tmp/age-work/age-key-in > /tmp/age-work/age-key-dec'
+            echo "## Passphrase accepted." >&2
             PUBKEY=$(grep -o 'age1[a-z0-9]*' "${DEC_DIR}/age-key-dec" | head -1)
             rm -rf "${DEC_DIR}"
         else
@@ -809,6 +810,7 @@ cmd_view() {
         container_run -it --user 0:0 \
             -v "${DEC_DIR}:/tmp/age-work:Z" \
             "${IMAGE}" sh -c 'age -d /tmp/age-work/age-key-in > /tmp/age-work/age-key-dec'
+        echo "## Passphrase accepted." >&2
         AGE_KEY_FILE="${DEC_DIR}/age-key-dec"
     fi
 
@@ -918,6 +920,7 @@ cmd_edit() {
         container_run -it --user 0:0 \
             -v "${DEC_DIR}:/tmp/age-work:Z" \
             "${IMAGE}" sh -c 'age -d /tmp/age-work/age-key-in > /tmp/age-work/age-key-dec'
+        echo "## Passphrase accepted." >&2
         AGE_KEY_FILE="${DEC_DIR}/age-key-dec"
     fi
 
@@ -1144,6 +1147,7 @@ _bao_resolve() {
         container_run -it --user 0:0 \
             -v "${DEC_DIR}:/tmp/age-work:Z" \
             "${IMAGE}" sh -c 'age -d /tmp/age-work/age-key-in > /tmp/age-work/age-key-dec'
+        echo "## Passphrase accepted." >&2
         AGE_KEY_FILE="${DEC_DIR}/age-key-dec"
     fi
 

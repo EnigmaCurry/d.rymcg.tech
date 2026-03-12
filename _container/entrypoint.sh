@@ -343,6 +343,7 @@ decrypt_age_key() {
                 echo "ERROR: failed to decrypt AGE key" >&2
                 exit 1
             fi
+            echo "## Passphrase accepted." >&2
             chmod 600 "${DECRYPTED_AGE_KEY}"
             export SOPS_AGE_KEY_FILE="${DECRYPTED_AGE_KEY}"
             log "## AGE key decrypted"
