@@ -352,58 +352,80 @@ cmd_init() {
                 fi
                 ;;
             "FIDO2 hardware key (EXPERIMENTAL)")
-                echo "Detecting FIDO2 devices..."
-                local FIDO2_DEVICES=() FIDO2_IDS=() FIDO2_DEVPATHS=()
-                while IFS='|' read -r devpath hidid devname; do
-                    FIDO2_DEVICES+=("${devname} (${devpath})")
-                    FIDO2_IDS+=("${hidid}")
-                    FIDO2_DEVPATHS+=("${devpath}")
-                done < <(detect_hidraw_devices)
+                local ALL_PUBKEYS=()
+                local FIDO2_ID_FILE="${AGE_KEY_DIR}/${CONTEXT}.fido2"
+                > "${AGE_KEY_FILE}"   # start with empty key file
+                > "${FIDO2_ID_FILE}"  # start with empty device list
+                chmod 600 "${AGE_KEY_FILE}" "${FIDO2_ID_FILE}"
+                local _key_num=0
 
-                if [[ ${#FIDO2_DEVICES[@]} -eq 0 ]]; then
-                    echo "Error: no hidraw devices detected in /dev/hidraw*" >&2
-                    echo "  Ensure your FIDO2 key is plugged in and you have read access to /dev/hidraw*" >&2
-                    exit 1
-                fi
+                while true; do
+                    (( _key_num++ ))
+                    echo ""
+                    [[ ${_key_num} -gt 1 ]] && echo "--- Enrolling FIDO2 key #${_key_num} ---"
+                    echo "Detecting FIDO2 devices..."
+                    local FIDO2_DEVICES=() FIDO2_IDS=() FIDO2_DEVPATHS=()
+                    while IFS='|' read -r devpath hidid devname; do
+                        FIDO2_DEVICES+=("${devname} (${devpath})")
+                        FIDO2_IDS+=("${hidid}")
+                        FIDO2_DEVPATHS+=("${devpath}")
+                    done < <(detect_hidraw_devices)
 
-                local SELECTED_IDX=0
-                local SELECTED
-                SELECTED=$(wizard choose "Select FIDO2 device" "${FIDO2_DEVICES[@]}")
-                for i in "${!FIDO2_DEVICES[@]}"; do
-                    if [[ "${FIDO2_DEVICES[$i]}" == "${SELECTED}" ]]; then
-                        SELECTED_IDX=$i
+                    if [[ ${#FIDO2_DEVICES[@]} -eq 0 ]]; then
+                        echo "Error: no FIDO2 devices detected in /dev/hidraw*" >&2
+                        echo "  Ensure your FIDO2 key is plugged in and you have read access to /dev/hidraw*" >&2
+                        exit 1
+                    fi
+
+                    local SELECTED_IDX=0
+                    local SELECTED
+                    SELECTED=$(wizard choose "Select FIDO2 device" "${FIDO2_DEVICES[@]}")
+                    for i in "${!FIDO2_DEVICES[@]}"; do
+                        if [[ "${FIDO2_DEVICES[$i]}" == "${SELECTED}" ]]; then
+                            SELECTED_IDX=$i
+                            break
+                        fi
+                    done
+
+                    local FIDO2_DEV="${FIDO2_DEVPATHS[$SELECTED_IDX]}"
+                    local FIDO2_HID_ID="${FIDO2_IDS[$SELECTED_IDX]}"
+
+                    echo "Generating FIDO2 AGE identity on ${FIDO2_DEV}..."
+                    echo "You will be prompted for your FIDO2 PIN and to touch the key."
+                    local FIDO2_DIR
+                    FIDO2_DIR=$(mktemp -d)
+                    if container_run -it --user 0:0 \
+                        --security-opt label=disable \
+                        --device "${FIDO2_DEV}" \
+                        -v "${FIDO2_DIR}:/tmp/fido2-work:Z" \
+                        "${IMAGE}" sh -c 'age-plugin-fido2-hmac -g > /tmp/fido2-work/identity' \
+                        && [[ -s "${FIDO2_DIR}/identity" ]]; then
+                        # Append this identity to the key file
+                        cat "${FIDO2_DIR}/identity" >> "${AGE_KEY_FILE}"
+                        echo "" >> "${AGE_KEY_FILE}"
+                        local _this_pubkey
+                        _this_pubkey=$(grep -o 'age1[a-z0-9]*' "${FIDO2_DIR}/identity" | head -1)
+                        ALL_PUBKEYS+=("${_this_pubkey}")
+                        # Append device HID_ID for runtime detection
+                        echo "${FIDO2_HID_ID}" >> "${FIDO2_ID_FILE}"
+                        echo "FIDO2 key #${_key_num} enrolled (${_this_pubkey:0:20}...)"
+                    else
+                        rm -rf "${FIDO2_DIR}"
+                        echo "Error: FIDO2 key generation failed." >&2
+                        exit 1
+                    fi
+                    rm -rf "${FIDO2_DIR}"
+
+                    if ! wizard confirm "Enroll another FIDO2 key (backup)?" no; then
                         break
                     fi
                 done
 
-                local FIDO2_DEV="${FIDO2_DEVPATHS[$SELECTED_IDX]}"
-                local FIDO2_HID_ID="${FIDO2_IDS[$SELECTED_IDX]}"
-
-                echo "Generating FIDO2 AGE identity on ${FIDO2_DEV}..."
-                echo "You will be prompted for your FIDO2 PIN and to touch the key."
-                local FIDO2_DIR
-                FIDO2_DIR=$(mktemp -d)
-                if container_run -it --user 0:0 \
-                    --security-opt label=disable \
-                    --device "${FIDO2_DEV}" \
-                    -v "${FIDO2_DIR}:/tmp/fido2-work:Z" \
-                    "${IMAGE}" sh -c 'age-plugin-fido2-hmac -g > /tmp/fido2-work/identity' \
-                    && [[ -s "${FIDO2_DIR}/identity" ]]; then
-                    mv "${FIDO2_DIR}/identity" "${AGE_KEY_FILE}"
-                    chmod 600 "${AGE_KEY_FILE}"
-                else
-                    rm -rf "${FIDO2_DIR}"
-                    echo "Error: FIDO2 key generation failed." >&2
-                    exit 1
-                fi
-                rm -rf "${FIDO2_DIR}"
-                PUBKEY=$(grep -o 'age1[a-z0-9]*' "${AGE_KEY_FILE}" | head -1)
-
-                # Store device HID_ID for runtime detection
-                echo "${FIDO2_HID_ID}" > "${AGE_KEY_DIR}/${CONTEXT}.fido2"
-                chmod 600 "${AGE_KEY_DIR}/${CONTEXT}.fido2"
-                echo "FIDO2 AGE identity created: ${AGE_KEY_FILE}"
-                echo "Device ID stored: ${AGE_KEY_DIR}/${CONTEXT}.fido2"
+                # Join all public keys with commas for SOPS
+                PUBKEY=$(IFS=,; echo "${ALL_PUBKEYS[*]}")
+                echo ""
+                echo "FIDO2 identities created: ${AGE_KEY_FILE} (${_key_num} key(s))"
+                echo "Device IDs stored: ${FIDO2_ID_FILE}"
                 ;;
             "No protection")
                 echo "Generating a new AGE keypair..."
@@ -836,13 +858,16 @@ cmd_run() {
     AGE_KEY_DIR="$(dirname "${AGE_KEY_FILE}")"
     local FIDO2_ID_FILE="${AGE_KEY_DIR}/${CONTEXT_NAME:-}.fido2"
     if [[ -n "${CONTEXT_NAME:-}" && -f "${FIDO2_ID_FILE}" ]]; then
-        local FIDO2_HID_ID FIDO2_DEV
-        FIDO2_HID_ID=$(cat "${FIDO2_ID_FILE}")
-        FIDO2_DEV=$(find_hidraw_by_id "${FIDO2_HID_ID}") || {
-            echo "Error: FIDO2 device not detected (HID_ID: ${FIDO2_HID_ID})" >&2
-            echo "  Ensure your FIDO2 key is plugged in" >&2
+        local FIDO2_DEV="" _fido2_id
+        while IFS= read -r _fido2_id; do
+            [[ -z "${_fido2_id}" ]] && continue
+            FIDO2_DEV=$(find_hidraw_by_id "${_fido2_id}") && break
+        done < "${FIDO2_ID_FILE}"
+        if [[ -z "${FIDO2_DEV}" ]]; then
+            echo "Error: no enrolled FIDO2 device detected" >&2
+            echo "  Ensure one of your FIDO2 keys is plugged in" >&2
             exit 1
-        }
+        fi
         echo "## FIDO2: passing through ${FIDO2_DEV}" >&2
         RUN_ARGS+=(--device "${FIDO2_DEV}")
     fi
