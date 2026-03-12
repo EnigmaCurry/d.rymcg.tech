@@ -959,73 +959,83 @@ cmd_seal() {
 
     echo "## OpenBao server: ${BAO_ADDR}" >&2
 
-    # Extract mTLS certs from config and write to temp files
-    local TLS_DIR=""
-    local CURL_TLS_FLAGS=()
-    _extract_tls_var() {
-        local var_name="$1" flag="$2"
+    # Build env vars for the container from the decrypted config
+    local SEAL_ENV=()
+    local var
+    for var in BAO_ADDR BAO_CACERT BAO_CLIENT_CERT BAO_CLIENT_KEY; do
         local val=""
-        val=$(echo "${PLAINTEXT}" | grep -oP "^${var_name}=\\K.*" || true)
-        [[ -z "${val}" ]] && return
-        if [[ -z "${TLS_DIR}" ]]; then
-            TLS_DIR=$(mktemp -d)
-        fi
-        local tls_file="${TLS_DIR}/${var_name}"
-        # Detect base64-encoded content
-        if [[ $(echo "${val}" | wc -l) -eq 1 ]] && \
-           [[ ${#val} -gt 60 ]] && \
-           echo "${val}" | grep -qE '^[A-Za-z0-9+/=]+$'; then
-            echo "${val}" | base64 -d > "${tls_file}"
-        else
-            echo "${val}" > "${tls_file}"
-        fi
-        CURL_TLS_FLAGS+=("${flag}" "${tls_file}")
-    }
-    _extract_tls_var BAO_CACERT --cacert
-    _extract_tls_var BAO_CLIENT_CERT --cert
-    _extract_tls_var BAO_CLIENT_KEY --key
+        val=$(echo "${PLAINTEXT}" | grep -oP "^${var}=\\K.*" || true)
+        [[ -n "${val}" ]] && SEAL_ENV+=(-e "${var}=${val}")
+    done
 
-    # Check seal status first
-    local STATUS
-    STATUS=$(curl -sf "${CURL_TLS_FLAGS[@]}" "${BAO_ADDR}/v1/sys/seal-status" 2>/dev/null || true)
-    if [[ -z "${STATUS}" ]]; then
-        echo "Error: could not reach ${BAO_ADDR}" >&2
-        [[ -n "${TLS_DIR}" ]] && rm -rf "${TLS_DIR}"
-        exit 1
-    fi
+    # Run seal logic inside the container (has curl, jq, TLS decoding).
+    detect_net_mode
+    local RUN_ARGS=(run --rm -it --entrypoint "")
+    [[ -n "${NET_MODE}" ]] && RUN_ARGS+=(--net="${NET_MODE}")
+    RUN_ARGS+=("${SEAL_ENV[@]}" "${IMAGE}")
 
-    local SEALED
-    SEALED=$(echo "${STATUS}" | grep -oP '"sealed":\K(true|false)' || true)
-    if [[ "${SEALED}" == "true" ]]; then
-        echo "## OpenBao at ${BAO_ADDR} is already sealed." >&2
-        [[ -n "${TLS_DIR}" ]] && rm -rf "${TLS_DIR}"
-        return
-    fi
+    local _ctx=()
+    [[ "${ENGINE}" == "docker" ]] && _ctx=(--context default)
 
-    read -rp "Seal the OpenBao server that ${CONTEXT} is using (${BAO_ADDR})? [y/N] " answer
-    if [[ ! "${answer}" =~ ^[Yy]$ ]]; then
-        echo "## Cancelled" >&2
-        [[ -n "${TLS_DIR}" ]] && rm -rf "${TLS_DIR}"
-        return
-    fi
+    "${ENGINE}" "${_ctx[@]}" "${RUN_ARGS[@]}" bash -c '
+set -eo pipefail
 
-    read -rsp "Root token: " ROOT_TOKEN
-    echo "" >&2
-
-    curl -sf "${CURL_TLS_FLAGS[@]}" -X PUT \
-        -H "X-Vault-Token: ${ROOT_TOKEN}" \
-        "${BAO_ADDR}/v1/sys/seal" >/dev/null 2>&1 || true
-
-    # Check if sealed
-    STATUS=$(curl -sf "${CURL_TLS_FLAGS[@]}" "${BAO_ADDR}/v1/sys/seal-status" 2>/dev/null || true)
-    SEALED=$(echo "${STATUS}" | grep -oP '"sealed":\K(true|false)' || true)
-    [[ -n "${TLS_DIR}" ]] && rm -rf "${TLS_DIR}"
-    if [[ "${SEALED}" == "true" ]]; then
-        echo "## OpenBao at ${BAO_ADDR} has been sealed." >&2
+# Resolve TLS vars (base64/PEM → temp files)
+TLS_FLAGS=()
+_resolve_tls() {
+    local var="$1" flag="$2" val="${!1:-}"
+    [ -z "${val}" ] && return
+    local f="/tmp/tls-${var}"
+    if [ -f "${val}" ]; then
+        f="${val}"
+    elif echo "${val}" | grep -q "BEGIN"; then
+        echo "${val}" > "${f}"
+    elif [ ${#val} -gt 60 ] && echo "${val}" | grep -qE "^[A-Za-z0-9+/=]+$"; then
+        echo "${val}" | base64 -d > "${f}"
     else
-        echo "Error: seal failed. Check the root token and try again." >&2
-        exit 1
+        echo "${val}" > "${f}"
     fi
+    TLS_FLAGS+=("${flag}" "${f}")
+}
+_resolve_tls BAO_CACERT --cacert
+_resolve_tls BAO_CLIENT_CERT --cert
+_resolve_tls BAO_CLIENT_KEY --key
+
+STATUS=$(curl -sf "${TLS_FLAGS[@]}" "${BAO_ADDR}/v1/sys/seal-status" 2>/dev/null || true)
+if [ -z "${STATUS}" ]; then
+    echo "Error: could not reach ${BAO_ADDR}" >&2
+    exit 1
+fi
+
+SEALED=$(echo "${STATUS}" | jq -r .sealed)
+if [ "${SEALED}" = "true" ]; then
+    echo "## OpenBao at ${BAO_ADDR} is already sealed." >&2
+    exit 0
+fi
+
+printf "Seal the OpenBao server at %s? [y/N] " "${BAO_ADDR}" >&2
+read -r answer < /dev/tty
+case "${answer}" in
+    [Yy]*) ;;
+    *) echo "## Cancelled" >&2; exit 0 ;;
+esac
+
+printf "Root token: " >&2
+read -rs ROOT_TOKEN < /dev/tty
+echo "" >&2
+
+curl -sf "${TLS_FLAGS[@]}" -X PUT \
+    -H "X-Vault-Token: ${ROOT_TOKEN}" \
+    "${BAO_ADDR}/v1/sys/seal" >/dev/null 2>&1 || true
+
+STATUS=$(curl -sf "${TLS_FLAGS[@]}" "${BAO_ADDR}/v1/sys/seal-status" 2>/dev/null || true)
+SEALED=$(echo "${STATUS}" | jq -r .sealed)
+if [ "${SEALED}" = "true" ]; then
+    echo "## OpenBao at ${BAO_ADDR} has been sealed." >&2
+else
+    echo "Error: seal failed. Check the root token and try again." >&2
+    exit 1
+fi'
 }
 
 ###############################################################################
