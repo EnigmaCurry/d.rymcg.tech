@@ -311,12 +311,12 @@ are excluded by `.gitignore` and must be backed up separately.
 ### Initialize the config repo
 
 ```bash
-drt --git init -b master
-drt --git config user.email "you@example.com"
-drt --git config user.name "Your Name"
-drt --git remote add origin git@github.com:you/drt-config.git
-drt --git push -u origin master
+drt --git-init
 ```
+
+This interactively prompts for branch name (default: `master`), git
+email, name, and remote URL, then initializes the repo, commits, and
+pushes.
 
 Once a remote is configured, `drt` will automatically:
 

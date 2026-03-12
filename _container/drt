@@ -775,7 +775,7 @@ cmd_git_init() {
     BRANCH=$(wizard ask "Branch name" "master")
     USER_EMAIL=$(wizard ask "Git email")
     USER_NAME=$(wizard ask "Git name")
-    REMOTE=$(wizard ask "Git remote URL (e.g. git@github.com:you/drt-config.git)")
+    REMOTE=$(wizard ask "Git remote URL (e.g. ssh://git@github.com:22/you/drt-config.git)")
 
     git -C "${CONFIG_BASE}" init -b "${BRANCH}"
     git -C "${CONFIG_BASE}" config user.email "${USER_EMAIL}"
