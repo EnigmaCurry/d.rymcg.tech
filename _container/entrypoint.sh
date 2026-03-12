@@ -383,6 +383,7 @@ log "## Step 2: AGE key decryption"
 decrypt_age_key
 
 ## Step 3: Conditional SOPS/OpenBao resolution
+echo -n "## Restoring environment ... " >&2
 log "## Step 3: SOPS/OpenBao resolution"
 BAO_USED=false
 
@@ -559,7 +560,6 @@ fi
 log "## Docker context activated"
 
 ## Step 8: Create root .env and distribute env vars via restore-env
-echo -n "## Restoring environment ... " >&2
 log "## Step 8: Running restore-env"
 cd "${ROOT_DIR}"
 cp -n .env-dist ".env_${DOCKER_CONTEXT}"
