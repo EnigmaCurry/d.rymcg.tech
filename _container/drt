@@ -837,22 +837,16 @@ cmd_view() {
 
 cmd_pull() {
     check_engine
-
     local LOCAL_ID=""
     if "${ENGINE}" image exists "${IMAGE}" 2>/dev/null; then
         LOCAL_ID=$("${ENGINE}" image inspect "${IMAGE}" --format '{{.Id}}' 2>/dev/null || true)
     fi
-
-    echo "## Pulling ${IMAGE} ..." >&2
     "${ENGINE}" pull "${IMAGE}"
-
     local NEW_ID=""
     NEW_ID=$("${ENGINE}" image inspect "${IMAGE}" --format '{{.Id}}' 2>/dev/null || true)
-    if [[ -z "${LOCAL_ID}" ]]; then
-        echo "## Image pulled (${NEW_ID:0:19}...)" >&2
-    elif [[ "${LOCAL_ID}" == "${NEW_ID}" ]]; then
+    if [[ -n "${LOCAL_ID}" && "${LOCAL_ID}" == "${NEW_ID}" ]]; then
         echo "## Already up to date (${NEW_ID:0:19}...)" >&2
-    else
+    elif [[ -n "${LOCAL_ID}" ]]; then
         echo "## Updated: ${LOCAL_ID:0:19}... → ${NEW_ID:0:19}..." >&2
     fi
 }
