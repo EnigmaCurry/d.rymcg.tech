@@ -340,6 +340,7 @@ an error — resolve manually with `drt --git`.
 |---|---|---|
 | `config/*.sops.env` | Yes | Encrypted with AGE — safe in a private repo |
 | `keys/` | No | Excluded by `.gitignore` — back up separately |
+| `gumdrop-presets/` | No | Excluded by `.gitignore` — serialized in SOPS config |
 | `.gitignore` | Yes | Created by `drt --init` |
 | `net-mode` | No | Excluded by `.gitignore` (local cache) |
 

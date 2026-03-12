@@ -114,7 +114,12 @@ ensure_config_dir() {
         cat > "${CONFIG_BASE}/.gitignore" <<'GITIGNORE'
 net-mode
 keys/*
+gumdrop-presets/*
 GITIGNORE
+    else
+        # Ensure newer ignore entries are present in existing .gitignore
+        grep -qx 'gumdrop-presets/\*' "${CONFIG_BASE}/.gitignore" 2>/dev/null || \
+            echo 'gumdrop-presets/*' >> "${CONFIG_BASE}/.gitignore"
     fi
     if [[ ! -f "${CONFIG_BASE}/keys/.gitkeep" ]]; then
         touch "${CONFIG_BASE}/keys/.gitkeep"

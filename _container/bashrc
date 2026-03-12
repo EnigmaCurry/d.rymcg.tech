@@ -29,14 +29,15 @@ if [[ "${SOPS_SAVE_ON_EXIT:-}" == "true" && -n "${SOPS_CONFIG_FILE:-}" ]]; then
                 local header="${line#\#\# }"
                 if [[ "${header}" != "SSH" && "${header}" != .env_* && "${header}" != */.env_* \
                    && "${header}" != */passwords.json && "${header}" != "doctl config" \
-                   && "${header}" != "ssh config" && "${header}" != "ssh keys" ]]; then
+                   && "${header}" != "ssh config" && "${header}" != "ssh keys" \
+                   && "${header}" != "gumdrop presets" ]]; then
                     [[ -n "${result}" ]] && result+=$'\n'
                     result+="${line}"
                 fi
             elif [[ "${line}" == *=* && "${line}" != "#"* ]]; then
                 local key="${line%%=*}"
                 # Always preserve serialized data as safety net
-                if [[ "${key}" == __passwords__* || "${key}" == "__doctl_config__" || "${key}" == "__ssh_config__" || "${key}" == __ssh_key__* ]]; then
+                if [[ "${key}" == __passwords__* || "${key}" == "__doctl_config__" || "${key}" == "__ssh_config__" || "${key}" == __ssh_key__* || "${key}" == __gumdrop_preset__* ]]; then
                     [[ -n "${result}" ]] && result+=$'\n'
                     result+="${line}"
                 # Preserve vars not in export-env output

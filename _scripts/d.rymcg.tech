@@ -922,6 +922,20 @@ __export_env() {
         plaintext+="__ssh_key__${kf_name}=${kf_data}"$'\n'
     done
 
+    # Serialize gumdrop (droplet) presets
+    local gumdrop_found=false
+    for gf in "${HOME}/.config/d.rymcg.tech/gumdrop-presets"/*; do
+        [[ -f "${gf}" ]] || continue
+        local gf_name="${gf##*/}"
+        if [[ "${gumdrop_found}" == false ]]; then
+            plaintext+=$'\n'"## gumdrop presets"$'\n'
+            gumdrop_found=true
+        fi
+        local gf_data
+        gf_data=$(gzip -cn < "${gf}" | base64 -w 0)
+        plaintext+="__gumdrop_preset__${gf_name}=${gf_data}"$'\n'
+    done
+
     local output
     if [[ "${encrypt}" == true ]]; then
         output=$(echo "${plaintext}" | sops encrypt --input-type dotenv --output-type dotenv --filename-override export.env --age "${recipients}" /dev/stdin)
@@ -1036,6 +1050,7 @@ __restore_env() {
     declare -A file_seen
     declare -A password_files  # "project/passwords.json" → base64 data
     declare -A ssh_key_files   # "filename" → base64 data
+    declare -A gumdrop_preset_files  # "filename" → base64 data
     local doctl_config_b64=""
     local ssh_config_b64=""
 
@@ -1060,6 +1075,13 @@ __restore_env() {
         if [[ "${key}" == __ssh_key__* ]]; then
             local kf_name="${key#__ssh_key__}"
             ssh_key_files["${kf_name}"]="${val}"
+            continue
+        fi
+
+        # Serialized gumdrop presets: __gumdrop_preset__<filename>=<base64>
+        if [[ "${key}" == __gumdrop_preset__* ]]; then
+            local gf_name="${key#__gumdrop_preset__}"
+            gumdrop_preset_files["${gf_name}"]="${val}"
             continue
         fi
 
@@ -1215,6 +1237,17 @@ __restore_env() {
             echo "## Restoring ${HOME}/.ssh/${kf_name}" >&2
             _b64_decode "${ssh_key_files[${kf_name}]}" > "${HOME}/.ssh/${kf_name}"
             chmod 600 "${HOME}/.ssh/${kf_name}"
+        done
+    fi
+
+    # Restore gumdrop presets if present
+    if [[ ${#gumdrop_preset_files[@]} -gt 0 ]]; then
+        local gumdrop_dir="${HOME}/.config/d.rymcg.tech/gumdrop-presets"
+        mkdir -p "${gumdrop_dir}"
+        for gf_name in "${!gumdrop_preset_files[@]}"; do
+            echo "## Restoring ${gumdrop_dir}/${gf_name}" >&2
+            _b64_decode "${gumdrop_preset_files[${gf_name}]}" > "${gumdrop_dir}/${gf_name}"
+            chmod 600 "${gumdrop_dir}/${gf_name}"
         done
     fi
 }
