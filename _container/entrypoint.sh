@@ -331,6 +331,7 @@ decrypt_age_key() {
             # (age reads from /dev/tty, not stdin)
             if [[ -t 0 ]]; then
                 while read -t 0.1 -s -r < /dev/tty; do :; done 2>/dev/null || true
+                echo "## Enter your AGE key passphrase now." >&2
             fi
             DECRYPTED_AGE_KEY=$(mktemp)
             if ! age -d "${SOPS_AGE_KEY_FILE}" > "${DECRYPTED_AGE_KEY}"; then
