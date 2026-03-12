@@ -6,14 +6,36 @@ set -eo pipefail
 ROOT_DIR=/home/user/git/vendor/enigmacurry/d.rymcg.tech
 BIN="${ROOT_DIR}/_scripts"
 
-## Step 0: Set up PATH so the d.rymcg.tech CLI works
+## Step 0: Set up runtime user with host UID/GID
+RUNTIME_UID="${HOST_UID:-1000}"
+RUNTIME_GID="${HOST_GID:-1000}"
+RUNTIME_USER="user"
+RUNTIME_HOME="/home/user"
+
+# Update user/group to match host UID/GID
+sed -i "s/^user:x:[0-9]*:[0-9]*/user:x:${RUNTIME_UID}:${RUNTIME_GID}/" /etc/passwd
+sed -i "s/^user:x:[0-9]*/user:x:${RUNTIME_GID}/" /etc/group
+
+# Fix ownership of writable directories
+chown "${RUNTIME_UID}:${RUNTIME_GID}" "${RUNTIME_HOME}"
+chown -R "${RUNTIME_UID}:${RUNTIME_GID}" \
+    "${RUNTIME_HOME}/.config" \
+    "${RUNTIME_HOME}/.ssh" \
+    "${RUNTIME_HOME}/.local" \
+    /run/secrets/ssh \
+    2>/dev/null || true
+if [[ -d /data ]]; then
+    chown -R "${RUNTIME_UID}:${RUNTIME_GID}" /data
+fi
+
+## Set up PATH so the d.rymcg.tech CLI works
 export PATH="${ROOT_DIR}/_scripts/user:${PATH}"
 
 ## Logging: suppress unless DRT_VERBOSE=true
 if [[ "${DRT_VERBOSE:-}" == "true" ]]; then
     log() { echo "$@" >&2; }
     CURL_VERBOSE=(-v)
-    echo "## Entrypoint started (args: $*)" >&2
+    echo "## Entrypoint started (uid=$(id -u), runtime=${RUNTIME_UID}:${RUNTIME_GID}, args: $*)" >&2
 else
     log() { :; }
     CURL_VERBOSE=(-s)
@@ -23,9 +45,9 @@ fi
 ## "drt <args>" execs directly (no entrypoint setup needed)
 if [[ "${1:-}" == "drt" ]]; then
     if [[ $# -eq 1 ]]; then
-        exec drt --extract
+        exec su-exec "${RUNTIME_USER}" drt --extract
     fi
-    exec "$@"
+    exec su-exec "${RUNTIME_USER}" "$@"
 fi
 
 ## Preflight: detect unconfigured container
@@ -540,8 +562,30 @@ for i in "${!_cmd_args[@]}"; do
     fi
 done
 
-## Step 11: Exec the command
-log "## Step 11: Executing: $*"
+## Step 11: Fix ownership and drop privileges
+log "## Step 11: Fixing ownership and dropping to ${RUNTIME_USER} (${RUNTIME_UID}:${RUNTIME_GID})"
+
+# Fix ownership of files created during entrypoint setup
+chown -R "${RUNTIME_UID}:${RUNTIME_GID}" \
+    "${RUNTIME_HOME}/.ssh" \
+    "${RUNTIME_HOME}/.docker" \
+    /run/secrets/ssh \
+    2>/dev/null || true
+
+# Make SOPS config writable by runtime user for save-on-exit
+if [[ "${SOPS_SAVE_ON_EXIT:-}" == "true" && -n "${SOPS_CONFIG_FILE:-}" && -f "${SOPS_CONFIG_FILE}" ]]; then
+    chown "${RUNTIME_UID}:${RUNTIME_GID}" "${SOPS_CONFIG_FILE}"
+fi
+
+# Fix ownership of env files created by restore-env
+find "${ROOT_DIR}" -name ".env_*" -exec chown "${RUNTIME_UID}:${RUNTIME_GID}" {} + 2>/dev/null || true
+
+# Make SSH agent socket accessible
+if [[ -S "${SSH_AUTH_SOCK:-}" ]]; then
+    chmod 777 "${SSH_AUTH_SOCK}" 2>/dev/null || true
+fi
+
 export DRT_CONTEXT="${DOCKER_CONTEXT}"
 unset DOCKER_CONTEXT
-exec "$@"
+log "## Executing: $*"
+exec su-exec "${RUNTIME_USER}" "$@"

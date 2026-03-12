@@ -31,7 +31,8 @@ RUN apk add --no-cache \
     nano \
     mg \
     gcompat \
-    libgcc
+    libgcc \
+    su-exec
 
 # Install uv (Python package manager)
 RUN curl -fsSL https://astral.sh/uv/install.sh | UV_INSTALL_DIR=/usr/local/bin sh
@@ -83,8 +84,6 @@ RUN chmod +x /usr/local/bin/sign-ssh-cert
 
 COPY --chown=1000:1000 _container/entrypoint.sh /entrypoint.sh
 RUN chmod +x /entrypoint.sh
-
-USER user
 
 ARG EDITOR=mg
 ENV EDITOR=${EDITOR}
