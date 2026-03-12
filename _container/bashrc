@@ -60,8 +60,8 @@ if [[ "${SOPS_SAVE_ON_EXIT:-}" == "true" && -n "${SOPS_CONFIG_FILE:-}" ]]; then
             echo "## Configuration changes detected:" >&2
             diff -u "${_sops_initial_state}" "${current_state}" >&2 || true
             echo "" >&2
-            read -rp "Save changes to ${_SOPS_BIND_PATH:-${SOPS_CONFIG_FILE}}? [y/N] " answer
-            if [[ "${answer}" =~ ^[Yy]$ ]]; then
+            read -rp "Save changes to ${_SOPS_BIND_PATH:-${SOPS_CONFIG_FILE}}? [Y/n] " answer
+            if [[ ! "${answer}" =~ ^[Nn]$ ]]; then
                 local merged export_output export_keys
                 merged=$(mktemp)
                 export_output=$(mktemp)
