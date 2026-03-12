@@ -1205,10 +1205,28 @@ while [[ $# -gt 0 ]]; do
             shift
             ;;
         *)
-            # Positional arg = CONTEXT for run; collect rest too
+            # Positional arg = CONTEXT for run; check remaining args for action flags
             ARGS+=("$1")
             shift
-            ARGS+=("$@")
+            # Scan remaining args: if an action flag appears, switch to that action
+            for _remaining in "$@"; do
+                case "${_remaining}" in
+                    --init)   ACTION=init; break ;;
+                    --view)   ACTION=view; break ;;
+                    --clean)  ACTION=clean; break ;;
+                    --seal)   ACTION=seal; break ;;
+                    --unseal) ACTION=unseal; break ;;
+                esac
+            done
+            if [[ "${ACTION}" != "run" ]]; then
+                # Re-parse remaining args into ARGS (context already added)
+                for _remaining in "$@"; do
+                    [[ "${_remaining}" == "--${ACTION}" ]] && continue
+                    ARGS+=("${_remaining}")
+                done
+            else
+                ARGS+=("$@")
+            fi
             break
             ;;
     esac
