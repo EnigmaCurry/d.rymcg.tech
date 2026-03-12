@@ -302,6 +302,7 @@ cmd_init() {
     else
         echo "Using existing AGE key: ${AGE_KEY_FILE}"
         ## Extract public key — if encrypted, need to decrypt first
+        local _PLAINTEXT_AGE_KEY=""
         if head -1 "${AGE_KEY_FILE}" | grep -q '^age-encryption.org'; then
             local DEC_DIR
             DEC_DIR=$(mktemp -d)
@@ -311,7 +312,7 @@ cmd_init() {
                 "${IMAGE}" sh -c 'age -d /tmp/age-work/age-key-in > /tmp/age-work/age-key-dec'
             echo "## Passphrase accepted." >&2
             PUBKEY=$(grep -o 'age1[a-z0-9]*' "${DEC_DIR}/age-key-dec" | head -1)
-            rm -rf "${DEC_DIR}"
+            _PLAINTEXT_AGE_KEY="${DEC_DIR}/age-key-dec"
         else
             PUBKEY=$(grep -o 'age1[a-z0-9]*' "${AGE_KEY_FILE}" | head -1)
             echo "WARNING: AGE key is NOT password-protected."
@@ -328,10 +329,12 @@ cmd_init() {
     local _CUR_BAO_CACERT="" _CUR_BAO_CLIENT_CERT="" _CUR_BAO_CLIENT_KEY=""
     if [[ -f "${CONFIG_DIR}/${CONTEXT}.sops.env" ]]; then
         echo "## Decrypting existing config for defaults ..." >&2
+        local _decrypt_key="${AGE_KEY_FILE}"
+        [[ -n "${_PLAINTEXT_AGE_KEY}" ]] && _decrypt_key="${_PLAINTEXT_AGE_KEY}"
         _EXISTING=$(container_run \
             --user 0:0 -i \
             -v "${CONFIG_DIR}/${CONTEXT}.sops.env:/tmp/config.sops.env:ro" \
-            -v "${AGE_KEY_FILE}:/run/secrets/age-key:ro" \
+            -v "${_decrypt_key}:/run/secrets/age-key:ro" \
             -e "SOPS_AGE_KEY_FILE=/run/secrets/age-key" \
             "${IMAGE}" \
             sops decrypt --input-type dotenv --output-type dotenv \
@@ -511,7 +514,15 @@ BAO_CLIENT_KEY=${BAO_CLIENT_KEY}"
     echo "repo, the SOPS config is tracked but AGE keys are excluded by"
     echo ".gitignore and must be backed up separately. You can keep all your"
     echo "configs in one repo, but each context requires its own AGE key."
-    git_auto_commit "init context: ${CONTEXT}"
+    ## Clean up decrypted AGE key temp file
+    if [[ -n "${_PLAINTEXT_AGE_KEY:-}" ]]; then
+        rm -rf "$(dirname "${_PLAINTEXT_AGE_KEY}")"
+    fi
+    if [[ -n "${_EXISTING}" ]]; then
+        git_auto_commit "update context: ${CONTEXT}"
+    else
+        git_auto_commit "init context: ${CONTEXT}"
+    fi
     echo ""
     echo "Next steps:"
     echo "  drt ${CONTEXT}"
