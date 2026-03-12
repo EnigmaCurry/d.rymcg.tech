@@ -195,9 +195,56 @@ docker run --rm \
 No SSH keys or known_hosts are needed — OpenBao issues a short-lived
 SSH certificate and the entrypoint runs ssh-keyscan automatically.
 
-## Building locally
+## Building from source
 
-You can build the image from your local checkout:
+You can build the image directly from the git repository, without
+cloning it first. This is the recommended approach for workstations
+that don't need a local checkout.
+
+### Initial build
+
+Build the image and specify the branch to track:
+
+```bash
+podman build \
+  --build-arg BRANCH=workstation-ci-request \
+  -t localhost/d-rymcg-tech:latest \
+  -f _container/Dockerfile \
+  https://github.com/EnigmaCurry/d.rymcg.tech.git#workstation-ci-request
+```
+
+The `--build-arg BRANCH=...` bakes the branch name into the image as
+a label, so that future rebuilds remember which branch to use.
+
+Then set up the alias:
+
+```bash
+## Add to your ~/.bashrc or ~/.zshrc:
+alias drt='bash <(podman run --rm --pull=never --net=none localhost/d-rymcg-tech:latest drt)'
+```
+
+### Upgrading
+
+Once the alias is set up and the image has the branch label, rebuild
+with:
+
+```bash
+drt --build
+```
+
+This clones the branch recorded in the image label, rebuilds, and
+re-tags the image in place. To switch branches:
+
+```bash
+drt --build some-other-branch
+```
+
+You can override the git repository with the `DRT_GIT_REPO`
+environment variable.
+
+## Building from a local checkout
+
+You can also build the image from a local clone of the repository:
 
 ```bash
 d container-build                                              # Podman, tagged localhost/d-rymcg-tech:latest
