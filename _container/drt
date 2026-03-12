@@ -32,9 +32,9 @@ check_engine() {
 ## Always runs locally (--context default for docker) to avoid executing on a remote SSH context
 container_run() {
     if [[ "${ENGINE}" == "docker" ]]; then
-        "${ENGINE}" --context default run --rm --entrypoint "" "$@"
+        "${ENGINE}" --context default run --rm --net=none --entrypoint "" "$@"
     else
-        "${ENGINE}" run --rm --entrypoint "" "$@"
+        "${ENGINE}" run --rm --net=none --entrypoint "" "$@"
     fi
 }
 
