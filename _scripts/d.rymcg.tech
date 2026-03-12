@@ -843,7 +843,7 @@ __export_env() {
         known_hosts_combined=$(echo "${known_hosts_combined}" | sort -u | sed '/^$/d')
         if [[ -n "${known_hosts_combined}" ]]; then
             local kh_data
-            kh_data=$(echo "${known_hosts_combined}" | gzip -c | base64 -w 0)
+            kh_data=$(echo "${known_hosts_combined}" | gzip -cn | base64 -w 0)
             plaintext+="SSH_KNOWN_HOSTS=${kh_data}"$'\n'
         fi
         first=false
@@ -882,7 +882,7 @@ __export_env() {
         seen_projects["${project}"]=1
         if [[ -f "${project}/passwords.json" ]]; then
             local pw_data
-            pw_data=$(gzip -c < "${project}/passwords.json" | base64 -w 0)
+            pw_data=$(gzip -cn < "${project}/passwords.json" | base64 -w 0)
             plaintext+=$'\n'"## ${project}/passwords.json"$'\n'
             plaintext+="__passwords__${project}=${pw_data}"$'\n'
         fi
@@ -891,7 +891,7 @@ __export_env() {
     # Serialize doctl config if present
     if [[ -f "${HOME}/.config/doctl/config.yaml" ]]; then
         local doctl_data
-        doctl_data=$(gzip -c < "${HOME}/.config/doctl/config.yaml" | base64 -w 0)
+        doctl_data=$(gzip -cn < "${HOME}/.config/doctl/config.yaml" | base64 -w 0)
         plaintext+=$'\n'"## doctl config"$'\n'
         plaintext+="__doctl_config__=${doctl_data}"$'\n'
     fi
@@ -899,7 +899,7 @@ __export_env() {
     # Serialize user SSH config if present (excludes auto-generated config-drt)
     if [[ -f "${HOME}/.ssh/config" ]]; then
         local ssh_data
-        ssh_data=$(gzip -c < "${HOME}/.ssh/config" | base64 -w 0)
+        ssh_data=$(gzip -cn < "${HOME}/.ssh/config" | base64 -w 0)
         plaintext+=$'\n'"## ssh config"$'\n'
         plaintext+="__ssh_config__=${ssh_data}"$'\n'
     fi
@@ -918,7 +918,7 @@ __export_env() {
             ssh_key_found=true
         fi
         local kf_data
-        kf_data=$(gzip -c < "${kf}" | base64 -w 0)
+        kf_data=$(gzip -cn < "${kf}" | base64 -w 0)
         plaintext+="__ssh_key__${kf_name}=${kf_data}"$'\n'
     done
 
