@@ -302,8 +302,9 @@ cmd_init() {
     else
         echo "Using existing AGE key: ${AGE_KEY_FILE}"
         ## Extract public key — if encrypted, need to decrypt first
-        local _PLAINTEXT_AGE_KEY=""
+        local _KEY_IS_ENCRYPTED=false
         if head -1 "${AGE_KEY_FILE}" | grep -q '^age-encryption.org'; then
+            _KEY_IS_ENCRYPTED=true
             local DEC_DIR
             DEC_DIR=$(mktemp -d)
             cp "${AGE_KEY_FILE}" "${DEC_DIR}/age-key-in"
@@ -312,7 +313,7 @@ cmd_init() {
                 "${IMAGE}" sh -c 'age -d /tmp/age-work/age-key-in > /tmp/age-work/age-key-dec'
             echo "## Passphrase accepted." >&2
             PUBKEY=$(grep -o 'age1[a-z0-9]*' "${DEC_DIR}/age-key-dec" | head -1)
-            _PLAINTEXT_AGE_KEY="${DEC_DIR}/age-key-dec"
+            rm -rf "${DEC_DIR}"
         else
             PUBKEY=$(grep -o 'age1[a-z0-9]*' "${AGE_KEY_FILE}" | head -1)
             echo "WARNING: AGE key is NOT password-protected."
@@ -329,16 +330,28 @@ cmd_init() {
     local _CUR_BAO_CACERT="" _CUR_BAO_CLIENT_CERT="" _CUR_BAO_CLIENT_KEY=""
     if [[ -f "${CONFIG_DIR}/${CONTEXT}.sops.env" ]]; then
         echo "## Decrypting existing config for defaults ..." >&2
-        local _decrypt_key="${AGE_KEY_FILE}"
-        [[ -n "${_PLAINTEXT_AGE_KEY}" ]] && _decrypt_key="${_PLAINTEXT_AGE_KEY}"
-        _EXISTING=$(container_run \
-            --user 0:0 -i \
-            -v "${CONFIG_DIR}/${CONTEXT}.sops.env:/tmp/config.sops.env:ro" \
-            -v "${_decrypt_key}:/run/secrets/age-key:ro" \
-            -e "SOPS_AGE_KEY_FILE=/run/secrets/age-key" \
-            "${IMAGE}" \
-            sops decrypt --input-type dotenv --output-type dotenv \
-                --filename-override export.env /tmp/config.sops.env 2>/dev/null) || true
+        if [[ "${_KEY_IS_ENCRYPTED}" == true ]]; then
+            ## Key was already decrypted in-container; decrypt config in one shot
+            _EXISTING=$(container_run \
+                --user 0:0 -it \
+                -v "${CONFIG_DIR}/${CONTEXT}.sops.env:/tmp/config.sops.env:ro" \
+                -v "${AGE_KEY_FILE}:/tmp/age-key-enc:ro" \
+                "${IMAGE}" \
+                sh -c 'age -d /tmp/age-key-enc > /tmp/age-key && \
+                    SOPS_AGE_KEY_FILE=/tmp/age-key sops decrypt \
+                    --input-type dotenv --output-type dotenv \
+                    --filename-override export.env /tmp/config.sops.env' 2>/dev/null) || true
+        else
+            ## Key is plaintext, no passphrase needed
+            _EXISTING=$(container_run \
+                --user 0:0 -i \
+                -v "${CONFIG_DIR}/${CONTEXT}.sops.env:/tmp/config.sops.env:ro" \
+                -v "${AGE_KEY_FILE}:/run/secrets/age-key:ro" \
+                -e "SOPS_AGE_KEY_FILE=/run/secrets/age-key" \
+                "${IMAGE}" \
+                sops decrypt --input-type dotenv --output-type dotenv \
+                    --filename-override export.env /tmp/config.sops.env 2>/dev/null) || true
+        fi
         if [[ -n "${_EXISTING}" ]]; then
             _CUR_SSH_HOST=$(echo "${_EXISTING}" | grep '^SSH_HOST=' | cut -d= -f2-)
             _CUR_SSH_PORT=$(echo "${_EXISTING}" | grep '^SSH_PORT=' | cut -d= -f2-)
@@ -514,10 +527,6 @@ BAO_CLIENT_KEY=${BAO_CLIENT_KEY}"
     echo "repo, the SOPS config is tracked but AGE keys are excluded by"
     echo ".gitignore and must be backed up separately. You can keep all your"
     echo "configs in one repo, but each context requires its own AGE key."
-    ## Clean up decrypted AGE key temp file
-    if [[ -n "${_PLAINTEXT_AGE_KEY:-}" ]]; then
-        rm -rf "$(dirname "${_PLAINTEXT_AGE_KEY}")"
-    fi
     if [[ -n "${_EXISTING}" ]]; then
         git_auto_commit "update context: ${CONTEXT}"
     else
