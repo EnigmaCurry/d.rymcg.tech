@@ -159,11 +159,14 @@ delete-tags:
 	done; \
 	if [[ $${DELETED} -gt 0 ]]; then \
 		echo >&2; \
-		${BIN}/confirm yes "Run garbage collection (requires temporary registry restart)" "?" || exit 0; \
-		make --no-print-directory docker-compose-lifecycle-cmd EXTRA_ARGS="stop registry"; \
-		make --no-print-directory docker-compose-lifecycle-cmd EXTRA_ARGS="run --rm --entrypoint '' registry registry garbage-collect /etc/docker/registry/config.yml"; \
-		make --no-print-directory docker-compose-lifecycle-cmd EXTRA_ARGS="start registry"; \
+		${BIN}/confirm yes "Run garbage collection (requires temporary registry restart)" "?" && make --no-print-directory garbage-collect || true; \
 	fi
+
+.PHONY: garbage-collect # Run garbage collection (requires temporary registry restart)
+garbage-collect:
+	@make --no-print-directory docker-compose-lifecycle-cmd EXTRA_ARGS="stop registry"
+	@make --no-print-directory docker-compose-lifecycle-cmd EXTRA_ARGS="run --rm --entrypoint '' registry registry garbage-collect /etc/docker/registry/config.yml"
+	@make --no-print-directory docker-compose-lifecycle-cmd EXTRA_ARGS="start registry"
 
 .PHONY: install-hook
 install-hook:
