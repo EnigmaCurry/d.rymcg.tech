@@ -4,11 +4,11 @@
 # Build age-plugin-fido2-hmac from source (supports all architectures)
 FROM docker.io/library/golang:1.24-alpine AS fido2-builder
 COPY .tools.lock.json /tmp/.tools.lock.json
-RUN apk add --no-cache git jq && \
+RUN apk add --no-cache git jq gcc musl-dev libfido2-dev && \
     VERSION=$(jq -r '.dependencies["age-plugin-fido2-hmac"].version' /tmp/.tools.lock.json) && \
     git clone https://github.com/olastor/age-plugin-fido2-hmac.git /src && \
     cd /src && git checkout "v${VERSION}" && \
-    CGO_ENABLED=0 go build -o /age-plugin-fido2-hmac ./cmd/age-plugin-fido2-hmac
+    CGO_ENABLED=1 go build -ldflags '-linkmode external -extldflags "-static"' -o /age-plugin-fido2-hmac ./cmd/age-plugin-fido2-hmac
 
 FROM docker.io/library/alpine:3.23
 
@@ -32,6 +32,7 @@ RUN apk add --no-cache \
     docker-cli-compose \
     sops \
     age \
+    libfido2 \
     ca-certificates \
     tar \
     gzip \
