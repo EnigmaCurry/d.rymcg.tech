@@ -148,10 +148,7 @@ delete-tags:
 		if [[ -z "$${digest}" ]]; then \
 			echo "## Error: could not get digest for $${image}" >&2; continue; \
 		fi; \
-		echo "## Digest: $${digest}" >&2; \
-		echo "## CURL_OPTS: $${CURL_OPTS}" >&2; \
-		echo "## URL: https://$${REGISTRY_HOST}/v2/$${repo}/manifests/$${digest}" >&2; \
-		status=$$(curl -o /dev/null -w '%{http_code}' $${CURL_OPTS} \
+		status=$$(curl -sf -o /dev/null -w '%{http_code}' $${CURL_OPTS} \
 			-X DELETE "https://$${REGISTRY_HOST}/v2/$${repo}/manifests/$${digest}"); \
 		if [[ "$${status}" == "202" ]]; then \
 			echo "## Deleted $${image}" >&2; \
