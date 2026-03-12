@@ -185,6 +185,11 @@ openbao_auth() {
     if [[ "${LOGIN_HTTP_CODE}" -ge 400 ]] 2>/dev/null; then
         echo "ERROR: OpenBao AppRole login failed (HTTP ${LOGIN_HTTP_CODE})" >&2
         echo "${LOGIN_RESPONSE}" >&2
+        if [[ "${LOGIN_HTTP_CODE}" == "503" ]] && echo "${LOGIN_RESPONSE}" | grep -qi "sealed"; then
+            echo "" >&2
+            echo "The OpenBao server is sealed. Unseal it first:" >&2
+            echo "  drt --unseal" >&2
+        fi
         exit 1
     fi
     BAO_TOKEN=$(echo "${LOGIN_RESPONSE}" | jq -r '.auth.client_token')
