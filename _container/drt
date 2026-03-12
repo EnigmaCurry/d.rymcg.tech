@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-## drt — standalone d-rymcg-tech bootstrap tool
+## drt — standalone d.rymcg.tech bootstrap tool
 ## Combines init + run into a single script with no repo dependency.
 ## Host dependencies: bash, podman (or docker), openssh, coreutils, grep, gawk
 ## Setup alias:
@@ -88,7 +88,7 @@ wizard() {
 
 usage() {
     cat <<'EOF'
-drt — standalone d-rymcg-tech bootstrap tool
+drt — standalone d.rymcg.tech bootstrap tool
 
 Usage:
   drt [OPTIONS] CONTEXT [CMD]  Launch container (interactive shell or run CMD)
