@@ -225,16 +225,12 @@ Rebuild the image with the latest changes:
 drt --build
 ```
 
-This clones the branch recorded in the image label (default:
-`master`), rebuilds, and re-tags the image in place. To switch
-branches:
+This clones the branch configured in the `drt` shell function (or
+from the image label if using the simple alias), rebuilds, and re-tags
+the image in place.
 
-```bash
-drt --build some-other-branch
-```
-
-You can override the git repository with the `DRT_GIT_REPO`
-environment variable.
+To permanently switch branches, update `DRT_BUILD_BRANCH` in your
+`drt()` function in `~/.bashrc` or `~/.zshrc`, then run `drt --build`.
 
 ## Building from a local checkout
 
