@@ -98,6 +98,7 @@ Options:
   --view [CONTEXT]   Decrypt and display SOPS config
   --clean [CONTEXT]  Remove SOPS config and/or AGE key for a context
   --list             List all contexts (AGE keys and SOPS configs)
+  --pull             Pull latest image (confirms before downloading)
   --extract          Print this script to stdout (self-extraction)
   --image TAG        Container image (default: localhost/d-rymcg-tech:latest)
   --docker           Use Docker instead of Podman
@@ -831,6 +832,66 @@ cmd_view() {
 }
 
 ###############################################################################
+# pull subcommand
+###############################################################################
+
+cmd_pull() {
+    check_engine
+
+    # Check if image exists locally
+    local LOCAL_DIGEST=""
+    if "${ENGINE}" image exists "${IMAGE}" 2>/dev/null; then
+        LOCAL_DIGEST=$("${ENGINE}" image inspect "${IMAGE}" --format '{{.Digest}}' 2>/dev/null || true)
+    fi
+
+    if [[ -z "${LOCAL_DIGEST}" ]]; then
+        echo "## Image not found locally: ${IMAGE}" >&2
+        read -rp "Pull ${IMAGE}? [Y/n] " answer
+        if [[ "${answer}" =~ ^[Nn]$ ]]; then
+            echo "## Cancelled" >&2
+            exit 0
+        fi
+        "${ENGINE}" pull "${IMAGE}"
+        return
+    fi
+
+    # Check remote digest
+    echo "## Checking for updates to ${IMAGE} ..." >&2
+    local REMOTE_DIGEST=""
+    if [[ "${ENGINE}" == "podman" ]]; then
+        REMOTE_DIGEST=$("${ENGINE}" pull --dry-run "${IMAGE}" 2>/dev/null \
+            | grep -oP 'Digest: \K.*' || true)
+    fi
+    # Fallback: skopeo or just pull and let the engine decide
+    if [[ -z "${REMOTE_DIGEST}" ]]; then
+        if command -v skopeo &>/dev/null; then
+            REMOTE_DIGEST=$(skopeo inspect "docker://${IMAGE}" 2>/dev/null \
+                | grep -oP '"Digest":\s*"\K[^"]+' || true)
+        fi
+    fi
+
+    if [[ -n "${REMOTE_DIGEST}" && "${LOCAL_DIGEST}" == "${REMOTE_DIGEST}" ]]; then
+        echo "## Already up to date (${LOCAL_DIGEST:0:19}...)" >&2
+        return
+    fi
+
+    if [[ -n "${REMOTE_DIGEST}" ]]; then
+        echo "## Update available" >&2
+        echo "##   Local:  ${LOCAL_DIGEST:0:19}..." >&2
+        echo "##   Remote: ${REMOTE_DIGEST:0:19}..." >&2
+    else
+        echo "## Cannot determine remote digest; will attempt pull" >&2
+    fi
+
+    read -rp "Pull ${IMAGE}? [Y/n] " answer
+    if [[ "${answer}" =~ ^[Nn]$ ]]; then
+        echo "## Cancelled" >&2
+        exit 0
+    fi
+    "${ENGINE}" pull "${IMAGE}"
+}
+
+###############################################################################
 # extract subcommand
 ###############################################################################
 
@@ -868,6 +929,10 @@ while [[ $# -gt 0 ]]; do
             shift
             ARGS+=("$@")
             break
+            ;;
+        --pull)
+            ACTION=pull
+            shift
             ;;
         --list)
             ACTION=list
@@ -924,6 +989,9 @@ case "${ACTION}" in
         ;;
     clean)
         cmd_clean "${ARGS[@]+"${ARGS[@]}"}"
+        ;;
+    pull)
+        cmd_pull
         ;;
     list)
         cmd_list
