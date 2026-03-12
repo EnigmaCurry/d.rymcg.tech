@@ -7,7 +7,7 @@
 set -euo pipefail
 
 VERSION="1.0.0"
-DEFAULT_IMAGE="${DRT_IMAGE:-localhost/d-rymcg-tech:latest}"
+DEFAULT_IMAGE="${DRT_IMAGE:-@@DRT_IMAGE@@}"
 if [[ "${DEFAULT_IMAGE}" == @@*@@ ]]; then
     DEFAULT_IMAGE="localhost/d-rymcg-tech:latest"
 fi
