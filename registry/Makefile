@@ -23,6 +23,20 @@ config-hook:
 		${BIN}/reconfigure_ask ${ENV_FILE} REGISTRY_STORAGE_S3_SECRET_KEY "Enter the S3 secret key" || true
 	@echo
 	@${BIN}/confirm $$([[ "$$(${BIN}/dotenv -f ${ENV_FILE} get REGISTRY_PUBLIC)" == "true" ]] && echo "yes" || echo "no") "Do you want to allow public (unauthenticated) read-only pull access" "?" && ${BIN}/reconfigure ${ENV_FILE} REGISTRY_PUBLIC=true || ${BIN}/reconfigure ${ENV_FILE} REGISTRY_PUBLIC=false
+	@PUBLIC=$$(${BIN}/dotenv -f ${ENV_FILE} get REGISTRY_PUBLIC); \
+	HTTP_AUTH=$$(${BIN}/dotenv -f ${ENV_FILE} get REGISTRY_HTTP_AUTH); \
+	MTLS_AUTH=$$(${BIN}/dotenv -f ${ENV_FILE} get REGISTRY_MTLS_AUTH); \
+	if [[ "$${PUBLIC}" != "true" ]]; then \
+		if [[ -n "$${HTTP_AUTH}" ]]; then \
+			${BIN}/reconfigure_auth ${ENV_FILE} REGISTRY_PULL "Do you want to configure separate pull-only credentials (authenticated pull, no push)" "http"; \
+		elif [[ "$${MTLS_AUTH}" == "true" ]]; then \
+			${BIN}/reconfigure_auth ${ENV_FILE} REGISTRY_PULL "Do you want to configure separate pull-only mTLS certs (authenticated pull, no push)" "mtls"; \
+		fi; \
+	else \
+		${BIN}/reconfigure ${ENV_FILE} REGISTRY_PULL_HTTP_AUTH=; \
+		${BIN}/reconfigure ${ENV_FILE} REGISTRY_PULL_MTLS_AUTH=false; \
+		${BIN}/reconfigure ${ENV_FILE} REGISTRY_PULL_MTLS_AUTHORIZED_CERTS=; \
+	fi
 	@echo
 
 .PHONY: override-hook
@@ -37,7 +51,7 @@ override-hook:
 ####                         # (this hardcodes the string into docker-compose.override.yaml)
 ####   name=@VARIABLE_NAME   # sets the template 'name' field to the literal string '${VARIABLE_NAME}'
 ####                         # (used for regular docker-compose expansion of env vars by name.)
-	@${BIN}/docker_compose_override ${ENV_FILE} project=:registry instance=@REGISTRY_INSTANCE traefik_host=@REGISTRY_TRAEFIK_HOST http_auth=REGISTRY_HTTP_AUTH http_auth_var=@REGISTRY_HTTP_AUTH ip_sourcerange=@REGISTRY_IP_SOURCERANGE enable_mtls_auth=REGISTRY_MTLS_AUTH mtls_authorized_certs=REGISTRY_MTLS_AUTHORIZED_CERTS storage_backend=REGISTRY_STORAGE_BACKEND public=REGISTRY_PUBLIC
+	@${BIN}/docker_compose_override ${ENV_FILE} project=:registry instance=@REGISTRY_INSTANCE traefik_host=@REGISTRY_TRAEFIK_HOST http_auth=REGISTRY_HTTP_AUTH http_auth_var=@REGISTRY_HTTP_AUTH ip_sourcerange=@REGISTRY_IP_SOURCERANGE enable_mtls_auth=REGISTRY_MTLS_AUTH mtls_authorized_certs=REGISTRY_MTLS_AUTHORIZED_CERTS storage_backend=REGISTRY_STORAGE_BACKEND public=REGISTRY_PUBLIC pull_http_auth=REGISTRY_PULL_HTTP_AUTH pull_http_auth_var=@REGISTRY_PULL_HTTP_AUTH pull_mtls_auth=REGISTRY_PULL_MTLS_AUTH pull_mtls_authorized_certs=REGISTRY_PULL_MTLS_AUTHORIZED_CERTS
 
 .PHONY: shell
 shell:

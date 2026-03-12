@@ -80,6 +80,14 @@ access, so anyone can `docker pull` without `docker login`, while
 > Do you want to allow public (unauthenticated) read-only pull access? Yes
 ```
 
+### Pull-only credentials
+
+You can configure separate pull-only credentials that allow
+`docker pull` but not `docker push`. This uses the same auth
+method as admin (HTTP Basic Authentication or mTLS) but with
+separate credentials. This is mutually exclusive with public
+read-only access. Admin credentials also work for pulling.
+
 ## Install
 
 ```

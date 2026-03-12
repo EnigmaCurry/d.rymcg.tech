@@ -20,6 +20,11 @@
 #! ### Custom project vars
 #@ s3_storage = data.values.storage_backend == "s3"
 #@ enable_public = data.values.public == "true"
+#@ enable_pull_http_auth = len(data.values.pull_http_auth.strip()) > 0
+#@ pull_http_auth = data.values.pull_http_auth_var
+#@ enable_pull_mtls_auth = data.values.pull_mtls_auth == "true"
+#@ pull_mtls_authorized_certs = data.values.pull_mtls_authorized_certs
+#@ enable_pull_auth = enable_pull_http_auth or enable_pull_mtls_auth
 
 #@yaml/text-templated-strings
 services:
@@ -74,4 +79,40 @@ services:
       - "traefik.http.routers.(@= router_public @).entrypoints=websecure"
       - "traefik.http.routers.(@= router_public @).service=(@= router @)"
       - "traefik.http.routers.(@= router_public @).middlewares=(@= router @)-ipallowlist"
+      #@ end
+
+      #@ if enable_pull_auth and not enable_public:
+      #! Pull-only authenticated router (GET/HEAD, combined admin + pull-only credentials):
+      #@ router_pull = "{}-pull".format(router)
+      - "traefik.http.routers.(@= router_pull @).rule=Host(`(@= traefik_host @)`) && (Method(`GET`) || Method(`HEAD`))"
+      - "traefik.http.routers.(@= router_pull @).priority=100"
+      - "traefik.http.routers.(@= router_pull @).entrypoints=websecure"
+      - "traefik.http.routers.(@= router_pull @).service=(@= router @)"
+
+      #@ pull_middlewares = ["{}-ipallowlist".format(router)]
+
+      #@ if enable_pull_http_auth:
+      - "traefik.http.middlewares.(@= router_pull @)-basicauth.basicauth.users=(@= http_auth @),(@= pull_http_auth @)"
+      - "traefik.http.middlewares.(@= router_pull @)-basicauth.basicauth.headerField=X-Forwarded-User"
+      #@ pull_middlewares.append("{}-basicauth".format(router_pull))
+      #@ end
+
+      #@ if enable_pull_mtls_auth:
+      - "traefik.http.routers.(@= router_pull @).tls.options=step_ca_mTLS@file"
+        #@ combined_certs = mtls_authorized_certs
+        #@ if len(pull_mtls_authorized_certs):
+          #@ if len(combined_certs):
+            #@ combined_certs = combined_certs + "," + pull_mtls_authorized_certs
+          #@ else:
+            #@ combined_certs = pull_mtls_authorized_certs
+          #@ end
+        #@ end
+        #@ if len(combined_certs):
+      - "traefik.http.middlewares.mtlsauth-(@= router_pull @).plugin.certauthz.domains=(@= combined_certs @)"
+        #@ pull_middlewares.append("mtlsauth-{}".format(router_pull))
+        #@ end
+        #@ pull_middlewares.append("mtls-header@file")
+      #@ end
+
+      - "traefik.http.routers.(@= router_pull @).middlewares=(@= ','.join(pull_middlewares) @)"
       #@ end
