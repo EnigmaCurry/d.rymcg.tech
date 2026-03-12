@@ -180,7 +180,7 @@ list-s3:
 	s3cmd --host="$${ENDPOINT#https://}" --host-bucket="$${ENDPOINT#https://}" \
 		--access_key="$${ACCESS_KEY}" --secret_key="$${SECRET_KEY}" \
 		--no-ssl-check \
-		ls -r "s3://$${BUCKET}/" | grep -v '/$'
+		ls -r "s3://$${BUCKET}/" | grep -v "/$$"
 
 .PHONY: install-hook
 install-hook:
