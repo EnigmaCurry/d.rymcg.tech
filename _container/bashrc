@@ -46,7 +46,7 @@ if [[ "${SOPS_SAVE_ON_EXIT:-}" == "true" && -n "${SOPS_CONFIG_FILE:-}" ]]; then
                 fi
             fi
         done <<< "${decrypted}"
-        echo -n "${result}"
+        echo "${result}"
     }
     _sops_extract_preserved > "${_sops_preserved_sections}"
 
@@ -70,7 +70,7 @@ if [[ "${SOPS_SAVE_ON_EXIT:-}" == "true" && -n "${SOPS_CONFIG_FILE:-}" ]]; then
                 export_keys=$(grep -oP '^[A-Za-z_][A-Za-z_0-9]*(?==)' "${export_output}" || true)
                 # Merge: preserved sections (minus keys export-env reproduces) + export-env
                 if [[ -s "${_sops_preserved_sections}" ]]; then
-                    while IFS= read -r line; do
+                    while IFS= read -r line || [[ -n "${line}" ]]; do
                         if [[ "${line}" == *=* && "${line}" != "#"* ]]; then
                             local key="${line%%=*}"
                             # Skip preserved key if export-env produced a fresh version
