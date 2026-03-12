@@ -102,7 +102,7 @@ Options:
   --unseal [CONTEXT] Unseal the OpenBao server used by a context
   --list             List all contexts (AGE keys and SOPS configs)
   --pull             Pull latest image
-  --build [BRANCH]   Build image from git (default branch: master)
+  --build            Build image from git (branch from DRT_BUILD_BRANCH or image label)
   --extract          Print this script to stdout (self-extraction)
   --image TAG        Container image (default: localhost/d-rymcg-tech:latest)
   --docker           Use Docker instead of Podman
@@ -124,7 +124,7 @@ EOF
     echo "  alias drt='bash <(${ENGINE} run --rm --pull=never --net=none ${IMAGE} drt)'"
     echo ""
     echo "One time setup (build from source):"
-    echo "  drt --build [BRANCH]   # default: master, or last-built branch"
+    echo "  drt --build            # rebuild from DRT_BUILD_BRANCH or last-built branch"
     echo "  alias drt='bash <(${ENGINE} run --rm --pull=never --net=none localhost/d-rymcg-tech:latest drt)'"
 }
 
@@ -1008,11 +1008,9 @@ cmd_build() {
         REPO="${REPO:-${DRT_GIT_REPO_DEFAULT}}"
     fi
 
-    # Priority: CLI arg > DRT_BUILD_BRANCH env > image label > master
+    # Priority: DRT_BUILD_BRANCH env > image label > master
     local BRANCH=""
-    if [[ -n "${1:-}" ]]; then
-        BRANCH="$1"
-    elif [[ -n "${DRT_BUILD_BRANCH:-}" ]]; then
+    if [[ -n "${DRT_BUILD_BRANCH:-}" ]]; then
         BRANCH="${DRT_BUILD_BRANCH}"
     else
         BRANCH=$("${ENGINE}" image inspect "${IMAGE}" --format '{{index .Labels "drt.branch"}}' 2>/dev/null || true)
@@ -1025,7 +1023,7 @@ cmd_build() {
     git clone --depth 1 --branch "${BRANCH}" "${REPO}" "${_DRT_BUILD_DIR}/src"
     if [[ ! -f "${_DRT_BUILD_DIR}/src/_container/Dockerfile" ]]; then
         echo "Error: _container/Dockerfile not found on branch '${BRANCH}'." >&2
-        echo "Specify a branch that has the Dockerfile: drt --build BRANCH" >&2
+        echo "Set DRT_BUILD_BRANCH to a branch that has the Dockerfile." >&2
         exit 1
     fi
     "${ENGINE}" build \
@@ -1402,11 +1400,6 @@ while [[ $# -gt 0 ]]; do
         --build)
             ACTION=build
             shift
-            # Next arg is the branch if it doesn't start with --
-            if [[ $# -gt 0 && "$1" != --* ]]; then
-                ARGS+=("$1")
-                shift
-            fi
             ;;
         --list)
             ACTION=list
