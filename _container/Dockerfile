@@ -37,6 +37,17 @@ RUN apk add --no-cache \
 # Install uv (Python package manager)
 RUN curl -fsSL https://astral.sh/uv/install.sh | UV_INSTALL_DIR=/usr/local/bin sh
 
+# Install doctl (DigitalOcean CLI)
+RUN set -e; \
+    case "$(uname -m)" in \
+      x86_64)  ARCH=amd64 ;; \
+      aarch64) ARCH=arm64 ;; \
+      *)       echo "Unsupported arch: $(uname -m)" >&2; exit 1 ;; \
+    esac; \
+    DOCTL_VERSION=$(curl -sf https://api.github.com/repos/digitalocean/doctl/releases/latest | jq -r .tag_name | sed 's/^v//'); \
+    curl -fsSL "https://github.com/digitalocean/doctl/releases/download/v${DOCTL_VERSION}/doctl-${DOCTL_VERSION}-linux-${ARCH}.tar.gz" \
+      | tar xz -C /usr/local/bin
+
 # Create non-root user
 RUN adduser -D -u 1000 -h /home/user -s /bin/bash user \
  && mkdir -p /run/secrets/ssh /home/user/.config/d.rymcg.tech \
