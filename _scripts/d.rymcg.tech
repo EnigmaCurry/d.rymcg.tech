@@ -870,6 +870,14 @@ __export_env() {
         fi
     done
 
+    # Serialize doctl config if present
+    if [[ -f "${HOME}/.config/doctl/config.yaml" ]]; then
+        local doctl_data
+        doctl_data=$(base64 -w 0 < "${HOME}/.config/doctl/config.yaml")
+        plaintext+=$'\n'"## doctl config"$'\n'
+        plaintext+="__doctl_config__=${doctl_data}"$'\n'
+    fi
+
     local output
     if [[ "${encrypt}" == true ]]; then
         output=$(echo "${plaintext}" | sops encrypt --input-type dotenv --output-type dotenv --filename-override export.env --age "${recipients}" /dev/stdin)
@@ -971,11 +979,18 @@ __restore_env() {
     declare -a file_order=()
     declare -A file_seen
     declare -A password_files  # "project/passwords.json" → base64 data
+    local doctl_config_b64=""
 
     while IFS= read -r line; do
         [[ -z "${line}" || "${line}" == "#"* ]] && continue
         local key="${line%%=*}"
         local val="${line#*=}"
+
+        # Serialized doctl config: __doctl_config__=<base64>
+        if [[ "${key}" == "__doctl_config__" ]]; then
+            doctl_config_b64="${val}"
+            continue
+        fi
 
         # Serialized passwords.json: __passwords__<project>=<base64>
         if [[ "${key}" == __passwords__* ]]; then
@@ -1103,6 +1118,15 @@ __restore_env() {
 
         ${BIN}/batch-reconfigure "${target_file}" <<< "${rest}" 2>&1 >&2
     done
+
+    # Restore doctl config if present
+    if [[ -n "${doctl_config_b64}" ]]; then
+        local doctl_dir="${HOME}/.config/doctl"
+        mkdir -p "${doctl_dir}"
+        echo "## Restoring ${doctl_dir}/config.yaml" >&2
+        echo "${doctl_config_b64}" | base64 -d > "${doctl_dir}/config.yaml"
+        chmod 600 "${doctl_dir}/config.yaml"
+    fi
 }
 
 main() {
