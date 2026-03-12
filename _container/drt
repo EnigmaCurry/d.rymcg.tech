@@ -518,6 +518,25 @@ BAO_CLIENT_CERT=${BAO_CLIENT_CERT}"
 BAO_CLIENT_KEY=${BAO_CLIENT_KEY}"
     fi
 
+    ## Preserve existing project vars that --init doesn't manage
+    if [[ -n "${_EXISTING}" ]]; then
+        while IFS= read -r line || [[ -n "${line}" ]]; do
+            [[ -z "${line}" ]] && continue
+            # Skip comment headers managed by --init
+            [[ "${line}" == "## SSH" || "${line}" == "## OpenBao" ]] && continue
+            if [[ "${line}" == *=* && "${line}" != "#"* ]]; then
+                local _key="${line%%=*}"
+                case "${_key}" in
+                    SSH_HOST|SSH_USER|SSH_PORT|SSH_KNOWN_HOSTS) continue;;
+                    BAO_ADDR|BAO_ROLE_ID|BAO_SECRET_ID|BAO_SSH_MOUNT|BAO_SSH_ROLE) continue;;
+                    BAO_AUTH_PATH|BAO_AGE_KEY_PATH|BAO_KV_MOUNT|BAO_NAMESPACE) continue;;
+                    BAO_CACERT|BAO_CLIENT_CERT|BAO_CLIENT_KEY) continue;;
+                esac
+            fi
+            PLAINTEXT+=$'\n'"${line}"
+        done <<< "${_EXISTING}"
+    fi
+
     mkdir -p "${CONFIG_DIR}"
     echo "${PLAINTEXT}" | container_run -i \
         "${IMAGE}" \

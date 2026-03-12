@@ -648,16 +648,22 @@ if [[ "${SOPS_SAVE_ON_EXIT:-}" == "true" && -n "${SOPS_CONFIG_FILE:-}" && -f "${
     mkfifo "${_SOPS_SAVE_REQUEST}" "${_SOPS_SAVE_RESPONSE}"
     chmod 666 "${_SOPS_SAVE_REQUEST}" "${_SOPS_SAVE_RESPONSE}"
 
-    # Background root process: waits for save request, encrypts the
-    # unencrypted user copy with sops, writes to bind mount as root
-    # (only root = host user in rootless podman), then responds.
+    # Background root process: waits for save request, re-encrypts the
+    # user copy back to the bind mount. Uses `sops edit` with a custom
+    # EDITOR so only changed values get new ciphertext — unchanged values
+    # keep their nonces, producing minimal git diffs.
+    _SOPS_EDITOR="/tmp/sops-editor"
+    cat > "${_SOPS_EDITOR}" << EDITOREOF
+#!/bin/sh
+cp "${_SOPS_USER_COPY}" "\$1"
+EDITOREOF
+    chmod +x "${_SOPS_EDITOR}"
     (
         while read -r cmd < "${_SOPS_SAVE_REQUEST}"; do
             if [[ "${cmd}" == "save" ]]; then
-                if sops encrypt --input-type dotenv --output-type dotenv \
-                       --filename-override export.env \
-                       --age "${SOPS_AGE_RECIPIENTS}" "${_SOPS_USER_COPY}" \
-                       > "${_SOPS_BIND_PATH}" && \
+                if EDITOR="${_SOPS_EDITOR}" sops \
+                       --input-type dotenv --output-type dotenv \
+                       "${_SOPS_BIND_PATH}" && \
                    chmod 600 "${_SOPS_BIND_PATH}"; then
                     echo "ok" > "${_SOPS_SAVE_RESPONSE}"
                 else
@@ -667,7 +673,7 @@ if [[ "${SOPS_SAVE_ON_EXIT:-}" == "true" && -n "${SOPS_CONFIG_FILE:-}" && -f "${
                 break
             fi
         done
-        rm -f "${_SOPS_SAVE_REQUEST}" "${_SOPS_SAVE_RESPONSE}"
+        rm -f "${_SOPS_SAVE_REQUEST}" "${_SOPS_SAVE_RESPONSE}" "${_SOPS_EDITOR}"
     ) &
     log "## SOPS save-on-exit helper started (PID $!)"
 fi
