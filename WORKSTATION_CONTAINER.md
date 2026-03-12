@@ -3,7 +3,10 @@
 A container image that packages the entire
 [d.rymcg.tech](https://github.com/EnigmaCurry/d.rymcg.tech) framework
 for headless and interactive deployments to remote Docker hosts over SSH.
-Build it from source with the `drt` shell function, or pull a pre-built
+The `drt` script creates an encrypted `.env` file per Docker context,
+and launches a secure configuration/deployment environment for it on
+your workstation. Build it from source with the `drt` shell function,
+or pull a pre-built
 image from the [GitHub Container Registry](#pulling-the-image).
 
 ## Quick start
