@@ -1,7 +1,18 @@
 # Build context must be the d.rymcg.tech root directory.
 # Build with: docker build -f _container/Dockerfile -t d-rymcg-tech .
 
+# Build age-plugin-fido2-hmac from source (supports all architectures)
+FROM docker.io/library/golang:1.23-alpine AS fido2-builder
+COPY .tools.lock.json /tmp/.tools.lock.json
+RUN apk add --no-cache git jq && \
+    VERSION=$(jq -r '.dependencies["age-plugin-fido2-hmac"].version' /tmp/.tools.lock.json) && \
+    git clone --depth 1 --branch "v${VERSION}" https://github.com/olastor/age-plugin-fido2-hmac.git /src && \
+    cd /src && CGO_ENABLED=0 go build -o /age-plugin-fido2-hmac .
+
 FROM docker.io/library/alpine:3.23
+
+# Copy age-plugin-fido2-hmac from builder
+COPY --from=fido2-builder /age-plugin-fido2-hmac /usr/local/bin/age-plugin-fido2-hmac
 
 # Install all runtime packages from Alpine repos
 RUN apk add --no-cache \

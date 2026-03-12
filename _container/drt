@@ -82,6 +82,42 @@ wizard() {
     return $rc
 }
 
+## List hidraw devices with human-readable names
+## Output: one line per device: "/dev/hidrawN|HID_ID|Device Name"
+detect_hidraw_devices() {
+    for dev in /dev/hidraw*; do
+        [[ -e "$dev" ]] || continue
+        local sysdev="/sys/class/hidraw/$(basename "$dev")/device"
+        local name="" hidid=""
+        if [[ -f "${sysdev}/uevent" ]]; then
+            name=$(grep '^HID_NAME=' "${sysdev}/uevent" 2>/dev/null | cut -d= -f2)
+            hidid=$(grep '^HID_ID=' "${sysdev}/uevent" 2>/dev/null | cut -d= -f2)
+        fi
+        [[ -z "$name" ]] && name="Unknown"
+        echo "${dev}|${hidid}|${name}"
+    done
+}
+
+## Find hidraw device path by stored HID_ID
+## Args: $1 = HID_ID string (e.g. "0003:00001209:00005070")
+## Output: /dev/hidrawN path
+find_hidraw_by_id() {
+    local target_id="$1"
+    for dev in /dev/hidraw*; do
+        [[ -e "$dev" ]] || continue
+        local sysdev="/sys/class/hidraw/$(basename "$dev")/device"
+        if [[ -f "${sysdev}/uevent" ]]; then
+            local hidid
+            hidid=$(grep '^HID_ID=' "${sysdev}/uevent" 2>/dev/null | cut -d= -f2)
+            if [[ "$hidid" == "$target_id" ]]; then
+                echo "$dev"
+                return 0
+            fi
+        fi
+    done
+    return 1
+}
+
 ## Pull from remote if ~/.config/d.rymcg.tech is a git repo with a remote
 git_auto_pull() {
     local CONFIG_BASE="${HOME}/.config/d.rymcg.tech"
@@ -275,35 +311,88 @@ cmd_init() {
     local PUBKEY
     if [[ ! -f "${AGE_KEY_FILE}" ]]; then
         echo "No AGE key found for context '${CONTEXT}'"
-        echo "Generating a new AGE keypair..."
         mkdir -p "${AGE_KEY_DIR}"
-        container_run "${IMAGE}" age-keygen > "${AGE_KEY_FILE}"
-        chmod 600 "${AGE_KEY_FILE}"
 
-        ## Extract public key while file is still plaintext
-        PUBKEY=$(grep -o 'age1[a-z0-9]*' "${AGE_KEY_FILE}" | head -1)
+        local KEY_PROTECTION
+        KEY_PROTECTION=$(wizard choose "Select AGE key protection method" \
+            "Passphrase" "FIDO2 hardware key" "No protection")
 
-        ## Optional passphrase protection
-        if wizard confirm "Password-protect the AGE key?" yes; then
-            local ENC_DIR
-            ENC_DIR=$(mktemp -d)
-            cp "${AGE_KEY_FILE}" "${ENC_DIR}/age-key-in"
-            local ENCRYPTED="${ENC_DIR}/age-key-enc"
-            if container_run -it --user 0:0 \
-                -v "${ENC_DIR}:/tmp/age-work:Z" \
-                "${IMAGE}" sh -c 'age -p /tmp/age-work/age-key-in > /tmp/age-work/age-key-enc' \
-                && [[ -s "${ENCRYPTED}" ]]; then
-                mv "${ENCRYPTED}" "${AGE_KEY_FILE}"
+        case "${KEY_PROTECTION}" in
+            "Passphrase")
+                echo "Generating a new AGE keypair..."
+                container_run "${IMAGE}" age-keygen > "${AGE_KEY_FILE}"
                 chmod 600 "${AGE_KEY_FILE}"
-                echo "AGE key created (passphrase-protected): ${AGE_KEY_FILE}"
-            else
-                rm -f "${ENCRYPTED}" "${AGE_KEY_FILE}"
-                echo "Error: passphrase encryption failed — no key was saved." >&2
-                exit 1
-            fi
-        else
-            echo "AGE key created: ${AGE_KEY_FILE}"
-        fi
+                PUBKEY=$(grep -o 'age1[a-z0-9]*' "${AGE_KEY_FILE}" | head -1)
+                local ENC_DIR
+                ENC_DIR=$(mktemp -d)
+                cp "${AGE_KEY_FILE}" "${ENC_DIR}/age-key-in"
+                local ENCRYPTED="${ENC_DIR}/age-key-enc"
+                if container_run -it --user 0:0 \
+                    -v "${ENC_DIR}:/tmp/age-work:Z" \
+                    "${IMAGE}" sh -c 'age -p /tmp/age-work/age-key-in > /tmp/age-work/age-key-enc' \
+                    && [[ -s "${ENCRYPTED}" ]]; then
+                    mv "${ENCRYPTED}" "${AGE_KEY_FILE}"
+                    chmod 600 "${AGE_KEY_FILE}"
+                    echo "AGE key created (passphrase-protected): ${AGE_KEY_FILE}"
+                else
+                    rm -f "${ENCRYPTED}" "${AGE_KEY_FILE}"
+                    echo "Error: passphrase encryption failed — no key was saved." >&2
+                    exit 1
+                fi
+                ;;
+            "FIDO2 hardware key")
+                echo "Detecting FIDO2 devices..."
+                local FIDO2_DEVICES=() FIDO2_IDS=() FIDO2_DEVPATHS=()
+                while IFS='|' read -r devpath hidid devname; do
+                    FIDO2_DEVICES+=("${devname} (${devpath})")
+                    FIDO2_IDS+=("${hidid}")
+                    FIDO2_DEVPATHS+=("${devpath}")
+                done < <(detect_hidraw_devices)
+
+                if [[ ${#FIDO2_DEVICES[@]} -eq 0 ]]; then
+                    echo "Error: no hidraw devices detected in /dev/hidraw*" >&2
+                    echo "  Ensure your FIDO2 key is plugged in and you have read access to /dev/hidraw*" >&2
+                    exit 1
+                fi
+
+                local SELECTED_IDX=0
+                if [[ ${#FIDO2_DEVICES[@]} -gt 1 ]]; then
+                    local SELECTED
+                    SELECTED=$(wizard choose "Select FIDO2 device" "${FIDO2_DEVICES[@]}")
+                    for i in "${!FIDO2_DEVICES[@]}"; do
+                        if [[ "${FIDO2_DEVICES[$i]}" == "${SELECTED}" ]]; then
+                            SELECTED_IDX=$i
+                            break
+                        fi
+                    done
+                else
+                    echo "Found device: ${FIDO2_DEVICES[0]}"
+                fi
+
+                local FIDO2_DEV="${FIDO2_DEVPATHS[$SELECTED_IDX]}"
+                local FIDO2_HID_ID="${FIDO2_IDS[$SELECTED_IDX]}"
+
+                echo "Generating FIDO2 AGE identity on ${FIDO2_DEV}..."
+                echo "You will be prompted for your FIDO2 PIN and to touch the key."
+                container_run -it --device "${FIDO2_DEV}" \
+                    "${IMAGE}" age-plugin-fido2-hmac -g > "${AGE_KEY_FILE}"
+                chmod 600 "${AGE_KEY_FILE}"
+                PUBKEY=$(grep -o 'age1[a-z0-9]*' "${AGE_KEY_FILE}" | head -1)
+
+                # Store device HID_ID for runtime detection
+                echo "${FIDO2_HID_ID}" > "${AGE_KEY_DIR}/${CONTEXT}.fido2"
+                chmod 600 "${AGE_KEY_DIR}/${CONTEXT}.fido2"
+                echo "FIDO2 AGE identity created: ${AGE_KEY_FILE}"
+                echo "Device ID stored: ${AGE_KEY_DIR}/${CONTEXT}.fido2"
+                ;;
+            "No protection")
+                echo "Generating a new AGE keypair..."
+                container_run "${IMAGE}" age-keygen > "${AGE_KEY_FILE}"
+                chmod 600 "${AGE_KEY_FILE}"
+                PUBKEY=$(grep -o 'age1[a-z0-9]*' "${AGE_KEY_FILE}" | head -1)
+                echo "AGE key created: ${AGE_KEY_FILE}"
+                ;;
+        esac
     else
         echo "Using existing AGE key: ${AGE_KEY_FILE}"
         ## Extract public key — if encrypted, need to decrypt first
@@ -585,13 +674,17 @@ BAO_CLIENT_KEY=${BAO_CLIENT_KEY}"
     echo ""
     echo "Init complete for context '${CONTEXT}'."
     echo ""
-    echo "IMPORTANT: Back up these three things:"
-    echo "  1) AGE key:        ${AGE_KEY_FILE}"
-    echo "  2) AGE passphrase: remember or store the passphrase you chose"
-    echo "  3) SOPS config:    ${CONFIG_DIR}/${CONTEXT}.sops.env"
+    echo "IMPORTANT: Back up these files:"
+    echo "  1) AGE key:     ${AGE_KEY_FILE}"
+    if [[ -f "${AGE_KEY_DIR}/${CONTEXT}.fido2" ]]; then
+        echo "  2) FIDO2 device: your hardware key is required for decryption"
+    else
+        echo "  2) Passphrase:   remember or store the passphrase you chose"
+    fi
+    echo "  3) SOPS config: ${CONFIG_DIR}/${CONTEXT}.sops.env"
     echo ""
-    echo "Without the AGE key and passphrase, your encrypted config cannot"
-    echo "be decrypted. If you are keeping ~/.config/d.rymcg.tech as a git"
+    echo "Without the AGE key and its protection factor, your encrypted config"
+    echo "cannot be decrypted. If you are keeping ~/.config/d.rymcg.tech as a git"
     echo "repo, the SOPS config is tracked but AGE keys are excluded by"
     echo ".gitignore and must be backed up separately. You can keep all your"
     echo "configs in one repo, but each context requires its own AGE key."
@@ -717,6 +810,22 @@ cmd_run() {
         -v "${AGE_KEY_FILE}:${CONTAINER_CONFIG_DIR}/age-key:ro"
         -e "SOPS_AGE_KEY_FILE=${CONTAINER_CONFIG_DIR}/age-key"
     )
+
+    # FIDO2: pass through hardware key device if this context uses FIDO2
+    local AGE_KEY_DIR
+    AGE_KEY_DIR="$(dirname "${AGE_KEY_FILE}")"
+    local FIDO2_ID_FILE="${AGE_KEY_DIR}/${CONTEXT_NAME:-}.fido2"
+    if [[ -n "${CONTEXT_NAME:-}" && -f "${FIDO2_ID_FILE}" ]]; then
+        local FIDO2_HID_ID FIDO2_DEV
+        FIDO2_HID_ID=$(cat "${FIDO2_ID_FILE}")
+        FIDO2_DEV=$(find_hidraw_by_id "${FIDO2_HID_ID}") || {
+            echo "Error: FIDO2 device not detected (HID_ID: ${FIDO2_HID_ID})" >&2
+            echo "  Ensure your FIDO2 key is plugged in" >&2
+            exit 1
+        }
+        echo "## FIDO2: passing through ${FIDO2_DEV}" >&2
+        RUN_ARGS+=(--device "${FIDO2_DEV}")
+    fi
 
     if [[ -n "${NET_MODE}" ]]; then
         RUN_ARGS+=(--net="${NET_MODE}")

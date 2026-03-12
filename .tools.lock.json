@@ -7,6 +7,9 @@
         },
         "ytt": {
             "version": "0.44.3"
+        },
+        "age-plugin-fido2-hmac": {
+            "version": "0.4.0"
         }
     }
 }

@@ -423,7 +423,12 @@ fi
 ## Derive SOPS_AGE_RECIPIENTS (public key) from the private key for export-env --encrypt
 if [[ -z "${SOPS_AGE_RECIPIENTS:-}" ]]; then
     if [[ -n "${SOPS_AGE_KEY_FILE:-}" && -f "${SOPS_AGE_KEY_FILE}" ]]; then
-        SOPS_AGE_RECIPIENTS=$(age-keygen -y "${SOPS_AGE_KEY_FILE}" 2>/dev/null || true)
+        # FIDO2 identity files have "# recipient: age1..." comments
+        if grep -q 'AGE-PLUGIN-FIDO2-HMAC' "${SOPS_AGE_KEY_FILE}" 2>/dev/null; then
+            SOPS_AGE_RECIPIENTS=$(grep -o 'age1[a-z0-9]*' "${SOPS_AGE_KEY_FILE}" 2>/dev/null | head -1)
+        else
+            SOPS_AGE_RECIPIENTS=$(age-keygen -y "${SOPS_AGE_KEY_FILE}" 2>/dev/null || true)
+        fi
     elif [[ -n "${SOPS_AGE_KEY:-}" ]]; then
         SOPS_AGE_RECIPIENTS=$(echo "${SOPS_AGE_KEY}" | age-keygen -y - 2>/dev/null || true)
     fi
