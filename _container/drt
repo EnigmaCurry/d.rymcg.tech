@@ -771,10 +771,18 @@ cmd_git_init() {
 
     if [[ -d "${CONFIG_BASE}/.git" ]]; then
         echo "Config repo already initialized at ${CONFIG_BASE}" >&2
-        exit 1
+        exit 0
     fi
 
     check_engine
+
+    echo "Initialize ${CONFIG_BASE} as a git repository." >&2
+    echo "SOPS configs will be tracked; AGE keys are excluded by .gitignore." >&2
+    echo "" >&2
+    if ! wizard confirm "Continue?" yes; then
+        echo "Cancelled." >&2
+        exit 0
+    fi
 
     local BRANCH USER_EMAIL USER_NAME REMOTE
     BRANCH=$(wizard ask "Branch name" "master")
