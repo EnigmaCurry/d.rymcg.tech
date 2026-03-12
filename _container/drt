@@ -838,57 +838,23 @@ cmd_view() {
 cmd_pull() {
     check_engine
 
-    # Check if image exists locally
-    local LOCAL_DIGEST=""
+    local LOCAL_ID=""
     if "${ENGINE}" image exists "${IMAGE}" 2>/dev/null; then
-        LOCAL_DIGEST=$("${ENGINE}" image inspect "${IMAGE}" --format '{{.Digest}}' 2>/dev/null || true)
+        LOCAL_ID=$("${ENGINE}" image inspect "${IMAGE}" --format '{{.Id}}' 2>/dev/null || true)
     fi
 
-    if [[ -z "${LOCAL_DIGEST}" ]]; then
-        echo "## Image not found locally: ${IMAGE}" >&2
-        read -rp "Pull ${IMAGE}? [Y/n] " answer
-        if [[ "${answer}" =~ ^[Nn]$ ]]; then
-            echo "## Cancelled" >&2
-            exit 0
-        fi
-        "${ENGINE}" pull "${IMAGE}"
-        return
-    fi
-
-    # Check remote digest
-    echo "## Checking for updates to ${IMAGE} ..." >&2
-    local REMOTE_DIGEST=""
-    if [[ "${ENGINE}" == "podman" ]]; then
-        REMOTE_DIGEST=$("${ENGINE}" pull --dry-run "${IMAGE}" 2>/dev/null \
-            | grep -oP 'Digest: \K.*' || true)
-    fi
-    # Fallback: skopeo or just pull and let the engine decide
-    if [[ -z "${REMOTE_DIGEST}" ]]; then
-        if command -v skopeo &>/dev/null; then
-            REMOTE_DIGEST=$(skopeo inspect "docker://${IMAGE}" 2>/dev/null \
-                | grep -oP '"Digest":\s*"\K[^"]+' || true)
-        fi
-    fi
-
-    if [[ -n "${REMOTE_DIGEST}" && "${LOCAL_DIGEST}" == "${REMOTE_DIGEST}" ]]; then
-        echo "## Already up to date (${LOCAL_DIGEST:0:19}...)" >&2
-        return
-    fi
-
-    if [[ -n "${REMOTE_DIGEST}" ]]; then
-        echo "## Update available" >&2
-        echo "##   Local:  ${LOCAL_DIGEST:0:19}..." >&2
-        echo "##   Remote: ${REMOTE_DIGEST:0:19}..." >&2
-    else
-        echo "## Cannot determine remote digest; will attempt pull" >&2
-    fi
-
-    read -rp "Pull ${IMAGE}? [Y/n] " answer
-    if [[ "${answer}" =~ ^[Nn]$ ]]; then
-        echo "## Cancelled" >&2
-        exit 0
-    fi
+    echo "## Pulling ${IMAGE} ..." >&2
     "${ENGINE}" pull "${IMAGE}"
+
+    local NEW_ID=""
+    NEW_ID=$("${ENGINE}" image inspect "${IMAGE}" --format '{{.Id}}' 2>/dev/null || true)
+    if [[ -z "${LOCAL_ID}" ]]; then
+        echo "## Image pulled (${NEW_ID:0:19}...)" >&2
+    elif [[ "${LOCAL_ID}" == "${NEW_ID}" ]]; then
+        echo "## Already up to date (${NEW_ID:0:19}...)" >&2
+    else
+        echo "## Updated: ${LOCAL_ID:0:19}... → ${NEW_ID:0:19}..." >&2
+    fi
 }
 
 ###############################################################################
