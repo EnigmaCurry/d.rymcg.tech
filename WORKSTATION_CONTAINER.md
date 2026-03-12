@@ -153,7 +153,7 @@ derived automatically.
 | `BAO_KV_MOUNT` | `secret` | KV secrets engine mount |
 | `PROJECTS` | | Comma-separated list of projects to pre-create env files for |
 
-## Usage examples
+## Usage examples (pure docker)
 
 ### Interactive shell (volume mounts)
 
