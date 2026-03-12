@@ -441,6 +441,20 @@ cmd_run() {
     echo "## AGE key: ${AGE_KEY_FILE}" >&2
     echo "## SOPS config: ${SOPS_CONFIG}" >&2
 
+    # Read age key content; decrypt if passphrase-protected
+    local AGE_KEY_CONTENT
+    if head -1 "${AGE_KEY_FILE}" | grep -q '^age-encryption.org'; then
+        echo "## AGE key is passphrase-protected, decrypting ..." >&2
+        AGE_KEY_CONTENT=$(cat "${AGE_KEY_FILE}" | container_run -it \
+            "${IMAGE}" sh -c 'cat > /tmp/k && age -d /tmp/k && rm -f /tmp/k')
+        if [[ -z "${AGE_KEY_CONTENT}" ]]; then
+            echo "Error: failed to decrypt AGE key" >&2
+            exit 1
+        fi
+    else
+        AGE_KEY_CONTENT=$(cat "${AGE_KEY_FILE}")
+    fi
+
     local CONTAINER_CONFIG_DIR=/home/user/git/vendor/enigmacurry/d.rymcg.tech/config
     local SOPS_BASENAME
     SOPS_BASENAME="$(basename "${SOPS_CONFIG}")"
@@ -451,8 +465,7 @@ cmd_run() {
         --userns=keep-id
         -e "SOPS_CONFIG_FILE=${CONTAINER_CONFIG_DIR}/${SOPS_BASENAME}"
         -v "${SOPS_CONFIG}:${CONTAINER_CONFIG_DIR}/${SOPS_BASENAME}"
-        -v "${AGE_KEY_FILE}:${CONTAINER_CONFIG_DIR}/age-key:ro"
-        -e "SOPS_AGE_KEY_FILE=${CONTAINER_CONFIG_DIR}/age-key"
+        -e "SOPS_AGE_KEY=${AGE_KEY_CONTENT}"
     )
 
     if [[ -n "${NET_MODE}" ]]; then

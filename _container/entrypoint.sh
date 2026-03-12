@@ -374,9 +374,13 @@ else
 fi
 
 ## Derive SOPS_AGE_RECIPIENTS (public key) from the private key for export-env --encrypt
-if [[ -n "${SOPS_AGE_KEY_FILE:-}" && -f "${SOPS_AGE_KEY_FILE}" && -z "${SOPS_AGE_RECIPIENTS:-}" ]]; then
-    SOPS_AGE_RECIPIENTS=$(age-keygen -y "${SOPS_AGE_KEY_FILE}" 2>/dev/null || true)
-    if [[ -n "${SOPS_AGE_RECIPIENTS}" ]]; then
+if [[ -z "${SOPS_AGE_RECIPIENTS:-}" ]]; then
+    if [[ -n "${SOPS_AGE_KEY_FILE:-}" && -f "${SOPS_AGE_KEY_FILE}" ]]; then
+        SOPS_AGE_RECIPIENTS=$(age-keygen -y "${SOPS_AGE_KEY_FILE}" 2>/dev/null || true)
+    elif [[ -n "${SOPS_AGE_KEY:-}" ]]; then
+        SOPS_AGE_RECIPIENTS=$(echo "${SOPS_AGE_KEY}" | age-keygen -y - 2>/dev/null || true)
+    fi
+    if [[ -n "${SOPS_AGE_RECIPIENTS:-}" ]]; then
         export SOPS_AGE_RECIPIENTS
         log "## SOPS_AGE_RECIPIENTS=${SOPS_AGE_RECIPIENTS}"
     fi
