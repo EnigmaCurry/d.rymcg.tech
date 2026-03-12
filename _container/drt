@@ -82,6 +82,21 @@ wizard() {
     return $rc
 }
 
+## Auto-commit config changes if ~/.config/d.rymcg.tech is a git repo
+git_auto_commit() {
+    local msg="$1"
+    local CONFIG_BASE="${HOME}/.config/d.rymcg.tech"
+    [[ -d "${CONFIG_BASE}/.git" ]] || return 0
+    echo "## git: staging changes ..." >&2
+    git -C "${CONFIG_BASE}" add -A
+    if git -C "${CONFIG_BASE}" diff --cached --quiet; then
+        echo "## git: no changes to commit" >&2
+        return 0
+    fi
+    git -C "${CONFIG_BASE}" commit -m "${msg}" >/dev/null
+    echo "## git: committed: ${msg}" >&2
+}
+
 ###############################################################################
 # Top-level usage
 ###############################################################################
@@ -101,6 +116,7 @@ Options:
   --seal [CONTEXT]   Seal the OpenBao server used by a context
   --unseal [CONTEXT] Unseal the OpenBao server used by a context
   --list             List all contexts (AGE keys and SOPS configs)
+  --git [ARGS]       Run git commands in ~/.config/d.rymcg.tech
   --pull             Pull latest image
   --build            Build image from git (branch from DRT_BUILD_BRANCH or image label)
   --extract          Print this script to stdout (self-extraction)
@@ -379,6 +395,7 @@ BAO_CLIENT_KEY=${BAO_CLIENT_KEY}"
     echo "repo, the SOPS config is tracked but AGE keys are excluded by"
     echo ".gitignore and must be backed up separately. You can keep all your"
     echo "configs in one repo, but each context requires its own AGE key."
+    git_auto_commit "init context: ${CONTEXT}"
     echo ""
     echo "Next steps:"
     echo "  drt ${CONTEXT}"
@@ -566,10 +583,11 @@ cmd_run() {
         echo "## Full command: ${ENGINE} ${RUN_ARGS[*]}" >&2
     fi
     if [[ "${ENGINE}" == "docker" ]]; then
-        exec "${ENGINE}" --context default "${RUN_ARGS[@]}"
+        "${ENGINE}" --context default "${RUN_ARGS[@]}" || true
     else
-        exec "${ENGINE}" "${RUN_ARGS[@]}"
+        "${ENGINE}" "${RUN_ARGS[@]}" || true
     fi
+    git_auto_commit "update context: ${CONTEXT_NAME:-unknown}"
 }
 
 ###############################################################################
@@ -681,10 +699,20 @@ cmd_clean() {
     if [[ "${DELETED}" == true ]]; then
         echo ""
         echo "Clean complete for context '${CONTEXT}'."
+        git_auto_commit "remove context: ${CONTEXT}"
     else
         echo ""
         echo "Nothing was deleted."
     fi
+}
+
+###############################################################################
+# git subcommand
+###############################################################################
+
+cmd_git() {
+    local CONFIG_BASE="${HOME}/.config/d.rymcg.tech"
+    git -C "${CONFIG_BASE}" "$@"
 }
 
 ###############################################################################
@@ -1018,6 +1046,7 @@ cmd_edit() {
     echo "## Changes encrypted and saved to ${SOPS_CONFIG}" >&2
 
     rm -rf "${EDIT_DIR}" "${DEC_DIR}"
+    git_auto_commit "update context: ${CONTEXT}"
 }
 
 ###############################################################################
@@ -1435,6 +1464,12 @@ while [[ $# -gt 0 ]]; do
             ACTION=list
             shift
             ;;
+        --git)
+            ACTION=git
+            shift
+            ARGS=("$@")
+            break
+            ;;
         --extract)
             ACTION=extract
             shift
@@ -1523,6 +1558,9 @@ case "${ACTION}" in
         ;;
     list)
         cmd_list
+        ;;
+    git)
+        cmd_git "${ARGS[@]+"${ARGS[@]}"}"
         ;;
     extract)
         cmd_extract
