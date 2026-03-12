@@ -59,9 +59,10 @@ alias drt='bash <(podman run --rm --pull=never --net=none ghcr.io/enigmacurry/d-
 
 ### Using Docker instead of Podman
 
-In Docker mode, the `drt` container requires a local Docker context
-(requires the local Docker daemon is running). It only connects to
-remote Docker hosts over SSH from *inside* the local container.
+If your workstation uses Docker instead of Podman, the `drt` container
+requires a local Docker context (requires the local Docker daemon is
+running). It only connects to remote Docker hosts over SSH from
+*inside* the local container.
 
 ```bash
 docker pull ghcr.io/enigmacurry/d-rymcg-tech:latest
