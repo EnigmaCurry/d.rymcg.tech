@@ -119,6 +119,16 @@ git_auto_commit() {
     fi
     git -C "${CONFIG_BASE}" commit -m "${msg}" >/dev/null
     echo "## git: committed: ${msg}" >&2
+    local remote
+    remote=$(git -C "${CONFIG_BASE}" remote 2>/dev/null | head -1)
+    if [[ -n "${remote}" ]]; then
+        read -rp "## git: push to ${remote}? [Y/n] " answer </dev/tty
+        if [[ ! "${answer}" =~ ^[Nn]$ ]]; then
+            git -C "${CONFIG_BASE}" push 2>/dev/null && \
+                echo "## git: pushed" >&2 || \
+                echo "## git: push failed" >&2
+        fi
+    fi
 }
 
 ###############################################################################
