@@ -15,7 +15,8 @@ Install [Podman](https://podman.io/docs/installation) on your
 workstation (bash and podman are the only host dependencies, but your
 personal shell can be bash or zsh).
 
-Add the following shell function to your `~/.bashrc` or `~/.zshrc`:
+Add the following shell function to your `~/.bashrc` (or
+`~/.bash_profile` for login shells) or `~/.zshrc`:
 
 ```bash
 drt() {
