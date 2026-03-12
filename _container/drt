@@ -538,13 +538,39 @@ BAO_CLIENT_KEY=${BAO_CLIENT_KEY}"
     fi
 
     mkdir -p "${CONFIG_DIR}"
-    echo "${PLAINTEXT}" | container_run -i \
-        "${IMAGE}" \
-        sh -c "cat > /tmp/plain.env && sops encrypt \
-            --input-type dotenv --output-type dotenv \
-            --filename-override export.env \
-            --age '${PUBKEY}' /tmp/plain.env" \
-        > "${CONFIG_DIR}/${CONTEXT}.sops.env"
+    if [[ -f "${CONFIG_DIR}/${CONTEXT}.sops.env" ]]; then
+        ## Existing config: use sops edit to only re-encrypt changed values
+        local _INIT_WORK
+        _INIT_WORK=$(mktemp -d)
+        echo "${PLAINTEXT}" > "${_INIT_WORK}/new-plain.env"
+        cp "${AGE_KEY_FILE}" "${_INIT_WORK}/age-key-in"
+        cp "${CONFIG_DIR}/${CONTEXT}.sops.env" "${_INIT_WORK}/config.sops.env"
+        container_run -it --user 0:0 \
+            -v "${_INIT_WORK}:/tmp/init-work:Z" \
+            "${IMAGE}" sh -c '
+                if head -1 /tmp/init-work/age-key-in | grep -q "^age-encryption.org"; then
+                    age -d /tmp/init-work/age-key-in > /tmp/init-work/age-key-dec
+                else
+                    cp /tmp/init-work/age-key-in /tmp/init-work/age-key-dec
+                fi
+                export SOPS_AGE_KEY_FILE=/tmp/init-work/age-key-dec
+                EDITOR="cp /tmp/init-work/new-plain.env" sops \
+                    --input-type dotenv --output-type dotenv \
+                    /tmp/init-work/config.sops.env
+                chmod 644 /tmp/init-work/config.sops.env
+                rm -f /tmp/init-work/age-key-dec'
+        cp "${_INIT_WORK}/config.sops.env" "${CONFIG_DIR}/${CONTEXT}.sops.env"
+        rm -rf "${_INIT_WORK}"
+    else
+        ## New config: encrypt from scratch
+        echo "${PLAINTEXT}" | container_run -i \
+            "${IMAGE}" \
+            sh -c "cat > /tmp/plain.env && sops encrypt \
+                --input-type dotenv --output-type dotenv \
+                --filename-override export.env \
+                --age '${PUBKEY}' /tmp/plain.env" \
+            > "${CONFIG_DIR}/${CONTEXT}.sops.env"
+    fi
 
     echo ""
     echo "Config saved to ${CONFIG_DIR}/${CONTEXT}.sops.env"
