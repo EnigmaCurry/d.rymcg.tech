@@ -11,6 +11,9 @@ image from the [GitHub Container Registry](#pulling-the-image).
 
 ## Quick start
 
+Install [Podman](https://podman.io/docs/installation) on your
+workstation (bash and podman are the only host dependencies).
+
 Add the following shell function to your `~/.bashrc` or `~/.zshrc`:
 
 ```bash
