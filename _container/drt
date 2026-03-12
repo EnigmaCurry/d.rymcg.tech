@@ -441,29 +441,27 @@ cmd_run() {
     echo "## AGE key: ${AGE_KEY_FILE}" >&2
     echo "## SOPS config: ${SOPS_CONFIG}" >&2
 
-    # Read age key content; decrypt if passphrase-protected
-    local AGE_KEY_CONTENT
-    if head -1 "${AGE_KEY_FILE}" | grep -q '^age-encryption.org'; then
-        local _tmp_in
-        _tmp_in=$(mktemp)
-        cp "${AGE_KEY_FILE}" "${_tmp_in}"
-        chmod 600 "${_tmp_in}"
-        AGE_KEY_CONTENT=$(container_run -i --user 0:0 \
-            -v "${_tmp_in}:/tmp/age-key:ro" \
-            -v /dev/tty:/dev/tty \
-            "${IMAGE}" age -d /tmp/age-key)
-        rm -f "${_tmp_in}"
-        if [[ -z "${AGE_KEY_CONTENT}" ]]; then
-            echo "Error: failed to decrypt AGE key" >&2
-            exit 1
-        fi
-    else
-        AGE_KEY_CONTENT=$(cat "${AGE_KEY_FILE}")
-    fi
-
     local CONTAINER_CONFIG_DIR=/home/user/git/vendor/enigmacurry/d.rymcg.tech/config
     local SOPS_BASENAME
     SOPS_BASENAME="$(basename "${SOPS_CONFIG}")"
+
+    # Passphrase-protected keys: temp copy at 644 for bind mount into main
+    # container (which has -it for the passphrase prompt). The passphrase
+    # is the real secret, not the encrypted file.
+    # Plain-text keys: pass content directly via SOPS_AGE_KEY env var.
+    local _AGE_TMP=""
+    local _AGE_ARGS=()
+    if head -1 "${AGE_KEY_FILE}" | grep -q '^age-encryption.org'; then
+        _AGE_TMP=$(mktemp)
+        cp "${AGE_KEY_FILE}" "${_AGE_TMP}"
+        chmod 644 "${_AGE_TMP}"
+        _AGE_ARGS=(
+            -v "${_AGE_TMP}:${CONTAINER_CONFIG_DIR}/age-key:ro"
+            -e "SOPS_AGE_KEY_FILE=${CONTAINER_CONFIG_DIR}/age-key"
+        )
+    else
+        _AGE_ARGS=(-e "SOPS_AGE_KEY=$(cat "${AGE_KEY_FILE}")")
+    fi
 
     local RUN_ARGS=(
         run --rm -it --pull=never
@@ -471,7 +469,7 @@ cmd_run() {
         --userns=keep-id
         -e "SOPS_CONFIG_FILE=${CONTAINER_CONFIG_DIR}/${SOPS_BASENAME}"
         -v "${SOPS_CONFIG}:${CONTAINER_CONFIG_DIR}/${SOPS_BASENAME}"
-        -e "SOPS_AGE_KEY=${AGE_KEY_CONTENT}"
+        "${_AGE_ARGS[@]}"
     )
 
     if [[ -n "${NET_MODE}" ]]; then
