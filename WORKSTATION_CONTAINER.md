@@ -91,9 +91,12 @@ built and pushed to your own registry. See
 
 ## How it works
 
-The entrypoint handles all setup before executing your command:
+The entire container state is derived from the encrypted SOPS config
+file. Each session starts fresh — the entrypoint decrypts the config
+and reconstructs the full working environment:
 
-1. **Generate SSH keypair** — ephemeral ed25519 key created at startup
+1. **Generate SSH keypair** — ephemeral ed25519 key created at startup,
+   named after the context (e.g. `/run/secrets/ssh/myserver`)
 2. **OpenBao authentication** (optional) — AppRole login, retrieves an
    AGE decryption key, signs the SSH key to get a short-lived
    certificate
@@ -102,7 +105,8 @@ The entrypoint handles all setup before executing your command:
 4. **Docker context setup** — writes SSH config and creates a Docker
    context pointing at the remote host
 5. **restore-env** — distributes env vars into each project's `.env`
-   file
+   file, restores SSH keys, SSH config, known_hosts, doctl config,
+   and passwords.json from the SOPS config
 6. **Exec** — runs your command (e.g. `d make traefik install`)
 
 ## Environment variables
@@ -142,7 +146,7 @@ derived automatically.
 
 | Variable | Default | Description |
 |---|---|---|
-| `SSH_KEY_SCAN` | (enabled) | Set to `false` to skip ssh-keyscan |
+| `SSH_KEY_SCAN` | (auto) | Disabled for interactive sessions; set to `false` to skip in CI too |
 | `BAO_CACERT` | | CA cert for OpenBao TLS (file path, PEM, or base64) |
 | `BAO_CLIENT_CERT` | | mTLS client cert (file path, PEM, or base64) |
 | `BAO_CLIENT_KEY` | | mTLS client key (file path, PEM, or base64) |
@@ -273,9 +277,12 @@ drt myserver
 ```
 
 This mounts your SOPS config read-write, forwards your SSH agent, and
-provides your AGE key for decryption. On shell exit, you'll see a diff
-of any configuration changes and can save them back to the encrypted
-file.
+provides your AGE key for decryption. The container restores all state
+from the encrypted config: project `.env` files, SSH keys and config,
+known_hosts, doctl config, and passwords.json.
+
+On shell exit, you'll see a diff of any configuration changes and can
+save them back to the encrypted file.
 
 Run `drt --help` for all options.
 
