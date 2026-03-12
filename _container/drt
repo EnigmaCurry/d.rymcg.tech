@@ -255,14 +255,13 @@ cmd_init() {
 
     ensure_config_dir
 
-    ## Check for existing config
+    ## Check for existing config — load current values as defaults
     local CONFIG_DIR="${HOME}/.config/d.rymcg.tech/config"
+    local _EXISTING=""
     if [[ -f "${CONFIG_DIR}/${CONTEXT}.sops.env" ]]; then
         echo "Config already exists: ${CONFIG_DIR}/${CONTEXT}.sops.env"
+        echo "Re-running wizard — current values will be used as defaults."
         echo ""
-        echo "To modify it interactively, run:"
-        echo "  drt ${CONTEXT}"
-        exit 0
     fi
 
     ## Ensure AGE key (one per context)
@@ -321,7 +320,43 @@ cmd_init() {
     echo "AGE public key: ${PUBKEY}"
     echo ""
 
-    ## SSH details — pre-fill from ssh config if available
+    ## If existing config, decrypt it to use values as defaults
+    local _CUR_SSH_HOST="" _CUR_SSH_PORT="" _CUR_SSH_USER="" _CUR_KNOWN_HOSTS=""
+    local _CUR_BAO_ADDR="" _CUR_BAO_ROLE_ID="" _CUR_BAO_SECRET_ID=""
+    local _CUR_BAO_SSH_MOUNT="" _CUR_BAO_SSH_ROLE="" _CUR_BAO_AUTH_PATH=""
+    local _CUR_BAO_AGE_KEY_PATH="" _CUR_BAO_KV_MOUNT="" _CUR_BAO_NAMESPACE=""
+    local _CUR_BAO_CACERT="" _CUR_BAO_CLIENT_CERT="" _CUR_BAO_CLIENT_KEY=""
+    if [[ -f "${CONFIG_DIR}/${CONTEXT}.sops.env" ]]; then
+        echo "## Decrypting existing config for defaults ..." >&2
+        _EXISTING=$(container_run \
+            --user 0:0 -i \
+            -v "${CONFIG_DIR}/${CONTEXT}.sops.env:/tmp/config.sops.env:ro" \
+            -v "${AGE_KEY_FILE}:/run/secrets/age-key:ro" \
+            -e "SOPS_AGE_KEY_FILE=/run/secrets/age-key" \
+            "${IMAGE}" \
+            sops decrypt --input-type dotenv --output-type dotenv \
+                --filename-override export.env /tmp/config.sops.env 2>/dev/null) || true
+        if [[ -n "${_EXISTING}" ]]; then
+            _CUR_SSH_HOST=$(echo "${_EXISTING}" | grep '^SSH_HOST=' | cut -d= -f2-)
+            _CUR_SSH_PORT=$(echo "${_EXISTING}" | grep '^SSH_PORT=' | cut -d= -f2-)
+            _CUR_SSH_USER=$(echo "${_EXISTING}" | grep '^SSH_USER=' | cut -d= -f2-)
+            _CUR_KNOWN_HOSTS=$(echo "${_EXISTING}" | grep '^SSH_KNOWN_HOSTS=' | cut -d= -f2-)
+            _CUR_BAO_ADDR=$(echo "${_EXISTING}" | grep '^BAO_ADDR=' | cut -d= -f2-)
+            _CUR_BAO_ROLE_ID=$(echo "${_EXISTING}" | grep '^BAO_ROLE_ID=' | cut -d= -f2-)
+            _CUR_BAO_SECRET_ID=$(echo "${_EXISTING}" | grep '^BAO_SECRET_ID=' | cut -d= -f2-)
+            _CUR_BAO_SSH_MOUNT=$(echo "${_EXISTING}" | grep '^BAO_SSH_MOUNT=' | cut -d= -f2-)
+            _CUR_BAO_SSH_ROLE=$(echo "${_EXISTING}" | grep '^BAO_SSH_ROLE=' | cut -d= -f2-)
+            _CUR_BAO_AUTH_PATH=$(echo "${_EXISTING}" | grep '^BAO_AUTH_PATH=' | cut -d= -f2-)
+            _CUR_BAO_AGE_KEY_PATH=$(echo "${_EXISTING}" | grep '^BAO_AGE_KEY_PATH=' | cut -d= -f2-)
+            _CUR_BAO_KV_MOUNT=$(echo "${_EXISTING}" | grep '^BAO_KV_MOUNT=' | cut -d= -f2-)
+            _CUR_BAO_NAMESPACE=$(echo "${_EXISTING}" | grep '^BAO_NAMESPACE=' | cut -d= -f2-)
+            _CUR_BAO_CACERT=$(echo "${_EXISTING}" | grep '^BAO_CACERT=' | cut -d= -f2-)
+            _CUR_BAO_CLIENT_CERT=$(echo "${_EXISTING}" | grep '^BAO_CLIENT_CERT=' | cut -d= -f2-)
+            _CUR_BAO_CLIENT_KEY=$(echo "${_EXISTING}" | grep '^BAO_CLIENT_KEY=' | cut -d= -f2-)
+        fi
+    fi
+
+    ## SSH details — pre-fill from existing config, then ssh config, then defaults
     local SSH_CONFIG SSH_HOST SSH_PORT SSH_USER
     SSH_CONFIG=$(ssh -G "${CONTEXT}" 2>/dev/null || true)
     local _SSH_HOST _SSH_PORT _SSH_USER
@@ -329,13 +364,18 @@ cmd_init() {
     _SSH_PORT=$(echo "${SSH_CONFIG}" | awk '/^port / {print $2; exit}')
     _SSH_USER=$(echo "${SSH_CONFIG}" | awk '/^user / {print $2}')
 
+    ## Existing config takes priority over ssh config
+    [[ -n "${_CUR_SSH_HOST}" ]] && _SSH_HOST="${_CUR_SSH_HOST}"
+    [[ -n "${_CUR_SSH_PORT}" ]] && _SSH_PORT="${_CUR_SSH_PORT}"
+    [[ -n "${_CUR_SSH_USER}" ]] && _SSH_USER="${_CUR_SSH_USER}"
+
     ## Don't default to the context name as the hostname
     [[ "${_SSH_HOST}" == "${CONTEXT}" ]] && _SSH_HOST=""
     SSH_HOST=$(wizard ask "Enter SSH hostname or IP address" "${_SSH_HOST}")
     SSH_PORT=$(wizard ask "Enter SSH port" "${_SSH_PORT:-22}")
     SSH_USER=$(wizard ask "Enter SSH user" "${_SSH_USER:-root}")
 
-    ## SSH key scan
+    ## SSH key scan — preserve existing known_hosts unless user re-scans
     local KNOWN_HOSTS=""
     if wizard confirm "Run ssh-keyscan now for ${SSH_HOST}:${SSH_PORT}?" no; then
         echo ""
@@ -345,7 +385,9 @@ cmd_init() {
             echo "ssh-keyscan failed for ${SSH_HOST}:${SSH_PORT}"
         fi
     fi
-    if [[ -z "${KNOWN_HOSTS}" ]]; then
+    if [[ -z "${KNOWN_HOSTS}" && -n "${_CUR_KNOWN_HOSTS}" ]]; then
+        echo "Keeping existing SSH known_hosts."
+    elif [[ -z "${KNOWN_HOSTS}" ]]; then
         echo "  You can set SSH_KNOWN_HOSTS later, or set SSH_KEY_SCAN=false to skip verification."
     else
         echo "SSH host keys collected."
@@ -355,28 +397,54 @@ cmd_init() {
     local BAO_ADDR="" BAO_ROLE_ID="" BAO_SECRET_ID="" BAO_SSH_MOUNT="" BAO_SSH_ROLE=""
     local BAO_AUTH_PATH="" BAO_AGE_KEY_PATH="" BAO_KV_MOUNT="" BAO_NAMESPACE=""
     local BAO_CACERT="" BAO_CLIENT_CERT="" BAO_CLIENT_KEY=""
-    if wizard confirm "Configure OpenBao SSH certificate signing?" no; then
-        BAO_ADDR=$(wizard ask "Enter OpenBao server URL (e.g., https://bao.example.com:443)")
-        BAO_ROLE_ID=$(wizard ask "Enter OpenBao BAO_ROLE_ID")
-        BAO_SECRET_ID=$(wizard ask "Enter OpenBao BAO_SECRET_ID")
-        BAO_SSH_MOUNT=$(wizard ask "Enter SSH engine mount" "ssh-client-signer")
-        BAO_SSH_ROLE=$(wizard ask "Enter SSH signing role" "woodpecker-short-lived")
-        BAO_AUTH_PATH=$(wizard ask "Enter auth path" "auth/approle")
+    local _bao_default=no
+    [[ -n "${_CUR_BAO_ADDR}" ]] && _bao_default=yes
+    if wizard confirm "Configure OpenBao SSH certificate signing?" "${_bao_default}"; then
+        BAO_ADDR=$(wizard ask "Enter OpenBao server URL (e.g., https://bao.example.com:443)" "${_CUR_BAO_ADDR}")
+        BAO_ROLE_ID=$(wizard ask "Enter OpenBao BAO_ROLE_ID" "${_CUR_BAO_ROLE_ID}")
+        BAO_SECRET_ID=$(wizard ask "Enter OpenBao BAO_SECRET_ID" "${_CUR_BAO_SECRET_ID}")
+        BAO_SSH_MOUNT=$(wizard ask "Enter SSH engine mount" "${_CUR_BAO_SSH_MOUNT:-ssh-client-signer}")
+        BAO_SSH_ROLE=$(wizard ask "Enter SSH signing role" "${_CUR_BAO_SSH_ROLE:-woodpecker-short-lived}")
+        BAO_AUTH_PATH=$(wizard ask "Enter auth path" "${_CUR_BAO_AUTH_PATH:-auth/approle}")
 
-        if wizard confirm "Configure OpenBao TLS client certificates?" no; then
-            echo ""
-            echo "Paste CA certificate PEM, then press Ctrl+D (leave blank if using a trusted CA like Let's Encrypt):"
-            BAO_CACERT=$(cat | base64 -w0)
-            echo ""
-            echo "Paste client certificate PEM (may include chain), then press Ctrl+D:"
-            BAO_CLIENT_CERT=$(cat | base64 -w0)
-            echo ""
-            echo "Paste client private key PEM, then press Ctrl+D:"
-            BAO_CLIENT_KEY=$(cat | base64 -w0)
+        local _tls_default=no
+        [[ -n "${_CUR_BAO_CLIENT_CERT}" ]] && _tls_default=yes
+        if wizard confirm "Configure OpenBao TLS client certificates?" "${_tls_default}"; then
+            if [[ -n "${_CUR_BAO_CACERT}" ]]; then
+                if wizard confirm "Keep existing CA certificate?" yes; then
+                    BAO_CACERT="${_CUR_BAO_CACERT}"
+                else
+                    echo "Paste CA certificate PEM, then press Ctrl+D:"
+                    BAO_CACERT=$(cat | base64 -w0)
+                fi
+            else
+                echo "Paste CA certificate PEM, then press Ctrl+D (leave blank if using a trusted CA like Let's Encrypt):"
+                BAO_CACERT=$(cat | base64 -w0)
+            fi
+            if [[ -n "${_CUR_BAO_CLIENT_CERT}" ]]; then
+                if wizard confirm "Keep existing client certificate?" yes; then
+                    BAO_CLIENT_CERT="${_CUR_BAO_CLIENT_CERT}"
+                    BAO_CLIENT_KEY="${_CUR_BAO_CLIENT_KEY}"
+                else
+                    echo "Paste client certificate PEM (may include chain), then press Ctrl+D:"
+                    BAO_CLIENT_CERT=$(cat | base64 -w0)
+                    echo "Paste client private key PEM, then press Ctrl+D:"
+                    BAO_CLIENT_KEY=$(cat | base64 -w0)
+                fi
+            else
+                echo ""
+                echo "Paste client certificate PEM (may include chain), then press Ctrl+D:"
+                BAO_CLIENT_CERT=$(cat | base64 -w0)
+                echo ""
+                echo "Paste client private key PEM, then press Ctrl+D:"
+                BAO_CLIENT_KEY=$(cat | base64 -w0)
+            fi
         fi
 
-        if wizard confirm "Configure OpenBao namespace?" no; then
-            BAO_NAMESPACE=$(wizard ask "Enter OpenBao namespace")
+        local _ns_default=no
+        [[ -n "${_CUR_BAO_NAMESPACE}" ]] && _ns_default=yes
+        if wizard confirm "Configure OpenBao namespace?" "${_ns_default}"; then
+            BAO_NAMESPACE=$(wizard ask "Enter OpenBao namespace" "${_CUR_BAO_NAMESPACE}")
         fi
     fi
 
@@ -390,6 +458,9 @@ SSH_PORT=${SSH_PORT}"
         SSH_KNOWN_HOSTS=$(echo "${KNOWN_HOSTS}" | base64 -w0)
         PLAINTEXT="${PLAINTEXT}
 SSH_KNOWN_HOSTS=${SSH_KNOWN_HOSTS}"
+    elif [[ -n "${_CUR_KNOWN_HOSTS}" ]]; then
+        PLAINTEXT="${PLAINTEXT}
+SSH_KNOWN_HOSTS=${_CUR_KNOWN_HOSTS}"
     fi
 
     ## Append OpenBao vars if configured
