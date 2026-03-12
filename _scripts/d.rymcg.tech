@@ -904,6 +904,24 @@ __export_env() {
         plaintext+="__ssh_config__=${ssh_data}"$'\n'
     fi
 
+    # Serialize user SSH keys from ~/.ssh (excludes config, known_hosts, auto-generated)
+    local ssh_key_found=false
+    for kf in "${HOME}"/.ssh/*; do
+        [[ -f "${kf}" ]] || continue
+        local kf_name="${kf##*/}"
+        # Skip config files, known_hosts, and auto-generated config-drt
+        case "${kf_name}" in
+            config|config-drt|known_hosts|authorized_keys|*.swp) continue ;;
+        esac
+        if [[ "${ssh_key_found}" == false ]]; then
+            plaintext+=$'\n'"## ssh keys"$'\n'
+            ssh_key_found=true
+        fi
+        local kf_data
+        kf_data=$(gzip -c < "${kf}" | base64 -w 0)
+        plaintext+="__ssh_key__${kf_name}=${kf_data}"$'\n'
+    done
+
     local output
     if [[ "${encrypt}" == true ]]; then
         output=$(echo "${plaintext}" | sops encrypt --input-type dotenv --output-type dotenv --filename-override export.env --age "${recipients}" /dev/stdin)
@@ -1017,6 +1035,7 @@ __restore_env() {
     declare -a file_order=()
     declare -A file_seen
     declare -A password_files  # "project/passwords.json" → base64 data
+    declare -A ssh_key_files   # "filename" → base64 data
     local doctl_config_b64=""
     local ssh_config_b64=""
 
@@ -1034,6 +1053,13 @@ __restore_env() {
         # Serialized SSH config: __ssh_config__=<base64>
         if [[ "${key}" == "__ssh_config__" ]]; then
             ssh_config_b64="${val}"
+            continue
+        fi
+
+        # Serialized SSH key files: __ssh_key__<filename>=<base64>
+        if [[ "${key}" == __ssh_key__* ]]; then
+            local kf_name="${key#__ssh_key__}"
+            ssh_key_files["${kf_name}"]="${val}"
             continue
         fi
 
@@ -1179,6 +1205,16 @@ __restore_env() {
         echo "## Restoring ${HOME}/.ssh/config" >&2
         _b64_decode "${ssh_config_b64}" > "${HOME}/.ssh/config"
         chmod 600 "${HOME}/.ssh/config"
+    fi
+
+    # Restore SSH key files if present
+    if [[ ${#ssh_key_files[@]} -gt 0 ]]; then
+        mkdir -p "${HOME}/.ssh"
+        for kf_name in "${!ssh_key_files[@]}"; do
+            echo "## Restoring ${HOME}/.ssh/${kf_name}" >&2
+            _b64_decode "${ssh_key_files[${kf_name}]}" > "${HOME}/.ssh/${kf_name}"
+            chmod 600 "${HOME}/.ssh/${kf_name}"
+        done
     fi
 }
 
