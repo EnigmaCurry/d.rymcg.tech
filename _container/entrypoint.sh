@@ -572,9 +572,30 @@ chown -R "${RUNTIME_UID}:${RUNTIME_GID}" \
     /run/secrets/ssh \
     2>/dev/null || true
 
-# Make SOPS config writable by runtime user for save-on-exit
+# For save-on-exit: copy SOPS config to a user-writable location.
+# The runtime user works with the copy; on save, bashrc writes to the copy,
+# then a background watcher (running as root) copies it back to the bind mount.
+# We do NOT chown bind-mounted files — in rootless podman that changes host
+# ownership to subuids.
 if [[ "${SOPS_SAVE_ON_EXIT:-}" == "true" && -n "${SOPS_CONFIG_FILE:-}" && -f "${SOPS_CONFIG_FILE}" ]]; then
-    chown "${RUNTIME_UID}:${RUNTIME_GID}" "${SOPS_CONFIG_FILE}"
+    _SOPS_BIND_PATH="${SOPS_CONFIG_FILE}"
+    _SOPS_USER_COPY="/tmp/sops-config-copy"
+    cp "${_SOPS_BIND_PATH}" "${_SOPS_USER_COPY}"
+    chown "${RUNTIME_UID}:${RUNTIME_GID}" "${_SOPS_USER_COPY}"
+    chmod 600 "${_SOPS_USER_COPY}"
+    export SOPS_CONFIG_FILE="${_SOPS_USER_COPY}"
+    export _SOPS_BIND_PATH
+
+    # Background watcher: when the user's save trap writes to the copy,
+    # copy it back to the bind mount as root (only root = host user in
+    # rootless podman can write without shifting ownership to subuids).
+    (
+        while inotifywait -qq -e close_write "${_SOPS_USER_COPY}" 2>/dev/null; do
+            cp "${_SOPS_USER_COPY}" "${_SOPS_BIND_PATH}"
+            chmod 600 "${_SOPS_BIND_PATH}"
+        done
+    ) &
+    log "## SOPS save-on-exit watcher started (PID $!)"
 fi
 
 # Fix ownership of env files created by restore-env

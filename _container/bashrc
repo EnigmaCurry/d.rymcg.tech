@@ -51,7 +51,7 @@ if [[ "${SOPS_SAVE_ON_EXIT:-}" == "true" && -n "${SOPS_CONFIG_FILE:-}" ]]; then
             echo "## Configuration changes detected:" >&2
             diff -u "${_sops_initial_state}" "${current_state}" >&2 || true
             echo "" >&2
-            read -rp "Save changes to ${SOPS_CONFIG_FILE}? [y/N] " answer
+            read -rp "Save changes to ${_SOPS_BIND_PATH:-${SOPS_CONFIG_FILE}}? [y/N] " answer
             if [[ "${answer}" =~ ^[Yy]$ ]]; then
                 local merged
                 merged=$(mktemp)
@@ -66,7 +66,7 @@ if [[ "${SOPS_SAVE_ON_EXIT:-}" == "true" && -n "${SOPS_CONFIG_FILE:-}" ]]; then
                 if sops encrypt --input-type dotenv --output-type dotenv \
                        --filename-override export.env \
                        --age "${SOPS_AGE_RECIPIENTS}" "${merged}" > "${SOPS_CONFIG_FILE}"; then
-                    echo "## Changes saved to ${SOPS_CONFIG_FILE}" >&2
+                    echo "## Changes saved to ${_SOPS_BIND_PATH:-${SOPS_CONFIG_FILE}}" >&2
                 else
                     echo "ERROR: Failed to save changes" >&2
                 fi
