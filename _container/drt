@@ -360,7 +360,7 @@ cmd_init() {
                 local _key_num=0
 
                 while true; do
-                    (( _key_num++ ))
+                    (( ++_key_num ))
                     echo ""
                     [[ ${_key_num} -gt 1 ]] && echo "--- Enrolling FIDO2 key #${_key_num} ---"
                     echo "Detecting FIDO2 devices..."
