@@ -346,9 +346,14 @@ cmd_init() {
     local _EXISTING=""
     if [[ -f "${CONFIG_DIR}/${CONTEXT}.sops.env" ]]; then
         echo "## Decrypting existing config for defaults ..." >&2
-        if [[ "${_KEY_IS_ENCRYPTED}" == true && -f "${DEC_DIR}/config-decrypted" ]]; then
+        if [[ "${_KEY_IS_ENCRYPTED}" == true ]]; then
             ## Already decrypted during key extraction
-            _EXISTING=$(cat "${DEC_DIR}/config-decrypted")
+            if [[ -s "${DEC_DIR}/config-decrypted" ]]; then
+                _EXISTING=$(cat "${DEC_DIR}/config-decrypted")
+            else
+                echo "## Warning: could not decrypt existing config (ls ${DEC_DIR}):" >&2
+                ls -la "${DEC_DIR}" >&2 || true
+            fi
             rm -rf "${DEC_DIR}"
         elif [[ "${_KEY_IS_ENCRYPTED}" != true ]]; then
             ## Key is plaintext, no passphrase needed
