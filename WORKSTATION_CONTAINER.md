@@ -256,6 +256,8 @@ SOPS-encrypted config file:
 drt --init myserver      # generates AGE key + creates ~/.config/d.rymcg.tech/config/myserver.sops.env
 drt myserver             # launches interactive container
 drt                      # interactive context chooser
+drt --edit myserver      # decrypt, edit, and re-encrypt SOPS config
+drt --view myserver      # decrypt and display SOPS config
 ```
 
 The only host dependency is Podman (or Docker with `--docker`). All
@@ -282,7 +284,7 @@ Run `drt --help` for all options.
 - **Base:** Alpine Linux
 - **Tools:** bash, make, git, openssl, jq, curl, sops, age,
   docker-cli, docker-cli-compose, openssh-client, uv (Python),
-  script-wizard
+  doctl (DigitalOcean), script-wizard
 - **d.rymcg.tech:** full repo at
   `/home/user/git/vendor/enigmacurry/d.rymcg.tech`
 - **User:** runs as `user` (UID 1000)
