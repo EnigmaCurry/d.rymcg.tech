@@ -1126,6 +1126,7 @@ __restore_env() {
         echo "## Restoring ${doctl_dir}/config.yaml" >&2
         echo "${doctl_config_b64}" | base64 -d > "${doctl_dir}/config.yaml"
         chmod 600 "${doctl_dir}/config.yaml"
+        chown -R "${RUNTIME_UID:-$(id -u)}:${RUNTIME_GID:-$(id -g)}" "${doctl_dir}" 2>/dev/null || true
     fi
 }
 
