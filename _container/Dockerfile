@@ -6,8 +6,9 @@ FROM docker.io/library/golang:1.24-alpine AS fido2-builder
 COPY .tools.lock.json /tmp/.tools.lock.json
 RUN apk add --no-cache git jq && \
     VERSION=$(jq -r '.dependencies["age-plugin-fido2-hmac"].version' /tmp/.tools.lock.json) && \
-    git clone --depth 1 --branch "v${VERSION}" https://github.com/olastor/age-plugin-fido2-hmac.git /src && \
-    cd /src && CGO_ENABLED=0 go build -o /age-plugin-fido2-hmac .
+    git clone https://github.com/olastor/age-plugin-fido2-hmac.git /src && \
+    cd /src && git checkout "v${VERSION}" && \
+    CGO_ENABLED=0 go build -o /age-plugin-fido2-hmac ./cmd/age-plugin-fido2-hmac
 
 FROM docker.io/library/alpine:3.23
 
