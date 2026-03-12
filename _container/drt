@@ -19,6 +19,7 @@ fi
 ENGINE=podman
 IMAGE="${DEFAULT_IMAGE}"
 BUILD=false
+NET_MODE=""
 
 check_engine() {
     if ! command -v "${ENGINE}" &>/dev/null; then
@@ -26,6 +27,30 @@ check_engine() {
         echo "Install ${ENGINE} first, or use --docker to use Docker instead." >&2
         exit 1
     fi
+}
+
+## Detect working network mode for podman (pasta may be broken on some systems)
+## Caches result in ~/.config/d.rymcg.tech/net-mode
+detect_net_mode() {
+    [[ -n "${NET_MODE}" ]] && return
+    [[ "${ENGINE}" != "podman" ]] && return
+    local CACHE_FILE="${HOME}/.config/d.rymcg.tech/net-mode"
+    if [[ -f "${CACHE_FILE}" ]]; then
+        NET_MODE=$(cat "${CACHE_FILE}")
+        return
+    fi
+    echo "## Detecting network mode (one-time check) ..." >&2
+    if "${ENGINE}" run --rm --net=pasta --entrypoint "" "${IMAGE}" true 2>/dev/null; then
+        NET_MODE=pasta
+    elif "${ENGINE}" run --rm --net=slirp4netns --entrypoint "" "${IMAGE}" true 2>/dev/null; then
+        NET_MODE=slirp4netns
+        echo "## Network: using slirp4netns (pasta unavailable)" >&2
+    else
+        NET_MODE=host
+        echo "## Network: using host (pasta and slirp4netns unavailable)" >&2
+    fi
+    mkdir -p "$(dirname "${CACHE_FILE}")" 2>/dev/null
+    echo "${NET_MODE}" > "${CACHE_FILE}" 2>/dev/null || true
 }
 
 ## Run a command inside the container, bypassing the entrypoint
@@ -82,6 +107,7 @@ Options:
   --timeout SEC      Command timeout in seconds (default: 300)
   --no-save          Disable save-on-exit
   --controller-port PORT  Host port for request-controller (default: 8084)
+  --net MODE         Network mode: pasta, slirp4netns, host (auto-detected)
   --version          Print version
   --help             Show this help
 EOF
@@ -346,6 +372,7 @@ cmd_run() {
         case "$1" in
             --image) IMAGE="$2"; shift 2 ;;
             --docker) ENGINE=docker; shift ;;
+            --net) NET_MODE="$2"; shift 2 ;;
             --age-key) AGE_KEY_FILE="$2"; shift 2 ;;
             --ssh-key) SSH_KEY_FILE="$2"; shift 2 ;;
             --no-save) SAVE_ON_EXIT=false; shift ;;
@@ -379,6 +406,7 @@ cmd_run() {
     fi
 
     check_engine
+    detect_net_mode
     echo "## Resolving context: ${SOPS_CONFIG}" >&2
 
     # If argument is a bare context name (no slashes, no .sops.env suffix),
@@ -426,6 +454,10 @@ cmd_run() {
         -v "${AGE_KEY_FILE}:${CONTAINER_CONFIG_DIR}/age-key:ro"
         -e "SOPS_AGE_KEY_FILE=${CONTAINER_CONFIG_DIR}/age-key"
     )
+
+    if [[ -n "${NET_MODE}" ]]; then
+        RUN_ARGS+=(--net="${NET_MODE}")
+    fi
 
     if [[ "${SAVE_ON_EXIT}" == true ]]; then
         RUN_ARGS+=(-e "SOPS_SAVE_ON_EXIT=true")
@@ -849,6 +881,11 @@ while [[ $# -gt 0 ]]; do
             ENGINE=docker
             ARGS+=(--docker)
             shift
+            ;;
+        --net)
+            NET_MODE="$2"
+            ARGS+=(--net "$2")
+            shift 2
             ;;
         --help|-h)
             usage
