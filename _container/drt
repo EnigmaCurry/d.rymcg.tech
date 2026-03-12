@@ -82,12 +82,23 @@ wizard() {
     return $rc
 }
 
-## List hidraw devices with human-readable names
+## List FIDO2 hidraw devices with human-readable names
+## Filters by checking for FIDO usage page (0xF1D0) in the HID report descriptor
 ## Output: one line per device: "/dev/hidrawN|HID_ID|Device Name"
 detect_hidraw_devices() {
     for dev in /dev/hidraw*; do
         [[ -e "$dev" ]] || continue
         local sysdev="/sys/class/hidraw/$(basename "$dev")/device"
+        # Check for FIDO usage page (0xF1D0) in report descriptor
+        local report_desc="${sysdev}/report_descriptor"
+        if [[ -f "${report_desc}" ]]; then
+            # FIDO usage page appears as bytes 06 D0 F1 in the HID descriptor
+            if ! od -An -tx1 "${report_desc}" 2>/dev/null | tr -d ' \n' | grep -qi '06d0f1'; then
+                continue
+            fi
+        else
+            continue
+        fi
         local name="" hidid=""
         if [[ -f "${sysdev}/uevent" ]]; then
             name=$(grep '^HID_NAME=' "${sysdev}/uevent" 2>/dev/null | cut -d= -f2)
