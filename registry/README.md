@@ -34,10 +34,9 @@ will keep the registry secure from unauthorized users. Choose either
 (signed certificate):
 
 ```stdout
-? Do you want to enable sentry authorization in front of this app (effectively making the entire site private)?  
+? Do you want to enable sentry authorization for admin push access? (No means complete free-for-all!)
   No
 > Yes, with HTTP Basic Authentication
-  Yes, with Oauth2
   Yes, with Mutual TLS (mTLS)
 
 Enter the username for HTTP Basic Authentication
@@ -51,9 +50,43 @@ Url encoded: https://ryan:hunter2@example.com/...
 
 > Would you like to create additional usernames (for the same access privilege)? No
 
-> Would you like to export the usernames and cleartext passwords to the file passwords.js
-n? No
+> Would you like to export the usernames and cleartext passwords to the file passwords.json? Yes
 ```
+
+### Storage backend
+
+By default, the registry stores images in a Docker volume. You can
+optionally use an S3-compatible bucket (e.g., AWS S3, Cloudflare R2,
+MinIO) for storage:
+
+```stdout
+By default, Registry storage uses a Docker volume. Optionally, you can use an S3 bucket.
+? Choose the storage backend:
+> docker
+  s3
+```
+
+If you choose `s3`, you will be prompted for the endpoint URL,
+region, bucket name, access key, and secret key. For Cloudflare R2,
+use `auto` as the region.
+
+### Public read-only access
+
+You can optionally allow anonymous (unauthenticated) read-only
+access, so anyone can `docker pull` without `docker login`, while
+`docker push` still requires authentication:
+
+```stdout
+> Do you want to allow public (unauthenticated) read-only pull access? Yes
+```
+
+### Pull-only credentials
+
+You can configure separate pull-only credentials that allow
+`docker pull` but not `docker push`. This uses the same auth
+method as admin (HTTP Basic Authentication or mTLS) but with
+separate credentials. This is mutually exclusive with public
+read-only access. Admin credentials also work for pulling.
 
 ## Install
 
@@ -61,25 +94,28 @@ n? No
 make install
 ```
 
-## Configure client
+## Login
 
-To use the registry, configure the docker client:
+Use `make login` to authenticate your Docker client with the
+registry. This reads credentials from `passwords.json` if available,
+and lets you choose which Docker context to log in from:
+
+```
+make login
+```
+
+```stdout
+> Which Docker context do you want to login from? my-context
+Login Succeeded
+```
+
+You can also log in manually:
 
 ```
 docker login registry.example.com
 ```
 
-Enter the credentials for HTTP Basic Authentication:
-
-```stdout
-Username: ryan
-Password: 
-WARNING! Your password will be stored unencrypted in /home/ryan/.docker/config.json.
-Configure a credential helper to remove this warning. See
-https://docs.docker.com/engine/reference/commandline/login/#credential-stores
-
-Login Succeeded
-```
+## Push and pull images
 
 Pull an image from the normal Docker registry for testing purposes:
 
@@ -97,12 +133,45 @@ Push it to the new registry:
 
 ```
 docker push registry.example.com/traefik/whoami:latest
+```
 
-# The push refers to repository [registry.example.com/traefik/whoami]
-# 298b6a4a6489: Pushed 
-# a1b937ed548c: Pushed 
-# 01d1702a867e: Pushed 
-# latest: digest: sha256:c899811bc4a1f63a1273c612e15f1bea6514a19c7b08143dbbdef3e8f882c38d size: 948
+## List tags
+
+List all images and tags stored in the registry:
+
+```
+make list-tags
+```
+
+## Delete tags
+
+Interactively select and delete images from the registry:
+
+```
+make delete-tags
+```
+
+This presents a multi-select menu of all images, confirms before
+deleting, and optionally runs garbage collection afterward to reclaim
+storage space.
+
+## Garbage collection
+
+Run garbage collection to remove unreferenced blobs and reclaim
+storage space. This requires a temporary registry restart:
+
+```
+make garbage-collect
+```
+
+## S3 management
+
+When using S3 storage, you can list and clean up the bucket contents
+directly:
+
+```
+make s3-list     # List all files in the S3 bucket
+make s3-clean    # Delete all files from the S3 bucket (with confirmation)
 ```
 
 ## Mutual TLS (mTLS)
@@ -117,7 +186,7 @@ On the client computer:
    registry hostname (e.g.,
    `/etc/docker/certs.d/registry.example.com/`).
  * In this directory create three files, named:
- 
+
    * `ca.crt` - the Step-CA public CA cert.
    * `client.cert` - the client's public cert.
    * `client.key` - the client's private key.

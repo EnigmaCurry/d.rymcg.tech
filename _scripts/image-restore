@@ -25,7 +25,7 @@ import sys
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
-from image_lib import ROOT_DIR, sha256sum
+from image_lib import ROOT_DIR, sha256sum, get_image_archive_base
 
 
 def get_server_images() -> set[str]:
@@ -60,7 +60,7 @@ def main():
         archive_dir = Path(args.archive_dir)
     else:
         arch = platform.machine()
-        archive_dir = ROOT_DIR / "_archive" / "images" / arch
+        archive_dir = get_image_archive_base() / arch
     manifest_path = archive_dir / "manifest.json"
 
     if not manifest_path.exists():

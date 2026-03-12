@@ -13,16 +13,29 @@
 #@ ip_sourcerange = data.values.ip_sourcerange
 #@ enable_http_auth = len(data.values.http_auth.strip()) > 0
 #@ http_auth = data.values.http_auth_var
-#@ enable_oauth2 = data.values.oauth2 == "true"
-#@ authorized_group = data.values.authorized_group
 #@ enable_mtls_auth = data.values.enable_mtls_auth == "true"
 #@ mtls_authorized_certs = data.values.mtls_authorized_certs
 #@ enabled_middlewares = []
+
+#! ### Custom project vars
+#@ s3_storage = data.values.storage_backend == "s3"
+#@ enable_public = data.values.public == "true"
+#@ enable_pull_http_auth = len(data.values.pull_http_auth.strip()) > 0
+#@ pull_http_auth = data.values.pull_http_auth_var
+#@ enable_pull_mtls_auth = data.values.pull_mtls_auth == "true"
+#@ pull_mtls_authorized_certs = data.values.pull_mtls_authorized_certs
+#@ enable_pull_auth = enable_pull_http_auth or enable_pull_mtls_auth
 
 #@yaml/text-templated-strings
 services:
   registry:
     #@ service = "registry"
+    environment:
+      - REGISTRY_HTTP_SECRET=${REGISTRY_HTTP_SECRET}
+    #@ if not s3_storage:
+    volumes:
+      - registry:/var/lib/registry
+    #@ end
     labels:
       - "backup-volume.stop-during-backup=true"
       #! Services must opt-in to be proxied by Traefik:
@@ -43,11 +56,6 @@ services:
       - "traefik.http.middlewares.(@= router @)-basicauth.basicauth.headerField=X-Forwarded-User"
       #@ end
 
-      #@ if enable_oauth2:
-      #@ enabled_middlewares.append("traefik-forward-auth@docker")
-      #@ enabled_middlewares.append("header-authorization-group-{}@file".format(authorized_group))
-      #@ end
-
       #@ if enable_mtls_auth:
       - "traefik.http.routers.(@= router @).tls.options=step_ca_mTLS@file"
         #@ if len(mtls_authorized_certs):
@@ -57,10 +65,54 @@ services:
         #@ enabled_middlewares.append("mtls-header@file")
       #@ end
       
-      #! Override the default port that the app binds to:
-      #! You don't normally need to do this, as long as your image has
-      #! an EXPOSE directive in it, Traefik will autodetect it, but this is how you can override it:
-      #! - "traefik.http.services.(@= router @).loadbalancer.server.port=8000"
+      - "traefik.http.services.(@= router @).loadbalancer.server.port=5000"
+      - "traefik.http.routers.(@= router @).service=(@= router @)"
 
       #! Apply all middlewares (do this at the end!)
       - "traefik.http.routers.(@= router @).middlewares=(@= ','.join(enabled_middlewares) @)"
+
+      #@ if enable_public:
+      #! Public read-only router (GET/HEAD only, no auth required):
+      #@ router_public = "{}-public".format(router)
+      - "traefik.http.routers.(@= router_public @).rule=Host(`(@= traefik_host @)`) && (Method(`GET`) || Method(`HEAD`)) && PathRegexp(`/v2/.+`)"
+      - "traefik.http.routers.(@= router_public @).priority=100"
+      - "traefik.http.routers.(@= router_public @).entrypoints=websecure"
+      - "traefik.http.routers.(@= router_public @).service=(@= router @)"
+      - "traefik.http.routers.(@= router_public @).middlewares=(@= router @)-ipallowlist"
+      #@ end
+
+      #@ if enable_pull_auth and not enable_public:
+      #! Pull-only authenticated router (GET/HEAD, combined admin + pull-only credentials):
+      #@ router_pull = "{}-pull".format(router)
+      - "traefik.http.routers.(@= router_pull @).rule=Host(`(@= traefik_host @)`) && (Method(`GET`) || Method(`HEAD`))"
+      - "traefik.http.routers.(@= router_pull @).priority=100"
+      - "traefik.http.routers.(@= router_pull @).entrypoints=websecure"
+      - "traefik.http.routers.(@= router_pull @).service=(@= router @)"
+
+      #@ pull_middlewares = ["{}-ipallowlist".format(router)]
+
+      #@ if enable_pull_http_auth:
+      - "traefik.http.middlewares.(@= router_pull @)-basicauth.basicauth.users=(@= http_auth @),(@= pull_http_auth @)"
+      - "traefik.http.middlewares.(@= router_pull @)-basicauth.basicauth.headerField=X-Forwarded-User"
+      #@ pull_middlewares.append("{}-basicauth".format(router_pull))
+      #@ end
+
+      #@ if enable_pull_mtls_auth:
+      - "traefik.http.routers.(@= router_pull @).tls.options=step_ca_mTLS@file"
+        #@ combined_certs = mtls_authorized_certs
+        #@ if len(pull_mtls_authorized_certs):
+          #@ if len(combined_certs):
+            #@ combined_certs = combined_certs + "," + pull_mtls_authorized_certs
+          #@ else:
+            #@ combined_certs = pull_mtls_authorized_certs
+          #@ end
+        #@ end
+        #@ if len(combined_certs):
+      - "traefik.http.middlewares.mtlsauth-(@= router_pull @).plugin.certauthz.domains=(@= combined_certs @)"
+        #@ pull_middlewares.append("mtlsauth-{}".format(router_pull))
+        #@ end
+        #@ pull_middlewares.append("mtls-header@file")
+      #@ end
+
+      - "traefik.http.routers.(@= router_pull @).middlewares=(@= ','.join(pull_middlewares) @)"
+      #@ end

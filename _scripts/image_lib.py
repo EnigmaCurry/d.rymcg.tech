@@ -3,6 +3,7 @@
 import hashlib
 import json
 import re
+import os
 import subprocess
 import sys
 from datetime import date
@@ -16,6 +17,42 @@ def build_tag() -> str:
     """Generate a date-stamped tag for locally built images."""
     return f"d-rymcg-tech-{date.today().strftime('%Y%m%d')}"
 
+def _parse_env_value(env_path: Path, key: str) -> str | None:
+    """Parse a KEY=VALUE from a .env file, stripping quotes."""
+    prefix = key + "="
+    with open(env_path) as f:
+        for line in f:
+            line = line.strip()
+            if line.startswith("#") or not line:
+                continue
+            if line.startswith(prefix):
+                val = line[len(prefix):]
+                if len(val) >= 2 and val[0] == val[-1] and val[0] in ('"', "'"):
+                    val = val[1:-1]
+                return val if val else None
+    return None
+
+
+def get_image_archive_base() -> Path:
+    """Return the base image archive directory.
+
+    Priority: shell environment > root .env_{context} file > default.
+    """
+    env_val = os.environ.get("IMAGE_ARCHIVE_DIR")
+    if env_val:
+        return Path(env_val)
+    try:
+        context = get_docker_context()
+    except SystemExit:
+        return ROOT_DIR / "_archive" / "images"
+    env_path = ROOT_DIR / f".env_{context}"
+    if not env_path.exists():
+        print(f"ERROR: Root env file not found: {env_path}", file=sys.stderr)
+        sys.exit(2)
+    val = _parse_env_value(env_path, "IMAGE_ARCHIVE_DIR")
+    if val:
+        return Path(val)
+    return ROOT_DIR / "_archive" / "images"
 
 def get_docker_context() -> str:
     """Get the name of the active Docker context."""
@@ -215,7 +252,6 @@ def retag_image(old_name: str, new_name: str, verbose: bool = False) -> bool:
     """Create a new tag for an existing image."""
     result = run_cmd(["docker", "tag", old_name, new_name], verbose=verbose)
     return result.returncode == 0
-
 
 def collect_images(
     catalog: list[dict],
