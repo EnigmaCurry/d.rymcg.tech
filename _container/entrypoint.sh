@@ -327,6 +327,8 @@ decrypt_age_key() {
     if [[ -n "${SOPS_AGE_KEY_FILE:-}" && -f "${SOPS_AGE_KEY_FILE}" ]]; then
         if head -1 "${SOPS_AGE_KEY_FILE}" | grep -q '^age-encryption.org'; then
             log "## AGE key is passphrase-protected, decrypting..."
+            # Flush any buffered stdin so stray keypresses don't feed the passphrase prompt
+            while read -t 0.1 -s; do :; done 2>/dev/null || true
             DECRYPTED_AGE_KEY=$(mktemp)
             if ! age -d "${SOPS_AGE_KEY_FILE}" > "${DECRYPTED_AGE_KEY}"; then
                 rm -f "${DECRYPTED_AGE_KEY}"
