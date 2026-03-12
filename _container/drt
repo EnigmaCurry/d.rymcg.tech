@@ -422,9 +422,9 @@ cmd_run() {
         --security-opt label=disable
         --userns=keep-id
         -e "SOPS_CONFIG_FILE=${CONTAINER_CONFIG_DIR}/${SOPS_BASENAME}"
-        -v "${SOPS_CONFIG}:${CONTAINER_CONFIG_DIR}/${SOPS_BASENAME}:U"
-        -v "${AGE_KEY_FILE}:/home/user/.config/d.rymcg.tech/age-key:ro,U"
-        -e "SOPS_AGE_KEY_FILE=/home/user/.config/d.rymcg.tech/age-key"
+        -v "${SOPS_CONFIG}:${CONTAINER_CONFIG_DIR}/${SOPS_BASENAME}"
+        -v "${AGE_KEY_FILE}:${CONTAINER_CONFIG_DIR}/age-key:ro"
+        -e "SOPS_AGE_KEY_FILE=${CONTAINER_CONFIG_DIR}/age-key"
     )
 
     if [[ "${SAVE_ON_EXIT}" == true ]]; then
