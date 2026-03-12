@@ -849,15 +849,19 @@ cmd_build() {
     fi
 
     echo "## Building from ${DRT_GIT_REPO}#${BRANCH} ..." >&2
-    local TMPDIR=""
-    TMPDIR=$(mktemp -d)
-    trap 'rm -rf "${TMPDIR}"' EXIT
-    git clone --depth 1 --branch "${BRANCH}" "${DRT_GIT_REPO}" "${TMPDIR}/src"
+    _DRT_BUILD_DIR=$(mktemp -d)
+    trap 'rm -rf "${_DRT_BUILD_DIR}"' EXIT
+    git clone --depth 1 --branch "${BRANCH}" "${DRT_GIT_REPO}" "${_DRT_BUILD_DIR}/src"
+    if [[ ! -f "${_DRT_BUILD_DIR}/src/_container/Dockerfile" ]]; then
+        echo "Error: _container/Dockerfile not found on branch '${BRANCH}'." >&2
+        echo "Specify a branch that has the Dockerfile: drt --build BRANCH" >&2
+        exit 1
+    fi
     "${ENGINE}" build \
         --build-arg "BRANCH=${BRANCH}" \
-        -f "${TMPDIR}/src/_container/Dockerfile" \
+        -f "${_DRT_BUILD_DIR}/src/_container/Dockerfile" \
         -t "${IMAGE}" \
-        "${TMPDIR}/src"
+        "${_DRT_BUILD_DIR}/src"
     echo "## Built: ${IMAGE} (branch: ${BRANCH})" >&2
 }
 
