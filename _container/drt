@@ -97,8 +97,9 @@ Options:
   --init [CONTEXT]   Bootstrap AGE key + SOPS config for a context
   --view [CONTEXT]   Decrypt and display SOPS config
   --clean [CONTEXT]  Remove SOPS config and/or AGE key for a context
+  --seal [CONTEXT]   Seal the OpenBao server used by a context
   --list             List all contexts (AGE keys and SOPS configs)
-  --pull             Pull latest image (confirms before downloading)
+  --pull             Pull latest image
   --extract          Print this script to stdout (self-extraction)
   --image TAG        Container image (default: localhost/d-rymcg-tech:latest)
   --docker           Use Docker instead of Podman
@@ -852,6 +853,153 @@ cmd_pull() {
 }
 
 ###############################################################################
+# seal subcommand
+###############################################################################
+
+cmd_seal() {
+    local CONTEXT="" AGE_KEY_FILE=""
+
+    while [[ $# -gt 0 ]]; do
+        case "$1" in
+            --image) IMAGE="$2"; shift 2 ;;
+            --docker) ENGINE=docker; shift ;;
+            --age-key) AGE_KEY_FILE="$2"; shift 2 ;;
+            --help)
+                echo "Usage: drt --seal [OPTIONS] [CONTEXT_NAME]"
+                echo ""
+                echo "Seal the OpenBao server used by a context."
+                echo ""
+                echo "Options:"
+                echo "  --image TAG    Container image"
+                echo "  --docker       Use Docker instead of Podman"
+                echo "  --age-key FILE AGE key file"
+                echo "  --help         Show this help"
+                exit 0
+                ;;
+            -*)
+                echo "Unknown option: $1" >&2
+                exit 1
+                ;;
+            *)
+                if [[ -z "${CONTEXT}" ]]; then
+                    CONTEXT="$1"
+                else
+                    echo "Error: unexpected argument: $1" >&2
+                    exit 1
+                fi
+                shift
+                ;;
+        esac
+    done
+
+    check_engine
+
+    ## Pick context interactively if not provided
+    if [[ -z "${CONTEXT}" ]]; then
+        local CONFIG_DIR="${HOME}/.config/d.rymcg.tech/config"
+        local CONTEXTS=()
+        if [[ -d "${CONFIG_DIR}" ]]; then
+            for f in "${CONFIG_DIR}"/*.sops.env; do
+                [[ -f "$f" ]] || continue
+                CONTEXTS+=("$(basename "$f" .sops.env)")
+            done
+        fi
+        if [[ ${#CONTEXTS[@]} -eq 0 ]]; then
+            echo "No configs found. Run 'drt --init' first." >&2
+            exit 1
+        fi
+        CONTEXT=$(wizard choose "Select context to seal" "${CONTEXTS[@]}")
+    fi
+
+    local SOPS_CONFIG="${HOME}/.config/d.rymcg.tech/config/${CONTEXT}.sops.env"
+    if [[ ! -f "${SOPS_CONFIG}" ]]; then
+        echo "Error: config not found: ${SOPS_CONFIG}" >&2
+        exit 1
+    fi
+
+    if [[ -z "${AGE_KEY_FILE}" ]]; then
+        AGE_KEY_FILE="${HOME}/.config/d.rymcg.tech/keys/sops/${CONTEXT}.key"
+    fi
+    if [[ ! -f "${AGE_KEY_FILE}" ]]; then
+        echo "Error: AGE key not found: ${AGE_KEY_FILE}" >&2
+        exit 1
+    fi
+
+    # Decrypt passphrase-protected AGE key
+    local DEC_DIR=""
+    if head -1 "${AGE_KEY_FILE}" | grep -q '^age-encryption.org'; then
+        DEC_DIR=$(mktemp -d)
+        cp "${AGE_KEY_FILE}" "${DEC_DIR}/age-key-in"
+        container_run -it --user 0:0 \
+            -v "${DEC_DIR}:/tmp/age-work:Z" \
+            "${IMAGE}" sh -c 'age -d /tmp/age-work/age-key-in > /tmp/age-work/age-key-dec'
+        AGE_KEY_FILE="${DEC_DIR}/age-key-dec"
+    fi
+
+    # Decrypt SOPS config and extract BAO_ADDR
+    local PLAINTEXT
+    PLAINTEXT=$(container_run \
+        --user 0:0 -i \
+        -v "${SOPS_CONFIG}:/tmp/config.sops.env:ro" \
+        -v "${AGE_KEY_FILE}:/run/secrets/age-key:ro" \
+        -e "SOPS_AGE_KEY_FILE=/run/secrets/age-key" \
+        "${IMAGE}" \
+        sops decrypt --input-type dotenv --output-type dotenv \
+            --filename-override export.env /tmp/config.sops.env)
+
+    [[ -n "${DEC_DIR}" ]] && rm -rf "${DEC_DIR}"
+
+    local BAO_ADDR=""
+    BAO_ADDR=$(echo "${PLAINTEXT}" | grep -oP '^BAO_ADDR=\K.*' || true)
+
+    if [[ -z "${BAO_ADDR}" ]]; then
+        echo "Error: BAO_ADDR not found in ${CONTEXT} config — OpenBao is not configured for this context." >&2
+        exit 1
+    fi
+
+    echo "## OpenBao server: ${BAO_ADDR}" >&2
+
+    # Check seal status first
+    local STATUS
+    STATUS=$(curl -sf "${BAO_ADDR}/v1/sys/seal-status" 2>/dev/null || true)
+    if [[ -z "${STATUS}" ]]; then
+        echo "Error: could not reach ${BAO_ADDR}" >&2
+        exit 1
+    fi
+
+    local SEALED
+    SEALED=$(echo "${STATUS}" | grep -oP '"sealed":\K(true|false)' || true)
+    if [[ "${SEALED}" == "true" ]]; then
+        echo "## OpenBao at ${BAO_ADDR} is already sealed." >&2
+        return
+    fi
+
+    read -rp "Seal the OpenBao server that ${CONTEXT} is using (${BAO_ADDR})? [y/N] " answer
+    if [[ ! "${answer}" =~ ^[Yy]$ ]]; then
+        echo "## Cancelled" >&2
+        return
+    fi
+
+    read -rsp "Root token: " ROOT_TOKEN
+    echo "" >&2
+
+    local SEAL_RESPONSE
+    SEAL_RESPONSE=$(curl -sf -X PUT \
+        -H "X-Vault-Token: ${ROOT_TOKEN}" \
+        "${BAO_ADDR}/v1/sys/seal" 2>&1) || true
+
+    # Check if sealed
+    STATUS=$(curl -sf "${BAO_ADDR}/v1/sys/seal-status" 2>/dev/null || true)
+    SEALED=$(echo "${STATUS}" | grep -oP '"sealed":\K(true|false)' || true)
+    if [[ "${SEALED}" == "true" ]]; then
+        echo "## OpenBao at ${BAO_ADDR} has been sealed." >&2
+    else
+        echo "Error: seal failed. Check the root token and try again." >&2
+        exit 1
+    fi
+}
+
+###############################################################################
 # extract subcommand
 ###############################################################################
 
@@ -886,6 +1034,12 @@ while [[ $# -gt 0 ]]; do
             ;;
         --clean)
             ACTION=clean
+            shift
+            ARGS+=("$@")
+            break
+            ;;
+        --seal)
+            ACTION=seal
             shift
             ARGS+=("$@")
             break
@@ -949,6 +1103,9 @@ case "${ACTION}" in
         ;;
     clean)
         cmd_clean "${ARGS[@]+"${ARGS[@]}"}"
+        ;;
+    seal)
+        cmd_seal "${ARGS[@]+"${ARGS[@]}"}"
         ;;
     pull)
         cmd_pull
