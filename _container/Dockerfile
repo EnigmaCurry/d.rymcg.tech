@@ -39,7 +39,7 @@ RUN curl -fsSL https://astral.sh/uv/install.sh | UV_INSTALL_DIR=/usr/local/bin s
 # Create non-root user
 RUN adduser -D -u 1000 -h /home/user -s /bin/bash user \
  && mkdir -p /run/secrets/ssh \
- && chown -R 1000:1000 /home/user /run/secrets
+ && chown -R 1000:1000 /home/user /run/secrets/ssh
 
 ENV PATH="/home/user/git/vendor/enigmacurry/d.rymcg.tech/_scripts/user:/home/user/.local/bin:/usr/local/bin:${PATH}"
 ENV HOME="/home/user"
