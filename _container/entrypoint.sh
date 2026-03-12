@@ -27,6 +27,7 @@ chown "${RUNTIME_UID}:${RUNTIME_GID}" \
 chown -R "${RUNTIME_UID}:${RUNTIME_GID}" \
     "${RUNTIME_HOME}/.ssh" \
     "${RUNTIME_HOME}/.local" \
+    "${RUNTIME_HOME}/.cache" \
     "${ROOT_DIR}" \
     /run/secrets/ssh \
     2>/dev/null || true
