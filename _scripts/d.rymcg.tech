@@ -757,7 +757,7 @@ __export_env() {
         esac
     done
     if [[ -z "${ctx}" ]]; then
-        ctx="${DOCKER_CONTEXT:-$(${BIN}/docker_context)}"
+        ctx="${DOCKER_CONTEXT:-${DRT_CONTEXT:-$(${BIN}/docker_context)}}"
     fi
     cd "${ROOT_DIR}"
 
@@ -812,13 +812,20 @@ __export_env() {
         fi
     fi
 
-    # Resolve SSH connection details from the Docker context
-    local ssh_config
-    ssh_config=$(ssh -G "${ctx}" 2>/dev/null || true)
+    # Resolve SSH connection details: prefer env vars (set by restore-env / entrypoint),
+    # fall back to ssh -G which can be unreliable with Match exec blocks
     local ssh_host ssh_user ssh_port
-    ssh_host=$(echo "${ssh_config}" | awk '/^hostname / {print $2}')
-    ssh_user=$(echo "${ssh_config}" | awk '/^user / {print $2}')
-    ssh_port=$(echo "${ssh_config}" | awk '/^port / {print $2}')
+    if [[ -n "${SSH_HOST:-}" ]]; then
+        ssh_host="${SSH_HOST}"
+        ssh_user="${SSH_USER:-root}"
+        ssh_port="${SSH_PORT:-22}"
+    else
+        local ssh_config
+        ssh_config=$(ssh -G "${ctx}" 2>/dev/null || true)
+        ssh_host=$(echo "${ssh_config}" | awk '/^hostname / {print $2}')
+        ssh_user=$(echo "${ssh_config}" | awk '/^user / {print $2}')
+        ssh_port=$(echo "${ssh_config}" | awk '/^port / {print $2}')
+    fi
 
     # Output selected files
     local plaintext=""
