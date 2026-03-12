@@ -301,6 +301,54 @@ save them back to the encrypted file.
 
 Run `drt --help` for all options.
 
+## Storing configs in git
+
+You can track your `~/.config/d.rymcg.tech` directory in a private
+git repository. The SOPS-encrypted config files are safe to commit
+(they are encrypted with your AGE key), but the AGE keys themselves
+are excluded by `.gitignore` and must be backed up separately.
+
+### Initialize the config repo
+
+```bash
+drt --git init
+drt --git config user.email "you@example.com"
+drt --git config user.name "Your Name"
+drt --git remote add origin git@github.com:you/drt-config.git
+drt --git push -u origin master
+```
+
+Once a remote is configured, `drt` will automatically:
+
+- **Pull** (fast-forward only) before any operation (`--init`,
+  `--edit`, `--view`, interactive session)
+- **Commit** after any change (`--init`, `--edit`, `--clean`,
+  interactive session exit)
+- **Prompt to push** after each commit (default: yes)
+
+If the local and remote branches have diverged, `drt` will stop with
+an error — resolve manually with `drt --git`.
+
+### What is safe to commit
+
+| Path | Committed | Notes |
+|---|---|---|
+| `config/*.sops.env` | Yes | Encrypted with AGE — safe in a private repo |
+| `keys/` | No | Excluded by `.gitignore` — back up separately |
+| `.gitignore` | Yes | Created by `drt --init` |
+| `net-mode` | No | Excluded by `.gitignore` (local cache) |
+
+### Managing the repo directly
+
+`drt --git` is a pass-through to `git -C ~/.config/d.rymcg.tech`:
+
+```bash
+drt --git log            # view commit history
+drt --git diff           # see uncommitted changes
+drt --git push           # push to remote
+drt --git status         # check repo status
+```
+
 ## What's in the image
 
 - **Base:** Alpine Linux
