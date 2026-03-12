@@ -1009,13 +1009,21 @@ _bao_resolve() {
     # Build env vars for the container
     local BAO_ENV=()
     local var
+    local _has_cacert=false _has_client_cert=false
     for var in BAO_ADDR BAO_CACERT BAO_CLIENT_CERT BAO_CLIENT_KEY; do
         local val=""
         val=$(echo "${PLAINTEXT}" | grep -oP "^${var}=\\K.*" || true)
         if [[ -n "${val}" ]]; then
             BAO_ENV+=(-e "${var}=${val}")
+            [[ "${var}" == "BAO_CACERT" ]] && _has_cacert=true
+            [[ "${var}" == "BAO_CLIENT_CERT" ]] && _has_client_cert=true
         fi
     done
+    if [[ "${_has_client_cert}" == "true" ]]; then
+        echo "## TLS: mTLS (client certificate + CA)" >&2
+    elif [[ "${_has_cacert}" == "true" ]]; then
+        echo "## TLS: custom CA certificate" >&2
+    fi
 
     detect_net_mode
     _BAO_RUN_ARGS=(run --rm -it --entrypoint "")
