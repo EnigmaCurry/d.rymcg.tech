@@ -1012,6 +1012,7 @@ cmd_seal() {
     _bao_parse_args seal "$@"
     _bao_resolve "Select context to seal"
 
+    echo "## Running: ${ENGINE} ${_BAO_CTX[*]} ${_BAO_RUN_ARGS[*]} bash -c ..." >&2
     "${ENGINE}" "${_BAO_CTX[@]}" "${_BAO_RUN_ARGS[@]}" bash -c '
 set -eo pipefail
 '"${_BAO_TLS_SCRIPT}"'
@@ -1070,6 +1071,7 @@ cmd_unseal() {
     _bao_parse_args unseal "$@"
     _bao_resolve "Select context to unseal"
 
+    echo "## Running: ${ENGINE} ${_BAO_CTX[*]} ${_BAO_RUN_ARGS[*]} bash -c ..." >&2
     "${ENGINE}" "${_BAO_CTX[@]}" "${_BAO_RUN_ARGS[@]}" bash -c '
 set -eo pipefail
 '"${_BAO_TLS_SCRIPT}"'
