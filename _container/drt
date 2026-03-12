@@ -381,11 +381,22 @@ cmd_init() {
 
                 echo "Generating FIDO2 AGE identity on ${FIDO2_DEV}..."
                 echo "You will be prompted for your FIDO2 PIN and to touch the key."
-                container_run -it --user 0:0 \
+                local FIDO2_DIR
+                FIDO2_DIR=$(mktemp -d)
+                if container_run -it --user 0:0 \
                     --security-opt label=disable \
                     --device "${FIDO2_DEV}" \
-                    "${IMAGE}" age-plugin-fido2-hmac -g > "${AGE_KEY_FILE}"
-                chmod 600 "${AGE_KEY_FILE}"
+                    -v "${FIDO2_DIR}:/tmp/fido2-work:Z" \
+                    "${IMAGE}" sh -c 'age-plugin-fido2-hmac -g > /tmp/fido2-work/identity' \
+                    && [[ -s "${FIDO2_DIR}/identity" ]]; then
+                    mv "${FIDO2_DIR}/identity" "${AGE_KEY_FILE}"
+                    chmod 600 "${AGE_KEY_FILE}"
+                else
+                    rm -rf "${FIDO2_DIR}"
+                    echo "Error: FIDO2 key generation failed." >&2
+                    exit 1
+                fi
+                rm -rf "${FIDO2_DIR}"
                 PUBKEY=$(grep -o 'age1[a-z0-9]*' "${AGE_KEY_FILE}" | head -1)
 
                 # Store device HID_ID for runtime detection
