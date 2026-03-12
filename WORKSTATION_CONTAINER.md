@@ -61,9 +61,9 @@ alias drt='bash <(podman run --rm --pull=never --net=none ghcr.io/enigmacurry/d-
 
 ```bash
 docker pull ghcr.io/enigmacurry/d-rymcg-tech:latest
-alias drt='bash <(docker run --rm --pull=never --net=none ghcr.io/enigmacurry/d-rymcg-tech drt)'
-drt --docker --init myserver
-drt --docker myserver
+alias drt='bash <(docker run --rm --pull=never --net=none ghcr.io/enigmacurry/d-rymcg-tech drt) --docker'
+drt --init myserver
+drt myserver
 ```
 
 ### Other options
