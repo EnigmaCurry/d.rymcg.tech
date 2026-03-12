@@ -855,6 +855,21 @@ __export_env() {
         fi
     done
 
+    # Serialize passwords.json files from projects that have env files for this context
+    local -A seen_projects
+    for env_file in "${selected_files[@]}"; do
+        [[ "${env_file}" == */* ]] || continue
+        local project="${env_file%%/*}"
+        [[ -n "${seen_projects[${project}]+set}" ]] && continue
+        seen_projects["${project}"]=1
+        if [[ -f "${project}/passwords.json" ]]; then
+            local pw_data
+            pw_data=$(base64 -w 0 < "${project}/passwords.json")
+            plaintext+=$'\n'"## ${project}/passwords.json"$'\n'
+            plaintext+="__passwords__${project}=${pw_data}"$'\n'
+        fi
+    done
+
     local output
     if [[ "${encrypt}" == true ]]; then
         output=$(echo "${plaintext}" | sops encrypt --input-type dotenv --output-type dotenv --filename-override export.env --age "${recipients}" /dev/stdin)
@@ -955,11 +970,24 @@ __restore_env() {
     declare -A file_vars  # "file" → "key=val\nkey=val\n..."
     declare -a file_order=()
     declare -A file_seen
+    declare -A password_files  # "project/passwords.json" → base64 data
 
     while IFS= read -r line; do
         [[ -z "${line}" || "${line}" == "#"* ]] && continue
         local key="${line%%=*}"
         local val="${line#*=}"
+
+        # Serialized passwords.json: __passwords__<project>=<base64>
+        if [[ "${key}" == __passwords__* ]]; then
+            local project="${key#__passwords__}"
+            local target="${project}/passwords.json"
+            password_files["${target}"]="${val}"
+            if [[ -z "${file_seen[${target}]+set}" ]]; then
+                file_seen["${target}"]=1
+                file_order+=("${target}")
+            fi
+            continue
+        fi
 
         # Instance-prefixed var: __<instance>__<PREFIX>_<VAR>
         if [[ "${key}" == __*__* ]]; then
@@ -1046,6 +1074,13 @@ __restore_env() {
 
     # Second pass: write files
     for target_file in "${file_order[@]}"; do
+        # Handle passwords.json files (base64-encoded)
+        if [[ -n "${password_files[${target_file}]+set}" ]]; then
+            echo "## Restoring ${target_file}" >&2
+            echo "${password_files[${target_file}]}" | base64 -d > "${target_file}"
+            continue
+        fi
+
         local data="${file_vars[${target_file}]}"
         local first_line="${data%%$'\n'*}"
         local rest="${data#*$'\n'}"
