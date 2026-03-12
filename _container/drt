@@ -807,6 +807,7 @@ cmd_view() {
     if head -1 "${AGE_KEY_FILE}" | grep -q '^age-encryption.org'; then
         DEC_DIR=$(mktemp -d)
         cp "${AGE_KEY_FILE}" "${DEC_DIR}/age-key-in"
+        echo "## Enter your AGE key passphrase now." >&2
         container_run -it --user 0:0 \
             -v "${DEC_DIR}:/tmp/age-work:Z" \
             "${IMAGE}" sh -c 'age -d /tmp/age-work/age-key-in > /tmp/age-work/age-key-dec'
@@ -930,6 +931,7 @@ cmd_seal() {
     if head -1 "${AGE_KEY_FILE}" | grep -q '^age-encryption.org'; then
         DEC_DIR=$(mktemp -d)
         cp "${AGE_KEY_FILE}" "${DEC_DIR}/age-key-in"
+        echo "## Enter your AGE key passphrase now." >&2
         container_run -it --user 0:0 \
             -v "${DEC_DIR}:/tmp/age-work:Z" \
             "${IMAGE}" sh -c 'age -d /tmp/age-work/age-key-in > /tmp/age-work/age-key-dec'
