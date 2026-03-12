@@ -13,6 +13,8 @@ if [[ "${SOPS_SAVE_ON_EXIT:-}" == "true" && -n "${SOPS_CONFIG_FILE:-}" ]]; then
 
     ## Extract vars/comments from decrypted sops config that export-env doesn't produce
     ## (e.g. SSH_KNOWN_HOSTS, BAO_*, ## OpenBao header)
+    ## Also preserves serialized data (__passwords__*, __doctl_config__, __ssh_config__)
+    ## as a safety net in case export-env can't reproduce them at save time.
     _sops_extract_preserved() {
         local decrypted export_keys
         # SOPS_CONFIG_FILE is already decrypted plaintext (entrypoint decrypts as root)
@@ -24,14 +26,20 @@ if [[ "${SOPS_SAVE_ON_EXIT:-}" == "true" && -n "${SOPS_CONFIG_FILE:-}" ]]; then
             if [[ "${line}" == "## "* ]]; then
                 # Preserve comment headers that export-env doesn't produce
                 local header="${line#\#\# }"
-                if [[ "${header}" != "SSH" && "${header}" != .env_* && "${header}" != */.env_* ]]; then
+                if [[ "${header}" != "SSH" && "${header}" != .env_* && "${header}" != */.env_* \
+                   && "${header}" != */passwords.json && "${header}" != "doctl config" \
+                   && "${header}" != "ssh config" ]]; then
                     [[ -n "${result}" ]] && result+=$'\n'
                     result+="${line}"
                 fi
             elif [[ "${line}" == *=* && "${line}" != "#"* ]]; then
                 local key="${line%%=*}"
+                # Always preserve serialized data as safety net
+                if [[ "${key}" == __passwords__* || "${key}" == "__doctl_config__" || "${key}" == "__ssh_config__" ]]; then
+                    [[ -n "${result}" ]] && result+=$'\n'
+                    result+="${line}"
                 # Preserve vars not in export-env output
-                if ! echo "${export_keys}" | grep -qx "${key}"; then
+                elif ! echo "${export_keys}" | grep -qx "${key}"; then
                     [[ -n "${result}" ]] && result+=$'\n'
                     result+="${line}"
                 fi
@@ -53,16 +61,30 @@ if [[ "${SOPS_SAVE_ON_EXIT:-}" == "true" && -n "${SOPS_CONFIG_FILE:-}" ]]; then
             echo "" >&2
             read -rp "Save changes to ${_SOPS_BIND_PATH:-${SOPS_CONFIG_FILE}}? [y/N] " answer
             if [[ "${answer}" =~ ^[Yy]$ ]]; then
-                local merged
+                local merged export_output export_keys
                 merged=$(mktemp)
-                # Merge: preserved sections + export-env output
+                export_output=$(mktemp)
+                d export-env > "${export_output}" 2>/dev/null || true
+                # Get keys from export-env to deduplicate against preserved
+                export_keys=$(grep -oP '^[A-Za-z_][A-Za-z_0-9]*(?==)' "${export_output}" || true)
+                # Merge: preserved sections (minus keys export-env reproduces) + export-env
                 if [[ -s "${_sops_preserved_sections}" ]]; then
-                    cat "${_sops_preserved_sections}" > "${merged}"
+                    while IFS= read -r line; do
+                        if [[ "${line}" == *=* && "${line}" != "#"* ]]; then
+                            local key="${line%%=*}"
+                            # Skip preserved key if export-env produced a fresh version
+                            if echo "${export_keys}" | grep -qx "${key}"; then
+                                continue
+                            fi
+                        fi
+                        echo "${line}"
+                    done < "${_sops_preserved_sections}" > "${merged}"
                     echo "" >> "${merged}"
-                    d export-env >> "${merged}" 2>/dev/null
+                    cat "${export_output}" >> "${merged}"
                 else
-                    d export-env > "${merged}" 2>/dev/null
+                    cat "${export_output}" > "${merged}"
                 fi
+                rm -f "${export_output}"
                 # Write unencrypted merged config; root helper encrypts and saves
                 if [[ -p "${_SOPS_SAVE_REQUEST:-}" ]]; then
                     cat "${merged}" > "${SOPS_CONFIG_FILE}"
