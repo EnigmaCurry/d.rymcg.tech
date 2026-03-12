@@ -96,6 +96,7 @@ Usage:
 Options:
   --init [CONTEXT]   Bootstrap AGE key + SOPS config for a context
   --view [CONTEXT]   Decrypt and display SOPS config
+  --edit [CONTEXT]   Decrypt, edit in \$EDITOR, and re-encrypt SOPS config
   --clean [CONTEXT]  Remove SOPS config and/or AGE key for a context
   --seal [CONTEXT]   Seal the OpenBao server used by a context
   --unseal [CONTEXT] Unseal the OpenBao server used by a context
@@ -831,6 +832,154 @@ cmd_view() {
 }
 
 ###############################################################################
+# edit subcommand
+###############################################################################
+
+edit_usage() {
+    cat <<'EOF'
+Usage: drt --edit [OPTIONS] [CONTEXT_NAME]
+
+Decrypt a SOPS config, edit it in $EDITOR, and re-encrypt.
+
+Options:
+  --image TAG    Container image (default: localhost/d-rymcg-tech:latest)
+  --docker       Use Docker instead of Podman
+  --age-key FILE AGE key file (default: ~/.config/d.rymcg.tech/keys/sops/<context>.key)
+  --help         Show this help
+EOF
+}
+
+cmd_edit() {
+    local CONTEXT="" AGE_KEY_FILE=""
+
+    while [[ $# -gt 0 ]]; do
+        case "$1" in
+            --image) IMAGE="$2"; shift 2 ;;
+            --docker) ENGINE=docker; shift ;;
+            --age-key) AGE_KEY_FILE="$2"; shift 2 ;;
+            --help) edit_usage; exit 0 ;;
+            -*)
+                echo "Unknown option: $1" >&2
+                edit_usage >&2
+                exit 1
+                ;;
+            *)
+                if [[ -z "${CONTEXT}" ]]; then
+                    CONTEXT="$1"
+                else
+                    echo "Error: unexpected argument: $1" >&2
+                    edit_usage >&2
+                    exit 1
+                fi
+                shift
+                ;;
+        esac
+    done
+
+    check_engine
+
+    ## Pick context interactively if not provided
+    if [[ -z "${CONTEXT}" ]]; then
+        local CONFIG_DIR="${HOME}/.config/d.rymcg.tech/config"
+        local CONTEXTS=()
+        if [[ -d "${CONFIG_DIR}" ]]; then
+            for f in "${CONFIG_DIR}"/*.sops.env; do
+                [[ -f "$f" ]] || continue
+                CONTEXTS+=("$(basename "$f" .sops.env)")
+            done
+        fi
+        if [[ ${#CONTEXTS[@]} -eq 0 ]]; then
+            echo "No configs found. Run 'drt --init' first." >&2
+            exit 1
+        fi
+        CONTEXT=$(wizard choose "Select context to edit" "${CONTEXTS[@]}")
+    fi
+
+    local SOPS_CONFIG="${HOME}/.config/d.rymcg.tech/config/${CONTEXT}.sops.env"
+    if [[ ! -f "${SOPS_CONFIG}" ]]; then
+        echo "Error: config not found: ${SOPS_CONFIG}" >&2
+        exit 1
+    fi
+
+    if [[ -z "${AGE_KEY_FILE}" ]]; then
+        AGE_KEY_FILE="${HOME}/.config/d.rymcg.tech/keys/sops/${CONTEXT}.key"
+    fi
+    if [[ ! -f "${AGE_KEY_FILE}" ]]; then
+        echo "Error: AGE key not found: ${AGE_KEY_FILE}" >&2
+        exit 1
+    fi
+
+    # Decrypt passphrase-protected AGE key in a separate interactive step
+    local DEC_DIR=""
+    if head -1 "${AGE_KEY_FILE}" | grep -q '^age-encryption.org'; then
+        DEC_DIR=$(mktemp -d)
+        cp "${AGE_KEY_FILE}" "${DEC_DIR}/age-key-in"
+        echo "## Enter your AGE key passphrase now." >&2
+        container_run -it --user 0:0 \
+            -v "${DEC_DIR}:/tmp/age-work:Z" \
+            "${IMAGE}" sh -c 'age -d /tmp/age-work/age-key-in > /tmp/age-work/age-key-dec'
+        AGE_KEY_FILE="${DEC_DIR}/age-key-dec"
+    fi
+
+    # Decrypt to secure temp file
+    local EDIT_DIR
+    EDIT_DIR=$(mktemp -d)
+    local EDIT_FILE="${EDIT_DIR}/${CONTEXT}.env"
+    container_run \
+        --user 0:0 -i \
+        -v "${SOPS_CONFIG}:/tmp/config.sops.env:ro" \
+        -v "${AGE_KEY_FILE}:/run/secrets/age-key:ro" \
+        -e "SOPS_AGE_KEY_FILE=/run/secrets/age-key" \
+        "${IMAGE}" \
+        sops decrypt --input-type dotenv --output-type dotenv \
+            --filename-override export.env /tmp/config.sops.env > "${EDIT_FILE}"
+    chmod 600 "${EDIT_FILE}"
+
+    # Get AGE recipient (public key) for re-encryption
+    local AGE_RECIPIENT
+    AGE_RECIPIENT=$(container_run \
+        --user 0:0 -i \
+        -v "${AGE_KEY_FILE}:/run/secrets/age-key:ro" \
+        "${IMAGE}" age-keygen -y /run/secrets/age-key 2>/dev/null)
+    if [[ -z "${AGE_RECIPIENT}" ]]; then
+        echo "Error: could not derive AGE recipient from key" >&2
+        rm -rf "${EDIT_DIR}" "${DEC_DIR}"
+        exit 1
+    fi
+
+    # Checksum before editing
+    local BEFORE_HASH
+    BEFORE_HASH=$(sha256sum "${EDIT_FILE}" | awk '{print $1}')
+
+    # Open editor
+    "${EDITOR:-nano}" "${EDIT_FILE}"
+
+    # Check if file was modified
+    local AFTER_HASH
+    AFTER_HASH=$(sha256sum "${EDIT_FILE}" | awk '{print $1}')
+    if [[ "${BEFORE_HASH}" == "${AFTER_HASH}" ]]; then
+        echo "## No changes made, config unchanged." >&2
+        rm -rf "${EDIT_DIR}" "${DEC_DIR}"
+        exit 0
+    fi
+
+    # Re-encrypt and overwrite original
+    container_run \
+        --user 0:0 -i \
+        -v "${EDIT_FILE}:/tmp/plaintext.env:ro" \
+        -v "${AGE_KEY_FILE}:/run/secrets/age-key:ro" \
+        -e "SOPS_AGE_KEY_FILE=/run/secrets/age-key" \
+        "${IMAGE}" \
+        sops encrypt --input-type dotenv --output-type dotenv \
+            --filename-override export.env \
+            --age "${AGE_RECIPIENT}" /tmp/plaintext.env > "${SOPS_CONFIG}"
+
+    echo "## Changes encrypted and saved to ${SOPS_CONFIG}" >&2
+
+    rm -rf "${EDIT_DIR}" "${DEC_DIR}"
+}
+
+###############################################################################
 # build subcommand
 ###############################################################################
 
@@ -1208,6 +1357,12 @@ while [[ $# -gt 0 ]]; do
             ARGS+=("$@")
             break
             ;;
+        --edit)
+            ACTION=edit
+            shift
+            ARGS+=("$@")
+            break
+            ;;
         --clean)
             ACTION=clean
             shift
@@ -1284,6 +1439,7 @@ while [[ $# -gt 0 ]]; do
                 case "${_remaining}" in
                     --init)   ACTION=init; break ;;
                     --view)   ACTION=view; break ;;
+                    --edit)   ACTION=edit; break ;;
                     --clean)  ACTION=clean; break ;;
                     --seal)   ACTION=seal; break ;;
                     --unseal) ACTION=unseal; break ;;
@@ -1309,6 +1465,9 @@ case "${ACTION}" in
         ;;
     view)
         cmd_view "${ARGS[@]+"${ARGS[@]}"}"
+        ;;
+    edit)
+        cmd_edit "${ARGS[@]+"${ARGS[@]}"}"
         ;;
     clean)
         cmd_clean "${ARGS[@]+"${ARGS[@]}"}"
