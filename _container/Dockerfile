@@ -33,7 +33,8 @@ RUN apk add --no-cache \
     gcompat \
     libgcc \
     su-exec \
-    util-linux
+    util-linux \
+    bash-completion
 
 # Install uv (Python package manager)
 RUN curl -fsSL https://astral.sh/uv/install.sh | UV_INSTALL_DIR=/usr/local/bin sh
