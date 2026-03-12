@@ -441,7 +441,7 @@ cmd_run() {
     echo "## AGE key: ${AGE_KEY_FILE}" >&2
     echo "## SOPS config: ${SOPS_CONFIG}" >&2
 
-    local CONTAINER_CONFIG_DIR=/home/user/git/vendor/enigmacurry/d.rymcg.tech/config
+    local CONTAINER_CONFIG_DIR=/home/user/.config/d.rymcg.tech
     local SOPS_BASENAME
     SOPS_BASENAME="$(basename "${SOPS_CONFIG}")"
 
