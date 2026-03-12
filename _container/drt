@@ -445,19 +445,16 @@ cmd_run() {
     local AGE_KEY_CONTENT
     if head -1 "${AGE_KEY_FILE}" | grep -q '^age-encryption.org'; then
         echo "## AGE key is passphrase-protected, decrypting ..." >&2
-        local _tmp_dir
-        _tmp_dir=$(mktemp -d)
-        chmod 700 "${_tmp_dir}"
-        cp "${AGE_KEY_FILE}" "${_tmp_dir}/age-key-in"
-        chmod 600 "${_tmp_dir}/age-key-in"
-        umask_prev=$(umask)
-        umask 077
-        container_run -it --user 0:0 \
-            -v "${_tmp_dir}:/tmp/age-work" \
-            "${IMAGE}" sh -c 'umask 077 && age -d /tmp/age-work/age-key-in > /tmp/age-work/age-key-dec'
-        umask "${umask_prev}"
-        AGE_KEY_CONTENT=$(cat "${_tmp_dir}/age-key-dec" 2>/dev/null)
-        rm -rf "${_tmp_dir}"
+        local _tmp_in _tmp_out
+        _tmp_in=$(mktemp) _tmp_out=$(mktemp)
+        cp "${AGE_KEY_FILE}" "${_tmp_in}"
+        chmod 600 "${_tmp_in}" "${_tmp_out}"
+        container_run -i --user 0:0 \
+            -v "${_tmp_in}:/tmp/age-key:ro" \
+            "${IMAGE}" age -d /tmp/age-key \
+            < /dev/tty > "${_tmp_out}"
+        AGE_KEY_CONTENT=$(cat "${_tmp_out}")
+        rm -f "${_tmp_in}" "${_tmp_out}"
         if [[ -z "${AGE_KEY_CONTENT}" ]]; then
             echo "Error: failed to decrypt AGE key" >&2
             exit 1
