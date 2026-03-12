@@ -168,6 +168,20 @@ garbage-collect:
 	@make --no-print-directory docker-compose-lifecycle-cmd EXTRA_ARGS="run --rm --entrypoint '' registry registry garbage-collect --delete-untagged /etc/docker/registry/config.yml"
 	@make --no-print-directory docker-compose-lifecycle-cmd EXTRA_ARGS="start registry"
 
+.PHONY: list-s3 # List all files in the S3 bucket
+list-s3:
+	@if [[ ! -f ${ENV_FILE} ]]; then echo "Error: config file not found: ${ENV_FILE}" >&2; echo "Run 'make config' first." >&2; exit 1; fi; \
+	BACKEND=$$(${BIN}/dotenv -f ${ENV_FILE} get REGISTRY_STORAGE_BACKEND); \
+	if [[ "$${BACKEND}" != "s3" ]]; then echo "Error: storage backend is not s3." >&2; exit 1; fi; \
+	ENDPOINT=$$(${BIN}/dotenv -f ${ENV_FILE} get REGISTRY_STORAGE_S3_ENDPOINT); \
+	BUCKET=$$(${BIN}/dotenv -f ${ENV_FILE} get REGISTRY_STORAGE_S3_BUCKET); \
+	ACCESS_KEY=$$(${BIN}/dotenv -f ${ENV_FILE} get REGISTRY_STORAGE_S3_ACCESS_KEY); \
+	SECRET_KEY=$$(${BIN}/dotenv -f ${ENV_FILE} get REGISTRY_STORAGE_S3_SECRET_KEY); \
+	s3cmd --host="$${ENDPOINT#https://}" --host-bucket="$${ENDPOINT#https://}" \
+		--access_key="$${ACCESS_KEY}" --secret_key="$${SECRET_KEY}" \
+		--no-ssl-check \
+		ls -r "s3://$${BUCKET}/" | grep -v '/$'
+
 .PHONY: install-hook
 install-hook:
 	@echo
