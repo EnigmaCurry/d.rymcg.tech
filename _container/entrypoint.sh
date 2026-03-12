@@ -13,6 +13,7 @@ export PATH="${ROOT_DIR}/_scripts/user:${PATH}"
 if [[ "${DRT_VERBOSE:-}" == "true" ]]; then
     log() { echo "$@" >&2; }
     CURL_VERBOSE=(-v)
+    echo "## Entrypoint started (args: $*)" >&2
 else
     log() { :; }
     CURL_VERBOSE=(-s)

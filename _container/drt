@@ -418,7 +418,7 @@ cmd_run() {
     SOPS_BASENAME="$(basename "${SOPS_CONFIG}")"
 
     local RUN_ARGS=(
-        run --rm -it
+        run --rm -it --pull=never
         --security-opt label=disable
         --userns=keep-id
         -e "SOPS_CONFIG_FILE=${CONTAINER_CONFIG_DIR}/${SOPS_BASENAME}"
