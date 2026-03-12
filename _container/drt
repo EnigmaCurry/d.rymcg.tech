@@ -317,7 +317,8 @@ cmd_init() {
                         SOPS_AGE_KEY_FILE=/tmp/age-work/age-key-dec sops decrypt \
                         --input-type dotenv --output-type dotenv \
                         --filename-override export.env /tmp/age-work/config.sops.env \
-                        > /tmp/age-work/config-decrypted 2>/dev/null || true'
+                        > /tmp/age-work/config-decrypted 2>/dev/null || true && \
+                        chmod 644 /tmp/age-work/age-key-dec /tmp/age-work/config-decrypted 2>/dev/null || true'
             else
                 container_run -it --user 0:0 \
                     -v "${DEC_DIR}:/tmp/age-work:Z" \
@@ -367,22 +368,22 @@ cmd_init() {
                     --filename-override export.env /tmp/config.sops.env 2>/dev/null) || true
         fi
         if [[ -n "${_EXISTING}" ]]; then
-            _CUR_SSH_HOST=$(echo "${_EXISTING}" | grep '^SSH_HOST=' | cut -d= -f2-)
-            _CUR_SSH_PORT=$(echo "${_EXISTING}" | grep '^SSH_PORT=' | cut -d= -f2-)
-            _CUR_SSH_USER=$(echo "${_EXISTING}" | grep '^SSH_USER=' | cut -d= -f2-)
-            _CUR_KNOWN_HOSTS=$(echo "${_EXISTING}" | grep '^SSH_KNOWN_HOSTS=' | cut -d= -f2-)
-            _CUR_BAO_ADDR=$(echo "${_EXISTING}" | grep '^BAO_ADDR=' | cut -d= -f2-)
-            _CUR_BAO_ROLE_ID=$(echo "${_EXISTING}" | grep '^BAO_ROLE_ID=' | cut -d= -f2-)
-            _CUR_BAO_SECRET_ID=$(echo "${_EXISTING}" | grep '^BAO_SECRET_ID=' | cut -d= -f2-)
-            _CUR_BAO_SSH_MOUNT=$(echo "${_EXISTING}" | grep '^BAO_SSH_MOUNT=' | cut -d= -f2-)
-            _CUR_BAO_SSH_ROLE=$(echo "${_EXISTING}" | grep '^BAO_SSH_ROLE=' | cut -d= -f2-)
-            _CUR_BAO_AUTH_PATH=$(echo "${_EXISTING}" | grep '^BAO_AUTH_PATH=' | cut -d= -f2-)
-            _CUR_BAO_AGE_KEY_PATH=$(echo "${_EXISTING}" | grep '^BAO_AGE_KEY_PATH=' | cut -d= -f2-)
-            _CUR_BAO_KV_MOUNT=$(echo "${_EXISTING}" | grep '^BAO_KV_MOUNT=' | cut -d= -f2-)
-            _CUR_BAO_NAMESPACE=$(echo "${_EXISTING}" | grep '^BAO_NAMESPACE=' | cut -d= -f2-)
-            _CUR_BAO_CACERT=$(echo "${_EXISTING}" | grep '^BAO_CACERT=' | cut -d= -f2-)
-            _CUR_BAO_CLIENT_CERT=$(echo "${_EXISTING}" | grep '^BAO_CLIENT_CERT=' | cut -d= -f2-)
-            _CUR_BAO_CLIENT_KEY=$(echo "${_EXISTING}" | grep '^BAO_CLIENT_KEY=' | cut -d= -f2-)
+            _CUR_SSH_HOST=$(echo "${_EXISTING}" | grep '^SSH_HOST=' | cut -d= -f2- || true)
+            _CUR_SSH_PORT=$(echo "${_EXISTING}" | grep '^SSH_PORT=' | cut -d= -f2- || true)
+            _CUR_SSH_USER=$(echo "${_EXISTING}" | grep '^SSH_USER=' | cut -d= -f2- || true)
+            _CUR_KNOWN_HOSTS=$(echo "${_EXISTING}" | grep '^SSH_KNOWN_HOSTS=' | cut -d= -f2- || true)
+            _CUR_BAO_ADDR=$(echo "${_EXISTING}" | grep '^BAO_ADDR=' | cut -d= -f2- || true)
+            _CUR_BAO_ROLE_ID=$(echo "${_EXISTING}" | grep '^BAO_ROLE_ID=' | cut -d= -f2- || true)
+            _CUR_BAO_SECRET_ID=$(echo "${_EXISTING}" | grep '^BAO_SECRET_ID=' | cut -d= -f2- || true)
+            _CUR_BAO_SSH_MOUNT=$(echo "${_EXISTING}" | grep '^BAO_SSH_MOUNT=' | cut -d= -f2- || true)
+            _CUR_BAO_SSH_ROLE=$(echo "${_EXISTING}" | grep '^BAO_SSH_ROLE=' | cut -d= -f2- || true)
+            _CUR_BAO_AUTH_PATH=$(echo "${_EXISTING}" | grep '^BAO_AUTH_PATH=' | cut -d= -f2- || true)
+            _CUR_BAO_AGE_KEY_PATH=$(echo "${_EXISTING}" | grep '^BAO_AGE_KEY_PATH=' | cut -d= -f2- || true)
+            _CUR_BAO_KV_MOUNT=$(echo "${_EXISTING}" | grep '^BAO_KV_MOUNT=' | cut -d= -f2- || true)
+            _CUR_BAO_NAMESPACE=$(echo "${_EXISTING}" | grep '^BAO_NAMESPACE=' | cut -d= -f2- || true)
+            _CUR_BAO_CACERT=$(echo "${_EXISTING}" | grep '^BAO_CACERT=' | cut -d= -f2- || true)
+            _CUR_BAO_CLIENT_CERT=$(echo "${_EXISTING}" | grep '^BAO_CLIENT_CERT=' | cut -d= -f2- || true)
+            _CUR_BAO_CLIENT_KEY=$(echo "${_EXISTING}" | grep '^BAO_CLIENT_KEY=' | cut -d= -f2- || true)
         fi
     fi
 
