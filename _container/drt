@@ -623,12 +623,15 @@ cmd_run() {
     if [[ "${VERBOSE}" == true ]]; then
         echo "## Full command: ${ENGINE} ${RUN_ARGS[*]}" >&2
     fi
+    local rc=0
     if [[ "${ENGINE}" == "docker" ]]; then
-        "${ENGINE}" --context default "${RUN_ARGS[@]}" || true
+        "${ENGINE}" --context default "${RUN_ARGS[@]}" || rc=$?
     else
-        "${ENGINE}" "${RUN_ARGS[@]}" || true
+        "${ENGINE}" "${RUN_ARGS[@]}" || rc=$?
     fi
-    git_auto_commit "update context: ${CONTEXT_NAME:-unknown}"
+    if [[ ${rc} -eq 0 ]]; then
+        git_auto_commit "update context: ${CONTEXT_NAME:-unknown}"
+    fi
 }
 
 ###############################################################################
