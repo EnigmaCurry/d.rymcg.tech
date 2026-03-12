@@ -22,7 +22,9 @@ read_state() {
 
 BAO_ADDR="$(read_state addr)"
 KEY_DIR="$(read_state key_dir)"
-CERT_FILE="${KEY_DIR}/id_ed25519-cert.pub"
+KEY_NAME="$(read_state key_name)"
+KEY_NAME="${KEY_NAME:-id_ed25519}"
+CERT_FILE="${KEY_DIR}/${KEY_NAME}-cert.pub"
 BAO_TOKEN="$(read_state token)"
 BAO_SSH_MOUNT="$(read_state ssh_mount)"
 BAO_SSH_ROLE="$(read_state ssh_role)"
@@ -131,7 +133,7 @@ if ! token_valid; then
 fi
 
 ## Sign SSH public key
-SSH_PUBLIC_KEY=$(cat "${KEY_DIR}/id_ed25519.pub")
+SSH_PUBLIC_KEY=$(cat "${KEY_DIR}/${KEY_NAME}.pub")
 SIGN_RESPONSE=$(curl -sf "${BAO_CURL_FLAGS[@]}" "${BAO_NAMESPACE_HEADER[@]}" \
     -H "X-Vault-Token: ${BAO_TOKEN}" \
     --request POST \

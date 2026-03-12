@@ -457,6 +457,18 @@ DOCKER_CONTEXT="${DOCKER_CONTEXT#"${DOCKER_CONTEXT%%[a-zA-Z0-9]*}"}"
 export DOCKER_CONTEXT
 log "## DOCKER_CONTEXT=${DOCKER_CONTEXT}"
 
+# Rename SSH key files to context-specific names
+KEY_NAME="${DOCKER_CONTEXT}"
+if [[ -f "${KEY_DIR}/id_ed25519" ]]; then
+    mv "${KEY_DIR}/id_ed25519" "${KEY_DIR}/${KEY_NAME}"
+    [[ -f "${KEY_DIR}/id_ed25519.pub" ]] && mv "${KEY_DIR}/id_ed25519.pub" "${KEY_DIR}/${KEY_NAME}.pub"
+    [[ -f "${KEY_DIR}/id_ed25519-cert.pub" ]] && mv "${KEY_DIR}/id_ed25519-cert.pub" "${KEY_DIR}/${KEY_NAME}-cert.pub"
+fi
+# Update BAO state with context-specific key name (Step 4 runs before context is known)
+if [[ "${BAO_USED:-}" == true && -d "${RUNTIME_HOME}/.ssh/bao" ]]; then
+    echo "${KEY_NAME}" > "${RUNTIME_HOME}/.ssh/bao/key_name"
+fi
+
 # Hydrate SSH_KNOWN_HOSTS from env (file path, plain text, or base64)
 # Done here (after SOPS decryption) so vars from encrypted config are available
 if [[ -n "${SSH_KNOWN_HOSTS:-}" && ! -s "${KEY_DIR}/known_hosts" ]]; then
@@ -495,10 +507,10 @@ if [[ "${BAO_USED}" == true ]]; then
         echo "    HostName ${SSH_HOST}"
         echo "    User ${SSH_USER}"
         echo "    Port ${SSH_PORT}"
-        echo "    IdentityFile ${KEY_DIR}/id_ed25519"
+        echo "    IdentityFile ${KEY_DIR}/${KEY_NAME}"
         echo "    IdentitiesOnly yes"
         echo "    UserKnownHostsFile ${KEY_DIR}/known_hosts"
-        echo "    CertificateFile ${KEY_DIR}/id_ed25519-cert.pub"
+        echo "    CertificateFile ${KEY_DIR}/${KEY_NAME}-cert.pub"
         echo "    ConnectTimeout ${SSH_CONNECT_TIMEOUT:-30}"
     } > ~/.ssh/config-drt
 else
@@ -510,11 +522,11 @@ else
         echo "    HostName ${SSH_HOST}"
         echo "    User ${SSH_USER}"
         echo "    Port ${SSH_PORT}"
-        echo "    IdentityFile ${KEY_DIR}/id_ed25519"
+        echo "    IdentityFile ${KEY_DIR}/${KEY_NAME}"
         echo "    UserKnownHostsFile ${KEY_DIR}/known_hosts"
         # Include CertificateFile only if an SSH certificate was obtained
-        if [[ -f "${KEY_DIR}/id_ed25519-cert.pub" ]]; then
-            echo "    CertificateFile ${KEY_DIR}/id_ed25519-cert.pub"
+        if [[ -f "${KEY_DIR}/${KEY_NAME}-cert.pub" ]]; then
+            echo "    CertificateFile ${KEY_DIR}/${KEY_NAME}-cert.pub"
         fi
         echo "    ConnectTimeout ${SSH_CONNECT_TIMEOUT:-30}"
     } > ~/.ssh/config-drt
