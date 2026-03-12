@@ -967,14 +967,17 @@ _bao_resolve() {
         val=$(echo "${PLAINTEXT}" | grep -oP "^${var}=\\K.*" || true)
         [[ -n "${val}" ]] && BAO_ENV+=(-e "${var}=${val}")
     done
+    echo "## BAO env vars: ${BAO_ENV[*]}" >&2
 
     detect_net_mode
+    echo "## Net mode: ${NET_MODE:-none}" >&2
     _BAO_RUN_ARGS=(run --rm -it --entrypoint "")
     [[ -n "${NET_MODE}" ]] && _BAO_RUN_ARGS+=(--net="${NET_MODE}")
     _BAO_RUN_ARGS+=("${BAO_ENV[@]}" "${IMAGE}")
 
     _BAO_CTX=()
     [[ "${ENGINE}" == "docker" ]] && _BAO_CTX=(--context default)
+    echo "## _bao_resolve complete" >&2
 }
 
 # Inline TLS resolution script (sourced inside the container)
