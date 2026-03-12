@@ -309,23 +309,27 @@ cmd_init() {
             DEC_DIR=$(mktemp -d)
             cp "${AGE_KEY_FILE}" "${DEC_DIR}/age-key-in"
             ## If existing config exists, decrypt it in the same container run (one passphrase prompt)
+            ## Only the pubkey and decrypted config are written to host — never the private key
             if [[ -f "${CONFIG_DIR}/${CONTEXT}.sops.env" ]]; then
                 cp "${CONFIG_DIR}/${CONTEXT}.sops.env" "${DEC_DIR}/config.sops.env"
                 container_run -it --user 0:0 \
                     -v "${DEC_DIR}:/tmp/age-work:Z" \
-                    "${IMAGE}" sh -c 'age -d /tmp/age-work/age-key-in > /tmp/age-work/age-key-dec && \
-                        SOPS_AGE_KEY_FILE=/tmp/age-work/age-key-dec sops decrypt \
+                    "${IMAGE}" sh -c 'age -d /tmp/age-work/age-key-in > /tmp/age-key-dec && \
+                        grep -o "age1[a-z0-9]*" /tmp/age-key-dec > /tmp/age-work/pubkey && \
+                        SOPS_AGE_KEY_FILE=/tmp/age-key-dec sops decrypt \
                         --input-type dotenv --output-type dotenv \
                         --filename-override export.env /tmp/age-work/config.sops.env \
                         > /tmp/age-work/config-decrypted 2>/dev/null || true && \
-                        chmod 644 /tmp/age-work/age-key-dec /tmp/age-work/config-decrypted 2>/dev/null || true'
+                        chmod 644 /tmp/age-work/pubkey /tmp/age-work/config-decrypted 2>/dev/null || true'
             else
                 container_run -it --user 0:0 \
                     -v "${DEC_DIR}:/tmp/age-work:Z" \
-                    "${IMAGE}" sh -c 'age -d /tmp/age-work/age-key-in > /tmp/age-work/age-key-dec'
+                    "${IMAGE}" sh -c 'age -d /tmp/age-work/age-key-in > /tmp/age-key-dec && \
+                        grep -o "age1[a-z0-9]*" /tmp/age-key-dec > /tmp/age-work/pubkey && \
+                        chmod 644 /tmp/age-work/pubkey'
             fi
             echo "## Passphrase accepted." >&2
-            PUBKEY=$(grep -o 'age1[a-z0-9]*' "${DEC_DIR}/age-key-dec" | head -1)
+            PUBKEY=$(head -1 "${DEC_DIR}/pubkey")
             ## DEC_DIR cleanup happens after config decryption below, or now if no config
             if [[ ! -f "${CONFIG_DIR}/${CONTEXT}.sops.env" ]]; then
                 rm -rf "${DEC_DIR}"
@@ -549,16 +553,15 @@ BAO_CLIENT_KEY=${BAO_CLIENT_KEY}"
             -v "${_INIT_WORK}:/tmp/init-work:Z" \
             "${IMAGE}" sh -c '
                 if head -1 /tmp/init-work/age-key-in | grep -q "^age-encryption.org"; then
-                    age -d /tmp/init-work/age-key-in > /tmp/init-work/age-key-dec
+                    age -d /tmp/init-work/age-key-in > /tmp/age-key-dec
                 else
-                    cp /tmp/init-work/age-key-in /tmp/init-work/age-key-dec
+                    cp /tmp/init-work/age-key-in /tmp/age-key-dec
                 fi
-                export SOPS_AGE_KEY_FILE=/tmp/init-work/age-key-dec
+                export SOPS_AGE_KEY_FILE=/tmp/age-key-dec
                 EDITOR="cp /tmp/init-work/new-plain.env" sops \
                     --input-type dotenv --output-type dotenv \
                     /tmp/init-work/config.sops.env
-                chmod 644 /tmp/init-work/config.sops.env
-                rm -f /tmp/init-work/age-key-dec'
+                chmod 644 /tmp/init-work/config.sops.env'
         cp "${_INIT_WORK}/config.sops.env" "${CONFIG_DIR}/${CONTEXT}.sops.env"
         rm -rf "${_INIT_WORK}"
     else
@@ -1132,30 +1135,35 @@ cmd_view() {
         exit 1
     fi
 
-    # Decrypt passphrase-protected AGE key in a separate interactive step
-    local DEC_DIR=""
+    # Decrypt and view — if AGE key is passphrase-protected, decrypt + sops in one container run
+    local PLAINTEXT
     if head -1 "${AGE_KEY_FILE}" | grep -q '^age-encryption.org'; then
-        DEC_DIR=$(mktemp -d)
-        cp "${AGE_KEY_FILE}" "${DEC_DIR}/age-key-in"
+        local _VIEW_DIR
+        _VIEW_DIR=$(mktemp -d)
+        cp "${AGE_KEY_FILE}" "${_VIEW_DIR}/age-key-in"
+        cp "${SOPS_CONFIG}" "${_VIEW_DIR}/config.sops.env"
         echo "## Get ready to enter your AGE key passphrase ..." >&2
         container_run -it --user 0:0 \
-            -v "${DEC_DIR}:/tmp/age-work:Z" \
-            "${IMAGE}" sh -c 'age -d /tmp/age-work/age-key-in > /tmp/age-work/age-key-dec'
+            -v "${_VIEW_DIR}:/tmp/view-work:Z" \
+            "${IMAGE}" sh -c 'age -d /tmp/view-work/age-key-in > /tmp/age-key-dec && \
+                SOPS_AGE_KEY_FILE=/tmp/age-key-dec sops decrypt \
+                --input-type dotenv --output-type dotenv \
+                --filename-override export.env /tmp/view-work/config.sops.env \
+                > /tmp/view-work/config-decrypted && \
+                chmod 644 /tmp/view-work/config-decrypted'
         echo "## Passphrase accepted." >&2
-        AGE_KEY_FILE="${DEC_DIR}/age-key-dec"
+        PLAINTEXT=$(cat "${_VIEW_DIR}/config-decrypted")
+        rm -rf "${_VIEW_DIR}"
+    else
+        PLAINTEXT=$(container_run \
+            --user 0:0 -i \
+            -v "${SOPS_CONFIG}:/tmp/config.sops.env:ro" \
+            -v "${AGE_KEY_FILE}:/run/secrets/age-key:ro" \
+            -e "SOPS_AGE_KEY_FILE=/run/secrets/age-key" \
+            "${IMAGE}" \
+            sops decrypt --input-type dotenv --output-type dotenv \
+                --filename-override export.env /tmp/config.sops.env)
     fi
-
-    local PLAINTEXT
-    PLAINTEXT=$(container_run \
-        --user 0:0 -i \
-        -v "${SOPS_CONFIG}:/tmp/config.sops.env:ro" \
-        -v "${AGE_KEY_FILE}:/run/secrets/age-key:ro" \
-        -e "SOPS_AGE_KEY_FILE=/run/secrets/age-key" \
-        "${IMAGE}" \
-        sops decrypt --input-type dotenv --output-type dotenv \
-            --filename-override export.env /tmp/config.sops.env)
-
-    [[ -n "${DEC_DIR}" ]] && rm -rf "${DEC_DIR}"
 
     if [[ -t 1 ]]; then
         echo "${PLAINTEXT}" | less
@@ -1243,44 +1251,37 @@ cmd_edit() {
         exit 1
     fi
 
-    # Decrypt passphrase-protected AGE key in a separate interactive step
-    local DEC_DIR=""
-    if head -1 "${AGE_KEY_FILE}" | grep -q '^age-encryption.org'; then
-        DEC_DIR=$(mktemp -d)
-        cp "${AGE_KEY_FILE}" "${DEC_DIR}/age-key-in"
-        echo "## Get ready to enter your AGE key passphrase ..." >&2
-        container_run -it --user 0:0 \
-            -v "${DEC_DIR}:/tmp/age-work:Z" \
-            "${IMAGE}" sh -c 'age -d /tmp/age-work/age-key-in > /tmp/age-work/age-key-dec'
-        echo "## Passphrase accepted." >&2
-        AGE_KEY_FILE="${DEC_DIR}/age-key-dec"
-    fi
-
-    # Decrypt to secure temp file
+    # Decrypt config — decrypted AGE key stays inside the container
     local EDIT_DIR
     EDIT_DIR=$(mktemp -d)
     local EDIT_FILE="${EDIT_DIR}/${CONTEXT}.env"
-    container_run \
-        --user 0:0 -i \
-        -v "${SOPS_CONFIG}:/tmp/config.sops.env:ro" \
-        -v "${AGE_KEY_FILE}:/run/secrets/age-key:ro" \
-        -e "SOPS_AGE_KEY_FILE=/run/secrets/age-key" \
-        "${IMAGE}" \
-        sops decrypt --input-type dotenv --output-type dotenv \
-            --filename-override export.env /tmp/config.sops.env > "${EDIT_FILE}"
-    chmod 600 "${EDIT_FILE}"
-
-    # Get AGE recipient (public key) for re-encryption
-    local AGE_RECIPIENT
-    AGE_RECIPIENT=$(container_run \
-        --user 0:0 -i \
-        -v "${AGE_KEY_FILE}:/run/secrets/age-key:ro" \
-        "${IMAGE}" age-keygen -y /run/secrets/age-key 2>/dev/null)
-    if [[ -z "${AGE_RECIPIENT}" ]]; then
-        echo "Error: could not derive AGE recipient from key" >&2
-        rm -rf "${EDIT_DIR}" "${DEC_DIR}"
-        exit 1
+    local _KEY_IS_ENCRYPTED=false
+    if head -1 "${AGE_KEY_FILE}" | grep -q '^age-encryption.org'; then
+        _KEY_IS_ENCRYPTED=true
+        cp "${AGE_KEY_FILE}" "${EDIT_DIR}/age-key-in"
+        cp "${SOPS_CONFIG}" "${EDIT_DIR}/config.sops.env"
+        echo "## Get ready to enter your AGE key passphrase ..." >&2
+        container_run -it --user 0:0 \
+            -v "${EDIT_DIR}:/tmp/edit-work:Z" \
+            "${IMAGE}" sh -c 'age -d /tmp/edit-work/age-key-in > /tmp/age-key-dec && \
+                SOPS_AGE_KEY_FILE=/tmp/age-key-dec sops decrypt \
+                --input-type dotenv --output-type dotenv \
+                --filename-override export.env /tmp/edit-work/config.sops.env \
+                > /tmp/edit-work/config-decrypted && \
+                chmod 644 /tmp/edit-work/config-decrypted'
+        echo "## Passphrase accepted." >&2
+        mv "${EDIT_DIR}/config-decrypted" "${EDIT_FILE}"
+    else
+        container_run \
+            --user 0:0 -i \
+            -v "${SOPS_CONFIG}:/tmp/config.sops.env:ro" \
+            -v "${AGE_KEY_FILE}:/run/secrets/age-key:ro" \
+            -e "SOPS_AGE_KEY_FILE=/run/secrets/age-key" \
+            "${IMAGE}" \
+            sops decrypt --input-type dotenv --output-type dotenv \
+                --filename-override export.env /tmp/config.sops.env > "${EDIT_FILE}"
     fi
+    chmod 600 "${EDIT_FILE}"
 
     # Save original for diffing
     local ORIG_FILE="${EDIT_DIR}/${CONTEXT}.env.orig"
@@ -1292,7 +1293,7 @@ cmd_edit() {
     # Check if file was modified
     if diff -q "${ORIG_FILE}" "${EDIT_FILE}" &>/dev/null; then
         echo "## No changes made, config unchanged." >&2
-        rm -rf "${EDIT_DIR}" "${DEC_DIR}"
+        rm -rf "${EDIT_DIR}"
         exit 0
     fi
 
@@ -1304,24 +1305,41 @@ cmd_edit() {
     read -rp "Save changes to ${SOPS_CONFIG}? [y/N] " answer
     if [[ ! "${answer}" =~ ^[Yy]$ ]]; then
         echo "## Changes discarded." >&2
-        rm -rf "${EDIT_DIR}" "${DEC_DIR}"
+        rm -rf "${EDIT_DIR}"
         exit 0
     fi
 
-    # Re-encrypt and overwrite original
-    container_run \
-        --user 0:0 -i \
-        -v "${EDIT_FILE}:/tmp/plaintext.env:ro" \
-        -v "${AGE_KEY_FILE}:/run/secrets/age-key:ro" \
-        -e "SOPS_AGE_KEY_FILE=/run/secrets/age-key" \
-        "${IMAGE}" \
-        sops encrypt --input-type dotenv --output-type dotenv \
-            --filename-override export.env \
-            --age "${AGE_RECIPIENT}" /tmp/plaintext.env > "${SOPS_CONFIG}"
+    # Re-encrypt using sops edit (only changed values re-encrypted)
+    # Decrypted AGE key stays inside the container
+    if [[ "${_KEY_IS_ENCRYPTED}" == true ]]; then
+        cp "${EDIT_FILE}" "${EDIT_DIR}/new-plain.env"
+        cp "${SOPS_CONFIG}" "${EDIT_DIR}/config.sops.env"
+        container_run -it --user 0:0 \
+            -v "${EDIT_DIR}:/tmp/edit-work:Z" \
+            "${IMAGE}" sh -c 'age -d /tmp/edit-work/age-key-in > /tmp/age-key-dec && \
+                export SOPS_AGE_KEY_FILE=/tmp/age-key-dec && \
+                EDITOR="cp /tmp/edit-work/new-plain.env" sops \
+                    --input-type dotenv --output-type dotenv \
+                    /tmp/edit-work/config.sops.env && \
+                chmod 644 /tmp/edit-work/config.sops.env'
+        cp "${EDIT_DIR}/config.sops.env" "${SOPS_CONFIG}"
+    else
+        cp "${EDIT_FILE}" "${EDIT_DIR}/new-plain.env"
+        cp "${SOPS_CONFIG}" "${EDIT_DIR}/config.sops.env"
+        container_run --user 0:0 -i \
+            -v "${EDIT_DIR}:/tmp/edit-work:Z" \
+            -v "${AGE_KEY_FILE}:/run/secrets/age-key:ro" \
+            -e "SOPS_AGE_KEY_FILE=/run/secrets/age-key" \
+            "${IMAGE}" sh -c 'EDITOR="cp /tmp/edit-work/new-plain.env" sops \
+                    --input-type dotenv --output-type dotenv \
+                    /tmp/edit-work/config.sops.env && \
+                chmod 644 /tmp/edit-work/config.sops.env'
+        cp "${EDIT_DIR}/config.sops.env" "${SOPS_CONFIG}"
+    fi
 
     echo "## Changes encrypted and saved to ${SOPS_CONFIG}" >&2
 
-    rm -rf "${EDIT_DIR}" "${DEC_DIR}"
+    rm -rf "${EDIT_DIR}"
     git_auto_commit "update context: ${CONTEXT}"
 }
 
@@ -1469,31 +1487,35 @@ _bao_resolve() {
         exit 1
     fi
 
-    # Decrypt passphrase-protected AGE key
-    local DEC_DIR=""
+    # Decrypt SOPS config — decrypted AGE key stays inside the container
+    local PLAINTEXT
     if head -1 "${AGE_KEY_FILE}" | grep -q '^age-encryption.org'; then
-        DEC_DIR=$(mktemp -d)
-        cp "${AGE_KEY_FILE}" "${DEC_DIR}/age-key-in"
+        local _VERIFY_DIR
+        _VERIFY_DIR=$(mktemp -d)
+        cp "${AGE_KEY_FILE}" "${_VERIFY_DIR}/age-key-in"
+        cp "${SOPS_CONFIG}" "${_VERIFY_DIR}/config.sops.env"
         echo "## Get ready to enter your AGE key passphrase ..." >&2
         container_run -it --user 0:0 \
-            -v "${DEC_DIR}:/tmp/age-work:Z" \
-            "${IMAGE}" sh -c 'age -d /tmp/age-work/age-key-in > /tmp/age-work/age-key-dec'
+            -v "${_VERIFY_DIR}:/tmp/verify-work:Z" \
+            "${IMAGE}" sh -c 'age -d /tmp/verify-work/age-key-in > /tmp/age-key-dec && \
+                SOPS_AGE_KEY_FILE=/tmp/age-key-dec sops decrypt \
+                --input-type dotenv --output-type dotenv \
+                --filename-override export.env /tmp/verify-work/config.sops.env \
+                > /tmp/verify-work/config-decrypted && \
+                chmod 644 /tmp/verify-work/config-decrypted'
         echo "## Passphrase accepted." >&2
-        AGE_KEY_FILE="${DEC_DIR}/age-key-dec"
+        PLAINTEXT=$(cat "${_VERIFY_DIR}/config-decrypted")
+        rm -rf "${_VERIFY_DIR}"
+    else
+        PLAINTEXT=$(container_run \
+            --user 0:0 -i \
+            -v "${SOPS_CONFIG}:/tmp/config.sops.env:ro" \
+            -v "${AGE_KEY_FILE}:/run/secrets/age-key:ro" \
+            -e "SOPS_AGE_KEY_FILE=/run/secrets/age-key" \
+            "${IMAGE}" \
+            sops decrypt --input-type dotenv --output-type dotenv \
+                --filename-override export.env /tmp/config.sops.env)
     fi
-
-    # Decrypt SOPS config
-    local PLAINTEXT
-    PLAINTEXT=$(container_run \
-        --user 0:0 -i \
-        -v "${SOPS_CONFIG}:/tmp/config.sops.env:ro" \
-        -v "${AGE_KEY_FILE}:/run/secrets/age-key:ro" \
-        -e "SOPS_AGE_KEY_FILE=/run/secrets/age-key" \
-        "${IMAGE}" \
-        sops decrypt --input-type dotenv --output-type dotenv \
-            --filename-override export.env /tmp/config.sops.env)
-
-    [[ -n "${DEC_DIR}" ]] && rm -rf "${DEC_DIR}"
 
     local BAO_ADDR=""
     BAO_ADDR=$(echo "${PLAINTEXT}" | grep -oP '^BAO_ADDR=\K.*' || true)
