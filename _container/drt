@@ -449,10 +449,10 @@ cmd_run() {
         _tmp_in=$(mktemp) _tmp_out=$(mktemp)
         cp "${AGE_KEY_FILE}" "${_tmp_in}"
         chmod 600 "${_tmp_in}" "${_tmp_out}"
-        container_run -i --user 0:0 \
-            -v "${_tmp_in}:/tmp/age-key:ro" \
-            "${IMAGE}" age -d /tmp/age-key \
-            < /dev/tty > "${_tmp_out}"
+        container_run -it --user 0:0 \
+            -v "${_tmp_in}:/tmp/age-key-in:ro" \
+            -v "${_tmp_out}:/tmp/age-key-out" \
+            "${IMAGE}" sh -c 'age -d /tmp/age-key-in > /tmp/age-key-out'
         AGE_KEY_CONTENT=$(cat "${_tmp_out}")
         rm -f "${_tmp_in}" "${_tmp_out}"
         if [[ -z "${AGE_KEY_CONTENT}" ]]; then
