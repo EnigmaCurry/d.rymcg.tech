@@ -1495,12 +1495,19 @@ cmd_build() {
         echo "Set DRT_BUILD_BRANCH to a branch that has the Dockerfile." >&2
         exit 1
     fi
-    "${ENGINE}" build \
-        --build-arg "BRANCH=${BRANCH}" \
-        --build-arg "GIT_REPO=${REPO}" \
-        -f "${_DRT_BUILD_DIR}/src/_container/Dockerfile" \
-        -t "${IMAGE}" \
+    local BUILD_ARGS=(build)
+    # Podman: use slirp4netns if pasta fails during build
+    if [[ "${ENGINE}" == "podman" ]]; then
+        BUILD_ARGS+=(--network=slirp4netns)
+    fi
+    BUILD_ARGS+=(
+        --build-arg "BRANCH=${BRANCH}"
+        --build-arg "GIT_REPO=${REPO}"
+        -f "${_DRT_BUILD_DIR}/src/_container/Dockerfile"
+        -t "${IMAGE}"
         "${_DRT_BUILD_DIR}/src"
+    )
+    "${ENGINE}" "${BUILD_ARGS[@]}"
     echo "## Built: ${IMAGE} (branch: ${BRANCH}, repo: ${REPO})" >&2
 }
 
