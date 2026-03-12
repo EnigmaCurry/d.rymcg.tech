@@ -117,7 +117,12 @@ git_auto_commit() {
         echo "## git: no changes to commit" >&2
         return 0
     fi
-    git -C "${CONFIG_BASE}" commit -m "${msg}" >/dev/null
+    if ! git -C "${CONFIG_BASE}" commit -m "${msg}" >/dev/null 2>&1; then
+        echo "## git: commit failed — you may need to configure git identity:" >&2
+        echo "##   drt --git config user.email \"you@example.com\"" >&2
+        echo "##   drt --git config user.name \"Your Name\"" >&2
+        return 1
+    fi
     echo "## git: committed: ${msg}" >&2
     local remote
     remote=$(git -C "${CONFIG_BASE}" remote 2>/dev/null | head -1)
