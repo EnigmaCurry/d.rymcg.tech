@@ -573,9 +573,9 @@ chown -R "${RUNTIME_UID}:${RUNTIME_GID}" \
     /run/secrets/ssh \
     2>/dev/null || true
 
-# For save-on-exit: copy SOPS config to a user-writable location.
-# The runtime user works with the copy; on save, bashrc writes to the copy,
-# then a background watcher (running as root) copies it back to the bind mount.
+# For save-on-exit: decrypt SOPS config to a user-writable plaintext copy.
+# The runtime user reads/writes plaintext; on save, the root helper encrypts
+# and writes back to the bind mount. Only root has the AGE key.
 # We do NOT chown bind-mounted files — in rootless podman that changes host
 # ownership to subuids.
 if [[ "${SOPS_SAVE_ON_EXIT:-}" == "true" && -n "${SOPS_CONFIG_FILE:-}" && -f "${SOPS_CONFIG_FILE}" ]]; then
@@ -583,7 +583,10 @@ if [[ "${SOPS_SAVE_ON_EXIT:-}" == "true" && -n "${SOPS_CONFIG_FILE:-}" && -f "${
     _SOPS_USER_COPY="/tmp/sops-config-copy"
     _SOPS_SAVE_REQUEST="/tmp/sops-save-request"
     _SOPS_SAVE_RESPONSE="/tmp/sops-save-response"
-    cp "${_SOPS_BIND_PATH}" "${_SOPS_USER_COPY}"
+    # Decrypt the SOPS config into the user copy (as root, which has the AGE key).
+    # The runtime user works with plaintext; root re-encrypts on save.
+    sops decrypt --input-type dotenv --output-type dotenv \
+        --filename-override export.env "${_SOPS_BIND_PATH}" > "${_SOPS_USER_COPY}"
     chown "${RUNTIME_UID}:${RUNTIME_GID}" "${_SOPS_USER_COPY}"
     chmod 600 "${_SOPS_USER_COPY}"
     export SOPS_CONFIG_FILE="${_SOPS_USER_COPY}"
@@ -593,13 +596,16 @@ if [[ "${SOPS_SAVE_ON_EXIT:-}" == "true" && -n "${SOPS_CONFIG_FILE:-}" && -f "${
     mkfifo "${_SOPS_SAVE_REQUEST}" "${_SOPS_SAVE_RESPONSE}"
     chmod 666 "${_SOPS_SAVE_REQUEST}" "${_SOPS_SAVE_RESPONSE}"
 
-    # Background root process: waits for save request, copies file back
-    # to bind mount as root (only root = host user in rootless podman),
-    # then sends result back to the caller.
+    # Background root process: waits for save request, encrypts the
+    # unencrypted user copy with sops, writes to bind mount as root
+    # (only root = host user in rootless podman), then responds.
     (
         while read -r cmd < "${_SOPS_SAVE_REQUEST}"; do
             if [[ "${cmd}" == "save" ]]; then
-                if cp "${_SOPS_USER_COPY}" "${_SOPS_BIND_PATH}" && \
+                if sops encrypt --input-type dotenv --output-type dotenv \
+                       --filename-override export.env \
+                       --age "${SOPS_AGE_RECIPIENTS}" "${_SOPS_USER_COPY}" \
+                       > "${_SOPS_BIND_PATH}" && \
                    chmod 600 "${_SOPS_BIND_PATH}"; then
                     echo "ok" > "${_SOPS_SAVE_RESPONSE}"
                 else
