@@ -206,11 +206,12 @@ that don't need a local checkout.
 Build the image from the `master` branch:
 
 ```bash
+BRANCH=master
 podman build \
-  --build-arg BRANCH=master \
+  --build-arg BRANCH=${BRANCH} \
   -t localhost/d-rymcg-tech:latest \
   -f _container/Dockerfile \
-  https://github.com/EnigmaCurry/d.rymcg.tech.git#master
+  https://github.com/EnigmaCurry/d.rymcg.tech.git#${BRANCH}
 ```
 
 The `--build-arg BRANCH=...` bakes the branch name into the image as
