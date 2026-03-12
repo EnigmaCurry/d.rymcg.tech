@@ -63,8 +63,15 @@ login:
 	REGISTRY_HOST=$$(${BIN}/dotenv -f ${ENV_FILE} get REGISTRY_TRAEFIK_HOST); \
 	CI=${CONTEXT_INSTANCE}; \
 	if [[ -f passwords.json ]]; then \
-		USER=$$(jq -r --arg key "$${CI}" '.[$$key][0].username // empty' passwords.json 2>/dev/null); \
-		PASS=$$(jq -r --arg key "$${CI}" '.[$$key][0].password // empty' passwords.json 2>/dev/null); \
+		NUM_USERS=$$(jq -r --arg key "$${CI}" '.[$$key] // [] | length' passwords.json 2>/dev/null); \
+		if [[ "$${NUM_USERS}" -gt 1 ]]; then \
+			readarray -t USERNAMES < <(jq -r --arg key "$${CI}" '.[$$key][].username' passwords.json 2>/dev/null); \
+			USER=$$(eval "${BIN}/script-wizard choose 'Which user do you want to login as?' $${USERNAMES[@]@Q}"); \
+			PASS=$$(jq -r --arg key "$${CI}" --arg user "$${USER}" '.[$$key][] | select(.username == $$user) | .password' passwords.json 2>/dev/null); \
+		elif [[ "$${NUM_USERS}" -eq 1 ]]; then \
+			USER=$$(jq -r --arg key "$${CI}" '.[$$key][0].username // empty' passwords.json 2>/dev/null); \
+			PASS=$$(jq -r --arg key "$${CI}" '.[$$key][0].password // empty' passwords.json 2>/dev/null); \
+		fi; \
 	fi; \
 	readarray -t CONTEXTS < <(docker context ls --format '{{.Name}}'); \
 	CONTEXT=$$(eval "${BIN}/script-wizard choose 'Which Docker context do you want to login from?' $${CONTEXTS[@]@Q} --default ${DOCKER_CONTEXT}"); \
