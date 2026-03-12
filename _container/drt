@@ -278,11 +278,6 @@ cmd_init() {
         BAO_SSH_ROLE=$(wizard ask "Enter SSH signing role" "woodpecker-short-lived")
         BAO_AUTH_PATH=$(wizard ask "Enter auth path" "auth/approle")
 
-        if wizard confirm "Retrieve AGE key from OpenBao KV?" no; then
-            BAO_AGE_KEY_PATH=$(wizard ask "Enter KV path for AGE key (e.g., sops/d2-admin/myserver)")
-            BAO_KV_MOUNT=$(wizard ask "Enter KV engine mount" "secret")
-        fi
-
         if wizard confirm "Configure OpenBao TLS client certificates?" no; then
             echo ""
             echo "Paste CA certificate PEM, then press Ctrl+D (leave blank if using a trusted CA like Let's Encrypt):"
