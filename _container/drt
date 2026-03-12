@@ -501,13 +501,6 @@ cmd_run() {
         echo "## SSH: no key file or agent; container will generate a key" >&2
     fi
 
-    # Persistent data volume (stores JWT master key, TLS certs)
-    local CONTEXT_NAME="${SOPS_CONFIG}"
-    if [[ "${CONTEXT_NAME}" == */* || "${CONTEXT_NAME}" == *.sops.env ]]; then
-        CONTEXT_NAME="$(basename "${CONTEXT_NAME}" .sops.env)"
-    fi
-    RUN_ARGS+=(-v "drt-data-${CONTEXT_NAME}:/data")
-
     # Port mapping for request-controller
     local _is_controller=false
     for _arg in "${CMD_ARGS[@]+"${CMD_ARGS[@]}"}"; do

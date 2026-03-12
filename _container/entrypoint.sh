@@ -30,9 +30,6 @@ chown -R "${RUNTIME_UID}:${RUNTIME_GID}" \
     "${ROOT_DIR}" \
     /run/secrets/ssh \
     2>/dev/null || true
-if [[ -d /data ]]; then
-    chown -R "${RUNTIME_UID}:${RUNTIME_GID}" /data
-fi
 
 ## Set up PATH so the d.rymcg.tech CLI works
 export PATH="${ROOT_DIR}/_scripts/user:${PATH}"
