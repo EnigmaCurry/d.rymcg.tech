@@ -580,22 +580,37 @@ chown -R "${RUNTIME_UID}:${RUNTIME_GID}" \
 if [[ "${SOPS_SAVE_ON_EXIT:-}" == "true" && -n "${SOPS_CONFIG_FILE:-}" && -f "${SOPS_CONFIG_FILE}" ]]; then
     _SOPS_BIND_PATH="${SOPS_CONFIG_FILE}"
     _SOPS_USER_COPY="/tmp/sops-config-copy"
+    _SOPS_SAVE_REQUEST="/tmp/sops-save-request"
+    _SOPS_SAVE_RESPONSE="/tmp/sops-save-response"
     cp "${_SOPS_BIND_PATH}" "${_SOPS_USER_COPY}"
     chown "${RUNTIME_UID}:${RUNTIME_GID}" "${_SOPS_USER_COPY}"
     chmod 600 "${_SOPS_USER_COPY}"
     export SOPS_CONFIG_FILE="${_SOPS_USER_COPY}"
-    export _SOPS_BIND_PATH
+    export _SOPS_BIND_PATH _SOPS_SAVE_REQUEST _SOPS_SAVE_RESPONSE
 
-    # Background watcher: when the user's save trap writes to the copy,
-    # copy it back to the bind mount as root (only root = host user in
-    # rootless podman can write without shifting ownership to subuids).
+    # Create FIFOs for synchronous save-back signaling
+    mkfifo "${_SOPS_SAVE_REQUEST}" "${_SOPS_SAVE_RESPONSE}"
+    chmod 666 "${_SOPS_SAVE_REQUEST}" "${_SOPS_SAVE_RESPONSE}"
+
+    # Background root process: waits for save request, copies file back
+    # to bind mount as root (only root = host user in rootless podman),
+    # then sends result back to the caller.
     (
-        while inotifywait -qq -e close_write "${_SOPS_USER_COPY}" 2>/dev/null; do
-            cp "${_SOPS_USER_COPY}" "${_SOPS_BIND_PATH}"
-            chmod 600 "${_SOPS_BIND_PATH}"
+        while read -r cmd < "${_SOPS_SAVE_REQUEST}"; do
+            if [[ "${cmd}" == "save" ]]; then
+                if cp "${_SOPS_USER_COPY}" "${_SOPS_BIND_PATH}" && \
+                   chmod 600 "${_SOPS_BIND_PATH}"; then
+                    echo "ok" > "${_SOPS_SAVE_RESPONSE}"
+                else
+                    echo "fail" > "${_SOPS_SAVE_RESPONSE}"
+                fi
+            elif [[ "${cmd}" == "quit" ]]; then
+                break
+            fi
         done
+        rm -f "${_SOPS_SAVE_REQUEST}" "${_SOPS_SAVE_RESPONSE}"
     ) &
-    log "## SOPS save-on-exit watcher started (PID $!)"
+    log "## SOPS save-on-exit helper started (PID $!)"
 fi
 
 # Fix ownership of env files created by restore-env

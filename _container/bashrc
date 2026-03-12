@@ -66,14 +66,33 @@ if [[ "${SOPS_SAVE_ON_EXIT:-}" == "true" && -n "${SOPS_CONFIG_FILE:-}" ]]; then
                 if sops encrypt --input-type dotenv --output-type dotenv \
                        --filename-override export.env \
                        --age "${SOPS_AGE_RECIPIENTS}" "${merged}" > "${SOPS_CONFIG_FILE}"; then
-                    echo "## Changes saved to ${_SOPS_BIND_PATH:-${SOPS_CONFIG_FILE}}" >&2
+                    # Signal the root helper to copy back to the bind mount
+                    if [[ -p "${_SOPS_SAVE_REQUEST:-}" ]]; then
+                        echo "save" > "${_SOPS_SAVE_REQUEST}"
+                        local result
+                        read -r result < "${_SOPS_SAVE_RESPONSE}"
+                        if [[ "${result}" == "ok" ]]; then
+                            echo "## Changes saved to ${_SOPS_BIND_PATH}" >&2
+                        else
+                            echo "ERROR: Failed to write back to ${_SOPS_BIND_PATH}" >&2
+                        fi
+                        echo "quit" > "${_SOPS_SAVE_REQUEST}"
+                    else
+                        echo "## Changes saved to ${_SOPS_BIND_PATH:-${SOPS_CONFIG_FILE}}" >&2
+                    fi
                 else
-                    echo "ERROR: Failed to save changes" >&2
+                    echo "ERROR: Failed to encrypt changes" >&2
+                    if [[ -p "${_SOPS_SAVE_REQUEST:-}" ]]; then
+                        echo "quit" > "${_SOPS_SAVE_REQUEST}"
+                    fi
                 fi
                 rm -f "${merged}"
             else
                 echo "## Changes discarded" >&2
+                [[ -p "${_SOPS_SAVE_REQUEST:-}" ]] && echo "quit" > "${_SOPS_SAVE_REQUEST}"
             fi
+        else
+            [[ -p "${_SOPS_SAVE_REQUEST:-}" ]] && echo "quit" > "${_SOPS_SAVE_REQUEST}"
         fi
 
         rm -f "${_sops_initial_state}" "${current_state}" "${_sops_preserved_sections}"
