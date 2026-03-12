@@ -211,16 +211,29 @@ docker_ssh() {
 
 ytt() {
     set -e
+    if command -v ytt &>/dev/null; then
+        # Prefer local ytt binary
+        local non_template_commands_pattern="(help|completion|fmt|version)"
+        if [[ "$@" == "" ]]; then
+            command ytt help
+        elif [[ "$1" =~ $non_template_commands_pattern ]]; then
+            command ytt "$@"
+        else
+            command ytt -f- "$@"
+        fi
+        return
+    fi
     local IMAGE=localhost/ytt
     if ! docker image inspect ${IMAGE} >/dev/null 2>&1; then
         local _BUILD=${BUILD_RAW:-$(${BIN}/dotenv -f "${ROOT_DIR}/.env_$(${BIN}/docker_context)" get BUILD 2>/dev/null || true)}
         if [[ "${_BUILD}" == "false" || "${_BUILD}" == "0" ]]; then
             fault "ytt image (${IMAGE}) not found and BUILD=${_BUILD} prevents building it. Build it first or set BUILD=true."
         fi
-        docker build -t ${IMAGE} -f- . >/dev/null <<'EOF'
+        local YTT_VERSION
+        YTT_VERSION=$(jq -r '.dependencies["ytt"].version' "${ROOT_DIR}/.tools.lock.json")
+        docker build -t ${IMAGE} -f- . >/dev/null <<EOF
 FROM debian:stable-slim AS ytt
-ARG YTT_VERSION=v0.44.3
-RUN apt-get update && apt-get install -y wget && wget "https://github.com/vmware-tanzu/carvel-ytt/releases/download/${YTT_VERSION}/ytt-linux-$(dpkg --print-architecture)" -O ytt && install ytt /usr/local/bin/ytt
+RUN apt-get update && apt-get install -y wget && wget "https://github.com/vmware-tanzu/carvel-ytt/releases/download/v${YTT_VERSION}/ytt-linux-\$(dpkg --print-architecture)" -O ytt && install ytt /usr/local/bin/ytt
 EOF
     fi
     non_template_commands_pattern="(help|completion|fmt|version)"

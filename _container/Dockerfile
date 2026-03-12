@@ -78,6 +78,17 @@ COPY --chown=1000:1000 . /home/user/git/vendor/enigmacurry/d.rymcg.tech
 WORKDIR /home/user/git/vendor/enigmacurry/d.rymcg.tech
 RUN if [ -n "${BRANCH}" ] && [ -d .git ]; then git checkout "${BRANCH}"; fi && rm -rf .git
 
+# Install ytt from .tools.lock.json
+RUN set -e; \
+    VERSION=$(jq -r '.dependencies["ytt"].version' .tools.lock.json); \
+    case "$(uname -m)" in \
+      x86_64)  ARCH=amd64 ;; \
+      aarch64) ARCH=arm64 ;; \
+      *)       echo "Unsupported arch: $(uname -m)" >&2; exit 1 ;; \
+    esac; \
+    curl -fsSL "https://github.com/vmware-tanzu/carvel-ytt/releases/download/v${VERSION}/ytt-linux-${ARCH}" -o /usr/local/bin/ytt \
+    && chmod +x /usr/local/bin/ytt
+
 # Install script-wizard from .tools.lock.json
 RUN set -e; \
     VERSION=$(jq -r '.dependencies["script-wizard"].version' .tools.lock.json); \
