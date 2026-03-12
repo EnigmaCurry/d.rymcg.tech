@@ -585,6 +585,7 @@ log "## Step 11: Fixing ownership and dropping to ${RUNTIME_USER} (${RUNTIME_UID
 chown -R "${RUNTIME_UID}:${RUNTIME_GID}" \
     "${RUNTIME_HOME}/.ssh" \
     "${RUNTIME_HOME}/.docker" \
+    "${RUNTIME_HOME}/.config/doctl" \
     /run/secrets/ssh \
     2>/dev/null || true
 
