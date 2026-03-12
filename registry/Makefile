@@ -144,7 +144,7 @@ delete-tags:
 			-H "Accept: application/vnd.docker.distribution.manifest.v2+json" \
 			-H "Accept: application/vnd.oci.image.manifest.v1+json" \
 			--head https://$${REGISTRY_HOST}/v2/$${repo}/manifests/$${tag} \
-			| grep -i docker-content-digest | awk '{print $$2}' | tr -d '\\r'); \
+			| grep -i docker-content-digest | awk '{print $$2}' | tr -cd '[:alnum:].:'); \
 		if [[ -z "$${digest}" ]]; then \
 			echo "## Error: could not get digest for $${image}" >&2; continue; \
 		fi; \
