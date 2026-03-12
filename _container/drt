@@ -257,7 +257,7 @@ cmd_init() {
 
     ## Don't default to the context name as the hostname
     [[ "${_SSH_HOST}" == "${CONTEXT}" ]] && _SSH_HOST=""
-    SSH_HOST=$(wizard ask "Enter SSH host IP address" "${_SSH_HOST}")
+    SSH_HOST=$(wizard ask "Enter SSH hostname or IP address" "${_SSH_HOST}")
     SSH_PORT=$(wizard ask "Enter SSH port" "${_SSH_PORT:-22}")
     SSH_USER=$(wizard ask "Enter SSH user" "${_SSH_USER:-root}")
 

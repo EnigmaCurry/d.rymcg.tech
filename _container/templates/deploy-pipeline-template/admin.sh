@@ -83,7 +83,7 @@ cmd_config() {
         _SSH_PORT=$(echo "${SSH_CONFIG}" | awk '/^port / {print $2; exit}')
         _SSH_USER=$(echo "${SSH_CONFIG}" | awk '/^user / {print $2}')
         [[ "${_SSH_HOST}" == "${CONTEXT}" ]] && _SSH_HOST=""
-        SSH_HOST=$(wizard ask "Enter SSH host IP address" "${_SSH_HOST}")
+        SSH_HOST=$(wizard ask "Enter SSH hostname or IP address" "${_SSH_HOST}")
         SSH_PORT=$(wizard ask "Enter SSH port" "${_SSH_PORT:-22}")
         SSH_USER=$(wizard ask "Enter SSH user" "${_SSH_USER:-root}")
         echo ""
@@ -116,7 +116,7 @@ cmd_config() {
             "${REVIEW_OPTS[@]}") || break
         [[ "${CHOICE}" == "Done" ]] && break
         if [[ "${CHOICE}" == Configure\ SSH* ]]; then
-            SSH_HOST=$(wizard ask "Enter SSH host IP address" "${SSH_HOST}")
+            SSH_HOST=$(wizard ask "Enter SSH hostname or IP address" "${SSH_HOST}")
             SSH_PORT=$(wizard ask "Enter SSH port" "${SSH_PORT}")
             SSH_USER=$(wizard ask "Enter SSH user" "${SSH_USER}")
         elif [[ "${CHOICE}" == Configure\ context* ]]; then
