@@ -101,6 +101,7 @@ Options:
   --unseal [CONTEXT] Unseal the OpenBao server used by a context
   --list             List all contexts (AGE keys and SOPS configs)
   --pull             Pull latest image
+  --build [BRANCH]   Build image from git (default branch: master)
   --extract          Print this script to stdout (self-extraction)
   --image TAG        Container image (default: localhost/d-rymcg-tech:latest)
   --docker           Use Docker instead of Podman
@@ -115,11 +116,15 @@ Options:
   --help             Show this help
 EOF
     echo ""
-    echo "One time setup:"
+    echo "One time setup (from registry):"
     if [[ "${IMAGE}" != localhost/* ]]; then
         echo "  ${ENGINE} pull ${IMAGE}"
     fi
     echo "  alias drt='bash <(${ENGINE} run --rm --pull=never --net=none ${IMAGE} drt)'"
+    echo ""
+    echo "One time setup (build from source):"
+    echo "  ${ENGINE} build -t localhost/d-rymcg-tech:latest -f _container/Dockerfile ${DRT_GIT_REPO}#master"
+    echo "  alias drt='bash <(${ENGINE} run --rm --pull=never --net=none localhost/d-rymcg-tech:latest drt)'"
 }
 
 ###############################################################################
@@ -826,6 +831,25 @@ cmd_view() {
 }
 
 ###############################################################################
+# build subcommand
+###############################################################################
+
+DRT_GIT_REPO="${DRT_GIT_REPO:-https://github.com/EnigmaCurry/d.rymcg.tech.git}"
+
+cmd_build() {
+    check_engine
+    local BRANCH="${1:-master}"
+    local BUILD_IMAGE="localhost/d-rymcg-tech:latest"
+    echo "## Building from ${DRT_GIT_REPO}#${BRANCH} ..." >&2
+    "${ENGINE}" build \
+        --build-arg "BRANCH=${BRANCH}" \
+        -f _container/Dockerfile \
+        -t "${BUILD_IMAGE}" \
+        "${DRT_GIT_REPO}#${BRANCH}"
+    echo "## Built: ${BUILD_IMAGE}" >&2
+}
+
+###############################################################################
 # pull subcommand
 ###############################################################################
 
@@ -1172,6 +1196,15 @@ while [[ $# -gt 0 ]]; do
             ACTION=pull
             shift
             ;;
+        --build)
+            ACTION=build
+            shift
+            # Next arg is the branch if it doesn't start with --
+            if [[ $# -gt 0 && "$1" != --* ]]; then
+                ARGS+=("$1")
+                shift
+            fi
+            ;;
         --list)
             ACTION=list
             shift
@@ -1254,6 +1287,9 @@ case "${ACTION}" in
         ;;
     pull)
         cmd_pull
+        ;;
+    build)
+        cmd_build "${ARGS[@]+"${ARGS[@]}"}"
         ;;
     list)
         cmd_list
