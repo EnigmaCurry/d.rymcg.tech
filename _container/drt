@@ -82,6 +82,30 @@ wizard() {
     return $rc
 }
 
+## Pull from remote if ~/.config/d.rymcg.tech is a git repo with a remote
+git_auto_pull() {
+    local CONFIG_BASE="${HOME}/.config/d.rymcg.tech"
+    [[ -d "${CONFIG_BASE}/.git" ]] || return 0
+    local remote
+    remote=$(git -C "${CONFIG_BASE}" remote 2>/dev/null | head -1)
+    [[ -n "${remote}" ]] || return 0
+    echo "## git: fetching from ${remote} ..." >&2
+    git -C "${CONFIG_BASE}" fetch "${remote}" 2>/dev/null || {
+        echo "## git: fetch failed (network issue?), continuing with local state" >&2
+        return 0
+    }
+    local branch
+    branch=$(git -C "${CONFIG_BASE}" branch --show-current 2>/dev/null)
+    [[ -n "${branch}" ]] || return 0
+    if git -C "${CONFIG_BASE}" rev-parse "${remote}/${branch}" &>/dev/null; then
+        if ! git -C "${CONFIG_BASE}" merge --ff-only "${remote}/${branch}" 2>/dev/null; then
+            echo "ERROR: config repo has diverged from ${remote}/${branch} — resolve manually with: drt --git" >&2
+            exit 1
+        fi
+        echo "## git: up to date with ${remote}/${branch}" >&2
+    fi
+}
+
 ## Auto-commit config changes if ~/.config/d.rymcg.tech is a git repo
 git_auto_commit() {
     local msg="$1"
@@ -191,6 +215,7 @@ cmd_init() {
     done
 
     check_engine
+    git_auto_pull
 
     ## Context name
     if [[ -z "${CONTEXT}" ]]; then
@@ -460,6 +485,7 @@ cmd_run() {
 
     check_engine
     detect_net_mode
+    git_auto_pull
     echo "## Resolving context: ${SOPS_CONFIG}" >&2
 
     # If argument is a bare context name (no slashes, no .sops.env suffix),
@@ -634,6 +660,7 @@ cmd_clean() {
     done
 
     check_engine
+    git_auto_pull
 
     if [[ -z "${CONTEXT}" ]]; then
         local KEY_DIR="${HOME}/.config/d.rymcg.tech/keys/sops"
@@ -825,6 +852,7 @@ cmd_view() {
     done
 
     check_engine
+    git_auto_pull
 
     ## Pick context interactively if not provided
     if [[ -z "${CONTEXT}" ]]; then
@@ -935,6 +963,7 @@ cmd_edit() {
     done
 
     check_engine
+    git_auto_pull
 
     ## Pick context interactively if not provided
     if [[ -z "${CONTEXT}" ]]; then
