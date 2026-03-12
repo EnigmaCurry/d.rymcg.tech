@@ -26,6 +26,7 @@ drt() {
   if ! podman image exists "$img" 2>/dev/null; then
     echo "## First run: building ${img} from ${DRT_GIT_REPO}#${DRT_BUILD_BRANCH} ..." >&2
     podman build \
+      --network=slirp4netns \
       --build-arg BRANCH=${DRT_BUILD_BRANCH} \
       --build-arg GIT_REPO=${DRT_GIT_REPO} \
       -t "${img}" \
