@@ -585,6 +585,11 @@ if [[ -S "${SSH_AUTH_SOCK:-}" ]]; then
     chmod 777 "${SSH_AUTH_SOCK}" 2>/dev/null || true
 fi
 
+# Fix TTY ownership so the runtime user can write to /dev/stderr, /dev/stdout
+if [[ -t 0 ]]; then
+    chown "${RUNTIME_UID}:${RUNTIME_GID}" "$(tty)" 2>/dev/null || true
+fi
+
 export DRT_CONTEXT="${DOCKER_CONTEXT}"
 unset DOCKER_CONTEXT
 log "## Executing: $*"
