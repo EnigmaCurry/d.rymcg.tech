@@ -367,18 +367,14 @@ cmd_init() {
                 fi
 
                 local SELECTED_IDX=0
-                if [[ ${#FIDO2_DEVICES[@]} -gt 1 ]]; then
-                    local SELECTED
-                    SELECTED=$(wizard choose "Select FIDO2 device" "${FIDO2_DEVICES[@]}")
-                    for i in "${!FIDO2_DEVICES[@]}"; do
-                        if [[ "${FIDO2_DEVICES[$i]}" == "${SELECTED}" ]]; then
-                            SELECTED_IDX=$i
-                            break
-                        fi
-                    done
-                else
-                    echo "Found device: ${FIDO2_DEVICES[0]}"
-                fi
+                local SELECTED
+                SELECTED=$(wizard choose "Select FIDO2 device" "${FIDO2_DEVICES[@]}")
+                for i in "${!FIDO2_DEVICES[@]}"; do
+                    if [[ "${FIDO2_DEVICES[$i]}" == "${SELECTED}" ]]; then
+                        SELECTED_IDX=$i
+                        break
+                    fi
+                done
 
                 local FIDO2_DEV="${FIDO2_DEVPATHS[$SELECTED_IDX]}"
                 local FIDO2_HID_ID="${FIDO2_IDS[$SELECTED_IDX]}"
