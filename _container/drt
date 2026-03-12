@@ -315,7 +315,7 @@ cmd_init() {
 
         local KEY_PROTECTION
         KEY_PROTECTION=$(wizard choose "Select AGE key protection method" \
-            "Passphrase" "FIDO2 hardware key" "No protection")
+            "Passphrase" "FIDO2 hardware key (EXPERIMENTAL)" "No protection")
 
         case "${KEY_PROTECTION}" in
             "Passphrase")
@@ -340,7 +340,7 @@ cmd_init() {
                     exit 1
                 fi
                 ;;
-            "FIDO2 hardware key")
+            "FIDO2 hardware key (EXPERIMENTAL)")
                 echo "Detecting FIDO2 devices..."
                 local FIDO2_DEVICES=() FIDO2_IDS=() FIDO2_DEVPATHS=()
                 while IFS='|' read -r devpath hidid devname; do
