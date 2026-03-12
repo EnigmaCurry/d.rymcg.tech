@@ -189,13 +189,15 @@ s3-clean:
 	if [[ "$${BACKEND}" != "s3" ]]; then echo "Error: storage backend is not s3." >&2; exit 1; fi; \
 	BUCKET=$$(${BIN}/dotenv -f ${ENV_FILE} get REGISTRY_STORAGE_S3_BUCKET); \
 	${BIN}/confirm no "Delete ALL files from S3 bucket $${BUCKET}" "?" || exit 0; \
+	make --no-print-directory docker-compose-lifecycle-cmd EXTRA_ARGS="stop registry"; \
 	ENDPOINT=$$(${BIN}/dotenv -f ${ENV_FILE} get REGISTRY_STORAGE_S3_ENDPOINT); \
 	ACCESS_KEY=$$(${BIN}/dotenv -f ${ENV_FILE} get REGISTRY_STORAGE_S3_ACCESS_KEY); \
 	SECRET_KEY=$$(${BIN}/dotenv -f ${ENV_FILE} get REGISTRY_STORAGE_S3_SECRET_KEY); \
 	s3cmd --host="$${ENDPOINT#https://}" --host-bucket="$${ENDPOINT#https://}" \
 		--access_key="$${ACCESS_KEY}" --secret_key="$${SECRET_KEY}" \
 		--no-check-certificate \
-		del -r "s3://$${BUCKET}/docker/"
+		del -r "s3://$${BUCKET}/docker/"; \
+	make --no-print-directory docker-compose-lifecycle-cmd EXTRA_ARGS="start registry"
 
 .PHONY: install-hook
 install-hook:
