@@ -379,6 +379,7 @@ cmd_run() {
     fi
 
     check_engine
+    echo "## Resolving context: ${SOPS_CONFIG}" >&2
 
     # If argument is a bare context name (no slashes, no .sops.env suffix),
     # resolve to ~/.config/d.rymcg.tech/config/<context>.sops.env
@@ -409,6 +410,8 @@ cmd_run() {
         echo "  Use --age-key to specify a different path" >&2
         exit 1
     fi
+    echo "## AGE key: ${AGE_KEY_FILE}" >&2
+    echo "## SOPS config: ${SOPS_CONFIG}" >&2
 
     local CONTAINER_CONFIG_DIR=/home/user/git/vendor/enigmacurry/d.rymcg.tech/config
     local SOPS_BASENAME
@@ -451,12 +454,16 @@ cmd_run() {
             echo "Error: SSH key file not found: ${SSH_KEY_FILE}" >&2
             exit 1
         fi
+        echo "## SSH: mounting key file ${SSH_KEY_FILE}" >&2
         RUN_ARGS+=(-v "${SSH_KEY_FILE}:/run/secrets/ssh/id_ed25519:ro")
     elif [[ -n "${SSH_AUTH_SOCK:-}" ]]; then
+        echo "## SSH: forwarding agent (${SSH_AUTH_SOCK})" >&2
         RUN_ARGS+=(
             -v "${SSH_AUTH_SOCK}:/run/ssh-agent.sock:ro"
             -e "SSH_AUTH_SOCK=/run/ssh-agent.sock"
         )
+    else
+        echo "## SSH: no key file or agent; container will generate a key" >&2
     fi
 
     # Persistent data volume (stores JWT master key, TLS certs)
@@ -485,10 +492,11 @@ cmd_run() {
         RUN_ARGS+=("d.rymcg.tech" "${CMD_ARGS[@]}")
     fi
 
+    echo "## Starting d-rymcg-tech container (${ENGINE})" >&2
+    echo "## Config: ${SOPS_CONFIG}" >&2
+    echo "## Image:  ${IMAGE}" >&2
     if [[ "${VERBOSE}" == true ]]; then
-        echo "## Starting d-rymcg-tech container (${ENGINE})" >&2
-        echo "## Config: ${SOPS_CONFIG}" >&2
-        echo "## Image:  ${IMAGE}" >&2
+        echo "## Full command: ${ENGINE} ${RUN_ARGS[*]}" >&2
     fi
     if [[ "${ENGINE}" == "docker" ]]; then
         exec "${ENGINE}" --context default "${RUN_ARGS[@]}"
