@@ -838,12 +838,11 @@ DRT_GIT_REPO="${DRT_GIT_REPO:-https://github.com/EnigmaCurry/d.rymcg.tech.git}"
 
 cmd_build() {
     check_engine
-    local BUILD_IMAGE="localhost/d-rymcg-tech:latest"
 
-    # Default branch: from existing image label, else master
+    # Default branch: from current image label, else master
     local BRANCH=""
     if [[ -z "${1:-}" ]]; then
-        BRANCH=$("${ENGINE}" image inspect "${BUILD_IMAGE}" --format '{{index .Labels "drt.branch"}}' 2>/dev/null || true)
+        BRANCH=$("${ENGINE}" image inspect "${IMAGE}" --format '{{index .Labels "drt.branch"}}' 2>/dev/null || true)
         BRANCH="${BRANCH:-master}"
     else
         BRANCH="$1"
@@ -857,9 +856,9 @@ cmd_build() {
     "${ENGINE}" build \
         --build-arg "BRANCH=${BRANCH}" \
         -f "${TMPDIR}/src/_container/Dockerfile" \
-        -t "${BUILD_IMAGE}" \
+        -t "${IMAGE}" \
         "${TMPDIR}/src"
-    echo "## Built: ${BUILD_IMAGE} (branch: ${BRANCH})" >&2
+    echo "## Built: ${IMAGE} (branch: ${BRANCH})" >&2
 }
 
 ###############################################################################
