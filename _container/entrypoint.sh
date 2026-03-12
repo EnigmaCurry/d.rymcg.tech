@@ -489,6 +489,8 @@ log "## SSH target: ${SSH_USER}@${SSH_HOST}:${SSH_PORT}"
 
 if [[ -s "${KEY_DIR}/known_hosts" ]]; then
     log "## SSH known_hosts already provided, skipping ssh-keyscan"
+elif [[ -t 0 ]]; then
+    log "## Interactive session: skipping ssh-keyscan (known_hosts from config)"
 elif [[ "${SSH_KEY_SCAN:-}" != "false" ]]; then
     log "## Running ssh-keyscan for ${SSH_HOST}:${SSH_PORT}"
     if ! ssh-keyscan -p "${SSH_PORT}" "${SSH_HOST}" >> "${KEY_DIR}/known_hosts" 2>/dev/null; then
