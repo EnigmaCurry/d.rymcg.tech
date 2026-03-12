@@ -965,19 +965,20 @@ _bao_resolve() {
     for var in BAO_ADDR BAO_CACERT BAO_CLIENT_CERT BAO_CLIENT_KEY; do
         local val=""
         val=$(echo "${PLAINTEXT}" | grep -oP "^${var}=\\K.*" || true)
-        [[ -n "${val}" ]] && BAO_ENV+=(-e "${var}=${val}")
+        if [[ -n "${val}" ]]; then
+            BAO_ENV+=(-e "${var}=${val}")
+        fi
     done
-    echo "## BAO env vars: ${BAO_ENV[*]}" >&2
 
     detect_net_mode
-    echo "## Net mode: ${NET_MODE:-none}" >&2
     _BAO_RUN_ARGS=(run --rm -it --entrypoint "")
     [[ -n "${NET_MODE}" ]] && _BAO_RUN_ARGS+=(--net="${NET_MODE}")
     _BAO_RUN_ARGS+=("${BAO_ENV[@]}" "${IMAGE}")
 
     _BAO_CTX=()
-    [[ "${ENGINE}" == "docker" ]] && _BAO_CTX=(--context default)
-    echo "## _bao_resolve complete" >&2
+    if [[ "${ENGINE}" == "docker" ]]; then
+        _BAO_CTX=(--context default)
+    fi
 }
 
 # Inline TLS resolution script (sourced inside the container)
@@ -989,16 +990,12 @@ _resolve_tls() {
     local f="/tmp/tls-${var}"
     if [ -f "${val}" ]; then
         f="${val}"
-        echo "## TLS ${var}: using file ${val}" >&2
     elif echo "${val}" | grep -q "BEGIN"; then
         echo "${val}" > "${f}"
-        echo "## TLS ${var}: wrote PEM to ${f}" >&2
     elif [ ${#val} -gt 60 ] && echo "${val}" | grep -qE "^[A-Za-z0-9+/=]+$"; then
         echo "${val}" | base64 -d > "${f}"
-        echo "## TLS ${var}: decoded base64 to ${f}" >&2
     else
         echo "${val}" > "${f}"
-        echo "## TLS ${var}: wrote raw value to ${f}" >&2
     fi
     TLS_FLAGS+=("${flag}" "${f}")
 }
@@ -1015,17 +1012,13 @@ cmd_seal() {
     _bao_parse_args seal "$@"
     _bao_resolve "Select context to seal"
 
-    echo "## Running: ${ENGINE} ${_BAO_CTX[*]} ${_BAO_RUN_ARGS[*]} bash -c ..." >&2
     "${ENGINE}" "${_BAO_CTX[@]}" "${_BAO_RUN_ARGS[@]}" bash -c '
 set -eo pipefail
 '"${_BAO_TLS_SCRIPT}"'
 
-echo "## Checking seal status at ${BAO_ADDR} ..." >&2
-echo "## curl flags: ${TLS_FLAGS[*]:-none}" >&2
-STATUS=$(curl -sf "${TLS_FLAGS[@]}" "${BAO_ADDR}/v1/sys/seal-status" 2>&1 || true)
-if [ -z "${STATUS}" ] || ! echo "${STATUS}" | jq -e . >/dev/null 2>&1; then
+STATUS=$(curl -sf "${TLS_FLAGS[@]}" "${BAO_ADDR}/v1/sys/seal-status" 2>/dev/null || true)
+if [ -z "${STATUS}" ]; then
     echo "Error: could not reach ${BAO_ADDR}" >&2
-    [ -n "${STATUS}" ] && echo "## curl output: ${STATUS}" >&2
     exit 1
 fi
 
@@ -1046,22 +1039,16 @@ printf "Root token: " >&2
 read -rs ROOT_TOKEN < /dev/tty
 echo "" >&2
 
-SEAL_OUT=$(curl -sf "${TLS_FLAGS[@]}" -X PUT \
+curl -sf "${TLS_FLAGS[@]}" -X PUT \
     -H "X-Vault-Token: ${ROOT_TOKEN}" \
-    "${BAO_ADDR}/v1/sys/seal" 2>&1 || true)
+    "${BAO_ADDR}/v1/sys/seal" >/dev/null 2>&1 || true
 
-STATUS=$(curl -sf "${TLS_FLAGS[@]}" "${BAO_ADDR}/v1/sys/seal-status" 2>&1 || true)
-if [ -z "${STATUS}" ] || ! echo "${STATUS}" | jq -e . >/dev/null 2>&1; then
-    echo "Error: could not verify seal status after seal request" >&2
-    [ -n "${STATUS}" ] && echo "## curl output: ${STATUS}" >&2
-    exit 1
-fi
+STATUS=$(curl -sf "${TLS_FLAGS[@]}" "${BAO_ADDR}/v1/sys/seal-status" 2>/dev/null || true)
 SEALED=$(echo "${STATUS}" | jq -r .sealed)
 if [ "${SEALED}" = "true" ]; then
     echo "## OpenBao at ${BAO_ADDR} has been sealed." >&2
 else
     echo "Error: seal failed. Check the root token and try again." >&2
-    [ -n "${SEAL_OUT}" ] && echo "## seal response: ${SEAL_OUT}" >&2
     exit 1
 fi'
 }
@@ -1074,17 +1061,13 @@ cmd_unseal() {
     _bao_parse_args unseal "$@"
     _bao_resolve "Select context to unseal"
 
-    echo "## Running: ${ENGINE} ${_BAO_CTX[*]} ${_BAO_RUN_ARGS[*]} bash -c ..." >&2
     "${ENGINE}" "${_BAO_CTX[@]}" "${_BAO_RUN_ARGS[@]}" bash -c '
 set -eo pipefail
 '"${_BAO_TLS_SCRIPT}"'
 
-echo "## Checking seal status at ${BAO_ADDR} ..." >&2
-echo "## curl flags: ${TLS_FLAGS[*]:-none}" >&2
-STATUS=$(curl -sf "${TLS_FLAGS[@]}" "${BAO_ADDR}/v1/sys/seal-status" 2>&1 || true)
-if [ -z "${STATUS}" ] || ! echo "${STATUS}" | jq -e . >/dev/null 2>&1; then
+STATUS=$(curl -sf "${TLS_FLAGS[@]}" "${BAO_ADDR}/v1/sys/seal-status" 2>/dev/null || true)
+if [ -z "${STATUS}" ]; then
     echo "Error: could not reach ${BAO_ADDR}" >&2
-    [ -n "${STATUS}" ] && echo "## curl output: ${STATUS}" >&2
     exit 1
 fi
 
@@ -1100,12 +1083,7 @@ PROGRESS=$(echo "${STATUS}" | jq -r .progress)
 echo "## Unseal requires ${THRESHOLD} of ${TOTAL} keys (${PROGRESS} already provided)" >&2
 
 while true; do
-    STATUS=$(curl -sf "${TLS_FLAGS[@]}" "${BAO_ADDR}/v1/sys/seal-status" 2>&1 || true)
-    if ! echo "${STATUS}" | jq -e . >/dev/null 2>&1; then
-        echo "Error: could not reach ${BAO_ADDR}" >&2
-        [ -n "${STATUS}" ] && echo "## curl output: ${STATUS}" >&2
-        exit 1
-    fi
+    STATUS=$(curl -sf "${TLS_FLAGS[@]}" "${BAO_ADDR}/v1/sys/seal-status" 2>/dev/null || true)
     SEALED=$(echo "${STATUS}" | jq -r .sealed)
     PROGRESS=$(echo "${STATUS}" | jq -r .progress)
 
@@ -1120,11 +1098,10 @@ while true; do
 
     RESPONSE=$(curl -sf "${TLS_FLAGS[@]}" -X PUT \
         --data "{\"key\":\"${UNSEAL_KEY}\"}" \
-        "${BAO_ADDR}/v1/sys/unseal" 2>&1 || true)
+        "${BAO_ADDR}/v1/sys/unseal" 2>/dev/null || true)
 
-    if [ -z "${RESPONSE}" ] || ! echo "${RESPONSE}" | jq -e . >/dev/null 2>&1; then
+    if [ -z "${RESPONSE}" ]; then
         echo "Error: unseal request failed" >&2
-        [ -n "${RESPONSE}" ] && echo "## curl output: ${RESPONSE}" >&2
         exit 1
     fi
 
