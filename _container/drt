@@ -444,17 +444,14 @@ cmd_run() {
     # Read age key content; decrypt if passphrase-protected
     local AGE_KEY_CONTENT
     if head -1 "${AGE_KEY_FILE}" | grep -q '^age-encryption.org'; then
-        local _tmp_in _passphrase
+        local _tmp_in
         _tmp_in=$(mktemp)
         cp "${AGE_KEY_FILE}" "${_tmp_in}"
         chmod 600 "${_tmp_in}"
-        read -rsp "Enter passphrase for AGE key: " _passphrase
-        echo >&2
-        AGE_KEY_CONTENT=$(container_run --user 0:0 \
+        AGE_KEY_CONTENT=$(container_run -i --user 0:0 \
             -v "${_tmp_in}:/tmp/age-key:ro" \
-            -e "_AGE_PASS=${_passphrase}" \
-            "${IMAGE}" sh -c 'echo "${_AGE_PASS}" | age -d /tmp/age-key')
-        unset _passphrase
+            -v /dev/tty:/dev/tty \
+            "${IMAGE}" age -d /tmp/age-key)
         rm -f "${_tmp_in}"
         if [[ -z "${AGE_KEY_CONTENT}" ]]; then
             echo "Error: failed to decrypt AGE key" >&2
