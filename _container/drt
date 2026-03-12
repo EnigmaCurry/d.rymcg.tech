@@ -331,16 +331,22 @@ cmd_init() {
     if [[ -f "${CONFIG_DIR}/${CONTEXT}.sops.env" ]]; then
         echo "## Decrypting existing config for defaults ..." >&2
         if [[ "${_KEY_IS_ENCRYPTED}" == true ]]; then
-            ## Key was already decrypted in-container; decrypt config in one shot
-            _EXISTING=$(container_run \
+            ## Key is passphrase-protected; decrypt key + config in one container
+            local _dec_out
+            _dec_out=$(mktemp)
+            container_run \
                 --user 0:0 -it \
                 -v "${CONFIG_DIR}/${CONTEXT}.sops.env:/tmp/config.sops.env:ro" \
                 -v "${AGE_KEY_FILE}:/tmp/age-key-enc:ro" \
+                -v "${_dec_out}:/tmp/dec-out" \
                 "${IMAGE}" \
                 sh -c 'age -d /tmp/age-key-enc > /tmp/age-key 2>/dev/tty && \
                     SOPS_AGE_KEY_FILE=/tmp/age-key sops decrypt \
                     --input-type dotenv --output-type dotenv \
-                    --filename-override export.env /tmp/config.sops.env 2>/dev/null') || true
+                    --filename-override export.env /tmp/config.sops.env \
+                    > /tmp/dec-out 2>/dev/null' || true
+            _EXISTING=$(cat "${_dec_out}")
+            rm -f "${_dec_out}"
         else
             ## Key is plaintext, no passphrase needed
             _EXISTING=$(container_run \
