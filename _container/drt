@@ -785,7 +785,9 @@ cmd_git_init() {
     fi
 
     local BRANCH USER_EMAIL USER_NAME REMOTE
-    BRANCH=$(wizard ask "Branch name" "master")
+    local _default_branch
+    _default_branch=$(git config --global init.defaultBranch 2>/dev/null || true)
+    BRANCH=$(wizard ask "Branch name" "${_default_branch:-master}")
     local _default_email _default_name
     _default_email=$(git config --global user.email 2>/dev/null || true)
     _default_name=$(git config --global user.name 2>/dev/null || true)
