@@ -316,10 +316,12 @@ decrypt_sops() {
     fi
 
     # Parse each KEY=VALUE; export only if not already set (container env wins)
+    # Skip serialized data keys (__passwords__, __ssh_key__, etc.) — handled by restore-env
     while IFS= read -r line; do
         [[ -z "${line}" || "${line}" == "#"* ]] && continue
         key="${line%%=*}"
         val="${line#*=}"
+        [[ "${key}" == __* ]] && continue
         # Only set if not already defined in container env (container env wins)
         if [[ -z "${!key+set}" ]]; then
             export "${key}=${val}"
