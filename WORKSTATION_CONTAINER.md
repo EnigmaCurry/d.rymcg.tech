@@ -265,7 +265,7 @@ d container-build --image ghcr.io/you/d-rymcg-tech:v1 --push    # Build and push
 
 ## Getting started
 
-First set up the `drt` alias as described in [Quick start](#quick-start-no-repo-needed).
+First set up the `drt` alias as described in [Quick start](#quick-start).
 
 Bootstrap a new deployment config with `drt --init` — this generates
 an AGE encryption key (if you don't have one) and creates a
@@ -278,6 +278,9 @@ drt                      # interactive context chooser
 drt --edit myserver      # decrypt, edit, and re-encrypt SOPS config
 drt --view myserver      # decrypt and display SOPS config
 ```
+
+Re-run `drt --init myserver` at any time to reconfigure SSH or
+OpenBao settings — existing project configuration is preserved.
 
 The only host dependency is Podman (or Docker with `--docker`). All
 crypto tools (age, sops) run inside the container image.
@@ -296,8 +299,10 @@ provides your AGE key for decryption. The container restores all state
 from the encrypted config: project `.env` files, SSH keys and config,
 known_hosts, doctl config, and passwords.json.
 
-On shell exit, you'll see a diff of any configuration changes and can
-save them back to the encrypted file.
+On shell exit, you'll see a diff of any configuration changes and be
+prompted to save them back to the encrypted file (default: yes). Only
+changed values are re-encrypted, so git diffs on the SOPS file reflect
+actual changes rather than full re-encryption noise.
 
 Run `drt --help` for all options.
 
