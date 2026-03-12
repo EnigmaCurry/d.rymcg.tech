@@ -60,6 +60,7 @@ RUN if [ -n "${EXTRA_PACKAGES}" ]; then apk add --no-cache ${EXTRA_PACKAGES}; fi
 ARG BRANCH=
 ARG IMAGE_SOURCE=
 ARG IMAGE_REF=localhost/d-rymcg-tech:latest
+ARG GIT_REPO=
 COPY --chown=1000:1000 . /home/user/git/vendor/enigmacurry/d.rymcg.tech
 WORKDIR /home/user/git/vendor/enigmacurry/d.rymcg.tech
 RUN if [ -n "${BRANCH}" ] && [ -d .git ]; then git checkout "${BRANCH}"; fi && rm -rf .git
@@ -97,7 +98,8 @@ ARG EDITOR=mg
 ENV EDITOR=${EDITOR}
 ENV DRT_IMAGE=${IMAGE_REF}
 LABEL org.opencontainers.image.source=${IMAGE_SOURCE} \
-      drt.branch=${BRANCH}
+      drt.branch=${BRANCH} \
+      drt.repo=${GIT_REPO}
 
 ENTRYPOINT ["/entrypoint.sh"]
 CMD ["bash"]

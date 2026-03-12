@@ -210,13 +210,15 @@ REPO=https://github.com/EnigmaCurry/d.rymcg.tech.git
 BRANCH=master
 podman build \
   --build-arg BRANCH=${BRANCH} \
+  --build-arg GIT_REPO=${REPO} \
   -t localhost/d-rymcg-tech:latest \
   -f _container/Dockerfile \
   ${REPO}#${BRANCH}
 ```
 
-The `--build-arg BRANCH=...` bakes the branch name into the image as
-a label, so that future rebuilds remember which branch to use.
+The `--build-arg` values are baked into the image as labels, so that
+`drt --build` remembers which repo and branch to use for future
+rebuilds.
 
 Then set up the alias:
 

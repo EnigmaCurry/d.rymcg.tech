@@ -834,12 +834,18 @@ cmd_view() {
 # build subcommand
 ###############################################################################
 
-DRT_GIT_REPO="${DRT_GIT_REPO:-https://github.com/EnigmaCurry/d.rymcg.tech.git}"
+DRT_GIT_REPO_DEFAULT="https://github.com/EnigmaCurry/d.rymcg.tech.git"
 
 cmd_build() {
     check_engine
 
-    # Default branch: from current image label, else master
+    # Defaults from current image labels, overridable by env/args
+    local REPO="${DRT_GIT_REPO:-}"
+    if [[ -z "${REPO}" ]]; then
+        REPO=$("${ENGINE}" image inspect "${IMAGE}" --format '{{index .Labels "drt.repo"}}' 2>/dev/null || true)
+        REPO="${REPO:-${DRT_GIT_REPO_DEFAULT}}"
+    fi
+
     local BRANCH=""
     if [[ -z "${1:-}" ]]; then
         BRANCH=$("${ENGINE}" image inspect "${IMAGE}" --format '{{index .Labels "drt.branch"}}' 2>/dev/null || true)
@@ -848,10 +854,10 @@ cmd_build() {
         BRANCH="$1"
     fi
 
-    echo "## Building from ${DRT_GIT_REPO}#${BRANCH} ..." >&2
+    echo "## Building from ${REPO}#${BRANCH} ..." >&2
     _DRT_BUILD_DIR=$(mktemp -d)
     trap 'rm -rf "${_DRT_BUILD_DIR}"' EXIT
-    git clone --depth 1 --branch "${BRANCH}" "${DRT_GIT_REPO}" "${_DRT_BUILD_DIR}/src"
+    git clone --depth 1 --branch "${BRANCH}" "${REPO}" "${_DRT_BUILD_DIR}/src"
     if [[ ! -f "${_DRT_BUILD_DIR}/src/_container/Dockerfile" ]]; then
         echo "Error: _container/Dockerfile not found on branch '${BRANCH}'." >&2
         echo "Specify a branch that has the Dockerfile: drt --build BRANCH" >&2
@@ -859,10 +865,11 @@ cmd_build() {
     fi
     "${ENGINE}" build \
         --build-arg "BRANCH=${BRANCH}" \
+        --build-arg "GIT_REPO=${REPO}" \
         -f "${_DRT_BUILD_DIR}/src/_container/Dockerfile" \
         -t "${IMAGE}" \
         "${_DRT_BUILD_DIR}/src"
-    echo "## Built: ${IMAGE} (branch: ${BRANCH})" >&2
+    echo "## Built: ${IMAGE} (branch: ${BRANCH}, repo: ${REPO})" >&2
 }
 
 ###############################################################################
