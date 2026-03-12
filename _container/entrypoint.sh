@@ -680,6 +680,7 @@ fi
 
 # Fix ownership of env files and passwords.json created by restore-env
 find "${ROOT_DIR}" \( -name ".env_*" -o -name "passwords.json" \) -exec chown "${RUNTIME_UID}:${RUNTIME_GID}" {} + 2>/dev/null || true
+chown -R "${RUNTIME_UID}:${RUNTIME_GID}" "${HOME}/.config/d.rymcg.tech/gumdrop-presets" 2>/dev/null || true
 
 # Make SSH agent socket accessible
 if [[ -S "${SSH_AUTH_SOCK:-}" ]]; then
