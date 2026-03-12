@@ -76,6 +76,14 @@ RUN set -e; \
       | tar xz -C _scripts; \
     ln -s ../script-wizard _scripts/user/script-wizard
 
+# Pre-cache uv environments for all inline-script files
+USER user
+RUN for f in $(grep -rl '# /// script' _scripts/ _container/ 2>/dev/null); do \
+      echo "Caching uv deps: $f"; \
+      uv run --script "$f" >/dev/null 2>&1 || true; \
+    done
+USER root
+
 COPY --chown=1000:1000 _container/drt /usr/local/bin/drt
 RUN chmod +x /usr/local/bin/drt
 
