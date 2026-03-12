@@ -448,8 +448,8 @@ cmd_run() {
         local _tmp_key
         _tmp_key=$(mktemp)
         cp "${AGE_KEY_FILE}" "${_tmp_key}"
-        chmod 644 "${_tmp_key}"
-        AGE_KEY_CONTENT=$(container_run -it \
+        chmod 600 "${_tmp_key}"
+        AGE_KEY_CONTENT=$(container_run -it --user 0:0 \
             -v "${_tmp_key}:/tmp/age-key:ro" \
             "${IMAGE}" sh -c 'age -d /tmp/age-key')
         rm -f "${_tmp_key}"
