@@ -98,6 +98,7 @@ Options:
   --view [CONTEXT]   Decrypt and display SOPS config
   --clean [CONTEXT]  Remove SOPS config and/or AGE key for a context
   --seal [CONTEXT]   Seal the OpenBao server used by a context
+  --unseal [CONTEXT] Unseal the OpenBao server used by a context
   --list             List all contexts (AGE keys and SOPS configs)
   --pull             Pull latest image
   --extract          Print this script to stdout (self-extraction)
@@ -854,21 +855,24 @@ cmd_pull() {
 }
 
 ###############################################################################
-# seal subcommand
+# shared: resolve BAO context → decrypt config, extract BAO_ADDR, build run args
 ###############################################################################
 
-cmd_seal() {
-    local CONTEXT="" AGE_KEY_FILE=""
+# Parse common --image/--docker/--age-key/--help args for seal/unseal commands.
+# Sets: _BAO_CONTEXT, _BAO_AGE_KEY_FILE, and remaining positional in _BAO_EXTRA.
+_bao_parse_args() {
+    local help_action="$1"; shift
+    _BAO_CONTEXT=""
+    _BAO_AGE_KEY_FILE=""
+    _BAO_EXTRA=()
 
     while [[ $# -gt 0 ]]; do
         case "$1" in
             --image) IMAGE="$2"; shift 2 ;;
             --docker) ENGINE=docker; shift ;;
-            --age-key) AGE_KEY_FILE="$2"; shift 2 ;;
+            --age-key) _BAO_AGE_KEY_FILE="$2"; shift 2 ;;
             --help)
-                echo "Usage: drt --seal [OPTIONS] [CONTEXT_NAME]"
-                echo ""
-                echo "Seal the OpenBao server used by a context."
+                echo "Usage: drt --${help_action} [OPTIONS] [CONTEXT_NAME]"
                 echo ""
                 echo "Options:"
                 echo "  --image TAG    Container image"
@@ -882,8 +886,8 @@ cmd_seal() {
                 exit 1
                 ;;
             *)
-                if [[ -z "${CONTEXT}" ]]; then
-                    CONTEXT="$1"
+                if [[ -z "${_BAO_CONTEXT}" ]]; then
+                    _BAO_CONTEXT="$1"
                 else
                     echo "Error: unexpected argument: $1" >&2
                     exit 1
@@ -892,11 +896,15 @@ cmd_seal() {
                 ;;
         esac
     done
+}
 
+# Resolve context, decrypt SOPS config, extract BAO vars, prepare container run args.
+# Sets: _BAO_RUN_ARGS (array for engine run), _BAO_CTX (array for --context default).
+_bao_resolve() {
+    local wizard_prompt="$1"
     check_engine
 
-    ## Pick context interactively if not provided
-    if [[ -z "${CONTEXT}" ]]; then
+    if [[ -z "${_BAO_CONTEXT}" ]]; then
         local CONFIG_DIR="${HOME}/.config/d.rymcg.tech/config"
         local CONTEXTS=()
         if [[ -d "${CONFIG_DIR}" ]]; then
@@ -909,17 +917,18 @@ cmd_seal() {
             echo "No configs found. Run 'drt --init' first." >&2
             exit 1
         fi
-        CONTEXT=$(wizard choose "Select context to seal" "${CONTEXTS[@]}")
+        _BAO_CONTEXT=$(wizard choose "${wizard_prompt}" "${CONTEXTS[@]}")
     fi
 
-    local SOPS_CONFIG="${HOME}/.config/d.rymcg.tech/config/${CONTEXT}.sops.env"
+    local SOPS_CONFIG="${HOME}/.config/d.rymcg.tech/config/${_BAO_CONTEXT}.sops.env"
     if [[ ! -f "${SOPS_CONFIG}" ]]; then
         echo "Error: config not found: ${SOPS_CONFIG}" >&2
         exit 1
     fi
 
+    local AGE_KEY_FILE="${_BAO_AGE_KEY_FILE}"
     if [[ -z "${AGE_KEY_FILE}" ]]; then
-        AGE_KEY_FILE="${HOME}/.config/d.rymcg.tech/keys/sops/${CONTEXT}.key"
+        AGE_KEY_FILE="${HOME}/.config/d.rymcg.tech/keys/sops/${_BAO_CONTEXT}.key"
     fi
     if [[ ! -f "${AGE_KEY_FILE}" ]]; then
         echo "Error: AGE key not found: ${AGE_KEY_FILE}" >&2
@@ -938,7 +947,7 @@ cmd_seal() {
         AGE_KEY_FILE="${DEC_DIR}/age-key-dec"
     fi
 
-    # Decrypt SOPS config and extract BAO_ADDR
+    # Decrypt SOPS config
     local PLAINTEXT
     PLAINTEXT=$(container_run \
         --user 0:0 -i \
@@ -953,36 +962,32 @@ cmd_seal() {
 
     local BAO_ADDR=""
     BAO_ADDR=$(echo "${PLAINTEXT}" | grep -oP '^BAO_ADDR=\K.*' || true)
-
     if [[ -z "${BAO_ADDR}" ]]; then
-        echo "Error: BAO_ADDR not found in ${CONTEXT} config — OpenBao is not configured for this context." >&2
+        echo "Error: BAO_ADDR not found in ${_BAO_CONTEXT} config — OpenBao is not configured for this context." >&2
         exit 1
     fi
-
     echo "## OpenBao server: ${BAO_ADDR}" >&2
 
-    # Build env vars for the container from the decrypted config
-    local SEAL_ENV=()
+    # Build env vars for the container
+    local BAO_ENV=()
     local var
     for var in BAO_ADDR BAO_CACERT BAO_CLIENT_CERT BAO_CLIENT_KEY; do
         local val=""
         val=$(echo "${PLAINTEXT}" | grep -oP "^${var}=\\K.*" || true)
-        [[ -n "${val}" ]] && SEAL_ENV+=(-e "${var}=${val}")
+        [[ -n "${val}" ]] && BAO_ENV+=(-e "${var}=${val}")
     done
 
-    # Run seal logic inside the container (has curl, jq, TLS decoding).
     detect_net_mode
-    local RUN_ARGS=(run --rm -it --entrypoint "")
-    [[ -n "${NET_MODE}" ]] && RUN_ARGS+=(--net="${NET_MODE}")
-    RUN_ARGS+=("${SEAL_ENV[@]}" "${IMAGE}")
+    _BAO_RUN_ARGS=(run --rm -it --entrypoint "")
+    [[ -n "${NET_MODE}" ]] && _BAO_RUN_ARGS+=(--net="${NET_MODE}")
+    _BAO_RUN_ARGS+=("${BAO_ENV[@]}" "${IMAGE}")
 
-    local _ctx=()
-    [[ "${ENGINE}" == "docker" ]] && _ctx=(--context default)
+    _BAO_CTX=()
+    [[ "${ENGINE}" == "docker" ]] && _BAO_CTX=(--context default)
+}
 
-    "${ENGINE}" "${_ctx[@]}" "${RUN_ARGS[@]}" bash -c '
-set -eo pipefail
-
-# Resolve TLS vars (base64/PEM → temp files)
+# Inline TLS resolution script (sourced inside the container)
+_BAO_TLS_SCRIPT='
 TLS_FLAGS=()
 _resolve_tls() {
     local var="$1" flag="$2" val="${!1:-}"
@@ -1002,6 +1007,19 @@ _resolve_tls() {
 _resolve_tls BAO_CACERT --cacert
 _resolve_tls BAO_CLIENT_CERT --cert
 _resolve_tls BAO_CLIENT_KEY --key
+'
+
+###############################################################################
+# seal subcommand
+###############################################################################
+
+cmd_seal() {
+    _bao_parse_args seal "$@"
+    _bao_resolve "Select context to seal"
+
+    "${ENGINE}" "${_BAO_CTX[@]}" "${_BAO_RUN_ARGS[@]}" bash -c '
+set -eo pipefail
+'"${_BAO_TLS_SCRIPT}"'
 
 STATUS=$(curl -sf "${TLS_FLAGS[@]}" "${BAO_ADDR}/v1/sys/seal-status" 2>/dev/null || true)
 if [ -z "${STATUS}" ]; then
@@ -1038,6 +1056,70 @@ else
     echo "Error: seal failed. Check the root token and try again." >&2
     exit 1
 fi'
+}
+
+###############################################################################
+# unseal subcommand
+###############################################################################
+
+cmd_unseal() {
+    _bao_parse_args unseal "$@"
+    _bao_resolve "Select context to unseal"
+
+    "${ENGINE}" "${_BAO_CTX[@]}" "${_BAO_RUN_ARGS[@]}" bash -c '
+set -eo pipefail
+'"${_BAO_TLS_SCRIPT}"'
+
+STATUS=$(curl -sf "${TLS_FLAGS[@]}" "${BAO_ADDR}/v1/sys/seal-status" 2>/dev/null || true)
+if [ -z "${STATUS}" ]; then
+    echo "Error: could not reach ${BAO_ADDR}" >&2
+    exit 1
+fi
+
+SEALED=$(echo "${STATUS}" | jq -r .sealed)
+if [ "${SEALED}" = "false" ]; then
+    echo "## OpenBao at ${BAO_ADDR} is already unsealed." >&2
+    exit 0
+fi
+
+THRESHOLD=$(echo "${STATUS}" | jq -r .t)
+TOTAL=$(echo "${STATUS}" | jq -r .n)
+PROGRESS=$(echo "${STATUS}" | jq -r .progress)
+echo "## Unseal requires ${THRESHOLD} of ${TOTAL} keys (${PROGRESS} already provided)" >&2
+
+while true; do
+    STATUS=$(curl -sf "${TLS_FLAGS[@]}" "${BAO_ADDR}/v1/sys/seal-status" 2>/dev/null || true)
+    SEALED=$(echo "${STATUS}" | jq -r .sealed)
+    PROGRESS=$(echo "${STATUS}" | jq -r .progress)
+
+    if [ "${SEALED}" = "false" ]; then
+        echo "## OpenBao at ${BAO_ADDR} has been unsealed." >&2
+        exit 0
+    fi
+
+    printf "Unseal key (%s/%s): " "$((PROGRESS + 1))" "${THRESHOLD}" >&2
+    read -rs UNSEAL_KEY < /dev/tty
+    echo "" >&2
+
+    RESPONSE=$(curl -sf "${TLS_FLAGS[@]}" -X PUT \
+        --data "{\"key\":\"${UNSEAL_KEY}\"}" \
+        "${BAO_ADDR}/v1/sys/unseal" 2>/dev/null || true)
+
+    if [ -z "${RESPONSE}" ]; then
+        echo "Error: unseal request failed" >&2
+        exit 1
+    fi
+
+    SEALED=$(echo "${RESPONSE}" | jq -r .sealed)
+    PROGRESS=$(echo "${RESPONSE}" | jq -r .progress)
+
+    if [ "${SEALED}" = "false" ]; then
+        echo "## OpenBao at ${BAO_ADDR} has been unsealed." >&2
+        exit 0
+    fi
+
+    echo "## Progress: ${PROGRESS}/${THRESHOLD}" >&2
+done'
 }
 
 ###############################################################################
@@ -1081,6 +1163,12 @@ while [[ $# -gt 0 ]]; do
             ;;
         --seal)
             ACTION=seal
+            shift
+            ARGS+=("$@")
+            break
+            ;;
+        --unseal)
+            ACTION=unseal
             shift
             ARGS+=("$@")
             break
@@ -1147,6 +1235,9 @@ case "${ACTION}" in
         ;;
     seal)
         cmd_seal "${ARGS[@]+"${ARGS[@]}"}"
+        ;;
+    unseal)
+        cmd_unseal "${ARGS[@]+"${ARGS[@]}"}"
         ;;
     pull)
         cmd_pull
