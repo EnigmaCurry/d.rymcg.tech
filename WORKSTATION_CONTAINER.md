@@ -1,8 +1,10 @@
 # d-rymcg-tech container image
 
-A pre-built Docker image that packages the entire
+A container image that packages the entire
 [d.rymcg.tech](https://github.com/EnigmaCurry/d.rymcg.tech) framework
 for headless and interactive deployments to remote Docker hosts over SSH.
+Build it from source with the `drt` shell function, or pull a pre-built
+image from the [GitHub Container Registry](#pulling-the-image).
 
 ## Quick start
 
