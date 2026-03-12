@@ -808,10 +808,14 @@ cmd_git_init() {
     echo "## Config repo initialized at ${CONFIG_BASE}" >&2
 
     if [[ -n "${REMOTE}" ]]; then
-        echo "## Pushing to ${REMOTE} ..." >&2
-        git -C "${CONFIG_BASE}" push -u origin "${BRANCH}" 2>/dev/null && \
-            echo "## Pushed" >&2 || \
-            echo "## Push failed — check your remote URL and SSH keys" >&2
+        echo "" >&2
+        echo "Remote: ${REMOTE}" >&2
+        echo "" >&2
+        if wizard confirm "Push to remote now?" yes; then
+            git -C "${CONFIG_BASE}" push -u origin "${BRANCH}" && \
+                echo "## Pushed" >&2 || \
+                echo "## Push failed — check your remote URL and SSH keys" >&2
+        fi
     fi
 }
 
