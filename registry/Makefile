@@ -179,7 +179,7 @@ list-s3:
 	SECRET_KEY=$$(${BIN}/dotenv -f ${ENV_FILE} get REGISTRY_STORAGE_S3_SECRET_KEY); \
 	s3cmd --host="$${ENDPOINT#https://}" --host-bucket="$${ENDPOINT#https://}" \
 		--access_key="$${ACCESS_KEY}" --secret_key="$${SECRET_KEY}" \
-		--no-ssl-check \
+		--no-check-certificate \
 		ls -r "s3://$${BUCKET}/" | grep -v "/$$"
 
 .PHONY: install-hook
