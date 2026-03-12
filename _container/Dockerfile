@@ -96,7 +96,8 @@ RUN chmod +x /entrypoint.sh
 ARG EDITOR=mg
 ENV EDITOR=${EDITOR}
 ENV DRT_IMAGE=${IMAGE_REF}
-LABEL org.opencontainers.image.source=${IMAGE_SOURCE}
+LABEL org.opencontainers.image.source=${IMAGE_SOURCE} \
+      drt.branch=${BRANCH}
 
 ENTRYPOINT ["/entrypoint.sh"]
 CMD ["bash"]

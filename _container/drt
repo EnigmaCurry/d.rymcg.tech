@@ -123,7 +123,7 @@ EOF
     echo "  alias drt='bash <(${ENGINE} run --rm --pull=never --net=none ${IMAGE} drt)'"
     echo ""
     echo "One time setup (build from source):"
-    echo "  ${ENGINE} build -t localhost/d-rymcg-tech:latest -f _container/Dockerfile ${DRT_GIT_REPO}#master"
+    echo "  drt --build [BRANCH]   # default: master, or last-built branch"
     echo "  alias drt='bash <(${ENGINE} run --rm --pull=never --net=none localhost/d-rymcg-tech:latest drt)'"
 }
 
@@ -838,15 +838,28 @@ DRT_GIT_REPO="${DRT_GIT_REPO:-https://github.com/EnigmaCurry/d.rymcg.tech.git}"
 
 cmd_build() {
     check_engine
-    local BRANCH="${1:-master}"
     local BUILD_IMAGE="localhost/d-rymcg-tech:latest"
+
+    # Default branch: from existing image label, else master
+    local BRANCH=""
+    if [[ -z "${1:-}" ]]; then
+        BRANCH=$("${ENGINE}" image inspect "${BUILD_IMAGE}" --format '{{index .Labels "drt.branch"}}' 2>/dev/null || true)
+        BRANCH="${BRANCH:-master}"
+    else
+        BRANCH="$1"
+    fi
+
     echo "## Building from ${DRT_GIT_REPO}#${BRANCH} ..." >&2
+    local TMPDIR=""
+    TMPDIR=$(mktemp -d)
+    trap 'rm -rf "${TMPDIR}"' EXIT
+    git clone --depth 1 --branch "${BRANCH}" "${DRT_GIT_REPO}" "${TMPDIR}/src"
     "${ENGINE}" build \
         --build-arg "BRANCH=${BRANCH}" \
-        -f _container/Dockerfile \
+        -f "${TMPDIR}/src/_container/Dockerfile" \
         -t "${BUILD_IMAGE}" \
-        "${DRT_GIT_REPO}#${BRANCH}"
-    echo "## Built: ${BUILD_IMAGE}" >&2
+        "${TMPDIR}/src"
+    echo "## Built: ${BUILD_IMAGE} (branch: ${BRANCH})" >&2
 }
 
 ###############################################################################
