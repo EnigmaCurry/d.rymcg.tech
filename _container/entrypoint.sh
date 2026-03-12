@@ -90,7 +90,14 @@ resolve_secret_to_file() {
     elif [[ $(echo "${value}" | wc -l) -eq 1 ]] && \
          [[ ${#value} -gt 60 ]] && \
          echo "${value}" | grep -qE '^[A-Za-z0-9+/=]+$'; then
-        echo "${value}" | base64 -d > "${target}"
+        local decoded
+        decoded=$(echo "${value}" | base64 -d)
+        # Auto-detect gzip (magic bytes 1f 8b)
+        if [[ $(echo "${value}" | base64 -d | od -A n -N 2 -t x1 | tr -d ' ') == "1f8b" ]]; then
+            echo "${value}" | base64 -d | gunzip > "${target}"
+        else
+            echo "${decoded}" > "${target}"
+        fi
     # Plain text (e.g. known_hosts content)
     else
         echo "${value}" > "${target}"

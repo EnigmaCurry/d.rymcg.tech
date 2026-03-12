@@ -835,8 +835,16 @@ __export_env() {
         plaintext+="SSH_HOST=${ssh_host}"$'\n'
         plaintext+="SSH_USER=${ssh_user:-root}"$'\n'
         plaintext+="SSH_PORT=${ssh_port:-22}"$'\n'
-        if [[ -n "${SSH_KNOWN_HOSTS:-}" ]]; then
-            plaintext+="SSH_KNOWN_HOSTS=${SSH_KNOWN_HOSTS}"$'\n'
+        # Merge known_hosts from entrypoint (/run/secrets/ssh/) and user-added hosts (~/.ssh/)
+        local known_hosts_combined=""
+        for kh in /run/secrets/ssh/known_hosts "${HOME}/.ssh/known_hosts"; do
+            [[ -f "${kh}" ]] && known_hosts_combined+=$(cat "${kh}")$'\n'
+        done
+        known_hosts_combined=$(echo "${known_hosts_combined}" | sort -u | sed '/^$/d')
+        if [[ -n "${known_hosts_combined}" ]]; then
+            local kh_data
+            kh_data=$(echo "${known_hosts_combined}" | gzip -c | base64 -w 0)
+            plaintext+="SSH_KNOWN_HOSTS=${kh_data}"$'\n'
         fi
         first=false
     fi
