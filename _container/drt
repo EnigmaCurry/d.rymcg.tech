@@ -276,13 +276,15 @@ GITIGNORE
 
     ## SSH key scan
     local KNOWN_HOSTS=""
-    if wizard confirm "Run ssh-keyscan now for ${SSH_HOST}:${SSH_PORT}?" yes; then
+    if wizard confirm "Run ssh-keyscan now for ${SSH_HOST}:${SSH_PORT}?" no; then
         echo ""
         echo "Running ssh-keyscan for ${SSH_HOST}:${SSH_PORT}..."
         KNOWN_HOSTS=$(ssh-keyscan -p "${SSH_PORT}" "${SSH_HOST}" 2>/dev/null || true)
+        if [[ -z "${KNOWN_HOSTS}" ]]; then
+            echo "ssh-keyscan failed for ${SSH_HOST}:${SSH_PORT}"
+        fi
     fi
     if [[ -z "${KNOWN_HOSTS}" ]]; then
-        echo "WARNING: ssh-keyscan failed for ${SSH_HOST}:${SSH_PORT}"
         echo "  You can set SSH_KNOWN_HOSTS later, or set SSH_KEY_SCAN=false to skip verification."
     else
         echo "SSH host keys collected."
