@@ -22,6 +22,7 @@ chown -R "${RUNTIME_UID}:${RUNTIME_GID}" \
     "${RUNTIME_HOME}/.config" \
     "${RUNTIME_HOME}/.ssh" \
     "${RUNTIME_HOME}/.local" \
+    "${ROOT_DIR}" \
     /run/secrets/ssh \
     2>/dev/null || true
 if [[ -d /data ]]; then
