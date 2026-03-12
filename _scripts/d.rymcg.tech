@@ -1164,6 +1164,7 @@ __restore_env() {
         if [[ -n "${password_files[${target_file}]+set}" ]]; then
             echo "## Restoring ${target_file}" >&2
             _b64_decode "${password_files[${target_file}]}" > "${target_file}"
+            chmod 600 "${target_file}"
             continue
         fi
 
