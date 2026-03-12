@@ -835,6 +835,9 @@ __export_env() {
         plaintext+="SSH_HOST=${ssh_host}"$'\n'
         plaintext+="SSH_USER=${ssh_user:-root}"$'\n'
         plaintext+="SSH_PORT=${ssh_port:-22}"$'\n'
+        if [[ -n "${SSH_KNOWN_HOSTS:-}" ]]; then
+            plaintext+="SSH_KNOWN_HOSTS=${SSH_KNOWN_HOSTS}"$'\n'
+        fi
         first=false
     fi
     for env_file in "${selected_files[@]}"; do
