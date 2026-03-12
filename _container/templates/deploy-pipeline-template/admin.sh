@@ -40,10 +40,10 @@ cmd_config() {
             "Select a config (or create new)" \
             "${EXISTING[@]}" "Create new config") || exit 1
         if [[ "${CONTEXT}" == "Create new config" ]]; then
-            CONTEXT=$(wizard ask "Enter the context name (SSH host alias)")
+            CONTEXT=$(wizard ask "Enter the desired context name (SSH host alias)")
         fi
     else
-        CONTEXT=$(wizard ask "Enter the context name (SSH host alias)")
+        CONTEXT=$(wizard ask "Enter the desired context name (SSH host alias)")
     fi
 
     SOPS_AGE_KEY_FILE="${HOME}/.config/d.rymcg.tech/keys/sops/${CONTEXT}.age"

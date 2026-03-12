@@ -178,7 +178,7 @@ cmd_init() {
 
     ## Context name
     if [[ -z "${CONTEXT}" ]]; then
-        CONTEXT=$(wizard ask "Enter the context name (SSH host alias)")
+        CONTEXT=$(wizard ask "Enter the desired context name (SSH host alias)")
     fi
 
     ## Check for existing config
