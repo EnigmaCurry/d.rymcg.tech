@@ -476,7 +476,7 @@ elif [[ "${SSH_KEY_SCAN:-}" != "false" ]]; then
     fi
 fi
 
-# Write SSH config — use Match exec for on-demand cert signing when BAO is configured
+# Write SSH config to ~/.ssh/config-drt (auto-generated; user config is in ~/.ssh/config)
 if [[ "${BAO_USED}" == true ]]; then
     # OpenBao signs certs for the container-generated key; disable SSH agent
     unset SSH_AUTH_SOCK
@@ -490,7 +490,7 @@ if [[ "${BAO_USED}" == true ]]; then
         echo "    UserKnownHostsFile ${KEY_DIR}/known_hosts"
         echo "    CertificateFile ${KEY_DIR}/id_ed25519-cert.pub"
         echo "    ConnectTimeout ${SSH_CONNECT_TIMEOUT:-30}"
-    } > ~/.ssh/config
+    } > ~/.ssh/config-drt
 else
     if [[ -n "${SSH_AUTH_SOCK:-}" ]]; then
         log "## SSH auth: using forwarded SSH agent"
@@ -507,7 +507,7 @@ else
             echo "    CertificateFile ${KEY_DIR}/id_ed25519-cert.pub"
         fi
         echo "    ConnectTimeout ${SSH_CONNECT_TIMEOUT:-30}"
-    } > ~/.ssh/config
+    } > ~/.ssh/config-drt
 fi
 
 # Add ControlMaster for interactive sessions (reuse SSH connections)
@@ -518,7 +518,15 @@ if [[ -t 0 ]]; then
         echo "    ControlMaster auto"
         echo "    ControlPersist yes"
         echo "    ControlPath /tmp/ssh-%u-%r@%h:%p"
-    } >> ~/.ssh/config
+    } >> ~/.ssh/config-drt
+fi
+chmod 600 ~/.ssh/config-drt
+
+# Ensure ~/.ssh/config includes config-drt
+if [[ ! -f ~/.ssh/config ]]; then
+    echo "Include config-drt" > ~/.ssh/config
+elif ! grep -q 'Include config-drt' ~/.ssh/config; then
+    sed -i '1i Include config-drt' ~/.ssh/config
 fi
 chmod 600 ~/.ssh/config
 log "## SSH config written"

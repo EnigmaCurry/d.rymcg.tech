@@ -878,6 +878,14 @@ __export_env() {
         plaintext+="__doctl_config__=${doctl_data}"$'\n'
     fi
 
+    # Serialize user SSH config if present (excludes auto-generated config-drt)
+    if [[ -f "${HOME}/.ssh/config" ]]; then
+        local ssh_data
+        ssh_data=$(base64 -w 0 < "${HOME}/.ssh/config")
+        plaintext+=$'\n'"## ssh config"$'\n'
+        plaintext+="__ssh_config__=${ssh_data}"$'\n'
+    fi
+
     local output
     if [[ "${encrypt}" == true ]]; then
         output=$(echo "${plaintext}" | sops encrypt --input-type dotenv --output-type dotenv --filename-override export.env --age "${recipients}" /dev/stdin)
@@ -980,6 +988,7 @@ __restore_env() {
     declare -A file_seen
     declare -A password_files  # "project/passwords.json" → base64 data
     local doctl_config_b64=""
+    local ssh_config_b64=""
 
     while IFS= read -r line; do
         [[ -z "${line}" || "${line}" == "#"* ]] && continue
@@ -989,6 +998,12 @@ __restore_env() {
         # Serialized doctl config: __doctl_config__=<base64>
         if [[ "${key}" == "__doctl_config__" ]]; then
             doctl_config_b64="${val}"
+            continue
+        fi
+
+        # Serialized SSH config: __ssh_config__=<base64>
+        if [[ "${key}" == "__ssh_config__" ]]; then
+            ssh_config_b64="${val}"
             continue
         fi
 
@@ -1126,6 +1141,14 @@ __restore_env() {
         echo "## Restoring ${doctl_dir}/config.yaml" >&2
         echo "${doctl_config_b64}" | base64 -d > "${doctl_dir}/config.yaml"
         chmod 600 "${doctl_dir}/config.yaml"
+    fi
+
+    # Restore SSH config if present
+    if [[ -n "${ssh_config_b64}" ]]; then
+        mkdir -p "${HOME}/.ssh"
+        echo "## Restoring ${HOME}/.ssh/config" >&2
+        echo "${ssh_config_b64}" | base64 -d > "${HOME}/.ssh/config"
+        chmod 600 "${HOME}/.ssh/config"
     fi
 }
 
