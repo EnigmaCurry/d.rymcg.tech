@@ -106,6 +106,21 @@ git_auto_pull() {
     fi
 }
 
+## Ensure base directory structure for config
+ensure_config_dir() {
+    local CONFIG_BASE="${HOME}/.config/d.rymcg.tech"
+    mkdir -p "${CONFIG_BASE}/keys/sops" "${CONFIG_BASE}/config"
+    if [[ ! -f "${CONFIG_BASE}/.gitignore" ]]; then
+        cat > "${CONFIG_BASE}/.gitignore" <<'GITIGNORE'
+net-mode
+keys/*
+GITIGNORE
+    fi
+    if [[ ! -f "${CONFIG_BASE}/keys/.gitkeep" ]]; then
+        touch "${CONFIG_BASE}/keys/.gitkeep"
+    fi
+}
+
 ## Auto-commit config changes if ~/.config/d.rymcg.tech is a git repo
 git_auto_commit() {
     local msg="$1"
@@ -238,18 +253,7 @@ cmd_init() {
         CONTEXT=$(wizard ask "Enter the desired context name (SSH host alias)")
     fi
 
-    ## Ensure base directory structure
-    local BASE_DIR="${HOME}/.config/d.rymcg.tech"
-    mkdir -p "${BASE_DIR}/keys/sops" "${BASE_DIR}/config"
-    if [[ ! -f "${BASE_DIR}/.gitignore" ]]; then
-        cat > "${BASE_DIR}/.gitignore" <<'GITIGNORE'
-net-mode
-keys/*
-GITIGNORE
-    fi
-    if [[ ! -f "${BASE_DIR}/keys/.gitkeep" ]]; then
-        touch "${BASE_DIR}/keys/.gitkeep"
-    fi
+    ensure_config_dir
 
     ## Check for existing config
     local CONFIG_DIR="${HOME}/.config/d.rymcg.tech/config"
@@ -763,6 +767,7 @@ cmd_git() {
 
 cmd_git_init() {
     local CONFIG_BASE="${HOME}/.config/d.rymcg.tech"
+    ensure_config_dir
 
     if [[ -d "${CONFIG_BASE}/.git" ]]; then
         echo "Config repo already initialized at ${CONFIG_BASE}" >&2
