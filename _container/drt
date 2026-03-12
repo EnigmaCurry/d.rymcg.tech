@@ -181,6 +181,19 @@ cmd_init() {
         CONTEXT=$(wizard ask "Enter the desired context name (SSH host alias)")
     fi
 
+    ## Ensure base directory structure
+    local BASE_DIR="${HOME}/.config/d.rymcg.tech"
+    mkdir -p "${BASE_DIR}/keys/sops" "${BASE_DIR}/config"
+    if [[ ! -f "${BASE_DIR}/.gitignore" ]]; then
+        cat > "${BASE_DIR}/.gitignore" <<'GITIGNORE'
+net-mode
+keys/*
+GITIGNORE
+    fi
+    if [[ ! -f "${BASE_DIR}/keys/.gitkeep" ]]; then
+        touch "${BASE_DIR}/keys/.gitkeep"
+    fi
+
     ## Check for existing config
     local CONFIG_DIR="${HOME}/.config/d.rymcg.tech/config"
     if [[ -f "${CONFIG_DIR}/${CONTEXT}.sops.env" ]]; then
