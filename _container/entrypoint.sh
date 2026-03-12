@@ -16,10 +16,15 @@ RUNTIME_HOME="/home/user"
 sed -i "s/^user:x:[0-9]*:[0-9]*/user:x:${RUNTIME_UID}:${RUNTIME_GID}/" /etc/passwd
 sed -i "s/^user:x:[0-9]*/user:x:${RUNTIME_GID}/" /etc/group
 
-# Fix ownership of writable directories
+# Fix ownership of writable directories (non-bind-mounted only).
+# .config/d.rymcg.tech may contain bind-mounted secrets (age key, SOPS config)
+# that must stay owned by root — do NOT recurse into it.
 chown "${RUNTIME_UID}:${RUNTIME_GID}" "${RUNTIME_HOME}"
-chown -R "${RUNTIME_UID}:${RUNTIME_GID}" \
+chown "${RUNTIME_UID}:${RUNTIME_GID}" \
     "${RUNTIME_HOME}/.config" \
+    "${RUNTIME_HOME}/.config/d.rymcg.tech" \
+    2>/dev/null || true
+chown -R "${RUNTIME_UID}:${RUNTIME_GID}" \
     "${RUNTIME_HOME}/.ssh" \
     "${RUNTIME_HOME}/.local" \
     "${ROOT_DIR}" \
