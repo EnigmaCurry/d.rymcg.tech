@@ -3610,9 +3610,9 @@ REMOTE_SCRIPT
 gumdrop_manage_droplets() {
     while :
     do
-        gumdrop_list
         set +e
         wizard menu --once --cancel-code=2 "${GUMDROP_LABEL}s:" \
+            "List ${GUMDROP_LABEL,,}s = $0 gumdrop_list" \
             "Create new ${GUMDROP_LABEL,,} = $0 gumdrop_create" \
             "Manage presets = $0 gumdrop_manage_presets" \
             "SSH into ${GUMDROP_LABEL,,} = $0 gumdrop_ssh" \
