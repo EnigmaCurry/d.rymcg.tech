@@ -79,7 +79,8 @@ COPY --chown=1000:1000 _container/mg /home/user/.mg
 COPY --chown=1000:1000 _container/uv-seed.py /tmp/uv-seed.py
 USER user
 RUN uv python install --no-cache && \
-    uv run --script /tmp/uv-seed.py 2>/dev/null || true
+    echo "Pre-caching uv dependencies from seed manifest..." && \
+    uv run --script /tmp/uv-seed.py
 USER root
 RUN rm -f /tmp/uv-seed.py
 
