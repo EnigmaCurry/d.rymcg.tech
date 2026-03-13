@@ -70,6 +70,7 @@ __help() {
         echo -e "make [PROJECT] [ARGS ...]\tRun a \`make\` command for the given d.rymcg.tech project name"
         echo -e "networks\tPrint the list of Docker networks"
         echo -e "new-context\tCreate a new Docker context"
+        echo -e "python-deps\tInstall Python dependencies into the project venv"
         echo -e "reconfigure\tReconfigure a single env var in the root context config"
         echo -e "request\tExecute deployment requests from JSON input on stdin"
         echo -e "request-bot\tStart NATS chatbot bridging Matrix to LLM"
@@ -1392,6 +1393,8 @@ main() {
                 ${ROOT_DIR}/_container/drt --extract;;
             deploy-pipeline-template)
                 ${ROOT_DIR}/_container/deploy-pipeline-template.sh "$@";;
+            python-deps)
+                make --no-print-directory -C ${ROOT_DIR} python-deps;;
             deploy-pipeline-build)
                 python3 ${ROOT_DIR}/_container/deploy-pipeline-build.py "$@";;
             *)
