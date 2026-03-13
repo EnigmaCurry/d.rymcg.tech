@@ -693,6 +693,10 @@ EDITOREOF
     (
         while read -r cmd < "${_SOPS_SAVE_REQUEST}"; do
             if [[ "${cmd}" == "save" ]]; then
+                if [[ -n "${SOPS_AGE_KEY_FILE:-}" && -f "${SOPS_AGE_KEY_FILE}" ]] && \
+                   grep -q 'AGE-PLUGIN-FIDO2-HMAC' "${SOPS_AGE_KEY_FILE}" 2>/dev/null; then
+                    echo "## Touch your FIDO2 key when it flashes ..." >&2
+                fi
                 if EDITOR="${_SOPS_EDITOR}" sops \
                        --input-type dotenv --output-type dotenv \
                        "${_SOPS_BIND_PATH}" && \
