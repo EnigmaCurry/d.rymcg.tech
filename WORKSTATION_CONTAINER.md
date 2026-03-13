@@ -21,19 +21,23 @@ Add this to your RC file (`~/.bashrc`, `~/.bash_profile`, or
 `~/.zshrc`):
 
 ```bash
-if podman image exists localhost/d-rymcg-tech:latest 2>/dev/null; then
+## Modify these vars as you wish:
+: "${DRT_GIT_REPO:=https://github.com/EnigmaCurry/d.rymcg.tech.git}"
+: "${DRT_BUILD_BRANCH:=master}"
+: "${DRT_IMAGE:=localhost/d-rymcg-tech:latest}"
+
+if podman image exists "${DRT_IMAGE}" 2>/dev/null; then
   source <(podman run --rm --pull=never --net=none --entrypoint cat \
-    localhost/d-rymcg-tech:latest \
+    "${DRT_IMAGE}" \
     /home/user/git/vendor/enigmacurry/d.rymcg.tech/_container/drt.bashrc)
 else
   drt() {
-    local img=localhost/d-rymcg-tech:latest
-    echo "## First run: building ${img} ..." >&2
+    echo "## First run: building ${DRT_IMAGE} ..." >&2
     podman build --network=slirp4netns \
-      --build-arg BRANCH=${DRT_BUILD_BRANCH:-master} \
-      --build-arg GIT_REPO=${DRT_GIT_REPO:-https://github.com/EnigmaCurry/d.rymcg.tech.git} \
-      -t "${img}" -f _container/Dockerfile \
-      "${DRT_GIT_REPO:-https://github.com/EnigmaCurry/d.rymcg.tech.git}#${DRT_BUILD_BRANCH:-master}" \
+      --build-arg BRANCH="${DRT_BUILD_BRANCH}" \
+      --build-arg GIT_REPO="${DRT_GIT_REPO}" \
+      -t "${DRT_IMAGE}" -f _container/Dockerfile \
+      "${DRT_GIT_REPO}#${DRT_BUILD_BRANCH}" \
     && echo "## Restart your shell to load drt." >&2
   }
 fi

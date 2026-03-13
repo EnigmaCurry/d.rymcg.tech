@@ -1,23 +1,22 @@
 ## drt — source this file from ~/.bashrc, ~/.bash_profile, or ~/.zshrc
-## Modify repo, branch, or img vars as you wish:
 : "${DRT_GIT_REPO:=https://github.com/EnigmaCurry/d.rymcg.tech.git}"
 : "${DRT_BUILD_BRANCH:=master}"
+: "${DRT_IMAGE:=localhost/d-rymcg-tech:latest}"
 
 drt() {
-  export DRT_GIT_REPO DRT_BUILD_BRANCH
-  local img=localhost/d-rymcg-tech:latest
-  if ! podman image exists "$img" 2>/dev/null; then
-    echo "## First run: building ${img}" \
+  export DRT_GIT_REPO DRT_BUILD_BRANCH DRT_IMAGE
+  if ! podman image exists "${DRT_IMAGE}" 2>/dev/null; then
+    echo "## First run: building ${DRT_IMAGE}" \
       "from ${DRT_GIT_REPO}#${DRT_BUILD_BRANCH} ..." >&2
     podman build \
       --network=slirp4netns \
-      --build-arg BRANCH=${DRT_BUILD_BRANCH} \
-      --build-arg GIT_REPO=${DRT_GIT_REPO} \
-      -t "${img}" \
+      --build-arg BRANCH="${DRT_BUILD_BRANCH}" \
+      --build-arg GIT_REPO="${DRT_GIT_REPO}" \
+      -t "${DRT_IMAGE}" \
       -f _container/Dockerfile \
       "${DRT_GIT_REPO}#${DRT_BUILD_BRANCH}"
   fi
-  bash <(podman run --rm --pull=never --net=none "${img}" drt) "$@"
+  bash <(podman run --rm --pull=never --net=none "${DRT_IMAGE}" drt) "$@"
 }
 
 _drt() {
