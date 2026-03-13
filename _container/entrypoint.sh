@@ -183,7 +183,7 @@ openbao_auth() {
     LOGIN_HTTP_CODE=0
     LOGIN_RESPONSE=$(curl "${CURL_VERBOSE[@]}" -w '\n%{http_code}' "${BAO_CURL_FLAGS[@]}" "${BAO_NAMESPACE_HEADER[@]}" \
         --request POST \
-        --data "{\"role_id\":\"${BAO_ROLE_ID}\",\"secret_id\":\"${BAO_SECRET_ID}\"}" \
+        --data "$(jq -n --arg r "${BAO_ROLE_ID}" --arg s "${BAO_SECRET_ID}" '{role_id:$r,secret_id:$s}')" \
         "${BAO_ADDR}/v1/${BAO_AUTH_PATH}/login") || log "## OpenBao: curl exit code $?"
     LOGIN_HTTP_CODE=$(echo "${LOGIN_RESPONSE}" | tail -1)
     LOGIN_RESPONSE=$(echo "${LOGIN_RESPONSE}" | sed '$d')
@@ -246,7 +246,7 @@ openbao_sign_ssh() {
     SIGN_RESPONSE=$(curl -sf "${BAO_CURL_FLAGS[@]}" "${BAO_NAMESPACE_HEADER[@]}" \
         -H "X-Vault-Token: ${BAO_TOKEN}" \
         --request POST \
-        --data "{\"public_key\":\"${SSH_PUBLIC_KEY}\"}" \
+        --data "$(jq -n --arg k "${SSH_PUBLIC_KEY}" '{public_key:$k}')" \
         "${BAO_ADDR}/v1/${BAO_SSH_MOUNT}/sign/${BAO_SSH_ROLE}")
     SIGNED_KEY=$(echo "${SIGN_RESPONSE}" | jq -r '.data.signed_key')
     if [[ -z "${SIGNED_KEY}" || "${SIGNED_KEY}" == "null" ]]; then
@@ -260,6 +260,11 @@ openbao_sign_ssh() {
 }
 
 ## Persist BAO connection state for on-demand re-signing by sign-ssh-cert
+## NOTE: role_id/secret_id are stored in user-readable files here. Moving them
+## to root-only storage with a FIFO signing helper was considered but deferred:
+## in the rootless podman model there is no real privilege boundary between root
+## and the runtime user (they map to the same host UID), so the added complexity
+## would not provide meaningful security improvement.
 persist_bao_state() {
     local BAO_STATE_DIR="${HOME}/.ssh/bao"
     mkdir -p "${BAO_STATE_DIR}"
@@ -327,6 +332,7 @@ decrypt_sops() {
             export "${key}=${val}"
         fi
     done <<< "${SOPS_DECRYPTED}"
+    unset SOPS_DECRYPTED
     log "## SOPS config loaded"
 }
 
@@ -650,9 +656,9 @@ chown -R "${RUNTIME_UID}:${RUNTIME_GID}" \
 # ownership to subuids.
 if [[ "${SOPS_SAVE_ON_EXIT:-}" == "true" && -n "${SOPS_CONFIG_FILE:-}" && -f "${SOPS_CONFIG_FILE}" ]]; then
     _SOPS_BIND_PATH="${SOPS_CONFIG_FILE}"
-    _SOPS_USER_COPY="/tmp/sops-config-copy"
-    _SOPS_SAVE_REQUEST="/tmp/sops-save-request"
-    _SOPS_SAVE_RESPONSE="/tmp/sops-save-response"
+    _SOPS_USER_COPY=$(mktemp /tmp/sops-config.XXXXXX)
+    _SOPS_SAVE_REQUEST=$(mktemp -u /tmp/sops-req.XXXXXX)
+    _SOPS_SAVE_RESPONSE=$(mktemp -u /tmp/sops-res.XXXXXX)
     # Decrypt the SOPS config into the user copy (as root, which has the AGE key).
     # The runtime user works with plaintext; root re-encrypts on save.
     sops decrypt --input-type dotenv --output-type dotenv \
@@ -664,7 +670,8 @@ if [[ "${SOPS_SAVE_ON_EXIT:-}" == "true" && -n "${SOPS_CONFIG_FILE:-}" && -f "${
 
     # Create FIFOs for synchronous save-back signaling
     mkfifo "${_SOPS_SAVE_REQUEST}" "${_SOPS_SAVE_RESPONSE}"
-    chmod 666 "${_SOPS_SAVE_REQUEST}" "${_SOPS_SAVE_RESPONSE}"
+    chown "${RUNTIME_UID}:${RUNTIME_GID}" "${_SOPS_SAVE_REQUEST}" "${_SOPS_SAVE_RESPONSE}"
+    chmod 600 "${_SOPS_SAVE_REQUEST}" "${_SOPS_SAVE_RESPONSE}"
 
     # Background root process: waits for save request, re-encrypts the
     # user copy back to the bind mount. Uses `sops edit` with a custom
@@ -702,7 +709,8 @@ chown -R "${RUNTIME_UID}:${RUNTIME_GID}" "${HOME}/.config/d.rymcg.tech/gumdrop-p
 
 # Make SSH agent socket accessible
 if [[ -S "${SSH_AUTH_SOCK:-}" ]]; then
-    chmod 777 "${SSH_AUTH_SOCK}" 2>/dev/null || true
+    chown "${RUNTIME_UID}:${RUNTIME_GID}" "${SSH_AUTH_SOCK}" 2>/dev/null || true
+    chmod 600 "${SSH_AUTH_SOCK}" 2>/dev/null || true
 fi
 
 # Fix TTY ownership so the runtime user can write to /dev/stderr, /dev/stdout

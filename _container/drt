@@ -345,8 +345,10 @@ cmd_init() {
                     mv "${ENCRYPTED}" "${AGE_KEY_FILE}"
                     chmod 600 "${AGE_KEY_FILE}"
                     echo "AGE key created (passphrase-protected): ${AGE_KEY_FILE}"
+                    rm -rf "${ENC_DIR}"
                 else
-                    rm -f "${ENCRYPTED}" "${AGE_KEY_FILE}"
+                    rm -rf "${ENC_DIR}"
+                    rm -f "${AGE_KEY_FILE}"
                     echo "Error: passphrase encryption failed — no key was saved." >&2
                     exit 1
                 fi
@@ -703,11 +705,12 @@ BAO_CLIENT_KEY=${BAO_CLIENT_KEY}"
     else
         ## New config: encrypt from scratch
         echo "${PLAINTEXT}" | container_run -i \
+            -e "PUBKEY=${PUBKEY}" \
             "${IMAGE}" \
-            sh -c "cat > /tmp/plain.env && sops encrypt \
+            sh -c 'cat > /tmp/plain.env && sops encrypt \
                 --input-type dotenv --output-type dotenv \
                 --filename-override export.env \
-                --age '${PUBKEY}' /tmp/plain.env" \
+                --age "${PUBKEY}" /tmp/plain.env' \
             > "${CONFIG_DIR}/${CONTEXT}.sops.env"
     fi
 
@@ -1861,7 +1864,7 @@ while true; do
     echo "" >&2
 
     RESPONSE=$(curl -sf "${TLS_FLAGS[@]}" -X PUT \
-        --data "{\"key\":\"${UNSEAL_KEY}\"}" \
+        --data "$(jq -n --arg k "${UNSEAL_KEY}" '{key:$k}')" \
         "${BAO_ADDR}/v1/sys/unseal" 2>/dev/null || true)
 
     if [ -z "${RESPONSE}" ]; then

@@ -103,7 +103,7 @@ reauth() {
     local resp http_code
     resp=$(curl -sf -w '\n%{http_code}' "${BAO_CURL_FLAGS[@]}" "${BAO_NAMESPACE_HEADER[@]}" \
         --request POST \
-        --data "{\"role_id\":\"${BAO_ROLE_ID}\",\"secret_id\":\"${BAO_SECRET_ID}\"}" \
+        --data "$(jq -n --arg r "${BAO_ROLE_ID}" --arg s "${BAO_SECRET_ID}" '{role_id:$r,secret_id:$s}')" \
         "${BAO_ADDR}/v1/${BAO_AUTH_PATH}/login" 2>/dev/null) || {
         echo "sign-ssh-cert: AppRole re-auth curl failed" >&2
         return 1
@@ -137,7 +137,7 @@ SSH_PUBLIC_KEY=$(cat "${KEY_DIR}/${KEY_NAME}.pub")
 SIGN_RESPONSE=$(curl -sf "${BAO_CURL_FLAGS[@]}" "${BAO_NAMESPACE_HEADER[@]}" \
     -H "X-Vault-Token: ${BAO_TOKEN}" \
     --request POST \
-    --data "{\"public_key\":\"${SSH_PUBLIC_KEY}\"}" \
+    --data "$(jq -n --arg k "${SSH_PUBLIC_KEY}" '{public_key:$k}')" \
     "${BAO_ADDR}/v1/${BAO_SSH_MOUNT}/sign/${BAO_SSH_ROLE}" 2>/dev/null) || {
     echo "sign-ssh-cert: SSH cert signing curl failed" >&2
     exit 1
