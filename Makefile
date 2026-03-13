@@ -17,7 +17,7 @@ check-docker:
 	@docker info >/dev/null && echo "Docker is running." || (echo "Could not connect to Docker!" && false)
 
 .PHONY: config # Configure main variables
-config: script-wizard check-deps check-dist-vars
+config: script-wizard check-deps python-deps check-dist-vars
 	@echo ""
 	@if [ ! -f "${ROOT_ENV}" ]; then ${BIN}/confirm yes "This will make a new configuration for the docker context (${DOCKER_CONTEXT})"; fi
 	@make --no-print-directory config-hook
