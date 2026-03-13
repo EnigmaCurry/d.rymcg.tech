@@ -729,8 +729,8 @@ BAO_CLIENT_KEY=${BAO_CLIENT_KEY}"
     echo "IMPORTANT: Back up these things:"
     if [[ -f "${AGE_KEY_DIR}/${CONTEXT}.fido2" ]]; then
         echo "  1) FIDO2 AGE key file: ${AGE_KEY_FILE}"
-        echo "  2) Cold storage key: keep your backup AGE key safe offline"
-        echo "  3) SOPS config:      ${CONFIG_DIR}/${CONTEXT}.sops.env"
+        echo "  2) Cold storage key:   keep your backup AGE key safe offline"
+        echo "  3) SOPS config:        ${CONFIG_DIR}/${CONTEXT}.sops.env"
     else
         echo "  1) AGE key:     ${AGE_KEY_FILE}"
         echo "  2) Passphrase:  remember or store the passphrase you chose"
