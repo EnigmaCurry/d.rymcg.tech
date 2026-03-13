@@ -1,8 +1,10 @@
 # d.rymcg.tech workstation container
 
-`d-rymcg-tech` is a container image that lets you manage remote Docker
-servers with [d.rymcg.tech](https://github.com/EnigmaCurry/d.rymcg.tech)
-without installing anything on your workstation beyond Podman and Bash.
+This describes an OCI container image that lets you manage remote
+Docker servers with
+[d.rymcg.tech](https://github.com/EnigmaCurry/d.rymcg.tech) without
+installing anything on your workstation beyond bash, Podman, and this
+image.
 All configuration is SOPS-encrypted per server context, and every
 session runs in an ephemeral container — nothing is stored on the host
 except your encrypted config and AGE key. The same image works for
