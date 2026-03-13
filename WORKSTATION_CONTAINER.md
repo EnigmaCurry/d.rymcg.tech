@@ -21,19 +21,22 @@ Add this to your RC file (`~/.bashrc`, `~/.bash_profile`, or
 `~/.zshrc`):
 
 ```bash
-source <(podman run --rm --pull=never --net=none --entrypoint cat \
-  localhost/d-rymcg-tech:latest \
-  /home/user/git/vendor/enigmacurry/d.rymcg.tech/_container/drt.bashrc \
-  2>/dev/null) || drt() {
-  local img=localhost/d-rymcg-tech:latest
-  echo "## First run: building ${img} ..." >&2
-  podman build --network=slirp4netns \
-    --build-arg BRANCH=${DRT_BUILD_BRANCH:-master} \
-    --build-arg GIT_REPO=${DRT_GIT_REPO:-https://github.com/EnigmaCurry/d.rymcg.tech.git} \
-    -t "${img}" -f _container/Dockerfile \
-    "${DRT_GIT_REPO:-https://github.com/EnigmaCurry/d.rymcg.tech.git}#${DRT_BUILD_BRANCH:-master}" \
-  && echo "## Restart your shell to load drt." >&2
-}
+if podman image exists localhost/d-rymcg-tech:latest 2>/dev/null; then
+  source <(podman run --rm --pull=never --net=none --entrypoint cat \
+    localhost/d-rymcg-tech:latest \
+    /home/user/git/vendor/enigmacurry/d.rymcg.tech/_container/drt.bashrc)
+else
+  drt() {
+    local img=localhost/d-rymcg-tech:latest
+    echo "## First run: building ${img} ..." >&2
+    podman build --network=slirp4netns \
+      --build-arg BRANCH=${DRT_BUILD_BRANCH:-master} \
+      --build-arg GIT_REPO=${DRT_GIT_REPO:-https://github.com/EnigmaCurry/d.rymcg.tech.git} \
+      -t "${img}" -f _container/Dockerfile \
+      "${DRT_GIT_REPO:-https://github.com/EnigmaCurry/d.rymcg.tech.git}#${DRT_BUILD_BRANCH:-master}" \
+    && echo "## Restart your shell to load drt." >&2
+  }
+fi
 ```
 
 On first run, `drt` builds the image. Restart your shell to load
