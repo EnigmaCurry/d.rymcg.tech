@@ -1409,9 +1409,43 @@ cmd_view() {
         echo "## Passphrase accepted." >&2
         PLAINTEXT=$(cat "${_VIEW_DIR}/config-decrypted")
         rm -rf "${_VIEW_DIR}"
+    elif grep -q 'AGE-PLUGIN-FIDO2-HMAC' "${AGE_KEY_FILE}" 2>/dev/null; then
+        ## FIDO2 key: need device passthrough
+        local AGE_KEY_DIR
+        AGE_KEY_DIR="$(dirname "${AGE_KEY_FILE}")"
+        local FIDO2_ID_FILE="${AGE_KEY_DIR}/${CONTEXT}.fido2"
+        local _VIEW_FIDO2_DEV=""
+        if [[ -f "${FIDO2_ID_FILE}" ]]; then
+            local _fido2_id
+            while IFS= read -r _fido2_id; do
+                [[ -z "${_fido2_id}" ]] && continue
+                _VIEW_FIDO2_DEV=$(find_hidraw_by_id "${_fido2_id}") && break
+            done < "${FIDO2_ID_FILE}"
+        fi
+        if [[ -z "${_VIEW_FIDO2_DEV}" ]]; then
+            echo "Error: FIDO2 device not found. Ensure your key is plugged in." >&2
+            exit 1
+        fi
+        local _VIEW_DIR
+        _VIEW_DIR=$(mktemp -d)
+        cp "${SOPS_CONFIG}" "${_VIEW_DIR}/config.sops.env"
+        cp "${AGE_KEY_FILE}" "${_VIEW_DIR}/age-key-in"
+        echo "## Touch your FIDO2 key when it flashes (maybe more than once) ..." >&2
+        container_run -it --user 0:0 \
+            --security-opt label=disable \
+            --device "${_VIEW_FIDO2_DEV}" \
+            -v "${_VIEW_DIR}:/tmp/view-work:Z" \
+            "${IMAGE}" sh -c 'SOPS_AGE_KEY_FILE=/tmp/view-work/age-key-in sops decrypt \
+                --input-type dotenv --output-type dotenv \
+                --filename-override export.env /tmp/view-work/config.sops.env \
+                > /tmp/view-work/config-decrypted && \
+                chmod 644 /tmp/view-work/config-decrypted'
+        PLAINTEXT=$(cat "${_VIEW_DIR}/config-decrypted")
+        rm -rf "${_VIEW_DIR}"
     else
         PLAINTEXT=$(container_run \
             --user 0:0 -i \
+            --security-opt label=disable \
             -v "${SOPS_CONFIG}:/tmp/config.sops.env:ro" \
             -v "${AGE_KEY_FILE}:/run/secrets/age-key:ro" \
             -e "SOPS_AGE_KEY_FILE=/run/secrets/age-key" \
