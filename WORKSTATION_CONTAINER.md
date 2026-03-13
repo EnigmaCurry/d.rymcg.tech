@@ -8,7 +8,7 @@ image.
 All configuration is SOPS-encrypted per server context, and every
 workstation session runs in an ephemeral container — nothing is stored on the host
 except your encrypted config and AGE key. The same image works for
-headless CI/CD pipelines. Build from source with the `drt` shell
+headless CI/CD pipelines too. Build from source with the `drt` shell
 function, or pull a pre-built image from the
 [GitHub Container Registry](#pulling-the-image).
 
