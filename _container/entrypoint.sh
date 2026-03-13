@@ -398,7 +398,7 @@ log "## Step 2: AGE key decryption"
 decrypt_age_key
 
 ## Step 3: Conditional SOPS/OpenBao resolution
-echo -n "## Restoring environment ... " >&2
+echo "## Restoring environment ..." >&2
 log "## Step 3: SOPS/OpenBao resolution"
 BAO_USED=false
 
@@ -591,7 +591,6 @@ if ! { env; echo "${SOPS_DECRYPTED:-}"; } | d.rymcg.tech restore-env --yes 2>/de
     echo "" >&2
     echo "WARNING: restore-env had errors (some vars may need reconfiguration)" >&2
 fi
-echo "" >&2
 
 # Ensure ~/.ssh/config includes config-drt (after restore-env, which may restore ~/.ssh/config)
 if [[ ! -f ~/.ssh/config ]]; then
