@@ -12,9 +12,8 @@ function, or pull a pre-built image from the
 
 ## Quick start
 
-Install [Podman](https://podman.io/docs/installation) on your
-workstation (bash and podman are the only host dependencies, but your
-personal shell can be bash or zsh).
+Install bash and [Podman](https://podman.io/docs/installation) on
+your workstation. Your personal shell can be bash or zsh:
 
 Add the following shell function to your shell RC file:
 
