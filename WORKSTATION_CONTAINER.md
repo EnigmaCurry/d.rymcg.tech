@@ -17,54 +17,13 @@ function, or pull a pre-built image from the
 Install bash and [Podman](https://podman.io/docs/installation) on
 your workstation. Your personal shell can be bash or zsh:
 
-Add the following shell function to your shell RC file:
+Add this to your RC file (`~/.bashrc`, `~/.bash_profile`, or
+`~/.zshrc`):
 
 ```bash
-## Add this function to ~/.bashrc, ~/.bash_profile, or ~/.zshrc
-## Modify repo, branch, or img vars as you wish:
-drt() {
-  export DRT_GIT_REPO=https://github.com/EnigmaCurry/d.rymcg.tech.git
-  export DRT_BUILD_BRANCH=master
-  local img=localhost/d-rymcg-tech:latest
-  if ! podman image exists "$img" 2>/dev/null; then
-    echo "## First run: building ${img}" \
-      "from ${DRT_GIT_REPO}#${DRT_BUILD_BRANCH} ..." >&2
-    podman build \
-      --network=slirp4netns \
-      --build-arg BRANCH=${DRT_BUILD_BRANCH} \
-      --build-arg GIT_REPO=${DRT_GIT_REPO} \
-      -t "${img}" \
-      -f _container/Dockerfile \
-      "${DRT_GIT_REPO}#${DRT_BUILD_BRANCH}"
-  fi
-  if [[ "${1:-}" == "--completion" && "${2:-}" == "bash" ]]; then
-    cat <<'COMP'
-_drt() {
-  local cur="${COMP_WORDS[COMP_CWORD]}"
-  if [[ "${cur}" == -* ]]; then
-    COMPREPLY=($(compgen -W "\
-      --init --view --edit --clean --seal --unseal \
-      --list --git-init --git --pull --build --extract \
-      --image --docker --age-key --ssh-key --ssh-timeout \
-      --timeout --no-save --controller-port --net \
-      --completion --verbose --version --help" -- "${cur}"))
-  else
-    local cfg_dir="${HOME}/.config/d.rymcg.tech/config"
-    if [[ -d "${cfg_dir}" ]]; then
-      local contexts
-      contexts=$(ls "${cfg_dir}"/*.sops.env 2>/dev/null \
-        | xargs -I{} basename {} .sops.env)
-      COMPREPLY=($(compgen -W "${contexts}" -- "${cur}"))
-    fi
-  fi
-}
-complete -F _drt drt
-COMP
-    return
-  fi
-  bash <(podman run --rm --pull=never --net=none "${img}" drt) "$@"
-}
-eval "$(drt --completion bash)"
+source <(podman run --rm --pull=never --net=none --entrypoint cat \
+  localhost/d-rymcg-tech:latest \
+  /home/user/git/vendor/enigmacurry/d.rymcg.tech/_container/drt.bashrc)
 ```
 
 The first time you run any `drt` command, it automatically builds the
