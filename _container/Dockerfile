@@ -29,6 +29,7 @@ RUN apk add --no-cache \
     ipcalc \
     openssh-client \
     docker-cli \
+    docker-cli-buildx \
     docker-cli-compose \
     sops \
     age \
