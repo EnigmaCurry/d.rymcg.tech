@@ -1,4 +1,4 @@
-#!/usr/bin/env python3
+#!/usr/bin/env python-d-rymcg-tech
 """
 request.py - Programmatic request handler for d.rymcg.tech
 

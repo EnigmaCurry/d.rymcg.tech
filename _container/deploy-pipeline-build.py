@@ -1,4 +1,4 @@
-#!/usr/bin/env python3
+#!/usr/bin/env python-d-rymcg-tech
 """Guided setup for the d-rymcg-tech Docker image build pipeline.
 
 Walks through the steps needed to mirror the d.rymcg.tech GitHub repo

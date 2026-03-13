@@ -1,4 +1,4 @@
-#!/usr/bin/env python3
+#!/usr/bin/env python-d-rymcg-tech
 """NATS LLM Chatbot - bridges Matrix messages to an OpenAI-compatible LLM."""
 
 import argparse

@@ -1,4 +1,4 @@
-#!/usr/bin/env python3
+#!/usr/bin/env python-d-rymcg-tech
 
 """Pull, build, and archive all Docker images from d.rymcg.tech projects.
 

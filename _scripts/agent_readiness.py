@@ -1,4 +1,4 @@
-#!/usr/bin/env python3
+#!/usr/bin/env python-d-rymcg-tech
 """
 agent_readiness.py - System state checker for d.rymcg.tech agent readiness
 

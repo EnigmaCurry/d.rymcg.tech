@@ -1,4 +1,4 @@
-#!/usr/bin/env python3
+#!/usr/bin/env python-d-rymcg-tech
 """sponge - soak up stdin and write to a file (or stdout).
 
 Drop-in replacement for moreutils sponge. Reads all of stdin into

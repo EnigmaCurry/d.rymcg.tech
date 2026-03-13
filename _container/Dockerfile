@@ -80,7 +80,8 @@ COPY --chown=1000:1000 _container/mg /home/user/.mg
 COPY --chown=1000:1000 pyproject.toml uv.lock /home/user/git/vendor/enigmacurry/d.rymcg.tech/
 USER user
 WORKDIR /home/user/git/vendor/enigmacurry/d.rymcg.tech
-RUN uv sync --frozen
+RUN uv sync --frozen && \
+    ln -s python3 /home/user/.venv/bin/python-d-rymcg-tech
 USER root
 
 # Install optional extra packages requested at build time
