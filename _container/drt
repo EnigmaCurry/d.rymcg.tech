@@ -527,7 +527,7 @@ cmd_init() {
             if [[ -z "${_INIT_FIDO2_DEV}" ]]; then
                 echo "## Warning: FIDO2 device not found, cannot decrypt existing config" >&2
             else
-                echo "## Touch your FIDO2 key when it flashes (maybe more than once) ..." >&2
+                echo "## Touch your FIDO2 key when it flashes ..." >&2
                 local _FIDO2_DEC_DIR
                 _FIDO2_DEC_DIR=$(mktemp -d)
                 if container_run -it --user 0:0 \
@@ -749,7 +749,7 @@ BAO_CLIENT_KEY=${BAO_CLIENT_KEY}"
             fi
             if [[ -n "${_INIT_FIDO2_DEV}" ]]; then
                 _INIT_EXTRA_ARGS+=(--device "${_INIT_FIDO2_DEV}")
-                echo "## Touch your FIDO2 key when it flashes (maybe more than once) ..." >&2
+                echo "## Touch your FIDO2 key when it flashes ..." >&2
             fi
         fi
         container_run -it --user 0:0 \
@@ -1430,7 +1430,7 @@ cmd_view() {
         _VIEW_DIR=$(mktemp -d)
         cp "${SOPS_CONFIG}" "${_VIEW_DIR}/config.sops.env"
         cp "${AGE_KEY_FILE}" "${_VIEW_DIR}/age-key-in"
-        echo "## Touch your FIDO2 key when it flashes (maybe more than once) ..." >&2
+        echo "## Touch your FIDO2 key when it flashes ..." >&2
         container_run -it --user 0:0 \
             --security-opt label=disable \
             --device "${_VIEW_FIDO2_DEV}" \
