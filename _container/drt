@@ -326,10 +326,12 @@ cmd_init() {
 
         local KEY_PROTECTION
         KEY_PROTECTION=$(wizard choose "Select AGE key protection method" \
-            "Passphrase" "FIDO2 hardware key + cold storage backup" "No protection")
+            "Passphrase protected key file (must have: key AND passphrase)" \
+            "FIDO2 hardware token + cold storage key (must have: token+PIN OR cold storage key)" \
+            "No protection")
 
         case "${KEY_PROTECTION}" in
-            "Passphrase")
+            "Passphrase protected key file (must have: key AND passphrase)")
                 echo "Generating a new AGE keypair..."
                 container_run "${IMAGE}" age-keygen > "${AGE_KEY_FILE}"
                 chmod 600 "${AGE_KEY_FILE}"
@@ -353,7 +355,7 @@ cmd_init() {
                     exit 1
                 fi
                 ;;
-            "FIDO2 hardware key + cold storage backup")
+            "FIDO2 hardware token + cold storage key (must have: token+PIN OR cold storage key)")
                 local ALL_PUBKEYS=()
                 local FIDO2_ID_FILE="${AGE_KEY_DIR}/${CONTEXT}.fido2"
                 > "${AGE_KEY_FILE}"   # start with empty key file
