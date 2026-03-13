@@ -39,7 +39,9 @@ else
       --build-arg GIT_REPO="${DRT_GIT_REPO}" \
       -t "${DRT_IMAGE}" -f _container/Dockerfile \
       "${DRT_GIT_REPO}#${DRT_BUILD_BRANCH}" \
-    && echo "## Restart your shell to load drt." >&2
+    && echo >&2 \
+    && echo "## Restart your shell to load drt." >&2 \
+    && echo >&2
   }
 fi
 ```
