@@ -37,6 +37,31 @@ drt() {
       -f _container/Dockerfile \
       "${DRT_GIT_REPO}#${DRT_BUILD_BRANCH}"
   fi
+  if [[ "${1:-}" == "--completion" && "${2:-}" == "bash" ]]; then
+    cat <<'COMP'
+_drt() {
+  local cur="${COMP_WORDS[COMP_CWORD]}"
+  if [[ "${cur}" == -* ]]; then
+    COMPREPLY=($(compgen -W "\
+      --init --view --edit --clean --seal --unseal \
+      --list --git-init --git --pull --build --extract \
+      --image --docker --age-key --ssh-key --ssh-timeout \
+      --timeout --no-save --controller-port --net \
+      --completion --verbose --version --help" -- "${cur}"))
+  else
+    local cfg_dir="${HOME}/.config/d.rymcg.tech/config"
+    if [[ -d "${cfg_dir}" ]]; then
+      local contexts
+      contexts=$(ls "${cfg_dir}"/*.sops.env 2>/dev/null \
+        | xargs -I{} basename {} .sops.env)
+      COMPREPLY=($(compgen -W "${contexts}" -- "${cur}"))
+    fi
+  fi
+}
+complete -F _drt drt
+COMP
+    return
+  fi
   bash <(podman run --rm --pull=never --net=none "${img}" drt) "$@"
 }
 eval "$(drt --completion bash)"
