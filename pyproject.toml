@@ -1,8 +1,7 @@
 # Shared Python dependencies for all d.rymcg.tech scripts.
 #
-# This replaces per-file inline `# /// script` metadata blocks with a single
-# project-level dependency list. A shared venv is created once and reused by
-# all Python scripts at runtime via `#!/usr/bin/env python3` shebangs.
+# Scripts use `#!/usr/bin/env python-d-rymcg-tech` shebangs, which resolves
+# to the project venv's python3 via _scripts/user/python-d-rymcg-tech.
 #
 # Container: the Dockerfile COPYs this file early and runs `uv sync` before
 # the source COPY, so the venv layer caches independently of source changes.
