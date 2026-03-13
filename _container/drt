@@ -528,16 +528,24 @@ cmd_init() {
                 echo "## Warning: FIDO2 device not found, cannot decrypt existing config" >&2
             else
                 echo "## Touch your FIDO2 key when it flashes (maybe more than once) ..." >&2
-                _EXISTING=$(container_run \
-                    --user 0:0 -i \
+                local _FIDO2_DEC_DIR
+                _FIDO2_DEC_DIR=$(mktemp -d)
+                if container_run -it --user 0:0 \
                     --security-opt label=disable \
                     --device "${_INIT_FIDO2_DEV}" \
                     -v "${CONFIG_DIR}/${CONTEXT}.sops.env:/tmp/config.sops.env:ro" \
                     -v "${AGE_KEY_FILE}:/run/secrets/age-key:ro" \
+                    -v "${_FIDO2_DEC_DIR}:/tmp/fido2-work:Z" \
                     -e "SOPS_AGE_KEY_FILE=/run/secrets/age-key" \
                     "${IMAGE}" \
-                    sops decrypt --input-type dotenv --output-type dotenv \
-                        --filename-override export.env /tmp/config.sops.env 2>/dev/null) || true
+                    sh -c 'sops decrypt --input-type dotenv --output-type dotenv \
+                        --filename-override export.env /tmp/config.sops.env \
+                        > /tmp/fido2-work/config-decrypted 2>/dev/null && \
+                        chmod 644 /tmp/fido2-work/config-decrypted' \
+                    && [[ -s "${_FIDO2_DEC_DIR}/config-decrypted" ]]; then
+                    _EXISTING=$(cat "${_FIDO2_DEC_DIR}/config-decrypted")
+                fi
+                rm -rf "${_FIDO2_DEC_DIR}"
             fi
         else
             ## Key is plaintext, no passphrase needed
