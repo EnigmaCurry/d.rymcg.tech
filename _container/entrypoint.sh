@@ -331,6 +331,19 @@ decrypt_sops() {
 }
 
 ###############################################################################
+# FIDO2 touch prompt
+###############################################################################
+
+## Check if AGE key is a FIDO2 identity and print a touch reminder
+fido2_touch_prompt() {
+    if [[ -n "${SOPS_AGE_KEY_FILE:-}" && -f "${SOPS_AGE_KEY_FILE}" ]]; then
+        if grep -q 'AGE-PLUGIN-FIDO2-HMAC' "${SOPS_AGE_KEY_FILE}" 2>/dev/null; then
+            echo "## Touch your FIDO2 key when it flashes ..." >&2
+        fi
+    fi
+}
+
+###############################################################################
 # AGE key passphrase decryption
 ###############################################################################
 
@@ -392,6 +405,7 @@ BAO_USED=false
 if [[ -n "${SOPS_AGE_KEY_FILE:-}" && -f "${SOPS_AGE_KEY_FILE}" ]]; then
     ## Interactive path: local AGE key available → SOPS first (may populate BAO_*)
     log "## Path: local AGE key → SOPS first"
+    fido2_touch_prompt
     decrypt_sops
     ## After SOPS, BAO_* vars may now be set → auth + sign SSH cert if so
     if [[ -n "${BAO_ADDR:-}" && "${BAO_SKIP:-}" != "true" ]]; then
@@ -572,6 +586,7 @@ log "## Docker context activated"
 log "## Step 8: Running restore-env"
 cd "${ROOT_DIR}"
 cp -n .env-dist ".env_${DOCKER_CONTEXT}"
+fido2_touch_prompt
 if ! { env; echo "${SOPS_DECRYPTED:-}"; } | d.rymcg.tech restore-env --yes 2>/dev/null; then
     echo "" >&2
     echo "WARNING: restore-env had errors (some vars may need reconfiguration)" >&2
