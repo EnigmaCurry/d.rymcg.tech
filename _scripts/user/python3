@@ -1,0 +1,13 @@
+#!/bin/sh
+# Activate the d.rymcg.tech project venv for Python scripts.
+# This wrapper is on PATH via _scripts/user/ and is found before system python3.
+# In the container, /home/user/.venv/bin/python3 is already on PATH so this
+# wrapper is not reached.
+SCRIPT_DIR="$(cd "$(dirname "$0")/.." && pwd)"
+ROOT_DIR="$(dirname "${SCRIPT_DIR}")"
+VENV_PYTHON="${ROOT_DIR}/.venv/bin/python3"
+if [ -x "${VENV_PYTHON}" ]; then
+    exec "${VENV_PYTHON}" "$@"
+fi
+# Fall back to system python3 if no venv exists
+exec /usr/bin/env -S python3 "$@"
