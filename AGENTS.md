@@ -22,11 +22,12 @@ git clone https://github.com/EnigmaCurry/d.rymcg.tech.git ~/git/vendor/enigmacur
 ### Install uv
 
 The agent script (`_scripts/agent_readiness.py`) requires
-[uv](https://docs.astral.sh/uv/) to run. Install it before running
-any `_scripts/agent_readiness.py` commands:
+[uv](https://docs.astral.sh/uv/) and Python dependencies. Install
+them before running any `_scripts/agent_readiness.py` commands:
 
 ```bash
 curl -LsSf https://astral.sh/uv/install.sh | sh
+make python-deps
 ```
 
 ## First Steps: Check for Existing Configuration
