@@ -1,4 +1,10 @@
 #!/usr/bin/env python3
+# Auto-activate the project venv when invoked directly (outside the CLI/container)
+import os as _os, sys as _sys
+_venv = _os.path.join(_os.path.dirname(_os.path.dirname(_os.path.abspath(__file__))),
+                      ".venv", "bin", "python3")
+if _os.path.exists(_venv) and _os.path.abspath(_sys.executable) != _os.path.abspath(_venv):
+    _os.execv(_venv, [_venv] + _sys.argv)
 """Guided setup for the d-rymcg-tech Docker image build pipeline.
 
 Walks through the steps needed to mirror the d.rymcg.tech GitHub repo
