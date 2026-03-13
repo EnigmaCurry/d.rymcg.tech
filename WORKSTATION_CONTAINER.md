@@ -6,7 +6,7 @@ Docker servers with
 installing anything on your workstation beyond bash, Podman, and this
 image.
 All configuration is SOPS-encrypted per server context, and every
-session runs in an ephemeral container — nothing is stored on the host
+workstation session runs in an ephemeral container — nothing is stored on the host
 except your encrypted config and AGE key. The same image works for
 headless CI/CD pipelines. Build from source with the `drt` shell
 function, or pull a pre-built image from the
