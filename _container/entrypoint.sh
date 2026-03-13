@@ -345,7 +345,7 @@ decrypt_sops() {
 fido2_touch_prompt() {
     if [[ -n "${SOPS_AGE_KEY_FILE:-}" && -f "${SOPS_AGE_KEY_FILE}" ]]; then
         if grep -q 'AGE-PLUGIN-FIDO2-HMAC' "${SOPS_AGE_KEY_FILE}" 2>/dev/null; then
-            echo "## Touch your FIDO2 key when it flashes ..." >&2
+            echo "## Touch your FIDO2 key when it flashes (maybe more than once) ..." >&2
         fi
     fi
 }
