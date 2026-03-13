@@ -1,13 +1,14 @@
 # d.rymcg.tech workstation container
 
-`d-rymcg-tech` is a container image that packages the entire
-[d.rymcg.tech](https://github.com/EnigmaCurry/d.rymcg.tech) framework
-for headless and interactive deployments to remote Docker hosts over SSH.
-The `drt` script creates an encrypted `.env` file per Docker context,
-and launches a secure configuration/deployment environment with podman
-on your workstation. Build it from source with the `drt` shell function,
-or pull a pre-built
-image from the [GitHub Container Registry](#pulling-the-image).
+`d-rymcg-tech` is a container image that lets you manage remote Docker
+servers with [d.rymcg.tech](https://github.com/EnigmaCurry/d.rymcg.tech)
+without installing anything on your workstation beyond Podman and Bash.
+All configuration is SOPS-encrypted per server context, and every
+session runs in an ephemeral container — nothing is stored on the host
+except your encrypted config and AGE key. The same image works for
+headless CI/CD pipelines. Build from source with the `drt` shell
+function, or pull a pre-built image from the
+[GitHub Container Registry](#pulling-the-image).
 
 ## Quick start
 
