@@ -58,20 +58,6 @@ podman pull ghcr.io/enigmacurry/d-rymcg-tech:latest
 alias drt='bash <(podman run --rm --pull=never --net=none ghcr.io/enigmacurry/d-rymcg-tech drt)'
 ```
 
-### Using Docker instead of Podman
-
-If you prefer your workstation to use Docker instead of Podman, the `drt` container
-requires a local Docker context (requires the local Docker daemon is
-running). It only connects to remote Docker hosts over SSH from
-*inside* the local container.
-
-```bash
-docker pull ghcr.io/enigmacurry/d-rymcg-tech:latest
-alias drt='bash <(docker run --rm --pull=never --net=none ghcr.io/enigmacurry/d-rymcg-tech drt) --docker'
-drt --init myserver
-drt myserver
-```
-
 ### Other options
 
 Use `--image` to specify a custom image tag:
