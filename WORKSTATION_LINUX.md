@@ -69,6 +69,12 @@ you do not. `~/git/vendor/enigmacurry/d.rymcg.tech` is a vendor
 neutral path that other *external* projects may reference, but by
 convention only.
 
+## Install Python dependencies
+
+```
+make python-deps
+```
+
 ## Configure Bash
 
 Configure Bash for d.rymcg.tech (`~/.bashrc`). 
