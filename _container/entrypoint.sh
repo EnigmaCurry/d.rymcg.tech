@@ -332,7 +332,8 @@ decrypt_sops() {
             export "${key}=${val}"
         fi
     done <<< "${SOPS_DECRYPTED}"
-    unset SOPS_DECRYPTED
+    # Note: SOPS_DECRYPTED is kept alive for restore-env (Step 8) to receive
+    # serialized data keys (__passwords__, __ssh_key__, etc.)
     log "## SOPS config loaded"
 }
 
@@ -592,11 +593,11 @@ log "## Docker context activated"
 log "## Step 8: Running restore-env"
 cd "${ROOT_DIR}"
 cp -n .env-dist ".env_${DOCKER_CONTEXT}"
-fido2_touch_prompt
 if ! { env; echo "${SOPS_DECRYPTED:-}"; } | d.rymcg.tech restore-env --yes 2>/dev/null; then
     echo "" >&2
     echo "WARNING: restore-env had errors (some vars may need reconfiguration)" >&2
 fi
+unset SOPS_DECRYPTED
 
 # Ensure ~/.ssh/config includes config-drt (after restore-env, which may restore ~/.ssh/config)
 if [[ ! -f ~/.ssh/config ]]; then
