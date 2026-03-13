@@ -71,10 +71,8 @@ convention only.
 
 ## Install Python dependencies
 
-You must be in the directory `~/git/vendor/enigmacurry/d.rymcg.tech`, then run the following:
-
 ```
-make python-deps
+make -C ~/git/vendor/enigmacurry/d.rymcg.tech python-deps
 ```
 
 ## Configure Bash
