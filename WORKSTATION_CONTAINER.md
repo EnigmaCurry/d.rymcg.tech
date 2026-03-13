@@ -39,6 +39,28 @@ drt() {
   fi
   bash <(podman run --rm --pull=never --net=none "${img}" drt) "$@"
 }
+
+## Bash completion for drt:
+_drt() {
+  local cur="${COMP_WORDS[COMP_CWORD]}"
+  if [[ "${cur}" == -* ]]; then
+    COMPREPLY=($(compgen -W "\
+      --init --view --edit --clean --seal --unseal \
+      --list --git-init --git --pull --build --extract \
+      --image --docker --age-key --ssh-key --ssh-timeout \
+      --timeout --no-save --controller-port --net \
+      --verbose --version --help" -- "${cur}"))
+  else
+    local cfg_dir="${HOME}/.config/d.rymcg.tech/config"
+    if [[ -d "${cfg_dir}" ]]; then
+      local contexts
+      contexts=$(ls "${cfg_dir}"/*.sops.env 2>/dev/null \
+        | xargs -I{} basename {} .sops.env)
+      COMPREPLY=($(compgen -W "${contexts}" -- "${cur}"))
+    fi
+  fi
+}
+complete -F _drt drt
 ```
 
 The first time you run any `drt` command, it automatically builds the
