@@ -73,10 +73,15 @@ ENV HOME="/home/user"
 COPY --chown=1000:1000 _container/bashrc /home/user/.bashrc
 COPY --chown=1000:1000 _container/mg /home/user/.mg
 
-# Seed uv-managed Python (cached early, only depends on uv + user home)
+# Seed uv-managed Python and pre-cache dependencies (cached early, before
+# source COPY so they survive source-code changes). The seed script lists all
+# dependencies used by inline scripts; the real `uv run` later is a no-op.
+COPY --chown=1000:1000 _container/uv-seed.py /tmp/uv-seed.py
 USER user
-RUN uv python install --no-cache
+RUN uv python install --no-cache && \
+    uv run --script /tmp/uv-seed.py 2>/dev/null || true
 USER root
+RUN rm -f /tmp/uv-seed.py
 
 # Install optional extra packages requested at build time
 ARG EXTRA_PACKAGES=
