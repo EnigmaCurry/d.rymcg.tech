@@ -1,8 +1,4 @@
-#!/usr/bin/env -S uv run --quiet --script
-# /// script
-# requires-python = ">=3.10"
-# dependencies = ["rich"]
-# ///
+#!/usr/bin/env python3
 """
 agent_readiness.py - System state checker for d.rymcg.tech agent readiness
 

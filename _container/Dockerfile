@@ -68,21 +68,19 @@ RUN adduser -D -u 1000 -h /home/user -s /bin/bash user \
  && mkdir -p /run/secrets/ssh /home/user/.config/d.rymcg.tech \
  && chown -R 1000:1000 /home/user /run/secrets/ssh
 
-ENV PATH="/home/user/git/vendor/enigmacurry/d.rymcg.tech/_scripts/user:/home/user/.local/bin:/usr/local/bin:${PATH}"
+ENV UV_PROJECT_ENVIRONMENT="/home/user/.venv"
+ENV PATH="/home/user/.venv/bin:/home/user/git/vendor/enigmacurry/d.rymcg.tech/_scripts/user:/home/user/.local/bin:/usr/local/bin:${PATH}"
 ENV HOME="/home/user"
 COPY --chown=1000:1000 _container/bashrc /home/user/.bashrc
 COPY --chown=1000:1000 _container/mg /home/user/.mg
 
-# Seed uv-managed Python and pre-download dependencies (cached early, before
-# source COPY). The seed script lists all deps used by inline scripts; this
-# populates ~/.cache/uv/ with downloaded wheels so the per-script step later
-# only needs to create lightweight venvs from cached packages.
-COPY --chown=1000:1000 _container/uv-seed.py /tmp/uv-seed.py
+# Install Python dependencies into a shared venv (cached early, before source
+# COPY). Only pyproject.toml and uv.lock are needed — the venv lives outside
+# the source tree at /home/user/.venv so it survives the later full COPY.
+COPY --chown=1000:1000 pyproject.toml uv.lock /home/user/git/vendor/enigmacurry/d.rymcg.tech/
 USER user
-RUN uv python install --no-cache && \
-    echo "Pre-caching uv dependencies from seed manifest..." && \
-    uv run --script /tmp/uv-seed.py && \
-    rm -f /tmp/uv-seed.py
+WORKDIR /home/user/git/vendor/enigmacurry/d.rymcg.tech
+RUN uv sync --frozen
 USER root
 
 # Install optional extra packages requested at build time
@@ -95,7 +93,6 @@ ARG IMAGE_SOURCE=
 ARG IMAGE_REF=localhost/d-rymcg-tech:latest
 ARG GIT_REPO=
 COPY --chown=1000:1000 . /home/user/git/vendor/enigmacurry/d.rymcg.tech
-WORKDIR /home/user/git/vendor/enigmacurry/d.rymcg.tech
 RUN if [ -n "${BRANCH}" ] && [ -d .git ]; then git checkout "${BRANCH}"; fi && rm -rf .git
 
 # Install ytt from .tools.lock.json
@@ -120,16 +117,6 @@ RUN set -e; \
     curl -fsSL "https://github.com/EnigmaCurry/script-wizard/releases/download/v${VERSION}/script-wizard-Linux-${ARCH}.tar.gz" \
       | tar xz -C _scripts; \
     ln -s ../script-wizard _scripts/user/script-wizard
-
-# Pre-cache uv environments for all inline-script files.
-# Wheels were already downloaded by the seed step above, so this only creates
-# lightweight per-script venvs from cached packages.
-USER user
-RUN for f in $(grep -rl '# /// script' _scripts/ _container/ 2>/dev/null); do \
-      echo "Caching uv deps: $f"; \
-      uv run --script "$f" >/dev/null 2>&1 || true; \
-    done
-USER root
 
 COPY --chown=1000:1000 _container/drt /opt/drt
 RUN chmod +x /opt/drt

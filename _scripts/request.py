@@ -1,8 +1,4 @@
-#!/usr/bin/env -S uv run --quiet --script
-# /// script
-# requires-python = ">=3.10"
-# dependencies = ["pydantic>=2.0"]
-# ///
+#!/usr/bin/env python3
 """
 request.py - Programmatic request handler for d.rymcg.tech
 

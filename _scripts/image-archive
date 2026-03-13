@@ -1,8 +1,4 @@
-#!/usr/bin/env -S uv run --script
-# /// script
-# requires-python = ">=3.11"
-# dependencies = ["pyyaml"]
-# ///
+#!/usr/bin/env python3
 
 """Pull, build, and archive all Docker images from d.rymcg.tech projects.
 

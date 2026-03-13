@@ -25,6 +25,11 @@ INFO_WORDS="INFO_WORDS ROOT_DIR"
 
 ## ROOT_DIR is the root path of the d.rymcg.tech project
 ROOT_DIR=$(dirname ${BIN})
+
+## Activate the Python venv if it exists (created by `make python-deps`)
+if [[ -d "${ROOT_DIR}/.venv/bin" ]]; then
+    export PATH="${ROOT_DIR}/.venv/bin:${PATH}"
+fi
 (test -f ${BIN}/funcs.sh && test -f ${ROOT_DIR}/Makefile && test -d ${ROOT_DIR}/traefik) || \
     (echo "Error: Invalid or corrupted d.rymcg.tech ROOT_DIR: ${ROOT_DIR}" >/dev/stderr
      echo "This script will not function properly if it has been moved." >/dev/stderr
@@ -1388,7 +1393,7 @@ main() {
             deploy-pipeline-template)
                 ${ROOT_DIR}/_container/deploy-pipeline-template.sh "$@";;
             deploy-pipeline-build)
-                uv run ${ROOT_DIR}/_container/deploy-pipeline-build.py "$@";;
+                python3 ${ROOT_DIR}/_container/deploy-pipeline-build.py "$@";;
             *)
                 fault "Invalid command"
         esac

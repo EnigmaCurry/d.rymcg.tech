@@ -38,7 +38,7 @@ for v in "${vars[@]}"; do
     input+="${v}"$'\n'
 done
 
-exec uv run python3 -c '
+exec python3 -c '
 import sys, os, tempfile, shutil
 
 env_file = sys.argv[1]

@@ -78,10 +78,6 @@ cp "${TEMPLATE_DIR}/config/.gitignore" "${DEST}/config/.gitignore"
 RENDER_SCRIPT=$(mktemp --suffix=.py)
 trap 'rm -f "${RENDER_SCRIPT}"' EXIT
 cat > "${RENDER_SCRIPT}" << 'PYEOF'
-# /// script
-# requires-python = ">=3.11"
-# dependencies = ["jinja2"]
-# ///
 import argparse
 from pathlib import Path
 from jinja2 import Environment, FileSystemLoader
@@ -123,7 +119,7 @@ RENDER_ARGS=("--template-dir" "${TEMPLATE_DIR}/.woodpecker"
 [[ "${BAO_CACERT}" == true ]] && RENDER_ARGS+=("--bao-cacert")
 [[ "${BAO_CLIENT_CERT}" == true ]] && RENDER_ARGS+=("--bao-client-cert")
 [[ "${BAO_CLIENT_KEY}" == true ]] && RENDER_ARGS+=("--bao-client-key")
-uv run "${RENDER_SCRIPT}" "${RENDER_ARGS[@]}"
+python3 "${RENDER_SCRIPT}" "${RENDER_ARGS[@]}"
 
 # Replace __NAME__ with the repo name in all text files
 find "${DEST}" -type f \( -name '*.md' -o -name '*.sh' -o -name '*.yaml' -o -name 'Makefile' \) \

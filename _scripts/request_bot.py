@@ -1,8 +1,4 @@
-#!/usr/bin/env -S uv run --quiet --script
-# /// script
-# requires-python = ">=3.10"
-# dependencies = ["nats-py>=2.9", "openai>=1.0", "markdown>=3.5"]
-# ///
+#!/usr/bin/env python3
 """NATS LLM Chatbot - bridges Matrix messages to an OpenAI-compatible LLM."""
 
 import argparse

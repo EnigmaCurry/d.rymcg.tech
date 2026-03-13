@@ -1,7 +1,4 @@
-# /// script
-# requires-python = ">=3.11"
-# dependencies = []
-# ///
+#!/usr/bin/env python3
 """Guided setup for the d-rymcg-tech Docker image build pipeline.
 
 Walks through the steps needed to mirror the d.rymcg.tech GitHub repo

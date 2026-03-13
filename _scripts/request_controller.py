@@ -1,8 +1,4 @@
-#!/usr/bin/env -S uv run --quiet --script
-# /// script
-# requires-python = ">=3.10"
-# dependencies = ["fastapi>=0.115", "uvicorn>=0.34", "pydantic>=2.0", "pyjwt>=2.0"]
-# ///
+#!/usr/bin/env python3
 """
 request_controller.py - HTTP job queue controller for d.rymcg.tech
 

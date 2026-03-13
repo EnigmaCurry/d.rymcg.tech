@@ -93,6 +93,10 @@ userns-remap-off:
 userns-remap-check:
 	@${BIN}/userns-remap check
 
+.PHONY: python-deps # Install Python dependencies (for non-container usage)
+python-deps:
+	@uv sync
+
 .PHONY: readme # Open the README.md in your web browser
 readme:
 	xdg-open "https://github.com/EnigmaCurry/d.rymcg.tech/tree/master#readme"
