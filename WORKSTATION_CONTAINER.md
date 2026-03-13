@@ -19,7 +19,7 @@ personal shell can be bash or zsh).
 Add the following shell function to your shell RC file:
 
 ```bash
-## Add this function to ~/.bashrc (or ~/.bash_profile for login shells) or ~/.zshrc
+## Add this function to ~/.bashrc, ~/.bash_profile, or ~/.zshrc
 drt() {
   export DRT_GIT_REPO=https://github.com/EnigmaCurry/d.rymcg.tech.git
   export DRT_BUILD_BRANCH=master
