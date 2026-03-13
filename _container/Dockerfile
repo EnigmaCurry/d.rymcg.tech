@@ -73,16 +73,17 @@ ENV HOME="/home/user"
 COPY --chown=1000:1000 _container/bashrc /home/user/.bashrc
 COPY --chown=1000:1000 _container/mg /home/user/.mg
 
-# Seed uv-managed Python and pre-cache dependencies (cached early, before
-# source COPY so they survive source-code changes). The seed script lists all
-# dependencies used by inline scripts; the real `uv run` later is a no-op.
+# Seed uv-managed Python and pre-download dependencies (cached early, before
+# source COPY). The seed script lists all deps used by inline scripts; this
+# populates ~/.cache/uv/ with downloaded wheels so the per-script step later
+# only needs to create lightweight venvs from cached packages.
 COPY --chown=1000:1000 _container/uv-seed.py /tmp/uv-seed.py
 USER user
 RUN uv python install --no-cache && \
     echo "Pre-caching uv dependencies from seed manifest..." && \
-    uv run --script /tmp/uv-seed.py
+    uv run --script /tmp/uv-seed.py && \
+    rm -f /tmp/uv-seed.py
 USER root
-RUN rm -f /tmp/uv-seed.py
 
 # Install optional extra packages requested at build time
 ARG EXTRA_PACKAGES=
@@ -120,7 +121,9 @@ RUN set -e; \
       | tar xz -C _scripts; \
     ln -s ../script-wizard _scripts/user/script-wizard
 
-# Pre-cache uv environments for all inline-script files
+# Pre-cache uv environments for all inline-script files.
+# Wheels were already downloaded by the seed step above, so this only creates
+# lightweight per-script venvs from cached packages.
 USER user
 RUN for f in $(grep -rl '# /// script' _scripts/ _container/ 2>/dev/null); do \
       echo "Caching uv deps: $f"; \
