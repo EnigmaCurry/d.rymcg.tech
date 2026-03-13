@@ -597,7 +597,6 @@ if ! { env; echo "${SOPS_DECRYPTED:-}"; } | d.rymcg.tech restore-env --yes 2>/de
     echo "" >&2
     echo "WARNING: restore-env had errors (some vars may need reconfiguration)" >&2
 fi
-unset SOPS_DECRYPTED
 
 # Ensure ~/.ssh/config includes config-drt (after restore-env, which may restore ~/.ssh/config)
 if [[ ! -f ~/.ssh/config ]]; then
@@ -660,10 +659,14 @@ if [[ "${SOPS_SAVE_ON_EXIT:-}" == "true" && -n "${SOPS_CONFIG_FILE:-}" && -f "${
     _SOPS_USER_COPY=$(mktemp /tmp/sops-config.XXXXXX)
     _SOPS_SAVE_REQUEST=$(mktemp -u /tmp/sops-req.XXXXXX)
     _SOPS_SAVE_RESPONSE=$(mktemp -u /tmp/sops-res.XXXXXX)
-    # Decrypt the SOPS config into the user copy (as root, which has the AGE key).
-    # The runtime user works with plaintext; root re-encrypts on save.
-    sops decrypt --input-type dotenv --output-type dotenv \
-        --filename-override export.env "${_SOPS_BIND_PATH}" > "${_SOPS_USER_COPY}"
+    # Write the already-decrypted SOPS config into the user copy.
+    # SOPS_DECRYPTED was populated by decrypt_sops() earlier.
+    if [[ -n "${SOPS_DECRYPTED:-}" ]]; then
+        echo "${SOPS_DECRYPTED}" > "${_SOPS_USER_COPY}"
+    else
+        sops decrypt --input-type dotenv --output-type dotenv \
+            --filename-override export.env "${_SOPS_BIND_PATH}" > "${_SOPS_USER_COPY}"
+    fi
     chown "${RUNTIME_UID}:${RUNTIME_GID}" "${_SOPS_USER_COPY}"
     chmod 600 "${_SOPS_USER_COPY}"
     export SOPS_CONFIG_FILE="${_SOPS_USER_COPY}"
@@ -706,6 +709,7 @@ EDITOREOF
     ) &
     log "## SOPS save-on-exit helper started (PID $!)"
 fi
+unset SOPS_DECRYPTED
 
 # Fix ownership of env files and passwords.json created by restore-env
 find "${ROOT_DIR}" \( -name ".env_*" -o -name "passwords.json" \) -exec chown "${RUNTIME_UID}:${RUNTIME_GID}" {} + 2>/dev/null || true
