@@ -736,7 +736,25 @@ BAO_CLIENT_KEY=${BAO_CLIENT_KEY}"
         echo "${PLAINTEXT}" > "${_INIT_WORK}/new-plain.env"
         cp "${AGE_KEY_FILE}" "${_INIT_WORK}/age-key-in"
         cp "${CONFIG_DIR}/${CONTEXT}.sops.env" "${_INIT_WORK}/config.sops.env"
+        local _INIT_EXTRA_ARGS=()
+        if [[ "${_KEY_TYPE}" == "fido2" ]]; then
+            local FIDO2_ID_FILE="${AGE_KEY_DIR}/${CONTEXT}.fido2"
+            local _INIT_FIDO2_DEV=""
+            if [[ -f "${FIDO2_ID_FILE}" ]]; then
+                local _fido2_id
+                while IFS= read -r _fido2_id; do
+                    [[ -z "${_fido2_id}" ]] && continue
+                    _INIT_FIDO2_DEV=$(find_hidraw_by_id "${_fido2_id}") && break
+                done < "${FIDO2_ID_FILE}"
+            fi
+            if [[ -n "${_INIT_FIDO2_DEV}" ]]; then
+                _INIT_EXTRA_ARGS+=(--device "${_INIT_FIDO2_DEV}")
+                echo "## Touch your FIDO2 key when it flashes (maybe more than once) ..." >&2
+            fi
+        fi
         container_run -it --user 0:0 \
+            --security-opt label=disable \
+            "${_INIT_EXTRA_ARGS[@]}" \
             -v "${_INIT_WORK}:/tmp/init-work:Z" \
             "${IMAGE}" sh -c '
                 if head -1 /tmp/init-work/age-key-in | grep -q "^age-encryption.org"; then
