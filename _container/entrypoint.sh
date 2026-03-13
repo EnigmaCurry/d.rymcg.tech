@@ -670,8 +670,11 @@ if [[ "${SOPS_SAVE_ON_EXIT:-}" == "true" && -n "${SOPS_CONFIG_FILE:-}" && -f "${
 
     # Create FIFOs for synchronous save-back signaling
     mkfifo "${_SOPS_SAVE_REQUEST}" "${_SOPS_SAVE_RESPONSE}"
-    chown "${RUNTIME_UID}:${RUNTIME_GID}" "${_SOPS_SAVE_REQUEST}" "${_SOPS_SAVE_RESPONSE}"
-    chmod 600 "${_SOPS_SAVE_REQUEST}" "${_SOPS_SAVE_RESPONSE}"
+    # FIFOs need read+write from both root (background save helper) and
+    # the runtime user. In rootless podman these map to the same host UID,
+    # so 666 on the transient FIFOs is fine — actual secret data lives in
+    # the 600-permissioned user copy, not in the signaling channel.
+    chmod 666 "${_SOPS_SAVE_REQUEST}" "${_SOPS_SAVE_RESPONSE}"
 
     # Background root process: waits for save request, re-encrypts the
     # user copy back to the bind mount. Uses `sops edit` with a custom
