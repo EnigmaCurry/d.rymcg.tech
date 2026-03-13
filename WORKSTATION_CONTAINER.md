@@ -1,6 +1,6 @@
-# d-rymcg-tech container image
+# d.rymcg.tech workstation container
 
-A container image that packages the entire
+`d-rymcg-tech` is a container image that packages the entire
 [d.rymcg.tech](https://github.com/EnigmaCurry/d.rymcg.tech) framework
 for headless and interactive deployments to remote Docker hosts over SSH.
 The `drt` script creates an encrypted `.env` file per Docker context,
