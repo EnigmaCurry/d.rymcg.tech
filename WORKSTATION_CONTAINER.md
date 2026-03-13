@@ -39,15 +39,15 @@ else
 fi
 ```
 
-On first run, `drt` builds the image. Restart your shell to load
-the full function with tab completion.
+The first time you run `drt`, it builds the image from source.
+Restart your shell afterwards to load the full function with tab
+completion:
 
 ```bash
-## Bootstrap a new deployment context (generates AGE key + SOPS config):
-drt --init myserver
-
-## Launch the interactive container:
-drt myserver
+drt                  # builds the image on first run
+exec bash            # restart shell to load full function
+drt --init myserver  # bootstrap a new deployment context
+drt myserver         # launch the interactive container
 ```
 
 ### Using a pre-built image
