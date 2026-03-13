@@ -21,6 +21,7 @@ Add this to your RC file (`~/.bashrc`, `~/.bash_profile`, or
 `~/.zshrc`):
 
 ```bash
+## drt - d.rymcg.tech container image bootstrap
 ## Modify these vars as you wish:
 : "${DRT_GIT_REPO:=https://github.com/EnigmaCurry/d.rymcg.tech.git}"
 : "${DRT_BUILD_BRANCH:=master}"
