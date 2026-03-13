@@ -21,7 +21,7 @@ Add the following shell function to your shell RC file:
 
 ```bash
 ## Add this function to ~/.bashrc, ~/.bash_profile, or ~/.zshrc
-## Modify repo, branch, or img vars accordingly:
+## Modify repo, branch, or img vars as you wish:
 drt() {
   export DRT_GIT_REPO=https://github.com/EnigmaCurry/d.rymcg.tech.git
   export DRT_BUILD_BRANCH=master
