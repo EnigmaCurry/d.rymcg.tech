@@ -24,11 +24,15 @@ if [[ "${SOPS_SAVE_ON_EXIT:-}" == "true" && -n "${SOPS_CONFIG_FILE:-}" ]]; then
     ## Also preserves serialized data (__passwords__*, __doctl_config__, __ssh_config__)
     ## as a safety net in case export-env can't reproduce them at save time.
     _sops_extract_preserved() {
-        local decrypted export_keys
+        local decrypted
         # SOPS_CONFIG_FILE is already decrypted plaintext (entrypoint decrypts as root)
         decrypted=$(cat "${SOPS_CONFIG_FILE}" 2>/dev/null) || return 0
-        # Get all keys that export-env produces
-        export_keys=$(d export-env 2>/dev/null | grep -oP '^[A-Za-z_][A-Za-z_0-9]*(?==)' || true)
+        # Build associative array of export-env keys (reuse already-captured state)
+        declare -A _export_keys
+        local k
+        while IFS='=' read -r k _; do
+            [[ -n "${k}" && "${k}" != "#"* ]] && _export_keys["${k}"]=1
+        done < "${_sops_initial_state}"
         local result=""
         while IFS= read -r line; do
             if [[ "${line}" == "## "* ]]; then
@@ -48,7 +52,7 @@ if [[ "${SOPS_SAVE_ON_EXIT:-}" == "true" && -n "${SOPS_CONFIG_FILE:-}" ]]; then
                     [[ -n "${result}" ]] && result+=$'\n'
                     result+="${line}"
                 # Preserve vars not in export-env output
-                elif ! echo "${export_keys}" | grep -qx "${key}"; then
+                elif [[ -z "${_export_keys[${key}]+set}" ]]; then
                     [[ -n "${result}" ]] && result+=$'\n'
                     result+="${line}"
                 fi
