@@ -2190,6 +2190,7 @@ case "${ACTION}" in
             _KEY_DIR="${HOME}/.config/d.rymcg.tech/keys/sops"
             _NAMES=()
             _STATUSES=()
+            _PATHS=()
             _MAX_NAME_LEN=0
             if [[ -d "${_CONFIG_DIR}" ]]; then
                 for f in "${_CONFIG_DIR}"/*.sops.env; do
@@ -2207,12 +2208,13 @@ case "${ACTION}" in
                     fi
                     _NAMES+=("${_name}")
                     _STATUSES+=("${_key_status}")
+                    _PATHS+=("${f}")
                     (( ${#_name} > _MAX_NAME_LEN )) && _MAX_NAME_LEN=${#_name}
                 done
             fi
             _CHOICES=()
             for i in "${!_NAMES[@]}"; do
-                _CHOICES+=("$(printf "%-${_MAX_NAME_LEN}s  (%s)" "${_NAMES[$i]}" "${_STATUSES[$i]}")")
+                _CHOICES+=("$(printf "%-${_MAX_NAME_LEN}s  (%s; %s)" "${_NAMES[$i]}" "${_STATUSES[$i]}" "${_PATHS[$i]}")")
             done
             if [[ ${#_CHOICES[@]} -eq 0 ]]; then
                 echo "No configs found. Run 'drt --init' first." >&2
