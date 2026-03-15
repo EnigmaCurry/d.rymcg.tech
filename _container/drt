@@ -2102,6 +2102,10 @@ while [[ $# -gt 0 ]]; do
             ARGS+=(--net "$2")
             shift 2
             ;;
+        --verbose|-v)
+            ARGS+=(--verbose)
+            shift
+            ;;
         --help|-h)
             usage
             exit 0
@@ -2182,7 +2186,12 @@ case "${ACTION}" in
         cmd_extract
         ;;
     run)
-        if [[ ${#ARGS[@]} -eq 0 ]]; then
+        # Check if ARGS has a context (any non-flag argument)
+        local _has_context=false
+        for _arg in "${ARGS[@]+"${ARGS[@]}"}"; do
+            [[ "${_arg}" != -* ]] && _has_context=true && break
+        done
+        if [[ "${_has_context}" == false ]]; then
             check_engine
             echo "Run with --help to see full usage." >&2
             echo "" >&2
