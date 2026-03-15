@@ -12,7 +12,7 @@
 #@ traefik_host = data.values.traefik_host
 #@ ip_sourcerange = data.values.ip_sourcerange
 #@ enable_http_auth = len(data.values.http_auth.strip()) > 0
-#@ http_auth = data.values.http_auth_var
+#@ http_auth = data.values.http_auth
 #@ enable_mtls_auth = data.values.enable_mtls_auth == "true"
 #@ mtls_authorized_certs = data.values.mtls_authorized_certs
 #@ enabled_middlewares = []
@@ -21,7 +21,7 @@
 #@ s3_storage = data.values.storage_backend == "s3"
 #@ enable_public = data.values.public == "true"
 #@ enable_pull_http_auth = len(data.values.pull_http_auth.strip()) > 0
-#@ pull_http_auth = data.values.pull_http_auth_var
+#@ pull_http_auth = data.values.pull_http_auth
 #@ enable_pull_mtls_auth = data.values.pull_mtls_auth == "true"
 #@ pull_mtls_authorized_certs = data.values.pull_mtls_authorized_certs
 #@ enable_pull_auth = enable_pull_http_auth or enable_pull_mtls_auth
