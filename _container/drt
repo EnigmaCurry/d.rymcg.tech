@@ -417,9 +417,13 @@ cmd_init() {
 
                 # Prompt for cold storage backup public key
                 echo ""
-                echo "Enter the public key of your cold storage AGE key."
-                echo "This key will be added as a SOPS recipient for disaster recovery."
-                echo "Generate one on another machine with: age-keygen"
+                echo "A cold storage AGE key is needed as a backup recipient for disaster"
+                echo "recovery. Generate one on a different secure workstation (preferably"
+                echo "air-gapped) by running: age-keygen"
+                echo ""
+                echo "Store both the public and private key in a password manager such as"
+                echo "KeepassXC or Bitwarden. Only the public key is needed here — the"
+                echo "private key should never leave your secure backup location."
                 local COLD_STORAGE_PUBKEY
                 COLD_STORAGE_PUBKEY=$(wizard ask "Cold storage public key (age1...)")
                 if [[ ! "${COLD_STORAGE_PUBKEY}" =~ ^age1[a-z0-9]+$ ]]; then
