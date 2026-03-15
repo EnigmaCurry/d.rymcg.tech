@@ -511,89 +511,91 @@ fi
 
 ## Step 6: Validate SSH vars + write SSH config (SSH_HOST may now come from SOPS)
 log "## Step 6: Setting up SSH config"
-if [[ -z "${SSH_HOST:-}" ]]; then
-    echo "ERROR: SSH_HOST is required (set via container env or SOPS config)" >&2
-    exit 1
-fi
-SSH_USER="${SSH_USER:-root}"
-SSH_PORT="${SSH_PORT:-22}"
-log "## SSH target: ${SSH_USER}@${SSH_HOST}:${SSH_PORT}"
+if [[ -n "${SSH_HOST:-}" ]]; then
+    SSH_USER="${SSH_USER:-root}"
+    SSH_PORT="${SSH_PORT:-22}"
+    log "## SSH target: ${SSH_USER}@${SSH_HOST}:${SSH_PORT}"
 
-if [[ -s "${KEY_DIR}/known_hosts" ]]; then
-    log "## SSH known_hosts already provided, skipping ssh-keyscan"
-elif [[ -t 0 ]]; then
-    log "## Interactive session: skipping ssh-keyscan (known_hosts from config)"
-elif [[ "${SSH_KEY_SCAN:-}" != "false" ]]; then
-    log "## Running ssh-keyscan for ${SSH_HOST}:${SSH_PORT}"
-    if ! ssh-keyscan -p "${SSH_PORT}" "${SSH_HOST}" >> "${KEY_DIR}/known_hosts" 2>/dev/null; then
-        echo "ERROR: ssh-keyscan failed for ${SSH_HOST}:${SSH_PORT} (set SSH_KEY_SCAN=false to skip)" >&2
+    if [[ -s "${KEY_DIR}/known_hosts" ]]; then
+        log "## SSH known_hosts already provided, skipping ssh-keyscan"
+    elif [[ -t 0 ]]; then
+        log "## Interactive session: skipping ssh-keyscan (known_hosts from config)"
+    elif [[ "${SSH_KEY_SCAN:-}" != "false" ]]; then
+        log "## Running ssh-keyscan for ${SSH_HOST}:${SSH_PORT}"
+        if ! ssh-keyscan -p "${SSH_PORT}" "${SSH_HOST}" >> "${KEY_DIR}/known_hosts" 2>/dev/null; then
+            echo "ERROR: ssh-keyscan failed for ${SSH_HOST}:${SSH_PORT} (set SSH_KEY_SCAN=false to skip)" >&2
+            exit 1
+        fi
+    fi
+
+    # Write SSH config to ~/.ssh/config-drt (auto-generated; user config is in ~/.ssh/config)
+    if [[ "${BAO_USED}" == true ]]; then
+        # OpenBao signs certs for the container-generated key; disable SSH agent
+        unset SSH_AUTH_SOCK
+        {
+            echo "Host ${DOCKER_CONTEXT}"
+            echo ""
+            echo "Match host ${DOCKER_CONTEXT} exec \"sign-ssh-cert\""
+            echo "    HostName ${SSH_HOST}"
+            echo "    User ${SSH_USER}"
+            echo "    Port ${SSH_PORT}"
+            echo "    IdentityFile ${KEY_DIR}/${KEY_NAME}"
+            echo "    IdentitiesOnly yes"
+            echo "    UserKnownHostsFile ${KEY_DIR}/known_hosts"
+            echo "    CertificateFile ${KEY_DIR}/${KEY_NAME}-cert.pub"
+            echo "    ConnectTimeout ${SSH_CONNECT_TIMEOUT:-30}"
+        } > ~/.ssh/config-drt
+    else
+        if [[ -n "${SSH_AUTH_SOCK:-}" ]]; then
+            log "## SSH auth: using forwarded SSH agent"
+        fi
+        {
+            echo "Host ${DOCKER_CONTEXT}"
+            echo "    HostName ${SSH_HOST}"
+            echo "    User ${SSH_USER}"
+            echo "    Port ${SSH_PORT}"
+            echo "    IdentityFile ${KEY_DIR}/${KEY_NAME}"
+            echo "    UserKnownHostsFile ${KEY_DIR}/known_hosts"
+            # Include CertificateFile only if an SSH certificate was obtained
+            if [[ -f "${KEY_DIR}/${KEY_NAME}-cert.pub" ]]; then
+                echo "    CertificateFile ${KEY_DIR}/${KEY_NAME}-cert.pub"
+            fi
+            echo "    ConnectTimeout ${SSH_CONNECT_TIMEOUT:-30}"
+        } > ~/.ssh/config-drt
+    fi
+
+    # Add ControlMaster for interactive sessions (reuse SSH connections)
+    if [[ -t 0 ]]; then
+        {
+            echo ""
+            echo "Host *"
+            echo "    ControlMaster auto"
+            echo "    ControlPersist yes"
+            echo "    ControlPath /tmp/ssh-%u-%r@%h:%p"
+        } >> ~/.ssh/config-drt
+    fi
+    chmod 600 ~/.ssh/config-drt
+    log "## SSH config-drt written"
+
+    ## Step 7: Create and activate Docker context
+    log "## Step 7: Creating Docker context '${DOCKER_CONTEXT}'"
+    ## Use SSH config alias so Docker inherits UserKnownHostsFile, CertificateFile, etc.
+    if ! docker context create "${DOCKER_CONTEXT}" \
+        --docker "host=ssh://${DOCKER_CONTEXT}" >/dev/null 2>&1; then
+        log "## Docker context '${DOCKER_CONTEXT}' already exists (ok)"
+    fi
+    if ! docker context use "${DOCKER_CONTEXT}" >/dev/null 2>&1; then
+        echo "ERROR: Failed to activate Docker context '${DOCKER_CONTEXT}'" >&2
+        echo "## Available Docker contexts:" >&2
+        docker context ls >&2
         exit 1
     fi
-fi
-
-# Write SSH config to ~/.ssh/config-drt (auto-generated; user config is in ~/.ssh/config)
-if [[ "${BAO_USED}" == true ]]; then
-    # OpenBao signs certs for the container-generated key; disable SSH agent
-    unset SSH_AUTH_SOCK
-    {
-        echo "Host ${DOCKER_CONTEXT}"
-        echo ""
-        echo "Match host ${DOCKER_CONTEXT} exec \"sign-ssh-cert\""
-        echo "    HostName ${SSH_HOST}"
-        echo "    User ${SSH_USER}"
-        echo "    Port ${SSH_PORT}"
-        echo "    IdentityFile ${KEY_DIR}/${KEY_NAME}"
-        echo "    IdentitiesOnly yes"
-        echo "    UserKnownHostsFile ${KEY_DIR}/known_hosts"
-        echo "    CertificateFile ${KEY_DIR}/${KEY_NAME}-cert.pub"
-        echo "    ConnectTimeout ${SSH_CONNECT_TIMEOUT:-30}"
-    } > ~/.ssh/config-drt
+    log "## Docker context activated"
 else
-    if [[ -n "${SSH_AUTH_SOCK:-}" ]]; then
-        log "## SSH auth: using forwarded SSH agent"
-    fi
-    {
-        echo "Host ${DOCKER_CONTEXT}"
-        echo "    HostName ${SSH_HOST}"
-        echo "    User ${SSH_USER}"
-        echo "    Port ${SSH_PORT}"
-        echo "    IdentityFile ${KEY_DIR}/${KEY_NAME}"
-        echo "    UserKnownHostsFile ${KEY_DIR}/known_hosts"
-        # Include CertificateFile only if an SSH certificate was obtained
-        if [[ -f "${KEY_DIR}/${KEY_NAME}-cert.pub" ]]; then
-            echo "    CertificateFile ${KEY_DIR}/${KEY_NAME}-cert.pub"
-        fi
-        echo "    ConnectTimeout ${SSH_CONNECT_TIMEOUT:-30}"
-    } > ~/.ssh/config-drt
+    log "## No SSH_HOST configured, skipping SSH and Docker context setup"
+    touch ~/.ssh/config-drt
+    chmod 600 ~/.ssh/config-drt
 fi
-
-# Add ControlMaster for interactive sessions (reuse SSH connections)
-if [[ -t 0 ]]; then
-    {
-        echo ""
-        echo "Host *"
-        echo "    ControlMaster auto"
-        echo "    ControlPersist yes"
-        echo "    ControlPath /tmp/ssh-%u-%r@%h:%p"
-    } >> ~/.ssh/config-drt
-fi
-chmod 600 ~/.ssh/config-drt
-log "## SSH config-drt written"
-
-## Step 7: Create and activate Docker context
-log "## Step 7: Creating Docker context '${DOCKER_CONTEXT}'"
-## Use SSH config alias so Docker inherits UserKnownHostsFile, CertificateFile, etc.
-if ! docker context create "${DOCKER_CONTEXT}" \
-    --docker "host=ssh://${DOCKER_CONTEXT}" >/dev/null 2>&1; then
-    log "## Docker context '${DOCKER_CONTEXT}' already exists (ok)"
-fi
-if ! docker context use "${DOCKER_CONTEXT}" >/dev/null 2>&1; then
-    echo "ERROR: Failed to activate Docker context '${DOCKER_CONTEXT}'" >&2
-    echo "## Available Docker contexts:" >&2
-    docker context ls >&2
-    exit 1
-fi
-log "## Docker context activated"
 
 ## Step 8: Create root .env and distribute env vars via restore-env
 log "## Step 8: Running restore-env"
