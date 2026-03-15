@@ -82,6 +82,27 @@ RUN uv sync --frozen && \
     ln -s python3 /home/user/.venv/bin/python-d-rymcg-tech
 USER root
 
+# Install ytt and script-wizard early (cached before source COPY)
+COPY --chown=1000:1000 .tools.lock.json /home/user/git/vendor/enigmacurry/d.rymcg.tech/
+RUN set -e; \
+    VERSION=$(jq -r '.dependencies["ytt"].version' .tools.lock.json); \
+    case "$(uname -m)" in \
+      x86_64)  ARCH=amd64 ;; \
+      aarch64) ARCH=arm64 ;; \
+      *)       echo "Unsupported arch: $(uname -m)" >&2; exit 1 ;; \
+    esac; \
+    curl -fsSL "https://github.com/vmware-tanzu/carvel-ytt/releases/download/v${VERSION}/ytt-linux-${ARCH}" -o /usr/local/bin/ytt \
+    && chmod +x /usr/local/bin/ytt
+RUN set -e; \
+    VERSION=$(jq -r '.dependencies["script-wizard"].version' .tools.lock.json); \
+    case "$(uname -m)" in \
+      x86_64)  ARCH=x86_64 ;; \
+      aarch64) ARCH=aarch64 ;; \
+      *)       echo "Unsupported arch: $(uname -m)" >&2; exit 1 ;; \
+    esac; \
+    curl -fsSL "https://github.com/EnigmaCurry/script-wizard/releases/download/v${VERSION}/script-wizard-Linux-${ARCH}.tar.gz" \
+      | tar xz -C /usr/local/bin
+
 COPY --chown=1000:1000 _container/bashrc /home/user/.bashrc
 COPY --chown=1000:1000 _container/mg /home/user/.mg
 
@@ -96,29 +117,7 @@ ARG IMAGE_REF=localhost/d-rymcg-tech:latest
 ARG GIT_REPO=
 COPY --chown=1000:1000 . /home/user/git/vendor/enigmacurry/d.rymcg.tech
 RUN if [ -n "${BRANCH}" ] && [ -d .git ]; then git checkout "${BRANCH}"; fi && rm -rf .git
-
-# Install ytt from .tools.lock.json
-RUN set -e; \
-    VERSION=$(jq -r '.dependencies["ytt"].version' .tools.lock.json); \
-    case "$(uname -m)" in \
-      x86_64)  ARCH=amd64 ;; \
-      aarch64) ARCH=arm64 ;; \
-      *)       echo "Unsupported arch: $(uname -m)" >&2; exit 1 ;; \
-    esac; \
-    curl -fsSL "https://github.com/vmware-tanzu/carvel-ytt/releases/download/v${VERSION}/ytt-linux-${ARCH}" -o /usr/local/bin/ytt \
-    && chmod +x /usr/local/bin/ytt
-
-# Install script-wizard from .tools.lock.json
-RUN set -e; \
-    VERSION=$(jq -r '.dependencies["script-wizard"].version' .tools.lock.json); \
-    case "$(uname -m)" in \
-      x86_64)  ARCH=x86_64 ;; \
-      aarch64) ARCH=aarch64 ;; \
-      *)       echo "Unsupported arch: $(uname -m)" >&2; exit 1 ;; \
-    esac; \
-    curl -fsSL "https://github.com/EnigmaCurry/script-wizard/releases/download/v${VERSION}/script-wizard-Linux-${ARCH}.tar.gz" \
-      | tar xz -C _scripts; \
-    ln -s ../script-wizard _scripts/user/script-wizard
+RUN ln -s /usr/local/bin/script-wizard _scripts/user/script-wizard
 
 COPY --chown=1000:1000 _container/drt /opt/drt
 RUN chmod +x /opt/drt
