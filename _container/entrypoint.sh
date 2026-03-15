@@ -45,15 +45,6 @@ else
     CURL_VERBOSE=(-s)
 fi
 
-## Timing: always-on step timer for startup profiling
-_STEP_START=${EPOCHREALTIME:-$(date +%s.%N)}
-step_time() {
-    local now=${EPOCHREALTIME:-$(date +%s.%N)}
-    local elapsed
-    elapsed=$(awk "BEGIN{printf \"%.2f\", ${now} - ${_STEP_START}}")
-    _STEP_START=${now}
-    echo "## [${elapsed}s] $*" >&2
-}
 
 ## Short-circuit: "drt" with no args outputs itself (for alias extraction);
 ## "drt <args>" execs directly (no entrypoint setup needed)
@@ -415,7 +406,6 @@ log "## Step 2: AGE key decryption"
 decrypt_age_key
 
 ## Step 3: Conditional SOPS/OpenBao resolution
-step_time "Step 2 done: AGE key decryption"
 echo "## Restoring environment ..." >&2
 log "## Step 3: SOPS/OpenBao resolution"
 BAO_USED=false
@@ -425,14 +415,13 @@ if [[ -n "${SOPS_AGE_KEY_FILE:-}" && -f "${SOPS_AGE_KEY_FILE}" ]]; then
     log "## Path: local AGE key → SOPS first"
     fido2_touch_prompt
     decrypt_sops
-    step_time "SOPS decrypt (FIDO2)"
+    echo "## SOPS config loaded" >&2
     ## After SOPS, BAO_* vars may now be set → auth + sign SSH cert if so
     if [[ -n "${BAO_ADDR:-}" && "${BAO_SKIP:-}" != "true" ]]; then
-        log "## OpenBao vars found (from SOPS or env), authenticating..."
+        echo "## Authenticating with OpenBao ..." >&2
         openbao_auth
-        step_time "OpenBao auth"
+        echo "## Signing SSH certificate ..." >&2
         openbao_sign_ssh
-        step_time "OpenBao SSH cert sign"
         BAO_USED=true
     elif [[ "${BAO_SKIP:-}" == "true" ]]; then
         log "## OpenBao skipped (BAO_SKIP=true), using SSH agent"
@@ -440,18 +429,17 @@ if [[ -n "${SOPS_AGE_KEY_FILE:-}" && -f "${SOPS_AGE_KEY_FILE}" ]]; then
 elif [[ -n "${BAO_ADDR:-}" && "${BAO_SKIP:-}" != "true" ]]; then
     ## CI path: BAO_* from container env → OpenBao first
     log "## Path: container env BAO_* → OpenBao first"
+    echo "## Authenticating with OpenBao ..." >&2
     openbao_auth
-    step_time "OpenBao auth (CI path)"
     ## Get AGE key from KV if BAO_AGE_KEY_PATH is set
     if [[ -n "${BAO_AGE_KEY_PATH:-}" ]]; then
         openbao_get_age_key
         decrypt_age_key
-        step_time "OpenBao AGE key + decrypt"
     fi
     decrypt_sops
-    step_time "SOPS decrypt (CI path)"
+    echo "## SOPS config loaded" >&2
+    echo "## Signing SSH certificate ..." >&2
     openbao_sign_ssh
-    step_time "OpenBao SSH cert sign (CI path)"
     BAO_USED=true
 else
     ## No OpenBao, just try SOPS if SOPS_CONFIG_FILE exists
@@ -485,7 +473,6 @@ else
     log "## Step 4: No OpenBao state to persist"
 fi
 
-step_time "Step 3+4 done: SOPS/OpenBao resolution"
 ## Step 5: Validate DOCKER_CONTEXT (may come from SOPS config, container env, or SOPS filename)
 log "## Step 5: Validating DOCKER_CONTEXT"
 if [[ -n "${SOPS_CONFIG_FILE:-}" ]]; then
@@ -608,7 +595,6 @@ if ! docker context use "${DOCKER_CONTEXT}" >/dev/null 2>&1; then
 fi
 log "## Docker context activated"
 
-step_time "Steps 5-7 done: Docker context + SSH config"
 ## Step 8: Create root .env and distribute env vars via restore-env
 log "## Step 8: Running restore-env"
 cd "${ROOT_DIR}"
@@ -658,7 +644,6 @@ for i in "${!_cmd_args[@]}"; do
     fi
 done
 
-step_time "Steps 8-10 done: restore-env + project validation"
 ## Step 11: Fix ownership and drop privileges
 log "## Step 11: Fixing ownership and dropping to ${RUNTIME_USER} (${RUNTIME_UID}:${RUNTIME_GID})"
 
@@ -753,6 +738,5 @@ fi
 
 export DRT_CONTEXT="${DOCKER_CONTEXT}"
 unset DOCKER_CONTEXT
-step_time "Entrypoint complete, dropping to ${RUNTIME_USER}"
 log "## Executing: $*"
 exec su-exec "${RUNTIME_USER}" "$@"
