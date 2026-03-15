@@ -85,22 +85,16 @@ USER root
 # Install ytt and script-wizard early (cached before source COPY)
 COPY --chown=1000:1000 .tools.lock.json /home/user/git/vendor/enigmacurry/d.rymcg.tech/
 RUN set -e; \
-    VERSION=$(jq -r '.dependencies["ytt"].version' .tools.lock.json); \
+    YTT_VERSION=$(jq -r '.dependencies["ytt"].version' .tools.lock.json); \
+    SW_VERSION=$(jq -r '.dependencies["script-wizard"].version' .tools.lock.json); \
     case "$(uname -m)" in \
-      x86_64)  ARCH=amd64 ;; \
-      aarch64) ARCH=arm64 ;; \
+      x86_64)  YTT_ARCH=amd64; SW_ARCH=x86_64 ;; \
+      aarch64) YTT_ARCH=arm64; SW_ARCH=aarch64 ;; \
       *)       echo "Unsupported arch: $(uname -m)" >&2; exit 1 ;; \
     esac; \
-    curl -fsSL "https://github.com/vmware-tanzu/carvel-ytt/releases/download/v${VERSION}/ytt-linux-${ARCH}" -o /usr/local/bin/ytt \
-    && chmod +x /usr/local/bin/ytt
-RUN set -e; \
-    VERSION=$(jq -r '.dependencies["script-wizard"].version' .tools.lock.json); \
-    case "$(uname -m)" in \
-      x86_64)  ARCH=x86_64 ;; \
-      aarch64) ARCH=aarch64 ;; \
-      *)       echo "Unsupported arch: $(uname -m)" >&2; exit 1 ;; \
-    esac; \
-    curl -fsSL "https://github.com/EnigmaCurry/script-wizard/releases/download/v${VERSION}/script-wizard-Linux-${ARCH}.tar.gz" \
+    curl -fsSL "https://github.com/vmware-tanzu/carvel-ytt/releases/download/v${YTT_VERSION}/ytt-linux-${YTT_ARCH}" -o /usr/local/bin/ytt \
+    && chmod +x /usr/local/bin/ytt; \
+    curl -fsSL "https://github.com/EnigmaCurry/script-wizard/releases/download/v${SW_VERSION}/script-wizard-Linux-${SW_ARCH}.tar.gz" \
       | tar xz -C /usr/local/bin
 
 COPY --chown=1000:1000 _container/bashrc /home/user/.bashrc
@@ -116,12 +110,11 @@ ARG IMAGE_SOURCE=
 ARG IMAGE_REF=localhost/d-rymcg-tech:latest
 ARG GIT_REPO=
 COPY --chown=1000:1000 . /home/user/git/vendor/enigmacurry/d.rymcg.tech
-RUN if [ -n "${BRANCH}" ] && [ -d .git ]; then git checkout "${BRANCH}"; fi && rm -rf .git
-RUN ln -s /usr/local/bin/script-wizard _scripts/user/script-wizard
-
-COPY --chown=1000:1000 --chmod=755 _container/drt /opt/drt
-COPY --chown=1000:1000 --chmod=755 _container/sign-ssh-cert /usr/local/bin/sign-ssh-cert
-COPY --chown=1000:1000 --chmod=755 _container/entrypoint.sh /entrypoint.sh
+RUN if [ -n "${BRANCH}" ] && [ -d .git ]; then git checkout "${BRANCH}"; fi && rm -rf .git \
+ && ln -s /usr/local/bin/script-wizard _scripts/user/script-wizard \
+ && install -m 755 _container/drt /opt/drt \
+ && install -m 755 _container/sign-ssh-cert /usr/local/bin/sign-ssh-cert \
+ && install -m 755 _container/entrypoint.sh /entrypoint.sh
 
 ARG EDITOR=mg
 ENV EDITOR=${EDITOR}
