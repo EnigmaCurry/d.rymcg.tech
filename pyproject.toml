@@ -12,7 +12,7 @@
 [project]
 name = "drt-scripts"
 version = "0.0.0"
-requires-python = ">=3.10"
+requires-python = ">=3.11"
 dependencies = [
     "fastapi>=0.115",
     "jinja2",
@@ -23,5 +23,6 @@ dependencies = [
     "pyjwt>=2.0",
     "pyyaml",
     "rich",
+    "tt-tui-for-traefik",
     "uvicorn>=0.34",
 ]
