@@ -480,9 +480,8 @@ fi
 ## Step 5: Validate DOCKER_CONTEXT (may come from SOPS config, container env, or SOPS filename)
 log "## Step 5: Validating DOCKER_CONTEXT"
 if [[ "${DOCKER:-}" == "false" ]]; then
-    DOCKER_CONTEXT="${DOCKER_CONTEXT:-local}"
-    export DOCKER_CONTEXT
-    log "## DOCKER=false, using DOCKER_CONTEXT=${DOCKER_CONTEXT}"
+    DOCKER_CONTEXT="local"
+    log "## DOCKER=false, using DOCKER_CONTEXT=${DOCKER_CONTEXT} (not exported)"
 elif [[ -n "${SOPS_CONFIG_FILE:-}" ]]; then
     # Always prefer SOPS-derived context name (container env may have stale/invalid names)
     DOCKER_CONTEXT="$(basename "${SOPS_CONFIG_FILE}" .sops.env)"
@@ -495,7 +494,9 @@ if [[ -z "${DOCKER_CONTEXT}" ]]; then
 fi
 # Sanitize: Docker context names must match ^[a-zA-Z0-9][a-zA-Z0-9_.+-]+$
 DOCKER_CONTEXT="${DOCKER_CONTEXT#"${DOCKER_CONTEXT%%[a-zA-Z0-9]*}"}"
-export DOCKER_CONTEXT
+if [[ "${DOCKER:-}" != "false" ]]; then
+    export DOCKER_CONTEXT
+fi
 log "## DOCKER_CONTEXT=${DOCKER_CONTEXT}"
 
 # Rename SSH key files to context-specific names
