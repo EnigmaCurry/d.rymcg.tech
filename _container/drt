@@ -1311,9 +1311,9 @@ cmd_list() {
         local key_status="missing"
         if [[ -f "${KEY_DIR}/${ctx}.key" ]]; then
             if head -1 "${KEY_DIR}/${ctx}.key" | grep -q '^age-encryption.org'; then
-                key_status="password protected"
+                key_status="Password"
             elif grep -q 'AGE-PLUGIN-FIDO2-HMAC' "${KEY_DIR}/${ctx}.key" 2>/dev/null; then
-                key_status="FIDO2 protected"
+                key_status="FIDO2 + Cold Storage"
             else
                 key_status="plaintext!!"
             fi
