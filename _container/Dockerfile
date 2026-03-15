@@ -119,14 +119,9 @@ COPY --chown=1000:1000 . /home/user/git/vendor/enigmacurry/d.rymcg.tech
 RUN if [ -n "${BRANCH}" ] && [ -d .git ]; then git checkout "${BRANCH}"; fi && rm -rf .git
 RUN ln -s /usr/local/bin/script-wizard _scripts/user/script-wizard
 
-COPY --chown=1000:1000 _container/drt /opt/drt
-RUN chmod +x /opt/drt
-
-COPY --chown=1000:1000 _container/sign-ssh-cert /usr/local/bin/sign-ssh-cert
-RUN chmod +x /usr/local/bin/sign-ssh-cert
-
-COPY --chown=1000:1000 _container/entrypoint.sh /entrypoint.sh
-RUN chmod +x /entrypoint.sh
+COPY --chown=1000:1000 --chmod=755 _container/drt /opt/drt
+COPY --chown=1000:1000 --chmod=755 _container/sign-ssh-cert /usr/local/bin/sign-ssh-cert
+COPY --chown=1000:1000 --chmod=755 _container/entrypoint.sh /entrypoint.sh
 
 ARG EDITOR=mg
 ENV EDITOR=${EDITOR}
