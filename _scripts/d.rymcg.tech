@@ -942,6 +942,14 @@ __export_env() {
         plaintext+="__gumdrop_preset__${gf_name}=${gf_data}"$'\n'
     done
 
+    # Serialize MOTD if present
+    if [[ -f "${HOME}/.motd" && -s "${HOME}/.motd" ]]; then
+        local motd_data
+        motd_data=$(gzip -cn < "${HOME}/.motd" | base64 -w 0)
+        plaintext+=$'\n'"## motd"$'\n'
+        plaintext+="__motd__=${motd_data}"$'\n'
+    fi
+
     local output
     if [[ "${encrypt}" == true ]]; then
         output=$(echo "${plaintext}" | sops encrypt --input-type dotenv --output-type dotenv --filename-override export.env --age "${recipients}" /dev/stdin)
@@ -1059,6 +1067,7 @@ __restore_env() {
     declare -A gumdrop_preset_files  # "filename" → base64 data
     local doctl_config_b64=""
     local ssh_config_b64=""
+    local motd_b64=""
 
     while IFS= read -r line; do
         [[ -z "${line}" || "${line}" == "#"* ]] && continue
@@ -1088,6 +1097,12 @@ __restore_env() {
         if [[ "${key}" == __gumdrop_preset__* ]]; then
             local gf_name="${key#__gumdrop_preset__}"
             gumdrop_preset_files["${gf_name}"]="${val}"
+            continue
+        fi
+
+        # Serialized MOTD: __motd__=<base64>
+        if [[ "${key}" == "__motd__" ]]; then
+            motd_b64="${val}"
             continue
         fi
 
@@ -1255,6 +1270,13 @@ __restore_env() {
             _b64_decode "${gumdrop_preset_files[${gf_name}]}" > "${gumdrop_dir}/${gf_name}"
             chmod 600 "${gumdrop_dir}/${gf_name}"
         done
+    fi
+
+    # Restore MOTD if present
+    if [[ -n "${motd_b64}" ]]; then
+        echo "## Restoring ${HOME}/.motd" >&2
+        _b64_decode "${motd_b64}" > "${HOME}/.motd"
+        chmod 600 "${HOME}/.motd"
     fi
 }
 

@@ -6,6 +6,42 @@ eval "$(d.rymcg.tech completion bash)"
 __d.rymcg.tech_cli_alias d
 [ -n "${DRT_CONTEXT}" ] && type __d.rymcg.tech_context_alias &>/dev/null && __d.rymcg.tech_context_alias "${DRT_CONTEXT}" 2>/dev/null || true
 
+## Display MOTD if present
+_display_motd() {
+    local data
+    if [[ -s "${HOME}/.motd" ]]; then
+        cat "${HOME}/.motd"
+    elif [[ -n "${MOTD:-}" ]]; then
+        data=$(echo "${MOTD}" | base64 -d 2>/dev/null) || return 0
+        # Detect gzip magic bytes (\x1f\x8b) and decompress if needed
+        if [[ $(echo "${data}" | head -c2 | xxd -p) == "1f8b" ]]; then
+            echo "${MOTD}" | base64 -d | gunzip 2>/dev/null || true
+        else
+            echo "${data}"
+        fi
+    else
+        return 1
+    fi
+}
+if _motd_text=$(_display_motd); then
+    echo ""
+    echo "${_motd_text}"
+    echo ""
+fi
+unset _motd_text
+
+## Edit the MOTD (message of the day) with $EDITOR
+motd() {
+    if [[ "${SOPS_SAVE_ON_EXIT:-}" != "true" || -z "${SOPS_CONFIG_FILE:-}" ]]; then
+        echo "Error: Running in a stateless context, cannot save MOTD." >&2
+        echo "Use 'drt' with a SOPS config to persist the MOTD," >&2
+        echo "or set the MOTD env var (base64-encoded)." >&2
+        return 1
+    fi
+    touch "${HOME}/.motd"
+    ${EDITOR:-vi} "${HOME}/.motd"
+}
+
 ## Save-on-exit: capture initial config state and diff on shell exit
 if [[ "${SOPS_SAVE_ON_EXIT:-}" == "true" && -n "${SOPS_CONFIG_FILE:-}" ]]; then
     _sops_initial_state=$(mktemp)
@@ -34,14 +70,14 @@ if [[ "${SOPS_SAVE_ON_EXIT:-}" == "true" && -n "${SOPS_CONFIG_FILE:-}" ]]; then
                 if [[ "${header}" != "SSH" && "${header}" != .env_* && "${header}" != */.env_* \
                    && "${header}" != */passwords.json && "${header}" != "doctl config" \
                    && "${header}" != "ssh config" && "${header}" != "ssh keys" \
-                   && "${header}" != "gumdrop presets" ]]; then
+                   && "${header}" != "gumdrop presets" && "${header}" != "motd" ]]; then
                     [[ -n "${result}" ]] && result+=$'\n'
                     result+="${line}"
                 fi
             elif [[ "${line}" == *=* && "${line}" != "#"* ]]; then
                 local key="${line%%=*}"
                 # Always preserve serialized data as safety net
-                if [[ "${key}" == __passwords__* || "${key}" == "__doctl_config__" || "${key}" == "__ssh_config__" || "${key}" == __ssh_key__* || "${key}" == __gumdrop_preset__* ]]; then
+                if [[ "${key}" == __passwords__* || "${key}" == "__doctl_config__" || "${key}" == "__ssh_config__" || "${key}" == __ssh_key__* || "${key}" == __gumdrop_preset__* || "${key}" == "__motd__" ]]; then
                     [[ -n "${result}" ]] && result+=$'\n'
                     result+="${line}"
                 # Preserve vars not in export-env output
