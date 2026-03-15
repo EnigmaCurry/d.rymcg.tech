@@ -56,11 +56,7 @@ if [[ "${1:-}" == "drt" ]]; then
     exec su-exec "${RUNTIME_USER}" /opt/drt "$@"
 fi
 
-## Preflight: validate DOCKER and detect unconfigured container
-if [[ "${DOCKER:-}" == "false" && -n "${SSH_HOST:-}" ]]; then
-    echo "ERROR: DOCKER=false requires SSH_HOST to be unset" >&2
-    exit 1
-fi
+## Preflight: detect unconfigured container
 if [[ "${DOCKER:-}" != "false" && -z "${SSH_HOST:-}" && -z "${SOPS_CONFIG_FILE:-}" && -z "${BAO_ADDR:-}" && -z "${DOCKER_CONTEXT:-}" ]]; then
     echo "##    d-rymcg-tech container is not configured." >&2
     echo "##" >&2
@@ -477,9 +473,18 @@ else
     log "## Step 4: No OpenBao state to persist"
 fi
 
-## Step 5: Validate DOCKER_CONTEXT (may come from SOPS config, container env, or SOPS filename)
-log "## Step 5: Validating DOCKER_CONTEXT"
-if [[ "${DOCKER:-}" == "false" ]]; then
+## Step 5: Resolve DOCKER flag and validate DOCKER_CONTEXT
+log "## Step 5: Resolving DOCKER flag and DOCKER_CONTEXT"
+if [[ -n "${SSH_HOST:-}" ]]; then
+    DOCKER=true
+elif [[ "${DOCKER:-}" != "false" ]]; then
+    echo "ERROR: SSH_HOST is not set. Set DOCKER=false to run without a remote Docker host." >&2
+    exit 1
+fi
+export DOCKER
+log "## DOCKER=${DOCKER}"
+
+if [[ "${DOCKER}" == "false" ]]; then
     DOCKER_CONTEXT="local"
     log "## DOCKER=false, using DOCKER_CONTEXT=${DOCKER_CONTEXT} (not exported)"
 elif [[ -n "${SOPS_CONFIG_FILE:-}" ]]; then
@@ -494,7 +499,7 @@ if [[ -z "${DOCKER_CONTEXT}" ]]; then
 fi
 # Sanitize: Docker context names must match ^[a-zA-Z0-9][a-zA-Z0-9_.+-]+$
 DOCKER_CONTEXT="${DOCKER_CONTEXT#"${DOCKER_CONTEXT%%[a-zA-Z0-9]*}"}"
-if [[ "${DOCKER:-}" != "false" ]]; then
+if [[ "${DOCKER}" == "true" ]]; then
     export DOCKER_CONTEXT
 fi
 log "## DOCKER_CONTEXT=${DOCKER_CONTEXT}"
