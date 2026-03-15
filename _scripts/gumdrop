@@ -2054,7 +2054,7 @@ gumdrop_manage_firewalls() {
             menu_items+=(
                 "Assign droplets to firewall = $0 gumdrop_assign_firewall_droplets"
                 "Edit firewall = $0 gumdrop_edit_firewall"
-                "Delete firewall = $0 gumdrop_delete_firewall"
+                "Delete (unused) firewall = $0 gumdrop_delete_firewall"
             )
         fi
         menu_items+=(
