@@ -1312,6 +1312,8 @@ cmd_list() {
         if [[ -f "${KEY_DIR}/${ctx}.key" ]]; then
             if head -1 "${KEY_DIR}/${ctx}.key" | grep -q '^age-encryption.org'; then
                 key_status="encrypted"
+            elif grep -q 'AGE-PLUGIN-FIDO2-HMAC' "${KEY_DIR}/${ctx}.key" 2>/dev/null; then
+                key_status="encrypted"
             else
                 key_status="plaintext!!"
             fi
@@ -2194,6 +2196,8 @@ case "${ACTION}" in
                     _key_status="no key"
                     if [[ -f "${_KEY_DIR}/${_name}.key" ]]; then
                         if head -1 "${_KEY_DIR}/${_name}.key" | grep -q '^age-encryption.org'; then
+                            _key_status="encrypted key"
+                        elif grep -q 'AGE-PLUGIN-FIDO2-HMAC' "${_KEY_DIR}/${_name}.key" 2>/dev/null; then
                             _key_status="encrypted key"
                         else
                             _key_status="plain-text key!!"
