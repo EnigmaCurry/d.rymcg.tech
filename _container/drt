@@ -141,10 +141,11 @@ git_auto_pull() {
     remote=$(git -C "${CONFIG_BASE}" remote 2>/dev/null | head -1)
     [[ -n "${remote}" ]] || return 0
     echo "## git: fetching from ${remote} ..." >&2
-    git -C "${CONFIG_BASE}" fetch "${remote}" 2>/dev/null || {
-        echo "## git: fetch failed (network issue?), continuing with local state" >&2
-        return 0
-    }
+    if ! git -C "${CONFIG_BASE}" fetch "${remote}" 2>&1; then
+        echo "" >&2
+        echo "ERROR: git fetch failed. Use --no-git to skip." >&2
+        exit 1
+    fi
     local branch
     branch=$(git -C "${CONFIG_BASE}" branch --show-current 2>/dev/null)
     [[ -n "${branch}" ]] || return 0
