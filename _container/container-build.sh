@@ -58,6 +58,9 @@ if [[ -n "${EDITOR_CMD}" ]]; then
     BUILD_ARGS+=(--build-arg "EDITOR=${EDITOR_CMD}")
 fi
 
+GIT_SHA=$(git -C "${ROOT_DIR}" rev-parse --short HEAD 2>/dev/null || echo "unknown")
+BUILD_ARGS+=(--build-arg "GIT_SHA=${GIT_SHA}")
+
 cd "${ROOT_DIR}"
 
 # Warn if tracked files have uncommitted changes (git archive only includes committed files)

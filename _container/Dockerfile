@@ -116,9 +116,11 @@ RUN if [ -n "${BRANCH}" ] && [ -d .git ]; then git checkout "${BRANCH}"; fi && r
  && install -m 755 _container/sign-ssh-cert /usr/local/bin/sign-ssh-cert \
  && install -m 755 _container/entrypoint.sh /entrypoint.sh
 
+ARG GIT_SHA=unknown
 ARG EDITOR=mg
 ENV EDITOR=${EDITOR}
 ENV DRT_IMAGE=${IMAGE_REF}
+ENV DRT_GIT_SHA=${GIT_SHA}
 LABEL org.opencontainers.image.source=${IMAGE_SOURCE} \
       drt.branch=${BRANCH} \
       drt.repo=${GIT_REPO}

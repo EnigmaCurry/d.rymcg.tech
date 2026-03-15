@@ -6,7 +6,10 @@
 ##   alias drt='bash <(podman run --rm --pull=never --net=none @@DRT_IMAGE@@ drt)'
 set -euo pipefail
 
-VERSION="1.0.0"
+VERSION="@@DRT_GIT_SHA@@"
+if [[ "${VERSION}" == @@*@@ ]]; then
+    VERSION="${DRT_GIT_SHA:-unknown}"
+fi
 DEFAULT_IMAGE="${DRT_IMAGE:-@@DRT_IMAGE@@}"
 if [[ "${DEFAULT_IMAGE}" == @@*@@ ]]; then
     DEFAULT_IMAGE="localhost/d-rymcg-tech:latest"
@@ -2011,11 +2014,11 @@ done'
 ###############################################################################
 
 cmd_extract() {
-    if [[ -n "${DRT_IMAGE:-}" ]]; then
-        sed "s|@@DRT_IMAGE@@|${DRT_IMAGE}|g" "$(readlink -f "$0")"
-    else
-        cat "$(readlink -f "$0")"
-    fi
+    local script
+    script="$(readlink -f "$0")"
+    sed -e "s|@@DRT_IMAGE@@|${DRT_IMAGE:-localhost/d-rymcg-tech:latest}|g" \
+        -e "s|@@DRT_GIT_SHA@@|${DRT_GIT_SHA:-unknown}|g" \
+        "${script}"
 }
 
 ###############################################################################
