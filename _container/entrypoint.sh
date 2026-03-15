@@ -56,12 +56,12 @@ if [[ "${1:-}" == "drt" ]]; then
     exec su-exec "${RUNTIME_USER}" /opt/drt "$@"
 fi
 
-## Preflight: validate DRT_DOCKER and detect unconfigured container
-if [[ "${DRT_DOCKER:-}" == "false" && -n "${SSH_HOST:-}" ]]; then
-    echo "ERROR: DRT_DOCKER=false requires SSH_HOST to be unset" >&2
+## Preflight: validate DOCKER and detect unconfigured container
+if [[ "${DOCKER:-}" == "false" && -n "${SSH_HOST:-}" ]]; then
+    echo "ERROR: DOCKER=false requires SSH_HOST to be unset" >&2
     exit 1
 fi
-if [[ "${DRT_DOCKER:-}" != "false" && -z "${SSH_HOST:-}" && -z "${SOPS_CONFIG_FILE:-}" && -z "${BAO_ADDR:-}" && -z "${DOCKER_CONTEXT:-}" ]]; then
+if [[ "${DOCKER:-}" != "false" && -z "${SSH_HOST:-}" && -z "${SOPS_CONFIG_FILE:-}" && -z "${BAO_ADDR:-}" && -z "${DOCKER_CONTEXT:-}" ]]; then
     echo "##    d-rymcg-tech container is not configured." >&2
     echo "##" >&2
     echo "##    See:" >&2
@@ -77,7 +77,7 @@ if [[ "${DRT_DOCKER:-}" != "false" && -z "${SSH_HOST:-}" && -z "${SOPS_CONFIG_FI
     awk -v img="${DRT_IMAGE:-localhost/d-rymcg-tech}" '/^###/ { if (in_block) { in_block=0 } else { in_block=1; buf="" }; next } in_block { sub(/^# ?/, ""); gsub(/@@DRT_IMAGE@@/, img); buf = buf "##    " $0 "\n" } END { printf "%s", buf }' /opt/drt >&2
     echo "##" >&2
     echo "##    == Local shell (no remote Docker host) ==" >&2
-    echo "##    podman run --rm -it -e DRT_DOCKER=false ${DRT_IMAGE:-localhost/d-rymcg-tech}" >&2
+    echo "##    podman run --rm -it -e DOCKER=false ${DRT_IMAGE:-localhost/d-rymcg-tech}" >&2
     echo "##" >&2
     echo "##    == Debug usage (unconfirmed SSH host foo) ==" >&2
     echo "##    podman run --rm -it -e SSH_HOST=foo -e SSH_KEY_SCAN=false ${DRT_IMAGE:-localhost/d-rymcg-tech}" >&2
@@ -482,10 +482,10 @@ fi
 
 ## Step 5: Validate DOCKER_CONTEXT (may come from SOPS config, container env, or SOPS filename)
 log "## Step 5: Validating DOCKER_CONTEXT"
-if [[ "${DRT_DOCKER:-}" == "false" ]]; then
+if [[ "${DOCKER:-}" == "false" ]]; then
     DOCKER_CONTEXT="${DOCKER_CONTEXT:-local}"
     export DOCKER_CONTEXT
-    log "## DRT_DOCKER=false, using DOCKER_CONTEXT=${DOCKER_CONTEXT}"
+    log "## DOCKER=false, using DOCKER_CONTEXT=${DOCKER_CONTEXT}"
 elif [[ -n "${SOPS_CONFIG_FILE:-}" ]]; then
     # Always prefer SOPS-derived context name (container env may have stale/invalid names)
     DOCKER_CONTEXT="$(basename "${SOPS_CONFIG_FILE}" .sops.env)"
