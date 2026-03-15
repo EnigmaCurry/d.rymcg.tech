@@ -72,9 +72,6 @@ RUN adduser -D -u 1000 -h /home/user -s /bin/bash user \
 ENV UV_PROJECT_ENVIRONMENT="/home/user/.venv"
 ENV PATH="/home/user/.venv/bin:/home/user/git/vendor/enigmacurry/d.rymcg.tech/_scripts/user:/home/user/.local/bin:/usr/local/bin:${PATH}"
 ENV HOME="/home/user"
-COPY --chown=1000:1000 _container/bashrc /home/user/.bashrc
-COPY --chown=1000:1000 _container/mg /home/user/.mg
-
 # Install Python dependencies into a shared venv (cached early, before source
 # COPY). Only pyproject.toml and uv.lock are needed — the venv lives outside
 # the source tree at /home/user/.venv so it survives the later full COPY.
@@ -84,6 +81,9 @@ WORKDIR /home/user/git/vendor/enigmacurry/d.rymcg.tech
 RUN uv sync --frozen && \
     ln -s python3 /home/user/.venv/bin/python-d-rymcg-tech
 USER root
+
+COPY --chown=1000:1000 _container/bashrc /home/user/.bashrc
+COPY --chown=1000:1000 _container/mg /home/user/.mg
 
 # Install optional extra packages requested at build time
 ARG EXTRA_PACKAGES=
