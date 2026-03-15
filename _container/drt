@@ -1305,8 +1305,8 @@ cmd_list() {
         [[ -n "$ctx" ]] && CONTEXTS+=("$ctx")
     done <<< "$SORTED"
 
-    printf "%-20s %-12s %s\n" "CONTEXT" "KEY" "CONFIG"
-    printf "%-20s %-12s %s\n" "-------" "---" "------"
+    printf "%-20s %-20s %s\n" "CONTEXT" "KEY" "CONFIG"
+    printf "%-20s %-20s %s\n" "-------" "---" "------"
     for ctx in "${CONTEXTS[@]}"; do
         local key_status="missing"
         if [[ -f "${KEY_DIR}/${ctx}.key" ]]; then
@@ -1322,7 +1322,7 @@ cmd_list() {
         if [[ -f "${CONFIG_DIR}/${ctx}.sops.env" ]]; then
             config_status="${CONFIG_DIR}/${ctx}.sops.env"
         fi
-        printf "%-20s %-12s %s\n" "$ctx" "$key_status" "$config_status"
+        printf "%-20s %-20s %s\n" "$ctx" "$key_status" "$config_status"
     done
 }
 
