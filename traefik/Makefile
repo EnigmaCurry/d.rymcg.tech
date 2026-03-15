@@ -147,7 +147,10 @@ dashboard:
 	TRAEFIK_PASSWORD=$$(cat ${ROOT_DIR}/traefik/passwords.json | jq -r '."${DOCKER_CONTEXT}_default".[].password'); \
 	SSH_HOST_ARG="$${SSH_HOST_ARG:---ssh-host ${DOCKER_CONTEXT}}"; \
 	if [[ "$${SSH_HOST_ARG}" == "none" ]]; then SSH_HOST_ARG=""; fi; \
-	if command -v uv >/dev/null; then \
+	if command -v tt >/dev/null; then \
+	  TT_CMD="tt"; \
+	  echo "Starting: $${TT_CMD}"; \
+	elif command -v uv >/dev/null; then \
 	  TT_CMD="uv tool run --from tt-tui-for-traefik tt"; \
 	  echo "Starting: $${TT_CMD}"; \
 	else \

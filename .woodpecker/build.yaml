@@ -1,0 +1,89 @@
+## d-rymcg-tech image builder
+## Builds the Docker image from the master branch.
+##
+## Required Woodpecker secrets:
+##   registry          - Forgejo registry hostname
+##   registry_username - Forgejo username (for pushing image)
+##   registry_password - Forgejo token with read:repository and write:package scopes
+
+when:
+  - event: [push, cron, manual]
+    branch: master
+  - event: manual
+    branch: workstation-ci
+
+skip_clone: true
+
+steps:
+  - name: clone
+    image: alpine/git
+    environment:
+      REGISTRY:
+        from_secret: registry
+      REGISTRY_USERNAME:
+        from_secret: registry_username
+      REGISTRY_PASSWORD:
+        from_secret: registry_password
+    commands:
+      - printf 'machine %s\nlogin %s\npassword %s\n' "$${REGISTRY}" "$${REGISTRY_USERNAME}" "$${REGISTRY_PASSWORD}" > ~/.netrc
+      - chmod 600 ~/.netrc
+      - git clone --depth=1 --branch=${CI_COMMIT_BRANCH} https://$${REGISTRY}/${CI_REPO_OWNER}/${CI_REPO_NAME}.git .
+
+  - name: build-image
+    image: woodpeckerci/plugin-docker-buildx
+    privileged: true
+    environment:
+      REGISTRY:
+        from_secret: registry
+      REGISTRY_USERNAME:
+        from_secret: registry_username
+      REGISTRY_PASSWORD:
+        from_secret: registry_password
+    commands:
+      - apk add --no-cache curl jq
+      - |
+        set -e
+        IMAGE="$${REGISTRY}/${CI_REPO_OWNER}/d-rymcg-tech"
+        SHA=$$(echo "${CI_COMMIT_SHA}" | head -c 12)
+        echo "## d.rymcg.tech master SHA:$${SHA}"
+        dockerd &
+        sleep 3
+        echo "$${REGISTRY_PASSWORD}" | docker login -u "$${REGISTRY_USERNAME}" --password-stdin "$${REGISTRY}"
+        if docker buildx imagetools inspect "$${IMAGE}:$${SHA}" >/dev/null 2>&1; then
+          echo "## Image $${IMAGE}:$${SHA} already exists, skipping build"
+        else
+          echo "## Building $${IMAGE}:$${SHA}"
+          docker buildx create --name builder --use
+          docker buildx build --push \
+            --pull \
+            -f _container/Dockerfile \
+            --build-arg BRANCH=master \
+            --build-arg IMAGE_SOURCE=https://$${REGISTRY}/${CI_REPO_OWNER}/${CI_REPO_NAME} \
+            --build-arg IMAGE_REF=$${IMAGE}:latest \
+            --build-arg GIT_SHA=$${SHA} \
+            --cache-from "$${IMAGE}:latest" \
+            --cache-to type=inline \
+            -t "$${IMAGE}:$${SHA}" \
+            -t "$${IMAGE}:latest" \
+            .
+          # Clean up old versions (loop until only current SHA + latest remain)
+          echo "## Cleaning up old image versions"
+          for i in $$(seq 1 20); do
+            DELETED=0
+            VERSIONS=$$(curl -sf -u "$${REGISTRY_USERNAME}:$${REGISTRY_PASSWORD}" \
+              "https://$${REGISTRY}/api/v1/packages/${CI_REPO_OWNER}?type=container&q=$${PKG_NAME}" \
+              | jq -r '.[].version') || break
+            for TAG in $${VERSIONS}; do
+              case "$${TAG}" in
+                latest|"$${SHA}") continue ;;
+              esac
+              echo "  Deleting: $${TAG}"
+              curl -sf -X DELETE -u "$${REGISTRY_USERNAME}:$${REGISTRY_PASSWORD}" \
+                "https://$${REGISTRY}/api/v1/packages/${CI_REPO_OWNER}/container/$${PKG_NAME}/$${TAG}" || true
+              DELETED=1
+            done
+            [ "$${DELETED}" -eq 0 ] && break
+          done
+        fi
+        sync
+        sleep 2

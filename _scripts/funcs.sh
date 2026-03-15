@@ -3,6 +3,11 @@
 BIN=$(dirname ${BASH_SOURCE})
 ROOT_DIR=${ROOT_DIR:-$(dirname ${BIN})}
 
+## Activate the Python venv if it exists and isn't already on PATH
+if [[ -d "${ROOT_DIR}/.venv/bin" && ":${PATH}:" != *":${ROOT_DIR}/.venv/bin:"* ]]; then
+    export PATH="${ROOT_DIR}/.venv/bin:${PATH}"
+fi
+
 stderr(){ echo "$@" >/dev/stderr 2>/dev/null || echo "$@"; }
 error(){ stderr "Error: $@"; }
 fault(){ test -n "$1" && error $1; stderr "Exiting."; exit 1; }
@@ -12,7 +17,7 @@ print_array(){ printf '%s\n' "$@"; }
 trim_trailing_whitespace() { sed -e 's/[[:space:]]*$//'; }
 trim_leading_whitespace() { sed -e 's/^[[:space:]]*//'; }
 trim_whitespace() { trim_leading_whitespace | trim_trailing_whitespace; }
-wizard() { ${BIN}/script-wizard "$@"; }
+wizard() { if [[ -x "${BIN}/script-wizard" ]]; then ${BIN}/script-wizard "$@"; else script-wizard "$@"; fi; }
 check_var(){
     local __missing=false
     local __vars="$@"
@@ -211,16 +216,29 @@ docker_ssh() {
 
 ytt() {
     set -e
+    if command -v ytt &>/dev/null; then
+        # Prefer local ytt binary
+        local non_template_commands_pattern="(help|completion|fmt|version)"
+        if [[ "$@" == "" ]]; then
+            command ytt help
+        elif [[ "$1" =~ $non_template_commands_pattern ]]; then
+            command ytt "$@"
+        else
+            command ytt -f- "$@"
+        fi
+        return
+    fi
     local IMAGE=localhost/ytt
     if ! docker image inspect ${IMAGE} >/dev/null 2>&1; then
         local _BUILD=${BUILD_RAW:-$(${BIN}/dotenv -f "${ROOT_DIR}/.env_$(${BIN}/docker_context)" get BUILD 2>/dev/null || true)}
         if [[ "${_BUILD}" == "false" || "${_BUILD}" == "0" ]]; then
             fault "ytt image (${IMAGE}) not found and BUILD=${_BUILD} prevents building it. Build it first or set BUILD=true."
         fi
-        docker build -t ${IMAGE} -f- . >/dev/null <<'EOF'
+        local YTT_VERSION
+        YTT_VERSION=$(jq -r '.dependencies["ytt"].version' "${ROOT_DIR}/.tools.lock.json")
+        docker build -t ${IMAGE} -f- . >/dev/null <<EOF
 FROM debian:stable-slim AS ytt
-ARG YTT_VERSION=v0.44.3
-RUN apt-get update && apt-get install -y wget && wget "https://github.com/vmware-tanzu/carvel-ytt/releases/download/${YTT_VERSION}/ytt-linux-$(dpkg --print-architecture)" -O ytt && install ytt /usr/local/bin/ytt
+RUN apt-get update && apt-get install -y wget && wget "https://github.com/vmware-tanzu/carvel-ytt/releases/download/v${YTT_VERSION}/ytt-linux-\$(dpkg --print-architecture)" -O ytt && install ytt /usr/local/bin/ytt
 EOF
     fi
     non_template_commands_pattern="(help|completion|fmt|version)"
@@ -235,19 +253,7 @@ EOF
 }
 
 yq() {
-    set -e
-    local IMAGE=localhost/yq
-    if ! docker image inspect ${IMAGE} >/dev/null 2>&1; then
-        local _BUILD=${BUILD_RAW:-$(${BIN}/dotenv -f "${ROOT_DIR}/.env_$(${BIN}/docker_context)" get BUILD 2>/dev/null || true)}
-        if [[ "${_BUILD}" == "false" || "${_BUILD}" == "0" ]]; then
-            fault "yq image (${IMAGE}) not found and BUILD=${_BUILD} prevents building it. Build it first or set BUILD=true."
-        fi
-        docker build -t ${IMAGE} -f- . >/dev/null <<'EOF'
-FROM debian:stable-slim AS yq
-RUN apt-get update && apt-get install -y yq
-EOF
-    fi
-    docker run --rm -i "${IMAGE}" yq "${@}"
+    uvx yq "$@"
 }
 
 read_stdin_or_args() {
@@ -428,8 +434,15 @@ version_spec() {
         fault "The version lock spec file is missing: ${VERSION_LOCK}"
     fi
     # Grab the locked version of APP from the lock file:
-    local LOCKED_VERSION=$(jq -r ".dependencies.\"${APP}\"" ${ROOT_DIR}/.tools.lock.json)
-    (test -z "${LOCKED_VERSION}" || test "${LOCKED_VERSION}" == "null") && fault "The app '${APP}' is not listed in ${VERSION_LOCK}"
+    # Supports both bare string ("0.1.34") and object ({"version": "0.1.34", ...}) formats
+    local RAW_VALUE=$(jq -r ".dependencies.\"${APP}\"" ${ROOT_DIR}/.tools.lock.json)
+    (test -z "${RAW_VALUE}" || test "${RAW_VALUE}" == "null") && fault "The app '${APP}' is not listed in ${VERSION_LOCK}"
+    local LOCKED_VERSION
+    if jq -e ".dependencies.\"${APP}\" | type == \"object\"" ${ROOT_DIR}/.tools.lock.json >/dev/null 2>&1; then
+        LOCKED_VERSION=$(jq -r ".dependencies.\"${APP}\".version" ${ROOT_DIR}/.tools.lock.json)
+    else
+        LOCKED_VERSION="${RAW_VALUE}"
+    fi
 
     # Return the locked version string:
     echo ${LOCKED_VERSION}
@@ -589,6 +602,10 @@ wait_until_healthy() {
         echo "No services to wait for."
         return 0
     fi
+    local timeout_seconds=${TIMEOUT:-300}
+    local sleep_interval=2
+    local max_attempts=$(( timeout_seconds / sleep_interval ))
+    [[ $max_attempts -lt 1 ]] && max_attempts=1
     local attempts=0
     while true; do
         attempts=$((attempts + 1))
@@ -622,14 +639,14 @@ wait_until_healthy() {
                 echo "Still waiting for services to finish starting: ${containers[*]}"
             fi
         fi
-        if [[ $attempts -gt 150 ]]; then
-            echo "Gave up waiting for services to start. Still pending: ${containers[*]}"
+        if [[ $attempts -ge $max_attempts ]]; then
+            echo "Gave up waiting after ${timeout_seconds}s. Still pending: ${containers[*]}"
             return 1
         fi
         if (( attempts % 5 == 0 )); then
             echo "Still waiting for services to finish starting: ${containers[*]}"
         fi
-        sleep 2
+        sleep $sleep_interval
     done
     echo "All services healthy."
 }
@@ -646,11 +663,11 @@ confirm() {
     ## Confirm with the user.
     ## Check env for the var YES, if it equals "yes" then bypass this confirm.
     ## This version depends on `script-wizard` being installed.
-    test ${YES:-no} == "yes" && exit 0
+    test ${YES:-no} == "yes" && return 0
 
     ## If not running in a terminal, skip confirmation (non-interactive/agent mode):
     if [[ ! -t 0 ]]; then
-        exit 0
+        return 0
     fi
 
     local default=$1; local prompt=$2; local question=${3:-". Proceed?"}
@@ -806,7 +823,7 @@ ip_from_minaddr_6() {
     if [[ -z $cidr ]]; then echo "Usage: ip_from_minaddr_6 <CIDR> [n<=2^64‑1]" >&2; return 2; fi
     if ! [[ $n =~ ^[0-9]+$ ]] || (( n < 1 )); then echo "Error: n must be a positive integer (>= 1)" >&2; return 2; fi
     local out
-    out=$(uv run python3 - <<'PY' "$cidr" "$n"
+    out=$(python3 - <<'PY' "$cidr" "$n"
 import sys, ipaddress
 cidr = sys.argv[1]
 n = int(sys.argv[2])

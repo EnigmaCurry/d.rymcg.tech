@@ -8,6 +8,8 @@ INSTANCE_CONFIG_DIR=${DYNAMIC_CONFIG_DIR}/${DOCKER_CONTEXT:-instance}
 ytt_template() {
     src=$1; dst=$2;
     [ -e "${src}" ] || (echo "Template not found: ${src}" && exit 1)
+    ## Unescape $$ to $ (docker-compose .env escaping may not be unescaped in pass-through env vars):
+    TRAEFIK_DASHBOARD_HTTP_AUTH="${TRAEFIK_DASHBOARD_HTTP_AUTH//\$\$/\$}"
     ytt -f ${src} \
         -v docker_compose_profiles=${DOCKER_COMPOSE_PROFILES} \
         -v acme_cert_resolver="${TRAEFIK_ACME_CERT_RESOLVER}" \

@@ -21,12 +21,13 @@ git clone https://github.com/EnigmaCurry/d.rymcg.tech.git ~/git/vendor/enigmacur
 
 ### Install uv
 
-The agent script (`_scripts/agent.py`) requires
-[uv](https://docs.astral.sh/uv/) to run. Install it before running
-any `_scripts/agent.py` commands:
+The agent script (`_scripts/agent_readiness.py`) requires
+[uv](https://docs.astral.sh/uv/) and Python dependencies. Install
+them before running any `_scripts/agent_readiness.py` commands:
 
 ```bash
 curl -LsSf https://astral.sh/uv/install.sh | sh
+make python-deps
 ```
 
 ## First Steps: Check for Existing Configuration
@@ -35,7 +36,7 @@ Before asking the user for information, check if a context is already configured
 
 ```bash
 # Check if there's already a current context configured:
-_scripts/agent.py current
+_scripts/agent_readiness.py current
 ```
 
 If this returns JSON with all fields populated, you can skip asking the user and proceed directly to running the readiness checker.
@@ -59,7 +60,7 @@ If `current` returned no context, ask the user for **only the context name** fir
 Run the check command with just the context name to see what can be auto-discovered:
 
 ```bash
-_scripts/agent.py check --context myserver
+_scripts/agent_readiness.py check --context myserver
 ```
 
 The script will:
@@ -101,7 +102,7 @@ Run check again, providing only the values that were missing:
 
 ```bash
 # Example: if only root_domain, proxy_protocol, save_cleartext_passwords, and role were missing:
-_scripts/agent.py check --context myserver \
+_scripts/agent_readiness.py check --context myserver \
   --root-domain example.com \
   --proxy-protocol false \
   --save-cleartext-passwords false \
@@ -114,17 +115,17 @@ The readiness checker can be run incrementally - it saves discovered and provide
 
 ```bash
 # Initial run with just context name (triggers discovery):
-_scripts/agent.py check --context docker-server
+_scripts/agent_readiness.py check --context docker-server
 
 # Provide missing values (only what couldn't be discovered):
-_scripts/agent.py check --context docker-server \
+_scripts/agent_readiness.py check --context docker-server \
   --root-domain example.com \
   --proxy-protocol false \
   --save-cleartext-passwords false \
   --role public
 
 # If SSH config didn't exist, also provide:
-_scripts/agent.py check --context docker-server \
+_scripts/agent_readiness.py check --context docker-server \
   --ssh-hostname 192.168.1.100 \
   --ssh-user root \
   --ssh-port 22 \
@@ -138,25 +139,25 @@ More options:
 
 ```bash
 # Subsequent runs - uses saved configuration:
-_scripts/agent.py check
+_scripts/agent_readiness.py check
 
 # Show help:
-_scripts/agent.py
+_scripts/agent_readiness.py
 
 # Switch to a different context:
-_scripts/agent.py check --context other-server
+_scripts/agent_readiness.py check --context other-server
 
 # Show current context configuration:
-_scripts/agent.py current
+_scripts/agent_readiness.py current
 
 # List all configured contexts:
-_scripts/agent.py list
+_scripts/agent_readiness.py list
 
 # Delete a specific context (Docker context, SSH config, saved config):
-_scripts/agent.py delete myserver
+_scripts/agent_readiness.py delete myserver
 
 # Reset all saved state (start fresh):
-_scripts/agent.py clear
+_scripts/agent_readiness.py clear
 ```
 
 The configuration is saved to `~/.local/d.rymcg.tech/agent.contexts.json` and persists across runs.
@@ -218,7 +219,7 @@ and the script completes with return code 0.
 
 1. **Check for current context**:
    ```bash
-   _scripts/agent.py current
+   _scripts/agent_readiness.py current
    ```
    Result: Returns error or empty - no context configured.
 
@@ -229,7 +230,7 @@ and the script completes with return code 0.
 
 3. **Run check to trigger discovery**:
    ```bash
-   _scripts/agent.py check --context myserver
+   _scripts/agent_readiness.py check --context myserver
    ```
    Result: Shows missing fields. SSH config doesn't exist, so ssh_hostname, ssh_user, ssh_port are missing along with root_domain, proxy_protocol, save_cleartext_passwords, role.
 
@@ -244,7 +245,7 @@ and the script completes with return code 0.
 
 5. **Run check with all missing values**:
    ```bash
-   _scripts/agent.py check --context myserver \
+   _scripts/agent_readiness.py check --context myserver \
      --ssh-hostname 10.0.0.5 \
      --ssh-user root \
      --ssh-port 22 \
@@ -263,7 +264,7 @@ and the script completes with return code 0.
 
 1. **Check for current context**:
    ```bash
-   _scripts/agent.py current
+   _scripts/agent_readiness.py current
    ```
    Result: Returns error or empty.
 
@@ -272,7 +273,7 @@ and the script completes with return code 0.
 
 3. **Run check to trigger discovery**:
    ```bash
-   _scripts/agent.py check --context myserver
+   _scripts/agent_readiness.py check --context myserver
    ```
    Result: Discovers ssh_hostname, ssh_user, ssh_port from `~/.ssh/config`. Only root_domain, proxy_protocol, save_cleartext_passwords, role are missing.
 
@@ -284,7 +285,7 @@ and the script completes with return code 0.
 
 5. **Run check with only the missing values**:
    ```bash
-   _scripts/agent.py check --context myserver \
+   _scripts/agent_readiness.py check --context myserver \
      --root-domain mysite.com \
      --proxy-protocol false \
      --save-cleartext-passwords false \
@@ -395,7 +396,7 @@ ports (80, 443, 53 reachable from the internet). The user may
 optionally deploy their own acme-dns instance on this server.
 
 ```bash
-_scripts/agent.py check --context myserver --role public
+_scripts/agent_readiness.py check --context myserver --role public
 ```
 
 **`private`** - the server is behind NAT, on a private network, or
@@ -404,7 +405,7 @@ has no publicly open ports. The user must use acme-sh with an
 deploy acme-dns on this server.
 
 ```bash
-_scripts/agent.py check --context myserver --role private
+_scripts/agent_readiness.py check --context myserver --role private
 ```
 
 ### Step 2: Configure Traefik

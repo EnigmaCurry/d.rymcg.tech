@@ -22,7 +22,7 @@ else
 fi
 OVERRIDE="docker-compose.override_${CONTEXT_INSTANCE}.yaml"
 
-YTT_DATA_ARGS="--data-value context=${DOCKER_CONTEXT}"
+YTT_DATA_ARGS=("--data-value" "context=${DOCKER_CONTEXT}")
 
 for var in "$@"; do
     ytt_var="${var}"
@@ -49,14 +49,14 @@ for var in "$@"; do
     fi
     test -z "${value}" && echo "${var} is blank."
     ytt_var=$(echo "$ytt_var" | tr '[:upper:]' '[:lower:]')
-    YTT_DATA_ARGS="${YTT_DATA_ARGS} --data-value ${ytt_var}='${value}'"
+    YTT_DATA_ARGS+=("--data-value" "${ytt_var}=${value}")
 done
 
-echo '#' ytt ${YTT_DATA_ARGS} \< docker-compose.instance.yaml \> ${OVERRIDE}
+echo '#' ytt "${YTT_DATA_ARGS[@]}" \< docker-compose.instance.yaml \> ${OVERRIDE}
 cat <<EOF > ${OVERRIDE}
 ## DO NOT EDIT - This Docker Compose override file is generated from the docker-compose.instance.yaml template.
 ## This file is automatically recreated whenever you run \`make config\` or \`make install\`.
 EOF
-ytt ${YTT_DATA_ARGS} < docker-compose.instance.yaml >> ${OVERRIDE}
+ytt "${YTT_DATA_ARGS[@]}" < docker-compose.instance.yaml >> ${OVERRIDE}
 
 echo "Created docker-compose override: ${OVERRIDE}"

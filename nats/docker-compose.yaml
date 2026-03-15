@@ -1,0 +1,57 @@
+volumes:
+  nats_config:
+  nats_data:
+  certs:
+
+services:
+  config:
+    build:
+      context: config
+    user: "0:0"
+    restart: "no"
+    security_opt:
+      - no-new-privileges:true
+    environment:
+      - NATS_CLUSTER_NAME
+      - NATS_TRAEFIK_HOST
+      - NATS_AUTH_USERS
+      - NATS_JETSTREAM_ENABLE
+    volumes:
+      - nats_config:/etc/nats
+    labels:
+      - "backup-volume.stop-during-backup=true"
+
+  nats:
+    depends_on:
+      config:
+        condition: service_completed_successfully
+    build:
+      context: nats
+      args:
+        NATS_IMAGE: ${NATS_IMAGE}
+    restart: unless-stopped
+    security_opt:
+      - no-new-privileges:true
+    entrypoint: ["/nats-entrypoint.sh"]
+    environment:
+      - NATS_TRAEFIK_HOST
+    ports:
+      - "${NATS_CLIENT_PORT}:4222"
+    volumes:
+      - nats_config:/etc/nats:ro
+      - nats_data:/data
+      - certs:/certs
+    labels: []
+
+  step-cli:
+    build:
+      context: step-cli
+      args:
+        STEP_CLI_IMAGE: ${NATS_STEP_CLI_IMAGE}
+    environment:
+      - NATS_TRAEFIK_HOST
+      - NATS_STEP_CA_URL
+      - NATS_STEP_CA_FINGERPRINT
+      - NATS_STEP_CA_TOKEN
+    volumes:
+      - certs:/home/step/certs

@@ -1,8 +1,4 @@
-#!/usr/bin/env -S uv run --script
-# /// script
-# requires-python = ">=3.11"
-# dependencies = []
-# ///
+#!/usr/bin/env python-d-rymcg-tech
 
 """Load archived Docker images from tar.gz files into the Docker host.
 
