@@ -862,6 +862,7 @@ cmd_run() {
             --ssh-timeout) SSH_CONNECT_TIMEOUT="$2"; export SSH_CONNECT_TIMEOUT; shift 2 ;;
             --timeout) TIMEOUT="$2"; export TIMEOUT; shift 2 ;;
             --verbose|-v) VERBOSE=true; shift ;;
+            --no-git) DRT_NO_GIT=true; shift ;;
             --controller-port) CONTROLLER_PORT="$2"; shift 2 ;;
             --help) run_usage; exit 0 ;;
             -*)
