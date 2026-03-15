@@ -2188,7 +2188,9 @@ case "${ACTION}" in
             echo "" >&2
             _CONFIG_DIR="${HOME}/.config/d.rymcg.tech/config"
             _KEY_DIR="${HOME}/.config/d.rymcg.tech/keys/sops"
-            _CHOICES=()
+            _NAMES=()
+            _STATUSES=()
+            _MAX_NAME_LEN=0
             if [[ -d "${_CONFIG_DIR}" ]]; then
                 for f in "${_CONFIG_DIR}"/*.sops.env; do
                     [[ -f "$f" ]] || continue
@@ -2196,16 +2198,22 @@ case "${ACTION}" in
                     _key_status="no key"
                     if [[ -f "${_KEY_DIR}/${_name}.key" ]]; then
                         if head -1 "${_KEY_DIR}/${_name}.key" | grep -q '^age-encryption.org'; then
-                            _key_status="password protected key"
+                            _key_status="Password"
                         elif grep -q 'AGE-PLUGIN-FIDO2-HMAC' "${_KEY_DIR}/${_name}.key" 2>/dev/null; then
-                            _key_status="FIDO2 protected key"
+                            _key_status="FIDO2 + Cold Storage"
                         else
                             _key_status="plain-text key!!"
                         fi
                     fi
-                    _CHOICES+=("${_name} (${_key_status}; ${f})")
+                    _NAMES+=("${_name}")
+                    _STATUSES+=("${_key_status}")
+                    (( ${#_name} > _MAX_NAME_LEN )) && _MAX_NAME_LEN=${#_name}
                 done
             fi
+            _CHOICES=()
+            for i in "${!_NAMES[@]}"; do
+                _CHOICES+=("$(printf "%-${_MAX_NAME_LEN}s  (%s)" "${_NAMES[$i]}" "${_STATUSES[$i]}")")
+            done
             if [[ ${#_CHOICES[@]} -eq 0 ]]; then
                 echo "No configs found. Run 'drt --init' first." >&2
                 exit 1
