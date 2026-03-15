@@ -615,7 +615,7 @@ fi
 log "## Step 8: Running restore-env"
 cd "${ROOT_DIR}"
 cp -n .env-dist ".env_${DOCKER_CONTEXT}"
-if ! { env; echo "${SOPS_DECRYPTED:-}"; } | d.rymcg.tech restore-env --yes 2>/dev/null; then
+if ! { env; echo "${SOPS_DECRYPTED:-}"; } | DOCKER_CONTEXT="${DOCKER_CONTEXT}" d.rymcg.tech restore-env --yes 2>/dev/null; then
     echo "" >&2
     echo "WARNING: restore-env had errors (some vars may need reconfiguration)" >&2
 fi
