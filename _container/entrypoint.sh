@@ -78,9 +78,6 @@ if [[ "${DOCKER:-}" != "false" && -z "${SSH_HOST:-}" && -z "${SOPS_CONFIG_FILE:-
     echo "##" >&2
     echo "##    == Local shell (no remote Docker host) ==" >&2
     echo "##    podman run --rm -it -e DOCKER=false ${DRT_IMAGE:-localhost/d-rymcg-tech}" >&2
-    echo "##" >&2
-    echo "##    == Debug usage (unconfirmed SSH host foo) ==" >&2
-    echo "##    podman run --rm -it -e SSH_HOST=foo -e SSH_KEY_SCAN=false ${DRT_IMAGE:-localhost/d-rymcg-tech}" >&2
     exit 1
 fi
 
