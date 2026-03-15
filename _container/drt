@@ -131,6 +131,7 @@ find_hidraw_by_id() {
 
 ## Pull from remote if ~/.config/d.rymcg.tech is a git repo with a remote
 git_auto_pull() {
+    [[ "${DRT_NO_GIT:-}" == true ]] && return 0
     local CONFIG_BASE="${HOME}/.config/d.rymcg.tech"
     [[ -d "${CONFIG_BASE}/.git" ]] || return 0
     local remote
@@ -175,6 +176,7 @@ GITIGNORE
 
 ## Auto-commit config changes if ~/.config/d.rymcg.tech is a git repo
 git_auto_commit() {
+    [[ "${DRT_NO_GIT:-}" == true ]] && return 0
     local msg="$1"
     local CONFIG_BASE="${HOME}/.config/d.rymcg.tech"
     [[ -d "${CONFIG_BASE}/.git" ]] || return 0
@@ -236,6 +238,8 @@ Options:
   --no-save          Disable save-on-exit
   --controller-port PORT  Host port for request-controller (default: 8084)
   --net MODE         Network mode: pasta, slirp4netns, host (auto-detected)
+  --no-git           Skip all git operations (pull, commit, push)
+  --verbose, -v      Enable verbose logging
   --version          Print version
   --help             Show this help
 EOF
@@ -2104,6 +2108,10 @@ while [[ $# -gt 0 ]]; do
             ;;
         --verbose|-v)
             ARGS+=(--verbose)
+            shift
+            ;;
+        --no-git)
+            DRT_NO_GIT=true
             shift
             ;;
         --help|-h)
