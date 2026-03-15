@@ -2187,7 +2187,7 @@ case "${ACTION}" in
         ;;
     run)
         # Check if ARGS has a context (any non-flag argument)
-        local _has_context=false
+        _has_context=false
         for _arg in "${ARGS[@]+"${ARGS[@]}"}"; do
             [[ "${_arg}" != -* ]] && _has_context=true && break
         done
