@@ -583,7 +583,7 @@ cmd_init() {
     local KNOWN_HOSTS=""
     local _ssh_default=yes
     [[ -n "${_EXISTING}" && -z "${_CUR_SSH_HOST}" ]] && _ssh_default=no
-    if wizard confirm "Configure SSH connection to a Docker host?" "${_ssh_default}"; then
+    if wizard confirm "Configure SSH connection to a Docker host now? (You can do so later too.)" "${_ssh_default}"; then
         SSH_CONFIG=$(ssh -G "${CONTEXT}" 2>/dev/null || true)
         local _SSH_HOST _SSH_PORT _SSH_USER
         _SSH_HOST=$(echo "${SSH_CONFIG}" | awk '/^hostname / {print $2}')
