@@ -580,39 +580,45 @@ cmd_init() {
 
     ## SSH details — pre-fill from existing config, then ssh config, then defaults
     local SSH_CONFIG SSH_HOST SSH_PORT SSH_USER
-    SSH_CONFIG=$(ssh -G "${CONTEXT}" 2>/dev/null || true)
-    local _SSH_HOST _SSH_PORT _SSH_USER
-    _SSH_HOST=$(echo "${SSH_CONFIG}" | awk '/^hostname / {print $2}')
-    _SSH_PORT=$(echo "${SSH_CONFIG}" | awk '/^port / {print $2; exit}')
-    _SSH_USER=$(echo "${SSH_CONFIG}" | awk '/^user / {print $2}')
-
-    ## Existing config takes priority over ssh config
-    [[ -n "${_CUR_SSH_HOST}" ]] && _SSH_HOST="${_CUR_SSH_HOST}"
-    [[ -n "${_CUR_SSH_PORT}" ]] && _SSH_PORT="${_CUR_SSH_PORT}"
-    [[ -n "${_CUR_SSH_USER}" ]] && _SSH_USER="${_CUR_SSH_USER}"
-
-    ## Don't default to the context name as the hostname
-    [[ "${_SSH_HOST}" == "${CONTEXT}" ]] && _SSH_HOST=""
-    SSH_HOST=$(wizard ask "Enter SSH hostname or IP address" "${_SSH_HOST}")
-    SSH_PORT=$(wizard ask "Enter SSH port" "${_SSH_PORT:-22}")
-    SSH_USER=$(wizard ask "Enter SSH user" "${_SSH_USER:-root}")
-
-    ## SSH key scan — preserve existing known_hosts unless user re-scans
     local KNOWN_HOSTS=""
-    if wizard confirm "Run ssh-keyscan now for ${SSH_HOST}:${SSH_PORT}?" no; then
-        echo ""
-        echo "Running ssh-keyscan for ${SSH_HOST}:${SSH_PORT}..."
-        KNOWN_HOSTS=$(ssh-keyscan -p "${SSH_PORT}" "${SSH_HOST}" 2>/dev/null || true)
-        if [[ -z "${KNOWN_HOSTS}" ]]; then
-            echo "ssh-keyscan failed for ${SSH_HOST}:${SSH_PORT}"
+    local _ssh_default=yes
+    [[ -n "${_EXISTING}" && -z "${_CUR_SSH_HOST}" ]] && _ssh_default=no
+    if wizard confirm "Configure SSH connection to a Docker host?" "${_ssh_default}"; then
+        SSH_CONFIG=$(ssh -G "${CONTEXT}" 2>/dev/null || true)
+        local _SSH_HOST _SSH_PORT _SSH_USER
+        _SSH_HOST=$(echo "${SSH_CONFIG}" | awk '/^hostname / {print $2}')
+        _SSH_PORT=$(echo "${SSH_CONFIG}" | awk '/^port / {print $2; exit}')
+        _SSH_USER=$(echo "${SSH_CONFIG}" | awk '/^user / {print $2}')
+
+        ## Existing config takes priority over ssh config
+        [[ -n "${_CUR_SSH_HOST}" ]] && _SSH_HOST="${_CUR_SSH_HOST}"
+        [[ -n "${_CUR_SSH_PORT}" ]] && _SSH_PORT="${_CUR_SSH_PORT}"
+        [[ -n "${_CUR_SSH_USER}" ]] && _SSH_USER="${_CUR_SSH_USER}"
+
+        ## Don't default to the context name as the hostname
+        [[ "${_SSH_HOST}" == "${CONTEXT}" ]] && _SSH_HOST=""
+        SSH_HOST=$(wizard ask "Enter SSH hostname or IP address" "${_SSH_HOST}")
+        SSH_PORT=$(wizard ask "Enter SSH port" "${_SSH_PORT:-22}")
+        SSH_USER=$(wizard ask "Enter SSH user" "${_SSH_USER:-root}")
+
+        ## SSH key scan — preserve existing known_hosts unless user re-scans
+        if wizard confirm "Run ssh-keyscan now for ${SSH_HOST}:${SSH_PORT}?" no; then
+            echo ""
+            echo "Running ssh-keyscan for ${SSH_HOST}:${SSH_PORT}..."
+            KNOWN_HOSTS=$(ssh-keyscan -p "${SSH_PORT}" "${SSH_HOST}" 2>/dev/null || true)
+            if [[ -z "${KNOWN_HOSTS}" ]]; then
+                echo "ssh-keyscan failed for ${SSH_HOST}:${SSH_PORT}"
+            fi
         fi
-    fi
-    if [[ -z "${KNOWN_HOSTS}" && -n "${_CUR_KNOWN_HOSTS}" ]]; then
-        echo "Keeping existing SSH known_hosts."
-    elif [[ -z "${KNOWN_HOSTS}" ]]; then
-        echo "  You can set SSH_KNOWN_HOSTS later, or set SSH_KEY_SCAN=false to skip verification."
+        if [[ -z "${KNOWN_HOSTS}" && -n "${_CUR_KNOWN_HOSTS}" ]]; then
+            echo "Keeping existing SSH known_hosts."
+        elif [[ -z "${KNOWN_HOSTS}" ]]; then
+            echo "  You can set SSH_KNOWN_HOSTS later, or set SSH_KEY_SCAN=false to skip verification."
+        else
+            echo "SSH host keys collected."
+        fi
     else
-        echo "SSH host keys collected."
+        echo "Skipping SSH configuration."
     fi
 
     ## Optional OpenBao SSH certificate signing
@@ -671,18 +677,21 @@ cmd_init() {
     fi
 
     ## Create SOPS config
-    local PLAINTEXT="## SSH
+    local PLAINTEXT=""
+    if [[ -n "${SSH_HOST}" ]]; then
+        PLAINTEXT="## SSH
 SSH_HOST=${SSH_HOST}
 SSH_USER=${SSH_USER}
 SSH_PORT=${SSH_PORT}"
-    if [[ -n "${KNOWN_HOSTS}" ]]; then
-        local SSH_KNOWN_HOSTS
-        SSH_KNOWN_HOSTS=$(echo "${KNOWN_HOSTS}" | base64 -w0)
-        PLAINTEXT="${PLAINTEXT}
+        if [[ -n "${KNOWN_HOSTS}" ]]; then
+            local SSH_KNOWN_HOSTS
+            SSH_KNOWN_HOSTS=$(echo "${KNOWN_HOSTS}" | base64 -w0)
+            PLAINTEXT="${PLAINTEXT}
 SSH_KNOWN_HOSTS=${SSH_KNOWN_HOSTS}"
-    elif [[ -n "${_CUR_KNOWN_HOSTS}" ]]; then
-        PLAINTEXT="${PLAINTEXT}
+        elif [[ -n "${_CUR_KNOWN_HOSTS}" ]]; then
+            PLAINTEXT="${PLAINTEXT}
 SSH_KNOWN_HOSTS=${_CUR_KNOWN_HOSTS}"
+        fi
     fi
 
     ## Append OpenBao vars if configured
