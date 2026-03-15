@@ -58,6 +58,7 @@ jobs:
             BRANCH=master
             IMAGE_SOURCE=https://github.com/${{ github.repository }}
             IMAGE_REF=ghcr.io/${{ steps.meta.outputs.owner }}/d-rymcg-tech:latest
+            GIT_SHA=${{ steps.meta.outputs.sha }}
           tags: |
             ghcr.io/${{ steps.meta.outputs.owner }}/d-rymcg-tech:${{ steps.meta.outputs.sha }}
             ghcr.io/${{ steps.meta.outputs.owner }}/d-rymcg-tech:latest
