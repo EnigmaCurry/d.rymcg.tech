@@ -579,7 +579,7 @@ cmd_init() {
     fi
 
     ## SSH details — pre-fill from existing config, then ssh config, then defaults
-    local SSH_CONFIG SSH_HOST SSH_PORT SSH_USER
+    local SSH_CONFIG="" SSH_HOST="" SSH_PORT="" SSH_USER=""
     local KNOWN_HOSTS=""
     local _ssh_default=yes
     [[ -n "${_EXISTING}" && -z "${_CUR_SSH_HOST}" ]] && _ssh_default=no
