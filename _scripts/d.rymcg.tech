@@ -469,6 +469,13 @@ __d.rymcg.tech_context_alias() {
     local ROOT_DIR=$(d.rymcg.tech info ROOT_DIR)
     __CONTEXT="${1}"
     __ALIAS="${2:-${1}}"
+    # Refuse to create alias if it would shadow a builtin, keyword, or command
+    local _existing
+    _existing=$(type -t "${__ALIAS}" 2>/dev/null || true)
+    if [[ -n "${_existing}" && "${_existing}" != "alias" ]]; then
+        echo "Warning: not creating context alias '${__ALIAS}' (would shadow ${_existing})" >&2
+        return 1
+    fi
     export __CONTEXT
     alias ${__ALIAS}="D_RYMCG_TECH_CONTEXT_ALIAS=${__ALIAS} d.rymcg.tech tmp-context ${__CONTEXT} d.rymcg.tech"
     complete -F __d.rymcg.tech_completions ${__ALIAS}
