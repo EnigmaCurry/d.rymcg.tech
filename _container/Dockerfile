@@ -112,6 +112,7 @@ ARG GIT_REPO=
 COPY --chown=1000:1000 . /home/user/git/vendor/enigmacurry/d.rymcg.tech
 RUN if [ -n "${BRANCH}" ] && [ -d .git ]; then git checkout "${BRANCH}"; fi && rm -rf .git \
  && ln -s /usr/local/bin/script-wizard _scripts/user/script-wizard \
+ && ln -s /usr/local/bin/script-wizard _scripts/script-wizard \
  && install -m 755 _container/drt /opt/drt \
  && install -m 755 _container/sign-ssh-cert /usr/local/bin/sign-ssh-cert \
  && install -m 755 _container/entrypoint.sh /entrypoint.sh
