@@ -233,6 +233,7 @@ Options:
   --git [ARGS]       Run git commands in ~/.config/d.rymcg.tech
   --pull             Pull latest image
   --build            Build image from git (branch from DRT_BUILD_BRANCH or image label)
+  --build-force      Build image with --no-cache (forces rebuild of all layers)
   --extract          Print this script to stdout (self-extraction)
   --image TAG        Container image (default: localhost/d-rymcg-tech:latest)
   --docker           Use Docker instead of Podman
@@ -257,6 +258,7 @@ EOF
     echo ""
     echo "One time setup (build from source):"
     echo "  drt --build            # rebuild from DRT_BUILD_BRANCH or last-built branch"
+    echo "  drt --build-force      # rebuild with --no-cache (forces all layers to rebuild)"
     echo "  alias drt='bash <(${ENGINE} run --rm --pull=never --net=none localhost/d-rymcg-tech:latest drt)'"
 }
 
@@ -1664,6 +1666,11 @@ cmd_edit() {
 DRT_GIT_REPO_DEFAULT="https://github.com/EnigmaCurry/d.rymcg.tech.git"
 
 cmd_build() {
+    local NO_CACHE=""
+    if [[ "${1:-}" == "--no-cache" ]]; then
+        NO_CACHE=1
+        shift
+    fi
     check_engine
 
     # Defaults from current image labels, overridable by env/args
@@ -1695,6 +1702,9 @@ cmd_build() {
     # Podman: use slirp4netns if pasta fails during build
     if [[ "${ENGINE}" == "podman" ]]; then
         BUILD_ARGS+=(--network=slirp4netns)
+    fi
+    if [[ -n "${NO_CACHE}" ]]; then
+        BUILD_ARGS+=(--no-cache)
     fi
     BUILD_ARGS+=(
         --build-arg "BRANCH=${BRANCH}"
@@ -2079,6 +2089,11 @@ while [[ $# -gt 0 ]]; do
             # Consume optional trailing args (e.g. context) — ignored for build
             while [[ $# -gt 0 ]]; do shift; done
             ;;
+        --build-force)
+            ACTION=build_force
+            shift
+            while [[ $# -gt 0 ]]; do shift; done
+            ;;
         --list)
             ACTION=list
             shift
@@ -2186,6 +2201,9 @@ case "${ACTION}" in
         ;;
     build)
         cmd_build "${ARGS[@]+"${ARGS[@]}"}"
+        ;;
+    build_force)
+        cmd_build --no-cache "${ARGS[@]+"${ARGS[@]}"}"
         ;;
     list)
         cmd_list
