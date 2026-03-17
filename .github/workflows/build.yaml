@@ -1,12 +1,12 @@
 ## d-rymcg-tech image builder (GitHub Actions)
-## Builds the Docker image from the master branch and pushes to ghcr.io.
+## Builds the Docker image from the workstation-ci-request branch and pushes to ghcr.io.
 ## No secrets configuration needed — uses the built-in GITHUB_TOKEN.
 
 name: Build d-rymcg-tech image
 
 on:
   push:
-    branches: [master]
+    branches: [workstation-ci-request]
   schedule:
     - cron: "0 0 * * 0"
   workflow_dispatch:
@@ -55,7 +55,7 @@ jobs:
           push: true
           platforms: linux/amd64,linux/arm64
           build-args: |
-            BRANCH=master
+            BRANCH=workstation-ci-request
             IMAGE_SOURCE=https://github.com/${{ github.repository }}
             IMAGE_REF=ghcr.io/${{ steps.meta.outputs.owner }}/d-rymcg-tech:latest
             GIT_SHA=${{ steps.meta.outputs.sha }}
