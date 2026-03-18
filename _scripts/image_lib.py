@@ -254,6 +254,28 @@ def retag_image(old_name: str, new_name: str, verbose: bool = False) -> bool:
     return result.returncode == 0
 
 
+def strip_registry_prefix(image: str) -> str:
+    """Strip registry and namespace prefix, keeping only the image name and tag.
+
+    Examples:
+        ghcr.io/enigmacurry/rigbook:latest -> rigbook:latest
+        docker.io/library/nginx:1.25       -> nginx:1.25
+        traefik-traefik:d-rymcg-tech-2025  -> traefik-traefik:d-rymcg-tech-2025
+        quay.io/org/sub/image:v1           -> image:v1
+    """
+    # Split off the tag/digest first
+    if "@" in image:
+        name, sep, digest = image.partition("@")
+        return strip_registry_prefix(name) + sep + digest
+    if ":" in image:
+        name, sep, tag = image.partition(":")
+    else:
+        name, sep, tag = image, "", ""
+    # Take the last path component as the image name
+    basename = name.rsplit("/", 1)[-1]
+    return basename + sep + tag
+
+
 def push_image(image: str, verbose: bool = False) -> bool:
     """Push an image to a remote registry."""
     result = run_cmd(["docker", "push", image], verbose=verbose)

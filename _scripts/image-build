@@ -22,7 +22,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 from image_lib import (
     ROOT_DIR, BUILD_SOURCES, get_docker_context, get_catalog, find_env_file,
     resolve_compose_images, build_service, pull_image, collect_images,
-    build_tag, retag_image, push_image, registry_login,
+    build_tag, retag_image, push_image, registry_login, strip_registry_prefix,
 )
 
 
@@ -115,7 +115,7 @@ def main():
             action = "build" if source in BUILD_SOURCES else "pull"
 
             if args.dry_run:
-                push_target = f" -> {args.registry}/{image}" if args.push and action == "build" else ""
+                push_target = f" -> {args.registry}/{strip_registry_prefix(image)}" if args.push and action == "build" else ""
                 print(f"  [{action}] {image}{push_target}")
                 if action == "build":
                     built += 1
@@ -142,7 +142,7 @@ def main():
                     built += 1
                     # Push to registry
                     if args.push:
-                        registry_image = f"{args.registry}/{image}"
+                        registry_image = f"{args.registry}/{strip_registry_prefix(image)}"
                         print(f"    Pushing {registry_image}...")
                         if not retag_image(image, registry_image, verbose=args.verbose):
                             print(f"    FAILED to retag for registry", file=sys.stderr)
