@@ -243,13 +243,12 @@ EOF
     fi
     non_template_commands_pattern="(help|completion|fmt|version)"
     if [[ "$@" == "" ]]; then
-        CMD="docker run --rm -i ${IMAGE} ytt help"
+        docker run --rm -i ${IMAGE} ytt help
     elif [[ "$1" =~ $non_template_commands_pattern ]]; then
-        CMD="docker run --rm -i ${IMAGE} ytt ${@}"
+        docker run --rm -i ${IMAGE} ytt "$@"
     else
-        CMD="docker run --rm -i ${IMAGE} ytt -f- ${@}"
+        docker run --rm -i ${IMAGE} ytt -f- "$@"
     fi
-    eval $CMD
 }
 
 yq() {
