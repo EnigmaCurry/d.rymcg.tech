@@ -16,6 +16,8 @@ when:
   - event: manual
     branch: workstation-ci-request
 
+skip_clone: true
+
 steps:
   - name: build-all
     image: woodpeckerci/plugin-docker-buildx
