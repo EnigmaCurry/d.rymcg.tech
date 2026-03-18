@@ -253,6 +253,26 @@ def retag_image(old_name: str, new_name: str, verbose: bool = False) -> bool:
     result = run_cmd(["docker", "tag", old_name, new_name], verbose=verbose)
     return result.returncode == 0
 
+
+def push_image(image: str, verbose: bool = False) -> bool:
+    """Push an image to a remote registry."""
+    result = run_cmd(["docker", "push", image], verbose=verbose)
+    return result.returncode == 0
+
+
+def registry_login(registry: str, username: str, password: str, verbose: bool = False) -> bool:
+    """Log in to a container registry."""
+    result = subprocess.run(
+        ["docker", "login", "-u", username, "--password-stdin", registry],
+        input=password, capture_output=True, text=True,
+    )
+    if result.returncode != 0:
+        print(f"ERROR: Failed to log in to {registry}", file=sys.stderr)
+        if verbose:
+            print(result.stderr, file=sys.stderr)
+        return False
+    return True
+
 def collect_images(
     catalog: list[dict],
     compose_images: dict[str, str],

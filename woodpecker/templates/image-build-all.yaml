@@ -1,0 +1,42 @@
+# image-build-all.yaml — Build all d.rymcg.tech project images and push to registry
+#
+# Required secrets (set in Woodpecker UI or CLI):
+#   registry          — Forgejo registry hostname (e.g. git.example.com)
+#   registry_username — Forgejo username
+#   registry_password — Forgejo access token with package:write scope
+#
+# The d-rymcg-tech image must be available at ${registry}/${CI_REPO_OWNER}/d-rymcg-tech:latest
+#
+# Uses d.rymcg.tech image-build --push to build all project images from the
+# catalog and push them to the configured registry.
+
+when:
+  - event: [cron, manual]
+    branch: ${CI_REPO_DEFAULT_BRANCH}
+
+steps:
+  - name: build-all
+    image: woodpeckerci/plugin-docker-buildx
+    privileged: true
+    environment:
+      REGISTRY:
+        from_secret: registry
+      REGISTRY_USERNAME:
+        from_secret: registry_username
+      REGISTRY_PASSWORD:
+        from_secret: registry_password
+    commands:
+      - |
+        set -e
+        IMAGE="$${REGISTRY}/${CI_REPO_OWNER}/d-rymcg-tech:latest"
+        dockerd &
+        sleep 3
+        echo "$${REGISTRY_PASSWORD}" | docker login -u "$${REGISTRY_USERNAME}" --password-stdin "$${REGISTRY}"
+        docker pull "$${IMAGE}"
+        docker run --rm \
+          -v /var/run/docker.sock:/var/run/docker.sock \
+          -e REGISTRY_USERNAME="$${REGISTRY_USERNAME}" \
+          -e REGISTRY_PASSWORD="$${REGISTRY_PASSWORD}" \
+          -e IMAGE_REGISTRY="$${REGISTRY}/${CI_REPO_OWNER}" \
+          "$${IMAGE}" \
+          image-build --push --verbose
