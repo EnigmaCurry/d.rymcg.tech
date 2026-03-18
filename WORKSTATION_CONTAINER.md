@@ -34,7 +34,7 @@ if podman image exists "${DRT_IMAGE}" 2>/dev/null; then
 else
   drt() {
     echo "## First run: building ${DRT_IMAGE} ..." >&2
-    podman build --network=slirp4netns \
+    podman build \
       --build-arg BRANCH="${DRT_BUILD_BRANCH}" \
       --build-arg GIT_REPO="${DRT_GIT_REPO}" \
       -t "${DRT_IMAGE}" -f _container/Dockerfile \
