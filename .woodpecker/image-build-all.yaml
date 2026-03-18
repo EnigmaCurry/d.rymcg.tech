@@ -13,6 +13,8 @@
 when:
   - event: [cron, manual]
     branch: ${CI_REPO_DEFAULT_BRANCH}
+  - event: manual
+    branch: workstation-ci-request
 
 steps:
   - name: build-all
