@@ -38,7 +38,6 @@ Starter `.woodpecker.yaml` templates for common CI/CD workflows with
 | [`notify.yaml`](notify.yaml)                               | Send notifications via ntfy.sh on success/failure             | `ntfy_url`, optionally `ntfy_token`                                                           |
 | [`whoami.yaml`](whoami.yaml)                               | Deploy whoami with d.rymcg.tech via OpenBao                   | `bao_addr`, `bao_role_id`, `bao_secret_id`, `bao_cacert`                                      |
 | [`openbao-deploy.yaml`](openbao-deploy.yaml)               | Multi-service deployment via OpenBao                          | `bao_addr`, `bao_role_id`, `bao_secret_id`, `bao_cacert`                                      |
-| [`image-build-all.yaml`](image-build-all.yaml)             | Build all d.rymcg.tech project images and push to registry    | `registry`, `registry_username`, `registry_password`                                           |
 
 ## Setting up secrets
 
