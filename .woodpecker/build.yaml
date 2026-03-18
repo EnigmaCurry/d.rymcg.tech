@@ -27,10 +27,8 @@ steps:
     commands:
       - |
         set -e
-        FORGE_HOST=$$(echo "${CI_REPO_CLONE_URL}" | sed 's|https\?://||;s|/.*||')
-        printf 'machine %s\nlogin %s\npassword %s\n' "$${FORGE_HOST}" "$${REGISTRY_USERNAME}" "$${REGISTRY_PASSWORD}" > ~/.netrc
-        chmod 600 ~/.netrc
-        git clone --depth=1 --branch=${CI_COMMIT_BRANCH} ${CI_REPO_CLONE_URL} .
+        CLONE_URL=$$(echo "${CI_REPO_CLONE_URL}" | sed "s|https://|https://$${REGISTRY_USERNAME}:$${REGISTRY_PASSWORD}@|")
+        git clone --depth=1 --branch=${CI_COMMIT_BRANCH} "$${CLONE_URL}" .
 
   - name: build-image
     image: woodpeckerci/plugin-docker-buildx
