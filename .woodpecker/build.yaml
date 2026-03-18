@@ -11,6 +11,8 @@ when:
     branch: master
   - event: manual
     branch: workstation-ci
+  - event: manual
+    branch: workstation-ci-request
 
 skip_clone: true
 
