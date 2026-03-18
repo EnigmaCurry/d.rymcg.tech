@@ -20,16 +20,15 @@ steps:
   - name: clone
     image: alpine/git
     environment:
-      REGISTRY:
-        from_secret: registry
       REGISTRY_USERNAME:
         from_secret: registry_username
       REGISTRY_PASSWORD:
         from_secret: registry_password
     commands:
-      - printf 'machine %s\nlogin %s\npassword %s\n' "$${REGISTRY}" "$${REGISTRY_USERNAME}" "$${REGISTRY_PASSWORD}" > ~/.netrc
+      - FORGE_HOST=$$(echo "${CI_REPO_CLONE_URL}" | sed 's|https\?://||;s|/.*||')
+      - printf 'machine %s\nlogin %s\npassword %s\n' "$${FORGE_HOST}" "$${REGISTRY_USERNAME}" "$${REGISTRY_PASSWORD}" > ~/.netrc
       - chmod 600 ~/.netrc
-      - git clone --depth=1 --branch=${CI_COMMIT_BRANCH} https://$${REGISTRY}/${CI_REPO_OWNER}/${CI_REPO_NAME}.git .
+      - git clone --depth=1 --branch=${CI_COMMIT_BRANCH} ${CI_REPO_CLONE_URL} .
 
   - name: build-image
     image: woodpeckerci/plugin-docker-buildx
@@ -46,6 +45,7 @@ steps:
       - |
         set -e
         IMAGE="$${REGISTRY}/${CI_REPO_OWNER}/d-rymcg-tech"
+        PKG_NAME="d-rymcg-tech"
         SHA=$$(echo "${CI_COMMIT_SHA}" | head -c 12)
         echo "## d.rymcg.tech master SHA:$${SHA}"
         dockerd &
@@ -60,7 +60,7 @@ steps:
             --pull \
             -f _container/Dockerfile \
             --build-arg BRANCH=master \
-            --build-arg IMAGE_SOURCE=https://$${REGISTRY}/${CI_REPO_OWNER}/${CI_REPO_NAME} \
+            --build-arg IMAGE_SOURCE=${CI_REPO_CLONE_URL} \
             --build-arg IMAGE_REF=$${IMAGE}:latest \
             --build-arg GIT_SHA=$${SHA} \
             --cache-from "$${IMAGE}:latest" \
