@@ -216,8 +216,8 @@ docker_ssh() {
 
 ytt() {
     set -e
-    if command -v ytt &>/dev/null; then
-        # Prefer local ytt binary
+    if type -P ytt &>/dev/null; then
+        # Prefer local ytt binary (type -P only matches external commands, not this function)
         local non_template_commands_pattern="(help|completion|fmt|version)"
         if [[ "$@" == "" ]]; then
             command ytt help
