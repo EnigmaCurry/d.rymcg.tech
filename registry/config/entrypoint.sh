@@ -8,6 +8,7 @@ CFG_DIR=/etc/docker/registry
 CFG_PATH=${CFG_DIR}/config.yml
 
 [ -d "$CFG_DIR" ] || mkdir -p "$CFG_DIR" || die "cannot mkdir $CFG_DIR"
+chmod 0755 "$CFG_DIR" 2>/dev/null || true
 [ -w "$CFG_DIR" ] || die "config dir not writable: $CFG_DIR (is the volume mounted?)"
 
 STORAGE_BACKEND=${REGISTRY_STORAGE_BACKEND:-docker}
