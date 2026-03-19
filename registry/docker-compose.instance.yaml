@@ -19,6 +19,8 @@
 
 #! ### Custom project vars
 #@ s3_storage = data.values.storage_backend == "s3"
+#@ external_volume = data.values.external_volume.strip()
+#@ use_external_volume = len(external_volume) > 0
 #@ enable_public = data.values.public == "true"
 #@ enable_pull_http_auth = len(data.values.pull_http_auth.strip()) > 0
 #@ pull_http_auth = data.values.pull_http_auth
@@ -34,7 +36,11 @@ services:
       - REGISTRY_HTTP_SECRET=${REGISTRY_HTTP_SECRET}
     #@ if not s3_storage:
     volumes:
+      #@ if use_external_volume:
+      - (@= external_volume @):/var/lib/registry
+      #@ else:
       - registry:/var/lib/registry
+      #@ end
     #@ end
     labels:
       - "backup-volume.stop-during-backup=true"
@@ -116,3 +122,9 @@ services:
 
       - "traefik.http.routers.(@= router_pull @).middlewares=(@= ','.join(pull_middlewares) @)"
       #@ end
+
+#@ if use_external_volume and not s3_storage:
+volumes:
+  (@= external_volume @):
+    external: true
+#@ end
