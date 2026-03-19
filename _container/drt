@@ -1032,7 +1032,7 @@ cmd_run() {
     elif [[ -n "${SSH_AUTH_SOCK:-}" ]]; then
         echo "## SSH: forwarding agent (${SSH_AUTH_SOCK})" >&2
         RUN_ARGS+=(
-            -v "${SSH_AUTH_SOCK}:/run/ssh-agent.sock"
+            -v "${SSH_AUTH_SOCK}:/run/ssh-agent.sock:ro"
             -e "SSH_AUTH_SOCK=/run/ssh-agent.sock"
         )
     else

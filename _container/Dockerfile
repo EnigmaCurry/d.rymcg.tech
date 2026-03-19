@@ -47,6 +47,7 @@ RUN apk add --no-cache \
     gcompat \
     libgcc \
     su-exec \
+    socat \
     util-linux \
     bash-completion
 

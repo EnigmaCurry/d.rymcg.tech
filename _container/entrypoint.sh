@@ -749,10 +749,15 @@ find "${ROOT_DIR}" \( -name ".env_*" -o -name "passwords.json" \) -exec chown "$
 chown -R "${RUNTIME_UID}:${RUNTIME_GID}" "${HOME}/.config/d.rymcg.tech/gumdrop-presets" 2>/dev/null || true
 chown "${RUNTIME_UID}:${RUNTIME_GID}" "${HOME}/.motd" 2>/dev/null || true
 
-# Make SSH agent socket accessible
+# Make SSH agent socket accessible to the runtime user via socat proxy.
+# We cannot chown/chmod the bind-mounted socket — in rootless podman that
+# changes the host file's ownership to a sub-UID.  Instead, create a new
+# socket owned by the runtime user that relays to the original.
 if [[ -S "${SSH_AUTH_SOCK:-}" ]]; then
-    chown "${RUNTIME_UID}:${RUNTIME_GID}" "${SSH_AUTH_SOCK}" 2>/dev/null || true
-    chmod 600 "${SSH_AUTH_SOCK}" 2>/dev/null || true
+    _PROXY_SOCK="/run/ssh-agent-user.sock"
+    socat "UNIX-LISTEN:${_PROXY_SOCK},fork,user=${RUNTIME_UID},group=${RUNTIME_GID},mode=600" \
+          "UNIX-CONNECT:${SSH_AUTH_SOCK}" &
+    export SSH_AUTH_SOCK="${_PROXY_SOCK}"
 fi
 
 # Fix TTY ownership so the runtime user can write to /dev/stderr, /dev/stdout
