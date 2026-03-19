@@ -28,7 +28,8 @@ elif [ "$STORAGE_BACKEND" = "s3" ]; then
     accesskey: ${REGISTRY_STORAGE_S3_ACCESSKEY}
     secretkey: ${REGISTRY_STORAGE_S3_SECRETKEY}
     secure: true
-    v4auth: true"
+    v4auth: true
+    chunksize: 33554432"
 else
     die "unknown storage backend: $STORAGE_BACKEND"
 fi
