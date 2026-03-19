@@ -124,6 +124,7 @@ services:
       #@ end
 
 #@ if use_external_volume and not s3_storage:
+#@yaml/text-templated-strings
 volumes:
   (@= external_volume @):
     external: true
