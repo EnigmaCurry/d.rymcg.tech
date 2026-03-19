@@ -471,12 +471,12 @@ d.rymcg.tech make traefik reconfigure var=TRAEFIK_ACME_SH_ACME_DIRECTORY=/direct
 d.rymcg.tech make traefik reconfigure var=TRAEFIK_ACME_SH_ACME_DNS_BASE_URL=https://auth.acme-dns.io
 ```
 
-The `DOCKER_COMPOSE_PROFILES` must include `acme-sh`. The
+The `TRAEFIK_DOCKER_COMPOSE_PROFILES` must include `acme-sh`. The
 `compose-profiles` target handles this automatically during
 interactive config, but non-interactively you must set it:
 
 ```bash
-d.rymcg.tech make traefik reconfigure var=DOCKER_COMPOSE_PROFILES=default,error_pages,acme-sh
+d.rymcg.tech make traefik reconfigure var=TRAEFIK_DOCKER_COMPOSE_PROFILES=default,error_pages,acme-sh
 ```
 
 #### Install Traefik
