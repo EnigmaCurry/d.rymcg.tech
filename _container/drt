@@ -404,6 +404,8 @@ cmd_init() {
 
                 echo "Generating FIDO2 AGE identity on ${FIDO2_DEV}..."
                 echo "You will be prompted for your FIDO2 PIN and to touch the key."
+                echo "(When asked about 'separate identity', answer YES — it is required"
+                echo " for SOPS-based decryption.)"
                 local FIDO2_DIR
                 FIDO2_DIR=$(mktemp -d)
                 if container_run -it --user 0:0 \
@@ -412,6 +414,15 @@ cmd_init() {
                     -v "${FIDO2_DIR}:/tmp/fido2-work:Z" \
                     "${IMAGE}" sh -c 'age-plugin-fido2-hmac -g > /tmp/fido2-work/identity' \
                     && [[ -s "${FIDO2_DIR}/identity" ]]; then
+                    # Verify the identity file contains a FIDO2 identity line
+                    # (discoverable/resident credentials lack this and won't work with SOPS)
+                    if ! grep -q 'AGE-PLUGIN-FIDO2-HMAC' "${FIDO2_DIR}/identity"; then
+                        rm -rf "${FIDO2_DIR}"
+                        echo "Error: generated identity lacks AGE-PLUGIN-FIDO2-HMAC data." >&2
+                        echo "  You must answer YES to the 'separate identity' prompt." >&2
+                        echo "  Discoverable (resident) credentials are not supported." >&2
+                        exit 1
+                    fi
                     cat "${FIDO2_DIR}/identity" >> "${AGE_KEY_FILE}"
                     echo "" >> "${AGE_KEY_FILE}"
                     local _this_pubkey
