@@ -14,6 +14,7 @@ config-hook:
 	@${BIN}/reconfigure_password ${ENV_FILE} REGISTRY_HTTP_SECRET
 	@echo
 	@echo "By default, Registry storage uses a Docker volume. Optionally, you can use an S3 bucket."
+	@echo "(NOTE: S3 storage is EXPERIMENTAL and may not work with all S3 providers.)"
 	@${BIN}/reconfigure_choose ${ENV_FILE} REGISTRY_STORAGE_BACKEND "Choose the storage backend:" "docker" "s3"
 	@[[ $$(${BIN}/dotenv -f ${ENV_FILE} get REGISTRY_STORAGE_BACKEND) == "s3" ]] && \
 		${BIN}/reconfigure_ask ${ENV_FILE} REGISTRY_STORAGE_S3_ENDPOINT "Enter the S3 endpoint URL" && \
