@@ -2,11 +2,11 @@
 ## Builds the Docker image from the master branch.
 ##
 ## Required Woodpecker secrets:
-##   registry          - Forgejo registry hostname
-##   registry_username - Forgejo username (for pushing image)
-##   registry_password - Forgejo token with write:package scope
+##   registry          - Docker registry hostname
+##   registry_username - Registry username
+##   registry_password - Registry password or token
 ##   forge_username    - Forgejo username (for cloning repo)
-##   forge_token    - Forgejo token with read:repository scope
+##   forge_token       - Forgejo token with read:repository scope
 
 when:
   - event: [push, cron, manual]
@@ -43,11 +43,9 @@ steps:
       REGISTRY_PASSWORD:
         from_secret: registry_password
     commands:
-      - apk add --no-cache curl jq
       - |
         set -e
-        IMAGE="$${REGISTRY}/${CI_REPO_OWNER}/d-rymcg-tech"
-        PKG_NAME="d-rymcg-tech"
+        IMAGE="$${REGISTRY}/d-rymcg-tech"
         SHA=$$(echo "${CI_COMMIT_SHA}" | head -c 12)
         echo "## d.rymcg.tech master SHA:$${SHA}"
         dockerd &
@@ -70,24 +68,6 @@ steps:
             -t "$${IMAGE}:$${SHA}" \
             -t "$${IMAGE}:latest" \
             .
-          # Clean up old versions (loop until only current SHA + latest remain)
-          echo "## Cleaning up old image versions"
-          for i in $$(seq 1 20); do
-            DELETED=0
-            VERSIONS=$$(curl -sf -u "$${REGISTRY_USERNAME}:$${REGISTRY_PASSWORD}" \
-              "https://$${REGISTRY}/api/v1/packages/${CI_REPO_OWNER}?type=container&q=$${PKG_NAME}" \
-              | jq -r '.[].version') || break
-            for TAG in $${VERSIONS}; do
-              case "$${TAG}" in
-                latest|"$${SHA}") continue ;;
-              esac
-              echo "  Deleting: $${TAG}"
-              curl -sf -X DELETE -u "$${REGISTRY_USERNAME}:$${REGISTRY_PASSWORD}" \
-                "https://$${REGISTRY}/api/v1/packages/${CI_REPO_OWNER}/container/$${PKG_NAME}/$${TAG}" || true
-              DELETED=1
-            done
-            [ "$${DELETED}" -eq 0 ] && break
-          done
         fi
         sync
         sleep 2
