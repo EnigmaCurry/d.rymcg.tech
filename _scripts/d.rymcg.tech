@@ -613,6 +613,16 @@ __completion() {
     fi
 }
 
+# Sort associative array keys longest-first so e.g. WIREGUARD_GATEWAY matches before WIREGUARD
+# Usage: _sort_prefixes_by_length prefix_to_dir sorted_prefixes
+_sort_prefixes_by_length() {
+    local -n _map=$1 _out=$2
+    _out=()
+    while IFS= read -r p; do
+        _out+=("${p}")
+    done < <(printf '%s\n' "${!_map[@]}" | awk '{print length, $0}' | sort -rn | cut -d' ' -f2-)
+}
+
 __template_env() {
     if [[ $# -eq 0 ]]; then
         echo "Usage: d.rymcg.tech template-env KEY=VALUE [KEY=VALUE ...]" >&2
@@ -645,6 +655,9 @@ __template_env() {
         dir_to_prefix["${project_name}"]="${prefix}"
     done
 
+    local sorted_prefixes=()
+    _sort_prefixes_by_length prefix_to_dir sorted_prefixes
+
     # Auto-discover projects from args and collect instance overrides
     declare -A instance_vars
     declare -A project_instances
@@ -658,7 +671,7 @@ __template_env() {
             local original_key="${stripped#*__}"
             local val="${arg#*=}"
             instance_vars["${instance}:${original_key}"]="${val}"
-            for prefix in "${!prefix_to_dir[@]}"; do
+            for prefix in "${sorted_prefixes[@]}"; do
                 if [[ "${original_key}" == "${prefix}_"* ]]; then
                     local pname="${prefix_to_dir[${prefix}]}"
                     discovered_projects["${pname}"]=1
@@ -669,7 +682,7 @@ __template_env() {
                 fi
             done
         else
-            for prefix in "${!prefix_to_dir[@]}"; do
+            for prefix in "${sorted_prefixes[@]}"; do
                 if [[ "${key}" == "${prefix}_"* ]]; then
                     discovered_projects["${prefix_to_dir[${prefix}]}"]=1
                     break
@@ -1059,6 +1072,9 @@ __restore_env() {
         [[ -n "${prefix}" ]] && prefix_to_dir["${prefix}"]="${project_name}"
     done < <(grep -m1 '# PREFIX=' */.env-dist 2>/dev/null)
 
+    local sorted_prefixes=()
+    _sort_prefixes_by_length prefix_to_dir sorted_prefixes
+
     # Get known root var names
     declare -A root_vars
     while IFS= read -r line; do
@@ -1130,7 +1146,7 @@ __restore_env() {
             local stripped="${key#__}"
             local instance="${stripped%%__*}"
             local original_key="${stripped#*__}"
-            for prefix in "${!prefix_to_dir[@]}"; do
+            for prefix in "${sorted_prefixes[@]}"; do
                 if [[ "${original_key}" == "${prefix}_"* ]]; then
                     local project_name="${prefix_to_dir[${prefix}]}"
                     local target_file="${project_name}/.env_${ctx}_${instance}"
@@ -1154,7 +1170,7 @@ __restore_env() {
             file_vars["${target_file}"]+=$'\n'"${key}=${val}"
         # Default-instance project var
         else
-            for prefix in "${!prefix_to_dir[@]}"; do
+            for prefix in "${sorted_prefixes[@]}"; do
                 if [[ "${key}" == "${prefix}_"* ]]; then
                     local project_name="${prefix_to_dir[${prefix}]}"
                     local target_file="${project_name}/.env_${ctx}_default"
