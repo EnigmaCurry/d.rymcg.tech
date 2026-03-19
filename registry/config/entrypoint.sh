@@ -58,7 +58,9 @@ health:
     threshold: 3
 EOF
 
-rm -f "$CFG_PATH"
+if [ -f "$CFG_PATH" ]; then
+    rm "$CFG_PATH" || chmod 0644 "$CFG_PATH"
+fi
 mv "$TMP" "$CFG_PATH"
 chmod 0444 "$CFG_PATH"
 log "wrote $CFG_PATH"
