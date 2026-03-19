@@ -35,8 +35,11 @@ else
     die "unknown storage backend: $STORAGE_BACKEND"
 fi
 
-TMP=$(mktemp)
-cat > "$TMP" <<EOF
+if [ -f "$CFG_PATH" ]; then
+    rm "$CFG_PATH" 2>/dev/null || chmod 0644 "$CFG_PATH"
+fi
+
+cat > "$CFG_PATH" <<EOF
 version: 0.1
 log:
   fields:
@@ -58,9 +61,5 @@ health:
     threshold: 3
 EOF
 
-if [ -f "$CFG_PATH" ]; then
-    rm "$CFG_PATH" || chmod 0644 "$CFG_PATH"
-fi
-mv "$TMP" "$CFG_PATH"
 chmod 0444 "$CFG_PATH"
 log "wrote $CFG_PATH"
