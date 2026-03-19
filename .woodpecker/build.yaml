@@ -4,7 +4,9 @@
 ## Required Woodpecker secrets:
 ##   registry          - Forgejo registry hostname
 ##   registry_username - Forgejo username (for pushing image)
-##   registry_password - Forgejo token with read:repository and write:package scopes
+##   registry_password - Forgejo token with write:package scope
+##   forge_username    - Forgejo username (for cloning repo)
+##   forge_password    - Forgejo token with read:repository scope
 
 when:
   - event: [push, cron, manual]
@@ -20,14 +22,14 @@ steps:
   - name: clone
     image: alpine/git
     environment:
-      REGISTRY_USERNAME:
-        from_secret: registry_username
-      REGISTRY_PASSWORD:
-        from_secret: registry_password
+      FORGE_USERNAME:
+        from_secret: forge_username
+      FORGE_PASSWORD:
+        from_secret: forge_password
     commands:
       - |
         set -e
-        CLONE_URL=$$(echo "${CI_REPO_CLONE_URL}" | sed "s|https://|https://$${REGISTRY_USERNAME}:$${REGISTRY_PASSWORD}@|")
+        CLONE_URL=$$(echo "${CI_REPO_CLONE_URL}" | sed "s|https://|https://$${FORGE_USERNAME}:$${FORGE_PASSWORD}@|")
         git clone --depth=1 --branch=${CI_COMMIT_BRANCH} "$${CLONE_URL}" .
 
   - name: build-image
