@@ -51,6 +51,9 @@ steps:
         dockerd &
         sleep 3
         echo "$${REGISTRY_PASSWORD}" | docker login -u "$${REGISTRY_USERNAME}" --password-stdin "$${REGISTRY}"
+        # Pull existing image early to validate auth and warm layer cache
+        echo "## Pulling $${IMAGE}:latest for cache..."
+        docker pull "$${IMAGE}:latest" || echo "## No existing image found (first build)"
         if docker buildx imagetools inspect "$${IMAGE}:$${SHA}" >/dev/null 2>&1; then
           echo "## Image $${IMAGE}:$${SHA} already exists, skipping build"
         else
