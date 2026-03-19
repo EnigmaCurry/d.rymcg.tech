@@ -1722,9 +1722,12 @@ cmd_build() {
     if [[ -n "${NO_CACHE}" ]]; then
         BUILD_ARGS+=(--no-cache)
     fi
+    local GIT_SHA
+    GIT_SHA=$(git -C "${_DRT_BUILD_DIR}/src" rev-parse --short HEAD 2>/dev/null || echo "unknown")
     BUILD_ARGS+=(
         --build-arg "BRANCH=${BRANCH}"
         --build-arg "GIT_REPO=${REPO}"
+        --build-arg "GIT_SHA=${GIT_SHA}"
         -f "${_DRT_BUILD_DIR}/src/_container/Dockerfile"
         -t "${IMAGE}"
         "${_DRT_BUILD_DIR}/src"

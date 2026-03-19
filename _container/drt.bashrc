@@ -8,10 +8,13 @@ drt() {
   if ! podman image exists "${DRT_IMAGE}" 2>/dev/null; then
     echo "## First run: building ${DRT_IMAGE}" \
       "from ${DRT_GIT_REPO}#${DRT_BUILD_BRANCH} ..." >&2
+    local git_sha
+    git_sha=$(git ls-remote "${DRT_GIT_REPO}" "refs/heads/${DRT_BUILD_BRANCH}" | cut -c1-12)
     podman build \
       --network=slirp4netns \
       --build-arg BRANCH="${DRT_BUILD_BRANCH}" \
       --build-arg GIT_REPO="${DRT_GIT_REPO}" \
+      --build-arg GIT_SHA="${git_sha:-unknown}" \
       -t "${DRT_IMAGE}" \
       -f _container/Dockerfile \
       "${DRT_GIT_REPO}#${DRT_BUILD_BRANCH}"
