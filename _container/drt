@@ -415,7 +415,7 @@ cmd_init() {
                     cat "${FIDO2_DIR}/identity" >> "${AGE_KEY_FILE}"
                     echo "" >> "${AGE_KEY_FILE}"
                     local _this_pubkey
-                    _this_pubkey=$(grep -o 'age1[a-z0-9]*' "${FIDO2_DIR}/identity" | head -1)
+                    _this_pubkey=$(grep -o 'age1[a-z0-9-]*' "${FIDO2_DIR}/identity" | head -1)
                     ALL_PUBKEYS+=("${_this_pubkey}")
                     echo "${FIDO2_HID_ID}" >> "${FIDO2_ID_FILE}"
                     echo "FIDO2 key enrolled (${_this_pubkey:0:20}...)"
@@ -501,9 +501,9 @@ cmd_init() {
             fi
         elif [[ "${_KEY_TYPE}" == "fido2" ]]; then
             ## FIDO2 key: extract public key from identity comments
-            PUBKEY=$(grep -o 'age1[a-z0-9]*' "${AGE_KEY_FILE}" | paste -sd,)
+            PUBKEY=$(grep -o 'age1[a-z0-9-]*' "${AGE_KEY_FILE}" | paste -sd,)
         else
-            PUBKEY=$(grep -o 'age1[a-z0-9]*' "${AGE_KEY_FILE}" | head -1)
+            PUBKEY=$(grep -o 'age1[a-z0-9-]*' "${AGE_KEY_FILE}" | head -1)
             echo "WARNING: AGE key is NOT password-protected."
         fi
     fi
@@ -1065,10 +1065,15 @@ cmd_run() {
     if [[ "${VERBOSE}" == true ]]; then
         echo "## Full command: ${ENGINE} ${RUN_ARGS[*]}" >&2
     fi
+    local rc=0
     if [[ "${ENGINE}" == "docker" ]]; then
-        "${ENGINE}" --context default "${RUN_ARGS[@]}" || true
+        "${ENGINE}" --context default "${RUN_ARGS[@]}" || rc=$?
     else
-        "${ENGINE}" "${RUN_ARGS[@]}" || true
+        "${ENGINE}" "${RUN_ARGS[@]}" || rc=$?
+    fi
+    if [[ ${rc} -ne 0 ]]; then
+        echo "## container exited with error (exit code ${rc}) — skipping auto-commit" >&2
+        return ${rc}
     fi
     git_auto_commit "update context: ${CONTEXT_NAME:-unknown}"
 }

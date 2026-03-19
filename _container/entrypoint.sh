@@ -452,7 +452,7 @@ if [[ -z "${SOPS_AGE_RECIPIENTS:-}" ]]; then
     if [[ -n "${SOPS_AGE_KEY_FILE:-}" && -f "${SOPS_AGE_KEY_FILE}" ]]; then
         # FIDO2 identity files have "# recipient: age1..." comments
         if grep -q 'AGE-PLUGIN-FIDO2-HMAC' "${SOPS_AGE_KEY_FILE}" 2>/dev/null; then
-            SOPS_AGE_RECIPIENTS=$(grep -o 'age1[a-z0-9]*' "${SOPS_AGE_KEY_FILE}" 2>/dev/null | paste -sd,)
+            SOPS_AGE_RECIPIENTS=$(grep -o 'age1[a-z0-9-]*' "${SOPS_AGE_KEY_FILE}" 2>/dev/null | paste -sd,)
         else
             SOPS_AGE_RECIPIENTS=$(age-keygen -y "${SOPS_AGE_KEY_FILE}" 2>/dev/null || true)
         fi
