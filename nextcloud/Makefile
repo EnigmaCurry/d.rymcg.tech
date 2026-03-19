@@ -58,7 +58,7 @@ build:
 	docker compose --env-file=${ENV_FILE} build
 	@make -e --no-print-directory override instance=${INSTANCE}
 	@[[ -z "${NO_HOOKS}" ]] && make --no-print-directory build-hook-pre-rule-exists 2>/dev/null && make --no-print-directory build-hook-pre || true
-	@export COMPOSE_PROFILES="$${NEXTCLOUD_DOCKER_COMPOSE_PROFILES:-$$(${BIN}/dotenv -f "${ENV_FILE}" get NEXTCLOUD_DOCKER_COMPOSE_PROFILES)}"; make --no-print-directory docker-compose-build EXTRA_ARGS="${EXTRA_ARGS}"
+	@export COMPOSE_PROFILES="$$(${BIN}/dotenv -f "${ENV_FILE}" get NEXTCLOUD_DOCKER_COMPOSE_PROFILES)"; make --no-print-directory docker-compose-build EXTRA_ARGS="${EXTRA_ARGS}"
 	@[[ -z "${NO_HOOKS}" ]] && make --no-print-directory build-hook-post-rule-exists 2>/dev/null && make --no-print-directory build-hook-post || true
 
 #.PHONY: included-build
