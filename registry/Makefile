@@ -227,4 +227,4 @@ install-hook:
 
 .PHONY: install-hook-pre
 install-hook-pre:
-	@echo
+	@make --no-print-directory docker-compose-lifecycle-cmd EXTRA_ARGS="rm -sf config"
