@@ -54,23 +54,17 @@ steps:
         # Pull existing image early to validate auth and warm layer cache
         echo "## Pulling $${IMAGE}:latest for cache..."
         docker pull "$${IMAGE}:latest" || echo "## No existing image found (first build)"
-        if docker buildx imagetools inspect "$${IMAGE}:$${SHA}" >/dev/null 2>&1; then
-          echo "## Image $${IMAGE}:$${SHA} already exists, skipping build"
-        else
-          echo "## Building $${IMAGE}:$${SHA}"
-          docker buildx create --name builder --use
-          docker buildx build --push \
-            --pull \
-            -f _container/Dockerfile \
-            --build-arg BRANCH=master \
-            --build-arg IMAGE_SOURCE=${CI_REPO_CLONE_URL} \
-            --build-arg IMAGE_REF=$${IMAGE}:latest \
-            --build-arg GIT_SHA=$${SHA} \
-            --cache-from "$${IMAGE}:latest" \
-            --cache-to type=inline \
-            -t "$${IMAGE}:$${SHA}" \
-            -t "$${IMAGE}:latest" \
-            .
-        fi
-        sync
-        sleep 2
+        echo "## Building $${IMAGE}:$${SHA}"
+        docker build \
+          --pull \
+          -f _container/Dockerfile \
+          --build-arg BRANCH=master \
+          --build-arg IMAGE_SOURCE=${CI_REPO_CLONE_URL} \
+          --build-arg IMAGE_REF=$${IMAGE}:latest \
+          --build-arg GIT_SHA=$${SHA} \
+          -t "$${IMAGE}:$${SHA}" \
+          -t "$${IMAGE}:latest" \
+          .
+        echo "## Pushing $${IMAGE}:$${SHA}"
+        docker push "$${IMAGE}:$${SHA}"
+        docker push "$${IMAGE}:latest"
