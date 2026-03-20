@@ -737,6 +737,7 @@ EDITOREOF
                 if EDITOR="${_SOPS_EDITOR}" sops \
                        --input-type dotenv --output-type dotenv \
                        "${_SOPS_BIND_PATH}" && \
+                   chown "${RUNTIME_UID}:${RUNTIME_GID}" "${_SOPS_BIND_PATH}" && \
                    chmod 600 "${_SOPS_BIND_PATH}"; then
                     echo "ok" > "${_SOPS_SAVE_RESPONSE}"
                 else

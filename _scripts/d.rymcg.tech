@@ -1043,7 +1043,7 @@ __export_env() {
             local dcf_rel="${dcf#${drt_config_dir}/}"
             # Skip SOPS configs, AGE keys, and git metadata
             case "${dcf_rel}" in
-                config/*|keys/*|.git/*|.gitignore|net-mode) continue ;;
+                config/*|keys/*|.git/*|.gitignore|net-mode|*.sops.env) continue ;;
             esac
             if [[ "${drt_config_found}" == false ]]; then
                 plaintext+=$'\n'"## drt user config"$'\n'
