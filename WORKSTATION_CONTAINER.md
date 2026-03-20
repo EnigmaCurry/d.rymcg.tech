@@ -26,6 +26,7 @@ Add this to your RC file (`~/.bashrc`, `~/.bash_profile`, or
 : "${DRT_GIT_REPO:=https://github.com/EnigmaCurry/d.rymcg.tech.git}"
 : "${DRT_BUILD_BRANCH:=master}"
 : "${DRT_IMAGE:=localhost/d-rymcg-tech:latest}"
+## Uncomment to install extra CLI tools and/or add container capabilities:
 #: "${DRT_INSTALL_EXTRAS:=doctl,aws,gh,rclone,mc,step,wireguard}"
 #: "${DRT_CAP_ADD:=NET_ADMIN}"
 
