@@ -140,6 +140,13 @@ git_auto_pull() {
     local remote
     remote=$(git -C "${CONFIG_BASE}" remote 2>/dev/null | head -1)
     [[ -n "${remote}" ]] || return 0
+    if [[ -t 0 ]]; then
+        read -rp "## git: pull from ${remote}? [Y/n] " _pull_answer
+        if [[ "${_pull_answer}" =~ ^[Nn]$ ]]; then
+            echo "## git: pull skipped" >&2
+            return 0
+        fi
+    fi
     echo "## git: fetching from ${remote} ..." >&2
     if ! git -C "${CONFIG_BASE}" fetch "${remote}" 2>&1; then
         echo "" >&2
