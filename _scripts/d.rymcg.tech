@@ -960,6 +960,24 @@ __export_env() {
         plaintext+="__mc_config__=${mc_data}"$'\n'
     fi
 
+    # Serialize wireguard configs if present
+    local wg_dir="${HOME}/.config/wireguard"
+    if [[ -d "${wg_dir}" ]]; then
+        local wg_has_files=false
+        for wg_file in "${wg_dir}"/*.conf; do
+            [[ -f "${wg_file}" ]] || continue
+            if [[ "${wg_has_files}" == false ]]; then
+                plaintext+=$'\n'"## wireguard configs"$'\n'
+                wg_has_files=true
+            fi
+            local wg_name
+            wg_name=$(basename "${wg_file}")
+            local wg_data
+            wg_data=$(gzip -cn < "${wg_file}" | base64 -w 0)
+            plaintext+="__wireguard__${wg_name}=${wg_data}"$'\n'
+        done
+    fi
+
     # Serialize user SSH config if present (excludes auto-generated config-drt)
     if [[ -f "${HOME}/.ssh/config" ]]; then
         local ssh_data
@@ -1126,6 +1144,7 @@ __restore_env() {
     declare -A password_files  # "project/passwords.json" → base64 data
     declare -A ssh_key_files   # "filename" → base64 data
     declare -A gumdrop_preset_files  # "filename" → base64 data
+    declare -A wireguard_files  # "filename" → base64 data
     local doctl_config_b64=""
     local aws_credentials_b64=""
     local aws_config_b64=""
@@ -1191,6 +1210,13 @@ __restore_env() {
         if [[ "${key}" == __gumdrop_preset__* ]]; then
             local gf_name="${key#__gumdrop_preset__}"
             gumdrop_preset_files["${gf_name}"]="${val}"
+            continue
+        fi
+
+        # Serialized wireguard configs: __wireguard__<filename>=<base64>
+        if [[ "${key}" == __wireguard__* ]]; then
+            local wg_name="${key#__wireguard__}"
+            wireguard_files["${wg_name}"]="${val}"
             continue
         fi
 
@@ -1406,6 +1432,17 @@ __restore_env() {
             echo "## Restoring ${gumdrop_dir}/${gf_name}" >&2
             _b64_decode "${gumdrop_preset_files[${gf_name}]}" > "${gumdrop_dir}/${gf_name}"
             chmod 600 "${gumdrop_dir}/${gf_name}"
+        done
+    fi
+
+    # Restore wireguard configs if present
+    if [[ ${#wireguard_files[@]} -gt 0 ]]; then
+        local wg_dir="${HOME}/.config/wireguard"
+        mkdir -p "${wg_dir}"
+        for wg_name in "${!wireguard_files[@]}"; do
+            echo "## Restoring ${wg_dir}/${wg_name}" >&2
+            _b64_decode "${wireguard_files[${wg_name}]}" > "${wg_dir}/${wg_name}"
+            chmod 600 "${wg_dir}/${wg_name}"
         done
     fi
 
