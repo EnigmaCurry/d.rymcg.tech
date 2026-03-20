@@ -54,7 +54,7 @@ RUN apk add --no-cache \
 # Install uv (Python package manager)
 RUN curl -fsSL https://astral.sh/uv/install.sh | UV_INSTALL_DIR=/usr/local/bin sh
 
-# Install optional CLI tools (comma-separated list, e.g. "doctl,aws,gh,rclone,mc,step")
+# Install optional CLI tools (comma-separated list, e.g. "doctl,aws,gh,rclone,mc,step,wireguard")
 ARG INSTALL_EXTRAS=
 RUN set -e; \
     for tool in $(echo "${INSTALL_EXTRAS}" | tr ',' ' '); do \
@@ -89,6 +89,7 @@ RUN set -e; \
           esac; \
           curl -fsSL "https://github.com/smallstep/cli/releases/latest/download/step_linux_${ARCH}.tar.gz" \
             | tar xz -C /usr/local/bin --strip-components=2 "step_linux_${ARCH}/bin/step" ;; \
+        wireguard) apk add --no-cache wireguard-tools ;; \
         *) echo "Unknown extra tool: ${tool}" >&2; exit 1 ;; \
       esac; \
     done
