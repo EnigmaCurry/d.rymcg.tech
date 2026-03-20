@@ -781,6 +781,11 @@ if [[ -t 0 ]]; then
     chown "${RUNTIME_UID}:${RUNTIME_GID}" "$(tty)" 2>/dev/null || true
 fi
 
+# Re-initialize resolvconf if available (podman overwrites /etc/resolv.conf at startup)
+if command -v resolvconf &>/dev/null; then
+    resolvconf -u 2>/dev/null || true
+fi
+
 export DRT_CONTEXT="${DOCKER_CONTEXT}"
 unset DOCKER_CONTEXT
 cd "${HOME}"
