@@ -906,7 +906,7 @@ __export_env() {
         local project="${env_file%%/*}"
         [[ -n "${seen_projects[${project}]+set}" ]] && continue
         seen_projects["${project}"]=1
-        if [[ -f "${project}/passwords.json" ]]; then
+        if [[ -r "${project}/passwords.json" ]]; then
             local pw_data
             pw_data=$(gzip -cn < "${project}/passwords.json" | base64 -w 0)
             plaintext+=$'\n'"## ${project}/passwords.json"$'\n'
@@ -915,7 +915,7 @@ __export_env() {
     done
 
     # Serialize doctl config if present
-    if [[ -f "${HOME}/.config/doctl/config.yaml" ]]; then
+    if [[ -r "${HOME}/.config/doctl/config.yaml" ]]; then
         local doctl_data
         doctl_data=$(gzip -cn < "${HOME}/.config/doctl/config.yaml" | base64 -w 0)
         plaintext+=$'\n'"## doctl config"$'\n'
@@ -923,13 +923,13 @@ __export_env() {
     fi
 
     # Serialize AWS CLI config if present
-    if [[ -f "${HOME}/.aws/credentials" ]]; then
+    if [[ -r "${HOME}/.aws/credentials" ]]; then
         local aws_creds_data
         aws_creds_data=$(gzip -cn < "${HOME}/.aws/credentials" | base64 -w 0)
         plaintext+=$'\n'"## aws config"$'\n'
         plaintext+="__aws_credentials__=${aws_creds_data}"$'\n'
     fi
-    if [[ -f "${HOME}/.aws/config" ]]; then
+    if [[ -r "${HOME}/.aws/config" ]]; then
         local aws_config_data
         aws_config_data=$(gzip -cn < "${HOME}/.aws/config" | base64 -w 0)
         [[ -z "${aws_creds_data:-}" ]] && plaintext+=$'\n'"## aws config"$'\n'
@@ -937,7 +937,7 @@ __export_env() {
     fi
 
     # Serialize gh CLI config if present
-    if [[ -f "${HOME}/.config/gh/hosts.yml" ]]; then
+    if [[ -r "${HOME}/.config/gh/hosts.yml" ]]; then
         local gh_hosts_data
         gh_hosts_data=$(gzip -cn < "${HOME}/.config/gh/hosts.yml" | base64 -w 0)
         plaintext+=$'\n'"## gh config"$'\n'
@@ -945,7 +945,7 @@ __export_env() {
     fi
 
     # Serialize rclone config if present
-    if [[ -f "${HOME}/.config/rclone/rclone.conf" ]]; then
+    if [[ -r "${HOME}/.config/rclone/rclone.conf" ]]; then
         local rclone_data
         rclone_data=$(gzip -cn < "${HOME}/.config/rclone/rclone.conf" | base64 -w 0)
         plaintext+=$'\n'"## rclone config"$'\n'
@@ -953,7 +953,7 @@ __export_env() {
     fi
 
     # Serialize mc (MinIO client) config if present
-    if [[ -f "${HOME}/.mc/config.json" ]]; then
+    if [[ -r "${HOME}/.mc/config.json" ]]; then
         local mc_data
         mc_data=$(gzip -cn < "${HOME}/.mc/config.json" | base64 -w 0)
         plaintext+=$'\n'"## mc config"$'\n'
@@ -965,7 +965,7 @@ __export_env() {
     if [[ -d "${wg_dir}" ]]; then
         local wg_has_files=false
         for wg_file in "${wg_dir}"/*.conf; do
-            [[ -f "${wg_file}" ]] || continue
+            [[ -r "${wg_file}" ]] || continue
             if [[ "${wg_has_files}" == false ]]; then
                 plaintext+=$'\n'"## wireguard configs"$'\n'
                 wg_has_files=true
@@ -979,7 +979,7 @@ __export_env() {
     fi
 
     # Serialize user SSH config if present (excludes auto-generated config-drt)
-    if [[ -f "${HOME}/.ssh/config" ]]; then
+    if [[ -r "${HOME}/.ssh/config" ]]; then
         local ssh_data
         ssh_data=$(gzip -cn < "${HOME}/.ssh/config" | base64 -w 0)
         plaintext+=$'\n'"## ssh config"$'\n'
@@ -989,7 +989,7 @@ __export_env() {
     # Serialize user SSH keys from ~/.ssh (excludes config, known_hosts, auto-generated)
     local ssh_key_found=false
     for kf in "${HOME}"/.ssh/*; do
-        [[ -f "${kf}" ]] || continue
+        [[ -r "${kf}" ]] || continue
         local kf_name="${kf##*/}"
         # Skip config files, known_hosts, and auto-generated config-drt
         case "${kf_name}" in
@@ -1007,7 +1007,7 @@ __export_env() {
     # Serialize gumdrop (droplet) presets
     local gumdrop_found=false
     for gf in "${HOME}/.config/d.rymcg.tech/gumdrop-presets"/*; do
-        [[ -f "${gf}" ]] || continue
+        [[ -r "${gf}" ]] || continue
         local gf_name="${gf##*/}"
         if [[ "${gumdrop_found}" == false ]]; then
             plaintext+=$'\n'"## gumdrop presets"$'\n'
@@ -1019,7 +1019,7 @@ __export_env() {
     done
 
     # Serialize MOTD if present
-    if [[ -f "${HOME}/.motd" && -s "${HOME}/.motd" ]]; then
+    if [[ -r "${HOME}/.motd" && -s "${HOME}/.motd" ]]; then
         local motd_data
         motd_data=$(gzip -cn < "${HOME}/.motd" | base64 -w 0)
         plaintext+=$'\n'"## motd"$'\n'
