@@ -2,13 +2,10 @@
 : "${DRT_GIT_REPO:=https://github.com/EnigmaCurry/d.rymcg.tech.git}"
 : "${DRT_BUILD_BRANCH:=master}"
 : "${DRT_IMAGE:=localhost/d-rymcg-tech:latest}"
-: "${DRT_INSTALL_DOCTL:=false}"
-: "${DRT_INSTALL_AWS:=false}"
-: "${DRT_INSTALL_GH:=false}"
-: "${DRT_INSTALL_RCLONE:=false}"
+: "${DRT_INSTALL_EXTRAS:=}"
 
 drt() {
-  export DRT_GIT_REPO DRT_BUILD_BRANCH DRT_IMAGE DRT_INSTALL_DOCTL DRT_INSTALL_AWS DRT_INSTALL_GH DRT_INSTALL_RCLONE
+  export DRT_GIT_REPO DRT_BUILD_BRANCH DRT_IMAGE DRT_INSTALL_EXTRAS
   if ! podman image exists "${DRT_IMAGE}" 2>/dev/null; then
     echo "## First run: building ${DRT_IMAGE}" \
       "from ${DRT_GIT_REPO}#${DRT_BUILD_BRANCH} ..." >&2
@@ -19,10 +16,7 @@ drt() {
       --build-arg BRANCH="${DRT_BUILD_BRANCH}" \
       --build-arg GIT_REPO="${DRT_GIT_REPO}" \
       --build-arg GIT_SHA="${git_sha:-unknown}" \
-      --build-arg INSTALL_DOCTL="${DRT_INSTALL_DOCTL}" \
-      --build-arg INSTALL_AWS="${DRT_INSTALL_AWS}" \
-      --build-arg INSTALL_GH="${DRT_INSTALL_GH}" \
-      --build-arg INSTALL_RCLONE="${DRT_INSTALL_RCLONE}" \
+      --build-arg INSTALL_EXTRAS="${DRT_INSTALL_EXTRAS}" \
       -t "${DRT_IMAGE}" \
       -f _container/Dockerfile \
       "${DRT_GIT_REPO}#${DRT_BUILD_BRANCH}"

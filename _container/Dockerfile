@@ -54,28 +54,26 @@ RUN apk add --no-cache \
 # Install uv (Python package manager)
 RUN curl -fsSL https://astral.sh/uv/install.sh | UV_INSTALL_DIR=/usr/local/bin sh
 
-# Install optional CLI tools (disabled by default to keep image small)
-ARG INSTALL_DOCTL=false
-RUN if [ "${INSTALL_DOCTL}" = "true" ]; then \
-    set -e; \
-    case "$(uname -m)" in \
-      x86_64)  ARCH=amd64 ;; \
-      aarch64) ARCH=arm64 ;; \
-      *)       echo "Unsupported arch: $(uname -m)" >&2; exit 1 ;; \
-    esac; \
-    DOCTL_VERSION=$(curl -sf https://api.github.com/repos/digitalocean/doctl/releases/latest | jq -r .tag_name | sed 's/^v//'); \
-    curl -fsSL "https://github.com/digitalocean/doctl/releases/download/v${DOCTL_VERSION}/doctl-${DOCTL_VERSION}-linux-${ARCH}.tar.gz" \
-      | tar xz -C /usr/local/bin; \
-    fi
-
-ARG INSTALL_AWS=false
-RUN if [ "${INSTALL_AWS}" = "true" ]; then apk add --no-cache aws-cli; fi
-
-ARG INSTALL_GH=false
-RUN if [ "${INSTALL_GH}" = "true" ]; then apk add --no-cache github-cli; fi
-
-ARG INSTALL_RCLONE=false
-RUN if [ "${INSTALL_RCLONE}" = "true" ]; then apk add --no-cache rclone; fi
+# Install optional CLI tools (comma-separated list, e.g. "doctl,aws,gh,rclone")
+ARG INSTALL_EXTRAS=
+RUN set -e; \
+    for tool in $(echo "${INSTALL_EXTRAS}" | tr ',' ' '); do \
+      case "${tool}" in \
+        doctl) \
+          case "$(uname -m)" in \
+            x86_64)  ARCH=amd64 ;; \
+            aarch64) ARCH=arm64 ;; \
+            *)       echo "Unsupported arch: $(uname -m)" >&2; exit 1 ;; \
+          esac; \
+          DOCTL_VERSION=$(curl -sf https://api.github.com/repos/digitalocean/doctl/releases/latest | jq -r .tag_name | sed 's/^v//'); \
+          curl -fsSL "https://github.com/digitalocean/doctl/releases/download/v${DOCTL_VERSION}/doctl-${DOCTL_VERSION}-linux-${ARCH}.tar.gz" \
+            | tar xz -C /usr/local/bin ;; \
+        aws) apk add --no-cache aws-cli ;; \
+        gh) apk add --no-cache github-cli ;; \
+        rclone) apk add --no-cache rclone ;; \
+        *) echo "Unknown extra tool: ${tool}" >&2; exit 1 ;; \
+      esac; \
+    done
 
 # Create non-root user
 RUN adduser -D -u 1000 -h /home/user -s /bin/bash user \
