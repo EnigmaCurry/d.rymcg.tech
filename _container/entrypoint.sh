@@ -791,6 +791,26 @@ if [[ -S "${SSH_AUTH_SOCK:-}" ]]; then
     export SSH_AUTH_SOCK="${_PROXY_SOCK}"
 fi
 
+# Make Wayland socket accessible to the runtime user via socat proxy.
+if [[ -S "/tmp/runtime-dir/${WAYLAND_DISPLAY:-}" ]]; then
+    _WL_ORIG="/tmp/runtime-dir/${WAYLAND_DISPLAY}"
+    _WL_PROXY="/tmp/runtime-dir/wayland-user"
+    socat "UNIX-LISTEN:${_WL_PROXY},fork,user=${RUNTIME_UID},group=${RUNTIME_GID},mode=600" \
+          "UNIX-CONNECT:${_WL_ORIG}" &
+    export WAYLAND_DISPLAY="wayland-user"
+    log "## Wayland: proxying ${_WL_ORIG} → ${_WL_PROXY}"
+fi
+
+# Make PipeWire socket accessible to the runtime user via socat proxy.
+if [[ -S "/tmp/runtime-dir/pipewire-0" ]]; then
+    _PW_ORIG="/tmp/runtime-dir/pipewire-0"
+    _PW_PROXY="/tmp/runtime-dir/pipewire-user"
+    socat "UNIX-LISTEN:${_PW_PROXY},fork,user=${RUNTIME_UID},group=${RUNTIME_GID},mode=600" \
+          "UNIX-CONNECT:${_PW_ORIG}" &
+    export PIPEWIRE_REMOTE="${_PW_PROXY}"
+    log "## PipeWire: proxying ${_PW_ORIG} → ${_PW_PROXY}"
+fi
+
 # Fix TTY ownership so the runtime user can write to /dev/stderr, /dev/stdout
 if [[ -t 0 ]]; then
     chown "${RUNTIME_UID}:${RUNTIME_GID}" "$(tty)" 2>/dev/null || true
