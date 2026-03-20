@@ -960,6 +960,36 @@ __export_env() {
         plaintext+="__mc_config__=${mc_data}"$'\n'
     fi
 
+    # Serialize GnuPG config if present
+    local gnupg_dir="${HOME}/.gnupg"
+    if [[ -d "${gnupg_dir}" ]]; then
+        local gnupg_has_files=false
+        for gpg_file in "${gnupg_dir}"/*; do
+            [[ -r "${gpg_file}" && -f "${gpg_file}" ]] || continue
+            local gpg_name
+            gpg_name=$(basename "${gpg_file}")
+            # Skip sockets and lock files
+            case "${gpg_name}" in
+                S.*|*.lock|.gpg-v21-migrated|random_seed) continue ;;
+            esac
+            if [[ "${gnupg_has_files}" == false ]]; then
+                plaintext+=$'\n'"## gnupg config"$'\n'
+                gnupg_has_files=true
+            fi
+            local gpg_data
+            gpg_data=$(gzip -cn < "${gpg_file}" | base64 -w 0)
+            plaintext+="__gnupg__${gpg_name}=${gpg_data}"$'\n'
+        done
+    fi
+
+    # Serialize user bashrc.local if present
+    if [[ -r "${HOME}/.bashrc.local" ]]; then
+        local bashrc_local_data
+        bashrc_local_data=$(gzip -cn < "${HOME}/.bashrc.local" | base64 -w 0)
+        plaintext+=$'\n'"## bashrc.local"$'\n'
+        plaintext+="__bashrc_local__=${bashrc_local_data}"$'\n'
+    fi
+
     # Serialize wireguard configs if present
     local wg_dir="${HOME}/.config/wireguard"
     if [[ -d "${wg_dir}" ]]; then
@@ -1145,12 +1175,14 @@ __restore_env() {
     declare -A ssh_key_files   # "filename" → base64 data
     declare -A gumdrop_preset_files  # "filename" → base64 data
     declare -A wireguard_files  # "filename" → base64 data
+    declare -A gnupg_files  # "filename" → base64 data
     local doctl_config_b64=""
     local aws_credentials_b64=""
     local aws_config_b64=""
     local gh_hosts_b64=""
     local rclone_config_b64=""
     local mc_config_b64=""
+    local bashrc_local_b64=""
     local ssh_config_b64=""
     local motd_b64=""
 
@@ -1193,6 +1225,12 @@ __restore_env() {
             continue
         fi
 
+        # Serialized bashrc.local: __bashrc_local__=<base64>
+        if [[ "${key}" == "__bashrc_local__" ]]; then
+            bashrc_local_b64="${val}"
+            continue
+        fi
+
         # Serialized SSH config: __ssh_config__=<base64>
         if [[ "${key}" == "__ssh_config__" ]]; then
             ssh_config_b64="${val}"
@@ -1217,6 +1255,13 @@ __restore_env() {
         if [[ "${key}" == __wireguard__* ]]; then
             local wg_name="${key#__wireguard__}"
             wireguard_files["${wg_name}"]="${val}"
+            continue
+        fi
+
+        # Serialized GnuPG files: __gnupg__<filename>=<base64>
+        if [[ "${key}" == __gnupg__* ]]; then
+            local gpg_name="${key#__gnupg__}"
+            gnupg_files["${gpg_name}"]="${val}"
             continue
         fi
 
@@ -1406,6 +1451,13 @@ __restore_env() {
         chmod 600 "${mc_dir}/config.json"
     fi
 
+    # Restore bashrc.local if present
+    if [[ -n "${bashrc_local_b64}" ]]; then
+        echo "## Restoring ${HOME}/.bashrc.local" >&2
+        _b64_decode "${bashrc_local_b64}" > "${HOME}/.bashrc.local"
+        chmod 600 "${HOME}/.bashrc.local"
+    fi
+
     # Restore SSH config if present
     if [[ -n "${ssh_config_b64}" ]]; then
         mkdir -p "${HOME}/.ssh"
@@ -1443,6 +1495,18 @@ __restore_env() {
             echo "## Restoring ${wg_dir}/${wg_name}" >&2
             _b64_decode "${wireguard_files[${wg_name}]}" > "${wg_dir}/${wg_name}"
             chmod 600 "${wg_dir}/${wg_name}"
+        done
+    fi
+
+    # Restore GnuPG files if present
+    if [[ ${#gnupg_files[@]} -gt 0 ]]; then
+        local gnupg_dir="${HOME}/.gnupg"
+        mkdir -p "${gnupg_dir}"
+        chmod 700 "${gnupg_dir}"
+        for gpg_name in "${!gnupg_files[@]}"; do
+            echo "## Restoring ${gnupg_dir}/${gpg_name}" >&2
+            _b64_decode "${gnupg_files[${gpg_name}]}" > "${gnupg_dir}/${gpg_name}"
+            chmod 600 "${gnupg_dir}/${gpg_name}"
         done
     fi
 

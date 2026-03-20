@@ -725,7 +725,7 @@ EDITOREOF
                 # Fix ownership of config dirs that may have been created by podman cp
                 for _d in "${HOME}/.config/doctl" "${HOME}/.aws" "${HOME}/.config/gh" \
                           "${HOME}/.config/rclone" "${HOME}/.mc" "${HOME}/.config/wireguard" \
-                          "${HOME}/.ssh"; do
+                          "${HOME}/.gnupg" "${HOME}/.ssh"; do
                     chown -R "${RUNTIME_UID}:${RUNTIME_GID}" "${_d}" 2>/dev/null || true
                 done
                 echo "ok" > "${_SOPS_SAVE_RESPONSE}"
@@ -761,6 +761,8 @@ chown -R "${RUNTIME_UID}:${RUNTIME_GID}" "${HOME}/.config/gh" 2>/dev/null || tru
 chown -R "${RUNTIME_UID}:${RUNTIME_GID}" "${HOME}/.config/rclone" 2>/dev/null || true
 chown -R "${RUNTIME_UID}:${RUNTIME_GID}" "${HOME}/.mc" 2>/dev/null || true
 chown -R "${RUNTIME_UID}:${RUNTIME_GID}" "${HOME}/.config/wireguard" 2>/dev/null || true
+chown -R "${RUNTIME_UID}:${RUNTIME_GID}" "${HOME}/.gnupg" 2>/dev/null || true
+chown "${RUNTIME_UID}:${RUNTIME_GID}" "${HOME}/.bashrc.local" 2>/dev/null || true
 chown "${RUNTIME_UID}:${RUNTIME_GID}" "${HOME}/.motd" 2>/dev/null || true
 
 # Make SSH agent socket accessible to the runtime user via socat proxy.
