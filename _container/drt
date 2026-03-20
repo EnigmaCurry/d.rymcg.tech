@@ -1027,6 +1027,9 @@ cmd_run() {
 
     for _cap in "${CAP_ADDS[@]+"${CAP_ADDS[@]}"}"; do
         RUN_ARGS+=(--cap-add "${_cap}")
+        if [[ "${_cap}" == "NET_ADMIN" ]]; then
+            RUN_ARGS+=(--sysctl net.ipv4.conf.all.src_valid_mark=1)
+        fi
     done
 
     if [[ "${SAVE_ON_EXIT}" == true ]]; then
