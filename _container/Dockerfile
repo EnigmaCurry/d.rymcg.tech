@@ -54,7 +54,7 @@ RUN apk add --no-cache \
 # Install uv (Python package manager)
 RUN curl -fsSL https://astral.sh/uv/install.sh | UV_INSTALL_DIR=/usr/local/bin sh
 
-# Install optional CLI tools (comma-separated list, e.g. "doctl,aws,gh,rclone,mc,step,gpg,wireguard")
+# Install optional CLI tools (comma-separated list, e.g. "doctl,aws,gh,rclone,mc,step,gpg,wireguard,k3s")
 ARG INSTALL_EXTRAS=
 RUN set -e; \
     for tool in $(echo "${INSTALL_EXTRAS}" | tr ',' ' '); do \
@@ -95,6 +95,14 @@ RUN set -e; \
           mv /sbin/sysctl /sbin/sysctl.real && \
           printf '#!/bin/sh\n/sbin/sysctl.real "$@" 2>/dev/null || true\n' > /sbin/sysctl && \
           chmod +x /sbin/sysctl ;; \
+        k3s) \
+          case "$(uname -m)" in \
+            x86_64)  ARCH=amd64 ;; \
+            aarch64) ARCH=arm64 ;; \
+            *)       echo "Unsupported arch: $(uname -m)" >&2; exit 1 ;; \
+          esac; \
+          curl -fsSL "https://dl.k8s.io/release/$(curl -fsSL https://dl.k8s.io/release/stable.txt)/bin/linux/${ARCH}/kubectl" \
+            -o /usr/local/bin/kubectl && chmod +x /usr/local/bin/kubectl ;; \
         *) echo "Unknown extra tool: ${tool}" >&2; exit 1 ;; \
       esac; \
     done
