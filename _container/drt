@@ -518,6 +518,7 @@ Options:
   --controller-port PORT  Host port for request-controller (default: 8084)
   --net MODE         Network mode: pasta, slirp4netns, host (auto-detected)
   --cap-add CAP      Add Linux capability (e.g. NET_ADMIN for wireguard)
+  --cold-storage     Unlock with pasted backup AGE key instead of key file
   --wayland          Enable Wayland GUI passthrough (socket + GPU)
   --pipewire         Enable PipeWire audio passthrough
   --no-git           Skip all git operations (pull, commit, push)
@@ -1041,6 +1042,7 @@ cmd_run() {
     local CAP_ADDS=()
     local WAYLAND=false
     local PIPEWIRE=false
+    local COLD_STORAGE=false
 
     while [[ $# -gt 0 ]]; do
         case "$1" in
@@ -1057,6 +1059,7 @@ cmd_run() {
             --cap-add) CAP_ADDS+=("$2"); shift 2 ;;
             --wayland) WAYLAND=true; shift ;;
             --pipewire) PIPEWIRE=true; shift ;;
+            --cold-storage) COLD_STORAGE=true; shift ;;
             --controller-port) CONTROLLER_PORT="$2"; shift 2 ;;
             --help) run_usage; exit 0 ;;
             -*)
@@ -1102,8 +1105,26 @@ cmd_run() {
         fi
     fi
 
+    # Cold storage: prompt for the backup AGE private key
+    if [[ "${COLD_STORAGE}" == true ]]; then
+        echo "## Cold storage mode: paste your backup AGE private key." >&2
+        echo "## (The key starts with AGE-SECRET-KEY-)" >&2
+        printf "AGE key: " >&2
+        local _cold_key=""
+        read -r _cold_key </dev/tty
+        if [[ ! "${_cold_key}" =~ ^AGE-SECRET-KEY- ]]; then
+            echo "Error: invalid AGE secret key (must start with AGE-SECRET-KEY-)" >&2
+            exit 1
+        fi
+        AGE_KEY_FILE=$(mktemp)
+        echo "${_cold_key}" > "${AGE_KEY_FILE}"
+        chmod 600 "${AGE_KEY_FILE}"
+        trap 'rm -f "${AGE_KEY_FILE}"' EXIT
+        echo "## Cold storage key loaded." >&2
+    fi
+
     # Fall back to legacy default if no key resolved yet
-    if [[ -z "${AGE_KEY_FILE}" ]]; then
+    if [[ "${COLD_STORAGE}" != true ]] && [[ -z "${AGE_KEY_FILE}" ]]; then
         AGE_KEY_FILE="${HOME}/.config/sops/age/keys.txt"
     fi
 
@@ -2032,6 +2053,10 @@ while [[ $# -gt 0 ]]; do
         --cap-add)
             ARGS+=(--cap-add "$2")
             shift 2
+            ;;
+        --cold-storage)
+            ARGS+=(--cold-storage)
+            shift
             ;;
         --wayland)
             ARGS+=(--wayland)
