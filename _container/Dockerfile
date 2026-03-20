@@ -89,7 +89,7 @@ RUN set -e; \
           esac; \
           curl -fsSL "https://github.com/smallstep/cli/releases/latest/download/step_linux_${ARCH}.tar.gz" \
             | tar xz -C /usr/local/bin --strip-components=2 "step_linux_${ARCH}/bin/step" ;; \
-        wireguard) apk add --no-cache wireguard-tools sudo && \
+        wireguard) apk add --no-cache wireguard-tools sudo openresolv && \
           echo "user ALL=(ALL) NOPASSWD: ALL" > /etc/sudoers.d/wireguard ;; \
         *) echo "Unknown extra tool: ${tool}" >&2; exit 1 ;; \
       esac; \
