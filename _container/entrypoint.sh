@@ -747,6 +747,12 @@ unset SOPS_DECRYPTED
 # Fix ownership of env files and passwords.json created by restore-env
 find "${ROOT_DIR}" \( -name ".env_*" -o -name "passwords.json" \) -exec chown "${RUNTIME_UID}:${RUNTIME_GID}" {} + 2>/dev/null || true
 chown -R "${RUNTIME_UID}:${RUNTIME_GID}" "${HOME}/.config/d.rymcg.tech/gumdrop-presets" 2>/dev/null || true
+chown -R "${RUNTIME_UID}:${RUNTIME_GID}" "${HOME}/.config/doctl" 2>/dev/null || true
+chown -R "${RUNTIME_UID}:${RUNTIME_GID}" "${HOME}/.aws" 2>/dev/null || true
+chown -R "${RUNTIME_UID}:${RUNTIME_GID}" "${HOME}/.config/gh" 2>/dev/null || true
+chown -R "${RUNTIME_UID}:${RUNTIME_GID}" "${HOME}/.config/rclone" 2>/dev/null || true
+chown -R "${RUNTIME_UID}:${RUNTIME_GID}" "${HOME}/.mc" 2>/dev/null || true
+chown -R "${RUNTIME_UID}:${RUNTIME_GID}" "${HOME}/.config/wireguard" 2>/dev/null || true
 chown "${RUNTIME_UID}:${RUNTIME_GID}" "${HOME}/.motd" 2>/dev/null || true
 
 # Make SSH agent socket accessible to the runtime user via socat proxy.
