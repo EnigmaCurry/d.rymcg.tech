@@ -102,7 +102,10 @@ RUN set -e; \
             *)       echo "Unsupported arch: $(uname -m)" >&2; exit 1 ;; \
           esac; \
           curl -fsSL "https://dl.k8s.io/release/$(curl -fsSL https://dl.k8s.io/release/stable.txt)/bin/linux/${ARCH}/kubectl" \
-            -o /usr/local/bin/kubectl && chmod +x /usr/local/bin/kubectl ;; \
+            -o /usr/local/bin/kubectl && chmod +x /usr/local/bin/kubectl; \
+          HELM_VERSION=$(curl -fsSL https://api.github.com/repos/helm/helm/releases/latest | jq -r .tag_name); \
+          curl -fsSL "https://get.helm.sh/helm-${HELM_VERSION}-linux-${ARCH}.tar.gz" \
+            | tar xz -C /usr/local/bin --strip-components=1 "linux-${ARCH}/helm" ;; \
         *) echo "Unknown extra tool: ${tool}" >&2; exit 1 ;; \
       esac; \
     done
