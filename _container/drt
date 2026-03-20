@@ -1639,6 +1639,7 @@ cmd_edit() {
         chmod 644 "${EDIT_DIR}/config.sops.env" "${EDIT_DIR}/age-key-in"
         echo "## Touch your FIDO2 key when it flashes ..." >&2
         container_run -it --user 0:0 \
+            --security-opt label=disable \
             "${_FIDO2_DEVICE_FLAGS[@]+"${_FIDO2_DEVICE_FLAGS[@]}"}" \
             -v "${EDIT_DIR}:/tmp/edit-work:Z" \
             "${IMAGE}" sh -c 'age -d /tmp/edit-work/age-key-in > /tmp/age-key-dec && \
@@ -1657,6 +1658,7 @@ cmd_edit() {
         fi
         container_run -it \
             --user 0:0 \
+            --security-opt label=disable \
             "${_FIDO2_DEVICE_FLAGS[@]+"${_FIDO2_DEVICE_FLAGS[@]}"}" \
             -v "${EDIT_DIR}:/tmp/edit-work:Z" \
             "${IMAGE}" \
@@ -1703,6 +1705,7 @@ cmd_edit() {
         chmod 644 "${EDIT_DIR}/config.sops.env"
         echo "## Touch your FIDO2 key when it flashes ..." >&2
         container_run -it --user 0:0 \
+            --security-opt label=disable \
             "${_FIDO2_DEVICE_FLAGS[@]+"${_FIDO2_DEVICE_FLAGS[@]}"}" \
             -v "${EDIT_DIR}:/tmp/edit-work:Z" \
             "${IMAGE}" sh -c 'age -d /tmp/edit-work/age-key-in > /tmp/age-key-dec && \
@@ -1721,6 +1724,7 @@ cmd_edit() {
             echo "## Touch your FIDO2 key when it flashes ..." >&2
         fi
         container_run -it --user 0:0 \
+            --security-opt label=disable \
             "${_FIDO2_DEVICE_FLAGS[@]+"${_FIDO2_DEVICE_FLAGS[@]}"}" \
             -v "${EDIT_DIR}:/tmp/edit-work:Z" \
             "${IMAGE}" sh -c 'SOPS_AGE_KEY_FILE=/tmp/edit-work/age-key-in \
