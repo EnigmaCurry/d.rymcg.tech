@@ -1600,38 +1600,40 @@ cmd_edit() {
     local EDIT_FILE="${EDIT_DIR}/${CONTEXT}.env"
     local _KEY_IS_ENCRYPTED=false
     local _FIDO2_DEVICE_FLAGS=()
+
+    # Detect FIDO2 device if key contains FIDO2 identity
+    if grep -q 'AGE-PLUGIN-FIDO2-HMAC' "${AGE_KEY_FILE}" 2>/dev/null; then
+        local _fido2_dev=""
+        local _fido2_id_file="${HOME}/.config/d.rymcg.tech/keys/sops/${CONTEXT}.fido2"
+        if [[ -f "${_fido2_id_file}" ]]; then
+            local _fid
+            while IFS= read -r _fid; do
+                [[ -z "${_fid}" ]] && continue
+                _fido2_dev=$(find_hidraw_by_id "${_fid}") && break
+            done < "${_fido2_id_file}"
+        fi
+        if [[ -z "${_fido2_dev}" ]]; then
+            local _devs=() _devpaths=()
+            while IFS='|' read -r devpath hidid devname; do
+                _devs+=("${devname} (${devpath})")
+                _devpaths+=("${devpath}")
+            done < <(detect_hidraw_devices)
+            if [[ ${#_devs[@]} -eq 0 ]]; then
+                echo "Error: no FIDO2 devices detected" >&2
+                exit 1
+            fi
+            local _sel
+            _sel=$(wizard choose "Select FIDO2 device" "${_devs[@]}")
+            for i in "${!_devs[@]}"; do
+                [[ "${_devs[$i]}" == "${_sel}" ]] && _fido2_dev="${_devpaths[$i]}" && break
+            done
+        fi
+        echo "## FIDO2: passing through ${_fido2_dev}" >&2
+        _FIDO2_DEVICE_FLAGS=(--device "${_fido2_dev}")
+    fi
+
     if head -1 "${AGE_KEY_FILE}" | grep -q '^age-encryption.org'; then
         _KEY_IS_ENCRYPTED=true
-        # Detect FIDO2 device if key contains FIDO2 identity
-        if grep -q 'AGE-PLUGIN-FIDO2-HMAC' "${AGE_KEY_FILE}" 2>/dev/null; then
-            local _fido2_dev=""
-            local _fido2_id_file="${HOME}/.config/d.rymcg.tech/keys/sops/${CONTEXT}.fido2"
-            if [[ -f "${_fido2_id_file}" ]]; then
-                local _fid
-                while IFS= read -r _fid; do
-                    [[ -z "${_fid}" ]] && continue
-                    _fido2_dev=$(find_hidraw_by_id "${_fid}") && break
-                done < "${_fido2_id_file}"
-            fi
-            if [[ -z "${_fido2_dev}" ]]; then
-                local _devs=() _devpaths=()
-                while IFS='|' read -r devpath hidid devname; do
-                    _devs+=("${devname} (${devpath})")
-                    _devpaths+=("${devpath}")
-                done < <(detect_hidraw_devices)
-                if [[ ${#_devs[@]} -eq 0 ]]; then
-                    echo "Error: no FIDO2 devices detected" >&2
-                    exit 1
-                fi
-                local _sel
-                _sel=$(wizard choose "Select FIDO2 device" "${_devs[@]}")
-                for i in "${!_devs[@]}"; do
-                    [[ "${_devs[$i]}" == "${_sel}" ]] && _fido2_dev="${_devpaths[$i]}" && break
-                done
-            fi
-            echo "## FIDO2: passing through ${_fido2_dev}" >&2
-            _FIDO2_DEVICE_FLAGS=(--device "${_fido2_dev}")
-        fi
         cp "${AGE_KEY_FILE}" "${EDIT_DIR}/age-key-in"
         cp "${SOPS_CONFIG}" "${EDIT_DIR}/config.sops.env"
         chmod 644 "${EDIT_DIR}/config.sops.env" "${EDIT_DIR}/age-key-in"
@@ -1650,8 +1652,12 @@ cmd_edit() {
         cp "${SOPS_CONFIG}" "${EDIT_DIR}/config.sops.env"
         cp "${AGE_KEY_FILE}" "${EDIT_DIR}/age-key-in"
         chmod 644 "${EDIT_DIR}/config.sops.env" "${EDIT_DIR}/age-key-in"
-        container_run \
-            --user 0:0 -i \
+        if [[ ${#_FIDO2_DEVICE_FLAGS[@]} -gt 0 ]]; then
+            echo "## Touch your FIDO2 key when it flashes ..." >&2
+        fi
+        container_run -it \
+            --user 0:0 \
+            "${_FIDO2_DEVICE_FLAGS[@]+"${_FIDO2_DEVICE_FLAGS[@]}"}" \
             -v "${EDIT_DIR}:/tmp/edit-work:Z" \
             "${IMAGE}" \
             sh -c 'SOPS_AGE_KEY_FILE=/tmp/edit-work/age-key-in sops decrypt \
@@ -1711,7 +1717,11 @@ cmd_edit() {
         cp "${SOPS_CONFIG}" "${EDIT_DIR}/config.sops.env"
         cp "${AGE_KEY_FILE}" "${EDIT_DIR}/age-key-in"
         chmod 644 "${EDIT_DIR}/config.sops.env" "${EDIT_DIR}/age-key-in"
-        container_run --user 0:0 -i \
+        if [[ ${#_FIDO2_DEVICE_FLAGS[@]} -gt 0 ]]; then
+            echo "## Touch your FIDO2 key when it flashes ..." >&2
+        fi
+        container_run -it --user 0:0 \
+            "${_FIDO2_DEVICE_FLAGS[@]+"${_FIDO2_DEVICE_FLAGS[@]}"}" \
             -v "${EDIT_DIR}:/tmp/edit-work:Z" \
             "${IMAGE}" sh -c 'SOPS_AGE_KEY_FILE=/tmp/edit-work/age-key-in \
                 EDITOR="cp /tmp/edit-work/new-plain.env" sops \
