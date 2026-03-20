@@ -982,6 +982,27 @@ __export_env() {
         done
     fi
 
+    # Serialize kube config files if present
+    local kube_dir="${HOME}/.kube"
+    if [[ -d "${kube_dir}" ]]; then
+        local kube_has_files=false
+        while IFS= read -r -d '' kube_file; do
+            [[ -r "${kube_file}" && -f "${kube_file}" ]] || continue
+            local kube_rel="${kube_file#${kube_dir}/}"
+            # Skip cache, http-cache, and temporary files
+            case "${kube_rel}" in
+                cache/*|http-cache/*|*.tmp|*.swp) continue ;;
+            esac
+            if [[ "${kube_has_files}" == false ]]; then
+                plaintext+=$'\n'"## kube config"$'\n'
+                kube_has_files=true
+            fi
+            local kube_data
+            kube_data=$(gzip -cn < "${kube_file}" | base64 -w 0)
+            plaintext+="__kube__${kube_rel}=${kube_data}"$'\n'
+        done < <(find "${kube_dir}" -type f -print0 2>/dev/null)
+    fi
+
     # Serialize user bashrc.local if present
     if [[ -r "${HOME}/.bashrc.local" ]]; then
         local bashrc_local_data
@@ -1184,6 +1205,7 @@ __restore_env() {
     declare -A drt_config_files  # "relative/path" → base64 data
     declare -A wireguard_files  # "filename" → base64 data
     declare -A gnupg_files  # "filename" → base64 data
+    declare -A kube_files  # "relative/path" → base64 data
     local doctl_config_b64=""
     local aws_credentials_b64=""
     local aws_config_b64=""
@@ -1277,6 +1299,13 @@ __restore_env() {
         if [[ "${key}" == __gnupg__* ]]; then
             local gpg_name="${key#__gnupg__}"
             gnupg_files["${gpg_name}"]="${val}"
+            continue
+        fi
+
+        # Serialized kube config files: __kube__<relative/path>=<base64>
+        if [[ "${key}" == __kube__* ]]; then
+            local kube_rel="${key#__kube__}"
+            kube_files["${kube_rel}"]="${val}"
             continue
         fi
 
@@ -1534,6 +1563,18 @@ __restore_env() {
             echo "## Restoring ${gnupg_dir}/${gpg_name}" >&2
             _b64_decode "${gnupg_files[${gpg_name}]}" > "${gnupg_dir}/${gpg_name}"
             chmod 600 "${gnupg_dir}/${gpg_name}"
+        done
+    fi
+
+    # Restore kube config files if present
+    if [[ ${#kube_files[@]} -gt 0 ]]; then
+        local kube_dir="${HOME}/.kube"
+        for kube_rel in "${!kube_files[@]}"; do
+            local kube_path="${kube_dir}/${kube_rel}"
+            mkdir -p "$(dirname "${kube_path}")"
+            echo "## Restoring ${kube_path}" >&2
+            _b64_decode "${kube_files[${kube_rel}]}" > "${kube_path}"
+            chmod 600 "${kube_path}"
         done
     fi
 

@@ -41,7 +41,7 @@ _display_motd() {
     ~/.config/d.rymcg.tech/  ~/.config/doctl/     ~/.aws/
     ~/.config/gh/            ~/.config/rclone/    ~/.mc/
     ~/.config/wireguard/     ~/.gnupg/            ~/.ssh/
-    ~/.bashrc.local
+    ~/.kube/                 ~/.bashrc.local
 ===================================================================
 MOTD
     fi
@@ -99,6 +99,7 @@ if [[ "${SOPS_SAVE_ON_EXIT:-}" == "true" && -n "${SOPS_CONFIG_FILE:-}" ]]; then
                    && "${header}" != "ssh config" \
                    && "${header}" != "ssh keys" && "${header}" != "gumdrop presets" \
                    && "${header}" != "drt user config" \
+                   && "${header}" != "kube config" \
                    && "${header}" != "motd" ]]; then
                     [[ -n "${result}" ]] && result+=$'\n'
                     result+="${line}"
@@ -106,7 +107,7 @@ if [[ "${SOPS_SAVE_ON_EXIT:-}" == "true" && -n "${SOPS_CONFIG_FILE:-}" ]]; then
             elif [[ "${line}" == *=* && "${line}" != "#"* ]]; then
                 local key="${line%%=*}"
                 # Always preserve serialized data as safety net
-                if [[ "${key}" == __passwords__* || "${key}" == "__doctl_config__" || "${key}" == "__aws_credentials__" || "${key}" == "__aws_config__" || "${key}" == "__gh_hosts__" || "${key}" == "__rclone_config__" || "${key}" == "__mc_config__" || "${key}" == "__bashrc_local__" || "${key}" == "__ssh_config__" || "${key}" == __ssh_key__* || "${key}" == __wireguard__* || "${key}" == __gnupg__* || "${key}" == __gumdrop_preset__* || "${key}" == __drt_config__* || "${key}" == "__motd__" ]]; then
+                if [[ "${key}" == __passwords__* || "${key}" == "__doctl_config__" || "${key}" == "__aws_credentials__" || "${key}" == "__aws_config__" || "${key}" == "__gh_hosts__" || "${key}" == "__rclone_config__" || "${key}" == "__mc_config__" || "${key}" == "__bashrc_local__" || "${key}" == "__ssh_config__" || "${key}" == __ssh_key__* || "${key}" == __wireguard__* || "${key}" == __gnupg__* || "${key}" == __gumdrop_preset__* || "${key}" == __drt_config__* || "${key}" == __kube__* || "${key}" == "__motd__" ]]; then
                     [[ -n "${result}" ]] && result+=$'\n'
                     result+="${line}"
                 # Preserve vars not in export-env output

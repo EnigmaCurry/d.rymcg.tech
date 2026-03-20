@@ -775,6 +775,7 @@ chown -R "${RUNTIME_UID}:${RUNTIME_GID}" "${HOME}/.config/rclone" 2>/dev/null ||
 chown -R "${RUNTIME_UID}:${RUNTIME_GID}" "${HOME}/.mc" 2>/dev/null || true
 chown -R "${RUNTIME_UID}:${RUNTIME_GID}" "${HOME}/.config/wireguard" 2>/dev/null || true
 chown -R "${RUNTIME_UID}:${RUNTIME_GID}" "${HOME}/.gnupg" 2>/dev/null || true
+chown -R "${RUNTIME_UID}:${RUNTIME_GID}" "${HOME}/.kube" 2>/dev/null || true
 chown "${RUNTIME_UID}:${RUNTIME_GID}" "${HOME}/.bashrc.local" 2>/dev/null || true
 chown "${RUNTIME_UID}:${RUNTIME_GID}" "${HOME}/.motd" 2>/dev/null || true
 
