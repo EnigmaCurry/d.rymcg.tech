@@ -725,9 +725,12 @@ EDITOREOF
                 # Fix ownership of config dirs that may have been created by podman cp
                 for _d in "${HOME}/.config/doctl" "${HOME}/.aws" "${HOME}/.config/gh" \
                           "${HOME}/.config/rclone" "${HOME}/.mc" "${HOME}/.config/wireguard" \
-                          "${HOME}/.gnupg" "${HOME}/.ssh" "${HOME}/.config/d.rymcg.tech"; do
+                          "${HOME}/.gnupg" "${HOME}/.ssh"; do
                     chown -R "${RUNTIME_UID}:${RUNTIME_GID}" "${_d}" 2>/dev/null || true
                 done
+                # d.rymcg.tech dir: exclude config/ and keys/ (bind-mounted from host)
+                find "${HOME}/.config/d.rymcg.tech" -not -path '*/config/*' -not -path '*/keys/*' \
+                    -exec chown "${RUNTIME_UID}:${RUNTIME_GID}" {} + 2>/dev/null || true
                 echo "ok" > "${_SOPS_SAVE_RESPONSE}"
             elif [[ "${cmd}" == "save" ]]; then
                 if [[ -n "${SOPS_AGE_KEY_FILE:-}" && -f "${SOPS_AGE_KEY_FILE}" ]] && \
