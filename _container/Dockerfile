@@ -91,7 +91,10 @@ RUN set -e; \
             | tar xz -C /usr/local/bin --strip-components=2 "step_linux_${ARCH}/bin/step" ;; \
         gpg) apk add --no-cache gnupg ;; \
         wireguard) apk add --no-cache wireguard-tools sudo openresolv iptables ip6tables && \
-          echo "user ALL=(ALL) NOPASSWD: ALL" > /etc/sudoers.d/wireguard ;; \
+          echo "user ALL=(ALL) NOPASSWD: ALL" > /etc/sudoers.d/wireguard && \
+          mv /sbin/sysctl /sbin/sysctl.real && \
+          printf '#!/bin/sh\n/sbin/sysctl.real "$@" 2>/dev/null || true\n' > /sbin/sysctl && \
+          chmod +x /sbin/sysctl ;; \
         *) echo "Unknown extra tool: ${tool}" >&2; exit 1 ;; \
       esac; \
     done
