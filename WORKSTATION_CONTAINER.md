@@ -38,21 +38,16 @@ else
   drt() {
     echo "## First run: building ${DRT_IMAGE}" \
       "from ${DRT_GIT_REPO}#${DRT_BUILD_BRANCH} ..." >&2
-    local _build_dir
-    _build_dir=$(mktemp -d)
-    trap 'rm -rf "${_build_dir}"' RETURN
-    git clone --depth 1 --branch "${DRT_BUILD_BRANCH}" \
-      "${DRT_GIT_REPO}" "${_build_dir}/src"
     local git_sha
-    git_sha=$(git -C "${_build_dir}/src" rev-parse --short HEAD 2>/dev/null || echo "unknown")
+    git_sha=$(git ls-remote "${DRT_GIT_REPO}" "refs/heads/${DRT_BUILD_BRANCH}" | cut -c1-12)
     podman build \
       --build-arg BRANCH="${DRT_BUILD_BRANCH}" \
       --build-arg GIT_REPO="${DRT_GIT_REPO}" \
-      --build-arg GIT_SHA="${git_sha}" \
+      --build-arg GIT_SHA="${git_sha:-unknown}" \
       --build-arg INSTALL_EXTRAS="${DRT_INSTALL_EXTRAS:-}" \
       -t "${DRT_IMAGE}" \
-      -f "${_build_dir}/src/_container/Dockerfile" \
-      "${_build_dir}/src" \
+      -f _container/Dockerfile \
+      "${DRT_GIT_REPO}#${DRT_BUILD_BRANCH}" \
     && echo >&2 \
     && echo "## Restart your shell to load drt." >&2 \
     && echo >&2
