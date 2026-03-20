@@ -791,9 +791,12 @@ if [[ -S "${SSH_AUTH_SOCK:-}" ]]; then
     export SSH_AUTH_SOCK="${_PROXY_SOCK}"
 fi
 
-# Make Wayland/PipeWire sockets accessible to the runtime user via socat proxy.
-# Apps like Firefox also need to create their own sockets in XDG_RUNTIME_DIR,
-# so we use a user-owned directory separate from the bind-mount directory.
+# Make Wayland/PipeWire sockets accessible to the runtime user.
+# We cannot use socat here because Wayland uses SCM_RIGHTS to pass file
+# descriptors (GPU buffers, DMA-BUF handles) which socat does not forward.
+# Instead: chmod the bind-mounted socket (safe — host XDG_RUNTIME_DIR is
+# already mode 700) and symlink it into a user-owned runtime directory.
+# Apps like Firefox need to create their own sockets in XDG_RUNTIME_DIR.
 if [[ -S "/tmp/runtime-dir/${WAYLAND_DISPLAY:-}" ]] || [[ -S "/tmp/runtime-dir/pipewire-0" ]]; then
     _USER_RUNTIME="/run/user-runtime"
     mkdir -p "${_USER_RUNTIME}"
@@ -803,20 +806,16 @@ if [[ -S "/tmp/runtime-dir/${WAYLAND_DISPLAY:-}" ]] || [[ -S "/tmp/runtime-dir/p
 fi
 
 if [[ -S "/tmp/runtime-dir/${WAYLAND_DISPLAY:-}" ]]; then
-    _WL_ORIG="/tmp/runtime-dir/${WAYLAND_DISPLAY}"
-    _WL_PROXY="${_USER_RUNTIME}/wayland-0"
-    socat "UNIX-LISTEN:${_WL_PROXY},fork,user=${RUNTIME_UID},group=${RUNTIME_GID},mode=600" \
-          "UNIX-CONNECT:${_WL_ORIG}" &
+    chmod 666 "/tmp/runtime-dir/${WAYLAND_DISPLAY}"
+    ln -sf "/tmp/runtime-dir/${WAYLAND_DISPLAY}" "${_USER_RUNTIME}/wayland-0"
     export WAYLAND_DISPLAY="wayland-0"
-    log "## Wayland: proxying ${_WL_ORIG} → ${_WL_PROXY}"
+    log "## Wayland: ${_USER_RUNTIME}/wayland-0 → /tmp/runtime-dir/${WAYLAND_DISPLAY}"
 fi
 
 if [[ -S "/tmp/runtime-dir/pipewire-0" ]]; then
-    _PW_ORIG="/tmp/runtime-dir/pipewire-0"
-    _PW_PROXY="${_USER_RUNTIME}/pipewire-0"
-    socat "UNIX-LISTEN:${_PW_PROXY},fork,user=${RUNTIME_UID},group=${RUNTIME_GID},mode=600" \
-          "UNIX-CONNECT:${_PW_ORIG}" &
-    log "## PipeWire: proxying ${_PW_ORIG} → ${_PW_PROXY}"
+    chmod 666 "/tmp/runtime-dir/pipewire-0"
+    ln -sf "/tmp/runtime-dir/pipewire-0" "${_USER_RUNTIME}/pipewire-0"
+    log "## PipeWire: ${_USER_RUNTIME}/pipewire-0 → /tmp/runtime-dir/pipewire-0"
 fi
 
 # Fix TTY ownership so the runtime user can write to /dev/stderr, /dev/stdout
