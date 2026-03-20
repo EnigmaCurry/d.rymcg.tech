@@ -1,24 +1,25 @@
 ## drt — source this file from ~/.bashrc, ~/.bash_profile, or ~/.zshrc
 export DRT_GIT_REPO="${DRT_GIT_REPO:-https://github.com/EnigmaCurry/d.rymcg.tech.git}"
-export DRT_BUILD_BRANCH="${DRT_BUILD_BRANCH:-master}"
+export DRT_BUILD_BRANCH="${DRT_BUILD_BRANCH:-}"
 export DRT_IMAGE="${DRT_IMAGE:-localhost/d-rymcg-tech:latest}"
 export DRT_INSTALL_EXTRAS="${DRT_INSTALL_EXTRAS:-}"
 export DRT_CAP_ADD="${DRT_CAP_ADD:-}"
 
 drt() {
   if ! podman image exists "${DRT_IMAGE}" 2>/dev/null; then
+    local _branch="${DRT_BUILD_BRANCH:-master}"
     echo "## First run: building ${DRT_IMAGE}" \
-      "from ${DRT_GIT_REPO}#${DRT_BUILD_BRANCH} ..." >&2
+      "from ${DRT_GIT_REPO}#${_branch} ..." >&2
     local git_sha
-    git_sha=$(git ls-remote "${DRT_GIT_REPO}" "refs/heads/${DRT_BUILD_BRANCH}" | cut -c1-12)
+    git_sha=$(git ls-remote "${DRT_GIT_REPO}" "refs/heads/${_branch}" | cut -c1-12)
     podman build \
-      --build-arg BRANCH="${DRT_BUILD_BRANCH}" \
+      --build-arg BRANCH="${_branch}" \
       --build-arg GIT_REPO="${DRT_GIT_REPO}" \
       --build-arg GIT_SHA="${git_sha:-unknown}" \
       --build-arg INSTALL_EXTRAS="${DRT_INSTALL_EXTRAS}" \
       -t "${DRT_IMAGE}" \
       -f _container/Dockerfile \
-      "${DRT_GIT_REPO}#${DRT_BUILD_BRANCH}"
+      "${DRT_GIT_REPO}#${_branch}"
   fi
   # Only inject --cap-add for run actions (not --build, --pull, etc.)
   local _cap_args=()
