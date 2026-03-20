@@ -22,7 +22,26 @@ _display_motd() {
             echo "${data}"
         fi
     else
-        echo "Welcome to d.rymcg.tech. Run 'motd' to customize this message."
+        cat <<'MOTD'
+ ____     ____  _  _  __  __  ___  ___      ____  ____  ___  _   _
+(  _ \   (  _ \( \/ )(  \/  )/ __)/ __)    (_  _)( ___)/ __)( )_( )
+ )(_) )   )   / \  /  )    (( (__( (_-.      )(   )__)( (__  ) _ (
+(____/ . (_)\_) (__) (_/\/\_)\___)\___/  .  (__) (____)\___)(/ \_)
+================================================================
+  https://github.com/EnigmaCurry/d.rymcg.tech
+
+  Read WORKSTATION_CONTAINER.md for full documentation.
+
+  Quick tips:
+    motd              Edit this message (persisted in your SOPS config)
+    ~/.bashrc.local   Add custom shell aliases, functions, env vars
+
+  On exit, these configs are automatically saved to your SOPS config:
+    ~/.config/doctl/     ~/.aws/              ~/.config/gh/
+    ~/.config/rclone/    ~/.mc/               ~/.config/wireguard/
+    ~/.gnupg/            ~/.ssh/              ~/.bashrc.local
+================================================================
+MOTD
     fi
 }
 if _motd_text=$(_display_motd); then
