@@ -1615,14 +1615,19 @@ cmd_edit() {
         echo "## Passphrase accepted." >&2
         mv "${EDIT_DIR}/config-decrypted" "${EDIT_FILE}"
     else
+        cp "${SOPS_CONFIG}" "${EDIT_DIR}/config.sops.env"
+        cp "${AGE_KEY_FILE}" "${EDIT_DIR}/age-key-in"
+        chmod 644 "${EDIT_DIR}/config.sops.env" "${EDIT_DIR}/age-key-in"
         container_run \
             --user 0:0 -i \
-            -v "${SOPS_CONFIG}:/tmp/config.sops.env:ro" \
-            -v "${AGE_KEY_FILE}:/run/secrets/age-key:ro" \
-            -e "SOPS_AGE_KEY_FILE=/run/secrets/age-key" \
+            -v "${EDIT_DIR}:/tmp/edit-work:Z" \
             "${IMAGE}" \
-            sops decrypt --input-type dotenv --output-type dotenv \
-                --filename-override export.env /tmp/config.sops.env > "${EDIT_FILE}"
+            sh -c 'SOPS_AGE_KEY_FILE=/tmp/edit-work/age-key-in sops decrypt \
+                --input-type dotenv --output-type dotenv \
+                --filename-override export.env /tmp/edit-work/config.sops.env \
+                > /tmp/edit-work/config-decrypted && \
+                chmod 644 /tmp/edit-work/config-decrypted'
+        mv "${EDIT_DIR}/config-decrypted" "${EDIT_FILE}"
     fi
     chmod 600 "${EDIT_FILE}"
 
@@ -1669,11 +1674,12 @@ cmd_edit() {
     else
         cp "${EDIT_FILE}" "${EDIT_DIR}/new-plain.env"
         cp "${SOPS_CONFIG}" "${EDIT_DIR}/config.sops.env"
+        cp "${AGE_KEY_FILE}" "${EDIT_DIR}/age-key-in"
+        chmod 644 "${EDIT_DIR}/config.sops.env" "${EDIT_DIR}/age-key-in"
         container_run --user 0:0 -i \
             -v "${EDIT_DIR}:/tmp/edit-work:Z" \
-            -v "${AGE_KEY_FILE}:/run/secrets/age-key:ro" \
-            -e "SOPS_AGE_KEY_FILE=/run/secrets/age-key" \
-            "${IMAGE}" sh -c 'EDITOR="cp /tmp/edit-work/new-plain.env" sops \
+            "${IMAGE}" sh -c 'SOPS_AGE_KEY_FILE=/tmp/edit-work/age-key-in \
+                EDITOR="cp /tmp/edit-work/new-plain.env" sops \
                     --input-type dotenv --output-type dotenv \
                     /tmp/edit-work/config.sops.env && \
                 chmod 644 /tmp/edit-work/config.sops.env'
