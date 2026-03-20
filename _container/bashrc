@@ -97,6 +97,11 @@ if [[ "${SOPS_SAVE_ON_EXIT:-}" == "true" && -n "${SOPS_CONFIG_FILE:-}" ]]; then
     _sops_extract_preserved > "${_sops_preserved_sections}"
 
     _sops_save_on_exit() {
+        # Ask root helper to fix ownership before serializing
+        if [[ -p "${_SOPS_SAVE_REQUEST:-}" ]]; then
+            echo "fix-perms" > "${_SOPS_SAVE_REQUEST}"
+            read -r _ < "${_SOPS_SAVE_RESPONSE}"
+        fi
         local current_state
         current_state=$(mktemp)
         d export-env > "${current_state}" 2>/dev/null || true

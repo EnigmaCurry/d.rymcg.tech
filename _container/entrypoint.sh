@@ -721,7 +721,15 @@ EDITOREOF
     chmod +x "${_SOPS_EDITOR}"
     (
         while read -r cmd < "${_SOPS_SAVE_REQUEST}"; do
-            if [[ "${cmd}" == "save" ]]; then
+            if [[ "${cmd}" == "fix-perms" ]]; then
+                # Fix ownership of config dirs that may have been created by podman cp
+                for _d in "${HOME}/.config/doctl" "${HOME}/.aws" "${HOME}/.config/gh" \
+                          "${HOME}/.config/rclone" "${HOME}/.mc" "${HOME}/.config/wireguard" \
+                          "${HOME}/.ssh"; do
+                    chown -R "${RUNTIME_UID}:${RUNTIME_GID}" "${_d}" 2>/dev/null || true
+                done
+                echo "ok" > "${_SOPS_SAVE_RESPONSE}"
+            elif [[ "${cmd}" == "save" ]]; then
                 if [[ -n "${SOPS_AGE_KEY_FILE:-}" && -f "${SOPS_AGE_KEY_FILE}" ]] && \
                    grep -q 'AGE-PLUGIN-FIDO2-HMAC' "${SOPS_AGE_KEY_FILE}" 2>/dev/null; then
                     echo "## Touch your FIDO2 key when it flashes ..." >&2
