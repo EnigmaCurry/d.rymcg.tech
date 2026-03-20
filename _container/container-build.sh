@@ -15,6 +15,10 @@ usage() {
     echo "  --arch ARCH    Target platform (e.g. linux/amd64). Can be specified multiple times"
     echo "  --extra-packages PKGS  Additional Alpine packages to install (space-separated, quoted)"
     echo "  --editor CMD   Set EDITOR in the image (default: nano)"
+    echo "  --install-doctl    Install doctl (DigitalOcean CLI)"
+    echo "  --install-aws     Install aws CLI"
+    echo "  --install-gh       Install gh (GitHub CLI)"
+    echo "  --install-rclone   Install rclone"
     echo "  --push         Push image after building"
     echo "  --help         Show this help"
 }
@@ -25,6 +29,10 @@ PUSH=false
 ARCHS=()
 EXTRA_PACKAGES=""
 EDITOR_CMD=""
+INSTALL_DOCTL=false
+INSTALL_AWS=false
+INSTALL_GH=false
+INSTALL_RCLONE=false
 
 while [[ $# -gt 0 ]]; do
     case "$1" in
@@ -33,6 +41,10 @@ while [[ $# -gt 0 ]]; do
         --arch) ARCHS+=("$2"); shift 2 ;;
         --extra-packages) EXTRA_PACKAGES="$2"; shift 2 ;;
         --editor) EDITOR_CMD="$2"; shift 2 ;;
+        --install-doctl) INSTALL_DOCTL=true; shift ;;
+        --install-aws) INSTALL_AWS=true; shift ;;
+        --install-gh) INSTALL_GH=true; shift ;;
+        --install-rclone) INSTALL_RCLONE=true; shift ;;
         --push) PUSH=true; shift ;;
         --help) usage; exit 0 ;;
         *) echo "Unknown option: $1" >&2; usage >&2; exit 1 ;;
@@ -60,6 +72,10 @@ fi
 
 GIT_SHA=$(git -C "${ROOT_DIR}" rev-parse --short HEAD 2>/dev/null || echo "unknown")
 BUILD_ARGS+=(--build-arg "GIT_SHA=${GIT_SHA}")
+BUILD_ARGS+=(--build-arg "INSTALL_DOCTL=${INSTALL_DOCTL}")
+BUILD_ARGS+=(--build-arg "INSTALL_AWS=${INSTALL_AWS}")
+BUILD_ARGS+=(--build-arg "INSTALL_GH=${INSTALL_GH}")
+BUILD_ARGS+=(--build-arg "INSTALL_RCLONE=${INSTALL_RCLONE}")
 
 cd "${ROOT_DIR}"
 

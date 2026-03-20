@@ -49,16 +49,15 @@ RUN apk add --no-cache \
     su-exec \
     socat \
     util-linux \
-    bash-completion \
-    aws-cli \
-    github-cli \
-    rclone
+    bash-completion
 
 # Install uv (Python package manager)
 RUN curl -fsSL https://astral.sh/uv/install.sh | UV_INSTALL_DIR=/usr/local/bin sh
 
-# Install doctl (DigitalOcean CLI)
-RUN set -e; \
+# Install optional CLI tools (disabled by default to keep image small)
+ARG INSTALL_DOCTL=false
+RUN if [ "${INSTALL_DOCTL}" = "true" ]; then \
+    set -e; \
     case "$(uname -m)" in \
       x86_64)  ARCH=amd64 ;; \
       aarch64) ARCH=arm64 ;; \
@@ -66,7 +65,17 @@ RUN set -e; \
     esac; \
     DOCTL_VERSION=$(curl -sf https://api.github.com/repos/digitalocean/doctl/releases/latest | jq -r .tag_name | sed 's/^v//'); \
     curl -fsSL "https://github.com/digitalocean/doctl/releases/download/v${DOCTL_VERSION}/doctl-${DOCTL_VERSION}-linux-${ARCH}.tar.gz" \
-      | tar xz -C /usr/local/bin
+      | tar xz -C /usr/local/bin; \
+    fi
+
+ARG INSTALL_AWS=false
+RUN if [ "${INSTALL_AWS}" = "true" ]; then apk add --no-cache aws-cli; fi
+
+ARG INSTALL_GH=false
+RUN if [ "${INSTALL_GH}" = "true" ]; then apk add --no-cache github-cli; fi
+
+ARG INSTALL_RCLONE=false
+RUN if [ "${INSTALL_RCLONE}" = "true" ]; then apk add --no-cache rclone; fi
 
 # Create non-root user
 RUN adduser -D -u 1000 -h /home/user -s /bin/bash user \
