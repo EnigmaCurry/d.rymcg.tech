@@ -922,6 +922,36 @@ __export_env() {
         plaintext+="__doctl_config__=${doctl_data}"$'\n'
     fi
 
+    # Serialize AWS CLI config if present
+    if [[ -f "${HOME}/.aws/credentials" ]]; then
+        local aws_creds_data
+        aws_creds_data=$(gzip -cn < "${HOME}/.aws/credentials" | base64 -w 0)
+        plaintext+=$'\n'"## aws config"$'\n'
+        plaintext+="__aws_credentials__=${aws_creds_data}"$'\n'
+    fi
+    if [[ -f "${HOME}/.aws/config" ]]; then
+        local aws_config_data
+        aws_config_data=$(gzip -cn < "${HOME}/.aws/config" | base64 -w 0)
+        [[ -z "${aws_creds_data:-}" ]] && plaintext+=$'\n'"## aws config"$'\n'
+        plaintext+="__aws_config__=${aws_config_data}"$'\n'
+    fi
+
+    # Serialize gh CLI config if present
+    if [[ -f "${HOME}/.config/gh/hosts.yml" ]]; then
+        local gh_hosts_data
+        gh_hosts_data=$(gzip -cn < "${HOME}/.config/gh/hosts.yml" | base64 -w 0)
+        plaintext+=$'\n'"## gh config"$'\n'
+        plaintext+="__gh_hosts__=${gh_hosts_data}"$'\n'
+    fi
+
+    # Serialize rclone config if present
+    if [[ -f "${HOME}/.config/rclone/rclone.conf" ]]; then
+        local rclone_data
+        rclone_data=$(gzip -cn < "${HOME}/.config/rclone/rclone.conf" | base64 -w 0)
+        plaintext+=$'\n'"## rclone config"$'\n'
+        plaintext+="__rclone_config__=${rclone_data}"$'\n'
+    fi
+
     # Serialize user SSH config if present (excludes auto-generated config-drt)
     if [[ -f "${HOME}/.ssh/config" ]]; then
         local ssh_data
@@ -1089,6 +1119,10 @@ __restore_env() {
     declare -A ssh_key_files   # "filename" → base64 data
     declare -A gumdrop_preset_files  # "filename" → base64 data
     local doctl_config_b64=""
+    local aws_credentials_b64=""
+    local aws_config_b64=""
+    local gh_hosts_b64=""
+    local rclone_config_b64=""
     local ssh_config_b64=""
     local motd_b64=""
 
@@ -1100,6 +1134,28 @@ __restore_env() {
         # Serialized doctl config: __doctl_config__=<base64>
         if [[ "${key}" == "__doctl_config__" ]]; then
             doctl_config_b64="${val}"
+            continue
+        fi
+
+        # Serialized AWS CLI config: __aws_credentials__=<base64>, __aws_config__=<base64>
+        if [[ "${key}" == "__aws_credentials__" ]]; then
+            aws_credentials_b64="${val}"
+            continue
+        fi
+        if [[ "${key}" == "__aws_config__" ]]; then
+            aws_config_b64="${val}"
+            continue
+        fi
+
+        # Serialized gh CLI config: __gh_hosts__=<base64>
+        if [[ "${key}" == "__gh_hosts__" ]]; then
+            gh_hosts_b64="${val}"
+            continue
+        fi
+
+        # Serialized rclone config: __rclone_config__=<base64>
+        if [[ "${key}" == "__rclone_config__" ]]; then
+            rclone_config_b64="${val}"
             continue
         fi
 
@@ -1264,6 +1320,40 @@ __restore_env() {
         echo "## Restoring ${doctl_dir}/config.yaml" >&2
         _b64_decode "${doctl_config_b64}" > "${doctl_dir}/config.yaml"
         chmod 600 "${doctl_dir}/config.yaml"
+    fi
+
+    # Restore AWS CLI config if present
+    if [[ -n "${aws_credentials_b64}" ]]; then
+        local aws_dir="${HOME}/.aws"
+        mkdir -p "${aws_dir}"
+        echo "## Restoring ${aws_dir}/credentials" >&2
+        _b64_decode "${aws_credentials_b64}" > "${aws_dir}/credentials"
+        chmod 600 "${aws_dir}/credentials"
+    fi
+    if [[ -n "${aws_config_b64}" ]]; then
+        local aws_dir="${HOME}/.aws"
+        mkdir -p "${aws_dir}"
+        echo "## Restoring ${aws_dir}/config" >&2
+        _b64_decode "${aws_config_b64}" > "${aws_dir}/config"
+        chmod 600 "${aws_dir}/config"
+    fi
+
+    # Restore gh CLI config if present
+    if [[ -n "${gh_hosts_b64}" ]]; then
+        local gh_dir="${HOME}/.config/gh"
+        mkdir -p "${gh_dir}"
+        echo "## Restoring ${gh_dir}/hosts.yml" >&2
+        _b64_decode "${gh_hosts_b64}" > "${gh_dir}/hosts.yml"
+        chmod 600 "${gh_dir}/hosts.yml"
+    fi
+
+    # Restore rclone config if present
+    if [[ -n "${rclone_config_b64}" ]]; then
+        local rclone_dir="${HOME}/.config/rclone"
+        mkdir -p "${rclone_dir}"
+        echo "## Restoring ${rclone_dir}/rclone.conf" >&2
+        _b64_decode "${rclone_config_b64}" > "${rclone_dir}/rclone.conf"
+        chmod 600 "${rclone_dir}/rclone.conf"
     fi
 
     # Restore SSH config if present

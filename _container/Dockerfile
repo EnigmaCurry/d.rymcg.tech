@@ -49,7 +49,10 @@ RUN apk add --no-cache \
     su-exec \
     socat \
     util-linux \
-    bash-completion
+    bash-completion \
+    aws-cli \
+    github-cli \
+    rclone
 
 # Install uv (Python package manager)
 RUN curl -fsSL https://astral.sh/uv/install.sh | UV_INSTALL_DIR=/usr/local/bin sh
