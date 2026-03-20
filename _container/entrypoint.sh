@@ -773,5 +773,6 @@ fi
 
 export DRT_CONTEXT="${DOCKER_CONTEXT}"
 unset DOCKER_CONTEXT
+cd "${HOME}"
 log "## Executing: $*"
 exec su-exec "${RUNTIME_USER}" "$@"
