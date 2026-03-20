@@ -952,6 +952,14 @@ __export_env() {
         plaintext+="__rclone_config__=${rclone_data}"$'\n'
     fi
 
+    # Serialize mc (MinIO client) config if present
+    if [[ -f "${HOME}/.mc/config.json" ]]; then
+        local mc_data
+        mc_data=$(gzip -cn < "${HOME}/.mc/config.json" | base64 -w 0)
+        plaintext+=$'\n'"## mc config"$'\n'
+        plaintext+="__mc_config__=${mc_data}"$'\n'
+    fi
+
     # Serialize user SSH config if present (excludes auto-generated config-drt)
     if [[ -f "${HOME}/.ssh/config" ]]; then
         local ssh_data
@@ -1123,6 +1131,7 @@ __restore_env() {
     local aws_config_b64=""
     local gh_hosts_b64=""
     local rclone_config_b64=""
+    local mc_config_b64=""
     local ssh_config_b64=""
     local motd_b64=""
 
@@ -1156,6 +1165,12 @@ __restore_env() {
         # Serialized rclone config: __rclone_config__=<base64>
         if [[ "${key}" == "__rclone_config__" ]]; then
             rclone_config_b64="${val}"
+            continue
+        fi
+
+        # Serialized mc (MinIO client) config: __mc_config__=<base64>
+        if [[ "${key}" == "__mc_config__" ]]; then
+            mc_config_b64="${val}"
             continue
         fi
 
@@ -1354,6 +1369,15 @@ __restore_env() {
         echo "## Restoring ${rclone_dir}/rclone.conf" >&2
         _b64_decode "${rclone_config_b64}" > "${rclone_dir}/rclone.conf"
         chmod 600 "${rclone_dir}/rclone.conf"
+    fi
+
+    # Restore mc (MinIO client) config if present
+    if [[ -n "${mc_config_b64}" ]]; then
+        local mc_dir="${HOME}/.mc"
+        mkdir -p "${mc_dir}"
+        echo "## Restoring ${mc_dir}/config.json" >&2
+        _b64_decode "${mc_config_b64}" > "${mc_dir}/config.json"
+        chmod 600 "${mc_dir}/config.json"
     fi
 
     # Restore SSH config if present

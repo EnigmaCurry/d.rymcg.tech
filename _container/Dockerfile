@@ -54,7 +54,7 @@ RUN apk add --no-cache \
 # Install uv (Python package manager)
 RUN curl -fsSL https://astral.sh/uv/install.sh | UV_INSTALL_DIR=/usr/local/bin sh
 
-# Install optional CLI tools (comma-separated list, e.g. "doctl,aws,gh,rclone")
+# Install optional CLI tools (comma-separated list, e.g. "doctl,aws,gh,rclone,mc,step")
 ARG INSTALL_EXTRAS=
 RUN set -e; \
     for tool in $(echo "${INSTALL_EXTRAS}" | tr ',' ' '); do \
@@ -71,6 +71,24 @@ RUN set -e; \
         aws) apk add --no-cache aws-cli ;; \
         gh) apk add --no-cache github-cli ;; \
         rclone) apk add --no-cache rclone ;; \
+        mc) \
+          case "$(uname -m)" in \
+            x86_64)  ARCH=amd64 ;; \
+            aarch64) ARCH=arm64 ;; \
+            *)       echo "Unsupported arch: $(uname -m)" >&2; exit 1 ;; \
+          esac; \
+          MC_TAG=$(curl -sf https://api.github.com/repos/pgsty/mc/releases/latest | jq -r .tag_name); \
+          MC_VERSION=$(echo "${MC_TAG}" | sed 's/RELEASE\.//;s/[-T:]//g;s/Z//').0.0; \
+          curl -fsSL "https://github.com/pgsty/mc/releases/download/${MC_TAG}/mc_${MC_VERSION}_linux_${ARCH}.tar.gz" \
+            | tar xz -C /usr/local/bin mc ;; \
+        step) \
+          case "$(uname -m)" in \
+            x86_64)  ARCH=amd64 ;; \
+            aarch64) ARCH=arm64 ;; \
+            *)       echo "Unsupported arch: $(uname -m)" >&2; exit 1 ;; \
+          esac; \
+          curl -fsSL "https://github.com/smallstep/cli/releases/latest/download/step_linux_${ARCH}.tar.gz" \
+            | tar xz -C /usr/local/bin --strip-components=2 "step_linux_${ARCH}/bin/step" ;; \
         *) echo "Unknown extra tool: ${tool}" >&2; exit 1 ;; \
       esac; \
     done

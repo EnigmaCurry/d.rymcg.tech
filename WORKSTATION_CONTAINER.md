@@ -26,7 +26,7 @@ Add this to your RC file (`~/.bashrc`, `~/.bash_profile`, or
 : "${DRT_GIT_REPO:=https://github.com/EnigmaCurry/d.rymcg.tech.git}"
 : "${DRT_BUILD_BRANCH:=master}"
 : "${DRT_IMAGE:=localhost/d-rymcg-tech:latest}"
-#: "${DRT_INSTALL_EXTRAS:=doctl,aws,gh,rclone}"
+#: "${DRT_INSTALL_EXTRAS:=doctl,aws,gh,rclone,mc,step}"
 
 if podman image exists "${DRT_IMAGE}" 2>/dev/null; then
   source <(podman run --rm --pull=never --net=none --entrypoint cat \
