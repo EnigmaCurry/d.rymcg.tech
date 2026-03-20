@@ -1690,8 +1690,10 @@ cmd_edit() {
     echo "## Changes:" >&2
     diff -u "${ORIG_FILE}" "${EDIT_FILE}" >&2 || true
     echo "" >&2
-    read -rp "Save changes to ${SOPS_CONFIG}? [y/N] " answer
-    if [[ ! "${answer}" =~ ^[Yy]$ ]]; then
+    # Flush any stale input (e.g. escape sequences from editor)
+    while read -r -t 0.1 _ 2>/dev/null; do :; done
+    read -rp "Save changes to ${SOPS_CONFIG}? [Y/n] " answer
+    if [[ "${answer}" =~ ^[Nn]$ ]]; then
         echo "## Changes discarded." >&2
         rm -rf "${EDIT_DIR}"
         exit 0
