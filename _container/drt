@@ -1089,7 +1089,7 @@ cmd_run() {
     else
         "${ENGINE}" "${RUN_ARGS[@]}" || rc=$?
     fi
-    if [[ ${rc} -ne 0 ]]; then
+    if [[ ${rc} -ne 0 && ${#CMD_ARGS[@]} -gt 0 ]]; then
         echo "## container exited with error (exit code ${rc}) — skipping auto-commit" >&2
         return ${rc}
     fi
