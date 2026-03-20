@@ -2249,10 +2249,20 @@ case "${ACTION}" in
         cmd_extract
         ;;
     run)
-        # Check if ARGS has a context (any non-flag argument)
+        # Check if ARGS has a context (any non-flag argument, skipping flag values)
         _has_context=false
+        _skip_next=false
         for _arg in "${ARGS[@]+"${ARGS[@]}"}"; do
-            [[ "${_arg}" != -* ]] && _has_context=true && break
+            if [[ "${_skip_next}" == true ]]; then
+                _skip_next=false
+                continue
+            fi
+            case "${_arg}" in
+                --cap-add|--image|--net|--age-key|--ssh-key|--ssh-timeout|--timeout|--controller-port)
+                    _skip_next=true ;;
+                -*) ;;
+                *) _has_context=true; break ;;
+            esac
         done
         if [[ "${_has_context}" == false ]]; then
             check_engine
