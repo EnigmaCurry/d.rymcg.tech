@@ -156,5 +156,6 @@ LABEL org.opencontainers.image.source=${IMAGE_SOURCE} \
       drt.branch=${BRANCH} \
       drt.repo=${GIT_REPO}
 
+WORKDIR /home/user
 ENTRYPOINT ["/entrypoint.sh"]
 CMD ["bash"]
