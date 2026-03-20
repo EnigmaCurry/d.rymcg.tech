@@ -217,6 +217,272 @@ git_auto_commit() {
     fi
 }
 
+## Detect AGE key type: passphrase, fido2, or plaintext
+## Args: $1 = path to AGE key file
+## Output: "passphrase", "fido2", or "plaintext"
+detect_key_type() {
+    local key_file="$1"
+    if head -1 "${key_file}" | grep -q '^age-encryption.org'; then
+        echo "passphrase"
+    elif grep -q 'AGE-PLUGIN-FIDO2-HMAC' "${key_file}" 2>/dev/null; then
+        echo "fido2"
+    else
+        echo "plaintext"
+    fi
+}
+
+## Human-readable key status label
+## Args: $1 = path to AGE key file (may not exist)
+## Output: status string
+key_status_label() {
+    local key_file="$1"
+    if [[ ! -f "${key_file}" ]]; then
+        echo "missing"
+        return
+    fi
+    case "$(detect_key_type "${key_file}")" in
+        passphrase) echo "Password" ;;
+        fido2) echo "FIDO2 + Cold Storage" ;;
+        plaintext) echo "plaintext!!" ;;
+    esac
+}
+
+## List unique context names from keys and/or configs
+## Args: $1 = "configs-only" to list only configs (optional)
+## Output: sorted unique context names, one per line
+list_contexts() {
+    local KEY_DIR="${HOME}/.config/d.rymcg.tech/keys/sops"
+    local CONFIG_DIR="${HOME}/.config/d.rymcg.tech/config"
+    {
+        if [[ "${1:-}" != "configs-only" && -d "${KEY_DIR}" ]]; then
+            for f in "${KEY_DIR}"/*.key; do
+                [[ -f "$f" ]] || continue
+                basename "$f" .key
+            done
+        fi
+        if [[ -d "${CONFIG_DIR}" ]]; then
+            for f in "${CONFIG_DIR}"/*.sops.env; do
+                [[ -f "$f" ]] || continue
+                basename "$f" .sops.env
+            done
+        fi
+    } | sort -u
+}
+
+## Resolve AGE key file path for a context, validate existence
+## Args: $1 = context name, $2 = optional override path
+## Output: path to key file; exits with error if not found
+resolve_age_key() {
+    local context="$1" override="${2:-}"
+    local key_file
+    if [[ -n "${override}" ]]; then
+        key_file="${override}"
+    else
+        key_file="${HOME}/.config/d.rymcg.tech/keys/sops/${context}.key"
+    fi
+    if [[ ! -f "${key_file}" ]]; then
+        echo "Error: AGE key not found: ${key_file}" >&2
+        exit 1
+    fi
+    echo "${key_file}"
+}
+
+## Resolve FIDO2 device for a context
+## Args: $1 = context name, $2 = "interactive" for fallback selection (optional)
+## Output: /dev/hidrawN path; returns 1 if not found (non-interactive) or exits on error
+resolve_fido2_device() {
+    local context="$1" mode="${2:-}"
+    local FIDO2_ID_FILE="${HOME}/.config/d.rymcg.tech/keys/sops/${context}.fido2"
+    local fido2_dev=""
+
+    if [[ -f "${FIDO2_ID_FILE}" ]]; then
+        local _fido2_id
+        while IFS= read -r _fido2_id; do
+            [[ -z "${_fido2_id}" ]] && continue
+            fido2_dev=$(find_hidraw_by_id "${_fido2_id}") && break
+        done < "${FIDO2_ID_FILE}"
+    fi
+
+    if [[ -n "${fido2_dev}" ]]; then
+        echo "${fido2_dev}"
+        return 0
+    fi
+
+    if [[ "${mode}" == "interactive" ]]; then
+        echo "## FIDO2: no stored device found, scanning..." >&2
+        local _devs=() _devpaths=()
+        while IFS='|' read -r devpath hidid devname; do
+            _devs+=("${devname} (${devpath})")
+            _devpaths+=("${devpath}")
+        done < <(detect_hidraw_devices)
+        if [[ ${#_devs[@]} -eq 0 ]]; then
+            echo "Error: no FIDO2 devices detected" >&2
+            echo "  Ensure one of your FIDO2 keys is plugged in" >&2
+            exit 1
+        fi
+        local _sel _sel_idx=0
+        _sel=$(wizard choose "Select FIDO2 device" "${_devs[@]}")
+        for i in "${!_devs[@]}"; do
+            [[ "${_devs[$i]}" == "${_sel}" ]] && _sel_idx=$i && break
+        done
+        echo "${_devpaths[$_sel_idx]}"
+        return 0
+    fi
+
+    return 1
+}
+
+## Decrypt a SOPS config file, handling all key types
+## Args: $1 = AGE key file, $2 = SOPS config file, $3 = context name
+## Output: decrypted plaintext to stdout
+sops_decrypt_config() {
+    local key_file="$1" config_file="$2" context="$3"
+    local key_type
+    key_type=$(detect_key_type "${key_file}")
+
+    local _dec_dir
+    _dec_dir=$(mktemp -d)
+    cp "${key_file}" "${_dec_dir}/age-key-in"
+    cp "${config_file}" "${_dec_dir}/config.sops.env"
+
+    local _extra_args=()
+    case "${key_type}" in
+        passphrase)
+            _extra_args+=(-it)
+            echo "## Get ready to enter your AGE key passphrase ..." >&2
+            ;;
+        fido2)
+            local _fido2_dev=""
+            _fido2_dev=$(resolve_fido2_device "${context}") || true
+            if [[ -z "${_fido2_dev}" ]]; then
+                rm -rf "${_dec_dir}"
+                echo "Error: FIDO2 device not found. Ensure your key is plugged in." >&2
+                exit 1
+            fi
+            _extra_args+=(-it --device "${_fido2_dev}")
+            echo "## Touch your FIDO2 key when it flashes ..." >&2
+            ;;
+    esac
+
+    container_run ${_extra_args[@]+"${_extra_args[@]}"} \
+        --user 0:0 --security-opt label=disable \
+        -v "${_dec_dir}:/tmp/dec-work:Z" \
+        "${IMAGE}" sh -c '
+            if head -1 /tmp/dec-work/age-key-in | grep -q "^age-encryption.org"; then
+                age -d /tmp/dec-work/age-key-in > /tmp/age-key-dec
+            else
+                cp /tmp/dec-work/age-key-in /tmp/age-key-dec
+            fi
+            SOPS_AGE_KEY_FILE=/tmp/age-key-dec sops decrypt \
+                --input-type dotenv --output-type dotenv \
+                --filename-override export.env /tmp/dec-work/config.sops.env \
+                > /tmp/dec-work/config-decrypted && \
+                chmod 644 /tmp/dec-work/config-decrypted'
+
+    if [[ "${key_type}" == "passphrase" ]]; then
+        echo "## Passphrase accepted." >&2
+    fi
+
+    cat "${_dec_dir}/config-decrypted"
+    rm -rf "${_dec_dir}"
+}
+
+## Re-encrypt a SOPS config using the EDITOR=cp trick (only changed values re-encrypted)
+## Args: $1 = AGE key file, $2 = SOPS config file (updated in place), $3 = new plaintext file, $4 = context name
+sops_reencrypt_config() {
+    local key_file="$1" config_file="$2" plaintext_file="$3" context="$4"
+    local key_type
+    key_type=$(detect_key_type "${key_file}")
+
+    local _enc_dir
+    _enc_dir=$(mktemp -d)
+    cp "${plaintext_file}" "${_enc_dir}/new-plain.env"
+    cp "${key_file}" "${_enc_dir}/age-key-in"
+    cp "${config_file}" "${_enc_dir}/config.sops.env"
+
+    local _extra_args=()
+    case "${key_type}" in
+        passphrase)
+            echo "## Get ready to enter your AGE key passphrase ..." >&2
+            ;;
+        fido2)
+            local _fido2_dev=""
+            _fido2_dev=$(resolve_fido2_device "${context}") || true
+            if [[ -n "${_fido2_dev}" ]]; then
+                _extra_args+=(--device "${_fido2_dev}")
+                echo "## Touch your FIDO2 key when it flashes ..." >&2
+            fi
+            ;;
+    esac
+
+    container_run -it --user 0:0 \
+        --security-opt label=disable \
+        ${_extra_args[@]+"${_extra_args[@]}"} \
+        -v "${_enc_dir}:/tmp/enc-work:Z" \
+        "${IMAGE}" sh -c '
+            if head -1 /tmp/enc-work/age-key-in | grep -q "^age-encryption.org"; then
+                age -d /tmp/enc-work/age-key-in > /tmp/age-key-dec
+            else
+                cp /tmp/enc-work/age-key-in /tmp/age-key-dec
+            fi
+            export SOPS_AGE_KEY_FILE=/tmp/age-key-dec
+            EDITOR="cp /tmp/enc-work/new-plain.env" sops \
+                --input-type dotenv --output-type dotenv \
+                /tmp/enc-work/config.sops.env
+            chmod 644 /tmp/enc-work/config.sops.env'
+
+    cp "${_enc_dir}/config.sops.env" "${config_file}"
+    rm -rf "${_enc_dir}"
+}
+
+## Parse common subcommand args: --image, --docker, --age-key, --help, positional CONTEXT
+## Args: $1 = usage function name, remaining = subcommand args
+## Sets: _SC_CONTEXT, _SC_AGE_KEY_FILE
+_parse_subcommand_args() {
+    local _usage_fn="$1"; shift
+    _SC_CONTEXT=""
+    _SC_AGE_KEY_FILE=""
+
+    while [[ $# -gt 0 ]]; do
+        case "$1" in
+            --image) IMAGE="$2"; shift 2 ;;
+            --docker) ENGINE=docker; shift ;;
+            --age-key) _SC_AGE_KEY_FILE="$2"; shift 2 ;;
+            --help) "${_usage_fn}"; exit 0 ;;
+            -*)
+                echo "Unknown option: $1" >&2
+                "${_usage_fn}" >&2
+                exit 1
+                ;;
+            *)
+                if [[ -z "${_SC_CONTEXT}" ]]; then
+                    _SC_CONTEXT="$1"
+                else
+                    echo "Error: unexpected argument: $1" >&2
+                    "${_usage_fn}" >&2
+                    exit 1
+                fi
+                shift
+                ;;
+        esac
+    done
+}
+
+## Interactively pick a context if _SC_CONTEXT is empty
+## Args: $1 = wizard prompt, $2 = list mode ("configs-only" or empty for all)
+_pick_context() {
+    [[ -n "${_SC_CONTEXT}" ]] && return
+    local _contexts=()
+    while IFS= read -r _ctx; do
+        [[ -n "${_ctx}" ]] && _contexts+=("${_ctx}")
+    done < <(list_contexts "${2:-}")
+    if [[ ${#_contexts[@]} -eq 0 ]]; then
+        echo "No configs found. Run 'drt --init' first." >&2
+        exit 1
+    fi
+    _SC_CONTEXT=$(wizard choose "$1" "${_contexts[@]}")
+}
+
 ###############################################################################
 # Top-level usage
 ###############################################################################
@@ -291,30 +557,8 @@ EOF
 }
 
 cmd_init() {
-    local CONTEXT=""
-
-    while [[ $# -gt 0 ]]; do
-        case "$1" in
-            --image) IMAGE="$2"; shift 2 ;;
-            --docker) ENGINE=docker; shift ;;
-            --help) init_usage; exit 0 ;;
-            -*)
-                echo "Unknown option: $1" >&2
-                init_usage >&2
-                exit 1
-                ;;
-            *)
-                if [[ -z "${CONTEXT}" ]]; then
-                    CONTEXT="$1"
-                else
-                    echo "Error: unexpected argument: $1" >&2
-                    init_usage >&2
-                    exit 1
-                fi
-                shift
-                ;;
-        esac
-    done
+    _parse_subcommand_args init_usage "$@"
+    local CONTEXT="${_SC_CONTEXT}"
 
     check_engine
     git_auto_pull
@@ -480,13 +724,8 @@ cmd_init() {
         esac
     else
         echo "Using existing AGE key: ${AGE_KEY_FILE}"
-        ## Extract public key — detect key type: passphrase-encrypted, FIDO2, or plaintext
-        local _KEY_TYPE="plaintext"
-        if head -1 "${AGE_KEY_FILE}" | grep -q '^age-encryption.org'; then
-            _KEY_TYPE="passphrase"
-        elif grep -q 'AGE-PLUGIN-FIDO2-HMAC' "${AGE_KEY_FILE}" 2>/dev/null; then
-            _KEY_TYPE="fido2"
-        fi
+        local _KEY_TYPE
+        _KEY_TYPE=$(detect_key_type "${AGE_KEY_FILE}")
 
         if [[ "${_KEY_TYPE}" == "passphrase" ]]; then
             local DEC_DIR
@@ -547,50 +786,9 @@ cmd_init() {
                 ls -la "${DEC_DIR}" >&2 || true
             fi
             rm -rf "${DEC_DIR}"
-        elif [[ "${_KEY_TYPE}" == "fido2" ]]; then
-            ## FIDO2 key: need device passthrough for decryption
-            local FIDO2_ID_FILE="${AGE_KEY_DIR}/${CONTEXT}.fido2"
-            local _INIT_FIDO2_DEV=""
-            if [[ -f "${FIDO2_ID_FILE}" ]]; then
-                local _fido2_id
-                while IFS= read -r _fido2_id; do
-                    [[ -z "${_fido2_id}" ]] && continue
-                    _INIT_FIDO2_DEV=$(find_hidraw_by_id "${_fido2_id}") && break
-                done < "${FIDO2_ID_FILE}"
-            fi
-            if [[ -z "${_INIT_FIDO2_DEV}" ]]; then
-                echo "## Warning: FIDO2 device not found, cannot decrypt existing config" >&2
-            else
-                echo "## Touch your FIDO2 key when it flashes ..." >&2
-                local _FIDO2_DEC_DIR
-                _FIDO2_DEC_DIR=$(mktemp -d)
-                if container_run -it --user 0:0 \
-                    --security-opt label=disable \
-                    --device "${_INIT_FIDO2_DEV}" \
-                    -v "${CONFIG_DIR}/${CONTEXT}.sops.env:/tmp/config.sops.env:ro" \
-                    -v "${AGE_KEY_FILE}:/run/secrets/age-key:ro" \
-                    -v "${_FIDO2_DEC_DIR}:/tmp/fido2-work:Z" \
-                    -e "SOPS_AGE_KEY_FILE=/run/secrets/age-key" \
-                    "${IMAGE}" \
-                    sh -c 'sops decrypt --input-type dotenv --output-type dotenv \
-                        --filename-override export.env /tmp/config.sops.env \
-                        > /tmp/fido2-work/config-decrypted 2>/dev/null && \
-                        chmod 644 /tmp/fido2-work/config-decrypted' \
-                    && [[ -s "${_FIDO2_DEC_DIR}/config-decrypted" ]]; then
-                    _EXISTING=$(cat "${_FIDO2_DEC_DIR}/config-decrypted")
-                fi
-                rm -rf "${_FIDO2_DEC_DIR}"
-            fi
         else
-            ## Key is plaintext, no passphrase needed
-            _EXISTING=$(container_run \
-                --user 0:0 -i \
-                -v "${CONFIG_DIR}/${CONTEXT}.sops.env:/tmp/config.sops.env:ro" \
-                -v "${AGE_KEY_FILE}:/run/secrets/age-key:ro" \
-                -e "SOPS_AGE_KEY_FILE=/run/secrets/age-key" \
-                "${IMAGE}" \
-                sops decrypt --input-type dotenv --output-type dotenv \
-                    --filename-override export.env /tmp/config.sops.env 2>/dev/null) || true
+            ## FIDO2 or plaintext key: use shared decryption helper
+            _EXISTING=$(sops_decrypt_config "${AGE_KEY_FILE}" "${CONFIG_DIR}/${CONTEXT}.sops.env" "${CONTEXT}") || true
         fi
         if [[ -n "${_EXISTING}" ]]; then
             _CUR_SSH_HOST=$(echo "${_EXISTING}" | grep '^SSH_HOST=' | cut -d= -f2- || true)
@@ -774,44 +972,11 @@ BAO_CLIENT_KEY=${BAO_CLIENT_KEY}"
     mkdir -p "${CONFIG_DIR}"
     if [[ -f "${CONFIG_DIR}/${CONTEXT}.sops.env" ]]; then
         ## Existing config: use sops edit to only re-encrypt changed values
-        local _INIT_WORK
-        _INIT_WORK=$(mktemp -d)
-        echo "${PLAINTEXT}" > "${_INIT_WORK}/new-plain.env"
-        cp "${AGE_KEY_FILE}" "${_INIT_WORK}/age-key-in"
-        cp "${CONFIG_DIR}/${CONTEXT}.sops.env" "${_INIT_WORK}/config.sops.env"
-        local _INIT_EXTRA_ARGS=()
-        if [[ "${_KEY_TYPE}" == "fido2" ]]; then
-            local FIDO2_ID_FILE="${AGE_KEY_DIR}/${CONTEXT}.fido2"
-            local _INIT_FIDO2_DEV=""
-            if [[ -f "${FIDO2_ID_FILE}" ]]; then
-                local _fido2_id
-                while IFS= read -r _fido2_id; do
-                    [[ -z "${_fido2_id}" ]] && continue
-                    _INIT_FIDO2_DEV=$(find_hidraw_by_id "${_fido2_id}") && break
-                done < "${FIDO2_ID_FILE}"
-            fi
-            if [[ -n "${_INIT_FIDO2_DEV}" ]]; then
-                _INIT_EXTRA_ARGS+=(--device "${_INIT_FIDO2_DEV}")
-                echo "## Touch your FIDO2 key when it flashes ..." >&2
-            fi
-        fi
-        container_run -it --user 0:0 \
-            --security-opt label=disable \
-            "${_INIT_EXTRA_ARGS[@]}" \
-            -v "${_INIT_WORK}:/tmp/init-work:Z" \
-            "${IMAGE}" sh -c '
-                if head -1 /tmp/init-work/age-key-in | grep -q "^age-encryption.org"; then
-                    age -d /tmp/init-work/age-key-in > /tmp/age-key-dec
-                else
-                    cp /tmp/init-work/age-key-in /tmp/age-key-dec
-                fi
-                export SOPS_AGE_KEY_FILE=/tmp/age-key-dec
-                EDITOR="cp /tmp/init-work/new-plain.env" sops \
-                    --input-type dotenv --output-type dotenv \
-                    /tmp/init-work/config.sops.env
-                chmod 644 /tmp/init-work/config.sops.env'
-        cp "${_INIT_WORK}/config.sops.env" "${CONFIG_DIR}/${CONTEXT}.sops.env"
-        rm -rf "${_INIT_WORK}"
+        local _INIT_PLAIN
+        _INIT_PLAIN=$(mktemp)
+        echo "${PLAINTEXT}" > "${_INIT_PLAIN}"
+        sops_reencrypt_config "${AGE_KEY_FILE}" "${CONFIG_DIR}/${CONTEXT}.sops.env" "${_INIT_PLAIN}" "${CONTEXT}"
+        rm -f "${_INIT_PLAIN}"
     else
         ## New config: encrypt from scratch
         echo "${PLAINTEXT}" | container_run -i \
@@ -976,47 +1141,9 @@ cmd_run() {
     )
 
     # FIDO2: pass through hardware key device if this context uses a FIDO2 identity
-    local AGE_KEY_DIR
-    AGE_KEY_DIR="$(dirname "${AGE_KEY_FILE}")"
-    if [[ -n "${CONTEXT_NAME:-}" ]] && grep -q 'AGE-PLUGIN-FIDO2-HMAC' "${AGE_KEY_FILE}" 2>/dev/null; then
-        local FIDO2_ID_FILE="${AGE_KEY_DIR}/${CONTEXT_NAME}.fido2"
+    if [[ -n "${CONTEXT_NAME:-}" ]] && [[ "$(detect_key_type "${AGE_KEY_FILE}")" == "fido2" ]]; then
         local FIDO2_DEV=""
-
-        # Try stored HID_IDs first
-        if [[ -f "${FIDO2_ID_FILE}" ]]; then
-            local _fido2_id
-            while IFS= read -r _fido2_id; do
-                [[ -z "${_fido2_id}" ]] && continue
-                FIDO2_DEV=$(find_hidraw_by_id "${_fido2_id}") && break
-            done < "${FIDO2_ID_FILE}"
-        fi
-
-        # Fall back to interactive device selection
-        if [[ -z "${FIDO2_DEV}" ]]; then
-            echo "## FIDO2: no stored device found, scanning..." >&2
-            local _FIDO2_DEVICES=() _FIDO2_DEVPATHS=()
-            while IFS='|' read -r devpath hidid devname; do
-                _FIDO2_DEVICES+=("${devname} (${devpath})")
-                _FIDO2_DEVPATHS+=("${devpath}")
-            done < <(detect_hidraw_devices)
-
-            if [[ ${#_FIDO2_DEVICES[@]} -eq 0 ]]; then
-                echo "Error: no FIDO2 devices detected" >&2
-                echo "  Ensure one of your FIDO2 keys is plugged in" >&2
-                exit 1
-            fi
-
-            local _SELECTED_IDX=0 _SELECTED
-            _SELECTED=$(wizard choose "Select FIDO2 device" "${_FIDO2_DEVICES[@]}")
-            for i in "${!_FIDO2_DEVICES[@]}"; do
-                if [[ "${_FIDO2_DEVICES[$i]}" == "${_SELECTED}" ]]; then
-                    _SELECTED_IDX=$i
-                    break
-                fi
-            done
-            FIDO2_DEV="${_FIDO2_DEVPATHS[$_SELECTED_IDX]}"
-        fi
-
+        FIDO2_DEV=$(resolve_fido2_device "${CONTEXT_NAME}" interactive)
         echo "## FIDO2: passing through ${FIDO2_DEV}" >&2
         RUN_ARGS+=(--device "${FIDO2_DEV}")
     fi
@@ -1128,63 +1255,22 @@ EOF
 }
 
 cmd_clean() {
-    local CONTEXT=""
-
-    while [[ $# -gt 0 ]]; do
-        case "$1" in
-            --image) IMAGE="$2"; shift 2 ;;
-            --docker) ENGINE=docker; shift ;;
-            --help) clean_usage; exit 0 ;;
-            -*)
-                echo "Unknown option: $1" >&2
-                clean_usage >&2
-                exit 1
-                ;;
-            *)
-                if [[ -z "${CONTEXT}" ]]; then
-                    CONTEXT="$1"
-                else
-                    echo "Error: unexpected argument: $1" >&2
-                    clean_usage >&2
-                    exit 1
-                fi
-                shift
-                ;;
-        esac
-    done
+    _parse_subcommand_args clean_usage "$@"
+    local CONTEXT="${_SC_CONTEXT}"
 
     check_engine
     git_auto_pull
 
     if [[ -z "${CONTEXT}" ]]; then
-        local KEY_DIR="${HOME}/.config/d.rymcg.tech/keys/sops"
-        local CONFIG_DIR="${HOME}/.config/d.rymcg.tech/config"
-        local CONTEXTS=()
-        if [[ -d "${KEY_DIR}" ]]; then
-            for f in "${KEY_DIR}"/*.key; do
-                [[ -f "$f" ]] || continue
-                CONTEXTS+=("$(basename "$f" .key)")
-            done
-        fi
-        if [[ -d "${CONFIG_DIR}" ]]; then
-            for f in "${CONFIG_DIR}"/*.sops.env; do
-                [[ -f "$f" ]] || continue
-                local name
-                name="$(basename "$f" .sops.env)"
-                local found=false
-                for c in ${CONTEXTS[@]+"${CONTEXTS[@]}"}; do
-                    if [[ "$c" == "$name" ]]; then found=true; break; fi
-                done
-                if [[ "$found" == false ]]; then
-                    CONTEXTS+=("$name")
-                fi
-            done
-        fi
-        if [[ ${#CONTEXTS[@]} -eq 0 ]]; then
+        local _contexts=()
+        while IFS= read -r _ctx; do
+            [[ -n "${_ctx}" ]] && _contexts+=("${_ctx}")
+        done < <(list_contexts)
+        if [[ ${#_contexts[@]} -eq 0 ]]; then
             echo "Nothing to clean — no contexts found."
             return
         fi
-        CONTEXT=$(wizard choose "Select context to clean" "${CONTEXTS[@]}")
+        CONTEXT=$(wizard choose "Select context to clean" "${_contexts[@]}")
     fi
 
     local CONFIG_FILE="${HOME}/.config/d.rymcg.tech/config/${CONTEXT}.sops.env"
@@ -1318,60 +1404,25 @@ cmd_list() {
     local CONFIG_DIR="${HOME}/.config/d.rymcg.tech/config"
     local CONTEXTS=()
 
-    ## Collect unique context names from keys and configs
-    if [[ -d "${KEY_DIR}" ]]; then
-        for f in "${KEY_DIR}"/*.key; do
-            [[ -f "$f" ]] || continue
-            CONTEXTS+=("$(basename "$f" .key)")
-        done
-    fi
-    if [[ -d "${CONFIG_DIR}" ]]; then
-        for f in "${CONFIG_DIR}"/*.sops.env; do
-            [[ -f "$f" ]] || continue
-            local name
-            name="$(basename "$f" .sops.env)"
-            ## Avoid duplicates
-            local found=false
-            for c in ${CONTEXTS[@]+"${CONTEXTS[@]}"}; do
-                if [[ "$c" == "$name" ]]; then found=true; break; fi
-            done
-            if [[ "$found" == false ]]; then
-                CONTEXTS+=("$name")
-            fi
-        done
-    fi
+    while IFS= read -r ctx; do
+        [[ -n "$ctx" ]] && CONTEXTS+=("$ctx")
+    done < <(list_contexts)
 
     if [[ ${#CONTEXTS[@]} -eq 0 ]]; then
         echo "No contexts found."
         return
     fi
 
-    ## Sort contexts
-    local SORTED
-    SORTED=$(printf '%s\n' "${CONTEXTS[@]}" | sort)
-    CONTEXTS=()
-    while IFS= read -r ctx; do
-        [[ -n "$ctx" ]] && CONTEXTS+=("$ctx")
-    done <<< "$SORTED"
-
     printf "%-20s %-20s %s\n" "CONTEXT" "KEY" "CONFIG"
     printf "%-20s %-20s %s\n" "-------" "---" "------"
     for ctx in "${CONTEXTS[@]}"; do
-        local key_status="missing"
-        if [[ -f "${KEY_DIR}/${ctx}.key" ]]; then
-            if head -1 "${KEY_DIR}/${ctx}.key" | grep -q '^age-encryption.org'; then
-                key_status="Password"
-            elif grep -q 'AGE-PLUGIN-FIDO2-HMAC' "${KEY_DIR}/${ctx}.key" 2>/dev/null; then
-                key_status="FIDO2 + Cold Storage"
-            else
-                key_status="plaintext!!"
-            fi
-        fi
+        local _key_label
+        _key_label=$(key_status_label "${KEY_DIR}/${ctx}.key")
         local config_status="missing"
         if [[ -f "${CONFIG_DIR}/${ctx}.sops.env" ]]; then
             config_status="${CONFIG_DIR}/${ctx}.sops.env"
         fi
-        printf "%-20s %-20s %s\n" "$ctx" "$key_status" "$config_status"
+        printf "%-20s %-20s %s\n" "$ctx" "$_key_label" "$config_status"
     done
 }
 
@@ -1394,129 +1445,26 @@ EOF
 }
 
 cmd_view() {
-    local CONTEXT="" AGE_KEY_FILE=""
-
-    while [[ $# -gt 0 ]]; do
-        case "$1" in
-            --image) IMAGE="$2"; shift 2 ;;
-            --docker) ENGINE=docker; shift ;;
-            --age-key) AGE_KEY_FILE="$2"; shift 2 ;;
-            --help) view_usage; exit 0 ;;
-            -*)
-                echo "Unknown option: $1" >&2
-                view_usage >&2
-                exit 1
-                ;;
-            *)
-                if [[ -z "${CONTEXT}" ]]; then
-                    CONTEXT="$1"
-                else
-                    echo "Error: unexpected argument: $1" >&2
-                    view_usage >&2
-                    exit 1
-                fi
-                shift
-                ;;
-        esac
-    done
+    _parse_subcommand_args view_usage "$@"
+    local CONTEXT="${_SC_CONTEXT}"
 
     check_engine
     git_auto_pull
 
-    ## Pick context interactively if not provided
-    if [[ -z "${CONTEXT}" ]]; then
-        local CONFIG_DIR="${HOME}/.config/d.rymcg.tech/config"
-        local CONTEXTS=()
-        if [[ -d "${CONFIG_DIR}" ]]; then
-            for f in "${CONFIG_DIR}"/*.sops.env; do
-                [[ -f "$f" ]] || continue
-                CONTEXTS+=("$(basename "$f" .sops.env)")
-            done
-        fi
-        if [[ ${#CONTEXTS[@]} -eq 0 ]]; then
-            echo "No configs found. Run 'drt --init' first." >&2
-            exit 1
-        fi
-        CONTEXT=$(wizard choose "Select context to view" "${CONTEXTS[@]}")
-    fi
+    _pick_context "Select context to view" configs-only
 
+    CONTEXT="${_SC_CONTEXT}"
     local SOPS_CONFIG="${HOME}/.config/d.rymcg.tech/config/${CONTEXT}.sops.env"
     if [[ ! -f "${SOPS_CONFIG}" ]]; then
         echo "Error: config not found: ${SOPS_CONFIG}" >&2
         exit 1
     fi
 
-    if [[ -z "${AGE_KEY_FILE}" ]]; then
-        AGE_KEY_FILE="${HOME}/.config/d.rymcg.tech/keys/sops/${CONTEXT}.key"
-    fi
-    if [[ ! -f "${AGE_KEY_FILE}" ]]; then
-        echo "Error: AGE key not found: ${AGE_KEY_FILE}" >&2
-        exit 1
-    fi
+    local AGE_KEY_FILE
+    AGE_KEY_FILE=$(resolve_age_key "${CONTEXT}" "${_SC_AGE_KEY_FILE}")
 
-    # Decrypt and view — if AGE key is passphrase-protected, decrypt + sops in one container run
     local PLAINTEXT
-    if head -1 "${AGE_KEY_FILE}" | grep -q '^age-encryption.org'; then
-        local _VIEW_DIR
-        _VIEW_DIR=$(mktemp -d)
-        cp "${AGE_KEY_FILE}" "${_VIEW_DIR}/age-key-in"
-        cp "${SOPS_CONFIG}" "${_VIEW_DIR}/config.sops.env"
-        echo "## Get ready to enter your AGE key passphrase ..." >&2
-        container_run -it --user 0:0 \
-            -v "${_VIEW_DIR}:/tmp/view-work:Z" \
-            "${IMAGE}" sh -c 'age -d /tmp/view-work/age-key-in > /tmp/age-key-dec && \
-                SOPS_AGE_KEY_FILE=/tmp/age-key-dec sops decrypt \
-                --input-type dotenv --output-type dotenv \
-                --filename-override export.env /tmp/view-work/config.sops.env \
-                > /tmp/view-work/config-decrypted && \
-                chmod 644 /tmp/view-work/config-decrypted'
-        echo "## Passphrase accepted." >&2
-        PLAINTEXT=$(cat "${_VIEW_DIR}/config-decrypted")
-        rm -rf "${_VIEW_DIR}"
-    elif grep -q 'AGE-PLUGIN-FIDO2-HMAC' "${AGE_KEY_FILE}" 2>/dev/null; then
-        ## FIDO2 key: need device passthrough
-        local AGE_KEY_DIR
-        AGE_KEY_DIR="$(dirname "${AGE_KEY_FILE}")"
-        local FIDO2_ID_FILE="${AGE_KEY_DIR}/${CONTEXT}.fido2"
-        local _VIEW_FIDO2_DEV=""
-        if [[ -f "${FIDO2_ID_FILE}" ]]; then
-            local _fido2_id
-            while IFS= read -r _fido2_id; do
-                [[ -z "${_fido2_id}" ]] && continue
-                _VIEW_FIDO2_DEV=$(find_hidraw_by_id "${_fido2_id}") && break
-            done < "${FIDO2_ID_FILE}"
-        fi
-        if [[ -z "${_VIEW_FIDO2_DEV}" ]]; then
-            echo "Error: FIDO2 device not found. Ensure your key is plugged in." >&2
-            exit 1
-        fi
-        local _VIEW_DIR
-        _VIEW_DIR=$(mktemp -d)
-        cp "${SOPS_CONFIG}" "${_VIEW_DIR}/config.sops.env"
-        cp "${AGE_KEY_FILE}" "${_VIEW_DIR}/age-key-in"
-        echo "## Touch your FIDO2 key when it flashes ..." >&2
-        container_run -it --user 0:0 \
-            --security-opt label=disable \
-            --device "${_VIEW_FIDO2_DEV}" \
-            -v "${_VIEW_DIR}:/tmp/view-work:Z" \
-            "${IMAGE}" sh -c 'SOPS_AGE_KEY_FILE=/tmp/view-work/age-key-in sops decrypt \
-                --input-type dotenv --output-type dotenv \
-                --filename-override export.env /tmp/view-work/config.sops.env \
-                > /tmp/view-work/config-decrypted && \
-                chmod 644 /tmp/view-work/config-decrypted'
-        PLAINTEXT=$(cat "${_VIEW_DIR}/config-decrypted")
-        rm -rf "${_VIEW_DIR}"
-    else
-        PLAINTEXT=$(container_run \
-            --user 0:0 -i \
-            --security-opt label=disable \
-            -v "${SOPS_CONFIG}:/tmp/config.sops.env:ro" \
-            -v "${AGE_KEY_FILE}:/run/secrets/age-key:ro" \
-            -e "SOPS_AGE_KEY_FILE=/run/secrets/age-key" \
-            "${IMAGE}" \
-            sops decrypt --input-type dotenv --output-type dotenv \
-                --filename-override export.env /tmp/config.sops.env)
-    fi
+    PLAINTEXT=$(sops_decrypt_config "${AGE_KEY_FILE}" "${SOPS_CONFIG}" "${CONTEXT}")
 
     if [[ -t 1 ]]; then
         echo "${PLAINTEXT}" | less
@@ -1544,141 +1492,30 @@ EOF
 }
 
 cmd_edit() {
-    local CONTEXT="" AGE_KEY_FILE=""
-
-    while [[ $# -gt 0 ]]; do
-        case "$1" in
-            --image) IMAGE="$2"; shift 2 ;;
-            --docker) ENGINE=docker; shift ;;
-            --age-key) AGE_KEY_FILE="$2"; shift 2 ;;
-            --help) edit_usage; exit 0 ;;
-            -*)
-                echo "Unknown option: $1" >&2
-                edit_usage >&2
-                exit 1
-                ;;
-            *)
-                if [[ -z "${CONTEXT}" ]]; then
-                    CONTEXT="$1"
-                else
-                    echo "Error: unexpected argument: $1" >&2
-                    edit_usage >&2
-                    exit 1
-                fi
-                shift
-                ;;
-        esac
-    done
+    _parse_subcommand_args edit_usage "$@"
+    local CONTEXT="${_SC_CONTEXT}"
 
     check_engine
     git_auto_pull
 
-    ## Pick context interactively if not provided
-    if [[ -z "${CONTEXT}" ]]; then
-        local CONFIG_DIR="${HOME}/.config/d.rymcg.tech/config"
-        local CONTEXTS=()
-        if [[ -d "${CONFIG_DIR}" ]]; then
-            for f in "${CONFIG_DIR}"/*.sops.env; do
-                [[ -f "$f" ]] || continue
-                CONTEXTS+=("$(basename "$f" .sops.env)")
-            done
-        fi
-        if [[ ${#CONTEXTS[@]} -eq 0 ]]; then
-            echo "No configs found. Run 'drt --init' first." >&2
-            exit 1
-        fi
-        CONTEXT=$(wizard choose "Select context to edit" "${CONTEXTS[@]}")
-    fi
+    _pick_context "Select context to edit" configs-only
 
+    CONTEXT="${_SC_CONTEXT}"
     local SOPS_CONFIG="${HOME}/.config/d.rymcg.tech/config/${CONTEXT}.sops.env"
     if [[ ! -f "${SOPS_CONFIG}" ]]; then
         echo "Error: config not found: ${SOPS_CONFIG}" >&2
         exit 1
     fi
 
-    if [[ -z "${AGE_KEY_FILE}" ]]; then
-        AGE_KEY_FILE="${HOME}/.config/d.rymcg.tech/keys/sops/${CONTEXT}.key"
-    fi
-    if [[ ! -f "${AGE_KEY_FILE}" ]]; then
-        echo "Error: AGE key not found: ${AGE_KEY_FILE}" >&2
-        exit 1
-    fi
+    local AGE_KEY_FILE
+    AGE_KEY_FILE=$(resolve_age_key "${CONTEXT}" "${_SC_AGE_KEY_FILE}")
 
-    # Decrypt config — decrypted AGE key stays inside the container
+    # Decrypt config
     local EDIT_DIR
     EDIT_DIR=$(mktemp -d)
     local EDIT_FILE="${EDIT_DIR}/${CONTEXT}.env"
-    local _KEY_IS_ENCRYPTED=false
-    local _FIDO2_DEVICE_FLAGS=()
 
-    # Detect FIDO2 device if key contains FIDO2 identity
-    if grep -q 'AGE-PLUGIN-FIDO2-HMAC' "${AGE_KEY_FILE}" 2>/dev/null; then
-        local _fido2_dev=""
-        local _fido2_id_file="${HOME}/.config/d.rymcg.tech/keys/sops/${CONTEXT}.fido2"
-        if [[ -f "${_fido2_id_file}" ]]; then
-            local _fid
-            while IFS= read -r _fid; do
-                [[ -z "${_fid}" ]] && continue
-                _fido2_dev=$(find_hidraw_by_id "${_fid}") && break
-            done < "${_fido2_id_file}"
-        fi
-        if [[ -z "${_fido2_dev}" ]]; then
-            local _devs=() _devpaths=()
-            while IFS='|' read -r devpath hidid devname; do
-                _devs+=("${devname} (${devpath})")
-                _devpaths+=("${devpath}")
-            done < <(detect_hidraw_devices)
-            if [[ ${#_devs[@]} -eq 0 ]]; then
-                echo "Error: no FIDO2 devices detected" >&2
-                exit 1
-            fi
-            local _sel
-            _sel=$(wizard choose "Select FIDO2 device" "${_devs[@]}")
-            for i in "${!_devs[@]}"; do
-                [[ "${_devs[$i]}" == "${_sel}" ]] && _fido2_dev="${_devpaths[$i]}" && break
-            done
-        fi
-        echo "## FIDO2: passing through ${_fido2_dev}" >&2
-        _FIDO2_DEVICE_FLAGS=(--device "${_fido2_dev}")
-    fi
-
-    if head -1 "${AGE_KEY_FILE}" | grep -q '^age-encryption.org'; then
-        _KEY_IS_ENCRYPTED=true
-        cp "${AGE_KEY_FILE}" "${EDIT_DIR}/age-key-in"
-        cp "${SOPS_CONFIG}" "${EDIT_DIR}/config.sops.env"
-        chmod 644 "${EDIT_DIR}/config.sops.env" "${EDIT_DIR}/age-key-in"
-        echo "## Touch your FIDO2 key when it flashes ..." >&2
-        container_run -it --user 0:0 \
-            --security-opt label=disable \
-            "${_FIDO2_DEVICE_FLAGS[@]+"${_FIDO2_DEVICE_FLAGS[@]}"}" \
-            -v "${EDIT_DIR}:/tmp/edit-work:Z" \
-            "${IMAGE}" sh -c 'age -d /tmp/edit-work/age-key-in > /tmp/age-key-dec && \
-                SOPS_AGE_KEY_FILE=/tmp/age-key-dec sops decrypt \
-                --input-type dotenv --output-type dotenv \
-                --filename-override export.env /tmp/edit-work/config.sops.env \
-                > /tmp/edit-work/config-decrypted && \
-                chmod 644 /tmp/edit-work/config-decrypted'
-        mv "${EDIT_DIR}/config-decrypted" "${EDIT_FILE}"
-    else
-        cp "${SOPS_CONFIG}" "${EDIT_DIR}/config.sops.env"
-        cp "${AGE_KEY_FILE}" "${EDIT_DIR}/age-key-in"
-        chmod 644 "${EDIT_DIR}/config.sops.env" "${EDIT_DIR}/age-key-in"
-        if [[ ${#_FIDO2_DEVICE_FLAGS[@]} -gt 0 ]]; then
-            echo "## Touch your FIDO2 key when it flashes ..." >&2
-        fi
-        container_run -it \
-            --user 0:0 \
-            --security-opt label=disable \
-            "${_FIDO2_DEVICE_FLAGS[@]+"${_FIDO2_DEVICE_FLAGS[@]}"}" \
-            -v "${EDIT_DIR}:/tmp/edit-work:Z" \
-            "${IMAGE}" \
-            sh -c 'SOPS_AGE_KEY_FILE=/tmp/edit-work/age-key-in sops decrypt \
-                --input-type dotenv --output-type dotenv \
-                --filename-override export.env /tmp/edit-work/config.sops.env \
-                > /tmp/edit-work/config-decrypted && \
-                chmod 644 /tmp/edit-work/config-decrypted'
-        mv "${EDIT_DIR}/config-decrypted" "${EDIT_FILE}"
-    fi
+    sops_decrypt_config "${AGE_KEY_FILE}" "${SOPS_CONFIG}" "${CONTEXT}" > "${EDIT_FILE}"
     chmod 600 "${EDIT_FILE}"
 
     # Save original for diffing
@@ -1710,42 +1547,7 @@ cmd_edit() {
     fi
 
     # Re-encrypt using sops edit (only changed values re-encrypted)
-    # Decrypted AGE key stays inside the container
-    if [[ "${_KEY_IS_ENCRYPTED}" == true ]]; then
-        cp "${EDIT_FILE}" "${EDIT_DIR}/new-plain.env"
-        cp "${SOPS_CONFIG}" "${EDIT_DIR}/config.sops.env"
-        chmod 644 "${EDIT_DIR}/config.sops.env"
-        echo "## Touch your FIDO2 key when it flashes ..." >&2
-        container_run -it --user 0:0 \
-            --security-opt label=disable \
-            "${_FIDO2_DEVICE_FLAGS[@]+"${_FIDO2_DEVICE_FLAGS[@]}"}" \
-            -v "${EDIT_DIR}:/tmp/edit-work:Z" \
-            "${IMAGE}" sh -c 'age -d /tmp/edit-work/age-key-in > /tmp/age-key-dec && \
-                export SOPS_AGE_KEY_FILE=/tmp/age-key-dec && \
-                EDITOR="cp /tmp/edit-work/new-plain.env" sops \
-                    --input-type dotenv --output-type dotenv \
-                    /tmp/edit-work/config.sops.env && \
-                chmod 644 /tmp/edit-work/config.sops.env'
-        cp "${EDIT_DIR}/config.sops.env" "${SOPS_CONFIG}"
-    else
-        cp "${EDIT_FILE}" "${EDIT_DIR}/new-plain.env"
-        cp "${SOPS_CONFIG}" "${EDIT_DIR}/config.sops.env"
-        cp "${AGE_KEY_FILE}" "${EDIT_DIR}/age-key-in"
-        chmod 644 "${EDIT_DIR}/config.sops.env" "${EDIT_DIR}/age-key-in"
-        if [[ ${#_FIDO2_DEVICE_FLAGS[@]} -gt 0 ]]; then
-            echo "## Touch your FIDO2 key when it flashes ..." >&2
-        fi
-        container_run -it --user 0:0 \
-            --security-opt label=disable \
-            "${_FIDO2_DEVICE_FLAGS[@]+"${_FIDO2_DEVICE_FLAGS[@]}"}" \
-            -v "${EDIT_DIR}:/tmp/edit-work:Z" \
-            "${IMAGE}" sh -c 'SOPS_AGE_KEY_FILE=/tmp/edit-work/age-key-in \
-                EDITOR="cp /tmp/edit-work/new-plain.env" sops \
-                    --input-type dotenv --output-type dotenv \
-                    /tmp/edit-work/config.sops.env && \
-                chmod 644 /tmp/edit-work/config.sops.env'
-        cp "${EDIT_DIR}/config.sops.env" "${SOPS_CONFIG}"
-    fi
+    sops_reencrypt_config "${AGE_KEY_FILE}" "${SOPS_CONFIG}" "${EDIT_FILE}" "${CONTEXT}"
 
     echo "## Changes encrypted and saved to ${SOPS_CONFIG}" >&2
 
@@ -1839,44 +1641,23 @@ cmd_pull() {
 # shared: resolve BAO context → decrypt config, extract BAO_ADDR, build run args
 ###############################################################################
 
-# Parse common --image/--docker/--age-key/--help args for seal/unseal commands.
-# Sets: _BAO_CONTEXT, _BAO_AGE_KEY_FILE, and remaining positional in _BAO_EXTRA.
+# Parse args and resolve context for seal/unseal commands.
+# Uses _parse_subcommand_args and _pick_context helpers.
+# Sets: _BAO_CONTEXT, _BAO_AGE_KEY_FILE (via _SC_ vars).
 _bao_parse_args() {
     local help_action="$1"; shift
-    _BAO_CONTEXT=""
-    _BAO_AGE_KEY_FILE=""
-    _BAO_EXTRA=()
-
-    while [[ $# -gt 0 ]]; do
-        case "$1" in
-            --image) IMAGE="$2"; shift 2 ;;
-            --docker) ENGINE=docker; shift ;;
-            --age-key) _BAO_AGE_KEY_FILE="$2"; shift 2 ;;
-            --help)
-                echo "Usage: drt --${help_action} [OPTIONS] [CONTEXT_NAME]"
-                echo ""
-                echo "Options:"
-                echo "  --image TAG    Container image"
-                echo "  --docker       Use Docker instead of Podman"
-                echo "  --age-key FILE AGE key file"
-                echo "  --help         Show this help"
-                exit 0
-                ;;
-            -*)
-                echo "Unknown option: $1" >&2
-                exit 1
-                ;;
-            *)
-                if [[ -z "${_BAO_CONTEXT}" ]]; then
-                    _BAO_CONTEXT="$1"
-                else
-                    echo "Error: unexpected argument: $1" >&2
-                    exit 1
-                fi
-                shift
-                ;;
-        esac
-    done
+    _bao_usage() {
+        echo "Usage: drt --${help_action} [OPTIONS] [CONTEXT_NAME]"
+        echo ""
+        echo "Options:"
+        echo "  --image TAG    Container image"
+        echo "  --docker       Use Docker instead of Podman"
+        echo "  --age-key FILE AGE key file"
+        echo "  --help         Show this help"
+    }
+    _parse_subcommand_args _bao_usage "$@"
+    _BAO_CONTEXT="${_SC_CONTEXT}"
+    _BAO_AGE_KEY_FILE="${_SC_AGE_KEY_FILE}"
 }
 
 # Resolve context, decrypt SOPS config, extract BAO vars, prepare container run args.
@@ -1885,21 +1666,9 @@ _bao_resolve() {
     local wizard_prompt="$1"
     check_engine
 
-    if [[ -z "${_BAO_CONTEXT}" ]]; then
-        local CONFIG_DIR="${HOME}/.config/d.rymcg.tech/config"
-        local CONTEXTS=()
-        if [[ -d "${CONFIG_DIR}" ]]; then
-            for f in "${CONFIG_DIR}"/*.sops.env; do
-                [[ -f "$f" ]] || continue
-                CONTEXTS+=("$(basename "$f" .sops.env)")
-            done
-        fi
-        if [[ ${#CONTEXTS[@]} -eq 0 ]]; then
-            echo "No configs found. Run 'drt --init' first." >&2
-            exit 1
-        fi
-        _BAO_CONTEXT=$(wizard choose "${wizard_prompt}" "${CONTEXTS[@]}")
-    fi
+    _SC_CONTEXT="${_BAO_CONTEXT}"
+    _pick_context "${wizard_prompt}" configs-only
+    _BAO_CONTEXT="${_SC_CONTEXT}"
 
     local SOPS_CONFIG="${HOME}/.config/d.rymcg.tech/config/${_BAO_CONTEXT}.sops.env"
     if [[ ! -f "${SOPS_CONFIG}" ]]; then
@@ -1907,44 +1676,11 @@ _bao_resolve() {
         exit 1
     fi
 
-    local AGE_KEY_FILE="${_BAO_AGE_KEY_FILE}"
-    if [[ -z "${AGE_KEY_FILE}" ]]; then
-        AGE_KEY_FILE="${HOME}/.config/d.rymcg.tech/keys/sops/${_BAO_CONTEXT}.key"
-    fi
-    if [[ ! -f "${AGE_KEY_FILE}" ]]; then
-        echo "Error: AGE key not found: ${AGE_KEY_FILE}" >&2
-        exit 1
-    fi
+    local AGE_KEY_FILE
+    AGE_KEY_FILE=$(resolve_age_key "${_BAO_CONTEXT}" "${_BAO_AGE_KEY_FILE}")
 
-    # Decrypt SOPS config — decrypted AGE key stays inside the container
     local PLAINTEXT
-    if head -1 "${AGE_KEY_FILE}" | grep -q '^age-encryption.org'; then
-        local _VERIFY_DIR
-        _VERIFY_DIR=$(mktemp -d)
-        cp "${AGE_KEY_FILE}" "${_VERIFY_DIR}/age-key-in"
-        cp "${SOPS_CONFIG}" "${_VERIFY_DIR}/config.sops.env"
-        echo "## Get ready to enter your AGE key passphrase ..." >&2
-        container_run -it --user 0:0 \
-            -v "${_VERIFY_DIR}:/tmp/verify-work:Z" \
-            "${IMAGE}" sh -c 'age -d /tmp/verify-work/age-key-in > /tmp/age-key-dec && \
-                SOPS_AGE_KEY_FILE=/tmp/age-key-dec sops decrypt \
-                --input-type dotenv --output-type dotenv \
-                --filename-override export.env /tmp/verify-work/config.sops.env \
-                > /tmp/verify-work/config-decrypted && \
-                chmod 644 /tmp/verify-work/config-decrypted'
-        echo "## Passphrase accepted." >&2
-        PLAINTEXT=$(cat "${_VERIFY_DIR}/config-decrypted")
-        rm -rf "${_VERIFY_DIR}"
-    else
-        PLAINTEXT=$(container_run \
-            --user 0:0 -i \
-            -v "${SOPS_CONFIG}:/tmp/config.sops.env:ro" \
-            -v "${AGE_KEY_FILE}:/run/secrets/age-key:ro" \
-            -e "SOPS_AGE_KEY_FILE=/run/secrets/age-key" \
-            "${IMAGE}" \
-            sops decrypt --input-type dotenv --output-type dotenv \
-                --filename-override export.env /tmp/config.sops.env)
-    fi
+    PLAINTEXT=$(sops_decrypt_config "${AGE_KEY_FILE}" "${SOPS_CONFIG}" "${_BAO_CONTEXT}")
 
     local BAO_ADDR=""
     BAO_ADDR=$(echo "${PLAINTEXT}" | grep -oP '^BAO_ADDR=\K.*' || true)
@@ -2349,16 +2085,8 @@ case "${ACTION}" in
                 for f in "${_CONFIG_DIR}"/*.sops.env; do
                     [[ -f "$f" ]] || continue
                     _name="$(basename "$f" .sops.env)"
-                    _key_status="no key"
-                    if [[ -f "${_KEY_DIR}/${_name}.key" ]]; then
-                        if head -1 "${_KEY_DIR}/${_name}.key" | grep -q '^age-encryption.org'; then
-                            _key_status="Password"
-                        elif grep -q 'AGE-PLUGIN-FIDO2-HMAC' "${_KEY_DIR}/${_name}.key" 2>/dev/null; then
-                            _key_status="FIDO2 + Cold Storage"
-                        else
-                            _key_status="plain-text key!!"
-                        fi
-                    fi
+                    _key_status=$(key_status_label "${_KEY_DIR}/${_name}.key")
+                    [[ "${_key_status}" == "missing" ]] && _key_status="no key"
                     _NAMES+=("${_name}")
                     _STATUSES+=("${_key_status}")
                     _PATHS+=("${f}")
