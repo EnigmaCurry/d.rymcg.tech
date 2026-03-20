@@ -139,15 +139,26 @@ if [[ "${SOPS_SAVE_ON_EXIT:-}" == "true" && -n "${SOPS_CONFIG_FILE:-}" ]]; then
                 rm -f "${export_output}"
                 # Write unencrypted merged config; root helper encrypts and saves
                 if [[ -p "${_SOPS_SAVE_REQUEST:-}" ]]; then
-                    cat "${merged}" > "${SOPS_CONFIG_FILE}"
-                    echo "save" > "${_SOPS_SAVE_REQUEST}"
-                    local result
-                    read -r result < "${_SOPS_SAVE_RESPONSE}"
-                    if [[ "${result}" == "ok" ]]; then
-                        echo "## Changes saved to ${_SOPS_BIND_PATH}" >&2
-                    else
-                        echo "ERROR: Failed to save to ${_SOPS_BIND_PATH}" >&2
-                    fi
+                    local _saved=false
+                    while true; do
+                        cat "${merged}" > "${SOPS_CONFIG_FILE}"
+                        echo "save" > "${_SOPS_SAVE_REQUEST}"
+                        local result
+                        read -r result < "${_SOPS_SAVE_RESPONSE}"
+                        if [[ "${result}" == "ok" ]]; then
+                            echo "## Changes saved to ${_SOPS_BIND_PATH}" >&2
+                            _saved=true
+                            break
+                        else
+                            echo "" >&2
+                            echo "ERROR: Failed to save (wrong PIN, key not found, etc.)" >&2
+                            read -rp "Retry? [Y/n] " _retry
+                            if [[ "${_retry}" =~ ^[Nn]$ ]]; then
+                                echo "## Changes NOT saved — unsaved config left in container at ${SOPS_CONFIG_FILE}" >&2
+                                break
+                            fi
+                        fi
+                    done
                     echo "quit" > "${_SOPS_SAVE_REQUEST}"
                 else
                     # Fallback: no root helper, encrypt directly
