@@ -1,12 +1,11 @@
 ## drt — source this file from ~/.bashrc, ~/.bash_profile, or ~/.zshrc
-: "${DRT_GIT_REPO:=https://github.com/EnigmaCurry/d.rymcg.tech.git}"
-: "${DRT_BUILD_BRANCH:=master}"
-: "${DRT_IMAGE:=localhost/d-rymcg-tech:latest}"
-: "${DRT_INSTALL_EXTRAS:=}"
-: "${DRT_CAP_ADD:=}"
+export DRT_GIT_REPO="${DRT_GIT_REPO:-https://github.com/EnigmaCurry/d.rymcg.tech.git}"
+export DRT_BUILD_BRANCH="${DRT_BUILD_BRANCH:-master}"
+export DRT_IMAGE="${DRT_IMAGE:-localhost/d-rymcg-tech:latest}"
+export DRT_INSTALL_EXTRAS="${DRT_INSTALL_EXTRAS:-}"
+export DRT_CAP_ADD="${DRT_CAP_ADD:-}"
 
 drt() {
-  export DRT_GIT_REPO DRT_BUILD_BRANCH DRT_IMAGE DRT_INSTALL_EXTRAS DRT_CAP_ADD
   if ! podman image exists "${DRT_IMAGE}" 2>/dev/null; then
     echo "## First run: building ${DRT_IMAGE}" \
       "from ${DRT_GIT_REPO}#${DRT_BUILD_BRANCH} ..." >&2

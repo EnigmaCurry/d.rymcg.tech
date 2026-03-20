@@ -23,12 +23,12 @@ Add this to your RC file (`~/.bashrc`, `~/.bash_profile`, or
 ```bash
 ## drt - d.rymcg.tech container image bootstrap
 ## Modify these vars as you wish:
-: "${DRT_GIT_REPO:=https://github.com/EnigmaCurry/d.rymcg.tech.git}"
-: "${DRT_BUILD_BRANCH:=master}"
-: "${DRT_IMAGE:=localhost/d-rymcg-tech:latest}"
+export DRT_GIT_REPO="${DRT_GIT_REPO:-https://github.com/EnigmaCurry/d.rymcg.tech.git}"
+export DRT_BUILD_BRANCH="${DRT_BUILD_BRANCH:-master}"
+export DRT_IMAGE="${DRT_IMAGE:-localhost/d-rymcg-tech:latest}"
 ## Uncomment to install extra CLI tools and/or add container capabilities:
-#: "${DRT_INSTALL_EXTRAS:=doctl,aws,gh,rclone,mc,step,wireguard}"
-#: "${DRT_CAP_ADD:=NET_ADMIN}"
+#export DRT_INSTALL_EXTRAS="${DRT_INSTALL_EXTRAS:-doctl,aws,gh,rclone,mc,step,wireguard}"
+#export DRT_CAP_ADD="${DRT_CAP_ADD:-NET_ADMIN}"
 
 if podman image exists "${DRT_IMAGE}" 2>/dev/null; then
   source <(podman run --rm --pull=never --net=none --entrypoint cat \
