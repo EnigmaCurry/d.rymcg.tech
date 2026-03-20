@@ -2158,6 +2158,10 @@ while [[ $# -gt 0 ]]; do
             ARGS+=(--verbose)
             shift
             ;;
+        --cap-add)
+            ARGS+=(--cap-add "$2")
+            shift 2
+            ;;
         --no-git)
             DRT_NO_GIT=true
             shift
