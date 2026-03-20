@@ -734,10 +734,15 @@ EDITOREOF
                    grep -q 'AGE-PLUGIN-FIDO2-HMAC' "${SOPS_AGE_KEY_FILE}" 2>/dev/null; then
                     echo "## Touch your FIDO2 key when it flashes ..." >&2
                 fi
+                # Edit a copy to avoid sops rewriting the bind-mounted file
+                # (which would change host ownership to container root's mapped UID)
+                local _sops_work="/tmp/sops-save-work.sops.env"
+                cp "${_SOPS_BIND_PATH}" "${_sops_work}"
                 if EDITOR="${_SOPS_EDITOR}" sops \
                        --input-type dotenv --output-type dotenv \
-                       "${_SOPS_BIND_PATH}" && \
-                   chmod 600 "${_SOPS_BIND_PATH}"; then
+                       "${_sops_work}" && \
+                   cat "${_sops_work}" > "${_SOPS_BIND_PATH}" && \
+                   rm -f "${_sops_work}"; then
                     echo "ok" > "${_SOPS_SAVE_RESPONSE}"
                 else
                     echo "fail" > "${_SOPS_SAVE_RESPONSE}"
