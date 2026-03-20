@@ -27,6 +27,7 @@ Add this to your RC file (`~/.bashrc`, `~/.bash_profile`, or
 : "${DRT_BUILD_BRANCH:=master}"
 : "${DRT_IMAGE:=localhost/d-rymcg-tech:latest}"
 #: "${DRT_INSTALL_EXTRAS:=doctl,aws,gh,rclone,mc,step,wireguard}"
+#: "${DRT_CAP_ADD:=NET_ADMIN}"
 
 if podman image exists "${DRT_IMAGE}" 2>/dev/null; then
   source <(podman run --rm --pull=never --net=none --entrypoint cat \
