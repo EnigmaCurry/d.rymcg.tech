@@ -54,7 +54,7 @@ RUN apk add --no-cache \
 # Install uv (Python package manager)
 RUN curl -fsSL https://astral.sh/uv/install.sh | UV_INSTALL_DIR=/usr/local/bin sh
 
-# Install optional CLI tools (comma-separated list, e.g. "doctl,aws,gh,rclone,mc,step,gpg,wireguard,k3s")
+# Install optional CLI tools (comma-separated list, e.g. "doctl,aws,gh,rclone,mc,step,gpg,wireguard,k3s,wayland,pipewire")
 ARG INSTALL_EXTRAS=
 RUN set -e; \
     for tool in $(echo "${INSTALL_EXTRAS}" | tr ',' ' '); do \
@@ -106,6 +106,8 @@ RUN set -e; \
           HELM_VERSION=$(curl -fsSL https://api.github.com/repos/helm/helm/releases/latest | jq -r .tag_name); \
           curl -fsSL "https://get.helm.sh/helm-${HELM_VERSION}-linux-${ARCH}.tar.gz" \
             | tar xz -C /usr/local/bin --strip-components=1 "linux-${ARCH}/helm" ;; \
+        wayland) apk add --no-cache mesa-dri-gallium wayland-libs-client font-noto ;; \
+        pipewire) apk add --no-cache pipewire-libs ;; \
         *) echo "Unknown extra tool: ${tool}" >&2; exit 1 ;; \
       esac; \
     done

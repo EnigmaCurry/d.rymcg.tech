@@ -27,7 +27,7 @@ export DRT_GIT_REPO="${DRT_GIT_REPO:-https://github.com/EnigmaCurry/d.rymcg.tech
 export DRT_BUILD_BRANCH="${DRT_BUILD_BRANCH:-master}"
 export DRT_IMAGE="${DRT_IMAGE:-localhost/d-rymcg-tech:latest}"
 ## Uncomment to install extra CLI tools and/or add container capabilities:
-#export DRT_INSTALL_EXTRAS="${DRT_INSTALL_EXTRAS:-doctl,aws,gh,rclone,mc,step,gpg,wireguard,k3s}"
+#export DRT_INSTALL_EXTRAS="${DRT_INSTALL_EXTRAS:-doctl,aws,gh,rclone,mc,step,gpg,wireguard,k3s,wayland,pipewire}"
 #export DRT_CAP_ADD="${DRT_CAP_ADD:-NET_ADMIN}"
 
 if podman image exists "${DRT_IMAGE}" 2>/dev/null; then

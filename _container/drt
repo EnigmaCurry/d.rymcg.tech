@@ -518,6 +518,8 @@ Options:
   --controller-port PORT  Host port for request-controller (default: 8084)
   --net MODE         Network mode: pasta, slirp4netns, host (auto-detected)
   --cap-add CAP      Add Linux capability (e.g. NET_ADMIN for wireguard)
+  --wayland          Enable Wayland GUI passthrough (socket + GPU)
+  --pipewire         Enable PipeWire audio passthrough
   --no-git           Skip all git operations (pull, commit, push)
   --verbose, -v      Enable verbose logging
   --version          Print version
@@ -1037,6 +1039,8 @@ cmd_run() {
     local CMD_ARGS=()
     local CONTROLLER_PORT="${DRT_CONTROLLER_PORT:-8084}"
     local CAP_ADDS=()
+    local WAYLAND=false
+    local PIPEWIRE=false
 
     while [[ $# -gt 0 ]]; do
         case "$1" in
@@ -1051,6 +1055,8 @@ cmd_run() {
             --verbose|-v) VERBOSE=true; shift ;;
             --no-git) DRT_NO_GIT=true; shift ;;
             --cap-add) CAP_ADDS+=("$2"); shift 2 ;;
+            --wayland) WAYLAND=true; shift ;;
+            --pipewire) PIPEWIRE=true; shift ;;
             --controller-port) CONTROLLER_PORT="$2"; shift 2 ;;
             --help) run_usage; exit 0 ;;
             -*)
@@ -1158,6 +1164,46 @@ cmd_run() {
             RUN_ARGS+=(--sysctl net.ipv4.conf.all.src_valid_mark=1)
         fi
     done
+
+    # Wayland GUI passthrough
+    if [[ "${WAYLAND}" == true ]]; then
+        local _wayland_socket="${WAYLAND_DISPLAY:-wayland-0}"
+        local _xdg_runtime="${XDG_RUNTIME_DIR:-/run/user/$(id -u)}"
+        local _socket_path="${_xdg_runtime}/${_wayland_socket}"
+        if [[ -S "${_socket_path}" ]]; then
+            echo "## Wayland: socket ${_socket_path}" >&2
+            RUN_ARGS+=(
+                -e "WAYLAND_DISPLAY=${_wayland_socket}"
+                -e "XDG_RUNTIME_DIR=/tmp/runtime-dir"
+                -v "${_socket_path}:/tmp/runtime-dir/${_wayland_socket}"
+            )
+        else
+            echo "Warning: Wayland socket not found: ${_socket_path}" >&2
+            echo "  Is a Wayland compositor running?" >&2
+        fi
+        if [[ -d /dev/dri ]]; then
+            echo "## Wayland: passing through /dev/dri for GPU acceleration" >&2
+            RUN_ARGS+=(--device /dev/dri)
+        else
+            echo "## Wayland: /dev/dri not found, software rendering only" >&2
+        fi
+    fi
+
+    # PipeWire audio passthrough
+    if [[ "${PIPEWIRE}" == true ]]; then
+        local _xdg_runtime="${XDG_RUNTIME_DIR:-/run/user/$(id -u)}"
+        local _pw_socket="${_xdg_runtime}/pipewire-0"
+        if [[ -S "${_pw_socket}" ]]; then
+            echo "## PipeWire: socket ${_pw_socket}" >&2
+            RUN_ARGS+=(
+                -e "XDG_RUNTIME_DIR=/tmp/runtime-dir"
+                -v "${_pw_socket}:/tmp/runtime-dir/pipewire-0"
+            )
+        else
+            echo "Warning: PipeWire socket not found: ${_pw_socket}" >&2
+            echo "  Is PipeWire running?" >&2
+        fi
+    fi
 
     if [[ "${SAVE_ON_EXIT}" == true ]]; then
         RUN_ARGS+=(-e "SOPS_SAVE_ON_EXIT=true")
@@ -1968,6 +2014,14 @@ while [[ $# -gt 0 ]]; do
         --cap-add)
             ARGS+=(--cap-add "$2")
             shift 2
+            ;;
+        --wayland)
+            ARGS+=(--wayland)
+            shift
+            ;;
+        --pipewire)
+            ARGS+=(--pipewire)
+            shift
             ;;
         --no-git)
             DRT_NO_GIT=true
