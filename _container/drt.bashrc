@@ -21,8 +21,18 @@ drt() {
       -f _container/Dockerfile \
       "${DRT_GIT_REPO}#${DRT_BUILD_BRANCH}"
   fi
+  # Only inject --cap-add for run actions (not --build, --pull, etc.)
   local _cap_args=()
-  if [[ -n "${DRT_CAP_ADD}" ]]; then
+  local _is_run=true
+  local _arg
+  for _arg in "$@"; do
+    case "${_arg}" in
+      --build|--build-force|--pull|--init|--view|--edit|--clean|--list|\
+      --seal|--unseal|--git-init|--git|--extract|--help|--version)
+        _is_run=false; break ;;
+    esac
+  done
+  if [[ "${_is_run}" == true && -n "${DRT_CAP_ADD}" ]]; then
     local _cap
     for _cap in $(echo "${DRT_CAP_ADD}" | tr ',' ' '); do
       _cap_args+=(--cap-add "${_cap}")
