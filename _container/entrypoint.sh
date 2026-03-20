@@ -728,8 +728,9 @@ EDITOREOF
                           "${HOME}/.gnupg" "${HOME}/.ssh"; do
                     chown -R "${RUNTIME_UID}:${RUNTIME_GID}" "${_d}" 2>/dev/null || true
                 done
-                # d.rymcg.tech dir: exclude config/ and keys/ (bind-mounted from host)
+                # d.rymcg.tech dir: exclude config/, keys/, and *.sops.env (bind-mounted from host)
                 find "${HOME}/.config/d.rymcg.tech" -not -path '*/config/*' -not -path '*/keys/*' \
+                    -not -name '*.sops.env' \
                     -exec chown "${RUNTIME_UID}:${RUNTIME_GID}" {} + 2>/dev/null || true
                 echo "ok" > "${_SOPS_SAVE_RESPONSE}"
             elif [[ "${cmd}" == "save" ]]; then
@@ -763,7 +764,9 @@ unset SOPS_DECRYPTED
 # Fix ownership of env files and passwords.json created by restore-env
 find "${ROOT_DIR}" \( -name ".env_*" -o -name "passwords.json" \) -exec chown "${RUNTIME_UID}:${RUNTIME_GID}" {} + 2>/dev/null || true
 # chown the entire drt config dir (covers gumdrop-presets, startup.sh, etc.)
+# Exclude config/, keys/, and *.sops.env (bind-mounted from host)
 find "${HOME}/.config/d.rymcg.tech" -not -path '*/config/*' -not -path '*/keys/*' \
+    -not -name '*.sops.env' \
     -exec chown "${RUNTIME_UID}:${RUNTIME_GID}" {} + 2>/dev/null || true
 chown -R "${RUNTIME_UID}:${RUNTIME_GID}" "${HOME}/.config/doctl" 2>/dev/null || true
 chown -R "${RUNTIME_UID}:${RUNTIME_GID}" "${HOME}/.aws" 2>/dev/null || true
