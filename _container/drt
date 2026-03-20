@@ -953,8 +953,12 @@ cmd_run() {
     # container (which has -it for the passphrase prompt). The passphrase
     # is the real secret, not the encrypted file.
     # Plain-text keys: pass content directly via SOPS_AGE_KEY env var.
+    # Derive deterministic container name from context
+    local CONTAINER_NAME="drt-${CONTEXT_NAME:-$(basename "${SOPS_CONFIG}" .sops.env)}"
+
     local RUN_ARGS=(
         run --rm -it --pull=never
+        --name "${CONTAINER_NAME}"
         --security-opt label=disable
         -e "HOST_UID=$(id -u)"
         -e "HOST_GID=$(id -g)"
