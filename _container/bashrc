@@ -140,13 +140,23 @@ if [[ "${SOPS_SAVE_ON_EXIT:-}" == "true" && -n "${SOPS_CONFIG_FILE:-}" ]]; then
                 d export-env > "${export_output}" 2>/dev/null || true
                 # Get keys from export-env to deduplicate against preserved
                 export_keys=$(grep -oP '^[A-Za-z_][A-Za-z_0-9]*(?==)' "${export_output}" || true)
-                # Merge: preserved sections (minus keys export-env reproduces) + export-env
+                # Keys from initial export-env (at startup)
+                local initial_keys
+                initial_keys=$(grep -oP '^[A-Za-z_][A-Za-z_0-9]*(?==)' "${_sops_initial_state}" || true)
+                # Merge: preserved sections (minus keys export-env reproduces
+                # or keys that were in initial state but removed) + export-env
                 if [[ -s "${_sops_preserved_sections}" ]]; then
                     while IFS= read -r line || [[ -n "${line}" ]]; do
                         if [[ "${line}" == *=* && "${line}" != "#"* ]]; then
                             local key="${line%%=*}"
                             # Skip preserved key if export-env produced a fresh version
                             if echo "${export_keys}" | grep -qx "${key}"; then
+                                continue
+                            fi
+                            # Skip preserved key if it was in initial state but
+                            # no longer in current (intentionally removed)
+                            if echo "${initial_keys}" | grep -qx "${key}" && \
+                               ! echo "${export_keys}" | grep -qx "${key}"; then
                                 continue
                             fi
                         fi
