@@ -791,23 +791,31 @@ if [[ -S "${SSH_AUTH_SOCK:-}" ]]; then
     export SSH_AUTH_SOCK="${_PROXY_SOCK}"
 fi
 
-# Make Wayland socket accessible to the runtime user via socat proxy.
+# Make Wayland/PipeWire sockets accessible to the runtime user via socat proxy.
+# Apps like Firefox also need to create their own sockets in XDG_RUNTIME_DIR,
+# so we use a user-owned directory separate from the bind-mount directory.
+if [[ -S "/tmp/runtime-dir/${WAYLAND_DISPLAY:-}" ]] || [[ -S "/tmp/runtime-dir/pipewire-0" ]]; then
+    _USER_RUNTIME="/run/user-runtime"
+    mkdir -p "${_USER_RUNTIME}"
+    chown "${RUNTIME_UID}:${RUNTIME_GID}" "${_USER_RUNTIME}"
+    chmod 700 "${_USER_RUNTIME}"
+    export XDG_RUNTIME_DIR="${_USER_RUNTIME}"
+fi
+
 if [[ -S "/tmp/runtime-dir/${WAYLAND_DISPLAY:-}" ]]; then
     _WL_ORIG="/tmp/runtime-dir/${WAYLAND_DISPLAY}"
-    _WL_PROXY="/tmp/runtime-dir/wayland-user"
+    _WL_PROXY="${_USER_RUNTIME}/wayland-0"
     socat "UNIX-LISTEN:${_WL_PROXY},fork,user=${RUNTIME_UID},group=${RUNTIME_GID},mode=600" \
           "UNIX-CONNECT:${_WL_ORIG}" &
-    export WAYLAND_DISPLAY="wayland-user"
+    export WAYLAND_DISPLAY="wayland-0"
     log "## Wayland: proxying ${_WL_ORIG} → ${_WL_PROXY}"
 fi
 
-# Make PipeWire socket accessible to the runtime user via socat proxy.
 if [[ -S "/tmp/runtime-dir/pipewire-0" ]]; then
     _PW_ORIG="/tmp/runtime-dir/pipewire-0"
-    _PW_PROXY="/tmp/runtime-dir/pipewire-user"
+    _PW_PROXY="${_USER_RUNTIME}/pipewire-0"
     socat "UNIX-LISTEN:${_PW_PROXY},fork,user=${RUNTIME_UID},group=${RUNTIME_GID},mode=600" \
           "UNIX-CONNECT:${_PW_ORIG}" &
-    export PIPEWIRE_REMOTE="${_PW_PROXY}"
     log "## PipeWire: proxying ${_PW_ORIG} → ${_PW_PROXY}"
 fi
 
