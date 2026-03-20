@@ -91,7 +91,8 @@ RUN set -e; \
             | tar xz -C /usr/local/bin --strip-components=2 "step_linux_${ARCH}/bin/step" ;; \
         gpg) apk add --no-cache gnupg ;; \
         wireguard) apk add --no-cache wireguard-tools sudo openresolv && \
-          echo "user ALL=(ALL) NOPASSWD: ALL" > /etc/sudoers.d/wireguard ;; \
+          echo "user ALL=(ALL) NOPASSWD: ALL" > /etc/sudoers.d/wireguard && \
+          resolvconf -u ;; \
         *) echo "Unknown extra tool: ${tool}" >&2; exit 1 ;; \
       esac; \
     done
