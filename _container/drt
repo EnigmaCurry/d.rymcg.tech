@@ -1165,6 +1165,22 @@ cmd_run() {
         fi
     done
 
+    # Check image extras label for required features
+    if [[ "${WAYLAND}" == true || "${PIPEWIRE}" == true ]]; then
+        local _image_extras=""
+        _image_extras=$("${ENGINE}" image inspect "${IMAGE}" --format '{{index .Labels "drt.extras"}}' 2>/dev/null || true)
+        if [[ "${WAYLAND}" == true ]] && ! echo ",${_image_extras}," | grep -q ',wayland,'; then
+            echo "Error: --wayland requires the 'wayland' build extra." >&2
+            echo "  Rebuild with: DRT_INSTALL_EXTRAS=wayland drt --build" >&2
+            exit 1
+        fi
+        if [[ "${PIPEWIRE}" == true ]] && ! echo ",${_image_extras}," | grep -q ',pipewire,'; then
+            echo "Error: --pipewire requires the 'pipewire' build extra." >&2
+            echo "  Rebuild with: DRT_INSTALL_EXTRAS=pipewire drt --build" >&2
+            exit 1
+        fi
+    fi
+
     # Wayland GUI passthrough
     if [[ "${WAYLAND}" == true ]]; then
         local _wayland_socket="${WAYLAND_DISPLAY:-wayland-0}"
@@ -1178,8 +1194,9 @@ cmd_run() {
                 -v "${_socket_path}:/tmp/runtime-dir/${_wayland_socket}"
             )
         else
-            echo "Warning: Wayland socket not found: ${_socket_path}" >&2
+            echo "Error: Wayland socket not found: ${_socket_path}" >&2
             echo "  Is a Wayland compositor running?" >&2
+            exit 1
         fi
         if [[ -d /dev/dri ]]; then
             echo "## Wayland: passing through /dev/dri for GPU acceleration" >&2
@@ -1200,8 +1217,9 @@ cmd_run() {
                 -v "${_pw_socket}:/tmp/runtime-dir/pipewire-0"
             )
         else
-            echo "Warning: PipeWire socket not found: ${_pw_socket}" >&2
+            echo "Error: PipeWire socket not found: ${_pw_socket}" >&2
             echo "  Is PipeWire running?" >&2
+            exit 1
         fi
     fi
 

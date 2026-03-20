@@ -170,9 +170,11 @@ ARG EDITOR=mg
 ENV EDITOR=${EDITOR}
 ENV DRT_IMAGE=${IMAGE_REF}
 ENV DRT_GIT_SHA=${GIT_SHA}
+ARG INSTALL_EXTRAS
 LABEL org.opencontainers.image.source=${IMAGE_SOURCE} \
       drt.branch=${BRANCH} \
-      drt.repo=${GIT_REPO}
+      drt.repo=${GIT_REPO} \
+      drt.extras=${INSTALL_EXTRAS}
 
 WORKDIR /home/user
 ENTRYPOINT ["/entrypoint.sh"]
