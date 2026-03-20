@@ -725,7 +725,7 @@ EDITOREOF
                 # Fix ownership of config dirs that may have been created by podman cp
                 for _d in "${HOME}/.config/doctl" "${HOME}/.aws" "${HOME}/.config/gh" \
                           "${HOME}/.config/rclone" "${HOME}/.mc" "${HOME}/.config/wireguard" \
-                          "${HOME}/.gnupg" "${HOME}/.ssh"; do
+                          "${HOME}/.gnupg" "${HOME}/.ssh" "${HOME}/.config/d.rymcg.tech"; do
                     chown -R "${RUNTIME_UID}:${RUNTIME_GID}" "${_d}" 2>/dev/null || true
                 done
                 echo "ok" > "${_SOPS_SAVE_RESPONSE}"
@@ -754,7 +754,9 @@ unset SOPS_DECRYPTED
 
 # Fix ownership of env files and passwords.json created by restore-env
 find "${ROOT_DIR}" \( -name ".env_*" -o -name "passwords.json" \) -exec chown "${RUNTIME_UID}:${RUNTIME_GID}" {} + 2>/dev/null || true
-chown -R "${RUNTIME_UID}:${RUNTIME_GID}" "${HOME}/.config/d.rymcg.tech/gumdrop-presets" 2>/dev/null || true
+# chown the entire drt config dir (covers gumdrop-presets, startup.sh, etc.)
+find "${HOME}/.config/d.rymcg.tech" -not -path '*/config/*' -not -path '*/keys/*' \
+    -exec chown "${RUNTIME_UID}:${RUNTIME_GID}" {} + 2>/dev/null || true
 chown -R "${RUNTIME_UID}:${RUNTIME_GID}" "${HOME}/.config/doctl" 2>/dev/null || true
 chown -R "${RUNTIME_UID}:${RUNTIME_GID}" "${HOME}/.aws" 2>/dev/null || true
 chown -R "${RUNTIME_UID}:${RUNTIME_GID}" "${HOME}/.config/gh" 2>/dev/null || true

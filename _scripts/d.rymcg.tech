@@ -1034,19 +1034,26 @@ __export_env() {
         plaintext+="__ssh_key__${kf_name}=${kf_data}"$'\n'
     done
 
-    # Serialize gumdrop (droplet) presets
-    local gumdrop_found=false
-    for gf in "${HOME}/.config/d.rymcg.tech/gumdrop-presets"/*; do
-        [[ -r "${gf}" ]] || continue
-        local gf_name="${gf##*/}"
-        if [[ "${gumdrop_found}" == false ]]; then
-            plaintext+=$'\n'"## gumdrop presets"$'\n'
-            gumdrop_found=true
-        fi
-        local gf_data
-        gf_data=$(gzip -cn < "${gf}" | base64 -w 0)
-        plaintext+="__gumdrop_preset__${gf_name}=${gf_data}"$'\n'
-    done
+    # Serialize user files under ~/.config/d.rymcg.tech/ (skip config/ and keys/)
+    local drt_config_dir="${HOME}/.config/d.rymcg.tech"
+    if [[ -d "${drt_config_dir}" ]]; then
+        local drt_config_found=false
+        while IFS= read -r -d '' dcf; do
+            [[ -r "${dcf}" ]] || continue
+            local dcf_rel="${dcf#${drt_config_dir}/}"
+            # Skip SOPS configs, AGE keys, and git metadata
+            case "${dcf_rel}" in
+                config/*|keys/*|.git/*|.gitignore|net-mode) continue ;;
+            esac
+            if [[ "${drt_config_found}" == false ]]; then
+                plaintext+=$'\n'"## drt user config"$'\n'
+                drt_config_found=true
+            fi
+            local dcf_data
+            dcf_data=$(gzip -cn < "${dcf}" | base64 -w 0)
+            plaintext+="__drt_config__${dcf_rel}=${dcf_data}"$'\n'
+        done < <(find "${drt_config_dir}" -type f -print0 2>/dev/null)
+    fi
 
     # Serialize MOTD if present
     if [[ -r "${HOME}/.motd" && -s "${HOME}/.motd" ]]; then
@@ -1173,7 +1180,8 @@ __restore_env() {
     declare -A file_seen
     declare -A password_files  # "project/passwords.json" → base64 data
     declare -A ssh_key_files   # "filename" → base64 data
-    declare -A gumdrop_preset_files  # "filename" → base64 data
+    declare -A gumdrop_preset_files  # "filename" → base64 data (legacy)
+    declare -A drt_config_files  # "relative/path" → base64 data
     declare -A wireguard_files  # "filename" → base64 data
     declare -A gnupg_files  # "filename" → base64 data
     local doctl_config_b64=""
@@ -1244,10 +1252,17 @@ __restore_env() {
             continue
         fi
 
-        # Serialized gumdrop presets: __gumdrop_preset__<filename>=<base64>
+        # Serialized gumdrop presets (legacy): __gumdrop_preset__<filename>=<base64>
         if [[ "${key}" == __gumdrop_preset__* ]]; then
             local gf_name="${key#__gumdrop_preset__}"
             gumdrop_preset_files["${gf_name}"]="${val}"
+            continue
+        fi
+
+        # Serialized drt user config: __drt_config__<relative/path>=<base64>
+        if [[ "${key}" == __drt_config__* ]]; then
+            local dcf_rel="${key#__drt_config__}"
+            drt_config_files["${dcf_rel}"]="${val}"
             continue
         fi
 
@@ -1476,7 +1491,7 @@ __restore_env() {
         done
     fi
 
-    # Restore gumdrop presets if present
+    # Restore gumdrop presets if present (legacy format)
     if [[ ${#gumdrop_preset_files[@]} -gt 0 ]]; then
         local gumdrop_dir="${HOME}/.config/d.rymcg.tech/gumdrop-presets"
         mkdir -p "${gumdrop_dir}"
@@ -1484,6 +1499,18 @@ __restore_env() {
             echo "## Restoring ${gumdrop_dir}/${gf_name}" >&2
             _b64_decode "${gumdrop_preset_files[${gf_name}]}" > "${gumdrop_dir}/${gf_name}"
             chmod 600 "${gumdrop_dir}/${gf_name}"
+        done
+    fi
+
+    # Restore drt user config files if present
+    if [[ ${#drt_config_files[@]} -gt 0 ]]; then
+        local drt_config_dir="${HOME}/.config/d.rymcg.tech"
+        for dcf_rel in "${!drt_config_files[@]}"; do
+            local dcf_path="${drt_config_dir}/${dcf_rel}"
+            mkdir -p "$(dirname "${dcf_path}")"
+            echo "## Restoring ${dcf_path}" >&2
+            _b64_decode "${drt_config_files[${dcf_rel}]}" > "${dcf_path}"
+            chmod 600 "${dcf_path}"
         done
     fi
 

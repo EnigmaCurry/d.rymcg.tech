@@ -34,12 +34,14 @@ _display_motd() {
 
   Quick tips:
     motd              Edit this message (persisted in your SOPS config)
-    ~/.bashrc.local   Add custom shell aliases, functions, env vars
+    ~/.bashrc.local   Custom shell aliases, functions, env vars
+    ~/.config/d.rymcg.tech/startup.sh   Runs once per container session
 
   On exit, these configs are automatically saved to your SOPS config:
-    ~/.config/doctl/     ~/.aws/              ~/.config/gh/
-    ~/.config/rclone/    ~/.mc/               ~/.config/wireguard/
-    ~/.gnupg/            ~/.ssh/              ~/.bashrc.local
+    ~/.config/d.rymcg.tech/  ~/.config/doctl/     ~/.aws/
+    ~/.config/gh/            ~/.config/rclone/    ~/.mc/
+    ~/.config/wireguard/     ~/.gnupg/            ~/.ssh/
+    ~/.bashrc.local
 ================================================================
 MOTD
     fi
@@ -96,6 +98,7 @@ if [[ "${SOPS_SAVE_ON_EXIT:-}" == "true" && -n "${SOPS_CONFIG_FILE:-}" ]]; then
                    && "${header}" != "bashrc.local" \
                    && "${header}" != "ssh config" \
                    && "${header}" != "ssh keys" && "${header}" != "gumdrop presets" \
+                   && "${header}" != "drt user config" \
                    && "${header}" != "motd" ]]; then
                     [[ -n "${result}" ]] && result+=$'\n'
                     result+="${line}"
@@ -103,7 +106,7 @@ if [[ "${SOPS_SAVE_ON_EXIT:-}" == "true" && -n "${SOPS_CONFIG_FILE:-}" ]]; then
             elif [[ "${line}" == *=* && "${line}" != "#"* ]]; then
                 local key="${line%%=*}"
                 # Always preserve serialized data as safety net
-                if [[ "${key}" == __passwords__* || "${key}" == "__doctl_config__" || "${key}" == "__aws_credentials__" || "${key}" == "__aws_config__" || "${key}" == "__gh_hosts__" || "${key}" == "__rclone_config__" || "${key}" == "__mc_config__" || "${key}" == "__bashrc_local__" || "${key}" == "__ssh_config__" || "${key}" == __ssh_key__* || "${key}" == __wireguard__* || "${key}" == __gnupg__* || "${key}" == __gumdrop_preset__* || "${key}" == "__motd__" ]]; then
+                if [[ "${key}" == __passwords__* || "${key}" == "__doctl_config__" || "${key}" == "__aws_credentials__" || "${key}" == "__aws_config__" || "${key}" == "__gh_hosts__" || "${key}" == "__rclone_config__" || "${key}" == "__mc_config__" || "${key}" == "__bashrc_local__" || "${key}" == "__ssh_config__" || "${key}" == __ssh_key__* || "${key}" == __wireguard__* || "${key}" == __gnupg__* || "${key}" == __gumdrop_preset__* || "${key}" == __drt_config__* || "${key}" == "__motd__" ]]; then
                     [[ -n "${result}" ]] && result+=$'\n'
                     result+="${line}"
                 # Preserve vars not in export-env output
@@ -215,6 +218,15 @@ if [[ "${SOPS_SAVE_ON_EXIT:-}" == "true" && -n "${SOPS_CONFIG_FILE:-}" ]]; then
 
     trap _sops_save_on_exit EXIT
 fi
+
+## Run startup script once per container session
+_drt_startup_script="${HOME}/.config/d.rymcg.tech/startup.sh"
+if [[ -r "${_drt_startup_script}" && ! -f /tmp/.drt-startup-done ]]; then
+    touch /tmp/.drt-startup-done
+    echo "## Running startup.sh ..." >&2
+    source "${_drt_startup_script}"
+fi
+unset _drt_startup_script
 
 ## Source user-local customizations if present
 [[ -r "${HOME}/.bashrc.local" ]] && source "${HOME}/.bashrc.local"
