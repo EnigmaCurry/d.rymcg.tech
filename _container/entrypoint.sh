@@ -740,7 +740,7 @@ EDITOREOF
                 fi
                 # Edit a copy to avoid sops rewriting the bind-mounted file
                 # (which would change host ownership to container root's mapped UID)
-                local _sops_work="/tmp/sops-save-work.sops.env"
+                _sops_work="/tmp/sops-save-work.sops.env"
                 cp "${_SOPS_BIND_PATH}" "${_sops_work}"
                 if EDITOR="${_SOPS_EDITOR}" sops \
                        --input-type dotenv --output-type dotenv \
