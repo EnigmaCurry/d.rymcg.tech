@@ -46,7 +46,6 @@ else
     local git_sha
     git_sha=$(git -C "${_build_dir}/src" rev-parse --short HEAD 2>/dev/null || echo "unknown")
     podman build \
-      --network=slirp4netns \
       --build-arg BRANCH="${DRT_BUILD_BRANCH}" \
       --build-arg GIT_REPO="${DRT_GIT_REPO}" \
       --build-arg GIT_SHA="${git_sha}" \
