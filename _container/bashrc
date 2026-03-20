@@ -22,7 +22,7 @@ _display_motd() {
             echo "${data}"
         fi
     else
-        return 1
+        echo "Welcome to d.rymcg.tech. Run 'motd' to customize this message."
     fi
 }
 if _motd_text=$(_display_motd); then
