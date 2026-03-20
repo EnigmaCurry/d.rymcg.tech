@@ -490,6 +490,7 @@ _pick_context() {
 usage() {
     cat <<'EOF'
 drt — d.rymcg.tech workstation bootstrap tool
+https://github.com/enigmacurry/d.rymcg.tech
 
 Usage:
   drt [OPTIONS] CONTEXT [CMD]  Launch container (interactive shell or run CMD)
