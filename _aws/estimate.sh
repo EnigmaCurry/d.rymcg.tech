@@ -28,6 +28,15 @@ EC2_JSON=$(aws pricing get-products \
     --region us-east-1 \
     --output json)
 
+XFER_JSON=$(aws pricing get-products \
+    --service-code AWSDataTransfer \
+    --filters \
+        "Type=TERM_MATCH,Field=fromRegionCode,Value=${REGION}" \
+        "Type=TERM_MATCH,Field=transferType,Value=AWS Outbound" \
+    --region us-east-1 \
+    --output json \
+    | jq '[.PriceList[] | fromjson | .terms.OnDemand[].priceDimensions[] | {price: (.pricePerUnit.USD | tonumber), begin: (.beginRange | tonumber), end: (if .endRange == "Inf" then 1e15 else .endRange | tonumber end)}] | sort_by(.begin)')
+
 EBS_PRICE=$(aws pricing get-products \
     --service-code AmazonEC2 \
     --filters \
@@ -38,7 +47,7 @@ EBS_PRICE=$(aws pricing get-products \
     --output json \
     | jq -r '[.PriceList[] | fromjson | .terms.OnDemand[].priceDimensions[] | .pricePerUnit.USD | tonumber] | first')
 
-echo "${EC2_JSON}" | jq -r --argjson ebs "${EBS_PRICE}" --argjson root "${ROOT_VOL}" --argjson docker "${DOCKER_VOL}" '
+echo "${EC2_JSON}" | jq -r --argjson ebs "${EBS_PRICE}" --argjson root "${ROOT_VOL}" --argjson docker "${DOCKER_VOL}" --argjson xfer "${XFER_JSON}" '
 def fmt2: . * 100 | round / 100 | tostring | split(".") | if length == 1 then . + ["00"] else . end | .[1] |= (. + "00")[:2] | join(".");
 def hr: fmt2 | "$" + .;
 def mo: fmt2 | "$" + . + "/mo";
@@ -83,5 +92,25 @@ def pad($n): . + (" " * ($n - length));
     "  Docker:    \($docker | tostring | pad(4)) GB   \($ebs * $docker | mo)",
     "  Total:     \($root + $docker | tostring | pad(4)) GB   \($ebsMonthly | mo)",
     "",
-    "Estimated Monthly Total (On-Demand + EBS): \(($odMonthly + $ebsMonthly) | mo)"
+    "Data Transfer Out (inbound is free, first 1 GB/mo outbound is free)",
+
+    ($xfer as $tiers |
+        def xfer_cost($gb):
+            $gb as $total |
+            reduce $tiers[] as $t (
+                {remaining: $total, cost: 0};
+                if .remaining <= 0 then .
+                else
+                    ([$t.end, 10240] | min) as $tier_end |
+                    ([.remaining, ($tier_end - $t.begin)] | min) as $used |
+                    .cost += ($used * $t.price) |
+                    .remaining -= $used
+                end
+            ) | .cost;
+
+        "               Traffic      Transfer Cost   Total (OD + EBS + Xfer)",
+        "  Light:       \("10" | pad(5)) GB   \(xfer_cost(10) | mo | pad(15))  \(($odMonthly + $ebsMonthly + xfer_cost(10)) | mo)",
+        "  Medium:      \("100" | pad(5)) GB   \(xfer_cost(100) | mo | pad(15))  \(($odMonthly + $ebsMonthly + xfer_cost(100)) | mo)",
+        "  Heavy:       \("1024" | pad(5)) GB   \(xfer_cost(1024) | mo | pad(15))  \(($odMonthly + $ebsMonthly + xfer_cost(1024)) | mo)"
+    )
 ' | sed 's/^/## /'
