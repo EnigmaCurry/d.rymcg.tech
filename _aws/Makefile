@@ -181,6 +181,33 @@ destroy: check-config
 		--region "$${REGION}" && \
 	echo "## Stack deleted: $${INSTANCE_NAME}"
 
+.PHONY: cleanup-volumes # Delete orphaned EBS volumes (prompts for each)
+cleanup-volumes:
+	@REGION=$$(${BIN}/dotenv -f ${ENV_FILE} get AWS_REGION 2>/dev/null || echo us-east-1) && \
+	readarray -t VOLS < <(aws ec2 describe-volumes \
+		--region "$${REGION}" \
+		--filters Name=status,Values=available \
+		--query 'Volumes[*].[VolumeId,Size,CreateTime]' \
+		--output text) && \
+	if [[ $${#VOLS[@]} -eq 0 || -z "$${VOLS[0]}" ]]; then \
+		echo "## No orphaned volumes found in $${REGION}."; \
+	else \
+		for line in "$${VOLS[@]}"; do \
+			VOL_ID=$$(echo "$${line}" | awk '{print $$1}') && \
+			SIZE=$$(echo "$${line}" | awk '{print $$2}') && \
+			CREATED=$$(echo "$${line}" | awk '{print $$3}') && \
+			echo "" && \
+			echo "## Volume: $${VOL_ID}  Size: $${SIZE}GB  Created: $${CREATED}" && \
+			read -p "Delete this volume? (y/N): " confirm && \
+			if [[ "$${confirm}" =~ ^[Yy] ]]; then \
+				aws ec2 delete-volume --region "$${REGION}" --volume-id "$${VOL_ID}" && \
+				echo "## Deleted: $${VOL_ID}"; \
+			else \
+				echo "## Skipped: $${VOL_ID}"; \
+			fi; \
+		done; \
+	fi
+
 .PHONY: check-config
 check-config:
 	@test -f ${ENV_FILE} || (echo "## Error: ${ENV_FILE} not found. Run 'make config' first." && exit 1)
