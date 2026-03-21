@@ -94,8 +94,8 @@ config:
 				break; \
 			fi; \
 		done && \
-		INSTANCE_NAME=$$(${BIN}/dotenv -f $${ENV} get AWS_INSTANCE_NAME) && \
-		KEY_NAME="$${INSTANCE_NAME}-$$(echo "$${PUB_KEY}" | md5sum | cut -c1-8)" && \
+		KEY_COMMENT=$$(echo "$${PUB_KEY}" | awk '{print $$NF}') && \
+		KEY_NAME="$${KEY_COMMENT}" && \
 		echo "$${PUB_KEY}" > /tmp/$${KEY_NAME}.pub && \
 		aws ec2 import-key-pair \
 			--key-name "$${KEY_NAME}" \
