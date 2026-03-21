@@ -258,15 +258,20 @@ status:
 		--region "$${REGION}" \
 		--query 'Stacks[0].{Status:StackStatus,Name:StackName,Created:CreationTime}' \
 		--output table && \
-	IP=$$(aws cloudformation describe-stacks \
+	STACK_JSON=$$(aws cloudformation describe-stacks \
 		--stack-name "$${INSTANCE_NAME}" \
 		--region "$${REGION}" \
-		--output json | jq -r '.Stacks[0].Outputs[] | select(.OutputKey=="PublicIP") | .OutputValue') && \
-	FQDN=$$(aws cloudformation describe-stacks \
-		--stack-name "$${INSTANCE_NAME}" \
+		--output json) && \
+	PUBLIC_IP=$$(echo "$${STACK_JSON}" | jq -r '.Stacks[0].Outputs[] | select(.OutputKey=="PublicIP") | .OutputValue') && \
+	FQDN=$$(echo "$${STACK_JSON}" | jq -r '.Stacks[0].Outputs[] | select(.OutputKey=="FQDN") | .OutputValue') && \
+	INSTANCE_ID=$$(echo "$${STACK_JSON}" | jq -r '.Stacks[0].Outputs[] | select(.OutputKey=="InstanceId") | .OutputValue') && \
+	PRIVATE_IP=$$(aws ec2 describe-instances \
 		--region "$${REGION}" \
-		--output json | jq -r '.Stacks[0].Outputs[] | select(.OutputKey=="FQDN") | .OutputValue') && \
-	echo "## IP: $${IP}" && \
+		--instance-ids "$${INSTANCE_ID}" \
+		--query 'Reservations[0].Instances[0].PrivateIpAddress' \
+		--output text 2>/dev/null || echo "N/A") && \
+	echo "## Public IP: $${PUBLIC_IP}" && \
+	echo "## Private IP: $${PRIVATE_IP}" && \
 	echo "## FQDN: $${FQDN}"
 
 .PHONY: destroy # Destroy the CloudFormation stack
