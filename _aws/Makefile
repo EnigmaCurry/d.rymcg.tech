@@ -362,75 +362,13 @@ destroy:
 estimate:
 	@INST=$$(${SELECT_INSTANCE}) && \
 	ENV=${env_file} && \
-	INSTANCE_NAME=$$(${BIN}/dotenv -f $${ENV} get AWS_INSTANCE_NAME) && \
-	INSTANCE_TYPE=$$(${BIN}/dotenv -f $${ENV} get AWS_INSTANCE_TYPE) && \
-	ROOT_VOL=$$(${BIN}/dotenv -f $${ENV} get AWS_ROOT_VOLUME_SIZE) && \
-	DOCKER_VOL=$$(${BIN}/dotenv -f $${ENV} get AWS_DOCKER_VOLUME_SIZE) && \
-	REGION=$$(${BIN}/dotenv -f $${ENV} get AWS_REGION) && \
-	ROOT_DOMAIN=$$(${BIN}/dotenv -f $${ENV} get AWS_ROOT_DOMAIN) && \
-	echo "" && \
-	echo "## Cost estimate for: $${INSTANCE_NAME}.$${ROOT_DOMAIN}" && \
-	echo "## Instance: $${INSTANCE_TYPE} | Region: $${REGION}" && \
-	echo "## Storage: $${ROOT_VOL} GB root + $${DOCKER_VOL} GB docker (gp3)" && \
-	echo "" && \
-	echo "## Fetching pricing..." && \
-	EC2_JSON=$$(aws pricing get-products \
-		--service-code AmazonEC2 \
-		--filters \
-			"Type=TERM_MATCH,Field=instanceType,Value=$${INSTANCE_TYPE}" \
-			"Type=TERM_MATCH,Field=operatingSystem,Value=Linux" \
-			"Type=TERM_MATCH,Field=preInstalledSw,Value=NA" \
-			"Type=TERM_MATCH,Field=tenancy,Value=Shared" \
-			"Type=TERM_MATCH,Field=capacitystatus,Value=Used" \
-			"Type=TERM_MATCH,Field=regionCode,Value=$${REGION}" \
-		--region us-east-1 \
-		--output json) && \
-	EBS_PRICE=$$(aws pricing get-products \
-		--service-code AmazonEC2 \
-		--filters \
-			"Type=TERM_MATCH,Field=productFamily,Value=Storage" \
-			"Type=TERM_MATCH,Field=volumeApiName,Value=gp3" \
-			"Type=TERM_MATCH,Field=regionCode,Value=$${REGION}" \
-		--region us-east-1 \
-		--output json \
-		| jq -r '[.PriceList[] | fromjson | .terms.OnDemand[].priceDimensions[] | .pricePerUnit.USD | tonumber] | first') && \
-	PRICING=$$(echo "$${EC2_JSON}" | jq -r --arg ebs "$${EBS_PRICE}" --argjson root "$${ROOT_VOL}" --argjson docker "$${DOCKER_VOL}" '{ \
-		onDemand: ([.PriceList[] | fromjson | .terms.OnDemand[].priceDimensions[] | select(.pricePerUnit.USD != "0.0000000000") | .pricePerUnit.USD | tonumber] | first), \
-		reserved: [.PriceList[] | fromjson | .terms.Reserved // {} | to_entries[] | .value | { \
-			term: .termAttributes.LeaseContractLength, \
-			option: .termAttributes.PurchaseOption, \
-			hourly: ([.priceDimensions[] | select(.unit == "Hrs") | .pricePerUnit.USD | tonumber] | first // 0), \
-			upfront: ([.priceDimensions[] | select(.unit == "Quantity") | .pricePerUnit.USD | tonumber] | first // 0) \
-		}] | unique_by(.term, .option), \
-		ebsPerGB: ($$ebs | tonumber), \
-		rootGB: $$root, \
-		dockerGB: $$docker \
-	}') && \
-	echo "$${PRICING}" | jq -r ' \
-		.ebsPerGB as $$ebs | .rootGB as $$root | .dockerGB as $$docker | \
-		(.onDemand * 730) as $$odMonthly | \
-		($$ebs * ($$root + $$docker)) as $$ebsMonthly | \
-		"## ┌──────────────────────────────────────────────────────────────┐", \
-		"## │ EC2 Compute                                                 │", \
-		"## ├──────────────────────────────────────────────────────────────┤", \
-		"## │ On-Demand: $$\(.onDemand)/hr  ($$\($$odMonthly | . * 100 | round / 100)/mo)  \("" | . + " " * 24)│", \
-		"## ├──────────────────────────────────────────────────────────────┤", \
-		"## │ Reserved Instance Pricing                                   │", \
-		"## ├────────┬────────────────┬──────────┬────────────┬───────────┤", \
-		"## │ Term   │ Option         │ Hourly   │ Upfront    │ Eff./mo   │", \
-		"## ├────────┼────────────────┼──────────┼────────────┼───────────┤", \
-		(.reserved | sort_by(.term, .option)[] | \
-			(if .term == "1yr" then 12 else 36 end) as $$months | \
-			((.hourly * 730) + (.upfront / $$months)) as $$effMonthly | \
-			"## │ \(.term | . + " " * (6 - length))│ \(.option | . + " " * (14 - length))│ $$\(.hourly | tostring | . + "0000000"[0:(8 - length)]) │ $$\(.upfront | tostring | . + " " * (9 - length))│ $$\($$effMonthly | . * 100 | round / 100 | tostring | . + " " * (8 - length))│" \
-		), \
-		"## ├──────────────────────────────────────────────────────────────┤", \
-		"## │ EBS Storage (gp3 @ $$\($$ebs)/GB-mo)  \("" | . + " " * 30)│", \
-		"## │ Root: \($$root) GB = $$\($$ebs * $$root | . * 100 | round / 100)/mo   Docker: \($$docker) GB = $$\($$ebs * $$docker | . * 100 | round / 100)/mo  \("" | . + " " * 10)│", \
-		"## │ Total EBS: $$\($$ebsMonthly | . * 100 | round / 100)/mo  \("" | . + " " * 38)│", \
-		"## ├──────────────────────────────────────────────────────────────┤", \
-		"## │ Estimated Total (On-Demand + EBS): $$\(($$odMonthly + $$ebsMonthly) | . * 100 | round / 100)/mo  \("" | . + " " * 14)│", \
-		"## └──────────────────────────────────────────────────────────────┘"'
+	./estimate.sh \
+		"$$(${BIN}/dotenv -f $${ENV} get AWS_INSTANCE_TYPE)" \
+		"$$(${BIN}/dotenv -f $${ENV} get AWS_ROOT_VOLUME_SIZE)" \
+		"$$(${BIN}/dotenv -f $${ENV} get AWS_DOCKER_VOLUME_SIZE)" \
+		"$$(${BIN}/dotenv -f $${ENV} get AWS_REGION)" \
+		"$$(${BIN}/dotenv -f $${ENV} get AWS_INSTANCE_NAME)" \
+		"$$(${BIN}/dotenv -f $${ENV} get AWS_ROOT_DOMAIN)"
 
 .PHONY: resize-volume # Resize an EBS volume on a running instance (grow only)
 resize-volume:
