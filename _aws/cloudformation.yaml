@@ -1,0 +1,238 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Description: "d.rymcg.tech Docker server on EC2"
+
+Parameters:
+  InstanceName:
+    Type: String
+    Default: docker-dev
+    Description: Name tag for the EC2 instance (also used as DNS subdomain prefix)
+  InstanceType:
+    Type: String
+    Default: t2.small
+    Description: EC2 instance type
+  KeyPairName:
+    Type: AWS::EC2::KeyPair::KeyName
+    Description: Name of an existing EC2 key pair for SSH access
+  RootDomain:
+    Type: String
+    Description: Root domain name (e.g. example.com)
+  HostedZoneId:
+    Type: AWS::Route53::HostedZone::Id
+    Description: Route53 Hosted Zone ID for the root domain
+  Region:
+    Type: String
+    Default: us-east-1
+    Description: AWS region (used in outputs for ACME config)
+  RootVolumeSize:
+    Type: Number
+    Default: 10
+    Description: Root EBS volume size in GB
+  DockerVolumeSize:
+    Type: Number
+    Default: 50
+    Description: Docker data EBS volume size in GB
+  SSHCidr:
+    Type: String
+    Default: "0.0.0.0/0"
+    Description: CIDR range allowed for SSH access (0.0.0.0/0 = anywhere)
+  DebianAMI:
+    Type: AWS::SSM::Parameter::Value<AWS::EC2::Image::Id>
+    Default: /aws/service/debian/release/12/latest/amd64
+    Description: Debian 12 AMI (auto-resolved via SSM public parameter)
+
+Resources:
+
+  # --- Security Group ---
+  SecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: !Sub "${InstanceName} - SSH, HTTP, HTTPS"
+      SecurityGroupIngress:
+        - IpProtocol: tcp
+          FromPort: 22
+          ToPort: 22
+          CidrIp: !Ref SSHCidr
+          Description: SSH
+        - IpProtocol: tcp
+          FromPort: 80
+          ToPort: 80
+          CidrIp: "0.0.0.0/0"
+          Description: HTTP
+        - IpProtocol: tcp
+          FromPort: 443
+          ToPort: 443
+          CidrIp: "0.0.0.0/0"
+          Description: HTTPS
+      Tags:
+        - Key: Name
+          Value: !Sub "${InstanceName}-sg"
+
+  # --- EC2 Instance ---
+  Instance:
+    Type: AWS::EC2::Instance
+    Properties:
+      ImageId: !Ref DebianAMI
+      InstanceType: !Ref InstanceType
+      KeyName: !Ref KeyPairName
+      SecurityGroupIds:
+        - !GetAtt SecurityGroup.GroupId
+      BlockDeviceMappings:
+        - DeviceName: /dev/xvda
+          Ebs:
+            VolumeSize: !Ref RootVolumeSize
+            VolumeType: gp3
+            DeleteOnTermination: true
+        - DeviceName: /dev/xvdb
+          Ebs:
+            VolumeSize: !Ref DockerVolumeSize
+            VolumeType: gp3
+            DeleteOnTermination: false
+      UserData:
+        Fn::Base64: |
+          #!/bin/bash
+          set -euo pipefail
+          exec > /var/log/user-data.log 2>&1
+
+          ## Format and mount the Docker EBS volume
+          if ! blkid /dev/xvdb; then
+            mkfs.ext4 /dev/xvdb
+          fi
+          mkdir -p /var/lib/docker
+          UUID=$(blkid -s UUID -o value /dev/xvdb)
+          if ! grep -q "$UUID" /etc/fstab; then
+            echo "UUID=$UUID /var/lib/docker ext4 defaults,nofail 0 2" >> /etc/fstab
+          fi
+          mount -a
+
+          ## Install Docker Engine (Debian)
+          apt-get update
+          apt-get install -y ca-certificates curl gnupg
+          install -m 0755 -d /etc/apt/keyrings
+          curl -fsSL https://download.docker.com/linux/debian/gpg \
+            | gpg --dearmor -o /etc/apt/keyrings/docker.gpg
+          chmod a+r /etc/apt/keyrings/docker.gpg
+          echo "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.gpg] \
+            https://download.docker.com/linux/debian \
+            $(. /etc/os-release && echo "$VERSION_CODENAME") stable" \
+            > /etc/apt/sources.list.d/docker.list
+          apt-get update
+          apt-get install -y docker-ce docker-ce-cli containerd.io \
+            docker-buildx-plugin docker-compose-plugin
+
+          ## Add the admin user to the docker group
+          gpasswd -a admin docker
+
+          echo "### d.rymcg.tech Docker setup complete ###"
+      Tags:
+        - Key: Name
+          Value: !Ref InstanceName
+
+  # --- Elastic IP ---
+  EIP:
+    Type: AWS::EC2::EIP
+    Properties:
+      Domain: vpc
+      Tags:
+        - Key: Name
+          Value: !Sub "${InstanceName}-eip"
+
+  EIPAssociation:
+    Type: AWS::EC2::EIPAssociation
+    Properties:
+      AllocationId: !GetAtt EIP.AllocationId
+      InstanceId: !Ref Instance
+
+  # --- Route53 DNS Records ---
+  DNSRecord:
+    Type: AWS::Route53::RecordSet
+    DependsOn: EIPAssociation
+    Properties:
+      HostedZoneId: !Ref HostedZoneId
+      Name: !Sub "${InstanceName}.${RootDomain}"
+      Type: A
+      TTL: "300"
+      ResourceRecords:
+        - !Ref EIP
+
+  DNSWildcard:
+    Type: AWS::Route53::RecordSet
+    DependsOn: EIPAssociation
+    Properties:
+      HostedZoneId: !Ref HostedZoneId
+      Name: !Sub "*.${InstanceName}.${RootDomain}"
+      Type: A
+      TTL: "300"
+      ResourceRecords:
+        - !Ref EIP
+
+  # --- IAM User + Policy for Route53 ACME DNS Challenge ---
+  AcmePolicy:
+    Type: AWS::IAM::ManagedPolicy
+    Properties:
+      ManagedPolicyName: !Sub "${InstanceName}-route53-acme"
+      PolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Action: route53:GetChange
+            Resource: "arn:aws:route53:::change/*"
+          - Effect: Allow
+            Action: route53:ListHostedZonesByName
+            Resource: "*"
+          - Effect: Allow
+            Action:
+              - route53:ListResourceRecordSets
+            Resource:
+              - !Sub "arn:aws:route53:::hostedzone/${HostedZoneId}"
+          - Effect: Allow
+            Action:
+              - route53:ChangeResourceRecordSets
+            Resource:
+              - !Sub "arn:aws:route53:::hostedzone/${HostedZoneId}"
+            Condition:
+              ForAllValues:StringEquals:
+                route53:ChangeResourceRecordSetsNormalizedRecordNames:
+                  - !Sub "_acme-challenge.${InstanceName}.${RootDomain}"
+                route53:ChangeResourceRecordSetsRecordTypes:
+                  - TXT
+
+  AcmeUser:
+    Type: AWS::IAM::User
+    Properties:
+      UserName: !Sub "${InstanceName}-route53"
+      ManagedPolicyArns:
+        - !Ref AcmePolicy
+
+  AcmeAccessKey:
+    Type: AWS::IAM::AccessKey
+    Properties:
+      UserName: !Ref AcmeUser
+
+Outputs:
+  InstanceId:
+    Value: !Ref Instance
+    Description: EC2 instance ID
+  PublicIP:
+    Value: !Ref EIP
+    Description: Elastic IP address
+  FQDN:
+    Value: !Sub "${InstanceName}.${RootDomain}"
+    Description: Fully qualified domain name
+  WildcardDomain:
+    Value: !Sub "*.${InstanceName}.${RootDomain}"
+    Description: Wildcard domain
+  SSHCommand:
+    Value: !Sub "ssh admin@${EIP}"
+    Description: SSH command to connect
+  DockerContextCommand:
+    Value: !Sub "docker context create ${InstanceName} --docker \"host=ssh://${InstanceName}\""
+    Description: Command to create Docker context on your workstation
+  AcmeAccessKeyId:
+    Value: !Ref AcmeAccessKey
+    Description: IAM access key ID for Route53 ACME challenge
+  AcmeSecretAccessKey:
+    Value: !GetAtt AcmeAccessKey.SecretAccessKey
+    Description: IAM secret access key for Route53 ACME challenge
+  AWSRegion:
+    Value: !Ref Region
+    Description: AWS region for ACME config
