@@ -326,14 +326,22 @@ status:
 	PUBLIC_IP=$$(echo "$${STACK_JSON}" | jq -r '.Stacks[0].Outputs[] | select(.OutputKey=="PublicIP") | .OutputValue') && \
 	FQDN=$$(echo "$${STACK_JSON}" | jq -r '.Stacks[0].Outputs[] | select(.OutputKey=="FQDN") | .OutputValue') && \
 	INSTANCE_ID=$$(echo "$${STACK_JSON}" | jq -r '.Stacks[0].Outputs[] | select(.OutputKey=="InstanceId") | .OutputValue') && \
-	PRIVATE_IP=$$(aws ec2 describe-instances \
+	INSTANCE_JSON=$$(aws ec2 describe-instances \
 		--region "$${REGION}" \
 		--instance-ids "$${INSTANCE_ID}" \
-		--query 'Reservations[0].Instances[0].PrivateIpAddress' \
+		--query 'Reservations[0].Instances[0]' \
+		--output json 2>/dev/null) && \
+	PRIVATE_IP=$$(echo "$${INSTANCE_JSON}" | jq -r '.PrivateIpAddress // "N/A"') && \
+	AMI_ID=$$(echo "$${INSTANCE_JSON}" | jq -r '.ImageId // "N/A"') && \
+	AMI_NAME=$$(aws ec2 describe-images \
+		--region "$${REGION}" \
+		--image-ids "$${AMI_ID}" \
+		--query 'Images[0].Name' \
 		--output text 2>/dev/null || echo "N/A") && \
 	echo "## Public IP: $${PUBLIC_IP}" && \
 	echo "## Private IP: $${PRIVATE_IP}" && \
-	echo "## FQDN: $${FQDN}"
+	echo "## FQDN: $${FQDN}" && \
+	echo "## AMI: $${AMI_ID} ($${AMI_NAME})"
 
 .PHONY: destroy # Destroy the CloudFormation stack
 destroy:
