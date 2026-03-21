@@ -29,9 +29,17 @@ login:
 	@aws sts get-caller-identity > /dev/null 2>&1 && \
 		echo "## Already logged in: $$(aws sts get-caller-identity --query 'Arn' --output text)" || \
 		(echo "## Not logged in to AWS CLI." && \
-		if aws sso login 2>&1 | grep -q "required SSO configuration"; then \
-			echo "## No SSO profile configured. Running 'aws configure sso' ..." && \
-			aws configure sso; \
+		echo "## Choose an authentication method:" && \
+		METHOD=$$(${BIN}/script-wizard choose \
+			"How do you authenticate with AWS?" \
+			"Access keys (IAM user)" \
+			"SSO (IAM Identity Center)" \
+			--default "Access keys (IAM user)") && \
+		if [[ "$${METHOD}" == "Access keys (IAM user)" ]]; then \
+			aws configure; \
+		else \
+			aws sso login 2>&1 | grep -q "required SSO configuration" && \
+				aws configure sso || aws sso login; \
 		fi && \
 		aws sts get-caller-identity > /dev/null 2>&1 || \
 		(echo "## Error: Still not authenticated. Check your AWS CLI configuration." && exit 1))
