@@ -6,7 +6,7 @@ docker-compose: check-instance-project
 
 .PHONY: docker-compose-lifecycle-cmd
 docker-compose-lifecycle-cmd: check-instance-project
-	@QUIET="${QUIET}"; DOCKER_COMPOSE_FILE_ARGS="${DOCKER_COMPOSE_FILE_ARGS}"; export COMPOSE_PROFILES="$$(${BIN}/dotenv -f "${ENV_FILE}" get $$(${BIN}/parse-env-meta.sh .env-dist PREFIX)_DOCKER_COMPOSE_PROFILES)"; COMMAND="docker compose $${DOCKER_COMPOSE_FILE_ARGS} --env-file=${ENV_FILE} --project-name="${PROJECT_NAME}" ${EXTRA_ARGS}"; test -n "$$COMPOSE_PROFILES" && echo COMPOSE_PROFILES="$${COMPOSE_PROFILES}" >/dev/stderr; test "$${QUIET}" != "true" && echo "ENV_FILE=${ENV_FILE}" >/dev/stderr && echo "# $${COMMAND}" >/dev/stderr; if [ -n "${TIMEOUT}" ]; then exec timeout --signal=TERM --kill-after=10 ${TIMEOUT} sh -c "exec $${COMMAND}"; else sh -c "exec $${COMMAND}"; fi
+	@QUIET="${QUIET}"; DOCKER_COMPOSE_FILE_ARGS="${DOCKER_COMPOSE_FILE_ARGS}"; export COMPOSE_PROFILES="$$(${BIN}/dotenv -f "${ENV_FILE}" get $$(${BIN}/parse-env-meta.sh .env-dist PREFIX)_DOCKER_COMPOSE_PROFILES)"; COMMAND="docker compose $${DOCKER_COMPOSE_FILE_ARGS} --env-file=${ENV_FILE} --project-name="${PROJECT_NAME}" ${EXTRA_ARGS}"; test -n "$$COMPOSE_PROFILES" && echo COMPOSE_PROFILES="$${COMPOSE_PROFILES}" >/dev/stderr; test "$${QUIET}" != "true" && echo "ENV_FILE=${ENV_FILE}" >/dev/stderr && echo "# $${COMMAND}" >/dev/stderr; if [ -n "${TIMEOUT}" ]; then exec timeout --signal=TERM --kill-after=10 ${TIMEOUT} sh -c "exec $${COMMAND}"; else exec sh -c "exec $${COMMAND}"; fi
 
 .PHONY: docker-compose-build
 docker-compose-build: check-instance-project
