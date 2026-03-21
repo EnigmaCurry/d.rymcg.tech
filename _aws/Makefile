@@ -79,7 +79,7 @@ config:
 	${BIN}/reconfigure_ask $${ENV} AWS_ROOT_VOLUME_SIZE "Enter root volume size in GB" 10 && \
 	${BIN}/reconfigure_ask $${ENV} AWS_DOCKER_VOLUME_SIZE "Enter Docker data volume size in GB" 50 && \
 	${BIN}/reconfigure_ask $${ENV} AWS_SSH_CIDR "Enter CIDR range for SSH access (0.0.0.0/0 = anywhere)" "0.0.0.0/0" && \
-	CURRENT_PORTS=$$(${BIN}/dotenv -f $${ENV} get AWS_OPEN_PORTS 2>/dev/null) && \
+	CURRENT_PORTS=$$(${BIN}/dotenv -f $${ENV} get AWS_OPEN_PORTS 2>/dev/null || true) && \
 	PORT_OPTIONS=( \
 		"dns:53 TCP+UDP (acme-dns)" \
 		"forgejo-ssh:2222 TCP (Forgejo SSH)" \
@@ -105,10 +105,10 @@ config:
 			done; \
 		done | jq -R . | jq -s -c .); \
 	fi && \
-	SELECTED=$$(${BIN}/script-wizard select --cancel-code=2 \
+	SELECTED=$$(${BIN}/script-wizard select \
 		--default "$${DEFAULT_JSON}" \
 		"Select additional ports to open (SSH, HTTP, HTTPS always open):" \
-		"$${PORT_OPTIONS[@]}" 2>&1) && \
+		"$${PORT_OPTIONS[@]}") && \
 	PORTS=$$(echo "$${SELECTED}" | while read -r line; do echo "$${line%%:*}"; done | paste -sd,) && \
 	${BIN}/dotenv -f $${ENV} set AWS_OPEN_PORTS="$${PORTS}" || \
 	${BIN}/dotenv -f $${ENV} set AWS_OPEN_PORTS=""
