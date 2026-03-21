@@ -216,6 +216,25 @@ ssh-config:
 	fi && \
 	echo "## SSH: ssh $${INSTANCE_NAME}"
 
+.PHONY: firewall # Show security group inbound rules
+firewall:
+	@INST=$$(${SELECT_INSTANCE}) && \
+	ENV=${env_file} && \
+	INSTANCE_NAME=$$(${BIN}/dotenv -f $${ENV} get AWS_INSTANCE_NAME) && \
+	REGION=$$(${BIN}/dotenv -f $${ENV} get AWS_REGION) && \
+	SG_ID=$$(aws cloudformation describe-stack-resource \
+		--region "$${REGION}" \
+		--stack-name "$${INSTANCE_NAME}" \
+		--logical-resource-id SecurityGroup \
+		--query 'StackResourceDetail.PhysicalResourceId' \
+		--output text) && \
+	echo "## Firewall rules for $${INSTANCE_NAME} ($${SG_ID}):" && \
+	aws ec2 describe-security-group-rules \
+		--region "$${REGION}" \
+		--filters "Name=group-id,Values=$${SG_ID}" \
+		--query 'SecurityGroupRules[?IsEgress==`false`] | sort_by(@, &FromPort).[FromPort,ToPort,IpProtocol,CidrIpv4,Description]' \
+		--output table
+
 .PHONY: outputs # Show stack outputs (IP, FQDN, ACME keys, etc.)
 outputs:
 	@INST=$$(${SELECT_INSTANCE}) && \
