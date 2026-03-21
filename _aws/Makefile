@@ -17,7 +17,36 @@ config:
 	@test -f ${ENV_FILE} || cp .env-dist ${ENV_FILE}
 	@${BIN}/reconfigure_ask ${ENV_FILE} AWS_INSTANCE_NAME "Enter the instance name (used as DNS subdomain prefix)" docker-dev
 	@${BIN}/reconfigure_ask ${ENV_FILE} AWS_ROOT_DOMAIN "Enter the root domain" example.com
-	@${BIN}/reconfigure_ask ${ENV_FILE} AWS_KEY_PAIR_NAME "Enter the EC2 key pair name"
+	@CHOICE=$$(${BIN}/script-wizard choose \
+		"SSH key pair for EC2 instance" \
+		"Create a new key pair" \
+		"Use an existing key pair" \
+		--default "Create a new key pair") && \
+	if [[ "$${CHOICE}" == "Create a new key pair" ]]; then \
+		INSTANCE_NAME=$$(${BIN}/dotenv -f ${ENV_FILE} get AWS_INSTANCE_NAME) && \
+		KEY_NAME="$${INSTANCE_NAME}-$$(openssl rand -hex 4)" && \
+		KEY_FILE="$$HOME/.ssh/$${KEY_NAME}" && \
+		ssh-keygen -t ed25519 -f "$${KEY_FILE}" -N "" -C "$${KEY_NAME}" && \
+		REGION=$$(${BIN}/dotenv -f ${ENV_FILE} get AWS_REGION || echo us-east-1) && \
+		aws ec2 import-key-pair \
+			--key-name "$${KEY_NAME}" \
+			--public-key-material fileb://$${KEY_FILE}.pub \
+			--region "$${REGION}" && \
+		echo "## Key pair created: $${KEY_NAME}" && \
+		echo "## Private key: $${KEY_FILE}" && \
+		${BIN}/dotenv -f ${ENV_FILE} set AWS_KEY_PAIR_NAME="$${KEY_NAME}"; \
+	else \
+		REGION=$$(${BIN}/dotenv -f ${ENV_FILE} get AWS_REGION || echo us-east-1) && \
+		readarray -t KEYS < <(aws ec2 describe-key-pairs \
+			--region "$${REGION}" \
+			--query 'KeyPairs[*].KeyName' \
+			--output text | tr '\t' '\n' | sort) && \
+		if [[ $${#KEYS[@]} -eq 0 ]]; then \
+			echo "## Error: No key pairs found in region $${REGION}." && exit 1; \
+		fi && \
+		KEY_NAME=$$(${BIN}/script-wizard choose "Select a key pair" "$${KEYS[@]}") && \
+		${BIN}/dotenv -f ${ENV_FILE} set AWS_KEY_PAIR_NAME="$${KEY_NAME}"; \
+	fi
 	@${BIN}/reconfigure_ask ${ENV_FILE} AWS_INSTANCE_TYPE "Enter the EC2 instance type" t2.small
 	@${BIN}/reconfigure_ask ${ENV_FILE} AWS_ROOT_VOLUME_SIZE "Enter root volume size in GB" 10
 	@${BIN}/reconfigure_ask ${ENV_FILE} AWS_DOCKER_VOLUME_SIZE "Enter Docker data volume size in GB" 50
