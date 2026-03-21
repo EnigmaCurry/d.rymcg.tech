@@ -231,8 +231,9 @@ firewall:
 	aws ec2 describe-security-group-rules \
 		--region "$${REGION}" \
 		--filters "Name=group-id,Values=$${SG_ID}" \
-		--query "SecurityGroupRules[?IsEgress==\`false\`] | sort_by(@, &FromPort).{Port:FromPort,To:ToPort,Proto:IpProtocol,CIDR:CidrIpv4,Description:Description}" \
-		--output table
+		--output json | \
+		jq -r '.SecurityGroupRules | map(select(.IsEgress == false)) | sort_by(.FromPort) | ["Port","Proto","CIDR","Description"], (.[] | ["\(.FromPort)-\(.ToPort)", .IpProtocol, .CidrIpv4, .Description]) | @tsv' | \
+		column -t -s$$'\t'
 
 .PHONY: outputs # Show stack outputs (IP, FQDN, ACME keys, etc.)
 outputs:
