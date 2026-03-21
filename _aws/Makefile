@@ -110,7 +110,33 @@ deploy: check-config login
 			RootVolumeSize="$${ROOT_VOLUME_SIZE}" \
 			DockerVolumeSize="$${DOCKER_VOLUME_SIZE}" \
 			SSHCidr="$${SSH_CIDR}" \
-			Region="$${REGION}"
+			Region="$${REGION}" && \
+	$(MAKE) --no-print-directory ssh-config
+
+.PHONY: ssh-config # Add/update SSH config entry for the EC2 instance
+ssh-config: check-config
+	@INSTANCE_NAME=$$(${BIN}/dotenv -f ${ENV_FILE} get AWS_INSTANCE_NAME) && \
+	KEY_PAIR_NAME=$$(${BIN}/dotenv -f ${ENV_FILE} get AWS_KEY_PAIR_NAME) && \
+	ROOT_DOMAIN=$$(${BIN}/dotenv -f ${ENV_FILE} get AWS_ROOT_DOMAIN) && \
+	REGION=$$(${BIN}/dotenv -f ${ENV_FILE} get AWS_REGION) && \
+	FQDN="$${INSTANCE_NAME}.$${ROOT_DOMAIN}" && \
+	KEY_FILE="$$HOME/.ssh/$${KEY_PAIR_NAME}" && \
+	SSH_CONFIG="$$HOME/.ssh/config" && \
+	mkdir -p "$$HOME/.ssh" && chmod 700 "$$HOME/.ssh" && \
+	touch "$${SSH_CONFIG}" && chmod 600 "$${SSH_CONFIG}" && \
+	if grep -q "^Host $${INSTANCE_NAME}$$" "$${SSH_CONFIG}" 2>/dev/null; then \
+		echo "## Updating existing SSH config entry: $${INSTANCE_NAME}" && \
+		sed -i "/^Host $${INSTANCE_NAME}$$/,/^Host \|^$$/{//!d}" "$${SSH_CONFIG}" && \
+		sed -i "/^Host $${INSTANCE_NAME}$$/a\\
+    Hostname $${FQDN}\\
+    User admin\\
+    IdentityFile $${KEY_FILE}" "$${SSH_CONFIG}"; \
+	else \
+		echo "## Adding SSH config entry: $${INSTANCE_NAME}" && \
+		printf '\nHost %s\n    Hostname %s\n    User admin\n    IdentityFile %s\n' \
+			"$${INSTANCE_NAME}" "$${FQDN}" "$${KEY_FILE}" >> "$${SSH_CONFIG}"; \
+	fi && \
+	echo "## SSH: ssh $${INSTANCE_NAME}"
 
 .PHONY: outputs # Show stack outputs (IP, FQDN, ACME keys, etc.)
 outputs: check-config
