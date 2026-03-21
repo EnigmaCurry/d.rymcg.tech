@@ -25,19 +25,18 @@ list:
 
 .PHONY: check-instance
 check-instance:
-	@if [[ -z "$(instance)" ]]; then \
-		readarray -t INSTANCES < <(for f in .env_${DOCKER_CONTEXT}_*; do \
-			[[ -f "$$f" ]] || continue; \
-			INST="$${f#.env_${DOCKER_CONTEXT}_}"; \
-			[[ -n "$${INST}" ]] && echo "$${INST}"; \
-		done) && \
-		if [[ $${#INSTANCES[@]} -gt 0 && -n "$${INSTANCES[0]}" ]]; then \
-			INST=$$(${BIN}/script-wizard choose "Select an instance" "$${INSTANCES[@]}") && \
-			exec $(MAKE) --no-print-directory $(MAKECMDGOALS) instance="$${INST}"; \
-		else \
-			echo "## No instances configured. Usage: make <target> instance=NAME" && \
-			exit 1; \
-		fi; \
+	@if [[ -n "$(instance)" ]]; then exit 0; fi && \
+	readarray -t INSTANCES < <(for f in .env_${DOCKER_CONTEXT}_*; do \
+		[[ -f "$$f" ]] || continue; \
+		INST="$${f#.env_${DOCKER_CONTEXT}_}"; \
+		[[ -n "$${INST}" ]] && echo "$${INST}"; \
+	done) && \
+	if [[ $${#INSTANCES[@]} -gt 0 && -n "$${INSTANCES[0]}" ]]; then \
+		INST=$$(${BIN}/script-wizard choose "Select an instance" "$${INSTANCES[@]}") && \
+		exec $(MAKE) --no-print-directory $(MAKECMDGOALS) instance="$${INST}"; \
+	else \
+		echo "## No instances configured. Run 'make config instance=NAME' first." && \
+		exit 1; \
 	fi
 
 .PHONY: config # Configure AWS CloudFormation parameters (instance=NAME required)
@@ -55,18 +54,18 @@ config:
 			[[ -n "$${INST}" ]] || (echo "## Error: instance name required." && exit 1); \
 		fi && \
 		exec $(MAKE) --no-print-directory config instance="$${INST}"; \
-	fi
-	@test -f ${ENV_FILE} || cp .env-dist ${ENV_FILE}
-	@${BIN}/dotenv -f ${ENV_FILE} set AWS_INSTANCE_NAME="$(instance)"
-	@${BIN}/reconfigure_ask ${ENV_FILE} AWS_ROOT_DOMAIN "Enter the root domain" example.com
-	@CURRENT_REGION=$$(${BIN}/dotenv -f ${ENV_FILE} get AWS_REGION 2>/dev/null || echo us-east-1) && \
+	fi && \
+	test -f ${ENV_FILE} || cp .env-dist ${ENV_FILE} && \
+	${BIN}/dotenv -f ${ENV_FILE} set AWS_INSTANCE_NAME="$(instance)" && \
+	${BIN}/reconfigure_ask ${ENV_FILE} AWS_ROOT_DOMAIN "Enter the root domain" example.com && \
+	CURRENT_REGION=$$(${BIN}/dotenv -f ${ENV_FILE} get AWS_REGION 2>/dev/null || echo us-east-1) && \
 	readarray -t REGIONS < <(aws ec2 describe-regions \
 		--query 'Regions[*].RegionName' \
 		--output text | tr '\t' '\n' | sort) && \
 	REGION=$$(${BIN}/script-wizard choose "Select the AWS region" "$${REGIONS[@]}" \
 		--default "$${CURRENT_REGION}") && \
-	${BIN}/dotenv -f ${ENV_FILE} set AWS_REGION="$${REGION}"
-	@CURRENT_KEY=$$(${BIN}/dotenv -f ${ENV_FILE} get AWS_KEY_PAIR_NAME 2>/dev/null) && \
+	${BIN}/dotenv -f ${ENV_FILE} set AWS_REGION="$${REGION}" && \
+	CURRENT_KEY=$$(${BIN}/dotenv -f ${ENV_FILE} get AWS_KEY_PAIR_NAME 2>/dev/null) && \
 	if [[ -n "$${CURRENT_KEY}" ]]; then \
 		DEFAULT_KEY_CHOICE="Use an existing key pair"; \
 	else \
@@ -102,11 +101,11 @@ config:
 		KEY_NAME=$$(${BIN}/script-wizard choose "Select a key pair" "$${KEYS[@]}" \
 			--default "$${CURRENT_KEY}") && \
 		${BIN}/dotenv -f ${ENV_FILE} set AWS_KEY_PAIR_NAME="$${KEY_NAME}"; \
-	fi
-	@${BIN}/reconfigure_ask ${ENV_FILE} AWS_INSTANCE_TYPE "Enter the EC2 instance type" t2.small
-	@${BIN}/reconfigure_ask ${ENV_FILE} AWS_ROOT_VOLUME_SIZE "Enter root volume size in GB" 10
-	@${BIN}/reconfigure_ask ${ENV_FILE} AWS_DOCKER_VOLUME_SIZE "Enter Docker data volume size in GB" 50
-	@${BIN}/reconfigure_ask ${ENV_FILE} AWS_SSH_CIDR "Enter CIDR range for SSH access (0.0.0.0/0 = anywhere)" "0.0.0.0/0"
+	fi && \
+	${BIN}/reconfigure_ask ${ENV_FILE} AWS_INSTANCE_TYPE "Enter the EC2 instance type" t2.small && \
+	${BIN}/reconfigure_ask ${ENV_FILE} AWS_ROOT_VOLUME_SIZE "Enter root volume size in GB" 10 && \
+	${BIN}/reconfigure_ask ${ENV_FILE} AWS_DOCKER_VOLUME_SIZE "Enter Docker data volume size in GB" 50 && \
+	${BIN}/reconfigure_ask ${ENV_FILE} AWS_SSH_CIDR "Enter CIDR range for SSH access (0.0.0.0/0 = anywhere)" "0.0.0.0/0"
 
 .PHONY: login # Login to AWS CLI (skips if already authenticated)
 login:
