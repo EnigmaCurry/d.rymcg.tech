@@ -3,7 +3,8 @@ SHELL = /bin/bash
 BIN = ${ROOT_DIR}/_scripts
 
 DOCKER_CONTEXT ?= $(shell docker context ls --format "{{.Current}} {{.Name}}" | grep -oP "^true \K.*")
-ENV_FILE = .env_${DOCKER_CONTEXT}
+instance ?= docker-dev
+ENV_FILE = .env_${DOCKER_CONTEXT}_$(instance)
 
 .PHONY: all
 all: help
@@ -12,10 +13,10 @@ all: help
 help:
 	@grep -h '^.PHONY: .* #' Makefile | sed 's/\.PHONY: \(.*\) # \(.*\)/make \1 \t- \2/'
 
-.PHONY: config # Configure AWS CloudFormation parameters
+.PHONY: config # Configure AWS CloudFormation parameters (instance=NAME)
 config:
 	@test -f ${ENV_FILE} || cp .env-dist ${ENV_FILE}
-	@${BIN}/reconfigure_ask ${ENV_FILE} AWS_INSTANCE_NAME "Enter the instance name (used as DNS subdomain prefix)" docker-dev
+	@${BIN}/reconfigure_ask ${ENV_FILE} AWS_INSTANCE_NAME "Enter the instance name (used as DNS subdomain prefix)" $(instance)
 	@${BIN}/reconfigure_ask ${ENV_FILE} AWS_ROOT_DOMAIN "Enter the root domain" example.com
 	@readarray -t REGIONS < <(aws ec2 describe-regions \
 		--query 'Regions[*].RegionName' \
