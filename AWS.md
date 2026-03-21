@@ -1,4 +1,4 @@
-# Docker on AWS EC2
+# Docker on AWS EC2 (manual instructions)
 
 You can use [AWS](https://aws.amazon.com/ec2/) to host a docker server
 online.
