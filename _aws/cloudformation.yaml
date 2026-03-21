@@ -35,10 +35,102 @@ Parameters:
     Type: String
     Default: "0.0.0.0/0"
     Description: CIDR range allowed for SSH access (0.0.0.0/0 = anywhere)
+  EnableDNS:
+    Type: String
+    Default: "false"
+    AllowedValues: ["true", "false"]
+    Description: Open port 53 TCP+UDP (acme-dns)
+  EnableForgejoSSH:
+    Type: String
+    Default: "false"
+    AllowedValues: ["true", "false"]
+    Description: Open port 2222 TCP (Forgejo SSH)
+  EnableSFTP:
+    Type: String
+    Default: "false"
+    AllowedValues: ["true", "false"]
+    Description: Open port 2223 TCP (SFTP)
+  EnableIperf:
+    Type: String
+    Default: "false"
+    AllowedValues: ["true", "false"]
+    Description: Open port 5201 TCP+UDP (Iperf)
+  EnableXMPP:
+    Type: String
+    Default: "false"
+    AllowedValues: ["true", "false"]
+    Description: Open ports 5222,5269 TCP (XMPP)
+  EnableIRC:
+    Type: String
+    Default: "false"
+    AllowedValues: ["true", "false"]
+    Description: Open ports 6697,6698 TCP (IRC)
+  EnableWebPlain:
+    Type: String
+    Default: "false"
+    AllowedValues: ["true", "false"]
+    Description: Open port 8000 TCP (HTTP non-TLS)
+  EnableMQTT:
+    Type: String
+    Default: "false"
+    AllowedValues: ["true", "false"]
+    Description: Open port 8883 TCP (MQTT)
+  EnableRTMP:
+    Type: String
+    Default: "false"
+    AllowedValues: ["true", "false"]
+    Description: Open port 1935 TCP (RTMP)
+  EnableSnapcast:
+    Type: String
+    Default: "false"
+    AllowedValues: ["true", "false"]
+    Description: Open ports 1704,1705 TCP (Snapcast)
+  EnableRedis:
+    Type: String
+    Default: "false"
+    AllowedValues: ["true", "false"]
+    Description: Open port 6380 TCP (Redis)
+  EnableMPD:
+    Type: String
+    Default: "false"
+    AllowedValues: ["true", "false"]
+    Description: Open port 6600 TCP (MPD/Mopidy)
+  EnablePostgreSQL:
+    Type: String
+    Default: "false"
+    AllowedValues: ["true", "false"]
+    Description: Open port 5432 TCP (PostgreSQL mTLS)
+  EnableJitsi:
+    Type: String
+    Default: "false"
+    AllowedValues: ["true", "false"]
+    Description: Open port 10000 UDP (Jitsi WebRTC)
+  EnableWireguard:
+    Type: String
+    Default: "false"
+    AllowedValues: ["true", "false"]
+    Description: Open port 51820 UDP (Wireguard VPN)
   DebianAMI:
     Type: AWS::SSM::Parameter::Value<AWS::EC2::Image::Id>
     Default: /aws/service/debian/release/12/latest/amd64
     Description: Debian 12 AMI (auto-resolved via SSM public parameter)
+
+Conditions:
+  DNS: !Equals [!Ref EnableDNS, "true"]
+  ForgejoSSH: !Equals [!Ref EnableForgejoSSH, "true"]
+  SFTP: !Equals [!Ref EnableSFTP, "true"]
+  Iperf: !Equals [!Ref EnableIperf, "true"]
+  XMPP: !Equals [!Ref EnableXMPP, "true"]
+  IRC: !Equals [!Ref EnableIRC, "true"]
+  WebPlain: !Equals [!Ref EnableWebPlain, "true"]
+  MQTT: !Equals [!Ref EnableMQTT, "true"]
+  RTMP: !Equals [!Ref EnableRTMP, "true"]
+  Snapcast: !Equals [!Ref EnableSnapcast, "true"]
+  Redis: !Equals [!Ref EnableRedis, "true"]
+  MPD: !Equals [!Ref EnableMPD, "true"]
+  PostgreSQL: !Equals [!Ref EnablePostgreSQL, "true"]
+  Jitsi: !Equals [!Ref EnableJitsi, "true"]
+  Wireguard: !Equals [!Ref EnableWireguard, "true"]
 
 Resources:
 
@@ -46,7 +138,7 @@ Resources:
   SecurityGroup:
     Type: AWS::EC2::SecurityGroup
     Properties:
-      GroupDescription: !Sub "${InstanceName} - SSH, HTTP, HTTPS"
+      GroupDescription: !Sub "${InstanceName} - d.rymcg.tech"
       SecurityGroupIngress:
         - IpProtocol: tcp
           FromPort: 22
@@ -66,6 +158,188 @@ Resources:
       Tags:
         - Key: Name
           Value: !Sub "${InstanceName}-sg"
+
+  # --- Optional firewall rules ---
+  SGDnsTcp:
+    Type: AWS::EC2::SecurityGroupIngress
+    Condition: DNS
+    Properties:
+      GroupId: !GetAtt SecurityGroup.GroupId
+      IpProtocol: tcp
+      FromPort: 53
+      ToPort: 53
+      CidrIp: "0.0.0.0/0"
+      Description: DNS TCP (acme-dns)
+  SGDnsUdp:
+    Type: AWS::EC2::SecurityGroupIngress
+    Condition: DNS
+    Properties:
+      GroupId: !GetAtt SecurityGroup.GroupId
+      IpProtocol: udp
+      FromPort: 53
+      ToPort: 53
+      CidrIp: "0.0.0.0/0"
+      Description: DNS UDP (acme-dns)
+  SGForgejoSSH:
+    Type: AWS::EC2::SecurityGroupIngress
+    Condition: ForgejoSSH
+    Properties:
+      GroupId: !GetAtt SecurityGroup.GroupId
+      IpProtocol: tcp
+      FromPort: 2222
+      ToPort: 2222
+      CidrIp: "0.0.0.0/0"
+      Description: Forgejo SSH
+  SGSFTP:
+    Type: AWS::EC2::SecurityGroupIngress
+    Condition: SFTP
+    Properties:
+      GroupId: !GetAtt SecurityGroup.GroupId
+      IpProtocol: tcp
+      FromPort: 2223
+      ToPort: 2223
+      CidrIp: "0.0.0.0/0"
+      Description: SFTP
+  SGIperfTcp:
+    Type: AWS::EC2::SecurityGroupIngress
+    Condition: Iperf
+    Properties:
+      GroupId: !GetAtt SecurityGroup.GroupId
+      IpProtocol: tcp
+      FromPort: 5201
+      ToPort: 5201
+      CidrIp: "0.0.0.0/0"
+      Description: Iperf TCP
+  SGIperfUdp:
+    Type: AWS::EC2::SecurityGroupIngress
+    Condition: Iperf
+    Properties:
+      GroupId: !GetAtt SecurityGroup.GroupId
+      IpProtocol: udp
+      FromPort: 5201
+      ToPort: 5201
+      CidrIp: "0.0.0.0/0"
+      Description: Iperf UDP
+  SGXmppClient:
+    Type: AWS::EC2::SecurityGroupIngress
+    Condition: XMPP
+    Properties:
+      GroupId: !GetAtt SecurityGroup.GroupId
+      IpProtocol: tcp
+      FromPort: 5222
+      ToPort: 5222
+      CidrIp: "0.0.0.0/0"
+      Description: XMPP client-to-server
+  SGXmppServer:
+    Type: AWS::EC2::SecurityGroupIngress
+    Condition: XMPP
+    Properties:
+      GroupId: !GetAtt SecurityGroup.GroupId
+      IpProtocol: tcp
+      FromPort: 5269
+      ToPort: 5269
+      CidrIp: "0.0.0.0/0"
+      Description: XMPP server-to-server
+  SGIrc:
+    Type: AWS::EC2::SecurityGroupIngress
+    Condition: IRC
+    Properties:
+      GroupId: !GetAtt SecurityGroup.GroupId
+      IpProtocol: tcp
+      FromPort: 6697
+      ToPort: 6698
+      CidrIp: "0.0.0.0/0"
+      Description: IRC (InspIRCd + soju)
+  SGWebPlain:
+    Type: AWS::EC2::SecurityGroupIngress
+    Condition: WebPlain
+    Properties:
+      GroupId: !GetAtt SecurityGroup.GroupId
+      IpProtocol: tcp
+      FromPort: 8000
+      ToPort: 8000
+      CidrIp: "0.0.0.0/0"
+      Description: HTTP non-TLS
+  SGMQTT:
+    Type: AWS::EC2::SecurityGroupIngress
+    Condition: MQTT
+    Properties:
+      GroupId: !GetAtt SecurityGroup.GroupId
+      IpProtocol: tcp
+      FromPort: 8883
+      ToPort: 8883
+      CidrIp: "0.0.0.0/0"
+      Description: Mosquitto MQTT
+  SGRTMP:
+    Type: AWS::EC2::SecurityGroupIngress
+    Condition: RTMP
+    Properties:
+      GroupId: !GetAtt SecurityGroup.GroupId
+      IpProtocol: tcp
+      FromPort: 1935
+      ToPort: 1935
+      CidrIp: "0.0.0.0/0"
+      Description: RTMP
+  SGSnapcastAudio:
+    Type: AWS::EC2::SecurityGroupIngress
+    Condition: Snapcast
+    Properties:
+      GroupId: !GetAtt SecurityGroup.GroupId
+      IpProtocol: tcp
+      FromPort: 1704
+      ToPort: 1705
+      CidrIp: "0.0.0.0/0"
+      Description: Snapcast audio+control
+  SGRedis:
+    Type: AWS::EC2::SecurityGroupIngress
+    Condition: Redis
+    Properties:
+      GroupId: !GetAtt SecurityGroup.GroupId
+      IpProtocol: tcp
+      FromPort: 6380
+      ToPort: 6380
+      CidrIp: "0.0.0.0/0"
+      Description: Redis
+  SGMPD:
+    Type: AWS::EC2::SecurityGroupIngress
+    Condition: MPD
+    Properties:
+      GroupId: !GetAtt SecurityGroup.GroupId
+      IpProtocol: tcp
+      FromPort: 6600
+      ToPort: 6600
+      CidrIp: "0.0.0.0/0"
+      Description: MPD/Mopidy
+  SGPostgreSQL:
+    Type: AWS::EC2::SecurityGroupIngress
+    Condition: PostgreSQL
+    Properties:
+      GroupId: !GetAtt SecurityGroup.GroupId
+      IpProtocol: tcp
+      FromPort: 5432
+      ToPort: 5432
+      CidrIp: "0.0.0.0/0"
+      Description: PostgreSQL mTLS
+  SGJitsi:
+    Type: AWS::EC2::SecurityGroupIngress
+    Condition: Jitsi
+    Properties:
+      GroupId: !GetAtt SecurityGroup.GroupId
+      IpProtocol: udp
+      FromPort: 10000
+      ToPort: 10000
+      CidrIp: "0.0.0.0/0"
+      Description: Jitsi WebRTC
+  SGWireguard:
+    Type: AWS::EC2::SecurityGroupIngress
+    Condition: Wireguard
+    Properties:
+      GroupId: !GetAtt SecurityGroup.GroupId
+      IpProtocol: udp
+      FromPort: 51820
+      ToPort: 51820
+      CidrIp: "0.0.0.0/0"
+      Description: Wireguard VPN
 
   # --- EC2 Instance ---
   Instance:

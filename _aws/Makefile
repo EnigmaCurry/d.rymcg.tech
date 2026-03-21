@@ -78,7 +78,40 @@ config:
 	${BIN}/reconfigure_ask $${ENV} AWS_INSTANCE_TYPE "Enter the EC2 instance type" t2.small && \
 	${BIN}/reconfigure_ask $${ENV} AWS_ROOT_VOLUME_SIZE "Enter root volume size in GB" 10 && \
 	${BIN}/reconfigure_ask $${ENV} AWS_DOCKER_VOLUME_SIZE "Enter Docker data volume size in GB" 50 && \
-	${BIN}/reconfigure_ask $${ENV} AWS_SSH_CIDR "Enter CIDR range for SSH access (0.0.0.0/0 = anywhere)" "0.0.0.0/0"
+	${BIN}/reconfigure_ask $${ENV} AWS_SSH_CIDR "Enter CIDR range for SSH access (0.0.0.0/0 = anywhere)" "0.0.0.0/0" && \
+	CURRENT_PORTS=$$(${BIN}/dotenv -f $${ENV} get AWS_OPEN_PORTS 2>/dev/null) && \
+	PORT_OPTIONS=( \
+		"dns:53 TCP+UDP (acme-dns)" \
+		"forgejo-ssh:2222 TCP (Forgejo SSH)" \
+		"sftp:2223 TCP (SFTP)" \
+		"iperf:5201 TCP+UDP (Iperf)" \
+		"xmpp:5222,5269 TCP (XMPP)" \
+		"irc:6697,6698 TCP (IRC)" \
+		"web-plain:8000 TCP (HTTP non-TLS)" \
+		"mqtt:8883 TCP (Mosquitto MQTT)" \
+		"rtmp:1935 TCP (RTMP)" \
+		"snapcast:1704,1705 TCP (Snapcast)" \
+		"redis:6380 TCP (Redis)" \
+		"mpd:6600 TCP (MPD/Mopidy)" \
+		"postgresql:5432 TCP (PostgreSQL mTLS)" \
+		"jitsi:10000 UDP (Jitsi WebRTC)" \
+		"wireguard:51820 UDP (Wireguard VPN)" \
+	) && \
+	DEFAULT_JSON="[]" && \
+	if [[ -n "$${CURRENT_PORTS}" ]]; then \
+		DEFAULT_JSON=$$(echo "$${CURRENT_PORTS}" | tr ',' '\n' | while read -r p; do \
+			for opt in "$${PORT_OPTIONS[@]}"; do \
+				[[ "$${opt%%:*}" == "$$p" ]] && echo "$$opt"; \
+			done; \
+		done | jq -R . | jq -s -c .); \
+	fi && \
+	SELECTED=$$(${BIN}/script-wizard select --cancel-code=2 \
+		--default "$${DEFAULT_JSON}" \
+		"Select additional ports to open (SSH, HTTP, HTTPS always open):" \
+		"$${PORT_OPTIONS[@]}" 2>&1) && \
+	PORTS=$$(echo "$${SELECTED}" | while read -r line; do echo "$${line%%:*}"; done | paste -sd,) && \
+	${BIN}/dotenv -f $${ENV} set AWS_OPEN_PORTS="$${PORTS}" || \
+	${BIN}/dotenv -f $${ENV} set AWS_OPEN_PORTS=""
 
 .PHONY: login # Login to AWS CLI (skips if already authenticated)
 login:
@@ -113,10 +146,31 @@ deploy: login
 	DOCKER_VOLUME_SIZE=$$(${BIN}/dotenv -f $${ENV} get AWS_DOCKER_VOLUME_SIZE) && \
 	SSH_CIDR=$$(${BIN}/dotenv -f $${ENV} get AWS_SSH_CIDR) && \
 	REGION=$$(${BIN}/dotenv -f $${ENV} get AWS_REGION) && \
+	OPEN_PORTS=$$(${BIN}/dotenv -f $${ENV} get AWS_OPEN_PORTS 2>/dev/null || echo "") && \
 	ZONE_ID=$$(aws route53 list-hosted-zones-by-name \
 		--dns-name "$${ROOT_DOMAIN}" \
 		--query 'HostedZones[0].Id' \
 		--output text | sed 's|/hostedzone/||') && \
+	PORT_PARAMS="" && \
+	for port in $$(echo "$${OPEN_PORTS}" | tr ',' ' '); do \
+		case "$${port}" in \
+			dns) PORT_PARAMS="$${PORT_PARAMS} EnableDNS=true";; \
+			forgejo-ssh) PORT_PARAMS="$${PORT_PARAMS} EnableForgejoSSH=true";; \
+			sftp) PORT_PARAMS="$${PORT_PARAMS} EnableSFTP=true";; \
+			iperf) PORT_PARAMS="$${PORT_PARAMS} EnableIperf=true";; \
+			xmpp) PORT_PARAMS="$${PORT_PARAMS} EnableXMPP=true";; \
+			irc) PORT_PARAMS="$${PORT_PARAMS} EnableIRC=true";; \
+			web-plain) PORT_PARAMS="$${PORT_PARAMS} EnableWebPlain=true";; \
+			mqtt) PORT_PARAMS="$${PORT_PARAMS} EnableMQTT=true";; \
+			rtmp) PORT_PARAMS="$${PORT_PARAMS} EnableRTMP=true";; \
+			snapcast) PORT_PARAMS="$${PORT_PARAMS} EnableSnapcast=true";; \
+			redis) PORT_PARAMS="$${PORT_PARAMS} EnableRedis=true";; \
+			mpd) PORT_PARAMS="$${PORT_PARAMS} EnableMPD=true";; \
+			postgresql) PORT_PARAMS="$${PORT_PARAMS} EnablePostgreSQL=true";; \
+			jitsi) PORT_PARAMS="$${PORT_PARAMS} EnableJitsi=true";; \
+			wireguard) PORT_PARAMS="$${PORT_PARAMS} EnableWireguard=true";; \
+		esac; \
+	done && \
 	echo "## Deploying stack: $${INSTANCE_NAME}" && \
 	echo "## Domain: $${INSTANCE_NAME}.$${ROOT_DOMAIN}" && \
 	echo "## Hosted Zone: $${ZONE_ID}" && \
@@ -134,7 +188,8 @@ deploy: login
 			RootVolumeSize="$${ROOT_VOLUME_SIZE}" \
 			DockerVolumeSize="$${DOCKER_VOLUME_SIZE}" \
 			SSHCidr="$${SSH_CIDR}" \
-			Region="$${REGION}" && \
+			Region="$${REGION}" \
+			$${PORT_PARAMS} && \
 	$(MAKE) --no-print-directory ssh-config instance="$${INST}"
 
 .PHONY: ssh-config # Add/update SSH config entry for the EC2 instance
