@@ -175,7 +175,11 @@ destroy: check-config
 	aws cloudformation delete-stack \
 		--stack-name "$${INSTANCE_NAME}" \
 		--region "$${REGION}" && \
-	echo "## Stack deletion initiated: $${INSTANCE_NAME}"
+	echo "## Waiting for stack deletion: $${INSTANCE_NAME} ..." && \
+	aws cloudformation wait stack-delete-complete \
+		--stack-name "$${INSTANCE_NAME}" \
+		--region "$${REGION}" && \
+	echo "## Stack deleted: $${INSTANCE_NAME}"
 
 .PHONY: check-config
 check-config:
