@@ -366,11 +366,6 @@ Resources:
             VolumeSize: !Ref RootVolumeSize
             VolumeType: gp3
             DeleteOnTermination: true
-        - DeviceName: /dev/xvdb
-          Ebs:
-            VolumeSize: !Ref DockerVolumeSize
-            VolumeType: gp3
-            DeleteOnTermination: false
       UserData:
         Fn::Base64: |
           #!/bin/bash
@@ -410,6 +405,26 @@ Resources:
       Tags:
         - Key: Name
           Value: !Ref InstanceName
+
+  # --- Docker Data Volume (persists across instance replacements) ---
+  DockerVolume:
+    Type: AWS::EC2::Volume
+    DeletionPolicy: Retain
+    UpdateReplacePolicy: Retain
+    Properties:
+      AvailabilityZone: !GetAtt Instance.AvailabilityZone
+      Size: !Ref DockerVolumeSize
+      VolumeType: gp3
+      Tags:
+        - Key: Name
+          Value: !Sub "${InstanceName}-docker-data"
+
+  DockerVolumeAttachment:
+    Type: AWS::EC2::VolumeAttachment
+    Properties:
+      Device: /dev/xvdb
+      InstanceId: !Ref Instance
+      VolumeId: !Ref DockerVolume
 
   # --- Elastic IP ---
   EIP:
