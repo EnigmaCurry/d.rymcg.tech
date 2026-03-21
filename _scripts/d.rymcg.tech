@@ -46,6 +46,7 @@ __help() {
     (
         echo -e "agent-readiness\tRun agent readiness tool"
         echo -e "aliases\tPrint help to setup Bash aliases"
+        echo -e "aws [COMMAND]\tManage AWS CloudFormation stacks (login, config, deploy, destroy, ...)"
         echo -e "audit\tPrint security audit of running containers"
         echo -e "cd [SUBDIR]\tEnter a sub-shell and go to the ROOT_DIR directory (or given subdirectory)"
         echo -e "completion\tSetup TAB completion in your shell"
@@ -1676,6 +1677,12 @@ main() {
                 ${BIN}/workstation-usb-download-docker-packages "$@";;
             workstation-usb-test-vm)
                 ${BIN}/workstation-usb-test-vm "$@";;
+            aws)
+                if [[ $# -eq 0 ]]; then
+                    make --no-print-directory -C "${ROOT_DIR}/_aws" help
+                else
+                    make --no-print-directory -C "${ROOT_DIR}/_aws" "$@"
+                fi;;
             agent-readiness)
                 # Auto-detect current Docker context for 'check' command
                 if [[ $# -eq 0 ]]; then
