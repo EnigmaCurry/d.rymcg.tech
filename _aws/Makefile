@@ -142,8 +142,7 @@ config:
 	${BIN}/reconfigure_ask $${ENV} AWS_SSH_CIDR "Enter CIDR range for SSH access (0.0.0.0/0 = anywhere)" "0.0.0.0/0" && \
 	CURRENT_PORTS=$$(${BIN}/dotenv -f $${ENV} get AWS_OPEN_PORTS 2>/dev/null || true) && \
 	PORT_OPTIONS=( \
-		"dns:53 TCP+UDP (acme-dns)" \
-		"acme-dns-api:2890 TCP (acme-dns API)" \
+		"acme-dns:53 TCP+UDP, 2890 TCP, DNS delegation (acme-dns)" \
 		"forgejo-ssh:2222 TCP (Forgejo SSH)" \
 		"sftp:2223 TCP (SFTP)" \
 		"iperf:5201 TCP+UDP (Iperf)" \
@@ -216,8 +215,7 @@ deploy: login
 	PORT_PARAMS="" && \
 	for port in $$(echo "$${OPEN_PORTS}" | tr ',' ' '); do \
 		case "$${port}" in \
-			dns) PORT_PARAMS="$${PORT_PARAMS} EnableDNS=true";; \
-			acme-dns-api) PORT_PARAMS="$${PORT_PARAMS} EnableAcmeDnsAPI=true";; \
+			acme-dns) PORT_PARAMS="$${PORT_PARAMS} EnableAcmeDns=true";; \
 			forgejo-ssh) PORT_PARAMS="$${PORT_PARAMS} EnableForgejoSSH=true";; \
 			sftp) PORT_PARAMS="$${PORT_PARAMS} EnableSFTP=true";; \
 			iperf) PORT_PARAMS="$${PORT_PARAMS} EnableIperf=true";; \

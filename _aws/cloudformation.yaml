@@ -35,16 +35,11 @@ Parameters:
     Type: String
     Default: "0.0.0.0/0"
     Description: CIDR range allowed for SSH access (0.0.0.0/0 = anywhere)
-  EnableDNS:
+  EnableAcmeDns:
     Type: String
     Default: "false"
     AllowedValues: ["true", "false"]
-    Description: Open port 53 TCP+UDP (acme-dns)
-  EnableAcmeDnsAPI:
-    Type: String
-    Default: "false"
-    AllowedValues: ["true", "false"]
-    Description: Open port 2890 TCP (acme-dns API)
+    Description: Open ports 53 TCP+UDP and 2890 TCP, create DNS delegation for acme-dns
   EnableForgejoSSH:
     Type: String
     Default: "false"
@@ -121,8 +116,7 @@ Parameters:
     Description: Debian 12 AMI (auto-resolved via SSM public parameter)
 
 Conditions:
-  DNS: !Equals [!Ref EnableDNS, "true"]
-  AcmeDnsAPI: !Equals [!Ref EnableAcmeDnsAPI, "true"]
+  AcmeDns: !Equals [!Ref EnableAcmeDns, "true"]
   ForgejoSSH: !Equals [!Ref EnableForgejoSSH, "true"]
   SFTP: !Equals [!Ref EnableSFTP, "true"]
   Iperf: !Equals [!Ref EnableIperf, "true"]
@@ -168,7 +162,7 @@ Resources:
   # --- Optional firewall rules ---
   SGDnsTcp:
     Type: AWS::EC2::SecurityGroupIngress
-    Condition: DNS
+    Condition: AcmeDns
     Properties:
       GroupId: !GetAtt SecurityGroup.GroupId
       IpProtocol: tcp
@@ -178,7 +172,7 @@ Resources:
       Description: DNS TCP (acme-dns)
   SGDnsUdp:
     Type: AWS::EC2::SecurityGroupIngress
-    Condition: DNS
+    Condition: AcmeDns
     Properties:
       GroupId: !GetAtt SecurityGroup.GroupId
       IpProtocol: udp
@@ -188,7 +182,7 @@ Resources:
       Description: DNS UDP (acme-dns)
   SGAcmeDnsAPI:
     Type: AWS::EC2::SecurityGroupIngress
-    Condition: AcmeDnsAPI
+    Condition: AcmeDns
     Properties:
       GroupId: !GetAtt SecurityGroup.GroupId
       IpProtocol: tcp
@@ -454,6 +448,31 @@ Resources:
       TTL: "300"
       ResourceRecords:
         - !Ref EIP
+
+  # --- acme-dns DNS delegation ---
+  AcmeDnsARecord:
+    Type: AWS::Route53::RecordSet
+    Condition: AcmeDns
+    DependsOn: EIPAssociation
+    Properties:
+      HostedZoneId: !Ref HostedZoneId
+      Name: !Sub "acme-dns.${InstanceName}.${RootDomain}"
+      Type: A
+      TTL: "300"
+      ResourceRecords:
+        - !Ref EIP
+
+  AcmeDnsNSRecord:
+    Type: AWS::Route53::RecordSet
+    Condition: AcmeDns
+    DependsOn: AcmeDnsARecord
+    Properties:
+      HostedZoneId: !Ref HostedZoneId
+      Name: !Sub "acme-dns.${InstanceName}.${RootDomain}"
+      Type: NS
+      TTL: "300"
+      ResourceRecords:
+        - !Sub "acme-dns.${InstanceName}.${RootDomain}"
 
   # --- IAM User + Policy for Route53 ACME DNS Challenge ---
   AcmePolicy:
