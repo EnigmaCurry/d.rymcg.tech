@@ -57,7 +57,7 @@ config:
 		exec $(MAKE) --no-print-directory config instance="$${INST}"; \
 	fi
 	@test -f ${ENV_FILE} || cp .env-dist ${ENV_FILE}
-	@${BIN}/reconfigure_ask ${ENV_FILE} AWS_INSTANCE_NAME "Enter the instance name (used as DNS subdomain prefix)" $(instance)
+	@${BIN}/dotenv -f ${ENV_FILE} set AWS_INSTANCE_NAME="$(instance)"
 	@${BIN}/reconfigure_ask ${ENV_FILE} AWS_ROOT_DOMAIN "Enter the root domain" example.com
 	@CURRENT_REGION=$$(${BIN}/dotenv -f ${ENV_FILE} get AWS_REGION 2>/dev/null || echo us-east-1) && \
 	readarray -t REGIONS < <(aws ec2 describe-regions \
