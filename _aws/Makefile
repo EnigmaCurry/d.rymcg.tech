@@ -125,17 +125,15 @@ ssh-config: check-config
 	SSH_CONFIG="$$HOME/.ssh/config" && \
 	mkdir -p "$$HOME/.ssh" && chmod 700 "$$HOME/.ssh" && \
 	touch "$${SSH_CONFIG}" && chmod 600 "$${SSH_CONFIG}" && \
+	ENTRY=$$(printf 'Host %s\n    Hostname %s\n    User admin\n    IdentityFile %s\n' \
+		"$${INSTANCE_NAME}" "$${FQDN}" "$${KEY_FILE}") && \
 	if grep -q "^Host $${INSTANCE_NAME}$$" "$${SSH_CONFIG}" 2>/dev/null; then \
 		echo "## Updating existing SSH config entry: $${INSTANCE_NAME}" && \
-		sed -i "/^Host $${INSTANCE_NAME}$$/,/^Host \|^$$/{//!d}" "$${SSH_CONFIG}" && \
-		sed -i "/^Host $${INSTANCE_NAME}$$/a\\
-    Hostname $${FQDN}\\
-    User admin\\
-    IdentityFile $${KEY_FILE}" "$${SSH_CONFIG}"; \
+		sed -i "/^Host $${INSTANCE_NAME}$$/,/^Host \|^$$/d" "$${SSH_CONFIG}" && \
+		echo "$${ENTRY}" >> "$${SSH_CONFIG}"; \
 	else \
 		echo "## Adding SSH config entry: $${INSTANCE_NAME}" && \
-		printf '\nHost %s\n    Hostname %s\n    User admin\n    IdentityFile %s\n' \
-			"$${INSTANCE_NAME}" "$${FQDN}" "$${KEY_FILE}" >> "$${SSH_CONFIG}"; \
+		printf '\n%s\n' "$${ENTRY}" >> "$${SSH_CONFIG}"; \
 	fi && \
 	echo "## SSH: ssh $${INSTANCE_NAME}"
 
