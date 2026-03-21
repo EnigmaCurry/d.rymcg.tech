@@ -202,6 +202,7 @@ configured, you may need to open these ports in your firewall:
 | RTMP(s)    | TCP      | 1935       | Traefik RTMP (real time message protocol) entrypoint      |
 | SSH        | TCP      | 2222       | Traefik Forgejo SSH entrypoint                            |
 | SSH        | TCP      | 2223       | SFTP container SSH (direct-map)                           |
+| HTTP       | TCP      | 2890       | acme-dns API (direct-map)                                 |
 | TCP/UDP    | TCP/UDP  | 5201       | Traefik Iperf entrypoint                                  |
 | TCP        | TCP      | 5222       | Traefik XMPP client-to-server entrypoint                  |
 | TCP        | TCP      | 5269       | Traefik XMPP server-to-server entrypoint                  |

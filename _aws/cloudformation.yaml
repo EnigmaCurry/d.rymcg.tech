@@ -40,6 +40,11 @@ Parameters:
     Default: "false"
     AllowedValues: ["true", "false"]
     Description: Open port 53 TCP+UDP (acme-dns)
+  EnableAcmeDnsAPI:
+    Type: String
+    Default: "false"
+    AllowedValues: ["true", "false"]
+    Description: Open port 2890 TCP (acme-dns API)
   EnableForgejoSSH:
     Type: String
     Default: "false"
@@ -117,6 +122,7 @@ Parameters:
 
 Conditions:
   DNS: !Equals [!Ref EnableDNS, "true"]
+  AcmeDnsAPI: !Equals [!Ref EnableAcmeDnsAPI, "true"]
   ForgejoSSH: !Equals [!Ref EnableForgejoSSH, "true"]
   SFTP: !Equals [!Ref EnableSFTP, "true"]
   Iperf: !Equals [!Ref EnableIperf, "true"]
@@ -180,6 +186,16 @@ Resources:
       ToPort: 53
       CidrIp: "0.0.0.0/0"
       Description: DNS UDP (acme-dns)
+  SGAcmeDnsAPI:
+    Type: AWS::EC2::SecurityGroupIngress
+    Condition: AcmeDnsAPI
+    Properties:
+      GroupId: !GetAtt SecurityGroup.GroupId
+      IpProtocol: tcp
+      FromPort: 2890
+      ToPort: 2890
+      CidrIp: "0.0.0.0/0"
+      Description: acme-dns API
   SGForgejoSSH:
     Type: AWS::EC2::SecurityGroupIngress
     Condition: ForgejoSSH
