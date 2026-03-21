@@ -39,6 +39,10 @@ EBS_PRICE=$(aws pricing get-products \
     | jq -r '[.PriceList[] | fromjson | .terms.OnDemand[].priceDimensions[] | .pricePerUnit.USD | tonumber] | first')
 
 echo "${EC2_JSON}" | jq -r --argjson ebs "${EBS_PRICE}" --argjson root "${ROOT_VOL}" --argjson docker "${DOCKER_VOL}" '
+def hr: . * 10000 | round / 10000 | tostring | "$" + .;
+def mo: . * 100 | round / 100 | tostring | "$" + . + "/mo";
+def usd: . * 100 | round / 100 | tostring | "$" + .;
+def pad($n): . + (" " * ($n - length));
 {
     onDemand: ([.PriceList[] | fromjson | .terms.OnDemand[].priceDimensions[] | select(.pricePerUnit.USD != "0.0000000000") | .pricePerUnit.USD | tonumber] | first),
     reserved: [.PriceList[] | fromjson | .terms.Reserved // {} | to_entries[] | .value | {
@@ -56,21 +60,21 @@ echo "${EC2_JSON}" | jq -r --argjson ebs "${EBS_PRICE}" --argjson root "${ROOT_V
     ($ebs * ($root + $docker)) as $ebsMonthly |
 
     "EC2 Compute (On-Demand)",
-    "  \(.onDemand)/hr  \($odMonthly | . * 100 | round / 100)/mo",
+    "  \(.onDemand | hr)/hr  (\($odMonthly | mo))",
     "",
     "Reserved Instance Pricing",
-    "  Term    Option            Hourly      Upfront     Eff./mo",
-    "  ------  ----------------  ----------  ----------  ----------",
+    "  Term    Option            Hourly       Upfront      Eff./mo",
+    "  ------  ----------------  -----------  -----------  -----------",
     (.reserved | sort_by(.term, .option)[] |
         (if .term == "1yr" then 12 else 36 end) as $months |
         ((.hourly * 730) + (.upfront / $months)) as $effMonthly |
-        "  \(.term)     \(.option + " " * (16 - (.option | length)))  \(.hourly | tostring + " " * (10 - (. | tostring | length)))  \(.upfront | tostring + " " * (10 - (. | tostring | length)))  \($effMonthly | . * 100 | round / 100)"
+        "  \(.term | pad(6))  \(.option | pad(16))  \(.hourly | hr | pad(11))  \(.upfront | usd | pad(11))  \($effMonthly | mo)"
     ),
     "",
-    "EBS Storage (gp3 @ \($ebs)/GB-mo)",
-    "  Root: \($root) GB = \($ebs * $root | . * 100 | round / 100)/mo",
-    "  Docker: \($docker) GB = \($ebs * $docker | . * 100 | round / 100)/mo",
-    "  Total EBS: \($ebsMonthly | . * 100 | round / 100)/mo",
+    "EBS Storage (gp3 @ \($ebs | hr)/GB-mo)",
+    "  Root:   \($root) GB = \($ebs * $root | mo)",
+    "  Docker: \($docker) GB = \($ebs * $docker | mo)",
+    "  Total EBS: \($ebsMonthly | mo)",
     "",
-    "Estimated Monthly Total (On-Demand + EBS): \(($odMonthly + $ebsMonthly) | . * 100 | round / 100)/mo"
+    "Estimated Monthly Total (On-Demand + EBS): \(($odMonthly + $ebsMonthly) | mo)"
 ' | sed 's/^/## /'
