@@ -356,6 +356,52 @@ destroy:
 	echo "## Note: EBS data volumes are preserved after stack deletion." && \
 	echo "## Run 'd.rymcg.tech aws cleanup-volumes' to review and delete orphaned volumes."
 
+.PHONY: acme-dns-cname # Create Route53 CNAME records for acme-dns ACME challenges
+acme-dns-cname:
+	@INST=$$(${SELECT_INSTANCE}) && \
+	ENV=${env_file} && \
+	INSTANCE_NAME=$$(${BIN}/dotenv -f $${ENV} get AWS_INSTANCE_NAME) && \
+	ROOT_DOMAIN=$$(${BIN}/dotenv -f $${ENV} get AWS_ROOT_DOMAIN) && \
+	REGION=$$(${BIN}/dotenv -f $${ENV} get AWS_REGION) && \
+	FQDN="$${INSTANCE_NAME}.$${ROOT_DOMAIN}" && \
+	FULLDOMAIN=$$(docker --context "$${INSTANCE_NAME}" compose \
+		--project-name traefik \
+		exec acme-sh cat /acme.sh/acmedns-account.json 2>/dev/null \
+		| jq -r '.fulldomain') && \
+	if [[ -z "$${FULLDOMAIN}" || "$${FULLDOMAIN}" == "null" ]]; then \
+		echo "## Error: No acme-dns registration found." && \
+		echo "## Run 'd.rymcg.tech make traefik acme-sh-register' first." && \
+		exit 1; \
+	fi && \
+	ZONE_ID=$$(aws route53 list-hosted-zones-by-name \
+		--dns-name "$${ROOT_DOMAIN}" \
+		--query 'HostedZones[0].Id' \
+		--output text | sed 's|/hostedzone/||') && \
+	CERT_DOMAINS=$$(docker --context "$${INSTANCE_NAME}" compose \
+		--project-name traefik \
+		exec acme-sh sh -c 'echo $${TRAEFIK_ACME_CERT_DOMAINS}' 2>/dev/null) && \
+	readarray -t DOMAINS < <(echo "$${CERT_DOMAINS}" | jq -r '.[] | [.[0]] + (.[1] // []) | .[] | if startswith("*.") then .[2:] else . end' | sort -u) && \
+	echo "## acme-dns fulldomain: $${FULLDOMAIN}" && \
+	echo "## Hosted Zone: $${ZONE_ID}" && \
+	echo "" && \
+	CHANGES='[]' && \
+	for DOMAIN in "$${DOMAINS[@]}"; do \
+		CNAME="_acme-challenge.$${DOMAIN}" && \
+		echo "## Creating CNAME: $${CNAME} -> $${FULLDOMAIN}" && \
+		CHANGES=$$(echo "$${CHANGES}" | jq --arg name "$${CNAME}" --arg target "$${FULLDOMAIN}" \
+			'. + [{"Action":"UPSERT","ResourceRecordSet":{"Name":$$name,"Type":"CNAME","TTL":300,"ResourceRecords":[{"Value":$$target}]}}]'); \
+	done && \
+	BATCH=$$(echo "$${CHANGES}" | jq '{Changes:.}') && \
+	aws route53 change-resource-record-sets \
+		--hosted-zone-id "$${ZONE_ID}" \
+		--change-batch "$${BATCH}" \
+		--region "$${REGION}" \
+		--query 'ChangeInfo.{Status:Status,Id:Id}' \
+		--output table && \
+	echo "" && \
+	echo "## CNAME records created. Waiting for DNS propagation..." && \
+	echo "## Then restart acme-sh: d.rymcg.tech make traefik restart service=acme-sh"
+
 .PHONY: estimate # Show cost estimate for the configured stack
 estimate:
 	@INST=$$(${SELECT_INSTANCE}) && \
