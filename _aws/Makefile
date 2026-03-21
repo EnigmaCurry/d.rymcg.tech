@@ -39,8 +39,10 @@ config:
 		--default "$${CURRENT_REGION}") && \
 	${BIN}/dotenv -f $${ENV} set AWS_REGION="$${REGION}" && \
 	CURRENT_DEB=$$(${BIN}/dotenv -f $${ENV} get AWS_DEBIAN_VERSION 2>/dev/null || echo 13) && \
-	DEB_VER=$$(${BIN}/script-wizard choose "Select Debian version" "13" "12" \
-		--default "$${CURRENT_DEB}") && \
+	DEB_CHOICE=$$(${BIN}/script-wizard choose "Select Debian version" \
+		"Debian 13 (trixie)" "Debian 12 (bookworm)" \
+		--default "Debian $${CURRENT_DEB}") && \
+	DEB_VER=$$(echo "$${DEB_CHOICE}" | grep -oP '[0-9]+') && \
 	(grep -q '^AWS_DEBIAN_VERSION=' $${ENV} || echo "AWS_DEBIAN_VERSION=13" >> $${ENV}) && \
 	${BIN}/dotenv -f $${ENV} set AWS_DEBIAN_VERSION="$${DEB_VER}" && \
 	CURRENT_KEY=$$(${BIN}/dotenv -f $${ENV} get AWS_KEY_PAIR_NAME 2>/dev/null) && \
