@@ -39,22 +39,23 @@ config:
 		--default "$${CURRENT_REGION}") && \
 	${BIN}/dotenv -f $${ENV} set AWS_REGION="$${REGION}" && \
 	CURRENT_KEY=$$(${BIN}/dotenv -f $${ENV} get AWS_KEY_PAIR_NAME 2>/dev/null) && \
+	REGION=$$(${BIN}/dotenv -f $${ENV} get AWS_REGION || echo us-east-1) && \
 	if [[ -n "$${CURRENT_KEY}" ]]; then \
-		DEFAULT_KEY_CHOICE="Use an existing key pair"; \
+		DEFAULT_KEY_CHOICE="Use existing key pair (AWS)"; \
 	else \
 		DEFAULT_KEY_CHOICE="Create a new key pair"; \
 	fi && \
 	CHOICE=$$(${BIN}/script-wizard choose \
 		"SSH key pair for EC2 instance" \
+		"Use existing key pair (AWS)" \
+		"Import from ssh-agent" \
 		"Create a new key pair" \
-		"Use an existing key pair" \
 		--default "$${DEFAULT_KEY_CHOICE}") && \
 	if [[ "$${CHOICE}" == "Create a new key pair" ]]; then \
 		INSTANCE_NAME=$$(${BIN}/dotenv -f $${ENV} get AWS_INSTANCE_NAME) && \
 		KEY_NAME="$${INSTANCE_NAME}-$$(openssl rand -hex 4)" && \
 		KEY_FILE="$$HOME/.ssh/$${KEY_NAME}" && \
 		ssh-keygen -t ed25519 -f "$${KEY_FILE}" -N "" -C "$${KEY_NAME}" && \
-		REGION=$$(${BIN}/dotenv -f $${ENV} get AWS_REGION || echo us-east-1) && \
 		aws ec2 import-key-pair \
 			--key-name "$${KEY_NAME}" \
 			--public-key-material fileb://$${KEY_FILE}.pub \
@@ -62,8 +63,34 @@ config:
 		echo "## Key pair created: $${KEY_NAME}" && \
 		echo "## Private key: $${KEY_FILE}" && \
 		${BIN}/dotenv -f $${ENV} set AWS_KEY_PAIR_NAME="$${KEY_NAME}"; \
+	elif [[ "$${CHOICE}" == "Import from ssh-agent" ]]; then \
+		readarray -t AGENT_KEYS < <(ssh-add -L 2>/dev/null) && \
+		if [[ $${#AGENT_KEYS[@]} -eq 0 || -z "$${AGENT_KEYS[0]}" ]]; then \
+			echo "## Error: No keys found in ssh-agent. Run 'ssh-add' first." && exit 1; \
+		fi && \
+		AGENT_LABELS=() && \
+		for key in "$${AGENT_KEYS[@]}"; do \
+			LABEL=$$(echo "$${key}" | awk '{print $$NF " (" $$1 ")"}') && \
+			AGENT_LABELS+=("$${LABEL}"); \
+		done && \
+		SELECTED=$$(${BIN}/script-wizard choose "Select a key from ssh-agent" "$${AGENT_LABELS[@]}") && \
+		for i in "$${!AGENT_LABELS[@]}"; do \
+			if [[ "$${AGENT_LABELS[$$i]}" == "$${SELECTED}" ]]; then \
+				PUB_KEY="$${AGENT_KEYS[$$i]}"; \
+				break; \
+			fi; \
+		done && \
+		INSTANCE_NAME=$$(${BIN}/dotenv -f $${ENV} get AWS_INSTANCE_NAME) && \
+		KEY_NAME="$${INSTANCE_NAME}-$$(echo "$${PUB_KEY}" | md5sum | cut -c1-8)" && \
+		echo "$${PUB_KEY}" > /tmp/$${KEY_NAME}.pub && \
+		aws ec2 import-key-pair \
+			--key-name "$${KEY_NAME}" \
+			--public-key-material fileb:///tmp/$${KEY_NAME}.pub \
+			--region "$${REGION}" && \
+		rm -f /tmp/$${KEY_NAME}.pub && \
+		echo "## Key imported from ssh-agent: $${KEY_NAME}" && \
+		${BIN}/dotenv -f $${ENV} set AWS_KEY_PAIR_NAME="$${KEY_NAME}"; \
 	else \
-		REGION=$$(${BIN}/dotenv -f $${ENV} get AWS_REGION || echo us-east-1) && \
 		readarray -t KEYS < <(aws ec2 describe-key-pairs \
 			--region "$${REGION}" \
 			--query 'KeyPairs[*].KeyName' \
