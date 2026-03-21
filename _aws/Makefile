@@ -201,7 +201,10 @@ destroy:
 	aws cloudformation wait stack-delete-complete \
 		--stack-name "$${INSTANCE_NAME}" \
 		--region "$${REGION}" && \
-	echo "## Stack deleted: $${INSTANCE_NAME}"
+	echo "## Stack deleted: $${INSTANCE_NAME}" && \
+	echo "" && \
+	echo "## Note: EBS data volumes are preserved after stack deletion." && \
+	echo "## Run 'd.rymcg.tech aws cleanup-volumes' to review and delete orphaned volumes."
 
 .PHONY: cleanup-volumes # Delete orphaned EBS volumes (prompts for each)
 cleanup-volumes:
