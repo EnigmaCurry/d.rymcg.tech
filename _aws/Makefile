@@ -137,7 +137,7 @@ config:
 		--output json 2>/dev/null) && \
 	while IFS=$$'\t' read -r ITYPE PRICE; do \
 		PRICES["$${ITYPE}"]="$${PRICE}"; \
-	done < <(echo "$${PRICE_JSON}" | jq -r '.PriceList[] | fromjson | .product.attributes.instanceType as $$t | .terms.OnDemand[].priceDimensions[] | select(.pricePerUnit.USD != "0.0000000000") | [$$t, .pricePerUnit.USD] | @tsv' 2>/dev/null | sort -u) && \
+	done < <(echo "$${PRICE_JSON}" | jq -r '.PriceList[] | fromjson | .product.attributes.instanceType as $$t | .terms.OnDemand[].priceDimensions[] | select(.pricePerUnit.USD != "0.0000000000") | [$$t, (.pricePerUnit.USD | tonumber | . * 10000 | round / 10000 | tostring)] | @tsv' 2>/dev/null | sort -u) && \
 	readarray -t INSTANCE_TYPES < <(for info in "$${TYPE_INFO[@]}"; do \
 		ITYPE=$$(echo "$${info}" | awk '{print $$1}') && \
 		VCPU=$$(echo "$${info}" | awk '{print $$2}') && \
