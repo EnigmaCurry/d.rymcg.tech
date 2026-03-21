@@ -257,7 +257,17 @@ status:
 		--stack-name "$${INSTANCE_NAME}" \
 		--region "$${REGION}" \
 		--query 'Stacks[0].{Status:StackStatus,Name:StackName,Created:CreationTime}' \
-		--output table
+		--output table && \
+	IP=$$(aws cloudformation describe-stacks \
+		--stack-name "$${INSTANCE_NAME}" \
+		--region "$${REGION}" \
+		--output json | jq -r '.Stacks[0].Outputs[] | select(.OutputKey=="PublicIP") | .OutputValue') && \
+	FQDN=$$(aws cloudformation describe-stacks \
+		--stack-name "$${INSTANCE_NAME}" \
+		--region "$${REGION}" \
+		--output json | jq -r '.Stacks[0].Outputs[] | select(.OutputKey=="FQDN") | .OutputValue') && \
+	echo "## IP: $${IP}" && \
+	echo "## FQDN: $${FQDN}"
 
 .PHONY: destroy # Destroy the CloudFormation stack
 destroy:
