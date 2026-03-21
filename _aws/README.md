@@ -1,4 +1,4 @@
-# Docker on AWS EC2
+# Docker on AWS EC2 (CloudFormation)
 
 This creates an EC2 instance configured for
 [d.rymcg.tech](https://github.com/EnigmaCurry/d.rymcg.tech) using
