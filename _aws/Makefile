@@ -130,6 +130,8 @@ config:
 		--default "$${DEFAULT_TYPE_LABEL:-$${CURRENT_TYPE}}") && \
 	INSTANCE_TYPE=$$(echo "$${SELECTED}" | awk '{print $$1}') && \
 	${BIN}/dotenv -f $${ENV} set AWS_INSTANCE_TYPE="$${INSTANCE_TYPE}" && \
+	echo "## Note: Volume sizes apply on initial creation. To resize an existing" && \
+	echo "## volume, use 'make resize-volume' instead of changing these values." && \
 	${BIN}/reconfigure_ask $${ENV} AWS_ROOT_VOLUME_SIZE "Enter root volume size in GB" 10 && \
 	${BIN}/reconfigure_ask $${ENV} AWS_DOCKER_VOLUME_SIZE "Enter Docker data volume size in GB" 50 && \
 	${BIN}/reconfigure_ask $${ENV} AWS_SSH_CIDR "Enter CIDR range for SSH access (0.0.0.0/0 = anywhere)" "0.0.0.0/0" && \
@@ -350,6 +352,51 @@ destroy:
 	echo "" && \
 	echo "## Note: EBS data volumes are preserved after stack deletion." && \
 	echo "## Run 'd.rymcg.tech aws cleanup-volumes' to review and delete orphaned volumes."
+
+.PHONY: resize-volume # Resize an EBS volume on a running instance (grow only)
+resize-volume:
+	@INST=$$(${SELECT_INSTANCE}) && \
+	ENV=${env_file} && \
+	INSTANCE_NAME=$$(${BIN}/dotenv -f $${ENV} get AWS_INSTANCE_NAME) && \
+	REGION=$$(${BIN}/dotenv -f $${ENV} get AWS_REGION) && \
+	INSTANCE_ID=$$(aws cloudformation describe-stacks \
+		--stack-name "$${INSTANCE_NAME}" \
+		--region "$${REGION}" \
+		--output json | jq -r '.Stacks[0].Outputs[] | select(.OutputKey=="InstanceId") | .OutputValue') && \
+	readarray -t VOL_INFO < <(aws ec2 describe-volumes \
+		--region "$${REGION}" \
+		--filters "Name=attachment.instance-id,Values=$${INSTANCE_ID}" \
+		--query 'Volumes[*].[VolumeId,Size,Attachments[0].Device]' \
+		--output text | sort -k3) && \
+	if [[ $${#VOL_INFO[@]} -eq 0 || -z "$${VOL_INFO[0]}" ]]; then \
+		echo "## Error: No volumes found for instance $${INSTANCE_ID}." && exit 1; \
+	fi && \
+	VOL_LABELS=() && \
+	for info in "$${VOL_INFO[@]}"; do \
+		VID=$$(echo "$${info}" | awk '{print $$1}') && \
+		VSIZE=$$(echo "$${info}" | awk '{print $$2}') && \
+		VDEV=$$(echo "$${info}" | awk '{print $$3}') && \
+		VOL_LABELS+=("$${VDEV} ($${VID}, $${VSIZE} GB)"); \
+	done && \
+	SELECTED=$$(${BIN}/script-wizard choose "Select volume to resize" "$${VOL_LABELS[@]}") && \
+	VOL_ID=$$(echo "$${SELECTED}" | grep -oP 'vol-[a-z0-9]+') && \
+	CURRENT_SIZE=$$(echo "$${SELECTED}" | grep -oP '[0-9]+ GB' | grep -oP '[0-9]+') && \
+	echo "## Current size: $${CURRENT_SIZE} GB" && \
+	echo "## Note: Volumes can only be grown, not shrunk." && \
+	read -e -p "Enter new size in GB: " -i "$${CURRENT_SIZE}" NEW_SIZE && \
+	if [[ "$${NEW_SIZE}" -le "$${CURRENT_SIZE}" ]]; then \
+		echo "## Error: New size must be larger than $${CURRENT_SIZE} GB." && exit 1; \
+	fi && \
+	echo "## Resizing $${VOL_ID} from $${CURRENT_SIZE} GB to $${NEW_SIZE} GB..." && \
+	aws ec2 modify-volume \
+		--region "$${REGION}" \
+		--volume-id "$${VOL_ID}" \
+		--size "$${NEW_SIZE}" && \
+	echo "## Volume modification initiated." && \
+	echo "## The volume is resizing in the background." && \
+	echo "## To expand the filesystem, SSH in and run:" && \
+	echo "##   sudo resize2fs /dev/\$$(lsblk -no NAME,SERIAL | grep $${VOL_ID//-/} | awk '{print \$$1}')" && \
+	echo "## Or simply: sudo resize2fs /dev/xvda1  (root) or /dev/xvdb (docker)"
 
 .PHONY: cleanup-volumes # Delete orphaned EBS volumes (prompts for each)
 cleanup-volumes:
