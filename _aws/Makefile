@@ -130,10 +130,15 @@ config:
 		--default "$${DEFAULT_TYPE_LABEL:-$${CURRENT_TYPE}}") && \
 	INSTANCE_TYPE=$$(echo "$${SELECTED}" | awk '{print $$1}') && \
 	${BIN}/dotenv -f $${ENV} set AWS_INSTANCE_TYPE="$${INSTANCE_TYPE}" && \
-	echo "## Note: Volume sizes apply on initial creation. To resize an existing" && \
-	echo "## volume, use 'make resize-volume' instead of changing these values." && \
-	${BIN}/reconfigure_ask $${ENV} AWS_ROOT_VOLUME_SIZE "Enter root volume size in GB" 10 && \
-	${BIN}/reconfigure_ask $${ENV} AWS_DOCKER_VOLUME_SIZE "Enter Docker data volume size in GB" 50 && \
+	ROOT_VOL=$$(${BIN}/dotenv -f $${ENV} get AWS_ROOT_VOLUME_SIZE 2>/dev/null || true) && \
+	DOCKER_VOL=$$(${BIN}/dotenv -f $${ENV} get AWS_DOCKER_VOLUME_SIZE 2>/dev/null || true) && \
+	if [[ -z "$${ROOT_VOL}" || "$${ROOT_VOL}" == "10" && -z "$${DOCKER_VOL}" || "$${DOCKER_VOL}" == "50" ]] && \
+	   ! aws cloudformation describe-stacks --stack-name "$$(${BIN}/dotenv -f $${ENV} get AWS_INSTANCE_NAME)" --region "$${REGION}" > /dev/null 2>&1; then \
+		${BIN}/reconfigure_ask $${ENV} AWS_ROOT_VOLUME_SIZE "Enter root volume size in GB" 10 && \
+		${BIN}/reconfigure_ask $${ENV} AWS_DOCKER_VOLUME_SIZE "Enter Docker data volume size in GB" 50; \
+	else \
+		echo "## Volume sizes: root=$${ROOT_VOL}GB, docker=$${DOCKER_VOL}GB (use 'resize-volume' to change)"; \
+	fi && \
 	${BIN}/reconfigure_ask $${ENV} AWS_SSH_CIDR "Enter CIDR range for SSH access (0.0.0.0/0 = anywhere)" "0.0.0.0/0" && \
 	CURRENT_PORTS=$$(${BIN}/dotenv -f $${ENV} get AWS_OPEN_PORTS 2>/dev/null || true) && \
 	PORT_OPTIONS=( \
