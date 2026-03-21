@@ -117,38 +117,12 @@ config:
 		${BIN}/dotenv -f $${ENV} set AWS_KEY_PAIR_NAME="$${KEY_NAME}"; \
 	fi && \
 	CURRENT_TYPE=$$(${BIN}/dotenv -f $${ENV} get AWS_INSTANCE_TYPE 2>/dev/null || echo t2.small) && \
-	echo "## Fetching instance types and pricing..." && \
-	readarray -t TYPE_INFO < <(aws ec2 describe-instance-types \
+	echo "## Pricing: https://aws.amazon.com/ec2/pricing/on-demand/" && \
+	readarray -t INSTANCE_TYPES < <(aws ec2 describe-instance-types \
 		--region "$${REGION}" \
 		--filters "Name=instance-type,Values=t2.*,t3.*,t3a.*,m6i.*,m7i.*,c6i.*,r6i.*" \
 		--query 'InstanceTypes[*].[InstanceType,VCpuInfo.DefaultVCpus,MemoryInfo.SizeInMiB]' \
-		--output text | sort -k3 -n) && \
-	declare -A PRICES && \
-	PRICE_JSON=$$(aws pricing get-products \
-		--service-code AmazonEC2 \
-		--filters \
-			"Type=TERM_MATCH,Field=operatingSystem,Value=Linux" \
-			"Type=TERM_MATCH,Field=preInstalledSw,Value=NA" \
-			"Type=TERM_MATCH,Field=tenancy,Value=Shared" \
-			"Type=TERM_MATCH,Field=capacitystatus,Value=Used" \
-			"Type=TERM_MATCH,Field=regionCode,Value=$${REGION}" \
-		--region us-east-1 \
-		--max-results 100 \
-		--output json 2>/dev/null) && \
-	while IFS=$$'\t' read -r ITYPE PRICE; do \
-		PRICES["$${ITYPE}"]="$${PRICE}"; \
-	done < <(echo "$${PRICE_JSON}" | jq -r '.PriceList[] | fromjson | .product.attributes.instanceType as $$t | .terms.OnDemand[].priceDimensions[] | select(.pricePerUnit.USD != "0.0000000000") | [$$t, (.pricePerUnit.USD | tonumber | . * 10000 | round / 10000 | tostring)] | @tsv' 2>/dev/null | sort -u) && \
-	readarray -t INSTANCE_TYPES < <(for info in "$${TYPE_INFO[@]}"; do \
-		ITYPE=$$(echo "$${info}" | awk '{print $$1}') && \
-		VCPU=$$(echo "$${info}" | awk '{print $$2}') && \
-		RAM=$$(echo "$${info}" | awk '{printf "%.1f", $$3/1024}') && \
-		PRICE="$${PRICES[$${ITYPE}]:-}" && \
-		if [[ -n "$${PRICE}" ]]; then \
-			printf '%s (%s vCPU, %s GB, $$%s/hr)\n' "$${ITYPE}" "$${VCPU}" "$${RAM}" "$${PRICE}"; \
-		else \
-			printf '%s (%s vCPU, %s GB)\n' "$${ITYPE}" "$${VCPU}" "$${RAM}"; \
-		fi; \
-	done) && \
+		--output text | sort -k3 -n | awk '{printf "%s (%d vCPU, %.1f GB)\n", $$1, $$2, $$3/1024}') && \
 	SELECTED=$$(${BIN}/script-wizard choose "Select EC2 instance type" "$${INSTANCE_TYPES[@]}" \
 		--default "$${CURRENT_TYPE}") && \
 	INSTANCE_TYPE=$$(echo "$${SELECTED}" | awk '{print $$1}') && \
