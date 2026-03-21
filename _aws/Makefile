@@ -123,8 +123,11 @@ config:
 		--filters "Name=instance-type,Values=t2.*,t3.*,t3a.*,m6i.*,m7i.*,c6i.*,r6i.*" \
 		--query 'InstanceTypes[*].[InstanceType,VCpuInfo.DefaultVCpus,MemoryInfo.SizeInMiB]' \
 		--output text | sort -k3 -n | awk '{printf "%s (%d vCPU, %.1f GB)\n", $$1, $$2, $$3/1024}') && \
+	DEFAULT_TYPE_LABEL=$$(for t in "$${INSTANCE_TYPES[@]}"; do \
+		[[ "$${t%% *}" == "$${CURRENT_TYPE}" ]] && echo "$$t" && break; \
+	done) && \
 	SELECTED=$$(${BIN}/script-wizard choose "Select EC2 instance type" "$${INSTANCE_TYPES[@]}" \
-		--default "$${CURRENT_TYPE}") && \
+		--default "$${DEFAULT_TYPE_LABEL:-$${CURRENT_TYPE}}") && \
 	INSTANCE_TYPE=$$(echo "$${SELECTED}" | awk '{print $$1}') && \
 	${BIN}/dotenv -f $${ENV} set AWS_INSTANCE_TYPE="$${INSTANCE_TYPE}" && \
 	${BIN}/reconfigure_ask $${ENV} AWS_ROOT_VOLUME_SIZE "Enter root volume size in GB" 10 && \
