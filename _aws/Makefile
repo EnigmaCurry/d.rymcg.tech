@@ -3,7 +3,7 @@ SHELL = /bin/bash
 BIN = ${ROOT_DIR}/_scripts
 
 DOCKER_CONTEXT ?= $(shell docker context ls --format "{{.Current}} {{.Name}}" | grep -oP "^true \K.*")
-instance ?= docker-dev
+instance ?=
 ENV_FILE = .env_${DOCKER_CONTEXT}_$(instance)
 
 .PHONY: all
@@ -13,8 +13,47 @@ all: help
 help:
 	@grep -h '^.PHONY: .* #' Makefile | sed 's/\.PHONY: \(.*\) # \(.*\)/make \1 \t- \2/'
 
-.PHONY: config # Configure AWS CloudFormation parameters (instance=NAME)
+.PHONY: list # List configured instances for the current context
+list:
+	@for f in .env_${DOCKER_CONTEXT}_*; do \
+		[[ -f "$$f" ]] || continue; \
+		INST="$${f#.env_${DOCKER_CONTEXT}_}" && \
+		DOMAIN=$$(${BIN}/dotenv -f "$$f" get AWS_ROOT_DOMAIN 2>/dev/null) && \
+		REGION=$$(${BIN}/dotenv -f "$$f" get AWS_REGION 2>/dev/null) && \
+		echo "$${INST}	$${INST}.$${DOMAIN}	$${REGION}"; \
+	done
+
+.PHONY: check-instance
+check-instance:
+	@if [[ -z "$(instance)" ]]; then \
+		readarray -t INSTANCES < <(for f in .env_${DOCKER_CONTEXT}_*; do \
+			[[ -f "$$f" ]] || continue; \
+			echo "$${f#.env_${DOCKER_CONTEXT}_}"; \
+		done) && \
+		if [[ $${#INSTANCES[@]} -gt 0 && -n "$${INSTANCES[0]}" ]]; then \
+			INST=$$(${BIN}/script-wizard choose "Select an instance" "$${INSTANCES[@]}") && \
+			exec $(MAKE) --no-print-directory $(MAKECMDGOALS) instance="$${INST}"; \
+		else \
+			echo "## No instances configured. Usage: make <target> instance=NAME" && \
+			exit 1; \
+		fi; \
+	fi
+
+.PHONY: config # Configure AWS CloudFormation parameters (instance=NAME required)
 config:
+	@if [[ -z "$(instance)" ]]; then \
+		readarray -t INSTANCES < <(for f in .env_${DOCKER_CONTEXT}_*; do \
+			[[ -f "$$f" ]] || continue; \
+			echo "$${f#.env_${DOCKER_CONTEXT}_}"; \
+		done) && \
+		INSTANCES+=("(create new)") && \
+		INST=$$(${BIN}/script-wizard choose "Select an instance" "$${INSTANCES[@]}") && \
+		if [[ "$${INST}" == "(create new)" ]]; then \
+			read -e -p "Enter new instance name: " INST && \
+			[[ -n "$${INST}" ]] || (echo "## Error: instance name required." && exit 1); \
+		fi && \
+		exec $(MAKE) --no-print-directory config instance="$${INST}"; \
+	fi
 	@test -f ${ENV_FILE} || cp .env-dist ${ENV_FILE}
 	@${BIN}/reconfigure_ask ${ENV_FILE} AWS_INSTANCE_NAME "Enter the instance name (used as DNS subdomain prefix)" $(instance)
 	@${BIN}/reconfigure_ask ${ENV_FILE} AWS_ROOT_DOMAIN "Enter the root domain" example.com
@@ -88,7 +127,7 @@ login:
 		(echo "## Error: Still not authenticated. Check your AWS CLI configuration." && exit 1))
 
 .PHONY: deploy # Deploy the CloudFormation stack
-deploy: check-config login
+deploy: check-instance check-config login
 	@source ${BIN}/funcs.sh && ENV_FILE=${ENV_FILE} && \
 	INSTANCE_NAME=$$(${BIN}/dotenv -f ${ENV_FILE} get AWS_INSTANCE_NAME) && \
 	ROOT_DOMAIN=$$(${BIN}/dotenv -f ${ENV_FILE} get AWS_ROOT_DOMAIN) && \
@@ -123,7 +162,7 @@ deploy: check-config login
 	$(MAKE) --no-print-directory ssh-config
 
 .PHONY: ssh-config # Add/update SSH config entry for the EC2 instance
-ssh-config: check-config
+ssh-config: check-instance check-config
 	@INSTANCE_NAME=$$(${BIN}/dotenv -f ${ENV_FILE} get AWS_INSTANCE_NAME) && \
 	KEY_PAIR_NAME=$$(${BIN}/dotenv -f ${ENV_FILE} get AWS_KEY_PAIR_NAME) && \
 	ROOT_DOMAIN=$$(${BIN}/dotenv -f ${ENV_FILE} get AWS_ROOT_DOMAIN) && \
@@ -146,7 +185,7 @@ ssh-config: check-config
 	echo "## SSH: ssh $${INSTANCE_NAME}"
 
 .PHONY: outputs # Show stack outputs (IP, FQDN, ACME keys, etc.)
-outputs: check-config
+outputs: check-instance check-config
 	@INSTANCE_NAME=$$(${BIN}/dotenv -f ${ENV_FILE} get AWS_INSTANCE_NAME) && \
 	REGION=$$(${BIN}/dotenv -f ${ENV_FILE} get AWS_REGION) && \
 	aws cloudformation describe-stacks \
@@ -156,7 +195,7 @@ outputs: check-config
 		--output table
 
 .PHONY: status # Show stack status
-status: check-config
+status: check-instance check-config
 	@INSTANCE_NAME=$$(${BIN}/dotenv -f ${ENV_FILE} get AWS_INSTANCE_NAME) && \
 	REGION=$$(${BIN}/dotenv -f ${ENV_FILE} get AWS_REGION) && \
 	aws cloudformation describe-stacks \
@@ -166,7 +205,7 @@ status: check-config
 		--output table
 
 .PHONY: destroy # Destroy the CloudFormation stack
-destroy: check-config
+destroy: check-instance check-config
 	@INSTANCE_NAME=$$(${BIN}/dotenv -f ${ENV_FILE} get AWS_INSTANCE_NAME) && \
 	REGION=$$(${BIN}/dotenv -f ${ENV_FILE} get AWS_REGION) && \
 	echo "## WARNING: This will destroy the stack: $${INSTANCE_NAME}" && \
