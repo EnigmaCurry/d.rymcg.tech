@@ -124,7 +124,7 @@ acme-sh-cron-schedule:
 
 .PHONY: acme-sh-register
 acme-sh-register: $(if $(BUILD),build)
-	@make --no-print-directory docker-compose-lifecycle-cmd EXTRA_ARGS="run -T --rm acme-sh register-acmedns"
+	@make --no-print-directory docker-compose-lifecycle-cmd EXTRA_ARGS="run -T --rm acme-sh register-acmedns" < /dev/null
 
 .PHONY: acme-sh-cert
 acme-sh-cert:
