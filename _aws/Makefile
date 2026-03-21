@@ -17,6 +17,12 @@ config:
 	@test -f ${ENV_FILE} || cp .env-dist ${ENV_FILE}
 	@${BIN}/reconfigure_ask ${ENV_FILE} AWS_INSTANCE_NAME "Enter the instance name (used as DNS subdomain prefix)" docker-dev
 	@${BIN}/reconfigure_ask ${ENV_FILE} AWS_ROOT_DOMAIN "Enter the root domain" example.com
+	@readarray -t REGIONS < <(aws ec2 describe-regions \
+		--query 'Regions[*].RegionName' \
+		--output text | tr '\t' '\n' | sort) && \
+	REGION=$$(${BIN}/script-wizard choose "Select the AWS region" "$${REGIONS[@]}" \
+		--default us-east-1) && \
+	${BIN}/dotenv -f ${ENV_FILE} set AWS_REGION="$${REGION}"
 	@CHOICE=$$(${BIN}/script-wizard choose \
 		"SSH key pair for EC2 instance" \
 		"Create a new key pair" \
@@ -51,7 +57,6 @@ config:
 	@${BIN}/reconfigure_ask ${ENV_FILE} AWS_ROOT_VOLUME_SIZE "Enter root volume size in GB" 10
 	@${BIN}/reconfigure_ask ${ENV_FILE} AWS_DOCKER_VOLUME_SIZE "Enter Docker data volume size in GB" 50
 	@${BIN}/reconfigure_ask ${ENV_FILE} AWS_SSH_CIDR "Enter CIDR range for SSH access (0.0.0.0/0 = anywhere)" "0.0.0.0/0"
-	@${BIN}/reconfigure_ask ${ENV_FILE} AWS_REGION "Enter the AWS region" us-east-1
 
 .PHONY: login # Login to AWS CLI (skips if already authenticated)
 login:
