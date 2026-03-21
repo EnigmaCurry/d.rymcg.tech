@@ -116,7 +116,16 @@ config:
 			--default "$${CURRENT_KEY}") && \
 		${BIN}/dotenv -f $${ENV} set AWS_KEY_PAIR_NAME="$${KEY_NAME}"; \
 	fi && \
-	${BIN}/reconfigure_ask $${ENV} AWS_INSTANCE_TYPE "Enter the EC2 instance type" t2.small && \
+	CURRENT_TYPE=$$(${BIN}/dotenv -f $${ENV} get AWS_INSTANCE_TYPE 2>/dev/null || echo t2.small) && \
+	readarray -t INSTANCE_TYPES < <(aws ec2 describe-instance-types \
+		--region "$${REGION}" \
+		--filters "Name=instance-type,Values=t2.*,t3.*,t3a.*,m6i.*,m7i.*,c6i.*,r6i.*" \
+		--query 'InstanceTypes[*].[InstanceType,VCpuInfo.DefaultVCpus,MemoryInfo.SizeInMiB]' \
+		--output text | sort -k3 -n | awk '{printf "%s (%d vCPU, %.1f GB)\n", $$1, $$2, $$3/1024}') && \
+	SELECTED=$$(${BIN}/script-wizard choose "Select EC2 instance type" "$${INSTANCE_TYPES[@]}" \
+		--default "$${CURRENT_TYPE}") && \
+	INSTANCE_TYPE=$$(echo "$${SELECTED}" | awk '{print $$1}') && \
+	${BIN}/dotenv -f $${ENV} set AWS_INSTANCE_TYPE="$${INSTANCE_TYPE}" && \
 	${BIN}/reconfigure_ask $${ENV} AWS_ROOT_VOLUME_SIZE "Enter root volume size in GB" 10 && \
 	${BIN}/reconfigure_ask $${ENV} AWS_DOCKER_VOLUME_SIZE "Enter Docker data volume size in GB" 50 && \
 	${BIN}/reconfigure_ask $${ENV} AWS_SSH_CIDR "Enter CIDR range for SSH access (0.0.0.0/0 = anywhere)" "0.0.0.0/0" && \
