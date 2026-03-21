@@ -499,7 +499,7 @@ __d.rymcg.tech_completions() {
     if [[ ${COMP_CWORD} == 1 ]]; then
         ## Complete the main command:
         ## d.rymcg.tech <TAB> ...
-        COMMANDS="help create cd make list readme info context new-context tmp-context aliases completion install install-docker status ssh audit sshd-config ssh-expose show-ports s3-volume docker-default-address-pool route routes reconfigure dotenv_get daemon-conf fail2ban networks config image-catalog image-build image-archive image-restore export-env restore-env template-env agent-readiness python-deps request request-bot request-controller request-controller-token workstation-usb-image workstation-usb-install workstation-usb-clone workstation-usb-post-install workstation-usb-download-isos workstation-usb-download-docker-packages workstation-usb-test-vm container-build drt deploy-pipeline-template deploy-pipeline-build droplet gumdrop"
+        COMMANDS="help create cd make list readme info context new-context tmp-context aliases completion install install-docker status ssh audit sshd-config ssh-expose show-ports s3-volume docker-default-address-pool route routes reconfigure dotenv_get daemon-conf fail2ban networks config image-catalog image-build image-archive image-restore export-env restore-env template-env agent-readiness aws python-deps request request-bot request-controller request-controller-token workstation-usb-image workstation-usb-install workstation-usb-clone workstation-usb-post-install workstation-usb-download-isos workstation-usb-download-docker-packages workstation-usb-test-vm container-build drt deploy-pipeline-template deploy-pipeline-build droplet gumdrop"
         COMPREPLY=($(compgen -W "${COMMANDS}" "${COMP_WORDS[1]}"))
     elif [[ ${COMP_CWORD} == 2 ]]; then
         ALL_PROJECTS=$(d.rymcg.tech list --raw)
@@ -520,6 +520,9 @@ __d.rymcg.tech_completions() {
                 COMPREPLY=($(compgen -W "${INFO_WORDS}" "${COMP_WORDS[2]}"));;
             script)
                 COMPREPLY=($(compgen -W "$(find ${ROOT_DIR}/_scripts -executable -printf '%P\n' | grep -v d.rymcg.tech)" "${COMP_WORDS[2]}"));;
+            aws)
+                AWS_TARGETS="$(make -C "${ROOT_DIR}/_aws" -qp 2>/dev/null | awk -F':' '/^[a-zA-Z0-9][^$#\/\t=]*:([^=]|$)/ {split($1,A,/ /);for(i in A)print A[i]}' | sort -u)"
+                COMPREPLY=($(compgen -W "${AWS_TARGETS}" "${COMP_WORDS[2]}"));;
         esac
     elif [[ ${COMP_CWORD} == 3 ]]; then
         ## Dispatch completion for the sub-commands second argument:
