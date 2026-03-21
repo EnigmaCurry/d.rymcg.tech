@@ -112,8 +112,8 @@ Parameters:
     Description: Open port 51820 UDP (Wireguard VPN)
   DebianAMI:
     Type: AWS::SSM::Parameter::Value<AWS::EC2::Image::Id>
-    Default: /aws/service/debian/release/12/latest/amd64
-    Description: Debian 12 AMI (auto-resolved via SSM public parameter)
+    Default: /aws/service/debian/release/13/latest/amd64
+    Description: Debian 13 AMI (auto-resolved via SSM public parameter)
 
 Conditions:
   AcmeDns: !Equals [!Ref EnableAcmeDns, "true"]
