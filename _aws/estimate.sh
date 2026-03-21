@@ -39,9 +39,10 @@ EBS_PRICE=$(aws pricing get-products \
     | jq -r '[.PriceList[] | fromjson | .terms.OnDemand[].priceDimensions[] | .pricePerUnit.USD | tonumber] | first')
 
 echo "${EC2_JSON}" | jq -r --argjson ebs "${EBS_PRICE}" --argjson root "${ROOT_VOL}" --argjson docker "${DOCKER_VOL}" '
-def hr: . * 10000 | round / 10000 | tostring | "$" + .;
-def mo: . * 100 | round / 100 | tostring | "$" + . + "/mo";
-def usd: . * 100 | round / 100 | tostring | "$" + .;
+def fmt2: . * 100 | round / 100 | tostring | split(".") | if length == 1 then . + ["00"] else . end | .[1] |= (. + "00")[:2] | join(".");
+def hr: fmt2 | "$" + .;
+def mo: fmt2 | "$" + . + "/mo";
+def usd: fmt2 | "$" + .;
 def pad($n): . + (" " * ($n - length));
 {
     onDemand: ([.PriceList[] | fromjson | .terms.OnDemand[].priceDimensions[] | select(.pricePerUnit.USD != "0.0000000000") | .pricePerUnit.USD | tonumber] | first),
@@ -72,9 +73,9 @@ def pad($n): . + (" " * ($n - length));
     ),
     "",
     "EBS Storage (gp3 @ \($ebs | hr)/GB-mo)",
-    "  Root:   \($root) GB = \($ebs * $root | mo)",
-    "  Docker: \($docker) GB = \($ebs * $docker | mo)",
-    "  Total EBS: \($ebsMonthly | mo)",
+    "  Root:      \($root | tostring | pad(4)) GB   \($ebs * $root | mo)",
+    "  Docker:    \($docker | tostring | pad(4)) GB   \($ebs * $docker | mo)",
+    "  Total:     \($root + $docker | tostring | pad(4)) GB   \($ebsMonthly | mo)",
     "",
     "Estimated Monthly Total (On-Demand + EBS): \(($odMonthly + $ebsMonthly) | mo)"
 ' | sed 's/^/## /'
