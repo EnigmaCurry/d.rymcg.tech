@@ -38,6 +38,10 @@ config:
 	REGION=$$(${BIN}/script-wizard choose "Select the AWS region" "$${REGIONS[@]}" \
 		--default "$${CURRENT_REGION}") && \
 	${BIN}/dotenv -f $${ENV} set AWS_REGION="$${REGION}" && \
+	CURRENT_DEB=$$(${BIN}/dotenv -f $${ENV} get AWS_DEBIAN_VERSION 2>/dev/null || echo 13) && \
+	DEB_VER=$$(${BIN}/script-wizard choose "Select Debian version" "13" "12" \
+		--default "$${CURRENT_DEB}") && \
+	${BIN}/dotenv -f $${ENV} set AWS_DEBIAN_VERSION="$${DEB_VER}" && \
 	CURRENT_KEY=$$(${BIN}/dotenv -f $${ENV} get AWS_KEY_PAIR_NAME 2>/dev/null) && \
 	REGION=$$(${BIN}/dotenv -f $${ENV} get AWS_REGION || echo us-east-1) && \
 	if [[ -n "$${CURRENT_KEY}" ]]; then \
@@ -208,6 +212,7 @@ deploy: login
 	SSH_CIDR=$$(${BIN}/dotenv -f $${ENV} get AWS_SSH_CIDR) && \
 	REGION=$$(${BIN}/dotenv -f $${ENV} get AWS_REGION) && \
 	OPEN_PORTS=$$(${BIN}/dotenv -f $${ENV} get AWS_OPEN_PORTS 2>/dev/null || echo "") && \
+	DEB_VER=$$(${BIN}/dotenv -f $${ENV} get AWS_DEBIAN_VERSION 2>/dev/null || echo 13) && \
 	ZONE_ID=$$(aws route53 list-hosted-zones-by-name \
 		--dns-name "$${ROOT_DOMAIN}" \
 		--query 'HostedZones[0].Id' \
@@ -250,6 +255,7 @@ deploy: login
 			DockerVolumeSize="$${DOCKER_VOLUME_SIZE}" \
 			SSHCidr="$${SSH_CIDR}" \
 			Region="$${REGION}" \
+			DebianAMI="/aws/service/debian/release/$${DEB_VER}/latest/amd64" \
 			$${PORT_PARAMS} && \
 	$(MAKE) --no-print-directory ssh-config instance="$${INST}"
 
