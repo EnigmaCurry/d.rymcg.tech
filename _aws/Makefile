@@ -64,9 +64,23 @@ config:
 		echo "## Private key: $${KEY_FILE}" && \
 		${BIN}/dotenv -f $${ENV} set AWS_KEY_PAIR_NAME="$${KEY_NAME}"; \
 	elif [[ "$${CHOICE}" == "Import from ssh-agent" ]]; then \
-		readarray -t AGENT_KEYS < <(ssh-add -L 2>/dev/null) && \
-		if [[ $${#AGENT_KEYS[@]} -eq 0 || -z "$${AGENT_KEYS[0]}" ]]; then \
-			echo "## Error: No keys found in ssh-agent. Run 'ssh-add' first." && exit 1; \
+		readarray -t ALL_AGENT_KEYS < <(ssh-add -L 2>/dev/null) && \
+		AGENT_KEYS=() && \
+		SKIPPED=0 && \
+		for key in "$${ALL_AGENT_KEYS[@]}"; do \
+			KEY_TYPE=$$(echo "$${key}" | awk '{print $$1}') && \
+			if [[ "$${KEY_TYPE}" == sk-* ]]; then \
+				SKIPPED=$$((SKIPPED + 1)); \
+			else \
+				AGENT_KEYS+=("$${key}"); \
+			fi; \
+		done && \
+		if [[ $${SKIPPED} -gt 0 ]]; then \
+			echo "## Note: $${SKIPPED} FIDO2/SK key(s) skipped (not supported by EC2)."; \
+		fi && \
+		if [[ $${#AGENT_KEYS[@]} -eq 0 ]]; then \
+			echo "## Error: No compatible keys found in ssh-agent (SK keys not supported by EC2)." && \
+			echo "## Use 'Create a new key pair' instead." && exit 1; \
 		fi && \
 		AGENT_LABELS=() && \
 		for key in "$${AGENT_KEYS[@]}"; do \
