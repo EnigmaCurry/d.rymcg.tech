@@ -72,6 +72,12 @@ def pad($n): . + (" " * ($n - length));
         "  \(.term | pad(6))  \(.option | pad(16))  \(.hourly | hr | pad(11))  \(.upfront | usd | pad(11))  \($effMonthly | mo)"
     ),
     "",
+    "  Reserved Instances are a billing discount, not an infrastructure change.",
+    "  Your instance runs the same either way — you just pay less.",
+    "  Purchase separately via: EC2 Console > Reserved Instances > Purchase.",
+    "  Start on-demand first, then buy an RI once your workload is stable.",
+    "  Alternatively, consider Savings Plans for more flexibility across instance types.",
+    "",
     "EBS Storage (gp3 @ \($ebs | hr)/GB-mo)",
     "  Root:      \($root | tostring | pad(4)) GB   \($ebs * $root | mo)",
     "  Docker:    \($docker | tostring | pad(4)) GB   \($ebs * $docker | mo)",
