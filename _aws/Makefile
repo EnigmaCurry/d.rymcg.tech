@@ -4,7 +4,8 @@ BIN = ${ROOT_DIR}/_scripts
 
 DOCKER_CONTEXT ?= $(shell docker context ls --format "{{.Current}} {{.Name}}" | grep -oP "^true \K.*")
 instance ?=
-ENV_FILE = .env_${DOCKER_CONTEXT}_$(instance)
+SELECT_INSTANCE = ./select-instance.sh "$(instance)" "${DOCKER_CONTEXT}" "${BIN}"
+env_file = .env_${DOCKER_CONTEXT}_$${INST}
 
 .PHONY: all
 all: help
@@ -23,49 +24,21 @@ list:
 		echo "$${INST}	$${INST}.$${DOMAIN}	$${REGION}"; \
 	done
 
-.PHONY: check-instance
-check-instance:
-	@if [[ -n "$(instance)" ]]; then exit 0; fi && \
-	readarray -t INSTANCES < <(for f in .env_${DOCKER_CONTEXT}_*; do \
-		[[ -f "$$f" ]] || continue; \
-		INST="$${f#.env_${DOCKER_CONTEXT}_}"; \
-		[[ -n "$${INST}" ]] && echo "$${INST}"; \
-	done) && \
-	if [[ $${#INSTANCES[@]} -gt 0 && -n "$${INSTANCES[0]}" ]]; then \
-		INST=$$(${BIN}/script-wizard choose "Select an instance" "$${INSTANCES[@]}") && \
-		exec $(MAKE) --no-print-directory $(MAKECMDGOALS) instance="$${INST}"; \
-	else \
-		echo "## No instances configured. Run 'make config instance=NAME' first." && \
-		exit 1; \
-	fi
-
-.PHONY: config # Configure AWS CloudFormation parameters (instance=NAME required)
+.PHONY: config # Configure AWS CloudFormation parameters (instance=NAME)
 config:
-	@if [[ -z "$(instance)" ]]; then \
-		readarray -t INSTANCES < <(for f in .env_${DOCKER_CONTEXT}_*; do \
-			[[ -f "$$f" ]] || continue; \
-			INST="$${f#.env_${DOCKER_CONTEXT}_}"; \
-			[[ -n "$${INST}" ]] && echo "$${INST}"; \
-		done) && \
-		INSTANCES+=("(create new)") && \
-		INST=$$(${BIN}/script-wizard choose "Select an instance" "$${INSTANCES[@]}") && \
-		if [[ "$${INST}" == "(create new)" ]]; then \
-			read -e -p "Enter new instance name: " INST && \
-			[[ -n "$${INST}" ]] || (echo "## Error: instance name required." && exit 1); \
-		fi && \
-		exec $(MAKE) --no-print-directory config instance="$${INST}"; \
-	fi && \
-	test -f ${ENV_FILE} || cp .env-dist ${ENV_FILE} && \
-	${BIN}/dotenv -f ${ENV_FILE} set AWS_INSTANCE_NAME="$(instance)" && \
-	${BIN}/reconfigure_ask ${ENV_FILE} AWS_ROOT_DOMAIN "Enter the root domain" example.com && \
-	CURRENT_REGION=$$(${BIN}/dotenv -f ${ENV_FILE} get AWS_REGION 2>/dev/null || echo us-east-1) && \
+	@INST=$$(${SELECT_INSTANCE} --create) && \
+	ENV=${env_file} && \
+	test -f $${ENV} || cp .env-dist $${ENV} && \
+	${BIN}/dotenv -f $${ENV} set AWS_INSTANCE_NAME="$${INST}" && \
+	${BIN}/reconfigure_ask $${ENV} AWS_ROOT_DOMAIN "Enter the root domain" example.com && \
+	CURRENT_REGION=$$(${BIN}/dotenv -f $${ENV} get AWS_REGION 2>/dev/null || echo us-east-1) && \
 	readarray -t REGIONS < <(aws ec2 describe-regions \
 		--query 'Regions[*].RegionName' \
 		--output text | tr '\t' '\n' | sort) && \
 	REGION=$$(${BIN}/script-wizard choose "Select the AWS region" "$${REGIONS[@]}" \
 		--default "$${CURRENT_REGION}") && \
-	${BIN}/dotenv -f ${ENV_FILE} set AWS_REGION="$${REGION}" && \
-	CURRENT_KEY=$$(${BIN}/dotenv -f ${ENV_FILE} get AWS_KEY_PAIR_NAME 2>/dev/null) && \
+	${BIN}/dotenv -f $${ENV} set AWS_REGION="$${REGION}" && \
+	CURRENT_KEY=$$(${BIN}/dotenv -f $${ENV} get AWS_KEY_PAIR_NAME 2>/dev/null) && \
 	if [[ -n "$${CURRENT_KEY}" ]]; then \
 		DEFAULT_KEY_CHOICE="Use an existing key pair"; \
 	else \
@@ -77,20 +50,20 @@ config:
 		"Use an existing key pair" \
 		--default "$${DEFAULT_KEY_CHOICE}") && \
 	if [[ "$${CHOICE}" == "Create a new key pair" ]]; then \
-		INSTANCE_NAME=$$(${BIN}/dotenv -f ${ENV_FILE} get AWS_INSTANCE_NAME) && \
+		INSTANCE_NAME=$$(${BIN}/dotenv -f $${ENV} get AWS_INSTANCE_NAME) && \
 		KEY_NAME="$${INSTANCE_NAME}-$$(openssl rand -hex 4)" && \
 		KEY_FILE="$$HOME/.ssh/$${KEY_NAME}" && \
 		ssh-keygen -t ed25519 -f "$${KEY_FILE}" -N "" -C "$${KEY_NAME}" && \
-		REGION=$$(${BIN}/dotenv -f ${ENV_FILE} get AWS_REGION || echo us-east-1) && \
+		REGION=$$(${BIN}/dotenv -f $${ENV} get AWS_REGION || echo us-east-1) && \
 		aws ec2 import-key-pair \
 			--key-name "$${KEY_NAME}" \
 			--public-key-material fileb://$${KEY_FILE}.pub \
 			--region "$${REGION}" && \
 		echo "## Key pair created: $${KEY_NAME}" && \
 		echo "## Private key: $${KEY_FILE}" && \
-		${BIN}/dotenv -f ${ENV_FILE} set AWS_KEY_PAIR_NAME="$${KEY_NAME}"; \
+		${BIN}/dotenv -f $${ENV} set AWS_KEY_PAIR_NAME="$${KEY_NAME}"; \
 	else \
-		REGION=$$(${BIN}/dotenv -f ${ENV_FILE} get AWS_REGION || echo us-east-1) && \
+		REGION=$$(${BIN}/dotenv -f $${ENV} get AWS_REGION || echo us-east-1) && \
 		readarray -t KEYS < <(aws ec2 describe-key-pairs \
 			--region "$${REGION}" \
 			--query 'KeyPairs[*].KeyName' \
@@ -100,12 +73,12 @@ config:
 		fi && \
 		KEY_NAME=$$(${BIN}/script-wizard choose "Select a key pair" "$${KEYS[@]}" \
 			--default "$${CURRENT_KEY}") && \
-		${BIN}/dotenv -f ${ENV_FILE} set AWS_KEY_PAIR_NAME="$${KEY_NAME}"; \
+		${BIN}/dotenv -f $${ENV} set AWS_KEY_PAIR_NAME="$${KEY_NAME}"; \
 	fi && \
-	${BIN}/reconfigure_ask ${ENV_FILE} AWS_INSTANCE_TYPE "Enter the EC2 instance type" t2.small && \
-	${BIN}/reconfigure_ask ${ENV_FILE} AWS_ROOT_VOLUME_SIZE "Enter root volume size in GB" 10 && \
-	${BIN}/reconfigure_ask ${ENV_FILE} AWS_DOCKER_VOLUME_SIZE "Enter Docker data volume size in GB" 50 && \
-	${BIN}/reconfigure_ask ${ENV_FILE} AWS_SSH_CIDR "Enter CIDR range for SSH access (0.0.0.0/0 = anywhere)" "0.0.0.0/0"
+	${BIN}/reconfigure_ask $${ENV} AWS_INSTANCE_TYPE "Enter the EC2 instance type" t2.small && \
+	${BIN}/reconfigure_ask $${ENV} AWS_ROOT_VOLUME_SIZE "Enter root volume size in GB" 10 && \
+	${BIN}/reconfigure_ask $${ENV} AWS_DOCKER_VOLUME_SIZE "Enter Docker data volume size in GB" 50 && \
+	${BIN}/reconfigure_ask $${ENV} AWS_SSH_CIDR "Enter CIDR range for SSH access (0.0.0.0/0 = anywhere)" "0.0.0.0/0"
 
 .PHONY: login # Login to AWS CLI (skips if already authenticated)
 login:
@@ -128,16 +101,18 @@ login:
 		(echo "## Error: Still not authenticated. Check your AWS CLI configuration." && exit 1))
 
 .PHONY: deploy # Deploy the CloudFormation stack
-deploy: check-instance check-config login
-	@source ${BIN}/funcs.sh && ENV_FILE=${ENV_FILE} && \
-	INSTANCE_NAME=$$(${BIN}/dotenv -f ${ENV_FILE} get AWS_INSTANCE_NAME) && \
-	ROOT_DOMAIN=$$(${BIN}/dotenv -f ${ENV_FILE} get AWS_ROOT_DOMAIN) && \
-	KEY_PAIR_NAME=$$(${BIN}/dotenv -f ${ENV_FILE} get AWS_KEY_PAIR_NAME) && \
-	INSTANCE_TYPE=$$(${BIN}/dotenv -f ${ENV_FILE} get AWS_INSTANCE_TYPE) && \
-	ROOT_VOLUME_SIZE=$$(${BIN}/dotenv -f ${ENV_FILE} get AWS_ROOT_VOLUME_SIZE) && \
-	DOCKER_VOLUME_SIZE=$$(${BIN}/dotenv -f ${ENV_FILE} get AWS_DOCKER_VOLUME_SIZE) && \
-	SSH_CIDR=$$(${BIN}/dotenv -f ${ENV_FILE} get AWS_SSH_CIDR) && \
-	REGION=$$(${BIN}/dotenv -f ${ENV_FILE} get AWS_REGION) && \
+deploy: login
+	@INST=$$(${SELECT_INSTANCE}) && \
+	ENV=${env_file} && \
+	test -f $${ENV} || (echo "## Error: $${ENV} not found. Run 'make config' first." && exit 1) && \
+	INSTANCE_NAME=$$(${BIN}/dotenv -f $${ENV} get AWS_INSTANCE_NAME) && \
+	ROOT_DOMAIN=$$(${BIN}/dotenv -f $${ENV} get AWS_ROOT_DOMAIN) && \
+	KEY_PAIR_NAME=$$(${BIN}/dotenv -f $${ENV} get AWS_KEY_PAIR_NAME) && \
+	INSTANCE_TYPE=$$(${BIN}/dotenv -f $${ENV} get AWS_INSTANCE_TYPE) && \
+	ROOT_VOLUME_SIZE=$$(${BIN}/dotenv -f $${ENV} get AWS_ROOT_VOLUME_SIZE) && \
+	DOCKER_VOLUME_SIZE=$$(${BIN}/dotenv -f $${ENV} get AWS_DOCKER_VOLUME_SIZE) && \
+	SSH_CIDR=$$(${BIN}/dotenv -f $${ENV} get AWS_SSH_CIDR) && \
+	REGION=$$(${BIN}/dotenv -f $${ENV} get AWS_REGION) && \
 	ZONE_ID=$$(aws route53 list-hosted-zones-by-name \
 		--dns-name "$${ROOT_DOMAIN}" \
 		--query 'HostedZones[0].Id' \
@@ -160,14 +135,15 @@ deploy: check-instance check-config login
 			DockerVolumeSize="$${DOCKER_VOLUME_SIZE}" \
 			SSHCidr="$${SSH_CIDR}" \
 			Region="$${REGION}" && \
-	$(MAKE) --no-print-directory ssh-config
+	$(MAKE) --no-print-directory ssh-config instance="$${INST}"
 
 .PHONY: ssh-config # Add/update SSH config entry for the EC2 instance
-ssh-config: check-instance check-config
-	@INSTANCE_NAME=$$(${BIN}/dotenv -f ${ENV_FILE} get AWS_INSTANCE_NAME) && \
-	KEY_PAIR_NAME=$$(${BIN}/dotenv -f ${ENV_FILE} get AWS_KEY_PAIR_NAME) && \
-	ROOT_DOMAIN=$$(${BIN}/dotenv -f ${ENV_FILE} get AWS_ROOT_DOMAIN) && \
-	REGION=$$(${BIN}/dotenv -f ${ENV_FILE} get AWS_REGION) && \
+ssh-config:
+	@INST=$$(${SELECT_INSTANCE}) && \
+	ENV=${env_file} && \
+	INSTANCE_NAME=$$(${BIN}/dotenv -f $${ENV} get AWS_INSTANCE_NAME) && \
+	KEY_PAIR_NAME=$$(${BIN}/dotenv -f $${ENV} get AWS_KEY_PAIR_NAME) && \
+	ROOT_DOMAIN=$$(${BIN}/dotenv -f $${ENV} get AWS_ROOT_DOMAIN) && \
 	FQDN="$${INSTANCE_NAME}.$${ROOT_DOMAIN}" && \
 	KEY_FILE="$$HOME/.ssh/$${KEY_PAIR_NAME}" && \
 	SSH_CONFIG="$$HOME/.ssh/config" && \
@@ -186,9 +162,11 @@ ssh-config: check-instance check-config
 	echo "## SSH: ssh $${INSTANCE_NAME}"
 
 .PHONY: outputs # Show stack outputs (IP, FQDN, ACME keys, etc.)
-outputs: check-instance check-config
-	@INSTANCE_NAME=$$(${BIN}/dotenv -f ${ENV_FILE} get AWS_INSTANCE_NAME) && \
-	REGION=$$(${BIN}/dotenv -f ${ENV_FILE} get AWS_REGION) && \
+outputs:
+	@INST=$$(${SELECT_INSTANCE}) && \
+	ENV=${env_file} && \
+	INSTANCE_NAME=$$(${BIN}/dotenv -f $${ENV} get AWS_INSTANCE_NAME) && \
+	REGION=$$(${BIN}/dotenv -f $${ENV} get AWS_REGION) && \
 	aws cloudformation describe-stacks \
 		--stack-name "$${INSTANCE_NAME}" \
 		--region "$${REGION}" \
@@ -196,9 +174,11 @@ outputs: check-instance check-config
 		--output table
 
 .PHONY: status # Show stack status
-status: check-instance check-config
-	@INSTANCE_NAME=$$(${BIN}/dotenv -f ${ENV_FILE} get AWS_INSTANCE_NAME) && \
-	REGION=$$(${BIN}/dotenv -f ${ENV_FILE} get AWS_REGION) && \
+status:
+	@INST=$$(${SELECT_INSTANCE}) && \
+	ENV=${env_file} && \
+	INSTANCE_NAME=$$(${BIN}/dotenv -f $${ENV} get AWS_INSTANCE_NAME) && \
+	REGION=$$(${BIN}/dotenv -f $${ENV} get AWS_REGION) && \
 	aws cloudformation describe-stacks \
 		--stack-name "$${INSTANCE_NAME}" \
 		--region "$${REGION}" \
@@ -206,9 +186,11 @@ status: check-instance check-config
 		--output table
 
 .PHONY: destroy # Destroy the CloudFormation stack
-destroy: check-instance check-config
-	@INSTANCE_NAME=$$(${BIN}/dotenv -f ${ENV_FILE} get AWS_INSTANCE_NAME) && \
-	REGION=$$(${BIN}/dotenv -f ${ENV_FILE} get AWS_REGION) && \
+destroy:
+	@INST=$$(${SELECT_INSTANCE}) && \
+	ENV=${env_file} && \
+	INSTANCE_NAME=$$(${BIN}/dotenv -f $${ENV} get AWS_INSTANCE_NAME) && \
+	REGION=$$(${BIN}/dotenv -f $${ENV} get AWS_REGION) && \
 	echo "## WARNING: This will destroy the stack: $${INSTANCE_NAME}" && \
 	read -p "Are you sure? (y/N): " confirm && \
 	[[ "$${confirm}" =~ ^[Yy] ]] && \
@@ -223,7 +205,9 @@ destroy: check-instance check-config
 
 .PHONY: cleanup-volumes # Delete orphaned EBS volumes (prompts for each)
 cleanup-volumes:
-	@REGION=$$(${BIN}/dotenv -f ${ENV_FILE} get AWS_REGION 2>/dev/null || echo us-east-1) && \
+	@INST=$$(${SELECT_INSTANCE}) && \
+	ENV=${env_file} && \
+	REGION=$$(${BIN}/dotenv -f $${ENV} get AWS_REGION 2>/dev/null || echo us-east-1) && \
 	readarray -t VOLS < <(aws ec2 describe-volumes \
 		--region "$${REGION}" \
 		--filters Name=status,Values=available \
@@ -247,9 +231,3 @@ cleanup-volumes:
 			fi; \
 		done; \
 	fi
-
-.PHONY: check-config
-check-config:
-	@test -f ${ENV_FILE} || (echo "## Error: ${ENV_FILE} not found. Run 'make config' first." && exit 1)
-	@KEY=$$(${BIN}/dotenv -f ${ENV_FILE} get AWS_KEY_PAIR_NAME) && \
-	[[ -n "$${KEY}" ]] || (echo "## Error: AWS_KEY_PAIR_NAME is not set. Run 'make config' first." && exit 1)
