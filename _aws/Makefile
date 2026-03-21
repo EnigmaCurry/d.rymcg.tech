@@ -18,17 +18,24 @@ config:
 	@test -f ${ENV_FILE} || cp .env-dist ${ENV_FILE}
 	@${BIN}/reconfigure_ask ${ENV_FILE} AWS_INSTANCE_NAME "Enter the instance name (used as DNS subdomain prefix)" $(instance)
 	@${BIN}/reconfigure_ask ${ENV_FILE} AWS_ROOT_DOMAIN "Enter the root domain" example.com
-	@readarray -t REGIONS < <(aws ec2 describe-regions \
+	@CURRENT_REGION=$$(${BIN}/dotenv -f ${ENV_FILE} get AWS_REGION 2>/dev/null || echo us-east-1) && \
+	readarray -t REGIONS < <(aws ec2 describe-regions \
 		--query 'Regions[*].RegionName' \
 		--output text | tr '\t' '\n' | sort) && \
 	REGION=$$(${BIN}/script-wizard choose "Select the AWS region" "$${REGIONS[@]}" \
-		--default us-east-1) && \
+		--default "$${CURRENT_REGION}") && \
 	${BIN}/dotenv -f ${ENV_FILE} set AWS_REGION="$${REGION}"
-	@CHOICE=$$(${BIN}/script-wizard choose \
+	@CURRENT_KEY=$$(${BIN}/dotenv -f ${ENV_FILE} get AWS_KEY_PAIR_NAME 2>/dev/null) && \
+	if [[ -n "$${CURRENT_KEY}" ]]; then \
+		DEFAULT_KEY_CHOICE="Use an existing key pair"; \
+	else \
+		DEFAULT_KEY_CHOICE="Create a new key pair"; \
+	fi && \
+	CHOICE=$$(${BIN}/script-wizard choose \
 		"SSH key pair for EC2 instance" \
 		"Create a new key pair" \
 		"Use an existing key pair" \
-		--default "Create a new key pair") && \
+		--default "$${DEFAULT_KEY_CHOICE}") && \
 	if [[ "$${CHOICE}" == "Create a new key pair" ]]; then \
 		INSTANCE_NAME=$$(${BIN}/dotenv -f ${ENV_FILE} get AWS_INSTANCE_NAME) && \
 		KEY_NAME="$${INSTANCE_NAME}-$$(openssl rand -hex 4)" && \
@@ -51,7 +58,8 @@ config:
 		if [[ $${#KEYS[@]} -eq 0 ]]; then \
 			echo "## Error: No key pairs found in region $${REGION}." && exit 1; \
 		fi && \
-		KEY_NAME=$$(${BIN}/script-wizard choose "Select a key pair" "$${KEYS[@]}") && \
+		KEY_NAME=$$(${BIN}/script-wizard choose "Select a key pair" "$${KEYS[@]}" \
+			--default "$${CURRENT_KEY}") && \
 		${BIN}/dotenv -f ${ENV_FILE} set AWS_KEY_PAIR_NAME="$${KEY_NAME}"; \
 	fi
 	@${BIN}/reconfigure_ask ${ENV_FILE} AWS_INSTANCE_TYPE "Enter the EC2 instance type" t2.small
