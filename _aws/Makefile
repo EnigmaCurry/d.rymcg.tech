@@ -222,11 +222,10 @@ firewall:
 	ENV=${env_file} && \
 	INSTANCE_NAME=$$(${BIN}/dotenv -f $${ENV} get AWS_INSTANCE_NAME) && \
 	REGION=$$(${BIN}/dotenv -f $${ENV} get AWS_REGION) && \
-	SG_ID=$$(aws cloudformation describe-stack-resource \
+	SG_ID=$$(aws ec2 describe-security-groups \
 		--region "$${REGION}" \
-		--stack-name "$${INSTANCE_NAME}" \
-		--logical-resource-id SecurityGroup \
-		--query 'StackResourceDetail.PhysicalResourceId' \
+		--filters "Name=tag:aws:cloudformation:stack-name,Values=$${INSTANCE_NAME}" \
+		--query 'SecurityGroups[0].GroupId' \
 		--output text) && \
 	echo "## Firewall rules for $${INSTANCE_NAME} ($${SG_ID}):" && \
 	aws ec2 describe-security-group-rules \
