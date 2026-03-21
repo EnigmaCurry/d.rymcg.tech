@@ -28,7 +28,8 @@ check-instance:
 	@if [[ -z "$(instance)" ]]; then \
 		readarray -t INSTANCES < <(for f in .env_${DOCKER_CONTEXT}_*; do \
 			[[ -f "$$f" ]] || continue; \
-			echo "$${f#.env_${DOCKER_CONTEXT}_}"; \
+			INST="$${f#.env_${DOCKER_CONTEXT}_}"; \
+			[[ -n "$${INST}" ]] && echo "$${INST}"; \
 		done) && \
 		if [[ $${#INSTANCES[@]} -gt 0 && -n "$${INSTANCES[0]}" ]]; then \
 			INST=$$(${BIN}/script-wizard choose "Select an instance" "$${INSTANCES[@]}") && \
@@ -44,7 +45,8 @@ config:
 	@if [[ -z "$(instance)" ]]; then \
 		readarray -t INSTANCES < <(for f in .env_${DOCKER_CONTEXT}_*; do \
 			[[ -f "$$f" ]] || continue; \
-			echo "$${f#.env_${DOCKER_CONTEXT}_}"; \
+			INST="$${f#.env_${DOCKER_CONTEXT}_}"; \
+			[[ -n "$${INST}" ]] && echo "$${INST}"; \
 		done) && \
 		INSTANCES+=("(create new)") && \
 		INST=$$(${BIN}/script-wizard choose "Select an instance" "$${INSTANCES[@]}") && \
