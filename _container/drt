@@ -2115,11 +2115,14 @@ done
 
 if [[ "${ACTION}" != "extract" ]]; then
     cat >&2 <<'WARN'
+
 ## WARNING: drt is NOT a runtime security device!
-## Only run this script on a secure, trusted device. Your secrets are only encrypted
-## at rest. During runtime, all secrets are decrypted inside an ephemeral
-## container filesystem, and any process in your user account (or root) can
-## copy files in or out of the container via `podman cp`.
+## Only run this script on a secure, trusted device.
+## Your secrets are only encrypted at rest!
+## During runtime, all secrets are decrypted inside an ephemeral container
+## filesystem, and any process in your user account (or root) can copy files
+## in or out of the container via `podman cp`.
+
 WARN
 fi
 
