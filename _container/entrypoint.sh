@@ -612,6 +612,29 @@ else
 fi
 
 ## Step 8: Create root .env and distribute env vars via restore-env
+## Detect bind mount at ROOT_DIR — secrets would persist on host after container exit
+if mountpoint -q "${ROOT_DIR}" 2>/dev/null; then
+    DRT_BIND_MOUNT=true
+    echo "" >&2
+    echo "WARNING: ${ROOT_DIR} is a bind mount!" >&2
+    echo "Decrypted secrets (.env_* files) will persist on the host filesystem" >&2
+    echo "after this container exits unless cleaned up." >&2
+    echo "" >&2
+    if [[ -t 0 ]]; then
+        printf "Continue decrypting secrets to this location? [y/N] " >&2
+        read -r _bind_mount_answer </dev/tty
+        if [[ "${_bind_mount_answer}" != [yY]* ]]; then
+            echo "Aborted." >&2
+            exit 1
+        fi
+    else
+        echo "Non-interactive session: aborting for safety." >&2
+        echo "Remove the bind mount at ${ROOT_DIR} or run interactively to confirm." >&2
+        exit 1
+    fi
+else
+    DRT_BIND_MOUNT=false
+fi
 log "## Step 8: Running restore-env"
 cd "${ROOT_DIR}"
 cp -n .env-dist ".env_${DOCKER_CONTEXT}"
