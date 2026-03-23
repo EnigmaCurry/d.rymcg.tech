@@ -20,7 +20,13 @@ if [[ -n "${instance}" ]]; then
 else
     CONTEXT_INSTANCE="${DOCKER_CONTEXT}"
 fi
-OVERRIDE="docker-compose.override_${CONTEXT_INSTANCE}.yaml"
+if [[ -n "${DRT_ENV_DIR:-}" ]]; then
+    _override_dir="${DRT_ENV_DIR}/$(basename "${PWD}")"
+    mkdir -p "${_override_dir}"
+    OVERRIDE="${_override_dir}/docker-compose.override_${CONTEXT_INSTANCE}.yaml"
+else
+    OVERRIDE="docker-compose.override_${CONTEXT_INSTANCE}.yaml"
+fi
 
 YTT_DATA_ARGS=("--data-value" "context=${DOCKER_CONTEXT}")
 

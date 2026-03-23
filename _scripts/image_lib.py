@@ -124,7 +124,8 @@ def resolve_compose_images(project_dir: Path, env_file: Path) -> dict[str, str]:
     ]
     context = env_file.stem.replace(".env_", "").rsplit("_", 1)[0] if "_" in env_file.stem else ""
     if context:
-        override = project_dir / f"docker-compose.override_{context}_default.yaml"
+        env_dir = Path(os.environ["DRT_ENV_DIR"]) / project_dir.name if os.environ.get("DRT_ENV_DIR") else project_dir
+        override = env_dir / f"docker-compose.override_{context}_default.yaml"
         if override.exists():
             cmd = [
                 "docker", "compose",
