@@ -22,7 +22,7 @@ endif
 
 .PHONY: help # Show available targets
 help:
-	@grep -h '^.PHONY: .* #' Makefile | sed 's/\.PHONY: \(.*\) # \(.*\)/make \1 \t- \2/'
+	@grep -h '^.PHONY: .* #' Makefile | sed 's/\.PHONY: \(.*\) # \(.*\)/make \1\t\2/' | column -t -s$$'\t'
 
 .PHONY: list # List configured instances for the current context
 list:
