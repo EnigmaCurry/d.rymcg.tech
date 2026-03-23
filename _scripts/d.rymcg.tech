@@ -1150,7 +1150,7 @@ __restore_env() {
     _b64_decode() {
         # Check for gzip magic bytes (1f 8b)
         local _magic
-        _magic=$(printf '%s' "$1" | base64 -d 2>/dev/null | head -c2 | od -A n -t x1 | tr -d ' ')
+        _magic=$(printf '%s' "$1" | base64 -d 2>/dev/null | head -c2 | od -A n -t x1 | tr -d ' ' || true)
         if [[ "${_magic}" == "1f8b" ]]; then
             printf '%s' "$1" | base64 -d | gunzip
         else
