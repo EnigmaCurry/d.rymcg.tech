@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 ## drt — d.rymcg.tech workstation bootstrap tool
 ## Combines init + run into a single script with no repo dependency.
-## Host dependencies: bash, podman (or docker), openssh, coreutils, grep, gawk
+## Host dependencies: bash, podman, openssh, coreutils, grep, gawk
 ## Setup alias:
 ##   alias drt='bash <(podman run --rm --pull=never --net=none @@DRT_IMAGE@@ drt)'
 set -euo pipefail
@@ -27,7 +27,6 @@ NET_MODE=""
 check_engine() {
     if ! command -v "${ENGINE}" &>/dev/null; then
         echo "Error: ${ENGINE} not found in PATH" >&2
-        echo "Install ${ENGINE} first, or use --docker to use Docker instead." >&2
         exit 1
     fi
 }
@@ -57,13 +56,8 @@ detect_net_mode() {
 }
 
 ## Run a command inside the container, bypassing the entrypoint
-## Always runs locally (--context default for docker) to avoid executing on a remote SSH context
 container_run() {
-    if [[ "${ENGINE}" == "docker" ]]; then
-        "${ENGINE}" --context default run --rm --net=none --entrypoint "" "$@"
-    else
-        "${ENGINE}" run --rm --net=none --entrypoint "" "$@"
-    fi
+    "${ENGINE}" run --rm --net=none --entrypoint "" "$@"
 }
 
 ## Run script-wizard inside the container interactively
@@ -71,15 +65,13 @@ container_run() {
 wizard() {
     local cname="wizard-$$-${RANDOM}"
     local answer="/tmp/wizard-answer-${cname}"
-    local _ctx=()
-    [[ "${ENGINE}" == "docker" ]] && _ctx=(--context default)
-    trap '"${ENGINE}" "${_ctx[@]}" rm "${cname}" >/dev/null 2>&1' EXIT
-    "${ENGINE}" "${_ctx[@]}" run -it --net=none --name "${cname}" --entrypoint "" \
+    trap '"${ENGINE}" rm "${cname}" >/dev/null 2>&1' EXIT
+    "${ENGINE}" run -it --net=none --name "${cname}" --entrypoint "" \
         -e "TERM=${TERM:-xterm}" -e "WIZARD_ANSWER=${answer}" \
         "${IMAGE}" \
         sh -c 'script-wizard "$@" > "${WIZARD_ANSWER}"' -- "$@" >&2
     local rc=$?
-    "${ENGINE}" "${_ctx[@]}" cp "${cname}:${answer}" - | tar -xO
+    "${ENGINE}" cp "${cname}:${answer}" - | tar -xO
     trap - EXIT
     "${ENGINE}" "${_ctx[@]}" rm "${cname}" >/dev/null
     return $rc
@@ -435,7 +427,7 @@ sops_reencrypt_config() {
     rm -rf "${_enc_dir}"
 }
 
-## Parse common subcommand args: --image, --docker, --age-key, --help, positional CONTEXT
+## Parse common subcommand args: --image, --age-key, --help, positional CONTEXT
 ## Args: $1 = usage function name, remaining = subcommand args
 ## Sets: _SC_CONTEXT, _SC_AGE_KEY_FILE
 _parse_subcommand_args() {
@@ -446,7 +438,6 @@ _parse_subcommand_args() {
     while [[ $# -gt 0 ]]; do
         case "$1" in
             --image) IMAGE="$2"; shift 2 ;;
-            --docker) ENGINE=docker; shift ;;
             --age-key) _SC_AGE_KEY_FILE="$2"; shift 2 ;;
             --help) "${_usage_fn}"; exit 0 ;;
             -*)
@@ -510,7 +501,6 @@ Options:
   --build-force      Build image with --no-cache (forces rebuild of all layers)
   --extract          Print this script to stdout (self-extraction)
   --image TAG        Container image (default: localhost/d-rymcg-tech:latest)
-  --docker           Use Docker instead of Podman
   --age-key FILE     AGE key file (default: ~/.config/d.rymcg.tech/keys/sops/<context>.key)
   --ssh-key FILE     SSH key file (disables agent forwarding)
   --ssh-timeout SEC  SSH ConnectTimeout in seconds (default: 30)
@@ -556,7 +546,6 @@ config file for the given context. Only requires Podman (or Docker).
 
 Options:
   --image TAG    Container image (default: localhost/d-rymcg-tech:latest)
-  --docker       Use Docker instead of Podman
   --help         Show this help
 EOF
 }
@@ -1053,7 +1042,6 @@ cmd_run() {
     while [[ $# -gt 0 ]]; do
         case "$1" in
             --image) IMAGE="$2"; shift 2 ;;
-            --docker) ENGINE=docker; shift ;;
             --net) NET_MODE="$2"; shift 2 ;;
             --age-key) AGE_KEY_FILE="$2"; shift 2 ;;
             --ssh-key) SSH_KEY_FILE="$2"; shift 2 ;;
@@ -1332,11 +1320,7 @@ cmd_run() {
         echo "## Full command: ${ENGINE} ${RUN_ARGS[*]}" >&2
     fi
     local rc=0
-    if [[ "${ENGINE}" == "docker" ]]; then
-        "${ENGINE}" --context default "${RUN_ARGS[@]}" || rc=$?
-    else
-        "${ENGINE}" "${RUN_ARGS[@]}" || rc=$?
-    fi
+    "${ENGINE}" "${RUN_ARGS[@]}" || rc=$?
     if [[ ${rc} -ne 0 && ${#CMD_ARGS[@]} -gt 0 ]]; then
         echo "## container exited with error (exit code ${rc}) — skipping auto-commit" >&2
         return ${rc}
@@ -1356,7 +1340,6 @@ Remove SOPS config and/or AGE key for a context.
 
 Options:
   --image TAG    Container image (default: localhost/d-rymcg-tech:latest)
-  --docker       Use Docker instead of Podman
   --help         Show this help
 EOF
 }
@@ -1545,7 +1528,6 @@ Decrypt and display a SOPS config file.
 
 Options:
   --image TAG    Container image (default: localhost/d-rymcg-tech:latest)
-  --docker       Use Docker instead of Podman
   --age-key FILE AGE key file (default: ~/.config/d.rymcg.tech/keys/sops/<context>.key)
   --help         Show this help
 EOF
@@ -1592,7 +1574,6 @@ Decrypt a SOPS config, edit it in $EDITOR, and re-encrypt.
 
 Options:
   --image TAG    Container image (default: localhost/d-rymcg-tech:latest)
-  --docker       Use Docker instead of Podman
   --age-key FILE AGE key file (default: ~/.config/d.rymcg.tech/keys/sops/<context>.key)
   --help         Show this help
 EOF
@@ -1758,7 +1739,6 @@ _bao_parse_args() {
         echo ""
         echo "Options:"
         echo "  --image TAG    Container image"
-        echo "  --docker       Use Docker instead of Podman"
         echo "  --age-key FILE AGE key file"
         echo "  --help         Show this help"
     }
@@ -1822,9 +1802,6 @@ _bao_resolve() {
     _BAO_RUN_ARGS+=("${BAO_ENV[@]}" "${IMAGE}")
 
     _BAO_CTX=()
-    if [[ "${ENGINE}" == "docker" ]]; then
-        _BAO_CTX=(--context default)
-    fi
 }
 
 # Inline TLS resolution script (sourced inside the container)
@@ -2058,11 +2035,6 @@ while [[ $# -gt 0 ]]; do
             ARGS+=(--image "$2")
             shift 2
             ;;
-        --docker)
-            ENGINE=docker
-            ARGS+=(--docker)
-            shift
-            ;;
         --net)
             NET_MODE="$2"
             ARGS+=(--net "$2")
@@ -2263,5 +2235,5 @@ esac
 # The script itself never touches the container — it runs entirely on the
 # host, orchestrating podman/docker to launch containers as needed.
 #
-# Host dependencies: bash, podman (or docker), openssh, coreutils, grep, gawk
+# Host dependencies: bash, podman, openssh, coreutils, grep, gawk
 ###############################################################################

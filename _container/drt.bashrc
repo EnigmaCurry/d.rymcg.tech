@@ -52,7 +52,7 @@ _drt() {
     COMPREPLY=($(compgen -W "\
       --init --view --edit --clean --seal --unseal \
       --list --git-init --git --pull --build --extract \
-      --image --docker --age-key --ssh-key --ssh-timeout \
+      --image --age-key --ssh-key --ssh-timeout \
       --timeout --no-save --controller-port --net --cap-add \
       --bind-mount --verbose --version --help" -- "${cur}"))
   else
