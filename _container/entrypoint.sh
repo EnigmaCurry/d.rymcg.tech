@@ -642,7 +642,7 @@ if [[ "${DRT_VERBOSE:-}" == "true" ]]; then
 else
     if ! { env; echo "${SOPS_DECRYPTED:-}"; } | DOCKER_CONTEXT="${DOCKER_CONTEXT}" d.rymcg.tech restore-env --yes 2>/dev/null; then
         echo "" >&2
-        echo "WARNING: restore-env had errors (some vars may need reconfiguration)" >&2
+        echo "WARNING: restore-env had errors (re-run with --verbose to see details)" >&2
     fi
 fi
 
