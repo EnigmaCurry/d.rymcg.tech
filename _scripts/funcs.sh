@@ -153,12 +153,19 @@ docker_run_with_env() {
 }
 
 get_root_domain() {
-    local ENV_FILE=${BIN}/../.env_$(${BIN}/docker_context)
-    if [[ -f ${ENV_FILE} ]]; then
-        ${BIN}/dotenv -f ${ENV_FILE} get ROOT_DOMAIN
+    local _ctx
+    _ctx=$(${BIN}/docker_context)
+    local ENV_FILE
+    if [[ -n "${DRT_ENV_DIR:-}" ]]; then
+        ENV_FILE="${DRT_ENV_DIR}/.env_${_ctx}"
     else
-        echo "Could not find $(abspath ${ENV_FILE})"
-        fault "Run `make config` in the root project directory first."
+        ENV_FILE="${BIN}/../.env_${_ctx}"
+    fi
+    if [[ -f "${ENV_FILE}" ]]; then
+        ${BIN}/dotenv -f "${ENV_FILE}" get ROOT_DOMAIN
+    else
+        echo "Could not find ${ENV_FILE}"
+        fault "Run \`make config\` in the root project directory first."
     fi
 }
 
@@ -235,7 +242,7 @@ ytt() {
     fi
     local IMAGE=localhost/ytt
     if ! docker image inspect ${IMAGE} >/dev/null 2>&1; then
-        local _BUILD=${BUILD_RAW:-$(${BIN}/dotenv -f "${ROOT_DIR}/.env_$(${BIN}/docker_context)" get BUILD 2>/dev/null || true)}
+        local _BUILD=${BUILD_RAW:-$(${BIN}/dotenv -f "${DRT_ENV_DIR:-${ROOT_DIR}}/.env_$(${BIN}/docker_context)" get BUILD 2>/dev/null || true)}
         if [[ "${_BUILD}" == "false" || "${_BUILD}" == "0" ]]; then
             fault "ytt image (${IMAGE}) not found and BUILD=${_BUILD} prevents building it. Build it first or set BUILD=true."
         fi
@@ -304,7 +311,7 @@ volume_rsync() {
     fi
     # Check that the localhost/rsync image exists, if not build it:
     if ! docker image inspect localhost/rsync >/dev/null 2>&1; then
-        local _BUILD=${BUILD_RAW:-$(${BIN}/dotenv -f "${ROOT_DIR}/.env_$(${BIN}/docker_context)" get BUILD 2>/dev/null || true)}
+        local _BUILD=${BUILD_RAW:-$(${BIN}/dotenv -f "${DRT_ENV_DIR:-${ROOT_DIR}}/.env_$(${BIN}/docker_context)" get BUILD 2>/dev/null || true)}
         if [[ "${_BUILD}" == "false" || "${_BUILD}" == "0" ]]; then
             fault "rsync image (localhost/rsync) not found and BUILD=${_BUILD} prevents building it. Build it first or set BUILD=true."
         fi

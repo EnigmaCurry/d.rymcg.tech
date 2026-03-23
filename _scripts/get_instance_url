@@ -20,7 +20,7 @@ if [[ ! -f "${ENV_FILE}" ]]; then
     echo "ENV_FILE not found"
     exit 1
 fi
-ROOT_ENV_FILE="${ROOT_DIR}/.env_${DOCKER_CONTEXT}"
+ROOT_ENV_FILE="${DRT_ENV_DIR:-${ROOT_DIR}}/.env_${DOCKER_CONTEXT}"
 #echo "ROOT_ENV_FILE=${ROOT_ENV_FILE}"
 if [[ ! -f "${ROOT_ENV_FILE}" ]]; then
     echo "ROOT_ENV_FILE not found"
