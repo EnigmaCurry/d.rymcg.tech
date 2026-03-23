@@ -78,11 +78,11 @@ logs-traefik:
 
 .PHONY: logs-access # Tail the access logs
 logs-access:
-	@docker compose --env-file ${ENV_FILE} --profile "$(${BIN}/dotenv -f ${ENV_FILE} get DOCKER_COMPOSE_PROFILES)" exec -it traefik sh -c 'tail -f /data/access.log | jq -c'
+	@docker compose --env-file ${ENV_FILE} --profile "$(${BIN}/dotenv -f ${ENV_FILE} get TRAEFIK_DOCKER_COMPOSE_PROFILES)" exec -it traefik sh -c 'tail -f /data/access.log | jq -c'
 
 .PHONY: logs-access-out
 logs-access-out:
-	@docker compose --env-file ${ENV_FILE} --profile "$(${BIN}/dotenv -f ${ENV_FILE} get DOCKER_COMPOSE_PROFILES)" exec -it traefik sh -c 'tail -n 10000 /data/access.log | jq -c'
+	@docker compose --env-file ${ENV_FILE} --profile "$(${BIN}/dotenv -f ${ENV_FILE} get TRAEFIK_DOCKER_COMPOSE_PROFILES)" exec -it traefik sh -c 'tail -n 10000 /data/access.log | jq -c'
 
 .PHONY: debug # Restart Traefik with debug logging for one time only
 debug:
@@ -124,7 +124,7 @@ acme-sh-cron-schedule:
 
 .PHONY: acme-sh-register
 acme-sh-register: $(if $(BUILD),build)
-	@make --no-print-directory docker-compose-lifecycle-cmd EXTRA_ARGS="run --rm acme-sh register-acmedns"
+	@make --no-print-directory docker-compose-lifecycle-cmd EXTRA_ARGS="run -T --rm acme-sh register-acmedns" < /dev/null
 
 .PHONY: acme-sh-cert
 acme-sh-cert:
@@ -143,11 +143,15 @@ traefik-user:
 
 .PHONY: dashboard # Open the Traefik dashboard TUI (tt-tui-for-traefik)
 dashboard:
-	@TRAEFIK_USERNAME=$$(cat ${ROOT_DIR}/traefik/passwords.json | jq -r '."${DOCKER_CONTEXT}_default".[].username'); \
-	TRAEFIK_PASSWORD=$$(cat ${ROOT_DIR}/traefik/passwords.json | jq -r '."${DOCKER_CONTEXT}_default".[].password'); \
+	@_PW_JSON="$${DRT_ENV_DIR:-${ROOT_DIR}}/traefik/passwords.json"; \
+	TRAEFIK_USERNAME=$$(cat "$${_PW_JSON}" | jq -r '."${DOCKER_CONTEXT}_default".[].username'); \
+	TRAEFIK_PASSWORD=$$(cat "$${_PW_JSON}" | jq -r '."${DOCKER_CONTEXT}_default".[].password'); \
 	SSH_HOST_ARG="$${SSH_HOST_ARG:---ssh-host ${DOCKER_CONTEXT}}"; \
 	if [[ "$${SSH_HOST_ARG}" == "none" ]]; then SSH_HOST_ARG=""; fi; \
-	if command -v uv >/dev/null; then \
+	if command -v tt >/dev/null; then \
+	  TT_CMD="tt"; \
+	  echo "Starting: $${TT_CMD}"; \
+	elif command -v uv >/dev/null; then \
 	  TT_CMD="uv tool run --from tt-tui-for-traefik tt"; \
 	  echo "Starting: $${TT_CMD}"; \
 	else \

@@ -185,6 +185,11 @@ entryPoints:
   #@ if data.values.websecure_entrypoint_enabled == "true":
   websecure:
     address: #@ data.values.websecure_entrypoint_host + ":" + data.values.websecure_entrypoint_port
+    transport:
+      respondingTimeouts:
+        readTimeout: #@ data.values.websecure_read_timeout
+        writeTimeout: #@ data.values.websecure_write_timeout
+        idleTimeout: #@ data.values.websecure_idle_timeout
     #@ if len(data.values.websecure_entrypoint_proxy_protocol_trusted_ips.strip()):
     proxyProtocol:
       trustedIPs:

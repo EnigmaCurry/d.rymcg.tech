@@ -1,0 +1,562 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Description: "d.rymcg.tech Docker server on EC2"
+
+Parameters:
+  InstanceName:
+    Type: String
+    Default: docker-dev
+    Description: Name tag for the EC2 instance (also used as DNS subdomain prefix)
+  InstanceType:
+    Type: String
+    Default: t2.small
+    Description: EC2 instance type
+  KeyPairName:
+    Type: AWS::EC2::KeyPair::KeyName
+    Description: Name of an existing EC2 key pair for SSH access
+  RootDomain:
+    Type: String
+    Description: Root domain name (e.g. example.com)
+  HostedZoneId:
+    Type: AWS::Route53::HostedZone::Id
+    Description: Route53 Hosted Zone ID for the root domain
+  Region:
+    Type: String
+    Default: us-east-1
+    Description: AWS region (used in outputs for ACME config)
+  RootVolumeSize:
+    Type: Number
+    Default: 10
+    Description: Root EBS volume size in GB
+  DockerVolumeSize:
+    Type: Number
+    Default: 50
+    Description: Docker data EBS volume size in GB
+  SSHCidr:
+    Type: String
+    Default: "0.0.0.0/0"
+    Description: CIDR range allowed for SSH access (0.0.0.0/0 = anywhere)
+  EnableAcmeDns:
+    Type: String
+    Default: "false"
+    AllowedValues: ["true", "false"]
+    Description: Open ports 53 TCP+UDP and 2890 TCP, create DNS delegation for acme-dns
+  EnableForgejoSSH:
+    Type: String
+    Default: "false"
+    AllowedValues: ["true", "false"]
+    Description: Open port 2222 TCP (Forgejo SSH)
+  EnableSFTP:
+    Type: String
+    Default: "false"
+    AllowedValues: ["true", "false"]
+    Description: Open port 2223 TCP (SFTP)
+  EnableIperf:
+    Type: String
+    Default: "false"
+    AllowedValues: ["true", "false"]
+    Description: Open port 5201 TCP+UDP (Iperf)
+  EnableXMPP:
+    Type: String
+    Default: "false"
+    AllowedValues: ["true", "false"]
+    Description: Open ports 5222,5269 TCP (XMPP)
+  EnableIRC:
+    Type: String
+    Default: "false"
+    AllowedValues: ["true", "false"]
+    Description: Open ports 6697,6698 TCP (IRC)
+  EnableWebPlain:
+    Type: String
+    Default: "false"
+    AllowedValues: ["true", "false"]
+    Description: Open port 8000 TCP (HTTP non-TLS)
+  EnableMQTT:
+    Type: String
+    Default: "false"
+    AllowedValues: ["true", "false"]
+    Description: Open port 8883 TCP (MQTT)
+  EnableRTMP:
+    Type: String
+    Default: "false"
+    AllowedValues: ["true", "false"]
+    Description: Open port 1935 TCP (RTMP)
+  EnableSnapcast:
+    Type: String
+    Default: "false"
+    AllowedValues: ["true", "false"]
+    Description: Open ports 1704,1705 TCP (Snapcast)
+  EnableRedis:
+    Type: String
+    Default: "false"
+    AllowedValues: ["true", "false"]
+    Description: Open port 6380 TCP (Redis)
+  EnableMPD:
+    Type: String
+    Default: "false"
+    AllowedValues: ["true", "false"]
+    Description: Open port 6600 TCP (MPD/Mopidy)
+  EnablePostgreSQL:
+    Type: String
+    Default: "false"
+    AllowedValues: ["true", "false"]
+    Description: Open port 5432 TCP (PostgreSQL mTLS)
+  EnableJitsi:
+    Type: String
+    Default: "false"
+    AllowedValues: ["true", "false"]
+    Description: Open port 10000 UDP (Jitsi WebRTC)
+  EnableWireguard:
+    Type: String
+    Default: "false"
+    AllowedValues: ["true", "false"]
+    Description: Open port 51820 UDP (Wireguard VPN)
+  DebianAMI:
+    Type: AWS::SSM::Parameter::Value<AWS::EC2::Image::Id>
+    Default: /aws/service/debian/release/13/latest/amd64
+    Description: Debian 13 AMI (auto-resolved via SSM public parameter)
+
+Conditions:
+  AcmeDns: !Equals [!Ref EnableAcmeDns, "true"]
+  ForgejoSSH: !Equals [!Ref EnableForgejoSSH, "true"]
+  SFTP: !Equals [!Ref EnableSFTP, "true"]
+  Iperf: !Equals [!Ref EnableIperf, "true"]
+  XMPP: !Equals [!Ref EnableXMPP, "true"]
+  IRC: !Equals [!Ref EnableIRC, "true"]
+  WebPlain: !Equals [!Ref EnableWebPlain, "true"]
+  MQTT: !Equals [!Ref EnableMQTT, "true"]
+  RTMP: !Equals [!Ref EnableRTMP, "true"]
+  Snapcast: !Equals [!Ref EnableSnapcast, "true"]
+  Redis: !Equals [!Ref EnableRedis, "true"]
+  MPD: !Equals [!Ref EnableMPD, "true"]
+  PostgreSQL: !Equals [!Ref EnablePostgreSQL, "true"]
+  Jitsi: !Equals [!Ref EnableJitsi, "true"]
+  Wireguard: !Equals [!Ref EnableWireguard, "true"]
+
+Resources:
+
+  # --- Security Group ---
+  SecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: !Sub "${InstanceName} - d.rymcg.tech"
+      SecurityGroupIngress:
+        - IpProtocol: tcp
+          FromPort: 22
+          ToPort: 22
+          CidrIp: !Ref SSHCidr
+          Description: SSH
+        - IpProtocol: tcp
+          FromPort: 80
+          ToPort: 80
+          CidrIp: "0.0.0.0/0"
+          Description: HTTP
+        - IpProtocol: tcp
+          FromPort: 443
+          ToPort: 443
+          CidrIp: "0.0.0.0/0"
+          Description: HTTPS
+      Tags:
+        - Key: Name
+          Value: !Sub "${InstanceName}-sg"
+
+  # --- Optional firewall rules ---
+  SGDnsTcp:
+    Type: AWS::EC2::SecurityGroupIngress
+    Condition: AcmeDns
+    Properties:
+      GroupId: !GetAtt SecurityGroup.GroupId
+      IpProtocol: tcp
+      FromPort: 53
+      ToPort: 53
+      CidrIp: "0.0.0.0/0"
+      Description: DNS TCP (acme-dns)
+  SGDnsUdp:
+    Type: AWS::EC2::SecurityGroupIngress
+    Condition: AcmeDns
+    Properties:
+      GroupId: !GetAtt SecurityGroup.GroupId
+      IpProtocol: udp
+      FromPort: 53
+      ToPort: 53
+      CidrIp: "0.0.0.0/0"
+      Description: DNS UDP (acme-dns)
+  SGAcmeDnsAPI:
+    Type: AWS::EC2::SecurityGroupIngress
+    Condition: AcmeDns
+    Properties:
+      GroupId: !GetAtt SecurityGroup.GroupId
+      IpProtocol: tcp
+      FromPort: 2890
+      ToPort: 2890
+      CidrIp: "0.0.0.0/0"
+      Description: acme-dns API
+  SGForgejoSSH:
+    Type: AWS::EC2::SecurityGroupIngress
+    Condition: ForgejoSSH
+    Properties:
+      GroupId: !GetAtt SecurityGroup.GroupId
+      IpProtocol: tcp
+      FromPort: 2222
+      ToPort: 2222
+      CidrIp: "0.0.0.0/0"
+      Description: Forgejo SSH
+  SGSFTP:
+    Type: AWS::EC2::SecurityGroupIngress
+    Condition: SFTP
+    Properties:
+      GroupId: !GetAtt SecurityGroup.GroupId
+      IpProtocol: tcp
+      FromPort: 2223
+      ToPort: 2223
+      CidrIp: "0.0.0.0/0"
+      Description: SFTP
+  SGIperfTcp:
+    Type: AWS::EC2::SecurityGroupIngress
+    Condition: Iperf
+    Properties:
+      GroupId: !GetAtt SecurityGroup.GroupId
+      IpProtocol: tcp
+      FromPort: 5201
+      ToPort: 5201
+      CidrIp: "0.0.0.0/0"
+      Description: Iperf TCP
+  SGIperfUdp:
+    Type: AWS::EC2::SecurityGroupIngress
+    Condition: Iperf
+    Properties:
+      GroupId: !GetAtt SecurityGroup.GroupId
+      IpProtocol: udp
+      FromPort: 5201
+      ToPort: 5201
+      CidrIp: "0.0.0.0/0"
+      Description: Iperf UDP
+  SGXmppClient:
+    Type: AWS::EC2::SecurityGroupIngress
+    Condition: XMPP
+    Properties:
+      GroupId: !GetAtt SecurityGroup.GroupId
+      IpProtocol: tcp
+      FromPort: 5222
+      ToPort: 5222
+      CidrIp: "0.0.0.0/0"
+      Description: XMPP client-to-server
+  SGXmppServer:
+    Type: AWS::EC2::SecurityGroupIngress
+    Condition: XMPP
+    Properties:
+      GroupId: !GetAtt SecurityGroup.GroupId
+      IpProtocol: tcp
+      FromPort: 5269
+      ToPort: 5269
+      CidrIp: "0.0.0.0/0"
+      Description: XMPP server-to-server
+  SGIrc:
+    Type: AWS::EC2::SecurityGroupIngress
+    Condition: IRC
+    Properties:
+      GroupId: !GetAtt SecurityGroup.GroupId
+      IpProtocol: tcp
+      FromPort: 6697
+      ToPort: 6698
+      CidrIp: "0.0.0.0/0"
+      Description: IRC (InspIRCd + soju)
+  SGWebPlain:
+    Type: AWS::EC2::SecurityGroupIngress
+    Condition: WebPlain
+    Properties:
+      GroupId: !GetAtt SecurityGroup.GroupId
+      IpProtocol: tcp
+      FromPort: 8000
+      ToPort: 8000
+      CidrIp: "0.0.0.0/0"
+      Description: HTTP non-TLS
+  SGMQTT:
+    Type: AWS::EC2::SecurityGroupIngress
+    Condition: MQTT
+    Properties:
+      GroupId: !GetAtt SecurityGroup.GroupId
+      IpProtocol: tcp
+      FromPort: 8883
+      ToPort: 8883
+      CidrIp: "0.0.0.0/0"
+      Description: Mosquitto MQTT
+  SGRTMP:
+    Type: AWS::EC2::SecurityGroupIngress
+    Condition: RTMP
+    Properties:
+      GroupId: !GetAtt SecurityGroup.GroupId
+      IpProtocol: tcp
+      FromPort: 1935
+      ToPort: 1935
+      CidrIp: "0.0.0.0/0"
+      Description: RTMP
+  SGSnapcastAudio:
+    Type: AWS::EC2::SecurityGroupIngress
+    Condition: Snapcast
+    Properties:
+      GroupId: !GetAtt SecurityGroup.GroupId
+      IpProtocol: tcp
+      FromPort: 1704
+      ToPort: 1705
+      CidrIp: "0.0.0.0/0"
+      Description: Snapcast audio+control
+  SGRedis:
+    Type: AWS::EC2::SecurityGroupIngress
+    Condition: Redis
+    Properties:
+      GroupId: !GetAtt SecurityGroup.GroupId
+      IpProtocol: tcp
+      FromPort: 6380
+      ToPort: 6380
+      CidrIp: "0.0.0.0/0"
+      Description: Redis
+  SGMPD:
+    Type: AWS::EC2::SecurityGroupIngress
+    Condition: MPD
+    Properties:
+      GroupId: !GetAtt SecurityGroup.GroupId
+      IpProtocol: tcp
+      FromPort: 6600
+      ToPort: 6600
+      CidrIp: "0.0.0.0/0"
+      Description: MPD/Mopidy
+  SGPostgreSQL:
+    Type: AWS::EC2::SecurityGroupIngress
+    Condition: PostgreSQL
+    Properties:
+      GroupId: !GetAtt SecurityGroup.GroupId
+      IpProtocol: tcp
+      FromPort: 5432
+      ToPort: 5432
+      CidrIp: "0.0.0.0/0"
+      Description: PostgreSQL mTLS
+  SGJitsi:
+    Type: AWS::EC2::SecurityGroupIngress
+    Condition: Jitsi
+    Properties:
+      GroupId: !GetAtt SecurityGroup.GroupId
+      IpProtocol: udp
+      FromPort: 10000
+      ToPort: 10000
+      CidrIp: "0.0.0.0/0"
+      Description: Jitsi WebRTC
+  SGWireguard:
+    Type: AWS::EC2::SecurityGroupIngress
+    Condition: Wireguard
+    Properties:
+      GroupId: !GetAtt SecurityGroup.GroupId
+      IpProtocol: udp
+      FromPort: 51820
+      ToPort: 51820
+      CidrIp: "0.0.0.0/0"
+      Description: Wireguard VPN
+
+  # --- EC2 Instance ---
+  Instance:
+    Type: AWS::EC2::Instance
+    Properties:
+      ImageId: !Ref DebianAMI
+      InstanceType: !Ref InstanceType
+      KeyName: !Ref KeyPairName
+      SecurityGroupIds:
+        - !GetAtt SecurityGroup.GroupId
+      BlockDeviceMappings:
+        - DeviceName: /dev/xvda
+          Ebs:
+            VolumeSize: !Ref RootVolumeSize
+            VolumeType: gp3
+            DeleteOnTermination: true
+      UserData:
+        Fn::Base64: |
+          #!/bin/bash
+          set -euo pipefail
+          exec > /var/log/user-data.log 2>&1
+
+          ## Format and mount the Docker EBS volume
+          if ! blkid /dev/xvdb; then
+            mkfs.ext4 /dev/xvdb
+          fi
+          mkdir -p /var/lib/docker
+          UUID=$(blkid -s UUID -o value /dev/xvdb)
+          if ! grep -q "$UUID" /etc/fstab; then
+            echo "UUID=$UUID /var/lib/docker ext4 defaults,nofail 0 2" >> /etc/fstab
+          fi
+          mount -a
+
+          ## Install Docker Engine (Debian)
+          apt-get update
+          apt-get install -y ca-certificates curl gnupg
+          install -m 0755 -d /etc/apt/keyrings
+          curl -fsSL https://download.docker.com/linux/debian/gpg \
+            | gpg --dearmor -o /etc/apt/keyrings/docker.gpg
+          chmod a+r /etc/apt/keyrings/docker.gpg
+          echo "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.gpg] \
+            https://download.docker.com/linux/debian \
+            $(. /etc/os-release && echo "$VERSION_CODENAME") stable" \
+            > /etc/apt/sources.list.d/docker.list
+          apt-get update
+          apt-get install -y docker-ce docker-ce-cli containerd.io \
+            docker-buildx-plugin docker-compose-plugin
+
+          ## Add the admin user to the docker group
+          gpasswd -a admin docker
+
+          echo "### d.rymcg.tech Docker setup complete ###"
+      Tags:
+        - Key: Name
+          Value: !Ref InstanceName
+
+  # --- Docker Data Volume (persists across instance replacements) ---
+  DockerVolume:
+    Type: AWS::EC2::Volume
+    DeletionPolicy: Retain
+    UpdateReplacePolicy: Retain
+    Properties:
+      AvailabilityZone: !GetAtt Instance.AvailabilityZone
+      Size: !Ref DockerVolumeSize
+      VolumeType: gp3
+      Tags:
+        - Key: Name
+          Value: !Sub "${InstanceName}-docker-data"
+
+  DockerVolumeAttachment:
+    Type: AWS::EC2::VolumeAttachment
+    Properties:
+      Device: /dev/xvdb
+      InstanceId: !Ref Instance
+      VolumeId: !Ref DockerVolume
+
+  # --- Elastic IP ---
+  EIP:
+    Type: AWS::EC2::EIP
+    Properties:
+      Domain: vpc
+      Tags:
+        - Key: Name
+          Value: !Sub "${InstanceName}-eip"
+
+  EIPAssociation:
+    Type: AWS::EC2::EIPAssociation
+    Properties:
+      AllocationId: !GetAtt EIP.AllocationId
+      InstanceId: !Ref Instance
+
+  # --- Route53 DNS Records ---
+  DNSRecord:
+    Type: AWS::Route53::RecordSet
+    DependsOn: EIPAssociation
+    Properties:
+      HostedZoneId: !Ref HostedZoneId
+      Name: !Sub "${InstanceName}.${RootDomain}"
+      Type: A
+      TTL: "300"
+      ResourceRecords:
+        - !Ref EIP
+
+  DNSWildcard:
+    Type: AWS::Route53::RecordSet
+    DependsOn: EIPAssociation
+    Properties:
+      HostedZoneId: !Ref HostedZoneId
+      Name: !Sub "*.${InstanceName}.${RootDomain}"
+      Type: A
+      TTL: "300"
+      ResourceRecords:
+        - !Ref EIP
+
+  # --- acme-dns DNS delegation ---
+  AcmeDnsARecord:
+    Type: AWS::Route53::RecordSet
+    Condition: AcmeDns
+    DependsOn: EIPAssociation
+    Properties:
+      HostedZoneId: !Ref HostedZoneId
+      Name: !Sub "acme-dns.${InstanceName}.${RootDomain}"
+      Type: A
+      TTL: "300"
+      ResourceRecords:
+        - !Ref EIP
+
+  AcmeDnsNSRecord:
+    Type: AWS::Route53::RecordSet
+    Condition: AcmeDns
+    DependsOn: AcmeDnsARecord
+    Properties:
+      HostedZoneId: !Ref HostedZoneId
+      Name: !Sub "acme-dns.${InstanceName}.${RootDomain}"
+      Type: NS
+      TTL: "300"
+      ResourceRecords:
+        - !Sub "acme-dns.${InstanceName}.${RootDomain}"
+
+  # --- IAM User + Policy for Route53 ACME DNS Challenge ---
+  AcmePolicy:
+    Type: AWS::IAM::ManagedPolicy
+    Properties:
+      ManagedPolicyName: !Sub "${InstanceName}-route53-acme"
+      PolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Action: route53:GetChange
+            Resource: "arn:aws:route53:::change/*"
+          - Effect: Allow
+            Action: route53:ListHostedZonesByName
+            Resource: "*"
+          - Effect: Allow
+            Action:
+              - route53:ListResourceRecordSets
+            Resource:
+              - !Sub "arn:aws:route53:::hostedzone/${HostedZoneId}"
+          - Effect: Allow
+            Action:
+              - route53:ChangeResourceRecordSets
+            Resource:
+              - !Sub "arn:aws:route53:::hostedzone/${HostedZoneId}"
+            Condition:
+              ForAllValues:StringEquals:
+                route53:ChangeResourceRecordSetsNormalizedRecordNames:
+                  - !Sub "_acme-challenge.${InstanceName}.${RootDomain}"
+                route53:ChangeResourceRecordSetsRecordTypes:
+                  - TXT
+
+  AcmeUser:
+    Type: AWS::IAM::User
+    Properties:
+      UserName: !Sub "${InstanceName}-route53"
+      ManagedPolicyArns:
+        - !Ref AcmePolicy
+
+  AcmeAccessKey:
+    Type: AWS::IAM::AccessKey
+    Properties:
+      UserName: !Ref AcmeUser
+
+Outputs:
+  InstanceId:
+    Value: !Ref Instance
+    Description: EC2 instance ID
+  PublicIP:
+    Value: !Ref EIP
+    Description: Elastic IP address
+  FQDN:
+    Value: !Sub "${InstanceName}.${RootDomain}"
+    Description: Fully qualified domain name
+  WildcardDomain:
+    Value: !Sub "*.${InstanceName}.${RootDomain}"
+    Description: Wildcard domain
+  SSHCommand:
+    Value: !Sub "ssh admin@${EIP}"
+    Description: SSH command to connect
+  DockerContextCommand:
+    Value: !Sub "docker context create ${InstanceName} --docker \"host=ssh://${InstanceName}\""
+    Description: Command to create Docker context on your workstation
+  AcmeAccessKeyId:
+    Value: !Ref AcmeAccessKey
+    Description: IAM access key ID for Route53 ACME challenge
+  AcmeSecretAccessKey:
+    Value: !GetAtt AcmeAccessKey.SecretAccessKey
+    Description: IAM secret access key for Route53 ACME challenge
+  AWSRegion:
+    Value: !Ref Region
+    Description: AWS region for ACME config

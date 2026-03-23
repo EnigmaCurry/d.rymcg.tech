@@ -2,15 +2,20 @@
 
 import hashlib
 import json
-import os
 import re
+import os
 import subprocess
 import sys
+from datetime import date
 from pathlib import Path
 
 
 ROOT_DIR = Path(__file__).resolve().parent.parent
 
+
+def build_tag() -> str:
+    """Generate a date-stamped tag for locally built images."""
+    return f"d-rymcg-tech-{date.today().strftime('%Y%m%d')}"
 
 def _parse_env_value(env_path: Path, key: str) -> str | None:
     """Parse a KEY=VALUE from a .env file, stripping quotes."""
@@ -48,7 +53,6 @@ def get_image_archive_base() -> Path:
     if val:
         return Path(val)
     return ROOT_DIR / "_archive" / "images"
-
 
 def get_docker_context() -> str:
     """Get the name of the active Docker context."""
@@ -120,7 +124,8 @@ def resolve_compose_images(project_dir: Path, env_file: Path) -> dict[str, str]:
     ]
     context = env_file.stem.replace(".env_", "").rsplit("_", 1)[0] if "_" in env_file.stem else ""
     if context:
-        override = project_dir / f"docker-compose.override_{context}_default.yaml"
+        env_dir = Path(os.environ["DRT_ENV_DIR"]) / project_dir.name if os.environ.get("DRT_ENV_DIR") else project_dir
+        override = env_dir / f"docker-compose.override_{context}_default.yaml"
         if override.exists():
             cmd = [
                 "docker", "compose",
@@ -145,7 +150,7 @@ def resolve_compose_images(project_dir: Path, env_file: Path) -> dict[str, str]:
     for svc_name, svc_config in config.get("services", {}).items():
         image = svc_config.get("image")
         if not image and svc_config.get("build"):
-            image = f"{project_name}-{svc_name}:latest" if project_name else None
+            image = f"{project_name}-{svc_name}:{build_tag()}" if project_name else None
         if image:
             images[svc_name] = image
     return images
@@ -244,6 +249,53 @@ def build_service(project_dir: Path, env_file: Path, service: str, verbose: bool
     return result.returncode == 0
 
 
+def retag_image(old_name: str, new_name: str, verbose: bool = False) -> bool:
+    """Create a new tag for an existing image."""
+    result = run_cmd(["docker", "tag", old_name, new_name], verbose=verbose)
+    return result.returncode == 0
+
+
+def strip_registry_prefix(image: str) -> str:
+    """Strip registry and namespace prefix, keeping only the image name and tag.
+
+    Examples:
+        ghcr.io/enigmacurry/rigbook:latest -> rigbook:latest
+        docker.io/library/nginx:1.25       -> nginx:1.25
+        traefik-traefik:d-rymcg-tech-2025  -> traefik-traefik:d-rymcg-tech-2025
+        quay.io/org/sub/image:v1           -> image:v1
+    """
+    # Split off the tag/digest first
+    if "@" in image:
+        name, sep, digest = image.partition("@")
+        return strip_registry_prefix(name) + sep + digest
+    if ":" in image:
+        name, sep, tag = image.partition(":")
+    else:
+        name, sep, tag = image, "", ""
+    # Take the last path component as the image name
+    basename = name.rsplit("/", 1)[-1]
+    return basename + sep + tag
+
+
+def push_image(image: str, verbose: bool = False) -> bool:
+    """Push an image to a remote registry."""
+    result = run_cmd(["docker", "push", image], verbose=verbose)
+    return result.returncode == 0
+
+
+def registry_login(registry: str, username: str, password: str, verbose: bool = False) -> bool:
+    """Log in to a container registry."""
+    result = subprocess.run(
+        ["docker", "login", "-u", username, "--password-stdin", registry],
+        input=password, capture_output=True, text=True,
+    )
+    if result.returncode != 0:
+        print(f"ERROR: Failed to log in to {registry}", file=sys.stderr)
+        if verbose:
+            print(result.stderr, file=sys.stderr)
+        return False
+    return True
+
 def collect_images(
     catalog: list[dict],
     compose_images: dict[str, str],
@@ -272,7 +324,7 @@ def collect_images(
             image = image.split(") ", 1)[-1] if ") " in image else None
 
         if not image and source in BUILD_SOURCES:
-            image = f"{project_name}-{service}:latest"
+            image = f"{project_name}-{service}:{build_tag()}"
 
         if not image:
             skipped.append(f"{project_name}/{service} (no resolved image)")

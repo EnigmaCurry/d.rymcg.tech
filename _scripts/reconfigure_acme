@@ -84,24 +84,44 @@ handle_dns_challenge() {
         echo "You need to enter the NAMES of these variables that your provider needs."
         echo "You can enter up to 5 variable names and/or leave them blank"
 
-        ${BIN}/reconfigure_ask ${ENV_FILE} TRAEFIK_ACME_DNS_VARNAME_1 "Enter the 1st DNS provider variable name" DO_AUTH_TOKEN
+        ${BIN}/reconfigure_ask ${ENV_FILE} TRAEFIK_ACME_DNS_VARNAME_1 "Enter the 1st DNS provider variable name" TRAEFIK_LEGO_DO_AUTH_TOKEN
         TRAEFIK_ACME_DNS_VARNAME_1=$(${BIN}/dotenv -f ${ENV_FILE} get TRAEFIK_ACME_DNS_VARNAME_1)
+        if [[ -n "${TRAEFIK_ACME_DNS_VARNAME_1}" && "${TRAEFIK_ACME_DNS_VARNAME_1}" != TRAEFIK_LEGO_* ]]; then
+            TRAEFIK_ACME_DNS_VARNAME_1="TRAEFIK_LEGO_${TRAEFIK_ACME_DNS_VARNAME_1}"
+            ${BIN}/reconfigure ${ENV_FILE} TRAEFIK_ACME_DNS_VARNAME_1="${TRAEFIK_ACME_DNS_VARNAME_1}"
+        fi
 
         test -n "${TRAEFIK_ACME_DNS_VARNAME_1}" && \
             ALLOW_BLANK=1 ${BIN}/reconfigure_ask ${ENV_FILE} TRAEFIK_ACME_DNS_VARNAME_2 "Enter the 2nd DNS provider variable name (or leave blank)"  || ${BIN}/reconfigure ${ENV_FILE} TRAEFIK_ACME_DNS_VARNAME_2=""
         TRAEFIK_ACME_DNS_VARNAME_2=$(${BIN}/dotenv -f ${ENV_FILE} get TRAEFIK_ACME_DNS_VARNAME_2)
+        if [[ -n "${TRAEFIK_ACME_DNS_VARNAME_2}" && "${TRAEFIK_ACME_DNS_VARNAME_2}" != TRAEFIK_LEGO_* ]]; then
+            TRAEFIK_ACME_DNS_VARNAME_2="TRAEFIK_LEGO_${TRAEFIK_ACME_DNS_VARNAME_2}"
+            ${BIN}/reconfigure ${ENV_FILE} TRAEFIK_ACME_DNS_VARNAME_2="${TRAEFIK_ACME_DNS_VARNAME_2}"
+        fi
 
         test -n "${TRAEFIK_ACME_DNS_VARNAME_2}" && \
             ALLOW_BLANK=1 ${BIN}/reconfigure_ask ${ENV_FILE} TRAEFIK_ACME_DNS_VARNAME_3 "Enter the 3rd DNS provider variable name (or leave blank)"  || ${BIN}/reconfigure ${ENV_FILE} TRAEFIK_ACME_DNS_VARNAME_3=""
         TRAEFIK_ACME_DNS_VARNAME_3=$(${BIN}/dotenv -f ${ENV_FILE} get TRAEFIK_ACME_DNS_VARNAME_3)
+        if [[ -n "${TRAEFIK_ACME_DNS_VARNAME_3}" && "${TRAEFIK_ACME_DNS_VARNAME_3}" != TRAEFIK_LEGO_* ]]; then
+            TRAEFIK_ACME_DNS_VARNAME_3="TRAEFIK_LEGO_${TRAEFIK_ACME_DNS_VARNAME_3}"
+            ${BIN}/reconfigure ${ENV_FILE} TRAEFIK_ACME_DNS_VARNAME_3="${TRAEFIK_ACME_DNS_VARNAME_3}"
+        fi
 
         test -n "${TRAEFIK_ACME_DNS_VARNAME_3}" && \
             ALLOW_BLANK=1 ${BIN}/reconfigure_ask ${ENV_FILE} TRAEFIK_ACME_DNS_VARNAME_4 "Enter the 4th DNS provider variable name (or leave blank)"  || ${BIN}/reconfigure ${ENV_FILE} TRAEFIK_ACME_DNS_VARNAME_4=""
         TRAEFIK_ACME_DNS_VARNAME_4=$(${BIN}/dotenv -f ${ENV_FILE} get TRAEFIK_ACME_DNS_VARNAME_4)
+        if [[ -n "${TRAEFIK_ACME_DNS_VARNAME_4}" && "${TRAEFIK_ACME_DNS_VARNAME_4}" != TRAEFIK_LEGO_* ]]; then
+            TRAEFIK_ACME_DNS_VARNAME_4="TRAEFIK_LEGO_${TRAEFIK_ACME_DNS_VARNAME_4}"
+            ${BIN}/reconfigure ${ENV_FILE} TRAEFIK_ACME_DNS_VARNAME_4="${TRAEFIK_ACME_DNS_VARNAME_4}"
+        fi
 
         test -n "${TRAEFIK_ACME_DNS_VARNAME_4}" && \
             ALLOW_BLANK=1 ${BIN}/reconfigure_ask ${ENV_FILE} TRAEFIK_ACME_DNS_VARNAME_5 "Enter the 5th DNS provider variable name (or leave blank)"  || ${BIN}/reconfigure ${ENV_FILE} TRAEFIK_ACME_DNS_VARNAME_5=""
         TRAEFIK_ACME_DNS_VARNAME_5=$(${BIN}/dotenv -f ${ENV_FILE} get TRAEFIK_ACME_DNS_VARNAME_5)
+        if [[ -n "${TRAEFIK_ACME_DNS_VARNAME_5}" && "${TRAEFIK_ACME_DNS_VARNAME_5}" != TRAEFIK_LEGO_* ]]; then
+            TRAEFIK_ACME_DNS_VARNAME_5="TRAEFIK_LEGO_${TRAEFIK_ACME_DNS_VARNAME_5}"
+            ${BIN}/reconfigure ${ENV_FILE} TRAEFIK_ACME_DNS_VARNAME_5="${TRAEFIK_ACME_DNS_VARNAME_5}"
+        fi
 
         echo ""
         echo "Now to enter the values for the custom DNS API variables:"

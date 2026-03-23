@@ -1,0 +1,74 @@
+#!/bin/bash
+## Clone the booted workstation USB to another device
+set -eo pipefail
+
+BIN=$(dirname $(realpath ${BASH_SOURCE}))
+ROOT_DIR=$(dirname ${BIN})
+source ${BIN}/funcs.sh
+
+usage() {
+    echo "Usage: d.rymcg.tech workstation-usb-clone [OPTIONS] /dev/sdX"
+    echo ""
+    echo "Clone this booted workstation USB to another device."
+    echo "No build or network access required — reuses the running system closure."
+    echo ""
+    echo "WARNING: This will ERASE ALL DATA on the target device."
+    echo ""
+    echo "Options:"
+    echo "  --base-only  Install OS only, without archive data"
+    echo "  -h, --help   Show this help"
+}
+
+DEVICE=""
+EXTRA_ARGS=()
+
+while [[ $# -gt 0 ]]; do
+    case "$1" in
+        -h|--help)
+            usage
+            exit 0
+            ;;
+        --base-only)
+            EXTRA_ARGS+=("--base-only")
+            shift
+            ;;
+        -*)
+            echo "Error: unknown option: $1" >&2
+            usage >&2
+            exit 1
+            ;;
+        *)
+            if [[ -z "$DEVICE" ]]; then
+                DEVICE="$1"
+            else
+                echo "Error: unexpected argument: $1" >&2
+                usage >&2
+                exit 1
+            fi
+            shift
+            ;;
+    esac
+done
+
+if [[ -z "$DEVICE" ]]; then
+    echo "Error: No device specified." >&2
+    usage >&2
+    exit 1
+fi
+
+# Find the clone script — prefer the repo copy, fall back to nix store
+CLONE_SCRIPT="${ROOT_DIR}/nix/workstation/installer/clone-to-device.sh"
+if [[ ! -x "$CLONE_SCRIPT" ]]; then
+    # Running from the nix-wrapped version; locate via the nix store
+    CLONE_SCRIPT="$(dirname "$(readlink -f /run/current-system)")/../../nix/workstation/installer/clone-to-device.sh" 2>/dev/null || true
+fi
+if [[ ! -x "$CLONE_SCRIPT" ]]; then
+    echo "Error: clone-to-device.sh not found." >&2
+    exit 1
+fi
+
+if [[ $EUID -ne 0 ]]; then
+    exec sudo bash -c "export PATH=\"$PATH:\$PATH\"; exec \"$CLONE_SCRIPT\" ${EXTRA_ARGS[*]:+${EXTRA_ARGS[*]}} \"$DEVICE\""
+fi
+
+exec "$CLONE_SCRIPT" "${EXTRA_ARGS[@]}" "$DEVICE"

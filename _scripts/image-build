@@ -1,8 +1,4 @@
-#!/usr/bin/env -S uv run --script
-# /// script
-# requires-python = ">=3.11"
-# dependencies = ["pyyaml"]
-# ///
+#!/usr/bin/env python-d-rymcg-tech
 
 """Build all Docker images for d.rymcg.tech projects.
 
@@ -17,13 +13,16 @@ Usage:
 """
 
 import argparse
+import os
 import sys
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
+
 from image_lib import (
     ROOT_DIR, BUILD_SOURCES, get_docker_context, get_catalog, find_env_file,
     resolve_compose_images, build_service, pull_image, collect_images,
+    build_tag, retag_image, push_image, registry_login, strip_registry_prefix,
 )
 
 
@@ -37,14 +36,36 @@ def main():
                         help="Skip builds, only pull images")
     parser.add_argument("--pull", action="store_true",
                         help="Pull fresh base images before building")
+    parser.add_argument("--push", action="store_true",
+                        help="Push built images to the registry")
+    parser.add_argument("--registry", type=str, default=None,
+                        help="Registry prefix (e.g. git.example.com/owner)")
     parser.add_argument("--dry-run", action="store_true",
                         help="Show what would be done without executing")
     parser.add_argument("--verbose", action="store_true",
                         help="Show docker command output")
     args = parser.parse_args()
 
+    # Registry can also come from environment variables
+    if not args.registry:
+        args.registry = os.environ.get("IMAGE_REGISTRY")
+    if args.push and not args.registry:
+        print("ERROR: --push requires --registry or IMAGE_REGISTRY env var", file=sys.stderr)
+        sys.exit(1)
+
     context = get_docker_context()
     print(f"Docker context: {context}")
+
+    if args.push:
+        registry_host = args.registry.split("/")[0]
+        username = os.environ.get("REGISTRY_USERNAME", "")
+        password = os.environ.get("REGISTRY_PASSWORD", "")
+        if username and password:
+            if not registry_login(registry_host, username, password, verbose=args.verbose):
+                sys.exit(1)
+            print(f"Registry login: {registry_host}")
+        print(f"Push target: {args.registry}")
+
     print()
 
     catalog = get_catalog(args.project)
@@ -58,6 +79,7 @@ def main():
 
     built = 0
     pulled = 0
+    pushed = 0
     failures = []
     skipped_total = []
 
@@ -93,9 +115,12 @@ def main():
             action = "build" if source in BUILD_SOURCES else "pull"
 
             if args.dry_run:
-                print(f"  [{action}] {image}")
+                push_target = f" -> {args.registry}/{strip_registry_prefix(image)}" if args.push and action == "build" else ""
+                print(f"  [{action}] {image}{push_target}")
                 if action == "build":
                     built += 1
+                    if args.push:
+                        pushed += 1
                 else:
                     pulled += 1
                 continue
@@ -107,8 +132,27 @@ def main():
                 print(f"    Building service '{build_svc}' (env: {env_label})...")
                 success = build_service(project_dir, env_file, build_svc, verbose=args.verbose, pull=args.pull)
                 if success:
+                    # Retag from :latest to date-stamped tag
+                    tag = build_tag()
+                    if f":{tag}" in image:
+                        latest_name = image.replace(f":{tag}", ":latest")
+                        if not retag_image(latest_name, image, verbose=args.verbose):
+                            print(f"    WARNING: failed to retag {latest_name} -> {image}", file=sys.stderr)
                     print(f"    OK")
                     built += 1
+                    # Push to registry
+                    if args.push:
+                        registry_image = f"{args.registry}/{strip_registry_prefix(image)}"
+                        print(f"    Pushing {registry_image}...")
+                        if not retag_image(image, registry_image, verbose=args.verbose):
+                            print(f"    FAILED to retag for registry", file=sys.stderr)
+                            failures.append(f"{project_name}: retag {image} -> {registry_image}")
+                        elif not push_image(registry_image, verbose=args.verbose):
+                            print(f"    FAILED to push", file=sys.stderr)
+                            failures.append(f"{project_name}: push {registry_image}")
+                        else:
+                            print(f"    Pushed")
+                            pushed += 1
                 else:
                     print(f"    FAILED", file=sys.stderr)
                     failures.append(f"{project_name}: build {build_svc} ({image})")
@@ -127,6 +171,8 @@ def main():
     print("=== SUMMARY ===")
     print(f"  Built: {built} images")
     print(f"  Pulled: {pulled} images")
+    if args.push:
+        print(f"  Pushed: {pushed} images")
     if skipped_total:
         print(f"  Skipped: {len(skipped_total)}")
         if args.verbose:

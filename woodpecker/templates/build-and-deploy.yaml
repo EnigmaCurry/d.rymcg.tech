@@ -1,0 +1,70 @@
+# build-and-deploy.yaml — End-to-end CI/CD: build image, push to registry, deploy, notify on failure
+#
+# Required secrets (set in Woodpecker UI or CLI):
+#   registry_username  — Forgejo username
+#   registry_password  — Forgejo access token with package:write scope
+#   ssh_key            — Private SSH key with access to the deploy host
+#   deploy_host        — Hostname or IP of the target server
+#   deploy_user        — SSH username on the target server
+#   ntfy_url           — ntfy topic URL for failure notifications (e.g., https://ntfy.example.com/ci)
+#
+# Server config required:
+#   WOODPECKER_PLUGINS_PRIVILEGED must include woodpeckerci/plugin-docker-buildx
+#
+# Replace git.example.com with your Forgejo instance hostname.
+# Replace /opt/myapp with the docker-compose project path on the server.
+
+when:
+  - event: [push, tag]
+    branch: ${CI_REPO_DEFAULT_BRANCH}
+
+steps:
+  - name: build
+    image: woodpeckerci/plugin-docker-buildx:5
+    settings:
+      repo: git.example.com/${CI_REPO_OWNER}/${CI_REPO_NAME}
+      registry: git.example.com
+      tag:
+        - latest
+        - "${CI_COMMIT_SHA:0:8}"
+      username:
+        from_secret: registry_username
+      password:
+        from_secret: registry_password
+
+  - name: deploy
+    image: appleboy/drone-ssh:1
+    depends_on:
+      - build
+    settings:
+      host:
+        from_secret: deploy_host
+      username:
+        from_secret: deploy_user
+      key:
+        from_secret: ssh_key
+      port: 22
+      script:
+        - cd /opt/myapp
+        - docker compose pull
+        - docker compose up -d --remove-orphans
+
+  - name: notify-failure
+    image: alpine:3
+    depends_on:
+      - deploy
+    when:
+      - status: failure
+    commands:
+      - apk add --no-cache curl
+      - |
+        curl -sk \
+          -H "Title: Pipeline failed: ${CI_REPO_NAME}" \
+          -H "Priority: high" \
+          -H "Tags: rotating_light" \
+          -d "Commit ${CI_COMMIT_SHA:0:8} by ${CI_COMMIT_AUTHOR} on branch ${CI_COMMIT_BRANCH}
+        ${CI_PIPELINE_FORGE_URL}" \
+          "$NTFY_URL"
+    secrets:
+      - source: ntfy_url
+        target: NTFY_URL

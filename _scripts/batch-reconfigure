@@ -1,0 +1,105 @@
+#!/usr/bin/env bash
+## batch-reconfigure ENV_FILE [KEY=VALUE ...]
+## Batch-update multiple variables in an env file in a single pass.
+## Falls back to sequential reconfigure if Python is unavailable.
+##
+## Usage:
+##   batch-reconfigure ENV_FILE KEY1=val1 KEY2=val2 ...
+##   echo -e "KEY1=val1\nKEY2=val2" | batch-reconfigure ENV_FILE
+set -eo pipefail
+
+BIN=$(dirname "${BASH_SOURCE[0]}")
+ENV_FILE="$1"; shift
+
+if [[ -z "${ENV_FILE}" ]]; then
+    echo "Usage: batch-reconfigure ENV_FILE [KEY=VALUE ...]" >&2
+    exit 1
+fi
+if [[ ! -f "${ENV_FILE}" ]]; then
+    mkdir -p "$(dirname "${ENV_FILE}")" 2>/dev/null || true
+    if [[ -n "${DRT_ENV_DIR:-}" && "${ENV_FILE}" == "${DRT_ENV_DIR}"* ]]; then
+        _rel="${ENV_FILE#${DRT_ENV_DIR}/}"
+        cp "${ROOT_DIR:-$(dirname "${BIN}")}/${_rel%/*}/.env-dist" "${ENV_FILE}" 2>/dev/null || true
+    else
+        cp "$(dirname "${ENV_FILE}")/.env-dist" "${ENV_FILE}" 2>/dev/null || true
+    fi
+fi
+
+# Collect vars from args and/or stdin
+vars=()
+for arg in "$@"; do
+    [[ -n "${arg}" ]] && vars+=("${arg}")
+done
+if [[ ! -t 0 ]]; then
+    while IFS= read -r line; do
+        [[ -n "${line}" ]] && vars+=("${line}")
+    done
+fi
+
+if [[ ${#vars[@]} -eq 0 ]]; then
+    exit 0
+fi
+
+# Build newline-separated input for Python
+input=""
+for v in "${vars[@]}"; do
+    input+="${v}"$'\n'
+done
+
+exec python3 -c '
+import sys, os, tempfile, shutil
+
+env_file = sys.argv[1]
+updates = {}
+for line in sys.stdin:
+    line = line.rstrip("\n")
+    if not line or line.startswith("#"):
+        continue
+    eq = line.find("=")
+    if eq < 0:
+        continue
+    key = line[:eq]
+    val = line[eq+1:]
+    updates[key] = val
+
+if not updates:
+    sys.exit(0)
+
+# Read env file
+with open(env_file, "r") as f:
+    lines = f.readlines()
+
+# Single-pass update
+found = set()
+new_lines = []
+for line in lines:
+    stripped = line.lstrip()
+    if stripped.startswith("#") or "=" not in stripped:
+        new_lines.append(line)
+        continue
+    eq = stripped.find("=")
+    key = stripped[:eq]
+    if key in updates:
+        found.add(key)
+        new_lines.append(key + "=" + updates[key] + "\n")
+        pass
+    else:
+        new_lines.append(line)
+
+# Check for missing keys
+missing = set(updates.keys()) - found
+if missing:
+    for k in sorted(missing):
+        print(f"ERROR: {k} not found in {env_file}", file=sys.stderr)
+    sys.exit(1)
+
+# Atomic write
+fd, tmp = tempfile.mkstemp(dir=os.path.dirname(env_file) or ".")
+try:
+    with os.fdopen(fd, "w") as f:
+        f.writelines(new_lines)
+    shutil.move(tmp, env_file)
+except:
+    os.unlink(tmp)
+    raise
+' "${ENV_FILE}" <<< "${input}"

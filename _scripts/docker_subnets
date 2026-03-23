@@ -136,7 +136,7 @@ cmd_propose() {
     # -----------------------------------------------------------------
     # 2️⃣ Run the Python helper that *must* emit exactly one CIDR on stdout
     # -----------------------------------------------------------------
-    proposed=$(uv run python3 - <<'PY' "${existing_subnets[@]}"
+    proposed=$(python3 - <<'PY' "${existing_subnets[@]}"
 import sys, ipaddress
 
 # Build a list of existing networks from the arguments the shell passed.
@@ -222,7 +222,7 @@ cmd_propose6() {
     )
 
     # 2️⃣ Run the Python helper that *must* emit exactly one IPv6 CIDR on stdout
-    proposed=$(uv run python3 - <<'PY' "${existing_subnets[@]}"
+    proposed=$(python3 - <<'PY' "${existing_subnets[@]}"
 import sys, ipaddress, random
 
 # Build a list of existing IPv6 networks from the arguments the shell passed.
@@ -258,7 +258,7 @@ PY
     fi
 
     # 4️⃣ Validate with Python (handles ::, leading zeros, etc.)
-    if ! uv run python3 -c 'import sys, ipaddress; ipaddress.ip_network(sys.argv[1])' "$proposed"; then
+    if ! python3 -c 'import sys, ipaddress; ipaddress.ip_network(sys.argv[1])' "$proposed"; then
         echo "❌ Computed value \"$proposed\" is not a valid IPv6 CIDR – falling back to fd00:0:0:0::/64." >&2
         proposed="fd00:0:0:0::/64"
     fi

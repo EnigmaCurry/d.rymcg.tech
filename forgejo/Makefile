@@ -13,6 +13,7 @@ config-hook:
 	@${BIN}/reconfigure_ask ${ENV_FILE} APP_NAME "Enter the service description" "$${instance:-default} - git hosting"
 	@PUBLIC_HTTPS_PORT="$$(${BIN}/dotenv -f ${ROOT_DIR}/${ROOT_ENV} get PUBLIC_HTTPS_PORT)"; test -n "$${PUBLIC_HTTPS_PORT}" && ${BIN}/reconfigure ${ENV_FILE} "FORGEJO__server__ROOT_URL=https://$$(${BIN}/dotenv -f ${ENV_FILE} get FORGEJO_TRAEFIK_HOST):$${PUBLIC_HTTPS_PORT}" || ${BIN}/reconfigure ${ENV_FILE} "FORGEJO__server__ROOT_URL=https://$$(${BIN}/dotenv -f ${ENV_FILE} get FORGEJO_TRAEFIK_HOST)"
 	@${BIN}/reconfigure_auth ${ENV_FILE} FORGEJO
+	@${BIN}/reconfigure_ask ${ENV_FILE} FORGEJO_WEBHOOK_HOST "Enter the webhook domain (blank to skip)" ""
 
 .PHONY: override-hook
 override-hook:
@@ -26,7 +27,7 @@ override-hook:
 ####                         # (this hardcodes the string into docker-compose.override.yaml)
 ####   name=@VARIABLE_NAME   # sets the template 'name' field to the literal string '${VARIABLE_NAME}'
 ####                         # (used for regular docker-compose expansion of env vars by name.)
-	@${BIN}/docker_compose_override ${ENV_FILE} project=:forgejo instance=@FORGEJO_INSTANCE traefik_host=@FORGEJO_TRAEFIK_HOST ip_sourcerange=@FORGEJO_IP_SOURCERANGE  enable_mtls_auth=FORGEJO_MTLS_AUTH mtls_authorized_certs=FORGEJO_MTLS_AUTHORIZED_CERTS homepage_labels_enable=FORGEJO_HOMEPAGE_LABELS_ENABLE homepage_group_forgejo=FORGEJO_HOMEPAGE_GROUP_FORGEJO homepage_name_forgejo=FORGEJO_HOMEPAGE_NAME_FORGEJO homepage_icon_forgejo=FORGEJO_HOMEPAGE_ICON_FORGEJO homepage_description_forgejo=FORGEJO_HOMEPAGE_DESCRIPTION_FORGEJO homepage_show_stats_forgejo=FORGEJO_HOMEPAGE_SHOW_STATS_FORGEJO homepage_widget_enable=FORGEJO_HOMEPAGE_WIDGET_ENABLE homepage_widget_api_key=FORGEJO_HOMEPAGE_WIDGET_API_KEY
+	@${BIN}/docker_compose_override ${ENV_FILE} project=:forgejo instance=@FORGEJO_INSTANCE traefik_host=@FORGEJO_TRAEFIK_HOST ip_sourcerange=@FORGEJO_IP_SOURCERANGE  enable_mtls_auth=FORGEJO_MTLS_AUTH mtls_authorized_certs=FORGEJO_MTLS_AUTHORIZED_CERTS webhook_host=@FORGEJO_WEBHOOK_HOST homepage_labels_enable=FORGEJO_HOMEPAGE_LABELS_ENABLE homepage_group_forgejo=FORGEJO_HOMEPAGE_GROUP_FORGEJO homepage_name_forgejo=FORGEJO_HOMEPAGE_NAME_FORGEJO homepage_icon_forgejo=FORGEJO_HOMEPAGE_ICON_FORGEJO homepage_description_forgejo=FORGEJO_HOMEPAGE_DESCRIPTION_FORGEJO homepage_show_stats_forgejo=FORGEJO_HOMEPAGE_SHOW_STATS_FORGEJO homepage_widget_enable=FORGEJO_HOMEPAGE_WIDGET_ENABLE homepage_widget_api_key=FORGEJO_HOMEPAGE_WIDGET_API_KEY
 
 .PHONY: shell
 shell:
