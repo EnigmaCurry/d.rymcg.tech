@@ -46,7 +46,17 @@ config:
 	mkdir -p "$$(dirname $${ENV})" 2>/dev/null; \
 	test -f $${ENV} || cp .env-dist $${ENV} && \
 	${BIN}/dotenv -f $${ENV} set AWS_INSTANCE_NAME="$${INST}" && \
-	${BIN}/reconfigure_ask $${ENV} AWS_ROOT_DOMAIN "Enter the root domain" example.com && \
+	CURRENT_DOMAIN=$$(${BIN}/dotenv -f $${ENV} get AWS_ROOT_DOMAIN 2>/dev/null) && \
+	readarray -t ZONES < <(aws route53 list-hosted-zones \
+		--query 'HostedZones[*].Name' --output text | tr '\t' '\n' | sed 's/\.$$//' | sort) && \
+	if [[ $${#ZONES[@]} -gt 0 ]]; then \
+		DOMAIN=$$(${BIN}/script-wizard choose "Select the Route53 domain" "$${ZONES[@]}" \
+			$${CURRENT_DOMAIN:+--default "$${CURRENT_DOMAIN}"}); \
+	else \
+		echo "No Route53 hosted zones found. Enter domain manually:" >&2; \
+		read -e -p "AWS_ROOT_DOMAIN: " DOMAIN; \
+	fi && \
+	${BIN}/dotenv -f $${ENV} set AWS_ROOT_DOMAIN="$${DOMAIN}" && \
 	CURRENT_REGION=$$(${BIN}/dotenv -f $${ENV} get AWS_REGION 2>/dev/null || echo us-east-1) && \
 	readarray -t REGIONS < <(aws ec2 describe-regions \
 		--query 'Regions[*].RegionName' \
