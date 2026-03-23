@@ -14,6 +14,12 @@ endif
 .PHONY: all
 all: help
 
+ifdef DRT_ENV_DIR
+TRAEFIK_ENV_FILE = ${DRT_ENV_DIR}/traefik/.env_${DOCKER_CONTEXT}_default
+else
+TRAEFIK_ENV_FILE = ${ROOT_DIR}/traefik/.env_${DOCKER_CONTEXT}_default
+endif
+
 .PHONY: help # Show available targets
 help:
 	@grep -h '^.PHONY: .* #' Makefile | sed 's/\.PHONY: \(.*\) # \(.*\)/make \1 \t- \2/'
@@ -411,44 +417,60 @@ acme-dns-cname:
 	INSTANCE_NAME=$$(${BIN}/dotenv -f $${ENV} get AWS_INSTANCE_NAME) && \
 	ROOT_DOMAIN=$$(${BIN}/dotenv -f $${ENV} get AWS_ROOT_DOMAIN) && \
 	REGION=$$(${BIN}/dotenv -f $${ENV} get AWS_REGION) && \
-	FQDN="$${INSTANCE_NAME}.$${ROOT_DOMAIN}" && \
-	FULLDOMAIN=$$(docker --context "$${INSTANCE_NAME}" compose \
-		--project-name traefik \
-		exec acme-sh cat /acme.sh/acmedns-account.json 2>/dev/null \
+	TRAEFIK_ENV="${TRAEFIK_ENV_FILE}" && \
+	if [[ ! -f "$${TRAEFIK_ENV}" ]]; then \
+		echo "ERROR: Traefik env file not found: $${TRAEFIK_ENV}" >&2; \
+		echo "  Run 'make traefik config' first." >&2; \
+		exit 1; \
+	fi && \
+	FULLDOMAIN=$$(docker compose -f ${ROOT_DIR}/traefik/docker-compose.yaml \
+		--env-file=$${TRAEFIK_ENV} --project-name=traefik \
+		run -T --rm --no-deps acme-sh \
+		cat /acme.sh/acmedns-account.json 2>/dev/null \
 		| jq -r '.fulldomain') && \
 	if [[ -z "$${FULLDOMAIN}" || "$${FULLDOMAIN}" == "null" ]]; then \
-		echo "## Error: No acme-dns registration found." && \
-		echo "## Run 'd.rymcg.tech make traefik acme-sh-register' first." && \
+		echo "## Error: No acme-dns registration found." >&2 && \
+		echo "## Run 'make traefik config' and configure ACME first." >&2 && \
 		exit 1; \
 	fi && \
 	ZONE_ID=$$(aws route53 list-hosted-zones-by-name \
-		--dns-name "$${ROOT_DOMAIN}" \
-		--query 'HostedZones[0].Id' \
+		--dns-name "$${ROOT_DOMAIN}." --max-items 1 \
+		--query "HostedZones[?Name=='$${ROOT_DOMAIN}.'].Id" \
 		--output text | sed 's|/hostedzone/||') && \
-	CERT_DOMAINS=$$(docker --context "$${INSTANCE_NAME}" compose \
-		--project-name traefik \
-		exec acme-sh sh -c 'echo $${TRAEFIK_ACME_CERT_DOMAINS}' 2>/dev/null) && \
+	if [[ -z "$${ZONE_ID}" ]]; then \
+		echo "ERROR: Route53 hosted zone not found for $${ROOT_DOMAIN}" >&2; \
+		exit 1; \
+	fi && \
+	CERT_DOMAINS=$$(${BIN}/dotenv -f $${TRAEFIK_ENV} get TRAEFIK_ACME_CERT_DOMAINS) && \
 	readarray -t DOMAINS < <(echo "$${CERT_DOMAINS}" | jq -r '.[] | [.[0]] + (.[1] // []) | .[] | if startswith("*.") then .[2:] else . end' | sort -u) && \
-	echo "## acme-dns fulldomain: $${FULLDOMAIN}" && \
-	echo "## Hosted Zone: $${ZONE_ID}" && \
+	if [[ $${#DOMAINS[@]} -eq 0 ]]; then \
+		echo "ERROR: No certificate domains configured in traefik." >&2; \
+		exit 1; \
+	fi && \
+	echo "## Route53 zone: $${ROOT_DOMAIN} ($${ZONE_ID})" && \
+	echo "## acme-dns target: $${FULLDOMAIN}" && \
 	echo "" && \
 	CHANGES='[]' && \
 	for DOMAIN in "$${DOMAINS[@]}"; do \
 		CNAME="_acme-challenge.$${DOMAIN}" && \
-		echo "## Creating CNAME: $${CNAME} -> $${FULLDOMAIN}" && \
+		echo "  $${CNAME} -> $${FULLDOMAIN}" && \
 		CHANGES=$$(echo "$${CHANGES}" | jq --arg name "$${CNAME}" --arg target "$${FULLDOMAIN}" \
 			'. + [{"Action":"UPSERT","ResourceRecordSet":{"Name":$$name,"Type":"CNAME","TTL":300,"ResourceRecords":[{"Value":$$target}]}}]'); \
 	done && \
 	BATCH=$$(echo "$${CHANGES}" | jq '{Changes:.}') && \
-	aws route53 change-resource-record-sets \
-		--hosted-zone-id "$${ZONE_ID}" \
-		--change-batch "$${BATCH}" \
-		--region "$${REGION}" \
-		--query 'ChangeInfo.{Status:Status,Id:Id}' \
-		--output table && \
 	echo "" && \
-	echo "## CNAME records created. Waiting for DNS propagation..." && \
-	echo "## Then restart acme-sh: d.rymcg.tech make traefik restart service=acme-sh"
+	read -p "Create these CNAME records in Route53? [y/N] " confirm && \
+	if [[ "$${confirm}" =~ ^[Yy] ]]; then \
+		aws route53 change-resource-record-sets \
+			--hosted-zone-id "$${ZONE_ID}" \
+			--change-batch "$${BATCH}" \
+			--query 'ChangeInfo.{Status:Status,Id:Id}' \
+			--output table && \
+		echo "" && \
+		echo "## CNAME records created. DNS propagation may take a few minutes."; \
+	else \
+		echo "## Cancelled."; \
+	fi
 
 .PHONY: estimate # Show cost estimate for the configured stack
 estimate:
