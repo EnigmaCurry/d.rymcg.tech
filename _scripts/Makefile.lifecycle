@@ -20,6 +20,9 @@ config-hook-echo-postscript-default:
 config-dist: 
 	@echo
 	@echo "Configuring environment file: ${ENV_FILE}"
+ifdef DRT_ENV_DIR
+	@mkdir -p "$$(dirname ${ENV_FILE})"
+endif
 	@cp .env-dist ${ENV_FILE}
 	@echo ""
 	@echo "Copied the default .env-dist file. Edit ${ENV_FILE} by hand."

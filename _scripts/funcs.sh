@@ -8,6 +8,11 @@ if [[ -d "${ROOT_DIR}/.venv/bin" && ":${PATH}:" != *":${ROOT_DIR}/.venv/bin:"* ]
     export PATH="${ROOT_DIR}/.venv/bin:${PATH}"
 fi
 
+## When DRT_ENV_DIR is set, ensure the env file directory exists
+if [[ -n "${DRT_ENV_DIR:-}" && -n "${ENV_FILE:-}" ]]; then
+    mkdir -p "$(dirname "${ENV_FILE}")" 2>/dev/null || true
+fi
+
 stderr(){ echo "$@" >/dev/stderr 2>/dev/null || echo "$@"; }
 error(){ stderr "Error: $@"; }
 fault(){ test -n "$1" && error $1; stderr "Exiting."; exit 1; }

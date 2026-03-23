@@ -15,7 +15,15 @@ if [[ -z "${ENV_FILE}" ]]; then
     echo "Usage: batch-reconfigure ENV_FILE [KEY=VALUE ...]" >&2
     exit 1
 fi
-test -f "${ENV_FILE}" || cp "$(dirname "${ENV_FILE}")/.env-dist" "${ENV_FILE}" 2>/dev/null || true
+if [[ ! -f "${ENV_FILE}" ]]; then
+    mkdir -p "$(dirname "${ENV_FILE}")" 2>/dev/null || true
+    if [[ -n "${DRT_ENV_DIR:-}" && "${ENV_FILE}" == "${DRT_ENV_DIR}"* ]]; then
+        _rel="${ENV_FILE#${DRT_ENV_DIR}/}"
+        cp "${ROOT_DIR:-$(dirname "${BIN}")}/${_rel%/*}/.env-dist" "${ENV_FILE}" 2>/dev/null || true
+    else
+        cp "$(dirname "${ENV_FILE}")/.env-dist" "${ENV_FILE}" 2>/dev/null || true
+    fi
+fi
 
 # Collect vars from args and/or stdin
 vars=()
