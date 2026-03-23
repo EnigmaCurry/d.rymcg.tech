@@ -637,13 +637,20 @@ fi
 if [[ "${DRT_VERBOSE:-}" == "true" ]]; then
     if ! { env; echo "${SOPS_DECRYPTED:-}"; } | DOCKER_CONTEXT="${DOCKER_CONTEXT}" d.rymcg.tech restore-env --yes; then
         echo "" >&2
-        echo "WARNING: restore-env had errors (some vars may need reconfiguration)" >&2
+        echo "ERROR: restore-env failed" >&2
+        exit 1
     fi
 else
-    if ! { env; echo "${SOPS_DECRYPTED:-}"; } | DOCKER_CONTEXT="${DOCKER_CONTEXT}" d.rymcg.tech restore-env --yes 2>/dev/null; then
+    _restore_env_err=$(mktemp)
+    if ! { env; echo "${SOPS_DECRYPTED:-}"; } | DOCKER_CONTEXT="${DOCKER_CONTEXT}" d.rymcg.tech restore-env --yes 2>"${_restore_env_err}"; then
         echo "" >&2
-        echo "WARNING: restore-env had errors (re-run with --verbose to see details)" >&2
+        cat "${_restore_env_err}" >&2
+        echo "" >&2
+        echo "ERROR: restore-env failed (re-run with --verbose for full output)" >&2
+        rm -f "${_restore_env_err}"
+        exit 1
     fi
+    rm -f "${_restore_env_err}"
 fi
 
 # Ensure ~/.ssh/config includes config-drt (after restore-env, which may restore ~/.ssh/config)
