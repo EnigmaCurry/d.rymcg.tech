@@ -10,10 +10,9 @@ BIN="${ROOT_DIR}/_scripts"
 ## with the bind-mounted host directory as the live lower layer (reads pass through
 ## in real-time) and an ephemeral upper layer for writes (secrets stay in-container).
 if [[ -n "${DRT_OVERLAY_LOWER:-}" && -d "${DRT_OVERLAY_LOWER}" ]]; then
-    mount -t tmpfs tmpfs /mnt
-    mkdir -p /mnt/upper /mnt/work
-    mount -t overlay overlay \
-        -o "lowerdir=${DRT_OVERLAY_LOWER},upperdir=/mnt/upper,workdir=/mnt/work" \
+    mkdir -p /tmp/drt-overlay-upper /tmp/drt-overlay-work
+    fuse-overlayfs \
+        -o "lowerdir=${DRT_OVERLAY_LOWER},upperdir=/tmp/drt-overlay-upper,workdir=/tmp/drt-overlay-work" \
         "${ROOT_DIR}"
     echo "## Overlay: ${DRT_OVERLAY_LOWER} -> ${ROOT_DIR} (writes are ephemeral)" >&2
 fi

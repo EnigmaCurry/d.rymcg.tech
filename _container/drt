@@ -1312,7 +1312,7 @@ cmd_run() {
         RUN_ARGS+=(
             -v "${OVERLAY_PATH}:/mnt/drt-overlay-lower:ro"
             -e "DRT_OVERLAY_LOWER=/mnt/drt-overlay-lower"
-            --cap-add SYS_ADMIN
+            --device /dev/fuse
         )
     fi
 
