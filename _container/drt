@@ -1307,7 +1307,7 @@ cmd_run() {
             exit 1
         fi
         echo "## Bind mount: ${BIND_MOUNT_PATH} -> /home/user/git/vendor/enigmacurry/d.rymcg.tech" >&2
-        RUN_ARGS+=(-v "${BIND_MOUNT_PATH}:/home/user/git/vendor/enigmacurry/d.rymcg.tech:Z")
+        RUN_ARGS+=(-v "${BIND_MOUNT_PATH}:/home/user/git/vendor/enigmacurry/d.rymcg.tech")
     fi
 
     RUN_ARGS+=("${IMAGE}")
