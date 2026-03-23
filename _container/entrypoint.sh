@@ -10,9 +10,9 @@ BIN="${ROOT_DIR}/_scripts"
 ## with the bind-mounted host directory as the live lower layer (reads pass through
 ## in real-time) and an ephemeral upper layer for writes (secrets stay in-container).
 if [[ -n "${DRT_OVERLAY_LOWER:-}" && -d "${DRT_OVERLAY_LOWER}" ]]; then
-    mkdir -p /tmp/drt-overlay-upper /tmp/drt-overlay-work
+    mkdir -p /var/drt-overlay-upper /var/drt-overlay-work
     mount -t overlay overlay \
-        -o "lowerdir=${DRT_OVERLAY_LOWER},upperdir=/tmp/drt-overlay-upper,workdir=/tmp/drt-overlay-work" \
+        -o "lowerdir=${DRT_OVERLAY_LOWER},upperdir=/var/drt-overlay-upper,workdir=/var/drt-overlay-work" \
         "${ROOT_DIR}"
     echo "## Overlay: ${DRT_OVERLAY_LOWER} -> ${ROOT_DIR} (writes are ephemeral)" >&2
 fi
