@@ -427,7 +427,7 @@ acme-dns-cname:
 		--env-file=$${TRAEFIK_ENV} --project-name=traefik \
 		run -T --rm --no-deps acme-sh \
 		cat /acme.sh/acmedns-account.json 2>/dev/null \
-		| jq -r '.fulldomain') && \
+		| grep -v '^WARN' | jq -r '.fulldomain') && \
 	if [[ -z "$${FULLDOMAIN}" || "$${FULLDOMAIN}" == "null" ]]; then \
 		echo "## Error: No acme-dns registration found." >&2 && \
 		echo "## Run 'make traefik config' and configure ACME first." >&2 && \
