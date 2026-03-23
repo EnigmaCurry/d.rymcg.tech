@@ -1144,13 +1144,11 @@ __restore_env() {
 
     # Decode base64 data, auto-detecting gzip (backward-compatible with plain base64)
     _b64_decode() {
-        local raw
-        raw=$(echo "$1" | base64 -d)
         # Check for gzip magic bytes (1f 8b)
         if [[ $(echo "$1" | base64 -d | od -A n -N 2 -t x1 | tr -d ' ') == "1f8b" ]]; then
             echo "$1" | base64 -d | gunzip
         else
-            echo "${raw}"
+            echo "$1" | base64 -d
         fi
     }
 
