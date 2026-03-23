@@ -14,9 +14,15 @@ if [[ -n "${INSTANCE}" ]]; then
 fi
 
 DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-readarray -t INSTANCES < <(for f in "${DIR}"/.env_${DOCKER_CONTEXT}_*; do
+if [[ -n "${DRT_ENV_DIR:-}" ]]; then
+    _SEARCH_DIR="${DRT_ENV_DIR}/$(basename "${DIR}")"
+else
+    _SEARCH_DIR="${DIR}"
+fi
+readarray -t INSTANCES < <(for f in "${_SEARCH_DIR}"/.env_${DOCKER_CONTEXT}_*; do
     [[ -f "$f" ]] || continue
-    INST="${f#${DIR}/.env_${DOCKER_CONTEXT}_}"
+    INST="$(basename "$f")"
+    INST="${INST#.env_${DOCKER_CONTEXT}_}"
     [[ -n "${INST}" ]] && echo "${INST}"
 done)
 

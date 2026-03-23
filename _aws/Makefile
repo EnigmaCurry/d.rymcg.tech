@@ -5,7 +5,11 @@ BIN = ${ROOT_DIR}/_scripts
 DOCKER_CONTEXT ?= $(shell docker context ls --format "{{.Current}} {{.Name}}" | grep -oP "^true \K.*")
 instance ?=
 SELECT_INSTANCE = ./select-instance.sh "$(instance)" "${DOCKER_CONTEXT}" "${BIN}"
+ifdef DRT_ENV_DIR
+env_file = ${DRT_ENV_DIR}/_aws/.env_${DOCKER_CONTEXT}_$${INST}
+else
 env_file = .env_${DOCKER_CONTEXT}_$${INST}
+endif
 
 .PHONY: all
 all: help
@@ -16,6 +20,16 @@ help:
 
 .PHONY: list # List configured instances for the current context
 list:
+ifdef DRT_ENV_DIR
+	@_ENV_DIR="${DRT_ENV_DIR}/_aws"; \
+	for f in $${_ENV_DIR}/.env_${DOCKER_CONTEXT}_*; do \
+		[[ -f "$$f" ]] || continue; \
+		INST="$$(basename "$$f")" && INST="$${INST#.env_${DOCKER_CONTEXT}_}" && \
+		DOMAIN=$$(${BIN}/dotenv -f "$$f" get AWS_ROOT_DOMAIN 2>/dev/null) && \
+		REGION=$$(${BIN}/dotenv -f "$$f" get AWS_REGION 2>/dev/null) && \
+		echo "$${INST}	$${INST}.$${DOMAIN}	$${REGION}"; \
+	done
+else
 	@for f in .env_${DOCKER_CONTEXT}_*; do \
 		[[ -f "$$f" ]] || continue; \
 		INST="$${f#.env_${DOCKER_CONTEXT}_}" && \
@@ -23,11 +37,13 @@ list:
 		REGION=$$(${BIN}/dotenv -f "$$f" get AWS_REGION 2>/dev/null) && \
 		echo "$${INST}	$${INST}.$${DOMAIN}	$${REGION}"; \
 	done
+endif
 
 .PHONY: config # Configure AWS CloudFormation parameters (instance=NAME)
 config:
 	@INST=$$(${SELECT_INSTANCE} --create) && \
 	ENV=${env_file} && \
+	mkdir -p "$$(dirname $${ENV})" 2>/dev/null; \
 	test -f $${ENV} || cp .env-dist $${ENV} && \
 	${BIN}/dotenv -f $${ENV} set AWS_INSTANCE_NAME="$${INST}" && \
 	${BIN}/reconfigure_ask $${ENV} AWS_ROOT_DOMAIN "Enter the root domain" example.com && \
