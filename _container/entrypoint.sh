@@ -39,9 +39,12 @@ chown -R "${RUNTIME_UID}:${RUNTIME_GID}" \
     "${RUNTIME_HOME}/.ssh" \
     "${RUNTIME_HOME}/.local" \
     "${RUNTIME_HOME}/.cache" \
-    "${ROOT_DIR}" \
     /run/secrets/ssh \
     2>/dev/null || true
+# Skip recursive chown of ROOT_DIR when using overlay (triggers copy-up of every file)
+if [[ -z "${DRT_OVERLAY_LOWER:-}" ]]; then
+    chown -R "${RUNTIME_UID}:${RUNTIME_GID}" "${ROOT_DIR}" 2>/dev/null || true
+fi
 
 ## Set up PATH so the d.rymcg.tech CLI works
 export PATH="${ROOT_DIR}/_scripts/user:${PATH}"
