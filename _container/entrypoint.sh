@@ -492,9 +492,8 @@ fi
 log "## Step 5: Resolving DOCKER flag and DOCKER_CONTEXT"
 if [[ -n "${SSH_HOST:-}" ]]; then
     DOCKER=true
-elif [[ "${DOCKER:-}" != "false" ]]; then
-    echo "ERROR: SSH_HOST is not set. Set DOCKER=false to run without a remote Docker host." >&2
-    exit 1
+else
+    DOCKER=false
 fi
 export DOCKER
 log "## DOCKER=${DOCKER}"
