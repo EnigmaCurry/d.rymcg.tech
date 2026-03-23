@@ -29,7 +29,7 @@ export DRT_IMAGE="${DRT_IMAGE:-localhost/d-rymcg-tech:latest}"
 ## Uncomment to install extra CLI tools and/or add container capabilities:
 #export DRT_INSTALL_EXTRAS="${DRT_INSTALL_EXTRAS:-doctl,aws,gh,rclone,mc,step,gpg,wireguard,k3s,wayland,pipewire}"
 #export DRT_CAP_ADD="${DRT_CAP_ADD:-NET_ADMIN}"
-#export DRT_BIND_MOUNT="${DRT_BIND_MOUNT:-~/git/vendor/enigmacurry/d.rymcg.tech}"
+#export DRT_OVERLAY="${DRT_OVERLAY:-~/git/vendor/enigmacurry/d.rymcg.tech}"
 
 if podman image exists "${DRT_IMAGE}" 2>/dev/null; then
   source <(podman run --rm --pull=never --net=none --entrypoint cat \

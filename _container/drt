@@ -519,7 +519,7 @@ Options:
   --controller-port PORT  Host port for request-controller (default: 8084)
   --net MODE         Network mode: pasta, slirp4netns, host (auto-detected)
   --cap-add CAP      Add Linux capability (e.g. NET_ADMIN for wireguard)
-  --bind-mount PATH  Bind mount host directory over the container d.rymcg.tech tree
+  --overlay PATH     Overlay mount host directory over the container d.rymcg.tech tree
   --cold-storage     Unlock with pasted backup AGE key instead of key file
   --wayland          Enable Wayland GUI passthrough (socket + GPU)
   --pipewire         Enable PipeWire audio passthrough
@@ -1045,7 +1045,7 @@ cmd_run() {
     local WAYLAND=false
     local PIPEWIRE=false
     local COLD_STORAGE=false
-    local BIND_MOUNT_PATH=""
+    local OVERLAY_PATH=""
 
     while [[ $# -gt 0 ]]; do
         case "$1" in
@@ -1060,7 +1060,7 @@ cmd_run() {
             --verbose|-v) VERBOSE=true; shift ;;
             --no-git) DRT_NO_GIT=true; shift ;;
             --cap-add) CAP_ADDS+=("$2"); shift 2 ;;
-            --bind-mount) BIND_MOUNT_PATH="$2"; shift 2 ;;
+            --overlay) OVERLAY_PATH="$2"; shift 2 ;;
             --wayland) WAYLAND=true; shift ;;
             --pipewire) PIPEWIRE=true; shift ;;
             --cold-storage) COLD_STORAGE=true; shift ;;
@@ -1299,15 +1299,15 @@ cmd_run() {
         RUN_ARGS+=(-p "${CONTROLLER_PORT}:8084")
     fi
 
-    # Bind mount host directory over the baked-in d.rymcg.tech tree
-    if [[ -n "${BIND_MOUNT_PATH}" ]]; then
-        BIND_MOUNT_PATH="$(realpath "${BIND_MOUNT_PATH}")"
-        if [[ ! -d "${BIND_MOUNT_PATH}" ]]; then
-            echo "Error: bind mount path is not a directory: ${BIND_MOUNT_PATH}" >&2
+    # Overlay mount host directory over the baked-in d.rymcg.tech tree
+    if [[ -n "${OVERLAY_PATH}" ]]; then
+        OVERLAY_PATH="$(realpath "${OVERLAY_PATH}")"
+        if [[ ! -d "${OVERLAY_PATH}" ]]; then
+            echo "Error: overlay path is not a directory: ${OVERLAY_PATH}" >&2
             exit 1
         fi
-        echo "## Bind mount: ${BIND_MOUNT_PATH} -> /home/user/git/vendor/enigmacurry/d.rymcg.tech" >&2
-        RUN_ARGS+=(-v "${BIND_MOUNT_PATH}:/home/user/git/vendor/enigmacurry/d.rymcg.tech")
+        echo "## Overlay mount: ${OVERLAY_PATH} -> /home/user/git/vendor/enigmacurry/d.rymcg.tech" >&2
+        RUN_ARGS+=(-v "${OVERLAY_PATH}:/home/user/git/vendor/enigmacurry/d.rymcg.tech:O")
     fi
 
     RUN_ARGS+=("${IMAGE}")
@@ -2069,8 +2069,8 @@ while [[ $# -gt 0 ]]; do
             ARGS+=(--cap-add "$2")
             shift 2
             ;;
-        --bind-mount)
-            ARGS+=(--bind-mount "$2")
+        --overlay)
+            ARGS+=(--overlay "$2")
             shift 2
             ;;
         --cold-storage)
@@ -2194,7 +2194,7 @@ case "${ACTION}" in
                 continue
             fi
             case "${_arg}" in
-                --cap-add|--image|--net|--age-key|--ssh-key|--ssh-timeout|--timeout|--controller-port|--bind-mount)
+                --cap-add|--image|--net|--age-key|--ssh-key|--ssh-timeout|--timeout|--controller-port|--overlay)
                     _skip_next=true ;;
                 -*) ;;
                 *) _has_context=true; break ;;
