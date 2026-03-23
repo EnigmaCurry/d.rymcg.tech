@@ -588,6 +588,7 @@ cmd_init() {
     local AGE_KEY_DIR="${HOME}/.config/d.rymcg.tech/keys/sops"
     local AGE_KEY_FILE="${AGE_KEY_DIR}/${CONTEXT}.key"
     local PUBKEY
+    local _KEY_TYPE=""
     if [[ ! -f "${AGE_KEY_FILE}" ]]; then
         echo "No AGE key found for context '${CONTEXT}'"
         mkdir -p "${AGE_KEY_DIR}"
@@ -600,6 +601,7 @@ cmd_init() {
 
         case "${KEY_PROTECTION}" in
             "Passphrase protected key file (must have: key AND passphrase)")
+                _KEY_TYPE=passphrase
                 echo "Generating a new AGE keypair..."
                 container_run "${IMAGE}" age-keygen > "${AGE_KEY_FILE}"
                 chmod 600 "${AGE_KEY_FILE}"
@@ -624,6 +626,7 @@ cmd_init() {
                 fi
                 ;;
             "FIDO2 hardware token + cold storage key (must have: token+PIN OR cold storage key)")
+                _KEY_TYPE=fido2
                 local ALL_PUBKEYS=()
                 local FIDO2_ID_FILE="${AGE_KEY_DIR}/${CONTEXT}.fido2"
                 > "${AGE_KEY_FILE}"   # start with empty key file
@@ -720,6 +723,7 @@ cmd_init() {
                 echo "SOPS recipients: FIDO2 + cold storage backup"
                 ;;
             "No protection")
+                _KEY_TYPE=plaintext
                 echo "Generating a new AGE keypair..."
                 container_run "${IMAGE}" age-keygen > "${AGE_KEY_FILE}"
                 chmod 600 "${AGE_KEY_FILE}"
@@ -729,7 +733,6 @@ cmd_init() {
         esac
     else
         echo "Using existing AGE key: ${AGE_KEY_FILE}"
-        local _KEY_TYPE
         _KEY_TYPE=$(detect_key_type "${AGE_KEY_FILE}")
 
         if [[ "${_KEY_TYPE}" == "passphrase" ]]; then
