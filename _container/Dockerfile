@@ -49,7 +49,6 @@ RUN apk add --no-cache \
     su-exec \
     socat \
     util-linux \
-    fuse-overlayfs \
     bash-completion
 
 # Install uv (Python package manager)

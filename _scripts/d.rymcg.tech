@@ -790,17 +790,18 @@ __export_env() {
         ctx="${DOCKER_CONTEXT:-${DRT_CONTEXT:-$(${BIN}/docker_context)}}"
     fi
     cd "${ROOT_DIR}"
+    local _env_base="${DRT_ENV_DIR:-.}"
 
-    # Collect all env files for this context
+    # Collect all env files for this context (paths relative to _env_base)
     local -a all_files=()
-    local root_env=".env_${ctx}"
-    if [[ -f "${root_env}" ]]; then
-        all_files+=("${root_env}")
+    if [[ -f "${_env_base}/.env_${ctx}" ]]; then
+        all_files+=(".env_${ctx}")
     fi
-    for env_file in */.env_${ctx}_*; do
+    for env_file in "${_env_base}"/*/.env_${ctx}_*; do
         [[ -f "${env_file}" ]] || continue
         [[ "${env_file}" == *~ ]] && continue
-        all_files+=("${env_file}")
+        # Store relative path (strip _env_base prefix)
+        all_files+=("${env_file#${_env_base}/}")
     done
 
     # Let user choose which files to export
@@ -828,14 +829,15 @@ __export_env() {
     local recipients=""
     if [[ "${encrypt}" == true ]]; then
         local env_ctx="${ctx}"
-        recipients=$(${BIN}/dotenv -f ".env_${env_ctx}" get SOPS_AGE_RECIPIENTS 2>/dev/null || true)
+        recipients=$(${BIN}/dotenv -f "${_env_base}/.env_${env_ctx}" get SOPS_AGE_RECIPIENTS 2>/dev/null || \
+                     ${BIN}/dotenv -f ".env_${env_ctx}" get SOPS_AGE_RECIPIENTS 2>/dev/null || true)
         if [[ -z "${recipients}" && -n "${SOPS_AGE_KEY_FILE:-}" && -f "${SOPS_AGE_KEY_FILE}" ]]; then
             recipients=$(age-keygen -y "${SOPS_AGE_KEY_FILE}" 2>/dev/null || true)
         fi
         if [[ -z "${recipients}" ]]; then
             if wizard confirm "SOPS_AGE_RECIPIENTS is not set. Configure it now?" no >&2; then
                 recipients=$(wizard ask "Enter AGE recipient public key (age1...)") || exit 1
-                ${BIN}/reconfigure ".env_${env_ctx}" "SOPS_AGE_RECIPIENTS=${recipients}" >&2
+                ${BIN}/reconfigure "${_env_base}/.env_${env_ctx}" "SOPS_AGE_RECIPIENTS=${recipients}" >&2 || true
             else
                 exit 1
             fi
@@ -879,7 +881,8 @@ __export_env() {
         first=false
     fi
     for env_file in "${selected_files[@]}"; do
-        [[ -f "${env_file}" ]] || continue
+        local _resolved="${_env_base}/${env_file}"
+        [[ -f "${_resolved}" ]] || continue
         if [[ "${first}" == true ]]; then
             first=false
         else
@@ -890,16 +893,16 @@ __export_env() {
             local basename="${env_file#*/}"
             local instance="${basename#.env_${ctx}_}"
             if [[ "${instance}" == "default" ]]; then
-                plaintext+=$(${BIN}/dotenv -f "${env_file}" parse)$'\n'
+                plaintext+=$(${BIN}/dotenv -f "${_resolved}" parse)$'\n'
             else
                 while IFS= read -r line; do
                     local key="${line%%=*}"
                     local val="${line#*=}"
                     plaintext+="__${instance}__${key}=${val}"$'\n'
-                done < <(${BIN}/dotenv -f "${env_file}" parse)
+                done < <(${BIN}/dotenv -f "${_resolved}" parse)
             fi
         else
-            plaintext+=$(${BIN}/dotenv -f "${env_file}" parse)$'\n'
+            plaintext+=$(${BIN}/dotenv -f "${_resolved}" parse)$'\n'
         fi
     done
 
@@ -910,9 +913,10 @@ __export_env() {
         local project="${env_file%%/*}"
         [[ -n "${seen_projects[${project}]+set}" ]] && continue
         seen_projects["${project}"]=1
-        if [[ -r "${project}/passwords.json" ]]; then
+        local _pw_path="${_env_base}/${project}/passwords.json"
+        if [[ -r "${_pw_path}" ]]; then
             local pw_data
-            pw_data=$(gzip -cn < "${project}/passwords.json" | base64 -w 0)
+            pw_data=$(gzip -cn < "${_pw_path}" | base64 -w 0)
             plaintext+=$'\n'"## ${project}/passwords.json"$'\n'
             plaintext+="__passwords__${project}=${pw_data}"$'\n'
         fi
@@ -1414,13 +1418,28 @@ __restore_env() {
         fi
     fi
 
+    # Resolve write path: when DRT_ENV_DIR is set, redirect .env_* and
+    # passwords.json writes there, preserving the relative directory structure.
+    _env_path() {
+        if [[ -n "${DRT_ENV_DIR:-}" ]]; then
+            local dir="${DRT_ENV_DIR}/$(dirname "$1")"
+            mkdir -p "${dir}"
+            echo "${DRT_ENV_DIR}/$1"
+        else
+            echo "$1"
+        fi
+    }
+
     # Second pass: write files
     for target_file in "${file_order[@]}"; do
+        local write_path
+        write_path=$(_env_path "${target_file}")
+
         # Handle passwords.json files (base64-encoded)
         if [[ -n "${password_files[${target_file}]+set}" ]]; then
             echo "## Restoring ${target_file}" >&2
-            _b64_decode "${password_files[${target_file}]}" > "${target_file}"
-            chmod 600 "${target_file}"
+            _b64_decode "${password_files[${target_file}]}" > "${write_path}"
+            chmod 600 "${write_path}"
             continue
         fi
 
@@ -1431,20 +1450,20 @@ __restore_env() {
         echo "## Restoring ${target_file}" >&2
 
         if [[ "${first_line}" == "__type__=root" ]]; then
-            cp .env-dist "${target_file}"
+            cp .env-dist "${write_path}"
         elif [[ "${first_line}" == "__type__=default" ]]; then
             local project_name="${target_file%%/*}"
-            cp "${project_name}/.env-dist" "${target_file}"
+            cp "${project_name}/.env-dist" "${write_path}"
         elif [[ "${first_line}" == __instance__=* ]]; then
             local instance="${first_line#__instance__=}"
             instance="${instance%%|*}"
             local prefix="${first_line#*__prefix__=}"
             local project_name="${target_file%%/*}"
-            cp "${project_name}/.env-dist" "${target_file}"
-            ${BIN}/dotenv -f "${target_file}" set "${prefix}_INSTANCE=${instance}"
+            cp "${project_name}/.env-dist" "${write_path}"
+            ${BIN}/dotenv -f "${write_path}" set "${prefix}_INSTANCE=${instance}"
         fi
 
-        ${BIN}/batch-reconfigure "${target_file}" <<< "${rest}" 2>&1 >&2
+        ${BIN}/batch-reconfigure "${write_path}" <<< "${rest}" 2>&1 >&2
     done
 
     # Restore doctl config if present

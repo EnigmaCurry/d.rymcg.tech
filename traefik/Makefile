@@ -143,8 +143,9 @@ traefik-user:
 
 .PHONY: dashboard # Open the Traefik dashboard TUI (tt-tui-for-traefik)
 dashboard:
-	@TRAEFIK_USERNAME=$$(cat ${ROOT_DIR}/traefik/passwords.json | jq -r '."${DOCKER_CONTEXT}_default".[].username'); \
-	TRAEFIK_PASSWORD=$$(cat ${ROOT_DIR}/traefik/passwords.json | jq -r '."${DOCKER_CONTEXT}_default".[].password'); \
+	@_PW_JSON="$${DRT_ENV_DIR:-${ROOT_DIR}}/traefik/passwords.json"; \
+	TRAEFIK_USERNAME=$$(cat "$${_PW_JSON}" | jq -r '."${DOCKER_CONTEXT}_default".[].username'); \
+	TRAEFIK_PASSWORD=$$(cat "$${_PW_JSON}" | jq -r '."${DOCKER_CONTEXT}_default".[].password'); \
 	SSH_HOST_ARG="$${SSH_HOST_ARG:---ssh-host ${DOCKER_CONTEXT}}"; \
 	if [[ "$${SSH_HOST_ARG}" == "none" ]]; then SSH_HOST_ARG=""; fi; \
 	if command -v tt >/dev/null; then \

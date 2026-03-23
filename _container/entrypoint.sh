@@ -9,12 +9,13 @@ BIN="${ROOT_DIR}/_scripts"
 ## Overlay mount: if DRT_OVERLAY_LOWER is set, create an overlayfs over ROOT_DIR
 ## with the bind-mounted host directory as the live lower layer (reads pass through
 ## in real-time) and an ephemeral upper layer for writes (secrets stay in-container).
-if [[ -n "${DRT_OVERLAY_LOWER:-}" && -d "${DRT_OVERLAY_LOWER}" ]]; then
-    mkdir -p /tmp/drt-overlay-upper /tmp/drt-overlay-work
-    fuse-overlayfs \
-        -o "lowerdir=${DRT_OVERLAY_LOWER},upperdir=/tmp/drt-overlay-upper,workdir=/tmp/drt-overlay-work" \
-        "${ROOT_DIR}"
-    echo "## Overlay: ${DRT_OVERLAY_LOWER} -> ${ROOT_DIR} (writes are ephemeral)" >&2
+if [[ -n "${DRT_BIND_MOUNT:-}" ]]; then
+    # Host directory is bind-mounted read-only at ROOT_DIR by podman.
+    # Create writable env directory for .env_* and passwords.json files.
+    export DRT_ENV_DIR="${HOME}/.local/d.rymcg.tech/env"
+    mkdir -p "${DRT_ENV_DIR}"
+    echo "## Bind mount: ${ROOT_DIR} (read-only)" >&2
+    echo "## Env dir: ${DRT_ENV_DIR} (writable, ephemeral)" >&2
 fi
 
 ## Step 0: Set up runtime user with host UID/GID
@@ -41,8 +42,8 @@ chown -R "${RUNTIME_UID}:${RUNTIME_GID}" \
     "${RUNTIME_HOME}/.cache" \
     /run/secrets/ssh \
     2>/dev/null || true
-# Skip recursive chown of ROOT_DIR when using overlay (triggers copy-up of every file)
-if [[ -z "${DRT_OVERLAY_LOWER:-}" ]]; then
+# Skip recursive chown of ROOT_DIR when using bind mount (read-only)
+if [[ -z "${DRT_BIND_MOUNT:-}" ]]; then
     chown -R "${RUNTIME_UID}:${RUNTIME_GID}" "${ROOT_DIR}" 2>/dev/null || true
 fi
 
@@ -628,7 +629,11 @@ fi
 ## Step 8: Create root .env and distribute env vars via restore-env
 log "## Step 8: Running restore-env"
 cd "${ROOT_DIR}"
-cp -n .env-dist ".env_${DOCKER_CONTEXT}"
+if [[ -n "${DRT_ENV_DIR:-}" ]]; then
+    cp -n .env-dist "${DRT_ENV_DIR}/.env_${DOCKER_CONTEXT}"
+else
+    cp -n .env-dist ".env_${DOCKER_CONTEXT}"
+fi
 if [[ "${DRT_VERBOSE:-}" == "true" ]]; then
     if ! { env; echo "${SOPS_DECRYPTED:-}"; } | DOCKER_CONTEXT="${DOCKER_CONTEXT}" d.rymcg.tech restore-env --yes; then
         echo "" >&2
@@ -654,7 +659,12 @@ log "## Step 9: Checking requested project env files"
 if [[ -n "${PROJECTS:-}" ]]; then
     IFS=, read -ra _requested_projects <<< "${PROJECTS}"
     for project_name in "${_requested_projects[@]}"; do
-        env_file="${project_name}/.env_${DOCKER_CONTEXT}_default"
+        if [[ -n "${DRT_ENV_DIR:-}" ]]; then
+            env_file="${DRT_ENV_DIR}/${project_name}/.env_${DOCKER_CONTEXT}_default"
+            mkdir -p "${DRT_ENV_DIR}/${project_name}"
+        else
+            env_file="${project_name}/.env_${DOCKER_CONTEXT}_default"
+        fi
         if [[ ! -f "${env_file}" ]]; then
             log "## Creating ${env_file} from .env-dist"
             cp "${project_name}/.env-dist" "${env_file}"
@@ -669,7 +679,11 @@ for i in "${!_cmd_args[@]}"; do
     if [[ "${_cmd_args[$i]}" == "make" && $((i+1)) -lt ${#_cmd_args[@]} ]]; then
         _target_project="${_cmd_args[$((i+1))]}"
         if [[ -d "${ROOT_DIR}/${_target_project}" && -f "${ROOT_DIR}/${_target_project}/.env-dist" ]]; then
-            _target_env="${ROOT_DIR}/${_target_project}/.env_${DOCKER_CONTEXT}_default"
+            if [[ -n "${DRT_ENV_DIR:-}" ]]; then
+                _target_env="${DRT_ENV_DIR}/${_target_project}/.env_${DOCKER_CONTEXT}_default"
+            else
+                _target_env="${ROOT_DIR}/${_target_project}/.env_${DOCKER_CONTEXT}_default"
+            fi
             if [[ ! -f "${_target_env}" ]]; then
                 echo "ERROR: ${_target_env} not found." >&2
                 echo "  The project '${_target_project}' was not included in the SOPS config (${SOPS_CONFIG_FILE:-unset})." >&2
@@ -776,7 +790,11 @@ fi
 unset SOPS_DECRYPTED
 
 # Fix ownership of env files and passwords.json created by restore-env
-find "${ROOT_DIR}" \( -name ".env_*" -o -name "passwords.json" \) -exec chown "${RUNTIME_UID}:${RUNTIME_GID}" {} + 2>/dev/null || true
+if [[ -n "${DRT_ENV_DIR:-}" ]]; then
+    chown -R "${RUNTIME_UID}:${RUNTIME_GID}" "${DRT_ENV_DIR}" 2>/dev/null || true
+else
+    find "${ROOT_DIR}" \( -name ".env_*" -o -name "passwords.json" \) -exec chown "${RUNTIME_UID}:${RUNTIME_GID}" {} + 2>/dev/null || true
+fi
 # chown the entire drt config dir (covers gumdrop-presets, startup.sh, etc.)
 # Exclude config/, keys/, and *.sops.env (bind-mounted from host)
 find "${HOME}/.config/d.rymcg.tech" -not -path '*/config/*' -not -path '*/keys/*' \

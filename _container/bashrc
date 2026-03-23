@@ -2,8 +2,8 @@ export TERM=${TERM:-xterm-256color}
 alias ls="ls --color=auto"
 alias emacs="mg"
 [[ -f /usr/share/bash-completion/bash_completion ]] && . /usr/share/bash-completion/bash_completion
-if [[ -n "${DRT_OVERLAY_LOWER:-}" ]]; then
-    _DRT_SHA_TAG="|OVERLAY"
+if [[ -n "${DRT_ENV_DIR:-}" ]]; then
+    _DRT_SHA_TAG="|BIND"
 else
     _DRT_SHA_TAG="${DRT_GIT_SHA:+|${DRT_GIT_SHA:0:7}}"
 fi
