@@ -1299,7 +1299,9 @@ cmd_run() {
         RUN_ARGS+=(-p "${CONTROLLER_PORT}:8084")
     fi
 
-    # Overlay mount host directory over the baked-in d.rymcg.tech tree
+    # Overlay mount: bind the host directory read-only to a staging path.
+    # The entrypoint creates an overlayfs over ROOT_DIR with the staging
+    # path as the live lower layer and an ephemeral upper layer for writes.
     if [[ -n "${OVERLAY_PATH}" ]]; then
         OVERLAY_PATH="$(realpath "${OVERLAY_PATH}")"
         if [[ ! -d "${OVERLAY_PATH}" ]]; then
@@ -1307,7 +1309,10 @@ cmd_run() {
             exit 1
         fi
         echo "## Overlay mount: ${OVERLAY_PATH} -> /home/user/git/vendor/enigmacurry/d.rymcg.tech" >&2
-        RUN_ARGS+=(-v "${OVERLAY_PATH}:/home/user/git/vendor/enigmacurry/d.rymcg.tech:O")
+        RUN_ARGS+=(
+            -v "${OVERLAY_PATH}:/mnt/drt-overlay-lower:ro"
+            -e "DRT_OVERLAY_LOWER=/mnt/drt-overlay-lower"
+        )
     fi
 
     RUN_ARGS+=("${IMAGE}")
