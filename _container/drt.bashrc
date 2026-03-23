@@ -4,6 +4,7 @@ export DRT_BUILD_BRANCH="${DRT_BUILD_BRANCH:-}"
 export DRT_IMAGE="${DRT_IMAGE:-localhost/d-rymcg-tech:latest}"
 export DRT_INSTALL_EXTRAS="${DRT_INSTALL_EXTRAS:-}"
 export DRT_CAP_ADD="${DRT_CAP_ADD:-}"
+export DRT_BIND_MOUNT="${DRT_BIND_MOUNT:-}"
 
 drt() {
   if ! podman image exists "${DRT_IMAGE}" 2>/dev/null; then
@@ -38,7 +39,11 @@ drt() {
       _cap_args+=(--cap-add "${_cap}")
     done
   fi
-  bash <(podman run --rm --pull=never --net=none "${DRT_IMAGE}" drt) "${_cap_args[@]+"${_cap_args[@]}"}" "$@"
+  local _bind_args=()
+  if [[ "${_is_run}" == true && -n "${DRT_BIND_MOUNT}" ]]; then
+    _bind_args=(--bind-mount "${DRT_BIND_MOUNT}")
+  fi
+  bash <(podman run --rm --pull=never --net=none "${DRT_IMAGE}" drt) "${_cap_args[@]+"${_cap_args[@]}"}" "${_bind_args[@]+"${_bind_args[@]}"}" "$@"
 }
 
 _drt() {
@@ -49,7 +54,7 @@ _drt() {
       --list --git-init --git --pull --build --extract \
       --image --docker --age-key --ssh-key --ssh-timeout \
       --timeout --no-save --controller-port --net --cap-add \
-      --verbose --version --help" -- "${cur}"))
+      --bind-mount --verbose --version --help" -- "${cur}"))
   else
     local cfg_dir="${HOME}/.config/d.rymcg.tech/config"
     if [[ -d "${cfg_dir}" ]]; then
