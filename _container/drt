@@ -2194,7 +2194,7 @@ case "${ACTION}" in
                 continue
             fi
             case "${_arg}" in
-                --cap-add|--image|--net|--age-key|--ssh-key|--ssh-timeout|--timeout|--controller-port)
+                --cap-add|--image|--net|--age-key|--ssh-key|--ssh-timeout|--timeout|--controller-port|--bind-mount)
                     _skip_next=true ;;
                 -*) ;;
                 *) _has_context=true; break ;;
