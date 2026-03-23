@@ -461,13 +461,15 @@ acme-dns-cname:
 	echo "" && \
 	read -p "Create these CNAME records in Route53? [y/N] " confirm && \
 	if [[ "$${confirm}" =~ ^[Yy] ]]; then \
-		aws route53 change-resource-record-sets \
+		CHANGE_ID=$$(aws route53 change-resource-record-sets \
 			--hosted-zone-id "$${ZONE_ID}" \
 			--change-batch "$${BATCH}" \
-			--query 'ChangeInfo.{Status:Status,Id:Id}' \
-			--output table && \
-		echo "" && \
-		echo "## CNAME records created. DNS propagation may take a few minutes."; \
+			--query 'ChangeInfo.Id' \
+			--output text) && \
+		echo "## Waiting for DNS propagation ($${CHANGE_ID})..." && \
+		aws route53 wait resource-record-sets-changed \
+			--id "$${CHANGE_ID}" && \
+		echo "## CNAME records propagated."; \
 	else \
 		echo "## Cancelled."; \
 	fi
