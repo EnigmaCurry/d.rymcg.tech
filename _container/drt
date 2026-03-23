@@ -1958,13 +1958,16 @@ cmd_extract() {
 # Main dispatch
 ###############################################################################
 
-cat >&2 <<'WARN'
+if [[ -z "${DRT_WARNING_SHOWN:-}" ]]; then
+    export DRT_WARNING_SHOWN=1
+    cat >&2 <<'WARN'
 ## WARNING: drt is NOT a runtime security device!
 ## Only run this script on a secure, trusted device. Your secrets are only encrypted
 ## at rest. During runtime, all secrets are decrypted inside an ephemeral
 ## container filesystem, and any process in your user account (or root) can
 ## copy files in or out of the container via `podman cp`.
 WARN
+fi
 
 ACTION=run
 ARGS=()
