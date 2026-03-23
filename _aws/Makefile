@@ -49,13 +49,18 @@ config:
 	CURRENT_DOMAIN=$$(${BIN}/dotenv -f $${ENV} get AWS_ROOT_DOMAIN 2>/dev/null) && \
 	readarray -t ZONES < <(aws route53 list-hosted-zones \
 		--query 'HostedZones[*].Name' --output text | tr '\t' '\n' | sed 's/\.$$//' | sort) && \
-	if [[ $${#ZONES[@]} -gt 0 ]]; then \
-		DOMAIN=$$(${BIN}/script-wizard choose "Select the Route53 domain" "$${ZONES[@]}" \
-			$${CURRENT_DOMAIN:+--default "$${CURRENT_DOMAIN}"}); \
-	else \
-		echo "No Route53 hosted zones found. Enter domain manually:" >&2; \
-		read -e -p "AWS_ROOT_DOMAIN: " DOMAIN; \
+	if [[ $${#ZONES[@]} -eq 0 ]]; then \
+		echo "ERROR: No Route53 hosted zones found." >&2; \
+		echo "" >&2; \
+		echo "Create a hosted zone first:" >&2; \
+		echo "  aws route53 create-hosted-zone --name example.com --caller-reference \$$(date +%s)" >&2; \
+		echo "" >&2; \
+		echo "Then configure your domain registrar to use the NS records from:" >&2; \
+		echo "  aws route53 get-hosted-zone --id <ZONE_ID> --query DelegationSet.NameServers" >&2; \
+		exit 1; \
 	fi && \
+	DOMAIN=$$(${BIN}/script-wizard choose "Select the Route53 domain" "$${ZONES[@]}" \
+		$${CURRENT_DOMAIN:+--default "$${CURRENT_DOMAIN}"}) && \
 	${BIN}/dotenv -f $${ENV} set AWS_ROOT_DOMAIN="$${DOMAIN}" && \
 	CURRENT_REGION=$$(${BIN}/dotenv -f $${ENV} get AWS_REGION 2>/dev/null || echo us-east-1) && \
 	readarray -t REGIONS < <(aws ec2 describe-regions \
