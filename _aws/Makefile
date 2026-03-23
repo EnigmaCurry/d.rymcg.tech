@@ -423,14 +423,11 @@ acme-dns-cname:
 		echo "  Run 'make traefik config' first." >&2; \
 		exit 1; \
 	fi && \
-	echo "## Reading acme-dns account from traefik acme-sh volume..." >&2 && \
-	_RAW=$$(docker compose -f ${ROOT_DIR}/traefik/docker-compose.yaml \
+	FULLDOMAIN=$$(docker compose -f ${ROOT_DIR}/traefik/docker-compose.yaml \
 		--env-file=$${TRAEFIK_ENV} --project-name=traefik \
-		run -T --rm --no-deps acme-sh \
-		cat /acme.sh/acmedns-account.json 2>/dev/null) && \
-	echo "## Raw output:" >&2 && \
-	echo "$${_RAW}" >&2 && \
-	FULLDOMAIN=$$(echo "$${_RAW}" | grep -v '^WARN' | jq -r '.fulldomain') && \
+		run -T --rm --no-deps --entrypoint cat acme-sh \
+		/acme.sh/acmedns-account.json 2>/dev/null \
+		| jq -r '.fulldomain') && \
 	if [[ -z "$${FULLDOMAIN}" || "$${FULLDOMAIN}" == "null" ]]; then \
 		echo "## Error: No acme-dns registration found." >&2 && \
 		echo "## Run 'make traefik config' and configure ACME first." >&2 && \
