@@ -25,13 +25,8 @@ services:
         - GPU_TYPE=cuda
         - LOG_LEVEL=${COMFYUI_LOG_LEVEL:-WARNING}
         - CUDA_WHEEL_VERSION=${COMFYUI_CUDA_WHEEL_VERSION:-cu129}
-    deploy:
-      resources:
-        reservations:
-          devices:
-            - driver: nvidia
-              count: all
-              capabilities: [gpu]
+    devices:
+      - nvidia.com/gpu=all
 
   comfyui-rocm:
     profiles:
