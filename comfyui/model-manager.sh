@@ -46,7 +46,7 @@ downloading certain models.
 EOF
 
 # Model types
-choices="audio_encoders checkpoints clip clip_vision configs controlnet diffusers diffusion_models embeddings gligen hypernetworks loras model_patches photomaker style_models text_encoders unet upscale_models vae vae_approx"
+choices="audio_encoders checkpoints clip clip_vision configs controlnet diffusers diffusion_models embeddings gligen hypernetworks latent_upscale_models loras model_patches photomaker style_models text_encoders unet upscale_models vae vae_approx"
 
 # Loop to collect multiple models
 while true; do

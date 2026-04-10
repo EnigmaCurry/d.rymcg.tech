@@ -13,6 +13,7 @@ if [ -n "$COMFYUI_OUTPUT_HOST_PATH" ]; then
           "/ComfyUI/models/embeddings" \
           "/ComfyUI/models/gligen" \
           "/ComfyUI/models/hypernetworks" \
+          "/ComfyUI/models/latent_upscale_models" \
           "/ComfyUI/models/loras" \
           "/ComfyUI/models/model_patches" \
           "/ComfyUI/models/photomaker" \
