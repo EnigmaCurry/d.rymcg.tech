@@ -92,6 +92,7 @@ fi
 
 echo ""
 # Copy temp models-to-install file to container
+chmod 644 "${TEMP_FILE}"
 docker cp "${TEMP_FILE}" "${CONTAINER_NAME}:/tmp/models.txt"
 
 # Execute script in container to install models
