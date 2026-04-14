@@ -73,7 +73,7 @@ blank to use the model's default.
 Tool calling is enabled by default (`VLLM_ENABLE_AUTO_TOOL_CHOICE=true`).
 vLLM will auto-detect the correct parser for your model. To override
 the parser, set `VLLM_TOOL_CALL_PARSER` (e.g. `hermes`,
-`llama3_json`, `mistral`). See the [vLLM tool calling
+`llama3_json`, `mistral`, `qwen3_xml`). See the [vLLM tool calling
 docs](https://docs.vllm.ai/en/latest/features/tool_calling.html)
 for supported parsers.
 
