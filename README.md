@@ -245,12 +245,12 @@ Install these applications at your preference:
 * [Syncthing](syncthing#readme) - a multi-device file synchronization tool
 * [Sysbox-Systemd](sysbox-systemd#readme) - a traditional service manager for Linux running in an unprivileged container via sysbox-runc
 * [Tesseract](tesseract#readme) - a front-end for Lemmy instances
-* [vLLM](vllm#readme) - an LLM inference engine with an OpenAI-compatible API
 * [TheLounge](thelounge#readme) - a web client/bouncer for IRC
 * [Thttpd](thttpd#readme) - a tiny/turbo/throttling HTTP server for serving static files
 * [Trilium](trilium#readme) - a note-taking/knowledge base application
 * [Uptime-Kuma](uptime-kuma#readme) - a system uptime monitoring service and status page
 * [Vaultwarden](vaultwarden#readme) - a bitwarden compatible password manager written in Rust (formerly bitwarden_rs)
+* [vLLM](vllm#readme) - an LLM inference engine with an OpenAI-compatible API
 * [Websocketd](websocketd#readme) - a websocket / CGI server
 * [Webtop](webtop#readme) - a containerized Linux desktop in your web browser
 * [WireGuard](wireguard) - a standalone VPN client that other containers may use as a router
