@@ -250,6 +250,7 @@ Install these applications at your preference:
 * [Trilium](trilium#readme) - a note-taking/knowledge base application
 * [Uptime-Kuma](uptime-kuma#readme) - a system uptime monitoring service and status page
 * [Vaultwarden](vaultwarden#readme) - a bitwarden compatible password manager written in Rust (formerly bitwarden_rs)
+* [vLLM](vllm#readme) - an LLM inference engine with an OpenAI-compatible API
 * [Websocketd](websocketd#readme) - a websocket / CGI server
 * [Webtop](webtop#readme) - a containerized Linux desktop in your web browser
 * [WireGuard](wireguard) - a standalone VPN client that other containers may use as a router
