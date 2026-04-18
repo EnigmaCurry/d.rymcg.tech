@@ -32,6 +32,7 @@
 #@ reasoning_parser = data.values.reasoning_parser
 #@ enable_prefix_caching = data.values.enable_prefix_caching
 #@ tensor_parallel_size = data.values.tensor_parallel_size
+#@ served_model_name = data.values.served_model_name
 
 #@ def vllm_service(profile):
 #@   service = "vllm-" + profile
@@ -40,6 +41,9 @@
 #@     env.append("HF_TOKEN=${VLLM_HF_TOKEN}")
 #@   end
 #@   cmd = [model]
+#@   if served_model_name.strip():
+#@     cmd.extend(["--served-model-name", served_model_name])
+#@   end
 #@   if max_model_len.strip():
 #@     cmd.extend(["--max-model-len", max_model_len])
 #@   end
