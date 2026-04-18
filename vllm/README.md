@@ -98,6 +98,14 @@ GPUs. The default is 1 (single GPU).
 make install
 ```
 
+### Served Model Name
+
+Set `VLLM_SERVED_MODEL_NAME` to create an alias for the model name.
+This is required for Claude Code integration since model names
+containing `/` (e.g. `Qwen/Qwen3-0.6B`) are not supported by Claude
+Code. For example, set it to `qwen3` to serve the model under that
+name.
+
 ## Using vLLM
 
 vLLM exposes an OpenAI-compatible API. You can use it with any OpenAI
@@ -115,6 +123,44 @@ curl https://vllm.example.com/v1/completions \
 ```
 
 You can `make shell` to enter a shell in the vLLM container.
+
+## Claude Code Integration
+
+vLLM implements the [Anthropic Messages
+API](https://docs.vllm.ai/en/latest/serving/integrations/claude_code/),
+so you can use it as a backend for [Claude
+Code](https://docs.anthropic.com/en/docs/claude-code/overview)
+instead of the Anthropic API.
+
+### Requirements
+
+Your model must have strong tool calling capabilities. Tool calling is
+enabled by default in this configuration
+(`VLLM_ENABLE_AUTO_TOOL_CHOICE=true`).
+
+### Setup
+
+1. Set `VLLM_SERVED_MODEL_NAME` to a name without `/` characters
+   (e.g. `qwen3` instead of `Qwen/Qwen3-0.6B`).
+
+2. Launch Claude Code with environment variables pointing to your vLLM
+   server:
+
+```
+ANTHROPIC_BASE_URL=https://vllm.example.com \
+ANTHROPIC_API_KEY=xxxxxxx \
+ANTHROPIC_AUTH_TOKEN=xxxxxxx \
+ANTHROPIC_DEFAULT_OPUS_MODEL=qwen3 \
+ANTHROPIC_DEFAULT_SONNET_MODEL=qwen3 \
+ANTHROPIC_DEFAULT_HAIKU_MODEL=qwen3 \
+claude
+```
+
+If you configured `VLLM_API_TOKEN`, use that value for
+`ANTHROPIC_API_KEY` instead of `xxxxxxx`.
+
+You can add these variables to your shell profile or to
+`~/.claude/settings.json` for convenience.
 
 ## Destroy
 
