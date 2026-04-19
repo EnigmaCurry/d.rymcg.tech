@@ -7,6 +7,8 @@ services:
   tts-story:
     build:
       context: ${TTS_STORY_GIT_REPO}#${TTS_STORY_GIT_BRANCH}
+      args:
+        GPU_TYPE: ${TTS_STORY_GPU_TYPE:-cpu}
     security_opt:
       - no-new-privileges:true
     restart: unless-stopped
