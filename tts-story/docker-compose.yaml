@@ -1,17 +1,47 @@
 
-volumes:
-  data:
-
-
-services:
-  tts-story:
-    build:
-      context: ${TTS_STORY_GIT_REPO}#${TTS_STORY_GIT_BRANCH}
-      args:
-        GPU_TYPE: ${TTS_STORY_GPU_TYPE:-cpu}
+x-tts-story-common: &tts-story-common
     security_opt:
       - no-new-privileges:true
     restart: unless-stopped
     volumes:
       - data:/app/data
     labels: []
+
+services:
+  tts-story-cuda:
+    profiles:
+      - cuda
+    <<: *tts-story-common
+    build:
+      context: ${TTS_STORY_GIT_REPO}#${TTS_STORY_GIT_BRANCH}
+      args:
+        - GPU_TYPE=nvidia
+    devices:
+      - nvidia.com/gpu=all
+
+  tts-story-rocm:
+    profiles:
+      - rocm
+    <<: *tts-story-common
+    build:
+      context: ${TTS_STORY_GIT_REPO}#${TTS_STORY_GIT_BRANCH}
+      args:
+        - GPU_TYPE=rocm
+    devices:
+      - /dev/kfd:/dev/kfd
+      - /dev/dri:/dev/dri
+    group_add:
+      - video
+      - render
+
+  tts-story-cpu:
+    profiles:
+      - cpu
+    <<: *tts-story-common
+    build:
+      context: ${TTS_STORY_GIT_REPO}#${TTS_STORY_GIT_BRANCH}
+      args:
+        - GPU_TYPE=cpu
+
+volumes:
+  data:
