@@ -1,0 +1,22 @@
+
+volumes:
+  data:
+
+
+services:
+  tts-story:
+    build:
+      context: ${TTS_STORY_GIT_REPO}#${TTS_STORY_GIT_BRANCH}
+    security_opt:
+      - no-new-privileges:true
+    restart: unless-stopped
+    volumes:
+      - data:/app/data
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: all
+              capabilities: [gpu]
+    labels: []
