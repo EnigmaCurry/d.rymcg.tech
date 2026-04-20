@@ -47,6 +47,17 @@ built-in web UI for model selection and chat. Access the web UI at
 - [llama.cpp server API](https://github.com/ggml-org/llama.cpp/blob/master/docs/server/README.md)
 - [OpenAI-compatible API](https://github.com/ggml-org/llama.cpp/blob/master/docs/server/usage.md)
 
+### Tool Calling and Web Search
+
+Function/tool calling is enabled by default via the `--jinja` flag
+(`LLAMA_JINJA=true`). This allows consuming services like Open WebUI
+to use tool calling for features like web search, code execution, and
+more.
+
+Note that llama.cpp only **generates tool call requests** — it does not
+execute tools itself. The consuming service (e.g., Open WebUI) must
+handle tool execution and return results to the model.
+
 ### Model Management
 
 Models are stored in the `/models` directory inside the container,
