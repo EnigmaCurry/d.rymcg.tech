@@ -15,10 +15,14 @@ if [[ -z "${SERVICE}" ]]; then
     fault "Usage: llama-add-models SERVICE [HF_TOKEN]"
 fi
 
-# Verify the container is running
-if ! docker ps --format '{{.Names}}' | grep -q "^${SERVICE}$"; then
-    fault "Container '${SERVICE}' is not running. Start it first with 'make install'."
+# Verify the service is running
+if ! docker compose ps --format json 2>/dev/null | jq -r '.[].Name' | grep -q "${SERVICE}"; then
+    fault "Service '${SERVICE}' is not running. Start it first with 'make install'."
 fi
+
+compose_exec() {
+    docker compose exec -T "${SERVICE}" "$@"
+}
 
 download_from_url() {
     local url="$1"
@@ -37,17 +41,17 @@ download_from_url() {
     fi
     curl_cmd="${curl_cmd} -o /models/${filename} '${url}'"
     
-    docker exec "${SERVICE}" bash -c "${curl_cmd}"
+    compose_exec bash -c "${curl_cmd}"
     
     # Verify the file exists and show size
     local size
-    size=$(docker exec "${SERVICE}" stat -c%s "/models/${filename}" 2>/dev/null || echo "0")
+    size=$(compose_exec stat -c%s "/models/${filename}" 2>/dev/null || echo "0")
     if [[ "${size}" == "0" ]]; then
         fault "Download failed: /models/${filename} is empty or missing"
     fi
     
     local human_size
-    human_size=$(docker exec "${SERVICE}" numfmt --to=iec-i --suffix=B "${size}" 2>/dev/null || echo "${size} bytes")
+    human_size=$(compose_exec numfmt --to=iec-i --suffix=B "${size}" 2>/dev/null || echo "${size} bytes")
     echo "✓ Downloaded: ${filename} (${human_size})"
 }
 
@@ -130,4 +134,4 @@ echo ""
 echo "All downloads complete."
 echo ""
 echo "Models in /models/:"
-docker exec "${SERVICE}" ls -lh /models/*.gguf 2>/dev/null || echo "  (no .gguf files found)"
+compose_exec ls -lh /models/*.gguf 2>/dev/null || echo "  (no .gguf files found)"

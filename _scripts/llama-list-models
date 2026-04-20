@@ -13,16 +13,16 @@ if [[ -z "${SERVICE}" ]]; then
     fault "Usage: llama-list-models SERVICE"
 fi
 
-# Verify the container is running
-if ! docker ps --format '{{.Names}}' | grep -q "^${SERVICE}$"; then
-    fault "Container '${SERVICE}' is not running. Start it first with 'make install'."
+# Verify the service is running
+if ! docker compose ps --format json 2>/dev/null | jq -r '.[].Name' | grep -q "${SERVICE}"; then
+    fault "Service '${SERVICE}' is not running. Start it first with 'make install'."
 fi
 
 echo "=== Models in /models/ ==="
 echo ""
 
 # List .gguf files with human-readable sizes
-docker exec "${SERVICE}" bash -c '
+docker compose exec -T "${SERVICE}" bash -c '
     if compgen -G "/models/*.gguf" >/dev/null 2>&1; then
         for f in /models/*.gguf; do
             size=$(stat -c%s "$f" 2>/dev/null || echo 0)
@@ -39,4 +39,4 @@ echo ""
 # Also show what the API reports
 echo "=== Models reported by API ==="
 echo ""
-docker exec "${SERVICE}" curl -s http://localhost:8080/v1/models 2>/dev/null | jq '.' 2>/dev/null || echo "  (could not query API)"
+docker compose exec -T "${SERVICE}" curl -s http://localhost:8080/v1/models 2>/dev/null | jq '.' 2>/dev/null || echo "  (could not query API)"
