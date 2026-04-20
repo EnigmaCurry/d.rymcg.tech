@@ -43,7 +43,7 @@
 #@   if n_gpu_layers.strip():
 #@     env.append("LLAMA_N_GPU_LAYERS=${LLAMA_N_GPU_LAYERS}")
 #@   end
-#@   cmd = ["bash", "-c", "echo \"llama-server $@\" && exec llama-server \"$@\"", "--"]
+#@   cmd = []
 #@   if image_variant != "server":
 #@     cmd.append("--server")
 #@   end
