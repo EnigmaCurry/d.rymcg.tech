@@ -18,14 +18,6 @@
 #@ enable_mtls_auth = data.values.enable_mtls_auth == "true"
 #@ mtls_authorized_certs = data.values.mtls_authorized_certs
 #@ enabled_middlewares = []
-#@ homepage_labels_enable = data.values.homepage_labels_enable == "true"
-#@ homepage_group_llama = data.values.homepage_group_llama
-#@ homepage_name_llama = data.values.homepage_name_llama
-#@ homepage_icon_llama = data.values.homepage_icon_llama
-#@ homepage_description_llama = data.values.homepage_description_llama
-#@ homepage_show_stats_llama = data.values.homepage_show_stats_llama
-#@ homepage_widget_enable = data.values.homepage_widget_enable == "true"
-#@ homepage_widget_api_key = data.values.homepage_widget_api_key
 
 #! ### Project-specific vars:
 #@ models_host_path = data.values.models_host_path
@@ -83,18 +75,6 @@
 #@   end
 #@   labels.append("traefik.http.routers.{}.middlewares={}".format(router, ",".join(middlewares)))
 #@   labels.append("traefik.http.services.{}.loadbalancer.server.port={}".format(router, server_port))
-#@   if homepage_labels_enable:
-#@     labels.append("homepage.group={}".format(homepage_group_llama))
-#@     labels.append("homepage.name={}".format(homepage_name_llama))
-#@     labels.append("homepage.icon={}".format(homepage_icon_llama))
-#@     labels.append("homepage.href=https://{}".format(traefik_host))
-#@     if homepage_description_llama.strip():
-#@       labels.append("homepage.description={}".format(homepage_description_llama))
-#@     else:
-#@       labels.append("homepage.description={}".format(traefik_host))
-#@     end
-#@     labels.append("homepage.showStats={}".format(homepage_show_stats_llama))
-#@   end
 #@   if models_host_path != "":
 #@     volumes = ["{}:/models".format(models_host_path)]
 #@   else:
@@ -123,16 +103,4 @@ services:
       #@ end
     #@ end
     #@ end
-  #@ end
-
-  #@ if homepage_labels_enable:
-  #@ homepage_service = "llama-" + compose_profile
-  (@= homepage_service @):
-    labels:
-      - homepage.group=(@= homepage_group_llama @)
-      - homepage.name=(@= homepage_name_llama @)
-      - homepage.icon=(@= homepage_icon_llama @)
-      - homepage.href=https://(@= traefik_host @)
-      - homepage.description=(@= homepage_description_llama or traefik_host @)
-      - homepage.showStats=(@= homepage_show_stats_llama @)
   #@ end
