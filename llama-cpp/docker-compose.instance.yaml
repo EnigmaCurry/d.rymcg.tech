@@ -32,6 +32,9 @@
 #@ def llama_service(profile):
 #@   service = "llama-" + profile
 #@   env = []
+#@   if api_token.strip():
+#@     env.append("LLAMA_API_KEY=${LLAMA_API_TOKEN}")
+#@   end
 #@   if context_length.strip():
 #@     env.append("LLAMA_CONTEXT_LENGTH=${LLAMA_CONTEXT_LENGTH}")
 #@   end
@@ -42,7 +45,7 @@
 #@   if image_variant != "server":
 #@     cmd.append("--server")
 #@   end
-#@   cmd.extend(["--host", "0.0.0.0", "--port", server_port])
+#@   cmd.extend(["--host", "0.0.0.0", "--port", server_port, "--models-dir", "/models"])
 #@   if initial_model.strip():
 #@     cmd.extend(["-m", initial_model])
 #@   end
@@ -51,13 +54,7 @@
 #@   middlewares = []
 #@   labels.append("backup-volume.stop-during-backup=true")
 #@   labels.append("traefik.enable=true")
-#@   base_rule = "Host(`{}`)".format(traefik_host)
-#@   if len(api_token.strip()):
-#@     rule = base_rule + " && Header(`Authorization`, `Bearer ${LLAMA_API_TOKEN}`)"
-#@   else:
-#@     rule = base_rule
-#@   end
-#@   labels.append("traefik.http.routers.{}.rule={}".format(router, rule))
+#@   labels.append("traefik.http.routers.{}.rule=Host(`{}`)".format(router, traefik_host))
 #@   labels.append("traefik.http.routers.{}.entrypoints=websecure".format(router))
 #@   middlewares.append("{}-ipallowlist".format(router))
 #@   labels.append("traefik.http.middlewares.{}-ipallowlist.ipallowlist.sourcerange={}".format(router, ip_sourcerange))
