@@ -83,6 +83,18 @@
 #@   end
 #@   labels.append("traefik.http.routers.{}.middlewares={}".format(router, ",".join(middlewares)))
 #@   labels.append("traefik.http.services.{}.loadbalancer.server.port={}".format(router, server_port))
+#@   if homepage_labels_enable:
+#@     labels.append("homepage.group={}".format(homepage_group_llama))
+#@     labels.append("homepage.name={}".format(homepage_name_llama))
+#@     labels.append("homepage.icon={}".format(homepage_icon_llama))
+#@     labels.append("homepage.href=https://{}".format(traefik_host))
+#@     if homepage_description_llama.strip():
+#@       labels.append("homepage.description={}".format(homepage_description_llama))
+#@     else:
+#@       labels.append("homepage.description={}".format(traefik_host))
+#@     end
+#@     labels.append("homepage.showStats={}".format(homepage_show_stats_llama))
+#@   end
 #@   if models_host_path != "":
 #@     volumes = ["{}:/models".format(models_host_path)]
 #@   else:
