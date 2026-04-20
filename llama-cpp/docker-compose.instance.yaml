@@ -28,6 +28,7 @@
 #@ n_gpu_layers = data.values.n_gpu_layers
 #@ context_length = data.values.context_length
 #@ image_variant = data.values.image_variant
+#@ models_max = data.values.models_max
 
 #@ def llama_service(profile):
 #@   service = "llama-" + profile
@@ -46,6 +47,9 @@
 #@     cmd.append("--server")
 #@   end
 #@   cmd.extend(["--host", "0.0.0.0", "--port", server_port, "--models-dir", "/models"])
+#@   if models_max.strip() and models_max.strip() != "0":
+#@     cmd.extend(["--models-max", models_max])
+#@   end
 #@   if initial_model.strip():
 #@     cmd.extend(["-m", initial_model])
 #@   end

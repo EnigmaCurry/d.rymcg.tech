@@ -34,6 +34,8 @@ config-hook:
 	@echo
 	@ALLOW_BLANK=1 ${BIN}/reconfigure_ask ${ENV_FILE} LLAMA_CONTEXT_LENGTH "Enter the context length (leave blank for model default)."
 	@echo
+	@ALLOW_BLANK=1 ${BIN}/reconfigure_ask ${ENV_FILE} LLAMA_MODELS_MAX "Enter the maximum number of models loaded simultaneously (LRU eviction, 0 for unlimited, default 4)." 4
+	@echo
 	@${BIN}/confirm $$(test -n "$$(${BIN}/dotenv -f ${ENV_FILE} get LLAMA_API_TOKEN)" && echo yes || echo no) "Do you want to require an API token to access this service" "?" && ( \
 	    ${BIN}/reconfigure_password ${ENV_FILE} LLAMA_API_TOKEN 45 \
 	) || ( \
@@ -53,7 +55,7 @@ override-hook:
 ####                         # (this hardcodes the string into docker-compose.override.yaml)
 ####   name=@VARIABLE_NAME   # sets the template 'name' field to the literal string '${VARIABLE_NAME}'
 ####                         # (used for regular docker-compose expansion of env vars by name.)
-	@${BIN}/docker_compose_override ${ENV_FILE} project=:llama instance=@LLAMA_INSTANCE traefik_host=@LLAMA_TRAEFIK_HOST http_auth=LLAMA_HTTP_AUTH http_auth_var=@LLAMA_HTTP_AUTH ip_sourcerange=@LLAMA_IP_SOURCERANGE oauth2=LLAMA_OAUTH2 authorized_group=LLAMA_OAUTH2_AUTHORIZED_GROUP enable_mtls_auth=LLAMA_MTLS_AUTH mtls_authorized_certs=LLAMA_MTLS_AUTHORIZED_CERTS models_host_path=LLAMA_MODELS_HOST_PATH compose_profile=DOCKER_COMPOSE_PROFILES api_token=LLAMA_API_TOKEN server_port=LLAMA_SERVER_PORT initial_model=LLAMA_INITIAL_MODEL n_gpu_layers=LLAMA_N_GPU_LAYERS context_length=LLAMA_CONTEXT_LENGTH image_variant=LLAMA_IMAGE_VARIANT
+	@${BIN}/docker_compose_override ${ENV_FILE} project=:llama instance=@LLAMA_INSTANCE traefik_host=@LLAMA_TRAEFIK_HOST http_auth=LLAMA_HTTP_AUTH http_auth_var=@LLAMA_HTTP_AUTH ip_sourcerange=@LLAMA_IP_SOURCERANGE oauth2=LLAMA_OAUTH2 authorized_group=LLAMA_OAUTH2_AUTHORIZED_GROUP enable_mtls_auth=LLAMA_MTLS_AUTH mtls_authorized_certs=LLAMA_MTLS_AUTHORIZED_CERTS models_host_path=LLAMA_MODELS_HOST_PATH compose_profile=DOCKER_COMPOSE_PROFILES api_token=LLAMA_API_TOKEN server_port=LLAMA_SERVER_PORT initial_model=LLAMA_INITIAL_MODEL n_gpu_layers=LLAMA_N_GPU_LAYERS context_length=LLAMA_CONTEXT_LENGTH image_variant=LLAMA_IMAGE_VARIANT models_max=LLAMA_MODELS_MAX
 
 .PHONY: shell
 shell:
