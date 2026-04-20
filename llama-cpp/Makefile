@@ -61,6 +61,18 @@ override-hook:
 shell:
 	@make --no-print-directory docker-compose-shell SERVICE=llama-$$(${BIN}/dotenv -f ${ENV_FILE} get DOCKER_COMPOSE_PROFILES)
 
+.PHONY: add-models # Download models from HuggingFace or direct URLs
+add-models:
+	@${BIN}/llama-add-models llama-$$(${BIN}/dotenv -f ${ENV_FILE} get DOCKER_COMPOSE_PROFILES) $$(${BIN}/dotenv -f ${ENV_FILE} get LLAMA_HF_TOKEN)
+
+.PHONY: list-models # List all models in /models/
+list-models:
+	@${BIN}/llama-list-models llama-$$(${BIN}/dotenv -f ${ENV_FILE} get DOCKER_COMPOSE_PROFILES)
+
+.PHONY: delete-models # Delete selected models from /models/
+delete-models:
+	@${BIN}/llama-delete-models llama-$$(${BIN}/dotenv -f ${ENV_FILE} get DOCKER_COMPOSE_PROFILES)
+
 .PHONY: install-hook
 install-hook:
 	@echo

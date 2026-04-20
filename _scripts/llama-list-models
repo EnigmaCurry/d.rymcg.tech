@@ -1,0 +1,42 @@
+#!/bin/bash
+
+## llama-list-models SERVICE
+## Lists all .gguf model files in /models/ in the running container with sizes.
+
+BIN=$(dirname ${BASH_SOURCE})
+source ${BIN}/funcs.sh
+set -eo pipefail
+
+SERVICE="${1}"
+
+if [[ -z "${SERVICE}" ]]; then
+    fault "Usage: llama-list-models SERVICE"
+fi
+
+# Verify the container is running
+if ! docker ps --format '{{.Names}}' | grep -q "^${SERVICE}$"; then
+    fault "Container '${SERVICE}' is not running. Start it first with 'make install'."
+fi
+
+echo "=== Models in /models/ ==="
+echo ""
+
+# List .gguf files with human-readable sizes
+docker exec "${SERVICE}" bash -c '
+    if compgen -G "/models/*.gguf" >/dev/null 2>&1; then
+        for f in /models/*.gguf; do
+            size=$(stat -c%s "$f" 2>/dev/null || echo 0)
+            human=$(numfmt --to=iec-i --suffix=B "$size" 2>/dev/null || echo "$size bytes")
+            printf "%-60s %s\n" "$(basename "$f")" "$human"
+        done
+    else
+        echo "  (no .gguf files found)"
+    fi
+'
+
+echo ""
+
+# Also show what the API reports
+echo "=== Models reported by API ==="
+echo ""
+docker exec "${SERVICE}" curl -s http://localhost:8080/v1/models 2>/dev/null | jq '.' 2>/dev/null || echo "  (could not query API)"

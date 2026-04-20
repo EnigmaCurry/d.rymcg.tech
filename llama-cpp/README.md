@@ -52,18 +52,44 @@ Models are stored in the `/models` directory inside the container,
 which is backed by either a Docker volume or a host path (configured
 via `LLAMA_MODELS_HOST_PATH`).
 
-Place `.gguf` model files in this directory. You can:
+The server runs in **router mode** with `--models-dir /models`, which
+auto-discovers all `.gguf` files and loads them on-demand. Models are
+evicted using LRU when `LLAMA_MODELS_MAX` is reached.
 
-1. **Load a model at startup** by setting `LLAMA_INITIAL_MODEL` to the
-   path inside the container (e.g., `/models/model.gguf`).
+#### Adding Models
 
-2. **Switch models via API** without restarting the container. Use the
-   llama.cpp server API to load a different model from the `/models`
-   directory.
+```
+make add-models
+```
 
-3. **Use from consuming services** like Open WebUI by pointing them at
-   the llama.cpp API endpoint. Model switching is handled by the
-   consuming service.
+Prompts you for model sources. Supports:
+- **Direct URLs**: `https://huggingface.co/user/repo/resolve/main/model.gguf`
+- **HF identifier with file**: `user/repo:filename.gguf`
+- **HF identifier alone**: `user/repo` (lists available `.gguf` files to choose from)
+
+For gated/private models, set `LLAMA_HF_TOKEN` in your `.env` file.
+
+#### Listing Models
+
+```
+make list-models
+```
+
+Shows all `.gguf` files in `/models/` with sizes, plus what the API reports.
+
+#### Deleting Models
+
+```
+make delete-models
+```
+
+Interactive multi-select menu to remove models from `/models/`.
+
+#### Manual Model Placement
+
+You can also place `.gguf` files directly:
+- **Host path**: Copy files to the path configured in `LLAMA_MODELS_HOST_PATH`
+- **Docker volume**: Use `make shell` and download via `curl` inside the container
 
 ### Shell Access
 
