@@ -38,8 +38,9 @@ make install
 
 ## Using llama.cpp
 
-There is no web frontend to llama.cpp server. You use it via its REST
-API, which is OpenAI-compatible.
+llama.cpp server provides an OpenAI-compatible REST API and includes a
+built-in web UI for model selection and chat. Access the web UI at
+`https://{LLAMA_TRAEFIK_HOST}`.
 
 ### API Documentation
 
