@@ -27,6 +27,7 @@
 #@ initial_model = data.values.initial_model
 #@ n_gpu_layers = data.values.n_gpu_layers
 #@ context_length = data.values.context_length
+#@ image_variant = data.values.image_variant
 
 #@ def llama_service(profile):
 #@   service = "llama-" + profile
@@ -37,7 +38,11 @@
 #@   if n_gpu_layers.strip():
 #@     env.append("LLAMA_N_GPU_LAYERS=${LLAMA_N_GPU_LAYERS}")
 #@   end
-#@   cmd = ["--host", "0.0.0.0", "--port", server_port]
+#@   cmd = []
+#@   if image_variant != "server":
+#@     cmd.append("--server")
+#@   end
+#@   cmd.extend(["--host", "0.0.0.0", "--port", server_port])
 #@   if initial_model.strip():
 #@     cmd.extend(["-m", initial_model])
 #@   end
