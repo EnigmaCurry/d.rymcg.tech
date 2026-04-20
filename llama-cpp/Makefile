@@ -28,7 +28,7 @@ config-hook:
 	@echo
 	@${BIN}/reconfigure_ask ${ENV_FILE} LLAMA_SERVER_PORT "Enter the internal server port for llama-server" 8080
 	@echo
-	@ALLOW_BLANK=1 ${BIN}/reconfigure_ask ${ENV_FILE} LLAMA_INITIAL_MODEL "Enter the path to the initial model to load (inside container, e.g., /models/model.gguf), or leave blank to start without a model and load via API later."
+	@ALLOW_BLANK=1 ${BIN}/reconfigure_ask ${ENV_FILE} LLAMA_INITIAL_MODEL "Enter the path to the initial model to load at startup (inside container, e.g., /models/model.gguf), or leave blank to switch between models on the fly via the web UI or API."
 	@echo
 	@ALLOW_BLANK=1 ${BIN}/reconfigure_ask ${ENV_FILE} LLAMA_N_GPU_LAYERS "Enter the number of layers to offload to GPU (leave blank for auto-detection, or set to 99 for all layers)."
 	@echo

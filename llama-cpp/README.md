@@ -53,8 +53,21 @@ which is backed by either a Docker volume or a host path (configured
 via `LLAMA_MODELS_HOST_PATH`).
 
 The server runs in **router mode** with `--models-dir /models`, which
-auto-discovers all `.gguf` files and loads them on-demand. Models are
-evicted using LRU when `LLAMA_MODELS_MAX` is reached.
+auto-discovers all `.gguf` files. Models are evicted using LRU when
+`LLAMA_MODELS_MAX` is reached.
+
+**Choosing how to load models:**
+
+- **Set `LLAMA_INITIAL_MODEL`** in your `.env` file to a specific model
+  path (e.g., `/models/model.gguf`). This model loads at startup.
+  To change models later, you must edit `LLAMA_INITIAL_MODEL` in your
+  `.env` file and run `make reinstall` — this restarts the container
+  with the new model.
+
+- **Leave `LLAMA_INITIAL_MODEL` blank** to start without any model
+  pre-loaded. You can then switch between all downloaded models on the
+  fly — no restart or reinstall needed. Select models from the
+  llama.cpp web UI dropdown or via the `/models/load` API endpoint.
 
 #### Adding Models
 
