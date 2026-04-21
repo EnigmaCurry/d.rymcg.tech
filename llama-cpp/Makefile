@@ -65,9 +65,9 @@ shell:
 add-models:
 	@${ROOT_DIR}/llama-cpp/llama-add-models llama-$$(${BIN}/dotenv -f ${ENV_FILE} get DOCKER_COMPOSE_PROFILES) $$(${BIN}/dotenv -f ${ENV_FILE} get LLAMA_HF_TOKEN)
 
-.PHONY: list-models # List all models in /models/
+.PHONY: list-models # List all models in /models/ (set JSON=1 for JSON output)
 list-models:
-	@${ROOT_DIR}/llama-cpp/llama-list-models llama-$$(${BIN}/dotenv -f ${ENV_FILE} get DOCKER_COMPOSE_PROFILES)
+	@${ROOT_DIR}/llama-cpp/llama-list-models llama-$$(${BIN}/dotenv -f ${ENV_FILE} get DOCKER_COMPOSE_PROFILES) $${JSON:+--json}
 
 .PHONY: delete-models # Delete selected models from /models/
 delete-models:
