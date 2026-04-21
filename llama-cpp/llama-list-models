@@ -1,17 +1,35 @@
 #!/bin/bash
 
-## llama-list-models SERVICE
-## Lists all .gguf model files in /models/ in the running container with sizes.
+## llama-list-models SERVICE [--json]
+## Lists models available in the running llama.cpp container.
+## Default: simple list, one per line: "<model name> (<model id>)"
+## With --json: full JSON output from the API.
 
 BIN=$(dirname ${BASH_SOURCE})
 ROOT_DIR="${ROOT_DIR:-$(dirname ${BIN})}"
 source ${ROOT_DIR}/_scripts/funcs.sh
 set -eo pipefail
 
-SERVICE="${1}"
+SERVICE=""
+JSON_OUTPUT=false
+
+for arg in "$@"; do
+    case "$arg" in
+        --json)
+            JSON_OUTPUT=true
+            ;;
+        *)
+            if [[ -z "${SERVICE}" ]]; then
+                SERVICE="$arg"
+            else
+                fault "Usage: llama-list-models SERVICE [--json]"
+            fi
+            ;;
+    esac
+done
 
 if [[ -z "${SERVICE}" ]]; then
-    fault "Usage: llama-list-models SERVICE"
+    fault "Usage: llama-list-models SERVICE [--json]"
 fi
 
 # Verify the service is running
@@ -36,25 +54,18 @@ if [[ "${service_found}" != "true" ]]; then
     fault "Service '${SERVICE}' is not running. Start it first with 'make install'."
 fi
 
-echo "=== Models in /models/ ==="
-echo ""
+# Fetch models from the API
+models_json=$(docker compose exec -T "${SERVICE}" curl -s http://localhost:8080/v1/models 2>/dev/null || true)
 
-# List .gguf files with human-readable sizes
-docker compose exec -T "${SERVICE}" bash -c '
-    if compgen -G "/models/*.gguf" >/dev/null 2>&1; then
-        for f in /models/*.gguf; do
-            size=$(stat -c%s "$f" 2>/dev/null || echo 0)
-            human=$(numfmt --to=iec-i --suffix=B "$size" 2>/dev/null || echo "$size bytes")
-            printf "%-60s %s\n" "$(basename "$f")" "$human"
-        done
-    else
-        echo "  (no .gguf files found)"
-    fi
-'
+if [[ -z "${models_json}" ]]; then
+    fault "Could not query the API. Is the server running?"
+fi
 
-echo ""
-
-# Also show what the API reports
-echo "=== Models reported by API ==="
-echo ""
-docker compose exec -T "${SERVICE}" curl -s http://localhost:8080/v1/models 2>/dev/null | jq '.' 2>/dev/null || echo "  (could not query API)"
+if [[ "${JSON_OUTPUT}" == "true" ]]; then
+    echo "${models_json}" | jq '.'
+else
+    # Simple list: "<model name> (<model id>)"
+    echo "${models_json}" | jq -r '.data[] | "\(.id // .name // "unknown") (\(.id))"' 2>/dev/null || \
+    echo "${models_json}" | jq -r '.data[] | .id' 2>/dev/null || \
+    fault "Could not parse API response"
+fi
