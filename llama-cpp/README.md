@@ -55,8 +55,28 @@ to use tool calling for features like web search, code execution, and
 more.
 
 Note that llama.cpp only **generates tool call requests** — it does not
-execute tools itself. The consuming service (e.g., Open WebUI) must
-handle tool execution and return results to the model.
+execute tools itself. The consuming service (e.g., Open WebUI, Cursor,
+or any external coding agent) must handle tool execution and return
+results to the model.
+
+#### Built-in Tools
+
+llama.cpp also supports **built-in tools** that run inside the container
+itself (via the `--tools` flag, controlled by `LLAMA_TOOLS`). These allow
+llama.cpp's own web UI to act as a standalone assistant that can read/write
+files and execute shell commands **inside the container**.
+
+Available built-in tools: `read_file`, `write_file`, `edit_file`,
+`apply_diff`, `exec_shell_command`, `file_glob_search`, `grep_search`.
+
+**Built-in tools are disabled by default** (`LLAMA_TOOLS=`) because they
+only have access to files inside the container (e.g., `/models/`). They
+are not useful for external coding agents, which use the OpenAI-compatible
+tool calling API instead — the agent executes tools on the host, and
+llama.cpp only generates the tool call requests.
+
+To enable built-in tools, set `LLAMA_TOOLS=all` in your `.env` file and
+run `make reinstall`.
 
 ### Model Management
 

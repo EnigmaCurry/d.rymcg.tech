@@ -30,6 +30,7 @@
 #@ image_variant = data.values.image_variant
 #@ models_max = data.values.models_max
 #@ jinja = data.values.jinja
+#@ tools = data.values.tools
 
 #@ def llama_service(profile):
 #@   service = "llama-" + profile
@@ -56,6 +57,9 @@
 #@   end
 #@   if jinja == "true":
 #@     cmd.append("--jinja")
+#@   end
+#@   if tools.strip():
+#@     cmd.extend(["--tools", tools])
 #@   end
 #@   router = "{}-{}-{}".format(project, instance, service)
 #@   labels = []
