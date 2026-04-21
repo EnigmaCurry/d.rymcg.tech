@@ -15,7 +15,7 @@ JSON_OUTPUT=false
 
 for arg in "$@"; do
     case "$arg" in
-        --json)
+        --json|json)
             JSON_OUTPUT=true
             ;;
         *)
