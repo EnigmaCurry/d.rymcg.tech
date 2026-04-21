@@ -1,6 +1,6 @@
 #!/bin/bash
 
-## llama-add-models SERVICE [HF_TOKEN] [ENV_FILE] [SERVER_PORT]
+## llama-add-models SERVICE [HF_TOKEN] [ENV_FILE] [SERVER_PORT] [API_TOKEN]
 ## Prompts user for HuggingFace model identifiers or direct URLs,
 ## then downloads .gguf files directly into /models/ in the running container.
 
@@ -13,9 +13,10 @@ SERVICE="${1}"
 HF_TOKEN="${2:-}"
 ENV_FILE="${3:-}"
 SERVER_PORT="${4:-8080}"
+API_TOKEN="${5:-}"
 
 if [[ -z "${SERVICE}" ]]; then
-    fault "Usage: llama-add-models SERVICE [HF_TOKEN] [ENV_FILE] [SERVER_PORT]"
+    fault "Usage: llama-add-models SERVICE [HF_TOKEN] [ENV_FILE] [SERVER_PORT] [API_TOKEN]"
 fi
 
 COMPOSE="docker compose"
@@ -53,11 +54,12 @@ compose_exec() {
 load_model() {
     local model_path="$1"
     echo "Registering ${model_path} with llama.cpp server..."
+    local auth_header=""
+    if [[ -n "${API_TOKEN}" ]]; then
+        auth_header="-H \"Authorization: Bearer ${API_TOKEN}\""
+    fi
     local result
-    result=$(${COMPOSE} exec -T "${SERVICE}" \
-        curl -s -X POST "http://localhost:${SERVER_PORT}/models/load" \
-        -H "Content-Type: application/json" \
-        -d "{\"model\": \"${model_path}\"}" 2>/dev/null) || true
+    result=$(${COMPOSE} exec -T "${SERVICE}" bash -c "curl -s -X POST http://localhost:${SERVER_PORT}/models/load -H 'Content-Type: application/json' -d '{\"model\": \"${model_path}\"}' ${auth_header}" 2>/dev/null) || true
     if echo "${result}" | jq -e '.success' >/dev/null 2>&1; then
         echo "  Model registered successfully."
     else
