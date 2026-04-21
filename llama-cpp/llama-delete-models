@@ -51,7 +51,7 @@ unload_model() {
     if [[ -n "${API_TOKEN}" ]]; then
         auth_header="-H \"Authorization: Bearer ${API_TOKEN}\""
     fi
-    ${COMPOSE} exec -T "${SERVICE}" bash -c "curl -s -X POST http://localhost:${SERVER_PORT}/models/${model_id}/unload ${auth_header}" 2>/dev/null || true
+    ${COMPOSE} exec -T "${SERVICE}" bash -c "curl -s -X POST http://localhost:${SERVER_PORT}/models/unload -H 'Content-Type: application/json' -d '{\"model\": \"${model_id}\"}' ${auth_header}" 2>/dev/null || true
 }
 
 # Get list of .gguf files
