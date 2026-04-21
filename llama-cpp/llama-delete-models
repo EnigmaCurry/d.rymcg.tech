@@ -1,6 +1,6 @@
 #!/bin/bash
 
-## llama-delete-models SERVICE [ENV_FILE]
+## llama-delete-models SERVICE [ENV_FILE] [SERVER_PORT]
 ## Lists all .gguf model files in /models/, lets user select 1 or more to delete.
 
 BIN=$(dirname ${BASH_SOURCE})
@@ -10,9 +10,10 @@ set -eo pipefail
 
 SERVICE="${1}"
 ENV_FILE="${2:-}"
+SERVER_PORT="${3:-8080}"
 
 if [[ -z "${SERVICE}" ]]; then
-    fault "Usage: llama-delete-models SERVICE [ENV_FILE]"
+    fault "Usage: llama-delete-models SERVICE [ENV_FILE] [SERVER_PORT]"
 fi
 
 COMPOSE="docker compose"
@@ -41,6 +42,14 @@ fi
 if [[ "${service_found}" != "true" ]]; then
     fault "Service '${SERVICE}' is not running. Start it first with 'make install'."
 fi
+
+# Unload a model from llama.cpp (ignores errors if not loaded)
+unload_model() {
+    local model_id="$1"
+    ${COMPOSE} exec -T "${SERVICE}" \
+        curl -s -X POST "http://localhost:${SERVER_PORT}/models/${model_id}/unload" \
+        2>/dev/null || true
+}
 
 # Get list of .gguf files
 readarray -t models < <(${COMPOSE} exec -T "${SERVICE}" bash -c '
@@ -89,6 +98,8 @@ for model in "${selected[@]}"; do
     filename=$(echo "${model}" | sed 's/ (.*$//')
     echo "Deleting ${filename}..."
     ${COMPOSE} exec -T "${SERVICE}" rm -f "/models/${filename}"
+    echo "Unloading ${filename} from llama.cpp..."
+    unload_model "${filename}"
     deleted=$((deleted + 1))
 done
 

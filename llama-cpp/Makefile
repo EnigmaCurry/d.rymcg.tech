@@ -75,7 +75,7 @@ list-models-json:
 
 .PHONY: delete-models # Delete selected models from /models/
 delete-models:
-	@${ROOT_DIR}/llama-cpp/llama-delete-models llama-$$(${BIN}/dotenv -f ${ENV_FILE} get DOCKER_COMPOSE_PROFILES) ${ENV_FILE}
+	@${ROOT_DIR}/llama-cpp/llama-delete-models llama-$$(${BIN}/dotenv -f ${ENV_FILE} get DOCKER_COMPOSE_PROFILES) ${ENV_FILE} $$(${BIN}/dotenv -f ${ENV_FILE} get LLAMA_SERVER_PORT)
 
 .PHONY: install-hook
 install-hook:
