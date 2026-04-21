@@ -64,8 +64,9 @@ add-models:
 clear-output:
 	@CONTAINER="comfyui-comfyui-$$(${BIN}/dotenv -f ${ENV_FILE} get DOCKER_COMPOSE_PROFILES)-1"; \
 	output_count=$$(docker exec "$${CONTAINER}" sh -c 'find /ComfyUI/output -type f | wc -l' 2>/dev/null || echo 0); \
+	output_size=$$(docker exec "$${CONTAINER}" sh -c 'du -sh /ComfyUI/output 2>/dev/null | cut -f1' || echo "unknown"); \
 	echo "This will permanently delete all generated output files (images, video, audio) from the ComfyUI output directory."; \
-	echo "Found $${output_count} file(s) in /ComfyUI/output."; \
+	echo "Found $${output_count} file(s) in /ComfyUI/output ($${output_size})."; \
 	${BIN}/confirm no "Do you want to delete all output files" "?" && \
 	docker exec "$${CONTAINER}" sh -c 'find /ComfyUI/output -type f -delete && find /ComfyUI/output -mindepth 1 -type d -empty -delete' && \
 	echo "All output files have been deleted."
