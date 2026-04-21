@@ -155,6 +155,37 @@ You can also place `.gguf` files directly:
 - **Host path**: Copy files to the path configured in `LLAMA_MODELS_HOST_PATH`
 - **Docker volume**: Use `make shell` and download via `curl` inside the container
 
+#### Per-Model JSON Configuration
+
+For each model `.gguf` file, you can create a companion `.json` file in
+the `/models/` directory (on the host or inside the container) with the
+same basename to set per-model runtime overrides. For example, alongside
+`my-model.gguf`, create `my-model.json`:
+
+```json
+{
+  "n_ctx": 32768,
+  "n_batch": 4096,
+  "n_ubatch": 512,
+  "tensor_split": [0.5, 0.5],
+  "rope_scaling_type": "linear",
+  "rope_freq_base": 1000000
+}
+```
+
+This lets you tune context size, batch size, tensor split across GPUs,
+Rope scaling, and any other `llama-server` parameter on a per-model
+basis without maintaining separate containers or configurations.
+
+See the [llama.cpp server usage docs](https://github.com/ggml-org/llama.cpp/blob/master/docs/server/usage.md)
+for the full list of supported options.
+
+After adding or updating a `.json` file, restart the service:
+
+```
+make restart
+```
+
 ### Shell Access
 
 ```
