@@ -1,6 +1,6 @@
 #!/bin/bash
 
-## llama-list-models SERVICE [--json]
+## llama-list-models SERVICE [ENV_FILE] [--json]
 ## Lists models available in the running llama.cpp container.
 ## Default: simple list, one per line: "<model name> (<model id>)"
 ## With --json: full JSON output from the API.
@@ -11,6 +11,7 @@ source ${ROOT_DIR}/_scripts/funcs.sh
 set -eo pipefail
 
 SERVICE=""
+ENV_FILE=""
 JSON_OUTPUT=false
 
 for arg in "$@"; do
@@ -21,19 +22,26 @@ for arg in "$@"; do
         *)
             if [[ -z "${SERVICE}" ]]; then
                 SERVICE="$arg"
+            elif [[ -z "${ENV_FILE}" ]]; then
+                ENV_FILE="$arg"
             else
-                fault "Usage: llama-list-models SERVICE [--json]"
+                fault "Usage: llama-list-models SERVICE [ENV_FILE] [--json]"
             fi
             ;;
     esac
 done
 
 if [[ -z "${SERVICE}" ]]; then
-    fault "Usage: llama-list-models SERVICE [--json]"
+    fault "Usage: llama-list-models SERVICE [ENV_FILE] [--json]"
+fi
+
+COMPOSE="docker compose"
+if [[ -n "${ENV_FILE}" ]]; then
+    COMPOSE="docker compose --env-file ${ENV_FILE}"
 fi
 
 # Verify the service is running
-running_services=$(docker compose ps --format json 2>/dev/null || true)
+running_services=$(${COMPOSE} ps --format json 2>/dev/null || true)
 if [[ -z "${running_services}" ]]; then
     fault "Service '${SERVICE}' is not running. Start it first with 'make install'."
 fi
@@ -55,7 +63,7 @@ if [[ "${service_found}" != "true" ]]; then
 fi
 
 # Fetch models from the API
-models_json=$(docker compose exec -T "${SERVICE}" curl -s http://localhost:8080/v1/models 2>/dev/null || true)
+models_json=$(${COMPOSE} exec -T "${SERVICE}" curl -s http://localhost:8080/v1/models 2>/dev/null || true)
 
 if [[ -z "${models_json}" ]]; then
     fault "Could not query the API. Is the server running?"

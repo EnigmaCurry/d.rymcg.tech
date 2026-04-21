@@ -63,19 +63,19 @@ shell:
 
 .PHONY: add-models # Download models from HuggingFace or direct URLs
 add-models:
-	@${ROOT_DIR}/llama-cpp/llama-add-models llama-$$(${BIN}/dotenv -f ${ENV_FILE} get DOCKER_COMPOSE_PROFILES) $$(${BIN}/dotenv -f ${ENV_FILE} get LLAMA_HF_TOKEN)
+	@${ROOT_DIR}/llama-cpp/llama-add-models llama-$$(${BIN}/dotenv -f ${ENV_FILE} get DOCKER_COMPOSE_PROFILES) $$(${BIN}/dotenv -f ${ENV_FILE} get LLAMA_HF_TOKEN) ${ENV_FILE}
 
 .PHONY: list-models # List all models in /models/ (simple list)
 list-models:
-	@${ROOT_DIR}/llama-cpp/llama-list-models llama-$$(${BIN}/dotenv -f ${ENV_FILE} get DOCKER_COMPOSE_PROFILES)
+	@${ROOT_DIR}/llama-cpp/llama-list-models llama-$$(${BIN}/dotenv -f ${ENV_FILE} get DOCKER_COMPOSE_PROFILES) ${ENV_FILE}
 
 .PHONY: list-models-json # List all models in /models/ (JSON output)
 list-models-json:
-	@${ROOT_DIR}/llama-cpp/llama-list-models --json llama-$$(${BIN}/dotenv -f ${ENV_FILE} get DOCKER_COMPOSE_PROFILES)
+	@${ROOT_DIR}/llama-cpp/llama-list-models --json llama-$$(${BIN}/dotenv -f ${ENV_FILE} get DOCKER_COMPOSE_PROFILES) ${ENV_FILE}
 
 .PHONY: delete-models # Delete selected models from /models/
 delete-models:
-	@${ROOT_DIR}/llama-cpp/llama-delete-models llama-$$(${BIN}/dotenv -f ${ENV_FILE} get DOCKER_COMPOSE_PROFILES)
+	@${ROOT_DIR}/llama-cpp/llama-delete-models llama-$$(${BIN}/dotenv -f ${ENV_FILE} get DOCKER_COMPOSE_PROFILES) ${ENV_FILE}
 
 .PHONY: install-hook
 install-hook:

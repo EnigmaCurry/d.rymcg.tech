@@ -1,6 +1,6 @@
 #!/bin/bash
 
-## llama-add-models SERVICE [HF_TOKEN]
+## llama-add-models SERVICE [HF_TOKEN] [ENV_FILE]
 ## Prompts user for HuggingFace model identifiers or direct URLs,
 ## then downloads .gguf files directly into /models/ in the running container.
 
@@ -11,13 +11,19 @@ set -eo pipefail
 
 SERVICE="${1}"
 HF_TOKEN="${2:-}"
+ENV_FILE="${3:-}"
 
 if [[ -z "${SERVICE}" ]]; then
-    fault "Usage: llama-add-models SERVICE [HF_TOKEN]"
+    fault "Usage: llama-add-models SERVICE [HF_TOKEN] [ENV_FILE]"
+fi
+
+COMPOSE="docker compose"
+if [[ -n "${ENV_FILE}" ]]; then
+    COMPOSE="docker compose --env-file ${ENV_FILE}"
 fi
 
 # Verify the service is running
-running_services=$(docker compose ps --format json 2>/dev/null || true)
+running_services=$(${COMPOSE} ps --format json 2>/dev/null || true)
 if [[ -z "${running_services}" ]]; then
     fault "Service '${SERVICE}' is not running. Start it first with 'make install'."
 fi
@@ -39,7 +45,7 @@ if [[ "${service_found}" != "true" ]]; then
 fi
 
 compose_exec() {
-    docker compose exec -T "${SERVICE}" "$@"
+    ${COMPOSE} exec -T "${SERVICE}" "$@"
 }
 
 download_from_url() {

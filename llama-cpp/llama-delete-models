@@ -1,6 +1,6 @@
 #!/bin/bash
 
-## llama-delete-models SERVICE
+## llama-delete-models SERVICE [ENV_FILE]
 ## Lists all .gguf model files in /models/, lets user select 1 or more to delete.
 
 BIN=$(dirname ${BASH_SOURCE})
@@ -9,13 +9,19 @@ source ${ROOT_DIR}/_scripts/funcs.sh
 set -eo pipefail
 
 SERVICE="${1}"
+ENV_FILE="${2:-}"
 
 if [[ -z "${SERVICE}" ]]; then
-    fault "Usage: llama-delete-models SERVICE"
+    fault "Usage: llama-delete-models SERVICE [ENV_FILE]"
+fi
+
+COMPOSE="docker compose"
+if [[ -n "${ENV_FILE}" ]]; then
+    COMPOSE="docker compose --env-file ${ENV_FILE}"
 fi
 
 # Verify the service is running
-running_services=$(docker compose ps --format json 2>/dev/null || true)
+running_services=$(${COMPOSE} ps --format json 2>/dev/null || true)
 if [[ -z "${running_services}" ]]; then
     fault "Service '${SERVICE}' is not running. Start it first with 'make install'."
 fi
@@ -37,7 +43,7 @@ if [[ "${service_found}" != "true" ]]; then
 fi
 
 # Get list of .gguf files
-readarray -t models < <(docker compose exec -T "${SERVICE}" bash -c '
+readarray -t models < <(${COMPOSE} exec -T "${SERVICE}" bash -c '
     if compgen -G "/models/*.gguf" >/dev/null 2>&1; then
         for f in /models/*.gguf; do
             size=$(stat -c%s "$f" 2>/dev/null || echo 0)
@@ -82,7 +88,7 @@ for model in "${selected[@]}"; do
     # Extract just the filename (before the size info in parens)
     filename=$(echo "${model}" | sed 's/ (.*$//')
     echo "Deleting ${filename}..."
-    docker compose exec -T "${SERVICE}" rm -f "/models/${filename}"
+    ${COMPOSE} exec -T "${SERVICE}" rm -f "/models/${filename}"
     deleted=$((deleted + 1))
 done
 
