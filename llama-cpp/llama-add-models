@@ -57,6 +57,16 @@ download_from_url() {
         fault "Could not determine filename from URL: ${url}"
     fi
     
+    # Check if model already exists
+    if compose_exec test -f "/models/${filename}" 2>/dev/null; then
+        local size
+        size=$(compose_exec stat -c%s "/models/${filename}" 2>/dev/null || echo 0)
+        local human_size
+        human_size=$(compose_exec numfmt --to=iec-i --suffix=B "${size}" 2>/dev/null || echo "${size} bytes")
+        echo "⚠ ${filename} already exists (${human_size})."
+        confirm n "Re-download and overwrite?" || return 0
+    fi
+    
     echo "Downloading ${filename} to /models/..."
     
     local curl_cmd="curl -L -f --progress-bar"
@@ -156,6 +166,3 @@ done
 
 echo ""
 echo "All downloads complete."
-echo ""
-echo "Models in /models/:"
-compose_exec ls -lh /models/*.gguf 2>/dev/null || echo "  (no .gguf files found)"
