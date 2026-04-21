@@ -1,6 +1,6 @@
 #!/bin/bash
 
-## llama-delete-models SERVICE [ENV_FILE] [SERVER_PORT] [API_TOKEN]
+## llama-delete-models SERVICE [ENV_FILE]
 ## Lists all .gguf model files in /models/, lets user select 1 or more to delete.
 
 BIN=$(dirname ${BASH_SOURCE})
@@ -10,11 +10,9 @@ set -eo pipefail
 
 SERVICE="${1}"
 ENV_FILE="${2:-}"
-SERVER_PORT="${3:-8080}"
-API_TOKEN="${4:-}"
 
 if [[ -z "${SERVICE}" ]]; then
-    fault "Usage: llama-delete-models SERVICE [ENV_FILE] [SERVER_PORT] [API_TOKEN]"
+    fault "Usage: llama-delete-models SERVICE [ENV_FILE]"
 fi
 
 COMPOSE="docker compose"
@@ -44,20 +42,12 @@ if [[ "${service_found}" != "true" ]]; then
     fault "Service '${SERVICE}' is not running. Start it first with 'make install'."
 fi
 
-# Unload a model from llama.cpp (ignores errors if not loaded)
-unload_model() {
-    local model_id="$1"
-    local auth_header=""
-    if [[ -n "${API_TOKEN}" ]]; then
-        auth_header="-H \"Authorization: Bearer ${API_TOKEN}\""
-    fi
-    ${COMPOSE} exec -T "${SERVICE}" bash -c "curl -s -X POST http://localhost:${SERVER_PORT}/models/unload -H 'Content-Type: application/json' -d '{\"model\": \"${model_id}\"}' ${auth_header} >/dev/null 2>&1" || true
-}
-
 # Get list of .gguf files
 readarray -t models < <(${COMPOSE} exec -T "${SERVICE}" bash -c '
-    if compgen -G "/models/*.gguf" >/dev/null 2>&1; then
-        for f in /models/*.gguf; do
+    shopt -s nullglob
+    files=(/models/*.gguf)
+    if [[ ${#files[@]} -gt 0 ]]; then
+        for f in "${files[@]}"; do
             size=$(stat -c%s "$f" 2>/dev/null || echo 0)
             human=$(numfmt --to=iec-i --suffix=B "$size" 2>/dev/null || echo "$size bytes")
             echo "$(basename "$f") (${human})"
@@ -101,8 +91,6 @@ for model in "${selected[@]}"; do
     filename=$(echo "${model}" | sed 's/ (.*$//')
     echo "Deleting ${filename}..."
     ${COMPOSE} exec -T "${SERVICE}" rm -f "/models/${filename}"
-    echo "Unloading ${filename} from llama.cpp..."
-    unload_model "${filename}"
     deleted=$((deleted + 1))
 done
 

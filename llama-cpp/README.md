@@ -68,18 +68,19 @@ The server runs in **router mode** with `--models-dir /models`, which
 auto-discovers all `.gguf` files. Models are evicted using LRU when
 `LLAMA_MODELS_MAX` is reached.
 
-**Choosing how to load models:**
+**Important:** The model file changes (adding or deleting `.gguf` files)
+are **not automatically detected** by llama.cpp at runtime. After adding
+or removing models, you must restart the service for llama.cpp to
+recognize the changes:
 
-- **Set `LLAMA_INITIAL_MODEL`** in your `.env` file to a specific model
-  path (e.g., `/models/model.gguf`). This model loads at startup.
-  To change models later, you must edit `LLAMA_INITIAL_MODEL` in your
-  `.env` file and run `make reinstall` — this restarts the container
-  with the new model.
+```
+make restart
+```
 
-- **Leave `LLAMA_INITIAL_MODEL` blank** to start without any model
-  pre-loaded. You can then switch between all downloaded models on the
-  fly — no restart or reinstall needed. Select models from the
-  llama.cpp web UI dropdown or via the `/models/load` API endpoint.
+A [model reload endpoint](https://github.com/ggml-org/llama.cpp/issues/21779)
+is being developed upstream that will allow llama.cpp to rescan its models
+directory without a restart. Once available, this will be integrated into
+the model management targets.
 
 #### Adding Models
 
@@ -94,13 +95,28 @@ Prompts you for model sources. Supports:
 
 For gated/private models, set `LLAMA_HF_TOKEN` in your `.env` file.
 
+After downloading, run `make restart` to make the new model available
+in llama.cpp.
+
 #### Listing Models
 
 ```
 make list-models
 ```
 
-Shows all `.gguf` files in `/models/` with sizes, plus what the API reports.
+Lists all `.gguf` files in `/models/`, one per line, with their model
+ID (filename without extension):
+
+```
+Bonsai-1.7B-Q1_0.gguf (Bonsai-1.7B-Q1_0)
+Qwen3.6-35B-A3B-UD-Q8_K_XL.gguf (Qwen3.6-35B-A3B-UD-Q8_K_XL)
+```
+
+For JSON output (from the llama.cpp API, showing only loaded models):
+
+```
+make list-models-json
+```
 
 #### Deleting Models
 
@@ -109,6 +125,9 @@ make delete-models
 ```
 
 Interactive multi-select menu to remove models from `/models/`.
+
+After deleting, run `make restart` if the deleted model was currently
+loaded in memory.
 
 #### Manual Model Placement
 
