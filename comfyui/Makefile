@@ -60,6 +60,16 @@ install-hook-pre:
 add-models:
 	@BIN="${BIN}" ENV_FILE="${ENV_FILE}" COMFYUI_HUGGING_FACE_TOKEN="${COMFYUI_HUGGING_FACE_TOKEN}" COMFYUI_CIVITAI_TOKEN="${COMFYUI_CIVITAI_TOKEN}" ./model-manager.sh
 
+.PHONY: clear-output # Delete all generated output files (images, video, audio) from ComfyUI
+clear-output:
+	@CONTAINER="comfyui-comfyui-$$(${BIN}/dotenv -f ${ENV_FILE} get DOCKER_COMPOSE_PROFILES)-1"; \
+	output_count=$$(docker exec "$${CONTAINER}" sh -c 'find /ComfyUI/output -type f | wc -l' 2>/dev/null || echo 0); \
+	echo "This will permanently delete all generated output files (images, video, audio) from the ComfyUI output directory."; \
+	echo "Found $${output_count} file(s) in /ComfyUI/output."; \
+	${BIN}/confirm no "Do you want to delete all output files" "?" && \
+	docker exec "$${CONTAINER}" sh -c 'find /ComfyUI/output -type f -delete && find /ComfyUI/output -mindepth 1 -type d -empty -delete' && \
+	echo "All output files have been deleted."
+
 .PHONY: remove-model # Permanently delete a model from ComfyUI
 remove-model:
 	@choices="audio_encoders checkpoints clip clip_vision configs controlnet diffusers diffusion_models embeddings gligen hypernetworks loras model_patches photomaker style_models text_encoders unet upscale_models vae vae_approx"; \
