@@ -72,8 +72,10 @@ if [[ "${JSON_OUTPUT}" == "true" ]]; then
 else
     # List from filesystem (ground truth of available models)
     ${COMPOSE} exec -T "${SERVICE}" bash -c '
-        if compgen -G "/models/*.gguf" >/dev/null 2>&1; then
-            for f in /models/*.gguf; do
+        shopt -s nullglob
+        files=(/models/*.gguf)
+        if [[ ${#files[@]} -gt 0 ]]; then
+            for f in "${files[@]}"; do
                 basename_f=$(basename "$f")
                 model_id="${basename_f%.gguf}"
                 echo "${basename_f} (${model_id})"
