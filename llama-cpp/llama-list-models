@@ -62,18 +62,24 @@ if [[ "${service_found}" != "true" ]]; then
     fault "Service '${SERVICE}' is not running. Start it first with 'make install'."
 fi
 
-# Fetch models from the API
-models_json=$(${COMPOSE} exec -T "${SERVICE}" curl -s http://localhost:8080/v1/models 2>/dev/null || true)
-
-if [[ -z "${models_json}" ]]; then
-    fault "Could not query the API. Is the server running?"
-fi
-
 if [[ "${JSON_OUTPUT}" == "true" ]]; then
+    # Fetch models from the API for JSON output
+    models_json=$(${COMPOSE} exec -T "${SERVICE}" curl -s http://localhost:8080/v1/models 2>/dev/null || true)
+    if [[ -z "${models_json}" ]]; then
+        fault "Could not query the API. Is the server running?"
+    fi
     echo "${models_json}" | jq '.'
 else
-    # Simple list: "<model name> (<model id>)"
-    echo "${models_json}" | jq -r '.data[] | "\(.id // .name // "unknown") (\(.id))"' 2>/dev/null || \
-    echo "${models_json}" | jq -r '.data[] | .id' 2>/dev/null || \
-    fault "Could not parse API response"
+    # List from filesystem (ground truth of available models)
+    ${COMPOSE} exec -T "${SERVICE}" bash -c '
+        if compgen -G "/models/*.gguf" >/dev/null 2>&1; then
+            for f in /models/*.gguf; do
+                basename_f=$(basename "$f")
+                model_id="${basename_f%.gguf}"
+                echo "${basename_f} (${model_id})"
+            done
+        else
+            echo "(no .gguf files found)"
+        fi
+    '
 fi

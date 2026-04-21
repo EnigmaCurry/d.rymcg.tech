@@ -53,13 +53,15 @@ compose_exec() {
 # Load a model into llama.cpp via API
 load_model() {
     local model_path="$1"
-    echo "Registering ${model_path} with llama.cpp server..."
+    # Strip .gguf extension for the API - llama.cpp uses the base name as model ID
+    local model_id="${model_path%.gguf}"
+    echo "Registering ${model_id} with llama.cpp server..."
     local auth_header=""
     if [[ -n "${API_TOKEN}" ]]; then
         auth_header="-H \"Authorization: Bearer ${API_TOKEN}\""
     fi
     local result
-    result=$(${COMPOSE} exec -T "${SERVICE}" bash -c "curl -s -X POST http://localhost:${SERVER_PORT}/models/load -H 'Content-Type: application/json' -d '{\"model\": \"${model_path}\"}' ${auth_header}" 2>/dev/null) || true
+    result=$(${COMPOSE} exec -T "${SERVICE}" bash -c "curl -s -X POST http://localhost:${SERVER_PORT}/models/load -H 'Content-Type: application/json' -d '{\"model\": \"${model_id}\"}' ${auth_header}" 2>/dev/null) || true
     if echo "${result}" | jq -e '.success' >/dev/null 2>&1; then
         echo "  Model registered successfully."
     else
