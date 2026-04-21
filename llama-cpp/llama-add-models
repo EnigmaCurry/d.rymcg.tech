@@ -98,7 +98,7 @@ download_from_url() {
     echo "✓ Downloaded: ${filename} (${human_size})"
     
     # Load the model into llama.cpp
-    load_model "/models/${filename}"
+    load_model "${filename}"
 }
 
 download_from_hf() {
