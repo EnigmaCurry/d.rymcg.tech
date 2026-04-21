@@ -5,7 +5,8 @@
 ## then downloads .gguf files directly into /models/ in the running container.
 
 BIN=$(dirname ${BASH_SOURCE})
-source ${BIN}/funcs.sh
+ROOT_DIR="${ROOT_DIR:-$(dirname ${BIN})}"
+source ${ROOT_DIR}/_scripts/funcs.sh
 set -eo pipefail
 
 SERVICE="${1}"
@@ -16,7 +17,24 @@ if [[ -z "${SERVICE}" ]]; then
 fi
 
 # Verify the service is running
-if ! docker compose ps --format json 2>/dev/null | jq -r '.[].Name' | grep -q "${SERVICE}"; then
+running_services=$(docker compose ps --format json 2>/dev/null || true)
+if [[ -z "${running_services}" ]]; then
+    fault "Service '${SERVICE}' is not running. Start it first with 'make install'."
+fi
+
+# Handle both array output (multiple containers) and single object output
+service_found=false
+if echo "${running_services}" | jq -e 'type == "array"' >/dev/null 2>&1; then
+    if echo "${running_services}" | jq -r '.[].Name' 2>/dev/null | grep -q "${SERVICE}"; then
+        service_found=true
+    fi
+else
+    if echo "${running_services}" | jq -r '.Name' 2>/dev/null | grep -q "${SERVICE}"; then
+        service_found=true
+    fi
+fi
+
+if [[ "${service_found}" != "true" ]]; then
     fault "Service '${SERVICE}' is not running. Start it first with 'make install'."
 fi
 
