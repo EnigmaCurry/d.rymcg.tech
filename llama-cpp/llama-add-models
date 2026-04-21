@@ -1,6 +1,6 @@
 #!/bin/bash
 
-## llama-add-models SERVICE [HF_TOKEN] [ENV_FILE]
+## llama-add-models SERVICE [HF_TOKEN] [ENV_FILE] [SERVER_PORT]
 ## Prompts user for HuggingFace model identifiers or direct URLs,
 ## then downloads .gguf files directly into /models/ in the running container.
 
@@ -12,9 +12,10 @@ set -eo pipefail
 SERVICE="${1}"
 HF_TOKEN="${2:-}"
 ENV_FILE="${3:-}"
+SERVER_PORT="${4:-8080}"
 
 if [[ -z "${SERVICE}" ]]; then
-    fault "Usage: llama-add-models SERVICE [HF_TOKEN] [ENV_FILE]"
+    fault "Usage: llama-add-models SERVICE [HF_TOKEN] [ENV_FILE] [SERVER_PORT]"
 fi
 
 COMPOSE="docker compose"
@@ -48,6 +49,22 @@ compose_exec() {
     ${COMPOSE} exec -T "${SERVICE}" "$@"
 }
 
+# Load a model into llama.cpp via API
+load_model() {
+    local model_path="$1"
+    echo "Registering ${model_path} with llama.cpp server..."
+    local result
+    result=$(${COMPOSE} exec -T "${SERVICE}" \
+        curl -s -X POST "http://localhost:${SERVER_PORT}/models/load" \
+        -H "Content-Type: application/json" \
+        -d "{\"model\": \"${model_path}\"}" 2>/dev/null) || true
+    if echo "${result}" | jq -e '.success' >/dev/null 2>&1; then
+        echo "  Model registered successfully."
+    else
+        echo "  Note: $(echo "${result}" | jq -r '.error.message // .error // "unknown error"')"
+    fi
+}
+
 download_from_url() {
     local url="$1"
     local filename
@@ -77,6 +94,9 @@ download_from_url() {
     local human_size
     human_size=$(compose_exec numfmt --to=iec-i --suffix=B "${size}" 2>/dev/null || echo "${size} bytes")
     echo "✓ Downloaded: ${filename} (${human_size})"
+    
+    # Load the model into llama.cpp
+    load_model "/models/${filename}"
 }
 
 download_from_hf() {
