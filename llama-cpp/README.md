@@ -3,7 +3,7 @@
 [llama.cpp](https://github.com/ggml-org/llama.cpp) is a high-performance
 LLM inference engine written in C/C++. This service runs the
 `llama-server` which provides an OpenAI-compatible API for serving
-GGUF models.
+GGUF models.
 
 ## Config
 
