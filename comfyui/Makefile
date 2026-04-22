@@ -71,6 +71,17 @@ clear-output:
 	docker exec "$${CONTAINER}" sh -c 'find /ComfyUI/output -type f -delete && find /ComfyUI/output -mindepth 1 -type d -empty -delete' && \
 	echo "All output files have been deleted."
 
+.PHONY: clear-input # Delete all uploaded input files from ComfyUI
+clear-input:
+	@CONTAINER="comfyui-comfyui-$$(${BIN}/dotenv -f ${ENV_FILE} get DOCKER_COMPOSE_PROFILES)-1"; \
+	input_count=$$(docker exec "$${CONTAINER}" sh -c 'find /ComfyUI/input -type f | wc -l' 2>/dev/null || echo 0); \
+	input_size=$$(docker exec "$${CONTAINER}" sh -c 'du -sh /ComfyUI/input 2>/dev/null | cut -f1' || echo "unknown"); \
+	echo "This will permanently delete all uploaded input files from the ComfyUI input directory."; \
+	echo "Found $${input_count} file(s) in /ComfyUI/input ($${input_size})."; \
+	${BIN}/confirm no "Do you want to delete all input files" "?" && \
+	docker exec "$${CONTAINER}" sh -c 'find /ComfyUI/input -type f -delete && find /ComfyUI/input -mindepth 1 -type d -empty -delete' && \
+	echo "All input files have been deleted."
+
 .PHONY: remove-model # Permanently delete a model from ComfyUI
 remove-model:
 	@choices="audio_encoders checkpoints clip clip_vision configs controlnet diffusers diffusion_models embeddings gligen hypernetworks loras model_patches photomaker style_models text_encoders unet upscale_models vae vae_approx"; \
