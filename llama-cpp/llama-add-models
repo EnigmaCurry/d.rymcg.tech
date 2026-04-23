@@ -1,0 +1,168 @@
+#!/bin/bash
+
+## llama-add-models SERVICE [HF_TOKEN] [ENV_FILE]
+## Prompts user for HuggingFace model identifiers or direct URLs,
+## then downloads .gguf files directly into /models/ in the running container.
+
+BIN=$(dirname ${BASH_SOURCE})
+ROOT_DIR="${ROOT_DIR:-$(dirname ${BIN})}"
+source ${ROOT_DIR}/_scripts/funcs.sh
+set -eo pipefail
+
+SERVICE="${1}"
+HF_TOKEN="${2:-}"
+ENV_FILE="${3:-}"
+
+if [[ -z "${SERVICE}" ]]; then
+    fault "Usage: llama-add-models SERVICE [HF_TOKEN] [ENV_FILE]"
+fi
+
+COMPOSE="docker compose"
+if [[ -n "${ENV_FILE}" ]]; then
+    COMPOSE="docker compose --env-file ${ENV_FILE}"
+fi
+
+# Verify the service is running
+running_services=$(${COMPOSE} ps --format json 2>/dev/null || true)
+if [[ -z "${running_services}" ]]; then
+    fault "Service '${SERVICE}' is not running. Start it first with 'make install'."
+fi
+
+# Handle both array output (multiple containers) and single object output
+service_found=false
+if echo "${running_services}" | jq -e 'type == "array"' >/dev/null 2>&1; then
+    if echo "${running_services}" | jq -r '.[].Name' 2>/dev/null | grep -q "${SERVICE}"; then
+        service_found=true
+    fi
+else
+    if echo "${running_services}" | jq -r '.Name' 2>/dev/null | grep -q "${SERVICE}"; then
+        service_found=true
+    fi
+fi
+
+if [[ "${service_found}" != "true" ]]; then
+    fault "Service '${SERVICE}' is not running. Start it first with 'make install'."
+fi
+
+compose_exec() {
+    ${COMPOSE} exec -T "${SERVICE}" "$@"
+}
+
+download_from_url() {
+    local url="$1"
+    local filename
+    filename=$(basename "$url" | sed 's/[?#].*//')
+    
+    if [[ -z "${filename}" ]]; then
+        fault "Could not determine filename from URL: ${url}"
+    fi
+    
+    # Check if model already exists
+    if compose_exec test -f "/models/${filename}" 2>/dev/null; then
+        local size
+        size=$(compose_exec stat -c%s "/models/${filename}" 2>/dev/null || echo 0)
+        local human_size
+        human_size=$(compose_exec numfmt --to=iec-i --suffix=B "${size}" 2>/dev/null || echo "${size} bytes")
+        echo "⚠ ${filename} already exists (${human_size})."
+        confirm n "Re-download and overwrite?" || return 0
+    fi
+    
+    echo "Downloading ${filename} to /models/..."
+    
+    local curl_cmd="curl -L -f --progress-bar"
+    if [[ -n "${HF_TOKEN}" ]]; then
+        curl_cmd="${curl_cmd} -H 'Authorization: Bearer ${HF_TOKEN}'"
+    fi
+    curl_cmd="${curl_cmd} -o /models/${filename} '${url}'"
+    
+    compose_exec bash -c "${curl_cmd}"
+    
+    # Verify the file exists and show size
+    local size
+    size=$(compose_exec stat -c%s "/models/${filename}" 2>/dev/null || echo "0")
+    if [[ "${size}" == "0" ]]; then
+        fault "Download failed: /models/${filename}"
+    fi
+    
+    local human_size
+    human_size=$(compose_exec numfmt --to=iec-i --suffix=B "${size}" 2>/dev/null || echo "${size} bytes")
+    echo "✓ Downloaded: ${filename} (${human_size})"
+}
+
+download_from_hf() {
+    local repo="$1"
+    local filename="$2"
+    
+    if [[ -z "${filename}" ]]; then
+        # Query HF API for available .gguf files
+        echo "Fetching available .gguf files from ${repo}..."
+        
+        local api_url="https://huggingface.co/api/models/${repo}/tree/main"
+        local curl_opts="-s"
+        if [[ -n "${HF_TOKEN}" ]]; then
+            curl_opts="${curl_opts} -H 'Authorization: Bearer ${HF_TOKEN}'"
+        fi
+        
+        local file_list
+        file_list=$(curl ${curl_opts} "${api_url}" | jq -r '.[].path' | grep '\.gguf$' || true)
+        
+        if [[ -z "${file_list}" ]]; then
+            fault "No .gguf files found in ${repo}"
+        fi
+        
+        # Present options to user
+        readarray -t options <<< "${file_list}"
+        
+        if [[ ${#options[@]} -eq 1 ]]; then
+            filename="${options[0]}"
+            echo "Found single .gguf file: ${filename}"
+        else
+            echo "Available .gguf files:"
+            local i=1
+            for opt in "${options[@]}"; do
+                echo "  ${i}) ${opt}"
+                i=$((i + 1))
+            done
+            echo ""
+            read -e -p "Select a file (number): " selection
+            if [[ "${selection}" =~ ^[0-9]+$ ]] && [[ ${selection} -ge 1 ]] && [[ ${selection} -le ${#options[@]} ]]; then
+                filename="${options[$((selection - 1))]}"
+            else
+                fault "Invalid selection: ${selection}"
+            fi
+        fi
+    fi
+    
+    local url="https://huggingface.co/${repo}/resolve/main/${filename}"
+    download_from_url "${url}"
+}
+
+echo "=== llama.cpp Model Downloader ==="
+echo "Models will be downloaded directly into /models/ in the '${SERVICE}' container."
+echo ""
+
+while true; do
+    echo ""
+    read -e -p "Enter model source (URL, HF user/repo:file, or HF user/repo), or blank to finish: " source
+    
+    # Blank input = done
+    if [[ -z "${source}" ]]; then
+        break
+    fi
+    
+    if [[ "${source}" =~ ^https?:// ]]; then
+        # Direct URL
+        download_from_url "${source}"
+    elif [[ "${source}" == *":"* ]]; then
+        # HF identifier with filename: user/repo:filename
+        local_repo="${source%%:*}"
+        local_filename="${source#*:}"
+        download_from_hf "${local_repo}" "${local_filename}"
+    else
+        # HF identifier without filename: user/repo
+        download_from_hf "${source}" ""
+    fi
+done
+
+echo ""
+echo "All downloads complete."
