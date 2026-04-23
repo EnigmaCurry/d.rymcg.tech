@@ -109,6 +109,7 @@ TMPDIR=$(mktemp -d)
 trap "rm -rf ${TMPDIR}" EXIT
 
 LOCAL_JSON="${TMPDIR}/${json_filename}"
+ORIGINAL_JSON="${TMPDIR}/${json_filename}.orig"
 
 # Check if config already exists in container
 if ${COMPOSE} exec -T "${SERVICE}" test -f "/models/${json_filename}" 2>/dev/null; then
@@ -116,6 +117,7 @@ if ${COMPOSE} exec -T "${SERVICE}" test -f "/models/${json_filename}" 2>/dev/nul
     ${COMPOSE} exec -T "${SERVICE}" cp "/models/${json_filename}" "/tmp/${json_filename}" 2>/dev/null || true
     ${COMPOSE} cp "${SERVICE}:/tmp/${json_filename}" "${LOCAL_JSON}" 2>/dev/null || \
     ${COMPOSE} exec -T "${SERVICE}" cat "/models/${json_filename}" > "${LOCAL_JSON}"
+    cp "${LOCAL_JSON}" "${ORIGINAL_JSON}"
 else
     echo "No existing configuration. Creating new one from template..."
     cat > "${LOCAL_JSON}" <<EOF
@@ -127,6 +129,8 @@ else
   "gpu_layers": ${DEFAULT_GPU_LAYERS}
 }
 EOF
+    # For new files, original is empty to ensure we detect any content
+    touch "${ORIGINAL_JSON}"
 fi
 
 # Open in editor
@@ -137,6 +141,16 @@ echo "Edit the configuration and save when done."
 echo ""
 
 ${EDITOR} "${LOCAL_JSON}"
+
+# Check if any changes were made
+if diff -q "${ORIGINAL_JSON}" "${LOCAL_JSON}" >/dev/null 2>&1; then
+    echo ""
+    echo "No changes detected. Exiting."
+    exit 0
+fi
+
+echo ""
+echo "Changes detected. Validating configuration..."
 
 # Validate JSON before uploading
 if ! jq '.' "${LOCAL_JSON}" >/dev/null 2>&1; then
