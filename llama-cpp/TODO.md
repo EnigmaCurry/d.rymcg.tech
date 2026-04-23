@@ -20,11 +20,12 @@ This would free up GPU/RAM when the server is idle, while keeping the container 
 
 ## Per-Model Config JSON Management
 
-Users can add `XXX.json` files (where `XXX` is the name of a `.gguf` model file without the extension) that contain per-model configurations. Need a better way to manage these files, similar to `add-models`/`edit-models`/`delete-models` targets. Potential approach:
-- `docker cp` the `.json` file from the container to a local temp path
-- Open it in the user's local text editor (`$EDITOR`)
-- On save/exit, upload the modified file back into the container
-- Handle creation of new config files for models that don't have one yet
+**Completed.** Implemented via `make manage-model-configs` which:
+- Lists models and lets user select one
+- Downloads existing `.json` config or creates from template (pulling defaults from `.env`)
+- Opens in `$EDITOR` (falls back to `nano`)
+- Validates JSON before uploading
+- Auto-reloads the model if it was currently loaded
 
 ## Research Links
 

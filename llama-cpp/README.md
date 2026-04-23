@@ -180,7 +180,24 @@ basis without maintaining separate containers or configurations.
 See the [llama.cpp server usage docs](https://github.com/ggml-org/llama.cpp/blob/master/docs/server/usage.md)
 for the full list of supported options.
 
-After adding or updating a `.json` file, restart the service:
+##### Managing Model Configs Interactively
+
+```
+make manage-model-configs
+```
+
+This target provides an interactive wizard that:
+
+1. Lists all models and prompts you to select one
+2. Downloads the existing `.json` config if it exists, or creates a new one from a template (pulling defaults from your `.env` file)
+3. Opens the file in your `$EDITOR` (falls back to `nano` if unset)
+4. Validates the JSON before uploading
+5. If the model is currently loaded, unloads and reloads it to apply the new configuration
+
+##### Manual Configuration
+
+You can also place `.json` files directly in the `/models/` directory.
+After adding or updating a `.json` file manually, restart the service:
 
 ```
 make restart

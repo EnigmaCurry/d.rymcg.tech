@@ -61,21 +61,25 @@ override-hook:
 shell:
 	@make --no-print-directory docker-compose-shell SERVICE=llama-$$(${BIN}/dotenv -f ${ENV_FILE} get DOCKER_COMPOSE_PROFILES)
 
-.PHONY: add-models # Download models from HuggingFace or direct URLs
+.PHONY: add-models # Download models from HuggingFace or direct URLs and add them to llama.cpp
 add-models:
 	@${ROOT_DIR}/llama-cpp/llama-add-models llama-$$(${BIN}/dotenv -f ${ENV_FILE} get DOCKER_COMPOSE_PROFILES) $$(${BIN}/dotenv -f ${ENV_FILE} get LLAMA_HF_TOKEN) ${ENV_FILE}
 
-.PHONY: list-models # List all models in /models/ (simple list)
+.PHONY: list-models # List all models in /models/ 
 list-models:
 	@${ROOT_DIR}/llama-cpp/llama-list-models llama-$$(${BIN}/dotenv -f ${ENV_FILE} get DOCKER_COMPOSE_PROFILES) ${ENV_FILE}
 
-.PHONY: list-models-json # List all models in /models/ (JSON output)
+.PHONY: list-models-json # List all models llama.cpp has detected (JSON output)
 list-models-json:
 	@${ROOT_DIR}/llama-cpp/llama-list-models --json llama-$$(${BIN}/dotenv -f ${ENV_FILE} get DOCKER_COMPOSE_PROFILES) ${ENV_FILE}
 
 .PHONY: delete-models # Delete selected models from /models/
 delete-models:
 	@${ROOT_DIR}/llama-cpp/llama-delete-models llama-$$(${BIN}/dotenv -f ${ENV_FILE} get DOCKER_COMPOSE_PROFILES) ${ENV_FILE}
+
+.PHONY: manage-model-configs # Edit per-model JSON configuration files
+manage-model-configs:
+	@${ROOT_DIR}/llama-cpp/llama-manage-model-configs llama-$$(${BIN}/dotenv -f ${ENV_FILE} get DOCKER_COMPOSE_PROFILES) ${ENV_FILE}
 
 .PHONY: install-hook
 install-hook:
