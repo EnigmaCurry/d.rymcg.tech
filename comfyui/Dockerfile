@@ -49,7 +49,7 @@ RUN case "${GPU_TYPE}" in \
 
 RUN python3 -m pip install "numpy<2"
 RUN python3 -m pip install -r requirements.txt
-RUN python3 -m pip install wheel setuptools && python3 -m pip install flash-attn --no-build-isolation
+RUN python3 -m pip install "https://github.com/mjun0812/flash-attention-prebuild-wheels/releases/download/v0.9.4/flash_attn-2.8.3%2Bcu130torch2.11-cp312-cp312-linux_x86_64.whl"
 
 ARG HSA_OVERRIDE_GFX_VERSION
 ENV HSA_OVERRIDE_GFX_VERSION=${HSA_OVERRIDE_GFX_VERSION}
