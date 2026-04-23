@@ -49,7 +49,7 @@ RUN case "${GPU_TYPE}" in \
 
 RUN python3 -m pip install "numpy<2"
 RUN python3 -m pip install -r requirements.txt
-RUN python3 -m pip install flash-attn
+RUN python3 -m pip install flash-attn --no-build-isolation
 
 ARG HSA_OVERRIDE_GFX_VERSION
 ENV HSA_OVERRIDE_GFX_VERSION=${HSA_OVERRIDE_GFX_VERSION}
