@@ -78,7 +78,15 @@ else
             for f in "${files[@]}"; do
                 basename_f=$(basename "$f")
                 model_id="${basename_f%.gguf}"
-                echo "${basename_f} (${model_id})"
+                size_bytes=$(stat -c %s "$f")
+                if (( size_bytes >= 1073741824 )); then
+                    size_human=$(awk "BEGIN {printf \"%.2f GB\", ${size_bytes}/1073741824}")
+                elif (( size_bytes >= 1048576 )); then
+                    size_human=$(awk "BEGIN {printf \"%.2f MB\", ${size_bytes}/1048576}")
+                else
+                    size_human=$(awk "BEGIN {printf \"%.2f KB\", ${size_bytes}/1024}")
+                fi
+                echo "${basename_f} (${model_id}) - ${size_human}"
             done
         else
             echo "(no .gguf files found)"
