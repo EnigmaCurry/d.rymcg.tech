@@ -1,0 +1,7 @@
+ALTER USER 'root'@'%' IDENTIFIED WITH mysql_native_password BY '${ONLYOFFICE_MYSQL_ROOT_PASSWORD}';
+CREATE USER IF NOT EXISTS 'onlyoffice_user'@'%' IDENTIFIED WITH mysql_native_password BY '${ONLYOFFICE_MYSQL_SERVER_PASS}';
+CREATE USER IF NOT EXISTS 'mail_admin'@'%' IDENTIFIED WITH mysql_native_password BY '${ONLYOFFICE_MAIL_SERVER_DB_PASS}';
+GRANT ALL PRIVILEGES ON *.* TO 'root'@'%';
+GRANT ALL PRIVILEGES ON *.* TO 'onlyoffice_user'@'%';
+GRANT ALL PRIVILEGES ON *.* TO 'mail_admin'@'%';
+FLUSH PRIVILEGES;
