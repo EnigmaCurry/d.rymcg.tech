@@ -31,4 +31,10 @@ fi
 
 : ${LOG_LEVEL:=WARNING}
 
+# Install flash-attn if not already present (needed by SeedVR2, transformers)
+if ! python3 -c "import flash_attn" 2>/dev/null; then
+    echo "Installing flash-attn..."
+    python3 -m pip install -q flash-attn 2>/dev/null || true
+fi
+
 python3 main.py --multi-user --listen 0.0.0.0 --verbose "${LOG_LEVEL}"

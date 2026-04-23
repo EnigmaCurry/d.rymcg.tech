@@ -6,7 +6,7 @@ COPY entrypoint.sh install-models.sh /
 RUN chmod +x /entrypoint.sh /install-models.sh
 
 RUN apt-get update && \
-    apt-get install -y --no-install-recommends wget git rsync dialog python3 python3-pip python3-venv ca-certificates curl libxcb1 && \
+    apt-get install -y --no-install-recommends wget git rsync dialog python3 python3-pip python3-venv ca-certificates curl libxcb1 libgl1 && \
     rm -rf /var/lib/apt/lists/*
 RUN git clone --tags https://github.com/comfyanonymous/ComfyUI.git && \
     git -C ComfyUI checkout ${COMFYUI_VERSION}
@@ -49,7 +49,6 @@ RUN case "${GPU_TYPE}" in \
 
 RUN python3 -m pip install "numpy<2"
 RUN python3 -m pip install -r requirements.txt
-RUN python3 -m pip install "https://github.com/mjun0812/flash-attention-prebuild-wheels/releases/download/v0.9.4/flash_attn-2.8.3%2Bcu130torch2.11-cp312-cp312-linux_x86_64.whl"
 
 ARG HSA_OVERRIDE_GFX_VERSION
 ENV HSA_OVERRIDE_GFX_VERSION=${HSA_OVERRIDE_GFX_VERSION}
