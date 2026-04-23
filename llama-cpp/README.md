@@ -78,6 +78,19 @@ llama.cpp only generates the tool call requests.
 To enable built-in tools, set `LLAMA_TOOLS=all` in your `.env` file and
 run `make reinstall`.
 
+### Idle Model Unloading
+
+llama.cpp can automatically unload models from GPU/RAM after a period of
+inactivity to conserve resources. Any new request will automatically
+trigger a reload.
+
+```
+LLAMA_SLEEP_IDLE_SECONDS=300
+```
+
+Set the number of seconds of idleness before the server enters sleep mode.
+Leave blank to disable (models stay loaded until evicted by LRU).
+
 ### Model Management
 
 Models are stored in the `/models` directory inside the container,

@@ -31,6 +31,7 @@
 #@ models_max = data.values.models_max
 #@ jinja = data.values.jinja
 #@ tools = data.values.tools
+#@ sleep_idle_seconds = data.values.sleep_idle_seconds
 
 #@ def llama_service(profile):
 #@   service = "llama-" + profile
@@ -60,6 +61,9 @@
 #@   end
 #@   if tools.strip():
 #@     cmd.extend(["--tools", tools])
+#@   end
+#@   if sleep_idle_seconds.strip():
+#@     cmd.extend(["--sleep-idle-seconds", sleep_idle_seconds])
 #@   end
 #@   router = "{}-{}-{}".format(project, instance, service)
 #@   labels = []
