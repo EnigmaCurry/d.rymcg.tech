@@ -102,8 +102,8 @@ if [[ ${#json_files[@]} -gt 0 ]]; then
     echo ""
     echo "Select config file(s) to delete (space to toggle, enter to confirm):"
     echo ""
-    # Pre-select all config files using --default
-    json_files_default="${json_files[*]}"
+    # Pre-select all config files using --default with JSON array format
+    json_files_default=$(array_to_json "${json_files[@]}")
     readarray -t json_files_to_delete < <(wizard select --default "$json_files_default" "Select config files to delete:" "${json_files[@]}")
 fi
 
