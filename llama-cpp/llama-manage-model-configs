@@ -50,7 +50,7 @@ fi
 API_TOKEN=$(${DOTENV} LLAMA_API_TOKEN 2>/dev/null || true)
 CURL_AUTH=""
 if [[ -n "${API_TOKEN}" ]]; then
-    CURL_AUTH="-H \"Authorization: Bearer ${API_TOKEN}\""
+    CURL_AUTH="-H \"x-api-key: ${API_TOKEN}\""
 fi
 
 # Get server port
@@ -85,24 +85,13 @@ fi
 
 echo "=== Manage Model Configurations ==="
 echo ""
-echo "Select a model to configure:"
-echo ""
 
-# Use script-wizard select for single selection
-selected=$(wizard select "Select a model to configure:" "${models[@]}" 2>/dev/null || true)
+# Use script-wizard choose for single selection
+selected=$(wizard choose "Select a model to configure:" "${models[@]}")
+
 if [[ -z "${selected}" ]]; then
-    # Fallback to bash read if wizard fails
-    echo "Available models:"
-    for i in "${!models[@]}"; do
-        echo "  $((i + 1))) ${models[$i]}"
-    done
-    echo ""
-    read -e -p "Select a model (number): " selection
-    if [[ "${selection}" =~ ^[0-9]+$ ]] && [[ ${selection} -ge 1 ]] && [[ ${selection} -le ${#models[@]} ]]; then
-        selected="${models[$((selection - 1))]}"
-    else
-        fault "Invalid selection."
-    fi
+    echo "No selection made. Exiting."
+    exit 0
 fi
 
 # Extract just the filename (before the size info in parens)
