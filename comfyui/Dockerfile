@@ -47,6 +47,7 @@ RUN case "${GPU_TYPE}" in \
     *)      echo "Unknown GPU type: ${GPU_TYPE}\n" && exit 1 ;; \
     esac
 
+RUN python3 -m pip install "numpy<2"
 RUN python3 -m pip install -r requirements.txt
 RUN python3 -m pip install flash-attn
 
