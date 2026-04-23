@@ -86,29 +86,23 @@ echo ""
 confirm n "Delete ${#selected[@]} model(s)?"
 
 # Check for corresponding .json config files
-json_files_to_delete=()
+json_files=()
 for model in "${selected[@]}"; do
     filename=$(echo "${model}" | sed 's/ (.*$//')
     model_id="${filename%.gguf}"
     json_file="${model_id}.json"
     if ${COMPOSE} exec -T "${SERVICE}" test -f "/models/${json_file}" 2>/dev/null; then
-        json_files_to_delete+=("${json_file}")
+        json_files+=("${json_file}")
     fi
 done
 
 # Ask about deleting .json files if any exist
-if [[ ${#json_files_to_delete[@]} -gt 0 ]]; then
+json_files_to_delete=()
+if [[ ${#json_files[@]} -gt 0 ]]; then
     echo ""
-    echo "Found ${#json_files_to_delete[@]} corresponding config file(s):"
-    for json_file in "${json_files_to_delete[@]}"; do
-        echo "  - ${json_file}"
-    done
+    echo "Select config file(s) to delete (space to toggle, enter to confirm):"
     echo ""
-    if confirm n "Delete these config file(s) as well" "?"; then
-        delete_json=true
-    else
-        delete_json=false
-    fi
+    readarray -t json_files_to_delete < <(wizard select "Select config files to delete:" "${json_files[@]}")
 fi
 
 deleted=0
@@ -121,8 +115,8 @@ for model in "${selected[@]}"; do
     deleted=$((deleted + 1))
 done
 
-# Delete corresponding .json files if user agreed
-if [[ "${delete_json}" == "true" ]]; then
+# Delete selected .json files
+if [[ ${#json_files_to_delete[@]} -gt 0 ]]; then
     for json_file in "${json_files_to_delete[@]}"; do
         echo "Deleting ${json_file}..."
         ${COMPOSE} exec -T "${SERVICE}" rm -f "/models/${json_file}"
@@ -132,6 +126,6 @@ fi
 
 echo ""
 echo "✓ Deleted ${deleted} model(s)."
-if [[ "${delete_json}" == "true" ]]; then
+if [[ ${#json_files_to_delete[@]} -gt 0 ]]; then
     echo "✓ Deleted ${deleted_json} config file(s)."
 fi
