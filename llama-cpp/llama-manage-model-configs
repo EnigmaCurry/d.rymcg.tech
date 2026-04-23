@@ -48,9 +48,9 @@ fi
 
 # Get API token if set
 API_TOKEN=$(${DOTENV} LLAMA_API_TOKEN 2>/dev/null || true)
-CURL_AUTH=""
+CURL_AUTH=()
 if [[ -n "${API_TOKEN}" ]]; then
-    CURL_AUTH="-H \"x-api-key: ${API_TOKEN}\""
+    CURL_AUTH=(-H "x-api-key: ${API_TOKEN}")
 fi
 
 # Get server port
@@ -160,7 +160,7 @@ echo "Configuration saved to /models/${json_filename} in the container."
 # Check if the model is currently loaded
 echo ""
 echo "Checking if model is currently loaded..."
-loaded_models=$(${COMPOSE} exec -T "${SERVICE}" curl -s ${CURL_AUTH} "http://localhost:${SERVER_PORT}/v1/models" 2>/dev/null || true)
+loaded_models=$(${COMPOSE} exec -T "${SERVICE}" curl -s "${CURL_AUTH[@]}" "http://localhost:${SERVER_PORT}/v1/models" 2>/dev/null || true)
 
 if [[ -z "${loaded_models}" ]]; then
     echo "Could not query the API. Model config has been saved."
@@ -179,7 +179,7 @@ if [[ "${model_loaded}" == "true" ]]; then
     
     # Unload the model
     echo "Unloading ${model_filename}..."
-    unload_result=$(${COMPOSE} exec -T "${SERVICE}" curl -s -X POST ${CURL_AUTH} \
+    unload_result=$(${COMPOSE} exec -T "${SERVICE}" curl -s -X POST "${CURL_AUTH[@]}" \
         -H "Content-Type: application/json" \
         -d "{\"model\": \"${model_id}\"}" \
         "http://localhost:${SERVER_PORT}/models/unload" 2>/dev/null || true)
@@ -192,7 +192,7 @@ if [[ "${model_loaded}" == "true" ]]; then
     
     # Load the model
     echo "Loading ${model_filename}..."
-    load_result=$(${COMPOSE} exec -T "${SERVICE}" curl -s -X POST ${CURL_AUTH} \
+    load_result=$(${COMPOSE} exec -T "${SERVICE}" curl -s -X POST "${CURL_AUTH[@]}" \
         -H "Content-Type: application/json" \
         -d "{\"model\": \"${model_id}\"}" \
         "http://localhost:${SERVER_PORT}/models/load" 2>/dev/null || true)
