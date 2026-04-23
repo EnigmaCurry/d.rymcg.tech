@@ -144,7 +144,10 @@ make list-models-json
 make delete-models
 ```
 
-Interactive multi-select menu to remove models from `/models/`.
+Interactive multi-select menu to remove models from `/models/`. If any
+of the selected models have corresponding `.json` configuration files,
+you'll be prompted to select which config files to delete as well
+(all pre-selected by default).
 
 After deleting, run `make restart` if the deleted model was currently
 loaded in memory.
