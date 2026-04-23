@@ -54,6 +54,7 @@ ARG HSA_OVERRIDE_GFX_VERSION
 ENV HSA_OVERRIDE_GFX_VERSION=${HSA_OVERRIDE_GFX_VERSION}
 ARG LOG_LEVEL
 ENV LOG_LEVEL=${LOG_LEVEL}
+RUN apt-get update && apt-get install -y --no-install-recommends libglib2.0-0 && rm -rf /var/lib/apt/lists/*
 VOLUME /ComfyUI
 ENTRYPOINT ["/entrypoint.sh"]
 CMD ["python3", "main.py", "--multi-user", "--listen 0.0.0.0", "--verbose", "${LOG_LEVEL}"]
