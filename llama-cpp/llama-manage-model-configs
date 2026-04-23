@@ -168,13 +168,10 @@ if [[ -z "${loaded_models}" ]]; then
     exit 0
 fi
 
-# Check if our model is in the loaded models list
-model_loaded=false
-if echo "${loaded_models}" | jq -e '.data[]? | select(.id == "'"${model_id}"'" or .id == "'"${model_filename}"'")' >/dev/null 2>&1; then
-    model_loaded=true
-fi
+# Check if our model is in the list and get its status
+model_status=$(echo "${loaded_models}" | jq -r '.data[]? | select(.id == "'"${model_id}"'" or .id == "'"${model_filename}"'") | .status.value' 2>/dev/null || true)
 
-if [[ "${model_loaded}" == "true" ]]; then
+if [[ "${model_status}" == "loaded" ]]; then
     echo "Model is currently loaded. Reloading to apply new configuration..."
     
     # Unload the model
@@ -184,32 +181,24 @@ if [[ "${model_loaded}" == "true" ]]; then
         -d "{\"model\": \"${model_id}\"}" \
         "http://localhost:${SERVER_PORT}/models/unload" 2>/dev/null || true)
     
-    unload_success=false
     if echo "${unload_result}" | jq -e '.success == true' >/dev/null 2>&1; then
         echo "Model unloaded successfully."
-        unload_success=true
-    elif echo "${unload_result}" | jq -e '.error.message' 2>/dev/null | grep -q "model is not running"; then
-        echo "Model is not currently loaded (may have been unloaded already)."
     else
-        echo "Warning: Unload failed - the model may not be loaded. Response: ${unload_result}"
+        echo "Warning: Unload may have failed. Response: ${unload_result}"
     fi
     
-    # Only attempt to load if unload succeeded
-    if [[ "${unload_success}" == "true" ]]; then
-        echo "Loading ${model_filename}..."
-        load_result=$(${COMPOSE} exec -T "${SERVICE}" curl -s -X POST "${CURL_AUTH[@]}" \
-            -H "Content-Type: application/json" \
-            -d "{\"model\": \"${model_id}\"}" \
-            "http://localhost:${SERVER_PORT}/models/load" 2>/dev/null || true)
-        
-        if echo "${load_result}" | jq -e '.success == true' >/dev/null 2>&1; then
-            echo "Model loaded successfully with new configuration."
-        else
-            echo "Warning: Load may have failed. Response: ${load_result}"
-            echo "You may need to manually reload the model."
-        fi
+    # Load the model
+    echo "Loading ${model_filename}..."
+    load_result=$(${COMPOSE} exec -T "${SERVICE}" curl -s -X POST "${CURL_AUTH[@]}" \
+        -H "Content-Type: application/json" \
+        -d "{\"model\": \"${model_id}\"}" \
+        "http://localhost:${SERVER_PORT}/models/load" 2>/dev/null || true)
+    
+    if echo "${load_result}" | jq -e '.success == true' >/dev/null 2>&1; then
+        echo "Model loaded successfully with new configuration."
     else
-        echo "Skipping load - you need to load the model to use it with the new configuration."
+        echo "Warning: Load may have failed. Response: ${load_result}"
+        echo "You may need to manually reload the model."
     fi
 else
     echo "Model is not currently loaded. Configuration saved."
