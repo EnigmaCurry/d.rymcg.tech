@@ -212,6 +212,7 @@ Install these applications at your preference:
 * [Jupyterlab](jupyterlab#readme) - a web based code editing environment / reproducible research tool
 * [Kokoro Web](kokoro#readme) - a browser-based AI voice generator that lets you create natural-sounding voices
 * [Lemmy](lemmy#readme) - a link aggregator and forum for the fediverse
+* [llama.cpp](llama-cpp#readme) - an LLM inference engine with an OpenAI-compatible API for serving GGUF models
 * [Matterbridge](matterbridge#readme) - a chat room bridge (IRC, Matrix, XMPP, etc)
 * [Maubot](maubot#readme) - a matrix Bot
 * [Minio](minio#readme) - an S3 storage server

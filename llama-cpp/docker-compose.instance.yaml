@@ -1,0 +1,124 @@
+#! This is a ytt template file for docker-compose.override.yaml
+#! References:
+#!   https://carvel.dev/ytt
+#!   https://docs.docker.com/compose/extends/#adding-and-overriding-configuration
+#!   https://github.com/enigmacurry/d.rymcg.tech#overriding-docker-composeyaml-per-instance
+
+#! ### Standard project vars:
+#@ load("@ytt:data", "data")
+#@ project = data.values.project
+#@ instance = data.values.instance
+#@ context = data.values.context
+#@ traefik_host = data.values.traefik_host
+#@ ip_sourcerange = data.values.ip_sourcerange
+#@ enable_http_auth = len(data.values.http_auth.strip()) > 0
+#@ http_auth = data.values.http_auth_var
+#@ enable_oauth2 = data.values.oauth2 == "true"
+#@ authorized_group = data.values.authorized_group
+#@ enable_mtls_auth = data.values.enable_mtls_auth == "true"
+#@ mtls_authorized_certs = data.values.mtls_authorized_certs
+#@ enabled_middlewares = []
+
+#! ### Project-specific vars:
+#@ models_host_path = data.values.models_host_path
+#@ compose_profile = data.values.compose_profile
+#@ api_token = data.values.api_token
+#@ server_port = data.values.server_port
+#@ initial_model = data.values.initial_model
+#@ n_gpu_layers = data.values.n_gpu_layers
+#@ context_length = data.values.context_length
+#@ image_variant = data.values.image_variant
+#@ models_max = data.values.models_max
+#@ jinja = data.values.jinja
+#@ tools = data.values.tools
+#@ sleep_idle_seconds = data.values.sleep_idle_seconds
+
+#@ def llama_service(profile):
+#@   service = "llama-" + profile
+#@   env = []
+#@   if api_token.strip():
+#@     env.append("LLAMA_API_KEY=${LLAMA_API_TOKEN}")
+#@   end
+#@   if context_length.strip():
+#@     env.append("LLAMA_CONTEXT_LENGTH=${LLAMA_CONTEXT_LENGTH}")
+#@   end
+#@   if n_gpu_layers.strip():
+#@     env.append("LLAMA_N_GPU_LAYERS=${LLAMA_N_GPU_LAYERS}")
+#@   end
+#@   cmd = []
+#@   if image_variant != "server":
+#@     cmd.append("--server")
+#@   end
+#@   cmd.extend(["--host", "0.0.0.0", "--port", server_port, "--models-dir", "/models"])
+#@   if models_max.strip() and models_max.strip() != "0":
+#@     cmd.extend(["--models-max", models_max])
+#@   end
+#@   if initial_model.strip():
+#@     cmd.extend(["-m", initial_model])
+#@   end
+#@   if jinja == "true":
+#@     cmd.append("--jinja")
+#@   end
+#@   if tools.strip():
+#@     cmd.extend(["--tools", tools])
+#@   end
+#@   if sleep_idle_seconds.strip():
+#@     cmd.extend(["--sleep-idle-seconds", sleep_idle_seconds])
+#@   end
+#@   router = "{}-{}-{}".format(project, instance, service)
+#@   labels = []
+#@   middlewares = []
+#@   labels.append("backup-volume.stop-during-backup=true")
+#@   labels.append("traefik.enable=true")
+#@   labels.append("traefik.http.routers.{}.rule=Host(`{}`)".format(router, traefik_host))
+#@   labels.append("traefik.http.routers.{}.entrypoints=websecure".format(router))
+#@   middlewares.append("{}-ipallowlist".format(router))
+#@   labels.append("traefik.http.middlewares.{}-ipallowlist.ipallowlist.sourcerange={}".format(router, ip_sourcerange))
+#@   if enable_http_auth:
+#@     middlewares.append("{}-basicauth".format(router))
+#@     labels.append("traefik.http.middlewares.{}-basicauth.basicauth.users={}".format(router, http_auth))
+#@     labels.append("traefik.http.middlewares.{}-basicauth.basicauth.headerField=X-Forwarded-User".format(router))
+#@   end
+#@   if enable_oauth2:
+#@     middlewares.append("traefik-forward-auth@docker")
+#@     middlewares.append("header-authorization-group-{}@file".format(authorized_group))
+#@   end
+#@   if enable_mtls_auth:
+#@     labels.append("traefik.http.routers.{}.tls.options=step_ca_mTLS@file".format(router))
+#@     if len(mtls_authorized_certs):
+#@       labels.append("traefik.http.middlewares.mtlsauth-{}.plugin.certauthz.domains={}".format(router, mtls_authorized_certs))
+#@       middlewares.append("mtlsauth-{}".format(router))
+#@     end
+#@     middlewares.append("mtls-header@file")
+#@   end
+#@   labels.append("traefik.http.routers.{}.middlewares={}".format(router, ",".join(middlewares)))
+#@   labels.append("traefik.http.services.{}.loadbalancer.server.port={}".format(router, server_port))
+#@   if models_host_path != "":
+#@     volumes = ["{}:/models".format(models_host_path)]
+#@   else:
+#@     volumes = ["llama:/models"]
+#@   end
+#@   return {
+#@     service: {
+#@       "volumes": volumes,
+#@       "labels": labels,
+#@       "environment": env,
+#@       "command": cmd
+#@     }
+#@   }
+#@ end
+
+#@yaml/text-templated-strings
+services:
+  #@ service_def = llama_service(compose_profile)
+  #@ for name, config in service_def.items():
+  (@= name @):
+    #@ for key, val in config.items():
+    #@ if val != []:
+    (@= key @):
+      #@ for item in val:
+      - (@= item @)
+      #@ end
+    #@ end
+    #@ end
+  #@ end
