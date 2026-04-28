@@ -217,6 +217,7 @@ Install these applications at your preference:
 * [Minio](minio#readme) - an S3 storage server
 * [Mopidy](mopidy#readme) - a streaming music server built with MPD and Snapcast
 * [Mosquitto](mosquitto#readme) - an MQTT server
+* [NATS](nats#readme) - a messaging system designed for building modern distributed systems
 * [Nextcloud](nextcloud#readme) - a collaborative file server
 * [Nginx](nginx#readme) - a webserver configured with fast-cgi support for PHP scripts
 * [Node-RED](nodered#readme) - a graphical event pipeline editor
