@@ -18,8 +18,11 @@ In this d.rymcg.tech deployment, OpenBao serves as:
 
 OpenBao requires authentication (root token, AppRole, etc.) for all
 API operations — secrets are never accessible without valid
-credentials. Additionally, data at rest is encrypted and OpenBao
-starts sealed after every restart.
+credentials. Data at rest is encrypted and OpenBao starts sealed
+after every restart. TLS is disabled on the container itself
+(`OPENBAO_TLS_DISABLE=true`); Traefik handles TLS termination, and
+traffic between Traefik and OpenBao stays on the internal Docker
+network.
 
 Enabling mTLS (`OPENBAO_MTLS_AUTH=true`) adds defense-in-depth at the
 network layer: without a valid client certificate, clients cannot
