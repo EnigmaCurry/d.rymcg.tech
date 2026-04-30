@@ -58,7 +58,6 @@ services:
       - POSTGRES_PASSWORD=${BITMAGNET_POSTGRES_PASSWORD}
       - POSTGRES_DB=bitmagnet
       - PGUSER=postgres
-    user: "${BITMAGNET_UID}:${BITMAGNET_GID}"
     networks:
       - default
     shm_size: 1g
