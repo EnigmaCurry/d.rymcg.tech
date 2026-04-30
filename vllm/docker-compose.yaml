@@ -1,0 +1,39 @@
+services:
+  vllm-cuda:
+    profiles:
+      - cuda
+    image: ${VLLM_IMAGE}
+    restart: unless-stopped
+    ipc: host
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+    sysctls:
+      - net.ipv4.ip_unprivileged_port_start=1024
+    devices:
+      - nvidia.com/gpu=all
+
+  vllm-rocm:
+    profiles:
+      - rocm
+    image: ${VLLM_IMAGE}
+    restart: unless-stopped
+    ipc: host
+    devices:
+      - /dev/kfd
+      - /dev/dri
+    security_opt:
+      - seccomp=unconfined
+      - no-new-privileges:true
+    group_add:
+      - video
+    cap_add:
+      - SYS_PTRACE
+    cap_drop:
+      - ALL
+    sysctls:
+      - net.ipv4.ip_unprivileged_port_start=1024
+
+volumes:
+  vllm:

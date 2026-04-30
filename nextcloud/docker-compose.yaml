@@ -1,7 +1,7 @@
 
 services:
   postgres:
-    image: postgres:16
+    image: ${NEXTCLOUD_POSTGRES_IMAGE}
     restart: unless-stopped
     security_opt:
       - no-new-privileges:true
@@ -37,7 +37,7 @@ services:
       - ENCRYPTION_PASSWORD=${NEXTCLOUD_BACKUP_ENCRYPTION_PASSWORD}
 
   redis:
-    image: redis:alpine
+    image: ${NEXTCLOUD_REDIS_IMAGE}
     restart: unless-stopped
     security_opt:
       - no-new-privileges:true
@@ -89,7 +89,7 @@ services:
       - RESTIC_FORGET_ARGS=--prune --keep-daily 7 --keep-weekly 4 --keep-monthly 6 --keep-yearly 3
 
   cron:
-    image: nextcloud:apache
+    image: ${NEXTCLOUD_IMAGE}
     security_opt:
       - no-new-privileges:true
     restart: unless-stopped

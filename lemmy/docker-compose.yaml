@@ -112,7 +112,7 @@ services:
       - "backup-volume.stop-during-backup=true"
 
   postgres:
-    image: postgres:15-alpine
+    image: ${LEMMY_POSTGRES_IMAGE}
     hostname: postgres
     environment:
       - POSTGRES_USER=lemmy
@@ -131,7 +131,7 @@ services:
       - "backup-volume.stop-during-backup=true"
 
   postfix:
-    image: mwader/postfix-relay
+    image: ${LEMMY_POSTFIX_IMAGE}
     hostname: postfix
     environment:
       - POSTFIX_myhostname=${LEMMY_TRAEFIK_HOST}

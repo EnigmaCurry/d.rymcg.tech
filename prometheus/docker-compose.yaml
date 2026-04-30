@@ -100,7 +100,8 @@ services:
       - /sys:/sys:ro
       - /var/lib/docker/:/var/lib/docker:ro
       - /etc/machine-id:/etc/machine-id:ro
-      - /etc/localtime:/etc/localtime:ro
+    environment:
+      - TZ=${TZ:-UTC}
     deploy:
       resources:
         limits:
@@ -129,5 +130,5 @@ services:
   alert-test:
     profiles:
       - alert-test
-    image: curlimages/curl
+    image: ${PROMETHEUS_CURL_IMAGE}
     command: curl --json '[{"labels":{"alertname":"test-alert"}}]' http://alertmanager:9093/api/v1/alerts

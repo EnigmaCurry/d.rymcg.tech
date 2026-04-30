@@ -14,3 +14,4 @@ Caveat Emptor!
 * [TiddlyWiki (NodeJS version)](tiddlywiki-nodejs#readme) - Advanced server edition of TiddlyWiki with image CDN
 * [Tiny Tiny RSS](ttrss#readme) - an RSS reader / proxy
 * [Wireguard layer4 proxy](wireguard#readme) - This old wireguard config has been usurped by the traefik config.
+* [_docker_vm](_docker_vm) - Docker VM management scripts, replaced by [nixos-vm-template](https://github.com/EnigmaCurry/nixos-vm-template).

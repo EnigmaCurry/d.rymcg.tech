@@ -1,0 +1,67 @@
+services:
+  config:
+    build:
+      context: config
+    environment:
+      - INSP_NET_NAME=${INSPIRCD_NET_NAME}
+      - INSP_NET_SUFFIX=${INSPIRCD_NET_SUFFIX}
+      - INSP_SERVER_HOSTNAME=${INSPIRCD_SERVER_HOSTNAME}
+      - INSP_ADMIN_NAME=${INSPIRCD_ADMIN_NAME}
+      - INSP_ADMIN_DESC=${INSPIRCD_ADMIN_DESC}
+      - MAIL_FROM=noreply@${INSPIRCD_SERVER_HOSTNAME}${INSPIRCD_NET_SUFFIX}
+    volumes:
+      - inspircd_conf_d:/inspircd/conf.d:Z
+      - anope_data:/anope:Z
+
+  inspircd:
+    depends_on: ['config']
+    image: ${INSPIRCD_IMAGE}
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+    sysctls:
+      - net.ipv4.ip_unprivileged_port_start=1024
+    hostname: ${INSPIRCD_SERVER_HOSTNAME}
+    environment:
+      - INSP_NET_NAME=${INSPIRCD_NET_NAME}
+      - INSP_NET_SUFFIX=${INSPIRCD_NET_SUFFIX}
+      - INSP_SERVER_HOSTNAME=${INSPIRCD_SERVER_HOSTNAME}
+      - INSP_ADMIN_NAME=${INSPIRCD_ADMIN_NAME}
+      - INSP_ADMIN_DESC=${INSPIRCD_ADMIN_DESC}
+      - INSP_ADMIN_EMAIL=${INSPIRCD_ADMIN_EMAIL}
+      - INSP_ENABLE_DNSBL=${INSPIRCD_ENABLE_DNSBL}
+      - INSP_CONNECT_PASSWORD=${INSPIRCD_CONNECT_PASSWORD}
+      - INSP_CONNECT_HASH=bcrypt
+    #command: --debug
+    restart: unless-stopped
+    labels: []
+    volumes:
+      - inspircd_conf_d:/inspircd/conf.d:Z
+
+  services:
+    depends_on: ['inspircd']
+    build:
+      context: anope
+      args:
+        ANOPE_IMAGE: ${INSPIRCD_ANOPE_IMAGE}
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+    sysctls:
+      - net.ipv4.ip_unprivileged_port_start=1024
+    environment:
+      - ANOPE_UPLINK_IP=irc
+      - ANOPE_UPLINK_PASSWORD=${INSPIRCD_SERVICES_ANOPE_PASSWORD}
+      - ANOPE_UPLINK_PORT=7000
+      - ANOPE_SERVICES_NAME=services${INSPIRCD_NET_SUFFIX}
+      - ANOPE_SERVICES_VHOST=services${INSPIRCD_NET_SUFFIX}
+    restart: unless-stopped
+    labels: []
+    volumes:
+      - anope_data:/data:Z
+        
+volumes:
+  anope_data:
+  inspircd_conf_d:

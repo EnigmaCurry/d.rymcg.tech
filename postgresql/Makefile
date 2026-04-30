@@ -38,7 +38,7 @@ diagram:
 	@echo TODO
 
 .PHONY: certificates # Make new certificates (overwriting the old ones)
-certificates: build
+certificates: $(if $(BUILD),build)
 	@${BIN}/confirm no "This will destroy the existing CA, server, and client certificates and create new ones."
 	@docker compose --env-file=${ENV_FILE} run -e FORCE_NEW_CERTIFICATES=true config
 	@docker compose --env-file=${ENV_FILE} restart postgres

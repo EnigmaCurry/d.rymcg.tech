@@ -29,7 +29,7 @@ override-hook:
 
 .PHONY: shell
 shell:
-	@make --no-print-directory docker-compose-shell SERVICE=actual
+	@make --no-print-directory docker-compose-shell SERVICE=actual_server
 
 .PHONY: install-hook
 install-hook:

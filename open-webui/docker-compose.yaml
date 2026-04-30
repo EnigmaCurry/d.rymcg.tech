@@ -1,3 +1,6 @@
+volumes:
+  ollama:
+
 services:
   openwebui:
     image: ${OPENWEBUI_IMAGE}
@@ -12,6 +15,7 @@ services:
       - OLLAMA_BASE_URL=http://ollama-${DOCKER_COMPOSE_PROFILES}:11434
       - ENV=${OPENWEBUI_ENV}
       - CACHE_CONTROL=${OPENWEBUI_CACHE_CONTROL}
+      - GLOBAL_LOG_LEVEL=${OPENWEBUI_GLOBAL_LOG_LEVEL}
     labels: []
 
   ollama-rocm:

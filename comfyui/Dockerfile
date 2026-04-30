@@ -6,7 +6,7 @@ COPY entrypoint.sh install-models.sh /
 RUN chmod +x /entrypoint.sh /install-models.sh
 
 RUN apt-get update && \
-    apt-get install -y --no-install-recommends wget git rsync dialog python3 python3-pip python3-venv ca-certificates curl && \
+    apt-get install -y --no-install-recommends wget git rsync dialog python3 python3-pip python3-venv ca-certificates curl libxcb1 libgl1 libglib2.0-0 && \
     rm -rf /var/lib/apt/lists/*
 RUN git clone --tags https://github.com/comfyanonymous/ComfyUI.git && \
     git -C ComfyUI checkout ${COMFYUI_VERSION}
@@ -47,6 +47,7 @@ RUN case "${GPU_TYPE}" in \
     *)      echo "Unknown GPU type: ${GPU_TYPE}\n" && exit 1 ;; \
     esac
 
+RUN python3 -m pip install "numpy<2"
 RUN python3 -m pip install -r requirements.txt
 
 ARG HSA_OVERRIDE_GFX_VERSION

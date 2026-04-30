@@ -14,6 +14,7 @@ sudo apt install bash build-essential gettext git openssl apache2-utils \
                  xdg-utils jq sshfs wireguard curl inotify-tools w3m \
                  moreutils keychain ipcalc-ng
                  
+curl -LsSf https://astral.sh/uv/install.sh | sh
 curl -fsSL https://get.docker.com | sudo bash
 ```
 
@@ -22,7 +23,7 @@ For Fedora workstations, run:
 ```
 sudo dnf update
 sudo dnf install bash gettext openssl git xdg-utils jq sshfs curl inotify-tools \
-                 httpd-tools make wireguard-tools w3m moreutils ipcalc
+                 httpd-tools make wireguard-tools w3m moreutils ipcalc uv
 
 curl -fsSL https://get.docker.com | sudo bash
 ```
@@ -32,7 +33,7 @@ For Arch Linux workstations, run:
 ```
 sudo pacman -Syu
 sudo pacman -S bash base-devel gettext git openssl apache xdg-utils jq sshfs \
-               wireguard-tools curl inotify-tools w3m moreutils ipv6calc
+               wireguard-tools curl inotify-tools w3m moreutils ipv6calc uv
 
 sudo pacman -S docker
 

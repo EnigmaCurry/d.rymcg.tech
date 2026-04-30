@@ -4,6 +4,18 @@ BIN=$(realpath $(dirname ${BASH_SOURCE}))
 source ${BIN}/funcs.sh
 set -e
 
+while [[ $# -gt 0 ]]; do
+    case $1 in
+        --yes|-y)
+            YES=yes
+            shift
+            ;;
+        *)
+            shift
+            ;;
+    esac
+done
+
 ${BIN}/check_deps jq
 
 get_latest_version() {
