@@ -15,9 +15,9 @@ config-hook:
 	@echo "Enter the processing engine to use: cuda (for nvidia GPUs), rocm (for AMD GPUs), intel (for Intel GPUs), or cpu (for CPU only)."
 	@${BIN}/reconfigure_compose_profiles_choose ${ENV_FILE} rocm="AMD GPU" cuda="Nvidia GPU" intel="Intel GPU" cpu="CPU only"
 	@echo
-	@if [[ $$(${BIN}/dotenv -f ${ENV_FILE} get DOCKER_COMPOSE_PROFILES) == 'rocm' ]]; then \
+	@if [[ $$(${BIN}/dotenv -f ${ENV_FILE} get COMFYUI_DOCKER_COMPOSE_PROFILES) == 'rocm' ]]; then \
 		${BIN}/reconfigure_ask ${ENV_FILE} COMFYUI_ROCM_VERSION "Enter the version of ROCm to install (e.g., 6.4 or 6.4.3)" ; \
-	elif [[ $$(${BIN}/dotenv -f ${ENV_FILE} get DOCKER_COMPOSE_PROFILES) == 'cuda' ]]; then \
+	elif [[ $$(${BIN}/dotenv -f ${ENV_FILE} get COMFYUI_DOCKER_COMPOSE_PROFILES) == 'cuda' ]]; then \
 		${BIN}/reconfigure_ask ${ENV_FILE} COMFYUI_CUDA_WHEEL_VERSION "Enter the version of the CUDA wheel to install (e.g., cu129)" 	; \
 	fi
 	@echo
@@ -42,11 +42,11 @@ override-hook:
 ####                         # (this hardcodes the string into docker-compose.override.yaml)
 ####   name=@VARIABLE_NAME   # sets the template 'name' field to the literal string '${VARIABLE_NAME}'
 ####                         # (used for regular docker-compose expansion of env vars by name.)
-	@${BIN}/docker_compose_override ${ENV_FILE} project=:comfyui instance=@COMFYUI_INSTANCE traefik_host=@COMFYUI_TRAEFIK_HOST http_auth=COMFYUI_HTTP_AUTH http_auth_var=@COMFYUI_HTTP_AUTH ip_sourcerange=@COMFYUI_IP_SOURCERANGE oauth2=COMFYUI_OAUTH2 authorized_group=COMFYUI_OAUTH2_AUTHORIZED_GROUP enable_mtls_auth=COMFYUI_MTLS_AUTH mtls_authorized_certs=COMFYUI_MTLS_AUTHORIZED_CERTS compose_profile=DOCKER_COMPOSE_PROFILES models_host_path=COMFYUI_MODELS_HOST_PATH output_host_path=COMFYUI_OUTPUT_HOST_PATH
+	@${BIN}/docker_compose_override ${ENV_FILE} project=:comfyui instance=@COMFYUI_INSTANCE traefik_host=@COMFYUI_TRAEFIK_HOST http_auth=COMFYUI_HTTP_AUTH http_auth_var=@COMFYUI_HTTP_AUTH ip_sourcerange=@COMFYUI_IP_SOURCERANGE oauth2=COMFYUI_OAUTH2 authorized_group=COMFYUI_OAUTH2_AUTHORIZED_GROUP enable_mtls_auth=COMFYUI_MTLS_AUTH mtls_authorized_certs=COMFYUI_MTLS_AUTHORIZED_CERTS compose_profile=COMFYUI_DOCKER_COMPOSE_PROFILES models_host_path=COMFYUI_MODELS_HOST_PATH output_host_path=COMFYUI_OUTPUT_HOST_PATH
 
 .PHONY: shell # Enter container shell
 shell:
-	@make --no-print-directory docker-compose-shell SERVICE=comfyui-$$(${BIN}/dotenv -f ${ENV_FILE} get DOCKER_COMPOSE_PROFILES)
+	@make --no-print-directory docker-compose-shell SERVICE=comfyui-$$(${BIN}/dotenv -f ${ENV_FILE} get COMFYUI_DOCKER_COMPOSE_PROFILES)
 
 .PHONY: install-hook
 install-hook:
@@ -62,7 +62,7 @@ add-models:
 
 .PHONY: clear-output # Delete all generated output files (images, video, audio) from ComfyUI
 clear-output:
-	@CONTAINER="comfyui-comfyui-$$(${BIN}/dotenv -f ${ENV_FILE} get DOCKER_COMPOSE_PROFILES)-1"; \
+	@CONTAINER="comfyui-comfyui-$$(${BIN}/dotenv -f ${ENV_FILE} get COMFYUI_DOCKER_COMPOSE_PROFILES)-1"; \
 	output_count=$$(docker exec "$${CONTAINER}" sh -c 'find /ComfyUI/output -type f | wc -l' 2>/dev/null || echo 0); \
 	output_size=$$(docker exec "$${CONTAINER}" sh -c 'du -sh /ComfyUI/output 2>/dev/null | cut -f1' || echo "unknown"); \
 	echo "This will permanently delete all generated output files (images, video, audio) from the ComfyUI output directory."; \
@@ -73,7 +73,7 @@ clear-output:
 
 .PHONY: clear-input # Delete all uploaded input files from ComfyUI
 clear-input:
-	@CONTAINER="comfyui-comfyui-$$(${BIN}/dotenv -f ${ENV_FILE} get DOCKER_COMPOSE_PROFILES)-1"; \
+	@CONTAINER="comfyui-comfyui-$$(${BIN}/dotenv -f ${ENV_FILE} get COMFYUI_DOCKER_COMPOSE_PROFILES)-1"; \
 	input_count=$$(docker exec "$${CONTAINER}" sh -c 'find /ComfyUI/input -type f | wc -l' 2>/dev/null || echo 0); \
 	input_size=$$(docker exec "$${CONTAINER}" sh -c 'du -sh /ComfyUI/input 2>/dev/null | cut -f1' || echo "unknown"); \
 	echo "This will permanently delete all uploaded input files from the ComfyUI input directory."; \
@@ -86,7 +86,7 @@ clear-input:
 remove-model:
 	@choices="audio_encoders checkpoints clip clip_vision configs controlnet diffusers diffusion_models embeddings gligen hypernetworks loras model_patches photomaker style_models text_encoders unet upscale_models vae vae_approx"; \
 	model_type=$$("${BIN}/script-wizard" choose "What type of model are you removing?" $$choices --default "checkpoints"); \
-	models=$$(docker exec "comfyui-comfyui-$$(${BIN}/dotenv -f ${ENV_FILE} get DOCKER_COMPOSE_PROFILES)-1" ls /ComfyUI/models/$${model_type} 2>/dev/null); \
+	models=$$(docker exec "comfyui-comfyui-$$(${BIN}/dotenv -f ${ENV_FILE} get COMFYUI_DOCKER_COMPOSE_PROFILES)-1" ls /ComfyUI/models/$${model_type} 2>/dev/null); \
 	if [ -z "$${models}" ]; then \
 		echo "No models found in /ComfyUI/models/$${model_type}\n"; \
 		exit 0; \
@@ -94,7 +94,7 @@ remove-model:
 	selected_model=$$("${BIN}/script-wizard" choose "Which model do you want to remove?" $$models); \
 	if [ -n "$${selected_model}" ]; then \
 		echo "Removing /ComfyUI/models/$${model_type}/$${selected_model}"; \
-docker exec -it "comfyui-comfyui-$$(${BIN}/dotenv -f ${ENV_FILE} get DOCKER_COMPOSE_PROFILES)-1" rm -rf "/ComfyUI/models/$${model_type}/$${selected_model}"; \
+docker exec -it "comfyui-comfyui-$$(${BIN}/dotenv -f ${ENV_FILE} get COMFYUI_DOCKER_COMPOSE_PROFILES)-1" rm -rf "/ComfyUI/models/$${model_type}/$${selected_model}"; \
 	else \
 		echo "No model selected, operation cancelled."; \
 	fi

@@ -10,7 +10,7 @@ config-hook:
 #### reconfigure_htpasswd will configure the HTTP Basic Authentication setting the var name and with a provided default value.
 	@${BIN}/reconfigure ${ENV_FILE} WOODPECKER_INSTANCE=$${instance:-default}
 	@${BIN}/reconfigure_compose_profiles_select ${ENV_FILE} server="Woodpecker Server" agent="Woodpecker Agent"
-	@PROFILES=$$(${BIN}/dotenv -f ${ENV_FILE} get DOCKER_COMPOSE_PROFILES); \
+	@PROFILES=$$(${BIN}/dotenv -f ${ENV_FILE} get WOODPECKER_DOCKER_COMPOSE_PROFILES); \
 	if echo "$${PROFILES}" | grep -q server; then \
 		${BIN}/reconfigure_ask ${ENV_FILE} WOODPECKER_TRAEFIK_HOST "Enter the woodpecker server domain name" woodpecker${INSTANCE_URL_SUFFIX}.${ROOT_DOMAIN}; \
 		${BIN}/reconfigure_ask ${ENV_FILE} WOODPECKER_GRPC_HOST "Enter the woodpecker GRPC domain name" woodpecker-grpc${INSTANCE_URL_SUFFIX}.${ROOT_DOMAIN}; \
@@ -36,7 +36,7 @@ config-hook:
 			${BIN}/reconfigure_ask ${ENV_FILE} WOODPECKER_ORGS "Restrict login to these Forgejo orgs (comma separated, blank for all)" woodpecker; \
 		fi; \
 	fi
-	@PROFILES=$$(${BIN}/dotenv -f ${ENV_FILE} get DOCKER_COMPOSE_PROFILES); \
+	@PROFILES=$$(${BIN}/dotenv -f ${ENV_FILE} get WOODPECKER_DOCKER_COMPOSE_PROFILES); \
 	if echo "$${PROFILES}" | grep -q agent; then \
 		if echo "$${PROFILES}" | grep -q server; then \
 			${BIN}/reconfigure ${ENV_FILE} WOODPECKER_AGENT_SERVER=server:9000; \

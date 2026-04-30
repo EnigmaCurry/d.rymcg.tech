@@ -12,7 +12,7 @@ services:
       - net.ipv4.ip_unprivileged_port_start=1024
     restart: unless-stopped
     environment:
-      - OLLAMA_BASE_URL=http://ollama-${DOCKER_COMPOSE_PROFILES}:11434
+      - OLLAMA_BASE_URL=http://ollama-${OPENWEBUI_DOCKER_COMPOSE_PROFILES}:11434
       - ENV=${OPENWEBUI_ENV}
       - CACHE_CONTROL=${OPENWEBUI_CACHE_CONTROL}
       - GLOBAL_LOG_LEVEL=${OPENWEBUI_GLOBAL_LOG_LEVEL}

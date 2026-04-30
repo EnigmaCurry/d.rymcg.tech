@@ -11,6 +11,9 @@ shift
 ## Make new .env if it doesn't exist:
 test -f ${ENV_FILE} || cp .env-dist ${ENV_FILE}
 
+PREFIX=$(${BIN}/parse-env-meta.sh .env-dist PREFIX)
+PROFILES_VAR="${PREFIX}_DOCKER_COMPOSE_PROFILES"
+
 PROFILES="default"
 for arg in "$@"; do
     parts=(${arg//=/ }); var=${parts[0]}; profile=${parts[@]:1};
@@ -19,5 +22,5 @@ for arg in "$@"; do
     fi
 done
 
-${BIN}/dotenv -f ${ENV_FILE} set DOCKER_COMPOSE_PROFILES="${PROFILES}"
-echo "Set DOCKER_COMPOSE_PROFILES=${PROFILES}"
+${BIN}/dotenv -f ${ENV_FILE} set ${PROFILES_VAR}="${PROFILES}"
+echo "Set ${PROFILES_VAR}=${PROFILES}"

@@ -26,7 +26,7 @@ config-hook:
 		echo "Enter the processing engine to use: cuda (for nvidia GPUs), rocm (for AMD GPUs), or cpu (to use only the CPU)." && \
 		${BIN}/reconfigure_compose_profiles_choose ${ENV_FILE} rocm="AMD GPU" cuda="Nvidia GPU" cpu="CPU only" && \
 		echo "" && \
-		if [[ "$$(${BIN}/dotenv -f ${ENV_FILE} get DOCKER_COMPOSE_PROFILES)" == "rocm" ]]; then \
+		if [[ "$$(${BIN}/dotenv -f ${ENV_FILE} get OPENWEBUI_DOCKER_COMPOSE_PROFILES)" == "rocm" ]]; then \
 	    	echo "If your GPU isn't officially supported by ROCm, you can set OPENWEBUI_OLLAMA_HSA_OVERRIDE_GFX_VERSION to a value that matches your GPU’s architecture (e.g., \"10.3.0\"). Leave blank if your GPU is supported by ROCm."; \
 			ALLOW_BLANK=1 ${BIN}/reconfigure_ask ${ENV_FILE} OPENWEBUI_OLLAMA_HSA_OVERRIDE_GFX_VERSION "Enter your AMD GPU's architecture version"; \
 		else \
@@ -36,7 +36,7 @@ config-hook:
 		ALLOW_BLANK=1 ${BIN}/reconfigure_ask ${ENV_FILE} OPENWEBUI_MODELS_HOST_PATH "If you want to save models in a specific directory on the host, enter the path here, or leave blank to save models to the Ollama container's named Docker volume." \
 	) || ( \
 		${BIN}/reconfigure ${ENV_FILE} OPENWEBUI_OLLAMA_ENABLE=false && \
-		${BIN}/reconfigure ${ENV_FILE} DOCKER_COMPOSE_PROFILES=default \
+		${BIN}/reconfigure ${ENV_FILE} OPENWEBUI_DOCKER_COMPOSE_PROFILES=default \
 	)
 	@echo
 
@@ -52,13 +52,13 @@ override-hook:
 ####                         # (this hardcodes the string into docker-compose.override.yaml)
 ####   name=@VARIABLE_NAME   # sets the template 'name' field to the literal string '${VARIABLE_NAME}'
 ####                         # (used for regular docker-compose expansion of env vars by name.)
-	@${BIN}/docker_compose_override ${ENV_FILE} project=:openwebui instance=@OPENWEBUI_INSTANCE traefik_host=@OPENWEBUI_TRAEFIK_HOST http_auth=OPENWEBUI_HTTP_AUTH http_auth_var=@OPENWEBUI_HTTP_AUTH ip_sourcerange=@OPENWEBUI_IP_SOURCERANGE oauth2=OPENWEBUI_OAUTH2 authorized_group=OPENWEBUI_OAUTH2_AUTHORIZED_GROUP enable_mtls_auth=OPENWEBUI_MTLS_AUTH mtls_authorized_certs=OPENWEBUI_MTLS_AUTHORIZED_CERTS models_host_path=OPENWEBUI_MODELS_HOST_PATH compose_profile=DOCKER_COMPOSE_PROFILES enable_ollama=OPENWEBUI_OLLAMA_ENABLE homepage_labels_enable=OPENWEBUI_HOMEPAGE_LABELS_ENABLE homepage_group_openwebui=OPENWEBUI_HOMEPAGE_GROUP_OPENWEBUI homepage_name_openwebui=OPENWEBUI_HOMEPAGE_NAME_OPENWEBUI homepage_icon_openwebui=OPENWEBUI_HOMEPAGE_ICON_OPENWEBUI homepage_description_openwebui=OPENWEBUI_HOMEPAGE_DESCRIPTION_OPENWEBUI homepage_show_stats_openwebui=OPENWEBUI_HOMEPAGE_SHOW_STATS_OPENWEBUI
+	@${BIN}/docker_compose_override ${ENV_FILE} project=:openwebui instance=@OPENWEBUI_INSTANCE traefik_host=@OPENWEBUI_TRAEFIK_HOST http_auth=OPENWEBUI_HTTP_AUTH http_auth_var=@OPENWEBUI_HTTP_AUTH ip_sourcerange=@OPENWEBUI_IP_SOURCERANGE oauth2=OPENWEBUI_OAUTH2 authorized_group=OPENWEBUI_OAUTH2_AUTHORIZED_GROUP enable_mtls_auth=OPENWEBUI_MTLS_AUTH mtls_authorized_certs=OPENWEBUI_MTLS_AUTHORIZED_CERTS models_host_path=OPENWEBUI_MODELS_HOST_PATH compose_profile=OPENWEBUI_DOCKER_COMPOSE_PROFILES enable_ollama=OPENWEBUI_OLLAMA_ENABLE homepage_labels_enable=OPENWEBUI_HOMEPAGE_LABELS_ENABLE homepage_group_openwebui=OPENWEBUI_HOMEPAGE_GROUP_OPENWEBUI homepage_name_openwebui=OPENWEBUI_HOMEPAGE_NAME_OPENWEBUI homepage_icon_openwebui=OPENWEBUI_HOMEPAGE_ICON_OPENWEBUI homepage_description_openwebui=OPENWEBUI_HOMEPAGE_DESCRIPTION_OPENWEBUI homepage_show_stats_openwebui=OPENWEBUI_HOMEPAGE_SHOW_STATS_OPENWEBUI
 
 .PHONY: shell
 shell:
 	@if [ -z "$(service)" ]; then \
 		if [[ "$$(${BIN}/dotenv -f ${ENV_FILE} get OPENWEBUI_OLLAMA_ENABLE)" == "true" ]]; then \
-			container=$$(eval "${BIN}/script-wizard choose 'docker exec -it into which container?' 'openwebui' 'ollama-$$(${BIN}/dotenv -f ${ENV_FILE} get DOCKER_COMPOSE_PROFILES)' --default 'openwebui'") && make --no-print-directory docker-compose-shell SERVICE=$${container}; \
+			container=$$(eval "${BIN}/script-wizard choose 'docker exec -it into which container?' 'openwebui' 'ollama-$$(${BIN}/dotenv -f ${ENV_FILE} get OPENWEBUI_DOCKER_COMPOSE_PROFILES)' --default 'openwebui'") && make --no-print-directory docker-compose-shell SERVICE=$${container}; \
 		else \
 			make --no-print-directory docker-compose-shell SERVICE=openwebui; \
 		fi \

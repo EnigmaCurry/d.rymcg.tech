@@ -15,7 +15,7 @@ config-hook:
 	@echo "Enter the processing engine to use: cuda (for nvidia GPUs), rocm (for AMD GPUs), or cpu (to use only the CPU)."
 	@${BIN}/reconfigure_compose_profiles_choose ${ENV_FILE} rocm="AMD GPU" cuda="Nvidia GPU" cpu="CPU only"
 	@echo ""
-	@if [[ "$$(${BIN}/dotenv -f ${ENV_FILE} get DOCKER_COMPOSE_PROFILES)" == "rocm" ]]; then \
+	@if [[ "$$(${BIN}/dotenv -f ${ENV_FILE} get OLLAMA_DOCKER_COMPOSE_PROFILES)" == "rocm" ]]; then \
 	    echo "If your GPU isn't officially supported by ROCm, you can set OLLAMA_HSA_OVERRIDE_GFX_VERSION to a value that matches your GPU’s architecture (e.g., \"10.3.0\"). Leave blank if your GPU is supported by ROCm."; \
 		ALLOW_BLANK=1 ${BIN}/reconfigure_ask ${ENV_FILE} OLLAMA_HSA_OVERRIDE_GFX_VERSION "Enter your AMD GPU's architecture version" ; \
 		echo ""; \
@@ -43,11 +43,11 @@ override-hook:
 ####                         # (this hardcodes the string into docker-compose.override.yaml)
 ####   name=@VARIABLE_NAME   # sets the template 'name' field to the literal string '${VARIABLE_NAME}'
 ####                         # (used for regular docker-compose expansion of env vars by name.)
-	@${BIN}/docker_compose_override ${ENV_FILE} project=:ollama instance=@OLLAMA_INSTANCE traefik_host=@OLLAMA_TRAEFIK_HOST http_auth=OLLAMA_HTTP_AUTH http_auth_var=@OLLAMA_HTTP_AUTH ip_sourcerange=@OLLAMA_IP_SOURCERANGE oauth2=OLLAMA_OAUTH2 authorized_group=OLLAMA_OAUTH2_AUTHORIZED_GROUP enable_mtls_auth=OLLAMA_MTLS_AUTH mtls_authorized_certs=OLLAMA_MTLS_AUTHORIZED_CERTS models_host_path=OLLAMA_MODELS_HOST_PATH compose_profile=DOCKER_COMPOSE_PROFILES api_token=OLLAMA_API_TOKEN
+	@${BIN}/docker_compose_override ${ENV_FILE} project=:ollama instance=@OLLAMA_INSTANCE traefik_host=@OLLAMA_TRAEFIK_HOST http_auth=OLLAMA_HTTP_AUTH http_auth_var=@OLLAMA_HTTP_AUTH ip_sourcerange=@OLLAMA_IP_SOURCERANGE oauth2=OLLAMA_OAUTH2 authorized_group=OLLAMA_OAUTH2_AUTHORIZED_GROUP enable_mtls_auth=OLLAMA_MTLS_AUTH mtls_authorized_certs=OLLAMA_MTLS_AUTHORIZED_CERTS models_host_path=OLLAMA_MODELS_HOST_PATH compose_profile=OLLAMA_DOCKER_COMPOSE_PROFILES api_token=OLLAMA_API_TOKEN
 
 .PHONY: shell
 shell:
-	@make --no-print-directory docker-compose-shell SERVICE=ollama-$$(${BIN}/dotenv -f ${ENV_FILE} get DOCKER_COMPOSE_PROFILES)
+	@make --no-print-directory docker-compose-shell SERVICE=ollama-$$(${BIN}/dotenv -f ${ENV_FILE} get OLLAMA_DOCKER_COMPOSE_PROFILES)
 
 .PHONY: install-hook
 install-hook:
