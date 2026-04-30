@@ -38,8 +38,16 @@ config-hook:
 	fi
 	@PROFILES=$$(${BIN}/dotenv -f ${ENV_FILE} get DOCKER_COMPOSE_PROFILES); \
 	if echo "$${PROFILES}" | grep -q agent; then \
-		${BIN}/reconfigure_ask ${ENV_FILE} WOODPECKER_GRPC_HOST "Enter the woodpecker GRPC domain name" woodpecker-grpc${INSTANCE_URL_SUFFIX}.${ROOT_DOMAIN}; \
-		${BIN}/reconfigure_ask ${ENV_FILE} WOODPECKER_AGENT_SECRET "Enter the agent secret (copy from the Woodpecker server config)"; \
+		if echo "$${PROFILES}" | grep -q server; then \
+			${BIN}/reconfigure ${ENV_FILE} WOODPECKER_AGENT_SERVER=server:9000; \
+			${BIN}/reconfigure ${ENV_FILE} WOODPECKER_GRPC_SECURE=false; \
+		else \
+			${BIN}/reconfigure_ask ${ENV_FILE} WOODPECKER_GRPC_HOST "Enter the woodpecker GRPC domain name" woodpecker-grpc${INSTANCE_URL_SUFFIX}.${ROOT_DOMAIN}; \
+			GRPC_HOST=$$(${BIN}/dotenv -f ${ENV_FILE} get WOODPECKER_GRPC_HOST); \
+			${BIN}/reconfigure ${ENV_FILE} WOODPECKER_AGENT_SERVER=$${GRPC_HOST}:443; \
+			${BIN}/reconfigure ${ENV_FILE} WOODPECKER_GRPC_SECURE=true; \
+			${BIN}/reconfigure_ask ${ENV_FILE} WOODPECKER_AGENT_SECRET "Enter the agent secret (copy from the Woodpecker server config)"; \
+		fi; \
 		${BIN}/reconfigure_choose ${ENV_FILE} WOODPECKER_BACKEND "Choose the agent backend" "docker" "local"; \
 		current_labels=$$(${BIN}/dotenv -f ${ENV_FILE} get WOODPECKER_FILTER_LABELS); \
 		if [ "$${current_labels}" = "role=controller" ]; then default_role="yes"; else default_role="no"; fi; \
