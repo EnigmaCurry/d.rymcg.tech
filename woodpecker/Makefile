@@ -39,7 +39,7 @@ config-hook:
 	@PROFILES=$$(${BIN}/dotenv -f ${ENV_FILE} get DOCKER_COMPOSE_PROFILES); \
 	if echo "$${PROFILES}" | grep -q agent; then \
 		${BIN}/reconfigure_ask ${ENV_FILE} WOODPECKER_GRPC_HOST "Enter the woodpecker GRPC domain name" woodpecker-grpc${INSTANCE_URL_SUFFIX}.${ROOT_DOMAIN}; \
-		${BIN}/reconfigure_password ${ENV_FILE} WOODPECKER_AGENT_SECRET; \
+		${BIN}/reconfigure_ask ${ENV_FILE} WOODPECKER_AGENT_SECRET "Enter the agent secret (copy from the Woodpecker server config)"; \
 		${BIN}/reconfigure_choose ${ENV_FILE} WOODPECKER_BACKEND "Choose the agent backend" "docker" "local"; \
 		current_labels=$$(${BIN}/dotenv -f ${ENV_FILE} get WOODPECKER_FILTER_LABELS); \
 		if [ "$${current_labels}" = "role=controller" ]; then default_role="yes"; else default_role="no"; fi; \
