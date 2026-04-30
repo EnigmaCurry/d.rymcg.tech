@@ -14,6 +14,7 @@ config-hook:
 	@WG=$$(${BIN}/dotenv -f ${ENV_FILE} get BITMAGNET_WIREGUARD_INSTANCE); if [[ -n "$${WG}" ]]; then echo "## Finding the IPv6 address of wireguard instance: $${WG}" && ${BIN}/reconfigure ${ENV_FILE} BITMAGNET_WIREGUARD_ROUTER_IPV6=$$(docker exec wireguard_$${WG}-wireguard-1 ip -j -6 addr show dev eth0 | jq -r '.[0].addr_info[0].local') && echo; fi
 	@echo ""
 	@${BIN}/reconfigure_auth ${ENV_FILE} BITMAGNET
+	@${BIN}/reconfigure_password ${ENV_FILE} BITMAGNET_POSTGRES_PASSWORD 45
 	@echo ""
 	@echo "Bitmagnet can accumulate a lot of data - an estimate is 80GB for every 1,000,000 torrents. You can store the database in a bind mount on the host or in a Docker volume."
 	@choices=('bind mount' 'Docker volume'); \
