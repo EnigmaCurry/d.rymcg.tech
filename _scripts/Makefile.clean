@@ -2,15 +2,27 @@
 clean:
 	@${BIN}/clean_instance # checks if instance exists and faults here
 	@echo "ENV_FILE=${ENV_FILE}"
+ifdef DRT_ENV_DIR
+	@ENV_FILE=${ENV_FILE}; set -x && rm -f $${ENV_FILE} "${DRT_ENV_DIR}/${PROJECT}/docker-compose.override_${CONTEXT_INSTANCE}.yaml"
+else
 	@ENV_FILE=${ENV_FILE}; set -x && rm -f $${ENV_FILE} docker-compose.override_${CONTEXT_INSTANCE}.yaml
+endif
 	@echo
 	@echo "# Removed current context/instance environment files."
+ifdef DRT_ENV_DIR
+	@_PW="${DRT_ENV_DIR}/${PROJECT}/passwords.json"; [[ -f "$${_PW}" ]] && TEMP_PWD_FILE=$$(mktemp) && cat "$${_PW}" | jq 'del(.["'${DOCKER_CONTEXT}'"])' >$${TEMP_PWD_FILE} && mv $${TEMP_PWD_FILE} "$${_PW}" && echo "# Removed all entries from passwords.json for context: ${DOCKER_CONTEXT}" || true
+else
 	@[[ -f passwords.json ]] && TEMP_PWD_FILE=$$(mktemp) && cat passwords.json | jq 'del(.["'${DOCKER_CONTEXT}'"])' >$${TEMP_PWD_FILE} && mv $${TEMP_PWD_FILE} passwords.json && echo "# Removed all entries from passwords.json for context: ${DOCKER_CONTEXT}" || true
+endif
 	@grep "^clean-hook:" "${PROJECT_MAKEFILE}" >/dev/null 2>&1 && make -e --no-print-directory clean-hook || true
 	@echo
 
 
 .PHONY: clean-all # Remove all environment files and saved passwords.json
 clean-all: clean
+ifdef DRT_ENV_DIR
+	set -x && rm -rf "${DRT_ENV_DIR}/${PROJECT}"
+else
 	set -x && rm -f .env_* docker-compose.override*.yaml passwords.json
+endif
 	@echo "# Removed all context/instance environment and passwords files."
