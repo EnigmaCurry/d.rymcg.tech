@@ -26,13 +26,9 @@ to store the Postgres database in a Docker volume or a bind mount on
 the host.
 
 If you choose a bind mount, ensure the directory exists on the Docker
-host and is owned by the UID:GID configured in your `.env` file
-(`BITMAGNET_UID` and `BITMAGNET_GID`, defaulting to `1000:1000`):
-
-```bash
-sudo mkdir -p /mnt/bitmagnet/_data
-sudo chown 1000:1000 /mnt/bitmagnet/_data
-```
+host and is owned by the UID:GID configured in your
+`.env_{DOCKER_CONTEXT}_{INSTANCE}` file (`BITMAGNET_UID` and
+`BITMAGNET_GID`, defaulting to `1000:1000`):
 
 ### Authentication and Authorization
 
@@ -61,10 +57,12 @@ prefill the HTTP Basic Authentication password if you enabled it
 make destroy
 ```
 
-This removes the containers and all Docker-managed volumes. **If using
-a bind mount**, the database directory on the host is **not** deleted.
-To completely reset the database, you must manually delete the bind
-mount directory. Note that changing `BITMAGNET_POSTGRES_PASSWORD` in
-your `.env` file after initial setup will cause authentication errors
-because the existing database was initialized with the original
-password.
+This removes the containers and all Docker-managed volumes.
+
+**If using a bind mount**, the database directory on the host is
+**not** deleted. To completely reset the database, you must manually
+delete the bind mount directory. Note that changing
+`BITMAGNET_POSTGRES_PASSWORD` in your
+`.env_{DOCKER_CONTEXT}_{INSTANCE}` file after initial setup will cause
+authentication errors because the existing database was initialized
+with the original password.
