@@ -11,10 +11,6 @@
 when:
   - event: [push, cron, manual]
     branch: master
-  - event: manual
-    branch: workstation-ci
-  - event: manual
-    branch: workstation-ci-request
 
 skip_clone: true
 

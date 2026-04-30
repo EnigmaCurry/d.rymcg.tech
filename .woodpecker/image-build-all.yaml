@@ -13,8 +13,6 @@
 when:
   - event: [cron, manual]
     branch: ${CI_REPO_DEFAULT_BRANCH}
-  - event: manual
-    branch: workstation-ci-request
 
 skip_clone: true
 
