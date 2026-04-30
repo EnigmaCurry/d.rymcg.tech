@@ -24,8 +24,12 @@ BIN=$(dirname $(realpath ${BASH_SOURCE}))
 INFO_WORDS="INFO_WORDS ROOT_DIR"
 
 ## ROOT_DIR is the root path of the d.rymcg.tech project
-## Validate that this script is running from the canonical location
 ROOT_DIR=$(dirname ${BIN})
+
+## Activate the Python venv if it exists (created by `make python-deps`)
+if [[ -d "${ROOT_DIR}/.venv/bin" ]]; then
+    export PATH="${ROOT_DIR}/.venv/bin:${PATH}"
+fi
 (test -f ${BIN}/funcs.sh && test -f ${ROOT_DIR}/Makefile && test -d ${ROOT_DIR}/traefik) || \
     (echo "Error: Invalid or corrupted d.rymcg.tech ROOT_DIR: ${ROOT_DIR}" >/dev/stderr
      echo "This script will not function properly if it has been moved." >/dev/stderr
@@ -40,37 +44,57 @@ __help() {
     echo ""
     echo "## Main d.rymcg.tech sub-commands - Optional arguments are printed in brackets [OPTIONAL_ARG]"
     (
-        echo -e "cd [SUBDIR]\tEnter a sub-shell and go to the ROOT_DIR directory (or given subdirectory)"
-        echo -e "make [PROJECT] [ARGS ...]\tRun a \`make\` command for the given d.rymcg.tech project name"
-        echo -e "context\tView or set the current Docker context"
-        echo -e "new-context\tCreate a new Docker context"
-        echo -e "tmp-context\tUse a temporary Docker context in a sub-shell"
+        echo -e "agent-readiness\tRun agent readiness tool"
         echo -e "aliases\tPrint help to setup Bash aliases"
-        echo -e "config\tConfigure the current Docker context"
-        echo -e "ssh [COMMAND ...]\tRun command or shell on active docker context SSH host"
+        echo -e "aws [COMMAND]\tManage AWS CloudFormation stacks (login, config, deploy, destroy, ...)"
+        echo -e "audit\tPrint security audit of running containers"
+        echo -e "cd [SUBDIR]\tEnter a sub-shell and go to the ROOT_DIR directory (or given subdirectory)"
         echo -e "completion\tSetup TAB completion in your shell"
+        echo -e "config\tConfigure the current Docker context"
+        echo -e "container-build\tBuild the d-rymcg-tech container image [--docker] [--image TAG] [--push]"
+        echo -e "context\tView or set the current Docker context"
+        echo -e "daemon-conf\tReconfigures the Docker host's daemon config"
+        echo -e "deploy-pipeline-build\tGuided setup for the d-rymcg-tech Docker image build pipeline"
+        echo -e "deploy-pipeline-template\tScaffold a new deployment pipeline repo with Woodpecker CI"
+        echo -e "docker-default-address-pool\tReconfigure the docker daemon network address pool"
+        echo -e "dotenv_get\tRetrieve a single env var from the root context config"
+        echo -e "droplet\tManage DigitalOcean droplets (alias: gumdrop)"
+        echo -e "drt [OPTIONS] CONTEXT\tStandalone bootstrap tool (--init/--extract)"
+        echo -e "export-env\tExport all .env files for current context as flat env vars"
+        echo -e "fail2ban\tConfigure fail2ban on the Docker host"
+        echo -e "image-archive [ARGS ...]\tArchive Docker images to local .tar.gz files"
+        echo -e "image-build [ARGS ...]\tBuild/pull all Docker images"
+        echo -e "image-catalog [ARGS ...]\tCatalog all Docker images across projects"
+        echo -e "image-restore [ARGS ...]\tRestore archived Docker images to the server"
         echo -e "install\tInstall an app interactively"
         echo -e "install-docker\tInstall Docker Engine on the host"
-        echo -e "status\tShow status of all installed services"
-        echo -e "audit\tPrint security audit of running containers"
-        echo -e "script\tRun a script provided by the d.rymcg.tech _scripts directory"
-        echo -e "sshd-config [Var=value ...]\tReconfigure the host SSH daemon of the remote context"
-        echo -e "ssh-expose PORT\tExpose a workstation's port to a public server port"
-        echo -e "s3-volume\tCreate an Rclone S3 backed volume"
-        echo -e "docker-default-address-pool\tReconfigure the docker daemon network address pool"
-        echo -e "show-ports\tShow the list of open ports and host bound containers"
-        echo -e "route\tConfigure and/or print routes"
+        echo -e "make [PROJECT] [ARGS ...]\tRun a \`make\` command for the given d.rymcg.tech project name"
         echo -e "networks\tPrint the list of Docker networks"
-        echo -e "fail2ban\tConfigure fail2ban on the Docker host"
+        echo -e "new-context\tCreate a new Docker context"
+        echo -e "python-deps\tInstall Python dependencies into the project venv"
         echo -e "reconfigure\tReconfigure a single env var in the root context config"
-        echo -e "dotenv_get\tRetrieve a single env var from the root context config"
-        echo -e "daemon-conf\tReconfigures the Docker host's daemon config"
-        echo -e "image-catalog [ARGS ...]\tCatalog all Docker images across projects"
-        echo -e "image-build [ARGS ...]\tBuild/pull all Docker images"
-        echo -e "image-archive [ARGS ...]\tArchive Docker images to local .tar.gz files"
-        echo -e "image-restore [ARGS ...]\tRestore archived Docker images to the server"
-        echo -e "agent\tRun agent readiness tool"
-    ) | expand -t 30
+        echo -e "request\tExecute deployment requests from JSON input on stdin"
+        echo -e "request-bot\tStart NATS chatbot bridging Matrix to LLM"
+        echo -e "request-controller\tStart HTTP job queue controller for the current context"
+        echo -e "request-controller-token\tGenerate a JWT auth token (--subject NAME)"
+        echo -e "restore-env [FILE]\tRestore .env files from flat env var input (file or stdin)"
+        echo -e "route\tConfigure and/or print routes"
+        echo -e "s3-volume\tCreate an Rclone S3 backed volume"
+        echo -e "script\tRun a script provided by the d.rymcg.tech _scripts directory"
+        echo -e "show-ports\tShow the list of open ports and host bound containers"
+        echo -e "ssh [COMMAND ...]\tRun command or shell on active docker context SSH host"
+        echo -e "ssh-expose PORT\tExpose a workstation's port to a public server port"
+        echo -e "sshd-config [Var=value ...]\tReconfigure the host SSH daemon of the remote context"
+        echo -e "status\tShow status of all installed services"
+        echo -e "template-env\tStateless preview of env files from env var overrides (no file writes)"
+        echo -e "tmp-context\tUse a temporary Docker context in a sub-shell"
+        echo -e "workstation-usb-clone DEV\tClone booted workstation USB to another device"
+        echo -e "workstation-usb-download-docker-packages\tDownload Docker CE pkgs"
+        echo -e "workstation-usb-download-isos\tDownload Debian + Fedora ISOs"
+        echo -e "workstation-usb-image\tBuild NixOS disk image for USB"
+        echo -e "workstation-usb-install DEV\tInstall NixOS workstation to USB"
+        echo -e "workstation-usb-post-install\tCopy archive data to USB (DIR)"
+    ) | expand -t 42
     echo ""
     echo "## Documentation sub-commands:"
     (
@@ -87,17 +111,89 @@ __help() {
             done
         done <<< "$(__d.rymcg.tech_documentation_words --lowercase | sed 's/readme//')"
         #echo -e "info\tInternal read-only information for shell completion support"
-    ) | expand -t 30
+    ) | expand -t 42
     echo ""
 }
 
 __install_docker() {
-    if [[ "$1" == "--local" ]]; then
-        confirm yes "This will install Docker the local machine"
-        curl -fsSL https://get.docker.com | sh
+    local target method
+    target=$(wizard choose "Where do you want to install Docker?" "Remote (Docker context host)" "Local (this machine)")
+    if [[ "$target" == "Local"* ]]; then
+        method=$(wizard choose "How do you want to install?" "Download from the internet (get.docker.com)" "Install from offline package archive")
+        if [[ "$method" == "Download"* ]]; then
+            confirm yes "This will install Docker on the local machine"
+            if ! curl -fsSL https://get.docker.com | sh; then
+                echo ""
+                echo "Download failed. Try again with the offline package archive option."
+                return 1
+            fi
+        else
+            __install_docker_offline local
+        fi
     else
-        confirm yes "This will install Docker on the host of your remote Docker context."
-        d.rymcg.tech ssh 'curl -fsSL https://get.docker.com | sh'
+        method=$(wizard choose "How do you want to install?" "Download from the internet (get.docker.com)" "Install from offline package archive")
+        if [[ "$method" == "Download"* ]]; then
+            confirm yes "This will install Docker on the host of your remote Docker context."
+            if ! d.rymcg.tech ssh 'curl -fsSL https://get.docker.com | sh'; then
+                echo ""
+                echo "Download failed. Try again with the offline package archive option."
+                return 1
+            fi
+            d.rymcg.tech ssh 'systemctl enable --now docker'
+            d.rymcg.tech ssh 'systemctl status docker'
+        else
+            __install_docker_offline remote
+        fi
+    fi
+}
+
+__install_docker_offline() {
+    local target="$1"
+    local pkg_dir="${ROOT_DIR}/_archive/docker-packages"
+    local distro id
+
+    if [[ "$target" == "local" ]]; then
+        id=$(. /etc/os-release 2>/dev/null && echo "$ID")
+    else
+        id=$(d.rymcg.tech ssh 'source /etc/os-release 2>/dev/null && echo "$ID"')
+    fi
+    case "$id" in
+        debian|ubuntu|raspbian) distro="debian" ;;
+        fedora|centos|rhel|rocky|alma) distro="fedora" ;;
+        *) fault "Unsupported distro for offline Docker install: $id" ;;
+    esac
+
+    local src_dir="$pkg_dir/$distro"
+    if [[ ! -d "$src_dir" ]] || [[ -z "$(ls -A "$src_dir" 2>/dev/null)" ]]; then
+        fault "No $distro packages found in $src_dir — run: d.rymcg.tech workstation-usb-download-docker-packages"
+    fi
+
+    if [[ "$target" == "local" ]]; then
+        confirm yes "This will install Docker offline on the local machine from $src_dir"
+        echo "Installing Docker from offline $distro packages..."
+        if [[ "$distro" == "debian" ]]; then
+            sudo dpkg -i "$src_dir"/*.deb
+        else
+            sudo dnf install -y "$src_dir"/*.rpm
+        fi
+        sudo systemctl enable --now docker
+        sudo systemctl status docker
+    else
+        confirm yes "This will install Docker offline on the host of your remote Docker context."
+        echo "Copying $distro packages to remote host..."
+        local remote_dir="/tmp/docker-packages"
+        d.rymcg.tech ssh "mkdir -p $remote_dir"
+        local docker_host
+        docker_host=$(docker context inspect --format '{{.Endpoints.docker.Host}}')
+        local ssh_dest="${docker_host#ssh://}"
+        scp "$src_dir"/* "$ssh_dest:$remote_dir/"
+        echo "Installing Docker from offline packages..."
+        if [[ "$distro" == "debian" ]]; then
+            d.rymcg.tech ssh "dpkg -i $remote_dir/*.deb"
+        else
+            d.rymcg.tech ssh "dnf install -y $remote_dir/*.rpm"
+        fi
+        d.rymcg.tech ssh "rm -rf $remote_dir"
         d.rymcg.tech ssh 'systemctl enable --now docker'
         d.rymcg.tech ssh 'systemctl status docker'
     fi
@@ -341,7 +437,7 @@ __run_script() {
 
 __d.rymcg.tech_cli_alias() {
     local ALIAS="$1"
-    alias $1="D_RYMCG_TECH_CLI_ALIAS=${ALIAS} d.rymcg.tech "
+    alias $1="D_RYMCG_TECH_CLI_ALIAS=${ALIAS} d.rymcg.tech"
     complete -F __d.rymcg.tech_completions $1
 
 }
@@ -374,6 +470,13 @@ __d.rymcg.tech_context_alias() {
     local ROOT_DIR=$(d.rymcg.tech info ROOT_DIR)
     __CONTEXT="${1}"
     __ALIAS="${2:-${1}}"
+    # Refuse to create alias if it would shadow a builtin, keyword, or command
+    local _existing
+    _existing=$(type -t "${__ALIAS}" 2>/dev/null || true)
+    if [[ -n "${_existing}" && "${_existing}" != "alias" ]]; then
+        echo "Warning: not creating context alias '${__ALIAS}' (would shadow ${_existing})" >&2
+        return 1
+    fi
     export __CONTEXT
     alias ${__ALIAS}="D_RYMCG_TECH_CONTEXT_ALIAS=${__ALIAS} d.rymcg.tech tmp-context ${__CONTEXT} d.rymcg.tech"
     complete -F __d.rymcg.tech_completions ${__ALIAS}
@@ -396,7 +499,7 @@ __d.rymcg.tech_completions() {
     if [[ ${COMP_CWORD} == 1 ]]; then
         ## Complete the main command:
         ## d.rymcg.tech <TAB> ...
-        COMMANDS="help create cd make list readme info context new-context tmp-context aliases completion install install-docker status ssh audit sshd-config ssh-expose show-ports s3-volume docker-default-address-pool route routes reconfigure dotenv_get daemon-conf fail2ban networks config image-catalog image-build image-archive image-restore agent"
+        COMMANDS="help create cd make list readme info context new-context tmp-context aliases completion install install-docker status ssh audit sshd-config ssh-expose show-ports s3-volume docker-default-address-pool route routes reconfigure dotenv_get daemon-conf fail2ban networks config image-catalog image-build image-archive image-restore export-env restore-env template-env agent-readiness aws python-deps request request-bot request-controller request-controller-token workstation-usb-image workstation-usb-install workstation-usb-clone workstation-usb-post-install workstation-usb-download-isos workstation-usb-download-docker-packages workstation-usb-test-vm container-build drt deploy-pipeline-template deploy-pipeline-build droplet gumdrop"
         COMPREPLY=($(compgen -W "${COMMANDS}" "${COMP_WORDS[1]}"))
     elif [[ ${COMP_CWORD} == 2 ]]; then
         ALL_PROJECTS=$(d.rymcg.tech list --raw)
@@ -417,6 +520,9 @@ __d.rymcg.tech_completions() {
                 COMPREPLY=($(compgen -W "${INFO_WORDS}" "${COMP_WORDS[2]}"));;
             script)
                 COMPREPLY=($(compgen -W "$(find ${ROOT_DIR}/_scripts -executable -printf '%P\n' | grep -v d.rymcg.tech)" "${COMP_WORDS[2]}"));;
+            aws)
+                AWS_TARGETS="$(make -C "${ROOT_DIR}/_aws" -qp 2>/dev/null | awk -F':' '/^[a-zA-Z0-9][^$#\/\t=]*:([^=]|$)/ {split($1,A,/ /);for(i in A)print A[i]}' | sort -u)"
+                COMPREPLY=($(compgen -W "${AWS_TARGETS}" "${COMP_WORDS[2]}"));;
         esac
     elif [[ ${COMP_CWORD} == 3 ]]; then
         ## Dispatch completion for the sub-commands second argument:
@@ -439,13 +545,23 @@ __d.rymcg.tech_completions() {
 
 __d.rymcg.tech_documentation_words() {
     ROOT_DIR=$(d.rymcg.tech info ROOT_DIR)
-    ## Find list of available documentation files in the git repo:
+    ## Find list of available documentation files
     declare -A DOCS_INDEX
+    local doc_files=""
+    if git -C "${ROOT_DIR}" rev-parse --git-dir &>/dev/null; then
+        doc_files=$(git -C "${ROOT_DIR}" ls-tree --name-only origin/master 2>/dev/null | \
+                       grep -E "(\.txt$|\.md$)" | \
+                       sed -e 's/\.txt$//' -e 's/\.md$//')
+    else
+        # Not a git repo (e.g. read-only nix store copy): find files directly
+        doc_files=$(find "${ROOT_DIR}" -maxdepth 1 -name '*.md' -o -name '*.txt' 2>/dev/null | \
+                       xargs -I{} basename {} | \
+                       sed -e 's/\.txt$//' -e 's/\.md$//')
+    fi
     while IFS= read -r line; do
+        [[ -z "$line" ]] && continue
         DOCS_INDEX["$line"]="$line"
-    done <<< $(git -C "${ROOT_DIR}" ls-tree --name-only origin/master | \
-                   grep -E "(\.txt$|\.md$)" | \
-                   sed -e 's/\.txt$//' -e 's/\.md$//')
+    done <<< "$doc_files"
     if [[ "$1" == "--lowercase" ]]; then
         echo "$(echo ${DOCS_INDEX[@]} | tr '[:upper:]' '[:lower:]')"
     elif [[ "$1" == "--uppercase" ]]; then
@@ -498,6 +614,998 @@ __completion() {
         else
             fault "Sorry, this script only support BASH shell completion"
         fi
+    fi
+}
+
+# Sort associative array keys longest-first so e.g. WIREGUARD_GATEWAY matches before WIREGUARD
+# Usage: _sort_prefixes_by_length prefix_to_dir sorted_prefixes
+_sort_prefixes_by_length() {
+    local -n _map=$1 _out=$2
+    _out=()
+    while IFS= read -r p; do
+        _out+=("${p}")
+    done < <(printf '%s\n' "${!_map[@]}" | awk '{print length, $0}' | sort -rn | cut -d' ' -f2-)
+}
+
+__template_env() {
+    if [[ $# -eq 0 ]]; then
+        echo "Usage: d.rymcg.tech template-env KEY=VALUE [KEY=VALUE ...]" >&2
+        echo "" >&2
+        echo "Example:" >&2
+        echo "  d.rymcg.tech template-env ROOT_DOMAIN=d.example.com WHOAMI_TRAEFIK_HOST=whoami.d.example.com" >&2
+        exit 1
+    fi
+    # Export any KEY=VALUE arguments as env vars
+    for arg in "$@"; do
+        if [[ "${arg}" == *=* ]]; then
+            export "${arg}"
+        fi
+    done
+    cd "${ROOT_DIR}"
+    local ctx="${DOCKER_CONTEXT:-template}"
+    local projects_csv="${PROJECTS:-}"
+
+    # Build prefix→project and reverse mappings
+    declare -A prefix_to_dir
+    declare -A dir_to_prefix
+    for project_dir in */; do
+        local project_name="${project_dir%/}"
+        local env_dist="${project_dir}.env-dist"
+        [[ -f "${env_dist}" ]] || continue
+        local prefix
+        prefix=$("${BIN}/parse-env-meta.sh" "${env_dist}" PREFIX 2>/dev/null) || continue
+        [[ -n "${prefix}" ]] || continue
+        prefix_to_dir["${prefix}"]="${project_name}"
+        dir_to_prefix["${project_name}"]="${prefix}"
+    done
+
+    local sorted_prefixes=()
+    _sort_prefixes_by_length prefix_to_dir sorted_prefixes
+
+    # Auto-discover projects from args and collect instance overrides
+    declare -A instance_vars
+    declare -A project_instances
+    declare -A discovered_projects
+    for arg in "$@"; do
+        [[ "${arg}" == *=* ]] || continue
+        local key="${arg%%=*}"
+        if [[ "${key}" == __*__* ]]; then
+            local stripped="${key#__}"
+            local instance="${stripped%%__*}"
+            local original_key="${stripped#*__}"
+            local val="${arg#*=}"
+            instance_vars["${instance}:${original_key}"]="${val}"
+            for prefix in "${sorted_prefixes[@]}"; do
+                if [[ "${original_key}" == "${prefix}_"* ]]; then
+                    local pname="${prefix_to_dir[${prefix}]}"
+                    discovered_projects["${pname}"]=1
+                    if [[ " ${project_instances[${pname}]:-} " != *" ${instance} "* ]]; then
+                        project_instances["${pname}"]="${project_instances[${pname}]:-} ${instance}"
+                    fi
+                    break
+                fi
+            done
+        else
+            for prefix in "${sorted_prefixes[@]}"; do
+                if [[ "${key}" == "${prefix}_"* ]]; then
+                    discovered_projects["${prefix_to_dir[${prefix}]}"]=1
+                    break
+                fi
+            done
+        fi
+    done
+
+    # Merge explicit PROJECTS with auto-discovered projects
+    if [[ -n "${projects_csv}" ]]; then
+        IFS=, read -ra _explicit <<< "${projects_csv}"
+        for p in "${_explicit[@]}"; do
+            discovered_projects["${p}"]=1
+        done
+    fi
+
+    # Output root .env (overlay env vars onto .env-dist template)
+    echo "## .env_${ctx}"
+    while IFS= read -r line; do
+        local key="${line%%=*}"
+        if [[ -n "${!key+set}" ]]; then
+            echo "${key}=${!key}"
+        else
+            echo "${line}"
+        fi
+    done < <(${BIN}/dotenv -f .env-dist parse)
+
+    # Output per-project .env files
+    for project_name in $(printf '%s\n' "${!discovered_projects[@]}" | sort); do
+        local env_dist="${project_name}/.env-dist"
+        [[ -f "${env_dist}" ]] || continue
+        local prefix="${dir_to_prefix[${project_name}]:-}"
+
+        # Default instance
+        echo
+        echo "## ${project_name}/.env_${ctx}_default"
+        while IFS= read -r line; do
+            local key="${line%%=*}"
+            if [[ -n "${!key+set}" ]]; then
+                echo "${key}=${!key}"
+            else
+                echo "${line}"
+            fi
+        done < <(${BIN}/dotenv -f "${env_dist}" parse)
+
+        # Non-default instances
+        if [[ -n "${prefix}" && -n "${project_instances[${project_name}]:-}" ]]; then
+            for instance in ${project_instances[${project_name}]}; do
+                echo
+                echo "## ${project_name}/.env_${ctx}_${instance}"
+                while IFS= read -r line; do
+                    local key="${line%%=*}"
+                    if [[ "${key}" == "${prefix}_INSTANCE" ]]; then
+                        echo "__${instance}__${key}=${instance}"
+                    elif [[ -n "${instance_vars[${instance}:${key}]+set}" ]]; then
+                        echo "__${instance}__${key}=${instance_vars[${instance}:${key}]}"
+                    else
+                        echo "__${instance}__${line}"
+                    fi
+                done < <(${BIN}/dotenv -f "${env_dist}" parse)
+            done
+        fi
+    done
+}
+
+__export_env() {
+    local choose=false
+    local encrypt=false
+    local base64_encode=false
+    local ctx=""
+    while [[ $# -gt 0 ]]; do
+        case "$1" in
+            --context) ctx="$2"; shift 2;;
+            --choose) choose=true; shift;;
+            --encrypt) encrypt=true; shift;;
+            --base64) base64_encode=true; shift;;
+            --help|-h)
+                echo "Usage: d.rymcg.tech export-env [OPTIONS]" >&2
+                echo "" >&2
+                echo "Export all env files for the current context as flat env vars." >&2
+                echo "" >&2
+                echo "Options:" >&2
+                echo "  --context <NAME>  Override the Docker context" >&2
+                echo "  --choose          Interactively select which env files to export" >&2
+                echo "  --encrypt         Encrypt output with SOPS/AGE" >&2
+                echo "  --base64          Base64-encode the output as a single line" >&2
+                echo "  --help, -h        Show this help message" >&2
+                echo "" >&2
+                echo "Examples:" >&2
+                echo "  d.rymcg.tech export-env" >&2
+                echo "  d.rymcg.tech export-env --context myserver" >&2
+                echo "  d.rymcg.tech export-env --choose" >&2
+                echo "  d.rymcg.tech export-env --context myserver > backup.env" >&2
+                echo "  d.rymcg.tech export-env --encrypt > backup.sops.env" >&2
+                echo "  d.rymcg.tech export-env --encrypt --base64" >&2
+                exit 0;;
+            *) shift;;
+        esac
+    done
+    if [[ -z "${ctx}" ]]; then
+        ctx="${DOCKER_CONTEXT:-${DRT_CONTEXT:-$(${BIN}/docker_context)}}"
+    fi
+    cd "${ROOT_DIR}"
+    local _env_base="${DRT_ENV_DIR:-.}"
+
+    # Collect all env files for this context (paths relative to _env_base)
+    local -a all_files=()
+    if [[ -f "${_env_base}/.env_${ctx}" ]]; then
+        all_files+=(".env_${ctx}")
+    fi
+    for env_file in "${_env_base}"/*/.env_${ctx}_*; do
+        [[ -f "${env_file}" ]] || continue
+        [[ "${env_file}" == *~ ]] && continue
+        # Store relative path (strip _env_base prefix)
+        all_files+=("${env_file#${_env_base}/}")
+    done
+
+    # Let user choose which files to export
+    local -a selected_files=()
+    if [[ "${choose}" == true && ${#all_files[@]} -gt 0 ]]; then
+        local default_json
+        default_json=$(printf '%s\n' "${all_files[@]}" | jq -R . | jq -s -c .)
+        local selection
+        selection=$(wizard select --cancel-code=2 --default "${default_json}" \
+            "Select env files to export:" "${all_files[@]}") || {
+            local rc=$?
+            [[ ${rc} -eq 2 ]] && exit 1
+            exit ${rc}
+        }
+        if [[ -z "${selection}" ]]; then
+            echo "No files selected." >&2
+            exit 1
+        fi
+        readarray -t selected_files <<< "${selection}"
+    else
+        selected_files=("${all_files[@]}")
+    fi
+
+    # Resolve encryption recipient if --encrypt
+    local recipients=""
+    if [[ "${encrypt}" == true ]]; then
+        local env_ctx="${ctx}"
+        recipients=$(${BIN}/dotenv -f "${_env_base}/.env_${env_ctx}" get SOPS_AGE_RECIPIENTS 2>/dev/null || \
+                     ${BIN}/dotenv -f ".env_${env_ctx}" get SOPS_AGE_RECIPIENTS 2>/dev/null || true)
+        if [[ -z "${recipients}" && -n "${SOPS_AGE_KEY_FILE:-}" && -f "${SOPS_AGE_KEY_FILE}" ]]; then
+            recipients=$(age-keygen -y "${SOPS_AGE_KEY_FILE}" 2>/dev/null || true)
+        fi
+        if [[ -z "${recipients}" ]]; then
+            if wizard confirm "SOPS_AGE_RECIPIENTS is not set. Configure it now?" no >&2; then
+                recipients=$(wizard ask "Enter AGE recipient public key (age1...)") || exit 1
+                ${BIN}/reconfigure "${_env_base}/.env_${env_ctx}" "SOPS_AGE_RECIPIENTS=${recipients}" >&2 || true
+            else
+                exit 1
+            fi
+        fi
+    fi
+
+    # Resolve SSH connection details: prefer env vars (set by restore-env / entrypoint),
+    # fall back to ssh -G which can be unreliable with Match exec blocks
+    local ssh_host ssh_user ssh_port
+    if [[ -n "${SSH_HOST:-}" ]]; then
+        ssh_host="${SSH_HOST}"
+        ssh_user="${SSH_USER:-root}"
+        ssh_port="${SSH_PORT:-22}"
+    else
+        local ssh_config
+        ssh_config=$(ssh -G "${ctx}" 2>/dev/null || true)
+        ssh_host=$(echo "${ssh_config}" | awk '/^hostname / {print $2}')
+        ssh_user=$(echo "${ssh_config}" | awk '/^user / {print $2}')
+        ssh_port=$(echo "${ssh_config}" | awk '/^port / {print $2}')
+    fi
+
+    # Output selected files
+    local plaintext=""
+    local first=true
+    if [[ -n "${ssh_host}" ]]; then
+        plaintext+="## SSH"$'\n'
+        plaintext+="SSH_HOST=${ssh_host}"$'\n'
+        plaintext+="SSH_USER=${ssh_user:-root}"$'\n'
+        plaintext+="SSH_PORT=${ssh_port:-22}"$'\n'
+        # Merge known_hosts from entrypoint (/run/secrets/ssh/) and user-added hosts (~/.ssh/)
+        local known_hosts_combined=""
+        for kh in /run/secrets/ssh/known_hosts "${HOME}/.ssh/known_hosts"; do
+            [[ -f "${kh}" ]] && known_hosts_combined+=$(cat "${kh}")$'\n'
+        done
+        known_hosts_combined=$(echo "${known_hosts_combined}" | sort -u | sed '/^$/d')
+        if [[ -n "${known_hosts_combined}" ]]; then
+            local kh_data
+            kh_data=$(echo "${known_hosts_combined}" | gzip -cn | base64 -w 0)
+            plaintext+="SSH_KNOWN_HOSTS=${kh_data}"$'\n'
+        fi
+        first=false
+    fi
+    for env_file in "${selected_files[@]}"; do
+        local _resolved="${_env_base}/${env_file}"
+        [[ -f "${_resolved}" ]] || continue
+        if [[ "${first}" == true ]]; then
+            first=false
+        else
+            plaintext+=$'\n'
+        fi
+        plaintext+="## ${env_file}"$'\n'
+        if [[ "${env_file}" == */* ]]; then
+            local basename="${env_file#*/}"
+            local instance="${basename#.env_${ctx}_}"
+            if [[ "${instance}" == "default" ]]; then
+                plaintext+=$(${BIN}/dotenv -f "${_resolved}" parse)$'\n'
+            else
+                while IFS= read -r line; do
+                    local key="${line%%=*}"
+                    local val="${line#*=}"
+                    plaintext+="__${instance}__${key}=${val}"$'\n'
+                done < <(${BIN}/dotenv -f "${_resolved}" parse)
+            fi
+        else
+            plaintext+=$(${BIN}/dotenv -f "${_resolved}" parse)$'\n'
+        fi
+    done
+
+    # Serialize passwords.json files from projects that have env files for this context
+    local -A seen_projects
+    for env_file in "${selected_files[@]}"; do
+        [[ "${env_file}" == */* ]] || continue
+        local project="${env_file%%/*}"
+        [[ -n "${seen_projects[${project}]+set}" ]] && continue
+        seen_projects["${project}"]=1
+        local _pw_path="${_env_base}/${project}/passwords.json"
+        if [[ -r "${_pw_path}" ]]; then
+            local pw_data
+            pw_data=$(gzip -cn < "${_pw_path}" | base64 -w 0)
+            plaintext+=$'\n'"## ${project}/passwords.json"$'\n'
+            plaintext+="__passwords__${project}=${pw_data}"$'\n'
+        fi
+    done
+
+    # Serialize doctl config if present
+    if [[ -r "${HOME}/.config/doctl/config.yaml" ]]; then
+        local doctl_data
+        doctl_data=$(gzip -cn < "${HOME}/.config/doctl/config.yaml" | base64 -w 0)
+        plaintext+=$'\n'"## doctl config"$'\n'
+        plaintext+="__doctl_config__=${doctl_data}"$'\n'
+    fi
+
+    # Serialize AWS CLI config if present
+    if [[ -r "${HOME}/.aws/credentials" ]]; then
+        local aws_creds_data
+        aws_creds_data=$(gzip -cn < "${HOME}/.aws/credentials" | base64 -w 0)
+        plaintext+=$'\n'"## aws config"$'\n'
+        plaintext+="__aws_credentials__=${aws_creds_data}"$'\n'
+    fi
+    if [[ -r "${HOME}/.aws/config" ]]; then
+        local aws_config_data
+        aws_config_data=$(gzip -cn < "${HOME}/.aws/config" | base64 -w 0)
+        [[ -z "${aws_creds_data:-}" ]] && plaintext+=$'\n'"## aws config"$'\n'
+        plaintext+="__aws_config__=${aws_config_data}"$'\n'
+    fi
+
+    # Serialize gh CLI config if present
+    if [[ -r "${HOME}/.config/gh/hosts.yml" ]]; then
+        local gh_hosts_data
+        gh_hosts_data=$(gzip -cn < "${HOME}/.config/gh/hosts.yml" | base64 -w 0)
+        plaintext+=$'\n'"## gh config"$'\n'
+        plaintext+="__gh_hosts__=${gh_hosts_data}"$'\n'
+    fi
+
+    # Serialize rclone config if present
+    if [[ -r "${HOME}/.config/rclone/rclone.conf" ]]; then
+        local rclone_data
+        rclone_data=$(gzip -cn < "${HOME}/.config/rclone/rclone.conf" | base64 -w 0)
+        plaintext+=$'\n'"## rclone config"$'\n'
+        plaintext+="__rclone_config__=${rclone_data}"$'\n'
+    fi
+
+    # Serialize mc (MinIO client) config if present
+    if [[ -r "${HOME}/.mc/config.json" ]]; then
+        local mc_data
+        mc_data=$(gzip -cn < "${HOME}/.mc/config.json" | base64 -w 0)
+        plaintext+=$'\n'"## mc config"$'\n'
+        plaintext+="__mc_config__=${mc_data}"$'\n'
+    fi
+
+    # Serialize GnuPG config if present
+    local gnupg_dir="${HOME}/.gnupg"
+    if [[ -d "${gnupg_dir}" ]]; then
+        local gnupg_has_files=false
+        for gpg_file in "${gnupg_dir}"/*; do
+            [[ -r "${gpg_file}" && -f "${gpg_file}" ]] || continue
+            local gpg_name
+            gpg_name=$(basename "${gpg_file}")
+            # Skip sockets and lock files
+            case "${gpg_name}" in
+                S.*|*.lock|.gpg-v21-migrated|random_seed) continue ;;
+            esac
+            if [[ "${gnupg_has_files}" == false ]]; then
+                plaintext+=$'\n'"## gnupg config"$'\n'
+                gnupg_has_files=true
+            fi
+            local gpg_data
+            gpg_data=$(gzip -cn < "${gpg_file}" | base64 -w 0)
+            plaintext+="__gnupg__${gpg_name}=${gpg_data}"$'\n'
+        done
+    fi
+
+    # Serialize kube config files if present
+    local kube_dir="${HOME}/.kube"
+    if [[ -d "${kube_dir}" ]]; then
+        local kube_has_files=false
+        while IFS= read -r -d '' kube_file; do
+            [[ -r "${kube_file}" && -f "${kube_file}" ]] || continue
+            local kube_rel="${kube_file#${kube_dir}/}"
+            # Skip cache, http-cache, and temporary files
+            case "${kube_rel}" in
+                cache/*|http-cache/*|*.tmp|*.swp) continue ;;
+            esac
+            if [[ "${kube_has_files}" == false ]]; then
+                plaintext+=$'\n'"## kube config"$'\n'
+                kube_has_files=true
+            fi
+            local kube_data
+            kube_data=$(gzip -cn < "${kube_file}" | base64 -w 0)
+            plaintext+="__kube__${kube_rel}=${kube_data}"$'\n'
+        done < <(find "${kube_dir}" -type f -print0 2>/dev/null)
+    fi
+
+    # Serialize user bashrc.local if present
+    if [[ -r "${HOME}/.bashrc.local" ]]; then
+        local bashrc_local_data
+        bashrc_local_data=$(gzip -cn < "${HOME}/.bashrc.local" | base64 -w 0)
+        plaintext+=$'\n'"## bashrc.local"$'\n'
+        plaintext+="__bashrc_local__=${bashrc_local_data}"$'\n'
+    fi
+
+    # Serialize wireguard configs if present
+    local wg_dir="${HOME}/.config/wireguard"
+    if [[ -d "${wg_dir}" ]]; then
+        local wg_has_files=false
+        for wg_file in "${wg_dir}"/*.conf; do
+            [[ -r "${wg_file}" ]] || continue
+            if [[ "${wg_has_files}" == false ]]; then
+                plaintext+=$'\n'"## wireguard configs"$'\n'
+                wg_has_files=true
+            fi
+            local wg_name
+            wg_name=$(basename "${wg_file}")
+            local wg_data
+            wg_data=$(gzip -cn < "${wg_file}" | base64 -w 0)
+            plaintext+="__wireguard__${wg_name}=${wg_data}"$'\n'
+        done
+    fi
+
+    # Serialize user SSH config if present (excludes auto-generated config-drt)
+    if [[ -r "${HOME}/.ssh/config" ]]; then
+        local ssh_data
+        ssh_data=$(gzip -cn < "${HOME}/.ssh/config" | base64 -w 0)
+        plaintext+=$'\n'"## ssh config"$'\n'
+        plaintext+="__ssh_config__=${ssh_data}"$'\n'
+    fi
+
+    # Serialize user SSH keys from ~/.ssh (excludes config, known_hosts, auto-generated)
+    local ssh_key_found=false
+    for kf in "${HOME}"/.ssh/*; do
+        [[ -r "${kf}" ]] || continue
+        local kf_name="${kf##*/}"
+        # Skip config files, known_hosts, and auto-generated config-drt
+        case "${kf_name}" in
+            config|config-drt|known_hosts|authorized_keys|*.swp) continue ;;
+        esac
+        if [[ "${ssh_key_found}" == false ]]; then
+            plaintext+=$'\n'"## ssh keys"$'\n'
+            ssh_key_found=true
+        fi
+        local kf_data
+        kf_data=$(gzip -cn < "${kf}" | base64 -w 0)
+        plaintext+="__ssh_key__${kf_name}=${kf_data}"$'\n'
+    done
+
+    # Serialize user files under ~/.config/d.rymcg.tech/ (skip config/ and keys/)
+    local drt_config_dir="${HOME}/.config/d.rymcg.tech"
+    if [[ -d "${drt_config_dir}" ]]; then
+        local drt_config_found=false
+        while IFS= read -r -d '' dcf; do
+            [[ -r "${dcf}" ]] || continue
+            local dcf_rel="${dcf#${drt_config_dir}/}"
+            # Skip SOPS configs, AGE keys, and git metadata
+            case "${dcf_rel}" in
+                config/*|keys/*|.git/*|.gitignore|net-mode|*.sops.env) continue ;;
+            esac
+            if [[ "${drt_config_found}" == false ]]; then
+                plaintext+=$'\n'"## drt user config"$'\n'
+                drt_config_found=true
+            fi
+            local dcf_data
+            dcf_data=$(gzip -cn < "${dcf}" | base64 -w 0)
+            plaintext+="__drt_config__${dcf_rel}=${dcf_data}"$'\n'
+        done < <(find "${drt_config_dir}" -type f -print0 2>/dev/null)
+    fi
+
+    # Serialize MOTD if present
+    if [[ -r "${HOME}/.motd" && -s "${HOME}/.motd" ]]; then
+        local motd_data
+        motd_data=$(gzip -cn < "${HOME}/.motd" | base64 -w 0)
+        plaintext+=$'\n'"## motd"$'\n'
+        plaintext+="__motd__=${motd_data}"$'\n'
+    fi
+
+    local output
+    if [[ "${encrypt}" == true ]]; then
+        output=$(echo "${plaintext}" | sops encrypt --input-type dotenv --output-type dotenv --filename-override export.env --age "${recipients}" /dev/stdin)
+    else
+        output="${plaintext}"
+    fi
+
+    if [[ "${base64_encode}" == true ]]; then
+        echo -n "${output}" | gzip | base64 -w 0
+        echo
+    else
+        echo -n "${output}"
+    fi
+}
+
+__restore_env() {
+    local choose=false
+    local yes=false
+    local force_decrypt=false
+    local file_arg=""
+    while [[ $# -gt 0 ]]; do
+        case "$1" in
+            --choose) choose=true; shift;;
+            --yes) yes=true; shift;;
+            --decrypt) force_decrypt=true; shift;;
+            --help|-h)
+                echo "Usage: d.rymcg.tech restore-env [OPTIONS] [FILE]" >&2
+                echo "       d.rymcg.tech export-env | d.rymcg.tech restore-env [OPTIONS]" >&2
+                echo "" >&2
+                echo "Restore env files from flat env var input (file or stdin)." >&2
+                echo "SOPS-encrypted input is automatically detected and decrypted." >&2
+                echo "" >&2
+                echo "Options:" >&2
+                echo "  --choose      Interactively select which env files to restore" >&2
+                echo "  --yes         Skip confirmation prompt" >&2
+                echo "  --decrypt     Explicitly force SOPS decryption" >&2
+                echo "  --help, -h    Show this help message" >&2
+                echo "" >&2
+                echo "Examples:" >&2
+                echo "  d.rymcg.tech restore-env backup.env" >&2
+                echo "  d.rymcg.tech restore-env --choose backup.env" >&2
+                echo "  d.rymcg.tech restore-env --yes backup.env" >&2
+                echo "  d.rymcg.tech restore-env --decrypt backup.sops.env" >&2
+                echo "  d.rymcg.tech export-env --context old | d.rymcg.tech restore-env" >&2
+                echo "  d.rymcg.tech export-env --encrypt | d.rymcg.tech restore-env" >&2
+                exit 0;;
+            *) file_arg="$1"; shift;;
+        esac
+    done
+
+    local DOCKER_CONTEXT=${DOCKER_CONTEXT:-$(${BIN}/docker_context)}
+    local ctx="${DOCKER_CONTEXT}"
+    cd "${ROOT_DIR}"
+
+    # Decode base64 data, auto-detecting gzip (backward-compatible with plain base64)
+    _b64_decode() {
+        # Check for gzip magic bytes (1f 8b)
+        local _magic
+        _magic=$(printf '%s' "$1" | base64 -d 2>/dev/null | head -c2 | od -A n -t x1 | tr -d ' ' || true)
+        if [[ "${_magic}" == "1f8b" ]]; then
+            printf '%s' "$1" | base64 -d | gunzip
+        else
+            printf '%s' "$1" | base64 -d
+        fi
+    }
+
+    # Read input from file arg or stdin
+    local input
+    if [[ -n "${file_arg}" && -f "${file_arg}" ]]; then
+        input=$(cat "${file_arg}")
+    elif [[ ! -t 0 ]]; then
+        input=$(cat)
+    else
+        echo "Usage: d.rymcg.tech restore-env [--choose] <FILE>" >&2
+        echo "       d.rymcg.tech export-env | d.rymcg.tech restore-env [--choose]" >&2
+        echo "" >&2
+        echo "Examples:" >&2
+        echo "  d.rymcg.tech restore-env env_backup.txt" >&2
+        echo "  d.rymcg.tech restore-env --choose env_backup.txt" >&2
+        echo "  d.rymcg.tech export-env --context old | d.rymcg.tech restore-env" >&2
+        exit 1
+    fi
+
+    # Auto-detect base64-encoded input (single line, valid base64 chars)
+    if [[ $(echo "${input}" | wc -l) -eq 1 ]] && echo "${input}" | grep -qE '^[A-Za-z0-9+/=]+$'; then
+        input=$(echo "${input}" | base64 -d | gunzip)
+    fi
+
+    # Auto-detect and decrypt SOPS-encrypted input
+    if [[ "${force_decrypt}" == true ]] || echo "${input}" | grep -q '^sops_version='; then
+        input=$(echo "${input}" | sops decrypt --input-type dotenv --output-type dotenv --filename-override export.env /dev/stdin)
+    fi
+
+    # Build prefix→project mapping (single grep instead of per-project subprocess)
+    declare -A prefix_to_dir
+    while IFS=: read -r file prefix_line; do
+        local project_name="${file%%/*}"
+        local prefix="${prefix_line#*PREFIX=}"
+        prefix="${prefix%%[[:space:]]*}"
+        [[ -n "${prefix}" ]] && prefix_to_dir["${prefix}"]="${project_name}"
+    done < <(grep -m1 '# PREFIX=' */.env-dist 2>/dev/null)
+
+    local sorted_prefixes=()
+    _sort_prefixes_by_length prefix_to_dir sorted_prefixes
+
+    # Get known root var names
+    declare -A root_vars
+    while IFS= read -r line; do
+        root_vars["${line%%=*}"]=1
+    done < <(${BIN}/dotenv -f .env-dist parse)
+
+    # First pass: collect which files will be written and their vars
+    declare -A file_vars  # "file" → "key=val\nkey=val\n..."
+    declare -a file_order=()
+    declare -A file_seen
+    declare -A password_files  # "project/passwords.json" → base64 data
+    declare -A ssh_key_files   # "filename" → base64 data
+    declare -A gumdrop_preset_files  # "filename" → base64 data (legacy)
+    declare -A drt_config_files  # "relative/path" → base64 data
+    declare -A wireguard_files  # "filename" → base64 data
+    declare -A gnupg_files  # "filename" → base64 data
+    declare -A kube_files  # "relative/path" → base64 data
+    local doctl_config_b64=""
+    local aws_credentials_b64=""
+    local aws_config_b64=""
+    local gh_hosts_b64=""
+    local rclone_config_b64=""
+    local mc_config_b64=""
+    local bashrc_local_b64=""
+    local ssh_config_b64=""
+    local motd_b64=""
+
+    while IFS= read -r line; do
+        [[ -z "${line}" || "${line}" == "#"* ]] && continue
+        local key="${line%%=*}"
+        local val="${line#*=}"
+
+        # Serialized doctl config: __doctl_config__=<base64>
+        if [[ "${key}" == "__doctl_config__" ]]; then
+            doctl_config_b64="${val}"
+            continue
+        fi
+
+        # Serialized AWS CLI config: __aws_credentials__=<base64>, __aws_config__=<base64>
+        if [[ "${key}" == "__aws_credentials__" ]]; then
+            aws_credentials_b64="${val}"
+            continue
+        fi
+        if [[ "${key}" == "__aws_config__" ]]; then
+            aws_config_b64="${val}"
+            continue
+        fi
+
+        # Serialized gh CLI config: __gh_hosts__=<base64>
+        if [[ "${key}" == "__gh_hosts__" ]]; then
+            gh_hosts_b64="${val}"
+            continue
+        fi
+
+        # Serialized rclone config: __rclone_config__=<base64>
+        if [[ "${key}" == "__rclone_config__" ]]; then
+            rclone_config_b64="${val}"
+            continue
+        fi
+
+        # Serialized mc (MinIO client) config: __mc_config__=<base64>
+        if [[ "${key}" == "__mc_config__" ]]; then
+            mc_config_b64="${val}"
+            continue
+        fi
+
+        # Serialized bashrc.local: __bashrc_local__=<base64>
+        if [[ "${key}" == "__bashrc_local__" ]]; then
+            bashrc_local_b64="${val}"
+            continue
+        fi
+
+        # Serialized SSH config: __ssh_config__=<base64>
+        if [[ "${key}" == "__ssh_config__" ]]; then
+            ssh_config_b64="${val}"
+            continue
+        fi
+
+        # Serialized SSH key files: __ssh_key__<filename>=<base64>
+        if [[ "${key}" == __ssh_key__* ]]; then
+            local kf_name="${key#__ssh_key__}"
+            ssh_key_files["${kf_name}"]="${val}"
+            continue
+        fi
+
+        # Serialized gumdrop presets (legacy): __gumdrop_preset__<filename>=<base64>
+        if [[ "${key}" == __gumdrop_preset__* ]]; then
+            local gf_name="${key#__gumdrop_preset__}"
+            gumdrop_preset_files["${gf_name}"]="${val}"
+            continue
+        fi
+
+        # Serialized drt user config: __drt_config__<relative/path>=<base64>
+        if [[ "${key}" == __drt_config__* ]]; then
+            local dcf_rel="${key#__drt_config__}"
+            drt_config_files["${dcf_rel}"]="${val}"
+            continue
+        fi
+
+        # Serialized wireguard configs: __wireguard__<filename>=<base64>
+        if [[ "${key}" == __wireguard__* ]]; then
+            local wg_name="${key#__wireguard__}"
+            wireguard_files["${wg_name}"]="${val}"
+            continue
+        fi
+
+        # Serialized GnuPG files: __gnupg__<filename>=<base64>
+        if [[ "${key}" == __gnupg__* ]]; then
+            local gpg_name="${key#__gnupg__}"
+            gnupg_files["${gpg_name}"]="${val}"
+            continue
+        fi
+
+        # Serialized kube config files: __kube__<relative/path>=<base64>
+        if [[ "${key}" == __kube__* ]]; then
+            local kube_rel="${key#__kube__}"
+            kube_files["${kube_rel}"]="${val}"
+            continue
+        fi
+
+        # Serialized MOTD: __motd__=<base64>
+        if [[ "${key}" == "__motd__" ]]; then
+            motd_b64="${val}"
+            continue
+        fi
+
+        # Serialized passwords.json: __passwords__<project>=<base64>
+        if [[ "${key}" == __passwords__* ]]; then
+            local project="${key#__passwords__}"
+            local target="${project}/passwords.json"
+            password_files["${target}"]="${val}"
+            if [[ -z "${file_seen[${target}]+set}" ]]; then
+                file_seen["${target}"]=1
+                file_order+=("${target}")
+            fi
+            continue
+        fi
+
+        # Instance-prefixed var: __<instance>__<PREFIX>_<VAR>
+        if [[ "${key}" == __*__* ]]; then
+            local stripped="${key#__}"
+            local instance="${stripped%%__*}"
+            local original_key="${stripped#*__}"
+            for prefix in "${sorted_prefixes[@]}"; do
+                if [[ "${original_key}" == "${prefix}_"* ]]; then
+                    local project_name="${prefix_to_dir[${prefix}]}"
+                    local target_file="${project_name}/.env_${ctx}_${instance}"
+                    if [[ -z "${file_seen[${target_file}]+set}" ]]; then
+                        file_seen["${target_file}"]=1
+                        file_order+=("${target_file}")
+                        file_vars["${target_file}"]="__instance__=${instance}|__prefix__=${prefix}"
+                    fi
+                    file_vars["${target_file}"]+=$'\n'"${original_key}=${val}"
+                    break
+                fi
+            done
+        # Root var
+        elif [[ -n "${root_vars[${key}]+set}" ]]; then
+            local target_file=".env_${ctx}"
+            if [[ -z "${file_seen[${target_file}]+set}" ]]; then
+                file_seen["${target_file}"]=1
+                file_order+=("${target_file}")
+                file_vars["${target_file}"]="__type__=root"
+            fi
+            file_vars["${target_file}"]+=$'\n'"${key}=${val}"
+        # Default-instance project var
+        else
+            for prefix in "${sorted_prefixes[@]}"; do
+                if [[ "${key}" == "${prefix}_"* ]]; then
+                    local project_name="${prefix_to_dir[${prefix}]}"
+                    local target_file="${project_name}/.env_${ctx}_default"
+                    if [[ -z "${file_seen[${target_file}]+set}" ]]; then
+                        file_seen["${target_file}"]=1
+                        file_order+=("${target_file}")
+                        file_vars["${target_file}"]="__type__=default"
+                    fi
+                    file_vars["${target_file}"]+=$'\n'"${key}=${val}"
+                    break
+                fi
+            done
+        fi
+    done <<< "${input}"
+
+    # Show summary and confirm
+    if [[ ${#file_order[@]} -eq 0 ]]; then
+        echo "No matching env vars found." >&2
+        return 0
+    fi
+
+    # Let user choose which files to restore
+    if [[ "${choose}" == true ]]; then
+        local default_json
+        default_json=$(printf '%s\n' "${file_order[@]}" | jq -R . | jq -s -c .)
+        local selection
+        selection=$(wizard select --cancel-code=2 --default "${default_json}" \
+            "Select env files to restore:" "${file_order[@]}") || {
+            local rc=$?
+            [[ ${rc} -eq 2 ]] && echo "Cancelled." >&2
+            exit 1
+        }
+        if [[ -z "${selection}" ]]; then
+            echo "No files selected." >&2
+            exit 1
+        fi
+        readarray -t file_order <<< "${selection}"
+        echo "" >&2
+    fi
+
+    echo "## Files to restore:" >&2
+    for f in "${file_order[@]}"; do
+        echo "  ${f}" >&2
+    done
+
+    if [[ "${yes}" != true ]]; then
+        echo "" >&2
+        if ! wizard confirm "Restore these env files?" no; then
+            echo "Cancelled." >&2
+            exit 1
+        fi
+    fi
+
+    # Resolve write path: when DRT_ENV_DIR is set, redirect .env_* and
+    # passwords.json writes there, preserving the relative directory structure.
+    _env_path() {
+        if [[ -n "${DRT_ENV_DIR:-}" ]]; then
+            local dir="${DRT_ENV_DIR}/$(dirname "$1")"
+            mkdir -p "${dir}"
+            echo "${DRT_ENV_DIR}/$1"
+        else
+            echo "$1"
+        fi
+    }
+
+    # Second pass: write files
+    for target_file in "${file_order[@]}"; do
+        local write_path
+        write_path=$(_env_path "${target_file}")
+
+        # Handle passwords.json files (base64-encoded)
+        if [[ -n "${password_files[${target_file}]+set}" ]]; then
+            echo "## Restoring ${target_file}" >&2
+            _b64_decode "${password_files[${target_file}]}" > "${write_path}"
+            chmod 600 "${write_path}"
+            continue
+        fi
+
+        local data="${file_vars[${target_file}]}"
+        local first_line="${data%%$'\n'*}"
+        local rest="${data#*$'\n'}"
+
+        echo "## Restoring ${target_file}" >&2
+
+        if [[ "${first_line}" == "__type__=root" ]]; then
+            cp .env-dist "${write_path}"
+        elif [[ "${first_line}" == "__type__=default" ]]; then
+            local project_name="${target_file%%/*}"
+            cp "${project_name}/.env-dist" "${write_path}"
+        elif [[ "${first_line}" == __instance__=* ]]; then
+            local instance="${first_line#__instance__=}"
+            instance="${instance%%|*}"
+            local prefix="${first_line#*__prefix__=}"
+            local project_name="${target_file%%/*}"
+            cp "${project_name}/.env-dist" "${write_path}"
+            ${BIN}/dotenv -f "${write_path}" set "${prefix}_INSTANCE=${instance}"
+        fi
+
+        ${BIN}/batch-reconfigure "${write_path}" <<< "${rest}" 2>&1 >&2
+    done
+
+    # Restore doctl config if present
+    if [[ -n "${doctl_config_b64}" ]]; then
+        local doctl_dir="${HOME}/.config/doctl"
+        mkdir -p "${doctl_dir}"
+        echo "## Restoring ${doctl_dir}/config.yaml" >&2
+        _b64_decode "${doctl_config_b64}" > "${doctl_dir}/config.yaml"
+        chmod 600 "${doctl_dir}/config.yaml"
+    fi
+
+    # Restore AWS CLI config if present
+    if [[ -n "${aws_credentials_b64}" ]]; then
+        local aws_dir="${HOME}/.aws"
+        mkdir -p "${aws_dir}"
+        echo "## Restoring ${aws_dir}/credentials" >&2
+        _b64_decode "${aws_credentials_b64}" > "${aws_dir}/credentials"
+        chmod 600 "${aws_dir}/credentials"
+    fi
+    if [[ -n "${aws_config_b64}" ]]; then
+        local aws_dir="${HOME}/.aws"
+        mkdir -p "${aws_dir}"
+        echo "## Restoring ${aws_dir}/config" >&2
+        _b64_decode "${aws_config_b64}" > "${aws_dir}/config"
+        chmod 600 "${aws_dir}/config"
+    fi
+
+    # Restore gh CLI config if present
+    if [[ -n "${gh_hosts_b64}" ]]; then
+        local gh_dir="${HOME}/.config/gh"
+        mkdir -p "${gh_dir}"
+        echo "## Restoring ${gh_dir}/hosts.yml" >&2
+        _b64_decode "${gh_hosts_b64}" > "${gh_dir}/hosts.yml"
+        chmod 600 "${gh_dir}/hosts.yml"
+    fi
+
+    # Restore rclone config if present
+    if [[ -n "${rclone_config_b64}" ]]; then
+        local rclone_dir="${HOME}/.config/rclone"
+        mkdir -p "${rclone_dir}"
+        echo "## Restoring ${rclone_dir}/rclone.conf" >&2
+        _b64_decode "${rclone_config_b64}" > "${rclone_dir}/rclone.conf"
+        chmod 600 "${rclone_dir}/rclone.conf"
+    fi
+
+    # Restore mc (MinIO client) config if present
+    if [[ -n "${mc_config_b64}" ]]; then
+        local mc_dir="${HOME}/.mc"
+        mkdir -p "${mc_dir}"
+        echo "## Restoring ${mc_dir}/config.json" >&2
+        _b64_decode "${mc_config_b64}" > "${mc_dir}/config.json"
+        chmod 600 "${mc_dir}/config.json"
+    fi
+
+    # Restore bashrc.local if present
+    if [[ -n "${bashrc_local_b64}" ]]; then
+        echo "## Restoring ${HOME}/.bashrc.local" >&2
+        _b64_decode "${bashrc_local_b64}" > "${HOME}/.bashrc.local"
+        chmod 600 "${HOME}/.bashrc.local"
+    fi
+
+    # Restore SSH config if present
+    if [[ -n "${ssh_config_b64}" ]]; then
+        mkdir -p "${HOME}/.ssh"
+        echo "## Restoring ${HOME}/.ssh/config" >&2
+        _b64_decode "${ssh_config_b64}" > "${HOME}/.ssh/config"
+        chmod 600 "${HOME}/.ssh/config"
+    fi
+
+    # Restore SSH key files if present
+    if [[ ${#ssh_key_files[@]} -gt 0 ]]; then
+        mkdir -p "${HOME}/.ssh"
+        for kf_name in "${!ssh_key_files[@]}"; do
+            echo "## Restoring ${HOME}/.ssh/${kf_name}" >&2
+            _b64_decode "${ssh_key_files[${kf_name}]}" > "${HOME}/.ssh/${kf_name}"
+            chmod 600 "${HOME}/.ssh/${kf_name}"
+        done
+    fi
+
+    # Restore gumdrop presets if present (legacy format)
+    if [[ ${#gumdrop_preset_files[@]} -gt 0 ]]; then
+        local gumdrop_dir="${HOME}/.config/d.rymcg.tech/gumdrop-presets"
+        mkdir -p "${gumdrop_dir}"
+        for gf_name in "${!gumdrop_preset_files[@]}"; do
+            echo "## Restoring ${gumdrop_dir}/${gf_name}" >&2
+            _b64_decode "${gumdrop_preset_files[${gf_name}]}" > "${gumdrop_dir}/${gf_name}"
+            chmod 600 "${gumdrop_dir}/${gf_name}"
+        done
+    fi
+
+    # Restore drt user config files if present
+    if [[ ${#drt_config_files[@]} -gt 0 ]]; then
+        local drt_config_dir="${HOME}/.config/d.rymcg.tech"
+        for dcf_rel in "${!drt_config_files[@]}"; do
+            local dcf_path="${drt_config_dir}/${dcf_rel}"
+            mkdir -p "$(dirname "${dcf_path}")"
+            echo "## Restoring ${dcf_path}" >&2
+            _b64_decode "${drt_config_files[${dcf_rel}]}" > "${dcf_path}"
+            chmod 600 "${dcf_path}"
+        done
+    fi
+
+    # Restore wireguard configs if present
+    if [[ ${#wireguard_files[@]} -gt 0 ]]; then
+        local wg_dir="${HOME}/.config/wireguard"
+        mkdir -p "${wg_dir}"
+        for wg_name in "${!wireguard_files[@]}"; do
+            echo "## Restoring ${wg_dir}/${wg_name}" >&2
+            _b64_decode "${wireguard_files[${wg_name}]}" > "${wg_dir}/${wg_name}"
+            chmod 600 "${wg_dir}/${wg_name}"
+        done
+    fi
+
+    # Restore GnuPG files if present
+    if [[ ${#gnupg_files[@]} -gt 0 ]]; then
+        local gnupg_dir="${HOME}/.gnupg"
+        mkdir -p "${gnupg_dir}"
+        chmod 700 "${gnupg_dir}"
+        for gpg_name in "${!gnupg_files[@]}"; do
+            echo "## Restoring ${gnupg_dir}/${gpg_name}" >&2
+            _b64_decode "${gnupg_files[${gpg_name}]}" > "${gnupg_dir}/${gpg_name}"
+            chmod 600 "${gnupg_dir}/${gpg_name}"
+        done
+    fi
+
+    # Restore kube config files if present
+    if [[ ${#kube_files[@]} -gt 0 ]]; then
+        local kube_dir="${HOME}/.kube"
+        for kube_rel in "${!kube_files[@]}"; do
+            local kube_path="${kube_dir}/${kube_rel}"
+            mkdir -p "$(dirname "${kube_path}")"
+            echo "## Restoring ${kube_path}" >&2
+            _b64_decode "${kube_files[${kube_rel}]}" > "${kube_path}"
+            chmod 600 "${kube_path}"
+        done
+    fi
+
+    # Restore MOTD if present
+    if [[ -n "${motd_b64}" ]]; then
+        echo "## Restoring ${HOME}/.motd" >&2
+        _b64_decode "${motd_b64}" > "${HOME}/.motd"
+        chmod 600 "${HOME}/.motd"
     fi
 }
 
@@ -577,22 +1685,75 @@ main() {
                 ${BIN}/image-archive "$@";;
             image-restore)
                 ${BIN}/image-restore "$@";;
-            agent)
+            workstation-usb-image)
+                ${BIN}/workstation-usb-image "$@";;
+            workstation-usb-install)
+                ${BIN}/workstation-usb-install "$@";;
+            workstation-usb-clone)
+                ${BIN}/workstation-usb-clone "$@";;
+            workstation-usb-post-install)
+                ${BIN}/workstation-usb-post-install "$@";;
+            workstation-usb-download-isos)
+                ${BIN}/workstation-usb-download-isos "$@";;
+            workstation-usb-download-docker-packages)
+                ${BIN}/workstation-usb-download-docker-packages "$@";;
+            workstation-usb-test-vm)
+                ${BIN}/workstation-usb-test-vm "$@";;
+            aws)
+                if [[ $# -eq 0 ]]; then
+                    make --no-print-directory -C "${ROOT_DIR}/_aws" help
+                else
+                    make --no-print-directory -C "${ROOT_DIR}/_aws" "$@"
+                fi;;
+            agent-readiness)
                 # Auto-detect current Docker context for 'check' command
                 if [[ $# -eq 0 ]]; then
                     # No args - show help
-                    ${BIN}/agent.py
+                    ${BIN}/agent_readiness.py
                 elif [[ "$1" == "check" ]] && ! echo "$@" | grep -q -- "--context"; then
                     # 'check' without --context - inject current context
                     local ctx=$(docker context show 2>/dev/null)
                     if [[ -n "$ctx" && "$ctx" != "default" ]]; then
-                        ${BIN}/agent.py check --context "$ctx" "${@:2}"
+                        ${BIN}/agent_readiness.py check --context "$ctx" "${@:2}"
                     else
-                        ${BIN}/agent.py "$@"
+                        ${BIN}/agent_readiness.py "$@"
                     fi
                 else
-                    ${BIN}/agent.py "$@"
+                    ${BIN}/agent_readiness.py "$@"
                 fi;;
+            request)
+                if [[ $# -eq 0 ]] && [[ -t 0 ]]; then
+                    ${BIN}/request.py --help
+                elif [[ "$1" == "-" ]]; then
+                    shift
+                    ${BIN}/request.py "$@"
+                else
+                    ${BIN}/request.py "$@"
+                fi;;
+            request-bot)
+                ${BIN}/request_bot.py "$@";;
+            request-controller)
+                ${BIN}/request_controller.py "$@";;
+            request-controller-token)
+                ${BIN}/request_controller.py --generate-token "$@";;
+            export-env)
+                __export_env "$@";;
+            restore-env)
+                __restore_env "$@";;
+            template-env)
+                __template_env "$@";;
+            droplet|gumdrop)
+                ${BIN}/gumdrop "$@";;
+            container-build)
+                ${ROOT_DIR}/_container/container-build.sh "$@";;
+            drt)
+                ${ROOT_DIR}/_container/drt --extract;;
+            deploy-pipeline-template)
+                ${ROOT_DIR}/_container/deploy-pipeline-template.sh "$@";;
+            python-deps)
+                make --no-print-directory -C ${ROOT_DIR} python-deps;;
+            deploy-pipeline-build)
+                python3 ${ROOT_DIR}/_container/deploy-pipeline-build.py "$@";;
             *)
                 fault "Invalid command"
         esac

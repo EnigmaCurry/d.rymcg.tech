@@ -39,7 +39,7 @@ check_dep(){
 }
 check_dep qemu-system-x86_64
 check_dep qemu-img
-check_dep python3
+check_dep uv
 check_dep nc
 check_dep curl
 check_dep openssl
@@ -57,7 +57,7 @@ echo "^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^"
 CRYPTED_PASSWORD="$(openssl passwd -1 -salt xyz ${ROOT_PASSWORD})"
 
 echo "Running simple webserver on port 4321 for host files..."
-PYTHON_PID=$(sh -c 'echo $$ ; exec >/dev/null 2>&1 ; exec python3 -m http.server 4321' &)
+PYTHON_PID=$(sh -c 'echo $$ ; exec >/dev/null 2>&1 ; exec uv run python3 -m http.server 4321' &)
 
 echo "Running netcat to capture syslogs..."
 NC_PID=$(sh -c 'echo $$ ; exec > ${VMROOT}/${VMNAME}-installer.log 2>&1 ; exec nc -ul 10514' &)

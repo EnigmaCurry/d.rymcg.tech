@@ -1,10 +1,6 @@
-#!/usr/bin/env -S uv run --quiet --script
-# /// script
-# requires-python = ">=3.10"
-# dependencies = ["rich"]
-# ///
+#!/usr/bin/env python-d-rymcg-tech
 """
-agent.py - System state checker for d.rymcg.tech agent readiness
+agent_readiness.py - System state checker for d.rymcg.tech agent readiness
 
 DESCRIPTION
     This script checks whether the current system meets the prerequisites
@@ -14,7 +10,7 @@ DESCRIPTION
       - A list of next steps to achieve readiness
 
 USAGE
-    _scripts/agent.py [COMMAND] [OPTIONS]
+    _scripts/agent_readiness.py [COMMAND] [OPTIONS]
 
 COMMANDS
     check               Run readiness checks (default if no command given)
@@ -72,13 +68,13 @@ EXIT CODES
 
 EXAMPLES
     # Basic check with human-readable output
-    _scripts/agent.py
+    _scripts/agent_readiness.py
 
     # JSON output for agent consumption
-    _scripts/agent.py --json
+    _scripts/agent_readiness.py --json
 
     # Full mode shows completed items in addition to todo items
-    _scripts/agent.py --full
+    _scripts/agent_readiness.py --full
 
 ENVIRONMENT VARIABLES
     D_RYMCG_TECH_PATH - Override expected repository path
@@ -358,7 +354,7 @@ def get_default_repo_path() -> Path:
 # Required commands to check
 REQUIRED_COMMANDS = [
     "bash", "make", "git", "openssl", "htpasswd", "xdg-open", "jq", "sshfs",
-    "wg", "curl", "inotifywait", "w3m", "sponge", "keychain", "ipcalc", "uv", "docker",
+    "wg", "curl", "inotifywait", "w3m", "keychain", "ipcalc", "uv", "docker",
 ]
 
 
@@ -1299,10 +1295,10 @@ def cmd_check(args) -> int:
         print("Error: No context specified. Use --context NAME.", file=sys.stderr)
         if docker_contexts:
             print(f"\nAvailable Docker contexts: {', '.join(docker_contexts)}", file=sys.stderr)
-            print(f"\nExample: agent.py check --context {docker_contexts[0]}", file=sys.stderr)
+            print(f"\nExample: agent_readiness.py check --context {docker_contexts[0]}", file=sys.stderr)
         else:
             print("\nNo Docker contexts found. Create one with:", file=sys.stderr)
-            print("  agent.py check --context NAME --ssh-hostname HOST --ssh-user USER --ssh-port PORT --root-domain DOMAIN --proxy-protocol false --save-cleartext-passwords false --role public", file=sys.stderr)
+            print("  agent_readiness.py check --context NAME --ssh-hostname HOST --ssh-user USER --ssh-port PORT --root-domain DOMAIN --proxy-protocol false --save-cleartext-passwords false --role public", file=sys.stderr)
         return 2
 
     context_name = args.context
@@ -1381,7 +1377,7 @@ def cmd_check(args) -> int:
     if missing:
         print(f"Error: Missing required configuration for context '{context_name}':", file=sys.stderr)
         print(f"  {', '.join(missing)}", file=sys.stderr)
-        print(f"\nExample: agent.py check --context {context_name} {' '.join(f'{m} VALUE' for m in missing)}", file=sys.stderr)
+        print(f"\nExample: agent_readiness.py check --context {context_name} {' '.join(f'{m} VALUE' for m in missing)}", file=sys.stderr)
         return 2
 
     # Save the context configuration

@@ -1,0 +1,70 @@
+## d-rymcg-tech image builder
+## Builds the Docker image from the master branch.
+##
+## Required Woodpecker secrets:
+##   registry          - Docker registry hostname
+##   registry_username - Registry username
+##   registry_password - Registry password or token
+##   forge_username    - Forgejo username (for cloning repo)
+##   forge_token       - Forgejo token with read:repository scope
+
+when:
+  - event: [push, cron, manual]
+    branch: master
+  - event: manual
+    branch: workstation-ci
+  - event: manual
+    branch: workstation-ci-request
+
+skip_clone: true
+
+steps:
+  - name: clone
+    image: alpine/git
+    environment:
+      FORGE_USERNAME:
+        from_secret: forge_username
+      FORGE_TOKEN:
+        from_secret: forge_token
+    commands:
+      - |
+        set -e
+        CLONE_URL=$$(echo "${CI_REPO_CLONE_URL}" | sed "s|https://|https://$${FORGE_USERNAME}:$${FORGE_TOKEN}@|")
+        git clone --depth=1 --branch=${CI_COMMIT_BRANCH} "$${CLONE_URL}" .
+
+  - name: build-image
+    image: woodpeckerci/plugin-docker-buildx
+    privileged: true
+    environment:
+      REGISTRY:
+        from_secret: registry
+      REGISTRY_USERNAME:
+        from_secret: registry_username
+      REGISTRY_PASSWORD:
+        from_secret: registry_password
+    commands:
+      - |
+        set -e
+        IMAGE="$${REGISTRY}/d-rymcg-tech"
+        SHA=$$(echo "${CI_COMMIT_SHA}" | head -c 12)
+        echo "## d.rymcg.tech master SHA:$${SHA}"
+        dockerd &
+        sleep 3
+        echo "$${REGISTRY_PASSWORD}" | docker login -u "$${REGISTRY_USERNAME}" --password-stdin "$${REGISTRY}"
+        # Pull existing image early to validate auth and warm layer cache
+        echo "## Pulling $${IMAGE}:latest for cache..."
+        docker pull "$${IMAGE}:latest" || echo "## No existing image found (first build)"
+        echo "## Building $${IMAGE}:$${SHA}"
+        docker build \
+          --pull \
+          -f _container/Dockerfile \
+          --build-arg BRANCH=master \
+          --build-arg IMAGE_SOURCE=${CI_REPO_CLONE_URL} \
+          --build-arg IMAGE_REF=$${IMAGE}:latest \
+          --build-arg GIT_SHA=$${SHA} \
+          -t "$${IMAGE}:$${SHA}" \
+          -t "$${IMAGE}:latest" \
+          .
+        echo "## Pushing $${IMAGE}:$${SHA}"
+        docker push "$${IMAGE}:$${SHA}"
+        docker push "$${IMAGE}:latest"

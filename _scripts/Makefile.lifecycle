@@ -20,6 +20,9 @@ config-hook-echo-postscript-default:
 config-dist: 
 	@echo
 	@echo "Configuring environment file: ${ENV_FILE}"
+ifdef DRT_ENV_DIR
+	@mkdir -p "$$(dirname ${ENV_FILE})"
+endif
 	@cp .env-dist ${ENV_FILE}
 	@echo ""
 	@echo "Copied the default .env-dist file. Edit ${ENV_FILE} by hand."
@@ -75,7 +78,11 @@ ps:
 
 .PHONY: status # Show status of all instances
 status:
-	@(echo -e "NAME\tENV\tID\tIMAGE\tSTATE\tHEALTH\tPORTS" && docker ps --filter "label=com.docker.compose.project.working_dir=$${PWD}" -q | xargs -iXX docker inspect XX | jq '.[0]' | jq -r '(.Name[1:]) + "\t" + (.Config.Labels["com.docker.compose.project.environment_file"] | split("/";"")[-1]) + "\t" + .Id[:10] + "\t" + .Config.Image + "\t" + .State.Status + "\t" + (.State.Health.Status|tostring) + "\t" + (.NetworkSettings.Ports|tostring) ') | column -t | less -FSX
+ifeq ($(FORMAT),json)
+	@docker ps --format '{{.ID}}\t{{.Label "com.docker.compose.project"}}' | awk -v proj="${PROJECT}" '$$2 == proj || $$2 ~ "^" proj "_" {print $$1}' | xargs -iXX docker inspect XX | jq '[.[0] | {name: .Name[1:], env: (.Config.Labels["com.docker.compose.project.environment_file"] | split("/";"")[-1]), id: .Id[:10], image: .Config.Image, state: .State.Status, health: (.State.Health.Status // null), ports: .NetworkSettings.Ports}]' | jq -s 'add // []'
+else
+	@(echo -e "NAME\tENV\tID\tIMAGE\tSTATE\tHEALTH\tPORTS" && docker ps --format '{{.ID}}\t{{.Label "com.docker.compose.project"}}' | awk -v proj="${PROJECT}" '$$2 == proj || $$2 ~ "^" proj "_" {print $$1}' | xargs -iXX docker inspect XX | jq '.[0]' | jq -r '(.Name[1:]) + "\t" + (.Config.Labels["com.docker.compose.project.environment_file"] | split("/";"")[-1]) + "\t" + .Id[:10] + "\t" + .Config.Image + "\t" + .State.Status + "\t" + (.State.Health.Status|tostring) + "\t" + (.NetworkSettings.Ports|tostring) ') | column -t | less -FSX
+endif
 
 .PHONY: logs # Tail all containers logs (set SERVICE=name to filter for one)
 logs:
@@ -96,7 +103,7 @@ pull:
 
 .PHONY: wait # Wait until deployment is started and healthy
 wait:
-	@CONTAINER_IDS= ${BIN}/wait_until_healthy "${PROJECT_NAME}" "$$(make --no-print-directory docker-compose-lifecycle-cmd EXTRA_ARGS='ps -a -q')"
+	@TIMEOUT=${TIMEOUT} ${BIN}/wait_until_healthy "${PROJECT_NAME}" "$$(make --no-print-directory docker-compose-lifecycle-cmd EXTRA_ARGS='ps -a -q')"
 
 .PHONY: network-subnet # Find the docker subnet CIDR for the current project/instance
 network-subnet:
