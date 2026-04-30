@@ -16,12 +16,17 @@ In this d.rymcg.tech deployment, OpenBao serves as:
 
 ## Security
 
-Enabling mTLS (`OPENBAO_MTLS_AUTH=true`) is **HIGHLY RECOMMENDED**.
-Without mTLS, the OpenBao API is exposed to unauthenticated network
-access. With mTLS enabled, all clients must present a valid
-certificate signed by your Step-CA before Traefik will proxy the
-request to OpenBao. See [Step-CA](../step-ca#readme) for setting up
-your certificate authority.
+OpenBao requires authentication (root token, AppRole, etc.) for all
+API operations — secrets are never accessible without valid
+credentials. Additionally, data at rest is encrypted and OpenBao
+starts sealed after every restart.
+
+Enabling mTLS (`OPENBAO_MTLS_AUTH=true`) adds defense-in-depth at the
+network layer: without a valid client certificate, clients cannot
+reach the API at all, making the server opaque to unauthorized
+parties (no endpoint discovery, no health checks, nothing). See
+[Step-CA](../step-ca#readme) for setting up your certificate
+authority.
 
 ## Setup
 
