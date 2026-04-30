@@ -1,0 +1,14 @@
+#!/bin/sh
+# Python wrapper for d.rymcg.tech scripts.
+# Scripts use #!/usr/bin/env python-d-rymcg-tech as their shebang, so this
+# unique name is found on PATH regardless of ordering. It execs the project
+# venv's python3 if available, otherwise falls back to system python3.
+# In the container, a symlink in .venv/bin/ resolves directly to python3.
+SCRIPT_DIR="$(cd "$(dirname "$0")/.." && pwd)"
+ROOT_DIR="$(dirname "${SCRIPT_DIR}")"
+VENV_PYTHON="${ROOT_DIR}/.venv/bin/python3"
+if [ -x "${VENV_PYTHON}" ]; then
+    exec "${VENV_PYTHON}" "$@"
+fi
+# Fall back to system python3 if no venv exists
+exec /usr/bin/env -S python3 "$@"

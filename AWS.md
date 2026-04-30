@@ -1,7 +1,13 @@
-# Docker on AWS EC2
+# Docker on AWS EC2 (manual instructions)
 
 You can use [AWS](https://aws.amazon.com/ec2/) to host a docker server
 online.
+
+> **Recommended:** Use the automated CloudFormation setup instead of
+> following these manual steps. See [_aws/README.md](_aws/README.md)
+> for a single-command deployment that handles EC2, DNS, firewall,
+> SSH keys, and acme-dns configuration. The manual instructions below
+> are retained for reference.
 
 Note: this doc is meant to be followed linearly, but it leaves out a
 lot of important bits. Read the main [d.rymcg.tech README](README.md)

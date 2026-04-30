@@ -9,6 +9,10 @@ include ${ROOT_DIR}/_scripts/Makefile.open
 include ${ROOT_DIR}/_scripts/Makefile.cd
 include ${ROOT_DIR}/_scripts/Makefile.reconfigure
 include ${ROOT_DIR}/_scripts/Makefile.readme
+ifdef DRT_ENV_DIR
+include ${DRT_ENV_DIR}/.env_$(shell ${BIN}/docker_context)
+else
 include ${ROOT_DIR}/.env_$(shell ${BIN}/docker_context)
+endif
 
 
