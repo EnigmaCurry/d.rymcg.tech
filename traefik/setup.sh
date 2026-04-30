@@ -168,7 +168,16 @@ traefik_user() {
                      adduser --shell /usr/sbin/nologin --system \
                      ${user_group_arg} ${TRAEFIK_USER}
                 )
-                ssh ${SSH_HOST} ${SUDO_PREFIX} gpasswd -a ${TRAEFIK_USER} docker || fault "There was a problem creating the ${TRAEFIK_USER} user. Are you logging in as root?"
+                if ssh ${SSH_HOST} getent group docker >/dev/null 2>&1; then
+                    ssh ${SSH_HOST} ${SUDO_PREFIX} gpasswd -a ${TRAEFIK_USER} docker || fault "There was a problem adding ${TRAEFIK_USER} to the docker group."
+                else
+                    echo
+                    echo "WARNING: The 'docker' group does not exist on the Docker host."
+                    echo "If you are using Docker, ensure the docker group is created"
+                    echo "(e.g., 'sudo groupadd docker') and then add the ${TRAEFIK_USER}"
+                    echo "user to it: sudo gpasswd -a ${TRAEFIK_USER} docker"
+                    echo
+                fi
                 echo "Successfully created the ${TRAEFIK_USER} user!"
                 traefik_uid
             fi
@@ -184,7 +193,11 @@ traefik_uid() {
     else
         TRAEFIK_UID=$(ssh ${SSH_HOST} id -u ${TRAEFIK_USER})
         TRAEFIK_GID=$(ssh ${SSH_HOST} id -g ${TRAEFIK_USER})
-        TRAEFIK_DOCKER_GID=$(ssh ${SSH_HOST} getent group docker | cut -d: -f3)
+        TRAEFIK_DOCKER_GID=$(ssh ${SSH_HOST} getent group docker 2>/dev/null | cut -d: -f3)
+        if [[ -z "${TRAEFIK_DOCKER_GID}" ]]; then
+            echo "WARNING: The 'docker' group does not exist on the Docker host. Using default GID 999."
+            TRAEFIK_DOCKER_GID=999
+        fi
         ${BIN}/reconfigure ${ENV_FILE} \
               TRAEFIK_UID=${TRAEFIK_UID} \
               TRAEFIK_GID=${TRAEFIK_GID} \
