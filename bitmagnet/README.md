@@ -8,6 +8,28 @@ indexers - it's self-contained, connected via
 [DHT](https://bitmagnet.io/#dht-what-now) to a global network of peers
 and constantly discovering new content.
 
+## WireGuard VPN Integration
+
+Bitmagnet is designed to route all traffic through a WireGuard VPN
+for privacy. During `make config`, you will be prompted to select a
+WireGuard instance to use as the default gateway.
+
+### Prerequisites
+
+The [../wireguard](../wireguard) service must be set up and running
+before installing bitmagnet. Follow the WireGuard setup instructions
+first to create a VPN instance.
+
+### How It Works
+
+When configured with a WireGuard instance:
+- All BitTorrent traffic is routed through the VPN
+- The WebUI remains accessible via Traefik on the normal Docker network
+- The container's default gateway is replaced with the WireGuard router
+
+If you choose not to use a WireGuard instance, bitmagnet will use the
+normal network (not recommended for privacy).
+
 ## Config
 
 ```
