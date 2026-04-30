@@ -65,11 +65,4 @@ install-hook:
 
 .PHONY: install-hook-pre
 install-hook-pre:
-	@USE_EXT=$$(${BIN}/dotenv -f ${ENV_FILE} get BITMAGNET_USE_EXTERNAL_VOLUME); \
-	if [ "$$USE_EXT" = "true" ]; then \
-		EXT_VOL=$$(${BIN}/dotenv -f ${ENV_FILE} get BITMAGNET_EXTERNAL_VOLUME); \
-		echo "## Creating postgres data directory: $$EXT_VOL"; \
-		mkdir -p "$$EXT_VOL"; \
-		chown -R 999:999 "$$EXT_VOL"; \
-		echo "## Set ownership to UID 999 (postgres container user)"; \
-	fi
+	@echo
