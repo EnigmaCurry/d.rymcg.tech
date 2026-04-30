@@ -1,0 +1,28 @@
+# docker-build.yaml — Build and push a Docker image to Forgejo's container registry
+#
+# Required secrets (set in Woodpecker UI or CLI):
+#   registry_username  — Forgejo username
+#   registry_password  — Forgejo access token with package:write scope
+#
+# Server config required:
+#   WOODPECKER_PLUGINS_PRIVILEGED must include woodpeckerci/plugin-docker-buildx
+#
+# Replace git.example.com with your Forgejo instance hostname.
+
+when:
+  - event: [push, tag]
+    branch: ${CI_REPO_DEFAULT_BRANCH}
+
+steps:
+  - name: build
+    image: woodpeckerci/plugin-docker-buildx:5
+    settings:
+      repo: git.example.com/${CI_REPO_OWNER}/${CI_REPO_NAME}
+      registry: git.example.com
+      tag:
+        - latest
+        - "${CI_COMMIT_SHA:0:8}"
+      username:
+        from_secret: registry_username
+      password:
+        from_secret: registry_password
