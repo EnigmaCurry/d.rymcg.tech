@@ -84,7 +84,7 @@ clear-input:
 
 .PHONY: remove-model # Permanently delete a model from ComfyUI
 remove-model:
-	@choices="audio_encoders checkpoints clip clip_vision configs controlnet diffusers diffusion_models embeddings gligen hypernetworks loras model_patches photomaker style_models text_encoders unet upscale_models vae vae_approx"; \
+	@choices="audio_encoders checkpoints clip clip_vision configs controlnet diffusers diffusion_models embeddings gligen hypernetworks ipadapter loras model_patches photomaker style_models text_encoders unet upscale_models vae vae_approx"; \
 	model_type=$$("${BIN}/script-wizard" choose "What type of model are you removing?" $$choices --default "checkpoints"); \
 	models=$$(docker exec "comfyui-comfyui-$$(${BIN}/dotenv -f ${ENV_FILE} get COMFYUI_DOCKER_COMPOSE_PROFILES)-1" ls /ComfyUI/models/$${model_type} 2>/dev/null); \
 	if [ -z "$${models}" ]; then \
