@@ -11,6 +11,7 @@
 #@ context = data.values.context
 #@ traefik_host = data.values.traefik_host
 #@ ip_sourcerange = data.values.ip_sourcerange
+#@ webhook_host = data.values.webhook_host
 #@ enable_mtls_auth = data.values.enable_mtls_auth == "true"
 #@ mtls_authorized_certs = data.values.mtls_authorized_certs
 #@ homepage_labels_enable = data.values.homepage_labels_enable == "true"
@@ -81,7 +82,17 @@ services:
 
       #! Apply all middlewares (do this at the end!)
       - "traefik.http.routers.(@= router @).middlewares=(@= ','.join(enabled_middlewares) @)"
-      
+
+      #! Webhook route (no mTLS) for external services like GitHub:
+      #@ if len(webhook_host) > 0:
+      #@ webhook_router = "{}-{}-{}-webhook".format(project,instance,service)
+      - "traefik.http.routers.(@= webhook_router @).rule=Host(`(@= webhook_host @)`) && PathRegexp(`^/api/v1/repos/[^/]+/[^/]+/mirror-sync$$`) && Method(`POST`)"
+      - "traefik.http.routers.(@= webhook_router @).entrypoints=websecure"
+      - "traefik.http.routers.(@= webhook_router @).service=(@= router @)"
+      - "traefik.http.middlewares.(@= webhook_router @)-ipallowlist.ipallowlist.sourcerange=(@= ip_sourcerange @)"
+      - "traefik.http.routers.(@= webhook_router @).middlewares=(@= webhook_router @)-ipallowlist"
+      #@ end
+
       #! Homepage (portal):
       #! See https://gethomepage.dev/configs/docker/#automatic-service-discovery
       #@ if homepage_labels_enable:

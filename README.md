@@ -224,6 +224,7 @@ Install these applications at your preference:
 * [Node-RED](nodered#readme) - a graphical event pipeline editor
 * [Ntfy-sh](ntfy-sh#readme) - a simple HTTP-based pub-sub notification service
 * [Ollama](ollama#readme) - a service API for hosting Large Language Models
+* [OpenBao](openbao#readme) - a secrets management service (Vault)
 * [Open WebUI](open-webui#readme) - a self-hosted AI platform
 * [Pairdrop](pairdrop#readme) - a webapp (PWA) to send files and messages peer to peer
 * [Peertube](peertube#readme) - a decentralized and federated video platform
@@ -257,6 +258,7 @@ Install these applications at your preference:
 * [Webtop](webtop#readme) - a containerized Linux desktop in your web browser
 * [WireGuard](wireguard) - a standalone VPN client that other containers may use as a router
 * [WireGuard-Gateway](wireguard-gateway) - a VPN client config that acts as a gateway node for your LAN.
+* [Woodpecker](woodpecker#readme) - a CI/CD engine
 * [Wordpress](wordpress#readme) - a ubiquitous blogging / CMS platform, with a plugin to build a static HTML site snapshot
 * [XBrowserSync](xbs#readme) - a bookmark manager
 * [YOURLS](yourls#readme) - a URL shortener

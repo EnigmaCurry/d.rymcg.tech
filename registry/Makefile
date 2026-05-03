@@ -14,7 +14,16 @@ config-hook:
 	@${BIN}/reconfigure_password ${ENV_FILE} REGISTRY_HTTP_SECRET
 	@echo
 	@echo "By default, Registry storage uses a Docker volume. Optionally, you can use an S3 bucket."
+	@echo "(NOTE: S3 storage is EXPERIMENTAL and may not work with all S3 providers.)"
 	@${BIN}/reconfigure_choose ${ENV_FILE} REGISTRY_STORAGE_BACKEND "Choose the storage backend:" "docker" "s3"
+	@[[ $$(${BIN}/dotenv -f ${ENV_FILE} get REGISTRY_STORAGE_BACKEND) == "docker" ]] && ( \
+		VOLUME_TYPE=$$(${BIN}/script-wizard choose "Choose the Docker volume type:" "compose" "external"); \
+		if [[ "$${VOLUME_TYPE}" == "external" ]]; then \
+			${BIN}/reconfigure_ask ${ENV_FILE} REGISTRY_EXTERNAL_VOLUME "Enter the external Docker volume name"; \
+		else \
+			${BIN}/reconfigure ${ENV_FILE} REGISTRY_EXTERNAL_VOLUME=; \
+		fi \
+	) || true
 	@[[ $$(${BIN}/dotenv -f ${ENV_FILE} get REGISTRY_STORAGE_BACKEND) == "s3" ]] && \
 		${BIN}/reconfigure_ask ${ENV_FILE} REGISTRY_STORAGE_S3_ENDPOINT "Enter the S3 endpoint URL" && \
 		${BIN}/reconfigure_ask ${ENV_FILE} REGISTRY_STORAGE_S3_REGION "Enter the S3 region (use 'auto' for Cloudflare R2)" && \
@@ -51,7 +60,7 @@ override-hook:
 ####                         # (this hardcodes the string into docker-compose.override.yaml)
 ####   name=@VARIABLE_NAME   # sets the template 'name' field to the literal string '${VARIABLE_NAME}'
 ####                         # (used for regular docker-compose expansion of env vars by name.)
-	@${BIN}/docker_compose_override ${ENV_FILE} project=:registry instance=@REGISTRY_INSTANCE traefik_host=@REGISTRY_TRAEFIK_HOST http_auth=REGISTRY_HTTP_AUTH http_auth_var=@REGISTRY_HTTP_AUTH ip_sourcerange=@REGISTRY_IP_SOURCERANGE enable_mtls_auth=REGISTRY_MTLS_AUTH mtls_authorized_certs=REGISTRY_MTLS_AUTHORIZED_CERTS storage_backend=REGISTRY_STORAGE_BACKEND public=REGISTRY_PUBLIC pull_http_auth=REGISTRY_PULL_HTTP_AUTH pull_http_auth_var=@REGISTRY_PULL_HTTP_AUTH pull_mtls_auth=REGISTRY_PULL_MTLS_AUTH pull_mtls_authorized_certs=REGISTRY_PULL_MTLS_AUTHORIZED_CERTS
+	@${BIN}/docker_compose_override ${ENV_FILE} project=:registry instance=@REGISTRY_INSTANCE traefik_host=@REGISTRY_TRAEFIK_HOST http_auth=REGISTRY_HTTP_AUTH http_auth_var=@REGISTRY_HTTP_AUTH ip_sourcerange=@REGISTRY_IP_SOURCERANGE enable_mtls_auth=REGISTRY_MTLS_AUTH mtls_authorized_certs=REGISTRY_MTLS_AUTHORIZED_CERTS storage_backend=REGISTRY_STORAGE_BACKEND public=REGISTRY_PUBLIC pull_http_auth=REGISTRY_PULL_HTTP_AUTH pull_http_auth_var=@REGISTRY_PULL_HTTP_AUTH pull_mtls_auth=REGISTRY_PULL_MTLS_AUTH pull_mtls_authorized_certs=REGISTRY_PULL_MTLS_AUTHORIZED_CERTS external_volume=REGISTRY_EXTERNAL_VOLUME
 
 .PHONY: shell
 shell:
@@ -226,4 +235,4 @@ install-hook:
 
 .PHONY: install-hook-pre
 install-hook-pre:
-	@echo
+	@make --no-print-directory docker-compose-lifecycle-cmd EXTRA_ARGS="rm -sf config"

@@ -603,7 +603,7 @@ Traefik [.env](.env-dist) file :
 | Variable name                              | Description                                                                      | Examples                                                 |
 |--------------------------------------------|----------------------------------------------------------------------------------|----------------------------------------------------------|
 | (various LEGO DNS variables)               | All of your tokens for DNS provider                                              | `DO_AUTH_TOKEN`                                          |
-| `DOCKER_COMPOSE_PROFILES`                  | List of docker-compose profiles to enable                                        | `default`,`wireguard`,`wireguard-client`                 |
+| `TRAEFIK_DOCKER_COMPOSE_PROFILES`                  | List of docker-compose profiles to enable                                        | `default`,`wireguard`,`wireguard-client`                 |
 | `TRAEFIK_ACCESS_LOGS_ENABLED`              | (bool) enable the Traefik access logs                                            | `true`,`false`                                           |
 | `TRAEFIK_ACCESS_LOGS_PATH`                 | The path to the access logs inside the volume                                    | `/data/access.log`                                       |
 | `TRAEFIK_ACME_CA_EMAIL`                    | Your email to send to Lets Encrypt                                               | `you@example.com` (can be blank)                         |

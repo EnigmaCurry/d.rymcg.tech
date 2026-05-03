@@ -15,7 +15,7 @@ config-hook:
 	@echo "Enter the processing engine to use: cuda (for nvidia GPUs), rocm (for AMD GPUs), or cpu (to use only the CPU)."
 	@${BIN}/reconfigure_compose_profiles_choose ${ENV_FILE} rocm="AMD GPU" cuda="Nvidia GPU" cpu="CPU only"
 	@echo ""
-	@if [[ "$$(${BIN}/dotenv -f ${ENV_FILE} get DOCKER_COMPOSE_PROFILES)" == "rocm" ]]; then \
+	@if [[ "$$(${BIN}/dotenv -f ${ENV_FILE} get LLAMA_DOCKER_COMPOSE_PROFILES)" == "rocm" ]]; then \
 	    echo "If your GPU isn't officially supported by ROCm, you can set LLAMA_HSA_OVERRIDE_GFX_VERSION to a value that matches your GPU's architecture (e.g., \"10.3.0\"). Leave blank if your GPU is supported by ROCm."; \
 		ALLOW_BLANK=1 ${BIN}/reconfigure_ask ${ENV_FILE} LLAMA_HSA_OVERRIDE_GFX_VERSION "Enter your AMD GPU's architecture version" ; \
 		echo ""; \
@@ -55,31 +55,31 @@ override-hook:
 ####                         # (this hardcodes the string into docker-compose.override.yaml)
 ####   name=@VARIABLE_NAME   # sets the template 'name' field to the literal string '${VARIABLE_NAME}'
 ####                         # (used for regular docker-compose expansion of env vars by name.)
-	@${BIN}/docker_compose_override ${ENV_FILE} project=:llama instance=@LLAMA_INSTANCE traefik_host=@LLAMA_TRAEFIK_HOST http_auth=LLAMA_HTTP_AUTH http_auth_var=@LLAMA_HTTP_AUTH ip_sourcerange=@LLAMA_IP_SOURCERANGE oauth2=LLAMA_OAUTH2 authorized_group=LLAMA_OAUTH2_AUTHORIZED_GROUP enable_mtls_auth=LLAMA_MTLS_AUTH mtls_authorized_certs=LLAMA_MTLS_AUTHORIZED_CERTS models_host_path=LLAMA_MODELS_HOST_PATH compose_profile=DOCKER_COMPOSE_PROFILES api_token=LLAMA_API_TOKEN server_port=LLAMA_SERVER_PORT initial_model=LLAMA_INITIAL_MODEL n_gpu_layers=LLAMA_N_GPU_LAYERS context_length=LLAMA_CONTEXT_LENGTH image_variant=LLAMA_IMAGE_VARIANT models_max=LLAMA_MODELS_MAX jinja=LLAMA_JINJA tools=LLAMA_TOOLS sleep_idle_seconds=LLAMA_SLEEP_IDLE_SECONDS
+	@${BIN}/docker_compose_override ${ENV_FILE} project=:llama instance=@LLAMA_INSTANCE traefik_host=@LLAMA_TRAEFIK_HOST http_auth=LLAMA_HTTP_AUTH http_auth_var=@LLAMA_HTTP_AUTH ip_sourcerange=@LLAMA_IP_SOURCERANGE oauth2=LLAMA_OAUTH2 authorized_group=LLAMA_OAUTH2_AUTHORIZED_GROUP enable_mtls_auth=LLAMA_MTLS_AUTH mtls_authorized_certs=LLAMA_MTLS_AUTHORIZED_CERTS models_host_path=LLAMA_MODELS_HOST_PATH compose_profile=LLAMA_DOCKER_COMPOSE_PROFILES api_token=LLAMA_API_TOKEN server_port=LLAMA_SERVER_PORT initial_model=LLAMA_INITIAL_MODEL n_gpu_layers=LLAMA_N_GPU_LAYERS context_length=LLAMA_CONTEXT_LENGTH image_variant=LLAMA_IMAGE_VARIANT models_max=LLAMA_MODELS_MAX jinja=LLAMA_JINJA tools=LLAMA_TOOLS sleep_idle_seconds=LLAMA_SLEEP_IDLE_SECONDS
 
 .PHONY: shell
 shell:
-	@make --no-print-directory docker-compose-shell SERVICE=llama-$$(${BIN}/dotenv -f ${ENV_FILE} get DOCKER_COMPOSE_PROFILES)
+	@make --no-print-directory docker-compose-shell SERVICE=llama-$$(${BIN}/dotenv -f ${ENV_FILE} get LLAMA_DOCKER_COMPOSE_PROFILES)
 
 .PHONY: add-models # Download models from HuggingFace or direct URLs and add them to llama.cpp
 add-models:
-	@${ROOT_DIR}/llama-cpp/llama-add-models llama-$$(${BIN}/dotenv -f ${ENV_FILE} get DOCKER_COMPOSE_PROFILES) $$(${BIN}/dotenv -f ${ENV_FILE} get LLAMA_HF_TOKEN) ${ENV_FILE}
+	@${ROOT_DIR}/llama-cpp/llama-add-models llama-$$(${BIN}/dotenv -f ${ENV_FILE} get LLAMA_DOCKER_COMPOSE_PROFILES) $$(${BIN}/dotenv -f ${ENV_FILE} get LLAMA_HF_TOKEN) ${ENV_FILE}
 
 .PHONY: list-models # List all models in /models/ 
 list-models:
-	@${ROOT_DIR}/llama-cpp/llama-list-models llama-$$(${BIN}/dotenv -f ${ENV_FILE} get DOCKER_COMPOSE_PROFILES) ${ENV_FILE}
+	@${ROOT_DIR}/llama-cpp/llama-list-models llama-$$(${BIN}/dotenv -f ${ENV_FILE} get LLAMA_DOCKER_COMPOSE_PROFILES) ${ENV_FILE}
 
 .PHONY: list-models-json # List all models llama.cpp has detected (JSON output)
 list-models-json:
-	@${ROOT_DIR}/llama-cpp/llama-list-models --json llama-$$(${BIN}/dotenv -f ${ENV_FILE} get DOCKER_COMPOSE_PROFILES) ${ENV_FILE}
+	@${ROOT_DIR}/llama-cpp/llama-list-models --json llama-$$(${BIN}/dotenv -f ${ENV_FILE} get LLAMA_DOCKER_COMPOSE_PROFILES) ${ENV_FILE}
 
 .PHONY: delete-models # Delete selected models from /models/
 delete-models:
-	@${ROOT_DIR}/llama-cpp/llama-delete-models llama-$$(${BIN}/dotenv -f ${ENV_FILE} get DOCKER_COMPOSE_PROFILES) ${ENV_FILE}
+	@${ROOT_DIR}/llama-cpp/llama-delete-models llama-$$(${BIN}/dotenv -f ${ENV_FILE} get LLAMA_DOCKER_COMPOSE_PROFILES) ${ENV_FILE}
 
 .PHONY: manage-model-configs # Edit per-model JSON configuration files
 manage-model-configs:
-	@${ROOT_DIR}/llama-cpp/llama-manage-model-configs llama-$$(${BIN}/dotenv -f ${ENV_FILE} get DOCKER_COMPOSE_PROFILES) ${ENV_FILE}
+	@${ROOT_DIR}/llama-cpp/llama-manage-model-configs llama-$$(${BIN}/dotenv -f ${ENV_FILE} get LLAMA_DOCKER_COMPOSE_PROFILES) ${ENV_FILE}
 
 .PHONY: install-hook
 install-hook:

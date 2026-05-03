@@ -111,6 +111,12 @@ else
     log "= '$1' is not a Traefik command: assuming shell execution."
 fi
 
+# --- Strip TRAEFIK_LEGO_ prefix so LEGO sees native var names ---
+for _var in $(env | grep '^TRAEFIK_LEGO_' | cut -d= -f1); do
+    _bare="${_var#TRAEFIK_LEGO_}"
+    eval "export ${_bare}=\"\${${_var}}\""
+done
+
 # --- Launch background watcher and Traefik as the traefik user ---
 watch_restart_flag &
 

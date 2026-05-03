@@ -8,6 +8,7 @@ CFG_DIR=/etc/docker/registry
 CFG_PATH=${CFG_DIR}/config.yml
 
 [ -d "$CFG_DIR" ] || mkdir -p "$CFG_DIR" || die "cannot mkdir $CFG_DIR"
+chmod 0755 "$CFG_DIR" 2>/dev/null || true
 [ -w "$CFG_DIR" ] || die "config dir not writable: $CFG_DIR (is the volume mounted?)"
 
 STORAGE_BACKEND=${REGISTRY_STORAGE_BACKEND:-docker}
@@ -28,13 +29,17 @@ elif [ "$STORAGE_BACKEND" = "s3" ]; then
     accesskey: ${REGISTRY_STORAGE_S3_ACCESSKEY}
     secretkey: ${REGISTRY_STORAGE_S3_SECRETKEY}
     secure: true
-    v4auth: true"
+    v4auth: true
+    chunksize: 33554432"
 else
     die "unknown storage backend: $STORAGE_BACKEND"
 fi
 
-TMP=$(mktemp)
-cat > "$TMP" <<EOF
+if [ -f "$CFG_PATH" ]; then
+    rm "$CFG_PATH" 2>/dev/null || chmod 0644 "$CFG_PATH"
+fi
+
+cat > "$CFG_PATH" <<EOF
 version: 0.1
 log:
   fields:
@@ -56,6 +61,5 @@ health:
     threshold: 3
 EOF
 
-mv "$TMP" "$CFG_PATH"
 chmod 0444 "$CFG_PATH"
 log "wrote $CFG_PATH"

@@ -57,7 +57,10 @@ Url encoded: https://ryan:hunter2@example.com/...
 
 By default, the registry stores images in a Docker volume. You can
 optionally use an S3-compatible bucket (e.g., AWS S3, Cloudflare R2,
-MinIO) for storage:
+MinIO) for storage.
+
+**NOTE: S3 storage is EXPERIMENTAL and may not work reliably with all
+S3-compatible providers.**
 
 ```stdout
 By default, Registry storage uses a Docker volume. Optionally, you can use an S3 bucket.

@@ -22,9 +22,9 @@ TEMP_FILE=$(mktemp)
 trap 'rm -f "${TEMP_FILE}"' EXIT
 
 # Get container name
-CONTAINER_NAME=$("${BIN}/dotenv" -f "${ENV_FILE}" get DOCKER_COMPOSE_PROFILES)
+CONTAINER_NAME=$("${BIN}/dotenv" -f "${ENV_FILE}" get COMFYUI_DOCKER_COMPOSE_PROFILES)
 if [ -z "${CONTAINER_NAME}" ]; then
-    echo "Error: DOCKER_COMPOSE_PROFILES not found in ${ENV_FILE}"
+    echo "Error: COMFYUI_DOCKER_COMPOSE_PROFILES not found in ${ENV_FILE}"
     exit 1
 fi
 CONTAINER_NAME="comfyui-comfyui-${CONTAINER_NAME}-1"
@@ -46,7 +46,7 @@ downloading certain models.
 EOF
 
 # Model types
-choices="audio_encoders checkpoints clip clip_vision configs controlnet diffusers diffusion_models embeddings gligen hypernetworks latent_upscale_models loras model_patches photomaker style_models text_encoders unet upscale_models vae vae_approx"
+choices="audio_encoders checkpoints clip clip_vision configs controlnet diffusers diffusion_models embeddings gligen hypernetworks ipadapter latent_upscale_models loras model_patches photomaker style_models text_encoders unet upscale_models vae vae_approx"
 
 # Loop to collect multiple models
 while true; do
