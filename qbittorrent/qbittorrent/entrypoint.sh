@@ -27,11 +27,11 @@ init_hash() {
 }
 
 # Start qBittorrent in the background and remember its PID.
-# NOTE: The official image uses the `qbittorrent-nox` binary. We set
+# NOTE: The official image uses the `bittorrent-nox` binary. We set
 # the location of the config directory in `QBT_CONFIG`, above.
 start_qbittorrent() {
     echo "[wrapper] Starting qBittorrent..."
-    qbittorrent-nox &
+    /app/qbittorrent-nox &
     QB_PID=$!
     echo "[wrapper] qBittorrent PID=${QB_PID}"
 }
