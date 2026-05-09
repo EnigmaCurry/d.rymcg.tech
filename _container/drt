@@ -1,0 +1,2239 @@
+#!/usr/bin/env bash
+## drt — d.rymcg.tech workstation bootstrap tool
+## Combines init + run into a single script with no repo dependency.
+## Host dependencies: bash, podman, openssh, coreutils, grep, gawk
+## Setup alias:
+##   alias drt='bash <(podman run --rm --pull=never --net=none @@DRT_IMAGE@@ drt)'
+set -euo pipefail
+
+VERSION="@@DRT_GIT_SHA@@"
+if [[ "${VERSION}" == @@*@@ ]]; then
+    VERSION="${DRT_GIT_SHA:-unknown}"
+fi
+DEFAULT_IMAGE="${DRT_IMAGE:-@@DRT_IMAGE@@}"
+if [[ "${DEFAULT_IMAGE}" == @@*@@ ]]; then
+    DEFAULT_IMAGE="localhost/d-rymcg-tech:latest"
+fi
+
+###############################################################################
+# Shared helpers
+###############################################################################
+
+ENGINE=podman
+IMAGE="${DEFAULT_IMAGE}"
+BUILD=false
+NET_MODE=""
+
+check_engine() {
+    if ! command -v "${ENGINE}" &>/dev/null; then
+        echo "Error: ${ENGINE} not found in PATH" >&2
+        exit 1
+    fi
+}
+
+## Detect working network mode for podman (pasta may be broken on some systems)
+## Caches result in ~/.config/d.rymcg.tech/net-mode
+detect_net_mode() {
+    [[ -n "${NET_MODE}" ]] && return
+    [[ "${ENGINE}" != "podman" ]] && return
+    local CACHE_FILE="${HOME}/.config/d.rymcg.tech/net-mode"
+    if [[ -f "${CACHE_FILE}" ]]; then
+        NET_MODE=$(cat "${CACHE_FILE}")
+        return
+    fi
+    echo "## Detecting network mode (one-time check) ..." >&2
+    if "${ENGINE}" run --rm --net=pasta --entrypoint "" "${IMAGE}" true 2>/dev/null; then
+        NET_MODE=pasta
+    elif "${ENGINE}" run --rm --net=slirp4netns --entrypoint "" "${IMAGE}" true 2>/dev/null; then
+        NET_MODE=slirp4netns
+        echo "## Network: using slirp4netns (pasta unavailable)" >&2
+    else
+        NET_MODE=host
+        echo "## Network: using host (pasta and slirp4netns unavailable)" >&2
+    fi
+    mkdir -p "$(dirname "${CACHE_FILE}")" 2>/dev/null
+    echo "${NET_MODE}" > "${CACHE_FILE}" 2>/dev/null || true
+}
+
+## Run a command inside the container, bypassing the entrypoint
+container_run() {
+    "${ENGINE}" run --rm --net=none --entrypoint "" "$@"
+}
+
+## Run script-wizard inside the container interactively
+## Uses a named container so we can copy the answer out after it exits
+wizard() {
+    local cname="wizard-$$-${RANDOM}"
+    local answer="/tmp/wizard-answer-${cname}"
+    trap '"${ENGINE}" rm "${cname}" >/dev/null 2>&1' EXIT
+    "${ENGINE}" run -it --net=none --name "${cname}" --entrypoint "" \
+        -e "TERM=${TERM:-xterm}" -e "WIZARD_ANSWER=${answer}" \
+        "${IMAGE}" \
+        sh -c 'script-wizard "$@" > "${WIZARD_ANSWER}"' -- "$@" >&2
+    local rc=$?
+    "${ENGINE}" cp "${cname}:${answer}" - | tar -xO
+    trap - EXIT
+    "${ENGINE}" "${_ctx[@]}" rm "${cname}" >/dev/null
+    return $rc
+}
+
+## List FIDO2 hidraw devices with human-readable names
+## Filters by checking for FIDO usage page (0xF1D0) in the HID report descriptor
+## Output: one line per device: "/dev/hidrawN|HID_ID|Device Name"
+detect_hidraw_devices() {
+    for dev in /dev/hidraw*; do
+        [[ -e "$dev" ]] || continue
+        local sysdev="/sys/class/hidraw/$(basename "$dev")/device"
+        # Check for FIDO usage page (0xF1D0) in report descriptor
+        local report_desc="${sysdev}/report_descriptor"
+        if [[ -f "${report_desc}" ]]; then
+            # FIDO usage page appears as bytes 06 D0 F1 in the HID descriptor
+            if ! od -An -tx1 "${report_desc}" 2>/dev/null | tr -d ' \n' | grep -qi '06d0f1'; then
+                continue
+            fi
+        else
+            continue
+        fi
+        local name="" hidid=""
+        if [[ -f "${sysdev}/uevent" ]]; then
+            name=$(grep '^HID_NAME=' "${sysdev}/uevent" 2>/dev/null | cut -d= -f2)
+            hidid=$(grep '^HID_ID=' "${sysdev}/uevent" 2>/dev/null | cut -d= -f2)
+        fi
+        [[ -z "$name" ]] && name="Unknown"
+        echo "${dev}|${hidid}|${name}"
+    done
+}
+
+## Find hidraw device path by stored HID_ID
+## Args: $1 = HID_ID string (e.g. "0003:00001209:00005070")
+## Output: /dev/hidrawN path
+find_hidraw_by_id() {
+    local target_id="$1"
+    for dev in /dev/hidraw*; do
+        [[ -e "$dev" ]] || continue
+        local sysdev="/sys/class/hidraw/$(basename "$dev")/device"
+        if [[ -f "${sysdev}/uevent" ]]; then
+            local hidid
+            hidid=$(grep '^HID_ID=' "${sysdev}/uevent" 2>/dev/null | cut -d= -f2)
+            if [[ "$hidid" == "$target_id" ]]; then
+                echo "$dev"
+                return 0
+            fi
+        fi
+    done
+    return 1
+}
+
+## Pull from remote if ~/.config/d.rymcg.tech is a git repo with a remote
+git_auto_pull() {
+    [[ "${DRT_NO_GIT:-}" == true ]] && return 0
+    local CONFIG_BASE="${HOME}/.config/d.rymcg.tech"
+    [[ -d "${CONFIG_BASE}/.git" ]] || return 0
+    local remote
+    remote=$(git -C "${CONFIG_BASE}" remote 2>/dev/null | head -1)
+    [[ -n "${remote}" ]] || return 0
+    if [[ -t 0 ]]; then
+        read -rp "## git: pull from ${remote}? [Y/n] " _pull_answer
+        if [[ "${_pull_answer}" =~ ^[Nn]$ ]]; then
+            echo "## git: pull skipped" >&2
+            return 0
+        fi
+    fi
+    echo "## git: fetching from ${remote} ..." >&2
+    if ! git -C "${CONFIG_BASE}" fetch "${remote}" 2>&1; then
+        echo "" >&2
+        echo "ERROR: git fetch failed. Check your network connection and ssh-agent." >&2
+        echo "  Use --no-git to skip." >&2
+        exit 1
+    fi
+    local branch
+    branch=$(git -C "${CONFIG_BASE}" branch --show-current 2>/dev/null)
+    [[ -n "${branch}" ]] || return 0
+    if git -C "${CONFIG_BASE}" rev-parse "${remote}/${branch}" &>/dev/null; then
+        if ! git -C "${CONFIG_BASE}" merge --ff-only "${remote}/${branch}" 2>/dev/null; then
+            echo "ERROR: config repo has diverged from ${remote}/${branch} — resolve manually with: drt --git" >&2
+            exit 1
+        fi
+        echo "## git: up to date with ${remote}/${branch}" >&2
+    fi
+}
+
+## Ensure base directory structure for config
+ensure_config_dir() {
+    local CONFIG_BASE="${HOME}/.config/d.rymcg.tech"
+    mkdir -p "${CONFIG_BASE}/keys/sops" "${CONFIG_BASE}/config"
+    if [[ ! -f "${CONFIG_BASE}/.gitignore" ]]; then
+        cat > "${CONFIG_BASE}/.gitignore" <<'GITIGNORE'
+net-mode
+keys/*
+gumdrop-presets/*
+GITIGNORE
+    else
+        # Ensure newer ignore entries are present in existing .gitignore
+        grep -qx 'gumdrop-presets/\*' "${CONFIG_BASE}/.gitignore" 2>/dev/null || \
+            echo 'gumdrop-presets/*' >> "${CONFIG_BASE}/.gitignore"
+    fi
+    if [[ ! -f "${CONFIG_BASE}/keys/.gitkeep" ]]; then
+        touch "${CONFIG_BASE}/keys/.gitkeep"
+    fi
+}
+
+## Auto-commit config changes if ~/.config/d.rymcg.tech is a git repo
+git_auto_commit() {
+    [[ "${DRT_NO_GIT:-}" == true ]] && return 0
+    local msg="$1"
+    local CONFIG_BASE="${HOME}/.config/d.rymcg.tech"
+    [[ -d "${CONFIG_BASE}/.git" ]] || return 0
+    echo "## git: staging changes ..." >&2
+    git -C "${CONFIG_BASE}" add -A
+    if git -C "${CONFIG_BASE}" diff --cached --quiet; then
+        echo "## git: no changes to commit" >&2
+        return 0
+    fi
+    if ! git -C "${CONFIG_BASE}" commit -m "${msg}" >/dev/null 2>&1; then
+        echo "## git: commit failed — you may need to configure git identity:" >&2
+        echo "##   drt --git config user.email \"you@example.com\"" >&2
+        echo "##   drt --git config user.name \"Your Name\"" >&2
+        return 1
+    fi
+    echo "## git: committed: ${msg}" >&2
+    local remote
+    remote=$(git -C "${CONFIG_BASE}" remote 2>/dev/null | head -1)
+    if [[ -n "${remote}" ]]; then
+        read -rp "## git: push to ${remote}? [Y/n] " answer </dev/tty
+        if [[ ! "${answer}" =~ ^[Nn]$ ]]; then
+            git -C "${CONFIG_BASE}" push 2>/dev/null && \
+                echo "## git: pushed" >&2 || \
+                echo "## git: push failed" >&2
+        fi
+    fi
+}
+
+## Detect AGE key type: passphrase, fido2, or plaintext
+## Args: $1 = path to AGE key file
+## Output: "passphrase", "fido2", or "plaintext"
+detect_key_type() {
+    local key_file="$1"
+    if head -1 "${key_file}" | grep -q '^age-encryption.org'; then
+        echo "passphrase"
+    elif grep -q 'AGE-PLUGIN-FIDO2-HMAC' "${key_file}" 2>/dev/null; then
+        echo "fido2"
+    else
+        echo "plaintext"
+    fi
+}
+
+## Human-readable key status label
+## Args: $1 = path to AGE key file (may not exist)
+## Output: status string
+key_status_label() {
+    local key_file="$1"
+    if [[ ! -f "${key_file}" ]]; then
+        echo "missing"
+        return
+    fi
+    case "$(detect_key_type "${key_file}")" in
+        passphrase) echo "Password" ;;
+        fido2) echo "FIDO2 + Cold Storage" ;;
+        plaintext) echo "plaintext!!" ;;
+    esac
+}
+
+## List unique context names from keys and/or configs
+## Args: $1 = "configs-only" to list only configs (optional)
+## Output: sorted unique context names, one per line
+list_contexts() {
+    local KEY_DIR="${HOME}/.config/d.rymcg.tech/keys/sops"
+    local CONFIG_DIR="${HOME}/.config/d.rymcg.tech/config"
+    {
+        if [[ "${1:-}" != "configs-only" && -d "${KEY_DIR}" ]]; then
+            for f in "${KEY_DIR}"/*.key; do
+                [[ -f "$f" ]] || continue
+                basename "$f" .key
+            done
+        fi
+        if [[ -d "${CONFIG_DIR}" ]]; then
+            for f in "${CONFIG_DIR}"/*.sops.env; do
+                [[ -f "$f" ]] || continue
+                basename "$f" .sops.env
+            done
+        fi
+    } | sort -u
+}
+
+## Resolve AGE key file path for a context, validate existence
+## Args: $1 = context name, $2 = optional override path
+## Output: path to key file; exits with error if not found
+resolve_age_key() {
+    local context="$1" override="${2:-}"
+    local key_file
+    if [[ -n "${override}" ]]; then
+        key_file="${override}"
+    else
+        key_file="${HOME}/.config/d.rymcg.tech/keys/sops/${context}.key"
+    fi
+    if [[ ! -f "${key_file}" ]]; then
+        echo "Error: AGE key not found: ${key_file}" >&2
+        exit 1
+    fi
+    echo "${key_file}"
+}
+
+## Resolve FIDO2 device for a context
+## Args: $1 = context name, $2 = "interactive" for fallback selection (optional)
+## Output: /dev/hidrawN path; returns 1 if not found (non-interactive) or exits on error
+resolve_fido2_device() {
+    local context="$1" mode="${2:-}"
+    local FIDO2_ID_FILE="${HOME}/.config/d.rymcg.tech/keys/sops/${context}.fido2"
+    local fido2_dev=""
+
+    if [[ -f "${FIDO2_ID_FILE}" ]]; then
+        local _fido2_id
+        while IFS= read -r _fido2_id; do
+            [[ -z "${_fido2_id}" ]] && continue
+            fido2_dev=$(find_hidraw_by_id "${_fido2_id}") && break
+        done < "${FIDO2_ID_FILE}"
+    fi
+
+    if [[ -n "${fido2_dev}" ]]; then
+        echo "${fido2_dev}"
+        return 0
+    fi
+
+    if [[ "${mode}" == "interactive" ]]; then
+        echo "## FIDO2: no stored device found, scanning..." >&2
+        local _devs=() _devpaths=()
+        while IFS='|' read -r devpath hidid devname; do
+            _devs+=("${devname} (${devpath})")
+            _devpaths+=("${devpath}")
+        done < <(detect_hidraw_devices)
+        if [[ ${#_devs[@]} -eq 0 ]]; then
+            echo "Error: no FIDO2 devices detected" >&2
+            echo "  Ensure one of your FIDO2 keys is plugged in" >&2
+            exit 1
+        fi
+        local _sel _sel_idx=0
+        _sel=$(wizard choose "Select FIDO2 device" "${_devs[@]}")
+        for i in "${!_devs[@]}"; do
+            [[ "${_devs[$i]}" == "${_sel}" ]] && _sel_idx=$i && break
+        done
+        echo "${_devpaths[$_sel_idx]}"
+        return 0
+    fi
+
+    return 1
+}
+
+## Decrypt a SOPS config file, handling all key types
+## Args: $1 = AGE key file, $2 = SOPS config file, $3 = context name
+## Output: decrypted plaintext to stdout
+sops_decrypt_config() {
+    local key_file="$1" config_file="$2" context="$3"
+    local key_type
+    key_type=$(detect_key_type "${key_file}")
+
+    local _dec_dir
+    _dec_dir=$(mktemp -d)
+    cp "${key_file}" "${_dec_dir}/age-key-in"
+    cp "${config_file}" "${_dec_dir}/config.sops.env"
+
+    local _extra_args=()
+    case "${key_type}" in
+        passphrase)
+            _extra_args+=(-it)
+            echo "## Get ready to enter your AGE key passphrase ..." >&2
+            ;;
+        fido2)
+            local _fido2_dev=""
+            _fido2_dev=$(resolve_fido2_device "${context}") || true
+            if [[ -z "${_fido2_dev}" ]]; then
+                rm -rf "${_dec_dir}"
+                echo "Error: FIDO2 device not found. Ensure your key is plugged in." >&2
+                exit 1
+            fi
+            _extra_args+=(-it --device "${_fido2_dev}")
+            echo "## Touch your FIDO2 key when it flashes ..." >&2
+            ;;
+    esac
+
+    container_run ${_extra_args[@]+"${_extra_args[@]}"} \
+        --user 0:0 --security-opt label=disable \
+        -v "${_dec_dir}:/tmp/dec-work:Z" \
+        "${IMAGE}" sh -c '
+            if head -1 /tmp/dec-work/age-key-in | grep -q "^age-encryption.org"; then
+                age -d /tmp/dec-work/age-key-in > /tmp/age-key-dec
+            else
+                cp /tmp/dec-work/age-key-in /tmp/age-key-dec
+            fi
+            SOPS_AGE_KEY_FILE=/tmp/age-key-dec sops decrypt \
+                --input-type dotenv --output-type dotenv \
+                --filename-override export.env /tmp/dec-work/config.sops.env \
+                > /tmp/dec-work/config-decrypted && \
+                chmod 644 /tmp/dec-work/config-decrypted'
+
+    if [[ "${key_type}" == "passphrase" ]]; then
+        echo "## Passphrase accepted." >&2
+    fi
+
+    cat "${_dec_dir}/config-decrypted"
+    rm -rf "${_dec_dir}"
+}
+
+## Re-encrypt a SOPS config using the EDITOR=cp trick (only changed values re-encrypted)
+## Args: $1 = AGE key file, $2 = SOPS config file (updated in place), $3 = new plaintext file, $4 = context name
+sops_reencrypt_config() {
+    local key_file="$1" config_file="$2" plaintext_file="$3" context="$4"
+    local key_type
+    key_type=$(detect_key_type "${key_file}")
+
+    local _enc_dir
+    _enc_dir=$(mktemp -d)
+    cp "${plaintext_file}" "${_enc_dir}/new-plain.env"
+    cp "${key_file}" "${_enc_dir}/age-key-in"
+    cp "${config_file}" "${_enc_dir}/config.sops.env"
+
+    local _extra_args=()
+    case "${key_type}" in
+        passphrase)
+            echo "## Get ready to enter your AGE key passphrase ..." >&2
+            ;;
+        fido2)
+            local _fido2_dev=""
+            _fido2_dev=$(resolve_fido2_device "${context}") || true
+            if [[ -n "${_fido2_dev}" ]]; then
+                _extra_args+=(--device "${_fido2_dev}")
+                echo "## Touch your FIDO2 key when it flashes ..." >&2
+            fi
+            ;;
+    esac
+
+    container_run -it --user 0:0 \
+        --security-opt label=disable \
+        ${_extra_args[@]+"${_extra_args[@]}"} \
+        -v "${_enc_dir}:/tmp/enc-work:Z" \
+        "${IMAGE}" sh -c '
+            if head -1 /tmp/enc-work/age-key-in | grep -q "^age-encryption.org"; then
+                age -d /tmp/enc-work/age-key-in > /tmp/age-key-dec
+            else
+                cp /tmp/enc-work/age-key-in /tmp/age-key-dec
+            fi
+            export SOPS_AGE_KEY_FILE=/tmp/age-key-dec
+            EDITOR="cp /tmp/enc-work/new-plain.env" sops \
+                --input-type dotenv --output-type dotenv \
+                /tmp/enc-work/config.sops.env
+            chmod 644 /tmp/enc-work/config.sops.env'
+
+    cp "${_enc_dir}/config.sops.env" "${config_file}"
+    rm -rf "${_enc_dir}"
+}
+
+## Parse common subcommand args: --image, --age-key, --help, positional CONTEXT
+## Args: $1 = usage function name, remaining = subcommand args
+## Sets: _SC_CONTEXT, _SC_AGE_KEY_FILE
+_parse_subcommand_args() {
+    local _usage_fn="$1"; shift
+    _SC_CONTEXT=""
+    _SC_AGE_KEY_FILE=""
+
+    while [[ $# -gt 0 ]]; do
+        case "$1" in
+            --image) IMAGE="$2"; shift 2 ;;
+            --age-key) _SC_AGE_KEY_FILE="$2"; shift 2 ;;
+            --help) "${_usage_fn}"; exit 0 ;;
+            -*)
+                echo "Unknown option: $1" >&2
+                "${_usage_fn}" >&2
+                exit 1
+                ;;
+            *)
+                if [[ -z "${_SC_CONTEXT}" ]]; then
+                    _SC_CONTEXT="$1"
+                else
+                    echo "Error: unexpected argument: $1" >&2
+                    "${_usage_fn}" >&2
+                    exit 1
+                fi
+                shift
+                ;;
+        esac
+    done
+}
+
+## Interactively pick a context if _SC_CONTEXT is empty
+## Args: $1 = wizard prompt, $2 = list mode ("configs-only" or empty for all)
+_pick_context() {
+    [[ -n "${_SC_CONTEXT}" ]] && return
+    local _contexts=()
+    while IFS= read -r _ctx; do
+        [[ -n "${_ctx}" ]] && _contexts+=("${_ctx}")
+    done < <(list_contexts "${2:-}")
+    if [[ ${#_contexts[@]} -eq 0 ]]; then
+        echo "No configs found. Run 'drt --init' first." >&2
+        exit 1
+    fi
+    _SC_CONTEXT=$(wizard choose "$1" "${_contexts[@]}")
+}
+
+###############################################################################
+# Top-level usage
+###############################################################################
+
+usage() {
+    cat <<'EOF'
+drt — d.rymcg.tech workstation bootstrap tool
+https://github.com/EnigmaCurry/d.rymcg.tech/blob/master/WORKSTATION_CONTAINER.md
+
+Usage:
+  drt [OPTIONS] CONTEXT [CMD]  Launch container (interactive shell or run CMD)
+
+Options:
+  --init [CONTEXT]   Bootstrap AGE key + SOPS config for a context
+  --view [CONTEXT]   Decrypt and display SOPS config
+  --edit [CONTEXT]   Decrypt, edit in \$EDITOR, and re-encrypt SOPS config
+  --clean [CONTEXT]  Remove SOPS config and/or AGE key for a context
+  --seal [CONTEXT]   Seal the OpenBao server used by a context
+  --unseal [CONTEXT] Unseal the OpenBao server used by a context
+  --list             List all contexts (AGE keys and SOPS configs)
+  --git-init         Initialize ~/.config/d.rymcg.tech as a git repo
+  --git [ARGS]       Run git commands in ~/.config/d.rymcg.tech
+  --pull             Pull latest image
+  --build            Build image from git (branch from DRT_BUILD_BRANCH or image label)
+  --build-force      Build image with --no-cache (forces rebuild of all layers)
+  --extract          Print this script to stdout (self-extraction)
+  --image TAG        Container image (default: localhost/d-rymcg-tech:latest)
+  --age-key FILE     AGE key file (default: ~/.config/d.rymcg.tech/keys/sops/<context>.key)
+  --ssh-key FILE     SSH key file (disables agent forwarding)
+  --ssh-timeout SEC  SSH ConnectTimeout in seconds (default: 30)
+  --timeout SEC      Command timeout in seconds (default: 300)
+  --no-save          Disable save-on-exit
+  --controller-port PORT  Host port for request-controller (default: 8084)
+  --net MODE         Network mode: pasta, slirp4netns, host (auto-detected)
+  --cap-add CAP      Add Linux capability (e.g. NET_ADMIN for wireguard)
+  --bind-mount PATH     Bind mount host directory read-only over the container d.rymcg.tech tree
+  --cold-storage     Unlock with pasted backup AGE key instead of key file
+  --wayland          Enable Wayland GUI passthrough (socket + GPU)
+  --pipewire         Enable PipeWire audio passthrough
+  --no-git           Skip all git operations (pull, commit, push)
+  --verbose, -v      Enable verbose logging
+  --version          Print version
+  --help             Show this help
+EOF
+    echo ""
+    echo "One time setup (from registry):"
+    if [[ "${IMAGE}" != localhost/* ]]; then
+        echo "  ${ENGINE} pull ${IMAGE}"
+    fi
+    echo "  alias drt='bash <(${ENGINE} run --rm --pull=never --net=none ${IMAGE} drt)'"
+    echo ""
+    echo "One time setup (build from source):"
+    echo "  drt --build            # rebuild from DRT_BUILD_BRANCH or last-built branch"
+    echo "  drt --build-force      # rebuild with --no-cache (forces all layers to rebuild)"
+    echo "  alias drt='bash <(${ENGINE} run --rm --pull=never --net=none localhost/d-rymcg-tech:latest drt)'"
+}
+
+###############################################################################
+# init subcommand
+###############################################################################
+
+init_usage() {
+    cat <<'EOF'
+Usage: drt --init [OPTIONS] [CONTEXT_NAME]
+
+Bootstrap a new d-rymcg-tech deployment config.
+
+Generates an AGE encryption key (if needed) and creates a SOPS-encrypted
+config file for the given context. Only requires Podman (or Docker).
+
+Options:
+  --image TAG    Container image (default: localhost/d-rymcg-tech:latest)
+  --help         Show this help
+EOF
+}
+
+cmd_init() {
+    _parse_subcommand_args init_usage "$@"
+    local CONTEXT="${_SC_CONTEXT}"
+
+    check_engine
+    git_auto_pull
+
+    ## Context name
+    if [[ -z "${CONTEXT}" ]]; then
+        CONTEXT=$(wizard ask "Enter the new context name (also will become SSH host alias)")
+    fi
+
+    ensure_config_dir
+
+    ## Check for existing config — load current values as defaults
+    local CONFIG_DIR="${HOME}/.config/d.rymcg.tech/config"
+    local _EXISTING=""
+    if [[ -f "${CONFIG_DIR}/${CONTEXT}.sops.env" ]]; then
+        echo "Config already exists: ${CONFIG_DIR}/${CONTEXT}.sops.env"
+        echo "Re-running wizard — current values will be used as defaults."
+        echo ""
+    fi
+
+    ## Ensure AGE key (one per context)
+    local AGE_KEY_DIR="${HOME}/.config/d.rymcg.tech/keys/sops"
+    local AGE_KEY_FILE="${AGE_KEY_DIR}/${CONTEXT}.key"
+    local PUBKEY
+    local _KEY_TYPE=""
+    if [[ ! -f "${AGE_KEY_FILE}" ]]; then
+        echo "No AGE key found for context '${CONTEXT}'"
+        mkdir -p "${AGE_KEY_DIR}"
+
+        local KEY_PROTECTION
+        KEY_PROTECTION=$(wizard choose "Select AGE key protection method" \
+            "Passphrase protected key file (must have: key AND passphrase)" \
+            "FIDO2 hardware token + cold storage key (must have: token+PIN OR cold storage key)" \
+            "No protection")
+
+        case "${KEY_PROTECTION}" in
+            "Passphrase protected key file (must have: key AND passphrase)")
+                _KEY_TYPE=passphrase
+                echo "Generating a new AGE keypair..."
+                container_run "${IMAGE}" age-keygen > "${AGE_KEY_FILE}"
+                chmod 600 "${AGE_KEY_FILE}"
+                PUBKEY=$(grep -o 'age1[a-z0-9]*' "${AGE_KEY_FILE}" | head -1)
+                local ENC_DIR
+                ENC_DIR=$(mktemp -d)
+                cp "${AGE_KEY_FILE}" "${ENC_DIR}/age-key-in"
+                local ENCRYPTED="${ENC_DIR}/age-key-enc"
+                if container_run -it --user 0:0 \
+                    -v "${ENC_DIR}:/tmp/age-work:Z" \
+                    "${IMAGE}" sh -c 'age -p /tmp/age-work/age-key-in > /tmp/age-work/age-key-enc' \
+                    && [[ -s "${ENCRYPTED}" ]]; then
+                    mv "${ENCRYPTED}" "${AGE_KEY_FILE}"
+                    chmod 600 "${AGE_KEY_FILE}"
+                    echo "AGE key created (passphrase-protected): ${AGE_KEY_FILE}"
+                    rm -rf "${ENC_DIR}"
+                else
+                    rm -rf "${ENC_DIR}"
+                    rm -f "${AGE_KEY_FILE}"
+                    echo "Error: passphrase encryption failed — no key was saved." >&2
+                    exit 1
+                fi
+                ;;
+            "FIDO2 hardware token + cold storage key (must have: token+PIN OR cold storage key)")
+                _KEY_TYPE=fido2
+                local ALL_PUBKEYS=()
+                local FIDO2_ID_FILE="${AGE_KEY_DIR}/${CONTEXT}.fido2"
+                > "${AGE_KEY_FILE}"   # start with empty key file
+                > "${FIDO2_ID_FILE}"  # start with empty device list
+                chmod 600 "${AGE_KEY_FILE}" "${FIDO2_ID_FILE}"
+
+                # Enroll a single FIDO2 hardware key
+                echo ""
+                echo "Detecting FIDO2 devices..."
+                local FIDO2_DEVICES=() FIDO2_IDS=() FIDO2_DEVPATHS=()
+                while IFS='|' read -r devpath hidid devname; do
+                    FIDO2_DEVICES+=("${devname} (${devpath})")
+                    FIDO2_IDS+=("${hidid}")
+                    FIDO2_DEVPATHS+=("${devpath}")
+                done < <(detect_hidraw_devices)
+
+                if [[ ${#FIDO2_DEVICES[@]} -eq 0 ]]; then
+                    echo "Error: no FIDO2 devices detected in /dev/hidraw*" >&2
+                    echo "  Ensure your FIDO2 key is plugged in and you have read access to /dev/hidraw*" >&2
+                    exit 1
+                fi
+
+                local SELECTED_IDX=0
+                local SELECTED
+                SELECTED=$(wizard choose "Select FIDO2 device" "${FIDO2_DEVICES[@]}")
+                for i in "${!FIDO2_DEVICES[@]}"; do
+                    if [[ "${FIDO2_DEVICES[$i]}" == "${SELECTED}" ]]; then
+                        SELECTED_IDX=$i
+                        break
+                    fi
+                done
+
+                local FIDO2_DEV="${FIDO2_DEVPATHS[$SELECTED_IDX]}"
+                local FIDO2_HID_ID="${FIDO2_IDS[$SELECTED_IDX]}"
+
+                echo "Generating FIDO2 AGE identity on ${FIDO2_DEV}..."
+                echo "You will be prompted for your FIDO2 PIN and to touch the key."
+                echo "(When asked about 'separate identity', answer YES — it is required"
+                echo " for SOPS-based decryption.)"
+                local FIDO2_DIR
+                FIDO2_DIR=$(mktemp -d)
+                if container_run -it --user 0:0 \
+                    --security-opt label=disable \
+                    --device "${FIDO2_DEV}" \
+                    -v "${FIDO2_DIR}:/tmp/fido2-work:Z" \
+                    "${IMAGE}" sh -c 'age-plugin-fido2-hmac -g > /tmp/fido2-work/identity' \
+                    && [[ -s "${FIDO2_DIR}/identity" ]]; then
+                    # Verify the identity file contains a FIDO2 identity line
+                    # (discoverable/resident credentials lack this and won't work with SOPS)
+                    if ! grep -q 'AGE-PLUGIN-FIDO2-HMAC' "${FIDO2_DIR}/identity"; then
+                        rm -rf "${FIDO2_DIR}"
+                        echo "Error: generated identity lacks AGE-PLUGIN-FIDO2-HMAC data." >&2
+                        echo "  You must answer YES to the 'separate identity' prompt." >&2
+                        echo "  Discoverable (resident) credentials are not supported." >&2
+                        exit 1
+                    fi
+                    cat "${FIDO2_DIR}/identity" >> "${AGE_KEY_FILE}"
+                    echo "" >> "${AGE_KEY_FILE}"
+                    local _this_pubkey
+                    _this_pubkey=$(grep -o 'age1[a-z0-9-]*' "${FIDO2_DIR}/identity" | head -1)
+                    ALL_PUBKEYS+=("${_this_pubkey}")
+                    echo "${FIDO2_HID_ID}" >> "${FIDO2_ID_FILE}"
+                    echo "FIDO2 key enrolled (${_this_pubkey:0:20}...)"
+                else
+                    rm -rf "${FIDO2_DIR}"
+                    echo "Error: FIDO2 key generation failed." >&2
+                    exit 1
+                fi
+                rm -rf "${FIDO2_DIR}"
+
+                # Prompt for cold storage backup public key
+                echo ""
+                echo "A cold storage AGE key is needed as a backup recipient for disaster"
+                echo "recovery. Generate one on a different secure workstation (preferably"
+                echo "air-gapped) by running: age-keygen"
+                echo ""
+                echo "Store both the public and private key in a password manager such as"
+                echo "KeepassXC or Bitwarden. Only the public key is needed here — the"
+                echo "private key should never leave your secure backup location."
+                local COLD_STORAGE_PUBKEY
+                COLD_STORAGE_PUBKEY=$(wizard ask "Cold storage public key (age1...)")
+                if [[ ! "${COLD_STORAGE_PUBKEY}" =~ ^age1[a-z0-9]+$ ]]; then
+                    echo "Error: invalid AGE public key (must start with age1)" >&2
+                    exit 1
+                fi
+                ALL_PUBKEYS+=("${COLD_STORAGE_PUBKEY}")
+                echo "Cold storage backup key added as recipient."
+
+                # Join all public keys with commas for SOPS
+                PUBKEY=$(IFS=,; echo "${ALL_PUBKEYS[*]}")
+                echo ""
+                echo "FIDO2 identity created: ${AGE_KEY_FILE}"
+                echo "Device ID stored: ${FIDO2_ID_FILE}"
+                echo "SOPS recipients: FIDO2 + cold storage backup"
+                ;;
+            "No protection")
+                _KEY_TYPE=plaintext
+                echo "Generating a new AGE keypair..."
+                container_run "${IMAGE}" age-keygen > "${AGE_KEY_FILE}"
+                chmod 600 "${AGE_KEY_FILE}"
+                PUBKEY=$(grep -o 'age1[a-z0-9]*' "${AGE_KEY_FILE}" | head -1)
+                echo "AGE key created: ${AGE_KEY_FILE}"
+                ;;
+        esac
+    else
+        echo "Using existing AGE key: ${AGE_KEY_FILE}"
+        _KEY_TYPE=$(detect_key_type "${AGE_KEY_FILE}")
+
+        if [[ "${_KEY_TYPE}" == "passphrase" ]]; then
+            local DEC_DIR
+            DEC_DIR=$(mktemp -d)
+            cp "${AGE_KEY_FILE}" "${DEC_DIR}/age-key-in"
+            ## If existing config exists, decrypt it in the same container run (one passphrase prompt)
+            ## Only the pubkey and decrypted config are written to host — never the private key
+            if [[ -f "${CONFIG_DIR}/${CONTEXT}.sops.env" ]]; then
+                cp "${CONFIG_DIR}/${CONTEXT}.sops.env" "${DEC_DIR}/config.sops.env"
+                container_run -it --user 0:0 \
+                    -v "${DEC_DIR}:/tmp/age-work:Z" \
+                    "${IMAGE}" sh -c 'age -d /tmp/age-work/age-key-in > /tmp/age-key-dec && \
+                        grep -o "age1[a-z0-9]*" /tmp/age-key-dec > /tmp/age-work/pubkey && \
+                        SOPS_AGE_KEY_FILE=/tmp/age-key-dec sops decrypt \
+                        --input-type dotenv --output-type dotenv \
+                        --filename-override export.env /tmp/age-work/config.sops.env \
+                        > /tmp/age-work/config-decrypted 2>/dev/null || true && \
+                        chmod 644 /tmp/age-work/pubkey /tmp/age-work/config-decrypted 2>/dev/null || true'
+            else
+                container_run -it --user 0:0 \
+                    -v "${DEC_DIR}:/tmp/age-work:Z" \
+                    "${IMAGE}" sh -c 'age -d /tmp/age-work/age-key-in > /tmp/age-key-dec && \
+                        grep -o "age1[a-z0-9]*" /tmp/age-key-dec > /tmp/age-work/pubkey && \
+                        chmod 644 /tmp/age-work/pubkey'
+            fi
+            echo "## Passphrase accepted." >&2
+            PUBKEY=$(head -1 "${DEC_DIR}/pubkey")
+            ## DEC_DIR cleanup happens after config decryption below, or now if no config
+            if [[ ! -f "${CONFIG_DIR}/${CONTEXT}.sops.env" ]]; then
+                rm -rf "${DEC_DIR}"
+            fi
+        elif [[ "${_KEY_TYPE}" == "fido2" ]]; then
+            ## FIDO2 key: extract public key from identity comments
+            PUBKEY=$(grep -o 'age1[a-z0-9-]*' "${AGE_KEY_FILE}" | paste -sd,)
+        else
+            PUBKEY=$(grep -o 'age1[a-z0-9-]*' "${AGE_KEY_FILE}" | head -1)
+            echo "WARNING: AGE key is NOT password-protected."
+        fi
+    fi
+    echo "AGE public key: ${PUBKEY}"
+    echo ""
+
+    ## If existing config, decrypt it to use values as defaults
+    local _CUR_SSH_HOST="" _CUR_SSH_PORT="" _CUR_SSH_USER="" _CUR_KNOWN_HOSTS=""
+    local _CUR_BAO_ADDR="" _CUR_BAO_ROLE_ID="" _CUR_BAO_SECRET_ID=""
+    local _CUR_BAO_SSH_MOUNT="" _CUR_BAO_SSH_ROLE="" _CUR_BAO_AUTH_PATH=""
+    local _CUR_BAO_AGE_KEY_PATH="" _CUR_BAO_KV_MOUNT="" _CUR_BAO_NAMESPACE=""
+    local _CUR_BAO_CACERT="" _CUR_BAO_CLIENT_CERT="" _CUR_BAO_CLIENT_KEY=""
+    local _EXISTING=""
+    if [[ -f "${CONFIG_DIR}/${CONTEXT}.sops.env" ]]; then
+        echo "## Decrypting existing config for defaults ..." >&2
+        if [[ "${_KEY_TYPE}" == "passphrase" ]]; then
+            ## Already decrypted during key extraction
+            if [[ -s "${DEC_DIR}/config-decrypted" ]]; then
+                _EXISTING=$(cat "${DEC_DIR}/config-decrypted")
+            else
+                echo "## Warning: could not decrypt existing config (ls ${DEC_DIR}):" >&2
+                ls -la "${DEC_DIR}" >&2 || true
+            fi
+            rm -rf "${DEC_DIR}"
+        else
+            ## FIDO2 or plaintext key: use shared decryption helper
+            _EXISTING=$(sops_decrypt_config "${AGE_KEY_FILE}" "${CONFIG_DIR}/${CONTEXT}.sops.env" "${CONTEXT}") || true
+        fi
+        if [[ -n "${_EXISTING}" ]]; then
+            _CUR_SSH_HOST=$(echo "${_EXISTING}" | grep '^SSH_HOST=' | cut -d= -f2- || true)
+            _CUR_SSH_PORT=$(echo "${_EXISTING}" | grep '^SSH_PORT=' | cut -d= -f2- || true)
+            _CUR_SSH_USER=$(echo "${_EXISTING}" | grep '^SSH_USER=' | cut -d= -f2- || true)
+            _CUR_KNOWN_HOSTS=$(echo "${_EXISTING}" | grep '^SSH_KNOWN_HOSTS=' | cut -d= -f2- || true)
+            _CUR_BAO_ADDR=$(echo "${_EXISTING}" | grep '^BAO_ADDR=' | cut -d= -f2- || true)
+            _CUR_BAO_ROLE_ID=$(echo "${_EXISTING}" | grep '^BAO_ROLE_ID=' | cut -d= -f2- || true)
+            _CUR_BAO_SECRET_ID=$(echo "${_EXISTING}" | grep '^BAO_SECRET_ID=' | cut -d= -f2- || true)
+            _CUR_BAO_SSH_MOUNT=$(echo "${_EXISTING}" | grep '^BAO_SSH_MOUNT=' | cut -d= -f2- || true)
+            _CUR_BAO_SSH_ROLE=$(echo "${_EXISTING}" | grep '^BAO_SSH_ROLE=' | cut -d= -f2- || true)
+            _CUR_BAO_AUTH_PATH=$(echo "${_EXISTING}" | grep '^BAO_AUTH_PATH=' | cut -d= -f2- || true)
+            _CUR_BAO_AGE_KEY_PATH=$(echo "${_EXISTING}" | grep '^BAO_AGE_KEY_PATH=' | cut -d= -f2- || true)
+            _CUR_BAO_KV_MOUNT=$(echo "${_EXISTING}" | grep '^BAO_KV_MOUNT=' | cut -d= -f2- || true)
+            _CUR_BAO_NAMESPACE=$(echo "${_EXISTING}" | grep '^BAO_NAMESPACE=' | cut -d= -f2- || true)
+            _CUR_BAO_CACERT=$(echo "${_EXISTING}" | grep '^BAO_CACERT=' | cut -d= -f2- || true)
+            _CUR_BAO_CLIENT_CERT=$(echo "${_EXISTING}" | grep '^BAO_CLIENT_CERT=' | cut -d= -f2- || true)
+            _CUR_BAO_CLIENT_KEY=$(echo "${_EXISTING}" | grep '^BAO_CLIENT_KEY=' | cut -d= -f2- || true)
+        fi
+    fi
+
+    ## SSH details — pre-fill from existing config, then ssh config, then defaults
+    local SSH_CONFIG="" SSH_HOST="" SSH_PORT="" SSH_USER=""
+    local KNOWN_HOSTS=""
+    local _ssh_default=yes
+    [[ -n "${_EXISTING}" && -z "${_CUR_SSH_HOST}" ]] && _ssh_default=no
+    if wizard confirm "Configure SSH connection to a Docker host now? (You can do this later too.)" "${_ssh_default}"; then
+        SSH_CONFIG=$(ssh -G "${CONTEXT}" 2>/dev/null || true)
+        local _SSH_HOST _SSH_PORT _SSH_USER
+        _SSH_HOST=$(echo "${SSH_CONFIG}" | awk '/^hostname / {print $2}')
+        _SSH_PORT=$(echo "${SSH_CONFIG}" | awk '/^port / {print $2; exit}')
+        _SSH_USER=$(echo "${SSH_CONFIG}" | awk '/^user / {print $2}')
+
+        ## Existing config takes priority over ssh config
+        [[ -n "${_CUR_SSH_HOST}" ]] && _SSH_HOST="${_CUR_SSH_HOST}"
+        [[ -n "${_CUR_SSH_PORT}" ]] && _SSH_PORT="${_CUR_SSH_PORT}"
+        [[ -n "${_CUR_SSH_USER}" ]] && _SSH_USER="${_CUR_SSH_USER}"
+
+        ## Don't default to the context name as the hostname
+        [[ "${_SSH_HOST}" == "${CONTEXT}" ]] && _SSH_HOST=""
+        SSH_HOST=$(wizard ask "Enter SSH hostname or IP address" "${_SSH_HOST}")
+        SSH_PORT=$(wizard ask "Enter SSH port" "${_SSH_PORT:-22}")
+        SSH_USER=$(wizard ask "Enter SSH user" "${_SSH_USER:-root}")
+
+        ## SSH key scan — preserve existing known_hosts unless user re-scans
+        if wizard confirm "Run ssh-keyscan now for ${SSH_HOST}:${SSH_PORT}?" no; then
+            echo ""
+            echo "Running ssh-keyscan for ${SSH_HOST}:${SSH_PORT}..."
+            KNOWN_HOSTS=$(ssh-keyscan -p "${SSH_PORT}" "${SSH_HOST}" 2>/dev/null || true)
+            if [[ -z "${KNOWN_HOSTS}" ]]; then
+                echo "ssh-keyscan failed for ${SSH_HOST}:${SSH_PORT}"
+            fi
+        fi
+        if [[ -z "${KNOWN_HOSTS}" && -n "${_CUR_KNOWN_HOSTS}" ]]; then
+            echo "Keeping existing SSH known_hosts."
+        elif [[ -z "${KNOWN_HOSTS}" ]]; then
+            echo "  You can set SSH_KNOWN_HOSTS later, or set SSH_KEY_SCAN=false to skip verification."
+        else
+            echo "SSH host keys collected."
+        fi
+    else
+        echo "Skipping SSH configuration."
+    fi
+
+    ## Optional OpenBao SSH certificate signing (only when SSH is configured)
+    local BAO_ADDR="" BAO_ROLE_ID="" BAO_SECRET_ID="" BAO_SSH_MOUNT="" BAO_SSH_ROLE=""
+    local BAO_AUTH_PATH="" BAO_AGE_KEY_PATH="" BAO_KV_MOUNT="" BAO_NAMESPACE=""
+    local BAO_CACERT="" BAO_CLIENT_CERT="" BAO_CLIENT_KEY=""
+    local _bao_default=no
+    [[ -n "${_CUR_BAO_ADDR}" ]] && _bao_default=yes
+    if [[ -n "${SSH_HOST}" ]] && wizard confirm "Configure OpenBao SSH certificate signing?" "${_bao_default}"; then
+        BAO_ADDR=$(wizard ask "Enter OpenBao server URL (e.g., https://bao.example.com:443)" "${_CUR_BAO_ADDR}")
+        BAO_ROLE_ID=$(wizard ask "Enter OpenBao BAO_ROLE_ID" "${_CUR_BAO_ROLE_ID}")
+        BAO_SECRET_ID=$(wizard ask "Enter OpenBao BAO_SECRET_ID" "${_CUR_BAO_SECRET_ID}")
+        BAO_SSH_MOUNT=$(wizard ask "Enter SSH engine mount" "${_CUR_BAO_SSH_MOUNT:-ssh-client-signer}")
+        BAO_SSH_ROLE=$(wizard ask "Enter SSH signing role" "${_CUR_BAO_SSH_ROLE:-woodpecker-short-lived}")
+        BAO_AUTH_PATH=$(wizard ask "Enter auth path" "${_CUR_BAO_AUTH_PATH:-auth/approle}")
+
+        local _tls_default=no
+        [[ -n "${_CUR_BAO_CLIENT_CERT}" ]] && _tls_default=yes
+        if wizard confirm "Configure OpenBao TLS client certificates?" "${_tls_default}"; then
+            if [[ -n "${_CUR_BAO_CACERT}" ]]; then
+                if wizard confirm "Keep existing CA certificate?" yes; then
+                    BAO_CACERT="${_CUR_BAO_CACERT}"
+                else
+                    echo "Paste CA certificate PEM, then press Ctrl+D:"
+                    BAO_CACERT=$(cat | base64 -w0)
+                fi
+            else
+                echo "Paste CA certificate PEM, then press Ctrl+D (leave blank if using a trusted CA like Let's Encrypt):"
+                BAO_CACERT=$(cat | base64 -w0)
+            fi
+            if [[ -n "${_CUR_BAO_CLIENT_CERT}" ]]; then
+                if wizard confirm "Keep existing client certificate?" yes; then
+                    BAO_CLIENT_CERT="${_CUR_BAO_CLIENT_CERT}"
+                    BAO_CLIENT_KEY="${_CUR_BAO_CLIENT_KEY}"
+                else
+                    echo "Paste client certificate PEM (may include chain), then press Ctrl+D:"
+                    BAO_CLIENT_CERT=$(cat | base64 -w0)
+                    echo "Paste client private key PEM, then press Ctrl+D:"
+                    BAO_CLIENT_KEY=$(cat | base64 -w0)
+                fi
+            else
+                echo ""
+                echo "Paste client certificate PEM (may include chain), then press Ctrl+D:"
+                BAO_CLIENT_CERT=$(cat | base64 -w0)
+                echo ""
+                echo "Paste client private key PEM, then press Ctrl+D:"
+                BAO_CLIENT_KEY=$(cat | base64 -w0)
+            fi
+        fi
+
+        local _ns_default=no
+        [[ -n "${_CUR_BAO_NAMESPACE}" ]] && _ns_default=yes
+        if wizard confirm "Configure OpenBao namespace?" "${_ns_default}"; then
+            BAO_NAMESPACE=$(wizard ask "Enter OpenBao namespace" "${_CUR_BAO_NAMESPACE}")
+        fi
+    fi
+
+    ## Create SOPS config
+    local PLAINTEXT=""
+    if [[ -n "${SSH_HOST}" ]]; then
+        PLAINTEXT="## SSH
+SSH_HOST=${SSH_HOST}
+SSH_USER=${SSH_USER}
+SSH_PORT=${SSH_PORT}"
+        if [[ -n "${KNOWN_HOSTS}" ]]; then
+            local SSH_KNOWN_HOSTS
+            SSH_KNOWN_HOSTS=$(echo "${KNOWN_HOSTS}" | base64 -w0)
+            PLAINTEXT="${PLAINTEXT}
+SSH_KNOWN_HOSTS=${SSH_KNOWN_HOSTS}"
+        elif [[ -n "${_CUR_KNOWN_HOSTS}" ]]; then
+            PLAINTEXT="${PLAINTEXT}
+SSH_KNOWN_HOSTS=${_CUR_KNOWN_HOSTS}"
+        fi
+    fi
+
+    ## Append OpenBao vars if configured
+    if [[ -n "${BAO_ADDR}" ]]; then
+        PLAINTEXT="${PLAINTEXT}
+## OpenBao
+BAO_ADDR=${BAO_ADDR}
+BAO_ROLE_ID=${BAO_ROLE_ID}
+BAO_SECRET_ID=${BAO_SECRET_ID}
+BAO_SSH_MOUNT=${BAO_SSH_MOUNT}
+BAO_SSH_ROLE=${BAO_SSH_ROLE}
+BAO_AUTH_PATH=${BAO_AUTH_PATH}"
+        [[ -n "${BAO_AGE_KEY_PATH}" ]] && PLAINTEXT="${PLAINTEXT}
+BAO_AGE_KEY_PATH=${BAO_AGE_KEY_PATH}"
+        [[ -n "${BAO_KV_MOUNT}" ]] && PLAINTEXT="${PLAINTEXT}
+BAO_KV_MOUNT=${BAO_KV_MOUNT}"
+        [[ -n "${BAO_NAMESPACE}" ]] && PLAINTEXT="${PLAINTEXT}
+BAO_NAMESPACE=${BAO_NAMESPACE}"
+        [[ -n "${BAO_CACERT}" ]] && PLAINTEXT="${PLAINTEXT}
+BAO_CACERT=${BAO_CACERT}"
+        [[ -n "${BAO_CLIENT_CERT}" ]] && PLAINTEXT="${PLAINTEXT}
+BAO_CLIENT_CERT=${BAO_CLIENT_CERT}"
+        [[ -n "${BAO_CLIENT_KEY}" ]] && PLAINTEXT="${PLAINTEXT}
+BAO_CLIENT_KEY=${BAO_CLIENT_KEY}"
+    fi
+
+    ## Preserve existing project vars that --init doesn't manage
+    if [[ -n "${_EXISTING}" ]]; then
+        while IFS= read -r line || [[ -n "${line}" ]]; do
+            [[ -z "${line}" ]] && continue
+            # Skip comment headers managed by --init
+            [[ "${line}" == "## SSH" || "${line}" == "## OpenBao" ]] && continue
+            if [[ "${line}" == *=* && "${line}" != "#"* ]]; then
+                local _key="${line%%=*}"
+                case "${_key}" in
+                    SSH_HOST|SSH_USER|SSH_PORT|SSH_KNOWN_HOSTS) continue;;
+                    BAO_ADDR|BAO_ROLE_ID|BAO_SECRET_ID|BAO_SSH_MOUNT|BAO_SSH_ROLE) continue;;
+                    BAO_AUTH_PATH|BAO_AGE_KEY_PATH|BAO_KV_MOUNT|BAO_NAMESPACE) continue;;
+                    BAO_CACERT|BAO_CLIENT_CERT|BAO_CLIENT_KEY) continue;;
+                esac
+            fi
+            PLAINTEXT+=$'\n'"${line}"
+        done <<< "${_EXISTING}"
+    fi
+
+    mkdir -p "${CONFIG_DIR}"
+    if [[ -f "${CONFIG_DIR}/${CONTEXT}.sops.env" ]]; then
+        ## Existing config: use sops edit to only re-encrypt changed values
+        local _INIT_PLAIN
+        _INIT_PLAIN=$(mktemp)
+        echo "${PLAINTEXT}" > "${_INIT_PLAIN}"
+        sops_reencrypt_config "${AGE_KEY_FILE}" "${CONFIG_DIR}/${CONTEXT}.sops.env" "${_INIT_PLAIN}" "${CONTEXT}"
+        rm -f "${_INIT_PLAIN}"
+    else
+        ## New config: encrypt from scratch
+        echo "${PLAINTEXT}" | container_run -i \
+            -e "PUBKEY=${PUBKEY}" \
+            "${IMAGE}" \
+            sh -c 'cat > /tmp/plain.env && sops encrypt \
+                --input-type dotenv --output-type dotenv \
+                --filename-override export.env \
+                --age "${PUBKEY}" /tmp/plain.env' \
+            > "${CONFIG_DIR}/${CONTEXT}.sops.env"
+    fi
+
+    echo ""
+    echo "Config saved to ${CONFIG_DIR}/${CONTEXT}.sops.env"
+    echo ""
+    echo "Init complete for context '${CONTEXT}'."
+    echo ""
+    echo "IMPORTANT: Back up these things:"
+    if [[ -f "${AGE_KEY_DIR}/${CONTEXT}.fido2" ]]; then
+        echo "  1) FIDO2 AGE key file: ${AGE_KEY_FILE}"
+        echo "  2) Cold storage key:   keep your backup AGE key safe offline"
+        echo "  3) SOPS config:        ${CONFIG_DIR}/${CONTEXT}.sops.env"
+    else
+        echo "  1) AGE key:     ${AGE_KEY_FILE}"
+        echo "  2) Passphrase:  remember or store the passphrase you chose"
+        echo "  3) SOPS config: ${CONFIG_DIR}/${CONTEXT}.sops.env"
+    fi
+    echo ""
+    echo "Without the AGE key and its protection factor, your encrypted config"
+    echo "cannot be decrypted. If you are keeping ~/.config/d.rymcg.tech as a git"
+    echo "repo, the SOPS config is tracked but AGE keys are excluded by"
+    echo ".gitignore and must be backed up separately. You can keep all your"
+    echo "configs in one repo, but each context requires its own AGE key."
+    if [[ -n "${_EXISTING}" ]]; then
+        git_auto_commit "update context: ${CONTEXT}"
+    else
+        git_auto_commit "init context: ${CONTEXT}"
+    fi
+    echo ""
+    echo "Next steps:"
+    echo "  drt ${CONTEXT}"
+}
+
+###############################################################################
+# run subcommand
+###############################################################################
+
+run_usage() {
+    usage
+}
+
+cmd_run() {
+    local AGE_KEY_FILE=""
+    local SSH_KEY_FILE=""
+    local SAVE_ON_EXIT=true
+    local VERBOSE=false
+    local SOPS_CONFIG=""
+    local CMD_ARGS=()
+    local CONTROLLER_PORT="${DRT_CONTROLLER_PORT:-8084}"
+    local CAP_ADDS=()
+    local WAYLAND=false
+    local PIPEWIRE=false
+    local COLD_STORAGE=false
+    local BIND_MOUNT_PATH=""
+
+    while [[ $# -gt 0 ]]; do
+        case "$1" in
+            --image) IMAGE="$2"; shift 2 ;;
+            --net) NET_MODE="$2"; shift 2 ;;
+            --age-key) AGE_KEY_FILE="$2"; shift 2 ;;
+            --ssh-key) SSH_KEY_FILE="$2"; shift 2 ;;
+            --no-save) SAVE_ON_EXIT=false; shift ;;
+            --ssh-timeout) SSH_CONNECT_TIMEOUT="$2"; export SSH_CONNECT_TIMEOUT; shift 2 ;;
+            --timeout) TIMEOUT="$2"; export TIMEOUT; shift 2 ;;
+            --verbose|-v) VERBOSE=true; shift ;;
+            --no-git) DRT_NO_GIT=true; shift ;;
+            --cap-add) CAP_ADDS+=("$2"); shift 2 ;;
+            --bind-mount) BIND_MOUNT_PATH="$2"; shift 2 ;;
+            --wayland) WAYLAND=true; shift ;;
+            --pipewire) PIPEWIRE=true; shift ;;
+            --cold-storage) COLD_STORAGE=true; shift ;;
+            --controller-port) CONTROLLER_PORT="$2"; shift 2 ;;
+            --help) run_usage; exit 0 ;;
+            -*)
+                echo "Unknown option: $1" >&2
+                run_usage >&2
+                exit 1
+                ;;
+            *)
+                if [[ -z "${SOPS_CONFIG}" ]]; then
+                    SOPS_CONFIG="$1"
+                    shift
+                else
+                    # Second positional arg = start of command to run
+                    CMD_ARGS=("$1")
+                    shift
+                    CMD_ARGS+=("$@")
+                    break
+                fi
+                ;;
+        esac
+    done
+
+    if [[ -z "${SOPS_CONFIG}" ]]; then
+        echo "Error: CONTEXT_OR_FILE is required" >&2
+        echo "" >&2
+        run_usage >&2
+        exit 1
+    fi
+
+    check_engine
+    detect_net_mode
+    git_auto_pull
+    echo "## Resolving context: ${SOPS_CONFIG}" >&2
+
+    # If argument is a bare context name (no slashes, no .sops.env suffix),
+    # resolve to ~/.config/d.rymcg.tech/config/<context>.sops.env
+    # and default the AGE key to the per-context key
+    if [[ "${SOPS_CONFIG}" != */* && "${SOPS_CONFIG}" != *.sops.env ]]; then
+        local CONTEXT_NAME="${SOPS_CONFIG}"
+        SOPS_CONFIG="${HOME}/.config/d.rymcg.tech/config/${CONTEXT_NAME}.sops.env"
+        if [[ -z "${AGE_KEY_FILE}" ]]; then
+            AGE_KEY_FILE="${HOME}/.config/d.rymcg.tech/keys/sops/${CONTEXT_NAME}.key"
+        fi
+    fi
+
+    # Cold storage: prompt for the backup AGE private key
+    if [[ "${COLD_STORAGE}" == true ]]; then
+        echo "## Cold storage mode: paste your backup AGE private key." >&2
+        echo "## (The key starts with AGE-SECRET-KEY-)" >&2
+        printf "AGE key: " >&2
+        local _cold_key=""
+        read -r _cold_key </dev/tty
+        if [[ ! "${_cold_key}" =~ ^AGE-SECRET-KEY- ]]; then
+            echo "Error: invalid AGE secret key (must start with AGE-SECRET-KEY-)" >&2
+            exit 1
+        fi
+        AGE_KEY_FILE=$(mktemp)
+        echo "${_cold_key}" > "${AGE_KEY_FILE}"
+        chmod 600 "${AGE_KEY_FILE}"
+        trap 'rm -f "${AGE_KEY_FILE}"' EXIT
+        echo "## Cold storage key loaded." >&2
+    fi
+
+    # Fall back to legacy default if no key resolved yet
+    if [[ "${COLD_STORAGE}" != true ]] && [[ -z "${AGE_KEY_FILE}" ]]; then
+        AGE_KEY_FILE="${HOME}/.config/sops/age/keys.txt"
+    fi
+
+    # Resolve to absolute path
+    if [[ ! -f "${SOPS_CONFIG}" ]]; then
+        echo "Error: SOPS config file not found: ${SOPS_CONFIG}" >&2
+        echo "  Run 'drt --init' to create one." >&2
+        exit 1
+    fi
+    SOPS_CONFIG="$(realpath "${SOPS_CONFIG}")"
+
+    if [[ ! -f "${AGE_KEY_FILE}" ]]; then
+        echo "Error: AGE key file not found: ${AGE_KEY_FILE}" >&2
+        echo "  Use --age-key to specify a different path" >&2
+        exit 1
+    fi
+    echo "## AGE key: ${AGE_KEY_FILE}" >&2
+    echo "## SOPS config: ${SOPS_CONFIG}" >&2
+
+    local CONTAINER_CONFIG_DIR=/home/user/.config/d.rymcg.tech
+    local SOPS_BASENAME
+    SOPS_BASENAME="$(basename "${SOPS_CONFIG}")"
+
+    # Passphrase-protected keys: temp copy at 644 for bind mount into main
+    # container (which has -it for the passphrase prompt). The passphrase
+    # is the real secret, not the encrypted file.
+    # Plain-text keys: pass content directly via SOPS_AGE_KEY env var.
+    # Derive deterministic container name from context
+    local CONTAINER_NAME="drt-${CONTEXT_NAME:-$(basename "${SOPS_CONFIG}" .sops.env)}"
+
+    local RUN_ARGS=(
+        run --rm -it --pull=never
+        --name "${CONTAINER_NAME}"
+        --security-opt label=disable
+        -e "HOST_UID=$(id -u)"
+        -e "HOST_GID=$(id -g)"
+        -e "SOPS_CONFIG_FILE=${CONTAINER_CONFIG_DIR}/${SOPS_BASENAME}"
+        -v "${SOPS_CONFIG}:${CONTAINER_CONFIG_DIR}/${SOPS_BASENAME}"
+        -v "${AGE_KEY_FILE}:${CONTAINER_CONFIG_DIR}/age-key:ro"
+        -e "SOPS_AGE_KEY_FILE=${CONTAINER_CONFIG_DIR}/age-key"
+    )
+
+    # FIDO2: pass through hardware key device if this context uses a FIDO2 identity
+    if [[ -n "${CONTEXT_NAME:-}" ]] && [[ "$(detect_key_type "${AGE_KEY_FILE}")" == "fido2" ]]; then
+        local FIDO2_DEV=""
+        FIDO2_DEV=$(resolve_fido2_device "${CONTEXT_NAME}" interactive)
+        echo "## FIDO2: passing through ${FIDO2_DEV}" >&2
+        RUN_ARGS+=(--device "${FIDO2_DEV}")
+    fi
+
+    if [[ -n "${NET_MODE}" ]]; then
+        RUN_ARGS+=(--net="${NET_MODE}")
+    fi
+
+    for _cap in "${CAP_ADDS[@]+"${CAP_ADDS[@]}"}"; do
+        RUN_ARGS+=(--cap-add "${_cap}")
+        if [[ "${_cap}" == "NET_ADMIN" ]]; then
+            RUN_ARGS+=(--sysctl net.ipv4.conf.all.src_valid_mark=1)
+        fi
+    done
+
+    # Check image extras label for required features
+    if [[ "${WAYLAND}" == true || "${PIPEWIRE}" == true ]]; then
+        local _image_extras=""
+        _image_extras=$("${ENGINE}" image inspect "${IMAGE}" --format '{{index .Labels "drt.extras"}}' 2>/dev/null || true)
+        if [[ "${WAYLAND}" == true ]] && ! echo ",${_image_extras}," | grep -q ',wayland,'; then
+            echo "Error: --wayland requires the 'wayland' build extra." >&2
+            echo "  Rebuild with: DRT_INSTALL_EXTRAS=wayland drt --build" >&2
+            exit 1
+        fi
+        if [[ "${PIPEWIRE}" == true ]] && ! echo ",${_image_extras}," | grep -q ',pipewire,'; then
+            echo "Error: --pipewire requires the 'pipewire' build extra." >&2
+            echo "  Rebuild with: DRT_INSTALL_EXTRAS=pipewire drt --build" >&2
+            exit 1
+        fi
+    fi
+
+    # Wayland GUI passthrough
+    if [[ "${WAYLAND}" == true ]]; then
+        local _wayland_socket="${WAYLAND_DISPLAY:-wayland-0}"
+        local _xdg_runtime="${XDG_RUNTIME_DIR:-/run/user/$(id -u)}"
+        local _socket_path="${_xdg_runtime}/${_wayland_socket}"
+        if [[ -S "${_socket_path}" ]]; then
+            echo "## Wayland: socket ${_socket_path}" >&2
+            RUN_ARGS+=(
+                -e "WAYLAND_DISPLAY=${_wayland_socket}"
+                -e "XDG_RUNTIME_DIR=/tmp/runtime-dir"
+                -v "${_socket_path}:/tmp/runtime-dir/${_wayland_socket}"
+            )
+        else
+            echo "Error: Wayland socket not found: ${_socket_path}" >&2
+            echo "  Is a Wayland compositor running?" >&2
+            exit 1
+        fi
+        if [[ -d /dev/dri ]]; then
+            echo "## Wayland: passing through /dev/dri for GPU acceleration" >&2
+            RUN_ARGS+=(--device /dev/dri)
+        else
+            echo "## Wayland: /dev/dri not found, software rendering only" >&2
+        fi
+    fi
+
+    # PipeWire audio passthrough
+    if [[ "${PIPEWIRE}" == true ]]; then
+        local _xdg_runtime="${XDG_RUNTIME_DIR:-/run/user/$(id -u)}"
+        local _pw_socket="${_xdg_runtime}/pipewire-0"
+        if [[ -S "${_pw_socket}" ]]; then
+            echo "## PipeWire: socket ${_pw_socket}" >&2
+            RUN_ARGS+=(
+                -e "XDG_RUNTIME_DIR=/tmp/runtime-dir"
+                -v "${_pw_socket}:/tmp/runtime-dir/pipewire-0"
+            )
+        else
+            echo "Error: PipeWire socket not found: ${_pw_socket}" >&2
+            echo "  Is PipeWire running?" >&2
+            exit 1
+        fi
+    fi
+
+    if [[ "${SAVE_ON_EXIT}" == true ]]; then
+        RUN_ARGS+=(-e "SOPS_SAVE_ON_EXIT=true")
+    fi
+
+    if [[ "${VERBOSE}" == true ]]; then
+        RUN_ARGS+=(-e "DRT_VERBOSE=true")
+    fi
+
+    # Forward host environment overrides into the container
+    TIMEOUT="${TIMEOUT:-300}"; export TIMEOUT
+    local passthrough_vars=(SSH_KEY_SCAN SSH_CONNECT_TIMEOUT TIMEOUT SSH_HOST SSH_USER SSH_PORT DOCKER_CONTEXT PROJECTS
+        BAO_ADDR BAO_ROLE_ID BAO_SECRET_ID BAO_AGE_KEY_PATH BAO_SSH_MOUNT
+        BAO_SSH_ROLE BAO_AUTH_PATH BAO_KV_MOUNT BAO_NAMESPACE
+        BAO_CACERT BAO_CLIENT_CERT BAO_CLIENT_KEY BAO_SKIP)
+    for var in "${passthrough_vars[@]}"; do
+        if [[ -n "${!var:-}" ]]; then
+            RUN_ARGS+=(-e "${var}=${!var}")
+        fi
+    done
+
+    # SSH: forward agent or mount key file
+    if [[ -n "${SSH_KEY_FILE}" ]]; then
+        SSH_KEY_FILE="$(realpath "${SSH_KEY_FILE}")"
+        if [[ ! -f "${SSH_KEY_FILE}" ]]; then
+            echo "Error: SSH key file not found: ${SSH_KEY_FILE}" >&2
+            exit 1
+        fi
+        echo "## SSH: mounting key file ${SSH_KEY_FILE}" >&2
+        RUN_ARGS+=(-v "${SSH_KEY_FILE}:/run/secrets/ssh/id_ed25519:ro")
+    elif [[ -n "${SSH_AUTH_SOCK:-}" ]]; then
+        echo "## SSH: forwarding agent (${SSH_AUTH_SOCK})" >&2
+        RUN_ARGS+=(
+            -v "${SSH_AUTH_SOCK}:/run/ssh-agent.sock:ro"
+            -e "SSH_AUTH_SOCK=/run/ssh-agent.sock"
+        )
+    else
+        echo "## SSH: no key file or agent; container will generate a key" >&2
+    fi
+
+    # Port mapping for request-controller
+    local _is_controller=false
+    for _arg in "${CMD_ARGS[@]+"${CMD_ARGS[@]}"}"; do
+        if [[ "${_arg}" == "request-controller" ]]; then
+            _is_controller=true
+            break
+        fi
+    done
+    if [[ "${_is_controller}" == true ]]; then
+        RUN_ARGS+=(-p "${CONTROLLER_PORT}:8084")
+    fi
+
+    # Bind mount: mount host directory read-only over ROOT_DIR.
+    # The entrypoint redirects .env_* and passwords.json writes to DRT_ENV_DIR.
+    if [[ -n "${BIND_MOUNT_PATH}" ]]; then
+        BIND_MOUNT_PATH="$(realpath "${BIND_MOUNT_PATH}")"
+        if [[ ! -d "${BIND_MOUNT_PATH}" ]]; then
+            echo "Error: bind mount path is not a directory: ${BIND_MOUNT_PATH}" >&2
+            exit 1
+        fi
+        echo "## Bind mount: ${BIND_MOUNT_PATH} -> /home/user/git/vendor/enigmacurry/d.rymcg.tech" >&2
+        RUN_ARGS+=(
+            -v "${BIND_MOUNT_PATH}:/home/user/git/vendor/enigmacurry/d.rymcg.tech:ro"
+            -e "DRT_BIND_MOUNT=true"
+        )
+    fi
+
+    RUN_ARGS+=("${IMAGE}")
+
+    # Append command args (e.g. "drt d2 status" → "d.rymcg.tech status")
+    if [[ ${#CMD_ARGS[@]} -gt 0 ]]; then
+        RUN_ARGS+=("d.rymcg.tech" "${CMD_ARGS[@]}")
+    fi
+
+    echo "## Starting d-rymcg-tech container (${ENGINE})" >&2
+    echo "## Config: ${SOPS_CONFIG}" >&2
+    echo "## Image:  ${IMAGE}" >&2
+
+    if [[ "${VERBOSE}" == true ]]; then
+        echo "## Full command: ${ENGINE} ${RUN_ARGS[*]}" >&2
+    fi
+    local rc=0
+    "${ENGINE}" "${RUN_ARGS[@]}" || rc=$?
+    if [[ ${rc} -ne 0 && ${#CMD_ARGS[@]} -gt 0 ]]; then
+        echo "## container exited with error (exit code ${rc}) — skipping auto-commit" >&2
+        return ${rc}
+    fi
+    git_auto_commit "update context: ${CONTEXT_NAME:-unknown}"
+}
+
+###############################################################################
+# clean subcommand
+###############################################################################
+
+clean_usage() {
+    cat <<'EOF'
+Usage: drt --clean [OPTIONS] [CONTEXT_NAME]
+
+Remove SOPS config and/or AGE key for a context.
+
+Options:
+  --image TAG    Container image (default: localhost/d-rymcg-tech:latest)
+  --help         Show this help
+EOF
+}
+
+cmd_clean() {
+    _parse_subcommand_args clean_usage "$@"
+    local CONTEXT="${_SC_CONTEXT}"
+
+    check_engine
+    git_auto_pull
+
+    if [[ -z "${CONTEXT}" ]]; then
+        local _contexts=()
+        while IFS= read -r _ctx; do
+            [[ -n "${_ctx}" ]] && _contexts+=("${_ctx}")
+        done < <(list_contexts)
+        if [[ ${#_contexts[@]} -eq 0 ]]; then
+            echo "Nothing to clean — no contexts found."
+            return
+        fi
+        CONTEXT=$(wizard choose "Select context to clean" "${_contexts[@]}")
+    fi
+
+    local CONFIG_FILE="${HOME}/.config/d.rymcg.tech/config/${CONTEXT}.sops.env"
+    local AGE_KEY_FILE="${HOME}/.config/d.rymcg.tech/keys/sops/${CONTEXT}.key"
+    local DELETED=false
+
+    ## Delete SOPS config
+    if [[ -f "${CONFIG_FILE}" ]]; then
+        if wizard confirm "Delete SOPS config ${CONFIG_FILE}?" no; then
+            rm -f "${CONFIG_FILE}"
+            echo "Deleted: ${CONFIG_FILE}"
+            DELETED=true
+        else
+            echo "Kept: ${CONFIG_FILE}"
+        fi
+    else
+        echo "No SOPS config found: ${CONFIG_FILE}"
+    fi
+
+    ## Delete AGE key
+    if [[ -f "${AGE_KEY_FILE}" ]]; then
+        if wizard confirm "Delete AGE key ${AGE_KEY_FILE}?" no; then
+            rm -f "${AGE_KEY_FILE}"
+            echo "Deleted: ${AGE_KEY_FILE}"
+            DELETED=true
+        else
+            echo "Kept: ${AGE_KEY_FILE}"
+        fi
+    else
+        echo "No AGE key found: ${AGE_KEY_FILE}"
+    fi
+
+    if [[ "${DELETED}" == true ]]; then
+        echo ""
+        echo "Clean complete for context '${CONTEXT}'."
+        git_auto_commit "remove context: ${CONTEXT}"
+    else
+        echo ""
+        echo "Nothing was deleted."
+    fi
+}
+
+###############################################################################
+# git subcommand
+###############################################################################
+
+cmd_git() {
+    local CONFIG_BASE="${HOME}/.config/d.rymcg.tech"
+    git -C "${CONFIG_BASE}" "$@"
+}
+
+cmd_git_init() {
+    local CONFIG_BASE="${HOME}/.config/d.rymcg.tech"
+    ensure_config_dir
+
+    if [[ -d "${CONFIG_BASE}/.git" ]]; then
+        echo "Config repo already initialized at ${CONFIG_BASE}" >&2
+        exit 0
+    fi
+
+    check_engine
+
+    echo "Initialize ${CONFIG_BASE} as a git repository." >&2
+    echo "SOPS configs will be tracked; AGE keys are excluded by .gitignore." >&2
+    echo "" >&2
+    if ! wizard confirm "Continue?" yes; then
+        echo "Cancelled." >&2
+        exit 0
+    fi
+
+    local BRANCH USER_EMAIL USER_NAME REMOTE
+    local _default_branch
+    _default_branch=$(git config --global init.defaultBranch 2>/dev/null || true)
+    BRANCH=$(wizard ask "Branch name" "${_default_branch:-master}")
+    local _default_email _default_name
+    _default_email=$(git config --global user.email 2>/dev/null || true)
+    _default_name=$(git config --global user.name 2>/dev/null || true)
+    USER_EMAIL=$(wizard ask "Git email" "${_default_email}")
+    USER_NAME=$(wizard ask "Git name" "${_default_name}")
+    REMOTE=$(wizard ask "Git remote URL (e.g. ssh://git@github.com:22/you/drt-config.git)")
+
+    ## Check if remote already has history — offer to clone instead
+    if [[ -n "${REMOTE}" ]] && git ls-remote --heads "${REMOTE}" 2>/dev/null | grep -q .; then
+        echo "" >&2
+        echo "Remote ${REMOTE} already has commits." >&2
+        echo "" >&2
+        if wizard confirm "Clone from remote?" yes; then
+            local tmpdir
+            tmpdir=$(mktemp -d)
+            git clone -b "${BRANCH}" "${REMOTE}" "${tmpdir}/repo"
+            mv "${tmpdir}/repo/.git" "${CONFIG_BASE}/.git"
+            rm -rf "${tmpdir}"
+            git -C "${CONFIG_BASE}" config user.email "${USER_EMAIL}"
+            git -C "${CONFIG_BASE}" config user.name "${USER_NAME}"
+            git -C "${CONFIG_BASE}" checkout -- . 2>/dev/null || true
+            echo "## Cloned config repo from ${REMOTE}" >&2
+            return 0
+        fi
+    fi
+
+    git -C "${CONFIG_BASE}" init -b "${BRANCH}"
+    git -C "${CONFIG_BASE}" config user.email "${USER_EMAIL}"
+    git -C "${CONFIG_BASE}" config user.name "${USER_NAME}"
+
+    if [[ -n "${REMOTE}" ]]; then
+        git -C "${CONFIG_BASE}" remote add origin "${REMOTE}"
+    fi
+
+    git -C "${CONFIG_BASE}" add -A
+    git -C "${CONFIG_BASE}" commit -m "init" >/dev/null
+    echo "## Config repo initialized at ${CONFIG_BASE}" >&2
+
+    if [[ -n "${REMOTE}" ]]; then
+        echo "" >&2
+        echo "Remote: ${REMOTE}" >&2
+        echo "" >&2
+        if wizard confirm "Push to remote now?" yes; then
+            git -C "${CONFIG_BASE}" push -u origin "${BRANCH}" && \
+                echo "## Pushed" >&2 || \
+                echo "## Push failed — check your remote URL and SSH keys" >&2
+        fi
+    fi
+}
+
+###############################################################################
+# list subcommand
+###############################################################################
+
+cmd_list() {
+    local KEY_DIR="${HOME}/.config/d.rymcg.tech/keys/sops"
+    local CONFIG_DIR="${HOME}/.config/d.rymcg.tech/config"
+    local CONTEXTS=()
+
+    while IFS= read -r ctx; do
+        [[ -n "$ctx" ]] && CONTEXTS+=("$ctx")
+    done < <(list_contexts)
+
+    if [[ ${#CONTEXTS[@]} -eq 0 ]]; then
+        echo "No contexts found."
+        return
+    fi
+
+    printf "%-20s %-20s %s\n" "CONTEXT" "KEY" "CONFIG"
+    printf "%-20s %-20s %s\n" "-------" "---" "------"
+    for ctx in "${CONTEXTS[@]}"; do
+        local _key_label
+        _key_label=$(key_status_label "${KEY_DIR}/${ctx}.key")
+        local config_status="missing"
+        if [[ -f "${CONFIG_DIR}/${ctx}.sops.env" ]]; then
+            config_status="${CONFIG_DIR}/${ctx}.sops.env"
+        fi
+        printf "%-20s %-20s %s\n" "$ctx" "$_key_label" "$config_status"
+    done
+}
+
+###############################################################################
+# view subcommand
+###############################################################################
+
+view_usage() {
+    cat <<'EOF'
+Usage: drt --view [OPTIONS] [CONTEXT_NAME]
+
+Decrypt and display a SOPS config file.
+
+Options:
+  --image TAG    Container image (default: localhost/d-rymcg-tech:latest)
+  --age-key FILE AGE key file (default: ~/.config/d.rymcg.tech/keys/sops/<context>.key)
+  --help         Show this help
+EOF
+}
+
+cmd_view() {
+    _parse_subcommand_args view_usage "$@"
+    local CONTEXT="${_SC_CONTEXT}"
+
+    check_engine
+    git_auto_pull
+
+    _pick_context "Select context to view" configs-only
+
+    CONTEXT="${_SC_CONTEXT}"
+    local SOPS_CONFIG="${HOME}/.config/d.rymcg.tech/config/${CONTEXT}.sops.env"
+    if [[ ! -f "${SOPS_CONFIG}" ]]; then
+        echo "Error: config not found: ${SOPS_CONFIG}" >&2
+        exit 1
+    fi
+
+    local AGE_KEY_FILE
+    AGE_KEY_FILE=$(resolve_age_key "${CONTEXT}" "${_SC_AGE_KEY_FILE}")
+
+    local PLAINTEXT
+    PLAINTEXT=$(sops_decrypt_config "${AGE_KEY_FILE}" "${SOPS_CONFIG}" "${CONTEXT}")
+
+    if [[ -t 1 ]]; then
+        echo "${PLAINTEXT}" | less
+    else
+        echo "${PLAINTEXT}"
+    fi
+}
+
+###############################################################################
+# edit subcommand
+###############################################################################
+
+edit_usage() {
+    cat <<'EOF'
+Usage: drt --edit [OPTIONS] [CONTEXT_NAME]
+
+Decrypt a SOPS config, edit it in $EDITOR, and re-encrypt.
+
+Options:
+  --image TAG    Container image (default: localhost/d-rymcg-tech:latest)
+  --age-key FILE AGE key file (default: ~/.config/d.rymcg.tech/keys/sops/<context>.key)
+  --help         Show this help
+EOF
+}
+
+cmd_edit() {
+    _parse_subcommand_args edit_usage "$@"
+    local CONTEXT="${_SC_CONTEXT}"
+
+    check_engine
+    git_auto_pull
+
+    _pick_context "Select context to edit" configs-only
+
+    CONTEXT="${_SC_CONTEXT}"
+    local SOPS_CONFIG="${HOME}/.config/d.rymcg.tech/config/${CONTEXT}.sops.env"
+    if [[ ! -f "${SOPS_CONFIG}" ]]; then
+        echo "Error: config not found: ${SOPS_CONFIG}" >&2
+        exit 1
+    fi
+
+    local AGE_KEY_FILE
+    AGE_KEY_FILE=$(resolve_age_key "${CONTEXT}" "${_SC_AGE_KEY_FILE}")
+
+    # Decrypt config
+    local EDIT_DIR
+    EDIT_DIR=$(mktemp -d)
+    local EDIT_FILE="${EDIT_DIR}/${CONTEXT}.env"
+
+    sops_decrypt_config "${AGE_KEY_FILE}" "${SOPS_CONFIG}" "${CONTEXT}" > "${EDIT_FILE}"
+    chmod 600 "${EDIT_FILE}"
+
+    # Save original for diffing
+    local ORIG_FILE="${EDIT_DIR}/${CONTEXT}.env.orig"
+    cp "${EDIT_FILE}" "${ORIG_FILE}"
+
+    # Open editor
+    "${EDITOR:-nano}" "${EDIT_FILE}"
+
+    # Check if file was modified
+    if diff -q "${ORIG_FILE}" "${EDIT_FILE}" &>/dev/null; then
+        echo "## No changes made, config unchanged." >&2
+        rm -rf "${EDIT_DIR}"
+        exit 0
+    fi
+
+    # Show diff and confirm
+    echo "" >&2
+    echo "## Changes:" >&2
+    diff -u "${ORIG_FILE}" "${EDIT_FILE}" >&2 || true
+    echo "" >&2
+    # Flush any stale input (e.g. escape sequences from editor)
+    while read -r -t 0.1 _ 2>/dev/null; do :; done
+    read -rp "Save changes to ${SOPS_CONFIG}? [Y/n] " answer
+    if [[ "${answer}" =~ ^[Nn]$ ]]; then
+        echo "## Changes discarded." >&2
+        rm -rf "${EDIT_DIR}"
+        exit 0
+    fi
+
+    # Re-encrypt using sops edit (only changed values re-encrypted)
+    sops_reencrypt_config "${AGE_KEY_FILE}" "${SOPS_CONFIG}" "${EDIT_FILE}" "${CONTEXT}"
+
+    echo "## Changes encrypted and saved to ${SOPS_CONFIG}" >&2
+
+    rm -rf "${EDIT_DIR}"
+    git_auto_commit "update context: ${CONTEXT}"
+}
+
+###############################################################################
+# build subcommand
+###############################################################################
+
+DRT_GIT_REPO_DEFAULT="https://github.com/EnigmaCurry/d.rymcg.tech.git"
+
+cmd_build() {
+    local NO_CACHE=""
+    if [[ "${1:-}" == "--no-cache" ]]; then
+        NO_CACHE=1
+        shift
+    fi
+    check_engine
+
+    # Defaults from current image labels, overridable by env/args
+    local REPO="${DRT_GIT_REPO:-}"
+    if [[ -z "${REPO}" ]]; then
+        REPO=$("${ENGINE}" image inspect "${IMAGE}" --format '{{index .Labels "drt.repo"}}' 2>/dev/null || true)
+        REPO="${REPO:-${DRT_GIT_REPO_DEFAULT}}"
+    fi
+
+    # Priority: DRT_BUILD_BRANCH env > image label > master
+    local BRANCH=""
+    if [[ -n "${DRT_BUILD_BRANCH:-}" ]]; then
+        BRANCH="${DRT_BUILD_BRANCH}"
+    else
+        BRANCH=$("${ENGINE}" image inspect "${IMAGE}" --format '{{index .Labels "drt.branch"}}' 2>/dev/null || true)
+        BRANCH="${BRANCH:-master}"
+    fi
+
+    echo "## Building from ${REPO}#${BRANCH} ..." >&2
+    _DRT_BUILD_DIR=$(mktemp -d)
+    trap 'rm -rf "${_DRT_BUILD_DIR}"' EXIT
+    git clone --depth 1 --branch "${BRANCH}" "${REPO}" "${_DRT_BUILD_DIR}/src"
+    if [[ ! -f "${_DRT_BUILD_DIR}/src/_container/Dockerfile" ]]; then
+        echo "Error: _container/Dockerfile not found on branch '${BRANCH}'." >&2
+        echo "Set DRT_BUILD_BRANCH to a branch that has the Dockerfile." >&2
+        exit 1
+    fi
+    local BUILD_ARGS=(build)
+    # Podman: use slirp4netns if pasta fails during build
+    if [[ "${ENGINE}" == "podman" ]]; then
+        BUILD_ARGS+=(--network=slirp4netns)
+    fi
+    if [[ -n "${NO_CACHE}" ]]; then
+        BUILD_ARGS+=(--no-cache)
+    fi
+    local GIT_SHA
+    GIT_SHA=$(git -C "${_DRT_BUILD_DIR}/src" rev-parse --short HEAD 2>/dev/null || echo "unknown")
+    BUILD_ARGS+=(
+        --build-arg "BRANCH=${BRANCH}"
+        --build-arg "GIT_REPO=${REPO}"
+        --build-arg "GIT_SHA=${GIT_SHA}"
+        --build-arg "INSTALL_EXTRAS=${DRT_INSTALL_EXTRAS:-}"
+        -f "${_DRT_BUILD_DIR}/src/_container/Dockerfile"
+        -t "${IMAGE}"
+        "${_DRT_BUILD_DIR}/src"
+    )
+    "${ENGINE}" "${BUILD_ARGS[@]}"
+    echo "## Built: ${IMAGE} (branch: ${BRANCH}, repo: ${REPO})" >&2
+}
+
+###############################################################################
+# pull subcommand
+###############################################################################
+
+cmd_pull() {
+    check_engine
+    local LOCAL_ID=""
+    if "${ENGINE}" image exists "${IMAGE}" 2>/dev/null; then
+        LOCAL_ID=$("${ENGINE}" image inspect "${IMAGE}" --format '{{.Id}}' 2>/dev/null || true)
+    fi
+    "${ENGINE}" pull "${IMAGE}"
+    local NEW_ID=""
+    NEW_ID=$("${ENGINE}" image inspect "${IMAGE}" --format '{{.Id}}' 2>/dev/null || true)
+    if [[ -n "${LOCAL_ID}" && "${LOCAL_ID}" == "${NEW_ID}" ]]; then
+        echo "## Already up to date (${NEW_ID:0:19}...)" >&2
+    elif [[ -n "${LOCAL_ID}" ]]; then
+        echo "## Updated: ${LOCAL_ID:0:19}... → ${NEW_ID:0:19}..." >&2
+    fi
+}
+
+###############################################################################
+# shared: resolve BAO context → decrypt config, extract BAO_ADDR, build run args
+###############################################################################
+
+# Parse args and resolve context for seal/unseal commands.
+# Uses _parse_subcommand_args and _pick_context helpers.
+# Sets: _BAO_CONTEXT, _BAO_AGE_KEY_FILE (via _SC_ vars).
+_bao_parse_args() {
+    local help_action="$1"; shift
+    _bao_usage() {
+        echo "Usage: drt --${help_action} [OPTIONS] [CONTEXT_NAME]"
+        echo ""
+        echo "Options:"
+        echo "  --image TAG    Container image"
+        echo "  --age-key FILE AGE key file"
+        echo "  --help         Show this help"
+    }
+    _parse_subcommand_args _bao_usage "$@"
+    _BAO_CONTEXT="${_SC_CONTEXT}"
+    _BAO_AGE_KEY_FILE="${_SC_AGE_KEY_FILE}"
+}
+
+# Resolve context, decrypt SOPS config, extract BAO vars, prepare container run args.
+# Sets: _BAO_RUN_ARGS (array for engine run), _BAO_CTX (array for --context default).
+_bao_resolve() {
+    local wizard_prompt="$1"
+    check_engine
+
+    _SC_CONTEXT="${_BAO_CONTEXT}"
+    _pick_context "${wizard_prompt}" configs-only
+    _BAO_CONTEXT="${_SC_CONTEXT}"
+
+    local SOPS_CONFIG="${HOME}/.config/d.rymcg.tech/config/${_BAO_CONTEXT}.sops.env"
+    if [[ ! -f "${SOPS_CONFIG}" ]]; then
+        echo "Error: config not found: ${SOPS_CONFIG}" >&2
+        exit 1
+    fi
+
+    local AGE_KEY_FILE
+    AGE_KEY_FILE=$(resolve_age_key "${_BAO_CONTEXT}" "${_BAO_AGE_KEY_FILE}")
+
+    local PLAINTEXT
+    PLAINTEXT=$(sops_decrypt_config "${AGE_KEY_FILE}" "${SOPS_CONFIG}" "${_BAO_CONTEXT}")
+
+    local BAO_ADDR=""
+    BAO_ADDR=$(echo "${PLAINTEXT}" | grep -oP '^BAO_ADDR=\K.*' || true)
+    if [[ -z "${BAO_ADDR}" ]]; then
+        echo "Error: BAO_ADDR not found in ${_BAO_CONTEXT} config — OpenBao is not configured for this context." >&2
+        exit 1
+    fi
+    echo "## OpenBao server: ${BAO_ADDR}" >&2
+
+    # Build env vars for the container
+    local BAO_ENV=()
+    local var
+    local _has_cacert=false _has_client_cert=false
+    for var in BAO_ADDR BAO_CACERT BAO_CLIENT_CERT BAO_CLIENT_KEY; do
+        local val=""
+        val=$(echo "${PLAINTEXT}" | grep -oP "^${var}=\\K.*" || true)
+        if [[ -n "${val}" ]]; then
+            BAO_ENV+=(-e "${var}=${val}")
+            [[ "${var}" == "BAO_CACERT" ]] && _has_cacert=true
+            [[ "${var}" == "BAO_CLIENT_CERT" ]] && _has_client_cert=true
+        fi
+    done
+    if [[ "${_has_client_cert}" == "true" ]]; then
+        echo "## TLS: mTLS (client certificate + CA)" >&2
+    elif [[ "${_has_cacert}" == "true" ]]; then
+        echo "## TLS: custom CA certificate" >&2
+    fi
+
+    detect_net_mode
+    _BAO_RUN_ARGS=(run --rm -it --entrypoint "")
+    [[ -n "${NET_MODE}" ]] && _BAO_RUN_ARGS+=(--net="${NET_MODE}")
+    _BAO_RUN_ARGS+=("${BAO_ENV[@]}" "${IMAGE}")
+
+    _BAO_CTX=()
+}
+
+# Inline TLS resolution script (sourced inside the container)
+_BAO_TLS_SCRIPT='
+TLS_FLAGS=()
+_resolve_tls() {
+    local var="$1" flag="$2" val="${!1:-}"
+    [ -z "${val}" ] && return
+    local f="/tmp/tls-${var}"
+    if [ -f "${val}" ]; then
+        f="${val}"
+    elif echo "${val}" | grep -q "BEGIN"; then
+        echo "${val}" > "${f}"
+    elif [ ${#val} -gt 60 ] && echo "${val}" | grep -qE "^[A-Za-z0-9+/=]+$"; then
+        echo "${val}" | base64 -d > "${f}"
+    else
+        echo "${val}" > "${f}"
+    fi
+    TLS_FLAGS+=("${flag}" "${f}")
+}
+_resolve_tls BAO_CACERT --cacert
+_resolve_tls BAO_CLIENT_CERT --cert
+_resolve_tls BAO_CLIENT_KEY --key
+'
+
+###############################################################################
+# seal subcommand
+###############################################################################
+
+cmd_seal() {
+    _bao_parse_args seal "$@"
+    _bao_resolve "Select context to seal"
+
+    "${ENGINE}" "${_BAO_CTX[@]}" "${_BAO_RUN_ARGS[@]}" bash -c '
+set -eo pipefail
+'"${_BAO_TLS_SCRIPT}"'
+
+STATUS=$(curl -sf "${TLS_FLAGS[@]}" "${BAO_ADDR}/v1/sys/seal-status" 2>/dev/null || true)
+if [ -z "${STATUS}" ]; then
+    echo "Error: could not reach ${BAO_ADDR}" >&2
+    exit 1
+fi
+
+SEALED=$(echo "${STATUS}" | jq -r .sealed)
+if [ "${SEALED}" = "true" ]; then
+    echo "## OpenBao at ${BAO_ADDR} is already sealed." >&2
+    exit 0
+fi
+
+printf "Seal the OpenBao server at %s? [y/N] " "${BAO_ADDR}" >&2
+read -r answer < /dev/tty
+case "${answer}" in
+    [Yy]*) ;;
+    *) echo "## Cancelled" >&2; exit 0 ;;
+esac
+
+printf "Root token: " >&2
+read -rs ROOT_TOKEN < /dev/tty
+echo "" >&2
+
+curl -sf "${TLS_FLAGS[@]}" -X PUT \
+    -H "X-Vault-Token: ${ROOT_TOKEN}" \
+    "${BAO_ADDR}/v1/sys/seal" >/dev/null 2>&1 || true
+
+STATUS=$(curl -sf "${TLS_FLAGS[@]}" "${BAO_ADDR}/v1/sys/seal-status" 2>/dev/null || true)
+SEALED=$(echo "${STATUS}" | jq -r .sealed)
+if [ "${SEALED}" = "true" ]; then
+    echo "## OpenBao at ${BAO_ADDR} has been sealed." >&2
+else
+    echo "Error: seal failed. Check the root token and try again." >&2
+    exit 1
+fi'
+}
+
+###############################################################################
+# unseal subcommand
+###############################################################################
+
+cmd_unseal() {
+    _bao_parse_args unseal "$@"
+    _bao_resolve "Select context to unseal"
+
+    "${ENGINE}" "${_BAO_CTX[@]}" "${_BAO_RUN_ARGS[@]}" bash -c '
+set -eo pipefail
+'"${_BAO_TLS_SCRIPT}"'
+
+STATUS=$(curl -sf "${TLS_FLAGS[@]}" "${BAO_ADDR}/v1/sys/seal-status" 2>/dev/null || true)
+if [ -z "${STATUS}" ]; then
+    echo "Error: could not reach ${BAO_ADDR}" >&2
+    exit 1
+fi
+
+SEALED=$(echo "${STATUS}" | jq -r .sealed)
+if [ "${SEALED}" = "false" ]; then
+    echo "## OpenBao at ${BAO_ADDR} is already unsealed." >&2
+    exit 0
+fi
+
+THRESHOLD=$(echo "${STATUS}" | jq -r .t)
+TOTAL=$(echo "${STATUS}" | jq -r .n)
+PROGRESS=$(echo "${STATUS}" | jq -r .progress)
+echo "## Unseal requires ${THRESHOLD} of ${TOTAL} keys (${PROGRESS} already provided)" >&2
+
+while true; do
+    STATUS=$(curl -sf "${TLS_FLAGS[@]}" "${BAO_ADDR}/v1/sys/seal-status" 2>/dev/null || true)
+    SEALED=$(echo "${STATUS}" | jq -r .sealed)
+    PROGRESS=$(echo "${STATUS}" | jq -r .progress)
+
+    if [ "${SEALED}" = "false" ]; then
+        echo "## OpenBao at ${BAO_ADDR} has been unsealed." >&2
+        exit 0
+    fi
+
+    printf "Unseal key (%s/%s): " "$((PROGRESS + 1))" "${THRESHOLD}" >&2
+    read -rs UNSEAL_KEY < /dev/tty
+    echo "" >&2
+
+    RESPONSE=$(curl -sf "${TLS_FLAGS[@]}" -X PUT \
+        --data "$(jq -n --arg k "${UNSEAL_KEY}" '{key:$k}')" \
+        "${BAO_ADDR}/v1/sys/unseal" 2>/dev/null || true)
+
+    if [ -z "${RESPONSE}" ]; then
+        echo "Error: unseal request failed" >&2
+        exit 1
+    fi
+
+    SEALED=$(echo "${RESPONSE}" | jq -r .sealed)
+    PROGRESS=$(echo "${RESPONSE}" | jq -r .progress)
+
+    if [ "${SEALED}" = "false" ]; then
+        echo "## OpenBao at ${BAO_ADDR} has been unsealed." >&2
+        exit 0
+    fi
+
+    echo "## Progress: ${PROGRESS}/${THRESHOLD}" >&2
+done'
+}
+
+###############################################################################
+# extract subcommand
+###############################################################################
+
+cmd_extract() {
+    local script
+    script="$(readlink -f "$0")"
+    sed -e "s|@@DRT_IMAGE@@|${DRT_IMAGE:-localhost/d-rymcg-tech:latest}|g" \
+        -e "s|@@DRT_GIT_SHA@@|${DRT_GIT_SHA:-unknown}|g" \
+        "${script}"
+}
+
+###############################################################################
+# Main dispatch
+###############################################################################
+
+ACTION=run
+ARGS=()
+
+while [[ $# -gt 0 ]]; do
+    case "$1" in
+        --init)
+            ACTION=init
+            shift
+            ARGS+=("$@")
+            break
+            ;;
+        --view)
+            ACTION=view
+            shift
+            ARGS+=("$@")
+            break
+            ;;
+        --edit)
+            ACTION=edit
+            shift
+            ARGS+=("$@")
+            break
+            ;;
+        --clean)
+            ACTION=clean
+            shift
+            ARGS+=("$@")
+            break
+            ;;
+        --seal)
+            ACTION=seal
+            shift
+            ARGS+=("$@")
+            break
+            ;;
+        --unseal)
+            ACTION=unseal
+            shift
+            ARGS+=("$@")
+            break
+            ;;
+        --pull)
+            ACTION=pull
+            shift
+            ;;
+        --build)
+            ACTION=build
+            shift
+            # Consume optional trailing args (e.g. context) — ignored for build
+            while [[ $# -gt 0 ]]; do shift; done
+            ;;
+        --build-force)
+            ACTION=build_force
+            shift
+            while [[ $# -gt 0 ]]; do shift; done
+            ;;
+        --list)
+            ACTION=list
+            shift
+            ;;
+        --git-init)
+            ACTION=git_init
+            shift
+            ;;
+        --git)
+            ACTION=git
+            shift
+            ARGS=("$@")
+            break
+            ;;
+        --extract)
+            ACTION=extract
+            shift
+            ;;
+        --image)
+            IMAGE="$2"
+            ARGS+=(--image "$2")
+            shift 2
+            ;;
+        --net)
+            NET_MODE="$2"
+            ARGS+=(--net "$2")
+            shift 2
+            ;;
+        --verbose|-v)
+            ARGS+=(--verbose)
+            shift
+            ;;
+        --cap-add)
+            ARGS+=(--cap-add "$2")
+            shift 2
+            ;;
+        --bind-mount)
+            ARGS+=(--bind-mount "$2")
+            shift 2
+            ;;
+        --cold-storage)
+            ARGS+=(--cold-storage)
+            shift
+            ;;
+        --wayland)
+            ARGS+=(--wayland)
+            shift
+            ;;
+        --pipewire)
+            ARGS+=(--pipewire)
+            shift
+            ;;
+        --no-git)
+            DRT_NO_GIT=true
+            shift
+            ;;
+        --help|-h)
+            usage
+            exit 0
+            ;;
+        --version)
+            echo "drt ${VERSION}"
+            exit 0
+            ;;
+        -*)
+            # Pass through to cmd_run
+            ARGS+=("$1")
+            shift
+            ;;
+        *)
+            # Positional arg = CONTEXT for run; check remaining args for action flags
+            ARGS+=("$1")
+            shift
+            # Scan remaining args: if an action flag appears, switch to that action
+            for _remaining in "$@"; do
+                case "${_remaining}" in
+                    --init)   ACTION=init; break ;;
+                    --view)   ACTION=view; break ;;
+                    --edit)   ACTION=edit; break ;;
+                    --clean)  ACTION=clean; break ;;
+                    --seal)   ACTION=seal; break ;;
+                    --unseal) ACTION=unseal; break ;;
+                esac
+            done
+            if [[ "${ACTION}" != "run" ]]; then
+                # Re-parse remaining args into ARGS (context already added)
+                for _remaining in "$@"; do
+                    [[ "${_remaining}" == "--${ACTION}" ]] && continue
+                    ARGS+=("${_remaining}")
+                done
+            else
+                ARGS+=("$@")
+            fi
+            break
+            ;;
+    esac
+done
+
+if [[ "${ACTION}" != "extract" ]]; then
+    cat >&2 <<'WARN'
+
+## WARNING: drt is experimental and is NOT a runtime security device!
+## Only run this script on a secure, trusted device.
+## Your secrets are ONLY encrypted AT REST!
+## During runtime, all secrets are decrypted inside an ephemeral container
+## filesystem, and any process in your user account (or root) can copy files
+## in or out of the container via `podman cp`.
+
+WARN
+fi
+
+case "${ACTION}" in
+    init)
+        cmd_init "${ARGS[@]+"${ARGS[@]}"}"
+        ;;
+    view)
+        cmd_view "${ARGS[@]+"${ARGS[@]}"}"
+        ;;
+    edit)
+        cmd_edit "${ARGS[@]+"${ARGS[@]}"}"
+        ;;
+    clean)
+        cmd_clean "${ARGS[@]+"${ARGS[@]}"}"
+        ;;
+    seal)
+        cmd_seal "${ARGS[@]+"${ARGS[@]}"}"
+        ;;
+    unseal)
+        cmd_unseal "${ARGS[@]+"${ARGS[@]}"}"
+        ;;
+    pull)
+        cmd_pull
+        ;;
+    build)
+        cmd_build "${ARGS[@]+"${ARGS[@]}"}"
+        ;;
+    build_force)
+        cmd_build --no-cache "${ARGS[@]+"${ARGS[@]}"}"
+        ;;
+    list)
+        cmd_list
+        ;;
+    git_init)
+        cmd_git_init
+        ;;
+    git)
+        cmd_git "${ARGS[@]+"${ARGS[@]}"}"
+        ;;
+    extract)
+        cmd_extract
+        ;;
+    run)
+        # Check if ARGS has a context (any non-flag argument, skipping flag values)
+        _has_context=false
+        _skip_next=false
+        for _arg in "${ARGS[@]+"${ARGS[@]}"}"; do
+            if [[ "${_skip_next}" == true ]]; then
+                _skip_next=false
+                continue
+            fi
+            case "${_arg}" in
+                --cap-add|--image|--net|--age-key|--ssh-key|--ssh-timeout|--timeout|--controller-port|--bind-mount)
+                    _skip_next=true ;;
+                -*) ;;
+                *) _has_context=true; break ;;
+            esac
+        done
+        if [[ "${_has_context}" == false ]]; then
+            check_engine
+            echo "Run with --help to see full usage." >&2
+            echo "" >&2
+            _CONFIG_DIR="${HOME}/.config/d.rymcg.tech/config"
+            _KEY_DIR="${HOME}/.config/d.rymcg.tech/keys/sops"
+            _NAMES=()
+            _STATUSES=()
+            _PATHS=()
+            _MAX_NAME_LEN=0
+            if [[ -d "${_CONFIG_DIR}" ]]; then
+                for f in "${_CONFIG_DIR}"/*.sops.env; do
+                    [[ -f "$f" ]] || continue
+                    _name="$(basename "$f" .sops.env)"
+                    _key_status=$(key_status_label "${_KEY_DIR}/${_name}.key")
+                    [[ "${_key_status}" == "missing" ]] && _key_status="no key"
+                    _NAMES+=("${_name}")
+                    _STATUSES+=("${_key_status}")
+                    _PATHS+=("${f}")
+                    (( ${#_name} > _MAX_NAME_LEN )) && _MAX_NAME_LEN=${#_name}
+                done
+            fi
+            _CHOICES=()
+            for i in "${!_NAMES[@]}"; do
+                _CHOICES+=("$(printf "%-${_MAX_NAME_LEN}s  (%s; %s)" "${_NAMES[$i]}" "${_STATUSES[$i]}" "${_PATHS[$i]}")")
+            done
+            if [[ ${#_CHOICES[@]} -eq 0 ]]; then
+                echo "No configs found. Run 'drt --init' first." >&2
+                exit 1
+            fi
+            _CHOICE=$(wizard choose "Select context to decrypt" "${_CHOICES[@]}")
+            ARGS+=("${_CHOICE%% *}")
+        fi
+        cmd_run "${ARGS[@]}"
+        ;;
+esac
+
+###############################################################################
+# How to setup the 'drt' alias for d.rymcg.tech:
+# (Do this on your host workstation)
+#
+# Define a shell alias (add to ~/.bashrc or ~/.zshrc):
+#
+#   alias drt='bash <(podman run --rm --pull=never --net=none @@DRT_IMAGE@@ drt)'
+#
+# When you run e.g. "drt --init myserver", bash expands this to:
+#
+#   bash <(podman run --rm --pull=never --net=none @@DRT_IMAGE@@ drt) --init myserver
+#
+# The container entrypoint detects "drt" with no args and runs "drt --extract",
+# which prints this script to stdout. The process substitution feeds it to
+# bash, which executes it with the remaining arguments (--init myserver).
+#
+# The script itself never touches the container — it runs entirely on the
+# host, orchestrating podman/docker to launch containers as needed.
+#
+# Host dependencies: bash, podman, openssh, coreutils, grep, gawk
+###############################################################################

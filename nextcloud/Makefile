@@ -48,13 +48,17 @@ override-hook:
 ####                         # (used for regular docker-compose expansion of env vars by name.)
 	@${BIN}/docker_compose_override ${ENV_FILE} project=:nextcloud instance=@NEXTCLOUD_INSTANCE traefik_host=@NEXTCLOUD_TRAEFIK_HOST http_auth=NEXTCLOUD_HTTP_AUTH http_auth_var=@NEXTCLOUD_HTTP_AUTH ip_sourcerange=@NEXTCLOUD_IP_SOURCERANGE oauth2=NEXTCLOUD_OAUTH2 authorized_group=NEXTCLOUD_OAUTH2_AUTHORIZED_GROUP enable_mtls_auth=NEXTCLOUD_MTLS_AUTH mtls_authorized_certs=NEXTCLOUD_MTLS_AUTHORIZED_CERTS primary_storage=NEXTCLOUD_PRIMARY_STORAGE additional_volume=NEXTCLOUD_EXTRA_VOLUME_NAME objectstore_s3_host=@NEXTCLOUD_OBJECTSTORE_S3_HOST objectstore_s3_bucket=@NEXTCLOUD_OBJECTSTORE_S3_BUCKET objectstore_s3_key=@NEXTCLOUD_OBJECTSTORE_S3_KEY objectstore_s3_secret=@NEXTCLOUD_OBJECTSTORE_S3_SECRET
 
+build-hook-pre:
+	@_env_file=$$(test -f "${ENV_FILE}" && echo "${ENV_FILE}" || echo ".env-dist"); \
+	docker build -t localhost/nextcloud-restic-backup $$(${BIN}/dotenv -f $${_env_file} get NEXTCLOUD_BACKUP_APP_GIT_SRC)
+
 .PHONY: build # Build the container images
 build:
-	docker build -t localhost/nextcloud-restic-backup $(shell ${BIN}/dotenv -f ${ENV_FILE} get NEXTCLOUD_BACKUP_APP_GIT_SRC)
+	@make --no-print-directory build-hook-pre
 	docker compose --env-file=${ENV_FILE} build
 	@make -e --no-print-directory override instance=${INSTANCE}
 	@[[ -z "${NO_HOOKS}" ]] && make --no-print-directory build-hook-pre-rule-exists 2>/dev/null && make --no-print-directory build-hook-pre || true
-	@export COMPOSE_PROFILES="$${DOCKER_COMPOSE_PROFILES:-$$(${BIN}/dotenv -f "${ENV_FILE}" get DOCKER_COMPOSE_PROFILES)}"; make --no-print-directory docker-compose-build EXTRA_ARGS="${EXTRA_ARGS}"
+	@export COMPOSE_PROFILES="$$(${BIN}/dotenv -f "${ENV_FILE}" get $$(${BIN}/parse-env-meta.sh .env-dist PREFIX)_DOCKER_COMPOSE_PROFILES)"; make --no-print-directory docker-compose-build EXTRA_ARGS="${EXTRA_ARGS}"
 	@[[ -z "${NO_HOOKS}" ]] && make --no-print-directory build-hook-post-rule-exists 2>/dev/null && make --no-print-directory build-hook-post || true
 
 #.PHONY: included-build

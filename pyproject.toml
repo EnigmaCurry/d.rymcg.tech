@@ -1,0 +1,28 @@
+# Shared Python dependencies for all d.rymcg.tech scripts.
+#
+# Scripts use `#!/usr/bin/env python-d-rymcg-tech` shebangs, which resolves
+# to the project venv's python3 via _scripts/user/python-d-rymcg-tech.
+#
+# Container: the Dockerfile COPYs this file early and runs `uv sync` before
+# the source COPY, so the venv layer caches independently of source changes.
+# Non-container: run `make python-deps` (which runs `uv sync`) to set up.
+#
+# Maintenance: when adding a new Python import, add the dependency here.
+
+[project]
+name = "drt-scripts"
+version = "0.0.0"
+requires-python = ">=3.11"
+dependencies = [
+    "fastapi>=0.115",
+    "jinja2",
+    "markdown>=3.5",
+    "nats-py>=2.9",
+    "openai>=1.0",
+    "pydantic>=2.0",
+    "pyjwt>=2.0",
+    "pyyaml",
+    "rich",
+    "tt-tui-for-traefik",
+    "uvicorn>=0.34",
+]

@@ -7,5 +7,9 @@ include ${ROOT_DIR}/_scripts/Makefile.clean
 include ${ROOT_DIR}/_scripts/Makefile.cd
 include ${ROOT_DIR}/_scripts/Makefile.lifecycle
 include ${ROOT_DIR}/_scripts/Makefile.reconfigure
+ifdef DRT_ENV_DIR
+include ${DRT_ENV_DIR}/.env_$(shell ${BIN}/docker_context)
+else
 include ${ROOT_DIR}/.env_$(shell ${BIN}/docker_context)
+endif
 

@@ -15,9 +15,9 @@ config-hook:
 	@${BIN}/reconfigure_compose_profiles_select ${ENV_FILE} nginx="Base Nginx config (don't unselect this, it is required)" php-fpm="PHP script support + Redis session store" postgres="PostgreSQL database"
 	@echo ""
 #### Set the ngninx template depending on if php-fpm was enabled:
-	@${BIN}/dotenv -f ${ENV_FILE} get DOCKER_COMPOSE_PROFILES | sed 's/,/\n/g' | grep php-fpm >/dev/null && ${BIN}/reconfigure ${ENV_FILE} NGINX_TEMPLATE=php-fpm.template.conf || ${BIN}/reconfigure ${ENV_FILE} NGINX_TEMPLATE=default.template.conf
+	@${BIN}/dotenv -f ${ENV_FILE} get NGINX_DOCKER_COMPOSE_PROFILES | sed 's/,/\n/g' | grep php-fpm >/dev/null && ${BIN}/reconfigure ${ENV_FILE} NGINX_TEMPLATE=php-fpm.template.conf || ${BIN}/reconfigure ${ENV_FILE} NGINX_TEMPLATE=default.template.conf
 #### Set the postgres database password if postgres was enabled:
-	@${BIN}/dotenv -f ${ENV_FILE} get DOCKER_COMPOSE_PROFILES | sed 's/,/\n/g' | grep postgres >/dev/null && ${BIN}/reconfigure_password ${ENV_FILE} NGINX_POSTGRES_PASSWORD || true
+	@${BIN}/dotenv -f ${ENV_FILE} get NGINX_DOCKER_COMPOSE_PROFILES | sed 's/,/\n/g' | grep postgres >/dev/null && ${BIN}/reconfigure_password ${ENV_FILE} NGINX_POSTGRES_PASSWORD || true
 #### Choose which PHP index file to install:
 	@echo
 	@echo "You have several choices of which PHP file to install at the root index:"
@@ -25,7 +25,7 @@ config-hook:
 	@echo "phpinfo.php - this installs a phpinfo() page."
 	@echo "http://.../adminer.php - this installs the Adminer tool from github."
 	@echo
-	@${BIN}/dotenv -f ${ENV_FILE} get DOCKER_COMPOSE_PROFILES | sed 's/,/\n/g' | grep php-fpm >/dev/null && ${BIN}/reconfigure_choose ${ENV_FILE} NGINX_PHP_INDEX_FILE "Choose the index PHP file to install" "default.php" "phpinfo.php" "https://github.com/adminerevo/adminerevo/releases/download/v4.8.3/adminer-4.8.3.php" || true
+	@${BIN}/dotenv -f ${ENV_FILE} get NGINX_DOCKER_COMPOSE_PROFILES | sed 's/,/\n/g' | grep php-fpm >/dev/null && ${BIN}/reconfigure_choose ${ENV_FILE} NGINX_PHP_INDEX_FILE "Choose the index PHP file to install" "default.php" "phpinfo.php" "https://github.com/adminerevo/adminerevo/releases/download/v4.8.3/adminer-4.8.3.php" || true
 #### Configure auth:
 	@${BIN}/reconfigure_auth ${ENV_FILE} NGINX
 

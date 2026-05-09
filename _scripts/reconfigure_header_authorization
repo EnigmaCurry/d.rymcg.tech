@@ -246,7 +246,7 @@ list_callback_urls() {
     set -eo pipefail
     readarray -t projects < <(docker compose ls -q)
     local DOCKER_CONTEXT=$(docker context ls --format "{{.Current}} {{.Name}}" | grep -oP "^true \K.*")
-    local ROOT_ENV_FILE=${ROOT_DIR}/.env_${DOCKER_CONTEXT}
+    local ROOT_ENV_FILE=${DRT_ENV_DIR:-${ROOT_DIR}}/.env_${DOCKER_CONTEXT}
     https_port=$(${BIN}/dotenv -f ${ROOT_ENV_FILE} get PUBLIC_HTTPS_PORT)
     if [[ -z "$https_port" ]]; then
         fault "Could not get PUBLIC_HTTPS_PORT from root .env file"

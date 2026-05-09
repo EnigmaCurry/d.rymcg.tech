@@ -1,5 +1,6 @@
 volumes:
   config:
+  firefox_downloads:
 
 services:
   firefox:
@@ -108,5 +109,5 @@ services:
       - SELKIES_ENABLE_PLAYER4=${FIREFOX_SELKIES_ENABLE_PLAYER4}
     volumes:
       - config:/config
-      - ${FIREFOX_DOWNLOAD_VOLUME}:/config/Downloads:z
+      - ${FIREFOX_DOWNLOAD_VOLUME:-firefox_downloads}:/config/Downloads:z
     labels: []

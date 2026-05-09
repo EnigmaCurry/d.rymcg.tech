@@ -14,7 +14,7 @@ networks:
 services:
     # Frontend
     web:
-        image: jitsi/web:${JITSI_WEB_VERSION}
+        image: jitsi/web:${JITSI_WEB_IMAGE_TAG}
         restart: ${RESTART_POLICY}
         volumes:
             - web_config:/config:Z
@@ -200,7 +200,7 @@ services:
 
     # XMPP server
     prosody:
-        image: jitsi/prosody:${JITSI_WEB_VERSION}
+        image: jitsi/prosody:${JITSI_PROSODY_IMAGE_TAG}
         restart: ${RESTART_POLICY}
         expose:
             - '5222'
@@ -349,7 +349,7 @@ services:
 
     # Focus component
     jicofo:
-        image: jitsi/jicofo:${JITSI_WEB_VERSION}
+        image: jitsi/jicofo:${JITSI_JICOFO_IMAGE_TAG}
         restart: ${RESTART_POLICY}
         volumes:
             - jicofo:/config:Z
@@ -438,7 +438,7 @@ services:
     
     # Video bridge
     jvb:
-        image: jitsi/jvb:${JITSI_WEB_VERSION}
+        image: jitsi/jvb:${JITSI_JVB_IMAGE_TAG}
         restart: ${RESTART_POLICY}
         ports:
             - '${JVB_PORT}:${JVB_PORT}/udp'

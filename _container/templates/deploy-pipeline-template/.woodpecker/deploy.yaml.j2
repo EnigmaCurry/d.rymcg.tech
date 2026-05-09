@@ -1,0 +1,72 @@
+## __NAME__ deployment pipeline
+## using the d-rymcg-tech workstation Docker image with OpenBao.
+##
+## The d-rymcg-tech entrypoint handles all auth, decryption, and SSH
+## setup automatically when the BAO_* env vars are provided.
+##
+## Required Woodpecker secrets (add via UI or CLI before running):
+##   bao_addr          - OpenBao server URL
+##   bao_role_id       - AppRole role ID
+##   bao_secret_id     - AppRole secret ID
+##   bao_age_key_path  - KV path to AGE key (e.g., sops/__NAME__/myserver-production)
+##
+## Optional Woodpecker secrets:
+##   bao_cacert      - CA cert for OpenBao TLS (if using private CA)
+##   bao_client_cert - mTLS client cert (if OpenBao uses mTLS)
+##   bao_client_key  - mTLS client key  (if OpenBao uses mTLS)
+##   bao_namespace   - OpenBao namespace (if using namespaces)
+##
+## Required files in repo:
+##   {{ sops_config }} - SOPS-encrypted env export
+##     (created with: d export-env --encrypt > {{ sops_config }})
+##
+## This file is generated from deploy.yaml.j2 — do not edit directly.
+
+when:
+  - event: [push, manual]
+
+variables:
+{% if image_source == 'ghcr' %}
+  - &image ghcr.io/enigmacurry/d-rymcg-tech
+{% else %}
+  - &image {{ registry }}/${CI_REPO_OWNER}/d-rymcg-tech
+{% endif %}
+  - &config
+    image: *image
+    pull: true
+    environment:
+      PATH: /home/user/git/vendor/enigmacurry/d.rymcg.tech/_scripts/user:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin
+      BAO_ADDR:
+        from_secret: bao_addr
+      BAO_ROLE_ID:
+        from_secret: bao_role_id
+      BAO_SECRET_ID:
+        from_secret: bao_secret_id
+      BAO_AGE_KEY_PATH:
+        from_secret: bao_age_key_path
+{% if bao_cacert %}
+      BAO_CACERT:
+        from_secret: bao_cacert
+{% endif %}
+{% if bao_client_cert %}
+      BAO_CLIENT_CERT:
+        from_secret: bao_client_cert
+{% endif %}
+{% if bao_client_key %}
+      BAO_CLIENT_KEY:
+        from_secret: bao_client_key
+{% endif %}
+      SOPS_CONFIG_FILE: {{ sops_config }}
+
+steps:
+  - name: deploy
+    <<: *config
+    commands:
+      - |
+        /entrypoint.sh bash -c '
+          set -e
+          d make traefik install
+          d make whoami install
+          d make whoami wait
+          echo "Deployed to https://$(d make whoami dotenv_get var=WHOAMI_TRAEFIK_HOST)"
+        '

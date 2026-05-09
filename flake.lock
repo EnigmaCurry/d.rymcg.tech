@@ -1,0 +1,365 @@
+{
+  "nodes": {
+    "blog-rymcg-tech": {
+      "flake": false,
+      "locked": {
+        "lastModified": 1771529176,
+        "narHash": "sha256-0m+Gx6wz37U7VGWmjHEGwpwuQ6XEqhzVC/Tld1OZrFg=",
+        "owner": "EnigmaCurry",
+        "repo": "blog.rymcg.tech",
+        "rev": "e96c77d360a036ac5ea91168856b6083bcbaf8aa",
+        "type": "github"
+      },
+      "original": {
+        "owner": "EnigmaCurry",
+        "repo": "blog.rymcg.tech",
+        "type": "github"
+      }
+    },
+    "emacs_enigmacurry": {
+      "flake": false,
+      "locked": {
+        "lastModified": 1771577167,
+        "narHash": "sha256-5jQ4gOuSkYnPAGaweMqSNBVnr7iRprx7YYKUfjxt6Kw=",
+        "owner": "EnigmaCurry",
+        "repo": "emacs",
+        "rev": "12969bdd6580a23dcd82a3e3b4eb428f886e0c01",
+        "type": "github"
+      },
+      "original": {
+        "owner": "EnigmaCurry",
+        "repo": "emacs",
+        "type": "github"
+      }
+    },
+    "firefox-addons": {
+      "inputs": {
+        "nixpkgs": [
+          "nixpkgs"
+        ]
+      },
+      "locked": {
+        "dir": "pkgs/firefox-addons",
+        "lastModified": 1771591358,
+        "narHash": "sha256-17QxUvLnI/dVy6Qi3EmJfJdmyRLtNCbnxtms4wAAjkU=",
+        "owner": "rycee",
+        "repo": "nur-expressions",
+        "rev": "66abfa0001c1983e08589b1c89dae346f8f80ccc",
+        "type": "gitlab"
+      },
+      "original": {
+        "dir": "pkgs/firefox-addons",
+        "owner": "rycee",
+        "repo": "nur-expressions",
+        "type": "gitlab"
+      }
+    },
+    "flake-utils": {
+      "inputs": {
+        "systems": "systems"
+      },
+      "locked": {
+        "lastModified": 1731533236,
+        "narHash": "sha256-l0KFg5HjrsfsO/JpG+r7fRrqm12kzFHyUHqHCVpMMbI=",
+        "owner": "numtide",
+        "repo": "flake-utils",
+        "rev": "11707dc2f618dd54ca8739b309ec4fc024de578b",
+        "type": "github"
+      },
+      "original": {
+        "owner": "numtide",
+        "repo": "flake-utils",
+        "type": "github"
+      }
+    },
+    "git-prompt": {
+      "flake": false,
+      "locked": {
+        "narHash": "sha256-kV63N7WFRfPMN1VbBqzEdaskUfkCDb+ZpvggScfuJ3c=",
+        "type": "file",
+        "url": "https://raw.githubusercontent.com/git/git/master/contrib/completion/git-prompt.sh"
+      },
+      "original": {
+        "type": "file",
+        "url": "https://raw.githubusercontent.com/git/git/master/contrib/completion/git-prompt.sh"
+      }
+    },
+    "home-manager": {
+      "inputs": {
+        "nixpkgs": [
+          "nixpkgs"
+        ]
+      },
+      "locked": {
+        "lastModified": 1771531206,
+        "narHash": "sha256-1R3Wx6KUkMb4x4E5UOhW9p6rqiexzSGGWxZqSHqW5n0=",
+        "owner": "nix-community",
+        "repo": "home-manager",
+        "rev": "91be7cce763fa4022c7cf025a71b0c366d1b6e77",
+        "type": "github"
+      },
+      "original": {
+        "owner": "nix-community",
+        "repo": "home-manager",
+        "type": "github"
+      }
+    },
+    "home-manager_2": {
+      "inputs": {
+        "nixpkgs": [
+          "sway-home",
+          "nixpkgs"
+        ]
+      },
+      "locked": {
+        "lastModified": 1770260404,
+        "narHash": "sha256-3iVX1+7YUIt23hBx1WZsUllhbmP2EnXrV8tCRbLxHc8=",
+        "owner": "nix-community",
+        "repo": "home-manager",
+        "rev": "0d782ee42c86b196acff08acfbf41bb7d13eed5b",
+        "type": "github"
+      },
+      "original": {
+        "owner": "nix-community",
+        "ref": "release-25.11",
+        "repo": "home-manager",
+        "type": "github"
+      }
+    },
+    "nix-flatpak": {
+      "locked": {
+        "lastModified": 1768656715,
+        "narHash": "sha256-Sbh037scxKFm7xL0ahgSCw+X2/5ZKeOwI2clqrYr9j4=",
+        "owner": "gmodena",
+        "repo": "nix-flatpak",
+        "rev": "123fe29340a5b8671367055b75a6e7c320d6f89a",
+        "type": "github"
+      },
+      "original": {
+        "owner": "gmodena",
+        "repo": "nix-flatpak",
+        "type": "github"
+      }
+    },
+    "nix-flatpak_2": {
+      "locked": {
+        "lastModified": 1768656715,
+        "narHash": "sha256-Sbh037scxKFm7xL0ahgSCw+X2/5ZKeOwI2clqrYr9j4=",
+        "owner": "gmodena",
+        "repo": "nix-flatpak",
+        "rev": "123fe29340a5b8671367055b75a6e7c320d6f89a",
+        "type": "github"
+      },
+      "original": {
+        "owner": "gmodena",
+        "repo": "nix-flatpak",
+        "type": "github"
+      }
+    },
+    "nixos-vm-template": {
+      "flake": false,
+      "locked": {
+        "lastModified": 1770161652,
+        "narHash": "sha256-pbJ8McY5bbJT+Te286MGyAGU+LnB0X1Xr95BBn+fTcA=",
+        "owner": "EnigmaCurry",
+        "repo": "nixos-vm-template",
+        "rev": "7837bbaff84985adb2e69c9fee6f4aa4e1729ad2",
+        "type": "github"
+      },
+      "original": {
+        "owner": "EnigmaCurry",
+        "repo": "nixos-vm-template",
+        "type": "github"
+      }
+    },
+    "nixpkgs": {
+      "locked": {
+        "lastModified": 1771369470,
+        "narHash": "sha256-0NBlEBKkN3lufyvFegY4TYv5mCNHbi5OmBDrzihbBMQ=",
+        "owner": "NixOS",
+        "repo": "nixpkgs",
+        "rev": "0182a361324364ae3f436a63005877674cf45efb",
+        "type": "github"
+      },
+      "original": {
+        "owner": "NixOS",
+        "ref": "nixos-unstable",
+        "repo": "nixpkgs",
+        "type": "github"
+      }
+    },
+    "nixpkgs_2": {
+      "locked": {
+        "lastModified": 1769461804,
+        "narHash": "sha256-msG8SU5WsBUfVVa/9RPLaymvi5bI8edTavbIq3vRlhI=",
+        "owner": "NixOS",
+        "repo": "nixpkgs",
+        "rev": "bfc1b8a4574108ceef22f02bafcf6611380c100d",
+        "type": "github"
+      },
+      "original": {
+        "owner": "NixOS",
+        "ref": "nixos-unstable",
+        "repo": "nixpkgs",
+        "type": "github"
+      }
+    },
+    "nixpkgs_unstable": {
+      "locked": {
+        "lastModified": 1771369470,
+        "narHash": "sha256-0NBlEBKkN3lufyvFegY4TYv5mCNHbi5OmBDrzihbBMQ=",
+        "owner": "NixOS",
+        "repo": "nixpkgs",
+        "rev": "0182a361324364ae3f436a63005877674cf45efb",
+        "type": "github"
+      },
+      "original": {
+        "owner": "NixOS",
+        "ref": "nixos-unstable",
+        "repo": "nixpkgs",
+        "type": "github"
+      }
+    },
+    "org-src": {
+      "flake": false,
+      "locked": {
+        "lastModified": 1769553261,
+        "narHash": "sha256-z8OlxrhZRDEqZSEW0HhdTdUEIbOySMdiMF8MvAlsM+Q=",
+        "owner": "EnigmaCurry",
+        "repo": "org",
+        "rev": "9c1c5c7cf83461e7fae740e297fcc7e38fb13bd4",
+        "type": "github"
+      },
+      "original": {
+        "owner": "EnigmaCurry",
+        "repo": "org",
+        "type": "github"
+      }
+    },
+    "root": {
+      "inputs": {
+        "firefox-addons": "firefox-addons",
+        "home-manager": "home-manager",
+        "nix-flatpak": "nix-flatpak",
+        "nixpkgs": "nixpkgs",
+        "org-src": "org-src",
+        "sway-home": "sway-home",
+        "sway-home-src": "sway-home-src",
+        "vendor-git-repos": "vendor-git-repos"
+      }
+    },
+    "script-wizard": {
+      "inputs": {
+        "flake-utils": "flake-utils",
+        "nixpkgs": "nixpkgs_2"
+      },
+      "locked": {
+        "lastModified": 1769806370,
+        "narHash": "sha256-2OUSEa4l2tS92+idjIuysJ7s5BKUzrgUEBM+673EXvg=",
+        "owner": "EnigmaCurry",
+        "repo": "script-wizard",
+        "rev": "e55e3601077cf71f15db4d2e2a069af77ff685b0",
+        "type": "github"
+      },
+      "original": {
+        "owner": "EnigmaCurry",
+        "repo": "script-wizard",
+        "type": "github"
+      }
+    },
+    "sway-home": {
+      "inputs": {
+        "blog-rymcg-tech": "blog-rymcg-tech",
+        "emacs_enigmacurry": "emacs_enigmacurry",
+        "git-prompt": "git-prompt",
+        "home-manager": "home-manager_2",
+        "nix-flatpak": "nix-flatpak_2",
+        "nixos-vm-template": "nixos-vm-template",
+        "nixpkgs": [
+          "nixpkgs"
+        ],
+        "nixpkgs_unstable": "nixpkgs_unstable",
+        "script-wizard": "script-wizard",
+        "sway-home": "sway-home_2"
+      },
+      "locked": {
+        "dir": "home-manager",
+        "lastModified": 1771617184,
+        "narHash": "sha256-F7m7znsjTiq78TMG7dFKfSoCN7mvK/Mn6psYe6RUVZc=",
+        "owner": "EnigmaCurry",
+        "repo": "sway-home",
+        "rev": "e3048fa0dbc16e2e8f850b4bf26a5c4b2b4c851f",
+        "type": "github"
+      },
+      "original": {
+        "dir": "home-manager",
+        "owner": "EnigmaCurry",
+        "repo": "sway-home",
+        "type": "github"
+      }
+    },
+    "sway-home-src": {
+      "flake": false,
+      "locked": {
+        "lastModified": 1771617184,
+        "narHash": "sha256-F7m7znsjTiq78TMG7dFKfSoCN7mvK/Mn6psYe6RUVZc=",
+        "owner": "EnigmaCurry",
+        "repo": "sway-home",
+        "rev": "e3048fa0dbc16e2e8f850b4bf26a5c4b2b4c851f",
+        "type": "github"
+      },
+      "original": {
+        "owner": "EnigmaCurry",
+        "repo": "sway-home",
+        "type": "github"
+      }
+    },
+    "sway-home_2": {
+      "flake": false,
+      "locked": {
+        "path": "..",
+        "type": "path"
+      },
+      "original": {
+        "path": "..",
+        "type": "path"
+      },
+      "parent": [
+        "sway-home"
+      ]
+    },
+    "systems": {
+      "locked": {
+        "lastModified": 1681028828,
+        "narHash": "sha256-Vy1rq5AaRuLzOxct8nz4T6wlgyUR7zLU309k9mBC768=",
+        "owner": "nix-systems",
+        "repo": "default",
+        "rev": "da67096a3b9bf56a91d16901293e51ba5b49a27e",
+        "type": "github"
+      },
+      "original": {
+        "owner": "nix-systems",
+        "repo": "default",
+        "type": "github"
+      }
+    },
+    "vendor-git-repos": {
+      "flake": false,
+      "locked": {
+        "lastModified": 1771269639,
+        "narHash": "sha256-FkTe9MHIw5ZGrhfRW4HCyEvo7RDU0Z9mM32lBYBrc/E=",
+        "owner": "EnigmaCurry",
+        "repo": "d.rymcg.tech",
+        "rev": "b48a441eb38bdbd275f77ae7c35d57b8762d179e",
+        "type": "github"
+      },
+      "original": {
+        "owner": "EnigmaCurry",
+        "repo": "d.rymcg.tech",
+        "type": "github"
+      }
+    }
+  },
+  "root": "root",
+  "version": 7
+}

@@ -1,0 +1,133 @@
+#!/bin/bash
+
+## llama-delete-models SERVICE [ENV_FILE]
+## Lists all .gguf model files in /models/, lets user select 1 or more to delete.
+
+BIN=$(dirname ${BASH_SOURCE})
+ROOT_DIR="${ROOT_DIR:-$(dirname ${BIN})}"
+source ${ROOT_DIR}/_scripts/funcs.sh
+set -eo pipefail
+
+SERVICE="${1}"
+ENV_FILE="${2:-}"
+
+if [[ -z "${SERVICE}" ]]; then
+    fault "Usage: llama-delete-models SERVICE [ENV_FILE]"
+fi
+
+COMPOSE="docker compose"
+if [[ -n "${ENV_FILE}" ]]; then
+    COMPOSE="docker compose --env-file ${ENV_FILE}"
+fi
+
+# Verify the service is running
+running_services=$(${COMPOSE} ps --format json 2>/dev/null || true)
+if [[ -z "${running_services}" ]]; then
+    fault "Service '${SERVICE}' is not running. Start it first with 'make install'."
+fi
+
+# Handle both array output (multiple containers) and single object output
+service_found=false
+if echo "${running_services}" | jq -e 'type == "array"' >/dev/null 2>&1; then
+    if echo "${running_services}" | jq -r '.[].Name' 2>/dev/null | grep -q "${SERVICE}"; then
+        service_found=true
+    fi
+else
+    if echo "${running_services}" | jq -r '.Name' 2>/dev/null | grep -q "${SERVICE}"; then
+        service_found=true
+    fi
+fi
+
+if [[ "${service_found}" != "true" ]]; then
+    fault "Service '${SERVICE}' is not running. Start it first with 'make install'."
+fi
+
+# Get list of .gguf files
+readarray -t models < <(${COMPOSE} exec -T "${SERVICE}" bash -c '
+    shopt -s nullglob
+    files=(/models/*.gguf)
+    if [[ ${#files[@]} -gt 0 ]]; then
+        for f in "${files[@]}"; do
+            size=$(stat -c%s "$f" 2>/dev/null || echo 0)
+            human=$(numfmt --to=iec-i --suffix=B "$size" 2>/dev/null || echo "$size bytes")
+            echo "$(basename "$f") (${human})"
+        done
+    fi
+')
+
+if [[ ${#models[@]} -eq 0 ]]; then
+    echo "No .gguf models found in /models/."
+    exit 0
+fi
+
+echo "=== Models in /models/ ==="
+echo ""
+
+# Present selection menu
+echo "Select models to delete (space to toggle, enter to confirm):"
+echo ""
+
+# Use script-wizard select for multi-selection
+readarray -t selected < <(wizard select "Select models to delete:" "${models[@]}")
+
+if [[ ${#selected[@]} -eq 0 ]]; then
+    echo "No models selected for deletion."
+    exit 0
+fi
+
+echo ""
+echo "The following model(s) will be deleted:"
+for model in "${selected[@]}"; do
+    echo "  - ${model}"
+done
+echo ""
+
+# Confirm deletion
+confirm n "Delete ${#selected[@]} model(s)?"
+
+# Check for corresponding .json config files
+json_files=()
+for model in "${selected[@]}"; do
+    filename=$(echo "${model}" | sed 's/ (.*$//')
+    model_id="${filename%.gguf}"
+    json_file="${model_id}.json"
+    if ${COMPOSE} exec -T "${SERVICE}" test -f "/models/${json_file}" 2>/dev/null; then
+        json_files+=("${json_file}")
+    fi
+done
+
+# Ask about deleting .json files if any exist
+json_files_to_delete=()
+if [[ ${#json_files[@]} -gt 0 ]]; then
+    echo ""
+    echo "Select config file(s) to delete (space to toggle, enter to confirm):"
+    echo ""
+    # Pre-select all config files using --default with JSON array format
+    json_files_default=$(array_to_json "${json_files[@]}")
+    readarray -t json_files_to_delete < <(wizard select --default "$json_files_default" "Select config files to delete:" "${json_files[@]}")
+fi
+
+deleted=0
+deleted_json=0
+for model in "${selected[@]}"; do
+    # Extract just the filename (before the size info in parens)
+    filename=$(echo "${model}" | sed 's/ (.*$//')
+    echo "Deleting ${filename}..."
+    ${COMPOSE} exec -T "${SERVICE}" rm -f "/models/${filename}"
+    deleted=$((deleted + 1))
+done
+
+# Delete selected .json files
+if [[ ${#json_files_to_delete[@]} -gt 0 ]]; then
+    for json_file in "${json_files_to_delete[@]}"; do
+        echo "Deleting ${json_file}..."
+        ${COMPOSE} exec -T "${SERVICE}" rm -f "/models/${json_file}"
+        deleted_json=$((deleted_json + 1))
+    done
+fi
+
+echo ""
+echo "✓ Deleted ${deleted} model(s)."
+if [[ ${#json_files_to_delete[@]} -gt 0 ]]; then
+    echo "✓ Deleted ${deleted_json} config file(s)."
+fi

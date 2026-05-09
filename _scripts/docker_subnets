@@ -12,7 +12,7 @@
 #   Docker network subnet.  It does **not** scan the host network – it only
 #   looks at the Docker‑defined subnets.
 #
-# Dependencies: jq (https://stedolan.github.io/jq/), python3 (standard)
+# Dependencies: jq (https://stedolan.github.io/jq/), uv (https://docs.astral.sh/uv/)
 # ---------------------------------------------------------------
 
 set -euo pipefail                # abort on errors, unset vars, or failed pipes
@@ -23,7 +23,7 @@ IFS=$'\n\t'                      # protect against spaces in network names
 # -------------------------------------------------
 BIN=$(dirname "${BASH_SOURCE[0]}")
 source "${BIN}/funcs.sh" || true
-${BIN}/check_deps python3
+${BIN}/check_deps uv
 
 # -------------------------------------------------
 # Helper: print usage / help and exit with status 1

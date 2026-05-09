@@ -14,7 +14,7 @@ services:
 
   matterbridge:
     depends_on: ['config']
-    image: 42wim/matterbridge:stable
+    image: ${MATTERBRIDGE_IMAGE}
     volumes:
       - config:/etc/matterbridge:ro
     labels:

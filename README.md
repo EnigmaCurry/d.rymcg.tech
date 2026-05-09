@@ -80,6 +80,13 @@ workstation.
    their own routes (domain names, paths, etc.), and other Traefik
    middleware config, via container labels.
 
+ * All Docker images can be [archived and restored](ARCHIVE.md) for
+   deployment on air-gapped machines without internet access. Images
+   are saved as compressed archives with integrity hashes on your
+   workstation, and can be transferred to any Docker host. Set
+   `BUILD=false` to skip image builds and deploy entirely from the
+   restored images.
+
  * d.rymcg.tech focuses on the needs of the full-stack self-hoster.
      You can deploy your own Certficate Authority and DNS (delegate)
    server for the automatic creation of (wildcard) TLS certificates
@@ -119,6 +126,7 @@ Follow these topical guides to get started:
  * [SECURITY.md](SECURITY.md) - how to secure a Docker server.
  * [MAKEFILE_OPS.md](MAKEFILE_OPS.md) - how to write Makefiles.
  * [RCLONE.md](RCLONE.md) - create Docker volumes on top of remote/cloud storage (S3, SFTP, Dropbox, etc.)
+ * [ARCHIVE.md](ARCHIVE.md) - how to archive and restore all Docker images offline.
  * [LICENSE.txt](LICENSE.txt) - the license for this project.
  * [Portable Docker: Build and Deploy Anywhere with WireGuard Tunneling](https://book.rymcg.tech/portable-docker/index.html) - a book about running a public Docker server at home, or while roaming, behind restrictive NAT routers, with the help from a public wireguard sentry server running in the cloud.
 
@@ -204,16 +212,19 @@ Install these applications at your preference:
 * [Jupyterlab](jupyterlab#readme) - a web based code editing environment / reproducible research tool
 * [Kokoro Web](kokoro#readme) - a browser-based AI voice generator that lets you create natural-sounding voices
 * [Lemmy](lemmy#readme) - a link aggregator and forum for the fediverse
+* [llama.cpp](llama-cpp#readme) - an LLM inference engine with an OpenAI-compatible API for serving GGUF models
 * [Matterbridge](matterbridge#readme) - a chat room bridge (IRC, Matrix, XMPP, etc)
 * [Maubot](maubot#readme) - a matrix Bot
 * [Minio](minio#readme) - an S3 storage server
 * [Mopidy](mopidy#readme) - a streaming music server built with MPD and Snapcast
 * [Mosquitto](mosquitto#readme) - an MQTT server
+* [NATS](nats#readme) - a messaging system designed for building modern distributed systems
 * [Nextcloud](nextcloud#readme) - a collaborative file server
 * [Nginx](nginx#readme) - a webserver configured with fast-cgi support for PHP scripts
 * [Node-RED](nodered#readme) - a graphical event pipeline editor
 * [Ntfy-sh](ntfy-sh#readme) - a simple HTTP-based pub-sub notification service
 * [Ollama](ollama#readme) - a service API for hosting Large Language Models
+* [OpenBao](openbao#readme) - a secrets management service (Vault)
 * [Open WebUI](open-webui#readme) - a self-hosted AI platform
 * [Pairdrop](pairdrop#readme) - a webapp (PWA) to send files and messages peer to peer
 * [Peertube](peertube#readme) - a decentralized and federated video platform
@@ -242,10 +253,12 @@ Install these applications at your preference:
 * [Trilium](trilium#readme) - a note-taking/knowledge base application
 * [Uptime-Kuma](uptime-kuma#readme) - a system uptime monitoring service and status page
 * [Vaultwarden](vaultwarden#readme) - a bitwarden compatible password manager written in Rust (formerly bitwarden_rs)
+* [vLLM](vllm#readme) - an LLM inference engine with an OpenAI-compatible API
 * [Websocketd](websocketd#readme) - a websocket / CGI server
 * [Webtop](webtop#readme) - a containerized Linux desktop in your web browser
 * [WireGuard](wireguard) - a standalone VPN client that other containers may use as a router
 * [WireGuard-Gateway](wireguard-gateway) - a VPN client config that acts as a gateway node for your LAN.
+* [Woodpecker](woodpecker#readme) - a CI/CD engine
 * [Wordpress](wordpress#readme) - a ubiquitous blogging / CMS platform, with a plugin to build a static HTML site snapshot
 * [XBrowserSync](xbs#readme) - a bookmark manager
 * [YOURLS](yourls#readme) - a URL shortener

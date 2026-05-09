@@ -1,0 +1,223 @@
+#!/bin/bash
+
+## llama-manage-model-configs SERVICE [ENV_FILE]
+## Interactive editor for per-model JSON configuration files.
+## Allows editing model-specific settings like context size, threads, GPU layers, etc.
+
+BIN=$(dirname ${BASH_SOURCE})
+ROOT_DIR="${ROOT_DIR:-$(dirname ${BIN})}"
+source ${ROOT_DIR}/_scripts/funcs.sh
+set -eo pipefail
+
+SERVICE="${1}"
+ENV_FILE="${2:-}"
+
+if [[ -z "${SERVICE}" ]]; then
+    fault "Usage: llama-manage-model-configs SERVICE [ENV_FILE]"
+fi
+
+COMPOSE="docker compose"
+if [[ -n "${ENV_FILE}" ]]; then
+    COMPOSE="docker compose --env-file ${ENV_FILE}"
+    DOTENV="${BIN}/dotenv -f ${ENV_FILE} get"
+else
+    DOTENV="${BIN}/dotenv get"
+fi
+
+# Verify the service is running
+running_services=$(${COMPOSE} ps --format json 2>/dev/null || true)
+if [[ -z "${running_services}" ]]; then
+    fault "Service '${SERVICE}' is not running. Start it first with 'make install'."
+fi
+
+# Handle both array output (multiple containers) and single object output
+service_found=false
+if echo "${running_services}" | jq -e 'type == "array"' >/dev/null 2>&1; then
+    if echo "${running_services}" | jq -r '.[].Name' 2>/dev/null | grep -q "${SERVICE}"; then
+        service_found=true
+    fi
+else
+    if echo "${running_services}" | jq -r '.Name' 2>/dev/null | grep -q "${SERVICE}"; then
+        service_found=true
+    fi
+fi
+
+if [[ "${service_found}" != "true" ]]; then
+    fault "Service '${SERVICE}' is not running. Start it first with 'make install'."
+fi
+
+# Get API token if set
+API_TOKEN=$(${DOTENV} LLAMA_API_TOKEN 2>/dev/null || true)
+CURL_AUTH=()
+if [[ -n "${API_TOKEN}" ]]; then
+    CURL_AUTH=(-H "x-api-key: ${API_TOKEN}")
+fi
+
+# Get server port
+SERVER_PORT=$(${DOTENV} LLAMA_SERVER_PORT 2>/dev/null || echo "8080")
+
+# Get .env defaults for template
+ENV_N_GPU_LAYERS=$(${DOTENV} LLAMA_N_GPU_LAYERS 2>/dev/null || true)
+ENV_CONTEXT_LENGTH=$(${DOTENV} LLAMA_CONTEXT_LENGTH 2>/dev/null || true)
+
+# Default values if .env is blank
+DEFAULT_THREADS=8
+DEFAULT_GPU_LAYERS="${ENV_N_GPU_LAYERS:-99}"
+DEFAULT_CONTEXT="${ENV_CONTEXT_LENGTH:-8096}"
+
+# Get list of .gguf files
+readarray -t models < <(${COMPOSE} exec -T "${SERVICE}" bash -c '
+    shopt -s nullglob
+    files=(/models/*.gguf)
+    if [[ ${#files[@]} -gt 0 ]]; then
+        for f in "${files[@]}"; do
+            size=$(stat -c%s "$f" 2>/dev/null || echo 0)
+            human=$(numfmt --to=iec-i --suffix=B "$size" 2>/dev/null || echo "$size bytes")
+            echo "$(basename "$f") (${human})"
+        done
+    fi
+')
+
+if [[ ${#models[@]} -eq 0 ]]; then
+    echo "No .gguf models found in /models/."
+    exit 0
+fi
+
+echo "=== Manage Model Configurations ==="
+echo ""
+
+# Use script-wizard choose for single selection
+selected=$(wizard choose "Select a model to configure:" "${models[@]}")
+
+if [[ -z "${selected}" ]]; then
+    echo "No selection made. Exiting."
+    exit 0
+fi
+
+# Extract just the filename (before the size info in parens)
+model_filename=$(echo "${selected}" | sed 's/ (.*$//')
+model_id="${model_filename%.gguf}"
+json_filename="${model_id}.json"
+
+echo ""
+echo "Managing configuration for: ${model_filename}"
+echo "Config file: ${json_filename}"
+echo ""
+
+# Create temp directory for editing
+TMPDIR=$(mktemp -d)
+trap "rm -rf ${TMPDIR}" EXIT
+
+LOCAL_JSON="${TMPDIR}/${json_filename}"
+ORIGINAL_JSON="${TMPDIR}/${json_filename}.orig"
+
+# Check if config already exists in container
+if ${COMPOSE} exec -T "${SERVICE}" test -f "/models/${json_filename}" 2>/dev/null; then
+    echo "Existing configuration found. Downloading..."
+    ${COMPOSE} exec -T "${SERVICE}" cp "/models/${json_filename}" "/tmp/${json_filename}" 2>/dev/null || true
+    ${COMPOSE} cp "${SERVICE}:/tmp/${json_filename}" "${LOCAL_JSON}" 2>/dev/null || \
+    ${COMPOSE} exec -T "${SERVICE}" cat "/models/${json_filename}" > "${LOCAL_JSON}"
+    cp "${LOCAL_JSON}" "${ORIGINAL_JSON}"
+else
+    echo "No existing configuration. Creating new one from template..."
+    cat > "${LOCAL_JSON}" <<EOF
+{
+  "model": "${model_filename}",
+  "max_context_len": ${DEFAULT_CONTEXT},
+  "context_size": ${DEFAULT_CONTEXT},
+  "threads": ${DEFAULT_THREADS},
+  "gpu_layers": ${DEFAULT_GPU_LAYERS}
+}
+EOF
+    # For new files, original is empty to ensure we detect any content
+    touch "${ORIGINAL_JSON}"
+fi
+
+# Open in editor
+EDITOR="${EDITOR:-nano}"
+echo ""
+echo "Opening ${json_filename} in ${EDITOR}..."
+echo "Edit the configuration and save when done."
+echo ""
+
+${EDITOR} "${LOCAL_JSON}"
+
+# Check if any changes were made
+if diff -q "${ORIGINAL_JSON}" "${LOCAL_JSON}" >/dev/null 2>&1; then
+    echo ""
+    echo "No changes detected. Exiting."
+    exit 0
+fi
+
+echo ""
+echo "Changes detected. Validating configuration..."
+
+# Validate JSON before uploading
+if ! jq '.' "${LOCAL_JSON}" >/dev/null 2>&1; then
+    fault "Invalid JSON in ${LOCAL_JSON}. Aborting. Please fix the JSON and try again."
+fi
+
+# Check if 'model' field matches the expected filename
+json_model_field=$(jq -r '.model // empty' "${LOCAL_JSON}" 2>/dev/null || true)
+if [[ -n "${json_model_field}" && "${json_model_field}" != "${model_filename}" ]]; then
+    echo "Warning: 'model' field in JSON (${json_model_field}) does not match selected model (${model_filename})."
+    confirm n "Continue anyway" "?" || fault "Aborted."
+fi
+
+# Upload the config back to the container
+echo ""
+echo "Uploading configuration to container..."
+${COMPOSE} exec -T "${SERVICE}" bash -c "cat > /models/${json_filename}" < "${LOCAL_JSON}"
+
+echo "Configuration saved to /models/${json_filename} in the container."
+
+# Check if the model is currently loaded
+echo ""
+echo "Checking if model is currently loaded..."
+loaded_models=$(${COMPOSE} exec -T "${SERVICE}" curl -s "${CURL_AUTH[@]}" "http://localhost:${SERVER_PORT}/v1/models" 2>/dev/null || true)
+
+if [[ -z "${loaded_models}" ]]; then
+    echo "Could not query the API. Model config has been saved."
+    echo "To apply the new configuration, unload and reload the model manually."
+    exit 0
+fi
+
+# Check if our model is in the list and get its status
+model_status=$(echo "${loaded_models}" | jq -r '.data[]? | select(.id == "'"${model_id}"'" or .id == "'"${model_filename}"'") | .status.value' 2>/dev/null || true)
+
+if [[ "${model_status}" == "loaded" ]]; then
+    echo "Model is currently loaded. Reloading to apply new configuration..."
+    
+    # Unload the model
+    echo "Unloading ${model_filename}..."
+    unload_result=$(${COMPOSE} exec -T "${SERVICE}" curl -s -X POST "${CURL_AUTH[@]}" \
+        -H "Content-Type: application/json" \
+        -d "{\"model\": \"${model_id}\"}" \
+        "http://localhost:${SERVER_PORT}/models/unload" 2>/dev/null || true)
+    
+    if echo "${unload_result}" | jq -e '.success == true' >/dev/null 2>&1; then
+        echo "Model unloaded successfully."
+    else
+        echo "Warning: Unload may have failed. Response: ${unload_result}"
+    fi
+    
+    # Load the model
+    echo "Loading ${model_filename}..."
+    load_result=$(${COMPOSE} exec -T "${SERVICE}" curl -s -X POST "${CURL_AUTH[@]}" \
+        -H "Content-Type: application/json" \
+        -d "{\"model\": \"${model_id}\"}" \
+        "http://localhost:${SERVER_PORT}/models/load" 2>/dev/null || true)
+    
+    if echo "${load_result}" | jq -e '.success == true' >/dev/null 2>&1; then
+        echo "Model loaded successfully with new configuration."
+    else
+        echo "Warning: Load may have failed. Response: ${load_result}"
+        echo "You may need to manually reload the model."
+    fi
+else
+    echo "Model is not currently loaded. Configuration saved."
+    echo "The new configuration will take effect when the model is next loaded."
+fi
+
+echo ""
+echo "Done."

@@ -130,5 +130,5 @@ services:
   alert-test:
     profiles:
       - alert-test
-    image: curlimages/curl
+    image: ${PROMETHEUS_CURL_IMAGE}
     command: curl --json '[{"labels":{"alertname":"test-alert"}}]' http://alertmanager:9093/api/v1/alerts
