@@ -89,7 +89,7 @@ if [[ "${INI_EXISTS}" == "yes" ]]; then
     ${COMPOSE} exec -T "${SERVICE}" cp "/models/models.ini" "/tmp/models.ini" 2>/dev/null || true
     ${COMPOSE} cp "${SERVICE}:/tmp/models.ini" "${LOCAL_INI}" 2>/dev/null || \
     ${COMPOSE} exec -T "${SERVICE}" cat "/tmp/models.ini" > "${LOCAL_INI}"
-    rm -f "${COMPOSE} exec -T ${SERVICE} cat /tmp/models.ini" 2>/dev/null || true
+    ${COMPOSE} exec -T "${SERVICE}" bash -c "rm -f /tmp/models.ini" 2>/dev/null || true
     echo "Existing models.ini downloaded for editing."
 else
     echo "No models.ini found. Creating new file..."
@@ -117,6 +117,11 @@ echo ""
 
 ${EDITOR} "${LOCAL_INI}"
 
+# Upload the INI back to the container
+echo ""
+echo "Uploading models.ini to /models/..."
+${COMPOSE} exec -T "${SERVICE}" bash -c "cat > /models/models.ini" < "${LOCAL_INI}"
+
 # Validate INI syntax using Python configparser
 echo ""
 echo "Validating INI syntax..."
@@ -131,13 +136,10 @@ except Exception as e:
 " 2>/dev/null || echo "invalid: python3 not available")
 
 if [[ "${INI_VALID}" != "valid" ]]; then
+    rm -f "${LOCAL_INI}" 2>/dev/null || true
+    ${COMPOSE} exec -T "${SERVICE}" bash -c "rm -f /models/models.ini" 2>/dev/null || true
     fault "Invalid INI syntax. The file was not saved. Please fix the INI and try again."
 fi
-
-# Upload the INI back to the container
-echo ""
-echo "Uploading models.ini to /models/..."
-${COMPOSE} exec -T "${SERVICE}" bash -c "cat > /models/models.ini" < "${LOCAL_INI}"
 
 echo "models.ini saved to /models/models.ini in the container."
 
