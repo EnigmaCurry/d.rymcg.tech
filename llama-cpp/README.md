@@ -157,13 +157,12 @@ make list-models-json
 make delete-models
 ```
 
-Interactive multi-select menu to remove models from `/models/`. If any
-of the selected models have corresponding `.json` configuration files,
-you'll be prompted to select which config files to delete as well
-(all pre-selected by default).
+Interactive multi-select menu to remove models from `/models/`. If the
+models preset is enabled (`LLAMA_MODELS_PRESET_ENABLED=true`),
+corresponding sections are also removed from `models.ini`.
 
-After deleting, run `make restart` if the deleted model was currently
-loaded in memory.
+After deleting a model that was currently loaded, run `make restart`
+to update llama.cpp.
 
 #### Manual Model Placement
 
@@ -171,32 +170,46 @@ You can also place `.gguf` files directly:
 - **Host path**: Copy files to the path configured in `LLAMA_MODELS_HOST_PATH`
 - **Docker volume**: Use `make shell` and download via `curl` inside the container
 
-#### Per-Model JSON Configuration
+#### Per-Model INI Configuration
 
-For each model `.gguf` file, you can create a companion `.json` file in
-the `/models/` directory (on the host or inside the container) with the
-same basename to set per-model runtime overrides. For example, alongside
-`my-model.gguf`, create `my-model.json`:
+All model configurations are stored in a single
+`/models/models.ini` file (the models preset file). The server reads
+this file at startup via the `--models-preset` flag. Each section in
+the INI file becomes a model identifier that clients use in the
+`model` field of their API requests.
 
-```json
-{
-  "n_ctx": 32768,
-  "n_batch": 4096,
-  "n_ubatch": 512,
-  "tensor_split": [0.5, 0.5],
-  "rope_scaling_type": "linear",
-  "rope_freq_base": 1000000
-}
+Example `models.ini`:
+
+```ini
+[llama3]
+model = /opt/models/llama-3-8b-instruct.Q5_K_M.gguf
+ctx-size = 8192
+ngl = 35
+threads = 8
+
+[mistral]
+model = /opt/models/mistral-7b-instruct-v0.3.Q4_K_M.gguf
+ctx-size = 4096
+ngl = 20
+threads = 8
+
+[qwen]
+model = /opt/models/qwen2.5-coder-7b-instruct.Q5_K_M.gguf
+ctx-size = 16384
+ngl = 35
+threads = 8
 ```
 
-This lets you tune context size, batch size, tensor split across GPUs,
-Rope scaling, and any other `llama-server` parameter on a per-model
-basis without maintaining separate containers or configurations.
+##### Key config parameters
 
-See the [llama.cpp server usage docs](https://github.com/ggml-org/llama.cpp/blob/master/docs/server/usage.md)
-for the full list of supported options.
+| Parameter  | What it controls |
+|------------|------------------|
+| `model`    | Absolute path to the GGUF file |
+| `ctx-size` | Context window size in tokens. Larger values use more VRAM. |
+| `ngl`      | Number of GPU layers offloaded. Set to `0` for CPU-only; increase until you hit VRAM limits. |
+| `threads`  | CPU threads for the layers that remain on CPU. |
 
-##### Managing Model Configs Interactively
+##### Managing Model Configurations
 
 ```
 make manage-model-configs
@@ -205,19 +218,29 @@ make manage-model-configs
 This target provides an interactive wizard that:
 
 1. Lists all models and prompts you to select one
-2. Downloads the existing `.json` config if it exists, or creates a new one from a template (pulling defaults from your `.env` file)
+2. Downloads `models.ini` if it exists, or creates a new blank file
 3. Opens the file in your `$EDITOR` (falls back to `nano` if unset)
-4. Validates the JSON before uploading
-5. If the model is currently loaded, unloads and reloads it to apply the new configuration
+4. Validates the INI syntax before uploading
+5. Saves the edited file back to `/models/models.ini` in the container
 
 ##### Manual Configuration
 
-You can also place `.json` files directly in the `/models/` directory.
-After adding or updating a `.json` file manually, restart the service:
+You can also edit `models.ini` directly in the `/models/` directory
+(on the host or inside the container). After adding or updating the
+INI file, restart the service:
 
 ```
 make restart
 ```
+
+**Important:** llama.cpp reads the preset file at startup only — it
+does not hot-reload it. Changes require a restart to take effect.
+
+##### Disabling the preset file
+
+Set `LLAMA_MODELS_PRESET_ENABLED=false` in your `.env` file to disable
+the `--models-preset` flag. Models will still be auto-discovered via
+`--models-dir`, but without per-model configuration.
 
 ### Shell Access
 

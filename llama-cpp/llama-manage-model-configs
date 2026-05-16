@@ -1,8 +1,9 @@
 #!/bin/bash
 
 ## llama-manage-model-configs SERVICE [ENV_FILE]
-## Interactive editor for per-model JSON configuration files.
-## Allows editing model-specific settings like context size, threads, GPU layers, etc.
+## Interactive editor for per-model INI configuration sections.
+## Uses /models/models.ini as the single preset file for all models.
+## The server reads this file at startup via --models-preset.
 
 BIN=$(dirname ${BASH_SOURCE})
 ROOT_DIR="${ROOT_DIR:-$(dirname ${BIN})}"
@@ -24,37 +25,13 @@ else
     DOTENV="${BIN}/dotenv get"
 fi
 
-# Verify the service is running
-running_services=$(${COMPOSE} ps --format json 2>/dev/null || true)
-if [[ -z "${running_services}" ]]; then
-    fault "Service '${SERVICE}' is not running. Start it first with 'make install'."
+# Get models_preset_enabled
+MODELS_PRESET_ENABLED=$(${DOTENV} LLAMA_MODELS_PRESET_ENABLED 2>/dev/null || echo "true")
+if [[ "${MODELS_PRESET_ENABLED}" != "true" ]]; then
+    echo "Models preset is disabled (LLAMA_MODELS_PRESET_ENABLED=${MODELS_PRESET_ENABLED})."
+    echo "Enable it in the .env file to manage model configurations via INI."
+    exit 0
 fi
-
-# Handle both array output (multiple containers) and single object output
-service_found=false
-if echo "${running_services}" | jq -e 'type == "array"' >/dev/null 2>&1; then
-    if echo "${running_services}" | jq -r '.[].Name' 2>/dev/null | grep -q "${SERVICE}"; then
-        service_found=true
-    fi
-else
-    if echo "${running_services}" | jq -r '.Name' 2>/dev/null | grep -q "${SERVICE}"; then
-        service_found=true
-    fi
-fi
-
-if [[ "${service_found}" != "true" ]]; then
-    fault "Service '${SERVICE}' is not running. Start it first with 'make install'."
-fi
-
-# Get API token if set
-API_TOKEN=$(${DOTENV} LLAMA_API_TOKEN 2>/dev/null || true)
-CURL_AUTH=()
-if [[ -n "${API_TOKEN}" ]]; then
-    CURL_AUTH=(-H "x-api-key: ${API_TOKEN}")
-fi
-
-# Get server port
-SERVER_PORT=$(${DOTENV} LLAMA_SERVER_PORT 2>/dev/null || echo "8080")
 
 # Get .env defaults for template
 ENV_N_GPU_LAYERS=$(${DOTENV} LLAMA_N_GPU_LAYERS 2>/dev/null || true)
@@ -63,7 +40,7 @@ ENV_CONTEXT_LENGTH=$(${DOTENV} LLAMA_CONTEXT_LENGTH 2>/dev/null || true)
 # Default values if .env is blank
 DEFAULT_THREADS=8
 DEFAULT_GPU_LAYERS="${ENV_N_GPU_LAYERS:-99}"
-DEFAULT_CONTEXT="${ENV_CONTEXT_LENGTH:-8096}"
+DEFAULT_CONTEXT="${ENV_CONTEXT_LENGTH:-8192}"
 
 # Get list of .gguf files
 readarray -t models < <(${COMPOSE} exec -T "${SERVICE}" bash -c '
@@ -83,7 +60,10 @@ if [[ ${#models[@]} -eq 0 ]]; then
     exit 0
 fi
 
-echo "=== Manage Model Configurations ==="
+# Check if models.ini exists
+INI_EXISTS=$(${COMPOSE} exec -T "${SERVICE}" test -f "/models/models.ini" && echo "yes" || echo "no")
+
+echo "=== Manage Model Configurations (models.ini) ==="
 echo ""
 
 # Use script-wizard choose for single selection
@@ -97,127 +77,73 @@ fi
 # Extract just the filename (before the size info in parens)
 model_filename=$(echo "${selected}" | sed 's/ (.*$//')
 model_id="${model_filename%.gguf}"
-json_filename="${model_id}.json"
 
-echo ""
-echo "Managing configuration for: ${model_filename}"
-echo "Config file: ${json_filename}"
-echo ""
-
-# Create temp directory for editing
+# Download models.ini if it exists, otherwise create blank
 TMPDIR=$(mktemp -d)
 trap "rm -rf ${TMPDIR}" EXIT
 
-LOCAL_JSON="${TMPDIR}/${json_filename}"
-ORIGINAL_JSON="${TMPDIR}/${json_filename}.orig"
+LOCAL_INI="${TMPDIR}/models.ini"
 
-# Check if config already exists in container
-if ${COMPOSE} exec -T "${SERVICE}" test -f "/models/${json_filename}" 2>/dev/null; then
-    echo "Existing configuration found. Downloading..."
-    ${COMPOSE} exec -T "${SERVICE}" cp "/models/${json_filename}" "/tmp/${json_filename}" 2>/dev/null || true
-    ${COMPOSE} cp "${SERVICE}:/tmp/${json_filename}" "${LOCAL_JSON}" 2>/dev/null || \
-    ${COMPOSE} exec -T "${SERVICE}" cat "/models/${json_filename}" > "${LOCAL_JSON}"
-    cp "${LOCAL_JSON}" "${ORIGINAL_JSON}"
+if [[ "${INI_EXISTS}" == "yes" ]]; then
+    echo "Downloading models.ini..."
+    ${COMPOSE} exec -T "${SERVICE}" cp "/models/models.ini" "/tmp/models.ini" 2>/dev/null || true
+    ${COMPOSE} cp "${SERVICE}:/tmp/models.ini" "${LOCAL_INI}" 2>/dev/null || \
+    ${COMPOSE} exec -T "${SERVICE}" cat "/tmp/models.ini" > "${LOCAL_INI}"
+    rm -f "${COMPOSE} exec -T ${SERVICE} cat /tmp/models.ini" 2>/dev/null || true
+    echo "Existing models.ini downloaded for editing."
 else
-    echo "No existing configuration. Creating new one from template..."
-    cat > "${LOCAL_JSON}" <<EOF
-{
-  "model": "${model_filename}",
-  "max_context_len": ${DEFAULT_CONTEXT},
-  "context_size": ${DEFAULT_CONTEXT},
-  "threads": ${DEFAULT_THREADS},
-  "gpu_layers": ${DEFAULT_GPU_LAYERS}
-}
-EOF
-    # For new files, original is empty to ensure we detect any content
-    touch "${ORIGINAL_JSON}"
+    echo "No models.ini found. Creating new file..."
+    touch "${LOCAL_INI}"
 fi
 
-# Open in editor
-EDITOR="${EDITOR:-nano}"
-echo ""
-echo "Opening ${json_filename} in ${EDITOR}..."
-echo "Edit the configuration and save when done."
-echo ""
+# Check if this model already has a section
+HAS_SECTION=$(${COMPOSE} exec -T "${SERVICE}" python3 -c "
+import configparser
+c = configparser.ConfigParser()
+c.read('/models/models.ini')
+print('yes' if '${model_id}' in c.sections() else 'no')
+" 2>/dev/null || echo "no")
 
-${EDITOR} "${LOCAL_JSON}"
-
-# Check if any changes were made
-if diff -q "${ORIGINAL_JSON}" "${LOCAL_JSON}" >/dev/null 2>&1; then
+if [[ "${HAS_SECTION}" == "no" ]]; then
     echo ""
-    echo "No changes detected. Exiting."
-    exit 0
+    echo "Model '${model_filename}' has no configuration section yet."
+    echo "A new section will be created with default values from your .env file."
+    echo ""
 fi
 
 echo ""
-echo "Changes detected. Validating configuration..."
-
-# Validate JSON before uploading
-if ! jq '.' "${LOCAL_JSON}" >/dev/null 2>&1; then
-    fault "Invalid JSON in ${LOCAL_JSON}. Aborting. Please fix the JSON and try again."
-fi
-
-# Check if 'model' field matches the expected filename
-json_model_field=$(jq -r '.model // empty' "${LOCAL_JSON}" 2>/dev/null || true)
-if [[ -n "${json_model_field}" && "${json_model_field}" != "${model_filename}" ]]; then
-    echo "Warning: 'model' field in JSON (${json_model_field}) does not match selected model (${model_filename})."
-    confirm n "Continue anyway" "?" || fault "Aborted."
-fi
-
-# Upload the config back to the container
+echo "Opening models.ini in ${EDITOR:-nano}..."
 echo ""
-echo "Uploading configuration to container..."
-${COMPOSE} exec -T "${SERVICE}" bash -c "cat > /models/${json_filename}" < "${LOCAL_JSON}"
 
-echo "Configuration saved to /models/${json_filename} in the container."
+${EDITOR} "${LOCAL_INI}"
 
-# Check if the model is currently loaded
+# Validate INI syntax using Python configparser
 echo ""
-echo "Checking if model is currently loaded..."
-loaded_models=$(${COMPOSE} exec -T "${SERVICE}" curl -s "${CURL_AUTH[@]}" "http://localhost:${SERVER_PORT}/v1/models" 2>/dev/null || true)
+echo "Validating INI syntax..."
+INI_VALID=$(${COMPOSE} exec -T "${SERVICE}" python3 -c "
+import configparser
+c = configparser.ConfigParser()
+try:
+    c.read('/models/models.ini')
+    print('valid')
+except Exception as e:
+    print('invalid: ' + str(e))
+" 2>/dev/null || echo "invalid: python3 not available")
 
-if [[ -z "${loaded_models}" ]]; then
-    echo "Could not query the API. Model config has been saved."
-    echo "To apply the new configuration, unload and reload the model manually."
-    exit 0
+if [[ "${INI_VALID}" != "valid" ]]; then
+    fault "Invalid INI syntax. The file was not saved. Please fix the INI and try again."
 fi
 
-# Check if our model is in the list and get its status
-model_status=$(echo "${loaded_models}" | jq -r '.data[]? | select(.id == "'"${model_id}"'" or .id == "'"${model_filename}"'") | .status.value' 2>/dev/null || true)
+# Upload the INI back to the container
+echo ""
+echo "Uploading models.ini to /models/..."
+${COMPOSE} exec -T "${SERVICE}" bash -c "cat > /models/models.ini" < "${LOCAL_INI}"
 
-if [[ "${model_status}" == "loaded" ]]; then
-    echo "Model is currently loaded. Reloading to apply new configuration..."
-    
-    # Unload the model
-    echo "Unloading ${model_filename}..."
-    unload_result=$(${COMPOSE} exec -T "${SERVICE}" curl -s -X POST "${CURL_AUTH[@]}" \
-        -H "Content-Type: application/json" \
-        -d "{\"model\": \"${model_id}\"}" \
-        "http://localhost:${SERVER_PORT}/models/unload" 2>/dev/null || true)
-    
-    if echo "${unload_result}" | jq -e '.success == true' >/dev/null 2>&1; then
-        echo "Model unloaded successfully."
-    else
-        echo "Warning: Unload may have failed. Response: ${unload_result}"
-    fi
-    
-    # Load the model
-    echo "Loading ${model_filename}..."
-    load_result=$(${COMPOSE} exec -T "${SERVICE}" curl -s -X POST "${CURL_AUTH[@]}" \
-        -H "Content-Type: application/json" \
-        -d "{\"model\": \"${model_id}\"}" \
-        "http://localhost:${SERVER_PORT}/models/load" 2>/dev/null || true)
-    
-    if echo "${load_result}" | jq -e '.success == true' >/dev/null 2>&1; then
-        echo "Model loaded successfully with new configuration."
-    else
-        echo "Warning: Load may have failed. Response: ${load_result}"
-        echo "You may need to manually reload the model."
-    fi
-else
-    echo "Model is not currently loaded. Configuration saved."
-    echo "The new configuration will take effect when the model is next loaded."
-fi
+echo "models.ini saved to /models/models.ini in the container."
 
+echo ""
+echo "NOTE: llama.cpp reads the preset file at startup."
+echo "You must restart the service for changes to take effect:"
+echo "  make restart"
 echo ""
 echo "Done."
