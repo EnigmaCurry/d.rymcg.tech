@@ -172,29 +172,27 @@ You can also place `.gguf` files directly:
 
 #### Per-Model INI Configuration
 
-All model configurations are stored in a single
-`/models/models.ini` file (the models preset file). The server reads
-this file at startup via the `--models-preset` flag. Each section in
-the INI file becomes a model identifier that clients use in the
-`model` field of their API requests.
+All model configurations are stored in a single `/models/models.ini`
+file that the server reads at startup. Each section in the INI file
+are custom configs for a model that exists in `/models/` as a .gguf file.
 
 Example `models.ini`:
 
 ```ini
 [llama3]
-model = /opt/models/llama-3-8b-instruct.Q5_K_M.gguf
+model = /models/llama-3-8b-instruct.Q5_K_M.gguf
 ctx-size = 8192
 ngl = 35
 threads = 8
 
 [mistral]
-model = /opt/models/mistral-7b-instruct-v0.3.Q4_K_M.gguf
+model = /models/mistral-7b-instruct-v0.3.Q4_K_M.gguf
 ctx-size = 4096
 ngl = 20
 threads = 8
 
 [qwen]
-model = /opt/models/qwen2.5-coder-7b-instruct.Q5_K_M.gguf
+model = /models/qwen2.5-coder-7b-instruct.Q5_K_M.gguf
 ctx-size = 16384
 ngl = 35
 threads = 8
@@ -218,7 +216,7 @@ make manage-model-configs
 This target provides an interactive wizard that:
 
 1. Lists all models and prompts you to select one
-2. Downloads `models.ini` if it exists, or creates a new blank file
+2. Downloads `models.ini` from container if it exists, or creates a new blank file
 3. Opens the file in your `$EDITOR` (falls back to `nano` if unset)
 4. Validates the INI syntax before uploading
 5. Saves the edited file back to `/models/models.ini` in the container

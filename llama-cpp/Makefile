@@ -69,7 +69,7 @@ add-models:
 list-models:
 	@${ROOT_DIR}/llama-cpp/llama-list-models llama-$$(${BIN}/dotenv -f ${ENV_FILE} get LLAMA_DOCKER_COMPOSE_PROFILES) ${ENV_FILE}
 
-.PHONY: list-models-json # List all models llama.cpp has detected (JSON output)
+.PHONY: list-models-json # List all models llama.cpp has detected and their configs (JSON output)
 list-models-json:
 	@${ROOT_DIR}/llama-cpp/llama-list-models --json llama-$$(${BIN}/dotenv -f ${ENV_FILE} get LLAMA_DOCKER_COMPOSE_PROFILES) ${ENV_FILE}
 
