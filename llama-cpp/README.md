@@ -213,13 +213,15 @@ threads = 8
 make manage-model-configs
 ```
 
-This target provides an interactive wizard that:
+This target opens an interactive editor workflow:
 
-1. Lists all models and prompts you to select one
-2. Downloads `models.ini` from container if it exists, or creates a new blank file
-3. Opens the file in your `$EDITOR` (falls back to `nano` if unset)
-4. Validates the INI syntax before uploading
-5. Saves the edited file back to `/models/models.ini` in the container
+1. Downloads `models.ini` from the container if it exists, or creates a new file with commented-out example sections
+2. Opens the file in your `$EDITOR` (falls back to `nano` if unset)
+3. After you save and close the editor, validates INI syntax locally using Python's `configparser`
+   - If syntax is invalid, the upload is skipped (container file untouched) and the file re-opens in the editor; press N during the 5-second countdown to abort entirely
+   - If `python3` or `configparser` are not available locally, a warning is shown and you're asked whether to proceed with the upload anyway
+4. If valid (or you chose to proceed without validation), uploads to the container
+5. Reminds you to restart the service
 
 ##### Manual Configuration
 

@@ -4,25 +4,25 @@
 ## Interactive editor for per-model INI configuration sections.
 ## Uses /models/models.ini as the single preset file for all models.
 ## The server reads this file at startup via --models-preset.
+##
+## Flow: download → edit → validate locally → upload if valid
 
-BIN=$(dirname ${BASH_SOURCE})
-ROOT_DIR="${ROOT_DIR:-$(dirname ${BIN})}"
-source ${ROOT_DIR}/_scripts/funcs.sh
 set -eo pipefail
 
 SERVICE="${1}"
 ENV_FILE="${2:-}"
 
 if [[ -z "${SERVICE}" ]]; then
-    fault "Usage: llama-manage-model-configs SERVICE [ENV_FILE]"
+    echo "Usage: llama-manage-model-configs SERVICE [ENV_FILE]" >&2
+    exit 1
 fi
 
 COMPOSE="docker compose"
 if [[ -n "${ENV_FILE}" ]]; then
     COMPOSE="docker compose --env-file ${ENV_FILE}"
-    DOTENV="${BIN}/dotenv -f ${ENV_FILE} get"
+    DOTENV="${DOTENV_CMD:-dotenv} -f ${ENV_FILE} get"
 else
-    DOTENV="${BIN}/dotenv get"
+    DOTENV="${DOTENV_CMD:-dotenv} get"
 fi
 
 # Get models_preset_enabled
@@ -33,56 +33,13 @@ if [[ "${MODELS_PRESET_ENABLED}" != "true" ]]; then
     exit 0
 fi
 
-# Get .env defaults for template
-ENV_N_GPU_LAYERS=$(${DOTENV} LLAMA_N_GPU_LAYERS 2>/dev/null || true)
-ENV_CONTEXT_LENGTH=$(${DOTENV} LLAMA_CONTEXT_LENGTH 2>/dev/null || true)
-
-# Default values if .env is blank
-DEFAULT_THREADS=8
-DEFAULT_GPU_LAYERS="${ENV_N_GPU_LAYERS:-99}"
-DEFAULT_CONTEXT="${ENV_CONTEXT_LENGTH:-8192}"
-
-# Get list of .gguf files
-readarray -t models < <(${COMPOSE} exec -T "${SERVICE}" bash -c '
-    shopt -s nullglob
-    files=(/models/*.gguf)
-    if [[ ${#files[@]} -gt 0 ]]; then
-        for f in "${files[@]}"; do
-            size=$(stat -c%s "$f" 2>/dev/null || echo 0)
-            human=$(numfmt --to=iec-i --suffix=B "$size" 2>/dev/null || echo "$size bytes")
-            echo "$(basename "$f") (${human})"
-        done
-    fi
-')
-
-if [[ ${#models[@]} -eq 0 ]]; then
-    echo "No .gguf models found in /models/."
-    exit 0
-fi
-
-# Check if models.ini exists
-INI_EXISTS=$(${COMPOSE} exec -T "${SERVICE}" test -f "/models/models.ini" && echo "yes" || echo "no")
-
-echo "=== Manage Model Configurations (models.ini) ==="
-echo ""
-
-# Use script-wizard choose for single selection
-selected=$(wizard choose "Select a model to configure:" "${models[@]}")
-
-if [[ -z "${selected}" ]]; then
-    echo "No selection made. Exiting."
-    exit 0
-fi
-
-# Extract just the filename (before the size info in parens)
-model_filename=$(echo "${selected}" | sed 's/ (.*$//')
-model_id="${model_filename%.gguf}"
-
-# Download models.ini if it exists, otherwise create blank
 TMPDIR=$(mktemp -d)
 trap "rm -rf ${TMPDIR}" EXIT
 
 LOCAL_INI="${TMPDIR}/models.ini"
+
+# Download models.ini if it exists, otherwise create with commented example
+INI_EXISTS=$(${COMPOSE} exec -T "${SERVICE}" test -f "/models/models.ini" && echo "yes" || echo "no")
 
 if [[ "${INI_EXISTS}" == "yes" ]]; then
     echo "Downloading models.ini..."
@@ -92,54 +49,120 @@ if [[ "${INI_EXISTS}" == "yes" ]]; then
     ${COMPOSE} exec -T "${SERVICE}" bash -c "rm -f /tmp/models.ini" 2>/dev/null || true
     echo "Existing models.ini downloaded for editing."
 else
-    echo "No models.ini found. Creating new file..."
-    touch "${LOCAL_INI}"
+    echo "No models.ini found. Creating new file with example sections..."
+    ENV_N_GPU_LAYERS=$(${DOTENV} LLAMA_N_GPU_LAYERS 2>/dev/null || true)
+    ENV_CONTEXT_LENGTH=$(${DOTENV} LLAMA_CONTEXT_LENGTH 2>/dev/null || true)
+    DEFAULT_N_GPU_LAYERS="${ENV_N_GPU_LAYERS:-99}"
+    DEFAULT_CONTEXT_LENGTH="${ENV_CONTEXT_LENGTH:-8192}"
+    cat > "${LOCAL_INI}" <<EOF
+# Per-model configuration for llama.cpp
+# Each section is a model display name; the 'model' key points to the .gguf file.
+#
+# [llama3]
+# model = /models/llama-3-8b-instruct.Q5_K_M.gguf
+# ctx-size = ${DEFAULT_CONTEXT_LENGTH}
+# ngl = ${DEFAULT_N_GPU_LAYERS}
+# threads = 8
+
+[mistral]
+model = /models/mistral-7b-instruct-v0.3.Q4_K_M.gguf
+ctx-size = ${DEFAULT_CONTEXT_LENGTH}
+ngl = ${DEFAULT_N_GPU_LAYERS}
+threads = 8
+EOF
 fi
 
-# Check if this model already has a section
-HAS_SECTION=$(${COMPOSE} exec -T "${SERVICE}" python3 -c "
-import configparser
-c = configparser.ConfigParser()
-c.read('/models/models.ini')
-print('yes' if '${model_id}' in c.sections() else 'no')
-" 2>/dev/null || echo "no")
-
-if [[ "${HAS_SECTION}" == "no" ]]; then
-    echo ""
-    echo "Model '${model_filename}' has no configuration section yet."
-    echo "A new section will be created with default values from your .env file."
-    echo ""
-fi
-
+# Open in editor
 echo ""
 echo "Opening models.ini in ${EDITOR:-nano}..."
 echo ""
-
 ${EDITOR} "${LOCAL_INI}"
 
-# Upload the INI back to the container
-echo ""
-echo "Uploading models.ini to /models/..."
-${COMPOSE} exec -T "${SERVICE}" bash -c "cat > /models/models.ini" < "${LOCAL_INI}"
-
-# Validate INI syntax using Python configparser
+# Validate locally with python3 configparser
 echo ""
 echo "Validating INI syntax..."
-INI_VALID=$(${COMPOSE} exec -T "${SERVICE}" python3 -c "
-import configparser
+
+PYTHON3_VALID=true
+if ! command -v python3 &>/dev/null; then
+    PYTHON3_VALID=false
+elif ! python3 -c "import configparser" 2>/dev/null; then
+    PYTHON3_VALID=false
+fi
+
+if [[ "${PYTHON3_VALID}" == "true" ]]; then
+    VALID_OUTPUT=$(python3 -c "
+import configparser, sys
 c = configparser.ConfigParser()
 try:
-    c.read('/models/models.ini')
+    c.read('${LOCAL_INI}')
     print('valid')
 except Exception as e:
     print('invalid: ' + str(e))
-" 2>/dev/null || echo "invalid: python3 not available")
-
-if [[ "${INI_VALID}" != "valid" ]]; then
-    rm -f "${LOCAL_INI}" 2>/dev/null || true
-    ${COMPOSE} exec -T "${SERVICE}" bash -c "rm -f /models/models.ini" 2>/dev/null || true
-    fault "Invalid INI syntax. The file was not saved. Please fix the INI and try again."
+" 2>/dev/null) || VALID_OUTPUT="invalid: python3 returned an error"
+else
+    VALID_OUTPUT=""
 fi
+
+if [[ -n "${VALID_OUTPUT}" && "${VALID_OUTPUT}" != "valid" ]]; then
+    echo ""
+    echo "Invalid INI syntax. Upload aborted — the existing container file is untouched."
+    echo "Error: ${VALID_OUTPUT}"
+    echo ""
+
+    while true; do
+        echo "The INI file will re-open in your editor in 5 seconds to fix the errors."
+        echo "Press N and then Enter to abort entirely."
+        if read -t 5 -rn 1 -p "> " ANSWER; then
+            echo ""
+            if [[ "${ANSWER}" == "N" || "${ANSWER}" == "n" ]]; then
+                echo "Aborted."
+                exit 1
+            fi
+        else
+            echo ""
+        fi
+
+        echo ""
+        echo "Re-opening models.ini in ${EDITOR:-nano}..."
+        echo ""
+        ${EDITOR} "${LOCAL_INI}"
+
+        echo ""
+        echo "Re-validating INI syntax..."
+
+        if [[ "${PYTHON3_VALID}" == "true" ]]; then
+            VALID_OUTPUT=$(python3 -c "
+import configparser, sys
+c = configparser.ConfigParser()
+try:
+    c.read('${LOCAL_INI}')
+    print('valid')
+except Exception as e:
+    print('invalid: ' + str(e))
+" 2>/dev/null) || VALID_OUTPUT="invalid: python3 returned an error"
+        else
+            VALID_OUTPUT=""
+        fi
+
+        if [[ -z "${VALID_OUTPUT}" || "${VALID_OUTPUT}" == "valid" ]]; then
+            break
+        fi
+
+        echo ""
+        echo "Invalid INI syntax. Upload aborted — the existing container file is untouched."
+        echo "Error: ${VALID_OUTPUT}"
+        echo ""
+    done
+fi
+
+# Upload to container
+COMPOSE_CMD="docker compose"
+if [[ -n "${ENV_FILE}" ]]; then
+    COMPOSE_CMD="docker compose --env-file ${ENV_FILE}"
+fi
+
+echo "Uploading models.ini to /models/..."
+${COMPOSE} exec -T "${SERVICE}" bash -c "cat > /models/models.ini" < "${LOCAL_INI}"
 
 echo "models.ini saved to /models/models.ini in the container."
 
