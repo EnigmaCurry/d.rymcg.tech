@@ -55,7 +55,7 @@ override-hook:
 ####                         # (this hardcodes the string into docker-compose.override.yaml)
 ####   name=@VARIABLE_NAME   # sets the template 'name' field to the literal string '${VARIABLE_NAME}'
 ####                         # (used for regular docker-compose expansion of env vars by name.)
-	@${BIN}/docker_compose_override ${ENV_FILE} project=:llama instance=@LLAMA_INSTANCE traefik_host=@LLAMA_TRAEFIK_HOST http_auth=LLAMA_HTTP_AUTH http_auth_var=@LLAMA_HTTP_AUTH ip_sourcerange=@LLAMA_IP_SOURCERANGE oauth2=LLAMA_OAUTH2 authorized_group=LLAMA_OAUTH2_AUTHORIZED_GROUP enable_mtls_auth=LLAMA_MTLS_AUTH mtls_authorized_certs=LLAMA_MTLS_AUTHORIZED_CERTS models_host_path=LLAMA_MODELS_HOST_PATH compose_profile=LLAMA_DOCKER_COMPOSE_PROFILES api_token=LLAMA_API_TOKEN server_port=LLAMA_SERVER_PORT initial_model=LLAMA_INITIAL_MODEL n_gpu_layers=LLAMA_N_GPU_LAYERS context_length=LLAMA_CONTEXT_LENGTH image_variant=LLAMA_IMAGE_VARIANT models_max=LLAMA_MODELS_MAX jinja=LLAMA_JINJA tools=LLAMA_TOOLS sleep_idle_seconds=LLAMA_SLEEP_IDLE_SECONDS
+	@${BIN}/docker_compose_override ${ENV_FILE} project=:llama instance=@LLAMA_INSTANCE traefik_host=@LLAMA_TRAEFIK_HOST http_auth=LLAMA_HTTP_AUTH http_auth_var=@LLAMA_HTTP_AUTH ip_sourcerange=@LLAMA_IP_SOURCERANGE oauth2=LLAMA_OAUTH2 authorized_group=LLAMA_OAUTH2_AUTHORIZED_GROUP enable_mtls_auth=LLAMA_MTLS_AUTH mtls_authorized_certs=LLAMA_MTLS_AUTHORIZED_CERTS models_host_path=LLAMA_MODELS_HOST_PATH compose_profile=LLAMA_DOCKER_COMPOSE_PROFILES api_token=LLAMA_API_TOKEN server_port=LLAMA_SERVER_PORT initial_model=LLAMA_INITIAL_MODEL n_gpu_layers=LLAMA_N_GPU_LAYERS context_length=LLAMA_CONTEXT_LENGTH image_variant=LLAMA_IMAGE_VARIANT models_max=LLAMA_MODELS_MAX models_preset_enabled=LLAMA_MODELS_PRESET_ENABLED jinja=LLAMA_JINJA tools=LLAMA_TOOLS sleep_idle_seconds=LLAMA_SLEEP_IDLE_SECONDS
 
 .PHONY: shell
 shell:
@@ -65,11 +65,11 @@ shell:
 add-models:
 	@${ROOT_DIR}/llama-cpp/llama-add-models llama-$$(${BIN}/dotenv -f ${ENV_FILE} get LLAMA_DOCKER_COMPOSE_PROFILES) $$(${BIN}/dotenv -f ${ENV_FILE} get LLAMA_HF_TOKEN) ${ENV_FILE}
 
-.PHONY: list-models # List all models in /models/ 
+.PHONY: list-models # List all models in /models/
 list-models:
 	@${ROOT_DIR}/llama-cpp/llama-list-models llama-$$(${BIN}/dotenv -f ${ENV_FILE} get LLAMA_DOCKER_COMPOSE_PROFILES) ${ENV_FILE}
 
-.PHONY: list-models-json # List all models llama.cpp has detected (JSON output)
+.PHONY: list-models-json # List all models llama.cpp has detected and their configs (JSON output)
 list-models-json:
 	@${ROOT_DIR}/llama-cpp/llama-list-models --json llama-$$(${BIN}/dotenv -f ${ENV_FILE} get LLAMA_DOCKER_COMPOSE_PROFILES) ${ENV_FILE}
 
@@ -77,7 +77,7 @@ list-models-json:
 delete-models:
 	@${ROOT_DIR}/llama-cpp/llama-delete-models llama-$$(${BIN}/dotenv -f ${ENV_FILE} get LLAMA_DOCKER_COMPOSE_PROFILES) ${ENV_FILE}
 
-.PHONY: manage-model-configs # Edit per-model JSON configuration files
+.PHONY: manage-model-configs # Edit per-model INI configuration in models.ini
 manage-model-configs:
 	@${ROOT_DIR}/llama-cpp/llama-manage-model-configs llama-$$(${BIN}/dotenv -f ${ENV_FILE} get LLAMA_DOCKER_COMPOSE_PROFILES) ${ENV_FILE}
 
