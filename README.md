@@ -183,6 +183,8 @@ Install these applications at your preference:
 * [Backrest](backrest#readme) - a backup tool based on restic
 * [Backup-Volume](backup-volume#readme) - a Docker volume backup tool
 * [Baikal](baikal#readme) - a lightweight CalDAV+CardDAV server
+* [Bitmagnet](bitmagnet#readme) - a BitTorrent indexer, DHT crawler, content classifier, and
+torrent search engine
 * [Caddy](caddy#readme) - an HTTP server with automatic TLS (passthrough)
 * [CalcPad](calcpad#readme) - a different take on the caculator
 * [Calibre](calibre#readme) - an ebook manager
