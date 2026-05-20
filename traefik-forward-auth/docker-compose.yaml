@@ -37,6 +37,8 @@ services:
       - "traefik.http.services.traefik-forward-auth.loadbalancer.server.port=4181"
       - "traefik.http.middlewares.traefik-forward-auth.forwardAuth.address=http://127.0.0.1:4181"
       - "traefik.http.middlewares.traefik-forward-auth.forwardAuth.authResponseHeaders=X-Forwarded-User"
+      - "traefik.http.middlewares.traefik-forward-auth.forwardAuth.trustForwardHeader=true"
+      - "traefik.http.middlewares.traefik-forward-auth.forwardAuth.maxResponseBodySize=1048576"
 
       - "traefik.http.routers.traefik-forward-auth.rule=Host(`${TRAEFIK_FORWARD_AUTH_HOST}`)"
       - "traefik.http.routers.traefik-forward-auth.entrypoints=websecure"
