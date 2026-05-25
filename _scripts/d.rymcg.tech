@@ -111,6 +111,39 @@ __help() {
     echo ""
 }
 
+__create() {
+    if [[ $# -gt 1 ]]; then
+        TEMPLATE_REPO="$2"
+    else
+        AVAIL_TEMPLATES=("Python Flask - https://github.com/EnigmaCurry/flask-template")
+        echo ""
+        TEMPLATE_REPO=$(choose "Choose a template:" "${AVAIL_TEMPLATES[@]}" | sed 's/.*- //')
+        echo ""
+    fi
+    name_pattern='^[a-zA-Z][a-zA-Z0-9_-]*$'
+    if [[ $# -gt 0 ]]; then
+        PROJECT_NAME="$1"
+        if ! [[ "${PROJECT_NAME}" =~ $name_pattern ]]; then
+            fault "Error: Invalid characters in PROJECT_NAME -- valid regex: ${name_pattern}"
+        fi
+    else
+        echo "This script will create a new docker-compose project and integrate d.rymcg.tech Makefiles" | fold -sw 70 && echo
+        while ! [[ "${PROJECT_NAME}" =~ $name_pattern ]]; do
+            test -n "${PROJECT_NAME}" && echo "Error: Invalid characters in PROJECT_NAME -- valid regex: ${name_pattern}"
+            ask_no_blank "Enter a name for the new docker-compose project" PROJECT_NAME
+        done
+        echo ""
+    fi
+    PROJECT_NAME=$(echo "$PROJECT_NAME" | tr ' ' '-')
+    ${BIN}/create "${PROJECT_NAME}" "${TEMPLATE_REPO}" "./${PROJECT_NAME}"
+}
+
+__ssh() {
+    SSH_HOST=$(docker context inspect --format '{{.Endpoints.docker.Host}}' | sed 's|ssh://||')
+    check_var SSH_HOST
+    (set -x; ssh ${SSH_HOST} $@)
+}
+
 __install_docker() {
     local target method
     target=$(wizard choose "Where do you want to install Docker?" "Remote (Docker context host)" "Local (this machine)")
