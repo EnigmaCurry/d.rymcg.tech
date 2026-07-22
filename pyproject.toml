@@ -20,7 +20,7 @@ dependencies = [
     "nats-py>=2.9",
     "openai>=1.0",
     "pydantic>=2.0",
-    "pyjwt>=2.0",
+    "pyjwt>=2.13.0",
     "pyyaml",
     "rich",
     "tt-tui-for-traefik",
