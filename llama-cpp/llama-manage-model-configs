@@ -20,9 +20,9 @@ fi
 COMPOSE="docker compose"
 if [[ -n "${ENV_FILE}" ]]; then
     COMPOSE="docker compose --env-file ${ENV_FILE}"
-    DOTENV="${DOTENV_CMD:-dotenv} -f ${ENV_FILE} get"
+    DOTENV="${ROOT_DIR}/_scripts/dotenv -f ${ENV_FILE} get"
 else
-    DOTENV="${DOTENV_CMD:-dotenv} get"
+    DOTENV="${ROOT_DIR}/_scripts/dotenv get"
 fi
 
 # Get models_preset_enabled
@@ -33,142 +33,163 @@ if [[ "${MODELS_PRESET_ENABLED}" != "true" ]]; then
     exit 0
 fi
 
+# Verify the service is running
+running_services=$(${COMPOSE} ps --format json 2>/dev/null || true)
+if [[ -z "${running_services}" ]]; then
+    fault "Service '${SERVICE}' is not running. Start it first with 'make install'."
+fi
+
+# Handle both array output (multiple containers) and single object output
+service_found=false
+if echo "${running_services}" | jq -e 'type == "array"' >/dev/null 2>&1; then
+    if echo "${running_services}" | jq -r '.[].Name' 2>/dev/null | grep -q "${SERVICE}"; then
+        service_found=true
+    fi
+else
+    if echo "${running_services}" | jq -r '.Name' 2>/dev/null | grep -q "${SERVICE}"; then
+        service_found=true
+    fi
+fi
+
+if [[ "${service_found}" != "true" ]]; then
+    fault "Service '${SERVICE}' is not running. Start it first with 'make install'."
+fi
+
 TMPDIR=$(mktemp -d)
 trap "rm -rf ${TMPDIR}" EXIT
 
 LOCAL_INI="${TMPDIR}/models.ini"
+EDITOR_CMD="${EDITOR:-nano}"
 
-# Download models.ini if it exists, otherwise create with commented example
-INI_EXISTS=$(${COMPOSE} exec -T "${SERVICE}" test -f "/models/models.ini" && echo "yes" || echo "no")
-
-if [[ "${INI_EXISTS}" == "yes" ]]; then
-    echo "Downloading models.ini..."
-    ${COMPOSE} exec -T "${SERVICE}" cp "/models/models.ini" "/tmp/models.ini" 2>/dev/null || true
-    ${COMPOSE} cp "${SERVICE}:/tmp/models.ini" "${LOCAL_INI}" 2>/dev/null || \
-    ${COMPOSE} exec -T "${SERVICE}" cat "/tmp/models.ini" > "${LOCAL_INI}"
-    ${COMPOSE} exec -T "${SERVICE}" bash -c "rm -f /tmp/models.ini" 2>/dev/null || true
+# Step 1: docker cp models.ini from the container; if it doesn't exist,
+# create a new empty file with commented-out examples
+if ${COMPOSE} exec -T "${SERVICE}" test -f "/models/models.ini"; then
+    echo "Downloading models.ini from container..."
+    ${COMPOSE} cp "${SERVICE}:/models/models.ini" "${LOCAL_INI}" 2>/dev/null || \
+        ${COMPOSE} exec -T "${SERVICE}" cat "/models/models.ini" > "${LOCAL_INI}"
     echo "Existing models.ini downloaded for editing."
 else
-    echo "No models.ini found. Creating new file with example sections..."
+    echo "No models.ini found in container. Creating a new empty file with commented-out examples..."
     ENV_N_GPU_LAYERS=$(${DOTENV} LLAMA_N_GPU_LAYERS 2>/dev/null || true)
     ENV_CONTEXT_LENGTH=$(${DOTENV} LLAMA_CONTEXT_LENGTH 2>/dev/null || true)
     DEFAULT_N_GPU_LAYERS="${ENV_N_GPU_LAYERS:-99}"
     DEFAULT_CONTEXT_LENGTH="${ENV_CONTEXT_LENGTH:-8192}"
     cat > "${LOCAL_INI}" <<EOF
-# Per-model configuration for llama.cpp
-# Each section is a model display name; the 'model' key points to the .gguf file.
+# Per-model configuration for llama.cpp.
+#
+# Each section is a model display name; the 'model' key points to the
+# .gguf file in /models/. Copy a section per model and uncomment it
+# to apply per-model settings.
 #
 # [llama3]
 # model = /models/llama-3-8b-instruct.Q5_K_M.gguf
 # ctx-size = ${DEFAULT_CONTEXT_LENGTH}
 # ngl = ${DEFAULT_N_GPU_LAYERS}
 # threads = 8
-
-[mistral]
-model = /models/mistral-7b-instruct-v0.3.Q4_K_M.gguf
-ctx-size = ${DEFAULT_CONTEXT_LENGTH}
-ngl = ${DEFAULT_N_GPU_LAYERS}
-threads = 8
+#
+# [mistral]
+# model = /models/mistral-7b-instruct-v0.3.Q4_K_M.gguf
+# ctx-size = ${DEFAULT_CONTEXT_LENGTH}
+# ngl = ${DEFAULT_N_GPU_LAYERS}
+# threads = 8
 EOF
 fi
 
-# Open in editor
+# Step 2: open in editor
 echo ""
-echo "Opening models.ini in ${EDITOR:-nano}..."
+echo "Opening models.ini in ${EDITOR_CMD}..."
 echo ""
-${EDITOR} "${LOCAL_INI}"
+${EDITOR_CMD} "${LOCAL_INI}"
 
-# Validate locally with python3 configparser
-echo ""
-echo "Validating INI syntax..."
+# Step 3: validate locally with python3 configparser
+validate_ini() {
+    # Prints "valid" or "invalid: <error>"
+    LOCAL_INI_PATH="${LOCAL_INI}" python3 -c '
+import configparser
+import os
 
-PYTHON3_VALID=true
+path = os.environ["LOCAL_INI_PATH"]
+if not os.path.exists(path):
+    print("invalid: file not found")
+    raise SystemExit
+c = configparser.ConfigParser()
+try:
+    c.read(path)
+    print("valid")
+except Exception as e:
+    print("invalid: " + str(e))
+' 2>/dev/null
+}
+
+PYTHON3_OK=true
 if ! command -v python3 &>/dev/null; then
-    PYTHON3_VALID=false
+    PYTHON3_OK=false
+    PYTHON3_MISSING="python3"
 elif ! python3 -c "import configparser" 2>/dev/null; then
-    PYTHON3_VALID=false
+    PYTHON3_OK=false
+    PYTHON3_MISSING="python3's configparser module"
 fi
 
-if [[ "${PYTHON3_VALID}" == "true" ]]; then
-    VALID_OUTPUT=$(python3 -c "
-import configparser, sys
-c = configparser.ConfigParser()
-try:
-    c.read('${LOCAL_INI}')
-    print('valid')
-except Exception as e:
-    print('invalid: ' + str(e))
-" 2>/dev/null) || VALID_OUTPUT="invalid: python3 returned an error"
-else
-    VALID_OUTPUT=""
-fi
-
-if [[ -n "${VALID_OUTPUT}" && "${VALID_OUTPUT}" != "valid" ]]; then
+if [[ "${PYTHON3_OK}" == "true" ]]; then
     echo ""
-    echo "Invalid INI syntax. Upload aborted — the existing container file is untouched."
-    echo "Error: ${VALID_OUTPUT}"
-    echo ""
+    echo "Validating INI syntax..."
+    VALID_OUTPUT=$(validate_ini) || VALID_OUTPUT="invalid: python3 validation command failed"
 
-    while true; do
-        echo "The INI file will re-open in your editor in 5 seconds to fix the errors."
-        echo "Press N and then Enter to abort entirely."
-        if read -t 5 -rn 1 -p "> " ANSWER; then
-            echo ""
-            if [[ "${ANSWER}" == "N" || "${ANSWER}" == "n" ]]; then
-                echo "Aborted."
-                exit 1
-            fi
-        else
-            echo ""
-        fi
-
-        echo ""
-        echo "Re-opening models.ini in ${EDITOR:-nano}..."
-        echo ""
-        ${EDITOR} "${LOCAL_INI}"
-
-        echo ""
-        echo "Re-validating INI syntax..."
-
-        if [[ "${PYTHON3_VALID}" == "true" ]]; then
-            VALID_OUTPUT=$(python3 -c "
-import configparser, sys
-c = configparser.ConfigParser()
-try:
-    c.read('${LOCAL_INI}')
-    print('valid')
-except Exception as e:
-    print('invalid: ' + str(e))
-" 2>/dev/null) || VALID_OUTPUT="invalid: python3 returned an error"
-        else
-            VALID_OUTPUT=""
-        fi
-
-        if [[ -z "${VALID_OUTPUT}" || "${VALID_OUTPUT}" == "valid" ]]; then
-            break
-        fi
-
+    # Step 4: if invalid → don't upload (container file untouched),
+    # re-open in editor until valid or user aborts
+    while [[ "${VALID_OUTPUT}" != "valid" ]]; do
         echo ""
         echo "Invalid INI syntax. Upload aborted — the existing container file is untouched."
         echo "Error: ${VALID_OUTPUT}"
         echo ""
+        echo "The INI will re-open in your editor in 5 seconds, press N to abort."
+        if read -t 5 -rn 1 -p "> " ANSWER; then
+            if [[ "${ANSWER}" == "N" || "${ANSWER}" == "n" ]]; then
+                echo ""
+                echo "Aborted. models.ini was not uploaded."
+                exit 1
+            fi
+        fi
+        echo ""
+        echo "Re-opening models.ini in ${EDITOR_CMD}..."
+        echo ""
+        ${EDITOR_CMD} "${LOCAL_INI}"
+        echo ""
+        echo "Re-validating INI syntax..."
+        VALID_OUTPUT=$(validate_ini) || VALID_OUTPUT="invalid: python3 validation command failed"
     done
+else
+    echo ""
+    echo "WARNING: ${PYTHON3_MISSING} is not installed."
+    echo "python3 and the configparser module are required to validate the INI syntax."
+    echo "No validation was performed on models.ini."
+    echo ""
+    ANSWER=""
+    echo "Upload the INI to the container without validation? (y/N)"
+    read -r ANSWER || true
+    case "${ANSWER}" in
+        y|Y|yes|YES)
+            echo "Proceeding with upload without validation."
+            ;;
+        *)
+            echo "Aborted. models.ini was not uploaded."
+            exit 1
+            ;;
+    esac
 fi
 
-# Upload to container
-COMPOSE_CMD="docker compose"
-if [[ -n "${ENV_FILE}" ]]; then
-    COMPOSE_CMD="docker compose --env-file ${ENV_FILE}"
-fi
-
+# Step 5: upload to container and delete local file
+echo ""
 echo "Uploading models.ini to /models/..."
-${COMPOSE} exec -T "${SERVICE}" bash -c "cat > /models/models.ini" < "${LOCAL_INI}"
-
+${COMPOSE} cp "${LOCAL_INI}" "${SERVICE}:/models/models.ini" 2>/dev/null || \
+    ${COMPOSE} exec -T "${SERVICE}" bash -c "cat > /models/models.ini" < "${LOCAL_INI}"
+rm -f "${LOCAL_INI}"
 echo "models.ini saved to /models/models.ini in the container."
 
+# Step 6: remind to restart
 echo ""
-echo "NOTE: llama.cpp reads the preset file at startup."
-echo "You must restart the service for changes to take effect:"
+echo "NOTE: llama.cpp reads models.ini at startup only."
+echo "Restart the service for changes to take effect:"
 echo "  make restart"
 echo ""
 echo "Done."
