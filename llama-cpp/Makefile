@@ -23,6 +23,7 @@ config-hook:
 		${BIN}/reconfigure ${ENV_FILE} "LLAMA_HSA_OVERRIDE_GFX_VERSION="; \
 	fi
 	@${BIN}/reconfigure_choose ${ENV_FILE} LLAMA_IMAGE_VARIANT "Select the image variant:" server full light
+	@ALLOW_BLANK=1 ${BIN}/reconfigure_ask ${ENV_FILE} LLAMA_IMAGE_TAG "Enter a llama.cpp image tag to pin to (e.g., v0.1.2), or leave blank to use the latest image."
 	@echo ""
 	@ALLOW_BLANK=1 ${BIN}/reconfigure_ask ${ENV_FILE} LLAMA_MODELS_HOST_PATH "If you want to save models in a specific directory on the host, enter the path here, or leave blank to save models to the llama.cpp container's named Docker volume."
 	@echo
