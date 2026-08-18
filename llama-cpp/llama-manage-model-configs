@@ -7,16 +7,14 @@
 ##
 ## Flow: download → edit → validate locally → upload if valid
 
-BIN=$(dirname ${BASH_SOURCE})
-ROOT_DIR="${ROOT_DIR:-$(dirname ${BIN})}"
-source ${ROOT_DIR}/_scripts/funcs.sh
 set -eo pipefail
 
 SERVICE="${1}"
 ENV_FILE="${2:-}"
 
 if [[ -z "${SERVICE}" ]]; then
-    fault "Usage: llama-manage-model-configs SERVICE [ENV_FILE]"
+    echo "Usage: llama-manage-model-configs SERVICE [ENV_FILE]" >&2
+    exit 1
 fi
 
 COMPOSE="docker compose"
