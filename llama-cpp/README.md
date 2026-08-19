@@ -13,14 +13,18 @@ make config
 
 This will ask you to enter the domain name to use, select the GPU
 profile (cpu/cuda/rocm), choose the image variant (server/full/light),
-and configure model storage. It automatically saves your responses
-into the configuration file `.env_{DOCKER_CONTEXT}_{INSTANCE}`.
+pin to an image tag (optional), and configure model storage. It
+automatically saves your responses into the configuration file
+`.env_{DOCKER_CONTEXT}_{INSTANCE}`.
 
 ### Image Variants
 
 - **server** - Only `llama-server` (smallest, recommended for API-only use)
 - **full** - `llama-server` + model conversion tools + quantization tools
 - **light** - `llama-server` + `llama-cli` (minimal)
+
+Set `LLAMA_IMAGE_TAG` to pin the image to a specific release (e.g.,
+`server-rocm-v0.1.2`); leave blank for the latest (rolling) image.
 
 ### Authentication and Authorization
 
