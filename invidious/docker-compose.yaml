@@ -46,8 +46,6 @@ services:
         feed_threads: 1
         full_refresh: false
         domain: ${INVIDIOUS_TRAEFIK_HOST}
-        visitor_data: ${INVIDIOUS_VISITOR_DATA}
-        po_token: ${INVIDIOUS_PO_TOKEN}
         use_innertube_for_captions: false
         use_pubsub_feeds: false
         invidious_companion:
@@ -76,7 +74,7 @@ services:
   companion:
     image: ${INVIDIOUS_COMPANION_IMAGE}
     environment:
-      - SERVER_SECRET_KEY=${INVIDIOUS_COMPANION_KEY} 
+      - SERVER_SECRET_KEY=${INVIDIOUS_COMPANION_KEY}
     restart: unless-stopped
     # Uncomment only if you have configured "public_url" for Invidious companion
     # Or if you want to use Invidious companion as an API in your program.
