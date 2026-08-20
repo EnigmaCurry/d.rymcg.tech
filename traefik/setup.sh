@@ -34,6 +34,40 @@ base_config() {
     ## Make new .env if it doesn't exist:
     test -f ${ENV_FILE} || cp .env-dist ${ENV_FILE}
     ${BIN}/reconfigure ${ENV_FILE} DOCKER_CONTEXT=${DOCKER_CONTEXT}
+    autodetect_lib_modules_path
+}
+
+## Detect the Docker host OS and, on NixOS, point TRAEFIK_LIB_MODULES_PATH
+## at the read-only kernel modules path. The wireguard container bind-mounts
+## /lib/modules, which doesn't exist on NixOS's immutable root and causes
+## `mkdir /lib: read-only file system` when Docker tries to create it.
+_detect_host_os_id() {
+    local ssh_host
+    ssh_host=$(docker context inspect --format '{{.Endpoints.docker.Host}}' 2>/dev/null || true)
+    if [[ -z "${ssh_host}" || "${ssh_host}" == unix://* ]]; then
+        (. /etc/os-release 2>/dev/null && echo "$ID") || true
+    else
+        ssh "${ssh_host#ssh://}" '. /etc/os-release 2>/dev/null && echo "$ID"' 2>/dev/null || true
+    fi
+}
+
+autodetect_lib_modules_path() {
+    local current detected
+    current=$(${BIN}/dotenv -f ${ENV_FILE} get TRAEFIK_LIB_MODULES_PATH)
+    ## Only replace known defaults; preserve any user-customized value.
+    case "${current}" in
+        ""|/lib/modules|/run/booted-system/kernel-modules/lib/modules) ;;
+        *) return 0 ;;
+    esac
+    case "$(_detect_host_os_id)" in
+        nixos) detected=/run/booted-system/kernel-modules/lib/modules ;;
+        "")    return 0 ;;
+        *)     detected=/lib/modules ;;
+    esac
+    if [[ "${detected}" != "${current}" ]]; then
+        echo "## Auto-detected host OS: setting TRAEFIK_LIB_MODULES_PATH=${detected}" >&2
+        ${BIN}/reconfigure ${ENV_FILE} "TRAEFIK_LIB_MODULES_PATH=${detected}"
+    fi
 }
 
 config() {

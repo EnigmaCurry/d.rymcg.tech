@@ -2,7 +2,7 @@ services:
   llama-cpu:
     profiles:
       - cpu
-    image: ${LLAMA_IMAGE}:${LLAMA_IMAGE_VARIANT}
+    image: ${LLAMA_IMAGE}:${LLAMA_IMAGE_VARIANT}${LLAMA_IMAGE_TAG:+-${LLAMA_IMAGE_TAG}}
     restart: unless-stopped
     cap_drop:
       - ALL
@@ -14,7 +14,7 @@ services:
   llama-cuda:
     profiles:
       - cuda
-    image: ${LLAMA_IMAGE}:${LLAMA_IMAGE_VARIANT}-cuda
+    image: ${LLAMA_IMAGE}:${LLAMA_IMAGE_VARIANT}-cuda${LLAMA_IMAGE_TAG:+-${LLAMA_IMAGE_TAG}}
     restart: unless-stopped
     cap_drop:
       - ALL
@@ -28,7 +28,7 @@ services:
   llama-rocm:
     profiles:
       - rocm
-    image: ${LLAMA_IMAGE}:${LLAMA_IMAGE_VARIANT}-rocm
+    image: ${LLAMA_IMAGE}:${LLAMA_IMAGE_VARIANT}-rocm${LLAMA_IMAGE_TAG:+-${LLAMA_IMAGE_TAG}}
     restart: unless-stopped
     devices:
       - /dev/kfd

@@ -2,6 +2,7 @@
 
 ## llama-delete-models SERVICE [ENV_FILE]
 ## Lists all .gguf model files in /models/, lets user select 1 or more to delete.
+## Also removes corresponding sections from models.ini if the preset file is enabled.
 
 BIN=$(dirname ${BASH_SOURCE})
 ROOT_DIR="${ROOT_DIR:-$(dirname ${BIN})}"
@@ -18,7 +19,13 @@ fi
 COMPOSE="docker compose"
 if [[ -n "${ENV_FILE}" ]]; then
     COMPOSE="docker compose --env-file ${ENV_FILE}"
+    DOTENV="${BIN}/dotenv -f ${ENV_FILE} get"
+else
+    DOTENV="${BIN}/dotenv get"
 fi
+
+# Get models_preset_enabled
+MODELS_PRESET_ENABLED=$(${DOTENV} LLAMA_MODELS_PRESET_ENABLED 2>/dev/null || echo "true")
 
 # Verify the service is running
 running_services=$(${COMPOSE} ps --format json 2>/dev/null || true)
@@ -85,30 +92,9 @@ echo ""
 # Confirm deletion
 confirm n "Delete ${#selected[@]} model(s)?"
 
-# Check for corresponding .json config files
-json_files=()
-for model in "${selected[@]}"; do
-    filename=$(echo "${model}" | sed 's/ (.*$//')
-    model_id="${filename%.gguf}"
-    json_file="${model_id}.json"
-    if ${COMPOSE} exec -T "${SERVICE}" test -f "/models/${json_file}" 2>/dev/null; then
-        json_files+=("${json_file}")
-    fi
-done
-
-# Ask about deleting .json files if any exist
-json_files_to_delete=()
-if [[ ${#json_files[@]} -gt 0 ]]; then
-    echo ""
-    echo "Select config file(s) to delete (space to toggle, enter to confirm):"
-    echo ""
-    # Pre-select all config files using --default with JSON array format
-    json_files_default=$(array_to_json "${json_files[@]}")
-    readarray -t json_files_to_delete < <(wizard select --default "$json_files_default" "Select config files to delete:" "${json_files[@]}")
-fi
-
 deleted=0
-deleted_json=0
+deleted_ini=0
+
 for model in "${selected[@]}"; do
     # Extract just the filename (before the size info in parens)
     filename=$(echo "${model}" | sed 's/ (.*$//')
@@ -117,17 +103,50 @@ for model in "${selected[@]}"; do
     deleted=$((deleted + 1))
 done
 
-# Delete selected .json files
-if [[ ${#json_files_to_delete[@]} -gt 0 ]]; then
-    for json_file in "${json_files_to_delete[@]}"; do
-        echo "Deleting ${json_file}..."
-        ${COMPOSE} exec -T "${SERVICE}" rm -f "/models/${json_file}"
-        deleted_json=$((deleted_json + 1))
+# Remove sections from models.ini if preset is enabled
+if [[ "${MODELS_PRESET_ENABLED}" == "true" ]]; then
+    # Build list of model IDs to remove from INI
+    model_ids=()
+    for model in "${selected[@]}"; do
+        filename=$(echo "${model}" | sed 's/ (.*$//')
+        model_id="${filename%.gguf}"
+        model_ids+=("${model_id}")
     done
+
+    # Remove sections from models.ini using Python
+    INI_SECTION_REMOVED=$(${COMPOSE} exec -T "${SERVICE}" python3 -c "
+import configparser
+import sys
+
+ini_path = '/models/models.ini'
+sections_to_remove = [$(printf "'%s'," "${model_ids[@]}" | sed 's/,$//')]
+
+c = configparser.ConfigParser()
+c.read(ini_path)
+
+removed = 0
+for section in sections_to_remove:
+    if c.has_section(section):
+        c.remove_section(section)
+        removed += 1
+
+if removed > 0:
+    with open(ini_path, 'w') as f:
+        c.write(f)
+    print(str(removed))
+else:
+    print('0')
+" 2>/dev/null || echo "0")
+
+    deleted_ini=${INI_SECTION_REMOVED:-0}
 fi
 
 echo ""
 echo "✓ Deleted ${deleted} model(s)."
-if [[ ${#json_files_to_delete[@]} -gt 0 ]]; then
-    echo "✓ Deleted ${deleted_json} config file(s)."
+if [[ ${deleted_ini} -gt 0 ]]; then
+    echo "✓ Removed ${deleted_ini} section(s) from models.ini."
 fi
+echo ""
+echo "NOTE: If you deleted a model that was currently loaded,"
+echo "run 'make restart' to update llama.cpp."
+echo ""
