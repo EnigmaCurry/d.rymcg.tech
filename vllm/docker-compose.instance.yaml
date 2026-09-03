@@ -33,6 +33,7 @@
 #@ enable_prefix_caching = data.values.enable_prefix_caching
 #@ tensor_parallel_size = data.values.tensor_parallel_size
 #@ served_model_name = data.values.served_model_name
+#@ gpu_memory_utilization = data.values.gpu_memory_utilization
 
 #@ def vllm_service(profile):
 #@   service = "vllm-" + profile
@@ -50,10 +51,8 @@
 #@   if trust_remote_code == "true":
 #@     cmd.append("--trust-remote-code")
 #@   end
-#@   if enable_auto_tool_choice == "true":
+#@   if enable_auto_tool_choice == "true" and tool_call_parser.strip():
 #@     cmd.append("--enable-auto-tool-choice")
-#@   end
-#@   if tool_call_parser.strip():
 #@     cmd.extend(["--tool-call-parser", tool_call_parser])
 #@   end
 #@   if reasoning_parser.strip():
@@ -64,6 +63,9 @@
 #@   end
 #@   if tensor_parallel_size.strip() and tensor_parallel_size.strip() != "1":
 #@     cmd.extend(["--tensor-parallel-size", tensor_parallel_size])
+#@   end
+#@   if gpu_memory_utilization.strip():
+#@     cmd.extend(["--gpu-memory-utilization", gpu_memory_utilization])
 #@   end
 #@   router = "{}-{}-{}".format(project, instance, service)
 #@   labels = []

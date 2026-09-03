@@ -71,11 +71,16 @@ blank to use the model's default.
 ### Tool Calling
 
 Tool calling is enabled by default (`VLLM_ENABLE_AUTO_TOOL_CHOICE=true`).
-vLLM will auto-detect the correct parser for your model. To override
-the parser, set `VLLM_TOOL_CALL_PARSER` (e.g. `hermes`,
-`llama3_json`, `mistral`, `qwen3_xml`). See the [vLLM tool calling
+vLLM requires you to pick a parser that matches your model —
+set `VLLM_TOOL_CALL_PARSER` to one of `hermes` (Hermes/Qwen2.5/Qwen3
+non-thinking), `qwen3_xml` (Qwen3 with reasoning), `llama3_json`
+(Llama 3.1/3.2), `mistral`, or `pythonic` (Llama 4). The default
+is `hermes`, which pairs with the default Qwen3 model. See the
+[vLLM tool calling
 docs](https://docs.vllm.ai/en/latest/features/tool_calling.html)
-for supported parsers.
+for the full list of supported parsers. If `VLLM_TOOL_CALL_PARSER`
+is left blank, `--enable-auto-tool-choice` is omitted so vLLM can
+still start (tool calling will be disabled).
 
 ### Reasoning Parser
 
