@@ -50,6 +50,18 @@ RUN case "${GPU_TYPE}" in \
 RUN python3 -m pip install "numpy<2"
 RUN python3 -m pip install -r requirements.txt
 
+# Extra requirements for qwen-tts
+RUN python3 -m pip install \
+    "accelerate>=1.12.0" \
+    "einops>=0.8.1" \
+    "huggingface_hub" \
+    "librosa>=0.11.0" \
+    "openai-whisper" \
+    "sentencepiece>=0.2.1" \
+    "soundfile>=0.13.1" \
+    "tiktoken>=0.12.0" \
+    "transformers>=4.57.0"
+
 ARG HSA_OVERRIDE_GFX_VERSION
 ENV HSA_OVERRIDE_GFX_VERSION=${HSA_OVERRIDE_GFX_VERSION}
 ARG LOG_LEVEL
