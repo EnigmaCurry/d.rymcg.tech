@@ -74,13 +74,14 @@ if [ -d "${qwen_tts_dir}" ]; then
             "${f}"
     done
 
-    # (2) fix_mistral_regex=True triggers a broken transformers code path
-    #     that assumes a PreTrainedTokenizerFast wrapper — Qwen uses Qwen2's
-    #     tokenizer and doesn't need this. Disable it.
+    # (2) fix_mistral_regex is a kwarg only recognized by transformers >=4.57.
+    #     Older versions raise TypeError on unknown kwargs; newer versions have
+    #     a buggy implementation. Strip the argument entirely — Qwen doesn't
+    #     need Mistral-specific tokenizer fixes.
     inference_file="${qwen_tts_dir}/inference/qwen3_tts_model.py"
-    if [ -f "${inference_file}" ] && grep -q 'fix_mistral_regex=True' "${inference_file}"; then
-        echo "Patching ${inference_file} (fix_mistral_regex=True -> False)"
-        sed -i 's|fix_mistral_regex=True|fix_mistral_regex=False|g' "${inference_file}"
+    if [ -f "${inference_file}" ] && grep -qE 'fix_mistral_regex\s*=' "${inference_file}"; then
+        echo "Patching ${inference_file} (strip fix_mistral_regex kwarg)"
+        sed -i -E 's|,?\s*fix_mistral_regex\s*=\s*(True|False)\s*,?||g' "${inference_file}"
     fi
 
     # (3) config.pad_token_id read errors and (4) missing ROPE 'default' key:

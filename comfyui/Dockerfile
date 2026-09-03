@@ -51,11 +51,12 @@ RUN python3 -m pip install "numpy<2"
 RUN python3 -m pip install -r requirements.txt
 
 # Extra requirements for qwen-tts.
-# transformers is pinned to 4.57.3 — this is the version upstream tested against;
-# later 4.57.x has a check_model_inputs signature mismatch, and 5.x drops
-# ALL_ATTENTION_FUNCTIONS. See:
-#   https://github.com/1038lab/ComfyUI-QwenTTS/issues/16
+# transformers is pinned to 4.47.3 (with tokenizers>0.20) — 4.57.x has multiple
+# runtime-incompatibility bugs with the vendored qwen_tts code (position_ids
+# handling in generation, Mistral regex patcher, check_model_inputs signature).
+# The 4.47.x combo predates all of those. See:
 #   https://github.com/flybirdxx/ComfyUI-Qwen-TTS/issues/21
+#   https://github.com/1038lab/ComfyUI-QwenTTS/issues/16
 RUN python3 -m pip install \
     "accelerate>=1.12.0" \
     "einops>=0.8.1" \
@@ -65,7 +66,8 @@ RUN python3 -m pip install \
     "sentencepiece>=0.2.1" \
     "soundfile>=0.13.1" \
     "tiktoken>=0.12.0" \
-    "transformers==4.57.3"
+    "tokenizers>0.20" \
+    "transformers==4.47.3"
 
 ARG HSA_OVERRIDE_GFX_VERSION
 ENV HSA_OVERRIDE_GFX_VERSION=${HSA_OVERRIDE_GFX_VERSION}
