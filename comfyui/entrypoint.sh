@@ -55,4 +55,22 @@ else
     echo "Skipping flash-attn (not supported on AMD/ROCm)"
 fi
 
+# Workaround for ComfyUI-QwenTTS import failure with transformers >=4.57.
+# The vendored qwen_tts code uses @check_model_inputs() with a signature that
+# no longer matches transformers, which crashes the module load and leaves
+# qwen_tts.core missing Qwen3TTSTokenizerV1Config.
+# Upstream refs:
+#   https://github.com/1038lab/ComfyUI-QwenTTS/issues/12
+#   https://github.com/1038lab/ComfyUI-QwenTTS/issues/16
+qwen_tts_dir="/ComfyUI/custom_nodes/ComfyUI-QwenTTS/qwen_tts"
+if [ -d "${qwen_tts_dir}" ]; then
+    find "${qwen_tts_dir}" -type f -name "*.py" -exec grep -lE '^[^#]*@check_model_inputs\(\)|^[^#]*from transformers\.utils\.generic import check_model_inputs' {} + 2>/dev/null | while read -r f; do
+        echo "Patching ${f} (comment out @check_model_inputs)"
+        sed -i \
+            -e 's|^\([[:space:]]*\)@check_model_inputs()|\1# @check_model_inputs()  # patched: incompatible with transformers >=4.57|' \
+            -e 's|^\([[:space:]]*\)from transformers\.utils\.generic import check_model_inputs|\1# from transformers.utils.generic import check_model_inputs  # patched|' \
+            "${f}"
+    done
+fi
+
 python3 main.py --multi-user --listen 0.0.0.0 --verbose "${LOG_LEVEL}"
