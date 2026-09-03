@@ -55,15 +55,17 @@ else
     echo "Skipping flash-attn (not supported on AMD/ROCm)"
 fi
 
-# Workaround for ComfyUI-QwenTTS import failure with transformers >=4.57.
-# The vendored qwen_tts code uses @check_model_inputs() with a signature that
-# no longer matches transformers, which crashes the module load and leaves
-# qwen_tts.core missing Qwen3TTSTokenizerV1Config.
+# Workarounds for ComfyUI-QwenTTS with modern transformers. The vendored
+# qwen_tts code has three known bugs; all patches are idempotent.
 # Upstream refs:
-#   https://github.com/1038lab/ComfyUI-QwenTTS/issues/12
-#   https://github.com/1038lab/ComfyUI-QwenTTS/issues/16
+#   https://github.com/1038lab/ComfyUI-QwenTTS/issues/10  (pad_token_id)
+#   https://github.com/1038lab/ComfyUI-QwenTTS/issues/12  (check_model_inputs)
+#   https://github.com/1038lab/ComfyUI-QwenTTS/issues/16  (ROPE_INIT_FUNCTIONS)
+#   https://github.com/QwenLM/Qwen3-TTS/pull/201         (upstream fix)
 qwen_tts_dir="/ComfyUI/custom_nodes/ComfyUI-QwenTTS/qwen_tts"
 if [ -d "${qwen_tts_dir}" ]; then
+    # (1) @check_model_inputs() signature mismatch — comment out the decorator
+    #     and its import in any tokenizer file that uses it.
     find "${qwen_tts_dir}" -type f -name "*.py" -exec grep -lE '^[^#]*@check_model_inputs\(\)|^[^#]*from transformers\.utils\.generic import check_model_inputs' {} + 2>/dev/null | while read -r f; do
         echo "Patching ${f} (comment out @check_model_inputs)"
         sed -i \
@@ -72,15 +74,59 @@ if [ -d "${qwen_tts_dir}" ]; then
             "${f}"
     done
 
-    # Qwen3TTSTalkerConfig does not set pad_token_id in its __init__, so
-    # `config.pad_token_id` raises AttributeError when Talker submodels are
-    # constructed. Rewrite the two reads to fall back to None.
-    # Upstream ref: https://github.com/1038lab/ComfyUI-QwenTTS/issues/10
-    modeling_file="${qwen_tts_dir}/core/models/modeling_qwen3_tts.py"
-    if [ -f "${modeling_file}" ] && grep -q 'self.padding_idx = config.pad_token_id' "${modeling_file}"; then
-        echo "Patching ${modeling_file} (guard config.pad_token_id)"
-        sed -i 's|self\.padding_idx = config\.pad_token_id|self.padding_idx = getattr(config, "pad_token_id", None)|g' "${modeling_file}"
-    fi
+    # (2) config.pad_token_id read errors and (3) missing ROPE 'default' key:
+    #     apply per PR #201 semantics via a Python patcher.
+    python3 - "${qwen_tts_dir}/core/models/modeling_qwen3_tts.py" <<'PYEOF'
+import re, sys
+from pathlib import Path
+
+f = Path(sys.argv[1])
+if not f.exists():
+    sys.exit(0)
+
+src = f.read_text()
+orig = src
+marker = "# --- QWEN_TTS_PATCH: rope default + padding_idx ---"
+
+if marker not in src:
+    patch = f'''{marker}
+try:
+    from transformers.modeling_rope_utils import ROPE_INIT_FUNCTIONS
+    import torch as _qtts_torch
+    if "default" not in ROPE_INIT_FUNCTIONS:
+        def _qtts_default_rope(config, device, seq_len=None, layer_type=None):
+            base = getattr(config, "rope_theta", 10000)
+            prf = getattr(config, "partial_rotary_factor", 1.0)
+            head_dim = getattr(config, "head_dim", None)
+            if head_dim is None:
+                head_dim = getattr(config, "hidden_size", 4096) // getattr(config, "num_attention_heads", 32)
+            dim = int(head_dim * prf)
+            inv_freq = 1.0 / (base ** (_qtts_torch.arange(0, dim, 2, dtype=_qtts_torch.int64).to(device=device, dtype=_qtts_torch.float) / dim))
+            return inv_freq, 1.0
+        ROPE_INIT_FUNCTIONS["default"] = _qtts_default_rope
+except Exception:
+    pass
+
+'''
+    src = patch + src
+
+# Restrict padding_idx substitutions to each class's own scope so we don't
+# mix them up. Matches both the original assignment and any prior getattr
+# workaround.
+def rewrite_padding(src, class_name, replacement):
+    return re.sub(
+        r'(class ' + re.escape(class_name) + r'\b.*?self\.padding_idx\s*=\s*)[^\n]+',
+        lambda m: m.group(1) + replacement,
+        src, count=1, flags=re.DOTALL,
+    )
+
+src = rewrite_padding(src, "Qwen3TTSTalkerCodePredictorModel", "config.vocab_size - 1")
+src = rewrite_padding(src, "Qwen3TTSTalkerModel", "config.codec_pad_id")
+
+if src != orig:
+    f.write_text(src)
+    print(f"Patched {f} (ROPE default + padding_idx per PR #201)")
+PYEOF
 fi
 
 python3 main.py --multi-user --listen 0.0.0.0 --verbose "${LOG_LEVEL}"
