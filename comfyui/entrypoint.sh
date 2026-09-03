@@ -71,6 +71,16 @@ if [ -d "${qwen_tts_dir}" ]; then
             -e 's|^\([[:space:]]*\)from transformers\.utils\.generic import check_model_inputs|\1# from transformers.utils.generic import check_model_inputs  # patched|' \
             "${f}"
     done
+
+    # Qwen3TTSTalkerConfig does not set pad_token_id in its __init__, so
+    # `config.pad_token_id` raises AttributeError when Talker submodels are
+    # constructed. Rewrite the two reads to fall back to None.
+    # Upstream ref: https://github.com/1038lab/ComfyUI-QwenTTS/issues/10
+    modeling_file="${qwen_tts_dir}/core/models/modeling_qwen3_tts.py"
+    if [ -f "${modeling_file}" ] && grep -q 'self.padding_idx = config.pad_token_id' "${modeling_file}"; then
+        echo "Patching ${modeling_file} (guard config.pad_token_id)"
+        sed -i 's|self\.padding_idx = config\.pad_token_id|self.padding_idx = getattr(config, "pad_token_id", None)|g' "${modeling_file}"
+    fi
 fi
 
 python3 main.py --multi-user --listen 0.0.0.0 --verbose "${LOG_LEVEL}"
