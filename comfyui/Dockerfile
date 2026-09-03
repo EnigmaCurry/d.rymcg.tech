@@ -51,7 +51,7 @@ RUN python3 -m pip install "numpy<2"
 RUN python3 -m pip install -r requirements.txt
 
 # Extra requirements for qwen-tts.
-# transformers is pinned to 4.47.3 (with tokenizers>0.20) — 4.57.x has multiple
+# transformers is pinned to 4.47.1 (with tokenizers>0.20) — 4.57.x has multiple
 # runtime-incompatibility bugs with the vendored qwen_tts code (position_ids
 # handling in generation, Mistral regex patcher, check_model_inputs signature).
 # The 4.47.x combo predates all of those. See:
@@ -67,7 +67,7 @@ RUN python3 -m pip install \
     "soundfile>=0.13.1" \
     "tiktoken>=0.12.0" \
     "tokenizers>0.20" \
-    "transformers==4.47.3"
+    "transformers==4.47.1"
 
 ARG HSA_OVERRIDE_GFX_VERSION
 ENV HSA_OVERRIDE_GFX_VERSION=${HSA_OVERRIDE_GFX_VERSION}
