@@ -1,0 +1,181 @@
+volumes:
+  config:
+
+networks:
+  default:
+  
+services:
+  bitmagnet:
+    build:
+      context: bitmagnet
+      args:
+        BITMAGNET_IMAGE: ${BITMAGNET_IMAGE}
+    cap_add:
+      - NET_ADMIN ## Dropped ASAP in app-router-bootstrap.sh entrypoint.
+    security_opt:
+      - no-new-privileges:true
+    sysctls:
+      - net.ipv4.ip_unprivileged_port_start=1024
+    restart: unless-stopped
+    environment:
+      - ENTRYPOINT=/usr/local/bin/bitmagnet
+      - WIREGUARD_INSTANCE=${BITMAGNET_WIREGUARD_INSTANCE}
+      - WIREGUARD_ROUTER_IPV4=${BITMAGNET_WIREGUARD_ROUTER_IPV4}
+      - WIREGUARD_ROUTER_IPV6=${BITMAGNET_WIREGUARD_ROUTER_IPV6}
+      - DOCKER_GATEWAY_PORTS=${BITMAGNET_DOCKER_GATEWAY_PORTS}
+      - LOG_FILE_ROTATOR_ENABLED=true
+      - LOG_LEVEL=${BITMAGNET_LOG_LEVEL}
+      - POSTGRES_HOST=postgres
+      - POSTGRES_PASSWORD=${BITMAGNET_POSTGRES_PASSWORD}
+      - TMDB_API_KEY=${BITMAGNET_TMDB_API_KEY}
+    command:
+      - worker
+      - run
+      #- --all
+      - --keys=http_server
+      - --keys=queue_server
+      - --keys=dht_crawler
+    volumes:
+      - config:/root/.config/bitmagnet
+    # FYI: the container uses these ports
+    # ports:
+    #   # API and WebUI port:
+    #   - "3333:3333"
+    #   # BitTorrent ports:
+    #   - "3334:3334/tcp"
+    #   - "3334:3334/udp"
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3333/status"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+
+  postgres:
+    image: ${BITMAGNET_POSTGRES_IMAGE}
+    restart: unless-stopped
+    environment:
+      - POSTGRES_PASSWORD=${BITMAGNET_POSTGRES_PASSWORD}
+      - POSTGRES_DB=bitmagnet
+      - PGUSER=postgres
+    user: "${BITMAGNET_UID}:${BITMAGNET_GID}"
+    networks:
+      - default
+    shm_size: 1g
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready"]
+      interval: 10s
+      start_period: 20s
+
+  # Optional observability services:
+  # (ensure you have the config files in the `observability` directory in your project root)
+
+  # Visualization and dashboards:
+  #grafana:
+  #  container_name: bitmagnet-grafana
+  #  image: grafana/grafana:latest
+  #  environment:
+  #    - GF_PATHS_PROVISIONING=/etc/grafana/provisioning
+  #    - GF_AUTH_ANONYMOUS_ENABLED=true
+  #    - GF_AUTH_ANONYMOUS_ORG_ROLE=Admin
+  #  volumes:
+  #    - ./data/grafana:/var/lib/grafana
+  #    # Provisioned data sources and dashboards:
+  #    - ./observability/grafana.datasources.yaml:/etc/grafana/provisioning/datasources/datasources.yaml
+  #    - ./observability/grafana.dashboards.yaml:/etc/grafana/provisioning/dashboards/dashboards.yaml
+  #    - ./observability/grafana-dashboards:/etc/dashboards
+  #  ports:
+  #    - "3000:3000"
+  #  networks:
+  #    - bitmagnet
+  #
+  ## Metrics and logs scraping:
+  #grafana-agent:
+  #  container_name: bitmagnet-grafana-agent
+  #  image: grafana/agent:latest
+  #  volumes:
+  #    - ./data/bitmagnet/logs:/var/log/bitmagnet
+  #    # Mount the logs and metrics scraping configurations:
+  #    - ./observability/grafana-agent.config.river:/etc/agent-config/config.river
+  #  command:
+  #    - run
+  #    - /etc/agent-config/config.river
+  #    - --server.http.listen-addr=0.0.0.0:12345
+  #  environment:
+  #    HOSTNAME: grafana-agent
+  #    AGENT_MODE: flow
+  #    LOKI_HOST: loki:3100
+  #    POSTGRES_HOST: postgres:5432
+  #    REDIS_HOST: redis:6379
+  #  # The bitmagnet host must be mapped to the gluetun container:
+  #  extra_hosts:
+  #    - "bitmagnet:192.168.55.10"
+  #  ports:
+  #    - "12345:12345"
+  #  depends_on:
+  #    - gluetun
+  #    - loki
+  #  networks:
+  #    - bitmagnet
+  #
+  ## Metrics storage and aggregation:
+  #prometheus:
+  #  image: prom/prometheus:latest
+  #  container_name: bitmagnet-prometheus
+  #  command:
+  #    - "--config.file=/etc/prometheus/prometheus.yml"
+  #  ports:
+  #    - 9090:9090
+  #  # The bitmagnet host must be mapped to the gluetun container:
+  #  extra_hosts:
+  #    - "bitmagnet:192.168.55.10"
+  #  restart: unless-stopped
+  #  volumes:
+  #    - ./data/prometheus:/prometheus
+  #    - ./observability/prometheus.config.yaml:/etc/prometheus/prometheus.yml
+  #  networks:
+  #    - bitmagnet
+  #
+  ## Log storage and aggregation:
+  #loki:
+  #  container_name: bitmagnet-loki
+  #  image: grafana/loki:latest
+  #  ports:
+  #    - "3100:3100"
+  #  volumes:
+  #    - ./data/loki:/loki
+  #    - ./observability/loki.config.yaml:/etc/loki/local-config.yaml
+  #  command: -config.file=/etc/loki/local-config.yaml
+  #  networks:
+  #    - bitmagnet
+  #
+  ## Runtime profiling:
+  #pyroscope:
+  #  container_name: bitmagnet-pyroscope
+  #  image: grafana/pyroscope:latest
+  #  deploy:
+  #    restart_policy:
+  #      condition: on-failure
+  #  ports:
+  #    - "4040:4040"
+  #  command:
+  #    - "server"
+  #  volumes:
+  #    - ./observability/pyroscope.config.yaml:/etc/pyroscope/server.yaml
+  #    - ./data/pyroscope:/var/lib/pyroscope
+  #  networks:
+  #    - bitmagnet
+  #
+  ## Prometheus metrics for Postgres:
+  #postgres-exporter:
+  #  image: prometheuscommunity/postgres-exporter:latest
+  #  container_name: bitmagnet-postgres-exporter
+  #  ports:
+  #    - 9187:9187
+  #  environment:
+  #    DATA_SOURCE_NAME: "postgresql://postgres:postgres@postgres:5432/bitmagnet?sslmode=disable"
+  #  links:
+  #    - postgres
+  #    - prometheus
+  #  networks:
+  #    - bitmagnet
