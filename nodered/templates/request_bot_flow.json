@@ -1,0 +1,395 @@
+[
+    {
+        "id": "${PREFIX_ID}_TAB_MESSAGES",
+        "type": "tab",
+        "label": "${SUBJECT_PREFIX} messages",
+        "disabled": false,
+        "info": ""
+    },
+    {
+        "id": "${PREFIX_ID}_TAB_RESPONSES",
+        "type": "tab",
+        "label": "${SUBJECT_PREFIX} responses",
+        "disabled": false,
+        "info": ""
+    },
+    {
+        "id": "${PREFIX_ID}_TAB_REACTIONS",
+        "type": "tab",
+        "label": "${SUBJECT_PREFIX} reactions",
+        "disabled": false,
+        "info": ""
+    },
+    {
+        "id": "${PREFIX_ID}_NATS_SERVER",
+        "type": "nats-suite-server",
+        "server": "${NATS_URL}",
+        "authMethod": "none",
+        "enableTLS": true,
+        "tlsRejectUnauthorized": true,
+        "tlsCaFile": "${NATS_CA_FILE}",
+        "tlsCertFile": "${NATS_CERT_FILE}",
+        "tlsKeyFile": "${NATS_KEY_FILE}",
+        "maxReconnectAttempts": 10,
+        "reconnectTimeWait": 1000,
+        "timeout": 10000,
+        "pingInterval": 30000,
+        "maxPingOut": 3,
+        "debug": false
+    },
+    {
+        "id": "${PREFIX_ID}_MATRIX_SERVER",
+        "type": "matrix-server-config",
+        "name": "${MATRIX_SERVER}",
+        "autoAcceptRoomInvites": false,
+        "enableE2ee": true,
+        "global": true,
+        "allowUnknownDevices": false
+    },
+    {
+        "id": "${PREFIX_ID}_MATRIX_RECEIVE",
+        "type": "matrix-receive",
+        "z": "${PREFIX_ID}_TAB_MESSAGES",
+        "name": "",
+        "server": "${PREFIX_ID}_MATRIX_SERVER",
+        "roomId": "${MATRIX_ROOM_ID}",
+        "acceptOwnEvents": false,
+        "acceptText": true,
+        "acceptEmotes": true,
+        "acceptNotices": true,
+        "acceptStickers": true,
+        "acceptReactions": true,
+        "acceptFiles": true,
+        "acceptAudio": true,
+        "acceptImages": true,
+        "acceptVideos": true,
+        "acceptLocations": true,
+        "x": 200,
+        "y": 200,
+        "wires": [
+            [
+                "${PREFIX_ID}_FN_FORMAT_MESSAGE"
+            ]
+        ]
+    },
+    {
+        "id": "${PREFIX_ID}_FN_FORMAT_MESSAGE",
+        "type": "function",
+        "z": "${PREFIX_ID}_TAB_MESSAGES",
+        "name": "Format for NATS",
+        "func": "msg.payload = JSON.stringify({\n    userId: msg.userId,\n    topic: msg.topic,\n    eventId: msg.eventId,\n    content: msg.content\n});\nreturn msg;",
+        "outputs": 1,
+        "timeout": 0,
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [],
+        "x": 400,
+        "y": 200,
+        "wires": [
+            [
+                "${PREFIX_ID}_NATS_PUB_MESSAGES"
+            ]
+        ]
+    },
+    {
+        "id": "${PREFIX_ID}_NATS_PUB_MESSAGES",
+        "type": "nats-suite-publish",
+        "z": "${PREFIX_ID}_TAB_MESSAGES",
+        "name": "${SUBJECT_PREFIX}.messages",
+        "server": "${PREFIX_ID}_NATS_SERVER",
+        "debug": false,
+        "enableBuffer": false,
+        "mode": "publish",
+        "bufferSize": 1000,
+        "bufferSizeType": "count",
+        "bufferSizeBytes": 10485760,
+        "bufferMode": "drop-oldest",
+        "bufferPersistence": "none",
+        "bufferAutoSaveInterval": 30,
+        "message": "",
+        "dataformat": "json",
+        "datapointid": "${SUBJECT_PREFIX}.messages",
+        "enableTopicOverride": false,
+        "enableBatch": false,
+        "batchSize": 100,
+        "batchInterval": 1000,
+        "batchMode": "hybrid",
+        "requestTimeout": 5000,
+        "requestFallbackToPublish": true,
+        "enableAutoReply": false,
+        "replyTimeout": 5000,
+        "enableRateLimit": false,
+        "rateLimit": 100,
+        "rateLimitWindow": 1000,
+        "rateLimitBurst": 20,
+        "rateLimitAction": "drop",
+        "enableHeaders": false,
+        "headers": "",
+        "enableMsgExpiration": false,
+        "msgExpiration": 0,
+        "outputs": 0,
+        "x": 620,
+        "y": 200,
+        "wires": []
+    },
+    {
+        "id": "${PREFIX_ID}_NATS_SUB_RESPONSES",
+        "type": "nats-suite-subscribe",
+        "z": "${PREFIX_ID}_TAB_RESPONSES",
+        "name": "",
+        "server": "${PREFIX_ID}_NATS_SERVER",
+        "debug": false,
+        "dataformat": "auto",
+        "datapointid": "${SUBJECT_PREFIX}.responses",
+        "subscriptionMode": "static",
+        "queueGroup": "",
+        "x": 150,
+        "y": 200,
+        "wires": [
+            [
+                "${PREFIX_ID}_FN_BEFORE_SEND"
+            ]
+        ]
+    },
+    {
+        "id": "${PREFIX_ID}_FN_BEFORE_SEND",
+        "type": "function",
+        "z": "${PREFIX_ID}_TAB_RESPONSES",
+        "name": "Parse response",
+        "func": "// Store NATS reply subject in global context (Matrix Send strips it)\n// Keyed by room ID since messages are processed sequentially\nglobal.set('nats_reply_' + msg.payload.topic, msg._reply);\nmsg.topic = msg.payload.topic;\nmsg.payload = msg.payload.html;\nmsg.format = 'html';\nreturn msg;",
+        "outputs": 1,
+        "timeout": 0,
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [],
+        "x": 340,
+        "y": 200,
+        "wires": [
+            [
+                "${PREFIX_ID}_MATRIX_SEND"
+            ]
+        ]
+    },
+    {
+        "id": "${PREFIX_ID}_MATRIX_SEND",
+        "type": "matrix-send-message",
+        "z": "${PREFIX_ID}_TAB_RESPONSES",
+        "name": "",
+        "server": "${PREFIX_ID}_MATRIX_SERVER",
+        "roomId": "",
+        "message": "",
+        "messageType": "m.text",
+        "messageFormat": "msg.format",
+        "replaceMessage": false,
+        "threadReplyType": "msg",
+        "threadReplyValue": "isThread",
+        "x": 520,
+        "y": 200,
+        "wires": [
+            [
+                "${PREFIX_ID}_FN_AFTER_SEND"
+            ],
+            []
+        ]
+    },
+    {
+        "id": "${PREFIX_ID}_FN_AFTER_SEND",
+        "type": "function",
+        "z": "${PREFIX_ID}_TAB_RESPONSES",
+        "name": "Reply to NATS",
+        "func": "// Retrieve NATS reply subject from global context\nvar replyTo = global.get('nats_reply_' + msg.topic);\nglobal.set('nats_reply_' + msg.topic, null);\nif (!replyTo) { return null; }\nmsg.topic = replyTo;\nmsg.payload = msg.eventId;\nreturn msg;",
+        "outputs": 1,
+        "timeout": 0,
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [],
+        "x": 700,
+        "y": 200,
+        "wires": [
+            [
+                "${PREFIX_ID}_NATS_PUB_RESPONSE_REPLY"
+            ]
+        ]
+    },
+    {
+        "id": "${PREFIX_ID}_NATS_PUB_RESPONSE_REPLY",
+        "type": "nats-suite-publish",
+        "z": "${PREFIX_ID}_TAB_RESPONSES",
+        "name": "Reply (event ID)",
+        "server": "${PREFIX_ID}_NATS_SERVER",
+        "debug": false,
+        "enableBuffer": false,
+        "mode": "publish",
+        "bufferSize": 1000,
+        "bufferSizeType": "count",
+        "bufferSizeBytes": 10485760,
+        "bufferMode": "drop-oldest",
+        "bufferPersistence": "none",
+        "bufferAutoSaveInterval": 30,
+        "message": "",
+        "dataformat": "string",
+        "datapointid": "",
+        "enableTopicOverride": true,
+        "enableBatch": false,
+        "batchSize": 100,
+        "batchInterval": 1000,
+        "batchMode": "hybrid",
+        "requestTimeout": 5000,
+        "requestFallbackToPublish": true,
+        "enableAutoReply": false,
+        "replyTimeout": 5000,
+        "enableRateLimit": false,
+        "rateLimit": 100,
+        "rateLimitWindow": 1000,
+        "rateLimitBurst": 20,
+        "rateLimitAction": "drop",
+        "enableHeaders": false,
+        "headers": "",
+        "enableMsgExpiration": false,
+        "msgExpiration": 0,
+        "outputs": 0,
+        "x": 890,
+        "y": 200,
+        "wires": []
+    },
+    {
+        "id": "${PREFIX_ID}_NATS_SUB_REACTIONS",
+        "type": "nats-suite-subscribe",
+        "z": "${PREFIX_ID}_TAB_REACTIONS",
+        "name": "",
+        "server": "${PREFIX_ID}_NATS_SERVER",
+        "debug": false,
+        "dataformat": "auto",
+        "datapointid": "${SUBJECT_PREFIX}.reactions",
+        "subscriptionMode": "static",
+        "queueGroup": "",
+        "x": 130,
+        "y": 180,
+        "wires": [
+            [
+                "${PREFIX_ID}_FN_ROUTE_REACTION"
+            ]
+        ]
+    },
+    {
+        "id": "${PREFIX_ID}_FN_ROUTE_REACTION",
+        "type": "function",
+        "z": "${PREFIX_ID}_TAB_REACTIONS",
+        "name": "Route react/redact",
+        "func": "var data = (typeof msg.payload === 'string') ? JSON.parse(msg.payload) : msg.payload;\n\nif (data.action === 'react') {\n    msg.topic = data.topic;\n    msg.eventId = data.eventId;\n    msg.payload = data.key;\n    msg.msgType = 'm.reaction';\n    return [msg, null];\n} else if (data.action === 'redact') {\n    msg.topic = data.topic;\n    msg.eventId = data.eventId;\n    return [null, msg];\n}\nreturn null;",
+        "outputs": 2,
+        "timeout": 0,
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [],
+        "x": 330,
+        "y": 180,
+        "wires": [
+            [
+                "${PREFIX_ID}_MATRIX_REACT"
+            ],
+            [
+                "${PREFIX_ID}_MATRIX_DELETE"
+            ]
+        ]
+    },
+    {
+        "id": "${PREFIX_ID}_MATRIX_REACT",
+        "type": "matrix-react",
+        "z": "${PREFIX_ID}_TAB_REACTIONS",
+        "name": "",
+        "server": "${PREFIX_ID}_MATRIX_SERVER",
+        "roomId": "",
+        "reaction": "",
+        "x": 530,
+        "y": 140,
+        "wires": [
+            [
+                "${PREFIX_ID}_FN_REACTION_REPLY"
+            ],
+            []
+        ]
+    },
+    {
+        "id": "${PREFIX_ID}_MATRIX_DELETE",
+        "type": "matrix-delete-event",
+        "z": "${PREFIX_ID}_TAB_REACTIONS",
+        "name": "",
+        "server": "${PREFIX_ID}_MATRIX_SERVER",
+        "roomId": "",
+        "reason": "",
+        "x": 550,
+        "y": 220,
+        "wires": [
+            [
+                "${PREFIX_ID}_FN_REACTION_REPLY"
+            ],
+            []
+        ]
+    },
+    {
+        "id": "${PREFIX_ID}_FN_REACTION_REPLY",
+        "type": "function",
+        "z": "${PREFIX_ID}_TAB_REACTIONS",
+        "name": "Reply to NATS",
+        "func": "// Matrix React preserves msg._reply; Matrix Delete does not\nvar replyTo = msg._reply;\nif (!replyTo) { return null; }\nmsg.topic = replyTo;\nmsg.payload = msg.eventId || '';\nreturn msg;",
+        "outputs": 1,
+        "timeout": 0,
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [],
+        "x": 740,
+        "y": 180,
+        "wires": [
+            [
+                "${PREFIX_ID}_NATS_PUB_REACTION_REPLY"
+            ]
+        ]
+    },
+    {
+        "id": "${PREFIX_ID}_NATS_PUB_REACTION_REPLY",
+        "type": "nats-suite-publish",
+        "z": "${PREFIX_ID}_TAB_REACTIONS",
+        "name": "Reply (event ID)",
+        "server": "${PREFIX_ID}_NATS_SERVER",
+        "debug": false,
+        "enableBuffer": false,
+        "mode": "publish",
+        "bufferSize": 1000,
+        "bufferSizeType": "count",
+        "bufferSizeBytes": 10485760,
+        "bufferMode": "drop-oldest",
+        "bufferPersistence": "none",
+        "bufferAutoSaveInterval": 30,
+        "message": "",
+        "dataformat": "string",
+        "datapointid": "",
+        "enableTopicOverride": true,
+        "enableBatch": false,
+        "batchSize": 100,
+        "batchInterval": 1000,
+        "batchMode": "hybrid",
+        "requestTimeout": 5000,
+        "requestFallbackToPublish": true,
+        "enableAutoReply": false,
+        "replyTimeout": 5000,
+        "enableRateLimit": false,
+        "rateLimit": 100,
+        "rateLimitWindow": 1000,
+        "rateLimitBurst": 20,
+        "rateLimitAction": "drop",
+        "enableHeaders": false,
+        "headers": "",
+        "enableMsgExpiration": false,
+        "msgExpiration": 0,
+        "outputs": 0,
+        "x": 930,
+        "y": 180,
+        "wires": []
+    }
+]
