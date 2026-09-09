@@ -1,0 +1,72 @@
+volumes:
+  config:
+
+networks:
+  default:
+  
+services:
+  bitmagnet:
+    build:
+      context: bitmagnet
+      args:
+        BITMAGNET_IMAGE: ${BITMAGNET_IMAGE}
+    cap_add:
+      - NET_ADMIN ## Dropped ASAP in app-router-bootstrap.sh entrypoint.
+    security_opt:
+      - no-new-privileges:true
+    sysctls:
+      - net.ipv4.ip_unprivileged_port_start=1024
+    restart: unless-stopped
+    environment:
+      - ENTRYPOINT=/usr/local/bin/bitmagnet
+      - WIREGUARD_INSTANCE=${BITMAGNET_WIREGUARD_INSTANCE}
+      - WIREGUARD_ROUTER_IPV4=${BITMAGNET_WIREGUARD_ROUTER_IPV4}
+      - WIREGUARD_ROUTER_IPV6=${BITMAGNET_WIREGUARD_ROUTER_IPV6}
+      - DOCKER_GATEWAY_PORTS=${BITMAGNET_DOCKER_GATEWAY_PORTS}
+      - LOG_FILE_ROTATOR_ENABLED=true
+      - LOG_LEVEL=${BITMAGNET_LOG_LEVEL}
+      - POSTGRES_HOST=postgres
+      - POSTGRES_PASSWORD=${BITMAGNET_POSTGRES_PASSWORD}
+      - TMDB_API_KEY=${BITMAGNET_TMDB_API_KEY}
+    command:
+      - worker
+      - run
+      #- --all
+      - --keys=http_server
+      - --keys=queue_server
+      - --keys=dht_crawler
+    volumes:
+      - config:/root/.config/bitmagnet
+    # FYI: the container uses these ports
+    # ports:
+    #   # API and WebUI port:
+    #   - "3333:3333"
+    #   # BitTorrent ports:
+    #   - "3334:3334/tcp"
+    #   - "3334:3334/udp"
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3333/status"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+
+  postgres:
+    image: ${BITMAGNET_POSTGRES_IMAGE}
+    restart: unless-stopped
+    environment:
+      - POSTGRES_PASSWORD=${BITMAGNET_POSTGRES_PASSWORD}
+      - POSTGRES_DB=bitmagnet
+      - PGUSER=postgres
+    user: "${BITMAGNET_UID}:${BITMAGNET_GID}"
+    networks:
+      - default
+    shm_size: 1g
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready"]
+      interval: 10s
+      start_period: 20s
+
+  # For examples of incorporating observability services (e.g., grafana, prometheus), see:
+  # https://github.com/bitmagnet-io/bitmagnet/blob/e31b30d7351c269dc801876f92ebc59d31fee545/docker-compose.yml#L82-L193
+  # Note that these would need to be modified to work with `d.rymcg.tech`.
