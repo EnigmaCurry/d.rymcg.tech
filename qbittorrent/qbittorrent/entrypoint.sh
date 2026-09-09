@@ -32,7 +32,7 @@ init_hash() {
 start_qbittorrent() {
     export PATH="$PATH:/app"
     echo "[wrapper] Starting qBittorrent..."
-    qbittorrent-nox &
+    /app/qbittorrent-nox &
     QB_PID=$!
     echo "[wrapper] qBittorrent PID=${QB_PID}"
 }
