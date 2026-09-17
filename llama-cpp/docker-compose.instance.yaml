@@ -85,7 +85,7 @@
 #@     labels.append("traefik.http.middlewares.{}-basicauth.basicauth.headerField=X-Forwarded-User".format(router))
 #@   end
 #@   if enable_oauth2:
-#@     middlewares.append("traefik-forward-auth@docker")
+#@     middlewares.append("forward-auth@docker")
 #@     middlewares.append("header-authorization-group-{}@file".format(authorized_group))
 #@   end
 #@   if enable_mtls_auth:

@@ -73,7 +73,7 @@ services:
       #@ end
 
       #@ if enable_oauth2:
-      #@ enabled_middlewares.append("traefik-forward-auth@docker")
+      #@ enabled_middlewares.append("forward-auth@docker")
       #@ enabled_middlewares.append("header-authorization-group-{}@file".format(authorized_group))
       #@ end
 
