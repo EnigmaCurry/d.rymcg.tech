@@ -253,7 +253,7 @@ list_callback_urls() {
     fi
     domains=()
     echo "## This is the list of OAuth2 callback URLs for all deployed apps:"
-    echo "## If you installed traefik-forward-auth in AUTH HOST mode (default) you don't need this, otherwise keep reading:"
+    echo "## If you installed oauth2-proxy in AUTH HOST mode (default) you don't need this, otherwise keep reading:"
     echo "## You need to copy/paste these into your Forgejo OAuth2 application 'Redirect URIs' setting."
     echo "## Generate this list again with this command: d.rymcg.tech make traefik sentry-callback"
     echo "## Collecting callback URLs for all deployed applications ..."
@@ -273,19 +273,19 @@ list_callback_urls() {
     IFS=$'\n' domains=($(sort <<<"${domains[*]}" | uniq)); unset IFS;
     for domain in ${domains[@]}; do
         if [[ "${https_port}" == "443" ]]; then
-            echo "https://${domain}/_oauth"
+            echo "https://${domain}/oauth2/callback"
         else
-            echo "https://${domain}:${https_port}/_oauth"
+            echo "https://${domain}:${https_port}/oauth2/callback"
         fi
     done
     echo ""
 }
 
-## check if traefik-forward-auth is installed:
+## check if oauth2-proxy is installed:
 echo
-if ! docker inspect traefik-forward-auth >/dev/null; then
-    echo "You must install traefik-forward-auth (and forgejo) first before configuring the authorization middleware"
-    echo "See https://github.com/EnigmaCurry/d.rymcg.tech/tree/master/traefik-forward-auth#readme"
+if ! docker inspect oauth2-proxy >/dev/null; then
+    echo "You must install oauth2-proxy (and forgejo) first before configuring the authorization middleware"
+    echo "See https://github.com/EnigmaCurry/d.rymcg.tech/tree/master/oauth2-proxy#readme"
     echo "See https://github.com/EnigmaCurry/d.rymcg.tech/tree/master/forgejo#readme"
     exit 0
 fi
