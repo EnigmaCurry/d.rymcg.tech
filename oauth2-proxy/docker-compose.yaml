@@ -24,6 +24,7 @@ services:
       - OAUTH2_PROXY_COOKIE_DOMAINS=.${OAUTH2_PROXY_COOKIE_DOMAIN}
       - OAUTH2_PROXY_COOKIE_EXPIRE=${OAUTH2_PROXY_COOKIE_EXPIRE}
       - OAUTH2_PROXY_WHITELIST_DOMAINS=.${OAUTH2_PROXY_COOKIE_DOMAIN}
+      - OAUTH2_PROXY_TRUSTED_PROXY_IPS=${OAUTH2_PROXY_TRUSTED_PROXY_IPS}
       - OAUTH2_PROXY_REDIRECT_URL=https://${OAUTH2_PROXY_HOST}${OAUTH2_PROXY_HTTPS_PORT}/oauth2/callback
       - OAUTH2_PROXY_PROVIDER=${OAUTH2_PROXY_PROVIDER}
       - OAUTH2_PROXY_CODE_CHALLENGE_METHOD=S256
@@ -54,7 +55,12 @@ services:
 
       # Public router for the auth domain (serves /oauth2/start, /oauth2/callback, etc.).
       # NO middleware applied — this endpoint must remain accessible without authentication.
-      - "traefik.http.services.oauth2-proxy.loadbalancer.server.port=4180"
+      #
+      # loadbalancer.server.url pins the backend to the loopback-published port
+      # instead of Traefik's default (container-bridge-IP:4180). Both auth-flow
+      # requests and the internal forward-auth call then reach oauth2-proxy from
+      # 127.0.0.1, so OAUTH2_PROXY_TRUSTED_PROXY_IPS can stay tight to loopback.
+      - "traefik.http.services.oauth2-proxy.loadbalancer.server.url=http://127.0.0.1:4180"
       - "traefik.http.routers.oauth2-proxy.rule=Host(`${OAUTH2_PROXY_HOST}`)"
       - "traefik.http.routers.oauth2-proxy.entrypoints=websecure"
       - "traefik.http.routers.oauth2-proxy.tls=true"
