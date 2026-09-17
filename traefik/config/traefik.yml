@@ -275,12 +275,18 @@ entryPoints:
         #@ end
     #@ end
   #@ end
-  #@ if data.values.dashboard_entrypoint_enabled == "true":
+  #! Always declare the `traefik` entrypoint so the http.aliasHeadersStrategy
+  #! applies even when the dashboard is disabled — otherwise Traefik auto-creates
+  #! an internal `traefik` entrypoint for its API without our http config, and
+  #! logs the alias-strategy warning against it.
   traefik:
+    #@ if data.values.dashboard_entrypoint_enabled == "true":
     address: #@ data.values.dashboard_entrypoint_host + ":" + data.values.dashboard_entrypoint_port
+    #@ else:
+    address: "127.0.0.1:8080"
+    #@ end
     http:
       aliasHeadersStrategy: delete
-  #@ end
   #@ if data.values.mpd_entrypoint_enabled == "true":
   mpd:
     address: #@ data.values.mpd_entrypoint_host + ":" + data.values.mpd_entrypoint_port
