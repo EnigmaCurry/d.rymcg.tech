@@ -347,9 +347,10 @@ This configuration has builtin support for the following plugins:
  * [referer](https://github.com/moonlightwatch/referer) -
    middleware that prevents foreign referal URLs.
  * [headauth](https://github.com/poloyacero/headauth) used for
-   implementing OAuth2 sentry authorization, which filters allowed
-   users by groups, and it forwards the authenticated user in the
-   `X-Forwarded-User` header field to your app.
+   implementing OAuth2 sentry authorization: reads the trusted
+   `X-Auth-Request-Email` header set upstream by
+   [oauth2-proxy](../oauth2-proxy) and rejects requests whose user is
+   not a member of the app's configured authorization group.
  * [certauthz](github.com/famedly/traefik-certauthz) used for
    implementing mTLS sentry authorization based on a filter of allowed
    client certificates.
@@ -379,32 +380,32 @@ to web servers running in project containers.
 
 ## OAuth2 authentication
 
-If you install the [traefik-forward-auth](../traefik-forward-auth)
-service, you can enable OAuth2 authentication to your
-[forgejo](../forgejo) identity provider (or any external OAuth2 provider).
+If you install the [oauth2-proxy](../oauth2-proxy) service, you can
+enable OIDC/OAuth2 authentication delegated to your
+[forgejo](../forgejo) identity provider (or any external OIDC provider).
 
 It is important to understand the difference between authentication
 and authorization:
 
  * authentication identifies who a user *is*. (This is what
-     traefik-forward-auth does for you, sitting in front of your app.)
+   oauth2-proxy does for you, sitting in front of your app.)
  * authorization is a process that determines what a user should be
    *allowed to do* (This is what every application should do for
    itself, or another middleware described below).
 
-To summarize: traefik-forward-auth, by itself, only cares about
-identity, not about permissions.
+To summarize: oauth2-proxy, by itself, only cares about identity, not
+about permissions.
 
 Permissions (authorization) are to be implemented in the app itself.
-Traefik-Forward-Auth operates by setting a trusted header
-`X-Forwarded-User` that contains the authenticated users email
-address. The application receives this header on every request coming
-from the proxy. It should trust this header to be a real authenticated
-user for the session, and it only needs to decide what that user is
-allowed to do (ie. the app should define a map of email address to
-permissions that it enforces per request; the app database only needs
-to store user registrations, and their permission roles, but doesn't
-need to store any user passwords.).
+oauth2-proxy operates by setting a trusted header `X-Auth-Request-Email`
+that contains the authenticated user's email address. The application
+receives this header on every request coming from the proxy. It should
+trust this header to be a real authenticated user for the session, and
+it only needs to decide what that user is allowed to do (ie. the app
+should define a map of email address to permissions that it enforces
+per request; the app database only needs to store user registrations
+and their permission roles, but doesn't need to store any user
+passwords).
 
 However, many applications do not support this style of delegated
 authentication by trusted header. To add authorization to an
@@ -435,9 +436,9 @@ assign one of those groups to your app.
 
 While this extra middleware can get you "in the door" of any app, its
 still ultimately up to the app as to what you can do when you get
-there, so if the app doesn't understand the `X-Forwarded-User` header,
-you may also need to login through the app interface itself, after
-having already logged in through Forgejo.
+there, so if the app doesn't understand the `X-Auth-Request-Email`
+header, you may also need to login through the app interface itself,
+after having already logged in through Forgejo.
 
 ## Step CA (self-hosted ACME certificate provisioner)
 

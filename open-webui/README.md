@@ -22,9 +22,9 @@ See [AUTH.md](../AUTH.md) for information on adding external authentication on
 top of your app.
 
 If you enable OAuth2 authentication, open-webui accounts will be
-created automatically for any successfully logged in user, based upon
-the email address forwarded from traefik-forward-auth
-`X-Forwarded-User`.
+created automatically for any successfully logged-in user, based upon
+the email address forwarded from oauth2-proxy in the
+`X-Auth-Request-Email` header.
 
 You must immediately log in, the first user to authenticate will
 become the admin automatically.

@@ -4,9 +4,9 @@
 > Gitea has been deprecated in favor of [Forgejo](../../forgejo#readme)
 
 [Gitea](https://gitea.com/) is a git repository host, similar to GitHub, but
-entirely self-hosted. Gitea also functions as an identity server and OAuth
-provider, to facilitate sign-in for other applications, via
-[traefik-forward-auth](../traefik-forward-auth)
+entirely self-hosted. Gitea also functions as an OIDC identity provider, to
+facilitate single sign-on for other applications, via
+[oauth2-proxy](../../oauth2-proxy)
 
 ## Configuration
 
