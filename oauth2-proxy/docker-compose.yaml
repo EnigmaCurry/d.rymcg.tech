@@ -41,7 +41,12 @@ services:
       # networking and oauth2-proxy publishes port 4180 to 127.0.0.1 below.
       - "traefik.http.middlewares.forward-auth.forwardAuth.address=http://127.0.0.1:4180/oauth2/auth"
       - "traefik.http.middlewares.forward-auth.forwardAuth.trustForwardHeader=true"
-      - "traefik.http.middlewares.forward-auth.forwardAuth.authResponseHeaders=X-Auth-Request-User,X-Auth-Request-Email,X-Auth-Request-Preferred-Username,X-Auth-Request-Groups,Authorization"
+      # authResponseHeaders lists which headers Traefik copies from the auth response
+      # into the request going upstream. Every name listed here REPLACES any
+       # client-supplied value with what oauth2-proxy sent (or clears it if oauth2-proxy
+      # sent nothing). Include every legacy/alternate auth header name so that
+      # spoofed values are neutralized before reaching backends.
+      - "traefik.http.middlewares.forward-auth.forwardAuth.authResponseHeaders=X-Auth-Request-User,X-Auth-Request-Email,X-Auth-Request-Preferred-Username,X-Auth-Request-Groups,X-Forwarded-User,X-Forwarded-Email,X-Forwarded-Preferred-Username,X-Forwarded-Groups,Remote-User,Remote-Email,Remote-Groups,Authorization"
 
       # Public router for the auth domain (serves /oauth2/start, /oauth2/callback, etc.).
       # NO middleware applied — this endpoint must remain accessible without authentication.

@@ -198,6 +198,14 @@ entryPoints:
         #@ end
     #@ end
     http:
+      #! Drop aliased header variants at ingress (CVE-2026-54763, CVE-2026-88011):
+      #! Go's HTTP canonicalization treats X_Auth_Request_Email and X.Auth.Request.Email
+      #! as distinct from X-Auth-Request-Email, but many backends collapse them.
+      #! `aliasHeadersStrategy: delete` silently drops any alias form of a canonical
+      #! header (underscore, dot, other separators) so spoofed auth-identity variants
+      #! can't smuggle past strip-headers or forward-auth's authResponseHeaders
+      #! replacement. Requires Traefik >= v3.7.12.
+      aliasHeadersStrategy: delete
       tls:
         #@ if data.values.acme_enabled == "true":
         certResolver: #@ data.values.acme_cert_resolver
