@@ -82,7 +82,7 @@
 #@   if enable_http_auth:
 #@     middlewares.append("{}-basicauth".format(router))
 #@     labels.append("traefik.http.middlewares.{}-basicauth.basicauth.users={}".format(router, http_auth))
-#@     labels.append("traefik.http.middlewares.{}-basicauth.basicauth.headerField=X-Forwarded-User".format(router))
+#@     labels.append("traefik.http.middlewares.{}-basicauth.basicauth.headerField=X-Auth-Request-Email".format(router))
 #@   end
 #@   if enable_oauth2:
 #@     middlewares.append("forward-auth@docker")

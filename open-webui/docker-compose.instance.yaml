@@ -67,8 +67,7 @@ services:
   openwebui:
     environment:
       #@ if enable_oauth2:
-      - WEBUI_AUTH_TRUSTED_EMAIL_HEADER=X-Forwarded-User
-      - WEBUI_AUTH_SIGNOUT_REDIRECT_URL=https://(@= traefik_host @)/_oauth/logout
+      - WEBUI_AUTH_TRUSTED_EMAIL_HEADER=X-Auth-Request-Email
       #@ end
     #@ service = "openwebui"
     labels:
@@ -89,7 +88,7 @@ services:
       #@ if enable_http_auth:
       #@ enabled_middlewares.append("{}-basicauth".format(router))
       - "traefik.http.middlewares.(@= router @)-basicauth.basicauth.users=(@= http_auth @)"
-      - "traefik.http.middlewares.(@= router @)-basicauth.basicauth.headerField=X-Forwarded-User"
+      - "traefik.http.middlewares.(@= router @)-basicauth.basicauth.headerField=X-Auth-Request-Email"
       #@ end
 
       #@ if enable_oauth2:

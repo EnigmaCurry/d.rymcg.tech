@@ -47,7 +47,7 @@ services:
       #@ if enable_http_auth:
       #@ public_middlewares.append("{}-basicauth".format(router_public))
       - "traefik.http.middlewares.(@= router_public @)-basicauth.basicauth.users=(@= http_auth @)"
-      - "traefik.http.middlewares.(@= router_public @)-basicauth.basicauth.headerField=X-Forwarded-User"
+      - "traefik.http.middlewares.(@= router_public @)-basicauth.basicauth.headerField=X-Auth-Request-Email"
       #@ end
 
       #@ if enable_oauth2:
@@ -88,7 +88,7 @@ services:
       #@ if enable_http_auth:
       #@ minio_console_middlewares.append("{}-basicauth".format(router_console))
       - "traefik.http.middlewares.(@= router_console @)-basicauth.basicauth.users=(@= http_auth @)"
-      - "traefik.http.middlewares.(@= router_console @)-basicauth.basicauth.headerField=X-Forwarded-User"
+      - "traefik.http.middlewares.(@= router_console @)-basicauth.basicauth.headerField=X-Auth-Request-Email"
       #@ end
 
       #@ if enable_oauth2:
