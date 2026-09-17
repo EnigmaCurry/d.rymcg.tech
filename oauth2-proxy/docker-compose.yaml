@@ -50,8 +50,6 @@ services:
       - "traefik.http.routers.oauth2-proxy.entrypoints=websecure"
       - "traefik.http.routers.oauth2-proxy.tls=true"
       - "traefik.http.routers.oauth2-proxy.service=oauth2-proxy"
-    extra_hosts:
-      - "${OAUTH2_PROXY_FORGEJO_DOMAIN}:host-gateway"
     ports:
       - 127.0.0.1:4180:4180
     restart: unless-stopped
