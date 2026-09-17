@@ -16,7 +16,6 @@ services:
       - OAUTH2_PROXY_HTTP_ADDRESS=0.0.0.0:4180
       - OAUTH2_PROXY_REVERSE_PROXY=true
       - OAUTH2_PROXY_SKIP_PROVIDER_BUTTON=true
-      - OAUTH2_PROXY_PASS_USER_HEADERS=true
       - OAUTH2_PROXY_SET_XAUTHREQUEST=true
       - OAUTH2_PROXY_COOKIE_SECURE=true
       - OAUTH2_PROXY_UPSTREAMS=static://202
@@ -42,7 +41,7 @@ services:
       # networking and oauth2-proxy publishes port 4180 to 127.0.0.1 below.
       - "traefik.http.middlewares.forward-auth.forwardAuth.address=http://127.0.0.1:4180/oauth2/auth"
       - "traefik.http.middlewares.forward-auth.forwardAuth.trustForwardHeader=true"
-      - "traefik.http.middlewares.forward-auth.forwardAuth.authResponseHeaders=X-Forwarded-User,X-Forwarded-Email,X-Forwarded-Preferred-Username,X-Auth-Request-User,X-Auth-Request-Email,Authorization"
+      - "traefik.http.middlewares.forward-auth.forwardAuth.authResponseHeaders=X-Auth-Request-User,X-Auth-Request-Email,X-Auth-Request-Preferred-Username,X-Auth-Request-Groups,Authorization"
 
       # Public router for the auth domain (serves /oauth2/start, /oauth2/callback, etc.).
       # NO middleware applied — this endpoint must remain accessible without authentication.

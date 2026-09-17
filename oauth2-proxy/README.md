@@ -21,9 +21,12 @@ wizard by default.
   provider (Forgejo) to log in.
 - On success, sets a session cookie scoped to `.${ROOT_DOMAIN}` so a single
   login covers every app on this server.
-- Emits `X-Forwarded-User`, `X-Forwarded-Email`, and `X-Auth-Request-*`
-  headers into the request going to the downstream app, so apps can identify
-  the logged-in user from a trusted header.
+- Emits `X-Auth-Request-Email`, `X-Auth-Request-User`,
+  `X-Auth-Request-Preferred-Username`, and `X-Auth-Request-Groups` headers
+  into the request going to the downstream app, so apps can identify the
+  logged-in user from a trusted header. The group-membership sentry
+  middleware (`header-authorization-group-<GROUP>@file`) reads
+  `X-Auth-Request-Email`.
 
 ## Configuration
 
@@ -83,10 +86,12 @@ Apps enable this by setting `<APPNAME>_OAUTH2=true` and
 `<APPNAME>_OAUTH2_AUTHORIZED_GROUP=<groupname>` in their `.env`, then
 reinstalling.
 
-The `X-Forwarded-User` header sent to the app contains the logged-in
+The `X-Auth-Request-Email` header sent to the app contains the logged-in
 user's email address (as reported by Forgejo). Apps that trust this header
 can use it to identify the user and enforce their own fine-grained
-permissions.
+permissions. (Note: this is a change from the older `traefik-forward-auth`
+setup, which emitted `X-Forwarded-User` — downstream apps configured to
+trust that header need to be pointed at `X-Auth-Request-Email` instead.)
 
 ## Logging out
 

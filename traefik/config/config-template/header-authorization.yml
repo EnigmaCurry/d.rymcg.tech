@@ -18,7 +18,7 @@ http:
             - TRACE
             - PATCH
           header:
-            name: X-Forwarded-User
+            name: X-Auth-Request-Email
           allowed: #@ data.values.header_authorization_groups[group]
     #@ end
 #@ end
