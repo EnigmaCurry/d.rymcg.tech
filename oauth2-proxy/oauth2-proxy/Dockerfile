@@ -10,7 +10,7 @@ RUN ([[ "$STEP_CA_ENABLED" == "true" ]] && [[ "$STEP_CA_ZERO_CERTS" == "true" ]]
 RUN ([[ "$STEP_CA_ENABLED" == "true" ]] && [[ "$STEP_CA_ZERO_CERTS" != "true" ]] && \
     cat /root/.step/certs/root_ca.crt >> /etc/ssl/certs/ca-certificates.crt) || true
 
-FROM golang:1.23-alpine AS builder
+FROM golang:1.26-alpine AS builder
 RUN mkdir -p /go/src/github.com/oauth2-proxy/oauth2-proxy
 WORKDIR /go/src/github.com/oauth2-proxy/oauth2-proxy
 RUN apk add --no-cache git make
