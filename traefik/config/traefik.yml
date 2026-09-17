@@ -170,6 +170,7 @@ entryPoints:
         #@ end
     #@ end
     http:
+      aliasHeadersStrategy: delete
       redirections:
         entryPoint:
           to: websecure
@@ -277,6 +278,8 @@ entryPoints:
   #@ if data.values.dashboard_entrypoint_enabled == "true":
   traefik:
     address: #@ data.values.dashboard_entrypoint_host + ":" + data.values.dashboard_entrypoint_port
+    http:
+      aliasHeadersStrategy: delete
   #@ end
   #@ if data.values.mpd_entrypoint_enabled == "true":
   mpd:

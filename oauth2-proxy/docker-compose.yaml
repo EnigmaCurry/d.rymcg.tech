@@ -41,6 +41,10 @@ services:
       # networking and oauth2-proxy publishes port 4180 to 127.0.0.1 below.
       - "traefik.http.middlewares.forward-auth.forwardAuth.address=http://127.0.0.1:4180/oauth2/auth"
       - "traefik.http.middlewares.forward-auth.forwardAuth.trustForwardHeader=true"
+      # /oauth2/auth responds with 202/401 and only headers (no body), so a small
+      # cap prevents an attacker who compromises the auth backend from streaming a
+      # huge body to exhaust Traefik memory. 8 KiB is generous for header-only responses.
+      - "traefik.http.middlewares.forward-auth.forwardAuth.maxResponseBodySize=8192"
       # authResponseHeaders lists which headers Traefik copies from the auth response
       # into the request going upstream. Every name listed here REPLACES any
        # client-supplied value with what oauth2-proxy sent (or clears it if oauth2-proxy
