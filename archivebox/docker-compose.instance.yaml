@@ -76,8 +76,17 @@ services:
       #@ end
 
       #@ if enable_oauth2:
+      #@ oauth2_mw = "{}-oauth2".format(router)
+      #@ oauth2_errors_mw = "{}-oauth2-errors".format(router)
+      - "traefik.http.middlewares.(@= oauth2_mw @).plugin.headauth.header.name=X-Auth-Request-Groups"
+      - "traefik.http.middlewares.(@= oauth2_mw @).plugin.headauth.allowed[0]=(@= authorized_group @)"
+      - "traefik.http.middlewares.(@= oauth2_errors_mw @).errors.status=401"
+      - "traefik.http.middlewares.(@= oauth2_errors_mw @).errors.service=oauth2-proxy@docker"
+      - "traefik.http.middlewares.(@= oauth2_errors_mw @).errors.query=/oauth2/start?rd=https%3A%2F%2F(@= traefik_host @)"
+      - "traefik.http.middlewares.(@= oauth2_errors_mw @).errors.statusrewrites.401=302"
+      #@ enabled_middlewares.append("{}@docker".format(oauth2_errors_mw))
       #@ enabled_middlewares.append("forward-auth@docker")
-      #@ enabled_middlewares.append("header-authorization-group-{}@file".format(authorized_group))
+      #@ enabled_middlewares.append("{}@docker".format(oauth2_mw))
       #@ end
 
       #@ if enable_mtls_auth:
