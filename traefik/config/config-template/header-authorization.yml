@@ -17,8 +17,15 @@ http:
             - OPTIONS
             - TRACE
             - PATCH
+          #! The `headauth` plugin (github.com/enigmacurry/traefik-header-authorization
+          #! v0.1.0+) reads the caller's group memberships from X-Auth-Request-Groups
+          #! (set by oauth2-proxy from the OIDC `groups` claim, e.g. Forgejo teams)
+          #! and lets the request through if ANY of the caller's groups is in `allowed`.
+          #! `TRAEFIK_HEADER_AUTHORIZATION_GROUPS` values are now **Forgejo group /
+          #! team names** (not email addresses). Add/remove users to those groups in
+          #! Forgejo — no Traefik restart needed.
           header:
-            name: X-Auth-Request-Email
+            name: X-Auth-Request-Groups
           allowed: #@ data.values.header_authorization_groups[group]
     #@ end
 #@ end

@@ -22,7 +22,7 @@ RUN git clone https://${MAXMIND_GEOIP_MODULE}.git \
     --depth 1 --single-branch --branch ${MAXMIND_GIT_BRANCH}
 RUN git clone https://${REFERER_MODULE}.git /plugins-local/src/github.com/moonlightwatch/referer \
       --depth 1 --single-branch --branch ${REFERER_GIT_BRANCH}
-RUN git clone https://${HEADER_AUTHORIZATION_MODULE}.git /plugins-local/src/github.com/poloyacero/headauth \
+RUN git clone https://${HEADER_AUTHORIZATION_MODULE}.git /plugins-local/src/github.com/enigmacurry/traefik-header-authorization \
       --depth 1 --single-branch --branch ${HEADER_AUTHORIZATION_GIT_BRANCH}
 RUN git clone https://${CERT_AUTH_MODULE}.git /plugins-local/src/github.com/famedly/traefik-certauthz \
       --depth 1 --single-branch --branch ${CERT_AUTH_GIT_BRANCH}
