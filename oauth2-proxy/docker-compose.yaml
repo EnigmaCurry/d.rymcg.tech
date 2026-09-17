@@ -53,6 +53,17 @@ services:
       # spoofed values are neutralized before reaching backends.
       - "traefik.http.middlewares.forward-auth.forwardAuth.authResponseHeaders=X-Auth-Request-User,X-Auth-Request-Email,X-Auth-Request-Preferred-Username,X-Auth-Request-Groups,X-Forwarded-User,X-Forwarded-Email,X-Forwarded-Preferred-Username,X-Forwarded-Groups,Remote-User,Remote-Email,Remote-Groups,Authorization"
 
+      # Catches 401 responses (from forward-auth on unauthenticated requests) and
+      # rewrites them into the sign-in flow. Traefik's errors middleware performs an
+      # internal HTTP call to `/oauth2/start` on the oauth2-proxy service; that
+      # endpoint reads X-Forwarded-Host / X-Forwarded-Uri from the original request
+      # (which errors forwards) and 302-redirects the client to Forgejo with an
+      # `rd=` pointing back at the original URL. Chain this BEFORE forward-auth on
+      # any protected router: [oauth2-errors@docker, forward-auth@docker, <group-check>].
+      - "traefik.http.middlewares.oauth2-errors.errors.status=401"
+      - "traefik.http.middlewares.oauth2-errors.errors.service=oauth2-proxy@docker"
+      - "traefik.http.middlewares.oauth2-errors.errors.query=/oauth2/start"
+
       # Public router for the auth domain (serves /oauth2/start, /oauth2/callback, etc.).
       # NO middleware applied — this endpoint must remain accessible without authentication.
       #
