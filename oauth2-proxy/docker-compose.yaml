@@ -63,6 +63,11 @@ services:
       - "traefik.http.middlewares.oauth2-errors.errors.status=401"
       - "traefik.http.middlewares.oauth2-errors.errors.service=oauth2-proxy@docker"
       - "traefik.http.middlewares.oauth2-errors.errors.query=/oauth2/start"
+      # /oauth2/start returns 302 + Location, but Traefik's errors middleware
+      # by default preserves the ORIGINAL status (401) and only replaces the body.
+      # Browsers ignore Location on 401, so we explicitly rewrite the status to
+      # 302 so the redirect actually fires. Requires Traefik >= v3.4.
+      - "traefik.http.middlewares.oauth2-errors.errors.statusrewrites.401=302"
 
       # Public router for the auth domain (serves /oauth2/start, /oauth2/callback, etc.).
       # NO middleware applied — this endpoint must remain accessible without authentication.
