@@ -124,7 +124,6 @@ services:
       - TRAEFIK_ERROR_HANDLER_403_SERVICE
       - TRAEFIK_ERROR_HANDLER_404_SERVICE
       - TRAEFIK_ERROR_HANDLER_500_SERVICE
-      - TRAEFIK_HEADER_AUTHORIZATION_GROUPS
       - TRAEFIK_STEP_CA_ENABLED=${TRAEFIK_STEP_CA_ENABLED:-false}
       - TRAEFIK_STEP_CA_ENDPOINT
       - TRAEFIK_STEP_CA_FINGERPRINT
@@ -190,8 +189,6 @@ services:
       - "traefik_certs:/certs:z"
       - "/var/run/docker.sock:/var/run/docker.sock:ro,z"
       - "geoip_database:/var/lib/traefikgeoip2/:z"
-    labels:
-      - "TRAEFIK_HEADER_AUTHORIZATION_GROUPS=${TRAEFIK_HEADER_AUTHORIZATION_GROUPS}"
 
   geoip_database:
     profiles:

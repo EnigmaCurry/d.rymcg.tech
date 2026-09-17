@@ -642,8 +642,8 @@ to be sure of the name.)
  * Optionally add `OAUTH2_PROXY_GITHUB_USERS=alice,bob` or
    `OAUTH2_PROXY_GITHUB_ORG=<orgname>` /
    `OAUTH2_PROXY_GITHUB_TEAM=<team>` to gate at the oauth2-proxy
-   layer. (You can also do this at the Traefik headauth layer via
-   `make sentry` — see below.)
+   layer. (You can also gate per-app via each app's
+   `<APPNAME>_OAUTH2_AUTHORIZED_GROUP` env var — see below.)
  * Make sure you don't have any extra spaces in the values.
  * Save the file.
 

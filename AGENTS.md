@@ -741,23 +741,10 @@ service with OAuth2 login. This requires two things:
 
 #### Create authorization groups
 
-Authorization groups are stored in Traefik's
-`TRAEFIK_HEADER_AUTHORIZATION_GROUPS` variable as a JSON map of group
-names to lists of email addresses. The email addresses must match the
-accounts on the OAuth2 provider (Forgejo).
-
-```bash
-# Set authorization groups (JSON map):
-# Each group is a name → list of email addresses.
-d.rymcg.tech make traefik reconfigure var='TRAEFIK_HEADER_AUTHORIZATION_GROUPS={"admin": ["root@localhost"], "users": ["root@localhost", "alice@example.com"]}'
-```
-
-After changing authorization groups, Traefik must be reinstalled to
-pick up the new middleware configuration:
-
-```bash
-d.rymcg.tech make traefik reinstall
-```
+Groups are managed **at the OIDC provider** (Forgejo teams, GitHub
+orgs/teams, etc.) — not in Traefik. Create the team in your provider
+UI and add the users who should have access. Nothing to run in
+Traefik.
 
 #### Enable OAuth2 on a service
 
@@ -772,15 +759,17 @@ name in uppercase.
 # Enable OAuth2:
 d.rymcg.tech make whoami reconfigure var=WHOAMI_OAUTH2=true
 
-# Set the authorization group (must exist in TRAEFIK_HEADER_AUTHORIZATION_GROUPS):
-d.rymcg.tech make whoami reconfigure var=WHOAMI_OAUTH2_AUTHORIZED_GROUP=admin
+# Set the authorization group (a Forgejo team name, or <org>:<team>):
+d.rymcg.tech make whoami reconfigure var=WHOAMI_OAUTH2_AUTHORIZED_GROUP=admins
 
 # Reinstall to apply:
 d.rymcg.tech make whoami reinstall
 ```
 
 Now visiting the whoami URL will redirect to Forgejo for login. Only
-users whose email is in the `admin` group will be granted access.
+users who are members of the `admins` team in Forgejo will be granted
+access. Adding a user to that team in Forgejo takes effect on their
+next login (no Traefik restart needed).
 
 #### Check if a service supports OAuth2
 

@@ -24,9 +24,10 @@ wizard by default.
 - Emits `X-Auth-Request-Email`, `X-Auth-Request-User`,
   `X-Auth-Request-Preferred-Username`, and `X-Auth-Request-Groups` headers
   into the request going to the downstream app, so apps can identify the
-  logged-in user from a trusted header. The group-membership sentry
-  middleware (`header-authorization-group-<GROUP>@file`) reads
-  `X-Auth-Request-Email`.
+  logged-in user from a trusted header. Each protected app defines its
+  own inline group-membership check middleware that reads
+  `X-Auth-Request-Groups` and rejects the request if the user isn't a
+  member of the configured OIDC group.
 
 ## Configuration
 
@@ -67,28 +68,26 @@ make logs
 
 ## How the middleware is used by apps
 
-Apps that opt in to sentry authentication have this pair of middlewares
-applied to their Traefik router:
-
-```
-traefik.http.routers.<app>.middlewares=forward-auth@docker,header-authorization-group-<GROUP>@file
-```
-
-- `forward-auth@docker` (this container) — identity check. Ensures the
-  user has logged in via Forgejo.
-- `header-authorization-group-<GROUP>@file` (from
-  [traefik](../traefik)) — group membership check. Ensures the
-  authenticated user is a member of `<GROUP>` as defined in
-  `TRAEFIK_HEADER_AUTHORIZATION_GROUPS`. Managed via `make sentry` in the
-  `traefik` directory.
-
-Apps enable this by setting `<APPNAME>_OAUTH2=true` and
+Apps enable sentry auth by setting `<APPNAME>_OAUTH2=true` and
 `<APPNAME>_OAUTH2_AUTHORIZED_GROUP=<groupname>` in their `.env`, then
-reinstalling.
+reinstalling. Each app's ytt template renders three Traefik middlewares
+onto its router:
+
+- `oauth2-errors` (per-app) — catches 401 responses from forward-auth and
+  redirects the browser to the sign-in flow.
+- `forward-auth@docker` (this container) — identity check via oauth2-proxy.
+- `<app>-oauth2` (per-app) — group-membership check reading
+  `X-Auth-Request-Groups`, rejecting requests whose user isn't a member
+  of `<APPNAME>_OAUTH2_AUTHORIZED_GROUP`.
+
+The group name is matched against whatever your OIDC provider puts in
+the `groups` claim: a Forgejo team name, a GitHub org or `org:team`, a
+GitLab group path, etc. Membership is managed entirely at the provider —
+adding/removing users doesn't require any Traefik change.
 
 The `X-Auth-Request-Email` header sent to the app contains the logged-in
-user's email address (as reported by Forgejo). Apps that trust this header
-can use it to identify the user and enforce their own fine-grained
+user's email address (as reported by the IdP). Apps that trust this
+header can use it to identify the user and enforce their own fine-grained
 permissions. (Note: this is a change from the older `traefik-forward-auth`
 setup, which emitted `X-Forwarded-User` — downstream apps configured to
 trust that header need to be pointed at `X-Auth-Request-Email` instead.)

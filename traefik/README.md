@@ -409,30 +409,20 @@ passwords).
 
 However, many applications do not support this style of delegated
 authentication by trusted header. To add authorization to an
-unsupported application, you may use the provided [header
-authorization
-middleware](https://github.com/enigmacurry/traefik-header-authorization),
-and it can be configured simply by running this make target:
+unsupported application, we use the [header authorization
+middleware](https://github.com/enigmacurry/traefik-header-authorization).
+It's applied automatically per-app when `<APP>_OAUTH2=true` and
+`<APP>_OAUTH2_AUTHORIZED_GROUP=<groupname>` are set in an app's env:
+each app's docker-compose template defines its own instance of the
+middleware inline, checking that the user's OIDC `groups` claim
+contains the configured group name.
 
-```
-# Configure the header authorization middleware:
-make sentry
-```
-
-This will configure the `TRAEFIK_HEADER_AUTHORIZATION_GROUPS`
-environment variable in your .env file (which is a serialized JSON map
-of groups and allowed usernames). Email addresses must match those of
-accounts on your Forgejo instance. For example, if you have accounts on
-your Forgejo instance for alice@example.com and bob@demo.com, and you
-only want Alice to be able to access this app, only enter
-`alice@example.com`. Remember to re-install traefik after making any
-changes to your authorization groups or permitted email addresses.
-
-Each app must apply the middleware to filter users based on the group
-the middleware is designed for. Once you run `make sentry` and configure
-authorization groups in the `traefik` folder, when you run `make config` for
-that app and elect to configure Oauth2 authentication, you will be asked to
-assign one of those groups to your app.
+Because the middleware is defined per-app via Docker labels, there is
+no central Traefik-side configuration and no wizard. To grant a user
+access to an app, add them to the corresponding team in your OIDC
+provider (Forgejo, GitHub, etc.) — Traefik doesn't need a restart.
+Only *creating* or *changing* the group name on an app requires a
+`make install` for that app (to re-render the labels).
 
 While this extra middleware can get you "in the door" of any app, its
 still ultimately up to the app as to what you can do when you get
@@ -649,7 +639,6 @@ Traefik [.env](.env-dist) file :
 | `TRAEFIK_GEOIPUPDATE_ACCOUNT_ID`           | MaxMind account id for GeoIP database download                                   |                                                          |
 | `TRAEFIK_GEOIPUPDATE_EDITION_IDS`          | The list of GeoIP databases to download                                          | `GeoLite2-ASN GeoLite2-City GeoLite2-Country`            |
 | `TRAEFIK_GEOIPUPDATE_LICENSE_KEY`          | MaxMind license key for GeoIP database download                                  |                                                          |
-| `TRAEFIK_HEADER_AUTHORIZATION_GROUPS`      | JSON list of user groups for OAuth2 authorization                                | `{"admin":["root@localhost"]}`                           |
 | `TRAEFIK_IMAGE`                            | The Traefik docker image                                                         | `traefik:v2.9`                                           |
 | `TRAEFIK_LOG_LEVEL`                        | Traefik log level                                                                | `warn`,`error`,`info`, `debug`                           |
 | `TRAEFIK_MPD_ENTRYPOINT_ENABLED`           | (bool) Enable mpd (unencrypted) entrypoint                                       |                                                          |
