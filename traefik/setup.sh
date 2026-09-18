@@ -554,8 +554,8 @@ layer_7_http_proxy_list_routes() {
         return
     fi
     (
-      echo -e "Domain\tDestination_address\tDestination_port\tScheme\tMiddleware\tOAuth2_group"
-      echo -e "------\t-------------------\t----------------\t------\t----------\t------------"
+      echo -e "Domain\tDestination_address\tDestination_port\tScheme\tMiddleware\tEntrypoint\tOAuth2_group"
+      echo -e "------\t-------------------\t----------------\t------\t----------\t----------\t------------"
       echo "${ROUTES}" ) \
         | column -t
 }
@@ -608,13 +608,18 @@ layer_7_http_proxy_add_ingress_route() {
         ROUTE_MIDDLEWARE=-
     fi
     echo
+    ask "Traefik entrypoint to bind this route to, or blank for 'websecure':" ROUTE_ENTRYPOINT ""
+    if [[ -z "${ROUTE_ENTRYPOINT}" ]]; then
+        ROUTE_ENTRYPOINT=-
+    fi
+    echo
     ask "OIDC group name to gate this route with oauth2-proxy, or blank for no oauth2 (may contain ':' — this is the last field):" ROUTE_OAUTH2_GROUP ""
     if [[ -z "${ROUTE_OAUTH2_GROUP}" ]]; then
         ROUTE_OAUTH2_GROUP=-
     fi
     reconfigure_layer_7_http_proxy_routes "${ENV_FILE}" \
         "${ROUTE_DOMAIN}" "${ROUTE_IP_ADDRESS}" "${ROUTE_PORT}" \
-        "${ROUTE_SCHEME}" "${ROUTE_MIDDLEWARE}" "${ROUTE_OAUTH2_GROUP}"
+        "${ROUTE_SCHEME}" "${ROUTE_MIDDLEWARE}" "${ROUTE_ENTRYPOINT}" "${ROUTE_OAUTH2_GROUP}"
 }
 
 layer_7_http_proxy_manage_ingress_routes() {
@@ -683,8 +688,8 @@ layer_7_http_proxy() {
 
 ## Upsert or append a 6-field route in TRAEFIK_LAYER_7_HTTP_PROXY_ROUTES.
 ## Matches by domain (the first colon-delimited field), same shape as
-## reconfigure_layer_X_tcp_udp_proxy_routes but with two extra fields
-## (scheme + middleware + oauth2_group).
+## reconfigure_layer_X_tcp_udp_proxy_routes but with extra fields
+## (scheme + middleware + entrypoint + oauth2_group).
 reconfigure_layer_7_http_proxy_routes() {
     local ENV_FILE=$1
     local ROUTE_DOMAIN=$2
@@ -692,11 +697,12 @@ reconfigure_layer_7_http_proxy_routes() {
     local ROUTE_PORT=$4
     local ROUTE_SCHEME=$5
     local ROUTE_MIDDLEWARE=$6
-    local ROUTE_OAUTH2_GROUP=$7
+    local ROUTE_ENTRYPOINT=$7
+    local ROUTE_OAUTH2_GROUP=$8
 
-    check_var ENV_FILE ROUTE_DOMAIN ROUTE_IP_ADDRESS ROUTE_PORT ROUTE_SCHEME ROUTE_MIDDLEWARE ROUTE_OAUTH2_GROUP
+    check_var ENV_FILE ROUTE_DOMAIN ROUTE_IP_ADDRESS ROUTE_PORT ROUTE_SCHEME ROUTE_MIDDLEWARE ROUTE_ENTRYPOINT ROUTE_OAUTH2_GROUP
 
-    local NEW_ROUTE="${ROUTE_DOMAIN}:${ROUTE_IP_ADDRESS}:${ROUTE_PORT}:${ROUTE_SCHEME}:${ROUTE_MIDDLEWARE}:${ROUTE_OAUTH2_GROUP}"
+    local NEW_ROUTE="${ROUTE_DOMAIN}:${ROUTE_IP_ADDRESS}:${ROUTE_PORT}:${ROUTE_SCHEME}:${ROUTE_MIDDLEWARE}:${ROUTE_ENTRYPOINT}:${ROUTE_OAUTH2_GROUP}"
 
     local ROUTES=$(${BIN}/dotenv -f ${ENV_FILE} get TRAEFIK_LAYER_7_HTTP_PROXY_ROUTES)
     local UPDATED_ROUTES=""

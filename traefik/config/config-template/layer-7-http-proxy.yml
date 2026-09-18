@@ -13,8 +13,8 @@
 #!     X-Auth-Request-Groups) — impossible with the TCP passthrough
 #!     template because that operates below the HTTP layer.
 #!
-#! Route field format (6 colon-separated fields, comma-separated tuples):
-#!   domain:ip:port:scheme:middleware:oauth2_group
+#! Route field format (7 colon-separated fields, comma-separated tuples):
+#!   domain:ip:port:scheme:middleware:entrypoint:oauth2_group
 #!     domain           — public host (SNI + Host rule)
 #!     ip               — backend IP address
 #!     port             — backend TCP port
@@ -23,6 +23,10 @@
 #!     middleware       — optional single middleware to attach BEFORE
 #!                        the oauth2 chain (fully qualified, e.g.
 #!                        "some-mw@file"); "-" means "no extra middleware"
+#!     entrypoint       — Traefik entrypoint name to bind this router
+#!                        to (e.g. "websecure", or a custom entrypoint
+#!                        defined via TRAEFIK_CUSTOM_ENTRYPOINTS); "-"
+#!                        or blank means "websecure".
 #!     oauth2_group     — OIDC group name that gates access; "-" means
 #!                        no oauth2 enforcement on this route. When set,
 #!                        the template auto-injects the same three-part
@@ -43,16 +47,17 @@ http:
     #@ if not len(route):
     #@   continue
     #@ end
-    #! Cap at 6 splits so the 6th field (oauth2_group) can itself contain
+    #! Cap at 7 splits so the 7th field (oauth2_group) can itself contain
     #! colons — e.g. GitHub-style `<org>:<team>` group names like
-    #! `myorg:admins`. Everything after the 5th colon is one string.
-    #@ parts = route.split(":", 5)
+    #! `myorg:admins`. Everything after the 6th colon is one string.
+    #@ parts = route.split(":", 6)
     #@ domain = parts[0]
     #@ ip_address = parts[1]
     #@ port = parts[2]
     #@ scheme = parts[3] if len(parts) > 3 and len(parts[3]) else "http"
     #@ extra_mw = parts[4] if len(parts) > 4 and parts[4] != "-" and len(parts[4]) else ""
-    #@ oauth2_group = parts[5] if len(parts) > 5 and parts[5] != "-" and len(parts[5]) else ""
+    #@ entrypoint = parts[5] if len(parts) > 5 and parts[5] != "-" and len(parts[5]) else "websecure"
+    #@ oauth2_group = parts[6] if len(parts) > 6 and parts[6] != "-" and len(parts[6]) else ""
     #@ router = domain.replace(".","-") + "-http-proxy"
     #@ chain = []
     #@ if oauth2_group:
@@ -65,7 +70,7 @@ http:
     #@ end
     (@= router @):
       entryPoints:
-        - "websecure"
+        - "(@= entrypoint @)"
       rule: "Host(`(@= domain @)`)"
       service: "(@= router @)"
       #@ if len(chain):
@@ -82,7 +87,7 @@ http:
     #@ if not len(route):
     #@   continue
     #@ end
-    #@ parts = route.split(":", 5)
+    #@ parts = route.split(":", 6)
     #@ domain = parts[0]
     #@ ip_address = parts[1]
     #@ port = parts[2]
@@ -101,9 +106,9 @@ http:
     #@ if not len(route):
     #@   continue
     #@ end
-    #@ parts = route.split(":", 5)
+    #@ parts = route.split(":", 6)
     #@ domain = parts[0]
-    #@ oauth2_group = parts[5] if len(parts) > 5 and parts[5] != "-" and len(parts[5]) else ""
+    #@ oauth2_group = parts[6] if len(parts) > 6 and parts[6] != "-" and len(parts[6]) else ""
     #@ if not oauth2_group:
     #@   continue
     #@ end
