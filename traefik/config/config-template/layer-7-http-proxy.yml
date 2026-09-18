@@ -39,6 +39,27 @@
 #@ http_proxy_enabled = data.values.layer_7_http_proxy_enabled == "true"
 #@ http_proxy_routes = data.values.layer_7_http_proxy_routes
 
+#! Public-facing port for a given entrypoint, used when constructing the
+#! post-auth redirect URL passed as `rd=` to /oauth2/start. Assumes the
+#! public port equals the entrypoint's listen port (true unless NAT
+#! translates the port). "websecure" is looked up via its own data value;
+#! other names are matched against TRAEFIK_CUSTOM_ENTRYPOINTS.
+#@ def public_port_for(ep):
+#@   if ep == "websecure":
+#@     return data.values.websecure_entrypoint_port
+#@   end
+#@   for ce in data.values.custom_entrypoints.split(","):
+#@     if not len(ce):
+#@       continue
+#@     end
+#@     ce_parts = ce.split(":")
+#@     if ce_parts[0] == ep:
+#@       return ce_parts[2]
+#@     end
+#@   end
+#@   return "443"
+#@ end
+
 #@yaml/text-templated-strings
 #@ if http_proxy_enabled and len(http_proxy_routes):
 http:
@@ -108,11 +129,17 @@ http:
     #@ end
     #@ parts = route.split(":", 6)
     #@ domain = parts[0]
+    #@ entrypoint = parts[5] if len(parts) > 5 and parts[5] != "-" and len(parts[5]) else "websecure"
     #@ oauth2_group = parts[6] if len(parts) > 6 and parts[6] != "-" and len(parts[6]) else ""
     #@ if not oauth2_group:
     #@   continue
     #@ end
     #@ router = domain.replace(".","-") + "-http-proxy"
+    #! Encode :<port> as %3A<port> in the rd URL when the entrypoint is on
+    #! a non-standard HTTPS port; oauth2-proxy 302s to this URL after the
+    #! OIDC dance, so it must reflect the port the browser actually uses.
+    #@ port = public_port_for(entrypoint)
+    #@ port_suffix = "%3A" + port if port != "443" else ""
     #! Group-membership check reading X-Auth-Request-Groups (injected
     #! upstream by forward-auth@docker after oauth2-proxy authenticates).
     #! Uses the same headauth plugin that per-app oauth2 protection
@@ -133,7 +160,7 @@ http:
         status:
           - "401"
         service: "oauth2-proxy@docker"
-        query: "/oauth2/start?rd=https%3A%2F%2F(@= domain @)"
+        query: "/oauth2/start?rd=https%3A%2F%2F(@= domain @)(@= port_suffix @)"
         statusRewrites:
           "401": 302
     #@ end
