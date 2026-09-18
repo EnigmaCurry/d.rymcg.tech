@@ -62,7 +62,7 @@ services:
       # 127.0.0.1, so OAUTH2_PROXY_TRUSTED_PROXY_IPS can stay tight to loopback.
       - "traefik.http.services.oauth2-proxy.loadbalancer.server.url=http://127.0.0.1:4180"
       - "traefik.http.routers.oauth2-proxy.rule=Host(`${OAUTH2_PROXY_HOST}`)"
-      - "traefik.http.routers.oauth2-proxy.entrypoints=websecure"
+      - "traefik.http.routers.oauth2-proxy.entrypoints=${OAUTH2_PROXY_ENTRYPOINTS}"
       - "traefik.http.routers.oauth2-proxy.tls=true"
       - "traefik.http.routers.oauth2-proxy.service=oauth2-proxy"
     ports:
