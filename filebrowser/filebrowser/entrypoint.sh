@@ -59,7 +59,7 @@ if [[ "$AUTH_TYPE" == "json" ]]; then
     filebrowser users update 1 --username "$ADMIN_USERNAME" --password "$ADMIN_PASSWORD"
 elif [[ "$AUTH_TYPE" == "proxy" ]]; then
     echo "## Setting proxy sentry auth"
-    filebrowser config set --auth.method=proxy --auth.header=X-Forwarded-User
+    filebrowser config set --auth.method=proxy --auth.header=X-Auth-Request-Email
     filebrowser users update 1 --username "$ADMIN_USERNAME"
 else
     echo "Invalid AUTH_TYPE: ${AUTH_TYPE}"
