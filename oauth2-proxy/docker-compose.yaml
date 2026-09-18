@@ -9,7 +9,6 @@ services:
         STEP_CA_ENDPOINT: ${OAUTH2_PROXY_STEP_CA_ENDPOINT}
         STEP_CA_FINGERPRINT: ${OAUTH2_PROXY_STEP_CA_FINGERPRINT}
         STEP_CA_ZERO_CERTS: ${OAUTH2_PROXY_STEP_CA_ZERO_CERTS}
-    container_name: oauth2-proxy
     security_opt:
       - no-new-privileges:true
     environment:
@@ -23,7 +22,7 @@ services:
       - OAUTH2_PROXY_COOKIE_SECRET=${OAUTH2_PROXY_COOKIE_SECRET}
       - OAUTH2_PROXY_COOKIE_DOMAINS=.${OAUTH2_PROXY_COOKIE_DOMAIN}
       - OAUTH2_PROXY_COOKIE_EXPIRE=${OAUTH2_PROXY_COOKIE_EXPIRE}
-      - OAUTH2_PROXY_WHITELIST_DOMAINS=.${OAUTH2_PROXY_COOKIE_DOMAIN}
+      - OAUTH2_PROXY_WHITELIST_DOMAINS=${OAUTH2_PROXY_WHITELIST_DOMAINS}
       - OAUTH2_PROXY_TRUSTED_PROXY_IPS=${OAUTH2_PROXY_TRUSTED_PROXY_IPS}
       - OAUTH2_PROXY_REDIRECT_URL=https://${OAUTH2_PROXY_HOST}${OAUTH2_PROXY_HTTPS_PORT}/oauth2/callback
       - OAUTH2_PROXY_PROVIDER=${OAUTH2_PROXY_PROVIDER}
@@ -62,7 +61,7 @@ services:
       # 127.0.0.1, so OAUTH2_PROXY_TRUSTED_PROXY_IPS can stay tight to loopback.
       - "traefik.http.services.oauth2-proxy.loadbalancer.server.url=http://127.0.0.1:4180"
       - "traefik.http.routers.oauth2-proxy.rule=Host(`${OAUTH2_PROXY_HOST}`)"
-      - "traefik.http.routers.oauth2-proxy.entrypoints=websecure"
+      - "traefik.http.routers.oauth2-proxy.entrypoints=${OAUTH2_PROXY_ENTRYPOINTS}"
       - "traefik.http.routers.oauth2-proxy.tls=true"
       - "traefik.http.routers.oauth2-proxy.service=oauth2-proxy"
     ports:
