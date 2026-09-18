@@ -366,8 +366,7 @@ error_pages() {
 
 middleware() {
     wizard menu "Traefik middleware config:" \
-           "MaxMind geoIP locator = ./setup.sh maxmind_geoip" \
-           "OAuth2 sentry authorization (make sentry) = make sentry"
+           "MaxMind geoIP locator = ./setup.sh maxmind_geoip"
 }
 
 maxmind_geoip() {
@@ -518,6 +517,214 @@ layer_7_tls_proxy() {
             ${BIN}/reconfigure ${ENV_FILE} TRAEFIK_LAYER_7_TLS_PROXY_ENABLED=true && \
             layer_7_tls_proxy || true
     fi
+}
+
+## ------------------------------------------------------------------
+## Layer 7 HTTP proxy
+##
+## Terminates TLS at Traefik using the standard ACME cert and forwards
+## to a plain-HTTP (or self-signed HTTPS) backend on another host. Same
+## use-case shape as layer_7_tls_proxy but for backends that don't
+## speak TLS themselves — and, unlike passthrough, this one can attach
+## middlewares (notably oauth2-proxy forward-auth) because Traefik sees
+## the request at HTTP layer.
+##
+## Route format: domain:ip:port:scheme:middleware:oauth2_group
+##   scheme         "http" (default) or "https" (uses ignorecert@file)
+##   middleware     one fully-qualified middleware (e.g. "some@file"),
+##                  or "-" for none — attaches AFTER the oauth2 chain
+##   oauth2_group   OIDC group name for auto-injected oauth2 chain,
+##                  or "-" to leave the route unauthenticated
+## ------------------------------------------------------------------
+
+layer_7_http_proxy_get_routes() {
+    local ENABLED=$(${BIN}/dotenv -f ${ENV_FILE} get TRAEFIK_LAYER_7_HTTP_PROXY_ENABLED)
+    local ROUTES=$(${BIN}/dotenv -f ${ENV_FILE} get TRAEFIK_LAYER_7_HTTP_PROXY_ROUTES)
+    if [ "${ENABLED}" != "true" ] || [ -z "${ROUTES}" ]; then
+        echo "## No layer 7 HTTP routes defined." >/dev/stderr
+        return
+    fi
+    echo "## Configured Layer 7 HTTP Routes:" >/dev/stderr
+    (echo "${ROUTES}" | tr ',' '\n' | sed 's/:/\t/g' | sort -u) | column -t
+}
+
+layer_7_http_proxy_list_routes() {
+    local ROUTES="$(layer_7_http_proxy_get_routes)"
+    if [[ -z "${ROUTES}" ]]; then
+        return
+    fi
+    (
+      echo -e "Domain\tDestination_address\tDestination_port\tScheme\tMiddleware\tEntrypoint\tOAuth2_group"
+      echo -e "------\t-------------------\t----------------\t------\t----------\t----------\t------------"
+      echo "${ROUTES}" ) \
+        | column -t
+}
+
+layer_7_http_proxy_add_ingress_route() {
+    echo "Adding a new layer 7 HTTP proxy route - "
+    echo
+    echo " * Make sure to set your route's DNS record to point to this Traefik instance."
+    echo " * Traefik will terminate TLS using its ACME cert; the backend can stay plain HTTP."
+    echo " * Use scheme=https only if the backend requires TLS (a self-signed cert is fine —"
+    echo "   Traefik uses serversTransports.ignorecert@file to skip cert verification)."
+    echo
+    while
+        ask_no_blank "Enter the public domain (Host) for the route:" ROUTE_DOMAIN www.${ROOT_DOMAIN}
+        if layer_7_http_proxy_get_routes 2>/dev/null | grep "^${ROUTE_DOMAIN}\W" >/dev/null 2>&1; then
+            echo
+            echo "## That domain is already used in an existing ingress route:"
+            layer_7_http_proxy_get_routes 2>/dev/null | grep "^${ROUTE_DOMAIN}\W"
+            echo
+            continue
+        fi
+        false
+    do true; done
+    echo
+    while
+        ask_no_blank "Enter the destination IP address to forward to:" ROUTE_IP_ADDRESS 10.13.16.2
+        if ! validate_ip_address ${ROUTE_IP_ADDRESS}; then
+            echo "Invalid IP address."
+            continue
+        fi
+        false
+    do true; done
+    echo
+    while
+        ask_no_blank "Enter the destination TCP port to forward to:" ROUTE_PORT 8080
+        if ! [[ ${ROUTE_PORT} =~ ^[0-9]+$ ]] ; then
+            echo "Port is invalid."
+            continue
+        fi
+        false
+    do true; done
+    echo
+    local ROUTE_SCHEME=http
+    if confirm no "Does the backend speak HTTPS (self-signed OK)" "?"; then
+        ROUTE_SCHEME=https
+    fi
+    echo
+    ask "Extra middleware to attach (fully-qualified, e.g. some@file), or blank for none:" ROUTE_MIDDLEWARE ""
+    if [[ -z "${ROUTE_MIDDLEWARE}" ]]; then
+        ROUTE_MIDDLEWARE=-
+    fi
+    echo
+    ask "Traefik entrypoint to bind this route to, or blank for 'websecure':" ROUTE_ENTRYPOINT ""
+    if [[ -z "${ROUTE_ENTRYPOINT}" ]]; then
+        ROUTE_ENTRYPOINT=-
+    fi
+    echo
+    ask "OIDC group name to gate this route with oauth2-proxy, or blank for no oauth2 (may contain ':' — this is the last field):" ROUTE_OAUTH2_GROUP ""
+    if [[ -z "${ROUTE_OAUTH2_GROUP}" ]]; then
+        ROUTE_OAUTH2_GROUP=-
+    fi
+    reconfigure_layer_7_http_proxy_routes "${ENV_FILE}" \
+        "${ROUTE_DOMAIN}" "${ROUTE_IP_ADDRESS}" "${ROUTE_PORT}" \
+        "${ROUTE_SCHEME}" "${ROUTE_MIDDLEWARE}" "${ROUTE_ENTRYPOINT}" "${ROUTE_OAUTH2_GROUP}"
+}
+
+layer_7_http_proxy_manage_ingress_routes() {
+    mapfile -t routes < <( layer_7_http_proxy_get_routes )
+    if [[ "${#routes[@]}" == 0 ]]; then
+        return
+    fi
+    mapfile -t to_delete < <(wizard select "Select routes to DELETE:" "${routes[@]}")
+    if [[ "${#to_delete[@]}" == 0 ]]; then
+        return
+    fi
+    debug_array to_delete
+    echo
+    if confirm no "Do you really want to delete these routes" "?"; then
+        local ROUTES_TMP=$(mktemp)
+        local TO_DELETE_TMP=$(mktemp)
+        (IFS=$'\n'; echo "${routes[*]}") | sort -u > "${ROUTES_TMP}"
+        (IFS=$'\n'; echo "${to_delete[*]}") | sort -u > "${TO_DELETE_TMP}"
+        local ROUTES=$(comm -23 "${ROUTES_TMP}" "${TO_DELETE_TMP}" | sed 's/[ \t]\+/:/g' | tr '\n' ',' | sed 's/,\{1,\}/,/g' | sed 's/^,*//;s/,*$//')
+        ${BIN}/reconfigure ${ENV_FILE} "TRAEFIK_LAYER_7_HTTP_PROXY_ROUTES=${ROUTES}"
+    fi
+    echo
+    layer_7_http_proxy_list_routes
+}
+
+layer_7_http_proxy_disable() {
+    local ENABLED=$(${BIN}/dotenv -f ${ENV_FILE} get TRAEFIK_LAYER_7_HTTP_PROXY_ENABLED)
+    if [[ "${ENABLED}" == "true" ]]; then
+        confirm yes "Do you want to disable the layer 7 HTTP proxy" "?" && \
+            ${BIN}/reconfigure ${ENV_FILE} TRAEFIK_LAYER_7_HTTP_PROXY_ENABLED=false && \
+            echo "## Layer 7 HTTP Proxy is DISABLED." && exit 2
+    else
+        echo "## Layer 7 HTTP Proxy is DISABLED." && exit 2
+    fi
+}
+
+layer_7_http_proxy() {
+    echo "## Layer 7 HTTP Proxy terminates TLS at Traefik and forwards to a plain-HTTP backend."
+    echo
+    local ENABLED=$(${BIN}/dotenv -f ${ENV_FILE} get TRAEFIK_LAYER_7_HTTP_PROXY_ENABLED)
+    if [[ "${ENABLED}" == "true" ]]; then
+        while :
+        do
+            echo
+            echo "## Layer 7 HTTP Proxy is ENABLED."
+            layer_7_http_proxy_list_routes
+            wizard menu --once --cancel-code 2 "Layer 7 HTTP Proxy:" \
+                   "List layer 7 HTTP ingress routes = ./setup.sh layer_7_http_proxy_list_routes" \
+                   "Add new layer 7 HTTP ingress route = ./setup.sh layer_7_http_proxy_add_ingress_route" \
+                   "Remove layer 7 HTTP ingress routes = ./setup.sh layer_7_http_proxy_manage_ingress_routes" \
+                   "Disable layer 7 HTTP Proxy = ./setup.sh layer_7_http_proxy_disable"
+            local EXIT_CODE=$?
+            case "$EXIT_CODE" in
+                0) continue;;
+                2) return 0;;
+                *) return 1;;
+            esac
+        done
+    else
+        echo "## Layer 7 HTTP Proxy is DISABLED."
+        confirm no "Do you want to enable the layer 7 HTTP proxy" "?" && \
+            ${BIN}/reconfigure ${ENV_FILE} TRAEFIK_LAYER_7_HTTP_PROXY_ENABLED=true && \
+            layer_7_http_proxy || true
+    fi
+}
+
+## Upsert or append a 6-field route in TRAEFIK_LAYER_7_HTTP_PROXY_ROUTES.
+## Matches by domain (the first colon-delimited field), same shape as
+## reconfigure_layer_X_tcp_udp_proxy_routes but with extra fields
+## (scheme + middleware + entrypoint + oauth2_group).
+reconfigure_layer_7_http_proxy_routes() {
+    local ENV_FILE=$1
+    local ROUTE_DOMAIN=$2
+    local ROUTE_IP_ADDRESS=$3
+    local ROUTE_PORT=$4
+    local ROUTE_SCHEME=$5
+    local ROUTE_MIDDLEWARE=$6
+    local ROUTE_ENTRYPOINT=$7
+    local ROUTE_OAUTH2_GROUP=$8
+
+    check_var ENV_FILE ROUTE_DOMAIN ROUTE_IP_ADDRESS ROUTE_PORT ROUTE_SCHEME ROUTE_MIDDLEWARE ROUTE_ENTRYPOINT ROUTE_OAUTH2_GROUP
+
+    local NEW_ROUTE="${ROUTE_DOMAIN}:${ROUTE_IP_ADDRESS}:${ROUTE_PORT}:${ROUTE_SCHEME}:${ROUTE_MIDDLEWARE}:${ROUTE_ENTRYPOINT}:${ROUTE_OAUTH2_GROUP}"
+
+    local ROUTES=$(${BIN}/dotenv -f ${ENV_FILE} get TRAEFIK_LAYER_7_HTTP_PROXY_ROUTES)
+    local UPDATED_ROUTES=""
+    local ENTRY_FOUND=false
+
+    IFS=',' read -ra ROUTE_ARRAY <<< "$ROUTES"
+    for ROUTE in "${ROUTE_ARRAY[@]}"; do
+        if [[ "$ROUTE" == ${ROUTE_DOMAIN}:* ]]; then
+            UPDATED_ROUTES+="${NEW_ROUTE},"
+            ENTRY_FOUND=true
+        else
+            UPDATED_ROUTES+="${ROUTE},"
+        fi
+    done
+
+    if [[ "$ENTRY_FOUND" == false ]]; then
+        UPDATED_ROUTES+="${NEW_ROUTE},"
+    fi
+
+    UPDATED_ROUTES=${UPDATED_ROUTES%,}
+
+    ${BIN}/reconfigure ${ENV_FILE} "TRAEFIK_LAYER_7_HTTP_PROXY_ROUTES=${UPDATED_ROUTES}"
 }
 
 custom_entrypoints() {
@@ -868,6 +1075,7 @@ routes_menu() {
     echo
     wizard menu "Traefik routes" \
            "Configure layer 7 TLS proxy = ./setup.sh layer_7_tls_proxy || true" \
+           "Configure layer 7 HTTP proxy = ./setup.sh layer_7_http_proxy || true" \
            "Configure layer 4 TCP/UDP proxy = ./setup.sh layer_4_tcp_udp_proxy || true" \
            "Configure wireguard VPN = ./setup.sh wireguard"
 }

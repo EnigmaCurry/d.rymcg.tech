@@ -588,62 +588,69 @@ d.rymcg.tech make whoami destroy
 ## Configure OAuth2 with GitHub identity provider
 
 Let's configure OAuth2 authentication and Traefik Sentry authorization
-using traefik-forward-auth. This will let users login through a third
-party identity service. For this example, lets use GitHub as the
-example provider. Authorized users will be able to login to your apps
-using their GitHub identity.
+using oauth2-proxy. This will let users login through a third party
+identity service. For this example, lets use GitHub as the example
+provider. Authorized users will be able to login to your apps using
+their GitHub identity.
 
-### Create the GitHub oauth app
+### Create the GitHub OAuth app
 
  * Go to [GitHub new applications
    page](https://github.com/settings/applications/new).
  * Register a new OAuth application:
    * Enter a name, just use the domain: `docker-dev.example.com`
-   * Enter the URL: `http://docker-demo.example.com`
+   * Enter the URL: `https://docker-dev.example.com`
    * Enter the callback URL:
-     `https://whoami.docker-demo.example.com/_oauth`
+     `https://auth.docker-dev.example.com/oauth2/callback`
    * Click `Register application`
    * Click `Generate a new client secret`
    * Copy the `Client ID` and the `Client Secret` into a temporary
      buffer someplace (or just leave the page open for a bit, you'll
      need to copy from it later).
 
-### Configure traefik-forward-auth
+### Configure oauth2-proxy
 
-For now, the traefik-forward-auth Makefile does not support
-configuring GitHub, so we need to create the .env file by hand.
+The `make config` wizard only wires up Forgejo as an OIDC provider
+out of the box, so for GitHub we edit the .env file by hand.
 
 Copy the default .env-dist file:
 
 ```
-d.rymcg.tech make traefik-forward-auth config-dist
+d.rymcg.tech make oauth2-proxy config-dist
 ```
 
 Open the file in your text editor:
-`~/git/vendor/enigmacurry/d.rymcg.tech/traefik-forward-auth/.env_docker-dev_default`
+`~/git/vendor/enigmacurry/d.rymcg.tech/oauth2-proxy/.env_docker-dev_default`
 (this example is the .env file for the specific Docker context name
 `docker-dev`, yours may vary, check the output of the previous command
 to be sure of the name.)
 
- * Set `TRAEFIK_FORWARD_AUTH_SECRET`: run `openssl rand -base64 45` to
-   generate a long random secret value.
+ * Set `OAUTH2_PROXY_COOKIE_SECRET`: run `openssl rand -base64 32 | tr
+   -d '\n' | head -c 44` to generate a 32-byte base64-encoded random
+   secret.
  * Search and replace all `example.com` with your Docker server's real
    sub-domain name: `docker-dev.example.com`.
- * Comment out, or remove, all the Gitea variables.
- * Uncomment all the GitHub variables.
- * Insert the value for
-   `TRAEFIK_FORWARD_AUTH_PROVIDERS_GENERIC_OAUTH_CLIENT_ID` from the
-   GitHub OAuth Client ID.
- * Insert the value for
-   `TRAEFIK_FORWARD_AUTH_PROVIDERS_GENERIC_OAUTH_CLIENT_SECRET` from the
-    GitHub OAuth Client Secret. 
+ * Change `OAUTH2_PROXY_PROVIDER=oidc` to `OAUTH2_PROXY_PROVIDER=github`.
+ * Delete or blank out `OAUTH2_PROXY_OIDC_ISSUER_URL` and
+   `OAUTH2_PROXY_FORGEJO_DOMAIN` — GitHub isn't OIDC-discoverable, and
+   oauth2-proxy has GitHub endpoints hardcoded when
+   `PROVIDER=github`.
+ * Set `OAUTH2_PROXY_CLIENT_ID` to the GitHub OAuth Client ID.
+ * Set `OAUTH2_PROXY_CLIENT_SECRET` to the GitHub OAuth Client Secret.
+ * Set `OAUTH2_PROXY_SCOPE=user:email` (GitHub scope, not the OIDC
+   scopes).
+ * Optionally add `OAUTH2_PROXY_GITHUB_USERS=alice,bob` or
+   `OAUTH2_PROXY_GITHUB_ORG=<orgname>` /
+   `OAUTH2_PROXY_GITHUB_TEAM=<team>` to gate at the oauth2-proxy
+   layer. (You can also gate per-app via each app's
+   `<APPNAME>_OAUTH2_AUTHORIZED_GROUP` env var — see below.)
  * Make sure you don't have any extra spaces in the values.
  * Save the file.
 
-### Install traefik-forward-auth
+### Install oauth2-proxy
 
 ```
-d.rymcg.tech make traefik-forward-auth install
+d.rymcg.tech make oauth2-proxy install
 ```
 
 ### Configure the Traefik Sentry groups
@@ -700,17 +707,18 @@ application. Click the `Authorize <Username>` button.
 
 Now you should be allowed to see the whoami page. The whoami output
 reflects the HTTP request headers. Look in the output for the
-`X-Forwarded-User`, this is the GitHub user that you authenticated
-with.
+`X-Auth-Request-Email` header — that's the GitHub email address you
+authenticated with.
 
 Try logging in with a different GitHub user, and you should see the
-message `Forbidden`, unless you add the user to the whoami group.
+message `Forbidden`, unless you add that user's email to the whoami
+group.
 
 Currently, modifying the OAuth2 user groups requires restarting
 Traefik each time. This can be improved by removing the sentry
 authorization, and simply doing the authorization in the app itself,
-based upon the `X-Forwarded-User` header. In this configuration, all
-valid GitHub users would be passed to your application, and your
+based upon the `X-Auth-Request-Email` header. In this configuration,
+all valid GitHub users would be passed to your application, and your
 application would need to make the determination itself if the user
 (email address) should be allowed access.
 

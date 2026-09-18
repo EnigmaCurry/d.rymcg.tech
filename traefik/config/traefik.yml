@@ -34,7 +34,7 @@ experimental:
     #@ end
     #@ if data.values.plugin_header_authorization == "true":
     headauth:
-      modulename: github.com/poloyacero/headauth
+      modulename: github.com/enigmacurry/traefik-header-authorization
     #@ end
     #@ if data.values.plugin_cert_auth == "true":
     certauthz:
@@ -170,6 +170,7 @@ entryPoints:
         #@ end
     #@ end
     http:
+      aliasHeadersStrategy: delete
       redirections:
         entryPoint:
           to: websecure
@@ -198,6 +199,14 @@ entryPoints:
         #@ end
     #@ end
     http:
+      #! Drop aliased header variants at ingress (CVE-2026-54763, CVE-2026-88011):
+      #! Go's HTTP canonicalization treats X_Auth_Request_Email and X.Auth.Request.Email
+      #! as distinct from X-Auth-Request-Email, but many backends collapse them.
+      #! `aliasHeadersStrategy: delete` silently drops any alias form of a canonical
+      #! header (underscore, dot, other separators) so spoofed auth-identity variants
+      #! can't smuggle past strip-headers or forward-auth's authResponseHeaders
+      #! replacement. Requires Traefik >= v3.7.12.
+      aliasHeadersStrategy: delete
       tls:
         #@ if data.values.acme_enabled == "true":
         certResolver: #@ data.values.acme_cert_resolver
@@ -266,10 +275,18 @@ entryPoints:
         #@ end
     #@ end
   #@ end
-  #@ if data.values.dashboard_entrypoint_enabled == "true":
+  #! Always declare the `traefik` entrypoint so the http.aliasHeadersStrategy
+  #! applies even when the dashboard is disabled — otherwise Traefik auto-creates
+  #! an internal `traefik` entrypoint for its API without our http config, and
+  #! logs the alias-strategy warning against it.
   traefik:
+    #@ if data.values.dashboard_entrypoint_enabled == "true":
     address: #@ data.values.dashboard_entrypoint_host + ":" + data.values.dashboard_entrypoint_port
-  #@ end
+    #@ else:
+    address: "127.0.0.1:8080"
+    #@ end
+    http:
+      aliasHeadersStrategy: delete
   #@ if data.values.mpd_entrypoint_enabled == "true":
   mpd:
     address: #@ data.values.mpd_entrypoint_host + ":" + data.values.mpd_entrypoint_port
