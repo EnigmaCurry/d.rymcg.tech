@@ -29,6 +29,8 @@
 #!                        chain used by per-app oauth2 protection:
 #!                        <router>-oauth2-errors → forward-auth@docker →
 #!                        <router>-oauth2 (X-Auth-Request-Groups check).
+#!                        Being the LAST field, this may itself contain
+#!                        colons — e.g. GitHub-style `<org>:<team>` names.
 
 #@ http_proxy_enabled = data.values.layer_7_http_proxy_enabled == "true"
 #@ http_proxy_routes = data.values.layer_7_http_proxy_routes
@@ -41,7 +43,10 @@ http:
     #@ if not len(route):
     #@   continue
     #@ end
-    #@ parts = route.split(":")
+    #! Cap at 6 splits so the 6th field (oauth2_group) can itself contain
+    #! colons — e.g. GitHub-style `<org>:<team>` group names like
+    #! `myorg:admins`. Everything after the 5th colon is one string.
+    #@ parts = route.split(":", 5)
     #@ domain = parts[0]
     #@ ip_address = parts[1]
     #@ port = parts[2]
@@ -77,7 +82,7 @@ http:
     #@ if not len(route):
     #@   continue
     #@ end
-    #@ parts = route.split(":")
+    #@ parts = route.split(":", 5)
     #@ domain = parts[0]
     #@ ip_address = parts[1]
     #@ port = parts[2]
@@ -96,7 +101,7 @@ http:
     #@ if not len(route):
     #@   continue
     #@ end
-    #@ parts = route.split(":")
+    #@ parts = route.split(":", 5)
     #@ domain = parts[0]
     #@ oauth2_group = parts[5] if len(parts) > 5 and parts[5] != "-" and len(parts[5]) else ""
     #@ if not oauth2_group:

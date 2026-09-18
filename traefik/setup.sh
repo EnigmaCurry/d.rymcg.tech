@@ -608,7 +608,7 @@ layer_7_http_proxy_add_ingress_route() {
         ROUTE_MIDDLEWARE=-
     fi
     echo
-    ask "OIDC group name to gate this route with oauth2-proxy, or blank for no oauth2:" ROUTE_OAUTH2_GROUP ""
+    ask "OIDC group name to gate this route with oauth2-proxy, or blank for no oauth2 (may contain ':' — this is the last field):" ROUTE_OAUTH2_GROUP ""
     if [[ -z "${ROUTE_OAUTH2_GROUP}" ]]; then
         ROUTE_OAUTH2_GROUP=-
     fi
