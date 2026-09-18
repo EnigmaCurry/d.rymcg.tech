@@ -9,7 +9,6 @@ services:
         STEP_CA_ENDPOINT: ${OAUTH2_PROXY_STEP_CA_ENDPOINT}
         STEP_CA_FINGERPRINT: ${OAUTH2_PROXY_STEP_CA_FINGERPRINT}
         STEP_CA_ZERO_CERTS: ${OAUTH2_PROXY_STEP_CA_ZERO_CERTS}
-    container_name: oauth2-proxy
     security_opt:
       - no-new-privileges:true
     environment:
