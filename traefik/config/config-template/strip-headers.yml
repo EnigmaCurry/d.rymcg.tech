@@ -5,6 +5,19 @@ http:
     strip-headers:
       headers:
         customrequestheaders:
-          #! Strip these headers from all incoming requests:
+          #! Strip these headers from all incoming client requests, so that
+          #! only our trusted middlewares (forward-auth, mtls) can set them
+          #! before they reach any backend. Any header a backend might trust
+          #! as authenticated-user identity MUST be listed here.
           X-Forwarded-User: ""
+          X-Forwarded-Email: ""
+          X-Forwarded-Preferred-Username: ""
+          X-Forwarded-Groups: ""
+          X-Auth-Request-User: ""
+          X-Auth-Request-Email: ""
+          X-Auth-Request-Preferred-Username: ""
+          X-Auth-Request-Groups: ""
+          Remote-User: ""
+          Remote-Email: ""
+          Remote-Groups: ""
           X-Client-Cn: ""
