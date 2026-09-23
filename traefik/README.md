@@ -346,7 +346,7 @@ This configuration has builtin support for the following plugins:
    ([whoami](../whoami/docker-compose.yaml) has an example)
  * [referer](https://github.com/moonlightwatch/referer) -
    middleware that prevents foreign referal URLs.
- * [headauth](https://github.com/poloyacero/headauth) used for
+ * [headauth](https://github.com/enigmacurry/traefik-header-authorization) used for
    implementing OAuth2 sentry authorization, which filters allowed
    users by groups, and it forwards the authenticated user in the
    `X-Forwarded-User` header field to your app.
