@@ -34,7 +34,7 @@ experimental:
     #@ end
     #@ if data.values.plugin_header_authorization == "true":
     headauth:
-      modulename: github.com/poloyacero/headauth
+      modulename: github.com/enigmacurry/traefik-header-authorization
     #@ end
     #@ if data.values.plugin_cert_auth == "true":
     certauthz:
