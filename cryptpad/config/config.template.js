@@ -302,7 +302,7 @@ module.exports = {
     /* CryptPad supports logging events directly to the disk in a 'logs' directory
      * Set its location here, or set it to false (or nothing) if you'd rather not log
      */
-    logPath: './data/logs',
+    logPath: false,
 
     /* =====================
      *       Debugging
@@ -311,7 +311,7 @@ module.exports = {
     /*  CryptPad can log activity to stdout
      *  This may be useful for debugging
      */
-    logToStdout: false,
+    logToStdout: true,
 
     /* CryptPad can be configured to log more or less
      * the various settings are listed below by order of importance
