@@ -1,4 +1,6 @@
-/* globals module */
+// SPDX-FileCopyrightText: 2023 XWiki CryptPad Team <contact@cryptpad.org> and contributors
+//
+// SPDX-License-Identifier: AGPL-3.0-or-later
 
 /*  DISCLAIMER:
 
@@ -11,7 +13,7 @@
     Support requests for such setups should be directed to their authors.
 
     If you're having difficulty difficulty configuring your instance
-    we suggest that you join the project's IRC/Matrix channel.
+    we suggest that you join the project's Matrix channel.
 
     If you don't have any difficulty configuring your instance and you'd like to
     support us for the work that went into making it pain-free we are quite happy
@@ -45,21 +47,13 @@ module.exports = {
  *  In such a case this should be also handled by NGINX, as documented in
  *  cryptpad/docs/example.nginx.conf (see the $main_domain variable)
  *
- *  Note: you may provide multiple origins for the purpose of accessing
- *  a development instance via different URLs, like so:
- *  httpUnsafeOrigin: 'http://127.0.0.1:3000/ http://localhost:3000/',
- *
- *  Such configuration is not recommended for production instances,
- *  as the development team does not actively test such configuration
- *  and it may have unintended consequences in practice.
- *
  */
-    httpUnsafeOrigin: 'https://${CPAD_MAIN_DOMAIN}',
+    httpUnsafeOrigin: '${CPAD_MAIN_DOMAIN}',
 
-/*  httpSafeOrigin is the URL that is used for the 'sandbox' described above.
+/*  httpSafeOrigin is the URL used for the 'sandbox' described above.
  *  If you're testing or developing with CryptPad on your local machine then
  *  it is appropriate to leave this blank. The default behaviour is to serve
- *  the main domain over port 3000 and to serve the content over port 3001.
+ *  the main domain over port 3000 and to serve the sandbox content over port 3001.
  *
  *  This is not appropriate in a production environment where invasive networks
  *  may filter traffic going over abnormal ports.
@@ -70,17 +64,24 @@ module.exports = {
  *  This value corresponds to the $sandbox_domain variable
  *  in the example nginx file.
  *
+ *  Note that in order for the sandboxing system to be effective
+ *  httpSafeOrigin must be different from httpUnsafeOrigin.
+ *
  *  CUSTOMIZE AND UNCOMMENT THIS FOR PRODUCTION INSTALLATIONS.
  */
-    httpSafeOrigin: "https://${CPAD_SANDBOX_DOMAIN}",
+    httpSafeOrigin: '${CPAD_SANDBOX_DOMAIN}',
 
 /*  httpAddress specifies the address on which the nodejs server
- *  should be accessible. By default it will listen on 127.0.0.1
- *  (IPv4 localhost on most systems). If you want it to listen on
- *  all addresses, including IPv6, set this to '::'.
+ *  should be accessible. By default it will listen on localhost
+ *  (IPv4 & IPv6 if enabled). If you want it to listen on
+ *  a specific address, specify it here. e.g '192.168.0.1'
  *
  */
-    //httpAddress: '::',
+    /*  The image's bundled config.example.js is patched by the Dockerfile
+      *  to listen on all interfaces; a rendered config.js is not, and the
+      *  default is 'localhost', so we must set this explicitly:
+      */
+    httpAddress: '0.0.0.0',
 
 /*  httpPort specifies on which port the nodejs server should listen.
  *  By default it will serve content over port 3000, which is suitable
@@ -90,12 +91,26 @@ module.exports = {
  */
     //httpPort: 3000,
 
-/*  httpSafePort allows you to specify an alternative port from which
- *  the node process should serve sandboxed assets. The default value is
- *  that of your httpPort + 1. You probably don't need to change this.
+/*  httpSafePort purpose is to emulate another origin for the sandbox when
+ *  you don't have two domains at hand (i.e. when httpSafeOrigin not defined).
+ *  It is meant to be used only in case where you are working on a local 
+ *  development instance. The default value is your httpPort + 1.
  *
  */
     //httpSafePort: 3001,
+
+/*  Websockets need to be exposed on a separate port from the rest of
+ *  the platform's HTTP traffic. Port 3003 is used by default.
+ *  You can change this to a different port if it is in use by a
+ *  different service, but under most circumstances you can leave this
+ *  commented and it will work.
+ *
+ *  In production environments, your reverse proxy (usually NGINX)
+ *  will need to forward websocket traffic (/cryptpad_websocket)
+ *  to this port.
+ *
+ */
+    // websocketPort: 3003,
 
 /*  CryptPad will launch a child process for every core available
  *  in order to perform CPU-intensive tasks in parallel.
@@ -106,73 +121,67 @@ module.exports = {
     // maxWorkers: 4,
 
     /* =====================
+     *       Sessions
+     * ===================== */
+
+    /*  Accounts can be protected with an OTP (One Time Password) system
+     *  to add a second authentication layer. Such accounts use a session
+     *  with a given lifetime after which they are logged out and need
+     *  to be re-authenticated. You can configure the lifetime of these
+     *  sessions here.
+     *
+     *  defaults to 7 days
+     */
+    //otpSessionExpiration: 7*24, // hours
+
+    /*  Registered users can be forced to protect their account
+     *  with a Multi-factor Authentication (MFA) tool like a TOTP
+     *  authenticator application.
+     *
+     *  defaults to false
+     */
+    //enforceMFA: false,
+
+    /* =====================
+     *       Privacy
+     * ===================== */
+
+    /*  Depending on where your instance is hosted, you may be required to log IP
+     *  addresses of the users who make a change to a document. This setting allows you
+     *  to do so. You can configure the logging system below in this config file.
+     *  Setting this value to true will include a log for each websocket connection
+     *  including this connection's unique ID, the user public key and the IP.
+     *  NOTE: this option requires a log level of "info" or below.
+     *
+     *  defaults to false
+     */
+    //logIP: false,
+
+    /* =====================
      *         Admin
      * ===================== */
 
     /*
      *  CryptPad contains an administration panel. Its access is restricted to specific
-     *  users using the following list.
+     *  users using the following list and the management interface on the instance.
      *  To give access to the admin panel to a user account, just add their public signing
-     *  key, which can be found on the settings page for registered users.
+     *  key, which can be found on the settings page for registered users. Access can be
+     *  revoked directly from the interface, unless you added the key below.
      *  Entries should be strings separated by a comma.
+     *  adminKeys: [
+     *      "[cryptpad-user1@my.awesome.website/YZgXQxKR0Rcb6r6CmxHPdAGLVludrAF2lEnkbx1vVOo=]",
+     *      "[cryptpad-user2@my.awesome.website/jA-9c5iNuG7SyxzGCjwJXVnk5NPfAOO8fQuQ0dC83RE=]",
+     *  ]
+     *
      */
-
-
     adminKeys: [
-        "${ADMIN_KEY}",
+
     ],
 
-
-    /*  CryptPad's administration panel includes a "support" tab
-     *  wherein administrators with a secret key can view messages
-     *  sent from users via the encrypted forms on the /support/ page
-     *
-     *  To enable this functionality:
-     *    run `node ./scripts/generate-admin-keys.js`
-     *    save the public key in your config in the value below
-     *    add the private key via the admin panel
-     *    and back it up in a secure manner
-     *
-     */
-    // supportMailboxPublicKey: "",
-
-    /*  We're very proud that CryptPad is available to the public as free software!
-     *  We do, however, still need to pay our bills as we develop the platform.
-     *
-     *  By default CryptPad will prompt users to consider donating to
-     *  our OpenCollective campaign. We publish the state of our finances periodically
-     *  so you can decide for yourself whether our expenses are reasonable.
-     *
-     *  You can disable any solicitations for donations by setting 'removeDonateButton' to true,
-     *  but we'd appreciate it if you didn't!
-     */
-    //removeDonateButton: false,
-
-    /*  CryptPad will display a point of contact for your instance on its contact page
-     *  (/contact.html) if you provide it below.
-     */
-    adminEmail: '${ADMIN_EMAIL}',
-
-    /*
-     *  By default, CryptPad contacts one of our servers once a day.
-     *  This check-in will also send some very basic information about your instance including its
-     *  version and the adminEmail so we can reach you if we are aware of a serious problem.
-     *  We will never sell it or send you marketing mail.
-     *
-     *  If you want to block this check-in and remain set 'blockDailyCheck' to true.
-     */
-    //blockDailyCheck: false,
-    blockDailyCheck: ${BLOCK_DAILY_CHECK},
-
-    /*
-     *  By default users get 50MB of storage by registering on an instance.
-     *  You can set this value to whatever you want.
-     *
-     *  hint: 50MB is 50 * 1024 * 1024
-     */
-    //defaultStorageLimit: 50 * 1024 * 1024,
-    defaultStorageLimit: ${DEFAULT_STORAGE_LIMIT},
-
+    /*  adminEmail is displayed on the /contact page so that people who
+      *  need help can reach you (can be changed later in the admin panel).
+      */
+    adminEmail: '${CRYPTPAD_ADMIN_EMAIL}',
 
     /* =====================
      *        STORAGE
@@ -192,7 +201,7 @@ module.exports = {
      *  This archived data still takes up space and so you'll probably still want to
      *  remove these files after a brief period.
      *
-     *  cryptpad/scripts/evict-inactive.js is intended to be run daily
+     *  cryptpad/scripts/evict-archived.js is intended to be run daily
      *  from a crontab or similar scheduling service.
      *
      *  The intent with this feature is to provide a safety net in case of accidental
@@ -227,31 +236,12 @@ module.exports = {
      *  anything larger than this size will be rejected
      *  defaults to 20MB if no value is provided
      */
-    //maxUploadSize: 20 * 1024 * 1024,
-    maxUploadSize: ${MAX_UPLOAD_SIZE},
+    maxUploadSize: ${CRYPTPAD_MAX_UPLOAD_SIZE},
 
-    /*
-     *  CryptPad allows administrators to give custom limits to their friends.
-     *  add an entry for each friend, identified by their user id,
-     *  which can be found on the settings page. Include a 'limit' (number of bytes),
-     *  a 'plan' (string), and a 'note' (string).
-     *
-     *  hint: 1GB is 1024 * 1024 * 1024 bytes
-     */
-/*
-    customLimits: {
-        "[cryptpad-user1@my.awesome.website/YZgXQxKR0Rcb6r6CmxHPdAGLVludrAF2lEnkbx1vVOo=]": {
-            limit: 20 * 1024 * 1024 * 1024,
-            plan: 'insider',
-            note: 'storage space donated by my.awesome.website'
-        },
-        "[cryptpad-user2@my.awesome.website/GdflkgdlkjeworijfkldfsdflkjeEAsdlEnkbx1vVOo=]": {
-            limit: 10 * 1024 * 1024 * 1024,
-            plan: 'insider',
-            note: 'storage space donated by my.awesome.website'
-        }
-    },
-*/
+    /*  Default storage limit for new accounts (bytes)
+      *  defaults to 50MB if no value is provided
+      */
+    defaultStorageLimit: ${CRYPTPAD_DEFAULT_STORAGE_LIMIT},
 
     /*  Users with premium accounts (those with a plan included in their customLimit)
      *  can benefit from an increased upload size limit. By default they are restricted to the same
@@ -280,8 +270,8 @@ module.exports = {
      */
     archivePath: './data/archive',
 
-    /*  CryptPad allows logged in users to request that particular documents be
-     *  stored by the server indefinitely. This is called 'pinning'.
+    /*  CryptPad allows logged in users to request that the server 
+     *  store particular documents indefinitely. This is called 'pinning'.
      *  Pin requests are stored in a pin-store. The location of this store is
      *  defined here.
      */
@@ -321,7 +311,7 @@ module.exports = {
     /*  CryptPad can log activity to stdout
      *  This may be useful for debugging
      */
-    logToStdout: false,
+    logToStdout: true,
 
     /* CryptPad can be configured to log more or less
      * the various settings are listed below by order of importance
@@ -352,4 +342,18 @@ module.exports = {
      *  (false by default)
      */
     verbose: false,
+
+    /*  Surplus information:
+     *
+     *  'installMethod' is included in server telemetry to voluntarily
+     *  indicate how many instances are using unofficial installation methods
+     *  such as Docker.
+     *
+     */
+    /*  Set to true to block the server's daily check-in (telemetry)
+      *  to the CryptPad project's servers.
+      */
+    blockDailyCheck: ${CRYPTPAD_BLOCK_DAILY_CHECK},
+
+    installMethod: 'docker',
 };

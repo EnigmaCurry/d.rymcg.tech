@@ -192,6 +192,7 @@ torrent search engine
 * [Commentario](commentario#readme) - a website comment service
 * [Copyparty](copyparty#readme) - a file server webapp for multiple users and volumes
 * [Coturn](coturn#readme) - a TURN relay server for NAT traversal
+* [CryptPad](cryptpad#readme) - an encrypted, open source office collaboration suite
 * [Datetime](datetime#readme) - a time viewing and conversion tool
 * [DOH-server](doh-server#readme) - a DNS-over-HTTPs proxy resolver
 * [Ejabberd](ejabberd#readme) - an XMPP (Jabber) server
@@ -249,7 +250,6 @@ torrent search engine
 * [Speedtest Tracker](speedtest-tracker#readme) - a network performance monitor
 * [Syncthing](syncthing#readme) - a multi-device file synchronization tool
 * [Sysbox-Systemd](sysbox-systemd#readme) - a traditional service manager for Linux running in an unprivileged container via sysbox-runc
-* [Tesseract](tesseract#readme) - a front-end for Lemmy instances
 * [TheLounge](thelounge#readme) - a web client/bouncer for IRC
 * [Thttpd](thttpd#readme) - a tiny/turbo/throttling HTTP server for serving static files
 * [Trilium](trilium#readme) - a note-taking/knowledge base application

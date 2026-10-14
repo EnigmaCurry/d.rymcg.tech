@@ -98,8 +98,8 @@ services:
         #@ enabled_middlewares.append("mtls-header@file")
       #@ end
 
-      #! Override the default port that archivebox binds to:
-      - "traefik.http.services.(@= router @).loadbalancer.server.port=8000"
+      #! Override the default port that archivebox binds to (0.9.x default is 5797):
+      - "traefik.http.services.(@= router @).loadbalancer.server.port=5797"
 
       #! Apply all middlewares (do this at the end!)
       - "traefik.http.routers.(@= router @).middlewares=(@= ','.join(enabled_middlewares) @)"

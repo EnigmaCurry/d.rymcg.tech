@@ -22,11 +22,11 @@ api-dev:
 	@docker-compose --env-file=${ENV_FILE} stop public-api-gateway
 	@docker-compose --env-file=${ENV_FILE} run --rm public-api-gateway
 
-.PHONY: schedule-show # Print a list of currently active ArchiveBox cron jobs
+.PHONY: schedule-show # Print a list of currently active ArchiveBox scheduled crawls
 schedule-show:
 	@docker compose --env-file=${ENV_FILE} exec archivebox su -c "/usr/local/bin/archivebox schedule --show" archivebox
 
-.PHONY: schedule-add # Add a new scheduled ArchiveBox update job to cron
+.PHONY: schedule-add # Add a new scheduled ArchiveBox crawl
 schedule-add:
 	@URL=$$(${BIN}/ask_echo "Enter the URL to snapshot on this schedule") && \
 		SCHEDULE=$$(${BIN}/ask_echo "Snapshot should run every... (\"hour\", \"day\", \"month\", \"year\", or cron format like \"0 0 * * *\")") \
@@ -44,7 +44,7 @@ schedule-add:
 		DEFAULT="add new" \
 		OVERWRITE_RESPONSE=$$(eval ${BIN}/script-wizard choose $${PROMPT@Q} $${OPTIONS[@]@Q} --default $${DEFAULT@Q}) && \
 		if [[ $${OVERWRITE_RESPONSE} == "overwrite" ]]; then \
-			OVERWRITE="--overwrite"; \
+			OVERWRITE="--no-only-new"; \
 		else \
 			OVERWRITE=""; \
 		fi && \
@@ -52,13 +52,16 @@ schedule-add:
 
 .PHONY: schedule-help # Show help for scheduling commands
 schedule-help:
-	@echo "Archivebox can automatically snapshot URLs on a schedule, but you can only manage those schedule via the Archivebox CLI. These makefile targets cover most of the scheduling functions."
-	@echo " - make schedule-add        - Add a new scheduled ArchiveBox update job to cron"
-	@echo " - make schedule-clear      - Stop all ArchiveBox scheduled runs (remove cron jobs)"
+	@echo "Archivebox can automatically snapshot URLs on a schedule, but you can only manage those schedules via the Archivebox CLI. These makefile targets cover most of the scheduling functions."
+	@echo " - make schedule-add        - Add a new scheduled ArchiveBox crawl"
+	@echo " - make schedule-clear      - Disable all ArchiveBox scheduled crawls"
 	@echo " - make schedule-help       - Show help for scheduling commands"
 	@echo " - make schedule-overwrite  - Re-archive any URLs that have been previously archived, overwriting existing Snapshots"
-	@echo " - make schedule-show       - Print a list of currently active ArchiveBox cron jobs"
-	@echo " - make schedule-update     - Re-pull any URLs that have been previously added, as needed to fill missing ArchiveResults"
+	@echo " - make schedule-show       - Print a list of currently active ArchiveBox scheduled crawls"
+	@echo " - make schedule-update     - Re-pull any URLs that have been previously added, as needed to fill missing archive results"
+	@echo
+	@echo "Scheduled crawls are stored in the ArchiveBox database and are processed automatically"
+	@echo "by the archivebox server while it is running (no cron jobs involved)."
 	@echo
 	@echo "You can also enter a shell on the container (\`make shell\` and select \"archivebox\") and use the \`archivebox schedule\` command manually:"
 	@docker compose --env-file=${ENV_FILE} exec archivebox su -c "/usr/local/bin/archivebox schedule --help" archivebox
@@ -67,17 +70,17 @@ schedule-help:
 	@echo "Learn more about scheduling in Archivebox here: https://github.com/ArchiveBox/ArchiveBox/wiki/Scheduled-Archiving"
 	@echo
 
-.PHONY: schedule-clear # Stop all ArchiveBox scheduled runs (remove cron jobs)
+.PHONY: schedule-clear # Disable all currently enabled ArchiveBox scheduled crawls
 schedule-clear:
 	@docker compose --env-file=${ENV_FILE} exec archivebox su -c "/usr/local/bin/archivebox schedule --clear" archivebox
 
 .PHONY: schedule-overwrite # Re-archive any URLs that have been previously archived, overwriting existing Snapshots
 schedule-overwrite:
-	@docker compose --env-file=${ENV_FILE} exec archivebox su -c "/usr/local/bin/archivebox schedule --overwrite" archivebox
+	@docker compose --env-file=${ENV_FILE} exec archivebox su -c "/usr/local/bin/archivebox list --csv url | /usr/local/bin/archivebox add --overwrite" archivebox
 
-.PHONY: schedule-update # Re-pull any URLs that have been previously added, as needed to fill missing ArchiveResults
+.PHONY: schedule-update # Re-pull any URLs that have been previously added, as needed to fill missing archive results
 schedule-update:
-	@docker compose --env-file=${ENV_FILE} exec archivebox su -c "/usr/local/bin/archivebox schedule --update" archivebox
+	@docker compose --env-file=${ENV_FILE} exec archivebox su -c "/usr/local/bin/archivebox update" archivebox
 
 .PHONY: schedule-run-all # Run all the scheduled jobs once immediately, independent of their configured schedules
 schedule-run-all:

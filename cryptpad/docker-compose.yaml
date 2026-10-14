@@ -1,0 +1,78 @@
+volumes:
+  config:
+  customize:
+  data:
+  datastore:
+  block:
+  blob:
+  onlyoffice_dist:
+  onlyoffice_conf:
+
+services:
+  config:
+    build:
+      context: config
+    user: "0:0"
+    restart: "no"
+    security_opt:
+      - no-new-privileges:true
+    environment:
+      - CPAD_MAIN_DOMAIN=https://${CRYPTPAD_TRAEFIK_HOST}
+      - CPAD_SANDBOX_DOMAIN=https://${CRYPTPAD_SANDBOX_HOST}
+      - CRYPTPAD_ADMIN_EMAIL
+      - CRYPTPAD_DEFAULT_STORAGE_LIMIT
+      - CRYPTPAD_MAX_UPLOAD_SIZE
+      - CRYPTPAD_BLOCK_DAILY_CHECK
+      - CRYPTPAD_LOG_LEVEL
+    volumes:
+      - config:/cryptpad/config
+      #! Mounted so the one-shot setup can fix ownership of the OnlyOffice
+      #! volumes: they are mounted at paths missing from the image, so Docker
+      #! creates them root-owned, and the cryptpad user (4001) could not write
+      #! to them:
+      - onlyoffice_dist:/onlyoffice-dist
+      - onlyoffice_conf:/onlyoffice-conf
+    labels:
+      - "backup-volume.stop-during-backup=true"
+
+  cryptpad:
+    # Docker image is configurable per config file:
+    image: ${CRYPTPAD_IMAGE}
+    # Wait for the one-shot config service to render config.js first:
+    depends_on:
+      config:
+        condition: service_completed_successfully
+    # The image runs as an unprivileged user (4001), so we drop all capabilities:
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+    # The node server needs a high file descriptor limit:
+    ulimits:
+      nofile:
+        soft: 1000000
+        hard: 1000000
+    restart: unless-stopped
+    environment:
+      #! Full origins (scheme included) that clients use to reach this
+      #! instance. Traefik terminates TLS, so these are always https:
+      - CPAD_MAIN_DOMAIN=https://${CRYPTPAD_TRAEFIK_HOST}
+      - CPAD_SANDBOX_DOMAIN=https://${CRYPTPAD_SANDBOX_HOST}
+      #! Where the rendered config.js lives (mounted from the config volume):
+      - CPAD_CONF=/cryptpad/config/config.js
+      #! If 'yes', the entrypoint installs OnlyOffice on first start:
+      - CPAD_INSTALL_ONLYOFFICE=${CRYPTPAD_INSTALL_ONLYOFFICE}
+      - TZ=${CRYPTPAD_TIMEZONE}
+    volumes:
+      - config:/cryptpad/config
+      - customize:/cryptpad/customize
+      - data:/cryptpad/data
+      - datastore:/cryptpad/datastore
+      - block:/cryptpad/block
+      - blob:/cryptpad/blob
+      - onlyoffice_dist:/cryptpad/www/common/onlyoffice/dist
+      - onlyoffice_conf:/cryptpad/onlyoffice-conf
+    # All labels are defined in the template: docker-compose.instance.yaml
+    # The labels will merge together here from the template output:
+    #   docker-compose.override_{DOCKER_CONTEXT}_{INSTANCE}.yaml
+    labels: []
