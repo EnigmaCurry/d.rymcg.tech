@@ -105,6 +105,8 @@ ytt_template() {
         -v step_ca_fingerprint="${TRAEFIK_STEP_CA_FINGERPRINT}" \
         -v layer_7_tls_proxy_enabled="${TRAEFIK_LAYER_7_TLS_PROXY_ENABLED}" \
         -v layer_7_tls_proxy_routes="${TRAEFIK_LAYER_7_TLS_PROXY_ROUTES}" \
+        -v layer_7_http_proxy_enabled="${TRAEFIK_LAYER_7_HTTP_PROXY_ENABLED}" \
+        -v layer_7_http_proxy_routes="${TRAEFIK_LAYER_7_HTTP_PROXY_ROUTES}" \
         -v layer_4_tcp_udp_proxy_enabled="${TRAEFIK_LAYER_4_TCP_UDP_PROXY_ENABLED}" \
         -v layer_4_tcp_udp_proxy_routes="${TRAEFIK_LAYER_4_TCP_UDP_PROXY_ROUTES}" \
         -v custom_entrypoints="${TRAEFIK_CUSTOM_ENTRYPOINTS}" \
@@ -134,7 +136,6 @@ ytt_template() {
         -v allow_encoded_null_character=${TRAEFIK_ALLOW_ENCODED_NULL_CHARACTER} \
         -v allow_encoded_semicolon=${TRAEFIK_ALLOW_ENCODED_SEMICOLON} \
         -v allow_encoded_question_mark=${TRAEFIK_ALLOW_ENCODED_QUESTION_MARK} \
-        --data-value-yaml header_authorization_groups="${TRAEFIK_HEADER_AUTHORIZATION_GROUPS}" \
         > ${dst}
     success=$?
     echo "[ ! ] GENERATED NEW CONFIG FILE :::  ${dst}"

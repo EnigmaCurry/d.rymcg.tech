@@ -1,0 +1,167 @@
+#@ load("@ytt:data", "data")
+
+#! Layer 7 HTTP proxy — TLS is terminated at Traefik using the standard
+#! ACME cert, and the backend is spoken to over plain HTTP (default) or
+#! self-signed HTTPS (via the existing serversTransports.ignorecert@file).
+#! Complement to layer-7-tls-proxy.yml (which is really TCP passthrough
+#! with SNI routing) and layer-4-tcp-udp-proxy.yml (raw L4 forwarding).
+#!
+#! Use this template when:
+#!   * The remote backend speaks plain HTTP (or self-signed HTTPS) and
+#!     you want Traefik to handle TLS + oauth2-proxy in front of it.
+#!   * You need per-request auth-header injection (X-Auth-Request-Email,
+#!     X-Auth-Request-Groups) — impossible with the TCP passthrough
+#!     template because that operates below the HTTP layer.
+#!
+#! Route field format (7 colon-separated fields, comma-separated tuples):
+#!   domain:ip:port:scheme:middleware:entrypoint:oauth2_group
+#!     domain           — public host (SNI + Host rule)
+#!     ip               — backend IP address
+#!     port             — backend TCP port
+#!     scheme           — "http" (default) or "https" (backend TLS with
+#!                        insecureSkipVerify via ignorecert@file)
+#!     middleware       — optional single middleware to attach BEFORE
+#!                        the oauth2 chain (fully qualified, e.g.
+#!                        "some-mw@file"); "-" means "no extra middleware"
+#!     entrypoint       — Traefik entrypoint name to bind this router
+#!                        to (e.g. "websecure", or a custom entrypoint
+#!                        defined via TRAEFIK_CUSTOM_ENTRYPOINTS); "-"
+#!                        or blank means "websecure".
+#!     oauth2_group     — OIDC group name that gates access; "-" means
+#!                        no oauth2 enforcement on this route. When set,
+#!                        the template auto-injects the same three-part
+#!                        chain used by per-app oauth2 protection:
+#!                        <router>-oauth2-errors → forward-auth@docker →
+#!                        <router>-oauth2 (X-Auth-Request-Groups check).
+#!                        Being the LAST field, this may itself contain
+#!                        colons — e.g. GitHub-style `<org>:<team>` names.
+
+#@ http_proxy_enabled = data.values.layer_7_http_proxy_enabled == "true"
+#@ http_proxy_routes = data.values.layer_7_http_proxy_routes
+
+#! Public-facing port for a given entrypoint, used when constructing the
+#! post-auth redirect URL passed as `rd=` to /oauth2/start. Assumes the
+#! public port equals the entrypoint's listen port (true unless NAT
+#! translates the port). "websecure" is looked up via its own data value;
+#! other names are matched against TRAEFIK_CUSTOM_ENTRYPOINTS.
+#@ def public_port_for(ep):
+#@   if ep == "websecure":
+#@     return data.values.websecure_entrypoint_port
+#@   end
+#@   for ce in data.values.custom_entrypoints.split(","):
+#@     if not len(ce):
+#@       continue
+#@     end
+#@     ce_parts = ce.split(":")
+#@     if ce_parts[0] == ep:
+#@       return ce_parts[2]
+#@     end
+#@   end
+#@   return "443"
+#@ end
+
+#@yaml/text-templated-strings
+#@ if http_proxy_enabled and len(http_proxy_routes):
+http:
+  routers:
+    #@ for route in http_proxy_routes.split(","):
+    #@ if not len(route):
+    #@   continue
+    #@ end
+    #! Cap at 7 splits so the 7th field (oauth2_group) can itself contain
+    #! colons — e.g. GitHub-style `<org>:<team>` group names like
+    #! `myorg:admins`. Everything after the 6th colon is one string.
+    #@ parts = route.split(":", 6)
+    #@ domain = parts[0]
+    #@ ip_address = parts[1]
+    #@ port = parts[2]
+    #@ scheme = parts[3] if len(parts) > 3 and len(parts[3]) else "http"
+    #@ extra_mw = parts[4] if len(parts) > 4 and parts[4] != "-" and len(parts[4]) else ""
+    #@ entrypoint = parts[5] if len(parts) > 5 and parts[5] != "-" and len(parts[5]) else "websecure"
+    #@ oauth2_group = parts[6] if len(parts) > 6 and parts[6] != "-" and len(parts[6]) else ""
+    #@ router = domain.replace(".","-") + "-http-proxy"
+    #@ chain = []
+    #@ if oauth2_group:
+    #@   chain.append(router + "-oauth2-errors@file")
+    #@   chain.append("forward-auth@docker")
+    #@   chain.append(router + "-oauth2@file")
+    #@ end
+    #@ if extra_mw:
+    #@   chain.append(extra_mw)
+    #@ end
+    (@= router @):
+      entryPoints:
+        - "(@= entrypoint @)"
+      rule: "Host(`(@= domain @)`)"
+      service: "(@= router @)"
+      #@ if len(chain):
+      middlewares:
+        #@ for mw in chain:
+        - "(@= mw @)"
+        #@ end
+      #@ end
+      tls:
+        certResolver: #@ data.values.acme_cert_resolver
+    #@ end
+  services:
+    #@ for route in http_proxy_routes.split(","):
+    #@ if not len(route):
+    #@   continue
+    #@ end
+    #@ parts = route.split(":", 6)
+    #@ domain = parts[0]
+    #@ ip_address = parts[1]
+    #@ port = parts[2]
+    #@ scheme = parts[3] if len(parts) > 3 and len(parts[3]) else "http"
+    #@ router = domain.replace(".","-") + "-http-proxy"
+    (@= router @):
+      loadBalancer:
+        #@ if scheme == "https":
+        serversTransport: "ignorecert@file"
+        #@ end
+        servers:
+          - url: "(@= scheme @)://(@= ip_address @):(@= port @)"
+    #@ end
+  middlewares:
+    #@ for route in http_proxy_routes.split(","):
+    #@ if not len(route):
+    #@   continue
+    #@ end
+    #@ parts = route.split(":", 6)
+    #@ domain = parts[0]
+    #@ entrypoint = parts[5] if len(parts) > 5 and parts[5] != "-" and len(parts[5]) else "websecure"
+    #@ oauth2_group = parts[6] if len(parts) > 6 and parts[6] != "-" and len(parts[6]) else ""
+    #@ if not oauth2_group:
+    #@   continue
+    #@ end
+    #@ router = domain.replace(".","-") + "-http-proxy"
+    #! Encode :<port> as %3A<port> in the rd URL when the entrypoint is on
+    #! a non-standard HTTPS port; oauth2-proxy 302s to this URL after the
+    #! OIDC dance, so it must reflect the port the browser actually uses.
+    #@ port = public_port_for(entrypoint)
+    #@ port_suffix = "%3A" + port if port != "443" else ""
+    #! Group-membership check reading X-Auth-Request-Groups (injected
+    #! upstream by forward-auth@docker after oauth2-proxy authenticates).
+    #! Uses the same headauth plugin that per-app oauth2 protection
+    #! uses in filebrowser / freshrss / etc.
+    (@= router @)-oauth2:
+      plugin:
+        headauth:
+          header:
+            name: X-Auth-Request-Groups
+          allowed:
+            - "(@= oauth2_group @)"
+    #! Catches the 401 that forward-auth@docker emits when the user has
+    #! no valid oauth2-proxy session, and rewrites it into a 302 redirect
+    #! to /oauth2/start on the oauth2-proxy service. rd= carries the
+    #! original URL so the user lands where they meant to after login.
+    (@= router @)-oauth2-errors:
+      errors:
+        status:
+          - "401"
+        service: "oauth2-proxy@docker"
+        query: "/oauth2/start?rd=https%3A%2F%2F(@= domain @)(@= port_suffix @)"
+        statusRewrites:
+          "401": 302
+    #@ end
+#@ end
