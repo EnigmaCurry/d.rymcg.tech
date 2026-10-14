@@ -350,7 +350,7 @@ After the readiness checker passes, install services in this order:
 1. **traefik** - Reverse proxy with TLS termination
 2. **whoami** - Test service to verify TLS is working
 3. **forgejo** - Git host + OAuth2 identity provider (optional)
-4. **traefik-forward-auth** - OAuth2 authentication middleware (optional)
+4. **oauth2-proxy** - OIDC/OAuth2 authentication middleware (optional)
 
 ## Non-Interactive Service Configuration
 
@@ -569,9 +569,9 @@ above.
 
 ### Step 3: Install Forgejo (optional)
 
-Forgejo is a self-hosted Git forge that also serves as the OAuth2
-identity provider for traefik-forward-auth. Install it before
-traefik-forward-auth if you plan to use OAuth2 authentication.
+Forgejo is a self-hosted Git forge that also serves as the OIDC
+identity provider for oauth2-proxy. Install it before oauth2-proxy if
+you plan to use OAuth2 authentication.
 
 #### Configure Forgejo
 
@@ -647,28 +647,22 @@ overrides with the env vars):
 d.rymcg.tech make forgejo reinstall
 ```
 
-### Step 4: Install traefik-forward-auth (optional)
+### Step 4: Install oauth2-proxy (optional)
 
-traefik-forward-auth adds OAuth2 authentication to any Traefik-routed
-service. It requires an OAuth2 provider — typically the Forgejo
-instance from Step 3.
+oauth2-proxy adds OIDC/OAuth2 authentication to any Traefik-routed
+service. It requires an OIDC provider — typically the Forgejo instance
+from Step 3.
 
-#### Determine the OAuth2 provider URLs
+#### OIDC issuer URL
 
-The Auth URL is a browser redirect (user-facing) and uses the public
-port. The Token URL and User URL are server-to-server calls made from
-inside the container, which reaches Traefik via `host-gateway` on
-port 443 — so these must **never** include the public port.
+oauth2-proxy uses OIDC discovery: give it the Forgejo instance root
+URL and it fetches `/.well-known/openid-configuration` to learn the
+auth/token/userinfo endpoints automatically. No manual endpoint list
+required.
 
-| URL | Template | Notes |
-|-----|----------|-------|
-| Auth URL | `https://git.{ROOT_DOMAIN}:{PORT}/login/oauth/authorize` | Browser redirect, uses public port |
-| Token URL | `https://git.{ROOT_DOMAIN}/login/oauth/access_token` | Server-to-server, always port 443 |
-| User URL | `https://git.{ROOT_DOMAIN}/api/v1/user` | Server-to-server, always port 443 |
-
-The `docker-compose.yaml` maps the Forgejo domain to `host-gateway`
-via `extra_hosts`, so the container can reach Traefik on port 443
-even though the public-facing port may differ.
+**The trailing slash matters**: Forgejo advertises its issuer with a
+trailing slash, and OIDC Discovery §4.3 requires an exact match — so
+`OAUTH2_PROXY_OIDC_ISSUER_URL` must end with `/`.
 
 #### Create the OAuth2 application in Forgejo
 
@@ -679,73 +673,67 @@ even though the public-facing port may differ.
    (`https://git.{ROOT_DOMAIN}:{PORT}/user/settings/applications`)
 3. Create a new OAuth2 application:
    - **Application Name**: `auth.{ROOT_DOMAIN}` (or any name)
-   - **Redirect URL**: `https://auth.{ROOT_DOMAIN}:{PORT}/_oauth`
+   - **Redirect URI**: `https://auth.{ROOT_DOMAIN}:{PORT}/oauth2/callback`
+   - **Confidential**: yes
 4. Copy the **Client ID** and **Client Secret**
 
 Ask the user for these two values before proceeding.
 
-#### Configure traefik-forward-auth
+#### Configure oauth2-proxy
 
 ```bash
 # Create env file from template:
 # WARNING: This will OVERWRITE any existing .env file. If you have customizations,
 # back up your .env file first or use `reconfigure` to update only specific variables.
-d.rymcg.tech make traefik-forward-auth config-dist
+d.rymcg.tech make oauth2-proxy config-dist
 
 # Auth host (the dedicated domain for the auth service):
-d.rymcg.tech make traefik-forward-auth reconfigure var=TRAEFIK_FORWARD_AUTH_HOST=auth.{ROOT_DOMAIN}
+d.rymcg.tech make oauth2-proxy reconfigure var=OAUTH2_PROXY_HOST=auth.{ROOT_DOMAIN}
 
 # Cookie domain (root domain — covers all subdomains):
-d.rymcg.tech make traefik-forward-auth reconfigure var=TRAEFIK_FORWARD_AUTH_COOKIE_DOMAIN={ROOT_DOMAIN}
+d.rymcg.tech make oauth2-proxy reconfigure var=OAUTH2_PROXY_COOKIE_DOMAIN={ROOT_DOMAIN}
 
-# HTTPS port (must include the colon, e.g., `:8444` or `:443`):
-d.rymcg.tech make traefik-forward-auth reconfigure var=TRAEFIK_FORWARD_AUTH_HTTPS_PORT=:{PORT}
+# HTTPS port (must include the colon, e.g., `:8444`; leave empty for 443):
+d.rymcg.tech make oauth2-proxy reconfigure var=OAUTH2_PROXY_HTTPS_PORT=:{PORT}
 
-# Generate and set a random secret:
-SECRET=$(openssl rand -base64 45)
-d.rymcg.tech make traefik-forward-auth reconfigure var=TRAEFIK_FORWARD_AUTH_SECRET=${SECRET}
+# Generate and set a 32-byte random cookie encryption secret:
+SECRET=$(openssl rand -base64 32 | tr -d '\n' | head -c 44)
+d.rymcg.tech make oauth2-proxy reconfigure var=OAUTH2_PROXY_COOKIE_SECRET=${SECRET}
 
 # Forgejo domain (without port):
-d.rymcg.tech make traefik-forward-auth reconfigure var=TRAEFIK_FORWARD_AUTH_FORGEJO_DOMAIN=git.{ROOT_DOMAIN}
+d.rymcg.tech make oauth2-proxy reconfigure var=OAUTH2_PROXY_FORGEJO_DOMAIN=git.{ROOT_DOMAIN}
 
-# OAuth provider URLs:
-# Auth URL uses the public port (browser redirect):
-d.rymcg.tech make traefik-forward-auth reconfigure var=TRAEFIK_FORWARD_AUTH_PROVIDERS_GENERIC_OAUTH_AUTH_URL=https://git.{ROOT_DOMAIN}:{PORT}/login/oauth/authorize
-# Token and User URLs are server-to-server (always port 443, no public port):
-d.rymcg.tech make traefik-forward-auth reconfigure var=TRAEFIK_FORWARD_AUTH_PROVIDERS_GENERIC_OAUTH_TOKEN_URL=https://git.{ROOT_DOMAIN}/login/oauth/access_token
-d.rymcg.tech make traefik-forward-auth reconfigure var=TRAEFIK_FORWARD_AUTH_PROVIDERS_GENERIC_OAUTH_USER_URL=https://git.{ROOT_DOMAIN}/api/v1/user
+# OIDC issuer URL — trailing slash REQUIRED to match Forgejo's advertised issuer:
+d.rymcg.tech make oauth2-proxy reconfigure var=OAUTH2_PROXY_OIDC_ISSUER_URL=https://git.{ROOT_DOMAIN}:{PORT}/
 
-# Provider selection (use gitea/generic-oauth for Forgejo):
-d.rymcg.tech make traefik-forward-auth reconfigure var=TRAEFIK_FORWARD_AUTH_SELECTED_PROVIDER=gitea
-d.rymcg.tech make traefik-forward-auth reconfigure var=TRAEFIK_FORWARD_AUTH_DEFAULT_PROVIDER=generic-oauth
-
-# Logout redirect (back to Forgejo logout):
-d.rymcg.tech make traefik-forward-auth reconfigure var=TRAEFIK_FORWARD_AUTH_LOGOUT_REDIRECT=https://git.{ROOT_DOMAIN}:{PORT}/logout
+# Provider (oauth2-proxy uses "oidc" for any OIDC-compliant IdP):
+d.rymcg.tech make oauth2-proxy reconfigure var=OAUTH2_PROXY_PROVIDER=oidc
+d.rymcg.tech make oauth2-proxy reconfigure var=OAUTH2_PROXY_SELECTED_PROVIDER=forgejo
 
 # OAuth2 credentials (from the Forgejo OAuth2 app):
-d.rymcg.tech make traefik-forward-auth reconfigure var=TRAEFIK_FORWARD_AUTH_PROVIDERS_GENERIC_OAUTH_CLIENT_ID={CLIENT_ID}
-d.rymcg.tech make traefik-forward-auth reconfigure var=TRAEFIK_FORWARD_AUTH_PROVIDERS_GENERIC_OAUTH_CLIENT_SECRET={CLIENT_SECRET}
+d.rymcg.tech make oauth2-proxy reconfigure var=OAUTH2_PROXY_CLIENT_ID={CLIENT_ID}
+d.rymcg.tech make oauth2-proxy reconfigure var=OAUTH2_PROXY_CLIENT_SECRET={CLIENT_SECRET}
 ```
 
-#### Install traefik-forward-auth
+#### Install oauth2-proxy
 
 ```bash
-d.rymcg.tech make traefik-forward-auth install
+d.rymcg.tech make oauth2-proxy install
 ```
 
 #### Verify
 
 ```bash
-d.rymcg.tech make traefik-forward-auth status
+d.rymcg.tech make oauth2-proxy status
 
-# Should return a 307 redirect to the Forgejo OAuth authorize URL:
-curl -sk https://auth.{ROOT_DOMAIN}:{PORT}
+# Should return HTTP/2 401 (unauthenticated) rather than a Traefik default cert error:
+curl -skI https://auth.{ROOT_DOMAIN}:{PORT}/oauth2/auth
 ```
 
 ### Step 5: Configure services to use OAuth2 (optional)
 
-Once traefik-forward-auth is running, you can protect any
-Traefik-routed service with OAuth2 login. This requires two things:
+Once oauth2-proxy is running, you can protect any Traefik-routed
+service with OAuth2 login. This requires two things:
 
 1. An **authorization group** in Traefik (a named list of allowed
    email addresses)
@@ -753,23 +741,10 @@ Traefik-routed service with OAuth2 login. This requires two things:
 
 #### Create authorization groups
 
-Authorization groups are stored in Traefik's
-`TRAEFIK_HEADER_AUTHORIZATION_GROUPS` variable as a JSON map of group
-names to lists of email addresses. The email addresses must match the
-accounts on the OAuth2 provider (Forgejo).
-
-```bash
-# Set authorization groups (JSON map):
-# Each group is a name → list of email addresses.
-d.rymcg.tech make traefik reconfigure var='TRAEFIK_HEADER_AUTHORIZATION_GROUPS={"admin": ["root@localhost"], "users": ["root@localhost", "alice@example.com"]}'
-```
-
-After changing authorization groups, Traefik must be reinstalled to
-pick up the new middleware configuration:
-
-```bash
-d.rymcg.tech make traefik reinstall
-```
+Groups are managed **at the OIDC provider** (Forgejo teams, GitHub
+orgs/teams, etc.) — not in Traefik. Create the team in your provider
+UI and add the users who should have access. Nothing to run in
+Traefik.
 
 #### Enable OAuth2 on a service
 
@@ -784,15 +759,17 @@ name in uppercase.
 # Enable OAuth2:
 d.rymcg.tech make whoami reconfigure var=WHOAMI_OAUTH2=true
 
-# Set the authorization group (must exist in TRAEFIK_HEADER_AUTHORIZATION_GROUPS):
-d.rymcg.tech make whoami reconfigure var=WHOAMI_OAUTH2_AUTHORIZED_GROUP=admin
+# Set the authorization group (a Forgejo team name, or <org>:<team>):
+d.rymcg.tech make whoami reconfigure var=WHOAMI_OAUTH2_AUTHORIZED_GROUP=admins
 
 # Reinstall to apply:
 d.rymcg.tech make whoami reinstall
 ```
 
 Now visiting the whoami URL will redirect to Forgejo for login. Only
-users whose email is in the `admin` group will be granted access.
+users who are members of the `admins` team in Forgejo will be granted
+access. Adding a user to that team in Forgejo takes effect on their
+next login (no Traefik restart needed).
 
 #### Check if a service supports OAuth2
 

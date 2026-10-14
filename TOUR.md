@@ -383,28 +383,25 @@ install:
 
 Watch for any errors, and finally, choose `Exit`.
 
-## Traefik-Forward-Auth
+## oauth2-proxy
 
 ```
-d make traefik-forward-auth config
+d make oauth2-proxy config
 ```
 
 ```
-TRAEFIK_FORWARD_AUTH_HOST: Enter the traefik-foward-auth host domain name (eg. auth.example.com)
+OAUTH2_PROXY_HOST: Enter the oauth2-proxy host domain name (eg. auth.example.com)
 
 : auth.widgets.example.com
 
-TRAEFIK_FORWARD_AUTH_COOKIE_DOMAIN: Enter the cookie domain name (ie ROOT domain) (eg. example.com)
+OAUTH2_PROXY_COOKIE_DOMAIN: Enter the cookie domain name (ie ROOT domain) (eg. example.com)
 
 : widgets.example.com
 
-? Select the OAuth provider to use
+? Select the OIDC provider to use
 > forgejo
-  github
-  google
-  discord
 
-TRAEFIK_FORWARD_AUTH_FORGEJO_DOMAIN: Enter your forgejo domain name (eg. git.example.com)
+OAUTH2_PROXY_FORGEJO_DOMAIN: Enter your forgejo domain name (eg. git.example.com)
 
 : git.widgets.example.com
 
@@ -416,7 +413,7 @@ OAuth2 application:
 
  * Look for the box labeled `Manage OAuth2 applications`.
  * Create a new application name: `widgets.example.com`
- * Redirect URIs: `https://auth.widgets.example.com/_oauth`
+ * Redirect URI: `https://auth.widgets.example.com/oauth2/callback`
  * Select `Confidential client`.
  * Click `Create application`.
 
@@ -424,83 +421,30 @@ This will show you two things:
 
  * Client ID
  * Client secret
- 
+
 Copy both of these and fill in the values back in your terminal:
 
 ```
-TRAEFIK_FORWARD_AUTH_PROVIDERS_GENERIC_OAUTH_CLIENT_ID: Copy and Paste the OAuth2 client ID here
+OAUTH2_PROXY_CLIENT_ID: Copy and paste the OAuth2 client ID here
 
 : 38d6c7f7-c712-43a9-967c-27888819e85f
 
-TRAEFIK_FORWARD_AUTH_PROVIDERS_GENERIC_OAUTH_CLIENT_SECRET: Copy and Paste the OAuth2 client secret here
+OAUTH2_PROXY_CLIENT_SECRET: Copy and paste the OAuth2 client secret here
 
 : gto_4g54tazy7oyslypqhr7z7khundcmtwezlkdeyghe7ctj7k4gltvq
-
-TRAEFIK_FORWARD_AUTH_LOGOUT_REDIRECT: Enter the logout redirect URL
-
-: https://git.widgets.example.com/logout
 ```
 
-Now install traefik-forward-auth:
+Now install oauth2-proxy:
 
 ```
-d make traefik-forward-auth install
+d make oauth2-proxy install
 ```
 
 With OAuth2 sentry authorization enabled, users are authorized to
-access apps only if they are a member of an authorized group for that
-app. You need to create the group membership lists in the Traefik
-config:
-
-```
-d make traefik config
-```
-
-Create an authorization group named `admin`, adding your forgejo
-username to it (email address):
-
-```
-? Traefik:
-> Config
-  Install (make install)
-  Admin
-  Exit (ESC)
-
-? Traefik Configuration:
-  Traefik user
-  Entrypoints (including dashboard)
-  TLS certificates and authorities
-> Middleware (including sentry auth)
-  Advanced Routing (Layer 7 / Layer 4 / Wireguard)
-  Error page template
-v Logging level
-
-? Traefik middleware config:
-  MaxMind geoIP locator
-> OAuth2 sentry authorization (make sentry)
-
-? Sentry Authorization Manager (main menu):
-> Group Manager
-  User Manager
-  List all members
-  List authorized callback URLs
-  Quit
-
-> Sentry Authorization Manager (main menu): Group Manager
-? Choose a group to manage
-> Create a new group
-
-? Enter the name of the group to create: admin
-
-> Do you want to add users to this group now? Yes
-
-Enter the new user id(s) to add, one per line:
-? Enter a user ID (Press Esc or enter a blank value to finish)  me@example.com
-```
-
-Replace `me@example.com` with the same email address that you used to
-sign up for your personal account in Forgejo. You can add more users
-to the group if you wish. When done, enter a blank line.
+access apps only if they are a member of the OIDC group configured for
+that app. Group membership lives in your OIDC provider — for Forgejo,
+create a team (e.g. `admin`) in Forgejo's UI and add yourself as a
+member. No Traefik config or restart needed.
 
 Now reconfigure the whoami app to require authentication:
 
@@ -519,8 +463,8 @@ WHOAMI_TRAEFIK_HOST: Enter the whoami domain name (eg. whoami.example.com)
 > Yes, with Oauth2
   Yes, with Mutual TLS (mTLS)
 
-? Which authorization group do you want to permit access to this app?
-> admin
+WHOAMI_OAUTH2_AUTHORIZED_GROUP: Enter the OIDC group name allowed to access this app (Forgejo team name, or <org>:<team>)
+: admin
 ```
 
 And reinstall whoami:

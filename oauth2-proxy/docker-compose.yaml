@@ -1,0 +1,69 @@
+services:
+  oauth2-proxy:
+    build:
+      context: oauth2-proxy
+      args:
+        REPO: ${OAUTH2_PROXY_REPO}
+        VERSION: ${OAUTH2_PROXY_VERSION}
+        STEP_CA_ENABLED: ${OAUTH2_PROXY_STEP_CA_ENABLED}
+        STEP_CA_ENDPOINT: ${OAUTH2_PROXY_STEP_CA_ENDPOINT}
+        STEP_CA_FINGERPRINT: ${OAUTH2_PROXY_STEP_CA_FINGERPRINT}
+        STEP_CA_ZERO_CERTS: ${OAUTH2_PROXY_STEP_CA_ZERO_CERTS}
+    security_opt:
+      - no-new-privileges:true
+    environment:
+      - OAUTH2_PROXY_HTTP_ADDRESS=0.0.0.0:4180
+      - OAUTH2_PROXY_REVERSE_PROXY=true
+      - OAUTH2_PROXY_SKIP_PROVIDER_BUTTON=true
+      - OAUTH2_PROXY_SET_XAUTHREQUEST=true
+      - OAUTH2_PROXY_COOKIE_SECURE=true
+      - OAUTH2_PROXY_UPSTREAMS=static://202
+      - OAUTH2_PROXY_LOG_LEVEL=${OAUTH2_PROXY_LOG_LEVEL}
+      - OAUTH2_PROXY_COOKIE_SECRET=${OAUTH2_PROXY_COOKIE_SECRET}
+      - OAUTH2_PROXY_COOKIE_DOMAINS=.${OAUTH2_PROXY_COOKIE_DOMAIN}
+      - OAUTH2_PROXY_COOKIE_EXPIRE=${OAUTH2_PROXY_COOKIE_EXPIRE}
+      - OAUTH2_PROXY_WHITELIST_DOMAINS=${OAUTH2_PROXY_WHITELIST_DOMAINS}
+      - OAUTH2_PROXY_TRUSTED_PROXY_IPS=${OAUTH2_PROXY_TRUSTED_PROXY_IPS}
+      - OAUTH2_PROXY_REDIRECT_URL=https://${OAUTH2_PROXY_HOST}${OAUTH2_PROXY_HTTPS_PORT}/oauth2/callback
+      - OAUTH2_PROXY_PROVIDER=${OAUTH2_PROXY_PROVIDER}
+      - OAUTH2_PROXY_CODE_CHALLENGE_METHOD=S256
+      - OAUTH2_PROXY_OIDC_ISSUER_URL=${OAUTH2_PROXY_OIDC_ISSUER_URL}
+      - OAUTH2_PROXY_CLIENT_ID=${OAUTH2_PROXY_CLIENT_ID}
+      - OAUTH2_PROXY_CLIENT_SECRET=${OAUTH2_PROXY_CLIENT_SECRET}
+      - OAUTH2_PROXY_SCOPE=${OAUTH2_PROXY_SCOPE}
+      - OAUTH2_PROXY_EMAIL_DOMAINS=${OAUTH2_PROXY_EMAIL_DOMAINS}
+    labels:
+      - "backup-volume.stop-during-backup=true"
+      - "traefik.enable=true"
+
+      # Register the neutral forward-auth middleware. Traefik reaches oauth2-proxy
+      # at the host's loopback (127.0.0.1:4180) because Traefik runs with host
+      # networking and oauth2-proxy publishes port 4180 to 127.0.0.1 below.
+      - "traefik.http.middlewares.forward-auth.forwardAuth.address=http://127.0.0.1:4180/oauth2/auth"
+      - "traefik.http.middlewares.forward-auth.forwardAuth.trustForwardHeader=true"
+      # /oauth2/auth responds with 202/401 and only headers (no body), so a small
+      # cap prevents an attacker who compromises the auth backend from streaming a
+      # huge body to exhaust Traefik memory. 8 KiB is generous for header-only responses.
+      - "traefik.http.middlewares.forward-auth.forwardAuth.maxResponseBodySize=8192"
+      # authResponseHeaders lists which headers Traefik copies from the auth response
+      # into the request going upstream. Every name listed here REPLACES any
+       # client-supplied value with what oauth2-proxy sent (or clears it if oauth2-proxy
+      # sent nothing). Include every legacy/alternate auth header name so that
+      # spoofed values are neutralized before reaching backends.
+      - "traefik.http.middlewares.forward-auth.forwardAuth.authResponseHeaders=X-Auth-Request-User,X-Auth-Request-Email,X-Auth-Request-Preferred-Username,X-Auth-Request-Groups,X-Forwarded-User,X-Forwarded-Email,X-Forwarded-Preferred-Username,X-Forwarded-Groups,Remote-User,Remote-Email,Remote-Groups,Authorization"
+
+      # Public router for the auth domain (serves /oauth2/start, /oauth2/callback, etc.).
+      # NO middleware applied — this endpoint must remain accessible without authentication.
+      #
+      # loadbalancer.server.url pins the backend to the loopback-published port
+      # instead of Traefik's default (container-bridge-IP:4180). Both auth-flow
+      # requests and the internal forward-auth call then reach oauth2-proxy from
+      # 127.0.0.1, so OAUTH2_PROXY_TRUSTED_PROXY_IPS can stay tight to loopback.
+      - "traefik.http.services.oauth2-proxy.loadbalancer.server.url=http://127.0.0.1:4180"
+      - "traefik.http.routers.oauth2-proxy.rule=Host(`${OAUTH2_PROXY_HOST}`)"
+      - "traefik.http.routers.oauth2-proxy.entrypoints=${OAUTH2_PROXY_ENTRYPOINTS}"
+      - "traefik.http.routers.oauth2-proxy.tls=true"
+      - "traefik.http.routers.oauth2-proxy.service=oauth2-proxy"
+    ports:
+      - 127.0.0.1:4180:4180
+    restart: unless-stopped

@@ -59,7 +59,7 @@ services:
       #@ if enable_http_auth:
       #@ enabled_middlewares.append("{}-basicauth".format(router))
       - "traefik.http.middlewares.(@= router @)-basicauth.basicauth.users=(@= http_auth @)"
-      - "traefik.http.middlewares.(@= router @)-basicauth.basicauth.headerField=X-Forwarded-User"
+      - "traefik.http.middlewares.(@= router @)-basicauth.basicauth.headerField=X-Auth-Request-Email"
       #@ end
 
       #@ if enable_mtls_auth:
@@ -99,7 +99,7 @@ services:
 
       #@ if enable_pull_http_auth:
       - "traefik.http.middlewares.(@= router_pull @)-basicauth.basicauth.users=(@= http_auth @),(@= pull_http_auth @)"
-      - "traefik.http.middlewares.(@= router_pull @)-basicauth.basicauth.headerField=X-Forwarded-User"
+      - "traefik.http.middlewares.(@= router_pull @)-basicauth.basicauth.headerField=X-Auth-Request-Email"
       #@ pull_middlewares.append("{}-basicauth".format(router_pull))
       #@ end
 
