@@ -39,22 +39,26 @@ the admin account in the UI.
 ## Scheduling Snapshots
 
 Archivebox can automatically snapshot URLs on a schedule, but you can only
-manage those schedule via the Archivebox CLI. You can use these makefile targets
+manage those schedules via the Archivebox CLI. You can use these makefile targets
 to manage most of the scheduling functions.
-- `make schedule-add`: Add a new scheduled ArchiveBox update job to cron
-- `make schedule-clear`: Stop all ArchiveBox scheduled runs (remove cron jobs)
+- `make schedule-add`: Add a new scheduled ArchiveBox crawl
+- `make schedule-clear`: Disable all ArchiveBox scheduled crawls
 - `make schedule-help`: Show help for scheduling commands
 - `make schedule-overwrite`: Re-archive any URLs that have been previously
   archived, overwriting existing Snapshots
-- `make schedule-show`: Print a list of currently active ArchiveBox cron jobs
+- `make schedule-show`: Print a list of currently active ArchiveBox scheduled crawls
 - `make schedule-update`: Re-pull any URLs that have been previously added, as
-  needed to fill missing ArchiveResults
-	
- You can also enter a shell on the container (`make shell` and select
- "archivebox") and use the `archivebox schedule` command manually:
- 
- Learn more about scheduling in Archivebox
- [here](https://github.com/ArchiveBox/ArchiveBox/wiki/Scheduled-Archiving).
+  needed to fill missing archive results
+
+Scheduled crawls are stored in the ArchiveBox database and are processed
+automatically by the archivebox server while it is running (no cron jobs
+involved).
+
+You can also enter a shell on the container (`make shell` and select
+"archivebox") and use the `archivebox schedule` command manually:
+
+Learn more about scheduling in Archivebox
+[here](https://github.com/ArchiveBox/ArchiveBox/wiki/Scheduled-Archiving).
 
 ## API Gateway
 
@@ -62,6 +66,12 @@ ArchiveBox is [currently missing a REST
 API](https://github.com/ArchiveBox/ArchiveBox/issues/496). This configuration
 [includes an API wrapper](https://github.com/enigmacurry/archivebox-api-gateway) to
 support adding URLs to archive via authenticated REST API.
+
+> [!WARNING]
+> The API gateway was written against the ArchiveBox 0.7 web UI. ArchiveBox
+> 0.9.x rewrote its web UI and API, so the gateway may no longer work until
+> the [archivebox-api-gateway](https://github.com/enigmacurry/archivebox-api-gateway)
+> repository is updated for 0.9.x.
 
 Make sure to configure the following variables (`make config` does this for
 you):
