@@ -250,7 +250,6 @@ torrent search engine
 * [Speedtest Tracker](speedtest-tracker#readme) - a network performance monitor
 * [Syncthing](syncthing#readme) - a multi-device file synchronization tool
 * [Sysbox-Systemd](sysbox-systemd#readme) - a traditional service manager for Linux running in an unprivileged container via sysbox-runc
-* [Tesseract](tesseract#readme) - a front-end for Lemmy instances
 * [TheLounge](thelounge#readme) - a web client/bouncer for IRC
 * [Thttpd](thttpd#readme) - a tiny/turbo/throttling HTTP server for serving static files
 * [Trilium](trilium#readme) - a note-taking/knowledge base application
