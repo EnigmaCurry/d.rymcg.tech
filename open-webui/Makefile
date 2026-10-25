@@ -75,25 +75,31 @@ install-hook:
 install-hook-pre:
 	@echo
 
-.PHONY: update-css # Upload custom.css to container and restart Open-WebUI
+.PHONY: update-css # Sync custom.css with the Open-WebUI container: copy it in when OPENWEBUI_CUSTOM_CSS=true, clear it when false
 update-css:
-	@if [[ "$$(${BIN}/dotenv -f ${ENV_FILE} get OPENWEBUI_CUSTOM_CSS)" == "true" ]]; then \
+	@CHANGED=0; \
+	if [[ "${INSTANCE}" == "default" ]]; then \
+		CONTAINER_NAME="open-webui-openwebui-1"; \
+	else \
+		CONTAINER_NAME="open-webui_${INSTANCE}-openwebui-1"; \
+	fi; \
+	if [[ "$$(${BIN}/dotenv -f ${ENV_FILE} get OPENWEBUI_CUSTOM_CSS)" == "true" ]]; then \
 		if [[ -f custom.css ]]; then \
-			if [[ "${INSTANCE}" == "default" ]]; then \
-				CONTAINER_NAME="open-webui-openwebui-1"; \
-			else \
-				CONTAINER_NAME="open-webui_${INSTANCE}-openwebui-1"; \
-			fi; \
 			docker cp custom.css "$${CONTAINER_NAME}":/app/build/static/custom.css; \
+			CHANGED=1; \
 		else \
 			echo -e "\nNo \`custom.css\` file found in \`$$(pwd)/\`."; \
 		fi \
+	else \
+		if docker exec "$${CONTAINER_NAME}" test -s /app/build/static/custom.css 2>/dev/null; then \
+			docker exec "$${CONTAINER_NAME}" sh -c ': > /app/build/static/custom.css'; \
+			CHANGED=1; \
+			echo "OPENWEBUI_CUSTOM_CSS is false: cleared \`/app/build/static/custom.css\` in the container."; \
+		fi \
+	fi; \
+	if [[ "$${CHANGED}" == "1" ]]; then \
+		echo; \
+		echo "Restarting container so Open-WebUI recognizes the \`custom.css\` change."; \
+		echo; \
+		make restart; \
 	fi
-	@echo
-	@echo "Restarting container so Open-WebUI recognizes updated \`custom.css\`."
-	@echo
-	@make restart
-
-.PHONY: install-hook-pre
-install-hook-pre:
-	@echo

@@ -34,11 +34,22 @@ become the admin automatically.
 Optionally, you can create your own CSS stylesheet to customize
 Open-WebUI's appearance (remember to append the `!important`
 declaration to ensure your custom styles take precedence over
-Open-WebUI's internal style sheets). Save your custom CSS file in this
-project's directory and name the file `custom.css`.
+Open-WebUI's internal style sheets).
 
-If make changes to your `custom.css` file, run `make update-css` to
-upload it to the container and restart the Open-WebUI service.
+To use a custom stylesheet:
+
+1. Save your CSS file in this project's directory and name the file
+   `custom.css`.
+2. Set `OPENWEBUI_CUSTOM_CSS=true` in the `.env` file.
+3. Run `make install` (or `make update-css`) to upload it to the
+   container and restart the Open-WebUI service.
+
+If you make changes to your `custom.css` file, run `make update-css`
+to upload it to the container and restart the Open-WebUI service.
+
+If you later set `OPENWEBUI_CUSTOM_CSS=false`, the next
+`make install` (or `make update-css`) clears the custom CSS from the
+container, restoring Open-WebUI's default appearance.
 
 ## Install
 
