@@ -26,10 +26,10 @@ services:
       - CRYPTPAD_LOG_LEVEL
     volumes:
       - config:/cryptpad/config
-      #! Mounted so the one-shot setup can fix ownership of the OnlyOffice
-      #! volumes: they are mounted at paths missing from the image, so Docker
-      #! creates them root-owned, and the cryptpad user (4001) could not write
-      #! to them:
+      #! Mounted so the one-shot setup can fix ownership of the office
+      #! (Euro-Office) volumes: they are mounted at paths missing from the
+      #! image, so Docker creates them root-owned, and the cryptpad user
+      #! (4001) could not write to them:
       - onlyoffice_dist:/onlyoffice-dist
       - onlyoffice_conf:/onlyoffice-conf
     labels:
@@ -38,7 +38,7 @@ services:
   cryptpad:
     # Docker image is configurable per config file:
     image: ${CRYPTPAD_IMAGE}
-    # Wait for the one-shot config service to render config.js first:
+    # Wait for the one-shot config service to render config.js and infra.js first:
     depends_on:
       config:
         condition: service_completed_successfully
@@ -60,7 +60,8 @@ services:
       - CPAD_SANDBOX_DOMAIN=https://${CRYPTPAD_SANDBOX_HOST}
       #! Where the rendered config.js lives (mounted from the config volume):
       - CPAD_CONF=/cryptpad/config/config.js
-      #! If 'yes', the entrypoint installs OnlyOffice on first start:
+      #! If 'yes', the entrypoint installs the office editors (Euro-Office,
+      #! an OnlyOffice-based fork) on first start:
       - CPAD_INSTALL_ONLYOFFICE=${CRYPTPAD_INSTALL_ONLYOFFICE}
       - TZ=${CRYPTPAD_TIMEZONE}
     volumes:

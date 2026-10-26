@@ -17,10 +17,10 @@ gaining access to accounts.
 Both domains are served by the **same container** (the server tells
 them apart using the `Host` header and applies a restrictive
 Content-Security-Policy to the sandbox domain). Both are routed by
-Traefik to port 3000, and a second Traefik router forwards
-`/cryptpad_websocket` to port 3003 (the dedicated websocket server),
-mirroring the official nginx example. A single wildcard TLS certificate
-covers both domains.
+Traefik to port 3000, which since CryptPad 2026.10.0 serves both the
+HTTP traffic and the websockets (the server's old dedicated websocket
+port, 3003, no longer exists). A single wildcard TLS certificate covers
+both domains.
 
 > If you only see a white screen in the browser, the sandbox domain is
 > almost always the cause: check `CRYPTPAD_SANDBOX_HOST`, its TLS, and
@@ -48,7 +48,7 @@ Main variables (see `.env-dist` for all):
 | `CRYPTPAD_IMAGE` | Docker image to run (pinned release tag) |
 | `CRYPTPAD_TRAEFIK_HOST` | Main domain (hostnames only, HTTPS/443 via Traefik) |
 | `CRYPTPAD_SANDBOX_HOST` | Sandbox domain (must differ from the main domain) |
-| `CRYPTPAD_INSTALL_ONLYOFFICE` | `yes` to install OnlyOffice on first start |
+| `CRYPTPAD_INSTALL_ONLYOFFICE` | `yes` to install the office editors (Euro-Office) on first start |
 | `CRYPTPAD_ADMIN_EMAIL` | Contact email shown on the `/contact` page |
 | `CRYPTPAD_DEFAULT_STORAGE_LIMIT` | Storage limit for new accounts (JS expression, bytes) |
 | `CRYPTPAD_MAX_UPLOAD_SIZE` | Max single upload size (JS expression, bytes) |
@@ -56,10 +56,15 @@ Main variables (see `.env-dist` for all):
 | `CRYPTPAD_LOG_LEVEL` | `silly`, `verbose`, `debug`, `feedback`, `info`, `warn`, `error` |
 | `CRYPTPAD_TIMEZONE` | Timezone inside the container |
 
-A one-shot `config` service renders `config.js` into the `config`
-volume from `config/config.template.js` on every start, so changes to
-these variables take effect after `make install`/`reinstall`. It also
-fixes ownership of the OnlyOffice volumes (see below).
+A one-shot `config` service renders `config.js` (from
+`config/config.template.js`) and `infra.js` (from
+`config/infra.template.js`) into the `config` volume on every start, so
+changes to these variables take effect after `make install`/`reinstall`.
+`config.js` holds the instance settings (storage limits, logging,
+paths); `infra.js` holds the network topology required by the rewritten
+CryptPad server (2026.10.0 and later): the public origins and the
+internal front/core/storage nodes. It also fixes ownership of the
+office volumes (see below).
 
 ## Install
 
@@ -70,9 +75,9 @@ make install
 
 On **first start**, the container:
 
-1. runs `install-onlyoffice.sh` if `CRYPTPAD_INSTALL_ONLYOFFICE=yes`
-   (downloads ~2-4GB; the container reports *unhealthy* while this
-   happens — expected),
+1. runs `install-office.sh` if `CRYPTPAD_INSTALL_ONLYOFFICE=yes`
+   (downloads the Euro-Office editors, ~2-4GB; the container reports
+   *unhealthy* while this happens — expected),
 2. runs `npm run build` (regenerates the web assets; this happens on
    every start by design),
 3. starts the server.
@@ -110,29 +115,31 @@ setup URL is re-printed on every start until the first admin exists.
   something is wrong).
 - `/contact` — contact page (shows `CRYPTPAD_ADMIN_EMAIL`).
 
-## OnlyOffice
+## Office apps (Euro-Office)
 
 `CRYPTPAD_INSTALL_ONLYOFFICE=yes` (the default) makes the entrypoint
-run `install-onlyoffice.sh --accept-license --trust-repository` on
-first start, which downloads the OnlyOffice Document, Sheet, and
+run `install-office.sh --accept-license --trust-repository` on first
+start, which downloads the Euro-Office Document, Sheet, and
 Presentation runtimes into the `onlyoffice_dist` volume (config and a
-build git clone live in `onlyoffice_conf`). Re-runs are idempotent
-(version files are checked).
+build git clone live in `onlyoffice_conf`). Since CryptPad 2026.10.0
+the office apps are based on Euro-Office, a fork of OnlyOffice; the
+volumes keep their historical `onlyoffice_*` names. Re-runs are
+idempotent (version files are checked).
 
-OnlyOffice is **not** open source; by enabling it you accept its
-[license](https://github.com/ONLYOFFICE/web-apps/blob/master/LICENSE.txt).
+Euro-Office is **not** open source; by enabling it you accept its
+[license](https://github.com/Euro-Office/web-apps/blob/main/LICENSE.txt).
 
 The two `onlyoffice_*` volumes are mounted at paths that do not exist
 inside the image, so Docker would create them root-owned; the one-shot
 `config` service chowns their top-level directories to the cryptpad
 user (4001) on every start to prevent that.
 
-To check or update the installed OnlyOffice version:
+To check or update the installed office version:
 
 ```
 make shell
-./install-onlyoffice.sh --check
-./install-onlyoffice.sh --accept-license --trust-repository
+./install-office.sh --check
+./install-office.sh --accept-license --trust-repository
 ```
 
 ### Legacy sheets (migrating from an old instance)
@@ -155,7 +162,7 @@ To support legacy documents, either:
    `onlyoffice_dist` volume, or
 2. set `oldest_needed_version` in `onlyoffice.properties` (in the
    `onlyoffice_conf` volume) to the oldest version you need (e.g., `v1`)
-   and re-run `./install-onlyoffice.sh --accept-license --trust-repository`
+   and re-run `./install-office.sh --accept-license --trust-repository`
    in the container (downloads all versions from that one up to `v9`;
    several GB).
 
@@ -185,6 +192,19 @@ The entrypoint re-runs `npm run build` automatically and data formats
 are migrated forward in place (watch for `BLOB_PROOFS_MIGRATION` in the
 logs after an upgrade of an older dataset).
 
+> **Upgrades across the 2026.10.0 server rewrite are not drop-in.**
+> That release replaced the server with a multi-node architecture that
+> serves HTTP and websockets on a single port (3000), split the
+> configuration into `config.js` + `infra.js`, and replaced the
+> OnlyOffice editors with Euro-Office. Upgrading to it (or beyond it)
+> requires updating this project's files first: the instance template
+> must no longer define the old `/cryptpad_websocket` → port 3003
+> router, and the one-shot `config` service must render `infra.js` next
+> to `config.js`. Make those changes in the same `make install` as the
+> image bump — either direction on its own breaks websockets or the
+> server start (the unprivileged entrypoint cannot create a default
+> `infra.js` in the root-owned config volume).
+
 ## Open
 
 ```
@@ -210,5 +230,5 @@ make open
   happen; if it does, add a Traefik `headers` middleware with custom
   response headers on the cryptpad routers.
 - **Container unhealthy for a long time after first start** — the
-  OnlyOffice download is still in progress; check
+  office editor (Euro-Office) download is still in progress; check
   `make logs-out service=cryptpad`.
