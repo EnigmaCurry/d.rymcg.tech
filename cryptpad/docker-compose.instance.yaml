@@ -37,31 +37,21 @@ services:
 
       #! 'router' is the fully qualified key in traefik for this router/service: project + instance + service
       #@ router = "{}-{}-{}".format(project,instance,service)
-      #@ ws_router = "{}-ws".format(router)
 
       #! CryptPad serves its 'main' domain and its 'sandbox' domain from the
       #! same port (3000). The server tells them apart using the Host header
       #! and applies the restrictive Content-Security-Policy to the sandbox
       #! domain. Both domains need TLS (a wildcard cert covers both).
+      #! Since CryptPad 2026.10.0 the server handles both HTTP and websockets
+      #! on this single port, so there is no separate /cryptpad_websocket
+      #! router (the previous server used a dedicated websocket port, 3003).
       #! No explicit priority: Traefik defaults to the rule's length, which
-      #! keeps both routers ahead of the low-priority catch-all error-pages
+      #! keeps this router ahead of the low-priority catch-all error-pages
       #! router on this host.
       - "traefik.http.routers.(@= router @).rule=Host(`(@= traefik_host @)`) || Host(`(@= sandbox_host @)`)"
       - "traefik.http.routers.(@= router @).entrypoints=websecure"
       - "traefik.http.routers.(@= router @).service=(@= router @)"
       - "traefik.http.services.(@= router @).loadbalancer.server.port=3000"
-
-      #! CryptPad's websocket server listens on a separate port (3003).
-      #! Following the official nginx example, we forward /cryptpad_websocket
-      #! there directly. Its rule is longer than the main router's, so the
-      #! default (rule-length) priority makes this router win for that path
-      #! prefix on both domains. The parentheses matter: without them,
-      #! '&&' binds tighter than '||' and the rule would match EVERY path
-      #! on the main domain (sending it all to the websocket-only port):
-      - "traefik.http.routers.(@= ws_router @).rule=(Host(`(@= traefik_host @)`) || Host(`(@= sandbox_host @)`)) && PathPrefix(`/cryptpad_websocket`)"
-      - "traefik.http.routers.(@= ws_router @).entrypoints=websecure"
-      - "traefik.http.routers.(@= ws_router @).service=(@= ws_router @)"
-      - "traefik.http.services.(@= ws_router @).loadbalancer.server.port=3003"
 
       #@ enabled_middlewares.append("{}-ipallowlist".format(router))
       - "traefik.http.middlewares.(@= router @)-ipallowlist.ipallowlist.sourcerange=(@= ip_sourcerange @)"
@@ -79,7 +69,6 @@ services:
 
       #@ if enable_mtls_auth:
       - "traefik.http.routers.(@= router @).tls.options=step_ca_mTLS@file"
-      - "traefik.http.routers.(@= ws_router @).tls.options=step_ca_mTLS@file"
         #@ if len(mtls_authorized_certs):
       - "traefik.http.middlewares.mtlsauth-(@= router @).plugin.certauthz.domains=(@= mtls_authorized_certs @)"
         #@ enabled_middlewares.append("mtlsauth-{}".format(router))
@@ -87,9 +76,8 @@ services:
         #@ enabled_middlewares.append("mtls-header@file")
       #@ end
 
-      #! Apply all middlewares to both routers (do this at the end!)
+      #! Apply all middlewares to the router (do this at the end!)
       - "traefik.http.routers.(@= router @).middlewares=(@= ','.join(enabled_middlewares) @)"
-      - "traefik.http.routers.(@= ws_router @).middlewares=(@= ','.join(enabled_middlewares) @)"
 
       #! Homepage (portal):
       #! See https://gethomepage.dev/configs/docker/#automatic-service-discovery
