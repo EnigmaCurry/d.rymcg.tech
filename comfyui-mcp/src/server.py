@@ -26,7 +26,8 @@ from PIL import Image as PILImage
 from mcp.server.fastmcp import Context, FastMCP, Image
 from mcp.server.transport_security import TransportSecuritySettings
 from starlette.datastructures import Headers
-from starlette.responses import Response
+from starlette.requests import Request
+from starlette.responses import JSONResponse, Response
 from starlette.types import ASGIApp, Receive, Scope, Send
 
 
@@ -49,6 +50,13 @@ API_TOKEN = os.environ.get("COMFYUI_MCP_API_TOKEN", "").strip()
 EDIT_MODEL = _env("COMFYUI_MCP_EDIT_MODEL", "qwen_image_edit_2509_fp8_e4m3fn.safetensors")
 EDIT_TEXT_ENCODER = _env("COMFYUI_MCP_EDIT_TEXT_ENCODER", "qwen_2.5_vl_7b_fp8_scaled.safetensors")
 EDIT_VAE = _env("COMFYUI_MCP_EDIT_VAE", "qwen_image_vae.safetensors")
+
+# Uploads arrive out of band via POST /upload rather than as tool arguments.
+# Base64 in a tool argument would pass the whole image through the calling
+# model's context window, which costs roughly 350k tokens per megabyte.
+UPLOAD_DIR_NAME = "uploads"
+MAX_UPLOAD_BYTES = int(_env("COMFYUI_MCP_MAX_UPLOAD_BYTES", str(64 * 1024 * 1024)))
+UPLOAD_TTL = float(_env("COMFYUI_MCP_UPLOAD_TTL", "86400"))
 
 DEFAULT_NEGATIVE = (
     "blurry, soft, photo, 3d render, smooth gradient, jpeg artifacts, "
@@ -271,11 +279,23 @@ def build_edit_workflow(job: Job, uploaded_image: str) -> dict[str, Any]:
     }
 
 
+def _fit(src_w: int, src_h: int, longest: int) -> tuple[int, int]:
+    """Scale to `longest` on the long edge, preserving aspect ratio."""
+    if src_w >= src_h:
+        return longest, max(1, round(longest * src_h / src_w))
+    return max(1, round(longest * src_w / src_h)), longest
+
+
 def pixelate(raw_png: bytes, job: Job) -> tuple[bytes, bytes]:
-    """Downscale onto a true pixel grid and quantize. Returns (sprite, view)."""
+    """Downscale onto a true pixel grid and quantize. Returns (sprite, view).
+
+    `job.size` is the longest edge. Generated renders are square so this is
+    the same as before for them, but imported images keep their proportions
+    instead of being squashed into a square.
+    """
     src = PILImage.open(io.BytesIO(raw_png)).convert("RGB")
     resample = PILImage.NEAREST if job.resample == "nearest" else PILImage.BOX
-    small = src.resize((job.size, job.size), resample)
+    small = src.resize(_fit(src.width, src.height, job.size), resample)
     # Dithering scatters stray pixels and reads as noise at sprite scale.
     small = small.quantize(
         colors=job.colors,
@@ -287,7 +307,8 @@ def pixelate(raw_png: bytes, job: Job) -> tuple[bytes, bytes]:
     small.save(sprite_buf, format="PNG")
 
     view = small.resize(
-        (job.size * job.view_scale, job.size * job.view_scale), PILImage.NEAREST
+        (small.width * job.view_scale, small.height * job.view_scale),
+        PILImage.NEAREST,
     )
     view_buf = io.BytesIO()
     view.save(view_buf, format="PNG")
@@ -396,6 +417,43 @@ async def run_job(job: Job, ctx: Context | None = None) -> None:
         _prune_history()
 
 
+def _upload_dir() -> Path:
+    d = DATA_DIR / UPLOAD_DIR_NAME
+    d.mkdir(parents=True, exist_ok=True)
+    return d
+
+
+def _sweep_uploads() -> None:
+    """Drop uploads nobody imported. Imported ones are copied into the job."""
+    cutoff = time.time() - UPLOAD_TTL
+    for f in _upload_dir().glob("*.png"):
+        try:
+            if f.stat().st_mtime < cutoff:
+                f.unlink(missing_ok=True)
+        except OSError:
+            pass
+
+
+def normalize_for_edit(raw: bytes) -> bytes:
+    """Put an arbitrary image into the shape the edit model expects.
+
+    Scales the long edge to the working resolution and rounds both sides to a
+    multiple of 16 for the VAE. Images smaller than 256px are enlarged with
+    nearest neighbour, so existing pixel art keeps its hard edges instead of
+    being blurred on the way in.
+    """
+    img = PILImage.open(io.BytesIO(raw))
+    img.load()
+    img = img.convert("RGB")
+    w, h = _fit(img.width, img.height, BASE_RESOLUTION)
+    w, h = max(16, w - w % 16), max(16, h - h % 16)
+    enlarging = img.width < 256 and img.height < 256
+    img = img.resize((w, h), PILImage.NEAREST if enlarging else PILImage.LANCZOS)
+    buf = io.BytesIO()
+    img.save(buf, format="PNG")
+    return buf.getvalue()
+
+
 allowed_hosts = [h.strip() for h in os.environ.get("COMFYUI_MCP_ALLOWED_HOSTS", "").split(",") if h.strip()]
 transport_security = (
     TransportSecuritySettings(
@@ -420,6 +478,153 @@ mcp = FastMCP(
     streamable_http_path=_env("COMFYUI_MCP_PATH", "/mcp"),
     transport_security=transport_security,
 )
+
+
+@mcp.custom_route("/upload", methods=["POST"])
+async def upload_endpoint(request: Request) -> JSONResponse:
+    """Accept an image out of band and return a handle for import_image.
+
+    Auth is already enforced for this path by BearerTokenMiddleware, which
+    wraps the whole app. Accepts either multipart/form-data (field "file" or
+    "image") or a raw image body.
+    """
+    declared = request.headers.get("content-length")
+    if declared and declared.isdigit() and int(declared) > MAX_UPLOAD_BYTES:
+        return JSONResponse(
+            {"error": f"image exceeds {MAX_UPLOAD_BYTES} bytes"}, status_code=413
+        )
+
+    content_type = request.headers.get("content-type", "")
+    if content_type.startswith("multipart/form-data"):
+        form = await request.form()
+        part = form.get("file") or form.get("image")
+        if part is None or isinstance(part, str):
+            return JSONResponse(
+                {"error": "expected a file in field 'file' or 'image'"}, status_code=400
+            )
+        raw = await part.read()
+    else:
+        raw = await request.body()
+
+    if not raw:
+        return JSONResponse({"error": "empty request body"}, status_code=400)
+    if len(raw) > MAX_UPLOAD_BYTES:
+        return JSONResponse(
+            {"error": f"image exceeds {MAX_UPLOAD_BYTES} bytes"}, status_code=413
+        )
+
+    try:
+        normalized = normalize_for_edit(raw)
+    except Exception as exc:
+        return JSONResponse(
+            {"error": f"not a decodable image: {type(exc).__name__}: {exc}"},
+            status_code=400,
+        )
+
+    image_id = uuid.uuid4().hex[:12]
+    (_upload_dir() / f"{image_id}.png").write_bytes(normalized)
+    _sweep_uploads()
+
+    with PILImage.open(io.BytesIO(normalized)) as im:
+        width, height = im.size
+    return JSONResponse(
+        {
+            "image_id": image_id,
+            "width": width,
+            "height": height,
+            "bytes": len(normalized),
+            "next": f"import_image(image_id=\"{image_id}\")",
+        }
+    )
+
+
+# structured_output=False: these return an Image alongside text, and the
+# structured-content path cannot serialize Image. This routes the result
+# through _convert_to_content, which handles it.
+@mcp.tool(structured_output=False)
+async def import_image(
+    image_id: str,
+    label: str = "",
+    size: int = 64,
+    colors: int = 16,
+    resample: Resample = "nearest",
+    view_scale: int = 8,
+) -> list[Any]:
+    """Turn an uploaded image into a sprite you can then refine.
+
+    Upload the file first with `make upload FILE=path.png` (or POST it to
+    /upload), which returns an image_id. This pixelates it and records it as
+    an ordinary job, so refine_pixel_art works on the result exactly as it
+    does on a generated sprite.
+
+    Args:
+        image_id: Handle returned by the upload endpoint.
+        label: Optional description, shown in list_jobs. Also used as the
+            prompt context if you later refine this image.
+        size: Sprite longest edge in real pixels (8-256). Proportions of the
+            uploaded image are preserved.
+        colors: Palette size (2-256).
+        resample: Downscale filter, "nearest" (crisp) or "box" (softer).
+        view_scale: Magnification of the returned preview (1-32).
+    """
+    if not 8 <= size <= 256:
+        raise ValueError("size must be between 8 and 256")
+    if not 2 <= colors <= 256:
+        raise ValueError("colors must be between 2 and 256")
+    if not 1 <= view_scale <= 32:
+        raise ValueError("view_scale must be between 1 and 32")
+
+    upload = _upload_dir() / f"{image_id}.png"
+    if not upload.exists():
+        raise ValueError(
+            f"No such upload: {image_id}. Uploads expire after "
+            f"{int(UPLOAD_TTL / 3600)}h; upload the image again."
+        )
+
+    job = Job(
+        id=uuid.uuid4().hex[:12],
+        prompt=label or "imported image",
+        negative_prompt="",
+        size=size,
+        colors=colors,
+        seed=0,
+        steps=0,
+        cfg=0.0,
+        lora_strength=0.0,
+        resample=resample,
+        view_scale=view_scale,
+        kind="import",
+        status="running",
+    )
+    JOBS[job.id] = job
+    job.save()
+
+    try:
+        raw = upload.read_bytes()
+        sprite, view = pixelate(raw, job)
+        job.source_path.write_bytes(raw)
+        job.sprite_path.write_bytes(sprite)
+        job.view_path.write_bytes(view)
+        job.status = "completed"
+    except Exception as exc:
+        job.status = "failed"
+        job.error = f"{type(exc).__name__}: {exc}"
+        raise RuntimeError(f"Import failed: {job.error}") from exc
+    finally:
+        job.finished_at = time.time()
+        job.save()
+        _prune_history()
+
+    # The job owns its own copy now.
+    upload.unlink(missing_ok=True)
+
+    with PILImage.open(io.BytesIO(sprite)) as im:
+        dims = f"{im.width}x{im.height}"
+    return [
+        Image(data=view, format="png"),
+        f"Job {job.id}: imported as a {dims} sprite, {colors} colours. "
+        f"Refine it with refine_pixel_art('{job.id}', '<instruction>').",
+    ]
 
 
 # structured_output=False: these return an Image alongside text, and the

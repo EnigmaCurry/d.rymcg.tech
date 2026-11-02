@@ -63,3 +63,13 @@ install-hook-pre:
 .PHONY: url # Print the MCP endpoint URL to give to your MCP client
 url:
 	@echo "https://$$(${BIN}/dotenv -f ${ENV_FILE} get COMFYUI_MCP_TRAEFIK_HOST)$$(${BIN}/dotenv -f ${ENV_FILE} get COMFYUI_MCP_PATH)"
+
+.PHONY: upload # Upload an image for import_image to use: make upload FILE=path.png
+upload:
+	@test -n "${FILE}" || { echo "usage: make upload FILE=path/to/image.png" >&2; exit 1; }
+	@test -f "${FILE}" || { echo "no such file: ${FILE}" >&2; exit 1; }
+	@curl -fsS -X POST \
+	    -H "Authorization: Bearer $$(${BIN}/dotenv -f ${ENV_FILE} get COMFYUI_MCP_API_TOKEN)" \
+	    -F "file=@${FILE}" \
+	    "https://$$(${BIN}/dotenv -f ${ENV_FILE} get COMFYUI_MCP_TRAEFIK_HOST)/upload"
+	@echo

@@ -20,6 +20,42 @@ The returned preview is magnified with nearest neighbour so it is legible in
 a chat client; the sprite is also kept at its native size (64x64 and the
 like) and can be fetched with `get_job_image(job_id, native=true)`.
 
+## Using your own image
+
+Upload the file, then import it. The import becomes an ordinary job, so
+everything below applies to it exactly as to a generated sprite:
+
+```
+make upload FILE=sketch.png
+# {"image_id":"f3d4958c84a8","width":1024,"height":1024,...}
+```
+
+```
+import_image(image_id="f3d4958c84a8", label="my sketch")  -> job 4b3d
+refine_pixel_art("4b3d", "give the wizard large feathered wings")
+```
+
+Uploads deliberately go through a side channel rather than a tool argument.
+An image passed as base64 in a tool call travels through the calling model's
+context window, which costs on the order of 350k tokens per megabyte. The
+endpoint is the same one `make upload` calls, and it takes the same bearer
+token as the MCP endpoint:
+
+```
+curl -X POST -H "Authorization: Bearer $TOKEN" \
+  -F file=@sketch.png https://comfyui-mcp.example.com/upload
+```
+
+Uploaded images are normalized on arrival: converted to RGB and scaled so
+the long edge matches the working resolution. Anything under 256px is
+enlarged with nearest neighbour, so existing pixel art keeps its hard edges
+rather than being blurred on the way in. Proportions are preserved
+throughout, so a 2:1 image becomes a 2:1 sprite.
+
+Unimported uploads are swept after `COMFYUI_MCP_UPLOAD_TTL` (24h by
+default). Once imported, the job holds its own copy and the TTL no longer
+applies.
+
 ## Refining
 
 `refine_pixel_art` applies a corrective instruction to an existing sprite:
@@ -149,6 +185,7 @@ If you left the token blank, drop the `--header` argument.
 | Tool | Purpose |
 |---|---|
 | `generate_pixel_art` | Generate a sprite from a prompt. Blocks until done unless `wait=false`. |
+| `import_image` | Turn an uploaded image into a sprite job you can then refine. |
 | `refine_pixel_art` | Apply a corrective instruction to an existing job, returning a child job. |
 | `get_job_status` | Check a job, returning the image once it has finished. |
 | `list_jobs` | List recent jobs, newest first, showing refinement lineage. |
