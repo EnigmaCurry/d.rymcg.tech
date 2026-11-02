@@ -16,7 +16,7 @@ import random
 import secrets
 import time
 import uuid
-from dataclasses import dataclass, field, asdict
+from dataclasses import dataclass, field, fields, asdict
 from pathlib import Path
 from typing import Any, Literal
 
@@ -42,6 +42,13 @@ JOB_TIMEOUT = float(_env("COMFYUI_MCP_JOB_TIMEOUT", "600"))
 MAX_HISTORY = int(_env("COMFYUI_MCP_MAX_HISTORY", "200"))
 BASE_RESOLUTION = int(_env("COMFYUI_MCP_BASE_RESOLUTION", "1024"))
 API_TOKEN = os.environ.get("COMFYUI_MCP_API_TOKEN", "").strip()
+
+# Refinement uses a dedicated instruction-editing model. The SDXL pipeline
+# above cannot do corrective edits: img2img re-renders the whole frame rather
+# than acting on "remove the sword".
+EDIT_MODEL = _env("COMFYUI_MCP_EDIT_MODEL", "qwen_image_edit_2509_fp8_e4m3fn.safetensors")
+EDIT_TEXT_ENCODER = _env("COMFYUI_MCP_EDIT_TEXT_ENCODER", "qwen_2.5_vl_7b_fp8_scaled.safetensors")
+EDIT_VAE = _env("COMFYUI_MCP_EDIT_VAE", "qwen_image_vae.safetensors")
 
 DEFAULT_NEGATIVE = (
     "blurry, soft, photo, 3d render, smooth gradient, jpeg artifacts, "
@@ -69,10 +76,23 @@ class Job:
     finished_at: float | None = None
     comfy_prompt_id: str | None = None
     error: str | None = None
+    kind: str = "generate"           # generate | refine
+    parent_id: str | None = None     # job this was refined from
+    instruction: str | None = None   # the corrective text, for refine jobs
+    denoise: float = 1.0
 
     @property
     def sprite_path(self) -> Path:
         return DATA_DIR / f"{self.id}.png"
+
+    @property
+    def source_path(self) -> Path:
+        """The full-resolution render, before downscaling.
+
+        Refinement must chain from this rather than from the quantized sprite:
+        re-encoding a 16-colour 64x64 image would compound loss every round.
+        """
+        return DATA_DIR / f"{self.id}.source.png"
 
     @property
     def view_path(self) -> Path:
@@ -90,9 +110,12 @@ class Job:
         age = int(time.time() - self.created_at)
         line = (
             f"{self.id}  [{self.status}]  {self.size}x{self.size} "
-            f"{self.colors}c  seed={self.seed}  {age}s ago\n"
-            f"    {self.prompt[:90]}"
+            f"{self.colors}c  seed={self.seed}  {age}s ago"
         )
+        if self.parent_id:
+            line += f"\n    refined from {self.parent_id}: {(self.instruction or '')[:70]}"
+        else:
+            line += f"\n    {self.prompt[:90]}"
         if self.error:
             line += f"\n    error: {self.error}"
         return line
@@ -108,7 +131,8 @@ def _load_jobs_from_disk() -> None:
     for meta in sorted(DATA_DIR.glob("*.json")):
         try:
             data = json.loads(meta.read_text())
-            job = Job(**data)
+            known = {f.name for f in fields(Job)}
+            job = Job(**{k: v for k, v in data.items() if k in known})
         except Exception:
             continue
         # A job still marked running cannot be resumed across a restart.
@@ -122,7 +146,7 @@ def _prune_history() -> None:
     if len(JOBS) <= MAX_HISTORY:
         return
     for job in sorted(JOBS.values(), key=lambda j: j.created_at)[: len(JOBS) - MAX_HISTORY]:
-        for p in (job.sprite_path, job.view_path, job.meta_path):
+        for p in (job.sprite_path, job.view_path, job.source_path, job.meta_path):
             p.unlink(missing_ok=True)
         JOBS.pop(job.id, None)
 
@@ -186,6 +210,67 @@ def build_workflow(job: Job) -> dict[str, Any]:
     }
 
 
+def build_edit_workflow(job: Job, uploaded_image: str) -> dict[str, Any]:
+    """ComfyUI API-format graph for instruction-based editing.
+
+    TextEncodeQwenImageEditPlus folds the reference image into the
+    conditioning itself, so the instruction is interpreted relative to the
+    source rather than as a fresh prompt. The sampler starts from the source
+    latent, which is why denoise stays at 1.0 here without losing the image.
+    """
+    return {
+        "1": {
+            "class_type": "UNETLoader",
+            "inputs": {"unet_name": EDIT_MODEL, "weight_dtype": "default"},
+        },
+        "2": {
+            "class_type": "CLIPLoader",
+            "inputs": {"clip_name": EDIT_TEXT_ENCODER, "type": "qwen_image"},
+        },
+        "3": {"class_type": "VAELoader", "inputs": {"vae_name": EDIT_VAE}},
+        "4": {"class_type": "LoadImage", "inputs": {"image": uploaded_image}},
+        "5": {
+            "class_type": "TextEncodeQwenImageEditPlus",
+            "inputs": {
+                "clip": ["2", 0],
+                "prompt": job.instruction or "",
+                "vae": ["3", 0],
+                "image1": ["4", 0],
+            },
+        },
+        "6": {
+            "class_type": "TextEncodeQwenImageEditPlus",
+            "inputs": {
+                "clip": ["2", 0],
+                "prompt": job.negative_prompt,
+                "vae": ["3", 0],
+                "image1": ["4", 0],
+            },
+        },
+        "7": {"class_type": "VAEEncode", "inputs": {"pixels": ["4", 0], "vae": ["3", 0]}},
+        "8": {
+            "class_type": "KSampler",
+            "inputs": {
+                "seed": job.seed,
+                "steps": job.steps,
+                "cfg": job.cfg,
+                "sampler_name": "euler",
+                "scheduler": "simple",
+                "denoise": job.denoise,
+                "model": ["1", 0],
+                "positive": ["5", 0],
+                "negative": ["6", 0],
+                "latent_image": ["7", 0],
+            },
+        },
+        "9": {"class_type": "VAEDecode", "inputs": {"samples": ["8", 0], "vae": ["3", 0]}},
+        "10": {
+            "class_type": "SaveImage",
+            "inputs": {"filename_prefix": f"pixelart/{job.id}", "images": ["9", 0]},
+        },
+    }
+
+
 def pixelate(raw_png: bytes, job: Job) -> tuple[bytes, bytes]:
     """Downscale onto a true pixel grid and quantize. Returns (sprite, view)."""
     src = PILImage.open(io.BytesIO(raw_png)).convert("RGB")
@@ -214,7 +299,36 @@ async def run_job(job: Job, ctx: Context | None = None) -> None:
     job.save()
     try:
         async with httpx.AsyncClient(base_url=COMFYUI_URL, timeout=60.0) as client:
-            resp = await client.post("/prompt", json={"prompt": build_workflow(job)})
+            if job.kind == "refine":
+                parent = JOBS.get(job.parent_id or "")
+                if parent is None:
+                    raise ValueError(f"parent job {job.parent_id} is gone")
+                if not parent.source_path.exists():
+                    raise ValueError(
+                        f"parent job {job.parent_id} has no stored source render "
+                        "(it predates source retention), so it cannot be refined"
+                    )
+                # ComfyUI's LoadImage reads from its input directory, so the
+                # stored render has to be handed over first.
+                upload = await client.post(
+                    "/upload/image",
+                    files={"image": (f"{job.id}.png", parent.source_path.read_bytes(), "image/png")},
+                    data={"overwrite": "true"},
+                )
+                if upload.status_code != 200:
+                    raise RuntimeError(
+                        f"uploading the source image failed (HTTP {upload.status_code}): "
+                        f"{upload.text[:300]}"
+                    )
+                info = upload.json()
+                name = info["name"]
+                if info.get("subfolder"):
+                    name = f"{info['subfolder']}/{name}"
+                graph = build_edit_workflow(job, name)
+            else:
+                graph = build_workflow(job)
+
+            resp = await client.post("/prompt", json={"prompt": graph})
             if resp.status_code != 200:
                 raise RuntimeError(
                     f"ComfyUI rejected the workflow (HTTP {resp.status_code}): "
@@ -269,6 +383,7 @@ async def run_job(job: Job, ctx: Context | None = None) -> None:
 
         sprite, view = pixelate(raw, job)
         DATA_DIR.mkdir(parents=True, exist_ok=True)
+        job.source_path.write_bytes(raw)
         job.sprite_path.write_bytes(sprite)
         job.view_path.write_bytes(view)
         job.status = "completed"
@@ -391,6 +506,111 @@ async def generate_pixel_art(
         f"Job {job.id}: {size}x{size} sprite, {colors} colours, seed {job.seed}, "
         f"{took}s. Preview shown at {view_scale}x; native sprite saved as "
         f"{job.sprite_path.name} (fetch with get_job_image('{job.id}', native=true)).",
+    ]
+
+
+# structured_output=False: these return an Image alongside text, and the
+# structured-content path cannot serialize Image. This routes the result
+# through _convert_to_content, which handles it.
+@mcp.tool(structured_output=False)
+async def refine_pixel_art(
+    job_id: str,
+    instruction: str,
+    ctx: Context,
+    size: int | None = None,
+    colors: int | None = None,
+    seed: int | None = None,
+    steps: int = 20,
+    cfg: float = 2.5,
+    view_scale: int | None = None,
+    wait: bool = True,
+) -> list[Any]:
+    """Refine an existing sprite with a corrective instruction.
+
+    Describe the change, not the whole scene: "remove the sword", "make the
+    eyes blue", "give it a red hat". The instruction is applied to the stored
+    full-resolution render of the parent job, then the result is downscaled
+    and quantized exactly as the original was, so the sprite style carries
+    over. The parent is left untouched and a new child job is returned, so you
+    can refine repeatedly or branch from any earlier job.
+
+    Args:
+        job_id: The job to refine, from generate_pixel_art or a previous refine.
+        instruction: The correction to apply.
+        size: Override the sprite size. Defaults to the parent's.
+        colors: Override the palette size. Defaults to the parent's.
+        seed: Fixed seed for reproducibility. Omit for a random one.
+        steps: Sampler steps (1-100).
+        cfg: Instruction adherence (1.0-20.0). Around 2.5 suits this model;
+            higher values tend to over-apply the edit and damage the image.
+        view_scale: Magnification of the returned preview. Defaults to the parent's.
+        wait: Block until the image is ready. Set false to return a job id.
+    """
+    parent = JOBS.get(job_id)
+    if parent is None:
+        raise ValueError(f"No such job: {job_id}")
+    if parent.status != "completed":
+        raise ValueError(f"Job {job_id} is {parent.status} and cannot be refined")
+    if not parent.source_path.exists():
+        raise ValueError(
+            f"Job {job_id} has no stored source render, so it cannot be refined. "
+            "Jobs generated before source retention was added are affected; "
+            "regenerate it first."
+        )
+    if not instruction.strip():
+        raise ValueError("instruction must not be empty")
+    if not 1 <= steps <= 100:
+        raise ValueError("steps must be between 1 and 100")
+    if not 1.0 <= cfg <= 20.0:
+        raise ValueError("cfg must be between 1.0 and 20.0")
+
+    size = parent.size if size is None else size
+    colors = parent.colors if colors is None else colors
+    view_scale = parent.view_scale if view_scale is None else view_scale
+    if not 8 <= size <= 256:
+        raise ValueError("size must be between 8 and 256")
+    if not 2 <= colors <= 256:
+        raise ValueError("colors must be between 2 and 256")
+    if not 1 <= view_scale <= 32:
+        raise ValueError("view_scale must be between 1 and 32")
+
+    job = Job(
+        id=uuid.uuid4().hex[:12],
+        prompt=parent.prompt,
+        negative_prompt="",
+        size=size,
+        colors=colors,
+        seed=seed if seed is not None else random.randint(0, 2**32 - 1),
+        steps=steps,
+        cfg=cfg,
+        lora_strength=parent.lora_strength,
+        resample=parent.resample,
+        view_scale=view_scale,
+        kind="refine",
+        parent_id=parent.id,
+        instruction=instruction,
+    )
+    JOBS[job.id] = job
+    job.save()
+
+    if not wait:
+        asyncio.create_task(run_job(job))
+        return [
+            f"Refine job {job.id} submitted from {parent.id}. "
+            f"Poll get_job_status('{job.id}') for the result."
+        ]
+
+    await run_job(job, ctx)
+    if job.status != "completed":
+        raise RuntimeError(f"Refinement failed: {job.error}")
+
+    took = int((job.finished_at or time.time()) - job.created_at)
+    return [
+        Image(data=job.view_path.read_bytes(), format="png"),
+        f"Job {job.id} (refined from {parent.id}): \"{instruction}\". "
+        f"{size}x{size}, {colors} colours, seed {job.seed}, {took}s. "
+        f"Refine again with refine_pixel_art('{job.id}', ...), or go back to "
+        f"the original with refine_pixel_art('{parent.id}', ...).",
     ]
 
 

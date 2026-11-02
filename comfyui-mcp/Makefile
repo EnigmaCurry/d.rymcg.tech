@@ -21,6 +21,10 @@ config-hook:
 	@${BIN}/reconfigure_ask ${ENV_FILE} COMFYUI_MCP_CHECKPOINT "Enter the SDXL checkpoint filename to generate with" albedobaseXL_v21.safetensors
 	@${BIN}/reconfigure_ask ${ENV_FILE} COMFYUI_MCP_LORA "Enter the pixel art LoRA filename" pixel-art-xl.safetensors
 	@echo
+	@${BIN}/reconfigure_ask ${ENV_FILE} COMFYUI_MCP_EDIT_MODEL "Enter the instruction-edit model filename (used by refine_pixel_art)" qwen_image_edit_2509_fp8_e4m3fn.safetensors
+	@${BIN}/reconfigure_ask ${ENV_FILE} COMFYUI_MCP_EDIT_TEXT_ENCODER "Enter the edit model text encoder filename" qwen_2.5_vl_7b_fp8_scaled.safetensors
+	@${BIN}/reconfigure_ask ${ENV_FILE} COMFYUI_MCP_EDIT_VAE "Enter the edit model VAE filename" qwen_image_vae.safetensors
+	@echo
 	@${BIN}/confirm $$(test -n "$$(${BIN}/dotenv -f ${ENV_FILE} get COMFYUI_MCP_API_TOKEN)" && echo yes || echo yes) "Do you want to require an API token to access this MCP endpoint" "?" && ( \
 	    ${BIN}/reconfigure_password ${ENV_FILE} COMFYUI_MCP_API_TOKEN 45 \
 	) || ( \

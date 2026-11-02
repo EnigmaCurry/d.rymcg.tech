@@ -20,19 +20,58 @@ The returned preview is magnified with nearest neighbour so it is legible in
 a chat client; the sprite is also kept at its native size (64x64 and the
 like) and can be fetched with `get_job_image(job_id, native=true)`.
 
+## Refining
+
+`refine_pixel_art` applies a corrective instruction to an existing sprite:
+"remove the sword", "make the eyes blue", "give it a red hat". It chains
+from the parent job's stored **full-resolution** render, not from the
+quantized sprite, because re-encoding a 16-colour 64x64 image would compound
+loss on every round. The result is then downscaled and quantized with the
+parent's settings, so the style carries over.
+
+Refinement deliberately uses a different model from generation. Plain
+img2img on the SDXL pipeline re-renders the whole frame under a new prompt;
+it handles "darker" or "more detail" but not "remove the sword". Qwen-Image-
+Edit interprets the instruction relative to the source image, so localized
+corrections actually land.
+
+Each refine creates a new child job and leaves the parent untouched, so you
+can iterate, branch, or go back:
+
+```
+generate_pixel_art("a green slime monster")   -> job a1b2
+refine_pixel_art("a1b2", "give it a crown")   -> job c3d4
+refine_pixel_art("c3d4", "make it angry")     -> job e5f6
+refine_pixel_art("a1b2", "give it a hat")     -> job g7h8  (branches from the original)
+```
+
 ## Prerequisites
 
 The [comfyui](../comfyui) project must already be installed **on the same
-Docker context**, and must have both models installed:
+Docker context**, with these models installed.
 
-- An SDXL checkpoint, e.g. `albedobaseXL_v21.safetensors`
-- The pixel art LoRA, `pixel-art-xl.safetensors`
+For generation:
+
+- An SDXL checkpoint, e.g. `albedobaseXL_v21.safetensors` (`checkpoints`)
+- The pixel art LoRA, `pixel-art-xl.safetensors` (`loras`)
+
+For refinement:
+
+- `qwen_image_edit_2509_fp8_e4m3fn.safetensors` (`diffusion_models`, ~19GB)
+- `qwen_2.5_vl_7b_fp8_scaled.safetensors` (`text_encoders`)
+- `qwen_image_vae.safetensors` (`vae`)
 
 Install models from the `comfyui` directory with `make add-models`. For the
-LoRA, use model type `loras` and this URL:
+pixel art LoRA, use model type `loras` and this URL:
 
 ```
 https://huggingface.co/nerijs/pixel-art-xl/resolve/main/pixel-art-xl.safetensors
+```
+
+For the edit model, use model type `diffusion_models` and:
+
+```
+https://huggingface.co/Comfy-Org/Qwen-Image-Edit_ComfyUI/resolve/main/split_files/diffusion_models/qwen_image_edit_2509_fp8_e4m3fn.safetensors
 ```
 
 Note the `/resolve/` in that URL. A Hugging Face `/blob/` URL returns the
@@ -109,9 +148,10 @@ If you left the token blank, drop the `--header` argument.
 
 | Tool | Purpose |
 |---|---|
-| `generate_pixel_art` | Generate a sprite. Blocks until done unless `wait=false`. |
+| `generate_pixel_art` | Generate a sprite from a prompt. Blocks until done unless `wait=false`. |
+| `refine_pixel_art` | Apply a corrective instruction to an existing job, returning a child job. |
 | `get_job_status` | Check a job, returning the image once it has finished. |
-| `list_jobs` | List recent jobs, newest first. |
+| `list_jobs` | List recent jobs, newest first, showing refinement lineage. |
 | `get_job_image` | Re-fetch a previous image, native size or magnified preview. |
 
 `generate_pixel_art` takes `prompt` plus optional `negative_prompt`, `size`
@@ -120,6 +160,15 @@ If you left the token blank, drop the `--header` argument.
 
 The string `pixel art` is prepended to every prompt, so describe just the
 subject: `a knight in silver armor holding a sword, side view`.
+
+`refine_pixel_art` takes `job_id` and `instruction`, plus optional `size`,
+`colors`, `seed`, `steps`, `cfg` (default 2.5; higher tends to over-apply
+the edit), `view_scale` and `wait`. Size, palette and preview scale default
+to the parent job's.
+
+Generation takes a couple of seconds once SDXL is resident; a refinement
+takes appreciably longer, since the edit model is a separate ~19GB load and
+will evict the other from VRAM when you alternate between them.
 
 ## Logs
 
