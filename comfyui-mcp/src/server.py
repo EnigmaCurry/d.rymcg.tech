@@ -57,6 +57,17 @@ EDIT_VAE = _env("COMFYUI_MCP_EDIT_VAE", "qwen_image_vae.safetensors")
 UPLOAD_DIR_NAME = "uploads"
 MAX_UPLOAD_BYTES = int(_env("COMFYUI_MCP_MAX_UPLOAD_BYTES", str(64 * 1024 * 1024)))
 UPLOAD_TTL = float(_env("COMFYUI_MCP_UPLOAD_TTL", "86400"))
+UPLOAD_TICKET_TTL = float(_env("COMFYUI_MCP_UPLOAD_TICKET_TTL", "900"))
+PUBLIC_URL = os.environ.get("COMFYUI_MCP_PUBLIC_URL", "").strip().rstrip("/")
+
+# Single-use upload tickets. A calling agent never sees the API token (it
+# lives in its MCP client's transport config, not in the model's context), so
+# it cannot authenticate an upload itself. A ticket is a short-lived,
+# unguessable, single-use credential embedded in a URL, which an agent can
+# use directly or hand to a human. Held in memory on purpose: a restart
+# invalidates every outstanding ticket.
+TICKETS: dict[str, float] = {}
+TICKET_PATH_PREFIX = "/upload/t/"
 
 DEFAULT_NEGATIVE = (
     "blurry, soft, photo, 3d render, smooth gradient, jpeg artifacts, "
@@ -434,6 +445,20 @@ def _sweep_uploads() -> None:
             pass
 
 
+def _new_ticket() -> tuple[str, float]:
+    _sweep_tickets()
+    token = secrets.token_urlsafe(32)
+    expiry = time.time() + UPLOAD_TICKET_TTL
+    TICKETS[token] = expiry
+    return token, expiry
+
+
+def _sweep_tickets() -> None:
+    now = time.time()
+    for token in [t for t, exp in TICKETS.items() if exp < now]:
+        TICKETS.pop(token, None)
+
+
 def normalize_for_edit(raw: bytes) -> bytes:
     """Put an arbitrary image into the shape the edit model expects.
 
@@ -468,10 +493,36 @@ transport_security = (
 mcp = FastMCP(
     name="pixel-art",
     instructions=(
-        "Generates pixel art sprites with ComfyUI (SDXL + pixel-art-xl LoRA, then "
-        "downscaled to a real pixel grid and palette-quantized). Use "
-        "generate_pixel_art for a single sprite; it blocks until the image is ready "
-        "unless you pass wait=false, in which case poll get_job_status."
+        "Generates and edits pixel art sprites with ComfyUI. Images are rendered "
+        "at full resolution, then downscaled onto a true pixel grid and quantized "
+        "to a small palette, so output is genuine one-colour-per-pixel sprite art.\n"
+        "\n"
+        "Two ways in:\n"
+        "  - generate_pixel_art(prompt) to make a sprite from text. It blocks "
+        "until the image is ready unless you pass wait=false, in which case poll "
+        "get_job_status.\n"
+        "  - To use an image you already have, call create_upload_ticket() for a "
+        "single-use upload URL, POST the file to it yourself (curl, urllib, "
+        "requests - no Authorization header needed), then import_image(image_id) "
+        "with the id it returns. Do NOT try to pass image data as a tool "
+        "argument; there is no such parameter, and base64 in a tool call would "
+        "cost roughly 350k tokens per megabyte of your context.\n"
+        "\n"
+        "Either way you get a job id. From there:\n"
+        "  - refine_pixel_art(job_id, instruction) applies a correction such as "
+        "'remove the sword' or 'make the robe green'. It edits the stored "
+        "full-resolution render, not the sprite, then re-pixelates, so style is "
+        "preserved. Each refine makes a child job and leaves the parent intact, "
+        "so you can iterate, branch from any earlier job, or back out of a bad "
+        "edit by refining its parent again.\n"
+        "  - get_job_image(job_id, native=true) returns the sprite at its true "
+        "size (e.g. 64x64). That is the actual asset; the image returned by "
+        "default is magnified so it is legible in chat.\n"
+        "  - list_jobs() shows recent work with its refinement lineage.\n"
+        "\n"
+        "Generation takes a few seconds; a refine takes under a minute. Palette "
+        "and size are inherited along a refine chain, so set them when you "
+        "generate or import."
     ),
     host=_env("COMFYUI_MCP_HOST", "0.0.0.0"),
     port=int(_env("COMFYUI_MCP_PORT", "8000")),
@@ -480,14 +531,8 @@ mcp = FastMCP(
 )
 
 
-@mcp.custom_route("/upload", methods=["POST"])
-async def upload_endpoint(request: Request) -> JSONResponse:
-    """Accept an image out of band and return a handle for import_image.
-
-    Auth is already enforced for this path by BearerTokenMiddleware, which
-    wraps the whole app. Accepts either multipart/form-data (field "file" or
-    "image") or a raw image body.
-    """
+async def _receive_upload(request: Request) -> JSONResponse:
+    """Shared body of both upload routes: validate, normalize, store."""
     declared = request.headers.get("content-length")
     if declared and declared.isdigit() and int(declared) > MAX_UPLOAD_BYTES:
         return JSONResponse(
@@ -533,8 +578,95 @@ async def upload_endpoint(request: Request) -> JSONResponse:
             "width": width,
             "height": height,
             "bytes": len(normalized),
-            "next": f"import_image(image_id=\"{image_id}\")",
+            "next": f'import_image(image_id="{image_id}")',
         }
+    )
+
+
+@mcp.custom_route("/upload", methods=["POST"])
+async def upload_endpoint(request: Request) -> JSONResponse:
+    """Upload an image using the standing API token.
+
+    Auth for this path is enforced by BearerTokenMiddleware, which wraps the
+    whole app. This is what `make upload` calls. Callers that do not hold the
+    token should use create_upload_ticket instead.
+    """
+    return await _receive_upload(request)
+
+
+@mcp.custom_route("/upload/t/{ticket}", methods=["POST"])
+async def upload_ticket_endpoint(request: Request) -> JSONResponse:
+    """Upload an image using a single-use ticket instead of the API token.
+
+    The ticket in the path is the credential, so this route is exempt from
+    the bearer check. It is consumed only on a successful upload, so a typo
+    or a malformed file does not burn it.
+    """
+    ticket = request.path_params.get("ticket", "")
+    _sweep_tickets()
+    expiry = TICKETS.get(ticket)
+    if expiry is None:
+        return JSONResponse(
+            {"error": "unknown, expired, or already-used upload ticket"},
+            status_code=403,
+        )
+    if expiry < time.time():
+        TICKETS.pop(ticket, None)
+        return JSONResponse({"error": "upload ticket expired"}, status_code=403)
+
+    response = await _receive_upload(request)
+    if response.status_code == 200:
+        TICKETS.pop(ticket, None)
+    return response
+
+
+@mcp.tool()
+async def create_upload_ticket(ctx: Context) -> str:
+    """Get a one-time URL for uploading your own image, no credentials needed.
+
+    Use this when you want to pixelate or edit an image you already have,
+    rather than generating one. You cannot upload through a tool argument:
+    image bytes passed as base64 would travel through your context window at
+    roughly 350k tokens per megabyte.
+
+    Instead, call this to get a short-lived upload URL, POST the file to it
+    by whatever means you have (curl, urllib, requests), and pass the
+    returned image_id to import_image. The URL needs no Authorization header
+    because the ticket itself is the credential. It works exactly once.
+    """
+    token, expiry = _new_ticket()
+    base = PUBLIC_URL
+    if not base:
+        # Fall back to whatever host the caller reached us on. Behind Traefik
+        # the inbound connection is plain http, so the forwarded header is
+        # what reflects the scheme the client actually used; fall back to the
+        # connection's own scheme when there is no proxy in front.
+        try:
+            request = ctx.request_context.request
+            host = request.headers.get("host", "")
+            scheme = request.headers.get("x-forwarded-proto") or request.url.scheme
+            base = f"{scheme}://{host}" if host else ""
+        except Exception:
+            base = ""
+
+    url = f"{base}{TICKET_PATH_PREFIX}{token}" if base else f"{TICKET_PATH_PREFIX}{token}"
+    seconds = int(expiry - time.time())
+    hint = "" if base else (
+        "\n\nNOTE: the server could not determine its own public URL, so the "
+        "path above is relative. Prefix it with the same origin you reach the "
+        "MCP endpoint on."
+    )
+    return (
+        f"Upload URL (single use, expires in {seconds}s):\n{url}\n\n"
+        f"POST the image as multipart form field 'file', or as a raw body.\n"
+        f"No Authorization header is required.\n\n"
+        f"  curl -fsS -F file=@YOUR_IMAGE.png \"{url}\"\n\n"
+        f"  python: urllib.request.urlopen(urllib.request.Request(\n"
+        f"      \"{url}\", data=open(\"YOUR_IMAGE.png\",\"rb\").read(),\n"
+        f"      headers={{\"Content-Type\": \"image/png\"}}))\n\n"
+        f"The response is JSON containing image_id. Pass that to "
+        f"import_image(image_id=...), then refine_pixel_art() as usual."
+        f"{hint}"
     )
 
 
@@ -552,10 +684,11 @@ async def import_image(
 ) -> list[Any]:
     """Turn an uploaded image into a sprite you can then refine.
 
-    Upload the file first with `make upload FILE=path.png` (or POST it to
-    /upload), which returns an image_id. This pixelates it and records it as
-    an ordinary job, so refine_pixel_art works on the result exactly as it
-    does on a generated sprite.
+    Get the image_id by uploading the file first: call create_upload_ticket()
+    for a single-use URL and POST the file to it. (Operators with the API
+    token can instead run `make upload FILE=path.png` from the project
+    directory.) This pixelates the image and records it as an ordinary job,
+    so refine_pixel_art works on the result exactly as on a generated sprite.
 
     Args:
         image_id: Handle returned by the upload endpoint.
@@ -895,6 +1028,13 @@ class BearerTokenMiddleware:
     async def __call__(self, scope: Scope, receive: Receive, send: Send) -> None:
         # Lifespan and websocket scopes pass straight through.
         if scope["type"] != "http":
+            await self.app(scope, receive, send)
+            return
+        # Ticket uploads carry their credential in the path instead of a
+        # header; the route itself validates it. Guard against a bare
+        # "/upload/t/" with nothing after it slipping through.
+        path = scope.get("path", "")
+        if path.startswith(TICKET_PATH_PREFIX) and len(path) > len(TICKET_PATH_PREFIX):
             await self.app(scope, receive, send)
             return
         presented = Headers(scope=scope).get("authorization", "")

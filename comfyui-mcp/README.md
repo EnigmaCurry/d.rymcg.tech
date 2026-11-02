@@ -22,24 +22,47 @@ like) and can be fetched with `get_job_image(job_id, native=true)`.
 
 ## Using your own image
 
-Upload the file, then import it. The import becomes an ordinary job, so
-everything below applies to it exactly as to a generated sprite:
+Uploads deliberately go through a side channel rather than a tool argument.
+An image passed as base64 in a tool call travels through the calling model's
+context window, costing on the order of 350k tokens per megabyte.
+
+### From a client (no credentials needed)
+
+A calling agent never sees the API token, since that lives in its MCP
+client's transport config rather than in the model's context. So it asks the
+server for a single-use upload ticket instead:
+
+```
+create_upload_ticket()
+  -> https://comfyui-mcp.example.com/upload/t/eGUGt9...  (expires in 900s)
+
+curl -fsS -F file=@sketch.png "https://comfyui-mcp.example.com/upload/t/eGUGt9..."
+  -> {"image_id":"b2ec17640cc4", ...}
+
+import_image(image_id="b2ec17640cc4", label="my sketch")  -> job 4b3d
+refine_pixel_art("4b3d", "give the wizard large feathered wings")
+```
+
+The ticket is the credential, so that URL needs no `Authorization` header.
+It is single use and short lived, and is consumed only on a *successful*
+upload, so a malformed file does not waste it. Tickets are held in memory;
+restarting the service invalidates any outstanding ones.
+
+Note the tradeoff: a ticket URL is a bearer credential in a URL, so it will
+appear in proxy access logs. It is unguessable and expires in 15 minutes by
+default (`COMFYUI_MCP_UPLOAD_TICKET_TTL`), which is the reason for keeping
+the window short.
+
+### From the project directory (operator)
+
+If you hold the API token, skip the ticket:
 
 ```
 make upload FILE=sketch.png
 # {"image_id":"f3d4958c84a8","width":1024,"height":1024,...}
 ```
 
-```
-import_image(image_id="f3d4958c84a8", label="my sketch")  -> job 4b3d
-refine_pixel_art("4b3d", "give the wizard large feathered wings")
-```
-
-Uploads deliberately go through a side channel rather than a tool argument.
-An image passed as base64 in a tool call travels through the calling model's
-context window, which costs on the order of 350k tokens per megabyte. The
-endpoint is the same one `make upload` calls, and it takes the same bearer
-token as the MCP endpoint:
+which is the same as:
 
 ```
 curl -X POST -H "Authorization: Bearer $TOKEN" \
@@ -185,6 +208,7 @@ If you left the token blank, drop the `--header` argument.
 | Tool | Purpose |
 |---|---|
 | `generate_pixel_art` | Generate a sprite from a prompt. Blocks until done unless `wait=false`. |
+| `create_upload_ticket` | Get a single-use, credential-free URL for uploading your own image. |
 | `import_image` | Turn an uploaded image into a sprite job you can then refine. |
 | `refine_pixel_art` | Apply a corrective instruction to an existing job, returning a child job. |
 | `get_job_status` | Check a job, returning the image once it has finished. |
