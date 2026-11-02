@@ -1,0 +1,44 @@
+services:
+  comfyui-mcp:
+    build:
+      context: .
+    image: ${COMFYUI_MCP_IMAGE:-comfyui-mcp:latest}
+    restart: unless-stopped
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+    sysctls:
+      - net.ipv4.ip_unprivileged_port_start=1024
+    environment:
+      - COMFYUI_MCP_COMFYUI_URL=${COMFYUI_MCP_COMFYUI_URL}
+      - COMFYUI_MCP_CHECKPOINT=${COMFYUI_MCP_CHECKPOINT}
+      - COMFYUI_MCP_LORA=${COMFYUI_MCP_LORA}
+      - COMFYUI_MCP_BASE_RESOLUTION=${COMFYUI_MCP_BASE_RESOLUTION}
+      - COMFYUI_MCP_JOB_TIMEOUT=${COMFYUI_MCP_JOB_TIMEOUT}
+      - COMFYUI_MCP_MAX_HISTORY=${COMFYUI_MCP_MAX_HISTORY}
+      - COMFYUI_MCP_ALLOWED_HOSTS=${COMFYUI_MCP_ALLOWED_HOSTS}
+      - COMFYUI_MCP_API_TOKEN=${COMFYUI_MCP_API_TOKEN}
+      - COMFYUI_MCP_LOG_LEVEL=${COMFYUI_MCP_LOG_LEVEL}
+      - COMFYUI_MCP_DATA_DIR=/data
+      - COMFYUI_MCP_HOST=0.0.0.0
+      - COMFYUI_MCP_PORT=8000
+      - COMFYUI_MCP_PATH=${COMFYUI_MCP_PATH}
+    volumes:
+      - data:/data
+    labels:
+      - "backup-volume.stop-during-backup=true"
+    networks:
+      - default
+      - comfyui
+
+networks:
+  # The ComfyUI project's network, so this service can reach the ComfyUI
+  # container directly by its service name instead of going back out
+  # through Traefik.
+  comfyui:
+    external: true
+    name: ${COMFYUI_MCP_COMFYUI_NETWORK}
+
+volumes:
+  data:
