@@ -5,18 +5,21 @@ authentication for your app (on top of any authentication your app provides).
 You can configure OpenID/OAuth2, mTLS, or HTTP Basic Authentication (or you
 can opt to not install any authentication on top of your app).
 
-OAuth2 uses traefik-forward-auth to delegate authentication to an external
-authority (eg. a self-deployed Forgejo instance). Accessing an app though
-OAuth2 will require all users to login through that external service first.
-Once authenticated, they may be authorized access only if their login id
-matches the member list of the predefined authorization group configured for
-the app (`<APPNAME>_OAUTH2_AUTHORIZED_GROUP`). Authorization groups are defined
-in the Traefik config (`TRAEFIK_HEADER_AUTHORIZATION_GROUPS`) and can be
-[created/modified](https://github.com/EnigmaCurry/d.rymcg.tech/blob/master/traefik/README.md#oauth2-authentication)
-by running `d make traefik config`, selecting "Config", selecting "Middleware",
-and selecting "Oauth2 sentry authorization"
-([traefik-forward-auth](https://github.com/EnigmaCurry/d.rymcg.tech/tree/master/traefik-forward-auth)
-must be installed).
+OAuth2 uses [oauth2-proxy](https://github.com/EnigmaCurry/d.rymcg.tech/tree/master/oauth2-proxy)
+to delegate authentication via OIDC to an external identity provider
+(eg. a self-deployed Forgejo instance). Accessing an app through OAuth2
+will require all users to login through that external service first.
+Once authenticated, they may be authorized access only if they are a
+member of the OIDC group configured for the app
+(`<APPNAME>_OAUTH2_AUTHORIZED_GROUP`). The group name is whatever the
+OIDC provider puts in the `groups` claim (a Forgejo team name, a
+GitHub org/team, etc.); membership is managed at the provider (no
+Traefik-side config, and no Traefik restart needed to add/remove
+users).
+
+The authenticated user's email address is forwarded to the app in the
+`X-Auth-Request-Email` header (and basic-auth / mTLS users end up in the
+same header, so apps can trust one header regardless of the auth method).
 
 mTLS (Mutual TLS) is an extension of standard TLS where both the client and
 server authenticate each other using certificates. Accessing an app through

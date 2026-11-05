@@ -37,11 +37,20 @@
 #@   if enable_http_auth:
 #@   enabled_middlewares.append("{}-basicauth".format(router))
 #@   labels.append("traefik.http.middlewares.{}-basicauth.basicauth.users={}".format(router, http_auth))
-#@   labels.append("traefik.http.middlewares.{}-basicauth.basicauth.headerField=X-Forwarded-User".format(router))
+#@   labels.append("traefik.http.middlewares.{}-basicauth.basicauth.headerField=X-Auth-Request-Email".format(router))
 #@   end
 #@   if enable_oauth2:
-#@   enabled_middlewares.append("traefik-forward-auth@docker")
-#@   enabled_middlewares.append("header-authorization-group-{}@file".format(authorized_group))
+#@   oauth2_mw = "{}-oauth2".format(router)
+#@   oauth2_errors_mw = "{}-oauth2-errors".format(router)
+#@   labels.append("traefik.http.middlewares.{}.plugin.headauth.header.name=X-Auth-Request-Groups".format(oauth2_mw))
+#@   labels.append("traefik.http.middlewares.{}.plugin.headauth.allowed[0]={}".format(oauth2_mw, authorized_group))
+#@   labels.append("traefik.http.middlewares.{}.errors.status=401".format(oauth2_errors_mw))
+#@   labels.append("traefik.http.middlewares.{}.errors.service=oauth2-proxy@docker".format(oauth2_errors_mw))
+#@   labels.append("traefik.http.middlewares.{}.errors.query=/oauth2/start?rd=https%3A%2F%2F{}".format(oauth2_errors_mw, traefik_host))
+#@   labels.append("traefik.http.middlewares.{}.errors.statusrewrites.401=302".format(oauth2_errors_mw))
+#@   enabled_middlewares.append("{}@docker".format(oauth2_errors_mw))
+#@   enabled_middlewares.append("forward-auth@docker")
+#@   enabled_middlewares.append("{}@docker".format(oauth2_mw))
 #@   end
 #@   if enable_mtls_auth:
 #@   labels.append("traefik.http.routers.{}.tls.options=step_ca_mTLS@file".format(router))
