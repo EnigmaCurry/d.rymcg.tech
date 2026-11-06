@@ -1,0 +1,67 @@
+volumes:
+  data:
+
+services:
+  backend:
+    image: ${HOMELABLE_BACKEND_IMAGE}
+    restart: unless-stopped
+    # MAC scanning: ARP is layer 2, so on a bridge network the scanner can
+    # never see MACs and device identity drifts on DHCP changes. The upstream
+    # remedy is host networking (see INSTALLATION.md, "Scanning from Docker").
+    # Backend binds :8000 directly on the Docker host — keep it firewalled.
+    network_mode: host
+    cap_add:
+      - NET_RAW
+    security_opt:
+      - no-new-privileges:true
+    environment:
+      - SQLITE_PATH=/app/data/homelab.db
+      - UPLOAD_DIR=/app/data/uploads
+      - SECRET_KEY=${HOMELABLE_SECRET_KEY}
+      - AUTH_MODE=local
+      - AUTH_USERNAME=${HOMELABLE_AUTH_USERNAME}
+      # Stored $$-escaped in .env (reconfigure_password_bcrypt); compose
+      # interpolation un-escapes it before the container sees it.
+      - AUTH_PASSWORD_HASH=${HOMELABLE_AUTH_PASSWORD_HASH}
+      - SCANNER_RANGES=${HOMELABLE_SCANNER_RANGES}
+      - STATUS_CHECKER_INTERVAL=${HOMELABLE_STATUS_CHECKER_INTERVAL}
+      - CORS_ORIGINS=${HOMELABLE_CORS_ORIGINS}
+      - MCP_SERVICE_KEY=${HOMELABLE_MCP_SERVICE_KEY}
+      # gethomepage stats endpoint /api/v1/stats/summary; empty = disabled
+      - HOMEPAGE_API_KEY=${HOMELABLE_HOMEPAGE_WIDGET_API_KEY}
+    volumes:
+      - data:/app/data
+    labels: []
+
+  frontend:
+    image: ${HOMELABLE_FRONTEND_IMAGE}
+    restart: unless-stopped
+    depends_on:
+      - backend
+    security_opt:
+      - no-new-privileges:true
+    # The backend left the bridge network, so `backend` no longer resolves
+    # from here; point nginx at the host instead (upstream-documented fix).
+    environment:
+      - BACKEND_UPSTREAM=host.docker.internal:8000
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    labels: []
+
+  mcp:
+    # Optional MCP server for AI clients (key-authenticated on :8001).
+    # Off by default; enable with HOMELABLE_DOCKER_COMPOSE_PROFILES=default,mcp
+    # after setting HOMELABLE_MCP_API_KEY and HOMELABLE_MCP_SERVICE_KEY.
+    profiles:
+      - mcp
+    image: ${HOMELABLE_MCP_IMAGE}
+    restart: unless-stopped
+    depends_on:
+      - backend
+    environment:
+      - BACKEND_URL=http://host.docker.internal:8000
+      - MCP_API_KEY=${HOMELABLE_MCP_API_KEY}
+      - MCP_SERVICE_KEY=${HOMELABLE_MCP_SERVICE_KEY}
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    labels: []
