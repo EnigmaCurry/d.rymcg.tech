@@ -11,9 +11,10 @@ writes a markdown document for each one, and continuously checks node status.
 make config
 ```
 
-This will ask you to enter the domain name to use and the CIDR ranges to
-scan. It automatically saves your responses into the configuration file
-`.env_{DOCKER_CONTEXT}_{INSTANCE}`.
+This will ask you for the domain name to use, the backend network mode
+(bridge or host, see [Scanning](#scanning)) and its port, and the CIDR
+ranges to scan. It automatically saves your responses into the
+configuration file `.env_{DOCKER_CONTEXT}_{INSTANCE}`.
 
 ### Authentication and Authorization
 
@@ -44,16 +45,66 @@ header that traefik-forward-auth sends.
 
 ### Scanning
 
-The backend runs with `network_mode: host` on purpose: MAC addresses come
-from ARP (layer 2), which a container on a bridge network can never see,
-and without MACs a device's identity drifts whenever its DHCP lease
-changes. Host networking is the fix documented upstream
-([INSTALLATION.md](https://github.com/Pouzor/homelable/blob/main/INSTALLATION.md#scanning-from-docker--mac-addresses)).
+The backend's network mode determines what the scanner can see; `make
+config` asks you to choose:
 
-Caveat: with host networking the backend binds port **8000** directly on
-the Docker host with no isolation. Keep that port firewalled (e.g. a
-pfSense/ufw rule); only the Traefik-routed frontend should be reachable.
-The login endpoint is reachable on 8000, so treat it as untrusted surface.
+- **`bridge`** (default) — the backend stays on the compose network and
+  none of its ports are exposed on the Docker host, so there is nothing to
+  firewall. The trade-off: MAC addresses come from ARP (layer 2), which a
+  container on a bridge network can never see, and the passive mDNS sweep
+  (see below) receives no LAN multicast. Without MACs, a device's identity
+  drifts whenever its DHCP lease changes.
+- **`host`** — the backend joins the Docker host's network. This is the fix
+  documented upstream for MAC scanning
+  ([INSTALLATION.md](https://github.com/Pouzor/homelable/blob/main/INSTALLATION.md#scanning-from-docker--mac-addresses)),
+  and it also lets the mDNS sweep see the LAN. The trade-off: the backend
+  binds its port directly on the Docker host with no isolation (see
+  [Firewall](#firewall)).
+
+To switch modes later:
+
+```
+make reconfigure var=HOMELABLE_NETWORK_MODE=host
+make install
+```
+
+### Backend port
+
+`HOMELABLE_BACKEND_PORT` (default `8000`) is the port the backend listens
+on. In host mode it binds directly on the Docker host, so pick a port that
+is free there (another app may already use 8000). In bridge mode it is
+only reachable from the other containers of this project.
+
+### Firewall
+
+In host mode the backend — including the login endpoint
+(`POST /api/v1/auth/login`) — listens on `HOMELABLE_BACKEND_PORT` on every
+interface of the Docker host. Only the Traefik-routed frontend should be
+user-reachable, so firewall the port down to the Docker bridge subnet,
+which is all the frontend and mcp containers need to reach the backend via
+`host.docker.internal`. With ufw, for example (adjust the subnet and
+port):
+
+```
+ufw allow from 172.17.0.0/16 to any port 8000 proto tcp
+ufw deny any to any port 8000 proto tcp
+```
+
+or an equivalent pfSense/OPNsense rule. In bridge mode the backend is not
+exposed on the host at all, so no rule is needed for it.
+
+### mDNS discovery
+
+Alongside the nmap scan, the backend runs a passive mDNS/Bonjour sweep
+(Shelly, ESPHome, HomeKit, MQTT, plain HTTP services). mDNS is multicast
+(224.0.0.251:5353) and link-local: it does not cross routers by default,
+so the sweep only sees devices on the backend's own broadcast domain —
+which requires host mode (a bridge container receives no LAN multicast at
+all). If your router runs an mDNS relay or reflector (avahi, or a built-in
+mDNS reflector, e.g. on pfSense/OPNsense/UniFi), mDNS announcements are
+forwarded between VLANs, and mDNS-announcing devices on other VLANs will
+show up in scans as well. Devices found via mDNS carry no MAC address, so
+they have the same identity-drift caveat as devices on routed VLANs.
 
 Devices on *routed* (non-local) VLANs are still discovered by IP, but ARP
 does not cross routers, so they never report a MAC address and their
@@ -77,12 +128,14 @@ normal `make install`: it re-renders the compose override, removes the
 mcp container, and blanks the backend's `MCP_SERVICE_KEY`. The keys
 stay in the .env file and are re-applied when you re-enable it.
 
-The MCP server listens on port **8001** on the Docker host
-(key-authenticated); keep it firewalled to your LAN, same as 8000.
+The MCP server listens on `HOMELABLE_MCP_PORT` (default **8001**) on the
+Docker host (key-authenticated); `make config` asks for the port when you
+enable the server. It is published on the host in either network mode, so
+keep it firewalled to your LAN.
 
 Configure an MCP client (e.g. Claude Desktop, Open WebUI) to point at
-`http://<docker-host>:8001/mcp/` with an `X-API-Key` header set to
-`HOMELABLE_MCP_API_KEY`:
+`http://<docker-host>:<HOMELABLE_MCP_PORT>/mcp/` with an `X-API-Key`
+header set to `HOMELABLE_MCP_API_KEY` (shown here with the default port):
 
 ```json
 {

@@ -9,6 +9,9 @@
 #@ project = data.values.project
 #@ instance = data.values.instance
 #@ context = data.values.context
+#@ network_mode = data.values.network_mode or "bridge"
+#@ backend_port = data.values.backend_port or "8000"
+#@ is_host = network_mode == "host"
 #@ traefik_host = data.values.traefik_host
 #@ ip_sourcerange = data.values.ip_sourcerange
 #@ enable_http_auth = len(data.values.http_auth.strip()) > 0
@@ -34,6 +37,14 @@ services:
   backend:
     labels:
       - "backup-volume.stop-during-backup=true"
+    #@ if is_host:
+    #! Host networking: MAC addresses come from ARP (layer 2), which a
+    #! container on a bridge network can never see, and the passive mDNS
+    #! sweep needs to sit on the LAN's broadcast domain. Trade-off: the
+    #! backend binds its port directly on the Docker host — keep it
+    #! firewalled (see the README).
+    network_mode: host
+    #@ end
     #! Blank the keys of disabled features so the running backend has
     #! them fully off (upstream treats an empty key as disabled). The
     #! values stay in the .env file and are re-applied on re-enable.
@@ -101,3 +112,30 @@ services:
       - homepage.widget.url=https://(@= traefik_host @)/api/v1/stats/summary
       - homepage.widget.headers.X-API-Key=(@= homepage_widget_api_key @)
       #@ end
+    environment:
+      #@ if is_host:
+      #! The backend left the compose network, so `backend` no longer
+      #! resolves from here; point nginx at the host instead
+      #! (upstream-documented fix).
+      - BACKEND_UPSTREAM=host.docker.internal:(@= backend_port @)
+      #@ else:
+      #! Same compose network: nginx proxies to the backend service.
+      - BACKEND_UPSTREAM=backend:(@= backend_port @)
+      #@ end
+    #@ if is_host:
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    #@ end
+
+  mcp:
+    #! Same backend reachability logic as the frontend.
+    environment:
+      #@ if is_host:
+      - BACKEND_URL=http://host.docker.internal:(@= backend_port @)
+      #@ else:
+      - BACKEND_URL=http://backend:(@= backend_port @)
+      #@ end
+    #@ if is_host:
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    #@ end
