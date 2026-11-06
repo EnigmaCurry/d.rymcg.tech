@@ -69,8 +69,13 @@ enable it manually:
 make reconfigure var=HOMELABLE_MCP_API_KEY=<random>
 make reconfigure var=HOMELABLE_MCP_SERVICE_KEY=<random>
 make reconfigure var=HOMELABLE_DOCKER_COMPOSE_PROFILES=default,mcp
-make reinstall
+make install
 ```
+
+Disabling it (removing `mcp` from the profiles) also only needs a
+normal `make install`: it re-renders the compose override, removes the
+mcp container, and blanks the backend's `MCP_SERVICE_KEY`. The keys
+stay in the .env file and are re-applied when you re-enable it.
 
 The MCP server listens on port **8001** on the Docker host
 (key-authenticated); keep it firewalled to your LAN, same as 8000.
@@ -106,8 +111,13 @@ and generates the key for you. You can also enable it manually:
 ```
 make reconfigure var=HOMELABLE_HOMEPAGE_WIDGET_API_KEY=<random>
 make reconfigure var=HOMELABLE_HOMEPAGE_WIDGET_ENABLE=true
-make reinstall
+make install
 ```
+
+Disabling it (`HOMELABLE_HOMEPAGE_WIDGET_ENABLE=false`) also only
+needs a normal `make install`: it drops the widget labels and blanks
+the backend's API key, so the stats endpoint rejects all keys. The
+key stays in the .env file and is re-applied when you re-enable it.
 
 Note: the widget label is served over the public Traefik host, so mTLS
 must be disabled for it to work (gethomepage cannot present a client

@@ -26,6 +26,7 @@
 #@ homepage_show_stats_homelable = data.values.homepage_show_stats_homelable
 #@ homepage_widget_enable = data.values.homepage_widget_enable == "true"
 #@ homepage_widget_api_key = data.values.homepage_widget_api_key
+#@ mcp_enabled = "mcp" in data.values.profiles.split(",")
 
 #@yaml/text-templated-strings
 services:
@@ -33,6 +34,19 @@ services:
   backend:
     labels:
       - "backup-volume.stop-during-backup=true"
+    #! Blank the keys of disabled features so the running backend has
+    #! them fully off (upstream treats an empty key as disabled). The
+    #! values stay in the .env file and are re-applied on re-enable.
+    #! Compose merges environment per key; this override file wins.
+    #@ if not (homepage_widget_enable and len(homepage_widget_api_key)) or not mcp_enabled:
+    environment:
+      #@ if not (homepage_widget_enable and len(homepage_widget_api_key)):
+      - HOMEPAGE_API_KEY=
+      #@ end
+      #@ if not mcp_enabled:
+      - MCP_SERVICE_KEY=
+      #@ end
+    #@ end
 
   frontend:
     #@ service = "frontend"

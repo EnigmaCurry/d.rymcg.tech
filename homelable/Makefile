@@ -48,7 +48,7 @@ override-hook:
  ####                         # (this hardcodes the string into docker-compose.override.yaml)
  ####   name=@VARIABLE_NAME   # sets the template 'name' field to the literal string '${VARIABLE_NAME}'
  ####                         # (used for regular docker-compose expansion of env vars by name.)
-	@${BIN}/docker_compose_override ${ENV_FILE} project=:homelable instance=@HOMELABLE_INSTANCE traefik_host=@HOMELABLE_TRAEFIK_HOST http_auth=HOMELABLE_HTTP_AUTH http_auth_var=@HOMELABLE_HTTP_AUTH ip_sourcerange=@HOMELABLE_IP_SOURCERANGE oauth2=HOMELABLE_OAUTH2 authorized_group=HOMELABLE_OAUTH2_AUTHORIZED_GROUP enable_mtls_auth=HOMELABLE_MTLS_AUTH mtls_authorized_certs=HOMELABLE_MTLS_AUTHORIZED_CERTS homepage_labels_enable=HOMELABLE_HOMEPAGE_LABELS_ENABLE homepage_group_homelable=HOMELABLE_HOMEPAGE_GROUP_HOMELABLE homepage_name_homelable=HOMELABLE_HOMEPAGE_NAME_HOMELABLE homepage_icon_homelable=HOMELABLE_HOMEPAGE_ICON_HOMELABLE homepage_description_homelable=HOMELABLE_HOMEPAGE_DESCRIPTION_HOMELABLE homepage_show_stats_homelable=HOMELABLE_HOMEPAGE_SHOW_STATS_HOMELABLE homepage_widget_enable=HOMELABLE_HOMEPAGE_WIDGET_ENABLE homepage_widget_api_key=HOMELABLE_HOMEPAGE_WIDGET_API_KEY
+	@${BIN}/docker_compose_override ${ENV_FILE} project=:homelable instance=@HOMELABLE_INSTANCE traefik_host=@HOMELABLE_TRAEFIK_HOST http_auth=HOMELABLE_HTTP_AUTH http_auth_var=@HOMELABLE_HTTP_AUTH ip_sourcerange=@HOMELABLE_IP_SOURCERANGE oauth2=HOMELABLE_OAUTH2 authorized_group=HOMELABLE_OAUTH2_AUTHORIZED_GROUP enable_mtls_auth=HOMELABLE_MTLS_AUTH mtls_authorized_certs=HOMELABLE_MTLS_AUTHORIZED_CERTS homepage_labels_enable=HOMELABLE_HOMEPAGE_LABELS_ENABLE homepage_group_homelable=HOMELABLE_HOMEPAGE_GROUP_HOMELABLE homepage_name_homelable=HOMELABLE_HOMEPAGE_NAME_HOMELABLE homepage_icon_homelable=HOMELABLE_HOMEPAGE_ICON_HOMELABLE homepage_description_homelable=HOMELABLE_HOMEPAGE_DESCRIPTION_HOMELABLE homepage_show_stats_homelable=HOMELABLE_HOMEPAGE_SHOW_STATS_HOMELABLE homepage_widget_enable=HOMELABLE_HOMEPAGE_WIDGET_ENABLE homepage_widget_api_key=HOMELABLE_HOMEPAGE_WIDGET_API_KEY profiles=HOMELABLE_DOCKER_COMPOSE_PROFILES
 
 .PHONY: shell # Enter container shell
 shell:
@@ -64,7 +64,22 @@ shell-menu:
 
 .PHONY: install-hook
 install-hook:
+ #### install re-renders the override template, so reconfigure + install is
+ #### enough to apply config changes (no separate `make override` needed).
+ #### The second up -d --remove-orphans removes containers for services that
+ #### are missing from the compose file. Services that only fell out of a
+ #### compose profile (e.g. disabling the mcp server) are still in the file,
+ #### so up --remove-orphans leaves them running: remove those explicitly
+ #### (compose rm accepts --profile to see a profile-excluded service;
+ #### -s stops the container first, -f skips the confirmation prompt).
 	@echo
+	@make -e --no-print-directory override instance=${INSTANCE}
+	@if test -z "${service}"; then \
+		make --no-print-directory docker-compose-lifecycle-cmd EXTRA_ARGS="up -d $(if $(BUILD),,--no-build) --remove-orphans"; \
+		if ! echo "$$(${BIN}/dotenv -f ${ENV_FILE} get HOMELABLE_DOCKER_COMPOSE_PROFILES)" | tr ',' '\n' | grep -q '^mcp$$'; then \
+			make --no-print-directory docker-compose-lifecycle-cmd EXTRA_ARGS="--profile mcp rm -sf mcp"; \
+		fi; \
+	fi
 
 .PHONY: install-hook-pre
 install-hook-pre:
