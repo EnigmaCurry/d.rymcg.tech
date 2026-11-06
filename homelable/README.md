@@ -21,10 +21,21 @@ See [AUTH.md](../AUTH.md) for information on adding external
 authentication on top of your app.
 
 In addition, Homelable has its own **built-in single admin account** (local
-mode). `make config` generates a random password and shows it to you once —
-record it. You can change the password later in the app's settings. The
-password is stored as a bcrypt hash (`HOMELABLE_AUTH_PASSWORD_HASH`);
-`make config` only regenerates it if it is currently blank.
+mode). `make config` generates a random password and shows it to you once;
+record it. The password is stored as a bcrypt hash
+(`HOMELABLE_AUTH_PASSWORD_HASH`), which the backend reads from its
+environment; there is no in-app password change.
+
+To reset the password: delete the value of `HOMELABLE_AUTH_PASSWORD_HASH`
+and run `make config` again. It only regenerates the password when the
+hash is blank, and shows the new password to you once. Then run
+`make install` so the backend picks up the new hash:
+
+```
+make reconfigure var=HOMELABLE_AUTH_PASSWORD_HASH=
+make config
+make install
+```
 
 If you add sentry auth (mTLS / OAuth2 / HTTP Basic Auth) in front of
 Homelable, remember that any account that passes the authorization group
@@ -41,7 +52,7 @@ changes. Host networking is the fix documented upstream
 
 Caveat: with host networking the backend binds port **8000** directly on
 the Docker host with no isolation. Keep that port firewalled (e.g. a
-pfSense/ufw rule) — only the Traefik-routed frontend should be reachable.
+pfSense/ufw rule); only the Traefik-routed frontend should be reachable.
 The login endpoint is reachable on 8000, so treat it as untrusted surface.
 
 Devices on *routed* (non-local) VLANs are still discovered by IP, but ARP
@@ -61,7 +72,7 @@ make reinstall
 ```
 
 The MCP server listens on port **8001** on the Docker host
-(key-authenticated) — keep it firewalled to your LAN, same as 8000.
+(key-authenticated); keep it firewalled to your LAN, same as 8000.
 
 ### Homepage widget
 
