@@ -9,6 +9,7 @@ config-hook:
  #### reconfigure sets the value of a variable in the .env file without asking.
  #### reconfigure_auth asks which of HTTP Basic Auth / OAuth2 / mTLS to enable.
  #### reconfigure_password_bcrypt generates a random password + bcrypt hash (only if not set).
+ #### confirm asks y/n to enable the optional MCP server and the gethomepage widget.
 	@${BIN}/reconfigure_ask ${ENV_FILE} HOMELABLE_TRAEFIK_HOST "Enter the homelable domain name" homelable${INSTANCE_URL_SUFFIX}.${ROOT_DOMAIN}
 	@${BIN}/reconfigure ${ENV_FILE} HOMELABLE_INSTANCE=$${instance:-default}
 	@HOST=$$(${BIN}/dotenv -f ${ENV_FILE} get HOMELABLE_TRAEFIK_HOST) && ${BIN}/reconfigure ${ENV_FILE} "HOMELABLE_CORS_ORIGINS=[\"https://$${HOST}\"]"
@@ -16,6 +17,23 @@ config-hook:
 	@${BIN}/reconfigure_auth ${ENV_FILE} HOMELABLE
 	@ALLOW_BLANK=1 ${BIN}/reconfigure_ask ${ENV_FILE} HOMELABLE_SCANNER_RANGES "Enter the CIDR ranges to scan (JSON array, eg. [\"192.168.1.0/24\"]) or leave blank" -
 	@${BIN}/reconfigure_password_bcrypt ${ENV_FILE} HOMELABLE_AUTH_PASSWORD_HASH
+	@echo ""
+	@${BIN}/confirm $$(echo "$$(${BIN}/dotenv -f ${ENV_FILE} get HOMELABLE_DOCKER_COMPOSE_PROFILES)" | tr ',' '\n' | grep -q '^mcp$$' && echo yes || echo no) "Enable the optional MCP server (AI integration; listens on port 8001 of the Docker host, keep it firewalled to your LAN)?" "?" && ( \
+		API_KEY=$$(${BIN}/dotenv -f ${ENV_FILE} get HOMELABLE_MCP_API_KEY) && test -n "$${API_KEY}" || ${BIN}/reconfigure ${ENV_FILE} HOMELABLE_MCP_API_KEY=$$(openssl rand -hex 32); \
+		SVC_KEY=$$(${BIN}/dotenv -f ${ENV_FILE} get HOMELABLE_MCP_SERVICE_KEY) && test -n "$${SVC_KEY}" || ${BIN}/reconfigure ${ENV_FILE} HOMELABLE_MCP_SERVICE_KEY=$$(openssl rand -hex 32); \
+		PROFILES=$$(${BIN}/dotenv -f ${ENV_FILE} get HOMELABLE_DOCKER_COMPOSE_PROFILES); \
+		case ",$${PROFILES}," in *,mcp,) ;; *) ${BIN}/reconfigure ${ENV_FILE} HOMELABLE_DOCKER_COMPOSE_PROFILES="$${PROFILES},mcp" ;; esac \
+	) || ( \
+		PROFILES=$$(${BIN}/dotenv -f ${ENV_FILE} get HOMELABLE_DOCKER_COMPOSE_PROFILES | tr ',' '\n' | grep -v '^mcp$$' | paste -sd, -); \
+		${BIN}/reconfigure ${ENV_FILE} HOMELABLE_DOCKER_COMPOSE_PROFILES=$${PROFILES} \
+	)
+	@echo ""
+	@${BIN}/confirm $$(test "$$(${BIN}/dotenv -f ${ENV_FILE} get HOMELABLE_HOMEPAGE_WIDGET_ENABLE)" == 'true' && echo yes || echo no) "Enable the gethomepage widget (read-only stats; note: it only works while mTLS is disabled)?" "?" && ( \
+		KEY=$$(${BIN}/dotenv -f ${ENV_FILE} get HOMELABLE_HOMEPAGE_WIDGET_API_KEY) && test -n "$${KEY}" || ${BIN}/reconfigure ${ENV_FILE} HOMELABLE_HOMEPAGE_WIDGET_API_KEY=$$(openssl rand -hex 32); \
+		${BIN}/reconfigure ${ENV_FILE} HOMELABLE_HOMEPAGE_WIDGET_ENABLE=true \
+	) || ( \
+		${BIN}/reconfigure ${ENV_FILE} HOMELABLE_HOMEPAGE_WIDGET_ENABLE=false \
+	)
 	@echo ""
 
 .PHONY: override-hook
