@@ -56,6 +56,10 @@ services:
       - mcp
     image: ${HOMELABLE_MCP_IMAGE}
     restart: unless-stopped
+    # Binds on all host interfaces (matches upstream); keep it firewalled
+    # to your LAN. Only published while the mcp profile is active.
+    ports:
+      - "8001:8001"
     depends_on:
       - backend
     environment:

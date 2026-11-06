@@ -75,6 +75,28 @@ make reinstall
 The MCP server listens on port **8001** on the Docker host
 (key-authenticated); keep it firewalled to your LAN, same as 8000.
 
+Configure an MCP client (e.g. Claude Desktop, Open WebUI) to point at
+`http://<docker-host>:8001/mcp/` with an `X-API-Key` header set to
+`HOMELABLE_MCP_API_KEY`:
+
+```json
+{
+  "mcpServers": {
+    "homelable": {
+      "type": "http",
+      "url": "http://<docker-host>:8001/mcp/",
+      "headers": {
+        "X-API-Key": "<HOMELABLE_MCP_API_KEY>"
+      }
+    }
+  }
+}
+```
+
+The AI can read and modify the topology (list/add/update/delete nodes,
+edges, and zones, kick off scans, triage inventory, and work the rack
+canvas), so treat the API key as a credential.
+
 ### Homepage widget
 
 Optional. Homelable exposes read-only stats at `/api/v1/stats/summary`
