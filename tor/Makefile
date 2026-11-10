@@ -57,8 +57,10 @@ restore:
 	@test -f "$(archive)" || (echo "$(archive) not found" && false)
 	@TMPDIR=$$(mktemp -d) && \
 	  gpg --decrypt --pinentry-mode loopback $(archive) | tar xzf - -C $$TMPDIR && \
+	  test -d $$TMPDIR/keys && \
 	  echo "Restoring keys to volume: ${PROJECT_NAME}_tor_data" && \
-	  docker run --rm -v ${PROJECT_NAME}_tor_data:/data -v $$TMPDIR/keys:/restore:ro alpine sh -c 'cp -a /restore/. /data/' && \
+	  tar cf - -C $$TMPDIR/keys . | docker run --rm -i -v ${PROJECT_NAME}_tor_data:/data alpine sh -c 'tar xf - -C /data' && \
+	  docker run --rm -v ${PROJECT_NAME}_tor_data:/data alpine sh -c 'test -n "$$(find /data -maxdepth 2 -name hostname -print -quit)"' && \
 	  echo "Restoring env file: ${ENV_FILE}" && \
 	  cp $$TMPDIR/env ${ENV_FILE} && \
 	  echo "Restored contents:" && \
