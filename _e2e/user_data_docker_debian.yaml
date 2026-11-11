@@ -1,14 +1,29 @@
 #cloud-config
-## title: Docker + e2e sshd tuning (debian based)
+## title: Docker + e2e admin user + sshd tuning (debian based)
 ## images: debian-* ubuntu-*
 ##
-## Same as _scripts/gumdrop_user_data/docker-debian.yaml, plus an sshd drop-in
-## that disables OpenSSH 10's PerSourcePenalties. The e2e flow connects to the
-## droplet repeatedly while it is still booting (the readiness loop) and the
-## droplet ssh's to itself on every docker call (the sworkstation model); both
-## patterns trip PerSourcePenalties, which then resets subsequent connections
-## ("kex_exchange_identification: Connection reset by peer"). This droplet sits
-## behind a DigitalOcean firewall, so the host-level penalty adds little.
+## Rendered by _e2e/e2e.sh at provision time: __E2E_ADMIN_USER__ and
+## __E2E_SSH_PUBKEY__ are substituted before the droplet is created.
+##
+## This cloud-init:
+##  * Installs Docker (same as _scripts/gumdrop_user_data/docker-debian.yaml).
+##  * Creates the workstation user (sudo + docker groups, passwordless sudo)
+##    with the operator's SSH key, so the sworkstation runs unprivileged.
+##  * Disables OpenSSH 10's PerSourcePenalties. The e2e flow connects to the
+##    droplet repeatedly while it is still booting (the readiness loop) and
+##    the sworkstation ssh's to localhost on every docker call; both patterns
+##    trip PerSourcePenalties, which then resets subsequent connections
+##    ("kex_exchange_identification: Connection reset by peer"). This droplet
+##    sits behind a DigitalOcean firewall, so the host-level penalty adds
+##    little.
+users:
+  - default
+  - name: __E2E_ADMIN_USER__
+    groups: [sudo]
+    shell: /bin/bash
+    sudo: ['ALL=(ALL) NOPASSWD:ALL']
+    ssh_authorized_keys:
+      - __E2E_SSH_PUBKEY__
 write_files:
   - path: /etc/ssh/sshd_config.d/99-e2e-ssh.conf
     permissions: '0644'
@@ -48,3 +63,7 @@ runcmd:
       fi
     fi
   - systemctl start docker
+  ## Add the workstation user to the docker group (created by the docker
+  ## install) so it can use docker without sudo:
+  - groupadd -f docker
+  - usermod -aG docker __E2E_ADMIN_USER__

@@ -50,6 +50,7 @@ E2E_GIT_REF="${E2E_GIT_REF:-master}"
 E2E_TIMEOUT="${E2E_TIMEOUT:-300}"
 E2E_CERT_TIMEOUT="${E2E_CERT_TIMEOUT:-600}"
 E2E_SSH_PUBKEY="${E2E_SSH_PUBKEY:-}"
+E2E_ADMIN_USER="${E2E_ADMIN_USER:-admin}"
 E2E_KEEP_GOING=false
 E2E_RESET_ENV=false
 E2E_YES=false
@@ -68,6 +69,9 @@ LOG_FILE=""
 CURRENT_PHASE=""
 _ON_ERROR_RAN=""
 _MAIN_PID=$$
+## Workstation files (repo, ~/.config, ~/.ssh, docker CLI config) live under
+## the admin user's home; $HOME resolves to /home/${E2E_ADMIN_USER} when the
+## command runs as admin:
 REMOTE_REPO='$HOME/git/vendor/enigmacurry/d.rymcg.tech'
 PHASES=(preflight provision dns bootstrap rootconfig acme-dns traefik apps verify summary)
 RESULTS=()
@@ -101,6 +105,7 @@ Options:
   --git-ref REF      Branch/tag/sha to check out (default: ${E2E_GIT_REF})
   --timeout SECS     Per-wait timeout (default: ${E2E_TIMEOUT})
   --ssh-pubkey PATH  SSH public key to upload (default: ~/.ssh/id_ed25519.pub)
+  --admin-user NAME  Workstation user to create on the droplet (default: admin)
   --keep-going       Continue installing apps after one fails
   --reset-env        Delete the remote .env files before configuring
   --yes              Skip the destroy confirmation
@@ -239,7 +244,7 @@ collect_diagnostics() {
     echo "## Collecting diagnostics for phase '${CURRENT_PHASE}' ..."
     case "${CURRENT_PHASE}" in
         provision|bootstrap)
-            e2e_remote "cloud-init status; tail -n 50 /var/log/cloud-init-output.log" || true
+            e2e_remote_root "cloud-init status; tail -n 50 /var/log/cloud-init-output.log" || true
             ;;
         rootconfig|acme-dns)
             e2e_remote_sh "docker ps -a; make -C acme-dns status FORMAT=json; make -C acme-dns logs-out | tail -n 50" || true
@@ -267,22 +272,24 @@ print_results() {
 ## Remote execution helpers
 ## -------------------------------------------------------------------------
 
-e2e_remote() {
-    ## Run a command on the droplet. stdin is /dev/null, so every d.rymcg.tech
-    ## `confirm` prompt takes its non-TTY auto-yes path.
+e2e_ssh() {
+    ## e2e_ssh <user> <command...> - run a command on the droplet as <user>.
+    ## stdin is /dev/null, so every d.rymcg.tech `confirm` prompt takes its
+    ## non-TTY auto-yes path.
     ##
     ## Retry on ssh exit 255 (connection-level failure: KEX reset, connection
     ## closed/refused). Such failures happen BEFORE the remote command runs, so
     ## retrying is safe. A fresh droplet's sshd can transiently reset
     ## connections while it settles; back off and try again:
-    echo "+ [remote] $*" >&2
+    local user="$1"; shift
+    echo "+ [remote:${user}] $*" >&2
     local attempt rc
     for attempt in 1 2 3 4 5 6; do
         rc=0
         ## '|| rc=$?' keeps the ssh failure from tripping `set -e` here, so the
-        ## retry loop always runs regardless of how e2e_remote was called:
+        ## retry loop always runs regardless of how this was called:
         ssh -o StrictHostKeyChecking=accept-new -o BatchMode=yes \
-            -o ConnectTimeout=20 "root@${DROPLET_IP}" "$@" < /dev/null || rc=$?
+            -o ConnectTimeout=20 "${user}@${DROPLET_IP}" "$@" < /dev/null || rc=$?
         [[ ${rc} -ne 255 ]] && return ${rc}
         [[ ${attempt} -eq 6 ]] && return 255
         echo "## [retry] ssh connection failed (exit 255); attempt ${attempt}/6, backing off $((attempt * 4))s ..." >&2
@@ -290,8 +297,19 @@ e2e_remote() {
     done
 }
 
+e2e_remote() {
+    ## Run a command on the droplet as the admin workstation user:
+    e2e_ssh "${E2E_ADMIN_USER}" "$@"
+}
+
+e2e_remote_root() {
+    ## Run a command on the droplet as root (provision-level infra tasks):
+    e2e_ssh root "$@"
+}
+
 e2e_remote_sh() {
-    ## Run a shell snippet inside the repo dir with the e2e docker context:
+    ## Run a shell snippet as admin inside the repo dir with the e2e docker
+    ## context selected:
     e2e_remote "set -eo pipefail
 cd ${REMOTE_REPO}
 export DOCKER_CONTEXT=${E2E_NAME} PATH=\"\$PATH:\$HOME/.local/bin\"
@@ -431,11 +449,22 @@ phase_provision() {
                      | awk -v n="${E2E_NAME}" '$2==n {print $1; exit}')
     if [[ -z "${DROPLET_ID}" ]]; then
         echo "Creating droplet '${E2E_NAME}' (${E2E_REGION}/${E2E_SIZE}/${E2E_IMAGE}) ..."
+        ## Render the cloud-init: it creates the '${E2E_ADMIN_USER}' workstation
+        ## user (sudo + docker groups) with the operator's public key, so we can
+        ## ssh in as admin and run the sworkstation unprivileged. Pubkey is
+        ## reduced to 'type base64' (no comment) to keep substitution safe:
+        local pubkey render
+        pubkey=$(awk '{print $1, $2}' "${E2E_SSH_PUBKEY}")
+        render=$(mktemp)
+        sed -e "s|__E2E_ADMIN_USER__|${E2E_ADMIN_USER}|g" \
+            -e "s|__E2E_SSH_PUBKEY__|${pubkey}|g" \
+            "${E2E_DIR}/user_data_docker_debian.yaml" > "${render}"
         DROPLET_ID=$(doctl compute droplet create "${E2E_NAME}" \
             --region "${E2E_REGION}" --size "${E2E_SIZE}" --image "${E2E_IMAGE}" \
             --ssh-keys "${SSH_KEY_ID}" --tag-names "${E2E_NAME}" \
-            --user-data-file "${E2E_DIR}/user_data_docker_debian.yaml" \
+            --user-data-file "${render}" \
             --wait --format ID --no-header)
+        rm -f "${render}"
     fi
     echo "Droplet id: ${DROPLET_ID}"
     save_state
@@ -459,32 +488,40 @@ phase_provision() {
     echo "Droplet ip: ${DROPLET_IP}"
     save_state
 
-    ## Wait for SSH, then for cloud-init (which installs Docker):
+    ## Wait for SSH (root is available immediately; cloud-init installs Docker
+    ## and creates the admin user during boot):
     echo "Waiting for SSH on root@${DROPLET_IP} ..."
     local deadline=$((SECONDS + 300))
-    until e2e_remote true 2>/dev/null; do
+    until e2e_remote_root true 2>/dev/null; do
         (( SECONDS < deadline )) || fault "Timed out waiting for SSH."
         sleep 5
     done
-    echo "Waiting for cloud-init to finish (installs Docker) ..."
+    echo "Waiting for cloud-init to finish (installs Docker, creates ${E2E_ADMIN_USER}) ..."
     local rc=0
-    e2e_remote "cloud-init status --wait" || rc=$?
+    e2e_remote_root "cloud-init status --wait" || rc=$?
     ## Exit code 2 ("recoverable errors") is common on DigitalOcean images:
     if [[ "${rc}" != "0" && "${rc}" != "2" ]]; then
-        e2e_remote "tail -n 50 /var/log/cloud-init-output.log" || true
+        e2e_remote_root "tail -n 50 /var/log/cloud-init-output.log" || true
         fault "cloud-init failed (exit ${rc})."
     fi
-    ## Verify the daemon directly on its unix socket, independent of whichever
-    ## docker context root may already be on (a prior bootstrap switches root
-    ## to the ssh://localhost context):
-    e2e_remote "docker -H unix:///var/run/docker.sock info -f '{{.ServerVersion}}'"
+    ## Verify the docker daemon is up on its unix socket:
+    e2e_remote_root "docker -H unix:///var/run/docker.sock info -f '{{.ServerVersion}}'"
 
     ## Confirm the cloud-init sshd penalty tuning actually took effect:
     echo "sshd PerSourcePenalties setting on the droplet:"
-    e2e_remote "sshd -T 2>/dev/null | grep -i persourcepenalties || echo '(sshd -T unavailable)'" || true
+    e2e_remote_root "sshd -T 2>/dev/null | grep -i persourcepenalties || echo '(sshd -T unavailable)'" || true
 
     ## The DigitalOcean firewall is the real firewall; disable any host ufw:
-    e2e_remote "ufw disable 2>/dev/null; systemctl mask ufw 2>/dev/null; true"
+    e2e_remote_root "ufw disable 2>/dev/null; systemctl mask ufw 2>/dev/null; true"
+
+    ## Confirm the admin workstation user is reachable and in the docker group:
+    echo "Waiting for the '${E2E_ADMIN_USER}' user to be ready ..."
+    deadline=$((SECONDS + 120))
+    until e2e_remote "id -nG | tr ' ' '\n' | grep -qx docker" 2>/dev/null; do
+        (( SECONDS < deadline )) || fault "'${E2E_ADMIN_USER}' not reachable / not in docker group."
+        sleep 5
+    done
+    e2e_remote "echo \"admin user ready: \$(id)\""
 
     ## Local ~/.ssh/config entry for operator convenience (idempotent):
     local ssh_config="${HOME}/.ssh/config"
@@ -496,12 +533,12 @@ phase_provision() {
 
 Host ${E2E_NAME}
      Hostname ${DROPLET_IP}
-     User root
+     User ${E2E_ADMIN_USER}
      ControlMaster auto
      ControlPersist yes
      ControlPath /tmp/ssh-%u-%r@%h:%p
 EOF
-    echo "Added 'Host ${E2E_NAME}' to ${ssh_config}"
+    echo "Added 'Host ${E2E_NAME}' to ${ssh_config} (connects as ${E2E_ADMIN_USER})"
 }
 
 phase_dns() {
@@ -515,16 +552,17 @@ phase_dns() {
 
 phase_bootstrap() {
     [[ -n "${DROPLET_IP}" ]] || fault "No droplet IP (run the provision phase first)."
-    echo "Bootstrapping sworkstation (context=${E2E_NAME}, git=${E2E_GIT_URL} @ ${E2E_GIT_REF}) ..."
-    ## Upload the script, then execute it in a separate session. Do NOT use
-    ## `bash -s` with the script on stdin: any stdin-reading command inside
-    ## the script (e.g. ssh) would consume the rest of the script text and
-    ## bash would exit 0 early, silently skipping the remaining steps:
+    echo "Bootstrapping sworkstation as '${E2E_ADMIN_USER}' (context=${E2E_NAME}, git=${E2E_GIT_URL} @ ${E2E_GIT_REF}) ..."
+    ## Upload the script to the admin user's home, then execute it in a separate
+    ## session. Do NOT use `bash -s` with the script on stdin: any stdin-reading
+    ## command inside the script (e.g. ssh) would consume the rest of the script
+    ## text and bash would exit 0 early, silently skipping the remaining steps:
     echo "+ [remote] upload _e2e/lib/remote_bootstrap.sh" >&2
-    ssh -o StrictHostKeyChecking=accept-new -o BatchMode=yes "root@${DROPLET_IP}" \
-        "cat > /root/.e2e_remote_bootstrap.sh" \
+    ssh -o StrictHostKeyChecking=accept-new -o BatchMode=yes \
+        "${E2E_ADMIN_USER}@${DROPLET_IP}" \
+        "cat > ~/.e2e_remote_bootstrap.sh" \
         < "${E2E_DIR}/lib/remote_bootstrap.sh"
-    e2e_remote "CONTEXT=$(printf '%q' "${E2E_NAME}") GIT_URL=$(printf '%q' "${E2E_GIT_URL}") GIT_REF=$(printf '%q' "${E2E_GIT_REF}") bash /root/.e2e_remote_bootstrap.sh"
+    e2e_remote "CONTEXT=$(printf '%q' "${E2E_NAME}") GIT_URL=$(printf '%q' "${E2E_GIT_URL}") GIT_REF=$(printf '%q' "${E2E_GIT_REF}") CONTEXT_SSH_USER=root bash ~/.e2e_remote_bootstrap.sh"
 }
 
 phase_rootconfig() {
@@ -723,7 +761,7 @@ phase_summary() {
     }
     echo ""
     echo "The droplet is KEPT (it is now a usable sworkstation):"
-    echo "  ssh root@${DROPLET_IP}   (or: ssh ${E2E_NAME})"
+    echo "  ssh ${E2E_ADMIN_USER}@${DROPLET_IP}   (or: ssh ${E2E_NAME})"
     echo "Tear down everything with:"
     echo "  $0 destroy --name ${E2E_NAME} --yes"
     [[ -n "${LOG_FILE}" ]] && echo "Full log: ${LOG_FILE}"
@@ -887,6 +925,7 @@ main() {
             --git-ref) E2E_GIT_REF="$2"; shift ;;
             --timeout) E2E_TIMEOUT="$2"; shift ;;
             --ssh-pubkey) E2E_SSH_PUBKEY="$2"; shift ;;
+            --admin-user) E2E_ADMIN_USER="$2"; shift ;;
             --keep-going) E2E_KEEP_GOING=true ;;
             --reset-env) E2E_RESET_ENV=true ;;
             --yes) E2E_YES=true ;;

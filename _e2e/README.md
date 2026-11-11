@@ -21,11 +21,17 @@ automatic installer that an end user could employ.
    the acme-dns names, plus the `NS` delegation for acme-dns - all in
    your DigitalOcean-managed zone via `doctl`.
 3. **bootstrap**: turns the droplet into a self-contained
-   "sworkstation" (`lib/remote_bootstrap.sh`): workstation packages,
-   uv, an SSH Docker context pointing at `ssh://localhost`, bash
-   shell integration, and a clone of d.rymcg.tech pulled from a git
-   remote you choose (default: the public upstream `master` - i.e. it
-   tests exactly what a new user would get).
+   "sworkstation" (`lib/remote_bootstrap.sh`). The workstation files
+   (repo clone, `~/.config`, `~/.ssh`, docker CLI config) live under an
+   unprivileged **`admin`** user (in the `sudo` and `docker` groups,
+   created by cloud-init with your SSH key). It installs the
+   workstation packages and uv, creates an SSH Docker context that
+   logs in as **root@localhost** (so host-side operations like
+   `make traefik traefik-user` can create system users), adds bash
+   shell integration, and clones d.rymcg.tech from a git remote you
+   choose (default: the public upstream `master` - i.e. it tests
+   exactly what a new user would get). All phases from here on run as
+   `admin`; infra provisioning (cloud-init, firewall) runs as root.
 4. **rootconfig**: creates the root `.env_{CONTEXT}` non-interactively
    (`make config-dist` + `make reconfigure`), never using the
    interactive wizards.

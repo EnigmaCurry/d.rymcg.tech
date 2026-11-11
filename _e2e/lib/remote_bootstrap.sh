@@ -1,29 +1,31 @@
 #!/bin/bash
 ## remote_bootstrap.sh - Turn a fresh Debian droplet into a self-contained
-## d.rymcg.tech "sworkstation": all workstation tooling installed on the
-## droplet itself, with an SSH Docker context pointing back to localhost.
+## d.rymcg.tech "sworkstation". The workstation files (repo clone, ~/.config,
+## ~/.ssh, docker CLI config) live under an unprivileged admin user; the
+## Docker context ssh's to root@localhost (so host-side operations like
+## `make traefik traefik-user` can create system users, and docker-over-ssh's
+## `dial-stdio` runs as root on root's default unix-socket context).
 ##
-## This script is streamed to the droplet by _e2e/e2e.sh:
-##
-##   ssh root@IP "CONTEXT=... GIT_URL=... GIT_REF=... bash -s" < remote_bootstrap.sh
+## This script is streamed to the droplet by _e2e/e2e.sh and executed as the
+## admin user. System changes go through passwordless sudo.
 ##
 ## It is adapted from _scripts/bootstrap_sworkstation.sh, with these differences:
+##  * Runs unprivileged (admin + sudo) instead of as root.
 ##  * Fully idempotent: safe to re-run on an already-bootstrapped host.
 ##  * Clones from GIT_URL at GIT_REF (testing what a new user would get).
 ##  * Does NOT run the root `make config` wizard (the orchestrator does root
-##    config non-interactively with config-dist + reconfigure; `YES=yes make
-##    config` would silently enable proxy-protocol and cleartext passwords).
-##  * Omits the bashrc stanza that forces the root user onto the default
-##    context (this host's whole point is the ssh://localhost context).
+##    config non-interactively with config-dist + reconfigure).
 ##
 ## Environment variables:
-##   CONTEXT = name of the Docker context to create (required)
-##   GIT_URL = git remote to clone (default https://github.com/EnigmaCurry/d.rymcg.tech.git)
-##   GIT_REF = branch, tag, or sha to check out (default master)
+##   CONTEXT          = name of the Docker context to create (required)
+##   CONTEXT_SSH_USER = user the context ssh's to on localhost (default root)
+##   GIT_URL          = git remote to clone (default upstream)
+##   GIT_REF          = branch, tag, or sha to check out (default master)
 
 set -eo pipefail
 
 CONTEXT="${CONTEXT:?CONTEXT is required (the Docker context name)}"
+CONTEXT_SSH_USER="${CONTEXT_SSH_USER:-root}"
 GIT_URL="${GIT_URL:-https://github.com/EnigmaCurry/d.rymcg.tech.git}"
 GIT_REF="${GIT_REF:-master}"
 REPO_DIR="${HOME}/git/vendor/enigmacurry/d.rymcg.tech"
@@ -32,15 +34,20 @@ if [ ! -f /etc/debian_version ]; then
     echo "ERROR: this bootstrap only supports Debian-based droplets." >&2
     exit 1
 fi
-if [ "$(id -u)" != "0" ]; then
-    echo "ERROR: this bootstrap must run as root." >&2
-    exit 1
+## Run system commands via sudo unless we happen to already be root:
+if [ "$(id -u)" = "0" ]; then
+    SUDO=""
+else
+    SUDO="sudo"
+    sudo -n true 2>/dev/null || { echo "ERROR: passwordless sudo is required for ${USER}." >&2; exit 1; }
 fi
+
+echo "## [bootstrap] Running as $(id -un) (sudo='${SUDO:-none}')"
 
 echo "## [bootstrap] Installing workstation packages ..."
 export DEBIAN_FRONTEND=noninteractive
-apt-get update
-apt-get install --assume-yes \
+${SUDO} apt-get update
+${SUDO} apt-get install --assume-yes \
     -o Dpkg::Options::="--force-confdef" \
     -o Dpkg::Options::="--force-confold" \
     bash build-essential gettext git openssl apache2-utils xdg-utils jq \
@@ -49,9 +56,9 @@ apt-get install --assume-yes \
 
 echo "## [bootstrap] Installing Docker (if missing) ..."
 if ! command -v docker >/dev/null 2>&1; then
-    curl -sSL https://get.docker.com | sh
+    curl -sSL https://get.docker.com | ${SUDO} sh
 fi
-systemctl enable --now docker
+${SUDO} systemctl enable --now docker
 
 echo "## [bootstrap] Installing uv (if missing) ..."
 if ! command -v uv >/dev/null 2>&1 && [ ! -x "${HOME}/.local/bin/uv" ]; then
@@ -60,6 +67,7 @@ fi
 export PATH="${PATH}:${HOME}/.local/bin"
 
 echo "## [bootstrap] Cloning d.rymcg.tech from ${GIT_URL} (${GIT_REF}) ..."
+mkdir -p "$(dirname "${REPO_DIR}")"
 if [ ! -e "${REPO_DIR}" ]; then
     git clone "${GIT_URL}" "${REPO_DIR}"
 fi
@@ -78,33 +86,32 @@ echo "## [bootstrap] Checked out: $(git -C "${REPO_DIR}" log -1 --oneline)"
 echo "## [bootstrap] Installing python deps ..."
 make -C "${REPO_DIR}" python-deps
 
-echo "## [bootstrap] Configuring SSH to self (root@localhost) ..."
-## OpenSSH 10 (Debian trixie) enables PerSourcePenalties by default: a source
-## IP whose connections close without authenticating (e.g. ssh-keyscan probes)
-## gets temporarily blocked. For a loopback self-ssh sworkstation - where root
-## ssh's to 127.0.0.1 on every docker call - that is self-sabotage. Exempt the
-## loopback from penalties (external sources keep the protection). Fall back to
-## disabling penalties entirely if the exempt directive is unsupported, and
-## restart sshd to clear any penalty already in effect from earlier probes:
-_sshd_drop=/etc/ssh/sshd_config.d/99-e2e-loopback.conf
-printf 'PerSourcePenaltyExemptList 127.0.0.1/32,::1/128\n' > "${_sshd_drop}"
-if ! sshd -t 2>/dev/null; then
-    printf 'PerSourcePenalties no\n' > "${_sshd_drop}"
-    sshd -t 2>/dev/null || rm -f "${_sshd_drop}"
-fi
-systemctl enable ssh >/dev/null 2>&1 || true
-systemctl restart ssh
-
+echo "## [bootstrap] Configuring SSH to the ${CONTEXT_SSH_USER}@localhost context ..."
 mkdir -p "${HOME}/.ssh"
 chmod 700 "${HOME}/.ssh"
 if [ ! -f "${HOME}/.ssh/id_ed25519" ]; then
     ssh-keygen -t ed25519 -N "" -f "${HOME}/.ssh/id_ed25519"
 fi
-touch "${HOME}/.ssh/authorized_keys"
-chmod 600 "${HOME}/.ssh/authorized_keys"
-if ! grep -qxF "$(cat "${HOME}/.ssh/id_ed25519.pub")" "${HOME}/.ssh/authorized_keys"; then
-    cat "${HOME}/.ssh/id_ed25519.pub" >> "${HOME}/.ssh/authorized_keys"
+## Authorize this key for CONTEXT_SSH_USER so the Docker context can ssh in.
+## When CONTEXT_SSH_USER is root (the default), this needs sudo:
+PUBKEY=$(cat "${HOME}/.ssh/id_ed25519.pub")
+if [ "${CONTEXT_SSH_USER}" = "$(id -un)" ]; then
+    AUTH_DIR="${HOME}/.ssh"
+    TEE="tee"
+else
+    AUTH_DIR="$(eval echo "~${CONTEXT_SSH_USER}")/.ssh"
+    TEE="${SUDO} tee"
 fi
+${SUDO} mkdir -p "${AUTH_DIR}"
+${SUDO} chmod 700 "${AUTH_DIR}"
+if ! ${SUDO} grep -qxF "${PUBKEY}" "${AUTH_DIR}/authorized_keys" 2>/dev/null; then
+    echo "${PUBKEY}" | ${TEE} -a "${AUTH_DIR}/authorized_keys" >/dev/null
+fi
+${SUDO} chmod 600 "${AUTH_DIR}/authorized_keys"
+if [ "${CONTEXT_SSH_USER}" != "$(id -un)" ]; then
+    ${SUDO} chown -R "${CONTEXT_SSH_USER}:${CONTEXT_SSH_USER}" "${AUTH_DIR}" 2>/dev/null || true
+fi
+
 remove_ssh_host_entry() {
     local host_name="$1"
     if [[ -f ${HOME}/.ssh/config ]]; then
@@ -112,28 +119,19 @@ remove_ssh_host_entry() {
     fi
 }
 remove_ssh_host_entry "${CONTEXT}"
-## Remove any stale multiplexing control sockets left by an earlier run (its
-## orphaned master process is harmless once new connections stop using it):
-rm -f "/tmp/ssh-$(id -un)-${USER:-root}@"*:22 2>/dev/null || true
 touch "${HOME}/.ssh/config"
 chmod 600 "${HOME}/.ssh/config"
-## NOTE: no ControlMaster/ControlPersist for this self-context. Connection
-## multiplexing only pays off by amortizing network latency to a remote host;
-## for ssh to localhost it adds nothing and the shared master refuses
-## concurrent sessions ("Session open refused by peer") when docker-over-ssh
-## opens its dial-stdio channel. Plain per-connection ssh to localhost is
-## instant and reliable.
-## Use 127.0.0.1 (not "localhost"): on fresh cloud VMs the loopback SSH path
-## can resolve to ::1 and get reset ("Connection closed by ::1 port 22"):
+## No ControlMaster for this self-context (multiplexing only amortizes network
+## latency to a remote host; for localhost it adds nothing and its shared
+## master refuses docker-over-ssh's dial-stdio channel). Use 127.0.0.1, not
+## "localhost", so the loopback path never resolves to ::1 and gets reset:
 cat <<EOF >> "${HOME}/.ssh/config"
 Host ${CONTEXT}
-    User root
+    User ${CONTEXT_SSH_USER}
     Hostname 127.0.0.1
 EOF
 touch "${HOME}/.ssh/known_hosts"
-## Refresh the host key ONCE (cloud-init may have regenerated it after an
-## earlier run cached the old one). Avoid repeated keyscans: each is a no-auth
-## connection that feeds PerSourcePenalties:
+## Refresh the host key ONCE (cloud-init may have regenerated it):
 ssh-keygen -R 127.0.0.1 -f "${HOME}/.ssh/known_hosts" >/dev/null 2>&1 || true
 ssh-keyscan -H 127.0.0.1 >> "${HOME}/.ssh/known_hosts" 2>/dev/null || true
 ## Wait for sshd to accept key auth, then self-test. -n keeps ssh from reading
@@ -147,26 +145,22 @@ for _try in $(seq 1 20); do
     sleep 3
 done
 if [ "${_ssh_ok}" != "true" ]; then
-    echo "ERROR: could not ssh to self (${CONTEXT} -> 127.0.0.1) after retries." >&2
+    echo "ERROR: could not ssh to ${CONTEXT_SSH_USER}@127.0.0.1 (context ${CONTEXT}) after retries." >&2
     ssh -n -o BatchMode=yes -o ConnectTimeout=5 "${CONTEXT}" true
 fi
-ssh -n -o BatchMode=yes "${CONTEXT}" whoami
+echo "## [bootstrap] ssh ${CONTEXT} -> $(ssh -n -o BatchMode=yes "${CONTEXT}" whoami)"
 
-echo "## [bootstrap] Creating Docker context '${CONTEXT}' (ssh://localhost) ..."
+echo "## [bootstrap] Creating Docker context '${CONTEXT}' (ssh://${CONTEXT_SSH_USER}@localhost) ..."
 if ! docker context inspect "${CONTEXT}" >/dev/null 2>&1; then
     docker context create "${CONTEXT}" \
         --description "Created by d.rymcg.tech e2e bootstrap" \
         --docker "host=ssh://${CONTEXT}"
 fi
-## IMPORTANT: do NOT 'docker context use ${CONTEXT}'. Root's ambient context
-## must stay 'default' (the unix socket). The e2e context points at
-## ssh://localhost (i.e. this host); if it were root's current context, then
-## 'docker --context ${CONTEXT} info' would ssh to localhost and run
-## 'docker system dial-stdio', which - inheriting root's current context -
-## would ssh to localhost again, recursing into a connection storm that sshd
-## resets ("Connection reset by 127.0.0.1 port 22"). The orchestrator and the
-## d.rymcg.tech CLI select this context explicitly via DOCKER_CONTEXT per
-## command, so leaving root on 'default' is correct.
+## Keep this user's ambient context on 'default' (admin's local unix socket).
+## The orchestrator and the 'd' CLI select the e2e context explicitly via
+## DOCKER_CONTEXT per command. dial-stdio runs on the remote as
+## CONTEXT_SSH_USER (root), whose own current context is the untouched
+## 'default' unix socket - so there is no ssh recursion.
 docker context use default >/dev/null 2>&1 || true
 ## Verify the context reaches the daemon over ssh. Bounded + verbose so a slow
 ## or wedged ssh/docker connection surfaces instead of hanging silently:
@@ -201,8 +195,6 @@ __d.rymcg.tech_cli_alias d
 ## fresh bash that make's $(shell docker_context) spawns - so exporting
 ## DOCKER_CONTEXT here would override the e2e context the orchestrator sets
 ## per command and make every project Makefile include the wrong .env file.
-## Recursion safety comes from the stored current context being 'default'
-## (set with 'docker context use default' in the bootstrap), not from here.
 ## Add d.rymcg.tech alias for each Docker context:
 EOF
 cat <<EOF >> "${HOME}/.config/d.rymcg.tech/bashrc"
@@ -219,4 +211,4 @@ fi
 echo "## [bootstrap] Installing script-wizard ..."
 "${REPO_DIR}/_scripts/install_script-wizard" --yes
 
-echo "## [bootstrap] Done. Context '${CONTEXT}' is ready."
+echo "## [bootstrap] Done. Context '${CONTEXT}' (ssh://${CONTEXT_SSH_USER}@localhost) is ready."
