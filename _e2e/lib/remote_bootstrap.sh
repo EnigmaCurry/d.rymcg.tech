@@ -159,14 +159,25 @@ if ! docker context inspect "${CONTEXT}" >/dev/null 2>&1; then
         --docker "host=ssh://${CONTEXT}"
 fi
 docker context use "${CONTEXT}"
-## Retry briefly: sshd/docker may need a moment to settle after enable:
-for _try in 1 2 3 4 5; do
-    if docker --context "${CONTEXT}" info -f '{{.ServerVersion}}' >/dev/null 2>&1; then
+## Verify the context reaches the daemon over ssh. Bounded + verbose so a slow
+## or wedged ssh/docker connection surfaces instead of hanging silently:
+echo "## [bootstrap] Verifying Docker context '${CONTEXT}' over ssh ..."
+_docker_ok=false
+for _try in $(seq 1 10); do
+    _ver=$(timeout 25 docker --context "${CONTEXT}" info -f '{{.ServerVersion}}' 2>/tmp/e2e-dockerinfo.err) || true
+    if [ -n "${_ver}" ]; then
+        echo "## [bootstrap] Docker reachable via ssh (server ${_ver})."
+        _docker_ok=true
         break
     fi
-    [ "${_try}" = "5" ] && docker --context "${CONTEXT}" info -f '{{.ServerVersion}}' >/dev/null
+    echo "## [bootstrap]   attempt ${_try}/10 failed: $(tail -n 1 /tmp/e2e-dockerinfo.err 2>/dev/null)"
     sleep 3
 done
+if [ "${_docker_ok}" != "true" ]; then
+    echo "ERROR: Docker context '${CONTEXT}' could not reach the daemon over ssh." >&2
+    cat /tmp/e2e-dockerinfo.err >&2 || true
+    exit 1
+fi
 
 echo "## [bootstrap] Installing bash shell integration ..."
 mkdir -p "${HOME}/.config/d.rymcg.tech"
