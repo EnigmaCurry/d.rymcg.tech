@@ -67,6 +67,7 @@ LOG_DIR="${CONFIG_DIR}/logs"
 LOG_FILE=""
 CURRENT_PHASE=""
 _ON_ERROR_RAN=""
+_MAIN_PID=$$
 REMOTE_REPO='$HOME/git/vendor/enigmacurry/d.rymcg.tech'
 PHASES=(preflight provision dns bootstrap rootconfig acme-dns traefik apps verify summary)
 RESULTS=()
@@ -201,6 +202,7 @@ print_what_now() {
 
 on_exit() {
     local code=$?
+    [[ "${BASHPID:-$$}" != "${_MAIN_PID}" ]] && return 0
     ## Print recovery help for failures that bypassed the ERR trap (fault()),
     ## but only once a logged run actually started:
     if [[ ${code} -ne 0 && -z "${_ON_ERROR_RAN}" && -n "${LOG_FILE}" ]]; then
@@ -210,6 +212,11 @@ on_exit() {
 
 on_error() {
     local code=$1 cmd=$2 line=$3
+    ## In a subshell (e.g. command substitution), anything we print would be
+    ## captured by the parent as data - stay silent and just propagate:
+    if [[ "${BASHPID:-$$}" != "${_MAIN_PID}" ]]; then
+        exit "${code}"
+    fi
     _ON_ERROR_RAN=1
     trap - ERR
     set +e
@@ -373,6 +380,7 @@ phase_provision() {
                          --format ID --no-header)
     fi
     echo "SSH key id: ${SSH_KEY_ID}"
+    save_state
 
     ## Firewall (22/80/443 web + 53 tcp/udp + 2890 tcp for acme-dns):
     FIREWALL_ID=$(doctl compute firewall list --format ID,Name --no-header \
@@ -386,6 +394,7 @@ phase_provision() {
             --format ID --no-header)
     fi
     echo "Firewall id: ${FIREWALL_ID}"
+    save_state
 
     ## Droplet:
     DROPLET_ID=$(doctl compute droplet list --format ID,Name --no-header \
@@ -399,11 +408,24 @@ phase_provision() {
             --wait --format ID --no-header)
     fi
     echo "Droplet id: ${DROPLET_ID}"
+    save_state
     if ! doctl compute firewall get "${FIREWALL_ID}" --format DropletIDs --no-header \
             | grep -qw "${DROPLET_ID}"; then
         doctl compute firewall add-droplets "${FIREWALL_ID}" --droplet-ids "${DROPLET_ID}"
     fi
-    DROPLET_IP=$(gumdrop_droplet_ip "${E2E_NAME}")
+
+    ## Look up the public IP by droplet id (tag-independent), polling briefly
+    ## in case the API has not published it yet:
+    echo "Waiting for the droplet's public IP ..."
+    local ip_deadline=$((SECONDS + 120))
+    DROPLET_IP=""
+    while [[ -z "${DROPLET_IP}" ]]; do
+        DROPLET_IP=$(doctl compute droplet get "${DROPLET_ID}" \
+                         --format PublicIPv4 --no-header 2>/dev/null || true)
+        [[ -n "${DROPLET_IP}" ]] && break
+        (( SECONDS < ip_deadline )) || fault "Timed out waiting for the droplet's public IP."
+        sleep 5
+    done
     echo "Droplet ip: ${DROPLET_IP}"
     save_state
 
@@ -828,10 +850,22 @@ main() {
     [[ -z "${command}" ]] && usage 1
     [[ "${command}" == "help" ]] && usage 0
 
+    ## Normalize: accept a fully-qualified --subdomain (strip the domain):
+    if [[ -n "${E2E_DOMAIN}" && -n "${E2E_SUBDOMAIN}" ]]; then
+        if [[ "${E2E_SUBDOMAIN}" == *".${E2E_DOMAIN}" ]]; then
+            E2E_SUBDOMAIN="${E2E_SUBDOMAIN%".${E2E_DOMAIN}"}"
+            echo "NOTE: --subdomain included --domain; using subdomain '${E2E_SUBDOMAIN}'."
+        fi
+        [[ "${E2E_SUBDOMAIN}" != "${E2E_DOMAIN}" ]] \
+            || fault "--subdomain must be a subdomain of --domain, not the domain itself."
+    fi
+
     ## Resolve the instance name, then merge saved state under CLI flags:
     if [[ -z "${E2E_NAME}" ]]; then
         [[ -n "${E2E_SUBDOMAIN}" ]] || fault "Either --name or --subdomain is required."
-        E2E_NAME="e2e-${E2E_SUBDOMAIN}"
+        ## Droplet names, firewall names, and DO tags must stay in a common
+        ## safe charset (DO tags do not allow dots):
+        E2E_NAME="e2e-${E2E_SUBDOMAIN//./-}"
     fi
     load_state
 
@@ -839,6 +873,11 @@ main() {
         up|phase)
             [[ -n "${E2E_DOMAIN}" ]] || fault "--domain is required."
             [[ -n "${E2E_SUBDOMAIN}" ]] || fault "--subdomain is required."
+            ## Droplet names, firewall names, and DO tags share this name, so
+            ## it must stay in the common safe charset (DO tags forbid dots).
+            ## (destroy/status skip this check so they can clean up anything.)
+            [[ "${E2E_NAME}" =~ ^[A-Za-z0-9][A-Za-z0-9-]*$ ]] \
+                || fault "--name '${E2E_NAME}' is invalid: use only letters, digits, and dashes."
             ;;
     esac
     E2E_ROOT_DOMAIN="${E2E_SUBDOMAIN}.${E2E_DOMAIN}"
