@@ -21,6 +21,9 @@
 ##   CONTEXT_SSH_USER = user the context ssh's to on localhost (default root)
 ##   GIT_URL          = git remote to clone (default upstream)
 ##   GIT_REF          = branch, tag, or sha to check out (default master)
+##   WORKSTATION_ONLY = true to set up only the workstation CLI tooling: no
+##                      docker server, no ssh self-context, no docker context
+##                      (default false)
 
 set -eo pipefail
 
@@ -28,6 +31,7 @@ CONTEXT="${CONTEXT:?CONTEXT is required (the Docker context name)}"
 CONTEXT_SSH_USER="${CONTEXT_SSH_USER:-root}"
 GIT_URL="${GIT_URL:-https://github.com/EnigmaCurry/d.rymcg.tech.git}"
 GIT_REF="${GIT_REF:-master}"
+WORKSTATION_ONLY="${WORKSTATION_ONLY:-false}"
 REPO_DIR="${HOME}/git/vendor/enigmacurry/d.rymcg.tech"
 
 if [ ! -f /etc/debian_version ]; then
@@ -54,11 +58,15 @@ ${SUDO} apt-get install --assume-yes \
     sshfs wireguard curl inotify-tools w3m keychain age nano \
     openssh-server dnsutils ipcalc-ng
 
-echo "## [bootstrap] Installing Docker (if missing) ..."
-if ! command -v docker >/dev/null 2>&1; then
-    curl -sSL https://get.docker.com | ${SUDO} sh
+if [ "${WORKSTATION_ONLY}" = "true" ]; then
+    echo "## [bootstrap] Workstation-only: expecting Docker CLI (no server). $(docker --version 2>/dev/null || echo 'docker CLI MISSING')"
+else
+    echo "## [bootstrap] Installing Docker server (if missing) ..."
+    if ! command -v docker >/dev/null 2>&1; then
+        curl -sSL https://get.docker.com | ${SUDO} sh
+    fi
+    ${SUDO} systemctl enable --now docker
 fi
-${SUDO} systemctl enable --now docker
 
 echo "## [bootstrap] Installing uv (if missing) ..."
 if ! command -v uv >/dev/null 2>&1 && [ ! -x "${HOME}/.local/bin/uv" ]; then
@@ -86,6 +94,9 @@ echo "## [bootstrap] Checked out: $(git -C "${REPO_DIR}" log -1 --oneline)"
 echo "## [bootstrap] Installing python deps ..."
 make -C "${REPO_DIR}" python-deps
 
+if [ "${WORKSTATION_ONLY}" = "true" ]; then
+echo "## [bootstrap] Workstation-only: skipping ssh self-context and Docker context (no local server)."
+else
 echo "## [bootstrap] Configuring SSH to the ${CONTEXT_SSH_USER}@localhost context ..."
 mkdir -p "${HOME}/.ssh"
 chmod 700 "${HOME}/.ssh"
@@ -181,6 +192,7 @@ if [ "${_docker_ok}" != "true" ]; then
     cat /tmp/e2e-dockerinfo.err >&2 || true
     exit 1
 fi
+fi  ## end: not WORKSTATION_ONLY
 
 echo "## [bootstrap] Installing bash shell integration ..."
 mkdir -p "${HOME}/.config/d.rymcg.tech"
@@ -197,9 +209,11 @@ __d.rymcg.tech_cli_alias d
 ## per command and make every project Makefile include the wrong .env file.
 ## Add d.rymcg.tech alias for each Docker context:
 EOF
-cat <<EOF >> "${HOME}/.config/d.rymcg.tech/bashrc"
+if [ "${WORKSTATION_ONLY}" != "true" ]; then
+    cat <<EOF >> "${HOME}/.config/d.rymcg.tech/bashrc"
 __d.rymcg.tech_context_alias ${CONTEXT} ${CONTEXT}
 EOF
+fi
 if ! grep -qF 'source ~/.config/d.rymcg.tech/bashrc' "${HOME}/.bashrc"; then
     cat <<EOF >> "${HOME}/.bashrc"
 
@@ -211,4 +225,8 @@ fi
 echo "## [bootstrap] Installing script-wizard ..."
 "${REPO_DIR}/_scripts/install_script-wizard" --yes
 
-echo "## [bootstrap] Done. Context '${CONTEXT}' (ssh://${CONTEXT_SSH_USER}@localhost) is ready."
+if [ "${WORKSTATION_ONLY}" = "true" ]; then
+    echo "## [bootstrap] Done. Workstation CLI tooling is ready (no local Docker server / context)."
+else
+    echo "## [bootstrap] Done. Context '${CONTEXT}' (ssh://${CONTEXT_SSH_USER}@localhost) is ready."
+fi

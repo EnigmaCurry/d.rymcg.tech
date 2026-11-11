@@ -51,6 +51,7 @@ E2E_TIMEOUT="${E2E_TIMEOUT:-300}"
 E2E_CERT_TIMEOUT="${E2E_CERT_TIMEOUT:-600}"
 E2E_SSH_PUBKEY="${E2E_SSH_PUBKEY:-}"
 E2E_ADMIN_USER="${E2E_ADMIN_USER:-admin}"
+E2E_SUITE="${E2E_SUITE:-full}"
 E2E_KEEP_GOING=false
 E2E_RESET_ENV=false
 E2E_YES=false
@@ -73,9 +74,23 @@ _MAIN_PID=$$
 ## the admin user's home; $HOME resolves to /home/${E2E_ADMIN_USER} when the
 ## command runs as admin:
 REMOTE_REPO='$HOME/git/vendor/enigmacurry/d.rymcg.tech'
-PHASES=(preflight provision dns bootstrap rootconfig acme-dns traefik apps verify summary)
+## Phase lists per suite:
+##  full        - provision a server + DNS + Traefik + acme-dns + apps (the
+##                complete d.rymcg.tech install, verified over HTTPS).
+##  workstation - set up only the workstation tooling (docker CLI, not the
+##                docker server; no DNS, no firewall, no apps).
+PHASES_FULL=(preflight provision dns bootstrap rootconfig acme-dns traefik apps verify summary)
+PHASES_WORKSTATION=(preflight provision bootstrap verify summary)
 RESULTS=()
 FAILED_APPS=()
+
+suite_phases() {
+    if [[ "${E2E_SUITE}" == "workstation" ]]; then
+        printf '%s\n' "${PHASES_WORKSTATION[@]}"
+    else
+        printf '%s\n' "${PHASES_FULL[@]}"
+    fi
+}
 
 usage() {
     cat <<EOF
@@ -84,17 +99,22 @@ e2e.sh - end-to-end smoke test / installer for d.rymcg.tech on DigitalOcean
 Usage: e2e.sh <command> [options]
 
 Commands:
-  up            Run all phases: ${PHASES[*]}
-  phase NAME    Run a single phase by name
+  full          Full install suite: ${PHASES_FULL[*]}
+  up            Alias for 'full'
+  workstation   Workstation-only suite (docker CLI, no server/DNS/firewall):
+                ${PHASES_WORKSTATION[*]}
+  phase NAME    Run a single phase by name (of the selected suite)
   status        Show saved state and droplet status
   destroy       Tear down droplet, firewall, SSH key, and DNS records
   help          Show this help
 
 Options:
   --token TOKEN      DigitalOcean API token (or env DIGITALOCEAN_ACCESS_TOKEN)
-  --domain DOMAIN    Parent domain managed by DigitalOcean DNS (required)
-  --subdomain SUB    Subdomain for the test to own; ROOT_DOMAIN=SUB.DOMAIN (required)
-  --name NAME        Droplet/context/resource name (default: e2e-SUB)
+  --domain DOMAIN    Parent domain managed by DigitalOcean DNS (full: required)
+  --subdomain SUB    Subdomain to own; ROOT_DOMAIN=SUB.DOMAIN (full: required)
+  --name NAME        Droplet/context/resource name (full default: e2e-SUB;
+                     workstation default: e2e-workstation)
+  --suite NAME       full | workstation (for the 'phase' command)
   --region REGION    Droplet region (default: ${E2E_REGION})
   --size SIZE        Droplet size (default: ${E2E_SIZE})
   --image IMAGE      Droplet image (default: ${E2E_IMAGE})
@@ -125,6 +145,7 @@ save_state() {
     f=$(state_file)
     cat > "${f}" <<EOF
 ## e2e state for '${E2E_NAME}' (do not store secrets here)
+E2E_SUITE=${E2E_SUITE}
 E2E_DOMAIN=${E2E_DOMAIN}
 E2E_SUBDOMAIN=${E2E_SUBDOMAIN}
 E2E_REGION=${E2E_REGION}
@@ -153,6 +174,7 @@ load_state() {
     ## for everything the user can specify (domain/subdomain fill in only
     ## when not given):
     [[ -f "$(state_file)" ]] || return 0
+    _STATE_SUITE=$(state_get E2E_SUITE)
     DROPLET_ID=$(state_get DROPLET_ID)
     DROPLET_IP=$(state_get DROPLET_IP)
     FIREWALL_ID=$(state_get FIREWALL_ID)
@@ -391,8 +413,10 @@ phase_preflight() {
         echo "NOTE: DIGITALOCEAN_ACCESS_TOKEN is not set; relying on existing doctl auth."
     fi
     doctl account get > /dev/null || fault "doctl is not authenticated (set DIGITALOCEAN_ACCESS_TOKEN or --token)."
-    doctl compute domain get "${E2E_DOMAIN}" > /dev/null \
-        || fault "Domain '${E2E_DOMAIN}' is not managed by this DigitalOcean account."
+    if [[ "${E2E_SUITE}" != "workstation" ]]; then
+        doctl compute domain get "${E2E_DOMAIN}" > /dev/null \
+            || fault "Domain '${E2E_DOMAIN}' is not managed by this DigitalOcean account."
+    fi
     if [[ -z "${E2E_SSH_PUBKEY}" ]]; then
         local f
         for f in "${HOME}/.ssh/id_ed25519.pub" "${HOME}/.ssh/id_rsa.pub"; do
@@ -403,7 +427,11 @@ phase_preflight() {
         done
     fi
     [[ -f "${E2E_SSH_PUBKEY}" ]] || fault "No SSH public key found (use --ssh-pubkey)."
-    echo "Preflight OK: domain=${E2E_DOMAIN} root_domain=${E2E_ROOT_DOMAIN} name=${E2E_NAME} pubkey=${E2E_SSH_PUBKEY}"
+    if [[ "${E2E_SUITE}" == "workstation" ]]; then
+        echo "Preflight OK: suite=workstation name=${E2E_NAME} pubkey=${E2E_SSH_PUBKEY}"
+    else
+        echo "Preflight OK: suite=full domain=${E2E_DOMAIN} root_domain=${E2E_ROOT_DOMAIN} name=${E2E_NAME} pubkey=${E2E_SSH_PUBKEY}"
+    fi
 }
 
 phase_provision() {
@@ -430,35 +458,42 @@ phase_provision() {
     echo "SSH key id: ${SSH_KEY_ID}"
     save_state
 
-    ## Firewall (22/80/443 web + 53 tcp/udp + 2890 tcp for acme-dns):
-    FIREWALL_ID=$(doctl compute firewall list --format ID,Name --no-header \
-                      | awk -v n="${E2E_NAME}-fw" '$2==n {print $1; exit}')
-    if [[ -z "${FIREWALL_ID}" ]]; then
-        echo "Creating firewall '${E2E_NAME}-fw' ..."
-        FIREWALL_ID=$(doctl compute firewall create \
-            --name "${E2E_NAME}-fw" \
-            --inbound-rules "protocol:tcp,ports:22,address:0.0.0.0/0,address:::/0 protocol:tcp,ports:80,address:0.0.0.0/0,address:::/0 protocol:tcp,ports:443,address:0.0.0.0/0,address:::/0 protocol:tcp,ports:53,address:0.0.0.0/0,address:::/0 protocol:udp,ports:53,address:0.0.0.0/0,address:::/0 protocol:tcp,ports:2890,address:0.0.0.0/0,address:::/0 protocol:icmp,address:0.0.0.0/0,address:::/0" \
-            --outbound-rules "protocol:tcp,ports:all,address:0.0.0.0/0,address:::/0 protocol:udp,ports:all,address:0.0.0.0/0,address:::/0 protocol:icmp,address:0.0.0.0/0,address:::/0" \
-            --format ID --no-header)
+    ## Firewall (full suite only; a workstation serves nothing, so it needs no
+    ## inbound firewall). 22/80/443 web + 53 tcp/udp + 2890 tcp for acme-dns:
+    if [[ "${E2E_SUITE}" != "workstation" ]]; then
+        FIREWALL_ID=$(doctl compute firewall list --format ID,Name --no-header \
+                          | awk -v n="${E2E_NAME}-fw" '$2==n {print $1; exit}')
+        if [[ -z "${FIREWALL_ID}" ]]; then
+            echo "Creating firewall '${E2E_NAME}-fw' ..."
+            FIREWALL_ID=$(doctl compute firewall create \
+                --name "${E2E_NAME}-fw" \
+                --inbound-rules "protocol:tcp,ports:22,address:0.0.0.0/0,address:::/0 protocol:tcp,ports:80,address:0.0.0.0/0,address:::/0 protocol:tcp,ports:443,address:0.0.0.0/0,address:::/0 protocol:tcp,ports:53,address:0.0.0.0/0,address:::/0 protocol:udp,ports:53,address:0.0.0.0/0,address:::/0 protocol:tcp,ports:2890,address:0.0.0.0/0,address:::/0 protocol:icmp,address:0.0.0.0/0,address:::/0" \
+                --outbound-rules "protocol:tcp,ports:all,address:0.0.0.0/0,address:::/0 protocol:udp,ports:all,address:0.0.0.0/0,address:::/0 protocol:icmp,address:0.0.0.0/0,address:::/0" \
+                --format ID --no-header)
+        fi
+        echo "Firewall id: ${FIREWALL_ID}"
+        save_state
     fi
-    echo "Firewall id: ${FIREWALL_ID}"
-    save_state
 
-    ## Droplet:
+    ## Droplet. Full installs the Docker server; the workstation suite installs
+    ## only the Docker CLI (it controls remote servers, it is not one):
+    local user_data_template="${E2E_DIR}/user_data_docker_debian.yaml"
+    [[ "${E2E_SUITE}" == "workstation" ]] \
+        && user_data_template="${E2E_DIR}/user_data_workstation_debian.yaml"
     DROPLET_ID=$(doctl compute droplet list --format ID,Name --no-header \
                      | awk -v n="${E2E_NAME}" '$2==n {print $1; exit}')
     if [[ -z "${DROPLET_ID}" ]]; then
-        echo "Creating droplet '${E2E_NAME}' (${E2E_REGION}/${E2E_SIZE}/${E2E_IMAGE}) ..."
+        echo "Creating droplet '${E2E_NAME}' (${E2E_REGION}/${E2E_SIZE}/${E2E_IMAGE}, suite=${E2E_SUITE}) ..."
         ## Render the cloud-init: it creates the '${E2E_ADMIN_USER}' workstation
-        ## user (sudo + docker groups) with the operator's public key, so we can
-        ## ssh in as admin and run the sworkstation unprivileged. Pubkey is
-        ## reduced to 'type base64' (no comment) to keep substitution safe:
+        ## user with the operator's public key, so we can ssh in as admin and
+        ## run the sworkstation unprivileged. Pubkey is reduced to 'type base64'
+        ## (no comment) to keep substitution safe:
         local pubkey render
         pubkey=$(awk '{print $1, $2}' "${E2E_SSH_PUBKEY}")
         render=$(mktemp)
         sed -e "s|__E2E_ADMIN_USER__|${E2E_ADMIN_USER}|g" \
             -e "s|__E2E_SSH_PUBKEY__|${pubkey}|g" \
-            "${E2E_DIR}/user_data_docker_debian.yaml" > "${render}"
+            "${user_data_template}" > "${render}"
         DROPLET_ID=$(doctl compute droplet create "${E2E_NAME}" \
             --region "${E2E_REGION}" --size "${E2E_SIZE}" --image "${E2E_IMAGE}" \
             --ssh-keys "${SSH_KEY_ID}" --tag-names "${E2E_NAME}" \
@@ -468,7 +503,8 @@ phase_provision() {
     fi
     echo "Droplet id: ${DROPLET_ID}"
     save_state
-    if ! doctl compute firewall get "${FIREWALL_ID}" --format DropletIDs --no-header \
+    if [[ -n "${FIREWALL_ID}" ]] \
+       && ! doctl compute firewall get "${FIREWALL_ID}" --format DropletIDs --no-header \
             | grep -qw "${DROPLET_ID}"; then
         doctl compute firewall add-droplets "${FIREWALL_ID}" --droplet-ids "${DROPLET_ID}"
     fi
@@ -496,7 +532,7 @@ phase_provision() {
         (( SECONDS < deadline )) || fault "Timed out waiting for SSH."
         sleep 5
     done
-    echo "Waiting for cloud-init to finish (installs Docker, creates ${E2E_ADMIN_USER}) ..."
+    echo "Waiting for cloud-init to finish (creates ${E2E_ADMIN_USER}; installs $( [[ "${E2E_SUITE}" == workstation ]] && echo "Docker CLI" || echo "Docker server")) ..."
     local rc=0
     e2e_remote_root "cloud-init status --wait" || rc=$?
     ## Exit code 2 ("recoverable errors") is common on DigitalOcean images:
@@ -504,8 +540,13 @@ phase_provision() {
         e2e_remote_root "tail -n 50 /var/log/cloud-init-output.log" || true
         fault "cloud-init failed (exit ${rc})."
     fi
-    ## Verify the docker daemon is up on its unix socket:
-    e2e_remote_root "docker -H unix:///var/run/docker.sock info -f '{{.ServerVersion}}'"
+    if [[ "${E2E_SUITE}" != "workstation" ]]; then
+        ## Verify the docker daemon is up on its unix socket:
+        e2e_remote_root "docker -H unix:///var/run/docker.sock info -f '{{.ServerVersion}}'"
+    else
+        ## Workstation: only the CLI is expected (no server daemon):
+        e2e_remote_root "docker --version"
+    fi
 
     ## Confirm the cloud-init sshd penalty tuning actually took effect:
     echo "sshd PerSourcePenalties setting on the droplet:"
@@ -514,13 +555,21 @@ phase_provision() {
     ## The DigitalOcean firewall is the real firewall; disable any host ufw:
     e2e_remote_root "ufw disable 2>/dev/null; systemctl mask ufw 2>/dev/null; true"
 
-    ## Confirm the admin workstation user is reachable and in the docker group:
+    ## Confirm the admin workstation user is reachable (and, for the full suite,
+    ## in the docker group so it can reach the local daemon):
     echo "Waiting for the '${E2E_ADMIN_USER}' user to be ready ..."
     deadline=$((SECONDS + 120))
-    until e2e_remote "id -nG | tr ' ' '\n' | grep -qx docker" 2>/dev/null; do
-        (( SECONDS < deadline )) || fault "'${E2E_ADMIN_USER}' not reachable / not in docker group."
-        sleep 5
-    done
+    if [[ "${E2E_SUITE}" == "workstation" ]]; then
+        until e2e_remote true 2>/dev/null; do
+            (( SECONDS < deadline )) || fault "'${E2E_ADMIN_USER}' not reachable."
+            sleep 5
+        done
+    else
+        until e2e_remote "id -nG | tr ' ' '\n' | grep -qx docker" 2>/dev/null; do
+            (( SECONDS < deadline )) || fault "'${E2E_ADMIN_USER}' not reachable / not in docker group."
+            sleep 5
+        done
+    fi
     e2e_remote "echo \"admin user ready: \$(id)\""
 
     ## Local ~/.ssh/config entry for operator convenience (idempotent):
@@ -562,7 +611,9 @@ phase_bootstrap() {
         "${E2E_ADMIN_USER}@${DROPLET_IP}" \
         "cat > ~/.e2e_remote_bootstrap.sh" \
         < "${E2E_DIR}/lib/remote_bootstrap.sh"
-    e2e_remote "CONTEXT=$(printf '%q' "${E2E_NAME}") GIT_URL=$(printf '%q' "${E2E_GIT_URL}") GIT_REF=$(printf '%q' "${E2E_GIT_REF}") CONTEXT_SSH_USER=root bash ~/.e2e_remote_bootstrap.sh"
+    local workstation_only=false
+    [[ "${E2E_SUITE}" == "workstation" ]] && workstation_only=true
+    e2e_remote "CONTEXT=$(printf '%q' "${E2E_NAME}") GIT_URL=$(printf '%q' "${E2E_GIT_URL}") GIT_REF=$(printf '%q' "${E2E_GIT_REF}") CONTEXT_SSH_USER=root WORKSTATION_ONLY=${workstation_only} bash ~/.e2e_remote_bootstrap.sh"
 }
 
 phase_rootconfig() {
@@ -732,7 +783,41 @@ verify_app() {
     [[ "${status}" == "PASS" ]]
 }
 
+verify_check() {
+    ## verify_check <label> <remote-command> - run a check as admin on the
+    ## droplet; record PASS/FAIL into RESULTS:
+    local label="$1" cmd="$2" out status=FAIL
+    out=$(e2e_remote_sh "${cmd}" 2>&1 | tr '\n' ' ' | cut -c1-60) || out="${out}"
+    if e2e_remote_sh "${cmd}" >/dev/null 2>&1; then
+        status=PASS
+    fi
+    RESULTS+=("${status}|${label}|${out}")
+    [[ "${status}" == "PASS" ]]
+}
+
 phase_verify() {
+    if [[ "${E2E_SUITE}" == "workstation" ]]; then
+        ## Workstation: confirm the CLI tooling is installed and functional,
+        ## and that NO docker server is running locally (CLI-only):
+        local checks=(
+            "d-cli|command -v d.rymcg.tech && d.rymcg.tech --version 2>/dev/null || d.rymcg.tech help >/dev/null"
+            "d-list|d.rymcg.tech list --raw | head -n 1"
+            "docker-cli|docker --version"
+            "docker-compose|docker compose version"
+            "no-docker-server|! docker -H unix:///var/run/docker.sock info >/dev/null 2>&1"
+            "uv|uv --version"
+        )
+        local entry label cmd
+        for entry in "${checks[@]}"; do
+            label="${entry%%|*}"; cmd="${entry#*|}"
+            if verify_check "${label}" "${cmd}"; then
+                echo "PASS ${label}"
+            else
+                echo "FAIL ${label}"
+            fi
+        done
+        return 0
+    fi
     local app
     for app in ${E2E_APPS//,/ }; do
         if verify_app "${app}"; then
@@ -745,16 +830,29 @@ phase_verify() {
 }
 
 phase_summary() {
-    banner "e2e summary"
-    echo "name=${E2E_NAME} root_domain=${E2E_ROOT_DOMAIN} ip=${DROPLET_IP} ca=${E2E_ACME_CA}"
+    banner "e2e summary (suite=${E2E_SUITE})"
+    if [[ "${E2E_SUITE}" == "workstation" ]]; then
+        echo "name=${E2E_NAME} ip=${DROPLET_IP}"
+    else
+        echo "name=${E2E_NAME} root_domain=${E2E_ROOT_DOMAIN} ip=${DROPLET_IP} ca=${E2E_ACME_CA}"
+    fi
     echo ""
     local row all_pass=true
-    printf '%-6s %-14s %-50s %-6s %s\n' STATUS APP URL CODE ISSUER
-    for row in "${RESULTS[@]}"; do
-        IFS='|' read -r st app url code issuer <<< "${row}"
-        printf '%-6s %-14s %-50s %-6s %s\n' "${st}" "${app}" "${url}" "${code}" "${issuer}"
-        [[ "${st}" == "PASS" ]] || all_pass=false
-    done
+    if [[ "${E2E_SUITE}" == "workstation" ]]; then
+        printf '%-6s %-18s %s\n' STATUS CHECK DETAIL
+        for row in "${RESULTS[@]}"; do
+            IFS='|' read -r st label detail <<< "${row}"
+            printf '%-6s %-18s %s\n' "${st}" "${label}" "${detail}"
+            [[ "${st}" == "PASS" ]] || all_pass=false
+        done
+    else
+        printf '%-6s %-14s %-50s %-6s %s\n' STATUS APP URL CODE ISSUER
+        for row in "${RESULTS[@]}"; do
+            IFS='|' read -r st app url code issuer <<< "${row}"
+            printf '%-6s %-14s %-50s %-6s %s\n' "${st}" "${app}" "${url}" "${code}" "${issuer}"
+            [[ "${st}" == "PASS" ]] || all_pass=false
+        done
+    fi
     [[ ${#FAILED_APPS[@]} -gt 0 ]] && {
         echo "Apps that failed to install: ${FAILED_APPS[*]}"
         all_pass=false
@@ -767,7 +865,7 @@ phase_summary() {
     [[ -n "${LOG_FILE}" ]] && echo "Full log: ${LOG_FILE}"
     if [[ "${all_pass}" != "true" ]]; then
         echo ""
-        echo "RESULT: FAIL (one or more apps failed verification)"
+        echo "RESULT: FAIL (one or more checks failed verification)"
         exit 2
     fi
     echo ""
@@ -786,21 +884,21 @@ run_phase() {
     mark_phase_done "$1"
 }
 
-cmd_up() {
+cmd_run() {
     setup_logging
     local p
-    for p in "${PHASES[@]}"; do
+    while read -r p; do
         run_phase "${p}"
-    done
+    done < <(suite_phases)
 }
 
 cmd_phase() {
     [[ -n "${E2E_PHASE}" ]] || usage 1
     local valid=false p
-    for p in "${PHASES[@]}"; do
+    while read -r p; do
         [[ "${p}" == "${E2E_PHASE}" ]] && valid=true
-    done
-    [[ "${valid}" == "true" ]] || fault "Unknown phase '${E2E_PHASE}'. Valid: ${PHASES[*]}"
+    done < <(suite_phases)
+    [[ "${valid}" == "true" ]] || fault "Unknown phase '${E2E_PHASE}' for suite '${E2E_SUITE}'. Valid: $(suite_phases | tr '\n' ' ')"
     setup_logging
     run_phase "${E2E_PHASE}"
 }
@@ -905,12 +1003,15 @@ cmd_destroy() {
 ## -------------------------------------------------------------------------
 
 main() {
-    local command=""
+    local command="" suite_explicit=""
     E2E_PHASE=""
     while [[ $# -gt 0 ]]; do
         case "$1" in
-            up|status|destroy|help) command="$1" ;;
+            full|up) command="full" ;;
+            workstation) command="workstation" ;;
+            status|destroy|help) command="$1" ;;
             phase) command="phase"; E2E_PHASE="${2:-}"; shift ;;
+            --suite) E2E_SUITE="$2"; suite_explicit=1; shift ;;
             --token) export DIGITALOCEAN_ACCESS_TOKEN="$2"; shift ;;
             --domain) E2E_DOMAIN="$2"; shift ;;
             --subdomain) E2E_SUBDOMAIN="$2"; shift ;;
@@ -937,6 +1038,15 @@ main() {
     [[ -z "${command}" ]] && usage 1
     [[ "${command}" == "help" ]] && usage 0
 
+    ## Resolve the suite: full/workstation commands set it; phase/status/destroy
+    ## take --suite, else the saved state (loaded below), else the default:
+    case "${command}" in
+        full) E2E_SUITE="full" ;;
+        workstation) E2E_SUITE="workstation" ;;
+    esac
+    [[ "${E2E_SUITE}" == "full" || "${E2E_SUITE}" == "workstation" ]] \
+        || fault "Unknown suite '${E2E_SUITE}' (expected: full | workstation)."
+
     ## Normalize: accept a fully-qualified --subdomain (strip the domain):
     if [[ -n "${E2E_DOMAIN}" && -n "${E2E_SUBDOMAIN}" ]]; then
         if [[ "${E2E_SUBDOMAIN}" == *".${E2E_DOMAIN}" ]]; then
@@ -947,21 +1057,32 @@ main() {
             || fault "--subdomain must be a subdomain of --domain, not the domain itself."
     fi
 
-    ## Resolve the instance name, then merge saved state under CLI flags:
+    ## Resolve the instance name. Full derives it from the subdomain; the
+    ## workstation suite needs no domain, so it defaults to a fixed name:
     if [[ -z "${E2E_NAME}" ]]; then
-        [[ -n "${E2E_SUBDOMAIN}" ]] || fault "Either --name or --subdomain is required."
-        ## Droplet names, firewall names, and DO tags must stay in a common
-        ## safe charset (DO tags do not allow dots):
-        E2E_NAME="e2e-${E2E_SUBDOMAIN//./-}"
+        if [[ -n "${E2E_SUBDOMAIN}" ]]; then
+            ## DO tags/droplet/firewall names forbid dots:
+            E2E_NAME="e2e-${E2E_SUBDOMAIN//./-}"
+        elif [[ "${E2E_SUITE}" == "workstation" ]]; then
+            E2E_NAME="e2e-workstation"
+        else
+            fault "Either --name or --subdomain is required."
+        fi
     fi
     load_state
+    ## For phase/status/destroy without an explicit --suite, adopt the suite
+    ## saved in state (load_state set it if present):
+    [[ -z "${suite_explicit}" && "${command}" == "phase" && -n "${_STATE_SUITE:-}" ]] \
+        && E2E_SUITE="${_STATE_SUITE}"
 
     case "${command}" in
-        up|phase)
-            [[ -n "${E2E_DOMAIN}" ]] || fault "--domain is required."
-            [[ -n "${E2E_SUBDOMAIN}" ]] || fault "--subdomain is required."
-            ## Droplet names, firewall names, and DO tags share this name, so
-            ## it must stay in the common safe charset (DO tags forbid dots).
+        full|workstation|phase)
+            if [[ "${E2E_SUITE}" != "workstation" ]]; then
+                [[ -n "${E2E_DOMAIN}" ]] || fault "--domain is required for the full suite."
+                [[ -n "${E2E_SUBDOMAIN}" ]] || fault "--subdomain is required for the full suite."
+            fi
+            ## Droplet/firewall names and DO tags share this name, so it must
+            ## stay in the common safe charset (DO tags forbid dots).
             ## (destroy/status skip this check so they can clean up anything.)
             [[ "${E2E_NAME}" =~ ^[A-Za-z0-9][A-Za-z0-9-]*$ ]] \
                 || fault "--name '${E2E_NAME}' is invalid: use only letters, digits, and dashes."
@@ -974,7 +1095,7 @@ main() {
     trap on_exit EXIT
 
     case "${command}" in
-        up) cmd_up ;;
+        full|workstation) cmd_run ;;
         phase) cmd_phase ;;
         status) cmd_status ;;
         destroy) cmd_destroy ;;

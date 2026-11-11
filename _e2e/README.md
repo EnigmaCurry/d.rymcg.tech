@@ -10,7 +10,24 @@ route from the outside.
 It is a smoke test today, but it is structured to grow into an
 automatic installer that an end user could employ.
 
-## What it does
+## Suites
+
+The script runs one of two test suites:
+
+- **`full`** (aka `up`) - the complete d.rymcg.tech install on a fresh
+  server: droplet + DNS + Traefik + self-hosted acme-dns + a sampling
+  of apps, verified over HTTPS. Requires `--domain` and `--subdomain`.
+- **`workstation`** - sets up *only* the workstation tooling: the
+  Docker **CLI** (not the Docker server), uv, the d.rymcg.tech repo and
+  CLI on `PATH`. No DNS records, no firewall, no server apps. A
+  d.rymcg.tech workstation controls remote Docker servers; it is not
+  one itself. Needs no domain (defaults the droplet name to
+  `e2e-workstation`).
+
+Both suites host the workstation files under an unprivileged `admin`
+user (see below). The sections below describe the `full` suite.
+
+## What the full suite does
 
 1. **provision**: uploads an SSH key, creates a firewall
    (22/80/443, 53 tcp+udp and 2890 for acme-dns), and creates a Debian
@@ -66,11 +83,15 @@ sworkstation you can ssh into. Use `destroy` to tear everything down.
 ```bash
 export DIGITALOCEAN_ACCESS_TOKEN=dop_v1_...
 
-## Run everything (staging CA by default):
-d.rymcg.tech e2e up --domain example.com --subdomain e2e
+## Full install suite (staging CA by default):
+d.rymcg.tech e2e full --domain example.com --subdomain e2e
 
-## ... or standalone:
-_e2e/e2e.sh up --domain example.com --subdomain e2e
+## ... or standalone ('up' is an alias for 'full'):
+_e2e/e2e.sh full --domain example.com --subdomain e2e
+
+## Workstation-only suite (no domain needed):
+_e2e/e2e.sh workstation
+_e2e/e2e.sh destroy --name e2e-workstation --yes
 
 ## Real certificates (Let's Encrypt production):
 _e2e/e2e.sh up --domain example.com --subdomain e2e --production
