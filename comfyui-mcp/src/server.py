@@ -77,6 +77,104 @@ DEFAULT_NEGATIVE = (
 Resample = Literal["nearest", "box"]
 
 
+@dataclass(frozen=True)
+class Style:
+    """A named look: what to ask the model for, and how to finish the render.
+
+    A style is pure data. The downscale-and-quantize finish is the same code
+    for every style; what differs is how far down it goes. At 64px/16 colours
+    it is pixel art, at 768px/24 colours the same pass flattens gradients into
+    cel-shaded colour blocks, so resolution and palette are style fields
+    rather than global defaults.
+    """
+
+    name: str
+    description: str          # shown by list_styles; this is what steers a caller
+    prefix: str               # prepended to the caller's prompt
+    checkpoint: str = CHECKPOINT
+    loras: tuple[tuple[str, float], ...] = ()
+    negative: str = DEFAULT_NEGATIVE
+    steps: int = 25
+    cfg: float = 7.0
+    sampler: str = "euler_ancestral"
+    scheduler: str = "normal"
+    size: int = 64
+    size_range: tuple[int, int] = (8, 256)
+    colors: int = 16
+    resample: Resample = "nearest"
+    view_scale: int = 8
+    # Prepended to a refine instruction. A long refine chain otherwise drifts
+    # toward the edit model's own defaults and loses the look.
+    edit_prefix: str = ""
+
+
+STYLES: dict[str, Style] = {
+    s.name: s
+    for s in (
+        Style(
+            name="pixel-art",
+            description=(
+                "Classic sprite art: one colour per pixel on a true pixel grid, "
+                "small palette. Returned magnified so it is legible."
+            ),
+            prefix="pixel art",
+            loras=((LORA, 1.0),),
+        ),
+        Style(
+            name="cel-shaded",
+            description=(
+                "Flat cel-shaded animation art: bold ink lineart, solid colour "
+                "blocks, hard-edged shadows. Full resolution, not a sprite."
+            ),
+            prefix=(
+                "flat cel shaded animation still, bold clean ink lineart, "
+                "solid blocks of flat colour, hard-edged two-tone shadows, "
+                "no gradients, no texture, no visible brush strokes"
+            ),
+            negative=(
+                DEFAULT_NEGATIVE
+                + ", airbrush, painterly, grainy, sketchy, pencil lines, bloom"
+            ),
+            cfg=6.5,
+            size=768,
+            size_range=(256, BASE_RESOLUTION),
+            colors=24,
+            resample="box",
+            view_scale=1,
+            edit_prefix="keep the flat cel-shaded style with bold ink lineart",
+        ),
+    )
+}
+
+DEFAULT_STYLE = "pixel-art"
+
+# Built from the registry so the tool schema advertises the valid names and
+# clients can reject a bad one before it reaches the server. Job.style stays a
+# plain str: it is persisted data, and a job whose style was later renamed must
+# still load.
+StyleName = Literal[tuple(STYLES)]  # type: ignore[valid-type]
+
+
+def resolve_style(name: str) -> Style:
+    """Look up a style by name, rejecting unknown names with the valid list.
+
+    The tool schema already constrains this, so a rejection here means an
+    internal caller rather than a client that ignored the enum.
+    """
+    style = STYLES.get(name)
+    if style is None:
+        raise ValueError(
+            f"Unknown style {name!r}. Available: {', '.join(sorted(STYLES))}. "
+            "Call list_styles() for descriptions."
+        )
+    return style
+
+
+def style_for(job: Job) -> Style:
+    """Resolve a job's style, tolerating presets renamed since it was made."""
+    return STYLES.get(job.style, STYLES[DEFAULT_STYLE])
+
+
 @dataclass
 class Job:
     id: str
@@ -87,9 +185,10 @@ class Job:
     seed: int
     steps: int
     cfg: float
-    lora_strength: float
+    lora_strength: float | None      # None means use the style's own weights
     resample: str
     view_scale: int
+    style: str = DEFAULT_STYLE
     status: str = "queued"           # queued | running | completed | failed
     created_at: float = field(default_factory=time.time)
     finished_at: float | None = None
@@ -128,7 +227,7 @@ class Job:
     def summary(self) -> str:
         age = int(time.time() - self.created_at)
         line = (
-            f"{self.id}  [{self.status}]  {self.size}x{self.size} "
+            f"{self.id}  [{self.status}]  {self.style}  {self.size}px "
             f"{self.colors}c  seed={self.seed}  {age}s ago"
         )
         if self.parent_id:
@@ -171,29 +270,47 @@ def _prune_history() -> None:
 
 
 def build_workflow(job: Job) -> dict[str, Any]:
-    """ComfyUI API-format graph: checkpoint -> LoRA -> sample -> decode -> save."""
-    return {
+    """ComfyUI API-format graph: checkpoint -> LoRA chain -> sample -> decode -> save.
+
+    The LoRA chain comes from the style, so a style with no LoRAs wires the
+    sampler straight to the checkpoint rather than threading through a loader
+    at zero strength.
+    """
+    style = style_for(job)
+    graph: dict[str, Any] = {
         "1": {
             "class_type": "CheckpointLoaderSimple",
-            "inputs": {"ckpt_name": CHECKPOINT},
+            "inputs": {"ckpt_name": style.checkpoint},
         },
-        "2": {
+    }
+
+    model: list[Any] = ["1", 0]
+    clip: list[Any] = ["1", 1]
+    for i, (lora_name, default_strength) in enumerate(style.loras):
+        node = f"lora{i}"
+        # A caller-supplied strength overrides every LoRA in the style.
+        strength = default_strength if job.lora_strength is None else job.lora_strength
+        graph[node] = {
             "class_type": "LoraLoader",
             "inputs": {
-                "lora_name": LORA,
-                "strength_model": job.lora_strength,
-                "strength_clip": job.lora_strength,
-                "model": ["1", 0],
-                "clip": ["1", 1],
+                "lora_name": lora_name,
+                "strength_model": strength,
+                "strength_clip": strength,
+                "model": model,
+                "clip": clip,
             },
-        },
+        }
+        model, clip = [node, 0], [node, 1]
+
+    positive = f"{style.prefix}, {job.prompt}" if style.prefix else job.prompt
+    graph.update({
         "3": {
             "class_type": "CLIPTextEncode",
-            "inputs": {"text": f"pixel art, {job.prompt}", "clip": ["2", 1]},
+            "inputs": {"text": positive, "clip": clip},
         },
         "4": {
             "class_type": "CLIPTextEncode",
-            "inputs": {"text": job.negative_prompt, "clip": ["2", 1]},
+            "inputs": {"text": job.negative_prompt, "clip": clip},
         },
         "5": {
             "class_type": "EmptyLatentImage",
@@ -209,10 +326,10 @@ def build_workflow(job: Job) -> dict[str, Any]:
                 "seed": job.seed,
                 "steps": job.steps,
                 "cfg": job.cfg,
-                "sampler_name": "euler_ancestral",
-                "scheduler": "normal",
+                "sampler_name": style.sampler,
+                "scheduler": style.scheduler,
                 "denoise": 1.0,
-                "model": ["2", 0],
+                "model": model,
                 "positive": ["3", 0],
                 "negative": ["4", 0],
                 "latent_image": ["5", 0],
@@ -226,7 +343,21 @@ def build_workflow(job: Job) -> dict[str, Any]:
             "class_type": "SaveImage",
             "inputs": {"filename_prefix": f"pixelart/{job.id}", "images": ["7", 0]},
         },
-    }
+    })
+    return graph
+
+
+def edit_prompt(job: Job) -> str:
+    """The refine instruction, anchored to the style it is editing.
+
+    Styles that need it prepend a reminder of the look; pixel art does not,
+    because the downscale enforces its style on the way out regardless.
+    """
+    style = style_for(job)
+    instruction = job.instruction or ""
+    if style.edit_prefix and instruction:
+        return f"{style.edit_prefix}, {instruction}"
+    return instruction
 
 
 def build_edit_workflow(job: Job, uploaded_image: str) -> dict[str, Any]:
@@ -252,7 +383,7 @@ def build_edit_workflow(job: Job, uploaded_image: str) -> dict[str, Any]:
             "class_type": "TextEncodeQwenImageEditPlus",
             "inputs": {
                 "clip": ["2", 0],
-                "prompt": job.instruction or "",
+                "prompt": edit_prompt(job),
                 "vae": ["3", 0],
                 "image1": ["4", 0],
             },
@@ -493,14 +624,22 @@ transport_security = (
 mcp = FastMCP(
     name="pixel-art",
     instructions=(
-        "Generates and edits pixel art sprites with ComfyUI. Images are rendered "
-        "at full resolution, then downscaled onto a true pixel grid and quantized "
-        "to a small palette, so output is genuine one-colour-per-pixel sprite art.\n"
+        "Generates and edits stylised art with ComfyUI. Images are rendered at "
+        "full resolution, then downscaled and quantized to a fixed palette, "
+        "which is what gives every style here its flat, hard-edged look.\n"
+        "\n"
+        "Styles are presets. 'pixel-art' (the default) renders genuine "
+        "one-colour-per-pixel sprites; 'cel-shaded' renders full-resolution "
+        "flat animation art with bold lineart. Call list_styles() for the "
+        "current set and their defaults, then pass style='<name>' to "
+        "generate_pixel_art or import_image. Prompt wording, palette, size and "
+        "sampler settings all come from the style, so a prompt plus a style "
+        "name is usually all you need.\n"
         "\n"
         "Two ways in:\n"
-        "  - generate_pixel_art(prompt) to make a sprite from text. It blocks "
-        "until the image is ready unless you pass wait=false, in which case poll "
-        "get_job_status.\n"
+        "  - generate_pixel_art(prompt, style=...) to make an image from text. "
+        "It blocks until the image is ready unless you pass wait=false, in "
+        "which case poll get_job_status.\n"
         "  - To use an image you already have, call create_upload_ticket() for a "
         "single-use upload URL, POST the file to it yourself (curl, urllib, "
         "requests - no Authorization header needed), then import_image(image_id) "
@@ -511,18 +650,19 @@ mcp = FastMCP(
         "Either way you get a job id. From there:\n"
         "  - refine_pixel_art(job_id, instruction) applies a correction such as "
         "'remove the sword' or 'make the robe green'. It edits the stored "
-        "full-resolution render, not the sprite, then re-pixelates, so style is "
-        "preserved. Each refine makes a child job and leaves the parent intact, "
-        "so you can iterate, branch from any earlier job, or back out of a bad "
-        "edit by refining its parent again.\n"
-        "  - get_job_image(job_id, native=true) returns the sprite at its true "
-        "size (e.g. 64x64). That is the actual asset; the image returned by "
-        "default is magnified so it is legible in chat.\n"
+        "full-resolution render, not the downscaled asset, then re-applies the "
+        "style, so the look is preserved. Each refine makes a child job and "
+        "leaves the parent intact, so you can iterate, branch from any earlier "
+        "job, or back out of a bad edit by refining its parent again.\n"
+        "  - get_job_image(job_id, native=true) returns the asset at its true "
+        "size (e.g. 64x64 for a sprite). That is the real deliverable; small "
+        "styles are magnified by default so they are legible in chat.\n"
         "  - list_jobs() shows recent work with its refinement lineage.\n"
         "\n"
-        "Generation takes a few seconds; a refine takes under a minute. Palette "
-        "and size are inherited along a refine chain, so set them when you "
-        "generate or import."
+        "Generation takes a few seconds; a refine takes under a minute. Style, "
+        "palette and size are inherited along a refine chain, so set them when "
+        "you generate or import. A refine corrects an image; it cannot restyle "
+        "one, so generate again to change style."
     ),
     host=_env("COMFYUI_MCP_HOST", "0.0.0.0"),
     port=int(_env("COMFYUI_MCP_PORT", "8000")),
@@ -677,31 +817,45 @@ async def create_upload_ticket(ctx: Context) -> str:
 async def import_image(
     image_id: str,
     label: str = "",
-    size: int = 64,
-    colors: int = 16,
-    resample: Resample = "nearest",
-    view_scale: int = 8,
+    style: StyleName = DEFAULT_STYLE,
+    size: int | None = None,
+    colors: int | None = None,
+    resample: Resample | None = None,
+    view_scale: int | None = None,
 ) -> list[Any]:
-    """Turn an uploaded image into a sprite you can then refine.
+    """Turn an uploaded image into an asset you can then refine.
 
     Get the image_id by uploading the file first: call create_upload_ticket()
     for a single-use URL and POST the file to it. (Operators with the API
     token can instead run `make upload FILE=path.png` from the project
-    directory.) This pixelates the image and records it as an ordinary job,
-    so refine_pixel_art works on the result exactly as on a generated sprite.
+    directory.) This applies the style's downscale and palette to the image
+    and records it as an ordinary job, so refine_pixel_art works on the result
+    exactly as on a generated one.
+
+    The style's prompt wording is not used here - there is nothing to
+    generate - but its size, palette and refine behaviour all apply, so pick
+    the style you want later refines to preserve.
 
     Args:
         image_id: Handle returned by the upload endpoint.
         label: Optional description, shown in list_jobs. Also used as the
             prompt context if you later refine this image.
-        size: Sprite longest edge in real pixels (8-256). Proportions of the
-            uploaded image are preserved.
-        colors: Palette size (2-256).
+        style: Which style's size, palette and refine behaviour to adopt.
+        size: Longest edge in pixels, within the style's range. Proportions of
+            the uploaded image are preserved. Defaults to the style's.
+        colors: Palette size (2-256). Defaults to the style's.
         resample: Downscale filter, "nearest" (crisp) or "box" (softer).
         view_scale: Magnification of the returned preview (1-32).
     """
-    if not 8 <= size <= 256:
-        raise ValueError("size must be between 8 and 256")
+    st = resolve_style(style)
+    size = st.size if size is None else size
+    colors = st.colors if colors is None else colors
+    resample = st.resample if resample is None else resample
+    view_scale = st.view_scale if view_scale is None else view_scale
+
+    lo, hi = st.size_range
+    if not lo <= size <= hi:
+        raise ValueError(f"size must be between {lo} and {hi} for style {st.name!r}")
     if not 2 <= colors <= 256:
         raise ValueError("colors must be between 2 and 256")
     if not 1 <= view_scale <= 32:
@@ -723,9 +877,10 @@ async def import_image(
         seed=0,
         steps=0,
         cfg=0.0,
-        lora_strength=0.0,
+        lora_strength=None,
         resample=resample,
         view_scale=view_scale,
+        style=st.name,
         kind="import",
         status="running",
     )
@@ -755,9 +910,34 @@ async def import_image(
         dims = f"{im.width}x{im.height}"
     return [
         Image(data=view, format="png"),
-        f"Job {job.id}: imported as a {dims} sprite, {colors} colours. "
+        f"Job {job.id}: imported as a {dims} {st.name} asset, {colors} colours. "
         f"Refine it with refine_pixel_art('{job.id}', '<instruction>').",
     ]
+
+
+# structured_output=False: these return an Image alongside text, and the
+# structured-content path cannot serialize Image. This routes the result
+# through _convert_to_content, which handles it.
+@mcp.tool()
+async def list_styles() -> str:
+    """List the available art styles and what each one defaults to.
+
+    Pass one of these names as the `style` argument of generate_pixel_art or
+    import_image. Every other argument of those tools defaults to whatever the
+    style listed here calls for.
+    """
+    lines = []
+    for name in sorted(STYLES):
+        st = STYLES[name]
+        lo, hi = st.size_range
+        loras = ", ".join(n for n, _ in st.loras) if st.loras else "no LoRA"
+        lines.append(
+            f"{name}{' (default)' if name == DEFAULT_STYLE else ''}\n"
+            f"    {st.description}\n"
+            f"    {st.size}px default ({lo}-{hi} allowed), {st.colors} colours, "
+            f"{loras}"
+        )
+    return f"{len(STYLES)} style(s):\n\n" + "\n".join(lines)
 
 
 # structured_output=False: these return an Image alongside text, and the
@@ -767,45 +947,65 @@ async def import_image(
 async def generate_pixel_art(
     prompt: str,
     ctx: Context,
-    negative_prompt: str = DEFAULT_NEGATIVE,
-    size: int = 64,
-    colors: int = 16,
+    style: StyleName = DEFAULT_STYLE,
+    negative_prompt: str | None = None,
+    size: int | None = None,
+    colors: int | None = None,
     seed: int | None = None,
-    steps: int = 25,
-    cfg: float = 7.0,
-    lora_strength: float = 1.0,
-    resample: Resample = "nearest",
-    view_scale: int = 8,
+    steps: int | None = None,
+    cfg: float | None = None,
+    lora_strength: float | None = None,
+    resample: Resample | None = None,
+    view_scale: int | None = None,
     wait: bool = True,
 ) -> list[Any]:
-    """Generate a pixel art sprite.
+    """Generate art in one of the available styles.
+
+    Every argument except `prompt` defaults to whatever the chosen style calls
+    for, so passing a prompt and a style is enough. Call list_styles() to see
+    what each one is and what it defaults to.
 
     Args:
-        prompt: What to draw. "pixel art" is prepended automatically, so describe
-            the subject (e.g. "a knight in silver armor holding a sword, side view").
-        negative_prompt: What to avoid.
-        size: Sprite edge length in real pixels (8-256). 32-64 reads as classic
-            sprite work; 128 keeps more detail.
-        colors: Palette size (2-256). 16 is a typical retro palette.
+        prompt: What to draw. The style's own prompt wording is prepended
+            automatically, so describe only the subject (e.g. "a knight in
+            silver armor holding a sword, side view").
+        style: Which look to render. Defaults to "pixel-art".
+        negative_prompt: What to avoid. Defaults to the style's.
+        size: Longest edge of the output in pixels. Allowed range and default
+            depend on the style: pixel-art is 8-256 (64 reads as classic sprite
+            work), cel-shaded is 256-1024.
+        colors: Palette size (2-256). Defaults to the style's.
         seed: Fixed seed for reproducibility. Omit for a random one.
-        steps: Sampler steps (1-100).
-        cfg: Prompt adherence (1.0-20.0).
-        lora_strength: Pixel-art LoRA weight (0.0-2.0). Above ~1.2 flattens detail.
-        resample: Downscale filter. "nearest" keeps edges crisp and is the default;
-            "box" averages, which is softer but steadier on noisy renders.
-        view_scale: Nearest-neighbour magnification of the returned preview, so the
-            sprite is legible. The saved sprite is always at native size.
+        steps: Sampler steps (1-100). Defaults to the style's.
+        cfg: Prompt adherence (1.0-20.0). Defaults to the style's.
+        lora_strength: Overrides the weight of every LoRA the style uses
+            (0.0-2.0). For pixel-art, above ~1.2 flattens detail. No effect on
+            styles that use no LoRA.
+        resample: Downscale filter. "nearest" keeps edges crisp and suits
+            sprites; "box" averages and suits full-resolution styles.
+        view_scale: Nearest-neighbour magnification of the returned preview, so
+            small output is legible. The saved asset is always at native size.
         wait: Block until the image is ready. Set false to return a job id instead.
     """
-    if not 8 <= size <= 256:
-        raise ValueError("size must be between 8 and 256")
+    st = resolve_style(style)
+    negative_prompt = st.negative if negative_prompt is None else negative_prompt
+    size = st.size if size is None else size
+    colors = st.colors if colors is None else colors
+    steps = st.steps if steps is None else steps
+    cfg = st.cfg if cfg is None else cfg
+    resample = st.resample if resample is None else resample
+    view_scale = st.view_scale if view_scale is None else view_scale
+
+    lo, hi = st.size_range
+    if not lo <= size <= hi:
+        raise ValueError(f"size must be between {lo} and {hi} for style {st.name!r}")
     if not 2 <= colors <= 256:
         raise ValueError("colors must be between 2 and 256")
     if not 1 <= steps <= 100:
         raise ValueError("steps must be between 1 and 100")
     if not 1.0 <= cfg <= 20.0:
         raise ValueError("cfg must be between 1.0 and 20.0")
-    if not 0.0 <= lora_strength <= 2.0:
+    if lora_strength is not None and not 0.0 <= lora_strength <= 2.0:
         raise ValueError("lora_strength must be between 0.0 and 2.0")
     if not 1 <= view_scale <= 32:
         raise ValueError("view_scale must be between 1 and 32")
@@ -822,6 +1022,7 @@ async def generate_pixel_art(
         lora_strength=lora_strength,
         resample=resample,
         view_scale=view_scale,
+        style=st.name,
     )
     DATA_DIR.mkdir(parents=True, exist_ok=True)
     JOBS[job.id] = job
@@ -839,11 +1040,18 @@ async def generate_pixel_art(
         raise RuntimeError(f"Generation failed: {job.error}")
 
     took = int((job.finished_at or time.time()) - job.created_at)
+    with PILImage.open(job.sprite_path) as im:
+        dims = f"{im.width}x{im.height}"
+    magnified = (
+        f"Preview shown at {view_scale}x; the asset itself is {dims}. "
+        if view_scale > 1
+        else ""
+    )
     return [
         Image(data=job.view_path.read_bytes(), format="png"),
-        f"Job {job.id}: {size}x{size} sprite, {colors} colours, seed {job.seed}, "
-        f"{took}s. Preview shown at {view_scale}x; native sprite saved as "
-        f"{job.sprite_path.name} (fetch with get_job_image('{job.id}', native=true)).",
+        f"Job {job.id}: {dims} {st.name}, {colors} colours, seed {job.seed}, "
+        f"{took}s. {magnified}Fetch the asset with "
+        f"get_job_image('{job.id}', native=true).",
     ]
 
 
@@ -863,14 +1071,17 @@ async def refine_pixel_art(
     view_scale: int | None = None,
     wait: bool = True,
 ) -> list[Any]:
-    """Refine an existing sprite with a corrective instruction.
+    """Refine an existing image with a corrective instruction.
 
     Describe the change, not the whole scene: "remove the sword", "make the
     eyes blue", "give it a red hat". The instruction is applied to the stored
     full-resolution render of the parent job, then the result is downscaled
-    and quantized exactly as the original was, so the sprite style carries
-    over. The parent is left untouched and a new child job is returned, so you
-    can refine repeatedly or branch from any earlier job.
+    and quantized exactly as the original was, so the style carries over. The
+    parent is left untouched and a new child job is returned, so you can
+    refine repeatedly or branch from any earlier job.
+
+    The style is inherited from the parent and cannot be changed here; a
+    refine corrects an image, it does not restyle it.
 
     Args:
         job_id: The job to refine, from generate_pixel_art or a previous refine.
@@ -905,8 +1116,11 @@ async def refine_pixel_art(
     size = parent.size if size is None else size
     colors = parent.colors if colors is None else colors
     view_scale = parent.view_scale if view_scale is None else view_scale
-    if not 8 <= size <= 256:
-        raise ValueError("size must be between 8 and 256")
+    lo, hi = style_for(parent).size_range
+    if not lo <= size <= hi:
+        raise ValueError(
+            f"size must be between {lo} and {hi} for style {parent.style!r}"
+        )
     if not 2 <= colors <= 256:
         raise ValueError("colors must be between 2 and 256")
     if not 1 <= view_scale <= 32:
@@ -927,6 +1141,7 @@ async def refine_pixel_art(
         kind="refine",
         parent_id=parent.id,
         instruction=instruction,
+        style=parent.style,
     )
     JOBS[job.id] = job
     job.save()

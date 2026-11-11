@@ -20,6 +20,32 @@ The returned preview is magnified with nearest neighbour so it is legible in
 a chat client; the sprite is also kept at its native size (64x64 and the
 like) and can be fetched with `get_job_image(job_id, native=true)`.
 
+## Styles
+
+A style is a preset: a prompt prefix, a negative prompt, an optional LoRA
+chain, sampler settings, and the output size and palette. Pass `style=` to
+`generate_pixel_art` or `import_image`, or call `list_styles()` to see the
+current set. Everything else defaults to whatever the style calls for, so a
+prompt and a style name are usually enough.
+
+| Style | Output | What it is |
+|---|---|---|
+| `pixel-art` (default) | 64px, 16 colours | Classic sprite art, one colour per pixel, via the pixel-art-xl LoRA. |
+| `cel-shaded` | 768px, 24 colours | Flat animation art: bold ink lineart, solid colour blocks, hard-edged shadows. No LoRA. |
+
+Both styles share the same finish. The downscale-and-quantize pass is what
+flattens a render, and how far down it goes is the whole difference: at
+64px/16 colours it lands on a pixel grid, at 768px/24 colours it collapses
+gradients into cel-shaded colour blocks. So `cel-shaded` needs no LoRA and
+no extra code - only different numbers.
+
+Adding a style means adding a `Style` entry in `src/server.py`, and nothing
+else: the `style` argument is typed from the registry, so the tool schema
+advertises the new name as an enum value and clients reject anything else
+before it reaches the server. If a style ever needs a full-colour finish
+with no quantization at all, that is the point at which the finish stage has
+to become a field rather than a shared pass.
+
 ## Using your own image
 
 Uploads deliberately go through a side channel rather than a tool argument.
@@ -207,25 +233,37 @@ If you left the token blank, drop the `--header` argument.
 
 | Tool | Purpose |
 |---|---|
-| `generate_pixel_art` | Generate a sprite from a prompt. Blocks until done unless `wait=false`. |
+| `generate_pixel_art` | Generate an image from a prompt in the chosen style. Blocks until done unless `wait=false`. |
+| `list_styles` | List the available styles and their defaults. |
 | `create_upload_ticket` | Get a single-use, credential-free URL for uploading your own image. |
-| `import_image` | Turn an uploaded image into a sprite job you can then refine. |
+| `import_image` | Turn an uploaded image into a job you can then refine. |
 | `refine_pixel_art` | Apply a corrective instruction to an existing job, returning a child job. |
 | `get_job_status` | Check a job, returning the image once it has finished. |
 | `list_jobs` | List recent jobs, newest first, showing refinement lineage. |
 | `get_job_image` | Re-fetch a previous image, native size or magnified preview. |
 
-`generate_pixel_art` takes `prompt` plus optional `negative_prompt`, `size`
-(8-256, default 64), `colors` (2-256, default 16), `seed`, `steps`, `cfg`,
-`lora_strength`, `resample` (`nearest` or `box`), `view_scale`, and `wait`.
+`generate_pixel_art` takes `prompt` plus optional `style` (default
+`pixel-art`), `negative_prompt`, `size`, `colors` (2-256), `seed`, `steps`,
+`cfg`, `lora_strength`, `resample` (`nearest` or `box`), `view_scale`, and
+`wait`. Every one of those except `prompt` and `wait` defaults to the
+style's own value, and the allowed `size` range is per style: 8-256 for
+`pixel-art`, 256-1024 for `cel-shaded`.
 
-The string `pixel art` is prepended to every prompt, so describe just the
-subject: `a knight in silver armor holding a sword, side view`.
+The style's prompt wording is prepended automatically, so describe just the
+subject: `a knight in silver armor holding a sword, side view`. Note that
+the style does not force a palette on the subject - that prompt renders
+nearly monochrome under `cel-shaded` simply because silver armour is grey.
+
+`lora_strength` overrides the weight of every LoRA in the style, and has no
+effect on a style that uses none.
 
 `refine_pixel_art` takes `job_id` and `instruction`, plus optional `size`,
 `colors`, `seed`, `steps`, `cfg` (default 2.5; higher tends to over-apply
-the edit), `view_scale` and `wait`. Size, palette and preview scale default
-to the parent job's.
+the edit), `view_scale` and `wait`. Style, size, palette and preview scale
+are inherited from the parent job; style cannot be overridden, because a
+refine corrects an image rather than restyling it. Styles that need it
+prepend a reminder of the look to the instruction so a long refine chain
+does not drift toward the edit model's defaults.
 
 Generation takes a couple of seconds once SDXL is resident; a refinement
 takes appreciably longer, since the edit model is a separate ~19GB load and
