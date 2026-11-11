@@ -1015,6 +1015,51 @@ choose_ssh_pubkey() {
     fi
 }
 
+## Multi-select the apps to install from the repo's web projects (those with a
+## *_TRAEFIK_HOST route), pre-checking the current/default selection. Stores a
+## comma-separated list in E2E_APPS. Falls back to free text if none are found:
+choose_apps() {
+    local all_apps=() defaults=() selected=() out rc a want default_json
+    readarray -t all_apps < <(
+        cd "${ROOT_DIR}" 2>/dev/null || exit 0
+        for d in */; do
+            d="${d%/}"
+            [[ -f "${d}/.env-dist" && -f "${d}/Makefile" ]] || continue
+            grep -qE '_TRAEFIK_HOST=' "${d}/.env-dist" || continue
+            echo "${d}"
+        done | sort
+    )
+    if [[ ${#all_apps[@]} -eq 0 ]]; then
+        ask "Apps to install (comma-separated)" E2E_APPS \
+            "${E2E_APPS:-whoami,datetime,it-tools,excalidraw,privatebin}"
+        return
+    fi
+    ## Pre-check the current (or default) apps that actually exist:
+    local want_list="${E2E_APPS:-whoami,datetime,it-tools,excalidraw,privatebin}"
+    for want in ${want_list//,/ }; do
+        printf '%s\n' "${all_apps[@]}" | grep -qxF "${want}" && defaults+=("${want}")
+    done
+    default_json="["
+    local first=1
+    for a in "${defaults[@]}"; do
+        [[ ${first} -eq 1 ]] && first=0 || default_json+=","
+        default_json+="\"${a}\""
+    done
+    default_json+="]"
+
+    while :; do
+        rc=0
+        out=$(wizard select --cancel-code=2 \
+            "Select apps to install (space toggles, enter confirms)" \
+            "${all_apps[@]}" --default "${default_json}") || rc=$?
+        [[ ${rc} -eq 2 ]] && fault "Config cancelled."
+        readarray -t selected < <(printf '%s\n' "${out}" | grep -v '^$')
+        [[ ${#selected[@]} -gt 0 ]] && break
+        echo "Select at least one app (press space to toggle items)."
+    done
+    E2E_APPS=$(IFS=,; echo "${selected[*]}")
+}
+
 cmd_config() {
     [[ -t 0 ]] || fault "'config' is interactive; run it in a terminal."
     ## Make sure script-wizard is available for the menu prompts:
@@ -1053,21 +1098,7 @@ cmd_config() {
             production*) E2E_ACME_CA="acme-v02.api.letsencrypt.org" ;;
             *)           E2E_ACME_CA="acme-staging-v02.api.letsencrypt.org" ;;
         esac
-        ## Apps (comma-separated), validated against the repo's project dirs so
-        ## typos are caught here instead of mid-install:
-        local bad a
-        while :; do
-            ask "Apps to install (comma-separated)" E2E_APPS \
-                "${E2E_APPS:-whoami,datetime,it-tools,excalidraw,privatebin}"
-            bad=""
-            for a in ${E2E_APPS//,/ }; do
-                [[ -f "${ROOT_DIR}/${a}/.env-dist" && -f "${ROOT_DIR}/${a}/Makefile" ]] \
-                    || bad+=" ${a}"
-            done
-            [[ -z "${bad}" ]] && break
-            echo "Unknown app(s):${bad}"
-            echo "Run 'd.rymcg.tech list' (or see the project dirs) for valid names."
-        done
+        choose_apps
     else
         ## Workstation needs none of the DNS/cert/app settings:
         E2E_DOMAIN=""
