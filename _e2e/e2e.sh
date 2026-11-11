@@ -933,22 +933,86 @@ require_run_config() {
         || fault "SSH public key '${E2E_SSH_PUBKEY}' not found. Re-run:  $0 make ${E2E_NAME} config"
 }
 
-## Set E2E_REGION by selecting from the DigitalOcean regions API (script-wizard
-## menu). Falls back to a free-text prompt if doctl can't list regions:
-choose_region() {
-    local labels=() opts=() default="" choice lbl
-    readarray -t labels < <(doctl compute region list --format Slug,Name --no-header 2>/dev/null || true)
+## Select a slug from a DigitalOcean list (script-wizard menu). Labels are read
+## from stdin, one per line, with the slug as the first whitespace-delimited
+## field; the chosen slug is stored in the named variable. Falls back to a
+## free-text prompt when the list is empty (e.g. doctl not authenticated):
+_choose_slug() {
+    local __var="$1" __prompt="$2" __default="$3"
+    local labels=() opts=() dflt="" lbl choice
+    readarray -t labels
     if [[ ${#labels[@]} -eq 0 ]]; then
-        ask "Droplet region (slug)" E2E_REGION "${E2E_REGION:-nyc2}"
+        ask "${__prompt} (slug)" "${__var}" "${__default}"
         return
     fi
     for lbl in "${labels[@]}"; do
         opts+=("${lbl}")
-        [[ "$(awk '{print $1}' <<< "${lbl}")" == "${E2E_REGION:-nyc2}" ]] && default="${lbl}"
+        [[ "$(awk '{print $1}' <<< "${lbl}")" == "${__default}" ]] && dflt="${lbl}"
     done
-    choice=$(wizard choose "Droplet region" "${opts[@]}" \
-        --default "${default:-${opts[0]}}") || fault "Config cancelled."
-    E2E_REGION=$(awk '{print $1}' <<< "${choice}")
+    choice=$(wizard choose "${__prompt}" "${opts[@]}" \
+        --default "${dflt:-${opts[0]}}") || fault "Config cancelled."
+    printf -v "${__var}" '%s' "$(awk '{print $1}' <<< "${choice}")"
+}
+
+choose_region() {
+    _choose_slug E2E_REGION "Droplet region" "${E2E_REGION:-nyc2}" \
+        < <(doctl compute region list --format Slug,Name --no-header 2>/dev/null || true)
+}
+
+choose_size() {
+    _choose_slug E2E_SIZE "Droplet size (slug  vCPUs  MemMB  DiskGB  \$/mo)" \
+        "${E2E_SIZE:-s-2vcpu-4gb}" \
+        < <(doctl compute size list \
+                --format Slug,VCPUs,Memory,Disk,PriceMonthly --no-header 2>/dev/null || true)
+}
+
+choose_image() {
+    ## list-distribution = base OS images only (not one-click app images). The
+    ## bootstrap only supports Debian-based images, so filter to those:
+    _choose_slug E2E_IMAGE "Droplet image (Debian/Ubuntu)" "${E2E_IMAGE:-debian-13-x64}" \
+        < <(doctl compute image list-distribution --public \
+                --format Slug,Distribution --no-header 2>/dev/null \
+                | grep -iE 'debian|ubuntu' | sort || true)
+}
+
+## Select the parent domain from the account's DigitalOcean-managed zones:
+choose_domain() {
+    local domains=() d found="" choice
+    readarray -t domains < <(doctl compute domain list --format Domain --no-header 2>/dev/null || true)
+    if [[ ${#domains[@]} -eq 0 ]]; then
+        ask_no_blank "Parent domain (must be managed by DigitalOcean DNS)" \
+            E2E_DOMAIN "${E2E_DOMAIN}"
+        return
+    fi
+    for d in "${domains[@]}"; do [[ "${d}" == "${E2E_DOMAIN}" ]] && found=1; done
+    choice=$(wizard choose "Parent domain (DigitalOcean-managed)" "${domains[@]}" \
+        --default "$( [[ -n "${found}" ]] && echo "${E2E_DOMAIN}" || echo "${domains[0]}")") \
+        || fault "Config cancelled."
+    E2E_DOMAIN="${choice}"
+}
+
+## Select the SSH public key to install from ~/.ssh/*.pub (with an escape to
+## enter a custom path):
+choose_ssh_pubkey() {
+    local pubs=() opts=() f found="" choice
+    local other="Other (enter a path)"
+    readarray -t pubs < <(ls -1 "${HOME}"/.ssh/*.pub 2>/dev/null || true)
+    if [[ ${#pubs[@]} -eq 0 ]]; then
+        ask_no_blank "SSH public key to install" E2E_SSH_PUBKEY \
+            "${E2E_SSH_PUBKEY:-${HOME}/.ssh/id_ed25519.pub}"
+        return
+    fi
+    opts=("${pubs[@]}" "${other}")
+    for f in "${opts[@]}"; do [[ "${f}" == "${E2E_SSH_PUBKEY}" ]] && found=1; done
+    choice=$(wizard choose "SSH public key to install" "${opts[@]}" \
+        --default "$( [[ -n "${found}" ]] && echo "${E2E_SSH_PUBKEY}" || echo "${pubs[0]}")") \
+        || fault "Config cancelled."
+    if [[ "${choice}" == "${other}" ]]; then
+        ask_no_blank "Enter SSH public key path" E2E_SSH_PUBKEY \
+            "${E2E_SSH_PUBKEY:-${HOME}/.ssh/id_ed25519.pub}"
+    else
+        E2E_SSH_PUBKEY="${choice}"
+    fi
 }
 
 cmd_config() {
@@ -967,18 +1031,16 @@ cmd_config() {
     [[ -n "${E2E_SUITE}" ]] || fault "Config cancelled."
 
     choose_region
-    ask "Droplet size" E2E_SIZE "${E2E_SIZE:-s-2vcpu-4gb}"
-    ask "Droplet image" E2E_IMAGE "${E2E_IMAGE:-debian-13-x64}"
+    choose_size
+    choose_image
     ask "Admin (workstation) username" E2E_ADMIN_USER "${E2E_ADMIN_USER:-admin}"
-    ask_no_blank "SSH public key to install" E2E_SSH_PUBKEY \
-        "${E2E_SSH_PUBKEY:-${HOME}/.ssh/id_ed25519.pub}"
+    choose_ssh_pubkey
     ask "Git remote to clone on the droplet" E2E_GIT_URL \
         "${E2E_GIT_URL:-https://github.com/EnigmaCurry/d.rymcg.tech.git}"
     ask "Git ref (branch/tag/sha)" E2E_GIT_REF "${E2E_GIT_REF:-master}"
 
     if [[ "${E2E_SUITE}" == "full" ]]; then
-        ask_no_blank "Parent domain (must be managed by DigitalOcean DNS)" \
-            E2E_DOMAIN "${E2E_DOMAIN}"
+        choose_domain
         ask_no_blank "Subdomain for this test to own (under ${E2E_DOMAIN})" \
             E2E_SUBDOMAIN "${E2E_SUBDOMAIN:-${E2E_NAME}}"
         local ca
@@ -991,8 +1053,21 @@ cmd_config() {
             production*) E2E_ACME_CA="acme-v02.api.letsencrypt.org" ;;
             *)           E2E_ACME_CA="acme-staging-v02.api.letsencrypt.org" ;;
         esac
-        ask "Apps to install (comma-separated)" E2E_APPS \
-            "${E2E_APPS:-whoami,datetime,it-tools,excalidraw,privatebin}"
+        ## Apps (comma-separated), validated against the repo's project dirs so
+        ## typos are caught here instead of mid-install:
+        local bad a
+        while :; do
+            ask "Apps to install (comma-separated)" E2E_APPS \
+                "${E2E_APPS:-whoami,datetime,it-tools,excalidraw,privatebin}"
+            bad=""
+            for a in ${E2E_APPS//,/ }; do
+                [[ -f "${ROOT_DIR}/${a}/.env-dist" && -f "${ROOT_DIR}/${a}/Makefile" ]] \
+                    || bad+=" ${a}"
+            done
+            [[ -z "${bad}" ]] && break
+            echo "Unknown app(s):${bad}"
+            echo "Run 'd.rymcg.tech list' (or see the project dirs) for valid names."
+        done
     else
         ## Workstation needs none of the DNS/cert/app settings:
         E2E_DOMAIN=""
