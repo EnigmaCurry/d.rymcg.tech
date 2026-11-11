@@ -278,9 +278,11 @@ e2e_remote() {
     echo "+ [remote] $*" >&2
     local attempt rc
     for attempt in 1 2 3 4 5 6; do
+        rc=0
+        ## '|| rc=$?' keeps the ssh failure from tripping `set -e` here, so the
+        ## retry loop always runs regardless of how e2e_remote was called:
         ssh -o StrictHostKeyChecking=accept-new -o BatchMode=yes \
-            -o ConnectTimeout=15 "root@${DROPLET_IP}" "$@" < /dev/null
-        rc=$?
+            -o ConnectTimeout=20 "root@${DROPLET_IP}" "$@" < /dev/null || rc=$?
         [[ ${rc} -ne 255 ]] && return ${rc}
         [[ ${attempt} -eq 6 ]] && return 255
         echo "## [retry] ssh connection failed (exit 255); attempt ${attempt}/6, backing off $((attempt * 4))s ..." >&2
