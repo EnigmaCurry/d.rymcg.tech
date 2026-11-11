@@ -158,7 +158,16 @@ if ! docker context inspect "${CONTEXT}" >/dev/null 2>&1; then
         --description "Created by d.rymcg.tech e2e bootstrap" \
         --docker "host=ssh://${CONTEXT}"
 fi
-docker context use "${CONTEXT}"
+## IMPORTANT: do NOT 'docker context use ${CONTEXT}'. Root's ambient context
+## must stay 'default' (the unix socket). The e2e context points at
+## ssh://localhost (i.e. this host); if it were root's current context, then
+## 'docker --context ${CONTEXT} info' would ssh to localhost and run
+## 'docker system dial-stdio', which - inheriting root's current context -
+## would ssh to localhost again, recursing into a connection storm that sshd
+## resets ("Connection reset by 127.0.0.1 port 22"). The orchestrator and the
+## d.rymcg.tech CLI select this context explicitly via DOCKER_CONTEXT per
+## command, so leaving root on 'default' is correct.
+docker context use default >/dev/null 2>&1 || true
 ## Verify the context reaches the daemon over ssh. Bounded + verbose so a slow
 ## or wedged ssh/docker connection surfaces instead of hanging silently:
 echo "## [bootstrap] Verifying Docker context '${CONTEXT}' over ssh ..."
@@ -187,6 +196,13 @@ export EDITOR=${EDITOR:-nano}
 export PATH=${PATH}:${HOME}/.local/bin:${HOME}/git/vendor/enigmacurry/d.rymcg.tech/_scripts/user
 eval "$(d.rymcg.tech completion bash)"
 __d.rymcg.tech_cli_alias d
+## Keep the root shell on the default (unix socket) context. The e2e context
+## is ssh://localhost (this host); using it as the ambient context would make
+## 'docker system dial-stdio' recurse over ssh. The 'd' aliases select the
+## context explicitly per command, so this is purely a safety default:
+if [ "$(whoami)" = "root" ]; then
+  export DOCKER_CONTEXT=default
+fi
 ## Add d.rymcg.tech alias for each Docker context:
 EOF
 cat <<EOF >> "${HOME}/.config/d.rymcg.tech/bashrc"
