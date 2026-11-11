@@ -196,13 +196,13 @@ export EDITOR=${EDITOR:-nano}
 export PATH=${PATH}:${HOME}/.local/bin:${HOME}/git/vendor/enigmacurry/d.rymcg.tech/_scripts/user
 eval "$(d.rymcg.tech completion bash)"
 __d.rymcg.tech_cli_alias d
-## Keep the root shell on the default (unix socket) context. The e2e context
-## is ssh://localhost (this host); using it as the ambient context would make
-## 'docker system dial-stdio' recurse over ssh. The 'd' aliases select the
-## context explicitly per command, so this is purely a safety default:
-if [ "$(whoami)" = "root" ]; then
-  export DOCKER_CONTEXT=default
-fi
+## NOTE: deliberately NOT exporting DOCKER_CONTEXT here. bash sources this
+## (via ~/.bashrc) even for non-interactive ssh commands - including the
+## fresh bash that make's $(shell docker_context) spawns - so exporting
+## DOCKER_CONTEXT here would override the e2e context the orchestrator sets
+## per command and make every project Makefile include the wrong .env file.
+## Recursion safety comes from the stored current context being 'default'
+## (set with 'docker context use default' in the bootstrap), not from here.
 ## Add d.rymcg.tech alias for each Docker context:
 EOF
 cat <<EOF >> "${HOME}/.config/d.rymcg.tech/bashrc"
