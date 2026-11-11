@@ -19,9 +19,11 @@
 ## The droplet is KEPT by default (it remains a usable sworkstation);
 ## use the destroy command to tear everything down.
 ##
+## Authenticate doctl first (one-time): `doctl auth init`. This script uses
+## whatever DigitalOcean account doctl is logged into.
+##
 ## Usage:
-##   export DIGITALOCEAN_ACCESS_TOKEN=...
-##   _e2e/e2e.sh up --domain example.com --subdomain e2e
+##   _e2e/e2e.sh full --domain example.com --subdomain e2e
 ##   _e2e/e2e.sh status --name e2e-e2e
 ##   _e2e/e2e.sh destroy --name e2e-e2e --yes
 ##
@@ -108,8 +110,10 @@ Commands:
   destroy       Tear down droplet, firewall, SSH key, and DNS records
   help          Show this help
 
+Authentication: run 'doctl auth init' first; this script uses whatever
+DigitalOcean account doctl is logged into.
+
 Options:
-  --token TOKEN      DigitalOcean API token (or env DIGITALOCEAN_ACCESS_TOKEN)
   --domain DOMAIN    Parent domain managed by DigitalOcean DNS (full: required)
   --subdomain SUB    Subdomain to own; ROOT_DOMAIN=SUB.DOMAIN (full: required)
   --name NAME        Droplet/context/resource name (full default: e2e-SUB;
@@ -409,10 +413,8 @@ tls_probe() {
 
 phase_preflight() {
     "${BIN}/check_deps" doctl ssh git jq curl awk sed openssl dig
-    if [[ -z "${DIGITALOCEAN_ACCESS_TOKEN:-}" ]]; then
-        echo "NOTE: DIGITALOCEAN_ACCESS_TOKEN is not set; relying on existing doctl auth."
-    fi
-    doctl account get > /dev/null || fault "doctl is not authenticated (set DIGITALOCEAN_ACCESS_TOKEN or --token)."
+    doctl account get > /dev/null \
+        || fault "doctl is not authenticated. Run 'doctl auth init' first."
     if [[ "${E2E_SUITE}" != "workstation" ]]; then
         doctl compute domain get "${E2E_DOMAIN}" > /dev/null \
             || fault "Domain '${E2E_DOMAIN}' is not managed by this DigitalOcean account."
@@ -1012,7 +1014,6 @@ main() {
             status|destroy|help) command="$1" ;;
             phase) command="phase"; E2E_PHASE="${2:-}"; shift ;;
             --suite) E2E_SUITE="$2"; suite_explicit=1; shift ;;
-            --token) export DIGITALOCEAN_ACCESS_TOKEN="$2"; shift ;;
             --domain) E2E_DOMAIN="$2"; shift ;;
             --subdomain) E2E_SUBDOMAIN="$2"; shift ;;
             --name) E2E_NAME="$2"; shift ;;

@@ -72,17 +72,25 @@ sworkstation you can ssh into. Use `destroy` to tear everything down.
 
 ## Requirements
 
-* A DigitalOcean account and a [personal access token](https://docs.digitalocean.com/reference/api/create-personal-access-token/)
-  with write access.
-* A domain (or delegated zone) **managed by DigitalOcean DNS**.
 * `doctl`, `ssh`, `git`, `jq`, `curl`, `dig`, `openssl` on your PATH.
+* **doctl authenticated to your DigitalOcean account** with write
+  access. Authenticate once with:
+
+  ```bash
+  doctl auth init   # paste a personal access token when prompted
+  ```
+
+  The e2e script never takes a token of its own - it uses whatever
+  account doctl is logged into, so the token lives only in doctl's
+  config. (See DigitalOcean's docs for creating a
+  [personal access token](https://docs.digitalocean.com/reference/api/create-personal-access-token/).)
+* A domain (or delegated zone) **managed by DigitalOcean DNS** (full
+  suite only).
 * An SSH public key (`~/.ssh/id_ed25519.pub` by default).
 
 ## Usage
 
 ```bash
-export DIGITALOCEAN_ACCESS_TOKEN=dop_v1_...
-
 ## Full install suite (staging CA by default):
 d.rymcg.tech e2e full --domain example.com --subdomain e2e
 
