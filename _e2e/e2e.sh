@@ -131,6 +131,8 @@ Runtime options (override the config for this run):
 
 Authentication: run 'doctl auth init' first; this script uses whatever
 DigitalOcean account doctl is logged into.
+
+Docs: https://github.com/EnigmaCurry/d.rymcg.tech/blob/master/_e2e/README.md
 EOF
     exit "${1:-0}"
 }
