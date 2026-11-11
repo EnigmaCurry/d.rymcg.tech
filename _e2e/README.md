@@ -122,3 +122,10 @@ existing droplet completes in a few minutes.
   before they can join the list.
 * The first `make` invocations on the droplet are slow (image pulls,
   tooling); raise `--timeout` if a small droplet times out in `wait`.
+* The droplet is provisioned with `_e2e/user_data_docker_debian.yaml`
+  (Docker install plus a small sshd tweak). It disables OpenSSH 10's
+  `PerSourcePenalties`, because the e2e flow connects repeatedly while
+  the droplet is still booting and the sworkstation ssh's to itself on
+  every docker call — both patterns otherwise trip the penalty and get
+  connections reset. The droplet sits behind a DigitalOcean firewall,
+  so the host-level penalty adds little.

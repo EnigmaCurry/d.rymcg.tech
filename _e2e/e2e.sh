@@ -419,7 +419,7 @@ phase_provision() {
         DROPLET_ID=$(doctl compute droplet create "${E2E_NAME}" \
             --region "${E2E_REGION}" --size "${E2E_SIZE}" --image "${E2E_IMAGE}" \
             --ssh-keys "${SSH_KEY_ID}" --tag-names "${E2E_NAME}" \
-            --user-data-file "${BIN}/gumdrop_user_data/docker-debian.yaml" \
+            --user-data-file "${E2E_DIR}/user_data_docker_debian.yaml" \
             --wait --format ID --no-header)
     fi
     echo "Droplet id: ${DROPLET_ID}"
