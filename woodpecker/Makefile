@@ -56,7 +56,7 @@ override-hook:
 ####                         # (this hardcodes the string into docker-compose.override.yaml)
 ####   name=@VARIABLE_NAME   # sets the template 'name' field to the literal string '${VARIABLE_NAME}'
 ####                         # (used for regular docker-compose expansion of env vars by name.)
-	@${BIN}/docker_compose_override ${ENV_FILE} project=:woodpecker instance=@WOODPECKER_INSTANCE traefik_host=@WOODPECKER_TRAEFIK_HOST grpc_host=@WOODPECKER_GRPC_HOST ip_sourcerange=@WOODPECKER_IP_SOURCERANGE
+	@${BIN}/docker_compose_override ${ENV_FILE} project=:woodpecker instance=@WOODPECKER_INSTANCE traefik_host=@WOODPECKER_TRAEFIK_HOST grpc_host=@WOODPECKER_GRPC_HOST ip_sourcerange=@WOODPECKER_IP_SOURCERANGE traefik_entrypoint=WOODPECKER_TRAEFIK_ENTRYPOINT
 
 .PHONY: install-hook-pre
 install-hook-pre:
