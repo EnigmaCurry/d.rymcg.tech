@@ -96,15 +96,20 @@ remove_ssh_host_entry() {
     fi
 }
 remove_ssh_host_entry "${CONTEXT}"
+## Tear down any stale multiplexing master left by an earlier run:
+ssh -O exit -o ControlPath=/tmp/ssh-%u-%r@%h:%p "${CONTEXT}" 2>/dev/null || true
 touch "${HOME}/.ssh/config"
 chmod 600 "${HOME}/.ssh/config"
+## NOTE: no ControlMaster/ControlPersist for this self-context. Connection
+## multiplexing only pays off by amortizing network latency to a remote host;
+## for ssh to localhost it adds nothing and the shared master refuses
+## concurrent sessions ("Session open refused by peer") when docker-over-ssh
+## opens its dial-stdio channel. Plain per-connection ssh to localhost is
+## instant and reliable.
 cat <<EOF >> "${HOME}/.ssh/config"
 Host ${CONTEXT}
     User root
     Hostname localhost
-    ControlMaster auto
-    ControlPersist yes
-    ControlPath /tmp/ssh-%u-%r@%h:%p
 EOF
 systemctl enable --now ssh
 touch "${HOME}/.ssh/known_hosts"
@@ -122,7 +127,14 @@ if ! docker context inspect "${CONTEXT}" >/dev/null 2>&1; then
         --docker "host=ssh://${CONTEXT}"
 fi
 docker context use "${CONTEXT}"
-docker --context "${CONTEXT}" info -f '{{.ServerVersion}}' >/dev/null
+## Retry briefly: sshd/docker may need a moment to settle after enable:
+for _try in 1 2 3 4 5; do
+    if docker --context "${CONTEXT}" info -f '{{.ServerVersion}}' >/dev/null 2>&1; then
+        break
+    fi
+    [ "${_try}" = "5" ] && docker --context "${CONTEXT}" info -f '{{.ServerVersion}}' >/dev/null
+    sleep 3
+done
 
 echo "## [bootstrap] Installing bash shell integration ..."
 mkdir -p "${HOME}/.config/d.rymcg.tech"
