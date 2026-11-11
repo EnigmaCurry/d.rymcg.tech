@@ -60,6 +60,7 @@ __help() {
         echo -e "dotenv_get\tRetrieve a single env var from the root context config"
         echo -e "droplet\tManage DigitalOcean droplets (alias: gumdrop)"
         echo -e "drt [OPTIONS] CONTEXT\tStandalone bootstrap tool (--init/--extract)"
+        echo -e "e2e\tEnd-to-end smoke test / installer on a DigitalOcean droplet"
         echo -e "export-env\tExport all .env files for current context as flat env vars"
         echo -e "fail2ban\tConfigure fail2ban on the Docker host"
         echo -e "image-archive [ARGS ...]\tArchive Docker images to local .tar.gz files"
@@ -495,7 +496,7 @@ __d.rymcg.tech_completions() {
     if [[ ${COMP_CWORD} == 1 ]]; then
         ## Complete the main command:
         ## d.rymcg.tech <TAB> ...
-        COMMANDS="help create cd make list readme info context new-context tmp-context aliases completion install install-docker status ssh audit sshd-config ssh-expose show-ports s3-volume docker-default-address-pool route routes reconfigure dotenv_get daemon-conf fail2ban networks config image-catalog image-build image-archive image-restore export-env restore-env template-env agent-readiness aws python-deps workstation-usb-image workstation-usb-install workstation-usb-clone workstation-usb-post-install workstation-usb-download-isos workstation-usb-download-docker-packages workstation-usb-test-vm container-build drt deploy-pipeline-template deploy-pipeline-build droplet gumdrop"
+        COMMANDS="help create cd make list readme info context new-context tmp-context aliases completion install install-docker status ssh audit sshd-config ssh-expose show-ports s3-volume docker-default-address-pool route routes reconfigure dotenv_get daemon-conf fail2ban networks config image-catalog image-build image-archive image-restore export-env restore-env template-env agent-readiness aws python-deps workstation-usb-image workstation-usb-install workstation-usb-clone workstation-usb-post-install workstation-usb-download-isos workstation-usb-download-docker-packages workstation-usb-test-vm container-build drt deploy-pipeline-template deploy-pipeline-build droplet gumdrop e2e"
         COMPREPLY=($(compgen -W "${COMMANDS}" "${COMP_WORDS[1]}"))
     elif [[ ${COMP_CWORD} == 2 ]]; then
         ALL_PROJECTS=$(d.rymcg.tech list --raw)
@@ -1725,6 +1726,8 @@ main() {
                 __template_env "$@";;
             droplet|gumdrop)
                 ${BIN}/gumdrop "$@";;
+            e2e)
+                ${ROOT_DIR}/_e2e/e2e.sh "$@";;
             container-build)
                 ${ROOT_DIR}/_container/container-build.sh "$@";;
             drt)
