@@ -16,13 +16,12 @@ The script runs one of two test suites:
 
 - **`full`** - the complete d.rymcg.tech install on a fresh server:
   droplet + DNS + Traefik + self-hosted acme-dns + a sampling of apps,
-  verified over HTTPS. Requires `--domain` and `--subdomain`.
+  verified over HTTPS. The config supplies a domain and subdomain.
 - **`workstation`** - sets up *only* the workstation tooling: the
   Docker **CLI** (not the Docker server), uv, the d.rymcg.tech repo and
   CLI on `PATH`. No DNS records, no firewall, no server apps. A
   d.rymcg.tech workstation controls remote Docker servers; it is not
-  one itself. Needs no domain (defaults the droplet name to
-  `e2e-workstation`).
+  one itself. Its config asks for no domain.
 
 Both suites host the workstation files under an unprivileged `admin`
 user (see below). The sections below describe the `full` suite.
@@ -90,42 +89,49 @@ sworkstation you can ssh into. Use `destroy` to tear everything down.
 
 ## Usage
 
+Each test is a **named config**. You configure it once (interactive), then
+run it; all settings come from the config file, not command-line arguments.
+The form is `make <NAME> <action>`:
+
 ```bash
-## Full install suite (staging CA by default):
-d.rymcg.tech e2e full --domain example.com --subdomain e2e
+## Configure a full-install test called 'myapp' (interactive wizard):
+d.rymcg.tech e2e make myapp config        # ... or: _e2e/e2e.sh make myapp config
 
-## ... or standalone:
-_e2e/e2e.sh full --domain example.com --subdomain e2e
+## Run it (reads myapp.conf):
+d.rymcg.tech e2e make myapp full
 
-## Workstation-only suite (no domain needed):
-_e2e/e2e.sh workstation
-_e2e/e2e.sh destroy --name e2e-workstation --yes
+## Configure and run a workstation-only test called 'desk':
+d.rymcg.tech e2e make desk config         # choose the 'workstation' suite
+d.rymcg.tech e2e make desk workstation
 
-## Real certificates (Let's Encrypt production):
-_e2e/e2e.sh full --domain example.com --subdomain e2e --production
+## Inspect, re-run a phase, tear down, or purge:
+d.rymcg.tech e2e make myapp status
+d.rymcg.tech e2e make myapp phase traefik
+d.rymcg.tech e2e make myapp destroy       # delete DO resources, keep the config
+d.rymcg.tech e2e make myapp purge         # destroy + delete the local config
 
-## Test a specific branch or fork:
-_e2e/e2e.sh full --domain example.com --subdomain e2e \
-    --git-url https://github.com/you/d.rymcg.tech.git --git-ref my-branch
-
-## Re-run a single phase:
-_e2e/e2e.sh phase traefik --domain example.com --subdomain e2e
-
-## Inspect / tear down:
-_e2e/e2e.sh status --name e2e-e2e
-_e2e/e2e.sh destroy --name e2e-e2e --yes
+## List all configured tests:
+d.rymcg.tech e2e list
 ```
 
-Run `_e2e/e2e.sh help` for all options.
+`config` runs an interactive wizard (script-wizard) that asks for the suite,
+region/size/image, SSH key, admin user, git remote/ref, and — for the full
+suite — the domain, subdomain, Let's Encrypt CA (staging/production), and the
+app list. Answers are written to `~/.config/d.rymcg.tech/e2e/<NAME>.conf`
+(edit it by hand or re-run `config` to change them).
+
+Running an action with no config errors and tells you to run `config` first.
+
+A few options can still be passed per-run to override the config:
+`--apps LIST`, `--timeout SECS`, `--keep-going`, `--reset-env`, `--yes`.
 
 Every run logs everything (including all remote output) to
 `~/.config/d.rymcg.tech/e2e/logs/`, and records resource IDs in
-`~/.config/d.rymcg.tech/e2e/NAME.env` so `destroy` can find them even
+`~/.config/d.rymcg.tech/e2e/<NAME>.state` so `destroy` can find them even
 if a run dies halfway. All phases are idempotent: re-running the same
 command reuses the droplet, DNS records, and env files that already
-exist, so resuming after a failure is just re-running it.
-Use `--reset-env` to wipe the remote `.env` files and reconfigure
-from scratch.
+exist, so resuming after a failure is just re-running it. Use
+`--reset-env` to wipe the remote `.env` files and reconfigure from scratch.
 
 ## Expected runtime
 

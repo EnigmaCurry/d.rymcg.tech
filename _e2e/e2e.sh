@@ -22,10 +22,17 @@
 ## Authenticate doctl first (one-time): `doctl auth init`. This script uses
 ## whatever DigitalOcean account doctl is logged into.
 ##
+## Each test is a named config. Configure it once (interactive wizard), then
+## run it; all settings come from the config file, not command-line args.
+##
 ## Usage:
-##   _e2e/e2e.sh full --domain example.com --subdomain e2e
-##   _e2e/e2e.sh status --name e2e-e2e
-##   _e2e/e2e.sh destroy --name e2e-e2e --yes
+##   _e2e/e2e.sh make <NAME> config         # interactive wizard -> <NAME>.conf
+##   _e2e/e2e.sh make <NAME> full           # run the full install suite
+##   _e2e/e2e.sh make <NAME> workstation    # run the workstation suite
+##   _e2e/e2e.sh make <NAME> status
+##   _e2e/e2e.sh make <NAME> destroy        # tear down DO resources
+##   _e2e/e2e.sh make <NAME> purge          # destroy + delete the local config
+##   _e2e/e2e.sh list                       # list configured tests
 ##
 ## See _e2e/README.md for full documentation.
 
@@ -98,56 +105,50 @@ usage() {
     cat <<EOF
 e2e.sh - end-to-end smoke test / installer for d.rymcg.tech on DigitalOcean
 
-Usage: e2e.sh <command> [options]
+Each test is a NAMED config. Configure it once (interactive), then run it.
+All settings come from the config file; only a few runtime options are flags.
 
-Commands:
-  full          Full install suite: ${PHASES_FULL[*]}
-  workstation   Workstation-only suite (docker CLI, no server/DNS/firewall):
+Usage: e2e.sh make <NAME> <action> [options]
+       e2e.sh list
+
+Actions:
+  config        Interactive wizard; writes the config for <NAME>
+  full          Run the full install suite:
+                ${PHASES_FULL[*]}
+  workstation   Run the workstation-only suite (docker CLI, no server/DNS):
                 ${PHASES_WORKSTATION[*]}
-  phase NAME    Run a single phase by name (of the selected suite)
-  status        Show saved state and droplet status
-  destroy       Tear down droplet, firewall, SSH key, and DNS records
-  help          Show this help
+  status        Show config, state, and droplet status
+  phase NAME    Run a single phase of the configured suite
+  destroy       Tear down the droplet, firewall, SSH key, and DNS records
+  purge         destroy, then delete the local config/state/logs
+
+Runtime options (override the config for this run):
+  --apps LIST    Comma-separated app list (full suite)
+  --timeout SECS Per-wait timeout (default: ${E2E_TIMEOUT})
+  --keep-going   Continue installing apps after one fails
+  --reset-env    Delete the remote .env files before configuring
+  --yes          Skip confirmation prompts (destroy/purge)
 
 Authentication: run 'doctl auth init' first; this script uses whatever
 DigitalOcean account doctl is logged into.
-
-Options:
-  --domain DOMAIN    Parent domain managed by DigitalOcean DNS (full: required)
-  --subdomain SUB    Subdomain to own; ROOT_DOMAIN=SUB.DOMAIN (full: required)
-  --name NAME        Droplet/context/resource name (full default: e2e-SUB;
-                     workstation default: e2e-workstation)
-  --suite NAME       full | workstation (for the 'phase' command)
-  --region REGION    Droplet region (default: ${E2E_REGION})
-  --size SIZE        Droplet size (default: ${E2E_SIZE})
-  --image IMAGE      Droplet image (default: ${E2E_IMAGE})
-  --staging          Use Let's Encrypt staging CA (default)
-  --production       Use Let's Encrypt production CA
-  --apps LIST        Comma-separated app list (default: ${E2E_APPS})
-  --git-url URL      Git remote to clone on the droplet (default: ${E2E_GIT_URL})
-  --git-ref REF      Branch/tag/sha to check out (default: ${E2E_GIT_REF})
-  --timeout SECS     Per-wait timeout (default: ${E2E_TIMEOUT})
-  --ssh-pubkey PATH  SSH public key to upload (default: ~/.ssh/id_ed25519.pub)
-  --admin-user NAME  Workstation user to create on the droplet (default: admin)
-  --keep-going       Continue installing apps after one fails
-  --reset-env        Delete the remote .env files before configuring
-  --yes              Skip the destroy confirmation
 EOF
     exit "${1:-0}"
 }
 
 ## -------------------------------------------------------------------------
-## State file
+## Config file (settings, written by the wizard) and state file (resource IDs)
 ## -------------------------------------------------------------------------
 
-state_file() { echo "${CONFIG_DIR}/${E2E_NAME}.env"; }
+config_file() { echo "${CONFIG_DIR}/${E2E_NAME}.conf"; }
+state_file()  { echo "${CONFIG_DIR}/${E2E_NAME}.state"; }
 
-save_state() {
+save_config() {
     mkdir -p "${CONFIG_DIR}"
     local f
-    f=$(state_file)
+    f=$(config_file)
     cat > "${f}" <<EOF
-## e2e state for '${E2E_NAME}' (do not store secrets here)
+## e2e config for '${E2E_NAME}'
+## Written by: e2e.sh make ${E2E_NAME} config  (edit by hand or re-run config)
 E2E_SUITE=${E2E_SUITE}
 E2E_DOMAIN=${E2E_DOMAIN}
 E2E_SUBDOMAIN=${E2E_SUBDOMAIN}
@@ -155,9 +156,35 @@ E2E_REGION=${E2E_REGION}
 E2E_SIZE=${E2E_SIZE}
 E2E_IMAGE=${E2E_IMAGE}
 E2E_ACME_CA=${E2E_ACME_CA}
-E2E_APPS=${E2E_APPS}
 E2E_GIT_URL=${E2E_GIT_URL}
 E2E_GIT_REF=${E2E_GIT_REF}
+E2E_SSH_PUBKEY=${E2E_SSH_PUBKEY}
+E2E_ADMIN_USER=${E2E_ADMIN_USER}
+E2E_APPS=${E2E_APPS}
+EOF
+    chmod 600 "${f}"
+}
+
+## Load the config into E2E_* variables. Fault with guidance if it is missing
+## (unless soft=1, used by destroy/purge/status so they work on a broken test):
+load_config() {
+    local soft="${1:-}"
+    local f
+    f=$(config_file)
+    if [[ ! -f "${f}" ]]; then
+        [[ -n "${soft}" ]] && return 0
+        fault "No config for '${E2E_NAME}'. Create it with:  $0 make ${E2E_NAME} config"
+    fi
+    # shellcheck source=/dev/null
+    source "${f}"
+}
+
+save_state() {
+    mkdir -p "${CONFIG_DIR}"
+    local f
+    f=$(state_file)
+    cat > "${f}" <<EOF
+## e2e runtime state for '${E2E_NAME}' (resource IDs; do not store secrets)
 DROPLET_ID=${DROPLET_ID}
 DROPLET_IP=${DROPLET_IP}
 FIREWALL_ID=${FIREWALL_ID}
@@ -173,23 +200,13 @@ state_get() {
 }
 
 load_state() {
-    ## Adopt the saved runtime resources; CLI flags / env vars keep priority
-    ## for everything the user can specify (domain/subdomain fill in only
-    ## when not given):
     [[ -f "$(state_file)" ]] || return 0
-    _STATE_SUITE=$(state_get E2E_SUITE)
     DROPLET_ID=$(state_get DROPLET_ID)
     DROPLET_IP=$(state_get DROPLET_IP)
     FIREWALL_ID=$(state_get FIREWALL_ID)
     SSH_KEY_ID=$(state_get SSH_KEY_ID)
     DNS_RECORD_IDS=$(state_get DNS_RECORD_IDS)
     PHASES_DONE=$(state_get PHASES_DONE)
-    if [[ -z "${E2E_DOMAIN}" ]]; then
-        E2E_DOMAIN=$(state_get E2E_DOMAIN)
-    fi
-    if [[ -z "${E2E_SUBDOMAIN}" ]]; then
-        E2E_SUBDOMAIN=$(state_get E2E_SUBDOMAIN)
-    fi
 }
 
 mark_phase_done() {
@@ -224,9 +241,9 @@ print_what_now() {
     [[ -n "${LOG_FILE}" ]] && echo "##  Full log   : ${LOG_FILE}"
     [[ -f "$(state_file)" ]] && echo "##  State file : $(state_file)"
     [[ -n "${DROPLET_IP}" ]] && echo "##  Inspect    : ssh root@${DROPLET_IP}"
-    echo "##  Resume     : re-run the same command (phases are idempotent)"
-    echo "##  One phase  : e2e.sh phase ${CURRENT_PHASE:-NAME} --name ${E2E_NAME} ..."
-    echo "##  Tear down  : e2e.sh destroy --name ${E2E_NAME} --yes"
+    echo "##  Resume     : $0 make ${E2E_NAME} ${E2E_SUITE}   (phases are idempotent)"
+    echo "##  One phase  : $0 make ${E2E_NAME} phase ${CURRENT_PHASE:-NAME}"
+    echo "##  Tear down  : $0 make ${E2E_NAME} destroy --yes"
     echo "########################################################################"
 }
 
@@ -867,7 +884,7 @@ phase_summary() {
     echo "The droplet is KEPT (it is now a usable sworkstation):"
     echo "  ssh ${E2E_ADMIN_USER}@${DROPLET_IP}   (or: ssh ${E2E_NAME})"
     echo "Tear down everything with:"
-    echo "  $0 destroy --name ${E2E_NAME} --yes"
+    echo "  $0 make ${E2E_NAME} destroy --yes"
     [[ -n "${LOG_FILE}" ]] && echo "Full log: ${LOG_FILE}"
     if [[ "${all_pass}" != "true" ]]; then
         echo ""
@@ -881,6 +898,104 @@ phase_summary() {
 ## -------------------------------------------------------------------------
 ## Commands
 ## -------------------------------------------------------------------------
+
+## Normalize derived settings after config/flags are resolved. Strips a
+## fully-qualified subdomain, computes ROOT_DOMAIN, sets the DO tag, and
+## validates required fields for the selected suite:
+post_config_setup() {
+    if [[ -n "${E2E_DOMAIN}" && -n "${E2E_SUBDOMAIN}" ]]; then
+        if [[ "${E2E_SUBDOMAIN}" == *".${E2E_DOMAIN}" ]]; then
+            E2E_SUBDOMAIN="${E2E_SUBDOMAIN%".${E2E_DOMAIN}"}"
+        fi
+    fi
+    E2E_ROOT_DOMAIN="${E2E_SUBDOMAIN}.${E2E_DOMAIN}"
+    export GUMDROP_TAG="${E2E_NAME}"
+}
+
+## Require the fields a run action needs; point back at 'config' on failure:
+require_run_config() {
+    [[ "${E2E_SUITE}" == "full" || "${E2E_SUITE}" == "workstation" ]] \
+        || fault "Config for '${E2E_NAME}' has no suite. Re-run:  $0 make ${E2E_NAME} config"
+    if [[ "${E2E_SUITE}" != "workstation" ]]; then
+        [[ -n "${E2E_DOMAIN}" && -n "${E2E_SUBDOMAIN}" ]] \
+            || fault "The full suite needs a domain and subdomain. Re-run:  $0 make ${E2E_NAME} config"
+    fi
+    [[ -f "${E2E_SSH_PUBKEY}" ]] \
+        || fault "SSH public key '${E2E_SSH_PUBKEY}' not found. Re-run:  $0 make ${E2E_NAME} config"
+}
+
+cmd_config() {
+    [[ -t 0 ]] || fault "'config' is interactive; run it in a terminal."
+    ## Make sure script-wizard is available for the menu prompts:
+    [[ -x "${BIN}/script-wizard" ]] || "${BIN}/install_script-wizard" --yes
+
+    ## Seed the wizard with the existing config (if any) so re-running edits it:
+    [[ -f "$(config_file)" ]] && load_config
+
+    echo "Configuring e2e test '${E2E_NAME}' (written to $(config_file))"
+    echo ""
+
+    E2E_SUITE=$(wizard choose "Which suite is this test for?" \
+        full workstation --default "${E2E_SUITE:-full}") || E2E_SUITE=""
+    [[ -n "${E2E_SUITE}" ]] || fault "Config cancelled."
+
+    ask "Droplet region" E2E_REGION "${E2E_REGION:-nyc2}"
+    ask "Droplet size" E2E_SIZE "${E2E_SIZE:-s-2vcpu-4gb}"
+    ask "Droplet image" E2E_IMAGE "${E2E_IMAGE:-debian-13-x64}"
+    ask "Admin (workstation) username" E2E_ADMIN_USER "${E2E_ADMIN_USER:-admin}"
+    ask_no_blank "SSH public key to install" E2E_SSH_PUBKEY \
+        "${E2E_SSH_PUBKEY:-${HOME}/.ssh/id_ed25519.pub}"
+    ask "Git remote to clone on the droplet" E2E_GIT_URL \
+        "${E2E_GIT_URL:-https://github.com/EnigmaCurry/d.rymcg.tech.git}"
+    ask "Git ref (branch/tag/sha)" E2E_GIT_REF "${E2E_GIT_REF:-master}"
+
+    if [[ "${E2E_SUITE}" == "full" ]]; then
+        ask_no_blank "Parent domain (must be managed by DigitalOcean DNS)" \
+            E2E_DOMAIN "${E2E_DOMAIN}"
+        ask_no_blank "Subdomain for this test to own (under ${E2E_DOMAIN})" \
+            E2E_SUBDOMAIN "${E2E_SUBDOMAIN:-${E2E_NAME}}"
+        local ca
+        ca=$(wizard choose "Let's Encrypt certificate authority" \
+            "staging (for testing; untrusted certs)" \
+            "production (real trusted certs; rate-limited)" \
+            --default "staging (for testing; untrusted certs)") || ca=""
+        [[ -n "${ca}" ]] || fault "Config cancelled."
+        case "${ca}" in
+            production*) E2E_ACME_CA="acme-v02.api.letsencrypt.org" ;;
+            *)           E2E_ACME_CA="acme-staging-v02.api.letsencrypt.org" ;;
+        esac
+        ask "Apps to install (comma-separated)" E2E_APPS \
+            "${E2E_APPS:-whoami,datetime,it-tools,excalidraw,privatebin}"
+    else
+        ## Workstation needs none of the DNS/cert/app settings:
+        E2E_DOMAIN=""
+        E2E_SUBDOMAIN=""
+        E2E_ACME_CA="${E2E_ACME_CA:-acme-staging-v02.api.letsencrypt.org}"
+        E2E_APPS="${E2E_APPS:-}"
+    fi
+
+    save_config
+    echo ""
+    echo "Wrote $(config_file)."
+    echo "Run it with:  $0 make ${E2E_NAME} ${E2E_SUITE}"
+}
+
+cmd_list() {
+    echo "Configured e2e tests (${CONFIG_DIR}):"
+    local f name suite ran
+    shopt -s nullglob
+    local found=0
+    for f in "${CONFIG_DIR}"/*.conf; do
+        found=1
+        name=$(basename "${f}" .conf)
+        suite=$(grep -oP '^E2E_SUITE=\K.*' "${f}" 2>/dev/null)
+        ran="no"
+        [[ -f "${CONFIG_DIR}/${name}.state" ]] && ran="yes"
+        printf '  %-24s suite=%-12s provisioned=%s\n' "${name}" "${suite:-?}" "${ran}"
+    done
+    shopt -u nullglob
+    [[ ${found} -eq 0 ]] && echo "  (none - create one with: $0 make <NAME> config)"
+}
 
 run_phase() {
     CURRENT_PHASE="$1"
@@ -910,12 +1025,11 @@ cmd_phase() {
 }
 
 cmd_status() {
-    echo "## State file: $(state_file)"
-    if [[ -f "$(state_file)" ]]; then
-        cat "$(state_file)"
-    else
-        echo "(no state file)"
-    fi
+    echo "## Config: $(config_file)"
+    if [[ -f "$(config_file)" ]]; then cat "$(config_file)"; else echo "(no config)"; fi
+    echo ""
+    echo "## State: $(state_file)"
+    if [[ -f "$(state_file)" ]]; then cat "$(state_file)"; else echo "(not provisioned)"; fi
     echo ""
     echo "## Droplet:"
     doctl compute droplet list --tag-name "${E2E_NAME}" \
@@ -1004,107 +1118,118 @@ cmd_destroy() {
     echo "Destroyed '${E2E_NAME}'."
 }
 
+cmd_purge() {
+    CURRENT_PHASE="purge"
+    echo "This will DESTROY all DigitalOcean resources for '${E2E_NAME}' AND"
+    echo "delete its local config, state, and logs."
+    if [[ "${E2E_YES}" != "true" ]]; then
+        if [[ -t 0 ]]; then
+            local reply=""
+            read -r -p "Purge '${E2E_NAME}'? (y/N) " reply
+            [[ "${reply}" =~ ^[Yy] ]] || { echo "Cancelled."; exit 0; }
+        else
+            fault "Refusing to purge non-interactively without --yes."
+        fi
+    fi
+    E2E_YES=true   ## cmd_destroy won't re-prompt
+    cmd_destroy
+    rm -f "$(config_file)"
+    rm -f "${LOG_DIR}/${E2E_NAME}-"*.log 2>/dev/null || true
+    echo "Purged '${E2E_NAME}' (config, state, and logs removed)."
+}
+
 ## -------------------------------------------------------------------------
 ## Argument parsing and dispatch
 ## -------------------------------------------------------------------------
 
 main() {
-    local command="" suite_explicit=""
     E2E_PHASE=""
+    local command="" apps_override=""
+
+    ## Top-level: 'list' / 'help', otherwise 'make <NAME> <action> [options]':
+    case "${1:-}" in
+        ""|help|-h|--help) usage 0 ;;
+        list)              cmd_list; exit 0 ;;
+        make)              shift ;;
+        *) error "Unknown command '${1}'. Use: $0 make <NAME> <action>"; usage 1 ;;
+    esac
+
+    E2E_NAME="${1:-}"
+    [[ -n "${E2E_NAME}" ]] || { error "Missing <NAME>."; usage 1; }
+    shift
+    command="${1:-}"
+    [[ -n "${command}" ]] || { error "Missing <action> for '${E2E_NAME}'."; usage 1; }
+    shift
+    if [[ "${command}" == "phase" ]]; then
+        E2E_PHASE="${1:-}"
+        [[ -n "${E2E_PHASE}" ]] || { error "'phase' needs a phase name."; usage 1; }
+        shift
+    fi
+
+    ## Only a few runtime options remain as flags; everything else is config:
     while [[ $# -gt 0 ]]; do
         case "$1" in
-            full) command="full" ;;
-            workstation) command="workstation" ;;
-            status|destroy|help) command="$1" ;;
-            phase) command="phase"; E2E_PHASE="${2:-}"; shift ;;
-            --suite) E2E_SUITE="$2"; suite_explicit=1; shift ;;
-            --domain) E2E_DOMAIN="$2"; shift ;;
-            --subdomain) E2E_SUBDOMAIN="$2"; shift ;;
-            --name) E2E_NAME="$2"; shift ;;
-            --region) E2E_REGION="$2"; shift ;;
-            --size) E2E_SIZE="$2"; shift ;;
-            --image) E2E_IMAGE="$2"; shift ;;
-            --staging) E2E_ACME_CA="acme-staging-v02.api.letsencrypt.org" ;;
-            --production) E2E_ACME_CA="acme-v02.api.letsencrypt.org" ;;
-            --apps) E2E_APPS="$2"; shift ;;
-            --git-url) E2E_GIT_URL="$2"; shift ;;
-            --git-ref) E2E_GIT_REF="$2"; shift ;;
-            --timeout) E2E_TIMEOUT="$2"; shift ;;
-            --ssh-pubkey) E2E_SSH_PUBKEY="$2"; shift ;;
-            --admin-user) E2E_ADMIN_USER="$2"; shift ;;
+            --apps)       apps_override="$2"; shift ;;
+            --timeout)    E2E_TIMEOUT="$2"; shift ;;
             --keep-going) E2E_KEEP_GOING=true ;;
-            --reset-env) E2E_RESET_ENV=true ;;
-            --yes) E2E_YES=true ;;
-            -h|--help) usage 0 ;;
-            *) error "Unknown argument: $1"; usage 1 ;;
+            --reset-env)  E2E_RESET_ENV=true ;;
+            --yes)        E2E_YES=true ;;
+            -h|--help)    usage 0 ;;
+            *) error "Unknown option: $1"; usage 1 ;;
         esac
         shift
     done
-    [[ -z "${command}" ]] && usage 1
-    [[ "${command}" == "help" ]] && usage 0
 
-    ## Resolve the suite: full/workstation commands set it; phase/status/destroy
-    ## take --suite, else the saved state (loaded below), else the default:
-    case "${command}" in
-        full) E2E_SUITE="full" ;;
-        workstation) E2E_SUITE="workstation" ;;
-    esac
-    [[ "${E2E_SUITE}" == "full" || "${E2E_SUITE}" == "workstation" ]] \
-        || fault "Unknown suite '${E2E_SUITE}' (expected: full | workstation)."
-
-    ## Normalize: accept a fully-qualified --subdomain (strip the domain):
-    if [[ -n "${E2E_DOMAIN}" && -n "${E2E_SUBDOMAIN}" ]]; then
-        if [[ "${E2E_SUBDOMAIN}" == *".${E2E_DOMAIN}" ]]; then
-            E2E_SUBDOMAIN="${E2E_SUBDOMAIN%".${E2E_DOMAIN}"}"
-            echo "NOTE: --subdomain included --domain; using subdomain '${E2E_SUBDOMAIN}'."
-        fi
-        [[ "${E2E_SUBDOMAIN}" != "${E2E_DOMAIN}" ]] \
-            || fault "--subdomain must be a subdomain of --domain, not the domain itself."
-    fi
-
-    ## Resolve the instance name. Full derives it from the subdomain; the
-    ## workstation suite needs no domain, so it defaults to a fixed name:
-    if [[ -z "${E2E_NAME}" ]]; then
-        if [[ -n "${E2E_SUBDOMAIN}" ]]; then
-            ## DO tags/droplet/firewall names forbid dots:
-            E2E_NAME="e2e-${E2E_SUBDOMAIN//./-}"
-        elif [[ "${E2E_SUITE}" == "workstation" ]]; then
-            E2E_NAME="e2e-workstation"
-        else
-            fault "Either --name or --subdomain is required."
-        fi
-    fi
-    load_state
-    ## For phase/status/destroy without an explicit --suite, adopt the suite
-    ## saved in state (load_state set it if present):
-    [[ -z "${suite_explicit}" && "${command}" == "phase" && -n "${_STATE_SUITE:-}" ]] \
-        && E2E_SUITE="${_STATE_SUITE}"
-
-    case "${command}" in
-        full|workstation|phase)
-            if [[ "${E2E_SUITE}" != "workstation" ]]; then
-                [[ -n "${E2E_DOMAIN}" ]] || fault "--domain is required for the full suite."
-                [[ -n "${E2E_SUBDOMAIN}" ]] || fault "--subdomain is required for the full suite."
-            fi
-            ## Droplet/firewall names and DO tags share this name, so it must
-            ## stay in the common safe charset (DO tags forbid dots).
-            ## (destroy/status skip this check so they can clean up anything.)
-            [[ "${E2E_NAME}" =~ ^[A-Za-z0-9][A-Za-z0-9-]*$ ]] \
-                || fault "--name '${E2E_NAME}' is invalid: use only letters, digits, and dashes."
-            ;;
-    esac
-    E2E_ROOT_DOMAIN="${E2E_SUBDOMAIN}.${E2E_DOMAIN}"
-    export GUMDROP_TAG="${E2E_NAME}"
+    ## NAME is used for the droplet, firewall, and DO tag; keep it safe:
+    [[ "${E2E_NAME}" =~ ^[A-Za-z0-9][A-Za-z0-9-]*$ ]] \
+        || fault "Invalid NAME '${E2E_NAME}': use only letters, digits, and dashes."
 
     trap 'on_error $? "${BASH_COMMAND}" ${LINENO}' ERR
     trap on_exit EXIT
 
     case "${command}" in
-        full|workstation) cmd_run ;;
-        phase) cmd_phase ;;
-        status) cmd_status ;;
-        destroy) cmd_destroy ;;
-        help) usage 0 ;;
+        config)
+            cmd_config
+            ;;
+        full|workstation)
+            load_config
+            E2E_SUITE="${command}"
+            [[ -n "${apps_override}" ]] && E2E_APPS="${apps_override}"
+            post_config_setup
+            require_run_config
+            load_state
+            cmd_run
+            ;;
+        phase)
+            load_config
+            [[ -n "${apps_override}" ]] && E2E_APPS="${apps_override}"
+            post_config_setup
+            require_run_config
+            load_state
+            cmd_phase
+            ;;
+        status)
+            load_config soft
+            post_config_setup
+            load_state
+            cmd_status
+            ;;
+        destroy)
+            load_config soft
+            post_config_setup
+            load_state
+            cmd_destroy
+            ;;
+        purge)
+            load_config soft
+            post_config_setup
+            load_state
+            cmd_purge
+            ;;
+        *)
+            error "Unknown action '${command}'."
+            usage 1
+            ;;
     esac
 }
 
