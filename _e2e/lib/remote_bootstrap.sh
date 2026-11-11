@@ -79,6 +79,22 @@ echo "## [bootstrap] Installing python deps ..."
 make -C "${REPO_DIR}" python-deps
 
 echo "## [bootstrap] Configuring SSH to self (root@localhost) ..."
+## OpenSSH 10 (Debian trixie) enables PerSourcePenalties by default: a source
+## IP whose connections close without authenticating (e.g. ssh-keyscan probes)
+## gets temporarily blocked. For a loopback self-ssh sworkstation - where root
+## ssh's to 127.0.0.1 on every docker call - that is self-sabotage. Exempt the
+## loopback from penalties (external sources keep the protection). Fall back to
+## disabling penalties entirely if the exempt directive is unsupported, and
+## restart sshd to clear any penalty already in effect from earlier probes:
+_sshd_drop=/etc/ssh/sshd_config.d/99-e2e-loopback.conf
+printf 'PerSourcePenaltyExemptList 127.0.0.1/32,::1/128\n' > "${_sshd_drop}"
+if ! sshd -t 2>/dev/null; then
+    printf 'PerSourcePenalties no\n' > "${_sshd_drop}"
+    sshd -t 2>/dev/null || rm -f "${_sshd_drop}"
+fi
+systemctl enable ssh >/dev/null 2>&1 || true
+systemctl restart ssh
+
 mkdir -p "${HOME}/.ssh"
 chmod 700 "${HOME}/.ssh"
 if [ ! -f "${HOME}/.ssh/id_ed25519" ]; then
@@ -114,17 +130,16 @@ Host ${CONTEXT}
     User root
     Hostname 127.0.0.1
 EOF
-systemctl enable --now ssh
 touch "${HOME}/.ssh/known_hosts"
-## Refresh the host key (cloud-init may have regenerated it after an earlier
-## run cached the old one):
+## Refresh the host key ONCE (cloud-init may have regenerated it after an
+## earlier run cached the old one). Avoid repeated keyscans: each is a no-auth
+## connection that feeds PerSourcePenalties:
 ssh-keygen -R 127.0.0.1 -f "${HOME}/.ssh/known_hosts" >/dev/null 2>&1 || true
+ssh-keyscan -H 127.0.0.1 >> "${HOME}/.ssh/known_hosts" 2>/dev/null || true
 ## Wait for sshd to accept key auth, then self-test. -n keeps ssh from reading
 ## this script off stdin:
 _ssh_ok=false
 for _try in $(seq 1 20); do
-    ssh-keygen -R 127.0.0.1 -f "${HOME}/.ssh/known_hosts" >/dev/null 2>&1 || true
-    ssh-keyscan -H 127.0.0.1 >> "${HOME}/.ssh/known_hosts" 2>/dev/null || true
     if ssh -n -o BatchMode=yes -o ConnectTimeout=5 "${CONTEXT}" true 2>/dev/null; then
         _ssh_ok=true
         break
