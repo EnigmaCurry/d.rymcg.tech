@@ -765,18 +765,24 @@ cmd_status() {
 }
 
 cmd_destroy() {
-    setup_logging
     CURRENT_PHASE="destroy"
+    ## Confirm on the real terminal BEFORE logging redirects stdout/stderr
+    ## through tee (a TUI prompt and the tee pipe fight over the terminal):
     echo "This will destroy ALL resources named/tagged '${E2E_NAME}':"
     echo "  - droplet, firewall '${E2E_NAME}-fw', SSH key '${E2E_NAME}'"
     if [[ -n "${E2E_SUBDOMAIN}" ]]; then
         echo "  - DNS records: ${E2E_SUBDOMAIN}, *.${E2E_SUBDOMAIN}, acme-dns.${E2E_SUBDOMAIN}, auth.acme-dns.${E2E_SUBDOMAIN}, _acme-challenge.${E2E_SUBDOMAIN} (in ${E2E_DOMAIN})"
     fi
-    if [[ "${E2E_YES}" != "true" ]] && [[ -t 0 ]]; then
-        confirm no "Do you really want to destroy '${E2E_NAME}'" "?" || fault "Cancelled."
-    else
-        echo "(--yes or non-interactive: proceeding)"
+    if [[ "${E2E_YES}" != "true" ]]; then
+        if [[ -t 0 ]]; then
+            local reply=""
+            read -r -p "Do you really want to destroy '${E2E_NAME}'? (y/N) " reply
+            [[ "${reply}" =~ ^[Yy] ]] || { echo "Cancelled."; exit 0; }
+        else
+            fault "Refusing to destroy non-interactively without --yes."
+        fi
     fi
+    setup_logging
 
     ## Droplet(s) by tag, then by exact name:
     local ids id
