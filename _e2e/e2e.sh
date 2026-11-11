@@ -459,7 +459,10 @@ phase_provision() {
         e2e_remote "tail -n 50 /var/log/cloud-init-output.log" || true
         fault "cloud-init failed (exit ${rc})."
     fi
-    e2e_remote "docker info -f '{{.ServerVersion}}'"
+    ## Verify the daemon directly on its unix socket, independent of whichever
+    ## docker context root may already be on (a prior bootstrap switches root
+    ## to the ssh://localhost context):
+    e2e_remote "docker -H unix:///var/run/docker.sock info -f '{{.ServerVersion}}'"
 
     ## The DigitalOcean firewall is the real firewall; disable any host ufw:
     e2e_remote "ufw disable 2>/dev/null; systemctl mask ufw 2>/dev/null; true"
