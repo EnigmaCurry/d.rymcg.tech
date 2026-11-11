@@ -443,6 +443,19 @@ phase_preflight() {
     if [[ "${E2E_SUITE}" != "workstation" ]]; then
         doctl compute domain get "${E2E_DOMAIN}" > /dev/null \
             || fault "Domain '${E2E_DOMAIN}' is not managed by this DigitalOcean account."
+        ## Hosting a zone in DigitalOcean is not enough: the domain's public
+        ## nameservers must actually delegate to DigitalOcean, or the records we
+        ## create are never consulted and acme-dns can never get a certificate.
+        local ns
+        ns=$(dig +short NS "${E2E_DOMAIN}" @1.1.1.1 2>/dev/null | tr '[:upper:]' '[:lower:]')
+        if [[ -n "${ns}" ]] && ! grep -q "digitalocean" <<< "${ns}"; then
+            fault "Domain '${E2E_DOMAIN}' is in your DigitalOcean account, but its public
+nameservers are NOT DigitalOcean's:
+$(sed 's/^/    /' <<< "${ns}")
+Point the domain's registrar nameservers at ns1.digitalocean.com,
+ns2.digitalocean.com, ns3.digitalocean.com (then wait for propagation),
+or configure a domain that is already delegated to DigitalOcean."
+        fi
     fi
     if [[ -z "${E2E_SSH_PUBKEY}" ]]; then
         local f
