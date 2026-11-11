@@ -111,7 +111,9 @@ touch "${HOME}/.ssh/known_hosts"
 if ! ssh-keygen -F localhost -f "${HOME}/.ssh/known_hosts" >/dev/null; then
     ssh-keyscan -H localhost >> "${HOME}/.ssh/known_hosts" 2>/dev/null
 fi
-ssh -o BatchMode=yes "${CONTEXT}" whoami
+## -n: never read from stdin (when this script streams on stdin, ssh would
+## otherwise consume the rest of the script text):
+ssh -n -o BatchMode=yes "${CONTEXT}" whoami
 
 echo "## [bootstrap] Creating Docker context '${CONTEXT}' (ssh://localhost) ..."
 if ! docker context inspect "${CONTEXT}" >/dev/null 2>&1; then

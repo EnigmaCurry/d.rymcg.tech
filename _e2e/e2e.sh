@@ -284,7 +284,10 @@ $*"
 }
 
 e2e_make() {
-    ## e2e_make <project|.> [targets/vars ...] - run make for a project remotely:
+    ## e2e_make <project|.> [targets/vars ...] - run make for a project remotely.
+    ## Always pass instance=default for projects: scripts like
+    ## docker_compose_override read the instance from the environment, and
+    ## make only exports variables given on its command line:
     local project="$1"
     shift
     local args=""
@@ -292,6 +295,7 @@ e2e_make() {
     for a in "$@"; do
         args+=" $(printf '%q' "${a}")"
     done
+    [[ "${project}" != "." ]] && args+=" instance=default"
     e2e_remote_sh "make -C $(printf '%q' "${project}")${args}"
 }
 
@@ -490,10 +494,15 @@ phase_dns() {
 phase_bootstrap() {
     [[ -n "${DROPLET_IP}" ]] || fault "No droplet IP (run the provision phase first)."
     echo "Bootstrapping sworkstation (context=${E2E_NAME}, git=${E2E_GIT_URL} @ ${E2E_GIT_REF}) ..."
-    echo "+ [remote] bash -s < _e2e/lib/remote_bootstrap.sh" >&2
+    ## Upload the script, then execute it in a separate session. Do NOT use
+    ## `bash -s` with the script on stdin: any stdin-reading command inside
+    ## the script (e.g. ssh) would consume the rest of the script text and
+    ## bash would exit 0 early, silently skipping the remaining steps:
+    echo "+ [remote] upload _e2e/lib/remote_bootstrap.sh" >&2
     ssh -o StrictHostKeyChecking=accept-new -o BatchMode=yes "root@${DROPLET_IP}" \
-        "CONTEXT=$(printf '%q' "${E2E_NAME}") GIT_URL=$(printf '%q' "${E2E_GIT_URL}") GIT_REF=$(printf '%q' "${E2E_GIT_REF}") bash -s" \
+        "cat > /root/.e2e_remote_bootstrap.sh" \
         < "${E2E_DIR}/lib/remote_bootstrap.sh"
+    e2e_remote "CONTEXT=$(printf '%q' "${E2E_NAME}") GIT_URL=$(printf '%q' "${E2E_GIT_URL}") GIT_REF=$(printf '%q' "${E2E_GIT_REF}") bash /root/.e2e_remote_bootstrap.sh"
 }
 
 phase_rootconfig() {
@@ -516,7 +525,7 @@ phase_rootconfig() {
 }
 
 phase_acme_dns() {
-    e2e_remote_sh "test -f acme-dns/.env_${E2E_NAME}_default || make -C acme-dns config-dist"
+    e2e_remote_sh "test -f acme-dns/.env_${E2E_NAME}_default || make -C acme-dns config-dist instance=default"
     e2e_remote_sh "_scripts/batch-reconfigure acme-dns/.env_${E2E_NAME}_default \
 ACME_DNS_SUBDOMAIN=acme-dns.${E2E_ROOT_DOMAIN} \
 ACME_DNS_LISTEN_IP_ADDRESS=${DROPLET_IP} \
@@ -553,7 +562,7 @@ ACME_DNS_HOSTMASTER=hostmaster@${E2E_DOMAIN}"
 }
 
 phase_traefik() {
-    e2e_remote_sh "test -f traefik/.env_${E2E_NAME}_default || make -C traefik config-dist"
+    e2e_remote_sh "test -f traefik/.env_${E2E_NAME}_default || make -C traefik config-dist instance=default"
     e2e_make traefik traefik-user
     local cert_domains="[[\"${E2E_ROOT_DOMAIN}\",[\"*.${E2E_ROOT_DOMAIN}\"]]]"
     e2e_remote_sh "_scripts/batch-reconfigure traefik/.env_${E2E_NAME}_default \
@@ -616,11 +625,11 @@ install_app() {
     local host="${app}.${E2E_ROOT_DOMAIN}"
     e2e_remote_sh "prefix=\$(grep -oP '^# PREFIX=\\K.*' ${app}/.env-dist)
 test -n \"\${prefix}\" || { echo \"ERROR: no # PREFIX= META in ${app}/.env-dist\"; exit 1; }
-test -f ${app}/.env_${E2E_NAME}_default || make -C ${app} config-dist
-make -C ${app} reconfigure var=\${prefix}_TRAEFIK_HOST=${host}
-make -C ${app} override
-make -C ${app} install
-make -C ${app} wait TIMEOUT=${E2E_TIMEOUT}"
+test -f ${app}/.env_${E2E_NAME}_default || make -C ${app} config-dist instance=default
+make -C ${app} reconfigure var=\${prefix}_TRAEFIK_HOST=${host} instance=default
+make -C ${app} override instance=default
+make -C ${app} install instance=default
+make -C ${app} wait TIMEOUT=${E2E_TIMEOUT} instance=default"
 }
 
 phase_apps() {
