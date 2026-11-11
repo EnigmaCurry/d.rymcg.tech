@@ -269,10 +269,23 @@ print_results() {
 
 e2e_remote() {
     ## Run a command on the droplet. stdin is /dev/null, so every d.rymcg.tech
-    ## `confirm` prompt takes its non-TTY auto-yes path:
+    ## `confirm` prompt takes its non-TTY auto-yes path.
+    ##
+    ## Retry on ssh exit 255 (connection-level failure: KEX reset, connection
+    ## closed/refused). Such failures happen BEFORE the remote command runs, so
+    ## retrying is safe. A fresh droplet's sshd can transiently reset
+    ## connections while it settles; back off and try again:
     echo "+ [remote] $*" >&2
-    ssh -o StrictHostKeyChecking=accept-new -o BatchMode=yes \
-        -o ConnectTimeout=15 "root@${DROPLET_IP}" "$@" < /dev/null
+    local attempt rc
+    for attempt in 1 2 3 4 5 6; do
+        ssh -o StrictHostKeyChecking=accept-new -o BatchMode=yes \
+            -o ConnectTimeout=15 "root@${DROPLET_IP}" "$@" < /dev/null
+        rc=$?
+        [[ ${rc} -ne 255 ]] && return ${rc}
+        [[ ${attempt} -eq 6 ]] && return 255
+        echo "## [retry] ssh connection failed (exit 255); attempt ${attempt}/6, backing off $((attempt * 4))s ..." >&2
+        sleep $((attempt * 4))
+    done
 }
 
 e2e_remote_sh() {
@@ -463,6 +476,10 @@ phase_provision() {
     ## docker context root may already be on (a prior bootstrap switches root
     ## to the ssh://localhost context):
     e2e_remote "docker -H unix:///var/run/docker.sock info -f '{{.ServerVersion}}'"
+
+    ## Confirm the cloud-init sshd penalty tuning actually took effect:
+    echo "sshd PerSourcePenalties setting on the droplet:"
+    e2e_remote "sshd -T 2>/dev/null | grep -i persourcepenalties || echo '(sshd -T unavailable)'" || true
 
     ## The DigitalOcean firewall is the real firewall; disable any host ufw:
     e2e_remote "ufw disable 2>/dev/null; systemctl mask ufw 2>/dev/null; true"
