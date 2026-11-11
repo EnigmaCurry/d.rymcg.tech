@@ -933,6 +933,24 @@ require_run_config() {
         || fault "SSH public key '${E2E_SSH_PUBKEY}' not found. Re-run:  $0 make ${E2E_NAME} config"
 }
 
+## Set E2E_REGION by selecting from the DigitalOcean regions API (script-wizard
+## menu). Falls back to a free-text prompt if doctl can't list regions:
+choose_region() {
+    local labels=() opts=() default="" choice lbl
+    readarray -t labels < <(doctl compute region list --format Slug,Name --no-header 2>/dev/null || true)
+    if [[ ${#labels[@]} -eq 0 ]]; then
+        ask "Droplet region (slug)" E2E_REGION "${E2E_REGION:-nyc2}"
+        return
+    fi
+    for lbl in "${labels[@]}"; do
+        opts+=("${lbl}")
+        [[ "$(awk '{print $1}' <<< "${lbl}")" == "${E2E_REGION:-nyc2}" ]] && default="${lbl}"
+    done
+    choice=$(wizard choose "Droplet region" "${opts[@]}" \
+        --default "${default:-${opts[0]}}") || fault "Config cancelled."
+    E2E_REGION=$(awk '{print $1}' <<< "${choice}")
+}
+
 cmd_config() {
     [[ -t 0 ]] || fault "'config' is interactive; run it in a terminal."
     ## Make sure script-wizard is available for the menu prompts:
@@ -948,7 +966,7 @@ cmd_config() {
         full workstation --default "${E2E_SUITE:-full}") || E2E_SUITE=""
     [[ -n "${E2E_SUITE}" ]] || fault "Config cancelled."
 
-    ask "Droplet region" E2E_REGION "${E2E_REGION:-nyc2}"
+    choose_region
     ask "Droplet size" E2E_SIZE "${E2E_SIZE:-s-2vcpu-4gb}"
     ask "Droplet image" E2E_IMAGE "${E2E_IMAGE:-debian-13-x64}"
     ask "Admin (workstation) username" E2E_ADMIN_USER "${E2E_ADMIN_USER:-admin}"
