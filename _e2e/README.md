@@ -94,24 +94,27 @@ run it; all settings come from the config file, not command-line arguments.
 The form is `make <NAME> <action>`:
 
 ```bash
+## 'd' is the d.rymcg.tech CLI alias (see WORKSTATION_LINUX.md). You can
+## also run the tool directly as '_e2e/e2e.sh make myapp config'.
+
 ## Configure a full-install test called 'myapp' (interactive wizard):
-d.rymcg.tech e2e make myapp config        # ... or: _e2e/e2e.sh make myapp config
+d e2e make myapp config
 
 ## Run it (reads myapp.conf):
-d.rymcg.tech e2e make myapp full
+d e2e make myapp full
 
 ## Configure and run a workstation-only test called 'desk':
-d.rymcg.tech e2e make desk config         # choose the 'workstation' suite
-d.rymcg.tech e2e make desk workstation
+d e2e make desk config         # choose the 'workstation' suite
+d e2e make desk workstation
 
 ## Inspect, re-run a phase, tear down, or purge:
-d.rymcg.tech e2e make myapp status
-d.rymcg.tech e2e make myapp phase traefik
-d.rymcg.tech e2e make myapp destroy       # delete DO resources, keep the config
-d.rymcg.tech e2e make myapp purge         # destroy + delete the local config
+d e2e make myapp status
+d e2e make myapp phase traefik
+d e2e make myapp destroy       # delete DO resources, keep the config
+d e2e make myapp purge         # destroy + delete the local config
 
 ## List all configured tests:
-d.rymcg.tech e2e list
+d e2e list
 ```
 
 `config` runs an interactive wizard (script-wizard) that asks for the suite,
