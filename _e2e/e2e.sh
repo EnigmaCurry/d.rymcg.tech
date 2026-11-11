@@ -129,6 +129,13 @@ Runtime options (override the config for this run):
   --reset-env    Delete the remote .env files before configuring
   --yes          Skip confirmation prompts (destroy/purge)
 
+Examples:
+  d e2e make myapp config        # configure a new test (interactive)
+  d e2e make myapp full          # provision + install the full stack
+  d e2e make desk workstation    # set up a workstation-only test
+  d e2e make myapp destroy       # tear down the DigitalOcean resources
+  d e2e list                     # list configured tests
+
 Authentication: run 'doctl auth init' first; this script uses whatever
 DigitalOcean account doctl is logged into.
 
