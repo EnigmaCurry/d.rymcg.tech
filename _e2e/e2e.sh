@@ -786,12 +786,15 @@ verify_app() {
 
 verify_check() {
     ## verify_check <label> <remote-command> - run a check as admin on the
-    ## droplet; record PASS/FAIL into RESULTS:
-    local label="$1" cmd="$2" out status=FAIL
-    out=$(e2e_remote_sh "${cmd}" 2>&1 | tr '\n' ' ' | cut -c1-60) || out="${out}"
-    if e2e_remote_sh "${cmd}" >/dev/null 2>&1; then
-        status=PASS
-    fi
+    ## droplet. The command runs in the repo dir with the d.rymcg.tech CLI
+    ## (_scripts/user) and uv (~/.local/bin) on PATH, and WITHOUT a forced
+    ## DOCKER_CONTEXT (a workstation has no context). Captures stdout for the
+    ## detail column; records PASS/FAIL into RESULTS:
+    local label="$1" cmd="$2" out rc=0
+    out=$(e2e_remote "cd ${REMOTE_REPO} 2>/dev/null; export PATH=\"\$PATH:\$HOME/.local/bin:${REMOTE_REPO}/_scripts/user\"; ${cmd}" 2>/dev/null) || rc=$?
+    out=$(printf '%s' "${out}" | tr '\n' ' ' | sed 's/  */ /g' | cut -c1-55)
+    local status=FAIL
+    [[ ${rc} -eq 0 ]] && status=PASS
     RESULTS+=("${status}|${label}|${out}")
     [[ "${status}" == "PASS" ]]
 }
@@ -799,10 +802,12 @@ verify_check() {
 phase_verify() {
     if [[ "${E2E_SUITE}" == "workstation" ]]; then
         ## Workstation: confirm the CLI tooling is installed and functional,
-        ## and that NO docker server is running locally (CLI-only):
+        ## and that NO docker server is running locally (CLI-only). Avoid
+        ## piping into `head` (SIGPIPE would trip under pipefail); count with
+        ## `wc -l` instead:
         local checks=(
-            "d-cli|command -v d.rymcg.tech && d.rymcg.tech --version 2>/dev/null || d.rymcg.tech help >/dev/null"
-            "d-list|d.rymcg.tech list --raw | head -n 1"
+            "d-cli|command -v d.rymcg.tech"
+            "d-list|echo \"\$(d.rymcg.tech list --raw | wc -l) projects\""
             "docker-cli|docker --version"
             "docker-compose|docker compose version"
             "no-docker-server|! docker -H unix:///var/run/docker.sock info >/dev/null 2>&1"
