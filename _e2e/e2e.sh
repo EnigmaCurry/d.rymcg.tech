@@ -370,9 +370,20 @@ phase_preflight() {
 }
 
 phase_provision() {
-    ## SSH key:
+    ## SSH key - DigitalOcean deduplicates keys by fingerprint, so reuse the
+    ## key if the same material already exists under ANY name:
     SSH_KEY_ID=$(doctl compute ssh-key list --format ID,Name --no-header \
                      | awk -v n="${E2E_NAME}" '$2==n {print $1; exit}')
+    if [[ -z "${SSH_KEY_ID}" ]]; then
+        local fingerprint
+        fingerprint=$(ssh-keygen -E md5 -lf "${E2E_SSH_PUBKEY}" \
+                          | awk '{print $2}' | sed 's/^MD5://')
+        SSH_KEY_ID=$(doctl compute ssh-key list --format ID,FingerPrint --no-header \
+                         | awk -v f="${fingerprint}" '$2==f {print $1; exit}')
+        if [[ -n "${SSH_KEY_ID}" ]]; then
+            echo "Reusing SSH key already in the account (fingerprint ${fingerprint})."
+        fi
+    fi
     if [[ -z "${SSH_KEY_ID}" ]]; then
         echo "Uploading SSH key '${E2E_NAME}' from ${E2E_SSH_PUBKEY} ..."
         SSH_KEY_ID=$(doctl compute ssh-key import "${E2E_NAME}" \
