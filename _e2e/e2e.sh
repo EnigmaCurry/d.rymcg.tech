@@ -969,14 +969,14 @@ _choose_slug() {
 
 choose_region() {
     _choose_slug E2E_REGION "Droplet region" "${E2E_REGION:-nyc2}" \
-        < <(doctl compute region list --format Slug,Name --no-header 2>/dev/null || true)
+        < <(doctl compute region list --format Slug,Name --no-header 2>/dev/null </dev/null || true)
 }
 
 choose_size() {
     _choose_slug E2E_SIZE "Droplet size (slug  vCPUs  MemMB  DiskGB  \$/mo)" \
         "${E2E_SIZE:-s-2vcpu-4gb}" \
         < <(doctl compute size list \
-                --format Slug,VCPUs,Memory,Disk,PriceMonthly --no-header 2>/dev/null || true)
+                --format Slug,VCPUs,Memory,Disk,PriceMonthly --no-header 2>/dev/null </dev/null || true)
 }
 
 choose_image() {
@@ -984,14 +984,14 @@ choose_image() {
     ## bootstrap only supports Debian-based images, so filter to those:
     _choose_slug E2E_IMAGE "Droplet image (Debian/Ubuntu)" "${E2E_IMAGE:-debian-13-x64}" \
         < <(doctl compute image list-distribution --public \
-                --format Slug,Distribution --no-header 2>/dev/null \
+                --format Slug,Distribution --no-header 2>/dev/null </dev/null \
                 | grep -iE 'debian|ubuntu' | sort || true)
 }
 
 ## Select the parent domain from the account's DigitalOcean-managed zones:
 choose_domain() {
     local domains=() d found="" choice
-    readarray -t domains < <(doctl compute domain list --format Domain --no-header 2>/dev/null || true)
+    readarray -t domains < <(doctl compute domain list --format Domain --no-header 2>/dev/null </dev/null || true)
     if [[ ${#domains[@]} -eq 0 ]]; then
         ask_no_blank "Parent domain (must be managed by DigitalOcean DNS)" \
             E2E_DOMAIN "${E2E_DOMAIN}"
@@ -1075,8 +1075,25 @@ choose_apps() {
 
 cmd_config() {
     [[ -t 0 ]] || fault "'config' is interactive; run it in a terminal."
+    ## The wizard is interactive: read/confirm/wizard legitimately return
+    ## non-zero (empty input, cancel), so drop the strict ERR/-e handling that
+    ## the automated phases rely on. Explicit `fault`/`|| fault` still abort.
+    trap - ERR
+    set +eE +o pipefail
+
     ## Make sure script-wizard is available for the menu prompts:
     [[ -x "${BIN}/script-wizard" ]] || "${BIN}/install_script-wizard" --yes
+
+    ## Authenticate doctl if needed, so the region/size/image/domain pickers can
+    ## query the API (otherwise they fall back to free-text prompts):
+    if ! doctl account get >/dev/null 2>&1; then
+        echo "doctl is not authenticated to DigitalOcean."
+        if confirm yes "Run 'doctl auth init' now" "?"; then
+            doctl auth init || true
+        fi
+        doctl account get >/dev/null 2>&1 \
+            || echo "NOTE: still unauthenticated - region/size/image/domain will be free-text."
+    fi
 
     ## Seed the wizard with the existing config (if any) so re-running edits it:
     [[ -f "$(config_file)" ]] && load_config
