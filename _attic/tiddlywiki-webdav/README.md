@@ -131,7 +131,7 @@ a centralized location to edit (WebDAV server), and an automatic
 external backup.
 
 The `git-autocommit` service is optional, and disabled by default (see
-`DOCKER_COMPOSE_PROFILES`).
+`TIDDLYWIKI_DOCKER_COMPOSE_PROFILES`).
 
 ### Create a private git repository to hold the backups
 
@@ -184,12 +184,12 @@ For example on GitHub:
 
 ### Enable the git-autocommit service and redeploy
 
-Update the `DOCKER_COMPOSE_PROFILES` variable in your config to turn
+Update the `TIDDLYWIKI_DOCKER_COMPOSE_PROFILES` variable in your config to turn
 on the `git-autocommit` service (which is disabled by default in
 [.env-dist](.env-dist)):
 
 ```
-make reconfigure var=DOCKER_COMPOSE_PROFILES=default,git-autocommit
+make reconfigure var=TIDDLYWIKI_DOCKER_COMPOSE_PROFILES=default,git-autocommit
 make install
 ```
 

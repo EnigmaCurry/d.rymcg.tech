@@ -6,6 +6,8 @@ volumes:
 services:
   config:
     image: sftp-sftp
+    build:
+      context: ./
     cap_add:
       - LINUX_IMMUTABLE
       - CHOWN

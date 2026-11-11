@@ -33,7 +33,7 @@ fi
 sudo dnf -y update
 sudo dnf install -y \
     bash gcc gcc-c++ gettext git openssl httpd-tools xdg-utils jq sshfs wireguard-tools \
-    curl inotify-tools w3m nano openssh-server moreutils
+    curl inotify-tools w3m nano openssh-server
 
 ## Install Docker:
 sudo dnf -y install dnf-plugins-core

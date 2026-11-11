@@ -9,7 +9,14 @@ set -e
 ENV_FILE=$1
 check_var ENV_FILE
 ENV_DIR="$(dirname ${ENV_FILE})"
-ENV_DIST="${ENV_DIR}/.env-dist"
+# When DRT_ENV_DIR is set, .env-dist lives in the source tree, not the env dir
+if [[ -n "${DRT_ENV_DIR:-}" && "${ENV_DIR}" == "${DRT_ENV_DIR}"* ]]; then
+    _rel="${ENV_DIR#${DRT_ENV_DIR}}"
+    _rel="${_rel#/}"
+    ENV_DIST="${ROOT_DIR}/${_rel:-.}/.env-dist"
+else
+    ENV_DIST="${ENV_DIR}/.env-dist"
+fi
 
 test -f "${ENV_FILE}" || fault "Missing env file: ${ENV_FILE}"
 test -f "${ENV_DIST}" || fault "Missing env-dist file: ${ENV_DIST}"

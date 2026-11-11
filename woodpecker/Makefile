@@ -1,0 +1,126 @@
+ROOT_DIR = ..
+include ${ROOT_DIR}/_scripts/Makefile.projects
+include ${ROOT_DIR}/_scripts/Makefile.instance
+
+.PHONY: config-hook
+config-hook:
+#### This interactive configuration wizard creates the .env_{DOCKER_CONTEXT}_{INSTANCE} config file using .env-dist as the template:
+#### reconfigure_ask asks the user a question to set the variable into the .env file, and with a provided default value.
+#### reconfigure sets the value of a variable in the .env file without asking.
+#### reconfigure_htpasswd will configure the HTTP Basic Authentication setting the var name and with a provided default value.
+	@${BIN}/reconfigure_ask ${ENV_FILE} WOODPECKER_TRAEFIK_HOST "Enter the woodpecker server domain name" woodpecker${INSTANCE_URL_SUFFIX}.${ROOT_DOMAIN}
+	@${BIN}/reconfigure_ask ${ENV_FILE} WOODPECKER_GRPC_HOST "Enter the woodpecker GRPC domain name" woodpecker-grpc${INSTANCE_URL_SUFFIX}.${ROOT_DOMAIN}
+	@${BIN}/reconfigure_password ${ENV_FILE} WOODPECKER_AGENT_SECRET
+	@echo ""
+	@forge=$$(eval "${BIN}/script-wizard choose 'Which forge do you want to use?' 'Forgejo' --default 'Forgejo'") && \
+	if [ "$${forge}" = "Forgejo" ]; then \
+		${BIN}/reconfigure ${ENV_FILE} WOODPECKER_FORGEJO=true; \
+		${BIN}/reconfigure_ask ${ENV_FILE} WOODPECKER_FORGEJO_URL "Enter the Forgejo server URL" https://git.${ROOT_DOMAIN}; \
+		FORGEJO_URL=$$(${BIN}/dotenv -f ${ENV_FILE} get WOODPECKER_FORGEJO_URL); \
+		TRAEFIK_HOST=$$(${BIN}/dotenv -f ${ENV_FILE} get WOODPECKER_TRAEFIK_HOST); \
+		echo ""; \
+		echo "## Create an OAuth2 application in Forgejo:"; \
+		echo "  1. Open $${FORGEJO_URL}/user/settings/applications"; \
+		echo "  2. Enter Application Name: Woodpecker"; \
+		echo "  3. Enter Redirect URI: https://$${TRAEFIK_HOST}/authorize"; \
+		echo "  4. Copy the Client ID and Client Secret."; \
+		echo ""; \
+		${BIN}/reconfigure_ask ${ENV_FILE} WOODPECKER_FORGEJO_CLIENT "Enter the Forgejo OAuth2 Client ID"; \
+		${BIN}/reconfigure_ask ${ENV_FILE} WOODPECKER_FORGEJO_SECRET "Enter the Forgejo OAuth2 Client Secret"; \
+		${BIN}/reconfigure_ask ${ENV_FILE} WOODPECKER_ADMIN "Enter the Forgejo admin username(s), not email (comma separated)"; \
+		${BIN}/reconfigure_ask ${ENV_FILE} WOODPECKER_OPEN "Allow any Forgejo user to login?" true; \
+		${BIN}/reconfigure_ask ${ENV_FILE} WOODPECKER_ORGS "Restrict login to these Forgejo orgs (comma separated, blank for all)" woodpecker; \
+	fi
+	@echo ""
+	@${BIN}/reconfigure ${ENV_FILE} WOODPECKER_INSTANCE=$${instance:-default}
+	@${BIN}/reconfigure_compose_profiles_select ${ENV_FILE} server="Woodpecker Server" agent="Woodpecker Agent"
+	@${BIN}/reconfigure_choose ${ENV_FILE} WOODPECKER_BACKEND "Choose the agent backend" "docker" "local"
+	@current_labels=$$(${BIN}/dotenv -f ${ENV_FILE} get WOODPECKER_FILTER_LABELS); \
+	if [ "$${current_labels}" = "role=controller" ]; then default_role="yes"; else default_role="no"; fi; \
+	role=$$(eval "${BIN}/script-wizard choose 'Configure this agent with role=controller filter label? (for droplet autoscaler)' 'no' 'yes' --default '$${default_role}'") && \
+	if [ "$${role}" = "yes" ]; then \
+		${BIN}/reconfigure ${ENV_FILE} WOODPECKER_FILTER_LABELS=role=controller; \
+	else \
+		${BIN}/reconfigure ${ENV_FILE} WOODPECKER_FILTER_LABELS=; \
+	fi
+
+.PHONY: override-hook
+override-hook:
+#### This sets the override template variables for docker-compose.instance.yaml:
+#### The template dynamically renders to docker-compose.override_{DOCKER_CONTEXT}_{INSTANCE}.yaml
+#### These settings are used to automatically generate the service container labels, and traefik config, inside the template.
+#### The variable arguments have three forms: `=` `=:` `=@`
+####   name=VARIABLE_NAME    # sets the template 'name' field to the value of VARIABLE_NAME found in the .env file
+####                         # (this hardcodes the value into docker-compose.override.yaml)
+####   name=:VARIABLE_NAME   # sets the template 'name' field to the literal string 'VARIABLE_NAME'
+####                         # (this hardcodes the string into docker-compose.override.yaml)
+####   name=@VARIABLE_NAME   # sets the template 'name' field to the literal string '${VARIABLE_NAME}'
+####                         # (used for regular docker-compose expansion of env vars by name.)
+	@${BIN}/docker_compose_override ${ENV_FILE} project=:woodpecker instance=@WOODPECKER_INSTANCE traefik_host=@WOODPECKER_TRAEFIK_HOST grpc_host=@WOODPECKER_GRPC_HOST ip_sourcerange=@WOODPECKER_IP_SOURCERANGE
+
+.PHONY: install-hook-pre
+install-hook-pre:
+	@echo
+
+.PHONY: install-hook
+install-hook:
+	@echo
+
+.PHONY: droplet # Manage Woodpecker agent droplets on DigitalOcean
+droplet:
+	@DEFAULT_WOODPECKER_SERVER="$$(${BIN}/dotenv -f ${ENV_FILE} get WOODPECKER_GRPC_HOST):443" \
+	DEFAULT_WOODPECKER_AGENT_SECRET="$$(${BIN}/dotenv -f ${ENV_FILE} get WOODPECKER_AGENT_SECRET)" \
+	bash scripts/agent-droplet.sh
+
+.PHONY: droplet-preset # Create a Woodpecker agent droplet preset
+droplet-preset:
+	@DEFAULT_WOODPECKER_SERVER="$$(${BIN}/dotenv -f ${ENV_FILE} get WOODPECKER_GRPC_HOST):443" \
+	DEFAULT_WOODPECKER_AGENT_SECRET="$$(${BIN}/dotenv -f ${ENV_FILE} get WOODPECKER_AGENT_SECRET)" \
+	bash scripts/agent-droplet.sh gumdrop_create_preset
+
+.PHONY: trusted # Set trust levels on a Woodpecker repository
+trusted:
+	@if [ -z "$${WOODPECKER_SERVER:-}" ] || [ -z "$${WOODPECKER_TOKEN:-}" ]; then \
+		echo "WOODPECKER_SERVER and WOODPECKER_TOKEN must be set."; \
+		echo ""; \
+		TRAEFIK_HOST=$$(${BIN}/dotenv -f ${ENV_FILE} get WOODPECKER_TRAEFIK_HOST); \
+		echo "Find your Personal Access Token at:"; \
+		echo "  https://$${TRAEFIK_HOST}/user/cli-and-api"; \
+		echo "(you can reset the token after you are done)"; \
+		echo ""; \
+		echo "  export WOODPECKER_SERVER=https://$${TRAEFIK_HOST}"; \
+		echo "  export WOODPECKER_TOKEN=<your-token>"; \
+		exit 1; \
+	fi
+	@echo "Fetching repository list ..."
+	@REPOS_RESPONSE=$$(curl -s -f -H "Authorization: Bearer $${WOODPECKER_TOKEN}" "$${WOODPECKER_SERVER}/api/repos" 2>&1) || \
+		{ echo "Error fetching repos from $${WOODPECKER_SERVER}/api/repos:"; echo "$${REPOS_RESPONSE}"; exit 1; }; \
+	readarray -t REPOS < <(echo "$${REPOS_RESPONSE}" | jq -r '.[].full_name' | sort) || \
+		{ echo "Error parsing API response:"; echo "$${REPOS_RESPONSE}"; exit 1; }; \
+	if [ $${#REPOS[@]} -eq 0 ]; then echo "No repositories found."; exit 1; fi; \
+	REPO=$$(eval "${BIN}/script-wizard choose 'Select repository' $${REPOS[@]@Q}") && \
+	REPO_JSON=$$(curl -s -f -H "Authorization: Bearer $${WOODPECKER_TOKEN}" "$${WOODPECKER_SERVER}/api/repos/lookup/$${REPO}" 2>&1) || \
+		{ echo "Error looking up repo $${REPO}:"; echo "$${REPO_JSON}"; exit 1; }; \
+	REPO_ID=$$(echo "$${REPO_JSON}" | jq -r '.id') && \
+	CURRENT_DEFAULT=$$(echo "$${REPO_JSON}" | jq -c '[if .trusted.network then "network" else empty end, if .trusted.security then "security" else empty end, if .trusted.volumes then "volumes" else empty end]') && \
+	readarray -t TRUST < <(${BIN}/script-wizard select "Select trust levels for $${REPO}" "network" "security" "volumes" --default "$${CURRENT_DEFAULT}") && \
+	NETWORK=false; SECURITY=false; VOLUMES=false; \
+	for level in "$${TRUST[@]}"; do \
+		case "$${level}" in \
+			network) NETWORK=true;; \
+			security) SECURITY=true;; \
+			volumes) VOLUMES=true;; \
+		esac; \
+	done; \
+	echo "Setting trust for $${REPO}: network=$${NETWORK} security=$${SECURITY} volumes=$${VOLUMES}"; \
+	PATCH_RESPONSE=$$(curl -s -f -X PATCH \
+		-H "Authorization: Bearer $${WOODPECKER_TOKEN}" \
+		-H "Content-Type: application/json" \
+		-d "{\"trusted\":{\"network\":$${NETWORK},\"security\":$${SECURITY},\"volumes\":$${VOLUMES}}}" \
+		"$${WOODPECKER_SERVER}/api/repos/$${REPO_ID}" 2>&1) || \
+		{ echo "Error updating trust settings:"; echo "$${PATCH_RESPONSE}"; exit 1; }; \
+	echo "$${PATCH_RESPONSE}" | jq '{full_name: .full_name, trusted: .trusted}'
+
+.PHONY: shell # Enter one of the container shells
+shell:
+	@container=$$(eval "${BIN}/script-wizard choose 'docker exec -it into which container?' 'server' 'agent' --default 'server'") && make --no-print-directory docker-compose-shell SERVICE=$${container}

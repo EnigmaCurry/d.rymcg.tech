@@ -18,6 +18,8 @@ This guide shows you how to install a Docker server and setup the firewall.
        run Docker natively on Aarch64.
      * [PROXMOX.md](PROXMOX.md) - Install Proxmox (PVE) on a PC to to
        run Docker in a virtual machine on AMD64.
+     * [nixos-vm-template](https://github.com/EnigmaCurry/nixos-vm-template) -
+       Create a NixOS VM with Docker on libvirt/KVM or Proxmox VE.
      * [DIGITALOCEAN.md](DIGITALOCEAN.md) - Create a DigitalOcean
        droplet to run Docker in the cloud.
      * [AWS.md](AWS.md) - Create an AWS EC2 instance to run Docker in
@@ -200,6 +202,7 @@ configured, you may need to open these ports in your firewall:
 | RTMP(s)    | TCP      | 1935       | Traefik RTMP (real time message protocol) entrypoint      |
 | SSH        | TCP      | 2222       | Traefik Forgejo SSH entrypoint                            |
 | SSH        | TCP      | 2223       | SFTP container SSH (direct-map)                           |
+| HTTP       | TCP      | 2890       | acme-dns API (direct-map)                                 |
 | TCP/UDP    | TCP/UDP  | 5201       | Traefik Iperf entrypoint                                  |
 | TCP        | TCP      | 5222       | Traefik XMPP client-to-server entrypoint                  |
 | TCP        | TCP      | 5269       | Traefik XMPP server-to-server entrypoint                  |

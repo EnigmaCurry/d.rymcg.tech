@@ -34,6 +34,40 @@ base_config() {
     ## Make new .env if it doesn't exist:
     test -f ${ENV_FILE} || cp .env-dist ${ENV_FILE}
     ${BIN}/reconfigure ${ENV_FILE} DOCKER_CONTEXT=${DOCKER_CONTEXT}
+    autodetect_lib_modules_path
+}
+
+## Detect the Docker host OS and, on NixOS, point TRAEFIK_LIB_MODULES_PATH
+## at the read-only kernel modules path. The wireguard container bind-mounts
+## /lib/modules, which doesn't exist on NixOS's immutable root and causes
+## `mkdir /lib: read-only file system` when Docker tries to create it.
+_detect_host_os_id() {
+    local ssh_host
+    ssh_host=$(docker context inspect --format '{{.Endpoints.docker.Host}}' 2>/dev/null || true)
+    if [[ -z "${ssh_host}" || "${ssh_host}" == unix://* ]]; then
+        (. /etc/os-release 2>/dev/null && echo "$ID") || true
+    else
+        ssh "${ssh_host#ssh://}" '. /etc/os-release 2>/dev/null && echo "$ID"' 2>/dev/null || true
+    fi
+}
+
+autodetect_lib_modules_path() {
+    local current detected
+    current=$(${BIN}/dotenv -f ${ENV_FILE} get TRAEFIK_LIB_MODULES_PATH)
+    ## Only replace known defaults; preserve any user-customized value.
+    case "${current}" in
+        ""|/lib/modules|/run/booted-system/kernel-modules/lib/modules) ;;
+        *) return 0 ;;
+    esac
+    case "$(_detect_host_os_id)" in
+        nixos) detected=/run/booted-system/kernel-modules/lib/modules ;;
+        "")    return 0 ;;
+        *)     detected=/lib/modules ;;
+    esac
+    if [[ "${detected}" != "${current}" ]]; then
+        echo "## Auto-detected host OS: setting TRAEFIK_LIB_MODULES_PATH=${detected}" >&2
+        ${BIN}/reconfigure ${ENV_FILE} "TRAEFIK_LIB_MODULES_PATH=${detected}"
+    fi
 }
 
 config() {
@@ -168,7 +202,16 @@ traefik_user() {
                      adduser --shell /usr/sbin/nologin --system \
                      ${user_group_arg} ${TRAEFIK_USER}
                 )
-                ssh ${SSH_HOST} ${SUDO_PREFIX} gpasswd -a ${TRAEFIK_USER} docker || fault "There was a problem creating the ${TRAEFIK_USER} user. Are you logging in as root?"
+                if ssh ${SSH_HOST} getent group docker >/dev/null 2>&1; then
+                    ssh ${SSH_HOST} ${SUDO_PREFIX} gpasswd -a ${TRAEFIK_USER} docker || fault "There was a problem adding ${TRAEFIK_USER} to the docker group."
+                else
+                    echo
+                    echo "WARNING: The 'docker' group does not exist on the Docker host."
+                    echo "If you are using Docker, ensure the docker group is created"
+                    echo "(e.g., 'sudo groupadd docker') and then add the ${TRAEFIK_USER}"
+                    echo "user to it: sudo gpasswd -a ${TRAEFIK_USER} docker"
+                    echo
+                fi
                 echo "Successfully created the ${TRAEFIK_USER} user!"
                 traefik_uid
             fi
@@ -184,7 +227,11 @@ traefik_uid() {
     else
         TRAEFIK_UID=$(ssh ${SSH_HOST} id -u ${TRAEFIK_USER})
         TRAEFIK_GID=$(ssh ${SSH_HOST} id -g ${TRAEFIK_USER})
-        TRAEFIK_DOCKER_GID=$(ssh ${SSH_HOST} getent group docker | cut -d: -f3)
+        TRAEFIK_DOCKER_GID=$(ssh ${SSH_HOST} getent group docker 2>/dev/null | cut -d: -f3)
+        if [[ -z "${TRAEFIK_DOCKER_GID}" ]]; then
+            echo "WARNING: The 'docker' group does not exist on the Docker host. Using default GID 999."
+            TRAEFIK_DOCKER_GID=999
+        fi
         ${BIN}/reconfigure ${ENV_FILE} \
               TRAEFIK_UID=${TRAEFIK_UID} \
               TRAEFIK_GID=${TRAEFIK_GID} \
@@ -288,7 +335,7 @@ config_entrypoint() {
             default_choice=1
         fi
         echo
-        if [[ "${entrypoint}" != *_udp ]]; then
+        if [[ "${entrypoint}" != *_udp ]] && [[ "${entrypoint}" != "dashboard" ]]; then
             case $(wizard choose --default ${default_choice} --numeric \
                           "Is this entrypoint downstream from another trusted proxy?" \
                           "No, clients dial directly to this server. (Turn off Proxy Protocol)" \

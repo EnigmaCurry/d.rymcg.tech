@@ -1,7 +1,10 @@
 #!/bin/bash
 
-## reconfigure_auth VAR_PREFIX
+## reconfigure_auth ENV_FILE VAR_PREFIX [CUSTOM_PROMPT] [ALLOWED_METHODS]
 ## Subsume all the authentication and authorization configurations in 1 script
+## CUSTOM_PROMPT: optional custom prompt string (default: generic sentry auth prompt)
+## ALLOWED_METHODS: optional comma-separated whitelist of auth methods (http,oauth,mtls)
+##   If omitted, all methods supported by the .env file are available.
 
 BIN=$(dirname ${BASH_SOURCE})
 source ${BIN}/funcs.sh
@@ -9,15 +12,32 @@ set -eo pipefail
 
 ENV_FILE=$1
 VAR_PREFIX=$2
+CUSTOM_PROMPT=$3
+ALLOWED_METHODS=$4
 export __D_RY_CONFIG_ENTRY=reconfigure_auth
 
-prompt="Do you want to enable sentry authorization in front of this app (effectively making the entire site private)?"
+prompt="${CUSTOM_PROMPT:-Do you want to enable sentry authorization in front of this app (effectively making the entire site private)?}"
 options=("No")
 ## Set default based on current auth settings in ENV_FILE
 
 DISABLE_HTTP=false
 DISABLE_OAUTH=false
 DISABLE_MTLS=false
+
+## If an allowed methods whitelist is given, disable everything not listed
+if [[ -n "${ALLOWED_METHODS}" ]]; then
+    DISABLE_HTTP=true
+    DISABLE_OAUTH=true
+    DISABLE_MTLS=true
+    IFS=',' read -ra methods <<< "${ALLOWED_METHODS}"
+    for method in "${methods[@]}"; do
+        case "${method}" in
+            http) DISABLE_HTTP=false ;;
+            oauth) DISABLE_OAUTH=false ;;
+            mtls) DISABLE_MTLS=false ;;
+        esac
+    done
+fi
 
 set +e
 http_auth=$(${BIN}/dotenv -f ${ENV_FILE} get ${VAR_PREFIX}_HTTP_AUTH)
@@ -59,14 +79,13 @@ if [[ "${DISABLE_MTLS}" == "false" ]]; then
     options+=("Yes, with Mutual TLS (mTLS)")
 fi
 
+default="${options[0]}"
 if [[ -n "${http_auth}" ]]; then
-    default="${options[1]}"
+    for opt in "${options[@]}"; do [[ "$opt" == *HTTP* ]] && default="$opt" && break; done
 elif [[ "${oauth2_auth}" == "true" ]]; then
-    default="${options[2]}"
+    for opt in "${options[@]}"; do [[ "$opt" == *Oauth2* ]] && default="$opt" && break; done
 elif [[ "${mtls_auth}" == "true" ]]; then
-    default="${options[3]}"
-else
-    default="${options[0]}"
+    for opt in "${options[@]}"; do [[ "$opt" == *mTLS* ]] && default="$opt" && break; done
 fi
 
 ## Ask user which authentication configuration they want

@@ -379,8 +379,6 @@ make config         - Configure main variables
 make build          - build all container images
 make open           - Open the repository website README
 make status         - Check status of all sub-projects
-make backup-env     - Make an encrypted backup of the .env files
-make restore-env    - Restore .env files from encrypted backup
 make clean          - Remove all private files (.env and passwords.json files)
 make show-ports     - Show open ports on the docker server
 make audit          - Audit container permissions and capabilities
@@ -442,17 +440,6 @@ This is a simple shortcut to open the main README in your web-browser.
 
 `make status` will invoke `docker compose ls` and print all of the
 running services managed by d.rymcg.tech and show the config location.
-
-### make backup-env
-
-`make backup-env` will find all of the environment files and
-passwords.json files, and make an encrypted backup file, encrypted
-with your offsite GNU Privacy Guard (GPG) public key.
-
-### make restore-env
-
-`make restore-env` will restore environment files and passwords.json
-files from an encrypted backup file.
 
 ### make clean
 

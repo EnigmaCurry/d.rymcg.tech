@@ -1,0 +1,95 @@
+#!/bin/bash
+
+## llama-list-models SERVICE [ENV_FILE] [--json]
+## Lists models available in the running llama.cpp container.
+## Default: simple list, one per line: "<model name> (<model id>)"
+## With --json: full JSON output from the API.
+
+BIN=$(dirname ${BASH_SOURCE})
+ROOT_DIR="${ROOT_DIR:-$(dirname ${BIN})}"
+source ${ROOT_DIR}/_scripts/funcs.sh
+set -eo pipefail
+
+SERVICE=""
+ENV_FILE=""
+JSON_OUTPUT=false
+
+for arg in "$@"; do
+    case "$arg" in
+        --json)
+            JSON_OUTPUT=true
+            ;;
+        *)
+            if [[ -z "${SERVICE}" ]]; then
+                SERVICE="$arg"
+            elif [[ -z "${ENV_FILE}" ]]; then
+                ENV_FILE="$arg"
+            else
+                fault "Usage: llama-list-models SERVICE [ENV_FILE] [--json]"
+            fi
+            ;;
+    esac
+done
+
+if [[ -z "${SERVICE}" ]]; then
+    fault "Usage: llama-list-models SERVICE [ENV_FILE] [--json]"
+fi
+
+COMPOSE="docker compose"
+if [[ -n "${ENV_FILE}" ]]; then
+    COMPOSE="docker compose --env-file ${ENV_FILE}"
+fi
+
+# Verify the service is running
+running_services=$(${COMPOSE} ps --format json 2>/dev/null || true)
+if [[ -z "${running_services}" ]]; then
+    fault "Service '${SERVICE}' is not running. Start it first with 'make install'."
+fi
+
+# Handle both array output (multiple containers) and single object output
+service_found=false
+if echo "${running_services}" | jq -e 'type == "array"' >/dev/null 2>&1; then
+    if echo "${running_services}" | jq -r '.[].Name' 2>/dev/null | grep -q "${SERVICE}"; then
+        service_found=true
+    fi
+else
+    if echo "${running_services}" | jq -r '.Name' 2>/dev/null | grep -q "${SERVICE}"; then
+        service_found=true
+    fi
+fi
+
+if [[ "${service_found}" != "true" ]]; then
+    fault "Service '${SERVICE}' is not running. Start it first with 'make install'."
+fi
+
+if [[ "${JSON_OUTPUT}" == "true" ]]; then
+    # Fetch models from the API for JSON output
+    models_json=$(${COMPOSE} exec -T "${SERVICE}" curl -s http://localhost:8080/v1/models 2>/dev/null || true)
+    if [[ -z "${models_json}" ]]; then
+        fault "Could not query the API. Is the server running?"
+    fi
+    echo "${models_json}" | jq '.'
+else
+    # List from filesystem (ground truth of available models)
+    ${COMPOSE} exec -T "${SERVICE}" bash -c '
+        shopt -s nullglob
+        files=(/models/*.gguf)
+        if [[ ${#files[@]} -gt 0 ]]; then
+            for f in "${files[@]}"; do
+                basename_f=$(basename "$f")
+                model_id="${basename_f%.gguf}"
+                size_bytes=$(stat -c %s "$f")
+                if (( size_bytes >= 1073741824 )); then
+                    size_human=$(awk "BEGIN {printf \"%.2f GB\", ${size_bytes}/1073741824}")
+                elif (( size_bytes >= 1048576 )); then
+                    size_human=$(awk "BEGIN {printf \"%.2f MB\", ${size_bytes}/1048576}")
+                else
+                    size_human=$(awk "BEGIN {printf \"%.2f KB\", ${size_bytes}/1024}")
+                fi
+                echo "${basename_f} (${model_id}) - ${size_human}"
+            done
+        else
+            echo "(no .gguf files found)"
+        fi
+    '
+fi

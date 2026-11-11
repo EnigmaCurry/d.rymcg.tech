@@ -69,6 +69,43 @@ choose `New migration`.
 If you have a lot of repositories to migrate, this can be automated by
 the included [github_migrate](github_migrate) script.
 
+## Webhook route (bypass sentry authorization)
+
+When any sentry authorization method is enabled (mTLS, HTTP Basic, or
+OAuth2), external services like GitHub cannot reach Forgejo because
+they cannot satisfy the auth requirements. To allow webhook access
+without sentry auth, set `FORGEJO_WEBHOOK_HOST` to a separate domain
+name:
+
+```
+FORGEJO_WEBHOOK_HOST=git-webhook.example.com
+```
+
+This creates a second Traefik router on the webhook hostname that:
+
+ * Only accepts `POST` requests to `/api/v1/repos/{owner}/{repo}/mirror-sync`
+ * Uses plain HTTPS with no sentry authorization middlewares
+ * Still applies the IP allowlist middleware
+ * Reuses the same Forgejo backend service
+
+When `FORGEJO_WEBHOOK_HOST` is left blank (the default), no webhook
+route is created.
+
+To use this with GitHub mirror-sync webhooks:
+
+ 1. Set `FORGEJO_WEBHOOK_HOST` during `make config` (or edit your env
+    file directly).
+ 2. Run `make install` to apply.
+ 3. Create a DNS record pointing the webhook domain to your Traefik
+    server.
+ 4. Create a Forgejo API token with the `write:repository` scope.
+    Note: Forgejo tokens are account-scoped, not repo-scoped, so the
+    token grants write access to all repos the account can reach.
+    Consider creating a dedicated service account that only has access
+    to the repos being mirrored.
+ 5. In GitHub, add a webhook with the URL:
+    `https://git-webhook.example.com/api/v1/repos/{owner}/{repo}/mirror-sync?token=YOUR_TOKEN`
+
 ## Reset root password
 
 If you've forgotten your administrator password, you can reset it by

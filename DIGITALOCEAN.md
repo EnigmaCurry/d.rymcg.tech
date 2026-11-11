@@ -1,134 +1,117 @@
 # Docker on DigitalOcean
 
-You can use [DigitalOcean](https://www.digitalocean.com/) to host a docker server online.
+You can use [DigitalOcean](https://www.digitalocean.com/) to host a Docker
+server online. The `d.rymcg.tech` tool includes an interactive manager for
+DigitalOcean resources called **gumdrop**, accessed via the `d droplet` (or `d gumdrop`)
+command.
 
 Note: this doc leaves out a lot of important bits. Read the main
 [d.rymcg.tech README](README.md) to fill in those gaps!
 
-## Create a droplet on DigitalOcean:
+## Prerequisites
 
- * Create a DigitalOcean account and login to
-   [cloud.digitalocean.com](https://cloud.digitalocean.com)
- * Click `Create`, then `Droplets`.
- * Choose a Region to install to.
- * Choose the `Debian` image.
- * Choose whatever droplet size you need. I regularly use a 512MB+zram
-   droplet and use it for all development purposes).
- * Optional: Enable backup (daily or weekly snapshots).
- * Optional: Add a block storage device if you plan to exceed the disk
-   storage of the droplet. This volume is used to store all of the
-   container volumes (`/var/lib/docker`). Choose `Automatically Format
-   & Mount`. Important: external volumes are *not* included in droplet
-   backups, but you may perform manual volume snapshots yourself.
- * Add your workstation SSH key.
- * Choose a hostname.
- * Click `Create Droplet`.
- * Once the droplet is created, find the public IP address (or
-   floating IP). Add a wildcard DNS record like `*.d.example.com` (or
-   `*.example.com` if you want to dedicate your whole domain), so that
-   any subdomain in place of `*` will resolve to your droplet. You may
-   use your own DNS host or you may use DigitalOcean DNS (go to
-   `Networking` / `Domains`, add or find your domain, create an `A`
-   record, enter name as `*.d.example.com`, and direct to your
-   droplet's IP address.)
- 
-## Setup droplet firewall
+ * A DigitalOcean account with a
+   [personal access token](https://docs.digitalocean.com/reference/api/create-personal-access-token/).
+ * [doctl](https://docs.digitalocean.com/reference/doctl/how-to/install/)
+   installed and available on your PATH.
 
-Go to the DigitalOcean dashboard, Networking page, click the Firewalls tab.
+The first time you run `d droplet`, you will be prompted to add your
+DigitalOcean account (name and API token). You can manage multiple
+accounts from the Accounts menu.
 
-Create a new firewall: 
- 
- * Enter any name you want for the firewall (eg. use the  domain or server role name to help identify it).
- * Create the following `Inbound Rules`:
- 
-    | Type   | Protocol | Port Range | Description                        |
-    | ------ | -------- | ---------- | ---------------------------------- |
-    | SSH    | TCP      |         22 | Host SSH server                    |
-    | HTTP   | TCP      |         80 | Traefik HTTP endpoint              |
-    | HTTPS  | TCP      |        443 | Traefik HTTPS (TLS) endpoint       |
-    | Custom | TCP      |       2222 | Traefik Forgejo SSH (TCP) endpoint |
-    | Custom | TCP      |       2223 | SFTP container SSH (TCP)           |
-    | Custom | TCP      |       8883 | Traefik Mosquitto (TLS) endpoint   |
- 
- * (and any other ports you need.)
- * Search for the Droplet you create and apply the firewall to it.
- * You can verify the firewall is applied, by going to the Droplet page and
-   going to the Droplet Network settings page.
- 
-Login to the droplet shell terminal, and disable the ufw firewall:
+## Create a droplet
 
 ```
-ufw disable
-systemctl mask ufw
-```
- 
-## Setup droplet volumes on block storage
-
-Normally, Docker stores all data (including volumes) at `/var/lib/docker` which
-is on the root partition of the droplet storage. In order to use external block
-storage, you must move the existing data to the block storage device and
-re-mount the block storage to this location.
-
-By default, DigitalOcean formats and mounts your block storage device to a
-location with a variable name, for instance: `/mnt/volume_nyc1_01` (the name
-will depend on the datacenter, region, and the number of block storage devices
-that you've created.) You can find where this mount location is by running `df -h`
-(double check the storage size column).
-
-Shutdown docker:
-
-```
-systemctl stop docker
+d droplet
 ```
 
-Move the data to the block storage device, ensuring to use the actual mount
-location specific to your droplet:
+Choose **Droplets → Create new droplet** and follow the interactive
+wizard. You will be asked to choose:
 
-```
-mv /var/lib/docker/* /mnt/volume_nyc1_01/
-```
+ * A name for the droplet.
+ * A region, size, and image (Debian is the default).
+ * SSH key(s) to install.
+ * Optional tags.
+ * Optional block storage volume (useful if you plan to exceed the
+   droplet's root disk; the volume stores `/var/lib/docker`).
+ * Optional firewall to apply (defaults to blocking all incoming).
+ * Optional backups (daily or weekly snapshots).
+ * A user-data (cloud-init) script — **select the Docker option for
+   your image** (e.g. "Docker (debian based)"). This installs Docker
+   and automatically mounts any attached block storage volume as
+   `/var/lib/docker`. The default is "No", so be sure to change it.
 
-Unmount the block storage device:
+Once the droplet is created, you can SSH into it directly from the
+menu (**Droplets → SSH into droplet**), or add it to your local SSH
+config (**Droplets → Add to local SSH config**).
 
-```
-umount /mnt/volume_nyc1_01
-```
+## Setup firewall
 
-Edit the systemd unit file responsible for mounting the block storage device
-`/etc/systemd/system/mnt-volume_nyc1_01.mount`. Change the line
-`Where=/mnt/volume_nyc1_01` to `Where=/var/lib/docker`.
+From the main menu choose **Firewalls → Create new firewall**. A
+typical web-hosting firewall needs these inbound rules:
 
+| Type | Protocol | Port Range | Description                        |
+| ---- | -------- | ---------- | ---------------------------------- |
+| TCP  | TCP      |         22 | Host SSH server                    |
+| TCP  | TCP      |         80 | Traefik HTTP endpoint              |
+| TCP  | TCP      |        443 | Traefik HTTPS (TLS) endpoint       |
+| TCP  | TCP      |       2222 | Traefik Forgejo SSH (TCP) endpoint |
+| TCP  | TCP      |       2223 | SFTP container SSH (TCP)           |
+| TCP  | TCP      |       8883 | Traefik Mosquitto (TLS) endpoint   |
 
-Rename the file in order to match the new mount location:
+Add whatever other ports you need, then assign the firewall to your
+droplet.
 
-```
-mv /etc/systemd/system/mnt-volume_nyc1_01.mount /etc/systemd/system/var-lib-docker.mount
-```
+Then disable the host firewall (the DigitalOcean firewall operates
+at the network level). From the main menu choose **Firewalls →
+Disable ufw on droplet**, select your droplet, and confirm.
 
-Reload the systemd configuration:
+## Setup DNS
 
-```
-systemctl daemon-reload
-```
+From the main menu choose **Domains → DNS records**, select your
+domain, then **Create record**. You will typically want a wildcard A record pointing to
+your droplet's IP address:
 
-Enable and start the new service:
+ * Type: `A`
+ * Name: `*.d` (or `*` to dedicate the whole domain)
+ * Data: your droplet's public IP address
 
-```
-systemctl enable --now var-lib-docker.mount
-```
+This lets any subdomain (e.g. `app.d.example.com`) resolve to your
+server.
 
-Verify the mount is in the new location (`/var/lib/docker`) by running `df -h`
-and `ls /var/lib/docker` (it should now contain all of the original directories
-that docker created, including the `volumes` directory).
+## Block storage for Docker volumes
 
-Restart docker:
+If you attach a block storage volume during droplet creation, the
+built-in Docker user-data scripts will automatically detect it and
+remount the largest volume as `/var/lib/docker` during first boot.
+No manual steps are needed.
 
-```
-systemctl start docker
-```
+If you add a volume to an existing droplet, you can remount it from
+the main menu: **Volumes → Mount volume as /var/lib/docker**.
 
-Reboot the droplet (`reboot`) and double check that the volume is automatically
-mounted on startup (`df -h`)
+Block storage volumes can also be managed from the **Volumes** menu
+in `d droplet`.
+
+## Other resources
+
+The `d droplet` main menu also provides management for:
+
+ * **SSH keys** — add, list, and delete SSH keys on your account.
+ * **Volumes** — create, attach, detach, resize, and snapshot volumes.
+ * **NFS** — create and manage NFS shares backed by block storage.
+ * **Reserved IPs** — allocate and assign static IP addresses.
+ * **Domains** — add and delete domains, and manage DNS records
+   (A, AAAA, CNAME, MX, TXT, NS, SRV, CAA).
+ * **Snapshots** — create and restore droplet snapshots.
+ * **Backups** — manage and convert droplet backups.
+ * **Accounts** — switch between multiple DigitalOcean accounts.
+
+## Removing an account
+
+When you no longer need a DigitalOcean account configured in
+gumdrop, go to **Accounts → Remove account** to delete its stored
+credentials. This only removes the local configuration — it does not
+affect your DigitalOcean account itself.
 
 ## Setup Docker context and test Docker connection
 

@@ -14,14 +14,11 @@ services:
       context: config
       args:
         TRAEFIK_CONFIG_YTT_VERSION: ${TRAEFIK_CONFIG_YTT_VERSION}
-        TRAEFIK_UID: ${TRAEFIK_UID}
-        TRAEFIK_GID: ${TRAEFIK_GID}
-    user: traefik:traefik
     volumes:
       - traefik:/data:z
     environment:
       - DOCKER_CONTEXT=${DOCKER_CONTEXT}
-      - DOCKER_COMPOSE_PROFILES=${DOCKER_COMPOSE_PROFILES}
+      - DOCKER_COMPOSE_PROFILES=${TRAEFIK_DOCKER_COMPOSE_PROFILES}
       - TRAEFIK_SEND_ANONYMOUS_USAGE=${TRAEFIK_SEND_ANONYMOUS_USAGE:-false}
       - TRAEFIK_CONFIG_VERBOSE=${TRAEFIK_CONFIG_VERBOSE:-false}
       - TRAEFIK_ACME_CA_EMAIL
@@ -52,6 +49,9 @@ services:
       - TRAEFIK_WEBSECURE_ENTRYPOINT_HOST=${TRAEFIK_WEBSECURE_ENTRYPOINT_HOST:-0.0.0.0}
       - TRAEFIK_WEBSECURE_ENTRYPOINT_PORT=${TRAEFIK_WEBSECURE_ENTRYPOINT_PORT:-443}
       - TRAEFIK_WEBSECURE_ENTRYPOINT_PROXY_PROTOCOL_TRUSTED_IPS=${TRAEFIK_WEBSECURE_ENTRYPOINT_PROXY_PROTOCOL_TRUSTED_IPS:-}
+      - TRAEFIK_WEBSECURE_READ_TIMEOUT=${TRAEFIK_WEBSECURE_READ_TIMEOUT:-600s}
+      - TRAEFIK_WEBSECURE_WRITE_TIMEOUT=${TRAEFIK_WEBSECURE_WRITE_TIMEOUT:-600s}
+      - TRAEFIK_WEBSECURE_IDLE_TIMEOUT=${TRAEFIK_WEBSECURE_IDLE_TIMEOUT:-120s}
       - TRAEFIK_WEB_PLAIN_ENTRYPOINT_ENABLED=${TRAEFIK_WEB_PLAIN_ENTRYPOINT_ENABLED:-false}
       - TRAEFIK_WEB_PLAIN_ENTRYPOINT_HOST=${TRAEFIK_WEB_PLAIN_ENTRYPOINT_HOST:-0.0.0.0}
       - TRAEFIK_WEB_PLAIN_ENTRYPOINT_PORT=${TRAEFIK_WEB_PLAIN_ENTRYPOINT_PORT:-8000}
@@ -153,9 +153,8 @@ services:
     security_opt:
       - label=type:container_runtime_t
     build:
-      context: .
+      context: traefik
       args:
-        ENV_FILE: .env_${DOCKER_CONTEXT}_default
         TRAEFIK_IMAGE: ${TRAEFIK_IMAGE}
         BLOCKPATH_MODULE: ${TRAEFIK_BLOCKPATH_MODULE}
         BLOCKPATH_GIT_BRANCH: master
@@ -169,16 +168,16 @@ services:
         CERT_AUTH_GIT_BRANCH: main
         MTLS_HEADER_MODULE: ${TRAEFIK_MTLS_HEADER_MODULE}
         MTLS_HEADER_GIT_BRANCH: main
-        TRAEFIK_UID: ${TRAEFIK_UID}
-        TRAEFIK_GID: ${TRAEFIK_GID}
-        TRAEFIK_DOCKER_GID: ${TRAEFIK_DOCKER_GID}
-        STEP_CA_ENABLED: ${TRAEFIK_STEP_CA_ENABLED:-false}
-        STEP_CA_ENDPOINT: ${TRAEFIK_STEP_CA_ENDPOINT}
-        STEP_CA_FINGERPRINT: ${TRAEFIK_STEP_CA_FINGERPRINT}
-        STEP_CA_ZERO_CERTS:  ${TRAEFIK_STEP_CA_ZERO_CERTS}
     restart: unless-stopped
     network_mode: ${TRAEFIK_NETWORK_MODE:-host}
     environment:
+      - TRAEFIK_UID=${TRAEFIK_UID}
+      - TRAEFIK_GID=${TRAEFIK_GID}
+      - TRAEFIK_DOCKER_GID=${TRAEFIK_DOCKER_GID}
+      - STEP_CA_ENABLED=${TRAEFIK_STEP_CA_ENABLED:-false}
+      - STEP_CA_ENDPOINT=${TRAEFIK_STEP_CA_ENDPOINT}
+      - STEP_CA_FINGERPRINT=${TRAEFIK_STEP_CA_FINGERPRINT}
+      - STEP_CA_ZERO_CERTS=${TRAEFIK_STEP_CA_ZERO_CERTS:-false}
       - ${TRAEFIK_ACME_DNS_VARNAME_1:-TRAEFIK_ACME_DNS_VARNAME_1_NOT_SET}
       - ${TRAEFIK_ACME_DNS_VARNAME_2:-TRAEFIK_ACME_DNS_VARNAME_2_NOT_SET}
       - ${TRAEFIK_ACME_DNS_VARNAME_3:-TRAEFIK_ACME_DNS_VARNAME_3_NOT_SET}
@@ -197,7 +196,7 @@ services:
   geoip_database:
     profiles:
       - geoip_update
-    image: maxmindinc/geoipupdate
+    image: ${TRAEFIK_GEOIP_UPDATE_IMAGE}
     restart: on-failure:3
     security_opt:
       - no-new-privileges:true
@@ -214,7 +213,7 @@ services:
   wireguard:
     profiles:
       - wireguard
-    image: lscr.io/linuxserver/wireguard
+    image: ${TRAEFIK_WIREGUARD_IMAGE}
     cap_add:
       - NET_ADMIN
       - SYS_MODULE
@@ -234,7 +233,7 @@ services:
       - PERSISTENTKEEPALIVE_PEERS=all
     volumes:
       - wireguard:/config
-      - /lib/modules:/lib/modules
+      - ${TRAEFIK_LIB_MODULES_PATH:-/lib/modules}:/lib/modules
 
   wireguard-client-config:
     profiles:
@@ -257,7 +256,7 @@ services:
     profiles:
       - wireguard-client
     depends_on: ['wireguard-client-config']
-    image: lscr.io/linuxserver/wireguard
+    image: ${TRAEFIK_WIREGUARD_IMAGE}
     cap_add:
       - NET_ADMIN
       - SYS_MODULE
@@ -270,7 +269,7 @@ services:
       - PERSISTENTKEEPALIVE_PEERS=all
     volumes:
       - wireguard-client:/config
-      - /lib/modules:/lib/modules
+      - ${TRAEFIK_LIB_MODULES_PATH:-/lib/modules}:/lib/modules
 
   error-pages:
     profiles:
@@ -335,6 +334,7 @@ services:
       - TRAEFIK_ACME_SH_CERT_PERIOD_HOURS
       - TRAEFIK_ACME_SH_TRUST_SYSTEM_STORE
       - TRAEFIK_ACME_SH_DNS_RESOLVER
+      - TRAEFIK_ACME_SH_DNS_SLEEP
       - TRAEFIK_UID
       - TRAEFIK_GID
       - TRAEFIK_ACME_SH_ACMEDNS_ALLOW_FROM

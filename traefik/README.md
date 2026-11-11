@@ -346,7 +346,7 @@ This configuration has builtin support for the following plugins:
    ([whoami](../whoami/docker-compose.yaml) has an example)
  * [referer](https://github.com/moonlightwatch/referer) -
    middleware that prevents foreign referal URLs.
- * [headauth](https://github.com/poloyacero/headauth) used for
+ * [headauth](https://github.com/enigmacurry/traefik-header-authorization) used for
    implementing OAuth2 sentry authorization, which filters allowed
    users by groups, and it forwards the authenticated user in the
    `X-Forwarded-User` header field to your app.
@@ -603,7 +603,7 @@ Traefik [.env](.env-dist) file :
 | Variable name                              | Description                                                                      | Examples                                                 |
 |--------------------------------------------|----------------------------------------------------------------------------------|----------------------------------------------------------|
 | (various LEGO DNS variables)               | All of your tokens for DNS provider                                              | `DO_AUTH_TOKEN`                                          |
-| `DOCKER_COMPOSE_PROFILES`                  | List of docker-compose profiles to enable                                        | `default`,`wireguard`,`wireguard-client`                 |
+| `TRAEFIK_DOCKER_COMPOSE_PROFILES`                  | List of docker-compose profiles to enable                                        | `default`,`wireguard`,`wireguard-client`                 |
 | `TRAEFIK_ACCESS_LOGS_ENABLED`              | (bool) enable the Traefik access logs                                            | `true`,`false`                                           |
 | `TRAEFIK_ACCESS_LOGS_PATH`                 | The path to the access logs inside the volume                                    | `/data/access.log`                                       |
 | `TRAEFIK_ACME_CA_EMAIL`                    | Your email to send to Lets Encrypt                                               | `you@example.com` (can be blank)                         |

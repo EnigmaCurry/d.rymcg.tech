@@ -14,3 +14,5 @@ _scripts/script-wizard
 /gradio/gradio/chatbot/__pycache__/
 app-router-bootstrap.sh
 /tor/*.gpg
+_archive/
+.venv/

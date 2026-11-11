@@ -9,8 +9,8 @@ Caveat Emptor!
 
 * [Mailu](mailu) - an email service suite. Run a private mail server connected to a public relay host.
 * [transmission-wireguard](transmission-wireguard) - an older but very popular Bittorrent (v1) client with a combined VPN client
-* [CryptPad](cryptpad) - a collaborative document and spreadsheet editor stuck on an old unsupported version.
 * [TiddlyWiki (WebDAV version)](tiddlywiki-webdav#readme) - a personal wiki stored in a single static HTML file
 * [TiddlyWiki (NodeJS version)](tiddlywiki-nodejs#readme) - Advanced server edition of TiddlyWiki with image CDN
 * [Tiny Tiny RSS](ttrss#readme) - an RSS reader / proxy
 * [Wireguard layer4 proxy](wireguard#readme) - This old wireguard config has been usurped by the traefik config.
+* [_docker_vm](_docker_vm) - Docker VM management scripts, replaced by [nixos-vm-template](https://github.com/EnigmaCurry/nixos-vm-template).

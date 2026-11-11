@@ -1,72 +1,79 @@
-## Backup .env files in d.rymcg.tech
+## Backup and restore .env files
 
-Because the `.env` files contain secrets, they are to be excluded from
-being committed to the git repository via `.gitignore`. However, you
-may still wish to retain your configurations by making a backup. This
-section will describe how to make a backup of all of your `.env` and
-`passwords.json` files into a GPG encrypted tarball, and how to
-clean/delete all of the plain text copies.
+The `.env` files contain secrets and are excluded from git via
+`.gitignore`. Use `export-env` and `restore-env` to back up and
+restore your configurations.
 
-### Setup GPG
+### Export
 
-First you will need to setup a GPG key. You can do this from the same
-workstation, or from a different computer entirely:
+Export all env files for the current context as flat env vars:
 
-```
-# Create gpg key (note the long ID it generates, second line after 'pub'):
-gpg --gen-key
+```bash
+## Export to a file:
+d export-env > backup.env
 
-# Send your key to the public keyserver:
-gpg --send-keys [YOUR_KEY_ID]
-```
+## Choose which env files to export:
+d export-env --choose > backup.env
 
-On the workstation you cloned this repository to, import this key:
-
-```
-# Import your key from the public keyserver:
-gpg --receive-keys [YOUR_KEY_ID]
+## Export from a specific context:
+d export-env --context myserver > backup.env
 ```
 
-### Create encrypted backup
+### Encrypted export
 
-From the root directory of your clone of this repository, run:
+Encrypt the export with [SOPS](https://github.com/getsops/sops) and
+[age](https://github.com/FiloSottile/age):
 
-```
-make backup-env
-```
+```bash
+## Generate an age key on a separate secure machine (not your everyday workstation):
+mkdir -p ~/.config/sops/age
+age-keygen -o ~/.config/sops/age/keys.txt
 
-The script will ask to add `GPG_RECIPIENT` to your
-`.env_${DOCKER_CONTEXT}_default` file. Enter the GPG pub key ID value
-for your key.
+## Copy the public key age-keygen outputs
 
-A new encrypted backup file will be created in the same directory
-called something like
-`./${DOCKER_CONTEXT}_environment-backup-2022-02-08--18-51-39.tgz.gpg`.
-The `GPG_RECIPIENT` key is the *only* key that will be able to read
-this encrypted backup file.
-
-### Clean environment files
-
-Now that you have an encrypted backup, you may wish to delete all of
-the unencryped `.env` files. Note that you will not be able to control
-your docker-compose projects without the decrypted .env files, but you
-may restore them from the backup at any time.
-
-To delete all the .env files, you could run:
-
-```
-## Make sure you have a backup of your .env files first:
-make clean
+## Export encrypted (will prompt for the age public key if not already set):
+d export-env --encrypt > backup.sops.env
 ```
 
-### Restore .env files from backup
+### Base64 export
 
-To restore from this backup, you will need your GPG private keys setup
-on your worstation, and then run:
+Encode the output as a single gzipped base64 string (useful for
+storing in environment variables or passing through systems that
+don't handle multiline values):
 
+```bash
+d export-env --base64
+
+## Combine with encryption:
+d export-env --encrypt --base64
 ```
-make restore-env
+
+### Restore
+
+Restore env files from a previous export. SOPS encryption and base64
+encoding are automatically detected:
+
+```bash
+## Restore from a file:
+d restore-env backup.env
+
+## Restore from an encrypted file:
+d restore-env backup.sops.env
+
+## Restore via pipe:
+d export-env --context old | d restore-env
+
+## Interactively select which files to restore:
+d restore-env --choose backup.env
+
+## Encrypted round-trip via pipe:
+d export-env --encrypt | d restore-env
 ```
 
-Enter the name of the backup file, and all of the `.env` and
-`passwords.json` files will be restored to their original locations.
+### SOPS key discovery
+
+When decrypting, SOPS finds your age private key automatically via:
+
+- `SOPS_AGE_KEY` environment variable
+- `SOPS_AGE_KEY_FILE` environment variable
+- `~/.config/sops/age/keys.txt` (default location)

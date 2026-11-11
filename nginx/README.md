@@ -11,7 +11,7 @@ postgres database.
 make config
 ```
 The [default configuration](.env-dist) disables PHP
-(`DOCKER_COMPOSE_PROFILES=` blank), and so by default it is
+(`NGINX_DOCKER_COMPOSE_PROFILES=` blank), and so by default it is
 essentially just a static file server.
 
 The config tool automatically enables or disables the optional
@@ -19,12 +19,12 @@ profiles for PHP and PostgreSQL, based on your preferences. To
 configure them manually, set the variables in the config file
 (`.env_{DOCKER_CONTEXT}_{INSTANCE}`):
 
- * `DOCKER_COMPOSE_PROFILES` is a comma separated list of profile
+ * `NGINX_DOCKER_COMPOSE_PROFILES` is a comma separated list of profile
    names to enable. These profiles choose the optional features to
    enable. By default, only the `nginx` profile is enabled, so only
-   nginx is started. Set `DOCKER_COMPOSE_PROFILES=nginx,php-fpm` to
+   nginx is started. Set `NGINX_DOCKER_COMPOSE_PROFILES=nginx,php-fpm` to
    enable nginx and PHP. Set
-   `DOCKER_COMPOSE_PROFILES=nginx,php-fpm,postgres` to enable nginx,
+   `NGINX_DOCKER_COMPOSE_PROFILES=nginx,php-fpm,postgres` to enable nginx,
    php, and postgres. The following optional profiles are provided:
    
    * `nginx` the base Nginx service container (required; do not remove

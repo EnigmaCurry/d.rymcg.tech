@@ -8,7 +8,7 @@ REMOTE_CONF="/etc/docker/daemon.json"
 
 d.rymcg.tech ssh "cat $REMOTE_CONF 2>/dev/null || echo '{}'" | \
     jq '. + {"exec-opts": ["native.cgroupdriver=systemd"]}' | \
-    sponge | \
+    ${BIN}/sponge | \
     d.rymcg.tech ssh "sudo tee $REMOTE_CONF > /dev/null"
 
 # Restart Docker remotely to apply the changes

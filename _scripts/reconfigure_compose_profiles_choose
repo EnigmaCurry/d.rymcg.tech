@@ -32,7 +32,10 @@ for profile in "${ALL_PROFILES[@]}"; do
     fi
 done
 
-readarray -t CONFIGURED_PROFILES < <(${BIN}/dotenv -f ${ENV_FILE} get DOCKER_COMPOSE_PROFILES | sed 's/,/\n/g')
+PREFIX=$(${BIN}/parse-env-meta.sh .env-dist PREFIX)
+PROFILES_VAR="${PREFIX}_DOCKER_COMPOSE_PROFILES"
+
+readarray -t CONFIGURED_PROFILES < <(${BIN}/dotenv -f ${ENV_FILE} get ${PROFILES_VAR} | sed 's/,/\n/g')
 
 SELECTED_DESCRIPTIONS=()
 for profile in "${CONFIGURED_PROFILES[@]}"; do
@@ -44,4 +47,4 @@ SELECTED_DESCRIPTIONS=$(array_to_json "${SELECTED_DESCRIPTIONS[@]}")
 DEFAULT="${CONFIGURED_PROFILES[0]}"
 SELECTED_PROFILES=$(choose -d "${DESCRIPTIONS[${DEFAULT}]}" "Select a docker-compose profile to enable:" "${DESCRIPTIONS[@]}" | cut -d ' ' -f 1)
 SELECTED_PROFILES=$(echo $SELECTED_PROFILES | sed 's/ /,/g')
-${BIN}/reconfigure ${ENV_FILE} DOCKER_COMPOSE_PROFILES="${SELECTED_PROFILES}"
+${BIN}/reconfigure ${ENV_FILE} ${PROFILES_VAR}="${SELECTED_PROFILES}"

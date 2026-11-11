@@ -1,13 +1,14 @@
 volumes:
   qbittorrent-config:
+  qbittorrent_downloads:
 
 services:
   qbittorrent-config:
     build:
       context: qbittorrent-config
       args:
-        - DOCKER_CONTEXT=${QBITTORRENT_DOCKER_CONTEXT}
-        - INSTANCE=${QBITTORRENT_INSTANCE}
+        - DOCKER_CONTEXT=${QBITTORRENT_DOCKER_CONTEXT:-dist}
+        - INSTANCE=${QBITTORRENT_INSTANCE:-default}
     environment:
       - QBITTORRENT_TRAEFIK_HOST
       - QBITTORRENT_VPN_CLIENT_INTERFACE_IPV4
@@ -92,7 +93,7 @@ services:
       - WEBUI_PORT=8080
     volumes:
       - qbittorrent-config:/config
-      - ${QBITTORRENT_DOWNLOAD_VOLUME}:/downloads:z
+      - ${QBITTORRENT_DOWNLOAD_VOLUME:-qbittorrent_downloads}:/downloads:z
     restart: unless-stopped
     labels:
       - "backup-volume.stop-during-backup=true"      

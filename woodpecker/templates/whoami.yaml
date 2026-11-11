@@ -1,0 +1,39 @@
+## Example Woodpecker CI pipeline for deploying whoami
+## using the d-rymcg-tech workstation Docker image with OpenBao.
+##
+## The d-rymcg-tech entrypoint handles all auth, decryption, and SSH
+## setup automatically when the BAO_* env vars are provided.
+##
+## Required Woodpecker secrets:
+##   bao_addr          - OpenBao server URL
+##   bao_role_id       - AppRole role ID
+##   bao_secret_id     - AppRole secret ID
+##   bao_age_key_path  - KV path to AGE key (e.g., sops/d2-admin/myserver-production)
+##   bao_cacert        - CA cert for OpenBao TLS (if using private CA)
+##
+## Required files in repo:
+##   config/my-server.sops.env - SOPS-encrypted env export
+##     (created with: d export-env --encrypt > config/my-server.sops.env)
+
+variables:
+  - &config
+    image: d-rymcg-tech
+    secrets: [bao_addr, bao_role_id, bao_secret_id, bao_age_key_path, bao_cacert]
+    environment:
+      SOPS_CONFIG_FILE: ${CI_WORKSPACE}/config/my-server.sops.env
+
+steps:
+  - name: deploy-whoami
+    <<: *config
+    commands:
+      - d make whoami install
+
+  - name: wait-whoami
+    <<: *config
+    commands:
+      - d make whoami wait
+
+  - name: print-url
+    <<: *config
+    commands:
+      - echo https://$(d make whoami dotenv_get var=WHOAMI_TRAEFIK_HOST)

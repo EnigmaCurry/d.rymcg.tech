@@ -1,3 +1,6 @@
+volumes:
+  aria2_downloads:
+
 services:
   aria2:
     build:
@@ -19,5 +22,5 @@ services:
       - WEB_PORT=8089
       - RPC_PORT=6801
     volumes:
-      - ${ARIA2_DOWNLOAD_VOLUME}:/downloads:z
+      - ${ARIA2_DOWNLOAD_VOLUME:-aria2_downloads}:/downloads:z
 

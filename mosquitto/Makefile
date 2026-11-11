@@ -15,7 +15,7 @@ config-hook:
 	@echo "Retrieving one-time-use token from Step-CA server."
 	@echo "Get ready to enter your root Step-CA ceredentials!"
 	@echo
-	@${BIN}/reconfigure ${ENV_FILE} MOSQUITTO_STEP_CA_TOKEN="$$(step-cli ca token mqtt.z.rymcg.tech --provisioner admin)"
+	@${BIN}/reconfigure ${ENV_FILE} MOSQUITTO_STEP_CA_TOKEN="$$(step-cli ca token $$(${BIN}/dotenv -f ${ENV_FILE} get MOSQUITTO_TRAEFIK_HOST) --provisioner admin)"
 
 .PHONY: shell
 shell:

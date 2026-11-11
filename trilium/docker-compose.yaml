@@ -1,0 +1,25 @@
+services:
+  trilium:
+    image: ${TRILIUM_IMAGE}
+    environment:
+      - TRILIUM_SAFE_MODE=${TRILIUM_SAFE_MODE}
+      - TRILIUM_NETWORK_TRUSTEDREVERSEPROXY=${TRILIUM_TRUSTED_REVERSE_PROXY}
+      - TZ=${TZ:-UTC}
+    cap_drop:
+      - ALL
+    cap_add:
+      - SYS_ADMIN
+      - CHOWN
+      - SETGID
+      - SETUID
+    security_opt:
+      - no-new-privileges:true
+    sysctls:
+      - net.ipv4.ip_unprivileged_port_start=1024
+    restart: unless-stopped
+    volumes:
+      - data:/home/node/trilium-data
+    labels: []
+
+volumes:
+  data:

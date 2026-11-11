@@ -42,7 +42,7 @@ watcher-shell:
 
 .PHONY: ssh-keygen
 ssh-keygen:
-	@export DOCKER_COMPOSE_PROFILES=git-autocommit; make --no-print-directory build; make --no-print-directory docker-compose-lifecycle-cmd EXTRA_ARGS="run --rm -it git-autocommit ssh-keygen"
+	@export TIDDLYWIKI_NODEJS_DOCKER_COMPOSE_PROFILES=git-autocommit; make --no-print-directory build; make --no-print-directory docker-compose-lifecycle-cmd EXTRA_ARGS="run --rm -it git-autocommit ssh-keygen"
 
 .PHONY: open
 open:

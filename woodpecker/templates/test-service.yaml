@@ -1,0 +1,41 @@
+# test-service.yaml — Run HTTP health checks against a deployed service
+#
+# No secrets required (unless testing authenticated endpoints).
+#
+# Replace https://myapp.example.com with the actual service URL.
+# Adjust expected status codes and body content to match your service.
+
+when:
+  - event: [push, deployment, cron]
+
+steps:
+  - name: health-check
+    image: alpine:3
+    commands:
+      - apk add --no-cache curl
+      # Check that the service responds with HTTP 200
+      - |
+        STATUS=$(curl -sk -o /dev/null -w '%{http_code}' https://myapp.example.com)
+        if [ "$STATUS" != "200" ]; then
+          echo "FAIL: expected 200, got $STATUS"
+          exit 1
+        fi
+        echo "OK: HTTP $STATUS"
+      # Check that the response body contains expected content
+      - |
+        BODY=$(curl -sk https://myapp.example.com)
+        if ! echo "$BODY" | grep -q 'expected-content'; then
+          echo "FAIL: response body missing expected content"
+          echo "$BODY"
+          exit 1
+        fi
+        echo "OK: body contains expected content"
+      # Check for expected response headers
+      - |
+        HEADERS=$(curl -sk -I https://myapp.example.com)
+        if ! echo "$HEADERS" | grep -qi 'content-type.*text/html'; then
+          echo "FAIL: unexpected content-type header"
+          echo "$HEADERS"
+          exit 1
+        fi
+        echo "OK: headers look correct"

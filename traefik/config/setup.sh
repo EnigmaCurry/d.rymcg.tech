@@ -8,6 +8,8 @@ INSTANCE_CONFIG_DIR=${DYNAMIC_CONFIG_DIR}/${DOCKER_CONTEXT:-instance}
 ytt_template() {
     src=$1; dst=$2;
     [ -e "${src}" ] || (echo "Template not found: ${src}" && exit 1)
+    ## Unescape $$ to $ (docker-compose .env escaping may not be unescaped in pass-through env vars):
+    TRAEFIK_DASHBOARD_HTTP_AUTH="${TRAEFIK_DASHBOARD_HTTP_AUTH//\$\$/\$}"
     ytt -f ${src} \
         -v docker_compose_profiles=${DOCKER_COMPOSE_PROFILES} \
         -v acme_cert_resolver="${TRAEFIK_ACME_CERT_RESOLVER}" \
@@ -42,6 +44,9 @@ ytt_template() {
         -v websecure_entrypoint_host="${TRAEFIK_WEBSECURE_ENTRYPOINT_HOST}" \
         -v websecure_entrypoint_port="${TRAEFIK_WEBSECURE_ENTRYPOINT_PORT}" \
         -v websecure_entrypoint_proxy_protocol_trusted_ips="${TRAEFIK_WEBSECURE_ENTRYPOINT_PROXY_PROTOCOL_TRUSTED_IPS}" \
+        -v websecure_read_timeout="${TRAEFIK_WEBSECURE_READ_TIMEOUT}" \
+        -v websecure_write_timeout="${TRAEFIK_WEBSECURE_WRITE_TIMEOUT}" \
+        -v websecure_idle_timeout="${TRAEFIK_WEBSECURE_IDLE_TIMEOUT}" \
         -v web_plain_entrypoint_enabled="${TRAEFIK_WEB_PLAIN_ENTRYPOINT_ENABLED}" \
         -v web_plain_entrypoint_host="${TRAEFIK_WEB_PLAIN_ENTRYPOINT_HOST}" \
         -v web_plain_entrypoint_port="${TRAEFIK_WEB_PLAIN_ENTRYPOINT_PORT}" \
