@@ -14,9 +14,9 @@ automatic installer that an end user could employ.
 
 The script runs one of two test suites:
 
-- **`full`** (aka `up`) - the complete d.rymcg.tech install on a fresh
-  server: droplet + DNS + Traefik + self-hosted acme-dns + a sampling
-  of apps, verified over HTTPS. Requires `--domain` and `--subdomain`.
+- **`full`** - the complete d.rymcg.tech install on a fresh server:
+  droplet + DNS + Traefik + self-hosted acme-dns + a sampling of apps,
+  verified over HTTPS. Requires `--domain` and `--subdomain`.
 - **`workstation`** - sets up *only* the workstation tooling: the
   Docker **CLI** (not the Docker server), uv, the d.rymcg.tech repo and
   CLI on `PATH`. No DNS records, no firewall, no server apps. A
@@ -94,7 +94,7 @@ sworkstation you can ssh into. Use `destroy` to tear everything down.
 ## Full install suite (staging CA by default):
 d.rymcg.tech e2e full --domain example.com --subdomain e2e
 
-## ... or standalone ('up' is an alias for 'full'):
+## ... or standalone:
 _e2e/e2e.sh full --domain example.com --subdomain e2e
 
 ## Workstation-only suite (no domain needed):
@@ -102,10 +102,10 @@ _e2e/e2e.sh workstation
 _e2e/e2e.sh destroy --name e2e-workstation --yes
 
 ## Real certificates (Let's Encrypt production):
-_e2e/e2e.sh up --domain example.com --subdomain e2e --production
+_e2e/e2e.sh full --domain example.com --subdomain e2e --production
 
 ## Test a specific branch or fork:
-_e2e/e2e.sh up --domain example.com --subdomain e2e \
+_e2e/e2e.sh full --domain example.com --subdomain e2e \
     --git-url https://github.com/you/d.rymcg.tech.git --git-ref my-branch
 
 ## Re-run a single phase:
@@ -121,15 +121,15 @@ Run `_e2e/e2e.sh help` for all options.
 Every run logs everything (including all remote output) to
 `~/.config/d.rymcg.tech/e2e/logs/`, and records resource IDs in
 `~/.config/d.rymcg.tech/e2e/NAME.env` so `destroy` can find them even
-if a run dies halfway. All phases are idempotent: re-running `up`
-reuses the droplet, DNS records, and env files that already exist,
-so resuming after a failure is just re-running the same command.
+if a run dies halfway. All phases are idempotent: re-running the same
+command reuses the droplet, DNS records, and env files that already
+exist, so resuming after a failure is just re-running it.
 Use `--reset-env` to wipe the remote `.env` files and reconfigure
 from scratch.
 
 ## Expected runtime
 
-A first `up` run takes roughly 15-25 minutes: droplet + cloud-init
+A first `full` run takes roughly 15-25 minutes: droplet + cloud-init
 (~4 min), workstation bootstrap (~4 min), acme-dns + its own
 certificate (~2-5 min, DNS propagation dependent), Traefik + wildcard
 certificate (~3-6 min), and ~1 min per app. A repeat run on an

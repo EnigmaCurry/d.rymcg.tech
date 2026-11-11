@@ -102,7 +102,6 @@ Usage: e2e.sh <command> [options]
 
 Commands:
   full          Full install suite: ${PHASES_FULL[*]}
-  up            Alias for 'full'
   workstation   Workstation-only suite (docker CLI, no server/DNS/firewall):
                 ${PHASES_WORKSTATION[*]}
   phase NAME    Run a single phase by name (of the selected suite)
@@ -225,7 +224,7 @@ print_what_now() {
     [[ -n "${LOG_FILE}" ]] && echo "##  Full log   : ${LOG_FILE}"
     [[ -f "$(state_file)" ]] && echo "##  State file : $(state_file)"
     [[ -n "${DROPLET_IP}" ]] && echo "##  Inspect    : ssh root@${DROPLET_IP}"
-    echo "##  Resume     : re-run the same 'up' command (phases are idempotent)"
+    echo "##  Resume     : re-run the same command (phases are idempotent)"
     echo "##  One phase  : e2e.sh phase ${CURRENT_PHASE:-NAME} --name ${E2E_NAME} ..."
     echo "##  Tear down  : e2e.sh destroy --name ${E2E_NAME} --yes"
     echo "########################################################################"
@@ -1009,7 +1008,7 @@ main() {
     E2E_PHASE=""
     while [[ $# -gt 0 ]]; do
         case "$1" in
-            full|up) command="full" ;;
+            full) command="full" ;;
             workstation) command="workstation" ;;
             status|destroy|help) command="$1" ;;
             phase) command="phase"; E2E_PHASE="${2:-}"; shift ;;
