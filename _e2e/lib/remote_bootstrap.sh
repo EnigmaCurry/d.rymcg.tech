@@ -96,8 +96,9 @@ remove_ssh_host_entry() {
     fi
 }
 remove_ssh_host_entry "${CONTEXT}"
-## Tear down any stale multiplexing master left by an earlier run:
-ssh -O exit -o ControlPath=/tmp/ssh-%u-%r@%h:%p "${CONTEXT}" 2>/dev/null || true
+## Remove any stale multiplexing control sockets left by an earlier run (its
+## orphaned master process is harmless once new connections stop using it):
+rm -f "/tmp/ssh-$(id -un)-${USER:-root}@"*:22 2>/dev/null || true
 touch "${HOME}/.ssh/config"
 chmod 600 "${HOME}/.ssh/config"
 ## NOTE: no ControlMaster/ControlPersist for this self-context. Connection
@@ -106,18 +107,34 @@ chmod 600 "${HOME}/.ssh/config"
 ## concurrent sessions ("Session open refused by peer") when docker-over-ssh
 ## opens its dial-stdio channel. Plain per-connection ssh to localhost is
 ## instant and reliable.
+## Use 127.0.0.1 (not "localhost"): on fresh cloud VMs the loopback SSH path
+## can resolve to ::1 and get reset ("Connection closed by ::1 port 22"):
 cat <<EOF >> "${HOME}/.ssh/config"
 Host ${CONTEXT}
     User root
-    Hostname localhost
+    Hostname 127.0.0.1
 EOF
 systemctl enable --now ssh
 touch "${HOME}/.ssh/known_hosts"
-if ! ssh-keygen -F localhost -f "${HOME}/.ssh/known_hosts" >/dev/null; then
-    ssh-keyscan -H localhost >> "${HOME}/.ssh/known_hosts" 2>/dev/null
+## Refresh the host key (cloud-init may have regenerated it after an earlier
+## run cached the old one):
+ssh-keygen -R 127.0.0.1 -f "${HOME}/.ssh/known_hosts" >/dev/null 2>&1 || true
+## Wait for sshd to accept key auth, then self-test. -n keeps ssh from reading
+## this script off stdin:
+_ssh_ok=false
+for _try in $(seq 1 20); do
+    ssh-keygen -R 127.0.0.1 -f "${HOME}/.ssh/known_hosts" >/dev/null 2>&1 || true
+    ssh-keyscan -H 127.0.0.1 >> "${HOME}/.ssh/known_hosts" 2>/dev/null || true
+    if ssh -n -o BatchMode=yes -o ConnectTimeout=5 "${CONTEXT}" true 2>/dev/null; then
+        _ssh_ok=true
+        break
+    fi
+    sleep 3
+done
+if [ "${_ssh_ok}" != "true" ]; then
+    echo "ERROR: could not ssh to self (${CONTEXT} -> 127.0.0.1) after retries." >&2
+    ssh -n -o BatchMode=yes -o ConnectTimeout=5 "${CONTEXT}" true
 fi
-## -n: never read from stdin (when this script streams on stdin, ssh would
-## otherwise consume the rest of the script text):
 ssh -n -o BatchMode=yes "${CONTEXT}" whoami
 
 echo "## [bootstrap] Creating Docker context '${CONTEXT}' (ssh://localhost) ..."
