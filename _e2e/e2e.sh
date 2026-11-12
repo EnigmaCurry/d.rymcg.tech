@@ -1029,7 +1029,11 @@ probe_target() {
     PROBE_PATH=""
     PROBE_HEADERS=()
     PROBE_PORT=443
+    ## The HTTP status that counts as a PASS:
+    PROBE_EXPECT=200
     case "$1" in
+        ## A fresh install serves an empty web root (no directory listing):
+        nginx) PROBE_EXPECT=403 ;;
         coturn) PROBE_KIND=stun ;;
         ## IRC over TLS on their own Traefik entrypoints:
         inspircd) PROBE_KIND=irc; PROBE_PORT=6697 ;;
@@ -1127,7 +1131,7 @@ printf "%-36s\0" e2eprobe >&3; IFS= read -r -t 5 -N 1 b <&3 || exit 1; printf "%
     fi
     PROBE_ISSUER=$(grep -oP '^issuer=\K.*' <<< "${info}" | head -n 1 || true)
     PROBE_STATUS=FAIL
-    if [[ "${PROBE_CODE}" =~ ^(200|stun-ok|irc-ok|iperf-ok|container-ok)$ ]] && grep -q "${E2E_ROOT_DOMAIN}" <<< "${info}"; then
+    if [[ "${PROBE_CODE}" =~ ^(${PROBE_EXPECT}|stun-ok|irc-ok|iperf-ok|container-ok)$ ]] && grep -q "${E2E_ROOT_DOMAIN}" <<< "${info}"; then
         if [[ "${E2E_ACME_CA}" == *staging* ]]; then
             grep -qi "staging" <<< "${info}" && PROBE_STATUS=PASS
         else
