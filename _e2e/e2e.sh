@@ -950,6 +950,16 @@ if [ \"\$(df --output=pcent / | tail -n 1 | tr -dc 0-9)\" -ge 80 ]; then
 fi"
 }
 
+app_skip_reason() {
+    ## app_skip_reason <app> - print why an app can't be tested on a plain
+    ## droplet (e.g. it needs hardware the droplet doesn't have); empty if
+    ## it can:
+    case "$1" in
+        vllm) echo "needs an Nvidia or AMD GPU (no CPU profile)" ;;
+        minio) echo "MinIO no longer publishes container images" ;;
+    esac
+}
+
 app_deps() {
     ## app_deps <app> - print the apps that must be installed first (e.g.
     ## whose external docker network the app joins):
@@ -964,6 +974,12 @@ process_app() {
     local app="$1" dep
     [[ -n "${APPS_DONE[${app}]:-}" ]] && return 0
     APPS_DONE[${app}]=1
+    local skip
+    skip=$(app_skip_reason "${app}")
+    if [[ -n "${skip}" ]]; then
+        echo "${app}: SKIPPED (${skip})."
+        return 0
+    fi
     for dep in $(app_deps "${app}"); do
         process_app "${dep}"
     done
@@ -1117,6 +1133,13 @@ printf "%-36s\0" e2eprobe >&3; IFS= read -r -t 5 -N 1 b <&3 || exit 1; printf "%
 }
 
 verify_app() {
+    ## Returns 0 on PASS, 1 on FAIL, 2 on SKIP:
+    local skip
+    skip=$(app_skip_reason "$1")
+    if [[ -n "${skip}" ]]; then
+        RESULTS+=("SKIP|$1|-|-|${skip}")
+        return 2
+    fi
     probe_app "$1" || true
     RESULTS+=("${PROBE_STATUS}|$1|${PROBE_URL}|${PROBE_CODE}|${PROBE_ISSUER:-no-cert}")
     [[ "${PROBE_STATUS}" == "PASS" ]]
@@ -1163,12 +1186,15 @@ phase_verify() {
         return 0
     fi
     local app
+    local rc
     for app in ${E2E_APPS//,/ }; do
-        if verify_app "${app}"; then
-            echo "PASS ${app}"
-        else
-            echo "FAIL ${app}"
-        fi
+        rc=0
+        verify_app "${app}" || rc=$?
+        case ${rc} in
+            0) echo "PASS ${app}" ;;
+            2) echo "SKIP ${app}" ;;
+            *) echo "FAIL ${app}" ;;
+        esac
     done
     return 0
 }
@@ -1194,7 +1220,7 @@ phase_summary() {
         for row in "${RESULTS[@]}"; do
             IFS='|' read -r st app url code issuer <<< "${row}"
             printf '%-6s %-14s %-50s %-6s %s\n' "${st}" "${app}" "${url}" "${code}" "${issuer}"
-            [[ "${st}" == "PASS" ]] || all_pass=false
+            [[ "${st}" == "PASS" || "${st}" == "SKIP" ]] || all_pass=false
         done
     fi
     [[ ${#FAILED_APPS[@]} -gt 0 ]] && {
