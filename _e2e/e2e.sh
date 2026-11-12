@@ -806,10 +806,10 @@ phase_apps() {
         banner "app: ${app}"
         if [[ "${E2E_REINSTALL}" != "true" ]]; then
             if probe_app "${app}"; then
-                echo "${app}: already verified (HTTP ${PROBE_CODE}); skipping install (use --reinstall to force)."
+                echo "${app}: already verified (result ${PROBE_CODE}); skipping install (use --reinstall to force)."
                 continue
             fi
-            echo "${app}: not verified (HTTP ${PROBE_CODE}, cert: ${PROBE_ISSUER:-none}); installing."
+            echo "${app}: not verified (result ${PROBE_CODE}, cert: ${PROBE_ISSUER:-none}); installing."
         fi
         if install_app "${app}"; then
             echo "${app}: installed and healthy."
@@ -826,10 +826,14 @@ phase_apps() {
 
 probe_target() {
     ## probe_target <app> - set PROBE_PATH (URL path, no leading /) and
-    ## PROBE_HEADERS (extra curl -H args), for apps with nothing at /:
+    ## PROBE_HEADERS (extra curl -H args), for apps with nothing at /.
+    ## PROBE_KIND is http (default) or stun (a STUN Binding request over TLS,
+    ## for TURN servers behind Traefik TLS passthrough):
+    PROBE_KIND=http
     PROBE_PATH=""
     PROBE_HEADERS=()
     case "$1" in
+        coturn) PROBE_KIND=stun ;;
         doh-server)
             ## A DNS query for example.com/A (RFC 8484 GET, base64url wire format):
             PROBE_PATH="dns-query?dns=q80BAAABAAAAAAAAB2V4YW1wbGUDY29tAAABAAE"
@@ -844,23 +848,39 @@ probe_app() {
     local app="$1"
     local host="${app}.${E2E_ROOT_DOMAIN}"
     probe_target "${app}"
-    PROBE_URL="https://${host}/${PROBE_PATH}"
-    ## Follow redirects (many apps send / to /login or a subpath), but only
-    ## count it if the final URL is still on the app's own host:
-    local curl_args=(-s -o /dev/null -w '%{http_code} %{url_effective}' --max-time 20 -L --max-redirs 5)
-    ## Staging CA is not in the system trust store; production must validate:
-    [[ "${E2E_ACME_CA}" == *staging* ]] && curl_args+=(-k)
     local info out final
-    out=$(curl "${curl_args[@]}" "${PROBE_HEADERS[@]}" "${PROBE_URL}" || true)
-    PROBE_CODE="${out%% *}"
-    final="${out#* }"
-    if [[ "${final}" != "https://${host}/"* ]]; then
-        PROBE_CODE="${PROBE_CODE}->${final}"
+    if [[ "${PROBE_KIND}" == "stun" ]]; then
+        PROBE_URL="turns://${host}:443"
+        ## Binding request: type 0x0001, length 0, magic cookie, 12-byte txid.
+        ## Success is type 0x0101 echoing the cookie and txid:
+        out=$( (printf '\x00\x01\x00\x00\x21\x12\xa4\x42e2eprobe0001'; sleep 3) \
+                   | timeout 10 openssl s_client -quiet -connect "${DROPLET_IP}:443" \
+                         -servername "${host}" 2>/dev/null \
+                   | od -An -tx1 -N20 | tr -d ' \n' || true)
+        ## 0101 <len> 2112a442 <txid "e2eprobe0001" in hex>:
+        if [[ "${out}" =~ ^0101[0-9a-f]{4}2112a44265326570726f626530303031$ ]]; then
+            PROBE_CODE=stun-ok
+        else
+            PROBE_CODE=stun-fail
+        fi
+    else
+        PROBE_URL="https://${host}/${PROBE_PATH}"
+        ## Follow redirects (many apps send / to /login or a subpath), but
+        ## only count it if the final URL is still on the app's own host:
+        local curl_args=(-s -o /dev/null -w '%{http_code} %{url_effective}' --max-time 20 -L --max-redirs 5)
+        ## Staging CA is not in the system trust store; production must validate:
+        [[ "${E2E_ACME_CA}" == *staging* ]] && curl_args+=(-k)
+        out=$(curl "${curl_args[@]}" "${PROBE_HEADERS[@]}" "${PROBE_URL}" || true)
+        PROBE_CODE="${out%% *}"
+        final="${out#* }"
+        if [[ "${final}" != "https://${host}/"* ]]; then
+            PROBE_CODE="${PROBE_CODE}->${final}"
+        fi
     fi
     info=$(tls_probe "${host}" || true)
     PROBE_ISSUER=$(grep -oP '^issuer=\K.*' <<< "${info}" | head -n 1 || true)
     PROBE_STATUS=FAIL
-    if [[ "${PROBE_CODE}" == "200" ]] && grep -q "${E2E_ROOT_DOMAIN}" <<< "${info}"; then
+    if [[ "${PROBE_CODE}" == "200" || "${PROBE_CODE}" == "stun-ok" ]] && grep -q "${E2E_ROOT_DOMAIN}" <<< "${info}"; then
         if [[ "${E2E_ACME_CA}" == *staging* ]]; then
             grep -qi "staging" <<< "${info}" && PROBE_STATUS=PASS
         else
