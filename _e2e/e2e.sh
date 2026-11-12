@@ -958,6 +958,8 @@ app_skip_reason() {
         vllm) echo "needs an Nvidia or AMD GPU (no CPU profile)" ;;
         minio) echo "MinIO no longer publishes container images" ;;
         mosquitto|nats) echo "needs a step-ca server and provisioner token for its TLS certs" ;;
+        ## Its backup containers always run, and crash-loop without S3:
+        nextcloud) echo "needs an S3 bucket for its (always-on) backups" ;;
     esac
 }
 
