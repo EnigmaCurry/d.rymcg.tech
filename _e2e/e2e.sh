@@ -863,9 +863,22 @@ test -n \"\${prefix}\" && test -f ${app}/.env_${E2E_NAME}_default || exit 1
 $(sourcerange_snippet "${app}" check)" >/dev/null 2>&1
 }
 
+app_test_vars() {
+    ## app_test_vars <app> - print extra VAR=value settings (one per line)
+    ## that an app needs to start without outside services:
+    case "$1" in
+        ## The default chatbot app needs an external LLM API; test with hello:
+        gradio) echo "GRADIO_APP=hello" ;;
+    esac
+}
+
 install_app() {
     local app="$1"
     local host="${app}.${E2E_ROOT_DOMAIN}"
+    local var test_vars=""
+    while read -r var; do
+        [[ -n "${var}" ]] && test_vars+="make -C ${app} reconfigure var=${var} instance=default"$'\n'
+    done < <(app_test_vars "${app}")
     e2e_remote_sh "prefix=\$(grep -oP '^# PREFIX=\\K.*' ${app}/.env-dist || true)
 test -n \"\${prefix}\" || { echo \"ERROR: no # PREFIX= META in ${app}/.env-dist\"; exit 1; }
 test -f ${app}/.env_${E2E_NAME}_default || make -C ${app} config-dist instance=default
@@ -883,7 +896,7 @@ $(sourcerange_snippet "${app}" apply)
 if grep -q \"^\${prefix}_PUBLIC_IP_ADDRESS=\" ${app}/.env-dist; then
   make -C ${app} reconfigure var=\${prefix}_PUBLIC_IP_ADDRESS=${DROPLET_IP} instance=default
 fi
-make -C ${app} override instance=default
+${test_vars}make -C ${app} override instance=default
 make -C ${app} install instance=default
 make -C ${app} wait TIMEOUT=${E2E_TIMEOUT} instance=default"
 }
