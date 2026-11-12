@@ -1,5 +1,6 @@
 services:
   caddy:
+    restart: unless-stopped
     build:
       context: caddy
       args:
