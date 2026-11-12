@@ -363,7 +363,10 @@ e2e_remote_root() {
 e2e_remote_sh() {
     ## Run a shell snippet as admin inside the repo dir with the e2e docker
     ## context selected:
+    ## The ERR trap names the failing command, so a set -e abort is never
+    ## silent:
     e2e_remote "set -eo pipefail
+trap 'echo \"ERROR: remote command failed (exit \$?): \$BASH_COMMAND\" >&2' ERR
 cd ${REMOTE_REPO}
 export DOCKER_CONTEXT=${E2E_NAME} PATH=\"\$PATH:\$HOME/.local/bin\"
 $*"
