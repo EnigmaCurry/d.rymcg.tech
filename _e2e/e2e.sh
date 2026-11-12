@@ -906,6 +906,8 @@ app_test_vars() {
     ## that an app needs to start without outside services. A value of
     ## @<app>:<VAR> is copied from that app's .env file on the droplet:
     case "$1" in
+        ## Can't create its admin account without an email (config asks):
+        peertube) echo "PEERTUBE_ADMIN_EMAIL=admin@peertube.${E2E_ROOT_DOMAIN}" ;;
         ## Needs TURN credentials; mint them from the coturn app's secret:
         pairdrop) echo "PAIRDROP_TURN_DOMAIN=coturn.${E2E_ROOT_DOMAIN}"
                   echo "PAIRDROP_COTURN_STATIC_AUTH_SECRET=@coturn:COTURN_STATIC_AUTH_SECRET" ;;
@@ -941,7 +943,12 @@ test -f ${app}/.env_${E2E_NAME}_default || make -C ${app} config-dist instance=d
 ## it would have made (reconfigure_password only fills blank values):
 { grep -oP 'reconfigure_password \\S+ \\K[A-Z0-9_]+( [0-9]+)?' ${app}/Makefile || true; } | sort -u | \\
   while read -r var len; do _scripts/reconfigure_password ${app}/.env_${E2E_NAME}_default \${var} \${len}; done
-make -C ${app} reconfigure var=\${prefix}_TRAEFIK_HOST=${host} instance=default
+## The host var is usually <PREFIX>_TRAEFIK_HOST; some apps name theirs
+## differently (e.g. PROMETHEUS_METRICS_TRAEFIK_HOST):
+host_var=\${prefix}_TRAEFIK_HOST
+grep -q \"^\${host_var}=\" ${app}/.env-dist || \
+  host_var=\$(grep -oP \"^\${prefix}_\\w*TRAEFIK_HOST(?==)\" ${app}/.env-dist | head -n 1)
+make -C ${app} reconfigure var=\${host_var}=${host} instance=default
 ## Apps doing their own ACME (TLS passthrough, e.g. caddy) use the test's CA:
 if grep -q \"^\${prefix}_ACME_CA=\" ${app}/.env-dist; then
   make -C ${app} reconfigure var=\${prefix}_ACME_CA=${E2E_ACME_CA} instance=default
@@ -1062,6 +1069,9 @@ probe_target() {
         iperf)    PROBE_KIND=iperf; PROBE_PORT=5201 ;;
         ## Internal-only (no Traefik route): its containers must be healthy:
         postfix-relay) PROBE_KIND=container ;;
+        ## Publishes 5432 on the host itself (not via Traefik); its
+        ## healthcheck runs pg_isready:
+        postgresql) PROBE_KIND=container ;;
         ## maubot serves nothing at /; its management UI:
         maubot) PROBE_PATH="_matrix/maubot/" ;;
         doh-server)
