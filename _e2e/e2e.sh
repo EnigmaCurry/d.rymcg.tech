@@ -791,6 +791,10 @@ make -C ${app} reconfigure var=\${prefix}_TRAEFIK_HOST=${host} instance=default
 if grep -q \"^\${prefix}_ACME_CA=\" ${app}/.env-dist; then
   make -C ${app} reconfigure var=\${prefix}_ACME_CA=${E2E_ACME_CA} instance=default
 fi
+## Apps that must be told the host's public IP (e.g. doh-server):
+if grep -q \"^\${prefix}_PUBLIC_IP_ADDRESS=\" ${app}/.env-dist; then
+  make -C ${app} reconfigure var=\${prefix}_PUBLIC_IP_ADDRESS=${DROPLET_IP} instance=default
+fi
 make -C ${app} override instance=default
 make -C ${app} install instance=default
 make -C ${app} wait TIMEOUT=${E2E_TIMEOUT} instance=default"
@@ -820,20 +824,34 @@ phase_apps() {
     done
 }
 
+probe_target() {
+    ## probe_target <app> - set PROBE_PATH (URL path, no leading /) and
+    ## PROBE_HEADERS (extra curl -H args), for apps with nothing at /:
+    PROBE_PATH=""
+    PROBE_HEADERS=()
+    case "$1" in
+        doh-server)
+            ## A DNS query for example.com/A (RFC 8484 GET, base64url wire format):
+            PROBE_PATH="dns-query?dns=q80BAAABAAAAAAAAB2V4YW1wbGUDY29tAAABAAE"
+            PROBE_HEADERS=(-H "accept: application/dns-message") ;;
+    esac
+}
+
 probe_app() {
     ## probe_app <app> - check the app's HTTPS route externally, without
     ## recording anything. Sets PROBE_STATUS/PROBE_URL/PROBE_CODE/PROBE_ISSUER
     ## and returns 0 on PASS:
     local app="$1"
     local host="${app}.${E2E_ROOT_DOMAIN}"
-    PROBE_URL="https://${host}/"
+    probe_target "${app}"
+    PROBE_URL="https://${host}/${PROBE_PATH}"
     ## Follow redirects (many apps send / to /login or a subpath), but only
     ## count it if the final URL is still on the app's own host:
     local curl_args=(-s -o /dev/null -w '%{http_code} %{url_effective}' --max-time 20 -L --max-redirs 5)
     ## Staging CA is not in the system trust store; production must validate:
     [[ "${E2E_ACME_CA}" == *staging* ]] && curl_args+=(-k)
     local info out final
-    out=$(curl "${curl_args[@]}" "${PROBE_URL}" || true)
+    out=$(curl "${curl_args[@]}" "${PROBE_HEADERS[@]}" "${PROBE_URL}" || true)
     PROBE_CODE="${out%% *}"
     final="${out#* }"
     if [[ "${final}" != "https://${host}/"* ]]; then
