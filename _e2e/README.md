@@ -126,7 +126,7 @@ app list. Answers are written to `~/.config/d.rymcg.tech/e2e/<NAME>.conf`
 Running an action with no config errors and tells you to run `config` first.
 
 A few options can still be passed per-run to override the config:
-`--apps LIST`, `--timeout SECS`, `--keep-going`, `--reset-env`, `--yes`.
+`--apps LIST`, `--timeout SECS`, `--keep-going`, `--reinstall`, `--reset-env`, `--yes`.
 
 Every run logs everything (including all remote output) to
 `~/.config/d.rymcg.tech/e2e/logs/`, and records resource IDs in

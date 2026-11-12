@@ -62,6 +62,7 @@ E2E_SSH_PUBKEY="${E2E_SSH_PUBKEY:-}"
 E2E_ADMIN_USER="${E2E_ADMIN_USER:-admin}"
 E2E_SUITE="${E2E_SUITE:-full}"
 E2E_KEEP_GOING=false
+E2E_REINSTALL=false
 E2E_RESET_ENV=false
 E2E_YES=false
 
@@ -126,6 +127,7 @@ Runtime options (override the config for this run):
   --apps LIST    Comma-separated app list (full suite)
   --timeout SECS Per-wait timeout (default: ${E2E_TIMEOUT})
   --keep-going   Continue installing apps after one fails
+  --reinstall    Reinstall apps even if they already verify (apps phase)
   --reset-env    Delete the remote .env files before configuring
   --yes          Skip confirmation prompts (destroy/purge)
 
@@ -787,6 +789,10 @@ phase_apps() {
     local app
     for app in ${E2E_APPS//,/ }; do
         banner "app: ${app}"
+        if [[ "${E2E_REINSTALL}" != "true" ]] && probe_app "${app}"; then
+            echo "${app}: already verified (HTTP ${PROBE_CODE}); skipping install (use --reinstall to force)."
+            continue
+        fi
         if install_app "${app}"; then
             echo "${app}: installed and healthy."
         else
@@ -800,27 +806,35 @@ phase_apps() {
     done
 }
 
-verify_app() {
+probe_app() {
+    ## probe_app <app> - check the app's HTTPS route externally, without
+    ## recording anything. Sets PROBE_STATUS/PROBE_URL/PROBE_CODE/PROBE_ISSUER
+    ## and returns 0 on PASS:
     local app="$1"
     local host="${app}.${E2E_ROOT_DOMAIN}"
-    local url="https://${host}/"
+    PROBE_URL="https://${host}/"
     local curl_args=(-s -o /dev/null -w '%{http_code}' --max-time 20)
     ## Staging CA is not in the system trust store; production must validate:
     [[ "${E2E_ACME_CA}" == *staging* ]] && curl_args+=(-k)
-    local code info issuer status
-    code=$(curl "${curl_args[@]}" "${url}" || true)
+    local info
+    PROBE_CODE=$(curl "${curl_args[@]}" "${PROBE_URL}" || true)
     info=$(tls_probe "${host}" || true)
-    issuer=$(grep -oP '^issuer=\K.*' <<< "${info}" | head -n 1)
-    status=FAIL
-    if [[ "${code}" == "200" ]] && grep -q "${E2E_ROOT_DOMAIN}" <<< "${info}"; then
+    PROBE_ISSUER=$(grep -oP '^issuer=\K.*' <<< "${info}" | head -n 1 || true)
+    PROBE_STATUS=FAIL
+    if [[ "${PROBE_CODE}" == "200" ]] && grep -q "${E2E_ROOT_DOMAIN}" <<< "${info}"; then
         if [[ "${E2E_ACME_CA}" == *staging* ]]; then
-            grep -qi "staging" <<< "${info}" && status=PASS
+            grep -qi "staging" <<< "${info}" && PROBE_STATUS=PASS
         else
-            status=PASS
+            PROBE_STATUS=PASS
         fi
     fi
-    RESULTS+=("${status}|${app}|${url}|${code}|${issuer:-no-cert}")
-    [[ "${status}" == "PASS" ]]
+    [[ "${PROBE_STATUS}" == "PASS" ]]
+}
+
+verify_app() {
+    probe_app "$1" || true
+    RESULTS+=("${PROBE_STATUS}|$1|${PROBE_URL}|${PROBE_CODE}|${PROBE_ISSUER:-no-cert}")
+    [[ "${PROBE_STATUS}" == "PASS" ]]
 }
 
 verify_check() {
@@ -1335,6 +1349,7 @@ main() {
             --apps)       apps_override="$2"; shift ;;
             --timeout)    E2E_TIMEOUT="$2"; shift ;;
             --keep-going) E2E_KEEP_GOING=true ;;
+            --reinstall)  E2E_REINSTALL=true ;;
             --reset-env)  E2E_RESET_ENV=true ;;
             --yes)        E2E_YES=true ;;
             -h|--help)    usage 0 ;;
