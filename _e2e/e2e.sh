@@ -957,7 +957,7 @@ app_skip_reason() {
     case "$1" in
         vllm) echo "needs an Nvidia or AMD GPU (no CPU profile)" ;;
         minio) echo "MinIO no longer publishes container images" ;;
-        mosquitto) echo "needs a step-ca server and provisioner token for its TLS certs" ;;
+        mosquitto|nats) echo "needs a step-ca server and provisioner token for its TLS certs" ;;
     esac
 }
 
