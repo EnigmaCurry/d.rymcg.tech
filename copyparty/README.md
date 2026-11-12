@@ -24,6 +24,11 @@ fine-grained permissioned access to authenticated clients. Login is
 performed by password ONLY (no username needs to be entered. Also,
 passwords must be unique).
 
+`make config` generates a random password for the admin user and
+saves it as `COPYPARTY_ADMIN_PASSWORD` in your
+`.env_{DOCKER_CONTEXT}_{INSTANCE}` file (view or change it with `make
+config-edit`; do not use commas, colons, or spaces).
+
 ### Public and guest access
 
 This config offers configurable public (download-only) and guest (upload-only) access permissions:

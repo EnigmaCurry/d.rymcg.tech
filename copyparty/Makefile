@@ -17,7 +17,6 @@ config-hook:
 	@echo
 	@${BIN}/reconfigure_ask ${ENV_FILE} COPYPARTY_ADMIN_USER "Enter the copyparty admin user name"
 	@${BIN}/reconfigure_password ${ENV_FILE} COPYPARTY_ADMIN_PASSWORD 18
-	@${BIN}/reconfigure_ask ${ENV_FILE} COPYPARTY_ADMIN_PASSWORD "Enter a password for the admin user - DO NOT USE commas, colons, or spaces"
 	@echo
 	@${MAKE} --no-print-directory config-users
 	@echo
