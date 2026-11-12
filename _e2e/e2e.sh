@@ -61,6 +61,10 @@ E2E_CERT_TIMEOUT="${E2E_CERT_TIMEOUT:-600}"
 E2E_SSH_PUBKEY="${E2E_SSH_PUBKEY:-}"
 E2E_ADMIN_USER="${E2E_ADMIN_USER:-admin}"
 E2E_SUITE="${E2E_SUITE:-full}"
+## Comma-separated CIDRs allowed to reach the apps (full suite), written into
+## every app's <PREFIX>_*SOURCERANGE (Traefik ipallowlist). Blank means "this
+## machine's public IP" (from ifconfig.me), detected at run time:
+E2E_IP_SOURCERANGE="${E2E_IP_SOURCERANGE:-}"
 E2E_KEEP_GOING=false
 E2E_REINSTALL=false
 E2E_RESET_ENV=false
@@ -172,8 +176,57 @@ E2E_GIT_REF=${E2E_GIT_REF}
 E2E_SSH_PUBKEY=${E2E_SSH_PUBKEY}
 E2E_ADMIN_USER=${E2E_ADMIN_USER}
 E2E_APPS=${E2E_APPS}
+E2E_IP_SOURCERANGE=${E2E_IP_SOURCERANGE}
 EOF
     chmod 600 "${f}"
+}
+
+my_public_ip() {
+    ## This machine's public IPv4 address, as seen from the internet:
+    curl -4 -s --max-time 10 https://ifconfig.me || true
+}
+
+normalize_cidr_list() {
+    ## normalize_cidr_list "a, b/24,..." - validate a comma-separated list of
+    ## IPv4/IPv6 addresses or CIDRs; print it comma-separated and normalized
+    ## (bare addresses get /32 or /128). Returns 1 on any invalid entry:
+    local list="${1// /}" entry addr prefix max o out=""
+    [[ -n "${list}" ]] || return 1
+    for entry in ${list//,/ }; do
+        addr="${entry%%/*}"
+        if [[ "${addr}" =~ ^([0-9]{1,3}\.){3}[0-9]{1,3}$ ]]; then
+            for o in ${addr//./ }; do (( 10#${o} <= 255 )) || return 1; done
+            max=32
+        elif [[ "${addr}" == *:* && "${addr}" =~ ^[0-9a-fA-F:]+$ ]]; then
+            max=128
+        else
+            return 1
+        fi
+        if [[ "${entry}" == */* ]]; then
+            prefix="${entry##*/}"
+            [[ "${prefix}" =~ ^[0-9]+$ ]] && (( 10#${prefix} <= max )) || return 1
+        else
+            prefix="${max}"
+        fi
+        out+="${out:+,}${addr}/${prefix}"
+    done
+    [[ -n "${out}" ]] || return 1
+    echo "${out}"
+}
+
+app_source_range() {
+    ## The effective app source range: the configured one, or this machine's
+    ## public IP if none is configured (e.g. a config from before the setting):
+    if [[ -n "${E2E_IP_SOURCERANGE}" ]]; then
+        normalize_cidr_list "${E2E_IP_SOURCERANGE}" \
+            || fault "Invalid E2E_IP_SOURCERANGE: ${E2E_IP_SOURCERANGE}"
+        return 0
+    fi
+    local ip
+    ip=$(my_public_ip)
+    [[ -n "${ip}" ]] || fault "E2E_IP_SOURCERANGE is unset and ifconfig.me is unreachable; set it with: $0 make ${E2E_NAME} config"
+    echo "WARNING: E2E_IP_SOURCERANGE is unset; limiting apps to ${ip}/32 (set it with: $0 make ${E2E_NAME} config)." >&2
+    echo "${ip}/32"
 }
 
 ## Load the config into E2E_* variables. Fault with guidance if it is missing
@@ -776,6 +829,37 @@ $(printf '%q' "TRAEFIK_ACME_CERT_DOMAINS=${cert_domains}")"
     done
 }
 
+sourcerange_snippet() {
+    ## sourcerange_snippet <app> <apply|check> - remote shell code (needs
+    ## \${prefix}) that sets, or checks, every <PREFIX>_*SOURCERANGE var in the
+    ## app's env file to APP_SOURCERANGE. Apps doing their own ACME (TLS
+    ## passthrough, e.g. caddy) stay open (0.0.0.0/0): Let's Encrypt must reach
+    ## them for the TLS-ALPN-01 challenge.
+    local app="$1" mode="$2" envf="${1}/.env_${E2E_NAME}_default" action
+    if [[ "${mode}" == "apply" ]]; then
+        action="make -C ${app} reconfigure var=\${v}=\${range} instance=default"
+    else
+        action="grep -qxF \"\${v}=\${range}\" ${envf} || exit 1"
+    fi
+    cat <<EOF
+## Limit who can reach the app (Traefik ipallowlist):
+range=${APP_SOURCERANGE}
+if grep -q "^\${prefix}_ACME_CA=" ${app}/.env-dist; then range=0.0.0.0/0; fi
+for v in \$(grep -oP "^\${prefix}_\\w*SOURCERANGE(?==)" ${app}/.env-dist || true); do
+  ${action}
+done
+EOF
+}
+
+app_sourcerange_current() {
+    ## app_sourcerange_current <app> - true if the app's env file already has
+    ## the configured source range, i.e. a passing app needs no reinstall:
+    local app="$1"
+    e2e_remote_sh "prefix=\$(grep -oP '^# PREFIX=\\K.*' ${app}/.env-dist || true)
+test -n \"\${prefix}\" && test -f ${app}/.env_${E2E_NAME}_default || exit 1
+$(sourcerange_snippet "${app}" check)" >/dev/null 2>&1
+}
+
 install_app() {
     local app="$1"
     local host="${app}.${E2E_ROOT_DOMAIN}"
@@ -791,6 +875,7 @@ make -C ${app} reconfigure var=\${prefix}_TRAEFIK_HOST=${host} instance=default
 if grep -q \"^\${prefix}_ACME_CA=\" ${app}/.env-dist; then
   make -C ${app} reconfigure var=\${prefix}_ACME_CA=${E2E_ACME_CA} instance=default
 fi
+$(sourcerange_snippet "${app}" apply)
 ## Apps that must be told the host's public IP (e.g. doh-server):
 if grep -q \"^\${prefix}_PUBLIC_IP_ADDRESS=\" ${app}/.env-dist; then
   make -C ${app} reconfigure var=\${prefix}_PUBLIC_IP_ADDRESS=${DROPLET_IP} instance=default
@@ -802,14 +887,20 @@ make -C ${app} wait TIMEOUT=${E2E_TIMEOUT} instance=default"
 
 phase_apps() {
     local app
+    APP_SOURCERANGE=$(app_source_range)
+    echo "Apps are limited to source range: ${APP_SOURCERANGE}"
     for app in ${E2E_APPS//,/ }; do
         banner "app: ${app}"
         if [[ "${E2E_REINSTALL}" != "true" ]]; then
             if probe_app "${app}"; then
-                echo "${app}: already verified (result ${PROBE_CODE}); skipping install (use --reinstall to force)."
-                continue
+                if app_sourcerange_current "${app}"; then
+                    echo "${app}: already verified (result ${PROBE_CODE}); skipping install (use --reinstall to force)."
+                    continue
+                fi
+                echo "${app}: verified, but its source range differs from ${APP_SOURCERANGE}; reinstalling."
+            else
+                echo "${app}: not verified (result ${PROBE_CODE}, cert: ${PROBE_ISSUER:-none}); installing."
             fi
-            echo "${app}: not verified (result ${PROBE_CODE}, cert: ${PROBE_ISSUER:-none}); installing."
         fi
         if install_app "${app}"; then
             echo "${app}: installed and healthy."
@@ -1146,6 +1237,30 @@ choose_apps() {
     E2E_APPS=$(IFS=,; echo "${selected[*]}")
 }
 
+choose_ip_sourcerange() {
+    ## Ask which CIDRs may reach the apps. Default: this machine's public IP
+    ## (the checks run from here). 0.0.0.0/0 opens them to everyone:
+    local default="${E2E_IP_SOURCERANGE}" ip answer normalized
+    if [[ -z "${default}" ]]; then
+        ip=$(my_public_ip)
+        default="${ip:+${ip}/32}"
+        default="${default:-0.0.0.0/0}"
+    fi
+    echo ""
+    echo "Each app's IP source range filter (<PREFIX>_IP_SOURCERANGE) limits who"
+    echo "can reach it. The checks run from this machine, so its address must be"
+    echo "included. Use 0.0.0.0/0 to make the test apps public. Apps that get"
+    echo "their own certificate via TLS-ALPN (e.g. caddy) are always left open."
+    while true; do
+        ask "App source range (comma-separated CIDRs)" answer "${default}"
+        if normalized=$(normalize_cidr_list "${answer}"); then
+            E2E_IP_SOURCERANGE="${normalized}"
+            break
+        fi
+        echo "Invalid CIDR list: '${answer}' (e.g. 203.0.113.7/32,2001:db8::/48)"
+    done
+}
+
 cmd_config() {
     [[ -t 0 ]] || fault "'config' is interactive; run it in a terminal."
     ## The wizard is interactive: read/confirm/wizard legitimately return
@@ -1202,6 +1317,7 @@ cmd_config() {
             *)           E2E_ACME_CA="acme-staging-v02.api.letsencrypt.org" ;;
         esac
         choose_apps
+        choose_ip_sourcerange
     else
         ## Workstation needs none of the DNS/cert/app settings:
         E2E_DOMAIN=""
