@@ -999,6 +999,7 @@ app_skip_reason() {
     ## it can:
     case "$1" in
         vllm) echo "needs an Nvidia or AMD GPU (no CPU profile)" ;;
+        sysbox-systemd) echo "needs the sysbox runtime (sysbox-runc) installed on the host" ;;
         minio) echo "MinIO no longer publishes container images" ;;
         mosquitto|nats) echo "needs a step-ca server and provisioner token for its TLS certs" ;;
         ## Its backup containers always run, and crash-loop without S3:
@@ -1101,6 +1102,9 @@ probe_target() {
         ## Publishes 5432 on the host itself (not via Traefik); its
         ## healthcheck runs pg_isready:
         postgresql) PROBE_KIND=container ;;
+        ## Its web admin is off by default (no HTTPS route); syncing runs on
+        ## its own port 22000:
+        syncthing) PROBE_KIND=container ;;
         ## maubot serves nothing at /; its management UI:
         maubot) PROBE_PATH="_matrix/maubot/" ;;
         doh-server)
