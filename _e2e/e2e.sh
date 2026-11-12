@@ -903,8 +903,12 @@ ensure_app_entrypoints() {
 
 app_test_vars() {
     ## app_test_vars <app> - print extra VAR=value settings (one per line)
-    ## that an app needs to start without outside services:
+    ## that an app needs to start without outside services. A value of
+    ## @<app>:<VAR> is copied from that app's .env file on the droplet:
     case "$1" in
+        ## Needs TURN credentials; mint them from the coturn app's secret:
+        pairdrop) echo "PAIRDROP_TURN_DOMAIN=coturn.${E2E_ROOT_DOMAIN}"
+                  echo "PAIRDROP_COTURN_STATIC_AUTH_SECRET=@coturn:COTURN_STATIC_AUTH_SECRET" ;;
         ## The default chatbot app needs an external LLM API; test with hello:
         gradio) echo "GRADIO_APP=hello" ;;
         ## Won't start without a sender domain (it can't deliver anyway, as
@@ -919,8 +923,16 @@ install_app() {
     local app="$1"
     local host="${app}.${E2E_ROOT_DOMAIN}"
     local var test_vars=""
+    local name value src
     while read -r var; do
-        [[ -n "${var}" ]] && test_vars+="make -C ${app} reconfigure var=${var} instance=default"$'\n'
+        [[ -z "${var}" ]] && continue
+        name="${var%%=*}"; value="${var#*=}"
+        if [[ "${value}" =~ ^@([a-z0-9-]+):([A-Z0-9_]+)$ ]]; then
+            ## Resolved on the droplet, from the other app's .env file:
+            src="${BASH_REMATCH[1]}/.env_${E2E_NAME}_default"
+            value="\$(_scripts/dotenv -f ${src} get ${BASH_REMATCH[2]})"
+        fi
+        test_vars+="make -C ${app} reconfigure var=${name}=${value} instance=default"$'\n'
     done < <(app_test_vars "${app}")
     e2e_remote_sh "prefix=\$(grep -oP '^# PREFIX=\\K.*' ${app}/.env-dist || true)
 test -n \"\${prefix}\" || { echo \"ERROR: no # PREFIX= META in ${app}/.env-dist\"; exit 1; }
@@ -968,6 +980,7 @@ app_deps() {
     ## whose external docker network the app joins):
     case "$1" in
         inspircd|backup-volume) echo "postfix-relay" ;;
+        pairdrop) echo "coturn" ;;
     esac
 }
 
@@ -1031,7 +1044,14 @@ probe_target() {
     PROBE_PORT=443
     ## The HTTP status that counts as a PASS:
     PROBE_EXPECT=200
+    ## An .env var holding a bearer token the route requires (it only
+    ## matches requests with that Authorization header):
+    PROBE_TOKEN_VAR=""
     case "$1" in
+        ollama) PROBE_TOKEN_VAR=OLLAMA_API_TOKEN ;;
+        ## API only (no UI); the health endpoint, counting a fresh
+        ## (uninitialized, sealed) server as up:
+        openbao) PROBE_PATH="v1/sys/health?uninitcode=200&sealedcode=200" ;;
         ## A fresh install serves an empty web root (no directory listing):
         nginx) PROBE_EXPECT=403 ;;
         coturn) PROBE_KIND=stun ;;
@@ -1108,6 +1128,11 @@ printf "%-36s\0" e2eprobe >&3; IFS= read -r -t 5 -N 1 b <&3 || exit 1; printf "%
         fi
     else
         PROBE_URL="https://${host}/${PROBE_PATH}"
+        if [[ -n "${PROBE_TOKEN_VAR}" ]]; then
+            local token
+            token=$(e2e_remote_sh "_scripts/dotenv -f ${app}/.env_${E2E_NAME}_default get ${PROBE_TOKEN_VAR}" 2>/dev/null || true)
+            PROBE_HEADERS+=(-H "Authorization: Bearer ${token}")
+        fi
         ## Follow redirects (many apps send / to /login or a subpath), but
         ## only count it if the final URL is still on the app's own host:
         ## Pin the host to DROPLET_IP so a stale local DNS cache (from a
