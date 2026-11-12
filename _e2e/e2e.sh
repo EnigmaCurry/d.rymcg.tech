@@ -921,6 +921,24 @@ app_test_vars() {
     esac
 }
 
+app_pre_install() {
+    ## app_pre_install <app> - print a shell snippet to run on the droplet
+    ## (in the repo dir) just before 'make install', e.g. a one-time init:
+    case "$1" in
+        ## Needs its CA initialized once (refuses if the volume exists):
+        step-ca) echo "make -C step-ca check-volume instance=default || make -C step-ca init-ca instance=default" ;;
+    esac
+}
+
+app_generated_vars() {
+    ## app_generated_vars <app> - print "VAR COMMAND" lines for secrets the
+    ## app's config wizard would generate: when VAR is blank, it is set to
+    ## COMMAND's output (run on the droplet). Kept across reinstalls:
+    case "$1" in
+        speedtest-tracker) echo 'SPEEDTEST_TRACKER_APP_KEY echo "base64:$(openssl rand -base64 32)"' ;;
+    esac
+}
+
 install_app() {
     local app="$1"
     local host="${app}.${E2E_ROOT_DOMAIN}"
@@ -936,6 +954,11 @@ install_app() {
         fi
         test_vars+="make -C ${app} reconfigure var=${name}=${value} instance=default"$'\n'
     done < <(app_test_vars "${app}")
+    local cmd env_file="${app}/.env_${E2E_NAME}_default"
+    while read -r name cmd; do
+        [[ -z "${name}" ]] && continue
+        test_vars+="[ -n \"\$(_scripts/dotenv -f ${env_file} get ${name})\" ] || make -C ${app} reconfigure var=${name}=\"\$(${cmd})\" instance=default"$'\n'
+    done < <(app_generated_vars "${app}")
     e2e_remote_sh "prefix=\$(grep -oP '^# PREFIX=\\K.*' ${app}/.env-dist || true)
 test -n \"\${prefix}\" || { echo \"ERROR: no # PREFIX= META in ${app}/.env-dist\"; exit 1; }
 test -f ${app}/.env_${E2E_NAME}_default || make -C ${app} config-dist instance=default
@@ -959,6 +982,7 @@ if grep -q \"^\${prefix}_PUBLIC_IP_ADDRESS=\" ${app}/.env-dist; then
   make -C ${app} reconfigure var=\${prefix}_PUBLIC_IP_ADDRESS=${DROPLET_IP} instance=default
 fi
 ${test_vars}make -C ${app} override instance=default
+$(app_pre_install "${app}")
 make -C ${app} install instance=default
 make -C ${app} wait TIMEOUT=${E2E_TIMEOUT} instance=default
 ## Image builds leave a lot of cache behind; drop the unused part once the
@@ -1055,7 +1079,11 @@ probe_target() {
     ## An .env var holding a bearer token the route requires (it only
     ## matches requests with that Authorization header):
     PROBE_TOKEN_VAR=""
+    ## The app serves its own TLS certificate (TLS passthrough), not
+    ## Traefik's ACME one; it must still name the root domain:
+    PROBE_OWN_CERT=false
     case "$1" in
+        step-ca) PROBE_PATH="health"; PROBE_OWN_CERT=true ;;
         ollama) PROBE_TOKEN_VAR=OLLAMA_API_TOKEN ;;
         ## API only (no UI); the health endpoint, counting a fresh
         ## (uninitialized, sealed) server as up:
@@ -1148,7 +1176,9 @@ printf "%-36s\0" e2eprobe >&3; IFS= read -r -t 5 -N 1 b <&3 || exit 1; printf "%
         ## only count it if the final URL is still on the app's own host:
         ## Pin the host to DROPLET_IP so a stale local DNS cache (from a
         ## previous run's droplet) can't misdirect the probe:
-        local curl_args=(-s -o /dev/null -w '%{http_code} %{url_effective}' --max-time 20 -L --max-redirs 5
+        ## --cookie "" enables cookies across redirects (some first-run pages,
+        ## e.g. shaarli's session test, set one and redirect):
+        local curl_args=(-s -o /dev/null -w '%{http_code} %{url_effective}' --max-time 20 -L --max-redirs 5 --cookie ""
                          --resolve "${host}:443:${DROPLET_IP}")
         ## Staging CA is not in the system trust store; production must validate:
         [[ "${E2E_ACME_CA}" == *staging* ]] && curl_args+=(-k)
@@ -1168,7 +1198,7 @@ printf "%-36s\0" e2eprobe >&3; IFS= read -r -t 5 -N 1 b <&3 || exit 1; printf "%
     PROBE_ISSUER=$(grep -oP '^issuer=\K.*' <<< "${info}" | head -n 1 || true)
     PROBE_STATUS=FAIL
     if [[ "${PROBE_CODE}" =~ ^(${PROBE_EXPECT}|stun-ok|irc-ok|iperf-ok|container-ok)$ ]] && grep -q "${E2E_ROOT_DOMAIN}" <<< "${info}"; then
-        if [[ "${E2E_ACME_CA}" == *staging* ]]; then
+        if [[ "${E2E_ACME_CA}" == *staging* && "${PROBE_OWN_CERT}" != "true" ]]; then
             grep -qi "staging" <<< "${info}" && PROBE_STATUS=PASS
         else
             PROBE_STATUS=PASS
