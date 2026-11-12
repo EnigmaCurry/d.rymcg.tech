@@ -26,7 +26,7 @@
 ## run it; all settings come from the config file, not command-line args.
 ##
 ## Usage:
-##   _e2e/e2e.sh make <NAME> config         # interactive wizard -> <NAME>.conf
+##   _e2e/e2e.sh make <NAME> config         # wizard -> <NAME>.conf (menu if it exists)
 ##   _e2e/e2e.sh make <NAME> full           # run the full install suite
 ##   _e2e/e2e.sh make <NAME> workstation    # run the workstation suite
 ##   _e2e/e2e.sh make <NAME> status
@@ -1283,53 +1283,177 @@ cmd_config() {
             || echo "NOTE: still unauthenticated - region/size/image/domain will be free-text."
     fi
 
-    ## Seed the wizard with the existing config (if any) so re-running edits it:
-    [[ -f "$(config_file)" ]] && load_config
-
-    echo "Configuring e2e test '${E2E_NAME}' (written to $(config_file))"
-    echo ""
-
-    E2E_SUITE=$(wizard choose "Which suite is this test for?" \
-        full workstation --default "${E2E_SUITE:-full}") || E2E_SUITE=""
-    [[ -n "${E2E_SUITE}" ]] || fault "Config cancelled."
-
-    choose_region
-    choose_size
-    choose_image
-    ask "Admin (workstation) username" E2E_ADMIN_USER "${E2E_ADMIN_USER:-admin}"
-    choose_ssh_pubkey
-    ask "Git remote to clone on the droplet" E2E_GIT_URL \
-        "${E2E_GIT_URL:-https://github.com/EnigmaCurry/d.rymcg.tech.git}"
-    ask "Git ref (branch/tag/sha)" E2E_GIT_REF "${E2E_GIT_REF:-master}"
-
-    if [[ "${E2E_SUITE}" == "full" ]]; then
-        choose_domain
-        ask_no_blank "Subdomain for this test to own (under ${E2E_DOMAIN})" \
-            E2E_SUBDOMAIN "${E2E_SUBDOMAIN:-${E2E_NAME}}"
-        local ca
-        ca=$(wizard choose "Let's Encrypt certificate authority" \
-            "staging (for testing; untrusted certs)" \
-            "production (real trusted certs; rate-limited)" \
-            --default "staging (for testing; untrusted certs)") || ca=""
-        [[ -n "${ca}" ]] || fault "Config cancelled."
-        case "${ca}" in
-            production*) E2E_ACME_CA="acme-v02.api.letsencrypt.org" ;;
-            *)           E2E_ACME_CA="acme-staging-v02.api.letsencrypt.org" ;;
-        esac
-        choose_apps
-        choose_ip_sourcerange
+    ## A first run walks through every question; re-running on an existing
+    ## config opens a menu to change individual settings instead:
+    if [[ -f "$(config_file)" ]]; then
+        load_config
+        echo "Reconfiguring e2e test '${E2E_NAME}' ($(config_file))"
+        echo ""
+        config_menu
     else
-        ## Workstation needs none of the DNS/cert/app settings:
-        E2E_DOMAIN=""
-        E2E_SUBDOMAIN=""
-        E2E_ACME_CA="${E2E_ACME_CA:-acme-staging-v02.api.letsencrypt.org}"
-        E2E_APPS="${E2E_APPS:-}"
+        echo "Configuring e2e test '${E2E_NAME}' (written to $(config_file))"
+        echo ""
+        config_all
     fi
 
+    config_normalize
     save_config
     echo ""
     echo "Wrote $(config_file)."
     echo "Run it with:  $0 make ${E2E_NAME} ${E2E_SUITE}"
+}
+
+## One function per config question (used by both the full walk-through and
+## the reconfigure menu):
+config_suite() {
+    local suite
+    suite=$(wizard choose "Which suite is this test for?" \
+        full workstation --default "${E2E_SUITE:-full}") || suite=""
+    [[ -n "${suite}" ]] || fault "Config cancelled."
+    E2E_SUITE="${suite}"
+}
+config_admin_user() {
+    ask "Admin (workstation) username" E2E_ADMIN_USER "${E2E_ADMIN_USER:-admin}"
+}
+config_git_url() {
+    ask "Git remote to clone on the droplet" E2E_GIT_URL \
+        "${E2E_GIT_URL:-https://github.com/EnigmaCurry/d.rymcg.tech.git}"
+}
+config_git_ref() {
+    ask "Git ref (branch/tag/sha)" E2E_GIT_REF "${E2E_GIT_REF:-master}"
+}
+config_subdomain() {
+    ask_no_blank "Subdomain for this test to own (under ${E2E_DOMAIN})" \
+        E2E_SUBDOMAIN "${E2E_SUBDOMAIN:-${E2E_NAME}}"
+}
+config_acme_ca() {
+    local staging="staging (for testing; untrusted certs)"
+    local production="production (real trusted certs; rate-limited)"
+    local ca
+    ca=$(wizard choose "Let's Encrypt certificate authority" "${staging}" "${production}" \
+        --default "$( [[ "${E2E_ACME_CA}" == acme-v02.* ]] && echo "${production}" || echo "${staging}")") \
+        || ca=""
+    [[ -n "${ca}" ]] || fault "Config cancelled."
+    case "${ca}" in
+        production*) E2E_ACME_CA="acme-v02.api.letsencrypt.org" ;;
+        *)           E2E_ACME_CA="acme-staging-v02.api.letsencrypt.org" ;;
+    esac
+}
+
+## The full-suite-only questions:
+config_full_suite() {
+    choose_domain
+    config_subdomain
+    config_acme_ca
+    choose_apps
+    choose_ip_sourcerange
+}
+
+## First run: ask every question in order:
+config_all() {
+    config_suite
+    choose_region
+    choose_size
+    choose_image
+    config_admin_user
+    choose_ssh_pubkey
+    config_git_url
+    config_git_ref
+    [[ "${E2E_SUITE}" == "full" ]] && config_full_suite
+    return 0
+}
+
+## Settle settings that depend on the suite before saving:
+config_normalize() {
+    if [[ "${E2E_SUITE}" == "full" ]]; then
+        return 0
+    fi
+    ## Workstation needs none of the DNS/cert/app settings:
+    E2E_DOMAIN=""
+    E2E_SUBDOMAIN=""
+    E2E_ACME_CA="${E2E_ACME_CA:-acme-staging-v02.api.letsencrypt.org}"
+}
+
+## All saved settings on one line, to tell whether the menu changed anything:
+config_snapshot() {
+    local v
+    for v in E2E_SUITE E2E_DOMAIN E2E_SUBDOMAIN E2E_REGION E2E_SIZE E2E_IMAGE \
+             E2E_ACME_CA E2E_GIT_URL E2E_GIT_REF E2E_SSH_PUBKEY E2E_ADMIN_USER \
+             E2E_APPS E2E_IP_SOURCERANGE; do
+        printf '%s=%q;' "${v}" "${!v}"
+    done
+}
+
+## Reconfigure: show each setting with its current value; pick one to change,
+## until "Save and exit". Returns to the caller to save, or exits on discard:
+config_menu() {
+    local original keys=() labels=() choice i key value
+    local save="Save and exit" discard="Exit without saving" walk="Walk through all questions"
+    original=$(config_snapshot)
+    while :; do
+        ## A newly chosen full suite still needs its domain/subdomain:
+        if [[ "${E2E_SUITE}" == "full" && ( -z "${E2E_DOMAIN}" || -z "${E2E_SUBDOMAIN}" ) ]]; then
+            echo "The full suite needs a few more settings:"
+            config_full_suite
+        fi
+        keys=(suite region size image admin_user ssh_pubkey git_url git_ref)
+        [[ "${E2E_SUITE}" == "full" ]] && keys+=(domain subdomain acme_ca apps ip_sourcerange)
+        labels=()
+        for key in "${keys[@]}"; do
+            case "${key}" in
+                suite)          value="${E2E_SUITE}" ;;
+                region)         value="${E2E_REGION}" ;;
+                size)           value="${E2E_SIZE}" ;;
+                image)          value="${E2E_IMAGE}" ;;
+                admin_user)     value="${E2E_ADMIN_USER}" ;;
+                ssh_pubkey)     value="${E2E_SSH_PUBKEY}" ;;
+                git_url)        value="${E2E_GIT_URL}" ;;
+                git_ref)        value="${E2E_GIT_REF}" ;;
+                domain)         value="${E2E_DOMAIN}" ;;
+                subdomain)      value="${E2E_SUBDOMAIN}" ;;
+                acme_ca)        [[ "${E2E_ACME_CA}" == acme-v02.* ]] \
+                                    && value="production" || value="staging" ;;
+                apps)           value="${E2E_APPS}" ;;
+                ip_sourcerange) value="${E2E_IP_SOURCERANGE}" ;;
+            esac
+            [[ ${#value} -gt 60 ]] && value="${value:0:57}..."
+            labels+=("$(printf '%-15s %s' "${key//_/ }" "${value:-(unset)}")")
+        done
+        choice=$(wizard choose "Choose a setting to change ('${E2E_NAME}')" \
+            "${labels[@]}" "${walk}" "${save}" "${discard}" --default "${save}") \
+            || choice="${discard}"
+        case "${choice}" in
+            "${save}") return 0 ;;
+            "${walk}") config_all; continue ;;
+            "${discard}")
+                if [[ "$(config_snapshot)" == "${original}" ]] \
+                       || confirm no "Discard your changes" "?"; then
+                    echo "No changes saved."
+                    exit 0
+                fi
+                continue ;;
+        esac
+        for i in "${!labels[@]}"; do
+            [[ "${labels[$i]}" == "${choice}" ]] || continue
+            case "${keys[$i]}" in
+                suite)          config_suite ;;
+                region)         choose_region ;;
+                size)           choose_size ;;
+                image)          choose_image ;;
+                admin_user)     config_admin_user ;;
+                ssh_pubkey)     choose_ssh_pubkey ;;
+                git_url)        config_git_url ;;
+                git_ref)        config_git_ref ;;
+                domain)         choose_domain ;;
+                subdomain)      config_subdomain ;;
+                acme_ca)        config_acme_ca ;;
+                apps)           choose_apps ;;
+                ip_sourcerange) choose_ip_sourcerange ;;
+            esac
+            break
+        done
+        echo ""
+    done
 }
 
 cmd_list() {

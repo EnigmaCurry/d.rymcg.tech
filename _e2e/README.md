@@ -119,9 +119,14 @@ d e2e list
 
 `config` runs an interactive wizard (script-wizard) that asks for the suite,
 region/size/image, SSH key, admin user, git remote/ref, and — for the full
-suite — the domain, subdomain, Let's Encrypt CA (staging/production), and the
-app list. Answers are written to `~/.config/d.rymcg.tech/e2e/<NAME>.conf`
-(edit it by hand or re-run `config` to change them).
+suite — the domain, subdomain, Let's Encrypt CA (staging/production), the
+app list, and the apps' IP source range. Answers are written to
+`~/.config/d.rymcg.tech/e2e/<NAME>.conf`.
+
+Running `config` again on an existing test doesn't repeat every question. It
+opens a menu listing each setting with its current value: pick one to change
+it, "Walk through all questions" to redo the whole wizard, then "Save and
+exit" (or "Exit without saving"). You can also edit the `.conf` by hand.
 
 Running an action with no config errors and tells you to run `config` first.
 
