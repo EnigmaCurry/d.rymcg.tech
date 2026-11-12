@@ -907,6 +907,9 @@ app_test_vars() {
     case "$1" in
         ## The default chatbot app needs an external LLM API; test with hello:
         gradio) echo "GRADIO_APP=hello" ;;
+        ## Won't start without a sender domain (it can't deliver anyway, as
+        ## the default relayhost is a placeholder):
+        postfix-relay) echo "POSTFIX_RELAY_ALLOWED_SENDER_DOMAINS=${E2E_ROOT_DOMAIN}" ;;
     esac
 }
 
@@ -939,33 +942,54 @@ make -C ${app} install instance=default
 make -C ${app} wait TIMEOUT=${E2E_TIMEOUT} instance=default"
 }
 
+app_deps() {
+    ## app_deps <app> - print the apps that must be installed first (e.g.
+    ## whose external docker network the app joins):
+    case "$1" in
+        inspircd|backup-volume) echo "postfix-relay" ;;
+    esac
+}
+
+process_app() {
+    ## process_app <app> - install (or skip, if it already verifies) one
+    ## app, after its dependencies. Each app is handled once per run:
+    local app="$1" dep
+    [[ -n "${APPS_DONE[${app}]:-}" ]] && return 0
+    APPS_DONE[${app}]=1
+    for dep in $(app_deps "${app}"); do
+        process_app "${dep}"
+    done
+    banner "app: ${app}"
+    if [[ "${E2E_REINSTALL}" != "true" ]]; then
+        if probe_app "${app}"; then
+            if app_sourcerange_current "${app}"; then
+                echo "${app}: already verified (result ${PROBE_CODE}); skipping install (use --reinstall to force)."
+                return 0
+            fi
+            echo "${app}: verified, but its source range differs from ${APP_SOURCERANGE}; reinstalling."
+        else
+            echo "${app}: not verified (result ${PROBE_CODE}, cert: ${PROBE_ISSUER:-none}); installing."
+        fi
+    fi
+    if ensure_app_entrypoints "${app}" && install_app "${app}"; then
+        echo "${app}: installed and healthy."
+    else
+        FAILED_APPS+=("${app}")
+        echo "${app}: FAILED to install."
+        e2e_remote_sh "make -C ${app} status FORMAT=json; make -C ${app} logs-out 2>/dev/null | tail -n 50" || true
+        if [[ "${E2E_KEEP_GOING}" != "true" ]]; then
+            fault "App '${app}' failed (use --keep-going to continue past failures)."
+        fi
+    fi
+}
+
 phase_apps() {
     local app
+    declare -gA APPS_DONE=()
     APP_SOURCERANGE=$(app_source_range)
     echo "Apps are limited to source range: ${APP_SOURCERANGE}"
     for app in ${E2E_APPS//,/ }; do
-        banner "app: ${app}"
-        if [[ "${E2E_REINSTALL}" != "true" ]]; then
-            if probe_app "${app}"; then
-                if app_sourcerange_current "${app}"; then
-                    echo "${app}: already verified (result ${PROBE_CODE}); skipping install (use --reinstall to force)."
-                    continue
-                fi
-                echo "${app}: verified, but its source range differs from ${APP_SOURCERANGE}; reinstalling."
-            else
-                echo "${app}: not verified (result ${PROBE_CODE}, cert: ${PROBE_ISSUER:-none}); installing."
-            fi
-        fi
-        if ensure_app_entrypoints "${app}" && install_app "${app}"; then
-            echo "${app}: installed and healthy."
-        else
-            FAILED_APPS+=("${app}")
-            echo "${app}: FAILED to install."
-            e2e_remote_sh "make -C ${app} status FORMAT=json; make -C ${app} logs-out 2>/dev/null | tail -n 50" || true
-            if [[ "${E2E_KEEP_GOING}" != "true" ]]; then
-                fault "App '${app}' failed (use --keep-going to continue past failures)."
-            fi
-        fi
+        process_app "${app}"
     done
 }
 
@@ -985,6 +1009,8 @@ probe_target() {
         soju)     PROBE_KIND=irc; PROBE_PORT=6698 ;;
         ## iperf3 is plain TCP (no TLS) on its own entrypoint:
         iperf)    PROBE_KIND=iperf; PROBE_PORT=5201 ;;
+        ## Internal-only (no Traefik route): its containers must be healthy:
+        postfix-relay) PROBE_KIND=container ;;
         doh-server)
             ## A DNS query for example.com/A (RFC 8484 GET, base64url wire format):
             PROBE_PATH="dns-query?dns=q80BAAABAAAAAAAAB2V4YW1wbGUDY29tAAABAAE"
@@ -1025,6 +1051,17 @@ probe_app() {
         else
             PROBE_CODE=irc-fail
         fi
+    elif [[ "${PROBE_KIND}" == "container" ]]; then
+        PROBE_URL="container://${app}"
+        ## Every container of the project is running, and healthy if it has
+        ## a healthcheck (one-shot config containers excluded):
+        out=$(e2e_remote_sh "docker ps -a --filter label=com.docker.compose.project=${app} \
+--format '{{.Names}} {{.State}} {{.Status}}' | grep -v -- '-config-1 '" 2>/dev/null || true)
+        if [[ -n "${out}" ]] && ! grep -vqE ' running Up .*(\(healthy\)|[^)])$' <<< "${out}"; then
+            PROBE_CODE=container-ok
+        else
+            PROBE_CODE=container-fail
+        fi
     elif [[ "${PROBE_KIND}" == "iperf" ]]; then
         PROBE_URL="iperf3://${host}:${PROBE_PORT}"
         ## Send a 37-byte iperf3 cookie; the server answers PARAM_EXCHANGE (9):
@@ -1053,15 +1090,15 @@ printf "%-36s\0" e2eprobe >&3; IFS= read -r -t 5 -N 1 b <&3 || exit 1; printf "%
             PROBE_CODE="${PROBE_CODE}->${final}"
         fi
     fi
-    if [[ "${PROBE_KIND}" == "iperf" ]]; then
-        ## No TLS on iperf; vouch for the host with the HTTPS cert instead:
+    if [[ "${PROBE_KIND}" == "iperf" || "${PROBE_KIND}" == "container" ]]; then
+        ## No TLS of its own; vouch for the host with the HTTPS cert instead:
         info=$(tls_probe "${host}" || true)
     else
         info=$(tls_probe "${host}" "${PROBE_PORT}" || true)
     fi
     PROBE_ISSUER=$(grep -oP '^issuer=\K.*' <<< "${info}" | head -n 1 || true)
     PROBE_STATUS=FAIL
-    if [[ "${PROBE_CODE}" =~ ^(200|stun-ok|irc-ok|iperf-ok)$ ]] && grep -q "${E2E_ROOT_DOMAIN}" <<< "${info}"; then
+    if [[ "${PROBE_CODE}" =~ ^(200|stun-ok|irc-ok|iperf-ok|container-ok)$ ]] && grep -q "${E2E_ROOT_DOMAIN}" <<< "${info}"; then
         if [[ "${E2E_ACME_CA}" == *staging* ]]; then
             grep -qi "staging" <<< "${info}" && PROBE_STATUS=PASS
         else
