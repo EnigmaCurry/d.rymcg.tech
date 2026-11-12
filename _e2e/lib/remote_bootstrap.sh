@@ -78,6 +78,20 @@ else
             | ${SUDO} install -D -m 0644 /dev/stdin /etc/docker/daemon.json
         ${SUDO} systemctl restart docker
     fi
+
+    ## Droplets have no swap, and a full app suite outgrows RAM: once memory
+    ## runs out the host thrashes (ssh and HTTPS time out). Add a swap file
+    ## (2x RAM, at most 16G) if there is no swap yet:
+    if [ -z "$(${SUDO} /usr/sbin/swapon --show --noheadings)" ]; then
+        MEM_MB=$(awk '/^MemTotal:/ {print int($2/1024)}' /proc/meminfo)
+        SWAP_MB=$(( MEM_MB * 2 > 16384 ? 16384 : MEM_MB * 2 ))
+        echo "## [bootstrap] Adding a ${SWAP_MB}M swap file ..."
+        ${SUDO} fallocate -l "${SWAP_MB}M" /swapfile
+        ${SUDO} chmod 600 /swapfile
+        ${SUDO} /usr/sbin/mkswap /swapfile >/dev/null
+        ${SUDO} /usr/sbin/swapon /swapfile
+        grep -q '^/swapfile ' /etc/fstab || echo '/swapfile none swap sw 0 0' | ${SUDO} tee -a /etc/fstab >/dev/null
+    fi
 fi
 
 echo "## [bootstrap] Installing uv (if missing) ..."
