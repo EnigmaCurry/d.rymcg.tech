@@ -754,11 +754,14 @@ ACME_DNS_HOSTMASTER=hostmaster@${E2E_DOMAIN}"
     ## acme-dns fetches its own (production) Let's Encrypt certificate for the
     ## API port on first boot; this requires the NS delegation to be visible
     ## to Let's Encrypt, so allow for DNS propagation:
+    ## Pin the name to DROPLET_IP: the local resolver may still cache the
+    ## previous run's droplet IP (acme-dns serves its own A record, TTL 3600):
     echo "Waiting for the acme-dns API to serve a valid certificate on :2890 ..."
     deadline=$((SECONDS + E2E_CERT_TIMEOUT))
     local code
     while :; do
         code=$(curl -s -o /dev/null -w '%{http_code}' --max-time 10 \
+                    --resolve "acme-dns.${E2E_ROOT_DOMAIN}:2890:${DROPLET_IP}" \
                     "https://acme-dns.${E2E_ROOT_DOMAIN}:2890/health" || true)
         [[ -n "${code}" && "${code}" != "000" ]] && break
         (( SECONDS < deadline )) || {
@@ -958,7 +961,10 @@ probe_app() {
         PROBE_URL="https://${host}/${PROBE_PATH}"
         ## Follow redirects (many apps send / to /login or a subpath), but
         ## only count it if the final URL is still on the app's own host:
-        local curl_args=(-s -o /dev/null -w '%{http_code} %{url_effective}' --max-time 20 -L --max-redirs 5)
+        ## Pin the host to DROPLET_IP so a stale local DNS cache (from a
+        ## previous run's droplet) can't misdirect the probe:
+        local curl_args=(-s -o /dev/null -w '%{http_code} %{url_effective}' --max-time 20 -L --max-redirs 5
+                         --resolve "${host}:443:${DROPLET_IP}")
         ## Staging CA is not in the system trust store; production must validate:
         [[ "${E2E_ACME_CA}" == *staging* ]] && curl_args+=(-k)
         out=$(curl "${curl_args[@]}" "${PROBE_HEADERS[@]}" "${PROBE_URL}" || true)
