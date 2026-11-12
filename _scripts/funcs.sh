@@ -618,6 +618,11 @@ wait_until_healthy() {
     local max_attempts=$(( timeout_seconds / sleep_interval ))
     [[ $max_attempts -lt 1 ]] && max_attempts=1
     local attempts=0
+    ## Containers without a healthcheck count as healthy once they have stayed
+    ## running (same RestartCount) for this long; otherwise a crash-looping
+    ## container passes whenever it is caught between restarts:
+    local stable_seconds=${STABLE_SECONDS:-10}
+    local -A first_seen=() first_restarts=()
     while true; do
         attempts=$((attempts + 1))
         [[ ${#containers[@]} -eq 0 ]] && break
@@ -630,11 +635,20 @@ wait_until_healthy() {
         fi
         local inspect_json
         inspect_json=$(docker inspect "$random_container")
-        local name status health
+        local name status health restarts stable=false
         name=$(echo "$inspect_json" | jq -r '.[0].Name' | sed 's|^/||')
         status=$(echo "$inspect_json" | jq -r '.[0].State.Status')
         health=$(echo "$inspect_json" | jq -r '.[0].State.Health.Status')
-        if [[ "$status" == "running" ]] && { [[ "$health" == "healthy" ]] || [[ "$health" == "null" ]]; }; then
+        restarts=$(echo "$inspect_json" | jq -r '.[0].RestartCount')
+        if [[ "$status" == "running" ]] && [[ "$health" == "null" ]]; then
+            if [[ -z "${first_seen[$name]:-}" ]] || [[ "${first_restarts[$name]}" != "$restarts" ]]; then
+                first_seen[$name]=$SECONDS
+                first_restarts[$name]=$restarts
+            elif (( SECONDS - first_seen[$name] >= stable_seconds )); then
+                stable=true
+            fi
+        fi
+        if [[ "$status" == "running" ]] && { [[ "$health" == "healthy" ]] || [[ "$stable" == "true" ]]; }; then
             # remove from list safely
             local new=()
             local c
