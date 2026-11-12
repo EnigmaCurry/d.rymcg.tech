@@ -774,7 +774,7 @@ $(printf '%q' "TRAEFIK_ACME_CERT_DOMAINS=${cert_domains}")"
 install_app() {
     local app="$1"
     local host="${app}.${E2E_ROOT_DOMAIN}"
-    e2e_remote_sh "prefix=\$(grep -oP '^# PREFIX=\\K.*' ${app}/.env-dist)
+    e2e_remote_sh "prefix=\$(grep -oP '^# PREFIX=\\K.*' ${app}/.env-dist || true)
 test -n \"\${prefix}\" || { echo \"ERROR: no # PREFIX= META in ${app}/.env-dist\"; exit 1; }
 test -f ${app}/.env_${E2E_NAME}_default || make -C ${app} config-dist instance=default
 make -C ${app} reconfigure var=\${prefix}_TRAEFIK_HOST=${host} instance=default
