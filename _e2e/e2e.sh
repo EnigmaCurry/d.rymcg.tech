@@ -946,7 +946,7 @@ make -C ${app} wait TIMEOUT=${E2E_TIMEOUT} instance=default
 ## disk is getting full, so later apps still have room to build:
 if [ \"\$(df --output=pcent / | tail -n 1 | tr -dc 0-9)\" -ge 80 ]; then
   echo \"Disk is \$(df --output=pcent / | tail -n 1 | tr -d ' ') full; pruning unused build cache ...\"
-  docker builder prune -f | tail -n 1
+  docker builder prune -af | tail -n 1
 fi"
 }
 
