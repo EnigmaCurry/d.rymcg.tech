@@ -787,6 +787,10 @@ test -f ${app}/.env_${E2E_NAME}_default || make -C ${app} config-dist instance=d
 { grep -oP 'reconfigure_password \\S+ \\K[A-Z0-9_]+( [0-9]+)?' ${app}/Makefile || true; } | sort -u | \\
   while read -r var len; do _scripts/reconfigure_password ${app}/.env_${E2E_NAME}_default \${var} \${len}; done
 make -C ${app} reconfigure var=\${prefix}_TRAEFIK_HOST=${host} instance=default
+## Apps doing their own ACME (TLS passthrough, e.g. caddy) use the test's CA:
+if grep -q \"^\${prefix}_ACME_CA=\" ${app}/.env-dist; then
+  make -C ${app} reconfigure var=\${prefix}_ACME_CA=${E2E_ACME_CA} instance=default
+fi
 make -C ${app} override instance=default
 make -C ${app} install instance=default
 make -C ${app} wait TIMEOUT=${E2E_TIMEOUT} instance=default"
@@ -796,9 +800,12 @@ phase_apps() {
     local app
     for app in ${E2E_APPS//,/ }; do
         banner "app: ${app}"
-        if [[ "${E2E_REINSTALL}" != "true" ]] && probe_app "${app}"; then
-            echo "${app}: already verified (HTTP ${PROBE_CODE}); skipping install (use --reinstall to force)."
-            continue
+        if [[ "${E2E_REINSTALL}" != "true" ]]; then
+            if probe_app "${app}"; then
+                echo "${app}: already verified (HTTP ${PROBE_CODE}); skipping install (use --reinstall to force)."
+                continue
+            fi
+            echo "${app}: not verified (HTTP ${PROBE_CODE}, cert: ${PROBE_ISSUER:-none}); installing."
         fi
         if install_app "${app}"; then
             echo "${app}: installed and healthy."
