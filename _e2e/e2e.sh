@@ -484,8 +484,9 @@ e2e_dns_record() {
 }
 
 tls_probe() {
-    ## Print the certificate subject+issuer served for hostname $1:
-    echo | timeout 15 openssl s_client -connect "${DROPLET_IP}:443" \
+    ## tls_probe <hostname> [port] - print the certificate subject+issuer
+    ## served for <hostname> (port defaults to 443):
+    echo | timeout 15 openssl s_client -connect "${DROPLET_IP}:${2:-443}" \
                  -servername "$1" 2>/dev/null \
         | openssl x509 -noout -subject -issuer 2>/dev/null
 }
@@ -863,6 +864,43 @@ test -n \"\${prefix}\" && test -f ${app}/.env_${E2E_NAME}_default || exit 1
 $(sourcerange_snippet "${app}" check)" >/dev/null 2>&1
 }
 
+app_entrypoints() {
+    ## app_entrypoints <app> - print "NAME PORT PROTO" for each extra Traefik
+    ## entrypoint (TRAEFIK_<NAME>_ENTRYPOINT_ENABLED) an app's routes use:
+    case "$1" in
+        inspircd) echo "IRC 6697 tcp" ;;
+        soju)     echo "IRC_BOUNCER 6698 tcp" ;;
+        iperf)    echo "IPERF_TCP 5201 tcp"; echo "IPERF_UDP 5201 udp" ;;
+        peertube) echo "RTMP 1935 tcp" ;;
+    esac
+}
+
+ensure_app_entrypoints() {
+    ## ensure_app_entrypoints <app> - enable the Traefik entrypoints the app
+    ## needs and open their ports in the droplet firewall:
+    local app="$1" name port proto rules enabled restart=false
+    local traefik_env="traefik/.env_${E2E_NAME}_default"
+    while read -r name port proto; do
+        [[ -z "${name}" ]] && continue
+        rules=$(doctl compute firewall get "${FIREWALL_ID}" --format InboundRules --no-header)
+        if ! grep -q "protocol:${proto},ports:${port}," <<< "${rules}"; then
+            echo "Opening firewall ${proto}/${port} for ${app} ..."
+            doctl compute firewall add-rules "${FIREWALL_ID}" \
+                  --inbound-rules "protocol:${proto},ports:${port},address:0.0.0.0/0,address:::/0"
+        fi
+        enabled=$(e2e_remote_sh "_scripts/dotenv -f ${traefik_env} get TRAEFIK_${name}_ENTRYPOINT_ENABLED")
+        if [[ "${enabled}" != "true" ]]; then
+            echo "Enabling Traefik entrypoint ${name} (${proto}/${port}) for ${app} ..."
+            e2e_make traefik reconfigure "var=TRAEFIK_${name}_ENTRYPOINT_ENABLED=true"
+            restart=true
+        fi
+    done < <(app_entrypoints "${app}")
+    if [[ "${restart}" == "true" ]]; then
+        e2e_make traefik install
+        e2e_make traefik wait "TIMEOUT=${E2E_TIMEOUT}"
+    fi
+}
+
 app_test_vars() {
     ## app_test_vars <app> - print extra VAR=value settings (one per line)
     ## that an app needs to start without outside services:
@@ -918,7 +956,7 @@ phase_apps() {
                 echo "${app}: not verified (result ${PROBE_CODE}, cert: ${PROBE_ISSUER:-none}); installing."
             fi
         fi
-        if install_app "${app}"; then
+        if ensure_app_entrypoints "${app}" && install_app "${app}"; then
             echo "${app}: installed and healthy."
         else
             FAILED_APPS+=("${app}")
@@ -939,8 +977,14 @@ probe_target() {
     PROBE_KIND=http
     PROBE_PATH=""
     PROBE_HEADERS=()
+    PROBE_PORT=443
     case "$1" in
         coturn) PROBE_KIND=stun ;;
+        ## IRC over TLS on their own Traefik entrypoints:
+        inspircd) PROBE_KIND=irc; PROBE_PORT=6697 ;;
+        soju)     PROBE_KIND=irc; PROBE_PORT=6698 ;;
+        ## iperf3 is plain TCP (no TLS) on its own entrypoint:
+        iperf)    PROBE_KIND=iperf; PROBE_PORT=5201 ;;
         doh-server)
             ## A DNS query for example.com/A (RFC 8484 GET, base64url wire format):
             PROBE_PATH="dns-query?dns=q80BAAABAAAAAAAAB2V4YW1wbGUDY29tAAABAAE"
@@ -970,6 +1014,28 @@ probe_app() {
         else
             PROBE_CODE=stun-fail
         fi
+    elif [[ "${PROBE_KIND}" == "irc" ]]; then
+        PROBE_URL="ircs://${host}:${PROBE_PORT}"
+        ## Register and expect any server reply line (":server CMD ..."):
+        out=$( (printf 'NICK e2eprobe\r\nUSER e2e 0 * :e2e\r\n'; sleep 8; printf 'QUIT\r\n'; sleep 1) \
+                   | timeout 15 openssl s_client -quiet -connect "${DROPLET_IP}:${PROBE_PORT}" \
+                         -servername "${host}" 2>/dev/null || true)
+        if grep -qE '^:[^ ]+ [A-Z0-9]+ ' <<< "${out}"; then
+            PROBE_CODE=irc-ok
+        else
+            PROBE_CODE=irc-fail
+        fi
+    elif [[ "${PROBE_KIND}" == "iperf" ]]; then
+        PROBE_URL="iperf3://${host}:${PROBE_PORT}"
+        ## Send a 37-byte iperf3 cookie; the server answers PARAM_EXCHANGE (9):
+        out=$(timeout 10 bash -c 'exec 3<>/dev/tcp/$1/$2 || exit 1
+printf "%-36s\0" e2eprobe >&3; IFS= read -r -t 5 -N 1 b <&3 || exit 1; printf "%d" "'"'"'$b"' \
+                  _ "${DROPLET_IP}" "${PROBE_PORT}" 2>/dev/null || true)
+        if [[ "${out}" == "9" ]]; then
+            PROBE_CODE=iperf-ok
+        else
+            PROBE_CODE=iperf-fail
+        fi
     else
         PROBE_URL="https://${host}/${PROBE_PATH}"
         ## Follow redirects (many apps send / to /login or a subpath), but
@@ -987,10 +1053,15 @@ probe_app() {
             PROBE_CODE="${PROBE_CODE}->${final}"
         fi
     fi
-    info=$(tls_probe "${host}" || true)
+    if [[ "${PROBE_KIND}" == "iperf" ]]; then
+        ## No TLS on iperf; vouch for the host with the HTTPS cert instead:
+        info=$(tls_probe "${host}" || true)
+    else
+        info=$(tls_probe "${host}" "${PROBE_PORT}" || true)
+    fi
     PROBE_ISSUER=$(grep -oP '^issuer=\K.*' <<< "${info}" | head -n 1 || true)
     PROBE_STATUS=FAIL
-    if [[ "${PROBE_CODE}" == "200" || "${PROBE_CODE}" == "stun-ok" ]] && grep -q "${E2E_ROOT_DOMAIN}" <<< "${info}"; then
+    if [[ "${PROBE_CODE}" =~ ^(200|stun-ok|irc-ok|iperf-ok)$ ]] && grep -q "${E2E_ROOT_DOMAIN}" <<< "${info}"; then
         if [[ "${E2E_ACME_CA}" == *staging* ]]; then
             grep -qi "staging" <<< "${info}" && PROBE_STATUS=PASS
         else
