@@ -779,6 +779,10 @@ install_app() {
     e2e_remote_sh "prefix=\$(grep -oP '^# PREFIX=\\K.*' ${app}/.env-dist || true)
 test -n \"\${prefix}\" || { echo \"ERROR: no # PREFIX= META in ${app}/.env-dist\"; exit 1; }
 test -f ${app}/.env_${E2E_NAME}_default || make -C ${app} config-dist instance=default
+## config-dist skips the interactive config-hook, so generate the secrets
+## it would have made (reconfigure_password only fills blank values):
+grep -oP 'reconfigure_password \\S+ \\K[A-Z0-9_]+( [0-9]+)?' ${app}/Makefile | sort -u | \\
+  while read -r var len; do _scripts/reconfigure_password ${app}/.env_${E2E_NAME}_default \${var} \${len}; done
 make -C ${app} reconfigure var=\${prefix}_TRAEFIK_HOST=${host} instance=default
 make -C ${app} override instance=default
 make -C ${app} install instance=default
