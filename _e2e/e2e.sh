@@ -817,11 +817,18 @@ probe_app() {
     local app="$1"
     local host="${app}.${E2E_ROOT_DOMAIN}"
     PROBE_URL="https://${host}/"
-    local curl_args=(-s -o /dev/null -w '%{http_code}' --max-time 20)
+    ## Follow redirects (many apps send / to /login or a subpath), but only
+    ## count it if the final URL is still on the app's own host:
+    local curl_args=(-s -o /dev/null -w '%{http_code} %{url_effective}' --max-time 20 -L --max-redirs 5)
     ## Staging CA is not in the system trust store; production must validate:
     [[ "${E2E_ACME_CA}" == *staging* ]] && curl_args+=(-k)
-    local info
-    PROBE_CODE=$(curl "${curl_args[@]}" "${PROBE_URL}" || true)
+    local info out final
+    out=$(curl "${curl_args[@]}" "${PROBE_URL}" || true)
+    PROBE_CODE="${out%% *}"
+    final="${out#* }"
+    if [[ "${final}" != "https://${host}/"* ]]; then
+        PROBE_CODE="${PROBE_CODE}->${final}"
+    fi
     info=$(tls_probe "${host}" || true)
     PROBE_ISSUER=$(grep -oP '^issuer=\K.*' <<< "${info}" | head -n 1 || true)
     PROBE_STATUS=FAIL
