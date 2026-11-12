@@ -66,6 +66,18 @@ else
         curl -sSL https://get.docker.com | ${SUDO} sh
     fi
     ${SUDO} systemctl enable --now docker
+
+    ## Docker's default address pools only hold ~30 networks, and each app
+    ## gets its own; carve 172.16.0.0/12 into /24s instead (4096 networks).
+    ## Merge into any existing daemon.json; restart only on change:
+    POOLS='[{"base":"172.16.0.0/12","size":24}]'
+    CURRENT=$(${SUDO} cat /etc/docker/daemon.json 2>/dev/null || echo '{}')
+    if [ "$(echo "${CURRENT}" | jq -c '."default-address-pools"')" != "${POOLS}" ]; then
+        echo "## [bootstrap] Setting Docker default-address-pools to ${POOLS} ..."
+        echo "${CURRENT}" | jq --argjson p "${POOLS}" '."default-address-pools" = $p' \
+            | ${SUDO} install -D -m 0644 /dev/stdin /etc/docker/daemon.json
+        ${SUDO} systemctl restart docker
+    fi
 fi
 
 echo "## [bootstrap] Installing uv (if missing) ..."
