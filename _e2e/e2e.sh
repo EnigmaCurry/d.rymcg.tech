@@ -910,6 +910,8 @@ app_test_vars() {
         ## Won't start without a sender domain (it can't deliver anyway, as
         ## the default relayhost is a placeholder):
         postfix-relay) echo "POSTFIX_RELAY_ALLOWED_SENDER_DOMAINS=${E2E_ROOT_DOMAIN}" ;;
+        ## The droplet has no GPU; the default (cuda) can't start:
+        invokeai) echo "INVOKEAI_DOCKER_COMPOSE_PROFILES=cpu"; echo "INVOKEAI_GPU_DRIVER=cpu" ;;
     esac
 }
 
@@ -939,7 +941,13 @@ if grep -q \"^\${prefix}_PUBLIC_IP_ADDRESS=\" ${app}/.env-dist; then
 fi
 ${test_vars}make -C ${app} override instance=default
 make -C ${app} install instance=default
-make -C ${app} wait TIMEOUT=${E2E_TIMEOUT} instance=default"
+make -C ${app} wait TIMEOUT=${E2E_TIMEOUT} instance=default
+## Image builds leave a lot of cache behind; drop the unused part once the
+## disk is getting full, so later apps still have room to build:
+if [ \"\$(df --output=pcent / | tail -n 1 | tr -dc 0-9)\" -ge 80 ]; then
+  echo \"Disk is \$(df --output=pcent / | tail -n 1 | tr -d ' ') full; pruning unused build cache ...\"
+  docker builder prune -f | tail -n 1
+fi"
 }
 
 app_deps() {
