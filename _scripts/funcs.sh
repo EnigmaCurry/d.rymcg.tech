@@ -623,6 +623,13 @@ wait_until_healthy() {
     ## container passes whenever it is caught between restarts:
     local stable_seconds=${STABLE_SECONDS:-10}
     local -A first_seen=() first_restarts=()
+    ## Fail fast on a crash loop rather than waiting out the timeout: give up
+    ## once a container restarts this many times while we wait:
+    local restart_limit=${RESTART_LIMIT:-3}
+    local -A base_restarts=()
+    for cid in "${containers[@]}"; do
+        base_restarts[$cid]=$(docker inspect -f '{{.RestartCount}}' "$cid" 2>/dev/null || echo 0)
+    done
     while true; do
         attempts=$((attempts + 1))
         [[ ${#containers[@]} -eq 0 ]] && break
@@ -640,6 +647,19 @@ wait_until_healthy() {
         status=$(echo "$inspect_json" | jq -r '.[0].State.Status')
         health=$(echo "$inspect_json" | jq -r '.[0].State.Health.Status')
         restarts=$(echo "$inspect_json" | jq -r '.[0].RestartCount')
+        if (( restarts - ${base_restarts[$name]:-0} >= restart_limit )); then
+            echo "Error: container '$name' is crash-looping ($(( restarts - ${base_restarts[$name]:-0} )) restarts while waiting). Last log lines:"
+            docker logs --tail 30 "$name" 2>&1 | sed 's/^/    /'
+            return 1
+        fi
+        ## A stopped container that docker won't restart will never come up:
+        local policy
+        policy=$(echo "$inspect_json" | jq -r '.[0].HostConfig.RestartPolicy.Name')
+        if [[ "$status" == "exited" || "$status" == "dead" ]] && [[ "$policy" == "no" || -z "$policy" ]]; then
+            echo "Error: container '$name' $status (exit code $(echo "$inspect_json" | jq -r '.[0].State.ExitCode')) and has no restart policy. Last log lines:"
+            docker logs --tail 30 "$name" 2>&1 | sed 's/^/    /'
+            return 1
+        fi
         if [[ "$status" == "running" ]] && [[ "$health" == "null" ]]; then
             if [[ -z "${first_seen[$name]:-}" ]] || [[ "${first_restarts[$name]}" != "$restarts" ]]; then
                 first_seen[$name]=$SECONDS
