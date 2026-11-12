@@ -957,6 +957,7 @@ app_skip_reason() {
     case "$1" in
         vllm) echo "needs an Nvidia or AMD GPU (no CPU profile)" ;;
         minio) echo "MinIO no longer publishes container images" ;;
+        mosquitto) echo "needs a step-ca server and provisioner token for its TLS certs" ;;
     esac
 }
 
@@ -1035,6 +1036,8 @@ probe_target() {
         iperf)    PROBE_KIND=iperf; PROBE_PORT=5201 ;;
         ## Internal-only (no Traefik route): its containers must be healthy:
         postfix-relay) PROBE_KIND=container ;;
+        ## maubot serves nothing at /; its management UI:
+        maubot) PROBE_PATH="_matrix/maubot/" ;;
         doh-server)
             ## A DNS query for example.com/A (RFC 8484 GET, base64url wire format):
             PROBE_PATH="dns-query?dns=q80BAAABAAAAAAAAB2V4YW1wbGUDY29tAAABAAE"
