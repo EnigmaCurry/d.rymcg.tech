@@ -1,4 +1,3 @@
 requests
-gradio==4.44.1
-huggingface_hub<1.0
+gradio==6.16.0
 markdown

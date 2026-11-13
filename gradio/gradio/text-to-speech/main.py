@@ -6,18 +6,18 @@ def start_speech(text):
 
 # Define the JavaScript function directly in the js argument
 js = """
-function speakText(text) {
+(text) => {
     if (!text || text.trim() === '') {
         console.log("No text provided.");
-        return;
+        return [text];
     }
 
     const synth = window.speechSynthesis;
     const utterance = new SpeechSynthesisUtterance(text);
 
     function updateText() {
-        // Find the div with id "component-2" and update its textarea
-        const component = document.querySelector('#component-2 textarea');
+        // Update the output textarea with the spoken text
+        const component = document.querySelector('#spoken textarea');
         if (component) {
             component.value = text;  // Update the textarea with the spoken text
         } else {
@@ -36,12 +36,13 @@ function speakText(text) {
     };
 
     synth.speak(utterance);
+    return [text];
 }
 """
 
 with gr.Blocks() as interface:
     inp = gr.Textbox(placeholder="Enter text to speak", show_label=False)
-    out = gr.Textbox(show_label=False)
+    out = gr.Textbox(show_label=False, elem_id="spoken")
     btn = gr.Button("Speak")
     
     # Trigger when the button is clicked
