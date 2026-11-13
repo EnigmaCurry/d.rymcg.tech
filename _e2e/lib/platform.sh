@@ -287,9 +287,17 @@ step_ca_token_snippet() {
     local app="$1" prefix="$2" host="$3"
     cat <<EOF
 $(platform_remote_prelude)
-if docker run --rm -v ${app}_certs:/c alpine test -f /c/${host}.key 2>/dev/null; then
+## (Check without creating the volume: compose should create it.)
+if docker volume inspect ${app}_certs >/dev/null 2>&1 && \
+   docker run --rm -v ${app}_certs:/c alpine test -f /c/${host}.key 2>/dev/null; then
   echo "${app}: certificate already issued; no new step-ca token needed."
 else
+  ## The app's step-cli redeems the token once, with no retry: make sure
+  ## step-ca answers on its public URL (through Traefik) first:
+  for i in \$(seq 1 30); do
+    curl -sfk -o /dev/null --max-time 5 https://step-ca.${E2E_ROOT_DOMAIN}/health && break
+    echo "Waiting for https://step-ca.${E2E_ROOT_DOMAIN}/health ..."; sleep 2
+  done
   echo "${app}: minting a one-time step-ca token for ${host} ..."
   stepca_pw
   ## The token's audience is the CA URL it is minted for, and the app's
