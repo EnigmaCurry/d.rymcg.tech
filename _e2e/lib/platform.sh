@@ -292,7 +292,10 @@ if docker run --rm -v ${app}_certs:/c alpine test -f /c/${host}.key 2>/dev/null;
 else
   echo "${app}: minting a one-time step-ca token for ${host} ..."
   stepca_pw
-  token=\$(stepca step ca token ${host} --provisioner admin --password-file \${STEP_PW} \${STEP_ARGS})
+  ## The token's audience is the CA URL it is minted for, and the app's
+  ## step-cli redeems it there, so use the public URL (not localhost):
+  token=\$(stepca step ca token ${host} --provisioner admin --password-file \${STEP_PW} \
+    --ca-url https://step-ca.${E2E_ROOT_DOMAIN} --root /home/step/certs/root_ca.crt)
   _scripts/reconfigure ${app}/.env_${E2E_NAME}_default ${prefix}_STEP_CA_TOKEN="\${token}" >/dev/null
 fi
 EOF
