@@ -15,6 +15,16 @@ services:
     # Frontend
     web:
         image: jitsi/web:${JITSI_WEB_IMAGE_TAG}
+        ## All four jitsi images run s6, which restarts a crashed service
+        ## inside the container in about a second. Probe the service, and
+        ## require s6 to report it up for 10 seconds so a crash loop never
+        ## passes:
+        healthcheck:
+            test: ["CMD-SHELL", "d=/run/service; [ -d $$d ] || d=/var/run/s6/services; curl -fsS -o /dev/null http://127.0.0.1:80/ && s6-svstat -o up,updownfor $$d/nginx | awk '$$1 == \"true\" && $$2 >= 10 {ok = 1} END {exit !ok}'"]
+            interval: 10s
+            timeout: 5s
+            retries: 3
+            start_period: 60s
         restart: ${RESTART_POLICY}
         volumes:
             - web_config:/config:Z
@@ -201,6 +211,12 @@ services:
     # XMPP server
     prosody:
         image: jitsi/prosody:${JITSI_PROSODY_IMAGE_TAG}
+        healthcheck:
+            test: ["CMD-SHELL", "d=/run/service; [ -d $$d ] || d=/var/run/s6/services; curl -fsS -o /dev/null http://127.0.0.1:5280/http-bind && s6-svstat -o up,updownfor $$d/50-prosody | awk '$$1 == \"true\" && $$2 >= 10 {ok = 1} END {exit !ok}'"]
+            interval: 10s
+            timeout: 5s
+            retries: 3
+            start_period: 60s
         restart: ${RESTART_POLICY}
         expose:
             - '5222'
@@ -350,6 +366,14 @@ services:
     # Focus component
     jicofo:
         image: jitsi/jicofo:${JITSI_JICOFO_IMAGE_TAG}
+        ## /about/health is opt-in (JICOFO_ENABLE_HEALTH_CHECKS), so probe
+        ## /about/version, which jicofo always serves while it runs:
+        healthcheck:
+            test: ["CMD-SHELL", "d=/run/service; [ -d $$d ] || d=/var/run/s6/services; curl -fsS -o /dev/null http://127.0.0.1:8888/about/version && s6-svstat -o up,updownfor $$d/jicofo | awk '$$1 == \"true\" && $$2 >= 10 {ok = 1} END {exit !ok}'"]
+            interval: 10s
+            timeout: 5s
+            retries: 3
+            start_period: 60s
         restart: ${RESTART_POLICY}
         volumes:
             - jicofo:/config:Z
@@ -439,6 +463,12 @@ services:
     # Video bridge
     jvb:
         image: jitsi/jvb:${JITSI_JVB_IMAGE_TAG}
+        healthcheck:
+            test: ["CMD-SHELL", "d=/run/service; [ -d $$d ] || d=/var/run/s6/services; curl -fsS -o /dev/null http://127.0.0.1:8080/about/health && s6-svstat -o up,updownfor $$d/jvb | awk '$$1 == \"true\" && $$2 >= 10 {ok = 1} END {exit !ok}'"]
+            interval: 10s
+            timeout: 5s
+            retries: 3
+            start_period: 60s
         restart: ${RESTART_POLICY}
         ports:
             - '${JVB_PORT}:${JVB_PORT}/udp'

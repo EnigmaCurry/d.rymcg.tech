@@ -25,6 +25,12 @@ services:
       - TZ=Etc/UTC
       #- DOCKER_MODS=linuxserver/mods:universal-calibre #optional
       #- OAUTHLIB_RELAX_TOKEN_SCOPE=1 #optional
+    healthcheck:
+      test: ["CMD", "curl", "-fsS", "-o", "/dev/null", "http://127.0.0.1:8083/"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+      start_period: 60s
     volumes:
       - config:/config
       - library:/books

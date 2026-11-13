@@ -9,5 +9,11 @@ services:
     read_only: true
     volumes:
       - data:/srv/data
+    healthcheck:
+      test: ["CMD", "wget", "-q", "--spider", "http://127.0.0.1:8080/"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+      start_period: 60s
     # Labels are defined in docker-compose.instance.yaml
     labels: []
