@@ -120,7 +120,16 @@ solved by any single component in this chain.
 
 If you are using a self-hosted certificate authority like
 [step-ca](../step-ca), configure the oauth2-proxy container to trust your
-root CA certificate. Set these in your `.env_{CONTEXT}` file:
+root CA certificate.
+
+`make config` does this for you: it copies `ENABLED`, `ENDPOINT` and
+`FINGERPRINT` from the Traefik config (`TRAEFIK_STEP_CA_*`) of the same
+Docker context. If Traefik doesn't use Step-CA, the trust is turned off.
+`ZERO_CERTS` is not copied: oauth2-proxy usually still needs the public
+CAs to reach your OIDC provider. Run `make install` afterwards to rebuild
+the image with the new trust store.
+
+The settings, in your `.env_{CONTEXT}` file:
 
 ```
 OAUTH2_PROXY_STEP_CA_ENABLED=true

@@ -35,6 +35,24 @@ chown "$TRAEFIK_UID:$TRAEFIK_GID" /data
 : "${STEP_CA_ENABLED:=false}"
 export STEPPATH=/certs/step
 STEP_CA_FINGERPRINT_FILE=/data/.step_ca_fingerprint
+## Set when the bootstrap must be retried after Traefik starts:
+STEP_CA_PENDING=false
+
+step_ca_bootstrap() {
+    ## Fetch the root (verified by fingerprint) and derive the intermediate.
+    ## Writes nothing permanent unless every step succeeds:
+    step ca bootstrap --ca-url "${STEP_CA_ENDPOINT}" --install --force --fingerprint "${STEP_CA_FINGERPRINT}" || return 1
+    step ca roots > /certs/step_ca_root.crt.tmp || return 1
+    step certificate inspect "${STEP_CA_ENDPOINT}" --roots /certs/step_ca_root.crt.tmp --format pem --bundle \
+      | awk 'BEGIN{b=0} /-----BEGIN CERTIFICATE-----/{b++} b==2{print} /-----END CERTIFICATE-----/{if(b==2) exit}' \
+      > /certs/step_ca_intermediate.crt.tmp
+    openssl x509 -in /certs/step_ca_intermediate.crt.tmp -noout -text | grep -q "CA:TRUE" || return 1
+    mv -f /certs/step_ca_root.crt.tmp /certs/step_ca_root.crt
+    mv -f /certs/step_ca_intermediate.crt.tmp /certs/step_ca_intermediate.crt
+    chmod 0444 /certs/step_ca_root.crt /certs/step_ca_intermediate.crt
+    printf '%s' "$STEP_CA_FINGERPRINT" > "$STEP_CA_FINGERPRINT_FILE"
+}
+
 if [ "${STEP_CA_ENABLED}" = "true" ]; then
     CACHED_FP=""
     if [ -f "$STEP_CA_FINGERPRINT_FILE" ]; then
@@ -42,17 +60,23 @@ if [ "${STEP_CA_ENABLED}" = "true" ]; then
     fi
     if [ "$CACHED_FP" != "$STEP_CA_FINGERPRINT" ]; then
         log "Bootstrapping Step-CA from ${STEP_CA_ENDPOINT} ..."
-        step ca bootstrap --ca-url "${STEP_CA_ENDPOINT}" --install --force --fingerprint "${STEP_CA_FINGERPRINT}"
-        step ca roots > /certs/step_ca_root.crt && chmod 0444 /certs/step_ca_root.crt
-        step certificate inspect "${STEP_CA_ENDPOINT}" --roots "/certs/step_ca_root.crt" --format pem --bundle \
-          | awk 'BEGIN{b=0} /-----BEGIN CERTIFICATE-----/{b++} b==2{print} /-----END CERTIFICATE-----/{if(b==2) exit}' \
-          > /certs/step_ca_intermediate.crt
-        chmod 0444 /certs/step_ca_intermediate.crt
-        openssl x509 -in /certs/step_ca_intermediate.crt -noout -text | grep -q "CA:TRUE"
-        printf '%s' "$STEP_CA_FINGERPRINT" > "$STEP_CA_FINGERPRINT_FILE"
-        log "Step-CA bootstrap complete."
+        if step_ca_bootstrap; then
+            log "Step-CA bootstrap complete."
+        else
+            ## Step-CA may be served by this very Traefik (the usual single
+            ## server setup), so it can't answer until Traefik is up. Don't
+            ## fail startup: retry in the background, then restart (below):
+            log "Step-CA is not reachable yet at ${STEP_CA_ENDPOINT}; starting Traefik without it and retrying in the background."
+            log "(mTLS routes won't accept clients until the bootstrap succeeds.)"
+            STEP_CA_PENDING=true
+        fi
     else
         log "Step-CA already bootstrapped (fingerprint unchanged)."
+        ## The system trust store lives in the container, so a recreated
+        ## container needs the (saved) root installed again:
+        if [ -f /certs/step_ca_root.crt ]; then
+            step certificate install /certs/step_ca_root.crt >/dev/null 2>&1 || true
+        fi
     fi
 fi
 
@@ -119,6 +143,21 @@ done
 
 # --- Launch background watcher and Traefik as the traefik user ---
 watch_restart_flag &
+
+## A pending Step-CA bootstrap retries until Step-CA answers (e.g. through
+## this Traefik), then raises the restart flag: the restarted container
+## finds the fingerprint cached and starts with the CA loaded:
+if [ "${STEP_CA_PENDING}" = "true" ]; then
+    (
+        while sleep 10; do
+            if step_ca_bootstrap >/dev/null 2>&1; then
+                log "Step-CA bootstrap complete; restarting Traefik to load it."
+                touch "$RESTART_FLAG"
+                exit 0
+            fi
+        done
+    ) &
+fi
 
 sleep 2
 exec su-exec "$TRAEFIK_USER" "$@"
