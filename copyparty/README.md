@@ -49,30 +49,30 @@ By default, copyparty has a single docker named volume mounted at
 To do so, edit `COPYPARTY_VOL_EXTERNAL`, for example:
 
  * `COPYPARTY_VOL_EXTERNAL=ryan-music:/storage/music,bob-pics:/var/media/bob/pics`
-   * This is a comma separated list of colon delimted tuples: `mount_name:volume_or_dir`
+   * This is a comma separated list of colon delimited tuples: `mount_name:host_path`
    * `mount_name` is the container directory under `/mnt` where the
-     volume will will be mounted (e.g. `ryan-music` is mounted at
-     `/mnt/ryan-music`)
-   * `volume_or_dir` If the first character is `/`, then this is the
-     Docker host directory that will become mounted into the container
-     path. (e.g., `/storage/music`, make sure to give the directory
-     liberal permissions so that the volume is writable by the
-     copyparty user.) If the first character is *not* `/`, then this
-     should be name of a Docker volume.
+     volume will be mounted (e.g. `ryan-music` is mounted at
+     `/mnt/ryan-music`), and the copyparty volume URL (`/ryan-music`).
+   * `host_path` is the absolute path (starting with `/`) of a
+     directory on the Docker host, which is bind-mounted into the
+     container (e.g., `/storage/music`). Make sure the directory is
+     writable by the copyparty user (`COPYPARTY_UID`). Docker named
+     volumes are not supported here, and the path cannot contain
+     commas, colons, or spaces.
 
 To set the volume permissions, edit `COPYPARTY_VOL_PERMISSIONS`:
 
  * `COPYPARTY_VOL_PERMISSIONS=ryan-music:rw:ryan/erin,bob-pics:rw:bob,bob-pics:r:ryan`
-   * This is a comma separated list of colon delimeted tuples:
+   * This is a comma separated list of colon delimited tuples:
      `mount_name:permission:user_list`. 
-   * `mount_name` is the directory under `/mnt` where the volume will
+   * `mount_name` is the directory under `/mnt` where the volume
      will be mounted (e.g. `ryan-music` is mounted at
      `/mnt/ryan-music`).
    * `permission` is the copyparty permission label (e.g., `r` for
      read-only, `w` for write-only, `rw` for read+write, `m` for
      modify, `d` for delete, `a` for admin, `rwmda` for
      read+write+modify+delete+admin)
-   * `user_list` is a sub-list of users delimitted by `/` (forward
+   * `user_list` is a sub-list of users delimited by `/` (forward
      slash) that inherit the permission.
 
 To do anything else, guests must authenticate with a password.
