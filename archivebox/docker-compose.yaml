@@ -19,6 +19,15 @@ services:
     volumes:
       - data:/data
     restart: unless-stopped
+    ## archivebox server runs supervisord, which restarts a crashed web
+    ## server, crawl runner or sonic inside the container, so probe the web
+    ## server and require supervisord to report each one RUNNING for 10s:
+    healthcheck:
+      test: ["CMD-SHELL", "curl -fsS -o /dev/null http://127.0.0.1:5797/health/ && supervisorctl -c /tmp/archivebox/supervisord.conf status worker_daphne worker_runner worker_sonic | awk '{n++} $$2 != \"RUNNING\" {bad = 1} $$NF ~ /^[0-9]+:[0-9]+:[0-9]+$$/ && $$0 !~ /day/ {split($$NF, t, \":\"); if (t[1] * 3600 + t[2] * 60 + t[3] < 10) bad = 1} END {exit bad || n != 3}'"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+      start_period: 120s
     labels: []
 
   public-api-gateway:

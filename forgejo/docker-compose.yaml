@@ -26,6 +26,9 @@ services:
       - FORGEJO__service__NO_REPLY_ADDRESS
       - FORGEJO__session__SESSION_LIFE_TIME
       - FORGEJO__security__LOGIN_REMEMBER_DAYS
+      ## The web install wizard is always locked; `make install` creates the
+      ## admin account from the CLI instead (see README):
+      - FORGEJO__security__INSTALL_LOCK=true
       - FORGEJO__mailer__ENABLED
       - FORGEJO__mailer__FROM
       - FORGEJO__mailer__PROTOCOL

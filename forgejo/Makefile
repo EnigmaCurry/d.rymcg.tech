@@ -12,6 +12,7 @@ config-hook:
 	@${BIN}/reconfigure ${ENV_FILE} FORGEJO_INSTANCE=$${instance:-default}
 	@${BIN}/reconfigure_ask ${ENV_FILE} APP_NAME "Enter the service description" "$${instance:-default} - git hosting"
 	@PUBLIC_HTTPS_PORT="$$(${BIN}/dotenv -f ${ROOT_DIR}/${ROOT_ENV} get PUBLIC_HTTPS_PORT)"; test -n "$${PUBLIC_HTTPS_PORT}" && ${BIN}/reconfigure ${ENV_FILE} "FORGEJO__server__ROOT_URL=https://$$(${BIN}/dotenv -f ${ENV_FILE} get FORGEJO_TRAEFIK_HOST):$${PUBLIC_HTTPS_PORT}" || ${BIN}/reconfigure ${ENV_FILE} "FORGEJO__server__ROOT_URL=https://$$(${BIN}/dotenv -f ${ENV_FILE} get FORGEJO_TRAEFIK_HOST)"
+	@${BIN}/reconfigure_ask ${ENV_FILE} FORGEJO_ADMIN_USER "Enter the admin username to create on first install" root
 	@${BIN}/reconfigure_auth ${ENV_FILE} FORGEJO
 	@${BIN}/reconfigure_ask ${ENV_FILE} FORGEJO_WEBHOOK_HOST "Enter the webhook domain (blank to skip)" ""
 
@@ -35,7 +36,16 @@ shell:
 
 .PHONY: install-hook
 install-hook:
-	@echo
+	@make --no-print-directory wait
+	@ENV_FILE=${ENV_FILE} ROOT_DIR=${ROOT_DIR} bash ./admin_user.sh ensure-root
+
+.PHONY: admin-user # Create another Forgejo admin account (prints its password)
+admin-user:
+	@ENV_FILE=${ENV_FILE} ROOT_DIR=${ROOT_DIR} bash ./admin_user.sh create "$$(${BIN}/ask_echo "Enter the new admin username")"
+
+.PHONY: admin-password # Reset a Forgejo account password (prints the new one)
+admin-password:
+	@ENV_FILE=${ENV_FILE} ROOT_DIR=${ROOT_DIR} bash ./admin_user.sh reset "$$(${BIN}/ask_echo "Enter the username" "$$(${BIN}/dotenv -f ${ENV_FILE} get FORGEJO_ADMIN_USER)")"
 
 .PHONY: install-hook-pre
 install-hook-pre:

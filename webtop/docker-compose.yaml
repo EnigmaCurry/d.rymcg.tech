@@ -112,6 +112,15 @@ services:
       - SELKIES_ENABLE_PLAYER2=${WEBTOP_SELKIES_ENABLE_PLAYER2}
       - SELKIES_ENABLE_PLAYER3=${WEBTOP_SELKIES_ENABLE_PLAYER3}
       - SELKIES_ENABLE_PLAYER4=${WEBTOP_SELKIES_ENABLE_PLAYER4}
+    ## s6 restarts crashed services inside the container, and selkies keeps
+    ## answering HTTP while Xorg is down, so probe nginx and selkies and
+    ## also require s6 to report Xorg and selkies up for 10 seconds:
+    healthcheck:
+      test: ["CMD-SHELL", "curl -kfsS -o /dev/null https://127.0.0.1:3001/ && curl -fsS -o /dev/null http://127.0.0.1:$${SELKIES_PORT:-8082}/ && for s in svc-xorg svc-selkies; do s6-svstat -o up,updownfor /run/service/$$s | awk '$$1 == \"true\" && $$2 >= 10 {ok = 1} END {exit !ok}' || exit 1; done"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+      start_period: 120s
     volumes:
       - config:/config
       - ${WEBTOP_DOWNLOAD_VOLUME:-webtop_downloads}:/config/Downloads:z

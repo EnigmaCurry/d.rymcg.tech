@@ -1,8 +1,9 @@
-
 services:
   app:
     build:
       context: .
+      args:
+        WEBSOCKETD_VERSION: ${WEBSOCKETD_VERSION}
     security_opt:
       - no-new-privileges:true
     environment:

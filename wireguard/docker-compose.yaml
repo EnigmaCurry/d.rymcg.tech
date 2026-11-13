@@ -37,4 +37,13 @@ services:
       - wireguard:/config:z
       - /lib/modules:/lib/modules
     restart: unless-stopped
+    ## If wg-quick fails, the image logs "All tunnels are now down" and the
+    ## container keeps running. /run/activeconfs is only written once every
+    ## tunnel is up, so require it and each listed interface:
+    healthcheck:
+      test: ["CMD-SHELL", "test -s /run/activeconfs && for i in $$(grep -o '[^/\"]*\\.conf' /run/activeconfs | sed 's/\\.conf$$//'); do wg show \"$$i\" >/dev/null 2>&1 || exit 1; done"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+      start_period: 30s
     labels: []

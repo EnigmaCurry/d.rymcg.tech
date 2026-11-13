@@ -14,4 +14,12 @@ services:
       PGID: ${SYNCTHING_GID}
     ports:
       - ${SYNCTHING_LISTEN_PORT}:22000
+    ## syncthing's monitor process (PID 1) restarts a crashed syncthing
+    ## inside the container, so probe the API rather than the container:
+    healthcheck:
+      test: ["CMD", "curl", "-fsS", "-o", "/dev/null", "http://127.0.0.1:8384/rest/noauth/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+      start_period: 60s
     labels: []

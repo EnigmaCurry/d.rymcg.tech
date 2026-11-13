@@ -155,14 +155,14 @@ Install these core services as needed:
     of your other services.
   * A single instance should be used for your entire organization, so
     you don't need to install this on every server.
-* [Traefik-forward-auth](traefik-forward-auth#readme)
-  * A Traefik OAuth2 authentication middleware.
-  * Required if you want OAuth2 authentication. You'll combine this
-    with your Forgejo instance (or another external Oauth provider) to
-    add authentication to any of your apps.
-  * This is a Traefik middleware, and must be installed on every
-    server that you want to enforce OAuth on (but they could all share
-    a single external Forgejo instance).
+* [oauth2-proxy](oauth2-proxy#readme)
+  * A Traefik OIDC forward-auth middleware backed by
+    [oauth2-proxy](https://github.com/oauth2-proxy/oauth2-proxy).
+  * Required if you want OAuth2/OIDC authentication. You'll combine
+    this with your Forgejo instance (or another external OIDC
+    provider) to add authentication to any of your apps.
+  * Must be installed on every server that you want to enforce OAuth
+    on (but they could all share a single external Forgejo instance).
 * [Step-CA](step-ca) 
   * A self-hosted Certificate Authority (CA).
   * Provides ACME services for automatic TLS certficate creation.
@@ -188,7 +188,7 @@ Install these applications at your preference:
 * [Baikal](baikal#readme) - a lightweight CalDAV+CardDAV server
 * [Bitmagnet](bitmagnet#readme) - a BitTorrent indexer, DHT crawler, content classifier, and
 torrent search engine
-* [Caddy](caddy#readme) - an HTTP server with automatic TLS (passthrough)
+* [Caddy](caddy#readme) - an HTTP server (optional experimental TLS passthrough)
 * [CalcPad](calcpad#readme) - a different take on the caculator
 * [Calibre](calibre#readme) - an ebook manager
 * [ComfyUI](comfyui#readme) - an AI image/video/audio generator
@@ -206,6 +206,7 @@ torrent search engine
 * [Glances](glances#readme) - a cross-platform system monitoring tool
 * [Gradio](gradio#readme) - a configurable web interface for machine learning 
 * [Grocy](grocy#readme) - a grocery & household management/chore solution
+* [Homelable](homelable#readme) - a network scanner and homelab topology mapper
 * [Homepage](homepage#readme) - a dashboard for all your apps
 * [Icecast](icecast#readme) - a SHOUTcast compatible streaming multimedia server
 * [Immich](immich#readme) - a photo gallery

@@ -13,6 +13,15 @@ services:
       - PUID=${SMOKEPING_UID}
       - PGID=${SMOKEPING_GID}
       - TZ=Etc/UTC
+    ## The web UI keeps serving old graphs when the smokeping daemon is
+    ## down, so also require s6 to report the daemon up for 10 seconds
+    ## (a crash-looping daemon never stays up that long):
+    healthcheck:
+      test: ["CMD-SHELL", "curl -fsS -o /dev/null http://127.0.0.1:80/smokeping/ && s6-svstat -o up,updownfor /run/service/svc-smokeping | awk '$$1 == \"true\" && $$2 >= 10 {ok = 1} END {exit !ok}'"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+      start_period: 60s
     volumes:
       - config:/config
       - data:/data

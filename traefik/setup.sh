@@ -366,8 +366,7 @@ error_pages() {
 
 middleware() {
     wizard menu "Traefik middleware config:" \
-           "MaxMind geoIP locator = ./setup.sh maxmind_geoip" \
-           "OAuth2 sentry authorization (make sentry) = make sentry"
+           "MaxMind geoIP locator = ./setup.sh maxmind_geoip"
 }
 
 maxmind_geoip() {
