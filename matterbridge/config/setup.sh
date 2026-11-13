@@ -9,7 +9,9 @@ create_config() {
     rm -f ${CONFIG}
     cat /template/${TEMPLATE} | envsubst > ${CONFIG}
     echo "[ ! ] GENERATED NEW CONFIG FILE ::: ${CONFIG}"
-    [[ $PRINT_CONFIG == true ]] && cat ${CONFIG}
+    if [[ $PRINT_CONFIG == true ]]; then
+        cat ${CONFIG}
+    fi
 }
 
 create_config

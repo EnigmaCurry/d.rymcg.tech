@@ -50,11 +50,13 @@
 #@   if trust_remote_code == "true":
 #@     cmd.append("--trust-remote-code")
 #@   end
-#@   if enable_auto_tool_choice == "true":
-#@     cmd.append("--enable-auto-tool-choice")
-#@   end
+#!   vLLM refuses to start if --enable-auto-tool-choice is given without
+#!   --tool-call-parser, so the former is only emitted alongside a parser:
 #@   if tool_call_parser.strip():
 #@     cmd.extend(["--tool-call-parser", tool_call_parser])
+#@     if enable_auto_tool_choice == "true":
+#@       cmd.append("--enable-auto-tool-choice")
+#@     end
 #@   end
 #@   if reasoning_parser.strip():
 #@     cmd.extend(["--reasoning-parser", reasoning_parser])

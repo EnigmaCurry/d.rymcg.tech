@@ -94,6 +94,13 @@ make remove-model
 This will ask you for a model type and then you can select one of the
 installed models of that type to be permanently deleted.
 
+### Upgrading ComfyUI
+
+Set `COMFYUI_VERSION` in your `.env` file to the new tag and run `make
+install` again. On its next start, the container updates the ComfyUI
+code in its named volume to the version the image was built with and
+reinstalls its Python requirements (this needs internet access).
+
 ## Open
 
 ```

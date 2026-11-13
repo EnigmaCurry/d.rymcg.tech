@@ -275,6 +275,8 @@ services:
     restart: unless-stopped
     environment:
       TEMPLATE_NAME: ${TRAEFIK_ERROR_PAGES_TEMPLATE}
+      # Respond with the page's status code (e.g. 404), not 200:
+      SEND_SAME_HTTP_CODE: "true"
       RESPONSE_PLAINTEXT_FORMAT: "${DOCKER_CONTEXT} | {{ code }} | {{ message }}"
       RESPONSE_JSON_FORMAT: "{\"error\":{\"status\":{{ code }},\"detail\":{{ printf \"%q\" description }}, \"context\": \"${DOCKER_CONTEXT}\"}}"
       RESPONSE_XML_FORMAT: "<error><code>{{ code }}</code><description>{{ description }}</description><context>${DOCKER_CONTEXT}</context></error>"

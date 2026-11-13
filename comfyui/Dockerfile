@@ -9,7 +9,8 @@ RUN apt-get update && \
     apt-get install -y --no-install-recommends wget git rsync dialog python3 python3-pip python3-venv ca-certificates curl libxcb1 libgl1 libglib2.0-0 && \
     rm -rf /var/lib/apt/lists/*
 RUN git clone --tags https://github.com/comfyanonymous/ComfyUI.git && \
-    git -C ComfyUI checkout ${COMFYUI_VERSION}
+    git -C ComfyUI checkout ${COMFYUI_VERSION} && \
+    git -C ComfyUI rev-parse HEAD > /comfyui-image-commit
 
 # Install ComfyUI Manager extension
 WORKDIR /ComfyUI/custom_nodes

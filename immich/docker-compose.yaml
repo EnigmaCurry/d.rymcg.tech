@@ -26,6 +26,8 @@ services:
     image: ${IMMICH_ML_IMAGE:-ghcr.io/immich-app/immich-machine-learning:release}
     volumes:
       - model-cache:/cache
+    environment:
+      - MACHINE_LEARNING_MODEL_REVISION=${IMMICH_ML_MODEL_REVISION:-main}
     restart: unless-stopped
     healthcheck:
       disable: false

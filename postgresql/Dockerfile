@@ -8,7 +8,7 @@ RUN apt-get update && \
 
     ## Install pg_rational
     DEBIAN_FRONTEND=noninteractive apt-get install -y build-essential git \
-      postgresql-server-dev-all pgloader && \
+      postgresql-server-dev-${PG_MAJOR} pgloader && \
     git clone ${PGRATIONAL_GIT_REPO} && \
     cd pg_rational && \
     git checkout ${PGRATIONAL_VERSION} && \
@@ -17,7 +17,7 @@ RUN apt-get update && \
 
     ## Cleanup
     rm -rf /src && \
-    apt-get remove -y build-essential git postgresql-server-dev-all && \
+    apt-get remove -y build-essential git postgresql-server-dev-${PG_MAJOR} && \
     apt-get -y autoremove && \
     apt-get -y clean && \
     rm -rf /var/lib/apt/lists /var/cache/apt/archives

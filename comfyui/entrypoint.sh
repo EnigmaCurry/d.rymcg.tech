@@ -1,6 +1,23 @@
 #!/bin/bash
 set -e
 
+# /ComfyUI is a named volume, and Docker only copies the image's
+# /ComfyUI into it the first time the volume is created. After that,
+# rebuilding the image with a new COMFYUI_VERSION would not change the
+# code that actually runs, so bring the volume up to the commit this
+# image was built from.
+IMAGE_COMMIT="$(cat /comfyui-image-commit 2>/dev/null || true)"
+VOLUME_COMMIT="$(git -C /ComfyUI rev-parse HEAD 2>/dev/null || true)"
+if [ -n "${IMAGE_COMMIT}" ] && [ "${IMAGE_COMMIT}" != "${VOLUME_COMMIT}" ]; then
+    echo "Updating ComfyUI in volume from ${VOLUME_COMMIT:-unknown} to ${IMAGE_COMMIT} ..."
+    if git -C /ComfyUI fetch --tags origin && \
+       git -C /ComfyUI checkout --detach "${IMAGE_COMMIT}"; then
+        python3 -m pip install -r /ComfyUI/requirements.txt
+    else
+        echo "WARNING: Could not update ComfyUI in volume, still running ${VOLUME_COMMIT:-unknown}" >&2
+    fi
+fi
+
 if [ -n "$COMFYUI_OUTPUT_HOST_PATH" ]; then
     mkdir -p "/ComfyUI/models/audio_encoders" \
           "/ComfyUI/models/checkpoints" \

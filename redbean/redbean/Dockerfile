@@ -1,4 +1,4 @@
-FROM debian:bullseye as build
+FROM debian:trixie AS build
 ARG REDBEAN_VERSION
 ARG REDBEAN_TARGET
 RUN export DEBIAN_FRONTEND=noninteractive && \
@@ -18,7 +18,7 @@ ADD html-templates/${REDBEAN_HTML_TEMPLATE} /tmp/build/cosmopolitan/html-templat
 WORKDIR /tmp/build/cosmopolitan/html-template
 RUN zip -r ../o//tool/net/${REDBEAN_TARGET} $(ls -A)
 
-FROM debian:bullseye-slim
+FROM debian:trixie-slim
 ARG REDBEAN_UID=54321
 ARG REDBEAN_GID=54321
 ARG REDBEAN_TARGET

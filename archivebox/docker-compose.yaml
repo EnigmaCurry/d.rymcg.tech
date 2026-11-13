@@ -3,10 +3,7 @@ volumes:
 
 services:
   archivebox:
-    build:
-      context: config
-      args:
-        ARCHIVEBOX_IMAGE: ${ARCHIVEBOX_IMAGE}
+    image: ${ARCHIVEBOX_IMAGE}
     security_opt:
       - no-new-privileges:true
     cap_drop:
@@ -16,13 +13,9 @@ services:
       - DAC_OVERRIDE
       - SETGID
       - SETUID
-    command: server --quick-init 0.0.0.0:8000
     environment:
       - ALLOWED_HOSTS=*
-      - MEDIA_MAX_SIZE=750m
-      # - SEARCH_BACKEND_ENGINE=sonic   # uncomment these if you enable sonic below
-      # - SEARCH_BACKEND_HOST_NAME=sonic
-      # - SEARCH_BACKEND_PASSWORD=SecretPassword
+      - BASE_URL=https://${ARCHIVEBOX_TRAEFIK_HOST}
     volumes:
       - data:/data
     restart: unless-stopped
@@ -37,7 +30,7 @@ services:
       - ALL
     restart: unless-stopped
     environment:
-      - ARCHIVEBOX_BASE_URL=http://archivebox:8000
+      - ARCHIVEBOX_BASE_URL=http://archivebox:5797
       - API_BASE_URL=https://${ARCHIVEBOX_TRAEFIK_HOST}
       - PATH_PREFIX=/api-gateway
       - SECRET_KEY
@@ -48,32 +41,19 @@ services:
 
 
 
-  # To run the Sonic full-text search backend, first download the config file to sonic.cfg
-  # curl -O https://raw.githubusercontent.com/ArchiveBox/ArchiveBox/master/etc/sonic.cfg
-  # after starting, backfill any existing Snapshots into the index: docker-compose run archivebox update --index-only
-  # sonic:
-  #  image: valeriansaliou/sonic:v1.3.0
-  #  expose:
-  #    - 1491
-  #  environment:
-  #    - SEARCH_BACKEND_PASSWORD=SecretPassword
-  #  volumes:
-  #    - ./sonic.cfg:/etc/sonic.cfg:ro
-  #    - ./data/sonic:/var/lib/sonic/store
+  # Note (0.9.x): the Sonic full-text search backend is now built into the
+  # archivebox/archivebox image (SEARCH_BACKEND_ENGINE=sonic by default), so
+  # no separate sonic service is needed.
 
 
   ### Optional Addons: tweak these examples as needed for your specific use case
 
-  # Example: Run scheduled imports in a docker instead of using cron on the
-  # host machine, add tasks and see more info with archivebox schedule --help
-  # scheduler:
-  #  image: archivebox/archivebox:latest
-  #  command: schedule --foreground --every=day --depth=1 'https://getpocket.com/users/USERNAME/feed/all'
-  #  environment:
-  #    - USE_COLOR=True
-  #    - SHOW_PROGRESS=False
-  #  volumes:
-  #    - ./data:/data
+  # Note (0.9.x): scheduled imports are now database-backed and are processed
+  # by the main archivebox server's crawl runner while it runs - no separate
+  # scheduler container or cron job is needed. Add schedules with:
+  #   make schedule-add
+  # or:
+  #   docker compose exec archivebox su -c "archivebox schedule --add --every=day --depth=1 'https://example.com/feed'" archivebox
 
   # Example: run all your ArchiveBox traffic through a WireGuard VPN tunnel
   # wireguard:
