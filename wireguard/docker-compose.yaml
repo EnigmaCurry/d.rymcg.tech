@@ -32,7 +32,7 @@ services:
     environment:
       - PUID=1000
       - PGID=1000
-      - TZ=${TIMEZONE}
+      - TZ=${WIREGUARD_TIMEZONE:-${DEFAULT_TIMEZONE:-Etc/UTC}}
     volumes:
       - wireguard:/config:z
       - /lib/modules:/lib/modules

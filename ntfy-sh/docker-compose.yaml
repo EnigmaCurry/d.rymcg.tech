@@ -41,7 +41,7 @@ services:
     command:
       - serve
     environment:
-      - TZ=${TIMEZONE:-Etc/UTC}
+      - TZ=${DEFAULT_TIMEZONE:-Etc/UTC}
     user: ${NTFY_UID:-64533}:${NTFY_GID:-64533}
     volumes:
       - cache:/var/cache/ntfy

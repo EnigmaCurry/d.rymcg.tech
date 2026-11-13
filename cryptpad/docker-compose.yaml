@@ -63,7 +63,7 @@ services:
       #! If 'yes', the entrypoint installs the office editors (Euro-Office,
       #! an OnlyOffice-based fork) on first start:
       - CPAD_INSTALL_ONLYOFFICE=${CRYPTPAD_INSTALL_ONLYOFFICE}
-      - TZ=${CRYPTPAD_TIMEZONE}
+      - TZ=${CRYPTPAD_TIMEZONE:-${DEFAULT_TIMEZONE:-Etc/UTC}}
     volumes:
       - config:/cryptpad/config
       - customize:/cryptpad/customize

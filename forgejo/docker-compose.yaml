@@ -36,7 +36,7 @@ services:
       - FORGEJO__mailer__SMTP_PORT
       - FORGEJO__mailer__USER
       - FORGEJO__mailer__PASSWD
-      - TZ=${TZ:-UTC}
+      - TZ=${FORGEJO_TIMEZONE:-${DEFAULT_TIMEZONE:-Etc/UTC}}
     security_opt:
       - no-new-privileges:true
     cap_drop:

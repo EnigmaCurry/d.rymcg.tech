@@ -18,6 +18,7 @@ services:
       - net.ipv4.ip_unprivileged_port_start=1024
     restart: unless-stopped
     environment:
+      - TZ=${BITMAGNET_TIMEZONE:-${DEFAULT_TIMEZONE:-Etc/UTC}}
       - ENTRYPOINT=/usr/local/bin/bitmagnet
       - WIREGUARD_INSTANCE=${BITMAGNET_WIREGUARD_INSTANCE}
       - WIREGUARD_ROUTER_IPV4=${BITMAGNET_WIREGUARD_ROUTER_IPV4}

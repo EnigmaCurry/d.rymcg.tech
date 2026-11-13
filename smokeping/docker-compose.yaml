@@ -12,7 +12,7 @@ services:
     environment:
       - PUID=${SMOKEPING_UID}
       - PGID=${SMOKEPING_GID}
-      - TZ=Etc/UTC
+      - TZ=${DEFAULT_TIMEZONE:-Etc/UTC}
     ## The web UI keeps serving old graphs when the smokeping daemon is
     ## down, so also require s6 to report the daemon up for 10 seconds
     ## (a crash-looping daemon never stays up that long):

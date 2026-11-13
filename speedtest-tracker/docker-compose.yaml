@@ -5,7 +5,7 @@ services:
     environment:
       - APP_KEY=${SPEEDTEST_TRACKER_APP_KEY}
       - DB_CONNECTION=sqlite
-      - DISPLAY_TIMEZONE=${SPEEDTEST_TRACKER_DISPLAY_TIMEZONE}
+      - DISPLAY_TIMEZONE=${SPEEDTEST_TRACKER_DISPLAY_TIMEZONE:-${DEFAULT_TIMEZONE:-Etc/UTC}}
       - APP_URL=${SPEEDTEST_TRACKER_TRAEFIK_HOST}
       # Unused because setting as described in docs results in failed CSS 
       #- ASSET_URL=${SPEEDTEST_TRACKER_TRAEFIK_HOST}

@@ -101,7 +101,7 @@ services:
       - /var/lib/docker/:/var/lib/docker:ro
       - /etc/machine-id:/etc/machine-id:ro
     environment:
-      - TZ=${TZ:-UTC}
+      - TZ=${PROMETHEUS_TIMEZONE:-${DEFAULT_TIMEZONE:-Etc/UTC}}
     deploy:
       resources:
         limits:

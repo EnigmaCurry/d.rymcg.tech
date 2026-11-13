@@ -46,6 +46,17 @@ else
 export DEFAULT_SAVE_CLEARTEXT_PASSWORDS_JSON ?= $(shell ${BIN}/dotenv -f ".env_$(shell docker context ls --format "{{.Current}} {{.Name}}" | grep -oP "^true \K.*")" get DEFAULT_SAVE_CLEARTEXT_PASSWORDS_JSON)
 BUILD ?= $(shell ${BIN}/dotenv -f "${ROOT_DIR}/.env_$(shell docker context ls --format "{{.Current}} {{.Name}}" | grep -oP "^true \K.*")" get BUILD 2>/dev/null)
 endif
+## The default timezone for all containers, from the root .env_{DOCKER_CONTEXT}.
+## Exported so docker compose can interpolate ${DEFAULT_TIMEZONE}.
+## Evaluated once (:=) and inherited by sub-makes through the environment.
+ifndef DEFAULT_TIMEZONE
+ifdef DRT_ENV_DIR
+DEFAULT_TIMEZONE := $(shell ${BIN}/dotenv -f "${DRT_ENV_DIR}/.env_$(shell docker context ls --format "{{.Current}} {{.Name}}" | grep -oP "^true \K.*")" get DEFAULT_TIMEZONE 2>/dev/null)
+else
+DEFAULT_TIMEZONE := $(shell ${BIN}/dotenv -f "${ROOT_DIR}/.env_$(shell docker context ls --format "{{.Current}} {{.Name}}" | grep -oP "^true \K.*")" get DEFAULT_TIMEZONE 2>/dev/null)
+endif
+endif
+export DEFAULT_TIMEZONE
 export BUILD_RAW := $(BUILD)
 override BUILD := $(if $(filter false 0,$(BUILD)),,1)
 PROJECT_MAKEFILE=$(realpath $(firstword $(MAKEFILE_LIST)))

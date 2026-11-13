@@ -23,7 +23,7 @@ services:
     environment:
       - PUID=${PAIRDROP_UID}
       - PGID=${PAIRDROP_GID}
-      - TZ=Etc/UTC
+      - TZ=${DEFAULT_TIMEZONE:-Etc/UTC}
       - RATE_LIMIT=false
       - WS_FALLBACK=false
       - DEBUG_MODE=${PAIRDROP_DEBUG_MODE}

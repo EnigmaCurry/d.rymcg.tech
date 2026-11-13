@@ -4,7 +4,7 @@ services:
     volumes:
       - uploads:/usr/src/app/upload
     environment:
-      - TZ=${TZ:-UTC}
+      - TZ=${IMMICH_TIMEZONE:-${DEFAULT_TIMEZONE:-Etc/UTC}}
       - IMMICH_TRUSTED_PROXIES=${IMMICH_TRUSTED_PROXIES}
       - DB_PASSWORD=${IMMICH_DB_PASSWORD}
       - DB_USERNAME=${IMMICH_DB_USER}

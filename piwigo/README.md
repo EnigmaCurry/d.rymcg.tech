@@ -17,7 +17,7 @@ Alternatively to running `make config`, you can manually copy
  * `MARIADB_DATABASE` the mysql database name
  * `MARIADB_USER` the mysql database username
  * `MARIADB_PASSWORD` the mysql user password
- * `TIMEZONE` the timezone, in the format of [TZ database name](https://en.wikipedia.org/wiki/List_of_tz_database_time_zones)
+ * `PIWIGO_TIMEZONE` the timezone, in the format of [TZ database name](https://en.wikipedia.org/wiki/List_of_tz_database_time_zones). Leave blank to use `DEFAULT_TIMEZONE` from the root config.
  * `PIWIGO_OAUTH2` set to `yes` to configure Oauth2 authentication (in addition to Piwigo's own internal authentication)
  * `PIWIGO_OAUTH2_AUTHORIZED_GROUP` the name of an authorization group that you a created when you ran `make groups` in the `traefik` directory
  * `PIWIGO_HTTP_AUTH` it's easiest to configure this variable via `make config`, but you can manually enter 1 or more credentials in the format `<username>:<password hashed by htpasswd>[,<username2>:<htpasswd-hashed password 2>...]`

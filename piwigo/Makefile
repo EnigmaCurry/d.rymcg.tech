@@ -7,7 +7,6 @@ config-hook:
 	@${BIN}/reconfigure_ask ${ENV_FILE} PIWIGO_TRAEFIK_HOST "Enter the piwigo domain name" pics${INSTANCE_URL_SUFFIX}.${ROOT_DOMAIN}
 	@${BIN}/reconfigure_password ${ENV_FILE} PIWIGO_MARIADB_ROOT_PASSWORD
 	@${BIN}/reconfigure_password ${ENV_FILE} PIWIGO_MARIADB_PASSWORD
-	@${BIN}/reconfigure_ask ${ENV_FILE} TIMEZONE "Enter your timezone" UTC
 	@${BIN}/reconfigure_auth ${ENV_FILE} PIWIGO
 	@echo ""
 

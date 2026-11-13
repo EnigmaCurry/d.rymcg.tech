@@ -190,6 +190,25 @@ rows (`app:check`):
   The instance also admits `127.0.0.1/32`, since the proxy reaches
   Traefik over loopback.
 
+Every app whose route verifies also gets a timezone row (`app:timezone`).
+The run sets the root `DEFAULT_TIMEZONE` to `E2E_TIMEZONE` (default
+`Pacific/Chatham`, +12:45/+13:45, an offset no container lands on by
+accident; edit the `.conf` to change it). Each running container of the
+app, across all its instances, is checked:
+
+* **ok:** its `TZ` env matches, and `date +%z` inside it gives the
+  expected offset.
+* **na:** `TZ` matches, but the image has no `date` to confirm it
+  (distroless/scratch).
+* **missing:** no `TZ` at all. The project hasn't been migrated to
+  `DEFAULT_TIMEZONE` yet; this is reported but doesn't fail.
+* **bad:** `TZ` differs, or the image ignores it (typically no tzdata).
+  This fails the app.
+
+An app with no `TZ` on any container reports SKIP. Containers only pick up
+a changed timezone when they are recreated, so use `--reinstall` after
+changing `E2E_TIMEZONE` on a kept droplet.
+
 Some apps call another app over HTTPS from inside the droplet, so staging
 runs need workarounds:
 * oauth2-proxy trusts the Let's Encrypt staging roots

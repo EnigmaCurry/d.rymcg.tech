@@ -67,6 +67,10 @@ E2E_SUITE="${E2E_SUITE:-full}"
 ## every app's <PREFIX>_*SOURCERANGE (Traefik ipallowlist). Blank means "this
 ## machine's public IP" (from ifconfig.me), detected at run time:
 E2E_IP_SOURCERANGE="${E2E_IP_SOURCERANGE:-}"
+## The root DEFAULT_TIMEZONE for the test context. An unusual zone (+12:45
+## or +13:45) so a container cannot match it by accident; each app is checked
+## for it (test_timezone). Edit the .conf to change it:
+E2E_TIMEZONE="${E2E_TIMEZONE:-Pacific/Chatham}"
 E2E_KEEP_GOING=false
 E2E_REINSTALL=false
 E2E_RESET_ENV=false
@@ -179,6 +183,7 @@ E2E_SSH_PUBKEY=${E2E_SSH_PUBKEY}
 E2E_ADMIN_USER=${E2E_ADMIN_USER}
 E2E_APPS=${E2E_APPS}
 E2E_IP_SOURCERANGE=${E2E_IP_SOURCERANGE}
+E2E_TIMEZONE=${E2E_TIMEZONE}
 EOF
     chmod 600 "${f}"
 }
@@ -770,6 +775,7 @@ phase_rootconfig() {
     ## and cleartext-passwords questions):
     e2e_remote_sh "test -f .env_${E2E_NAME} || make -C . config-dist"
     e2e_make . reconfigure "var=ROOT_DOMAIN=${E2E_ROOT_DOMAIN}"
+    e2e_make . reconfigure "var=DEFAULT_TIMEZONE=${E2E_TIMEZONE}"
     e2e_make . dotenv_get var=ROOT_DOMAIN
 }
 
@@ -1448,12 +1454,17 @@ verify_app() {
     probe_app "$1" || true
     RESULTS+=("${PROBE_STATUS}|$1|${PROBE_URL}|${PROBE_CODE}|${PROBE_ISSUER:-no-cert}")
     [[ "${PROBE_STATUS}" == "PASS" ]] || return 1
+    ## Every app: its containers follow the root DEFAULT_TIMEZONE. A SKIP row
+    ## (no TZ configured yet) does not fail the app:
+    local tz_rc=0
+    test_timezone "$1" || tz_rc=1
     ## Deeper checks (pub/sub, login flows); each adds its own result rows:
     local before=${#RESULTS[@]} row
     app_functional_tests "$1"
     for row in "${RESULTS[@]:${before}}"; do
         [[ "${row}" == PASS\|* ]] || return 1
     done
+    return ${tz_rc}
 }
 
 verify_check() {

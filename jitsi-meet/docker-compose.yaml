@@ -168,7 +168,7 @@ services:
             - TOOLBAR_BUTTONS
             - TRANSLATION_LANGUAGES
             - TRANSLATION_LANGUAGES_HEAD
-            - TZ
+            - TZ=${JITSIMEET_TIMEZONE:-${DEFAULT_TIMEZONE:-Etc/UTC}}
             - USE_APP_LANGUAGE
             - VIDEOQUALITY_BITRATE_H264_LOW
             - VIDEOQUALITY_BITRATE_H264_STANDARD
@@ -334,7 +334,7 @@ services:
             - TURNS_PORT
             - TURN_TRANSPORT
             - TURN_TTL
-            - TZ
+            - TZ=${JITSIMEET_TIMEZONE:-${DEFAULT_TIMEZONE:-Etc/UTC}}
             - VISITORS_MAX_VISITORS_PER_NODE
             - VISITORS_XMPP_DOMAIN
             - VISITORS_XMPP_SERVER
@@ -437,7 +437,7 @@ services:
             - SENTRY_DSN="${JICOFO_SENTRY_DSN:-0}"
             - SENTRY_ENVIRONMENT
             - SENTRY_RELEASE
-            - TZ
+            - TZ=${JITSIMEET_TIMEZONE:-${DEFAULT_TIMEZONE:-Etc/UTC}}
             - VISITORS_MAX_PARTICIPANTS
             - VISITORS_MAX_VISITORS_PER_NODE
             - VISITORS_XMPP_AUTH_DOMAIN
@@ -521,7 +521,7 @@ services:
             - SENTRY_RELEASE
             - COLIBRI_REST_ENABLED
             - SHUTDOWN_REST_ENABLED
-            - TZ
+            - TZ=${JITSIMEET_TIMEZONE:-${DEFAULT_TIMEZONE:-Etc/UTC}}
             - VIDEOBRIDGE_MAX_MEMORY
             - XMPP_AUTH_DOMAIN
             - XMPP_INTERNAL_MUC_DOMAIN
