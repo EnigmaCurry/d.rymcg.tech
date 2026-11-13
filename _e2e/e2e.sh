@@ -621,21 +621,31 @@ phase_provision() {
     ## key if the same material already exists under ANY name:
     SSH_KEY_ID=$(doctl compute ssh-key list --format ID,Name --no-header \
                      | awk -v n="${E2E_NAME}" '$2==n {print $1; exit}')
+    local fingerprint
+    fingerprint=$(ssh-keygen -E md5 -lf "${E2E_SSH_PUBKEY}" \
+                      | awk '{print $2}' | sed 's/^MD5://')
+    key_by_fingerprint() {
+        doctl compute ssh-key list --format ID,FingerPrint --no-header \
+            | awk -v f="${fingerprint}" '$2==f {print $1; exit}'
+    }
     if [[ -z "${SSH_KEY_ID}" ]]; then
-        local fingerprint
-        fingerprint=$(ssh-keygen -E md5 -lf "${E2E_SSH_PUBKEY}" \
-                          | awk '{print $2}' | sed 's/^MD5://')
-        SSH_KEY_ID=$(doctl compute ssh-key list --format ID,FingerPrint --no-header \
-                         | awk -v f="${fingerprint}" '$2==f {print $1; exit}')
+        SSH_KEY_ID=$(key_by_fingerprint)
         if [[ -n "${SSH_KEY_ID}" ]]; then
             echo "Reusing SSH key already in the account (fingerprint ${fingerprint})."
         fi
     fi
     if [[ -z "${SSH_KEY_ID}" ]]; then
         echo "Uploading SSH key '${E2E_NAME}' from ${E2E_SSH_PUBKEY} ..."
+        ## Parallel runs race to upload the same key; DigitalOcean refuses the
+        ## duplicates, so the losers reuse the winner's key:
         SSH_KEY_ID=$(doctl compute ssh-key import "${E2E_NAME}" \
                          --public-key-file "${E2E_SSH_PUBKEY}" \
-                         --format ID --no-header)
+                         --format ID --no-header) || {
+            sleep 3
+            SSH_KEY_ID=$(key_by_fingerprint)
+            [[ -n "${SSH_KEY_ID}" ]] || fault "Could not upload or find SSH key ${E2E_SSH_PUBKEY}."
+            echo "Another run uploaded this SSH key; reusing it."
+        }
     fi
     echo "SSH key id: ${SSH_KEY_ID}"
     save_state
