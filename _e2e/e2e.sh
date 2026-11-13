@@ -844,6 +844,15 @@ $(printf '%q' "TRAEFIK_ACME_CERT_DOMAINS=${cert_domains}")"
         e2e_dns_record CNAME "${rname}" "${target%.}."
     done < <(grep -P '^\s*_acme-challenge\.' <<< "${reg_out}" | awk '{print $1, $2, $3}' | sort -u)
 
+    ## Switching an existing droplet from the staging CA to production:
+    ## acme.sh would keep the staging cert ("not due yet"), so remove the
+    ## issued certs (as 'make acme-sh-destroy-certs' does; the acme-dns
+    ## account file stays) and let it issue from the new CA:
+    if [[ "${E2E_ACME_CA}" != *staging* ]] && tls_probe "whoami.${E2E_ROOT_DOMAIN}" | grep -qi staging; then
+        echo "Switching to ${E2E_ACME_CA}: removing the staging certificates ..."
+        e2e_remote_sh "docker exec \$(docker ps -q --filter label=com.docker.compose.project=traefik --filter label=com.docker.compose.service=acme-sh) \
+  sh -c 'find /acme.sh -mindepth 1 -maxdepth 1 -type d ! -name ca -exec rm -rf {} + ; rm -rf /certs/*'"
+    fi
     e2e_make traefik restart service=acme-sh
 
     echo "Waiting for the wildcard certificate (*.${E2E_ROOT_DOMAIN}, CA=${E2E_ACME_CA}) ..."
@@ -852,7 +861,9 @@ $(printf '%q' "TRAEFIK_ACME_CERT_DOMAINS=${cert_domains}")"
     local info="" tick=0
     while :; do
         info=$(tls_probe "${probe_host}" || true)
-        if grep -q "${E2E_ROOT_DOMAIN}" <<< "${info}"; then
+        ## On production, a leftover staging cert doesn't count:
+        if grep -q "${E2E_ROOT_DOMAIN}" <<< "${info}" \
+                && { [[ "${E2E_ACME_CA}" == *staging* ]] || ! grep -qi staging <<< "${info}"; }; then
             echo "Certificate is live:"
             echo "${info}"
             if [[ "${E2E_ACME_CA}" == *staging* ]] && ! grep -qi "staging" <<< "${info}"; then
