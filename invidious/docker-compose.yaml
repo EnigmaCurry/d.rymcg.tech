@@ -34,6 +34,7 @@ services:
     security_opt:
       - no-new-privileges:true
     environment:
+      TZ: ${DEFAULT_TIMEZONE:-Etc/UTC}
       # Please read the following file for a comprehensive list of all available
       # configuration options and their associated syntax:
       # https://github.com/iv-org/invidious/blob/master/config/config.example.yml
@@ -81,6 +82,7 @@ services:
   companion:
     image: ${INVIDIOUS_COMPANION_IMAGE}
     environment:
+      - TZ=${DEFAULT_TIMEZONE:-Etc/UTC}
       - SERVER_SECRET_KEY=${INVIDIOUS_COMPANION_KEY}
     restart: unless-stopped
     # Uncomment only if you have configured "public_url" for Invidious companion

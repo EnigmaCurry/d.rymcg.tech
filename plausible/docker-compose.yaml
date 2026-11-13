@@ -1,6 +1,8 @@
 
 services:
   mail:
+    environment:
+      - TZ=${DEFAULT_TIMEZONE:-Etc/UTC}
     image: ${PLAUSIBLE_SMTP_IMAGE}
     restart: unless-stopped
 
@@ -18,6 +20,8 @@ services:
       - "backup-volume.stop-during-backup=true"
 
   events_db:
+    environment:
+      - TZ=${DEFAULT_TIMEZONE:-Etc/UTC}
     build:
       context: clickhouse
     restart: unless-stopped
@@ -40,6 +44,7 @@ services:
       - events_db
       - mail
     environment:
+      - TZ=${DEFAULT_TIMEZONE:-Etc/UTC}
       - PLAUSIBLE_TRAEFIK_HOST
       - BASE_URL=https://${PLAUSIBLE_TRAEFIK_HOST}
       - SECRET_KEY_BASE=${PLAUSIBLE_SECRET_KEY_BASE}

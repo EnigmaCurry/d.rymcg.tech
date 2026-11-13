@@ -21,9 +21,12 @@ services:
     sysctls:
       - net.ipv4.ip_unprivileged_port_start=1024
     environment:
+      - TZ=${DEFAULT_TIMEZONE:-Etc/UTC}
       - HSA_OVERRIDE_GFX_VERSION=${OLLAMA_HSA_OVERRIDE_GFX_VERSION}
 
   ollama-cuda:
+    environment:
+      - TZ=${DEFAULT_TIMEZONE:-Etc/UTC}
     profiles:
       - cuda
     image: ${OLLAMA_IMAGE}
@@ -38,6 +41,8 @@ services:
       - nvidia.com/gpu=all
 
   ollama-cpu:
+    environment:
+      - TZ=${DEFAULT_TIMEZONE:-Etc/UTC}
     profiles:
       - cpu
     restart: unless-stopped

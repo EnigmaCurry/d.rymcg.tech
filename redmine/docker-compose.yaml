@@ -7,6 +7,7 @@ services:
         condition: service_healthy
     restart: unless-stopped
     environment:
+      - TZ=${DEFAULT_TIMEZONE:-Etc/UTC}
       - REDMINE_DB_POSTGRES=db
       - REDMINE_DB_PASSWORD=${REDMINE_DB_PASSWORD}
       - SECRET_KEY_BASE=${REDMINE_SECRET_KEY_BASE}
@@ -19,6 +20,7 @@ services:
     image: ${REDMINE_DB_IMAGE}
     restart: unless-stopped
     environment:
+      - TZ=${DEFAULT_TIMEZONE:-Etc/UTC}
       - POSTGRES_PASSWORD=${REDMINE_DB_PASSWORD}
       - POSTGRES_DB=redmine
       - POSTGRES_USER=postgres

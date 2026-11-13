@@ -10,6 +10,7 @@ services:
     security_opt:
       - no-new-privileges:true
     environment:
+      - TZ=${DEFAULT_TIMEZONE:-Etc/UTC}
       - ICECAST_TRAEFIK_HOST
       - ICECAST_INSTANCE
       - ICECAST_IP_SOURCERANGE
@@ -34,6 +35,8 @@ services:
       - config:/config
 
   icecast:
+    environment:
+      - TZ=${DEFAULT_TIMEZONE:-Etc/UTC}
     depends_on: ['config']
     build:
       context: icecast

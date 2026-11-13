@@ -17,6 +17,7 @@ services:
     volumes:
       - traefik:/data:z
     environment:
+      - TZ=${DEFAULT_TIMEZONE:-Etc/UTC}
       - DOCKER_CONTEXT=${DOCKER_CONTEXT}
       - DOCKER_COMPOSE_PROFILES=${TRAEFIK_DOCKER_COMPOSE_PROFILES}
       - TRAEFIK_SEND_ANONYMOUS_USAGE=${TRAEFIK_SEND_ANONYMOUS_USAGE:-false}
@@ -170,6 +171,7 @@ services:
     restart: unless-stopped
     network_mode: ${TRAEFIK_NETWORK_MODE:-host}
     environment:
+      - TZ=${DEFAULT_TIMEZONE:-Etc/UTC}
       - TRAEFIK_UID=${TRAEFIK_UID}
       - TRAEFIK_GID=${TRAEFIK_GID}
       - TRAEFIK_DOCKER_GID=${TRAEFIK_DOCKER_GID}
@@ -200,6 +202,7 @@ services:
     cap_drop:
       - ALL
     environment:
+      - TZ=${DEFAULT_TIMEZONE:-Etc/UTC}
       - GEOIPUPDATE_ACCOUNT_ID=${TRAEFIK_GEOIPUPDATE_ACCOUNT_ID}
       - GEOIPUPDATE_LICENSE_KEY=${TRAEFIK_GEOIPUPDATE_LICENSE_KEY}
       - GEOIPUPDATE_EDITION_IDS=${TRAEFIK_GEOIPUPDATE_EDITION_IDS}
@@ -247,6 +250,7 @@ services:
     build:
       context: wireguard-client-config
     environment:
+      - TZ=${DEFAULT_TIMEZONE:-Etc/UTC}
       - TRAEFIK_VPN_ENTRYPOINT_HOST
       - TRAEFIK_VPN_CLIENT_INTERFACE_ADDRESS
       - TRAEFIK_VPN_CLIENT_INTERFACE_PRIVATE_KEY
@@ -290,6 +294,7 @@ services:
     image: ${TRAEFIK_ERROR_PAGES_IMAGE}
     restart: unless-stopped
     environment:
+      TZ: ${DEFAULT_TIMEZONE:-Etc/UTC}
       TEMPLATE_NAME: ${TRAEFIK_ERROR_PAGES_TEMPLATE}
       # Respond with the page's status code (e.g. 404), not 200:
       SEND_SAME_HTTP_CODE: "true"
@@ -312,6 +317,8 @@ services:
 
   ## Build a base image from upstream git repository:
   acme-sh-base:
+    environment:
+      - TZ=${DEFAULT_TIMEZONE:-Etc/UTC}
     image: local/acme-sh-base-image:${TRAEFIK_ACME_SH_GIT_TAG}
     build:
       context: ${TRAEFIK_ACME_SH_GIT_REPO}.git#${TRAEFIK_ACME_SH_GIT_TAG}
@@ -342,6 +349,7 @@ services:
       - "traefik_certs:/certs:z"
       - "traefik:/traefik:z"
     environment:
+      - TZ=${DEFAULT_TIMEZONE:-Etc/UTC}
       - TRAEFIK_ACME_CERT_DOMAINS
       - TRAEFIK_ACME_SH_ACME_CA
       - TRAEFIK_ACME_SH_ACME_DIRECTORY

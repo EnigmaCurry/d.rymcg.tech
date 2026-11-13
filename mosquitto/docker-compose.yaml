@@ -9,6 +9,7 @@ services:
     security_opt:
       - no-new-privileges:true
     environment: 
+      - TZ=${DEFAULT_TIMEZONE:-Etc/UTC}
       - MOSQUITTO_DOCKER_CONTEXT
       - MOSQUITTO_TRAEFIK_HOST
       - MOSQUITTO_ACL_DISABLE
@@ -36,6 +37,7 @@ services:
       interval: 10s
       timeout: 5s
     environment:
+      - TZ=${DEFAULT_TIMEZONE:-Etc/UTC}
       - MOSQUITTO_TRAEFIK_HOST
     volumes:
       - mosquitto:/mosquitto/config:ro
@@ -47,6 +49,7 @@ services:
       args:
         STEP_CLI_IMAGE: ${MOSQUITTO_STEP_CLI_IMAGE}
     environment:
+      - TZ=${DEFAULT_TIMEZONE:-Etc/UTC}
       - MOSQUITTO_ACME_SERVER
       - MOSQUITTO_ACME_EMAIL
       - MOSQUITTO_TRAEFIK_HOST

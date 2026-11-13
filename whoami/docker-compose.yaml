@@ -1,5 +1,7 @@
 services:
   whoami:
+    environment:
+      - TZ=${DEFAULT_TIMEZONE:-Etc/UTC}
     # Docker image is configurable per config file:
     image: ${WHOAMI_IMAGE}
     # whoami needs no special privileges, so we drop them all. see SECURITY.md for details.

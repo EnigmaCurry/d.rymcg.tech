@@ -1,6 +1,8 @@
 
 services:
   web:
+    environment:
+      - TZ=${DEFAULT_TIMEZONE:-Etc/UTC}
     image: localhost/redbean:${REDBEAN_TARGET}-${REDBEAN_VERSION}
     build:
       context: redbean

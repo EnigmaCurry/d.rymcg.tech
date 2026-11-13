@@ -18,7 +18,7 @@ through an SSH Docker context.
   `DRT_ENV_DIR` is set, the file is at
   `$DRT_ENV_DIR/<project>/.env_<CONTEXT>_<INSTANCE>` instead.
 - The root `.env_<CONTEXT>` holds context-wide settings such as
-  `ROOT_DOMAIN` and `PUBLIC_HTTPS_PORT`.
+  `ROOT_DOMAIN`, `PUBLIC_HTTPS_PORT` and `DEFAULT_TIMEZONE`.
 - `<project>/docker-compose.instance.yaml` is a ytt template. Each
   project's `override-hook` (in its `Makefile`) maps `.env` variables
   into it, and it renders to
@@ -125,6 +125,11 @@ d.rymcg.tech make <project> destroy                     # remove containers AND 
    `docker-compose.instance.yaml` and the project `Makefile` together:
    a new variable usually needs all of them (the `override-hook` passes
    it to ytt). Document the variable in `.env-dist`.
+   Every service sets `TZ=${DEFAULT_TIMEZONE:-Etc/UTC}` (the root
+   `DEFAULT_TIMEZONE`, exported by `make`), except database and cache
+   sidecars, which stay on UTC. A project that needs its own override
+   uses `TZ=${<PREFIX>_TIMEZONE:-${DEFAULT_TIMEZONE:-Etc/UTC}}` with a
+   blank `<PREFIX>_TIMEZONE=` in `.env-dist`.
 2. Render the config for each option combination you touched (auth on
    and off, each profile, etc.). Use `reconfigure` to flip options and
    `config-render` to check the result:

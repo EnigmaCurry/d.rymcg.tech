@@ -14,6 +14,7 @@ services:
     volumes:
       - config:/data
     environment:
+      - TZ=${DEFAULT_TIMEZONE:-Etc/UTC}
       - NTFY_TRAEFIK_HOST
       - NTFY_AUTH_DEFAULT_ACCESS
       - NTFY_ATTACHMENT_TOTAL_SIZE_LIMIT

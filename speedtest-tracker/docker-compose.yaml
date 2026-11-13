@@ -3,6 +3,7 @@ services:
     image: ${SPEEDTEST_TRACKER_IMAGE}
     restart: unless-stopped
     environment:
+      - TZ=${DEFAULT_TIMEZONE:-Etc/UTC}
       - APP_KEY=${SPEEDTEST_TRACKER_APP_KEY}
       - DB_CONNECTION=sqlite
       - DISPLAY_TIMEZONE=${SPEEDTEST_TRACKER_DISPLAY_TIMEZONE:-${DEFAULT_TIMEZONE:-Etc/UTC}}

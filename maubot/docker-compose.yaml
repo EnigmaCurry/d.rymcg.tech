@@ -11,6 +11,7 @@ services:
     security_opt:
       - no-new-privileges:true
     environment:
+      - TZ=${DEFAULT_TIMEZONE:-Etc/UTC}
       - PRINT_CONFIG
       - MAUBOT_TRAEFIK_HOST
       - MAUBOT_ADMIN_USER
@@ -22,6 +23,8 @@ services:
       - "backup-volume.stop-during-backup=true"
 
   maubot:
+    environment:
+      - TZ=${DEFAULT_TIMEZONE:-Etc/UTC}
     depends_on:
       config:
         condition: service_completed_successfully

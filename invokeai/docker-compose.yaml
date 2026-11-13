@@ -10,6 +10,7 @@ x-invokeai: &invokeai
         - GPU_DRIVER=${INVOKEAI_GPU_DRIVER}
         - VERSION=${INVOKEAI_IMAGE_TAG}
     environment:
+      - TZ=${DEFAULT_TIMEZONE:-Etc/UTC}
       - INVOKEAI_ROOT=/invokeai
       #- HF_HOME
     volumes:
@@ -41,6 +42,7 @@ services:
   invokeai-rocm:
     <<: *invokeai
     environment:
+      - TZ=${DEFAULT_TIMEZONE:-Etc/UTC}
       - AMD_VISIBLE_DEVICES=all
       - RENDER_GROUP_ID=${INVOKEAI_RENDER_GROUP_ID}
     devices:

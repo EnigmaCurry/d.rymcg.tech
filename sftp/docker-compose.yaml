@@ -5,6 +5,8 @@ volumes:
 
 services:
   config:
+    environment:
+      - TZ=${DEFAULT_TIMEZONE:-Etc/UTC}
     image: sftp-sftp
     build:
       context: ./
@@ -29,6 +31,7 @@ services:
     ports:
       - ${SFTP_PORT}:2000
     environment:
+      - TZ=${DEFAULT_TIMEZONE:-Etc/UTC}
       - SFTP_KEYFILE_URL
       - SFTP_USERS
     labels:

@@ -390,16 +390,20 @@ app_functional_tests() {
     esac
 }
 
+## Apps that are themselves a database, kept on UTC on purpose:
+TZ_EXEMPT_APPS="postgresql"
+
 test_timezone() {
     ## test_timezone <app> - check that every running container of the app
     ## (all instances) follows the root DEFAULT_TIMEZONE (E2E_TIMEZONE).
     ## Per container:
     ##   ok      - TZ env matches, and `date +%z` inside gives the expected offset
     ##   na      - TZ env matches, but the image has no `date` to confirm it
-    ##   missing - no TZ env at all (project not migrated yet; not a failure)
+    ##   missing - no TZ env at all (database/cache sidecars stay on UTC)
     ##   bad     - TZ env differs, or the image ignores it (no tzdata)
-    ## Records FAIL if any is bad, SKIP if none is configured, else PASS.
-    ## Returns 1 only on FAIL.
+    ## Records FAIL if any is bad, or if no container has TZ at all (unless
+    ## the app is in TZ_EXEMPT_APPS); SKIP if the app has no running
+    ## containers; else PASS. Returns 1 only on FAIL.
     local app="$1" url="tz://${E2E_TIMEZONE}" out
     out=$(e2e_remote_sh "app=$(printf '%q' "${app}") tz=$(printf '%q' "${E2E_TIMEZONE}")
 $(cat <<'EOF'
@@ -432,8 +436,11 @@ EOF
     if [[ "${rest}" == *" "* ]]; then
         record_test FAIL "${app}:timezone" "${url}" "${detail}"
         return 1
-    elif (( ok + na == 0 )); then
-        record_test SKIP "${app}:timezone" "${url}" "no TZ configured (${detail})"
+    elif (( ok + na + missing == 0 )); then
+        record_test SKIP "${app}:timezone" "${url}" "no running containers"
+    elif (( ok + na == 0 )) && [[ " ${TZ_EXEMPT_APPS} " != *" ${app} "* ]]; then
+        record_test FAIL "${app}:timezone" "${url}" "no TZ configured (${detail})"
+        return 1
     else
         record_test PASS "${app}:timezone" "${url}" "${detail}"
     fi

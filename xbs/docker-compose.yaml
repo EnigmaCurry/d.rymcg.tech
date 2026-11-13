@@ -6,6 +6,7 @@ services:
     security_opt:
       - no-new-privileges:true
     environment:
+      - TZ=${DEFAULT_TIMEZONE:-Etc/UTC}
       - PRINT_CONFIG
       - XBS_MESSAGE
       - XBS_LOCATION
@@ -49,6 +50,7 @@ services:
     security_opt:
       - no-new-privileges:true
     environment:
+      - TZ=${DEFAULT_TIMEZONE:-Etc/UTC}
       - "XBROWSERSYNC_DB_PWD=${XBS_DB_PASSWORD}"
       - "XBROWSERSYNC_DB_USER=${XBS_DB_USERNAME}"
     healthcheck:

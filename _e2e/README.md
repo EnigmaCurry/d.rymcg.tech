@@ -200,12 +200,14 @@ app, across all its instances, is checked:
   expected offset.
 * **na:** `TZ` matches, but the image has no `date` to confirm it
   (distroless/scratch).
-* **missing:** no `TZ` at all. The project hasn't been migrated to
-  `DEFAULT_TIMEZONE` yet; this is reported but doesn't fail.
+* **missing:** no `TZ` at all. Database and cache sidecars stay on UTC
+  on purpose, so this is counted but doesn't fail.
 * **bad:** `TZ` differs, or the image ignores it (typically no tzdata).
   This fails the app.
 
-An app with no `TZ` on any container reports SKIP. Containers only pick up
+An app with no `TZ` on any container fails, unless it is itself a
+database (`TZ_EXEMPT_APPS` in `lib/platform.sh`). An app with no running
+containers reports SKIP. Containers only pick up
 a changed timezone when they are recreated, so use `--reinstall` after
 changing `E2E_TIMEZONE` on a kept droplet.
 

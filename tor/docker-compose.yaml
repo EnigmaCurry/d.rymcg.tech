@@ -8,6 +8,7 @@ services:
     restart: unless-stopped
     network_mode: host
     environment:
+      - TZ=${DEFAULT_TIMEZONE:-Etc/UTC}
       - TOR_HIDDEN_SERVICES=${TOR_HIDDEN_SERVICES}
       - TOR_NGINX_PORT_BASE=${TOR_NGINX_PORT_BASE:-10080}
     volumes:
@@ -20,6 +21,7 @@ services:
     restart: unless-stopped
     network_mode: host
     environment:
+      - TZ=${DEFAULT_TIMEZONE:-Etc/UTC}
       - TOR_HIDDEN_SERVICES=${TOR_HIDDEN_SERVICES}
       - TOR_NGINX_PORT_BASE=${TOR_NGINX_PORT_BASE:-10080}
     labels: []

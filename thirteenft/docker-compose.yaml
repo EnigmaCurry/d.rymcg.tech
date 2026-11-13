@@ -1,5 +1,7 @@
 services:
   thirteenft:
+    environment:
+      - TZ=${DEFAULT_TIMEZONE:-Etc/UTC}
     image: ${THIRTEENFT_IMAGE}
     cap_drop:
       - ALL

@@ -4,6 +4,8 @@ volumes:
 
 services:
   config:
+    environment:
+      - TZ=${DEFAULT_TIMEZONE:-Etc/UTC}
     build:
       context: config
     env_file: ${ENV_FILE}
@@ -13,6 +15,8 @@ services:
       - "backup-volume.stop-during-backup=true"
 
   matterbridge:
+    environment:
+      - TZ=${DEFAULT_TIMEZONE:-Etc/UTC}
     depends_on: ['config']
     image: ${MATTERBRIDGE_IMAGE}
     volumes:

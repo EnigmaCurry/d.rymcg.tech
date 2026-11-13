@@ -11,6 +11,7 @@ services:
     depends_on:
       - mysql
     environment:
+      TZ: ${DEFAULT_TIMEZONE:-Etc/UTC}
       YOURLS_DB_PASS: ${MYSQL_ROOT_PASSWORD}
       YOURLS_SITE: https://${YOURLS_TRAEFIK_HOST}
       YOURLS_USER: ${YOURLS_USER}

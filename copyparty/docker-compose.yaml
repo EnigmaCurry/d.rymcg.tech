@@ -11,6 +11,7 @@ services:
     user: "0:0"
     restart: "no"
     environment:
+      - TZ=${DEFAULT_TIMEZONE:-Etc/UTC}
       - FORCE_REGENERATE=true
       - COPYPARTY_ADMIN_USER
       - COPYPARTY_ADMIN_PASSWORD
@@ -55,6 +56,7 @@ services:
       - no-new-privileges:true
     restart: "unless-stopped"
     environment:
+      - TZ=${DEFAULT_TIMEZONE:-Etc/UTC}
       - COPYPARTY_DATA_DIR=/data
       - COPYPARTY_CONFIG=/etc/copyparty/copyparty.conf
       - COPYPARTY_MNT_ROOT=/data/mnt

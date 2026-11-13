@@ -19,6 +19,7 @@ services:
     security_opt:
       - no-new-privileges:true
     environment:
+      - TZ=${DEFAULT_TIMEZONE:-Etc/UTC}
       - SQLITE_PATH=/app/data/homelab.db
       - UPLOAD_DIR=/app/data/uploads
       - SECRET_KEY=${HOMELABLE_SECRET_KEY}
@@ -38,6 +39,8 @@ services:
     labels: []
 
   frontend:
+    environment:
+      - TZ=${DEFAULT_TIMEZONE:-Etc/UTC}
     image: ${HOMELABLE_FRONTEND_IMAGE}
     restart: unless-stopped
     depends_on:
@@ -66,6 +69,7 @@ services:
     depends_on:
       - backend
     environment:
+      - TZ=${DEFAULT_TIMEZONE:-Etc/UTC}
       - MCP_API_KEY=${HOMELABLE_MCP_API_KEY}
       - MCP_SERVICE_KEY=${HOMELABLE_MCP_SERVICE_KEY}
     # BACKEND_URL (and extra_hosts in host mode) is rendered per

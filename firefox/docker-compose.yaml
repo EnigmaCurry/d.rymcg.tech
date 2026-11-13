@@ -16,6 +16,7 @@ services:
       - net.ipv4.ip_unprivileged_port_start=1024
     restart: unless-stopped
     environment:
+      - TZ=${DEFAULT_TIMEZONE:-Etc/UTC}
       - PUID=${FIREFOX_UID}
       - PGID=${FIREFOX_GID}
       - WIREGUARD_INSTANCE=${FIREFOX_WIREGUARD_INSTANCE}

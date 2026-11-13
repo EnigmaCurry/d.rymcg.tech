@@ -17,6 +17,7 @@ services:
     security_opt:
       - no-new-privileges:true
     environment:
+      - TZ=${DEFAULT_TIMEZONE:-Etc/UTC}
       - CPAD_MAIN_DOMAIN=https://${CRYPTPAD_TRAEFIK_HOST}
       - CPAD_SANDBOX_DOMAIN=https://${CRYPTPAD_SANDBOX_HOST}
       - CRYPTPAD_ADMIN_EMAIL

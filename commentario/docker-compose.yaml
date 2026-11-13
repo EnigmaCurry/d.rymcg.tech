@@ -9,6 +9,7 @@ services:
     security_opt:
       - no-new-privileges:true
     environment:
+      - TZ=${DEFAULT_TIMEZONE:-Etc/UTC}
       - COMMENTARIO_POSTGRES_PASSWORD
       - COMMENTARIO_POSTGRES_DB
       - COMMENTARIO_POSTGRES_USER=postgres
@@ -31,6 +32,7 @@ services:
     sysctls:
       - net.ipv4.ip_unprivileged_port_start=1024
     environment:
+      TZ: ${DEFAULT_TIMEZONE:-Etc/UTC}
       BASE_URL: https://${COMMENTARIO_TRAEFIK_HOST}
       SECRETS_FILE: "/config/secrets.yaml"
       EMAIL_FROM: "${COMMENTARIO_EMAIL_FROM}"

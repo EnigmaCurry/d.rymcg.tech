@@ -15,6 +15,7 @@ services:
       - NET_BIND_SERVICE
     restart: unless-stopped
     environment:
+      - TZ=${DEFAULT_TIMEZONE:-Etc/UTC}
       - WEBSOCKET_ENABLED=true
       - SIGNUPS_ALLOWED=${VAULTWARDEN_SIGNUPS_ALLOWED}
       - SHOW_PASSWORD_HINT=${VAULTWARDEN_SHOW_PASSWORD_HINT}

@@ -10,7 +10,8 @@ services:
       - net.ipv4.ip_unprivileged_port_start=1024
     restart: unless-stopped
     # All env vars are defined in the template: docker-compose.instance.yaml
-    environment: []
+    environment:
+      - TZ=${DEFAULT_TIMEZONE:-Etc/UTC}
     # All labels are defined in the template: docker-compose.instance.yaml
     labels: []
     # All volumes are defined in the template: docker-compose.instance.yaml
