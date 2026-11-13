@@ -11,6 +11,15 @@ config-hook:
 	@${BIN}/reconfigure_ask ${ENV_FILE} CADDY_TRAEFIK_HOST "Enter the caddy domain name" caddy${INSTANCE_URL_SUFFIX}.${ROOT_DOMAIN}
 	@${BIN}/reconfigure ${ENV_FILE} CADDY_INSTANCE=$${instance:-default}
 	@echo ""
+#### Choose who terminates TLS (traefik is the default, passthrough is experimental):
+	@${BIN}/reconfigure_choose ${ENV_FILE} CADDY_TLS_MODE "Who should terminate TLS? (traefik is recommended; passthrough is experimental, Caddy gets its own cert)" "traefik" "passthrough"
+	@echo ""
+#### Configure auth (only available when Traefik terminates TLS):
+	@if [ "$$(${BIN}/dotenv -f ${ENV_FILE} get CADDY_TLS_MODE)" = "passthrough" ]; then \
+		echo "TLS passthrough mode: Traefik auth/mTLS middlewares are not available, skipping auth config."; \
+	else \
+		${BIN}/reconfigure_auth ${ENV_FILE} CADDY; \
+	fi
 
 .PHONY: override-hook
 override-hook:
@@ -24,7 +33,7 @@ override-hook:
 ####                         # (this hardcodes the string into docker-compose.override.yaml)
 ####   name=@VARIABLE_NAME   # sets the template 'name' field to the literal string '${VARIABLE_NAME}'
 ####                         # (used for regular docker-compose expansion of env vars by name.)
-	@${BIN}/docker_compose_override ${ENV_FILE} project=:caddy instance=@CADDY_INSTANCE traefik_host=@CADDY_TRAEFIK_HOST ip_sourcerange=@CADDY_IP_SOURCERANGE
+	@${BIN}/docker_compose_override ${ENV_FILE} project=:caddy instance=@CADDY_INSTANCE traefik_host=@CADDY_TRAEFIK_HOST ip_sourcerange=@CADDY_IP_SOURCERANGE tls_mode=CADDY_TLS_MODE http_auth=CADDY_HTTP_AUTH http_auth_var=@CADDY_HTTP_AUTH oauth2=CADDY_OAUTH2 authorized_group=CADDY_OAUTH2_AUTHORIZED_GROUP enable_mtls_auth=CADDY_MTLS_AUTH mtls_authorized_certs=CADDY_MTLS_AUTHORIZED_CERTS
 
 .PHONY: shell
 shell:
