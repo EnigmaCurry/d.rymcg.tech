@@ -26,7 +26,7 @@ CHARACTER_PROMPTS = {
 }
 
 # Function to query LLM with a preamble and history, limiting context to the last 3 exchanges
-def query_llm(input_text, history=None, model="codestral-22b-v0.1", character_prompt="shakespearean-tutor"):
+def query_llm(input_text, history=None, model="codestral-22b-v0.1", character_prompt="shakespearean"):
     if history is None:
         history = []
 
@@ -41,8 +41,9 @@ def query_llm(input_text, history=None, model="codestral-22b-v0.1", character_pr
     messages = [{"role": "system", "content": preamble_prompt}]
 
     # Append the user and assistant messages from the conversation history
-    messages += [{"role": "user", "content": user_message} if i % 2 == 0 else {"role": "assistant", "content": assistant_message}
-                 for i, (user_message, assistant_message) in enumerate(truncated_history)]
+    for user_message, assistant_message in truncated_history:
+        messages.append({"role": "user", "content": user_message})
+        messages.append({"role": "assistant", "content": assistant_message})
 
     # Add the current user input to the conversation
     messages.append({"role": "user", "content": f"Current question: {input_text}"})
@@ -123,7 +124,7 @@ def format_chat_history(history):
 
 # Reset function
 def reset_chat():
-    return "", gr.update(value=None, visible=False), [], gr.update(value=""), gr.update(visible=True), gr.update(js="stopAudioAndFocus()")
+    return "", gr.update(value=None, visible=False), [], gr.update(value=""), gr.update(visible=True)
 
 # Function to validate input
 def check_input_validity(input_text):
@@ -189,7 +190,7 @@ gradio-app {
 
 def chat_with_tts(input_text, history, model, speech_synthesis_enabled, voice, character_prompt):
     if not input_text.strip():
-        return gr.update(value=""), gr.update(), gr.update(), gr.update(value="")  # Clear everything
+        return gr.update(), gr.update(), history, gr.update(value=""), gr.update()  # Nothing to do
 
     # Hide the submit button when submitting
     submit_button_visibility = gr.update(visible=False)
@@ -216,7 +217,7 @@ def chat_with_tts(input_text, history, model, speech_synthesis_enabled, voice, c
     )
 
 # Build the Gradio interface
-with gr.Blocks(title="Voice chat with LM Studio", css=css) as interface:
+with gr.Blocks(title="Voice chat with LM Studio") as interface:
     textbox = gr.Textbox(
         lines=1,
         placeholder="Type your question and then press Enter.",
@@ -231,7 +232,7 @@ with gr.Blocks(title="Voice chat with LM Studio", css=css) as interface:
     # Collapsible settings section
     with gr.Accordion("Settings", open=False):
         model_dropdown = gr.Dropdown(label="Model (be patient when switching)", choices=MODELS, value=MODELS[0])
-        character_prompt_dropdown = gr.Dropdown(label="Character prompt", choices=list(CHARACTER_PROMPTS.keys()), value="shakespearean-tutor")
+        character_prompt_dropdown = gr.Dropdown(label="Character prompt", choices=list(CHARACTER_PROMPTS.keys()), value="shakespearean")
         speech_synthesis_toggle = gr.Checkbox(label="Speech Synthesis", value=True)
         voice_dropdown = gr.Dropdown(label="Voice", choices=list(VOICES.keys()), value="en_US-john-medium", visible=True)
       
@@ -262,4 +263,4 @@ with gr.Blocks(title="Voice chat with LM Studio", css=css) as interface:
     textbox.submit(chat_with_tts, inputs=[textbox, history, model_dropdown, speech_synthesis_toggle, voice_dropdown, character_prompt_dropdown],
                    outputs=[chat_history, audio_output, history, textbox, submit_button])
 
-launch(interface)
+launch(interface, css=css)

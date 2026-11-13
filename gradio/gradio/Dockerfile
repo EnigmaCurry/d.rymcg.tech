@@ -1,5 +1,5 @@
 # Stage 1: Build Piper and download voice model (optional based on an ARG)
-FROM python:3.9-slim AS builder
+FROM python:3.12-slim AS builder
 
 # Argument to determine whether to build Piper
 ARG BUILD_PIPER=true
@@ -46,7 +46,7 @@ RUN if [ "$BUILD_PIPER" = "true" ]; then \
 
 
 # Stage 2: Final runtime image
-FROM python:3.9-slim
+FROM python:3.12-slim
 
 # Set working directory
 WORKDIR /app
