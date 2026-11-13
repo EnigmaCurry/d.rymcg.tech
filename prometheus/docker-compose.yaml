@@ -37,6 +37,7 @@ services:
     pid: host
     restart: unless-stopped
     volumes:
+      - /usr/share/zoneinfo:/usr/share/zoneinfo:ro
       - '/proc:/host/proc:ro'
       - '/sys:/host/sys:ro'
       - '/:/rootfs:ro'
@@ -58,6 +59,7 @@ services:
     image: prom/prometheus:${PROMETHEUS_VERSION}
     restart: unless-stopped
     volumes:
+      - /usr/share/zoneinfo:/usr/share/zoneinfo:ro
       - prometheus_config:/etc/prometheus
       - prometheus_data:/prometheus
     command:

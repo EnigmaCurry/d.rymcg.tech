@@ -37,6 +37,7 @@ services:
       SECRETS_FILE: "/config/secrets.yaml"
       EMAIL_FROM: "${COMMENTARIO_EMAIL_FROM}"
     volumes:
+      - /usr/share/zoneinfo:/usr/share/zoneinfo:ro
       - config:/config
     restart: unless-stopped
     networks:

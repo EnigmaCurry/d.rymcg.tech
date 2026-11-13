@@ -28,6 +28,7 @@ services:
       retries: 3
       start_period: 30s
     volumes:
+      - /usr/share/zoneinfo:/usr/share/zoneinfo:ro
       - data:/home/node/trilium-data
     labels: []
 

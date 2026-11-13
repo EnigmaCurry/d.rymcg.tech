@@ -12,6 +12,7 @@ services:
       - ACME_CA=${CADDY_ACME_CA}
       - DOMAIN=${CADDY_TRAEFIK_HOST}
     volumes:
+      - /usr/share/zoneinfo:/usr/share/zoneinfo:ro
       - caddy_data:/data
       - caddy_config:/config
       - caddy_html:/srv

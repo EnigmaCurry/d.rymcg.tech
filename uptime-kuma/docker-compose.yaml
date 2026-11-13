@@ -13,6 +13,7 @@ services:
     restart: unless-stopped
     networks: [sandbox]
     volumes:
+      - /usr/share/zoneinfo:/usr/share/zoneinfo:ro
       - /var/run/docker.sock:/var/run/docker.sock:ro,z
     environment:
       - TZ=${DEFAULT_TIMEZONE:-Etc/UTC}

@@ -55,6 +55,7 @@ services:
     #  - "1704:1704"
     #  - "1705:1705"
     volumes:
+      - /usr/share/zoneinfo:/usr/share/zoneinfo:ro
       - snapserver_config:/etc/snapserver
     restart: unless-stopped
     labels:

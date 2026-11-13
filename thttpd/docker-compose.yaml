@@ -19,4 +19,5 @@ services:
     # Labels are defined in docker-compose.instance.yaml
     labels: []
     volumes:
+      - /usr/share/zoneinfo:/usr/share/zoneinfo:ro
       - files:/home/web

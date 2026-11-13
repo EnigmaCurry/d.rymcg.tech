@@ -17,6 +17,8 @@ services:
       - "backup-volume.stop-during-backup=true"
 
   postgres_backup:
+    volumes:
+      - /usr/share/zoneinfo:/usr/share/zoneinfo:ro
     build:
       context: ${NEXTCLOUD_BACKUP_POSTGRES_GIT_SRC}
     restart: unless-stopped

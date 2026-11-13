@@ -35,6 +35,8 @@ services:
       - "backup-volume.stop-during-backup=true"
 
   app:
+    volumes:
+      - /usr/share/zoneinfo:/usr/share/zoneinfo:ro
     image: ${PLAUSIBLE_IMAGE}
     restart: unless-stopped
     # This command works, but seems like it could be simplified. TODO.

@@ -61,6 +61,7 @@ services:
       start_period: "30s"
     restart: "unless-stopped"
     volumes:
+      - /usr/share/zoneinfo:/usr/share/zoneinfo:ro
       - "xbs-config:/usr/src/api/config"
     labels: []
 

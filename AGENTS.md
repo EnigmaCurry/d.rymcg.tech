@@ -129,7 +129,9 @@ d.rymcg.tech make <project> destroy                     # remove containers AND 
    `DEFAULT_TIMEZONE`, exported by `make`), except database and cache
    sidecars, which stay on UTC. A project that needs its own override
    uses `TZ=${<PREFIX>_TIMEZONE:-${DEFAULT_TIMEZONE:-Etc/UTC}}` with a
-   blank `<PREFIX>_TIMEZONE=` in `.env-dist`.
+   blank `<PREFIX>_TIMEZONE=` in `.env-dist`. If the image has no tzdata
+   (the e2e `app:timezone` check reports `+0000`), also mount
+   `/usr/share/zoneinfo:/usr/share/zoneinfo:ro`.
 2. Render the config for each option combination you touched (auth on
    and off, each profile, etc.). Use `reconfigure` to flip options and
    `config-render` to check the result:

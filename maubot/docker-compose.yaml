@@ -34,5 +34,6 @@ services:
       - no-new-privileges:true
     restart: unless-stopped
     volumes:
+      - /usr/share/zoneinfo:/usr/share/zoneinfo:ro
       - data:/data
     labels: []

@@ -107,6 +107,7 @@ services:
       - PICTRS__MEDIA__GIF__MAX_FRAME_COUNT=400
     user: 991:991
     volumes:
+      - /usr/share/zoneinfo:/usr/share/zoneinfo:ro
       - lemmy-pictrs:/mnt:Z
       - lemmy-pictrs-config:/etc/pictrs
     security_opt:
