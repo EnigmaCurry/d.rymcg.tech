@@ -99,7 +99,14 @@ from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from pathlib import Path
 
-from rich.console import Console
+try:
+    from rich.console import Console
+except ImportError as e:
+    sys.exit(
+        f"agent_readiness.py: missing Python dependency ({e.name}).\n"
+        f"Install the d.rymcg.tech Python dependencies first (requires uv):\n"
+        f"    make -C {Path(__file__).resolve().parent.parent} python-deps"
+    )
 
 
 CACHE_DIR = Path.home() / ".local" / "d.rymcg.tech"
