@@ -983,6 +983,9 @@ app_test_vars() {
             else
                 echo "OAUTH2_PROXY_EXTRA_CA_CERT_URLS="
             fi ;;
+        ## Optional: a Tor hidden service for the whoami-tor instance (proxied
+        ## by the tor app's nginx to its Traefik host; see lib/platform.sh):
+        tor) echo "TOR_HIDDEN_SERVICES=[[\"${E2E_TOR_SERVICE}\",\"$(E2E_TOR_HOST)\"]]" ;;
         ## Logs in with the platform Forgejo; only the e2e org may log in:
         woodpecker)
             echo "WOODPECKER_GRPC_HOST=woodpecker-grpc.${root}"
@@ -1121,9 +1124,12 @@ test -f ${app}/.env_${E2E_NAME}_default || make -C ${app} config-dist instance=d
 host_var=\${prefix}_TRAEFIK_HOST
 grep -q \"^\${host_var}=\" ${app}/.env-dist || \
   host_var=\$(grep -oP \"^\${prefix}_\\w*TRAEFIK_HOST(?==)\" ${app}/.env-dist | head -n 1 || true)
-## ... or just <PREFIX>_HOST (e.g. OAUTH2_PROXY_HOST):
+## ... or just <PREFIX>_HOST (e.g. OAUTH2_PROXY_HOST). Apps with no route
+## of their own (e.g. tor) have none:
 test -n \"\${host_var}\" || host_var=\${prefix}_HOST
-make -C ${app} reconfigure var=\${host_var}=${host} instance=default
+if grep -q \"^\${host_var}=\" ${app}/.env-dist; then
+  make -C ${app} reconfigure var=\${host_var}=${host} instance=default
+fi
 ## Apps doing their own ACME (TLS passthrough, e.g. caddy) use the test's CA:
 if grep -q \"^\${prefix}_ACME_CA=\" ${app}/.env-dist; then
   make -C ${app} reconfigure var=\${prefix}_ACME_CA=${E2E_ACME_CA} instance=default
@@ -1267,6 +1273,9 @@ probe_target() {
         ## A bare systemd machine: nothing serves its route until you install
         ## a web server in it (systemd itself is checked by its tests):
         sysbox-systemd) PROBE_KIND=container ;;
+        ## No route of its own: its containers must be up (the hidden
+        ## service is checked by its tests):
+        tor) PROBE_KIND=container ;;
         ## Its web admin is off by default (no HTTPS route); syncing runs on
         ## its own port 22000:
         syncthing) PROBE_KIND=container ;;
@@ -1642,7 +1651,8 @@ choose_apps() {
             d="${d%/}"
             [[ -f "${d}/.env-dist" && -f "${d}/Makefile" ]] || continue
             ## Web apps, plus oauth2-proxy (its host var is OAUTH2_PROXY_HOST):
-            grep -qE '_TRAEFIK_HOST=' "${d}/.env-dist" || [[ "${d}" == oauth2-proxy ]] || continue
+            ## (and tor, which publishes hidden services):
+            grep -qE '_TRAEFIK_HOST=' "${d}/.env-dist" || [[ "${d}" =~ ^(oauth2-proxy|tor)$ ]] || continue
             echo "${d}"
         done | sort
     )

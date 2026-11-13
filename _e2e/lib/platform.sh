@@ -30,6 +30,12 @@ E2E_OIDC_APP=e2e-oauth2-proxy
 E2E_OAUTH2_INSTANCE=oauth
 E2E_OAUTH2_HOST() { echo "whoami-oauth.${E2E_ROOT_DOMAIN}"; }
 
+## The whoami instance published as a Tor hidden service (by the tor app):
+E2E_TOR_INSTANCE=tor
+E2E_TOR_HOST() { echo "whoami-tor.${E2E_ROOT_DOMAIN}"; }
+## The hidden service's name in TOR_HIDDEN_SERVICES (its HiddenServiceDir):
+E2E_TOR_SERVICE=whoami
+
 ## The Let's Encrypt staging roots, trusted by oauth2-proxy when the test uses
 ## the staging CA (it fetches Forgejo's OIDC discovery doc server-side):
 LE_STAGING_ROOTS="https://letsencrypt.org/certs/staging/letsencrypt-stg-root-x1.pem,https://letsencrypt.org/certs/staging/letsencrypt-stg-root-x2.pem"
@@ -98,6 +104,7 @@ app_post_setup() {
         forgejo) platform_setup_forgejo ;;
         oauth2-proxy) platform_setup_oauth2_whoami ;;
         minio) platform_setup_minio ;;
+        tor) platform_setup_tor_whoami ;;
     esac
 }
 
@@ -224,21 +231,33 @@ pset S3_HOST minio.${E2E_ROOT_DOMAIN}
 rm -rf \${pdir}"
 }
 
-platform_setup_oauth2_whoami() {
-    ## A second whoami instance with OAuth2 turned on, authorized for the
-    ## e2e team only. The plain whoami instance stays open (its probe is a
-    ## plain 200):
-    local inst="${E2E_OAUTH2_INSTANCE}" host
-    host=$(E2E_OAUTH2_HOST)
-    local envf="whoami/.env_${E2E_NAME}_${inst}"
-    echo "Installing whoami instance '${inst}' (${host}) behind OAuth2 ..."
+install_whoami_instance() {
+    ## install_whoami_instance <instance> <host> [VAR=value ...] - an extra
+    ## whoami instance for a test (the plain whoami instance is unchanged):
+    local inst="$1" host="$2"; shift 2
+    local envf="whoami/.env_${E2E_NAME}_${inst}" vars="" v
+    for v in "$@"; do vars+=" $(printf '%q' "${v}")"; done
+    echo "Installing whoami instance '${inst}' (${host}) ..."
     e2e_remote_sh "test -f ${envf} || make -C whoami config-dist instance=${inst}
-_scripts/reconfigure ${envf} WHOAMI_TRAEFIK_HOST=${host} WHOAMI_INSTANCE=${inst} \\
-  WHOAMI_OAUTH2=true WHOAMI_OAUTH2_AUTHORIZED_GROUP=${E2E_OIDC_ORG}:${E2E_OIDC_TEAM} \\
-  WHOAMI_IP_SOURCERANGE=${APP_SOURCERANGE}
+_scripts/reconfigure ${envf} WHOAMI_TRAEFIK_HOST=${host} WHOAMI_INSTANCE=${inst}${vars}
 make -C whoami override instance=${inst}
 make -C whoami install instance=${inst}
 make -C whoami wait TIMEOUT=${E2E_TIMEOUT} instance=${inst}"
+}
+
+platform_setup_oauth2_whoami() {
+    ## whoami with OAuth2 turned on, authorized for the e2e team only:
+    install_whoami_instance "${E2E_OAUTH2_INSTANCE}" "$(E2E_OAUTH2_HOST)" \
+        WHOAMI_OAUTH2=true "WHOAMI_OAUTH2_AUTHORIZED_GROUP=${E2E_OIDC_ORG}:${E2E_OIDC_TEAM}" \
+        "WHOAMI_IP_SOURCERANGE=${APP_SOURCERANGE}"
+}
+
+platform_setup_tor_whoami() {
+    ## whoami published as a Tor hidden service. The tor project's nginx
+    ## proxies onion traffic to Traefik from 127.0.0.1, so this instance
+    ## admits loopback as well as the test's source range:
+    install_whoami_instance "${E2E_TOR_INSTANCE}" "$(E2E_TOR_HOST)" \
+        "WHOAMI_IP_SOURCERANGE=${APP_SOURCERANGE},127.0.0.1/32"
 }
 
 ## -------------------------------------------------------------------------
@@ -323,6 +342,7 @@ app_functional_tests() {
         s3-proxy) test_s3_proxy ;;
         nextcloud) test_nextcloud_backup ;;
         sysbox-systemd) test_sysbox_systemd ;;
+        tor) test_tor ;;
     esac
 }
 
@@ -494,6 +514,37 @@ pid1=\$(docker exec \${c} cat /proc/1/comm)
 state=\$(timeout 90 docker exec \${c} systemctl is-system-running --wait 2>/dev/null)
 case \"\${state}\" in running|degraded) ok=0 ;; *) ok=1 ;; esac
 check systemd-booted \${ok} \"state=\${state}\""
+}
+
+test_tor() {
+    ## Fetch whoami through its .onion address with a separate Tor client
+    ## (a throwaway container on the droplet). The request travels the real
+    ## Tor network: client -> rendezvous -> the tor app -> nginx -> Traefik:
+    local host
+    host=$(E2E_TOR_HOST)
+    run_remote_checks tor "onion://${E2E_TOR_SERVICE}" "$(platform_remote_prelude)
+set +e; trap - ERR
+check() { if [ \"\$2\" = 0 ]; then echo \"CHECK \$1 PASS \$3\"; else echo \"CHECK \$1 FAIL \$3\"; fi; }
+## The service's .onion address (tor writes it once the service is up):
+onion=''
+for i in \$(seq 1 30); do
+  onion=\$(docker exec \$(container_of tor tor) cat /var/lib/tor/${E2E_TOR_SERVICE}/hostname 2>/dev/null)
+  [ -n \"\${onion}\" ] && break; sleep 2
+done
+echo \"\${onion}\" | grep -qE '^[a-z2-7]{56}\\.onion\$'; check onion-address \$? \"\${onion:-none}\"
+## Bootstrap a Tor client, then retry while the descriptor propagates:
+out=\$(docker run --rm alpine:3 sh -c '
+  apk add -q tor curl >/dev/null 2>&1 || exit 2
+  tor --SocksPort 9050 --Log \"notice file /tmp/tor.log\" --RunAsDaemon 1 >/dev/null
+  for i in \$(seq 1 60); do grep -q \"Bootstrapped 100%\" /tmp/tor.log 2>/dev/null && break; sleep 3; done
+  for i in \$(seq 1 20); do
+    curl -s --max-time 60 --socks5-hostname 127.0.0.1:9050 http://'\"\${onion}\"'/ && exit 0
+    sleep 10
+  done
+  exit 1' 2>/dev/null)
+echo \"\${out}\" | grep -q '^Host: ${host}'; check onion-fetch \$? \"whoami answered over Tor\"
+## nginx reaches Traefik over loopback (why 127.0.0.1/32 is allowed):
+echo \"\${out}\" | grep -qE '^X-Real-Ip: 127\\.0\\.0\\.1'; check via-local-proxy \$? \"X-Real-Ip from the tor app's nginx\""
 }
 
 ## -------------------------------------------------------------------------
