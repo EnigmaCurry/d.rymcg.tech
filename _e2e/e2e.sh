@@ -69,7 +69,7 @@ E2E_SUITE="${E2E_SUITE:-full}"
 E2E_IP_SOURCERANGE="${E2E_IP_SOURCERANGE:-}"
 ## The root DEFAULT_TIMEZONE for the test context. An unusual zone (+12:45
 ## or +13:45) so a container cannot match it by accident; each app is checked
-## for it (test_timezone). Edit the .conf to change it:
+## for it (test_containers). Edit the .conf to change it:
 E2E_TIMEZONE="${E2E_TIMEZONE:-Pacific/Chatham}"
 E2E_KEEP_GOING=false
 E2E_REINSTALL=false
@@ -102,6 +102,8 @@ REMOTE_REPO='$HOME/git/vendor/enigmacurry/d.rymcg.tech'
 PHASES_FULL=(preflight provision dns bootstrap rootconfig acme-dns traefik apps verify summary)
 PHASES_WORKSTATION=(preflight provision bootstrap verify summary)
 RESULTS=()
+INSTALL_TIMES=()
+RESULTS_BASE=""
 FAILED_APPS=()
 
 suite_phases() {
@@ -295,6 +297,8 @@ mark_phase_done() {
 setup_logging() {
     mkdir -p "${LOG_DIR}"
     LOG_FILE="${LOG_DIR}/${E2E_NAME}-$(date +%Y%m%d-%H%M%S).log"
+    ## Results, install times and the resource report are saved beside it:
+    RESULTS_BASE="${LOG_FILE%.log}"
     exec > >(tee -a "${LOG_FILE}") 2>&1
     echo "## Logging all output to: ${LOG_FILE}"
 }
@@ -370,8 +374,54 @@ collect_diagnostics() {
     esac
 }
 
+save_results() {
+    ## Write RESULTS to <log>.results.tsv (rewritten each call):
+    [[ -n "${RESULTS_BASE:-}" ]] || return 0
+    {
+        printf 'status\tcheck\turl\tcode\tdetail\n'
+        local row
+        for row in "${RESULTS[@]}"; do
+            printf '%s\n' "${row//|/$'\t'}"
+        done
+    } > "${RESULTS_BASE}.results.tsv"
+}
+
+record_install() {
+    ## record_install <app> <result> <seconds> - append one row to
+    ## <log>.installs.tsv as each app finishes, so a run that dies partway
+    ## still leaves a record:
+    INSTALL_TIMES+=("$3|$1|$2")
+    [[ -n "${RESULTS_BASE:-}" ]] || return 0
+    local f="${RESULTS_BASE}.installs.tsv"
+    [[ -f "${f}" ]] || printf 'app\tresult\tseconds\n' > "${f}"
+    printf '%s\t%s\t%s\n' "$1" "$2" "$3" >> "${f}"
+}
+
+report_resources() {
+    ## Snapshot the droplet after all apps are up: memory, disk, the biggest
+    ## memory users, containers that restarted, and kernel OOM kills. Printed
+    ## and saved to <log>.resources.txt, to size the next droplet:
+    local out
+    out=$( {
+        e2e_remote_sh "set +e; trap - ERR
+echo '## free -m'; free -m
+echo; echo '## df -h /'; df -h /
+echo; echo \"## running containers: \$(docker ps -q | wc -l)\"
+echo; echo '## top 25 containers by memory'
+docker stats --no-stream --format '{{.MemUsage}}\t{{.Name}}' | sort -h -r | head -n 25
+echo; echo '## containers that have restarted (count name)'
+docker ps -q | xargs -r docker inspect -f '{{.RestartCount}} {{.Name}}' | awk '\$1 > 0' | sort -n -r"
+        echo; echo "## kernel OOM kills this boot"
+        e2e_remote_root "journalctl -k -b --no-pager | grep -iE 'oom-kill|out of memory' | tail -n 20 || true"
+    } 2>/dev/null || true)
+    echo "${out}"
+    [[ -n "${RESULTS_BASE:-}" ]] && printf '%s\n' "${out}" > "${RESULTS_BASE}.resources.txt"
+    return 0
+}
+
 print_results() {
     [[ ${#RESULTS[@]} -eq 0 && ${#FAILED_APPS[@]} -eq 0 ]] && return 0
+    save_results
     echo ""
     echo "## Results so far:"
     local row
@@ -781,6 +831,7 @@ phase_rootconfig() {
 
 phase_acme_dns() {
     e2e_remote_sh "test -f acme-dns/.env_${E2E_NAME}_default || make -C acme-dns config-dist instance=default"
+    e2e_remote_sh "$(versions_snippet acme-dns apply)"
     e2e_remote_sh "_scripts/batch-reconfigure acme-dns/.env_${E2E_NAME}_default \
 ACME_DNS_SUBDOMAIN=acme-dns.${E2E_ROOT_DOMAIN} \
 ACME_DNS_LISTEN_IP_ADDRESS=${DROPLET_IP} \
@@ -821,6 +872,7 @@ ACME_DNS_HOSTMASTER=hostmaster@${E2E_DOMAIN}"
 
 phase_traefik() {
     e2e_remote_sh "test -f traefik/.env_${E2E_NAME}_default || make -C traefik config-dist instance=default"
+    e2e_remote_sh "$(versions_snippet traefik apply)"
     e2e_make traefik traefik-user
     local cert_domains="[[\"${E2E_ROOT_DOMAIN}\",[\"*.${E2E_ROOT_DOMAIN}\"]]]"
     e2e_remote_sh "_scripts/batch-reconfigure traefik/.env_${E2E_NAME}_default \
@@ -887,6 +939,44 @@ $(printf '%q' "TRAEFIK_ACME_CERT_DOMAINS=${cert_domains}")"
         fi
         sleep 10
     done
+}
+
+versions_snippet() {
+    ## versions_snippet <app> <apply|check> - remote shell code that compares
+    ## every image/version variable (*IMAGE*, *VERSION*, *_TAG*) in each of
+    ## the app's env files (all instances) with .env-dist. An env file is
+    ## copied from .env-dist only once, so without this a re-run - or a run
+    ## after switching E2E_GIT_REF - keeps the old versions. 'check' exits 1
+    ## on any difference; 'apply' updates the env files, and re-installs
+    ## non-default instances that changed (the caller installs the default
+    ## one). GPU override settings (*GFX_VERSION) are not versions; skipped.
+    local app="$1" mode="$2"
+    cat <<EOF
+for f in ${app}/.env_${E2E_NAME}_*; do
+  [ -f "\${f}" ] || continue
+  inst=\${f##*/.env_${E2E_NAME}_}; changed=
+  for v in \$(grep -oP '^[A-Z0-9_]*(IMAGE|VERSION|_TAG)[A-Z0-9_]*(?==)' ${app}/.env-dist | grep -v GFX_VERSION || true); do
+    want=\$(_scripts/dotenv -f ${app}/.env-dist get "\${v}" || true)
+    have=\$(_scripts/dotenv -f "\${f}" get "\${v}" || true)
+    [ "\${want}" = "\${have}" ] && continue
+EOF
+    if [[ "${mode}" == "apply" ]]; then
+        cat <<EOF
+    echo "## \${f}: \${v}=\${have} -> \${want}"
+    _scripts/dotenv -f "\${f}" set "\${v}=\${want}"; changed=1
+  done
+  if [ -n "\${changed}" ] && [ "\${inst}" != default ]; then
+    make -C ${app} override instance=\${inst} && make -C ${app} install instance=\${inst}
+  fi
+done
+EOF
+    else
+        cat <<EOF
+    exit 1
+  done
+done
+EOF
+    fi
 }
 
 sourcerange_snippet() {
@@ -1119,6 +1209,7 @@ app_config_current() {
 test -n \"\${prefix}\" && test -f ${app}/.env_${E2E_NAME}_default || exit 1
 $(sourcerange_snippet "${app}" check)
 $(app_test_vars_snippet "${app}" check)
+$(versions_snippet "${app}" check)
 $(app_config_current_extra "${app}")" >/dev/null 2>&1
 }
 
@@ -1171,6 +1262,8 @@ $(sourcerange_snippet "${app}" apply)
 if grep -q \"^\${prefix}_PUBLIC_IP_ADDRESS=\" ${app}/.env-dist; then
   make -C ${app} reconfigure var=\${prefix}_PUBLIC_IP_ADDRESS=${DROPLET_IP} instance=default
 fi
+## Image versions follow .env-dist (an existing env file may be older):
+$(versions_snippet "${app}" apply)
 ${test_vars}make -C ${app} override instance=default
 $(app_pre_install "${app}")
 $(app_platform_pre_install "${app}")
@@ -1230,18 +1323,22 @@ process_app() {
         if probe_app "${app}"; then
             if app_config_current "${app}"; then
                 echo "${app}: already verified (result ${PROBE_CODE}); skipping install (use --reinstall to force)."
+                record_install "${app}" already-verified 0
                 app_post_setup "${app}"
                 return 0
             fi
-            echo "${app}: verified, but its source range or test settings changed; reinstalling."
+            echo "${app}: verified, but its source range, test settings or image versions changed; reinstalling."
         else
             echo "${app}: not verified (result ${PROBE_CODE}, cert: ${PROBE_ISSUER:-none}); installing."
         fi
     fi
+    local t0=${SECONDS}
     if ensure_app_entrypoints "${app}" && app_host_setup "${app}" \
             && install_app "${app}" && app_post_setup "${app}"; then
-        echo "${app}: installed and healthy."
+        echo "${app}: installed and healthy ($((SECONDS - t0))s)."
+        record_install "${app}" installed $((SECONDS - t0))
     else
+        record_install "${app}" FAILED $((SECONDS - t0))
         FAILED_APPS+=("${app}")
         echo "${app}: FAILED to install."
         e2e_remote_sh "make -C ${app} status FORMAT=json; make -C ${app} logs-out 2>/dev/null | tail -n 50" || true
@@ -1454,10 +1551,10 @@ verify_app() {
     probe_app "$1" || true
     RESULTS+=("${PROBE_STATUS}|$1|${PROBE_URL}|${PROBE_CODE}|${PROBE_ISSUER:-no-cert}")
     [[ "${PROBE_STATUS}" == "PASS" ]] || return 1
-    ## Every app: its containers follow the root DEFAULT_TIMEZONE. A SKIP row
-    ## (no TZ configured yet) does not fail the app:
+    ## Every app: no container was OOM-killed, and all follow the root
+    ## DEFAULT_TIMEZONE. A SKIP row (no running containers) doesn't fail it:
     local tz_rc=0
-    test_timezone "$1" || tz_rc=1
+    test_containers "$1" || tz_rc=1
     ## Deeper checks (pub/sub, login flows); each adds its own result rows:
     local before=${#RESULTS[@]} row
     app_functional_tests "$1"
@@ -1518,6 +1615,8 @@ phase_verify() {
             *) echo "FAIL ${app}" ;;
         esac
     done
+    banner "resources"
+    report_resources
     return 0
 }
 
@@ -1544,10 +1643,15 @@ phase_summary() {
             [[ "${st}" == "PASS" ]] || all_pass=false
         done
     else
-        printf '%-6s %-14s %-50s %-6s %s\n' STATUS APP URL CODE ISSUER
+        local w=14
+        for row in "${RESULTS[@]}"; do
+            IFS='|' read -r st app _ <<< "${row}"
+            (( ${#app} > w )) && w=${#app}
+        done
+        printf "%-6s %-${w}s %-50s %-6s %s\n" STATUS APP URL CODE ISSUER
         for row in "${RESULTS[@]}"; do
             IFS='|' read -r st app url code issuer <<< "${row}"
-            printf '%-6s %-14s %-50s %-6s %s\n' "${st}" "${app}" "${url}" "${code}" "${issuer}"
+            printf "%-6s %-${w}s %-50s %-6s %s\n" "${st}" "${app}" "${url}" "${code}" "${issuer}"
             [[ "${st}" == "PASS" || "${st}" == "SKIP" ]] || all_pass=false
         done
     fi
@@ -1560,7 +1664,19 @@ phase_summary() {
     echo "  ssh ${E2E_ADMIN_USER}@${DROPLET_IP}   (or: ssh ${E2E_NAME})"
     echo "Tear down everything with:"
     echo "  $0 make ${E2E_NAME} destroy --yes"
+    if [[ ${#INSTALL_TIMES[@]} -gt 0 ]]; then
+        echo ""
+        echo "Slowest installs:"
+        printf '%s\n' "${INSTALL_TIMES[@]}" | sort -t'|' -k1,1 -n -r | head -n 10 \
+            | while IFS='|' read -r secs app result; do printf '  %5ss  %s (%s)\n' "${secs}" "${app}" "${result}"; done
+    fi
+    save_results
     [[ -n "${LOG_FILE}" ]] && echo "Full log: ${LOG_FILE}"
+    if [[ -n "${RESULTS_BASE}" ]]; then
+        echo "Results:  ${RESULTS_BASE}.results.tsv"
+        [[ -f "${RESULTS_BASE}.installs.tsv" ]] && echo "Installs: ${RESULTS_BASE}.installs.tsv"
+        [[ -f "${RESULTS_BASE}.resources.txt" ]] && echo "Resources: ${RESULTS_BASE}.resources.txt"
+    fi
     if [[ "${all_pass}" != "true" ]]; then
         echo ""
         echo "RESULT: FAIL (one or more checks failed verification)"

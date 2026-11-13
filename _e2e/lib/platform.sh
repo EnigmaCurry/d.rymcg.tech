@@ -393,9 +393,14 @@ app_functional_tests() {
 ## Apps that are themselves a database, kept on UTC on purpose:
 TZ_EXEMPT_APPS="postgresql"
 
-test_timezone() {
-    ## test_timezone <app> - check that every running container of the app
-    ## (all instances) follows the root DEFAULT_TIMEZONE (E2E_TIMEZONE).
+test_containers() {
+    ## test_containers <app> - per-container checks of every running container
+    ## of the app (all instances), in one remote call:
+    ##  * OOM: a container the kernel killed for memory records an <app>:oom
+    ##    FAIL row (only when found). Many apps share one droplet, so memory
+    ##    pressure otherwise shows up as an unrelated-looking failure.
+    ##  * timezone: the container follows the root DEFAULT_TIMEZONE
+    ##    (E2E_TIMEZONE); always records an <app>:timezone row.
     ## Per container:
     ##   ok      - TZ env matches, and `date +%z` inside gives the expected offset
     ##   na      - TZ env matches, but the image has no `date` to confirm it
@@ -403,15 +408,16 @@ test_timezone() {
     ##   bad     - TZ env differs, or the image ignores it (no tzdata)
     ## Records FAIL if any is bad, or if no container has TZ at all (unless
     ## the app is in TZ_EXEMPT_APPS); SKIP if the app has no running
-    ## containers; else PASS. Returns 1 only on FAIL.
+    ## containers; else PASS. Returns 1 on any FAIL.
     local app="$1" url="tz://${E2E_TIMEZONE}" out
     out=$(e2e_remote_sh "app=$(printf '%q' "${app}") tz=$(printf '%q' "${E2E_TIMEZONE}")
 $(cat <<'EOF'
 set +e; trap - ERR
 want=$(TZ="${tz}" date +%z)
-ok=0; na=0; missing=0; bad=""
+ok=0; na=0; missing=0; bad=""; oom=""
 for c in $(docker ps --format '{{.Names}}|{{.Label "com.docker.compose.project"}}' \
            | awk -F'|' -v p="${app}" '$2==p || index($2, p"_")==1 {print $1}'); do
+    [ "$(docker inspect -f '{{.State.OOMKilled}}' "${c}")" = true ] && oom="${oom} ${c}"
     ctz=$(docker inspect -f '{{range .Config.Env}}{{println .}}{{end}}' "${c}" | sed -n 's/^TZ=//p')
     if [ -z "${ctz}" ]; then missing=$((missing+1)); continue; fi
     if [ "${ctz}" != "${tz}" ]; then bad="${bad} ${c}:TZ=${ctz}"; continue; fi
@@ -421,9 +427,17 @@ for c in $(docker ps --format '{{.Names}}|{{.Label "com.docker.compose.project"}
     else bad="${bad} ${c}:${off}"; fi
 done
 echo "TZCHECK ${ok} ${na} ${missing} want=${want}${bad}"
+echo "OOMCHECK${oom}"
 EOF
 )" 2>/dev/null || true)
+    local oom
+    oom=$(grep -m1 '^OOMCHECK' <<< "${out}" | sed 's/^OOMCHECK *//' || true)
     out=$(grep -m1 '^TZCHECK ' <<< "${out}" || true)
+    local rc=0
+    if [[ -n "${oom}" ]]; then
+        record_test FAIL "${app}:oom" "oom://${app}" "OOM-killed: ${oom:0:90}"
+        rc=1
+    fi
     if [[ -z "${out}" ]]; then
         record_test FAIL "${app}:timezone" "${url}" "timezone check failed to run"
         return 1
@@ -444,6 +458,7 @@ EOF
     else
         record_test PASS "${app}:timezone" "${url}" "${detail}"
     fi
+    return ${rc}
 }
 
 record_test() {
