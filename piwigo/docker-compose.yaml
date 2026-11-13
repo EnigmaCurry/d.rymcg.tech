@@ -7,6 +7,8 @@ services:
     restart: unless-stopped
     environment:
       MARIADB_ROOT_PASSWORD: ${PIWIGO_MARIADB_ROOT_PASSWORD}
+      ## Run mariadb-upgrade on existing data after a version bump:
+      MARIADB_AUTO_UPGRADE: "1"
       MARIADB_DATABASE: ${PIWIGO_MARIADB_DATABASE}
       MARIADB_USER: ${PIWIGO_MARIADB_USER}
       MARIADB_PASSWORD: ${PIWIGO_MARIADB_PASSWORD}

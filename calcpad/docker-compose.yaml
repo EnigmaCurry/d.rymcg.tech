@@ -6,7 +6,7 @@ services:
     build:
       context: build
       args:
-        SWS_VERSION: ${CALCPAD_SWS_VERSION:-2.44.1}
+        SWS_VERSION: ${CALCPAD_SWS_VERSION:-2.44.2}
         CALCPAD_VERSION: ${CALCPAD_VERSION}
         CALCPAD_UID: ${CALCPAD_UID}
         CALCPAD_GID: ${CALCPAD_GID}
