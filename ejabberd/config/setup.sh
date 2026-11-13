@@ -14,7 +14,9 @@ create_config() {
     else
         echo "[ * ] Using existing config file from volume: ${CONFIG}"
     fi
-    [[ $PRINT_CONFIG == true ]] && cat ${CONFIG}
+    if [[ $PRINT_CONFIG == true ]]; then
+        cat ${CONFIG}
+    fi
 }
 
 

@@ -33,6 +33,7 @@ services:
       #! The host matching router rule:
       - "traefik.http.routers.(@= router @).rule=Host(`(@= traefik_host @)`)"
       - "traefik.http.routers.(@= router @).entrypoints=websecure"
+      - "traefik.http.services.(@= router @).loadbalancer.server.port=8080"
       #@ enabled_middlewares.append("{}-ipallowlist".format(router))
       - "traefik.http.middlewares.(@= router @)-ipallowlist.ipallowlist.sourcerange=(@= ip_sourcerange @)"
 

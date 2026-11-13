@@ -1,8 +1,10 @@
 services:
   redmine:
     image: ${REDMINE_IMAGE}
+    ## Redmine exits if the database isn't accepting connections yet:
     depends_on:
-      - db
+      db:
+        condition: service_healthy
     restart: unless-stopped
     environment:
       - REDMINE_DB_POSTGRES=db

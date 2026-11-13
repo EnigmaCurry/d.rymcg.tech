@@ -11,7 +11,7 @@ config-hook:
 	@${BIN}/reconfigure_ask ${ENV_FILE} CRYPTPAD_SANDBOX_HOST "Enter the sandbox domain name" pad-sandbox${INSTANCE_URL_SUFFIX}.${ROOT_DOMAIN}
 	@${BIN}/reconfigure ${ENV_FILE} CRYPTPAD_INSTANCE=$${instance:-default}
 	@${BIN}/reconfigure_auth ${ENV_FILE} CRYPTPAD
-	@${BIN}/reconfigure_choose ${ENV_FILE} CRYPTPAD_INSTALL_ONLYOFFICE "Install OnlyOffice on first startup? (Required for the Document, Sheet, and Presentation apps; downloads ~2-4GB.)" "yes" "no"
+	@${BIN}/reconfigure_choose ${ENV_FILE} CRYPTPAD_INSTALL_ONLYOFFICE "Install the office editors (Document, Sheet, Presentation apps) on first startup? (Euro-Office, an OnlyOffice-based fork; downloads ~2-4GB.)" "yes" "no"
 	@${BIN}/reconfigure_ask_email_address ${ENV_FILE} CRYPTPAD_ADMIN_EMAIL "Enter the admin contact email address shown on the contact page (can be changed later in the admin panel)" admin@example.com
 
 .PHONY: override-hook

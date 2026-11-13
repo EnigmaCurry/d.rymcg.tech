@@ -19,6 +19,9 @@ services:
       - POSTGRES_PASSWORD=${INVIDIOUS_POSTGRES_PASSWORD}
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U $$POSTGRES_USER -d $$POSTGRES_DB"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
     labels:
       - "backup-volume.stop-during-backup=true"
       
@@ -59,7 +62,9 @@ services:
         # Use the key generated in the 2nd step
         hmac_key: ${INVIDIOUS_HMAC_KEY}
     healthcheck:
-      test: wget -nv --tries=1 --spider http://127.0.0.1:3000/api/v1/comments/jNQXAC9IVRw || exit 1
+      ## A local endpoint: checking a YouTube video's comments marks the
+      ## container unhealthy whenever YouTube blocks or rate-limits the host:
+      test: wget -nv --tries=1 --spider http://127.0.0.1:3000/api/v1/stats || exit 1
       interval: 30s
       timeout: 5s
       retries: 2
@@ -67,8 +72,10 @@ services:
       options:
         max-size: "1G"
         max-file: "4"
+    ## Invidious exits if the database isn't accepting connections yet:
     depends_on:
-      - postgres
+      postgres:
+        condition: service_healthy
     labels: []
 
   companion:

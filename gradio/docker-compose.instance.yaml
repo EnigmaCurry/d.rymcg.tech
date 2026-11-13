@@ -28,6 +28,7 @@
 services:
   gradio:
     #@ service = "gradio"
+    restart: unless-stopped
     image: (@= project @)-(@= app @)
     build:
       context: gradio
