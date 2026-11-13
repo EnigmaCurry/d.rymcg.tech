@@ -69,6 +69,22 @@ Traefik must have `TRAEFIK_SSH_ENTRYPOINT_ENABLED=true`. If you need to
 update your Traefik `.env_` file, be sure to run `make install` in the
 `traefik` directory again.
 
+### SSH for multiple instances
+
+Traefik cannot route SSH by hostname, so each Forgejo instance needs
+its own dedicated TCP entrypoint (port). The default instance uses the
+builtin `ssh` entrypoint. For additional instances, create a custom
+entrypoint in Traefik (`make config` in the `traefik` directory ->
+`Configure custom entrypoints`), e.g. `forgejo2:0.0.0.0:2223:tcp::false`,
+then reinstall Traefik. Then in this instance's config set:
+
+```
+FORGEJO_SSH_TRAEFIK_ENTRYPOINT=forgejo2
+FORGEJO_SSH_PORT=2223
+```
+
+(`make config` asks for both of these.)
+
 ## Migration from GitHub
 
 Forgejo has a builtin feature to migrate individual repositories from
