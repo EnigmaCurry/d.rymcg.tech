@@ -10,6 +10,7 @@
 #@ instance = data.values.instance
 #@ context = data.values.context
 #@ traefik_host = data.values.traefik_host
+#@ traefik_entrypoint = data.values.traefik_entrypoint
 #@ sandbox_host = data.values.sandbox_host
 #@ ip_sourcerange = data.values.ip_sourcerange
 #@ enable_http_auth = len(data.values.http_auth.strip()) > 0
@@ -49,7 +50,7 @@ services:
       #! keeps this router ahead of the low-priority catch-all error-pages
       #! router on this host.
       - "traefik.http.routers.(@= router @).rule=Host(`(@= traefik_host @)`) || Host(`(@= sandbox_host @)`)"
-      - "traefik.http.routers.(@= router @).entrypoints=websecure"
+      - "traefik.http.routers.(@= router @).entrypoints=(@= traefik_entrypoint @)"
       - "traefik.http.routers.(@= router @).service=(@= router @)"
       - "traefik.http.services.(@= router @).loadbalancer.server.port=3000"
 

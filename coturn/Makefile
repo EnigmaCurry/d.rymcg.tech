@@ -29,7 +29,7 @@ override-hook:
 ####                         # (this hardcodes the string into docker-compose.override.yaml)
 ####   name=@VARIABLE_NAME   # sets the template 'name' field to the literal string '${VARIABLE_NAME}'
 ####                         # (used for regular docker-compose expansion of env vars by name.)
-	@${BIN}/docker_compose_override ${ENV_FILE} project=:coturn instance=@COTURN_INSTANCE traefik_host=@COTURN_TRAEFIK_HOST
+	@${BIN}/docker_compose_override ${ENV_FILE} project=:coturn instance=@COTURN_INSTANCE traefik_host=@COTURN_TRAEFIK_HOST traefik_entrypoint=COTURN_TRAEFIK_ENTRYPOINT
 
 .PHONY: shell # Enter container shell
 shell:

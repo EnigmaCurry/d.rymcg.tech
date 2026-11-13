@@ -183,6 +183,12 @@ rows (`app:check`):
 * **s3-proxy:** serves an object put into its bucket.
 * **nextcloud:** a restic backup's snapshot lands in minio.
 * **sysbox-systemd:** runs under `sysbox-runc`, with systemd as PID 1, booted.
+* **tor** (optional; add `tor` to the app list): publishes a second whoami
+  instance (`whoami-tor`) as a hidden service, through the tor app's nginx
+  proxy. A throwaway Tor client on the droplet fetches the `.onion`
+  address over the Tor network, and the check confirms whoami answered.
+  The instance also admits `127.0.0.1/32`, since the proxy reaches
+  Traefik over loopback.
 
 Some apps call another app over HTTPS from inside the droplet, so staging
 runs need workarounds:

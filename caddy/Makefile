@@ -33,7 +33,7 @@ override-hook:
 ####                         # (this hardcodes the string into docker-compose.override.yaml)
 ####   name=@VARIABLE_NAME   # sets the template 'name' field to the literal string '${VARIABLE_NAME}'
 ####                         # (used for regular docker-compose expansion of env vars by name.)
-	@${BIN}/docker_compose_override ${ENV_FILE} project=:caddy instance=@CADDY_INSTANCE traefik_host=@CADDY_TRAEFIK_HOST ip_sourcerange=@CADDY_IP_SOURCERANGE tls_mode=CADDY_TLS_MODE http_auth=CADDY_HTTP_AUTH http_auth_var=@CADDY_HTTP_AUTH oauth2=CADDY_OAUTH2 authorized_group=CADDY_OAUTH2_AUTHORIZED_GROUP enable_mtls_auth=CADDY_MTLS_AUTH mtls_authorized_certs=CADDY_MTLS_AUTHORIZED_CERTS
+	@${BIN}/docker_compose_override ${ENV_FILE} project=:caddy instance=@CADDY_INSTANCE traefik_host=@CADDY_TRAEFIK_HOST ip_sourcerange=@CADDY_IP_SOURCERANGE tls_mode=CADDY_TLS_MODE http_auth=CADDY_HTTP_AUTH http_auth_var=@CADDY_HTTP_AUTH oauth2=CADDY_OAUTH2 authorized_group=CADDY_OAUTH2_AUTHORIZED_GROUP enable_mtls_auth=CADDY_MTLS_AUTH mtls_authorized_certs=CADDY_MTLS_AUTHORIZED_CERTS traefik_entrypoint=CADDY_TRAEFIK_ENTRYPOINT
 
 .PHONY: shell
 shell:

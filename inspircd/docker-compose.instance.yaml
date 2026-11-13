@@ -10,10 +10,13 @@
 #@ instance = data.values.instance
 #@ context = data.values.context
 #@ traefik_host = data.values.traefik_host
+#@ traefik_entrypoint = data.values.traefik_entrypoint
+#@ enable_traefik_tls = data.values.traefik_tls == "true"
 #@ ip_sourcerange = data.values.ip_sourcerange
 #@ enable_mtls_auth = data.values.enable_mtls_auth == "true"
 #@ mtls_authorized_certs = data.values.mtls_authorized_certs
 #@ enabled_middlewares = []
+#@ postfix_relay_enable = data.values.postfix_relay_enable == "true"
 #@ homepage_labels_enable = data.values.homepage_labels_enable == "true"
 #@ homepage_group_inspircd = data.values.homepage_group_inspircd
 #@ homepage_name_inspircd = data.values.homepage_name_inspircd
@@ -29,10 +32,12 @@
 services:
   inspircd:
     #@ service = "inspircd"
-    #@ if services_anope_enable:
+    #@ if postfix_relay_enable:
     networks:
       - default
       - postfix-relay
+    #@ end
+    #@ if services_anope_enable:
     environment:
       - INSP_SERVICES_IPADDR=services
       - INSP_SERVICES_NAME=services(@= net_suffix @)
@@ -49,9 +54,11 @@ services:
 
       #! The host matching router rule:
       - "traefik.tcp.routers.(@= router @).rule=HostSNI(`*`)"
+      #@ if enable_traefik_tls:
       - "traefik.tcp.routers.(@= router @).tls=true"
       - "traefik.tcp.routers.(@= router @).tls.options=irc@file"
-      - "traefik.tcp.routers.(@= router @).entrypoints=irc"
+      #@ end
+      - "traefik.tcp.routers.(@= router @).entrypoints=(@= traefik_entrypoint @)"
       - "traefik.tcp.routers.(@= router @).service=(@= router @)"
       - "traefik.tcp.services.(@= router @).loadbalancer.server.port=6668"
 
@@ -84,12 +91,14 @@ services:
   #@ if services_anope_enable:
   services:
     #@ service = "services"
+    #@ if postfix_relay_enable:
     networks:
       - default
       - postfix-relay
+    #@ end
   #@ end
 
-#@ if services_anope_enable:
+#@ if postfix_relay_enable:
 #@yaml/text-templated-strings
 networks:
   postfix-relay:

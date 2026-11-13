@@ -37,7 +37,7 @@ override-hook:
 ####                         # (this hardcodes the string into docker-compose.override.yaml)
 ####   name=@VARIABLE_NAME   # sets the template 'name' field to the literal string '${VARIABLE_NAME}'
 ####                         # (used for regular docker-compose expansion of env vars by name.)
-	@${BIN}/docker_compose_override ${ENV_FILE} project=:step-ca instance=@STEP_CA_INSTANCE traefik_host=@STEP_CA_TRAEFIK_HOST ip_sourcerange=@STEP_CA_IP_SOURCERANGE
+	@${BIN}/docker_compose_override ${ENV_FILE} project=:step-ca instance=@STEP_CA_INSTANCE traefik_host=@STEP_CA_TRAEFIK_HOST ip_sourcerange=@STEP_CA_IP_SOURCERANGE traefik_entrypoint=STEP_CA_TRAEFIK_ENTRYPOINT
 
 .PHONY: shell
 shell:

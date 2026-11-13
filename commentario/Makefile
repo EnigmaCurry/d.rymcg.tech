@@ -31,7 +31,7 @@ override-hook:
 ####                         # (this hardcodes the string into docker-compose.override.yaml)
 ####   name=@VARIABLE_NAME   # sets the template 'name' field to the literal string '${VARIABLE_NAME}'
 ####                         # (used for regular docker-compose expansion of env vars by name.)
-	@${BIN}/docker_compose_override ${ENV_FILE} project=:commentario instance=@COMMENTARIO_INSTANCE traefik_host=@COMMENTARIO_TRAEFIK_HOST http_auth=COMMENTARIO_HTTP_AUTH http_auth_var=@COMMENTARIO_HTTP_AUTH ip_sourcerange=@COMMENTARIO_IP_SOURCERANGE oauth2=COMMENTARIO_OAUTH2 authorized_group=COMMENTARIO_OAUTH2_AUTHORIZED_GROUP enable_mtls_auth=COMMENTARIO_MTLS_AUTH mtls_authorized_certs=COMMENTARIO_MTLS_AUTHORIZED_CERTS
+	@${BIN}/docker_compose_override ${ENV_FILE} project=:commentario instance=@COMMENTARIO_INSTANCE traefik_host=@COMMENTARIO_TRAEFIK_HOST http_auth=COMMENTARIO_HTTP_AUTH http_auth_var=@COMMENTARIO_HTTP_AUTH ip_sourcerange=@COMMENTARIO_IP_SOURCERANGE oauth2=COMMENTARIO_OAUTH2 authorized_group=COMMENTARIO_OAUTH2_AUTHORIZED_GROUP enable_mtls_auth=COMMENTARIO_MTLS_AUTH mtls_authorized_certs=COMMENTARIO_MTLS_AUTHORIZED_CERTS traefik_entrypoint=COMMENTARIO_TRAEFIK_ENTRYPOINT
 
 .PHONY: shell
 shell:

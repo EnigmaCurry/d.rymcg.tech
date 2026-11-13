@@ -19,6 +19,8 @@ workstation.
    * A public server (at home and/or roaming), without direct port
      forwarding, but accessible with the help of a public (cloud)
      sentry VPN (WireGuard).
+   * A [Tor hidden service](tor#readme) — expose any Traefik service
+     as a `.onion` address with zero reconfiguration.
 
  * d.rymcg.tech has a clean separation for the roles of workstation
    and server:
@@ -254,6 +256,7 @@ torrent search engine
 * [Sysbox-Systemd](sysbox-systemd#readme) - a traditional service manager for Linux running in an unprivileged container via sysbox-runc
 * [TheLounge](thelounge#readme) - a web client/bouncer for IRC
 * [Thttpd](thttpd#readme) - a tiny/turbo/throttling HTTP server for serving static files
+* [Tor](tor#readme) - a proxy for hosting hidden services on the Tor network
 * [Trilium](trilium#readme) - a note-taking/knowledge base application
 * [Uptime-Kuma](uptime-kuma#readme) - a system uptime monitoring service and status page
 * [Vaultwarden](vaultwarden#readme) - a bitwarden compatible password manager written in Rust (formerly bitwarden_rs)

@@ -20,7 +20,7 @@ override-hook:
 ####                         # (this hardcodes the string into docker-compose.override.yaml)
 ####   name=@VARIABLE_NAME   # sets the template 'name' field to the literal string '${VARIABLE_NAME}'
 ####                         # (used for regular docker-compose expansion of env vars by name.)
-	@${BIN}/docker_compose_override ${ENV_FILE} project=:privatebin instance=@PRIVATEBIN_INSTANCE traefik_host=@PRIVATEBIN_TRAEFIK_HOST http_auth=PRIVATEBIN_HTTP_AUTH http_auth_var=@PRIVATEBIN_HTTP_AUTH ip_sourcerange=@PRIVATEBIN_IP_SOURCERANGE oauth2=PRIVATEBIN_OAUTH2 authorized_group=PRIVATEBIN_OAUTH2_AUTHORIZED_GROUP enable_mtls_auth=PRIVATEBIN_MTLS_AUTH mtls_authorized_certs=PRIVATEBIN_MTLS_AUTHORIZED_CERTS
+	@${BIN}/docker_compose_override ${ENV_FILE} project=:privatebin instance=@PRIVATEBIN_INSTANCE traefik_host=@PRIVATEBIN_TRAEFIK_HOST http_auth=PRIVATEBIN_HTTP_AUTH http_auth_var=@PRIVATEBIN_HTTP_AUTH ip_sourcerange=@PRIVATEBIN_IP_SOURCERANGE oauth2=PRIVATEBIN_OAUTH2 authorized_group=PRIVATEBIN_OAUTH2_AUTHORIZED_GROUP enable_mtls_auth=PRIVATEBIN_MTLS_AUTH mtls_authorized_certs=PRIVATEBIN_MTLS_AUTHORIZED_CERTS traefik_entrypoint=PRIVATEBIN_TRAEFIK_ENTRYPOINT
 
 .PHONY: shell
 shell:

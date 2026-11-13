@@ -1,0 +1,11 @@
+#! This is a ytt template file for docker-compose.override.yaml
+#! References:
+#!   https://carvel.dev/ytt
+#!   https://docs.docker.com/compose/extends/#adding-and-overriding-configuration
+#!   https://github.com/enigmacurry/d.rymcg.tech#overriding-docker-composeyaml-per-instance
+
+#@yaml/text-templated-strings
+services:
+  tor:
+    labels:
+      - "backup-volume.stop-during-backup=true"
