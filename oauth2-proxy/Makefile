@@ -8,6 +8,7 @@ config-hook:
 	@${BIN}/reconfigure_password ${ENV_FILE} OAUTH2_PROXY_COOKIE_SECRET 32
 	@echo
 	@ENV_FILE=${ENV_FILE} ROOT_DIR=${ROOT_DIR} bash ./configure_https_port.sh || true
+	@ENV_FILE=${ENV_FILE} ROOT_DIR=${ROOT_DIR} bash ./configure_step_ca.sh
 
 	@echo
 	@${BIN}/reconfigure_choose ${ENV_FILE} OAUTH2_PROXY_SELECTED_PROVIDER "Select the OIDC provider to use" "forgejo"
