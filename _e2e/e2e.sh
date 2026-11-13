@@ -1282,6 +1282,12 @@ phase_verify() {
 }
 
 phase_summary() {
+    ## Results live in memory: when summary runs as its own phase, there
+    ## are none yet, so collect them first (verify only probes):
+    if [[ ${#RESULTS[@]} -eq 0 ]]; then
+        echo "No results from this run yet; running the verify checks ..."
+        phase_verify > /dev/null
+    fi
     banner "e2e summary (suite=${E2E_SUITE})"
     if [[ "${E2E_SUITE}" == "workstation" ]]; then
         echo "name=${E2E_NAME} ip=${DROPLET_IP}"
