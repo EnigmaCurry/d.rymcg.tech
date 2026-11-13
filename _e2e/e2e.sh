@@ -1031,6 +1031,8 @@ app_test_vars() {
         minio) echo "MINIO_CONSOLE_TRAEFIK_HOST=minio-console.${root}"
                echo "S3_SOURCERANGE=${APP_SOURCERANGE},${DROPLET_IP}/32,${DOCKER_POOL_CIDR}"
                echo "CONSOLE_SOURCERANGE=${APP_SOURCERANGE}" ;;
+        ## Per-user home folders (checked by test_copyparty_homes):
+        copyparty) echo "COPYPARTY_ENABLE_USER_HOMES=true" ;;
         s3-proxy) echo "S3PROXY_S3_ENDPOINT=@platform:S3_HOST"
                   echo "S3PROXY_S3_BUCKET=@platform:S3PROXY_S3_BUCKET"
                   echo "S3PROXY_S3_ACCESS_KEY_ID=@platform:S3PROXY_S3_KEY"
@@ -1054,6 +1056,8 @@ app_generated_vars() {
         speedtest-tracker) echo 'SPEEDTEST_TRACKER_APP_KEY echo "base64:$(openssl rand -base64 32)"' ;;
         ## MinIO secret keys are 8-40 characters:
         minio) echo 'MINIO_ROOT_PASSWORD openssl rand -hex 20' ;;
+        ## Two test accounts for the home folder checks:
+        copyparty) echo 'COPYPARTY_USERS printf e2e-alice:%s,e2e-bob:%s $(openssl rand -hex 12) $(openssl rand -hex 12)' ;;
     esac
 }
 

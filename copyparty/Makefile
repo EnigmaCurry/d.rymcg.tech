@@ -25,6 +25,8 @@ config-hook:
 	@${BIN}/confirm $$(test "$$(${BIN}/dotenv -f ${ENV_FILE} get COPYPARTY_ENABLE_PUBLIC_ACCESS)" == "true" && echo "yes" || echo "no") "Do you want to allow unauthenticated public access (read only from /public volume)" "?" && ${BIN}/reconfigure ${ENV_FILE} COPYPARTY_ENABLE_PUBLIC_ACCESS=true || ${BIN}/reconfigure ${ENV_FILE} COPYPARTY_ENABLE_PUBLIC_ACCESS=false
 	@echo
 	@${BIN}/confirm $$(test "$$(${BIN}/dotenv -f ${ENV_FILE} get COPYPARTY_ENABLE_GUEST_ACCESS)" == "true" && echo "yes" || echo "no") "Do you want to allow unauthenticated guest access (upload only to /guest volume)" "?" && ${BIN}/reconfigure ${ENV_FILE} COPYPARTY_ENABLE_GUEST_ACCESS=true || ${BIN}/reconfigure ${ENV_FILE} COPYPARTY_ENABLE_GUEST_ACCESS=false
+	@echo
+	@${BIN}/confirm $$(test "$$(${BIN}/dotenv -f ${ENV_FILE} get COPYPARTY_ENABLE_USER_HOMES)" == "true" && echo "yes" || echo "no") "Do you want to give every user a private home folder (/home/{username} stored in the data volume)" "?" && ${BIN}/reconfigure ${ENV_FILE} COPYPARTY_ENABLE_USER_HOMES=true || ${BIN}/reconfigure ${ENV_FILE} COPYPARTY_ENABLE_USER_HOMES=false
 	@echo ""
 
 .PHONY: override-hook

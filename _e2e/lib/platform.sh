@@ -379,6 +379,7 @@ app_functional_tests() {
                       test_oauth2_proxy_step_ca ;;
         woodpecker) test_oauth2 woodpecker "https://woodpecker.${E2E_ROOT_DOMAIN}/" ;;
         s3-proxy) test_s3_proxy ;;
+        copyparty) test_copyparty_homes ;;
         nextcloud) test_nextcloud_backup ;;
         sysbox-systemd) test_sysbox_systemd ;;
         tor) test_tor ;;
@@ -523,6 +524,51 @@ echo ${token} | docker run --rm -i --network host -e MC_HOST_e2e=\"\${mc_host}\"
         record_test PASS s3-proxy:get-object "${url}" "object served from minio"
     else
         record_test FAIL s3-proxy:get-object "${url}" "got: ${got:0:40}"
+    fi
+}
+
+test_copyparty_homes() {
+    ## COPYPARTY_ENABLE_USER_HOMES: each account gets a private
+    ## /home/{username}; only its owner (and the admin) may use it:
+    local host="copyparty.${E2E_ROOT_DOMAIN}" env_file="copyparty/.env_${E2E_NAME}_default"
+    local base="https://${host}" users admin_pw alice_pw bob_pw
+    users=$(e2e_remote_sh "_scripts/dotenv -f ${env_file} get COPYPARTY_USERS" 2>/dev/null)
+    admin_pw=$(e2e_remote_sh "_scripts/dotenv -f ${env_file} get COPYPARTY_ADMIN_PASSWORD" 2>/dev/null)
+    alice_pw=$(tr ',' '\n' <<< "${users}" | grep -oP '^e2e-alice:\K.*' || true)
+    bob_pw=$(tr ',' '\n' <<< "${users}" | grep -oP '^e2e-bob:\K.*' || true)
+    if [[ -z "${alice_pw}" || -z "${bob_pw}" || -z "${admin_pw}" ]]; then
+        record_test FAIL copyparty:homes "${base}/home/" "could not read test account passwords"
+        return
+    fi
+    local curl_args=(-s --max-time 20 --resolve "${host}:443:${DROPLET_IP}")
+    [[ "${E2E_ACME_CA}" == *staging* ]] && curl_args+=(-k)
+    cp_code() {
+        ## cp_code <password> <curl args...> - print the HTTP status code:
+        local pw="$1"; shift
+        curl "${curl_args[@]}" -o /dev/null -w '%{http_code}' ${pw:+-H "PW: ${pw}"} "$@" || true
+    }
+    cp_expect() {
+        ## cp_expect <check> <expected code> <got code> <detail>
+        if [[ "$3" == "$2" ]]; then
+            record_test PASS "copyparty:$1" "${base}/home/" "$4: $3"
+        else
+            record_test FAIL "copyparty:$1" "${base}/home/" "$4: expected $2, got $3"
+        fi
+    }
+    local probe; probe=$(mktemp); echo "e2e-$(date +%s)" > "${probe}"
+    cp_expect owner-upload 201 "$(cp_code "${alice_pw}" -T "${probe}" "${base}/home/e2e-alice/")" "alice uploads to her home"
+    cp_expect other-upload 403 "$(cp_code "${bob_pw}" -T "${probe}" "${base}/home/e2e-alice/")" "bob uploads to alice's home"
+    cp_expect other-list 403 "$(cp_code "${bob_pw}" "${base}/home/e2e-alice/?ls")" "bob lists alice's home"
+    cp_expect anon-list 403 "$(cp_code "" "${base}/home/e2e-alice/?ls")" "anonymous lists alice's home"
+    cp_expect admin-list 200 "$(cp_code "${admin_pw}" "${base}/home/e2e-alice/?ls")" "admin lists alice's home"
+    rm -f "${probe}"
+    ## A user listing /home must see only their own folder:
+    local dirs
+    dirs=$(curl "${curl_args[@]}" -H "PW: ${bob_pw}" "${base}/home/?ls" | jq -r '[.dirs[].href] | join(",")' 2>/dev/null || true)
+    if [[ "${dirs}" == "e2e-bob/" ]]; then
+        record_test PASS copyparty:home-isolation "${base}/home/" "bob sees only: ${dirs}"
+    else
+        record_test FAIL copyparty:home-isolation "${base}/home/" "bob sees: ${dirs:-nothing}"
     fi
 }
 

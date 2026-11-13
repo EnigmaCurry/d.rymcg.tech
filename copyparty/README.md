@@ -42,6 +42,18 @@ This config offers configurable public (download-only) and guest (upload-only) a
    uploads to the `/guest` sub-volume, set this variable's value to
    `true`.
 
+### User home folders
+
+ * `COPYPARTY_ENABLE_USER_HOMES=false` - set this to `true` to give
+   every account (the admin and each user in `COPYPARTY_USERS`) a
+   private home folder at `/home/{username}`. The data is stored
+   in the `copyparty_data` named volume at `/data/home/{username}`, so
+   you don't need to make an external volume for each user. Each user
+   has full `rwmda` permission on their own home, and the admin can
+   access all of them. This uses copyparty's `${u}` volume expansion,
+   so new users automatically get a home the next time the service
+   is (re)started.
+
 ### External volumes
 
 By default, copyparty has a single docker named volume mounted at

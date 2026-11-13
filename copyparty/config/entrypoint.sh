@@ -43,8 +43,27 @@ PUB_PATH=${COPYPARTY_VOL_PUBLIC_PATH:-$DATA_ROOT/public}
 GST_PATH=${COPYPARTY_VOL_GUESTS_PATH:-$DATA_ROOT/guests}
 ADM_PATH=$DATA_ROOT/admin
 
+HOME_ROOT=$DATA_ROOT/home
+
 mkdir -p "$PUB_PATH" "$GST_PATH"
 chown -R "${COPYPARTY_UID:-1000}:${COPYPARTY_GID:-1000}" "${PUB_PATH}" "${GST_PATH}"
+
+# Pre-create per-user home folders (copyparty expands [/home/${u}] for
+# every account at startup; create the dirs here so they are owned by
+# the copyparty UID/GID):
+if [ "${COPYPARTY_ENABLE_USER_HOMES:-}" = "true" ]; then
+  mkdir -p "$HOME_ROOT/$ADMIN_USER"
+  OLDIFS="$IFS"; IFS=,
+  for ent in ${COPYPARTY_USERS:-}; do
+    [ -z "$ent" ] && continue
+    u=${ent%%:*}
+    case "$u" in (""|*/*|.|..) die "invalid username for home folder: '$u'";; esac
+    mkdir -p "$HOME_ROOT/$u"
+  done
+  IFS="$OLDIFS"
+  # Only chown the top level of each home, not user content:
+  chown "${COPYPARTY_UID:-1000}:${COPYPARTY_GID:-1000}" "$HOME_ROOT" "$HOME_ROOT"/*
+fi
 
 # Helper: emit per-volume permission lines for a given volume name
 emit_perms() {
@@ -139,6 +158,20 @@ umask 022
     printf '  accs:\n'
     printf '    w: *\n'
     printf '    rwmda: %s\n\n' "$ADMIN_USER"
+  fi
+
+  if [ "${COPYPARTY_ENABLE_USER_HOMES:-}" = "true" ]; then
+    # Parent volume restricted to the admin, so per-user homes never
+    # inherit looser permissions from a parent:
+    printf '[/home]\n'
+    printf '  %s\n' "$HOME_ROOT"
+    printf '  accs:\n'
+    printf '    rwmda: %s\n\n' "$ADMIN_USER"
+    # copyparty expands ${u} into one volume per account:
+    printf '[/home/${u}]\n'
+    printf '  %s/${u}\n' "$HOME_ROOT"
+    printf '  accs:\n'
+    printf '    rwmda: ${u}, %s\n\n' "$ADMIN_USER"
   fi
 
   if [ -n "$VOLS" ]; then
