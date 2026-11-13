@@ -22,7 +22,9 @@ services:
       - "backup-volume.stop-during-backup=true"
 
   maubot:
-    depends_on: ["config"]
+    depends_on:
+      config:
+        condition: service_completed_successfully
     build:
       context: ${MAUBOT_GIT_REPO}
     security_opt:

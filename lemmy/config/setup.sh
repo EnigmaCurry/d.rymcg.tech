@@ -9,7 +9,9 @@ create_config() {
     mkdir -p ${CONFIG_DIR}
     cat ${TEMPLATE} | envsubst > ${CONFIG}
     echo "[ ! ] GENERATED NEW CONFIG FILE ::: ${CONFIG}"
-    [[ $PRINT_CONFIG == true ]] && cat ${CONFIG}
+    if [[ $PRINT_CONFIG == true ]]; then
+        cat ${CONFIG}
+    fi
 }
 
 create_config
@@ -24,7 +26,9 @@ create_pictrs_config() {
     mkdir -p ${CONFIG_DIR}
     cat ${TEMPLATE} | envsubst > ${CONFIG}
     echo "[ ! ] GENERATED NEW PICTRS CONFIG FILE ::: ${CONFIG}"
-    [[ $PRINT_CONFIG == true ]] && cat ${CONFIG}
+    if [[ $PRINT_CONFIG == true ]]; then
+        cat ${CONFIG}
+    fi
 }
 
 create_pictrs_config
