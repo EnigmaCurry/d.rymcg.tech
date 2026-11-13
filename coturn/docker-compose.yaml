@@ -10,6 +10,7 @@ services:
     restart: unless-stopped
     network_mode: host
     environment:
+      - TZ=${DEFAULT_TIMEZONE:-Etc/UTC}
       - REALM=${COTURN_REALM}
       - STATIC_AUTH_SECRET=${COTURN_STATIC_AUTH_SECRET}
     command: >

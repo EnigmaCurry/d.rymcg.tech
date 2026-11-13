@@ -13,6 +13,7 @@ services:
     security_opt:
       - no-new-privileges:true
     environment:
+      - TZ=${DEFAULT_TIMEZONE:-Etc/UTC}
       - OAUTH2_PROXY_HTTP_ADDRESS=0.0.0.0:4180
       - OAUTH2_PROXY_REVERSE_PROXY=true
       - OAUTH2_PROXY_SKIP_PROVIDER_BUTTON=true

@@ -1,5 +1,7 @@
 services:
   iperf:
+    environment:
+      - TZ=${DEFAULT_TIMEZONE:-Etc/UTC}
     build:
       context: iperf
     cap_drop:

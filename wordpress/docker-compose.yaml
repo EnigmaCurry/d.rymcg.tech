@@ -32,6 +32,7 @@ services:
       - wp_wp2static:/var/www/static
     restart: unless-stopped
     environment:
+      - TZ=${WORDPRESS_TIMEZONE:-${DEFAULT_TIMEZONE:-Etc/UTC}}
       - WORDPRESS_DB_HOST=db
       - WORDPRESS_DB_USER=${WORDPRESS_DB_USER}
       - WORDPRESS_DB_PASSWORD=${WORDPRESS_DB_PASSWORD}

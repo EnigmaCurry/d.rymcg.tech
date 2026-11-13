@@ -14,6 +14,7 @@ services:
     volumes:
       - config:/data
     environment:
+      - TZ=${DEFAULT_TIMEZONE:-Etc/UTC}
       - NTFY_TRAEFIK_HOST
       - NTFY_AUTH_DEFAULT_ACCESS
       - NTFY_ATTACHMENT_TOTAL_SIZE_LIMIT
@@ -41,7 +42,7 @@ services:
     command:
       - serve
     environment:
-      - TZ=${TIMEZONE:-Etc/UTC}
+      - TZ=${DEFAULT_TIMEZONE:-Etc/UTC}
     user: ${NTFY_UID:-64533}:${NTFY_GID:-64533}
     volumes:
       - cache:/var/cache/ntfy

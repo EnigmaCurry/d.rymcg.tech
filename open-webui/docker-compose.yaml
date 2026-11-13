@@ -12,6 +12,7 @@ services:
       - net.ipv4.ip_unprivileged_port_start=1024
     restart: unless-stopped
     environment:
+      - TZ=${DEFAULT_TIMEZONE:-Etc/UTC}
       - OLLAMA_BASE_URL=http://ollama-${OPENWEBUI_DOCKER_COMPOSE_PROFILES}:11434
       - ENV=${OPENWEBUI_ENV}
       - CACHE_CONTROL=${OPENWEBUI_CACHE_CONTROL}
@@ -42,9 +43,12 @@ services:
     sysctls:
       - net.ipv4.ip_unprivileged_port_start=1024
     environment:
+      - TZ=${DEFAULT_TIMEZONE:-Etc/UTC}
       - HSA_OVERRIDE_GFX_VERSION=${OPENWEBUI_OLLAMA_HSA_OVERRIDE_GFX_VERSION}
 
   ollama-cuda:
+    environment:
+      - TZ=${DEFAULT_TIMEZONE:-Etc/UTC}
     profiles:
       - cuda
     image: ${OPENWEBUI_OLLAMA_IMAGE}
@@ -60,6 +64,8 @@ services:
     gpus: all
 
   ollama-cpu:
+    environment:
+      - TZ=${DEFAULT_TIMEZONE:-Etc/UTC}
     profiles:
       - cpu
     restart: unless-stopped

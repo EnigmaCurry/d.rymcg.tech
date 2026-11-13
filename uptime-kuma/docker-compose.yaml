@@ -15,6 +15,7 @@ services:
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock:ro,z
     environment:
+      - TZ=${DEFAULT_TIMEZONE:-Etc/UTC}
       - LOG_LEVEL=${UPTIME_KUMA_DOCKER_SOCKET_PROXY_LOG_LEVEL}
       # ---- Global HTTP method gate ----
       - POST=0                 # 0 = block all POST/DELETE/PATCH (read-only proxy). 1 = allow writes.
@@ -48,6 +49,7 @@ services:
       - data:/app/data
     networks: [default, sandbox]
     environment:
+      TZ: ${DEFAULT_TIMEZONE:-Etc/UTC}
       UPTIME_KUMA_DOCKER_HOST: http://docker-socket-proxy:2375
     labels: []
     tmpfs:

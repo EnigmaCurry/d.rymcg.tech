@@ -6,6 +6,8 @@ volumes:
 
 services:
   linux:
+    environment:
+      - TZ=${DEFAULT_TIMEZONE:-Etc/UTC}
     runtime: sysbox-runc
     container_name: sysbox-systemd-linux-${SYSBOX_SYSTEMD_INSTANCE:-default}
     hostname: sysbox-systemd-linux-${SYSBOX_SYSTEMD_INSTANCE:-default}

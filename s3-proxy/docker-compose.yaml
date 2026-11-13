@@ -9,6 +9,7 @@ services:
     security_opt:
       - no-new-privileges:true
     environment:
+      - TZ=${DEFAULT_TIMEZONE:-Etc/UTC}
       - S3_ENDPOINT=${S3PROXY_S3_ENDPOINT}
       - S3_BUCKET=${S3PROXY_S3_BUCKET}
       - S3_ACCESS_KEY_ID=${S3PROXY_S3_ACCESS_KEY_ID}
@@ -20,6 +21,8 @@ services:
       - "backup-volume.stop-during-backup=true"
 
   s3-proxy:
+    environment:
+      - TZ=${DEFAULT_TIMEZONE:-Etc/UTC}
     depends_on: ['config']
     build:
       context: https://github.com/EnigmaCurry/s3-proxy.git#self-buildable

@@ -25,6 +25,7 @@ config: script-wizard check-deps check-dist-vars
 .PHONY: config-hook
 config-hook:
 	@${BIN}/reconfigure_ask ${ROOT_ENV} ROOT_DOMAIN "Enter the root domain for this context"
+	@${BIN}/reconfigure_ask ${ROOT_ENV} DEFAULT_TIMEZONE "Enter the default timezone for all containers (TZ database name, eg. America/New_York)" Etc/UTC
 	@echo "Configured ${ROOT_ENV}"
 	@echo "ENV_FILE=${ENV_FILE}"
 	@echo

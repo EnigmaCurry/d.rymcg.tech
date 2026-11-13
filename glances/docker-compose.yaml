@@ -9,7 +9,7 @@ services:
       - ALL
     network_mode: "host"
     environment:
-      - TZ=${GLANCES_TZ}
+      - TZ=${GLANCES_TZ:-${DEFAULT_TIMEZONE:-Etc/UTC}}
       - "GLANCES_OPT=-w ${GLANCES_OPTIONS}"
     labels: []
     volumes: []

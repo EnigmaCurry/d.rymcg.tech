@@ -23,6 +23,7 @@ services:
     depends_on:
       - postgres
     environment:
+      - TZ=${DEFAULT_TIMEZONE:-Etc/UTC}
       - POSTGRES_HOST=postgres
       - POSTGRES_DATABASE=all
       - POSTGRES_USER=nextcloud
@@ -56,6 +57,7 @@ services:
       - data:/var/www/html
       #- photos:/var/www/html/data
     environment:
+      - TZ=${DEFAULT_TIMEZONE:-Etc/UTC}
       - POSTGRES_DB=nextcloud
       - POSTGRES_USER=nextcloud
       - POSTGRES_HOST=postgres
@@ -80,6 +82,7 @@ services:
     volumes:
       - data:/data
     environment:
+      - TZ=${DEFAULT_TIMEZONE:-Etc/UTC}
       ## See https://github.com/lobaro/restic-backup-docker#environment-variables
       - RESTIC_REPOSITORY=s3:https://${NEXTCLOUD_BACKUP_S3_HOST}/${NEXTCLOUD_BACKUP_S3_BUCKET}/${NEXTCLOUD_TRAEFIK_HOST}/data
       - RESTIC_PASSWORD=${NEXTCLOUD_BACKUP_ENCRYPTION_PASSWORD}
@@ -89,6 +92,8 @@ services:
       - RESTIC_FORGET_ARGS=--prune --keep-daily 7 --keep-weekly 4 --keep-monthly 6 --keep-yearly 3
 
   cron:
+    environment:
+      - TZ=${DEFAULT_TIMEZONE:-Etc/UTC}
     image: ${NEXTCLOUD_IMAGE}
     security_opt:
       - no-new-privileges:true

@@ -6,6 +6,7 @@ services:
     #   dockerfile: ./support/docker/production/Dockerfile.bookworm
     image: ${PEERTUBE_IMAGE}
     environment:
+      - TZ=${DEFAULT_TIMEZONE:-Etc/UTC}
       - PEERTUBE_DB_USERNAME=${PEERTUBE_POSTGRES_USER}
       - PEERTUBE_DB_PASSWORD=${PEERTUBE_POSTGRES_PASSWORD}
       - PEERTUBE_DB_SSL=${PEERTUBE_DB_SSL}
@@ -63,6 +64,7 @@ services:
   postfix:
     image: ${PEERTUBE_POSTFIX_IMAGE}
     environment:
+      - TZ=${DEFAULT_TIMEZONE:-Etc/UTC}
       - PEERTUBE_ADMIN_EMAIL=${PEERTUBE_ADMIN_EMAIL}
       - PEERTUBE_SMTP_FROM=${PEERTUBE_SMTP_FROM}
       - POSTFIX_myhostname=${PEERTUBE_POSTFIX_MYHOSTNAME}

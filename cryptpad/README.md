@@ -54,7 +54,7 @@ Main variables (see `.env-dist` for all):
 | `CRYPTPAD_MAX_UPLOAD_SIZE` | Max single upload size (JS expression, bytes) |
 | `CRYPTPAD_BLOCK_DAILY_CHECK` | Block the server's daily check-in to cryptpad.org |
 | `CRYPTPAD_LOG_LEVEL` | `silly`, `verbose`, `debug`, `feedback`, `info`, `warn`, `error` |
-| `CRYPTPAD_TIMEZONE` | Timezone inside the container |
+| `CRYPTPAD_TIMEZONE` | Timezone inside the container (blank = root `DEFAULT_TIMEZONE`) |
 
 A one-shot `config` service renders `config.js` (from
 `config/config.template.js`) and `infra.js` (from

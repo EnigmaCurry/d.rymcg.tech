@@ -4,6 +4,8 @@ volumes:
 
 services:
   privatebin:
+    environment:
+      - TZ=${DEFAULT_TIMEZONE:-Etc/UTC}
     restart: unless-stopped
     image: ${PRIVATEBIN_IMAGE}
     read_only: true

@@ -12,6 +12,7 @@ services:
       args:
         PROMETHEUS_CONFIG_YTT_VERSION: ${PROMETHEUS_CONFIG_YTT_VERSION}
     environment:
+      - TZ=${DEFAULT_TIMEZONE:-Etc/UTC}
       - PROMETHEUS_NODE_EXPORTER_ENABLED
       - PROMETHEUS_CADVISOR_ENABLED
       - PROMETHEUS_ALERTMANAGER_ENABLED
@@ -28,6 +29,8 @@ services:
   # https://github.com/prometheus/node_exporter
   # node_exporter collects the Host system metrics
   node-exporter:
+    environment:
+      - TZ=${DEFAULT_TIMEZONE:-Etc/UTC}
     profiles:
       - node-exporter
     image: prom/node-exporter:${PROMETHEUS_NODE_EXPORTER_VERSION}
@@ -46,6 +49,8 @@ services:
       - "backup-volume.stop-during-backup=true"
 
   prometheus:
+    environment:
+      - TZ=${DEFAULT_TIMEZONE:-Etc/UTC}
     depends_on:
       - config
     profiles:
@@ -69,6 +74,8 @@ services:
       - "backup-volume.stop-during-backup=true"
 
   grafana:
+    environment:
+      - TZ=${DEFAULT_TIMEZONE:-Etc/UTC}
     depends_on:
       - prometheus
     profiles:
@@ -101,7 +108,7 @@ services:
       - /var/lib/docker/:/var/lib/docker:ro
       - /etc/machine-id:/etc/machine-id:ro
     environment:
-      - TZ=${TZ:-UTC}
+      - TZ=${PROMETHEUS_TIMEZONE:-${DEFAULT_TIMEZONE:-Etc/UTC}}
     deploy:
       resources:
         limits:
@@ -110,6 +117,8 @@ services:
       - "backup-volume.stop-during-backup=true"
 
   alertmanager:
+    environment:
+      - TZ=${DEFAULT_TIMEZONE:-Etc/UTC}
     depends_on:
       - config
     profiles:
@@ -128,6 +137,8 @@ services:
       - "backup-volume.stop-during-backup=true"
 
   alert-test:
+    environment:
+      - TZ=${DEFAULT_TIMEZONE:-Etc/UTC}
     profiles:
       - alert-test
     image: ${PROMETHEUS_CURL_IMAGE}

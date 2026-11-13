@@ -1,5 +1,7 @@
 services:
   datetime:
+    environment:
+      - TZ=${DEFAULT_TIMEZONE:-Etc/UTC}
     image: ${DATETIME_IMAGE}
     cap_drop:
       - ALL

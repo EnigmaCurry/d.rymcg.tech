@@ -1,5 +1,7 @@
 services:
   config:
+    environment:
+      - TZ=${DEFAULT_TIMEZONE:-Etc/UTC}
     build:
       context: config
     security_opt:
@@ -32,6 +34,7 @@ services:
       - srv:/srv
       - database:/database
     environment:
+      - TZ=${DEFAULT_TIMEZONE:-Etc/UTC}
       - AUTH_TYPE=${FILEBROWSER_AUTH_TYPE}
       - ADMIN_USERNAME=${FILEBROWSER_ADMIN_USERNAME}
       - ADMIN_PASSWORD=${FILEBROWSER_ADMIN_PASSWORD}

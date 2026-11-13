@@ -1,6 +1,8 @@
 
 services:
   doh-server:
+    environment:
+      - TZ=${DEFAULT_TIMEZONE:-Etc/UTC}
     build:
       context: doh-server
       args:

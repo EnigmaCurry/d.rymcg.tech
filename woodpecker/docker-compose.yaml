@@ -11,6 +11,7 @@ services:
     volumes:
       - server_data:/var/lib/woodpecker/
     environment:
+      - TZ=${DEFAULT_TIMEZONE:-Etc/UTC}
       - WOODPECKER_HOST=https://${WOODPECKER_TRAEFIK_HOST}
       - WOODPECKER_FORGEJO
       - WOODPECKER_FORGEJO_URL
@@ -43,6 +44,7 @@ services:
       - agent_config:/etc/woodpecker
       - /var/run/docker.sock:/var/run/docker.sock:ro,z
     environment:
+      - TZ=${DEFAULT_TIMEZONE:-Etc/UTC}
       - WOODPECKER_SERVER=${WOODPECKER_GRPC_HOST}:443
       - WOODPECKER_AGENT_SECRET=${WOODPECKER_AGENT_SECRET}
       - WOODPECKER_LOG_LEVEL

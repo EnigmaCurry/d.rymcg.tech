@@ -16,8 +16,6 @@ config-hook:
 		${BIN}/reconfigure ${ENV_FILE} SPEEDTEST_TRACKER_PUBLIC_DASHBOARD=true || \
 		${BIN}/reconfigure ${ENV_FILE} SPEEDTEST_TRACKER_PUBLIC_DASHBOARD=false
 	@echo
-	@${BIN}/reconfigure_ask ${ENV_FILE} SPEEDTEST_TRACKER_DISPLAY_TIMEZONE "Enter the timezone you want timestamps to be displayed in"
-	@echo
 	@${BIN}/reconfigure_ask ${ENV_FILE} SPEEDTEST_TRACKER_SCHEDULE "Enter the cron expression used to run speedtests on a scheduled basis"
 	@echo
 	@${BIN}/reconfigure_ask ${ENV_FILE} SPEEDTEST_TRACKER_PRUNE_RESULTS_OLDER_THAN "Enter the number of days to keep results for, or enter 0 (zero) to keep all results"

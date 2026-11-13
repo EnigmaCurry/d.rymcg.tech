@@ -9,6 +9,7 @@ x-comfyui-common: &comfyui-common
     volumes:
       - comfyui:/ComfyUI
     environment:
+      - TZ=${DEFAULT_TIMEZONE:-Etc/UTC}
       - COMFYUI_OUTPUT_HOST_PATH=${COMFYUI_OUTPUT_HOST_PATH}
     labels:
       - "backup-volume.stop-during-backup=true"

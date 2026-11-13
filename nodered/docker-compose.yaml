@@ -4,6 +4,8 @@ volumes:
 
 services:
   nodered:
+    environment:
+      - TZ=${DEFAULT_TIMEZONE:-Etc/UTC}
     build:
       context: nodered
       args:

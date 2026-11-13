@@ -1,6 +1,8 @@
 
 services:
   web:
+    environment:
+      - TZ=${DEFAULT_TIMEZONE:-Etc/UTC}
     build:
       context: build
       args:

@@ -10,6 +10,7 @@ services:
     volumes:
       - syncthing:/var/syncthing
     environment: 
+      TZ: ${DEFAULT_TIMEZONE:-Etc/UTC}
       PUID: ${SYNCTHING_UID}
       PGID: ${SYNCTHING_GID}
     ports:

@@ -13,6 +13,7 @@ services:
     security_opt:
       - no-new-privileges:true
     environment:
+      - TZ=${DEFAULT_TIMEZONE:-Etc/UTC}
       - EJABBERD_HOST
       - PRINT_CONFIG
     volumes:
@@ -28,6 +29,7 @@ services:
       - config:/home/ejabberd/conf
       - cert:/cert
     environment:
+      - TZ=${DEFAULT_TIMEZONE:-Etc/UTC}
       - EJABBERD_HOST
     labels:
       - "backup-volume.stop-during-backup=true"

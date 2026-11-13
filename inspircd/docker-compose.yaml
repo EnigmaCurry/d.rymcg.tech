@@ -3,6 +3,7 @@ services:
     build:
       context: config
     environment:
+      - TZ=${DEFAULT_TIMEZONE:-Etc/UTC}
       - INSP_NET_NAME=${INSPIRCD_NET_NAME}
       - INSP_NET_SUFFIX=${INSPIRCD_NET_SUFFIX}
       - INSP_SERVER_HOSTNAME=${INSPIRCD_SERVER_HOSTNAME}
@@ -24,6 +25,7 @@ services:
       - net.ipv4.ip_unprivileged_port_start=1024
     hostname: ${INSPIRCD_SERVER_HOSTNAME}
     environment:
+      - TZ=${DEFAULT_TIMEZONE:-Etc/UTC}
       - INSP_NET_NAME=${INSPIRCD_NET_NAME}
       - INSP_NET_SUFFIX=${INSPIRCD_NET_SUFFIX}
       - INSP_SERVER_HOSTNAME=${INSPIRCD_SERVER_HOSTNAME}
@@ -52,6 +54,7 @@ services:
     sysctls:
       - net.ipv4.ip_unprivileged_port_start=1024
     environment:
+      - TZ=${DEFAULT_TIMEZONE:-Etc/UTC}
       - ANOPE_UPLINK_IP=irc
       - ANOPE_UPLINK_PASSWORD=${INSPIRCD_SERVICES_ANOPE_PASSWORD}
       - ANOPE_UPLINK_PORT=7000

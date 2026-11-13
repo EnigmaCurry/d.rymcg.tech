@@ -39,6 +39,7 @@ services:
     #ports:
     #  - "2342:2342" # HTTP port (host:container)
     environment:
+      - TZ=${PHOTOPRISM_TIMEZONE:-${DEFAULT_TIMEZONE:-Etc/UTC}}
       - PHOTOPRISM_ADMIN_USER
       - PHOTOPRISM_ADMIN_PASSWORD=password
       - PHOTOPRISM_AUTH_MODE

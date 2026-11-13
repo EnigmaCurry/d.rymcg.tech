@@ -390,6 +390,62 @@ app_functional_tests() {
     esac
 }
 
+## Apps that are themselves a database, kept on UTC on purpose:
+TZ_EXEMPT_APPS="postgresql"
+
+test_timezone() {
+    ## test_timezone <app> - check that every running container of the app
+    ## (all instances) follows the root DEFAULT_TIMEZONE (E2E_TIMEZONE).
+    ## Per container:
+    ##   ok      - TZ env matches, and `date +%z` inside gives the expected offset
+    ##   na      - TZ env matches, but the image has no `date` to confirm it
+    ##   missing - no TZ env at all (database/cache sidecars stay on UTC)
+    ##   bad     - TZ env differs, or the image ignores it (no tzdata)
+    ## Records FAIL if any is bad, or if no container has TZ at all (unless
+    ## the app is in TZ_EXEMPT_APPS); SKIP if the app has no running
+    ## containers; else PASS. Returns 1 only on FAIL.
+    local app="$1" url="tz://${E2E_TIMEZONE}" out
+    out=$(e2e_remote_sh "app=$(printf '%q' "${app}") tz=$(printf '%q' "${E2E_TIMEZONE}")
+$(cat <<'EOF'
+set +e; trap - ERR
+want=$(TZ="${tz}" date +%z)
+ok=0; na=0; missing=0; bad=""
+for c in $(docker ps --format '{{.Names}}|{{.Label "com.docker.compose.project"}}' \
+           | awk -F'|' -v p="${app}" '$2==p || index($2, p"_")==1 {print $1}'); do
+    ctz=$(docker inspect -f '{{range .Config.Env}}{{println .}}{{end}}' "${c}" | sed -n 's/^TZ=//p')
+    if [ -z "${ctz}" ]; then missing=$((missing+1)); continue; fi
+    if [ "${ctz}" != "${tz}" ]; then bad="${bad} ${c}:TZ=${ctz}"; continue; fi
+    off=$(docker exec "${c}" date +%z 2>/dev/null)
+    if [ -z "${off}" ]; then na=$((na+1))
+    elif [ "${off}" = "${want}" ]; then ok=$((ok+1))
+    else bad="${bad} ${c}:${off}"; fi
+done
+echo "TZCHECK ${ok} ${na} ${missing} want=${want}${bad}"
+EOF
+)" 2>/dev/null || true)
+    out=$(grep -m1 '^TZCHECK ' <<< "${out}" || true)
+    if [[ -z "${out}" ]]; then
+        record_test FAIL "${app}:timezone" "${url}" "timezone check failed to run"
+        return 1
+    fi
+    local _ ok na missing rest
+    read -r _ ok na missing rest <<< "${out}"
+    local detail="ok=${ok} na=${na} missing=${missing} ${rest}"
+    detail="${detail:0:100}"
+    ## rest is "want=<offset>" followed by any bad containers:
+    if [[ "${rest}" == *" "* ]]; then
+        record_test FAIL "${app}:timezone" "${url}" "${detail}"
+        return 1
+    elif (( ok + na + missing == 0 )); then
+        record_test SKIP "${app}:timezone" "${url}" "no running containers"
+    elif (( ok + na == 0 )) && [[ " ${TZ_EXEMPT_APPS} " != *" ${app} "* ]]; then
+        record_test FAIL "${app}:timezone" "${url}" "no TZ configured (${detail})"
+        return 1
+    else
+        record_test PASS "${app}:timezone" "${url}" "${detail}"
+    fi
+}
+
 record_test() {
     ## record_test <STATUS> <app:check> <url> <detail>
     RESULTS+=("$1|$2|$3|$4|-")

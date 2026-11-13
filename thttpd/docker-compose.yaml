@@ -4,6 +4,8 @@ volumes:
 
 services:
   thttpd:
+    environment:
+      - TZ=${DEFAULT_TIMEZONE:-Etc/UTC}
     build:
       context: .
       args:

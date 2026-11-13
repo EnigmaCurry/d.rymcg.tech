@@ -8,6 +8,7 @@ services:
     security_opt:
       - no-new-privileges:true
     environment:
+      - TZ=${DEFAULT_TIMEZONE:-Etc/UTC}
       - MINIO_ROOT_USER
       - MINIO_ROOT_PASSWORD
       - MINIO_BROWSER=off
@@ -17,6 +18,8 @@ services:
     labels: []
 
   mc:
+    environment:
+      - TZ=${DEFAULT_TIMEZONE:-Etc/UTC}
     profiles: ['tools']
     image: localhost/mc
     build:
@@ -31,6 +34,7 @@ services:
   console:
     image: ${MINIO_CONSOLE_IMAGE}
     environment:
+      - TZ=${DEFAULT_TIMEZONE:-Etc/UTC}
       - CONSOLE_PBKDF_PASSPHRASE=${MINIO_CONSOLE_PASSPHRASE}
       - CONSOLE_PBKDF_SALT=${MINIO_CONSOLE_SALT}
       - CONSOLE_MINIO_SERVER=https://${MINIO_TRAEFIK_HOST}

@@ -1,5 +1,7 @@
 services:
   thelounge:
+    environment:
+      - TZ=${DEFAULT_TIMEZONE:-Etc/UTC}
     image: ${THELOUNGE_IMAGE}
     cap_drop:
       - ALL

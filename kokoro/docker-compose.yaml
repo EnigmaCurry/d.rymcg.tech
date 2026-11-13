@@ -8,6 +8,7 @@ services:
     sysctls:
       - net.ipv4.ip_unprivileged_port_start=1024
     environment:
+      - TZ=${DEFAULT_TIMEZONE:-Etc/UTC}
       - KW_SECRET_API_KEY=${KOKORO_SECRET_API_KEY}
       - KW_PUBLIC_NO_TRACK=${KOKORO_PUBLIC_NO_TRACK}
     restart: unless-stopped
