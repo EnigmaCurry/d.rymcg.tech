@@ -888,14 +888,17 @@ ensure_app_entrypoints() {
             restart=true
         fi
     done < <(app_entrypoints "${app}")
-    ## Ports the app publishes on the host itself (no Traefik entrypoint):
+    ## Ports the app publishes on the host itself: no Traefik ipallowlist
+    ## guards them, so the firewall only admits the test's source range:
+    local addrs="" cidr
+    for cidr in ${APP_SOURCERANGE//,/ }; do addrs+=",address:${cidr}"; done
     while read -r port proto; do
         [[ -z "${port}" ]] && continue
         rules=$(doctl compute firewall get "${FIREWALL_ID}" --format InboundRules --no-header)
         if ! grep -q "protocol:${proto},ports:${port}," <<< "${rules}"; then
-            echo "Opening firewall ${proto}/${port} for ${app} ..."
+            echo "Opening firewall ${proto}/${port} for ${app} (from ${APP_SOURCERANGE}) ..."
             doctl compute firewall add-rules "${FIREWALL_ID}" \
-                  --inbound-rules "protocol:${proto},ports:${port},address:0.0.0.0/0,address:::/0"
+                  --inbound-rules "protocol:${proto},ports:${port}${addrs}"
         fi
     done < <(app_host_ports "${app}")
     if [[ "${restart}" == "true" ]]; then
