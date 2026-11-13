@@ -49,7 +49,9 @@ shell:
 
 .PHONY: install-hook
 install-hook:
-	@echo
+## The config service regenerates copyparty.conf on every install, but a
+## running copyparty only reads it at startup; restart it to apply changes:
+	@make --no-print-directory restart service=copyparty
 
 .PHONY: install-hook-pre
 install-hook-pre:

@@ -36,6 +36,9 @@ E2E_TOR_HOST() { echo "whoami-tor.${E2E_ROOT_DOMAIN}"; }
 ## The hidden service's name in TOR_HIDDEN_SERVICES (its HiddenServiceDir):
 E2E_TOR_SERVICE=whoami
 
+## copyparty's external volume (e2e-ext) is this directory on the droplet:
+E2E_COPYPARTY_EXT_DIR=/srv/e2e-copyparty-ext
+
 ## The Let's Encrypt staging roots, trusted by oauth2-proxy when the test uses
 ## the staging CA (it fetches Forgejo's OIDC discovery doc server-side):
 LE_STAGING_ROOTS="https://letsencrypt.org/certs/staging/letsencrypt-stg-root-x1.pem,https://letsencrypt.org/certs/staging/letsencrypt-stg-root-x2.pem"
@@ -379,7 +382,7 @@ app_functional_tests() {
                       test_oauth2_proxy_step_ca ;;
         woodpecker) test_oauth2 woodpecker "https://woodpecker.${E2E_ROOT_DOMAIN}/" ;;
         s3-proxy) test_s3_proxy ;;
-        copyparty) test_copyparty_homes ;;
+        copyparty) test_copyparty ;;
         nextcloud) test_nextcloud_backup ;;
         sysbox-systemd) test_sysbox_systemd ;;
         tor) test_tor ;;
@@ -527,50 +530,126 @@ echo ${token} | docker run --rm -i --network host -e MC_HOST_e2e=\"\${mc_host}\"
     fi
 }
 
+test_copyparty() {
+    ## Log in as the test accounts (see app_generated_vars), then check the
+    ## per-user home folders and the path permissions (see app_test_vars):
+    CP_HOST="copyparty.${E2E_ROOT_DOMAIN}"
+    CP_BASE="https://${CP_HOST}"
+    local env_file="copyparty/.env_${E2E_NAME}_default" users
+    users=$(e2e_remote_sh "_scripts/dotenv -f ${env_file} get COPYPARTY_USERS" 2>/dev/null)
+    CP_ADMIN_PW=$(e2e_remote_sh "_scripts/dotenv -f ${env_file} get COPYPARTY_ADMIN_PASSWORD" 2>/dev/null)
+    CP_ALICE_PW=$(tr ',' '\n' <<< "${users}" | grep -oP '^e2e-alice:\K.*' || true)
+    CP_BOB_PW=$(tr ',' '\n' <<< "${users}" | grep -oP '^e2e-bob:\K.*' || true)
+    if [[ -z "${CP_ALICE_PW}" || -z "${CP_BOB_PW}" || -z "${CP_ADMIN_PW}" ]]; then
+        record_test FAIL copyparty:login "${CP_BASE}/" "could not read test account passwords"
+        return
+    fi
+    CP_CURL_ARGS=(-s --max-time 20 --resolve "${CP_HOST}:443:${DROPLET_IP}")
+    [[ "${E2E_ACME_CA}" == *staging* ]] && CP_CURL_ARGS+=(-k)
+    ## The probe file is uploaded under its own name:
+    CP_PROBE_DIR=$(mktemp -d)
+    CP_PROBE="e2e-probe-$(date +%s).txt"
+    echo "${CP_PROBE}" > "${CP_PROBE_DIR}/${CP_PROBE}"
+    ## Each step expects a few 403s; copyparty bans an IP for a day after
+    ## more than 9 in 2 minutes (--ban-403), so keep the total at 9 or less:
+    test_copyparty_homes
+    test_copyparty_paths
+    test_copyparty_admin
+    rm -rf "${CP_PROBE_DIR}"
+}
+
+cp_code() {
+    ## cp_code <password> <curl args...> - print the HTTP status code:
+    local pw="$1"; shift
+    curl "${CP_CURL_ARGS[@]}" -o /dev/null -w '%{http_code}' ${pw:+-H "PW: ${pw}"} "$@" || true
+}
+
+cp_upload() {
+    ## cp_upload <password> <dir path> - upload the probe file, print the code:
+    cp_code "$1" -T "${CP_PROBE_DIR}/${CP_PROBE}" "${CP_BASE}$2"
+}
+
+cp_list() {
+    ## cp_list <password> <dir path> - list a folder, print the code:
+    cp_code "$1" "${CP_BASE}$2?ls"
+}
+
+cp_expect() {
+    ## cp_expect <check> <path> <expected code> <got code> <detail>
+    if [[ "$4" == "$3" ]]; then
+        record_test PASS "copyparty:$1" "${CP_BASE}$2" "$5: $4"
+    else
+        record_test FAIL "copyparty:$1" "${CP_BASE}$2" "$5: expected $3, got $4"
+    fi
+}
+
 test_copyparty_homes() {
     ## COPYPARTY_ENABLE_USER_HOMES: each account gets a private
     ## /home/{username}; only its owner (and the admin) may use it:
-    local host="copyparty.${E2E_ROOT_DOMAIN}" env_file="copyparty/.env_${E2E_NAME}_default"
-    local base="https://${host}" users admin_pw alice_pw bob_pw
-    users=$(e2e_remote_sh "_scripts/dotenv -f ${env_file} get COPYPARTY_USERS" 2>/dev/null)
-    admin_pw=$(e2e_remote_sh "_scripts/dotenv -f ${env_file} get COPYPARTY_ADMIN_PASSWORD" 2>/dev/null)
-    alice_pw=$(tr ',' '\n' <<< "${users}" | grep -oP '^e2e-alice:\K.*' || true)
-    bob_pw=$(tr ',' '\n' <<< "${users}" | grep -oP '^e2e-bob:\K.*' || true)
-    if [[ -z "${alice_pw}" || -z "${bob_pw}" || -z "${admin_pw}" ]]; then
-        record_test FAIL copyparty:homes "${base}/home/" "could not read test account passwords"
-        return
-    fi
-    local curl_args=(-s --max-time 20 --resolve "${host}:443:${DROPLET_IP}")
-    [[ "${E2E_ACME_CA}" == *staging* ]] && curl_args+=(-k)
-    cp_code() {
-        ## cp_code <password> <curl args...> - print the HTTP status code:
-        local pw="$1"; shift
-        curl "${curl_args[@]}" -o /dev/null -w '%{http_code}' ${pw:+-H "PW: ${pw}"} "$@" || true
-    }
-    cp_expect() {
-        ## cp_expect <check> <expected code> <got code> <detail>
-        if [[ "$3" == "$2" ]]; then
-            record_test PASS "copyparty:$1" "${base}/home/" "$4: $3"
-        else
-            record_test FAIL "copyparty:$1" "${base}/home/" "$4: expected $2, got $3"
-        fi
-    }
-    local probe; probe=$(mktemp); echo "e2e-$(date +%s)" > "${probe}"
-    cp_expect owner-upload 201 "$(cp_code "${alice_pw}" -T "${probe}" "${base}/home/e2e-alice/")" "alice uploads to her home"
-    cp_expect other-upload 403 "$(cp_code "${bob_pw}" -T "${probe}" "${base}/home/e2e-alice/")" "bob uploads to alice's home"
-    cp_expect other-list 403 "$(cp_code "${bob_pw}" "${base}/home/e2e-alice/?ls")" "bob lists alice's home"
-    cp_expect anon-list 403 "$(cp_code "" "${base}/home/e2e-alice/?ls")" "anonymous lists alice's home"
-    cp_expect admin-list 200 "$(cp_code "${admin_pw}" "${base}/home/e2e-alice/?ls")" "admin lists alice's home"
-    rm -f "${probe}"
+    local h=/home/e2e-alice/
+    cp_expect owner-upload ${h} 201 "$(cp_upload "${CP_ALICE_PW}" ${h})" "alice uploads to her home"
+    cp_expect other-upload ${h} 403 "$(cp_upload "${CP_BOB_PW}" ${h})" "bob uploads to alice's home"
+    cp_expect other-list ${h} 403 "$(cp_list "${CP_BOB_PW}" ${h})" "bob lists alice's home"
+    cp_expect anon-list ${h} 403 "$(cp_list "" ${h})" "anonymous lists alice's home"
+    cp_expect admin-list ${h} 200 "$(cp_list "${CP_ADMIN_PW}" ${h})" "admin lists alice's home"
     ## A user listing /home must see only their own folder:
     local dirs
-    dirs=$(curl "${curl_args[@]}" -H "PW: ${bob_pw}" "${base}/home/?ls" | jq -r '[.dirs[].href] | join(",")' 2>/dev/null || true)
+    dirs=$(curl "${CP_CURL_ARGS[@]}" -H "PW: ${CP_BOB_PW}" "${CP_BASE}/home/?ls" | jq -r '[.dirs[].href] | join(",")' 2>/dev/null || true)
     if [[ "${dirs}" == "e2e-bob/" ]]; then
-        record_test PASS copyparty:home-isolation "${base}/home/" "bob sees only: ${dirs}"
+        record_test PASS copyparty:home-isolation "${CP_BASE}/home/" "bob sees only: ${dirs}"
     else
-        record_test FAIL copyparty:home-isolation "${base}/home/" "bob sees: ${dirs:-nothing}"
+        record_test FAIL copyparty:home-isolation "${CP_BASE}/home/" "bob sees: ${dirs:-nothing}"
     fi
 }
+
+test_copyparty_paths() {
+    ## COPYPARTY_PERMISSIONS: a path on the data volume, a nested path that
+    ## doesn't inherit its parent's permissions, and an external volume:
+    local t=/e2e-team/ n=/e2e-team/alice-only/ x=/e2e-ext/
+    cp_expect team-upload ${t} 201 "$(cp_upload "${CP_ALICE_PW}" ${t})" "alice uploads to the team folder"
+    cp_expect team-upload-2 ${t} 201 "$(cp_upload "${CP_BOB_PW}" ${t}bob/)" "bob uploads to the team folder"
+    cp_expect team-anon-list ${t} 403 "$(cp_list "" ${t})" "anonymous lists the team folder"
+    cp_expect nested-upload ${n} 201 "$(cp_upload "${CP_ALICE_PW}" ${n})" "alice uploads to /e2e-team/alice-only"
+    cp_expect nested-no-inherit ${n} 403 "$(cp_list "${CP_BOB_PW}" ${n})" "bob lists /e2e-team/alice-only"
+    cp_expect nested-admin ${n} 200 "$(cp_list "${CP_ADMIN_PW}" ${n})" "admin lists /e2e-team/alice-only"
+    cp_expect ext-upload ${x} 201 "$(cp_upload "${CP_ALICE_PW}" ${x})" "alice uploads to the external volume"
+    cp_expect ext-read-only ${x} 403 "$(cp_upload "${CP_BOB_PW}" ${x})" "bob (read only) uploads to the external volume"
+    cp_expect ext-list ${x} 200 "$(cp_list "${CP_BOB_PW}" ${x})" "bob lists the external volume"
+    ## The uploads must land on the right storage: the data volume, and
+    ## the external volume's host directory:
+    local out
+    out=$(e2e_remote_sh "$(platform_remote_prelude)
+c=\$(container_of copyparty copyparty)
+docker exec \"\${c}\" test -f /data/e2e-team/${CP_PROBE} && echo DATA_OK
+test -f ${E2E_COPYPARTY_EXT_DIR}/${CP_PROBE} && echo EXT_OK" 2>/dev/null || true)
+    if grep -q DATA_OK <<< "${out}"; then
+        record_test PASS copyparty:team-storage "${CP_BASE}${t}" "stored in the data volume at /data/e2e-team"
+    else
+        record_test FAIL copyparty:team-storage "${CP_BASE}${t}" "upload not found at /data/e2e-team"
+    fi
+    if grep -q EXT_OK <<< "${out}"; then
+        record_test PASS copyparty:ext-storage "${CP_BASE}${x}" "stored on the host at ${E2E_COPYPARTY_EXT_DIR}"
+    else
+        record_test FAIL copyparty:ext-storage "${CP_BASE}${x}" "upload not found at ${E2E_COPYPARTY_EXT_DIR} on the host"
+    fi
+}
+test_copyparty_admin() {
+    ## A user's 'a' permission on their home must not grant server-wide
+    ## powers (the config sets no-reload and no-stack), but it does let
+    ## them create share links, which the admin (shr-adm) can see:
+    cp_expect user-no-stack / 403 "$(cp_code "${CP_ALICE_PW}" "${CP_BASE}/?stack")" "alice views the server thread list"
+    cp_expect user-no-reload / 403 "$(cp_code "${CP_ALICE_PW}" "${CP_BASE}/?reload=cfg")" "alice reloads the server config"
+    local key="e2e-share-$(date +%s)"
+    cp_expect user-share /share/ 201 "$(cp_code "${CP_ALICE_PW}" -H 'Content-Type: application/json' \
+        --data "{\"k\":\"${key}\",\"vp\":[\"/home/e2e-alice/\"],\"pw\":\"\",\"exp\":\"60\",\"perms\":[\"read\"]}" \
+        "${CP_BASE}/?share")" "alice shares her home"
+    if curl "${CP_CURL_ARGS[@]}" -H "PW: ${CP_ADMIN_PW}" "${CP_BASE}/?shares" | grep -q "${key}"; then
+        record_test PASS copyparty:admin-sees-shares "${CP_BASE}/?shares" "admin sees alice's share"
+    else
+        record_test FAIL copyparty:admin-sees-shares "${CP_BASE}/?shares" "alice's share is missing from the admin's list"
+    fi
+}
+
 
 test_nextcloud_backup() {
     ## The restic container initializes its repository in the bucket on

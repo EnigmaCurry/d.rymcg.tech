@@ -1031,8 +1031,12 @@ app_test_vars() {
         minio) echo "MINIO_CONSOLE_TRAEFIK_HOST=minio-console.${root}"
                echo "S3_SOURCERANGE=${APP_SOURCERANGE},${DROPLET_IP}/32,${DOCKER_POOL_CIDR}"
                echo "CONSOLE_SOURCERANGE=${APP_SOURCERANGE}" ;;
-        ## Per-user home folders (checked by test_copyparty_homes):
-        copyparty) echo "COPYPARTY_ENABLE_USER_HOMES=true" ;;
+        ## Per-user home folders and path permissions (checked by
+        ## test_copyparty): a team folder on the data volume, a nested
+        ## folder only alice may use, and an external volume bob may read:
+        copyparty) echo "COPYPARTY_ENABLE_USER_HOMES=true"
+                   echo "COPYPARTY_VOL_EXTERNAL=e2e-ext:${E2E_COPYPARTY_EXT_DIR}"
+                   echo "COPYPARTY_PERMISSIONS=/e2e-team:rw:e2e-alice/e2e-bob,/e2e-team/alice-only:rwmda:e2e-alice,/e2e-ext:rw:e2e-alice,/e2e-ext:r:e2e-bob" ;;
         s3-proxy) echo "S3PROXY_S3_ENDPOINT=@platform:S3_HOST"
                   echo "S3PROXY_S3_BUCKET=@platform:S3PROXY_S3_BUCKET"
                   echo "S3PROXY_S3_ACCESS_KEY_ID=@platform:S3PROXY_S3_KEY"
@@ -1045,6 +1049,11 @@ app_pre_install() {
     ## (in the repo dir) just before 'make install', e.g. a one-time init:
     case "$1" in
         ## step-ca's one-time init: see step_ca_init_snippet (lib/platform.sh)
+        ## The external volume's host directory must exist and be writable
+        ## by the copyparty user (Docker would create it owned by root):
+        copyparty) echo "uid=\$(_scripts/dotenv -f copyparty/.env_${E2E_NAME}_default get COPYPARTY_UID)
+gid=\$(_scripts/dotenv -f copyparty/.env_${E2E_NAME}_default get COPYPARTY_GID)
+docker run --rm -v /srv:/srv alpine sh -c \"mkdir -p ${E2E_COPYPARTY_EXT_DIR} && chown \${uid}:\${gid} ${E2E_COPYPARTY_EXT_DIR}\"" ;;
     esac
 }
 
