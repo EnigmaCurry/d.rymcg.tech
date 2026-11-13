@@ -1099,7 +1099,20 @@ app_config_current() {
     e2e_remote_sh "prefix=\$(grep -oP '^# PREFIX=\\K.*' ${app}/.env-dist || true)
 test -n \"\${prefix}\" && test -f ${app}/.env_${E2E_NAME}_default || exit 1
 $(sourcerange_snippet "${app}" check)
-$(app_test_vars_snippet "${app}" check)" >/dev/null 2>&1
+$(app_test_vars_snippet "${app}" check)
+$(app_config_current_extra "${app}")" >/dev/null 2>&1
+}
+
+app_config_current_extra() {
+    ## app_config_current_extra <app> - more remote checks for
+    ## app_config_current, for settings that aren't test vars:
+    case "$1" in
+        ## Its Step-CA settings are copied from Traefik's by configure_step_ca.sh:
+        oauth2-proxy) local v
+            for v in ENABLED ENDPOINT FINGERPRINT; do
+                echo "[ \"\$(_scripts/dotenv -f oauth2-proxy/.env_${E2E_NAME}_default get OAUTH2_PROXY_STEP_CA_${v})\" = \"\$(_scripts/dotenv -f traefik/.env_${E2E_NAME}_default get TRAEFIK_STEP_CA_${v})\" ] || exit 1"
+            done ;;
+    esac
 }
 
 install_app() {
@@ -1169,7 +1182,11 @@ app_deps() {
         pairdrop) echo "coturn" ;;
         ## Platform services (see lib/platform.sh):
         mosquitto|nats) echo "step-ca" ;;
-        oauth2-proxy|woodpecker) echo "forgejo" ;;
+        ## (oauth2-proxy copies Traefik's step-ca trust, which needs step-ca
+        ## set up first when it's selected):
+        oauth2-proxy) echo "forgejo"
+                      [[ ",${E2E_APPS}," == *,step-ca,* ]] && echo "step-ca" ;;
+        woodpecker) echo "forgejo" ;;
         s3-proxy|nextcloud) echo "minio" ;;
     esac
 }

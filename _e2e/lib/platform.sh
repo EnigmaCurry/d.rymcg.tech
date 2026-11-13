@@ -116,6 +116,41 @@ test -n \"\${fp}\"
 pset STEP_CA_FINGERPRINT \"\${fp}\"
 pset STEP_CA_URL https://step-ca.${E2E_ROOT_DOMAIN}
 echo \"step-ca fingerprint: \${fp}\""
+    platform_setup_traefik_step_ca
+}
+
+platform_setup_traefik_step_ca() {
+    ## Have Traefik trust the platform step-ca (TRAEFIK_STEP_CA_*), as a
+    ## user would for mTLS. Step-CA is served by this same Traefik, so the
+    ## restarted Traefik can't bootstrap at startup: it starts without the
+    ## CA, retries in the background, and restarts itself once it has it.
+    ## oauth2-proxy's 'make config' copies these settings (configure_step_ca.sh).
+    echo "Configuring Traefik to trust the platform step-ca ..."
+    e2e_remote_sh "$(platform_remote_prelude)
+tenv=traefik/.env_${E2E_NAME}_default
+url=https://step-ca.${E2E_ROOT_DOMAIN}
+fp=\$(pget STEP_CA_FINGERPRINT)
+if [ \"\$(_scripts/dotenv -f \${tenv} get TRAEFIK_STEP_CA_ENABLED)\" = true ] && \\
+   [ \"\$(_scripts/dotenv -f \${tenv} get TRAEFIK_STEP_CA_ENDPOINT)\" = \"\${url}\" ] && \\
+   [ \"\$(_scripts/dotenv -f \${tenv} get TRAEFIK_STEP_CA_FINGERPRINT)\" = \"\${fp}\" ]; then
+  echo 'Traefik already trusts the platform step-ca.'
+else
+  _scripts/reconfigure \${tenv} TRAEFIK_STEP_CA_ENABLED=true TRAEFIK_STEP_CA_ENDPOINT=\${url} TRAEFIK_STEP_CA_FINGERPRINT=\${fp}
+  make -C traefik install instance=default
+fi
+## Wait for the (background) bootstrap and Traefik's self-restart:
+for i in \$(seq 1 60); do
+  c=\$(container_of traefik traefik)
+  if [ -n \"\${c}\" ] && docker exec \${c} test -s /certs/step_ca_intermediate.crt 2>/dev/null && \\
+     [ \"\$(docker inspect -f '{{.State.Health.Status}}' \${c} 2>/dev/null)\" = healthy ] && \\
+     curl -sfk -o /dev/null --max-time 5 \${url}/health; then
+    echo 'Traefik has bootstrapped step-ca and is serving again.'; exit 0
+  fi
+  sleep 5
+done
+echo 'ERROR: Traefik did not bootstrap step-ca within 5 minutes:'
+docker logs --tail 30 \$(container_of traefik traefik) 2>&1 | grep -i 'step-ca\\|restart' || true
+exit 1"
 }
 
 platform_setup_forgejo() {
@@ -286,6 +321,9 @@ app_platform_pre_install() {
     ## an app for the platform services it uses:
     local app="$1" host="$1.${E2E_ROOT_DOMAIN}"
     case "${app}" in
+        ## The Step-CA trust step of its 'make config' (config-dist skips the
+        ## hook): copy Traefik's TRAEFIK_STEP_CA_* settings:
+        oauth2-proxy) echo "(cd oauth2-proxy && ENV_FILE=.env_${E2E_NAME}_default ROOT_DIR=.. bash ./configure_step_ca.sh)" ;;
         step-ca) step_ca_init_snippet ;;
         mosquitto)
             ## Per-context ACL (gitignored): the e2e client may use e2e/#:
@@ -337,12 +375,14 @@ app_functional_tests() {
     case "$1" in
         mosquitto) test_mosquitto ;;
         nats) test_nats ;;
-        oauth2-proxy) test_oauth2 oauth2-proxy "https://$(E2E_OAUTH2_HOST)/" ;;
+        oauth2-proxy) test_oauth2 oauth2-proxy "https://$(E2E_OAUTH2_HOST)/"
+                      test_oauth2_proxy_step_ca ;;
         woodpecker) test_oauth2 woodpecker "https://woodpecker.${E2E_ROOT_DOMAIN}/" ;;
         s3-proxy) test_s3_proxy ;;
         nextcloud) test_nextcloud_backup ;;
         sysbox-systemd) test_sysbox_systemd ;;
         tor) test_tor ;;
+        step-ca) test_traefik_step_ca ;;
     esac
 }
 
@@ -514,6 +554,46 @@ pid1=\$(docker exec \${c} cat /proc/1/comm)
 state=\$(timeout 90 docker exec \${c} systemctl is-system-running --wait 2>/dev/null)
 case \"\${state}\" in running|degraded) ok=0 ;; *) ok=1 ;; esac
 check systemd-booted \${ok} \"state=\${state}\""
+}
+
+test_traefik_step_ca() {
+    ## Traefik bootstrapped the platform step-ca (see
+    ## platform_setup_traefik_step_ca): its saved root matches the CA's:
+    run_remote_checks step-ca "traefik://step-ca" "$(platform_remote_prelude)
+set +e; trap - ERR
+check() { if [ \"\$2\" = 0 ]; then echo \"CHECK \$1 PASS \$3\"; else echo \"CHECK \$1 FAIL \$3\"; fi; }
+t=\$(container_of traefik traefik)
+want=\$(stepca step certificate fingerprint /home/step/certs/root_ca.crt)
+got=\$(docker exec \${t} step certificate fingerprint /certs/step_ca_root.crt 2>/dev/null)
+[ -n \"\${want}\" ] && [ \"\${got}\" = \"\${want}\" ]; check traefik-trusts-root \$? \"root \${got:0:16}...\"
+docker exec \${t} sh -c 'openssl x509 -in /certs/step_ca_intermediate.crt -noout -text | grep -q CA:TRUE' 2>/dev/null
+check traefik-has-intermediate \$? \"for mTLS client verification\""
+}
+
+test_oauth2_proxy_step_ca() {
+    ## oauth2-proxy's 'make config' copied Traefik's Step-CA settings
+    ## (configure_step_ca.sh), and its image trusts the step-ca root on top
+    ## of the public CAs (ZERO_CERTS is not copied). Only when Traefik
+    ## trusts step-ca, i.e. step-ca is in the app list:
+    [[ ",${E2E_APPS}," == *,step-ca,* ]] || return 0
+    run_remote_checks oauth2-proxy "oauth2-proxy://trust" "$(platform_remote_prelude)
+set +e; trap - ERR
+check() { if [ \"\$2\" = 0 ]; then echo \"CHECK \$1 PASS \$3\"; else echo \"CHECK \$1 FAIL \$3\"; fi; }
+env=oauth2-proxy/.env_${E2E_NAME}_default
+ok=0
+for v in ENABLED ENDPOINT FINGERPRINT; do
+  [ \"\$(_scripts/dotenv -f \${env} get OAUTH2_PROXY_STEP_CA_\${v})\" = \"\$(_scripts/dotenv -f traefik/.env_${E2E_NAME}_default get TRAEFIK_STEP_CA_\${v})\" ] || ok=1
+done
+check step-ca-settings-copied \${ok} \"ENABLED/ENDPOINT/FINGERPRINT match Traefik\"
+## The image is built FROM scratch: copy its trust store out:
+d=\$(mktemp -d)
+docker cp \$(container_of oauth2-proxy oauth2-proxy):/etc/ssl/certs/ca-certificates.crt \${d}/bundle.crt >/dev/null 2>&1
+stepca cat /home/step/certs/root_ca.crt > \${d}/root.crt
+root=\$(grep -v -- '-----' \${d}/root.crt | tr -d '\\n')
+tr -d '\\n' < \${d}/bundle.crt | grep -qF \"\${root}\"; check step-ca-root-trusted \$? \"in the image's CA bundle\"
+n=\$(grep -c 'BEGIN CERTIFICATE' \${d}/bundle.crt)
+[ \"\${n:-0}\" -gt 50 ]; check public-cas-kept \$? \"\${n:-0} CAs in the bundle\"
+rm -rf \${d}"
 }
 
 test_tor() {
