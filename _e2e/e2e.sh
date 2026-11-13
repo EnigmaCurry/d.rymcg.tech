@@ -1108,6 +1108,8 @@ probe_target() {
         syncthing) PROBE_KIND=container ;;
         ## maubot serves nothing at /; its management UI:
         maubot) PROBE_PATH="_matrix/maubot/" ;;
+        ## yourls has no index at / (403); its UI is under /admin/:
+        yourls) PROBE_PATH="admin/" ;;
         doh-server)
             ## A DNS query for example.com/A (RFC 8484 GET, base64url wire format):
             PROBE_PATH="dns-query?dns=q80BAAABAAAAAAAAB2V4YW1wbGUDY29tAAABAAE"
