@@ -464,14 +464,22 @@ Set the following variables in your Traefik `.env_{CONTEXT}` file:
  * `TRAEFIK_STEP_CA_FINGERPRINT=xxxxxxxxxxxxxxxxxxxx` (set this to
    your Step-CA fingerprint, eg. use `make inspect-fingerprint` in the
    [step-ca](../step-ca) project to find it.)
- * `TRAFEIK_STEP_CA_ZERO_CERTS=true` (set this true if you want to delete all other CA certs.)
+ * `TRAEFIK_STEP_CA_ZERO_CERTS=true` (set this true if you want to delete all other CA certs.)
 
 Make sure to reinstall Traefik (`make install`) for these settings to
-take effect. The image will be rebuilt, baking in your root CA
-certificate. The [Dockerfile](Dockerfile) runs `step-cli`, it
-retrieves the CA cert chain from your Step-CA endpoint, verifies the
-fingerprint, and then writes the CA cert permanently into the Traefik
-system's trust store (ie. container image layer).
+take effect. When Traefik starts, its
+[entrypoint](traefik/entrypoint.sh) runs `step-cli`: it retrieves the
+CA cert chain from your Step-CA endpoint, verifies the fingerprint,
+saves the root and intermediate certificates in the `traefik_certs`
+volume, and adds the root to the container's trust store. This only
+happens again if the fingerprint changes.
+
+Step-CA may be served by this same Traefik (e.g. the
+[step-ca](../step-ca) project on the same server), so it can't answer
+until Traefik is running. In that case, Traefik starts without the CA,
+retries in the background, and restarts itself once the bootstrap
+succeeds (watch `make logs`). Until then, mTLS routes don't accept
+clients.
 
 You can test that the certificate is trusted and valid, using the
 `curl` command from inside of the trafeik container shell:
