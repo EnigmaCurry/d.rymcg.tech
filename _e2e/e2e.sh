@@ -1369,8 +1369,10 @@ printf "%-36s\0" e2eprobe >&3; IFS= read -r -t 5 -N 1 b <&3 || exit 1; printf "%
         ## e.g. shaarli's session test, set one and redirect):
         local curl_args=(-s -o /dev/null -w '%{http_code} %{url_effective}' --max-time 20 -L --max-redirs 5 --cookie ""
                          --resolve "${host}:443:${DROPLET_IP}")
-        ## Staging CA is not in the system trust store; production must validate:
-        [[ "${E2E_ACME_CA}" == *staging* ]] && curl_args+=(-k)
+        ## Staging CA is not in the system trust store; production must
+        ## validate. An app serving its own cert (e.g. step-ca, from its own
+        ## private CA) is vouched for by tls_probe's subject check instead:
+        [[ "${E2E_ACME_CA}" == *staging* || "${PROBE_OWN_CERT}" == "true" ]] && curl_args+=(-k)
         out=$(curl "${curl_args[@]}" "${PROBE_HEADERS[@]}" "${PROBE_URL}" || true)
         PROBE_CODE="${out%% *}"
         final="${out#* }"
