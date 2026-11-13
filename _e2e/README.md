@@ -149,8 +149,58 @@ certificate (~2-5 min, DNS propagation dependent), Traefik + wildcard
 certificate (~3-6 min), and ~1 min per app. A repeat run on an
 existing droplet completes in a few minutes.
 
+## Platform services and functional tests
+
+Some apps need another service before they can work. `lib/platform.sh`
+sets these up automatically: selecting an app pulls in its provider
+first (see `app_deps` in `e2e.sh`).
+
+| Provider | Set up by e2e | Used by |
+|---|---|---|
+| step-ca | init (keeps the admin provisioner password it prints once), x509 policy for the test domain, root fingerprint, one-time tokens | mosquitto, nats |
+| forgejo | admin + test users (`e2e-admin`, `e2e-member`, `e2e-outsider`), org `e2e` / team `allowed`, OAuth2 apps | oauth2-proxy, woodpecker |
+| minio | one bucket and user per consumer | s3-proxy, nextcloud backups |
+| sysbox runtime | `sysbox-ce` installed on the droplet | sysbox-systemd |
+
+Values the platform produces (fingerprint, passwords, client secrets,
+S3 keys) are kept on the droplet in
+`~/.config/d.rymcg.tech/e2e-platform.env` (mode 0600), never locally.
+An app's test vars read them as `@platform:<VAR>`.
+
+Once an app's route verifies, its functional tests add their own result
+rows (`app:check`):
+
+* **mosquitto** and **nats:** publish/subscribe with step-ca client certs.
+  Also checked: a connection without a cert is refused, and an
+  unauthorized client is denied.
+* **oauth2-proxy:** a second whoami instance (`whoami-oauth`) behind OAuth2,
+  driven like a browser by `lib/oauth2_flow.py`:
+  * signed out, you are redirected to Forgejo's login;
+  * a team member gets in;
+  * a Forgejo user outside the team gets 403;
+  * spoofed identity headers don't pass.
+* **woodpecker:** an org member logs in through Forgejo; an outsider is refused.
+* **s3-proxy:** serves an object put into its bucket.
+* **nextcloud:** a restic backup's snapshot lands in minio.
+* **sysbox-systemd:** runs under `sysbox-runc`, with systemd as PID 1, booted.
+
+Some apps call another app over HTTPS from inside the droplet, so staging
+runs need workarounds:
+* oauth2-proxy trusts the Let's Encrypt staging roots
+  (`OAUTH2_PROXY_EXTRA_CA_CERT_URLS`).
+* woodpecker sets `WOODPECKER_FORGEJO_SKIP_VERIFY`.
+* The S3 consumers have none, so their checks fail on staging: test
+  them with the production CA.
+
+Switching an existing test from staging to production replaces the
+staging wildcard cert automatically.
+
 ## Notes and caveats
 
+* The droplet firewall admits only `E2E_IP_SOURCERANGE` on the ports
+  Traefik doesn't front: ssh, the acme-dns API, and host-published app
+  ports (mosquitto 8883, nats 4222). 80/443 stay open; Traefik's
+  ipallowlist limits each app.
 * `--staging` (the default) uses the Let's Encrypt **staging** CA for
   the Traefik wildcard certificate, so verification accepts untrusted
   chains (it still requires the right subject and a STAGING issuer).
@@ -167,8 +217,8 @@ existing droplet completes in a few minutes.
   re-registers and updates the CNAME automatically.
 * Apps in the default set are "Tier A": a single `*_TRAEFIK_HOST`
   variable and a valid config straight from `.env-dist`. Apps that
-  need secrets, databases, or OAuth need more per-app configuration
-  before they can join the list.
+  need more get per-app settings in `app_test_vars`, or a platform
+  service (above).
 * The first `make` invocations on the droplet are slow (image pulls,
   tooling); raise `--timeout` if a small droplet times out in `wait`.
 * The droplet is provisioned with `_e2e/user_data_docker_debian.yaml`
