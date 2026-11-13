@@ -29,7 +29,8 @@
 #@ homepage_show_stats_homelable = data.values.homepage_show_stats_homelable
 #@ homepage_widget_enable = data.values.homepage_widget_enable == "true"
 #@ homepage_widget_api_key = data.values.homepage_widget_api_key
-#@ mcp_enabled = "mcp" in data.values.profiles.split(",")
+#! compose trims spaces around profile names, so do the same here:
+#@ mcp_enabled = "mcp" in [p.strip() for p in data.values.profiles.split(",")]
 
 #@yaml/text-templated-strings
 services:
@@ -106,11 +107,20 @@ services:
       - homepage.href=https://(@= traefik_host @)
       - homepage.description=(@= homepage_description_homelable or traefik_host @)
       - homepage.showStats=(@= homepage_show_stats_homelable @)
-      #@ end
+      #! The widget belongs to the service entry above, so it needs it:
       #@ if homepage_widget_enable and len(homepage_widget_api_key):
       - homepage.widget.type=customapi
       - homepage.widget.url=https://(@= traefik_host @)/api/v1/stats/summary
       - homepage.widget.headers.X-API-Key=(@= homepage_widget_api_key @)
+      - homepage.widget.mappings[0].field=nodes
+      - homepage.widget.mappings[0].label=Nodes
+      - homepage.widget.mappings[1].field=online
+      - homepage.widget.mappings[1].label=Online
+      - homepage.widget.mappings[2].field=offline
+      - homepage.widget.mappings[2].label=Offline
+      - homepage.widget.mappings[3].field=pending_devices
+      - homepage.widget.mappings[3].label=Pending
+      #@ end
       #@ end
     environment:
       #@ if is_host:

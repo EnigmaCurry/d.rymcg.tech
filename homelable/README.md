@@ -80,15 +80,23 @@ only reachable from the other containers of this project.
 In host mode the backend — including the login endpoint
 (`POST /api/v1/auth/login`) — listens on `HOMELABLE_BACKEND_PORT` on every
 interface of the Docker host. Only the Traefik-routed frontend should be
-user-reachable, so firewall the port down to the Docker bridge subnet,
-which is all the frontend and mcp containers need to reach the backend via
-`host.docker.internal`. With ufw, for example (adjust the subnet and
-port):
+user-reachable, so firewall the port down to the Docker subnets, which is
+all the frontend and mcp containers need to reach the backend via
+`host.docker.internal`. Those containers are on this project's own compose
+network (not the default `docker0` bridge, 172.17.0.0/16), and its subnet
+is assigned by Docker and can change when the network is recreated. So
+allow Docker's whole default address pool, 172.16.0.0/12. With ufw, for
+example (adjust the port):
 
 ```
-ufw allow from 172.17.0.0/16 to any port 8000 proto tcp
+ufw allow from 172.16.0.0/12 to any port 8000 proto tcp
 ufw deny any to any port 8000 proto tcp
 ```
+
+If you set a custom `default-address-pools` in Docker's `daemon.json`,
+allow that range instead. `docker network inspect homelable_default
+--format '{{range .IPAM.Config}}{{.Subnet}}{{end}}'` shows the subnet the
+network has right now.
 
 or an equivalent pfSense/OPNsense rule. In bridge mode the backend is not
 exposed on the host at all, so no rule is needed for it.
@@ -119,9 +127,13 @@ enable it manually:
 ```
 make reconfigure var=HOMELABLE_MCP_API_KEY=<random>
 make reconfigure var=HOMELABLE_MCP_SERVICE_KEY=<random>
+make reconfigure var=HOMELABLE_MCP_ENABLED=true
 make reconfigure var=HOMELABLE_DOCKER_COMPOSE_PROFILES=default,mcp
 make install
 ```
+
+(`make config` sets `HOMELABLE_DOCKER_COMPOSE_PROFILES` from
+`HOMELABLE_MCP_ENABLED`, so keep the two in agreement.)
 
 Disabling it (removing `mcp` from the profiles) also only needs a
 normal `make install`: it re-renders the compose override, removes the
@@ -172,9 +184,16 @@ needs a normal `make install`: it drops the widget labels and blanks
 the backend's API key, so the stats endpoint rejects all keys. The
 key stays in the .env file and is re-applied when you re-enable it.
 
-Note: the widget label is served over the public Traefik host, so mTLS
-must be disabled for it to work (gethomepage cannot present a client
-certificate).
+It shows the node count, how many are online and offline, and the
+devices pending triage. It needs `HOMELABLE_HOMEPAGE_LABELS_ENABLE=true`,
+since the widget is attached to Homelable's homepage service entry.
+
+Note: the widget calls the public Traefik host, which applies all of this
+app's Traefik middlewares, and gethomepage only sends the `X-API-Key`
+header. So the widget only works with HTTP Basic Auth, OAuth2 and mTLS
+all disabled (gethomepage can't log in or present a client certificate),
+and with `HOMELABLE_IP_SOURCERANGE` allowing the homepage server's
+address. Homelable's own login still protects the app.
 
 ## Install
 
