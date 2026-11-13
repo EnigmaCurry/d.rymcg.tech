@@ -918,6 +918,8 @@ app_test_vars() {
         postfix-relay) echo "POSTFIX_RELAY_ALLOWED_SENDER_DOMAINS=${E2E_ROOT_DOMAIN}" ;;
         ## The droplet has no GPU; the default (cuda) can't start:
         invokeai) echo "INVOKEAI_DOCKER_COMPOSE_PROFILES=cpu"; echo "INVOKEAI_GPU_DRIVER=cpu" ;;
+        ## Its backup containers need an S3 bucket, and crash-loop without one:
+        nextcloud) echo "NEXTCLOUD_BACKUP_ENABLED=false" ;;
     esac
 }
 
@@ -1002,8 +1004,6 @@ app_skip_reason() {
         sysbox-systemd) echo "needs the sysbox runtime (sysbox-runc) installed on the host" ;;
         minio) echo "MinIO no longer publishes container images" ;;
         mosquitto|nats) echo "needs a step-ca server and provisioner token for its TLS certs" ;;
-        ## Its backup containers always run, and crash-loop without S3:
-        nextcloud) echo "needs an S3 bucket for its (always-on) backups" ;;
         s3-proxy) echo "needs an S3 bucket to proxy" ;;
         woodpecker) echo "needs an OAuth2 app registered in a forge (e.g. forgejo)" ;;
     esac
