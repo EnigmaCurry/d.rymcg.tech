@@ -322,6 +322,7 @@ app_functional_tests() {
         woodpecker) test_oauth2 woodpecker "https://woodpecker.${E2E_ROOT_DOMAIN}/" ;;
         s3-proxy) test_s3_proxy ;;
         nextcloud) test_nextcloud_backup ;;
+        sysbox-systemd) test_sysbox_systemd ;;
     esac
 }
 
@@ -477,6 +478,22 @@ docker exec \$(container_of nextcloud data_backup) /bin/backup > /tmp/e2e-nc-bac
 check restic-backup \$? \"/bin/backup in data_backup\"
 n=\$(mc ls -r e2e/\${bucket}/ 2>/dev/null | grep -c '/data/snapshots/')
 [ \"\${n:-0}\" -ge 1 ]; check snapshot-in-bucket \$? \"\${n:-0} snapshot(s)\""
+}
+
+test_sysbox_systemd() {
+    ## The container runs under sysbox, with systemd as PID 1 and booted:
+    run_remote_checks sysbox-systemd "container://sysbox-systemd" "$(platform_remote_prelude)
+set +e; trap - ERR
+check() { if [ \"\$2\" = 0 ]; then echo \"CHECK \$1 PASS \$3\"; else echo \"CHECK \$1 FAIL \$3\"; fi; }
+c=\$(container_of sysbox-systemd linux)
+rt=\$(docker inspect -f '{{.HostConfig.Runtime}}' \${c})
+[ \"\${rt}\" = sysbox-runc ]; check runtime \$? \"runtime=\${rt}\"
+pid1=\$(docker exec \${c} cat /proc/1/comm)
+[ \"\${pid1}\" = systemd ]; check systemd-pid1 \$? \"pid1=\${pid1}\"
+## 'degraded' means booted with some unit failed (common in containers):
+state=\$(timeout 90 docker exec \${c} systemctl is-system-running --wait 2>/dev/null)
+case \"\${state}\" in running|degraded) ok=0 ;; *) ok=1 ;; esac
+check systemd-booted \${ok} \"state=\${state}\""
 }
 
 ## -------------------------------------------------------------------------

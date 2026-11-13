@@ -1249,6 +1249,9 @@ probe_target() {
         ## Publishes 5432 on the host itself (not via Traefik); its
         ## healthcheck runs pg_isready:
         postgresql) PROBE_KIND=container ;;
+        ## A bare systemd machine: nothing serves its route until you install
+        ## a web server in it (systemd itself is checked by its tests):
+        sysbox-systemd) PROBE_KIND=container ;;
         ## Its web admin is off by default (no HTTPS route); syncing runs on
         ## its own port 22000:
         syncthing) PROBE_KIND=container ;;
