@@ -6,6 +6,17 @@
 #@yaml/text-templated-strings
 #@ if tls_proxy_enabled and len(tls_proxy_routes):
 tcp:
+  #@ pp_routes = [r for r in tls_proxy_routes.split(",") if int(r.split(":")[3]) > 0]
+  #@ if len(pp_routes):
+  serversTransports:
+    #@ for route in pp_routes:
+    #@ domain, ip_address, port, proxy_protocol = route.split(":")
+    #@ service = domain.replace(".","-")
+    (@= service @)-proxy-transport:
+      proxyProtocol:
+        version: #@ int(proxy_protocol)
+    #@ end
+  #@ end
   services:
     #@ for route in tls_proxy_routes.split(","):
     #@ domain, ip_address, port, proxy_protocol = route.split(":")
@@ -13,8 +24,7 @@ tcp:
     (@= service @)-proxy:
       loadBalancer:
         #@ if int(proxy_protocol) > 0:
-        proxyProtocol:
-          version: #@ proxy_protocol
+        serversTransport: (@= service @)-proxy-transport
         #@ end
         servers:
           - address: "(@= ip_address @):(@= port @)"

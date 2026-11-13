@@ -1,4 +1,4 @@
-ARG FROM=docker.io/debian:bullseye
+ARG FROM=docker.io/debian:trixie
 FROM ${FROM}
 
 RUN export DEBIAN_FRONTEND=noninteractive && \
