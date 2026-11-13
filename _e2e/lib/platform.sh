@@ -56,7 +56,10 @@ pset() { _scripts/dotenv -f "\${pf}" set "\$1=\$2"; }
 container_of() { docker ps -q --filter label=com.docker.compose.project=\$1 --filter label=com.docker.compose.service=\$2 | head -n 1; }
 stepca() { docker exec "\$(container_of step-ca step-ca)" "\$@"; }
 STEP_ARGS="--ca-url https://localhost:9000 --root /home/step/certs/root_ca.crt"
-STEP_PW=/home/step/secrets/password
+## The admin provisioner's password is only printed once, by init-ca (see
+## step_ca_init_snippet); stepca_pw puts it in a temp file in the container:
+STEP_PW=/tmp/e2e-provisioner-password
+stepca_pw() { pget STEP_CA_PROVISIONER_PASSWORD | docker exec -i "\$(container_of step-ca step-ca)" sh -c "umask 077; cat > \${STEP_PW}"; }
 fj() { docker exec "\$(container_of forgejo forgejo)" forgejo "\$@"; }
 EOF
 }
@@ -242,11 +245,29 @@ make -C whoami wait TIMEOUT=${E2E_TIMEOUT} instance=${inst}"
 ## Consumer preparation (just before 'make install')
 ## -------------------------------------------------------------------------
 
+step_ca_init_snippet() {
+    ## Initialize the CA once (init-ca refuses if its volume exists), and
+    ## keep the admin provisioner password it prints (it is shown only then):
+    cat <<EOF
+$(platform_remote_prelude)
+if ! make -C step-ca check-volume instance=default; then
+  log=\$(mktemp)
+  make -C step-ca init-ca instance=default 2>&1 | tee \${log}
+  pw=\$(sed 's/\x1b\[[0-9;]*m//g' \${log} | grep -oP 'CA administrative password is: \K\S+' | tail -n 1)
+  rm -f \${log}
+  test -n "\${pw}" || { echo "ERROR: init-ca printed no admin password"; exit 1; }
+  pset STEP_CA_PROVISIONER_PASSWORD "\${pw}"
+fi
+test -n "\$(pget STEP_CA_PROVISIONER_PASSWORD)" || { echo "ERROR: the step-ca admin password is unknown (destroy the step-ca volume to re-init)"; exit 1; }
+EOF
+}
+
 app_platform_pre_install() {
     ## app_platform_pre_install <app> - print a remote snippet that prepares
     ## an app for the platform services it uses:
     local app="$1" host="$1.${E2E_ROOT_DOMAIN}"
     case "${app}" in
+        step-ca) step_ca_init_snippet ;;
         mosquitto)
             ## Per-context ACL (gitignored): the e2e client may use e2e/#:
             cat <<EOF
@@ -270,6 +291,7 @@ if docker run --rm -v ${app}_certs:/c alpine test -f /c/${host}.key 2>/dev/null;
   echo "${app}: certificate already issued; no new step-ca token needed."
 else
   echo "${app}: minting a one-time step-ca token for ${host} ..."
+  stepca_pw
   token=\$(stepca step ca token ${host} --provisioner admin --password-file \${STEP_PW} \${STEP_ARGS})
   _scripts/reconfigure ${app}/.env_${E2E_NAME}_default ${prefix}_STEP_CA_TOKEN="\${token}" >/dev/null
 fi
@@ -319,6 +341,7 @@ client_certs_snippet() {
     local cn name
     echo "$(platform_remote_prelude)"
     echo "mkdir -p ${dir}; chmod 755 ${dir}"
+    echo "stepca_pw"
     echo "stepca cat /home/step/certs/root_ca.crt > ${dir}/root_ca.crt"
     for cn in "$@"; do
         name="${cn%%.*}"

@@ -1024,8 +1024,7 @@ app_pre_install() {
     ## app_pre_install <app> - print a shell snippet to run on the droplet
     ## (in the repo dir) just before 'make install', e.g. a one-time init:
     case "$1" in
-        ## Needs its CA initialized once (refuses if the volume exists):
-        step-ca) echo "make -C step-ca check-volume instance=default || make -C step-ca init-ca instance=default" ;;
+        ## step-ca's one-time init: see step_ca_init_snippet (lib/platform.sh)
     esac
 }
 
