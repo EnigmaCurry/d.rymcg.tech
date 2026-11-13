@@ -195,7 +195,12 @@ umask 022
   printf '  rproxy: 1\n'
   printf '  shr: /share\n'
   printf '  shr-who: a\n'
-  printf '  shr-adm: admin\n'
+  printf '  shr-adm: %s\n' "$ADMIN_USER"
+  # Users with the 'a' permission on any volume (e.g. their own home)
+  # could otherwise reload the server config and view the server's
+  # thread list. The config is regenerated on every start anyway:
+  printf '  no-reload\n'
+  printf '  no-stack\n'
   printf '  p: %s\n' "$PORT"
   [ -n "$ALLOW_NET" ]  && printf '  ipa: %s\n'   "$ALLOW_NET"
   [ -n "$THEME" ]      && printf '  theme: %s\n' "$THEME"

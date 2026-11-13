@@ -550,8 +550,11 @@ test_copyparty() {
     CP_PROBE_DIR=$(mktemp -d)
     CP_PROBE="e2e-probe-$(date +%s).txt"
     echo "${CP_PROBE}" > "${CP_PROBE_DIR}/${CP_PROBE}"
+    ## Each step expects a few 403s; copyparty bans an IP for a day after
+    ## more than 9 in 2 minutes (--ban-403), so keep the total at 9 or less:
     test_copyparty_homes
     test_copyparty_paths
+    test_copyparty_admin
     rm -rf "${CP_PROBE_DIR}"
 }
 
@@ -630,6 +633,23 @@ test -f ${E2E_COPYPARTY_EXT_DIR}/${CP_PROBE} && echo EXT_OK" 2>/dev/null || true
         record_test FAIL copyparty:ext-storage "${CP_BASE}${x}" "upload not found at ${E2E_COPYPARTY_EXT_DIR} on the host"
     fi
 }
+test_copyparty_admin() {
+    ## A user's 'a' permission on their home must not grant server-wide
+    ## powers (the config sets no-reload and no-stack), but it does let
+    ## them create share links, which the admin (shr-adm) can see:
+    cp_expect user-no-stack / 403 "$(cp_code "${CP_ALICE_PW}" "${CP_BASE}/?stack")" "alice views the server thread list"
+    cp_expect user-no-reload / 403 "$(cp_code "${CP_ALICE_PW}" "${CP_BASE}/?reload=cfg")" "alice reloads the server config"
+    local key="e2e-share-$(date +%s)"
+    cp_expect user-share /share/ 201 "$(cp_code "${CP_ALICE_PW}" -H 'Content-Type: application/json' \
+        --data "{\"k\":\"${key}\",\"vp\":[\"/home/e2e-alice/\"],\"pw\":\"\",\"exp\":\"60\",\"perms\":[\"read\"]}" \
+        "${CP_BASE}/?share")" "alice shares her home"
+    if curl "${CP_CURL_ARGS[@]}" -H "PW: ${CP_ADMIN_PW}" "${CP_BASE}/?shares" | grep -q "${key}"; then
+        record_test PASS copyparty:admin-sees-shares "${CP_BASE}/?shares" "admin sees alice's share"
+    else
+        record_test FAIL copyparty:admin-sees-shares "${CP_BASE}/?shares" "alice's share is missing from the admin's list"
+    fi
+}
+
 
 test_nextcloud_backup() {
     ## The restic container initializes its repository in the bucket on
