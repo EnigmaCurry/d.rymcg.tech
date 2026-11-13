@@ -417,7 +417,16 @@ case "${1-}" in
   daemon)
     issue_all
     set -x
-    exec crond -n -s -m off
+    ## Run the schedule in /etc/crontabs/root (see the Dockerfile) in the
+    ## foreground. acme.sh images up to 3.1.1 ship cronie; 3.1.6+ dropped it
+    ## for supercronic, leaving only BusyBox crond (which rejects -n):
+    if command -v supercronic >/dev/null 2>&1; then
+        exec supercronic /etc/crontabs/root
+    elif crond -V 2>&1 | grep -qi cronie; then
+        exec crond -n -s -m off
+    else
+        exec crond -f -c /etc/crontabs
+    fi
     ;;
   *)
     # run issuance then exec the given command
