@@ -12,6 +12,14 @@ services:
     sysctls:
       - net.ipv4.ip_unprivileged_port_start=1024
     restart: unless-stopped
+    # s6 restarts a crashing node process inside the container, so the
+    # container itself stays "running". Probe the app so `make wait` sees it:
+    healthcheck:
+      test: ["CMD", "curl", "-fsS", "-o", "/dev/null", "http://127.0.0.1:3000/"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+      start_period: 60s
     environment:
       - PUID=${PAIRDROP_UID}
       - PGID=${PAIRDROP_GID}

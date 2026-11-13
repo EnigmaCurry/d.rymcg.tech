@@ -52,9 +52,15 @@
 #@     cmd.append("--server")
 #@   end
 #@   cmd.extend(["--host", "0.0.0.0", "--port", server_port, "--models-dir", "/models"])
+#@   entrypoint = []
 #@   if models_preset_enabled.strip() == "true":
 #@     cmd.append("--models-preset")
 #@     cmd.append("/models/models.ini")
+#@     #! llama-server exits if the preset file is missing, and a fresh
+#@     #! volume has none until `make manage-model-configs`; create an
+#@     #! empty one, then run the image's own entrypoint:
+#@     image_entrypoint = {"server": "/app/llama-server", "full": "/app/tools.sh", "light": "/app/llama-cli"}[image_variant]
+#@     entrypoint = ["/bin/sh", "-c", '[ -e /models/models.ini ] || touch /models/models.ini; exec "$$0" "$$@"', image_entrypoint]
 #@   end
 #@   if models_max.strip() and models_max.strip() != "0":
 #@     cmd.extend(["--models-max", models_max])
@@ -109,6 +115,7 @@
 #@       "volumes": volumes,
 #@       "labels": labels,
 #@       "environment": env,
+#@       "entrypoint": entrypoint,
 #@       "command": cmd
 #@     }
 #@   }

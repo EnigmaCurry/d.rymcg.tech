@@ -1,6 +1,6 @@
-FROM debian:bullseye-slim as sshd
+FROM debian:trixie-slim AS sshd
 RUN apt-get update && \
-    apt-get -y install openssh-server ssh-import-id libcap2-bin && \
+    apt-get -y install openssh-server ssh-import-id libcap2-bin adduser && \
     rm -rf /var/lib/apt/lists/*
 VOLUME /etc/ssh
 VOLUME /data

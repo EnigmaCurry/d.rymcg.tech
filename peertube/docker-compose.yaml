@@ -42,6 +42,10 @@ services:
       - POSTGRES_USER=${PEERTUBE_POSTGRES_USER}
       - POSTGRES_PASSWORD=${PEERTUBE_POSTGRES_PASSWORD}
       - POSTGRES_DB=peertube
+      ## postgres:18+ defaults PGDATA to /var/lib/postgresql/18/docker and
+      ## refuses to start with a volume at the old path; pin the old path,
+      ## which every version accepts, so existing volumes keep working:
+      - PGDATA=/var/lib/postgresql/data
     volumes:
       - postgres:/var/lib/postgresql/data
     restart: "unless-stopped"

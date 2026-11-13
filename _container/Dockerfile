@@ -122,9 +122,9 @@ ENV UV_PROJECT_ENVIRONMENT="/home/user/.venv"
 ENV PATH="/home/user/.venv/bin:/home/user/git/vendor/enigmacurry/d.rymcg.tech/_scripts/user:/home/user/.local/bin:/usr/local/bin:${PATH}"
 ENV HOME="/home/user"
 # Install Python dependencies into a shared venv (cached early, before source
-# COPY). Only pyproject.toml and uv.lock are needed — the venv lives outside
+# COPY). Only pyproject.toml, uv.lock and .python-version are needed — the venv lives outside
 # the source tree at /home/user/.venv so it survives the later full COPY.
-COPY --chown=1000:1000 pyproject.toml uv.lock /home/user/git/vendor/enigmacurry/d.rymcg.tech/
+COPY --chown=1000:1000 pyproject.toml uv.lock .python-version /home/user/git/vendor/enigmacurry/d.rymcg.tech/
 USER user
 WORKDIR /home/user/git/vendor/enigmacurry/d.rymcg.tech
 RUN uv sync --frozen && \

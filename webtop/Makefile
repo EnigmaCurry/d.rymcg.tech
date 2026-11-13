@@ -4,6 +4,9 @@ include ${ROOT_DIR}/_scripts/Makefile.instance
 
 .PHONY: build
 build:
+	@## This Makefile's own build target bypasses Makefile.build's hook, so
+	@## generate app-router-bootstrap.sh (gitignored) here:
+	@make --no-print-directory build-hook-pre
 	make --no-print-directory docker-compose-build EXTRA_ARGS="${EXTRA_ARGS}" DOCKER_BUILDKIT=0
 
 .PHONY: config-hook

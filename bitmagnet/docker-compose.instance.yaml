@@ -96,6 +96,11 @@ services:
       #@ end
 
   postgres:
+    #@ if use_external_volume:
+    #! The bind mount must be owned by this UID:GID on the host. A named
+    #! volume is chowned by the postgres image itself, so leave user unset:
+    user: "${BITMAGNET_UID}:${BITMAGNET_GID}"
+    #@ end
     volumes:
     #@ if use_external_volume:
       - (@= external_volume @):/var/lib/postgresql/data

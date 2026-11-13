@@ -37,6 +37,14 @@ services:
       - ADMIN_PASSWORD=${FILEBROWSER_ADMIN_PASSWORD}
       - FILEBROWSER_UID
       - FILEBROWSER_GID
+    ## The image's own healthcheck expects its s6 layout (/config/settings.json),
+    ## which this entrypoint doesn't use:
+    healthcheck:
+      test: ["CMD", "curl", "-fsS", "-o", "/dev/null", "http://127.0.0.1:8000/health"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
     # All labels are defined in the template: docker-compose.instance.yaml
     labels: []
 

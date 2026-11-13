@@ -1,1 +1,2 @@
-gradio
+gradio==4.44.1
+huggingface_hub<1.0

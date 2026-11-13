@@ -23,6 +23,8 @@ config-hook:
 	@${BIN}/reconfigure_ask ${ENV_FILE} HOMEPAGE_TEMPLATE_REPO "Enter the git repository used to make the config. All environment variables will be substituted in the templates via envsubst. Cloning from private git repositores is supported, but you must create a deploy key first."
 	@echo ""
 
+.PHONY: override-hook
+override-hook:
 #### This sets the override template variables for docker-compose.instance.yaml:
 #### The template dynamically renders to docker-compose.override_{DOCKER_CONTEXT}_{INSTANCE}.yaml
 #### These settings are used to automatically generate the service container labels, and traefik config, inside the template.

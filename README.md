@@ -129,6 +129,7 @@ Follow these topical guides to get started:
  * [MAKEFILE_OPS.md](MAKEFILE_OPS.md) - how to write Makefiles.
  * [RCLONE.md](RCLONE.md) - create Docker volumes on top of remote/cloud storage (S3, SFTP, Dropbox, etc.)
  * [ARCHIVE.md](ARCHIVE.md) - how to archive and restore all Docker images offline.
+ * [_e2e/README.md](_e2e/README.md) - automated end-to-end test / installer that provisions a DigitalOcean droplet and installs the full stack (or just a workstation).
  * [LICENSE.txt](LICENSE.txt) - the license for this project.
  * [Portable Docker: Build and Deploy Anywhere with WireGuard Tunneling](https://book.rymcg.tech/portable-docker/index.html) - a book about running a public Docker server at home, or while roaming, behind restrictive NAT routers, with the help from a public wireguard sentry server running in the cloud.
 
