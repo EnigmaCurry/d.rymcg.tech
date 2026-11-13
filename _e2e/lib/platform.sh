@@ -144,21 +144,28 @@ fi
 api PUT /teams/\${team_id}/members/${E2E_OIDC_MEMBER} >/dev/null
 echo \"Team ${E2E_OIDC_ORG}:${E2E_OIDC_TEAM} (id \${team_id}) has member ${E2E_OIDC_MEMBER}.\"
 
-## OAuth2 app. Forgejo shows the secret only at creation, so keep the app
+## OAuth2 apps. Forgejo shows a secret only at creation, so keep an app
 ## only if its client id matches the one we saved with its secret:
-app=\$(api GET /user/applications/oauth2 | jq -c '.[] | select(.name==\"${E2E_OIDC_APP}\")')
-app_id=\$(echo \"\${app}\" | jq -r '.id // empty')
-client_id=\$(echo \"\${app}\" | jq -r '.client_id // empty')
-if [ -z \"\${client_id}\" ] || [ \"\${client_id}\" != \"\$(pget OIDC_CLIENT_ID)\" ] || [ -z \"\$(pget OIDC_CLIENT_SECRET)\" ]; then
-  [ -n \"\${app_id}\" ] && api DELETE /user/applications/oauth2/\${app_id} >/dev/null
-  created=\$(api POST /user/applications/oauth2 \\
-    '{\"name\":\"${E2E_OIDC_APP}\",\"redirect_uris\":[\"${redirect}\"],\"confidential_client\":true}')
-  pset OIDC_CLIENT_ID \"\$(echo \"\${created}\" | jq -r .client_id)\"
-  pset OIDC_CLIENT_SECRET \"\$(echo \"\${created}\" | jq -r .client_secret)\"
-  echo \"Registered OAuth2 app ${E2E_OIDC_APP} (client id \$(pget OIDC_CLIENT_ID)).\"
-else
-  echo \"OAuth2 app ${E2E_OIDC_APP} already registered (client id \${client_id}).\"
-fi"
+oauth_app() {
+  ## oauth_app <name> <redirect-uri> <VAR_PREFIX> - saves <VAR_PREFIX>_CLIENT_ID
+  ## and <VAR_PREFIX>_CLIENT_SECRET in the platform env:
+  local name=\$1 redirect=\$2 var=\$3 app app_id client_id created
+  app=\$(api GET /user/applications/oauth2 | jq -c --arg n \"\${name}\" '.[] | select(.name==\$n)')
+  app_id=\$(echo \"\${app}\" | jq -r '.id // empty')
+  client_id=\$(echo \"\${app}\" | jq -r '.client_id // empty')
+  if [ -z \"\${client_id}\" ] || [ \"\${client_id}\" != \"\$(pget \${var}_CLIENT_ID)\" ] || [ -z \"\$(pget \${var}_CLIENT_SECRET)\" ]; then
+    if [ -n \"\${app_id}\" ]; then api DELETE /user/applications/oauth2/\${app_id} >/dev/null; fi
+    created=\$(api POST /user/applications/oauth2 \"\$(jq -nc --arg n \"\${name}\" --arg r \"\${redirect}\" \\
+      '{name:\$n, redirect_uris:[\$r], confidential_client:true}')\")
+    pset \${var}_CLIENT_ID \"\$(echo \"\${created}\" | jq -r .client_id)\"
+    pset \${var}_CLIENT_SECRET \"\$(echo \"\${created}\" | jq -r .client_secret)\"
+    echo \"Registered OAuth2 app \${name} (client id \$(pget \${var}_CLIENT_ID)).\"
+  else
+    echo \"OAuth2 app \${name} already registered (client id \${client_id}).\"
+  fi
+}
+oauth_app ${E2E_OIDC_APP} ${redirect} OIDC
+oauth_app e2e-woodpecker https://woodpecker.${E2E_ROOT_DOMAIN}/authorize WOODPECKER"
 }
 
 platform_setup_oauth2_whoami() {
@@ -225,7 +232,8 @@ app_functional_tests() {
     case "$1" in
         mosquitto) test_mosquitto ;;
         nats) test_nats ;;
-        oauth2-proxy) test_oauth2 ;;
+        oauth2-proxy) test_oauth2 oauth2-proxy "https://$(E2E_OAUTH2_HOST)/" ;;
+        woodpecker) test_oauth2 woodpecker "https://woodpecker.${E2E_ROOT_DOMAIN}/" ;;
     esac
 }
 
@@ -325,11 +333,10 @@ grep -qi 'permissions violation' ${d}/denied; check subject-denied \$? \"sub for
 }
 
 test_oauth2() {
-    ## The login flow runs from this machine (outside the droplet), like a
-    ## browser would: see oauth2_flow.py for the checks:
-    local host url out name st detail
-    host=$(E2E_OAUTH2_HOST)
-    url="https://${host}/"
+    ## test_oauth2 <oauth2-proxy|woodpecker> <url> - the login flow runs from
+    ## this machine (outside the droplet), like a browser would: see
+    ## oauth2_flow.py for the checks:
+    local target="$1" url="$2" out name st detail
     local member_pw outsider_pw
     member_pw=$(platform_get OIDC_MEMBER_PASSWORD)
     outsider_pw=$(platform_get OIDC_OUTSIDER_PASSWORD)
@@ -337,14 +344,14 @@ test_oauth2() {
     [[ "${E2E_ACME_CA}" == *staging* ]] && insecure=(--insecure)
     out=$(E2E_MEMBER_PASSWORD="${member_pw}" E2E_OUTSIDER_PASSWORD="${outsider_pw}" \
           uv run --quiet --no-project --with requests python3 -I "${E2E_DIR}/lib/oauth2_flow.py" \
-          --app-url "${url}" --root-domain "${E2E_ROOT_DOMAIN}" --ip "${DROPLET_IP}" \
+          --target "${target}" --app-url "${url}" --root-domain "${E2E_ROOT_DOMAIN}" --ip "${DROPLET_IP}" \
           --member "${E2E_OIDC_MEMBER}" --outsider "${E2E_OIDC_OUTSIDER}" "${insecure[@]}" 2>&1 || true)
     echo "${out}" | grep -v '^CHECK ' || true
     if ! grep -q '^CHECK ' <<< "${out}"; then
-        record_test FAIL "oauth2-proxy:login-flow" "${url}" "test script failed"
+        record_test FAIL "${target}:login-flow" "${url}" "test script failed"
         return
     fi
     while read -r _ name st detail; do
-        record_test "${st}" "oauth2:${name}" "${url}" "${detail}"
+        record_test "${st}" "${target}:${name}" "${url}" "${detail}"
     done < <(grep '^CHECK ' <<< "${out}")
 }

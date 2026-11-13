@@ -930,6 +930,16 @@ app_test_vars() {
             else
                 echo "OAUTH2_PROXY_EXTRA_CA_CERT_URLS="
             fi ;;
+        ## Logs in with the platform Forgejo; only the e2e org may log in:
+        woodpecker)
+            echo "WOODPECKER_GRPC_HOST=woodpecker-grpc.${root}"
+            echo "WOODPECKER_FORGEJO=true"
+            echo "WOODPECKER_FORGEJO_URL=https://forgejo.${root}"
+            echo "WOODPECKER_FORGEJO_CLIENT=@platform:WOODPECKER_CLIENT_ID"
+            echo "WOODPECKER_FORGEJO_SECRET=@platform:WOODPECKER_CLIENT_SECRET"
+            echo "WOODPECKER_ADMIN=${E2E_OIDC_ADMIN}"
+            echo "WOODPECKER_ORGS=${E2E_OIDC_ORG}"
+            [[ "${E2E_ACME_CA}" == *staging* ]] && echo "WOODPECKER_FORGEJO_SKIP_VERIFY=true" ;;
         ## Certificates from the platform step-ca (one-time token: see
         ## app_platform_pre_install):
         mosquitto) echo "MOSQUITTO_DOCKER_CONTEXT=${E2E_NAME}"
@@ -1074,7 +1084,6 @@ app_skip_reason() {
         sysbox-systemd) echo "needs the sysbox runtime (sysbox-runc) installed on the host" ;;
         minio) echo "MinIO no longer publishes container images" ;;
         s3-proxy) echo "needs an S3 bucket to proxy" ;;
-        woodpecker) echo "needs an OAuth2 app registered in a forge (e.g. forgejo)" ;;
     esac
 }
 
@@ -1086,7 +1095,7 @@ app_deps() {
         pairdrop) echo "coturn" ;;
         ## Platform services (see lib/platform.sh):
         mosquitto|nats) echo "step-ca" ;;
-        oauth2-proxy) echo "forgejo" ;;
+        oauth2-proxy|woodpecker) echo "forgejo" ;;
     esac
 }
 

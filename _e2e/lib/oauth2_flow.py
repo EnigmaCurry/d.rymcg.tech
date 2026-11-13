@@ -107,8 +107,48 @@ def login(session, app_url, username, password, log):
     return login_page, r
 
 
+def woodpecker_checks(args, checks, session, log, member_pw, outsider_pw):
+    """Woodpecker logs users in with Forgejo itself (no oauth2-proxy). Only
+    members of WOODPECKER_ORGS (the e2e org) may log in."""
+    base = args.app_url.rstrip("/")
+
+    def api_user(s):
+        r = s.get(f"{base}/api/user", timeout=30)
+        try:
+            return r.status_code, r.json().get("login", "")
+        except ValueError:
+            return r.status_code, ""
+
+    ## 1. Signed out: the API refuses:
+    code, _ = api_user(session())
+    checks.record("signed-out-api", code == 401, f"/api/user HTTP {code}")
+
+    ## 2. An org member logs in through Forgejo and gets an API session:
+    s = session()
+    try:
+        login(s, f"{base}/authorize", args.member, member_pw, log)
+        code, user = api_user(s)
+        checks.record("member-login", code == 200 and user == args.member,
+                      f"/api/user HTTP {code} login={user or '-'}")
+    except Exception as e:  # noqa: BLE001
+        checks.record("member-login", False, e)
+
+    ## 3. A Forgejo user outside the org can't log in:
+    s = session()
+    try:
+        login(s, f"{base}/authorize", args.outsider, outsider_pw, log)
+        code, user = api_user(s)
+        checks.record("outsider-refused", code == 401 and not user,
+                      f"/api/user HTTP {code} login={user or '-'}")
+    except Exception as e:  # noqa: BLE001
+        checks.record("outsider-refused", False, e)
+
+
 def main():
     p = argparse.ArgumentParser(description=__doc__.splitlines()[0])
+    p.add_argument("--target", choices=["oauth2-proxy", "woodpecker"],
+                   default="oauth2-proxy",
+                   help="oauth2-proxy: an app behind it; woodpecker: its own OAuth2 login")
     p.add_argument("--app-url", required=True)
     p.add_argument("--root-domain", required=True)
     p.add_argument("--ip", required=True, help="droplet IP to pin DNS to")
@@ -137,6 +177,9 @@ def main():
         print(msg, file=sys.stderr, flush=True)
 
     checks = Checks()
+    if args.target == "woodpecker":
+        woodpecker_checks(args, checks, session, log, member_pw, outsider_pw)
+        sys.exit(1 if checks.failed else 0)
 
     ## 1. Signed out: the app redirects through oauth2-proxy to Forgejo's login:
     s = session()
