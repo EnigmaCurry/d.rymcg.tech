@@ -72,20 +72,42 @@ To do so, edit `COPYPARTY_VOL_EXTERNAL`, for example:
      volumes are not supported here, and the path cannot contain
      commas, colons, or spaces.
 
-To set the volume permissions, edit `COPYPARTY_VOL_PERMISSIONS`:
+### Path permissions
 
- * `COPYPARTY_VOL_PERMISSIONS=ryan-music:rw:ryan/erin,bob-pics:rw:bob,bob-pics:r:ryan`
+To give users access to folders, edit `COPYPARTY_PERMISSIONS`:
+
+ * `COPYPARTY_PERMISSIONS=/ryan-music:rw:ryan/erin,/bob-pics:rw:bob,/bob-pics:r:ryan,/team-docs:rw:ryan/bob`
    * This is a comma separated list of colon delimited tuples:
-     `mount_name:permission:user_list`. 
-   * `mount_name` is the directory under `/mnt` where the volume
-     will be mounted (e.g. `ryan-music` is mounted at
-     `/mnt/ryan-music`).
+     `path:permission:user_list`.
+   * `path` is the copyparty URL path (e.g. `/team-docs`):
+     * If its first part is an external volume name (e.g.
+       `/ryan-music`, or `/ryan-music/live` for a sub-folder), it is
+       stored on that external volume.
+     * Any other path is stored in the `copyparty_data` named volume
+       (e.g. `/team-docs` is stored at `/data/team-docs`), and its
+       folder is created for you.
+     * `/admin`, `/public`, `/guests`, `/home` and `/share` are
+       reserved for copyparty's built-in volumes.
    * `permission` is the copyparty permission label (e.g., `r` for
      read-only, `w` for write-only, `rw` for read+write, `m` for
      modify, `d` for delete, `a` for admin, `rwmda` for
      read+write+modify+delete+admin)
    * `user_list` is a sub-list of users delimited by `/` (forward
-     slash) that inherit the permission.
+     slash) that get the permission.
+   * The same path may be listed several times, with different
+     permissions for different users.
+   * Each path becomes its own copyparty volume, and copyparty volumes
+     do **not** inherit permissions from a parent path. For example,
+     with `/team-docs:rw:ryan/bob,/team-docs/private:rw:ryan`, bob
+     can't access `/team-docs/private`. Give each path its full list
+     of users.
+   * The admin always gets full (`rwmda`) permission on every path.
+
+`COPYPARTY_PERMISSIONS` replaces the old `COPYPARTY_VOL_PERMISSIONS`
+(`mount_name:permission:user_list`). If your `.env` file still has
+`COPYPARTY_VOL_PERMISSIONS`, it is converted automatically when
+copyparty starts, and `make config-volumes` rewrites it as
+`COPYPARTY_PERMISSIONS`.
 
 To do anything else, guests must authenticate with a password.
 

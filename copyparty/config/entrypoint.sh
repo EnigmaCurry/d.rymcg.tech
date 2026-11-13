@@ -65,35 +65,117 @@ if [ "${COPYPARTY_ENABLE_USER_HOMES:-}" = "true" ]; then
   chown "${COPYPARTY_UID:-1000}:${COPYPARTY_GID:-1000}" "$HOME_ROOT" "$HOME_ROOT"/*
 fi
 
-# Helper: emit per-volume permission lines for a given volume name
-emit_perms() {
-  volname="$1"
-  perms="${COPYPARTY_VOL_PERMISSIONS:-}"
-  # perms items: name:perm:user1/user2/...
-  # We may iterate multiple times; config is tiny so O(n^2) is fine.
-  OLDIFS="$IFS"
-  IFS=,
-  for ent in $perms; do
-    [ -z "$ent" ] && continue
-    v=${ent%%:*}; rest=${ent#*:}
-    p=${rest%%:*}; users=${rest#*:}
-    [ "$v" = "$volname" ] || continue
-    # validate perm letters roughly; copyparty supports r,w,m,d,a,g,G,h,A,.
-    case "$p" in
-      (*[!rwmdgGhaA.]*)
-        die "invalid permission letters '$p' in '$ent'"
-        ;;
-    esac
-    # users are slash-delimited; convert to comma list
-    u=$(printf '%s' "$users" | tr '/' ',')
-    printf '    %s: %s\n' "$p" "$u"
-  done
-  IFS="$OLDIFS"
-}
-
 # Parse external volumes list (name:/abs/host/path)
 # We *assume* operator binds host path into app container at $MNT_ROOT/<name>
 VOLS="${COPYPARTY_VOL_EXTERNAL:-}"
+
+# is_external <name>: true if <name> is an external volume name
+is_external() {
+  _ifs="$IFS"; IFS=,
+  for _v in $VOLS; do
+    if [ "${_v%%:*}" = "$1" ]; then IFS="$_ifs"; return 0; fi
+  done
+  IFS="$_ifs"; return 1
+}
+
+# first_segment </a/b/c>: prints "a"
+first_segment() { _s=${1#/}; printf '%s' "${_s%%/*}"; }
+
+# norm_path <path>: validate a copyparty URL path and print it without
+# trailing slashes:
+norm_path() {
+  _p=$1
+  while [ "$_p" != "/" ] && [ "$_p" != "${_p%/}" ]; do _p=${_p%/}; done
+  case "$_p" in (/*) : ;; (*) die "path must start with '/': '$1'";; esac
+  [ "$_p" != "/" ] || die "cannot set permissions on the root path '/'"
+  case "$_p" in
+    (*//*|*/.*|*[!A-Za-z0-9._/-]*)
+      die "invalid path '$1' (use letters, numbers, '.', '_', '-' and '/'; no empty or dot-prefixed segments)";;
+  esac
+  case "$(first_segment "$_p")" in
+    (admin|public|guests|home|share)
+      die "path '$_p' is reserved for copyparty's built-in volumes";;
+  esac
+  printf '%s' "$_p"
+}
+
+# ---- Path permissions ----
+# COPYPARTY_PERMISSIONS is a comma separated list of
+# /path:permission:user1/user2 entries. A path under an external volume
+# name is stored on that volume (/mnt/<name>/...); any other path is
+# stored on the data volume (/data/<path>).
+PERMS=${COPYPARTY_PERMISSIONS:-}
+OLD_PERMS=${COPYPARTY_VOL_PERMISSIONS:-}
+if [ -n "$OLD_PERMS" ]; then
+  if [ -z "$PERMS" ]; then
+    log "WARNING: COPYPARTY_VOL_PERMISSIONS is deprecated; converting it to COPYPARTY_PERMISSIONS (run 'make config-volumes' to update your .env file)"
+    # name:perm:users -> /name:perm:users
+    PERMS=$(printf '%s' "$OLD_PERMS" | awk 'BEGIN { RS = "," } { sub(/\n$/, "") } $0 != "" { sub(/^\/*/, "/"); printf "%s%s", (n++ ? "," : ""), $0 }')
+  else
+    log "WARNING: ignoring deprecated COPYPARTY_VOL_PERMISSIONS because COPYPARTY_PERMISSIONS is set"
+  fi
+fi
+
+# Validate and normalize every entry; collect the distinct paths:
+NPERMS=""
+PATHS=""
+NL='
+'
+OLDIFS="$IFS"; IFS=,
+for ent in $PERMS; do
+  [ -z "$ent" ] && continue
+  case "$ent" in (*:*:*) : ;; (*) die "bad COPYPARTY_PERMISSIONS item '$ent' (want /path:perm:user1/user2)";; esac
+  path=${ent%%:*}; rest=${ent#*:}
+  p=${rest%%:*}; users=${rest#*:}
+  # copyparty supports r,w,m,d,a,g,G,h,A,.
+  case "$p" in (""|*[!rwmdgGhaA.]*) die "invalid permission letters '$p' in '$ent'";; esac
+  case "$users" in (""|*[:\ ]*|/*|*/|*//*) die "invalid user list '$users' in '$ent'";; esac
+  path=$(norm_path "$path")
+  NPERMS="$NPERMS${NPERMS:+,}$path:$p:$users"
+  case "$NL$PATHS$NL" in
+    (*"$NL$path$NL"*) : ;;
+    (*) PATHS="$PATHS${PATHS:+$NL}$path";;
+  esac
+done
+IFS="$OLDIFS"
+
+# real_path </path>: the container directory a path is stored in
+real_path() {
+  if is_external "$(first_segment "$1")"; then
+    printf '%s%s' "$MNT_ROOT" "$1"
+  else
+    printf '%s%s' "$DATA_ROOT" "$1"
+  fi
+}
+
+# Create the data volume folders (each level owned by the copyparty
+# user, not recursively). Folders on external volumes are created by
+# copyparty itself:
+OLDIFS="$IFS"; IFS=$NL
+for path in $PATHS; do
+  is_external "$(first_segment "$path")" && continue
+  d=$DATA_ROOT
+  IFS=/
+  for seg in ${path#/}; do
+    d="$d/$seg"
+    mkdir -p "$d"
+    chown "${COPYPARTY_UID:-1000}:${COPYPARTY_GID:-1000}" "$d"
+  done
+  IFS=$NL
+done
+IFS="$OLDIFS"
+
+# emit_perms </path>: print the accs lines for a path
+emit_perms() {
+  _ifs="$IFS"; IFS=,
+  for _ent in $NPERMS; do
+    [ "${_ent%%:*}" = "$1" ] || continue
+    _rest=${_ent#*:}
+    # users are slash-delimited; convert to comma list
+    printf '    %s: %s\n' "${_rest%%:*}" "$(printf '%s' "${_rest#*:}" | tr '/' ',')"
+  done
+  IFS="$_ifs"
+}
 
 # Parse optional extra users: "user:pass,alice:pw2"
 USERS="${COPYPARTY_USERS:-}"
@@ -188,11 +270,28 @@ umask 022
       printf '[/%s]\n' "$name"
       printf '  %s\n' "$rpath"
       printf '  accs:\n'
-      emit_perms "$name"
+      emit_perms "/$name"
       printf '    rwmda: %s\n\n' "$ADMIN_USER"
     done
     IFS="$OLDIFS"
   fi
+
+  # Every other permission path becomes its own volume. copyparty
+  # volumes don't inherit permissions from a parent volume, so each one
+  # gets its full list (plus the admin):
+  OLDIFS="$IFS"; IFS=$NL
+  for path in $PATHS; do
+    first=$(first_segment "$path")
+    if is_external "$first" && [ "$path" = "/$first" ]; then
+      continue  # already emitted above
+    fi
+    printf '[%s]\n' "$path"
+    printf '  %s\n' "$(real_path "$path")"
+    printf '  accs:\n'
+    emit_perms "$path"
+    printf '    rwmda: %s\n\n' "$ADMIN_USER"
+  done
+  IFS="$OLDIFS"
 } > "$TMP"
 
 # Lock it down
