@@ -2076,4 +2076,7 @@ main() {
     esac
 }
 
-main "$@"
+## One compound command, parsed in full before it runs: bash reads a script
+## as it goes, so editing this file mid-run must not feed it stray lines
+## after main returns:
+{ main "$@"; exit $?; }
