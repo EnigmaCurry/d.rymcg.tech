@@ -1005,6 +1005,7 @@ app_skip_reason() {
         ## Its backup containers always run, and crash-loop without S3:
         nextcloud) echo "needs an S3 bucket for its (always-on) backups" ;;
         s3-proxy) echo "needs an S3 bucket to proxy" ;;
+        woodpecker) echo "needs an OAuth2 app registered in a forge (e.g. forgejo)" ;;
     esac
 }
 
