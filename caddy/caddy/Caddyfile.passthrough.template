@@ -1,10 +1,10 @@
 ## EXPERIMENTAL: Traefik passes the raw TLS stream through to Caddy,
 ## and Caddy obtains and manages its own certificate via ACME.
 {
-  acme_ca https://${ACME_CA}/directory
+	acme_ca https://${ACME_CA}/directory
 }
 
 ${DOMAIN} {
-  root * /srv
-  file_server
+	root * /srv
+	file_server
 }
