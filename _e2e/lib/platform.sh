@@ -34,6 +34,12 @@ E2E_OAUTH2_HOST() { echo "whoami-oauth.${E2E_ROOT_DOMAIN}"; }
 ## the staging CA (it fetches Forgejo's OIDC discovery doc server-side):
 LE_STAGING_ROOTS="https://letsencrypt.org/certs/staging/letsencrypt-stg-root-x1.pem,https://letsencrypt.org/certs/staging/letsencrypt-stg-root-x2.pem"
 
+## S3 buckets in the platform minio, one per consumer (each gets its own
+## user, limited to its bucket): "<bucket> <VAR_PREFIX>"
+E2E_S3_BUCKETS=("e2e-s3-proxy S3PROXY" "e2e-nextcloud NEXTCLOUD")
+## The minio client, run on the droplet (it talks to minio via Traefik):
+MC_IMAGE=docker.io/pgsty/mc:latest
+
 ## Docker's address pools on the droplet (see remote_bootstrap.sh). Containers
 ## that call another app through the droplet's public IP (oauth2-proxy ->
 ## Forgejo, step-cli -> step-ca) arrive at Traefik from these addresses:
@@ -88,6 +94,7 @@ app_post_setup() {
         step-ca) platform_setup_step_ca ;;
         forgejo) platform_setup_forgejo ;;
         oauth2-proxy) platform_setup_oauth2_whoami ;;
+        minio) platform_setup_minio ;;
     esac
 }
 
@@ -168,6 +175,52 @@ oauth_app ${E2E_OIDC_APP} ${redirect} OIDC
 oauth_app e2e-woodpecker https://woodpecker.${E2E_ROOT_DOMAIN}/authorize WOODPECKER"
 }
 
+minio_prelude() {
+    ## mc() on the droplet, with the minio root account as alias 'e2e'
+    ## (MC_HOST_<alias> = https://<user>:<password>@<host>):
+    local insecure=""
+    [[ "${E2E_ACME_CA}" == *staging* ]] && insecure="--insecure"
+    cat <<EOF
+envf=minio/.env_${E2E_NAME}_default
+mc_host="https://\$(_scripts/dotenv -f \${envf} get MINIO_ROOT_USER):\$(_scripts/dotenv -f \${envf} get MINIO_ROOT_PASSWORD)@minio.${E2E_ROOT_DOMAIN}"
+mc() { docker run --rm --network host -e MC_HOST_e2e="\${mc_host}" \${MC_VOLUME:-} ${MC_IMAGE} ${insecure} "\$@"; }
+EOF
+}
+
+platform_setup_minio() {
+    echo "Setting up minio buckets and users for S3 consumers ..."
+    local entry bucket var buckets=""
+    for entry in "${E2E_S3_BUCKETS[@]}"; do buckets+="${entry};"; done
+    e2e_remote_sh "$(platform_remote_prelude)
+$(minio_prelude)
+pdir=\$(mktemp -d); chmod 755 \${pdir}
+MC_VOLUME=\"-v \${pdir}:/policy:ro\"
+## Wait for the S3 API through Traefik:
+for i in \$(seq 1 30); do mc admin info e2e >/dev/null 2>&1 && break; sleep 2; done
+IFS=';' read -ra entries <<< '${buckets}'
+for entry in \"\${entries[@]}\"; do
+  [ -n \"\${entry}\" ] || continue
+  read -r bucket var <<< \"\${entry}\"
+  secret=\$(pget \${var}_S3_SECRET)
+  if [ -z \"\${secret}\" ]; then secret=\$(openssl rand -hex 20); pset \${var}_S3_SECRET \"\${secret}\"; fi
+  pset \${var}_S3_KEY \${bucket}
+  pset \${var}_S3_BUCKET \${bucket}
+  mc mb --ignore-existing e2e/\${bucket} >/dev/null
+  cat > \${pdir}/\${bucket}.json <<POLICY
+{\"Version\":\"2012-10-17\",\"Statement\":[
+ {\"Effect\":\"Allow\",\"Action\":[\"s3:ListBucket\",\"s3:GetBucketLocation\"],\"Resource\":[\"arn:aws:s3:::\${bucket}\"]},
+ {\"Effect\":\"Allow\",\"Action\":[\"s3:PutObject\",\"s3:GetObject\",\"s3:DeleteObject\"],\"Resource\":[\"arn:aws:s3:::\${bucket}/*\"]}]}
+POLICY
+  ## add/create overwrite an existing user/policy; attach fails if attached:
+  mc admin user add e2e \${bucket} \"\${secret}\" >/dev/null
+  mc admin policy create e2e \${bucket} /policy/\${bucket}.json >/dev/null
+  mc admin policy attach e2e \${bucket} --user \${bucket} >/dev/null 2>&1 || true
+  echo \"S3 bucket ready: \${bucket} (user \${bucket})\"
+done
+pset S3_HOST minio.${E2E_ROOT_DOMAIN}
+rm -rf \${pdir}"
+}
+
 platform_setup_oauth2_whoami() {
     ## A second whoami instance with OAuth2 turned on, authorized for the
     ## e2e team only. The plain whoami instance stays open (its probe is a
@@ -234,6 +287,8 @@ app_functional_tests() {
         nats) test_nats ;;
         oauth2-proxy) test_oauth2 oauth2-proxy "https://$(E2E_OAUTH2_HOST)/" ;;
         woodpecker) test_oauth2 woodpecker "https://woodpecker.${E2E_ROOT_DOMAIN}/" ;;
+        s3-proxy) test_s3_proxy ;;
+        nextcloud) test_nextcloud_backup ;;
     esac
 }
 
@@ -354,4 +409,38 @@ test_oauth2() {
     while read -r _ name st detail; do
         record_test "${st}" "${target}:${name}" "${url}" "${detail}"
     done < <(grep '^CHECK ' <<< "${out}")
+}
+
+test_s3_proxy() {
+    ## Put an object in the bucket with mc, then read it back through
+    ## s3-proxy's HTTPS route:
+    local url="https://s3-proxy.${E2E_ROOT_DOMAIN}/e2e-probe.txt" got token
+    token="e2e-$(date +%s)"
+    e2e_remote_sh "$(platform_remote_prelude)
+$(minio_prelude)
+echo ${token} | docker run --rm -i --network host -e MC_HOST_e2e=\"\${mc_host}\" ${MC_IMAGE} \
+  $([[ "${E2E_ACME_CA}" == *staging* ]] && echo --insecure) pipe e2e/\$(pget S3PROXY_S3_BUCKET)/e2e-probe.txt >/dev/null" >/dev/null 2>&1 \
+        || { record_test FAIL s3-proxy:get-object "${url}" "could not upload the test object"; return; }
+    local curl_args=(-s --max-time 20 --resolve "s3-proxy.${E2E_ROOT_DOMAIN}:443:${DROPLET_IP}")
+    [[ "${E2E_ACME_CA}" == *staging* ]] && curl_args+=(-k)
+    got=$(curl "${curl_args[@]}" "${url}" || true)
+    if [[ "${got}" == "${token}" ]]; then
+        record_test PASS s3-proxy:get-object "${url}" "object served from minio"
+    else
+        record_test FAIL s3-proxy:get-object "${url}" "got: ${got:0:40}"
+    fi
+}
+
+test_nextcloud_backup() {
+    ## The restic container initializes its repository in the bucket on
+    ## start; run one backup now and check a snapshot landed in minio:
+    run_remote_checks nextcloud "s3://minio.${E2E_ROOT_DOMAIN}/e2e-nextcloud" "$(platform_remote_prelude)
+$(minio_prelude)
+set +e; trap - ERR
+check() { if [ \"\$2\" = 0 ]; then echo \"CHECK \$1 PASS \$3\"; else echo \"CHECK \$1 FAIL \$3\"; fi; }
+bucket=\$(pget NEXTCLOUD_S3_BUCKET)
+docker exec \$(container_of nextcloud data_backup) /bin/backup > /tmp/e2e-nc-backup.log 2>&1
+check restic-backup \$? \"/bin/backup in data_backup\"
+n=\$(mc ls -r e2e/\${bucket}/ 2>/dev/null | grep -c '/data/snapshots/')
+[ \"\${n:-0}\" -ge 1 ]; check snapshot-in-bucket \$? \"\${n:-0} snapshot(s)\""
 }

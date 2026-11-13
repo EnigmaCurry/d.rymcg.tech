@@ -1002,8 +1002,21 @@ app_test_vars() {
         postfix-relay) echo "POSTFIX_RELAY_ALLOWED_SENDER_DOMAINS=${E2E_ROOT_DOMAIN}" ;;
         ## The droplet has no GPU; the default (cuda) can't start:
         invokeai) echo "INVOKEAI_DOCKER_COMPOSE_PROFILES=cpu"; echo "INVOKEAI_GPU_DRIVER=cpu" ;;
-        ## Its backup containers need an S3 bucket, and crash-loop without one:
-        nextcloud) echo "NEXTCLOUD_BACKUP_ENABLED=false" ;;
+        ## Backs up to a bucket in the platform minio:
+        nextcloud) echo "NEXTCLOUD_BACKUP_ENABLED=true"
+                   echo "NEXTCLOUD_BACKUP_S3_HOST=@platform:S3_HOST"
+                   echo "NEXTCLOUD_BACKUP_S3_BUCKET=@platform:NEXTCLOUD_S3_BUCKET"
+                   echo "NEXTCLOUD_BACKUP_S3_KEY=@platform:NEXTCLOUD_S3_KEY"
+                   echo "NEXTCLOUD_BACKUP_S3_SECRET=@platform:NEXTCLOUD_S3_SECRET" ;;
+        ## Platform: S3. Its source range vars have no prefix; consumers
+        ## reach it through the droplet's public IP:
+        minio) echo "MINIO_CONSOLE_TRAEFIK_HOST=minio-console.${root}"
+               echo "S3_SOURCERANGE=${APP_SOURCERANGE},${DROPLET_IP}/32,${DOCKER_POOL_CIDR}"
+               echo "CONSOLE_SOURCERANGE=${APP_SOURCERANGE}" ;;
+        s3-proxy) echo "S3PROXY_S3_ENDPOINT=@platform:S3_HOST"
+                  echo "S3PROXY_S3_BUCKET=@platform:S3PROXY_S3_BUCKET"
+                  echo "S3PROXY_S3_ACCESS_KEY_ID=@platform:S3PROXY_S3_KEY"
+                  echo "S3PROXY_S3_SECRET_ACCESS_KEY=@platform:S3PROXY_S3_SECRET" ;;
     esac
 }
 
@@ -1022,6 +1035,8 @@ app_generated_vars() {
     ## COMMAND's output (run on the droplet). Kept across reinstalls:
     case "$1" in
         speedtest-tracker) echo 'SPEEDTEST_TRACKER_APP_KEY echo "base64:$(openssl rand -base64 32)"' ;;
+        ## MinIO secret keys are 8-40 characters:
+        minio) echo 'MINIO_ROOT_PASSWORD openssl rand -hex 20' ;;
     esac
 }
 
@@ -1124,8 +1139,6 @@ app_skip_reason() {
     case "$1" in
         vllm) echo "needs an Nvidia or AMD GPU (no CPU profile)" ;;
         sysbox-systemd) echo "needs the sysbox runtime (sysbox-runc) installed on the host" ;;
-        minio) echo "MinIO no longer publishes container images" ;;
-        s3-proxy) echo "needs an S3 bucket to proxy" ;;
     esac
 }
 
@@ -1138,6 +1151,7 @@ app_deps() {
         ## Platform services (see lib/platform.sh):
         mosquitto|nats) echo "step-ca" ;;
         oauth2-proxy|woodpecker) echo "forgejo" ;;
+        s3-proxy|nextcloud) echo "minio" ;;
     esac
 }
 
@@ -1212,6 +1226,8 @@ probe_target() {
         step-ca) PROBE_PATH="health"; PROBE_OWN_CERT=true ;;
         ## oauth2-proxy's health endpoint (everything else needs a login):
         oauth2-proxy) PROBE_PATH="ping" ;;
+        ## The S3 API answers / with 403 to anonymous requests:
+        minio) PROBE_PATH="minio/health/live" ;;
         ## MQTT over TLS on the host's own port, with a step-ca certificate
         ## (pub/sub is tested by app_functional_tests):
         mosquitto) PROBE_KIND=tls; PROBE_PORT=8883; PROBE_OWN_CERT=true ;;
