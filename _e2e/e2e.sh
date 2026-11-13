@@ -42,6 +42,8 @@ BIN=${ROOT_DIR}/_scripts
 
 ## Sourcing gumdrop also sources funcs.sh (confirm, fault, error, stderr):
 source "${BIN}/gumdrop"
+## Platform services (step-ca, Forgejo OIDC) and functional tests:
+source "${E2E_DIR}/lib/platform.sh"
 
 set -eEo pipefail
 
@@ -847,21 +849,12 @@ sourcerange_snippet() {
     fi
     cat <<EOF
 ## Limit who can reach the app (Traefik ipallowlist):
-range=${APP_SOURCERANGE}
+range=${APP_SOURCERANGE}$(extra=$(app_platform_sourcerange "${app}"); [[ -n "${extra}" ]] && echo ",${extra}")
 if grep -q "^\${prefix}_ACME_CA=" ${app}/.env-dist; then range=0.0.0.0/0; fi
 for v in \$(grep -oP "^\${prefix}_\\w*SOURCERANGE(?==)" ${app}/.env-dist || true); do
   ${action}
 done
 EOF
-}
-
-app_sourcerange_current() {
-    ## app_sourcerange_current <app> - true if the app's env file already has
-    ## the configured source range, i.e. a passing app needs no reinstall:
-    local app="$1"
-    e2e_remote_sh "prefix=\$(grep -oP '^# PREFIX=\\K.*' ${app}/.env-dist || true)
-test -n \"\${prefix}\" && test -f ${app}/.env_${E2E_NAME}_default || exit 1
-$(sourcerange_snippet "${app}" check)" >/dev/null 2>&1
 }
 
 app_entrypoints() {
@@ -895,6 +888,16 @@ ensure_app_entrypoints() {
             restart=true
         fi
     done < <(app_entrypoints "${app}")
+    ## Ports the app publishes on the host itself (no Traefik entrypoint):
+    while read -r port proto; do
+        [[ -z "${port}" ]] && continue
+        rules=$(doctl compute firewall get "${FIREWALL_ID}" --format InboundRules --no-header)
+        if ! grep -q "protocol:${proto},ports:${port}," <<< "${rules}"; then
+            echo "Opening firewall ${proto}/${port} for ${app} ..."
+            doctl compute firewall add-rules "${FIREWALL_ID}" \
+                  --inbound-rules "protocol:${proto},ports:${port},address:0.0.0.0/0,address:::/0"
+        fi
+    done < <(app_host_ports "${app}")
     if [[ "${restart}" == "true" ]]; then
         e2e_make traefik install
         e2e_make traefik wait "TIMEOUT=${E2E_TIMEOUT}"
@@ -904,8 +907,37 @@ ensure_app_entrypoints() {
 app_test_vars() {
     ## app_test_vars <app> - print extra VAR=value settings (one per line)
     ## that an app needs to start without outside services. A value of
-    ## @<app>:<VAR> is copied from that app's .env file on the droplet:
+    ## @<app>:<VAR> is copied from that app's .env file on the droplet, and
+    ## @platform:<VAR> from the platform env (see lib/platform.sh):
+    local root="${E2E_ROOT_DOMAIN}"
     case "$1" in
+        ## Platform: the CA may only certify names under the test's domain
+        ## (the client certs of mosquitto and nats are one level deeper):
+        step-ca) echo "STEP_CA_AUTHORITY_POLICY_X509_ALLOW_DNS=*.${root},*.clients.mosquitto.${root},*.clients.nats.${root}" ;;
+        ## Platform: the OIDC provider. config-dist skips the hook that sets
+        ## ROOT_URL; the admin account is created by 'make install':
+        forgejo) echo "FORGEJO__server__ROOT_URL=https://forgejo.${root}"
+                 echo "FORGEJO_ADMIN_USER=root" ;;
+        oauth2-proxy)
+            echo "OAUTH2_PROXY_COOKIE_DOMAIN=${root}"
+            echo "OAUTH2_PROXY_FORGEJO_DOMAIN=forgejo.${root}"
+            echo "OAUTH2_PROXY_OIDC_ISSUER_URL=https://forgejo.${root}"
+            echo "OAUTH2_PROXY_CLIENT_ID=@platform:OIDC_CLIENT_ID"
+            echo "OAUTH2_PROXY_CLIENT_SECRET=@platform:OIDC_CLIENT_SECRET"
+            ## It fetches Forgejo's OIDC discovery doc itself, over HTTPS:
+            if [[ "${E2E_ACME_CA}" == *staging* ]]; then
+                echo "OAUTH2_PROXY_EXTRA_CA_CERT_URLS=${LE_STAGING_ROOTS}"
+            else
+                echo "OAUTH2_PROXY_EXTRA_CA_CERT_URLS="
+            fi ;;
+        ## Certificates from the platform step-ca (one-time token: see
+        ## app_platform_pre_install):
+        mosquitto) echo "MOSQUITTO_DOCKER_CONTEXT=${E2E_NAME}"
+                   echo "MOSQUITTO_STEP_CA_URL=@platform:STEP_CA_URL"
+                   echo "MOSQUITTO_STEP_CA_FINGERPRINT=@platform:STEP_CA_FINGERPRINT" ;;
+        nats) echo "NATS_STEP_CA_URL=@platform:STEP_CA_URL"
+              echo "NATS_STEP_CA_FINGERPRINT=@platform:STEP_CA_FINGERPRINT"
+              echo "NATS_AUTH_USERS=e2e.clients.nats.${root}:e2e.>:e2e.>" ;;
         ## Can't create its admin account without an email (config asks):
         peertube) echo "PEERTUBE_ADMIN_EMAIL=admin@peertube.${E2E_ROOT_DOMAIN}" ;;
         ## Needs TURN credentials; mint them from the coturn app's secret:
@@ -941,21 +973,56 @@ app_generated_vars() {
     esac
 }
 
+test_var_value() {
+    ## test_var_value <value> - print the value as a remote shell word:
+    ## @<app>:<VAR> / @platform:<VAR> become a lookup on the droplet, anything
+    ## else is quoted literally (values may hold '>', ';', ',' etc.):
+    local value="$1" src
+    if [[ "${value}" =~ ^@([a-z0-9-]+):([A-Z0-9_]+)$ ]]; then
+        if [[ "${BASH_REMATCH[1]}" == "platform" ]]; then
+            src="${PLATFORM_ENV}"
+        else
+            src="${BASH_REMATCH[1]}/.env_${E2E_NAME}_default"
+        fi
+        echo "\"\$(_scripts/dotenv -f ${src} get ${BASH_REMATCH[2]})\""
+    else
+        printf '%q\n' "${value}"
+    fi
+}
+
+app_test_vars_snippet() {
+    ## app_test_vars_snippet <app> <apply|check> - remote shell code that
+    ## sets (or checks) the app's test vars in its env file:
+    local app="$1" mode="$2" var name word
+    local env_file="${app}/.env_${E2E_NAME}_default"
+    while read -r var; do
+        [[ -z "${var}" ]] && continue
+        name="${var%%=*}"
+        word=$(test_var_value "${var#*=}")
+        if [[ "${mode}" == "apply" ]]; then
+            echo "_scripts/reconfigure ${env_file} ${name}=${word}"
+        else
+            echo "[ \"\$(_scripts/dotenv -f ${env_file} get ${name})\" = ${word} ] || exit 1"
+        fi
+    done < <(app_test_vars "${app}")
+}
+
+app_config_current() {
+    ## app_config_current <app> - true if the app's env file already has the
+    ## configured source range and test vars, i.e. a passing app needs no
+    ## reinstall (e.g. a re-registered OAuth2 secret means it does):
+    local app="$1"
+    e2e_remote_sh "prefix=\$(grep -oP '^# PREFIX=\\K.*' ${app}/.env-dist || true)
+test -n \"\${prefix}\" && test -f ${app}/.env_${E2E_NAME}_default || exit 1
+$(sourcerange_snippet "${app}" check)
+$(app_test_vars_snippet "${app}" check)" >/dev/null 2>&1
+}
+
 install_app() {
     local app="$1"
     local host="${app}.${E2E_ROOT_DOMAIN}"
-    local var test_vars=""
-    local name value src
-    while read -r var; do
-        [[ -z "${var}" ]] && continue
-        name="${var%%=*}"; value="${var#*=}"
-        if [[ "${value}" =~ ^@([a-z0-9-]+):([A-Z0-9_]+)$ ]]; then
-            ## Resolved on the droplet, from the other app's .env file:
-            src="${BASH_REMATCH[1]}/.env_${E2E_NAME}_default"
-            value="\$(_scripts/dotenv -f ${src} get ${BASH_REMATCH[2]})"
-        fi
-        test_vars+="make -C ${app} reconfigure var=${name}=${value} instance=default"$'\n'
-    done < <(app_test_vars "${app}")
+    local test_vars name
+    test_vars=$(app_test_vars_snippet "${app}" apply)$'\n'
     local cmd env_file="${app}/.env_${E2E_NAME}_default"
     while read -r name cmd; do
         [[ -z "${name}" ]] && continue
@@ -972,7 +1039,9 @@ test -f ${app}/.env_${E2E_NAME}_default || make -C ${app} config-dist instance=d
 ## differently (e.g. PROMETHEUS_METRICS_TRAEFIK_HOST):
 host_var=\${prefix}_TRAEFIK_HOST
 grep -q \"^\${host_var}=\" ${app}/.env-dist || \
-  host_var=\$(grep -oP \"^\${prefix}_\\w*TRAEFIK_HOST(?==)\" ${app}/.env-dist | head -n 1)
+  host_var=\$(grep -oP \"^\${prefix}_\\w*TRAEFIK_HOST(?==)\" ${app}/.env-dist | head -n 1 || true)
+## ... or just <PREFIX>_HOST (e.g. OAUTH2_PROXY_HOST):
+test -n \"\${host_var}\" || host_var=\${prefix}_HOST
 make -C ${app} reconfigure var=\${host_var}=${host} instance=default
 ## Apps doing their own ACME (TLS passthrough, e.g. caddy) use the test's CA:
 if grep -q \"^\${prefix}_ACME_CA=\" ${app}/.env-dist; then
@@ -985,6 +1054,7 @@ if grep -q \"^\${prefix}_PUBLIC_IP_ADDRESS=\" ${app}/.env-dist; then
 fi
 ${test_vars}make -C ${app} override instance=default
 $(app_pre_install "${app}")
+$(app_platform_pre_install "${app}")
 make -C ${app} install instance=default
 make -C ${app} wait TIMEOUT=${E2E_TIMEOUT} instance=default
 ## Image builds leave a lot of cache behind; drop the unused part once the
@@ -1003,7 +1073,6 @@ app_skip_reason() {
         vllm) echo "needs an Nvidia or AMD GPU (no CPU profile)" ;;
         sysbox-systemd) echo "needs the sysbox runtime (sysbox-runc) installed on the host" ;;
         minio) echo "MinIO no longer publishes container images" ;;
-        mosquitto|nats) echo "needs a step-ca server and provisioner token for its TLS certs" ;;
         s3-proxy) echo "needs an S3 bucket to proxy" ;;
         woodpecker) echo "needs an OAuth2 app registered in a forge (e.g. forgejo)" ;;
     esac
@@ -1015,6 +1084,9 @@ app_deps() {
     case "$1" in
         inspircd|backup-volume) echo "postfix-relay" ;;
         pairdrop) echo "coturn" ;;
+        ## Platform services (see lib/platform.sh):
+        mosquitto|nats) echo "step-ca" ;;
+        oauth2-proxy) echo "forgejo" ;;
     esac
 }
 
@@ -1036,16 +1108,17 @@ process_app() {
     banner "app: ${app}"
     if [[ "${E2E_REINSTALL}" != "true" ]]; then
         if probe_app "${app}"; then
-            if app_sourcerange_current "${app}"; then
+            if app_config_current "${app}"; then
                 echo "${app}: already verified (result ${PROBE_CODE}); skipping install (use --reinstall to force)."
+                app_post_setup "${app}"
                 return 0
             fi
-            echo "${app}: verified, but its source range differs from ${APP_SOURCERANGE}; reinstalling."
+            echo "${app}: verified, but its source range or test settings changed; reinstalling."
         else
             echo "${app}: not verified (result ${PROBE_CODE}, cert: ${PROBE_ISSUER:-none}); installing."
         fi
     fi
-    if ensure_app_entrypoints "${app}" && install_app "${app}"; then
+    if ensure_app_entrypoints "${app}" && install_app "${app}" && app_post_setup "${app}"; then
         echo "${app}: installed and healthy."
     else
         FAILED_APPS+=("${app}")
@@ -1086,6 +1159,13 @@ probe_target() {
     PROBE_OWN_CERT=false
     case "$1" in
         step-ca) PROBE_PATH="health"; PROBE_OWN_CERT=true ;;
+        ## oauth2-proxy's health endpoint (everything else needs a login):
+        oauth2-proxy) PROBE_PATH="ping" ;;
+        ## MQTT over TLS on the host's own port, with a step-ca certificate
+        ## (pub/sub is tested by app_functional_tests):
+        mosquitto) PROBE_KIND=tls; PROBE_PORT=8883; PROBE_OWN_CERT=true ;;
+        ## NATS greets in plaintext (INFO) before upgrading to TLS:
+        nats) PROBE_KIND=nats; PROBE_PORT=4222 ;;
         ollama) PROBE_TOKEN_VAR=OLLAMA_API_TOKEN ;;
         ## API only (no UI); the health endpoint, counting a fresh
         ## (uninitialized, sealed) server as up:
@@ -1150,6 +1230,24 @@ probe_app() {
         else
             PROBE_CODE=irc-fail
         fi
+    elif [[ "${PROBE_KIND}" == "tls" ]]; then
+        PROBE_URL="tls://${host}:${PROBE_PORT}"
+        ## The handshake completes (and shows the server cert) even when the
+        ## server then requires a client certificate:
+        if tls_probe "${host}" "${PROBE_PORT}" | grep -q "subject=.*CN *= *${host}"; then
+            PROBE_CODE=tls-ok
+        else
+            PROBE_CODE=tls-fail
+        fi
+    elif [[ "${PROBE_KIND}" == "nats" ]]; then
+        PROBE_URL="tls://${host}:${PROBE_PORT}"
+        out=$(timeout 10 bash -c 'exec 3<>/dev/tcp/$1/$2 || exit 1; IFS= read -r -t 5 line <&3; echo "${line}"' \
+                  _ "${DROPLET_IP}" "${PROBE_PORT}" 2>/dev/null || true)
+        if [[ "${out}" == INFO* && "${out}" == *'"tls_required":true'* ]]; then
+            PROBE_CODE=nats-ok
+        else
+            PROBE_CODE=nats-fail
+        fi
     elif [[ "${PROBE_KIND}" == "container" ]]; then
         PROBE_URL="container://${app}"
         ## Every container of the project is running, and healthy if it has
@@ -1196,7 +1294,7 @@ printf "%-36s\0" e2eprobe >&3; IFS= read -r -t 5 -N 1 b <&3 || exit 1; printf "%
             PROBE_CODE="${PROBE_CODE}->${final}"
         fi
     fi
-    if [[ "${PROBE_KIND}" == "iperf" || "${PROBE_KIND}" == "container" ]]; then
+    if [[ "${PROBE_KIND}" =~ ^(iperf|container|nats)$ ]]; then
         ## No TLS of its own; vouch for the host with the HTTPS cert instead:
         info=$(tls_probe "${host}" || true)
     else
@@ -1204,7 +1302,7 @@ printf "%-36s\0" e2eprobe >&3; IFS= read -r -t 5 -N 1 b <&3 || exit 1; printf "%
     fi
     PROBE_ISSUER=$(grep -oP '^issuer=\K.*' <<< "${info}" | head -n 1 || true)
     PROBE_STATUS=FAIL
-    if [[ "${PROBE_CODE}" =~ ^(${PROBE_EXPECT}|stun-ok|irc-ok|iperf-ok|container-ok)$ ]] && grep -q "${E2E_ROOT_DOMAIN}" <<< "${info}"; then
+    if [[ "${PROBE_CODE}" =~ ^(${PROBE_EXPECT}|stun-ok|irc-ok|iperf-ok|container-ok|tls-ok|nats-ok)$ ]] && grep -q "${E2E_ROOT_DOMAIN}" <<< "${info}"; then
         if [[ "${E2E_ACME_CA}" == *staging* && "${PROBE_OWN_CERT}" != "true" ]]; then
             grep -qi "staging" <<< "${info}" && PROBE_STATUS=PASS
         else
@@ -1224,7 +1322,13 @@ verify_app() {
     fi
     probe_app "$1" || true
     RESULTS+=("${PROBE_STATUS}|$1|${PROBE_URL}|${PROBE_CODE}|${PROBE_ISSUER:-no-cert}")
-    [[ "${PROBE_STATUS}" == "PASS" ]]
+    [[ "${PROBE_STATUS}" == "PASS" ]] || return 1
+    ## Deeper checks (pub/sub, login flows); each adds its own result rows:
+    local before=${#RESULTS[@]} row
+    app_functional_tests "$1"
+    for row in "${RESULTS[@]:${before}}"; do
+        [[ "${row}" == PASS\|* ]] || return 1
+    done
 }
 
 verify_check() {
@@ -1451,7 +1555,8 @@ choose_apps() {
         for d in */; do
             d="${d%/}"
             [[ -f "${d}/.env-dist" && -f "${d}/Makefile" ]] || continue
-            grep -qE '_TRAEFIK_HOST=' "${d}/.env-dist" || continue
+            ## Web apps, plus oauth2-proxy (its host var is OAUTH2_PROXY_HOST):
+            grep -qE '_TRAEFIK_HOST=' "${d}/.env-dist" || [[ "${d}" == oauth2-proxy ]] || continue
             echo "${d}"
         done | sort
     )

@@ -1,0 +1,350 @@
+## platform.sh - shared services that other apps need, sourced by e2e.sh.
+##
+## Some apps can't be tested alone: mosquitto and nats need a step-ca server
+## (and a one-time token) for their TLS certificates, and oauth2-proxy needs an
+## OIDC provider (Forgejo) with an OAuth2 app registered in it. This file:
+##
+##   * sets up those providers after they install (app_post_setup): step-ca's
+##     fingerprint; Forgejo's test users, org/team, and OAuth2 app,
+##   * prepares the apps that use them (app_platform_pre_install): one-time
+##     step-ca tokens, the mosquitto ACL,
+##   * runs functional tests once an app's route verifies (app_functional_tests):
+##     MQTT/NATS publish/subscribe with step-ca client certificates, and the
+##     full OAuth2 login flow through oauth2-proxy and Forgejo.
+##
+## Values the platform produces (fingerprint, client id/secret, test user
+## passwords) are kept in a 0600 dotenv file on the droplet (PLATFORM_ENV), not
+## in the local .state file. An app's test vars read them as @platform:<VAR>.
+
+PLATFORM_ENV='$HOME/.config/d.rymcg.tech/e2e-platform.env'
+
+## Test accounts in Forgejo: an admin (drives the API), a member of the
+## authorized team, and an outsider (a valid login, but not in the team):
+E2E_OIDC_ADMIN=e2e-admin
+E2E_OIDC_MEMBER=e2e-member
+E2E_OIDC_OUTSIDER=e2e-outsider
+E2E_OIDC_ORG=e2e
+E2E_OIDC_TEAM=allowed
+E2E_OIDC_APP=e2e-oauth2-proxy
+## The whoami instance protected by OAuth2 (separate from the plain whoami):
+E2E_OAUTH2_INSTANCE=oauth
+E2E_OAUTH2_HOST() { echo "whoami-oauth.${E2E_ROOT_DOMAIN}"; }
+
+## The Let's Encrypt staging roots, trusted by oauth2-proxy when the test uses
+## the staging CA (it fetches Forgejo's OIDC discovery doc server-side):
+LE_STAGING_ROOTS="https://letsencrypt.org/certs/staging/letsencrypt-stg-root-x1.pem,https://letsencrypt.org/certs/staging/letsencrypt-stg-root-x2.pem"
+
+## Docker's address pools on the droplet (see remote_bootstrap.sh). Containers
+## that call another app through the droplet's public IP (oauth2-proxy ->
+## Forgejo, step-cli -> step-ca) arrive at Traefik from these addresses:
+DOCKER_POOL_CIDR=172.16.0.0/12
+
+platform_remote_prelude() {
+    ## Shell helpers for remote snippets: pget/pset (platform dotenv),
+    ## stepca (exec in the step-ca container), fj (forgejo CLI):
+    cat <<EOF
+pf=${PLATFORM_ENV}
+mkdir -p "\$(dirname "\${pf}")"; touch "\${pf}"; chmod 600 "\${pf}"
+pget() { _scripts/dotenv -f "\${pf}" get "\$1" 2>/dev/null || true; }
+pset() { _scripts/dotenv -f "\${pf}" set "\$1=\$2"; }
+container_of() { docker ps -q --filter label=com.docker.compose.project=\$1 --filter label=com.docker.compose.service=\$2 | head -n 1; }
+stepca() { docker exec "\$(container_of step-ca step-ca)" "\$@"; }
+STEP_ARGS="--ca-url https://localhost:9000 --root /home/step/certs/root_ca.crt"
+STEP_PW=/home/step/secrets/password
+fj() { docker exec "\$(container_of forgejo forgejo)" forgejo "\$@"; }
+EOF
+}
+
+platform_get() {
+    ## platform_get <VAR> - print a value from the droplet's platform env:
+    e2e_remote_sh "_scripts/dotenv -f ${PLATFORM_ENV} get $1 2>/dev/null || true" 2>/dev/null
+}
+
+app_platform_sourcerange() {
+    ## app_platform_sourcerange <app> - extra CIDRs (beyond the test's source
+    ## range) for providers that other containers reach via the public IP:
+    case "$1" in
+        step-ca|forgejo) echo "${DROPLET_IP}/32,${DOCKER_POOL_CIDR}" ;;
+    esac
+}
+
+app_host_ports() {
+    ## app_host_ports <app> - print "PORT PROTO" for ports the app publishes
+    ## on the host directly (not through Traefik), to open in the firewall:
+    case "$1" in
+        mosquitto) echo "8883 tcp" ;;
+        nats)      echo "4222 tcp" ;;
+    esac
+}
+
+## -------------------------------------------------------------------------
+## Provider setup (after install, every run; idempotent)
+## -------------------------------------------------------------------------
+
+app_post_setup() {
+    ## app_post_setup <app> - run after the app installs (or is found
+    ## already verified), to set up what other apps need from it:
+    case "$1" in
+        step-ca) platform_setup_step_ca ;;
+        forgejo) platform_setup_forgejo ;;
+        oauth2-proxy) platform_setup_oauth2_whoami ;;
+    esac
+}
+
+platform_setup_step_ca() {
+    echo "Recording the step-ca root fingerprint ..."
+    e2e_remote_sh "$(platform_remote_prelude)
+fp=\$(stepca step certificate fingerprint /home/step/certs/root_ca.crt)
+test -n \"\${fp}\"
+pset STEP_CA_FINGERPRINT \"\${fp}\"
+pset STEP_CA_URL https://step-ca.${E2E_ROOT_DOMAIN}
+echo \"step-ca fingerprint: \${fp}\""
+}
+
+platform_setup_forgejo() {
+    echo "Setting up Forgejo as the OIDC provider (users, org/team, OAuth2 app) ..."
+    local host="forgejo.${E2E_ROOT_DOMAIN}"
+    local redirect="https://oauth2-proxy.${E2E_ROOT_DOMAIN}/oauth2/callback"
+    e2e_remote_sh "$(platform_remote_prelude)
+## Wait for the CLI (the database may still be migrating):
+for i in \$(seq 1 30); do fj admin user list >/dev/null 2>&1 && break; sleep 2; done
+ensure_user() {
+  ## ensure_user <name> <PASSWORD_VAR> [--admin] - create or re-sync a user:
+  local name=\$1 var=\$2 admin=\${3:-} pw
+  pw=\$(pget \${var})
+  if [ -z \"\${pw}\" ]; then pw=\$(openssl rand -hex 16); pset \${var} \"\${pw}\"; fi
+  if fj admin user list | awk 'NR>1 {print \$2}' | grep -qxF \"\${name}\"; then
+    fj admin user change-password --username \"\${name}\" --password \"\${pw}\" --must-change-password=false >/dev/null
+  else
+    fj admin user create \${admin} --username \"\${name}\" --email \"\${name}@${E2E_ROOT_DOMAIN}\" \\
+       --password \"\${pw}\" --must-change-password=false >/dev/null
+  fi
+  echo \"Forgejo user ready: \${name}\"
+}
+ensure_user ${E2E_OIDC_ADMIN} OIDC_ADMIN_PASSWORD --admin
+ensure_user ${E2E_OIDC_MEMBER} OIDC_MEMBER_PASSWORD
+ensure_user ${E2E_OIDC_OUTSIDER} OIDC_OUTSIDER_PASSWORD
+
+## Forgejo API as the e2e admin (setup only: the staging cert is fine here):
+api() {
+  ## api <METHOD> <PATH> [JSON] - prints the body; fails on HTTP >= 400:
+  curl -sS -k --fail-with-body --resolve ${host}:443:${DROPLET_IP} \\
+       -u ${E2E_OIDC_ADMIN}:\"\$(pget OIDC_ADMIN_PASSWORD)\" \\
+       -H 'Content-Type: application/json' -X \"\$1\" \"https://${host}/api/v1\$2\" \${3:+-d \"\$3\"}
+}
+## Org + team. Forgejo's OIDC 'groups' claim lists the user's orgs and
+## <org>:<team> memberships:
+api GET /orgs/${E2E_OIDC_ORG} >/dev/null 2>&1 || \\
+  api POST /orgs '{\"username\":\"${E2E_OIDC_ORG}\",\"visibility\":\"public\"}' >/dev/null
+team_id=\$(api GET /orgs/${E2E_OIDC_ORG}/teams | jq -r '.[] | select(.name==\"${E2E_OIDC_TEAM}\") | .id')
+if [ -z \"\${team_id}\" ]; then
+  team_id=\$(api POST /orgs/${E2E_OIDC_ORG}/teams \\
+    '{\"name\":\"${E2E_OIDC_TEAM}\",\"permission\":\"read\",\"units\":[\"repo.code\"]}' | jq -r .id)
+fi
+api PUT /teams/\${team_id}/members/${E2E_OIDC_MEMBER} >/dev/null
+echo \"Team ${E2E_OIDC_ORG}:${E2E_OIDC_TEAM} (id \${team_id}) has member ${E2E_OIDC_MEMBER}.\"
+
+## OAuth2 app. Forgejo shows the secret only at creation, so keep the app
+## only if its client id matches the one we saved with its secret:
+app=\$(api GET /user/applications/oauth2 | jq -c '.[] | select(.name==\"${E2E_OIDC_APP}\")')
+app_id=\$(echo \"\${app}\" | jq -r '.id // empty')
+client_id=\$(echo \"\${app}\" | jq -r '.client_id // empty')
+if [ -z \"\${client_id}\" ] || [ \"\${client_id}\" != \"\$(pget OIDC_CLIENT_ID)\" ] || [ -z \"\$(pget OIDC_CLIENT_SECRET)\" ]; then
+  [ -n \"\${app_id}\" ] && api DELETE /user/applications/oauth2/\${app_id} >/dev/null
+  created=\$(api POST /user/applications/oauth2 \\
+    '{\"name\":\"${E2E_OIDC_APP}\",\"redirect_uris\":[\"${redirect}\"],\"confidential_client\":true}')
+  pset OIDC_CLIENT_ID \"\$(echo \"\${created}\" | jq -r .client_id)\"
+  pset OIDC_CLIENT_SECRET \"\$(echo \"\${created}\" | jq -r .client_secret)\"
+  echo \"Registered OAuth2 app ${E2E_OIDC_APP} (client id \$(pget OIDC_CLIENT_ID)).\"
+else
+  echo \"OAuth2 app ${E2E_OIDC_APP} already registered (client id \${client_id}).\"
+fi"
+}
+
+platform_setup_oauth2_whoami() {
+    ## A second whoami instance with OAuth2 turned on, authorized for the
+    ## e2e team only. The plain whoami instance stays open (its probe is a
+    ## plain 200):
+    local inst="${E2E_OAUTH2_INSTANCE}" host
+    host=$(E2E_OAUTH2_HOST)
+    local envf="whoami/.env_${E2E_NAME}_${inst}"
+    echo "Installing whoami instance '${inst}' (${host}) behind OAuth2 ..."
+    e2e_remote_sh "test -f ${envf} || make -C whoami config-dist instance=${inst}
+_scripts/reconfigure ${envf} WHOAMI_TRAEFIK_HOST=${host} WHOAMI_INSTANCE=${inst} \\
+  WHOAMI_OAUTH2=true WHOAMI_OAUTH2_AUTHORIZED_GROUP=${E2E_OIDC_ORG}:${E2E_OIDC_TEAM} \\
+  WHOAMI_IP_SOURCERANGE=${APP_SOURCERANGE}
+make -C whoami override instance=${inst}
+make -C whoami install instance=${inst}
+make -C whoami wait TIMEOUT=${E2E_TIMEOUT} instance=${inst}"
+}
+
+## -------------------------------------------------------------------------
+## Consumer preparation (just before 'make install')
+## -------------------------------------------------------------------------
+
+app_platform_pre_install() {
+    ## app_platform_pre_install <app> - print a remote snippet that prepares
+    ## an app for the platform services it uses:
+    local app="$1" host="$1.${E2E_ROOT_DOMAIN}"
+    case "${app}" in
+        mosquitto)
+            ## Per-context ACL (gitignored): the e2e client may use e2e/#:
+            cat <<EOF
+mkdir -p mosquitto/config/template/context/${E2E_NAME}
+printf 'user e2e.clients.${host}\ntopic readwrite e2e/#\n' > mosquitto/config/template/context/${E2E_NAME}/acl.conf
+EOF
+            step_ca_token_snippet mosquitto MOSQUITTO "${host}" ;;
+        nats)
+            step_ca_token_snippet nats NATS "${host}" ;;
+    esac
+}
+
+step_ca_token_snippet() {
+    ## step_ca_token_snippet <app> <PREFIX> <host> - mint a fresh one-time
+    ## token, but only if the app's certs volume has no key yet (the token is
+    ## only used to create the first certificate, and expires in 30m):
+    local app="$1" prefix="$2" host="$3"
+    cat <<EOF
+$(platform_remote_prelude)
+if docker run --rm -v ${app}_certs:/c alpine test -f /c/${host}.key 2>/dev/null; then
+  echo "${app}: certificate already issued; no new step-ca token needed."
+else
+  echo "${app}: minting a one-time step-ca token for ${host} ..."
+  token=\$(stepca step ca token ${host} --provisioner admin --password-file \${STEP_PW} \${STEP_ARGS})
+  _scripts/reconfigure ${app}/.env_${E2E_NAME}_default ${prefix}_STEP_CA_TOKEN="\${token}" >/dev/null
+fi
+EOF
+}
+
+## -------------------------------------------------------------------------
+## Functional tests (after an app's route verifies)
+## -------------------------------------------------------------------------
+
+app_functional_tests() {
+    ## app_functional_tests <app> - append extra result rows to RESULTS:
+    case "$1" in
+        mosquitto) test_mosquitto ;;
+        nats) test_nats ;;
+        oauth2-proxy) test_oauth2 ;;
+    esac
+}
+
+record_test() {
+    ## record_test <STATUS> <app:check> <url> <detail>
+    RESULTS+=("$1|$2|$3|$4|-")
+    echo "$1 $2 ($4)"
+}
+
+run_remote_checks() {
+    ## run_remote_checks <app> <url> <snippet> - run a snippet that prints
+    ## "CHECK <name> <PASS|FAIL> <detail>" lines; record each one:
+    local app="$1" url="$2" out name st detail
+    out=$(e2e_remote_sh "$3" 2>/dev/null || true)
+    if ! grep -q '^CHECK ' <<< "${out}"; then
+        record_test FAIL "${app}:tests" "${url}" "test script failed"
+        return
+    fi
+    while read -r _ name st detail; do
+        record_test "${st}" "${app}:${name}" "${url}" "${detail}"
+    done < <(grep '^CHECK ' <<< "${out}")
+}
+
+client_certs_snippet() {
+    ## client_certs_snippet <dir> <cn...> - issue short-lived client certs
+    ## from step-ca into <dir> (<name>.crt/.key, name = first CN label):
+    local dir="$1"; shift
+    local cn name
+    echo "$(platform_remote_prelude)"
+    echo "mkdir -p ${dir}; chmod 755 ${dir}"
+    echo "stepca cat /home/step/certs/root_ca.crt > ${dir}/root_ca.crt"
+    for cn in "$@"; do
+        name="${cn%%.*}"
+        cat <<EOF
+stepca step ca certificate ${cn} /tmp/${name}.crt /tmp/${name}.key --provisioner admin \\
+  --provisioner-password-file \${STEP_PW} \${STEP_ARGS} --not-after 1h --force >/dev/null
+stepca cat /tmp/${name}.crt > ${dir}/${name}.crt
+stepca cat /tmp/${name}.key > ${dir}/${name}.key
+stepca rm -f /tmp/${name}.crt /tmp/${name}.key
+EOF
+    done
+    echo "chmod 644 ${dir}/*"
+}
+
+test_mosquitto() {
+    local host="mosquitto.${E2E_ROOT_DOMAIN}" d='$HOME/.cache/e2e-mqtt'
+    run_remote_checks mosquitto "mqtts://${host}:8883" "$(client_certs_snippet "${d}" "e2e.clients.${host}" "outsider.clients.${host}")
+## Checks may fail; report them instead of aborting:
+set +e; trap - ERR
+check() { if [ \"\$2\" = 0 ]; then echo \"CHECK \$1 PASS \$3\"; else echo \"CHECK \$1 FAIL \$3\"; fi; }
+mq() { docker run --rm --network host -v ${d}:/c:ro eclipse-mosquitto:2 \"\$@\"; }
+srv='-h ${host} -p 8883 --cafile /c/root_ca.crt'
+as_e2e='--cert /c/e2e.crt --key /c/e2e.key'
+as_out='--cert /c/outsider.crt --key /c/outsider.key'
+## 1. Publish/subscribe on an ACL-allowed topic:
+mq mosquitto_sub \${srv} \${as_e2e} -t e2e/test -C 1 -W 20 > ${d}/got 2>&1 & pid=\$!
+sleep 3
+mq mosquitto_pub \${srv} \${as_e2e} -t e2e/test -m hello-e2e >/dev/null 2>&1 || true
+wait \${pid} || true
+grep -qx hello-e2e ${d}/got; check pubsub \$? \"e2e/test round trip\"
+## 2. No client certificate: the TLS handshake must be refused:
+rc=0; mq mosquitto_pub \${srv} -t e2e/test -m nocert >/dev/null 2>&1 || rc=\$?
+[ \${rc} -ne 0 ]; check no-cert-rejected \$? \"exit \${rc}\"
+## 3. A valid cert not in the ACL can connect, but its messages are dropped:
+mq mosquitto_sub \${srv} \${as_e2e} -t e2e/test -C 1 -W 8 > ${d}/got 2>&1 & pid=\$!
+sleep 3
+mq mosquitto_pub \${srv} \${as_out} -t e2e/test -m from-outsider >/dev/null 2>&1 || true
+wait \${pid} || true
+! grep -qx from-outsider ${d}/got; check acl-denies-outsider \$? \"outsider publish not delivered\""
+}
+
+test_nats() {
+    local host="nats.${E2E_ROOT_DOMAIN}" d='$HOME/.cache/e2e-nats'
+    run_remote_checks nats "tls://${host}:4222" "$(client_certs_snippet "${d}" "e2e.clients.${host}" "outsider.clients.${host}")
+## Checks may fail; report them instead of aborting:
+set +e; trap - ERR
+check() { if [ \"\$2\" = 0 ]; then echo \"CHECK \$1 PASS \$3\"; else echo \"CHECK \$1 FAIL \$3\"; fi; }
+nb() { docker run --rm --network host -v ${d}:/c:ro natsio/nats-box:latest timeout 20 \"\$@\"; }
+srv='--server tls://${host}:4222 --tlsca /c/root_ca.crt'
+as_e2e='--tlscert /c/e2e.crt --tlskey /c/e2e.key'
+as_out='--tlscert /c/outsider.crt --tlskey /c/outsider.key'
+## 1. Publish/subscribe on an authorized subject:
+nb nats \${srv} \${as_e2e} sub e2e.test --count 1 --raw > ${d}/got 2>&1 & pid=\$!
+sleep 3
+nb nats \${srv} \${as_e2e} pub e2e.test hello-e2e >/dev/null 2>&1 || true
+wait \${pid} || true
+grep -qx hello-e2e ${d}/got; check pubsub \$? \"e2e.test round trip\"
+## 2. No client certificate: refused:
+rc=0; nb nats \${srv} pub e2e.test nocert >/dev/null 2>&1 || rc=\$?
+[ \${rc} -ne 0 ]; check no-cert-rejected \$? \"exit \${rc}\"
+## 3. A valid cert whose CN is not a configured user: refused:
+rc=0; nb nats \${srv} \${as_out} pub e2e.test outsider >/dev/null 2>&1 || rc=\$?
+[ \${rc} -ne 0 ]; check unknown-user-rejected \$? \"exit \${rc}\"
+## 4. An authorized user subscribing outside its subjects: denied:
+nb nats \${srv} \${as_e2e} sub forbidden.test --count 1 > ${d}/denied 2>&1 || true
+grep -qi 'permissions violation' ${d}/denied; check subject-denied \$? \"sub forbidden.test\""
+}
+
+test_oauth2() {
+    ## The login flow runs from this machine (outside the droplet), like a
+    ## browser would: see oauth2_flow.py for the checks:
+    local host url out name st detail
+    host=$(E2E_OAUTH2_HOST)
+    url="https://${host}/"
+    local member_pw outsider_pw
+    member_pw=$(platform_get OIDC_MEMBER_PASSWORD)
+    outsider_pw=$(platform_get OIDC_OUTSIDER_PASSWORD)
+    local insecure=()
+    [[ "${E2E_ACME_CA}" == *staging* ]] && insecure=(--insecure)
+    out=$(E2E_MEMBER_PASSWORD="${member_pw}" E2E_OUTSIDER_PASSWORD="${outsider_pw}" \
+          uv run --quiet --no-project --with requests python3 -I "${E2E_DIR}/lib/oauth2_flow.py" \
+          --app-url "${url}" --root-domain "${E2E_ROOT_DOMAIN}" --ip "${DROPLET_IP}" \
+          --member "${E2E_OIDC_MEMBER}" --outsider "${E2E_OIDC_OUTSIDER}" "${insecure[@]}" 2>&1 || true)
+    echo "${out}" | grep -v '^CHECK ' || true
+    if ! grep -q '^CHECK ' <<< "${out}"; then
+        record_test FAIL "oauth2-proxy:login-flow" "${url}" "test script failed"
+        return
+    fi
+    while read -r _ name st detail; do
+        record_test "${st}" "oauth2:${name}" "${url}" "${detail}"
+    done < <(grep '^CHECK ' <<< "${out}")
+}
