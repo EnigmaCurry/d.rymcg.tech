@@ -444,3 +444,44 @@ check restic-backup \$? \"/bin/backup in data_backup\"
 n=\$(mc ls -r e2e/\${bucket}/ 2>/dev/null | grep -c '/data/snapshots/')
 [ \"\${n:-0}\" -ge 1 ]; check snapshot-in-bucket \$? \"\${n:-0} snapshot(s)\""
 }
+
+## -------------------------------------------------------------------------
+## Host setup (as root, before an app installs)
+## -------------------------------------------------------------------------
+
+SYSBOX_VERSION=0.7.1
+
+app_host_setup() {
+    ## app_host_setup <app> - prepare the droplet itself for an app:
+    case "$1" in
+        sysbox-systemd) host_setup_sysbox ;;
+    esac
+}
+
+host_setup_sysbox() {
+    ## The sysbox runtime (sysbox-runc). Its installer restarts Docker and
+    ## refuses to run with containers up, so stop them first and start the
+    ## same ones again afterwards:
+    if e2e_remote_root "docker info --format '{{json .Runtimes}}' | grep -q sysbox-runc"; then
+        echo "sysbox runtime already installed."
+        return 0
+    fi
+    echo "Installing the sysbox runtime (v${SYSBOX_VERSION}) on the droplet ..."
+    e2e_remote_root "set -eo pipefail
+arch=\$(dpkg --print-architecture)
+deb=/root/sysbox-ce_${SYSBOX_VERSION}.linux_\${arch}.deb
+test -f \${deb} || curl -fsSL -o \${deb} \
+  https://github.com/nestybox/sysbox/releases/download/v${SYSBOX_VERSION}/sysbox-ce_${SYSBOX_VERSION}.linux_\${arch}.deb
+running=\$(docker ps -q)
+if [ -n \"\${running}\" ]; then
+  echo \"Stopping \$(echo \${running} | wc -w) containers for the sysbox install ...\"
+  docker stop \${running} >/dev/null
+fi
+rc=0
+DEBIAN_FRONTEND=noninteractive apt-get install -y linux-headers-\$(uname -r) rsync \${deb} || rc=\$?
+if [ -n \"\${running}\" ]; then
+  echo 'Starting the stopped containers again ...'
+  docker start \${running} >/dev/null || true
+fi
+exit \${rc}"
+}

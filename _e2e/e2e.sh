@@ -1138,7 +1138,6 @@ app_skip_reason() {
     ## it can:
     case "$1" in
         vllm) echo "needs an Nvidia or AMD GPU (no CPU profile)" ;;
-        sysbox-systemd) echo "needs the sysbox runtime (sysbox-runc) installed on the host" ;;
     esac
 }
 
@@ -1183,7 +1182,8 @@ process_app() {
             echo "${app}: not verified (result ${PROBE_CODE}, cert: ${PROBE_ISSUER:-none}); installing."
         fi
     fi
-    if ensure_app_entrypoints "${app}" && install_app "${app}" && app_post_setup "${app}"; then
+    if ensure_app_entrypoints "${app}" && app_host_setup "${app}" \
+            && install_app "${app}" && app_post_setup "${app}"; then
         echo "${app}: installed and healthy."
     else
         FAILED_APPS+=("${app}")
