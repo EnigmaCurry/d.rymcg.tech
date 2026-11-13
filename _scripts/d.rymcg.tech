@@ -289,9 +289,9 @@ __readme() {
             DOCS_INDEX["${doc}"]="${doc}"
         done
         if [[ "${NAME_UPPERCASE}" == "LICENSE" ]]; then
-            exe xdg-open "https://github.com/EnigmaCurry/d.rymcg.tech/blob/master/LICENSE.txt"
+            "${BIN}/open_readme" "https://github.com/EnigmaCurry/d.rymcg.tech/blob/master/LICENSE.txt" "${ROOT_DIR}/LICENSE.txt"
         elif [[ -v DOCS_INDEX["${NAME_UPPERCASE}"] ]]; then
-            exe xdg-open "https://github.com/EnigmaCurry/d.rymcg.tech/blob/master/${NAME_UPPERCASE}.md#readme"
+            "${BIN}/open_readme" "https://github.com/EnigmaCurry/d.rymcg.tech/blob/master/${NAME_UPPERCASE}.md#readme" "${ROOT_DIR}/${NAME_UPPERCASE}.md"
         else
             echo ${DOCS_INDEX["${NAME_UPPERCASE}"]}
             __make "${NAME}" readme "$@"
