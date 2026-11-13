@@ -392,6 +392,11 @@ app_functional_tests() {
 
 ## Apps that are themselves a database, kept on UTC on purpose:
 TZ_EXEMPT_APPS="postgresql"
+## Apps whose images ship a static BusyBox `date` that ignores zoneinfo, so
+## it prints +0000 even though the app itself (Go) follows TZ (prometheus and
+## node-exporter log +HH:MM timestamps). Their TZ env is still checked, but
+## a mismatched `date` offset counts as n/a instead of bad:
+TZ_DATE_UNRELIABLE_APPS="prometheus"
 
 test_containers() {
     ## test_containers <app> - per-container checks of every running container
@@ -410,7 +415,9 @@ test_containers() {
     ## the app is in TZ_EXEMPT_APPS); SKIP if the app has no running
     ## containers; else PASS. Returns 1 on any FAIL.
     local app="$1" url="tz://${E2E_TIMEZONE}" out
-    out=$(e2e_remote_sh "app=$(printf '%q' "${app}") tz=$(printf '%q' "${E2E_TIMEZONE}")
+    local date_ok=1
+    [[ " ${TZ_DATE_UNRELIABLE_APPS} " == *" ${app} "* ]] && date_ok=0
+    out=$(e2e_remote_sh "app=$(printf '%q' "${app}") tz=$(printf '%q' "${E2E_TIMEZONE}") date_ok=${date_ok}
 $(cat <<'EOF'
 set +e; trap - ERR
 want=$(TZ="${tz}" date +%z)
@@ -425,6 +432,7 @@ for c in $(docker ps --format '{{.Names}}|{{.Label "com.docker.compose.project"}
     case "${off}" in [+-][0-9][0-9][0-9][0-9]) ;; *) off= ;; esac
     if [ -z "${off}" ]; then na=$((na+1))
     elif [ "${off}" = "${want}" ]; then ok=$((ok+1))
+    elif [ "${date_ok}" = 0 ]; then na=$((na+1))
     else bad="${bad} ${c}:${off}"; fi
 done
 echo "TZCHECK ${ok} ${na} ${missing} want=${want}${bad}"

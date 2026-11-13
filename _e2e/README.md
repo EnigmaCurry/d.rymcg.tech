@@ -223,6 +223,10 @@ memory. One that was gets an `app:oom` FAIL row, which only appears when
 something was killed. With many apps on one droplet, memory pressure
 otherwise looks like an unrelated failure.
 
+Some images ship a static BusyBox `date` that ignores zoneinfo while the
+app itself follows `TZ` (prometheus). Apps in `TZ_DATE_UNRELIABLE_APPS` still
+need the right `TZ` env, but a wrong `date` offset only counts as na.
+
 An app with no `TZ` on any container fails, unless it is itself a
 database (`TZ_EXEMPT_APPS` in `lib/platform.sh`). An app with no running
 containers reports SKIP. Containers only pick up
