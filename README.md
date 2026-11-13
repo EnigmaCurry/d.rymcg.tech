@@ -234,6 +234,7 @@ torrent search engine
 * [Photoprism](photoprism#readme) - a photo gallery and manager
 * [Piwigo](piwigo#readme) - a photo gallery and manager
 * [Plausible](plausible#readme) - a privacy friendly web visitor analytics engine
+* [plMail](pl-mail#readme) - a self-hosted, Gmail-style mail client
 * [PostgreSQL](postgresql#readme) - a database server configured with mutual TLS authentication for public networks
 * [PrivateBin](privatebin#readme) - a minimal, encrypted, zero-knowledge, pastebin
 * [Prometheus](prometheus#readme) - a systems monitoring and alerting toolkit (+ node-exporter + cAdvisor + Grafana)
