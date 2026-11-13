@@ -80,8 +80,10 @@ services:
       # - PHOTOPRISM_FFMPEG_ENCODER
       # - PHOTOPRISM_FFMPEG_BITRATE
       # - PHOTOPRISM_FFMPEG_RESOLUTION
-    ## Start as non-root user before initialization (supported: 0, 33, 50-99, 500-600, and 900-1200):
-    user: ${PHOTOPRISM_UID}:${PHOTOPRISM_GID}
+    ## No `user:` here: current images start under s6-overlay, which must run
+    ## as root to set up /run, then drop to PHOTOPRISM_UID/PHOTOPRISM_GID
+    ## (passed above) once initialized. Starting as non-root crash-loops
+    ## with "/run belongs to uid 0 instead of 1000".
     ## Share hardware devices with FFmpeg and TensorFlow (optional):
     # devices:
     #  - "/dev/dri:/dev/dri"                         # Intel QSV
