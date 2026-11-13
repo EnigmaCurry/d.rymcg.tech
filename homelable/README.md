@@ -41,7 +41,7 @@ make install
 If you add sentry auth (mTLS / OAuth2 / HTTP Basic Auth) in front of
 Homelable, remember that any account that passes the authorization group
 gets full access to the app: Homelable's built-in auth cannot check the user
-header that traefik-forward-auth sends.
+header that oauth2-proxy sends.
 
 ### Scanning
 

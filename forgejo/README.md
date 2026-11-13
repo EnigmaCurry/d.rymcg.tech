@@ -1,9 +1,9 @@
 # Forgejo
 
 [Forgejo](https://forgejo.org/) is a git repository host, similar to GitHub, but
-entirely self-hosted. Forgejo also functions as an identity server and OAuth
-provider, to facilitate sign-in for other applications, via
-[traefik-forward-auth](../traefik-forward-auth)
+entirely self-hosted. Forgejo also functions as an OIDC identity provider, to facilitate
+single sign-on for other applications, via
+[oauth2-proxy](../oauth2-proxy).
 
 ## Configuration
 
@@ -29,27 +29,36 @@ it couldn't access itself without access - this recursion wouldn't work.
 
 ## Initial setup
 
-Bring up the service with `make install`, then immediately open the
-website domain in your browser (run `make open`) to finish the setup
-procedure with the install wizard (READ the folowing notes before
-proceeding).
-
- * DO NOT attempt to customize any of the settings using the install
-   wizard. It will all be overwritten later by the values you set in
-   your own `.env_${DOCKER_CONTEXT}_default` file.
- * THE ONLY thing you need to do with the install wizard is to create an
-   administrator account and password. Click the `Administrator Account
-   Settings` link to expand the option, enter the username `root`, enter a
-   secure passphrase, enter your email address.
- * Once you've entered the `root` account details, click `Install Forgejo`.
-
-It is normal to receive a message of `Bad Gateway` once, right after
-install. You must restart the service in order for your
-`.env_${DOCKER_CONTEXT}_default` configuration to be fully applied:
+The web install wizard is disabled (`INSTALL_LOCK=true`): all settings
+come from your `.env_${DOCKER_CONTEXT}_default` file. Bring up the
+service with:
 
 ```
-# Restart forgejo to get the config applied:
-make reinstall
+make install
+```
+
+On the first install, this creates the admin account
+(`FORGEJO_ADMIN_USER`, default `root`) with a random password, and
+prints it once:
+
+```
+## Forgejo account ready:
+##   URL:      https://git.example.com
+##   Username: root
+##   Password: xxxxxxxxxxxxxxxxxxxxxxxx
+## Save this password now; it is not stored anywhere.
+```
+
+Log in with it (`make open`). Later installs leave the account alone.
+
+Manage accounts from the command line:
+
+```
+## Set a new random password (e.g. if you lost the root password):
+make admin-password
+
+## Create another admin account:
+make admin-user
 ```
 
 ## Notes

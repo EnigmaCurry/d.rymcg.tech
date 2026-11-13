@@ -2,23 +2,29 @@
 ## Build Step-CA certificate store:
 FROM alpine:3 AS step_ca
 ARG STEP_CA_ENABLED STEP_CA_ENDPOINT STEP_CA_FINGERPRINT STEP_CA_ZERO_CERTS
-RUN apk add -U step-cli ca-certificates
+RUN apk add -U step-cli ca-certificates curl
 RUN ([[ "$STEP_CA_ENABLED" == "true" ]] && \
     step ca bootstrap --ca-url "${STEP_CA_ENDPOINT}" --fingerprint "${STEP_CA_FINGERPRINT}")  || true
 RUN ([[ "$STEP_CA_ENABLED" == "true" ]] && [[ "$STEP_CA_ZERO_CERTS" == "true" ]] && \
     cat /root/.step/certs/root_ca.crt > /etc/ssl/certs/ca-certificates.crt) || true
 RUN ([[ "$STEP_CA_ENABLED" == "true" ]] && [[ "$STEP_CA_ZERO_CERTS" != "true" ]] && \
     cat /root/.step/certs/root_ca.crt >> /etc/ssl/certs/ca-certificates.crt) || true
+## Extra trusted root CAs (optional): a comma-separated list of PEM URLs,
+## e.g. the Let's Encrypt staging roots, so a test Forgejo with a staging
+## certificate can be used as the OIDC provider:
+ARG EXTRA_CA_CERT_URLS
+RUN set -e; for url in $(echo "${EXTRA_CA_CERT_URLS}" | tr "," " "); do \
+      echo "Adding extra CA: ${url}"; \
+      curl -fsSL "${url}" >> /etc/ssl/certs/ca-certificates.crt; \
+      echo >> /etc/ssl/certs/ca-certificates.crt; \
+    done
 
-FROM golang:1.23-alpine as builder
-# Setup
-RUN mkdir -p /go/src/github.com/thomseddon/traefik-forward-auth
-WORKDIR /go/src/github.com/thomseddon/traefik-forward-auth
-# Add libraries
-RUN apk add --no-cache git
-# Copy & build
+FROM golang:1.26-alpine AS builder
+RUN mkdir -p /go/src/github.com/oauth2-proxy/oauth2-proxy
+WORKDIR /go/src/github.com/oauth2-proxy/oauth2-proxy
+RUN apk add --no-cache git make
 ARG VERSION
-ARG REPO=https://github.com/thomseddon/traefik-forward-auth.git
+ARG REPO=https://github.com/oauth2-proxy/oauth2-proxy.git
 RUN git clone ${REPO} . && \
     git checkout ${VERSION}
 ARG TARGETPLATFORM
@@ -33,11 +39,12 @@ RUN if [ "$TARGETPLATFORM" = "linux/arm64" ]; then \
       export GOARCH=amd64; \
     fi && \
     echo "Building for GOARCH=$GOARCH with variant $GOARM" && \
-    CGO_ENABLED=0 GOOS=linux GOARCH=$GOARCH GOARM=$GOARM GO111MODULE=on go build -a -installsuffix nocgo -o /traefik-forward-auth github.com/thomseddon/traefik-forward-auth/cmd
+    CGO_ENABLED=0 GOOS=linux GOARCH=$GOARCH GOARM=$GOARM GO111MODULE=on \
+      go build -a -installsuffix nocgo -o /oauth2-proxy .
 
 # Copy into scratch container
 FROM scratch
 COPY --from=builder /etc/ssl/certs/ca-certificates.crt /etc/ssl/certs/
-COPY --from=builder /traefik-forward-auth ./
+COPY --from=builder /oauth2-proxy ./
 COPY --from=step_ca /etc/ssl/certs/ca-certificates.crt /etc/ssl/certs
-ENTRYPOINT ["./traefik-forward-auth"]
+ENTRYPOINT ["./oauth2-proxy"]
