@@ -516,7 +516,7 @@ e2e_dns_record() {
     local line id existing
     line=$(doctl compute domain records list "${E2E_DOMAIN}" \
                --format ID,Type,Name,Data --no-header \
-               | awk -v t="${rtype}" -v n="${rname}" '$2==t && $3==n {print; exit}')
+               | awk -v t="${rtype}" -v n="${rname}" '$2==t && $3==n && !done {print; done=1}')
     if [[ -n "${line}" ]]; then
         id=$(awk '{print $1}' <<< "${line}")
         existing=$(awk '{print $4}' <<< "${line}")
@@ -620,13 +620,13 @@ phase_provision() {
     ## SSH key - DigitalOcean deduplicates keys by fingerprint, so reuse the
     ## key if the same material already exists under ANY name:
     SSH_KEY_ID=$(doctl compute ssh-key list --format ID,Name --no-header \
-                     | awk -v n="${E2E_NAME}" '$2==n {print $1; exit}')
+                     | awk -v n="${E2E_NAME}" '$2==n && !done {print $1; done=1}')
     local fingerprint
     fingerprint=$(ssh-keygen -E md5 -lf "${E2E_SSH_PUBKEY}" \
                       | awk '{print $2}' | sed 's/^MD5://')
     key_by_fingerprint() {
         doctl compute ssh-key list --format ID,FingerPrint --no-header \
-            | awk -v f="${fingerprint}" '$2==f {print $1; exit}'
+            | awk -v f="${fingerprint}" '$2==f && !done {print $1; done=1}'
     }
     if [[ -z "${SSH_KEY_ID}" ]]; then
         SSH_KEY_ID=$(key_by_fingerprint)
@@ -663,7 +663,7 @@ phase_provision() {
         local restricted_rules=""
         for port in 22 2890; do restricted_rules+="protocol:tcp,ports:${port}${limited} "; done
         FIREWALL_ID=$(doctl compute firewall list --format ID,Name --no-header \
-                          | awk -v n="${E2E_NAME}-fw" '$2==n {print $1; exit}')
+                          | awk -v n="${E2E_NAME}-fw" '$2==n && !done {print $1; done=1}')
         if [[ -z "${FIREWALL_ID}" ]]; then
             echo "Creating firewall '${E2E_NAME}-fw' ..."
             FIREWALL_ID=$(doctl compute firewall create \
@@ -684,7 +684,7 @@ phase_provision() {
     [[ "${E2E_SUITE}" == "workstation" ]] \
         && user_data_template="${E2E_DIR}/user_data_workstation_debian.yaml"
     DROPLET_ID=$(doctl compute droplet list --format ID,Name --no-header \
-                     | awk -v n="${E2E_NAME}" '$2==n {print $1; exit}')
+                     | awk -v n="${E2E_NAME}" '$2==n && !done {print $1; done=1}')
     if [[ -z "${DROPLET_ID}" ]]; then
         echo "Creating droplet '${E2E_NAME}' (${E2E_REGION}/${E2E_SIZE}/${E2E_IMAGE}, suite=${E2E_SUITE}) ..."
         ## Render the cloud-init: it creates the '${E2E_ADMIN_USER}' workstation
@@ -2166,7 +2166,7 @@ cmd_destroy() {
 
     ## Firewall by exact name:
     id=$(doctl compute firewall list --format ID,Name --no-header \
-             | awk -v n="${E2E_NAME}-fw" '$2==n {print $1; exit}')
+             | awk -v n="${E2E_NAME}-fw" '$2==n && !done {print $1; done=1}')
     if [[ -n "${id}" ]]; then
         echo "Deleting firewall ${id} ..."
         doctl compute firewall delete "${id}" --force
@@ -2174,7 +2174,7 @@ cmd_destroy() {
 
     ## SSH key by exact name:
     id=$(doctl compute ssh-key list --format ID,Name --no-header \
-             | awk -v n="${E2E_NAME}" '$2==n {print $1; exit}')
+             | awk -v n="${E2E_NAME}" '$2==n && !done {print $1; done=1}')
     if [[ -n "${id}" ]]; then
         echo "Deleting SSH key ${id} ..."
         doctl compute ssh-key delete "${id}" --force
