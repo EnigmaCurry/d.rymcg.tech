@@ -560,17 +560,34 @@ phase_provision() {
     save_state
 
     ## Firewall (full suite only; a workstation serves nothing, so it needs no
-    ## inbound firewall). 22/80/443 web + 53 tcp/udp + 2890 tcp for acme-dns:
+    ## inbound firewall). 22/80/443 web + 53 tcp/udp + 2890 tcp for acme-dns.
+    ## Only DNS is open to everyone (Let's Encrypt and resolvers must reach
+    ## the delegated acme-dns zone); everything else admits just the test's
+    ## source range. Certificates use DNS-01, and the droplet's own calls to
+    ## its public IP never pass through this (cloud) firewall:
     if [[ "${E2E_SUITE}" != "workstation" ]]; then
+        local open_all=",address:0.0.0.0/0,address:::/0" limited="" cidr port
+        for cidr in $(app_source_range | tr ',' ' '); do limited+=",address:${cidr}"; done
+        local restricted_rules="" open_rules=""
+        for port in 22 80 443 2890; do
+            restricted_rules+="protocol:tcp,ports:${port}${limited} "
+            open_rules+="protocol:tcp,ports:${port}${open_all} "
+        done
         FIREWALL_ID=$(doctl compute firewall list --format ID,Name --no-header \
                           | awk -v n="${E2E_NAME}-fw" '$2==n {print $1; exit}')
         if [[ -z "${FIREWALL_ID}" ]]; then
             echo "Creating firewall '${E2E_NAME}-fw' ..."
             FIREWALL_ID=$(doctl compute firewall create \
                 --name "${E2E_NAME}-fw" \
-                --inbound-rules "protocol:tcp,ports:22,address:0.0.0.0/0,address:::/0 protocol:tcp,ports:80,address:0.0.0.0/0,address:::/0 protocol:tcp,ports:443,address:0.0.0.0/0,address:::/0 protocol:tcp,ports:53,address:0.0.0.0/0,address:::/0 protocol:udp,ports:53,address:0.0.0.0/0,address:::/0 protocol:tcp,ports:2890,address:0.0.0.0/0,address:::/0 protocol:icmp,address:0.0.0.0/0,address:::/0" \
+                --inbound-rules "${restricted_rules}protocol:tcp,ports:53${open_all} protocol:udp,ports:53${open_all} protocol:icmp${open_all}" \
                 --outbound-rules "protocol:tcp,ports:all,address:0.0.0.0/0,address:::/0 protocol:udp,ports:all,address:0.0.0.0/0,address:::/0 protocol:icmp,address:0.0.0.0/0,address:::/0" \
                 --format ID --no-header)
+        elif doctl compute firewall get "${FIREWALL_ID}" --format InboundRules --no-header \
+                | grep -q "protocol:tcp,ports:22,address:0.0.0.0/0"; then
+            ## A firewall from before this setting: close it down:
+            echo "Restricting firewall '${E2E_NAME}-fw' to ${limited//,address:/ } ..."
+            doctl compute firewall add-rules "${FIREWALL_ID}" --inbound-rules "${restricted_rules% }"
+            doctl compute firewall remove-rules "${FIREWALL_ID}" --inbound-rules "${open_rules% }"
         fi
         echo "Firewall id: ${FIREWALL_ID}"
         save_state
@@ -873,13 +890,16 @@ ensure_app_entrypoints() {
     ## needs and open their ports in the droplet firewall:
     local app="$1" name port proto rules enabled restart=false
     local traefik_env="traefik/.env_${E2E_NAME}_default"
+    ## The firewall only admits the test's source range:
+    local addrs="" cidr
+    for cidr in ${APP_SOURCERANGE//,/ }; do addrs+=",address:${cidr}"; done
     while read -r name port proto; do
         [[ -z "${name}" ]] && continue
         rules=$(doctl compute firewall get "${FIREWALL_ID}" --format InboundRules --no-header)
         if ! grep -q "protocol:${proto},ports:${port}," <<< "${rules}"; then
             echo "Opening firewall ${proto}/${port} for ${app} ..."
             doctl compute firewall add-rules "${FIREWALL_ID}" \
-                  --inbound-rules "protocol:${proto},ports:${port},address:0.0.0.0/0,address:::/0"
+                  --inbound-rules "protocol:${proto},ports:${port}${addrs}"
         fi
         enabled=$(e2e_remote_sh "_scripts/dotenv -f ${traefik_env} get TRAEFIK_${name}_ENTRYPOINT_ENABLED")
         if [[ "${enabled}" != "true" ]]; then
@@ -888,10 +908,8 @@ ensure_app_entrypoints() {
             restart=true
         fi
     done < <(app_entrypoints "${app}")
-    ## Ports the app publishes on the host itself: no Traefik ipallowlist
-    ## guards them, so the firewall only admits the test's source range:
-    local addrs="" cidr
-    for cidr in ${APP_SOURCERANGE//,/ }; do addrs+=",address:${cidr}"; done
+    ## Ports the app publishes on the host itself (no Traefik ipallowlist
+    ## guards them, so the firewall rule matters here):
     while read -r port proto; do
         [[ -z "${port}" ]] && continue
         rules=$(doctl compute firewall get "${FIREWALL_ID}" --format InboundRules --no-header)
