@@ -981,7 +981,11 @@ app_test_vars() {
             echo "WOODPECKER_FORGEJO_SECRET=@platform:WOODPECKER_CLIENT_SECRET"
             echo "WOODPECKER_ADMIN=${E2E_OIDC_ADMIN}"
             echo "WOODPECKER_ORGS=${E2E_OIDC_ORG}"
-            [[ "${E2E_ACME_CA}" == *staging* ]] && echo "WOODPECKER_FORGEJO_SKIP_VERIFY=true" ;;
+            if [[ "${E2E_ACME_CA}" == *staging* ]]; then
+                echo "WOODPECKER_FORGEJO_SKIP_VERIFY=true"
+            else
+                echo "WOODPECKER_FORGEJO_SKIP_VERIFY=false"
+            fi ;;
         ## Certificates from the platform step-ca (one-time token: see
         ## app_platform_pre_install):
         mosquitto) echo "MOSQUITTO_DOCKER_CONTEXT=${E2E_NAME}"
