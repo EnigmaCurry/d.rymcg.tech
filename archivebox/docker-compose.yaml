@@ -30,26 +30,6 @@ services:
       start_period: 120s
     labels: []
 
-  public-api-gateway:
-    build:
-      context: ${ARCHIVEBOX_API_GATEWAY_CONTEXT:-https://github.com/EnigmaCurry/archivebox-api-gateway.git}
-    security_opt:
-      - no-new-privileges:true
-    cap_drop:
-      - ALL
-    restart: unless-stopped
-    environment:
-      - ARCHIVEBOX_BASE_URL=http://archivebox:5797
-      - API_BASE_URL=https://${ARCHIVEBOX_TRAEFIK_HOST}
-      - PATH_PREFIX=/api-gateway
-      - SECRET_KEY
-      - ARCHIVEBOX_USERNAME
-      - ARCHIVEBOX_PASSWORD
-      - LOG_LEVEL=${API_LOG_LEVEL}
-    labels: []
-
-
-
   # Note (0.9.x): the Sonic full-text search backend is now built into the
   # archivebox/archivebox image (SEARCH_BACKEND_ENGINE=sonic by default), so
   # no separate sonic service is needed.
