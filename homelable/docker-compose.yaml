@@ -1,0 +1,73 @@
+volumes:
+  data:
+
+services:
+  backend:
+    image: ${HOMELABLE_BACKEND_IMAGE}
+    restart: unless-stopped
+    # The image's default command hardcodes port 8000, so override it to
+    # honour HOMELABLE_BACKEND_PORT. MAC scanning: ARP is layer 2, so on a
+    # bridge network the scanner can never see MACs and device identity
+    # drifts on DHCP changes. The upstream remedy is host networking (see
+    # INSTALLATION.md, "Scanning from Docker"); the override template
+    # (docker-compose.instance.yaml) applies it when
+    # HOMELABLE_NETWORK_MODE=host. In host mode the backend binds its port
+    # directly on the Docker host — keep it firewalled (see README).
+    command: uvicorn app.main:app --host 0.0.0.0 --port ${HOMELABLE_BACKEND_PORT:-8000}
+    cap_add:
+      - NET_RAW
+    security_opt:
+      - no-new-privileges:true
+    environment:
+      - SQLITE_PATH=/app/data/homelab.db
+      - UPLOAD_DIR=/app/data/uploads
+      - SECRET_KEY=${HOMELABLE_SECRET_KEY}
+      - AUTH_MODE=local
+      - AUTH_USERNAME=${HOMELABLE_AUTH_USERNAME}
+      # Stored $$-escaped in .env (reconfigure_password_bcrypt); compose
+      # interpolation un-escapes it before the container sees it.
+      - AUTH_PASSWORD_HASH=${HOMELABLE_AUTH_PASSWORD_HASH}
+      - SCANNER_RANGES=${HOMELABLE_SCANNER_RANGES}
+      - STATUS_CHECKER_INTERVAL=${HOMELABLE_STATUS_CHECKER_INTERVAL}
+      - CORS_ORIGINS=${HOMELABLE_CORS_ORIGINS}
+      - MCP_SERVICE_KEY=${HOMELABLE_MCP_SERVICE_KEY}
+      # gethomepage stats endpoint /api/v1/stats/summary; empty = disabled
+      - HOMEPAGE_API_KEY=${HOMELABLE_HOMEPAGE_WIDGET_API_KEY}
+    volumes:
+      - data:/app/data
+    labels: []
+
+  frontend:
+    image: ${HOMELABLE_FRONTEND_IMAGE}
+    restart: unless-stopped
+    depends_on:
+      - backend
+    security_opt:
+      - no-new-privileges:true
+    # BACKEND_UPSTREAM (and extra_hosts in host mode) is rendered per
+    # HOMELABLE_NETWORK_MODE by the override template: in bridge mode nginx
+    # proxies to the `backend` service on the shared compose network; in
+    # host mode the backend left that network, so nginx points at the host
+    # instead (upstream-documented fix).
+    labels: []
+
+  mcp:
+    # Optional MCP server for AI clients (key-authenticated).
+    # Off by default; enable with HOMELABLE_DOCKER_COMPOSE_PROFILES=default,mcp
+    # after setting HOMELABLE_MCP_API_KEY and HOMELABLE_MCP_SERVICE_KEY.
+    profiles:
+      - mcp
+    image: ${HOMELABLE_MCP_IMAGE}
+    restart: unless-stopped
+    # Binds on all host interfaces (matches upstream); keep it firewalled
+    # to your LAN. Only published while the mcp profile is active.
+    ports:
+      - "${HOMELABLE_MCP_PORT:-8001}:8001"
+    depends_on:
+      - backend
+    environment:
+      - MCP_API_KEY=${HOMELABLE_MCP_API_KEY}
+      - MCP_SERVICE_KEY=${HOMELABLE_MCP_SERVICE_KEY}
+    # BACKEND_URL (and extra_hosts in host mode) is rendered per
+    # HOMELABLE_NETWORK_MODE by the override template, same as the frontend.
+    labels: []
