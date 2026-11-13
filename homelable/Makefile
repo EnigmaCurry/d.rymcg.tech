@@ -23,7 +23,11 @@ config-hook:
 	@SECRET=$$(${BIN}/dotenv -f ${ENV_FILE} get HOMELABLE_SECRET_KEY) && test -n "$${SECRET}" || ${BIN}/reconfigure ${ENV_FILE} HOMELABLE_SECRET_KEY=$$(openssl rand -hex 32)
 	@${BIN}/reconfigure_auth ${ENV_FILE} HOMELABLE
 	@${BIN}/reconfigure_choose ${ENV_FILE} HOMELABLE_NETWORK_MODE "Choose the backend network mode: 'bridge' keeps the backend on the compose network (safer: no ports exposed on the Docker host, but no MAC addresses and no mDNS discovery); 'host' puts it on the Docker host network (MAC + mDNS discovery work, but the backend port binds directly on the host — keep it firewalled)" "bridge" "host"
-	@${BIN}/reconfigure_ask_validate_regex ${ENV_FILE} HOMELABLE_BACKEND_PORT "Enter the port the backend listens on (in host mode it binds directly on the Docker host; pick a free port)" 8000 "${PORT_REGEX}"
+	@if test "$$(${BIN}/dotenv -f ${ENV_FILE} get HOMELABLE_NETWORK_MODE)" == "host"; then \
+		${BIN}/reconfigure_ask_validate_regex ${ENV_FILE} HOMELABLE_BACKEND_PORT "Enter the port the backend listens on (it binds directly on the Docker host; pick a free port)" 8000 "${PORT_REGEX}"; \
+	else \
+		${BIN}/reconfigure ${ENV_FILE} HOMELABLE_BACKEND_PORT=8000; \
+	fi
 	@${BIN}/reconfigure_ask_validate_regex ${ENV_FILE} HOMELABLE_SCANNER_RANGES "Enter the CIDR ranges to scan as a JSON array (eg. [\"192.168.1.0/24\"]), or [] for none" "[]" "^\[.*\]$$"
 	@${BIN}/reconfigure_password_bcrypt ${ENV_FILE} HOMELABLE_AUTH_PASSWORD_HASH
 	@echo ""

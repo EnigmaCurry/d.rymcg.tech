@@ -73,7 +73,8 @@ make install
 `HOMELABLE_BACKEND_PORT` (default `8000`) is the port the backend listens
 on. In host mode it binds directly on the Docker host, so pick a port that
 is free there (another app may already use 8000). In bridge mode it is
-only reachable from the other containers of this project.
+only reachable from the other containers of this project, so `make
+config` only asks for it in host mode and bridge mode uses 8000.
 
 ### Firewall
 
