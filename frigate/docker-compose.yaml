@@ -1,0 +1,32 @@
+services:
+  config:
+    build:
+      context: config
+    volumes:
+      - config:/config
+  frigate:
+    depends_on:
+      - config
+    image: ${FRIGATE_IMAGE}
+    sysctls:
+      - net.ipv4.ip_unprivileged_port_start=1024
+    restart: unless-stopped 
+    # allow enough time to shut down the various services
+    stop_grace_period: 30s
+    shm_size: ${FRIGATE_SHM_SIZE}
+    volumes:
+      - /etc/localtime:/etc/localtime:ro
+      - config:/config
+      - storage:/media/frigate
+      # Optional: 1GB of memory, reduces SSD/SD Card wear
+      - type: tmpfs 
+        target: /tmp/cache
+        tmpfs:
+          size: 1000000000
+    environment:
+      FRIGATE_RTSP_PASSWORD: ${FRIGATE_RTSP_PASSWORD}
+    labels: []
+
+volumes:
+  config:
+  storage:
