@@ -1,0 +1,163 @@
+# plMail (https://github.com/karatektus/pl_mail) is a self-hosted,
+# Gmail-style mail client. It is NOT a mail server: no port 25, no domain
+# hosting. It syncs your existing IMAP/Gmail/Outlook mailboxes into
+# PostgreSQL and serves one web UI.
+#
+# Secrets (APP_SECRET, APP_ENCRYPTION_KEY, POSTGRES_PASSWORD,
+# MERCURE_JWT_SECRET) are auto-generated on first start by the secrets-init
+# service into the shared app_secrets volume. They are deliberately left
+# empty or absent in the container environments below: an empty value counts
+# as absent, which keeps first-start generation on, so the user never
+# supplies a database password.
+
+x-app-env: &app-env
+  APP_ENV: prod
+  # The public URL plMail is reached at. Must start with https:// and not be
+  # a loopback host for Google/Microsoft push to register. Also used to
+  # derive MERCURE_PUBLIC_URL and to build share/booking links.
+  APP_PUBLIC_URL: ${PL_MAIL_APP_PUBLIC_URL:-}
+  # Proxies whose X-Forwarded-* headers Symfony believes (upstream default,
+  # which is right for a proxy on the same Docker network).
+  TRUSTED_PROXIES: ${PL_MAIL_TRUSTED_PROXIES:-127.0.0.1,10.0.0.0/8,172.16.0.0/12,192.168.0.0/16}
+  # Push endpoints (e.g. a LAN-only ntfy server) that may resolve to a
+  # private address. Blank = every private push endpoint is refused (SSRF
+  # guard).
+  PUSH_ALLOWED_HOSTS: ${PL_MAIL_PUSH_ALLOWED_HOSTS:-}
+  # Must match the database service below. The version is coupled to the
+  # image's bundled postgresql-client-18 (pg_dump refuses to dump a newer
+  # server, which would break app:backup).
+  POSTGRES_USER: app
+  POSTGRES_DB: app
+  POSTGRES_VERSION: ${PL_MAIL_POSTGRES_VERSION:-18}
+  # APP_SECRET, APP_ENCRYPTION_KEY, DATABASE_URL, MESSENGER_TRANSPORT_DSN,
+  # MERCURE_URL and MERCURE_PUBLIC_URL keep their upstream defaults: the
+  # entrypoint assembles DATABASE_URL from the generated secrets, and
+  # MERCURE_PUBLIC_URL is derived from APP_PUBLIC_URL when left empty.
+  ## Optional: single sign-on via an OpenID Connect provider
+  ## (Authentik, Keycloak, Forgejo). Leave blank to disable.
+  OIDC_ISSUER: ${PL_MAIL_OIDC_ISSUER:-}
+  OIDC_CLIENT_ID: ${PL_MAIL_OIDC_CLIENT_ID:-}
+  OIDC_CLIENT_SECRET: ${PL_MAIL_OIDC_CLIENT_SECRET:-}
+  OIDC_BUTTON_LABEL: ${PL_MAIL_OIDC_BUTTON_LABEL:-}
+  OIDC_SCOPES: ${PL_MAIL_OIDC_SCOPES:-openid email profile}
+  OIDC_AUTO_CREATE: ${PL_MAIL_OIDC_AUTO_CREATE:-false}
+  OIDC_REQUIRE_VERIFIED_EMAIL: ${PL_MAIL_OIDC_REQUIRE_VERIFIED_EMAIL:-true}
+  OIDC_DISABLE_PASSWORD_LOGIN: ${PL_MAIL_OIDC_DISABLE_PASSWORD_LOGIN:-false}
+
+services:
+  # One-shot: mints the secrets into the shared app_secrets volume on first
+  # start. Every other service waits for it to complete successfully.
+  secrets-init:
+    image: ${PL_MAIL_IMAGE}
+    restart: "no"
+    entrypoint: ["generate-secrets"]
+    environment:
+      # Empty = "not supplied", so the image generates them on first start.
+      APP_SECRET:
+      APP_ENCRYPTION_KEY:
+      POSTGRES_PASSWORD:
+      MERCURE_JWT_SECRET:
+    volumes:
+      - app_secrets:/app/var/secrets
+
+  # The web UI. FrankenPHP with an internal Caddy that serves plain HTTP on
+  # :80 (SERVER_NAME below); Traefik terminates TLS in front of it.
+  php:
+    image: ${PL_MAIL_IMAGE}
+    restart: unless-stopped
+    environment:
+      <<: *app-env
+      SERVER_NAME: ":80"
+      MAILER_DSN: null://null
+      APP_CONTAINER_NAME: web
+    volumes:
+      - caddy_data:/data
+      - caddy_config:/config
+      - app_secrets:/app/var/secrets
+      - app_attachments:/app/var/attachments
+      - app_raw:/app/var/raw
+      - app_uploads:/app/var/uploads
+    depends_on:
+      secrets-init:
+        condition: service_completed_successfully
+      database:
+        condition: service_healthy
+    labels:
+      - "backup-volume.stop-during-backup=true"
+      # The Traefik router/middleware labels are rendered per-instance from
+      # docker-compose.instance.yaml and merge with these (see the generated
+      # docker-compose.override_{CONTEXT}_{INSTANCE}.yaml).
+
+  # Runs the Mercure hub (live page updates) and all messenger workers
+  # (mail/calendar sync, IMAP/JMAP push listeners). Must be reachable on the
+  # network as 'mercure': the internal Caddy proxies /.well-known/mercure*
+  # to it.
+  worker:
+    image: ${PL_MAIL_IMAGE}
+    restart: unless-stopped
+    command: php bin/console app:work
+    init: true
+    stop_grace_period: 30s
+    environment:
+      <<: *app-env
+      APP_CONTAINER_NAME: worker
+    networks:
+      default:
+        aliases: [mercure]
+    volumes:
+      - mercure_data:/data
+      - mercure_config:/config
+      - app_secrets:/app/var/secrets
+      - app_attachments:/app/var/attachments
+      - app_raw:/app/var/raw
+      - app_uploads:/app/var/uploads
+    healthcheck:
+      disable: true
+    depends_on:
+      secrets-init:
+        condition: service_completed_successfully
+      database:
+        condition: service_healthy
+    labels:
+      - "backup-volume.stop-during-backup=true"
+
+  # PostgreSQL. Reads its password from the generated secrets volume, so no
+  # password is ever supplied here.
+  database:
+    image: postgres:${PL_MAIL_POSTGRES_VERSION:-18}-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: app
+      POSTGRES_USER: app
+      POSTGRES_PASSWORD_FILE: /run/plmail/postgres_password
+    healthcheck:
+      test: ["CMD", "pg_isready", "-d", "app", "-U", "app"]
+      interval: 5s
+      timeout: 5s
+      retries: 30
+      start_period: 60s
+    volumes:
+      - database_data:/var/lib/postgresql
+      - app_secrets:/run/plmail:ro
+    command:
+      - "postgres"
+      - "-c"
+      - "shared_preload_libraries=pg_stat_statements"
+      - "-c"
+      - "pg_stat_statements.track=top"
+    depends_on:
+      secrets-init:
+        condition: service_completed_successfully
+    labels:
+      - "backup-volume.stop-during-backup=true"
+
+volumes:
+  app_secrets:
+  app_attachments:
+  app_raw:
+  app_uploads:
+  caddy_data:
+  caddy_config:
+  database_data:
+  mercure_data:
+  mercure_config:
