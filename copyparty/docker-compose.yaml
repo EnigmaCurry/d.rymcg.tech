@@ -32,6 +32,7 @@ services:
       - COPYPARTY_VOL_PERMISSIONS
       - COPYPARTY_MNT_ROOT=/mnt
       - COPYPARTY_ENABLE_GUEST_ACCESS
+      - COPYPARTY_ENABLE_USER_HOMES
       - COPYPARTY_ENABLE_PUBLIC_ACCESS
     volumes:
       - copyparty_etc:/etc/copyparty
