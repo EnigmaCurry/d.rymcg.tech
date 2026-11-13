@@ -53,7 +53,8 @@ services:
       RELOAD_WEBHOOK_PATH_PREFIX: ${HOMEPAGE_RELOADER_PATH_PREFIX}
       HOMEPAGE_TEMPLATE_REPO: ${HOMEPAGE_TEMPLATE_REPO}
       HOMEPAGE_ALLOWED_HOSTS: ${HOMEPAGE_ALLOWED_HOSTS:-${HOMEPAGE_TRAEFIK_HOST}}
-    volumes: []
+    volumes:
+      - /usr/share/zoneinfo:/usr/share/zoneinfo:ro
     labels: []
     cap_drop: ["ALL"]
     security_opt:
