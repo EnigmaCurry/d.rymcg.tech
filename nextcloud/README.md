@@ -25,6 +25,7 @@ Optionally, you can store this data externally in an S3 Bucket instead.
  * `NEXTCLOUD_OBJECTSTORE_S3_BUCKET` the name of the S3 bucket for Primare Storage (this is ignored if NEXTCLOUD_PRIMARY_STORAGE=Docker Volume)
  * `NEXTCLOUD_OBJECTSTORE_S3_KEY` the S3 access key ID for Primary Storage (this is ignored if NEXTCLOUD_PRIMARY_STORAGE=Docker Volume)
  * `NEXTCLOUD_OBJECTSTORE_S3_SECRET`= the S3 secret key for Primary Storage (this is ignored if NEXTCLOUD_PRIMARY_STORAGE=Docker Volume)
+ * `NEXTCLOUD_BACKUP_ENABLED` set `false` to disable automated backups (see [Disabling backups](#disabling-backups))
  * `NEXTCLOUD_BACKUP_S3_HOST` the S3 endpoint domain name for backups of database and data
  * `NEXTCLOUD_BACKUP_S3_BUCKET` the name of the S3 bucket for backups of database and data
  * `NEXTCLOUD_BACKUP_S3_KEY` the S3 access key ID for backups of database and data
@@ -66,6 +67,16 @@ Storage):
 **Be sure to save a copy your `.env_${DOCKER_CONTEXT}_default` file someplace safe, including the S3
 bucket name, endpoint, credentials, and encryption passphrase. You will need all
 this information if you need to restore from backup!**
+
+### Disabling backups
+
+The backup containers need a working S3 bucket and will crash-loop
+without one. If you don't want backups (e.g., for a throwaway test
+instance), answer `no` to the backup question in `make config`, or set
+`NEXTCLOUD_BACKUP_ENABLED=false` in your `.env` file and run `make
+install`. This keeps the `postgres_backup` and `data_backup` containers
+from running, and the `backup_*` and `restore_*` targets will refuse to
+run. Backups stay enabled unless this is explicitly set to `false`.
 
 ## Make a backup now
 
