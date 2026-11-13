@@ -35,6 +35,7 @@ services:
       args:
         APP: (@= app @)
     environment:
+      - TZ=${DEFAULT_TIMEZONE:-Etc/UTC}
       - APP_TRAEFIK_HOST=(@= traefik_host @)
       - APP_APP=(@= app @)
       - APP_LOG_LEVEL=(@= log_level @)

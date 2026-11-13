@@ -42,6 +42,7 @@ services:
     cap_drop:
       - ALL
     volumes:
+      - /usr/share/zoneinfo:/usr/share/zoneinfo:ro
       - data:/var/lib/gitea
       #- config:/etc/gitea
     networks:

@@ -12,10 +12,13 @@ services:
       - TOR_HIDDEN_SERVICES=${TOR_HIDDEN_SERVICES}
       - TOR_NGINX_PORT_BASE=${TOR_NGINX_PORT_BASE:-10080}
     volumes:
+      - /usr/share/zoneinfo:/usr/share/zoneinfo:ro
       - tor_data:/var/lib/tor
     labels: []
 
   nginx:
+    volumes:
+      - /usr/share/zoneinfo:/usr/share/zoneinfo:ro
     build:
       context: nginx
     restart: unless-stopped

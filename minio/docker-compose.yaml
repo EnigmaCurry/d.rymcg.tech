@@ -13,6 +13,7 @@ services:
       - MINIO_ROOT_PASSWORD
       - MINIO_BROWSER=off
     volumes:
+      - /usr/share/zoneinfo:/usr/share/zoneinfo:ro
       - data:/data
     command: server /data   
     labels: []

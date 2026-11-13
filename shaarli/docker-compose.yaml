@@ -22,6 +22,7 @@ services:
       - no-new-privileges:true
     restart: "unless-stopped"
     volumes:
+      - /usr/share/zoneinfo:/usr/share/zoneinfo:ro
       - shaarli-cache:/var/www/shaarli/cache
       - shaarli-data:/var/www/shaarli/data
     ## Before setup, / redirects in a loop that needs cookies, so check

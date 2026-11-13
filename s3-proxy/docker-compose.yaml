@@ -30,6 +30,7 @@ services:
     security_opt:
       - no-new-privileges:true
     volumes:
+      - /usr/share/zoneinfo:/usr/share/zoneinfo:ro
       - config:/proxy/conf
     # Labels are defined in docker-compose.instance.yaml
     labels: []

@@ -39,6 +39,7 @@ services:
     restart: unless-stopped
     labels: []
     volumes:
+      - /usr/share/zoneinfo:/usr/share/zoneinfo:ro
       - inspircd_conf_d:/inspircd/conf.d:Z
 
   services:
@@ -63,6 +64,7 @@ services:
     restart: unless-stopped
     labels: []
     volumes:
+      - /usr/share/zoneinfo:/usr/share/zoneinfo:ro
       - anope_data:/data:Z
         
 volumes:

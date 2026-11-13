@@ -134,7 +134,20 @@ A few options can still be passed per-run to override the config:
 `--apps LIST`, `--timeout SECS`, `--keep-going`, `--reinstall`, `--reset-env`, `--yes`.
 
 Every run logs everything (including all remote output) to
-`~/.config/d.rymcg.tech/e2e/logs/`, and records resource IDs in
+`~/.config/d.rymcg.tech/e2e/logs/<NAME>-<timestamp>.log`. Beside the log:
+
+* `.installs.tsv` gets one row per app as it finishes (installed, FAILED or
+  already-verified, and how many seconds it took), so a run that dies
+  partway still leaves a record.
+* `.results.tsv` holds the verify results (the summary table), written at
+  the summary or when a run fails.
+* `.resources.txt` is a snapshot taken after verify: `free -m`, disk, the
+  25 containers using the most memory, containers that have restarted, and
+  kernel OOM kills. Use it to size the droplet for the next run.
+
+The summary also lists the ten slowest installs.
+
+The script also records resource IDs in
 `~/.config/d.rymcg.tech/e2e/<NAME>.state` so `destroy` can find them even
 if a run dies halfway. All phases are idempotent: re-running the same
 command reuses the droplet, DNS records, and env files that already
@@ -205,6 +218,15 @@ app, across all its instances, is checked:
 * **bad:** `TZ` differs, or the image ignores it (typically no tzdata).
   This fails the app.
 
+The same pass also checks that no container was killed for running out of
+memory. One that was gets an `app:oom` FAIL row, which only appears when
+something was killed. With many apps on one droplet, memory pressure
+otherwise looks like an unrelated failure.
+
+Some images ship a static BusyBox `date` that ignores zoneinfo while the
+app itself follows `TZ` (prometheus). Apps in `TZ_DATE_UNRELIABLE_APPS` still
+need the right `TZ` env, but a wrong `date` offset only counts as na.
+
 An app with no `TZ` on any container fails, unless it is itself a
 database (`TZ_EXEMPT_APPS` in `lib/platform.sh`). An app with no running
 containers reports SKIP. Containers only pick up
@@ -221,6 +243,27 @@ runs need workarounds:
 
 Switching an existing test from staging to production replaces the
 staging wildcard cert automatically.
+
+## Version changes and upgrade testing
+
+An app's env file on the droplet is copied from `.env-dist` only once.
+Before deciding an already-verified app can be skipped, the script
+compares every image and version variable (`*IMAGE*`, `*VERSION*`,
+`*_TAG*`) in each of the app's env files with `.env-dist`. If any differ,
+it updates them and reinstalls the app. Traefik and acme-dns are synced the
+same way. So a re-run picks up version bumps without `--reset-env`.
+
+That makes an upgrade test possible:
+
+```bash
+d e2e make up config     # git ref: master
+d e2e make up full       # install the released versions
+d e2e make up config     # change the git ref to the branch under test
+d e2e make up full       # bootstrap checks out the branch; changed apps upgrade in place
+```
+
+The second run upgrades each app on top of its existing data, as a real
+user would.
 
 ## Notes and caveats
 

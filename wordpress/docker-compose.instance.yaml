@@ -133,6 +133,8 @@ services:
   wp-static:
     build:
       context: nginx-static
+    environment:
+      - TZ=${DEFAULT_TIMEZONE:-Etc/UTC}
     security_opt:
       - no-new-privileges:true
     volumes:

@@ -20,7 +20,8 @@ services:
       YOURLS_COOKIEKEY: ${YOURLS_COOKIEKEY}
     labels: []
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost/admin"]
+      ## Apache listens on 8080 since yourls 1.10 (80 before):
+      test: ["CMD-SHELL", "curl -fsS -o /dev/null http://localhost:8080/admin/ || curl -fsS -o /dev/null http://localhost/admin/"]
       interval: 30s
       timeout: 10s
       retries: 5

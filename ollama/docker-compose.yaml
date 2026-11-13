@@ -1,5 +1,7 @@
 services:
   ollama-rocm:
+    volumes:
+      - /usr/share/zoneinfo:/usr/share/zoneinfo:ro
     profiles:
       - rocm
     restart: unless-stopped
@@ -25,6 +27,8 @@ services:
       - HSA_OVERRIDE_GFX_VERSION=${OLLAMA_HSA_OVERRIDE_GFX_VERSION}
 
   ollama-cuda:
+    volumes:
+      - /usr/share/zoneinfo:/usr/share/zoneinfo:ro
     environment:
       - TZ=${DEFAULT_TIMEZONE:-Etc/UTC}
     profiles:
@@ -41,6 +45,8 @@ services:
       - nvidia.com/gpu=all
 
   ollama-cpu:
+    volumes:
+      - /usr/share/zoneinfo:/usr/share/zoneinfo:ro
     environment:
       - TZ=${DEFAULT_TIMEZONE:-Etc/UTC}
     profiles:

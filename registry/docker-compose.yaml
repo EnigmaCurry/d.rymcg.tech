@@ -38,6 +38,7 @@ services:
       - net.ipv4.ip_unprivileged_port_start=1024
     restart: unless-stopped
     volumes:
+      - /usr/share/zoneinfo:/usr/share/zoneinfo:ro
       - registry_config:/etc/docker/registry:ro
     # All labels are defined in the template: docker-compose.instance.yaml
     labels: []

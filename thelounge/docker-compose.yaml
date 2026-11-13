@@ -16,6 +16,7 @@ services:
     restart: unless-stopped
     labels: []
     volumes:
+      - /usr/share/zoneinfo:/usr/share/zoneinfo:ro
       - thelounge:/var/opt/thelounge:Z
 
 volumes:

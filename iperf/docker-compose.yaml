@@ -1,5 +1,7 @@
 services:
   iperf:
+    volumes:
+      - /usr/share/zoneinfo:/usr/share/zoneinfo:ro
     environment:
       - TZ=${DEFAULT_TIMEZONE:-Etc/UTC}
     build:
