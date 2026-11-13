@@ -485,29 +485,27 @@ app_host_setup() {
 }
 
 host_setup_sysbox() {
-    ## The sysbox runtime (sysbox-runc). Its installer restarts Docker and
-    ## refuses to run with containers up, so stop them first and start the
-    ## same ones again afterwards:
+    ## The sysbox runtime (sysbox-runc). Its installer refuses to run while
+    ## containers exist if it would have to restart Docker to change the
+    ## network config; the bootstrap pins 'bip' and 'default-address-pools'
+    ## (remote_bootstrap.sh), so it only reloads Docker and nothing stops:
     if e2e_remote_root "docker info --format '{{json .Runtimes}}' | grep -q sysbox-runc"; then
         echo "sysbox runtime already installed."
         return 0
     fi
     echo "Installing the sysbox runtime (v${SYSBOX_VERSION}) on the droplet ..."
     e2e_remote_root "set -eo pipefail
+jq -e '.bip and .\"default-address-pools\"' /etc/docker/daemon.json >/dev/null || {
+  echo 'ERROR: /etc/docker/daemon.json lacks bip/default-address-pools; re-run the bootstrap phase.'; exit 1; }
 arch=\$(dpkg --print-architecture)
 deb=/root/sysbox-ce_${SYSBOX_VERSION}.linux_\${arch}.deb
-test -f \${deb} || curl -fsSL -o \${deb} \
+test -f \${deb} || curl -fsSL -o \${deb} \\
   https://github.com/nestybox/sysbox/releases/download/v${SYSBOX_VERSION}/sysbox-ce_${SYSBOX_VERSION}.linux_\${arch}.deb
-running=\$(docker ps -q)
-if [ -n \"\${running}\" ]; then
-  echo \"Stopping \$(echo \${running} | wc -w) containers for the sysbox install ...\"
-  docker stop \${running} >/dev/null
-fi
-rc=0
-DEBIAN_FRONTEND=noninteractive apt-get install -y linux-headers-\$(uname -r) rsync \${deb} || rc=\$?
-if [ -n \"\${running}\" ]; then
-  echo 'Starting the stopped containers again ...'
-  docker start \${running} >/dev/null || true
-fi
-exit \${rc}"
+DEBIAN_FRONTEND=noninteractive apt-get install -y linux-headers-\$(uname -r) rsync \${deb}
+## The runtime is registered with a Docker reload; wait for it:
+for i in \$(seq 1 30); do
+  docker info --format '{{json .Runtimes}}' | grep -q sysbox-runc && exit 0
+  sleep 2
+done
+echo 'ERROR: sysbox-runc did not show up in docker info'; exit 1"
 }

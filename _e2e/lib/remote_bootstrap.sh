@@ -69,12 +69,20 @@ else
 
     ## Docker's default address pools only hold ~30 networks, and each app
     ## gets its own; carve 172.16.0.0/12 into /24s instead (4096 networks).
+    ## Also pin docker0's address ('bip') to the first /24 of the pool (where
+    ## Docker puts it anyway): with both set, the sysbox installer (for the
+    ## sysbox-systemd app) has no network change to make, so it installs
+    ## without a Docker restart and without removing every container.
     ## Merge into any existing daemon.json; restart only on change:
     POOLS='[{"base":"172.16.0.0/12","size":24}]'
+    BIP='172.16.0.1/24'
     CURRENT=$(${SUDO} cat /etc/docker/daemon.json 2>/dev/null || echo '{}')
-    if [ "$(echo "${CURRENT}" | jq -c '."default-address-pools"')" != "${POOLS}" ]; then
-        echo "## [bootstrap] Setting Docker default-address-pools to ${POOLS} ..."
-        echo "${CURRENT}" | jq --argjson p "${POOLS}" '."default-address-pools" = $p' \
+    if [ "$(echo "${CURRENT}" | jq -c '."default-address-pools"')" != "${POOLS}" ] \
+           || [ "$(echo "${CURRENT}" | jq -r '.bip // ""')" != "${BIP}" ]; then
+        echo "## [bootstrap] Setting Docker default-address-pools to ${POOLS} and bip to ${BIP} ..."
+        ## jq's default indented output is the layout sysbox's installer looks for:
+        echo "${CURRENT}" | jq --argjson p "${POOLS}" --arg b "${BIP}" \
+                               '."default-address-pools" = $p | .bip = $b' \
             | ${SUDO} install -D -m 0644 /dev/stdin /etc/docker/daemon.json
         ${SUDO} systemctl restart docker
     fi
