@@ -31,7 +31,7 @@ config-hook:
 	@${BIN}/reconfigure_ask_validate_regex ${ENV_FILE} HOMELABLE_SCANNER_RANGES "Enter the CIDR ranges to scan as a JSON array (eg. [\"192.168.1.0/24\"]), or [] for none" "[]" "^\[.*\]$$"
 	@${BIN}/reconfigure_password_bcrypt ${ENV_FILE} HOMELABLE_AUTH_PASSWORD_HASH
 	@echo ""
-	@${BIN}/confirm $$( { test "$$(${BIN}/dotenv -f ${ENV_FILE} get HOMELABLE_MCP_ENABLED)" == "true" || ${BIN}/dotenv -f ${ENV_FILE} get HOMELABLE_DOCKER_COMPOSE_PROFILES | tr -d ' ' | tr ',' '\n' | grep -q '^mcp$$'; } && echo yes || echo no) "Enable the optional MCP server (AI integration; listens on a port of the Docker host, keep it firewalled to your LAN)?" "?" && ${BIN}/reconfigure ${ENV_FILE} HOMELABLE_MCP_ENABLED=true || ${BIN}/reconfigure ${ENV_FILE} HOMELABLE_MCP_ENABLED=false
+	@${BIN}/confirm $$( { test "$$(${BIN}/dotenv -f ${ENV_FILE} get HOMELABLE_MCP_ENABLED)" == "true" || ${BIN}/dotenv -f ${ENV_FILE} get HOMELABLE_DOCKER_COMPOSE_PROFILES | tr -d ' ' | tr ',' '\n' | grep -q '^mcp$$'; } && echo yes || echo no) "Enable the optional MCP server (AI integration; listens on a port of the Docker host, keep it firewalled to your LAN)" "?" && ${BIN}/reconfigure ${ENV_FILE} HOMELABLE_MCP_ENABLED=true || ${BIN}/reconfigure ${ENV_FILE} HOMELABLE_MCP_ENABLED=false
 	@if test "$$(${BIN}/dotenv -f ${ENV_FILE} get HOMELABLE_MCP_ENABLED)" == "true"; then \
 		API_KEY=$$(${BIN}/dotenv -f ${ENV_FILE} get HOMELABLE_MCP_API_KEY) && test -n "$${API_KEY}" || ${BIN}/reconfigure ${ENV_FILE} HOMELABLE_MCP_API_KEY=$$(openssl rand -hex 32); \
 		SVC_KEY=$$(${BIN}/dotenv -f ${ENV_FILE} get HOMELABLE_MCP_SERVICE_KEY) && test -n "$${SVC_KEY}" || ${BIN}/reconfigure ${ENV_FILE} HOMELABLE_MCP_SERVICE_KEY=$$(openssl rand -hex 32); \
@@ -39,7 +39,7 @@ config-hook:
 	fi
 	@${BIN}/reconfigure_compose_profiles ${ENV_FILE} HOMELABLE_MCP_ENABLED=mcp
 	@echo ""
-	@${BIN}/confirm $$(test "$$(${BIN}/dotenv -f ${ENV_FILE} get HOMELABLE_HOMEPAGE_WIDGET_ENABLE)" == 'true' && echo yes || echo no) "Enable the gethomepage widget (read-only stats; it calls the public Traefik host, so it only works with HTTP Basic Auth, OAuth2 and mTLS all disabled, and with HOMELABLE_IP_SOURCERANGE allowing the homepage server)?" "?" && ( \
+	@${BIN}/confirm $$(test "$$(${BIN}/dotenv -f ${ENV_FILE} get HOMELABLE_HOMEPAGE_WIDGET_ENABLE)" == 'true' && echo yes || echo no) "Enable the gethomepage widget (read-only stats; it calls the public Traefik host, so it only works with HTTP Basic Auth, OAuth2 and mTLS all disabled, and with HOMELABLE_IP_SOURCERANGE allowing the homepage server)" "?" && ( \
 		KEY=$$(${BIN}/dotenv -f ${ENV_FILE} get HOMELABLE_HOMEPAGE_WIDGET_API_KEY) && test -n "$${KEY}" || ${BIN}/reconfigure ${ENV_FILE} HOMELABLE_HOMEPAGE_WIDGET_API_KEY=$$(openssl rand -hex 32); \
 		${BIN}/reconfigure ${ENV_FILE} HOMELABLE_HOMEPAGE_WIDGET_ENABLE=true \
 	) || ( \
