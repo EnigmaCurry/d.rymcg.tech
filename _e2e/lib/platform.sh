@@ -421,7 +421,8 @@ for c in $(docker ps --format '{{.Names}}|{{.Label "com.docker.compose.project"}
     ctz=$(docker inspect -f '{{range .Config.Env}}{{println .}}{{end}}' "${c}" | sed -n 's/^TZ=//p')
     if [ -z "${ctz}" ]; then missing=$((missing+1)); continue; fi
     if [ "${ctz}" != "${tz}" ]; then bad="${bad} ${c}:TZ=${ctz}"; continue; fi
-    off=$(docker exec "${c}" date +%z 2>/dev/null)
+    off=$(docker exec "${c}" date +%z 2>/dev/null) || off=
+    case "${off}" in [+-][0-9][0-9][0-9][0-9]) ;; *) off= ;; esac
     if [ -z "${off}" ]; then na=$((na+1))
     elif [ "${off}" = "${want}" ]; then ok=$((ok+1))
     else bad="${bad} ${c}:${off}"; fi
