@@ -1,0 +1,35 @@
+# Local Baikal 0.13.0 image
+
+The `ckulka/baikal` images on Docker Hub stop at `0.10.1` (the upstream
+[sabre-io/Baikal](https://github.com/sabre-io/Baikal) project has since
+reached 0.13.0). This directory contains everything needed to build a
+0.13.0 image from ckulka's own Dockerfile.
+
+## Contents
+
+- `Dockerfile` - copy of
+  [ckulka/baikal-docker `nginx-php8.2.dockerfile`](https://github.com/ckulka/baikal-docker/blob/master/nginx-php8.2.dockerfile)
+  with `ENV VERSION` changed from `0.10.1` to `0.13.0`.
+  (PHP 8.2 is required: Baikal 0.11.0 dropped PHP 8.1 support.)
+- `files/` - the supporting files the Dockerfile copies in, taken verbatim
+  from the ckulka/baikal-docker repo (entrypoint scripts, nginx.conf,
+  Home Assistant fix plugin).
+
+The Baikal 0.13.0 release zip is self-contained (includes `vendor/`,
+which bundles sabre/dav 4.7.1), so no Composer step is needed.
+
+## Build
+
+```sh
+docker build -t ckulka/baikal:0.13.0 image/
+```
+
+The image is tagged `ckulka/baikal:0.13.0` so the compose file can keep
+using a normal `image:` reference. If ckulka ever publishes an official
+0.13.0 to Docker Hub, `docker compose pull` will replace this local tag
+with the official image.
+
+## Sources
+
+- https://github.com/sabre-io/Baikal/releases/tag/0.13.0
+- https://github.com/ckulka/baikal-docker (MIT license)

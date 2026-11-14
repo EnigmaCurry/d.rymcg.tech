@@ -4,7 +4,7 @@ volumes:
 
 services:
   baikal:
-    image: "ckulka/baikal:${BAIKAL_VERSION}"
+    image: "${BAIKAL_IMAGE}"
     security_opt:
       - no-new-privileges:true
     cap_drop:
