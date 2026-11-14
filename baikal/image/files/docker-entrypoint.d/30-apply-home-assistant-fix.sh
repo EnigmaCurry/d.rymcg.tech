@@ -10,7 +10,7 @@ then
 fi
 
 # Skip further processing if the current Plugin.php file already has the Home Assistant fix
-CHECKSUM="7a7c9adc36dfc6cf780039d1ff7800df3e5f138a  /var/www/baikal/vendor/sabre/dav/lib/CalDAV/Plugin.php"
+CHECKSUM="b570165f6d7e8caef11250745898df7509e011c3  /var/www/baikal/vendor/sabre/dav/lib/CalDAV/Plugin.php"
 if echo $CHECKSUM | sha1sum --check --status - ;
 then
   echo "$ME: info: Home Assistant fix already applied"
@@ -22,7 +22,7 @@ fi
 # Home Assistant fix would remove any modifications the user did. We inform the
 # user about this, so that they can make the necessary adjustments to their
 # custom Plugin.php file.
-CHECKSUM="22e5ac3311fa112e702363920ce86d90256aacc6  /var/www/baikal/vendor/sabre/dav/lib/CalDAV/Plugin.php"
+CHECKSUM="58b6b2d9da6717ce5d953fc9590f30c9d2edaabf  /var/www/baikal/vendor/sabre/dav/lib/CalDAV/Plugin.php"
 if ! echo $CHECKSUM | sha1sum --check --status - ;
 then
   echo "$ME: info: Plugin.php differs from the packaged version. It looks like you customized it already, so we won't overwrite it and remove your modifications. Please either revert your own changes, or apply the Home Assistant fix manually to your custom Plugin.php file."
