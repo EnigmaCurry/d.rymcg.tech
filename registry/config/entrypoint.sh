@@ -4,7 +4,7 @@ set -eu
 log() { printf '%s %s\n' "[config]" "$*"; }
 die() { printf '%s %s\n' "[config][ERROR]" "$*" >&2; exit 1; }
 
-CFG_DIR=/etc/docker/registry
+CFG_DIR=/etc/distribution
 CFG_PATH=${CFG_DIR}/config.yml
 
 [ -d "$CFG_DIR" ] || mkdir -p "$CFG_DIR" || die "cannot mkdir $CFG_DIR"
