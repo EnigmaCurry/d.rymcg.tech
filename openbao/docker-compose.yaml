@@ -12,11 +12,24 @@ services:
     environment:
       - TZ=${DEFAULT_TIMEZONE:-Etc/UTC}
       - BAO_ADDR=http://127.0.0.1:8200
-      - BAO_LOCAL_CONFIG={"storage":{"${OPENBAO_STORAGE_BACKEND}":{"path":"/openbao/file"}},"listener":{"tcp":{"address":"0.0.0.0:8200","tls_disable":"${OPENBAO_TLS_DISABLE}"}},"disable_mlock":${OPENBAO_DISABLE_MLOCK},"log_level":"${OPENBAO_LOG_LEVEL}","api_addr":"https://${OPENBAO_TRAEFIK_HOST}"}
+      - BAO_LOCAL_CONFIG={"storage":{"raft":{"path":"/openbao/file","node_id":"openbao"}},"cluster_addr":"https://127.0.0.1:8201","listener":{"tcp":{"address":"0.0.0.0:8200","tls_disable":"${OPENBAO_TLS_DISABLE}"}},"disable_mlock":${OPENBAO_DISABLE_MLOCK},"log_level":"${OPENBAO_LOG_LEVEL}","api_addr":"https://${OPENBAO_TRAEFIK_HOST}"}
     volumes:
       - data:/openbao/file
       - config:/openbao/config
       - logs:/openbao/logs
+    ## Storage is raft. OpenBao 2.7 removed the file backend, and pointing
+    ## raft at old file-backend data would start an empty, uninitialized
+    ## server. Refuse to start until `make migrate-raft` has been run:
+    entrypoint:
+      - /bin/sh
+      - -c
+      - |
+        if [ -d /openbao/file/core ] && [ ! -d /openbao/file/raft ]; then
+          echo "ERROR: /openbao/file holds file-backend data. Run 'make migrate-raft' (on OpenBao 2.6.x) first." >&2
+          exit 1
+        fi
+        exec docker-entrypoint.sh "$$@"
+      - docker-entrypoint.sh
     command: server
     # All labels are defined in the template: docker-compose.instance.yaml
     # The labels will merge together here from the template output:

@@ -42,6 +42,11 @@ init:
 	KEY_THRESHOLD=$$(${BIN}/dotenv -f ${ENV_FILE} get OPENBAO_KEY_THRESHOLD); \
 	make --no-print-directory docker-compose-shell SERVICE=openbao COMMAND="bao operator init -key-shares=$${KEY_SHARES:-1} -key-threshold=$${KEY_THRESHOLD:-1}"
 
+.PHONY: migrate-raft # Migrate file storage to raft (run on OpenBao 2.6.x, before upgrading to 2.7)
+migrate-raft:
+	@make --no-print-directory docker-compose-lifecycle-cmd EXTRA_ARGS="stop openbao"
+	@cat migrate-raft.sh | make --no-print-directory docker-compose-lifecycle-cmd EXTRA_ARGS="run --rm -T --no-deps --entrypoint /bin/sh openbao -s"
+
 .PHONY: unseal # Unseal OpenBao (interactive - enter unseal keys)
 unseal:
 	@make --no-print-directory docker-compose-shell SERVICE=openbao COMMAND="bao operator unseal"
