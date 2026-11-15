@@ -39,8 +39,8 @@ drt myserver         # launch the interactive container
 drt --pull           # upgrade to the latest image
 ```
 
-The pre-built image does not include the optional extra tools
-(Wayland, PipeWire, WireGuard, cloud CLIs, ...). To get those, or to
+The pre-built image includes `doctl`, but not the other optional extra
+tools (Wayland, PipeWire, WireGuard, aws, gh, ...). To get those, or to
 build from a fork or branch, see [Building from source](#building-from-source).
 
 ### Other options
