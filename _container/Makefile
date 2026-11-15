@@ -11,6 +11,10 @@ SSH_USER ?= root
 SSH_PORT ?= 22
 DOCKER_EXTRA_ENV = $(foreach v,$(MAKEOVERRIDES),-e $(v))
 
+.PHONY: test-device # Local test of drt device mode (podman, no cloud). Options: ARGS="--full-build"
+test-device:
+	@bash $(ROOT_DIR)/_container/test/drt-device-test.sh $(ARGS)
+
 .PHONY: test
 test:
 	@docker run --rm \

@@ -387,3 +387,37 @@ Saving uses the same code as an interactive session's
 save-on-exit (`_container/drt-save.sh`) and the same root helper in
 `entrypoint.sh`, which is the only process that can write the
 encrypted file on the host.
+
+## Testing
+
+`_container/test/drt-device-test.sh` tests device mode on your
+workstation, with no cloud and no real server. Run it from a checkout:
+
+```bash
+make -C _container test-device                    # about a minute
+make -C _container test-device ARGS=--full-build  # build the image from the Dockerfile first
+_container/test/drt-device-test.sh --help         # all options
+```
+
+By default it layers the checkout's `_container/` and `_scripts/` over
+your local `localhost/d-rymcg-tech:latest` image (set `DRT_TEST_BASE`
+to use another). It runs everything under a scratch `HOME`, with a
+throwaway AGE key, a fake SSH host and a local git remote, so your real
+config, keys and ssh-agent are never used. It needs `podman`, `git`
+and `script` (util-linux).
+
+It checks:
+- unlocking, `--exec` and `--status`, and the exit code 3 when no
+  device is running;
+- the request verbs and their refusals;
+- the MCP server: online, while locked, and after a re-serve;
+- saving, including that a save keeps traefik's `DOCKER_CONTEXT`,
+  sections export-env doesn't produce, and dotted keys only once;
+- `config-render` from a fresh session;
+- locking by `--lock`, idle timeout, lease and SIGTERM, each of which
+  must save first;
+- git commit and push with no terminal.
+
+It exits 0 when every check passes. It doesn't cover anything that
+needs a real Docker server, such as `install` or container status, or
+saving with a FIDO2 AGE key.
