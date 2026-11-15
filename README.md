@@ -109,6 +109,7 @@ Follow these topical guides to get started:
  
    * [WORKSTATION_LINUX.md](WORKSTATION_LINUX.md) - setup your workstation on Linux.
    * [WORKSTATION_WSL.md](WORKSTATION_WSL.md) - setup your workstation on Windows (WSL).
+   * [WORKSTATION_CONTAINER.md](WORKSTATION_CONTAINER.md) - setup your workstation in an ephemeral container encrypted at rest (Also see [DIGITALOCEAN_DRT.md](DIGITALOCEAN_DRT.md) for quick start).
  
 * Create a Docker server and configure the firewall:
  
