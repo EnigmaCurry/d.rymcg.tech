@@ -73,20 +73,20 @@ _drt_save_extract_preserved() {
 _drt_save_merge() {
     local initial="$1" preserved="$2" export_output="$3"
     local export_keys initial_keys line key
-    export_keys=$(grep -oP '^[A-Za-z_][A-Za-z_0-9]*(?==)' "${export_output}" || true)
-    initial_keys=$(grep -oP '^[A-Za-z_][A-Za-z_0-9]*(?==)' "${initial}" || true)
+    export_keys=$(grep -oP '^[^#=][^=]*(?==)' "${export_output}" || true)
+    initial_keys=$(grep -oP '^[^#=][^=]*(?==)' "${initial}" || true)
     if [[ -s "${preserved}" ]]; then
         while IFS= read -r line || [[ -n "${line}" ]]; do
             if [[ "${line}" == *=* && "${line}" != "#"* ]]; then
                 key="${line%%=*}"
                 # Skip a preserved key if export-env produced a fresh version
-                if echo "${export_keys}" | grep -qx "${key}"; then
+                if echo "${export_keys}" | grep -qFx -- "${key}"; then
                     continue
                 fi
                 # Skip a preserved key that was in the initial state but is no
                 # longer in the current state (intentionally removed)
-                if echo "${initial_keys}" | grep -qx "${key}" && \
-                   ! echo "${export_keys}" | grep -qx "${key}"; then
+                if echo "${initial_keys}" | grep -qFx -- "${key}" && \
+                   ! echo "${export_keys}" | grep -qFx -- "${key}"; then
                     continue
                 fi
             fi
