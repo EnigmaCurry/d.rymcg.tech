@@ -149,30 +149,31 @@ gumdrop_quick() {
     local backup_args=()
     if [[ "${GQ_REUSE}" == false ]]; then
         ## Region:
-        local REGION_SLUGS REGION_NAMES REGION_OPTIONS=() REGION_DEFAULT="" i opt
-        readarray -t REGION_SLUGS < <(doctl compute region list --format Slug --no-header)
-        readarray -t REGION_NAMES < <(doctl compute region list --format Name --no-header)
-        for i in "${!REGION_SLUGS[@]}"; do
-            opt=$(printf "%-8s  %s" "${REGION_SLUGS[$i]}" "${REGION_NAMES[$i]}")
+        ## Region (only those taking new droplets):
+        local REGION_OPTIONS=() REGION_DEFAULT="" opt slug name
+        while IFS=$'\t' read -r slug name; do
+            [[ -n "${slug}" ]] || continue
+            opt=$(printf "%-8s  %s" "${slug}" "${name}")
             REGION_OPTIONS+=("${opt}")
-            [[ "${REGION_SLUGS[$i]}" == "${GUMDROP_DEFAULT_REGION}" ]] && REGION_DEFAULT="${opt}"
-        done
-        REGION=$(wizard choose "Select region" "${REGION_OPTIONS[@]}" --default "${REGION_DEFAULT}" | awk '{print $1}')
+            [[ "${slug}" == "${GUMDROP_DEFAULT_REGION}" ]] && REGION_DEFAULT="${opt}"
+        done < <(doctl compute region list --output json \
+                     | jq -r '.[] | select(.available) | [.slug, .name] | @tsv')
+        [[ ${#REGION_OPTIONS[@]} -gt 0 ]] || fault "No DigitalOcean regions are available."
+        REGION=$(wizard choose "Select region" "${REGION_OPTIONS[@]}" --default "${REGION_DEFAULT:-${REGION_OPTIONS[0]}}" | awk '{print $1}')
         [[ -n "${REGION}" ]] || cancel
 
-        ## Size:
-        local SIZE_SLUGS SIZE_PRICES SIZE_DISKS SIZE_VCPUS SIZE_MEM SIZE_OPTIONS=() SIZE_DEFAULT=""
-        readarray -t SIZE_SLUGS < <(doctl compute size list --format Slug --no-header)
-        readarray -t SIZE_PRICES < <(doctl compute size list --format PriceMonthly --no-header)
-        readarray -t SIZE_DISKS < <(doctl compute size list --format Disk --no-header)
-        readarray -t SIZE_VCPUS < <(doctl compute size list --format VCPUs --no-header)
-        readarray -t SIZE_MEM < <(doctl compute size list --format Memory --no-header)
-        for i in "${!SIZE_SLUGS[@]}"; do
-            opt=$(printf "%-25s  %-3s vCPUs  %6sMB RAM  %5sGB disk  \$%s/mo" "${SIZE_SLUGS[$i]}" "${SIZE_VCPUS[$i]}" "${SIZE_MEM[$i]}" "${SIZE_DISKS[$i]}" "${SIZE_PRICES[$i]}")
+        ## Size (only those offered in that region):
+        local SIZE_OPTIONS=() SIZE_DEFAULT="" vcpus mem disk price
+        while IFS=$'\t' read -r slug vcpus mem disk price; do
+            [[ -n "${slug}" ]] || continue
+            opt=$(printf "%-25s  %-3s vCPUs  %6sMB RAM  %5sGB disk  \$%s/mo" "${slug}" "${vcpus}" "${mem}" "${disk}" "${price}")
             SIZE_OPTIONS+=("${opt}")
-            [[ "${SIZE_SLUGS[$i]}" == "${GUMDROP_DEFAULT_SIZE}" ]] && SIZE_DEFAULT="${opt}"
-        done
-        SIZE=$(wizard choose "Select size" "${SIZE_OPTIONS[@]}" --default "${SIZE_DEFAULT}" | awk '{print $1}')
+            [[ "${slug}" == "${GUMDROP_DEFAULT_SIZE}" ]] && SIZE_DEFAULT="${opt}"
+        done < <(doctl compute size list --output json \
+                     | jq -r --arg r "${REGION}" '.[] | select(.available and (.regions | index($r)))
+                           | [.slug, .vcpus, .memory, .disk, .price_monthly] | @tsv')
+        [[ ${#SIZE_OPTIONS[@]} -gt 0 ]] || fault "No droplet sizes are available in ${REGION}."
+        SIZE=$(wizard choose "Select size (sizes available in ${REGION})" "${SIZE_OPTIONS[@]}" --default "${SIZE_DEFAULT:-${SIZE_OPTIONS[0]}}" | awk '{print $1}')
         [[ -n "${SIZE}" ]] || cancel
 
         ## Image: only those the Docker cloud-init supports (its '## images:' header):
@@ -425,12 +426,19 @@ gumdrop_quick() {
         local tag_args=()
         [[ -n "${GUMDROP_TAG}" ]] && tag_args=(--tag-names "${GUMDROP_TAG}")
         echo "Creating droplet (${REGION}/${SIZE}/${IMAGE}); this takes a minute ..."
-        DROPLET_ID=$(doctl compute droplet create "${DROPLET_NAME}" \
+        if ! DROPLET_ID=$(doctl compute droplet create "${DROPLET_NAME}" \
             --region "${REGION}" --size "${SIZE}" --image "${IMAGE}" \
             --ssh-keys "${GQ_SSH_KEY_ID}" \
             --user-data-file "${SCRIPT_DIR}/gumdrop_user_data/docker-debian.yaml" \
             "${tag_args[@]}" "${backup_args[@]}" \
-            --wait --format ID --no-header)
+            --wait --format ID --no-header) || [[ -z "${DROPLET_ID}" ]]; then
+            ## Don't leave the new firewall behind when there's no droplet:
+            if ! doctl compute droplet list --format Name --no-header | grep -qx "${DROPLET_NAME}"; then
+                echo "Removing firewall '${fw_name}' ..."
+                doctl compute firewall delete "${fw_id}" --force || true
+            fi
+            fault "Could not create the droplet (see the error above)."
+        fi
         doctl compute firewall add-droplets "${fw_id}" --droplet-ids "${DROPLET_ID}"
         if [[ "${GQ_RESERVED_IP}" == true ]]; then
             echo "Creating reserved IP in ${REGION} ..."
