@@ -167,6 +167,7 @@ RUN if [ -n "${BRANCH}" ] && [ -d .git ]; then git checkout "${BRANCH}"; fi && r
  && install -m 755 _container/drt-device /usr/local/bin/drt-device \
  && mkdir -p /usr/local/lib/drt \
  && install -m 644 _container/drt-save.sh /usr/local/lib/drt/drt-save.sh \
+ && install -m 644 _container/drt_request.py _container/drt_mcp.py /usr/local/lib/drt/ \
  && install -m 755 _container/entrypoint.sh /entrypoint.sh
 
 ARG GIT_SHA=unknown

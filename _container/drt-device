@@ -11,6 +11,8 @@
 ## Usage (inside the container):
 ##   drt-device serve [--lease DUR] [--idle DUR]   main process (console)
 ##   drt-device exec CMD [ARGS...]                 run one command
+##   drt-device exec request VERB [ARGS...]        typed d.rymcg.tech verb (JSON result)
+##   drt-device mcp [--offline]                    answer MCP JSON-RPC lines on stdin
 ##   drt-device diff                               names of unsaved keys
 ##   drt-device save                               encrypt changes back to the SOPS config
 ##   drt-device status                             lease, idle and unsaved state
@@ -30,6 +32,8 @@ LOCK_REQUEST="${DEVICE_DIR}/lock-request"
 SAVE_LOCK="${DEVICE_DIR}/save.lock"
 STATE_DIR="${DEVICE_DIR}/save-state"
 SAVE_LIB="/usr/local/lib/drt/drt-save.sh"
+REQUEST_PY="/usr/local/lib/drt/drt_request.py"
+MCP_PY="/usr/local/lib/drt/drt_mcp.py"
 
 DEFAULT_LEASE=12h
 DEFAULT_IDLE=2h
@@ -227,6 +231,16 @@ case "${cmd}" in
     serve)
         cmd_serve "$@"
         ;;
+    mcp)
+        # --offline answers from a throwaway container while the device is locked
+        if [[ "${1:-}" == "--offline" ]]; then
+            exec python3 "${MCP_PY}" --offline
+        fi
+        load_device_env
+        # shellcheck disable=SC1090
+        source "${ENV_FILE}"
+        exec python3 "${MCP_PY}"
+        ;;
     exec|diff|save|status|lock)
         load_device_env
         # shellcheck disable=SC1090
@@ -251,11 +265,13 @@ case "${cmd}" in
         [[ -z "${_reason}" ]] || die "device is locking (${_reason}); unlock it again with: drt --serve ${CONTEXT}"
         touch "${ACTIVITY_FILE}"
         cd "${HOME}" || exit 1
+        _cmdline=$(printf '%q ' "$@")
         # `d` is a shell function in interactive sessions; map it to the CLI
         if [[ "$1" == "d" ]]; then
             set -- d.rymcg.tech "${@:2}"
+        elif [[ "$1" == "request" ]]; then
+            set -- python3 "${REQUEST_PY}" "${@:2}"
         fi
-        _cmdline=$(printf '%q ' "$@")
         log "exec: ${_cmdline% }"
         "$@"
         _rc=$?

@@ -524,6 +524,7 @@ Options:
   --save CONTEXT     Save a device's changes to its SOPS config (+ git commit)
   --status CONTEXT   Show a device's lease, idle timer and unsaved changes
   --lock CONTEXT     Save and shut down a device (+ git commit)
+  --mcp CONTEXT      Stdio MCP server with typed tools for a device
   --lease DUR        Device lease, e.g. 30m, 12h, 2d; 0 = none (default: 12h)
   --idle DUR         Device idle auto-lock; 0 = none (default: 2h)
   --list             List all contexts (AGE keys and SOPS configs)
@@ -2073,11 +2074,16 @@ _device_parse() {
     fi
     _DEV_NAME="drt-${_DEV_CONTEXT}"
     check_engine
-    if [[ "$("${ENGINE}" container inspect -f '{{.State.Running}}' "${_DEV_NAME}" 2>/dev/null)" != true ]]; then
+    [[ "${_DEV_REQUIRE_RUNNING:-true}" == true ]] || return 0
+    if ! _device_running; then
         echo "Error: no device is running for context '${_DEV_CONTEXT}'." >&2
         echo "  A human unlocks it with: drt --serve ${_DEV_CONTEXT}" >&2
         exit 3
     fi
+}
+
+_device_running() {
+    [[ "$("${ENGINE}" container inspect -f '{{.State.Running}}' "${_DEV_NAME}" 2>/dev/null)" == true ]]
 }
 
 ## Run drt-device inside the device container
@@ -2113,6 +2119,38 @@ cmd_device_lock() {
     "${ENGINE}" wait "${_DEV_NAME}" >/dev/null 2>&1 || true
     echo "## Device ${_DEV_CONTEXT} is locked." >&2
     git_auto_commit "device lock: ${_DEV_CONTEXT}"
+}
+
+## Stdio MCP server for a device. Each JSON-RPC line is forwarded to
+## `drt-device mcp` inside the device. While the device is locked, a
+## throwaway container answers instead, so the server stays connected and
+## tool calls say "locked" rather than failing.
+cmd_mcp() {
+    _DEV_REQUIRE_RUNNING=false _device_parse "$@"
+    echo "## drt MCP server for context ${_DEV_CONTEXT} (device ${_DEV_NAME})" >&2
+    local line out tool
+    while IFS= read -r line || [[ -n "${line}" ]]; do
+        [[ -z "${line//[[:space:]]/}" ]] && continue
+        out=""
+        if _device_running; then
+            out=$(printf '%s\n' "${line}" | "${ENGINE}" exec -i --user user "${_DEV_NAME}" drt-device mcp) || true
+        fi
+        # Locked, or it locked mid-call: answer from a throwaway container
+        if [[ -z "${out}" && "${line}" =~ \"id\"[[:space:]]*: ]]; then
+            out=$(printf '%s\n' "${line}" | "${ENGINE}" run --rm -i --pull=never --net=none \
+                --entrypoint "" "${IMAGE}" drt-device mcp --offline) || true
+        fi
+        [[ -n "${out}" ]] && printf '%s\n' "${out}"
+        # The device can't reach the host's config repo; commit after save/lock
+        if [[ "${line}" =~ \"method\"[[:space:]]*:[[:space:]]*\"tools/call\" ]] && \
+           [[ "${line}" =~ \"name\"[[:space:]]*:[[:space:]]*\"(save|lock)\" ]]; then
+            tool="${BASH_REMATCH[1]}"
+            if [[ "${tool}" == lock ]]; then
+                "${ENGINE}" wait "${_DEV_NAME}" >/dev/null 2>&1 || true
+            fi
+            git_auto_commit "device ${tool}: ${_DEV_CONTEXT}" </dev/null >&2 || true
+        fi
+    done
 }
 
 ###############################################################################
@@ -2164,7 +2202,7 @@ while [[ $# -gt 0 ]]; do
             ARGS+=("$1" "$2")
             shift 2
             ;;
-        --serve|--exec|--save|--status|--lock)
+        --serve|--exec|--save|--status|--lock|--mcp)
             ACTION="device_${1#--}"
             shift
             ARGS+=("$@")
@@ -2286,7 +2324,7 @@ done
 ## The warning is skipped for extract and for the device commands agents
 ## call repeatedly (it's shown once, when the human runs --serve).
 case "${ACTION}" in
-    extract|device_exec|device_save|device_status|device_lock) _show_warning=false ;;
+    extract|device_exec|device_save|device_status|device_lock|device_mcp) _show_warning=false ;;
     *) _show_warning=true ;;
 esac
 if [[ "${_show_warning}" == true ]]; then
@@ -2356,6 +2394,9 @@ case "${ACTION}" in
         ;;
     device_lock)
         cmd_device_lock "${ARGS[@]+"${ARGS[@]}"}"
+        ;;
+    device_mcp)
+        cmd_mcp "${ARGS[@]+"${ARGS[@]}"}"
         ;;
     run)
         # Check if ARGS has a context (any non-flag argument, skipping flag values)

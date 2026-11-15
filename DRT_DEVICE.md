@@ -23,6 +23,18 @@ This lets you drive a server from your phone through an agent (for
 example with Claude Code Remote Control) while you're away from your
 desk. Unlock the device before you leave.
 
+There are three ways for an agent to drive a device. From most to
+least locked down:
+
+1. **MCP tools** (`drt --mcp CONTEXT`): one typed tool per action
+   (`status`, `install`, `destroy`, ...). Permissions are set per tool.
+   See [MCP server](#mcp-server).
+2. **Request verbs** (`drt --exec CONTEXT -- request VERB ...`): the
+   same actions as shell commands, with JSON results. See
+   [Request verbs](#request-verbs).
+3. **Raw commands** (`drt --exec CONTEXT -- CMD ...`): anything at
+   all, with the full power of a `drt` shell.
+
 ## Unlock a device
 
 At your workstation:
@@ -84,6 +96,90 @@ chmod +x ~/.local/bin/drt
 without a shell, and returns its exit code. If no device is running
 for the context, it exits with code 3.
 
+## Request verbs
+
+`request` runs one d.rymcg.tech action, checks its arguments first,
+and prints a JSON result:
+
+```bash
+drt --exec myserver -- request list                       # projects
+drt --exec myserver -- request status whoami              # containers, as JSON
+drt --exec myserver -- request config-dist whoami         # never overwrites
+drt --exec myserver -- request reconfigure whoami WHOAMI_TRAEFIK_HOST=whoami.example.com
+drt --exec myserver -- request get root ROOT_DOMAIN       # context-wide config
+drt --exec myserver -- request install whoami timeout=120
+drt --exec myserver -- request destroy whoami instance=test
+```
+
+| Verb | Arguments |
+| --- | --- |
+| `list` | |
+| `instances` | `PROJECT` |
+| `status` | `[PROJECT] [instance=]` (all projects if omitted) |
+| `logs` | `PROJECT [service=] [tail=N] [instance=]` |
+| `get` | `PROJECT\|root VAR [instance=]` |
+| `config-render` | `PROJECT [instance=]` |
+| `config-dist` | `PROJECT [instance=]` |
+| `reconfigure` | `PROJECT\|root VAR=VALUE... [instance=]` |
+| `install`, `reinstall`, `wait` | `PROJECT [instance=] [timeout=SEC]` |
+| `start`, `stop`, `restart` | `PROJECT [service=] [instance=]` |
+| `uninstall`, `destroy` | `PROJECT [instance=]` |
+
+Lowercase `key=value` words are options. Uppercase `VAR=VALUE` words
+are config variables. The project `root` means the context-wide config
+(`.env_CONTEXT`).
+
+Before running anything, `request` refuses these, exiting with code 64
+and an `error` message:
+
+- an unknown project, verb, option, or malformed name;
+- `config-dist` when the instance config already exists (use
+  `reconfigure` instead, per AGENTS.md);
+- `reconfigure` of a variable that isn't in the file, or of an instance
+  that isn't configured yet;
+- lifecycle verbs on an instance that isn't configured.
+
+`uninstall`, `reinstall` and `destroy` run without a confirmation
+prompt. The agent's permission system is what asks you (see below).
+`<PREFIX>_INSTANCE_PROTECTION=true` still blocks `uninstall` and
+`destroy`.
+
+Long output is cut to its last 12,000 characters, and logs to the
+last 200 lines (`tail=N` to change).
+
+## MCP server
+
+`drt --mcp myserver` is a stdio [MCP](https://modelcontextprotocol.io)
+server with one tool per action. Register it with Claude Code once:
+
+```bash
+claude mcp add drt-myserver -- drt --mcp myserver
+```
+
+That needs `drt` as a file on your `PATH` (see above), because Claude
+Code doesn't start MCP servers through your `~/.bashrc`.
+
+The tools:
+
+| Tool | Does |
+| --- | --- |
+| `device_status`, `device_diff` | lease, idle timer, unsaved key names |
+| `save`, `lock` | save (then git commit on the host); save and shut down |
+| `list_projects`, `list_instances`, `status`, `logs`, `get_config`, `config_render` | read only |
+| `config_dist`, `reconfigure` | change config inside the device |
+| `install`, `reinstall`, `start`, `stop`, `restart`, `wait` | lifecycle |
+| `uninstall`, `destroy` | remove containers; destroy also deletes volumes |
+| `run` | any command (`argv` list), the raw-command escape hatch |
+
+Each tool call runs a request verb (or `drt-device` command) through
+the device, so it shows in the device console and resets the idle
+timer.
+
+The server keeps running while the device is locked. Tool calls then
+return an error telling the agent the device is locked and that only
+you can unlock it. When you `drt --serve` again, the same MCP server
+picks the device back up without reconnecting.
+
 ## Saving
 
 There is no save-on-exit prompt in device mode. Changes are saved:
@@ -115,27 +211,60 @@ changed.
 ## Permission rules
 
 The device doesn't decide what the agent may run; your agent's own
-permission system does. Every action is a separate `drt` command with
-its arguments visible, so Claude Code permission rules can match
-them. Allow the read-only commands and leave everything else to ask.
-A command that isn't allowed shows a permission prompt, on your phone
-too when you use Remote Control.
+permission system does. Allow the read-only actions and leave
+everything else to ask. An action that isn't allowed shows a
+permission prompt, on your phone too when you use Remote Control.
+That prompt is how the agent "asks you in conversation", and Claude
+Code enforces it whatever the agent does.
 
-An example `.claude/settings.json` for a context named `myserver`:
+With the MCP server, set permissions per tool. An example
+`.claude/settings.json` for a context named `myserver`:
+
+```json
+{
+  "permissions": {
+    "allow": [
+      "mcp__drt-myserver__device_status",
+      "mcp__drt-myserver__device_diff",
+      "mcp__drt-myserver__list_projects",
+      "mcp__drt-myserver__list_instances",
+      "mcp__drt-myserver__status",
+      "mcp__drt-myserver__logs",
+      "mcp__drt-myserver__get_config",
+      "mcp__drt-myserver__config_render",
+      "mcp__drt-myserver__wait",
+      "mcp__drt-myserver__save"
+    ],
+    "deny": [
+      "Bash(drt --serve:*)",
+      "Bash(drt --exec myserver:*)"
+    ]
+  }
+}
+```
+
+Every other tool asks first: `config_dist`, `reconfigure`, `install`,
+`restart`, `uninstall`, `destroy`, `run`, and so on. Move the ones you
+trust to `allow`. The `deny` on `drt --exec` keeps the agent on the
+MCP tools, so it can't get around a tool's prompt through Bash. Keep
+`run` on ask: it's a raw command inside the device, which can do
+anything the device can.
+
+Without MCP, the same idea works with Bash rules on request verbs:
 
 ```json
 {
   "permissions": {
     "allow": [
       "Bash(drt --status myserver)",
+      "Bash(drt --save myserver)",
       "Bash(drt --exec myserver -- drt-device diff)",
-      "Bash(drt --exec myserver -- d.rymcg.tech status:*)",
-      "Bash(drt --exec myserver -- d.rymcg.tech make * status:*)",
-      "Bash(drt --exec myserver -- d.rymcg.tech make * logs-out:*)",
-      "Bash(drt --exec myserver -- d.rymcg.tech make * config-render:*)",
-      "Bash(drt --exec myserver -- d.rymcg.tech make * dotenv_get:*)",
-      "Bash(drt --exec myserver -- docker ps:*)",
-      "Bash(drt --save myserver)"
+      "Bash(drt --exec myserver -- request list)",
+      "Bash(drt --exec myserver -- request instances:*)",
+      "Bash(drt --exec myserver -- request status:*)",
+      "Bash(drt --exec myserver -- request logs:*)",
+      "Bash(drt --exec myserver -- request get:*)",
+      "Bash(drt --exec myserver -- request config-render:*)"
     ],
     "deny": [
       "Bash(drt --serve:*)"
@@ -144,11 +273,10 @@ An example `.claude/settings.json` for a context named `myserver`:
 }
 ```
 
-`install`, `reconfigure`, `uninstall`, `destroy` and anything run
-through `bash -c` aren't on the list, so they ask every time. Move
-`install` and `reconfigure` to `allow` if you trust the agent with
-them. Keep `destroy` and `bash -c` on ask: once an agent has a shell
-inside the device, it can do anything the device can.
+Bash rules match text, so they're weaker than per-tool permissions.
+A raw `drt --exec myserver -- bash -c ...` isn't allowed by any of
+these rules and asks every time, but read the command in the prompt
+before you approve it.
 
 ## Security
 
@@ -176,7 +304,16 @@ the lease timer.
 
 `drt --exec` runs `podman exec drt-<context> drt-device exec ...`.
 Each command loads the saved environment, resets the idle timer,
-writes a line to the console log, and runs.
+writes a line to the console log, and runs. `request` is
+`_container/drt_request.py`, which checks its arguments and then runs
+the matching `d.rymcg.tech make` target.
+
+`drt --mcp` reads JSON-RPC lines from the agent and sends each one to
+`drt-device mcp` (`_container/drt_mcp.py`) in the device. That turns a
+tool call into a `drt-device exec request ...` call. While the device
+is locked, a throwaway `--net=none` container answers instead. The
+device can't reach your config repo, so after a `save` or `lock` tool
+call the host side runs the git commit.
 
 Saving uses the same code as an interactive session's
 save-on-exit (`_container/drt-save.sh`) and the same root helper in

@@ -150,14 +150,21 @@ d.rymcg.tech make <project> destroy                     # remove containers AND 
 ## Working through a drt device
 
 If the user runs a [drt device](DRT_DEVICE.md) (`drt --serve CONTEXT`),
-run every command through it instead of a local shell:
+do everything through it instead of a local shell. If a `drt-CONTEXT`
+MCP server is connected, use its tools. Otherwise use request verbs:
 
 ```bash
-drt --status CONTEXT                                  # is it unlocked? lease left?
-drt --exec CONTEXT -- d.rymcg.tech make whoami status # one command, no shell
-drt --exec CONTEXT -- bash -c 'docker ps | grep x'    # only when you need a pipe
-drt --save CONTEXT                                    # persist config changes
+drt --status CONTEXT                                       # unlocked? lease left?
+drt --exec CONTEXT -- request status whoami                # typed verbs, JSON out
+drt --exec CONTEXT -- request reconfigure whoami VAR=value
+drt --exec CONTEXT -- request install whoami
+drt --save CONTEXT                                         # persist config changes
+drt --exec CONTEXT -- bash -c 'docker ps | grep x'         # raw command, last resort
 ```
+
+`request config-dist` refuses to overwrite an existing config, and
+`request reconfigure` refuses unknown variables. Exit code 64 means the
+request was refused before anything ran; read `error` in the JSON.
 
 - Exit code 3 means no device is running. Only the user can unlock
   one. Ask them to run `drt --serve CONTEXT` at their workstation.
