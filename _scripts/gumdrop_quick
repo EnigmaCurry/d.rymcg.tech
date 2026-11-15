@@ -1,0 +1,573 @@
+#!/bin/bash
+## gumdrop quick start: create a Docker server for a d.rymcg.tech context in
+## one go. Every question is asked up front; after the final confirmation the
+## rest runs unattended:
+##
+##   droplet -> DNS -> wait for cloud-init -> SSH + Docker context
+##   -> root config -> Traefik -> (optional) whoami -> HTTPS check
+##
+## Sourced by _scripts/gumdrop. Run it as `d droplet quick`, or choose
+## "Quick start" from the `d droplet` main menu.
+
+## Run make for a project (or "." for the root) against the new context.
+## stdin is /dev/null so every `confirm` takes its non-interactive path, the
+## same way the e2e suite drives make:
+_gq_make() {
+    local project="$1"; shift
+    local args=("$@")
+    [[ "${project}" != "." ]] && args+=("instance=default")
+    echo "+ make -C ${project} ${args[*]}" >&2
+    make --no-print-directory -C "${ROOT_DIR}/${project}" "${args[@]}" < /dev/null
+}
+
+## Path of a project's env file for the new context (drt keeps them in
+## DRT_ENV_DIR, a plain checkout keeps them in the project directory):
+_gq_env_file() {
+    local project="$1"
+    if [[ "${project}" == "." ]]; then
+        echo "${DRT_ENV_DIR:-${ROOT_DIR}}/.env_${GQ_CONTEXT}"
+    else
+        echo "${DRT_ENV_DIR:-${ROOT_DIR}}/${project}/.env_${GQ_CONTEXT}_default"
+    fi
+}
+
+_gq_step() {
+    GQ_STEP=$((GQ_STEP + 1))
+    echo ""
+    echo "## [${GQ_STEP}/${GQ_STEPS}] $*"
+}
+
+## Idempotent DNS record create/update (from _e2e/e2e.sh):
+_gq_dns_record() {
+    local rtype="$1" rname="$2" rdata="$3" ttl="${4:-300}"
+    local line id existing
+    line=$(doctl compute domain records list "${GQ_DOMAIN}" \
+               --format ID,Type,Name,Data --no-header \
+               | awk -v t="${rtype}" -v n="${rname}" '$2==t && $3==n && !done {print; done=1}')
+    if [[ -n "${line}" ]]; then
+        id=$(awk '{print $1}' <<< "${line}")
+        existing=$(awk '{print $4}' <<< "${line}")
+        if [[ "${existing%.}" == "${rdata%.}" ]]; then
+            echo "DNS ${rtype} ${rname} -> ${rdata} (already set)"
+            return 0
+        fi
+        echo "DNS ${rtype} ${rname} -> ${rdata} (updating, was ${existing})"
+        doctl compute domain records update "${GQ_DOMAIN}" --record-id "${id}" \
+              --record-type "${rtype}" --record-name "${rname}" \
+              --record-data "${rdata}" --record-ttl "${ttl}" > /dev/null
+        return 0
+    fi
+    echo "DNS ${rtype} ${rname} -> ${rdata} (creating)"
+    doctl compute domain records create "${GQ_DOMAIN}" \
+          --record-type "${rtype}" --record-name "${rname}" \
+          --record-data "${rdata}" --record-ttl "${ttl}" > /dev/null
+}
+
+## Run a command on the droplet as root. Retries on ssh exit 255 (connection
+## failures happen before the command runs, so retrying is safe; a fresh
+## droplet's sshd resets connections while it settles):
+_gq_ssh() {
+    local attempt rc
+    for attempt in 1 2 3 4 5 6; do
+        rc=0
+        ssh -o StrictHostKeyChecking=accept-new -o BatchMode=yes \
+            -o ConnectTimeout=20 "root@${GQ_IP}" "$@" < /dev/null || rc=$?
+        [[ ${rc} -ne 255 ]] && return ${rc}
+        [[ ${attempt} -eq 6 ]] && return 255
+        sleep $((attempt * 4))
+    done
+}
+
+## The MD5 fingerprint (as DigitalOcean shows it) of each ssh-agent key, one per
+## line as "<md5> <public key line>":
+_gq_agent_keys() {
+    ssh-add -L 2>/dev/null | while IFS= read -r line; do
+        [[ "${line}" == ssh-* || "${line}" == ecdsa-* || "${line}" == sk-* ]] || continue
+        local fp
+        fp=$(ssh-keygen -E md5 -lf - <<< "${line}" 2>/dev/null | awk '{print $2}' | sed 's/^MD5://')
+        [[ -n "${fp}" ]] && echo "${fp} ${line}"
+    done
+}
+
+gumdrop_quick() {
+    gumdrop_check_doctl
+    gumdrop_show_account
+    command -v make >/dev/null || fault "make is not installed."
+    command -v docker >/dev/null || fault "The docker CLI is not installed."
+
+    echo ""
+    echo "## Quick start: a Docker server for d.rymcg.tech, with DNS and Traefik."
+    echo "## Answer every question now; after you confirm, the rest runs unattended."
+    echo ""
+
+    ## The d.rymcg.tech context this droplet becomes. Inside drt it's the
+    ## context you started (drt names an unconnected session 'local', so read
+    ## the real name from the SOPS config's file name):
+    local in_drt=false
+    GQ_CONTEXT=""
+    if [[ -n "${DRT_CONTEXT:-}" ]]; then
+        in_drt=true
+        if [[ "${DOCKER:-}" == "true" ]]; then
+            fault "This drt context (${DRT_CONTEXT}) already has a Docker host (SSH_HOST=${SSH_HOST:-?}). Quick start sets up a new context: on your host, run 'drt --init NEW_NAME', then 'drt NEW_NAME' and run this again."
+        fi
+        if [[ -n "${_SOPS_BIND_PATH:-}" ]]; then
+            GQ_CONTEXT=$(basename "${_SOPS_BIND_PATH}" .sops.env)
+        else
+            fault "Can't tell which drt context this is, or save the result (was drt started with --no-save?). Start it with 'drt CONTEXT' and run this again."
+        fi
+    fi
+
+    ## Droplet name (an existing one can be resumed after a failed run):
+    local GQ_REUSE=false
+    DROPLET_NAME=""
+    local _default_name="${GQ_CONTEXT}"
+    while :; do
+        ask_no_blank "Droplet name" DROPLET_NAME "${DROPLET_NAME:-${_default_name}}"
+        if [[ ! "${DROPLET_NAME}" =~ ^[a-zA-Z0-9][a-zA-Z0-9.-]*$ ]]; then
+            error "Use only letters, digits, dots and dashes."
+            continue
+        fi
+        if doctl compute droplet list --format Name --no-header 2>/dev/null | grep -qx "${DROPLET_NAME}"; then
+            if confirm no "A droplet named '${DROPLET_NAME}' already exists. Resume setup on that droplet" "?"; then
+                GQ_REUSE=true
+            else
+                continue
+            fi
+        fi
+        if [[ "${in_drt}" == false ]]; then
+            if docker context inspect "${DROPLET_NAME}" >/dev/null 2>&1 && [[ "${GQ_REUSE}" == false ]]; then
+                error "A Docker context named '${DROPLET_NAME}' already exists on this machine. Choose another name, or remove it with: docker context rm ${DROPLET_NAME}"
+                continue
+            fi
+            GQ_CONTEXT="${DROPLET_NAME}"
+        fi
+        break
+    done
+
+    local REGION="" SIZE="" IMAGE="" GQ_SSH_KEY_ID="" GQ_UPLOAD_KEY=""
+    local GQ_SSH_SOURCE="anywhere" GQ_RESERVED_IP=false BACKUP_SUMMARY="none"
+    local backup_args=()
+    if [[ "${GQ_REUSE}" == false ]]; then
+        ## Region:
+        local REGION_SLUGS REGION_NAMES REGION_OPTIONS=() REGION_DEFAULT="" i opt
+        readarray -t REGION_SLUGS < <(doctl compute region list --format Slug --no-header)
+        readarray -t REGION_NAMES < <(doctl compute region list --format Name --no-header)
+        for i in "${!REGION_SLUGS[@]}"; do
+            opt=$(printf "%-8s  %s" "${REGION_SLUGS[$i]}" "${REGION_NAMES[$i]}")
+            REGION_OPTIONS+=("${opt}")
+            [[ "${REGION_SLUGS[$i]}" == "${GUMDROP_DEFAULT_REGION}" ]] && REGION_DEFAULT="${opt}"
+        done
+        REGION=$(wizard choose "Select region" "${REGION_OPTIONS[@]}" --default "${REGION_DEFAULT}" | awk '{print $1}')
+        [[ -n "${REGION}" ]] || cancel
+
+        ## Size:
+        local SIZE_SLUGS SIZE_PRICES SIZE_DISKS SIZE_VCPUS SIZE_MEM SIZE_OPTIONS=() SIZE_DEFAULT=""
+        readarray -t SIZE_SLUGS < <(doctl compute size list --format Slug --no-header)
+        readarray -t SIZE_PRICES < <(doctl compute size list --format PriceMonthly --no-header)
+        readarray -t SIZE_DISKS < <(doctl compute size list --format Disk --no-header)
+        readarray -t SIZE_VCPUS < <(doctl compute size list --format VCPUs --no-header)
+        readarray -t SIZE_MEM < <(doctl compute size list --format Memory --no-header)
+        for i in "${!SIZE_SLUGS[@]}"; do
+            opt=$(printf "%-25s  %-3s vCPUs  %6sMB RAM  %5sGB disk  \$%s/mo" "${SIZE_SLUGS[$i]}" "${SIZE_VCPUS[$i]}" "${SIZE_MEM[$i]}" "${SIZE_DISKS[$i]}" "${SIZE_PRICES[$i]}")
+            SIZE_OPTIONS+=("${opt}")
+            [[ "${SIZE_SLUGS[$i]}" == "${GUMDROP_DEFAULT_SIZE}" ]] && SIZE_DEFAULT="${opt}"
+        done
+        SIZE=$(wizard choose "Select size" "${SIZE_OPTIONS[@]}" --default "${SIZE_DEFAULT}" | awk '{print $1}')
+        [[ -n "${SIZE}" ]] || cancel
+
+        ## Image: only those the Docker cloud-init supports (its '## images:' header):
+        local ud_patterns IMAGE_OPTIONS=() IMAGE_DEFAULT="" slug distro pat
+        ud_patterns=$(grep -oP '^## images: \K.*' "${SCRIPT_DIR}/gumdrop_user_data/docker-debian.yaml" || echo '*')
+        while IFS=$'\t' read -r slug distro; do
+            [[ -n "${slug}" ]] || continue
+            for pat in ${ud_patterns}; do
+                # shellcheck disable=SC2053
+                if [[ ${slug} == ${pat} ]]; then
+                    opt=$(printf "%-30s  %s" "${slug}" "${distro}")
+                    IMAGE_OPTIONS+=("${opt}")
+                    [[ "${slug}" == "${GUMDROP_DEFAULT_IMAGE}" ]] && IMAGE_DEFAULT="${opt}"
+                    break
+                fi
+            done
+        done < <(doctl compute image list --public --format Slug,Distribution --no-header | awk 'NF>=2 {print $1"\t"$2}' | sort)
+        [[ ${#IMAGE_OPTIONS[@]} -gt 0 ]] || fault "No supported (Debian/Ubuntu) images found."
+        IMAGE=$(wizard choose "Select image" "${IMAGE_OPTIONS[@]}" --default "${IMAGE_DEFAULT:-${IMAGE_OPTIONS[0]}}" | awk '{print $1}')
+        [[ -n "${IMAGE}" ]] || cancel
+
+        ## SSH key: DigitalOcean keys that are also in your ssh-agent come
+        ## first (those are the ones that can log in); agent keys that aren't
+        ## uploaded yet can be uploaded:
+        local agent_keys do_keys key_options=() key_values=() fp id name line
+        agent_keys=$(_gq_agent_keys)
+        do_keys=$(doctl compute ssh-key list --format ID,FingerPrint,Name --no-header)
+        while read -r id fp name; do
+            [[ -n "${id}" ]] || continue
+            if grep -q "^${fp} " <<< "${agent_keys}"; then
+                key_options+=("${name} (${id}) - in your ssh-agent")
+                key_values+=("id:${id}")
+            fi
+        done <<< "${do_keys}"
+        while read -r fp line; do
+            [[ -n "${fp}" ]] || continue
+            if ! grep -q " ${fp} " <<< "${do_keys}"; then
+                key_options+=("Upload ssh-agent key: $(awk '{print $1, substr($2,1,16)"...", $3}' <<< "${line}")")
+                key_values+=("upload:${line}")
+            fi
+        done <<< "${agent_keys}"
+        while read -r id fp name; do
+            [[ -n "${id}" ]] || continue
+            if ! grep -q "^${fp} " <<< "${agent_keys}"; then
+                key_options+=("${name} (${id}) - NOT in your ssh-agent")
+                key_values+=("id:${id}")
+            fi
+        done <<< "${do_keys}"
+        [[ ${#key_options[@]} -gt 0 ]] || fault "No SSH keys: load one into your ssh-agent (ssh-add) and run this again."
+        local key_choice
+        key_choice=$(wizard choose "Which SSH key should log in to the droplet?" "${key_options[@]}" --default "${key_options[0]}") || cancel
+        for i in "${!key_options[@]}"; do
+            [[ "${key_options[$i]}" == "${key_choice}" ]] && GQ_SSH_KEY_ID="${key_values[$i]}"
+        done
+        if [[ "${GQ_SSH_KEY_ID}" == upload:* ]]; then
+            GQ_UPLOAD_KEY="${GQ_SSH_KEY_ID#upload:}"
+            GQ_SSH_KEY_ID=""
+        else
+            GQ_SSH_KEY_ID="${GQ_SSH_KEY_ID#id:}"
+        fi
+
+        ## Firewall (HTTP/HTTPS are always open; Traefik needs them):
+        local fw_choice my_ip
+        fw_choice=$(wizard choose "Firewall: allow SSH from" \
+                        "Anywhere" "Only my current public IP address" --default "Anywhere") || cancel
+        if [[ "${fw_choice}" == Only* ]]; then
+            my_ip=$(curl -4 -s --max-time 10 https://ifconfig.me || true)
+            [[ "${my_ip}" =~ ^[0-9.]+$ ]] || fault "Could not determine your public IP address."
+            GQ_SSH_SOURCE="${my_ip}/32"
+        fi
+
+        ## Reserved IP:
+        confirm no "Assign a new reserved (static) IP address" "?" && GQ_RESERVED_IP=true
+
+        ## Backups:
+        local backup_plan backup_hour backup_weekday
+        backup_plan=$(wizard choose "Enable DigitalOcean backups?" "No" "Daily" "Weekly" --default "No") || cancel
+        if [[ "${backup_plan}" == "Daily" || "${backup_plan}" == "Weekly" ]]; then
+            backup_hour=$(wizard choose "Backup hour (UTC)" "0" "4" "8" "12" "16" "20" --default "0") || cancel
+            backup_args=(--enable-backups --backup-policy-plan "${backup_plan,,}" --backup-policy-hour "${backup_hour}")
+            BACKUP_SUMMARY="${backup_plan,,} at ${backup_hour}:00 UTC"
+            if [[ "${backup_plan}" == "Weekly" ]]; then
+                backup_weekday=$(wizard choose "Backup weekday" "SUN" "MON" "TUE" "WED" "THU" "FRI" "SAT" --default "SUN") || cancel
+                backup_args+=(--backup-policy-weekday "${backup_weekday}")
+                BACKUP_SUMMARY="weekly on ${backup_weekday} at ${backup_hour}:00 UTC"
+            fi
+        fi
+    fi
+
+    ## Domain (must be managed by DigitalOcean DNS in this account):
+    local DOMAINS
+    readarray -t DOMAINS < <(doctl compute domain list --format Domain --no-header)
+    [[ ${#DOMAINS[@]} -gt 0 ]] || fault "This DigitalOcean account manages no domains. Add one first: d droplet -> Domains -> Add domain."
+    GQ_DOMAIN=$(wizard choose "Which domain?" "${DOMAINS[@]}" --default "${DOMAINS[0]}") || cancel
+
+    ## Subdomain. Every app gets a name under it (whoami.SUB.DOMAIN), covered
+    ## by one wildcard record:
+    local GQ_SUB
+    while :; do
+        ask_no_blank "Subdomain for this server, under ${GQ_DOMAIN} ('@' for ${GQ_DOMAIN} itself)" GQ_SUB "${GQ_SUB:-${GQ_CONTEXT}}"
+        [[ "${GQ_SUB}" == "@" || "${GQ_SUB}" =~ ^[a-zA-Z0-9]([a-zA-Z0-9.-]*[a-zA-Z0-9])?$ ]] && break
+        error "Invalid subdomain."
+    done
+    local GQ_REC_NAME GQ_WILD_NAME
+    if [[ "${GQ_SUB}" == "@" ]]; then
+        GQ_ROOT_DOMAIN="${GQ_DOMAIN}"; GQ_REC_NAME="@"; GQ_WILD_NAME="*"
+    else
+        GQ_ROOT_DOMAIN="${GQ_SUB}.${GQ_DOMAIN}"; GQ_REC_NAME="${GQ_SUB}"; GQ_WILD_NAME="*.${GQ_SUB}"
+    fi
+
+    ## TLS:
+    local tls_choice GQ_TLS GQ_DO_TOKEN="" GQ_ACME_RESOLVER="production" GQ_ACME_EMAIL=""
+    tls_choice=$(wizard choose "TLS certificates" \
+        "Wildcard *.${GQ_ROOT_DOMAIN} (DNS-01; stores a DigitalOcean API token on the server)" \
+        "One certificate per app name (TLS-ALPN-01; no token, but each new app needs a Traefik cert update)" \
+        "None (self-signed only)" \
+        --default "Wildcard *.${GQ_ROOT_DOMAIN} (DNS-01; stores a DigitalOcean API token on the server)") || cancel
+    case "${tls_choice}" in
+        Wildcard*) GQ_TLS=dns ;;
+        One*) GQ_TLS=tls ;;
+        *) GQ_TLS=none ;;
+    esac
+    if [[ "${GQ_TLS}" == "dns" ]]; then
+        local token_choice
+        token_choice=$(wizard choose "Which DigitalOcean token should Traefik use?" \
+            "Paste a separate token (recommended: custom scopes domain:read + domain:update)" \
+            "Reuse the token doctl is logged in with (full account access on the server)" \
+            --default "Paste a separate token (recommended: custom scopes domain:read + domain:update)") || cancel
+        if [[ "${token_choice}" == Paste* ]]; then
+            while [[ -z "${GQ_DO_TOKEN}" ]]; do
+                read -rsp "Paste the DigitalOcean token for Traefik (hidden): " GQ_DO_TOKEN
+                echo ""
+            done
+        else
+            GQ_DO_TOKEN=$(doctl auth token 2>/dev/null) || true
+            [[ -n "${GQ_DO_TOKEN}" ]] || fault "Could not read doctl's token (needs doctl 1.101 or newer)."
+        fi
+    fi
+    if [[ "${GQ_TLS}" != "none" ]]; then
+        local ca_choice
+        ca_choice=$(wizard choose "Let's Encrypt environment" \
+            "Production (trusted certificates)" \
+            "Staging (untrusted test certificates, generous rate limits)" \
+            --default "Production (trusted certificates)") || cancel
+        [[ "${ca_choice}" == Staging* ]] && GQ_ACME_RESOLVER=staging
+        ask "Email address for Let's Encrypt notices (optional, may be blank)" GQ_ACME_EMAIL ""
+    fi
+
+    ## Timezone for all containers:
+    local GQ_TZ _tz_default
+    _tz_default="${TZ:-$(cat /etc/timezone 2>/dev/null || timedatectl show -p Timezone --value 2>/dev/null || true)}"
+    while :; do
+        ask_no_blank "Default timezone for containers" GQ_TZ "${GQ_TZ:-${_tz_default:-Etc/UTC}}"
+        [[ ! -d /usr/share/zoneinfo || -f "/usr/share/zoneinfo/${GQ_TZ}" ]] && break
+        error "Unknown timezone: ${GQ_TZ}"
+    done
+
+    ## Test app:
+    local GQ_WHOAMI=false
+    confirm yes "Install whoami as a test app (https://whoami.${GQ_ROOT_DOMAIN})" "?" && GQ_WHOAMI=true
+
+    ## Summary:
+    echo ""
+    echo "## Summary:"
+    echo "  Context:        ${GQ_CONTEXT}$([[ "${in_drt}" == true ]] && echo " (this drt session)")"
+    if [[ "${GQ_REUSE}" == true ]]; then
+        echo "  Droplet:        ${DROPLET_NAME} (existing - resume setup)"
+    else
+        echo "  Droplet:        ${DROPLET_NAME}"
+        echo "  Region:         ${REGION}"
+        echo "  Size:           ${SIZE}"
+        echo "  Image:          ${IMAGE}"
+        echo "  SSH key:        ${GQ_SSH_KEY_ID:-upload from ssh-agent}"
+        echo "  Firewall:       SSH from ${GQ_SSH_SOURCE}, HTTP + HTTPS from anywhere"
+        echo "  Reserved IP:    ${GQ_RESERVED_IP}"
+        echo "  Backups:        ${BACKUP_SUMMARY}"
+        echo "  User-data:      Docker (debian based)"
+    fi
+    echo "  DNS records:    A ${GQ_REC_NAME} and A ${GQ_WILD_NAME} in ${GQ_DOMAIN}"
+    echo "  Root domain:    ${GQ_ROOT_DOMAIN}"
+    case "${GQ_TLS}" in
+        dns)  echo "  TLS:            wildcard *.${GQ_ROOT_DOMAIN} via DNS-01 (${GQ_ACME_RESOLVER})" ;;
+        tls)  echo "  TLS:            per-name certificates via TLS-ALPN-01 (${GQ_ACME_RESOLVER})" ;;
+        none) echo "  TLS:            self-signed only" ;;
+    esac
+    echo "  Timezone:       ${GQ_TZ}"
+    echo "  Apps:           traefik$([[ "${GQ_WHOAMI}" == true ]] && echo ", whoami")"
+    echo ""
+    confirm yes "Create everything now" "?" || cancel
+
+    ## ---------------------------------------------------------------------
+    ## Unattended from here on.
+    ## ---------------------------------------------------------------------
+    GQ_STEP=0
+    GQ_STEPS=7
+    [[ "${GQ_WHOAMI}" == true ]] && GQ_STEPS=8
+    local DROPLET_ID="" GQ_IP=""
+
+    if [[ "${GQ_REUSE}" == false ]]; then
+        _gq_step "Creating droplet '${DROPLET_NAME}'"
+        if [[ -n "${GQ_UPLOAD_KEY}" ]]; then
+            local tmpkey key_name
+            tmpkey=$(mktemp)
+            echo "${GQ_UPLOAD_KEY}" > "${tmpkey}"
+            key_name="${GUMDROP_SSH_KEY_NAME}"
+            doctl compute ssh-key list --format Name --no-header | grep -qx "${key_name}" && key_name="${key_name}-${DROPLET_NAME}"
+            echo "Uploading SSH key '${key_name}' ..."
+            GQ_SSH_KEY_ID=$(doctl compute ssh-key import "${key_name}" --public-key-file "${tmpkey}" --format ID --no-header)
+            rm -f "${tmpkey}"
+        fi
+        local fw_name
+        fw_name="${DROPLET_NAME}-web-$(head -c4 /dev/urandom | od -An -tx1 | tr -d ' ')"
+        local open_all="address:0.0.0.0/0,address:::/0" ssh_src
+        if [[ "${GQ_SSH_SOURCE}" == "anywhere" ]]; then ssh_src="${open_all}"; else ssh_src="address:${GQ_SSH_SOURCE}"; fi
+        echo "Creating firewall '${fw_name}' ..."
+        local fw_id
+        fw_id=$(doctl compute firewall create --name "${fw_name}" \
+            --inbound-rules "protocol:tcp,ports:22,${ssh_src} protocol:tcp,ports:80,${open_all} protocol:tcp,ports:443,${open_all} protocol:icmp,${open_all}" \
+            --outbound-rules "protocol:tcp,ports:all,${open_all} protocol:udp,ports:all,${open_all} protocol:icmp,${open_all}" \
+            --format ID --no-header)
+        local tag_args=()
+        [[ -n "${GUMDROP_TAG}" ]] && tag_args=(--tag-names "${GUMDROP_TAG}")
+        echo "Creating droplet (${REGION}/${SIZE}/${IMAGE}); this takes a minute ..."
+        DROPLET_ID=$(doctl compute droplet create "${DROPLET_NAME}" \
+            --region "${REGION}" --size "${SIZE}" --image "${IMAGE}" \
+            --ssh-keys "${GQ_SSH_KEY_ID}" \
+            --user-data-file "${SCRIPT_DIR}/gumdrop_user_data/docker-debian.yaml" \
+            "${tag_args[@]}" "${backup_args[@]}" \
+            --wait --format ID --no-header)
+        doctl compute firewall add-droplets "${fw_id}" --droplet-ids "${DROPLET_ID}"
+        if [[ "${GQ_RESERVED_IP}" == true ]]; then
+            echo "Creating reserved IP in ${REGION} ..."
+            GQ_IP=$(doctl compute reserved-ip create --region "${REGION}" --format IP --no-header | awk '{print $1}')
+            doctl compute reserved-ip-action assign "${GQ_IP}" "${DROPLET_ID}" --wait --no-header > /dev/null
+        fi
+    else
+        _gq_step "Using existing droplet '${DROPLET_NAME}'"
+        DROPLET_ID=$(doctl compute droplet list --format ID,Name --no-header | awk -v n="${DROPLET_NAME}" '$2==n && !done {print $1; done=1}')
+        GQ_IP=$(doctl compute reserved-ip list --format IP,DropletID --no-header | awk -v d="${DROPLET_ID}" '$2==d && !done {print $1; done=1}')
+    fi
+    if [[ -z "${GQ_IP}" ]]; then
+        local deadline=$((SECONDS + 120))
+        while [[ -z "${GQ_IP}" ]]; do
+            GQ_IP=$(doctl compute droplet get "${DROPLET_ID}" --format PublicIPv4 --no-header 2>/dev/null || true)
+            [[ -n "${GQ_IP}" ]] && break
+            (( SECONDS < deadline )) || fault "Timed out waiting for the droplet's public IP."
+            sleep 5
+        done
+    fi
+    echo "Droplet ${DROPLET_NAME} (id ${DROPLET_ID}) at ${GQ_IP}"
+
+    _gq_step "Pointing DNS at ${GQ_IP}"
+    _gq_dns_record A "${GQ_REC_NAME}" "${GQ_IP}"
+    _gq_dns_record A "${GQ_WILD_NAME}" "${GQ_IP}"
+
+    _gq_step "Waiting for SSH and cloud-init (installs Docker)"
+    ## DigitalOcean reuses IP addresses, so forget any old host key for it:
+    [[ "${GQ_REUSE}" == false ]] && ssh-keygen -R "${GQ_IP}" >/dev/null 2>&1 || true
+    local deadline=$((SECONDS + 300))
+    until _gq_ssh true 2>/dev/null; do
+        (( SECONDS < deadline )) || fault "Timed out waiting for SSH on root@${GQ_IP}."
+        sleep 5
+    done
+    local rc=0
+    _gq_ssh "cloud-init status --wait > /dev/null" || rc=$?
+    ## Exit code 2 ("recoverable errors") is common on DigitalOcean images:
+    if [[ "${rc}" != "0" && "${rc}" != "2" ]]; then
+        _gq_ssh "tail -n 50 /var/log/cloud-init-output.log" || true
+        fault "cloud-init failed (exit ${rc})."
+    fi
+    _gq_ssh "docker info -f 'Docker {{.ServerVersion}} is running'" \
+        || fault "Docker is not running on the droplet (was it created with the Docker user-data?)."
+    ## The DigitalOcean firewall is the real firewall:
+    _gq_ssh "ufw disable >/dev/null 2>&1; systemctl mask ufw >/dev/null 2>&1; true"
+
+    _gq_step "Connecting Docker context '${GQ_CONTEXT}'"
+    ## drt rewrites ~/.ssh/config-drt from the saved SSH_HOST at every start,
+    ## so inside drt the block goes there; elsewhere it goes in ~/.ssh/config:
+    local ssh_config="${HOME}/.ssh/config"
+    [[ "${in_drt}" == true ]] && ssh_config="${HOME}/.ssh/config-drt"
+    mkdir -p "${HOME}/.ssh"
+    touch "${ssh_config}"
+    chmod 600 "${ssh_config}"
+    if grep -q "^Host ${GQ_CONTEXT}$" "${ssh_config}"; then
+        ## Drop the old block: from its Host line up to the next Host line.
+        sed -i "/^Host ${GQ_CONTEXT}$/,/^Host /{/^Host ${GQ_CONTEXT}$/d;/^Host /!d}" "${ssh_config}"
+    fi
+    local ssh_block
+    ssh_block="Host ${GQ_CONTEXT}
+    HostName ${GQ_IP}
+    User root
+    Port 22
+    ControlMaster auto
+    ControlPersist yes
+    ControlPath /tmp/ssh-%u-%r@%h:%p
+"
+    ## Put it first, so it wins over any 'Host *' block:
+    { echo "${ssh_block}"; cat "${ssh_config}"; } > "${ssh_config}.tmp" && mv "${ssh_config}.tmp" "${ssh_config}"
+    chmod 600 "${ssh_config}"
+    docker context rm -f "${GQ_CONTEXT}" >/dev/null 2>&1 || true
+    docker context create "${GQ_CONTEXT}" --docker "host=ssh://${GQ_CONTEXT}" > /dev/null
+    docker context use "${GQ_CONTEXT}" > /dev/null
+    export DOCKER_CONTEXT="${GQ_CONTEXT}"
+    docker info -f "Connected: {{.Name}} (Docker {{.ServerVersion}})"
+
+    _gq_step "Configuring the root .env for ${GQ_ROOT_DOMAIN}"
+    test -f "$(_gq_env_file .)" || _gq_make . config-dist
+    _gq_make . reconfigure "var=ROOT_DOMAIN=${GQ_ROOT_DOMAIN}"
+    _gq_make . reconfigure "var=DEFAULT_TIMEZONE=${GQ_TZ}"
+
+    _gq_step "Installing Traefik"
+    local traefik_env
+    traefik_env=$(_gq_env_file traefik)
+    test -f "${traefik_env}" || _gq_make traefik config-dist
+    _gq_make traefik traefik-user
+    local cert_domains tls_vars=()
+    case "${GQ_TLS}" in
+        dns)
+            cert_domains="[[\"${GQ_ROOT_DOMAIN}\",[\"*.${GQ_ROOT_DOMAIN}\"]]]"
+            tls_vars=(TRAEFIK_ACME_ENABLED=true TRAEFIK_ACME_CHALLENGE=dns
+                      TRAEFIK_ACME_DNS_PROVIDER=digitalocean
+                      TRAEFIK_ACME_DNS_VARNAME_1=TRAEFIK_LEGO_DO_AUTH_TOKEN
+                      "TRAEFIK_LEGO_DO_AUTH_TOKEN=${GQ_DO_TOKEN}")
+            ;;
+        tls)
+            if [[ "${GQ_WHOAMI}" == true ]]; then
+                cert_domains="[[\"${GQ_ROOT_DOMAIN}\",[\"whoami.${GQ_ROOT_DOMAIN}\"]]]"
+            else
+                cert_domains="[[\"${GQ_ROOT_DOMAIN}\",[]]]"
+            fi
+            tls_vars=(TRAEFIK_ACME_ENABLED=true TRAEFIK_ACME_CHALLENGE=tls)
+            ;;
+        none)
+            cert_domains="[]"
+            tls_vars=(TRAEFIK_ACME_ENABLED=false)
+            ;;
+    esac
+    "${BIN}/batch-reconfigure" "${traefik_env}" \
+        "TRAEFIK_ROOT_DOMAIN=${GQ_ROOT_DOMAIN}" \
+        "TRAEFIK_ACME_CERT_DOMAINS=${cert_domains}" \
+        "TRAEFIK_ACME_CERT_RESOLVER=${GQ_ACME_RESOLVER}" \
+        "TRAEFIK_ACME_CA_EMAIL=${GQ_ACME_EMAIL}" \
+        "${tls_vars[@]}" < /dev/null
+    _gq_make traefik install
+
+    local check_ok=true
+    if [[ "${GQ_WHOAMI}" == true ]]; then
+        _gq_step "Installing whoami and checking HTTPS"
+        local whoami_host="whoami.${GQ_ROOT_DOMAIN}"
+        test -f "$(_gq_env_file whoami)" || _gq_make whoami config-dist
+        _gq_make whoami reconfigure "var=WHOAMI_TRAEFIK_HOST=${whoami_host}"
+        _gq_make whoami override
+        _gq_make whoami install
+        _gq_make whoami wait
+        ## Pin the name to the droplet IP: local DNS may not have the new
+        ## records yet. Only production certificates are checked for trust:
+        local curl_args=(-s -o /dev/null -w '%{http_code}' --max-time 10
+                         --resolve "${whoami_host}:443:${GQ_IP}")
+        [[ "${GQ_TLS}" != "dns" && "${GQ_TLS}" != "tls" || "${GQ_ACME_RESOLVER}" == "staging" ]] && curl_args+=(-k)
+        echo "Waiting for https://${whoami_host} to answer with a valid certificate ..."
+        local code="" deadline=$((SECONDS + 600))
+        while :; do
+            code=$(curl "${curl_args[@]}" "https://${whoami_host}/" || true)
+            [[ "${code}" == "200" ]] && break
+            if (( SECONDS >= deadline )); then
+                check_ok=false
+                break
+            fi
+            sleep 10
+        done
+        if [[ "${check_ok}" == true ]]; then
+            echo "https://${whoami_host} is up."
+        else
+            error "https://${whoami_host} did not answer with a valid certificate within 10 minutes (last HTTP code: ${code:-none})."
+            echo "Certificates may still be on their way. Check with: d make traefik logs service=traefik"
+        fi
+    fi
+
+    _gq_step "Done"
+    echo ""
+    echo "## ${DROPLET_NAME} is ready at ${GQ_IP}, serving *.${GQ_ROOT_DOMAIN}."
+    [[ "${GQ_WHOAMI}" == true && "${check_ok}" == true ]] && echo "## Test app: https://whoami.${GQ_ROOT_DOMAIN}"
+    if [[ "${GQ_TLS}" == "tls" ]]; then
+        echo "## Each new app's name must be added to Traefik's certificates: d make traefik config -> TLS certificates, then reinstall Traefik."
+    fi
+    if [[ "${in_drt}" == true ]]; then
+        echo ""
+        echo "## IMPORTANT: none of this is saved yet. When you exit this drt shell, answer Y"
+        echo "## to 'Save changes', so the next 'drt ${GQ_CONTEXT}' connects to the droplet."
+        echo "## (Until then the prompt still shows the old context name.)"
+    else
+        echo "## Docker context '${GQ_CONTEXT}' is now active."
+    fi
+    if [[ "${GQ_TLS}" == "dns" ]]; then
+        echo ""
+        echo "## Note: Traefik's DigitalOcean token is stored in $(_gq_env_file traefik)."
+    fi
+}

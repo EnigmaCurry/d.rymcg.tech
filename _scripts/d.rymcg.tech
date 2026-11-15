@@ -58,7 +58,7 @@ __help() {
         echo -e "deploy-pipeline-template\tScaffold a new deployment pipeline repo with Woodpecker CI"
         echo -e "docker-default-address-pool\tReconfigure the docker daemon network address pool"
         echo -e "dotenv_get\tRetrieve a single env var from the root context config"
-        echo -e "droplet\tManage DigitalOcean droplets (alias: gumdrop)"
+        echo -e "droplet\tManage DigitalOcean droplets (alias: gumdrop; 'droplet quick' builds a server in one go)"
         echo -e "drt [OPTIONS] CONTEXT\tStandalone bootstrap tool (--init/--extract)"
         echo -e "e2e\tEnd-to-end smoke test / installer on a DigitalOcean droplet"
         echo -e "export-env\tExport all .env files for current context as flat env vars"
@@ -785,6 +785,14 @@ __export_env() {
     done
     if [[ -z "${ctx}" ]]; then
         ctx="${DOCKER_CONTEXT:-${DRT_CONTEXT:-$(${BIN}/docker_context)}}"
+        ## drt names a session with no Docker host 'local'. If a Docker
+        ## context was created and selected during the session (e.g. by
+        ## `d droplet quick`), export that one instead:
+        if [[ "${ctx}" == "local" && -z "${DOCKER_CONTEXT:-}" ]]; then
+            local _current_ctx
+            _current_ctx=$(${BIN}/docker_context 2>/dev/null || true)
+            [[ -n "${_current_ctx}" && "${_current_ctx}" != "default" ]] && ctx="${_current_ctx}"
+        fi
     fi
     cd "${ROOT_DIR}"
     local _env_base="${DRT_ENV_DIR:-.}"
@@ -848,6 +856,10 @@ __export_env() {
         ssh_host="${SSH_HOST}"
         ssh_user="${SSH_USER:-root}"
         ssh_port="${SSH_PORT:-22}"
+    elif [[ "${ctx}" == "local" || "${ctx}" == "default" ]]; then
+        ## No Docker host. (ssh -G would echo the name back as a hostname,
+        ## and the saved config would get SSH_HOST=local.)
+        ssh_host=""
     else
         local ssh_config
         ssh_config=$(ssh -G "${ctx}" 2>/dev/null || true)
