@@ -540,7 +540,6 @@ Options:
   --ssh-timeout SEC  SSH ConnectTimeout in seconds (default: 30)
   --timeout SEC      Command timeout in seconds (default: 300)
   --no-save          Disable save-on-exit
-  --controller-port PORT  Host port for request-controller (default: 8084)
   --net MODE         Network mode: pasta, slirp4netns, host (auto-detected)
   --cap-add CAP      Add Linux capability (e.g. NET_ADMIN for wireguard)
   --bind-mount PATH     Bind mount host directory read-only over the container d.rymcg.tech tree
@@ -1066,7 +1065,6 @@ cmd_run() {
     local VERBOSE=false
     local SOPS_CONFIG=""
     local CMD_ARGS=()
-    local CONTROLLER_PORT="${DRT_CONTROLLER_PORT:-8084}"
     local CAP_ADDS=()
     local WAYLAND=false
     local PIPEWIRE=false
@@ -1089,7 +1087,6 @@ cmd_run() {
             --wayland) WAYLAND=true; shift ;;
             --pipewire) PIPEWIRE=true; shift ;;
             --cold-storage) COLD_STORAGE=true; shift ;;
-            --controller-port) CONTROLLER_PORT="$2"; shift 2 ;;
             --help) run_usage; exit 0 ;;
             -*)
                 echo "Unknown option: $1" >&2
@@ -1325,18 +1322,6 @@ cmd_run() {
         )
     else
         echo "## SSH: no key file or agent; container will generate a key" >&2
-    fi
-
-    # Port mapping for request-controller
-    local _is_controller=false
-    for _arg in "${CMD_ARGS[@]+"${CMD_ARGS[@]}"}"; do
-        if [[ "${_arg}" == "request-controller" ]]; then
-            _is_controller=true
-            break
-        fi
-    done
-    if [[ "${_is_controller}" == true ]]; then
-        RUN_ARGS+=(-p "${CONTROLLER_PORT}:8084")
     fi
 
     # Bind mount: mount host directory read-only over ROOT_DIR.
@@ -2045,7 +2030,7 @@ _device_parse() {
     _DEV_CMD=()
     while [[ $# -gt 0 ]]; do
         case "$1" in
-            --cap-add|--bind-mount|--net|--image|--age-key|--ssh-key|--ssh-timeout|--timeout|--controller-port)
+            --cap-add|--bind-mount|--net|--image|--age-key|--ssh-key|--ssh-timeout|--timeout)
                 shift 2 ;;
             --verbose|-v|--cold-storage|--wayland|--pipewire|--no-save) shift ;;
             --no-git) DRT_NO_GIT=true; shift ;;
@@ -2408,7 +2393,7 @@ case "${ACTION}" in
                 continue
             fi
             case "${_arg}" in
-                --cap-add|--image|--net|--age-key|--ssh-key|--ssh-timeout|--timeout|--controller-port|--bind-mount)
+                --cap-add|--image|--net|--age-key|--ssh-key|--ssh-timeout|--timeout|--bind-mount)
                     _skip_next=true ;;
                 -*) ;;
                 *) _has_context=true; break ;;

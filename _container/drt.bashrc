@@ -55,7 +55,7 @@ _drt() {
       --serve --exec --save --status --lock --mcp --lease --idle \
       --list --git-init --git --pull --build --extract \
       --image --age-key --ssh-key --ssh-timeout \
-      --timeout --no-save --controller-port --net --cap-add \
+      --timeout --no-save --net --cap-add \
       --bind-mount --verbose --version --help" -- "${cur}"))
   else
     local cfg_dir="${HOME}/.config/d.rymcg.tech/config"
