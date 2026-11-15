@@ -338,6 +338,13 @@ actual changes rather than full re-encryption noise.
 
 Run `drt --help` for all options.
 
+## Device mode (for agents)
+
+`drt --serve myserver` unlocks a context once and keeps it running as
+a device. An AI agent then drives it with `drt --exec myserver -- CMD`,
+saves with `drt --save`, and the device locks itself when its lease
+ends. See [DRT_DEVICE.md](DRT_DEVICE.md).
+
 ## Storing configs in git
 
 You can track your `~/.config/d.rymcg.tech` directory in a private

@@ -23,6 +23,9 @@ ENGINE=podman
 IMAGE="${DEFAULT_IMAGE}"
 BUILD=false
 NET_MODE=""
+DEVICE_SERVE=false
+DEVICE_LEASE=12h
+DEVICE_IDLE=2h
 
 check_engine() {
     if ! command -v "${ENGINE}" &>/dev/null; then
@@ -178,12 +181,30 @@ GITIGNORE
     fi
 }
 
-## Auto-commit config changes if ~/.config/d.rymcg.tech is a git repo
+## Auto-commit config changes if ~/.config/d.rymcg.tech is a git repo.
+## Serialized with a lock dir: a device's --lock and its console can both
+## commit at about the same moment.
 git_auto_commit() {
     [[ "${DRT_NO_GIT:-}" == true ]] && return 0
-    local msg="$1"
     local CONFIG_BASE="${HOME}/.config/d.rymcg.tech"
     [[ -d "${CONFIG_BASE}/.git" ]] || return 0
+    local _lock="${CONFIG_BASE}/.git/drt-commit.lock" _tries=0
+    until mkdir "${_lock}" 2>/dev/null; do
+        if (( ++_tries > 300 )); then
+            echo "## git: timed out waiting for ${_lock} (remove it if stale)" >&2
+            return 1
+        fi
+        sleep 0.2
+    done
+    local _rc=0
+    _git_auto_commit_locked "$@" || _rc=$?
+    rmdir "${_lock}" 2>/dev/null || true
+    return ${_rc}
+}
+
+_git_auto_commit_locked() {
+    local msg="$1"
+    local CONFIG_BASE="${HOME}/.config/d.rymcg.tech"
     echo "## git: staging changes ..." >&2
     git -C "${CONFIG_BASE}" add -A
     if git -C "${CONFIG_BASE}" diff --cached --quiet; then
@@ -200,7 +221,12 @@ git_auto_commit() {
     local remote
     remote=$(git -C "${CONFIG_BASE}" remote 2>/dev/null | head -1)
     if [[ -n "${remote}" ]]; then
-        read -rp "## git: push to ${remote}? [Y/n] " answer </dev/tty
+        local answer=""
+        if [[ -t 0 ]]; then
+            read -rp "## git: push to ${remote}? [Y/n] " answer </dev/tty
+        elif [[ "${DRT_GIT_PUSH:-true}" == false ]]; then
+            answer=n
+        fi
         if [[ ! "${answer}" =~ ^[Nn]$ ]]; then
             git -C "${CONFIG_BASE}" push 2>/dev/null && \
                 echo "## git: pushed" >&2 || \
@@ -493,6 +519,13 @@ Options:
   --clean [CONTEXT]  Remove SOPS config and/or AGE key for a context
   --seal [CONTEXT]   Seal the OpenBao server used by a context
   --unseal [CONTEXT] Unseal the OpenBao server used by a context
+  --serve CONTEXT    Unlock a context as a device for agents (DRT_DEVICE.md)
+  --exec CONTEXT [--] CMD...  Run one command in a serving device
+  --save CONTEXT     Save a device's changes to its SOPS config (+ git commit)
+  --status CONTEXT   Show a device's lease, idle timer and unsaved changes
+  --lock CONTEXT     Save and shut down a device (+ git commit)
+  --lease DUR        Device lease, e.g. 30m, 12h, 2d; 0 = none (default: 12h)
+  --idle DUR         Device idle auto-lock; 0 = none (default: 2h)
   --list             List all contexts (AGE keys and SOPS configs)
   --git-init         Initialize ~/.config/d.rymcg.tech as a git repo
   --git [ARGS]       Run git commands in ~/.config/d.rymcg.tech
@@ -1083,6 +1116,16 @@ cmd_run() {
         run_usage >&2
         exit 1
     fi
+    if [[ "${DEVICE_SERVE}" == true ]]; then
+        if [[ "${SAVE_ON_EXIT}" != true ]]; then
+            echo "Error: --serve can't be combined with --no-save" >&2
+            exit 1
+        fi
+        if [[ ${#CMD_ARGS[@]} -gt 0 ]]; then
+            echo "Error: --serve takes no command; use: drt --exec CONTEXT -- CMD" >&2
+            exit 1
+        fi
+    fi
 
     check_engine
     detect_net_mode
@@ -1149,6 +1192,11 @@ cmd_run() {
     # Plain-text keys: pass content directly via SOPS_AGE_KEY env var.
     # Derive deterministic container name from context
     local CONTAINER_NAME="drt-${CONTEXT_NAME:-$(basename "${SOPS_CONFIG}" .sops.env)}"
+    if "${ENGINE}" container exists "${CONTAINER_NAME}" 2>/dev/null; then
+        echo "Error: ${CONTAINER_NAME} is already running." >&2
+        echo "  If it's a device, use: drt --exec / --status / --lock ${CONTAINER_NAME#drt-}" >&2
+        exit 1
+    fi
 
     local RUN_ARGS=(
         run --rm -it --pull=never
@@ -1305,10 +1353,16 @@ cmd_run() {
         )
     fi
 
+    if [[ "${DEVICE_SERVE}" == true ]]; then
+        RUN_ARGS+=(-e "DRT_DEVICE_CONTEXT=${CONTAINER_NAME#drt-}")
+    fi
+
     RUN_ARGS+=("${IMAGE}")
 
     # Append command args (e.g. "drt d2 status" → "d.rymcg.tech status")
-    if [[ ${#CMD_ARGS[@]} -gt 0 ]]; then
+    if [[ "${DEVICE_SERVE}" == true ]]; then
+        RUN_ARGS+=(drt-device serve --lease "${DEVICE_LEASE}" --idle "${DEVICE_IDLE}")
+    elif [[ ${#CMD_ARGS[@]} -gt 0 ]]; then
         RUN_ARGS+=("d.rymcg.tech" "${CMD_ARGS[@]}")
     fi
 
@@ -1959,6 +2013,109 @@ cmd_extract() {
 }
 
 ###############################################################################
+# Device subcommands (serve, exec, save, status, lock)
+###############################################################################
+
+## Validate a duration like 90, 30m, 12h, 2d (0 disables the limit)
+_valid_duration() {
+    [[ "$1" =~ ^[0-9]+[smhd]?$ ]]
+}
+
+cmd_serve() {
+    local _args=()
+    while [[ $# -gt 0 ]]; do
+        case "$1" in
+            --lease) DEVICE_LEASE="$2"; shift 2 ;;
+            --idle) DEVICE_IDLE="$2"; shift 2 ;;
+            *) _args+=("$1"); shift ;;
+        esac
+    done
+    _valid_duration "${DEVICE_LEASE}" || { echo "Error: invalid --lease: ${DEVICE_LEASE}" >&2; exit 1; }
+    _valid_duration "${DEVICE_IDLE}" || { echo "Error: invalid --idle: ${DEVICE_IDLE}" >&2; exit 1; }
+    DEVICE_SERVE=true
+    cmd_run "${_args[@]+"${_args[@]}"}"
+}
+
+## Parse device subcommand args: [flags] CONTEXT [--] [CMD...]
+## Ignores run-only flags (the drt() shell wrapper may inject them).
+## Sets: _DEV_CONTEXT, _DEV_NAME (container name), _DEV_CMD (array)
+_device_parse() {
+    _DEV_CONTEXT=""
+    _DEV_CMD=()
+    while [[ $# -gt 0 ]]; do
+        case "$1" in
+            --cap-add|--bind-mount|--net|--image|--age-key|--ssh-key|--ssh-timeout|--timeout|--controller-port)
+                shift 2 ;;
+            --verbose|-v|--cold-storage|--wayland|--pipewire|--no-save) shift ;;
+            --no-git) DRT_NO_GIT=true; shift ;;
+            --) shift; _DEV_CMD=("$@"); break ;;
+            -*)
+                if [[ -n "${_DEV_CONTEXT}" ]]; then
+                    _DEV_CMD=("$@"); break
+                fi
+                echo "Error: unknown option: $1" >&2; exit 1 ;;
+            *)
+                if [[ -z "${_DEV_CONTEXT}" ]]; then
+                    _DEV_CONTEXT="$1"; shift
+                else
+                    _DEV_CMD=("$@"); break
+                fi
+                ;;
+        esac
+    done
+    if [[ -z "${_DEV_CONTEXT}" ]]; then
+        echo "Error: CONTEXT is required" >&2
+        exit 1
+    fi
+    # Accept a context name or a path to CONTEXT.sops.env (as cmd_run does)
+    if [[ "${_DEV_CONTEXT}" == */* || "${_DEV_CONTEXT}" == *.sops.env ]]; then
+        _DEV_CONTEXT="$(basename "${_DEV_CONTEXT}" .sops.env)"
+    fi
+    _DEV_NAME="drt-${_DEV_CONTEXT}"
+    check_engine
+    if [[ "$("${ENGINE}" container inspect -f '{{.State.Running}}' "${_DEV_NAME}" 2>/dev/null)" != true ]]; then
+        echo "Error: no device is running for context '${_DEV_CONTEXT}'." >&2
+        echo "  A human unlocks it with: drt --serve ${_DEV_CONTEXT}" >&2
+        exit 3
+    fi
+}
+
+## Run drt-device inside the device container
+_device_exec() {
+    local _flags=(-i)
+    [[ -t 0 && -t 1 ]] && _flags+=(-t)
+    "${ENGINE}" exec "${_flags[@]}" --user user "${_DEV_NAME}" drt-device "$@"
+}
+
+cmd_device_exec() {
+    _device_parse "$@"
+    if [[ ${#_DEV_CMD[@]} -eq 0 ]]; then
+        echo "Error: no command given. Usage: drt --exec CONTEXT -- CMD [ARGS...]" >&2
+        exit 1
+    fi
+    _device_exec exec "${_DEV_CMD[@]}"
+}
+
+cmd_device_save() {
+    _device_parse "$@"
+    _device_exec save || exit $?
+    git_auto_commit "device save: ${_DEV_CONTEXT}"
+}
+
+cmd_device_status() {
+    _device_parse "$@"
+    _device_exec status
+}
+
+cmd_device_lock() {
+    _device_parse "$@"
+    _device_exec lock || exit $?
+    "${ENGINE}" wait "${_DEV_NAME}" >/dev/null 2>&1 || true
+    echo "## Device ${_DEV_CONTEXT} is locked." >&2
+    git_auto_commit "device lock: ${_DEV_CONTEXT}"
+}
+
+###############################################################################
 # Main dispatch
 ###############################################################################
 
@@ -1999,6 +2156,16 @@ while [[ $# -gt 0 ]]; do
             ;;
         --unseal)
             ACTION=unseal
+            shift
+            ARGS+=("$@")
+            break
+            ;;
+        --lease|--idle)
+            ARGS+=("$1" "$2")
+            shift 2
+            ;;
+        --serve|--exec|--save|--status|--lock)
+            ACTION="device_${1#--}"
             shift
             ARGS+=("$@")
             break
@@ -2116,7 +2283,13 @@ while [[ $# -gt 0 ]]; do
     esac
 done
 
-if [[ "${ACTION}" != "extract" ]]; then
+## The warning is skipped for extract and for the device commands agents
+## call repeatedly (it's shown once, when the human runs --serve).
+case "${ACTION}" in
+    extract|device_exec|device_save|device_status|device_lock) _show_warning=false ;;
+    *) _show_warning=true ;;
+esac
+if [[ "${_show_warning}" == true ]]; then
     cat >&2 <<'WARN'
 
 ## WARNING: drt is experimental and is NOT a runtime security device!
@@ -2168,6 +2341,21 @@ case "${ACTION}" in
         ;;
     extract)
         cmd_extract
+        ;;
+    device_serve)
+        cmd_serve "${ARGS[@]+"${ARGS[@]}"}"
+        ;;
+    device_exec)
+        cmd_device_exec "${ARGS[@]+"${ARGS[@]}"}"
+        ;;
+    device_save)
+        cmd_device_save "${ARGS[@]+"${ARGS[@]}"}"
+        ;;
+    device_status)
+        cmd_device_status "${ARGS[@]+"${ARGS[@]}"}"
+        ;;
+    device_lock)
+        cmd_device_lock "${ARGS[@]+"${ARGS[@]}"}"
         ;;
     run)
         # Check if ARGS has a context (any non-flag argument, skipping flag values)

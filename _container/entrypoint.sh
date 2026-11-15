@@ -767,7 +767,26 @@ EDITOREOF
                     -not -name '*.sops.env' \
                     -exec chown "${RUNTIME_UID}:${RUNTIME_GID}" {} + 2>/dev/null || true
                 echo "ok" > "${_SOPS_SAVE_RESPONSE}"
-            elif [[ "${cmd}" == "save" ]]; then
+            elif [[ "${cmd}" == "save-unattended" ]] && \
+                 [[ -n "${SOPS_AGE_KEY_FILE:-}" && -f "${SOPS_AGE_KEY_FILE}" ]] && \
+                 grep -q 'AGE-PLUGIN-FIDO2-HMAC' "${SOPS_AGE_KEY_FILE}" 2>/dev/null; then
+                # Device mode with a FIDO2 key: nobody may be there to touch it.
+                # Re-encrypt the whole file to the public recipient instead of
+                # `sops edit`. No touch needed, but every value gets new
+                # ciphertext (a noisier git diff).
+                _sops_work="/tmp/sops-save-work.sops.env"
+                if [[ -n "${SOPS_AGE_RECIPIENTS:-}" ]] && \
+                   sops encrypt --input-type dotenv --output-type dotenv \
+                       --filename-override export.env \
+                       --age "${SOPS_AGE_RECIPIENTS}" "${_SOPS_USER_COPY}" > "${_sops_work}" && \
+                   cat "${_sops_work}" > "${_SOPS_BIND_PATH}" && \
+                   rm -f "${_sops_work}"; then
+                    echo "ok" > "${_SOPS_SAVE_RESPONSE}"
+                else
+                    rm -f "${_sops_work}"
+                    echo "fail" > "${_SOPS_SAVE_RESPONSE}"
+                fi
+            elif [[ "${cmd}" == "save" || "${cmd}" == "save-unattended" ]]; then
                 if [[ -n "${SOPS_AGE_KEY_FILE:-}" && -f "${SOPS_AGE_KEY_FILE}" ]] && \
                    grep -q 'AGE-PLUGIN-FIDO2-HMAC' "${SOPS_AGE_KEY_FILE}" 2>/dev/null; then
                     echo "## Touch your FIDO2 key when it flashes ..." >&2

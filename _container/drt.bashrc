@@ -29,7 +29,8 @@ drt() {
   for _arg in "$@"; do
     case "${_arg}" in
       --build|--build-force|--pull|--init|--view|--edit|--clean|--list|\
-      --seal|--unseal|--git-init|--git|--extract|--help|--version)
+      --seal|--unseal|--git-init|--git|--extract|--help|--version|\
+      --exec|--save|--status|--lock)
         _is_run=false; break ;;
     esac
   done
@@ -51,6 +52,7 @@ _drt() {
   if [[ "${cur}" == -* ]]; then
     COMPREPLY=($(compgen -W "\
       --init --view --edit --clean --seal --unseal \
+      --serve --exec --save --status --lock --lease --idle \
       --list --git-init --git --pull --build --extract \
       --image --age-key --ssh-key --ssh-timeout \
       --timeout --no-save --controller-port --net --cap-add \

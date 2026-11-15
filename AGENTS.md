@@ -147,6 +147,30 @@ d.rymcg.tech make <project> destroy                     # remove containers AND 
    DigitalOcean. See [_e2e/README.md](_e2e/README.md). It costs money
    and creates DNS records, so only run it when asked.
 
+## Working through a drt device
+
+If the user runs a [drt device](DRT_DEVICE.md) (`drt --serve CONTEXT`),
+run every command through it instead of a local shell:
+
+```bash
+drt --status CONTEXT                                  # is it unlocked? lease left?
+drt --exec CONTEXT -- d.rymcg.tech make whoami status # one command, no shell
+drt --exec CONTEXT -- bash -c 'docker ps | grep x'    # only when you need a pipe
+drt --save CONTEXT                                    # persist config changes
+```
+
+- Exit code 3 means no device is running. Only the user can unlock
+  one. Ask them to run `drt --serve CONTEXT` at their workstation.
+  Never ask for their passphrase.
+- Config changes (`config-dist`, `reconfigure`, generated passwords)
+  live only in the device until you run `drt --save CONTEXT`. Save
+  after each change you want kept. Locking also saves.
+- The safety rules above still apply. Ask in conversation before
+  anything destructive. The user may be on their phone and can't
+  touch a hardware key.
+- Don't print secret values. `--save` and `drt-device diff` show key
+  names only.
+
 ## Setting up a new server or workstation
 
 For a workstation or server that isn't set up yet, use the readiness
