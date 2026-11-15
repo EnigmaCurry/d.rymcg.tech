@@ -23,6 +23,37 @@ This will ask you to enter the domain name to use.
 To use Peertube's livestreaming, you have to enable either the RTMP or RTMPS
 Traefik entrypoint.
 
+### Postgres 18 volume layout
+
+The postgres volume is mounted at `/var/lib/postgresql/data` and
+`PGDATA` is pinned to that path. This works for new installs and for
+volumes created before postgres 18.
+
+If you already moved your volume to the postgres 18 native layout
+(volume mounted at `/var/lib/postgresql`, cluster in `18/docker`),
+postgres finds the `18` directory under `/var/lib/postgresql/data` and
+fails with `initdb: error: directory "/var/lib/postgresql/data" exists
+but is not empty`. You can fix this two ways:
+
+ * Keep the layout and set these in your `.env_${DOCKER_CONTEXT}_${INSTANCE}` file:
+
+   ```
+   PEERTUBE_POSTGRES_DATA_MOUNT=/var/lib/postgresql
+   PEERTUBE_POSTGRES_PGDATA=/var/lib/postgresql/18/docker
+   ```
+
+ * Or migrate the volume to the default layout. With the stack stopped
+   (`make stop`), move the contents of `18/docker` up to the volume
+   root:
+
+   ```
+   docker run --rm -v peertube_postgres:/v alpine sh -c \
+     'cd /v && mv 18/docker/* . && rmdir 18/docker 18'
+   ```
+
+   Find the real volume name with `docker volume ls | grep postgres`
+   (it depends on your instance name). Back up the volume first.
+
 ### Authentication and Authorization
 
 See [AUTH.md](../AUTH.md) for information on adding external authentication on
