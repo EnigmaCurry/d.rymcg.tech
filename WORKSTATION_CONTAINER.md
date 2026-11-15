@@ -282,7 +282,18 @@ d container-build --docker                                     # Docker
 d container-build --image ghcr.io/you/d-rymcg-tech:v1           # Custom tag
 d container-build --arch linux/amd64 --arch linux/arm64        # Multi-arch (uses buildx)
 d container-build --image ghcr.io/you/d-rymcg-tech:v1 --push    # Build and push
+d container-build --install-extras doctl                       # Include optional CLI tools
 ```
+
+`--install-extras` takes a comma-separated list of optional tools to
+add to the image: `doctl`, `aws`, `gh`, `rclone`, `mc`, `step`, `gpg`,
+`wireguard`, `k3s`, `wayland`, `pipewire`. A local build includes none
+of them unless you ask. The pre-built image includes `doctl`, so add
+`--install-extras doctl` if you want gumdrop (`d droplet`) in your own
+build.
+
+The build packages the repository with `git archive HEAD`, so only
+committed changes are included.
 
 ## Getting started
 
