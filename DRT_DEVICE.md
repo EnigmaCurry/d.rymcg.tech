@@ -195,6 +195,53 @@ return an error telling the agent the device is locked and that only
 you can unlock it. When you `drt --serve` again, the same MCP server
 picks the device back up without reconnecting.
 
+### Example prompts
+
+Ask in plain language and name the context. The agent picks the tools.
+These examples use a context named `myserver`.
+
+Looking around (read-only tools, nothing changes):
+
+- "What's running on myserver?"
+- "Is copyparty on myserver healthy? Show me its last 100 log lines."
+- "What domain is whoami on, and what's the root domain?"
+- "How long until the myserver device locks? Are there unsaved
+  changes?"
+
+Installing and configuring:
+
+- "Install forgejo on myserver at git.myserver.example.com, HTTPS
+  only." The agent checks that no config exists, then runs
+  `config_dist`, `reconfigure`, `save`, `install` and `wait`.
+- "Set up a second whoami instance called test, check that it's
+  healthy, then remove it."
+- "Only allow my home IP, 203.0.113.7, to reach whoami. Show me the
+  rendered config before you install it."
+- "Upgrade whoami to the latest image tag." This changes the image
+  variable and runs `install`.
+- "Restart the copyparty container."
+
+Saving and locking:
+
+- "Save the config." This encrypts the changes, then commits and pushes
+  them if the config dir is a git repo.
+- "I'm done for today. Save and lock the device."
+
+Raw commands through `run` (these always need your approval, see
+[Permission rules](#permission-rules)):
+
+- "How much disk space is left on myserver?"
+- "Prune unused Docker images on myserver."
+- "Run `d.rymcg.tech audit` and summarize the findings."
+
+The agent asks you in conversation before anything destructive, such
+as `uninstall`, `destroy`, a `reinstall` of something others depend
+on, or a change to an existing app's routing, TLS or auth. Answer in
+chat, or in the permission prompt for the tool. Things it can't do for
+you: unlock the device, run interactive wizards such as `make config`,
+change DNS that drt has no credentials for, or finish an app's
+web-only setup. For those, it tells you what to do.
+
 ## Saving
 
 There is no save-on-exit prompt in device mode. Changes are saved:
