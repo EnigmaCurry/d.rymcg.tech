@@ -72,7 +72,8 @@ Inside [drt](WORKSTATION_CONTAINER.md), start a session for a context
 that has no Docker host yet (`drt --init foo`, answer *no* to the SSH
 question, then `drt foo`). Run `d droplet quick` there, and answer `Y`
 to *Save changes* when you exit: the next `drt foo` connects straight
-to the droplet.
+to the droplet. [DIGITALOCEAN_DRT.md](DIGITALOCEAN_DRT.md) walks
+through the whole process, from installing Podman to the first app.
 
 If a run fails partway, run it again and give the same droplet name:
 it offers to resume on the existing droplet, and skips the droplet
