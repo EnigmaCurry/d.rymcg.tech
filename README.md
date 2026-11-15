@@ -11,7 +11,10 @@ workstation.
 
  * Docker can be deployed anywhere, e.g.:
  
-   * A public server in the cloud (DigitalOcean droplet, AWS EC2, etc.)
+   * A public server in the cloud (DigitalOcean droplet, AWS EC2, etc.).
+     `d droplet quick` builds a DigitalOcean droplet with DNS, Traefik
+     and a wildcard TLS certificate in one step
+     ([DIGITALOCEAN_DRT.md](DIGITALOCEAN_DRT.md)).
    * A public server running at home via direct port forwarding from your
      internet router.
    * A private server (at home or in the cloud) that requires a VPN to connect
@@ -31,6 +34,10 @@ workstation.
      control several servers.
    * The server's only job is to build and run the Docker containers
      that your workstation tells it how to.
+   * The workstation can itself be an ephemeral container
+     ([drt](WORKSTATION_CONTAINER.md)): each context's configuration
+     is a single encrypted file, decrypted only for the session and
+     saved back when you exit.
 
  * All configuration is sourced from environment variables written in
    `.env` files on your workstation. Each service deployment has a
