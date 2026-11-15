@@ -382,6 +382,7 @@ an error — resolve manually with `drt --git`.
 | `gumdrop-presets/` | No | Excluded by `.gitignore` — serialized in SOPS config |
 | `.gitignore` | Yes | Created by `drt --init` |
 | `net-mode` | No | Excluded by `.gitignore` (local cache) |
+| `e2e/` | No | Excluded by `.gitignore` (`_e2e` test configs and logs) |
 
 ### Managing the repo directly
 
