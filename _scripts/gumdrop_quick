@@ -285,13 +285,17 @@ gumdrop_quick() {
 
     ## TLS:
     local tls_choice GQ_TLS GQ_DO_TOKEN="" GQ_ACME_RESOLVER="production" GQ_ACME_EMAIL=""
+    local tls_acmedns="Wildcard *.${GQ_ROOT_DOMAIN} via self-hosted acme-dns (no API token on the server)"
+    local tls_dns="Wildcard *.${GQ_ROOT_DOMAIN} via the DigitalOcean DNS API (stores an API token on the server)"
     tls_choice=$(wizard choose "TLS certificates" \
-        "Wildcard *.${GQ_ROOT_DOMAIN} (DNS-01; stores a DigitalOcean API token on the server)" \
+        "${tls_acmedns}" \
+        "${tls_dns}" \
         "One certificate per app name (TLS-ALPN-01; no token, but each new app needs a Traefik cert update)" \
         "None (self-signed only)" \
-        --default "Wildcard *.${GQ_ROOT_DOMAIN} (DNS-01; stores a DigitalOcean API token on the server)") || cancel
+        --default "${tls_acmedns}") || cancel
     case "${tls_choice}" in
-        Wildcard*) GQ_TLS=dns ;;
+        "${tls_acmedns}") GQ_TLS=acmedns ;;
+        "${tls_dns}") GQ_TLS=dns ;;
         One*) GQ_TLS=tls ;;
         *) GQ_TLS=none ;;
     esac
@@ -320,6 +324,19 @@ gumdrop_quick() {
         [[ "${ca_choice}" == Staging* ]] && GQ_ACME_RESOLVER=staging
         ask "Email address for Let's Encrypt notices (optional, may be blank)" GQ_ACME_EMAIL ""
     fi
+    ## acme-dns runs on the droplet as the authoritative DNS server for
+    ## acme-dns.ROOT, delegated to it by an NS record. Traefik's acme.sh
+    ## answers DNS-01 challenges through it, via one CNAME per certificate
+    ## name, so the DigitalOcean token never leaves this machine:
+    local GQ_ACMEDNS_NAME="" GQ_ACMEDNS_REC="" GQ_ACMEDNS_AUTH_REC=""
+    if [[ "${GQ_TLS}" == "acmedns" ]]; then
+        GQ_ACMEDNS_NAME="acme-dns.${GQ_ROOT_DOMAIN}"
+        if [[ "${GQ_SUB}" == "@" ]]; then
+            GQ_ACMEDNS_REC="acme-dns"; GQ_ACMEDNS_AUTH_REC="auth.acme-dns"
+        else
+            GQ_ACMEDNS_REC="acme-dns.${GQ_SUB}"; GQ_ACMEDNS_AUTH_REC="auth.acme-dns.${GQ_SUB}"
+        fi
+    fi
 
     ## Timezone for all containers:
     local GQ_TZ _tz_default
@@ -346,15 +363,21 @@ gumdrop_quick() {
         echo "  Size:           ${SIZE}"
         echo "  Image:          ${IMAGE}"
         echo "  SSH key:        ${GQ_SSH_KEY_ID:-upload from ssh-agent}"
-        echo "  Firewall:       SSH from ${GQ_SSH_SOURCE}, HTTP + HTTPS from anywhere"
+        echo "  Firewall:       SSH from ${GQ_SSH_SOURCE}, HTTP + HTTPS$([[ "${GQ_TLS}" == "acmedns" ]] && echo " + DNS (53)") from anywhere"
         echo "  Reserved IP:    ${GQ_RESERVED_IP}"
         echo "  Backups:        ${BACKUP_SUMMARY}"
         echo "  User-data:      Docker (debian based)"
     fi
     echo "  DNS records:    A ${GQ_REC_NAME} and A ${GQ_WILD_NAME} in ${GQ_DOMAIN}"
+    if [[ "${GQ_TLS}" == "acmedns" ]]; then
+        echo "                  A ${GQ_ACMEDNS_REC}, A ${GQ_ACMEDNS_AUTH_REC}, NS ${GQ_ACMEDNS_REC}, CNAME _acme-challenge"
+    fi
     echo "  Root domain:    ${GQ_ROOT_DOMAIN}"
     case "${GQ_TLS}" in
-        dns)  echo "  TLS:            wildcard *.${GQ_ROOT_DOMAIN} via DNS-01 (${GQ_ACME_RESOLVER})" ;;
+        acmedns) echo "  TLS:            wildcard *.${GQ_ROOT_DOMAIN} via acme-dns at ${GQ_ACMEDNS_NAME} (${GQ_ACME_RESOLVER})"
+                 echo "                  (acme-dns gets its own production certificate either way: Let's Encrypt"
+                 echo "                  allows 5 per week for the same name, so avoid rebuilding it repeatedly)" ;;
+        dns)  echo "  TLS:            wildcard *.${GQ_ROOT_DOMAIN} via the DigitalOcean DNS API (${GQ_ACME_RESOLVER})" ;;
         tls)  echo "  TLS:            per-name certificates via TLS-ALPN-01 (${GQ_ACME_RESOLVER})" ;;
         none) echo "  TLS:            self-signed only" ;;
     esac
@@ -368,8 +391,12 @@ gumdrop_quick() {
     ## ---------------------------------------------------------------------
     GQ_STEP=0
     GQ_STEPS=7
-    [[ "${GQ_WHOAMI}" == true ]] && GQ_STEPS=8
+    [[ "${GQ_WHOAMI}" == true ]] && GQ_STEPS=$((GQ_STEPS + 1))
+    [[ "${GQ_TLS}" == "acmedns" ]] && GQ_STEPS=$((GQ_STEPS + 1))
     local DROPLET_ID="" GQ_IP=""
+    local open_all="address:0.0.0.0/0,address:::/0"
+    ## Let's Encrypt must reach acme-dns on port 53 to validate challenges:
+    local dns_rules="protocol:tcp,ports:53,${open_all} protocol:udp,ports:53,${open_all}"
 
     if [[ "${GQ_REUSE}" == false ]]; then
         _gq_step "Creating droplet '${DROPLET_NAME}'"
@@ -385,12 +412,14 @@ gumdrop_quick() {
         fi
         local fw_name
         fw_name="${DROPLET_NAME}-web-$(head -c4 /dev/urandom | od -An -tx1 | tr -d ' ')"
-        local open_all="address:0.0.0.0/0,address:::/0" ssh_src
+        local ssh_src inbound
         if [[ "${GQ_SSH_SOURCE}" == "anywhere" ]]; then ssh_src="${open_all}"; else ssh_src="address:${GQ_SSH_SOURCE}"; fi
+        inbound="protocol:tcp,ports:22,${ssh_src} protocol:tcp,ports:80,${open_all} protocol:tcp,ports:443,${open_all} protocol:icmp,${open_all}"
+        [[ "${GQ_TLS}" == "acmedns" ]] && inbound+=" ${dns_rules}"
         echo "Creating firewall '${fw_name}' ..."
         local fw_id
         fw_id=$(doctl compute firewall create --name "${fw_name}" \
-            --inbound-rules "protocol:tcp,ports:22,${ssh_src} protocol:tcp,ports:80,${open_all} protocol:tcp,ports:443,${open_all} protocol:icmp,${open_all}" \
+            --inbound-rules "${inbound}" \
             --outbound-rules "protocol:tcp,ports:all,${open_all} protocol:udp,ports:all,${open_all} protocol:icmp,${open_all}" \
             --format ID --no-header)
         local tag_args=()
@@ -412,6 +441,18 @@ gumdrop_quick() {
         _gq_step "Using existing droplet '${DROPLET_NAME}'"
         DROPLET_ID=$(doctl compute droplet list --format ID,Name --no-header | awk -v n="${DROPLET_NAME}" '$2==n && !done {print $1; done=1}')
         GQ_IP=$(doctl compute reserved-ip list --format IP,DropletID --no-header | awk -v d="${DROPLET_ID}" '$2==d && !done {print $1; done=1}')
+        ## A droplet first set up without acme-dns lacks the DNS rules:
+        if [[ "${GQ_TLS}" == "acmedns" ]]; then
+            local fw_id
+            fw_id=$(doctl compute firewall list-by-droplet "${DROPLET_ID}" --format ID,Name --no-header \
+                        | awk -v n="${DROPLET_NAME}-web-" 'index($2, n)==1 && !done {print $1; done=1}')
+            if [[ -z "${fw_id}" ]]; then
+                error "No '${DROPLET_NAME}-web-*' firewall on this droplet; make sure port 53 (TCP and UDP) is open to everyone."
+            elif ! doctl compute firewall get "${fw_id}" --format InboundRules --no-header | grep -q 'ports:53'; then
+                echo "Opening port 53 in the droplet's firewall ..."
+                doctl compute firewall add-rules "${fw_id}" --inbound-rules "${dns_rules}"
+            fi
+        fi
     fi
     if [[ -z "${GQ_IP}" ]]; then
         local deadline=$((SECONDS + 120))
@@ -483,6 +524,46 @@ gumdrop_quick() {
     _gq_make . reconfigure "var=ROOT_DOMAIN=${GQ_ROOT_DOMAIN}"
     _gq_make . reconfigure "var=DEFAULT_TIMEZONE=${GQ_TZ}"
 
+    local acme_ca="acme-v02.api.letsencrypt.org"
+    [[ "${GQ_ACME_RESOLVER}" == "staging" ]] && acme_ca="acme-staging-v02.api.letsencrypt.org"
+    if [[ "${GQ_TLS}" == "acmedns" ]]; then
+        _gq_step "Installing acme-dns at ${GQ_ACMEDNS_NAME}"
+        ## acme-dns binds port 53 on the droplet's own public address. A
+        ## reserved IP isn't on any interface, so these records point at the
+        ## droplet's own address even when the app records use a reserved IP:
+        local own_ip
+        own_ip=$(_gq_ssh "curl -sf http://169.254.169.254/metadata/v1/interfaces/public/0/ipv4/address") \
+            || fault "Could not read the droplet's public IPv4 address from the metadata service."
+        _gq_dns_record A "${GQ_ACMEDNS_REC}" "${own_ip}"
+        _gq_dns_record A "${GQ_ACMEDNS_AUTH_REC}" "${own_ip}"
+        _gq_dns_record NS "${GQ_ACMEDNS_REC}" "auth.${GQ_ACMEDNS_NAME}."
+        local acmedns_env
+        acmedns_env=$(_gq_env_file acme-dns)
+        test -f "${acmedns_env}" || _gq_make acme-dns config-dist
+        "${BIN}/batch-reconfigure" "${acmedns_env}" \
+            "ACME_DNS_SUBDOMAIN=${GQ_ACMEDNS_NAME}" \
+            "ACME_DNS_LISTEN_IP_ADDRESS=${own_ip}" \
+            "ACME_DNS_PUBLIC_IP_ADDRESS=${own_ip}" \
+            "ACME_DNS_HOSTMASTER=${GQ_ACME_EMAIL:-hostmaster@${GQ_DOMAIN}}" < /dev/null
+        _gq_make acme-dns override
+        _gq_make acme-dns install
+        ## On first boot acme-dns gets its own Let's Encrypt certificate for
+        ## its API (port 2890), which needs the NS delegation to be visible.
+        ## The firewall keeps 2890 closed, so check from the droplet itself:
+        echo "Waiting for the acme-dns API to serve a valid certificate (DNS propagation can take a few minutes) ..."
+        local deadline=$((SECONDS + 900)) code=""
+        while :; do
+            code=$(_gq_ssh "curl -s -o /dev/null -w '%{http_code}' --max-time 10 --resolve ${GQ_ACMEDNS_NAME}:2890:${own_ip} https://${GQ_ACMEDNS_NAME}:2890/health" || true)
+            [[ -n "${code}" && "${code}" != "000" ]] && break
+            if (( SECONDS >= deadline )); then
+                _gq_make acme-dns logs-out 2>&1 | tail -n 40 || true
+                fault "acme-dns is not serving a valid certificate on port 2890 yet. Run 'd droplet quick' again later and choose to resume."
+            fi
+            sleep 10
+        done
+        echo "acme-dns is up (HTTP ${code})."
+    fi
+
     _gq_step "Installing Traefik"
     local traefik_env
     traefik_env=$(_gq_env_file traefik)
@@ -490,6 +571,17 @@ gumdrop_quick() {
     _gq_make traefik traefik-user
     local cert_domains tls_vars=()
     case "${GQ_TLS}" in
+        acmedns)
+            cert_domains="[[\"${GQ_ROOT_DOMAIN}\",[\"*.${GQ_ROOT_DOMAIN}\"]]]"
+            tls_vars=(TRAEFIK_ACME_ENABLED=false TRAEFIK_ACME_CHALLENGE=dns
+                      TRAEFIK_ACME_SH_ENABLED=true
+                      "TRAEFIK_ACME_SH_ACME_CA=${acme_ca}"
+                      TRAEFIK_ACME_SH_ACME_DIRECTORY=/directory
+                      TRAEFIK_ACME_SH_TRUST_SYSTEM_STORE=true
+                      "TRAEFIK_ACME_SH_ACME_DNS_BASE_URL=https://${GQ_ACMEDNS_NAME}:2890"
+                      TRAEFIK_ACME_SH_DNS_RESOLVER=1.1.1.1
+                      "TRAEFIK_DOCKER_COMPOSE_PROFILES=default,error_pages,acme-sh")
+            ;;
         dns)
             cert_domains="[[\"${GQ_ROOT_DOMAIN}\",[\"*.${GQ_ROOT_DOMAIN}\"]]]"
             tls_vars=(TRAEFIK_ACME_ENABLED=true TRAEFIK_ACME_CHALLENGE=dns
@@ -517,6 +609,25 @@ gumdrop_quick() {
         "TRAEFIK_ACME_CA_EMAIL=${GQ_ACME_EMAIL}" \
         "${tls_vars[@]}" < /dev/null
     _gq_make traefik install
+    if [[ "${GQ_TLS}" == "acmedns" ]]; then
+        ## Register with acme-dns; it prints the _acme-challenge CNAME each
+        ## certificate name needs. The account is kept in the acme-sh volume,
+        ## so a re-run gets the same targets:
+        echo "Registering with acme-dns ..."
+        local reg_out fqdn target rname
+        reg_out=$(_gq_make traefik acme-sh-register)
+        echo "${reg_out}"
+        while read -r fqdn _ target; do
+            [[ -z "${fqdn}" || -z "${target}" ]] && continue
+            rname="${fqdn%.}"
+            rname="${rname%."${GQ_DOMAIN}"}"
+            rname="${rname%.}"
+            _gq_dns_record CNAME "${rname}" "${target%.}."
+        done < <(grep -P '^\s*_acme-challenge\.' <<< "${reg_out}" | awk '{print $1, $2, $3}' | sort -u)
+        grep -qP '^\s*_acme-challenge\.' <<< "${reg_out}" \
+            || fault "acme-dns registration printed no _acme-challenge records (see the output above)."
+        _gq_make traefik restart service=acme-sh
+    fi
 
     local check_ok=true
     if [[ "${GQ_WHOAMI}" == true ]]; then
@@ -531,7 +642,7 @@ gumdrop_quick() {
         ## records yet. Only production certificates are checked for trust:
         local curl_args=(-s -o /dev/null -w '%{http_code}' --max-time 10
                          --resolve "${whoami_host}:443:${GQ_IP}")
-        [[ "${GQ_TLS}" != "dns" && "${GQ_TLS}" != "tls" || "${GQ_ACME_RESOLVER}" == "staging" ]] && curl_args+=(-k)
+        [[ "${GQ_TLS}" == "none" || "${GQ_ACME_RESOLVER}" == "staging" ]] && curl_args+=(-k)
         echo "Waiting for https://${whoami_host} to answer with a valid certificate ..."
         local code="" deadline=$((SECONDS + 600))
         while :; do
@@ -547,7 +658,11 @@ gumdrop_quick() {
             echo "https://${whoami_host} is up."
         else
             error "https://${whoami_host} did not answer with a valid certificate within 10 minutes (last HTTP code: ${code:-none})."
-            echo "Certificates may still be on their way. Check with: d make traefik logs service=traefik"
+            if [[ "${GQ_TLS}" == "acmedns" ]]; then
+                echo "Certificates may still be on their way. Check with: d make traefik logs service=acme-sh"
+            else
+                echo "Certificates may still be on their way. Check with: d make traefik logs service=traefik"
+            fi
         fi
     fi
 

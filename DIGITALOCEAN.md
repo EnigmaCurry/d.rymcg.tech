@@ -40,13 +40,25 @@ After you confirm the summary, it runs unattended:
  4. Adds an SSH config entry and a Docker context with the context's
     name, and selects it.
  5. Writes the root config (`ROOT_DOMAIN=SUB.DOMAIN`, `DEFAULT_TIMEZONE`).
- 6. Configures and installs Traefik.
+ 6. Configures and installs Traefik (and acme-dns, with the default TLS
+    choice).
  7. Optionally installs `whoami` and waits for it to answer over HTTPS.
 
 The TLS choices are:
 
- * **Wildcard** `*.SUB.DOMAIN` with the DNS-01 challenge. One
-   certificate covers every app you install later, but Traefik needs a
+ * **Wildcard via self-hosted [acme-dns](acme-dns)** (the default). One
+   certificate for `*.SUB.DOMAIN` covers every app you install later,
+   and no DigitalOcean token goes on the server. acme-dns runs on the
+   droplet as the DNS server for `acme-dns.SUB.DOMAIN`, delegated to it
+   by an `NS` record, and Traefik's acme.sh answers the DNS-01
+   challenges through it. Quick start creates the `NS`, `A` and
+   `_acme-challenge` `CNAME` records with your local doctl, and opens
+   port 53 (TCP and UDP) in the firewall. acme-dns always gets a
+   *production* certificate for its own API, and Let's Encrypt issues
+   at most 5 per week for the same name, so avoid destroying and
+   rebuilding the same subdomain repeatedly.
+ * **Wildcard via the DigitalOcean DNS API**. The same wildcard
+   certificate with fewer moving parts, but Traefik needs a
    DigitalOcean API token, which is stored on the server. Give it a
    separate token with custom scopes (`domain:read`, `domain:update`)
    rather than reusing your doctl token.
