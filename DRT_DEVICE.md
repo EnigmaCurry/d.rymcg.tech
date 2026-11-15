@@ -83,14 +83,28 @@ drt --lock myserver     # save, shut down, then git commit
 drt --exec myserver -- drt-device diff   # names of unsaved keys, no values
 ```
 
-The agent calls the same `drt` shell function you use. If the agent's
-shell doesn't load your `~/.bashrc`, put `drt` on your `PATH` as a
-file instead:
+The agent calls the same `drt` shell function you use. Agent shells
+often don't load your `~/.bashrc`, so put a small launcher on your
+`PATH` that loads the function from the image on every run:
 
 ```bash
-podman run --rm --pull=never --net=none "${DRT_IMAGE}" drt --extract > ~/.local/bin/drt
+cat > ~/.local/bin/drt <<'EOF'
+#!/usr/bin/env bash
+## Loads drt from the image on every run, so it never goes stale.
+export DRT_IMAGE=ghcr.io/enigmacurry/d-rymcg-tech:latest
+source <(podman run --rm --pull=never --net=none --entrypoint cat "${DRT_IMAGE}" \
+  /home/user/git/vendor/enigmacurry/d.rymcg.tech/_container/drt.bashrc)
+drt "$@"
+EOF
 chmod +x ~/.local/bin/drt
 ```
+
+Set `DRT_IMAGE` in it to the image you use: the same value as in your
+`~/.bashrc`, or `localhost/d-rymcg-tech:latest` if you build your own.
+The launcher sets it outright, because an agent's environment may
+carry a different value. Don't copy the script out with
+`drt --extract`: the copy goes stale when you pull or build a new
+image.
 
 `--exec` runs the command with the arguments exactly as given,
 without a shell, and returns its exit code. If no device is running
@@ -156,8 +170,9 @@ server with one tool per action. Register it with Claude Code once:
 claude mcp add drt-myserver -- drt --mcp myserver
 ```
 
-That needs `drt` as a file on your `PATH` (see above), because Claude
-Code doesn't start MCP servers through your `~/.bashrc`.
+That needs the `drt` launcher on your `PATH` (see
+[Drive a device](#drive-a-device)), because Claude Code doesn't start
+MCP servers through your `~/.bashrc`.
 
 The tools:
 
