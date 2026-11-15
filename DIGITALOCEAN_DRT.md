@@ -66,7 +66,7 @@ To keep a history of the encrypted config and a copy off your workstation, make 
 drt --git-init
 ```
 
-It asks for a branch name, your git name and email, and the remote URL, then makes the first commit and pushes it. From then on, `drt` pulls before each session, and each time you save it commits and asks to push (default yes). Only the encrypted `config/*.sops.env` files are committed. The AGE keys in `keys/` are never committed, so back them up separately. See [Storing configs in git](WORKSTATION_CONTAINER.md#storing-configs-in-git).
+It asks for a branch name, your git name and email, and the remote URL, then makes the first commit and pushes it. From then on, `drt` pulls before each session, and each time you save it commits and asks to push (default yes). Only the encrypted `config/*.sops.env` files are committed. The AGE keys in `keys/` are never committed, so back them up separately. If the key in your ssh-agent is a FIDO2 key, answer yes when `--git-init` offers a deploy key, so pulls and pushes don't need a touch. See [Storing configs in git](WORKSTATION_CONTAINER.md#storing-configs-in-git).
 
 ## Start a session
 

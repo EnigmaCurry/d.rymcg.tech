@@ -217,6 +217,12 @@ remote. When there's no terminal to ask, the push happens
 automatically, which matches the interactive default of yes. Set
 `DRT_GIT_PUSH=false` to commit without pushing.
 
+The push uses your ssh-agent unless the config repo has its own key.
+If your agent's key is a FIDO2 key, the push waits for a touch that
+nobody gives, and then fails. Run `drt --git-deploy-key` once at
+your desk to give the repo its own key (see
+[Use a deploy key](WORKSTATION_CONTAINER.md#use-a-deploy-key)).
+
 For a FIDO2 key, a save can't wait for a touch, because nobody may be
 at the desk. The device re-encrypts the whole file to your public key
 instead of re-encrypting only the changed values. The file is

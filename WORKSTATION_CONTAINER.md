@@ -373,12 +373,42 @@ Once a remote is configured, `drt` will automatically:
 If the local and remote branches have diverged, `drt` will stop with
 an error — resolve manually with `drt --git`.
 
+### Use a deploy key
+
+By default, git uses your ssh-agent to reach the remote. If the agent's
+key is a FIDO2 key (`sk-ssh-ed25519`), every pull and push needs a
+touch. That includes the push after an agent-driven save on a
+[drt device](DRT_DEVICE.md), when nobody may be at the desk. Give the
+config repo its own passwordless key instead:
+
+```bash
+drt --git-deploy-key
+```
+
+It creates `~/.config/d.rymcg.tech/keys/git/config-repo_ed25519` and
+prints the public key, with a link to the repo's deploy-key settings
+page. Add the key there **with write access**. On GitHub, check "Allow
+write access"; on Forgejo or Gitea, check "Enable write access". Then
+press Enter. drt checks that the key can push, and sets the repo's
+`core.sshCommand` so that only this repo uses the key. `drt --git-init`
+offers to do this for you.
+
+- Run `drt --git-deploy-key` again to check that the key still works.
+- `drt --git-deploy-key --rotate` makes a new key. The repo keeps
+  the old key until the new one can push, then drt prints the old key's
+  fingerprint so you can delete it from the repo's deploy keys.
+- The key is under `keys/`, so it's never committed. Back it up with
+  your AGE keys, or rotate it on a new workstation.
+- Anyone with the key file can push to the config repo, but they can
+  only push ciphertext. Without your AGE key, they can't read or
+  change your configs.
+
 ### What is safe to commit
 
 | Path | Committed | Notes |
 |---|---|---|
 | `config/*.sops.env` | Yes | Encrypted with AGE — safe in a private repo |
-| `keys/` | No | Excluded by `.gitignore` — back up separately |
+| `keys/` | No | Excluded by `.gitignore` — back up separately (AGE keys and the git deploy key) |
 | `gumdrop-presets/` | No | Excluded by `.gitignore` — serialized in SOPS config |
 | `.gitignore` | Yes | Created by `drt --init` |
 | `net-mode` | No | Excluded by `.gitignore` (local cache) |

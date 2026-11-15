@@ -533,6 +533,7 @@ Options:
   --idle DUR         Device idle auto-lock; 0 = none (default: 2h)
   --list             List all contexts (AGE keys and SOPS configs)
   --git-init         Initialize ~/.config/d.rymcg.tech as a git repo
+  --git-deploy-key [--rotate]  Give the config repo its own SSH key (no agent or FIDO2 touch)
   --git [ARGS]       Run git commands in ~/.config/d.rymcg.tech
   --pull             Pull latest image
   --build            Build image from git (branch from DRT_BUILD_BRANCH or image label)
@@ -1456,6 +1457,183 @@ cmd_git() {
     git -C "${CONFIG_BASE}" "$@"
 }
 
+###############################################################################
+# git-deploy-key subcommand
+###############################################################################
+
+## A deploy key is a passwordless SSH key that only the config repo uses,
+## bound to it with core.sshCommand. drt pulls before sessions and pushes
+## after saves; with a FIDO2 key in the ssh-agent, each of those needs a
+## touch, which nobody can give to an agent-driven save from a phone.
+GIT_DEPLOY_KEY_DIR="${HOME}/.config/d.rymcg.tech/keys/git"
+GIT_DEPLOY_KEY="${GIT_DEPLOY_KEY_DIR}/config-repo_ed25519"
+
+_git_deploy_ssh_command() {
+    printf "ssh -i '%s' -o IdentitiesOnly=yes" "$1"
+}
+
+## Web page where a deploy key is added, from the remote URL.
+## Prints nothing for a URL it can't parse.
+_git_deploy_key_settings_url() {
+    local url="$1" host path
+    case "${url}" in
+        ssh://*)   url="${url#ssh://}"; url="${url#*@}"
+                   host="${url%%/*}"; path="${url#*/}"; host="${host%%:*}" ;;
+        https://*|http://*) url="${url#*://}"; url="${url#*@}"
+                   host="${url%%/*}"; path="${url#*/}"; host="${host%%:*}" ;;
+        *@*:*)     url="${url#*@}"; host="${url%%:*}"; path="${url#*:}" ;;
+        *) return 0 ;;
+    esac
+    path="${path%.git}"; path="${path%/}"
+    [[ -n "${host}" && "${path}" == */* ]] || return 0
+    if [[ "${host}" == *gitlab* ]]; then
+        echo "https://${host}/${path}/-/settings/repository"
+    else
+        echo "https://${host}/${path}/settings/keys"   # GitHub, Forgejo, Gitea
+    fi
+}
+
+## Check that KEY can write to REMOTE (a dry-run push reaches receive-pack,
+## which a read-only deploy key is refused).
+_git_deploy_key_test() {
+    local key="$1" remote="$2" CONFIG_BASE="${HOME}/.config/d.rymcg.tech"
+    local branch
+    branch=$(git -C "${CONFIG_BASE}" branch --show-current)
+    GIT_SSH_COMMAND="$(_git_deploy_ssh_command "${key}") -o BatchMode=yes -o StrictHostKeyChecking=accept-new" \
+        git -C "${CONFIG_BASE}" push --dry-run --quiet "${remote}" "HEAD:refs/heads/${branch}" >/dev/null 2>&1
+}
+
+## Offer a deploy key during --git-init, if the repo has no key yet.
+_git_offer_deploy_key() {
+    local CONFIG_BASE="${HOME}/.config/d.rymcg.tech"
+    [[ -n "$(git -C "${CONFIG_BASE}" config --get core.sshCommand)" ]] && return 0
+    echo "" >&2
+    echo "drt pulls this repo before each session and pushes after each save." >&2
+    echo "If your ssh-agent key is a FIDO2 key, each of those needs a touch," >&2
+    echo "and an agent-driven save can't push while you're away. A deploy key" >&2
+    echo "used only by this repo avoids that." >&2
+    if wizard confirm "Set up a deploy key for the config repo?" yes; then
+        cmd_git_deploy_key || echo "## No deploy key set up. Run it later with: drt --git-deploy-key" >&2
+    fi
+}
+
+cmd_git_deploy_key() {
+    local CONFIG_BASE="${HOME}/.config/d.rymcg.tech"
+    local rotate=false
+    while [[ $# -gt 0 ]]; do
+        case "$1" in
+            --rotate) rotate=true; shift ;;
+            --help)
+                cat >&2 <<'EOF'
+Usage: drt --git-deploy-key [--rotate]
+
+Give the config repo (~/.config/d.rymcg.tech) its own passwordless SSH
+key, so git pull and push need neither your ssh-agent nor a FIDO2 touch.
+
+  (no option)  Create a key and switch the repo to it; if it has one,
+               check that it still works
+  --rotate     Replace the key: the repo switches to the new key only
+               after it can push
+
+The key is in ~/.config/d.rymcg.tech/keys/git/, which is never committed.
+EOF
+                return 0 ;;
+            *) echo "Unknown option: $1" >&2; return 1 ;;
+        esac
+    done
+
+    if [[ ! -d "${CONFIG_BASE}/.git" ]]; then
+        echo "Error: ${CONFIG_BASE} is not a git repo. Run: drt --git-init" >&2
+        return 1
+    fi
+    local remote remote_url
+    remote=$(git -C "${CONFIG_BASE}" remote | head -1)
+    if [[ -z "${remote}" ]]; then
+        echo "Error: the config repo has no remote. Add one with: drt --git remote add origin URL" >&2
+        return 1
+    fi
+    remote_url=$(git -C "${CONFIG_BASE}" remote get-url "${remote}")
+    command -v ssh-keygen >/dev/null || { echo "Error: ssh-keygen is not installed" >&2; return 1; }
+
+    local current_cmd want_cmd
+    current_cmd=$(git -C "${CONFIG_BASE}" config --get core.sshCommand || true)
+    want_cmd=$(_git_deploy_ssh_command "${GIT_DEPLOY_KEY}")
+
+    if [[ -f "${GIT_DEPLOY_KEY}" && "${rotate}" != true ]]; then
+        echo "## Deploy key: ${GIT_DEPLOY_KEY}" >&2
+        if _git_deploy_key_test "${GIT_DEPLOY_KEY}" "${remote}"; then
+            git -C "${CONFIG_BASE}" config core.sshCommand "${want_cmd}"
+            echo "## It can push to ${remote_url}." >&2
+            echo "## To replace it: drt --git-deploy-key --rotate" >&2
+            return 0
+        fi
+        echo "## It can't push to ${remote_url}." >&2
+        _git_deploy_key_wait "${GIT_DEPLOY_KEY}" "${remote}" "${remote_url}" || return 1
+        git -C "${CONFIG_BASE}" config core.sshCommand "${want_cmd}"
+        return 0
+    fi
+
+    ## New key (or the replacement, while the old key stays in use)
+    mkdir -p "${GIT_DEPLOY_KEY_DIR}"
+    chmod 700 "${GIT_DEPLOY_KEY_DIR}"
+    local new_key="${GIT_DEPLOY_KEY}"
+    [[ -f "${GIT_DEPLOY_KEY}" ]] && new_key="${GIT_DEPLOY_KEY}.new"
+    if [[ "${new_key}" == *.new && -f "${new_key}" ]]; then
+        echo "## Reusing the replacement key from an earlier --rotate" >&2
+    else
+        ssh-keygen -q -t ed25519 -N "" -C "drt-config@$(hostname 2>/dev/null || echo host)-$(date +%Y%m%d)" \
+            -f "${new_key}" </dev/null
+    fi
+    local rc=0
+    _git_deploy_key_wait "${new_key}" "${remote}" "${remote_url}" || rc=$?
+    if [[ ${rc} -ne 0 ]]; then
+        ## 2 = cancelled: drop the key. 1 = no terminal: keep it for the re-run.
+        [[ ${rc} -eq 2 ]] && rm -f "${new_key}" "${new_key}.pub"
+        [[ -n "${current_cmd}" ]] && echo "## The repo still uses its current key." >&2
+        return 1
+    fi
+    if [[ "${new_key}" != "${GIT_DEPLOY_KEY}" ]]; then
+        local old_fp
+        old_fp=$(ssh-keygen -lf "${GIT_DEPLOY_KEY}.pub" 2>/dev/null | awk '{print $2}')
+        mv -f "${new_key}" "${GIT_DEPLOY_KEY}"
+        mv -f "${new_key}.pub" "${GIT_DEPLOY_KEY}.pub"
+        echo "## Rotated. Now delete the old key from the repo's deploy keys:" >&2
+        echo "##   ${old_fp}" >&2
+    fi
+    git -C "${CONFIG_BASE}" config core.sshCommand "${want_cmd}"
+    echo "## The config repo now uses ${GIT_DEPLOY_KEY}" >&2
+    echo "## Back it up with your AGE keys, or rotate it if it's lost." >&2
+}
+
+## Show KEY's public half, wait until it can push. Returns 1 if the user gives up.
+_git_deploy_key_wait() {
+    local key="$1" remote="$2" remote_url="$3" settings
+    settings=$(_git_deploy_key_settings_url "${remote_url}")
+    echo "" >&2
+    echo "Add this public key as a deploy key, with write access, to ${remote_url}:" >&2
+    echo "" >&2
+    cat "${key}.pub"
+    echo "" >&2
+    [[ -n "${settings}" ]] && echo "  ${settings}" >&2
+    echo "  (GitHub: check \"Allow write access\". Forgejo/Gitea: check \"Enable write access\".)" >&2
+    echo "" >&2
+    if [[ ! -t 0 ]]; then
+        local again="drt --git-deploy-key"
+        [[ "${key}" == *.new ]] && again+=" --rotate"
+        echo "## No terminal to wait on. Add the key, then run: ${again}" >&2
+        return 1
+    fi
+    while true; do
+        read -rp "Press Enter once the key is added (or type q to cancel): " _ans
+        [[ "${_ans}" == q* ]] && return 2
+        if _git_deploy_key_test "${key}" "${remote}"; then
+            echo "## The key can push." >&2
+            return 0
+        fi
+        echo "## The key can't push yet. Check it was added with write access." >&2
+    done
+}
+
 cmd_git_init() {
     local CONFIG_BASE="${HOME}/.config/d.rymcg.tech"
     ensure_config_dir
@@ -1501,6 +1679,7 @@ cmd_git_init() {
             git -C "${CONFIG_BASE}" config user.name "${USER_NAME}"
             git -C "${CONFIG_BASE}" checkout -- . 2>/dev/null || true
             echo "## Cloned config repo from ${REMOTE}" >&2
+            _git_offer_deploy_key
             return 0
         fi
     fi
@@ -1518,6 +1697,7 @@ cmd_git_init() {
     echo "## Config repo initialized at ${CONFIG_BASE}" >&2
 
     if [[ -n "${REMOTE}" ]]; then
+        _git_offer_deploy_key
         echo "" >&2
         echo "Remote: ${REMOTE}" >&2
         echo "" >&2
@@ -2220,6 +2400,12 @@ while [[ $# -gt 0 ]]; do
             ACTION=git_init
             shift
             ;;
+        --git-deploy-key)
+            ACTION=git_deploy_key
+            shift
+            ARGS=("$@")
+            break
+            ;;
         --git)
             ACTION=git
             shift
@@ -2362,6 +2548,10 @@ case "${ACTION}" in
         ;;
     git_init)
         cmd_git_init
+        ;;
+    git_deploy_key)
+        check_engine
+        cmd_git_deploy_key "${ARGS[@]+"${ARGS[@]}"}"
         ;;
     git)
         cmd_git "${ARGS[@]+"${ARGS[@]}"}"
