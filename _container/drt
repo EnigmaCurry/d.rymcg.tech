@@ -23,6 +23,9 @@ ENGINE=podman
 IMAGE="${DEFAULT_IMAGE}"
 BUILD=false
 NET_MODE=""
+DEVICE_SERVE=false
+DEVICE_LEASE=12h
+DEVICE_IDLE=2h
 
 check_engine() {
     if ! command -v "${ENGINE}" &>/dev/null; then
@@ -167,23 +170,45 @@ ensure_config_dir() {
 net-mode
 keys/*
 gumdrop-presets/*
+e2e/
 GITIGNORE
     else
         # Ensure newer ignore entries are present in existing .gitignore
         grep -qx 'gumdrop-presets/\*' "${CONFIG_BASE}/.gitignore" 2>/dev/null || \
             echo 'gumdrop-presets/*' >> "${CONFIG_BASE}/.gitignore"
+        # e2e/ holds _e2e test configs (plaintext secrets) and logs
+        grep -qx 'e2e/' "${CONFIG_BASE}/.gitignore" 2>/dev/null || \
+            echo 'e2e/' >> "${CONFIG_BASE}/.gitignore"
     fi
     if [[ ! -f "${CONFIG_BASE}/keys/.gitkeep" ]]; then
         touch "${CONFIG_BASE}/keys/.gitkeep"
     fi
 }
 
-## Auto-commit config changes if ~/.config/d.rymcg.tech is a git repo
+## Auto-commit config changes if ~/.config/d.rymcg.tech is a git repo.
+## Serialized with a lock dir: a device's --lock and its console can both
+## commit at about the same moment.
 git_auto_commit() {
     [[ "${DRT_NO_GIT:-}" == true ]] && return 0
-    local msg="$1"
     local CONFIG_BASE="${HOME}/.config/d.rymcg.tech"
     [[ -d "${CONFIG_BASE}/.git" ]] || return 0
+    local _lock="${CONFIG_BASE}/.git/drt-commit.lock" _tries=0
+    until mkdir "${_lock}" 2>/dev/null; do
+        if (( ++_tries > 300 )); then
+            echo "## git: timed out waiting for ${_lock} (remove it if stale)" >&2
+            return 1
+        fi
+        sleep 0.2
+    done
+    local _rc=0
+    _git_auto_commit_locked "$@" || _rc=$?
+    rmdir "${_lock}" 2>/dev/null || true
+    return ${_rc}
+}
+
+_git_auto_commit_locked() {
+    local msg="$1"
+    local CONFIG_BASE="${HOME}/.config/d.rymcg.tech"
     echo "## git: staging changes ..." >&2
     git -C "${CONFIG_BASE}" add -A
     if git -C "${CONFIG_BASE}" diff --cached --quiet; then
@@ -200,7 +225,12 @@ git_auto_commit() {
     local remote
     remote=$(git -C "${CONFIG_BASE}" remote 2>/dev/null | head -1)
     if [[ -n "${remote}" ]]; then
-        read -rp "## git: push to ${remote}? [Y/n] " answer </dev/tty
+        local answer=""
+        if [[ -t 0 ]]; then
+            read -rp "## git: push to ${remote}? [Y/n] " answer </dev/tty
+        elif [[ "${DRT_GIT_PUSH:-true}" == false ]]; then
+            answer=n
+        fi
         if [[ ! "${answer}" =~ ^[Nn]$ ]]; then
             git -C "${CONFIG_BASE}" push 2>/dev/null && \
                 echo "## git: pushed" >&2 || \
@@ -493,8 +523,17 @@ Options:
   --clean [CONTEXT]  Remove SOPS config and/or AGE key for a context
   --seal [CONTEXT]   Seal the OpenBao server used by a context
   --unseal [CONTEXT] Unseal the OpenBao server used by a context
+  --serve CONTEXT    Unlock a context as a device for agents (DRT_DEVICE.md)
+  --exec CONTEXT [--] CMD...  Run one command in a serving device
+  --save CONTEXT     Save a device's changes to its SOPS config (+ git commit)
+  --status CONTEXT   Show a device's lease, idle timer and unsaved changes
+  --lock CONTEXT     Save and shut down a device (+ git commit)
+  --mcp CONTEXT      Stdio MCP server with typed tools for a device
+  --lease DUR        Device lease, e.g. 30m, 12h, 2d; 0 = none (default: 12h)
+  --idle DUR         Device idle auto-lock; 0 = none (default: 2h)
   --list             List all contexts (AGE keys and SOPS configs)
   --git-init         Initialize ~/.config/d.rymcg.tech as a git repo
+  --git-deploy-key [--rotate]  Give the config repo its own SSH key (no agent or FIDO2 touch)
   --git [ARGS]       Run git commands in ~/.config/d.rymcg.tech
   --pull             Pull latest image
   --build            Build image from git (branch from DRT_BUILD_BRANCH or image label)
@@ -506,7 +545,6 @@ Options:
   --ssh-timeout SEC  SSH ConnectTimeout in seconds (default: 30)
   --timeout SEC      Command timeout in seconds (default: 300)
   --no-save          Disable save-on-exit
-  --controller-port PORT  Host port for request-controller (default: 8084)
   --net MODE         Network mode: pasta, slirp4netns, host (auto-detected)
   --cap-add CAP      Add Linux capability (e.g. NET_ADMIN for wireguard)
   --bind-mount PATH     Bind mount host directory read-only over the container d.rymcg.tech tree
@@ -1032,7 +1070,6 @@ cmd_run() {
     local VERBOSE=false
     local SOPS_CONFIG=""
     local CMD_ARGS=()
-    local CONTROLLER_PORT="${DRT_CONTROLLER_PORT:-8084}"
     local CAP_ADDS=()
     local WAYLAND=false
     local PIPEWIRE=false
@@ -1055,7 +1092,6 @@ cmd_run() {
             --wayland) WAYLAND=true; shift ;;
             --pipewire) PIPEWIRE=true; shift ;;
             --cold-storage) COLD_STORAGE=true; shift ;;
-            --controller-port) CONTROLLER_PORT="$2"; shift 2 ;;
             --help) run_usage; exit 0 ;;
             -*)
                 echo "Unknown option: $1" >&2
@@ -1082,6 +1118,16 @@ cmd_run() {
         echo "" >&2
         run_usage >&2
         exit 1
+    fi
+    if [[ "${DEVICE_SERVE}" == true ]]; then
+        if [[ "${SAVE_ON_EXIT}" != true ]]; then
+            echo "Error: --serve can't be combined with --no-save" >&2
+            exit 1
+        fi
+        if [[ ${#CMD_ARGS[@]} -gt 0 ]]; then
+            echo "Error: --serve takes no command; use: drt --exec CONTEXT -- CMD" >&2
+            exit 1
+        fi
     fi
 
     check_engine
@@ -1149,6 +1195,11 @@ cmd_run() {
     # Plain-text keys: pass content directly via SOPS_AGE_KEY env var.
     # Derive deterministic container name from context
     local CONTAINER_NAME="drt-${CONTEXT_NAME:-$(basename "${SOPS_CONFIG}" .sops.env)}"
+    if "${ENGINE}" container exists "${CONTAINER_NAME}" 2>/dev/null; then
+        echo "Error: ${CONTAINER_NAME} is already running." >&2
+        echo "  If it's a device, use: drt --exec / --status / --lock ${CONTAINER_NAME#drt-}" >&2
+        exit 1
+    fi
 
     local RUN_ARGS=(
         run --rm -it --pull=never
@@ -1278,18 +1329,6 @@ cmd_run() {
         echo "## SSH: no key file or agent; container will generate a key" >&2
     fi
 
-    # Port mapping for request-controller
-    local _is_controller=false
-    for _arg in "${CMD_ARGS[@]+"${CMD_ARGS[@]}"}"; do
-        if [[ "${_arg}" == "request-controller" ]]; then
-            _is_controller=true
-            break
-        fi
-    done
-    if [[ "${_is_controller}" == true ]]; then
-        RUN_ARGS+=(-p "${CONTROLLER_PORT}:8084")
-    fi
-
     # Bind mount: mount host directory read-only over ROOT_DIR.
     # The entrypoint redirects .env_* and passwords.json writes to DRT_ENV_DIR.
     if [[ -n "${BIND_MOUNT_PATH}" ]]; then
@@ -1305,10 +1344,16 @@ cmd_run() {
         )
     fi
 
+    if [[ "${DEVICE_SERVE}" == true ]]; then
+        RUN_ARGS+=(-e "DRT_DEVICE_CONTEXT=${CONTAINER_NAME#drt-}")
+    fi
+
     RUN_ARGS+=("${IMAGE}")
 
     # Append command args (e.g. "drt d2 status" → "d.rymcg.tech status")
-    if [[ ${#CMD_ARGS[@]} -gt 0 ]]; then
+    if [[ "${DEVICE_SERVE}" == true ]]; then
+        RUN_ARGS+=(drt-device serve --lease "${DEVICE_LEASE}" --idle "${DEVICE_IDLE}")
+    elif [[ ${#CMD_ARGS[@]} -gt 0 ]]; then
         RUN_ARGS+=("d.rymcg.tech" "${CMD_ARGS[@]}")
     fi
 
@@ -1412,6 +1457,183 @@ cmd_git() {
     git -C "${CONFIG_BASE}" "$@"
 }
 
+###############################################################################
+# git-deploy-key subcommand
+###############################################################################
+
+## A deploy key is a passwordless SSH key that only the config repo uses,
+## bound to it with core.sshCommand. drt pulls before sessions and pushes
+## after saves; with a FIDO2 key in the ssh-agent, each of those needs a
+## touch, which nobody can give to an agent-driven save from a phone.
+GIT_DEPLOY_KEY_DIR="${HOME}/.config/d.rymcg.tech/keys/git"
+GIT_DEPLOY_KEY="${GIT_DEPLOY_KEY_DIR}/config-repo_ed25519"
+
+_git_deploy_ssh_command() {
+    printf "ssh -i '%s' -o IdentitiesOnly=yes" "$1"
+}
+
+## Web page where a deploy key is added, from the remote URL.
+## Prints nothing for a URL it can't parse.
+_git_deploy_key_settings_url() {
+    local url="$1" host path
+    case "${url}" in
+        ssh://*)   url="${url#ssh://}"; url="${url#*@}"
+                   host="${url%%/*}"; path="${url#*/}"; host="${host%%:*}" ;;
+        https://*|http://*) url="${url#*://}"; url="${url#*@}"
+                   host="${url%%/*}"; path="${url#*/}"; host="${host%%:*}" ;;
+        *@*:*)     url="${url#*@}"; host="${url%%:*}"; path="${url#*:}" ;;
+        *) return 0 ;;
+    esac
+    path="${path%.git}"; path="${path%/}"
+    [[ -n "${host}" && "${path}" == */* ]] || return 0
+    if [[ "${host}" == *gitlab* ]]; then
+        echo "https://${host}/${path}/-/settings/repository"
+    else
+        echo "https://${host}/${path}/settings/keys"   # GitHub, Forgejo, Gitea
+    fi
+}
+
+## Check that KEY can write to REMOTE (a dry-run push reaches receive-pack,
+## which a read-only deploy key is refused).
+_git_deploy_key_test() {
+    local key="$1" remote="$2" CONFIG_BASE="${HOME}/.config/d.rymcg.tech"
+    local branch
+    branch=$(git -C "${CONFIG_BASE}" branch --show-current)
+    GIT_SSH_COMMAND="$(_git_deploy_ssh_command "${key}") -o BatchMode=yes -o StrictHostKeyChecking=accept-new" \
+        git -C "${CONFIG_BASE}" push --dry-run --quiet "${remote}" "HEAD:refs/heads/${branch}" >/dev/null 2>&1
+}
+
+## Offer a deploy key during --git-init, if the repo has no key yet.
+_git_offer_deploy_key() {
+    local CONFIG_BASE="${HOME}/.config/d.rymcg.tech"
+    [[ -n "$(git -C "${CONFIG_BASE}" config --get core.sshCommand)" ]] && return 0
+    echo "" >&2
+    echo "drt pulls this repo before each session and pushes after each save." >&2
+    echo "If your ssh-agent key is a FIDO2 key, each of those needs a touch," >&2
+    echo "and an agent-driven save can't push while you're away. A deploy key" >&2
+    echo "used only by this repo avoids that." >&2
+    if wizard confirm "Set up a deploy key for the config repo?" yes; then
+        cmd_git_deploy_key || echo "## No deploy key set up. Run it later with: drt --git-deploy-key" >&2
+    fi
+}
+
+cmd_git_deploy_key() {
+    local CONFIG_BASE="${HOME}/.config/d.rymcg.tech"
+    local rotate=false
+    while [[ $# -gt 0 ]]; do
+        case "$1" in
+            --rotate) rotate=true; shift ;;
+            --help)
+                cat >&2 <<'EOF'
+Usage: drt --git-deploy-key [--rotate]
+
+Give the config repo (~/.config/d.rymcg.tech) its own passwordless SSH
+key, so git pull and push need neither your ssh-agent nor a FIDO2 touch.
+
+  (no option)  Create a key and switch the repo to it; if it has one,
+               check that it still works
+  --rotate     Replace the key: the repo switches to the new key only
+               after it can push
+
+The key is in ~/.config/d.rymcg.tech/keys/git/, which is never committed.
+EOF
+                return 0 ;;
+            *) echo "Unknown option: $1" >&2; return 1 ;;
+        esac
+    done
+
+    if [[ ! -d "${CONFIG_BASE}/.git" ]]; then
+        echo "Error: ${CONFIG_BASE} is not a git repo. Run: drt --git-init" >&2
+        return 1
+    fi
+    local remote remote_url
+    remote=$(git -C "${CONFIG_BASE}" remote | head -1)
+    if [[ -z "${remote}" ]]; then
+        echo "Error: the config repo has no remote. Add one with: drt --git remote add origin URL" >&2
+        return 1
+    fi
+    remote_url=$(git -C "${CONFIG_BASE}" remote get-url "${remote}")
+    command -v ssh-keygen >/dev/null || { echo "Error: ssh-keygen is not installed" >&2; return 1; }
+
+    local current_cmd want_cmd
+    current_cmd=$(git -C "${CONFIG_BASE}" config --get core.sshCommand || true)
+    want_cmd=$(_git_deploy_ssh_command "${GIT_DEPLOY_KEY}")
+
+    if [[ -f "${GIT_DEPLOY_KEY}" && "${rotate}" != true ]]; then
+        echo "## Deploy key: ${GIT_DEPLOY_KEY}" >&2
+        if _git_deploy_key_test "${GIT_DEPLOY_KEY}" "${remote}"; then
+            git -C "${CONFIG_BASE}" config core.sshCommand "${want_cmd}"
+            echo "## It can push to ${remote_url}." >&2
+            echo "## To replace it: drt --git-deploy-key --rotate" >&2
+            return 0
+        fi
+        echo "## It can't push to ${remote_url}." >&2
+        _git_deploy_key_wait "${GIT_DEPLOY_KEY}" "${remote}" "${remote_url}" || return 1
+        git -C "${CONFIG_BASE}" config core.sshCommand "${want_cmd}"
+        return 0
+    fi
+
+    ## New key (or the replacement, while the old key stays in use)
+    mkdir -p "${GIT_DEPLOY_KEY_DIR}"
+    chmod 700 "${GIT_DEPLOY_KEY_DIR}"
+    local new_key="${GIT_DEPLOY_KEY}"
+    [[ -f "${GIT_DEPLOY_KEY}" ]] && new_key="${GIT_DEPLOY_KEY}.new"
+    if [[ "${new_key}" == *.new && -f "${new_key}" ]]; then
+        echo "## Reusing the replacement key from an earlier --rotate" >&2
+    else
+        ssh-keygen -q -t ed25519 -N "" -C "drt-config@$(hostname 2>/dev/null || echo host)-$(date +%Y%m%d)" \
+            -f "${new_key}" </dev/null
+    fi
+    local rc=0
+    _git_deploy_key_wait "${new_key}" "${remote}" "${remote_url}" || rc=$?
+    if [[ ${rc} -ne 0 ]]; then
+        ## 2 = cancelled: drop the key. 1 = no terminal: keep it for the re-run.
+        [[ ${rc} -eq 2 ]] && rm -f "${new_key}" "${new_key}.pub"
+        [[ -n "${current_cmd}" ]] && echo "## The repo still uses its current key." >&2
+        return 1
+    fi
+    if [[ "${new_key}" != "${GIT_DEPLOY_KEY}" ]]; then
+        local old_fp
+        old_fp=$(ssh-keygen -lf "${GIT_DEPLOY_KEY}.pub" 2>/dev/null | awk '{print $2}')
+        mv -f "${new_key}" "${GIT_DEPLOY_KEY}"
+        mv -f "${new_key}.pub" "${GIT_DEPLOY_KEY}.pub"
+        echo "## Rotated. Now delete the old key from the repo's deploy keys:" >&2
+        echo "##   ${old_fp}" >&2
+    fi
+    git -C "${CONFIG_BASE}" config core.sshCommand "${want_cmd}"
+    echo "## The config repo now uses ${GIT_DEPLOY_KEY}" >&2
+    echo "## Back it up with your AGE keys, or rotate it if it's lost." >&2
+}
+
+## Show KEY's public half, wait until it can push. Returns 1 if the user gives up.
+_git_deploy_key_wait() {
+    local key="$1" remote="$2" remote_url="$3" settings
+    settings=$(_git_deploy_key_settings_url "${remote_url}")
+    echo "" >&2
+    echo "Add this public key as a deploy key, with write access, to ${remote_url}:" >&2
+    echo "" >&2
+    cat "${key}.pub"
+    echo "" >&2
+    [[ -n "${settings}" ]] && echo "  ${settings}" >&2
+    echo "  (GitHub: check \"Allow write access\". Forgejo/Gitea: check \"Enable write access\".)" >&2
+    echo "" >&2
+    if [[ ! -t 0 ]]; then
+        local again="drt --git-deploy-key"
+        [[ "${key}" == *.new ]] && again+=" --rotate"
+        echo "## No terminal to wait on. Add the key, then run: ${again}" >&2
+        return 1
+    fi
+    while true; do
+        read -rp "Press Enter once the key is added (or type q to cancel): " _ans
+        [[ "${_ans}" == q* ]] && return 2
+        if _git_deploy_key_test "${key}" "${remote}"; then
+            echo "## The key can push." >&2
+            return 0
+        fi
+        echo "## The key can't push yet. Check it was added with write access." >&2
+    done
+}
+
 cmd_git_init() {
     local CONFIG_BASE="${HOME}/.config/d.rymcg.tech"
     ensure_config_dir
@@ -1457,6 +1679,7 @@ cmd_git_init() {
             git -C "${CONFIG_BASE}" config user.name "${USER_NAME}"
             git -C "${CONFIG_BASE}" checkout -- . 2>/dev/null || true
             echo "## Cloned config repo from ${REMOTE}" >&2
+            _git_offer_deploy_key
             return 0
         fi
     fi
@@ -1474,6 +1697,7 @@ cmd_git_init() {
     echo "## Config repo initialized at ${CONFIG_BASE}" >&2
 
     if [[ -n "${REMOTE}" ]]; then
+        _git_offer_deploy_key
         echo "" >&2
         echo "Remote: ${REMOTE}" >&2
         echo "" >&2
@@ -1959,6 +2183,146 @@ cmd_extract() {
 }
 
 ###############################################################################
+# Device subcommands (serve, exec, save, status, lock)
+###############################################################################
+
+## Validate a duration like 90, 30m, 12h, 2d (0 disables the limit)
+_valid_duration() {
+    [[ "$1" =~ ^[0-9]+[smhd]?$ ]]
+}
+
+cmd_serve() {
+    local _args=()
+    while [[ $# -gt 0 ]]; do
+        case "$1" in
+            --lease) DEVICE_LEASE="$2"; shift 2 ;;
+            --idle) DEVICE_IDLE="$2"; shift 2 ;;
+            *) _args+=("$1"); shift ;;
+        esac
+    done
+    _valid_duration "${DEVICE_LEASE}" || { echo "Error: invalid --lease: ${DEVICE_LEASE}" >&2; exit 1; }
+    _valid_duration "${DEVICE_IDLE}" || { echo "Error: invalid --idle: ${DEVICE_IDLE}" >&2; exit 1; }
+    DEVICE_SERVE=true
+    cmd_run "${_args[@]+"${_args[@]}"}"
+}
+
+## Parse device subcommand args: [flags] CONTEXT [--] [CMD...]
+## Ignores run-only flags (the drt() shell wrapper may inject them).
+## Sets: _DEV_CONTEXT, _DEV_NAME (container name), _DEV_CMD (array)
+_device_parse() {
+    _DEV_CONTEXT=""
+    _DEV_CMD=()
+    while [[ $# -gt 0 ]]; do
+        case "$1" in
+            --cap-add|--bind-mount|--net|--image|--age-key|--ssh-key|--ssh-timeout|--timeout)
+                shift 2 ;;
+            --verbose|-v|--cold-storage|--wayland|--pipewire|--no-save) shift ;;
+            --no-git) DRT_NO_GIT=true; shift ;;
+            --) shift; _DEV_CMD=("$@"); break ;;
+            -*)
+                if [[ -n "${_DEV_CONTEXT}" ]]; then
+                    _DEV_CMD=("$@"); break
+                fi
+                echo "Error: unknown option: $1" >&2; exit 1 ;;
+            *)
+                if [[ -z "${_DEV_CONTEXT}" ]]; then
+                    _DEV_CONTEXT="$1"; shift
+                else
+                    _DEV_CMD=("$@"); break
+                fi
+                ;;
+        esac
+    done
+    if [[ -z "${_DEV_CONTEXT}" ]]; then
+        echo "Error: CONTEXT is required" >&2
+        exit 1
+    fi
+    # Accept a context name or a path to CONTEXT.sops.env (as cmd_run does)
+    if [[ "${_DEV_CONTEXT}" == */* || "${_DEV_CONTEXT}" == *.sops.env ]]; then
+        _DEV_CONTEXT="$(basename "${_DEV_CONTEXT}" .sops.env)"
+    fi
+    _DEV_NAME="drt-${_DEV_CONTEXT}"
+    check_engine
+    [[ "${_DEV_REQUIRE_RUNNING:-true}" == true ]] || return 0
+    if ! _device_running; then
+        echo "Error: no device is running for context '${_DEV_CONTEXT}'." >&2
+        echo "  A human unlocks it with: drt --serve ${_DEV_CONTEXT}" >&2
+        exit 3
+    fi
+}
+
+_device_running() {
+    [[ "$("${ENGINE}" container inspect -f '{{.State.Running}}' "${_DEV_NAME}" 2>/dev/null)" == true ]]
+}
+
+## Run drt-device inside the device container
+_device_exec() {
+    local _flags=(-i)
+    [[ -t 0 && -t 1 ]] && _flags+=(-t)
+    "${ENGINE}" exec "${_flags[@]}" --user user "${_DEV_NAME}" drt-device "$@"
+}
+
+cmd_device_exec() {
+    _device_parse "$@"
+    if [[ ${#_DEV_CMD[@]} -eq 0 ]]; then
+        echo "Error: no command given. Usage: drt --exec CONTEXT -- CMD [ARGS...]" >&2
+        exit 1
+    fi
+    _device_exec exec "${_DEV_CMD[@]}"
+}
+
+cmd_device_save() {
+    _device_parse "$@"
+    _device_exec save || exit $?
+    git_auto_commit "device save: ${_DEV_CONTEXT}"
+}
+
+cmd_device_status() {
+    _device_parse "$@"
+    _device_exec status
+}
+
+cmd_device_lock() {
+    _device_parse "$@"
+    _device_exec lock || exit $?
+    "${ENGINE}" wait "${_DEV_NAME}" >/dev/null 2>&1 || true
+    echo "## Device ${_DEV_CONTEXT} is locked." >&2
+    git_auto_commit "device lock: ${_DEV_CONTEXT}"
+}
+
+## Stdio MCP server for a device. Each JSON-RPC line is forwarded to
+## `drt-device mcp` inside the device. While the device is locked, a
+## throwaway container answers instead, so the server stays connected and
+## tool calls say "locked" rather than failing.
+cmd_mcp() {
+    _DEV_REQUIRE_RUNNING=false _device_parse "$@"
+    echo "## drt MCP server for context ${_DEV_CONTEXT} (device ${_DEV_NAME})" >&2
+    local line out tool
+    while IFS= read -r line || [[ -n "${line}" ]]; do
+        [[ -z "${line//[[:space:]]/}" ]] && continue
+        out=""
+        if _device_running; then
+            out=$(printf '%s\n' "${line}" | "${ENGINE}" exec -i --user user "${_DEV_NAME}" drt-device mcp) || true
+        fi
+        # Locked, or it locked mid-call: answer from a throwaway container
+        if [[ -z "${out}" && "${line}" =~ \"id\"[[:space:]]*: ]]; then
+            out=$(printf '%s\n' "${line}" | "${ENGINE}" run --rm -i --pull=never --net=none \
+                --entrypoint "" "${IMAGE}" drt-device mcp --offline) || true
+        fi
+        [[ -n "${out}" ]] && printf '%s\n' "${out}"
+        # The device can't reach the host's config repo; commit after save/lock
+        if [[ "${line}" =~ \"method\"[[:space:]]*:[[:space:]]*\"tools/call\" ]] && \
+           [[ "${line}" =~ \"name\"[[:space:]]*:[[:space:]]*\"(save|lock)\" ]]; then
+            tool="${BASH_REMATCH[1]}"
+            if [[ "${tool}" == lock ]]; then
+                "${ENGINE}" wait "${_DEV_NAME}" >/dev/null 2>&1 || true
+            fi
+            git_auto_commit "device ${tool}: ${_DEV_CONTEXT}" </dev/null >&2 || true
+        fi
+    done
+}
+
+###############################################################################
 # Main dispatch
 ###############################################################################
 
@@ -2003,6 +2367,16 @@ while [[ $# -gt 0 ]]; do
             ARGS+=("$@")
             break
             ;;
+        --lease|--idle)
+            ARGS+=("$1" "$2")
+            shift 2
+            ;;
+        --serve|--exec|--save|--status|--lock|--mcp)
+            ACTION="device_${1#--}"
+            shift
+            ARGS+=("$@")
+            break
+            ;;
         --pull)
             ACTION=pull
             shift
@@ -2025,6 +2399,12 @@ while [[ $# -gt 0 ]]; do
         --git-init)
             ACTION=git_init
             shift
+            ;;
+        --git-deploy-key)
+            ACTION=git_deploy_key
+            shift
+            ARGS=("$@")
+            break
             ;;
         --git)
             ACTION=git
@@ -2116,7 +2496,13 @@ while [[ $# -gt 0 ]]; do
     esac
 done
 
-if [[ "${ACTION}" != "extract" ]]; then
+## The warning is skipped for extract and for the device commands agents
+## call repeatedly (it's shown once, when the human runs --serve).
+case "${ACTION}" in
+    extract|device_exec|device_save|device_status|device_lock|device_mcp) _show_warning=false ;;
+    *) _show_warning=true ;;
+esac
+if [[ "${_show_warning}" == true ]]; then
     cat >&2 <<'WARN'
 
 ## WARNING: drt is experimental and is NOT a runtime security device!
@@ -2163,11 +2549,33 @@ case "${ACTION}" in
     git_init)
         cmd_git_init
         ;;
+    git_deploy_key)
+        check_engine
+        cmd_git_deploy_key "${ARGS[@]+"${ARGS[@]}"}"
+        ;;
     git)
         cmd_git "${ARGS[@]+"${ARGS[@]}"}"
         ;;
     extract)
         cmd_extract
+        ;;
+    device_serve)
+        cmd_serve "${ARGS[@]+"${ARGS[@]}"}"
+        ;;
+    device_exec)
+        cmd_device_exec "${ARGS[@]+"${ARGS[@]}"}"
+        ;;
+    device_save)
+        cmd_device_save "${ARGS[@]+"${ARGS[@]}"}"
+        ;;
+    device_status)
+        cmd_device_status "${ARGS[@]+"${ARGS[@]}"}"
+        ;;
+    device_lock)
+        cmd_device_lock "${ARGS[@]+"${ARGS[@]}"}"
+        ;;
+    device_mcp)
+        cmd_mcp "${ARGS[@]+"${ARGS[@]}"}"
         ;;
     run)
         # Check if ARGS has a context (any non-flag argument, skipping flag values)
@@ -2179,7 +2587,7 @@ case "${ACTION}" in
                 continue
             fi
             case "${_arg}" in
-                --cap-add|--image|--net|--age-key|--ssh-key|--ssh-timeout|--timeout|--controller-port|--bind-mount)
+                --cap-add|--image|--net|--age-key|--ssh-key|--ssh-timeout|--timeout|--bind-mount)
                     _skip_next=true ;;
                 -*) ;;
                 *) _has_context=true; break ;;
