@@ -86,7 +86,7 @@ install-hook:
  #### (compose rm accepts --profile to see a profile-excluded service;
  #### -s stops the container first, -f skips the confirmation prompt).
 	@if test -z "${service}"; then \
-		make --no-print-directory docker-compose-lifecycle-cmd EXTRA_ARGS="up -d $(if $(BUILD),,--no-build) --remove-orphans"; \
+		make --no-print-directory docker-compose-lifecycle-cmd EXTRA_ARGS="up -d $(if $(BUILD),,--no-build --pull never) --remove-orphans"; \
 		if ! ${BIN}/dotenv -f ${ENV_FILE} get HOMELABLE_DOCKER_COMPOSE_PROFILES | tr -d ' ' | tr ',' '\n' | grep -q '^mcp$$'; then \
 			make --no-print-directory docker-compose-lifecycle-cmd EXTRA_ARGS="--profile mcp rm -sf mcp"; \
 		fi; \
