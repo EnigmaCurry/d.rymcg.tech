@@ -1683,9 +1683,15 @@ cmd_build() {
         exit 1
     fi
     local BUILD_ARGS=(build)
-    # Podman: use slirp4netns if pasta fails during build
+    # Podman: build with the same network mode drt runs with (pasta, or
+    # slirp4netns/host where pasta is broken). Detection test-runs the
+    # image, so with no cached mode and no image yet, use podman's default:
     if [[ "${ENGINE}" == "podman" ]]; then
-        BUILD_ARGS+=(--network=slirp4netns)
+        if [[ -n "${NET_MODE}" || -f "${HOME}/.config/d.rymcg.tech/net-mode" ]] \
+           || "${ENGINE}" image exists "${IMAGE}" 2>/dev/null; then
+            detect_net_mode
+        fi
+        if [[ -n "${NET_MODE}" ]]; then BUILD_ARGS+=(--network="${NET_MODE}"); fi
     fi
     if [[ -n "${NO_CACHE}" ]]; then
         BUILD_ARGS+=(--no-cache)
