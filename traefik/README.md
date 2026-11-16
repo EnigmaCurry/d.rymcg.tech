@@ -680,7 +680,7 @@ Traefik [.env](.env-dist) file :
 | `TRAEFIK_VPN_CLIENT_INTERFACE_PRIVATE_KEY` | The VPN client private key                                                       | `4xxxxxxx=`                                              |
 | `TRAEFIK_VPN_CLIENT_PEER_ALLOWED_IPS`      | The VPN client allowed routable IP addresses                                     | `10.13.16.1/32`                                          |
 | `TRAEFIK_VPN_CLIENT_PEER_ENDPOINT`         | The VPN server public endpoint                                                   | `vpn.example.com:51820`                                  |
-| `TRAEFIK_VPN_CLIENT_PEER_PRESHARED_KEY`    | The VPN client preshared key                                                     | `6xxxxxxx=`                                              |
+| `TRAEFIK_VPN_CLIENT_PEER_PRESHARED_KEY`    | The VPN client preshared key (optional, leave blank if the peer has none)        | `6xxxxxxx=`                                              |
 | `TRAEFIK_VPN_CLIENT_PEER_PUBLIC_KEY`       | The VPN client public key                                                        | `5xxxxxxx=`                                              |
 | `TRAEFIK_VPN_CLIENT_PEER_SERVICES`         | The list of VPN services to forward                                              | `whoami,piwigo,freshrss`                                 |
 | `TRAEFIK_VPN_ENABLED`                      | (bool) enable VPN server                                                         | `false`,`true`                                           |
