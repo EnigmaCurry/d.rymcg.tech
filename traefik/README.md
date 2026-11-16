@@ -583,6 +583,74 @@ client credentials from the server:
    * `make show-wireguard-peers-qr` - QR encoded output to scan with
      android wireguard app.
 
+### Connect to a plain wireguard hub
+
+The wireguard client does not require the other end to be a Traefik
+instance. It's a generic wireguard client that connects to a single
+peer, so it can join any wireguard hub (a "hub and spoke" VPN where
+every peer connects to one central server). This lets the other peers
+on that hub reach your Traefik over the VPN.
+
+Get a peer config for this client from your hub's administrator (or
+create one yourself), then run `make config`, choose `Configure
+wireguard VPN`, then choose the option to connect to an outside VPN,
+and enter the details from the peer config:
+
+| Peer config field          | Variable                                   |
+|----------------------------|--------------------------------------------|
+| `[Interface]` `Address`    | `TRAEFIK_VPN_CLIENT_INTERFACE_ADDRESS`     |
+| `[Interface]` `PrivateKey` | `TRAEFIK_VPN_CLIENT_INTERFACE_PRIVATE_KEY` |
+| `[Interface]` `ListenPort` | `TRAEFIK_VPN_CLIENT_INTERFACE_LISTEN_PORT` |
+| `[Peer]` `PublicKey`       | `TRAEFIK_VPN_CLIENT_PEER_PUBLIC_KEY`       |
+| `[Peer]` `PresharedKey`    | `TRAEFIK_VPN_CLIENT_PEER_PRESHARED_KEY`    |
+| `[Peer]` `Endpoint`        | `TRAEFIK_VPN_CLIENT_PEER_ENDPOINT`         |
+| `[Peer]` `AllowedIPs`      | `TRAEFIK_VPN_CLIENT_PEER_ALLOWED_IPS`      |
+
+Notes:
+
+ * `TRAEFIK_VPN_CLIENT_PEER_PRESHARED_KEY` is optional. Leave it
+   blank if your hub does not use a preshared key.
+ * `TRAEFIK_VPN_CLIENT_INTERFACE_ADDRESS` is a single IP address
+   without a mask (e.g. `10.13.16.2`).
+ * Set `TRAEFIK_VPN_CLIENT_PEER_ALLOWED_IPS` to the hub's entire VPN
+   subnet (e.g. `10.13.16.0/24`), not just the hub's own address (the
+   default is `10.13.16.1/32`). Wireguard silently drops incoming
+   packets whose source address is not in the peer's `AllowedIPs`, so
+   with only the hub's address, requests from the other peers will
+   never reach Traefik.
+ * The client listens on the host network, so choose a
+   `TRAEFIK_VPN_CLIENT_INTERFACE_LISTEN_PORT` that isn't already in
+   use by another wireguard interface on the same host.
+ * When asked whether Traefik should bind exclusively to the VPN
+   interface, choose `Yes` to make your Traefik reachable only from
+   the VPN, or `No` to serve both the VPN and your other host
+   interfaces.
+
+The hub must also be set up for this:
+
+ * The hub's `[Peer]` entry for this client must have `AllowedIPs`
+   set to this client's address (e.g. `10.13.16.2/32`).
+ * The hub must forward traffic between peers: IP forwarding must be
+   enabled (`net.ipv4.ip_forward=1`) and the firewall must allow
+   forwarding from the wireguard interface back to itself (e.g.
+   `iptables -A FORWARD -i wg0 -o wg0 -j ACCEPT`).
+ * Each of the other peers needs `AllowedIPs` that include this
+   client's address (usually the whole VPN subnet).
+
+Finally, the other peers need to reach your apps by name, with valid
+TLS certificates:
+
+ * Create DNS records for your app domains that resolve to
+   `TRAEFIK_VPN_CLIENT_INTERFACE_ADDRESS`. These can be in a private
+   DNS server on the VPN, or in public DNS if you don't mind
+   publishing the private address.
+ * Let's Encrypt cannot reach a private VPN address to complete a TLS
+   challenge, so use a DNS based challenge instead: either
+   [Acme.sh + ACME-DNS](#acmesh--acme-dns), or the builtin Traefik
+   ACME client with `TRAEFIK_ACME_CHALLENGE=dns`. Alternatively, run
+   your own [Step-CA](#step-ca-self-hosted-acme-certificate-provisioner)
+   on the VPN.
+
 ### Reset wireguard server
 
 Wireguard runs inside the server host OS kernel. If you reconfigure
