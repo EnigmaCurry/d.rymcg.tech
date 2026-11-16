@@ -10,6 +10,7 @@
 #@ instance = data.values.instance
 #@ context = data.values.context
 #@ traefik_host = data.values.traefik_host
+#@ traefik_entrypoint = data.values.traefik_entrypoint
 #@ traefik_host_static = data.values.traefik_host_static
 #@ ip_sourcerange = data.values.ip_sourcerange
 #@ enable_http_auth = len(data.values.http_auth.strip()) > 0
@@ -46,19 +47,28 @@ services:
 
       #! The host matching router rule:
       - "traefik.http.routers.(@= router @).rule=Host(`(@= traefik_host @)`)"
-      - "traefik.http.routers.(@= router @).entrypoints=websecure"
+      - "traefik.http.routers.(@= router @).entrypoints=(@= traefik_entrypoint @)"
       #@ enabled_middlewares.append("{}-ipallowlist".format(router))
       - "traefik.http.middlewares.(@= router @)-ipallowlist.ipallowlist.sourcerange=(@= ip_sourcerange @)"
 
       #@ if enable_http_auth:
       #@ enabled_middlewares.append("{}-basicauth".format(router))
       - "traefik.http.middlewares.(@= router @)-basicauth.basicauth.users=(@= http_auth @)"
-      - "traefik.http.middlewares.(@= router @)-basicauth.basicauth.headerField=X-Forwarded-User"
+      - "traefik.http.middlewares.(@= router @)-basicauth.basicauth.headerField=X-Auth-Request-Email"
       #@ end
 
       #@ if enable_oauth2:
-      #@ enabled_middlewares.append("traefik-forward-auth@docker")
-      #@ enabled_middlewares.append("header-authorization-group-{}@file".format(authorized_group))
+      #@ oauth2_mw = "{}-oauth2".format(router)
+      #@ oauth2_errors_mw = "{}-oauth2-errors".format(router)
+      - "traefik.http.middlewares.(@= oauth2_mw @).plugin.headauth.header.name=X-Auth-Request-Groups"
+      - "traefik.http.middlewares.(@= oauth2_mw @).plugin.headauth.allowed[0]=(@= authorized_group @)"
+      - "traefik.http.middlewares.(@= oauth2_errors_mw @).errors.status=401"
+      - "traefik.http.middlewares.(@= oauth2_errors_mw @).errors.service=oauth2-proxy@docker"
+      - "traefik.http.middlewares.(@= oauth2_errors_mw @).errors.query=/oauth2/start?rd=https%3A%2F%2F(@= traefik_host @)"
+      - "traefik.http.middlewares.(@= oauth2_errors_mw @).errors.statusrewrites.401=302"
+      #@ enabled_middlewares.append("{}@docker".format(oauth2_errors_mw))
+      #@ enabled_middlewares.append("forward-auth@docker")
+      #@ enabled_middlewares.append("{}@docker".format(oauth2_mw))
       #@ end
       
       #@ if enable_mtls_auth:
@@ -84,14 +94,14 @@ services:
 
       #! The host matching attachments-router rule:
       - "traefik.http.routers.(@= attachments_router @).rule=Host(`(@= traefik_host @)`) && PathPrefix(`/wp-content/uploads`)"
-      - "traefik.http.routers.(@= attachments_router @).entrypoints=websecure"
+      - "traefik.http.routers.(@= attachments_router @).entrypoints=(@= traefik_entrypoint @)"
       #@ enabled_middlewares.append("{}-ipallowlist".format(attachments_router))
       - "traefik.http.middlewares.(@= attachments_router @)-ipallowlist.ipallowlist.sourcerange=(@= ip_sourcerange @)"
 
       #@ if enable_http_auth:
       #@ enabled_middlewares.append("{}-basicauth".format(attachments_router))
       - "traefik.http.middlewares.(@= attachments_router @)-basicauth.basicauth.users=(@= http_auth @)"
-      - "traefik.http.middlewares.(@= attachments_router @)-basicauth.basicauth.headerField=X-Forwarded-User"
+      - "traefik.http.middlewares.(@= attachments_router @)-basicauth.basicauth.headerField=X-Auth-Request-Email"
       #@ end
 
       #@ if enable_anti_hotlink:
@@ -123,6 +133,8 @@ services:
   wp-static:
     build:
       context: nginx-static
+    environment:
+      - TZ=${DEFAULT_TIMEZONE:-Etc/UTC}
     security_opt:
       - no-new-privileges:true
     volumes:
@@ -138,14 +150,14 @@ services:
 
       #! The host matching router rule:
       - "traefik.http.routers.(@= router @).rule=Host(`(@= traefik_host_static @)`)"
-      - "traefik.http.routers.(@= router @).entrypoints=websecure"
+      - "traefik.http.routers.(@= router @).entrypoints=(@= traefik_entrypoint @)"
       #@ enabled_middlewares.append("{}-ipallowlist".format(router))
       - "traefik.http.middlewares.(@= router @)-ipallowlist.ipallowlist.sourcerange=(@= ip_sourcerange_static @)"
 
       #@ if enable_http_auth_static:
       #@ enabled_middlewares.append("{}-basicauth".format(router))
       - "traefik.http.middlewares.(@= router @)-basicauth.basicauth.users=(@= http_auth_static @)"
-      - "traefik.http.middlewares.(@= router @)-basicauth.basicauth.headerField=X-Forwarded-User"
+      - "traefik.http.middlewares.(@= router @)-basicauth.basicauth.headerField=X-Auth-Request-Email"
       #@ end
 
       #! Apply all middlewares (do this at the end!)
@@ -162,14 +174,14 @@ services:
 
       #! The host matching attachments-router rule:
       - "traefik.http.routers.(@= attachments_router @).rule=Host(`(@= traefik_host_static @)`) && PathPrefix(`/wp-content/uploads`)"
-      - "traefik.http.routers.(@= attachments_router @).entrypoints=websecure"
+      - "traefik.http.routers.(@= attachments_router @).entrypoints=(@= traefik_entrypoint @)"
       #@ enabled_middlewares.append("{}-ipallowlist".format(attachments_router))
       - "traefik.http.middlewares.(@= attachments_router @)-ipallowlist.ipallowlist.sourcerange=(@= ip_sourcerange_static @)"
 
       #@ if enable_http_auth_static:
       #@ enabled_middlewares.append("{}-basicauth".format(attachments_router))
       - "traefik.http.middlewares.(@= attachments_router @)-basicauth.basicauth.users=(@= http_auth_static @)"
-      - "traefik.http.middlewares.(@= attachments_router @)-basicauth.basicauth.headerField=X-Forwarded-User"
+      - "traefik.http.middlewares.(@= attachments_router @)-basicauth.basicauth.headerField=X-Auth-Request-Email"
       #@ end
 
       #@ if enable_anti_hotlink:

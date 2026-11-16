@@ -1,5 +1,7 @@
 services:
   thelounge:
+    environment:
+      - TZ=${DEFAULT_TIMEZONE:-Etc/UTC}
     image: ${THELOUNGE_IMAGE}
     cap_drop:
       - ALL
@@ -14,6 +16,7 @@ services:
     restart: unless-stopped
     labels: []
     volumes:
+      - ${HOST_ZONEINFO:-/usr/share/zoneinfo}:/usr/share/zoneinfo:ro
       - thelounge:/var/opt/thelounge:Z
 
 volumes:

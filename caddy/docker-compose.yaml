@@ -1,14 +1,18 @@
 services:
   caddy:
+    restart: unless-stopped
     build:
       context: caddy
       args:
         CADDY_IMAGE: ${CADDY_IMAGE}
     environment:
+      - TZ=${DEFAULT_TIMEZONE:-Etc/UTC}
+      - TLS_MODE=${CADDY_TLS_MODE}
       - ACME_AGREE=true
       - ACME_CA=${CADDY_ACME_CA}
       - DOMAIN=${CADDY_TRAEFIK_HOST}
     volumes:
+      - ${HOST_ZONEINFO:-/usr/share/zoneinfo}:/usr/share/zoneinfo:ro
       - caddy_data:/data
       - caddy_config:/config
       - caddy_html:/srv

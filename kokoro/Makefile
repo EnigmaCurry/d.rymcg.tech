@@ -27,7 +27,7 @@ override-hook:
 ####                         # (this hardcodes the string into docker-compose.override.yaml)
 ####   name=@VARIABLE_NAME   # sets the template 'name' field to the literal string '${VARIABLE_NAME}'
 ####                         # (used for regular docker-compose expansion of env vars by name.)
-	@${BIN}/docker_compose_override ${ENV_FILE} project=:kokoro instance=@KOKORO_INSTANCE traefik_host=@KOKORO_TRAEFIK_HOST http_auth=KOKORO_HTTP_AUTH http_auth_var=@KOKORO_HTTP_AUTH ip_sourcerange=@KOKORO_IP_SOURCERANGE oauth2=KOKORO_OAUTH2 authorized_group=KOKORO_OAUTH2_AUTHORIZED_GROUP enable_mtls_auth=KOKORO_MTLS_AUTH mtls_authorized_certs=KOKORO_MTLS_AUTHORIZED_CERTS
+	@${BIN}/docker_compose_override ${ENV_FILE} project=:kokoro instance=@KOKORO_INSTANCE traefik_host=@KOKORO_TRAEFIK_HOST http_auth=KOKORO_HTTP_AUTH http_auth_var=@KOKORO_HTTP_AUTH ip_sourcerange=@KOKORO_IP_SOURCERANGE oauth2=KOKORO_OAUTH2 authorized_group=KOKORO_OAUTH2_AUTHORIZED_GROUP enable_mtls_auth=KOKORO_MTLS_AUTH mtls_authorized_certs=KOKORO_MTLS_AUTHORIZED_CERTS traefik_entrypoint=KOKORO_TRAEFIK_ENTRYPOINT
 
 .PHONY: shell # Enter container shell
 shell:

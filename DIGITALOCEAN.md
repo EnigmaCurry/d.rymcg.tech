@@ -19,6 +19,66 @@ The first time you run `d droplet`, you will be prompted to add your
 DigitalOcean account (name and API token). You can manage multiple
 accounts from the Accounts menu.
 
+## Quick start
+
+```
+d droplet quick
+```
+
+(or choose `Quick start` from the `d droplet` main menu)
+
+Quick start builds a complete Docker server for the current context in
+one go. It asks every question up front: droplet name, region, size,
+image, SSH key, firewall, reserved IP, backups, domain, subdomain, TLS
+certificates, timezone, and whether to install the `whoami` test app.
+After you confirm the summary, it runs unattended:
+
+ 1. Creates a Web firewall (SSH + HTTP + HTTPS) and a droplet with the
+    Docker cloud-init.
+ 2. Creates `A` records for `SUB.DOMAIN` and `*.SUB.DOMAIN`.
+ 3. Waits for SSH and for cloud-init to finish installing Docker.
+ 4. Adds an SSH config entry and a Docker context with the context's
+    name, and selects it.
+ 5. Writes the root config (`ROOT_DOMAIN=SUB.DOMAIN`, `DEFAULT_TIMEZONE`).
+ 6. Configures and installs Traefik (and acme-dns, with the default TLS
+    choice).
+ 7. Optionally installs `whoami` and waits for it to answer over HTTPS.
+
+The TLS choices are:
+
+ * **Wildcard via self-hosted [acme-dns](acme-dns)** (the default). One
+   certificate for `*.SUB.DOMAIN` covers every app you install later,
+   and no DigitalOcean token goes on the server. acme-dns runs on the
+   droplet as the DNS server for `acme-dns.SUB.DOMAIN`, delegated to it
+   by an `NS` record, and Traefik's acme.sh answers the DNS-01
+   challenges through it. Quick start creates the `NS`, `A` and
+   `_acme-challenge` `CNAME` records with your local doctl, and opens
+   port 53 (TCP and UDP) in the firewall. acme-dns always gets a
+   *production* certificate for its own API, and Let's Encrypt issues
+   at most 5 per week for the same name, so avoid destroying and
+   rebuilding the same subdomain repeatedly.
+ * **Wildcard via the DigitalOcean DNS API**. The same wildcard
+   certificate with fewer moving parts, but Traefik needs a
+   DigitalOcean API token, which is stored on the server. Give it a
+   separate token with custom scopes (`domain:read`, `domain:update`)
+   rather than reusing your doctl token.
+ * **One certificate per app name** with the TLS-ALPN-01 challenge. No
+   token on the server, but each new app's name must be added to
+   Traefik's certificate list (`d make traefik config`), followed by a
+   Traefik reinstall.
+ * **None**: Traefik's self-signed default certificate only.
+
+Inside [drt](WORKSTATION_CONTAINER.md), start a session for a context
+that has no Docker host yet (`drt --init foo`, answer *no* to the SSH
+question, then `drt foo`). Run `d droplet quick` there, and answer `Y`
+to *Save changes* when you exit: the next `drt foo` connects straight
+to the droplet. [DIGITALOCEAN_DRT.md](DIGITALOCEAN_DRT.md) walks
+through the whole process, from installing Podman to the first app.
+
+If a run fails partway, run it again and give the same droplet name:
+it offers to resume on the existing droplet, and skips the droplet
+questions.
+
 ## Create a droplet
 
 ```

@@ -3636,6 +3636,7 @@ gumdrop_main() {
         gumdrop_show_account
         set +e
         wizard menu --once --cancel-code=2 "Manage:" \
+            "Quick start = $0 gumdrop_quick" \
             "${GUMDROP_LABEL}s = $0 gumdrop_manage_droplets" \
             "SSH keys = $0 gumdrop_manage_ssh_keys" \
             "Firewalls = $0 gumdrop_manage_firewalls" \
@@ -3676,6 +3677,10 @@ _gumdrop_parse_args() {
                 export GUMDROP_CREATE_PRESET=true
                 shift 2
                 ;;
+            quick)
+                export GUMDROP_QUICK=true
+                shift
+                ;;
             *)
                 break
                 ;;
@@ -3684,10 +3689,15 @@ _gumdrop_parse_args() {
     GUMDROP_REMAINING_ARGS=("$@")
 }
 
+## Quick start (gumdrop_quick):
+source "${SCRIPT_DIR}/gumdrop_quick"
+
 ## Direct execution dispatch:
 if [[ "${BASH_SOURCE[0]}" == "$0" ]]; then
     _gumdrop_parse_args "$@"
-    if [[ "${GUMDROP_CREATE_PRESET:-}" == "true" ]]; then
+    if [[ "${GUMDROP_QUICK:-}" == "true" ]]; then
+        gumdrop_quick
+    elif [[ "${GUMDROP_CREATE_PRESET:-}" == "true" ]]; then
         gumdrop_check_doctl
         gumdrop_create_preset
     elif [[ -n "${GUMDROP_PRESET_NAME:-}" && -n "${GUMDROP_DROPLET_NAME:-}" ]]; then

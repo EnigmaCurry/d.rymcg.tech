@@ -14,32 +14,23 @@ services:
       - SETGID
       - SETUID
     environment:
+      - TZ=${DEFAULT_TIMEZONE:-Etc/UTC}
       - ALLOWED_HOSTS=*
       - BASE_URL=https://${ARCHIVEBOX_TRAEFIK_HOST}
     volumes:
       - data:/data
     restart: unless-stopped
+    ## archivebox server runs supervisord, which restarts a crashed web
+    ## server, crawl runner or sonic inside the container, so probe the web
+    ## server and require supervisord to report each one RUNNING for 10s.
+    ## The web worker is worker_uvicorn since 0.9.77 (worker_daphne before):
+    healthcheck:
+      test: ["CMD-SHELL", "curl -fsS -o /dev/null http://127.0.0.1:5797/health/ && supervisorctl -c /tmp/archivebox/supervisord.conf status | awk '$$1 !~ /^worker_(daphne|uvicorn|runner|sonic)$$/ {next} {n++} $$2 != \"RUNNING\" {bad = 1} $$NF ~ /^[0-9]+:[0-9]+:[0-9]+$$/ && $$0 !~ /day/ {split($$NF, t, \":\"); if (t[1] * 3600 + t[2] * 60 + t[3] < 10) bad = 1} END {exit bad || n != 3}'"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+      start_period: 120s
     labels: []
-
-  public-api-gateway:
-    build:
-      context: ${ARCHIVEBOX_API_GATEWAY_CONTEXT:-https://github.com/EnigmaCurry/archivebox-api-gateway.git}
-    security_opt:
-      - no-new-privileges:true
-    cap_drop:
-      - ALL
-    restart: unless-stopped
-    environment:
-      - ARCHIVEBOX_BASE_URL=http://archivebox:5797
-      - API_BASE_URL=https://${ARCHIVEBOX_TRAEFIK_HOST}
-      - PATH_PREFIX=/api-gateway
-      - SECRET_KEY
-      - ARCHIVEBOX_USERNAME
-      - ARCHIVEBOX_PASSWORD
-      - LOG_LEVEL=${API_LOG_LEVEL}
-    labels: []
-
-
 
   # Note (0.9.x): the Sonic full-text search backend is now built into the
   # archivebox/archivebox image (SEARCH_BACKEND_ENGINE=sonic by default), so

@@ -347,9 +347,10 @@ This configuration has builtin support for the following plugins:
  * [referer](https://github.com/moonlightwatch/referer) -
    middleware that prevents foreign referal URLs.
  * [headauth](https://github.com/enigmacurry/traefik-header-authorization) used for
-   implementing OAuth2 sentry authorization, which filters allowed
-   users by groups, and it forwards the authenticated user in the
-   `X-Forwarded-User` header field to your app.
+   implementing OAuth2 sentry authorization: reads the trusted
+   `X-Auth-Request-Email` header set upstream by
+   [oauth2-proxy](../oauth2-proxy) and rejects requests whose user is
+   not a member of the app's configured authorization group.
  * [certauthz](github.com/famedly/traefik-certauthz) used for
    implementing mTLS sentry authorization based on a filter of allowed
    client certificates.
@@ -379,65 +380,55 @@ to web servers running in project containers.
 
 ## OAuth2 authentication
 
-If you install the [traefik-forward-auth](../traefik-forward-auth)
-service, you can enable OAuth2 authentication to your
-[forgejo](../forgejo) identity provider (or any external OAuth2 provider).
+If you install the [oauth2-proxy](../oauth2-proxy) service, you can
+enable OIDC/OAuth2 authentication delegated to your
+[forgejo](../forgejo) identity provider (or any external OIDC provider).
 
 It is important to understand the difference between authentication
 and authorization:
 
  * authentication identifies who a user *is*. (This is what
-     traefik-forward-auth does for you, sitting in front of your app.)
+   oauth2-proxy does for you, sitting in front of your app.)
  * authorization is a process that determines what a user should be
    *allowed to do* (This is what every application should do for
    itself, or another middleware described below).
 
-To summarize: traefik-forward-auth, by itself, only cares about
-identity, not about permissions.
+To summarize: oauth2-proxy, by itself, only cares about identity, not
+about permissions.
 
 Permissions (authorization) are to be implemented in the app itself.
-Traefik-Forward-Auth operates by setting a trusted header
-`X-Forwarded-User` that contains the authenticated users email
-address. The application receives this header on every request coming
-from the proxy. It should trust this header to be a real authenticated
-user for the session, and it only needs to decide what that user is
-allowed to do (ie. the app should define a map of email address to
-permissions that it enforces per request; the app database only needs
-to store user registrations, and their permission roles, but doesn't
-need to store any user passwords.).
+oauth2-proxy operates by setting a trusted header `X-Auth-Request-Email`
+that contains the authenticated user's email address. The application
+receives this header on every request coming from the proxy. It should
+trust this header to be a real authenticated user for the session, and
+it only needs to decide what that user is allowed to do (ie. the app
+should define a map of email address to permissions that it enforces
+per request; the app database only needs to store user registrations
+and their permission roles, but doesn't need to store any user
+passwords).
 
 However, many applications do not support this style of delegated
 authentication by trusted header. To add authorization to an
-unsupported application, you may use the provided [header
-authorization
-middleware](https://github.com/enigmacurry/traefik-header-authorization),
-and it can be configured simply by running this make target:
+unsupported application, we use the [header authorization
+middleware](https://github.com/enigmacurry/traefik-header-authorization).
+It's applied automatically per-app when `<APP>_OAUTH2=true` and
+`<APP>_OAUTH2_AUTHORIZED_GROUP=<groupname>` are set in an app's env:
+each app's docker-compose template defines its own instance of the
+middleware inline, checking that the user's OIDC `groups` claim
+contains the configured group name.
 
-```
-# Configure the header authorization middleware:
-make sentry
-```
-
-This will configure the `TRAEFIK_HEADER_AUTHORIZATION_GROUPS`
-environment variable in your .env file (which is a serialized JSON map
-of groups and allowed usernames). Email addresses must match those of
-accounts on your Forgejo instance. For example, if you have accounts on
-your Forgejo instance for alice@example.com and bob@demo.com, and you
-only want Alice to be able to access this app, only enter
-`alice@example.com`. Remember to re-install traefik after making any
-changes to your authorization groups or permitted email addresses.
-
-Each app must apply the middleware to filter users based on the group
-the middleware is designed for. Once you run `make sentry` and configure
-authorization groups in the `traefik` folder, when you run `make config` for
-that app and elect to configure Oauth2 authentication, you will be asked to
-assign one of those groups to your app.
+Because the middleware is defined per-app via Docker labels, there is
+no central Traefik-side configuration and no wizard. To grant a user
+access to an app, add them to the corresponding team in your OIDC
+provider (Forgejo, GitHub, etc.) — Traefik doesn't need a restart.
+Only *creating* or *changing* the group name on an app requires a
+`make install` for that app (to re-render the labels).
 
 While this extra middleware can get you "in the door" of any app, its
 still ultimately up to the app as to what you can do when you get
-there, so if the app doesn't understand the `X-Forwarded-User` header,
-you may also need to login through the app interface itself, after
-having already logged in through Forgejo.
+there, so if the app doesn't understand the `X-Auth-Request-Email`
+header, you may also need to login through the app interface itself,
+after having already logged in through Forgejo.
 
 ## Step CA (self-hosted ACME certificate provisioner)
 
@@ -473,14 +464,22 @@ Set the following variables in your Traefik `.env_{CONTEXT}` file:
  * `TRAEFIK_STEP_CA_FINGERPRINT=xxxxxxxxxxxxxxxxxxxx` (set this to
    your Step-CA fingerprint, eg. use `make inspect-fingerprint` in the
    [step-ca](../step-ca) project to find it.)
- * `TRAFEIK_STEP_CA_ZERO_CERTS=true` (set this true if you want to delete all other CA certs.)
+ * `TRAEFIK_STEP_CA_ZERO_CERTS=true` (set this true if you want to delete all other CA certs.)
 
 Make sure to reinstall Traefik (`make install`) for these settings to
-take effect. The image will be rebuilt, baking in your root CA
-certificate. The [Dockerfile](Dockerfile) runs `step-cli`, it
-retrieves the CA cert chain from your Step-CA endpoint, verifies the
-fingerprint, and then writes the CA cert permanently into the Traefik
-system's trust store (ie. container image layer).
+take effect. When Traefik starts, its
+[entrypoint](traefik/entrypoint.sh) runs `step-cli`: it retrieves the
+CA cert chain from your Step-CA endpoint, verifies the fingerprint,
+saves the root and intermediate certificates in the `traefik_certs`
+volume, and adds the root to the container's trust store. This only
+happens again if the fingerprint changes.
+
+Step-CA may be served by this same Traefik (e.g. the
+[step-ca](../step-ca) project on the same server), so it can't answer
+until Traefik is running. In that case, Traefik starts without the CA,
+retries in the background, and restarts itself once the bootstrap
+succeeds (watch `make logs`). Until then, mTLS routes don't accept
+clients.
 
 You can test that the certificate is trusted and valid, using the
 `curl` command from inside of the trafeik container shell:
@@ -584,6 +583,74 @@ client credentials from the server:
    * `make show-wireguard-peers-qr` - QR encoded output to scan with
      android wireguard app.
 
+### Connect to a plain wireguard hub
+
+The wireguard client does not require the other end to be a Traefik
+instance. It's a generic wireguard client that connects to a single
+peer, so it can join any wireguard hub (a "hub and spoke" VPN where
+every peer connects to one central server). This lets the other peers
+on that hub reach your Traefik over the VPN.
+
+Get a peer config for this client from your hub's administrator (or
+create one yourself), then run `make config`, choose `Configure
+wireguard VPN`, then choose the option to connect to an outside VPN,
+and enter the details from the peer config:
+
+| Peer config field          | Variable                                   |
+|----------------------------|--------------------------------------------|
+| `[Interface]` `Address`    | `TRAEFIK_VPN_CLIENT_INTERFACE_ADDRESS`     |
+| `[Interface]` `PrivateKey` | `TRAEFIK_VPN_CLIENT_INTERFACE_PRIVATE_KEY` |
+| `[Interface]` `ListenPort` | `TRAEFIK_VPN_CLIENT_INTERFACE_LISTEN_PORT` |
+| `[Peer]` `PublicKey`       | `TRAEFIK_VPN_CLIENT_PEER_PUBLIC_KEY`       |
+| `[Peer]` `PresharedKey`    | `TRAEFIK_VPN_CLIENT_PEER_PRESHARED_KEY`    |
+| `[Peer]` `Endpoint`        | `TRAEFIK_VPN_CLIENT_PEER_ENDPOINT`         |
+| `[Peer]` `AllowedIPs`      | `TRAEFIK_VPN_CLIENT_PEER_ALLOWED_IPS`      |
+
+Notes:
+
+ * `TRAEFIK_VPN_CLIENT_PEER_PRESHARED_KEY` is optional. Leave it
+   blank if your hub does not use a preshared key.
+ * `TRAEFIK_VPN_CLIENT_INTERFACE_ADDRESS` is a single IP address
+   without a mask (e.g. `10.13.16.2`).
+ * Set `TRAEFIK_VPN_CLIENT_PEER_ALLOWED_IPS` to the hub's entire VPN
+   subnet (e.g. `10.13.16.0/24`), not just the hub's own address (the
+   default is `10.13.16.1/32`). Wireguard silently drops incoming
+   packets whose source address is not in the peer's `AllowedIPs`, so
+   with only the hub's address, requests from the other peers will
+   never reach Traefik.
+ * The client listens on the host network, so choose a
+   `TRAEFIK_VPN_CLIENT_INTERFACE_LISTEN_PORT` that isn't already in
+   use by another wireguard interface on the same host.
+ * When asked whether Traefik should bind exclusively to the VPN
+   interface, choose `Yes` to make your Traefik reachable only from
+   the VPN, or `No` to serve both the VPN and your other host
+   interfaces.
+
+The hub must also be set up for this:
+
+ * The hub's `[Peer]` entry for this client must have `AllowedIPs`
+   set to this client's address (e.g. `10.13.16.2/32`).
+ * The hub must forward traffic between peers: IP forwarding must be
+   enabled (`net.ipv4.ip_forward=1`) and the firewall must allow
+   forwarding from the wireguard interface back to itself (e.g.
+   `iptables -A FORWARD -i wg0 -o wg0 -j ACCEPT`).
+ * Each of the other peers needs `AllowedIPs` that include this
+   client's address (usually the whole VPN subnet).
+
+Finally, the other peers need to reach your apps by name, with valid
+TLS certificates:
+
+ * Create DNS records for your app domains that resolve to
+   `TRAEFIK_VPN_CLIENT_INTERFACE_ADDRESS`. These can be in a private
+   DNS server on the VPN, or in public DNS if you don't mind
+   publishing the private address.
+ * Let's Encrypt cannot reach a private VPN address to complete a TLS
+   challenge, so use a DNS based challenge instead: either
+   [Acme.sh + ACME-DNS](#acmesh--acme-dns), or the builtin Traefik
+   ACME client with `TRAEFIK_ACME_CHALLENGE=dns`. Alternatively, run
+   your own [Step-CA](#step-ca-self-hosted-acme-certificate-provisioner)
+   on the VPN.
+
 ### Reset wireguard server
 
 Wireguard runs inside the server host OS kernel. If you reconfigure
@@ -648,7 +715,6 @@ Traefik [.env](.env-dist) file :
 | `TRAEFIK_GEOIPUPDATE_ACCOUNT_ID`           | MaxMind account id for GeoIP database download                                   |                                                          |
 | `TRAEFIK_GEOIPUPDATE_EDITION_IDS`          | The list of GeoIP databases to download                                          | `GeoLite2-ASN GeoLite2-City GeoLite2-Country`            |
 | `TRAEFIK_GEOIPUPDATE_LICENSE_KEY`          | MaxMind license key for GeoIP database download                                  |                                                          |
-| `TRAEFIK_HEADER_AUTHORIZATION_GROUPS`      | JSON list of user groups for OAuth2 authorization                                | `{"admin":["root@localhost"]}`                           |
 | `TRAEFIK_IMAGE`                            | The Traefik docker image                                                         | `traefik:v2.9`                                           |
 | `TRAEFIK_LOG_LEVEL`                        | Traefik log level                                                                | `warn`,`error`,`info`, `debug`                           |
 | `TRAEFIK_MPD_ENTRYPOINT_ENABLED`           | (bool) Enable mpd (unencrypted) entrypoint                                       |                                                          |
@@ -682,7 +748,7 @@ Traefik [.env](.env-dist) file :
 | `TRAEFIK_VPN_CLIENT_INTERFACE_PRIVATE_KEY` | The VPN client private key                                                       | `4xxxxxxx=`                                              |
 | `TRAEFIK_VPN_CLIENT_PEER_ALLOWED_IPS`      | The VPN client allowed routable IP addresses                                     | `10.13.16.1/32`                                          |
 | `TRAEFIK_VPN_CLIENT_PEER_ENDPOINT`         | The VPN server public endpoint                                                   | `vpn.example.com:51820`                                  |
-| `TRAEFIK_VPN_CLIENT_PEER_PRESHARED_KEY`    | The VPN client preshared key                                                     | `6xxxxxxx=`                                              |
+| `TRAEFIK_VPN_CLIENT_PEER_PRESHARED_KEY`    | The VPN client preshared key (optional, leave blank if the peer has none)        | `6xxxxxxx=`                                              |
 | `TRAEFIK_VPN_CLIENT_PEER_PUBLIC_KEY`       | The VPN client public key                                                        | `5xxxxxxx=`                                              |
 | `TRAEFIK_VPN_CLIENT_PEER_SERVICES`         | The list of VPN services to forward                                              | `whoami,piwigo,freshrss`                                 |
 | `TRAEFIK_VPN_ENABLED`                      | (bool) enable VPN server                                                         | `false`,`true`                                           |

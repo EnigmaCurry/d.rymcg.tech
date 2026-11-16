@@ -4,6 +4,9 @@ include ${ROOT_DIR}/_scripts/Makefile.instance
 
 .PHONY: build
 build:
+	@## This Makefile's own build target bypasses Makefile.build's hook, so
+	@## generate app-router-bootstrap.sh (gitignored) here:
+	@make --no-print-directory build-hook-pre
 	make --no-print-directory docker-compose-build EXTRA_ARGS="${EXTRA_ARGS}" DOCKER_BUILDKIT=0
 
 .PHONY: config-hook
@@ -40,7 +43,7 @@ override-hook:
 ####                         # (this hardcodes the string into docker-compose.override.yaml)
 ####   name=@VARIABLE_NAME   # sets the template 'name' field to the literal string '${VARIABLE_NAME}'
 ####                         # (used for regular docker-compose expansion of env vars by name.)
-	@${BIN}/docker_compose_override ${ENV_FILE} project=:webtop instance=@WEBTOP_INSTANCE traefik_host=@WEBTOP_TRAEFIK_HOST http_auth=WEBTOP_HTTP_AUTH http_auth_var=@WEBTOP_HTTP_AUTH ip_sourcerange=@WEBTOP_IP_SOURCERANGE oauth2=WEBTOP_OAUTH2 authorized_group=WEBTOP_OAUTH2_AUTHORIZED_GROUP enable_mtls_auth=WEBTOP_MTLS_AUTH mtls_authorized_certs=WEBTOP_MTLS_AUTHORIZED_CERTS homepage_labels_enable=WEBTOP_HOMEPAGE_LABELS_ENABLE homepage_group_webtop=WEBTOP_HOMEPAGE_GROUP_WEBTOP homepage_name_webtop=WEBTOP_HOMEPAGE_NAME_WEBTOP homepage_icon_webtop=WEBTOP_HOMEPAGE_ICON_WEBTOP homepage_description_webtop=WEBTOP_HOMEPAGE_DESCRIPTION_WEBTOP homepage_show_stats_webtop=WEBTOP_HOMEPAGE_SHOW_STATS_WEBTOP wireguard_instance=WEBTOP_WIREGUARD_INSTANCE
+	@${BIN}/docker_compose_override ${ENV_FILE} project=:webtop instance=@WEBTOP_INSTANCE traefik_host=@WEBTOP_TRAEFIK_HOST http_auth=WEBTOP_HTTP_AUTH http_auth_var=@WEBTOP_HTTP_AUTH ip_sourcerange=@WEBTOP_IP_SOURCERANGE oauth2=WEBTOP_OAUTH2 authorized_group=WEBTOP_OAUTH2_AUTHORIZED_GROUP enable_mtls_auth=WEBTOP_MTLS_AUTH mtls_authorized_certs=WEBTOP_MTLS_AUTHORIZED_CERTS homepage_labels_enable=WEBTOP_HOMEPAGE_LABELS_ENABLE homepage_group_webtop=WEBTOP_HOMEPAGE_GROUP_WEBTOP homepage_name_webtop=WEBTOP_HOMEPAGE_NAME_WEBTOP homepage_icon_webtop=WEBTOP_HOMEPAGE_ICON_WEBTOP homepage_description_webtop=WEBTOP_HOMEPAGE_DESCRIPTION_WEBTOP homepage_show_stats_webtop=WEBTOP_HOMEPAGE_SHOW_STATS_WEBTOP wireguard_instance=WEBTOP_WIREGUARD_INSTANCE traefik_entrypoint=WEBTOP_TRAEFIK_ENTRYPOINT
 
 .PHONY: shell # Enter container shell
 shell:

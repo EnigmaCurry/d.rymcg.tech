@@ -22,6 +22,9 @@ This guide shows you how to install a Docker server and setup the firewall.
        Create a NixOS VM with Docker on libvirt/KVM or Proxmox VE.
      * [DIGITALOCEAN.md](DIGITALOCEAN.md) - Create a DigitalOcean
        droplet to run Docker in the cloud.
+     * [DIGITALOCEAN_DRT.md](DIGITALOCEAN_DRT.md) - Quick start: create
+       a DigitalOcean droplet with DNS, Traefik and TLS in one step,
+       managed from drt.
      * [AWS.md](AWS.md) - Create an AWS EC2 instance to run Docker in
        the cloud.
 
@@ -29,6 +32,7 @@ This guide shows you how to install a Docker server and setup the firewall.
 
    * [WORKSTATION_LINUX.md](WORKSTATION_LINUX.md) - Setup your workstation on Linux.
    * [WORKSTATION_WSL.md](WORKSTATION_WSL.md) - Setup your workstation on Windows (WSL)
+   * [WORKSTATION_CONTAINER.md](WORKSTATION_CONTAINER.md) - Setup your workstation in an ephemeral container encrypted at rest (Also see [DIGITALOCEAN_DRT.md](DIGITALOCEAN_DRT.md) for quick start).
  
 ## Setup SSH and Docker context
 

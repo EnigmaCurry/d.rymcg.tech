@@ -88,14 +88,6 @@ logs-access-out:
 debug:
 	@EXISTING_TRAEFIK_LOG_LEVEL=$$(${BIN}/dotenv -f ${ENV_FILE} get TRAEFIK_LOG_LEVEL) && ${BIN}/reconfigure ${ENV_FILE} TRAEFIK_LOG_LEVEL=debug && make --no-print-directory install; STARTED=$$?; ${BIN}/reconfigure ${ENV_FILE} TRAEFIK_LOG_LEVEL=$${EXISTING_TRAEFIK_LOG_LEVEL} && [[ "$$STARTED" == "0" ]] && make --no-print-directory logs-traefik
 
-.PHONY: sentry
-sentry:
-	@${BIN}/reconfigure_header_authorization ${ENV_FILE}
-
-.PHONY: sentry-callback
-sentry-callback:
-	@${BIN}/reconfigure_header_authorization ${ENV_FILE} list-callback-urls
-
 .PHONY: route # Manage routes
 route:
 	@ENV_FILE=${ENV_FILE} ROOT_ENV=${ROOT_ENV} D_RYMCG_TECH_CONTEXT_ALIAS=$${D_RYMCG_TECH_CONTEXT_ALIAS} ARGS=$${ARGS} ${BIN}/route

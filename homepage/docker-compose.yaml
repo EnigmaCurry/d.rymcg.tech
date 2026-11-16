@@ -13,8 +13,10 @@ services:
     restart: unless-stopped
     networks: [sandbox]
     volumes:
+      - ${HOST_ZONEINFO:-/usr/share/zoneinfo}:/usr/share/zoneinfo:ro
       - /var/run/docker.sock:/var/run/docker.sock:ro,z
     environment:
+      - TZ=${DEFAULT_TIMEZONE:-Etc/UTC}
       - LOG_LEVEL=${HOMEPAGE_DOCKER_SOCKET_PROXY_LOG_LEVEL}
       # ---- Global HTTP method gate ----
       - POST=0                 # 0 = block all POST/DELETE/PATCH (read-only proxy). 1 = allow writes.
@@ -45,12 +47,14 @@ services:
     restart: unless-stopped
     networks: [default, sandbox]
     environment:
+      TZ: ${DEFAULT_TIMEZONE:-Etc/UTC}
       HOMEPAGE_DOCKER_HOST: http://docker-socket-proxy:2375
       RELOAD_WEBHOOK_HMAC_SECRET: ${HOMEPAGE_RELOADER_HMAC_SECRET}
       RELOAD_WEBHOOK_PATH_PREFIX: ${HOMEPAGE_RELOADER_PATH_PREFIX}
       HOMEPAGE_TEMPLATE_REPO: ${HOMEPAGE_TEMPLATE_REPO}
-      HOMEPAGE_ALLOWED_HOSTS: ${HOMEPAGE_ALLOWED_HOSTS}
-    volumes: []
+      HOMEPAGE_ALLOWED_HOSTS: ${HOMEPAGE_ALLOWED_HOSTS:-${HOMEPAGE_TRAEFIK_HOST}}
+    volumes:
+      - ${HOST_ZONEINFO:-/usr/share/zoneinfo}:/usr/share/zoneinfo:ro
     labels: []
     cap_drop: ["ALL"]
     security_opt:

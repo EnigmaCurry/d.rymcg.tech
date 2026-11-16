@@ -126,6 +126,13 @@ BUILD=false make install
 Or set `BUILD=false` in the root `.env_{context}` file to disable
 building for the entire context.
 
+With `BUILD=false`, services are started with `docker compose up
+--no-build --pull never`, so only images already present on the
+Docker host are used. If an image is missing (e.g. it was not
+restored, or your `.env` references a different tag than the
+archive), startup fails loudly instead of silently pulling it from a
+registry.
+
 ## Archive structure
 
 Archives are organized by host architecture:

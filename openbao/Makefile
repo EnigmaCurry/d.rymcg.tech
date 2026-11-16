@@ -30,7 +30,7 @@ override-hook:
 ####                         # (this hardcodes the string into docker-compose.override.yaml)
 ####   name=@VARIABLE_NAME   # sets the template 'name' field to the literal string '${VARIABLE_NAME}'
 ####                         # (used for regular docker-compose expansion of env vars by name.)
-	@${BIN}/docker_compose_override ${ENV_FILE} project=:openbao instance=@OPENBAO_INSTANCE traefik_host=@OPENBAO_TRAEFIK_HOST http_auth=OPENBAO_HTTP_AUTH http_auth_var=@OPENBAO_HTTP_AUTH ip_sourcerange=@OPENBAO_IP_SOURCERANGE oauth2=OPENBAO_OAUTH2 authorized_group=OPENBAO_OAUTH2_AUTHORIZED_GROUP enable_mtls_auth=OPENBAO_MTLS_AUTH mtls_authorized_certs=OPENBAO_MTLS_AUTHORIZED_CERTS
+	@${BIN}/docker_compose_override ${ENV_FILE} project=:openbao instance=@OPENBAO_INSTANCE traefik_host=@OPENBAO_TRAEFIK_HOST http_auth=OPENBAO_HTTP_AUTH http_auth_var=@OPENBAO_HTTP_AUTH ip_sourcerange=@OPENBAO_IP_SOURCERANGE oauth2=OPENBAO_OAUTH2 authorized_group=OPENBAO_OAUTH2_AUTHORIZED_GROUP enable_mtls_auth=OPENBAO_MTLS_AUTH mtls_authorized_certs=OPENBAO_MTLS_AUTHORIZED_CERTS traefik_entrypoint=OPENBAO_TRAEFIK_ENTRYPOINT
 
 .PHONY: shell # Enter container shell
 shell:
@@ -41,6 +41,11 @@ init:
 	@KEY_SHARES=$$(${BIN}/dotenv -f ${ENV_FILE} get OPENBAO_KEY_SHARES); \
 	KEY_THRESHOLD=$$(${BIN}/dotenv -f ${ENV_FILE} get OPENBAO_KEY_THRESHOLD); \
 	make --no-print-directory docker-compose-shell SERVICE=openbao COMMAND="bao operator init -key-shares=$${KEY_SHARES:-1} -key-threshold=$${KEY_THRESHOLD:-1}"
+
+.PHONY: migrate-raft # Migrate file storage to raft (run on OpenBao 2.6.x, before upgrading to 2.7)
+migrate-raft:
+	@make --no-print-directory docker-compose-lifecycle-cmd EXTRA_ARGS="stop openbao"
+	@cat migrate-raft.sh | make --no-print-directory docker-compose-lifecycle-cmd EXTRA_ARGS="run --rm -T --no-deps --entrypoint /bin/sh openbao -s"
 
 .PHONY: unseal # Unseal OpenBao (interactive - enter unseal keys)
 unseal:

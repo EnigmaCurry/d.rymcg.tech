@@ -10,6 +10,7 @@
 #@ instance = data.values.instance
 #@ context = data.values.context
 #@ traefik_host = data.values.traefik_host
+#@ traefik_entrypoint = data.values.traefik_entrypoint
 #@ ip_sourcerange = data.values.ip_sourcerange
 #@ enable_http_auth = len(data.values.http_auth.strip()) > 0
 #@ http_auth = data.values.http_auth
@@ -51,9 +52,15 @@
 #@     cmd.append("--server")
 #@   end
 #@   cmd.extend(["--host", "0.0.0.0", "--port", server_port, "--models-dir", "/models"])
+#@   entrypoint = []
 #@   if models_preset_enabled.strip() == "true":
 #@     cmd.append("--models-preset")
 #@     cmd.append("/models/models.ini")
+#@     #! llama-server exits if the preset file is missing, and a fresh
+#@     #! volume has none until `make manage-model-configs`; create an
+#@     #! empty one, then run the image's own entrypoint:
+#@     image_entrypoint = {"server": "/app/llama-server", "full": "/app/tools.sh", "light": "/app/llama-cli"}[image_variant]
+#@     entrypoint = ["/bin/sh", "-c", '[ -e /models/models.ini ] || touch /models/models.ini; exec "$$0" "$$@"', image_entrypoint]
 #@   end
 #@   if models_max.strip() and models_max.strip() != "0":
 #@     cmd.extend(["--models-max", models_max])
@@ -76,17 +83,26 @@
 #@   labels.append("backup-volume.stop-during-backup=true")
 #@   labels.append("traefik.enable=true")
 #@   labels.append("traefik.http.routers.{}.rule=Host(`{}`)".format(router, traefik_host))
-#@   labels.append("traefik.http.routers.{}.entrypoints=websecure".format(router))
+#@   labels.append("traefik.http.routers.{}.entrypoints={}".format(router, traefik_entrypoint))
 #@   middlewares.append("{}-ipallowlist".format(router))
 #@   labels.append("traefik.http.middlewares.{}-ipallowlist.ipallowlist.sourcerange={}".format(router, ip_sourcerange))
 #@   if enable_http_auth:
 #@     middlewares.append("{}-basicauth".format(router))
 #@     labels.append("traefik.http.middlewares.{}-basicauth.basicauth.users={}".format(router, http_auth))
-#@     labels.append("traefik.http.middlewares.{}-basicauth.basicauth.headerField=X-Forwarded-User".format(router))
+#@     labels.append("traefik.http.middlewares.{}-basicauth.basicauth.headerField=X-Auth-Request-Email".format(router))
 #@   end
 #@   if enable_oauth2:
-#@     middlewares.append("traefik-forward-auth@docker")
-#@     middlewares.append("header-authorization-group-{}@file".format(authorized_group))
+#@     oauth2_mw = "{}-oauth2".format(router)
+#@     oauth2_errors_mw = "{}-oauth2-errors".format(router)
+#@     labels.append("traefik.http.middlewares.{}.plugin.headauth.header.name=X-Auth-Request-Groups".format(oauth2_mw))
+#@     labels.append("traefik.http.middlewares.{}.plugin.headauth.allowed[0]={}".format(oauth2_mw, authorized_group))
+#@     labels.append("traefik.http.middlewares.{}.errors.status=401".format(oauth2_errors_mw))
+#@     labels.append("traefik.http.middlewares.{}.errors.service=oauth2-proxy@docker".format(oauth2_errors_mw))
+#@     labels.append("traefik.http.middlewares.{}.errors.query=/oauth2/start?rd=https%3A%2F%2F{}".format(oauth2_errors_mw, traefik_host))
+#@     labels.append("traefik.http.middlewares.{}.errors.statusrewrites.401=302".format(oauth2_errors_mw))
+#@     middlewares.append("{}@docker".format(oauth2_errors_mw))
+#@     middlewares.append("forward-auth@docker")
+#@     middlewares.append("{}@docker".format(oauth2_mw))
 #@   end
 #@   if enable_mtls_auth:
 #@     labels.append("traefik.http.routers.{}.tls.options=step_ca_mTLS@file".format(router))
@@ -108,6 +124,7 @@
 #@       "volumes": volumes,
 #@       "labels": labels,
 #@       "environment": env,
+#@       "entrypoint": entrypoint,
 #@       "command": cmd
 #@     }
 #@   }

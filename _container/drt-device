@@ -1,0 +1,323 @@
+#!/usr/bin/env bash
+## drt-device - run an unlocked drt session as a long-lived device that an
+## agent drives with one command at a time.
+##
+## A human starts it once (`drt --serve CONTEXT`), which unlocks the SOPS
+## config and runs `drt-device serve` as the container's main process. Agents
+## then reach it through `podman exec` (wrapped by `drt --exec/--save/--status/
+## --lock` on the host). The device locks itself when its lease or idle
+## timeout runs out, saving any changes first.
+##
+## Usage (inside the container):
+##   drt-device serve [--lease DUR] [--idle DUR]   main process (console)
+##   drt-device exec CMD [ARGS...]                 run one command
+##   drt-device exec request VERB [ARGS...]        typed d.rymcg.tech verb (JSON result)
+##   drt-device mcp [--offline]                    answer MCP JSON-RPC lines on stdin
+##   drt-device diff                               names of unsaved keys
+##   drt-device save                               encrypt changes back to the SOPS config
+##   drt-device status                             lease, idle and unsaved state
+##   drt-device lock                               save and shut down
+##
+## DUR is a number of seconds or a number with a unit: 90s, 30m, 12h, 2d.
+## 0 disables the limit.
+
+set -uo pipefail
+
+DEVICE_DIR="/tmp/drt-device"
+ENV_FILE="${DEVICE_DIR}/env"
+META_FILE="${DEVICE_DIR}/meta"
+LOG_FILE="${DEVICE_DIR}/log"
+ACTIVITY_FILE="${DEVICE_DIR}/activity"
+LOCK_REQUEST="${DEVICE_DIR}/lock-request"
+SAVE_LOCK="${DEVICE_DIR}/save.lock"
+STATE_DIR="${DEVICE_DIR}/save-state"
+SAVE_LIB="/usr/local/lib/drt/drt-save.sh"
+REQUEST_PY="/usr/local/lib/drt/drt_request.py"
+MCP_PY="/usr/local/lib/drt/drt_mcp.py"
+
+DEFAULT_LEASE=12h
+DEFAULT_IDLE=2h
+
+die() { echo "drt-device: $*" >&2; exit 1; }
+
+## Convert a duration (90, 90s, 30m, 12h, 2d) to seconds
+parse_duration() {
+    local v="$1" n unit=1
+    case "${v}" in
+        *d) n="${v%d}"; unit=86400 ;;
+        *h) n="${v%h}"; unit=3600 ;;
+        *m) n="${v%m}"; unit=60 ;;
+        *s) n="${v%s}" ;;
+        *)  n="${v}" ;;
+    esac
+    [[ "${n}" =~ ^[0-9]+$ ]] || return 1
+    echo $(( n * unit ))
+}
+
+## Format seconds as e.g. "3h12m"
+fmt_duration() {
+    local s="$1"
+    if (( s >= 3600 )); then
+        printf '%dh%02dm' $(( s / 3600 )) $(( s % 3600 / 60 ))
+    elif (( s >= 60 )); then
+        printf '%dm%02ds' $(( s / 60 )) $(( s % 60 ))
+    else
+        printf '%ds' "${s}"
+    fi
+}
+
+log() {
+    printf '%s %s\n' "$(date -u +%Y-%m-%dT%H:%M:%SZ)" "$*" >> "${LOG_FILE}"
+}
+
+## Load lease metadata: STARTED, LEASE_SECONDS, IDLE_SECONDS, CONTEXT
+load_meta() {
+    [[ -f "${META_FILE}" ]] || die "this container is not running as a device (start it with: drt --serve CONTEXT)"
+    # shellcheck disable=SC1090
+    source "${META_FILE}"
+}
+
+## Print the reason the device should lock now, or nothing if it shouldn't
+expiry_reason() {
+    local now last
+    now=$(date +%s)
+    if (( LEASE_SECONDS > 0 && now >= STARTED + LEASE_SECONDS )); then
+        echo "lease expired"
+        return
+    fi
+    if (( IDLE_SECONDS > 0 )); then
+        last=$(stat -c %Y "${ACTIVITY_FILE}" 2>/dev/null || echo "${now}")
+        if (( now >= last + IDLE_SECONDS )); then
+            echo "idle timeout"
+            return
+        fi
+    fi
+    if [[ -f "${LOCK_REQUEST}" ]]; then
+        echo "lock requested"
+    fi
+}
+
+## Refresh DIR/current and print the names of changed keys.
+## Returns 0 if there are unsaved changes.
+unsaved_keys() {
+    if drt_save_diff "${STATE_DIR}" > /dev/null; then
+        drt_save_changed_keys "${STATE_DIR}"
+        return 0
+    fi
+    return 1
+}
+
+## Save unsaved changes (serialized with flock). Prints a summary without values.
+do_save() {
+    (
+        flock -w 600 9 || { echo "drt-device: timed out waiting for another save" >&2; exit 1; }
+        local keys
+        if ! keys=$(unsaved_keys); then
+            echo "## No unsaved changes."
+            exit 0
+        fi
+        if drt_save_commit "${STATE_DIR}" save-unattended; then
+            log "saved: $(echo "${keys}" | wc -l) key(s) changed"
+            echo "## Saved changes to the SOPS config:"
+            echo "${keys}"
+        else
+            log "save FAILED"
+            echo "drt-device: save failed; changes are still unsaved" >&2
+            exit 1
+        fi
+    ) 9> "${SAVE_LOCK}"
+}
+
+###############################################################################
+# serve: the container's main process
+###############################################################################
+
+cmd_serve() {
+    local lease="${DEFAULT_LEASE}" idle="${DEFAULT_IDLE}"
+    while [[ $# -gt 0 ]]; do
+        case "$1" in
+            --lease) lease="$2"; shift 2 ;;
+            --idle) idle="$2"; shift 2 ;;
+            *) die "serve: unknown argument: $1" ;;
+        esac
+    done
+    local lease_s idle_s
+    lease_s=$(parse_duration "${lease}") || die "invalid --lease: ${lease}"
+    idle_s=$(parse_duration "${idle}") || die "invalid --idle: ${idle}"
+
+    if [[ "${SOPS_SAVE_ON_EXIT:-}" != "true" || ! -p "${_SOPS_SAVE_REQUEST:-}" ]]; then
+        die "device mode needs a SOPS config with saving enabled (don't use --no-save)"
+    fi
+
+    mkdir -p "${DEVICE_DIR}" "${STATE_DIR}"
+    chmod 700 "${DEVICE_DIR}"
+
+    # Commands started with `podman exec` don't inherit the environment the
+    # entrypoint built, so record it for them.
+    export DRT_DEVICE=true
+    export -p | grep -Ev '^declare -x (PWD|OLDPWD|SHLVL|_)(=|$)' > "${ENV_FILE}"
+    chmod 600 "${ENV_FILE}"
+
+    # shellcheck disable=SC1090
+    source "${SAVE_LIB}"
+    drt_save_snapshot "${STATE_DIR}"
+
+    STARTED=$(date +%s)
+    LEASE_SECONDS=${lease_s}
+    IDLE_SECONDS=${idle_s}
+    # The name `drt --exec` takes (set by the host), else the Docker context
+    CONTEXT="${DRT_DEVICE_CONTEXT:-${DRT_CONTEXT:-}}"
+    printf 'STARTED=%s\nLEASE_SECONDS=%s\nIDLE_SECONDS=%s\nCONTEXT=%q\n' \
+        "${STARTED}" "${LEASE_SECONDS}" "${IDLE_SECONDS}" "${CONTEXT}" > "${META_FILE}"
+    touch "${ACTIVITY_FILE}"
+    : > "${LOG_FILE}"
+    rm -f "${LOCK_REQUEST}"
+
+    local lease_txt="none" idle_txt="none"
+    (( LEASE_SECONDS > 0 )) && lease_txt="$(fmt_duration "${LEASE_SECONDS}") (until $(date -d "@$(( STARTED + LEASE_SECONDS ))" '+%Y-%m-%d %H:%M %Z'))"
+    (( IDLE_SECONDS > 0 )) && idle_txt="$(fmt_duration "${IDLE_SECONDS}")"
+    cat >&2 <<EOF
+
+## drt device is UNLOCKED: ${CONTEXT:-local}
+##   lease:        ${lease_txt}
+##   idle timeout: ${idle_txt}
+##
+## Agents can now run commands in it:
+##   drt --exec ${CONTEXT:-CONTEXT} -- d.rymcg.tech status
+##   drt --save ${CONTEXT:-CONTEXT}     drt --status ${CONTEXT:-CONTEXT}     drt --lock ${CONTEXT:-CONTEXT}
+##
+## Ctrl-C here saves and locks. Ctrl-p Ctrl-q detaches and leaves it running.
+## Commands appear below as agents run them (output goes to the agent).
+
+EOF
+    log "unlocked (lease ${lease}, idle ${idle})"
+
+    tail -n +1 -F "${LOG_FILE}" >&2 2>/dev/null &
+    local tail_pid=$!
+
+    local reason=""
+    trap 'reason="signal"' TERM INT HUP
+    while [[ -z "${reason}" ]]; do
+        sleep 5 &
+        wait $! 2>/dev/null
+        [[ -n "${reason}" ]] && break
+        reason=$(expiry_reason)
+    done
+    trap '' TERM INT HUP
+
+    log "locking: ${reason}"
+    do_save >&2 || log "WARNING: could not save on lock; changes are lost"
+    echo "quit" > "${_SOPS_SAVE_REQUEST}" 2>/dev/null || true
+    log "locked"
+    sleep 1
+    kill "${tail_pid}" 2>/dev/null
+    rm -f "${ENV_FILE}"
+    exit 0
+}
+
+###############################################################################
+# Commands run through podman exec
+###############################################################################
+
+## Restore the entrypoint's environment (top level, so the vars stay global)
+load_device_env() {
+    [[ -f "${ENV_FILE}" ]] || die "device is not unlocked (start it with: drt --serve CONTEXT)"
+}
+
+cmd="${1:-}"
+[[ $# -gt 0 ]] && shift
+
+case "${cmd}" in
+    serve)
+        cmd_serve "$@"
+        ;;
+    mcp)
+        # --offline answers from a throwaway container while the device is locked
+        if [[ "${1:-}" == "--offline" ]]; then
+            exec python3 "${MCP_PY}" --offline
+        fi
+        load_device_env
+        # shellcheck disable=SC1090
+        source "${ENV_FILE}"
+        exec python3 "${MCP_PY}"
+        ;;
+    exec|diff|save|status|lock)
+        load_device_env
+        # shellcheck disable=SC1090
+        source "${ENV_FILE}"
+        load_meta
+        # shellcheck disable=SC1090
+        source "${SAVE_LIB}"
+        ;;
+    ""|-h|--help|help)
+        sed -n '2,/^$/s/^## \{0,1\}//p' "$0"
+        exit 0
+        ;;
+    *)
+        die "unknown command: ${cmd} (try: drt-device help)"
+        ;;
+esac
+
+case "${cmd}" in
+    exec)
+        [[ $# -gt 0 ]] || die "exec: no command given"
+        _reason=$(expiry_reason)
+        [[ -z "${_reason}" ]] || die "device is locking (${_reason}); unlock it again with: drt --serve ${CONTEXT}"
+        touch "${ACTIVITY_FILE}"
+        cd "${HOME}" || exit 1
+        _cmdline=$(printf '%q ' "$@")
+        # `d` is a shell function in interactive sessions; map it to the CLI
+        if [[ "$1" == "d" ]]; then
+            set -- d.rymcg.tech "${@:2}"
+        elif [[ "$1" == "request" ]]; then
+            set -- python3 "${REQUEST_PY}" "${@:2}"
+        fi
+        log "exec: ${_cmdline% }"
+        "$@"
+        _rc=$?
+        log "exit ${_rc}: ${_cmdline% }"
+        exit ${_rc}
+        ;;
+    diff)
+        touch "${ACTIVITY_FILE}"
+        (
+            flock -w 600 9 || exit 1
+            if unsaved_keys; then
+                exit 0
+            fi
+            echo "## No unsaved changes."
+        ) 9> "${SAVE_LOCK}"
+        ;;
+    save)
+        touch "${ACTIVITY_FILE}"
+        do_save
+        ;;
+    status)
+        _now=$(date +%s)
+        echo "context: ${CONTEXT:-local}"
+        echo "unlocked: $(date -d "@${STARTED}" '+%Y-%m-%d %H:%M:%S')"
+        if (( LEASE_SECONDS > 0 )); then
+            _left=$(( STARTED + LEASE_SECONDS - _now )); (( _left < 0 )) && _left=0
+            echo "lease remaining: $(fmt_duration "${_left}")"
+        else
+            echo "lease remaining: no limit"
+        fi
+        if (( IDLE_SECONDS > 0 )); then
+            _last=$(stat -c %Y "${ACTIVITY_FILE}" 2>/dev/null || echo "${_now}")
+            _left=$(( _last + IDLE_SECONDS - _now )); (( _left < 0 )) && _left=0
+            echo "idle lock in: $(fmt_duration "${_left}")"
+        else
+            echo "idle lock in: no limit"
+        fi
+        _keys=$(flock -w 600 "${SAVE_LOCK}" bash -c 'source "$1"; drt_save_diff "$2" >/dev/null && drt_save_changed_keys "$2"' _ "${SAVE_LIB}" "${STATE_DIR}")
+        if [[ -n "${_keys}" ]]; then
+            echo "unsaved changes: $(echo "${_keys}" | wc -l) key(s)"
+        else
+            echo "unsaved changes: none"
+        fi
+        ;;
+    lock)
+        touch "${LOCK_REQUEST}"
+        echo "## Lock requested; the device saves and shuts down within a few seconds."
+        ;;
+esac

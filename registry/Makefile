@@ -60,7 +60,7 @@ override-hook:
 ####                         # (this hardcodes the string into docker-compose.override.yaml)
 ####   name=@VARIABLE_NAME   # sets the template 'name' field to the literal string '${VARIABLE_NAME}'
 ####                         # (used for regular docker-compose expansion of env vars by name.)
-	@${BIN}/docker_compose_override ${ENV_FILE} project=:registry instance=@REGISTRY_INSTANCE traefik_host=@REGISTRY_TRAEFIK_HOST http_auth=REGISTRY_HTTP_AUTH http_auth_var=@REGISTRY_HTTP_AUTH ip_sourcerange=@REGISTRY_IP_SOURCERANGE enable_mtls_auth=REGISTRY_MTLS_AUTH mtls_authorized_certs=REGISTRY_MTLS_AUTHORIZED_CERTS storage_backend=REGISTRY_STORAGE_BACKEND public=REGISTRY_PUBLIC pull_http_auth=REGISTRY_PULL_HTTP_AUTH pull_http_auth_var=@REGISTRY_PULL_HTTP_AUTH pull_mtls_auth=REGISTRY_PULL_MTLS_AUTH pull_mtls_authorized_certs=REGISTRY_PULL_MTLS_AUTHORIZED_CERTS external_volume=REGISTRY_EXTERNAL_VOLUME
+	@${BIN}/docker_compose_override ${ENV_FILE} project=:registry instance=@REGISTRY_INSTANCE traefik_host=@REGISTRY_TRAEFIK_HOST http_auth=REGISTRY_HTTP_AUTH http_auth_var=@REGISTRY_HTTP_AUTH ip_sourcerange=@REGISTRY_IP_SOURCERANGE enable_mtls_auth=REGISTRY_MTLS_AUTH mtls_authorized_certs=REGISTRY_MTLS_AUTHORIZED_CERTS storage_backend=REGISTRY_STORAGE_BACKEND public=REGISTRY_PUBLIC pull_http_auth=REGISTRY_PULL_HTTP_AUTH pull_http_auth_var=@REGISTRY_PULL_HTTP_AUTH pull_mtls_auth=REGISTRY_PULL_MTLS_AUTH pull_mtls_authorized_certs=REGISTRY_PULL_MTLS_AUTHORIZED_CERTS external_volume=REGISTRY_EXTERNAL_VOLUME traefik_entrypoint=REGISTRY_TRAEFIK_ENTRYPOINT
 
 .PHONY: shell
 shell:
@@ -195,7 +195,7 @@ delete-tags:
 .PHONY: garbage-collect # Run garbage collection (requires temporary registry restart)
 garbage-collect:
 	@make --no-print-directory docker-compose-lifecycle-cmd EXTRA_ARGS="stop registry"
-	@make --no-print-directory docker-compose-lifecycle-cmd EXTRA_ARGS="run --rm --entrypoint '' registry registry garbage-collect --delete-untagged /etc/docker/registry/config.yml"
+	@make --no-print-directory docker-compose-lifecycle-cmd EXTRA_ARGS="run --rm --entrypoint '' registry registry garbage-collect --delete-untagged /etc/distribution/config.yml"
 	@make --no-print-directory docker-compose-lifecycle-cmd EXTRA_ARGS="start registry"
 
 .PHONY: s3-list # List all files in the S3 bucket

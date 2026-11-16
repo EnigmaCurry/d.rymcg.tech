@@ -13,6 +13,7 @@ services:
     volumes:
       - wireguard_config:/config
     environment:
+      - TZ=${DEFAULT_TIMEZONE:-Etc/UTC}
       - INSTANCE=${WIREGUARD_GATEWAY_INSTANCE}
       - LAN_INTERFACE=${WIREGUARD_GATEWAY_LAN_INTERFACE}
       - VPN_INTERFACE=${WIREGUARD_GATEWAY_VPN_INTERFACE}
@@ -52,6 +53,7 @@ services:
       - wireguard_config:/etc/wireguard:ro
     restart: unless-stopped
     environment:
+      - TZ=${DEFAULT_TIMEZONE:-Etc/UTC}
       - LAN_INTERFACE=${WIREGUARD_GATEWAY_LAN_INTERFACE}
       - VPN_INTERFACE=${WIREGUARD_GATEWAY_VPN_INTERFACE}
       - CLIENT_ALLOWED_IPS=${WIREGUARD_GATEWAY_CLIENT_ALLOWED_IPS}

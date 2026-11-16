@@ -3,6 +3,7 @@ services:
     image: ${EXCALIDRAW_IMAGE}
     restart: unless-stopped
     environment:
+      - TZ=${DEFAULT_TIMEZONE:-Etc/UTC}
       - NODE_ENV=production
     cap_drop:
       - ALL

@@ -15,6 +15,16 @@ services:
     # Frontend
     web:
         image: jitsi/web:${JITSI_WEB_IMAGE_TAG}
+        ## All four jitsi images run s6, which restarts a crashed service
+        ## inside the container in about a second. Probe the service, and
+        ## require s6 to report it up for 10 seconds so a crash loop never
+        ## passes:
+        healthcheck:
+            test: ["CMD-SHELL", "d=/run/service; [ -d $$d ] || d=/var/run/s6/services; s=s6-svstat; command -v $$s >/dev/null || s=/command/s6-svstat; { curl -fsS -o /dev/null http://127.0.0.1:8000/ || curl -fsS -o /dev/null http://127.0.0.1:80/; } && $$s -o up,updownfor $$d/nginx | awk '$$1 == \"true\" && $$2 >= 10 {ok = 1} END {exit !ok}'"]
+            interval: 10s
+            timeout: 5s
+            retries: 3
+            start_period: 60s
         restart: ${RESTART_POLICY}
         volumes:
             - web_config:/config:Z
@@ -158,7 +168,7 @@ services:
             - TOOLBAR_BUTTONS
             - TRANSLATION_LANGUAGES
             - TRANSLATION_LANGUAGES_HEAD
-            - TZ
+            - TZ=${JITSIMEET_TIMEZONE:-${DEFAULT_TIMEZONE:-Etc/UTC}}
             - USE_APP_LANGUAGE
             - VIDEOQUALITY_BITRATE_H264_LOW
             - VIDEOQUALITY_BITRATE_H264_STANDARD
@@ -201,6 +211,12 @@ services:
     # XMPP server
     prosody:
         image: jitsi/prosody:${JITSI_PROSODY_IMAGE_TAG}
+        healthcheck:
+            test: ["CMD-SHELL", "d=/run/service; [ -d $$d ] || d=/var/run/s6/services; s=s6-svstat; command -v $$s >/dev/null || s=/command/s6-svstat; p=$$d/prosody; [ -d $$p ] || p=$$d/50-prosody; curl -fsS -o /dev/null http://127.0.0.1:5280/http-bind && $$s -o up,updownfor $$p | awk '$$1 == \"true\" && $$2 >= 10 {ok = 1} END {exit !ok}'"]
+            interval: 10s
+            timeout: 5s
+            retries: 3
+            start_period: 60s
         restart: ${RESTART_POLICY}
         expose:
             - '5222'
@@ -318,7 +334,7 @@ services:
             - TURNS_PORT
             - TURN_TRANSPORT
             - TURN_TTL
-            - TZ
+            - TZ=${JITSIMEET_TIMEZONE:-${DEFAULT_TIMEZONE:-Etc/UTC}}
             - VISITORS_MAX_VISITORS_PER_NODE
             - VISITORS_XMPP_DOMAIN
             - VISITORS_XMPP_SERVER
@@ -350,6 +366,14 @@ services:
     # Focus component
     jicofo:
         image: jitsi/jicofo:${JITSI_JICOFO_IMAGE_TAG}
+        ## /about/health is opt-in (JICOFO_ENABLE_HEALTH_CHECKS), so probe
+        ## /about/version, which jicofo always serves while it runs:
+        healthcheck:
+            test: ["CMD-SHELL", "d=/run/service; [ -d $$d ] || d=/var/run/s6/services; s=s6-svstat; command -v $$s >/dev/null || s=/command/s6-svstat; curl -fsS -o /dev/null http://127.0.0.1:8888/about/version && $$s -o up,updownfor $$d/jicofo | awk '$$1 == \"true\" && $$2 >= 10 {ok = 1} END {exit !ok}'"]
+            interval: 10s
+            timeout: 5s
+            retries: 3
+            start_period: 60s
         restart: ${RESTART_POLICY}
         volumes:
             - jicofo:/config:Z
@@ -413,7 +437,7 @@ services:
             - SENTRY_DSN="${JICOFO_SENTRY_DSN:-0}"
             - SENTRY_ENVIRONMENT
             - SENTRY_RELEASE
-            - TZ
+            - TZ=${JITSIMEET_TIMEZONE:-${DEFAULT_TIMEZONE:-Etc/UTC}}
             - VISITORS_MAX_PARTICIPANTS
             - VISITORS_MAX_VISITORS_PER_NODE
             - VISITORS_XMPP_AUTH_DOMAIN
@@ -439,6 +463,12 @@ services:
     # Video bridge
     jvb:
         image: jitsi/jvb:${JITSI_JVB_IMAGE_TAG}
+        healthcheck:
+            test: ["CMD-SHELL", "d=/run/service; [ -d $$d ] || d=/var/run/s6/services; s=s6-svstat; command -v $$s >/dev/null || s=/command/s6-svstat; curl -fsS -o /dev/null http://127.0.0.1:8080/about/health && $$s -o up,updownfor $$d/jvb | awk '$$1 == \"true\" && $$2 >= 10 {ok = 1} END {exit !ok}'"]
+            interval: 10s
+            timeout: 5s
+            retries: 3
+            start_period: 60s
         restart: ${RESTART_POLICY}
         ports:
             - '${JVB_PORT}:${JVB_PORT}/udp'
@@ -491,7 +521,7 @@ services:
             - SENTRY_RELEASE
             - COLIBRI_REST_ENABLED
             - SHUTDOWN_REST_ENABLED
-            - TZ
+            - TZ=${JITSIMEET_TIMEZONE:-${DEFAULT_TIMEZONE:-Etc/UTC}}
             - VIDEOBRIDGE_MAX_MEMORY
             - XMPP_AUTH_DOMAIN
             - XMPP_INTERNAL_MUC_DOMAIN

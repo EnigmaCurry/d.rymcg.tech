@@ -17,6 +17,7 @@ services:
     volumes:
       - traefik:/data:z
     environment:
+      - TZ=${DEFAULT_TIMEZONE:-Etc/UTC}
       - DOCKER_CONTEXT=${DOCKER_CONTEXT}
       - DOCKER_COMPOSE_PROFILES=${TRAEFIK_DOCKER_COMPOSE_PROFILES}
       - TRAEFIK_SEND_ANONYMOUS_USAGE=${TRAEFIK_SEND_ANONYMOUS_USAGE:-false}
@@ -55,7 +56,7 @@ services:
       - TRAEFIK_WEB_PLAIN_ENTRYPOINT_ENABLED=${TRAEFIK_WEB_PLAIN_ENTRYPOINT_ENABLED:-false}
       - TRAEFIK_WEB_PLAIN_ENTRYPOINT_HOST=${TRAEFIK_WEB_PLAIN_ENTRYPOINT_HOST:-0.0.0.0}
       - TRAEFIK_WEB_PLAIN_ENTRYPOINT_PORT=${TRAEFIK_WEB_PLAIN_ENTRYPOINT_PORT:-8000}
-      - TRAEFIK_WEB_PLAIN_ENTRYPOINT_PROXY_PROTOCOL_TRUSTED_IPS=${TRAEFIK_WEB_ENTRYPOINT_PROXY_PROTOCOL_TRUSTED_IPS:-}
+      - TRAEFIK_WEB_PLAIN_ENTRYPOINT_PROXY_PROTOCOL_TRUSTED_IPS=${TRAEFIK_WEB_PLAIN_ENTRYPOINT_PROXY_PROTOCOL_TRUSTED_IPS:-}
       - TRAEFIK_SSH_ENTRYPOINT_ENABLED=${TRAEFIK_SSH_ENTRYPOINT_ENABLED:-false}
       - TRAEFIK_SSH_ENTRYPOINT_HOST=${TRAEFIK_SSH_ENTRYPOINT_HOST:-0.0.0.0}
       - TRAEFIK_SSH_ENTRYPOINT_PORT=${TRAEFIK_SSH_ENTRYPOINT_PORT:-2222}
@@ -124,7 +125,6 @@ services:
       - TRAEFIK_ERROR_HANDLER_403_SERVICE
       - TRAEFIK_ERROR_HANDLER_404_SERVICE
       - TRAEFIK_ERROR_HANDLER_500_SERVICE
-      - TRAEFIK_HEADER_AUTHORIZATION_GROUPS
       - TRAEFIK_STEP_CA_ENABLED=${TRAEFIK_STEP_CA_ENABLED:-false}
       - TRAEFIK_STEP_CA_ENDPOINT
       - TRAEFIK_STEP_CA_FINGERPRINT
@@ -163,7 +163,7 @@ services:
         MAXMIND_GEOIP_MODULE: ${TRAEFIK_GEOIP_MODULE}
         MAXMIND_GIT_BRANCH: main
         HEADER_AUTHORIZATION_MODULE: ${TRAEFIK_HEADER_AUTHORIZATION_MODULE}
-        HEADER_AUTHORIZATION_GIT_BRANCH: main
+        HEADER_AUTHORIZATION_GIT_BRANCH: v0.2.1
         CERT_AUTH_MODULE: ${TRAEFIK_CERT_AUTH_MODULE}
         CERT_AUTH_GIT_BRANCH: main
         MTLS_HEADER_MODULE: ${TRAEFIK_MTLS_HEADER_MODULE}
@@ -171,6 +171,7 @@ services:
     restart: unless-stopped
     network_mode: ${TRAEFIK_NETWORK_MODE:-host}
     environment:
+      - TZ=${DEFAULT_TIMEZONE:-Etc/UTC}
       - TRAEFIK_UID=${TRAEFIK_UID}
       - TRAEFIK_GID=${TRAEFIK_GID}
       - TRAEFIK_DOCKER_GID=${TRAEFIK_DOCKER_GID}
@@ -190,8 +191,6 @@ services:
       - "traefik_certs:/certs:z"
       - "/var/run/docker.sock:/var/run/docker.sock:ro,z"
       - "geoip_database:/var/lib/traefikgeoip2/:z"
-    labels:
-      - "TRAEFIK_HEADER_AUTHORIZATION_GROUPS=${TRAEFIK_HEADER_AUTHORIZATION_GROUPS}"
 
   geoip_database:
     profiles:
@@ -203,6 +202,7 @@ services:
     cap_drop:
       - ALL
     environment:
+      - TZ=${DEFAULT_TIMEZONE:-Etc/UTC}
       - GEOIPUPDATE_ACCOUNT_ID=${TRAEFIK_GEOIPUPDATE_ACCOUNT_ID}
       - GEOIPUPDATE_LICENSE_KEY=${TRAEFIK_GEOIPUPDATE_LICENSE_KEY}
       - GEOIPUPDATE_EDITION_IDS=${TRAEFIK_GEOIPUPDATE_EDITION_IDS}
@@ -224,7 +224,7 @@ services:
     environment:
       - PUID=1000
       - PGID=1000
-      - TZ=${TIMEZONE:-Etc/UTC}
+      - TZ=${DEFAULT_TIMEZONE:-Etc/UTC}
       - SERVERURL=${TRAEFIK_VPN_HOST}
       - SERVERPORT=${TRAEFIK_VPN_PORT}
       - PEERS=${TRAEFIK_VPN_PEERS}
@@ -234,6 +234,15 @@ services:
     volumes:
       - wireguard:/config
       - ${TRAEFIK_LIB_MODULES_PATH:-/lib/modules}:/lib/modules
+    ## If wg-quick fails, the image logs "All tunnels are now down" and the
+    ## container keeps running. /run/activeconfs is only written once every
+    ## tunnel is up, so require it and each listed interface:
+    healthcheck:
+      test: ["CMD-SHELL", "test -s /run/activeconfs && for i in $$(grep -o '[^/\"]*\\.conf' /run/activeconfs | sed 's/\\.conf$$//'); do wg show \"$$i\" >/dev/null 2>&1 || exit 1; done"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+      start_period: 30s
 
   wireguard-client-config:
     profiles:
@@ -241,6 +250,7 @@ services:
     build:
       context: wireguard-client-config
     environment:
+      - TZ=${DEFAULT_TIMEZONE:-Etc/UTC}
       - TRAEFIK_VPN_ENTRYPOINT_HOST
       - TRAEFIK_VPN_CLIENT_INTERFACE_ADDRESS
       - TRAEFIK_VPN_CLIENT_INTERFACE_PRIVATE_KEY
@@ -265,11 +275,18 @@ services:
     environment:
       - PUID=1000
       - PGID=1000
-      - TZ=${TIMEZONE:-Etc/UTC}
+      - TZ=${DEFAULT_TIMEZONE:-Etc/UTC}
       - PERSISTENTKEEPALIVE_PEERS=all
     volumes:
       - wireguard-client:/config
       - ${TRAEFIK_LIB_MODULES_PATH:-/lib/modules}:/lib/modules
+    ## Same check as the wireguard service above:
+    healthcheck:
+      test: ["CMD-SHELL", "test -s /run/activeconfs && for i in $$(grep -o '[^/\"]*\\.conf' /run/activeconfs | sed 's/\\.conf$$//'); do wg show \"$$i\" >/dev/null 2>&1 || exit 1; done"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+      start_period: 30s
 
   error-pages:
     profiles:
@@ -277,7 +294,10 @@ services:
     image: ${TRAEFIK_ERROR_PAGES_IMAGE}
     restart: unless-stopped
     environment:
+      TZ: ${DEFAULT_TIMEZONE:-Etc/UTC}
       TEMPLATE_NAME: ${TRAEFIK_ERROR_PAGES_TEMPLATE}
+      # Respond with the page's status code (e.g. 404), not 200:
+      SEND_SAME_HTTP_CODE: "true"
       RESPONSE_PLAINTEXT_FORMAT: "${DOCKER_CONTEXT} | {{ code }} | {{ message }}"
       RESPONSE_JSON_FORMAT: "{\"error\":{\"status\":{{ code }},\"detail\":{{ printf \"%q\" description }}, \"context\": \"${DOCKER_CONTEXT}\"}}"
       RESPONSE_XML_FORMAT: "<error><code>{{ code }}</code><description>{{ description }}</description><context>${DOCKER_CONTEXT}</context></error>"
@@ -297,6 +317,8 @@ services:
 
   ## Build a base image from upstream git repository:
   acme-sh-base:
+    environment:
+      - TZ=${DEFAULT_TIMEZONE:-Etc/UTC}
     image: local/acme-sh-base-image:${TRAEFIK_ACME_SH_GIT_TAG}
     build:
       context: ${TRAEFIK_ACME_SH_GIT_REPO}.git#${TRAEFIK_ACME_SH_GIT_TAG}
@@ -327,6 +349,7 @@ services:
       - "traefik_certs:/certs:z"
       - "traefik:/traefik:z"
     environment:
+      - TZ=${DEFAULT_TIMEZONE:-Etc/UTC}
       - TRAEFIK_ACME_CERT_DOMAINS
       - TRAEFIK_ACME_SH_ACME_CA
       - TRAEFIK_ACME_SH_ACME_DIRECTORY

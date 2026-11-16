@@ -1,6 +1,6 @@
 [FreshRSS](https://freshrss.org/) is a self-host RSS aggregator.
 
-Compare with [ttrss](../_attic/ttrss)
+Compare with [ttrss](https://github.com/EnigmaCurry/d.rymcg.tech/tree/39ae18a8bf65a825fd95670770bf9f26a6dad2bd/_attic/ttrss#readme) (decommissioned)
 
 ## Config
 
@@ -12,9 +12,9 @@ This will ask you to enter the domain name to use. It automatically
 saves your responses into the configuration file
 `.env_{DOCKER_CONTEXT}_{INSTANCE}`.
 
-The default timezone of the server will be Europe/Paris. To change it,
-edit the value for `TIME_ZONE` in the configuration file
-`.env_{DOCKER_CONTEXT}_{INSTANCE}`
+The timezone (used for cron) defaults to `DEFAULT_TIMEZONE` from the
+root config. To override it for this instance, set `FRESHRSS_TIMEZONE`
+in the configuration file `.env_{DOCKER_CONTEXT}_{INSTANCE}`
 
 ### Authentication and Authorization
 

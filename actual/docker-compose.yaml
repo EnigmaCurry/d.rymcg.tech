@@ -11,6 +11,7 @@ services:
     sysctls:
       - net.ipv4.ip_unprivileged_port_start=1024
     environment:
+      - TZ=${DEFAULT_TIMEZONE:-Etc/UTC}
       - ACTUAL_LOGIN_METHOD=${ACTUAL_LOGIN_METHOD}
       - ACTUAL_ALLOWED_LOGIN_METHODS=${ACTUAL_ALLOWED_LOGIN_METHODS}
       - ACTUAL_TRUSTED_PROXIES=${ACTUAL_TRUSTED_PROXIES}

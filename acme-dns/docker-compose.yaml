@@ -3,6 +3,7 @@ services:
     build:
       context: config
     environment:
+      - TZ=${DEFAULT_TIMEZONE:-Etc/UTC}
       - PUBLIC_IP_ADDRESS=${ACME_DNS_PUBLIC_IP_ADDRESS}
       - API_PORT=${ACME_DNS_API_PORT}
       - SUBDOMAIN=${ACME_DNS_SUBDOMAIN}
@@ -17,6 +18,7 @@ services:
     depends_on: ['config']
     restart: unless-stopped
     environment:
+      - TZ=${DEFAULT_TIMEZONE:-Etc/UTC}
       - API_HOST=${ACME_DNS_SUBDOMAIN}
       - API_PORT=${ACME_DNS_API_PORT}
     build:

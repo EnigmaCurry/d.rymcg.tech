@@ -19,7 +19,7 @@ services:
       # path for the restic cache which greatly improves performance.
       - XDG_CACHE_HOME=/cache
       # set the timezone for the container, used as the timezone for cron jobs.
-      - TZ=${BACKREST_TIMEZONE}
+      - TZ=${BACKREST_TIMEZONE:-${DEFAULT_TIMEZONE:-Etc/UTC}}
     restart: unless-stopped
     labels: []
     cap_drop:

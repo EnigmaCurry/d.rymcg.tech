@@ -58,8 +58,9 @@ __help() {
         echo -e "deploy-pipeline-template\tScaffold a new deployment pipeline repo with Woodpecker CI"
         echo -e "docker-default-address-pool\tReconfigure the docker daemon network address pool"
         echo -e "dotenv_get\tRetrieve a single env var from the root context config"
-        echo -e "droplet\tManage DigitalOcean droplets (alias: gumdrop)"
+        echo -e "droplet\tManage DigitalOcean droplets (alias: gumdrop; 'droplet quick' builds a server in one go)"
         echo -e "drt [OPTIONS] CONTEXT\tStandalone bootstrap tool (--init/--extract)"
+        echo -e "e2e\tEnd-to-end smoke test / installer on a DigitalOcean droplet"
         echo -e "export-env\tExport all .env files for current context as flat env vars"
         echo -e "fail2ban\tConfigure fail2ban on the Docker host"
         echo -e "image-archive [ARGS ...]\tArchive Docker images to local .tar.gz files"
@@ -289,9 +290,9 @@ __readme() {
             DOCS_INDEX["${doc}"]="${doc}"
         done
         if [[ "${NAME_UPPERCASE}" == "LICENSE" ]]; then
-            exe xdg-open "https://github.com/EnigmaCurry/d.rymcg.tech/blob/master/LICENSE.txt"
+            "${BIN}/open_readme" "https://github.com/EnigmaCurry/d.rymcg.tech/blob/master/LICENSE.txt" "${ROOT_DIR}/LICENSE.txt"
         elif [[ -v DOCS_INDEX["${NAME_UPPERCASE}"] ]]; then
-            exe xdg-open "https://github.com/EnigmaCurry/d.rymcg.tech/blob/master/${NAME_UPPERCASE}.md#readme"
+            "${BIN}/open_readme" "https://github.com/EnigmaCurry/d.rymcg.tech/blob/master/${NAME_UPPERCASE}.md#readme" "${ROOT_DIR}/${NAME_UPPERCASE}.md"
         else
             echo ${DOCS_INDEX["${NAME_UPPERCASE}"]}
             __make "${NAME}" readme "$@"
@@ -495,7 +496,7 @@ __d.rymcg.tech_completions() {
     if [[ ${COMP_CWORD} == 1 ]]; then
         ## Complete the main command:
         ## d.rymcg.tech <TAB> ...
-        COMMANDS="help create cd make list readme info context new-context tmp-context aliases completion install install-docker status ssh audit sshd-config ssh-expose show-ports s3-volume docker-default-address-pool route routes reconfigure dotenv_get daemon-conf fail2ban networks config image-catalog image-build image-archive image-restore export-env restore-env template-env agent-readiness aws python-deps workstation-usb-image workstation-usb-install workstation-usb-clone workstation-usb-post-install workstation-usb-download-isos workstation-usb-download-docker-packages workstation-usb-test-vm container-build drt deploy-pipeline-template deploy-pipeline-build droplet gumdrop"
+        COMMANDS="help create cd make list readme info context new-context tmp-context aliases completion install install-docker status ssh audit sshd-config ssh-expose show-ports s3-volume docker-default-address-pool route routes reconfigure dotenv_get daemon-conf fail2ban networks config image-catalog image-build image-archive image-restore export-env restore-env template-env agent-readiness aws python-deps workstation-usb-image workstation-usb-install workstation-usb-clone workstation-usb-post-install workstation-usb-download-isos workstation-usb-download-docker-packages workstation-usb-test-vm container-build drt deploy-pipeline-template deploy-pipeline-build droplet gumdrop e2e"
         COMPREPLY=($(compgen -W "${COMMANDS}" "${COMP_WORDS[1]}"))
     elif [[ ${COMP_CWORD} == 2 ]]; then
         ALL_PROJECTS=$(d.rymcg.tech list --raw)
@@ -784,6 +785,14 @@ __export_env() {
     done
     if [[ -z "${ctx}" ]]; then
         ctx="${DOCKER_CONTEXT:-${DRT_CONTEXT:-$(${BIN}/docker_context)}}"
+        ## drt names a session with no Docker host 'local'. If a Docker
+        ## context was created and selected during the session (e.g. by
+        ## `d droplet quick`), export that one instead:
+        if [[ "${ctx}" == "local" && -z "${DOCKER_CONTEXT:-}" ]]; then
+            local _current_ctx
+            _current_ctx=$(${BIN}/docker_context 2>/dev/null || true)
+            [[ -n "${_current_ctx}" && "${_current_ctx}" != "default" ]] && ctx="${_current_ctx}"
+        fi
     fi
     cd "${ROOT_DIR}"
     local _env_base="${DRT_ENV_DIR:-.}"
@@ -847,6 +856,10 @@ __export_env() {
         ssh_host="${SSH_HOST}"
         ssh_user="${SSH_USER:-root}"
         ssh_port="${SSH_PORT:-22}"
+    elif [[ "${ctx}" == "local" || "${ctx}" == "default" ]]; then
+        ## No Docker host. (ssh -G would echo the name back as a hostname,
+        ## and the saved config would get SSH_HOST=local.)
+        ssh_host=""
     else
         local ssh_config
         ssh_config=$(ssh -G "${ctx}" 2>/dev/null || true)
@@ -1183,11 +1196,13 @@ __restore_env() {
 
     # Build prefix→project mapping (single grep instead of per-project subprocess)
     declare -A prefix_to_dir
+    declare -A dir_to_prefix
     while IFS=: read -r file prefix_line; do
         local project_name="${file%%/*}"
         local prefix="${prefix_line#*PREFIX=}"
         prefix="${prefix%%[[:space:]]*}"
         [[ -n "${prefix}" ]] && prefix_to_dir["${prefix}"]="${project_name}"
+        [[ -n "${prefix}" ]] && dir_to_prefix["${project_name}"]="${prefix}"
     done < <(grep -m1 '# PREFIX=' */.env-dist 2>/dev/null)
 
     local sorted_prefixes=()
@@ -1220,7 +1235,26 @@ __restore_env() {
     local ssh_config_b64=""
     local motd_b64=""
 
+    # export-env writes a "## <project>/.env_*" header before each project
+    # env file's vars. It is the fallback for a var without its project's
+    # prefix (e.g. DOCKER_CONTEXT in traefik), which prefix routing would
+    # drop. Only vars in the project's .env-dist fall back, because
+    # batch-reconfigure fails on a var the file doesn't have.
+    local section_project=""
+    _restore_section_has() {
+        [[ -n "${section_project}" ]] && \
+            grep -qE "^${1}=" "${section_project}/.env-dist" 2>/dev/null
+    }
+
     while IFS= read -r line; do
+        if [[ "${line}" == "## "* ]]; then
+            local header="${line#\#\# }"
+            section_project=""
+            if [[ "${header}" == */.env_* && -n "${dir_to_prefix[${header%%/*}]+set}" ]]; then
+                section_project="${header%%/*}"
+            fi
+            continue
+        fi
         [[ -z "${line}" || "${line}" == "#"* ]] && continue
         local key="${line%%=*}"
         local val="${line#*=}"
@@ -1336,19 +1370,26 @@ __restore_env() {
             local stripped="${key#__}"
             local instance="${stripped%%__*}"
             local original_key="${stripped#*__}"
+            local route_prefix=""
             for prefix in "${sorted_prefixes[@]}"; do
                 if [[ "${original_key}" == "${prefix}_"* ]]; then
-                    local project_name="${prefix_to_dir[${prefix}]}"
-                    local target_file="${project_name}/.env_${ctx}_${instance}"
-                    if [[ -z "${file_seen[${target_file}]+set}" ]]; then
-                        file_seen["${target_file}"]=1
-                        file_order+=("${target_file}")
-                        file_vars["${target_file}"]="__instance__=${instance}|__prefix__=${prefix}"
-                    fi
-                    file_vars["${target_file}"]+=$'\n'"${original_key}=${val}"
+                    route_prefix="${prefix}"
                     break
                 fi
             done
+            if [[ -z "${route_prefix}" ]] && _restore_section_has "${original_key}"; then
+                route_prefix="${dir_to_prefix[${section_project}]}"
+            fi
+            if [[ -n "${route_prefix}" ]]; then
+                local project_name="${prefix_to_dir[${route_prefix}]}"
+                local target_file="${project_name}/.env_${ctx}_${instance}"
+                if [[ -z "${file_seen[${target_file}]+set}" ]]; then
+                    file_seen["${target_file}"]=1
+                    file_order+=("${target_file}")
+                    file_vars["${target_file}"]="__instance__=${instance}|__prefix__=${route_prefix}"
+                fi
+                file_vars["${target_file}"]+=$'\n'"${original_key}=${val}"
+            fi
         # Root var
         elif [[ -n "${root_vars[${key}]+set}" ]]; then
             local target_file=".env_${ctx}"
@@ -1360,19 +1401,25 @@ __restore_env() {
             file_vars["${target_file}"]+=$'\n'"${key}=${val}"
         # Default-instance project var
         else
+            local project_name=""
             for prefix in "${sorted_prefixes[@]}"; do
                 if [[ "${key}" == "${prefix}_"* ]]; then
-                    local project_name="${prefix_to_dir[${prefix}]}"
-                    local target_file="${project_name}/.env_${ctx}_default"
-                    if [[ -z "${file_seen[${target_file}]+set}" ]]; then
-                        file_seen["${target_file}"]=1
-                        file_order+=("${target_file}")
-                        file_vars["${target_file}"]="__type__=default"
-                    fi
-                    file_vars["${target_file}"]+=$'\n'"${key}=${val}"
+                    project_name="${prefix_to_dir[${prefix}]}"
                     break
                 fi
             done
+            if [[ -z "${project_name}" ]] && _restore_section_has "${key}"; then
+                project_name="${section_project}"
+            fi
+            if [[ -n "${project_name}" ]]; then
+                local target_file="${project_name}/.env_${ctx}_default"
+                if [[ -z "${file_seen[${target_file}]+set}" ]]; then
+                    file_seen["${target_file}"]=1
+                    file_order+=("${target_file}")
+                    file_vars["${target_file}"]="__type__=default"
+                fi
+                file_vars["${target_file}"]+=$'\n'"${key}=${val}"
+            fi
         fi
     done <<< "${input}"
 
@@ -1725,6 +1772,8 @@ main() {
                 __template_env "$@";;
             droplet|gumdrop)
                 ${BIN}/gumdrop "$@";;
+            e2e)
+                ${ROOT_DIR}/_e2e/e2e.sh "$@";;
             container-build)
                 ${ROOT_DIR}/_container/container-build.sh "$@";;
             drt)

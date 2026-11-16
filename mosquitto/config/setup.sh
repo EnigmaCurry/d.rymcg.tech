@@ -25,7 +25,9 @@ create_config() {
 
     if [[ "${MOSQUITTO_ACL_DISABLE}" == "true" ]]; then
         rm -f ${ACL}
-        [[ $PRINT_CONFIG == true ]] && cat ${CONFIG}
+        if [[ $PRINT_CONFIG == true ]]; then
+            cat ${CONFIG}
+        fi
     else
         ACL_TEMPLATE=/template/context/${MOSQUITTO_DOCKER_CONTEXT}/acl.conf
         if [[ -f ${ACL_TEMPLATE} ]]; then
@@ -38,7 +40,9 @@ create_config() {
         chown 1883:1883 ${ACL}
         echo "acl_file /mosquitto/config/acl.conf" >> ${CONFIG}
         echo "[ ! ] GENERATED NEW ACL FILE ::: ${ACL}"
-        [[ $PRINT_CONFIG == true ]] && cat ${CONFIG}
+        if [[ $PRINT_CONFIG == true ]]; then
+            cat ${CONFIG}
+        fi
         [[ $PRINT_CONFIG == true ]] && echo "-------" && cat ${ACL}
     fi
 }

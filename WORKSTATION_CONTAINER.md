@@ -8,74 +8,40 @@ image.
 All configuration is SOPS-encrypted per server context, and every
 workstation session runs in an ephemeral container — nothing is stored on the host
 except your encrypted config and AGE key. The same image works for
-headless CI/CD pipelines too. Build from source with the `drt` shell
-function, or pull a pre-built image from the
-[GitHub Container Registry](#pulling-the-image).
+headless CI/CD pipelines too. Pull a pre-built image from the
+[GitHub Container Registry](#pulling-the-image), or
+[build it from source](#building-from-source).
 
 ## Quick start
 
 Install bash and [Podman](https://podman.io/docs/installation) on
-your workstation. Your personal shell can be bash or zsh:
-
-Add this to your RC file (`~/.bashrc`, `~/.bash_profile`, or
-`~/.zshrc`):
-
-```bash
-## drt - d.rymcg.tech container image bootstrap
-## Modify these vars as you wish:
-export DRT_GIT_REPO="${DRT_GIT_REPO:-https://github.com/EnigmaCurry/d.rymcg.tech.git}"
-export DRT_BUILD_BRANCH="${DRT_BUILD_BRANCH:-master}"
-export DRT_IMAGE="${DRT_IMAGE:-localhost/d-rymcg-tech:latest}"
-## Uncomment to install extra CLI tools and/or add container capabilities:
-#export DRT_INSTALL_EXTRAS="${DRT_INSTALL_EXTRAS:-doctl,aws,gh,rclone,mc,step,gpg,wireguard,k3s,wayland,pipewire}"
-#export DRT_CAP_ADD="${DRT_CAP_ADD:-NET_ADMIN}"
-#export DRT_BIND_MOUNT="${DRT_BIND_MOUNT:-$HOME/git/vendor/enigmacurry/d.rymcg.tech}"
-
-if podman image exists "${DRT_IMAGE}" 2>/dev/null; then
-  source <(podman run --rm --pull=never --net=none --entrypoint cat \
-    "${DRT_IMAGE}" \
-    /home/user/git/vendor/enigmacurry/d.rymcg.tech/_container/drt.bashrc)
-else
-  drt() {
-    echo "## First run: building ${DRT_IMAGE}" \
-      "from ${DRT_GIT_REPO}#${DRT_BUILD_BRANCH} ..." >&2
-    local git_sha
-    git_sha=$(git ls-remote "${DRT_GIT_REPO}" "refs/heads/${DRT_BUILD_BRANCH}" | cut -c1-12)
-    podman build \
-      --build-arg BRANCH="${DRT_BUILD_BRANCH}" \
-      --build-arg GIT_REPO="${DRT_GIT_REPO}" \
-      --build-arg GIT_SHA="${git_sha:-unknown}" \
-      --build-arg INSTALL_EXTRAS="${DRT_INSTALL_EXTRAS:-}" \
-      -t "${DRT_IMAGE}" \
-      -f _container/Dockerfile \
-      "${DRT_GIT_REPO}#${DRT_BUILD_BRANCH}" \
-    && echo >&2 \
-    && echo "## Restart your shell to load drt." >&2 \
-    && echo >&2
-  }
-fi
-```
-
-The first time you run `drt`, it builds the image from source.
-Restart your shell afterwards to load the full function with tab
-completion:
-
-```bash
-drt                  # builds the image on first run
-exec bash            # restart shell to load full function
-drt --init myserver  # bootstrap a new deployment context
-drt myserver         # launch the interactive container
-```
-
-### Using a pre-built image
-
-If you prefer to pull a pre-built image from the registry instead of
-building from source:
+your workstation, then pull the pre-built image:
 
 ```bash
 podman pull ghcr.io/enigmacurry/d-rymcg-tech:latest
-alias drt='bash <(podman run --rm --pull=never --net=none ghcr.io/enigmacurry/d-rymcg-tech drt)'
 ```
+
+Add these lines to your RC file (`~/.bashrc`, `~/.bash_profile`, or
+`~/.zshrc`):
+
+```bash
+export DRT_IMAGE=ghcr.io/enigmacurry/d-rymcg-tech:latest
+podman image exists "${DRT_IMAGE}" && source <(podman run --rm --pull=never --net=none \
+  --entrypoint cat "${DRT_IMAGE}" /home/user/git/vendor/enigmacurry/d.rymcg.tech/_container/drt.bashrc)
+```
+
+This loads the `drt` shell function, with tab completion, from the
+image itself. Restart your shell, then:
+
+```bash
+drt --init myserver  # bootstrap a new deployment context
+drt myserver         # launch the interactive container
+drt --pull           # upgrade to the latest image
+```
+
+The pre-built image includes `doctl`, but not the other optional extra
+tools (Wayland, PipeWire, WireGuard, aws, gh, ...). To get those, or to
+build from a fork or branch, see [Building from source](#building-from-source).
 
 ### Other options
 
@@ -88,7 +54,7 @@ drt --image ghcr.io/enigmacurry/d-rymcg-tech:latest --init myserver
 Extract `drt` to a local file:
 
 ```bash
-podman run --rm --pull=never --net=none localhost/d-rymcg-tech:latest drt --extract > drt && chmod +x drt
+podman run --rm --pull=never --net=none "${DRT_IMAGE}" drt --extract > drt && chmod +x drt
 ./drt --help
 ```
 
@@ -239,8 +205,57 @@ SSH certificate and the entrypoint runs ssh-keyscan automatically.
 
 ## Building from source
 
-The `drt` shell function in [Quick start](#quick-start) automatically
-builds the image on first run. No manual build step is needed.
+Build the image yourself if you want the optional extra tools, a
+fork or branch, or just prefer not to use a pre-built image. Use this
+in your RC file instead of the [Quick start](#quick-start) lines:
+
+```bash
+## drt - d.rymcg.tech container image bootstrap
+## Modify these vars as you wish:
+export DRT_GIT_REPO="${DRT_GIT_REPO:-https://github.com/EnigmaCurry/d.rymcg.tech.git}"
+export DRT_BUILD_BRANCH="${DRT_BUILD_BRANCH:-master}"
+export DRT_IMAGE="${DRT_IMAGE:-localhost/d-rymcg-tech:latest}"
+## Uncomment to install extra CLI tools and/or add container capabilities:
+#export DRT_INSTALL_EXTRAS="${DRT_INSTALL_EXTRAS:-doctl,aws,gh,rclone,mc,step,gpg,wireguard,k3s,wayland,pipewire}"
+#export DRT_CAP_ADD="${DRT_CAP_ADD:-NET_ADMIN}"
+#export DRT_BIND_MOUNT="${DRT_BIND_MOUNT:-$HOME/git/vendor/enigmacurry/d.rymcg.tech}"
+
+if podman image exists "${DRT_IMAGE}" 2>/dev/null; then
+  source <(podman run --rm --pull=never --net=none --entrypoint cat \
+    "${DRT_IMAGE}" \
+    /home/user/git/vendor/enigmacurry/d.rymcg.tech/_container/drt.bashrc)
+else
+  drt() {
+    echo "## First run: building ${DRT_IMAGE}" \
+      "from ${DRT_GIT_REPO}#${DRT_BUILD_BRANCH} ..." >&2
+    local git_sha
+    git_sha=$(git ls-remote "${DRT_GIT_REPO}" "refs/heads/${DRT_BUILD_BRANCH}" | cut -c1-12)
+    podman build \
+      --build-arg BRANCH="${DRT_BUILD_BRANCH}" \
+      --build-arg GIT_REPO="${DRT_GIT_REPO}" \
+      --build-arg GIT_SHA="${git_sha:-unknown}" \
+      --build-arg INSTALL_EXTRAS="${DRT_INSTALL_EXTRAS:-}" \
+      -t "${DRT_IMAGE}" \
+      -f _container/Dockerfile \
+      "${DRT_GIT_REPO}#${DRT_BUILD_BRANCH}" \
+    && echo >&2 \
+    && echo "## Restart your shell to load drt." >&2 \
+    && echo >&2
+  }
+fi
+```
+
+The first time you run `drt`, it builds the image from source.
+Restart your shell afterwards to load the full function with tab
+completion:
+
+```bash
+drt                  # builds the image on first run
+exec bash            # restart shell to load full function
+```
+
+`DRT_CAP_ADD` and `DRT_BIND_MOUNT` also work with the pre-built
+image: export them in your RC file before the `source` line.
 
 ### Upgrading
 
@@ -250,9 +265,9 @@ Rebuild the image with the latest changes:
 drt --build
 ```
 
-This clones the branch configured in the `drt` shell function (or
-from the image label if using the simple alias), rebuilds, and re-tags
-the image in place.
+This clones `DRT_BUILD_BRANCH` (or the branch recorded in the image
+label), rebuilds, and re-tags the image in place. If you use the
+pre-built image, upgrade with `drt --pull` instead.
 
 To permanently switch branches, update `DRT_BUILD_BRANCH` in your
 `drt()` function in `~/.bashrc` or `~/.zshrc`, then run `drt --build`.
@@ -267,11 +282,22 @@ d container-build --docker                                     # Docker
 d container-build --image ghcr.io/you/d-rymcg-tech:v1           # Custom tag
 d container-build --arch linux/amd64 --arch linux/arm64        # Multi-arch (uses buildx)
 d container-build --image ghcr.io/you/d-rymcg-tech:v1 --push    # Build and push
+d container-build --install-extras doctl                       # Include optional CLI tools
 ```
+
+`--install-extras` takes a comma-separated list of optional tools to
+add to the image: `doctl`, `aws`, `gh`, `rclone`, `mc`, `step`, `gpg`,
+`wireguard`, `k3s`, `wayland`, `pipewire`. A local build includes none
+of them unless you ask. The pre-built image includes `doctl`, so add
+`--install-extras doctl` if you want gumdrop (`d droplet`) in your own
+build.
+
+The build packages the repository with `git archive HEAD`, so only
+committed changes are included.
 
 ## Getting started
 
-First set up the `drt` alias as described in [Quick start](#quick-start).
+First set up `drt` as described in [Quick start](#quick-start).
 
 Bootstrap a new deployment config with `drt --init` — this generates
 an AGE encryption key (if you don't have one) and creates a
@@ -312,6 +338,13 @@ actual changes rather than full re-encryption noise.
 
 Run `drt --help` for all options.
 
+## Device mode (for agents)
+
+`drt --serve myserver` unlocks a context once and keeps it running as
+a device. An AI agent then drives it with `drt --exec myserver -- CMD`,
+saves with `drt --save`, and the device locks itself when its lease
+ends. See [DRT_DEVICE.md](DRT_DEVICE.md).
+
 ## Storing configs in git
 
 You can track your `~/.config/d.rymcg.tech` directory in a private
@@ -340,15 +373,46 @@ Once a remote is configured, `drt` will automatically:
 If the local and remote branches have diverged, `drt` will stop with
 an error — resolve manually with `drt --git`.
 
+### Use a deploy key
+
+By default, git uses your ssh-agent to reach the remote. If the agent's
+key is a FIDO2 key (`sk-ssh-ed25519`), every pull and push needs a
+touch. That includes the push after an agent-driven save on a
+[drt device](DRT_DEVICE.md), when nobody may be at the desk. Give the
+config repo its own passwordless key instead:
+
+```bash
+drt --git-deploy-key
+```
+
+It creates `~/.config/d.rymcg.tech/keys/git/config-repo_ed25519` and
+prints the public key, with a link to the repo's deploy-key settings
+page. Add the key there **with write access**. On GitHub, check "Allow
+write access"; on Forgejo or Gitea, check "Enable write access". Then
+press Enter. drt checks that the key can push, and sets the repo's
+`core.sshCommand` so that only this repo uses the key. `drt --git-init`
+offers to do this for you.
+
+- Run `drt --git-deploy-key` again to check that the key still works.
+- `drt --git-deploy-key --rotate` makes a new key. The repo keeps
+  the old key until the new one can push, then drt prints the old key's
+  fingerprint so you can delete it from the repo's deploy keys.
+- The key is under `keys/`, so it's never committed. Back it up with
+  your AGE keys, or rotate it on a new workstation.
+- Anyone with the key file can push to the config repo, but they can
+  only push ciphertext. Without your AGE key, they can't read or
+  change your configs.
+
 ### What is safe to commit
 
 | Path | Committed | Notes |
 |---|---|---|
 | `config/*.sops.env` | Yes | Encrypted with AGE — safe in a private repo |
-| `keys/` | No | Excluded by `.gitignore` — back up separately |
+| `keys/` | No | Excluded by `.gitignore` — back up separately (AGE keys and the git deploy key) |
 | `gumdrop-presets/` | No | Excluded by `.gitignore` — serialized in SOPS config |
 | `.gitignore` | Yes | Created by `drt --init` |
 | `net-mode` | No | Excluded by `.gitignore` (local cache) |
+| `e2e/` | No | Excluded by `.gitignore` (`_e2e` test configs and logs) |
 
 ### Managing the repo directly
 

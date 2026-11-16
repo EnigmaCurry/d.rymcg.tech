@@ -3,12 +3,15 @@ services:
     build:
       context: config
     environment:
+      - TZ=${DEFAULT_TIMEZONE:-Etc/UTC}
       - TRAEFIK_HOST=${SOJU_TRAEFIK_HOST}
       - TITLE=${SOJU_TITLE}
       - MOTD=${SOJU_MOTD}
     volumes:
       - etc:/etc/soju
   soju:
+    environment:
+      - TZ=${DEFAULT_TIMEZONE:-Etc/UTC}
     depends_on: ['config']
     build:
       context: soju

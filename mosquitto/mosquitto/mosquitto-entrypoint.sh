@@ -29,6 +29,18 @@ if [ $timeout -le 0 ]; then
     exit 1
 fi
 
+# Build the CA bundle used to verify client certificates: the
+# intermediate(s) from the server certificate chain plus the root.
+# Some clients (e.g. OwnTracks on iOS) send only their leaf
+# certificate, not the intermediate, so the root alone can't verify them.
+CERT=/mosquitto/certs/${MOSQUITTO_TRAEFIK_HOST}.crt
+CA_BUNDLE=/mosquitto/certs/ca_bundle.crt
+awk '/-----BEGIN CERTIFICATE-----/ {n++} n > 1' "${CERT}" > "${CA_BUNDLE}.tmp"
+cat /mosquitto/certs/root_ca.crt >> "${CA_BUNDLE}.tmp"
+mv "${CA_BUNDLE}.tmp" "${CA_BUNDLE}"
+chown mosquitto:mosquitto "${CA_BUNDLE}"
+echo "## Wrote CA bundle ($(grep -c 'BEGIN CERTIFICATE' "${CA_BUNDLE}") certificates): ${CA_BUNDLE}"
+
 # Remove the restart-trigger file if it exists
 if [ -f /mosquitto/certs/restart-trigger ]; then
     rm /mosquitto/certs/restart-trigger

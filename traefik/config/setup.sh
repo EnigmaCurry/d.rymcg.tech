@@ -134,7 +134,6 @@ ytt_template() {
         -v allow_encoded_null_character=${TRAEFIK_ALLOW_ENCODED_NULL_CHARACTER} \
         -v allow_encoded_semicolon=${TRAEFIK_ALLOW_ENCODED_SEMICOLON} \
         -v allow_encoded_question_mark=${TRAEFIK_ALLOW_ENCODED_QUESTION_MARK} \
-        --data-value-yaml header_authorization_groups="${TRAEFIK_HEADER_AUTHORIZATION_GROUPS}" \
         > ${dst}
     success=$?
     echo "[ ! ] GENERATED NEW CONFIG FILE :::  ${dst}"

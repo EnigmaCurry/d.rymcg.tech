@@ -66,6 +66,29 @@ d.rymcg.tech make openbao seal-status
   OpenBao (enabling engines, creating policies, AppRoles). Can be
   revoked after setup, but is needed for all initial configuration.
 
+## Upgrading from file storage (before OpenBao 2.7)
+
+OpenBao 2.7 removed the `file` storage backend, and this project now
+uses `raft` storage. An instance created with `file` storage won't
+start on the new config: it exits with an error telling you to migrate.
+Migrate it while it's still on OpenBao 2.6.x:
+
+```bash
+## Use the 2.6 image for the migration, if you've already changed it:
+d.rymcg.tech make openbao reconfigure var=OPENBAO_IMAGE=openbao/openbao:2.6.5
+
+## Stop OpenBao and copy the file storage into raft, in the same volume:
+d.rymcg.tech make openbao migrate-raft
+
+## Upgrade, then unseal with your existing unseal key:
+d.rymcg.tech make openbao reconfigure var=OPENBAO_IMAGE=openbao/openbao:2.7.2
+d.rymcg.tech make openbao install
+d.rymcg.tech make openbao unseal
+```
+
+The migration keeps the old data in `/openbao/file/legacy-file`
+inside the volume. The unseal keys and root token don't change.
+
 ## SSH Certificate Authority
 
 Set up OpenBao as an SSH CA so CI/CD pipelines can obtain short-lived

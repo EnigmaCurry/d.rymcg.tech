@@ -24,7 +24,7 @@ override-hook:
 ####                         # (this hardcodes the string into docker-compose.override.yaml)
 ####   name=@VARIABLE_NAME   # sets the template 'name' field to the literal string '${VARIABLE_NAME}'
 ####                         # (used for regular docker-compose expansion of env vars by name.)
-	@${BIN}/docker_compose_override ${ENV_FILE} project=:smokeping instance=@SMOKEPING_INSTANCE traefik_host=@SMOKEPING_TRAEFIK_HOST http_auth=SMOKEPING_HTTP_AUTH http_auth_var=@SMOKEPING_HTTP_AUTH ip_sourcerange=@SMOKEPING_IP_SOURCERANGE  oauth2=SMOKEPING_OAUTH2 authorized_group=SMOKEPING_OAUTH2_AUTHORIZED_GROUP  enable_mtls_auth=SMOKEPING_MTLS_AUTH mtls_authorized_certs=SMOKEPING_MTLS_AUTHORIZED_CERTS
+	@${BIN}/docker_compose_override ${ENV_FILE} project=:smokeping instance=@SMOKEPING_INSTANCE traefik_host=@SMOKEPING_TRAEFIK_HOST http_auth=SMOKEPING_HTTP_AUTH http_auth_var=@SMOKEPING_HTTP_AUTH ip_sourcerange=@SMOKEPING_IP_SOURCERANGE  oauth2=SMOKEPING_OAUTH2 authorized_group=SMOKEPING_OAUTH2_AUTHORIZED_GROUP  enable_mtls_auth=SMOKEPING_MTLS_AUTH mtls_authorized_certs=SMOKEPING_MTLS_AUTHORIZED_CERTS traefik_entrypoint=SMOKEPING_TRAEFIK_ENTRYPOINT
 
 .PHONY: shell
 shell:
