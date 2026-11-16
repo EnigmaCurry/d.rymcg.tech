@@ -317,6 +317,7 @@ persist_bao_state() {
 ###############################################################################
 
 decrypt_sops() {
+    SOPS_PROJECT_KEYS=()
     if [[ -z "${SOPS_CONFIG_FILE:-}" ]]; then
         return 0
     fi
@@ -338,7 +339,23 @@ decrypt_sops() {
 
     # Parse each KEY=VALUE; export only if not already set (container env wins)
     # Skip serialized data keys (__passwords__, __ssh_key__, etc.) — handled by restore-env
+    # Keys exported from a project section ("## <project>/.env_*") that
+    # carry the project's own PREFIX_ are recorded in SOPS_PROJECT_KEYS so
+    # they can be unset once restore-env has written them to the project
+    # env files (see Step 8). Unprefixed keys in a project section (e.g.
+    # DOCKER_CONTEXT in traefik) are shared names the session still uses.
+    local section_prefix="" section_dir
     while IFS= read -r line; do
+        if [[ "${line}" == "## "* ]]; then
+            section_prefix=""
+            if [[ "${line}" == "## "*/.env_* ]]; then
+                section_dir="${line#\#\# }"
+                section_dir="${section_dir%%/*}"
+                section_prefix=$(grep -m1 -oP '^# PREFIX=\K[A-Za-z0-9_]+' \
+                    "${ROOT_DIR}/${section_dir}/.env-dist" 2>/dev/null || true)
+            fi
+            continue
+        fi
         [[ -z "${line}" || "${line}" == "#"* ]] && continue
         key="${line%%=*}"
         val="${line#*=}"
@@ -346,6 +363,9 @@ decrypt_sops() {
         # Only set if not already defined in container env (container env wins)
         if [[ -z "${!key+set}" ]]; then
             export "${key}=${val}"
+            if [[ -n "${section_prefix}" && "${key}" == "${section_prefix}_"* ]]; then
+                SOPS_PROJECT_KEYS+=("${key}")
+            fi
         fi
     done <<< "${SOPS_DECRYPTED}"
     # Note: SOPS_DECRYPTED is kept alive for restore-env (Step 8) to receive
@@ -651,6 +671,16 @@ else
     fi
     rm -f "${_restore_env_err}"
 fi
+
+# Project vars now live in their env files. Unset the copies decrypt_sops
+# exported: docker compose prefers shell env over --env-file, so a stale
+# exported value would silently override later edits to the env file
+# (e.g. `make config` or `reconfigure` followed by `make install`).
+if [[ ${#SOPS_PROJECT_KEYS[@]} -gt 0 ]]; then
+    unset "${SOPS_PROJECT_KEYS[@]}"
+    log "## Unset ${#SOPS_PROJECT_KEYS[@]} project var(s) from the environment (env files are authoritative)"
+fi
+unset SOPS_PROJECT_KEYS
 
 # Ensure ~/.ssh/config includes config-drt (after restore-env, which may restore ~/.ssh/config)
 if [[ ! -f ~/.ssh/config ]]; then

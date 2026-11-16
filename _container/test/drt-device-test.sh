@@ -227,6 +227,12 @@ check_rc "--exec passes the exit code" 7 drt_ --exec "${CTX}" -- bash -c 'exit 7
 check "--exec maps d to d.rymcg.tech" bash -c "$(printf '%q ' "${DRT[@]}") --exec ${CTX} -- d list </dev/null | grep -q '^whoami '"
 check "restore put DOCKER_CONTEXT in traefik's config" \
     bash -c "$(printf '%q ' "${DRT[@]}") --exec ${CTX} -- request get traefik DOCKER_CONTEXT </dev/null | grep -q '\"stdout\": \"${CTX}'"
+## A project var left exported would override its env file in docker
+## compose (shell env beats --env-file), hiding later reconfigures:
+check "project vars are not left in the environment" \
+    bash -c "$(printf '%q ' "${DRT[@]}") --exec ${CTX} -- bash -c '[[ -z \${TRAEFIK_IMAGE+set} ]]' </dev/null"
+check "root vars stay in the environment" \
+    bash -c "$(printf '%q ' "${DRT[@]}") --exec ${CTX} -- bash -c '[[ \${ROOT_DOMAIN:-} == ${CTX}.example ]]' </dev/null"
 
 ###############################################################################
 section "Request verbs"
