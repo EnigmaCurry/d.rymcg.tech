@@ -247,6 +247,12 @@ check_rc "unknown verb is refused" 64 "${REQ[@]}" frobnicate whoami
 check_rc "unknown project is refused" 64 "${REQ[@]}" get no-such-project VAR
 check "request get returns the new value" \
     bash -c "$(printf '%q ' "${DRT[@]}") --exec ${CTX} -- request get whoami WHOAMI_TRAEFIK_HOST </dev/null | grep -q 'whoami.${CTX}.example'"
+## make would expand $ in values; reconfigure and get must not go through it (#782)
+check "reconfigure stores \$ verbatim" "${REQ[@]}" reconfigure whoami 'WHOAMI_HTTP_AUTH=u:$$apr1$$s$$h'
+check "request get returns \$ verbatim" \
+    bash -c "$(printf '%q ' "${DRT[@]}") --exec ${CTX} -- request get whoami WHOAMI_HTTP_AUTH </dev/null | grep -qF 'u:\$\$apr1\$\$s\$\$h'"
+check_rc "reconfigure refuses a newline in a value" 64 "${REQ[@]}" reconfigure whoami $'WHOAMI_HTTP_AUTH=a\nB=1'
+check "reset WHOAMI_HTTP_AUTH" "${REQ[@]}" reconfigure whoami WHOAMI_HTTP_AUTH=
 check "config-render includes Traefik labels (fresh session)" \
     bash -c "$(printf '%q ' "${DRT[@]}") --exec ${CTX} -- request config-render whoami </dev/null | grep -q 'traefik.http.routers'"
 

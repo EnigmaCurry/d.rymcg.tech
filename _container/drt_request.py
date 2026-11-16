@@ -200,6 +200,10 @@ def clip(text: str, limit: int = MAX_OUTPUT_CHARS) -> tuple[str, bool]:
     return "...\n" + text[-limit:], True
 
 
+def dotenv_cmd(env_file: Path, *args: str) -> list[str]:
+    return [str(ROOT_DIR / "_scripts" / "dotenv"), "-f", str(env_file), *args]
+
+
 def make_cmd(project: str, target: str, options: dict[str, str], *extra: str) -> list[str]:
     cmd = [CLI, "make", project, target]
     if options.get("instance", "default") != "default":
@@ -261,13 +265,14 @@ def handle(verb: str, words: list[str]) -> dict:
         var = positionals[1]
         if not VAR_RE.match(var):
             raise RequestError(f"invalid variable name: {var!r}")
-        if project == "root":
-            cmd = [CLI, "dotenv_get", f"var={var}"]
-        else:
-            env_file = project_env_file(project, instance)
-            if not env_file.is_file():
-                raise RequestError(f"{project} instance {instance!r} isn't configured ({env_file.name} missing)")
-            cmd = make_cmd(project, "dotenv_get", options, f"var={var}")
+        env_file = root_env_file() if project == "root" else project_env_file(project, instance)
+        if not env_file.is_file():
+            raise RequestError(f"{project} instance {instance!r} isn't configured ({env_file.name} missing)"
+                               if project != "root" else f"{env_file.name} doesn't exist")
+        if var not in env_keys(env_file):
+            raise RequestError(f"{var} is not in {env_file.name}")
+        ## Read the file directly, not through make, so the value comes back verbatim
+        cmd = dotenv_cmd(env_file, "get", var)
     elif verb == "config-render":
         cmd = make_cmd(project, "config-render", options)
     elif verb == "config-dist":
@@ -291,12 +296,14 @@ def handle(verb: str, words: list[str]) -> dict:
         unknown = sorted(set(config_vars) - env_keys(env_file))
         if unknown:
             raise RequestError(f"not in {env_file.name} (check {project}/.env-dist): {', '.join(unknown)}")
+        bad = sorted(k for k, v in config_vars.items() if "\n" in v or "\r" in v)
+        if bad:
+            raise RequestError(f"values can't contain newlines: {', '.join(bad)}")
         steps = []
         for key, value in config_vars.items():
-            if project == "root":
-                cmd = [CLI, "reconfigure", f"var={key}={value}"]
-            else:
-                cmd = make_cmd(project, "reconfigure", options, f"var={key}={value}")
+            ## Write the file directly, not through make: make would expand
+            ## `$` in the value (`$$` -> `$`), breaking htpasswd hashes (#782)
+            cmd = dotenv_cmd(env_file, "set", f"{key}={value}")
             code, out, err = run(cmd)
             steps.append({"var": key, "exit_code": code})
             if code != 0:
