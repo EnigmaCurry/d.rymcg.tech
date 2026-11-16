@@ -1,7 +1,7 @@
 services:
   ollama-rocm:
     volumes:
-      - /usr/share/zoneinfo:/usr/share/zoneinfo:ro
+      - ${HOST_ZONEINFO:-/usr/share/zoneinfo}:/usr/share/zoneinfo:ro
     profiles:
       - rocm
     restart: unless-stopped
@@ -28,7 +28,7 @@ services:
 
   ollama-cuda:
     volumes:
-      - /usr/share/zoneinfo:/usr/share/zoneinfo:ro
+      - ${HOST_ZONEINFO:-/usr/share/zoneinfo}:/usr/share/zoneinfo:ro
     environment:
       - TZ=${DEFAULT_TIMEZONE:-Etc/UTC}
     profiles:
@@ -46,7 +46,7 @@ services:
 
   ollama-cpu:
     volumes:
-      - /usr/share/zoneinfo:/usr/share/zoneinfo:ro
+      - ${HOST_ZONEINFO:-/usr/share/zoneinfo}:/usr/share/zoneinfo:ro
     environment:
       - TZ=${DEFAULT_TIMEZONE:-Etc/UTC}
     profiles:
