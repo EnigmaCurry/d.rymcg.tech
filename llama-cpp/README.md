@@ -210,6 +210,24 @@ threads = 8
 | `ctx-size` | Context window size in tokens. Larger values use more VRAM. |
 | `ngl`      | Number of GPU layers offloaded. Set to `0` for CPU-only; increase until you hit VRAM limits. |
 | `threads`  | CPU threads for the layers that remain on CPU. |
+| `cache-type-k` / `cache-type-v` | KV cache data type. `q8_0` halves KV cache memory at a negligible quality cost. |
+| `mmproj`   | Path to a vision projector, for multimodal models. |
+
+**Two things that surprise people:**
+
+1. **`LLAMA_CONTEXT_LENGTH` in `.env` overrides `ctx-size` in `models.ini`.**
+   It is not a fallback. llama-server merges the global `--ctx-size` into
+   every model preset, so a global value wins over the per-model value.
+   Leave `LLAMA_CONTEXT_LENGTH` blank if you want `models.ini` to control
+   context sizes. If it is blank and a model has no section here, that
+   model loads at its **native** maximum, which is often too large to fit
+   in VRAM (e.g. 262144, or 1048576 for some models).
+2. **`ctx-size` is a total, not per-request, when slots are involved.**
+   llama.cpp only keeps the unified KV pool (one shared context that any
+   request can use in full) when the slot count is auto-detected. If you
+   set `LLAMA_PARALLEL`, the template also passes `--kv-unified`; without
+   it llama.cpp divides `ctx-size` between the slots (4 slots with
+   `ctx-size = 131072` gives each request only 32768 tokens).
 
 ##### Managing Model Configurations
 
