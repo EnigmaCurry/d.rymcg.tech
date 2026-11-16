@@ -45,10 +45,12 @@ services:
       - POSTGRES_DB=peertube
       ## postgres:18+ defaults PGDATA to /var/lib/postgresql/18/docker and
       ## refuses to start with a volume at the old path; pin the old path,
-      ## which every version accepts, so existing volumes keep working:
-      - PGDATA=/var/lib/postgresql/data
+      ## which every version accepts, so existing volumes keep working.
+      ## Volumes already in the postgres 18 native layout can override
+      ## these (see README.md):
+      - PGDATA=${PEERTUBE_POSTGRES_PGDATA:-/var/lib/postgresql/data}
     volumes:
-      - postgres:/var/lib/postgresql/data
+      - postgres:${PEERTUBE_POSTGRES_DATA_MOUNT:-/var/lib/postgresql/data}
     restart: "unless-stopped"
     labels:
       - "backup-volume.stop-during-backup=true"
