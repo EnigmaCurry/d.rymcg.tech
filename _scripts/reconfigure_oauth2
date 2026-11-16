@@ -31,7 +31,7 @@ shift
 ## Make new .env if it doesn't exist:
 test -f ${ENV_FILE} || cp .env-dist ${ENV_FILE}
 
-docker inspect oauth2-proxy >/dev/null || (echo "oauth2-proxy is not installed. Follow the directions at https://github.com/EnigmaCurry/d.rymcg.tech/tree/master/oauth2-proxy#readme and then retry this" && exit 1)
+[[ -n "$(docker ps -a -q --filter label=com.docker.compose.service=oauth2-proxy)" ]] || (echo "oauth2-proxy is not installed. Follow the directions at https://github.com/EnigmaCurry/d.rymcg.tech/tree/master/oauth2-proxy#readme and then retry this" && exit 1)
 
 ## Enable oauth2 for this app
 ${BIN}/reconfigure ${ENV_FILE} ${VAR_PREFIX}_OAUTH2=true
