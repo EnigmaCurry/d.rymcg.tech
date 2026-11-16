@@ -16,7 +16,7 @@ config-hook:
 	@${BIN}/reconfigure_ask ${ENV_FILE} FORGEJO_SSH_PORT "Enter the public SSH port (must match the entrypoint port)" 2222
 	@${BIN}/reconfigure_ask ${ENV_FILE} FORGEJO_ADMIN_USER "Enter the admin username to create on first install" root
 	@${BIN}/reconfigure_auth ${ENV_FILE} FORGEJO
-	@${BIN}/reconfigure_ask ${ENV_FILE} FORGEJO_WEBHOOK_HOST "Enter the webhook domain (blank to skip)" ""
+	@ALLOW_BLANK=1 ${BIN}/reconfigure_ask ${ENV_FILE} FORGEJO_WEBHOOK_HOST "Enter the webhook domain (blank to skip)" ""
 
 .PHONY: override-hook
 override-hook:
