@@ -34,6 +34,8 @@
 #@ jinja = data.values.jinja
 #@ tools = data.values.tools
 #@ sleep_idle_seconds = data.values.sleep_idle_seconds
+#@ parallel = data.values.parallel
+#@ ubatch_size = data.values.ubatch_size
 
 #@ def llama_service(profile):
 #@   service = "llama-" + profile
@@ -41,17 +43,36 @@
 #@   if api_token.strip():
 #@     env.append("LLAMA_API_KEY=${LLAMA_API_TOKEN}")
 #@   end
-#@   if context_length.strip():
-#@     env.append("LLAMA_CONTEXT_LENGTH=${LLAMA_CONTEXT_LENGTH}")
-#@   end
-#@   if n_gpu_layers.strip():
-#@     env.append("LLAMA_N_GPU_LAYERS=${LLAMA_N_GPU_LAYERS}")
-#@   end
 #@   cmd = []
 #@   if image_variant != "server":
 #@     cmd.append("--server")
 #@   end
 #@   cmd.extend(["--host", "0.0.0.0", "--port", server_port, "--models-dir", "/models"])
+#@   #! These are passed as command line flags, not environment variables.
+#@   #! The obvious-looking env names (LLAMA_CONTEXT_LENGTH,
+#@   #! LLAMA_N_GPU_LAYERS) do not exist in llama.cpp and are silently
+#@   #! ignored; the real ones are LLAMA_ARG_CTX_SIZE and
+#@   #! LLAMA_ARG_N_GPU_LAYERS. Flags are also visible in `GET /v1/models`
+#@   #! and in the logs, which makes a wrong value easy to spot.
+#@   if context_length.strip():
+#@     cmd.extend(["--ctx-size", context_length])
+#@   end
+#@   if n_gpu_layers.strip():
+#@     cmd.extend(["--n-gpu-layers", n_gpu_layers])
+#@   end
+#@   if parallel.strip():
+#@     cmd.extend(["--parallel", parallel])
+#@     #! Without an explicit --parallel, llama.cpp picks a slot count itself
+#@     #! and enables the unified KV pool, so every request can use the full
+#@     #! --ctx-size. Passing --parallel disables that, and llama.cpp then
+#@     #! splits --ctx-size between the slots (4 slots + 131072 ctx = 32768
+#@     #! tokens per request, which silently truncates long agent sessions).
+#@     #! Keep the unified pool so each request can still use the whole context.
+#@     cmd.append("--kv-unified")
+#@   end
+#@   if ubatch_size.strip():
+#@     cmd.extend(["--ubatch-size", ubatch_size])
+#@   end
 #@   entrypoint = []
 #@   if models_preset_enabled.strip() == "true":
 #@     cmd.append("--models-preset")
