@@ -131,7 +131,8 @@ d.rymcg.tech make <project> destroy                     # remove containers AND 
    uses `TZ=${<PREFIX>_TIMEZONE:-${DEFAULT_TIMEZONE:-Etc/UTC}}` with a
    blank `<PREFIX>_TIMEZONE=` in `.env-dist`. If the image has no tzdata
    (the e2e `app:timezone` check reports `+0000`), also mount
-   `/usr/share/zoneinfo:/usr/share/zoneinfo:ro`.
+   `${HOST_ZONEINFO:-/usr/share/zoneinfo}:/usr/share/zoneinfo:ro`
+   (`HOST_ZONEINFO` is set per context; NixOS hosts use `/etc/zoneinfo`).
 2. Render the config for each option combination you touched (auth on
    and off, each profile, etc.). Use `reconfigure` to flip options and
    `config-render` to check the result:

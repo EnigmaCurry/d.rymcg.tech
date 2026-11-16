@@ -56,7 +56,7 @@ services:
       mail:
         condition: service_started
     volumes:
-      - /usr/share/zoneinfo:/usr/share/zoneinfo:ro
+      - ${HOST_ZONEINFO:-/usr/share/zoneinfo}:/usr/share/zoneinfo:ro
       - data:/var/lib/plausible
     ulimits:
       nofile:
