@@ -1,0 +1,35 @@
+volumes:
+  data:
+  config:
+
+services:
+  config:
+    build:
+      context: config
+    security_opt:
+      - no-new-privileges:true
+    environment:
+      - TRAEFIK_HOST=${NOSTR_RS_RELAY_TRAEFIK_HOST}
+      - NAME=${NOSTR_RS_RELAY_NAME}
+      - DESCRIPTION=${NOSTR_RS_RELAY_DESCRIPTION}
+    volumes:
+      - config:/config
+
+  nostr-rs-relay:
+    depends_on:
+      - config
+    build:
+      context: https://github.com/scsibug/nostr-rs-relay.git
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+    sysctls:
+      - net.ipv4.ip_unprivileged_port_start=1024
+    restart: unless-stopped
+    volumes:
+      - config:/usr/src/app/config:ro
+      - data:/usr/src/app/db
+    command: ./nostr-rs-relay --config config/config.toml --db /usr/src/app/db
+    # All labels are defined in the template: docker-compose.instance.yaml
+    labels: []
