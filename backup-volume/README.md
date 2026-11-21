@@ -73,6 +73,18 @@ BACKUP_RETENTION_DAYS: Rotate backups older than how many days? (eg. 30)
 : 30
 ```
 
+The archive is staged as a tar file in `/tmp` inside the container
+before it is uploaded, which by default is the container's writable
+layer on the Docker data root disk. If that disk does not have room for
+the whole archive, enter a directory on the Docker host to bind-mount
+at `/tmp` for staging instead. Leave it blank to use the container's
+own `/tmp`:
+
+```stdout
+BACKUP_TMP_HOST_PATH: Enter a host directory to use for staging (blank to use the container's own /tmp)
+:
+```
+
 You can choose any of the supported storage mechanisms. For demo
 purposes, choose S3:
 
