@@ -30,6 +30,16 @@ configure_cron() {
 	${BIN}/reconfigure_ask ${ENV_FILE} BACKUP_RETENTION_DAYS "Rotate backups older than how many days?"
 }
 
+configure_staging() {
+    echo
+    echo "# The backup is written as a tar file to /tmp inside the container before it"
+    echo "# is uploaded. By default that is the container's writable layer, which lives"
+    echo "# on the Docker data root disk. You may instead bind-mount a directory from"
+    echo "# the Docker host at /tmp, on a disk with room for the whole backup."
+    echo
+    ALLOW_BLANK=1 ${BIN}/reconfigure_ask ${ENV_FILE} BACKUP_TMP_HOST_PATH "Enter a host directory to use for staging (blank to use the container's own /tmp)"
+}
+
 configure_remote() {
     DEFAULT=$(${BIN}/dotenv -f ${ENV_FILE} get BACKUP_STORAGE_TYPE)
     CHOSEN=$(wizard choose --default "${DEFAULT}" "Which remote storage do you want to use?" "s3" "ssh" "webdav" "azure" "dropbox" "local")
@@ -232,6 +242,7 @@ setup() {
     check_var ROOT_DIR ENV_FILE PROJECT_INSTANCE ROOT_ENV
     configure_backups
     configure_cron
+    configure_staging
     configure_remote
     configure_notifications
 }

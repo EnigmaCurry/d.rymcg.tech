@@ -14,6 +14,7 @@
 #@ backup_volumes = data.values.backup_volumes.split(",")
 #@ backup_archive = data.values.backup_archive
 #@ aws_part_size = data.values.aws_part_size
+#@ backup_tmp_host_path = data.values.backup_tmp_host_path
 
 #@yaml/text-templated-strings
 volumes:
@@ -112,6 +113,10 @@ services:
     volumes:
       #@ if use_docker:
       - /var/run/docker.sock:/var/run/docker.sock:ro
+      #@ end
+      #! Optionally mount a host directory at /tmp for staging the archive:
+      #@ if len(backup_tmp_host_path):
+      - "(@= backup_tmp_host_path @):/tmp"
       #@ end
       #! Mount extra volumes to backup here:
       #! Must mount these as /backup/$volume:
