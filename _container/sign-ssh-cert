@@ -1,0 +1,152 @@
+#!/usr/bin/env bash
+## sign-ssh-cert — on-demand SSH certificate re-signing via OpenBao
+## Called by SSH Match exec before each connection.
+## Reads BAO connection state from /run/secrets/bao/ (written by entrypoint).
+## Exits 0 silently if no BAO state exists (non-OpenBao path).
+## Exits 1 on failure (hard fail, blocks SSH connection).
+set -eo pipefail
+
+BAO_STATE_DIR="${HOME}/.ssh/bao"
+LOCK_FILE="${BAO_STATE_DIR}/sign.lock"
+
+## If no BAO state directory, this is a non-OpenBao path — exit silently
+if [[ ! -d "${BAO_STATE_DIR}" ]]; then
+    exit 0
+fi
+
+## Read BAO connection state
+read_state() {
+    local file="${BAO_STATE_DIR}/$1"
+    [[ -f "${file}" ]] && cat "${file}" || echo ""
+}
+
+BAO_ADDR="$(read_state addr)"
+KEY_DIR="$(read_state key_dir)"
+KEY_NAME="$(read_state key_name)"
+KEY_NAME="${KEY_NAME:-id_ed25519}"
+CERT_FILE="${KEY_DIR}/${KEY_NAME}-cert.pub"
+BAO_TOKEN="$(read_state token)"
+BAO_SSH_MOUNT="$(read_state ssh_mount)"
+BAO_SSH_ROLE="$(read_state ssh_role)"
+BAO_AUTH_PATH="$(read_state auth_path)"
+BAO_ROLE_ID="$(read_state role_id)"
+BAO_SECRET_ID="$(read_state secret_id)"
+BAO_NAMESPACE="$(read_state namespace)"
+
+## If BAO_ADDR is empty, nothing to do
+if [[ -z "${BAO_ADDR}" ]]; then
+    exit 0
+fi
+
+## Build curl TLS flags from state files
+BAO_CURL_FLAGS=()
+[[ -f "${BAO_STATE_DIR}/cacert" ]]      && BAO_CURL_FLAGS+=(--cacert "${BAO_STATE_DIR}/cacert")
+[[ -f "${BAO_STATE_DIR}/client_cert" ]] && BAO_CURL_FLAGS+=(--cert "${BAO_STATE_DIR}/client_cert")
+[[ -f "${BAO_STATE_DIR}/client_key" ]]  && BAO_CURL_FLAGS+=(--key "${BAO_STATE_DIR}/client_key")
+
+BAO_NAMESPACE_HEADER=()
+[[ -n "${BAO_NAMESPACE}" ]] && BAO_NAMESPACE_HEADER=(-H "X-Vault-Namespace: ${BAO_NAMESPACE}")
+
+## Check existing cert validity — only re-sign if <60 seconds remain
+if [[ -f "${CERT_FILE}" ]]; then
+    EXPIRY=$(ssh-keygen -L -f "${CERT_FILE}" 2>/dev/null | awk '/Valid:/ { print $NF }')
+    if [[ -n "${EXPIRY}" ]]; then
+        ## Parse the expiry timestamp from ssh-keygen output
+        EXPIRY_EPOCH=$(date -d "${EXPIRY}" +%s 2>/dev/null || echo 0)
+        NOW_EPOCH=$(date +%s)
+        REMAINING=$((EXPIRY_EPOCH - NOW_EPOCH))
+        if [[ ${REMAINING} -gt 60 ]]; then
+            echo "sign-ssh-cert: cached cert valid (${REMAINING}s remaining) via ${BAO_ADDR}" >&2
+            exit 0
+        fi
+    fi
+fi
+
+## Use flock to prevent concurrent signing (Docker opens multiple SSH connections)
+exec 9>"${LOCK_FILE}"
+LOCK_TRIES=0
+while ! flock -n 9 2>/dev/null; do
+    LOCK_TRIES=$((LOCK_TRIES + 1))
+    if [[ ${LOCK_TRIES} -ge 30 ]]; then
+        echo "sign-ssh-cert: failed to acquire lock after 30s" >&2
+        exit 1
+    fi
+    sleep 1
+done
+
+## Re-check cert after acquiring lock (another process may have signed)
+if [[ -f "${CERT_FILE}" ]]; then
+    EXPIRY=$(ssh-keygen -L -f "${CERT_FILE}" 2>/dev/null | awk '/Valid:/ { print $NF }')
+    if [[ -n "${EXPIRY}" ]]; then
+        EXPIRY_EPOCH=$(date -d "${EXPIRY}" +%s 2>/dev/null || echo 0)
+        NOW_EPOCH=$(date +%s)
+        REMAINING=$((EXPIRY_EPOCH - NOW_EPOCH))
+        if [[ ${REMAINING} -gt 60 ]]; then
+            echo "sign-ssh-cert: cached cert valid (${REMAINING}s remaining) via ${BAO_ADDR}" >&2
+            exit 0
+        fi
+    fi
+fi
+
+## Validate cached token via self-lookup
+token_valid() {
+    local resp http_code
+    resp=$(curl -sf -w '\n%{http_code}' "${BAO_CURL_FLAGS[@]}" "${BAO_NAMESPACE_HEADER[@]}" \
+        -H "X-Vault-Token: ${BAO_TOKEN}" \
+        "${BAO_ADDR}/v1/auth/token/lookup-self" 2>/dev/null) || return 1
+    http_code=$(echo "${resp}" | tail -1)
+    [[ "${http_code}" -lt 400 ]] 2>/dev/null
+}
+
+## Re-authenticate via AppRole
+reauth() {
+    local resp http_code
+    resp=$(curl -sf -w '\n%{http_code}' "${BAO_CURL_FLAGS[@]}" "${BAO_NAMESPACE_HEADER[@]}" \
+        --request POST \
+        --data "$(jq -n --arg r "${BAO_ROLE_ID}" --arg s "${BAO_SECRET_ID}" '{role_id:$r,secret_id:$s}')" \
+        "${BAO_ADDR}/v1/${BAO_AUTH_PATH}/login" 2>/dev/null) || {
+        echo "sign-ssh-cert: AppRole re-auth curl failed" >&2
+        return 1
+    }
+    http_code=$(echo "${resp}" | tail -1)
+    resp=$(echo "${resp}" | sed '$d')
+    if [[ "${http_code}" -ge 400 ]] 2>/dev/null; then
+        echo "sign-ssh-cert: AppRole re-auth failed (HTTP ${http_code})" >&2
+        return 1
+    fi
+    BAO_TOKEN=$(echo "${resp}" | jq -r '.auth.client_token')
+    if [[ -z "${BAO_TOKEN}" || "${BAO_TOKEN}" == "null" ]]; then
+        echo "sign-ssh-cert: AppRole re-auth returned no token" >&2
+        return 1
+    fi
+    ## Update cached token
+    echo "${BAO_TOKEN}" > "${BAO_STATE_DIR}/token"
+    chmod 600 "${BAO_STATE_DIR}/token"
+}
+
+## Try cached token first, re-auth if expired
+if ! token_valid; then
+    if ! reauth; then
+        echo "sign-ssh-cert: failed to authenticate with OpenBao" >&2
+        exit 1
+    fi
+fi
+
+## Sign SSH public key
+SSH_PUBLIC_KEY=$(cat "${KEY_DIR}/${KEY_NAME}.pub")
+SIGN_RESPONSE=$(curl -sf "${BAO_CURL_FLAGS[@]}" "${BAO_NAMESPACE_HEADER[@]}" \
+    -H "X-Vault-Token: ${BAO_TOKEN}" \
+    --request POST \
+    --data "$(jq -n --arg k "${SSH_PUBLIC_KEY}" '{public_key:$k}')" \
+    "${BAO_ADDR}/v1/${BAO_SSH_MOUNT}/sign/${BAO_SSH_ROLE}" 2>/dev/null) || {
+    echo "sign-ssh-cert: SSH cert signing curl failed" >&2
+    exit 1
+}
+SIGNED_KEY=$(echo "${SIGN_RESPONSE}" | jq -r '.data.signed_key')
+if [[ -z "${SIGNED_KEY}" || "${SIGNED_KEY}" == "null" ]]; then
+    echo "sign-ssh-cert: SSH certificate signing failed" >&2
+    exit 1
+fi
+echo "${SIGNED_KEY}" > "${CERT_FILE}"
+chmod 600 "${CERT_FILE}"
+echo "sign-ssh-cert: certificate signed via ${BAO_ADDR} (${BAO_SSH_MOUNT}/sign/${BAO_SSH_ROLE})" >&2

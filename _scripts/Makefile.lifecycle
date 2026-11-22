@@ -3,7 +3,11 @@ config: check-instance-project script-wizard check-dist-vars
 	@echo
 	@echo "Configuring environment file: ${ENV_FILE}"
 	@make -e --no-print-directory config-hook override instance=${INSTANCE}
-	@make -e --no-print-directory list-targets | grep "^config-hook-echo-postscript$$" >/dev/null && make -e --no-print-directory config-hook-echo-postscript instance=${INSTANCE} || make -e --no-print-directory config-hook-echo-postscript-default instance=${INSTANCE}
+	@if make -e --no-print-directory list-targets | grep -q "^config-hook-echo-postscript$$"; then \
+		make -e --no-print-directory config-hook-echo-postscript instance=${INSTANCE}; \
+	else \
+		make -e --no-print-directory config-hook-echo-postscript-default instance=${INSTANCE}; \
+	fi
 
 config-hook-echo-postscript-default: 
 	@echo ""
@@ -16,6 +20,9 @@ config-hook-echo-postscript-default:
 config-dist: 
 	@echo
 	@echo "Configuring environment file: ${ENV_FILE}"
+ifdef DRT_ENV_DIR
+	@mkdir -p "$$(dirname ${ENV_FILE})"
+endif
 	@cp .env-dist ${ENV_FILE}
 	@echo ""
 	@echo "Copied the default .env-dist file. Edit ${ENV_FILE} by hand."
@@ -30,21 +37,30 @@ config-edit:
 	@echo ""
 	@echo ""
 
+.PHONY: config-render # Render the current running config to docker-compose formatted YAML
+config-render:
+	@make -e --no-print-directory override instance=${INSTANCE} 1>&2
+	@make --no-print-directory docker-compose-lifecycle-cmd EXTRA_ARGS="config" | less -FSX
 
 .PHONY: start # Start services
 start:
-	@make --no-print-directory docker-compose-lifecycle-cmd EXTRA_ARGS="up -d ${service}"
+	@make --no-print-directory docker-compose-lifecycle-cmd EXTRA_ARGS="up -d $(if $(BUILD),,--no-build --pull never) ${service}"
 
 .PHONY: up # Start services in the foreground and print logs to stdout. Ctrl-C to quit.
-up: build
-	@make --no-print-directory docker-compose-lifecycle-cmd EXTRA_ARGS="up ${service}"
+up: $(if $(BUILD),build)
+	@make --no-print-directory docker-compose-lifecycle-cmd EXTRA_ARGS="up $(if $(BUILD),,--no-build --pull never) ${service}"
 
 .PHONY: stop # Stops services
 stop:
 	@make --no-print-directory docker-compose-lifecycle-cmd EXTRA_ARGS="stop ${service}"
 
+.PHONY: check-protection
+check-protection:
+	@PREFIX=$$(${BIN}/parse-env-meta.sh ${ENV_FILE} PREFIX); PROTECTION=$$(${BIN}/dotenv -f ${ENV_FILE} get $${PREFIX}_INSTANCE_PROTECTION); if [[ "$${PROTECTION^^}" == "TRUE" ]]; then echo "## Error: refusing to uninstall protected service - $${PREFIX}_INSTANCE_PROTECTION=$${PROTECTION} in ${ENV_FILE}." && exit 1; fi
+
+
 .PHONY: down
-down:
+down: check-protection
 	@make --no-print-directory docker-compose-lifecycle-cmd EXTRA_ARGS="down ${service}"
 
 .PHONY: restart # Restart services
@@ -52,7 +68,7 @@ restart:
 	@make --no-print-directory docker-compose-lifecycle-cmd EXTRA_ARGS="restart ${service}"
 
 .PHONY: destroy # Deletes containers AND data volumes
-destroy: check-instance-project
+destroy: check-instance-project check-protection
 	@${BIN}/confirm no "Do you want to destroy $$([[ -n $$service ]] && echo 'SERVICE='$${service} of project $$(basename $${PWD}) || echo all $$(basename $${PWD}) services) AND volumes for the given context/instance (${ENV_FILE})" "?" && (make --no-print-directory destroy-hook-pre-rule-exists 2>/dev/null && make --no-print-directory destroy-hook-pre || true) && make --no-print-directory docker-compose-lifecycle-cmd  EXTRA_ARGS="down -v ${service}" && (make --no-print-directory destroy-hook-post-rule-exists 2>/dev/null && make --no-print-directory destroy-hook-post || true)
 
 .PHONY: ps # Show containers status (docker compose ps)
@@ -62,7 +78,11 @@ ps:
 
 .PHONY: status # Show status of all instances
 status:
-	@(echo -e "NAME\tENV\tID\tIMAGE\tSTATE\tHEALTH\tPORTS" && docker ps --filter "label=com.docker.compose.project.working_dir=$${PWD}" -q | xargs -iXX docker inspect XX | jq '.[0]' | jq -r '(.Name[1:]) + "\t" + (.Config.Labels["com.docker.compose.project.environment_file"] | split("/";"")[-1]) + "\t" + .Id[:10] + "\t" + .Config.Image + "\t" + .State.Status + "\t" + (.State.Health.Status|tostring) + "\t" + (.NetworkSettings.Ports|tostring) ') | column -t | less -FSX
+ifeq ($(FORMAT),json)
+	@docker ps --format '{{.ID}}\t{{.Label "com.docker.compose.project"}}' | awk -v proj="${PROJECT}" '$$2 == proj || $$2 ~ "^" proj "_" {print $$1}' | xargs -iXX docker inspect XX | jq '[.[0] | {name: .Name[1:], env: (.Config.Labels["com.docker.compose.project.environment_file"] | split("/";"")[-1]), id: .Id[:10], image: .Config.Image, state: .State.Status, health: (.State.Health.Status // null), ports: .NetworkSettings.Ports}]' | jq -s 'add // []'
+else
+	@(echo -e "NAME\tENV\tID\tIMAGE\tSTATE\tHEALTH\tPORTS" && docker ps --format '{{.ID}}\t{{.Label "com.docker.compose.project"}}' | awk -v proj="${PROJECT}" '$$2 == proj || $$2 ~ "^" proj "_" {print $$1}' | xargs -iXX docker inspect XX | jq '.[0]' | jq -r '(.Name[1:]) + "\t" + (.Config.Labels["com.docker.compose.project.environment_file"] | split("/";"")[-1]) + "\t" + .Id[:10] + "\t" + .Config.Image + "\t" + .State.Status + "\t" + (.State.Health.Status|tostring) + "\t" + (.NetworkSettings.Ports|tostring) ') | column -t | less -FSX
+endif
 
 .PHONY: logs # Tail all containers logs (set SERVICE=name to filter for one)
 logs:
@@ -83,7 +103,7 @@ pull:
 
 .PHONY: wait # Wait until deployment is started and healthy
 wait:
-	@CONTAINER_IDS= ${BIN}/wait_until_healthy "${PROJECT_NAME}" "$$(make --no-print-directory docker-compose-lifecycle-cmd EXTRA_ARGS='ps -a -q')"
+	@TIMEOUT=${TIMEOUT} ${BIN}/wait_until_healthy "${PROJECT_NAME}" "$$(make --no-print-directory docker-compose-lifecycle-cmd EXTRA_ARGS='ps -a -q')"
 
 .PHONY: network-subnet # Find the docker subnet CIDR for the current project/instance
 network-subnet:

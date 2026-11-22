@@ -65,6 +65,7 @@ edit_config() {
         config_set .authority.claims.defaultTLSCertDuration "${AUTHORITY_CLAIMS_DEFAULT_TLS_CERT_DURATION}"
         config_set_bool .authority.claims.disableRenewal "${AUTHORITY_CLAIMS_DISABLE_RENEWAL}"
         config_set_array .authority.policy.x509.allow.dns "${AUTHORITY_POLICY_X509_ALLOW_DNS}"
+        config_set_bool .authority.policy.x509.allowWildcardNames true
     else
         echo "ERROR: Missing ${CA_JSON} - This is normal if you're starting fresh."
         echo "IMPORTANT: Let the container startup and it will create /home/step/config/ca.json automatically."

@@ -3,7 +3,17 @@
 BIN=$(dirname ${BASH_SOURCE})
 ROOT_DIR=${ROOT_DIR:-$(dirname ${BIN})}
 
-stderr(){ echo "$@" >/dev/stderr; }
+## Activate the Python venv if it exists and isn't already on PATH
+if [[ -d "${ROOT_DIR}/.venv/bin" && ":${PATH}:" != *":${ROOT_DIR}/.venv/bin:"* ]]; then
+    export PATH="${ROOT_DIR}/.venv/bin:${PATH}"
+fi
+
+## When DRT_ENV_DIR is set, ensure the env file directory exists
+if [[ -n "${DRT_ENV_DIR:-}" && -n "${ENV_FILE:-}" ]]; then
+    mkdir -p "$(dirname "${ENV_FILE}")" 2>/dev/null || true
+fi
+
+stderr(){ echo "$@" >/dev/stderr 2>/dev/null || echo "$@"; }
 error(){ stderr "Error: $@"; }
 fault(){ test -n "$1" && error $1; stderr "Exiting."; exit 1; }
 cancel(){ stderr "Canceled."; exit 2; }
@@ -12,7 +22,7 @@ print_array(){ printf '%s\n' "$@"; }
 trim_trailing_whitespace() { sed -e 's/[[:space:]]*$//'; }
 trim_leading_whitespace() { sed -e 's/^[[:space:]]*//'; }
 trim_whitespace() { trim_leading_whitespace | trim_trailing_whitespace; }
-wizard() { ${BIN}/script-wizard "$@"; }
+wizard() { if [[ -x "${BIN}/script-wizard" ]]; then ${BIN}/script-wizard "$@"; else script-wizard "$@"; fi; }
 check_var(){
     local __missing=false
     local __vars="$@"
@@ -49,6 +59,21 @@ debug_array() {
     done
 }
 
+pop_array() {
+    # Pop off the first element of an array and save it to a variable:
+    local -n __arr=$1       # Bind to array
+    local out_var=$2      # Variable name to store output
+    local first_element="${__arr[0]}"
+    __arr=("${__arr[@]:1}")   # Remove the first element
+
+    if [[ -n "$first_element" ]]; then
+        eval "$out_var=\"$first_element\""
+    else
+        eval "unset $out_var"
+        return 1
+    fi
+}
+
 ask() {
     ## Ask the user a question and set the given variable name with their answer
     local __prompt="${1}"; local __var="${2}"; local __default="${3}"
@@ -72,6 +97,15 @@ ask_echo() {
     (
         prompt=$1; shift
         ask_no_blank "$prompt" ASK_ECHO_VARNAME $@ >/dev/stderr
+        echo "${ASK_ECHO_VARNAME}"
+    )
+}
+
+ask_echo_blank() {
+    ## Ask the user a question, allowing blank responses, then print the answer to stdout
+    (
+        prompt=$1; shift
+        ask "$prompt" ASK_ECHO_VARNAME $@ >/dev/stderr
         echo "${ASK_ECHO_VARNAME}"
     )
 }
@@ -119,12 +153,19 @@ docker_run_with_env() {
 }
 
 get_root_domain() {
-    local ENV_FILE=${BIN}/../.env_$(${BIN}/docker_context)
-    if [[ -f ${ENV_FILE} ]]; then
-        ${BIN}/dotenv -f ${ENV_FILE} get ROOT_DOMAIN
+    local _ctx
+    _ctx=$(${BIN}/docker_context)
+    local ENV_FILE
+    if [[ -n "${DRT_ENV_DIR:-}" ]]; then
+        ENV_FILE="${DRT_ENV_DIR}/.env_${_ctx}"
     else
-        echo "Could not find $(abspath ${ENV_FILE})"
-        fault "Run `make config` in the root project directory first."
+        ENV_FILE="${BIN}/../.env_${_ctx}"
+    fi
+    if [[ -f "${ENV_FILE}" ]]; then
+        ${BIN}/dotenv -f "${ENV_FILE}" get ROOT_DOMAIN
+    else
+        echo "Could not find ${ENV_FILE}"
+        fault "Run \`make config\` in the root project directory first."
     fi
 }
 
@@ -187,31 +228,43 @@ docker_ssh() {
 
 ytt() {
     set -e
+    if type -P ytt &>/dev/null; then
+        # Prefer local ytt binary (type -P only matches external commands, not this function)
+        local non_template_commands_pattern="(help|completion|fmt|version)"
+        if [[ "$@" == "" ]]; then
+            command ytt help
+        elif [[ "$1" =~ $non_template_commands_pattern ]]; then
+            command ytt "$@"
+        else
+            command ytt -f- "$@"
+        fi
+        return
+    fi
     local IMAGE=localhost/ytt
-    docker image inspect ${IMAGE} >/dev/null || docker build -t ${IMAGE} -f- . >/dev/null <<'EOF'
+    if ! docker image inspect ${IMAGE} >/dev/null 2>&1; then
+        local _BUILD=${BUILD_RAW:-$(${BIN}/dotenv -f "${DRT_ENV_DIR:-${ROOT_DIR}}/.env_$(${BIN}/docker_context)" get BUILD 2>/dev/null || true)}
+        if [[ "${_BUILD}" == "false" || "${_BUILD}" == "0" ]]; then
+            fault "ytt image (${IMAGE}) not found and BUILD=${_BUILD} prevents building it. Build it first or set BUILD=true."
+        fi
+        local YTT_VERSION
+        YTT_VERSION=$(jq -r '.dependencies["ytt"].version' "${ROOT_DIR}/.tools.lock.json")
+        docker build -t ${IMAGE} -f- . >/dev/null <<EOF
 FROM debian:stable-slim AS ytt
-ARG YTT_VERSION=v0.44.3
-RUN apt-get update && apt-get install -y wget && wget "https://github.com/vmware-tanzu/carvel-ytt/releases/download/${YTT_VERSION}/ytt-linux-$(dpkg --print-architecture)" -O ytt && install ytt /usr/local/bin/ytt
+RUN apt-get update && apt-get install -y wget && wget "https://github.com/vmware-tanzu/carvel-ytt/releases/download/v${YTT_VERSION}/ytt-linux-\$(dpkg --print-architecture)" -O ytt && install ytt /usr/local/bin/ytt
 EOF
+    fi
     non_template_commands_pattern="(help|completion|fmt|version)"
     if [[ "$@" == "" ]]; then
-        CMD="docker run --rm -i ${IMAGE} ytt help"
+        docker run --rm -i ${IMAGE} ytt help
     elif [[ "$1" =~ $non_template_commands_pattern ]]; then
-        CMD="docker run --rm -i ${IMAGE} ytt ${@}"
+        docker run --rm -i ${IMAGE} ytt "$@"
     else
-        CMD="docker run --rm -i ${IMAGE} ytt -f- ${@}"
+        docker run --rm -i ${IMAGE} ytt -f- "$@"
     fi
-    eval $CMD
 }
 
 yq() {
-    set -e
-    local IMAGE=localhost/yq
-    docker image inspect ${IMAGE} >/dev/null || docker build -t ${IMAGE} -f- . >/dev/null <<'EOF'
-FROM debian:stable-slim AS yq
-RUN apt-get update && apt-get install -y yq
-EOF
-    docker run --rm -i "${IMAGE}" yq "${@}"
+    uvx yq "$@"
 }
 
 read_stdin_or_args() {
@@ -257,7 +310,13 @@ volume_rsync() {
         check_var VOLUME
     fi
     # Check that the localhost/rsync image exists, if not build it:
-    docker image inspect localhost/rsync >/dev/null || docker build -t localhost/rsync ${ROOT_DIR}/_terminal/rsync
+    if ! docker image inspect localhost/rsync >/dev/null 2>&1; then
+        local _BUILD=${BUILD_RAW:-$(${BIN}/dotenv -f "${DRT_ENV_DIR:-${ROOT_DIR}}/.env_$(${BIN}/docker_context)" get BUILD 2>/dev/null || true)}
+        if [[ "${_BUILD}" == "false" || "${_BUILD}" == "0" ]]; then
+            fault "rsync image (localhost/rsync) not found and BUILD=${_BUILD} prevents building it. Build it first or set BUILD=true."
+        fi
+        docker build -t localhost/rsync ${ROOT_DIR}/_terminal/rsync
+    fi
     if [[ "${DISABLE_VOLUME_RSYNC_CHECKS}" != "true" ]]; then
         echo "Doing initial rsync checks for volume: ${VOLUME} ..."
         # Check that the volume we will sync to already exists:
@@ -386,8 +445,15 @@ version_spec() {
         fault "The version lock spec file is missing: ${VERSION_LOCK}"
     fi
     # Grab the locked version of APP from the lock file:
-    local LOCKED_VERSION=$(jq -r ".dependencies.\"${APP}\"" ${ROOT_DIR}/.tools.lock.json)
-    (test -z "${LOCKED_VERSION}" || test "${LOCKED_VERSION}" == "null") && fault "The app '${APP}' is not listed in ${VERSION_LOCK}"
+    # Supports both bare string ("0.1.34") and object ({"version": "0.1.34", ...}) formats
+    local RAW_VALUE=$(jq -r ".dependencies.\"${APP}\"" ${ROOT_DIR}/.tools.lock.json)
+    (test -z "${RAW_VALUE}" || test "${RAW_VALUE}" == "null") && fault "The app '${APP}' is not listed in ${VERSION_LOCK}"
+    local LOCKED_VERSION
+    if jq -e ".dependencies.\"${APP}\" | type == \"object\"" ${ROOT_DIR}/.tools.lock.json >/dev/null 2>&1; then
+        LOCKED_VERSION=$(jq -r ".dependencies.\"${APP}\".version" ${ROOT_DIR}/.tools.lock.json)
+    else
+        LOCKED_VERSION="${RAW_VALUE}"
+    fi
 
     # Return the locked version string:
     echo ${LOCKED_VERSION}
@@ -438,12 +504,12 @@ text_centered_wrap() {
 }
 
 text_repeat() {
-    local repeat="$1";
+    local repeat="$1"
     check_var repeat
     shift
-    local text="$@"
+    local text="$*"
     check_var text
-    readarray -t repeated < <(yes "${text}" | head -n ${repeat})
+    readarray -t repeated < <(yes "${text}" 2>/dev/null | head -n ${repeat})
     printf "%s" "${repeated[@]}"
     echo
 }
@@ -518,45 +584,114 @@ get_all_projects() {
 
 wait_until_healthy() {
     echo "Waiting until all services are started and become healthy ..."
-    local containers=()
-    PROJECT_NAME=$1
+    local PROJECT_NAME=$1
     shift
-
-    while IFS= read -r CONTAINER_ID; do
-        local inspect_json=$(docker inspect ${CONTAINER_ID})
-        local name=$(echo "${inspect_json}" | jq -r ".[0].Name" | sed 's|^/||')
-        if [[ "${name}" != "${PROJECT_NAME}-config-1" ]]; then containers+=("$name"); fi
-    done <<< "$@"
-    local attempts=0
-    while true; do
-        attempts=$((attempts+1))
-        if [[ "${#containers}" == "0" ]]; then
-            break
+    local all_ids=()
+    local arg
+    for arg in "$@"; do
+        while IFS= read -r line; do
+            [[ -z "$line" ]] && continue
+            all_ids+=("$line")
+        done <<< "$arg"
+    done
+    local containers=()
+    local cid
+    for cid in "${all_ids[@]}"; do
+        # must exist
+        if ! docker inspect "$cid" >/dev/null 2>&1; then
+            echo "Error: container '$cid' does not exist (yet)."
+            return 1
         fi
-        local random_container=$(random_element "${containers[@]}")
-        if [[ -z "${random_container}" ]]; then
+        local name
+        name=$(docker inspect "$cid" | jq -r '.[0].Name' | sed 's|^/||')
+        if [[ "$name" == *"-config-1" ]] || [[ "$name" == *"_config-1" ]]; then
             continue
         fi
-        local inspect_json=$(docker inspect ${random_container})
-        local name=$(echo "${inspect_json}" | jq -r ".[0].Name" | sed 's|^/||')
-        local status=$(echo "${inspect_json}" | jq -r ".[0].State.Status")
-        local health=$(echo "${inspect_json}" | jq -r ".[0].State.Health.Status")
-        if [[ "$status" == "running" ]] && ([[ "$health" == "healthy" ]] || [[ "$health" == "null" ]]); then
-            containers=( "${containers[@]/${name}}" )
-            if [[ "${#containers}" == "0" ]]; then
-                break
-            elif [[ "${attempts}" -gt 15 ]]; then
-                echo "Still waiting for services to finish starting: ${containers[@]}"
+        containers+=("$name")
+    done
+    if [[ ${#containers[@]} -eq 0 ]]; then
+        echo "No services to wait for."
+        return 0
+    fi
+    local timeout_seconds=${TIMEOUT:-300}
+    local sleep_interval=2
+    local max_attempts=$(( timeout_seconds / sleep_interval ))
+    [[ $max_attempts -lt 1 ]] && max_attempts=1
+    local attempts=0
+    ## Containers without a healthcheck count as healthy once they have stayed
+    ## running (same RestartCount) for this long; otherwise a crash-looping
+    ## container passes whenever it is caught between restarts:
+    local stable_seconds=${STABLE_SECONDS:-10}
+    local -A first_seen=() first_restarts=()
+    ## Fail fast on a crash loop rather than waiting out the timeout: give up
+    ## once a container restarts this many times while we wait:
+    local restart_limit=${RESTART_LIMIT:-3}
+    local -A base_restarts=()
+    for cid in "${containers[@]}"; do
+        base_restarts[$cid]=$(docker inspect -f '{{.RestartCount}}' "$cid" 2>/dev/null || echo 0)
+    done
+    while true; do
+        attempts=$((attempts + 1))
+        [[ ${#containers[@]} -eq 0 ]] && break
+        local random_container
+        random_container=$(random_element "${containers[@]}")
+        [[ -z "$random_container" ]] && continue
+        if ! docker inspect "$random_container" >/dev/null 2>&1; then
+            echo "Error: container '$random_container' disappeared while waiting."
+            return 1
+        fi
+        local inspect_json
+        inspect_json=$(docker inspect "$random_container")
+        local name status health restarts stable=false
+        name=$(echo "$inspect_json" | jq -r '.[0].Name' | sed 's|^/||')
+        status=$(echo "$inspect_json" | jq -r '.[0].State.Status')
+        health=$(echo "$inspect_json" | jq -r '.[0].State.Health.Status')
+        restarts=$(echo "$inspect_json" | jq -r '.[0].RestartCount')
+        if (( restarts - ${base_restarts[$name]:-0} >= restart_limit )); then
+            echo "Error: container '$name' is crash-looping ($(( restarts - ${base_restarts[$name]:-0} )) restarts while waiting). Last log lines:"
+            docker logs --tail 30 "$name" 2>&1 | sed 's/^/    /'
+            return 1
+        fi
+        ## A stopped container that docker won't restart will never come up:
+        local policy
+        policy=$(echo "$inspect_json" | jq -r '.[0].HostConfig.RestartPolicy.Name')
+        if [[ "$status" == "exited" || "$status" == "dead" ]] && [[ "$policy" == "no" || -z "$policy" ]]; then
+            echo "Error: container '$name' $status (exit code $(echo "$inspect_json" | jq -r '.[0].State.ExitCode')) and has no restart policy. Last log lines:"
+            docker logs --tail 30 "$name" 2>&1 | sed 's/^/    /'
+            return 1
+        fi
+        if [[ "$status" == "running" ]] && [[ "$health" == "null" ]]; then
+            if [[ -z "${first_seen[$name]:-}" ]] || [[ "${first_restarts[$name]}" != "$restarts" ]]; then
+                first_seen[$name]=$SECONDS
+                first_restarts[$name]=$restarts
+            elif (( SECONDS - first_seen[$name] >= stable_seconds )); then
+                stable=true
             fi
         fi
-
-        if [[ "${attempts}" -gt 150 ]]; then
-            fault "Gave up waiting for services to start."
+        if [[ "$status" == "running" ]] && { [[ "$health" == "healthy" ]] || [[ "$stable" == "true" ]]; }; then
+            # remove from list safely
+            local new=()
+            local c
+            for c in "${containers[@]}"; do
+                [[ "$c" == "$name" ]] && continue
+                new+=("$c")
+            done
+            containers=("${new[@]}")
+            if [[ ${#containers[@]} -eq 0 ]]; then
+                break
+            fi
+            if [[ $attempts -gt 15 ]]; then
+                echo "Still waiting for services to finish starting: ${containers[*]}"
+            fi
         fi
-        if [[ "$((attempts%5))" == 0 ]]; then
-            echo "Still waiting for services to finish starting: ${containers[@]}"
+        if [[ $attempts -ge $max_attempts ]]; then
+            echo "Gave up waiting after ${timeout_seconds}s. Still pending: ${containers[*]}"
+            return 1
         fi
-        sleep 2
+        if (( attempts % 5 == 0 )); then
+            echo "Still waiting for services to finish starting: ${containers[*]}"
+        fi
+        sleep $sleep_interval
     done
     echo "All services healthy."
 }
@@ -573,7 +708,12 @@ confirm() {
     ## Confirm with the user.
     ## Check env for the var YES, if it equals "yes" then bypass this confirm.
     ## This version depends on `script-wizard` being installed.
-    test ${YES:-no} == "yes" && exit 0
+    test ${YES:-no} == "yes" && return 0
+
+    ## If not running in a terminal, skip confirmation (non-interactive/agent mode):
+    if [[ ! -t 0 ]]; then
+        return 0
+    fi
 
     local default=$1; local prompt=$2; local question=${3:-". Proceed?"}
 
@@ -645,19 +785,115 @@ prefix_to_netmask () {
     echo ${1-0}.${2-0}.${3-0}.${4-0}
 }
 
-validate_ip_address () {
-    #thanks https://stackoverflow.com/a/21961938
-    echo "$@" | grep -o -E '^(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)$' >/dev/null
+validate_ip_address() {
+    local addr=$1 cmd
+    if command -v ipcalc-ng >/dev/null 2>&1; then
+        cmd=(ipcalc-ng -c)
+    elif command -v ipv6calc >/dev/null 2>&1; then
+        cmd=(ipv6calc --showinfo -m)
+    elif command -v ipcalc >/dev/null 2>&1; then
+        cmd=(ipcalc -c)
+    else
+        fail "No ipcalc/ipcalc-ng/ipv6calc command found."
+    fi
+    "${cmd[@]}" "$addr" >/dev/null 2>&1
 }
 
 validate_ip_network() {
-    #thanks https://stackoverflow.com/a/21961938
-    PREFIX=$(echo "$@" | grep -o -P "/\K[[:digit:]]+$")
-    if [[ "${PREFIX}" -ge 0 ]] && [[ "${PREFIX}" -le 32 ]]; then
-        echo "$@" | grep -o -E '^(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)/[[:digit:]]+$' >/dev/null
+    local net=$1 prefix max cmd
+    [[ $net == */* ]] || return 1
+    prefix=${net##*/}
+    case $prefix in
+        ''|*[!0-9]*) return 1 ;;
+    esac
+    if [[ ${net%%/*} == *:* ]]; then
+        max=128
     else
-        return 1
+        max=32
     fi
+    (( prefix >= 0 && prefix <= max )) || return 1
+    if command -v ipcalc-ng >/dev/null 2>&1; then
+        cmd=(ipcalc-ng -c)
+    elif command -v ipv6calc >/dev/null 2>&1; then
+        cmd=(ipv6calc --showinfo -m)
+    elif command -v ipcalc >/dev/null 2>&1; then
+        cmd=(ipcalc -c)
+    else
+        fail "No ipcalc/ipcalc-ng/ipv6calc command found."
+    fi
+    "${cmd[@]}" "$net" >/dev/null 2>&1
+}
+
+ip_from_minaddr() {
+  local cidr="$1"
+  local n="${2:-1}"
+  if [[ -z $cidr ]]; then
+    echo "Usage: ip_from_minaddr <CIDR> [n<=254]" >&2
+    return 2
+  fi
+  if ! [[ $n =~ ^[0-9]+$ ]] || (( n < 1 || n > 254 )); then
+    echo "Error: n must be an integer between 1 and 254" >&2
+    return 2
+  fi
+  local offset=$(( n - 1 ))
+  local out
+  out=$("${BIN}/ipcalc" "$cidr" -j | jq -r --argjson off "$offset" '
+    def ip2int: split(".") | map(tonumber) | reduce .[] as $o (0; . * 256 + $o);
+    def int2ip:
+      [ ((. / 16777216)|floor)%256
+      , ((. / 65536)|floor)%256
+      , ((. / 256)|floor)%256
+      , (. % 256)
+      ] | map(tostring) | join(".");
+
+    (.MINADDR // .minhost) as $min
+    | (.MAXADDR // .maxhost) as $max
+    | if ($min == null or $max == null) then empty
+      else
+        ($min | ip2int) as $mi
+        | ($max | ip2int) as $ma
+        | ($mi + $off) as $cand
+        | if $cand <= $ma then $cand | int2ip else empty end
+      end
+  ')
+  if [[ -z $out ]]; then
+    echo "Error: requested host exceeds usable range (or missing min/max host in JSON)" >&2
+    return 1
+  fi
+  printf '%s\n' "$out"
+}
+
+ip_from_minaddr_6() {
+    local cidr="${1:-}" n="${2:-1}"
+    if [[ -z $cidr ]]; then echo "Usage: ip_from_minaddr_6 <CIDR> [n<=2^64‑1]" >&2; return 2; fi
+    if ! [[ $n =~ ^[0-9]+$ ]] || (( n < 1 )); then echo "Error: n must be a positive integer (>= 1)" >&2; return 2; fi
+    local out
+    out=$(python3 - <<'PY' "$cidr" "$n"
+import sys, ipaddress
+cidr = sys.argv[1]
+n = int(sys.argv[2])
+try:
+    net = ipaddress.ip_network(cidr, strict=False)
+except ValueError as e:
+    sys.stderr.write(f"Error: invalid IPv6 CIDR '{cidr}': {e}\n")
+    sys.exit(1)
+if net.num_addresses == 1:
+    if n != 1:
+        sys.stderr.write(f"Error: requested host (n={n}) exceeds usable range of {cidr}\n")
+        sys.exit(1)
+    addr = net.network_address
+else:
+    usable = net.num_addresses - 1
+    if n > usable:
+        sys.stderr.write(f"Error: requested host (n={n}) exceeds usable range of {cidr}\n")
+        sys.exit(1)
+    addr = net.network_address + n
+print(str(addr))
+PY
+    )
+    local py_status=$?
+    if (( py_status != 0 )) || [[ -z $out ]]; then echo "Error: requested host exceeds usable range (or bad CIDR)" >&2; return 1; fi
+    printf '%s\n' "$out"
 }
 
 select_docker_network_cidr() {

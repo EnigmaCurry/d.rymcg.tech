@@ -34,6 +34,40 @@ base_config() {
     ## Make new .env if it doesn't exist:
     test -f ${ENV_FILE} || cp .env-dist ${ENV_FILE}
     ${BIN}/reconfigure ${ENV_FILE} DOCKER_CONTEXT=${DOCKER_CONTEXT}
+    autodetect_lib_modules_path
+}
+
+## Detect the Docker host OS and, on NixOS, point TRAEFIK_LIB_MODULES_PATH
+## at the read-only kernel modules path. The wireguard container bind-mounts
+## /lib/modules, which doesn't exist on NixOS's immutable root and causes
+## `mkdir /lib: read-only file system` when Docker tries to create it.
+_detect_host_os_id() {
+    local ssh_host
+    ssh_host=$(docker context inspect --format '{{.Endpoints.docker.Host}}' 2>/dev/null || true)
+    if [[ -z "${ssh_host}" || "${ssh_host}" == unix://* ]]; then
+        (. /etc/os-release 2>/dev/null && echo "$ID") || true
+    else
+        ssh "${ssh_host#ssh://}" '. /etc/os-release 2>/dev/null && echo "$ID"' 2>/dev/null || true
+    fi
+}
+
+autodetect_lib_modules_path() {
+    local current detected
+    current=$(${BIN}/dotenv -f ${ENV_FILE} get TRAEFIK_LIB_MODULES_PATH)
+    ## Only replace known defaults; preserve any user-customized value.
+    case "${current}" in
+        ""|/lib/modules|/run/booted-system/kernel-modules/lib/modules) ;;
+        *) return 0 ;;
+    esac
+    case "$(_detect_host_os_id)" in
+        nixos) detected=/run/booted-system/kernel-modules/lib/modules ;;
+        "")    return 0 ;;
+        *)     detected=/lib/modules ;;
+    esac
+    if [[ "${detected}" != "${current}" ]]; then
+        echo "## Auto-detected host OS: setting TRAEFIK_LIB_MODULES_PATH=${detected}" >&2
+        ${BIN}/reconfigure ${ENV_FILE} "TRAEFIK_LIB_MODULES_PATH=${detected}"
+    fi
 }
 
 config() {
@@ -61,7 +95,8 @@ admin() {
     wizard menu "Traefik Admin:" \
            "Review logs = ./setup.sh logs" \
            "Manage containers = ./setup.sh manage_containers" \
-           "Manage wireguard = ./setup.sh manage_wireguard"
+           "Manage wireguard = ./setup.sh manage_wireguard" \
+           "Open dashboard (tt-tui-for-traefik) = make dashboard"
 }
 
 shell_menu() {
@@ -151,7 +186,7 @@ traefik_user() {
                 fault "The Docker host does not have the 'adduser' command installed. You may install it, and retry this command, or simply create the ${TRAEFIK_USER} user manually. (Consult your OS documentation. Note: The user must not be a login account, and you should disable the password and/or account; the purpose of creating the user is only to reserve a unique UID and GID for secure file permissions.)"
             fi
 
-            if ${BIN}/confirm yes "There is no ${TRAEFIK_USER} user created on the Docker host yet. Would you like to create this user automatically? (Note: this can fail if your system does not have the 'adduser' command, so read the directions that it will print out if this fails!)"; then
+            if [[ ! -t 0 ]] || ${BIN}/confirm yes "There is no ${TRAEFIK_USER} user created on the Docker host yet. Would you like to create this user automatically? (Note: this can fail if your system does not have the 'adduser' command, so read the directions that it will print out if this fails!)"; then
                 local detected_OS=$(ssh ${SSH_HOST} cat /etc/os-release | grep -Po '^ID=\K.*')
                 local user_group_arg
                 case "$detected_OS" in
@@ -167,7 +202,16 @@ traefik_user() {
                      adduser --shell /usr/sbin/nologin --system \
                      ${user_group_arg} ${TRAEFIK_USER}
                 )
-                ssh ${SSH_HOST} ${SUDO_PREFIX} gpasswd -a ${TRAEFIK_USER} docker || fault "There was a problem creating the ${TRAEFIK_USER} user. Are you logging in as root?"
+                if ssh ${SSH_HOST} getent group docker >/dev/null 2>&1; then
+                    ssh ${SSH_HOST} ${SUDO_PREFIX} gpasswd -a ${TRAEFIK_USER} docker || fault "There was a problem adding ${TRAEFIK_USER} to the docker group."
+                else
+                    echo
+                    echo "WARNING: The 'docker' group does not exist on the Docker host."
+                    echo "If you are using Docker, ensure the docker group is created"
+                    echo "(e.g., 'sudo groupadd docker') and then add the ${TRAEFIK_USER}"
+                    echo "user to it: sudo gpasswd -a ${TRAEFIK_USER} docker"
+                    echo
+                fi
                 echo "Successfully created the ${TRAEFIK_USER} user!"
                 traefik_uid
             fi
@@ -183,7 +227,11 @@ traefik_uid() {
     else
         TRAEFIK_UID=$(ssh ${SSH_HOST} id -u ${TRAEFIK_USER})
         TRAEFIK_GID=$(ssh ${SSH_HOST} id -g ${TRAEFIK_USER})
-        TRAEFIK_DOCKER_GID=$(ssh ${SSH_HOST} getent group docker | cut -d: -f3)
+        TRAEFIK_DOCKER_GID=$(ssh ${SSH_HOST} getent group docker 2>/dev/null | cut -d: -f3)
+        if [[ -z "${TRAEFIK_DOCKER_GID}" ]]; then
+            echo "WARNING: The 'docker' group does not exist on the Docker host. Using default GID 999."
+            TRAEFIK_DOCKER_GID=999
+        fi
         ${BIN}/reconfigure ${ENV_FILE} \
               TRAEFIK_UID=${TRAEFIK_UID} \
               TRAEFIK_GID=${TRAEFIK_GID} \
@@ -235,7 +283,6 @@ config_list_entrypoints() {
         [web]="HTTP (unencrypted; used to redirect requests to use HTTPS)"
         [websecure]="HTTPS (TLS encrypted HTTP)"
         [web_plain]="HTTP (unencrypted; specifically NOT redirected to websecure; must use different port than web)"
-        [mqtt]="MQTT (mosquitto) pub-sub service"
         [ssh]="SSH (forgejo) git (ssh) entrypoint"
         [xmpp_c2s]="XMPP (ejabberd) client-to-server entrypoint"
         [xmpp_s2s]="XMPP (ejabberd) server-to-server entrypoint"
@@ -244,6 +291,11 @@ config_list_entrypoints() {
         [rtmp]="Real-Time Messaging Protocol (unencrypted) entrypoint"
         [snapcast]="Snapcast (snapcast) audio entrypoint"
         [snapcast_control]="Snapcast (snapcast) control entrypoint"
+        [iperf_tcp]="Iperf3 TCP entrypoint"
+        [iperf_udp]="Iperf3 UDP entrypoint"
+        [dns]="DNS (tcp+udp; acme-dns or other) entrypoint"
+        [irc]="IRC (inspircd) entrypoint"
+        [irc_bouncer]="IRC bouncer (soju / znc) entrypoint"
     )
     local menu_args=("Select entrypoint to configure:")
     for entrypoint in "${entrypoint_names[@]}"; do
@@ -283,13 +335,15 @@ config_entrypoint() {
             default_choice=1
         fi
         echo
-        case $(wizard choose --default ${default_choice} --numeric \
-                      "Is this entrypoint downstream from another trusted proxy?" \
-                      "No, clients dial directly to this server. (Turn off Proxy Protocol)" \
-                      "Yes, clients are proxied through a trusted server. (Turn on Proxy Protocol)") in
-            0) ${BIN}/reconfigure ${ENV_FILE} "TRAEFIK_${ENTRYPOINT}_ENTRYPOINT_PROXY_PROTOCOL_TRUSTED_IPS=";;
-            1) ${BIN}/reconfigure_ask ${ENV_FILE} "TRAEFIK_${ENTRYPOINT}_ENTRYPOINT_PROXY_PROTOCOL_TRUSTED_IPS" "Enter the comma separated list of trusted upstream proxy servers (CIDR)" 10.13.16.1/32;;
-        esac
+        if [[ "${entrypoint}" != *_udp ]] && [[ "${entrypoint}" != "dashboard" ]]; then
+            case $(wizard choose --default ${default_choice} --numeric \
+                          "Is this entrypoint downstream from another trusted proxy?" \
+                          "No, clients dial directly to this server. (Turn off Proxy Protocol)" \
+                          "Yes, clients are proxied through a trusted server. (Turn on Proxy Protocol)") in
+                0) ${BIN}/reconfigure ${ENV_FILE} "TRAEFIK_${ENTRYPOINT}_ENTRYPOINT_PROXY_PROTOCOL_TRUSTED_IPS=";;
+                1) ${BIN}/reconfigure_ask ${ENV_FILE} "TRAEFIK_${ENTRYPOINT}_ENTRYPOINT_PROXY_PROTOCOL_TRUSTED_IPS" "Enter the comma separated list of trusted upstream proxy servers (CIDR)" 10.13.16.1/32;;
+            esac
+        fi
     else
         ${BIN}/reconfigure ${ENV_FILE} "TRAEFIK_${ENTRYPOINT}_ENTRYPOINT_ENABLED=false"
     fi
@@ -310,14 +364,9 @@ error_pages() {
     fi
 }
 
-if [[ "$#" -lt 1 ]]; then
-    fault "Wrong number of arguments. Try running \`make config\` instead."
-fi
-
 middleware() {
     wizard menu "Traefik middleware config:" \
-           "MaxMind geoIP locator = ./setup.sh maxmind_geoip" \
-           "OAuth2 sentry authorization (make sentry) = make sentry"
+           "MaxMind geoIP locator = ./setup.sh maxmind_geoip"
 }
 
 maxmind_geoip() {
@@ -402,13 +451,7 @@ layer_7_tls_proxy_add_ingress_route() {
     if confirm no "Do you want to enable Proxy Protocol for this route" "?"; then
         ROUTE_PROXY_PROTOCOL=2
     fi
-
-    local ROUTES=$(${BIN}/dotenv -f ${ENV_FILE} get TRAEFIK_LAYER_7_TLS_PROXY_ROUTES)
-    if [[ -n "${ROUTES}" ]]; then
-        ROUTES="${ROUTES},"
-    fi
-    ROUTES="${ROUTES}${ROUTE_DOMAIN}:${ROUTE_IP_ADDRESS}:${ROUTE_PORT}:${ROUTE_PROXY_PROTOCOL}"
-    ${BIN}/reconfigure ${ENV_FILE} "TRAEFIK_LAYER_7_TLS_PROXY_ROUTES=${ROUTES}"
+    reconfigure_layer_X_tcp_udp_proxy_routes "${ENV_FILE}" TRAEFIK_LAYER_7_TLS_PROXY_ROUTES "${ROUTE_DOMAIN}" "${ROUTE_IP_ADDRESS}" "${ROUTE_PORT}" "${ROUTE_PROXY_PROTOCOL}"
 }
 
 layer_7_tls_proxy_manage_ingress_routes() {
@@ -585,7 +628,7 @@ layer_4_tcp_udp_add_ingress_route() {
     echo
     local DEFAULT_PORT=$(${BIN}/dotenv -f ${ENV_FILE} get TRAEFIK_${ENTRYPOINT^^}_ENTRYPOINT_PORT || (${BIN}/dotenv -f ${ENV_FILE} get TRAEFIK_CUSTOM_ENTRYPOINTS | tr ',' '\n' | grep "^${ENTRYPOINT}:" | cut -d: -f3))
     while
-        ask_no_blank "Enter the destination TCP port to forward to:" ROUTE_PORT "${DEFAULT_PORT}"
+        ask_no_blank "Enter the destination port to forward to:" ROUTE_PORT "${DEFAULT_PORT}"
         if ! [[ ${ROUTE_PORT} =~ ^[0-9]+$ ]] ; then
             echo "Port is invalid."
             continue
@@ -594,18 +637,94 @@ layer_4_tcp_udp_add_ingress_route() {
     do true; done
     echo
     local ROUTE_PROXY_PROTOCOL=0
+    local PROTOCOL=$(${BIN}/dotenv -f ${ENV_FILE} get TRAEFIK_${ENTRYPOINT^^}_ENTRYPOINT_PORT || (${BIN}/dotenv -f ${ENV_FILE} get TRAEFIK_CUSTOM_ENTRYPOINTS | tr ',' '\n' | grep "^${ENTRYPOINT}:" | cut -d: -f4))
     echo "##"
     echo "## See https://www.haproxy.org/download/2.0/doc/proxy-protocol.txt"
     echo
-    if confirm no "Do you want to enable Proxy Protocol for this route" "?"; then
-        ROUTE_PROXY_PROTOCOL=2
+    if [[ ${PROTOCOL} == "tcp" ]]; then
+        if confirm no "Do you want to enable Proxy Protocol for this route" "?"; then
+            ROUTE_PROXY_PROTOCOL=2
+        fi
     fi
-    if [[ -n "${ROUTES}" ]]; then
-        ROUTES="${ROUTES},"
-    fi
-    ROUTES="${ROUTES}${ENTRYPOINT}:${ROUTE_IP_ADDRESS}:${ROUTE_PORT}:${ROUTE_PROXY_PROTOCOL}"
-    ${BIN}/reconfigure ${ENV_FILE} "TRAEFIK_LAYER_4_TCP_UDP_PROXY_ROUTES=${ROUTES}"
+    reconfigure_layer_X_tcp_udp_proxy_routes "${ENV_FILE}" TRAEFIK_LAYER_4_TCP_UDP_PROXY_ROUTES "${ENTRYPOINT}" "${ROUTE_IP_ADDRESS}" "${ROUTE_PORT}" "${ROUTE_PROXY_PROTOCOL}"
     layer_4_tcp_udp_list_routes    
+}
+
+reconfigure_layer_X_tcp_udp_proxy_routes() {
+    local ENV_FILE=$1
+    local LAYER_VAR=$2
+    local DOMAIN_OR_ENTRYPOINT=$3
+    local ROUTE_IP_ADDRESS=$4
+    local ROUTE_PORT=$5
+    local ROUTE_PROXY_PROTOCOL=$6
+    
+    check_var ENV_FILE LAYER_VAR DOMAIN_OR_ENTRYPOINT ROUTE_IP_ADDRESS ROUTE_PORT ROUTE_PROXY_PROTOCOL
+    
+    # Construct the new route string
+    local NEW_ROUTE="${DOMAIN_OR_ENTRYPOINT}:${ROUTE_IP_ADDRESS}:${ROUTE_PORT}:${ROUTE_PROXY_PROTOCOL}"
+    
+    # Get the current routes from the environment variable
+    local ROUTES=$(${BIN}/dotenv -f ${ENV_FILE} get ${LAYER_VAR})
+    
+    # Initialize an empty string to hold the updated routes
+    local UPDATED_ROUTES=""
+    local ENTRY_FOUND=false
+    
+    # Split ROUTES by commas and iterate over each route
+    IFS=',' read -ra ROUTE_ARRAY <<< "$ROUTES"
+    for ROUTE in "${ROUTE_ARRAY[@]}"; do
+        # Check if the entrypoint already exists
+        if [[ "$ROUTE" == ${DOMAIN_OR_ENTRYPOINT}:* ]]; then
+            # Replace the existing route with the new route
+            UPDATED_ROUTES+="${NEW_ROUTE},"
+            ENTRY_FOUND=true
+        else
+            # Otherwise, keep the existing route
+            UPDATED_ROUTES+="${ROUTE},"
+        fi
+    done
+    
+    # If entry was not found, add the new route at the end
+    if [[ "$ENTRY_FOUND" == false ]]; then
+        UPDATED_ROUTES+="${NEW_ROUTE},"
+    fi
+    
+    # Remove the trailing comma
+    UPDATED_ROUTES=${UPDATED_ROUTES%,}
+    
+    # Update the environment variable with the new routes
+    ${BIN}/reconfigure ${ENV_FILE} "${LAYER_VAR}=${UPDATED_ROUTES}"
+}
+
+reconfigure_remove_layer_X_tcp_udp_proxy_routes() {
+    local ENV_FILE=$1
+    local LAYER_VAR=$2
+    local DOMAIN_OR_ENTRYPOINT=$3
+
+    # Check that required variables are provided
+    check_var ENV_FILE LAYER_VAR DOMAIN_OR_ENTRYPOINT
+
+    # Get the current routes from the environment variable
+    local ROUTES=$(${BIN}/dotenv -f ${ENV_FILE} get ${LAYER_VAR})
+    
+    # Initialize an empty string to hold the updated routes
+    local UPDATED_ROUTES=""
+
+    # Split ROUTES by commas and iterate over each route
+    IFS=',' read -ra ROUTE_ARRAY <<< "$ROUTES"
+    for ROUTE in "${ROUTE_ARRAY[@]}"; do
+        # Check if the route does not match the DOMAIN_OR_ENTRYPOINT
+        if [[ "$ROUTE" != ${DOMAIN_OR_ENTRYPOINT}:* ]]; then
+            # If not matching, keep the route
+            UPDATED_ROUTES+="${ROUTE},"
+        fi
+    done
+
+    # Remove the trailing comma if any routes remain
+    UPDATED_ROUTES=${UPDATED_ROUTES%,}
+
+    # Update the environment variable with the new routes
+    ${BIN}/reconfigure ${ENV_FILE} "${LAYER_VAR}=${UPDATED_ROUTES}"
 }
 
 layer_4_tcp_udp_proxy_manage_ingress_routes() {
@@ -726,14 +845,17 @@ add_custom_entrypoint() {
         false
     do true; done
     local TRUSTED_NETS=
-    case $(wizard choose --numeric \
-                  "Is this entrypoint downstream from another trusted proxy?" \
-                  "No, clients dial directly to this server. (Turn off Proxy Protocol)" \
-                  "Yes, clients are proxied through another trusted proxy. (Turn on Proxoy Protocol)") in
-        0) TRUSTED_NETS=;;
-        1) TRUSTED_NETS=$(ask_echo "Enter the comma separated list of trusted upstream proxy servers (CIDR)" 10.13.16.1/32);;
-    esac
-    USE_HTTPS=$(choose "Does this entrypoint use HTTPS?" "true" "false")
+    local USE_HTTPS=false
+    if [[ $"${PROTOCOL}" == "tcp" ]]; then
+        case $(wizard choose --numeric \
+                      "Is this entrypoint downstream from another trusted proxy?" \
+                      "No, clients dial directly to this server. (Turn off Proxy Protocol)" \
+                      "Yes, clients are proxied through another trusted proxy. (Turn on Proxoy Protocol)") in
+            0) TRUSTED_NETS=;;
+            1) TRUSTED_NETS=$(ask_echo "Enter the comma separated list of trusted upstream proxy servers (CIDR)" 10.13.16.1/32);;
+        esac
+        USE_HTTPS=$(choose "Does this entrypoint use HTTPS?" "true" "false")
+    fi
     if [[ -n "${CUSTOM_ENTRYPOINTS}" ]]; then
         CUSTOM_ENTRYPOINTS="${CUSTOM_ENTRYPOINTS},"
     fi
@@ -848,7 +970,7 @@ wireguard() {
  	    ${BIN}/reconfigure_ask ${ENV_FILE} TRAEFIK_VPN_CLIENT_INTERFACE_PRIVATE_KEY "Enter the wireguard PrivateKey (ends with =)"
  	    ${BIN}/reconfigure_ask ${ENV_FILE} TRAEFIK_VPN_CLIENT_INTERFACE_LISTEN_PORT "Enter the wireguard listen port" 51820
  	    ${BIN}/reconfigure_ask ${ENV_FILE} TRAEFIK_VPN_CLIENT_PEER_PUBLIC_KEY "Enter the Peer PublicKey (ends with =)"
- 	    ${BIN}/reconfigure_ask ${ENV_FILE} TRAEFIK_VPN_CLIENT_PEER_PRESHARED_KEY "Enter the Peer PresharedKey (ends with =)"
+ 	    ALLOW_BLANK=1 ${BIN}/reconfigure_ask ${ENV_FILE} TRAEFIK_VPN_CLIENT_PEER_PRESHARED_KEY "Enter the Peer PresharedKey (ends with =, leave blank if none)"
  	    ${BIN}/reconfigure_ask ${ENV_FILE} TRAEFIK_VPN_CLIENT_PEER_ENDPOINT "Enter the Peer Endpoint (host:port)"
  	    ${BIN}/reconfigure_ask ${ENV_FILE} TRAEFIK_VPN_CLIENT_PEER_ALLOWED_IPS "Enter the Peer AllowedIPs"
     }
@@ -872,8 +994,16 @@ wireguard() {
     esac
 }
 
-echo
-check_var ENV_FILE
-check_var DOCKER_CONTEXT
+if [[ "${BASH_SOURCE[0]}" == "${0}" ]]; then
+    ##Script is being run directly
+    echo
+    if [[ "$#" -lt 1 ]]; then
+        fault "Wrong number of arguments. Try running \`make config\` instead."
+    fi
 
-$@
+    check_var ENV_FILE
+    check_var DOCKER_CONTEXT
+
+    $@
+fi
+

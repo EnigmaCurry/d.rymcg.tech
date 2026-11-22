@@ -1,0 +1,120 @@
+#!/usr/bin/env bash
+set -euo pipefail
+cd "$(dirname "${BASH_SOURCE[0]}")"
+source ../_scripts/funcs.sh
+
+# -----------------------------------------------------------------
+# Argument handling
+# -----------------------------------------------------------------
+if [[ -z "${1:-}" ]]; then
+    fault "ENV_FILE must be the first argument"
+else
+    ENV_FILE="${1}"
+    test -f "${ENV_FILE}" || fault ".env file does not exist: ${ENV_FILE}"
+fi
+check_var ENV_FILE ROOT_DIR BIN
+
+# -----------------------------------------------------------------
+# Mapping tables (terse <‑> pretty)
+# -----------------------------------------------------------------
+declare -A OS_MAP=(
+    [alpine]="Alpine"
+    [arch]="Arch Linux"
+    [debian]="Debian"
+    [el]="Enterprise Linux"
+    [fedora]="Fedora"
+    [ubuntu]="Ubuntu"
+)
+
+declare -A DE_MAP=(
+    [i3]="i3"
+    [kde]="KDE"
+    [mate]="MATE"
+    [xfce]="XFCE"
+)
+
+# -----------------------------------------------------------------
+# Helper: turn a terse key into its pretty representation
+# -----------------------------------------------------------------
+pretty_os()  { local k=$1; echo "${OS_MAP[$k]}"; }
+pretty_de()  { local k=$1; echo "${DE_MAP[$k]}"; }
+
+# -------------------------------------------------
+# 1️⃣  Determine the *current* values from .env (if any)
+# -------------------------------------------------
+current_image=$(dotenv_get WEBTOP_IMAGE || true)   # e.g. lscr.io/linuxserver/webtop:arch-kde
+tag=${current_image##*:}
+repo=${current_image%:*}
+if [[ $tag == *-* ]]; then
+    cur_os_key=${tag%%-*}
+    cur_de_key=${tag#*-}
+else
+    # default "latest" tag is alpine on xfce:
+    cur_os_key="alpine"
+    cur_de_key="xfce"
+fi
+cur_os_pretty=$(pretty_os "$cur_os_key")
+cur_de_pretty=$(pretty_de "$cur_de_key")
+
+# -----------------------------------------------------------------
+# 2️⃣  Build sorted “pretty” lists for the chooser
+# -----------------------------------------------------------------
+sorted_os_keys=($(printf '%s\n' "${!OS_MAP[@]}" | sort))
+OS_FRIENDLY=()
+for k in "${sorted_os_keys[@]}"; do
+    OS_FRIENDLY+=("${OS_MAP[$k]}")
+done
+
+sorted_de_keys=($(printf '%s\n' "${!DE_MAP[@]}" | sort))
+DE_FRIENDLY=()
+for k in "${sorted_de_keys[@]}"; do
+    DE_FRIENDLY+=("${DE_MAP[$k]}")
+done
+
+# -----------------------------------------------------------------
+# 3️⃣  Prompt the user – seed defaults if we have them
+# -----------------------------------------------------------------
+OS_FRIENDLY_CHOICE=$(choose "Select the OS base image for the webtop container:" \
+                          "${OS_FRIENDLY[@]}" \
+                          ${cur_os_pretty:+--default "$cur_os_pretty"})
+# Translate the pretty choice back to the terse key
+for k in "${!OS_MAP[@]}"; do
+    if [[ "${OS_MAP[$k]}" == "$OS_FRIENDLY_CHOICE" ]]; then
+        OS_CHOICE=$k
+        break
+    fi
+done
+
+DE_FRIENDLY_CHOICE=$(choose "Select the desktop environment you want:" \
+                          "${DE_FRIENDLY[@]}" \
+                          ${cur_de_pretty:+--default "$cur_de_pretty"})
+for k in "${!DE_MAP[@]}"; do
+    if [[ "${DE_MAP[$k]}" == "$DE_FRIENDLY_CHOICE" ]]; then
+        DE_CHOICE=$k
+        break
+    fi
+done
+
+# -----------------------------------------------------------------
+# 4️⃣  Write the new values back to .env
+# -----------------------------------------------------------------
+if [[ "${OS_CHOICE}" == "alpine" && "${DE_CHOICE}" == "xfce" ]]; then
+    WEBTOP_IMAGE="lscr.io/linuxserver/webtop:latest"
+else
+    WEBTOP_IMAGE="lscr.io/linuxserver/webtop:${OS_CHOICE}-${DE_CHOICE}"
+fi
+if [[ "${OS_CHOICE}" == "ubuntu" ]]; then
+    WEBTOP_DOCKERFILE="Dockerfile-debian"
+else
+    WEBTOP_DOCKERFILE="Dockerfile-${OS_CHOICE}"
+fi
+
+"${BIN}/dotenv" -f "${ENV_FILE}" set WEBTOP_IMAGE="${WEBTOP_IMAGE}"
+"${BIN}/dotenv" -f "${ENV_FILE}" set WEBTOP_DOCKERFILE="${WEBTOP_DOCKERFILE}"
+
+# -----------------------------------------------------------------
+# 5️⃣  Feedback
+# -----------------------------------------------------------------
+echo
+echo "Set WEBTOP_IMAGE=${WEBTOP_IMAGE}"
+echo "Set WEBTOP_DOCKERFILE=${WEBTOP_DOCKERFILE}"

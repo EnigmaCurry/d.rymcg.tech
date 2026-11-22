@@ -1,0 +1,12 @@
+## TLS is terminated by Traefik, Caddy serves plain HTTP on port 80.
+{
+	auto_https off
+	servers {
+		trusted_proxies static private_ranges
+	}
+}
+
+:80 {
+	root * /srv
+	file_server
+}

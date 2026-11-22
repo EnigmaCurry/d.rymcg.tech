@@ -1,270 +1,178 @@
 # Docker on DigitalOcean
 
-You can use [DigitalOcean](https://www.digitalocean.com/) to host a docker server online.
+You can use [DigitalOcean](https://www.digitalocean.com/) to host a Docker
+server online. The `d.rymcg.tech` tool includes an interactive manager for
+DigitalOcean resources called **gumdrop**, accessed via the `d droplet` (or `d gumdrop`)
+command.
 
 Note: this doc leaves out a lot of important bits. Read the main
 [d.rymcg.tech README](README.md) to fill in those gaps!
 
-## Create a droplet on DigitalOcean:
+## Prerequisites
 
- * Create a DigitalOcean account and login to
-   [cloud.digitalocean.com](https://cloud.digitalocean.com)
- * Click `Create`, then `Droplet`
- * Navigate to the `Marketplace` tab, then choose the `Docker XX.X on Ubuntu` image.
- * Choose whatever droplet size you need (at least 2GB ram recommended
-   for most installs, but to economize you can [totally get away with
-   swap and/or Zram](https://blog.rymcg.tech/blog/linux/zram/). I
-   regularly use a 512MB+zram droplet and use it for all development
-   purposes).
- * Optional: Add a block storage device, in order to store your Docker volumes.
-   (This is useful to store data separate from the droplet lifecycle. If your
-   basic droplet size is sufficient, and you perform regular backups, this might
-   not be needed.)
- * Choose datacenter/region. Note: block storage and floating IPs are bound to
-   the datacenter you choose.
- * Add your SSH key.
- * Choose a hostname.
- * Click `Create Droplet`
- * Optional: Create a Floating IP address. This is useful if you need to
-   re-create your droplet, but do not want to update the DNS. Navigate to the
-   droplet page, find `Floating IP` and click `Enable Now`.
- * Add a DNS record for the Floating IP address (or the droplet public IP
-   address if you opted not to use a Floating IP.) Use a wildcard name like
-   `*.d.example.com`, so that any subdomain in place of `*` will resolve to your
-   droplet. You may use your own DNS host or you may use DigitalOcean DNS (go to
-   `Networking` / `Domains`, add or find your domain, create record, enter name
-   as `*.d.example.com`, and direct to your floating or droplet IP.)
- 
-## Setup your local workstation 
+ * A DigitalOcean account with a
+   [personal access token](https://docs.digitalocean.com/reference/api/create-personal-access-token/).
+ * [doctl](https://docs.digitalocean.com/reference/doctl/how-to/install/)
+   installed and available on your PATH.
 
-[Install the docker client](https://docs.docker.com/engine/install/) (on Linux this is bundled as "docker engine", which includes both the client and the server, but you do not need to start the server on your workstation, you can run `systemctl mask docker` to prevent the service from starting).
+The first time you run `d droplet`, you will be prompted to add your
+DigitalOcean account (name and API token). You can manage multiple
+accounts from the Accounts menu.
 
-Edit your SSH config file: `~/.ssh/config` (create it if necessary). Add the
-following lines, and change it for your domain name that you already created the
-DNS record for:
+## Quick start
 
 ```
-Host ssh.d.example.com
-    User root
-    ControlMaster auto
-    ControlPersist yes
-    ControlPath /tmp/ssh-%u-%r@%h:%p
+d droplet quick
 ```
 
-(The name `ssh.d.example.com` should work automatically if you setup the
-wildcard DNS entry (`*.d.example.com`) created previously. The `ControlMaster`,
-`ControlPersist`, `ControlPath` adds SSH connection multi-plexing, and will make
-repeated logins/docker commands faster.)
+(or choose `Quick start` from the `d droplet` main menu)
 
-Now test that you can SSH to your droplet:
+Quick start builds a complete Docker server for the current context in
+one go. It asks every question up front: droplet name, region, size,
+image, SSH key, firewall, reserved IP, backups, domain, subdomain, TLS
+certificates, timezone, and whether to install the `whoami` test app.
+After you confirm the summary, it runs unattended:
 
-```
-ssh ssh.d.example.com
-```
+ 1. Creates a Web firewall (SSH + HTTP + HTTPS) and a droplet with the
+    Docker cloud-init.
+ 2. Creates `A` records for `SUB.DOMAIN` and `*.SUB.DOMAIN`.
+ 3. Waits for SSH and for cloud-init to finish installing Docker.
+ 4. Adds an SSH config entry and a Docker context with the context's
+    name, and selects it.
+ 5. Writes the root config (`ROOT_DOMAIN=SUB.DOMAIN`, `DEFAULT_TIMEZONE`).
+ 6. Configures and installs Traefik (and acme-dns, with the default TLS
+    choice).
+ 7. Optionally installs `whoami` and waits for it to answer over HTTPS.
 
-The first time you login to your droplet, you need to confirm the SSH pubkey
-fingerprint; press Enter. Once connected, log out: press `Ctrl-D` or type `exit`
-and press Enter.
+The TLS choices are:
 
-## Setup droplet firewall
+ * **Wildcard via self-hosted [acme-dns](acme-dns)** (the default). One
+   certificate for `*.SUB.DOMAIN` covers every app you install later,
+   and no DigitalOcean token goes on the server. acme-dns runs on the
+   droplet as the DNS server for `acme-dns.SUB.DOMAIN`, delegated to it
+   by an `NS` record, and Traefik's acme.sh answers the DNS-01
+   challenges through it. Quick start creates the `NS`, `A` and
+   `_acme-challenge` `CNAME` records with your local doctl, and opens
+   port 53 (TCP and UDP) in the firewall. acme-dns always gets a
+   *production* certificate for its own API, and Let's Encrypt issues
+   at most 5 per week for the same name, so avoid destroying and
+   rebuilding the same subdomain repeatedly.
+ * **Wildcard via the DigitalOcean DNS API**. The same wildcard
+   certificate with fewer moving parts, but Traefik needs a
+   DigitalOcean API token, which is stored on the server. Give it a
+   separate token with custom scopes (`domain:read`, `domain:update`)
+   rather than reusing your doctl token.
+ * **One certificate per app name** with the TLS-ALPN-01 challenge. No
+   token on the server, but each new app's name must be added to
+   Traefik's certificate list (`d make traefik config`), followed by a
+   Traefik reinstall.
+ * **None**: Traefik's self-signed default certificate only.
 
-Go to the DigitalOcean dashboard, Networking page, click the Firewalls tab.
+Inside [drt](WORKSTATION_CONTAINER.md), start a session for a context
+that has no Docker host yet (`drt --init foo`, answer *no* to the SSH
+question, then `drt foo`). Run `d droplet quick` there, and answer `Y`
+to *Save changes* when you exit: the next `drt foo` connects straight
+to the droplet. [DIGITALOCEAN_DRT.md](DIGITALOCEAN_DRT.md) walks
+through the whole process, from installing Podman to the first app.
 
-Create a new firewall: 
- 
- * Enter any name you want for the firewall (eg. use the  domain or server role name to help identify it).
- * Create the following `Inbound Rules`:
- 
-    | Type   | Protocol | Port Range | Description                      |
-    | ------ | -------- | ---------- | -------------------------------- |
-    | SSH    | TCP      |         22 | Host SSH server                  |
-    | HTTP   | TCP      |         80 | Traefik HTTP endpoint            |
-    | HTTPS  | TCP      |        443 | Traefik HTTPS (TLS) endpoint     |
-    | Custom | TCP      |       2222 | Traefik Gitea SSH (TCP) endpoint |
-    | Custom | TCP      |       2223 | SFTP container SSH (TCP)         |
-    | Custom | TCP      |       8883 | Traefik Mosquitto (TLS) endpoint |
- 
- * (and any other ports you need.)
- * Search for the Droplet you create and apply the firewall to it.
- * You can verify the firewall is applied, by going to the Droplet page and
-   going to the Droplet Network settings page.
- 
-Login to the droplet shell terminal, and disable the ufw firewall:
+If a run fails partway, run it again and give the same droplet name:
+it offers to resume on the existing droplet, and skips the droplet
+questions.
 
-```
-ufw disable
-systemctl mask ufw
-```
- 
-## Setup droplet volumes on block storage
-
-Normally, Docker stores all data (including volumes) at `/var/lib/docker` which
-is on the root partition of the droplet storage. In order to use external block
-storage, you must move the existing data to the block storage device and
-re-mount the block storage to this location.
-
-By default, DigitalOcean formats and mounts your block storage device to a
-location with a variable name, for instance: `/mnt/volume_nyc1_01` (the name
-will depend on the datacenter, region, and the number of block storage devices
-that you've created.) You can find where this mount location is by running `df -h`
-(double check the storage size column).
-
-Shutdown docker:
+## Create a droplet
 
 ```
-systemctl stop docker
+d droplet
 ```
 
-Move the data to the block storage device, ensuring to use the actual mount
-location specific to your droplet:
+Choose **Droplets → Create new droplet** and follow the interactive
+wizard. You will be asked to choose:
 
-```
-mv /var/lib/docker/* /mnt/volume_nyc1_01/
-```
+ * A name for the droplet.
+ * A region, size, and image (Debian is the default).
+ * SSH key(s) to install.
+ * Optional tags.
+ * Optional block storage volume (useful if you plan to exceed the
+   droplet's root disk; the volume stores `/var/lib/docker`).
+ * Optional firewall to apply (defaults to blocking all incoming).
+ * Optional backups (daily or weekly snapshots).
+ * A user-data (cloud-init) script — **select the Docker option for
+   your image** (e.g. "Docker (debian based)"). This installs Docker
+   and automatically mounts any attached block storage volume as
+   `/var/lib/docker`. The default is "No", so be sure to change it.
 
-Unmount the block storage device:
+Once the droplet is created, you can SSH into it directly from the
+menu (**Droplets → SSH into droplet**), or add it to your local SSH
+config (**Droplets → Add to local SSH config**).
 
-```
-umount /mnt/volume_nyc1_01
-```
+## Setup firewall
 
-Edit the systemd unit file responsible for mounting the block storage device
-`/etc/systemd/system/mnt-volume_nyc1_01.mount`. Change the line
-`Where=/mnt/volume_nyc1_01` to `Where=/var/lib/docker`.
+From the main menu choose **Firewalls → Create new firewall**. A
+typical web-hosting firewall needs these inbound rules:
 
+| Type | Protocol | Port Range | Description                        |
+| ---- | -------- | ---------- | ---------------------------------- |
+| TCP  | TCP      |         22 | Host SSH server                    |
+| TCP  | TCP      |         80 | Traefik HTTP endpoint              |
+| TCP  | TCP      |        443 | Traefik HTTPS (TLS) endpoint       |
+| TCP  | TCP      |       2222 | Traefik Forgejo SSH (TCP) endpoint |
+| TCP  | TCP      |       2223 | SFTP container SSH (TCP)           |
+| TCP  | TCP      |       8883 | Traefik Mosquitto (TLS) endpoint   |
 
-Rename the file in order to match the new mount location:
+Add whatever other ports you need, then assign the firewall to your
+droplet.
 
-```
-mv /etc/systemd/system/mnt-volume_nyc1_01.mount /etc/systemd/system/var-lib-docker.mount
-```
+Then disable the host firewall (the DigitalOcean firewall operates
+at the network level). From the main menu choose **Firewalls →
+Disable ufw on droplet**, select your droplet, and confirm.
 
-Reload the systemd configuration:
+## Setup DNS
 
-```
-systemctl daemon-reload
-```
+From the main menu choose **Domains → DNS records**, select your
+domain, then **Create record**. You will typically want a wildcard A record pointing to
+your droplet's IP address:
 
-Enable and start the new service:
+ * Type: `A`
+ * Name: `*.d` (or `*` to dedicate the whole domain)
+ * Data: your droplet's public IP address
 
-```
-systemctl enable --now var-lib-docker.mount
-```
+This lets any subdomain (e.g. `app.d.example.com`) resolve to your
+server.
 
-Verify the mount is in the new location (`/var/lib/docker`) by running `df -h`
-and `ls /var/lib/docker` (it should now contain all of the original directories
-that docker created, including the `volumes` directory).
+## Block storage for Docker volumes
 
-Restart docker:
+If you attach a block storage volume during droplet creation, the
+built-in Docker user-data scripts will automatically detect it and
+remount the largest volume as `/var/lib/docker` during first boot.
+No manual steps are needed.
 
-```
-systemctl start docker
-```
+If you add a volume to an existing droplet, you can remount it from
+the main menu: **Volumes → Mount volume as /var/lib/docker**.
 
-Reboot the droplet (`reboot`) and double check that the volume is automatically
-mounted on startup (`df -h`)
+Block storage volumes can also be managed from the **Volumes** menu
+in `d droplet`.
+
+## Other resources
+
+The `d droplet` main menu also provides management for:
+
+ * **SSH keys** — add, list, and delete SSH keys on your account.
+ * **Volumes** — create, attach, detach, resize, and snapshot volumes.
+ * **NFS** — create and manage NFS shares backed by block storage.
+ * **Reserved IPs** — allocate and assign static IP addresses.
+ * **Domains** — add and delete domains, and manage DNS records
+   (A, AAAA, CNAME, MX, TXT, NS, SRV, CAA).
+ * **Snapshots** — create and restore droplet snapshots.
+ * **Backups** — manage and convert droplet backups.
+ * **Accounts** — switch between multiple DigitalOcean accounts.
+
+## Removing an account
+
+When you no longer need a DigitalOcean account configured in
+gumdrop, go to **Accounts → Remove account** to delete its stored
+credentials. This only removes the local configuration — it does not
+affect your DigitalOcean account itself.
 
 ## Setup Docker context and test Docker connection
 
-Logout from the droplet SSH connection, you probably won't ever need to login
-again unless there's a problem. You will now use docker exclusively from your
-local workstation (laptop).
-
-Setup the docker context to tunnel through your ssh connection (this lets your
-workstation docker client control the remote docker server):
-
-```
-# From your workstation (replace d.example.com with your own docker server):
-DOMAIN=d.example.com
-docker context create ${DOMAIN} --docker "host=ssh://ssh.${DOMAIN}"
-docker context use ${DOMAIN}
-```
-
-List all of your docker contexts (your current context is denoted with an
-asterisk `*`):
-
-```
-docker context ls
-```
-
-You can switch between different docker contexts to control multiple Docker
-servers (eg. `docker context use my-other-context`).
-
-
-Test that the connection is working from your local workstation:
-
-```
-docker info
-```
-
-You should see a lot of information printed, including the droplet hostname. If
-so, docker is working.
-
-You can list the running containers, which should be none for a fresh install:
-
-```
-docker ps
-```
-
-You are now able to use the `docker` and `docker-compose` clients, from your
-local workstation, controlling the docker daemon located on your droplet.
-
-
-## ACME DNS-01 challenge for TLS certificates
-
-You can use DigitalOcean's DNS platform with the [ACME
-protocol](https://www.rfc-editor.org/rfc/rfc8555.html) for the
-purposes of requesting TLS certificates from Let's Encrypt. [DNS-01
-challenge](https://letsencrypt.org/docs/challenge-types/#dns-01-challenge)
-has many advantages over TLS or HTTP challenges, but also bears the
-responsibility of having to deal with the security and storage of an
-API key for DNS platform.
-
-When using DigitalOcean with any programmatic access, be aware that an
-API key can be used to perform any action within a given DigitalOcean
-Team. You can create several Teams, and limit access to resources
-per-team. Following the principle of Least Privilege, we would ideally
-want to limit the API access to only allowing the update of the `TXT`
-record necessary for ACME to function. However, limiting access to the
-team is the best that you can do on DigitalOcean's platform.
-
-Follow these instructions for adding your subdomain to a brand new
-DigitalOcean Team, with the sole purpose of managing DNS for the
-subdomain, and creating an API key for programmatic access by Traefik:
-
- * Acquire your domain and point the domain to DigitalOcean's DNS servers:
-   * `ns1.digitalocean.com`
-   * `ns2.digitalocean.com`
-   * `ns3.digitalocean.com`
- * Login to your DigitalOcean account and in the upper right menu,
-   click on `Create a Team`.
- * Name it the same as your chosen subdomain (eg. `d_rymcg_tech`, you
-   cannot use `.` in the name).
- * Finish creating the team, and then you can switch to that team
-   through the same upper right menu under `Go to Team`.
- * Once on the new team page, click onto the `Networking` page, under
-   `Domains`, and find `Add a domain`.
- * Add the full **subdomain** (eg. `d.rymcg.tech`), not the root
-   domain (eg. not `rymcg.tech`).
- * Once the subdomain has been added, click on `Create new record` and
-   add a new `A` record for the wildcard of the subdomain (eg
-   `*.d.rymcg.tech`) pointing to the IP address of your Docker
-   droplet.
- * Click onto the `API` page.
- * Click `Generate New Token`.
- * Enter the token name: `traefik`
- * Choose the expiration: `No expiry`
- * Keep the `Write` scope checked.
- * Click Generate Token, then copy the token displayed (it is shown
-   only one time).
- * Set the token into your [traefik env file as documented](traefik)
-   (Running `make config` will walk you through this):
-   * Set `TRAEFIK_ACME_DNS_VARNAME_1=DO_AUTH_TOKEN`
-   * Set `DO_AUTH_TOKEN=xxxx-your-real-digitalocean-access-token-here-xxxx`
-   * Set `TRAEFIK_ACME_DNS_CHALLENGE=true`
-   * Set `TRAEFIK_ACME_TLS_CHALLENGE=false`
-   * Set `TRAEFIK_CERT_ROOT_DOMAIN=d.example.com`
-   * Set `TRAEFIK_CERT_SANS_DOMAIN=*.d.example.com`
-
-Note: Do not create any droplets in the new Team. The whole point of
-creating the team is to limit what the team can access.
+Follow the rest of the steps in [DOCKER.md](DOCKER.md).

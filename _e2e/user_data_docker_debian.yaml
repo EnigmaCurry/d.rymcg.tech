@@ -1,0 +1,69 @@
+#cloud-config
+## title: Docker + e2e admin user + sshd tuning (debian based)
+## images: debian-* ubuntu-*
+##
+## Rendered by _e2e/e2e.sh at provision time: __E2E_ADMIN_USER__ and
+## __E2E_SSH_PUBKEY__ are substituted before the droplet is created.
+##
+## This cloud-init:
+##  * Installs Docker (same as _scripts/gumdrop_user_data/docker-debian.yaml).
+##  * Creates the workstation user (sudo + docker groups, passwordless sudo)
+##    with the operator's SSH key, so the sworkstation runs unprivileged.
+##  * Disables OpenSSH 10's PerSourcePenalties. The e2e flow connects to the
+##    droplet repeatedly while it is still booting (the readiness loop) and
+##    the sworkstation ssh's to localhost on every docker call; both patterns
+##    trip PerSourcePenalties, which then resets subsequent connections
+##    ("kex_exchange_identification: Connection reset by peer"). This droplet
+##    sits behind a DigitalOcean firewall, so the host-level penalty adds
+##    little.
+users:
+  - default
+  - name: __E2E_ADMIN_USER__
+    groups: [sudo]
+    shell: /bin/bash
+    sudo: ['ALL=(ALL) NOPASSWD:ALL']
+    ssh_authorized_keys:
+      - __E2E_SSH_PUBKEY__
+write_files:
+  - path: /etc/ssh/sshd_config.d/99-e2e-ssh.conf
+    permissions: '0644'
+    content: |
+      ## Installed by d.rymcg.tech e2e cloud-init. See _e2e/README.md.
+      PerSourcePenalties no
+package_update: true
+packages:
+  - ca-certificates
+  - curl
+runcmd:
+  - systemctl restart ssh || systemctl restart sshd || true
+  - install -m 0755 -d /etc/apt/keyrings
+  - curl -fsSL https://download.docker.com/linux/$(. /etc/os-release && echo "$ID")/gpg -o /etc/apt/keyrings/docker.asc
+  - chmod a+r /etc/apt/keyrings/docker.asc
+  - echo "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.asc] https://download.docker.com/linux/$(. /etc/os-release && echo "$ID") $(. /etc/os-release && echo "$VERSION_CODENAME") stable" > /etc/apt/sources.list.d/docker.list
+  - apt-get update
+  - apt-get install -y docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin
+  - systemctl enable docker
+  - |
+    ## Mount the largest block storage volume as /var/lib/docker
+    MOUNT_POINT=$(df --output=target,size | awk '/^\/mnt\// {print $2, $1}' | sort -rn | head -1 | awk '{print $2}')
+    if [ -n "${MOUNT_POINT}" ]; then
+      UNIT_NAME=$(systemd-escape -p "${MOUNT_POINT}").mount
+      UNIT_FILE="/etc/systemd/system/${UNIT_NAME}"
+      if [ -f "${UNIT_FILE}" ]; then
+        echo "Remounting ${MOUNT_POINT} as /var/lib/docker..."
+        systemctl stop docker docker.socket containerd 2>/dev/null || true
+        cp -a /var/lib/docker/. "${MOUNT_POINT}/" 2>/dev/null || true
+        rm -rf /var/lib/docker/* 2>/dev/null || true
+        umount "${MOUNT_POINT}"
+        sed -i "s|Where=${MOUNT_POINT}|Where=/var/lib/docker|" "${UNIT_FILE}"
+        mv "${UNIT_FILE}" /etc/systemd/system/var-lib-docker.mount
+        systemctl daemon-reload
+        mkdir -p /var/lib/docker
+        systemctl enable --now var-lib-docker.mount
+      fi
+    fi
+  - systemctl start docker
+  ## Add the workstation user to the docker group (created by the docker
+  ## install) so it can use docker without sudo:
+  - groupadd -f docker
+  - usermod -aG docker __E2E_ADMIN_USER__

@@ -1,14 +1,14 @@
 
 services:
   freshrss:
-    image: freshrss/freshrss:${FRESHRSS_VERSION}
+    image: ${FRESHRSS_IMAGE}
     restart: unless-stopped
     volumes:
       - data:/var/www/FreshRSS/data
       - extensions:/var/www/FreshRSS/extensions
     environment:
       CRON_MIN: '*/20'
-      TZ: ${TIME_ZONE}
+      TZ: ${FRESHRSS_TIMEZONE:-${DEFAULT_TIMEZONE:-Etc/UTC}}
     labels: []
 volumes:
   data:

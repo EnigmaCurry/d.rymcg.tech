@@ -32,17 +32,17 @@ override-hook:
 ####                         # (this hardcodes the string into docker-compose.override.yaml)
 ####   name=@VARIABLE_NAME   # sets the template 'name' field to the literal string '${VARIABLE_NAME}'
 ####                         # (used for regular docker-compose expansion of env vars by name.)
-	@${BIN}/docker_compose_override ${ENV_FILE} project=:ntfy instance=@NTFY_INSTANCE traefik_host=@NTFY_TRAEFIK_HOST ip_sourcerange=@NTFY_IP_SOURCERANGE enable_mtls_auth=NTFY_MTLS_AUTH mtls_authorized_certs=NTFY_MTLS_AUTHORIZED_CERTS
+	@${BIN}/docker_compose_override ${ENV_FILE} project=:ntfy instance=@NTFY_INSTANCE traefik_host=@NTFY_TRAEFIK_HOST ip_sourcerange=@NTFY_IP_SOURCERANGE enable_mtls_auth=NTFY_MTLS_AUTH mtls_authorized_certs=NTFY_MTLS_AUTHORIZED_CERTS traefik_entrypoint=NTFY_TRAEFIK_ENTRYPOINT
 
 .PHONY: shell
 shell:
 	@make --no-print-directory docker-compose-shell SERVICE=ntfy
 
-.PHONY: user
+.PHONY: user # Create a user
 user:
 	@NTFY_PASSWORD=$$(openssl rand -base64 25) && read -e -p "Enter the username to create: " NTFY_USERNAME && docker compose --env-file=${ENV_FILE} exec -e NTFY_PASSWORD=$${NTFY_PASSWORD} ntfy ntfy user add $${NTFY_USERNAME} && echo "Username: $${NTFY_USERNAME}" && echo "Password: $${NTFY_PASSWORD}"
 
-.PHONY: access
+.PHONY: access # Show all users and their granted access
 access:
 	docker compose --env-file=${ENV_FILE} exec -it ntfy ntfy access
 
@@ -93,3 +93,11 @@ reset-all-users:
 .PHONY: delete-all-users # Delete all users and permissions and reboot container
 delete-all-users:
 	@docker compose --env-file=${ENV_FILE} exec ntfy rm -f /etc/ntfy/user.db && make --no-print-directory reinstall && sleep 5 && make --no-print-directory access
+
+.PHONY: install-hook
+install-hook:
+	@echo
+
+.PHONY: install-hook-pre
+install-hook-pre:
+	@echo

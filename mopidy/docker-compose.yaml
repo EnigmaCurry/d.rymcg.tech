@@ -11,14 +11,19 @@ services:
     security_opt:
       - no-new-privileges:true
     environment:
+      - TZ=${DEFAULT_TIMEZONE:-Etc/UTC}
       - MOPIDY_MPD_PASSWORD
       - MOPIDY_SOUNDCLOUD_ENABLED
       - MOPIDY_SOUNDCLOUD_AUTH_TOKEN
     volumes:
       - mopidy_config:/mopidy_config
       - snapserver_config:/snapserver_config
+    labels:
+      - "backup-volume.stop-during-backup=true"
 
   mopidy:
+    environment:
+      - TZ=${DEFAULT_TIMEZONE:-Etc/UTC}
     depends_on: ['config']
     build:
       context: mopidy
@@ -30,6 +35,7 @@ services:
       - mopidy_config:/home/mopidy/.config/mopidy
     restart: unless-stopped
     labels:
+      - "backup-volume.stop-during-backup=true"
       - "traefik.enable=true"
       ## MPD client
       - "traefik.tcp.routers.mopidy-${MOPIDY_INSTANCE:-default}.rule=ClientIP(`0.0.0.0/0`)"
@@ -40,6 +46,8 @@ services:
       - "traefik.tcp.routers.mopidy-${MOPIDY_INSTANCE:-default}.middlewares=mopidy-${MOPIDY_INSTANCE:-default}-whitelist"
 
   snapserver:
+    environment:
+      - TZ=${DEFAULT_TIMEZONE:-Etc/UTC}
     depends_on: ['config']
     build:
       context: snapserver
@@ -47,9 +55,11 @@ services:
     #  - "1704:1704"
     #  - "1705:1705"
     volumes:
+      - ${HOST_ZONEINFO:-/usr/share/zoneinfo}:/usr/share/zoneinfo:ro
       - snapserver_config:/etc/snapserver
     restart: unless-stopped
     labels:
+      - "backup-volume.stop-during-backup=true"
       - "traefik.enable=true"
       ## Web client:
       - "traefik.http.services.snapserver-${MOPIDY_INSTANCE:-default}.loadbalancer.server.port=1780"

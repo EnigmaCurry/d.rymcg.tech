@@ -1,0 +1,55 @@
+services:
+  llama-cpu:
+    environment:
+      - TZ=${DEFAULT_TIMEZONE:-Etc/UTC}
+    profiles:
+      - cpu
+    image: ${LLAMA_IMAGE}:${LLAMA_IMAGE_VARIANT}${LLAMA_IMAGE_TAG:+-${LLAMA_IMAGE_TAG}}
+    restart: unless-stopped
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+    sysctls:
+      - net.ipv4.ip_unprivileged_port_start=1024
+
+  llama-cuda:
+    environment:
+      - TZ=${DEFAULT_TIMEZONE:-Etc/UTC}
+    profiles:
+      - cuda
+    image: ${LLAMA_IMAGE}:${LLAMA_IMAGE_VARIANT}-cuda${LLAMA_IMAGE_TAG:+-${LLAMA_IMAGE_TAG}}
+    restart: unless-stopped
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+    sysctls:
+      - net.ipv4.ip_unprivileged_port_start=1024
+    devices:
+      - nvidia.com/gpu=all
+
+  llama-rocm:
+    profiles:
+      - rocm
+    image: ${LLAMA_IMAGE}:${LLAMA_IMAGE_VARIANT}-rocm${LLAMA_IMAGE_TAG:+-${LLAMA_IMAGE_TAG}}
+    restart: unless-stopped
+    devices:
+      - /dev/kfd
+      - /dev/dri
+    security_opt:
+      - seccomp=unconfined
+      - no-new-privileges:true
+    group_add:
+      - video
+      - render
+    cap_drop:
+      - ALL
+    sysctls:
+      - net.ipv4.ip_unprivileged_port_start=1024
+    environment:
+      - TZ=${DEFAULT_TIMEZONE:-Etc/UTC}
+      - HSA_OVERRIDE_GFX_VERSION=${LLAMA_HSA_OVERRIDE_GFX_VERSION}
+
+volumes:
+  llama:

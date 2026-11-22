@@ -10,30 +10,38 @@ include _scripts/Makefile.cd
 
 .PHONY: check-deps # Check dependencies
 check-deps:
-	_scripts/check_deps docker sed awk xargs openssl htpasswd jq curl
+	_scripts/check_deps docker sed awk xargs openssl htpasswd jq curl inotifywait git envsubst uv ipcalc
 
 .PHONY: check-docker # Check if Docker is running
 check-docker:
 	@docker info >/dev/null && echo "Docker is running." || (echo "Could not connect to Docker!" && false)
 
 .PHONY: config # Configure main variables
-config: script-wizard check-deps check-docker
-#	@${BIN}/userns-remap check
+config: script-wizard check-deps check-dist-vars
 	@echo ""
-	@${BIN}/confirm yes "This will make a configuration for the current docker context (${DOCKER_CONTEXT})"
+	@if [ ! -f "${ROOT_ENV}" ]; then ${BIN}/confirm yes "This will make a new configuration for the docker context (${DOCKER_CONTEXT})"; fi
+	@make --no-print-directory config-hook
+
+.PHONY: config-hook
+config-hook:
 	@${BIN}/reconfigure_ask ${ROOT_ENV} ROOT_DOMAIN "Enter the root domain for this context"
+	@${BIN}/reconfigure_ask ${ROOT_ENV} DEFAULT_TIMEZONE "Enter the default timezone for all containers (TZ database name, eg. America/New_York)" Etc/UTC
+	@${BIN}/reconfigure_ask ${ROOT_ENV} HOST_ZONEINFO "Enter the tz database directory on the Docker host (NixOS: /etc/zoneinfo)" /usr/share/zoneinfo
 	@echo "Configured ${ROOT_ENV}"
 	@echo "ENV_FILE=${ENV_FILE}"
 	@echo
-	@echo "Every time you configure HTTP Basic Authentication, you are asked if you wish to save the cleartext passwords"
-	@echo "into passwords.json (in each project directory). If you were to press Enter without answering the question,"
-	@echo "the default answer is No (displayed as y/N). You may change the default response to Yes (displayed as Y/n)."
-	@${BIN}/confirm $$([[ "$$(${BIN}/dotenv -f ${ENV_FILE} get DEFAULT_SAVE_CLEARTEXT_PASSWORDS_JSON)"  == "true" ]] && echo yes || echo no) "Do you want to save cleartext passwords in passwords.json by default" "?" && ${BIN}/reconfigure ${ROOT_ENV} DEFAULT_SAVE_CLEARTEXT_PASSWORDS_JSON=true || ${BIN}/reconfigure ${ROOT_ENV} DEFAULT_SAVE_CLEARTEXT_PASSWORDS_JSON=false
+	@${BIN}/confirm $$([[ "$$(${BIN}/dotenv -f ${ROOT_ENV} get DEFAULT_CLI_ROUTE_LAYER_7_PROXY_PROTOCOL)"  == "true" ]] && echo yes || echo no) "Is this server behind another trusted proxy using the proxy protocol" "?" && ${BIN}/reconfigure ${ROOT_ENV} DEFAULT_CLI_ROUTE_LAYER_7_PROXY_PROTOCOL=true DEFAULT_CLI_ROUTE_LAYER_4_PROXY_PROTOCOL=true || ${BIN}/reconfigure ${ROOT_ENV} DEFAULT_CLI_ROUTE_LAYER_7_PROXY_PROTOCOL=false DEFAULT_CLI_ROUTE_LAYER_4_PROXY_PROTOCOL=false
+	@echo
+	@${BIN}/confirm $$([[ "$$(${BIN}/dotenv -f ${ROOT_ENV} get DEFAULT_SAVE_CLEARTEXT_PASSWORDS_JSON)"  == "true" ]] && echo yes || echo no) "Do you want to save cleartext passwords in passwords.json by default" "?" && ${BIN}/reconfigure ${ROOT_ENV} DEFAULT_SAVE_CLEARTEXT_PASSWORDS_JSON=true || ${BIN}/reconfigure ${ROOT_ENV} DEFAULT_SAVE_CLEARTEXT_PASSWORDS_JSON=false
 	@[[ -n "${USERNAME}" ]] && echo && echo "WARNING: the USERNAME variable is already set in your environment. This configuration is non-standard (Bash should use the USER variable instead). Having USERNAME set by default will interfere with the 'make shell' command. Some distros (eg. Fedora) set USERNAME by default. You must unset this variable before using the 'make shell' target. You can unset this variable in your ~/.bashrc file by adding the line: 'unset USERNAME'" | fold -s && echo || true
 
-.PHONY: build # Build all container images
-build:
-	find ./ | grep docker-compose.yaml$ | xargs dirname | xargs -iXX docker-compose --env-file=XX/${ENV_FILE} -f XX/docker-compose.yaml build
+.PHONY: config-dist # Copy the .env-dist to the .env_{DOCKER_CONTEXT} file
+config-dist:
+	@echo
+	@echo "Configuring environment file: ${ROOT_ENV}"
+	@cp .env-dist ${ROOT_ENV}
+	@echo ""
+	@echo "Copied the default .env-dist file. Edit ${ROOT_ENV} by hand."
 
 .PHONY: open # Open the repository website README
 open: readme
@@ -42,17 +50,11 @@ open: readme
 status:
 	@docker compose ls | sed "s!$${PWD}!.!g"
 
-.PHONY: backup-env # Create an encrypted backup of the .env files
-backup-env:
-	@ROOT_DIR=${ROOT_DIR} ${BIN}/backup_env
-
-.PHONY: restore-env # Restore .env files from the encrypted backup
-restore-env:
-	@ROOT_DIR=${ROOT_DIR} ${BIN}/restore_env
-
 .PHONY: delete-env # Delete all .env files
 delete-env:
-	@${BIN}/confirm no "This will find and delete ALL of the .env files recursively"
+	@find ${ROOT_DIR} | grep -E '\.env$$|\.env_.*'
+	@${BIN}/confirm no "This will delete ALL of these .env files recursively"
+	@${BIN}/confirm no "ARE YOU REALLY SURE you want to delete ALL of the .env files recursively"
 	@find ${ROOT_DIR} | grep -E '\.env$$|\.env_.*' && find ${ROOT_DIR} | grep -E '\.env$$|\.env_.*' | xargs shred -u || true
 	@echo "Done."
 
@@ -67,10 +69,10 @@ clean: delete-env delete-passwords
 
 .PHONY: show-ports # Show open ports on the Docker server
 show-ports:
-	@echo "Found these containers with open ports:"
+	@echo "## Found these containers with open ports:"
 	@docker ps --format '{{ .Names }}\t{{ .Ports }}' | grep ":"
 #docker ps --format '{{ .ID }}' | xargs -iXX sh -c "docker inspect XX | jq -c '.[0].NetworkSettings.Ports' | grep '\[' >/dev/null && echo XX" | xargs -iXX sh -c "docker inspect XX | jq -cj '.[0].Name | @sh' && docker inspect XX | jq -c ' .[0].NetworkSettings.Ports[$i]' | jq -cr '.[].HostPort | @sh' | sed -z -e 's/\n//g' 2>&1 && echo" | sed -e "s/'/ /g" -e 's/ *$//g'
-	@echo "Found these containers using the host network (so they could be publishing any port):"
+	@echo "## Found these containers using the host network (so they could be publishing any port):"
 	@docker ps --format '{{ .ID }}' | xargs -iXX sh -c "docker inspect XX | jq -cr '.[0].NetworkSettings.Networks | keys[]' | grep '^host$$'>/dev/null && docker inspect XX | jq -cr '.[0].Name'" | sed 's!/!!g'
 
 .PHONY: audit # Audit container permissions and capabilities
@@ -93,9 +95,17 @@ userns-remap-off:
 userns-remap-check:
 	@${BIN}/userns-remap check
 
+.PHONY: python-deps # Install Python dependencies (for non-container usage)
+python-deps:
+	@uv sync
+
 .PHONY: readme # Open the README.md in your web browser
 readme:
 	xdg-open "https://github.com/EnigmaCurry/d.rymcg.tech/tree/master#readme"
+
+.PHONY: agent-readiness # Run agent readiness tool
+agent-readiness:
+	@_scripts/agent_readiness.py
 
 .PHONY: install-cli # Install CLI
 install-cli:
@@ -137,3 +147,24 @@ networks:
 	  gateway=$$(docker network inspect $$network --format '{{range .IPAM.Config}}{{.Gateway}}{{end}}'); \
 	  printf "%-35s %-20s %-10s %-10s %-20s\n" $$network $$cidr $$driver $$scope $$gateway; \
 	done) | less -FSX
+
+.PHONY: fail2ban # Configure fail2ban on this Docker host.
+fail2ban:
+	ENV_FILE=${ENV_FILE} ROOT_ENV=${ROOT_ENV} DOCKER_CONTEXT=${DOCKER_CONTEXT} ROOT_DIR=${ROOT_DIR} CONTEXT_INSTANCE=${CONTEXT_INSTANCE} ${BIN}/fail2ban
+
+.PHONY: reconfigure # reconfigure a single environment variable (reconfigure var=THING=VALUE)
+reconfigure:
+	@[[ -n "$${var}" ]] || (echo -e "Error: Invalid argument, must set var.\n## Use: make reconfigure var=VAR_NAME=VALUE" && false)
+	@${BIN}/reconfigure ${ROOT_ENV} "$${var%%=*}=$${var#*=}"
+
+.PHONY: dotenv_get # Retrieve a single root environment variable (dotenv_get var=THING)
+dotenv_get:
+	@[[ -n "$${var}" ]] || (echo -e "Error: Invalid argument, must set var.\n## Use: make dotenv_get var=VAR_NAME" && false)
+	@export ENV_FILE=${ROOT_ENV}; ${BIN}/dotenv_get "$${var%%=*}"
+
+daemon-conf:
+	@ENV_FILE=${ENV_FILE} ROOT_ENV=${ROOT_ENV} DOCKER_CONTEXT=${DOCKER_CONTEXT} ROOT_DIR=${ROOT_DIR} CONTEXT_INSTANCE=${CONTEXT_INSTANCE}  ${BIN}/docker_daemon_conf
+
+.PHONY: s3-volume
+s3-volume:
+	@ROOT_ENV=${ROOT_ENV} ${BIN}/s3_volume_create

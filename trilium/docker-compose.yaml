@@ -1,0 +1,36 @@
+services:
+  trilium:
+    image: ${TRILIUM_IMAGE}
+    environment:
+      - TRILIUM_SAFE_MODE=${TRILIUM_SAFE_MODE}
+      - TRILIUM_NETWORK_TRUSTEDREVERSEPROXY=${TRILIUM_TRUSTED_REVERSE_PROXY}
+      - TZ=${TRILIUM_TIMEZONE:-${DEFAULT_TIMEZONE:-Etc/UTC}}
+    cap_drop:
+      - ALL
+    cap_add:
+      - SYS_ADMIN
+      - CHOWN
+      - SETGID
+      - SETUID
+    security_opt:
+      - no-new-privileges:true
+    sysctls:
+      - net.ipv4.ip_unprivileged_port_start=1024
+    restart: unless-stopped
+    ## The image's own HEALTHCHECK (v0.107+) reads a URL file from the data
+    ## dir, which is private to the node user (uid 1000). Docker runs the
+    ## check as root, and with all capabilities dropped root can't read it,
+    ## so the container never turned healthy. Probe the endpoint directly:
+    healthcheck:
+      test: ["CMD-SHELL", "curl -fsS -o /dev/null --max-time 2 http://127.0.0.1:8080/api/health-check"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 30s
+    volumes:
+      - ${HOST_ZONEINFO:-/usr/share/zoneinfo}:/usr/share/zoneinfo:ro
+      - data:/home/node/trilium-data
+    labels: []
+
+volumes:
+  data:

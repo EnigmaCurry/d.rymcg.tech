@@ -5,6 +5,8 @@ volumes:
 
 services:
   nginx:
+    environment:
+      - TZ=${DEFAULT_TIMEZONE:-Etc/UTC}
     profiles:
       - nginx
     build:
@@ -13,6 +15,8 @@ services:
         VERSION: ${NGINX_VERSION}
         TEMPLATE: ${NGINX_TEMPLATE}
         HOST: ${NGINX_TRAEFIK_HOST}
+        OWNER_UID: ${NGINX_OWNER_UID}
+        OWNER_GID: ${NGINX_OWNER_GID}
     restart: unless-stopped
     volumes:
       - "files:/app"
@@ -27,6 +31,7 @@ services:
         DEBUG_MODE: ${NGINX_DEBUG_MODE}
         PHP_INDEX_FILE: ${NGINX_PHP_INDEX_FILE:-default.php}
     environment:
+      TZ: ${DEFAULT_TIMEZONE:-Etc/UTC}
       UID: ${NGINX_OWNER_UID}
       GID: ${NGINX_OWNER_GID}
       PGHOST: postgres

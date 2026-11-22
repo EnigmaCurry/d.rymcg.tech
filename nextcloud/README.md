@@ -25,6 +25,7 @@ Optionally, you can store this data externally in an S3 Bucket instead.
  * `NEXTCLOUD_OBJECTSTORE_S3_BUCKET` the name of the S3 bucket for Primare Storage (this is ignored if NEXTCLOUD_PRIMARY_STORAGE=Docker Volume)
  * `NEXTCLOUD_OBJECTSTORE_S3_KEY` the S3 access key ID for Primary Storage (this is ignored if NEXTCLOUD_PRIMARY_STORAGE=Docker Volume)
  * `NEXTCLOUD_OBJECTSTORE_S3_SECRET`= the S3 secret key for Primary Storage (this is ignored if NEXTCLOUD_PRIMARY_STORAGE=Docker Volume)
+ * `NEXTCLOUD_BACKUP_ENABLED` set `false` to disable automated backups (see [Disabling backups](#disabling-backups))
  * `NEXTCLOUD_BACKUP_S3_HOST` the S3 endpoint domain name for backups of database and data
  * `NEXTCLOUD_BACKUP_S3_BUCKET` the name of the S3 bucket for backups of database and data
  * `NEXTCLOUD_BACKUP_S3_KEY` the S3 access key ID for backups of database and data
@@ -66,6 +67,16 @@ Storage):
 **Be sure to save a copy your `.env_${DOCKER_CONTEXT}_default` file someplace safe, including the S3
 bucket name, endpoint, credentials, and encryption passphrase. You will need all
 this information if you need to restore from backup!**
+
+### Disabling backups
+
+The backup containers need a working S3 bucket and will crash-loop
+without one. If you don't want backups (e.g., for a throwaway test
+instance), answer `no` to the backup question in `make config`, or set
+`NEXTCLOUD_BACKUP_ENABLED=false` in your `.env` file and run `make
+install`. This keeps the `postgres_backup` and `data_backup` containers
+from running, and the `backup_*` and `restore_*` targets will refuse to
+run. Backups stay enabled unless this is explicitly set to `false`.
 
 ## Make a backup now
 
@@ -147,3 +158,8 @@ To enable Object Storage do the following:
    change the `NEXTCLOUD_PRIMARY_STORAGE` variable to `S3 Bucket` in your
    `.env_${DOCKER_CONTEXT}_default` and set the values for your Object
    Storage S3 bucket, endpoint, and credentials).
+
+
+## Mount nextcloud volumes on your local computer
+
+In addition to its web interface, nextcloud exposes its storage via the open WebDAV protocol. Many desktop file explorer programs have native WebDAV support, meaning you can mount your remote nextcloud folders on your local computer (e.g., Thunar + GVFS). Unfortunately, many of these same programs do not support client TLS certificates. A more robust method of mounting WebDAV folders is via [Rclone](https://rclone.org/), which will work with any system or file explorer, and has support for mTLS. Follow the blog post [WebDAV with Rclone and mTLS](https://blog.rymcg.tech/blog/linux/rclone_webdav/) to set this up on your computer.

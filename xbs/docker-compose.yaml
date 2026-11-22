@@ -6,6 +6,7 @@ services:
     security_opt:
       - no-new-privileges:true
     environment:
+      - TZ=${DEFAULT_TIMEZONE:-Etc/UTC}
       - PRINT_CONFIG
       - XBS_MESSAGE
       - XBS_LOCATION
@@ -17,6 +18,8 @@ services:
       start_period: "1s"
     volumes:
       - xbs-config:/data
+    labels:
+      - "backup-volume.stop-during-backup=true"
 
   db:
     security_opt:
@@ -47,6 +50,7 @@ services:
     security_opt:
       - no-new-privileges:true
     environment:
+      - TZ=${DEFAULT_TIMEZONE:-Etc/UTC}
       - "XBROWSERSYNC_DB_PWD=${XBS_DB_PASSWORD}"
       - "XBROWSERSYNC_DB_USER=${XBS_DB_USERNAME}"
     healthcheck:
@@ -57,6 +61,7 @@ services:
       start_period: "30s"
     restart: "unless-stopped"
     volumes:
+      - ${HOST_ZONEINFO:-/usr/share/zoneinfo}:/usr/share/zoneinfo:ro
       - "xbs-config:/usr/src/api/config"
     labels: []
 

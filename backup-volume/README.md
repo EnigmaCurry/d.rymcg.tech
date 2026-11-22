@@ -127,3 +127,7 @@ make logs
 backup-1  | 2024-10-16T02:37:00.263838944Z time=2024-10-16T02:37:00.262Z level=INFO msg="Successfully scheduled backup from environment with expression @daily"
 backup-1  | 2024-10-16T02:37:00.266773318Z time=2024-10-16T02:37:00.266Z level=INFO msg="The backup will start at 12:00 AM"
 ````
+
+## Restoring volumes from a backup
+
+Each backup is self-contained in a `backup-{DATE}.tar.gz` file. Follow the [restoration procedure](https://offen.github.io/docker-volume-backup/how-tos/restore-volumes-from-backup.html) to extract it under `/var/lib/docker/volumes/`.

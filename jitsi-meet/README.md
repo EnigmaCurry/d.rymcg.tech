@@ -13,6 +13,10 @@ The website is proxied via Traefik, but the video bridge is directly port mapped
 to the Docker host on UDP port 10000, so you must open this port on your
 firewall accordingly.
 
+The config will ask you to enter a TURN server, but this is not
+critical as it will work without one as long as participants can reach
+the JVB server on UDP port 10000.
+
 ## Start
 
 Run `make install`

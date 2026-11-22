@@ -58,7 +58,7 @@ show-wireguard-peers-qr:
 
 .PHONY: compose-profiles
 compose-profiles:
-	@${BIN}/reconfigure_compose_profiles ${ENV_FILE} TRAEFIK_PLUGIN_MAXMIND_GEOIP=geoip_update TRAEFIK_VPN_ENABLED=wireguard TRAEFIK_VPN_CLIENT_ENABLED=wireguard-client TRAEFIK_ERROR_PAGES_ENABLED=error-pages
+	@${BIN}/reconfigure_compose_profiles ${ENV_FILE} TRAEFIK_PLUGIN_MAXMIND_GEOIP=geoip_update TRAEFIK_VPN_ENABLED=wireguard TRAEFIK_VPN_CLIENT_ENABLED=wireguard-client TRAEFIK_ERROR_PAGES_ENABLED=error-pages TRAEFIK_ACME_SH_ENABLED=acme-sh
 
 .PHONY: wireguard-reset
 wireguard-reset:
@@ -78,24 +78,85 @@ logs-traefik:
 
 .PHONY: logs-access # Tail the access logs
 logs-access:
-	@docker compose --env-file ${ENV_FILE} --profile "$(${BIN}/dotenv -f ${ENV_FILE} get DOCKER_COMPOSE_PROFILES)" exec -it traefik sh -c 'tail -f /data/access.log | jq -c'
+	@docker compose --env-file ${ENV_FILE} --profile "$(${BIN}/dotenv -f ${ENV_FILE} get TRAEFIK_DOCKER_COMPOSE_PROFILES)" exec -it traefik sh -c 'tail -f /data/access.log | jq -c'
 
 .PHONY: logs-access-out
 logs-access-out:
-	@docker compose --env-file ${ENV_FILE} --profile "$(${BIN}/dotenv -f ${ENV_FILE} get DOCKER_COMPOSE_PROFILES)" exec -it traefik sh -c 'tail -n 10000 /data/access.log | jq -c'
+	@docker compose --env-file ${ENV_FILE} --profile "$(${BIN}/dotenv -f ${ENV_FILE} get TRAEFIK_DOCKER_COMPOSE_PROFILES)" exec -it traefik sh -c 'tail -n 10000 /data/access.log | jq -c'
 
 .PHONY: debug # Restart Traefik with debug logging for one time only
 debug:
 	@EXISTING_TRAEFIK_LOG_LEVEL=$$(${BIN}/dotenv -f ${ENV_FILE} get TRAEFIK_LOG_LEVEL) && ${BIN}/reconfigure ${ENV_FILE} TRAEFIK_LOG_LEVEL=debug && make --no-print-directory install; STARTED=$$?; ${BIN}/reconfigure ${ENV_FILE} TRAEFIK_LOG_LEVEL=$${EXISTING_TRAEFIK_LOG_LEVEL} && [[ "$$STARTED" == "0" ]] && make --no-print-directory logs-traefik
 
-.PHONY: sentry
-sentry:
-	@${BIN}/reconfigure_header_authorization ${ENV_FILE}
+.PHONY: route # Manage routes
+route:
+	@ENV_FILE=${ENV_FILE} ROOT_ENV=${ROOT_ENV} D_RYMCG_TECH_CONTEXT_ALIAS=$${D_RYMCG_TECH_CONTEXT_ALIAS} ARGS=$${ARGS} ${BIN}/route
 
-.PHONY: sentry-callback
-sentry-callback:
-	@${BIN}/reconfigure_header_authorization ${ENV_FILE} list-callback-urls
+.PHONY: lego-vars
+lego-vars:
+	./lego-vars/scrape_lego_vars.sh
 
-.PHONY: routes # List of all the application routes
-routes:
-	@ENV_FILE=${ENV_FILE} ${BIN}/routes
+## Restart traefik so it picks up any config changes from the config service.
+.PHONY: install-hook
+install-hook:
+	@make --no-print-directory restart service=traefik
+	@echo "Traefik installed."
+
+.PHONY: install-hook-pre
+install-hook-pre:
+	@echo
+
+.PHONY: build-hook-pre
+build-hook-pre:
+	@make --no-print-directory docker-compose-lifecycle-cmd EXTRA_ARGS="build acme-sh-base"
+
+.PHONY: acme-sh-cron-schedule
+acme-sh-cron-schedule:
+	@SCHEDULE="$$(${BIN}/dotenv -f ${ENV_FILE} get TRAEFIK_ACME_SH_CRON_SCHEDULE)"; make --no-print-directory docker-compose-shell SERVICE=acme-sh COMMAND="crontab -l"
+
+.PHONY: acme-sh-register
+acme-sh-register: $(if $(BUILD),build)
+	@make --no-print-directory docker-compose-lifecycle-cmd EXTRA_ARGS="run -T --rm acme-sh register-acmedns" < /dev/null
+
+.PHONY: acme-sh-cert
+acme-sh-cert:
+	BIN=${BIN} ENV_FILE=${ENV_FILE} ./acme-sh/script/create_cert.sh
+
+.PHONY: acme-sh-destroy-certs
+acme-sh-destroy-certs:
+	@${BIN}/confirm no "Do you want to destroy all certificates" "?" && make --no-print-directory docker-compose-shell SERVICE=acme-sh COMMAND="find /acme.sh -mindepth 1 -maxdepth 1 -type d ! -name ca -exec rm -rf {} + && rm -rf /certs/*" && echo destroyed all certs && make restart service=traefik
+
+.PHONY: override-hook
+override-hook:
+
+.PHONY: traefik-user
+traefik-user:
+	ROOT_ENV=${ROOT_ENV} ENV_FILE=${ENV_FILE} DOCKER_CONTEXT=${DOCKER_CONTEXT} ./setup.sh traefik_user
+
+.PHONY: dashboard # Open the Traefik dashboard TUI (tt-tui-for-traefik)
+dashboard:
+	@_PW_JSON="$${DRT_ENV_DIR:-${ROOT_DIR}}/traefik/passwords.json"; \
+	TRAEFIK_USERNAME=$$(cat "$${_PW_JSON}" | jq -r '."${DOCKER_CONTEXT}_default".[].username'); \
+	TRAEFIK_PASSWORD=$$(cat "$${_PW_JSON}" | jq -r '."${DOCKER_CONTEXT}_default".[].password'); \
+	SSH_HOST_ARG="$${SSH_HOST_ARG:---ssh-host ${DOCKER_CONTEXT}}"; \
+	if [[ "$${SSH_HOST_ARG}" == "none" ]]; then SSH_HOST_ARG=""; fi; \
+	if command -v tt >/dev/null; then \
+	  TT_CMD="tt"; \
+	  echo "Starting: $${TT_CMD}"; \
+	elif command -v uv >/dev/null; then \
+	  TT_CMD="uv tool run --from tt-tui-for-traefik tt"; \
+	  echo "Starting: $${TT_CMD}"; \
+	else \
+	  echo; \
+	  echo "Error:"; \
+	  echo "  \`uv\` is required to run tt-tui-for-traefik"; \
+	  echo "  Run: \`curl -LsSf https://astral.sh/uv/install.sh | sh\`"; \
+	  echo ""; \
+	  exit 1; \
+	fi; \
+	set -x; \
+	$${TT_CMD} --url "http://$$(${BIN}/dotenv -f ${ENV_FILE} get TRAEFIK_DASHBOARD_ENTRYPOINT_HOST):$$(${BIN}/dotenv -f ${ENV_FILE} get TRAEFIK_DASHBOARD_ENTRYPOINT_PORT)" $${SSH_HOST_ARG} --username "$${TRAEFIK_USERNAME}" --password "$${TRAEFIK_PASSWORD}"
+
+.PHONY: dashboard-local # Open the Traefik dashboard TUI (without SSH)
+dashboard-local:
+	make dashboard SSH_HOST_ARG="none"

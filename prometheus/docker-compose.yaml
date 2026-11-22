@@ -12,6 +12,7 @@ services:
       args:
         PROMETHEUS_CONFIG_YTT_VERSION: ${PROMETHEUS_CONFIG_YTT_VERSION}
     environment:
+      - TZ=${DEFAULT_TIMEZONE:-Etc/UTC}
       - PROMETHEUS_NODE_EXPORTER_ENABLED
       - PROMETHEUS_CADVISOR_ENABLED
       - PROMETHEUS_ALERTMANAGER_ENABLED
@@ -28,12 +29,15 @@ services:
   # https://github.com/prometheus/node_exporter
   # node_exporter collects the Host system metrics
   node-exporter:
+    environment:
+      - TZ=${DEFAULT_TIMEZONE:-Etc/UTC}
     profiles:
       - node-exporter
     image: prom/node-exporter:${PROMETHEUS_NODE_EXPORTER_VERSION}
     pid: host
     restart: unless-stopped
     volumes:
+      - ${HOST_ZONEINFO:-/usr/share/zoneinfo}:/usr/share/zoneinfo:ro
       - '/proc:/host/proc:ro'
       - '/sys:/host/sys:ro'
       - '/:/rootfs:ro'
@@ -46,6 +50,8 @@ services:
       - "backup-volume.stop-during-backup=true"
 
   prometheus:
+    environment:
+      - TZ=${DEFAULT_TIMEZONE:-Etc/UTC}
     depends_on:
       - config
     profiles:
@@ -53,6 +59,7 @@ services:
     image: prom/prometheus:${PROMETHEUS_VERSION}
     restart: unless-stopped
     volumes:
+      - ${HOST_ZONEINFO:-/usr/share/zoneinfo}:/usr/share/zoneinfo:ro
       - prometheus_config:/etc/prometheus
       - prometheus_data:/prometheus
     command:
@@ -69,6 +76,8 @@ services:
       - "backup-volume.stop-during-backup=true"
 
   grafana:
+    environment:
+      - TZ=${DEFAULT_TIMEZONE:-Etc/UTC}
     depends_on:
       - prometheus
     profiles:
@@ -100,7 +109,8 @@ services:
       - /sys:/sys:ro
       - /var/lib/docker/:/var/lib/docker:ro
       - /etc/machine-id:/etc/machine-id:ro
-      - /etc/localtime:/etc/localtime:ro
+    environment:
+      - TZ=${PROMETHEUS_TIMEZONE:-${DEFAULT_TIMEZONE:-Etc/UTC}}
     deploy:
       resources:
         limits:
@@ -109,6 +119,8 @@ services:
       - "backup-volume.stop-during-backup=true"
 
   alertmanager:
+    environment:
+      - TZ=${DEFAULT_TIMEZONE:-Etc/UTC}
     depends_on:
       - config
     profiles:
@@ -127,7 +139,9 @@ services:
       - "backup-volume.stop-during-backup=true"
 
   alert-test:
+    environment:
+      - TZ=${DEFAULT_TIMEZONE:-Etc/UTC}
     profiles:
       - alert-test
-    image: curlimages/curl
+    image: ${PROMETHEUS_CURL_IMAGE}
     command: curl --json '[{"labels":{"alertname":"test-alert"}}]' http://alertmanager:9093/api/v1/alerts

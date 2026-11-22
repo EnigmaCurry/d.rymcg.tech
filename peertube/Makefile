@@ -39,7 +39,7 @@ config-hook:
 	@echo
 	@${BIN}/reconfigure_choose ${ENV_FILE} PEERTUBE_LIVESTREAMING "You can enable livestreaming via RTMP or RTMPS. Choose livestreaming status:" "Disabled" "RTMP" "RTMPS"
 	@echo
-	
+
 .PHONY: override-hook
 override-hook:
 #### This sets the override template variables for docker-compose.instance.yaml:
@@ -52,8 +52,20 @@ override-hook:
 ####                         # (this hardcodes the string into docker-compose.override.yaml)
 ####   name=@VARIABLE_NAME   # sets the template 'name' field to the literal string '${VARIABLE_NAME}'
 ####                         # (used for regular docker-compose expansion of env vars by name.)
-	@${BIN}/docker_compose_override ${ENV_FILE} project=:peertube instance=@PEERTUBE_INSTANCE traefik_host=@PEERTUBE_TRAEFIK_HOST http_auth=PEERTUBE_HTTP_AUTH http_auth_var=@PEERTUBE_HTTP_AUTH ip_sourcerange=@PEERTUBE_IP_SOURCERANGE oauth2=PEERTUBE_OAUTH2 authorized_group=PEERTUBE_OAUTH2_AUTHORIZED_GROUP enable_mtls_auth=PEERTUBE_MTLS_AUTH mtls_authorized_certs=PEERTUBE_MTLS_AUTHORIZED_CERTS livestreaming=PEERTUBE_LIVESTREAMING
+	@${BIN}/docker_compose_override ${ENV_FILE} project=:peertube instance=@PEERTUBE_INSTANCE traefik_host=@PEERTUBE_TRAEFIK_HOST http_auth=PEERTUBE_HTTP_AUTH http_auth_var=@PEERTUBE_HTTP_AUTH ip_sourcerange=@PEERTUBE_IP_SOURCERANGE oauth2=PEERTUBE_OAUTH2 authorized_group=PEERTUBE_OAUTH2_AUTHORIZED_GROUP enable_mtls_auth=PEERTUBE_MTLS_AUTH mtls_authorized_certs=PEERTUBE_MTLS_AUTHORIZED_CERTS livestreaming=PEERTUBE_LIVESTREAMING traefik_entrypoint=PEERTUBE_TRAEFIK_ENTRYPOINT
 
 .PHONY: shell
 shell:
-	@make --no-print-directory docker-compose-shell SERVICE=peertube
+	@if [ -z "$(service)" ]; then \
+		container=$$(eval "${BIN}/script-wizard choose 'docker exec -it into which container?' 'peertube' 'postgres' 'redis' 'postfix' --default 'peertube'") && make --no-print-directory docker-compose-shell SERVICE=$${container}; \
+	else \
+		make --no-print-directory docker-compose-shell SERVICE=$$(service); \
+	fi;
+
+.PHONY: install-hook
+install-hook:
+	@echo
+
+.PHONY: install-hook-pre
+install-hook-pre:
+	@echo

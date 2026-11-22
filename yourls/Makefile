@@ -27,11 +27,15 @@ override-hook:
 ####                         # (this hardcodes the string into docker-compose.override.yaml)
 ####   name=@VARIABLE_NAME   # sets the template 'name' field to the literal string '${VARIABLE_NAME}'
 ####                         # (used for regular docker-compose expansion of env vars by name.)
-	@${BIN}/docker_compose_override ${ENV_FILE} project=:yourls instance=@YOURLS_INSTANCE traefik_host=@YOURLS_TRAEFIK_HOST http_auth=YOURLS_HTTP_AUTH http_auth_var=@YOURLS_HTTP_AUTH ip_sourcerange=@YOURLS_IP_SOURCERANGE oauth2=YOURLS_OAUTH2 authorized_group=YOURLS_OAUTH2_AUTHORIZED_GROUP enable_mtls_auth=YOURLS_MTLS_AUTH mtls_authorized_certs=YOURLS_MTLS_AUTHORIZED_CERTS
+	@${BIN}/docker_compose_override ${ENV_FILE} project=:yourls instance=@YOURLS_INSTANCE traefik_host=@YOURLS_TRAEFIK_HOST http_auth=YOURLS_HTTP_AUTH http_auth_var=@YOURLS_HTTP_AUTH ip_sourcerange=@YOURLS_IP_SOURCERANGE oauth2=YOURLS_OAUTH2 authorized_group=YOURLS_OAUTH2_AUTHORIZED_GROUP enable_mtls_auth=YOURLS_MTLS_AUTH mtls_authorized_certs=YOURLS_MTLS_AUTHORIZED_CERTS traefik_entrypoint=YOURLS_TRAEFIK_ENTRYPOINT
 
 .PHONY: shell
 shell:
-	@container=$$(eval "${BIN}/script-wizard choose 'docker exec -it into which container?' 'yourls' 'mysql' --default 'yourls'") && make --no-print-directory docker-compose-shell SERVICE=$${container}
+	@if [ -z "$(service)" ]; then \
+		container=$$(eval "${BIN}/script-wizard choose 'docker exec -it into which container?' 'yourls' 'mysql' --default 'yourls'") && make --no-print-directory docker-compose-shell SERVICE=$${container}; \
+	else \
+		make --no-print-directory docker-compose-shell SERVICE=$$(service); \
+	fi;
 
 open-hook:
 	${BIN}/open /admin
@@ -96,4 +100,12 @@ delete-admin-users:
 	@docker cp -a config.php.temp yourls-yourls-1:/var/www/html/user/config.php > /dev/null 2>&1
 # Clean up temporary file
 	@rm config.php.temp
+	@echo
+
+.PHONY: install-hook
+install-hook:
+	@echo
+
+.PHONY: install-hook-pre
+install-hook-pre:
 	@echo

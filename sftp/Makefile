@@ -6,7 +6,7 @@ config-hook:
 	@test -f ${ENV_FILE} || (cp .env-dist ${ENV_FILE} && echo "Created ${ENV_FILE}")
 	@${BIN}/reconfigure_ask ${ENV_FILE} SFTP_PORT "Enter the public SSH port"
 	@${BIN}/reconfigure_ask ${ENV_FILE} SFTP_USERS "Enter the user:uid list"
-	@${BIN}/reconfigure_ask ${ENV_FILE} SFTP_VOLUMES "Enter the volume:user:mount list (can be blank)"
+	@ALLOW_BLANK=1 ${BIN}/reconfigure_ask ${ENV_FILE} SFTP_VOLUMES "Enter the volume:user:mount list (can be blank)"
 
 
 .PHONY: install # (re)builds images and (re)starts services
@@ -79,3 +79,11 @@ open:
 sshfs:
 	@mkdir -p ${HOME}/mnt/sftp.${ROOT_DOMAIN}
 	SSH_USER=$$(${BIN}/dotenv -f ${ENV_FILE} get SFTP_USERS | cut -d ":" -f 1); echo sshfs -p $$(${BIN}/dotenv -f ${ENV_FILE} get SFTP_PORT) $${SSH_USER}@sftp.${ROOT_DOMAIN}: ${HOME}/mnt/sftp.${ROOT_DOMAIN}
+
+.PHONY: install-hook
+install-hook:
+	@echo
+
+.PHONY: install-hook-pre
+install-hook-pre:
+	@echo

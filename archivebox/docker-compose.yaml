@@ -1,10 +1,9 @@
-
 volumes:
   data:
 
 services:
   archivebox:
-    image: archivebox/archivebox:master
+    image: ${ARCHIVEBOX_IMAGE}
     security_opt:
       - no-new-privileges:true
     cap_drop:
@@ -14,89 +13,38 @@ services:
       - DAC_OVERRIDE
       - SETGID
       - SETUID
-      # - FOWNER
-      # - FSETID
-      # - MKNOD
-      # - NET_RAW
-      # - SETFCAP
-      # - SETPCAP
-      # - NET_BIND_SERVICE
-      # - SYS_CHROOT
-      # - KILL
-      # - AUDIT_WRITE
-    command: server --quick-init 0.0.0.0:8000
     environment:
+      - TZ=${DEFAULT_TIMEZONE:-Etc/UTC}
       - ALLOWED_HOSTS=*
-      - MEDIA_MAX_SIZE=750m
-      # - SEARCH_BACKEND_ENGINE=sonic   # uncomment these if you enable sonic below
-      # - SEARCH_BACKEND_HOST_NAME=sonic
-      # - SEARCH_BACKEND_PASSWORD=SecretPassword
+      - BASE_URL=https://${ARCHIVEBOX_TRAEFIK_HOST}
     volumes:
       - data:/data
     restart: unless-stopped
+    ## archivebox server runs supervisord, which restarts a crashed web
+    ## server, crawl runner or sonic inside the container, so probe the web
+    ## server and require supervisord to report each one RUNNING for 10s.
+    ## The web worker is worker_uvicorn since 0.9.77 (worker_daphne before):
+    healthcheck:
+      test: ["CMD-SHELL", "curl -fsS -o /dev/null http://127.0.0.1:5797/health/ && supervisorctl -c /tmp/archivebox/supervisord.conf status | awk '$$1 !~ /^worker_(daphne|uvicorn|runner|sonic)$$/ {next} {n++} $$2 != \"RUNNING\" {bad = 1} $$NF ~ /^[0-9]+:[0-9]+:[0-9]+$$/ && $$0 !~ /day/ {split($$NF, t, \":\"); if (t[1] * 3600 + t[2] * 60 + t[3] < 10) bad = 1} END {exit bad || n != 3}'"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+      start_period: 120s
     labels: []
 
-  public-api-gateway:
-    build:
-      context: ${ARCHIVEBOX_API_GATEWAY_CONTEXT:-https://github.com/EnigmaCurry/archivebox-api-gateway.git}
-    security_opt:
-      - no-new-privileges:true
-    cap_drop:
-      - ALL
-#    cap_add:
-      # - CHOWN
-      # - DAC_OVERRIDE
-      # - SETGID
-      # - SETUID
-      # - FOWNER
-      # - FSETID
-      # - MKNOD
-      # - NET_RAW
-      # - SETFCAP
-      # - SETPCAP
-      # - NET_BIND_SERVICE
-      # - SYS_CHROOT
-      # - KILL
-      # - AUDIT_WRITE
-    restart: unless-stopped
-    environment:
-      - ARCHIVEBOX_BASE_URL=http://archivebox:8000
-      - API_BASE_URL=https://${ARCHIVEBOX_TRAEFIK_HOST}
-      - PATH_PREFIX=/api-gateway
-      - SECRET_KEY
-      - ARCHIVEBOX_USERNAME
-      - ARCHIVEBOX_PASSWORD
-      - LOG_LEVEL=${API_LOG_LEVEL}
-    labels: []
-
-
-
-  # To run the Sonic full-text search backend, first download the config file to sonic.cfg
-  # curl -O https://raw.githubusercontent.com/ArchiveBox/ArchiveBox/master/etc/sonic.cfg
-  # after starting, backfill any existing Snapshots into the index: docker-compose run archivebox update --index-only
-  # sonic:
-  #  image: valeriansaliou/sonic:v1.3.0
-  #  expose:
-  #    - 1491
-  #  environment:
-  #    - SEARCH_BACKEND_PASSWORD=SecretPassword
-  #  volumes:
-  #    - ./sonic.cfg:/etc/sonic.cfg:ro
-  #    - ./data/sonic:/var/lib/sonic/store
+  # Note (0.9.x): the Sonic full-text search backend is now built into the
+  # archivebox/archivebox image (SEARCH_BACKEND_ENGINE=sonic by default), so
+  # no separate sonic service is needed.
 
 
   ### Optional Addons: tweak these examples as needed for your specific use case
 
-  # Example: Run scheduled imports in a docker instead of using cron on the
-  # host machine, add tasks and see more info with archivebox schedule --help
-  # scheduler:
-  #  image: archivebox/archivebox:latest
-  #  command: schedule --foreground --every=day --depth=1 'https://getpocket.com/users/USERNAME/feed/all'
-  #  environment:
-  #    - USE_COLOR=True
-  #    - SHOW_PROGRESS=False
-  #  volumes:
-  #    - ./data:/data
+  # Note (0.9.x): scheduled imports are now database-backed and are processed
+  # by the main archivebox server's crawl runner while it runs - no separate
+  # scheduler container or cron job is needed. Add schedules with:
+  #   make schedule-add
+  # or:
+  #   docker compose exec archivebox su -c "archivebox schedule --add --every=day --depth=1 'https://example.com/feed'" archivebox
 
   # Example: run all your ArchiveBox traffic through a WireGuard VPN tunnel
   # wireguard:

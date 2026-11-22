@@ -4,10 +4,18 @@ volumes:
 
 services:
   privatebin:
+    environment:
+      - TZ=${DEFAULT_TIMEZONE:-Etc/UTC}
     restart: unless-stopped
-    image: privatebin/fs:1.3.5
+    image: ${PRIVATEBIN_IMAGE}
     read_only: true
     volumes:
       - data:/srv/data
+    healthcheck:
+      test: ["CMD", "wget", "-q", "--spider", "http://127.0.0.1:8080/"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+      start_period: 60s
     # Labels are defined in docker-compose.instance.yaml
     labels: []

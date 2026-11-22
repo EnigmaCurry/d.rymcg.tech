@@ -8,3 +8,11 @@ include ${ROOT_DIR}/_scripts/Makefile.projects
 .PHONY: shell
 shell:
 	@make --no-print-directory docker-compose-shell SERVICE=matterbridge
+
+.PHONY: install-hook
+install-hook:
+	@echo
+
+.PHONY: install-hook-pre
+install-hook-pre:
+	@echo

@@ -1,7 +1,10 @@
 
 services:
   pairdrop:
-    image: "lscr.io/linuxserver/pairdrop:${PAIRDROP_VERSION}"
+    build:
+      context: pairdrop
+      args:
+        PAIRDROP_IMAGE: ${PAIRDROP_IMAGE}
     security_opt:
       - no-new-privileges:true
     # cap_drop:
@@ -9,12 +12,28 @@ services:
     sysctls:
       - net.ipv4.ip_unprivileged_port_start=1024
     restart: unless-stopped
+    # s6 restarts a crashing node process inside the container, so the
+    # container itself stays "running". Probe the app so `make wait` sees it:
+    healthcheck:
+      test: ["CMD", "curl", "-fsS", "-o", "/dev/null", "http://127.0.0.1:3000/"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+      start_period: 60s
     environment:
       - PUID=${PAIRDROP_UID}
       - PGID=${PAIRDROP_GID}
-      - TZ=Etc/UTC
+      - TZ=${DEFAULT_TIMEZONE:-Etc/UTC}
       - RATE_LIMIT=false
       - WS_FALLBACK=false
+      - DEBUG_MODE=${PAIRDROP_DEBUG_MODE}
+      - TURN_DOMAIN=${PAIRDROP_TURN_DOMAIN}
+      - TURN_LISTEN_PORT=${PAIRDROP_TURN_LISTEN_PORT}
+      - TURN_TLS_PORT=${PAIRDROP_TURN_TLS_PORT}
+      - TURN_USERNAME=${PAIRDROP_TURN_USERNAME}
+      - TURN_PASSWORD=${PAIRDROP_TURN_PASSWORD}
+      - COTURN_STATIC_AUTH_SECRET=${PAIRDROP_COTURN_STATIC_AUTH_SECRET}
+      - RESTART_MINUTES=${PAIRDROP_RESTART_MINUTES}
     # All labels are defined in the template: docker-compose.instance.yaml
     # The labels will merge together here from the template output:
     #   docker-compose.override_{DOCKER_CONTEXT}_{INSTANCE}.yaml

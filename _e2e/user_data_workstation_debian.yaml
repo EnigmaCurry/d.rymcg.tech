@@ -1,0 +1,40 @@
+#cloud-config
+## title: Docker CLI (workstation) + e2e admin user + sshd tuning (debian based)
+## images: debian-* ubuntu-*
+##
+## Rendered by _e2e/e2e.sh at provision time (__E2E_ADMIN_USER__ and
+## __E2E_SSH_PUBKEY__ substituted) for the 'workstation' suite.
+##
+## A d.rymcg.tech workstation controls remote Docker servers; it is not a
+## server itself. So this installs only the Docker *CLI* and the compose/buildx
+## plugins - NOT the docker-ce engine or containerd daemon. It creates the
+## admin workstation user (sudo) with the operator's SSH key, and disables
+## OpenSSH 10's PerSourcePenalties (the e2e flow reconnects repeatedly while
+## the droplet boots, which otherwise trips the penalty).
+users:
+  - default
+  - name: __E2E_ADMIN_USER__
+    groups: [sudo]
+    shell: /bin/bash
+    sudo: ['ALL=(ALL) NOPASSWD:ALL']
+    ssh_authorized_keys:
+      - __E2E_SSH_PUBKEY__
+write_files:
+  - path: /etc/ssh/sshd_config.d/99-e2e-ssh.conf
+    permissions: '0644'
+    content: |
+      ## Installed by d.rymcg.tech e2e cloud-init. See _e2e/README.md.
+      PerSourcePenalties no
+package_update: true
+packages:
+  - ca-certificates
+  - curl
+runcmd:
+  - systemctl restart ssh || systemctl restart sshd || true
+  - install -m 0755 -d /etc/apt/keyrings
+  - curl -fsSL https://download.docker.com/linux/$(. /etc/os-release && echo "$ID")/gpg -o /etc/apt/keyrings/docker.asc
+  - chmod a+r /etc/apt/keyrings/docker.asc
+  - echo "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.asc] https://download.docker.com/linux/$(. /etc/os-release && echo "$ID") $(. /etc/os-release && echo "$VERSION_CODENAME") stable" > /etc/apt/sources.list.d/docker.list
+  - apt-get update
+  ## Docker CLI + plugins only. No docker-ce / containerd (no local daemon):
+  - apt-get install -y docker-ce-cli docker-buildx-plugin docker-compose-plugin

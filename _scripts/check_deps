@@ -7,10 +7,10 @@ missing=""
 for var in "$@"; do
     echo -n "Looking for ${var} ... " >/dev/stderr
     if ! which "${var}" >/dev/null 2>&1; then
-        echo "Missing! No ${var} found in PATH." >/dev/stderr
+        stderr "Missing! No ${var} found in PATH." >/dev/stderr
         missing="${missing} ${var}"
     else
-        echo found $(which "${var}")
+        stderr found $(which "${var}")
     fi
 done
 

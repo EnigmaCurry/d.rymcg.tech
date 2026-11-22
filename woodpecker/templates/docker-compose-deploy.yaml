@@ -1,0 +1,29 @@
+# docker-compose-deploy.yaml — Deploy a docker-compose project to a remote host via SSH
+#
+# Required secrets (set in Woodpecker UI or CLI):
+#   ssh_key      — Private SSH key with access to the deploy host
+#   deploy_host  — Hostname or IP of the target server
+#   deploy_user  — SSH username on the target server
+#
+# Replace /opt/myapp with the path to your docker-compose project on the server.
+# Replace git.example.com with your Forgejo container registry hostname.
+
+when:
+  - event: push
+    branch: ${CI_REPO_DEFAULT_BRANCH}
+
+steps:
+  - name: deploy
+    image: appleboy/drone-ssh:1
+    settings:
+      host:
+        from_secret: deploy_host
+      username:
+        from_secret: deploy_user
+      key:
+        from_secret: ssh_key
+      port: 22
+      script:
+        - cd /opt/myapp
+        - docker compose pull
+        - docker compose up -d --remove-orphans

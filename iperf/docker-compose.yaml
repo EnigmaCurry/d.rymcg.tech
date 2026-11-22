@@ -1,0 +1,15 @@
+services:
+  iperf:
+    volumes:
+      - ${HOST_ZONEINFO:-/usr/share/zoneinfo}:/usr/share/zoneinfo:ro
+    environment:
+      - TZ=${DEFAULT_TIMEZONE:-Etc/UTC}
+    build:
+      context: iperf
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+    restart: unless-stopped
+    # Labels go in docker-compose.instance.yaml:
+    labels: []

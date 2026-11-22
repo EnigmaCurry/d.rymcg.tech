@@ -7,11 +7,13 @@ volumes:
 
 services:
   audiobookshelf:
-    image: ghcr.io/advplyr/audiobookshelf:${AUDIOBOOKSHELF_VERSION}
+    environment:
+      - TZ=${DEFAULT_TIMEZONE:-Etc/UTC}
+    image: ${AUDIOBOOKSHELF_IMAGE}
     restart: unless-stopped
     volumes:
       - audiobooks:/audiobooks
       - podcasts:/podcasts
       - config:/config
       - metadata:/metadata
-    labels: [] ## All labels are defined in docker-compose.instance.yaml
+    labels: []

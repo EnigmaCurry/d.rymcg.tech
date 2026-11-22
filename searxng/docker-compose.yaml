@@ -23,13 +23,13 @@ services:
     labels:
       - "backup-volume.stop-during-backup=true"
 
-
   config:
     build:
       context: config
     security_opt:
       - no-new-privileges:true
     environment:
+      - TZ=${DEFAULT_TIMEZONE:-Etc/UTC}
       - SEARXNG_SECRET_KEY=${SEARXNG_SECRET_KEY}
     volumes:
       - searxng-config:/config
@@ -40,6 +40,7 @@ services:
     volumes:
       - searxng-config:/etc/searxng:rw     
     environment:
+      - TZ=${DEFAULT_TIMEZONE:-Etc/UTC}
       - SEARXNG_BASE_URL=https://${SEARXNG_TRAEFIK_HOST:-localhost}/
     cap_drop:
       - ALL

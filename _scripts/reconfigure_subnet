@@ -1,0 +1,75 @@
+#!/usr/bin/env bash
+# =============================================================================
+# reconfigure_subnet  ENV_FILE VAR "Prompt text" "default"
+#
+# Like reconfigure_ask, but the answer must be a *valid* CIDR network.
+# Uses validate_ip_network() from funcs.sh.
+# =============================================================================
+
+set -euo pipefail
+
+# ------------------------------- Helpers ------------------------------------
+fail() { echo "ERROR: $*" >&2; exit 1; }
+
+# ------------------------------- Argument handling -------------------------
+ENV_FILE="${1:-}"
+var="${2:-}"
+prompt="${3:-}"
+default="${4:-}"
+
+[[ -n "$ENV_FILE" && -n "$var" && -n "$prompt" ]] || \
+    fail "Usage: $0 ENV_FILE VAR \"Prompt\" \"default\""
+
+# -------------------------------------------------------------------------
+BIN=$(dirname "${BASH_SOURCE[0]}")
+source "${BIN}/funcs.sh"
+
+check_var ENV_FILE var prompt
+
+# -------------------------------------------------------------------------
+[[ -f "$ENV_FILE" ]] || cp .env-dist "$ENV_FILE"
+
+USE_ENV=${USE_ENV:-false}
+if [[ "$USE_ENV" == "true" && -v "${var}" ]]; then
+    "${BIN}/dotenv" -f "$ENV_FILE" set "${var}=${!var}"
+    exit 0
+fi
+
+example=$(grep -m1 -oP "^$var=\K.*" .env-dist || true)
+existing=$(grep -m1 -oP "^$var=\K.*" "$ENV_FILE" || true)
+
+if [[ "$existing" != "$example" ]]; then
+    default=${existing:-${default}}
+else
+    default=${default:-${example}}
+fi
+
+[[ "$default" == "-" ]] && default=""
+
+[[ -n "$example" ]] && example=" (eg. ${example})"
+
+# -------------------------------------------------------------------------
+while true; do
+    read -e -p "${var}: ${prompt}${example}"$'\n: ' -i "$default" answer
+
+    ALLOW_BLANK=${ALLOW_BLANK:-0}
+    if [[ -z "$answer" && "$ALLOW_BLANK" != "1" && -n "$default" ]]; then
+        answer="$default"
+    fi
+
+    if [[ -z "$answer" && "$ALLOW_BLANK" != "1" ]]; then
+        echo "A value is required – please type a network in CIDR notation." >&2
+        continue
+    fi
+
+    # Validate CIDR network.
+    if validate_ip_network "$answer"; then
+        break
+    else
+        echo "‘$answer’ is not a valid network (CIDR) – try again." >&2
+        echo
+    fi
+done
+
+"${BIN}/dotenv" -f "$ENV_FILE" set "${var}=${answer}"
+echo "Set ${var}=${answer}"

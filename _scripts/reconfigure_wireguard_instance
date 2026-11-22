@@ -1,0 +1,53 @@
+#!/usr/bin/env bash
+## Choose a wireguard instance to populate a .env var
+# reconfigure_wireguard_instance ENV_FILE VAR_NAME PROMPT
+
+BIN=$(dirname ${BASH_SOURCE})
+source ${BIN}/funcs.sh
+set -euo pipefail
+
+if (( $# < 3 )); then
+cat <<EOF >&2
+    Usage: $0 ENV_FILE VAR_NAME PROMPT [PATTERN]
+
+      ENV_FILE   – file to write the result into
+      VAR_NAME   – variable name that will be created/updated
+      PROMPT     – text displayed by \`choose\`
+EOF
+    exit 1
+fi
+
+ENV_FILE=$1
+VAR_NAME=$2
+PROMPT=$3
+PATTERN='^wireguard_.+-wireguard-1$'
+
+mapfile -t ROUTER_CONTAINERS < <(
+    docker ps -a --format "{{.Names}}" |
+    grep -E "$PATTERN" || true
+)
+
+CURRENT_VAL=$(${BIN}/dotenv -f ${ENV_FILE} get ${VAR_NAME})
+DEFAULT="none"
+OPTIONS=("none")
+CHOSEN="${DEFAULT}"
+for c in "${ROUTER_CONTAINERS[@]}"; do
+    OPTIONS+=("$c")
+    if [[ "${c}" == "wireguard_${CURRENT_VAL}-wireguard-1" ]]; then
+        CHOSEN="${c}"
+    fi
+done
+
+CHOSEN=$(choose "$PROMPT" "${OPTIONS[@]}" "--default" "${CHOSEN}")
+
+VALUE="${CHOSEN}"
+if [[ "${VALUE}" == "${DEFAULT}" ]]; then
+    VALUE=""
+else
+    VALUE="${VALUE#wireguard_}"
+    VALUE="${VALUE%-wireguard-1}"
+fi
+
+"${BIN}/dotenv" -f "${ENV_FILE}" set "${VAR_NAME}=${VALUE}"
+echo "Set ${VAR_NAME}=${VALUE}"
+echo

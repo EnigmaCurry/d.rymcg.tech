@@ -1,0 +1,15 @@
+services:
+  datetime:
+    volumes:
+      - ${HOST_ZONEINFO:-/usr/share/zoneinfo}:/usr/share/zoneinfo:ro
+    environment:
+      - TZ=${DEFAULT_TIMEZONE:-Etc/UTC}
+    image: ${DATETIME_IMAGE}
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+    sysctls:
+      - net.ipv4.ip_unprivileged_port_start=1024
+    restart: unless-stopped
+    labels: []

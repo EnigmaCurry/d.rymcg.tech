@@ -1,0 +1,23 @@
+services:
+  thelounge:
+    environment:
+      - TZ=${DEFAULT_TIMEZONE:-Etc/UTC}
+    image: ${THELOUNGE_IMAGE}
+    cap_drop:
+      - ALL
+    cap_add:
+      - SETGID
+      - SETUID
+      - CHOWN
+    security_opt:
+      - no-new-privileges:true
+    sysctls:
+      - net.ipv4.ip_unprivileged_port_start=1024
+    restart: unless-stopped
+    labels: []
+    volumes:
+      - ${HOST_ZONEINFO:-/usr/share/zoneinfo}:/usr/share/zoneinfo:ro
+      - thelounge:/var/opt/thelounge:Z
+
+volumes:
+  thelounge:

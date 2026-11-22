@@ -1,0 +1,31 @@
+#!/bin/bash
+
+## Open a README URL in a graphical web browser.
+## $1 URL to open
+## $2 (optional) path to the local markdown file
+##
+## Without a graphical session, xdg-open falls back to a text browser
+## (e.g. w3m), which can't render GitHub. In that case, print the URL
+## and page the local markdown file instead.
+
+URL="$1"
+LOCAL_FILE="$2"
+
+if [[ -z "${URL}" ]]; then
+    echo "Usage: open_readme URL [LOCAL_FILE]" >&2
+    exit 1
+fi
+
+if [[ "$(uname -s)" == "Darwin" ]] && which open >/dev/null 2>&1; then
+    (set -x; open "${URL}")
+elif [[ -n "${DISPLAY}${WAYLAND_DISPLAY}" ]] && which xdg-open >/dev/null 2>&1; then
+    (set -x; xdg-open "${URL}")
+else
+    echo "URL: ${URL}"
+    if [[ -n "${LOCAL_FILE}" ]] && [[ -f "${LOCAL_FILE}" ]]; then
+        echo "Local file: ${LOCAL_FILE}"
+        if [[ -t 1 ]]; then
+            ${PAGER:-less} "${LOCAL_FILE}"
+        fi
+    fi
+fi

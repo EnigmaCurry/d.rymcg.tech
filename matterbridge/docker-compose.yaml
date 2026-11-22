@@ -4,14 +4,22 @@ volumes:
 
 services:
   config:
+    environment:
+      - TZ=${DEFAULT_TIMEZONE:-Etc/UTC}
     build:
       context: config
     env_file: ${ENV_FILE}
     volumes:
       - config:/etc/matterbridge
+    labels:
+      - "backup-volume.stop-during-backup=true"
 
   matterbridge:
+    environment:
+      - TZ=${DEFAULT_TIMEZONE:-Etc/UTC}
     depends_on: ['config']
-    image: 42wim/matterbridge:stable
+    image: ${MATTERBRIDGE_IMAGE}
     volumes:
       - config:/etc/matterbridge:ro
+    labels:
+      - "backup-volume.stop-during-backup=true"
