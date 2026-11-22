@@ -65,6 +65,16 @@ BACKUP_CRON_EXPRESSION: Enter the cron expression (eg. @daily)
 : @daily
 ```
 
+The cron expression is interpreted in the container's timezone:
+`BACKUP_TIMEZONE` if it is set, otherwise `DEFAULT_TIMEZONE` from the
+root `.env_{CONTEXT}` file. `make config` does not ask for it, so to
+run the schedule in a different timezone than the context default,
+set it directly:
+
+```
+make reconfigure var=BACKUP_TIMEZONE=America/New_York
+```
+
 Choose the retention length (number of days) to keep backup archives
 before automatic pruning happens:
 
