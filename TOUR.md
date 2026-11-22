@@ -496,7 +496,7 @@ POSTFIX_RELAY_TRAEFIK_HOST: Enter the domain name for this instance
 ```
 POSTFIX_RELAY_RELAYHOST: Enter the outgoing SMTP server domain:port (eg. smtp.example.com:587)
 
-: mail.example.com:465
+: mail.example.com:587
 
 POSTFIX_RELAY_RELAYHOST_USERNAME: Enter the outgoing SMTP server username
 

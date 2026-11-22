@@ -9,8 +9,6 @@ services:
     sysctls:
       - net.ipv4.ip_unprivileged_port_start=1024
     restart: unless-stopped
-    ports:
-      - "${POSTFIX_RELAY_BIND_IP:-127.0.0.1}:587:587"
     environment:
       TZ: ${DEFAULT_TIMEZONE:-Etc/UTC}
       POSTFIX_myhostname: ${POSTFIX_RELAY_TRAEFIK_HOST}
