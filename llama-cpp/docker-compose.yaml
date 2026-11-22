@@ -1,5 +1,7 @@
 services:
   llama-cpu:
+    environment:
+      - TZ=${DEFAULT_TIMEZONE:-Etc/UTC}
     profiles:
       - cpu
     image: ${LLAMA_IMAGE}:${LLAMA_IMAGE_VARIANT}${LLAMA_IMAGE_TAG:+-${LLAMA_IMAGE_TAG}}
@@ -12,6 +14,8 @@ services:
       - net.ipv4.ip_unprivileged_port_start=1024
 
   llama-cuda:
+    environment:
+      - TZ=${DEFAULT_TIMEZONE:-Etc/UTC}
     profiles:
       - cuda
     image: ${LLAMA_IMAGE}:${LLAMA_IMAGE_VARIANT}-cuda${LLAMA_IMAGE_TAG:+-${LLAMA_IMAGE_TAG}}
@@ -44,6 +48,7 @@ services:
     sysctls:
       - net.ipv4.ip_unprivileged_port_start=1024
     environment:
+      - TZ=${DEFAULT_TIMEZONE:-Etc/UTC}
       - HSA_OVERRIDE_GFX_VERSION=${LLAMA_HSA_OVERRIDE_GFX_VERSION}
 
 volumes:

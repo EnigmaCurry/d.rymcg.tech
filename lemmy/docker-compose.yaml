@@ -15,6 +15,8 @@ volumes:
 
 services:
   proxy:
+    environment:
+      - TZ=${DEFAULT_TIMEZONE:-Etc/UTC}
     build:
       context: nginx
     volumes:
@@ -32,6 +34,7 @@ services:
     security_opt:
       - no-new-privileges:true
     environment:
+      - TZ=${DEFAULT_TIMEZONE:-Etc/UTC}
       - POSTGRES_PW=${LEMMY_POSTGRES_PW}
       - TRAEFIK_HOST=${LEMMY_TRAEFIK_HOST}
       - PRINT_CONFIG=${LEMMY_PRINT_CONFIG}
@@ -52,18 +55,23 @@ services:
     restart: unless-stopped
     logging: *default-logging
     environment:
+      - TZ=${DEFAULT_TIMEZONE:-Etc/UTC}
       - RUST_LOG="warn"
     volumes:
       - lemmy-config:/config
+    ## Lemmy exits if the database isn't accepting connections yet:
     depends_on:
-      - postgres
-      - pictrs
+      postgres:
+        condition: service_healthy
+      pictrs:
+        condition: service_started
     labels:
       - "backup-volume.stop-during-backup=true"
 
   lemmy-ui:
     image: dessalines/lemmy-ui:${LEMMY_UI_VERSION}
     environment:
+      - TZ=${DEFAULT_TIMEZONE:-Etc/UTC}
       - LEMMY_UI_LEMMY_INTERNAL_HOST=lemmy:8536
       - LEMMY_UI_LEMMY_EXTERNAL_HOST=${LEMMY_TRAEFIK_HOST}
       - LEMMY_UI_HTTPS=false
@@ -86,6 +94,7 @@ services:
     # we can set options to pictrs like this, here we set max. image size and forced format for conversion
     # entrypoint: /sbin/tini -- /usr/local/bin/pict-rs -p /mnt -m 4 --image-format webp
     environment:
+      - TZ=${DEFAULT_TIMEZONE:-Etc/UTC}
       # No need to whatever this is:
       #- PICTRS_OPENTELEMETRY_URL=http://otel:4137
       - PICTRS__API_KEY=${LEMMY_POSTGRES_PW}
@@ -98,6 +107,7 @@ services:
       - PICTRS__MEDIA__GIF__MAX_FRAME_COUNT=400
     user: 991:991
     volumes:
+      - ${HOST_ZONEINFO:-/usr/share/zoneinfo}:/usr/share/zoneinfo:ro
       - lemmy-pictrs:/mnt:Z
       - lemmy-pictrs-config:/etc/pictrs
     security_opt:
@@ -120,6 +130,11 @@ services:
       - POSTGRES_DB=lemmy
     volumes:
       - lemmy-postgres:/var/lib/postgresql/data:Z
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $$POSTGRES_USER -d $$POSTGRES_DB"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
 # The next line seems to be for optional postgres config. We've not updated
 # the next line for d.rymcg.tech, so it's commented out.
 #      - ./customPostgresql.conf:/etc/postgresql.conf
@@ -134,6 +149,7 @@ services:
     image: ${LEMMY_POSTFIX_IMAGE}
     hostname: postfix
     environment:
+      - TZ=${DEFAULT_TIMEZONE:-Etc/UTC}
       - POSTFIX_myhostname=${LEMMY_TRAEFIK_HOST}
     security_opt:
       - no-new-privileges:true

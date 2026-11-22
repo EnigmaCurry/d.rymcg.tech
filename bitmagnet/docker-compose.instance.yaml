@@ -10,6 +10,7 @@
 #@ instance = data.values.instance
 #@ context = data.values.context
 #@ traefik_host = data.values.traefik_host
+#@ traefik_entrypoint = data.values.traefik_entrypoint
 #@ wireguard_instance = data.values.wireguard_instance
 #@ ip_sourcerange = data.values.ip_sourcerange
 #@ enable_http_auth = len(data.values.http_auth.strip()) > 0
@@ -54,7 +55,7 @@ services:
 
       #! The host matching router rule:
       - "traefik.http.routers.(@= router @).rule=Host(`(@= traefik_host @)`)"
-      - "traefik.http.routers.(@= router @).entrypoints=websecure"
+      - "traefik.http.routers.(@= router @).entrypoints=(@= traefik_entrypoint @)"
       #@ enabled_middlewares.append("{}-ipallowlist".format(router))
       - "traefik.http.middlewares.(@= router @)-ipallowlist.ipallowlist.sourcerange=(@= ip_sourcerange @)"
 
@@ -104,6 +105,11 @@ services:
       #@ end
 
   postgres:
+    #@ if use_external_volume:
+    #! The bind mount must be owned by this UID:GID on the host. A named
+    #! volume is chowned by the postgres image itself, so leave user unset:
+    user: "${BITMAGNET_UID}:${BITMAGNET_GID}"
+    #@ end
     volumes:
     #@ if use_external_volume:
       - (@= external_volume @):/var/lib/postgresql/data

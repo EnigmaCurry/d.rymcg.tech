@@ -1,5 +1,9 @@
 services:
   iperf:
+    volumes:
+      - ${HOST_ZONEINFO:-/usr/share/zoneinfo}:/usr/share/zoneinfo:ro
+    environment:
+      - TZ=${DEFAULT_TIMEZONE:-Etc/UTC}
     build:
       context: iperf
     cap_drop:

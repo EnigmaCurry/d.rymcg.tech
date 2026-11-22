@@ -1,11 +1,13 @@
-
 services:
   app:
     build:
       context: .
+      args:
+        WEBSOCKETD_VERSION: ${WEBSOCKETD_VERSION}
     security_opt:
       - no-new-privileges:true
     environment:
+      TZ: ${DEFAULT_TIMEZONE:-Etc/UTC}
       DEV_CONSOLE: "true"
     # Labels are defined in docker-compose.instance.yaml
     labels: []

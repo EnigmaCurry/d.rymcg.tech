@@ -1,10 +1,9 @@
-FROM debian:bullseye
+FROM debian:trixie
 ARG UID=1000
 ARG GID=1000
 ARG USERNAME=debian-user
 RUN groupadd -g "${GID}" "${USERNAME}" && \
-    adduser --uid "${UID}" --gid "${GID}" \
-    --gecos "" --disabled-password "${USERNAME}"
+    useradd -m -u "${UID}" -g "${GID}" "${USERNAME}"
 RUN mkdir /config && touch /config/icecast.xml && \
     ln -s /config/icecast.xml /etc/icecast.xml && \
     apt update && \

@@ -8,7 +8,7 @@ services:
       - extensions:/var/www/FreshRSS/extensions
     environment:
       CRON_MIN: '*/20'
-      TZ: ${TIME_ZONE}
+      TZ: ${FRESHRSS_TIMEZONE:-${DEFAULT_TIMEZONE:-Etc/UTC}}
     labels: []
 volumes:
   data:

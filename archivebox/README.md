@@ -39,47 +39,23 @@ the admin account in the UI.
 ## Scheduling Snapshots
 
 Archivebox can automatically snapshot URLs on a schedule, but you can only
-manage those schedule via the Archivebox CLI. You can use these makefile targets
+manage those schedules via the Archivebox CLI. You can use these makefile targets
 to manage most of the scheduling functions.
-- `make schedule-add`: Add a new scheduled ArchiveBox update job to cron
-- `make schedule-clear`: Stop all ArchiveBox scheduled runs (remove cron jobs)
+- `make schedule-add`: Add a new scheduled ArchiveBox crawl
+- `make schedule-clear`: Disable all ArchiveBox scheduled crawls
 - `make schedule-help`: Show help for scheduling commands
 - `make schedule-overwrite`: Re-archive any URLs that have been previously
   archived, overwriting existing Snapshots
-- `make schedule-show`: Print a list of currently active ArchiveBox cron jobs
+- `make schedule-show`: Print a list of currently active ArchiveBox scheduled crawls
 - `make schedule-update`: Re-pull any URLs that have been previously added, as
-  needed to fill missing ArchiveResults
-	
- You can also enter a shell on the container (`make shell` and select
- "archivebox") and use the `archivebox schedule` command manually:
- 
- Learn more about scheduling in Archivebox
- [here](https://github.com/ArchiveBox/ArchiveBox/wiki/Scheduled-Archiving).
+  needed to fill missing archive results
 
-## API Gateway
+Scheduled crawls are stored in the ArchiveBox database and are processed
+automatically by the archivebox server while it is running (no cron jobs
+involved).
 
-ArchiveBox is [currently missing a REST
-API](https://github.com/ArchiveBox/ArchiveBox/issues/496). This configuration
-[includes an API wrapper](https://github.com/enigmacurry/archivebox-api-gateway) to
-support adding URLs to archive via authenticated REST API.
+You can also enter a shell on the container (`make shell`) and use the
+`archivebox schedule` command manually.
 
-Make sure to configure the following variables (`make config` does this for
-you):
-
- * `SECRET_KEY` - this is used to hash URLs and provide access control (users
-   must pass the hash back in the request, in order to view the archived page).
- * `ARCHIVEBOX_USERNAME` and `ARCHIVEBOX_PASSWORD` this is the admin account
-   username and password for ArchiveBox. The API gateway will login to
-   ArchiveBox via these credentials. These credentials in the config must be
-   kept up-to-date should you change the ArchiveBox username or password.
-
-The API gateway can be accessed via
-`https://${ARCHIVEBOX_TRAEFIK_HOST}/api-gateway/` URL. An example form that
-submits a URL is provided, or you can HTTP POST to
-`https://${ARCHIVEBOX_TRAEFIK_HOST}/api-gateway/page`. This will return a URL with an embedded page hash key of `URL + SECRET_KEY`
-
-Anonymous (public) access to
-`https://${ARCHIVEBOX_TRAEFIK_HOST}/api-gateway/page` is allowed for `GET`
-requests only. To retrieve an archived page you must pass the page key hash of
-the `URL + SECRET_KEY`. This will ensure only people who have the full link may
-access the page.
+Learn more about scheduling in Archivebox
+[here](https://github.com/ArchiveBox/ArchiveBox/wiki/Scheduled-Archiving).

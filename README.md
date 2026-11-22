@@ -11,7 +11,10 @@ workstation.
 
  * Docker can be deployed anywhere, e.g.:
  
-   * A public server in the cloud (DigitalOcean droplet, AWS EC2, etc.)
+   * A public server in the cloud (DigitalOcean droplet, AWS EC2, etc.).
+     `d droplet quick` builds a DigitalOcean droplet with DNS, Traefik
+     and a wildcard TLS certificate in one step
+     ([DIGITALOCEAN_DRT.md](DIGITALOCEAN_DRT.md)).
    * A public server running at home via direct port forwarding from your
      internet router.
    * A private server (at home or in the cloud) that requires a VPN to connect
@@ -19,6 +22,8 @@ workstation.
    * A public server (at home and/or roaming), without direct port
      forwarding, but accessible with the help of a public (cloud)
      sentry VPN (WireGuard).
+   * A [Tor hidden service](tor#readme) — expose any Traefik service
+     as a `.onion` address with zero reconfiguration.
 
  * d.rymcg.tech has a clean separation for the roles of workstation
    and server:
@@ -29,6 +34,10 @@ workstation.
      control several servers.
    * The server's only job is to build and run the Docker containers
      that your workstation tells it how to.
+   * The workstation can itself be an ephemeral container
+     ([drt](WORKSTATION_CONTAINER.md)): each context's configuration
+     is a single encrypted file, decrypted only for the session and
+     saved back when you exit.
 
  * All configuration is sourced from environment variables written in
    `.env` files on your workstation. Each service deployment has a
@@ -107,6 +116,7 @@ Follow these topical guides to get started:
  
    * [WORKSTATION_LINUX.md](WORKSTATION_LINUX.md) - setup your workstation on Linux.
    * [WORKSTATION_WSL.md](WORKSTATION_WSL.md) - setup your workstation on Windows (WSL).
+   * [WORKSTATION_CONTAINER.md](WORKSTATION_CONTAINER.md) - setup your workstation in an ephemeral container encrypted at rest (Also see [DIGITALOCEAN_DRT.md](DIGITALOCEAN_DRT.md) for quick start).
  
 * Create a Docker server and configure the firewall:
  
@@ -127,6 +137,7 @@ Follow these topical guides to get started:
  * [MAKEFILE_OPS.md](MAKEFILE_OPS.md) - how to write Makefiles.
  * [RCLONE.md](RCLONE.md) - create Docker volumes on top of remote/cloud storage (S3, SFTP, Dropbox, etc.)
  * [ARCHIVE.md](ARCHIVE.md) - how to archive and restore all Docker images offline.
+ * [_e2e/README.md](_e2e/README.md) - automated end-to-end test / installer that provisions a DigitalOcean droplet and installs the full stack (or just a workstation).
  * [LICENSE.txt](LICENSE.txt) - the license for this project.
  * [Portable Docker: Build and Deploy Anywhere with WireGuard Tunneling](https://book.rymcg.tech/portable-docker/index.html) - a book about running a public Docker server at home, or while roaming, behind restrictive NAT routers, with the help from a public wireguard sentry server running in the cloud.
 
@@ -185,13 +196,14 @@ Install these applications at your preference:
 * [Baikal](baikal#readme) - a lightweight CalDAV+CardDAV server
 * [Bitmagnet](bitmagnet#readme) - a BitTorrent indexer, DHT crawler, content classifier, and
 torrent search engine
-* [Caddy](caddy#readme) - an HTTP server with automatic TLS (passthrough)
+* [Caddy](caddy#readme) - an HTTP server (optional experimental TLS passthrough)
 * [CalcPad](calcpad#readme) - a different take on the caculator
 * [Calibre](calibre#readme) - an ebook manager
 * [ComfyUI](comfyui#readme) - an AI image/video/audio generator
 * [Commentario](commentario#readme) - a website comment service
 * [Copyparty](copyparty#readme) - a file server webapp for multiple users and volumes
 * [Coturn](coturn#readme) - a TURN relay server for NAT traversal
+* [CryptPad](cryptpad#readme) - an encrypted, open source office collaboration suite
 * [Datetime](datetime#readme) - a time viewing and conversion tool
 * [DOH-server](doh-server#readme) - a DNS-over-HTTPs proxy resolver
 * [Ejabberd](ejabberd#readme) - an XMPP (Jabber) server
@@ -202,6 +214,7 @@ torrent search engine
 * [Glances](glances#readme) - a cross-platform system monitoring tool
 * [Gradio](gradio#readme) - a configurable web interface for machine learning 
 * [Grocy](grocy#readme) - a grocery & household management/chore solution
+* [Homelable](homelable#readme) - a network scanner and homelab topology mapper
 * [Homepage](homepage#readme) - a dashboard for all your apps
 * [Icecast](icecast#readme) - a SHOUTcast compatible streaming multimedia server
 * [Immich](immich#readme) - a photo gallery
@@ -249,9 +262,9 @@ torrent search engine
 * [Speedtest Tracker](speedtest-tracker#readme) - a network performance monitor
 * [Syncthing](syncthing#readme) - a multi-device file synchronization tool
 * [Sysbox-Systemd](sysbox-systemd#readme) - a traditional service manager for Linux running in an unprivileged container via sysbox-runc
-* [Tesseract](tesseract#readme) - a front-end for Lemmy instances
 * [TheLounge](thelounge#readme) - a web client/bouncer for IRC
 * [Thttpd](thttpd#readme) - a tiny/turbo/throttling HTTP server for serving static files
+* [Tor](tor#readme) - a proxy for hosting hidden services on the Tor network
 * [Trilium](trilium#readme) - a note-taking/knowledge base application
 * [Uptime-Kuma](uptime-kuma#readme) - a system uptime monitoring service and status page
 * [Vaultwarden](vaultwarden#readme) - a bitwarden compatible password manager written in Rust (formerly bitwarden_rs)

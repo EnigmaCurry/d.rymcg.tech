@@ -1,2 +1,2 @@
 requests
-gradio
+gradio==6.16.0

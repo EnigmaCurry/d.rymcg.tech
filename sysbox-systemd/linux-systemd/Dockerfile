@@ -1,4 +1,4 @@
-FROM debian:bullseye
+FROM debian:trixie
 ARG INSTALL_PACKAGES
 
 RUN DEBIAN_FRONTEND=noninteractive apt -y update; \

@@ -4,6 +4,8 @@ volumes:
 
 services:
   thttpd:
+    environment:
+      - TZ=${DEFAULT_TIMEZONE:-Etc/UTC}
     build:
       context: .
       args:
@@ -17,4 +19,5 @@ services:
     # Labels are defined in docker-compose.instance.yaml
     labels: []
     volumes:
+      - ${HOST_ZONEINFO:-/usr/share/zoneinfo}:/usr/share/zoneinfo:ro
       - files:/home/web

@@ -7,6 +7,8 @@ volumes:
 
 services:
   audiobookshelf:
+    environment:
+      - TZ=${DEFAULT_TIMEZONE:-Etc/UTC}
     image: ${AUDIOBOOKSHELF_IMAGE}
     restart: unless-stopped
     volumes:

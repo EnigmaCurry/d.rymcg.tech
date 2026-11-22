@@ -28,6 +28,41 @@ RUN git clone https://${CERT_AUTH_MODULE}.git /plugins-local/src/github.com/fame
       --depth 1 --single-branch --branch ${CERT_AUTH_GIT_BRANCH}
 RUN git clone https://${MTLS_HEADER_MODULE}.git /plugins-local/src/github.com/pnxs/traefik-plugin-mtls-header \
       --depth 1 --single-branch --branch ${MTLS_HEADER_GIT_BRANCH}
+## Validate each cloned plugin matches the module name that traefik expects.
+## The directory name under /plugins-local/src must equal the module declared
+## in go.mod, the .traefik.yml import must start with that module name, and
+## the Go package name must match the basePkg (or the derived form).
+## A mismatch here would disable ALL plugins at runtime, so fail the build:
+RUN for dir in /plugins-local/src/github.com/*/*/; do \
+        name=${dir#/plugins-local/src/}; \
+        name=${name%/}; \
+        mod=$(grep -m1 '^module ' "${dir}go.mod" | awk '{print $2}'); \
+        if [ "${mod}" != "${name}" ]; then \
+            echo "ERROR: plugin '${name}': go.mod declares module '${mod}', expected '${name}'" >&2; \
+            exit 1; \
+        fi; \
+        imp=$(grep -m1 '^import:' "${dir}.traefik.yml" | awk '{print $2}'); \
+        case "${imp}" in \
+            "${name}"|${name}/*) : ;; \
+            *) echo "ERROR: plugin '${name}': .traefik.yml import '${imp}' must start with module name '${name}'" >&2; exit 1 ;; \
+        esac; \
+        pkg=$(grep -m1 '^basePkg:' "${dir}.traefik.yml" | awk '{print $2}'); \
+        if [ -z "${pkg}" ]; then \
+            pkg=$(printf '%s\n' "${imp##*/}" | tr '-' '_'); \
+        fi; \
+        for f in "${dir}"*.go; do \
+            [ -e "${f}" ] || continue; \
+            case "${f}" in \
+                *_test.go) : ;; \
+                *) actual=$(grep -m1 '^package ' "${f}" | awk '{print $2}'); \
+                   if [ "${actual}" != "${pkg}" ]; then \
+                       echo "ERROR: plugin '${name}': ${f##*/} declares package '${actual}', expected '${pkg}'" >&2; \
+                       exit 1; \
+                   fi ;; \
+            esac; \
+        done; \
+        echo "OK: plugin '${name}'"; \
+    done
 
 FROM ${TRAEFIK_IMAGE} AS traefik
 COPY --from=plugins /plugins-local /plugins-local

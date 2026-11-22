@@ -29,27 +29,36 @@ it couldn't access itself without access - this recursion wouldn't work.
 
 ## Initial setup
 
-Bring up the service with `make install`, then immediately open the
-website domain in your browser (run `make open`) to finish the setup
-procedure with the install wizard (READ the folowing notes before
-proceeding).
-
- * DO NOT attempt to customize any of the settings using the install
-   wizard. It will all be overwritten later by the values you set in
-   your own `.env_${DOCKER_CONTEXT}_default` file.
- * THE ONLY thing you need to do with the install wizard is to create an
-   administrator account and password. Click the `Administrator Account
-   Settings` link to expand the option, enter the username `root`, enter a
-   secure passphrase, enter your email address.
- * Once you've entered the `root` account details, click `Install Forgejo`.
-
-It is normal to receive a message of `Bad Gateway` once, right after
-install. You must restart the service in order for your
-`.env_${DOCKER_CONTEXT}_default` configuration to be fully applied:
+The web install wizard is disabled (`INSTALL_LOCK=true`): all settings
+come from your `.env_${DOCKER_CONTEXT}_default` file. Bring up the
+service with:
 
 ```
-# Restart forgejo to get the config applied:
-make reinstall
+make install
+```
+
+On the first install, this creates the admin account
+(`FORGEJO_ADMIN_USER`, default `root`) with a random password, and
+prints it once:
+
+```
+## Forgejo account ready:
+##   URL:      https://git.example.com
+##   Username: root
+##   Password: xxxxxxxxxxxxxxxxxxxxxxxx
+## Save this password now; it is not stored anywhere.
+```
+
+Log in with it (`make open`). Later installs leave the account alone.
+
+Manage accounts from the command line:
+
+```
+## Set a new random password (e.g. if you lost the root password):
+make admin-password
+
+## Create another admin account:
+make admin-user
 ```
 
 ## Notes
@@ -59,6 +68,22 @@ forwards directly to the builtin Forgejo SSH service, your `.env_` file for
 Traefik must have `TRAEFIK_SSH_ENTRYPOINT_ENABLED=true`. If you need to
 update your Traefik `.env_` file, be sure to run `make install` in the
 `traefik` directory again.
+
+### SSH for multiple instances
+
+Traefik cannot route SSH by hostname, so each Forgejo instance needs
+its own dedicated TCP entrypoint (port). The default instance uses the
+builtin `ssh` entrypoint. For additional instances, create a custom
+entrypoint in Traefik (`make config` in the `traefik` directory ->
+`Configure custom entrypoints`), e.g. `forgejo2:0.0.0.0:2223:tcp::false`,
+then reinstall Traefik. Then in this instance's config set:
+
+```
+FORGEJO_SSH_TRAEFIK_ENTRYPOINT=forgejo2
+FORGEJO_SSH_PORT=2223
+```
+
+(`make config` asks for both of these.)
 
 ## Migration from GitHub
 

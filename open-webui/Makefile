@@ -52,7 +52,7 @@ override-hook:
 ####                         # (this hardcodes the string into docker-compose.override.yaml)
 ####   name=@VARIABLE_NAME   # sets the template 'name' field to the literal string '${VARIABLE_NAME}'
 ####                         # (used for regular docker-compose expansion of env vars by name.)
-	@${BIN}/docker_compose_override ${ENV_FILE} project=:openwebui instance=@OPENWEBUI_INSTANCE traefik_host=@OPENWEBUI_TRAEFIK_HOST http_auth=OPENWEBUI_HTTP_AUTH http_auth_var=@OPENWEBUI_HTTP_AUTH ip_sourcerange=@OPENWEBUI_IP_SOURCERANGE oauth2=OPENWEBUI_OAUTH2 authorized_group=OPENWEBUI_OAUTH2_AUTHORIZED_GROUP enable_mtls_auth=OPENWEBUI_MTLS_AUTH mtls_authorized_certs=OPENWEBUI_MTLS_AUTHORIZED_CERTS models_host_path=OPENWEBUI_MODELS_HOST_PATH compose_profile=OPENWEBUI_DOCKER_COMPOSE_PROFILES enable_ollama=OPENWEBUI_OLLAMA_ENABLE homepage_labels_enable=OPENWEBUI_HOMEPAGE_LABELS_ENABLE homepage_group_openwebui=OPENWEBUI_HOMEPAGE_GROUP_OPENWEBUI homepage_name_openwebui=OPENWEBUI_HOMEPAGE_NAME_OPENWEBUI homepage_icon_openwebui=OPENWEBUI_HOMEPAGE_ICON_OPENWEBUI homepage_description_openwebui=OPENWEBUI_HOMEPAGE_DESCRIPTION_OPENWEBUI homepage_show_stats_openwebui=OPENWEBUI_HOMEPAGE_SHOW_STATS_OPENWEBUI
+	@${BIN}/docker_compose_override ${ENV_FILE} project=:openwebui instance=@OPENWEBUI_INSTANCE traefik_host=@OPENWEBUI_TRAEFIK_HOST http_auth=OPENWEBUI_HTTP_AUTH http_auth_var=@OPENWEBUI_HTTP_AUTH ip_sourcerange=@OPENWEBUI_IP_SOURCERANGE oauth2=OPENWEBUI_OAUTH2 authorized_group=OPENWEBUI_OAUTH2_AUTHORIZED_GROUP enable_mtls_auth=OPENWEBUI_MTLS_AUTH mtls_authorized_certs=OPENWEBUI_MTLS_AUTHORIZED_CERTS models_host_path=OPENWEBUI_MODELS_HOST_PATH compose_profile=OPENWEBUI_DOCKER_COMPOSE_PROFILES enable_ollama=OPENWEBUI_OLLAMA_ENABLE homepage_labels_enable=OPENWEBUI_HOMEPAGE_LABELS_ENABLE homepage_group_openwebui=OPENWEBUI_HOMEPAGE_GROUP_OPENWEBUI homepage_name_openwebui=OPENWEBUI_HOMEPAGE_NAME_OPENWEBUI homepage_icon_openwebui=OPENWEBUI_HOMEPAGE_ICON_OPENWEBUI homepage_description_openwebui=OPENWEBUI_HOMEPAGE_DESCRIPTION_OPENWEBUI homepage_show_stats_openwebui=OPENWEBUI_HOMEPAGE_SHOW_STATS_OPENWEBUI traefik_entrypoint=OPENWEBUI_TRAEFIK_ENTRYPOINT
 
 .PHONY: shell
 shell:
@@ -75,25 +75,31 @@ install-hook:
 install-hook-pre:
 	@echo
 
-.PHONY: update-css # Upload custom.css to container and restart Open-WebUI
+.PHONY: update-css # Sync custom.css with the Open-WebUI container: copy it in when OPENWEBUI_CUSTOM_CSS=true, clear it when false
 update-css:
-	@if [[ "$$(${BIN}/dotenv -f ${ENV_FILE} get OPENWEBUI_CUSTOM_CSS)" == "true" ]]; then \
+	@CHANGED=0; \
+	if [[ "${INSTANCE}" == "default" ]]; then \
+		CONTAINER_NAME="open-webui-openwebui-1"; \
+	else \
+		CONTAINER_NAME="open-webui_${INSTANCE}-openwebui-1"; \
+	fi; \
+	if [[ "$$(${BIN}/dotenv -f ${ENV_FILE} get OPENWEBUI_CUSTOM_CSS)" == "true" ]]; then \
 		if [[ -f custom.css ]]; then \
-			if [[ "${INSTANCE}" == "default" ]]; then \
-				CONTAINER_NAME="open-webui-openwebui-1"; \
-			else \
-				CONTAINER_NAME="open-webui_${INSTANCE}-openwebui-1"; \
-			fi; \
 			docker cp custom.css "$${CONTAINER_NAME}":/app/build/static/custom.css; \
+			CHANGED=1; \
 		else \
 			echo -e "\nNo \`custom.css\` file found in \`$$(pwd)/\`."; \
 		fi \
+	else \
+		if docker exec "$${CONTAINER_NAME}" test -s /app/build/static/custom.css 2>/dev/null; then \
+			docker exec "$${CONTAINER_NAME}" sh -c ': > /app/build/static/custom.css'; \
+			CHANGED=1; \
+			echo "OPENWEBUI_CUSTOM_CSS is false: cleared \`/app/build/static/custom.css\` in the container."; \
+		fi \
+	fi; \
+	if [[ "$${CHANGED}" == "1" ]]; then \
+		echo; \
+		echo "Restarting container so Open-WebUI recognizes the \`custom.css\` change."; \
+		echo; \
+		make restart; \
 	fi
-	@echo
-	@echo "Restarting container so Open-WebUI recognizes updated \`custom.css\`."
-	@echo
-	@make restart
-
-.PHONY: install-hook-pre
-install-hook-pre:
-	@echo

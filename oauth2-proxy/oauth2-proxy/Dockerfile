@@ -2,13 +2,22 @@
 ## Build Step-CA certificate store:
 FROM alpine:3 AS step_ca
 ARG STEP_CA_ENABLED STEP_CA_ENDPOINT STEP_CA_FINGERPRINT STEP_CA_ZERO_CERTS
-RUN apk add -U step-cli ca-certificates
+RUN apk add -U step-cli ca-certificates curl
 RUN ([[ "$STEP_CA_ENABLED" == "true" ]] && \
     step ca bootstrap --ca-url "${STEP_CA_ENDPOINT}" --fingerprint "${STEP_CA_FINGERPRINT}")  || true
 RUN ([[ "$STEP_CA_ENABLED" == "true" ]] && [[ "$STEP_CA_ZERO_CERTS" == "true" ]] && \
     cat /root/.step/certs/root_ca.crt > /etc/ssl/certs/ca-certificates.crt) || true
 RUN ([[ "$STEP_CA_ENABLED" == "true" ]] && [[ "$STEP_CA_ZERO_CERTS" != "true" ]] && \
     cat /root/.step/certs/root_ca.crt >> /etc/ssl/certs/ca-certificates.crt) || true
+## Extra trusted root CAs (optional): a comma-separated list of PEM URLs,
+## e.g. the Let's Encrypt staging roots, so a test Forgejo with a staging
+## certificate can be used as the OIDC provider:
+ARG EXTRA_CA_CERT_URLS
+RUN set -e; for url in $(echo "${EXTRA_CA_CERT_URLS}" | tr "," " "); do \
+      echo "Adding extra CA: ${url}"; \
+      curl -fsSL "${url}" >> /etc/ssl/certs/ca-certificates.crt; \
+      echo >> /etc/ssl/certs/ca-certificates.crt; \
+    done
 
 FROM golang:1.26-alpine AS builder
 RUN mkdir -p /go/src/github.com/oauth2-proxy/oauth2-proxy

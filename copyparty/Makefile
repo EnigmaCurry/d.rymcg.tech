@@ -16,7 +16,7 @@ config-hook:
 	@${BIN}/reconfigure_ask ${ENV_FILE} COPYPARTY_GID "Enter the copyparty group ID (UID) user for all volume file permissions"
 	@echo
 	@${BIN}/reconfigure_ask ${ENV_FILE} COPYPARTY_ADMIN_USER "Enter the copyparty admin user name"
-	@${BIN}/reconfigure_ask ${ENV_FILE} COPYPARTY_ADMIN_PASSWORD "Enter a password for the admin user - DO NOT USE commas, colons, or spaces" $(shell openssl rand -base64 13)
+	@${BIN}/reconfigure_password ${ENV_FILE} COPYPARTY_ADMIN_PASSWORD 18
 	@echo
 	@${MAKE} --no-print-directory config-users
 	@echo
@@ -25,6 +25,8 @@ config-hook:
 	@${BIN}/confirm $$(test "$$(${BIN}/dotenv -f ${ENV_FILE} get COPYPARTY_ENABLE_PUBLIC_ACCESS)" == "true" && echo "yes" || echo "no") "Do you want to allow unauthenticated public access (read only from /public volume)" "?" && ${BIN}/reconfigure ${ENV_FILE} COPYPARTY_ENABLE_PUBLIC_ACCESS=true || ${BIN}/reconfigure ${ENV_FILE} COPYPARTY_ENABLE_PUBLIC_ACCESS=false
 	@echo
 	@${BIN}/confirm $$(test "$$(${BIN}/dotenv -f ${ENV_FILE} get COPYPARTY_ENABLE_GUEST_ACCESS)" == "true" && echo "yes" || echo "no") "Do you want to allow unauthenticated guest access (upload only to /guest volume)" "?" && ${BIN}/reconfigure ${ENV_FILE} COPYPARTY_ENABLE_GUEST_ACCESS=true || ${BIN}/reconfigure ${ENV_FILE} COPYPARTY_ENABLE_GUEST_ACCESS=false
+	@echo
+	@${BIN}/confirm $$(test "$$(${BIN}/dotenv -f ${ENV_FILE} get COPYPARTY_ENABLE_USER_HOMES)" == "true" && echo "yes" || echo "no") "Do you want to give every user a private home folder (/home/{username} stored in the data volume)" "?" && ${BIN}/reconfigure ${ENV_FILE} COPYPARTY_ENABLE_USER_HOMES=true || ${BIN}/reconfigure ${ENV_FILE} COPYPARTY_ENABLE_USER_HOMES=false
 	@echo ""
 
 .PHONY: override-hook
@@ -39,7 +41,7 @@ override-hook:
 ####                         # (this hardcodes the string into docker-compose.override.yaml)
 ####   name=@VARIABLE_NAME   # sets the template 'name' field to the literal string '${VARIABLE_NAME}'
 ####                         # (used for regular docker-compose expansion of env vars by name.)
-	@${BIN}/docker_compose_override ${ENV_FILE} project=:copyparty instance=@COPYPARTY_INSTANCE traefik_host=@COPYPARTY_TRAEFIK_HOST http_auth=COPYPARTY_HTTP_AUTH http_auth_var=@COPYPARTY_HTTP_AUTH ip_sourcerange=@COPYPARTY_IP_SOURCERANGE oauth2=COPYPARTY_OAUTH2 authorized_group=COPYPARTY_OAUTH2_AUTHORIZED_GROUP enable_mtls_auth=COPYPARTY_MTLS_AUTH mtls_authorized_certs=COPYPARTY_MTLS_AUTHORIZED_CERTS vol_external=COPYPARTY_VOL_EXTERNAL homepage_labels_enable=COPYPARTY_HOMEPAGE_LABELS_ENABLE homepage_group_copyparty=COPYPARTY_HOMEPAGE_GROUP_COPYPARTY homepage_name_copyparty=COPYPARTY_HOMEPAGE_NAME_COPYPARTY homepage_icon_copyparty=COPYPARTY_HOMEPAGE_ICON_COPYPARTY homepage_description_copyparty=COPYPARTY_HOMEPAGE_DESCRIPTION_COPYPARTY homepage_show_stats_copyparty=COPYPARTY_HOMEPAGE_SHOW_STATS_COPYPARTY 
+	@${BIN}/docker_compose_override ${ENV_FILE} project=:copyparty instance=@COPYPARTY_INSTANCE traefik_host=@COPYPARTY_TRAEFIK_HOST http_auth=COPYPARTY_HTTP_AUTH http_auth_var=@COPYPARTY_HTTP_AUTH ip_sourcerange=@COPYPARTY_IP_SOURCERANGE oauth2=COPYPARTY_OAUTH2 authorized_group=COPYPARTY_OAUTH2_AUTHORIZED_GROUP enable_mtls_auth=COPYPARTY_MTLS_AUTH mtls_authorized_certs=COPYPARTY_MTLS_AUTHORIZED_CERTS vol_external=COPYPARTY_VOL_EXTERNAL homepage_labels_enable=COPYPARTY_HOMEPAGE_LABELS_ENABLE homepage_group_copyparty=COPYPARTY_HOMEPAGE_GROUP_COPYPARTY homepage_name_copyparty=COPYPARTY_HOMEPAGE_NAME_COPYPARTY homepage_icon_copyparty=COPYPARTY_HOMEPAGE_ICON_COPYPARTY homepage_description_copyparty=COPYPARTY_HOMEPAGE_DESCRIPTION_COPYPARTY homepage_show_stats_copyparty=COPYPARTY_HOMEPAGE_SHOW_STATS_COPYPARTY traefik_entrypoint=COPYPARTY_TRAEFIK_ENTRYPOINT
 
 .PHONY: shell # Enter container shell
 shell:
@@ -47,7 +49,9 @@ shell:
 
 .PHONY: install-hook
 install-hook:
-	@echo
+## The config service regenerates copyparty.conf on every install, but a
+## running copyparty only reads it at startup; restart it to apply changes:
+	@make --no-print-directory restart service=copyparty
 
 .PHONY: install-hook-pre
 install-hook-pre:

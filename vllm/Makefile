@@ -21,6 +21,11 @@ config-hook:
 	@ALLOW_BLANK=1 ${BIN}/reconfigure_ask ${ENV_FILE} VLLM_SERVED_MODEL_NAME "Enter a served model name alias (leave blank to use the model name as-is; required for Claude Code if model name contains '/')"
 	@ALLOW_BLANK=1 ${BIN}/reconfigure_ask ${ENV_FILE} VLLM_MAX_MODEL_LEN "Enter the maximum context length (leave blank for model default)"
 	@echo ""
+	@echo "Tool/function calling requires a tool call parser matching your model's chat template."
+	@echo "Common values: qwen3_coder, qwen3_xml, hermes, mistral, llama3_json, deepseek_v3, glm45, kimi_k2, pythonic"
+	@ALLOW_BLANK=1 ${BIN}/reconfigure_ask ${ENV_FILE} VLLM_TOOL_CALL_PARSER "Enter the tool call parser (leave blank to disable tool calling)"
+	@ALLOW_BLANK=1 ${BIN}/reconfigure_ask ${ENV_FILE} VLLM_REASONING_PARSER "Enter the reasoning parser for models with thinking tokens (leave blank to disable)"
+	@echo ""
 	@ALLOW_BLANK=1 ${BIN}/reconfigure_ask ${ENV_FILE} VLLM_HF_TOKEN "Enter your HuggingFace token for gated/private models (leave blank for public models)"
 	@echo ""
 	@ALLOW_BLANK=1 ${BIN}/reconfigure_ask ${ENV_FILE} VLLM_MODELS_HOST_PATH "If you want to save models in a specific directory on the host, enter the path here, or leave blank to save models to the vLLM container's named Docker volume."
@@ -44,7 +49,7 @@ override-hook:
 ####                         # (this hardcodes the string into docker-compose.override.yaml)
 ####   name=@VARIABLE_NAME   # sets the template 'name' field to the literal string '${VARIABLE_NAME}'
 ####                         # (used for regular docker-compose expansion of env vars by name.)
-	@${BIN}/docker_compose_override ${ENV_FILE} project=:vllm instance=@VLLM_INSTANCE traefik_host=@VLLM_TRAEFIK_HOST http_auth=VLLM_HTTP_AUTH http_auth_var=@VLLM_HTTP_AUTH ip_sourcerange=@VLLM_IP_SOURCERANGE oauth2=VLLM_OAUTH2 authorized_group=VLLM_OAUTH2_AUTHORIZED_GROUP enable_mtls_auth=VLLM_MTLS_AUTH mtls_authorized_certs=VLLM_MTLS_AUTHORIZED_CERTS models_host_path=VLLM_MODELS_HOST_PATH compose_profile=VLLM_DOCKER_COMPOSE_PROFILES api_token=VLLM_API_TOKEN model=VLLM_MODEL served_model_name=VLLM_SERVED_MODEL_NAME max_model_len=VLLM_MAX_MODEL_LEN hf_token=VLLM_HF_TOKEN trust_remote_code=VLLM_TRUST_REMOTE_CODE enable_auto_tool_choice=VLLM_ENABLE_AUTO_TOOL_CHOICE tool_call_parser=VLLM_TOOL_CALL_PARSER reasoning_parser=VLLM_REASONING_PARSER enable_prefix_caching=VLLM_ENABLE_PREFIX_CACHING tensor_parallel_size=VLLM_TENSOR_PARALLEL_SIZE
+	@${BIN}/docker_compose_override ${ENV_FILE} project=:vllm instance=@VLLM_INSTANCE traefik_host=@VLLM_TRAEFIK_HOST http_auth=VLLM_HTTP_AUTH http_auth_var=@VLLM_HTTP_AUTH ip_sourcerange=@VLLM_IP_SOURCERANGE oauth2=VLLM_OAUTH2 authorized_group=VLLM_OAUTH2_AUTHORIZED_GROUP enable_mtls_auth=VLLM_MTLS_AUTH mtls_authorized_certs=VLLM_MTLS_AUTHORIZED_CERTS models_host_path=VLLM_MODELS_HOST_PATH compose_profile=VLLM_DOCKER_COMPOSE_PROFILES api_token=VLLM_API_TOKEN model=VLLM_MODEL served_model_name=VLLM_SERVED_MODEL_NAME max_model_len=VLLM_MAX_MODEL_LEN hf_token=VLLM_HF_TOKEN trust_remote_code=VLLM_TRUST_REMOTE_CODE enable_auto_tool_choice=VLLM_ENABLE_AUTO_TOOL_CHOICE tool_call_parser=VLLM_TOOL_CALL_PARSER reasoning_parser=VLLM_REASONING_PARSER enable_prefix_caching=VLLM_ENABLE_PREFIX_CACHING tensor_parallel_size=VLLM_TENSOR_PARALLEL_SIZE traefik_entrypoint=VLLM_TRAEFIK_ENTRYPOINT
 
 .PHONY: shell
 shell:

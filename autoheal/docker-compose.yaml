@@ -9,6 +9,7 @@ services:
       - ALL
     restart: unless-stopped
     environment:
+      - TZ=${DEFAULT_TIMEZONE:-Etc/UTC}
       - AUTOHEAL_CONTAINER_LABEL
       - AUTOHEAL_INTERVAL
       - AUTOHEAL_START_PERIOD

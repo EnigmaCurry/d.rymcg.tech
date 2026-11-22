@@ -36,7 +36,7 @@ override-hook:
 ####                         # (this hardcodes the string into docker-compose.override.yaml)
 ####   name=@VARIABLE_NAME   # sets the template 'name' field to the literal string '${VARIABLE_NAME}'
 ####                         # (used for regular docker-compose expansion of env vars by name.)
-	@${BIN}/docker_compose_override ${ENV_FILE} project=:backrest instance=@BACKREST_INSTANCE traefik_host=@BACKREST_TRAEFIK_HOST http_auth=BACKREST_HTTP_AUTH http_auth_var=@BACKREST_HTTP_AUTH ip_sourcerange=@BACKREST_IP_SOURCERANGE oauth2=BACKREST_OAUTH2 authorized_group=BACKREST_OAUTH2_AUTHORIZED_GROUP enable_mtls_auth=BACKREST_MTLS_AUTH mtls_authorized_certs=BACKREST_MTLS_AUTHORIZED_CERTS use_external_volume=BACKREST_USE_EXTERNAL_VOLUME upload_location=BACKREST_EXTERNAL_VOLUME 
+	@${BIN}/docker_compose_override ${ENV_FILE} project=:backrest instance=@BACKREST_INSTANCE traefik_host=@BACKREST_TRAEFIK_HOST http_auth=BACKREST_HTTP_AUTH http_auth_var=@BACKREST_HTTP_AUTH ip_sourcerange=@BACKREST_IP_SOURCERANGE oauth2=BACKREST_OAUTH2 authorized_group=BACKREST_OAUTH2_AUTHORIZED_GROUP enable_mtls_auth=BACKREST_MTLS_AUTH mtls_authorized_certs=BACKREST_MTLS_AUTHORIZED_CERTS use_external_volume=BACKREST_USE_EXTERNAL_VOLUME upload_location=BACKREST_EXTERNAL_VOLUME traefik_entrypoint=BACKREST_TRAEFIK_ENTRYPOINT
 
 .PHONY: shell
 shell:

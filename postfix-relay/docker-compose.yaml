@@ -10,6 +10,7 @@ services:
       - net.ipv4.ip_unprivileged_port_start=1024
     restart: unless-stopped
     environment:
+      TZ: ${DEFAULT_TIMEZONE:-Etc/UTC}
       POSTFIX_RELAY_POSTFIX_myhostname: ${POSTFIX_RELAY_TRAEFIK_HOST}
       ALLOWED_SENDER_DOMAINS: ${POSTFIX_RELAY_ALLOWED_SENDER_DOMAINS}
       ALLOW_EMPTY_SENDER_DOMAINS: ${POSTFIX_RELAY_ALLOW_EMPTY_SENDER_DOMAINS}

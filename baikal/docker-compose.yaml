@@ -26,6 +26,7 @@ services:
       # - AUDIT_WRITE
     restart: unless-stopped
     environment:  
+      TZ: ${DEFAULT_TIMEZONE:-Etc/UTC}
       APPLY_HOME_ASSISTANT_FIX: "true"
     labels: []
     volumes:

@@ -1,5 +1,7 @@
 services:
   vllm-cuda:
+    environment:
+      - TZ=${DEFAULT_TIMEZONE:-Etc/UTC}
     profiles:
       - cuda
     image: ${VLLM_IMAGE}
@@ -15,6 +17,8 @@ services:
       - nvidia.com/gpu=all
 
   vllm-rocm:
+    environment:
+      - TZ=${DEFAULT_TIMEZONE:-Etc/UTC}
     profiles:
       - rocm
     image: ${VLLM_IMAGE}

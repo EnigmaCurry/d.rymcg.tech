@@ -27,7 +27,9 @@ ytt_template() {
 }
 
 create_config() {
-    rm -rf ${CONFIG_DIR}/*
+    ## Only replace server.yml: this volume also holds user.db (auth-file),
+    ## which must survive restarts and reinstalls.
+    rm -f ${CONFIG_DIR}/server.yml
     ytt_template server.yml ${CONFIG_DIR}/server.yml
     cat ${CONFIG_DIR}/server.yml
 }

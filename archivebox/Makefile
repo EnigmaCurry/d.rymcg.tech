@@ -6,7 +6,6 @@ include ${ROOT_DIR}/_scripts/Makefile.instance
 config-hook:
 	@${BIN}/reconfigure ${ENV_FILE} ARCHIVEBOX_INSTANCE=${instance}
 	@${BIN}/reconfigure_ask ${ENV_FILE} ARCHIVEBOX_TRAEFIK_HOST "Enter the archivebox domain name" archivebox${INSTANCE_URL_SUFFIX}.${ROOT_DOMAIN}
-	@${BIN}/reconfigure ${ENV_FILE} SECRET_KEY=$$(openssl rand -hex 45)
 	@${BIN}/reconfigure ${ENV_FILE} ARCHIVEBOX_USERNAME=admin
 	@${BIN}/reconfigure ${ENV_FILE} ARCHIVEBOX_EMAIL=admin@localhost
 	@${BIN}/reconfigure ${ENV_FILE} ARCHIVEBOX_PASSWORD=$$(openssl rand -hex 30)
@@ -16,17 +15,11 @@ config-hook:
 admin:
 	@docker compose --env-file=${ENV_FILE} exec archivebox su -c "DJANGO_SUPERUSER_PASSWORD=$$(${BIN}/dotenv -f ${ENV_FILE} get ARCHIVEBOX_PASSWORD) archivebox manage createsuperuser --noinput --username $$(${BIN}/dotenv -f ${ENV_FILE} get ARCHIVEBOX_USERNAME) --email $$(${BIN}/dotenv -f ${ENV_FILE} get ARCHIVEBOX_EMAIL)" archivebox
 
-.PHONY: api-dev
-api-dev:
-	make build
-	@docker-compose --env-file=${ENV_FILE} stop public-api-gateway
-	@docker-compose --env-file=${ENV_FILE} run --rm public-api-gateway
-
-.PHONY: schedule-show # Print a list of currently active ArchiveBox cron jobs
+.PHONY: schedule-show # Print a list of currently active ArchiveBox scheduled crawls
 schedule-show:
 	@docker compose --env-file=${ENV_FILE} exec archivebox su -c "/usr/local/bin/archivebox schedule --show" archivebox
 
-.PHONY: schedule-add # Add a new scheduled ArchiveBox update job to cron
+.PHONY: schedule-add # Add a new scheduled ArchiveBox crawl
 schedule-add:
 	@URL=$$(${BIN}/ask_echo "Enter the URL to snapshot on this schedule") && \
 		SCHEDULE=$$(${BIN}/ask_echo "Snapshot should run every... (\"hour\", \"day\", \"month\", \"year\", or cron format like \"0 0 * * *\")") \
@@ -44,7 +37,7 @@ schedule-add:
 		DEFAULT="add new" \
 		OVERWRITE_RESPONSE=$$(eval ${BIN}/script-wizard choose $${PROMPT@Q} $${OPTIONS[@]@Q} --default $${DEFAULT@Q}) && \
 		if [[ $${OVERWRITE_RESPONSE} == "overwrite" ]]; then \
-			OVERWRITE="--overwrite"; \
+			OVERWRITE="--no-only-new"; \
 		else \
 			OVERWRITE=""; \
 		fi && \
@@ -52,32 +45,35 @@ schedule-add:
 
 .PHONY: schedule-help # Show help for scheduling commands
 schedule-help:
-	@echo "Archivebox can automatically snapshot URLs on a schedule, but you can only manage those schedule via the Archivebox CLI. These makefile targets cover most of the scheduling functions."
-	@echo " - make schedule-add        - Add a new scheduled ArchiveBox update job to cron"
-	@echo " - make schedule-clear      - Stop all ArchiveBox scheduled runs (remove cron jobs)"
+	@echo "Archivebox can automatically snapshot URLs on a schedule, but you can only manage those schedules via the Archivebox CLI. These makefile targets cover most of the scheduling functions."
+	@echo " - make schedule-add        - Add a new scheduled ArchiveBox crawl"
+	@echo " - make schedule-clear      - Disable all ArchiveBox scheduled crawls"
 	@echo " - make schedule-help       - Show help for scheduling commands"
 	@echo " - make schedule-overwrite  - Re-archive any URLs that have been previously archived, overwriting existing Snapshots"
-	@echo " - make schedule-show       - Print a list of currently active ArchiveBox cron jobs"
-	@echo " - make schedule-update     - Re-pull any URLs that have been previously added, as needed to fill missing ArchiveResults"
+	@echo " - make schedule-show       - Print a list of currently active ArchiveBox scheduled crawls"
+	@echo " - make schedule-update     - Re-pull any URLs that have been previously added, as needed to fill missing archive results"
 	@echo
-	@echo "You can also enter a shell on the container (\`make shell\` and select \"archivebox\") and use the \`archivebox schedule\` command manually:"
+	@echo "Scheduled crawls are stored in the ArchiveBox database and are processed automatically"
+	@echo "by the archivebox server while it is running (no cron jobs involved)."
+	@echo
+	@echo "You can also enter a shell on the container (\`make shell\`) and use the \`archivebox schedule\` command manually:"
 	@docker compose --env-file=${ENV_FILE} exec archivebox su -c "/usr/local/bin/archivebox schedule --help" archivebox
 	@echo
 	@echo
 	@echo "Learn more about scheduling in Archivebox here: https://github.com/ArchiveBox/ArchiveBox/wiki/Scheduled-Archiving"
 	@echo
 
-.PHONY: schedule-clear # Stop all ArchiveBox scheduled runs (remove cron jobs)
+.PHONY: schedule-clear # Disable all currently enabled ArchiveBox scheduled crawls
 schedule-clear:
 	@docker compose --env-file=${ENV_FILE} exec archivebox su -c "/usr/local/bin/archivebox schedule --clear" archivebox
 
 .PHONY: schedule-overwrite # Re-archive any URLs that have been previously archived, overwriting existing Snapshots
 schedule-overwrite:
-	@docker compose --env-file=${ENV_FILE} exec archivebox su -c "/usr/local/bin/archivebox schedule --overwrite" archivebox
+	@docker compose --env-file=${ENV_FILE} exec archivebox su -c "/usr/local/bin/archivebox list --csv url | /usr/local/bin/archivebox add --overwrite" archivebox
 
-.PHONY: schedule-update # Re-pull any URLs that have been previously added, as needed to fill missing ArchiveResults
+.PHONY: schedule-update # Re-pull any URLs that have been previously added, as needed to fill missing archive results
 schedule-update:
-	@docker compose --env-file=${ENV_FILE} exec archivebox su -c "/usr/local/bin/archivebox schedule --update" archivebox
+	@docker compose --env-file=${ENV_FILE} exec archivebox su -c "/usr/local/bin/archivebox update" archivebox
 
 .PHONY: schedule-run-all # Run all the scheduled jobs once immediately, independent of their configured schedules
 schedule-run-all:
@@ -95,15 +91,11 @@ override-hook:
 ####                         # (this hardcodes the string into docker-compose.override.yaml)
 ####   name=@VARIABLE_NAME   # sets the template 'name' field to the literal string '${VARIABLE_NAME}'
 ####                         # (used for regular docker-compose expansion of env vars by name.)
-	@${BIN}/docker_compose_override ${ENV_FILE} project=:archivebox instance=@ARCHIVEBOX_INSTANCE traefik_host=@ARCHIVEBOX_TRAEFIK_HOST http_auth=ARCHIVEBOX_HTTP_AUTH http_auth_var=@ARCHIVEBOX_HTTP_AUTH ip_sourcerange=@ARCHIVEBOX_IP_SOURCERANGE oauth2=ARCHIVEBOX_OAUTH2 authorized_group=ARCHIVEBOX_OAUTH2_AUTHORIZED_GROUP enable_mtls_auth=ARCHIVEBOX_MTLS_AUTH mtls_authorized_certs=ARCHIVEBOX_MTLS_AUTHORIZED_CERTS
+	@${BIN}/docker_compose_override ${ENV_FILE} project=:archivebox instance=@ARCHIVEBOX_INSTANCE traefik_host=@ARCHIVEBOX_TRAEFIK_HOST http_auth=ARCHIVEBOX_HTTP_AUTH http_auth_var=@ARCHIVEBOX_HTTP_AUTH ip_sourcerange=@ARCHIVEBOX_IP_SOURCERANGE oauth2=ARCHIVEBOX_OAUTH2 authorized_group=ARCHIVEBOX_OAUTH2_AUTHORIZED_GROUP enable_mtls_auth=ARCHIVEBOX_MTLS_AUTH mtls_authorized_certs=ARCHIVEBOX_MTLS_AUTHORIZED_CERTS traefik_entrypoint=ARCHIVEBOX_TRAEFIK_ENTRYPOINT
 
 .PHONY: shell
 shell:
-	@if [ -z "$(service)" ]; then \
-		container=$$(eval "${BIN}/script-wizard choose 'docker exec -it into which container?' 'archivebox' 'public-api-gateway' --default 'archivebox'") && make --no-print-directory docker-compose-shell SERVICE=$${container}; \
-	else \
-		make --no-print-directory docker-compose-shell SERVICE=$$(service); \
-	fi;
+	@make --no-print-directory docker-compose-shell SERVICE=archivebox
 
 .PHONY: install-hook
 install-hook:

@@ -16,8 +16,6 @@ config-hook:
 		${BIN}/reconfigure ${ENV_FILE} SPEEDTEST_TRACKER_PUBLIC_DASHBOARD=true || \
 		${BIN}/reconfigure ${ENV_FILE} SPEEDTEST_TRACKER_PUBLIC_DASHBOARD=false
 	@echo
-	@${BIN}/reconfigure_ask ${ENV_FILE} SPEEDTEST_TRACKER_DISPLAY_TIMEZONE "Enter the timezone you want timestamps to be displayed in"
-	@echo
 	@${BIN}/reconfigure_ask ${ENV_FILE} SPEEDTEST_TRACKER_SCHEDULE "Enter the cron expression used to run speedtests on a scheduled basis"
 	@echo
 	@${BIN}/reconfigure_ask ${ENV_FILE} SPEEDTEST_TRACKER_PRUNE_RESULTS_OLDER_THAN "Enter the number of days to keep results for, or enter 0 (zero) to keep all results"
@@ -39,7 +37,7 @@ override-hook:
 ####                         # (this hardcodes the string into docker-compose.override.yaml)
 ####   name=@VARIABLE_NAME   # sets the template 'name' field to the literal string '${VARIABLE_NAME}'
 ####                         # (used for regular docker-compose expansion of env vars by name.)
-	@${BIN}/docker_compose_override ${ENV_FILE} project=:speedtest-tracker instance=@SPEEDTEST_TRACKER_INSTANCE traefik_host=@SPEEDTEST_TRACKER_TRAEFIK_HOST http_auth=SPEEDTEST_TRACKER_HTTP_AUTH http_auth_var=@SPEEDTEST_TRACKER_HTTP_AUTH ip_sourcerange=@SPEEDTEST_TRACKER_IP_SOURCERANGE oauth2=SPEEDTEST_TRACKER_OAUTH2 authorized_group=SPEEDTEST_TRACKER_OAUTH2_AUTHORIZED_GROUP enable_mtls_auth=SPEEDTEST_TRACKER_MTLS_AUTH mtls_authorized_certs=SPEEDTEST_TRACKER_MTLS_AUTHORIZED_CERTS
+	@${BIN}/docker_compose_override ${ENV_FILE} project=:speedtest-tracker instance=@SPEEDTEST_TRACKER_INSTANCE traefik_host=@SPEEDTEST_TRACKER_TRAEFIK_HOST http_auth=SPEEDTEST_TRACKER_HTTP_AUTH http_auth_var=@SPEEDTEST_TRACKER_HTTP_AUTH ip_sourcerange=@SPEEDTEST_TRACKER_IP_SOURCERANGE oauth2=SPEEDTEST_TRACKER_OAUTH2 authorized_group=SPEEDTEST_TRACKER_OAUTH2_AUTHORIZED_GROUP enable_mtls_auth=SPEEDTEST_TRACKER_MTLS_AUTH mtls_authorized_certs=SPEEDTEST_TRACKER_MTLS_AUTHORIZED_CERTS traefik_entrypoint=SPEEDTEST_TRACKER_TRAEFIK_ENTRYPOINT
 
 .PHONY: shell
 shell:

@@ -14,6 +14,7 @@ services:
       - no-new-privileges:true
     restart: unless-stopped
     environment:
+      - TZ=${DEFAULT_TIMEZONE:-Etc/UTC}
       - DOCKER_TLS_CERTDIR=/certs
     volumes:
       - certs:/certs
@@ -22,6 +23,7 @@ services:
     build:
       context: .
     environment:
+      - TZ=${DEFAULT_TIMEZONE:-Etc/UTC}
       - REPOSITORY=${GITHUB_ACTIONS_RUNNER_REPOSITORY}
       - RUNNER_TOKEN=${GITHUB_ACTIONS_RUNNER_TOKEN}
     hostname: ${GITHUB_ACTIONS_RUNNER_INSTANCE}

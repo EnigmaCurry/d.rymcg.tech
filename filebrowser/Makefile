@@ -29,7 +29,7 @@ override-hook:
 ####                         # (this hardcodes the string into docker-compose.override.yaml)
 ####   name=@VARIABLE_NAME   # sets the template 'name' field to the literal string '${VARIABLE_NAME}'
 ####                         # (used for regular docker-compose expansion of env vars by name.)
-	@${BIN}/docker_compose_override ${ENV_FILE} project=:filebrowser instance=@FILEBROWSER_INSTANCE traefik_host=@FILEBROWSER_TRAEFIK_HOST http_auth=FILEBROWSER_HTTP_AUTH http_auth_var=@FILEBROWSER_HTTP_AUTH ip_sourcerange=@FILEBROWSER_IP_SOURCERANGE oauth2=FILEBROWSER_OAUTH2 authorized_group=FILEBROWSER_OAUTH2_AUTHORIZED_GROUP enable_mtls_auth=FILEBROWSER_MTLS_AUTH mtls_authorized_certs=FILEBROWSER_MTLS_AUTHORIZED_CERTS external_volume=FILEBROWSER_EXTERNAL_VOLUME
+	@${BIN}/docker_compose_override ${ENV_FILE} project=:filebrowser instance=@FILEBROWSER_INSTANCE traefik_host=@FILEBROWSER_TRAEFIK_HOST http_auth=FILEBROWSER_HTTP_AUTH http_auth_var=@FILEBROWSER_HTTP_AUTH ip_sourcerange=@FILEBROWSER_IP_SOURCERANGE oauth2=FILEBROWSER_OAUTH2 authorized_group=FILEBROWSER_OAUTH2_AUTHORIZED_GROUP enable_mtls_auth=FILEBROWSER_MTLS_AUTH mtls_authorized_certs=FILEBROWSER_MTLS_AUTHORIZED_CERTS external_volume=FILEBROWSER_EXTERNAL_VOLUME traefik_entrypoint=FILEBROWSER_TRAEFIK_ENTRYPOINT
 
 .PHONY: shell # Enter container shell
 shell:

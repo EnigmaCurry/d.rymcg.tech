@@ -28,7 +28,7 @@ override-hook:
 ####                         # (this hardcodes the string into docker-compose.override.yaml)
 ####   name=@VARIABLE_NAME   # sets the template 'name' field to the literal string '${VARIABLE_NAME}'
 ####                         # (used for regular docker-compose expansion of env vars by name.)
-	@${BIN}/docker_compose_override ${ENV_FILE} project=:glances instance=@GLANCES_INSTANCE traefik_host=@GLANCES_TRAEFIK_HOST http_auth=GLANCES_HTTP_AUTH http_auth_var=@GLANCES_HTTP_AUTH ip_sourcerange=@GLANCES_IP_SOURCERANGE oauth2=GLANCES_OAUTH2 authorized_group=GLANCES_OAUTH2_AUTHORIZED_GROUP enable_mtls_auth=GLANCES_MTLS_AUTH mtls_authorized_certs=GLANCES_MTLS_AUTHORIZED_CERTS gpu_support=GLANCES_GPU container_metrics=GLANCES_CONTAINER_METRICS mount_host_filesystem=GLANCES_MOUNT_HOST_FILESYSTEM
+	@${BIN}/docker_compose_override ${ENV_FILE} project=:glances instance=@GLANCES_INSTANCE traefik_host=@GLANCES_TRAEFIK_HOST http_auth=GLANCES_HTTP_AUTH http_auth_var=@GLANCES_HTTP_AUTH ip_sourcerange=@GLANCES_IP_SOURCERANGE oauth2=GLANCES_OAUTH2 authorized_group=GLANCES_OAUTH2_AUTHORIZED_GROUP enable_mtls_auth=GLANCES_MTLS_AUTH mtls_authorized_certs=GLANCES_MTLS_AUTHORIZED_CERTS gpu_support=GLANCES_GPU container_metrics=GLANCES_CONTAINER_METRICS mount_host_filesystem=GLANCES_MOUNT_HOST_FILESYSTEM traefik_entrypoint=GLANCES_TRAEFIK_ENTRYPOINT
 
 .PHONY: shell
 shell:

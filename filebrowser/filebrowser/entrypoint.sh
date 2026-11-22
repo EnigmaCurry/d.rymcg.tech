@@ -23,8 +23,6 @@ check_var(){
     fi
 }
 
-rm -f /usr/local/bin/filebrowser
-ln -s /filebrowser /usr/local/bin/filebrowser
 mkdir -p ${ROOT_DIR}
 
 # check_var AUTH_TYPE ADMIN_USERNAME ADMIN_PASSWORD
@@ -72,4 +70,4 @@ filebrowser users ls
 ## Startup
 ############################################################
 echo "Dropping privileges before starting filebrowser (UID $FILEBROWSER_UID)"
-exec su-exec "$FILEBROWSER_UID" "/filebrowser" $@
+exec su-exec "$FILEBROWSER_UID" /bin/filebrowser $@

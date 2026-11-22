@@ -10,6 +10,7 @@
 #@ instance = data.values.instance
 #@ context = data.values.context
 #@ traefik_host = data.values.traefik_host
+#@ traefik_entrypoint = data.values.traefik_entrypoint
 #@ ip_sourcerange = data.values.ip_sourcerange
 #@ enable_http_auth = len(data.values.http_auth.strip()) > 0
 #@ http_auth = data.values.http_auth
@@ -33,6 +34,8 @@
 #@ jinja = data.values.jinja
 #@ tools = data.values.tools
 #@ sleep_idle_seconds = data.values.sleep_idle_seconds
+#@ parallel = data.values.parallel
+#@ ubatch_size = data.values.ubatch_size
 
 #@ def llama_service(profile):
 #@   service = "llama-" + profile
@@ -40,20 +43,45 @@
 #@   if api_token.strip():
 #@     env.append("LLAMA_API_KEY=${LLAMA_API_TOKEN}")
 #@   end
-#@   if context_length.strip():
-#@     env.append("LLAMA_CONTEXT_LENGTH=${LLAMA_CONTEXT_LENGTH}")
-#@   end
-#@   if n_gpu_layers.strip():
-#@     env.append("LLAMA_N_GPU_LAYERS=${LLAMA_N_GPU_LAYERS}")
-#@   end
 #@   cmd = []
 #@   if image_variant != "server":
 #@     cmd.append("--server")
 #@   end
 #@   cmd.extend(["--host", "0.0.0.0", "--port", server_port, "--models-dir", "/models"])
+#@   #! These are passed as command line flags, not environment variables.
+#@   #! The obvious-looking env names (LLAMA_CONTEXT_LENGTH,
+#@   #! LLAMA_N_GPU_LAYERS) do not exist in llama.cpp and are silently
+#@   #! ignored; the real ones are LLAMA_ARG_CTX_SIZE and
+#@   #! LLAMA_ARG_N_GPU_LAYERS. Flags are also visible in `GET /v1/models`
+#@   #! and in the logs, which makes a wrong value easy to spot.
+#@   if context_length.strip():
+#@     cmd.extend(["--ctx-size", context_length])
+#@   end
+#@   if n_gpu_layers.strip():
+#@     cmd.extend(["--n-gpu-layers", n_gpu_layers])
+#@   end
+#@   if parallel.strip():
+#@     cmd.extend(["--parallel", parallel])
+#@     #! Without an explicit --parallel, llama.cpp picks a slot count itself
+#@     #! and enables the unified KV pool, so every request can use the full
+#@     #! --ctx-size. Passing --parallel disables that, and llama.cpp then
+#@     #! splits --ctx-size between the slots (4 slots + 131072 ctx = 32768
+#@     #! tokens per request, which silently truncates long agent sessions).
+#@     #! Keep the unified pool so each request can still use the whole context.
+#@     cmd.append("--kv-unified")
+#@   end
+#@   if ubatch_size.strip():
+#@     cmd.extend(["--ubatch-size", ubatch_size])
+#@   end
+#@   entrypoint = []
 #@   if models_preset_enabled.strip() == "true":
 #@     cmd.append("--models-preset")
 #@     cmd.append("/models/models.ini")
+#@     #! llama-server exits if the preset file is missing, and a fresh
+#@     #! volume has none until `make manage-model-configs`; create an
+#@     #! empty one, then run the image's own entrypoint:
+#@     image_entrypoint = {"server": "/app/llama-server", "full": "/app/tools.sh", "light": "/app/llama-cli"}[image_variant]
+#@     entrypoint = ["/bin/sh", "-c", '[ -e /models/models.ini ] || touch /models/models.ini; exec "$$0" "$$@"', image_entrypoint]
 #@   end
 #@   if models_max.strip() and models_max.strip() != "0":
 #@     cmd.extend(["--models-max", models_max])
@@ -76,7 +104,7 @@
 #@   labels.append("backup-volume.stop-during-backup=true")
 #@   labels.append("traefik.enable=true")
 #@   labels.append("traefik.http.routers.{}.rule=Host(`{}`)".format(router, traefik_host))
-#@   labels.append("traefik.http.routers.{}.entrypoints=websecure".format(router))
+#@   labels.append("traefik.http.routers.{}.entrypoints={}".format(router, traefik_entrypoint))
 #@   middlewares.append("{}-ipallowlist".format(router))
 #@   labels.append("traefik.http.middlewares.{}-ipallowlist.ipallowlist.sourcerange={}".format(router, ip_sourcerange))
 #@   if enable_http_auth:
@@ -117,6 +145,7 @@
 #@       "volumes": volumes,
 #@       "labels": labels,
 #@       "environment": env,
+#@       "entrypoint": entrypoint,
 #@       "command": cmd
 #@     }
 #@   }

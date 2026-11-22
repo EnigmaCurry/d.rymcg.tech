@@ -10,6 +10,7 @@
 #@ instance = data.values.instance
 #@ context = data.values.context
 #@ traefik_host = data.values.traefik_host
+#@ traefik_entrypoint = data.values.traefik_entrypoint
 #@ ip_sourcerange = data.values.ip_sourcerange
 #@ enable_http_auth = len(data.values.http_auth.strip()) > 0
 #@ http_auth = data.values.http_auth
@@ -50,11 +51,13 @@
 #@   if trust_remote_code == "true":
 #@     cmd.append("--trust-remote-code")
 #@   end
-#@   if enable_auto_tool_choice == "true":
-#@     cmd.append("--enable-auto-tool-choice")
-#@   end
+#!   vLLM refuses to start if --enable-auto-tool-choice is given without
+#!   --tool-call-parser, so the former is only emitted alongside a parser:
 #@   if tool_call_parser.strip():
 #@     cmd.extend(["--tool-call-parser", tool_call_parser])
+#@     if enable_auto_tool_choice == "true":
+#@       cmd.append("--enable-auto-tool-choice")
+#@     end
 #@   end
 #@   if reasoning_parser.strip():
 #@     cmd.extend(["--reasoning-parser", reasoning_parser])
@@ -77,7 +80,7 @@
 #@     rule = base_rule
 #@   end
 #@   labels.append("traefik.http.routers.{}.rule={}".format(router, rule))
-#@   labels.append("traefik.http.routers.{}.entrypoints=websecure".format(router))
+#@   labels.append("traefik.http.routers.{}.entrypoints={}".format(router, traefik_entrypoint))
 #@   middlewares.append("{}-ipallowlist".format(router))
 #@   labels.append("traefik.http.middlewares.{}-ipallowlist.ipallowlist.sourcerange={}".format(router, ip_sourcerange))
 #@   labels.append("traefik.http.routers.{}.middlewares={}".format(router, ",".join(middlewares)))

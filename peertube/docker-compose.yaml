@@ -6,6 +6,7 @@ services:
     #   dockerfile: ./support/docker/production/Dockerfile.bookworm
     image: ${PEERTUBE_IMAGE}
     environment:
+      - TZ=${DEFAULT_TIMEZONE:-Etc/UTC}
       - PEERTUBE_DB_USERNAME=${PEERTUBE_POSTGRES_USER}
       - PEERTUBE_DB_PASSWORD=${PEERTUBE_POSTGRES_PASSWORD}
       - PEERTUBE_DB_SSL=${PEERTUBE_DB_SSL}
@@ -42,8 +43,14 @@ services:
       - POSTGRES_USER=${PEERTUBE_POSTGRES_USER}
       - POSTGRES_PASSWORD=${PEERTUBE_POSTGRES_PASSWORD}
       - POSTGRES_DB=peertube
+      ## postgres:18+ defaults PGDATA to /var/lib/postgresql/18/docker and
+      ## refuses to start with a volume at the old path; pin the old path,
+      ## which every version accepts, so existing volumes keep working.
+      ## Volumes already in the postgres 18 native layout can override
+      ## these (see README.md):
+      - PGDATA=${PEERTUBE_POSTGRES_PGDATA:-/var/lib/postgresql/data}
     volumes:
-      - postgres:/var/lib/postgresql/data
+      - postgres:${PEERTUBE_POSTGRES_DATA_MOUNT:-/var/lib/postgresql/data}
     restart: "unless-stopped"
     labels:
       - "backup-volume.stop-during-backup=true"
@@ -59,6 +66,7 @@ services:
   postfix:
     image: ${PEERTUBE_POSTFIX_IMAGE}
     environment:
+      - TZ=${DEFAULT_TIMEZONE:-Etc/UTC}
       - PEERTUBE_ADMIN_EMAIL=${PEERTUBE_ADMIN_EMAIL}
       - PEERTUBE_SMTP_FROM=${PEERTUBE_SMTP_FROM}
       - POSTFIX_myhostname=${PEERTUBE_POSTFIX_MYHOSTNAME}

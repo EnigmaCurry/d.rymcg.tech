@@ -6,7 +6,7 @@ source ${BIN}/funcs.sh
 source $(dirname ${BASH_SOURCE[0]})/../_terminal/linux/shell.sh
 
 mc() {
-    shell_container persistent=true template=mc image=quay.io/minio/mc ${@}
+    shell_container persistent=true template=mc image=docker.io/pgsty/mc ${@}
 }
 
 ## Start persistent container so we can temporarily cache the mc credentials

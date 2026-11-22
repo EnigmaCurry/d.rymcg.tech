@@ -1,5 +1,7 @@
 services:
   it-tools:
+    environment:
+      - TZ=${DEFAULT_TIMEZONE:-Etc/UTC}
     image: ${IT_TOOLS_IMAGE}
     cap_drop:
       - ALL

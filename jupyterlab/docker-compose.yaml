@@ -12,6 +12,7 @@ services:
       - no-new-privileges:true
     restart: unless-stopped
     environment:
+      TZ: ${DEFAULT_TIMEZONE:-Etc/UTC}
       JUPYTER_TOKEN: ${JUPYTERLAB_JUPYTER_TOKEN}
     labels: []
     volumes:
