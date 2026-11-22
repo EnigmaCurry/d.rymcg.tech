@@ -4,7 +4,11 @@ volumes:
 
 services:
   baikal:
-    image: "ckulka/baikal:${BAIKAL_VERSION}"
+    build:
+      context: image
+      args:
+        VERSION: ${BAIKAL_VERSION:-0.13.0}
+        APPLY_HOME_ASSISTANT_FIX: ${BAIKAL_HOME_ASSISTANT_FIX:-true}
     security_opt:
       - no-new-privileges:true
     cap_drop:
@@ -27,7 +31,6 @@ services:
     restart: unless-stopped
     environment:  
       TZ: ${DEFAULT_TIMEZONE:-Etc/UTC}
-      APPLY_HOME_ASSISTANT_FIX: "true"
     labels: []
     volumes:
       - baikal_config:/var/www/baikal/config
