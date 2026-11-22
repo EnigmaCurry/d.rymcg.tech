@@ -86,12 +86,18 @@ BACKUP_RETENTION_DAYS: Rotate backups older than how many days? (eg. 30)
 The archive is staged as a tar file in `/tmp` inside the container
 before it is uploaded, which by default is the container's writable
 layer on the Docker data root disk. If that disk does not have room for
-the whole archive, enter a directory on the Docker host to bind-mount
-at `/tmp` for staging instead. Leave it blank to use the container's
-own `/tmp`:
+the whole archive, enter the absolute path of a directory on the Docker
+host to bind-mount at `/tmp` for staging instead. Leave it blank to use
+the container's own `/tmp`.
+
+The archive is compressed as it is written (`BACKUP_COMPRESSION`,
+default `gz`). If you encrypt the backup, allow twice the archive size,
+because the plain and the encrypted archive are both kept until the
+backup finishes. `BACKUP_FROM_SNAPSHOT=true` also needs room for an
+uncompressed copy of the sources.
 
 ```stdout
-BACKUP_TMP_HOST_PATH: Enter a host directory to use for staging (blank to use the container's own /tmp)
+BACKUP_TMP_HOST_PATH: Enter an absolute host directory to use for staging (blank to use the container's own /tmp)
 :
 ```
 

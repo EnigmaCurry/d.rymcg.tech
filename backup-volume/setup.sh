@@ -32,12 +32,16 @@ configure_cron() {
 
 configure_staging() {
     echo
-    echo "# The backup is written as a tar file to /tmp inside the container before it"
-    echo "# is uploaded. By default that is the container's writable layer, which lives"
-    echo "# on the Docker data root disk. You may instead bind-mount a directory from"
-    echo "# the Docker host at /tmp, on a disk with room for the whole backup."
+    echo "# The backup is written as a compressed tar file to /tmp inside the container"
+    echo "# before it is uploaded. By default that is the container's writable layer,"
+    echo "# which lives on the Docker data root disk. You may instead bind-mount a"
+    echo "# directory from the Docker host at /tmp, on a disk with room for the whole"
+    echo "# archive (twice the archive size if you use GPG encryption)."
     echo
-    ALLOW_BLANK=1 ${BIN}/reconfigure_ask ${ENV_FILE} BACKUP_TMP_HOST_PATH "Enter a host directory to use for staging (blank to use the container's own /tmp)"
+    ## Blank, or an absolute path. No '~' (it would expand on the workstation,
+    ## not the Docker host), no ':' (the mount separator), and no '$' (compose
+    ## would interpolate it):
+    ALLOW_BLANK=1 ${BIN}/reconfigure_ask_validate_regex ${ENV_FILE} BACKUP_TMP_HOST_PATH "Enter an absolute host directory to use for staging (blank to use the container's own /tmp)" - '^(/[^:$]+)?$'
 }
 
 configure_remote() {
