@@ -3,10 +3,9 @@
 # This is a copy of ckulka/baikal-docker's nginx-php8.2.dockerfile
 # (https://github.com/ckulka/baikal-docker/blob/master/nginx-php8.2.dockerfile),
 # with the Baikal version selectable at build time, the Home Assistant
-# CalDAV fix applied at build time, and PHP 8.6 instead of ckulka's 8.2
-# (8.2's security support ends 2026-12-31; the version is the
-# PHP_VERSION build arg, default 8.6). It exists because ckulka's
-# published images stop at Baikal 0.10.1.
+# CalDAV fix applied at build time, and the PHP version selectable at
+# build time (default 8.6, instead of ckulka's 8.2). It exists because
+# ckulka's published images stop at Baikal 0.10.1.
 #
 # See README.md in this directory.
 
@@ -33,8 +32,8 @@ RUN apk add --no-cache curl unzip && \
 FROM nginx:1
 
 # PHP version to install from the sury repo (BAIKAL_PHP_VERSION in .env).
-# 8.6 by default: 8.2's security support ends 2026-12-31, 8.6's runs to
-# 2030. Baikal needs >= 8.2. Changing it requires `make build`.
+# Baikal needs >= 8.2; see .env-dist for choosing a version. Changing it
+# requires `make build`.
 ARG PHP_VERSION=8.6
 
 # Install dependencies: PHP & SQLite3

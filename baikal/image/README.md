@@ -20,9 +20,10 @@ with `make build` (or `make install BUILD=1`).
   - the Baikal version is a build arg (`VERSION`, from
     `BAIKAL_VERSION` in `.env`) instead of a hardcoded `0.10.1`
   - PHP is 8.6 by default (build arg `PHP_VERSION`, from
-    `BAIKAL_PHP_VERSION` in `.env`) instead of ckulka's 8.2: 8.2's
-    security support ends 2026-12-31, 8.6's runs to 2030. PHP >= 8.2
-    is the minimum: Baikal 0.11.0 dropped PHP 8.1 support.
+    `BAIKAL_PHP_VERSION` in `.env`) instead of ckulka's 8.2, whose
+    [security support](https://www.php.net/supported-versions.php)
+    ends sooner. PHP >= 8.2 is the minimum: Baikal 0.11.0 dropped PHP
+    8.1 support.
   - the Home Assistant fix is applied to
     `vendor/sabre/dav/lib/CalDAV/Plugin.php` at build time, with both
     checksums asserted so a Baikal version bump cannot silently skip it
