@@ -9,21 +9,24 @@ tag has to exist.
 `docker-compose.yaml` builds it with `build: context: image`; there is
 no `image:` reference, so `make install` builds it on the Docker host
 the first time and reuses it afterwards. Rebuild after changing
-`BAIKAL_VERSION` or `BAIKAL_HOME_ASSISTANT_FIX` with `make build`
-(or `make install BUILD=1`).
+`BAIKAL_VERSION`, `BAIKAL_PHP_VERSION` or `BAIKAL_HOME_ASSISTANT_FIX`
+with `make build` (or `make install BUILD=1`).
 
 ## Contents
 
 - `Dockerfile` - copy of
   [ckulka/baikal-docker `nginx-php8.2.dockerfile`](https://github.com/ckulka/baikal-docker/blob/master/nginx-php8.2.dockerfile)
-  with three changes:
+  with four changes:
   - the Baikal version is a build arg (`VERSION`, from
     `BAIKAL_VERSION` in `.env`) instead of a hardcoded `0.10.1`
+  - PHP is 8.6 by default (build arg `PHP_VERSION`, from
+    `BAIKAL_PHP_VERSION` in `.env`) instead of ckulka's 8.2: 8.2's
+    security support ends 2026-12-31, 8.6's runs to 2030. PHP >= 8.2
+    is the minimum: Baikal 0.11.0 dropped PHP 8.1 support.
   - the Home Assistant fix is applied to
     `vendor/sabre/dav/lib/CalDAV/Plugin.php` at build time, with both
     checksums asserted so a Baikal version bump cannot silently skip it
   - the image is tagged by compose, not pushed anywhere
-  - PHP 8.2 is required: Baikal 0.11.0 dropped PHP 8.1 support.
 - `files/` - the supporting files the Dockerfile copies in, taken from the
   ckulka/baikal-docker repo (entrypoint scripts and nginx.conf).
   ckulka's `30-apply-home-assistant-fix.sh` and
@@ -54,8 +57,9 @@ make build-force      # same, without the layer cache (pick up new packages)
 
 `make install` builds the image only when it does not exist yet; it does
 not rebuild an existing one. That means a changed Dockerfile, a new
-`BAIKAL_VERSION` or a new `BAIKAL_HOME_ASSISTANT_FIX` needs `make build`
-(or `make install BUILD=1`) to take effect. `make build-force` also
+`BAIKAL_VERSION`, a new `BAIKAL_PHP_VERSION` or a new
+`BAIKAL_HOME_ASSISTANT_FIX` needs `make build` (or `make install
+BUILD=1`) to take effect. `make build-force` also
 refreshes the PHP packages installed with apt; add `--pull` (e.g.
 `docker compose build --pull --no-cache`) if the `nginx:1` base image
 should be refreshed as well.

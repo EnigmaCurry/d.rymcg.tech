@@ -2,9 +2,11 @@
 #
 # This is a copy of ckulka/baikal-docker's nginx-php8.2.dockerfile
 # (https://github.com/ckulka/baikal-docker/blob/master/nginx-php8.2.dockerfile),
-# with the Baikal version selectable at build time and the Home Assistant
-# CalDAV fix applied at build time. It exists because ckulka's published
-# images stop at Baikal 0.10.1.
+# with the Baikal version selectable at build time, the Home Assistant
+# CalDAV fix applied at build time, and PHP 8.6 instead of ckulka's 8.2
+# (8.2's security support ends 2026-12-31; the version is the
+# PHP_VERSION build arg, default 8.6). It exists because ckulka's
+# published images stop at Baikal 0.10.1.
 #
 # See README.md in this directory.
 
@@ -30,7 +32,12 @@ RUN apk add --no-cache curl unzip && \
 # Final Docker image
 FROM nginx:1
 
-# Install dependencies: PHP (with libffi6 dependency) & SQLite3
+# PHP version to install from the sury repo (BAIKAL_PHP_VERSION in .env).
+# 8.6 by default: 8.2's security support ends 2026-12-31, 8.6's runs to
+# 2030. Baikal needs >= 8.2. Changing it requires `make build`.
+ARG PHP_VERSION=8.6
+
+# Install dependencies: PHP & SQLite3
 RUN curl -o /etc/apt/trusted.gpg.d/php.gpg https://packages.sury.org/php/apt.gpg &&\
   apt update                  &&\
   apt install -y lsb-release  &&\
@@ -38,18 +45,18 @@ RUN curl -o /etc/apt/trusted.gpg.d/php.gpg https://packages.sury.org/php/apt.gpg
   apt remove -y lsb-release   &&\
   apt update                  &&\
     apt install -y            \
-    php8.2-curl               \
-    php8.2-fpm                \
-    php8.2-mbstring           \
-    php8.2-mysql              \
-    php8.2-pgsql              \
-    php8.2-sqlite3            \
-    php8.2-xml                \
+    php${PHP_VERSION}-curl    \
+    php${PHP_VERSION}-fpm     \
+    php${PHP_VERSION}-mbstring \
+    php${PHP_VERSION}-mysql   \
+    php${PHP_VERSION}-pgsql   \
+    php${PHP_VERSION}-sqlite3 \
+    php${PHP_VERSION}-xml     \
     sqlite3                   \
     msmtp msmtp-mta           &&\
   rm -rf /var/lib/apt/lists/* &&\
-  sed -i 's/www-data/nginx/' /etc/php/8.2/fpm/pool.d/www.conf &&\
-  sed -i 's/^listen = .*/listen = \/var\/run\/php-fpm.sock/' /etc/php/8.2/fpm/pool.d/www.conf
+  sed -i 's/www-data/nginx/' /etc/php/${PHP_VERSION}/fpm/pool.d/www.conf &&\
+  sed -i 's/^listen = .*/listen = \/var\/run\/php-fpm.sock/' /etc/php/${PHP_VERSION}/fpm/pool.d/www.conf
 
 # Add Baikal & nginx configuration
 COPY files/docker-entrypoint.d/*.sh files/docker-entrypoint.d/nginx/ /docker-entrypoint.d/

@@ -8,6 +8,7 @@ services:
       context: image
       args:
         VERSION: ${BAIKAL_VERSION:-0.13.0}
+        PHP_VERSION: ${BAIKAL_PHP_VERSION:-8.6}
         APPLY_HOME_ASSISTANT_FIX: ${BAIKAL_HOME_ASSISTANT_FIX:-true}
     security_opt:
       - no-new-privileges:true
