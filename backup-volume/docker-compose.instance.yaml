@@ -116,7 +116,17 @@ services:
       #@ end
       #! Optionally mount a host directory at /tmp for staging the archive:
       #@ if len(backup_tmp_host_path):
-      - "(@= backup_tmp_host_path @):/tmp"
+      - type: bind
+        source: "(@= backup_tmp_host_path @)"
+        target: /tmp
+        bind:
+          #! Long syntax with create_host_path: false, because the short
+          #! syntax ("path:/tmp") makes Docker create a missing directory on
+          #! the host. A configured staging path that doesn't exist means the
+          #! intended disk isn't mounted, and silently staging on the Docker
+          #! root disk is exactly what this option exists to avoid. Fail the
+          #! container start instead.
+          create_host_path: false
       #@ end
       #! Mount extra volumes to backup here:
       #! Must mount these as /backup/$volume:
