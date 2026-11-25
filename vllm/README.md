@@ -92,6 +92,28 @@ caching, which can speed up repeated prompts with shared prefixes.
 Set `VLLM_TENSOR_PARALLEL_SIZE` to split a model across multiple
 GPUs. The default is 1 (single GPU).
 
+### GPU Memory Utilization
+
+`VLLM_GPU_MEMORY_UTILIZATION` sets the fraction of total GPU memory
+vLLM reserves for weights and KV cache (vLLM default `0.9`). vLLM
+refuses to start if that much memory isn't free, so lower it when
+other containers (ComfyUI, etc.) share the GPU.
+
+### Max Concurrent Sequences
+
+`VLLM_MAX_NUM_SEQS` caps how many requests are batched together
+(`--max-num-seqs`). Lowering it shrinks warmup and activation memory,
+which can free enough KV cache to fit a very long `VLLM_MAX_MODEL_LEN`.
+
+### Speculative Decoding
+
+Set `VLLM_SPECULATIVE_CONFIG` to compact JSON for `--speculative-config`.
+For example, Inkling-2-Mini ships a DSpark drafter in its checkpoint:
+
+```
+VLLM_SPECULATIVE_CONFIG={"method":"dspark","num_speculative_tokens":7,"draft_sample_method":"probabilistic"}
+```
+
 ## Install
 
 ```
