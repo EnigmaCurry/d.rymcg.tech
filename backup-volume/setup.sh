@@ -30,6 +30,28 @@ configure_cron() {
 	${BIN}/reconfigure_ask ${ENV_FILE} BACKUP_RETENTION_DAYS "Rotate backups older than how many days?"
 }
 
+configure_staging() {
+    echo
+    echo "# The backup is written as a compressed tar file to /tmp inside the container"
+    echo "# before it is uploaded. By default that is the container's writable layer,"
+    echo "# which lives on the Docker data root disk. You may instead bind-mount a"
+    echo "# directory from the Docker host at /tmp, on a disk with room for the whole"
+    echo "# archive (twice the archive size if you use GPG encryption)."
+    echo "#"
+    echo "# The directory must already exist on the Docker host, and must be on the"
+    echo "# mounted disk: 'make install' refuses to start the container otherwise, so"
+    echo "# the archive cannot silently land on the Docker root disk. A directory that"
+    echo "# exists but whose disk is not mounted is NOT detected, so verify it with"
+    echo "# 'df' on the Docker host. Create it root-owned and private (the archive is"
+    echo "# plaintext until it is encrypted), and use one directory per instance:"
+    echo "#   install -d -m 0700 -o root -g root /path/to/staging"
+    echo
+    ## Blank, or an absolute path. No '~' (it would expand on the workstation,
+    ## not the Docker host), no ':' (the mount separator), no '$' (compose
+    ## would interpolate it), and no '"' or '\' (YAML string escapes):
+    ALLOW_BLANK=1 ${BIN}/reconfigure_ask_validate_regex ${ENV_FILE} BACKUP_TMP_HOST_PATH "Enter an absolute host directory to use for staging (blank to use the container's own /tmp)" - '^(/[^:$"\\]+)?$'
+}
+
 configure_remote() {
     DEFAULT=$(${BIN}/dotenv -f ${ENV_FILE} get BACKUP_STORAGE_TYPE)
     CHOSEN=$(wizard choose --default "${DEFAULT}" "Which remote storage do you want to use?" "s3" "ssh" "webdav" "azure" "dropbox" "local")
@@ -232,6 +254,7 @@ setup() {
     check_var ROOT_DIR ENV_FILE PROJECT_INSTANCE ROOT_ENV
     configure_backups
     configure_cron
+    configure_staging
     configure_remote
     configure_notifications
 }

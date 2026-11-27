@@ -11,8 +11,11 @@ services:
     restart: unless-stopped
     # All env vars are defined in the template: docker-compose.instance.yaml
     environment:
-      - TZ=${DEFAULT_TIMEZONE:-Etc/UTC}
+      - TZ=${BACKUP_TIMEZONE:-${DEFAULT_TIMEZONE:-Etc/UTC}}
     # All labels are defined in the template: docker-compose.instance.yaml
     labels: []
-    # All volumes are defined in the template: docker-compose.instance.yaml
-    volumes: []
+    volumes:
+      # The image does not ship tzdata, so mount the host's zoneinfo database
+      # for TZ to take effect (and for the cron schedule to honor it):
+      - ${HOST_ZONEINFO:-/usr/share/zoneinfo}:/usr/share/zoneinfo:ro
+      # All other volumes are defined in the template: docker-compose.instance.yaml

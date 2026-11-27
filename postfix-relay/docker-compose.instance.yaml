@@ -9,8 +9,13 @@
 #@ project = data.values.project
 #@ instance = data.values.instance
 #@ context = data.values.context
+#@ bind_ip = data.values.bind_ip.strip()
 
 #@yaml/text-templated-strings
 services:
   postfix-relay:
     #@ service = "postfix-relay"
+    #@ if len(bind_ip) > 0:
+    ports:
+      - "(@= bind_ip @):${POSTFIX_RELAY_SUBMISSION_PORT:-587}:587"
+    #@ end
