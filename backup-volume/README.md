@@ -65,6 +65,22 @@ BACKUP_CRON_EXPRESSION: Enter the cron expression (eg. @daily)
 : @daily
 ```
 
+The cron expression is interpreted in the container's timezone:
+`BACKUP_TIMEZONE` if it is set, otherwise `DEFAULT_TIMEZONE` from the
+root `.env_{CONTEXT}` file. `make config` does not ask for it, so to
+run the schedule in a different timezone than the context default,
+set it directly:
+
+```
+make reconfigure var=BACKUP_TIMEZONE=America/New_York
+```
+
+> **⚠️ Upgrade note:** before `TZ` was honored, the schedule ran in UTC.
+> If your `DEFAULT_TIMEZONE` is not UTC, the next `make install` moves
+> the schedule (and the `%Y-%m-%dT%H-%M-%S` timestamps in
+> `BACKUP_FILENAME`) to the context timezone. Adjust
+> `BACKUP_CRON_EXPRESSION` if it was picked for UTC.
+
 Choose the retention length (number of days) to keep backup archives
 before automatic pruning happens:
 
@@ -72,6 +88,49 @@ before automatic pruning happens:
 BACKUP_RETENTION_DAYS: Rotate backups older than how many days? (eg. 30)
 : 30
 ```
+
+The archive is staged as a tar file in `/tmp` inside the container
+before it is uploaded, which by default is the container's writable
+layer on the Docker data root disk. If that disk does not have room for
+the whole archive, enter the absolute path of a directory on the Docker
+host to bind-mount at `/tmp` for staging instead. Leave it blank to use
+the container's own `/tmp`.
+
+The archive is compressed as it is written (`BACKUP_COMPRESSION`,
+default `gz`). If you encrypt the backup, allow twice the archive size,
+because the plain and the encrypted archive are both kept until the
+backup finishes. `BACKUP_FROM_SNAPSHOT=true` also needs room for an
+uncompressed copy of the sources.
+
+```stdout
+BACKUP_TMP_HOST_PATH: Enter an absolute host directory to use for staging (blank to use the container's own /tmp)
+:
+```
+
+The staging directory must already exist on the Docker host, on the
+mounted disk. `make install` refuses to start the container if the
+directory does not exist; the short mount syntax would let Docker create
+it on the root disk instead. A directory that exists but whose disk is
+not mounted cannot be detected, so check it yourself on the Docker host:
+
+```
+df -h /path/to/staging
+```
+
+Create it root-owned and private, and use one directory per instance.
+The archive is plaintext until it is encrypted, and is written `0644`:
+
+```
+install -d -m 0700 -o root -g root /path/to/staging
+```
+
+Every container stages inside its own `/tmp`, so instances that share one
+host directory share `/tmp` as well. With `BACKUP_FROM_SNAPSHOT=true` both
+use the fixed path `/tmp/backup`, and each run deletes it when it
+finishes, so concurrent runs can corrupt each other. A partial archive
+left behind by an interrupted run stays in the directory: the file name
+has a timestamp, so a later run won't reuse it, but it uses space until
+you delete it.
 
 You can choose any of the supported storage mechanisms. For demo
 purposes, choose S3:
