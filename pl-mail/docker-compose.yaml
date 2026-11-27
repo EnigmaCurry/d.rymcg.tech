@@ -12,6 +12,9 @@
 
 x-app-env: &app-env
   APP_ENV: prod
+  # Follow the context-wide DEFAULT_TIMEZONE (the image has no tzdata; the
+  # zoneinfo directory is mounted below).
+  TZ: ${DEFAULT_TIMEZONE:-Etc/UTC}
   # The public URL plMail is reached at. Must start with https:// and not be
   # a loopback host for Google/Microsoft push to register. Also used to
   # derive MERCURE_PUBLIC_URL and to build share/booking links.
@@ -77,6 +80,7 @@ services:
       - app_attachments:/app/var/attachments
       - app_raw:/app/var/raw
       - app_uploads:/app/var/uploads
+      - ${HOST_ZONEINFO:-/usr/share/zoneinfo}:/usr/share/zoneinfo:ro
     depends_on:
       secrets-init:
         condition: service_completed_successfully
@@ -111,6 +115,7 @@ services:
       - app_attachments:/app/var/attachments
       - app_raw:/app/var/raw
       - app_uploads:/app/var/uploads
+      - ${HOST_ZONEINFO:-/usr/share/zoneinfo}:/usr/share/zoneinfo:ro
     healthcheck:
       disable: true
     depends_on:
